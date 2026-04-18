@@ -6,12 +6,10 @@
 <title>Deepwork — Field Operations Platform</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 92'><rect width='120' height='92' fill='%2318140a' rx='14'/><polygon points='60,72 16,17 104,17' fill='%2314100a'/><polygon points='60,68 22,21 98,21' fill='%231c1608' stroke='%23ffab00' stroke-width='2'/><rect x='58' y='2' width='4' height='66' fill='%23ffab00' rx='1.5'/><polygon points='60,68 55,61 65,61' fill='%23ffab00'/><line x1='60' y1='68' x2='42' y2='77' stroke='%23ffab00' stroke-width='2.2' stroke-linecap='round'/><line x1='60' y1='68' x2='78' y2='77' stroke='%23ffab00' stroke-width='2.2' stroke-linecap='round'/><line x1='60' y1='68' x2='60' y2='85' stroke='%23ffd54f' stroke-width='2.5' stroke-linecap='round'/><circle cx='60' cy='86' r='3' fill='%23ffd54f'/></svg>">
 <meta name="theme-color" content="#ffab00">
- <meta http-equiv="Content-Security-Policy" content="default-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; manifest-src 'self' data:; connect-src 'self' https://api.openweathermap.org;">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Deepwork">
 <meta name="mobile-web-app-capable" content="yes">
-
 <link rel="icon" type="image/svg+xml" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="%23100d07"/><text x="32" y="42" text-anchor="middle" font-family="Arial" font-size="28" font-weight="800" fill="%23ffab00">DW</text></svg>'>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -98,9 +96,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 /* SECTION TITLE */
 .st{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border);margin-top:16px;}
 .st:first-child{margin-top:0;}
-.sc{flex:1;overflow-y:auto;padding:16px;}
-.hcontent{flex:1;padding:16px;overflow-y:auto;}
-.fcontent{flex:1;overflow-y:auto;padding:16px;}
+.sc{flex:1;overflow-y:auto;padding:16px 16px 80px;}
+.hcontent{flex:1;padding:16px 16px 80px;overflow-y:auto;}
+.fcontent{flex:1;overflow-y:auto;padding:16px 16px 80px;}
 /* NAV CARDS */
 .ngrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px;}
 .nc{background:var(--card);border:1px solid var(--border);padding:16px 12px;cursor:pointer;transition:all .25s;display:flex;flex-direction:column;gap:8px;position:relative;}
@@ -119,8 +117,14 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .narrow{font-size:18px;font-weight:700;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
 .abs-badge{position:absolute;top:9px;right:9px;}
 .nc .count{position:absolute;top:9px;right:9px;background:var(--danger);color:#fff;min-width:18px;height:18px;border-radius:50%;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;}
-/* BOTTOM NAV */
-.bnav{background:rgba(20,16,10,.95);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(4,1fr);flex-shrink:0;}
+/* BOTTOM NAV (global, always visible except on login) */
+.bnav{position:fixed;left:0;right:0;bottom:0;background:rgba(20,16,10,.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(4,1fr);z-index:90;padding-bottom:env(safe-area-inset-bottom);}
+.bnav.hidden{display:none;}
+.bn{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:9px 4px 8px;cursor:pointer;transition:all .2s;border-top:2px solid transparent;gap:3px;color:var(--muted);background:none;border-left:none;border-right:none;border-bottom:none;}
+.bn svg{stroke:currentColor;}
+.bn span{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;}
+.bn.active{border-top-color:var(--amber);color:var(--amber);}
+.bn:hover{background:rgba(255,171,0,.05);color:var(--amber2);}
 .ni{display:flex;flex-direction:column;align-items:center;padding:7px 4px;cursor:pointer;transition:all .2s;border-top:2px solid transparent;gap:3px;}
 .ni.active{border-top-color:var(--amber);}
 .ni:hover{background:rgba(255,171,0,.04);}
@@ -407,12 +411,12 @@ select.cinput option{background:var(--panel);}
 .chip.on{border-color:var(--amber);color:var(--amber);background:rgba(255,171,0,.07);}
 /* DESKTOP */
 @media(min-width:768px){
-  .bnav{display:none;}
   .topbar,.ph{padding-left:24px;padding-right:24px;}
   .hcontent,.fcontent,.sc,.apanel{max-width:860px;margin:0 auto;width:100%;}
   .tgrid,.pgrid{grid-template-columns:repeat(3,1fr);max-width:860px;margin:0 auto;}
   .ngrid{grid-template-columns:repeat(3,1fr);}
   .nc.wide{grid-column:1/-1;}
+  .bnav{max-width:860px;left:50%;transform:translateX(-50%);}
 }
 ::-webkit-scrollbar{width:3px;}
 ::-webkit-scrollbar-track{background:var(--dark);}
@@ -431,8 +435,6 @@ select.cinput option{background:var(--panel);}
 .notif-bell{position:relative;cursor:pointer;color:var(--muted);padding:6px;}
 .notif-bell:hover{color:var(--amber);}
 .notif-badge{position:absolute;top:0;right:0;background:var(--danger);color:#fff;border-radius:50%;min-width:16px;height:16px;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 4px;}
-.hcontent{flex:1;overflow-y:auto;padding:16px;}
-.fcontent{flex:1;overflow-y:auto;padding:16px;}
 .meteo-card{background:var(--card);border:1px solid var(--border);padding:14px;margin-bottom:14px;display:flex;flex-direction:column;gap:4px;}
 .meteo-loc{font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
 .meteo-body{display:flex;align-items:baseline;gap:10px;}
@@ -760,12 +762,6 @@ body.light-mode .map-wrap iframe{filter:none;}
       </div>
     </div>
   </div>
-  <div class="bnav">
-    <div class="bn active" data-scr="home" onclick="nav('home')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Home</span></div>
-    <div class="bn" data-scr="volate" onclick="nav('volate')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Volate</span></div>
-    <div class="bn" data-scr="cave" onclick="nav('cave')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l10 20H2z"/></svg><span>Cave</span></div>
-    <div class="bn" data-scr="menu" onclick="nav('menu')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg><span>Menu</span></div>
-  </div>
 </div>
 
 <!-- ══════════ MENU ══════════ -->
@@ -773,12 +769,6 @@ body.light-mode .map-wrap iframe{filter:none;}
   <div class="ph"><button class="bk" onclick="goBack()">←</button><div class="ht">Menu</div></div>
   <div class="sc">
     <div class="pgrid" id="menu-grid"></div>
-  </div>
-  <div class="bnav">
-    <div class="bn" onclick="nav('home')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Home</span></div>
-    <div class="bn" onclick="nav('volate')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Volate</span></div>
-    <div class="bn" onclick="nav('cave')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l10 20H2z"/></svg><span>Cave</span></div>
-    <div class="bn active" onclick="nav('menu')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg><span>Menu</span></div>
   </div>
 </div>
 
@@ -791,12 +781,6 @@ body.light-mode .map-wrap iframe{filter:none;}
     </div>
     <div id="vol-list"></div>
   </div>
-  <div class="bnav">
-    <div class="bn" onclick="nav('home')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Home</span></div>
-    <div class="bn active" onclick="nav('volate')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Volate</span></div>
-    <div class="bn" onclick="nav('cave')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l10 20H2z"/></svg><span>Cave</span></div>
-    <div class="bn" onclick="nav('menu')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg><span>Menu</span></div>
-  </div>
 </div>
 
 <!-- ══════════ CAVE ══════════ -->
@@ -808,12 +792,6 @@ body.light-mode .map-wrap iframe{filter:none;}
   </div>
   <div class="sc">
     <div id="cave-list"></div>
-  </div>
-  <div class="bnav">
-    <div class="bn" onclick="nav('home')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Home</span></div>
-    <div class="bn" onclick="nav('volate')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Volate</span></div>
-    <div class="bn active" onclick="nav('cave')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l10 20H2z"/></svg><span>Cave</span></div>
-    <div class="bn" onclick="nav('menu')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg><span>Menu</span></div>
   </div>
 </div>
 
@@ -1138,6 +1116,14 @@ body.light-mode .map-wrap iframe{filter:none;}
   <div class="sc"><div id="contatti-list"></div></div>
 </div>
 
+<!-- ══════════ BOTTOM NAV (globale, sempre visibile) ══════════ -->
+<div class="bnav hidden" id="global-nav">
+  <div class="bn" data-scr="home" onclick="nav('home')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Home</span></div>
+  <div class="bn" data-scr="volate" onclick="nav('volate')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Volate</span></div>
+  <div class="bn" data-scr="cave" onclick="nav('cave')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l10 20H2z"/></svg><span>Cave</span></div>
+  <div class="bn" data-scr="menu" onclick="nav('menu')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg><span>Menu</span></div>
+</div>
+
 <!-- ══════════ MODAL GENERICO ══════════ -->
 <div class="modal-ov" id="modal" onclick="if(event.target===this)closeModal()">
   <div class="modal-box">
@@ -1350,10 +1336,17 @@ function nav(scr,fromBack){
   }
   if(scr==='login')state.history=[];
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  $('screen-'+scr).classList.add('active');
+  const tgt=$('screen-'+scr);
+  if(tgt)tgt.classList.add('active');
   state.prevScreen=state.currentScreen;
   state.currentScreen=scr;
-  document.querySelectorAll('.bn').forEach(b=>b.classList.toggle('active',b.dataset.scr===scr));
+  // Gestione navbar globale
+  const gnav=$('global-nav');
+  if(gnav){
+    if(scr==='login'){gnav.classList.add('hidden');}
+    else{gnav.classList.remove('hidden');}
+  }
+  document.querySelectorAll('#global-nav .bn').forEach(b=>b.classList.toggle('active',b.dataset.scr===scr));
   if(scr==='home')renderHome();
   if(scr==='menu')renderMenu();
   if(scr==='volate')renderVolate();
@@ -2506,14 +2499,16 @@ function calcCostoEsplosivo(kg,tipo){
 /* ═══════════════════ INIT ═══════════════════ */
 document.addEventListener('DOMContentLoaded',()=>{
   loadDB();
-  applyTheme();
+  if(typeof applyTheme==='function')applyTheme();
   if($('lu'))$('lu').addEventListener('keydown',e=>{if(e.key==='Enter')$('lp').focus();});
   if($('lp'))$('lp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
   if($('r-m'))$('r-m').addEventListener('input',()=>{markUnsaved();aggiornaTotali();});
   // Controllo scadenze iniziali
-  DB.promemoria.forEach(p=>{if(daysBetween(today(),p.data)<0)p.scaduto=true;});
-  // Mostra schermata login
-  if(typeof showLogin==='function')showLogin();
+  if(DB.promemoria)DB.promemoria.forEach(p=>{if(daysBetween(today(),p.data)<0)p.scaduto=true;});
+  // Stato iniziale: login (la screen login ha già class "active" nell'HTML)
+  state.currentScreen='login';
+  const gnav=document.getElementById('global-nav');
+  if(gnav)gnav.classList.add('hidden');
 });
 </script>
 </body>
