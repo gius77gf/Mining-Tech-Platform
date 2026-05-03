@@ -4,5 +4,5 @@
 
    [[redirects]]
      from = "/*"
-     to = "/index.html"
+             to = "/deepwork-v3.4.html"
      status = 200
