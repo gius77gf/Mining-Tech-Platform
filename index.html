@@ -2924,7 +2924,7 @@ function exportRapportinoPDF(r){
   }
   // Footer
   d.setFontSize(8);d.setTextColor(120,120,120);
-  d.setFont('helvetica','italic');d.text('Deepwork per Cava Mineraria',105,285,{align:'center'});d.setFont('helvetica','normal');
+  d.setFont('helvetica','italic');d.text('Deepwork per Cofa Mineraria',105,285,{align:'center'});d.setFont('helvetica','normal');
   d.text('Documento generato automaticamente da Deepwork — '+new Date().toLocaleString('it-IT'),105,290,{align:'center'});
   d.save(`Rapportino_${(c?c.nome:'cava').replace(/[^\w]/g,'_')}_${r.data}.pdf`);
   toast('PDF generato','success');
@@ -2993,7 +2993,7 @@ function exportRapportinoFocPDF(r){
   }
   // Footer
   d.setFontSize(8);d.setTextColor(120,120,120);
-  d.setFont('helvetica','italic');d.text('Deepwork per Cava Mineraria',105,285,{align:'center'});d.setFont('helvetica','normal');
+  d.setFont('helvetica','italic');d.text('Deepwork per Cofa Mineraria',105,285,{align:'center'});d.setFont('helvetica','normal');
   d.text('Documento generato automaticamente da Deepwork — '+new Date().toLocaleString('it-IT'),105,290,{align:'center'});
   d.save(`Fochino_${(c?c.nome:'cava').replace(/[^\w]/g,'_')}_${r.data}.pdf`);
   toast('PDF generato','success');
@@ -5289,7 +5289,7 @@ function exportVolataPDF(volataId){
   const tipoLabel={'cava':'CAVA','galleria':'GALLERIA','altro':'ALTRO'}[v.tipo||'cava']||'CAVA';
   const nomeProgetto=v.nomeProgetto||('VOLATA #'+v.numero);
   const d=new jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
-  const CAPTION='Deepwork per Cava Mineraria';
+  const CAPTION='Deepwork per Cofa Mineraria';
   function header(title){
     d.setFillColor(255,255,255);d.rect(0,0,210,297,'F');
     d.setFillColor(255,171,0);d.rect(0,0,210,20,'F');
