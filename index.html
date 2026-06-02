@@ -1600,7 +1600,7 @@ function apriRapport(id){
       ${r.diametro?`<div class="preview-row"><span class="preview-lab">Diametro</span><span class="preview-val">${r.diametro} mm</span></div>`:''}
       ${r.maglia?`<div class="preview-row"><span class="preview-lab">Maglia</span><span class="preview-val">${r.maglia}</span></div>`:''}
       ${m?`<div class="preview-row"><span class="preview-lab">Mezzo</span><span class="preview-val">${m.modello}</span></div>`:''}
-      ${r.fori?`<div class="preview-row"><span class="preview-lab">Fori</span><span class="preview-val">${r.fori}${r.fori_fila2>0?' ('+r.fori_fila1+'+'+r.fori_fila2+')'':''}</span></div>`:''}
+      ${r.fori?`<div class="preview-row"><span class="preview-lab">Fori</span><span class="preview-val">${r.fori}${r.fori_fila2>0?' ('+r.fori_fila1+'+'+r.fori_fila2+')':''}</span></div>`:''}
       ${r.metri?`<div class="preview-row"><span class="preview-lab">Metri</span><span class="preview-val">${r.metri}</span></div>`:''}
       ${r.media_prof?`<div class="preview-row"><span class="preview-lab">Media prof.</span><span class="preview-val">${r.media_prof} m</span></div>`:''}
       ${r.mc?`<div class="preview-row"><span class="preview-lab">Mc in ballo</span><span class="preview-val">${r.mc}</span></div>`:''}
@@ -3855,7 +3855,6 @@ function renderEditorSide(){
       <button class="btn-danger" onclick="confermaDelVolata('${v.id}')">🗑️ Elimina</button>
     </div>
     `;
-  }
 }
 
 // ════════════════════════════════════════════════════
