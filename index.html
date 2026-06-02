@@ -32,6 +32,7 @@
     'openNotifiche','openPromemoriaForm','confermaElimPromemoria',
     'apriCava','uploadCavaFoto','apriRapport','openCavaForm','openCavaEdit','salvaCava','confermaDelCava',
     'filtraVolate','renderVolate','toggleFiltri','applicaFiltriVolate','resetFiltriVolate',
+    'openVolate','openStorico','apriRappFocDett','condividiVolata','openVolataReadonly',
     'renderMacchine','macTab','apriMacLavoro','apriMezzoStr','openMacForm','openMacEdit','salvaMacLav',
     'openMezzoEdit','salvaMezzoStr','openRipForm','uploadMacLavFoto','uploadMezzoStrFoto',
     'confermaDelMacLav','confermaDelMezzoStr',
@@ -243,6 +244,8 @@ let state = {
   user:null, currentScreen:'login', prevScreen:null, history:[],
   rappFori:[], rappFori2:[], rappFocFori:[], rappPhotos:[], rappEditId:null,
   _foroClipboard:null, // v3.4.7.3: copia parametri foro
+  volateMode:'perf', // v3.4.8: 'foc'=volate fochino, 'perf'=storico perforazione
+  volataReadonly:false, // v3.4.7.5: progetto aperto in sola lettura dalla chat
   depTabAttivo:'punte', macTabAttivo:'lavoro',
   cavaSel:null, macSel:null, mezzoSel:null, clienteSel:null,
   userEditId:null, cavaEditId:null, macEditId:null, mezzoEditId:null, persEditId:null, clienteEditId:null,
@@ -1046,27 +1049,18 @@ function renderHome(){
     html+=`<div class="tile tile-feat" style="background:linear-gradient(135deg,#26a69a,#00695c);" onclick="nav('ufficio')"><div class="ti-big">🧮</div><div><div class="tt-big">STRUMENTI UFFICIO</div><div class="td-big">Calcoli, report e gestione</div></div><div class="tile-arrow">›</div></div>`;
   }
 
-  // ── Progetto volata (per tutti) ──
-  const volateAssegnate=DB.volate.filter(v=>v.destinatarioId===state.user.id&&!v.vistaDa?.includes(state.user.id));
+  // ── Progetto volata (per tutti) — badge = progetti ricevuti in chat non letti ──
+  const volateAssegnate=DB.messaggi.filter(m=>m.toId===state.user.id&&m.volataId&&!m.letto);
   html+=`<div class="tile" style="background:linear-gradient(135deg,#ff8f00,#e65100);color:#fff;border:none;position:relative;" onclick="nav('volate-list')">
-    <div class="ti">📐</div><div class="tt">PROGETTO VOLATA</div><div class="td">Progetta o visualizza schemi</div>
+    <div class="ti"><svg width="30" height="26" viewBox="0 0 30 26"><path d="M3 24 V11 a12 9 0 0 1 24 0 V24" fill="none" stroke="#fff" stroke-width="2"/><circle cx="9" cy="17" r="1.8" fill="#fff"/><circle cx="15" cy="14" r="1.8" fill="#fff"/><circle cx="21" cy="17" r="1.8" fill="#fff"/><line x1="9" y1="17" x2="9" y2="24" stroke="#fff" stroke-width="1"/><line x1="15" y1="14" x2="15" y2="24" stroke="#fff" stroke-width="1"/><line x1="21" y1="17" x2="21" y2="24" stroke="#fff" stroke-width="1"/><path d="M13 4 l2 -3 l2 3" fill="none" stroke="#ffd54f" stroke-width="1.5"/></svg></div><div class="tt">PROGETTO VOLATA</div><div class="td">Progetta o visualizza schemi</div>
     ${volateAssegnate.length>0?`<span style="position:absolute;top:8px;right:8px;background:#fff;color:#e65100;font-size:10px;font-weight:800;padding:2px 7px;border-radius:3px;">${volateAssegnate.length} nuov${volateAssegnate.length===1?'o':'i'}</span>`:''}
   </div>`;
 
   const tiles=[];
-  // Ufficio/Admin: rapportini come tile normale (non in evidenza)
-  if(isUfficio||isAdmin){
-    tiles.push({t:'Rapportini',d:'Storico perforazione',i:'📋',col:'amber',scr:'volate'});
-    if(can('rappFochino'))tiles.push({t:'Fochino',d:'Storico brillamenti',i:'💥',col:'red',scr:'rapp-foc-list'});
-  }
-
-  if(isFochino){
-    tiles.push({t:'Storico volate',d:'Tutte le volate',i:'📊',col:'blue',scr:'volate'});
-  } else if(isOperatore){
-    tiles.push({t:'I miei rapp.',d:'Storico personale',i:'📊',col:'blue',scr:'volate'});
-  } else {
-    tiles.push({t:'Storico',d:'Tutti i rapportini',i:'📊',col:'blue',scr:'volate'});
-  }
+  // Volate (fochino) — per tutti
+  tiles.push({t:'Volate',d:'Brillamenti fochino',i:'💥',col:'red',fn:'openVolate()'});
+  // Storico rapportini perforazione
+  tiles.push({t:'Storico rapportini',d:isOperatore?'I tuoi rapportini':'Perforazione',i:'📋',col:'blue',fn:'openStorico()'});
 
   tiles.push({t:'Cave',d:'Elenco cave',i:'⛰️',col:'green',scr:'cave'});
   if(isFochino){
@@ -1076,10 +1070,12 @@ function renderHome(){
   }
   if(!isFochino)tiles.push({t:'Deposito',d:'Materiali',i:'📦',col:'brown',scr:'deposito'});
   tiles.push({t:'Personale',d:'Supporto',i:'👥',col:'purple',scr:'personale'});
+  // Chat (v3.4.8) — per tutti
+  tiles.push({t:'Chat',d:'Messaggi',i:'💬',col:'teal',scr:'messaggi'});
   if(can('dashboard'))tiles.push({t:'Dashboard',d:'KPI e analisi',i:'📈',col:'teal',scr:'dashboard'});
   if(can('clienti'))tiles.push({t:'Clienti',d:'Anagrafica',i:'🏢',col:'teal',scr:'clienti'});
 
-  html+=tiles.map(x=>`<div class="tile tile-${x.col}" onclick="nav('${x.scr}')"><div class="ti">${x.i}</div><div class="tt">${x.t}</div><div class="td">${x.d}</div></div>`).join('');
+  html+=tiles.map(x=>`<div class="tile tile-${x.col}" onclick="${x.fn?x.fn:`nav('${x.scr}')`}"><div class="ti">${x.i}</div><div class="tt">${x.t}</div><div class="td">${x.d}</div></div>`).join('');
   $('tgrid').innerHTML=html;
   const miei=DB.rapportini.filter(r=>r.userId===state.user.id).slice(-3).reverse();
   if(miei.length>0){
@@ -1171,7 +1167,7 @@ function renderMenu(){
   items.push({t:'Deposito',i:'📦',act:'deposito',col:'brown'});
   items.push({t:'Personale',i:'👥',act:'personale',col:'purple'});
   if(can('dashboard'))items.push({t:'Dashboard',i:'📈',act:'dashboard',col:'teal'});
-  if(can('viewVibrazioni'))items.push({t:'Vibrazioni',i:'📡',act:'vibrazioni',col:'pink'});
+  // Vibrazioni rimosse (v3.4.8 appunti — funzione non utile)
   // Fochino: strumenti specifici
   if(state.user.ruolo==='fochino')items.push({t:'Strumenti fochino',i:'🧨',act:'strumenti-foc',col:'red'});
   if(can('editCava'))items.push({t:'Volate progetto',i:'📐',act:'volate-list',col:'amber'}); // F1
@@ -1392,21 +1388,15 @@ function initRappFoc(){
 // Fori fochino: n.fori, esplosivo, innesco
 function addFocFori(n){
   n=n||1;const tb=$('rf-tbody');if(!tb)return;
-  const esplosivi=['ANFO','Emulsione','Gel','Nitrato'];
-  const inneschi=['NONEL','Elettrico','Detonante','Connettore'];
   for(let i=0;i<n;i++){
     const idx=state.rappFocFori.length+1;
-    state.rappFocFori.push({n:idx,esplosivo:'Emulsione',innesco:'NONEL',kg:''});
+    state.rappFocFori.push({n:idx,esplosivo:'',esplosivo2:'',innesco:'',kg:''});
     const row=document.createElement('div');row.className='trow-foc';
     row.innerHTML=`
       <div class="tnum">${idx}</div>
-      <input type="number" inputmode="decimal" class="cinput" step="0.1" placeholder="kg" oninput="setFocForo(${idx-1},'kg',this.value);markUnsavedFoc()">
-      <select class="cinput" onchange="setFocForo(${idx-1},'esplosivo',this.value);markUnsavedFoc()">
-        ${esplosivi.map(e=>`<option ${e==='Emulsione'?'selected':''}>${e}</option>`).join('')}
-      </select>
-      <select class="cinput" onchange="setFocForo(${idx-1},'innesco',this.value);markUnsavedFoc()">
-        ${inneschi.map(e=>`<option ${e==='NONEL'?'selected':''}>${e}</option>`).join('')}
-      </select>`;
+      <input type="text" class="cinput" placeholder="Esplosivo 1" oninput="setFocForo(${idx-1},'esplosivo',this.value);markUnsavedFoc()">
+      <input type="text" class="cinput" placeholder="Esplosivo 2" oninput="setFocForo(${idx-1},'esplosivo2',this.value);markUnsavedFoc()">
+      <input type="text" class="cinput" placeholder="Innesco" oninput="setFocForo(${idx-1},'innesco',this.value);markUnsavedFoc()">`;
     tb.appendChild(row);
   }
   markUnsavedFoc();
@@ -1489,7 +1479,7 @@ async function inviaRappFoc(e){
   await withLock('inviaRappFoc',btn,async()=>{
     $('rf-err').style.display='none';
     // Tutti i campi opzionali — nessuna validazione bloccante
-    const foriValidi=state.rappFocFori.filter(f=>f.kg||f.esplosivo||f.innesco);
+    const foriValidi=state.rappFocFori.filter(f=>f.esplosivo||f.esplosivo2||f.innesco);
     const totKg=foriValidi.reduce((s,f)=>s+(parseNum0(f.kg)||0),0);
     const id=genId();
     const obj={
@@ -1803,59 +1793,75 @@ function confermaDelCava(id){
 function renderVolate(){
   const ruolo=state.user?.ruolo;
   const isOp=ruolo==='operatore';
-  const isFoc=ruolo==='fochino';
+  const mode=state.volateMode||'perf'; // 'foc' = volate fochino, 'perf' = storico perforazione
   const cavaOpts='<option value="">Tutte le cave</option>'+DB.cave.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
-  const userOpts='<option value="">Tutti gli operatori</option>'+DB.users.map(u=>`<option value="${u.id}">${u.nome} ${u.cognome}</option>`).join('');
+  const userOpts='<option value="">Tutti</option>'+DB.users.map(u=>`<option value="${u.id}">${u.nome} ${u.cognome}</option>`).join('');
   if($('vf-cava'))$('vf-cava').innerHTML=cavaOpts;
   if($('vf-user'))$('vf-user').innerHTML=userOpts;
-  // Operatore: solo i propri, filtro utente bloccato
-  if(isOp){
-    state.filtriVolate.userId=state.user.id;
-    if($('vf-user'))$('vf-user').disabled=true;
-  } else {
-    // Fochino e altri: vedono tutto, nessun filtro forzato
-    if(!state.filtriVolate.userId)state.filtriVolate.userId='';
-    if($('vf-user'))$('vf-user').disabled=false;
-  }
-  // Titolo dinamico
+  if(isOp){ state.filtriVolate.userId=state.user.id; if($('vf-user'))$('vf-user').disabled=true; }
+  else { if($('vf-user'))$('vf-user').disabled=false; }
   const titolo=$('vol-screen-title');
   if(titolo){
-    if(isOp)titolo.textContent='I miei rapportini';
-    else if(isFoc)titolo.textContent='Storico volate';
+    if(mode==='foc')titolo.textContent='Volate (fochino)';
     else titolo.textContent='Storico rapportini';
   }
   applicaFiltriVolate();
 }
+// Helper navigazione: imposta la modalità prima di aprire lo schermo volate
+function openVolate(){ state.volateMode='foc'; nav('volate'); }
+function openStorico(){ state.volateMode='perf'; nav('volate'); }
 function toggleFiltri(){
   const p=$('vol-filtri');
   p.style.display=(p.style.display==='block')?'none':'block';
 }
 function applicaFiltriVolate(){
   const f=state.filtriVolate;
-  // Aggiorna stato dai controlli (se presenti)
+  const mode=state.volateMode||'perf';
   if($('vf-da'))f.dataDa=$('vf-da').value;
   if($('vf-a'))f.dataA=$('vf-a').value;
   if($('vf-cava'))f.cavaId=$('vf-cava').value;
-  if($('vf-user'))f.userId=$('vf-user').value;
-  if($('vf-dmin'))f.diamMin=$('vf-dmin').value;
-  if($('vf-dmax'))f.diamMax=$('vf-dmax').value;
+  if($('vf-user')&&!$('vf-user').disabled)f.userId=$('vf-user').value;
+  // Operatore: forza sempre solo i propri rapportini
+  if(state.user?.ruolo==='operatore')f.userId=state.user.id;
   const q=($('vol-search')?.value||'').toLowerCase();
-  let all=[...DB.rapportini];
+  // Sorgente dati in base alla modalità
+  let all=mode==='foc'?[...DB.rapportiniFoc]:[...DB.rapportini];
   if(q){all=all.filter(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);return(c&&c.nome.toLowerCase().includes(q))||(r.data||'').includes(q);});}
   if(f.dataDa)all=all.filter(r=>(r.data||'')>=f.dataDa);
   if(f.dataA)all=all.filter(r=>(r.data||'')<=f.dataA);
   if(f.cavaId)all=all.filter(r=>r.cavaId===f.cavaId);
   if(f.userId)all=all.filter(r=>r.userId===f.userId);
-  if(f.diamMin)all=all.filter(r=>(+r.diametro||0)>=parseNum0(f.diamMin));
-  if(f.diamMax)all=all.filter(r=>(+r.diametro||0)<=parseNum0(f.diamMax));
   all.sort((a,b)=>(b.data||'').localeCompare(a.data||''));
-  // Conteggio + totali
+  if(mode==='foc'){
+    const totKg=all.reduce((s,r)=>s+(r.tot_kg||0),0);
+    const totFori=all.reduce((s,r)=>s+(r.fori||0),0);
+    $('vol-summary').innerHTML=all.length?`<div class="vol-sum"><b>${all.length}</b> volate · <b>${totFori}</b> fori · <b>${totKg.toFixed(1)}</b> kg</div>`:'';
+    if(all.length===0){$('vol-list').innerHTML='<div class="empty-state"><div class="empty-icon">💥</div><div class="empty-title">Nessuna volata</div><div class="empty-sub">Non ci sono ancora rapportini fochino</div></div>';return;}
+    $('vol-list').innerHTML=all.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);return`<div class="sitem" onclick="apriRappFocDett('${r.id}')"><div class="av" style="background:linear-gradient(135deg,#ef5350,#c62828);color:#fff;">💥</div><div class="sinfo"><div class="sname">${c?c.nome:'—'} · ${fmt(r.data)}</div><div class="ssub">${u?u.nome+' '+u.cognome:'—'} · ${r.fori||0} fori · ${(r.tot_kg||0).toFixed(1)} kg</div></div><div class="sarr">›</div></div>`;}).join('');
+    return;
+  }
   const totMc=all.reduce((s,r)=>s+(r.mc||0),0);
   const totFori=all.reduce((s,r)=>s+(r.fori||0),0);
-  $('vol-summary').innerHTML=all.length?
-    `<div class="vol-sum"><b>${all.length}</b> rapportini · <b>${totFori}</b> fori · <b>${totMc.toFixed(1)}</b> mc</div>`:'';
-  if(all.length===0){$('vol-list').innerHTML='<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-title">Nessun risultato</div><div class="empty-sub">Modifica i filtri per ampliare la ricerca</div></div>';return;}
-  $('vol-list').innerHTML=all.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);return`<div class="sitem" onclick="apriRapport('${r.id}')"><div class="av av-cv">${c?c.nome.substr(0,2).toUpperCase():'—'}</div><div class="sinfo"><div class="sname">${c?c.nome:'—'} · ${fmt(r.data)}</div><div class="ssub">${u?u.nome+' '+u.cognome:'—'} · ${r.fori} fori · ${(r.mc||0).toFixed(1)} mc</div></div><div class="sarr">›</div></div>`;}).join('');
+  $('vol-summary').innerHTML=all.length?`<div class="vol-sum"><b>${all.length}</b> rapportini · <b>${totFori}</b> fori · <b>${totMc.toFixed(1)}</b> mc</div>`:'';
+  if(all.length===0){$('vol-list').innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Nessun rapportino</div><div class="empty-sub">Nessun rapportino di perforazione trovato</div></div>';return;}
+  $('vol-list').innerHTML=all.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);return`<div class="sitem" onclick="apriRapport('${r.id}')"><div class="av av-cv">${c?c.nome.substr(0,2).toUpperCase():'—'}</div><div class="sinfo"><div class="sname">${c?c.nome:'—'} · ${fmt(r.data)}</div><div class="ssub">${u?u.nome+' '+u.cognome:'—'} · ${r.fori||0} fori · ${(r.mc||0).toFixed(1)} mc</div></div><div class="sarr">›</div></div>`;}).join('');
+}
+// Dettaglio rapportino fochino
+function apriRappFocDett(id){
+  const r=DB.rapportiniFoc.find(x=>x.id===id);if(!r)return;
+  const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);
+  const foriRows=(r.fori_dettaglio||[]).map((f,i)=>`<div class="preview-row"><span class="preview-lab">Foro ${i+1}</span><span class="preview-val">${f.esplosivo||'—'}${f.esplosivo2?' + '+f.esplosivo2:''} · ${f.innesco||'—'}</span></div>`).join('');
+  openModal(`Volata ${fmt(r.data)}`,`
+    <div class="preview-sec">
+      <div class="preview-row"><span class="preview-lab">Cava</span><span class="preview-val">${c?c.nome:'—'}</span></div>
+      <div class="preview-row"><span class="preview-lab">Fochino</span><span class="preview-val">${u?u.nome+' '+u.cognome:'—'}</span></div>
+      ${r.oi||r.of?`<div class="preview-row"><span class="preview-lab">Orario</span><span class="preview-val">${r.oi||'—'} → ${r.of||'—'}</span></div>`:''}
+      <div class="preview-row"><span class="preview-lab">Fori</span><span class="preview-val">${r.fori||0}</span></div>
+      <div class="preview-row"><span class="preview-lab">Esplosivo tot.</span><span class="preview-val">${(r.tot_kg||0).toFixed(1)} kg</span></div>
+    </div>
+    ${foriRows?`<div class="preview-sec">${foriRows}</div>`:''}
+    ${r.note?`<div class="preview-sec"><div class="preview-head">Note</div><div style="font-size:13px;">${r.note}</div></div>`:''}
+  `,[{label:'Chiudi',cls:'mbtn primary',action:closeModal}]);
 }
 function resetFiltriVolate(){
   state.filtriVolate={dataDa:'',dataA:'',cavaId:'',userId:'',diamMin:'',diamMax:''};
@@ -2438,7 +2444,9 @@ function renderChat(){
   $('chat-title').textContent=other.nome+' '+other.cognome;const me=state.user.id;
   const msgs=DB.messaggi.filter(m=>(m.fromId===me&&m.toId===other.id)||(m.fromId===other.id&&m.toId===me)).sort((a,b)=>(a.ts||0)-(b.ts||0));
   msgs.forEach(async m=>{if(m.toId===me&&!m.letto){m.letto=true;await fbUpdate('messaggi',m.id,{letto:true});}});
-  $('chat-msgs').innerHTML=msgs.map(m=>{const d=new Date(m.ts||0);const t=d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');return`<div class="chat-bubble ${m.fromId===me?'me':'other'}">${m.testo}<div class="chat-meta">${t}</div></div>`;}).join('');
+  $('chat-msgs').innerHTML=msgs.map(m=>{const d=new Date(m.ts||0);const t=d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+    if(m.volataId){const vv=DB.volate.find(x=>x.id===m.volataId);return`<div class="chat-bubble ${m.fromId===me?'me':'other'}"><div onclick="openVolataReadonly('${m.volataId}')" style="cursor:pointer;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:8px;display:flex;align-items:center;gap:8px;"><span style="font-size:20px;">📐</span><span><b>${vv?(vv.nomeProgetto||'Volata #'+vv.numero):'Progetto volata'}</b><br><span style="font-size:11px;opacity:.8;">Tocca per visualizzare</span></span></div><div class="chat-meta">${t}</div></div>`;}
+    return`<div class="chat-bubble ${m.fromId===me?'me':'other'}">${m.testo}<div class="chat-meta">${t}</div></div>`;}).join('');
   setTimeout(()=>{$('chat-msgs').scrollTop=$('chat-msgs').scrollHeight;},50);
 }
 async function inviaMessaggio(e){
@@ -2448,6 +2456,36 @@ async function inviaMessaggio(e){
     const id=genId();await fbSet('messaggi',id,{id,fromId:state.user.id,toId:state.chatWith,testo:t,ts:Date.now(),letto:false});
     $('chat-in').value='';
   });
+}
+
+// v3.4.7.5 — Condivisione progetto volata in chat
+function condividiVolata(volataId){
+  const v=DB.volate.find(x=>x.id===volataId);if(!v){toast('Volata non trovata','err');return;}
+  const utenti=DB.users.filter(u=>u.id!==state.user.id&&u.attivo);
+  if(utenti.length===0){toast('Nessun altro utente disponibile','err');return;}
+  openModal('Invia progetto in chat',
+    `<div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Seleziona uno o più utenti a cui inviare il progetto.</div>`+
+    utenti.map(u=>`<label class="toggle-row" style="cursor:pointer;"><div><div class="tog-name">${u.nome} ${u.cognome}</div><div class="tog-sub">${u.ruolo}</div></div><input type="checkbox" class="cv-dest" value="${u.id}"></label>`).join(''),
+    [
+      {label:'Annulla',cls:'mbtn',action:closeModal},
+      {label:'INVIA',cls:'mbtn primary',action:async()=>{
+        const dest=[...document.querySelectorAll('.cv-dest:checked')].map(c=>c.value);
+        if(dest.length===0){toast('Seleziona almeno un utente','err');return;}
+        for(const toId of dest){
+          const id=genId();
+          await fbSet('messaggi',id,{id,fromId:state.user.id,toId,testo:'📐 Progetto volata',volataId,ts:Date.now(),letto:false});
+        }
+        closeModal();toast('Progetto inviato a '+dest.length+' utente'+(dest.length>1?'i':''),'success');
+      }}
+    ]
+  );
+}
+// Apre un progetto in sola lettura (dalla chat)
+function openVolataReadonly(volataId){
+  const v=DB.volate.find(x=>x.id===volataId);
+  if(!v){toast('Progetto non più disponibile','err');return;}
+  apriEditorCava(volataId,true);
+  toast('Progetto in sola lettura','info');
 }
 
 // ══════════ CONTATTI ══════════
@@ -2659,7 +2697,7 @@ function renderDashboard(){
 
     <!-- KPI -->
     <div class="kpi-grid">
-      <div class="kpi-card" style="cursor:pointer;" onclick="nav('volate')">
+      <div class="kpi-card" style="cursor:pointer;" onclick="openStorico()">
         <div class="kpi-lbl">Rapportini perf.</div>
         <div class="kpi-val">${rapp.length}</div>
         <div class="kpi-sub" style="color:var(--amber);">Tocca per storico →</div>
@@ -2674,21 +2712,21 @@ function renderDashboard(){
         <div class="kpi-val">${opAttivi}</div>
         <div class="kpi-sub">nel periodo</div>
       </div>
-      <div class="kpi-card" style="cursor:pointer;" onclick="nav('volate')">
+      <div class="kpi-card" style="cursor:pointer;" onclick="openVolate()">
         <div class="kpi-lbl">Rapp. fochino</div>
         <div class="kpi-val">${rappFoc.length}</div>
         <div class="kpi-sub" style="color:var(--danger);">Tocca per storico →</div>
       </div>
     </div>
 
-    <!-- Grafici a torta -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
-      ${cavaDati.length?`<div class="chart-card"><div class="chart-card-title">Mc per cava</div><div class="chart-host" style="height:180px;"><canvas id="ch-cave-pie"></canvas></div></div>`:''}
-      ${opDati.length?`<div class="chart-card"><div class="chart-card-title">Mc per operatore</div><div class="chart-host" style="height:180px;"><canvas id="ch-op-pie"></canvas></div></div>`:''}
-    </div>
+    <!-- Torta principale: totale periodo per cava (grande) -->
+    ${cavaDati.length?`<div class="chart-card"><div class="chart-card-title">Totale periodo · per cava</div><div class="chart-host" style="height:240px;"><canvas id="ch-cave-pie"></canvas></div></div>`:''}
 
-    <!-- Grafico mezzi -->
-    ${mezzoDati.length?`<div class="chart-card"><div class="chart-card-title">Mc per mezzo</div><div class="chart-host"><canvas id="ch-mezzo"></canvas></div></div>`:''}
+    <!-- Torte secondarie: operatori e fochini -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+      ${opDati.length?`<div class="chart-card"><div class="chart-card-title">Per operatore</div><div class="chart-host" style="height:190px;"><canvas id="ch-op-pie"></canvas></div></div>`:''}
+      <div class="chart-card"><div class="chart-card-title">Per fochino (volate)</div><div class="chart-host" style="height:190px;"><canvas id="ch-foc-pie"></canvas></div></div>
+    </div>
 
     <!-- Dettaglio cave cliccabili -->
     <div class="sec-title" style="margin-top:14px;"><span class="dot"></span>Dettaglio per cava</div>
@@ -2724,28 +2762,34 @@ function renderDashboard(){
     </div>
   `;
 
-  // Colori torta
-  const pieColors=['#ffab00','#66bb6a','#42a5f5','#ef5350','#ab47bc','#26a69a','#ffa726'];
+  // Colori torta (ampia gamma per differenziare)
+  const pieColors=['#ffab00','#66bb6a','#42a5f5','#ef5350','#ab47bc','#26a69a','#ffa726','#7e57c2','#26c6da','#d4e157','#ff7043','#8d6e63'];
+  const legendCol=dashChartOpts().scales?.x?.ticks?.color||'#f0e8d8';
+  const pieOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:legendCol,font:{size:9},boxWidth:10}}}};
+  // Dati fochini (numero volate per fochino nel periodo)
+  const perFoc={};
+  rappFoc.forEach(r=>{perFoc[r.userId]=(perFoc[r.userId]||0)+1;});
+  const focDati=Object.entries(perFoc).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([uid,n])=>{const u=DB.users.find(x=>x.id===uid);return{nome:u?(u.nome[0]+'.'+u.cognome):'—',n};});
 
   if(cavaDati.length&&$('ch-cave-pie')){
     state.chartInstances.cavePie=new Chart($('ch-cave-pie').getContext('2d'),{
       type:'doughnut',
       data:{labels:cavaDati.map(c=>c.nome),datasets:[{data:cavaDati.map(c=>c.mc),backgroundColor:pieColors,borderWidth:0}]},
-      options:{...dashChartOpts(),plugins:{legend:{display:true,position:'bottom',labels:{color:dashChartOpts().scales?.x?.ticks?.color||'#f0e8d8',font:{size:9},boxWidth:10}}}}
+      options:pieOpts
     });
   }
   if(opDati.length&&$('ch-op-pie')){
     state.chartInstances.opPie=new Chart($('ch-op-pie').getContext('2d'),{
       type:'doughnut',
       data:{labels:opDati.map(o=>o.nome),datasets:[{data:opDati.map(o=>o.mc),backgroundColor:pieColors,borderWidth:0}]},
-      options:{...dashChartOpts(),plugins:{legend:{display:true,position:'bottom',labels:{color:dashChartOpts().scales?.x?.ticks?.color||'#f0e8d8',font:{size:9},boxWidth:10}}}}
+      options:pieOpts
     });
   }
-  if(mezzoDati.length&&$('ch-mezzo')){
-    state.chartInstances.mezzo=new Chart($('ch-mezzo').getContext('2d'),{
-      type:'bar',
-      data:{labels:mezzoDati.map(m=>m.nome),datasets:[{label:'Mc',data:mezzoDati.map(m=>m.mc),backgroundColor:'#42a5f5',borderRadius:4}]},
-      options:{...dashChartOpts(),indexAxis:'y'}
+  if(focDati.length&&$('ch-foc-pie')){
+    state.chartInstances.focPie=new Chart($('ch-foc-pie').getContext('2d'),{
+      type:'doughnut',
+      data:{labels:focDati.map(o=>o.nome),datasets:[{data:focDati.map(o=>o.n),backgroundColor:pieColors,borderWidth:0}]},
+      options:pieOpts
     });
   }
 }
@@ -3369,12 +3413,13 @@ function ricalcolaTotaliVolata(v){
   v.tot_mc=Math.round(v.tot_metri*Borr*S*10)/10;
 }
 
-function apriEditorCava(volataId){
+function apriEditorCava(volataId,readonly){
   const v=DB.volate.find(x=>x.id===volataId);
   if(!v){toast('Volata non trovata','err');return;}
   state.volataSel=volataId;
   state.foroSel=null;
-  state.voloraTool='select';
+  state.voloraTool=readonly?'imposta':'imposta';
+  state.volataReadonly=!!readonly;
   renderEditorCava();
   nav('editor-cava');
 }
@@ -3390,15 +3435,22 @@ function renderEditorCava(){
   const tipoLabel={'cava':'⛰️','galleria':'🚇','altro':'🏗️'}[v.tipo||'cava']||'⛰️';
   $('ec-title').textContent=v.nomeProgetto||`Volata #${v.numero}`;
   $('ec-cava').textContent=cava?cava.nome:(v.tipo==='galleria'?'Galleria':v.tipo==='altro'?'Altro':'—');
-  // ── v3.4.7.2: Toolbar aggiornata con tool FRONTE ──
-  $('ec-toolbar').innerHTML=`
-    <div class="ec-tool ${state.voloraTool==='imposta'?'active':''}" onclick="setEditorTool('imposta')">⚙ Imposta</div>
-    <div class="ec-tool ${state.voloraTool==='fronte'?'active':''}" onclick="setEditorTool('fronte')" title="Disegna e modella il profilo del fronte">✏️ Fronte</div>
-    <div class="ec-tool ${state.voloraTool==='foro'?'active':''}" onclick="setEditorTool('foro')">⊕ Fori</div>
-    <div class="ec-tool ${state.voloraTool==='sequenza'?'active':''}" onclick="setEditorTool('sequenza')">↳ Sequenza</div>
-    <div class="ec-tool" onclick="apriRiconciliazione('${v.id}')">📊 Riconcilia</div>
-    <div class="ec-tool" onclick="exportVolataPDF('${v.id}')">⤓ PDF</div>
-  `;
+  // ── Toolbar (in sola lettura mostra solo PDF) ──
+  if(state.volataReadonly){
+    $('ec-toolbar').innerHTML=`
+      <div class="ec-tool" style="color:var(--info);">🔒 Sola lettura</div>
+      <div class="ec-tool" onclick="exportVolataPDF('${v.id}')">⤓ PDF</div>`;
+  } else {
+    $('ec-toolbar').innerHTML=`
+      <div class="ec-tool ${state.voloraTool==='imposta'?'active':''}" onclick="setEditorTool('imposta')">⚙ Imposta</div>
+      <div class="ec-tool ${state.voloraTool==='fronte'?'active':''}" onclick="setEditorTool('fronte')" title="Modella il profilo del fronte">✏️ Fronte</div>
+      <div class="ec-tool ${state.voloraTool==='foro'?'active':''}" onclick="setEditorTool('foro')">⊕ Fori</div>
+      <div class="ec-tool ${state.voloraTool==='sequenza'?'active':''}" onclick="setEditorTool('sequenza')">↳ Sequenza</div>
+      <div class="ec-tool" onclick="apriRiconciliazione('${v.id}')">📊 Riconcilia</div>
+      <div class="ec-tool" onclick="condividiVolata('${v.id}')">📤 Invia</div>
+      <div class="ec-tool" onclick="exportVolataPDF('${v.id}')">⤓ PDF</div>
+    `;
+  }
   // Statistiche live
   ricalcolaTotaliVolata(v);
   const Borr=getBorraggio(v);const Spaz=getSpaziatura(v);
@@ -3466,13 +3518,23 @@ function renderEditorCanvas(){
   } else {
     crestaPath=`M ${padX} ${padY} L ${W-padX} ${padY}`;
   }
-  // Piede (opzionale)
-  const piedeProfY=v.fronte.piede_attivo?(parseNum0(v.fronte.piede_profondita)||Borr*fileVisibili):null;
-  const piedeHtml=piedeProfY!==null?`<path d="M ${padX} ${padY+piedeProfY*scaleY+5} L ${W-padX} ${padY+piedeProfY*scaleY+5}" fill="none" stroke="#5c4818" stroke-width="1.5" stroke-dasharray="5 3"/>
-    <text x="${padX+10}" y="${padY+piedeProfY*scaleY+18}" font-family="'Barlow Condensed',sans-serif" font-size="10" fill="#5c4818" letter-spacing="1.5">PIEDE −${piedeProfY.toFixed(1)}m</text>`
-    :'';
-  // Fori
-  const foriHtml=v.fori.map((f,idx)=>{
+  // Piede (opzionale) — v3.4.8: disegnato DAVANTI al fronte e ne segue la forma
+  let piedeHtml='';
+  if(v.fronte.piede_attivo){
+    const pp=parseNum0(v.fronte.piede_profondita)||Borr;
+    const offY=-Math.abs(pp); // davanti = sopra la cresta
+    let pPath;
+    if(profilo.length>=2){
+      const pts=[{x:0,y:profilo[0].y||0},...profilo,{x:Lm,y:profilo[profilo.length-1].y||0}];
+      pPath='M '+pts.map(p=>`${(padX+p.x*scaleX).toFixed(1)} ${(padY+((p.y||0)+offY)*scaleY).toFixed(1)}`).join(' L ');
+    } else {
+      pPath=`M ${padX} ${(padY+offY*scaleY).toFixed(1)} L ${W-padX} ${(padY+offY*scaleY).toFixed(1)}`;
+    }
+    piedeHtml=`<path d="${pPath}" fill="none" stroke="#8a6a20" stroke-width="1.5" stroke-dasharray="5 3"/>
+      <text x="${padX+10}" y="${(padY+offY*scaleY-3).toFixed(1)}" font-family="'Barlow Condensed',sans-serif" font-size="9" fill="#8a6a20" letter-spacing="1">PIEDE ${pp.toFixed(1)}m</text>`;
+  }
+  // Fori — nascosti in modalità FRONTE (ricompaiono uscendo)
+  const foriHtml=state.voloraTool==='fronte'?'':v.fori.map((f,idx)=>{
     const {px,py}=toPx(f.x,f.y);
     const isSel=state.foroSel===idx;
     const r=isSel?10:7;
@@ -3607,11 +3669,18 @@ function renderEditorCanvas(){
     }
   }
   const canvasCursor=state.voloraTool==='foro'?'crosshair':(state.voloraTool==='fronte'?'crosshair':'default');
+  // v3.4.8: per le gallerie disegna l'arco superiore come contesto
+  let archHtml='';
+  if(v.tipo==='galleria'){
+    const ax=padX, aw=W-2*padX, atop=padY+6, abot=H-padY;
+    archHtml=`<path d="M ${ax} ${abot} L ${ax} ${atop+30} Q ${W/2} ${atop-14} ${W-padX} ${atop+30} L ${W-padX} ${abot}" fill="rgba(255,171,0,0.04)" stroke="#5c4818" stroke-width="1" stroke-dasharray="4 3"/>`;
+  }
   $('ec-canvas-wrap').innerHTML=`
     <svg width="100%" viewBox="0 0 ${W} ${H}" id="ec-canvas"
       style="display:block;background:#0a0805;cursor:${canvasCursor};user-select:none;-webkit-user-select:none;"
       onclick="onCanvasClick(event)">
       ${gridLines.join('')}
+      ${archHtml}
       <path d="${crestaPath}" fill="none" stroke="#ffab00" stroke-width="2.5"/>
       ${piedeHtml}
       ${lblCresta}
@@ -3631,6 +3700,23 @@ function renderEditorSide(){
   if(!v){$('ec-side').innerHTML='';return;}
   const Borr=getBorraggio(v);
   const Spaz=getSpaziatura(v);
+
+  // ── Sola lettura: riepilogo non modificabile ──
+  if(state.volataReadonly){
+    const cava=DB.cave.find(c=>c.id===v.cavaId);
+    $('ec-side').innerHTML=`
+      <div class="info-box" style="margin-bottom:10px;border-left-color:var(--info);">🔒 Progetto condiviso in sola lettura.</div>
+      <div class="preview-sec">
+        <div class="preview-row"><span class="preview-lab">Nome</span><span class="preview-val">${v.nomeProgetto||'Volata #'+v.numero}</span></div>
+        <div class="preview-row"><span class="preview-lab">Cava/Tipo</span><span class="preview-val">${cava?cava.nome:(v.tipo||'—')}</span></div>
+        <div class="preview-row"><span class="preview-lab">Fori</span><span class="preview-val">${v.tot_fori}</span></div>
+        <div class="preview-row"><span class="preview-lab">Maglia</span><span class="preview-val">B ${Borr} × S ${Spaz}</span></div>
+        <div class="preview-row"><span class="preview-lab">Metri</span><span class="preview-val">${v.tot_metri}</span></div>
+      </div>
+      <button class="btn-sec" style="width:100%;" onclick="exportVolataPDF('${v.id}')">⤓ Scarica PDF</button>
+    `;
+    return;
+  }
 
   // ── Modalità FRONTE ──
   if(state.voloraTool==='fronte'){
@@ -3873,7 +3959,8 @@ function svgToMetri(svgX, svgY, v){
   const scaleY=innerH/totDepth;
   const xM=Math.round(((svgX-padX)/scaleX)*100)/100;
   const yM=Math.round(((svgY-padY)/scaleY)*100)/100;
-  return {xM:Math.max(0,Math.min(Lm,xM)), yM:Math.max(-5,Math.min(0,yM))};
+  // v3.4.8: il fronte è modellabile in TUTTE le direzioni (y libero entro il canvas)
+  return {xM:Math.max(0,Math.min(Lm,xM)), yM:Math.max(-totDepth,Math.min(totDepth,yM))};
 }
 
 // Aggiunge un punto al profilo del fronte (click in modalità fronte)
@@ -3918,22 +4005,20 @@ function resetFronteProfilo(){
 
 // Adatta la posizione Y dei fori in base alla forma del fronte
 // (shift verticale proporzionale alla deviazione del fronte nel punto X del foro)
-function adattaForiAlFronte(){
+function adattaForiAlFronte(silent){
   const v=DB.volate.find(x=>x.id===state.volataSel);
   if(!v||!v.fronte.profilo||v.fronte.profilo.length<2)return;
-  // Per ogni foro, interpola la deviazione del fronte alla sua posizione X
+  // Usa una baseline fissa per evitare derive cumulative
   v.fori.forEach(f=>{
+    if(f.yBase===undefined)f.yBase=parseNum0(f.y)||getBorraggio(v);
     const dev=interpolaFronte(f.x,v.fronte.profilo);
-    // dev è la deviazione in m (negativo = fronte rientra verso il monte)
-    // I fori traslano di questa stessa quantità verticale
-    f.y=Math.max(0, (parseNum0(f.y)||getBorraggio(v)) + dev);
-    f.y=Math.round(f.y*100)/100;
+    f.y=Math.max(0.1, Math.round((f.yBase+dev)*100)/100);
   });
   state.editorUnsaved=true;
   ricalcolaTotaliVolata(v);
   renderEditorCanvas();
   renderEditorSide();
-  toast('Fori adattati al profilo del fronte','success');
+  if(!silent)toast('Fori adattati al profilo del fronte','success');
 }
 
 // Interpola la deviazione verticale del fronte alla posizione x
@@ -4097,9 +4182,16 @@ function calcolaPPVMaxRicettori(v){
 
 // v3.4.7.1 Tool selection
 function setEditorTool(tool){
+  const prev=state.voloraTool;
+  // v3.4.8: uscendo dalla modalità fronte, i fori si riadattano alla nuova forma
+  if(prev==='fronte' && tool!=='fronte'){
+    const v=DB.volate.find(x=>x.id===state.volataSel);
+    if(v && (v.fronte.profilo||[]).length>=2) adattaForiAlFronte(true);
+  }
   state.voloraTool=tool;
   if(tool==='imposta')state.foroSel=null;
   if(tool==='sequenza')state.foroSel=null;
+  if(tool==='fronte')state.foroSel=null;
   renderEditorCanvas();
   renderEditorSide();
   // Aggiorna active state toolbar senza re-renderare tutto
@@ -4802,6 +4894,7 @@ async function eseguiImportMWD(volataId){
 let _dragState = null; // { idx, startX, startY, originalX, originalY }
 
 function onForoMouseDown(ev, idx){
+  if(state.volataReadonly)return;
   if(state.voloraTool==='foro'||state.voloraTool==='sequenza')return;
   ev.stopPropagation();
   ev.preventDefault();
@@ -4972,6 +5065,7 @@ function rigeneraMaglia(){
 
 // Click sul canvas: gestisce foro, fronte o deseleziona
 function onCanvasClick(ev){
+  if(state.volataReadonly)return;
   const v=DB.volate.find(x=>x.id===state.volataSel);
   if(!v)return;
   const svg=$('ec-canvas');
@@ -4998,20 +5092,17 @@ function onCanvasClick(ev){
   const scaleX=innerW/Math.max(Lm,1);
   const scaleY=innerH/totDepth;
   if(sx<padX||sx>W-padX||sy<padY||sy>H-padY)return;
-  const xMeter=Math.round((sx-padX)/scaleX*10)/10;
-  const yMeter=Math.round((sy-padY)/scaleY*10)/10;
-  // Snap alla maglia
-  const xSnap=Math.round(xMeter/Spaz)*Spaz;
-  // y snap al borraggio più vicino, ma minimo 1 borraggio dal fronte
-  const ySnap=Math.max(Borr, Math.round(yMeter/Borr)*Borr);
+  // v3.4.8: il foro compare ESATTAMENTE dove clicca il cursore (nessuno snap forzato)
+  const xMeter=Math.round((sx-padX)/scaleX*100)/100;
+  const yMeter=Math.max(0.1, Math.round((sy-padY)/scaleY*100)/100);
   const num=v.fori.length+1;
   v.fori.push({
     id:'foro_'+genId(),
     num,
-    x:xSnap, y:ySnap,
+    x:xMeter, y:yMeter,
     prof:v.default.profondita_m, diam:v.default.diametro_mm,
     kg:v.default.kg_per_foro, esplosivo:v.default.esplosivo,
-    ritardo:v.default.ritardo_ms*num, innesco:v.default.innesco,
+    ritardo:v.default.ritardo_ms, innesco:v.default.innesco,
     sequenza:num, note:''
   });
   state.foroSel=v.fori.length-1;
@@ -5607,6 +5698,8 @@ Object.assign(window, {
   openNotifiche,openPromemoriaForm,confermaElimPromemoria,
   apriCava,uploadCavaFoto,apriRapport,openCavaForm,openCavaEdit,salvaCava,confermaDelCava,
   filtraVolate,renderVolate,toggleFiltri,applicaFiltriVolate,resetFiltriVolate,
+  openVolate,openStorico,apriRappFocDett,
+  condividiVolata,openVolataReadonly,
   renderMacchine,macTab,apriMacLavoro,apriMezzoStr,openMacForm,openMacEdit,salvaMacLav,
   openMezzoEdit,salvaMezzoStr,openRipForm,uploadMacLavFoto,uploadMezzoStrFoto,
   confermaDelMacLav,confermaDelMezzoStr,
@@ -5939,8 +6032,8 @@ textarea.finput{resize:vertical;min-height:60px;}
 .thead2{display:grid;grid-template-columns:40px 1fr;background:var(--dark);padding:8px 10px;font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid var(--border);}
 .trow{display:grid;grid-template-columns:40px 1fr 1fr 1fr;gap:4px;padding:5px 8px;border-bottom:1px solid var(--border);align-items:center;}
 .trow2{display:grid;grid-template-columns:40px 1fr;gap:4px;padding:5px 8px;border-bottom:1px solid var(--border);align-items:center;}
-.thead-foc{display:grid;grid-template-columns:36px 70px 1fr 1fr;background:var(--dark);padding:8px 10px;font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid var(--border);}
-.trow-foc{display:grid;grid-template-columns:36px 70px 1fr 1fr;gap:4px;padding:5px 8px;border-bottom:1px solid var(--border);align-items:center;}
+.thead-foc{display:grid;grid-template-columns:30px 1fr 1fr 1fr;background:var(--dark);padding:8px 10px;font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--border);gap:4px;}
+.trow-foc{display:grid;grid-template-columns:30px 1fr 1fr 1fr;gap:4px;padding:5px 8px;border-bottom:1px solid var(--border);align-items:center;}
 .trow:last-child,.trow2:last-child,.trow-foc:last-child{border-bottom:none;}
 .tnum{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;color:var(--muted);text-align:center;}
 .cinput{background:var(--card);border:1px solid var(--border);color:var(--text);padding:8px 7px;font-size:16px;font-family:'Barlow',sans-serif;outline:none;width:100%;min-height:38px;}
@@ -6210,7 +6303,7 @@ body.outdoor-mode .topbar-search-input:focus{border-color:#c77800;width:180px;}
 .ec-stats{background:var(--dark);padding:8px 12px;display:flex;gap:14px;border-top:1px solid var(--border);flex-wrap:wrap;flex-shrink:0;}
 .ec-stat{color:var(--muted);font-size:10px;letter-spacing:1px;text-transform:uppercase;display:flex;align-items:center;gap:4px;}
 .ec-stat b{color:var(--amber);font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;}
-.ec-side{flex:1;overflow-y:auto;padding:14px;background:var(--card);border-top:1px solid var(--border);}
+.ec-side{flex:1;overflow-y:auto;padding:14px 14px calc(90px + env(safe-area-inset-bottom));background:var(--card);border-top:1px solid var(--border);}
 .ec-side-title{display:flex;align-items:center;gap:8px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--amber);margin-bottom:8px;margin-top:4px;}
 .ec-side-title .dot{width:5px;height:5px;background:var(--amber);border-radius:50%;flex-shrink:0;}
 /* v3.4.7.3 — campo con bottone "applica a tutti" */
@@ -6620,7 +6713,7 @@ select.finput,select.fi{font-size:16px;}
       <button class="chg" onclick="addFocFori(3)">+3</button>
     </div>
     <div class="tbl">
-      <div class="thead-foc"><div>#</div><div>Kg</div><div>Esplosivo</div><div>Innesco</div></div>
+      <div class="thead-foc"><div>#</div><div>Esplosivo 1</div><div>Esplosivo 2</div><div>Innesco</div></div>
       <div id="rf-tbody"></div>
     </div>
     <div style="display:flex;gap:6px;margin-top:6px;">
@@ -6768,7 +6861,8 @@ select.finput,select.fi{font-size:16px;}
 
     <!-- Accesso rapido alle sezioni -->
     <div class="sec-title" style="margin-top:18px;"><span class="dot"></span>Accesso rapido</div>
-    <div class="sitem" onclick="nav('volate')"><div class="av av-op">📋</div><div class="sinfo"><div class="sname">Storico rapportini</div><div class="ssub">Tutti i rapportini di perforazione</div></div><div class="sarr">›</div></div>
+    <div class="sitem" onclick="openStorico()"><div class="av av-op">📋</div><div class="sinfo"><div class="sname">Storico rapportini</div><div class="ssub">Perforazione</div></div><div class="sarr">›</div></div>
+    <div class="sitem" onclick="openVolate()"><div class="av" style="background:linear-gradient(135deg,#ef5350,#c62828);color:#fff;">💥</div><div class="sinfo"><div class="sname">Volate (fochino)</div><div class="ssub">Storico brillamenti</div></div><div class="sarr">›</div></div>
     <div class="sitem" onclick="nav('dashboard')"><div class="av av-cv">📈</div><div class="sinfo"><div class="sname">Dashboard KPI</div><div class="ssub">Analisi e grafici per cava/operatore</div></div><div class="sarr">›</div></div>
     <div class="sitem" onclick="exportRapportiniXLSX()"><div class="av av-am">📊</div><div class="sinfo"><div class="sname">Esporta Excel</div><div class="ssub">Rapportini in formato .xlsx</div></div><div class="sarr">⤓</div></div>
     <div class="sitem" onclick="exportRapportiniMeseCorrentePDF()"><div class="av av-am">📄</div><div class="sinfo"><div class="sname">Esporta PDF mensile</div><div class="ssub">Riepilogo del mese corrente</div></div><div class="sarr">⤓</div></div>
@@ -6831,8 +6925,8 @@ select.finput,select.fi{font-size:16px;}
       <div class="stats">
         <div class="stat"><div class="sl">Cave</div><div class="sv" id="a-n-cave">0</div></div>
         <div class="stat"><div class="sl">Utenti attivi</div><div class="sv" id="a-n-utenti">0</div></div>
-        <div class="stat" style="cursor:pointer;" onclick="nav('volate')"><div class="sl">Rapp. perf.</div><div class="sv" id="a-n-rapp">0</div></div>
-        <div class="stat" style="cursor:pointer;" onclick="nav('volate')"><div class="sl">Rapp. fochino</div><div class="sv" id="a-n-rapp-foc">0</div></div>
+        <div class="stat" style="cursor:pointer;" onclick="openStorico()"><div class="sl">Rapp. perf.</div><div class="sv" id="a-n-rapp">0</div></div>
+        <div class="stat" style="cursor:pointer;" onclick="openVolate()"><div class="sl">Rapp. fochino</div><div class="sv" id="a-n-rapp-foc">0</div></div>
       </div>
       <div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Gestione</div>
       <div class="sitem" onclick="nav('utenti')"><div class="av av-am">UT</div><div class="sinfo"><div class="sname">Utenti</div><div class="ssub">Crea, modifica, disattiva</div></div><div class="sarr">›</div></div>
@@ -6938,7 +7032,6 @@ select.finput,select.fi{font-size:16px;}
     </div>
     <div class="sec-title" style="margin-top:18px;"><span class="dot" style="background:#ef5350;"></span>Accesso rapido</div>
     <div class="sitem" onclick="nav('volate-list')"><div class="av av-am">📐</div><div class="sinfo"><div class="sname">Progettazione volate</div><div class="ssub">Crea e modifica schemi di volata</div></div><div class="sarr">›</div></div>
-    <div class="sitem" onclick="nav('vibrazioni')"><div class="av" style="background:linear-gradient(135deg,#ec407a,#ad1457);color:#fff;">📡</div><div class="sinfo"><div class="sname">Calcolo vibrazioni PPV</div><div class="ssub">Scaled distance e ricettori</div></div><div class="sarr">›</div></div>
   </div>
 </div>
 
@@ -6993,7 +7086,7 @@ select.finput,select.fi{font-size:16px;}
 <!-- ══════════ BOTTOM NAV ══════════ -->
 <div class="bnav hidden" id="global-nav">
   <div class="bn" data-scr="home" onclick="nav('home')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Home</span></div>
-  <div class="bn" data-scr="volate" onclick="nav('volate')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Volate</span></div>
+  <div class="bn" data-scr="volate" onclick="openVolate()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Volate</span></div>
   <div class="bn" data-scr="cave" onclick="nav('cave')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l10 20H2z"/></svg><span>Cave</span></div>
   <div class="bn" data-scr="menu" onclick="nav('menu')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg><span>Menu</span></div>
 </div>
