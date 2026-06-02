@@ -1070,12 +1070,13 @@ function renderHome(){
   }
   if(!isFochino)tiles.push({t:'Deposito',d:'Materiali',i:'📦',col:'brown',scr:'deposito'});
   tiles.push({t:'Personale',d:'Supporto',i:'👥',col:'purple',scr:'personale'});
-  // Chat (v3.4.8) — per tutti
-  tiles.push({t:'Chat',d:'Messaggi',i:'💬',col:'teal',scr:'messaggi'});
+  // Chat (v3.4.8) — per tutti, con badge messaggi non letti
+  const chatUnread=DB.messaggi.filter(m=>m.toId===state.user.id&&!m.letto).length;
+  tiles.push({t:'Chat',d:'Messaggi',i:'💬',col:'teal',scr:'messaggi',badge:chatUnread});
   if(can('dashboard'))tiles.push({t:'Dashboard',d:'KPI e analisi',i:'📈',col:'teal',scr:'dashboard'});
   if(can('clienti'))tiles.push({t:'Clienti',d:'Anagrafica',i:'🏢',col:'teal',scr:'clienti'});
 
-  html+=tiles.map(x=>`<div class="tile tile-${x.col}" onclick="${x.fn?x.fn:`nav('${x.scr}')`}"><div class="ti">${x.i}</div><div class="tt">${x.t}</div><div class="td">${x.d}</div></div>`).join('');
+  html+=tiles.map(x=>`<div class="tile tile-${x.col}" style="position:relative;" onclick="${x.fn?x.fn:`nav('${x.scr}')`}"><div class="ti">${x.i}</div><div class="tt">${x.t}</div><div class="td">${x.d}</div>${x.badge>0?`<span style="position:absolute;top:8px;right:8px;background:var(--danger);color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:10px;">${x.badge}</span>`:''}</div>`).join('');
   $('tgrid').innerHTML=html;
   const miei=DB.rapportini.filter(r=>r.userId===state.user.id).slice(-3).reverse();
   if(miei.length>0){
@@ -1207,6 +1208,7 @@ function initRapp(){
   // Seconda fila nascosta di default
   $('r-fila2-section').style.display='none';
   $('btn-toggle-fila2').classList.remove('active');
+  if($('r-d2'))$('r-d2').value='';if($('r-m2'))$('r-m2').value='';
   state.rappFori=[];state.rappFori2=[];
   // ── B5: applica preferenze cava ──
   applicaPrefCava($('r-cava').value);
@@ -1379,6 +1381,8 @@ function initRappFoc(){
   // Reset volata allegata
   if($('rf-volata-id'))$('rf-volata-id').value='';
   if($('rf-volata-label'))$('rf-volata-label').textContent='Nessun progetto allegato';
+  if($('rf-rapp-id'))$('rf-rapp-id').value='';
+  if($('rf-rapp-label'))$('rf-rapp-label').textContent='Nessun rapportino allegato';
   state.rappPhotos=[];
   state.resoVisibile=false;
   aggiornaResoVisibility();
@@ -1422,6 +1426,28 @@ function selezionaVolataFoc(volataId){
 function rimuoviVolataFoc(){
   $('rf-volata-id').value='';
   $('rf-volata-label').textContent='Nessun progetto allegato';
+  markUnsavedFoc();
+}
+// Allega rapportino perforazione al rapportino fochino (opzionale)
+function allegaRappPerfFochino(){
+  const rs=[...DB.rapportini].sort((a,b)=>(b.data||'').localeCompare(a.data||'')).slice(0,40);
+  if(rs.length===0){toast('Nessun rapportino di perforazione disponibile','err');return;}
+  openModal('Allega rapportino perforazione',
+    `<div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Seleziona un rapportino.</div>`+
+    rs.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);return`<div class="sitem" onclick="selezionaRappPerfFoc('${r.id}')"><div class="av av-cv">${c?c.nome.substr(0,2).toUpperCase():'—'}</div><div class="sinfo"><div class="sname">${c?c.nome:'—'} · ${fmt(r.data)}</div><div class="ssub">${u?u.nome+' '+u.cognome:'—'} · ${r.fori||0} fori</div></div></div>`;}).join(''),
+    [{label:'Annulla',cls:'mbtn',action:closeModal}]
+  );
+}
+function selezionaRappPerfFoc(id){
+  const r=DB.rapportini.find(x=>x.id===id);if(!r)return;
+  const c=DB.cave.find(x=>x.id===r.cavaId);
+  $('rf-rapp-id').value=id;
+  $('rf-rapp-label').textContent=`${c?c.nome:'—'} · ${fmt(r.data)} · ${r.fori||0} fori`;
+  closeModal();markUnsavedFoc();toast('Rapportino allegato','success');
+}
+function rimuoviRappPerfFoc(){
+  $('rf-rapp-id').value='';
+  $('rf-rapp-label').textContent='Nessun rapportino allegato';
   markUnsavedFoc();
 }
 // D2 — Toggle reso
@@ -1493,6 +1519,7 @@ async function inviaRappFoc(e){
       tot_kg:parseFloat(totKg.toFixed(2)),
       fori_dettaglio:foriValidi,
       volataId:$('rf-volata-id')?.value||null,
+      rappPerfId:$('rf-rapp-id')?.value||null,
       inviato:today(),
       modificabile:true
     };
@@ -1637,6 +1664,8 @@ function apriRappModifica(id){
     if(fori2.length>0){
       $('r-fila2-section').style.display='block';
       $('btn-toggle-fila2').classList.add('active');
+      if($('r-d2'))$('r-d2').value=r.diametro_fila2||'';
+      if($('r-m2'))$('r-m2').value=r.maglia_fila2||'';
       state.rappFori2=[];$('tbody2').innerHTML='';
       fori2.forEach(f=>{
         const idx=state.rappFori2.length+1;
@@ -1679,6 +1708,8 @@ async function inviaRapp(){
       mezzoId:$('r-mezzo').value||null,
       personale:persSel,
       fori:allValid.length, fori_fila1:valid1.length, fori_fila2:valid2.length,
+      diametro_fila2:parseNum0($('r-d2')?.value)||null,
+      maglia_fila2:($('r-m2')?.value||'').replace(/,/g,'.')||null,
       metri:parseFloat(m.toFixed(2)),
       media_prof:parseFloat(mediaProf.toFixed(2)),
       mc:parseFloat(mc.toFixed(2)),
@@ -1861,7 +1892,7 @@ function apriRappFocDett(id){
     </div>
     ${foriRows?`<div class="preview-sec">${foriRows}</div>`:''}
     ${r.note?`<div class="preview-sec"><div class="preview-head">Note</div><div style="font-size:13px;">${r.note}</div></div>`:''}
-  `,[{label:'Chiudi',cls:'mbtn primary',action:closeModal}]);
+  `,[{label:'📄 PDF',cls:'mbtn',action:()=>{closeModal();exportRapportinoFocPDF(r);}},{label:'Chiudi',cls:'mbtn primary',action:closeModal}]);
 }
 function resetFiltriVolate(){
   state.filtriVolate={dataDa:'',dataA:'',cavaId:'',userId:'',diamMin:'',diamMax:''};
@@ -2893,6 +2924,7 @@ function exportRapportinoPDF(r){
   }
   // Footer
   d.setFontSize(8);d.setTextColor(120,120,120);
+  d.setFont('helvetica','italic');d.text('Deepwork per Cava Mineraria',105,285,{align:'center'});d.setFont('helvetica','normal');
   d.text('Documento generato automaticamente da Deepwork — '+new Date().toLocaleString('it-IT'),105,290,{align:'center'});
   d.save(`Rapportino_${(c?c.nome:'cava').replace(/[^\w]/g,'_')}_${r.data}.pdf`);
   toast('PDF generato','success');
@@ -2961,6 +2993,7 @@ function exportRapportinoFocPDF(r){
   }
   // Footer
   d.setFontSize(8);d.setTextColor(120,120,120);
+  d.setFont('helvetica','italic');d.text('Deepwork per Cava Mineraria',105,285,{align:'center'});d.setFont('helvetica','normal');
   d.text('Documento generato automaticamente da Deepwork — '+new Date().toLocaleString('it-IT'),105,290,{align:'center'});
   d.save(`Fochino_${(c?c.nome:'cava').replace(/[^\w]/g,'_')}_${r.data}.pdf`);
   toast('PDF generato','success');
@@ -3444,6 +3477,7 @@ function renderEditorCava(){
     $('ec-toolbar').innerHTML=`
       <div class="ec-tool ${state.voloraTool==='imposta'?'active':''}" onclick="setEditorTool('imposta')">⚙ Imposta</div>
       <div class="ec-tool ${state.voloraTool==='fronte'?'active':''}" onclick="setEditorTool('fronte')" title="Modella il profilo del fronte">✏️ Fronte</div>
+      <div class="ec-tool ${state.voloraTool==='piede'?'active':''}" onclick="setEditorTool('piede')" title="Disegna il piede (opzionale, davanti al fronte)">👟 Piede</div>
       <div class="ec-tool ${state.voloraTool==='foro'?'active':''}" onclick="setEditorTool('foro')">⊕ Fori</div>
       <div class="ec-tool ${state.voloraTool==='sequenza'?'active':''}" onclick="setEditorTool('sequenza')">↳ Sequenza</div>
       <div class="ec-tool" onclick="apriRiconciliazione('${v.id}')">📊 Riconcilia</div>
@@ -3458,7 +3492,7 @@ function renderEditorCava(){
     <span class="ec-stat">${tipoLabel}</span>
     <span class="ec-stat"><b>${v.tot_fori}</b>fori</span>
     <span class="ec-stat"><b>${v.maglia.file}</b>file</span>
-    <span class="ec-stat"><b>B${Borr}</b>×S<b>${Spaz}</b></span>
+    <span class="ec-stat"><b>Sp${Borr}</b>×I<b>${Spaz}</b></span>
     <span class="ec-stat"><b>${v.tot_metri}</b>m</span>
     ${v.tot_kg>0?`<span class="ec-stat"><b>${v.tot_kg}</b>kg</span>`:''}
     <span class="ec-stat"><b>${v.tot_mc}</b>mc</span>
@@ -3498,43 +3532,49 @@ function renderEditorCanvas(){
     const {py}=toPx(0,y);
     gridLines.push(`<line x1="${padX}" y1="${py}" x2="${W-padX}" y2="${py}" stroke="#332a14" stroke-width="0.5" stroke-dasharray="2 3"/>`);
   }
-  // ── Fronte modellabile: usa i punti profilo se presenti, altrimenti linea retta ──
+  // ── Fronte modellabile ──
   const profilo=(v.fronte.profilo||[]).filter(p=>p&&p.x!==undefined);
-  let crestaPath, frontePuntiHtml='';
+  let crestaPath;
   if(profilo.length>=2){
-    // Fronte come polilinea seguendo i punti salvati
     const pts=profilo.map(p=>toPx(p.x,p.y||0));
     crestaPath=`M ${padX} ${pts[0].py} `+pts.map(p=>`L ${p.px} ${p.py}`).join(' ')+` L ${W-padX} ${pts[pts.length-1].py}`;
-    // In modalità fronte mostra i punti di controllo
-    if(state.voloraTool==='fronte'){
-      frontePuntiHtml=profilo.map((p,i)=>{
-        const {px,py}=toPx(p.x,p.y||0);
-        return `<g class="ec-fronte-pt" data-pidx="${i}" onmousedown="onFrontePtMouseDown(event,${i})" ontouchstart="onFrontePtMouseDown(event,${i})" style="cursor:grab;">
-          <circle cx="${px}" cy="${py}" r="7" fill="#ff6d00" stroke="#fff" stroke-width="1.5" opacity="0.9"/>
-          <text x="${px}" y="${py+3.5}" font-family="'Barlow Condensed',sans-serif" font-size="8" fill="#fff" text-anchor="middle" pointer-events="none">${i+1}</text>
-        </g>`;
-      }).join('');
-    }
+  } else if(profilo.length===1){
+    const p=toPx(profilo[0].x,profilo[0].y||0);
+    crestaPath=`M ${padX} ${p.py} L ${p.px} ${p.py} L ${W-padX} ${p.py}`;
   } else {
     crestaPath=`M ${padX} ${padY} L ${W-padX} ${padY}`;
   }
-  // Piede (opzionale) — v3.4.8: disegnato DAVANTI al fronte e ne segue la forma
+  // ── Piede indipendente (opzionale, davanti al fronte) ──
+  const piede=(v.fronte.piede_profilo||[]).filter(p=>p&&p.x!==undefined);
   let piedeHtml='';
-  if(v.fronte.piede_attivo){
-    const pp=parseNum0(v.fronte.piede_profondita)||Borr;
-    const offY=-Math.abs(pp); // davanti = sopra la cresta
+  if(piede.length>=1){
     let pPath;
-    if(profilo.length>=2){
-      const pts=[{x:0,y:profilo[0].y||0},...profilo,{x:Lm,y:profilo[profilo.length-1].y||0}];
-      pPath='M '+pts.map(p=>`${(padX+p.x*scaleX).toFixed(1)} ${(padY+((p.y||0)+offY)*scaleY).toFixed(1)}`).join(' L ');
+    if(piede.length>=2){
+      const pts=piede.map(p=>toPx(p.x,p.y||0));
+      pPath=`M ${padX} ${pts[0].py} `+pts.map(p=>`L ${p.px} ${p.py}`).join(' ')+` L ${W-padX} ${pts[pts.length-1].py}`;
     } else {
-      pPath=`M ${padX} ${(padY+offY*scaleY).toFixed(1)} L ${W-padX} ${(padY+offY*scaleY).toFixed(1)}`;
+      const p=toPx(piede[0].x,piede[0].y||0);
+      pPath=`M ${padX} ${p.py} L ${W-padX} ${p.py}`;
     }
-    piedeHtml=`<path d="${pPath}" fill="none" stroke="#8a6a20" stroke-width="1.5" stroke-dasharray="5 3"/>
-      <text x="${padX+10}" y="${(padY+offY*scaleY-3).toFixed(1)}" font-family="'Barlow Condensed',sans-serif" font-size="9" fill="#8a6a20" letter-spacing="1">PIEDE ${pp.toFixed(1)}m</text>`;
+    piedeHtml=`<path d="${pPath}" fill="none" stroke="#8a6a20" stroke-width="1.6" stroke-dasharray="5 3"/>
+      <text x="${padX+6}" y="${toPx(0,piede[0].y||0).py-3}" font-family="'Barlow Condensed',sans-serif" font-size="9" fill="#8a6a20" letter-spacing="1">PIEDE</text>`;
   }
-  // Fori — nascosti in modalità FRONTE (ricompaiono uscendo)
-  const foriHtml=state.voloraTool==='fronte'?'':v.fori.map((f,idx)=>{
+  // Punti di controllo del profilo attivo (fronte o piede)
+  let puntiHtml='';
+  if(state.voloraTool==='fronte'||state.voloraTool==='piede'){
+    const arr=state.voloraTool==='piede'?piede:profilo;
+    const col=state.voloraTool==='piede'?'#8a6a20':'#ff6d00';
+    puntiHtml=arr.map((p,i)=>{
+      const {px,py}=toPx(p.x,p.y||0);
+      return `<g data-pidx="${i}" onmousedown="onFrontePtMouseDown(event,${i})" ontouchstart="onFrontePtMouseDown(event,${i})" style="cursor:grab;">
+        <circle cx="${px}" cy="${py}" r="8" fill="${col}" stroke="#fff" stroke-width="1.5" opacity="0.92"/>
+        <text x="${px}" y="${py+3.5}" font-family="'Barlow Condensed',sans-serif" font-size="8" fill="#fff" text-anchor="middle" pointer-events="none">${i+1}</text>
+      </g>`;
+    }).join('');
+  }
+  const frontePuntiHtml=puntiHtml;
+  // Fori — nascosti in modalità FRONTE/PIEDE (ricompaiono uscendo)
+  const foriHtml=(state.voloraTool==='fronte'||state.voloraTool==='piede')?'':v.fori.map((f,idx)=>{
     const {px,py}=toPx(f.x,f.y);
     const isSel=state.foroSel===idx;
     const r=isSel?10:7;
@@ -3669,11 +3709,21 @@ function renderEditorCanvas(){
     }
   }
   const canvasCursor=state.voloraTool==='foro'?'crosshair':(state.voloraTool==='fronte'?'crosshair':'default');
-  // v3.4.8: per le gallerie disegna l'arco superiore come contesto
+  // v3.4.9: galleria — sezione realistica (piedritti + calotta ad arco + platea)
   let archHtml='';
   if(v.tipo==='galleria'){
-    const ax=padX, aw=W-2*padX, atop=padY+6, abot=H-padY;
-    archHtml=`<path d="M ${ax} ${abot} L ${ax} ${atop+30} Q ${W/2} ${atop-14} ${W-padX} ${atop+30} L ${W-padX} ${abot}" fill="rgba(255,171,0,0.04)" stroke="#5c4818" stroke-width="1" stroke-dasharray="4 3"/>`;
+    const L=padX+12, R=W-padX-12;            // piedritti (pareti)
+    const floor=H-padY-6;                     // platea
+    const spring=padY+58;                     // imposta dell'arco
+    const crown=padY+8;                        // chiave di volta
+    const mid=(L+R)/2;
+    archHtml=`<g>
+      <path d="M ${L} ${floor} L ${L} ${spring} Q ${L} ${crown} ${mid} ${crown} Q ${R} ${crown} ${R} ${spring} L ${R} ${floor} Z" fill="rgba(255,171,0,0.035)" stroke="#6b5520" stroke-width="1.4"/>
+      <line x1="${L}" y1="${floor}" x2="${R}" y2="${floor}" stroke="#8a6a20" stroke-width="1.6"/>
+      <text x="${mid}" y="${crown+12}" fill="#8a6a20" font-size="9" text-anchor="middle" font-family="'Barlow Condensed',sans-serif" letter-spacing="1">CALOTTA (arco = fronte)</text>
+      <text x="${L-4}" y="${(spring+floor)/2}" fill="#6b5520" font-size="8" text-anchor="end" font-family="'Barlow Condensed',sans-serif" transform="rotate(-90 ${L-4} ${(spring+floor)/2})">PIEDRITTO</text>
+      <text x="${mid}" y="${floor+12}" fill="#8a6a20" font-size="8" text-anchor="middle" font-family="'Barlow Condensed',sans-serif">PLATEA</text>
+    </g>`;
   }
   $('ec-canvas-wrap').innerHTML=`
     <svg width="100%" viewBox="0 0 ${W} ${H}" id="ec-canvas"
@@ -3718,31 +3768,31 @@ function renderEditorSide(){
     return;
   }
 
-  // ── Modalità FRONTE ──
-  if(state.voloraTool==='fronte'){
-    const profilo=v.fronte.profilo||[];
+  // ── Modalità FRONTE / PIEDE ──
+  if(state.voloraTool==='fronte'||state.voloraTool==='piede'){
+    const isPiede=state.voloraTool==='piede';
+    const arr=isPiede?(v.fronte.piede_profilo||[]):(v.fronte.profilo||[]);
+    const col=isPiede?'#8a6a20':'var(--orange)';
     $('ec-side').innerHTML=`
-      <div class="ec-side-title"><span class="dot"></span>Modella fronte
+      <div class="ec-side-title"><span class="dot"></span>${isPiede?'Disegna piede':'Modella fronte'}
         <button class="chg" style="margin-left:auto;" onclick="resetFronteProfilo()">↺ Reset</button>
       </div>
       <div class="info-box" style="margin-bottom:10px;font-size:11px;">
-        <b>Come funziona:</b><br>
-        Tap sul canvas in alto (vicino alla cresta) per aggiungere punti di controllo. Trascina i punti arancioni per modellare la forma del fronte. Il fronte segue i punti nell'ordine da sinistra a destra.<br>
-        <span style="color:var(--muted2);">I fori si riadattano automaticamente alla nuova forma.</span>
+        Tocca il disegno per aggiungere punti, <b>trascinali</b> per modellare la forma${isPiede?' del piede (davanti al fronte)':' del fronte'}. ${isPiede?'Il piede è indicativo e non sposta i fori.':'Uscendo, i fori seguiranno la nuova forma.'}
       </div>
-      ${profilo.length>0?`
-        <div class="sec-title"><span class="dot"></span>Punti fronte (${profilo.length})</div>
+      ${arr.length>0?`
+        <div class="sec-title"><span class="dot"></span>Punti (${arr.length})</div>
         <div style="max-height:200px;overflow-y:auto;background:var(--card);border:1px solid var(--border);">
-          ${profilo.map((p,i)=>`
+          ${arr.map((p,i)=>`
             <div style="display:grid;grid-template-columns:30px 1fr 1fr 28px;gap:4px;padding:6px 8px;border-bottom:1px solid var(--border);align-items:center;font-size:12px;">
-              <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;color:var(--orange);">${i+1}</div>
+              <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;color:${col};">${i+1}</div>
               <div>X: ${(p.x||0).toFixed(1)}m</div>
               <div>Y: ${(p.y||0).toFixed(2)}m</div>
               <div onclick="rimuoviFrontePt(${i})" style="color:var(--danger);cursor:pointer;text-align:center;font-weight:800;">×</div>
             </div>`).join('')}
         </div>
-        <button class="btn-sec" style="width:100%;margin-top:8px;" onclick="adattaForiAlFronte()">↻ Adatta fori al fronte</button>
-      `:'<div class="empty-state" style="padding:16px;"><div class="empty-sub" style="font-size:11px;">Tap sul canvas per aggiungere il primo punto di controllo</div></div>'}
+        ${!isPiede?`<button class="btn-sec" style="width:100%;margin-top:8px;" onclick="adattaForiAlFronte()">↻ Adatta fori al fronte</button>`:''}
+      `:'<div class="empty-state" style="padding:16px;"><div class="empty-sub" style="font-size:11px;">Tocca il disegno per aggiungere il primo punto</div></div>'}
     `;
     return;
   }
@@ -3889,42 +3939,33 @@ function renderEditorSide(){
     <div class="ec-side-title" style="margin-top:12px;"><span class="dot"></span>Maglia di perforazione</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end;margin-bottom:8px;">
       <div>
-        <label class="fl">Borraggio (m)</label>
+        <label class="fl">Spalla (m) <span style="opacity:.6;">fronte–foro</span></label>
         <input type="number" inputmode="decimal" step="0.1" class="finput" value="${Borr}" oninput="aggiornaVolata('maglia.borraggio',this.value)">
       </div>
       <div>
-        <label class="fl">Spaziatura (m)</label>
+        <label class="fl">Interasse (m) <span style="opacity:.6;">foro–foro</span></label>
         <input type="number" inputmode="decimal" step="0.1" class="finput" value="${Spaz}" oninput="aggiornaVolata('maglia.spaziatura',this.value)">
       </div>
     </div>
+    <label class="fl">Borraggio (m) <span style="opacity:.6;">ultima carica → imbocco (solo dato)</span></label>
+    <input type="number" inputmode="decimal" step="0.1" class="finput" value="${v.maglia.borraggio_reale||''}" placeholder="es. 2.5" oninput="aggiornaVolata('maglia.borraggio_reale',this.value)" style="margin-bottom:10px;">
     <!-- Visualizzazione maglia grafica -->
     <div style="display:flex;justify-content:center;margin-bottom:10px;">
       <svg width="120" height="80" viewBox="0 0 120 80" style="background:var(--dark);border:1px solid var(--border);">
         <line x1="10" y1="40" x2="110" y2="40" stroke="var(--border)" stroke-width="1" stroke-dasharray="3 2"/>
         <line x1="60" y1="10" x2="60" y2="70" stroke="var(--border)" stroke-width="1" stroke-dasharray="3 2"/>
-        <!-- Foro centrale -->
         <circle cx="60" cy="40" r="5" fill="var(--card)" stroke="var(--amber)" stroke-width="1.5"/>
-        <!-- Fori adiacenti per visualizzare maglia -->
         <circle cx="60" cy="${40 - Math.min(Borr*12,28)}" r="4" fill="none" stroke="var(--amber2)" stroke-width="1" stroke-dasharray="2 1"/>
         <circle cx="${60 + Math.min(Spaz*8,40)}" cy="40" r="4" fill="none" stroke="var(--amber2)" stroke-width="1" stroke-dasharray="2 1"/>
-        <!-- Quotature -->
-        <text x="64" y="${40-Math.min(Borr*12,28)/2}" fill="var(--amber)" font-size="8" font-family="'Barlow Condensed',sans-serif">B${Borr}m</text>
-        <text x="${60+Math.min(Spaz*8,40)/2}" y="38" fill="var(--amber)" font-size="8" font-family="'Barlow Condensed',sans-serif">S${Spaz}m</text>
+        <text x="64" y="${40-Math.min(Borr*12,28)/2}" fill="var(--amber)" font-size="8" font-family="'Barlow Condensed',sans-serif">Sp${Borr}m</text>
+        <text x="${60+Math.min(Spaz*8,40)/2}" y="38" fill="var(--amber)" font-size="8" font-family="'Barlow Condensed',sans-serif">I${Spaz}m</text>
       </svg>
     </div>
 
     <button class="btn-sec" style="width:100%;margin-bottom:8px;" onclick="rigeneraMaglia()">↻ Rigenera maglia</button>
 
-    <!-- Piede opzionale -->
-    <div class="ec-side-title" style="margin-top:10px;"><span class="dot"></span>Piede del fronte <span style="font-size:10px;color:var(--muted);font-weight:400;">(opzionale)</span></div>
-    <div class="toggle-row" style="margin-bottom:8px;">
-      <div><div class="tog-name">Attiva piede</div><div class="tog-sub">Aggiunge la linea di piede al disegno</div></div>
-      <label class="toggle"><input type="checkbox" id="piede-toggle" ${v.fronte.piede_attivo?'checked':''} onchange="togglePiede(this.checked)"><span class="toggle-slider"></span></label>
-    </div>
-    ${v.fronte.piede_attivo?`
-      <label class="fl">Profondità piede (m)</label>
-      <input type="number" inputmode="decimal" step="0.5" class="finput" value="${v.fronte.piede_profondita||0}" oninput="aggiornaVolata('fronte.piede_profondita',this.value)">
-    `:''}
+    <!-- Piede: ora è uno strumento dedicato in alto (👟 Piede) -->
+    <div class="info-box" style="margin:8px 0;font-size:11px;">👟 Il <b>piede</b> è opzionale: usa lo strumento <b>Piede</b> in alto per disegnarlo davanti al fronte. Non influenza i fori.</div>
 
     <div class="ec-side-title" style="margin-top:12px;"><span class="dot"></span>Default per nuovi fori</div>
     <div class="frow">
@@ -3963,16 +4004,20 @@ function svgToMetri(svgX, svgY, v){
   return {xM:Math.max(0,Math.min(Lm,xM)), yM:Math.max(-totDepth,Math.min(totDepth,yM))};
 }
 
-// Aggiunge un punto al profilo del fronte (click in modalità fronte)
+// Ritorna l'array del profilo attivo (fronte o piede) creandolo se serve
+function _profiloAttivo(v){
+  if(state.voloraTool==='piede'){ if(!v.fronte.piede_profilo)v.fronte.piede_profilo=[]; return v.fronte.piede_profilo; }
+  if(!v.fronte.profilo)v.fronte.profilo=[]; return v.fronte.profilo;
+}
+// Aggiunge un punto al profilo attivo (esattamente dove si tocca)
 function aggiungiPuntoFronte(svgX, svgY){
   const v=DB.volate.find(x=>x.id===state.volataSel);
   if(!v)return;
   const {xM,yM}=svgToMetri(svgX,svgY,v);
-  if(!v.fronte.profilo)v.fronte.profilo=[];
-  // Inserisci in ordine X crescente
-  const idx=v.fronte.profilo.findIndex(p=>p.x>xM);
-  if(idx===-1)v.fronte.profilo.push({x:xM,y:yM});
-  else v.fronte.profilo.splice(idx,0,{x:xM,y:yM});
+  const arr=_profiloAttivo(v);
+  const idx=arr.findIndex(p=>p.x>xM);
+  if(idx===-1)arr.push({x:xM,y:yM});
+  else arr.splice(idx,0,{x:xM,y:yM});
   state.editorUnsaved=true;
   renderEditorCanvas();
   renderEditorSide();
@@ -3980,8 +4025,9 @@ function aggiungiPuntoFronte(svgX, svgY){
 
 function rimuoviFrontePt(idx){
   const v=DB.volate.find(x=>x.id===state.volataSel);
-  if(!v||!v.fronte.profilo)return;
-  v.fronte.profilo.splice(idx,1);
+  if(!v)return;
+  const arr=_profiloAttivo(v);
+  arr.splice(idx,1);
   state.editorUnsaved=true;
   renderEditorCanvas();
   renderEditorSide();
@@ -3990,15 +4036,16 @@ function rimuoviFrontePt(idx){
 function resetFronteProfilo(){
   const v=DB.volate.find(x=>x.id===state.volataSel);
   if(!v)return;
-  openModal('Reset fronte','<p>Rimuovere tutti i punti di controllo del fronte? La cresta tornerà dritta.</p>',[
+  const isPiede=state.voloraTool==='piede';
+  openModal('Reset '+(isPiede?'piede':'fronte'),`<p>Rimuovere tutti i punti del ${isPiede?'piede':'fronte'}?</p>`,[
     {label:'Annulla',cls:'mbtn',action:closeModal},
     {label:'RESET',cls:'mbtn danger',action:()=>{
-      v.fronte.profilo=[];
+      if(isPiede)v.fronte.piede_profilo=[];else v.fronte.profilo=[];
       state.editorUnsaved=true;
       closeModal();
       renderEditorCanvas();
       renderEditorSide();
-      toast('Fronte resettato','success');
+      toast((isPiede?'Piede':'Fronte')+' resettato','success');
     }}
   ]);
 }
@@ -4052,23 +4099,18 @@ function onFrontePtMove(ev){
   if(_fronteDragIdx===null)return;
   ev.preventDefault();
   const v=DB.volate.find(x=>x.id===state.volataSel);
-  if(!v||!v.fronte.profilo)return;
-  const svg=$('ec-canvas');if(!svg)return;
-  const rect=svg.getBoundingClientRect();
-  const W=680,H=360;
-  let cx,cy;
-  if(ev.touches&&ev.touches.length>0){cx=ev.touches[0].clientX;cy=ev.touches[0].clientY;}
-  else{cx=ev.clientX;cy=ev.clientY;}
-  const svgX=(cx-rect.left)/rect.width*W;
-  const svgY=(cy-rect.top)/rect.height*H;
-  const {xM,yM}=svgToMetri(svgX,svgY,v);
-  v.fronte.profilo[_fronteDragIdx]={x:xM,y:yM};
-  // Riordina per X
-  v.fronte.profilo.sort((a,b)=>a.x-b.x);
+  if(!v)return;
+  const arr=_profiloAttivo(v);
+  if(!arr[_fronteDragIdx])return;
+  const pp=ecPoint(ev);if(!pp)return;
+  const {xM,yM}=svgToMetri(pp.x,pp.y,v);
+  arr[_fronteDragIdx]={x:xM,y:yM};
   state.editorUnsaved=true;
   renderEditorCanvas();
 }
 function onFrontePtUp(){
+  const v=DB.volate.find(x=>x.id===state.volataSel);
+  if(v)_profiloAttivo(v).sort((a,b)=>a.x-b.x);
   _fronteDragIdx=null;
   document.removeEventListener('mousemove',onFrontePtMove);
   document.removeEventListener('mouseup',onFrontePtUp);
@@ -4189,9 +4231,7 @@ function setEditorTool(tool){
     if(v && (v.fronte.profilo||[]).length>=2) adattaForiAlFronte(true);
   }
   state.voloraTool=tool;
-  if(tool==='imposta')state.foroSel=null;
-  if(tool==='sequenza')state.foroSel=null;
-  if(tool==='fronte')state.foroSel=null;
+  if(tool==='imposta'||tool==='sequenza'||tool==='fronte'||tool==='piede')state.foroSel=null;
   renderEditorCanvas();
   renderEditorSide();
   // Aggiorna active state toolbar senza re-renderare tutto
@@ -4923,25 +4963,9 @@ function onForoMouseDown(ev, idx){
 }
 
 function getCanvasPoint(ev){
-  const svg = $('ec-canvas');
-  if(!svg)return null;
-  const rect = svg.getBoundingClientRect();
-  let cx, cy;
-  if(ev.touches && ev.touches.length>0){
-    cx = ev.touches[0].clientX;
-    cy = ev.touches[0].clientY;
-  } else if(ev.changedTouches && ev.changedTouches.length>0){
-    cx = ev.changedTouches[0].clientX;
-    cy = ev.changedTouches[0].clientY;
-  } else {
-    cx = ev.clientX;
-    cy = ev.clientY;
-  }
-  const W=680, H=360;
-  return {
-    mouseX: (cx-rect.left)/rect.width*W,
-    mouseY: (cy-rect.top)/rect.height*H
-  };
+  const p=ecPoint(ev);
+  if(!p)return null;
+  return { mouseX:p.x, mouseY:p.y };
 }
 
 function onCanvasDragMove(ev){
@@ -5010,7 +5034,7 @@ function _aggiornaEcStats(v){
     <span class="ec-stat">${tipoLabel}</span>
     <span class="ec-stat"><b>${v.tot_fori}</b>fori</span>
     <span class="ec-stat"><b>${v.maglia.file}</b>file</span>
-    <span class="ec-stat"><b>B${Borr}</b>×S<b>${Spaz}</b></span>
+    <span class="ec-stat"><b>Sp${Borr}</b>×I<b>${Spaz}</b></span>
     <span class="ec-stat"><b>${v.tot_metri}</b>m</span>
     ${v.tot_kg>0?`<span class="ec-stat"><b>${v.tot_kg}</b>kg</span>`:''}
     <span class="ec-stat"><b>${v.tot_mc}</b>mc</span>
@@ -5038,7 +5062,7 @@ function aggiornaVolata(path, valore){
   for(let i=0;i<parts.length-1;i++){if(!obj[parts[i]])obj[parts[i]]={};obj=obj[parts[i]];}
   const campo=parts[parts.length-1];
   // Campi numerici — v3.4.7.1: aggiornati con nuovi nomi
-  const numCampi=['lunghezza_m','piede_profondita','borraggio','spaziatura','B','S','file','profondita_m','diametro_mm','kg_per_foro','ritardo_ms'];
+  const numCampi=['lunghezza_m','piede_profondita','borraggio','borraggio_reale','spaziatura','B','S','file','profondita_m','diametro_mm','kg_per_foro','ritardo_ms'];
   obj[campo]=numCampi.includes(campo)?parseNum0(valore):valore;
   state.editorUnsaved=true;
   ricalcolaTotaliVolata(v);
@@ -5064,19 +5088,25 @@ function rigeneraMaglia(){
 }
 
 // Click sul canvas: gestisce foro, fronte o deseleziona
+// v3.4.9: conversione robusta schermo→viewBox (mouse e touch, qualsiasi scala/dispositivo)
+function ecPoint(ev){
+  const svg=$('ec-canvas');if(!svg||!svg.getScreenCTM)return null;
+  const t=(ev.touches&&ev.touches[0])||(ev.changedTouches&&ev.changedTouches[0])||ev;
+  const pt=svg.createSVGPoint();pt.x=t.clientX;pt.y=t.clientY;
+  const m=svg.getScreenCTM();if(!m)return null;
+  const p=pt.matrixTransform(m.inverse());
+  return {x:p.x,y:p.y};
+}
 function onCanvasClick(ev){
   if(state.volataReadonly)return;
   const v=DB.volate.find(x=>x.id===state.volataSel);
   if(!v)return;
-  const svg=$('ec-canvas');
-  const rect=svg.getBoundingClientRect();
   const W=680,H=360,padX=40,padY=40;
-  const sx=(ev.clientX-rect.left)/rect.width*W;
-  const sy=(ev.clientY-rect.top)/rect.height*H;
+  const pp=ecPoint(ev);if(!pp)return;
+  const sx=pp.x, sy=pp.y;
 
-  // ── Modalità FRONTE: aggiunge punto di controllo ──
-  if(state.voloraTool==='fronte'){
-    // Solo se il click è nella zona del fronte (vicino alla cresta, y piccolo)
+  // ── Modalità FRONTE / PIEDE: aggiunge punto dove si tocca ──
+  if(state.voloraTool==='fronte'||state.voloraTool==='piede'){
     aggiungiPuntoFronte(sx,sy);
     return;
   }
@@ -5257,324 +5287,126 @@ function exportVolataPDF(volataId){
   const Borr=getBorraggio(v);
   const Spaz=getSpaziatura(v);
   const tipoLabel={'cava':'CAVA','galleria':'GALLERIA','altro':'ALTRO'}[v.tipo||'cava']||'CAVA';
-  const tipoIcoDots={'cava':'●','galleria':'◆','altro':'▲'}[v.tipo||'cava']||'●';
-  const nomeProgetto=v.nomeProgetto||`VOLATA #${v.numero}`;
-
-  // ═══════════════════════════════════
-  // PAGINA 1 — COPERTINA SCENICA
-  // ═══════════════════════════════════
+  const nomeProgetto=v.nomeProgetto||('VOLATA #'+v.numero);
   const d=new jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
-
-  // Sfondo scuro
-  d.setFillColor(16,13,7);d.rect(0,0,210,297,'F');
-
-  // Banda ambra laterale sinistra
-  d.setFillColor(255,171,0);d.rect(0,0,8,297,'F');
-
-  // Area superiore ambra
-  d.setFillColor(255,171,0);d.rect(8,0,202,70,'F');
-
-  // Testo copertina
-  d.setTextColor(16,13,7);
-  d.setFont('helvetica','bold');d.setFontSize(36);
-  d.text('DEEPWORK',18,28);
-  d.setFontSize(10);d.setFont('helvetica','normal');
-  d.text('FIELD OPERATIONS PLATFORM',18,36);
-
-  d.setFontSize(28);d.setFont('helvetica','bold');
-  d.text(nomeProgetto.toUpperCase(),18,58);
-  d.setFontSize(11);d.setFont('helvetica','normal');
-  d.text(tipoIcoDots+' '+tipoLabel+' · '+fmt(v.data),18,66);
-
-  // Info sintetiche sotto la banda
-  d.setTextColor(255,213,79);
-  d.setFont('helvetica','bold');d.setFontSize(9);
-  d.text('DATI PROGETTO',18,82);
-  d.setDrawColor(255,171,0);d.setLineWidth(0.3);d.line(18,84,192,84);
-
+  const CAPTION='Deepwork per Cava Mineraria';
+  function header(title){
+    d.setFillColor(255,255,255);d.rect(0,0,210,297,'F');
+    d.setFillColor(255,171,0);d.rect(0,0,210,20,'F');
+    d.setTextColor(20,16,8);d.setFont('helvetica','bold');d.setFontSize(15);
+    d.text('DEEPWORK',14,13);
+    d.setFont('helvetica','normal');d.setFontSize(9);
+    d.text(title,200,13,{align:'right'});
+    d.setDrawColor(255,171,0);d.setLineWidth(0.4);d.line(0,20,210,20);
+  }
+  function footer(pg){
+    d.setDrawColor(220,210,180);d.setLineWidth(0.3);d.line(14,286,196,286);
+    d.setTextColor(150,130,80);d.setFont('helvetica','italic');d.setFontSize(8);
+    d.text(CAPTION,14,291);
+    d.setFont('helvetica','normal');d.setTextColor(160,160,160);
+    d.text('Pag. '+pg,196,291,{align:'right'});
+    d.text(new Date().toLocaleDateString('it-IT'),105,291,{align:'center'});
+  }
+  header('SCHEMA DI VOLATA');
+  d.setTextColor(20,16,8);d.setFont('helvetica','bold');d.setFontSize(24);
+  d.text(nomeProgetto.toUpperCase(),14,38);
+  d.setFont('helvetica','normal');d.setFontSize(11);d.setTextColor(120,100,40);
+  d.text(tipoLabel+'  -  '+fmt(v.data),14,46);
+  d.setDrawColor(255,171,0);d.setLineWidth(0.3);d.line(14,52,196,52);
   const info=[
-    ['CAVA / SITO', cava?cava.nome:(v.nomeProgetto||'Non specificata')],
-    ['CLIENTE', cli?cli.ragsoc:(cava?.cliente||'—')],
-    ['TIPO VOLATA', tipoLabel],
-    ['DATA', fmt(v.data)],
-    ['PROGETTISTA', operatore?(operatore.nome+' '+operatore.cognome):state.user?.nome+' '+state.user?.cognome||'—'],
-    ['LUNGHEZZA FRONTE', v.fronte.lunghezza_m+' m'],
-    ['MAGLIA', 'Borraggio '+Borr+' m · Spaziatura '+Spaz+' m · '+v.maglia.file+' fil'+(v.maglia.file===1?'a':'e')],
-    ['ESPLOSIVO DEFAULT', v.default.esplosivo||'—'],
-    ['INNESCO DEFAULT', v.default.innesco||'—'],
+    ['Cava / Sito', cava?cava.nome:nomeProgetto],
+    ['Cliente', cli?cli.ragsoc:(cava?.cliente||'-')],
+    ['Tipo volata', tipoLabel],
+    ['Data', fmt(v.data)],
+    ['Progettista', operatore?(operatore.nome+' '+operatore.cognome):(state.user?(state.user.nome+' '+state.user.cognome):'-')],
+    ['Lunghezza fronte', v.fronte.lunghezza_m+' m'],
+    ['Spalla (fronte-foro)', Borr+' m'],
+    ['Interasse (foro-foro)', Spaz+' m'],
+    ['Borraggio (carica-imbocco)', (v.maglia.borraggio_reale||'-')+(v.maglia.borraggio_reale?' m':'')],
+    ['N. file', String(v.maglia.file)],
+    ['Esplosivo default', v.default.esplosivo||'-'],
+    ['Innesco default', v.default.innesco||'-'],
   ];
-  let yi=92;
-  d.setFont('helvetica','normal');d.setFontSize(9);
-  info.forEach(([lab,val])=>{
-    d.setTextColor(100,80,30);d.text(lab,18,yi);
-    d.setTextColor(255,213,79);d.text(String(val||'—'),80,yi);
-    yi+=7;
+  let yi=62;d.setFontSize(10);
+  info.forEach(function(row){
+    d.setTextColor(120,100,50);d.setFont('helvetica','normal');d.text(row[0],16,yi);
+    d.setTextColor(20,16,8);d.setFont('helvetica','bold');d.text(String(row[1]||'-'),95,yi);
+    yi+=8;
   });
-
-  // KPI box
-  const kpi=[
-    {l:'FORI',v:String(v.tot_fori)},
-    {l:'METRI',v:String(v.tot_metri)+'m'},
-    {l:'KG ESPLOSIVO',v:v.tot_kg>0?String(v.tot_kg)+'kg':'—'},
-    {l:'MC ABBATTUTI',v:v.tot_mc>0?String(v.tot_mc)+'mc':'—'},
-  ];
-  const kpiW=43;
-  kpi.forEach((k,i)=>{
-    const kx=18+i*(kpiW+2);
-    const ky=170;
-    d.setFillColor(28,22,8);d.rect(kx,ky,kpiW,22,'F');
-    d.setDrawColor(255,171,0);d.setLineWidth(0.5);d.rect(kx,ky,kpiW,22);
-    d.setTextColor(255,171,0);d.setFont('helvetica','bold');d.setFontSize(16);
-    d.text(k.v,kx+kpiW/2,ky+13,{align:'center'});
-    d.setTextColor(100,80,30);d.setFont('helvetica','normal');d.setFontSize(7);
-    d.text(k.l,kx+kpiW/2,ky+19,{align:'center'});
+  const kpi=[['FORI',String(v.tot_fori)],['METRI',v.tot_metri+'m'],['KG',v.tot_kg>0?v.tot_kg+'kg':'-'],['MC',v.tot_mc>0?v.tot_mc+'mc':'-']];
+  const kw=43;
+  kpi.forEach(function(k,i){const kx=16+i*(kw+2),ky=yi+4;
+    d.setFillColor(255,248,232);d.setDrawColor(255,171,0);d.setLineWidth(0.4);d.rect(kx,ky,kw,22,'FD');
+    d.setTextColor(200,120,0);d.setFont('helvetica','bold');d.setFontSize(15);d.text(k[1],kx+kw/2,ky+12,{align:'center'});
+    d.setTextColor(140,120,60);d.setFont('helvetica','normal');d.setFontSize(7);d.text(k[0],kx+kw/2,ky+18,{align:'center'});
   });
-
-  // PPV se disponibile
-  const ppv=calcolaPPVMaxRicettori(v);
-  if(ppv>0){
-    const sog=DB.settings.vibSettings?.sogliaPPV||5;
-    const ppvColor=ppv>=sog?[198,40,40]:(ppv>=sog*0.5?[220,140,0]:[46,125,50]);
-    d.setFillColor(28,22,8);d.rect(18,196,182,14,'F');
-    d.setDrawColor(...ppvColor);d.setLineWidth(0.5);d.rect(18,196,182,14);
-    d.setTextColor(...ppvColor);d.setFont('helvetica','bold');d.setFontSize(9);
-    d.text('PPV STIMATO MAX: '+ppv.toFixed(2)+' mm/s (soglia '+sog+' mm/s)',105,204,{align:'center'});
-  }
-
-  // Note se presenti
   if(v.note){
-    d.setTextColor(100,80,30);d.setFont('helvetica','bold');d.setFontSize(8);
-    d.text('NOTE',18,216);
-    d.setTextColor(200,180,100);d.setFont('helvetica','normal');d.setFontSize(8);
-    const noteLines=d.splitTextToSize(v.note,174);
-    d.text(noteLines,18,222);
+    d.setTextColor(120,100,50);d.setFont('helvetica','bold');d.setFontSize(9);d.text('NOTE',16,yi+36);
+    d.setTextColor(40,40,40);d.setFont('helvetica','normal');d.setFontSize(9);
+    d.text(d.splitTextToSize(v.note,180),16,yi+42);
   }
-
-  // Footer copertina
-  d.setTextColor(40,30,10);d.setFont('helvetica','normal');d.setFontSize(7);
-  d.text('Documento generato automaticamente da Deepwork Field Operations Platform',105,285,{align:'center'});
-  d.text('Riservato — Non distribuire senza autorizzazione · '+new Date().toLocaleString('it-IT'),105,290,{align:'center'});
-  // Numero pagina
-  d.setFillColor(255,171,0);d.rect(0,292,210,5,'F');
-  d.setTextColor(16,13,7);d.setFont('helvetica','bold');d.setFontSize(7);
-  d.text('1',105,296,{align:'center'});
-
-  // ═══════════════════════════════════
-  // PAGINA 2 — DISEGNO PLANIMETRICO FORI
-  // ═══════════════════════════════════
-  d.addPage();
-  d.setFillColor(16,13,7);d.rect(0,0,210,297,'F');
-  d.setFillColor(255,171,0);d.rect(0,0,8,297,'F');
-
-  // Intestazione pagina 2
-  d.setFillColor(28,22,8);d.rect(8,0,202,18,'F');
-  d.setTextColor(255,171,0);d.setFont('helvetica','bold');d.setFontSize(12);
-  d.text('PLANIMETRIA FORI DI MINA',18,12);
-  d.setTextColor(100,80,30);d.setFont('helvetica','normal');d.setFontSize(8);
-  d.text(nomeProgetto+' · '+fmt(v.data),192,12,{align:'right'});
-  d.setDrawColor(255,171,0);d.setLineWidth(0.5);d.line(8,18,210,18);
-
-  // ── DISEGNO SVG → jsPDF ──
+  footer(1);
+  d.addPage();header('PLANIMETRIA FORI');
   if(v.fori.length>0){
-    const drawX=18, drawY=24;
-    const drawW=182, drawH=110;
-    const Lm=v.fronte.lunghezza_m;
+    const dx=16,dy=28,dw=178,dh=150;
+    const Lm=v.fronte.lunghezza_m||1;
     const fileVis=Math.max(v.maglia.file,1);
     const totD=(fileVis+1)*Borr+2;
-    const sx=drawW/Math.max(Lm,0.01);
-    const sy=drawH/totD;
-    const toPdf=(xm,ym)=>({px:drawX+xm*sx, py:drawY+ym*sy});
-
-    // Sfondo disegno
-    d.setFillColor(10,8,5);d.rect(drawX,drawY,drawW,drawH,'F');
-    d.setDrawColor(50,42,20);d.setLineWidth(0.2);d.rect(drawX,drawY,drawW,drawH);
-
-    // Griglia leggera
-    d.setDrawColor(30,24,10);d.setLineWidth(0.15);
-    for(let x=0;x<=Lm;x+=Spaz){const p=toPdf(x,0);d.line(p.px,drawY,p.px,drawY+drawH);}
-    for(let y=0;y<=totD;y+=Borr){const p=toPdf(0,y);d.line(drawX,p.py,drawX+drawW,p.py);}
-
-    // Cresta del fronte
-    const profilo=(v.fronte.profilo||[]).filter(p=>p&&p.x!==undefined).sort((a,b)=>a.x-b.x);
-    d.setDrawColor(255,171,0);d.setLineWidth(0.8);
-    if(profilo.length>=2){
-      const pts=[{x:0,y:profilo[0].y||0},...profilo,{x:Lm,y:profilo[profilo.length-1].y||0}];
-      for(let i=0;i<pts.length-1;i++){
-        const a=toPdf(pts[i].x,pts[i].y||0);
-        const b=toPdf(pts[i+1].x,pts[i+1].y||0);
-        d.line(a.px,a.py,b.px,b.py);
-      }
-    } else {
-      d.line(drawX,drawY,drawX+drawW,drawY);
+    const sx=dw/Math.max(Lm,0.01), sy=dh/totD;
+    const toP=function(xm,ym){return {x:dx+xm*sx,y:dy+ym*sy};};
+    d.setFillColor(250,250,248);d.setDrawColor(210,200,170);d.setLineWidth(0.3);d.rect(dx,dy,dw,dh,'FD');
+    d.setDrawColor(235,228,205);d.setLineWidth(0.15);
+    for(let x=0;x<=Lm;x+=Spaz){const p=toP(x,0);d.line(p.x,dy,p.x,dy+dh);}
+    for(let y=0;y<=totD;y+=Borr){const p=toP(0,y);d.line(dx,p.y,dx+dw,p.y);}
+    const prof=(v.fronte.profilo||[]).filter(p=>p&&p.x!==undefined).sort((a,b)=>a.x-b.x);
+    d.setDrawColor(230,140,0);d.setLineWidth(0.9);
+    if(prof.length>=2){const pts=[{x:0,y:prof[0].y||0}].concat(prof,[{x:Lm,y:prof[prof.length-1].y||0}]);for(let i=0;i<pts.length-1;i++){const a=toP(pts[i].x,pts[i].y||0),b=toP(pts[i+1].x,pts[i+1].y||0);d.line(a.x,a.y,b.x,b.y);}}
+    else d.line(dx,dy,dx+dw,dy);
+    d.setTextColor(200,120,0);d.setFont('helvetica','bold');d.setFontSize(7);d.text('FRONTE  L='+Lm+'m',dx+2,dy-2);
+    const pie=(v.fronte.piede_profilo||[]).filter(p=>p&&p.x!==undefined).sort((a,b)=>a.x-b.x);
+    if(pie.length>=1){d.setDrawColor(150,110,40);d.setLineWidth(0.7);
+      if(pie.length>=2){const pts=pie.map(p=>toP(p.x,p.y||0));for(let i=0;i<pts.length-1;i++)d.line(pts[i].x,pts[i].y,pts[i+1].x,pts[i+1].y);}
+      else{const p=toP(pie[0].x,pie[0].y||0);d.line(dx,p.y,dx+dw,p.y);}
     }
-
-    // Piede (se attivo)
-    if(v.fronte.piede_attivo&&v.fronte.piede_profondita){
-      const piedePy=toPdf(0,parseNum0(v.fronte.piede_profondita)).py;
-      d.setDrawColor(92,72,24);d.setLineWidth(0.4);
-      d.setLineDash([1,1.5]);
-      d.line(drawX,piedePy,drawX+drawW,piedePy);
-      d.setLineDash([]);
-      d.setTextColor(92,72,24);d.setFont('helvetica','normal');d.setFontSize(6);
-      d.text('PIEDE',drawX+2,piedePy+3.5);
-    }
-
-    // Quotatura borraggio e spaziatura
-    d.setDrawColor(180,130,30);d.setLineWidth(0.3);
-    const f0=v.fori.find(f=>f.y>0);
-    if(f0){
-      const a0=toPdf(f0.x,0);const a1=toPdf(f0.x,f0.y);
-      d.line(a0.px,a0.py,a1.px,a1.py);
-      d.setTextColor(180,130,30);d.setFont('helvetica','bold');d.setFontSize(5.5);
-      d.text('B '+Borr+'m',a0.px+1,(a0.py+a1.py)/2);
-    }
-    const f1=v.fori.find(f=>f.y>0);
-    const f2=v.fori.find(f=>f.y>0&&f.x>f1?.x);
-    if(f1&&f2){
-      const a=toPdf(f1.x,f1.y);const b=toPdf(f2.x,f2.y);
-      d.line(a.px,a.py,b.px,b.py);
-      d.setTextColor(180,130,30);d.setFontSize(5.5);
-      d.text('S '+Spaz+'m',(a.px+b.px)/2,a.py-1.5,{align:'center'});
-    }
-
-    // Fori
-    const sorted=[...v.fori].sort((a,b)=>(a.sequenza||a.num)-(b.sequenza||b.num));
-    sorted.forEach(f=>{
-      const {px,py}=toPdf(f.x||0,f.y||0);
-      if(px<drawX||px>drawX+drawW||py<drawY||py>drawY+drawH)return;
-      const r=2.5;
-      // Colore in base alla fila (y/borraggio)
-      const fila=Math.round((f.y||0)/Borr);
-      const fillColors=[[40,140,70],[30,110,200],[160,50,200],[200,80,30]];
-      const fc=fillColors[Math.min(fila-1,3)]||fillColors[0];
-      d.setFillColor(16,13,7);d.circle(px,py,r+0.8,'F');
-      d.setFillColor(...fc);d.circle(px,py,r,'F');
-      d.setDrawColor(255,213,79);d.setLineWidth(0.3);d.circle(px,py,r);
-      // Numero foro
-      d.setTextColor(255,255,255);d.setFont('helvetica','bold');d.setFontSize(4.5);
-      d.text(String(f.num),px,py+1.5,{align:'center'});
-    });
-
-    // Etichetta cresta
-    d.setTextColor(255,171,0);d.setFont('helvetica','bold');d.setFontSize(6.5);
-    d.text('CRESTA · L='+Lm+'m',drawX+2,drawY-1.5);
-
-    // Scala
-    const scalaLen=Math.min(10,Lm/3);
-    const scalaW=scalaLen*sx;
-    const scalaX=drawX+drawW-scalaW-2;
-    const scalaYy=drawY+drawH+4;
-    d.setDrawColor(255,171,0);d.setLineWidth(0.4);
-    d.line(scalaX,scalaYy,scalaX+scalaW,scalaYy);
-    d.line(scalaX,scalaYy-1,scalaX,scalaYy+1);
-    d.line(scalaX+scalaW,scalaYy-1,scalaX+scalaW,scalaYy+1);
-    d.setTextColor(180,130,30);d.setFont('helvetica','normal');d.setFontSize(6);
-    d.text(scalaLen+'m',scalaX+scalaW/2,scalaYy+4,{align:'center'});
-
-    // Legenda file
-    const legendY=drawY+drawH+12;
-    d.setTextColor(180,130,30);d.setFont('helvetica','bold');d.setFontSize(6.5);
-    d.text('LEGENDA FILE:',drawX,legendY);
     const fileColors=[[40,140,70],[30,110,200],[160,50,200],[200,80,30]];
-    for(let i=0;i<Math.min(v.maglia.file,4);i++){
-      d.setFillColor(...fileColors[i]);
-      d.circle(drawX+22+i*18,legendY-1.5,2,'F');
-      d.setTextColor(200,180,100);d.setFontSize(5.5);
-      d.text('Fila '+(i+1),drawX+25+i*18,legendY);
+    v.fori.forEach(function(f){const p=toP(f.x||0,f.y||0);if(p.x<dx||p.x>dx+dw||p.y<dy||p.y>dy+dh)return;
+      const fila=Math.round((f.y||0)/Borr);const fc=fileColors[Math.min(Math.max(fila-1,0),3)];
+      d.setFillColor(255,255,255);d.circle(p.x,p.y,3.1,'F');
+      d.setFillColor(fc[0],fc[1],fc[2]);d.circle(p.x,p.y,2.6,'F');
+      d.setTextColor(255,255,255);d.setFont('helvetica','bold');d.setFontSize(4.5);d.text(String(f.num),p.x,p.y+1.5,{align:'center'});
+      if(f.sequenza){d.setTextColor(200,60,0);d.setFont('helvetica','bold');d.setFontSize(5);d.text('['+f.sequenza+']',p.x+3.5,p.y-2);}
+    });
+    d.setTextColor(120,100,50);d.setFont('helvetica','normal');d.setFontSize(7);
+    d.text('Numero nel cerchio = n. foro - [n] rosso = sequenza di sparo',dx,dy+dh+7);
+  } else {
+    d.setTextColor(150,150,150);d.setFontSize(11);d.text('Nessun foro inserito',105,110,{align:'center'});
+  }
+  footer(2);
+  d.addPage();header('DATI DI PERFORAZIONE');
+  if(v.fori.length>0){
+    d.autoTable({startY:26,
+      head:[['#','Fila','X(m)','Y(m)','Prof','Diam','Carica','Esplosivo','Innesco','Ritardo','Seq']],
+      body:v.fori.map(function(f){const fila=Math.round((f.y||0)/Borr)||1;return[f.num,fila,(f.x||0).toFixed(2),(f.y||0).toFixed(2),f.prof||'-',f.diam||'-',f.kg||'-',f.esplosivo||'-',f.innesco||'-',f.ritardo||'-',f.sequenza||'-'];}),
+      theme:'grid',
+      headStyles:{fillColor:[255,171,0],textColor:[20,16,8],fontStyle:'bold',fontSize:7},
+      bodyStyles:{textColor:[40,40,40],fontSize:7},
+      alternateRowStyles:{fillColor:[255,248,232]},
+      styles:{cellPadding:1.6,lineColor:[225,215,185],lineWidth:0.2},
+      margin:{left:16,right:14}
+    });
+    let yt=d.lastAutoTable.finalY+10;
+    if(yt<250){
+      d.setFillColor(255,248,232);d.setDrawColor(255,171,0);d.setLineWidth(0.4);d.rect(16,yt,178,26,'FD');
+      d.setTextColor(120,100,50);d.setFont('helvetica','bold');d.setFontSize(8);d.text('TOTALI',105,yt+6,{align:'center'});
+      const tt=[['Fori',String(v.tot_fori)],['Metri',v.tot_metri+' m'],['Carica',v.tot_kg>0?v.tot_kg+' kg':'-'],['Mc',v.tot_mc>0?v.tot_mc+' mc':'-']];
+      tt.forEach(function(t,i){const tx=20+(i%2)*90,ty=yt+13+Math.floor(i/2)*7;d.setTextColor(120,100,50);d.setFont('helvetica','normal');d.setFontSize(8);d.text(t[0]+':',tx,ty);d.setTextColor(20,16,8);d.setFont('helvetica','bold');d.text(t[1],tx+78,ty,{align:'right'});});
     }
   }
-
-  // ═══════════════════════════════════
-  // PAGINA 3 — TABELLA DATI FORI + TOTALI
-  // ═══════════════════════════════════
-  d.addPage();
-  d.setFillColor(16,13,7);d.rect(0,0,210,297,'F');
-  d.setFillColor(255,171,0);d.rect(0,0,8,297,'F');
-
-  d.setFillColor(28,22,8);d.rect(8,0,202,18,'F');
-  d.setTextColor(255,171,0);d.setFont('helvetica','bold');d.setFontSize(12);
-  d.text('DATI DI PERFORAZIONE',18,12);
-  d.setTextColor(100,80,30);d.setFont('helvetica','normal');d.setFontSize(8);
-  d.text(nomeProgetto,192,12,{align:'right'});
-  d.setDrawColor(255,171,0);d.setLineWidth(0.5);d.line(8,18,210,18);
-
-  let yp3=26;
-  if(v.fori.length>0){
-    d.autoTable({
-      startY:yp3,
-      head:[['#','Fila','X (m)','Y (m)','Prof. (m)','Ø (mm)','Carica','Esplosivo','Innesco','Ritardo','Seq.']],
-      body:v.fori.map(f=>{
-        const fila=Math.round((f.y||0)/Borr)||1;
-        return [
-          f.num, fila,
-          (f.x||0).toFixed(2).replace('.',','),
-          (f.y||0).toFixed(2).replace('.',','),
-          f.prof||'—',
-          f.diam||'—',
-          f.kg||'—',
-          f.esplosivo||'—',
-          f.innesco||'—',
-          f.ritardo||'—',
-          f.sequenza||'—'
-        ];
-      }),
-      theme:'grid',
-      headStyles:{fillColor:[28,22,8],textColor:[255,171,0],fontStyle:'bold',fontSize:7,lineColor:[255,171,0],lineWidth:0.3},
-      bodyStyles:{fillColor:[16,13,7],textColor:[200,180,100],fontSize:7,lineColor:[40,32,14],lineWidth:0.2},
-      alternateRowStyles:{fillColor:[22,17,9]},
-      styles:{cellPadding:2},
-      columnStyles:{
-        0:{cellWidth:10,halign:'center'},
-        1:{cellWidth:10,halign:'center'},
-        2:{cellWidth:16,halign:'right'},
-        3:{cellWidth:16,halign:'right'},
-        4:{cellWidth:16,halign:'right'},
-        5:{cellWidth:14,halign:'right'},
-        10:{cellWidth:10,halign:'center'}
-      },
-      margin:{left:18,right:10}
-    });
-    yp3=d.lastAutoTable.finalY+10;
-  }
-
-  // Riquadro totali
-  if(yp3<250){
-    d.setFillColor(28,22,8);d.rect(18,yp3,182,30,'F');
-    d.setDrawColor(255,171,0);d.setLineWidth(0.5);d.rect(18,yp3,182,30);
-    d.setTextColor(100,80,30);d.setFont('helvetica','bold');d.setFontSize(8);
-    d.text('TOTALI PROGETTO',105,yp3+7,{align:'center'});
-    d.setLineWidth(0.3);d.line(18,yp3+9,200,yp3+9);
-    const tots=[
-      ['Fori di mina', String(v.tot_fori)],
-      ['Profondità totale', String(v.tot_metri)+' m'],
-      ['Carica totale', v.tot_kg>0?String(v.tot_kg)+' kg':'—'],
-      ['Mc abbattuti previsti', v.tot_mc>0?String(v.tot_mc)+' mc':'—'],
-    ];
-    tots.forEach((t,i)=>{
-      const tx=18+(i%2)*91;
-      const ty=yp3+14+(Math.floor(i/2)*7);
-      d.setTextColor(100,80,30);d.setFont('helvetica','normal');d.setFontSize(7.5);
-      d.text(t[0]+':',tx+4,ty);
-      d.setTextColor(255,213,79);d.setFont('helvetica','bold');
-      d.text(t[1],tx+80,ty,{align:'right'});
-    });
-  }
-
-  // Footer tutte le pagine
-  [1,2,3].forEach(pg=>{
-    d.setPage(pg);
-    d.setFillColor(255,171,0);d.rect(0,292,210,5,'F');
-    d.setTextColor(16,13,7);d.setFont('helvetica','bold');d.setFontSize(7);
-    d.text(String(pg),105,296,{align:'center'});
-    d.setFont('helvetica','normal');d.setFontSize(6);
-    d.text('DEEPWORK Field Operations Platform · Riservato',18,296);
-    d.text(new Date().toLocaleDateString('it-IT'),192,296,{align:'right'});
-  });
-
-  const nomefile=`Deepwork_${nomeProgetto.replace(/[^\w\s-]/g,'').replace(/\s+/g,'_')}_${v.data}.pdf`;
+  footer(3);
+  const nomefile='Deepwork_'+nomeProgetto.replace(/[^\w\s-]/g,'').replace(/\s+/g,'_')+'_'+v.data+'.pdf';
   d.save(nomefile);
-  toast('PDF generato — 3 pagine','success');
-  auditLog('volata.pdf_export',{volataId,pagine:3});
+  toast('PDF generato','success');
+  auditLog('volata.pdf_export',{volataId});
 }
 
 function exitEditorCava(){
@@ -5700,6 +5532,7 @@ Object.assign(window, {
   filtraVolate,renderVolate,toggleFiltri,applicaFiltriVolate,resetFiltriVolate,
   openVolate,openStorico,apriRappFocDett,
   condividiVolata,openVolataReadonly,
+  allegaRappPerfFochino,selezionaRappPerfFoc,rimuoviRappPerfFoc,
   renderMacchine,macTab,apriMacLavoro,apriMezzoStr,openMacForm,openMacEdit,salvaMacLav,
   openMezzoEdit,salvaMezzoStr,openRipForm,uploadMacLavFoto,uploadMezzoStrFoto,
   confermaDelMacLav,confermaDelMezzoStr,
@@ -6626,8 +6459,13 @@ select.finput,select.fi{font-size:16px;}
 
       <!-- Seconda fila: opzionale -->
       <button class="btn-toggle-reso" id="btn-toggle-fila2" onclick="toggleFila2()" style="margin-top:10px;">➕ Aggiungi seconda fila</button>
-      <div id="r-fila2-section" style="display:none;margin-top:8px;">
-        <div style="margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+      <div id="r-fila2-section" style="display:none;margin-top:8px;border-top:2px solid var(--border);padding-top:10px;">
+        <div class="info-box" style="margin-bottom:8px;font-size:11px;">Seconda fila: ha una sua maglia e i suoi fori, esattamente come la prima.</div>
+        <div class="frow">
+          <div><label class="fl">Diametro fila 2 (mm)</label><input type="number" inputmode="decimal" class="finput" id="r-d2" placeholder="89" oninput="markUnsaved()"></div>
+          <div><label class="fl">Maglia fila 2 (m)</label><input type="text" inputmode="decimal" class="finput" id="r-m2" placeholder="3,5x4" oninput="markUnsaved()"></div>
+        </div>
+        <div style="margin:6px 0;display:flex;justify-content:space-between;align-items:center;">
           <div class="sec-title" style="margin:0;"><span class="dot"></span>Fori perforati — Fila 2</div>
           <button class="chg" onclick="addFori2(5)">+5</button>
         </div>
@@ -6734,6 +6572,21 @@ select.finput,select.fi{font-size:16px;}
         </div>
       </div>
       <input type="hidden" id="rf-volata-id">
+    </div>
+
+    <!-- Rapportino perforazione allegato (opzionale) -->
+    <div style="margin-top:10px;background:var(--card);border:1px solid var(--border);padding:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div class="fl" style="margin-bottom:3px;">Rapportino perforazione</div>
+          <div style="font-size:12px;color:var(--muted);" id="rf-rapp-label">Nessun rapportino allegato</div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="chg" onclick="allegaRappPerfFochino()">📋 Allega</button>
+          <button class="chg" onclick="rimuoviRappPerfFoc()">✕</button>
+        </div>
+      </div>
+      <input type="hidden" id="rf-rapp-id">
     </div>
 
     <label class="fl" style="margin-top:14px;">Note giornata</label>
