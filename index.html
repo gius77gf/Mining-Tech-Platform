@@ -2326,7 +2326,7 @@ function renderSysInfo(){
     </div>
     <div class="preview-sec" style="margin-top:14px;">
       <div class="preview-head">App</div>
-      <div class="preview-row"><span class="preview-lab">Versione</span><span class="preview-val">v3.4.1</span></div>
+      <div class="preview-row"><span class="preview-lab">Versione</span><span class="preview-val">v3.4.7</span></div>
       <div class="preview-row"><span class="preview-lab">Service Worker</span><span class="preview-val">${swStatus}</span></div>
       <div class="preview-row"><span class="preview-lab">PWA installabile</span><span class="preview-val">${$('btn-install-pwa')?.style.display!=='none'?'sì':'no/già installata'}</span></div>
       <div class="preview-row"><span class="preview-lab">Outdoor mode</span><span class="preview-val">${DB.settings.outdoor?'attivo':'disattivato'}</span></div>
@@ -3745,7 +3745,7 @@ function renderEditorSide(){
         <label class="fl">Tipo esplosivo</label>
         <div style="display:flex;gap:4px;">
           <input type="text" class="finput" style="flex:1;" placeholder="es. ANFO, Emulsione, Gel..." value="${f.esplosivo||''}" oninput="aggiornaForo(${idx},'esplosivo',this.value)">
-          <button class="chg" onclick="applicaATutti('esplosivo',document.querySelector('#ec-side input[placeholder*=ANFO]')?.value||'${(f.esplosivo||'').replace(/'/g,"\\'")}'')" title="Applica a tutti" style="padding:0 8px;font-size:16px;min-height:var(--tap);">⟳</button>
+          <button class="chg" onclick="applicaATutti('esplosivo',this.previousElementSibling.value)" title="Applica a tutti" style="padding:0 8px;font-size:16px;min-height:var(--tap);">⟳</button>
         </div>
       </div>
       <div style="margin-bottom:6px;">
@@ -6292,7 +6292,7 @@ select.finput,select.fi{font-size:16px;}
           <text x="60" y="121" font-size="6" fill="#3a2a10" font-family="'Barlow Condensed', Arial Narrow, sans-serif" font-weight="700" letter-spacing="3" text-anchor="middle">FIELD OPERATIONS</text>
         </svg>
       </div>
-      <div class="login-tag">FIELD OPS · v3.4.1 · Fix back button</div>
+      <div class="login-tag">FIELD OPS · v3.4.7 · Progettazione Volate</div>
       <div class="login-msg" id="login-msg" style="display:none;"></div>
       <label class="fl">Utente</label>
       <input type="text" class="fi" id="lu" placeholder="es. giuseppe" autocomplete="username">
