@@ -7262,12 +7262,35 @@ body.light-mode #global-nav.bnav{box-shadow:0 10px 28px rgba(120,90,30,.20);}
 /* FAB centrale */
 .nav-fab{position:absolute;left:50%;top:0;transform:translate(-50%,-52%);width:54px;height:54px;border-radius:50%;border:none;background:var(--grad);color:#15110a;font-family:'Barlow Condensed',sans-serif;font-size:34px;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(255,109,0,.45);cursor:pointer;z-index:6;transition:transform .12s var(--ease);}
 .nav-fab:active{transform:translate(-50%,-52%) scale(.93);}
+
+/* ════════ v4.5 — HARDENING MOBILE (touch): meno layer GPU, niente hover "incollato" ════════ */
+/* Si attiva SOLO su dispositivi touch (telefoni/tablet). Su desktop con mouse resta tutto invariato. */
+@media (hover:none),(pointer:coarse){
+  /* 1) niente alone dinamico ::after: eliminava un layer di compositing su OGNI card/lista (stallo GPU) */
+  body :is(.tile-red,.tile-blue,.tile-green,.tile-grey,.tile-brown,.tile-purple,.tile-teal,.pcard-amber,.pcard-red,.pcard-blue,.pcard-green,.pcard-grey,.pcard-brown,.pcard-purple,.pcard-teal,.pcard-pink,.pcard-dark)::after{display:none!important;}
+  body .sitem::after{display:none!important;}
+  /* 2) niente effetti :hover (su touch restano "incollati" dopo il tap e fanno repaint inutili) */
+  .tile:hover,.tile-feat:hover,.pcard:hover,.pcard-brown:hover,.pcard-purple:hover,.pcard-teal:hover,.pcard-pink:hover,.sitem:hover,.btn-sec:hover,.mbtn:hover,.chg:hover,.chip:hover{transform:none!important;filter:none!important;}
+  .tile:hover,.pcard:hover{box-shadow:var(--sh1)!important;}
+  .sitem:hover{box-shadow:none!important;}
+  /* feedback tattile leggero al tocco (economico) */
+  .tile:active,.pcard:active,.sitem:active,.mbtn:active,.btn-sec:active{transform:scale(.98);}
+  /* 3) backdrop-filter:blur dietro barre fisse = repaint storm su mobile → barre OPACHE, niente blur */
+  .topbar,.ph,.bnav,#global-nav.bnav{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;}
+  .topbar,.ph{background:#161009!important;}
+  .bnav,#global-nav.bnav{background:#161009!important;}
+  body.light-mode .topbar,body.light-mode .ph{background:#ffffff!important;}
+  body.light-mode .bnav,body.light-mode #global-nav.bnav{background:#ffffff!important;}
+}
 </style>
 
 <script>
 /* v4.4 — alone dinamico dietro le tile: scrive --mx/--my SOLO sull'elemento puntato (no repaint globale); off in outdoor; rAF coalescato */
 (function(){
   if(matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+  /* SOLO desktop con mouse: su touch (telefoni) il pointermove scatta a ogni tocco/scroll e
+     forzerebbe un getBoundingClientRect (reflow) per frame → scroll a scatti / UI bloccata. */
+  if(!matchMedia('(hover:hover) and (pointer:fine)').matches)return;
   var sel='.tile-red,.tile-blue,.tile-green,.tile-grey,.tile-brown,.tile-purple,.tile-teal,.pcard-amber,.pcard-red,.pcard-blue,.pcard-green,.pcard-grey,.pcard-brown,.pcard-purple,.pcard-teal,.pcard-pink,.pcard-dark,.sitem';
   var cur=null,px=50,py=30,pend=false;
   function apply(){pend=false;if(cur){cur.style.setProperty('--mx',px+'%');cur.style.setProperty('--my',py+'%');}}
