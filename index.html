@@ -235,6 +235,7 @@ const DB = {
   personale:[], rapportini:[], rapportiniFoc:[],
   promemoria:[], messaggi:[], clienti:[],
   volate:[], // ← F1: schemi di volata progettati nell'editor fronte cava
+  sismogrammi:[], // ← v4.5: sismogrammi indipendenti (assoc. automatica data+cava)
   deposito:{ punte:[], aste:[], lubr:[] },
   settings:{
     lang:'it', unit:'metric', notRem:true, notScad:true, notSet:true, theme:'dark', outdoor:false,
@@ -538,14 +539,28 @@ function showSplash(msg){
   if(!s){
     s=document.createElement('div');s.id='splash';
     s.style.cssText='position:fixed;inset:0;background:#100d07;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:16px;';
-    s.innerHTML=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 92" width="70" height="60">
+    s.innerHTML=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 92" width="78" height="60">
       <polygon points="60,72 16,17 104,17" fill="#14100a"/>
+      <polygon points="60,70 18,19 102,19" fill="none" stroke="#2a2010" stroke-width="1"/>
       <polygon points="60,68 22,21 98,21" fill="#1c1608" stroke="#ffab00" stroke-width="2"/>
+      <line x1="38" y1="31" x2="82" y2="31" stroke="#2e2412" stroke-width="1"/>
+      <line x1="43" y1="43" x2="77" y2="43" stroke="#2e2412" stroke-width="0.9"/>
+      <line x1="49" y1="55" x2="71" y2="55" stroke="#2e2412" stroke-width="0.7"/>
+      <line x1="54" y1="63" x2="66" y2="63" stroke="#2e2412" stroke-width="0.5"/>
+      <rect x="56.5" y="2" width="7" height="66" fill="#28200c" rx="2"/>
       <rect x="58" y="2" width="4" height="66" fill="#ffab00" rx="1.5"/>
+      <rect x="59" y="2" width="2" height="66" fill="#ffd54f" rx="0.5" opacity="0.6"/>
       <polygon points="60,68 55,61 65,61" fill="#ffab00"/>
+      <polygon points="60,68 57,63 63,63" fill="#ffd54f" opacity="0.6"/>
       <line x1="60" y1="68" x2="42" y2="77" stroke="#ffab00" stroke-width="2.2" stroke-linecap="round"/>
       <line x1="60" y1="68" x2="78" y2="77" stroke="#ffab00" stroke-width="2.2" stroke-linecap="round"/>
+      <line x1="60" y1="68" x2="50" y2="82" stroke="#ff6d00" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="60" y1="68" x2="70" y2="82" stroke="#ff6d00" stroke-width="1.8" stroke-linecap="round"/>
       <line x1="60" y1="68" x2="60" y2="85" stroke="#ffd54f" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="42" cy="78" r="2.5" fill="#ffab00"/>
+      <circle cx="78" cy="78" r="2.5" fill="#ffab00"/>
+      <circle cx="50" cy="83" r="1.8" fill="#ff6d00"/>
+      <circle cx="70" cy="83" r="1.8" fill="#ff6d00"/>
       <circle cx="60" cy="86" r="3" fill="#ffd54f"/>
     </svg>
     <div id="splash-msg" style="font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:2px;color:#6b5a30;text-transform:uppercase;"></div>
@@ -674,7 +689,8 @@ async function loadAllData(){
     ['mezziStr','mezziStr'],['personale','personale'],
     ['rapportini','rapportini'],['rapportiniFoc','rapportiniFoc'],
     ['promemoria','promemoria'],['messaggi','messaggi'],
-    ['volate','volate'] // ← F1: schemi di volata progettati
+    ['volate','volate'], // ← F1: schemi di volata progettati
+    ['sismogrammi','sismogrammi'] // ← v4.5
   ];
   for(const [col,key] of loads){
     const snap=await getDocs(collection(db,col));
@@ -702,6 +718,10 @@ function setupRealtimeListeners(){
   });
   onSnapshot(collection(db,'rapportiniFoc'),snap=>{
     DB.rapportiniFoc=snap.docs.map(d=>({id:d.id,...d.data()}));
+  });
+  onSnapshot(collection(db,'sismogrammi'),snap=>{
+    DB.sismogrammi=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(state.currentScreen==='sismogrammi')renderSismogrammi();
   });
   onSnapshot(collection(db,'messaggi'),snap=>{
     DB.messaggi=snap.docs.map(d=>({id:d.id,...d.data()}));
@@ -765,14 +785,14 @@ function aggiornaNotifBadge(){
   if(badge){badge.textContent=n;badge.style.display=n>0?'flex':'none';}
 }
 
-// ── TEMA ──
-function applyTheme(){ document.body.classList.toggle('light-mode',DB.settings.theme==='light'); }
-// ── OUTDOOR MODE (B3) ──
-function applyOutdoor(){ document.body.classList.toggle('outdoor-mode',!!DB.settings.outdoor); const b=$('btn-outdoor'); if(b)b.classList.toggle('active',!!DB.settings.outdoor); }
+// ── TEMA (v4.4: SOLO 2 modalità — Dark / Light. outdoor legacy assorbito in light) ──
+function applyTheme(){ const light=(DB.settings.theme==='light'||!!DB.settings.outdoor); document.body.classList.remove('outdoor-mode'); document.body.classList.toggle('light-mode',light); const b=$('btn-outdoor'); if(b)b.classList.toggle('active',light); }
+function applyOutdoor(){ applyTheme(); }
 async function toggleOutdoor(){
-  const ns={...DB.settings,outdoor:!DB.settings.outdoor};
-  await fbSet('config','settings',ns);DB.settings=ns;applyOutdoor();
-  toast('Modalità campo: '+(ns.outdoor?'ATTIVA':'disattivata'),'success');
+  const light=(DB.settings.theme==='light'||!!DB.settings.outdoor);
+  const ns={...DB.settings,theme:light?'dark':'light',outdoor:false};
+  await fbSet('config','settings',ns);DB.settings=ns;applyTheme();
+  toast('Tema: '+(light?'Scuro':'Chiaro'),'success');
 }
 
 // ── FOTO UPLOAD (A3 — usa Firebase Storage invece di base64 in Firestore) ──
@@ -845,7 +865,7 @@ function can(action){
   const r=state.user.ruolo;
   const p={
     'addCava':['admin','ufficio'],'editCava':['admin','ufficio'],'delCava':['admin'],
-    'addMac':['admin','ufficio'],'editMac':['admin','ufficio'],'delMac':['admin'],
+    'addMac':['admin','ufficio'],'editMac':['admin','ufficio'],'delMac':['admin','ufficio'],
     'addUser':['admin'],'editUser':['admin'],'delUser':['admin'],
     'depAdd':['admin','ufficio'],'depTot':['admin','ufficio'],
     'addPers':['admin','ufficio'],'editPers':['admin','ufficio'],
@@ -909,6 +929,19 @@ function showForgot(){
     {label:'INVIA RICHIESTA',cls:'mbtn primary',action:()=>{if(!$('fg-u').value.trim()){toast("Inserisci l'utente",'err');return;}closeModal();toast("Richiesta inviata all'amministratore",'success');}}
   ]);
 }
+// v4.4e — azione primaria del FAB centrale (per ruolo)
+function fabPrimary(){
+  const r=state.user&&state.user.ruolo;
+  if(r==='operatore')return nav('rapp');
+  if(r==='fochino')return nav('rapp-foc');
+  // ufficio/admin: scelgono quale rapportino compilare
+  return openModal('Nuovo rapportino','<p style="font-size:14px;margin:2px 0 4px;">Quale rapportino vuoi compilare?</p>',[
+    {label:'📋 Perforazione',cls:'mbtn primary',action:()=>{closeModal();nav('rapp');}},
+    {label:'💥 Fochino',cls:'mbtn',action:()=>{closeModal();nav('rapp-foc');}},
+    {label:'Annulla',cls:'mbtn',action:closeModal}
+  ]);
+}
+window.fabPrimary=fabPrimary;
 function confirmLogout(){
   openModal('Conferma uscita','<p style="font-size:14px;">Sei sicuro di voler uscire?</p>',[
     {label:'Annulla',cls:'mbtn',action:closeModal},
@@ -940,7 +973,14 @@ function nav(scr,fromBack){
     try{ history.pushState({dwScreen:scr}, ''); }catch(e){}
   }
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  const tgt=$('screen-'+scr);if(tgt)tgt.classList.add('active');
+  const tgt=$('screen-'+scr);
+  if(tgt){
+    tgt.classList.add('active');
+    if(!fromBack && !matchMedia('(prefers-reduced-motion:reduce)').matches){
+      tgt.classList.remove('scr-enter');void tgt.offsetWidth;tgt.classList.add('scr-enter');
+      tgt.addEventListener('animationend',function _h(){tgt.classList.remove('scr-enter');tgt.removeEventListener('animationend',_h);});
+    }
+  }
   state.prevScreen=state.currentScreen;state.currentScreen=scr;
   const gnav=$('global-nav');
   if(gnav){if(scr==='login')gnav.classList.add('hidden');else gnav.classList.remove('hidden');}
@@ -960,6 +1000,7 @@ function nav(scr,fromBack){
   if(scr==='audit')renderAuditLog(); // A5
   if(scr==='editor-cava')renderEditorCava(); // F1
   if(scr==='volate-list')renderVolateList(); // F1
+  if(scr==='sismogrammi')renderSismogrammi(); // v4.5
   // ── B6: ripristina scroll se fromBack, altrimenti vai in cima ──
   if(fromBack && state.scrollMap[scr]!==undefined){
     setTimeout(()=>window.scrollTo(0,state.scrollMap[scr]),20);
@@ -1088,7 +1129,7 @@ function renderHome(){
   $('tgrid').innerHTML=html;
   const miei=DB.rapportini.filter(r=>r.userId===state.user.id).slice(-3).reverse();
   if(miei.length>0){
-    $('recent-empty').style.display='none';
+    const _re=$('recent-empty');if(_re)_re.style.display='none';
     $('recent-list').innerHTML=miei.map(r=>{const cava=DB.cave.find(c=>c.id===r.cavaId);return`<div class="sitem success"><div class="av av-op">✓</div><div class="sinfo"><div class="sname">${cava?cava.nome:'—'}</div><div class="ssub">${fmt(r.data)} · ${r.fori} fori · ${(r.mc||0).toFixed(1)} mc</div></div></div>`;}).join('');
   }else{$('recent-list').innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Nessuna attività</div><div class="empty-sub">I rapportini inviati compariranno qui</div></div>';}
 }
@@ -1160,9 +1201,9 @@ async function fetchMeteo(){
   setMeteoFallback(cava);
 }
 function setMeteoFallback(cava){
-  $('meteo-loc').textContent=cava?cava.nome:'Meteo non disponibile';
-  $('meteo-temp').textContent='—°';$('meteo-desc').textContent='Meteo non configurato';
-  $('meteo-small').textContent='Configura il proxy meteo (vedi cloud-functions-meteo.js)';
+  $('meteo-loc').textContent=cava?cava.nome:'Posizione non disponibile';
+  $('meteo-temp').textContent='—°';$('meteo-desc').textContent='Meteo non disponibile';
+  $('meteo-small').textContent='Nessun dato meteo per questa zona';
 }
 
 // ── MENU ──
@@ -1172,6 +1213,7 @@ function renderMenu(){
   if(can('rappFochino'))items.push({t:'Rapportino fochino',i:'💥',act:'rapp-foc',col:'red'});
   items.push({t:'Volate',i:'💥',fn:'openVolate()',col:'red'});           // volate = fochino
   items.push({t:'Storico rapportini',i:'📋',fn:'openStorico()',col:'blue'}); // perforazione
+  if(can('rappFochino')||can('editCava'))items.push({t:'Sismogrammi',i:'〰️',act:'sismogrammi',col:'blue'}); // v4.5
   items.push({t:'Cave',i:'⛰️',act:'cave',col:'green'});
   items.push({t:'Macchine',i:'🚛',act:'macchine',col:'grey'});
   items.push({t:'Deposito',i:'📦',act:'deposito',col:'brown'});
@@ -2012,6 +2054,96 @@ function apriRappFocDett(id){
     ${r.note?`<div class="preview-sec"><div class="preview-head">Note</div><div style="font-size:13px;">${r.note}</div></div>`:''}
   `,[{label:'📄 PDF',cls:'mbtn',action:()=>{closeModal();exportRapportinoFocPDF(r);}},{label:'Chiudi',cls:'mbtn primary',action:closeModal}]);
 }
+
+// ══════════ v4.5 — SISMOGRAMMI (sezione indipendente, associati a volata+data) ══════════
+function renderSismogrammi(){
+  const canAdd=can('rappFochino')||can('editCava');const add=$('btn-add-sismo');if(add)add.style.display=canAdd?'flex':'none';
+  const list=(DB.sismogrammi||[]).slice().sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+  const el=$('sismo-list');if(!el)return;
+  el.innerHTML=list.length?list.map(s=>{const c=DB.cave.find(x=>x.id===s.cavaId);const nf=(s.files||[]).length;return`<div class="sitem" onclick="apriSismoDett('${s.id}')"><div class="av av-cv">〰️</div><div class="sinfo"><div class="sname">${fmt(s.data)}${c?' · '+c.nome:''}</div><div class="ssub">${nf} file${nf===1?'':'s'}${s.note?' · '+s.note.slice(0,40):''}</div></div><div class="sarr">›</div></div>`;}).join(''):'<div class="empty-state"><div class="empty-icon">〰️</div><div class="empty-title">Nessun sismogramma</div><div class="empty-sub">Carica i sismogrammi registrati e associali a una volata.</div></div>';
+}
+// associazione AUTOMATICA per data+cava (niente scelta manuale → più precisione)
+function _findVolata(data,cavaId){
+  if(!data)return null;
+  let m=(DB.rapportiniFoc||[]).find(r=>r.data===data&&(!cavaId||r.cavaId===cavaId));
+  if(m)return{ref:'R:'+m.id,label:'Volata fochino del '+fmt(m.data)};
+  m=(DB.volate||[]).find(v=>v.data===data&&(!cavaId||v.cavaId===cavaId));
+  if(m)return{ref:'V:'+m.id,label:(m.nome||'Progetto volata')};
+  return null;
+}
+function _sismoAssocHtml(){
+  const s=state._tempSismo;const f=_findVolata(s.data,s.cavaId);
+  if(f){s.volataRef=f.ref;return`<div style="background:var(--card2);border-left:3px solid var(--success);padding:8px 12px;font-size:12.5px;"><b style="color:var(--success);">✓ Volata associata</b> — ${f.label}<div style="color:var(--muted);font-size:11px;">automatico, in base a data + cava</div></div>`;}
+  s.volataRef='';return`<div style="background:var(--card2);border-left:3px solid var(--muted);padding:8px 12px;font-size:12.5px;color:var(--muted);">Nessuna volata trovata per questa data e cava — il sismogramma resta comunque salvato e associato a data+cava.</div>`;
+}
+function openSismoForm(){ state._tempSismo={data:today(),volataRef:'',cavaId:'',files:[],note:''}; renderSismoModal(); }
+function renderSismoModal(){
+  const s=state._tempSismo;if(!s)return;
+  const cavaOpts='<option value="">— nessuna —</option>'+DB.cave.map(c=>`<option value="${c.id}" ${s.cavaId===c.id?'selected':''}>${c.nome}</option>`).join('');
+  const files=(s.files||[]).map((f,i)=>`<div class="sitem"><div class="av av-mz">${/pdf/i.test(f.formato)?'📄':(/(jpg|jpeg|png|tif)/i.test(f.formato)?'🖼️':'📈')}</div><div class="sinfo"><div class="sname">${f.nome}</div><div class="ssub">${f.formato}</div></div><div class="sarr" onclick="event.stopPropagation();rimuoviSismoFile(${i})">✕</div></div>`).join('');
+  openModal('〰️ Nuovo sismogramma',`
+    <div class="frow"><div><label class="fl">Data</label><input type="date" class="finput" id="sm-data" value="${s.data||today()}" onchange="window._sismoRecalc()"></div>
+    <div><label class="fl">Cava / cantiere</label><select class="finput" id="sm-cava" onchange="window._sismoRecalc()">${cavaOpts}</select></div></div>
+    <div id="sm-assoc" style="margin-top:8px;">${_sismoAssocHtml()}</div>
+    <label class="fl" style="margin-top:8px;">File sismogrammi (pdf, jpg, png, csv…)</label>
+    <div id="sm-files">${files||'<div class="empty-state" style="padding:12px;"><div class="empty-sub">Nessun file</div></div>'}</div>
+    <button class="chg" style="margin-top:8px;" onclick="aggiungiSismoFile()">+ Carica file</button>
+    <label class="fl" style="margin-top:12px;">Note parametri registrati</label>
+    <textarea class="finput" id="sm-note" rows="3" placeholder="PPV, frequenza, distanza, ricettore, picco...">${s.note||''}</textarea>
+  `,[{label:'Annulla',cls:'mbtn',action:()=>{state._tempSismo=null;closeModal();}},{label:'SALVA',cls:'mbtn primary',action:salvaSismo}]);
+}
+window._sismoRecalc=()=>{const s=state._tempSismo;if(!s)return;s.data=$('sm-data')?.value||s.data;s.cavaId=$('sm-cava')?.value||'';const el=$('sm-assoc');if(el)el.innerHTML=_sismoAssocHtml();};
+function _fileToDataUrl(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});}
+function aggiungiSismoFile(){
+  if(!state._tempSismo)return;
+  state._tempSismo.data=$('sm-data')?.value||state._tempSismo.data;state._tempSismo.cavaId=$('sm-cava')?.value||state._tempSismo.cavaId;state._tempSismo.note=$('sm-note')?.value||state._tempSismo.note;
+  const inp=document.createElement('input');inp.type='file';inp.accept='.pdf,.jpg,.jpeg,.png,.tif,.tiff,.csv,.txt';
+  inp.onchange=async ev=>{
+    const file=ev.target.files[0];if(!file)return;
+    if(file.size>50*1024*1024){toast('File troppo grande (max 50MB)','err');return;}
+    const ext=(file.name.split('.').pop()||'').toLowerCase();const isImg=/(jpg|jpeg|png|tif|tiff)/.test(ext);
+    toast('Caricamento file...','info');
+    try{
+      let url;const dataUrl=isImg?await compressImage(file,1600,0.85):await _fileToDataUrl(file);
+      try{
+        const path=`sismogrammi/${state.user.id}_${Date.now()}_${Math.random().toString(36).slice(2,7)}.${ext}`;
+        const sref=storageRef(fbStorage,path);await uploadString(sref,dataUrl,'data_url');url=await getDownloadURL(sref);
+      }catch(err){
+        console.warn('[Sismo] Storage fallito:',err.message);
+        if(isImg){url=await compressImage(file,800,0.8);}
+        else{toast('⚠ Le regole Storage di Firebase bloccano i file non-immagine: aggiorna le Storage Rules per caricare PDF/CSV.','err');return;}
+      }
+      state._tempSismo.files=state._tempSismo.files||[];state._tempSismo.files.push({nome:file.name,formato:ext.toUpperCase(),url});
+      renderSismoModal();
+    }catch(e){toast('Errore caricamento','err');}
+  };
+  inp.click();
+}
+function rimuoviSismoFile(i){if(!state._tempSismo||!state._tempSismo.files)return;state._tempSismo.files.splice(i,1);renderSismoModal();}
+async function salvaSismo(){
+  const s=state._tempSismo;if(!s)return;
+  s.data=$('sm-data')?.value||today();s.cavaId=$('sm-cava')?.value||'';s.note=$('sm-note')?.value||'';const _fv=_findVolata(s.data,s.cavaId);s.volataRef=_fv?_fv.ref:'';
+  if(!(s.files||[]).length && !s.note){toast('Aggiungi almeno un file o una nota','err');return;}
+  const id='sis_'+genId();
+  await fbSet('sismogrammi',id,{id,data:s.data,cavaId:s.cavaId,volataRef:s.volataRef,files:s.files||[],note:s.note,createdAt:Date.now(),createdBy:state.user?.id});
+  state._tempSismo=null;closeModal();toast('Sismogramma salvato','success');renderSismogrammi();
+}
+function apriSismoDett(id){
+  const s=(DB.sismogrammi||[]).find(x=>x.id===id);if(!s)return;const c=DB.cave.find(x=>x.id===s.cavaId);const canDel=can('editCava');
+  const files=(s.files||[]).map(f=>`<div class="sitem" onclick="window.open('${f.url}','_blank')"><div class="av av-mz">${/PDF/i.test(f.formato)?'📄':(/(JPG|JPEG|PNG|TIF)/i.test(f.formato)?'🖼️':'📈')}</div><div class="sinfo"><div class="sname">${f.nome}</div><div class="ssub">${f.formato} · apri</div></div><div class="sarr">↗</div></div>`).join('');
+  openModal('〰️ Sismogramma '+fmt(s.data),`
+    <div class="preview-sec">
+      <div class="preview-row"><span class="preview-lab">Data</span><span class="preview-val">${fmt(s.data)}</span></div>
+      <div class="preview-row"><span class="preview-lab">Cava</span><span class="preview-val">${c?c.nome:'—'}</span></div>
+    </div>
+    <div class="sec-title" style="margin-top:10px;"><span class="dot"></span>File</div>
+    ${files||'<div class="empty-state" style="padding:12px;"><div class="empty-sub">Nessun file</div></div>'}
+    ${s.note?`<div class="preview-sec" style="margin-top:10px;"><div class="preview-head">Note parametri</div><div style="font-size:13px;">${s.note}</div></div>`:''}
+  `,[...(canDel?[{label:'Elimina',cls:'mbtn danger',action:()=>delSismo(id)}]:[]),{label:'Chiudi',cls:'mbtn primary',action:closeModal}]);
+}
+function delSismo(id){fbDelete('sismogrammi',id).finally(()=>{closeModal();toast('Eliminato','success');renderSismogrammi();});}
+Object.assign(window,{renderSismogrammi,openSismoForm,aggiungiSismoFile,rimuoviSismoFile,apriSismoDett,delSismo});
+
 function resetFiltriVolate(){
   state.filtriVolate={dataDa:'',dataA:'',cavaId:'',userId:'',diamMin:'',diamMax:''};
   if($('vf-da'))$('vf-da').value='';
@@ -2067,7 +2199,7 @@ function renderMacStrada(){
   $('mac-strada-list').innerHTML=DB.mezziStr.map(m=>{const scad=Object.entries(m.scadenze||{}).filter(([k,v])=>v).map(([k,v])=>({k,v,d:daysBetween(today(),v)}));const prox=[...scad].sort((a,b)=>a.d-b.d)[0];let badge='',cls='';if(prox){if(prox.d<0){badge=`<span class="scad-badge danger">${prox.k} scaduta</span>`;cls='danger';}else if(prox.d<=30){badge=`<span class="scad-badge warn">${prox.k} in ${prox.d}g</span>`;cls='warn';}else badge=`<span class="scad-badge ok">OK</span>`;}return`<div class="sitem ${cls}" onclick="apriMezzoStr('${m.id}')"><div class="photo-avatar-sm">${m.foto?`<img src="${m.foto}">`:'<span style="font-size:16px;">🚛</span>'}</div><div class="sinfo"><div class="sname">${m.marca} ${m.modello} ${badge}</div><div class="ssub">${m.targa} · ${m.km||0} km</div></div><div class="sarr">›</div></div>`;}).join('');
 }
 function apriMacLavoro(id){
-  state.macSel=id;const m=DB.mezziLav.find(x=>x.id===id);if(!m)return;
+  state.macSel=id;state.macDetKind='lav';const m=DB.mezziLav.find(x=>x.id===id);if(!m)return;
   $('md-title').textContent=m.modello;$('btn-edit-mac').style.display=can('editMac')?'flex':'none';
   const c=DB.cave.find(x=>x.id===m.cavaId);const rappLink=DB.rapportini.filter(r=>r.mezzoId===id).slice(-5).reverse();const canEdit=can('editMac');
   $('mac-det-body').innerHTML=`
@@ -2084,11 +2216,12 @@ function apriMacLavoro(id){
     ${m.note?`<div class="preview-sec"><div class="preview-head">Note</div><div style="font-size:13px;">${m.note}</div></div>`:''}
     <div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Rapportini collegati</div>
     ${rappLink.length?rappLink.map(r=>{const cv=DB.cave.find(x=>x.id===r.cavaId);return`<div class="sitem" onclick="apriRapport('${r.id}')"><div class="av av-op">RP</div><div class="sinfo"><div class="sname">${cv?cv.nome:'—'} · ${fmt(r.data)}</div><div class="ssub">${r.fori} fori · ${(r.mc||0).toFixed(1)} mc</div></div><div class="sarr">›</div></div>`;}).join(''):'<div class="empty-state" style="padding:16px;"><div class="empty-sub">Nessun rapportino</div></div>'}
+    ${macGestTabsHtml()}
     ${can('delMac')?`<button class="btn-sv" style="margin-top:16px;background:linear-gradient(135deg,#ef5350,#c62828);" onclick="confermaDelMacLav('${id}')">ELIMINA MEZZO</button>`:''}
-  `;nav('mac-det');
+  `;nav('mac-det');macGestRender();
 }
 function apriMezzoStr(id){
-  state.mezzoSel=id;const m=DB.mezziStr.find(x=>x.id===id);if(!m)return;
+  state.mezzoSel=id;state.macDetKind='str';const m=DB.mezziStr.find(x=>x.id===id);if(!m)return;
   $('mzd-title').textContent=`${m.marca} ${m.modello}`;$('btn-edit-mezzo').style.display=can('editMac')?'flex':'none';const canEdit=can('editMac');
   const scadHtml=Object.entries(m.scadenze||{}).map(([k,v])=>{if(!v)return'';const d=daysBetween(today(),v);let cls='',bg='';if(d<0){cls='danger';bg='scad-badge danger';}else if(d<=30){cls='warn';bg='scad-badge warn';}else bg='scad-badge ok';return`<div class="sitem ${cls}"><div class="av av-am">${k.substr(0,2).toUpperCase()}</div><div class="sinfo"><div class="sname">${k} <span class="${bg}">${d<0?'scaduta':d+'g'}</span></div><div class="ssub">${fmt(v)}</div></div></div>`;}).join('');
   const ripHtml=(m.riparazioni||[]).map(r=>`<div class="sitem"><div class="av av-mz">€</div><div class="sinfo"><div class="sname">${r.desc}</div><div class="ssub">${fmt(r.data)} · ${r.officina} · €${r.costo}</div></div></div>`).join('');
@@ -2109,8 +2242,9 @@ function apriMezzoStr(id){
     ${ripHtml||'<div class="empty-state" style="padding:16px;"><div class="empty-sub">Nessuna riparazione</div></div>'}
     ${can('editMac')?`<button class="chg" style="margin-top:10px;" onclick="openRipForm('${id}')">+ Aggiungi riparazione</button>`:''}
     ${m.note?`<div class="preview-sec" style="margin-top:16px;"><div class="preview-head">Note</div><div style="font-size:13px;">${m.note}</div></div>`:''}
+    ${macGestTabsHtml()}
     ${can('delMac')?`<button class="btn-sv" style="margin-top:16px;background:linear-gradient(135deg,#ef5350,#c62828);" onclick="confermaDelMezzoStr('${id}')">ELIMINA MEZZO</button>`:''}
-  `;nav('mezzo-det');
+  `;nav('mezzo-det');macGestRender();
 }
 function openMacForm(){
   state.macEditId=null;state.mezzoEditId=null;const tab=state.macTabAttivo;
@@ -2188,6 +2322,132 @@ function uploadMacLavFoto(id){uploadPhoto('ml','f',id,async data=>{await fbUpdat
 function uploadMezzoStrFoto(id){uploadPhoto('ms','f',id,async data=>{await fbUpdate('mezziStr',id,{foto:data});apriMezzoStr(id);toast('Foto aggiornata','success');});}
 function confermaDelMacLav(id){openModal('Elimina mezzo','<p>Confermi?</p>',[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'ELIMINA',cls:'mbtn danger',action:async()=>{await fbDelete('mezziLav',id);closeModal();toast('Eliminato','success');nav('macchine');}}]);}
 function confermaDelMezzoStr(id){openModal('Elimina mezzo','<p>Confermi?</p>',[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'ELIMINA',cls:'mbtn danger',action:async()=>{await fbDelete('mezziStr',id);closeModal();toast('Eliminato','success');nav('macchine');}}]);}
+
+// ══════════ v4.5 — GESTIONE MEZZO: log lavori, check-list, guasti, consumi (sub-array sul mezzo) ══════════
+const CHECK_ITEMS={
+  giornaliera:['Livello olio motore','Livello gasolio','Pneumatici / cingoli','Luci e segnalatori','Perdite visibili'],
+  settimanale:['Filtri','Ingrassaggio','Batteria','Freni','Tubi idraulici'],
+  mensile:['Tagliando programmato','Usura utensili / punte','Serraggi bulloneria','Impianto elettrico','Documenti e scadenze']
+};
+function _macCtx(){
+  if(state.macDetKind==='str'){const m=DB.mezziStr.find(x=>x.id===state.mezzoSel);return{m,coll:'mezziStr',id:state.mezzoSel,reopen:()=>apriMezzoStr(state.mezzoSel)};}
+  const m=DB.mezziLav.find(x=>x.id===state.macSel);return{m,coll:'mezziLav',id:state.macSel,reopen:()=>apriMacLavoro(state.macSel)};
+}
+const _canMac=()=>can('editMac');
+function macGestTabsHtml(){
+  const t=state.macGestTab||'log';const a=k=>t===k?' active':'';
+  return `<div class="sec-title" style="margin-top:18px;"><span class="dot"></span>Gestione mezzo</div>
+  <div class="atabs mac-gest-tabs" style="margin-bottom:10px;">
+    <div class="atab${a('log')}" onclick="macGestTab('log',this)">LAVORI</div>
+    <div class="atab${a('check')}" onclick="macGestTab('check',this)">CHECK-LIST</div>
+    <div class="atab${a('guasti')}" onclick="macGestTab('guasti',this)">GUASTI</div>
+    <div class="atab${a('consumi')}" onclick="macGestTab('consumi',this)">CONSUMI</div>
+  </div>
+  <div class="mac-gest-body"></div>`;
+}
+function _gestBody(){return document.querySelector('.screen.active .mac-gest-body');}
+function macGestTab(t,el){if(el){el.parentElement.querySelectorAll('.atab').forEach(x=>x.classList.remove('active'));el.classList.add('active');}state.macGestTab=t;macGestRender();}
+function macGestRender(){
+  const el=_gestBody();if(!el)return;const t=state.macGestTab||'log';
+  if(t==='check')return renderMacCheck(el);
+  if(t==='guasti')return renderMacGuasti(el);
+  if(t==='consumi')return renderMacConsumi(el);
+  return renderMacLog(el);
+}
+function macSubSave(field,obj){
+  const {m,coll,id,reopen}=_macCtx();if(!m)return;
+  const arr=[...(m[field]||[]),{id:genId(),...obj}];m[field]=arr;
+  fbUpdate(coll,id,{[field]:arr}).finally(()=>{closeModal();toast('Salvato','success');reopen();});
+}
+function delMacSub(field,subId){
+  const {m,coll,id,reopen}=_macCtx();if(!m)return;
+  const arr=(m[field]||[]).filter(x=>x.id!==subId);m[field]=arr;
+  fbUpdate(coll,id,{[field]:arr}).finally(()=>{toast('Eliminato','success');reopen();});
+}
+// — LOG LAVORI —
+function renderMacLog(el){
+  const {m}=_macCtx();const list=(m.logLavori||[]).slice().reverse();
+  el.innerHTML=(_canMac()?`<button class="chg" style="margin-bottom:10px;" onclick="openLogForm()">+ Aggiungi lavoro</button>`:'')
+    +(list.length?list.map(l=>`<div class="sitem"><div class="av av-op">🔧</div><div class="sinfo"><div class="sname">${l.operazione||'Lavoro'}</div><div class="ssub">${fmt(l.data)}${l.ore?' · '+l.ore+' h':''}${l.note?' · '+l.note:''}</div></div>${_canMac()?`<div class="sarr" onclick="event.stopPropagation();delMacSub('logLavori','${l.id}')">✕</div>`:''}</div>`).join(''):'<div class="empty-state" style="padding:16px;"><div class="empty-sub">Nessun lavoro registrato</div></div>');
+}
+function openLogForm(){
+  openModal('Nuovo lavoro',`
+    <label class="fl">Data</label><input type="date" class="finput" id="lg-data" value="${today()}">
+    <label class="fl">Operazione svolta</label><input type="text" class="finput" id="lg-op" placeholder="es. Sostituzione punta">
+    <label class="fl">Ore lavoro</label><input type="number" inputmode="decimal" step="0.5" class="finput" id="lg-ore">
+    <label class="fl">Note</label><textarea class="finput" id="lg-note" rows="2"></textarea>
+  `,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:()=>macSubSave('logLavori',{data:$('lg-data').value,operazione:$('lg-op').value,ore:parseNum0($('lg-ore').value),note:$('lg-note').value})}]);
+}
+// — CHECK-LIST —
+window._ckItems=(tipo)=>(CHECK_ITEMS[tipo]||[]).map(d=>`<label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:6px 0;"><input type="checkbox" class="chk-item" data-desc="${d}" checked> ${d}</label>`).join('');
+function renderMacCheck(el){
+  const {m}=_macCtx();const list=(m.checklist||[]).slice().reverse();const lab={giornaliera:'Giornaliera',settimanale:'Settimanale',mensile:'Mensile'};
+  el.innerHTML=(_canMac()?`<button class="chg" style="margin-bottom:10px;" onclick="openChecklistForm()">+ Nuova check-list</button>`:'')
+    +(list.length?list.map(c=>{const ko=(c.items||[]).filter(i=>!i.ok).length;const badge=ko>0?`<span class="scad-badge danger">${ko} da sistemare</span>`:`<span class="scad-badge ok">OK</span>`;return`<div class="sitem"><div class="av av-cv">✓</div><div class="sinfo"><div class="sname">${lab[c.tipo]||c.tipo} ${badge}</div><div class="ssub">${fmt(c.data)}${c.note?' · '+c.note:''}</div></div>${_canMac()?`<div class="sarr" onclick="event.stopPropagation();delMacSub('checklist','${c.id}')">✕</div>`:''}</div>`;}).join(''):'<div class="empty-state" style="padding:16px;"><div class="empty-sub">Nessuna check-list</div></div>');
+}
+function openChecklistForm(){
+  openModal('Nuova check-list',`
+    <label class="fl">Tipo</label><select class="finput" id="ck-tipo" onchange="document.getElementById('ck-items').innerHTML=window._ckItems(this.value)">
+      <option value="giornaliera">Giornaliera</option><option value="settimanale">Settimanale</option><option value="mensile">Mensile</option></select>
+    <label class="fl">Data</label><input type="date" class="finput" id="ck-data" value="${today()}">
+    <div class="sec-title" style="margin-top:10px;"><span class="dot"></span>Controlli (spunta = OK)</div>
+    <div id="ck-items">${window._ckItems('giornaliera')}</div>
+    <label class="fl" style="margin-top:8px;">Note</label><textarea class="finput" id="ck-note" rows="2"></textarea>
+  `,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:()=>{
+    const items=[...document.querySelectorAll('.chk-item')].map(c=>({desc:c.dataset.desc,ok:c.checked}));
+    macSubSave('checklist',{tipo:$('ck-tipo').value,data:$('ck-data').value,items,note:$('ck-note').value});
+  }}]);
+}
+// — GUASTI —
+function renderMacGuasti(el){
+  const {m}=_macCtx();const list=(m.guasti||[]).slice().reverse();const stLab={segnalato:'Segnalato',in_riparazione:'In riparazione',riparato:'Riparato'};const stCls={segnalato:'danger',in_riparazione:'warn',riparato:'ok'};
+  el.innerHTML=(_canMac()?`<button class="chg" style="margin-bottom:10px;" onclick="openGuastoForm()">+ Segnala guasto</button>`:'')
+    +(list.length?list.map(g=>`<div class="sitem ${g.stato==='riparato'?'':'danger'}" onclick="apriGuastoDett('${g.id}')"><div class="av av-mz">⚠</div><div class="sinfo"><div class="sname">${g.componente||'Guasto'} <span class="scad-badge ${stCls[g.stato]||'danger'}">${stLab[g.stato]||g.stato}</span></div><div class="ssub">${fmt(g.dataSegn)} · ${({minore:'minore',media:'media',critica:'CRITICA'})[g.gravita]||g.gravita}</div></div><div class="sarr">›</div></div>`).join(''):'<div class="empty-state" style="padding:16px;"><div class="empty-sub">Nessun guasto</div></div>');
+}
+function openGuastoForm(){
+  openModal('Segnala guasto',`
+    <label class="fl">Data</label><input type="date" class="finput" id="gu-data" value="${today()}">
+    <label class="fl">Componente</label><input type="text" class="finput" id="gu-comp" placeholder="es. Motore, impianto idraulico…">
+    <label class="fl">Gravità</label><select class="finput" id="gu-grav"><option value="minore">Minore</option><option value="media">Media</option><option value="critica">Critica</option></select>
+    <label class="fl">Descrizione</label><textarea class="finput" id="gu-desc" rows="3"></textarea>
+  `,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SEGNALA',cls:'mbtn primary',action:()=>macSubSave('guasti',{dataSegn:$('gu-data').value,componente:$('gu-comp').value,gravita:$('gu-grav').value,descrizione:$('gu-desc').value,stato:'segnalato',aggiornamenti:[]})}]);
+}
+function apriGuastoDett(gid){
+  const {m}=_macCtx();const g=(m.guasti||[]).find(x=>x.id===gid);if(!g)return;const stLab={segnalato:'Segnalato',in_riparazione:'In riparazione',riparato:'Riparato'};
+  const upd=(g.aggiornamenti||[]).slice().reverse().map(u=>`<div class="sitem"><div class="av av-op">↻</div><div class="sinfo"><div class="sname">${stLab[u.stato]||u.stato}</div><div class="ssub">${fmt(u.data)}${u.nota?' · '+u.nota:''}</div></div></div>`).join('');
+  openModal('Guasto: '+(g.componente||''),`
+    <div class="preview-sec">
+      <div class="preview-row"><span class="preview-lab">Segnalato</span><span class="preview-val">${fmt(g.dataSegn)}</span></div>
+      <div class="preview-row"><span class="preview-lab">Gravità</span><span class="preview-val">${g.gravita}</span></div>
+      <div class="preview-row"><span class="preview-lab">Stato</span><span class="preview-val">${stLab[g.stato]||g.stato}</span></div>
+    </div>
+    ${g.descrizione?`<div class="preview-sec"><div class="preview-head">Descrizione</div><div style="font-size:13px;">${g.descrizione}</div></div>`:''}
+    <div class="sec-title" style="margin-top:12px;"><span class="dot"></span>Aggiornamenti riparazione</div>
+    ${upd||'<div class="empty-state" style="padding:12px;"><div class="empty-sub">Nessun aggiornamento</div></div>'}
+    ${_canMac()?`<label class="fl" style="margin-top:10px;">Nuovo stato</label><select class="finput" id="gu-nstato"><option value="segnalato">Segnalato</option><option value="in_riparazione">In riparazione</option><option value="riparato">Riparato</option></select><label class="fl">Nota aggiornamento</label><textarea class="finput" id="gu-nnota" rows="2"></textarea>`:''}
+  `,[{label:'Chiudi',cls:'mbtn',action:closeModal},...(_canMac()?[{label:'SALVA AGGIORNAMENTO',cls:'mbtn primary',action:()=>guastoAddUpdate(gid)}]:[])]);
+}
+function guastoAddUpdate(gid){
+  const {m,coll,id,reopen}=_macCtx();if(!m)return;const ns=$('gu-nstato').value;
+  const arr=(m.guasti||[]).map(g=>g.id===gid?{...g,stato:ns,aggiornamenti:[...(g.aggiornamenti||[]),{data:today(),stato:ns,nota:$('gu-nnota').value}]}:g);m.guasti=arr;
+  fbUpdate(coll,id,{guasti:arr}).finally(()=>{closeModal();toast('Aggiornamento salvato','success');reopen();});
+}
+// — CONSUMI (rifornimenti per mezzo) —
+function renderMacConsumi(el){
+  const {m}=_macCtx();const list=(m.consumi||[]).slice().reverse();const tG=(m.consumi||[]).reduce((s,c)=>s+(c.gasolio||0),0);
+  el.innerHTML=(_canMac()?`<button class="chg" style="margin-bottom:10px;" onclick="openConsumoForm()">+ Aggiungi consumo</button>`:'')
+    +(tG?`<div class="preview-sec"><div class="preview-row"><span class="preview-lab">Totale gasolio registrato</span><span class="preview-val">${tG.toFixed(1)} L</span></div></div>`:'')
+    +(list.length?list.map(c=>`<div class="sitem"><div class="av av-mz">⛽</div><div class="sinfo"><div class="sname">${fmt(c.data)}</div><div class="ssub">${c.gasolio?c.gasolio+' L gasolio':''}${c.olio?' · '+c.olio+' L olio':''}${c.lubr?' · '+c.lubr:''}${c.note?' · '+c.note:''}</div></div>${_canMac()?`<div class="sarr" onclick="event.stopPropagation();delMacSub('consumi','${c.id}')">✕</div>`:''}</div>`).join(''):'<div class="empty-state" style="padding:16px;"><div class="empty-sub">Nessun consumo</div></div>');
+}
+function openConsumoForm(){
+  openModal('Consumo giornaliero',`
+    <label class="fl">Data</label><input type="date" class="finput" id="co-data" value="${today()}">
+    <div class="frow"><div><label class="fl">Gasolio (L)</label><input type="number" inputmode="decimal" step="0.1" class="finput" id="co-gas"></div><div><label class="fl">Olio (L)</label><input type="number" inputmode="decimal" step="0.1" class="finput" id="co-olio"></div></div>
+    <label class="fl">Lubrificante</label><input type="text" class="finput" id="co-lubr" placeholder="tipo / quantità">
+    <label class="fl">Note</label><textarea class="finput" id="co-note" rows="2"></textarea>
+  `,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:()=>macSubSave('consumi',{data:$('co-data').value,gasolio:parseNum0($('co-gas').value),olio:parseNum0($('co-olio').value),lubr:$('co-lubr').value,note:$('co-note').value})}]);
+}
+Object.assign(window,{macGestTab,openLogForm,openChecklistForm,openGuastoForm,apriGuastoDett,guastoAddUpdate,openConsumoForm,delMacSub});
 
 // ══════════ DEPOSITO ══════════
 function renderDeposito(){
@@ -2352,8 +2612,7 @@ function initImp(){
   $('imp-pwd-old').value='';$('imp-pwd-new').value='';$('imp-pwd-conf').value='';$('imp-err').style.display='none';
   $('imp-lang').value=DB.settings.lang;$('imp-unit').value=DB.settings.unit;
   $('imp-not-rem').checked=DB.settings.notRem;$('imp-not-scad').checked=DB.settings.notScad;$('imp-not-set').checked=DB.settings.notSet;
-  $('imp-outdoor').checked=!!DB.settings.outdoor;
-  $('imp-theme').value=DB.settings.theme||'dark';
+  $('imp-theme').value=(DB.settings.theme==='light'||!!DB.settings.outdoor)?'light':'dark';
 }
 function impTab(t,el){document.querySelectorAll('#screen-impostazioni .atab').forEach(x=>x.classList.remove('active'));el.classList.add('active');$('imp-profilo-panel').style.display=t==='profilo'?'block':'none';$('imp-app-panel').style.display=t==='app'?'block':'none';}
 async function salvaProfilo(){
@@ -2379,7 +2638,7 @@ async function salvaSettingsApp(){
   const s={...DB.settings,
     lang:$('imp-lang').value,unit:$('imp-unit').value,
     notRem:$('imp-not-rem').checked,notScad:$('imp-not-scad').checked,notSet:$('imp-not-set').checked,
-    outdoor:$('imp-outdoor').checked,
+    outdoor:false,
     theme:$('imp-theme').value
   };
   await fbSet('config','settings',s);DB.settings=s;
@@ -2940,6 +3199,7 @@ function renderDashboard(){
       <button class="btn-sec" onclick="exportRapportiniXLSX()">📊 Excel</button>
       <button class="btn-sec" onclick="exportRapportiniMeseCorrentePDF()">📄 PDF</button>
     </div>
+    <button class="btn-sec" style="width:100%;margin-top:8px;" onclick="exportReportTecnicoPDF()">🔧 Report tecnico completo</button>
   `;
 
   // Colori torta (ampia gamma per differenziare)
@@ -3240,6 +3500,58 @@ async function exportRapportiniXLSX(){
 }
 
 // PDF mensile (un PDF con tabella riepilogativa di tutti i rapportini del mese)
+// ══════════ v4.5 — EXPORT REPORT TECNICO (data / macchina / cantiere) ══════════
+function exportReportTecnicoPDF(){
+  if(!window.jspdf){toast('Libreria PDF non caricata','err');return;}
+  const oggi=today();const primo=oggi.slice(0,8)+'01';
+  const macOpts=[...DB.mezziLav.map(m=>({id:'L:'+m.id,n:(m.modello||'')+' ('+m.targa+')'})),...DB.mezziStr.map(m=>({id:'S:'+m.id,n:((m.marca||'')+' '+(m.modello||''))+' ('+m.targa+')'}))];
+  openModal('Report tecnico',`
+    <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">Report PDF completo del periodo: rapportini, lavori, guasti e consumi mezzi.</p>
+    <div class="frow"><div><label class="fl">Da</label><input type="date" class="finput" id="rt-da" value="${primo}"></div>
+    <div><label class="fl">A</label><input type="date" class="finput" id="rt-a" value="${oggi}"></div></div>
+    <label class="fl">Cava / cantiere (opz.)</label><select class="finput" id="rt-cava"><option value="">Tutte</option>${DB.cave.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}</select>
+    <label class="fl">Macchina (opz.)</label><select class="finput" id="rt-mac"><option value="">Tutte</option>${macOpts.map(o=>`<option value="${o.id}">${o.n}</option>`).join('')}</select>
+  `,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'GENERA',cls:'mbtn primary',action:()=>{const da=$('rt-da').value,a=$('rt-a').value,cv=$('rt-cava').value,mc=$('rt-mac').value;closeModal();_genReportTecnico(da,a,cv,mc);}}]);
+}
+function _genReportTecnico(da,a,cavaId,macRef){
+  const {jsPDF}=window.jspdf;const d=new jsPDF({unit:'mm',format:'a4',orientation:'landscape'});const W=297;
+  const inRange=dt=>dt&&(!da||dt>=da)&&(!a||dt<=a);
+  d.setFillColor(255,171,0);d.rect(0,0,W,22,'F');
+  d.setTextColor(28,22,8);d.setFont('helvetica','bold');d.setFontSize(18);d.text('DEEPWORK — REPORT TECNICO',14,14);
+  d.setFontSize(10);d.setFont('helvetica','normal');d.text('Periodo: '+(da?fmt(da):'inizio')+' → '+(a?fmt(a):'oggi'),200,14);
+  d.setTextColor(40,40,40);let y=28;
+  const cav=cavaId?DB.cave.find(x=>x.id===cavaId):null;if(cav){d.setFontSize(10);d.text('Cava: '+cav.nome,14,y);y+=6;}
+  const rp=DB.rapportini.filter(r=>inRange(r.data)&&(!cavaId||r.cavaId===cavaId)).sort((x,z)=>(x.data||'').localeCompare(z.data||''));
+  d.setFont('helvetica','bold');d.setFontSize(12);d.text('Rapportini perforazione ('+rp.length+')',14,y);
+  d.autoTable({startY:y+2,head:[['Data','Cava','Operatore','Fori','Metri','Mc']],body:rp.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);return[fmt(r.data),c?c.nome:'—',u?u.nome+' '+u.cognome:'—',r.fori||0,(r.metri||0).toFixed(1),(r.mc||0).toFixed(1)];}),styles:{fontSize:8},headStyles:{fillColor:[255,171,0],textColor:[20,16,8]},margin:{left:14,right:14}});
+  y=d.lastAutoTable.finalY+8;
+  const rf=DB.rapportiniFoc.filter(r=>inRange(r.data)&&(!cavaId||r.cavaId===cavaId)).sort((x,z)=>(x.data||'').localeCompare(z.data||''));
+  if(y>175){d.addPage();y=20;}
+  d.setFont('helvetica','bold');d.setFontSize(12);d.setTextColor(40,40,40);d.text('Rapportini fochino ('+rf.length+')',14,y);
+  d.autoTable({startY:y+2,head:[['Data','Cava','Fori','Esplosivo kg']],body:rf.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);return[fmt(r.data),c?c.nome:'—',r.fori||0,(r.tot_kg||0).toFixed(1)];}),styles:{fontSize:8},headStyles:{fillColor:[239,83,80],textColor:[255,255,255]},margin:{left:14,right:14}});
+  y=d.lastAutoTable.finalY+8;
+  let macchine=[];
+  if(macRef){const k=macRef.slice(0,1),id=macRef.slice(2);const m=(k==='L'?DB.mezziLav:DB.mezziStr).find(x=>x.id===id);if(m)macchine=[m];}
+  else macchine=[...DB.mezziLav,...DB.mezziStr];
+  macchine.forEach(m=>{
+    const logs=(m.logLavori||[]).filter(l=>inRange(l.data));const guasti=(m.guasti||[]).filter(g=>inRange(g.dataSegn));const consumi=(m.consumi||[]).filter(c=>inRange(c.data));
+    if(!logs.length&&!guasti.length&&!consumi.length)return;
+    if(y>170){d.addPage();y=20;}
+    d.setFont('helvetica','bold');d.setFontSize(11);d.setTextColor(40,40,40);d.text('Mezzo: '+(m.modello||m.marca||'—')+(m.targa?' ('+m.targa+')':''),14,y);
+    const rows=[];
+    logs.forEach(l=>rows.push(['Lavoro',fmt(l.data),(l.operazione||'')+(l.ore?' · '+l.ore+'h':''),l.note||'']));
+    guasti.forEach(g=>rows.push(['Guasto',fmt(g.dataSegn),(g.componente||'')+' ['+(g.stato||'')+']',g.descrizione||'']));
+    consumi.forEach(c=>rows.push(['Consumo',fmt(c.data),(c.gasolio?c.gasolio+'L gas.':'')+(c.olio?' '+c.olio+'L olio':'')+(c.lubr?' '+c.lubr:''),c.note||'']));
+    d.autoTable({startY:y+2,head:[['Tipo','Data','Dettaglio','Note']],body:rows,styles:{fontSize:8},headStyles:{fillColor:[120,144,156],textColor:[255,255,255]},columnStyles:{0:{cellWidth:24},1:{cellWidth:24}},margin:{left:14,right:14}});
+    y=d.lastAutoTable.finalY+8;
+  });
+  const pages=d.internal.getNumberOfPages();
+  for(let p=1;p<=pages;p++){d.setPage(p);d.setTextColor(150,130,80);d.setFont('helvetica','italic');d.setFontSize(8);d.text('Deepwork per Cofa Mineraria',14,205);d.setTextColor(160,160,160);d.setFont('helvetica','normal');d.text('pag. '+p+'/'+pages,283,205,{align:'right'});}
+  d.save('Report_tecnico_'+(da||'')+'_'+(a||'')+'.pdf');
+  toast('Report tecnico generato','success');
+}
+window.exportReportTecnicoPDF=exportReportTecnicoPDF;
+
 function exportRapportiniMeseCorrentePDF(){
   if(!window.jspdf){toast('Libreria PDF non caricata','err');return;}
   const oggi=new Date();
@@ -6125,12 +6437,19 @@ document.addEventListener('DOMContentLoaded', () => {
   --grad3:linear-gradient(135deg,#ef5350,#c62828);
   --gradSuc:linear-gradient(135deg,#66bb6a,#2e7d32);
   --tap:44px; /* B3: minima tap target size */
+  /* v4.4 — palette funzionale per gruppo (base / glow) */
+  --g-oper:#e8821c;--g-oper2:#ffb733;--g-blast:#e5484d;--g-blast2:#ff6a70;
+  --g-data:#0e9384;--g-data2:#23dcc6;--g-cave:#2f9e44;--g-cave2:#5fe05a;
+  --g-log:#5b7186;--g-log2:#7fbcff;--g-team:#8b5cf6;--g-team2:#bd96ff;
+  --g-sys:#6b6459;--g-sys2:#c7b794;
+  --glow-strength:.18;--shadow-amber:0 10px 30px rgba(80,40,0,.42);--glow-warm:rgba(255,168,48,.32);
 }
 body.light-mode{
   --bg:#f5f2ea;--dark:#ffffff;--panel:#fafaf5;--card:#ffffff;--card2:#f0ede4;
   --border:#d8cfb0;--border2:#c8bf9a;
-  --text:#1a1406;--muted:#7a6940;--muted2:#5a4a20;
+  --text:#1a1406;--muted:#6a5524;--muted2:#3f3110;
   --gradSuc:linear-gradient(135deg,#66bb6a,#2e7d32);
+  --glow-strength:.08;--shadow-amber:0 8px 24px rgba(120,80,0,.13);--glow-warm:rgba(229,72,76,.34);
 }
 /* ── B3 OUTDOOR MODE — Solar Light — alto contrasto per uso in cava/sole diretto ── */
 body.outdoor-mode{
@@ -6146,6 +6465,7 @@ body.outdoor-mode{
   /* Bottoni e tap target grandi per uso con guanti */
   --tap:60px;
   font-size:18px;
+  --glow-strength:0;--shadow-amber:0 1px 4px rgba(120,90,30,.18);
 }
 /* Sfondo senza effetti glow — inutili alla luce del sole */
 body.outdoor-mode::before{display:none;}
@@ -6834,7 +7154,131 @@ body.outdoor-mode .topbar,body.outdoor-mode .ph{background:#fff!important;}
 body.outdoor-mode .kpi-val{-webkit-text-fill-color:initial;color:var(--amber);}
 body.outdoor-mode .sitem:hover{background:#fff;}
 body.outdoor-mode .stat,body.outdoor-mode .kpi-card,body.outdoor-mode .modal-box,body.outdoor-mode .meteo-card,body.outdoor-mode .login-box{background:#fff;}
+
+/* ════════ v4.4 — UI REFINEMENT: sistema card unico + accento gruppo + alone dinamico ════════ */
+/* mappa colore legacy → gruppo funzionale */
+.tile-red,.pcard-red,.pcard-pink{--grp:var(--g-blast);--grp2:var(--g-blast2);}
+.tile-blue,.pcard-blue{--grp:var(--g-log);--grp2:var(--g-log2);}
+.tile-green,.pcard-green{--grp:var(--g-cave);--grp2:var(--g-cave2);}
+.tile-grey,.pcard-grey,.tile-brown,.pcard-brown,.pcard-dark{--grp:var(--g-sys);--grp2:var(--g-sys2);}
+.tile-purple,.pcard-purple{--grp:var(--g-team);--grp2:var(--g-team2);}
+.tile-teal,.pcard-teal{--grp:var(--g-data);--grp2:var(--g-data2);}
+.pcard-amber{--grp:var(--g-oper);--grp2:var(--g-oper2);}
+
+/* CARD UNICA (dark+light, outdoor escluso): superficie neutra + accento laterale di gruppo */
+body:not(.outdoor-mode) :is(.tile-red,.tile-blue,.tile-green,.tile-grey,.tile-brown,.tile-purple,.tile-teal,.pcard-amber,.pcard-red,.pcard-blue,.pcard-green,.pcard-grey,.pcard-brown,.pcard-purple,.pcard-teal,.pcard-pink,.pcard-dark){
+  background:linear-gradient(180deg,var(--card2),var(--card))!important;
+  color:var(--text)!important;border:1px solid var(--border)!important;
+  border-left:3px solid var(--grp,var(--amber))!important;
+  box-shadow:var(--shadow-amber);position:relative;overflow:hidden;
+}
+body:not(.outdoor-mode) :is(.tile-red,.tile-blue,.tile-green,.tile-grey,.tile-brown,.tile-purple,.tile-teal) .td{color:var(--muted2)!important;}
+
+/* CHIP-ICONA colorato per gruppo (override del bianco legacy) */
+body:not(.outdoor-mode) :is(.tile-red,.tile-blue,.tile-green,.tile-grey,.tile-brown,.tile-purple,.tile-teal) .ti,
+body:not(.outdoor-mode) :is(.pcard-amber,.pcard-red,.pcard-blue,.pcard-green,.pcard-grey,.pcard-brown,.pcard-purple,.pcard-teal,.pcard-pink,.pcard-dark) .pi{
+  background:color-mix(in srgb,var(--grp,var(--amber)) 18%,transparent)!important;color:var(--grp2,var(--amber2));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 0 14px color-mix(in srgb,var(--grp,var(--amber)) 30%,transparent);
+}
+
+/* ALONE dinamico dietro la tile (segue --mx/--my della singola tile; off in outdoor via --glow-strength:0) */
+body:not(.outdoor-mode) :is(.tile-red,.tile-blue,.tile-green,.tile-grey,.tile-brown,.tile-purple,.tile-teal,.pcard-amber,.pcard-red,.pcard-blue,.pcard-green,.pcard-grey,.pcard-brown,.pcard-purple,.pcard-teal,.pcard-pink,.pcard-dark)::after{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;border-radius:inherit;
+  background:radial-gradient(200px 160px at var(--mx,50%) var(--my,30%),color-mix(in srgb,var(--grp,var(--amber)) calc(var(--glow-strength,.16)*100%),transparent),transparent 62%);
+  opacity:0;transition:opacity .25s var(--ease);
+}
+body:not(.outdoor-mode) :is(.tile-red,.tile-blue,.tile-green,.tile-grey,.tile-brown,.tile-purple,.tile-teal,.pcard-amber,.pcard-red,.pcard-blue,.pcard-green,.pcard-grey,.pcard-brown,.pcard-purple,.pcard-teal,.pcard-pink,.pcard-dark):hover::after{opacity:1;}
+.tile>*,.pcard>*{position:relative;z-index:1;}
+
+/* KPI: accento laterale */
+.kpi-card{border-left:3px solid var(--amber);}
+/* HEADER più arioso (outdoor ha i suoi override) */
+body:not(.outdoor-mode) .topbar,body:not(.outdoor-mode) .ph{min-height:62px;}
+/* EMPTY-STATE più caldo */
+.empty-state{background:radial-gradient(360px 220px at 50% 0%,color-mix(in srgb,var(--amber) 6%,transparent),transparent 70%);border-radius:var(--r);}
+.empty-icon{opacity:.6;filter:drop-shadow(0 0 14px color-mix(in srgb,var(--amber) 22%,transparent));}
+/* SKELETON (infra) */
+.dw-skel{background:linear-gradient(90deg,var(--card) 25%,var(--card2) 37%,var(--card) 63%);background-size:400% 100%;animation:dwshim 1.2s ease infinite;border-radius:var(--r);min-height:64px;margin-bottom:9px;}
+@keyframes dwshim{0%{background-position:100% 0}100%{background-position:-100% 0}}
+/* TRANSIZIONE schermate */
+.screen.active.scr-enter{animation:scrSlide .26s var(--ease) both;}
+@keyframes scrSlide{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:translateX(0)}}
+@media(prefers-reduced-motion:reduce){.dw-skel{animation:none;}.screen.active.scr-enter{animation:none;}body:not(.outdoor-mode) :is(.tile-red,.tile-blue,.tile-green,.tile-grey,.tile-brown,.tile-purple,.tile-teal,.pcard-amber,.pcard-red,.pcard-blue,.pcard-green,.pcard-grey,.pcard-brown,.pcard-purple,.pcard-teal,.pcard-pink,.pcard-dark)::after{display:none;}}
+
+/* ════════ v4.4b — coerenza su TUTTE le schermate + alone ROSSO in light ════════ */
+/* LIGHT: alone delle card → rosso, segue il cursore (stessa logica del dark) */
+body.light-mode :is(.tile-red,.tile-blue,.tile-green,.tile-grey,.tile-brown,.tile-purple,.tile-teal,.pcard-amber,.pcard-red,.pcard-blue,.pcard-green,.pcard-grey,.pcard-brown,.pcard-purple,.pcard-teal,.pcard-pink,.pcard-dark)::after{background:radial-gradient(220px 170px at var(--mx,50%) var(--my,50%),color-mix(in srgb,#e5484d 40%,transparent),transparent 60%);}
+/* LISTE (.sitem) ovunque: superficie + alone dinamico (ambra dark / rosso light); off in outdoor */
+body:not(.outdoor-mode) .sitem{position:relative;overflow:hidden;}
+body:not(.outdoor-mode) .sitem::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;border-radius:inherit;background:radial-gradient(170px 120px at var(--mx,50%) var(--my,50%),var(--glow-warm,transparent),transparent 62%);opacity:0;transition:opacity .25s var(--ease);}
+body:not(.outdoor-mode) .sitem:hover::after{opacity:1;}
+.sitem>*{position:relative;z-index:1;}
+@media(prefers-reduced-motion:reduce){body:not(.outdoor-mode) .sitem::after{display:none;}}
+
+/* ════════ v4.4c — LIGHT: più colore di categoria + accento sinistro più marcato ════════ */
+body.light-mode :is(.tile-red,.tile-blue,.tile-green,.tile-grey,.tile-brown,.tile-purple,.tile-teal,.pcard-amber,.pcard-red,.pcard-blue,.pcard-green,.pcard-grey,.pcard-brown,.pcard-purple,.pcard-teal,.pcard-pink,.pcard-dark){
+  background:linear-gradient(180deg,color-mix(in srgb,var(--grp,var(--amber)) 15%,var(--card2)),color-mix(in srgb,var(--grp,var(--amber)) 7%,var(--card)))!important;
+  border-left:5px solid var(--grp,var(--amber))!important;
+}
+body.light-mode :is(.tile-red,.tile-blue,.tile-green,.tile-grey,.tile-brown,.tile-purple,.tile-teal) .ti,
+body.light-mode :is(.pcard-amber,.pcard-red,.pcard-blue,.pcard-green,.pcard-grey,.pcard-brown,.pcard-purple,.pcard-teal,.pcard-pink,.pcard-dark) .pi{
+  background:color-mix(in srgb,var(--grp,var(--amber)) 28%,#fff)!important;color:color-mix(in srgb,var(--grp,var(--amber)) 70%,#3a2a10);
+}
+
+/* ════════ v4.4d — barre theme-aware + accento sinistro più marcato + leggibilità light ════════ */
+/* FIX: in LIGHT le barre seguono il tema (prima restavano scure per via dell'!important dark) */
+body.light-mode .topbar,body.light-mode .ph{background:linear-gradient(180deg,#ffffff,#f6f2e9)!important;border-bottom:1px solid var(--border);}
+body.light-mode .bnav{background:rgba(255,255,255,.96)!important;border-top:1px solid var(--border);box-shadow:0 -4px 18px rgba(120,90,30,.10);}
+body.light-mode .logo-sm{color:#b5680a;}
+body.light-mode .role-sm{color:var(--muted2);}
+body.light-mode .bk{color:#b5680a;}
+body.light-mode .logout-btn{border-color:var(--border);color:var(--muted2);}
+body.light-mode .bn{color:var(--muted);}
+body.light-mode .bn.active{color:#c77800;border-top-color:#c77800;}
+/* MIGLIORIA barre: stato attivo nav più evidente (barra superiore + pill esistente + icona) */
+.bn.active{border-top-color:var(--amber);color:var(--amber);}
+.bn.active svg{transform:scale(1.06);}
+/* ACCENTO SINISTRO più marcato (più colore) */
+body:not(.light-mode) :is(.tile-red,.tile-blue,.tile-green,.tile-grey,.tile-brown,.tile-purple,.tile-teal,.pcard-amber,.pcard-red,.pcard-blue,.pcard-green,.pcard-grey,.pcard-brown,.pcard-purple,.pcard-teal,.pcard-pink,.pcard-dark){border-left-width:4px!important;}
+body.light-mode :is(.tile-red,.tile-blue,.tile-green,.tile-grey,.tile-brown,.tile-purple,.tile-teal,.pcard-amber,.pcard-red,.pcard-blue,.pcard-green,.pcard-grey,.pcard-brown,.pcard-purple,.pcard-teal,.pcard-pink,.pcard-dark){border-left-width:7px!important;box-shadow:var(--sh1),inset 8px 0 16px -8px var(--grp,var(--amber));}
+/* LEGGIBILITÀ light: testo secondario un filo più pesante (contrasto già alzato via --muted) */
+body.light-mode .ssub,body.light-mode .td,body.light-mode .cs,body.light-mode .fl,body.light-mode .preview-lab,body.light-mode #meteo-small{font-weight:500;}
+
+/* ════════ v4.4e — barre: nav flottante + attivo colore sezione + FAB ════════ */
+/* (ricerca: ripristinata barra+lente classica sempre visibile/cliccabile — vedi .topbar-search-* sopra) */
+/* ESCI come icona */
+.logout-btn{display:flex;align-items:center;justify-content:center;padding:7px;min-width:0;}
+.logout-btn svg{display:block;}
+/* BOTTOM NAV flottante */
+#global-nav.bnav{left:50%;right:auto;transform:translateX(-50%);width:calc(100% - 16px);max-width:520px;bottom:8px;border-radius:18px;border:1px solid var(--border);box-shadow:0 10px 28px rgba(0,0,0,.38);overflow:visible;}
+body.light-mode #global-nav.bnav{box-shadow:0 10px 28px rgba(120,90,30,.20);}
+.sc,.hcontent,.fcontent{padding-bottom:88px;}
+/* ATTIVO = colore di sezione */
+#global-nav .bn[data-scr="volate"].active{color:var(--g-blast);border-top-color:var(--g-blast);}
+#global-nav .bn[data-scr="volate"].active::before{background:color-mix(in srgb,var(--g-blast) 18%,transparent);}
+#global-nav .bn[data-scr="cave"].active{color:var(--g-cave);border-top-color:var(--g-cave);}
+#global-nav .bn[data-scr="cave"].active::before{background:color-mix(in srgb,var(--g-cave) 18%,transparent);}
+#global-nav .bn[data-scr="home"].active,#global-nav .bn[data-scr="menu"].active{color:var(--amber);border-top-color:var(--amber);}
+/* FAB centrale */
+.nav-fab{position:absolute;left:50%;top:0;transform:translate(-50%,-52%);width:54px;height:54px;border-radius:50%;border:none;background:var(--grad);color:#15110a;font-family:'Barlow Condensed',sans-serif;font-size:34px;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(255,109,0,.45);cursor:pointer;z-index:6;transition:transform .12s var(--ease);}
+.nav-fab:active{transform:translate(-50%,-52%) scale(.93);}
 </style>
+
+<script>
+/* v4.4 — alone dinamico dietro le tile: scrive --mx/--my SOLO sull'elemento puntato (no repaint globale); off in outdoor; rAF coalescato */
+(function(){
+  if(matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+  var sel='.tile-red,.tile-blue,.tile-green,.tile-grey,.tile-brown,.tile-purple,.tile-teal,.pcard-amber,.pcard-red,.pcard-blue,.pcard-green,.pcard-grey,.pcard-brown,.pcard-purple,.pcard-teal,.pcard-pink,.pcard-dark,.sitem';
+  var cur=null,px=50,py=30,pend=false;
+  function apply(){pend=false;if(cur){cur.style.setProperty('--mx',px+'%');cur.style.setProperty('--my',py+'%');}}
+  window.addEventListener('pointermove',function(e){
+    if(document.body.classList.contains('outdoor-mode'))return;
+    var t=e.target.closest?e.target.closest(sel):null;cur=t;if(!t)return;
+    var r=t.getBoundingClientRect();px=(e.clientX-r.left)/r.width*100;py=(e.clientY-r.top)/r.height*100;
+    if(!pend){pend=true;requestAnimationFrame(apply);}
+  },{passive:true});
+})();
+</script>
 
 <div class="toast" id="toast"></div>
 
@@ -6872,7 +7316,7 @@ body.outdoor-mode .stat,body.outdoor-mode .kpi-card,body.outdoor-mode .modal-box
           <text x="60" y="121" font-size="6" fill="#3a2a10" font-family="'Barlow Condensed', Arial Narrow, sans-serif" font-weight="700" letter-spacing="3" text-anchor="middle">FIELD OPERATIONS</text>
         </svg>
       </div>
-      <div class="login-tag">FIELD OPS · v4.2 · Quick-win audit</div>
+      <div class="login-tag">FIELD OPS · v4.4</div>
       <div class="login-msg" id="login-msg" style="display:none;"></div>
       <label class="fl">Utente</label>
       <input type="text" class="fi" id="lu" placeholder="es. giuseppe" autocomplete="username">
@@ -6897,12 +7341,26 @@ body.outdoor-mode .stat,body.outdoor-mode .kpi-card,body.outdoor-mode .modal-box
     <div style="display:flex;align-items:center;gap:10px;">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 92" width="32" height="28">
         <polygon points="60,72 16,17 104,17" fill="#14100a"/>
+        <polygon points="60,70 18,19 102,19" fill="none" stroke="#2a2010" stroke-width="1"/>
         <polygon points="60,68 22,21 98,21" fill="#1c1608" stroke="#ffab00" stroke-width="2"/>
+        <line x1="38" y1="31" x2="82" y2="31" stroke="#2e2412" stroke-width="1"/>
+        <line x1="43" y1="43" x2="77" y2="43" stroke="#2e2412" stroke-width="0.9"/>
+        <line x1="49" y1="55" x2="71" y2="55" stroke="#2e2412" stroke-width="0.7"/>
+        <line x1="54" y1="63" x2="66" y2="63" stroke="#2e2412" stroke-width="0.5"/>
+        <rect x="56.5" y="2" width="7" height="66" fill="#28200c" rx="2"/>
         <rect x="58" y="2" width="4" height="66" fill="#ffab00" rx="1.5"/>
+        <rect x="59" y="2" width="2" height="66" fill="#ffd54f" rx="0.5" opacity="0.6"/>
         <polygon points="60,68 55,61 65,61" fill="#ffab00"/>
+        <polygon points="60,68 57,63 63,63" fill="#ffd54f" opacity="0.6"/>
         <line x1="60" y1="68" x2="42" y2="77" stroke="#ffab00" stroke-width="2.2" stroke-linecap="round"/>
         <line x1="60" y1="68" x2="78" y2="77" stroke="#ffab00" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="60" y1="68" x2="50" y2="82" stroke="#ff6d00" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="60" y1="68" x2="70" y2="82" stroke="#ff6d00" stroke-width="1.8" stroke-linecap="round"/>
         <line x1="60" y1="68" x2="60" y2="85" stroke="#ffd54f" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="42" cy="78" r="2.5" fill="#ffab00"/>
+        <circle cx="78" cy="78" r="2.5" fill="#ffab00"/>
+        <circle cx="50" cy="83" r="1.8" fill="#ff6d00"/>
+        <circle cx="70" cy="83" r="1.8" fill="#ff6d00"/>
         <circle cx="60" cy="86" r="3" fill="#ffd54f"/>
       </svg>
       <div>
@@ -6913,7 +7371,7 @@ body.outdoor-mode .stat,body.outdoor-mode .kpi-card,body.outdoor-mode .modal-box
     <div style="display:flex;gap:6px;align-items:center;flex:1;justify-content:flex-end;">
       <span id="sync-badge" class="sync-badge" style="display:none;"></span>
       <button id="btn-install-pwa" class="install-btn" onclick="installPWA()" style="display:none;" title="Installa app" aria-label="Installa app">⤓</button>
-      <button class="outdoor-toggle" id="btn-outdoor" onclick="toggleOutdoor()" title="Modalità campo" aria-label="Attiva/disattiva modalità campo ad alto contrasto">☀️</button>
+      <button class="outdoor-toggle" id="btn-outdoor" onclick="toggleOutdoor()" title="Cambia tema (chiaro/scuro)" aria-label="Cambia tema chiaro o scuro">☀️</button>
       <!-- Ricerca inline topbar -->
       <div class="topbar-search-wrap" id="topbar-search-wrap">
         <span class="topbar-search-icon">🔍</span>
@@ -6923,7 +7381,7 @@ body.outdoor-mode .stat,body.outdoor-mode .kpi-card,body.outdoor-mode .modal-box
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         <span class="notif-badge" id="notif-count" style="display:none;">0</span>
       </div>
-      <button class="logout-btn" onclick="confirmLogout()">Esci</button>
+      <button class="logout-btn" onclick="confirmLogout()" title="Esci" aria-label="Esci"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
     </div>
   </div>
   <div class="hcontent">
@@ -7024,6 +7482,16 @@ body.outdoor-mode .stat,body.outdoor-mode .kpi-card,body.outdoor-mode .modal-box
     <button class="add-btn" id="btn-add-cliente" onclick="openClienteForm()" style="display:none;">+</button>
   </div>
   <div class="sc"><div id="clienti-list"></div></div>
+</div>
+
+<!-- ══════════ SISMOGRAMMI (v4.5) ══════════ -->
+<div class="screen" id="screen-sismogrammi">
+  <div class="ph">
+    <button class="bk" onclick="goBack()">←</button>
+    <div class="ht">Sismogrammi</div>
+    <button class="add-btn" id="btn-add-sismo" onclick="openSismoForm()" style="display:none;">+</button>
+  </div>
+  <div class="sc"><div id="sismo-list"></div></div>
 </div>
 
 <!-- ══════════ DASHBOARD (D5) ══════════ -->
@@ -7402,8 +7870,6 @@ body.outdoor-mode .stat,body.outdoor-mode .kpi-card,body.outdoor-mode .modal-box
       </select>
       <label class="fl">Lingua</label><select class="finput" id="imp-lang"><option value="it">Italiano</option><option value="en">English</option></select>
       <label class="fl">Unità di misura</label><select class="finput" id="imp-unit"><option value="metric">Metriche (m, kg)</option><option value="imperial">Imperiali (ft, lb)</option></select>
-      <div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Modalità campo</div>
-      <div class="toggle-row"><div><div class="tog-name">Outdoor mode</div><div class="tog-sub">Alto contrasto, font grandi, bottoni grandi (per uso con guanti in pieno sole)</div></div><label class="toggle"><input type="checkbox" id="imp-outdoor"><span class="toggle-slider"></span></label></div>
       <div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Notifiche</div>
       <div class="toggle-row"><div><div class="tog-name">Promemoria scaduti</div><div class="tog-sub">Notifica quando ci sono reminder scaduti</div></div><label class="toggle"><input type="checkbox" id="imp-not-rem" checked><span class="toggle-slider"></span></label></div>
       <div class="toggle-row"><div><div class="tog-name">Scadenze mezzi strada</div><div class="tog-sub">Revisioni, assicurazione, bollo, tagliando</div></div><label class="toggle"><input type="checkbox" id="imp-not-scad" checked><span class="toggle-slider"></span></label></div>
@@ -7484,7 +7950,7 @@ body.outdoor-mode .stat,body.outdoor-mode .kpi-card,body.outdoor-mode .modal-box
     <button class="bk" onclick="goBack()">←</button>
     <div class="ht">Vista 3D Volata</div>
   </div>
-  <div id="d3-wrap" style="flex:1;position:relative;background:#0a0805;min-height:300px;">
+  <div id="d3-wrap" style="position:relative;background:#0a0805;height:calc(100vh - 160px);min-height:340px;">
     <div id="d3-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;">Caricamento motore 3D…</div>
     <button onclick="simulate3D()" style="position:absolute;top:10px;right:10px;z-index:5;background:linear-gradient(135deg,#ef5350,#c62828);color:#fff;border:none;padding:10px 16px;border-radius:4px;font-family:'Barlow Condensed',sans-serif;font-weight:800;letter-spacing:1px;cursor:pointer;">▶ SIMULAZIONE</button>
     <button onclick="simReset()" style="position:absolute;top:10px;right:160px;z-index:5;background:var(--card);color:var(--text);border:1px solid var(--border);padding:10px 14px;border-radius:4px;font-family:'Barlow Condensed',sans-serif;font-weight:800;letter-spacing:1px;cursor:pointer;">↺ RESET</button>
@@ -7515,7 +7981,7 @@ body.outdoor-mode .stat,body.outdoor-mode .kpi-card,body.outdoor-mode .modal-box
     <input type="range" min="1" max="10" value="4" id="rc-relief" style="width:100%;" oninput="$('rc-relief-v').textContent=this.value">
     <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Intensità: <b id="rc-relief-v">4</b> (la luce della foto stima il rilievo)</div>
     <button class="btn-sv" onclick="reconBuild()">🗿 RICOSTRUISCI 3D</button>
-    <div id="rc-wrap" style="margin-top:12px;height:340px;position:relative;background:#0a0805;border:1px solid var(--border);display:none;"></div>
+    <div id="rc-wrap" style="margin-top:12px;height:calc(100vh - 170px);min-height:360px;position:relative;background:#0a0805;border:1px solid var(--border);display:none;"></div>
     <div id="rc-tools" style="display:none;margin-top:8px;">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
         <button class="btn-sec" id="rc-holebtn" onclick="reconToggleHoles()">🎯 Segna fori</button>
@@ -7533,7 +7999,7 @@ body.outdoor-mode .stat,body.outdoor-mode .kpi-card,body.outdoor-mode .modal-box
   <div class="sc">
     <div class="info-box" style="margin-bottom:12px;">✨ Visualizza un modello <b>fotorealistico</b> del fronte (Gaussian Splatting). Genera il file con un'app di scansione (es. Polycam, Scaniverse, KIRI Engine) esportando in <b>.ply</b> o <b>.splat</b>, poi caricalo qui.</div>
     <label class="btn-sec" style="display:block;text-align:center;cursor:pointer;">📂 Carica modello .ply / .splat / .ksplat<input type="file" accept=".ply,.splat,.ksplat" onchange="splatPick(event)" style="display:none;"></label>
-    <div id="sp-wrap" style="margin-top:12px;height:360px;position:relative;background:#000;border:1px solid var(--border);display:none;"></div>
+    <div id="sp-wrap" style="margin-top:12px;height:calc(100vh - 170px);min-height:360px;position:relative;background:#000;border:1px solid var(--border);display:none;"></div>
     <div id="sp-note" style="font-size:11px;color:var(--muted);margin-top:8px;"></div>
   </div>
 </div>
@@ -7696,6 +8162,7 @@ body.outdoor-mode .stat,body.outdoor-mode .kpi-card,body.outdoor-mode .modal-box
   <div class="bn" data-scr="volate" role="button" aria-label="Volate" onclick="openVolate()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Volate</span></div>
   <div class="bn" data-scr="cave" role="button" aria-label="Cave" onclick="nav('cave')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2l10 20H2z"/></svg><span>Cave</span></div>
   <div class="bn" data-scr="menu" role="button" aria-label="Menu" onclick="nav('menu')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg><span>Menu</span></div>
+  <button class="nav-fab" id="nav-fab" onclick="fabPrimary()" title="Nuovo rapportino" aria-label="Nuovo rapportino"><svg width="30" height="24" viewBox="0 0 120 92" fill="none" aria-hidden="true"><polygon points="60,68 22,21 98,21" fill="none" stroke="#15110a" stroke-width="4"/><polygon points="60,68 53,59 67,59" fill="#15110a"/><rect x="57" y="6" width="6" height="62" fill="#15110a" rx="2"/><line x1="60" y1="68" x2="40" y2="80" stroke="#15110a" stroke-width="4" stroke-linecap="round"/><line x1="60" y1="68" x2="80" y2="80" stroke="#15110a" stroke-width="4" stroke-linecap="round"/><line x1="60" y1="68" x2="60" y2="84" stroke="#15110a" stroke-width="4" stroke-linecap="round"/><circle cx="60" cy="86" r="4" fill="#15110a"/></svg></button>
 </div>
 
 <!-- ══════════ MODAL ══════════ -->
