@@ -2,7 +2,15 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<!-- v4.0: import map per il visualizzatore Gaussian Splatting (3D fotorealistico) -->
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/":"https://cdn.jsdelivr.net/npm/three@0.160.0/",
+  "@mkkellogg/gaussian-splats-3d":"https://cdn.jsdelivr.net/npm/@mkkellogg/gaussian-splats-3d@0.4.7/build/gaussian-splats-3d.module.js"
+}}
+</script>
 <title>Deepwork — Field Operations Platform</title>
 <meta name="theme-color" content="#ffab00">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -19,7 +27,7 @@
 <!-- ══════════ LIBRERIE ESTERNE (D1, D3, D5) — defer per non bloccare ══════════ -->
 <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- XLSX caricato on-demand (lazy) per velocizzare l'avvio — vedi ensureLib('xlsx') -->
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <!-- v3.6: 3D viewer (caricati on-demand, vedi load3D) -->
 
@@ -31,9 +39,9 @@
   // mostriamo un messaggio invece di lanciare ReferenceError.
   const stubs=['doLogin','showForgot','confirmLogout','doLogout','nav','goBack',
     'openNotifiche','openPromemoriaForm','confermaElimPromemoria',
-    'apriCava','uploadCavaFoto','apriRapport','openCavaForm','openCavaEdit','salvaCava','confermaDelCava',
+    'apriCava','apriGemello','uploadCavaFoto','apriRapport','openCavaForm','openCavaEdit','salvaCava','confermaDelCava',
     'filtraVolate','renderVolate','toggleFiltri','applicaFiltriVolate','resetFiltriVolate',
-    'openVolate','openStorico','apriRappFocDett','condividiVolata','openVolataReadonly','rapportinoVuoto','open3DVolata','reconPickPhoto','reconBuild','reconSnapshot','reconCalibra','reconToggleHoles','reconClearHoles',
+    'openVolate','openStorico','apriRappFocDett','condividiVolata','openVolataReadonly','rapportinoVuoto','open3DVolata','reconPickPhoto','reconBuild','reconSnapshot','reconCalibra','reconToggleHoles','reconClearHoles','splatPick','splatBuild','splatExit',
     'renderMacchine','macTab','apriMacLavoro','apriMezzoStr','openMacForm','openMacEdit','salvaMacLav',
     'openMezzoEdit','salvaMezzoStr','openRipForm','uploadMacLavFoto','uploadMezzoStrFoto',
     'confermaDelMacLav','confermaDelMezzoStr',
@@ -42,10 +50,10 @@
     'renderPersonale','apriPersDet','uploadPersFoto','openPersForm','openPersEdit','salvaPers',
     'renderUtenti','uploadUserFoto','openUserForm','openUserEdit','salvaUser',
     'initImp','impTab','salvaProfilo','salvaSettingsApp',
-    'uffTab','calcEspU','calcMagU','calcMcU',
+    'uffTab','calcEspU','calcMagU','calcMcU','calcMcUfficio',
     'initAdmin','admTab','apriCalcAdmin',
     'globalSearch',
-    'renderMessaggi','apriChat','renderChat','inviaMessaggio',
+    'renderMessaggi','apriChat','renderChat','inviaMessaggio','inviaFotoChat',
     'renderContatti','openContactForm',
     'closeModal','openModal',
     'addFori','removeFori','setFori','togglePers','markUnsaved','aggiornaTotali',
@@ -855,6 +863,7 @@ function can(action){
 
 // ══════════ LOGIN ══════════
 function showLoginMsg(msg,type){const m=$('login-msg');m.textContent=msg;m.className='login-msg '+(type||'');m.style.display='block';}
+function loginShake(){const b=document.querySelector('.login-box');if(b){b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake');}if(navigator.vibrate)try{navigator.vibrate(60);}catch(e){}}
 function hideLoginMsg(){$('login-msg').style.display='none';}
 
 function doLogin(){
@@ -869,10 +878,10 @@ function doLogin(){
     btn.classList.remove('loading');btn.textContent='ACCEDI';
     // Trovo l'utente per username (case-insensitive)
     const user=DB.users.find(x=>x.user.toLowerCase()===u.toLowerCase());
-    if(!user){showLoginMsg('Credenziali errate');$('lp').value='';$('lp').classList.add('err');return;}
+    if(!user){showLoginMsg('Credenziali errate');$('lp').value='';$('lp').classList.add('err');loginShake();return;}
     // Verifica password (gestisce sia hash che plaintext)
     const ok = await verifyPassword(user.pwd, p);
-    if(!ok){showLoginMsg('Credenziali errate');$('lp').value='';$('lp').classList.add('err');return;}
+    if(!ok){showLoginMsg('Credenziali errate');$('lp').value='';$('lp').classList.add('err');loginShake();return;}
     if(!user.attivo){showLoginMsg("Utente disattivato. Contatta l'amministratore");return;}
     // ── Auto-migrazione: se la password è ancora in chiaro, la convertiamo in hash ora che abbiamo confermato il login ──
     if(typeof user.pwd === 'string' && !user.pwd.startsWith(PWD_HASH_PREFIX) && _isOnline){
@@ -956,6 +965,8 @@ function nav(scr,fromBack){
     setTimeout(()=>window.scrollTo(0,state.scrollMap[scr]),20);
   } else {
     window.scrollTo(0,0);
+    // anche i contenitori interni che scrollano tornano in cima (UX: nuova schermata = dall'alto)
+    if(tgt)tgt.querySelectorAll('.sc,.hcontent,.fcontent').forEach(el=>el.scrollTop=0);
   }
 }
 function goBack(){
@@ -1171,10 +1182,11 @@ function renderMenu(){
   if(state.user.ruolo==='fochino')items.push({t:'Strumenti fochino',i:'🧨',act:'strumenti-foc',col:'red'});
   if(can('editCava'))items.push({t:'Progetti volata',i:'📐',act:'volate-list',col:'amber'}); // F1
   if(can('editCava')||state.user.ruolo==='fochino')items.push({t:'Ricostruzione 3D',i:'📷',act:'recon3d',col:'teal'}); // v3.6
+  if(can('editCava')||state.user.ruolo==='fochino')items.push({t:'3D fotorealistico',i:'✨',act:'splat',col:'teal'}); // v4.0
   if(can('clienti'))items.push({t:'Clienti',i:'🏢',act:'clienti',col:'teal'}); // E6
   if(can('ufficio'))items.push({t:'Ufficio',i:'🧮',act:'ufficio',col:'teal'});
   if(can('admin')){items.push({t:'Utenti',i:'👤',act:'utenti',col:'pink'});items.push({t:'Admin',i:'⚙️',act:'admin',col:'dark'});}
-  items.push({t:'Rapportino vuoto',i:'📄',act:'__vuoto',col:'amber'}); // v3.4.4 — PDF vuoto per tutti
+  items.push({t:'Modulo rapportino',i:'📄',act:'__vuoto',col:'amber'}); // v3.4.4 — PDF stampabile per tutti
   items.push({t:'Messaggi',i:'💬',act:'messaggi',col:''});
   items.push({t:'Contatti',i:'📞',act:'contatti',col:''});
   items.push({t:'Impostazioni',i:'🔧',act:'impostazioni',col:''});
@@ -1183,18 +1195,18 @@ function renderMenu(){
 
 // ════════ RAPPORTINO VUOTO (v3.4.4) — PDF stampabile per tutti ════════
 function rapportinoVuoto(){
-  openModal('Rapportino vuoto',`
-    <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">Genera un rapportino vuoto da stampare e compilare a mano.</p>
+  openModal('Modulo rapportino',`
+    <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">Genera un modulo da stampare e compilare a mano.</p>
     <label class="fl">Tipo rapportino</label>
     <select class="finput" id="rv-tipo"><option value="perf">Perforazione</option><option value="foc">Fochino</option></select>
     <div class="frow">
-      <div><label class="fl">N° fori (righe)</label><input type="number" inputmode="numeric" class="finput" id="rv-fori" value="20"></div>
+      <div><label class="fl">N° fori (righe)</label><input type="number" inputmode="numeric" class="finput" id="rv-fori" value="30"></div>
       <div><label class="fl">N° file</label><input type="number" inputmode="numeric" class="finput" id="rv-file" value="1"></div>
     </div>
   `,[
     {label:'Annulla',cls:'mbtn',action:closeModal},
     {label:'GENERA PDF',cls:'mbtn primary',action:()=>{
-      const tipo=$('rv-tipo').value;const nf=Math.max(1,Math.min(80,parseInt($('rv-fori').value)||20));const nfile=Math.max(1,Math.min(6,parseInt($('rv-file').value)||1));
+      const tipo=$('rv-tipo').value;const nf=Math.max(1,Math.min(120,parseInt($('rv-fori').value)||30));const nfile=Math.max(1,Math.min(6,parseInt($('rv-file').value)||1));
       closeModal();generaRappVuotoPDF(tipo,nf,nfile);
     }}
   ]);
@@ -1203,34 +1215,44 @@ function generaRappVuotoPDF(tipo,nFori,nFile){
   if(!window.jspdf){toast('Libreria PDF non caricata','err');return;}
   const {jsPDF}=window.jspdf;const d=new jsPDF({unit:'mm',format:'a4'});
   const isFoc=tipo==='foc';
-  // header bianco con barra ambra/rossa
   d.setFillColor(255,255,255);d.rect(0,0,210,297,'F');
-  d.setFillColor(isFoc?239:255,isFoc?83:171,isFoc?80:0);d.rect(0,0,210,20,'F');
-  d.setTextColor(isFoc?255:20,isFoc?255:16,isFoc?255:8);d.setFont('helvetica','bold');d.setFontSize(15);d.text('DEEPWORK',14,13);
-  d.setFont('helvetica','normal');d.setFontSize(9);d.text((isFoc?'RAPPORTINO FOCHINO':'RAPPORTINO PERFORAZIONE')+' — VUOTO',200,13,{align:'right'});
-  // campi intestazione
-  d.setTextColor(40,40,40);d.setFontSize(10);let y=30;
-  const campo=(lab)=>{d.setFont('helvetica','bold');d.text(lab,14,y);d.setDrawColor(180,180,180);d.setLineWidth(0.2);d.line(50,y+1,120,y+1);};
-  const campo2=(lab,x)=>{d.setFont('helvetica','bold');d.text(lab,x,y);d.setDrawColor(180,180,180);d.line(x+30,y+1,196,y+1);};
-  campo('Data:');campo2('Cava:',124);y+=9;
-  campo(isFoc?'Fochino:':'Operatore:');campo2('Mezzo:',124);y+=9;
-  campo('Ora inizio:');campo2('Ora fine:',124);y+=9;
-  if(!isFoc){campo('Diametro (mm):');campo2('Maglia (m):',124);y+=9;}
-  // tabella
+  d.setFillColor(isFoc?239:255,isFoc?83:171,isFoc?80:0);d.rect(0,0,210,18,'F');
+  d.setTextColor(isFoc?255:20,isFoc?255:16,isFoc?255:8);d.setFont('helvetica','bold');d.setFontSize(15);d.text('DEEPWORK',14,12);
+  d.setFont('helvetica','normal');d.setFontSize(9);d.text(isFoc?'RAPPORTINO FOCHINO':'RAPPORTINO PERFORAZIONE',200,12,{align:'right'});
+  // intestazione compatta
+  d.setTextColor(40,40,40);d.setFontSize(9);let y=26;
+  const campo=(lab,x,x2)=>{d.setFont('helvetica','bold');d.text(lab,x,y);d.setDrawColor(180,180,180);d.setLineWidth(0.2);d.line(x+d.getTextWidth(lab)+2,y+1,x2,y+1);};
+  campo('Data:',14,70);campo('Cava:',110,196);y+=8;
+  campo(isFoc?'Fochino:':'Operatore:',14,70);campo('Mezzo:',110,196);y+=8;
+  if(!isFoc){campo('Diametro (mm):',14,70);campo('Ora inizio:',110,150);campo('Ora fine:',152,196);y+=8;}
+  else{campo('Ora inizio:',14,70);campo('Ora fine:',110,196);y+=8;}
   y+=2;
-  const head=isFoc?[['#','Esplosivo 1','Esplosivo 2','Innesco','Note']]:[['#','Prof (m)','Note']];
-  const body=[];for(let f=1;f<=nFile;f++){for(let i=1;i<=nFori;i++){body.push(isFoc?[i,'','','','']:[(nFile>1?('F'+f+'.'):'')+i,'','']);}}
+  // tabella: perforazione = #,Prof,Spalla,Interasse,Incl + 4 colonne libere (niente Note)
+  let head,body,colStyles;
+  if(isFoc){
+    head=[['#','Esplosivo 1','Esplosivo 2','Innesco','','','']];
+    colStyles={0:{cellWidth:10,halign:'center'}};
+  }else{
+    head=[['#','Prof','Spalla','Inter.','Incl','','','','']];
+    colStyles={0:{cellWidth:10,halign:'center'},1:{cellWidth:14,halign:'center'},2:{cellWidth:16},3:{cellWidth:16},4:{cellWidth:14}};
+  }
+  body=[];
+  for(let f=1;f<=nFile;f++)for(let i=1;i<=nFori;i++){
+    const lbl=(nFile>1?('F'+f+'.'):'')+i;
+    body.push(isFoc?[lbl,'','','','','','']:[lbl,'','','','','','','','']);
+  }
   d.autoTable({startY:y,head,body,theme:'grid',
-    headStyles:{fillColor:isFoc?[239,83,80]:[255,171,0],textColor:isFoc?[255,255,255]:[20,16,8],fontStyle:'bold',fontSize:8},
-    bodyStyles:{minCellHeight:7,fontSize:8,textColor:[60,60,60]},
-    styles:{lineColor:[200,200,200],lineWidth:0.2},margin:{left:14,right:14}});
-  let yf=d.lastAutoTable.finalY+8;if(yf<250){d.setFont('helvetica','bold');d.setFontSize(10);d.text('Note / Osservazioni:',14,yf);d.setDrawColor(180,180,180);for(let i=0;i<3;i++){d.line(14,yf+7+i*7,196,yf+7+i*7);}}
-  // footer
-  d.setDrawColor(220,210,180);d.line(14,286,196,286);
-  d.setTextColor(150,130,80);d.setFont('helvetica','italic');d.setFontSize(8);d.text('Deepwork per Cofa Mineraria',14,291);
-  d.setTextColor(160,160,160);d.setFont('helvetica','normal');d.text('Rapportino vuoto da compilare',196,291,{align:'right'});
-  d.save('Rapportino_vuoto_'+(isFoc?'fochino':'perforazione')+'.pdf');
-  toast('PDF vuoto generato','success');
+    headStyles:{fillColor:isFoc?[239,83,80]:[255,171,0],textColor:isFoc?[255,255,255]:[20,16,8],fontStyle:'bold',fontSize:8,halign:'center'},
+    bodyStyles:{minCellHeight:5.6,fontSize:8,textColor:[60,60,60]},  // ~40 righe/pagina (≥30 fori)
+    columnStyles:colStyles,
+    styles:{lineColor:[200,200,200],lineWidth:0.2,cellPadding:1},margin:{left:14,right:14,top:24}});
+  let yf=d.lastAutoTable.finalY+6;
+  if(yf<252){d.setFont('helvetica','bold');d.setFontSize(9);d.setTextColor(40,40,40);d.text('Note / Osservazioni:',14,yf);d.setDrawColor(180,180,180);for(let i=0;i<3&&yf+6+i*6<284;i++){d.line(14,yf+5+i*6,196,yf+5+i*6);}}
+  // footer su ogni pagina
+  const pages=d.internal.getNumberOfPages();
+  for(let p=1;p<=pages;p++){d.setPage(p);d.setDrawColor(220,210,180);d.line(14,288,196,288);d.setTextColor(150,130,80);d.setFont('helvetica','italic');d.setFontSize(8);d.text('Deepwork per Cofa Mineraria',14,292);d.setTextColor(160,160,160);d.setFont('helvetica','normal');d.text('pag. '+p+'/'+pages,196,292,{align:'right'});}
+  d.save('Modulo_rapportino_'+(isFoc?'fochino':'perforazione')+'.pdf');
+  toast('Modulo PDF generato','success');
 }
 
 // ── MODAL ──
@@ -1238,8 +1260,13 @@ function openModal(title,body,buttons){
   $('modal-title').textContent=title;$('modal-body').innerHTML=body;$('modal-foot').innerHTML='';
   (buttons||[]).forEach(b=>{const el=document.createElement('button');el.className=b.cls||'mbtn';el.textContent=b.label;el.onclick=b.action;$('modal-foot').appendChild(el);});
   $('modal').classList.add('show');
+  document.body.classList.add('modal-open'); // blocca lo scroll del fondo
+  // autofocus sul primo campo (comodità: si scrive subito) — non su mobile per non aprire la tastiera a sorpresa
+  if(!('ontouchstart' in window)){const f=$('modal-body').querySelector('input,select,textarea');if(f)setTimeout(()=>{try{f.focus();}catch(e){}},60);}
 }
-function closeModal(){ $('modal').classList.remove('show'); }
+function closeModal(){ $('modal').classList.remove('show');document.body.classList.remove('modal-open'); }
+// Esc chiude il modale (comodità desktop/tastiera)
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const md=document.getElementById('modal');if(md&&md.classList.contains('show'))closeModal();}});
 
 // ══════════ RAPPORTINO OPERATORE (B5 + B8) ══════════
 function initRapp(){
@@ -1633,6 +1660,9 @@ function apriCava(id){
       ${c.tel?`<div class="preview-row"><span class="preview-lab">Telefono</span><span class="preview-val"><a href="tel:${c.tel.replace(/\s/g,'')}" style="color:var(--amber);">${c.tel}</a></span></div>`:''}
       <div class="preview-row"><span class="preview-lab">GPS</span><span class="preview-val">${c.lat?c.lat.toFixed(4)+', '+c.lon.toFixed(4):'—'}</span></div>
     </div>
+    <div class="tile" style="background:linear-gradient(135deg,#26a69a,#00695c);color:#fff;border:none;margin:12px 0;" onclick="apriGemello('${id}')">
+      <div class="ti">🧬</div><div class="tt">GEMELLO DIGITALE</div><div class="td">Storico e evoluzione della cava</div>
+    </div>
     <div class="sec-title" style="margin-top:14px;"><span class="dot"></span>Operatori assegnati</div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">${operatoriHtml}</div>
     <div class="sec-title"><span class="dot"></span>Volate previste oggi</div>
@@ -1652,6 +1682,42 @@ function apriCava(id){
     ${can('delCava')?`<button class="btn-sv" style="margin-top:16px;background:linear-gradient(135deg,#ef5350,#c62828);" onclick="confermaDelCava('${id}')">ELIMINA CAVA</button>`:''}
   `;
   nav('cava-det');
+}
+// v3.9 — Gemello digitale della cava: KPI + timeline unificata (volate, rapportini perf/foch, foto)
+function apriGemello(id){
+  const c=DB.cave.find(x=>x.id===id);if(!c)return;
+  const rp=DB.rapportini.filter(r=>r.cavaId===id);
+  const rf=DB.rapportiniFoc.filter(r=>r.cavaId===id);
+  const vol=DB.volate.filter(v=>v.cavaId===id);
+  const totMc=rp.reduce((s,r)=>s+(r.mc||0),0);
+  const totFori=rp.reduce((s,r)=>s+(r.fori||0),0);
+  const totKg=rf.reduce((s,r)=>s+(r.tot_kg||0),0);
+  // eventi unificati
+  const ev=[];
+  vol.forEach(v=>ev.push({d:v.data,ic:'📐',col:'#ff8f00',t:`Progetto ${v.nomeProgetto||'Volata #'+v.numero}`,s:`${v.tot_fori||0} fori · ${v.tot_mc||0} mc`,go:`apriEditorCava('${v.id}')`}));
+  rp.forEach(r=>{const u=DB.users.find(x=>x.id===r.userId);ev.push({d:r.data,ic:'📋',col:'#42a5f5',t:'Rapportino perforazione',s:`${(u?u.nome+' '+u.cognome:'—')} · ${r.fori||0} fori · ${(r.mc||0).toFixed(1)} mc`,go:`apriRapport('${r.id}')`});});
+  rf.forEach(r=>{const u=DB.users.find(x=>x.id===r.userId);ev.push({d:r.data,ic:'💥',col:'#ef5350',t:'Volata (fochino)',s:`${(u?u.nome+' '+u.cognome:'—')} · ${r.fori||0} fori · ${(r.tot_kg||0).toFixed(1)} kg`,go:`apriRappFocDett('${r.id}')`});});
+  ev.sort((a,b)=>(b.d||'').localeCompare(a.d||''));
+  // mc per mese (ultimi 6) riuso pattern
+  const oggi=new Date();const mesi=[];
+  for(let i=5;i>=0;i--){const dd=new Date(oggi.getFullYear(),oggi.getMonth()-i,1);mesi.push({k:dd.toISOString().slice(0,7),l:dd.toLocaleDateString('it',{month:'short'}),mc:0});}
+  rp.forEach(r=>{const mm=mesi.find(x=>x.k===(r.data||'').slice(0,7));if(mm)mm.mc+=(r.mc||0);});
+  const maxMc=Math.max(...mesi.map(m=>m.mc),1);
+  const ultima=ev[0]?fmt(ev[0].d):'—';
+  $('gemello-body').innerHTML=`
+    <div class="sec-title"><span class="dot" style="background:#26a69a;"></span>${c.nome}</div>
+    <div class="kpi-grid">
+      <div class="kpi-card" style="border-top-color:#26a69a;"><div class="kpi-lbl">Volate progettate</div><div class="kpi-val">${vol.length}</div></div>
+      <div class="kpi-card" style="border-top-color:#42a5f5;"><div class="kpi-lbl">Mc estratti</div><div class="kpi-val">${totMc.toFixed(0)}</div><div class="kpi-sub">${totFori} fori</div></div>
+      <div class="kpi-card" style="border-top-color:#ef5350;"><div class="kpi-lbl">Esplosivo</div><div class="kpi-val">${totKg.toFixed(0)}</div><div class="kpi-sub">kg · ${rf.length} volate</div></div>
+      <div class="kpi-card"><div class="kpi-lbl">Ultima attività</div><div class="kpi-val" style="font-size:18px;">${ultima}</div></div>
+    </div>
+    <div class="sec-title" style="margin-top:14px;"><span class="dot"></span>Produzione · ultimi 6 mesi</div>
+    <div class="chart-wrap"><div class="chart-bars">${mesi.map(m=>`<div class="chart-col"><div class="chart-bar" style="height:${(m.mc/maxMc*100)}%" data-val="${m.mc.toFixed(0)} mc"></div><div class="chart-label">${m.l}</div></div>`).join('')}</div></div>
+    <div class="sec-title" style="margin-top:14px;"><span class="dot"></span>Cronologia (${ev.length})</div>
+    ${ev.length?ev.map(e=>`<div class="sitem" onclick="${e.go}"><div class="av" style="background:${e.col};color:#fff;">${e.ic}</div><div class="sinfo"><div class="sname">${e.t}</div><div class="ssub">${fmt(e.d)} · ${e.s}</div></div><div class="sarr">›</div></div>`).join(''):'<div class="empty-state"><div class="empty-sub">Nessuna attività registrata</div></div>'}
+  `;
+  nav('gemello');
 }
 function uploadCavaFoto(id){uploadPhoto('cave','foto',id,async data=>{await fbUpdate('cave',id,{foto:data});apriCava(id);toast('Foto aggiornata','success');});}
 function apriRapport(id){
@@ -2378,6 +2444,16 @@ function calcAction(btn){
   }
   disp.textContent=s.display.length>10?parseFloat(s.display).toExponential(4):s.display;
 }
+// Calcolo mc abbattuti (Ufficio/Admin)
+function calcMcUfficio(){
+  const h=parseNum($('umc-h')?.value),b=parseNum($('umc-b')?.value),s=parseNum($('umc-s')?.value),n=parseNum($('umc-n')?.value),k=parseNum($('umc-k')?.value)||0.9;
+  if(!h||!b||!s||!n){if($('umc-out'))$('umc-out').style.display='none';return;}
+  const mc=h*b*s*n*k;
+  $('umc-tot').textContent=mc.toFixed(1);
+  $('umc-foro').textContent=(mc/n).toFixed(1);
+  $('umc-m').textContent=(h*n).toFixed(1);
+  $('umc-out').style.display='grid';
+}
 function _calcCompute(a,b,op){
   if(op==='+')return a+b;if(op==='-')return a-b;if(op==='*')return a*b;
   if(op==='/')return b!==0?a/b:0;return b;
@@ -2415,7 +2491,7 @@ function renderSysInfo(){
     </div>
     <div class="preview-sec" style="margin-top:14px;">
       <div class="preview-head">App</div>
-      <div class="preview-row"><span class="preview-lab">Versione</span><span class="preview-val">v3.8</span></div>
+      <div class="preview-row"><span class="preview-lab">Versione</span><span class="preview-val">v4.2</span></div>
       <div class="preview-row"><span class="preview-lab">Service Worker</span><span class="preview-val">${swStatus}</span></div>
       <div class="preview-row"><span class="preview-lab">PWA installabile</span><span class="preview-val">${$('btn-install-pwa')?.style.display!=='none'?'sì':'no/già installata'}</span></div>
       <div class="preview-row"><span class="preview-lab">Outdoor mode</span><span class="preview-val">${DB.settings.outdoor?'attivo':'disattivato'}</span></div>
@@ -2516,6 +2592,14 @@ function renderMessaggi(){
   const list=[...partners.values()].sort((a,b)=>{const la=a.msgs[a.msgs.length-1].ts||0,lb=b.msgs[b.msgs.length-1].ts||0;return lb-la;});
   const noChat=DB.users.filter(u=>u.id!==me&&u.attivo&&!partners.has(u.id));
   let html='';
+  // Notifiche di sistema (progetti volata ricevuti) — separate dalle chat
+  const sys=DB.messaggi.filter(m=>m.toId===me&&m.volataId).sort((a,b)=>(b.ts||0)-(a.ts||0));
+  if(sys.length){
+    const nNuovi=sys.filter(m=>!m.letto).length;
+    html+=`<div class="sec-title"><span class="dot" style="background:var(--danger);"></span>🔔 Notifiche di sistema ${nNuovi>0?`<span class="scad-badge danger">${nNuovi}</span>`:''}</div>`;
+    html+=sys.slice(0,8).map(m=>{const u=DB.users.find(x=>x.id===m.fromId);const vv=DB.volate.find(x=>x.id===m.volataId);return`<div class="sitem ${m.letto?'':'warn'}" onclick="openVolataReadonly('${m.volataId}')"><div class="av av-am">📐</div><div class="sinfo"><div class="sname">${vv?(vv.nomeProgetto||'Volata #'+vv.numero):'Progetto volata'}</div><div class="ssub">da ${u?u.nome+' '+u.cognome:'—'}</div></div><div class="sarr">›</div></div>`;}).join('');
+    html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Conversazioni</div>';
+  }
   if(list.length)html+=list.map(p=>{const u=DB.users.find(x=>x.id===p.id);if(!u)return'';const last=p.msgs[p.msgs.length-1];return`<div class="sitem ${p.unread>0?'warn':''}" onclick="apriChat('${u.id}')"><div class="photo-avatar-sm">${u.foto?`<img src="${u.foto}">`:`<span style="font-size:11px;font-weight:800;color:var(--amber);">${initials(u.nome,u.cognome)}</span>`}</div><div class="sinfo"><div class="sname">${u.nome} ${u.cognome} ${p.unread>0?`<span class="scad-badge danger">${p.unread}</span>`:''}</div><div class="ssub">${(last.testo||'').substr(0,50)}</div></div><div class="sarr">›</div></div>`;}).join('');
   if(noChat.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Nuova conversazione</div>';html+=noChat.map(u=>`<div class="sitem" onclick="apriChat('${u.id}')"><div class="photo-avatar-sm">${u.foto?`<img src="${u.foto}">`:`<span style="font-size:11px;font-weight:800;color:var(--amber);">${initials(u.nome,u.cognome)}</span>`}</div><div class="sinfo"><div class="sname">${u.nome} ${u.cognome}</div><div class="ssub">${u.ruolo}</div></div><div class="sarr">›</div></div>`).join('');}
   if(!html)html='<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">Nessun utente</div></div>';
@@ -2528,8 +2612,12 @@ function renderChat(){
   const msgs=DB.messaggi.filter(m=>(m.fromId===me&&m.toId===other.id)||(m.fromId===other.id&&m.toId===me)).sort((a,b)=>(a.ts||0)-(b.ts||0));
   msgs.forEach(async m=>{if(m.toId===me&&!m.letto){m.letto=true;await fbUpdate('messaggi',m.id,{letto:true});}});
   $('chat-msgs').innerHTML=msgs.map(m=>{const d=new Date(m.ts||0);const t=d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
-    if(m.volataId){const vv=DB.volate.find(x=>x.id===m.volataId);return`<div class="chat-bubble ${m.fromId===me?'me':'other'}"><div onclick="openVolataReadonly('${m.volataId}')" style="cursor:pointer;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:8px;display:flex;align-items:center;gap:8px;"><span style="font-size:20px;">📐</span><span><b>${vv?(vv.nomeProgetto||'Volata #'+vv.numero):'Progetto volata'}</b><br><span style="font-size:11px;opacity:.8;">Tocca per visualizzare</span></span></div><div class="chat-meta">${t}</div></div>`;}
-    return`<div class="chat-bubble ${m.fromId===me?'me':'other'}">${m.testo}<div class="chat-meta">${t}</div></div>`;}).join('');
+    const mine=m.fromId===me;
+    const tick=mine?` <span style="opacity:.9;">${m.letto?'<span style="color:#4fc3f7;">✓✓</span>':'✓'}</span>`:''; // ✓ consegnato · ✓✓ letto
+    const meta=`<div class="chat-meta">${t}${tick}</div>`;
+    if(m.volataId){const vv=DB.volate.find(x=>x.id===m.volataId);return`<div class="chat-bubble ${mine?'me':'other'}"><div onclick="openVolataReadonly('${m.volataId}')" style="cursor:pointer;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:8px;display:flex;align-items:center;gap:8px;"><span style="font-size:20px;">📐</span><span><b>${vv?(vv.nomeProgetto||'Volata #'+vv.numero):'Progetto volata'}</b><br><span style="font-size:11px;opacity:.8;">Tocca per visualizzare</span></span></div>${meta}</div>`;}
+    if(m.foto){return`<div class="chat-bubble ${mine?'me':'other'}"><img src="${m.foto}" style="max-width:180px;border-radius:6px;display:block;cursor:pointer;" onclick="window.open('${m.foto}','_blank')">${meta}</div>`;}
+    return`<div class="chat-bubble ${mine?'me':'other'}">${m.testo}${meta}</div>`;}).join('');
   setTimeout(()=>{$('chat-msgs').scrollTop=$('chat-msgs').scrollHeight;},50);
 }
 async function inviaMessaggio(e){
@@ -2539,6 +2627,15 @@ async function inviaMessaggio(e){
     const id=genId();await fbSet('messaggi',id,{id,fromId:state.user.id,toId:state.chatWith,testo:t,ts:Date.now(),letto:false});
     $('chat-in').value='';
   });
+}
+// Invio foto in chat
+function inviaFotoChat(ev){
+  const f=ev.target.files&&ev.target.files[0];if(!f||!state.chatWith)return;
+  compressImage(f,900,0.8).then(async data=>{
+    const id=genId();await fbSet('messaggi',id,{id,fromId:state.user.id,toId:state.chatWith,testo:'📷 Foto',foto:data,ts:Date.now(),letto:false});
+    toast('Foto inviata','success');
+  }).catch(()=>toast('Errore foto','err'));
+  ev.target.value='';
 }
 
 // v3.4.7.5 — Condivisione progetto volata in chat
@@ -2941,32 +3038,38 @@ function exportRapportinoPDF(r){
   d.setDrawColor(255,171,0);d.setLineWidth(0.4);d.line(14,y,196,y);y+=4;
   d.setFont('helvetica','bold');d.setFontSize(10);d.text('PARAMETRI TECNICI',14,y);y+=6;
   d.setFontSize(10);
+  const oraTxt=(r.oi||r.of)?((r.oi||'—')+' → '+(r.of||'—')):null;
   d.setFont('helvetica','bold');d.text('Diametro:',14,y);d.setFont('helvetica','normal');d.text((r.diametro||'—')+' mm',45,y);
   d.setFont('helvetica','bold');d.text('Maglia:',75,y);d.setFont('helvetica','normal');d.text((r.maglia||'—')+' m',95,y);
-  d.setFont('helvetica','bold');d.text('Burden:',125,y);d.setFont('helvetica','normal');d.text((r.maglia_B||'—')+' m',145,y);
-  d.setFont('helvetica','bold');d.text('Spaz.:',170,y);d.setFont('helvetica','normal');d.text((r.maglia_S||'—')+' m',187,y);
-  y+=8;
-  // Tabella fori
+  d.setFont('helvetica','bold');d.text('Spalla:',125,y);d.setFont('helvetica','normal');d.text((r.maglia_B||'—')+' m',147,y);
+  d.setFont('helvetica','bold');d.text('Interasse:',168,y);d.setFont('helvetica','normal');d.text((r.maglia_S||'—')+' m',190,y);
+  y+=6;
+  if(oraTxt){d.setFont('helvetica','bold');d.text('Orario giornata:',14,y);d.setFont('helvetica','normal');d.text(oraTxt,55,y);y+=6;}
+  y+=2;
+  // Tabella fori (senza orari per foro; con fila)
   if(r.fori_dettaglio&&r.fori_dettaglio.length){
     d.autoTable({
       startY:y,
-      head:[['#','Profondità (m)','Ora inizio','Ora fine']],
-      body:r.fori_dettaglio.map((f,i)=>[i+1,(f.prof||'').toString().replace('.',','),f.oi||'—',f.of||'—']),
+      head:[['#','Profondità (m)','Fila']],
+      body:r.fori_dettaglio.map((f,i)=>[i+1,(f.prof||'').toString().replace('.',','),f.fila||1]),
       theme:'grid',
       headStyles:{fillColor:[255,171,0],textColor:[28,22,8],fontStyle:'bold',fontSize:9},
-      styles:{fontSize:9,cellPadding:2},
-      columnStyles:{0:{cellWidth:14,halign:'center'},1:{cellWidth:50,halign:'right'},2:{cellWidth:40,halign:'center'},3:{cellWidth:40,halign:'center'}},
-      margin:{left:14}
+      bodyStyles:{minCellHeight:5.6},
+      styles:{fontSize:9,cellPadding:1.5},
+      columnStyles:{0:{cellWidth:16,halign:'center'},1:{cellWidth:60,halign:'right'},2:{cellWidth:24,halign:'center'}},
+      margin:{left:14,right:14}
     });
     y=d.lastAutoTable.finalY+6;
   }
-  // Totali
+  // Totali (con MEDIA FORO)
   d.setDrawColor(255,171,0);d.setLineWidth(0.4);d.line(14,y,196,y);y+=4;
   d.setFont('helvetica','bold');d.setFontSize(10);d.text('TOTALI',14,y);y+=6;
-  d.setFontSize(11);
-  d.setFont('helvetica','bold');d.text('Fori validi:',14,y);d.setFont('helvetica','normal');d.text(String(r.fori||0),45,y);
-  d.setFont('helvetica','bold');d.text('Metri totali:',75,y);d.setFont('helvetica','normal');d.text(String((r.metri||0).toFixed(1)).replace('.',','),105,y);
-  d.setFont('helvetica','bold');d.text('Mc in ballo:',135,y);d.setFont('helvetica','normal');d.text(String((r.mc||0).toFixed(1)).replace('.',','),165,y);
+  d.setFontSize(10);
+  const media=r.media_prof||(r.fori?((r.metri||0)/r.fori):0);
+  d.setFont('helvetica','bold');d.text('Fori:',14,y);d.setFont('helvetica','normal');d.text(String(r.fori||0),32,y);
+  d.setFont('helvetica','bold');d.text('Metri:',55,y);d.setFont('helvetica','normal');d.text(String((r.metri||0).toFixed(1)).replace('.',','),78,y);
+  d.setFont('helvetica','bold');d.text('Media foro:',105,y);d.setFont('helvetica','normal');d.text(Number(media).toFixed(2).replace('.',',')+' m',138,y);
+  d.setFont('helvetica','bold');d.text('Mc:',170,y);d.setFont('helvetica','normal');d.text(String((r.mc||0).toFixed(1)).replace('.',','),182,y);
   y+=10;
   // Note
   if(r.note){
@@ -3060,8 +3163,8 @@ function exportLastRapportinoPDF(){
 }
 
 // ══════════ EXPORT EXCEL MENSILE (D3) ══════════
-function exportRapportiniXLSX(){
-  if(!window.XLSX){toast('Libreria XLSX non caricata','err');return;}
+async function exportRapportiniXLSX(){
+  if(!window.XLSX){toast('Preparazione Excel…','info');try{await _loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');}catch(e){toast('Impossibile caricare Excel (serve connessione)','err');return;}}
   // Apri modale per scegliere il periodo
   const oggi=new Date();
   const mese=oggi.toISOString().slice(0,7);
@@ -3385,6 +3488,41 @@ function build3DGalleria(v,wrap,THREE){
   _three={renderer,running:false,cyls:[],debris:[],cylAct:[],stop:()=>cancelAnimationFrame(raf)};
 }
 
+// ════════ v4.0 — VISUALIZZATORE GAUSSIAN SPLATTING (3D fotorealistico) ════════
+let _splat=null,_splatUrl=null;
+function splatPick(ev){
+  const f=ev.target.files&&ev.target.files[0];if(!f)return;
+  if(_splatUrl)URL.revokeObjectURL(_splatUrl);
+  _splatUrl=URL.createObjectURL(f);
+  splatBuild(f.name);
+  ev.target.value='';
+}
+async function splatBuild(fname){
+  const wrap=$('sp-wrap');wrap.style.display='block';$('sp-note').textContent='Caricamento motore 3D fotorealistico…';
+  let GS,THREE;
+  try{
+    GS=await import('@mkkellogg/gaussian-splats-3d');
+    THREE=await import('three');
+  }catch(e){$('sp-note').textContent='Motore non disponibile (serve connessione internet al primo uso): '+e.message;return;}
+  // chiudi viewer precedente
+  if(_splat){try{_splat.dispose();}catch(e){}wrap.innerHTML='';}
+  const fmt=/\.ply$/i.test(fname)?GS.SceneFormat.Ply:(/\.ksplat$/i.test(fname)?GS.SceneFormat.KSplat:GS.SceneFormat.Splat);
+  try{
+    const viewer=new GS.Viewer({rootElement:wrap,sharedMemoryForWorkers:false,useBuiltInControls:true,cameraUp:[0,-1,0],initialCameraPosition:[0,0,5],initialCameraLookAt:[0,0,0]});
+    _splat=viewer;
+    $('sp-note').textContent='Elaborazione del modello…';
+    await viewer.addSplatScene(_splatUrl,{format:fmt,showLoadingUI:true});
+    viewer.start();
+    $('sp-note').textContent='✅ Modello fotorealistico caricato. Trascina per orientare, pizzica per zoom.';
+  }catch(e){$('sp-note').textContent='Impossibile aprire il file: '+e.message+'. Assicurati sia un Gaussian Splat valido (.ply/.splat).';}
+}
+function splatExit(){
+  if(_splat){try{_splat.dispose();}catch(e){}_splat=null;}
+  if(_splatUrl){URL.revokeObjectURL(_splatUrl);_splatUrl=null;}
+  if($('sp-wrap')){$('sp-wrap').innerHTML='';$('sp-wrap').style.display='none';}
+  goBack();
+}
+
 // ════════ v3.6 — RICOSTRUZIONE 3D DA FOTO (depth-from-shading) ════════
 let _reconImg=null,_reconImgs=[],_recon=null;
 function reconPickPhoto(ev){
@@ -3530,19 +3668,23 @@ function simulate3D(){
   const orderOf={};ord.forEach((h,k)=>orderOf[h.i]=k);
   const rest0=-T.wallH;
   let maxF=0;
-  const addChunk=(px,py,pz,aF,hf,scl)=>{
+  // PBD-style: impulso radiale dal foro verso la faccia libera, scalato dalla carica (powder factor)
+  const addChunk=(px,py,pz,aF,hf,scl,power,ox,oz)=>{
+    power=power||1;
     const m=new THREE.Mesh(T.rockGeo,T.rockMats[(Math.random()*T.rockMats.length)|0]);
     const s=scl*(0.6+Math.random()*0.9);
     m.scale.set(s*(0.7+Math.random()*0.6),s*(0.7+Math.random()*0.6),s*(0.7+Math.random()*0.6));
     m.position.set(px,py,pz);m.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3);
     m.visible=false;T.scene.add(m);
-    const vz=-(0.10+Math.random()*0.40*(0.35+hf));   // proiezione verso la faccia libera
-    const throwN=Math.min(1,-vz/0.5);
-    const rest=rest0+(0.2+Math.random()*1.9)*(1-throwN*0.65); // muckpile: chi vola meno fa cumulo più alto
-    T.debris.push({mesh:m,done:false,actF:aF,rest,
-      vx:(Math.random()-0.5)*0.14,
-      vy:0.05+Math.random()*0.16*(0.4+hf),           // sollevamento: più in alto vola di più
-      vz,
+    // direzione: radiale dal centro foro + forte bias verso la faccia libera (-z)
+    let dx=px-(ox==null?px:ox), dz=pz-(oz==null?pz:oz);const dl=Math.hypot(dx,dz)||1;dx/=dl;dz/=dl;
+    const burst=(0.12+Math.random()*0.30)*power;
+    const vz=(-0.9+dz*0.3)*burst;                    // proiezione verso la faccia libera ∝ carica
+    const vx=(dx*0.35+(Math.random()-0.5)*0.25)*burst;
+    const vy=(0.05+Math.random()*0.16*(0.4+hf))*power; // sollevamento ∝ carica
+    const throwN=Math.min(1,Math.abs(vz)/0.5);
+    const rest=rest0+(0.2+Math.random()*1.9)*(1-throwN*0.6); // muckpile: chi vola meno fa cumulo più alto
+    T.debris.push({mesh:m,done:false,actF:aF,rest,vx,vy,vz,
       rx:(Math.random()-0.5)*0.22,ry:(Math.random()-0.5)*0.22,rz:(Math.random()-0.5)*0.22});
   };
   fori.forEach(h=>{
@@ -3550,16 +3692,17 @@ function simulate3D(){
     maxF=Math.max(maxF,aF);
     T.cylAct[h.i]=aF;
     const cz=T.crestZAt(h.x), prof=h.prof;
-    // volume di abbattimento del foro: larghezza interasse, altezza prof, profondità spalla(Borr)
+    // powder factor: carica reale per foro → più carica = più lancio (0.6..1.6)
+    const kg=parseNum0(T.fori[h.i]&&T.fori[h.i].kg)||0;
+    const power=kg>0?Math.min(1.6,0.55+kg/120):1.0;
     const nx=3, ny=Math.max(4,Math.ceil(prof/1.3)), nz=2;
     for(let ix=0;ix<nx;ix++)for(let iy=0;iy<ny;iy++)for(let iz=0;iz<nz;iz++){
       const px=h.x+(ix/(nx-1||1)-0.5)*T.Spaz*0.95;
       const py=-(iy+0.5)/ny*prof;
       const pz=cz - iz/(nz)*T.Borr + (Math.random()-0.5)*0.3;
-      addChunk(px,py,pz,aF+Math.random()*5,(-py)/T.wallH,0.7);
+      addChunk(px,py,pz,aF+Math.random()*5,(-py)/T.wallH,0.7,power,h.x,cz);
     }
-    // un po' di soffitto dietro il foro che cede
-    for(let k=0;k<4;k++)addChunk(h.x+(Math.random()-0.5)*T.Spaz,0,cz+Math.random()*T.Borr,aF+Math.random()*6,0.05,0.6);
+    for(let k=0;k<4;k++)addChunk(h.x+(Math.random()-0.5)*T.Spaz,0,cz+Math.random()*T.Borr,aF+Math.random()*6,0.05,0.6,power*0.8,h.x,cz);
   });
   T.totalF=maxF+200; // durata totale per la dissolvenza del fronte
   T.fr=0;T.running=true;
@@ -4202,6 +4345,7 @@ function renderEditorSide(){
           <input type="text" inputmode="decimal" class="finput" style="flex:1;" placeholder="es. 80, 120kg, 2 cartucce..." value="${f.kg||''}" oninput="aggiornaForo(${idx},'kg',this.value)">
           <button class="chg" onclick="applicaATutti('kg',this.previousElementSibling.value)" title="Applica a tutti" style="padding:0 8px;font-size:16px;min-height:var(--tap);">⟳</button>
         </div>
+        <div id="foro-pf" style="margin-top:5px;font-size:12px;font-weight:700;"></div>
       </div>
 
       <!-- Innesco e ritardo -->
@@ -4242,6 +4386,7 @@ function renderEditorSide(){
         <button class="btn-danger" style="padding:8px;" onclick="eliminaForo(${idx})">🗑️ Elimina</button>
       </div>
     `;
+    setTimeout(()=>updateForoPF(v,idx),0);
     return;
   }
 
@@ -5390,6 +5535,22 @@ function aggiornaForo(idx,campo,valore){
   ricalcolaTotaliVolata(v);
   renderEditorCanvas();
   _aggiornaEcStats(v);
+  updateForoPF(v,idx);
+}
+// Powder factor real-time del foro selezionato (kg/m³) con semaforo di sicurezza
+function updateForoPF(v,idx){
+  const el=$('foro-pf');if(!el||!v.fori[idx])return;
+  const f=v.fori[idx];
+  const kg=parseFloat(String(f.kg||'').replace(/[^\d.,]/g,'').replace(',','.'))||0;
+  const prof=parseNum0(f.prof)||0, B=getBorraggio(v), S=getSpaziatura(v);
+  const vol=B*S*prof*0.9;
+  if(kg<=0||vol<=0){el.textContent='';return;}
+  const pf=kg/vol;
+  let col='#66bb6a',txt='ottimale';
+  if(pf<0.4){col='#ffa726';txt='basso → rischio blocchi';}
+  else if(pf>1.3){col='#ef5350';txt='alto → rischio ejecta/proiezioni';}
+  el.style.color=col;
+  el.textContent=`Powder factor: ${pf.toFixed(2)} kg/m³ · ${txt}`;
 }
 
 function aggiornaVolata(path, valore){
@@ -5876,7 +6037,7 @@ async function renderAuditLog(){
 Object.assign(window, {
   doLogin,showForgot,confirmLogout,doLogout,nav,goBack,
   openNotifiche,openPromemoriaForm,confermaElimPromemoria,
-  apriCava,uploadCavaFoto,apriRapport,openCavaForm,openCavaEdit,salvaCava,confermaDelCava,
+  apriCava,apriGemello,uploadCavaFoto,apriRapport,openCavaForm,openCavaEdit,salvaCava,confermaDelCava,
   filtraVolate,renderVolate,toggleFiltri,applicaFiltriVolate,resetFiltriVolate,
   openVolate,openStorico,apriRappFocDett,
   rapportinoVuoto,generaRappVuotoPDF,
@@ -5890,12 +6051,12 @@ Object.assign(window, {
   renderPersonale,apriPersDet,uploadPersFoto,openPersForm,openPersEdit,salvaPers,
   renderUtenti,uploadUserFoto,openUserForm,openUserEdit,salvaUser,
   initImp,impTab,salvaProfilo,salvaSettingsApp,
-  uffTab,calcEspU,calcMagU,calcMcU,
+  uffTab,calcEspU,calcMagU,calcMcU,calcMcUfficio,
   calcAction,
   dashSetPeriodo,dashSetFiltro,dashApriCava,dashApriOperatore,
   initAdmin,admTab,apriCalcAdmin,
   globalSearch,
-  renderMessaggi,apriChat,renderChat,inviaMessaggio,
+  renderMessaggi,apriChat,renderChat,inviaMessaggio,inviaFotoChat,
   renderContatti,openContactForm,
   closeModal,openModal,
   addFori,removeFori,setFori,addFori2,removeFori2,setFori2,
@@ -5908,6 +6069,7 @@ Object.assign(window, {
   addFocFori,removeFocFori,setFocForo,
   allegaVolataFochino,selezionaVolataFoc,rimuoviVolataFoc,
   focCalcEsp,focCalcMc,focCalcInc,calcKonya,calcPPV,calcKuzRam,open3DVolata,setInclTutti,simulate3D,simReset,reconPickPhoto,reconBuild,reconSnapshot,reconCalibra,reconToggleHoles,reconClearHoles,
+  splatPick,splatBuild,splatExit,
   renderMenu,toggleOutdoor,
   renderClienti,apriCliente,openClienteForm,openClienteEdit,salvaCliente,confermaDelCliente,
   renderDashboard,exportRapportinoPDF,exportRapportinoFocPDF,exportLastRapportinoPDF,exportRapportiniXLSX,exportRapportiniMeseCorrentePDF,
@@ -5956,7 +6118,7 @@ document.addEventListener('DOMContentLoaded', () => {
 :root{
   --bg:#100d07;--dark:#14100a;--panel:#18140a;--card:#221c0e;--card2:#2a2210;
   --border:#332a14;--border2:#3d3318;
-  --text:#f0e8d8;--muted:#6b5a30;--muted2:#8a7440;
+  --text:#f0e8d8;--muted:#9b8a60;--muted2:#b8a574;
   --amber:#ffab00;--orange:#ff6d00;--amber2:#ffd54f;
   --success:#66bb6a;--danger:#ef5350;--info:#42a5f5;--warn:#ffa726;
   --grad:linear-gradient(135deg,#ffab00,#ff6d00);
@@ -6522,6 +6684,156 @@ select.finput,select.fi{font-size:16px;}
 /* Evita che il contenuto sc dell'editor-cava venga tagliato (ha solo ec-side, non sc) */
 #screen-editor-cava{overflow:hidden;}
 #screen-editor-cava .ec-side{min-height:200px;max-height:calc(100dvh - 320px);overflow-y:auto;}
+
+/* ════════ v4.0 — RIFINITURA ESTETICA (ombre, raggi, micro-interazioni) ════════ */
+:root{--r:12px;--r-sm:8px;--ease:cubic-bezier(.2,.7,.3,1);}
+*{transition-timing-function:var(--ease);}
+::selection{background:rgba(255,171,0,.3);}
+/* Tile e card: profondità e lift al tocco */
+.tile{border-radius:var(--r);box-shadow:0 2px 8px rgba(0,0,0,.22);transition:transform .18s var(--ease),box-shadow .18s var(--ease),border-color .2s;}
+.tile:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(0,0,0,.32);}
+.tile:active{transform:translateY(-1px) scale(.99);}
+.tile-feat{border-radius:var(--r);box-shadow:0 10px 26px rgba(255,109,0,.30);}
+.tile-feat::after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,rgba(255,255,255,.14),transparent 45%);pointer-events:none;}
+.pcard{border-radius:var(--r);box-shadow:0 2px 8px rgba(0,0,0,.22);transition:transform .18s var(--ease),box-shadow .18s var(--ease);}
+.pcard:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(0,0,0,.32);}
+.pcard:active{transform:scale(.98);}
+/* Liste: scorrimento morbido + ombra */
+.sitem{border-radius:var(--r-sm);box-shadow:0 1px 5px rgba(0,0,0,.18);transition:transform .15s var(--ease),box-shadow .15s,border-color .2s,background .2s;}
+.sitem:hover{transform:translateX(3px);box-shadow:0 6px 16px rgba(0,0,0,.28);}
+.sitem:active{transform:translateX(1px) scale(.995);}
+/* Bottoni: ombra colorata + press */
+.btn-sv,.btn-main{border-radius:var(--r-sm);box-shadow:0 5px 16px rgba(255,109,0,.26);transition:transform .12s var(--ease),box-shadow .2s,opacity .2s;}
+.btn-sv:hover,.btn-main:hover{box-shadow:0 8px 22px rgba(255,109,0,.34);}
+.btn-sv:active,.btn-main:active{transform:translateY(2px);box-shadow:0 2px 8px rgba(255,109,0,.2);}
+.btn-sec{border-radius:var(--r-sm);transition:all .18s var(--ease);}
+.btn-sec:hover{border-color:var(--amber);color:var(--amber);transform:translateY(-1px);}
+.chg{border-radius:7px;transition:all .15s var(--ease);}
+.chg:active{transform:scale(.95);}
+.mbtn{border-radius:var(--r-sm);transition:all .15s var(--ease);}
+.mbtn:active{transform:scale(.97);}
+/* Input: focus ring morbido */
+.finput:focus,.fi:focus,.cinput:focus,.topbar-search-input:focus{box-shadow:0 0 0 3px rgba(255,171,0,.16);}
+/* Card statistiche / KPI / preview / modal */
+.stat,.kpi-card,.preview-sec,.meteo-card{border-radius:var(--r-sm);}
+.stat,.kpi-card{box-shadow:0 1px 6px rgba(0,0,0,.2);}
+.modal-box{border-radius:var(--r);box-shadow:0 20px 60px rgba(0,0,0,.55);}
+/* Topbar / header / bottom-nav: separazione con ombra */
+.topbar,.ph{box-shadow:0 2px 12px rgba(0,0,0,.28);}
+.bnav{box-shadow:0 -4px 18px rgba(0,0,0,.35);}
+.bn{transition:color .2s,transform .15s var(--ease);}
+.bn.active{transform:translateY(-2px);}
+.bn.active svg,.bn.active .bicon{filter:drop-shadow(0 0 6px rgba(255,171,0,.55));}
+/* Avatar e chip: rifinitura */
+.av,.photo-avatar-sm{box-shadow:0 2px 6px rgba(0,0,0,.25);}
+.chip{transition:all .15s var(--ease);}
+/* Toast più morbido */
+.toast{border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.45);}
+/* Scrollbar discreta */
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px;}
+::-webkit-scrollbar-thumb:hover{background:var(--amber);}
+/* Riduci ombre/lift in outdoor (Solar Light resta piatto e ad alto contrasto) */
+body.outdoor-mode .tile,body.outdoor-mode .pcard,body.outdoor-mode .sitem{box-shadow:0 1px 4px rgba(120,90,30,.18);}
+body.outdoor-mode .tile:hover,body.outdoor-mode .pcard:hover{transform:translateY(-2px);}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;}}
+
+/* ════════ v4.1 — DESIGN REFRESH (elevation a superfici + componenti raffinati) ════════ */
+.topbar,.ph{background:linear-gradient(180deg,rgba(30,24,12,.97),rgba(20,16,10,.97))!important;border-bottom:1px solid var(--border);position:relative;}
+.topbar::after,.ph::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:linear-gradient(90deg,transparent,var(--amber),transparent);opacity:.5;}
+.logo-sm{text-shadow:0 0 14px rgba(255,171,0,.35);}
+.ti{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:13px;background:rgba(255,171,0,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);font-size:24px;margin-bottom:9px;}
+.tile-red .ti,.tile-blue .ti,.tile-green .ti,.tile-grey .ti,.tile-brown .ti,.tile-purple .ti,.tile-teal .ti,.tile-feat .ti{background:rgba(255,255,255,.18);}
+.pi{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:14px;background:rgba(255,171,0,.13);font-size:26px;margin-bottom:8px;}
+.tt{font-size:13px;letter-spacing:1.5px;}
+.td{font-size:10.5px;opacity:.9;line-height:1.35;}
+.tile{padding:15px 14px;}
+.sitem:hover{background:var(--card2);}
+.av{border-radius:11px;}
+.photo-avatar-sm{border-radius:11px;}
+.sec-title{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:2.5px;color:var(--muted2);padding-bottom:6px;border-bottom:1px solid var(--border);margin-bottom:10px;}
+.sec-title .dot{box-shadow:0 0 8px var(--amber);}
+.finput,.fi,select.finput,textarea.finput{border-radius:9px;background:var(--card);transition:border-color .18s,box-shadow .18s,background .18s;}
+.finput:hover,.fi:hover{border-color:var(--border2);}
+.cinput{border-radius:7px;}
+.bn{position:relative;}
+.bn.active::before{content:"";position:absolute;top:6px;left:50%;transform:translateX(-50%);width:42px;height:30px;border-radius:10px;background:rgba(255,171,0,.12);z-index:0;}
+.bn>*{position:relative;z-index:1;}
+.kpi-val{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.kpi-card{background:linear-gradient(180deg,var(--card2),var(--card));}
+.stat{background:linear-gradient(180deg,var(--card2),var(--card));}
+.sv{font-size:20px;}
+.modal-box{background:linear-gradient(180deg,var(--panel),var(--dark));}
+.meteo-card{background:linear-gradient(135deg,var(--card2),var(--card));}
+.meteo-temp{text-shadow:0 0 18px rgba(255,171,0,.25);}
+.empty-icon{opacity:.5;}
+.chg{background:var(--card);}
+.chg.active{box-shadow:0 2px 10px rgba(255,171,0,.25);}
+.notif-badge{box-shadow:0 0 0 2px var(--dark);}
+.login-box{background:linear-gradient(180deg,var(--panel),var(--dark));border-radius:14px;box-shadow:0 24px 70px rgba(0,0,0,.6);}
+.login-logo{text-shadow:0 0 24px rgba(255,171,0,.4);}
+/* ════════ v4.2 — DETTAGLI MOBILE / TOUCH / ACCESSIBILITÀ (dietro le quinte) ════════ */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+*{-webkit-tap-highlight-color:transparent;} /* niente flash grigio al tap su mobile */
+/* niente delay 300ms + niente zoom da doppio-tap sugli elementi interattivi */
+button,a,label,select,input,.tile,.pcard,.sitem,.bn,.chg,.mbtn,.btn-sv,.btn-sec,.btn-main,.back,.bk,.add-btn,.dep-btn,.atab,.chip,.toggle{touch-action:manipulation;}
+button,.tile,.pcard,.bn,.bk,.back{-webkit-touch-callout:none;} /* niente menu long-press sui controlli */
+/* evita pull-to-refresh accidentale e rimbalzo che chiude i pannelli */
+body{overscroll-behavior-y:contain;}
+.sc,.hcontent,.fcontent,.ec-side,.chat-msgs,.modal-body{overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+/* focus visibile SOLO da tastiera (accessibilità senza disturbare il tocco) */
+:focus{outline:none;}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:4px;}
+/* il testo dei contenuti resta selezionabile, la UI no */
+.tt,.td,.pt,.bn span,.logo-sm,.role-sm{user-select:none;-webkit-user-select:none;}
+.preview-val,.sname,.ssub,.chat-bubble,.modal-body{user-select:text;-webkit-user-select:text;}
+img{max-width:100%;}
+/* blocco scroll del fondo quando un modale è aperto */
+body.modal-open{overflow:hidden;}
+/* spinner di caricamento riutilizzabile */
+.dw-spin{width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--amber);border-radius:50%;animation:dwspin .8s linear infinite;margin:18px auto;}
+@keyframes dwspin{to{transform:rotate(360deg);}}
+
+/* ════════ v4.3 — QUICK WIN da audit (leggibilità, tap target, focus, outdoor) ════════ */
+/* Font minimi leggibili */
+.fl{font-size:13px;}
+.sec-title{font-size:11.5px;}
+.td,.ssub{font-size:11px;}
+@media(max-width:360px){.fl{font-size:13px;}.tt{font-size:12px;}.sv{font-size:18px;}}
+/* Tap target ≥44px (48px in outdoor) su utility piccole */
+.chg,.chip,.mbtn,.atab{min-height:44px;display:inline-flex;align-items:center;justify-content:center;}
+.add-btn{width:46px;height:46px;}.dep-btn{width:42px;height:42px;}
+body.outdoor-mode .chg,body.outdoor-mode .chip,body.outdoor-mode .mbtn,body.outdoor-mode .atab{min-height:48px;}
+/* Stato input non valido percepibile */
+.finput.err,.fi.err{border-color:var(--danger)!important;background:rgba(239,83,80,.08);}
+/* Focus ring più evidente */
+:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(255,171,0,.30);}
+/* Shake feedback (login errato) */
+@keyframes dwshake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}30%,50%,70%{transform:translateX(-7px)}40%,60%{transform:translateX(7px)}}
+.shake{animation:dwshake .5s;}
+/* Modale: footer sempre raggiungibile su schermi piccoli */
+.modal-box{display:flex;flex-direction:column;max-height:92dvh;}
+.modal-body{overflow-y:auto;flex:1;}
+.modal-foot{position:sticky;bottom:0;background:var(--panel);}
+@media(max-height:640px){.modal-box{max-height:96dvh;}}
+/* Editor: tool attivo più evidente */
+.ec-tool.active{box-shadow:0 2px 10px rgba(255,171,0,.4);}
+.ec-toolbar{gap:5px;}
+/* Affordance: freccia se la voce è cliccabile e non ha già .sarr (CSS-only, niente duplicati) */
+/* (gestito via markup esistente .sarr) */
+/* Outdoor (Solar Light): testo nav/tab/chart/meteo leggibile in pieno sole */
+body.outdoor-mode .bn span{font-size:13px;font-weight:900;}
+body.outdoor-mode .atab{color:#5a4920;font-weight:800;}
+body.outdoor-mode .chart-label,body.outdoor-mode #meteo-small,body.outdoor-mode .meteo-small,body.outdoor-mode .kpi-sub{color:#5a4920!important;font-size:12px;}
+body.outdoor-mode .td,body.outdoor-mode .ssub,body.outdoor-mode .fl{color:#5a4920;}
+body.outdoor-mode .finput:focus,body.outdoor-mode .fi:focus{border:2px solid #c77800;box-shadow:0 0 0 3px rgba(199,120,0,.2);}
+
+/* Solar Light: resta piatto e leggibile */
+body.outdoor-mode .ti,body.outdoor-mode .pi{background:rgba(199,120,0,.12);}
+body.outdoor-mode .topbar,body.outdoor-mode .ph{background:#fff!important;}
+body.outdoor-mode .kpi-val{-webkit-text-fill-color:initial;color:var(--amber);}
+body.outdoor-mode .sitem:hover{background:#fff;}
+body.outdoor-mode .stat,body.outdoor-mode .kpi-card,body.outdoor-mode .modal-box,body.outdoor-mode .meteo-card,body.outdoor-mode .login-box{background:#fff;}
 </style>
 
 <div class="toast" id="toast"></div>
@@ -6560,7 +6872,7 @@ select.finput,select.fi{font-size:16px;}
           <text x="60" y="121" font-size="6" fill="#3a2a10" font-family="'Barlow Condensed', Arial Narrow, sans-serif" font-weight="700" letter-spacing="3" text-anchor="middle">FIELD OPERATIONS</text>
         </svg>
       </div>
-      <div class="login-tag">FIELD OPS · v3.8 · Galleria + Ricostruzione 3D</div>
+      <div class="login-tag">FIELD OPS · v4.2 · Quick-win audit</div>
       <div class="login-msg" id="login-msg" style="display:none;"></div>
       <label class="fl">Utente</label>
       <input type="text" class="fi" id="lu" placeholder="es. giuseppe" autocomplete="username">
@@ -6600,15 +6912,15 @@ select.finput,select.fi{font-size:16px;}
     </div>
     <div style="display:flex;gap:6px;align-items:center;flex:1;justify-content:flex-end;">
       <span id="sync-badge" class="sync-badge" style="display:none;"></span>
-      <button id="btn-install-pwa" class="install-btn" onclick="installPWA()" style="display:none;" title="Installa app">⤓</button>
-      <button class="outdoor-toggle" id="btn-outdoor" onclick="toggleOutdoor()" title="Modalità campo">☀️</button>
+      <button id="btn-install-pwa" class="install-btn" onclick="installPWA()" style="display:none;" title="Installa app" aria-label="Installa app">⤓</button>
+      <button class="outdoor-toggle" id="btn-outdoor" onclick="toggleOutdoor()" title="Modalità campo" aria-label="Attiva/disattiva modalità campo ad alto contrasto">☀️</button>
       <!-- Ricerca inline topbar -->
       <div class="topbar-search-wrap" id="topbar-search-wrap">
         <span class="topbar-search-icon">🔍</span>
         <input type="text" id="global-search" class="topbar-search-input" placeholder="Cerca..." oninput="globalSearch(this.value)" onfocus="this.placeholder='Cerca cave, mezzi, rapportini...'" onblur="this.placeholder='Cerca...'">
       </div>
-      <div class="notif-bell" onclick="openNotifiche()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <div class="notif-bell" role="button" aria-label="Notifiche" onclick="openNotifiche()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         <span class="notif-badge" id="notif-count" style="display:none;">0</span>
       </div>
       <button class="logout-btn" onclick="confirmLogout()">Esci</button>
@@ -6696,6 +7008,12 @@ select.finput,select.fi{font-size:16px;}
     <button class="add-btn" id="btn-edit-cava" onclick="openCavaEdit()" style="display:none;">✎</button>
   </div>
   <div class="sc" id="cava-det-body"></div>
+</div>
+
+<!-- ══════════ GEMELLO DIGITALE CAVA (v3.9) ══════════ -->
+<div class="screen" id="screen-gemello">
+  <div class="ph"><button class="bk" onclick="goBack()">←</button><div class="ht" style="color:#26a69a;">🧬 Gemello digitale</div></div>
+  <div class="sc" id="gemello-body"></div>
 </div>
 
 <!-- ══════════ CLIENTI (E6) ══════════ -->
@@ -7023,6 +7341,25 @@ select.finput,select.fi{font-size:16px;}
       </div>
     </div>
 
+    <!-- Calcolatore metri cubi abbattuti -->
+    <div class="sec-title" style="margin-top:18px;"><span class="dot"></span>Calcolo metri cubi</div>
+    <div class="preview-sec" style="margin-bottom:10px;">
+      <div class="frow3">
+        <div><label class="fl">Prof. media (m)</label><input type="number" inputmode="decimal" class="finput" id="umc-h" oninput="calcMcUfficio()"></div>
+        <div><label class="fl">Spalla (m)</label><input type="number" inputmode="decimal" class="finput" id="umc-b" oninput="calcMcUfficio()"></div>
+        <div><label class="fl">Interasse (m)</label><input type="number" inputmode="decimal" class="finput" id="umc-s" oninput="calcMcUfficio()"></div>
+      </div>
+      <div class="frow">
+        <div><label class="fl">N° fori</label><input type="number" inputmode="numeric" class="finput" id="umc-n" oninput="calcMcUfficio()"></div>
+        <div><label class="fl">Fattore frangim.</label><input type="number" inputmode="decimal" step="0.05" class="finput" id="umc-k" value="0.9" oninput="calcMcUfficio()"></div>
+      </div>
+      <div class="stats" id="umc-out" style="margin-top:10px;display:none;">
+        <div class="stat"><div class="sl">Mc totali</div><div class="sv" id="umc-tot">—</div></div>
+        <div class="stat"><div class="sl">Mc / foro</div><div class="sv" id="umc-foro">—</div></div>
+        <div class="stat"><div class="sl">Metri perf.</div><div class="sv" id="umc-m">—</div></div>
+      </div>
+    </div>
+
     <!-- Accesso rapido alle sezioni -->
     <div class="sec-title" style="margin-top:18px;"><span class="dot"></span>Accesso rapido</div>
     <div class="sitem" onclick="openStorico()"><div class="av av-op">📋</div><div class="sinfo"><div class="sname">Storico rapportini</div><div class="ssub">Perforazione</div></div><div class="sarr">›</div></div>
@@ -7190,6 +7527,17 @@ select.finput,select.fi{font-size:16px;}
   </div>
 </div>
 
+<!-- ══════════ SPLAT 3D FOTOREALISTICO (v4.0 Gaussian Splatting) ══════════ -->
+<div class="screen" id="screen-splat">
+  <div class="ph"><button class="bk" onclick="splatExit()">←</button><div class="ht">3D Fotorealistico (Splat)</div></div>
+  <div class="sc">
+    <div class="info-box" style="margin-bottom:12px;">✨ Visualizza un modello <b>fotorealistico</b> del fronte (Gaussian Splatting). Genera il file con un'app di scansione (es. Polycam, Scaniverse, KIRI Engine) esportando in <b>.ply</b> o <b>.splat</b>, poi caricalo qui.</div>
+    <label class="btn-sec" style="display:block;text-align:center;cursor:pointer;">📂 Carica modello .ply / .splat / .ksplat<input type="file" accept=".ply,.splat,.ksplat" onchange="splatPick(event)" style="display:none;"></label>
+    <div id="sp-wrap" style="margin-top:12px;height:360px;position:relative;background:#000;border:1px solid var(--border);display:none;"></div>
+    <div id="sp-note" style="font-size:11px;color:var(--muted);margin-top:8px;"></div>
+  </div>
+</div>
+
 <!-- ══════════ STRUMENTI FOCHINO (v3.4.4) ══════════ -->
 <div class="screen" id="screen-strumenti-foc">
   <div class="ph">
@@ -7325,6 +7673,7 @@ select.finput,select.fi{font-size:16px;}
   <div class="chat-wrap">
     <div class="chat-msgs" id="chat-msgs"></div>
     <div class="chat-input">
+      <label style="cursor:pointer;display:flex;align-items:center;padding:0 8px;font-size:20px;">📎<input type="file" accept="image/*" onchange="inviaFotoChat(event)" style="display:none;"></label>
       <input type="text" id="chat-in" placeholder="Scrivi un messaggio..." onkeydown="if(event.key==='Enter')inviaMessaggio(event)">
       <button onclick="inviaMessaggio(event)">INVIA</button>
     </div>
@@ -7343,10 +7692,10 @@ select.finput,select.fi{font-size:16px;}
 
 <!-- ══════════ BOTTOM NAV ══════════ -->
 <div class="bnav hidden" id="global-nav">
-  <div class="bn" data-scr="home" onclick="nav('home')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Home</span></div>
-  <div class="bn" data-scr="volate" onclick="openVolate()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Volate</span></div>
-  <div class="bn" data-scr="cave" onclick="nav('cave')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l10 20H2z"/></svg><span>Cave</span></div>
-  <div class="bn" data-scr="menu" onclick="nav('menu')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg><span>Menu</span></div>
+  <div class="bn" data-scr="home" role="button" aria-label="Home" onclick="nav('home')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Home</span></div>
+  <div class="bn" data-scr="volate" role="button" aria-label="Volate" onclick="openVolate()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Volate</span></div>
+  <div class="bn" data-scr="cave" role="button" aria-label="Cave" onclick="nav('cave')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2l10 20H2z"/></svg><span>Cave</span></div>
+  <div class="bn" data-scr="menu" role="button" aria-label="Menu" onclick="nav('menu')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg><span>Menu</span></div>
 </div>
 
 <!-- ══════════ MODAL ══════════ -->
