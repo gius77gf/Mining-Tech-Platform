@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Deepwork ID — Accesso</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../shared/deepwork-style.css">
+<style>
+  /* Deepwork ID usa l'accento "sistema" della palette funzionale */
+  :root { --app-accent:#c7b794; --app-accent2:#e8dcc0; }
+
+  .wrap {
+    min-height: 100vh; min-height: 100dvh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+  }
+  .logo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 34px; font-weight: 800; letter-spacing: 4px;
+    text-transform: uppercase; color: var(--text);
+  }
+  .logo .id { color: var(--amber); }
+  .tagline {
+    font-size: 13px; color: var(--muted);
+    letter-spacing: 1px; margin: 6px 0 32px; text-align: center;
+  }
+  .box { width: 100%; max-width: 380px; }
+  .box .dw-card { padding: 20px; }
+  .field { margin-bottom: 12px; }
+  .field label {
+    display: block; font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+  }
+  .actions { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+  .dw-btn { width: 100%; }
+  .sep {
+    display: flex; align-items: center; gap: 10px;
+    margin: 18px 0; color: var(--muted); font-size: 11px;
+    letter-spacing: 2px; text-transform: uppercase;
+  }
+  .sep::before, .sep::after { content: ""; flex: 1; height: 1px; background: var(--border2); }
+  .tour-note { font-size: 12px; color: var(--muted); text-align: center; margin-top: 8px; line-height: 1.5; }
+  .switch { text-align: center; margin-top: 16px; font-size: 13px; color: var(--muted2); }
+  .switch a { color: var(--app-accent); cursor: pointer; text-decoration: underline; }
+  .msg { display: none; margin-top: 14px; padding: 10px 12px; border-radius: var(--r-sm); font-size: 13px; line-height: 1.4; }
+  .msg.error { display: block; background: rgba(239,83,80,.12); border: 1px solid var(--danger); color: #ffb4b2; }
+  .msg.info  { display: block; background: rgba(199,183,148,.10); border: 1px solid var(--border2); color: var(--muted2); }
+  .foot { margin-top: 28px; font-size: 11px; color: var(--muted); letter-spacing: 1px; text-align: center; }
+</style>
+</head>
+<body class="dw">
+<div class="wrap">
+  <div class="logo">Deepwork <span class="id">ID</span></div>
+  <div class="tagline">Un solo profilo per tutto l'ecosistema</div>
+
+  <div class="box">
+    <div class="dw-card">
+      <!-- vista login -->
+      <div id="view-login">
+        <div class="field">
+          <label for="login-email">Email</label>
+          <input class="dw-input" type="email" id="login-email" autocomplete="email">
+        </div>
+        <div class="field">
+          <label for="login-pass">Password</label>
+          <input class="dw-input" type="password" id="login-pass" autocomplete="current-password">
+        </div>
+        <div class="actions">
+          <button class="dw-btn" id="btn-login">Accedi</button>
+          <button class="dw-btn secondary" id="btn-google">Accedi con Google</button>
+        </div>
+        <div class="switch">Non hai un profilo? <a id="to-register">Registrati</a></div>
+      </div>
+
+      <!-- vista registrazione -->
+      <div id="view-register" style="display:none;">
+        <div class="field">
+          <label for="reg-email">Email</label>
+          <input class="dw-input" type="email" id="reg-email" autocomplete="email">
+        </div>
+        <div class="field">
+          <label for="reg-pass">Password (min 8 caratteri)</label>
+          <input class="dw-input" type="password" id="reg-pass" autocomplete="new-password">
+        </div>
+        <div class="actions">
+          <button class="dw-btn" id="btn-register">Crea profilo</button>
+        </div>
+        <div class="switch">Hai già un profilo? <a id="to-login">Accedi</a></div>
+      </div>
+
+      <div id="msg" class="msg"></div>
+
+      <div class="sep">oppure</div>
+      <button class="dw-btn secondary" id="btn-tour">Prova l'app senza registrarti</button>
+      <div class="tour-note">La modalità tour mostra le funzionalità reali con dati di esempio, in sola lettura. Nessun dato reale è visibile.</div>
+    </div>
+    <div class="foot">DEEPWORK · ECOSISTEMA · ACCESSO UNICO</div>
+  </div>
+</div>
+
+<script type="module">
+  import { DeepworkID } from '../../shared/deepwork-id-client/index.js';
+
+  const $ = (id) => document.getElementById(id);
+  const msg = (text, kind = 'error') => {
+    const el = $('msg');
+    el.className = 'msg ' + kind;
+    el.textContent = text;
+  };
+
+  $('to-register').onclick = () => { $('view-login').style.display = 'none'; $('view-register').style.display = 'block'; $('msg').className = 'msg'; };
+  $('to-login').onclick    = () => { $('view-register').style.display = 'none'; $('view-login').style.display = 'block'; $('msg').className = 'msg'; };
+
+  let id = null;
+  try {
+    id = await DeepworkID.init({ appId: 'deepwork-id' });
+    if (id.authState() === 'member') {
+      msg('Sei già connesso. Reindirizzamento…', 'info');
+      // TODO: redirect alla dashboard/app di provenienza (?redirect=)
+    }
+  } catch (e) {
+    // Progetto Firebase non ancora configurato (placeholder): la pagina
+    // resta visibile per sviluppo UI; le azioni mostrano un avviso chiaro.
+    console.warn('Deepwork ID init:', e);
+  }
+
+  const guard = (fn) => async () => {
+    if (!id) { msg('Backend non ancora configurato: il progetto Firebase sarà attivato a breve (vedi GUIDA_FIREBASE.md).', 'info'); return; }
+    try { await fn(); } catch (e) { msg(errorText(e)); }
+  };
+
+  const errorText = (e) => {
+    const c = e && e.code || '';
+    if (c.includes('invalid-credential') || c.includes('wrong-password') || c.includes('user-not-found')) return 'Email o password non corretti.';
+    if (c.includes('email-already-in-use')) return 'Esiste già un profilo con questa email. Prova ad accedere.';
+    if (c.includes('weak-password')) return 'Password troppo debole: usa almeno 8 caratteri.';
+    if (c.includes('invalid-email')) return 'Indirizzo email non valido.';
+    if (c.includes('network')) return 'Problema di rete: riprova.';
+    return 'Qualcosa non ha funzionato. Riprova.';
+  };
+
+  const afterAuth = () => {
+    const s = id.authState();
+    if (s === 'member') msg('Accesso riuscito.', 'info');           // TODO: redirect
+    else if (s === 'tour') msg('Benvenuto nel tour. Dati di esempio, sola lettura.', 'info');  // TODO: redirect tour
+    else if (s === 'unauthorized') msg('Profilo creato, ma non sei ancora stato invitato in nessuna organizzazione. Chiedi al tuo datore di lavoro di invitarti, oppure prova la modalità tour.', 'info');
+  };
+
+  $('btn-login').onclick    = guard(async () => { await id.loginWithEmail($('login-email').value.trim(), $('login-pass').value); afterAuth(); });
+  $('btn-google').onclick   = guard(async () => { await id.loginWithGoogle(); afterAuth(); });
+  $('btn-register').onclick = guard(async () => { await id.registerWithEmail($('reg-email').value.trim(), $('reg-pass').value); afterAuth(); });
+  $('btn-tour').onclick     = guard(async () => { await id.loginTour(); afterAuth(); });
+</script>
+</body>
+</html>

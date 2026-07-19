@@ -1,0 +1,97 @@
+rules_version = '2';
+
+// ============================================================
+// Deepwork ID — Regole di sicurezza Firestore (bozza v0.1)
+// Architettura: apps/deepwork-id/ARCHITETTURA.md
+// Principio: TUTTO NEGATO di default; si apre solo ciò che serve.
+// Isolamento multi-tenant: path-based sotto organizations/{orgId},
+// verificato contro i custom claims (request.auth.token.orgs).
+// I claims sono scritti SOLO da Cloud Function, mai dal client.
+// ============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- funzioni di supporto ----------
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // L'utente appartiene all'organizzazione (claim orgs: {orgId: role})
+    function memberOf(orgId) {
+      return signedIn()
+        && request.auth.token.orgs != null
+        && request.auth.token.orgs[orgId] != null;
+    }
+
+    function roleIn(orgId) {
+      return request.auth.token.orgs[orgId];
+    }
+
+    function isOwner(orgId)  { return memberOf(orgId) && roleIn(orgId) == 'owner'; }
+    function isAdmin(orgId)  { return memberOf(orgId) && (roleIn(orgId) == 'owner' || roleIn(orgId) == 'admin'); }
+
+    // Tenant demo per la modalità tour: sola lettura, anche anonimi
+    function isDemoOrg(orgId) {
+      return orgId == 'org_demo';
+    }
+
+    // ---------- profili utente ----------
+    // Ognuno legge/scrive SOLO il proprio profilo.
+    match /users/{uid} {
+      allow read, update: if signedIn() && request.auth.uid == uid;
+      allow create:       if signedIn() && request.auth.uid == uid;
+      allow delete:       if false;   // cancellazione account: solo via Cloud Function
+    }
+
+    // ---------- inviti ----------
+    // Creati da admin dell'org (via client) o Cloud Function.
+    // L'invitato li legge solo tramite Cloud Function (mai listing libero).
+    match /invites/{inviteId} {
+      allow create: if signedIn() && isAdmin(request.resource.data.orgId);
+      allow read:   if signedIn() && isAdmin(resource.data.orgId);
+      allow update, delete: if signedIn() && isAdmin(resource.data.orgId);
+    }
+
+    // ---------- organizzazioni ----------
+    match /organizations/{orgId} {
+
+      // Documento org: i membri leggono; solo owner modifica i metadati.
+      allow read:   if memberOf(orgId) || (isDemoOrg(orgId) && signedIn());
+      allow create: if false;   // creazione org: solo via Cloud Function
+      allow update: if isOwner(orgId);
+      allow delete: if false;   // mai dal client
+
+      // Membri: visibili ai membri; gestiti da admin.
+      // NOTA: la scrittura della membership passa comunque dalla Cloud
+      // Function per aggiornare i claims; queste rules coprono i dati.
+      match /members/{uid} {
+        allow read:  if memberOf(orgId);
+        allow write: if isAdmin(orgId);
+      }
+
+      // Entitlement (abbonamenti per app): i membri li leggono
+      // (per sapere cosa mostrare), NESSUNO li scrive dal client —
+      // li scrive solo il backend (Cloud Function / webhook pagamenti).
+      match /entitlements/{appId} {
+        allow read:  if memberOf(orgId) || (isDemoOrg(orgId) && signedIn());
+        allow write: if false;
+      }
+
+      // Dati applicativi di ogni app: sigillati dentro l'org.
+      // Regola generale; le singole app potranno raffinare i permessi
+      // per ruolo (appRoles) con match più specifici sopra questa.
+      match /apps/{appId}/{document=**} {
+        // tour: il tenant demo è leggibile da qualunque utente
+        // autenticato (inclusi gli anonimi della modalità tour)
+        allow read:  if memberOf(orgId) || (isDemoOrg(orgId) && signedIn());
+        allow write: if memberOf(orgId) && !isDemoOrg(orgId);
+      }
+    }
+
+    // ---------- default: tutto il resto è negato ----------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

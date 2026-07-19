@@ -1,0 +1,130 @@
+/* ============================================================
+   Stile "Deepwork" — foglio condiviso dell'ecosistema (v0.1)
+   REGOLA VINCOLANTE DEL FONDATORE: tutte le app usano questi
+   token. Nessuna app introduce palette o font diversi senza
+   dichiarazione esplicita del fondatore. Le personalizzazioni
+   per-app avvengono SOLO tramite --app-accent / --app-accent2.
+   Fonte: estratto dalla palette live di Deepwork core
+   (index.html, v4.x) il 2026-07-19.
+   Uso:  <link rel="stylesheet" href="../../shared/deepwork-style.css">
+         + Google Fonts Barlow / Barlow Condensed (vedi sotto).
+   ============================================================ */
+
+/* Font ufficiali (da includere in ogni app):
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+*/
+
+:root {
+  /* --- superfici --- */
+  --bg: #100d07;
+  --dark: #14100a;
+  --panel: #18140a;
+  --card: #221c0e;
+  --card2: #2a2210;
+  --border: #332a14;
+  --border2: #3d3318;
+
+  /* --- testo --- */
+  --text: #f0e8d8;
+  --muted: #9b8a60;
+  --muted2: #b8a574;
+
+  /* --- brand --- */
+  --amber: #ffab00;
+  --orange: #ff6d00;
+  --amber2: #ffd54f;
+  --grad: linear-gradient(135deg, #ffab00, #ff6d00);
+
+  /* --- semantici --- */
+  --success: #66bb6a;
+  --danger: #ef5350;
+  --info: #42a5f5;
+  --warn: #ffa726;
+  --grad-danger: linear-gradient(135deg, #ef5350, #c62828);
+  --grad-success: linear-gradient(135deg, #66bb6a, #2e7d32);
+
+  /* --- geometria e interazione --- */
+  --r: 12px;
+  --r-sm: 8px;
+  --tap: 44px;                 /* dimensione minima dei bersagli touch */
+  --ease: cubic-bezier(.2, .7, .3, 1);
+  --shadow-amber: 0 10px 30px rgba(80, 40, 0, .42);
+  --glow-warm: rgba(255, 168, 48, .32);
+
+  /* --- personalizzazione per-app (UNICO punto ammesso) ---
+     Ogni app può ridefinire questi due token con un colore
+     d'accento proprio, coerente con la palette funzionale
+     Deepwork (vedi gruppi sotto). Tutto il resto resta identico. */
+  --app-accent: var(--amber);
+  --app-accent2: var(--amber2);
+}
+
+/* Palette funzionale per famiglia (da Deepwork core v4.4) —
+   riferimento per gli accenti delle app verticali:
+   operativo   #e8821c / #ffb733   (Campo)
+   blast       #e5484d / #ff6a70   (Genesi)
+   dati        #0e9384 / #23dcc6   (Conti)
+   cava        #2f9e44 / #5fe05a   (Terra)
+   logistica   #5b7186 / #7fbcff   (Flotta)
+   team        #8b5cf6 / #bd96ff   (Scudo)
+   sistema     #6b6459 / #c7b794   (Sentinella / Deepwork ID)      */
+
+/* --- base comune minima --- */
+* { box-sizing: border-box; transition-timing-function: var(--ease); }
+
+body.dw {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Barlow', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.dw h1, .dw h2, .dw h3, .dw .dw-display {
+  font-family: 'Barlow Condensed', sans-serif;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.dw-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px;
+}
+
+.dw-btn {
+  min-height: var(--tap);
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--r-sm);
+  background: var(--grad);
+  color: #1a1206;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.dw-btn.secondary {
+  background: none;
+  border: 1px solid var(--border2);
+  color: var(--app-accent);
+}
+
+.dw-input {
+  min-height: var(--tap);
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-family: 'Barlow', sans-serif;
+  font-size: 15px;
+}
+
+.dw-muted { color: var(--muted); }
+.dw-accent { color: var(--app-accent); }
