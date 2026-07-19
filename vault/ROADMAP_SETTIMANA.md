@@ -68,12 +68,11 @@ i punti di forza per rafforzare Genesi. Nel vault esiste già ricerca su
 Strayos e O-Pitblast (50 - Wiki ricerca) da integrare, non duplicare.
 
 ## 6. Configurazione di pubblicazione delle app (fase gratuita Netlify)
-[parallelo-gruppo-A, quando esistono i primi scheletri] — taglia S — stato: da fare
-Preparare la configurazione di deploy per ogni cartella di apps/ (siti
-Netlify separati per sottocartella, indirizzi gratuiti *.netlify.app),
-così ogni app diventa visibile online man mano che prende forma. La
-creazione materiale dei siti sull'account Netlify e il collegamento
-del dominio definitivo richiedono il fondatore (vedi coda weekend).
+[parallelo-gruppo-A] — taglia S — stato: fatto (2026-07-19)
+Risolto senza siti aggiuntivi: col monorepo, il sito Netlify esistente
+di Deepwork pubblica già ogni app come percorso /apps/<nome>/ ad ogni
+merge su main — zero costi, zero configurazione. Dettagli e piano per
+la fase commercializzazione in apps/DEPLOY.md.
 
 ## Coda weekend (25-26 luglio) — richiede il fondatore, ~10 min guidati
 1. Creazione progetto Firebase nuovo su console (account Google del
