@@ -22,6 +22,9 @@ import {
 import {
   getFirestore, doc, getDoc, collection,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import {
+  getFunctions, httpsCallable,
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 
 // Config del progetto Firebase NUOVO dedicato all'ecosistema
 // (decisione fondatore 2026-07-19). Placeholder finché il progetto
@@ -45,6 +48,7 @@ class DeepworkIDClient {
     this._app = null;
     this._auth = null;
     this._db = null;
+    this._fns = null;
   }
 
   // ---------- inizializzazione ----------
@@ -52,6 +56,8 @@ class DeepworkIDClient {
     this._app = initializeApp(FIREBASE_CONFIG);
     this._auth = getAuth(this._app);
     this._db = getFirestore(this._app);
+    // stessa regione delle Cloud Functions (europe-west1, dati EU)
+    this._fns = getFunctions(this._app, "europe-west1");
 
     // attende il primo stato di autenticazione noto
     await new Promise((resolve) => {
@@ -149,6 +155,37 @@ class DeepworkIDClient {
     return collection(
       this._db, "organizations", this.orgId, "apps", this.appId, name
     );
+  }
+
+  // ---------- operazioni server (Cloud Functions) ----------
+  // Passano SEMPRE dal backend: il client non può scrivere claims,
+  // membership o organizzazioni direttamente (le rules lo vietano).
+
+  async createOrganization(name) {
+    const call = httpsCallable(this._fns, "createOrganization");
+    const res = await call({ name });
+    await this.user.getIdToken(true);      // forza refresh del token → nuovi claims
+    await this._loadClaimsAndOrg();
+    return res.data.orgId;
+  }
+
+  async inviteMember(email, role = "member") {
+    if (!this.orgId) throw new Error("Nessuna organizzazione attiva");
+    const call = httpsCallable(this._fns, "inviteMember");
+    const res = await call({ orgId: this.orgId, email, role });
+    return res.data.inviteId;
+  }
+
+  // Da chiamare dopo ogni login registrato: riscatta eventuali inviti
+  // pendenti per l'email dell'utente e aggiorna org attiva/claims.
+  async redeemInvites() {
+    const call = httpsCallable(this._fns, "acceptInvites");
+    const res = await call({});
+    if (res.data.accepted && res.data.accepted.length) {
+      await this.user.getIdToken(true);
+      await this._loadClaimsAndOrg();
+    }
+    return res.data.accepted || [];
   }
 
   // ---------- multi-org (es. consulente su più aziende) ----------
