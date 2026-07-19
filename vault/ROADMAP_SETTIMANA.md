@@ -41,7 +41,10 @@ In apps/deepwork-id/. Requisiti dal fondatore:
   credenziali, con funzionalità visibili ma dati di esempio.
 
 ## 3. Scheletri delle 6 app verticali
-[dopo 2; parallelo-gruppo-A tra loro] — taglia L complessiva — stato: da fare
+[dopo 2; parallelo-gruppo-A tra loro] — taglia L complessiva — stato: fatto (2026-07-19, prima iterazione)
+(Mockup navigabili completati per tutte e 6 con shell condivisa,
+dati demo, aggancio SDK e accenti di famiglia — verificati con
+screenshot. Prossime iterazioni: funzioni reali su dati Firestore.)
 Scudo, Campo, Flotta, Conti, Sentinella, Terra — ognuna nella propria
 cartella apps/<nome>/ creata al task 1. REGOLA VINCOLANTE DEL
 FONDATORE: tutte le app seguono lo stile grafico "deepwork" (colori e
@@ -104,7 +107,7 @@ Promemoria automatico armato per sabato mattina 25/07.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-19_1555_test-isolamento-scudo-mockup.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-19_1640_sei-app-scheletri-completi.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault (mappa, roadmap, MOC
   app, wiki ricerca)
 
