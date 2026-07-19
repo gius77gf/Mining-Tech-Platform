@@ -1033,6 +1033,12 @@ function buildScene(){
     const rCyl=0.18, stemL=Math.min(D2.stem, P.prof), filaCols=[0x42a5f5,0xab47bc,0xff7043,0x26c6da,0xe0b34c,0x8d6e63];
     const matStem=new THREE.MeshStandardMaterial({ color:0xa8a49a, roughness:0.6 });
     const matChg =new THREE.MeshStandardMaterial({ color:0xffab00, emissive:0xff8c1d, emissiveIntensity:0.5, roughness:0.45 });
+    /* colonna d'acqua nei fori bagnati: azzurra, semitrasparente, dal fondo foro
+       fino al livello indicato (acquaCol, m) — solo indicazione visiva, la fisica
+       (perdita RWS/heave, pressione idrostatica) è già nei calcoli */
+    const wetH = (D2.bagnato ? Math.max(0, Math.min(D2.acquaCol||0, P.prof)) : 0);
+    const matH2O = wetH>0 ? new THREE.MeshStandardMaterial({ color:0x42a5f5, transparent:true, opacity:0.5,
+      emissive:0x1565c0, emissiveIntensity:0.25, roughness:0.2, depthWrite:false }) : null;
     for(const f of SIM.fori){
       const g=new THREE.Group();                                 // origine del gruppo = COLLETTO (perno per l'inclinazione)
       const zc=f.cz+(f.zoff||0)+SPALLA;                          // colletto: a distanza burden dietro la faccia del proprio slab
@@ -1041,6 +1047,13 @@ function buildScene(){
       cStem.position.y=-stemL/2;                                 // borraggio: dal colletto in giù
       const cChg=new THREE.Mesh(new THREE.CylinderGeometry(rCyl*1.05,rCyl*1.05,Lchg,8), matChg);
       cChg.position.y=-stemL-Lchg/2;                             // carica: sotto il borraggio, fino a −sub
+      if(matH2O){                                                // acqua: dal fondo foro (−prof−sub) su per wetH metri
+        const hTot=f.h+(D2.sub||0);
+        const hW=Math.min(wetH, hTot);
+        const cH2O=new THREE.Mesh(new THREE.CylinderGeometry(rCyl*1.25,rCyl*1.25,hW,8), matH2O);
+        cH2O.position.y=-hTot+hW/2; cH2O.renderOrder=2;
+        g.add(cH2O);
+      }
       const fila=Math.round((f.zoff||0)/Math.max(1,SPALLA));
       const fc=filaCols[Math.min(fila,filaCols.length-1)];
       const ring=new THREE.Mesh(new THREE.CylinderGeometry(0.36,0.36,0.1,10),
@@ -2125,7 +2138,7 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){
     seek:(ms)=>{ setPlaying(false); setSimT(ms, true); return simT; },
     look:(name)=>applyLook(name),
     play:()=>setPlaying(true), pause:()=>setPlaying(false),
-    rebuild, get SIM(){return SIM}, get P(){return P}, get simT(){return simT},
+    rebuild, get SIM(){return SIM}, get P(){return P}, get D2(){return D2}, get simT(){return simT},
     get frontMesh(){return frontMesh},
     loadFrontUrl: async (url)=>{ const t=await (await fetch(url)).text(); loadFrontMeshObject(new OBJLoader().parse(t)); return P.fori; },
     setParam:(k,v)=>{ P[k]=v; const el=$('p'+k.charAt(0).toUpperCase()+k.slice(1)); if(el)el.value=v; }

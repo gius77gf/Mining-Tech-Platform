@@ -25,9 +25,9 @@ A2-A6. Overhaul estetico — GIÀ REALIZZATO nel codice (verificato
 A7. Gittata flyrock — stato: fatto (19/07: layer 3D con disco gittata
     + anelli sgombero 2x/4x, calcolo condiviso flyrockEst con la
     scheda; il calcolo esisteva già nei validatori) 
-A8. Fori bagnati — completamento (carica/accoppiamento in acqua +
-    indicazione visiva; l'effetto su heave già esiste)
-    — taglia M — stato: da fare
+A8. Fori bagnati — stato: fatto (19/07: colonna d'acqua in raggi-X;
+    fisica già completa e verificata live: x50 52→112cm con ANFO
+    in 5m d'acqua)
 A9. Rock-factor Lilly (dal vault: caratterizzazione ammasso roccioso)
     — taglia M — stato: da fare
 A10. Presplit e confronto A/B tra progetti di volata (dal vault)
@@ -128,7 +128,7 @@ ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-19_2300_a7-flyrock-3d.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-19_2340_a8-fori-bagnati.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
