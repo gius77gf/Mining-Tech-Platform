@@ -127,15 +127,16 @@ La fase C chiude il rischio di sicurezza aperto segnalato nel vault
   sicurezza nelle 8 app.
 - Ogni app dichiara il proprio `appId` e i ruoli che riconosce.
 
-## 10. Decisioni aperte per il fondatore ⚠️
+## 10. Decisioni del fondatore ✅ (confermate 2026-07-19)
 
-1. **Progetto Firebase**: riusare quello esistente di Deepwork o
-   crearne uno nuovo dedicato all'ecosistema? (consigliato: nuovo
-   progetto pulito, con regione dati europea per i clienti italiani)
-2. **Pagamenti**: quale sistema per gli abbonamenti (es. Stripe)? Serve
-   solo più avanti, ma la struttura entitlement è già pronta.
-3. **Nome utente visibile**: il profilo mostra nome reale/foto Google o
-   un profilo aziendale neutro?
+1. **Progetto Firebase**: NUOVO progetto dedicato all'ecosistema, con
+   regione dati europea. Il progetto Firebase esistente di Deepwork
+   resta intatto fino a migrazione completata (fasi B/C).
+2. **Pagamenti**: decisione rimandata a quando le app saranno
+   vendibili; raccomandazione registrata: Stripe. La struttura
+   entitlement è già compatibile.
+3. **Profilo visibile**: profilo aziendale NEUTRO (niente nome/foto
+   Google in vista), personalizzabile in futuro.
 
 ## Prossimi passi tecnici (ordine)
 
