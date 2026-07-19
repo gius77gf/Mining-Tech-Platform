@@ -4,8 +4,8 @@ Fonte: documento del fondatore "lavoro settimana 20-25" + vault
 `ecosistema-vault` (mappa ecosistema, roadmap, MOC). Questa versione
 sostituisce la v1 (che resta in Storico in fondo).
 
-Contesto ecosistema: Deepwork = core (questo repo). Genesi = prodotto
-premium (repo genesi-app). Deepwork ID = spina dorsale da creare
+Contesto ecosistema: Deepwork = core (questo repo, radice). Genesi =
+prodotto premium (apps/genesi). Deepwork ID = spina dorsale da creare
 (Fase 0): account unico, multi-tenant, abbonamenti — prerequisito di
 tutte le 6 app verticali (Scudo, Campo, Flotta, Conti, Sentinella,
 Terra).
@@ -39,13 +39,13 @@ In apps/deepwork-id/. Requisiti dal fondatore:
 ## 3. Scheletri delle 6 app verticali
 [dopo 2; parallelo-gruppo-A tra loro] — taglia L complessiva — stato: da fare
 Scudo, Campo, Flotta, Conti, Sentinella, Terra — ognuna nella propria
-cartella apps/<nome>/ creata al task 1. REGOLA VINCOLANTE DEL FONDATORE: tutte le app
-seguono lo stile grafico "deepwork" (colori e resto identici) — nessuna
-direzione estetica diversa se non dichiarata esplicitamente dal
-fondatore; personalizzazioni ammesse solo su ciò che serve alla
-funzione specifica. Ordine di priorità dal vault: Scudo per prima
-(finestra di mercato L.198/2025) — per Scudo esiste già il task "mockup
-UI navigabile" nei Prossimi passi del vault.
+cartella apps/<nome>/ creata al task 1. REGOLA VINCOLANTE DEL
+FONDATORE: tutte le app seguono lo stile grafico "deepwork" (colori e
+resto identici) — nessuna direzione estetica diversa se non dichiarata
+esplicitamente dal fondatore; personalizzazioni ammesse solo su ciò che
+serve alla funzione specifica. Ordine di priorità dal vault: Scudo per
+prima (finestra di mercato L.198/2025) — per Scudo esiste già il task
+"mockup UI navigabile" nei Prossimi passi del vault.
 
 ## 4. Deepwork (core) — verifica e miglioramento sicurezza
 [parallelo-gruppo-B, indipendente] — taglia M — stato: da fare
@@ -76,7 +76,7 @@ Strayos e O-Pitblast (50 - Wiki ricerca) da integrare, non duplicare.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-19_1215_roadmap-v2.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-19_1230_struttura-monorepo.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault (mappa, roadmap, MOC
   app, wiki ricerca)
 

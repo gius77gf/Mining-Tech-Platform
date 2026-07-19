@@ -1,89 +1,149 @@
 ---
 name: weekly-kickoff
-description: Avvia il ciclo settimanale di sviluppo automatizzato su Mining-Tech-Platform. Scrive/aggiorna la roadmap nel vault, crea il checkpoint di avvio, rimuove la routine della settimana precedente e arma la nuova Cloud Routine (lun-ven, ogni ~5 ore). Da invocare manualmente la domenica sera dopo aver definito la roadmap con l'utente.
-disable-model-invocation: true
-allowed-tools: Write, Edit, Bash, Read
+description: Automatizza il kickoff settimanale di sviluppo per Mining-Tech-Platform. Usa questa skill quando l'utente chiede di avviare/riavviare la settimana di lavoro, rigenerare vault/ROADMAP_SETTIMANA.md, o riarmare la Cloud Routine di sviluppo automatico settimanale. Trigger tipici: "kickoff settimanale", "avvia la settimana", "riarma la routine di sviluppo", "/weekly-kickoff".
 ---
 
-# Weekly kickoff
+# Weekly Kickoff
 
-Procedura fissa da eseguire ogni volta che questa skill viene invocata (tipicamente domenica sera). Segui i passi in ordine, senza saltarne nessuno.
+Prepara la settimana di sviluppo: rigenera la roadmap, scrive un checkpoint di
+avvio e sostituisce la Cloud Routine automatica della settimana precedente con
+una nuova, così le sessioni automatiche che partono nei giorni successivi
+sanno sempre cosa fare e da dove riprendere.
 
-## 0. Argomenti
+Esegui i passi in ordine. Non saltare la pulizia della routine precedente:
+se non viene rimossa, restano due routine attive che duplicano il lavoro.
 
-Se `$ARGUMENTS` contiene testo, trattalo come contenuto grezzo della roadmap della settimana (l'utente l'ha incollata al comando). Se è vuoto, assumi che `vault/ROADMAP_SETTIMANA.md` sia già stato scritto/aggiornato in questa stessa conversazione prima di invocare la skill.
+## 1. Determina la settimana corrente
 
-## 1. Scrivi/aggiorna `vault/ROADMAP_SETTIMANA.md`
+Usa `date` in bash per ottenere la data odierna e calcolare lunedì-venerdì
+della settimana corrente (`date -d monday`, o se oggi è lunedì usa oggi).
+Serve per intestare la roadmap e nominare il checkpoint di kickoff.
 
-Tutto il materiale destinato ad essere letto anche da Obsidian vive dentro la cartella `vault/` del repo (così l'utente può aprire quella sola sottocartella come vault Obsidian, tenendola separata dal codice).
+## 2. Scrivi/aggiorna `vault/ROADMAP_SETTIMANA.md`
 
-Struttura richiesta per ogni voce della roadmap:
-- descrizione del task
-- tag `[sequenziale]` oppure `[parallelo-gruppo-N]` (stesso N = task eseguibili insieme in un Workflow perché indipendenti tra loro; non taggare come parallelo task che dipendono l'uno dall'altro)
-- taglia stimata: S / M / L
-- stato: `da fare` / `in corso` / `fatto`
+Questo file rappresenta **solo la settimana in corso**: va sovrascritto ad
+ogni kickoff (non è append-only, a differenza dei checkpoint).
 
-Se il file esiste già da settimane precedenti, non cancellarlo: archivia la sezione conclusa in fondo sotto "Storico" (o in `vault/roadmap-storico/<data>.md`) e scrivi la nuova sezione attiva in cima. Non riscrivere mai la cronologia già archiviata.
+- Se `vault/ROADMAP_SETTIMANA.md` esiste già ed è rimasto materiale non
+  completato dalla settimana precedente (task senza `[x]`), riportalo in
+  cima alla nuova roadmap invece di perderlo: chiedi il contesto necessario
+  leggendo l'ultimo checkpoint (vedi punto 3) prima di scrivere.
+- Se l'utente ha indicato obiettivi per la settimana in questa conversazione,
+  usali. Altrimenti deriva gli obiettivi dai task ancora aperti nell'ultimo
+  checkpoint disponibile. Se non c'è alcun contesto pregresso, crea una
+  roadmap con la sola intestazione e una nota che invita a popolarla.
 
-## 2. Prepara la cartella checkpoint: `vault/checkpoints/`
+Schema del file:
 
-**Non esiste più un unico file di stato che viene sovrascritto.** Ogni unità di lavoro completata produce un **nuovo file, mai sovrascritto** (schema "segnalibro"):
+```markdown
+# Roadmap Settimana — {lunedì} → {venerdì}
 
-```
-vault/checkpoints/<AAAA-MM-GG>_<HHmm>_<slug-task>.md
-```
+## Obiettivi della settimana
+- [ ] Obiettivo 1
+- [ ] Obiettivo 2
 
-Contenuto minimo di ogni checkpoint:
-```
-# Checkpoint — <data/ora>
-Task completato: <descrizione>
-Commit di riferimento: <hash>
-Prossimo passo atomico: <descrizione precisa>
-```
+## Task
+- [ ] Task granulare 1
+- [ ] Task granulare 2
 
-A questo passo della skill, crea solo il checkpoint di avvio settimana:
-`vault/checkpoints/<data-di-oggi>_avvio-settimana.md`, con "Prossimo passo atomico" = primo task in cima a `ROADMAP_SETTIMANA.md`. Non toccare i checkpoint delle settimane precedenti: restano come storico consultabile (eventualmente spostali in `vault/checkpoints/archivio/<settimana-precedente>/` per tenere la cartella corrente leggera).
+## Vincoli
+- Non pushare mai su main senza autorizzazione esplicita.
+- Commit piccoli e frequenti; un checkpoint per ogni unità completata.
 
-Il "segnalibro corrente" per riprendere il lavoro è sempre **l'ultimo file per data/ora presente in `vault/checkpoints/`** (esclusi gli archivi).
-
-## 3. Rimuovi la routine della settimana precedente
-
-Usa `list_triggers` (tool `mcp__Claude_Code_Remote__list_triggers`, caricalo via ToolSearch se non è già disponibile) e cerca una routine con nome che inizia per `weekly-build-mining-tech`. Se esiste, eliminala con `delete_trigger` prima di crearne una nuova, per evitare routine duplicate o orfane.
-
-## 4. Arma la nuova Cloud Routine
-
-Crea una routine con `create_trigger` (ToolSearch `select:mcp__Claude_Code_Remote__create_trigger` se serve):
-- `name`: `weekly-build-mining-tech-<data di oggi>`
-- `cron_expression`: ogni ~5 ore, solo lunedì-venerdì, ancorato il più possibile all'orario di invocazione di questa skill (calcola tu gli orari in base all'ora corrente; se non cade su un multiplo esatto, scegli lo schedule a orari fissi più vicino — es. 4 fasce/giorno — e segnalo all'utente nel riepilogo finale)
-- `create_new_session_on_fire`: true
-- `notifications`: `{push: true}` (l'utente vuole poter controllare da telefono quando vuole)
-- `prompt`: il testo fisso qui sotto, **non modificarlo** tra una settimana e l'altra:
-
-```
-Leggi vault/ROADMAP_SETTIMANA.md. Poi leggi la cartella
-vault/checkpoints/ e individua il file più recente per data/ora
-(esclusa l'eventuale sottocartella archivio): quello è il segnalibro
-corrente. Riprendi esattamente dal "Prossimo passo atomico" indicato
-in quel checkpoint.
-
-Se il task fa parte di un gruppo [parallelo-gruppo-N], valuta se
-eseguirlo con lo strumento Workflow insieme agli altri task dello
-stesso gruppo. I task [sequenziale] vanno fatti uno alla volta,
-nell'ordine della roadmap.
-
-Lavora a unità piccole con commit frequenti e messaggi chiari. Al
-completamento di OGNI unità di lavoro, crea un NUOVO file in
-vault/checkpoints/ (mai sovrascrivere un checkpoint esistente) con:
-task completato, hash del commit, prossimo passo atomico preciso.
-Aggiorna anche lo stato del task corrispondente in
-ROADMAP_SETTIMANA.md (da fare -> in corso -> fatto).
-
-Se ti fermi per qualunque motivo, fermati sempre su un punto stabile
-(commit pulito, checkpoint scritto per intero, nessun file a metà).
-Non pushare mai su main senza istruzioni esplicite dell'utente per
-questo repo; lavora sul branch indicato nelle istruzioni di progetto.
+## Riferimenti
+- Ultimo checkpoint: vault/checkpoints/<file più recente>
 ```
 
-## 5. Riepilogo finale
+## 3. Crea il checkpoint di avvio in `vault/checkpoints/`
 
-Rispondi all'utente con: routine armata (nome, cadenza effettiva, prossimo orario di attivazione), percorso della roadmap e dell'ultimo checkpoint creato, e un promemoria che il weekend è dedicato alla revisione (leggendo la sequenza di checkpoint della settimana) + pianificazione della settimana successiva (si rilancia questa stessa skill la domenica sera dopo aver rifatto la roadmap insieme).
+I checkpoint sono **append-only**: non modificare né sovrascrivere mai un
+checkpoint esistente, crea sempre un file nuovo. Il nome del file deve
+iniziare con un timestamp ordinabile lessicograficamente, così "l'ultimo
+checkpoint" è sempre il file con nome più alto in ordine alfabetico:
+
+```
+vault/checkpoints/YYYYMMDD-HHMMSS_kickoff.md
+```
+
+Contenuto del checkpoint di kickoff:
+
+```markdown
+# Checkpoint — {timestamp ISO}
+
+## Tipo
+kickoff
+
+## Branch
+{branch di sessione corrente}
+
+## Ultimo commit
+{hash breve, `git rev-parse --short HEAD`}
+
+## Stato roadmap
+Nuova settimana avviata ({lunedì} → {venerdì}). Vedi vault/ROADMAP_SETTIMANA.md.
+
+## Prossimi passi
+{primo task della roadmap, o "nessuno, roadmap da popolare"}
+
+## Note
+{eventuale contesto riportato dalla settimana precedente}
+```
+
+## 4. Rimuovi la Cloud Routine della settimana precedente
+
+1. Chiama `list_triggers` e cerca la routine con nome esatto
+   `Weekly Dev Session` (nome fisso, riusato ogni settimana — non generarne
+   uno nuovo con la data dentro, altrimenti la ricerca fallisce la settimana
+   dopo). Cerca anche eventuali routine legacy con nome che inizia per
+   `weekly-build-mining-tech` (naming della prima settimana).
+2. Se esiste, chiama `delete_trigger` con il suo `trigger_id` prima di
+   crearne una nuova. Se ne trovi più di una (es. da run manuali passati),
+   eliminale tutte.
+3. Se non esiste nessuna routine con quel nome, procedi comunque al punto 5
+   (prima attivazione).
+
+## 5. Arma la nuova Cloud Routine
+
+Chiama `create_trigger` con:
+
+- `name`: `Weekly Dev Session` (stesso nome fisso, per permettere la pulizia
+  la settimana successiva)
+- `cron_expression`: `0 */5 * * 1-5` (lunedì-venerdì, ogni ~5 ore)
+- `create_new_session_on_fire`: `true`
+- `notifications`: `{"push": true}`
+- `prompt`: **esattamente** il testo seguente (non parafrasare, non
+  abbreviare — è il contratto che tiene allineate le sessioni automatiche):
+
+```
+Leggi vault/ROADMAP_SETTIMANA.md e il checkpoint più recente in
+vault/checkpoints/ (il file con il timestamp più alto nel nome) per capire
+lo stato del lavoro e cosa fare adesso.
+
+Lavora a piccole unità: scegli il prossimo task non completato dalla
+roadmap, implementalo, esegui commit frequenti e atomici con messaggi
+chiari.
+
+Al completamento di ogni unità di lavoro:
+1. Aggiorna vault/ROADMAP_SETTIMANA.md spuntando i task completati.
+2. Crea un NUOVO file in vault/checkpoints/ con schema
+   YYYYMMDD-HHMMSS_<slug-breve>.md — non modificare né sovrascrivere MAI un
+   checkpoint esistente. Includi: tipo (unit-complete), branch, hash
+   dell'ultimo commit, cosa è stato completato, stato aggiornato della
+   roadmap, prossimi passi, eventuali blocchi.
+
+Non pushare MAI su main senza autorizzazione esplicita dell'utente in
+questa conversazione: lavora e pusha solo sul branch di sessione
+designato.
+
+Se la roadmap non ha più task aperti, non inventarne di nuovi: crea un
+checkpoint che segnala la roadmap esaurita e fermati.
+```
+
+## 6. Commit e push
+
+Fai commit di `vault/ROADMAP_SETTIMANA.md` e del nuovo file in
+`vault/checkpoints/` con un messaggio tipo `chore: weekly kickoff {lunedì}`,
+poi pusha sul branch di sessione corrente. Non pushare su main.
+
+Conferma all'utente: settimana coperta, checkpoint creato, routine
+precedente rimossa (se c'era) e nuova routine armata con `trigger_id`.
