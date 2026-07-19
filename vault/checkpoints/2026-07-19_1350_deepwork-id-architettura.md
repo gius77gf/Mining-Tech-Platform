@@ -1,0 +1,5 @@
+# Checkpoint — 2026-07-19 13:50
+Task completato: Task 2 (prima unità) — documento di architettura Deepwork ID v0.1 in apps/deepwork-id/ARCHITETTURA.md: modello dati multi-tenant path-based (organizations/members/entitlements), isolamento via custom claims + security rules, flusso di accesso, ruoli, modalità tour, piano di migrazione in 3 fasi per rimuovere le password in chiaro di Deepwork, SDK condiviso previsto in shared/deepwork-id-client/.
+Commit di riferimento: af70241
+Prossimo passo atomico: le 3 decisioni aperte del documento (sezione 10 ⚠️) richiedono il fondatore: 1) progetto Firebase nuovo o esistente, 2) sistema pagamenti, 3) tipo di profilo visibile. SE il fondatore non ha ancora risposto: procedere con ciò che non dipende dalle decisioni — scrivere firestore.rules (bozza) e lo scheletro dello SDK shared/deepwork-id-client/ assumendo progetto Firebase NUOVO dedicato (scelta consigliata, facilmente reversibile a livello di configurazione).
+Nota di ciclo: questo checkpoint chiude il CICLO DI PROVA riuscito — catena completa verificata: pull, lettura segnalibro, lavoro, commit af70241, push, checkpoint, aggiornamento roadmap.
