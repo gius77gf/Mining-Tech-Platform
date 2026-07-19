@@ -3,11 +3,10 @@
 // Strategia: cache-first per app shell, network-first per Firestore
 // ════════════════════════════════════════════════════════════════
 
-const CACHE_VERSION = 'deepwork-v3';
+const CACHE_VERSION = 'deepwork-v4';
 const APP_SHELL = [
   './',
-  './deepwork-v3.3.html',
-  './deepwork-v3.2.html',
+  './index.html',
   // Google Fonts CSS (il font file viene cachato dinamicamente al primo uso)
   'https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap',
   // Librerie CDN
@@ -18,7 +17,8 @@ const APP_SHELL = [
   // Firebase SDK ESM (precachato in install per sicurezza)
   'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js',
   'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js',
-  'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js'
+  'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js',
+  'https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js'
 ];
 
 // Pattern URL Firestore — non vanno cachate in cache-first, useremo network-first
@@ -102,7 +102,7 @@ self.addEventListener('fetch', e => {
       }).catch(() => {
         // Se è una richiesta di navigazione fallita, ritorna l'app shell
         if (e.request.mode === 'navigate') {
-          return caches.match('./deepwork-v3.3.html') || caches.match('./deepwork-v3.2.html') || caches.match('./');
+          return caches.match('./index.html').then(r => r || caches.match('./'));
         }
         return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
       });

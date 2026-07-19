@@ -55,7 +55,9 @@ prima (finestra di mercato L.198/2025) — per Scudo esiste già il task
 "mockup UI navigabile" nei Prossimi passi del vault.
 
 ## 4. Deepwork (core) — verifica e miglioramento sicurezza
-[parallelo-gruppo-B, indipendente] — taglia M — stato: da fare
+[parallelo-gruppo-B, indipendente] — taglia M — stato: in corso
+(2026-07-19: sw.js corretto; censimento completo in
+docs/AUDIT_SICUREZZA.md — 2 punti richiedono il fondatore al weekend)
 Audit di sicurezza mai fatto finora: service worker rotto
 (sw.js → file inesistenti), firebase-messaging-sw.js con segnaposto,
 regole Firestore da verificare, credenziali in chiaro (la rimozione
@@ -107,7 +109,7 @@ Promemoria automatico armato per sabato mattina 25/07.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-19_1640_sei-app-scheletri-completi.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-19_1700_task4-sw-fix-audit.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault (mappa, roadmap, MOC
   app, wiki ricerca)
 

@@ -1,0 +1,73 @@
+# Audit di sicurezza — Deepwork core (2026-07-19, prima passata)
+
+Censimento dei problemi di sicurezza del monolite `index.html` e dei
+file di servizio, con priorità e piano di mitigazione. Aggiornare ad
+ogni intervento (questo file è il registro vivo del task 4).
+
+## 🔴 Critici
+
+### 1. Credenziali in chiaro nel codice client (index.html ~r.277-285)
+7 utenti con password in chiaro (admin/admin, ufficio/ufficio,
+fochino/fochino, operatore/operatore, giuseppe/deepwork2026,
+capocantiere/cantiere2026, direttore/deepwork!). Chiunque apra il
+sorgente della pagina pubblica può impersonare qualunque ruolo, admin
+inclusi. Repo pubblico → le password sono esposte anche su GitHub.
+- Mitigazione definitiva: migrazione a Deepwork ID (fasi B/C del piano
+  in apps/deepwork-id/ARCHITETTURA.md, sez. 8) — in lavorazione.
+- Mitigazione ponte (fattibile subito, da confermare col fondatore):
+  rimuovere le password dal sorgente e spostare la verifica su
+  Firestore (hash + salt per utente, niente fallback in chiaro),
+  ruotando TUTTE le password attuali. Nel vault dei "Prossimi passi"
+  la rotazione risulta rimandata dal fondatore il 2026-07-12 ma resta
+  un rischio attivo: riproporla al weekend di revisione.
+
+### 2. Dati aziendali reali nei default del client
+DEFAULT_CLIENTI / DEFAULT_CAVE / DEFAULT_USERS contengono nomi,
+telefoni, email, IBAN e coordinate che sembrano realistici. Se sono
+dati veri, sono pubblici su GitHub e nel sorgente della pagina.
+- Verificare col fondatore se sono dati reali o di fantasia; se reali,
+  sostituirli con dati sintetici e valutare la rimozione dallo storico.
+
+### 3. Regole di sicurezza del progetto Firebase esistente non versionate
+Il client accede a Firestore/Storage del progetto `deepwork-app-6c56f`,
+ma nel repo non esiste alcun `firestore.rules`: impossibile sapere se
+il database è protetto o aperto. Se le regole sono permissive (tipico
+"allow read, write: if true" delle demo), chiunque con la config
+pubblica può leggere/scrivere tutto il database.
+- Azione (richiede fondatore): aprire console Firebase → Firestore →
+  Rules del progetto esistente e incollare in chat le regole attuali,
+  così le versioniamo e correggiamo. Da fare nel weekend insieme alla
+  creazione del progetto nuovo.
+
+## 🟠 Importanti
+
+### 4. firebase-messaging-sw.js con segnaposto
+Contiene `INCOLLA_QUI_LA_API_KEY...`: le notifiche push non funzionano
+e il file svela l'assenza di configurazione. Sistemare quando si
+configura il progetto Firebase (weekend) o rimuovere finché non serve.
+
+### 5. sw.js — riferimenti obsoleti e fallback rotto — ✅ CORRETTO 2026-07-19
+Precache e fallback puntavano a deepwork-v3.3.html / v3.2.html
+(inesistenti) e il fallback usava `caches.match(a) || caches.match(b)`
+(sempre truthy, catena mai valutata). Corretti: precache di
+./index.html, fallback con .then, cache version v3→v4 (forza il
+refresh delle cache dei client), aggiunto firebase-messaging.js al
+precache (usato da index.html ma non precachato).
+
+## 🟡 Da tenere d'occhio
+
+### 6. "Hashing" password lato client
+La verifica è SHA-256 con salt fisso lato client, con fallback al
+confronto in chiaro. Non è una protezione reale (il client è
+manipolabile per definizione): decade con la migrazione a Deepwork ID.
+
+### 7. Config Firebase esposta nel client
+Normale per Firebase (le chiavi web non sono segrete), MA la sicurezza
+dipende interamente dalle regole (punto 3). Nessuna azione sul client;
+tutta l'attenzione va sulle rules.
+
+## Prossime azioni in ordine
+1. (weekend, fondatore) Regole attuali del progetto esistente → repo.
+2. (weekend, fondatore) Conferma mitigazione ponte per le password +
+   verifica natura dei dati di default (reali o fantasia).
+3. (cicli automatici) Proseguire fasi Deepwork ID (soluzione definitiva).
