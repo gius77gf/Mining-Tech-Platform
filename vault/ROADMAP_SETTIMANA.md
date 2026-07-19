@@ -10,16 +10,21 @@ premium (repo genesi-app). Deepwork ID = spina dorsale da creare
 tutte le 6 app verticali (Scudo, Campo, Flotta, Conti, Sentinella,
 Terra).
 
-## 1. Creare le repository GitHub per tutte le app previste
-[sequenziale] — taglia S — stato: da fare
-Una repo per app: deepwork-id + le 6 app verticali (Genesi ha già la
-sua). NOTA OPERATIVA: le sessioni automatiche non possono creare repo
-(non hanno strumenti GitHub API) — questo task va eseguito nella
-sessione interattiva di kickoff, prima dell'avvio dei cicli automatici.
+## 1. Creare la struttura per tutte le app previste
+[sequenziale] — taglia S — stato: fatto (2026-07-19)
+DECISIONE DEL FONDATORE: monorepo invece di repo separate — tutte le
+app vivono come cartelle in questo repo (apps/deepwork-id, apps/scudo,
+apps/campo, apps/flotta, apps/conti, apps/sentinella, apps/terra) con
+stile condiviso in shared/. Genesi è stata SPOSTATA da genesi-app a
+apps/genesi (decisione esplicita del fondatore: meglio ora che in
+futuro, app ancora embrionale). Il vecchio repo genesi-app resta come
+archivio storico, da non usare più per lo sviluppo. Vantaggio chiave:
+le sessioni automatiche possono lavorare su tutte le app senza limiti
+di accesso multi-repo.
 
 ## 2. Deepwork ID — fondamenta (il punto fondamentale del progetto)
 [sequenziale, dipende da 1] — taglia L — stato: da fare
-Nel repo dedicato deepwork-id. Requisiti dal fondatore:
+In apps/deepwork-id/. Requisiti dal fondatore:
 - Profilo personale unico per accedere a tutte le app dell'ecosistema
   e alle funzionalità per cui si è pagato (abbonamenti/entitlement).
 - MULTI-TENANT RIGOROSO: le app saranno vendute a più aziende, spesso
@@ -34,7 +39,7 @@ Nel repo dedicato deepwork-id. Requisiti dal fondatore:
 ## 3. Scheletri delle 6 app verticali
 [dopo 2; parallelo-gruppo-A tra loro] — taglia L complessiva — stato: da fare
 Scudo, Campo, Flotta, Conti, Sentinella, Terra — ognuna nella propria
-repo creata al task 1. REGOLA VINCOLANTE DEL FONDATORE: tutte le app
+cartella apps/<nome>/ creata al task 1. REGOLA VINCOLANTE DEL FONDATORE: tutte le app
 seguono lo stile grafico "deepwork" (colori e resto identici) — nessuna
 direzione estetica diversa se non dichiarata esplicitamente dal
 fondatore; personalizzazioni ammesse solo su ciò che serve alla

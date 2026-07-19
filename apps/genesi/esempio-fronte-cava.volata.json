@@ -1,0 +1,43 @@
+{
+  "schemaV": 1,
+  "tipo": "volata-deepwork",
+  "_nota": "Volata di esempio con FRONTE SAGOMATO (skyline variabile + cresta curva) per dimostrare l'import in Deepwork Replica. Importa questo file con il bottone 'Importa'.",
+  "volata": {
+    "id": "vol_esempio_sagomato",
+    "sitoId": null,
+    "tipo": "cava",
+    "numero": 7,
+    "data": "2026-06-14",
+    "fronte": {
+      "lunghezza_m": 49,
+      "altezza_m": 16,
+      "profilo": [
+        { "x": 0, "y": 0 },
+        { "x": 12, "y": 3.5 },
+        { "x": 24, "y": 1 },
+        { "x": 36, "y": 4.5 },
+        { "x": 49, "y": 1.5 }
+      ]
+    },
+    "geometria": { "spalla_m": 4.5, "interasse_m": 3.5, "borraggio_m": 2.5, "file": 1 },
+    "default": { "diametro_mm": 89, "profondita_m": 13, "esplosivo": "ANFO", "ritardo_ms": 25, "innesco": "Nonel" },
+    "fori": [
+      { "id": "foro_1",  "num": 1,  "x": 1.75,  "prof": 9,  "diam": 89, "kg": 38, "esplosivo": "ANFO", "ritardo": 0,   "innesco": "Nonel", "sequenza": 1 },
+      { "id": "foro_2",  "num": 2,  "x": 5.25,  "prof": 10, "diam": 89, "kg": 42, "esplosivo": "ANFO", "ritardo": 25,  "innesco": "Nonel", "sequenza": 2 },
+      { "id": "foro_3",  "num": 3,  "x": 8.75,  "prof": 12, "diam": 89, "kg": 50, "esplosivo": "ANFO", "ritardo": 50,  "innesco": "Nonel", "sequenza": 3 },
+      { "id": "foro_4",  "num": 4,  "x": 12.25, "prof": 14, "diam": 89, "kg": 58, "esplosivo": "ANFO", "ritardo": 75,  "innesco": "Nonel", "sequenza": 4 },
+      { "id": "foro_5",  "num": 5,  "x": 15.75, "prof": 15, "diam": 89, "kg": 62, "esplosivo": "ANFO", "ritardo": 100, "innesco": "Nonel", "sequenza": 5 },
+      { "id": "foro_6",  "num": 6,  "x": 19.25, "prof": 16, "diam": 89, "kg": 66, "esplosivo": "ANFO", "ritardo": 125, "innesco": "Nonel", "sequenza": 6 },
+      { "id": "foro_7",  "num": 7,  "x": 22.75, "prof": 15, "diam": 89, "kg": 62, "esplosivo": "ANFO", "ritardo": 150, "innesco": "Nonel", "sequenza": 7 },
+      { "id": "foro_8",  "num": 8,  "x": 26.25, "prof": 14, "diam": 89, "kg": 58, "esplosivo": "ANFO", "ritardo": 175, "innesco": "Nonel", "sequenza": 8 },
+      { "id": "foro_9",  "num": 9,  "x": 29.75, "prof": 13, "diam": 89, "kg": 54, "esplosivo": "ANFO", "ritardo": 200, "innesco": "Nonel", "sequenza": 9 },
+      { "id": "foro_10", "num": 10, "x": 33.25, "prof": 12, "diam": 89, "kg": 50, "esplosivo": "ANFO", "ritardo": 225, "innesco": "Nonel", "sequenza": 10 },
+      { "id": "foro_11", "num": 11, "x": 36.75, "prof": 11, "diam": 89, "kg": 46, "esplosivo": "ANFO", "ritardo": 250, "innesco": "Nonel", "sequenza": 11 },
+      { "id": "foro_12", "num": 12, "x": 40.25, "prof": 11, "diam": 89, "kg": 46, "esplosivo": "ANFO", "ritardo": 275, "innesco": "Nonel", "sequenza": 12 },
+      { "id": "foro_13", "num": 13, "x": 43.75, "prof": 10, "diam": 89, "kg": 42, "esplosivo": "ANFO", "ritardo": 300, "innesco": "Nonel", "sequenza": 13 },
+      { "id": "foro_14", "num": 14, "x": 47.25, "prof": 9,  "diam": 89, "kg": 38, "esplosivo": "ANFO", "ritardo": 325, "innesco": "Nonel", "sequenza": 14 }
+    ],
+    "connessioni": []
+  },
+  "sim": { "frontePath": null, "fronteFormato": "glb", "direzione": "sx->dx" }
+}

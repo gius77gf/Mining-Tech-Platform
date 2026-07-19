@@ -1,0 +1,77 @@
+{
+  "_meta": {
+    "versione": 1,
+    "generato": "2026-06-12",
+    "fonte": "VOLATE_misure2.json — sottoinsieme robusto: 6 sequenze (criteri: 200-700ms, nBande>=5, |corr|>=0.3) su 23 misurate, da archivio 190 video aziendali (48 da terra)",
+    "dominio_validita": "progetto-tipo aziendale: maglia 4.5x3.5 m, Nonel 25 ms superficie, 15-20 fori, calcare; riprese da ~50 m da terra",
+    "nota": "ogni blocco dichiara la provenienza: 'misurato' (dal dataset), 'osservato' (stima manuale dai frame di riferimento VID_20250606), 'teorico' (letteratura/fisica), 'estrattore_v1' (misura automatica pianificata)"
+  },
+  "sequenza": {
+    "durataTipicaMs": 400,
+    "durataRangeMs": [233, 467],
+    "ritardoNominaleMs": 25,
+    "direzioneDefault": "sx->dx",
+    "_provenienza": "misurato: mediana e range dei 6 video robusti; direzione 4/6 sx->dx (16/25 sul dataset esteso); ritardo nominale dichiarato dal fondatore, coerente con gap onset misurati 33-67ms a risoluzione 33ms/frame"
+  },
+  "gettoColletto": {
+    "v0_ms": 20,
+    "vitaS": 1.0,
+    "quotaPiccoM": 8,
+    "spriteForo": 180,
+    "miniChunkScuri": 7,
+    "ritardoDopoDetonazioneS": 0.0,
+    "_provenienza": "osservato: getti verticali 5-10 m nei frame r15.8-r17.0 di VID_20250606; estrattore_v1 per misura automatica altezza"
+  },
+  "bulge": {
+    "inizioDopoDetonazioneS": 0.2,
+    "durataS": 0.3,
+    "ampiezzaBaseM": 1.4,
+    "ampiezzaRangeM": [0.8, 2.0],
+    "_provenienza": "osservato: rigonfiamento coerente del fronte tra r16.35 e r16.6 (0.2-0.5 s); ampiezza proporzionale al powder factor del foro"
+  },
+  "distacco": {
+    "inizioDopoDetonazioneS": 0.45,
+    "vzM_s": [4, 10],
+    "vzDefaultM_s": 6.5,
+    "vyM_s": 0,
+    "vxJitterM_s": 0.5,
+    "flyrockPerForo": 2,
+    "flyrockVyM_s": [8, 15],
+    "_provenienza": "osservato: ribaltamento in avanti (non fontana) nei frame r16.6-r17.6; velocita da spostamento fronte per frame, estrattore_v1 per misura fine"
+  },
+  "caduta": {
+    "gM_s2": 9.81,
+    "dragK_s": 0.07,
+    "fineDopoDetonazioneS": 2.5,
+    "_provenienza": "teorico (g, drag leggero); fine caduta osservata ~2.5 s in r19.0"
+  },
+  "polvereNuvola": {
+    "inizioDopoT0S": 2.0,
+    "crescitaS": 6.0,
+    "galleggiamentoM_s": 0.7,
+    "ventoDefaultM_s": [0.8, 0, 0],
+    "spriteTotali": 50,
+    "raggioSpriteM": [10, 30],
+    "vitaS": 45,
+    "_provenienza": "osservato: nuvola avvolge la scena tra r19.0 (t0+2.9) e r24.5 (t0+8.4), persiste oltre fine video; estrattore_v1 per curva crescita area-polvere"
+  },
+  "gonnaBasale": {
+    "inizioDopoImpattoS": 0.0,
+    "vxzM_s": 3,
+    "decadimentoS": 2.0,
+    "altezzaMaxM": 3,
+    "spriteTotali": 500,
+    "_provenienza": "osservato: espansione radente al suolo in r17.0-r17.6"
+  },
+  "muckpile": {
+    "cellaM": 0.5,
+    "angoloRiposoDeg": 37,
+    "rigonfiamento": 1.4,
+    "blocchiGrandiAffondo": [0.3, 0.6],
+    "_provenienza": "teorico: angolo riposo calcare fratturato 35-40 deg, swell factor 1.4; profilo cumulo da depth-recon post volata pianificato v1/v2"
+  },
+  "audio": {
+    "velSuonoM_s": 340,
+    "_provenienza": "teorico: ritardo boato = distanza camera / 340"
+  }
+}

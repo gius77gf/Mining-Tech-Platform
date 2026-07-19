@@ -1,0 +1,2106 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Deepwork Genesi — Simulatore volate calibrato su volate vere</title>
+<meta name="theme-color" content="#14100a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Genesi">
+<meta name="application-name" content="Deepwork Genesi">
+<link rel="manifest" href='data:application/manifest+json,{"name":"Deepwork Genesi — Simulatore Volate","short_name":"Genesi","description":"Simulatore di volate calibrato su volate reali","start_url":"./genesi.html","scope":"./","display":"standalone","orientation":"any","background_color":"%23100d07","theme_color":"%23161009","categories":["business","productivity"],"lang":"it","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 180 180%27><linearGradient id=%27ic%27 x1=%270%27 y1=%270%27 x2=%270%27 y2=%271%27><stop offset=%270%27 stop-color=%27%23ffe08a%27/><stop offset=%270.42%27 stop-color=%27%23ffab00%27/><stop offset=%270.78%27 stop-color=%27%23ff6d00%27/><stop offset=%271%27 stop-color=%27%23b5450a%27/></linearGradient><rect width=%27180%27 height=%27180%27 rx=%2732%27 fill=%27%23100d07%27/><g transform=%27translate(92.8 109.9) scale(4.205)%27><path d=%27M8.11 -14.95L7.25 -15.10L6.38 -15.21L5.53 -15.28L4.69 -15.30L3.86 -15.28L3.04 -15.22L2.24 -15.12L1.46 -14.98L0.70 -14.80L-0.04 -14.59L-0.76 -14.35L-1.45 -14.08L-2.12 -13.78L-2.76 -13.45L-3.38 -13.09L-3.97 -12.71L-4.53 -12.30L-5.06 -11.88L-5.56 -11.43L-6.03 -10.97L-6.47 -10.50L-6.88 -10.00L-7.26 -9.50L-7.61 -8.99L-7.93 -8.47L-8.22 -7.94L-8.47 -7.40L-8.70 -6.86L-8.89 -6.32L-9.06 -5.78L-9.19 -5.24L-9.30 -4.70L-9.38 -4.17L-9.43 -3.64L-9.45 -3.11L-9.45 -2.60L-9.42 -2.09L-9.37 -1.59L-9.29 -1.10L-9.20 -0.63L-9.08 -0.16L-8.93 0.29L-8.77 0.72L-8.59 1.14L-8.40 1.54L-8.18 1.93L-7.95 2.30L-7.71 2.66L-7.45 2.99L-7.18 3.31L-6.90 3.61L-6.61 3.89L-6.31 4.15L-6.00 4.39L-5.69 4.62L-5.37 4.82L-5.04 5.01L-4.71 5.17L-4.38 5.32L-4.05 5.45L-3.71 5.56L-3.38 5.65L-3.04 5.72L-2.71 5.78L-2.38 5.82L-2.06 5.84L-1.74 5.84L-1.42 5.83L-1.11 5.81L-0.81 5.77L-0.51 5.71L-0.22 5.64L0.06 5.56L0.33 5.47L0.60 5.36L0.85 5.24L1.10 5.11L1.33 4.98L1.55 4.83L1.76 4.67L1.97 4.51L2.16 4.34L2.33 4.16L2.50 3.98L2.65 3.79L2.80 3.60L2.93 3.40L3.05 3.20L3.16 3.00L3.25 2.79L3.33 2.59L3.41 2.38L3.47 2.17L3.52 1.97L3.56 1.76L3.59 1.56L3.60 1.36L3.61 1.16L3.61 0.96L3.60 0.77L3.57 0.58L3.54 0.39L3.51 0.21L3.46 0.03L3.40 -0.14L3.34 -0.30L3.27 -0.46L3.19 -0.62L3.11 -0.76L3.02 -0.90L2.93 -1.04L2.83 -1.16L2.73 -1.28L2.62 -1.40L2.51 -1.50L2.39 -1.60L2.27 -1.69L2.15 -1.78L2.03 -1.85L1.90 -1.92L1.78 -1.99L1.65 -2.04L1.52 -2.09L1.40 -2.13L1.27 -2.16L1.14 -2.19L1.01 -2.21L0.89 -2.22L0.77 -2.23L0.64 -2.23L0.52 -2.23L0.40 -2.22L0.29 -2.20L0.18 -2.18L0.07 -2.15L-0.04 -2.12L-0.14 -2.08L-0.24 -2.04L-0.34 -1.99L-0.43 -1.94L-0.52 -1.89L-0.61 -1.83L-0.69 -1.77L-0.76 -1.71L-0.84 -1.65L-0.90 -1.58L-0.97 -1.51L-1.02 -1.44L-1.08 -1.36L-1.13 -1.29L-1.17 -1.21L-1.21 -1.13L-1.25 -1.05L-1.28 -0.97L-1.31 -0.90L-1.33 -0.82L-1.35 -0.74L-1.36 -0.66L-1.37 -0.58L-1.38 -0.50L-1.38 -0.43L-1.38 -0.35L-1.37 -0.28L-1.36 -0.21L-1.35 -0.14L-1.34 -0.07L-1.32 -0.00L-1.30 0.06L-0.71 -0.09L-0.72 -0.13L-0.72 -0.16L-0.72 -0.20L-0.72 -0.24L-0.72 -0.28L-0.72 -0.32L-0.71 -0.36L-0.70 -0.41L-0.69 -0.45L-0.68 -0.49L-0.67 -0.53L-0.65 -0.57L-0.63 -0.61L-0.61 -0.65L-0.58 -0.69L-0.55 -0.73L-0.53 -0.77L-0.49 -0.81L-0.46 -0.84L-0.42 -0.88L-0.38 -0.91L-0.34 -0.95L-0.30 -0.98L-0.25 -1.01L-0.21 -1.03L-0.16 -1.06L-0.11 -1.08L-0.05 -1.10L0.00 -1.12L0.06 -1.14L0.12 -1.15L0.18 -1.16L0.24 -1.17L0.30 -1.17L0.37 -1.17L0.43 -1.17L0.50 -1.17L0.56 -1.16L0.63 -1.14L0.70 -1.13L0.76 -1.11L0.83 -1.09L0.90 -1.06L0.96 -1.03L1.03 -1.00L1.09 -0.96L1.16 -0.92L1.22 -0.87L1.28 -0.82L1.34 -0.77L1.40 -0.71L1.46 -0.65L1.51 -0.58L1.56 -0.52L1.61 -0.44L1.65 -0.37L1.70 -0.29L1.73 -0.21L1.77 -0.12L1.80 -0.03L1.83 0.06L1.85 0.15L1.87 0.25L1.88 0.34L1.89 0.45L1.90 0.55L1.90 0.65L1.89 0.76L1.88 0.86L1.86 0.97L1.84 1.08L1.81 1.19L1.77 1.30L1.73 1.41L1.69 1.51L1.63 1.62L1.58 1.73L1.51 1.83L1.44 1.93L1.36 2.03L1.28 2.13L1.19 2.23L1.09 2.32L0.99 2.41L0.88 2.49L0.77 2.57L0.65 2.65L0.52 2.72L0.39 2.78L0.26 2.84L0.12 2.89L-0.03 2.94L-0.18 2.98L-0.33 3.01L-0.49 3.04L-0.65 3.06L-0.82 3.07L-0.98 3.07L-1.15 3.06L-1.33 3.05L-1.50 3.02L-1.67 2.99L-1.85 2.95L-2.03 2.90L-2.20 2.83L-2.38 2.76L-2.55 2.68L-2.72 2.59L-2.89 2.49L-3.06 2.38L-3.22 2.26L-3.38 2.12L-3.54 1.98L-3.69 1.83L-3.84 1.67L-3.97 1.50L-4.11 1.32L-4.23 1.13L-4.35 0.93L-4.46 0.72L-4.56 0.51L-4.65 0.28L-4.73 0.05L-4.80 -0.19L-4.86 -0.44L-4.90 -0.69L-4.94 -0.95L-4.96 -1.21L-4.97 -1.48L-4.96 -1.75L-4.94 -2.03L-4.91 -2.31L-4.86 -2.59L-4.80 -2.87L-4.72 -3.16L-4.63 -3.44L-4.52 -3.73L-4.40 -4.01L-4.25 -4.29L-4.10 -4.57L-3.92 -4.84L-3.73 -5.11L-3.53 -5.37L-3.30 -5.62L-3.07 -5.87L-2.81 -6.11L-2.54 -6.34L-2.26 -6.56L-1.96 -6.76L-1.64 -6.96L-1.31 -7.14L-0.97 -7.31L-0.61 -7.46L-0.24 -7.60L0.14 -7.72L0.54 -7.82L0.94 -7.90L1.36 -7.97L1.78 -8.01L2.21 -8.03L2.65 -8.04L3.10 -8.02L3.55 -7.97L4.00 -7.90L4.46 -7.81L4.92 -7.70L5.38 -7.56L5.84 -7.39Z%27 fill=%27url(%23ic)%27 stroke=%27%235a3206%27 stroke-width=%270.7%27 stroke-linejoin=%27round%27/><line x1=%27-1.38%27 y1=%27-0.51%27 x2=%27-0.70%27 y2=%27-0.42%27 stroke=%27%236e3a08%27 stroke-width=%270.55%27 stroke-linecap=%27round%27/><line x1=%27-1.19%27 y1=%27-1.17%27 x2=%27-0.53%27 y2=%27-0.76%27 stroke=%27%236e3a08%27 stroke-width=%270.55%27 stroke-linecap=%27round%27/><line x1=%27-0.70%27 y1=%27-1.77%27 x2=%27-0.19%27 y2=%27-1.04%27 stroke=%27%236e3a08%27 stroke-width=%270.55%27 stroke-linecap=%27round%27/><line x1=%270.10%27 y1=%27-2.16%27 x2=%270.28%27 y2=%27-1.17%27 stroke=%27%236e3a08%27 stroke-width=%270.55%27 stroke-linecap=%27round%27/><line x1=%271.10%27 y1=%27-2.20%27 x2=%270.84%27 y2=%27-1.08%27 stroke=%27%236e3a08%27 stroke-width=%270.55%27 stroke-linecap=%27round%27/><line x1=%272.17%27 y1=%27-1.77%27 x2=%271.37%27 y2=%27-0.74%27 stroke=%27%236e3a08%27 stroke-width=%270.55%27 stroke-linecap=%27round%27/><line x1=%273.07%27 y1=%27-0.83%27 x2=%271.77%27 y2=%27-0.13%27 stroke=%27%236e3a08%27 stroke-width=%270.55%27 stroke-linecap=%27round%27/><line x1=%273.57%27 y1=%270.57%27 x2=%271.89%27 y2=%270.69%27 stroke=%27%236e3a08%27 stroke-width=%270.55%27 stroke-linecap=%27round%27/><line x1=%273.45%27 y1=%272.25%27 x2=%271.65%27 y2=%271.60%27 stroke=%27%236e3a08%27 stroke-width=%270.55%27 stroke-linecap=%27round%27/><line x1=%272.53%27 y1=%273.94%27 x2=%270.97%27 y2=%272.42%27 stroke=%27%236e3a08%27 stroke-width=%270.55%27 stroke-linecap=%27round%27/><line x1=%270.80%27 y1=%275.27%27 x2=%27-0.12%27 y2=%272.97%27 stroke=%27%236e3a08%27 stroke-width=%270.55%27 stroke-linecap=%27round%27/><line x1=%27-1.62%27 y1=%275.84%27 x2=%27-1.51%27 y2=%273.02%27 stroke=%27%236e3a08%27 stroke-width=%270.55%27 stroke-linecap=%27round%27/><line x1=%27-4.40%27 y1=%275.31%27 x2=%27-2.97%27 y2=%272.44%27 stroke=%27%236e3a08%27 stroke-width=%270.55%27 stroke-linecap=%27round%27/><line x1=%27-7.04%27 y1=%273.47%27 x2=%27-4.22%27 y2=%271.15%27 stroke=%27%236e3a08%27 stroke-width=%270.55%27 stroke-linecap=%27round%27/><line x1=%27-8.92%27 y1=%270.33%27 x2=%27-4.91%27 y2=%27-0.76%27 stroke=%27%236e3a08%27 stroke-width=%270.55%27 stroke-linecap=%27round%27/><line x1=%27-9.41%27 y1=%27-3.81%27 x2=%27-4.75%27 y2=%27-3.08%27 stroke=%27%236e3a08%27 stroke-width=%270.55%27 stroke-linecap=%27round%27/><line x1=%27-8.01%27 y1=%27-8.33%27 x2=%27-3.50%27 y2=%27-5.40%27 stroke=%27%236e3a08%27 stroke-width=%270.55%27 stroke-linecap=%27round%27/><line x1=%27-4.44%27 y1=%27-12.37%27 x2=%27-1.12%27 y2=%27-7.24%27 stroke=%27%236e3a08%27 stroke-width=%270.55%27 stroke-linecap=%27round%27/><line x1=%271.14%27 y1=%27-14.91%27 x2=%272.20%27 y2=%27-8.03%27 stroke=%27%236e3a08%27 stroke-width=%270.55%27 stroke-linecap=%27round%27/></g></svg>","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}'>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><linearGradient id='ic' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23ffe08a'/><stop offset='0.42' stop-color='%23ffab00'/><stop offset='0.78' stop-color='%23ff6d00'/><stop offset='1' stop-color='%23b5450a'/></linearGradient><rect width='64' height='64' fill='%23100d07'/><g transform='translate(33.0 39.1) scale(1.495)'><path d='M8.11 -14.95L7.25 -15.10L6.38 -15.21L5.53 -15.28L4.69 -15.30L3.86 -15.28L3.04 -15.22L2.24 -15.12L1.46 -14.98L0.70 -14.80L-0.04 -14.59L-0.76 -14.35L-1.45 -14.08L-2.12 -13.78L-2.76 -13.45L-3.38 -13.09L-3.97 -12.71L-4.53 -12.30L-5.06 -11.88L-5.56 -11.43L-6.03 -10.97L-6.47 -10.50L-6.88 -10.00L-7.26 -9.50L-7.61 -8.99L-7.93 -8.47L-8.22 -7.94L-8.47 -7.40L-8.70 -6.86L-8.89 -6.32L-9.06 -5.78L-9.19 -5.24L-9.30 -4.70L-9.38 -4.17L-9.43 -3.64L-9.45 -3.11L-9.45 -2.60L-9.42 -2.09L-9.37 -1.59L-9.29 -1.10L-9.20 -0.63L-9.08 -0.16L-8.93 0.29L-8.77 0.72L-8.59 1.14L-8.40 1.54L-8.18 1.93L-7.95 2.30L-7.71 2.66L-7.45 2.99L-7.18 3.31L-6.90 3.61L-6.61 3.89L-6.31 4.15L-6.00 4.39L-5.69 4.62L-5.37 4.82L-5.04 5.01L-4.71 5.17L-4.38 5.32L-4.05 5.45L-3.71 5.56L-3.38 5.65L-3.04 5.72L-2.71 5.78L-2.38 5.82L-2.06 5.84L-1.74 5.84L-1.42 5.83L-1.11 5.81L-0.81 5.77L-0.51 5.71L-0.22 5.64L0.06 5.56L0.33 5.47L0.60 5.36L0.85 5.24L1.10 5.11L1.33 4.98L1.55 4.83L1.76 4.67L1.97 4.51L2.16 4.34L2.33 4.16L2.50 3.98L2.65 3.79L2.80 3.60L2.93 3.40L3.05 3.20L3.16 3.00L3.25 2.79L3.33 2.59L3.41 2.38L3.47 2.17L3.52 1.97L3.56 1.76L3.59 1.56L3.60 1.36L3.61 1.16L3.61 0.96L3.60 0.77L3.57 0.58L3.54 0.39L3.51 0.21L3.46 0.03L3.40 -0.14L3.34 -0.30L3.27 -0.46L3.19 -0.62L3.11 -0.76L3.02 -0.90L2.93 -1.04L2.83 -1.16L2.73 -1.28L2.62 -1.40L2.51 -1.50L2.39 -1.60L2.27 -1.69L2.15 -1.78L2.03 -1.85L1.90 -1.92L1.78 -1.99L1.65 -2.04L1.52 -2.09L1.40 -2.13L1.27 -2.16L1.14 -2.19L1.01 -2.21L0.89 -2.22L0.77 -2.23L0.64 -2.23L0.52 -2.23L0.40 -2.22L0.29 -2.20L0.18 -2.18L0.07 -2.15L-0.04 -2.12L-0.14 -2.08L-0.24 -2.04L-0.34 -1.99L-0.43 -1.94L-0.52 -1.89L-0.61 -1.83L-0.69 -1.77L-0.76 -1.71L-0.84 -1.65L-0.90 -1.58L-0.97 -1.51L-1.02 -1.44L-1.08 -1.36L-1.13 -1.29L-1.17 -1.21L-1.21 -1.13L-1.25 -1.05L-1.28 -0.97L-1.31 -0.90L-1.33 -0.82L-1.35 -0.74L-1.36 -0.66L-1.37 -0.58L-1.38 -0.50L-1.38 -0.43L-1.38 -0.35L-1.37 -0.28L-1.36 -0.21L-1.35 -0.14L-1.34 -0.07L-1.32 -0.00L-1.30 0.06L-0.71 -0.09L-0.72 -0.13L-0.72 -0.16L-0.72 -0.20L-0.72 -0.24L-0.72 -0.28L-0.72 -0.32L-0.71 -0.36L-0.70 -0.41L-0.69 -0.45L-0.68 -0.49L-0.67 -0.53L-0.65 -0.57L-0.63 -0.61L-0.61 -0.65L-0.58 -0.69L-0.55 -0.73L-0.53 -0.77L-0.49 -0.81L-0.46 -0.84L-0.42 -0.88L-0.38 -0.91L-0.34 -0.95L-0.30 -0.98L-0.25 -1.01L-0.21 -1.03L-0.16 -1.06L-0.11 -1.08L-0.05 -1.10L0.00 -1.12L0.06 -1.14L0.12 -1.15L0.18 -1.16L0.24 -1.17L0.30 -1.17L0.37 -1.17L0.43 -1.17L0.50 -1.17L0.56 -1.16L0.63 -1.14L0.70 -1.13L0.76 -1.11L0.83 -1.09L0.90 -1.06L0.96 -1.03L1.03 -1.00L1.09 -0.96L1.16 -0.92L1.22 -0.87L1.28 -0.82L1.34 -0.77L1.40 -0.71L1.46 -0.65L1.51 -0.58L1.56 -0.52L1.61 -0.44L1.65 -0.37L1.70 -0.29L1.73 -0.21L1.77 -0.12L1.80 -0.03L1.83 0.06L1.85 0.15L1.87 0.25L1.88 0.34L1.89 0.45L1.90 0.55L1.90 0.65L1.89 0.76L1.88 0.86L1.86 0.97L1.84 1.08L1.81 1.19L1.77 1.30L1.73 1.41L1.69 1.51L1.63 1.62L1.58 1.73L1.51 1.83L1.44 1.93L1.36 2.03L1.28 2.13L1.19 2.23L1.09 2.32L0.99 2.41L0.88 2.49L0.77 2.57L0.65 2.65L0.52 2.72L0.39 2.78L0.26 2.84L0.12 2.89L-0.03 2.94L-0.18 2.98L-0.33 3.01L-0.49 3.04L-0.65 3.06L-0.82 3.07L-0.98 3.07L-1.15 3.06L-1.33 3.05L-1.50 3.02L-1.67 2.99L-1.85 2.95L-2.03 2.90L-2.20 2.83L-2.38 2.76L-2.55 2.68L-2.72 2.59L-2.89 2.49L-3.06 2.38L-3.22 2.26L-3.38 2.12L-3.54 1.98L-3.69 1.83L-3.84 1.67L-3.97 1.50L-4.11 1.32L-4.23 1.13L-4.35 0.93L-4.46 0.72L-4.56 0.51L-4.65 0.28L-4.73 0.05L-4.80 -0.19L-4.86 -0.44L-4.90 -0.69L-4.94 -0.95L-4.96 -1.21L-4.97 -1.48L-4.96 -1.75L-4.94 -2.03L-4.91 -2.31L-4.86 -2.59L-4.80 -2.87L-4.72 -3.16L-4.63 -3.44L-4.52 -3.73L-4.40 -4.01L-4.25 -4.29L-4.10 -4.57L-3.92 -4.84L-3.73 -5.11L-3.53 -5.37L-3.30 -5.62L-3.07 -5.87L-2.81 -6.11L-2.54 -6.34L-2.26 -6.56L-1.96 -6.76L-1.64 -6.96L-1.31 -7.14L-0.97 -7.31L-0.61 -7.46L-0.24 -7.60L0.14 -7.72L0.54 -7.82L0.94 -7.90L1.36 -7.97L1.78 -8.01L2.21 -8.03L2.65 -8.04L3.10 -8.02L3.55 -7.97L4.00 -7.90L4.46 -7.81L4.92 -7.70L5.38 -7.56L5.84 -7.39Z' fill='url(%23ic)' stroke='%235a3206' stroke-width='0.7' stroke-linejoin='round'/><line x1='-1.38' y1='-0.51' x2='-0.70' y2='-0.42' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='-1.19' y1='-1.17' x2='-0.53' y2='-0.76' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='-0.70' y1='-1.77' x2='-0.19' y2='-1.04' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='0.10' y1='-2.16' x2='0.28' y2='-1.17' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='1.10' y1='-2.20' x2='0.84' y2='-1.08' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='2.17' y1='-1.77' x2='1.37' y2='-0.74' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='3.07' y1='-0.83' x2='1.77' y2='-0.13' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='3.57' y1='0.57' x2='1.89' y2='0.69' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='3.45' y1='2.25' x2='1.65' y2='1.60' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='2.53' y1='3.94' x2='0.97' y2='2.42' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='0.80' y1='5.27' x2='-0.12' y2='2.97' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='-1.62' y1='5.84' x2='-1.51' y2='3.02' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='-4.40' y1='5.31' x2='-2.97' y2='2.44' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='-7.04' y1='3.47' x2='-4.22' y2='1.15' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='-8.92' y1='0.33' x2='-4.91' y2='-0.76' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='-9.41' y1='-3.81' x2='-4.75' y2='-3.08' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='-8.01' y1='-8.33' x2='-3.50' y2='-5.40' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='-4.44' y1='-12.37' x2='-1.12' y2='-7.24' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='1.14' y1='-14.91' x2='2.20' y2='-8.03' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/></g></svg>">
+<link rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><linearGradient id='ic' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23ffe08a'/><stop offset='0.42' stop-color='%23ffab00'/><stop offset='0.78' stop-color='%23ff6d00'/><stop offset='1' stop-color='%23b5450a'/></linearGradient><rect width='180' height='180' fill='%23100d07'/><g transform='translate(92.8 109.9) scale(4.205)'><path d='M8.11 -14.95L7.25 -15.10L6.38 -15.21L5.53 -15.28L4.69 -15.30L3.86 -15.28L3.04 -15.22L2.24 -15.12L1.46 -14.98L0.70 -14.80L-0.04 -14.59L-0.76 -14.35L-1.45 -14.08L-2.12 -13.78L-2.76 -13.45L-3.38 -13.09L-3.97 -12.71L-4.53 -12.30L-5.06 -11.88L-5.56 -11.43L-6.03 -10.97L-6.47 -10.50L-6.88 -10.00L-7.26 -9.50L-7.61 -8.99L-7.93 -8.47L-8.22 -7.94L-8.47 -7.40L-8.70 -6.86L-8.89 -6.32L-9.06 -5.78L-9.19 -5.24L-9.30 -4.70L-9.38 -4.17L-9.43 -3.64L-9.45 -3.11L-9.45 -2.60L-9.42 -2.09L-9.37 -1.59L-9.29 -1.10L-9.20 -0.63L-9.08 -0.16L-8.93 0.29L-8.77 0.72L-8.59 1.14L-8.40 1.54L-8.18 1.93L-7.95 2.30L-7.71 2.66L-7.45 2.99L-7.18 3.31L-6.90 3.61L-6.61 3.89L-6.31 4.15L-6.00 4.39L-5.69 4.62L-5.37 4.82L-5.04 5.01L-4.71 5.17L-4.38 5.32L-4.05 5.45L-3.71 5.56L-3.38 5.65L-3.04 5.72L-2.71 5.78L-2.38 5.82L-2.06 5.84L-1.74 5.84L-1.42 5.83L-1.11 5.81L-0.81 5.77L-0.51 5.71L-0.22 5.64L0.06 5.56L0.33 5.47L0.60 5.36L0.85 5.24L1.10 5.11L1.33 4.98L1.55 4.83L1.76 4.67L1.97 4.51L2.16 4.34L2.33 4.16L2.50 3.98L2.65 3.79L2.80 3.60L2.93 3.40L3.05 3.20L3.16 3.00L3.25 2.79L3.33 2.59L3.41 2.38L3.47 2.17L3.52 1.97L3.56 1.76L3.59 1.56L3.60 1.36L3.61 1.16L3.61 0.96L3.60 0.77L3.57 0.58L3.54 0.39L3.51 0.21L3.46 0.03L3.40 -0.14L3.34 -0.30L3.27 -0.46L3.19 -0.62L3.11 -0.76L3.02 -0.90L2.93 -1.04L2.83 -1.16L2.73 -1.28L2.62 -1.40L2.51 -1.50L2.39 -1.60L2.27 -1.69L2.15 -1.78L2.03 -1.85L1.90 -1.92L1.78 -1.99L1.65 -2.04L1.52 -2.09L1.40 -2.13L1.27 -2.16L1.14 -2.19L1.01 -2.21L0.89 -2.22L0.77 -2.23L0.64 -2.23L0.52 -2.23L0.40 -2.22L0.29 -2.20L0.18 -2.18L0.07 -2.15L-0.04 -2.12L-0.14 -2.08L-0.24 -2.04L-0.34 -1.99L-0.43 -1.94L-0.52 -1.89L-0.61 -1.83L-0.69 -1.77L-0.76 -1.71L-0.84 -1.65L-0.90 -1.58L-0.97 -1.51L-1.02 -1.44L-1.08 -1.36L-1.13 -1.29L-1.17 -1.21L-1.21 -1.13L-1.25 -1.05L-1.28 -0.97L-1.31 -0.90L-1.33 -0.82L-1.35 -0.74L-1.36 -0.66L-1.37 -0.58L-1.38 -0.50L-1.38 -0.43L-1.38 -0.35L-1.37 -0.28L-1.36 -0.21L-1.35 -0.14L-1.34 -0.07L-1.32 -0.00L-1.30 0.06L-0.71 -0.09L-0.72 -0.13L-0.72 -0.16L-0.72 -0.20L-0.72 -0.24L-0.72 -0.28L-0.72 -0.32L-0.71 -0.36L-0.70 -0.41L-0.69 -0.45L-0.68 -0.49L-0.67 -0.53L-0.65 -0.57L-0.63 -0.61L-0.61 -0.65L-0.58 -0.69L-0.55 -0.73L-0.53 -0.77L-0.49 -0.81L-0.46 -0.84L-0.42 -0.88L-0.38 -0.91L-0.34 -0.95L-0.30 -0.98L-0.25 -1.01L-0.21 -1.03L-0.16 -1.06L-0.11 -1.08L-0.05 -1.10L0.00 -1.12L0.06 -1.14L0.12 -1.15L0.18 -1.16L0.24 -1.17L0.30 -1.17L0.37 -1.17L0.43 -1.17L0.50 -1.17L0.56 -1.16L0.63 -1.14L0.70 -1.13L0.76 -1.11L0.83 -1.09L0.90 -1.06L0.96 -1.03L1.03 -1.00L1.09 -0.96L1.16 -0.92L1.22 -0.87L1.28 -0.82L1.34 -0.77L1.40 -0.71L1.46 -0.65L1.51 -0.58L1.56 -0.52L1.61 -0.44L1.65 -0.37L1.70 -0.29L1.73 -0.21L1.77 -0.12L1.80 -0.03L1.83 0.06L1.85 0.15L1.87 0.25L1.88 0.34L1.89 0.45L1.90 0.55L1.90 0.65L1.89 0.76L1.88 0.86L1.86 0.97L1.84 1.08L1.81 1.19L1.77 1.30L1.73 1.41L1.69 1.51L1.63 1.62L1.58 1.73L1.51 1.83L1.44 1.93L1.36 2.03L1.28 2.13L1.19 2.23L1.09 2.32L0.99 2.41L0.88 2.49L0.77 2.57L0.65 2.65L0.52 2.72L0.39 2.78L0.26 2.84L0.12 2.89L-0.03 2.94L-0.18 2.98L-0.33 3.01L-0.49 3.04L-0.65 3.06L-0.82 3.07L-0.98 3.07L-1.15 3.06L-1.33 3.05L-1.50 3.02L-1.67 2.99L-1.85 2.95L-2.03 2.90L-2.20 2.83L-2.38 2.76L-2.55 2.68L-2.72 2.59L-2.89 2.49L-3.06 2.38L-3.22 2.26L-3.38 2.12L-3.54 1.98L-3.69 1.83L-3.84 1.67L-3.97 1.50L-4.11 1.32L-4.23 1.13L-4.35 0.93L-4.46 0.72L-4.56 0.51L-4.65 0.28L-4.73 0.05L-4.80 -0.19L-4.86 -0.44L-4.90 -0.69L-4.94 -0.95L-4.96 -1.21L-4.97 -1.48L-4.96 -1.75L-4.94 -2.03L-4.91 -2.31L-4.86 -2.59L-4.80 -2.87L-4.72 -3.16L-4.63 -3.44L-4.52 -3.73L-4.40 -4.01L-4.25 -4.29L-4.10 -4.57L-3.92 -4.84L-3.73 -5.11L-3.53 -5.37L-3.30 -5.62L-3.07 -5.87L-2.81 -6.11L-2.54 -6.34L-2.26 -6.56L-1.96 -6.76L-1.64 -6.96L-1.31 -7.14L-0.97 -7.31L-0.61 -7.46L-0.24 -7.60L0.14 -7.72L0.54 -7.82L0.94 -7.90L1.36 -7.97L1.78 -8.01L2.21 -8.03L2.65 -8.04L3.10 -8.02L3.55 -7.97L4.00 -7.90L4.46 -7.81L4.92 -7.70L5.38 -7.56L5.84 -7.39Z' fill='url(%23ic)' stroke='%235a3206' stroke-width='0.7' stroke-linejoin='round'/><line x1='-1.38' y1='-0.51' x2='-0.70' y2='-0.42' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='-1.19' y1='-1.17' x2='-0.53' y2='-0.76' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='-0.70' y1='-1.77' x2='-0.19' y2='-1.04' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='0.10' y1='-2.16' x2='0.28' y2='-1.17' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='1.10' y1='-2.20' x2='0.84' y2='-1.08' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='2.17' y1='-1.77' x2='1.37' y2='-0.74' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='3.07' y1='-0.83' x2='1.77' y2='-0.13' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='3.57' y1='0.57' x2='1.89' y2='0.69' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='3.45' y1='2.25' x2='1.65' y2='1.60' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='2.53' y1='3.94' x2='0.97' y2='2.42' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='0.80' y1='5.27' x2='-0.12' y2='2.97' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='-1.62' y1='5.84' x2='-1.51' y2='3.02' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='-4.40' y1='5.31' x2='-2.97' y2='2.44' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='-7.04' y1='3.47' x2='-4.22' y2='1.15' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='-8.92' y1='0.33' x2='-4.91' y2='-0.76' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='-9.41' y1='-3.81' x2='-4.75' y2='-3.08' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='-8.01' y1='-8.33' x2='-3.50' y2='-5.40' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='-4.44' y1='-12.37' x2='-1.12' y2='-7.24' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/><line x1='1.14' y1='-14.91' x2='2.20' y2='-8.03' stroke='%236e3a08' stroke-width='0.55' stroke-linecap='round'/></g></svg>">
+<script type="importmap">
+{"imports":{
+  "three":"./vendor/build/three.module.js",
+  "three/":"./vendor/"
+}}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* palette allineata a Deepwork (dark, ambra) */
+  --bg:#100d07; --panel:rgba(24,20,10,.94); --panel2:rgba(34,28,14,.96);
+  --line:#332a14; --tx:#f0e8d8; --mut:#9b8a60; --mut2:#b8a574;
+  --cu:#ffab00; --cuD:#ff6d00; --ok:#66bb6a; --warn:#ffa726;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
+  font-family:'Barlow',system-ui,sans-serif;font-size:14px}
+#view{position:fixed;inset:0}
+#view canvas{display:block}
+.hud{position:fixed;z-index:10;user-select:none}
+/* ---- brand ---- */
+#brand{top:14px;left:16px;display:flex;align-items:center;gap:10px;pointer-events:none}
+#brand .mark{display:flex;align-items:center;justify-content:center}
+#brand .mark svg{width:40px;height:auto;display:block}
+#brand h1{font-family:'Barlow Condensed';font-weight:700;font-size:21px;letter-spacing:.06em;line-height:1}
+#brand h1 b{color:var(--cu);font-weight:700}
+/* ---- splash d'avvio (identità ecosistema) ---- */
+#splash{position:fixed;inset:0;z-index:200;background:radial-gradient(ellipse 620px 620px at 50% 46%,rgba(255,150,30,.10) 0%,transparent 60%),radial-gradient(ellipse 720px 520px at 18% 10%,rgba(255,171,0,.05) 0%,transparent 64%),var(--bg);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;transition:opacity .55s ease}
+#splash.hide{opacity:0;pointer-events:none}
+#splash .sp-word{display:flex;align-items:flex-end;justify-content:center;gap:0;filter:drop-shadow(0 0 34px rgba(255,160,40,.30))}
+#splash .sp-word .sp-g{width:auto;height:104px;margin-right:-26px;margin-bottom:-5px;transform:rotate(-6deg);transform-origin:55% 62%}
+#splash .sp-word .sp-enesi{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:88px;line-height:.8;letter-spacing:.01em;background:linear-gradient(135deg,#ffc23c,#ff8a1c);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;text-shadow:0 0 30px rgba(255,171,0,.42)}
+#splash .sp-tag{font-size:11px;letter-spacing:.34em;text-transform:uppercase;color:var(--mut);opacity:.95;margin-top:14px}
+#splash .sp-bar{width:180px;height:3px;background:rgba(255,180,120,.15);border-radius:2px;overflow:hidden;margin-top:10px}
+#splash .sp-fill{height:100%;width:0;background:linear-gradient(90deg,#ffab00,#ff6d00);animation:spfill 1.1s ease forwards}
+@keyframes spfill{to{width:100%}}
+/* ---- schermata login (porta d'ingresso · no auth reale per ora) ---- */
+#screen-login{position:fixed;inset:0;z-index:150;display:none;align-items:center;justify-content:center;padding:20px;
+  background:radial-gradient(135% 105% at 50% 0%,#241a0e 0%,#171108 55%,#100c06 100%);opacity:0;transition:opacity .5s ease}
+#screen-login.show{display:flex;opacity:1}
+#screen-login.hide{opacity:0;pointer-events:none}
+#screen-login .lg-wrap{position:relative;width:100%;max-width:344px}
+#screen-login .lg-glow{position:absolute;inset:-3px;background:linear-gradient(135deg,#ffab00,#ff6d00);border-radius:6px;opacity:.5;filter:blur(13px)}
+#screen-login .lg-box{position:relative;background:linear-gradient(180deg,#241d12,#1b1610);border:1px solid #473a1f;border-radius:14px;box-shadow:0 24px 70px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,220,160,.09);padding:38px 30px;animation:lgUp .5s ease both;text-align:center}
+@keyframes lgUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+#screen-login .lg-word{display:flex;align-items:flex-end;justify-content:center;gap:0;margin-bottom:24px}
+#screen-login .lg-logo{width:auto;height:74px;margin-right:-18px;transform:rotate(-6deg);transform-origin:55% 62%;filter:drop-shadow(0 0 18px rgba(255,170,50,.5))}
+#screen-login .lg-rest{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:54px;line-height:.82;letter-spacing:1.5px;background:linear-gradient(135deg,#ffc23c,#ff8a1c);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;text-shadow:0 0 30px rgba(255,180,40,.55)}
+#screen-login .lg-fl{font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#c2b080;margin-bottom:6px;display:block;text-align:left;text-shadow:0 0 12px rgba(255,160,45,.45)}
+#screen-login .lg-fi{width:100%;background:#352b15;border:1px solid #564725;color:#f6f0e2;padding:12px 14px;font-family:'Barlow',sans-serif;font-size:16px;outline:none;transition:border-color .2s,box-shadow .2s;margin-bottom:14px;min-height:44px;border-radius:6px}
+#screen-login .lg-fi::placeholder{color:#ab9866}
+#screen-login .lg-fi:focus{border-color:#ffab00;box-shadow:0 0 0 3px rgba(255,171,0,.12)}
+#screen-login .lg-btn{width:100%;background:#ffb21e;background:linear-gradient(135deg,#ffc12e,#ff8c1d);border:none;color:#3a1e00;padding:14px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:filter .2s;min-height:44px;border-radius:6px;margin-top:4px;box-shadow:0 8px 26px rgba(255,150,30,.38);text-shadow:0 1px 0 rgba(255,228,180,.4)}
+#screen-login .lg-btn:hover{filter:brightness(1.06)}
+#screen-login .lg-link{font-size:11px;color:#ffd54f;text-align:center;margin-top:16px;cursor:pointer;display:block;text-decoration:underline;text-underline-offset:3px;text-shadow:0 0 12px rgba(255,160,45,.45)}
+#screen-login .lg-foot{margin-top:20px;font-size:10px;letter-spacing:.1em;color:#7e6e42}
+#brand .tag{font-size:11px;color:var(--mut);letter-spacing:.04em}
+/* ---- top-right ---- */
+#topright{top:14px;right:16px;display:flex;gap:8px;align-items:center}
+.chip{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:7px 10px;
+  font-size:12px;color:var(--mut);display:flex;gap:6px;align-items:center}
+.chip b{color:var(--tx);font-weight:500}
+.btn{background:var(--panel);border:1px solid var(--line);border-radius:9px;color:var(--tx);
+  padding:7px 12px;font-family:'Barlow',sans-serif;font-size:13px;cursor:pointer;transition:border-color .15s}
+.btn:hover{border-color:var(--cu)}
+.btn.cu{background:var(--cu);border-color:var(--cu);color:#2a1407;font-weight:500}
+.btn.sm{padding:5px 9px;font-size:12px;border-radius:7px}
+.btn.on{border-color:var(--cu);color:var(--cu)}
+.btn.disabled,.btn.disabled:hover{opacity:.4;pointer-events:none;cursor:not-allowed;border-color:var(--line)}
+#track.scrubbing #thumb{transform:scale(1.15);box-shadow:0 2px 12px rgba(0,0,0,.7)}
+/* ---- camera presets ---- */
+#cams{top:60px;right:16px;display:flex;flex-direction:column;gap:6px}
+#cams .btn{text-align:left;font-size:12px}
+#cams .k{color:var(--mut2);font-size:10px;margin-left:6px}
+/* ---- params panel ---- */
+#params{top:60px;left:16px;width:248px;background:rgba(16,13,7,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,171,0,.22);
+  border-radius:14px;padding:13px;max-height:calc(100vh - 200px);overflow-y:auto;box-shadow:0 0 40px rgba(255,171,0,.08),0 10px 34px rgba(0,0,0,.45)}
+#params h2{font-family:'Barlow Condensed';font-weight:600;font-size:15px;letter-spacing:.08em;
+  color:var(--cu);text-transform:uppercase;margin-bottom:10px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}
+.row label{font-size:12.5px;color:var(--mut)}
+.row input[type=number],.row select{width:86px;background:var(--panel2);border:1px solid var(--line);
+  border-radius:7px;color:var(--tx);padding:5px 7px;font-family:'Barlow';font-size:13px}
+.row input:focus,.row select:focus{outline:none;border-color:var(--cu)}
+.lay{display:flex;align-items:center;gap:7px;margin-bottom:6px;font-size:12.5px;color:var(--mut);cursor:pointer}
+.lay input{accent-color:var(--cu)}
+#params .sep{height:1px;background:var(--line);margin:11px 0}
+#params .mini{font-size:11px;color:var(--mut2);line-height:1.45;margin-top:8px}
+#infochip,#fragchip{font-size:11.5px;color:var(--mut);background:var(--panel2);border:1px solid var(--line);
+  border-radius:8px;padding:7px 9px;margin-bottom:10px;line-height:1.5}
+#infochip b,#fragchip b{color:var(--cu);font-weight:500}
+/* ---- timeline ---- */
+#tl{left:50%;transform:translateX(-50%);bottom:16px;width:min(920px,calc(100vw - 32px));
+  background:rgba(16,13,7,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,171,0,.22);border-radius:14px;padding:11px 16px 13px;box-shadow:0 0 40px rgba(255,171,0,.08),0 10px 34px rgba(0,0,0,.45)}
+#tlrow1{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+#play{width:40px;height:40px;border-radius:50%;border:none;background:var(--cu);color:#2a1407;
+  font-size:16px;cursor:pointer;flex:0 0 auto;display:flex;align-items:center;justify-content:center}
+#play:hover{background:#ffa069}
+.spd{display:flex;gap:4px}
+#tclock{font-family:'Barlow Condensed';font-weight:600;font-size:22px;color:var(--cu);
+  min-width:108px;text-align:right;font-variant-numeric:tabular-nums;letter-spacing:.03em}
+#tclock small{font-size:12px;color:var(--mut)}
+#tstate{font-size:11.5px;color:var(--mut);min-width:86px}
+#fps{font-size:11px;color:var(--mut2);margin-left:auto}
+#track{position:relative;height:26px;cursor:pointer}
+#trackbar{position:absolute;left:0;right:0;top:11px;height:4px;border-radius:2px;background:rgba(255,180,120,.18)}
+#trackfill{position:absolute;left:0;top:11px;height:4px;border-radius:2px;background:var(--cu);width:0}
+#thumb{position:absolute;top:3px;width:20px;height:20px;border-radius:50%;background:var(--cu);
+  border:2px solid #2a1407;margin-left:-10px;box-shadow:0 1px 6px rgba(0,0,0,.5)}
+.tick{position:absolute;top:8px;width:2px;height:10px;background:rgba(255,138,80,.75);margin-left:-1px;border-radius:1px}
+.tick.big{top:5px;height:16px;background:var(--warn)}
+/* ---- modal ---- */
+#modal{position:fixed;inset:0;z-index:50;background:rgba(8,6,3,.78);display:flex;
+  align-items:center;justify-content:center;padding:20px}
+#modal .card{max-width:520px;background:#1d1710;border:1px solid var(--line);border-radius:16px;padding:26px}
+#modal h2{font-family:'Barlow Condensed';font-weight:700;font-size:24px;color:var(--cu);margin-bottom:4px}
+#modal h3{font-size:13px;color:var(--mut);font-weight:400;margin-bottom:16px}
+#modal p{font-size:13.5px;line-height:1.6;color:var(--tx);margin-bottom:10px}
+#modal .warn{background:rgba(255,90,60,.12);border:1px solid rgba(255,120,80,.4);border-radius:10px;
+  padding:10px 12px;font-size:13px;line-height:1.55;margin:14px 0}
+#modal .warn b{color:#ff9a70}
+#modal .foot{display:flex;justify-content:flex-end;margin-top:18px}
+/* ---- toast ---- */
+#toast{position:fixed;bottom:108px;left:50%;transform:translateX(-50%);z-index:40;background:var(--panel2);
+  border:1px solid var(--cu);color:var(--tx);border-radius:10px;padding:9px 16px;font-size:13px;
+  opacity:0;pointer-events:none;transition:opacity .25s}
+#toast.show{opacity:1}
+#collapse{display:none}
+/* ===== APP SHELL (Genesi come app multi-schermata) ===== */
+#bottomnav{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:70;width:calc(100% - 28px);max-width:412px;display:flex;justify-content:space-around;align-items:center;gap:4px;padding:9px 8px;border-radius:20px;
+  background:linear-gradient(180deg,rgba(40,33,16,.62),rgba(20,16,9,.78));border:1px solid rgba(255,228,180,.16);backdrop-filter:blur(22px) saturate(160%);-webkit-backdrop-filter:blur(22px) saturate(160%);box-shadow:0 16px 44px rgba(0,0,0,.55),0 1px 0 rgba(255,240,210,.16) inset}
+#bottomnav button{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:none;color:var(--mut);
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:7px 4px;border-radius:13px;cursor:pointer;transition:color .18s,background .18s}
+#bottomnav button .ic{width:23px;height:23px;display:block;transition:transform .18s,filter .18s}
+#bottomnav button.on{color:var(--cu);background:linear-gradient(180deg,rgba(255,171,0,.16),rgba(255,109,0,.05))}
+#bottomnav button.on .ic{filter:drop-shadow(0 0 9px rgba(255,171,0,.55))}
+#bottomnav button.on::before{content:'';position:absolute;top:4px;width:24px;height:3px;border-radius:2px;background:var(--cu);box-shadow:0 0 10px var(--cu)}
+#scr-home,#scr-design,#scr-esplosivi{position:fixed;inset:0;z-index:30;background:radial-gradient(ellipse 760px 540px at 14% 4%,rgba(255,171,0,.06) 0%,transparent 62%),radial-gradient(ellipse 560px 460px at 86% 90%,rgba(255,109,0,.055) 0%,transparent 60%),var(--bg);display:none;flex-direction:column}
+body.scr-home #scr-home{display:flex}
+body.scr-design #scr-design{display:flex}
+body.scr-esplosivi #scr-esplosivi{display:flex}
+#scr-esplosivi{padding-top:62px;padding-bottom:108px;overflow-y:auto}
+#es-head{position:absolute;top:14px;left:0;right:0;z-index:6;display:flex;align-items:center;justify-content:center;gap:10px;pointer-events:none}
+#es-head .d2-title{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:19px;letter-spacing:.05em;text-transform:uppercase;background:linear-gradient(180deg,#ffe08a,#ffab00 55%,#ff6d00);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+#es-head .d2-chip{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#ffd54f;padding:3px 10px;border-radius:999px;background:rgba(255,171,0,.1);border:1px solid rgba(255,171,0,.26)}
+#es-tabs{display:flex;justify-content:center;margin:0 auto 10px;padding:0 14px}
+#es-tabs button{background:#1a140b;border:1px solid var(--line);color:var(--mut);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase;padding:9px 22px;cursor:pointer}
+#es-tabs button:first-child{border-radius:11px 0 0 11px;border-right:none}
+#es-tabs button:last-child{border-radius:0 11px 11px 0}
+#es-tabs button.on{background:linear-gradient(135deg,#ffc12e,#ff8c1d);color:#3a1e00;border-color:transparent}
+.dc-mat{margin-left:auto;background:rgba(255,171,0,.1);border:1px solid rgba(255,171,0,.28);color:#ffd54f;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:.04em;padding:5px 11px;border-radius:9px;cursor:pointer}
+.dc-mat:hover{border-color:var(--cu);color:#ffe08a}
+#es-list{width:100%;max-width:700px;margin:0 auto;padding:4px 14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:12px}
+.es-card{position:relative;background:linear-gradient(150deg,rgba(255,236,200,.06),rgba(255,210,150,.02));border:1px solid rgba(255,228,180,.16);border-radius:16px;padding:14px 15px;cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s;box-shadow:0 10px 28px rgba(0,0,0,.38)}
+.es-card:hover{transform:translateY(-2px);border-color:rgba(255,196,120,.5)}
+.es-card.sel{border-color:var(--cu);box-shadow:0 0 0 1px var(--cu),0 12px 30px rgba(255,150,30,.2)}
+.es-nome{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:16px;color:var(--tx);letter-spacing:.02em}
+.es-tipo{font-size:11px;color:var(--mut2);margin:2px 0 9px;line-height:1.3}
+.es-specs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px}
+.es-specs span{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.03em;color:#ffd54f;background:rgba(255,171,0,.1);border:1px solid rgba(255,171,0,.22);padding:2px 8px;border-radius:999px}
+.es-app{font-size:11.5px;color:var(--mut);line-height:1.45;margin-bottom:7px}
+.es-pc{font-size:11px;line-height:1.4;color:var(--mut2);margin-top:2px}
+.es-pc .ok{color:#7fcf83;font-weight:800}.es-pc .no{color:#e88;font-weight:800}
+.es-foot{display:flex;align-items:center;margin-top:10px;gap:8px}
+.es-costo{font-size:11px;color:var(--mut)}
+.es-pick{margin-left:auto;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:#3a1e00;background:linear-gradient(135deg,#ffc12e,#ff8c1d);padding:6px 13px;border-radius:9px}
+.es-card.sel .es-pick{background:#1a140b;color:#ffd54f;border:1px solid var(--cu)}
+body:not(.scr-sim) #view,body:not(.scr-sim) #cams,body:not(.scr-sim) #params,body:not(.scr-sim) #topright,body:not(.scr-sim) #tl,body:not(.scr-sim) #helpcard{display:none!important}
+body.scr-sim #tl{bottom:80px}
+#scr-home{align-items:center;justify-content:center;gap:15px;text-align:center;padding:24px 22px 124px}
+/* logo con cerchio/alone luminoso (da variante Brace) */
+#scr-home .logo-stage{position:relative;display:flex;align-items:center;justify-content:center;margin-top:2px}
+#scr-home .logo-stage .bloom{position:absolute;top:50%;left:50%;width:280px;height:280px;border-radius:50%;pointer-events:none;background:radial-gradient(circle,rgba(255,213,79,.16) 0%,rgba(255,171,0,.10) 28%,rgba(255,109,0,.055) 50%,transparent 72%);filter:blur(5px);transform:translate(-50%,-50%);animation:gBreathe 4.6s ease-in-out infinite}
+#scr-home .logo-stage .ring{position:absolute;top:50%;left:50%;width:182px;height:182px;border-radius:50%;pointer-events:none;border:1px solid rgba(255,171,0,.15);box-shadow:0 0 0 1px rgba(255,109,0,.06) inset,0 0 38px rgba(255,140,30,.09);transform:translate(-50%,-50%)}
+@keyframes gBreathe{0%,100%{opacity:.85;transform:translate(-50%,-50%) scale(1)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.07)}}
+#scr-home .h-logo{position:relative;z-index:1}
+#scr-home .h-logo svg{width:116px;height:auto;display:block;filter:drop-shadow(0 6px 22px rgba(255,109,0,.42)) drop-shadow(0 0 40px rgba(255,171,0,.38)) drop-shadow(0 0 8px rgba(255,224,138,.5))}
+/* titolo oro (da variante Brace) */
+#scr-home h1{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:36px;letter-spacing:.045em;line-height:.96;color:var(--tx);text-shadow:0 1px 0 rgba(0,0,0,.4);margin-top:4px}
+#scr-home h1 b{font-weight:800;background:linear-gradient(180deg,#ffe08a 0%,#ffab00 45%,#ff6d00 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;filter:drop-shadow(0 0 14px rgba(255,140,30,.45))}
+/* card a vetro (da variante Vetro) */
+#scr-home .cards{display:flex;flex-direction:column;gap:14px;width:100%;max-width:382px;margin-top:10px}
+#scr-home .card{position:relative;overflow:hidden;display:flex;align-items:flex-start;gap:15px;text-align:left;padding:18px 18px 17px;border-radius:18px;cursor:pointer;background:linear-gradient(150deg,rgba(255,236,200,.085),rgba(255,210,150,.025));border:1px solid rgba(255,228,180,.16);backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%);box-shadow:0 14px 40px rgba(0,0,0,.42),0 1px 0 rgba(255,240,210,.18) inset,0 -22px 50px rgba(255,150,30,.05) inset;transition:transform .22s cubic-bezier(.2,.7,.3,1),border-color .22s,box-shadow .22s}
+#scr-home .card::before{content:'';position:absolute;left:14px;right:14px;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,245,220,.55),transparent);pointer-events:none}
+#scr-home .card .glow{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .25s;background:radial-gradient(180px circle at var(--mx,50%) var(--my,50%),rgba(255,196,110,.22),rgba(255,150,30,.07) 40%,transparent 66%);mix-blend-mode:screen}
+#scr-home .card:hover{transform:translateY(-4px);border-color:rgba(255,196,120,.42);box-shadow:0 22px 54px rgba(0,0,0,.5),0 0 0 1px rgba(255,171,0,.28),0 0 40px rgba(255,150,30,.2),0 1px 0 rgba(255,245,220,.3) inset}
+#scr-home .card:hover .glow{opacity:1}
+#scr-home .card:active{transform:translateY(-1px) scale(.995)}
+#scr-home .card .ci-wrap{flex:none;width:50px;height:50px;border-radius:14px;display:grid;place-items:center;position:relative;background:linear-gradient(155deg,rgba(255,221,150,.16),rgba(255,140,30,.06));border:1px solid rgba(255,210,150,.28);box-shadow:0 4px 16px rgba(0,0,0,.35),0 1px 0 rgba(255,245,220,.25) inset}
+#scr-home .card .ci{width:26px;height:26px;color:var(--cu);filter:drop-shadow(2px 3px 6px rgba(120,55,0,.55));transition:filter .12s linear,transform .12s linear}
+#scr-home .card .txt{flex:1;min-width:0}
+#scr-home .card h3{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:20px;letter-spacing:.02em;margin:1px 0 4px;color:var(--tx)}
+#scr-home .card small{color:var(--mut);font-size:12.5px;line-height:1.5;display:block}
+#scr-home .card .tag{display:inline-block;margin-top:9px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;padding:3px 9px;border-radius:999px;color:#ffd54f;background:rgba(255,171,0,.1);border:1px solid rgba(255,171,0,.24)}
+#scr-home .card.sim .tag{color:#ffcaa0;background:rgba(255,109,0,.1);border-color:rgba(255,109,0,.26)}
+#scr-home .card .chev{flex:none;align-self:center;color:var(--mut);opacity:.7;transition:transform .22s,color .22s}
+#scr-home .card:hover .chev{transform:translateX(3px);color:var(--cu);opacity:1}
+#scr-design{padding-top:64px;padding-bottom:110px;overflow-y:auto}
+#d2-head{position:absolute;top:14px;left:0;right:0;z-index:6;display:flex;align-items:center;justify-content:center;gap:10px;pointer-events:none}
+#d2-head .d2-title{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:19px;letter-spacing:.05em;text-transform:uppercase;background:linear-gradient(180deg,#ffe08a,#ffab00 55%,#ff6d00);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;filter:drop-shadow(0 0 12px rgba(255,140,30,.35))}
+#d2-head .d2-chip{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#ffd54f;padding:3px 10px;border-radius:999px;background:rgba(255,171,0,.1);border:1px solid rgba(255,171,0,.26)}
+#d2-wrap{display:flex;justify-content:center;padding:8px 14px 4px}
+#d2-canvas{width:100%;max-width:560px;height:auto;touch-action:none;background:linear-gradient(180deg,#171108,#0d0a06);border:1px solid rgba(255,228,180,.16);border-radius:18px;box-shadow:0 18px 50px rgba(0,0,0,.5),0 0 0 1px rgba(255,171,0,.06),0 1px 0 rgba(255,240,210,.14) inset}
+/* Fase 1 — pannello di progettazione (maglia editabile) */
+#d2-ctrl{width:100%;max-width:560px;margin:0 auto 2px;padding:0 14px}
+.dc-card{background:linear-gradient(150deg,rgba(255,236,200,.06),rgba(255,210,150,.02));border:1px solid rgba(255,228,180,.16);border-radius:16px;padding:12px 14px;box-shadow:0 12px 30px rgba(0,0,0,.38),0 1px 0 rgba(255,240,210,.1) inset}
+.dc-h{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
+.dc-h b{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:14px;letter-spacing:.05em;text-transform:uppercase;color:var(--tx)}
+.dc-h span{font-size:10.5px;color:var(--mut);margin-left:auto}
+.dc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:9px}
+.dc-f{display:flex;flex-direction:column;gap:4px}
+.dc-f>span{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}
+.dc-f input,.dc-f select{background:#241d12;border:1px solid #473a1f;color:var(--tx);font-family:'Barlow',sans-serif;font-size:15px;padding:8px 10px;border-radius:8px;outline:none;width:100%;min-height:40px;transition:border-color .15s,box-shadow .15s}
+.dc-f input:focus,.dc-f select:focus{border-color:var(--cu);box-shadow:0 0 0 3px rgba(255,171,0,.12)}
+.dc-acc{display:flex;flex-direction:column}
+.dc-sec+.dc-sec{border-top:1px solid rgba(255,171,0,.10)}
+.dc-sec-h{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;border-left:2px solid rgba(255,171,0,.45);cursor:pointer;padding:11px 2px 11px 10px;margin-top:2px;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:#ffd54f;transition:color .15s,border-color .15s}
+.dc-sec-h:hover{color:#ffe08a;border-left-color:var(--cu)}
+.dc-sec-x{margin-left:auto;font-size:10px;color:var(--mut);transition:transform .2s}
+.dc-sec.closed .dc-sec-x{transform:rotate(-90deg)}
+.dc-sec .dc-grid{padding:2px 0 12px}
+.dc-sec.closed .dc-grid{display:none}
+.dc-wide{grid-column:1/-1}
+#d2-tools{width:100%;max-width:560px;margin:8px auto 0;padding:0 14px;display:flex;align-items:center;gap:10px}
+.dt-seg{display:flex;background:#1a140b;border:1px solid var(--line);border-radius:11px;padding:3px}
+.dt-seg button{background:none;border:none;color:var(--mut);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;padding:7px 16px;border-radius:8px;cursor:pointer;transition:.15s}
+.dt-seg button.on{background:linear-gradient(135deg,#ffc12e,#ff8c1d);color:#3a1e00;box-shadow:0 4px 12px rgba(255,150,30,.3)}
+.dt-reset{margin-left:auto;background:rgba(255,255,255,.03);border:1px solid var(--line);color:var(--mut2);font-family:'Barlow',sans-serif;font-size:11.5px;padding:7px 11px;border-radius:9px;cursor:pointer}
+.dt-reset:hover{border-color:var(--cu);color:var(--cu)}
+#d2-insp{display:none;width:100%;max-width:560px;margin:6px auto 0;padding:0 14px;align-items:center;gap:10px}
+#d2-insp .di-info{flex:1;min-width:0;background:linear-gradient(150deg,rgba(255,236,200,.06),rgba(255,210,150,.02));border:1px solid rgba(255,228,180,.16);border-radius:12px;padding:9px 13px}
+#d2-insp .di-info b{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:14px;color:var(--cu);letter-spacing:.03em;margin-right:8px}
+#d2-insp .di-info span{font-size:11.5px;color:var(--mut2)}
+#d2-insp .di-del{flex:none;background:rgba(239,83,80,.12);border:1px solid rgba(239,83,80,.4);color:#ff8a80;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:.04em;padding:9px 14px;border-radius:11px;cursor:pointer;min-height:40px}
+#d2-insp .di-del:hover{background:rgba(239,83,80,.2)}
+/* Fase 0 — scheda volata (validatore di progetto) */
+#d2-scheda{width:100%;max-width:560px;margin:8px auto 0;padding:0 14px}
+.sv-card{background:linear-gradient(150deg,rgba(255,236,200,.06),rgba(255,210,150,.02));border:1px solid rgba(255,228,180,.16);border-radius:16px;padding:14px 15px;box-shadow:0 12px 34px rgba(0,0,0,.4),0 1px 0 rgba(255,240,210,.12) inset}
+.sv-h{display:flex;align-items:center;gap:8px;margin-bottom:11px}
+.sv-h b{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;letter-spacing:.04em;color:var(--tx);text-transform:uppercase}
+.sv-h .sv-sub{font-size:10.5px;color:var(--mut);margin-left:auto;text-align:right;line-height:1.3}
+.sv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:9px}
+.sv-row{display:flex;gap:9px;align-items:flex-start;background:rgba(255,255,255,.015);border:1px solid var(--line);border-radius:11px;padding:9px 10px}
+.sv-dot{flex:none;width:9px;height:9px;border-radius:50%;margin-top:5px;box-shadow:0 0 8px currentColor}
+.sv-ok{color:#66bb6a}.sv-warn{color:#ffb300}.sv-bad{color:#ef5350}.sv-info{color:#86b0d8}
+.sv-tx{min-width:0}
+.sv-lab{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}
+.sv-val{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;line-height:1.05;color:var(--tx)}
+.sv-val span{font-size:11px;font-weight:600;color:var(--mut2)}
+.sv-why{font-size:11px;color:var(--mut2);line-height:1.42;margin-top:3px}
+.sv-scale{margin-top:13px}
+.sv-scale .sv-lab{margin-bottom:6px}
+.sv-bar{position:relative;height:12px;border-radius:7px;overflow:hidden;display:flex}
+.sv-bar i{height:100%;display:block}
+.sv-mark{position:absolute;top:-3px;width:2px;height:18px;background:#fff;box-shadow:0 0 6px rgba(255,255,255,.85)}
+.sv-ticks{display:flex;justify-content:space-between;font-size:9px;color:var(--mut);margin-top:4px}
+.sv-bip{margin:4px 0 13px;background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+.sv-bip-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.sv-bip-top .l{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}
+.sv-bip-top .r{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;letter-spacing:.03em;text-transform:uppercase;color:var(--tx)}
+.sv-bip-track{position:relative;height:14px;border-radius:8px;background:linear-gradient(90deg,#ffe14a 0%,#ffb43a 42%,#ff7a3c 72%,#ff5236 100%);box-shadow:0 1px 0 rgba(255,240,210,.14) inset,0 4px 12px rgba(0,0,0,.35)}
+.sv-bip-thumb{position:absolute;top:50%;width:15px;height:15px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);box-shadow:0 0 0 2.5px rgba(20,12,4,.6),0 0 12px rgba(255,255,255,.9)}
+.sv-bip-ends{display:flex;justify-content:space-between;font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--mut);margin-top:6px}
+.sv-bip-ends b{color:var(--tx);font-weight:800;font-family:'Barlow Condensed',sans-serif;font-size:12px}
+.sv-bip-why{font-size:11px;color:var(--mut2);line-height:1.42;margin-top:7px}
+#d2-cta{display:block;margin:14px auto 0;background:linear-gradient(135deg,#ffc12e,#ff8c1d);border:none;color:#3a1e00;font-family:'Barlow Condensed',sans-serif;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:12px 22px;border-radius:11px;box-shadow:0 10px 28px rgba(255,150,30,.4);text-shadow:0 1px 0 rgba(255,228,180,.4);cursor:pointer}
+#d2-cta:hover{filter:brightness(1.06)}
+@media (max-width:760px){
+  #brand h1{font-size:17px} #brand .tag{display:none} #brand .mark svg{width:32px}
+  #topright{gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:60vw} #topright .btn{padding:6px 8px;font-size:11px}
+  #params{display:none;left:8px;right:8px;top:auto;bottom:154px;width:auto;max-height:44vh;overflow-y:auto}
+  body.show-params #params{display:block}
+  #cams{display:none}
+  #scr-home .cards{max-width:100%}
+  #bottomnav button{padding:7px 12px;min-width:64px}
+}
+#btnParams{display:none}
+@media (max-width:760px){#btnParams{display:inline-block}}
+</style>
+</head>
+<body class="scr-home">
+<svg width="0" height="0" aria-hidden="true" style="position:absolute"><defs><linearGradient id="glGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe08a"/><stop offset="0.42" stop-color="#ffab00"/><stop offset="0.78" stop-color="#ff6d00"/><stop offset="1" stop-color="#b5450a"/></linearGradient><g id="glogoG"><path d="M8.11 -14.95L7.25 -15.10L6.38 -15.21L5.53 -15.28L4.69 -15.30L3.86 -15.28L3.04 -15.22L2.24 -15.12L1.46 -14.98L0.70 -14.80L-0.04 -14.59L-0.76 -14.35L-1.45 -14.08L-2.12 -13.78L-2.76 -13.45L-3.38 -13.09L-3.97 -12.71L-4.53 -12.30L-5.06 -11.88L-5.56 -11.43L-6.03 -10.97L-6.47 -10.50L-6.88 -10.00L-7.26 -9.50L-7.61 -8.99L-7.93 -8.47L-8.22 -7.94L-8.47 -7.40L-8.70 -6.86L-8.89 -6.32L-9.06 -5.78L-9.19 -5.24L-9.30 -4.70L-9.38 -4.17L-9.43 -3.64L-9.45 -3.11L-9.45 -2.60L-9.42 -2.09L-9.37 -1.59L-9.29 -1.10L-9.20 -0.63L-9.08 -0.16L-8.93 0.29L-8.77 0.72L-8.59 1.14L-8.40 1.54L-8.18 1.93L-7.95 2.30L-7.71 2.66L-7.45 2.99L-7.18 3.31L-6.90 3.61L-6.61 3.89L-6.31 4.15L-6.00 4.39L-5.69 4.62L-5.37 4.82L-5.04 5.01L-4.71 5.17L-4.38 5.32L-4.05 5.45L-3.71 5.56L-3.38 5.65L-3.04 5.72L-2.71 5.78L-2.38 5.82L-2.06 5.84L-1.74 5.84L-1.42 5.83L-1.11 5.81L-0.81 5.77L-0.51 5.71L-0.22 5.64L0.06 5.56L0.33 5.47L0.60 5.36L0.85 5.24L1.10 5.11L1.33 4.98L1.55 4.83L1.76 4.67L1.97 4.51L2.16 4.34L2.33 4.16L2.50 3.98L2.65 3.79L2.80 3.60L2.93 3.40L3.05 3.20L3.16 3.00L3.25 2.79L3.33 2.59L3.41 2.38L3.47 2.17L3.52 1.97L3.56 1.76L3.59 1.56L3.60 1.36L3.61 1.16L3.61 0.96L3.60 0.77L3.57 0.58L3.54 0.39L3.51 0.21L3.46 0.03L3.40 -0.14L3.34 -0.30L3.27 -0.46L3.19 -0.62L3.11 -0.76L3.02 -0.90L2.93 -1.04L2.83 -1.16L2.73 -1.28L2.62 -1.40L2.51 -1.50L2.39 -1.60L2.27 -1.69L2.15 -1.78L2.03 -1.85L1.90 -1.92L1.78 -1.99L1.65 -2.04L1.52 -2.09L1.40 -2.13L1.27 -2.16L1.14 -2.19L1.01 -2.21L0.89 -2.22L0.77 -2.23L0.64 -2.23L0.52 -2.23L0.40 -2.22L0.29 -2.20L0.18 -2.18L0.07 -2.15L-0.04 -2.12L-0.14 -2.08L-0.24 -2.04L-0.34 -1.99L-0.43 -1.94L-0.52 -1.89L-0.61 -1.83L-0.69 -1.77L-0.76 -1.71L-0.84 -1.65L-0.90 -1.58L-0.97 -1.51L-1.02 -1.44L-1.08 -1.36L-1.13 -1.29L-1.17 -1.21L-1.21 -1.13L-1.25 -1.05L-1.28 -0.97L-1.31 -0.90L-1.33 -0.82L-1.35 -0.74L-1.36 -0.66L-1.37 -0.58L-1.38 -0.50L-1.38 -0.43L-1.38 -0.35L-1.37 -0.28L-1.36 -0.21L-1.35 -0.14L-1.34 -0.07L-1.32 -0.00L-1.30 0.06L-0.71 -0.09L-0.72 -0.13L-0.72 -0.16L-0.72 -0.20L-0.72 -0.24L-0.72 -0.28L-0.72 -0.32L-0.71 -0.36L-0.70 -0.41L-0.69 -0.45L-0.68 -0.49L-0.67 -0.53L-0.65 -0.57L-0.63 -0.61L-0.61 -0.65L-0.58 -0.69L-0.55 -0.73L-0.53 -0.77L-0.49 -0.81L-0.46 -0.84L-0.42 -0.88L-0.38 -0.91L-0.34 -0.95L-0.30 -0.98L-0.25 -1.01L-0.21 -1.03L-0.16 -1.06L-0.11 -1.08L-0.05 -1.10L0.00 -1.12L0.06 -1.14L0.12 -1.15L0.18 -1.16L0.24 -1.17L0.30 -1.17L0.37 -1.17L0.43 -1.17L0.50 -1.17L0.56 -1.16L0.63 -1.14L0.70 -1.13L0.76 -1.11L0.83 -1.09L0.90 -1.06L0.96 -1.03L1.03 -1.00L1.09 -0.96L1.16 -0.92L1.22 -0.87L1.28 -0.82L1.34 -0.77L1.40 -0.71L1.46 -0.65L1.51 -0.58L1.56 -0.52L1.61 -0.44L1.65 -0.37L1.70 -0.29L1.73 -0.21L1.77 -0.12L1.80 -0.03L1.83 0.06L1.85 0.15L1.87 0.25L1.88 0.34L1.89 0.45L1.90 0.55L1.90 0.65L1.89 0.76L1.88 0.86L1.86 0.97L1.84 1.08L1.81 1.19L1.77 1.30L1.73 1.41L1.69 1.51L1.63 1.62L1.58 1.73L1.51 1.83L1.44 1.93L1.36 2.03L1.28 2.13L1.19 2.23L1.09 2.32L0.99 2.41L0.88 2.49L0.77 2.57L0.65 2.65L0.52 2.72L0.39 2.78L0.26 2.84L0.12 2.89L-0.03 2.94L-0.18 2.98L-0.33 3.01L-0.49 3.04L-0.65 3.06L-0.82 3.07L-0.98 3.07L-1.15 3.06L-1.33 3.05L-1.50 3.02L-1.67 2.99L-1.85 2.95L-2.03 2.90L-2.20 2.83L-2.38 2.76L-2.55 2.68L-2.72 2.59L-2.89 2.49L-3.06 2.38L-3.22 2.26L-3.38 2.12L-3.54 1.98L-3.69 1.83L-3.84 1.67L-3.97 1.50L-4.11 1.32L-4.23 1.13L-4.35 0.93L-4.46 0.72L-4.56 0.51L-4.65 0.28L-4.73 0.05L-4.80 -0.19L-4.86 -0.44L-4.90 -0.69L-4.94 -0.95L-4.96 -1.21L-4.97 -1.48L-4.96 -1.75L-4.94 -2.03L-4.91 -2.31L-4.86 -2.59L-4.80 -2.87L-4.72 -3.16L-4.63 -3.44L-4.52 -3.73L-4.40 -4.01L-4.25 -4.29L-4.10 -4.57L-3.92 -4.84L-3.73 -5.11L-3.53 -5.37L-3.30 -5.62L-3.07 -5.87L-2.81 -6.11L-2.54 -6.34L-2.26 -6.56L-1.96 -6.76L-1.64 -6.96L-1.31 -7.14L-0.97 -7.31L-0.61 -7.46L-0.24 -7.60L0.14 -7.72L0.54 -7.82L0.94 -7.90L1.36 -7.97L1.78 -8.01L2.21 -8.03L2.65 -8.04L3.10 -8.02L3.55 -7.97L4.00 -7.90L4.46 -7.81L4.92 -7.70L5.38 -7.56L5.84 -7.39Z" fill="url(#glGold)" stroke="#5a3206" stroke-width="0.7" stroke-linejoin="round"/><line x1="-1.38" y1="-0.51" x2="-0.70" y2="-0.42" stroke="#6e3a08" stroke-width="0.55" stroke-linecap="round"/><line x1="-1.19" y1="-1.17" x2="-0.53" y2="-0.76" stroke="#6e3a08" stroke-width="0.55" stroke-linecap="round"/><line x1="-0.70" y1="-1.77" x2="-0.19" y2="-1.04" stroke="#6e3a08" stroke-width="0.55" stroke-linecap="round"/><line x1="0.10" y1="-2.16" x2="0.28" y2="-1.17" stroke="#6e3a08" stroke-width="0.55" stroke-linecap="round"/><line x1="1.10" y1="-2.20" x2="0.84" y2="-1.08" stroke="#6e3a08" stroke-width="0.55" stroke-linecap="round"/><line x1="2.17" y1="-1.77" x2="1.37" y2="-0.74" stroke="#6e3a08" stroke-width="0.55" stroke-linecap="round"/><line x1="3.07" y1="-0.83" x2="1.77" y2="-0.13" stroke="#6e3a08" stroke-width="0.55" stroke-linecap="round"/><line x1="3.57" y1="0.57" x2="1.89" y2="0.69" stroke="#6e3a08" stroke-width="0.55" stroke-linecap="round"/><line x1="3.45" y1="2.25" x2="1.65" y2="1.60" stroke="#6e3a08" stroke-width="0.55" stroke-linecap="round"/><line x1="2.53" y1="3.94" x2="0.97" y2="2.42" stroke="#6e3a08" stroke-width="0.55" stroke-linecap="round"/><line x1="0.80" y1="5.27" x2="-0.12" y2="2.97" stroke="#6e3a08" stroke-width="0.55" stroke-linecap="round"/><line x1="-1.62" y1="5.84" x2="-1.51" y2="3.02" stroke="#6e3a08" stroke-width="0.55" stroke-linecap="round"/><line x1="-4.40" y1="5.31" x2="-2.97" y2="2.44" stroke="#6e3a08" stroke-width="0.55" stroke-linecap="round"/><line x1="-7.04" y1="3.47" x2="-4.22" y2="1.15" stroke="#6e3a08" stroke-width="0.55" stroke-linecap="round"/><line x1="-8.92" y1="0.33" x2="-4.91" y2="-0.76" stroke="#6e3a08" stroke-width="0.55" stroke-linecap="round"/><line x1="-9.41" y1="-3.81" x2="-4.75" y2="-3.08" stroke="#6e3a08" stroke-width="0.55" stroke-linecap="round"/><line x1="-8.01" y1="-8.33" x2="-3.50" y2="-5.40" stroke="#6e3a08" stroke-width="0.55" stroke-linecap="round"/><line x1="-4.44" y1="-12.37" x2="-1.12" y2="-7.24" stroke="#6e3a08" stroke-width="0.55" stroke-linecap="round"/><line x1="1.14" y1="-14.91" x2="2.20" y2="-8.03" stroke="#6e3a08" stroke-width="0.55" stroke-linecap="round"/></g></defs></svg>
+<div id="view"></div>
+
+<div id="scr-home">
+  <div class="logo-stage">
+    <div class="bloom"></div>
+    <div class="ring"></div>
+    <div class="h-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-13.01 -18.85 24.67 28.25"><use href="#glogoG"/></svg></div>
+  </div>
+  <h1>DEEPWORK <b>GENESI</b></h1>
+  <div class="cards">
+    <div class="card" data-go="design">
+      <span class="glow"></span>
+      <div class="ci-wrap"><svg class="ci" viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="7" r="1.7"/><circle cx="12" cy="7" r="1.7"/><circle cx="18" cy="7" r="1.7"/><circle cx="6" cy="13" r="1.7"/><circle cx="12" cy="13" r="1.7"/><circle cx="18" cy="13" r="1.7"/><circle cx="9" cy="19" r="1.7"/><circle cx="15" cy="19" r="1.7"/></svg></div>
+      <div class="txt"><h3>Progetto 2D</h3><small>Disegna la maglia dei fori e la sequenza di sparo in pianta.</small><span class="tag">Maglia 4.5 × 3.5</span></div>
+      <svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+    </div>
+    <div class="card sim" data-go="sim">
+      <span class="glow"></span>
+      <div class="ci-wrap"><svg class="ci" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7z"/></svg></div>
+      <div class="txt"><h3>Simulazione 3D</h3><small>Guarda la volata in 3D sul fronte reale, fase per fase.</small><span class="tag">Nonel 25 ms</span></div>
+      <svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+    </div>
+  </div>
+</div>
+
+<div id="scr-design">
+  <div id="d2-head"><span class="d2-title">Progetto 2D</span><span class="d2-chip">Pianta</span></div>
+  <div id="d2-ctrl">
+    <div class="dc-card">
+      <div class="dc-h"><b>Parametri volata</b><button type="button" id="d2-mat" class="dc-mat">⛏ materiali</button></div>
+      <div class="dc-acc">
+        <div class="dc-sec"><button type="button" class="dc-sec-h">Geometria maglia<span class="dc-sec-x">▾</span></button>
+          <div class="dc-grid">
+            <label class="dc-f"><span>Spalla (m)</span><input type="number" id="dB" step="0.1" min="1.5" max="8" value="4.5"></label>
+            <label class="dc-f"><span>Interasse (m)</span><input type="number" id="dS" step="0.1" min="1.5" max="8" value="3.5"></label>
+            <label class="dc-f"><span>Ø foro (mm)</span><input type="number" id="dD" step="1" min="50" max="160" value="89"></label>
+            <label class="dc-f"><span>Fori per fila</span><input type="number" id="dN" step="1" min="3" max="30" value="18"></label>
+            <label class="dc-f"><span>N° file</span><input type="number" id="dFile" step="1" min="1" max="6" value="1"></label>
+            <label class="dc-f"><span>Profondità H (m)</span><input type="number" id="dH" step="0.5" min="6" max="18" value="13"></label>
+            <label class="dc-f"><span>Inclinazione (°)</span><input type="number" id="dIncl" step="1" min="0" max="30" value="0"></label>
+            <label class="dc-f"><span>Borraggio (m)</span><input type="number" id="dStem" step="0.1" min="0.5" max="6" value="2.5"></label>
+            <label class="dc-f"><span>Sottoperf. (m)</span><input type="number" id="dSub" step="0.1" min="0" max="4" value="1.2"></label>
+          </div>
+        </div>
+        <div class="dc-sec"><button type="button" class="dc-sec-h">Carica & sequenza<span class="dc-sec-x">▾</span></button>
+          <div class="dc-grid">
+            <label class="dc-f"><span>Carica (kg/foro)</span><input type="number" id="dKg" step="5" min="10" max="120" value="50"></label>
+            <label class="dc-f"><span>Ritardo foro (ms)</span><select id="dRit"><option>17</option><option selected>25</option><option>42</option><option>65</option></select></label>
+            <label class="dc-f"><span>Ritardo fila (ms)</span><input type="number" id="dRitFila" step="1" min="8" max="200" value="42"></label>
+            <label class="dc-f"><span>Sequenza di sparo</span><select id="dSeq"><option value="riga">Riga per riga</option><option value="diagonale" selected>Diagonale (echelon)</option><option value="vcut">V-cut</option><option value="box">Box cut</option></select></label>
+          </div>
+        </div>
+        <div class="dc-sec closed"><button type="button" class="dc-sec-h">Roccia & geologia<span class="dc-sec-x">▾</span></button>
+          <div class="dc-grid">
+            <label class="dc-f dc-rock"><span>Roccia</span><select id="dRoccia">
+              <option value="marna">Marna / scisto (tenera)</option>
+              <option value="arenaria">Arenaria (media-tenera)</option>
+              <option value="calcare" selected>Calcare (medio)</option>
+              <option value="dolomia">Dolomia (dura)</option>
+              <option value="granito">Granito (dura)</option>
+              <option value="basalto">Basalto (molto dura)</option>
+            </select></label>
+            <label class="dc-f"><span>UCS (MPa)</span><input type="number" id="dUcs" step="5" min="5" max="400" value="100"></label>
+            <label class="dc-f"><span>Modulo E (GPa)</span><input type="number" id="dEmod" step="1" min="2" max="150" value="55"></label>
+            <label class="dc-f"><span>Fratturazione</span><select id="dFrat"><option value="fessurata">Fessurata</option><option value="media" selected>Media</option><option value="compatta">Compatta/massiccia</option></select></label>
+          </div>
+        </div>
+        <div class="dc-sec closed"><button type="button" class="dc-sec-h">Fori bagnati<span class="dc-sec-x">▾</span></button>
+          <div class="dc-grid">
+            <label class="dc-f"><span>Condizione foro</span><select id="dBagnato"><option value="0" selected>Asciutto</option><option value="1">Bagnato (acqua)</option></select></label>
+            <label class="dc-f"><span>Colonna acqua (m)</span><input type="number" id="dAcquaCol" step="0.5" min="0" max="40" value="0"></label>
+          </div>
+        </div>
+        <div class="dc-sec closed"><button type="button" class="dc-sec-h">Vibrazioni & recettore<span class="dc-sec-x">▾</span></button>
+          <div class="dc-grid">
+            <label class="dc-f"><span>Distanza recettore (m)</span><input type="number" id="dRecDist" step="10" min="20" max="3000" value="300"></label>
+            <label class="dc-f"><span>Normativa / edificio</span><select id="dRecNorma"><option value="din-res" selected>DIN residenziale</option><option value="din-ind">DIN industriale</option><option value="din-sens">DIN sensibile/storico</option><option value="usbm-old">USBM intonaco vecchio</option><option value="usbm-modern">USBM cartongesso</option></select></label>
+            <label class="dc-f"><span>Freq. dominante (Hz)</span><input type="number" id="dRecFreq" step="1" min="2" max="120" value="25"></label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="d2-tools">
+    <div class="dt-seg"><button type="button" id="dtFori" class="on">Fori</button><button type="button" id="dtFronte">Fronte</button><button type="button" id="dtPiede">Piede</button></div>
+    <button type="button" id="dtReset" class="dt-reset">↺ Reset fronte</button>
+  </div>
+  <div id="d2-wrap"><canvas id="d2-canvas" width="960" height="600"></canvas></div>
+  <div id="d2-insp"></div>
+  <div id="d2-scheda"></div>
+  <button class="btn cu" id="d2-cta">▶ Simula questa volata</button>
+</div>
+
+<div id="scr-esplosivi">
+  <div id="es-head"><span class="d2-title">Indice esplosivi</span></div>
+  <div id="es-tabs"><button type="button" id="etEspl" class="on">Esplosivi</button><button type="button" id="etInn">Inneschi</button></div>
+  <div id="es-list"></div>
+</div>
+
+<nav id="bottomnav">
+  <button data-scr="home" class="on"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg>Home</button>
+  <button data-scr="design"><svg class="ic" viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="7" r="1.6"/><circle cx="12" cy="7" r="1.6"/><circle cx="18" cy="7" r="1.6"/><circle cx="6" cy="13" r="1.6"/><circle cx="12" cy="13" r="1.6"/><circle cx="18" cy="13" r="1.6"/><circle cx="9" cy="19" r="1.6"/><circle cx="15" cy="19" r="1.6"/></svg>Progetto</button>
+  <button data-scr="esplosivi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/><path d="M12 2v3.5M12 18.5V22M2 12h3.5M18.5 12H22M4.9 4.9l2.5 2.5M16.6 16.6l2.5 2.5M19.1 4.9l-2.5 2.5M7.4 16.6l-2.5 2.5"/></svg>Indice</button>
+  <button data-scr="sim"><svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7z"/></svg>Simulazione</button>
+</nav>
+
+<div id="splash">
+  <div class="sp-word"><svg class="sp-g" xmlns="http://www.w3.org/2000/svg" viewBox="-13.01 -18.85 24.67 28.25"><use href="#glogoG"/></svg><span class="sp-enesi">enesi</span></div>
+  <div class="sp-bar"><div class="sp-fill"></div></div>
+</div>
+
+<div id="screen-login">
+  <div class="lg-wrap">
+    <div class="lg-glow"></div>
+    <div class="lg-box">
+      <div class="lg-word"><svg class="lg-logo" xmlns="http://www.w3.org/2000/svg" viewBox="-13.01 -18.85 24.67 28.25"><use href="#glogoG"/></svg><span class="lg-rest">enesi</span></div>
+      <label class="lg-fl">Utente</label>
+      <input class="lg-fi" type="text" id="lu" placeholder="es. giuseppe" autocomplete="username">
+      <label class="lg-fl">Password</label>
+      <input class="lg-fi" type="password" id="lp" placeholder="password" autocomplete="current-password">
+      <button class="lg-btn" type="button" id="loginBtn">Accedi</button>
+      <a class="lg-link">Password dimenticata?</a>
+      <div class="lg-foot">© 2026 Deepwork · Mining-Tech Platform</div>
+    </div>
+  </div>
+</div>
+
+<div class="hud" id="brand">
+  <div class="mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-13.01 -18.85 24.67 28.25"><use href="#glogoG"/></svg></div>
+  <div>
+    <h1>DEEPWORK <b>GENESI</b></h1>
+    <div class="tag">calibrato su volate vere · v0.1</div>
+  </div>
+</div>
+
+<div class="hud" id="topright">
+  <button class="btn sm" id="btnHelp" title="Guida rapida ai controlli">?</button>
+  <button class="btn sm" id="btnParams" title="Parametri">⚙</button>
+  <span class="chip" id="qchip" title="Qualità grafica"><b id="qlab">Piena</b></span>
+  <button class="btn sm" id="btnFronte3D" title="Importa il fronte 3D reale (mesh GLB/OBJ dalla ricostruzione fotogrammetrica)">Fronte 3D</button>
+  <button class="btn sm" id="btnImport" title="Importa file .volata.json">Importa</button>
+  <button class="btn sm" id="btnExport" title="Esporta .volata.json">Esporta</button>
+  <input type="file" id="fileIn" accept=".json,application/json" style="display:none">
+  <input type="file" id="meshIn" accept=".glb,.gltf,.obj,model/gltf-binary" style="display:none">
+</div>
+
+<div class="hud" id="cams">
+  <button class="btn sm on" data-cam="0">Da terra 50 m<span class="k">1</span></button>
+  <button class="btn sm" data-cam="1">Drone<span class="k">2</span></button>
+  <button class="btn sm" data-cam="2">Laterale<span class="k">3</span></button>
+  <button class="btn sm" data-cam="3">Libera<span class="k">4 / mouse</span></button>
+  <button class="btn sm" id="btnModella" style="margin-top:8px;border-color:rgba(255,171,0,.4)">✋ Modella fronte</button>
+</div>
+
+<div class="hud" id="helpcard" style="display:none;top:60px;right:16px;width:300px;background:rgba(16,13,7,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,171,0,.25);border-radius:14px;padding:14px 16px;box-shadow:0 0 40px rgba(255,171,0,.1),0 10px 34px rgba(0,0,0,.5);z-index:60;font-size:12.5px;line-height:1.55;color:var(--tx)">
+  <div style="font-family:'Barlow Condensed';font-weight:800;font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:#ffd54f;margin-bottom:8px">Guida rapida — Simulazione 3D</div>
+  <div><b style="color:var(--cu)">▶ / Spazio</b> — avvia la volata · <b style="color:var(--cu)">slow ×10/×40</b> — rallenta · trascina lo <b style="color:var(--cu)">scrubber</b> per muoverti nel tempo</div>
+  <div style="margin-top:6px"><b style="color:var(--cu)">Camere 1–4</b> — Da terra / Drone / Laterale / Libera (mouse: ruota, rotella: zoom)</div>
+  <div style="margin-top:6px"><b style="color:var(--cu)">👁 Raggi-X progetto</b> (pannello ⚙, in basso) — il fronte diventa trasparente e vedi <b>fori, cariche (ambra) e borraggio (grigio)</b> dentro la roccia; regola con il cursore <b>Trasparenza fronte</b></div>
+  <div style="margin-top:6px"><b style="color:var(--cu)">✋ Modella fronte</b> — compaiono le sfere sulla cresta: <b>trascinane una</b> avanti/indietro e le vicine seguono (stile Blender); al rilascio il fronte si ricostruisce e si sincronizza col Progetto 2D</div>
+  <div style="margin-top:6px"><b style="color:var(--cu)">Inclinazione fori (°)</b> — nel pannello ⚙: inclina fori E fronte</div>
+  <div style="margin-top:6px;color:var(--mut)">Maglia, roccia, esplosivo, sequenza e vibrazioni si impostano in <b>Progetto 2D</b> → "Simula questa volata".</div>
+  <button class="btn sm" id="btnHelpClose" style="margin-top:10px;width:100%">Chiudi</button>
+</div>
+
+<div class="hud" id="params">
+  <h2>Volata demo</h2>
+  <div id="infochip"></div>
+  <div id="fragchip"></div>
+  <div class="row"><label>Numero fori</label><input type="number" id="pFori" min="6" max="24" step="1" value="18"></div>
+  <div class="row"><label>Ritardo Nonel (ms)</label>
+    <select id="pRit"><option>17</option><option selected>25</option><option>42</option><option>65</option></select></div>
+  <div class="row"><label>Direzione innesco</label>
+    <select id="pDir"><option value="sx" selected>sx → dx</option><option value="dx">dx → sx</option></select></div>
+  <div class="row"><label>Profondità fori (m)</label><input type="number" id="pProf" min="6" max="18" step="0.5" value="13"></div>
+  <div class="row"><label>Carica per foro (kg)</label><input type="number" id="pKg" min="10" max="120" step="5" value="50"></div>
+  <div class="row"><label>Vento (m/s)</label><input type="number" id="pVento" min="-4" max="4" step="0.2" value="0.8"></div>
+  <div class="row"><label>Inclinazione fori (°)</label><input type="number" id="pIncl" min="0" max="30" step="1" value="0"></div>
+  <button class="btn cu" id="btnApply" style="width:100%;margin-top:4px">Rigenera volata</button>
+  <div class="sep"></div>
+  <h2>Livelli</h2>
+  <label class="lay"><input type="checkbox" id="lGetti" checked> Getti dai colletti</label>
+  <label class="lay"><input type="checkbox" id="lChunk" checked> Frammenti roccia</label>
+  <label class="lay"><input type="checkbox" id="lGonna" checked> Gonna di polvere basale</label>
+  <label class="lay"><input type="checkbox" id="lNuvola" checked> Nuvola avvolgente</label>
+  <label class="lay"><input type="checkbox" id="lMuck" checked> Muckpile</label>
+  <label class="lay"><input type="checkbox" id="lXray"> Raggi-X progetto (fori & cariche)</label>
+  <label class="lay" style="display:block;padding-left:22px">Trasparenza fronte <input type="range" id="xrOp" min="4" max="85" value="32" style="width:110px;vertical-align:middle;accent-color:var(--cu)"></label>
+  <label class="lay"><input type="checkbox" id="lAudio" checked> Boato + scossa camera</label>
+  <div class="mini">Tempi e fasi da <b style="color:var(--cu)">calibrazione su 6 volate reali</b> (archivio 190 video). Parametri della volata: schermata Progetto.</div>
+</div>
+
+<div class="hud" id="tl">
+  <div id="tlrow1">
+    <button id="play" title="Play/Pausa (Spazio)">▶</button>
+    <div class="spd">
+      <button class="btn sm on" data-spd="1">×1 reale</button>
+      <button class="btn sm" data-spd="0.1">slow ×10</button>
+      <button class="btn sm" data-spd="0.025">slow ×40</button>
+    </div>
+    <span id="tstate">pronto</span>
+    <span id="fps"></span>
+    <div id="tclock">0 <small>ms</small></div>
+  </div>
+  <div id="track">
+    <div id="trackbar"></div>
+    <div id="trackfill"></div>
+    <div id="ticks"></div>
+    <div id="thumb"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<div id="modal" style="display:none">
+  <div class="card">
+    <h2>Deepwork Genesi</h2>
+    <h3>Simulatore visivo di volate — calibrato su volate vere</h3>
+    <p>Tempi, fasi e polvere di questa simulazione derivano dalla misura automatica di volate reali filmate (archivio aziendale di 190 video, sottoinsieme robusto di 6 sequenze ad alta qualità). Dominio di validità: maglia 4.5×3.5 m, Nonel 25 ms, 15–20 fori, calcare.</p>
+    <div class="warn"><b>Avvertenza.</b> Questa è una <b>visualizzazione</b>, non un calcolo ingegneristico: niente onda d'urto, niente vibrazioni/PPV, frammentazione statistica e non meccanica. I frammenti volanti (flyrock) sono <b>estetici</b>: è <b>vietato</b> usarli per definire aree di sgombero o distanze di sicurezza. Genesi assiste, non sostituisce, il giudizio del professionista.</div>
+    <label style="display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:var(--mut);margin-top:6px;cursor:pointer;line-height:1.45"><input type="checkbox" id="disclaimerChk" style="accent-color:var(--cu);width:16px;height:16px;margin-top:1px;flex:0 0 auto"> Ho compreso: i frammenti volanti sono <b style="color:#ff9a70">estetici</b>, è vietato usarli per definire aree di sgombero o distanze di sicurezza.</label>
+    <div class="foot"><button class="btn cu disabled" id="modalOk">Ho capito</button></div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+
+/* ============ calibrazione (fallback inline = calibrazione.json) ============ */
+let CAL = {
+  sequenza:{ durataTipicaMs:400, ritardoNominaleMs:25, direzioneDefault:'sx->dx' },
+  gettoColletto:{ v0_ms:20, vitaS:1.0, quotaPiccoM:8, spriteForo:180, ritardoDopoDetonazioneS:0 },
+  bulge:{ inizioDopoDetonazioneS:0.2, durataS:0.3, ampiezzaBaseM:1.4, ampiezzaRangeM:[0.8,2.0] },
+  distacco:{ inizioDopoDetonazioneS:0.45, vzM_s:[4,10], vyM_s:0, vxJitterM_s:0.5, flyrockPerForo:2, flyrockVyM_s:[8,15] },
+  caduta:{ gM_s2:9.81, dragK_s:0.07, fineDopoDetonazioneS:2.5 },
+  polvereNuvola:{ inizioDopoT0S:2.0, crescitaS:6.0, galleggiamentoM_s:0.7, spriteTotali:50, raggioSpriteM:[10,30], vitaS:45 },
+  gonnaBasale:{ vxzM_s:3, decadimentoS:2.0, altezzaMaxM:3, spriteTotali:500 },
+  muckpile:{ cellaM:0.5, angoloRiposoDeg:37, rigonfiamento:1.4 },
+  audio:{ velSuonoM_s:340 }
+};
+try{
+  const r = await fetch('./calibrazione.json');
+  if(r.ok){ const j = await r.json(); CAL = Object.assign(CAL, j); }
+}catch(e){ /* offline o file mancante: si usa il fallback inline */ }
+let ESPL=[{id:'anfo-standard',nome:'ANFO standard (sfuso)',tipo:'AN poroso/gasolio 94:6',densita_gcc:0.82,vod_ms:3800,rws_pct:100,rbs_pct:100,acqua:'Nulla',applicazione:'Carica di colonna in fori asciutti; scelta base ed economica.',pro:'Costo minimo, ottima energia di heave.',contro:'Zero resistenza all\'acqua, richiede booster.',costo:'Base (1,0x)',default:true}];
+try{ const re=await fetch('./esplosivi.json'); if(re.ok){ const je=await re.json(); if(Array.isArray(je)&&je.length) ESPL=je; } }catch(e){}
+function selEsplosivo(){ return ESPL.find(e=>e.id===D2.esplosivo) || ESPL.find(e=>e.default) || ESPL[0]; }
+const INNESCHI=[
+  {id:'nonel',short:'Nonel',nome:'Nonel (tubo d\'urto)',tipo:'Non elettrico + connettori MS di superficie',scatter:'~1% del ritardo (cresce col periodo)',ritardi:'17/25/42/65/100 ms',acqua:'Eccellente',pro:'Immune a correnti vaganti/RF, economico, sicuro.',contro:'Ritardi a step, niente verifica continuità, scatter maggiore.',default:true},
+  {id:'elettronico',short:'Elettr.',nome:'Detonatore elettronico',tipo:'Programmabile al ms',scatter:'~0,01–0,05% (molto preciso)',ritardi:'1–10000 ms liberi',acqua:'Eccellente',pro:'Precisione massima: X50 più fine, PPV fino a −50%, verifica pre-sparo.',contro:'Costo elevato, serve logger/blaster dedicato.',default:false},
+  {id:'elettrico',short:'Elettrico',nome:'Detonatore elettrico',tipo:'A ponte resistivo',scatter:'medio',ritardi:'serie MS/LP',acqua:'Buona',pro:'Verifica continuità con ohmetro, economico.',contro:'Sensibile a correnti vaganti/fulmini/RF: rischio sicurezza.',default:false},
+  {id:'cordtex',short:'Cordtex',nome:'Miccia detonante (cordtex)',tipo:'Trunkline + relay di ritardo',scatter:'dipende dai relay',ritardi:'da connettori MS',acqua:'Buona',pro:'Robusta e semplice, innesca tutta la colonna.',contro:'Airblast/rumore in superficie, meno precisa.',default:false},
+];
+function selInnesco(){ return INNESCHI.find(e=>e.id===D2.innesco) || INNESCHI.find(e=>e.default) || INNESCHI[0]; }
+/* litologie: A = rock factor Kuz-Ram (Cunningham/Lilly); rho g/cc; vp velocita sonica m/s; Z = rho*1000*vp (impedenza) */
+const ROCCE=[
+  {id:'marna',nome:'Marna / scisto',cls:'tenera',A:4,rho:2.4,vp:3000,car:'heave',ucs:30,eMod:12,rmd:20,jps:10,jpa:10,jcf:1.5,tint:0x9aa08a,strat:true},
+  {id:'arenaria',nome:'Arenaria',cls:'media-tenera',A:5,rho:2.3,vp:2600,car:'heave',ucs:70,eMod:25,rmd:20,jps:20,jpa:30,jcf:1,tint:0xc9a878,strat:true},
+  {id:'calcare',nome:'Calcare',cls:'medio',A:8,rho:2.6,vp:4500,car:'misto',default:true,ucs:100,eMod:55,rmd:20,jps:50,jpa:30,jcf:1,tint:0xbfb6a2,strat:true},
+  {id:'dolomia',nome:'Dolomia',cls:'dura',A:9,rho:2.8,vp:5000,car:'shock',ucs:150,eMod:65,rmd:20,jps:50,jpa:30,jcf:1,tint:0xb8b0a6,strat:true},
+  {id:'granito',nome:'Granito',cls:'dura',A:10,rho:2.65,vp:5500,car:'shock',ucs:180,eMod:60,rmd:20,jps:50,jpa:40,jcf:1,tint:0xa89c93,strat:false},
+  {id:'basalto',nome:'Basalto / diabase',cls:'molto dura',A:12,rho:2.95,vp:6000,car:'shock',ucs:250,eMod:80,rmd:20,jps:80,jpa:40,jcf:1,tint:0x6f6b65,strat:false},
+];
+function selRoccia(){ return ROCCE.find(r=>r.id===D2.roccia) || ROCCE.find(r=>r.default) || ROCCE[2]; }
+/* rock factor A calcolato dall'indice di brillabilita di Cunningham/Lilly: A=0.06·(RMD+JF+RDI+HF).
+   UCS ed E editabili; "Fratturazione" e un moltiplicatore sulla spaziatura giunti. I default per litologia riproducono gli A storici. */
+function rockFactorA(){
+  const r=selRoccia(), rho=(r.rho||2.6)*1000, ucs=D2.ucs||r.ucs, E=D2.eMod||r.eMod;
+  const mul={fessurata:0.55,media:1,compatta:1.35}[D2.frat]||1;
+  const RDI=0.025*rho-50, HF=E<50?E/3:ucs/5, JF=(r.jcf||1)*((r.jps||50)*mul+(r.jpa||30));
+  const A=Math.max(1,Math.min(16, 0.06*((r.rmd||20)+JF+RDI+HF)));
+  return { A:+A.toFixed(1), BI:Math.round(A/0.06), RDI:Math.round(RDI), HF:Math.round(HF), JF:Math.round(JF) };
+}
+/* costanti di sito PPV stimate dalla litologia (K conservativo/upper-bound, non media 50%): roccia dura attenua meno (K basso, β basso). STIMA — da calibrare con monitoraggio reale */
+function ppvSite(){ const vp=(selRoccia()||{}).vp||4500, t=Math.max(0,Math.min(1,(vp-2600)/(6000-2600))); return { K:Math.round(2800-1600*t), beta:+(1.75-0.35*t).toFixed(2) }; }
+/* soglia PPV [mm/s] per normativa/edificio e frequenza dominante (soglie verificate USBM RI8507 e DIN 4150-3) */
+function ppvLimit(norma,f){ switch(norma){
+  case 'usbm-old': return f<40?12.7:50.8;
+  case 'usbm-modern': return f<40?19:50.8;
+  case 'din-ind': return f<10?20:(f<50?40:50);
+  case 'din-sens': return f<10?3:(f<50?8:10);
+  default: return f<10?5:(f<50?15:20); } }  // din-res
+/* MIC = massima carica entro finestra 8 ms, raggruppando i fori sui tempi tDet reali (V-cut/box: piu fori sullo stesso ritardo) */
+function computeMIC(){ const H=D2.holes; if(!H.length) return D2.kg; const ts=H.map(h=>h.tDet||0); let n=1; for(const t0 of ts){ let c=0; for(const t of ts) if(t>=t0 && t<t0+8) c++; if(c>n) n=c; } return n*D2.kg; }
+let esTab='esplosivi';
+
+/* ============ costanti progetto-tipo ============ */
+let SPALLA = 4.5, INTERASSE = 3.5;            // maglia editabile (Fase 1) — default 4.5 x 3.5 (m)
+const G = CAL.caduta.gM_s2, DRAG_K = CAL.caduta.dragK_s;
+const QUALITA = { Piena:{chunk:100,jet:180,gonna:500,nuvola:50,px:2}, Media:{chunk:60,jet:110,gonna:300,nuvola:34,px:1.5}, Base:{chunk:34,jet:64,gonna:150,nuvola:20,px:1} };
+let qLevel = 'Piena';
+
+/* ============ RNG deterministico (replay identici) ============ */
+function mulberry32(a){return function(){let t=a+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
+const SEED = 19250606;
+
+/* ============ parametri correnti ============ */
+const P = { fori:18, ritardo:25, dir:'sx', prof:13, kg:50, diam:89, vento:0.8, profilo:[], foriH:null };
+/* modello di progettazione 2D (Fase 1) — editor multi-fila disaccoppiato dal 3D single-row */
+const D2 = { B:4.5, S:3.5, file:1, perRow:18, bf:4.5, diam:89, prof:13, kg:50, ritardo:25, ritardoFila:42, stem:2.5, sub:1.2, dir:'sx', stagger:true, incl:0, kgAuto:true, esplosivo:'anfo-standard', innesco:'nonel', roccia:'calcare', ucs:100, eMod:55, frat:'media', bagnato:false, acquaCol:0, sequenza:'diagonale', recDist:300, recNorma:'din-res', recFreq:25, tool:'fori', profilo:[], piede:[], selPt:-1, holes:[], sel:-1, lastDet:0, _m:null };
+
+/* ============ three: scena base ============ */
+const view = document.getElementById('view');
+const scene = new THREE.Scene();
+scene.background = skyTexture();                 // cielo a gradiente (caldo all'orizzonte, azzurro in alto)
+scene.fog = new THREE.Fog(0xc4c9c4, 170, 580);
+const cam = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 1200);
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio||1, QUALITA[qLevel].px));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.04;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+view.appendChild(renderer.domElement);
+const ambL = new THREE.AmbientLight(0xfff4e0, 0.5); scene.add(ambL);
+const hemiL = new THREE.HemisphereLight(0xb8cce4, 0x4a3a1e, 0.55); scene.add(hemiL);
+const sun = new THREE.DirectionalLight(0xfff2d8, 1.5); sun.position.set(40, 95, -55);
+sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.near = 8; sun.shadow.camera.far = 360;
+sun.shadow.camera.left = -130; sun.shadow.camera.right = 130; sun.shadow.camera.top = 130; sun.shadow.camera.bottom = -130;
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.5;
+scene.add(sun); scene.add(sun.target);
+const ctrl = new OrbitControls(cam, renderer.domElement);
+ctrl.enableDamping = true; ctrl.dampingFactor = 0.08; ctrl.maxPolarAngle = Math.PI/2 - 0.02;
+
+/* materiale roccia irregolare (clonato dall'approccio del core: jitter vertici + flatShading) */
+function jitterGeo(g, amp){ const a = g.attributes.position.array; const rj = mulberry32(7); for(let i=0;i<a.length;i++) a[i]+=(rj()-0.5)*amp; g.computeVertexNormals(); return g; }
+/* rumore continuo NEL MONDO: pannelli adiacenti si deformano allo stesso modo sui bordi → niente "riquadri disegnati", il fronte è una parete unica */
+function vnoise3(x,y,z){
+  const h=(ix,iy,iz)=>{ let n=ix*374761393 + iy*668265263 + iz*1274126177; n=(n^(n>>13))*1103515245; return (((n^(n>>16))>>>0)%1024)/1024; };
+  const ix=Math.floor(x),iy=Math.floor(y),iz=Math.floor(z), fx=x-ix,fy=y-iy,fz=z-iz;
+  const sx=fx*fx*(3-2*fx), sy=fy*fy*(3-2*fy), sz=fz*fz*(3-2*fz), L=(a,b,t)=>a+(b-a)*t;
+  return L( L(L(h(ix,iy,iz),h(ix+1,iy,iz),sx), L(h(ix,iy+1,iz),h(ix+1,iy+1,iz),sx), sy),
+            L(L(h(ix,iy,iz+1),h(ix+1,iy,iz+1),sx), L(h(ix,iy+1,iz+1),h(ix+1,iy+1,iz+1),sx), sy), sz );
+}
+function worldJitter(g, off, amp){
+  const a=g.attributes.position.array, f1=0.34, f2=1.1;
+  for(let i=0;i<a.length;i+=3){
+    const wx=a[i]+off.x, wy=a[i+1]+off.y, wz=a[i+2]+off.z;
+    const n1=vnoise3(wx*f1,wy*f1,wz*f1)-0.5, n2=vnoise3(wx*f1+37.7,wy*f1+17.3,wz*f1+7.9)-0.5, n3=vnoise3(wx*f1+11.1,wy*f1+47.9,wz*f1+23.7)-0.5;
+    const m=0.35*(vnoise3(wx*f2,wy*f2,wz*f2)-0.5);   // dettaglio fine sopra la forma grande
+    a[i]+=(n1+m)*amp; a[i+1]+=(n2+m)*amp; a[i+2]+=(n3+m)*amp;
+  }
+  g.computeVertexNormals(); return g;
+}
+/* colore roccia derivato dal litotipo del progetto (fronte di basalto ≠ fronte di arenaria) */
+function shade(c,f){ const r=Math.min(255,Math.round(((c>>16)&255)*f)), g=Math.min(255,Math.round(((c>>8)&255)*f)), b=Math.min(255,Math.round((c&255)*f)); return (r<<16)|(g<<8)|b; }
+function lithoTint(){ const r=(typeof selRoccia==='function')&&selRoccia(); return (r&&r.tint)||0x9a8a6a; }
+/* texture PBR procedurali (value-noise multi-ottava, generate una volta): albedo neutra ×tinta litotipo, roughness, normal.
+   Set 'strat' con bancate orizzontali (sedimentarie) e 'mass' uniforme (granito/basalto). */
+const _rockTex={};
+function rockTextures(strat){
+  const key=strat?'s':'m'; if(_rockTex[key]) return _rockTex[key];
+  const S=256, rnd=mulberry32(strat?71:131), h=new Float32Array(S*S);
+  for(const oc of [[8,0.5],[24,0.28],[64,0.16],[128,0.06]]){
+    const cells=oc[0], amp=oc[1], gN=cells+1, grid=new Float32Array(gN*gN);
+    for(let i=0;i<gN*gN;i++) grid[i]=rnd();
+    for(let y=0;y<S;y++)for(let x=0;x<S;x++){
+      const gx=x/S*cells, gy=y/S*cells, ix=Math.floor(gx), iy=Math.floor(gy);
+      const fx=gx-ix, fy=gy-iy, sx=fx*fx*(3-2*fx), sy=fy*fy*(3-2*fy);
+      const a=grid[iy*gN+ix], b=grid[iy*gN+ix+1], c2=grid[(iy+1)*gN+ix], d=grid[(iy+1)*gN+ix+1];
+      h[y*S+x]+=amp*((a*(1-sx)+b*sx)*(1-sy)+(c2*(1-sx)+d*sx)*sy);
+    }
+  }
+  if(strat){ for(let y=0;y<S;y++){ const band=0.5+0.5*Math.sin(y*0.10+2.2*Math.sin(y*0.013)); const dk=band>0.84?-0.14:(band<0.12?-0.06:0); if(dk) for(let x=0;x<S;x++) h[y*S+x]+=dk; } }
+  let mn=1e9,mx=-1e9; for(let i=0;i<S*S;i++){ if(h[i]<mn)mn=h[i]; if(h[i]>mx)mx=h[i]; }
+  for(let i=0;i<S*S;i++) h[i]=(h[i]-mn)/((mx-mn)||1);
+  const mk=fill=>{ const c=document.createElement('canvas'); c.width=c.height=S; const x=c.getContext('2d'); const im=x.createImageData(S,S); fill(im.data); x.putImageData(im,0,0); const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; return t; };
+  const albedo=mk(d=>{ for(let i=0;i<S*S;i++){ const v=Math.round(168+72*h[i]); d[i*4]=v; d[i*4+1]=v; d[i*4+2]=v; d[i*4+3]=255; } }); albedo.colorSpace=THREE.SRGBColorSpace;
+  const rough=mk(d=>{ for(let i=0;i<S*S;i++){ const v=Math.round(205+42*(1-h[i])); d[i*4]=v; d[i*4+1]=v; d[i*4+2]=v; d[i*4+3]=255; } });
+  const normal=mk(d=>{ for(let y=0;y<S;y++)for(let x=0;x<S;x++){ const i=y*S+x;
+    const dx=h[y*S+((x+1)%S)]-h[y*S+((x-1+S)%S)], dy=h[((y+1)%S)*S+x]-h[((y-1+S)%S)*S+x];
+    const nx=-dx*2.4, ny=-dy*2.4, l=Math.hypot(nx,ny,1);
+    d[i*4]=Math.round((nx/l*0.5+0.5)*255); d[i*4+1]=Math.round((ny/l*0.5+0.5)*255); d[i*4+2]=Math.round((1/l*0.5+0.5)*255); d[i*4+3]=255; } });
+  return _rockTex[key]={ map:albedo, roughnessMap:rough, normalMap:normal };
+}
+function rockMat(col){
+  const m = new THREE.MeshStandardMaterial({ color:col, roughness:0.97, metalness:0, flatShading:true });
+  if(typeof qLevel!=='undefined' && qLevel!=='Base'){
+    const r=(typeof selRoccia==='function')&&selRoccia(); const tx=rockTextures(!r||r.strat!==false);
+    m.map=tx.map; m.roughnessMap=tx.roughnessMap; m.normalMap=tx.normalMap; m.normalScale=new THREE.Vector2(0.85,0.85); m.roughness=1;
+  }
+  return m;
+}
+
+/* ============ stato simulazione ============ */
+let SIM = null;            // costruita da buildSim()
+let simT = 0;              // tempo simulato in ms (reale 1:1)
+let playing = false;
+let speed = 1;             // ms-sim per ms-reale (1 / 0.1 / 0.025)
+let lastNow = 0;
+let staticGroup = null;    // geometria fissa scena
+let dynGroup = null;       // oggetti dinamici (pannelli, chunk, polvere, pile)
+let frontMesh = null;      // mesh fronte reale importata (fotogrammetria); null = fronte parametrico
+let frontMeshGroup = null;
+
+/* profilo cresta importato da Deepwork: offset z della faccia lungo x (0 = fronte dritto) */
+function crestZ(x){
+  const pr = P.profilo;
+  if(!pr || pr.length<1) return 0;
+  let z;
+  if(x<=pr[0].x) z = pr[0].z;
+  else if(x>=pr[pr.length-1].x) z = pr[pr.length-1].z;
+  else { z = pr[pr.length-1].z; for(let i=1;i<pr.length;i++){ if(x<=pr[i].x){ const a=pr[i-1], b=pr[i]; const t=(x-a.x)/((b.x-a.x)||1); z = a.z+(b.z-a.z)*t; break; } } }
+  return Math.max(-6, Math.min(10, z));   // clamp di sicurezza
+}
+
+/* ============ costruzione della simulazione (deterministica) ============ */
+function buildSim(){
+  const rng = mulberry32(SEED);
+  const Q = QUALITA[qLevel];
+  const prof = P.prof, rit = P.ritardo;
+  const useHoles = Array.isArray(P.holes) && P.holes.length>0;     // fori REALI dal Progetto 2D (multi-fila, editati, tDet della sequenza)
+  const n = useHoles ? P.holes.length : P.fori;
+  const fori = [];
+  const _sq = D2.sequenza||'diagonale';
+  if(useHoles){
+    for(let i=0;i<n;i++){
+      const hh=P.holes[i], x=hh.x;
+      const col=Math.max(0, Math.min((P.foriH?P.foriH.length:1)-1, Math.round((x-INTERASSE/2)/INTERASSE)));
+      const h=(P.foriH && P.foriH[col]!=null) ? P.foriH[col] : prof;
+      fori.push({ i, x, tDet:hh.tDet||0, prof:h, h, cz:crestZ(x), zoff:hh.zoff||0, kg:P.kg });
+    }
+  } else {
+    for(let i=0;i<n;i++){                                          // fallback demo manuale: una fila, sequenza ricostruita
+      let td;
+      if(_sq==='vcut'||_sq==='box') td = Math.abs(i-(n-1)/2)*rit;  // dal centro verso i lati (coppie simultanee)
+      else if(_sq==='riga') td = ((P.dir==='sx') ? i : (n-1-i))*1.5; // fila quasi simultanea
+      else td = ((P.dir==='sx') ? i : (n-1-i))*rit;                // diagonale: dal lato di partenza
+      const x = i*INTERASSE + INTERASSE/2;
+      const h = (P.foriH && P.foriH[i]!=null) ? P.foriH[i] : prof;
+      fori.push({ i, x, tDet: td, prof:h, h, cz: crestZ(x), zoff:0, kg:P.kg });
+    }
+  }
+  const Lm = useHoles ? (Math.max(...fori.map(f=>f.x)) + INTERASSE/2) : n*INTERASSE;   // lunghezza fronte sparato
+  const maxZoff = Math.max(0, ...fori.map(f=>f.zoff||0));
+  const depth = SPALLA + maxZoff;                                  // profondità totale scavata (file dietro incluse)
+  /* scatter dell'innesco: jitter gaussiano deterministico sui tempi nominali (elettronico 0,1 ms, elettrico 0,5 ms, Nonel 2%·t, cordtex 3%·t) */
+  const _innId = D2.innesco||'nonel';
+  const _gauss = ()=>{ const u=Math.max(1e-9,rng()), v=rng(); return Math.sqrt(-2*Math.log(u))*Math.cos(6.2831853*v); };
+  for(const f of fori){
+    const sd=(_innId==='elettronico')?0.1:((_innId==='elettrico')?0.5:((_innId==='cordtex')?0.03*f.tDet:0.02*f.tDet));
+    f.tNom=f.tDet; f.tDet=Math.max(0, f.tDet + _gauss()*sd);
+  }
+  const H = Math.max(...fori.map(f=>f.h));          // altezza rappresentativa (max) per banco/camera/muckpile
+  const lastDet = Math.max(...fori.map(f=>f.tDet));
+  const tEnd = lastDet + 15000;                   // estensione timeline (polvere)
+  // powder factor -> ampiezza bulge e velocità
+  const vol = SPALLA*INTERASSE*prof;              // m3 per foro
+  const pf = P.kg / vol;                          // kg/m3
+  const pfN = Math.min(1.5, Math.max(0.4, pf/0.35));  // normalizzato su 0.35 kg/m3 tipico
+  const bulgeAmp = Math.min(CAL.bulge.ampiezzaRangeM[1], Math.max(CAL.bulge.ampiezzaRangeM[0], CAL.bulge.ampiezzaBaseM*pfN));
+  /* ---- frammentazione Kuz-Ram: granulometria prevista ---- */
+  const _wetE = (D2.bagnato ? ({Nulla:0.70,Bassa:0.40,Media:0.18,Buona:0.05,Eccellente:0}[(selEsplosivo()||{}).acqua]||0) : 0); // perdita energia da fori bagnati con esplosivo non idoneo
+  const diamMM = P.diam, stemming = D2.stem||2.5, A_rock = rockFactorA().A, RWS = Math.max(8, ((selEsplosivo()&&selEsplosivo().rws_pct)||100)*(1-_wetE)); // diametro foro (mm, editabile), borraggio (m, editabile), rock factor (Lilly/Cunningham da geologia), ANFO=100, RWS ridotto se foro bagnato
+  /* ---- DUE ENERGIE: la quota di GAS (heave) governa lo spostamento/lancio del burden ----
+     shock (VOD alta) frantuma; heave (VOD bassa, ANFO) spinge. heaveFac scala il lancio in avanti. */
+  const _eVOD = (selEsplosivo()&&selEsplosivo().vod_ms)||3800;
+  const _shk = Math.max(0.04, Math.min(0.96, (_eVOD*_eVOD-9e6)/(36e6-9e6)));
+  const heaveFac = (0.82 + 0.48*(1-_shk)) * (1-0.5*_wetE);   // ANFO ~1.18 (lancia di piu), emulsione ~1.0, alto-shock ~0.84; ridotto se foro bagnato (lancia meno → muckpile basso/oversize)
+  const Lc = Math.max(0.5, prof + (D2.sub||0) - stemming);      // lunghezza carica (m), sottoperforazione inclusa
+  const x50 = A_rock * Math.pow(Math.max(0.05,pf), -0.8) * Math.pow(Math.max(1,P.kg), 1/6) * Math.pow(115/RWS, 19/30); // cm — Kuznetsov
+  let nU = (2.2 - 14*SPALLA/diamMM) * Math.sqrt((1+INTERASSE/SPALLA)/2) * (1 - 0.3/SPALLA) * (Lc/prof);  // indice uniformità — Cunningham
+  /* precisione dell'innesco → uniformità (Cunningham 2005: ns=0.206+(1−Rs/4)^0.8, Rs=scatter/ritardo): elettronico = curva più ripida, Nonel = più dispersa */
+  { const _sdT=(_innId==='elettronico')?0.1:((_innId==='elettrico')?0.5:((_innId==='cordtex')?0.03*Math.max(rit,lastDet):0.02*Math.max(rit,lastDet)));
+    const _RsT=_sdT/Math.max(1,rit), _ns=0.206+Math.pow(Math.max(0,1-_RsT/4),0.8);
+    nU *= Math.max(0.8, Math.min(1.25, _ns)); }
+  nU = Math.max(0.7, Math.min(2.2, nU));
+  const xc = x50 / Math.pow(0.693, 1/nU);                       // size caratteristica Rosin-Rammler
+  const x80 = xc * Math.pow(-Math.log(0.2), 1/nU);              // 80% passante
+  const x20 = xc * Math.pow(-Math.log(0.8), 1/nU);              // 20% passante
+  const frag = { x50:Math.round(x50), x80:Math.round(x80), x20:Math.round(x20), n:+nU.toFixed(2), xc, pf:+pf.toFixed(2) };
+  /* ---- chunk per foro (forma chiusa, atterraggio precalcolato) ---- */
+  const chunks = [];
+  const tDetach = CAL.distacco.inizioDopoDetonazioneS*1000;
+  /* sequenza di sparo → forma del cumulo (echelon spinge di più e devia; V-cut converge al centro; box diverge) */
+  const _seq=D2.sequenza||'diagonale', _dirSign=(D2.dir==='sx'?1:-1);
+  const _thetaS=(_seq==='riga')?0:Math.atan((SPALLA*(D2.ritardo||25))/((D2.S||INTERASSE)*(D2.ritardoFila||50)));
+  const _echelon=(_seq==='riga')?1:Math.min(1.5, 1/Math.cos(_thetaS));  // B/Be, clamp a 1.5 (boost realistico)
+  const _fxs=fori.map(f=>f.x), _cxB=(Math.min(..._fxs)+Math.max(..._fxs))/2;
+  const _fwdFac=(_seq==='diagonale')?_echelon:((_seq==='vcut')?0.9:1);   // spinta in avanti per schema
+  for(const f of fori){
+    const nC = Q.chunk;
+    for(let c=0;c<nC;c++){
+      const fly = c < CAL.distacco.flyrockPerForo;            // i primi 2 = flyrock estetici
+      const px = f.x + (rng()-0.5)*INTERASSE*0.94;
+      const py = rng()*f.h;                                   // altezza locale del foro
+      const pz = f.cz + (f.zoff||0) + rng()*SPALLA;           // slab del proprio burden (file dietro = piu profonde)
+      const depthFac = 1 - (pz-f.cz-(f.zoff||0))/SPALLA*0.45; // i più vicini alla faccia volano di più
+      const vz = -(CAL.distacco.vzM_s[0] + rng()*(CAL.distacco.vzM_s[1]-CAL.distacco.vzM_s[0])) * depthFac * (0.8+0.4*pfN) * heaveFac * _fwdFac;
+      const vy = fly ? (CAL.distacco.flyrockVyM_s[0]+rng()*(CAL.distacco.flyrockVyM_s[1]-CAL.distacco.flyrockVyM_s[0]))
+                     : rng()*0.6;
+      let vx = (rng()-0.5)*2*CAL.distacco.vxJitterM_s;
+      if(_seq==='diagonale') vx += _dirSign*(-vz)*0.18;          // echelon: deriva verso il lato di partenza
+      else if(_seq==='vcut') vx += (_cxB-f.x)*0.14;              // V: converge al centro
+      else if(_seq==='box') vx += (f.x-_cxB)*0.10;               // box: diverge dal centro
+      const td = f.tDet + tDetach;
+      // atterraggio balistico su suolo y=0 (le quote pile si sistemano nel deposito)
+      const disc = vy*vy + 2*G*py;
+      const tl = (vy + Math.sqrt(Math.max(disc,0)))/G;        // s di volo
+      const damp = Math.abs(DRAG_K*tl) > 1e-5 ? (1-Math.exp(-DRAG_K*tl))/(DRAG_K*tl) : 1 - DRAG_K*tl/2; // Taylor per tl piccoli: evita perdita di precisione
+      const lx = px + vx*tl*damp;
+      const lz = pz + vz*tl*damp;
+      const xcm = xc * Math.pow(-Math.log(1-Math.max(1e-4,rng())), 1/nU);  // dimensione frammento (cm) campionata dalla curva Rosin-Rammler
+      const scl = fly ? 0.4+rng()*0.3 : Math.max(0.18, Math.min(2.2, xcm/100*1.3));   // cm -> scala visiva (pezzature realistiche)
+      chunks.push({ f:f.i, px,py,pz, vx,vy,vz, td, tl, lx, lz, scl,
+        rotAx: rng()<0.85?0:1, rotW: (0.5+rng()*2.2)*(vz<0?1:-1)*0.6,
+        e0:rng()*6.28, e1:rng()*6.28, e2:rng()*6.28, rest:0 });
+    }
+  }
+  /* ---- deposito muckpile: heightfield + eventi temporali ---- */
+  const cell = CAL.muckpile.cellaM;
+  const gx0 = -8, gx1 = Lm+8, gz0 = -18, gz1 = depth+1;
+  const NX = Math.ceil((gx1-gx0)/cell), NZ = Math.ceil((gz1-gz0)/cell);
+  const hgt = new Float32Array(NX*NZ);
+  const events = [];                                          // {t, idx, h} in ordine di tempo
+  const maxDiff = Math.tan(CAL.muckpile.angoloRiposoDeg*Math.PI/180)*cell;
+  const swellVol = vol*CAL.muckpile.rigonfiamento/QUALITA[qLevel].chunk;  // m3 per chunk
+  const cellArea = cell*cell;
+  const order = chunks.map((c,i)=>({ i, t:c.td + c.tl*1000 })).sort((a,b)=>a.t-b.t);
+  const cidx = (x,z)=>{ const ix=Math.min(NX-1,Math.max(0,Math.floor((x-gx0)/cell))), iz=Math.min(NZ-1,Math.max(0,Math.floor((z-gz0)/cell))); return iz*NX+ix; };
+  for(const o of order){
+    const c = chunks[o.i];
+    const base = cidx(c.lx, c.lz);
+    c.rest = hgt[base];                                       // si appoggia sulla pila corrente
+    // volume distribuito su 3x3 celle
+    const add = swellVol/(9*cellArea);
+    const bx = base%NX, bz = (base-(base%NX))/NX;
+    const touched = new Set();
+    for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){
+      const ix=bx+dx, iz=bz+dz; if(ix<0||ix>=NX||iz<0||iz>=NZ) continue;
+      const id=iz*NX+ix; hgt[id]+=add; touched.add(id);
+    }
+    // rilassamento sandpile locale (poche passate)
+    for(let pass=0;pass<3;pass++){
+      for(const id of [...touched]){
+        const ix=id%NX, iz=(id-ix)/NX;
+        for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){
+          const jx=ix+dx, jz=iz+dz; if(jx<0||jx>=NX||jz<0||jz>=NZ) continue;
+          const jd=jz*NX+jx;
+          if(hgt[id]-hgt[jd] > maxDiff){ const m=(hgt[id]-hgt[jd]-maxDiff)/2; hgt[id]-=m; hgt[jd]+=m; touched.add(jd); }
+        }
+      }
+    }
+    for(const id of touched) events.push({ t:o.t, idx:id, h:hgt[id] });
+  }
+  /* catena h0 per-cella: ogni evento conosce l'altezza precedente → la pila CRESCE gradualmente invece di apparire */
+  { const lastH={}; for(const e of events){ e.h0=lastH[e.idx]||0; lastH[e.idx]=e.h; } }
+  /* ---- cortina di roccia: scivola lungo il fronte fino al piede (alimenta visivamente il cumulo) ---- */
+  const curtain = [];
+  for(const f of fori){ for(let c=0;c<7;c++){
+    curtain.push({ x:f.x+(rng()-0.5)*INTERASSE*0.9, z:f.cz+(f.zoff||0)+0.4+rng()*1.1, y0:f.h*(0.3+rng()*0.65), birth:f.tDet+tDetach+rng()*1100 });
+  } }
+  /* ---- getti colletto: particelle precalcolate ---- */
+  const jets = [];
+  for(const f of fori){
+    for(let s=0;s<Q.jet;s++){
+      const v0 = CAL.gettoColletto.v0_ms*(0.7+rng()*0.6);
+      jets.push({ x:f.x+(rng()-0.5)*0.8, z:f.cz+(f.zoff||0)+SPALLA+(rng()-0.5)*0.8, birth:f.tDet,
+        v0, life:CAL.gettoColletto.vitaS*(0.75+rng()*0.5)*1000,
+        drift:(rng()-0.5)*1.6, dz:(rng()-0.5)*1.6, size:0.5+rng()*1.3, dark:rng()<0.12, H:f.h });
+    }
+  }
+  /* ---- gonna basale ---- */
+  const gonna = [];
+  for(let s=0;s<Q.gonna;s++){
+    const f = fori[Math.floor(rng()*n)];
+    gonna.push({ x:f.x+(rng()-0.5)*INTERASSE*1.4, birth:f.tDet+800+rng()*900,
+      v: CAL.gonnaBasale.vxzM_s*(0.6+rng()*0.8), ang: Math.PI*(1+ (rng()-0.5)*0.7), // verso -z
+      life: 3500+rng()*1800, size: 1.8+rng()*3.2, y: 0.4+rng()*(CAL.gonnaBasale.altezzaMaxM-0.4) });
+  }
+  /* ---- nuvola avvolgente ---- */
+  const nuvola = [];
+  for(let s=0;s<Q.nuvola;s++){
+    nuvola.push({ x: rng()*Lm, z: -2-rng()*10, y0: 1+rng()*5,
+      birth: CAL.polvereNuvola.inizioDopoT0S*1000 + rng()*2500 + lastDet,
+      r0: 1.2+rng()*1.8, r1: CAL.polvereNuvola.raggioSpriteM[0]+rng()*(CAL.polvereNuvola.raggioSpriteM[1]-CAL.polvereNuvola.raggioSpriteM[0]),
+      life: CAL.polvereNuvola.vitaS*1000*(0.7+rng()*0.6), seed: rng()*6.28 });
+  }
+  return { fori, lastDet, tEnd, Lm, H, depth, bulgeAmp, chunks, jets, gonna, nuvola, curtain,
+           grid:{ gx0,gz0,NX,NZ,cell }, events, tDetach, frag };
+}
+
+/* ============ costruzione scena 3D ============ */
+let panels=[], chunkMeshes=[], jetPts=null, gonnaPts=null, curtainPts=null, cloudSprites=[], pileMesh=null, pileGeo=null, xrayGroup=null, xrayCyls=[], ghostWall=null;
+let backWall=null;
+
+function disposeGroup(g){ if(!g) return; g.traverse(o=>{ if(o.geometry)o.geometry.dispose(); if(o.material){ (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{ if(m.map)m.map.dispose(); m.dispose(); }); } }); scene.remove(g); }
+
+function softTexture(){
+  const c = document.createElement('canvas'); c.width=c.height=64;
+  const x = c.getContext('2d');
+  const g = x.createRadialGradient(32,32,2,32,32,30);
+  g.addColorStop(0,'rgba(255,255,255,.85)'); g.addColorStop(0.55,'rgba(255,255,255,.32)'); g.addColorStop(1,'rgba(255,255,255,0)');
+  x.fillStyle=g; x.fillRect(0,0,64,64);
+  const t = new THREE.CanvasTexture(c); return t;
+}
+const SOFT = softTexture();
+function skyTexture(stops){
+  const c = document.createElement('canvas'); c.width=16; c.height=256;
+  const x = c.getContext('2d'); const g = x.createLinearGradient(0,0,0,256);
+  (stops||[[0,'#7e9cbe'],[0.5,'#aeb9bd'],[0.78,'#d4cab2'],[1,'#c9bb9b']]).forEach(s=>g.addColorStop(s[0],s[1]));
+  x.fillStyle=g; x.fillRect(0,0,16,256);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+/* ---- LOOK di luce/atmosfera (anteprime direzioni estetiche Fase 2; 'tech' = attuale) ---- */
+const LOOKS = {
+  tech:   { sky:[[0,'#7e9cbe'],[0.5,'#aeb9bd'],[0.78,'#d4cab2'],[1,'#c9bb9b']], fog:[0xc4c9c4,170,580], amb:[0xfff4e0,0.5], hemi:[0xb8cce4,0x4a3a1e,0.55], sun:[0xfff6ec,1.9,[30,140,20]], exp:1.04 },
+  golden: { sky:[[0,'#7e9cbe'],[0.42,'#a8a9a8'],[0.7,'#e8c9a0'],[1,'#f0c592']], fog:[0xd8c3a0,150,540], amb:[0xffe9c4,0.42], hemi:[0xbcd0e8,0x6b4a26,0.5], sun:[0xffb347,2.1,[95,34,-80]], exp:1.12 },
+  dusk:   { sky:[[0,'#1c2a4a'],[0.55,'#2e3f66'],[0.82,'#6b5a6e'],[1,'#b0705a']], fog:[0x2e3550,140,520], amb:[0x8ea2d0,0.34], hemi:[0x36486e,0x241a10,0.5], sun:[0xff9a5a,1.5,[110,22,-60]], exp:1.0 },
+  drone:  { sky:[[0,'#93a4b4'],[0.55,'#b3bcc0'],[0.8,'#cfcabb'],[1,'#c5bda9']], fog:[0xc0c3bd,120,460], amb:[0xf2f2ee,0.55], hemi:[0xc4d0dc,0x55483a,0.6], sun:[0xf5f1e6,1.25,[55,110,-35]], exp:0.98 },
+};
+function applyLook(name){
+  const L=LOOKS[name]; if(!L) return;
+  scene.background = skyTexture(L.sky);
+  scene.fog.color.setHex(L.fog[0]); scene.fog.near=L.fog[1]; scene.fog.far=L.fog[2];
+  ambL.color.setHex(L.amb[0]); ambL.intensity=L.amb[1];
+  hemiL.color.setHex(L.hemi[0]); hemiL.groundColor.setHex(L.hemi[1]); hemiL.intensity=L.hemi[2];
+  sun.color.setHex(L.sun[0]); sun.intensity=L.sun[1]; sun.position.set(L.sun[2][0],L.sun[2][1],L.sun[2][2]);
+  renderer.toneMappingExposure=L.exp;
+}
+applyLook('tech');   // Studio Tecnico = look di default (direzione approvata); ?look= lo sovrascrive in dev
+/* flash di detonazione (innesto Ora d'oro): PointLight impulsiva al colletto, segue la sequenza reale, niente ombre */
+const detFlash = new THREE.PointLight(0xffa040, 0, 34, 2); scene.add(detFlash);
+/* bloom SELETTIVO vendorizzato (innesto Ora d'oro): threshold alto → fioriscono solo flash e alte luci, solo su qualità Piena */
+let composer = null;
+function refreshComposer(){
+  if(qLevel!=='Piena'){ if(composer){ composer.dispose&&composer.dispose(); } composer=null; return; }
+  composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, cam));
+  composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.35, 0.4, 0.9));
+  composer.addPass(new OutputPass());
+}
+refreshComposer();
+
+function buildScene(){
+  disposeGroup(staticGroup); disposeGroup(dynGroup);
+  staticGroup = new THREE.Group(); dynGroup = new THREE.Group();
+  scene.add(staticGroup); scene.add(dynGroup);
+  const { Lm, H } = SIM;
+  const DPT = SIM.depth || SPALLA;                            // profondità totale scavata (multi-fila)
+  const maxCz = Math.max(0, ...SIM.fori.map(f=>f.cz));        // offset cresta massimo (fronte sagomato importato)
+  renderer.shadowMap.enabled = (qLevel!=='Base');           // ombre off su qualità Base
+  sun.target.position.set(Lm/2, 0, -4); sun.target.updateMatrixWorld();
+  const _lt = lithoTint();                                   // colore del litotipo scelto in progettazione
+  /* DIORAMA "solo volata" (linea Deepwork): niente piazzale infinito ne spalle — solo il blocco, un grembiule di terreno per il cumulo e un accenno di banco dietro */
+  const floor = new THREE.Mesh(jitterGeo(new THREE.PlaneGeometry(Lm+44, 66, 48, 34),0.25), rockMat(shade(_lt,1.04)));
+  floor.rotation.x = -Math.PI/2; floor.position.set(Lm/2, -0.02, -14); floor.receiveShadow = true; staticGroup.add(floor);
+  /* banco residuo dietro il nuovo fronte (blocco corto: il diorama finisce li) */
+  const bench = new THREE.Mesh(jitterGeo(new THREE.BoxGeometry(Lm, H, 9, 40, 5, 5),0.35), rockMat(shade(_lt,0.9)));
+  bench.position.set(Lm/2, H/2, DPT+4.5+maxCz); bench.castShadow = true; bench.receiveShadow = true; staticGroup.add(bench);
+  /* nuovo fronte rivelato (taglio fresco, piu scuro e saturo) */
+  backWall = new THREE.Mesh(jitterGeo(new THREE.PlaneGeometry(Lm, H, Math.max(8,SIM.fori.length), 6),0.5), rockMat(shade(_lt,0.76)));
+  backWall.position.set(Lm/2, H/2, DPT-0.05+maxCz); backWall.rotation.y = Math.PI;
+  backWall.receiveShadow = true; staticGroup.add(backWall);
+  /* pannelli per-foro (il fronte da sparare; le file dietro stanno più in profondità).
+     Rumore continuo nel mondo (bordi combacianti) + texture sfalsata per pannello + shear di inclinazione → parete unica e naturale, non "riquadri". */
+  panels = [];
+  const _tanI = Math.tan((D2.incl||0)*Math.PI/180);
+  for(const f of SIM.fori){
+    const pgeo = new THREE.BoxGeometry(INTERASSE, f.h, SPALLA, 4, 7, 3);
+    if(_tanI){ const a=pgeo.attributes.position.array; for(let i=0;i<a.length;i+=3) a[i+2]+=(a[i+1]+f.h/2)*_tanI; }   // fronte inclinato come i fori (cresta arretrata)
+    const pos = new THREE.Vector3(f.x, f.h/2, SPALLA/2 + f.cz + (f.zoff||0));
+    worldJitter(pgeo, pos, 0.62);
+    const pm = rockMat(_lt); pm.transparent = true;               // per la vista raggi-X
+    if(pm.map){ pm.map=pm.map.clone(); pm.map.offset.set((f.x*0.173)%1,((f.zoff||0)*0.137+f.i*0.311)%1); pm.map.needsUpdate=true; }
+    if(pm.normalMap){ pm.normalMap=pm.normalMap.clone(); pm.normalMap.offset.copy(pm.map.offset); pm.normalMap.needsUpdate=true; }
+    const m = new THREE.Mesh(pgeo, pm);
+    m.position.copy(pos);
+    m.castShadow = true; m.receiveShadow = true;
+    dynGroup.add(m); panels.push(m);
+  }
+  /* parete-fantasma UNICA per la vista raggi-X: le geometrie dei pannelli fuse in un solo corpo trasparente (niente box separati con spigoli in vista) */
+  {
+    const parts = panels.map(p=>{ const g=p.geometry.clone(); g.applyMatrix4(new THREE.Matrix4().makeTranslation(p.position.x,p.position.y,p.position.z)); return g; });
+    const merged = mergeGeometries(parts, false); parts.forEach(g=>g.dispose());
+    const gm = new THREE.MeshStandardMaterial({ color:shade(_lt,1.02), roughness:0.95, metalness:0, flatShading:true,
+      transparent:true, opacity:0.32, depthWrite:false, side:THREE.DoubleSide });
+    ghostWall = new THREE.Mesh(merged, gm);
+    ghostWall.visible = false; ghostWall.renderOrder = 1;
+    dynGroup.add(ghostWall);
+  }
+  /* vista raggi-X: fori come cilindri dentro la roccia — carica (ambra emissiva), borraggio (grigio), sottoperforazione inclusa, anello colletto per fila */
+  if(xrayGroup){ disposeGroup(xrayGroup); }
+  xrayGroup = new THREE.Group(); xrayCyls = [];
+  {
+    const rCyl=0.18, stemL=Math.min(D2.stem, P.prof), filaCols=[0x42a5f5,0xab47bc,0xff7043,0x26c6da,0xe0b34c,0x8d6e63];
+    const matStem=new THREE.MeshStandardMaterial({ color:0xa8a49a, roughness:0.6 });
+    const matChg =new THREE.MeshStandardMaterial({ color:0xffab00, emissive:0xff8c1d, emissiveIntensity:0.5, roughness:0.45 });
+    for(const f of SIM.fori){
+      const g=new THREE.Group();                                 // origine del gruppo = COLLETTO (perno per l'inclinazione)
+      const zc=f.cz+(f.zoff||0)+SPALLA;                          // colletto: a distanza burden dietro la faccia del proprio slab
+      const Lchg=Math.max(0.4, f.h+(D2.sub||0)-stemL);           // colonna carica = H+sub−borraggio
+      const cStem=new THREE.Mesh(new THREE.CylinderGeometry(rCyl,rCyl,stemL,8), matStem);
+      cStem.position.y=-stemL/2;                                 // borraggio: dal colletto in giù
+      const cChg=new THREE.Mesh(new THREE.CylinderGeometry(rCyl*1.05,rCyl*1.05,Lchg,8), matChg);
+      cChg.position.y=-stemL-Lchg/2;                             // carica: sotto il borraggio, fino a −sub
+      const fila=Math.round((f.zoff||0)/Math.max(1,SPALLA));
+      const fc=filaCols[Math.min(fila,filaCols.length-1)];
+      const ring=new THREE.Mesh(new THREE.CylinderGeometry(0.36,0.36,0.1,10),
+        new THREE.MeshStandardMaterial({ color:fc, emissive:fc, emissiveIntensity:0.35 }));
+      ring.position.y=0.06;                                      // anello al colletto, colore = fila
+      g.add(cStem); g.add(cChg); g.add(ring);
+      if(D2.incl) g.rotation.x=-D2.incl*Math.PI/180;             // inclinazione verso la faccia
+      g.position.set(f.x, f.h, zc);
+      g.userData.f=f;
+      xrayGroup.add(g); xrayCyls.push(g);
+    }
+    xrayGroup.visible = !!layers.lXray;
+    dynGroup.add(xrayGroup);
+  }
+  /* chunk: 3 InstancedMesh con geometrie icosaedro diverse */
+  chunkMeshes.forEach(im=>{ im.geometry.dispose(); im.material.dispose(); dynGroup.remove(im); }); chunkMeshes=[];
+  const geos = [0,1,2].map(k=>{ const g=new THREE.IcosahedronGeometry(0.6,0); const a=g.attributes.position.array; const r=mulberry32(11+k); for(let i=0;i<a.length;i++)a[i]+=(r()-0.5)*0.26; g.computeVertexNormals(); return g; });
+  const mats = [shade(_lt,0.92),shade(_lt,0.82),shade(_lt,0.72)].map(c=>rockMat(c));
+  const per = Math.ceil(SIM.chunks.length/3);
+  for(let k=0;k<3;k++){
+    const count = Math.min(per, SIM.chunks.length-k*per);
+    if(count<=0) break;
+    const im = new THREE.InstancedMesh(geos[k], mats[k], count);
+    im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    im.userData.offset = k*per; im.frustumCulled = false;
+    dynGroup.add(im); chunkMeshes.push(im);
+  }
+  /* getti colletto: Points */
+  if(jetPts){ dynGroup.remove(jetPts); }
+  {
+    const pos = new Float32Array(SIM.jets.length*3);
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos,3));
+    const m = new THREE.PointsMaterial({ size:1.1, map:SOFT, transparent:true, opacity:0.7,
+      color:0xcdbb96, depthWrite:false, sizeAttenuation:true });
+    jetPts = new THREE.Points(g,m); jetPts.frustumCulled=false; dynGroup.add(jetPts);
+  }
+  /* cortina di roccia lungo il fronte: Points */
+  if(curtainPts){ dynGroup.remove(curtainPts); }
+  {
+    const pos = new Float32Array(SIM.curtain.length*3);
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos,3));
+    const m = new THREE.PointsMaterial({ size:2.0, map:SOFT, transparent:true, opacity:0.85,
+      color:shade(lithoTint(),0.78), depthWrite:false, sizeAttenuation:true });
+    curtainPts = new THREE.Points(g,m); curtainPts.frustumCulled=false; dynGroup.add(curtainPts);
+  }
+  /* gonna basale: Points */
+  if(gonnaPts){ dynGroup.remove(gonnaPts); }
+  {
+    const pos = new Float32Array(SIM.gonna.length*3);
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos,3));
+    const m = new THREE.PointsMaterial({ size:3.4, map:SOFT, transparent:true, opacity:0.5,
+      color:0xc9b89a, depthWrite:false, sizeAttenuation:true });
+    gonnaPts = new THREE.Points(g,m); gonnaPts.frustumCulled=false; dynGroup.add(gonnaPts);
+  }
+  /* nuvola: Sprites giganti */
+  cloudSprites.forEach(s=>dynGroup.remove(s)); cloudSprites=[];
+  for(const nv of SIM.nuvola){
+    const m = new THREE.SpriteMaterial({ map:SOFT, color:0xcfc0a2, transparent:true, opacity:0, depthWrite:false });
+    const s = new THREE.Sprite(m); s.position.set(nv.x, nv.y0, nv.z);
+    dynGroup.add(s); cloudSprites.push(s);
+  }
+  /* muckpile heightfield */
+  if(pileMesh){ dynGroup.remove(pileMesh); }
+  {
+    const { NX, NZ, cell, gx0, gz0 } = SIM.grid;
+    pileGeo = new THREE.PlaneGeometry((NX-1)*cell, (NZ-1)*cell, NX-1, NZ-1);
+    pileGeo.rotateX(-Math.PI/2);
+    pileMesh = new THREE.Mesh(pileGeo, rockMat(shade(lithoTint(),0.82)));
+    pileMesh.position.set(gx0+(NX-1)*cell/2, 0, gz0+(NZ-1)*cell/2);
+    pileMesh.frustumCulled=false; pileMesh.receiveShadow = true;
+    dynGroup.add(pileMesh);
+  }
+  buildTicks();
+  updateInfochip();
+  applyCamera(camIdx, true);
+  renderSim(0, true);
+}
+
+/* ============ rendering dello stato a simT (forma chiusa) ============ */
+const M4 = new THREE.Matrix4(), Q4 = new THREE.Quaternion(), V3 = new THREE.Vector3(), E3 = new THREE.Euler();
+let evPtr = 0, hgtNow = null, hgtDisp = null, lastEvPtr = -1;
+
+function renderSim(t, force){
+  const S = SIM; if(!S) return;
+  const { H } = S;
+  const bs = CAL.bulge.inizioDopoDetonazioneS*1000, bd = CAL.bulge.durataS*1000, det = S.tDetach;
+  /* flash di detonazione: segue il foro piu recente entro 110 ms, decadimento esponenziale */
+  { let bf=null; for(const f of S.fori){ const dt=t-f.tDet; if(dt>=0 && dt<110 && (!bf || f.tDet>bf.tDet)) bf=f; }
+    if(bf){ const dt=t-bf.tDet; detFlash.position.set(bf.x, bf.h*0.75, SPALLA+bf.cz+1.5); detFlash.intensity=46*Math.exp(-dt/26); }
+    else detFlash.intensity=0; }
+  /* pannelli: intatto -> bulge -> via */
+  let fired = 0;
+  for(let i=0;i<S.fori.length;i++){
+    const f = S.fori[i], m = panels[i];
+    const tau = t - f.tDet;
+    if(tau >= 0) fired++;
+    if(tau >= 0 && tau < det){
+      m.visible = true;
+      let d = 0;
+      if(tau > bs){ const u = Math.min(1,(tau-bs)/bd); d = S.bulgeAmp * u*u*(3-2*u); }
+      m.position.z = SPALLA/2 + f.cz + (f.zoff||0) - d;
+    } else if(tau < 0 && !frontMesh){
+      m.visible = !layers.lXray;                                        // raggi-X: i pannelli intatti lasciano il posto alla parete-fantasma unica
+      m.position.z = SPALLA/2 + f.cz + (f.zoff||0);
+    } else m.visible = false;
+  }
+  /* vista raggi-X: parete-fantasma unica + cilindri visibili finche il proprio foro non spara */
+  if(ghostWall){ ghostWall.visible = !!layers.lXray; if(layers.lXray) ghostWall.material.opacity = xrayOp; }
+  if(xrayGroup){
+    xrayGroup.visible = !!layers.lXray;
+    if(layers.lXray) for(const g of xrayCyls){ g.visible = t < g.userData.f.tDet; }
+  }
+  if(frontMesh){
+    // la mesh reale È il fronte intatto: sfuma man mano che i fori sparano, scoprendo i pannelli che esplodono
+    const frac = 1 - fired/Math.max(1,S.fori.length);
+    frontMesh.traverse(o=>{ if(o.material){ o.material.transparent=true; o.material.opacity=Math.max(0,frac); } });
+    frontMesh.visible = frac > 0.002;
+  }
+  /* chunk */
+  const showC = layers.lChunk;
+  for(const im of chunkMeshes){
+    const off = im.userData.offset;
+    for(let k=0;k<im.count;k++){
+      const c = S.chunks[off+k]; if(!c) break;
+      const tau = (t - c.td)/1000;
+      let x,y,z, rot=0, sc=c.scl;
+      if(tau<0 || !showC){ x=0;y=-50;z=0; sc=0.0001; }
+      else if(tau < c.tl){
+        const damp = Math.abs(DRAG_K*tau) > 1e-5 ? (1-Math.exp(-DRAG_K*tau))/(DRAG_K*tau) : 1 - DRAG_K*tau/2; // coerente col precalcolo in buildSim
+        x = c.px + c.vx*tau*damp;
+        z = c.pz + c.vz*tau*damp;
+        y = c.py + c.vy*tau - (G/2)*tau*tau; // = G/2, coerente col precalcolo
+        rot = c.rotW*Math.min(tau,c.tl);
+      } else {
+        x = c.lx; z = c.lz; y = c.rest + c.scl*0.42; rot = c.rotW*c.tl;
+      }
+      E3.set(c.e0 + (c.rotAx?0:rot), c.e1 + (c.rotAx?rot:0), c.e2);
+      Q4.setFromEuler(E3);
+      M4.compose(V3.set(x,y,z), Q4, new THREE.Vector3(sc,sc*0.82,sc));
+      im.setMatrixAt(k, M4);
+    }
+    im.instanceMatrix.needsUpdate = true;
+  }
+  /* getti colletto */
+  {
+    const pos = jetPts.geometry.attributes.position.array;
+    const on = layers.lGetti;
+    for(let i=0;i<S.jets.length;i++){
+      const j = S.jets[i];
+      const tau = (t - j.birth)/1000;
+      const o = i*3;
+      if(!on || tau<0 || tau>j.life/1000){ pos[o]=0; pos[o+1]=-60; pos[o+2]=0; continue; }
+      pos[o]   = j.x + j.drift*tau;
+      pos[o+1] = j.H + j.v0*tau - 4.2*tau*tau;     // gravità ridotta: la polvere frena subito
+      pos[o+2] = j.z + j.dz*tau;
+      if(pos[o+1] < j.H) pos[o+1] = j.H;
+    }
+    jetPts.geometry.attributes.position.needsUpdate = true;
+  }
+  /* gonna basale */
+  {
+    const pos = gonnaPts.geometry.attributes.position.array;
+    const on = layers.lGonna;
+    for(let i=0;i<S.gonna.length;i++){
+      const g = S.gonna[i];
+      const tau = (t - g.birth)/1000;
+      const o = i*3;
+      if(!on || tau<0 || tau>g.life/1000){ pos[o]=0; pos[o+1]=-60; pos[o+2]=0; continue; }
+      const dist = g.v*CAL.gonnaBasale.decadimentoS*(1-Math.exp(-tau/CAL.gonnaBasale.decadimentoS));
+      pos[o]   = g.x + Math.cos(g.ang)*dist*0.5;
+      pos[o+1] = Math.min(g.y, 0.4 + tau*1.1);
+      pos[o+2] = -1 + Math.sin(g.ang)*dist;        // verso il piazzale
+    }
+    gonnaPts.geometry.attributes.position.needsUpdate = true;
+  }
+  /* nuvola avvolgente */
+  {
+    const on = layers.lNuvola;
+    for(let i=0;i<S.nuvola.length;i++){
+      const nv = S.nuvola[i], s = cloudSprites[i];
+      const tau = (t - nv.birth)/1000;
+      if(!on || tau<0 || tau>nv.life/1000){ s.material.opacity = 0; continue; }
+      const gr = 1/(1+Math.exp(-(tau-CAL.polvereNuvola.crescitaS/2)/(CAL.polvereNuvola.crescitaS/5))); // logistica
+      const r = nv.r0 + (nv.r1-nv.r0)*gr;
+      s.scale.set(r*2, r*1.5, 1);
+      s.position.set(nv.x + P.vento*tau + Math.sin(nv.seed+tau*0.21)*2,
+                     nv.y0 + CAL.polvereNuvola.galleggiamentoM_s*tau*0.9,
+                     nv.z - tau*0.45);
+      const fadeIn = Math.min(1, tau/2.5);
+      const fadeOut = Math.min(1, Math.max(0,(nv.life/1000-tau)/12));
+      s.material.opacity = 0.42 * gr * fadeIn * fadeOut;
+    }
+  }
+  /* muckpile: ricostruzione eventi <= t, con CRESCITA GRADUALE per cella (~0,7 s dal valore precedente: la pila si accumula, non appare) */
+  if(layers.lMuck){
+    pileMesh.visible = true;
+    const RISE = 700;
+    if(!hgtNow || force){ hgtNow = new Float32Array(S.grid.NX*S.grid.NZ); hgtDisp = new Float32Array(S.grid.NX*S.grid.NZ); evPtr = 0; lastEvPtr = -1; }
+    if(t < (S.events[evPtr-1]?.t ?? -1)){ hgtNow.fill(0); evPtr = 0; }   // scrub indietro: replay
+    while(evPtr < S.events.length && S.events[evPtr].t <= t-RISE){ const e=S.events[evPtr]; hgtNow[e.idx]=e.h; evPtr++; }   // eventi assestati
+    hgtDisp.set(hgtNow);
+    let k=evPtr, rising=false;
+    while(k < S.events.length && S.events[k].t <= t){                    // eventi in finestra di crescita: interpolazione smooth
+      const e=S.events[k], u=Math.min(1,(t-e.t)/RISE), s=u*u*(3-2*u);
+      hgtDisp[e.idx]=(e.h0||0)+(e.h-(e.h0||0))*s; rising=true; k++;
+    }
+    if(evPtr !== lastEvPtr || rising || force){
+      lastEvPtr = evPtr;
+      const pa = pileGeo.attributes.position.array;
+      const { NX, NZ } = S.grid;
+      for(let iz=0;iz<NZ;iz++)for(let ix=0;ix<NX;ix++){ pa[(iz*NX+ix)*3+1] = hgtDisp[iz*NX+ix]; }
+      pileGeo.attributes.position.needsUpdate = true;
+      pileGeo.computeVertexNormals();
+    }
+  } else pileMesh.visible = false;
+  /* cortina: roccia che scivola lungo il fronte e muore sulla pila */
+  if(curtainPts && S.curtain){
+    const pa=curtainPts.geometry.attributes.position.array, {gx0,gz0,NX,NZ,cell}=S.grid;
+    for(let i=0;i<S.curtain.length;i++){ const p=S.curtain[i]; const dt=(t-p.birth)/1000;
+      let y=-999, zz=p.z;
+      if(dt>=0 && dt<3){ const yy=p.y0-4.9*dt*dt; zz=p.z-dt*1.4;         // cade e scivola in avanti verso il piede
+        const ix=Math.min(NX-1,Math.max(0,Math.floor((p.x-gx0)/cell))), iz=Math.min(NZ-1,Math.max(0,Math.floor((zz-gz0)/cell)));
+        const hp=hgtDisp?hgtDisp[iz*NX+ix]:0;
+        if(yy>hp+0.15) y=yy;                                             // sparisce quando tocca la pila
+      }
+      pa[i*3]=p.x; pa[i*3+1]=y; pa[i*3+2]=zz;
+    }
+    curtainPts.geometry.attributes.position.needsUpdate=true;
+  }
+}
+
+/* ============ audio: boato sintetizzato ============ */
+let AC = null, schedNodes = [];
+function ensureAudio(){ if(!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(AC&&AC.state==='suspended') AC.resume(); }
+function boomAt(when, dist){
+  if(!AC) return;
+  const dur = 1.6, t0 = Math.max(AC.currentTime+0.01, when);
+  const att = Math.max(0.15, Math.min(1, 60/Math.max(dist,20)));
+  // rumore filtrato
+  const nb = AC.createBuffer(1, AC.sampleRate*dur, AC.sampleRate);
+  const d = nb.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2.4);
+  const src = AC.createBufferSource(); src.buffer = nb;
+  const lp = AC.createBiquadFilter(); lp.type='lowpass';
+  lp.frequency.setValueAtTime(220,t0); lp.frequency.exponentialRampToValueAtTime(60,t0+dur*0.8);
+  const g = AC.createGain();
+  g.gain.setValueAtTime(0.0001,t0); g.gain.exponentialRampToValueAtTime(0.9*att,t0+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+  src.connect(lp); lp.connect(g); g.connect(AC.destination);
+  src.start(t0); src.stop(t0+dur);
+  // colpo sub
+  const o = AC.createOscillator(); o.type='sine';
+  o.frequency.setValueAtTime(42,t0); o.frequency.exponentialRampToValueAtTime(26,t0+0.5);
+  const g2 = AC.createGain(); g2.gain.setValueAtTime(0.0001,t0);
+  g2.gain.exponentialRampToValueAtTime(0.55*att,t0+0.03); g2.gain.exponentialRampToValueAtTime(0.0001,t0+0.7);
+  o.connect(g2); g2.connect(AC.destination); o.start(t0); o.stop(t0+0.8);
+  schedNodes.push(src,o);
+}
+function cancelAudio(){ for(const n of schedNodes){ try{ n.stop(); }catch(e){} } schedNodes=[]; }
+function scheduleBooms(){
+  if(!AC || !layers.lAudio || !SIM) return;
+  cancelAudio();
+  const dist = cam.position.distanceTo(new THREE.Vector3(SIM.Lm/2, SIM.H/2, 0));
+  for(const f of SIM.fori){
+    const boomSimT = f.tDet + dist/CAL.audio.velSuonoM_s*1000;
+    if(boomSimT >= simT){
+      boomAt(AC.currentTime + (boomSimT - simT)/1000/speed, dist);
+      shakeQueue.push(boomSimT);
+    }
+  }
+}
+/* scossa camera al boato */
+let shakeQueue = [], shakeT0 = -1;
+function checkShake(prevT, t){
+  for(const b of shakeQueue){ if(b>prevT && b<=t){ shakeT0 = performance.now(); } }
+}
+
+/* ============ UI: timeline ============ */
+const $ = id => document.getElementById(id);
+const layers = { lGetti:true, lChunk:true, lGonna:true, lNuvola:true, lMuck:true, lXray:false, lAudio:true };
+let xrayOp = 0.32;   // trasparenza del fronte in vista raggi-X (cursore #xrOp)
+function buildTicks(){
+  const tk = $('ticks'); tk.innerHTML = '';
+  for(const f of SIM.fori){
+    const d = document.createElement('div');
+    d.className = 'tick' + (f.tDet===0 ? ' big':'');
+    d.style.left = (f.tDet/SIM.tEnd*100)+'%';
+    d.title = 'foro '+(f.i+1)+' · '+f.tDet+' ms';
+    tk.appendChild(d);
+  }
+}
+function updateInfochip(){
+  const seq = Math.round(SIM.lastDet), fr = SIM.frag;
+  const pfVal = fr ? fr.pf : (P.kg/(SPALLA*INTERASSE*P.prof));
+  const _sqL={riga:'riga per riga',diagonale:'diagonale',vcut:'V-cut',box:'box'}[D2.sequenza]||'diagonale';
+  const _inL=(typeof selInnesco==='function'&&selInnesco())?selInnesco().short:'Nonel';
+  const _rkL=(typeof selRoccia==='function'&&selRoccia())?selRoccia().nome.split(' ')[0]:'';
+  $('infochip').innerHTML = `<b>${P.fori} fori</b> · maglia ${SPALLA.toFixed(1)}×${INTERASSE.toFixed(1)} · ${_inL} <b>${P.ritardo} ms</b> · ${_sqL} · ${_rkL} · sequenza <b>${seq} ms</b> · PF ${pfVal.toFixed(2)} kg/m³`;
+  if(fr){
+    const mx = Math.max(fr.x80,1);
+    const seg = (lab,val)=>`<div style="display:flex;align-items:center;gap:6px;margin-top:3px"><span style="width:26px;color:var(--mut2)">${lab}</span><div style="flex:1;height:6px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden"><div style="height:100%;width:${Math.min(100,val/mx*100)}%;background:var(--cu)"></div></div><b style="width:46px;text-align:right">${val} cm</b></div>`;
+    $('fragchip').innerHTML = `<b>Granulometria prevista</b> · Kuz-Ram (n=${fr.n})${seg('x20',fr.x20)}${seg('x50',fr.x50)}${seg('x80',fr.x80)}`;
+  }
+}
+function fmtT(ms){
+  if(ms<1000) return Math.round(ms)+' <small>ms</small>';
+  return (ms/1000).toFixed(2)+' <small>s</small>';
+}
+function setSimT(t, fromScrub){
+  const prev = simT;
+  simT = Math.max(0, Math.min(SIM.tEnd, t));
+  if(!fromScrub) checkShake(prev, simT);
+  $('trackfill').style.width = (simT/SIM.tEnd*100)+'%';
+  $('thumb').style.left = (simT/SIM.tEnd*100)+'%';
+  $('tclock').innerHTML = fmtT(simT);
+  $('tstate').textContent = simT===0 ? 'pronto' : (simT>=SIM.tEnd ? 'fine' : (playing?'in corsa':'pausa'));
+  renderSim(simT);
+}
+function setPlaying(p){
+  playing = p;
+  $('play').textContent = p ? '❚❚' : '▶';
+  $('btnApply').classList.toggle('disabled', p);  // niente rigenera durante il play
+  if(p){
+    if(simT >= SIM.tEnd) setSimT(0);
+    ensureAudio(); scheduleBooms();
+    lastNow = performance.now();
+  } else cancelAudio();
+  $('tstate').textContent = playing?'in corsa':'pausa';
+}
+$('play').onclick = ()=> setPlaying(!playing);
+document.querySelectorAll('[data-spd]').forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll('[data-spd]').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    speed = parseFloat(b.dataset.spd);
+    if(playing){ cancelAudio(); scheduleBooms(); }
+  };
+});
+/* scrub */
+const track = $('track');
+let scrubbing = false;
+function trackT(e){
+  const r = track.getBoundingClientRect();
+  const u = Math.max(0, Math.min(1, ((e.touches?e.touches[0].clientX:e.clientX) - r.left)/r.width));
+  return u*SIM.tEnd;
+}
+track.addEventListener('pointerdown', e=>{ scrubbing=true; track.classList.add('scrubbing'); setPlaying(false); setSimT(trackT(e), true); track.setPointerCapture(e.pointerId); });
+track.addEventListener('pointermove', e=>{ if(scrubbing) setSimT(trackT(e), true); });
+track.addEventListener('pointerup', ()=>{ scrubbing=false; track.classList.remove('scrubbing'); });
+
+/* ============ camere ============ */
+let camIdx = 0;
+const CAMS = [
+  { name:'terra',  pos:(S)=>[S.Lm/2, 1.7, -50],          tgt:(S)=>[S.Lm/2, S.H*0.45, 0] },
+  { name:'drone',  pos:(S)=>[S.Lm/2+10, 55, -52],        tgt:(S)=>[S.Lm/2, 0, -6] },
+  { name:'lato',   pos:(S)=>[-34, 9, -16],               tgt:(S)=>[S.Lm*0.35, S.H*0.35, 0] },
+  { name:'libera', pos:null, tgt:null },
+];
+function applyCamera(i, force){
+  camIdx = i;
+  document.querySelectorAll('[data-cam]').forEach((b,k)=>b.classList.toggle('on', k===i));
+  const c = CAMS[i];
+  if(c.pos){
+    cam.position.set(...c.pos(SIM));
+    ctrl.target.set(...c.tgt(SIM));
+    ctrl.update();
+  }
+  if(playing){ cancelAudio(); scheduleBooms(); }
+}
+document.querySelectorAll('[data-cam]').forEach((b,k)=> b.onclick = ()=>applyCamera(k));
+
+/* ============ tastiera ============ */
+addEventListener('keydown', e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return;
+  if(e.code==='Space'){ e.preventDefault(); setPlaying(!playing); }
+  else if(e.key>='1'&&e.key<='4') applyCamera(+e.key-1);
+  else if(e.key==='ArrowRight'){ setPlaying(false); setSimT(simT+P.ritardo, true); }
+  else if(e.key==='ArrowLeft'){ setPlaying(false); setSimT(simT-P.ritardo, true); }
+  else if(e.key==='r'||e.key==='R'){ setPlaying(false); setSimT(0, true); }
+});
+
+/* ============ parametri / layers ============ */
+$('btnApply').onclick = ()=>{ if(playing) return; readParams(); rebuild(); toast('✓ Volata rigenerata'); };
+function readParams(){
+  P.fori = Math.max(6, Math.min(24, +$('pFori').value||18));
+  P.ritardo = +$('pRit').value||25;
+  P.dir = $('pDir').value;
+  P.prof = Math.max(6, Math.min(18, +$('pProf').value||13));
+  P.kg = Math.max(10, Math.min(120, +$('pKg').value||50));
+  P.vento = Math.max(-4, Math.min(4, +$('pVento').value||0));
+  P.profilo = []; P.foriH = null; P.holes = null; // demo manuale = fronte dritto, una fila, griglia regolare
+  clearFrontMesh();                               // rimuove l'eventuale fronte 3D reale caricato
+}
+for(const id of Object.keys(layers)){
+  $(id).onchange = e=>{ layers[id] = e.target.checked; renderSim(simT, true); if(id==='lAudio'&&playing){ cancelAudio(); if(layers.lAudio) scheduleBooms(); } };
+}
+if($('xrOp')) $('xrOp').oninput = e=>{ xrayOp = (+e.target.value||32)/100; if(layers.lXray) renderSim(simT, true); };
+if($('btnHelp')) $('btnHelp').onclick = ()=>{ const h=$('helpcard'); h.style.display = h.style.display==='none' ? 'block' : 'none'; };
+if($('btnHelpClose')) $('btnHelpClose').onclick = ()=>{ $('helpcard').style.display='none'; };
+/* ===== Modellazione fronte in 3D — proportional editing stile Blender: trascini una maniglia sulla cresta, le vicine seguono con falloff gaussiano ===== */
+let modella=false, mdlHandles=[], mdlDrag=-1, mdlBase=null, mdlGroup=null;
+const mdlRay=new THREE.Raycaster(), mdlV2=new THREE.Vector2(), mdlPlane=new THREE.Plane(new THREE.Vector3(0,1,0), 0);
+function mdlBuild(){
+  if(mdlGroup){ scene.remove(mdlGroup); mdlGroup.traverse(o=>{ if(o.geometry)o.geometry.dispose(); if(o.material)o.material.dispose(); }); mdlGroup=null; }
+  mdlHandles=[];
+  if(!modella || !SIM) return;
+  mdlGroup=new THREE.Group();
+  const N=9, Lm=SIM.Lm, Hh=SIM.H;
+  for(let i=0;i<N;i++){
+    const x=Lm*i/(N-1);
+    const s=new THREE.Mesh(new THREE.SphereGeometry(0.55,12,10),
+      new THREE.MeshStandardMaterial({ color:0xffab00, emissive:0xff8c1d, emissiveIntensity:0.75 }));
+    s.position.set(x, Hh+0.5, crestZ(x)); s.userData.i=i;
+    mdlGroup.add(s); mdlHandles.push(s);
+  }
+  scene.add(mdlGroup);
+}
+function mdlNDC(e){ const r=renderer.domElement.getBoundingClientRect(); mdlV2.set(((e.clientX-r.left)/r.width)*2-1, -((e.clientY-r.top)/r.height)*2+1); }
+renderer.domElement.addEventListener('pointerdown', e=>{
+  if(!modella || !mdlHandles.length) return;
+  mdlNDC(e); mdlRay.setFromCamera(mdlV2, cam);
+  const hit=mdlRay.intersectObjects(mdlHandles)[0];
+  if(hit){ mdlDrag=hit.object.userData.i; mdlBase=mdlHandles.map(h=>h.position.z); ctrl.enabled=false; e.preventDefault(); e.stopPropagation(); }
+}, true);
+addEventListener('pointermove', e=>{
+  if(mdlDrag<0) return;
+  mdlNDC(e); mdlRay.setFromCamera(mdlV2, cam);
+  mdlPlane.constant = -(SIM.H+0.5);                                  // piano orizzontale alla quota delle maniglie
+  const pt=new THREE.Vector3(); if(!mdlRay.ray.intersectPlane(mdlPlane, pt)) return;
+  const i0=mdlDrag, dz=pt.z-mdlBase[i0], sigma=Math.max(4, SIM.Lm/5);
+  for(let j=0;j<mdlHandles.length;j++){
+    const w=Math.exp(-Math.pow(mdlHandles[j].position.x-mdlHandles[i0].position.x,2)/(2*sigma*sigma));
+    mdlHandles[j].position.z=Math.max(-6, Math.min(10, mdlBase[j]+dz*w));
+  }
+});
+addEventListener('pointerup', ()=>{
+  if(mdlDrag<0) return;
+  mdlDrag=-1; ctrl.enabled=true;
+  const pts=mdlHandles.map(h=>({ x:+h.position.x.toFixed(2), z:+h.position.z.toFixed(2) }));
+  P.profilo=pts;                                                     // il 3D si ricostruisce sul nuovo fronte
+  D2.profilo=pts.map(p=>({ x:p.x, y:p.z }));                         // sync verso il Progetto 2D
+  const t0=simT; rebuild(); setSimT(Math.min(t0, SIM.tEnd), true);
+  mdlBuild(); toast('✓ Fronte modellato (sincronizzato col 2D)');
+});
+if($('btnModella')) $('btnModella').onclick=()=>{ modella=!modella; $('btnModella').classList.toggle('on', modella); if(modella && playing) setPlaying(false); mdlBuild(); toast(modella?'✋ Trascina le sfere sulla cresta (le vicine seguono)':'Modellazione chiusa'); };
+if($('pIncl')) $('pIncl').onchange = e=>{ D2.incl = Math.max(0, Math.min(30, +e.target.value||0)); if($('dIncl')) $('dIncl').value = D2.incl; rebuild(); toast('✓ Inclinazione '+D2.incl+'°'); };
+function rebuild(){
+  setPlaying(false);
+  SIM = buildSim();
+  hgtNow = null; evPtr = 0; shakeQueue = [];
+  buildScene();
+  setSimT(0, true);
+  if(document.body.classList.contains('scr-design')) draw2D();   // aggiorna la vista 2D in pianta
+}
+
+/* ============ import / export volata.json ============ */
+$('btnExport').onclick = ()=>{
+  const fori = SIM.fori.map(f=>({ id:'foro_'+(f.i+1), num:f.i+1, x:+f.x.toFixed(2), prof:+(f.prof||P.prof), diam:P.diam,
+    kg:P.kg, esplosivo:'ANFO', ritardo:f.tDet, innesco:'Nonel', sequenza:f.i+1 }));
+  const out = { schemaV:1, tipo:'volata-deepwork',
+    volata:{ id:'vol_demo_genesi', sitoId:null, tipo:'cava', numero:1, data:new Date().toISOString().slice(0,10),
+      fronte:{ lunghezza_m:SIM.Lm, altezza_m:SIM.H, profilo:(P.profilo||[]).map(p=>({x:+p.x.toFixed(2),y:+p.z.toFixed(2)})) },
+      geometria:{ spalla_m:SPALLA, interasse_m:INTERASSE, borraggio_m:2.5, file:1 },
+      default:{ diametro_mm:89, profondita_m:P.prof, esplosivo:'ANFO', ritardo_ms:P.ritardo, innesco:'Nonel' },
+      fori, connessioni:[] },
+    sim:{ frontePath:null, fronteFormato:null, videoRef:null,
+      calibrazione:{ fonte:'6 volate reali (sottoinsieme robusto di 23 misurate, archivio 190 video)', sequenzaTipicaMs:CAL.sequenza.durataTipicaMs } } };
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(out,null,1)],{type:'application/json'}));
+  a.download = 'genesi-demo.volata.json'; a.click();
+  toast('✓ Volata esportata (.volata.json)');
+};
+$('btnImport').onclick = ()=> $('fileIn').click();
+$('fileIn').onchange = async e=>{
+  const f = e.target.files[0]; if(!f) return;
+  try{
+    const j = JSON.parse(await f.text());
+    const v = j.volata || j;                          // busta o legacy nudo
+    const fori = v.fori||[];
+    if(!fori.length) throw new Error('nessun foro nel file');
+    /* migrate(): legacy core -> schema genesi */
+    const geom = v.geometria || {};
+    const ritardi = fori.map(x=>parseFloat(String(x.ritardo??'').replace(/[^\d.]/g,''))||0);
+    const rset = [...new Set(ritardi)].sort((a,b)=>a-b);
+    let step = 25;
+    if(rset.length>1){ const difs=[]; for(let i=1;i<rset.length;i++)difs.push(rset[i]-rset[i-1]); difs.sort((a,b)=>a-b); step = difs[Math.floor(difs.length/2)]||25; }
+    const byX = fori.map((x,i)=>({ x:+x.x||i, r:ritardi[i] })).sort((a,b)=>a.x-b.x);
+    const dir = (byX[0].r <= byX[byX.length-1].r) ? 'sx' : 'dx';
+    P.fori = Math.max(6, Math.min(24, fori.length));
+    P.ritardo = [17,25,42,65].includes(step) ? step : 25;
+    P.dir = dir;
+    P.prof = Math.max(6, Math.min(18, fori.reduce((s,x)=>s+(parseFloat(x.prof)||13),0)/fori.length));
+    P.kg = Math.max(10, Math.min(120, fori.reduce((s,x)=>s+(parseFloat(x.kg)||50),0)/fori.length));
+    /* FRONTE SAGOMATO da Deepwork: altezza per-foro (skyline) + profilo cresta (forma in pianta) */
+    const fr = v.fronte || {};
+    const LmImp = P.fori * INTERASSE;
+    const foriSorted = fori.map((x,i)=>({ x:+x.x||i, prof:Math.max(5,Math.min(20,parseFloat(x.prof)||P.prof)) })).sort((a,b)=>a.x-b.x);
+    P.foriH = foriSorted.slice(0, P.fori).map(o=>o.prof);
+    const srcLen = (+fr.lunghezza_m) || (foriSorted.length?foriSorted[foriSorted.length-1].x:LmImp) || LmImp;
+    const xs = LmImp / (srcLen||1);
+    P.profilo = Array.isArray(fr.profilo)
+      ? fr.profilo.filter(p=>p&&p.x!=null).map(p=>({ x:(+p.x)*xs, z:Math.max(-8,Math.min(12,+(p.y||0))) })).sort((a,b)=>a.x-b.x)
+      : [];
+    $('pFori').value=P.fori; $('pRit').value=P.ritardo; $('pDir').value=P.dir;
+    $('pProf').value=+P.prof.toFixed(1); $('pKg').value=Math.round(P.kg);
+    clearFrontMesh();                               // una volata parametrica sostituisce l'eventuale fronte 3D
+    rebuild();
+    toast('✓ Volata importata: '+fori.length+' fori'+(P.profilo.length?' · fronte sagomato':'')+(j.schemaV?' (schema v'+j.schemaV+')':''));
+  }catch(err){ toast('Import fallito: '+err.message); }
+  e.target.value='';
+};
+
+/* ============ import fronte 3D reale (mesh fotogrammetrica GLB/OBJ) ============ */
+function clearFrontMesh(){ if(frontMeshGroup){ disposeGroup(frontMeshGroup); frontMeshGroup=null; } frontMesh=null; }
+function applyRockMaterial(obj){
+  obj.traverse(o=>{ if(o.isMesh){
+    o.material = new THREE.MeshStandardMaterial({ color:0x8a7a5c, roughness:0.97, metalness:0, side:THREE.DoubleSide });
+    o.castShadow = true; o.receiveShadow = true;
+  }});
+}
+function sampleFront(group, nbins){
+  const sky = new Array(nbins).fill(-Infinity), zsum = new Array(nbins).fill(0), zcnt = new Array(nbins).fill(0);
+  const box = new THREE.Box3().setFromObject(group); const W = (box.max.x - box.min.x) || 1;
+  const v = new THREE.Vector3();
+  group.traverse(o=>{ if(o.isMesh && o.geometry){ const p=o.geometry.attributes.position; o.updateWorldMatrix(true,false);
+    for(let i=0;i<p.count;i++){ v.fromBufferAttribute(p,i).applyMatrix4(o.matrixWorld);
+      let b = Math.floor((v.x-box.min.x)/W*nbins); b=Math.max(0,Math.min(nbins-1,b));
+      if(v.y>sky[b]) sky[b]=v.y; zsum[b]+=v.z; zcnt[b]++; } } });
+  const skyline=[], crest=[];
+  for(let b=0;b<nbins;b++){ skyline.push(sky[b]===-Infinity?12:sky[b]); crest.push(zcnt[b]?zsum[b]/zcnt[b]:0); }
+  return { skyline, crest, W };
+}
+function loadFrontMeshObject(obj){
+  try{
+    clearFrontMesh();
+    let box = new THREE.Box3().setFromObject(obj);
+    obj.position.sub(box.min);                 // normalizza: minX=minY=minZ=0
+    obj.updateMatrixWorld(true);
+    box = new THREE.Box3().setFromObject(obj);
+    const W = box.max.x - box.min.x;
+    if(!(W>1)){ toast('Mesh non valida o vuota'); return; }
+    applyRockMaterial(obj);
+    frontMeshGroup = new THREE.Group(); frontMeshGroup.add(obj); scene.add(frontMeshGroup); frontMesh = frontMeshGroup;
+    const nbins = 64;
+    const { skyline, crest } = sampleFront(frontMeshGroup, nbins);
+    const sampleAt = (arr,x)=>{ const u=Math.max(0,Math.min(1,x/W)); const fb=u*(nbins-1); const i=Math.floor(fb), t=fb-i; const a=arr[i], b=arr[Math.min(nbins-1,i+1)]; return a+(b-a)*t; };
+    const n = Math.max(6, Math.min(30, Math.round(W/INTERASSE)));
+    const czMean = crest.reduce((s,z)=>s+z,0)/crest.length;
+    P.fori = n; P.foriH = []; P.profilo = [];
+    for(let i=0;i<n;i++){ const x=i*INTERASSE+INTERASSE/2;
+      P.foriH.push(Math.max(5,Math.min(20, sampleAt(skyline,x))));
+      P.profilo.push({ x, z: Math.max(-6,Math.min(10, sampleAt(crest,x)-czMean)) });
+    }
+    $('pFori').value = n;
+    rebuild();                                  // costruisce la sim sulla geometria reale; frontMeshGroup resta come faccia visibile
+    toast('✓ Fronte 3D reale importato: '+n+' fori sulla geometria vera');
+  }catch(err){ toast('Import fronte fallito: '+err.message); }
+}
+function loadFrontMeshFile(file){
+  const ext = (file.name.split('.').pop()||'').toLowerCase();
+  const reader = new FileReader();
+  reader.onload = ()=>{ try{
+    if(ext==='obj'){ loadFrontMeshObject(new OBJLoader().parse(reader.result)); }
+    else { new GLTFLoader().parse(reader.result, '', g=>loadFrontMeshObject(g.scene), err=>toast('GLB non valido')); }
+  }catch(err){ toast('Lettura mesh fallita: '+err.message); } };
+  if(ext==='obj') reader.readAsText(file); else reader.readAsArrayBuffer(file);
+}
+$('btnFronte3D').onclick = ()=> $('meshIn').click();
+$('meshIn').onchange = e=>{ if(e.target.files[0]) loadFrontMeshFile(e.target.files[0]); e.target.value=''; };
+
+/* ============ toast / modal ============ */
+let toastTimer=null;
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2800); }
+function maybeConsent(){ if(!localStorage.getItem('genesiDisclaimerV1')){ $('modal').style.display='flex'; } }
+$('disclaimerChk').onchange = e=>{ $('modalOk').classList.toggle('disabled', !e.target.checked); };
+$('modalOk').onclick = ()=>{ localStorage.setItem('genesiDisclaimerV1','1'); $('modal').style.display='none'; };
+/* login = porta d'ingresso (nessuna autenticazione reale per ora: Accedi entra nell'app) */
+function doLogin(){ const lg=$('screen-login'); if(lg){ lg.classList.add('hide'); setTimeout(()=>{ lg.classList.remove('show'); lg.style.display='none'; }, 480); } maybeConsent(); }
+$('loginBtn').onclick = doLogin;
+$('lp').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+
+/* ============ APP SHELL: schermate + navigazione ============ */
+function setScreen(name){
+  if(name!=='sim') setPlaying(false);
+  document.body.classList.remove('scr-home','scr-design','scr-sim','scr-esplosivi','show-params');
+  document.body.classList.add('scr-'+name);
+  document.querySelectorAll('#bottomnav button').forEach(b=>b.classList.toggle('on', b.dataset.scr===name));
+  if(name==='design'){ deriveCharge(); syncDesignInputs(); draw2D(); }
+  if(name==='esplosivi') renderEsplosivi();
+}
+document.querySelectorAll('#bottomnav button').forEach(b=> b.onclick=()=>setScreen(b.dataset.scr));
+function renderEsplosivi(){
+  const el=$('es-list'); if(!el) return;
+  if($('etEspl')){ $('etEspl').classList.toggle('on', esTab==='esplosivi'); $('etEspl').onclick=()=>{ esTab='esplosivi'; renderEsplosivi(); }; }
+  if($('etInn')){ $('etInn').classList.toggle('on', esTab==='inneschi'); $('etInn').onclick=()=>{ esTab='inneschi'; renderEsplosivi(); }; }
+  if(esTab==='inneschi'){
+    el.innerHTML = INNESCHI.map(e=>{ const sel=e.id===D2.innesco; const specs=['scatter '+e.scatter,'ritardi '+e.ritardi,'Acqua: '+e.acqua];
+      return '<div class="es-card'+(sel?' sel':'')+'" data-id="'+e.id+'"><div class="es-nome">'+e.nome+'</div><div class="es-tipo">'+e.tipo+'</div><div class="es-specs">'+specs.map(s=>'<span>'+s+'</span>').join('')+'</div><div class="es-pc"><span class="ok">+</span> '+e.pro+'</div><div class="es-pc"><span class="no">-</span> '+e.contro+'</div><div class="es-foot"><span class="es-costo"></span><span class="es-pick">'+(sel?'Selezionato':'Scegli')+'</span></div></div>';
+    }).join('');
+    el.querySelectorAll('.es-card').forEach(c=> c.onclick=()=>{ D2.innesco=c.dataset.id; renderEsplosivi(); });
+    return;
+  }
+  el.innerHTML = ESPL.map(e=>{
+    const sel = e.id===D2.esplosivo; const specs=[];
+    if(e.densita_gcc!=null) specs.push(e.densita_gcc+' g/cc');
+    if(e.vod_ms!=null) specs.push((e.vod_ms/1000).toFixed(1)+'k m/s VOD');
+    if(e.rws_pct!=null) specs.push('RWS '+e.rws_pct);
+    if(e.rbs_pct!=null) specs.push('RBS '+e.rbs_pct);
+    specs.push('Acqua: '+e.acqua);
+    return '<div class="es-card'+(sel?' sel':'')+'" data-id="'+e.id+'"><div class="es-nome">'+e.nome+'</div><div class="es-tipo">'+e.tipo+'</div><div class="es-specs">'+specs.map(s=>'<span>'+s+'</span>').join('')+'</div><div class="es-app">'+e.applicazione+'</div><div class="es-pc"><span class="ok">+</span> '+e.pro+'</div><div class="es-pc"><span class="no">-</span> '+e.contro+'</div><div class="es-foot"><span class="es-costo">'+e.costo+'</span><span class="es-pick">'+(sel?'Selezionato':'Scegli')+'</span></div></div>';
+  }).join('');
+  el.querySelectorAll('.es-card').forEach(c=> c.onclick=()=>{ D2.esplosivo=c.dataset.id; deriveCharge(); renderEsplosivi(); });
+}
+document.querySelectorAll('#scr-home .card').forEach(c=> c.onclick=()=>setScreen(c.dataset.go));
+/* ombra/luce che segue il cursore sulle card e sulle icone (come Deepwork) */
+document.querySelectorAll('#scr-home .card').forEach(card=>{
+  const ic=card.querySelector('.ci');
+  card.addEventListener('pointermove', e=>{
+    const r=card.getBoundingClientRect(); const x=e.clientX-r.left, y=e.clientY-r.top;
+    card.style.setProperty('--mx', x.toFixed(0)+'px');
+    card.style.setProperty('--my', y.toFixed(0)+'px');
+    if(ic){ const nx=(x/r.width-.5), ny=(y/r.height-.5);
+      ic.style.filter='drop-shadow('+(-nx*12).toFixed(1)+'px '+(-ny*12).toFixed(1)+'px 8px rgba(120,55,0,.6))';
+      ic.style.transform='translate('+(nx*2).toFixed(1)+'px,'+(ny*2).toFixed(1)+'px)'; }
+  });
+  card.addEventListener('pointerleave', ()=>{ card.style.removeProperty('--mx'); card.style.removeProperty('--my'); if(ic){ ic.style.filter=''; ic.style.transform=''; } });
+});
+$('d2-cta').onclick=simulaVolata2D;
+$('btnParams').onclick=()=>document.body.classList.toggle('show-params');
+
+/* disegno della maglia fori in PIANTA (modulo Progetto 2D) */
+function draw2D(){
+  if(!D2.holes.length) genMaglia2D();
+  drawDesign2D();
+  renderScheda2D();
+  renderInspector();
+}
+function genMaglia2D(){
+  D2.bf = D2.B;                                            // burden tra file = spalla
+  const holes=[];
+  for(let r=0;r<D2.file;r++){
+    const my = D2.B + r*D2.bf;
+    const off = (D2.stagger && r%2===1) ? D2.S/2 : 0;
+    for(let c=0;c<D2.perRow;c++) holes.push({ mx:+(c*D2.S+off).toFixed(3), my:+my.toFixed(3) });
+  }
+  D2.holes=holes; D2.sel=-1; computeSeq2D();
+}
+function computeSeq2D(){
+  const H=D2.holes; if(!H.length){ D2.lastDet=0; return; }
+  const tHole=D2.ritardo, tRow=D2.ritardoFila||tHole*2, S=D2.S||3.5;
+  const mxs=H.map(h=>h.mx), minMx=Math.min(...mxs), maxMx=Math.max(...mxs), cxMx=(minMx+maxMx)/2;
+  const rys=[...new Set(H.map(h=>Math.round(h.my*10)))].sort((a,b)=>a-b);
+  const nRow=rys.length, centerRow=(nRow-1)/2, seq=D2.sequenza||'diagonale';
+  H.forEach(h=>{
+    const rowI=rys.indexOf(Math.round(h.my*10));
+    const cd=(D2.dir==='sx'?(h.mx-minMx):(maxMx-h.mx))/S;   // col dal lato di partenza
+    const cc=Math.abs(h.mx-cxMx)/S;                          // col dal centro
+    let t;
+    if(seq==='vcut') t=rowI*tRow + cc*tHole;                 // V: dal centro verso i lati (converge)
+    else if(seq==='box') t=Math.abs(rowI-centerRow)*tRow + cc*tHole;  // radiale dal centro
+    else if(seq==='riga') t=rowI*tRow + cd*1.5;              // fila quasi simultanea (~1,5 ms/foro): isocrona parallela al fronte, MIC alta
+    else t=rowI*tRow + cd*tHole;                             // diagonale: dal lato di partenza
+    h.tDet=+t.toFixed(1);
+  });
+  H.map((h,i)=>i).sort((a,b)=>H[a].tDet-H[b].tDet).forEach((i,k)=>{ H[i].seq=k; });
+  D2.lastDet = Math.max(...H.map(h=>h.tDet));
+}
+/* forma muckpile per sequenza (5 correzioni verifica: angolo isocrono corretto tanθ=(B·tHole)/(S·tRow),
+   range tRow coerenti, balistica con quota h0=H/2, spread laterale V-cut separato, v0 ancorata a heave non a √PF grezzo) */
+function muckShape(){
+  const B=D2.B, S=D2.S, tHole=D2.ritardo, tRow=D2.ritardoFila||tHole*2, Hb=D2.prof, seq=D2.sequenza||'diagonale';
+  let theta=Math.atan((B*tHole)/(S*tRow));                  // rad — CORRETTO (era invertito nello spec)
+  if(seq==='riga') theta=0;                                 // isocrona parallela al fronte
+  const thetaDeg=theta*180/Math.PI, Be=(seq==='riga')?B:B*Math.cos(theta), msmRow=tRow/B;
+  const _e=selEsplosivo()||{}, vod=_e.vod_ms||3800, shk=Math.max(0.04,Math.min(0.96,(vod*vod-9e6)/(36e6-9e6)));
+  const _wet=(D2.bagnato ? ({Nulla:0.70,Bassa:0.40,Media:0.18,Buona:0.05,Eccellente:0}[_e.acqua]||0) : 0);
+  const heaveFac=(0.82+0.48*(1-shk))*(1-0.5*_wet);                    // stessa formula del 3D (fori bagnati inclusi)
+  const vol=B*S*Hb, pf=D2.kg/Math.max(0.1,vol), vFace0=(CAL.muckpile&&CAL.muckpile.vFace0)||8;
+  const v0=vFace0*heaveFac*Math.sqrt(Math.max(0.3,pf/0.35))*(B/Be);   // ancorata a heave (E_gas) + boost echelon B/Be
+  const aDeg=(CAL.muckpile&&CAL.muckpile.throwAlphaDeg)||42, a=aDeg*Math.PI/180, g=9.81, h0=Hb/2;   // quota di partenza ~metà banco
+  const L=(v0*Math.cos(a)/g)*(v0*Math.sin(a)+Math.sqrt(Math.pow(v0*Math.sin(a),2)+2*g*h0));
+  const A=rockFactorA().A, SF=+(1.3+Math.max(0,Math.min(1,(A-5)/9))*0.3).toFixed(2);  // rigonfiamento 1.3–1.6 su brillabilità calcolata
+  let cls,formaTxt;
+  if(msmRow<5){cls='sv-bad';formaTxt='serrato/compatto';}
+  else if(msmRow<8){cls='sv-warn';formaTxt='intermedio';}
+  else if(msmRow<=14){cls='sv-ok';formaTxt='ben disteso';}
+  else if(msmRow<=16){cls='sv-warn';formaTxt='al limite';}
+  else {cls='sv-bad';formaTxt='sovra-throw';}
+  let spreadLat,phiDeg,dirTxt;
+  if(seq==='vcut'){ spreadLat='ampio, convergente al centro'; phiDeg=0; dirTxt='simmetrico → cumulo alto e raccolto al centro (alto spread laterale)'; }
+  else if(seq==='box'){ spreadLat='radiale'; phiDeg=0; dirTxt='radiale dal centro → cumulo compatto centrale'; }
+  else if(seq==='riga'){ spreadLat='stretto'; phiDeg=0; dirTxt='simmetrico → lancio dritto in avanti, cumulo poco disteso'; }
+  else { spreadLat='moderato'; phiDeg=Math.round(thetaDeg); dirTxt='asimmetrico verso il lato di partenza, baricentro ruotato di ~'+Math.round(thetaDeg)+'°'; }
+  return { theta:Math.round(thetaDeg), Be:+Be.toFixed(2), msmRow, v0:+v0.toFixed(1), L:+L.toFixed(1), SF, cls, formaTxt, spreadLat, phiDeg, dirTxt, seq };
+}
+function measureGeom2D(){
+  const H=D2.holes;
+  if(!H.length) return { n:0, B:D2.B, S:D2.S, Lm:0 };
+  let Bm=Infinity, minx=Infinity, maxx=-Infinity, Sm=Infinity;
+  for(const h of H){ if(h.my<Bm)Bm=h.my; if(h.mx<minx)minx=h.mx; if(h.mx>maxx)maxx=h.mx; }
+  for(let i=0;i<H.length;i++) for(let j=i+1;j<H.length;j++){
+    if(Math.abs(H[i].my-H[j].my)<0.5){ const d=Math.abs(H[i].mx-H[j].mx); if(d>0.05 && d<Sm) Sm=d; }
+  }
+  if(!isFinite(Sm)) Sm=D2.S;
+  return { n:H.length, B:+Bm.toFixed(2), S:+Sm.toFixed(2), Lm:+(maxx-minx).toFixed(1) };
+}
+/* fronte modellabile (porting da Deepwork interpolaFronte): deviazione verticale del fronte in mx */
+function interpProf(arr,mx){ if(!arr||!arr.length) return 0; const s=[...arr].sort((a,b)=>a.x-b.x);
+  if(mx<=s[0].x) return s[0].y||0; if(mx>=s[s.length-1].x) return s[s.length-1].y||0;
+  for(let i=0;i<s.length-1;i++){ const a=s[i],b=s[i+1]; if(mx>=a.x&&mx<=b.x){ const t=(mx-a.x)/((b.x-a.x)||1); return (a.y||0)*(1-t)+(b.y||0)*t; } } return 0; }
+function interpFronte(mx){ return interpProf(D2.profilo,mx); }
+function activeProf(){ return D2.tool==='piede'?D2.piede:D2.profilo; }
+function drawDesign2D(){
+  const cv=$('d2-canvas'); if(!cv) return; const W=cv.width;
+  const H=D2.holes; const padX=54, padTop=66, padBot=56;
+  if(!H.length){ const c0=cv.getContext('2d'); c0.clearRect(0,0,W,cv.height); return; }
+  const xs=H.map(h=>h.mx), ys=H.map(h=>h.my+interpFronte(h.mx)), pys=D2.profilo.map(p=>p.y), pieY=D2.piede.map(p=>p.y);
+  const minx=Math.min(...xs), maxx=Math.max(...xs);
+  const maxy=Math.max(D2.B, ...ys, ...pys);
+  const minY=Math.min(0, ...pieY);                       // il piede sta DAVANTI al fronte (my<0)
+  const Wd=Math.max(2,maxx-minx), depthTot=Math.max(2, maxy-minY);
+  const scaleW=(W-2*padX)/Wd;
+  const Hc=Math.max(300, Math.min(620, Math.round(padTop+padBot+depthTot*scaleW)));   // canvas adattivo alla maglia
+  if(cv.height!==Hc) cv.height=Hc;
+  const ctx=cv.getContext('2d');
+  let bg=ctx.createLinearGradient(0,0,0,Hc); bg.addColorStop(0,'#1c150b'); bg.addColorStop(1,'#0d0a06');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,Hc);
+  const bottomY=Hc-padBot;
+  const scale=Math.min(scaleW, (bottomY-padTop)/depthTot);
+  const faceY=padTop - minY*scale;                       // FRONTE verso l'alto (my cresce verso il basso, nella roccia)
+  const startX=padX + ((W-2*padX)-Wd*scale)/2 - minx*scale;
+  const mx2=mx=>startX+mx*scale, my2=my=>faceY+my*scale;
+  D2._m={scale,startX,faceY};
+  ctx.fillStyle='rgba(255,140,30,.05)';
+  ctx.fillRect(mx2(minx)-22, faceY, (maxx-minx)*scale+44, (my2(maxy)-faceY)+16);
+  ctx.strokeStyle='rgba(255,210,140,.05)'; ctx.lineWidth=1;
+  for(let r=0;r<D2.file;r++){ const yy=my2(D2.B+r*D2.bf); ctx.beginPath(); ctx.moveTo(padX-12,yy); ctx.lineTo(W-padX+12,yy); ctx.stroke(); }
+  const mxL=(padX-22-startX)/scale, mxR=(W-padX+22-startX)/scale;
+  const fpts=[mxL]; D2.profilo.map(p=>p.x).filter(x=>x>mxL&&x<mxR).sort((a,b)=>a-b).forEach(x=>fpts.push(x)); fpts.push(mxR);
+  ctx.save(); ctx.shadowColor='rgba(255,109,0,.75)'; ctx.shadowBlur=14; ctx.strokeStyle='#ff6d00'; ctx.lineWidth=3; ctx.beginPath();
+  fpts.forEach((mx,k)=>{ const X=mx2(mx), Y=my2(interpFronte(mx)); if(k===0)ctx.moveTo(X,Y); else ctx.lineTo(X,Y); });
+  ctx.stroke(); ctx.restore();
+  if(D2.piede.length){ const pp=[...D2.piede].sort((a,b)=>a.x-b.x); ctx.save(); ctx.setLineDash([7,5]); ctx.strokeStyle='#ffd54f'; ctx.lineWidth=2; ctx.beginPath(); pp.forEach((p,k)=>{ const X=mx2(p.x),Y=my2(p.y); if(k===0)ctx.moveTo(X,Y); else ctx.lineTo(X,Y); }); ctx.stroke(); ctx.setLineDash([]); ctx.restore(); ctx.fillStyle='#caa84a'; ctx.textAlign='left'; ctx.font="10px 'Barlow',sans-serif"; ctx.fillText('piede', mx2(pp[pp.length-1].x)+6, my2(pp[pp.length-1].y)+4); }
+  ctx.fillStyle='#ffab00'; ctx.textAlign='left'; ctx.font="600 12px 'Barlow Condensed',sans-serif"; ctx.fillText('FRONTE — faccia libera', padX-18, faceY+20);
+  const dimC='#86b0d8'; const fr=H.filter(h=>Math.abs(h.my-D2.B)<0.4).sort((a,b)=>a.mx-b.mx);
+  if(fr.length>=2){ const a=mx2(fr[0].mx), b=mx2(fr[1].mx), yy=my2(D2.B)-15;
+    ctx.strokeStyle=dimC; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(a,yy); ctx.lineTo(b,yy); ctx.stroke();
+    ctx.fillStyle=dimC; ctx.textAlign='center'; ctx.font="11px 'Barlow',sans-serif"; ctx.fillText('S '+D2.S.toFixed(1)+' m',(a+b)/2,yy-4); }
+  if(fr.length){ const fx=mx2(fr[0].mx)-20; ctx.strokeStyle=dimC; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(fx,faceY); ctx.lineTo(fx,my2(D2.B)); ctx.stroke();
+    ctx.save(); ctx.translate(fx-6,(faceY+my2(D2.B))/2); ctx.rotate(-Math.PI/2); ctx.fillStyle=dimC; ctx.textAlign='center'; ctx.font="11px 'Barlow',sans-serif"; ctx.fillText('B '+D2.B.toFixed(1)+' m',0,0); ctx.restore(); }
+  const tMax=Math.max(1,D2.lastDet||1);
+  H.forEach((h,i)=>{ const cx=mx2(h.mx), cy=my2(h.my+interpFronte(h.mx)), u=(h.tDet||0)/tMax;
+    const col='hsl('+(42-u*16)+','+(90-u*26)+'%,'+(60-u*20)+'%)';
+    if(D2.incl>0){ const off=D2.prof*Math.sin(D2.incl*Math.PI/180)*scale; ctx.strokeStyle='rgba(255,213,121,.5)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx,cy-off); ctx.stroke(); ctx.fillStyle='rgba(255,213,121,.85)'; ctx.beginPath(); ctx.arc(cx,cy-off,2.2,0,7); ctx.fill(); }
+    if(i===D2.sel){ ctx.save(); ctx.shadowColor='rgba(255,255,255,.55)'; ctx.shadowBlur=15; ctx.beginPath(); ctx.arc(cx,cy,12,0,7); ctx.fillStyle='rgba(255,255,255,.10)'; ctx.fill(); ctx.restore(); }
+    ctx.save(); ctx.shadowColor='rgba(255,150,30,.5)'; ctx.shadowBlur=9; ctx.beginPath(); ctx.arc(cx,cy,9,0,7); ctx.fillStyle=col; ctx.fill(); ctx.restore();
+    ctx.lineWidth=1.5; ctx.strokeStyle=(i===D2.sel)?'#fff':'rgba(20,12,4,.9)'; ctx.beginPath(); ctx.arc(cx,cy,9,0,7); ctx.stroke();
+    ctx.fillStyle='#1a140b'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font="700 9px 'Barlow',sans-serif"; ctx.fillText(((h.seq!=null?h.seq:i)+1), cx, cy); ctx.textBaseline='alphabetic';
+  });
+  const sign=D2.dir==='sx'?1:-1, ax0=sign>0?padX:W-padX, ax1=sign>0?padX+110:W-padX-110;
+  ctx.strokeStyle='#66bb6a'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(ax0,34); ctx.lineTo(ax1,34); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ax1,34); ctx.lineTo(ax1-sign*8,30); ctx.lineTo(ax1-sign*8,38); ctx.fillStyle='#66bb6a'; ctx.fill();
+  ctx.fillStyle='#8fcf92'; ctx.textAlign=sign>0?'left':'right'; ctx.font="11px 'Barlow',sans-serif"; ctx.fillText('sequenza di sparo', sign>0?padX:W-padX, 52);
+  ctx.fillStyle='#f0e8d8'; ctx.textAlign='right'; ctx.font="600 12px 'Barlow Condensed',sans-serif";
+  ctx.fillText(H.length+' fori · '+D2.file+(D2.file>1?' file':' fila')+' · '+(selInnesco()?selInnesco().short:'Nonel')+' '+D2.ritardo+' ms', W-padX, 30);
+  if(D2.tool==='fronte'||D2.tool==='piede'){ const arr=activeProf(); arr.forEach((p,k)=>{ const X=mx2(p.x), Y=my2(p.y); ctx.beginPath(); ctx.arc(X,Y,7,0,7); ctx.fillStyle=(k===D2.selPt)?'#fff':(D2.tool==='piede'?'#ffe27a':'#ffd54f'); ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#ff6d00'; ctx.stroke(); }); }
+  ctx.fillStyle='#7a6a44'; ctx.textAlign='center'; ctx.font="10px 'Barlow',sans-serif";
+  ctx.fillText(D2.tool==='fori'?'trascina un foro · clic sul vuoto per aggiungerne':('tocca per aggiungere un punto · trascina per modellare il '+(D2.tool==='piede'?'piede':'fronte')), W/2, Hc-12);
+}
+function d2EvtToCanvas(e){ const cv=$('d2-canvas'); const r=cv.getBoundingClientRect(); return { x:(e.clientX-r.left)*(cv.width/r.width), y:(e.clientY-r.top)*(cv.height/r.height) }; }
+function d2HitTest(px,py){ if(!D2._m) return -1; let best=-1, bd=18*18; for(let i=0;i<D2.holes.length;i++){ const cx=D2._m.startX+D2.holes[i].mx*D2._m.scale, cy=D2._m.faceY+(D2.holes[i].my+interpFronte(D2.holes[i].mx))*D2._m.scale; const d=(cx-px)*(cx-px)+(cy-py)*(cy-py); if(d<bd){bd=d;best=i;} } return best; }
+let d2drag=-1;
+function d2HitTestPt(px,py){ if(!D2._m) return -1; const arr=activeProf(); let best=-1,bd=18*18; for(let k=0;k<arr.length;k++){ const cx=D2._m.startX+arr[k].x*D2._m.scale, cy=D2._m.faceY+arr[k].y*D2._m.scale; const d=(cx-px)*(cx-px)+(cy-py)*(cy-py); if(d<bd){bd=d;best=k;} } return best; }
+let d2dragPt=-1;
+function d2Down(e){ const p=d2EvtToCanvas(e);
+  if(D2.tool==='fronte'||D2.tool==='piede'){ const arr=activeProf(); let k=d2HitTestPt(p.x,p.y);
+    if(k<0 && D2._m){ const mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale; arr.push({x:+mx.toFixed(2),y:+my.toFixed(2)}); k=arr.length-1; }
+    D2.selPt=k; d2dragPt=k; e.preventDefault(); drawDesign2D(); renderScheda2D(); return; }
+  let i=d2HitTest(p.x,p.y);
+  if(i<0 && D2._m){ const mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale;
+    if(my>0.2 && p.x>20 && p.x<($('d2-canvas').width-20)){ D2.holes.push({mx:+mx.toFixed(2), my:+Math.max(0.3,my).toFixed(2)}); i=D2.holes.length-1; computeSeq2D(); } }
+  D2.sel=i; d2drag=i; if(i>=0) e.preventDefault(); drawDesign2D(); renderScheda2D(); renderInspector(); }
+function d2Move(e){
+  if(d2dragPt>=0 && D2._m){ e.preventDefault(); const p=d2EvtToCanvas(e); const arr=activeProf(); let mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale; my=Math.max(-D2.B*1.2,Math.min(D2.B*1.6,my)); if(arr[d2dragPt]) arr[d2dragPt]={x:+mx.toFixed(2),y:+my.toFixed(2)}; drawDesign2D(); renderScheda2D(); return; }
+  if(d2drag<0||!D2._m) return; e.preventDefault(); const p=d2EvtToCanvas(e); let mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale; my=Math.max(0.3,my); mx=Math.max(-3,Math.min(D2.perRow*D2.S+5,mx)); D2.holes[d2drag].mx=+mx.toFixed(2); D2.holes[d2drag].my=+my.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); }
+function d2Up(){ d2drag=-1; d2dragPt=-1; }
+function renderInspector(){
+  const el=$('d2-insp'); if(!el) return;
+  if(D2.sel<0 || !D2.holes[D2.sel]){ el.style.display='none'; el.innerHTML=''; return; }
+  const h=D2.holes[D2.sel]; let nn=Infinity;
+  for(let i=0;i<D2.holes.length;i++){ if(i===D2.sel) continue; const o=D2.holes[i]; const d=Math.hypot(o.mx-h.mx,o.my-h.my); if(d<nn) nn=d; }
+  el.style.display='flex';
+  el.innerHTML='<div class="di-info"><b>Foro '+((h.seq!=null?h.seq:D2.sel)+1)+'</b><span>spalla '+h.my.toFixed(1)+' m · vicino '+(isFinite(nn)?nn.toFixed(1):'-')+' m · t '+(h.tDet||0)+' ms</span></div><button class="di-del" id="diDel">✕ Elimina</button>';
+  const db=$('diDel'); if(db) db.onclick=()=>{ if(D2.sel<0) return; D2.holes.splice(D2.sel,1); D2.sel=-1; computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); };
+}
+(function(){ const cv=$('d2-canvas'); if(cv){ cv.addEventListener('pointerdown',d2Down); cv.addEventListener('pointermove',d2Move); window.addEventListener('pointerup',d2Up); } })();
+
+/* ===== Fase 0 — scheda volata: validatore di progetto live (regole + "perché") ===== */
+function renderScheda2D(){
+  const el=$('d2-scheda'); if(!el) return; const g=measureGeom2D();
+  if($('d2-mat')) $('d2-mat').textContent='⛏ '+(selEsplosivo()?selEsplosivo().nome.split(' ')[0]:'—')+' · '+(selInnesco()?selInnesco().short:'—')+(D2.bagnato?' · 💧':'');
+  const B=g.B, S=g.S, H=D2.prof, Dmm=D2.diam, Dm=Dmm/1000, Q=D2.kg, rit=D2.ritardo;
+  const pf=Q/(B*S*H), sb=S/B, hb=H/B, bd=B/Dm, stem=D2.stem, stemB=stem/B, msmHole=rit/S, msmRow=(D2.ritardoFila||rit)/B, sub=D2.sub, subB=sub/B, subRec=0.3*B;
+  function badge(x,lab,valStr,lo,hi,wlo,whi,whyOk,whyLo,whyHi){
+    let cls='sv-ok',why=whyOk;
+    if(x<lo){ cls=(x<wlo?'sv-bad':'sv-warn'); why=whyLo; }
+    else if(x>hi){ cls=(x>whi?'sv-bad':'sv-warn'); why=whyHi; }
+    return {lab,valStr,cls,why};
+  }
+  const rows=[];
+  rows.push(badge(sb,'Rapporto S/B',sb.toFixed(2),1.0,1.4,0.85,1.6,
+    'spaziatura/spalla nel range tipico (1.0–1.4).',
+    'interasse &lt; spalla; tipico 1.0–1.4 (sfalsata ~1.15). Maglia stretta in larghezza.',
+    'interasse molto &gt; spalla: rischio irregolarità tra fori.'));
+  rows.push(badge(hb,'Rigidità H/B',hb.toFixed(2),3.0,99,2.0,0,
+    'banco snello: buona frammentazione.',
+    'banco rigido: &lt;3 riduce la frammentazione (&lt;2 rischio cratere/blocchi al piede).',''));
+  const _rho=(selEsplosivo()||{}).densita_gcc||0.82, _kbLo=_rho>1.0?27:23, _kbHi=_rho>1.0?33:28, _Bcons=((_kbLo+_kbHi)/2*Dm);
+  rows.push(badge(bd,'Spalla / Ø',bd.toFixed(0)+'·Ø',_kbLo,_kbHi,_kbLo-5,_kbHi+8,
+    'spalla coerente con Ø ed esplosivo ('+_kbLo+'–'+_kbHi+'·Ø ≈ '+(_kbLo*Dm).toFixed(1)+'–'+(_kbHi*Dm).toFixed(1)+' m).',
+    'spalla piccola per Ø'+Dmm+' mm con questo esplosivo; consigliata ~'+_Bcons.toFixed(1)+' m.',
+    'spalla elevata per Ø'+Dmm+' mm con questo esplosivo (consigliata ~'+_Bcons.toFixed(1)+' m, '+_kbLo+'–'+_kbHi+'·Ø). Riduci spalla o aumenta Ø.'));
+  rows.push(badge(pf,'Powder factor',pf.toFixed(2)+' <span>kg/m³</span>',0.30,0.55,0.22,0.7,
+    'carica specifica nel range calcare (0.30–0.55).',
+    'PF basso → rischio blocchi/oversize; calcare tipico 0.30–0.50.',
+    'PF alto → rischio proiezioni/sovra-frammentazione.'));
+  const _e=selEsplosivo()||{};
+  /* === fori bagnati: penalità separate VOD (desensibilizzazione chimica) ed energia (RWS), no doppio conteggio su heaveFac === */
+  const _acqRank={Nulla:0,Bassa:1,Media:2,Buona:3,Eccellente:4}, _eAcqua=_e.acqua||'Buona', _rkA=(_acqRank[_eAcqua]!=null?_acqRank[_eAcqua]:3);
+  const _penV = D2.bagnato ? ({Nulla:0.80,Bassa:0.45,Media:0.20,Buona:0.05,Eccellente:0}[_eAcqua]||0) : 0;
+  const _penE = D2.bagnato ? ({Nulla:0.70,Bassa:0.40,Media:0.18,Buona:0.05,Eccellente:0}[_eAcqua]||0) : 0;
+  const _vodEff=(_e.vod_ms||3800)*(1-_penV), _Pd=(_e.densita_gcc||0.82)*1000*Math.pow(_vodEff,2)/4/1e8;
+  rows.push({lab:'Pressione det. (Pd)',valStr:_Pd.toFixed(0)+' <span>kbar</span>'+(_penV>0?' <span>↓bagnato</span>':''),cls:'sv-info',
+    why:(_penV>0?'ridotta dai fori bagnati (VOD effettiva −'+Math.round(_penV*100)+'%). ':'')+(_Pd<40?'basso → energia di GAS/heave dominante: adatto a roccia tenera/carbone (spinge, muckpile disteso).':(_Pd>90?'alto → energia di SHOCK dominante: adatto a roccia dura (fini uniformi, muckpile compatto).':'medio → equilibrio shock/heave.'))});
+  /* riga Resistenza all'acqua (categoriale) */
+  (function(){
+    if(!D2.bagnato){ rows.push({lab:'Resistenza all\'acqua',valStr:_eAcqua,cls:'sv-info',why:'progetto in fori asciutti: la resistenza all\'acqua dell\'esplosivo non è critica.'}); return; }
+    const cls=_rkA>=3?'sv-ok':(_rkA===2?'sv-warn':'sv-bad');
+    let why;
+    if(_rkA>=3){ why='resistenza all\'acqua adeguata: in foro allagato l\'esplosivo regge e l\'acqua, accoppiante migliore dell\'aria, trasmette bene l\'urto alla roccia.'; }
+    else if(_rkA===2){ why='resistenza limitata: ok solo con venute moderate; valuta dewatering e sleep time breve. Perdita di energia stimata ~'+Math.round(_penE*100)+'%.'; }
+    else {
+      const costR=c=>{c=(c||'').toLowerCase(); return c.includes('medio-basso')?2:c.includes('medio-alto')?4:c.includes('medio')?3:c.includes('base')?1:c.includes('basso')?1.5:c.includes('alto')?5:3;};
+      const sut=(typeof ESPL!=='undefined'?ESPL:[]).filter(e=>(_acqRank[e.acqua]||0)>=3 && e.rbs_pct && e.id!==_e.id)
+        .sort((a,b)=> (costR(a.costo)-costR(b.costo)) || (b.rbs_pct-a.rbs_pct));
+      const alt=sut[0];
+      why=(_eAcqua==='Nulla'?'l\'ANFO si desensibilizza in acqua → probabile MANCATA DETONAZIONE e fumi NOx tossici.':'resistenza insufficiente in foro bagnato → forte perdita di prestazione (~'+Math.round(_penE*100)+'%).')
+        +(alt?' Passa a '+alt.nome+' (resistente, RBS '+alt.rbs_pct+') o pompa l\'emulsione sul fondo a spiazzare l\'acqua.':' Usa un esplosivo resistente all\'acqua (emulsione/watergel).');
+    }
+    rows.push({lab:'Resistenza all\'acqua',valStr:_eAcqua+(_penE>0?' <span>−'+Math.round(_penE*100)+'%</span>':''),cls:cls,why:why});
+    if(D2.acquaCol>=10){
+      const _pw=1000*9.81*D2.acquaCol/1e6, _soglia=30;
+      rows.push({lab:'Desensib. idrostatica',valStr:_pw.toFixed(1)+' <span>MPa</span>',cls:(_pw<0.5*_soglia?'sv-ok':(_pw<_soglia?'sv-warn':'sv-bad')),
+        why:'pressione della colonna d\'acqua ('+D2.acquaCol+' m ≈ '+_pw.toFixed(1)+' MPa): oltre ~'+_soglia+' MPa può comprimere i microbolle sensibilizzanti dell\'emulsione e desensibilizzarla. Stima conservativa (soglia varia per sensibilizzante: perlite ~27, gas ~100, vetro ~135 MPa).'});
+    }
+  })();
+  rows.push(badge(stemB,'Borraggio / B',stem.toFixed(1)+' m ('+stemB.toFixed(2)+'·B)',0.7,1.0,0.5,1.2,
+    'borraggio adeguato (0.7–1.0·B).',
+    'borraggio corto → rischio proiezioni dal colletto; ~0.7·B ≈ '+(0.7*B).toFixed(1)+' m.',
+    'borraggio lungo → rischio blocchi in testa.'));
+  /* SDOB definizione Chiappetta/McKenzie: conta solo la carica nei 10 diametri superiori (W_top), non tutta la colonna */
+  const _ql=(_e.densita_gcc||0.82)*1000*Math.PI*Dm*Dm/4;                 // carica lineare kg/m
+  const _Wtop=Math.min(Q, _ql*10*Dm);
+  const _sdob=(stem+5*Dm)/Math.pow(Math.max(0.1,_Wtop),1/3);
+  rows.push({lab:'Confin. colletto (SDOB)',valStr:_sdob.toFixed(2)+' <span>m/kg⅓</span>',cls:(_sdob>=1.4?'sv-ok':(_sdob>=0.9?'sv-warn':'sv-bad')),
+    why:_sdob>=1.4?'colletto ben confinato (SDOB≥1,4, def. Chiappetta su carica dei 10Ø superiori): disturbo superficiale minimo.':(_sdob>=0.9?'confinamento intermedio (0,9–1,4): mounding/cratere parziale possibile; valuta più borraggio.':'sotto-confinamento (SDOB<0,9): eiezione da cratere probabile dal colletto. Aumenta il borraggio o riduci la carica.')});
+  /* gittata flyrock: max dei meccanismi Richards&Moore (face burst / cratering / rifling) + McKenzie SDOB, tetto Lundborg (30,1·Ø^⅔). Fonti primarie, unità SI verificate */
+  (function(){
+    const kf=13.5+13.5*Math.max(0,Math.min(1,((D2.ucs||100)-30)/220));   // costante di sito: 13,5 rocce tenere → 27 dure
+    const g9=9.81, sqm=Math.sqrt(Math.max(0.1,_ql));
+    const Lff=(kf*kf/g9)*Math.pow(sqm/B,2.6);                            // face burst (davanti alla faccia)
+    const Lcr=(kf*kf/g9)*Math.pow(sqm/Math.max(0.3,stem),2.6);           // cratering dal colletto
+    const thF=Math.max(5,D2.incl)*Math.PI/180, Lrif=Lcr*Math.sin(2*thF); // rifling lungo l'asse del foro
+    const Rmck=10*Math.pow(_sdob,-2.167)*Math.pow(D2.diam,0.667);        // McKenzie 2009 (Ø in mm)
+    const Llund=30.1*Math.pow(D2.diam,2/3);                              // tetto Lundborg (masso ottimale, drag-limited)
+    const mech=[['face burst',Lff],['cratering',Lcr],['rifling',Lrif],['McKenzie',Rmck]].sort((a,b)=>b[1]-a[1]);
+    const Lpred=Math.min(mech[0][1], Llund), Dmez=2*Lpred, Dper=4*Lpred;
+    rows.push({lab:'Gittata flyrock (stima)',valStr:Math.round(Lpred)+' <span>m → sgombero '+Math.round(Dmez)+' / '+Math.round(Dper)+' m</span>',
+      cls:(D2.recDist>=Dper?'sv-ok':(D2.recDist>=Dmez?'sv-warn':'sv-bad')),
+      why:'meccanismo dominante: '+mech[0][0]+' (k='+kf.toFixed(0)+'). Sgombero consigliato: mezzi 2× ('+Math.round(Dmez)+' m), persone 4× ('+Math.round(Dper)+' m) — recettore a '+D2.recDist+' m. STIMA INDICATIVA (Richards&Moore/McKenzie/Lundborg): NON sostituisce il calcolo normativo delle aree di sgombero né il giudizio del responsabile del tiro.'});
+  })();
+  rows.push(badge(msmHole,'Timing inter-foro',msmHole.toFixed(1)+' <span>ms/m</span>',3,7,2,9,
+    'ritardo/interasse nella finestra in-fila 3–7 ms/m: relief corretto tra fori.',
+    'ritardo basso per metro: rischio sovrapposizione cariche (regola 8 ms) e PPV elevata.',
+    'ritardo alto: relief eccessivo tra fori, frammentazione più grossa.'));
+  rows.push(badge(msmRow,'Timing inter-fila',msmRow.toFixed(1)+' <span>ms/m</span>',8,15,6,18,
+    'ritardo/spalla tra file 8–15 ms/m: buono spostamento del cumulo.',
+    'ritardo basso tra file: la fila dietro spara nel burden ancora fermo → confinamento/backbreak.',
+    'ritardo alto tra file: relief eccessivo → blocchi e cumulo troppo disteso.'));
+  rows.push(badge(subB,'Sottoperforazione',sub.toFixed(1)+' m ('+subB.toFixed(2)+'·B)',0.2,0.4,0.1,0.55,
+    'sottoperf. nel range 0,2–0,4·B (~'+subRec.toFixed(1)+' m, 8–12·Ø): piede pulito.',
+    'sottoperf. scarsa → rischio toe/zoccoli e blocchi al piede; consigliata ~'+subRec.toFixed(1)+' m.',
+    'sottoperf. eccessiva → perforazione sprecata, vibrazioni e danno al banco sottostante.'));
+  /* forma del cumulo in funzione della sequenza di sparo */
+  const _seqLab={riga:'riga per riga',diagonale:'diagonale',vcut:'V-cut',box:'box cut'};
+  const _mk=muckShape();
+  rows.push({lab:'Forma cumulo',valStr:_mk.msmRow.toFixed(1)+' <span>ms/m · '+_mk.formaTxt+'</span>',cls:_mk.cls,
+    why:'sequenza '+(_seqLab[_mk.seq]||_mk.seq)+', ritardo inter-fila '+_mk.msmRow.toFixed(1)+' ms/m → cumulo '+_mk.formaTxt+'. Spostamento ottimale a 8–14 ms/m: baricentro avanzato ~'+_mk.L.toFixed(0)+' m (v0 faccia ~'+_mk.v0.toFixed(0)+' m/s, α 42°, quota di partenza H/2), rigonfiamento ~'+_mk.SF+'×. <5 ms/m = serrato/backbreak, >16 = sovra-throw/proiezioni.'});
+  rows.push({lab:'Direzione cumulo',valStr:(_mk.phiDeg>0?'~'+_mk.phiDeg+'° ':'')+'<span>'+(_mk.seq==='diagonale'?'↗ asimmetrico':'↑ simmetrico')+'</span>',cls:'sv-info',
+    why:_mk.dirTxt+'. Burden effettivo Be '+_mk.Be.toFixed(1)+' m (angolo isocrono '+_mk.theta+'°); spread laterale '+_mk.spreadLat+'.'});
+  const _rk=selRoccia(), _rf=rockFactorA(), _A=_rf.A, _RWS0=(selEsplosivo()||{}).rws_pct||100, _RWS=Math.max(8,_RWS0*(1-_penE));
+  const _x50=_A*Math.pow(Math.max(0.05,pf),-0.8)*Math.pow(Math.max(1,Q),1/6)*Math.pow(115/_RWS,0.633);
+  const _Th=rit, _tmx=Math.max(_Th,D2.lastDet||_Th), _sd=(D2.innesco==='elettronico')?0.1:((D2.innesco==='elettrico')?0.5:((D2.innesco==='cordtex')?0.03*_tmx:0.02*_tmx)), _Rs=_sd/Math.max(1,_Th);
+  rows.push({lab:'Brillabilità (BI/A)',valStr:_A.toFixed(1)+' <span>A · BI '+_rf.BI+'</span>',cls:(_A<=6?'sv-ok':(_A<=10?'sv-warn':'sv-bad')),
+    why:'rock factor A=0,06·(RMD+JF+RDI+HF) (Lilly/Cunningham): '+_rk.nome+', UCS '+(D2.ucs||_rk.ucs)+' MPa, E '+(D2.eMod||_rk.eMod)+' GPa, fratturazione '+D2.frat+'. RDI '+_rf.RDI+', HF '+_rf.HF+', JF '+_rf.JF+'. '+(_A<=6?'roccia facile: frammenta bene con PF moderato.':(_A<=10?'brillabilità media: cura PF e timing per evitare oversize.':'roccia dura/massiccia: serve PF alto, Ø piccolo o esplosivo ad alta VOD.'))});
+  rows.push({lab:'X50 prevista',valStr:Math.round(_x50)+' <span>cm</span>'+(_penE>0?' <span>↑bagnato</span>':''),cls:'sv-info',
+    why:'frammentazione mediana (Kuz-Ram, '+_rk.nome+' A='+_A.toFixed(1)+' calcolato, RWS '+Math.round(_RWS)+(_penE>0?' effettiva, ridotta da fori bagnati':'')+'): roccia piu dura (A alto) o meno carica/RWS la rende piu grossolana.'});
+  /* === impedance matching roccia <-> esplosivo: frazione d'urto trasmessa all'interfaccia === */
+  const _Ze=(_e.densita_gcc||0.82)*1000*(_e.vod_ms||3800), _Zr=_rk.rho*1000*_rk.vp;
+  const _trans=1-Math.pow((_Zr-_Ze)/(_Zr+_Ze),2), _trPct=Math.round(_trans*100);
+  const _impCls=_trans>=0.75?'sv-ok':(_trans>=0.60?'sv-warn':'sv-bad');
+  const _impWhy=_trans>=0.75?'buon accoppiamento d&rsquo;impedenza (Z<sub>e</sub>&asymp;Z<sub>r</sub>): l&rsquo;onda d&rsquo;urto entra efficacemente nella roccia.'
+    :(_trans>=0.60?'accoppiamento moderato: parte dell&rsquo;urto si riflette, ma su roccia '+_rk.cls+' l&rsquo;energia di gas (heave) compensa. Per una X50 piu fine su roccia dura valuta piu VOD/densita.'
+            :(_Ze<_Zr?'forte disadattamento: esplosivo &laquo;troppo debole&raquo; (Z bassa) per roccia '+_rk.cls+', gran parte dell&rsquo;urto si riflette. Passa a un esplosivo ad alta VOD/densita (emulsione).'
+                     :'esplosivo molto piu &laquo;duro&raquo; della roccia: molto urto si riflette. Su roccia '+_rk.cls+' un esplosivo con piu heave (ANFO) rende meglio ed e piu economico.'));
+  rows.push({lab:'Impedenza roccia/espl.',valStr:_trPct+' <span>% urto</span>',cls:_impCls,why:_impWhy});
+  rows.push({lab:'Scatter innesco',valStr:_sd.toFixed(1)+' <span>ms</span>',cls:(_Rs<0.1?'sv-ok':(_Rs<0.35?'sv-warn':'sv-bad')),
+    why:(D2.innesco==='elettronico')?'scatter minimo (~0,1 ms): uniformita maggiore (X50 piu fine), PPV ridotto fino a -50%.':'sull ultimo foro ~'+(_Rs*100).toFixed(0)+'% del ritardo inter-foro: meno uniforme; oltre ~35% rischio inversione d ordine. Per X50 piu fine valuta i detonatori elettronici.'});
+  /* === Vibrazioni & Airblast: PPV al recettore (Devine/USBM), MIC, sovrappressione === */
+  const _mic=computeMIC(), _st=ppvSite(), _sd2=D2.recDist/Math.sqrt(Math.max(1,_mic));
+  const _ppv=_st.K*Math.pow(Math.max(0.1,_sd2),-_st.beta);
+  const _lim=ppvLimit(D2.recNorma,D2.recFreq), _rat=_ppv/_lim;
+  const _wmax=Math.pow(D2.recDist,2)*Math.pow(_lim/_st.K,2/_st.beta);
+  const _normaLab={'usbm-old':'USBM intonaco vecchio','usbm-modern':'USBM cartongesso','din-ind':'DIN industriale','din-sens':'DIN sensibile','din-res':'DIN residenziale'}[D2.recNorma]||'DIN residenziale';
+  rows.push({lab:'PPV al recettore',valStr:_ppv.toFixed(1)+' <span>mm/s</span>',cls:(_rat<0.6?'sv-ok':(_rat<1?'sv-warn':'sv-bad')),
+    why:'a '+D2.recDist+' m (SD '+_sd2.toFixed(1)+' m/kg^½, MIC '+_mic+' kg), legge di Devine PPV=K·SD^−β con K≈'+_st.K+'/β≈'+_st.beta+' stimati da '+_rk.nome+'. Soglia '+_normaLab+' '+_lim+' mm/s @ '+D2.recFreq+' Hz → '+(_rat>=1?'<b>SUPERA</b>: riduci la MIC (meno kg/foro o frazionamento ritardi) o allontana il recettore.':(_rat>=0.6?'sotto soglia ma vicino: monitora.':'ampiamente sotto soglia.'))+' STIMA predittiva site-specific: calibra con un sismografo reale.'});
+  rows.push({lab:'MIC (carica/ritardo)',valStr:_mic+' <span>kg</span>',cls:'sv-info',
+    why:'massima carica entro la finestra di 8 ms (fori sullo stesso ritardo). W max ammissibile alla soglia scelta ≈ '+Math.round(_wmax)+' kg a '+D2.recDist+' m: oltre, il PPV supera il limite.'});
+  const _sd3=D2.recDist/Math.cbrt(Math.max(0.1,_mic)), _db=172-24*Math.log10(Math.max(1,_sd3));
+  rows.push({lab:'Airblast (sovrappr.)',valStr:Math.round(_db)+' <span>dB(L)</span>',cls:(_db<128?'sv-ok':(_db<=133?'sv-warn':'sv-bad')),
+    why:'rumore d\'aria stimato a '+D2.recDist+' m (cube-root SD '+_sd3.toFixed(0)+'): '+(_db>133?'oltre il limite USBM/OSM di 133 dB(L): borraggio corto/colletto scoperto amplifica; allunga il borraggio.':'sotto il limite USBM/OSM di 133 dB(L).')+' Stima da calibrare.'});
+  const rowsHtml=rows.map(r=>'<div class="sv-row"><span class="sv-dot '+r.cls+'"></span><div class="sv-tx"><div class="sv-lab">'+r.lab+'</div><div class="sv-val">'+r.valStr+'</div><div class="sv-why">'+r.why+'</div></div></div>').join('');
+  /* === barra bipolare shock <-> heave (carattere energetico esplosivo, da VOD) === */
+  const _vod=_e.vod_ms||3800;
+  const _shock=Math.max(0.04,Math.min(0.96,(_vod*_vod-3000*3000)/(6000*6000-3000*3000)));
+  const _heave=1-_shock, _shPct=Math.round(_shock*100), _hvPct=100-_shPct, _thumb=_heave*100;
+  const _char=_shock>0.6?'Shock-dominante':(_shock<0.4?'Heave-dominante':'Bilanciato');
+  const _bipWhy=_shock>0.6?'Energia d&rsquo;urto prevalente: frantuma la roccia (fini uniformi, X50 piu bassa). Ideale per roccia <b>dura/abrasiva</b>; muckpile compatto, poco spostamento.':(_shock<0.4?'Energia di gas prevalente: spinge e solleva il banco (heave). Ideale per roccia <b>tenera/stratificata</b> o quando serve lanciare il muckpile; rischio fini scarsi su roccia dura.':'Equilibrio urto/gas: buon compromesso frammentazione&ndash;spostamento, versatile sulla maggior parte delle rocce.');
+  const bipHtml='<div class="sv-bip"><div class="sv-bip-top"><span class="l">Carattere energetico (shock &harr; heave)</span><span class="r">'+_char+'</span></div>'
+    +'<div class="sv-bip-track"><span class="sv-bip-thumb" style="left:'+_thumb.toFixed(1)+'%"></span></div>'
+    +'<div class="sv-bip-ends"><span>&#9889; <b>'+_shPct+'%</b> shock&middot;frantuma</span><span>spinge&middot;heave <b>'+_hvPct+'%</b> &#128168;</span></div>'
+    +'<div class="sv-bip-why">'+_bipWhy+'</div></div>';
+  const sMax=6, segs=[['#ef5350',0,2],['#ffb300',2,3],['#66bb6a',3,4],['#3ea76a',4,6]];
+  const barHtml=segs.map(s=>'<i style="background:'+s[0]+';width:'+((s[2]-s[1])/sMax*100)+'%"></i>').join('');
+  const markPct=Math.min(100,Math.max(0,hb/sMax*100));
+  el.innerHTML='<div class="sv-card"><div class="sv-h"><b>Scheda volata</b><span class="sv-sub">'+g.n+' fori· '+g.Lm+' m fronte<br>Ø'+Dmm+' mm · '+Q+' kg/foro · H '+H+' m<br>'+(selEsplosivo()?'Esplosivo: '+selEsplosivo().nome:'')+(selInnesco()?' / innesco '+selInnesco().short:'')+(selRoccia()?'<br>Roccia: '+selRoccia().nome+' ('+selRoccia().cls+')':'')+'</span></div>'
+    +bipHtml
+    +'<div class="sv-grid">'+rowsHtml+'</div>'
+    +'<div class="sv-scale"><div class="sv-lab">Rapporto di rigidità H/B — frammentazione attesa</div>'
+    +'<div class="sv-bar">'+barHtml+'<span class="sv-mark" style="left:'+markPct.toFixed(1)+'%"></span></div>'
+    +'<div class="sv-ticks"><span>cratere</span><span>rigido</span><span>buono</span><span>ottimo</span></div></div></div>';
+}
+
+/* ===== Fase 1 — maglia editabile: pannello di progettazione live ===== */
+/* carica AUTO = densità esplosivo × volume colonna (ricerca blast 2026-06-22) */
+function deriveCharge(){ if(!D2.kgAuto) return; const eP=selEsplosivo()||{}, rhoE=eP.densita_gcc||0.82, De=D2.diam/1000, Lc=Math.max(0.5,D2.prof+(D2.sub||0)-D2.stem); D2.kg=Math.max(2, Math.round(rhoE*1000*Math.PI*De*De/4*Lc)); if($('dKg')) $('dKg').value=D2.kg; }
+function applyDesign(){
+  D2.B = Math.max(1.5, Math.min(8, +$('dB').value||D2.B));
+  D2.S = Math.max(1.5, Math.min(8, +$('dS').value||D2.S));
+  D2.diam = Math.max(50, Math.min(160, Math.round(+$('dD').value||D2.diam)));
+  D2.perRow = Math.max(3, Math.min(30, Math.round(+$('dN').value||D2.perRow)));
+  D2.file = Math.max(1, Math.min(6, Math.round(+($('dFile')?$('dFile').value:D2.file)||D2.file)));
+  D2.prof = Math.max(6, Math.min(18, +$('dH').value||D2.prof));
+  D2.kg = Math.max(5, Math.min(200, +$('dKg').value||D2.kg)); deriveCharge();
+  D2.ritardo = +$('dRit').value||D2.ritardo;
+  D2.incl = Math.max(0, Math.min(30, +($('dIncl')?$('dIncl').value:D2.incl)||0));
+  if($('dStem')) D2.stem = Math.max(0.5, Math.min(6, +$('dStem').value||D2.stem));
+  if($('dSub')) D2.sub = Math.max(0, Math.min(4, +$('dSub').value||D2.sub));
+  if($('dRitFila')) D2.ritardoFila = Math.max(8, Math.min(300, +$('dRitFila').value||D2.ritardoFila));
+  if($('dRoccia')){ const nr=$('dRoccia').value||D2.roccia; if(nr!==D2.roccia){ D2.roccia=nr; const pr=selRoccia(); D2.ucs=pr.ucs; D2.eMod=pr.eMod; if($('dUcs'))$('dUcs').value=pr.ucs; if($('dEmod'))$('dEmod').value=pr.eMod; } }
+  if($('dUcs')) D2.ucs=Math.max(5, Math.min(400, +$('dUcs').value||D2.ucs));
+  if($('dEmod')) D2.eMod=Math.max(2, Math.min(150, +$('dEmod').value||D2.eMod));
+  if($('dFrat')) D2.frat=$('dFrat').value||D2.frat;
+  if($('dBagnato')) D2.bagnato = $('dBagnato').value==='1';
+  if($('dAcquaCol')) D2.acquaCol = Math.max(0, Math.min(40, +$('dAcquaCol').value||0));
+  if($('dSeq')) D2.sequenza = $('dSeq').value||D2.sequenza;
+  if($('dRecDist')) D2.recDist = Math.max(20, Math.min(3000, +$('dRecDist').value||D2.recDist));
+  if($('dRecNorma')) D2.recNorma = $('dRecNorma').value||D2.recNorma;
+  if($('dRecFreq')) D2.recFreq = Math.max(2, Math.min(120, +$('dRecFreq').value||D2.recFreq));
+  genMaglia2D(); drawDesign2D(); renderScheda2D(); renderInspector();   // editing 2D snello, il 3D si aggiorna su "Simula"
+}
+function syncDesignInputs(){
+  if(!$('dB')) return;
+  $('dB').value=D2.B; $('dS').value=D2.S; $('dD').value=D2.diam; $('dN').value=D2.perRow;
+  if($('dFile')) $('dFile').value=D2.file; $('dH').value=+D2.prof.toFixed(1); $('dKg').value=Math.round(D2.kg);
+  if($('dIncl')) $('dIncl').value=D2.incl; $('dRit').value=D2.ritardo;
+  if($('dStem')) $('dStem').value=D2.stem; if($('dSub')) $('dSub').value=D2.sub; if($('dRitFila')) $('dRitFila').value=D2.ritardoFila;
+  if($('dRoccia')) $('dRoccia').value=D2.roccia;
+  if($('dUcs')) $('dUcs').value=D2.ucs; if($('dEmod')) $('dEmod').value=D2.eMod; if($('dFrat')) $('dFrat').value=D2.frat;
+  if($('dBagnato')) $('dBagnato').value=D2.bagnato?'1':'0'; if($('dAcquaCol')) $('dAcquaCol').value=D2.acquaCol;
+  if($('dSeq')) $('dSeq').value=D2.sequenza;
+  if($('dRecDist')) $('dRecDist').value=D2.recDist; if($('dRecNorma')) $('dRecNorma').value=D2.recNorma; if($('dRecFreq')) $('dRecFreq').value=D2.recFreq;
+}
+function simulaVolata2D(){
+  SPALLA=D2.B; INTERASSE=D2.S; P.diam=D2.diam; P.prof=D2.prof; P.kg=D2.kg; P.ritardo=D2.ritardo; P.dir=D2.dir; P.fori=D2.perRow;
+  if($('pFori')){ $('pFori').value=P.fori; $('pProf').value=P.prof; $('pKg').value=P.kg; $('pRit').value=P.ritardo; $('pDir').value=P.dir; }
+  clearFrontMesh();                                   // usa il fronte PARAMETRICO ricostruito dal progetto 2D (non un GLB importato)
+  /* --- il fronte 3D si adatta al progetto 2D: cresta dal fronte modellato, skyline dal piede --- */
+  const Lm3 = P.fori*INTERASSE;
+  const xAt = i => i*INTERASSE + INTERASSE/2;          // x del foro i lungo il fronte (coerente con buildSim)
+  // CRESTA: profilo del fronte modellato in 2D (deviazione y → offset z della faccia); vuoto = fronte dritto
+  P.profilo = (D2.profilo && D2.profilo.length>=2)
+    ? D2.profilo.map(p=>({ x:+p.x, z:Math.max(-6, Math.min(10, +p.y||0)) }))
+    : [];
+  // SKYLINE per-foro: altezza faccia = H banco, alzata/abbassata dal piede modellato (toe piu avanzato = faccia piu alta)
+  const pieMod = D2.piede && D2.piede.length>=2;
+  P.foriH = [];
+  for(let i=0;i<P.fori;i++){
+    const x = xAt(i);
+    const dv = pieMod ? interpProf(D2.piede, x) : 0;    // deviazione del piede in x (m); negativo = toe davanti al fronte
+    P.foriH.push(Math.max(5, Math.min(20, D2.prof - dv)));
+  }
+  /* TUTTI i fori reali del progetto → il 3D (multi-fila, fori editati a mano, tDet della sequenza di sparo) */
+  computeSeq2D();
+  if(D2.holes && D2.holes.length){
+    const mxs=D2.holes.map(h=>h.mx), mys=D2.holes.map(h=>h.my), minMx=Math.min(...mxs), minMy=Math.min(...mys);
+    P.holes = D2.holes.map(h=>({ x:h.mx-minMx+INTERASSE/2, zoff:Math.max(0,h.my-minMy), tDet:h.tDet||0 }));
+  } else P.holes=null;
+  rebuild(); setScreen('sim');
+}
+['dB','dS','dD','dN','dFile','dH','dKg','dIncl','dStem','dSub','dRit','dRitFila','dRoccia','dUcs','dEmod','dFrat','dBagnato','dAcquaCol','dSeq','dRecDist','dRecNorma','dRecFreq'].forEach(id=>{ const el=$(id); if(el) el.addEventListener('change', applyDesign); });
+document.querySelectorAll('.dc-sec-h').forEach(b=>{ b.addEventListener('click', ()=>b.parentElement.classList.toggle('closed')); });
+if($('dKg')) $('dKg').addEventListener('input', ()=>{ D2.kgAuto=false; });
+function setTool(t){ D2.tool=t; D2.selPt=-1; [['dtFori','fori'],['dtFronte','fronte'],['dtPiede','piede']].forEach(p=>{ const el=$(p[0]); if(el) el.classList.toggle('on',t===p[1]); }); const rb=$('dtReset'); if(rb) rb.textContent='↺ Reset '+(t==='piede'?'piede':'fronte'); drawDesign2D(); renderInspector(); }
+if($('dtFori')) $('dtFori').onclick=()=>setTool('fori');
+if($('dtFronte')) $('dtFronte').onclick=()=>setTool('fronte');
+if($('dtPiede')) $('dtPiede').onclick=()=>setTool('piede');
+if($('dtReset')) $('dtReset').onclick=()=>{ if(D2.tool==='piede')D2.piede=[]; else D2.profilo=[]; D2.selPt=-1; drawDesign2D(); renderScheda2D(); };
+if($('d2-mat')) $('d2-mat').onclick=()=>setScreen('esplosivi');
+
+/* ============ qualità adattiva ============ */
+let fpsAcc=0, fpsN=0, fpsLow=0;
+function fpsTick(dt){
+  fpsAcc += dt; fpsN++;
+  if(fpsAcc >= 1000){
+    const fps = Math.round(fpsN*1000/fpsAcc);
+    $('fps').textContent = fps+' fps';
+    if(fps < 24 && qLevel!=='Base'){ fpsLow++; } else fpsLow=0;
+    if(fpsLow >= 3){
+      qLevel = qLevel==='Piena' ? 'Media' : 'Base';
+      $('qlab').textContent = qLevel;
+      renderer.setPixelRatio(Math.min(devicePixelRatio||1, QUALITA[qLevel].px));
+      refreshComposer();
+      fpsLow = 0; rebuild();
+      toast('Qualità ridotta a '+qLevel+' per fluidità');
+    }
+    fpsAcc=0; fpsN=0;
+  }
+}
+
+/* ============ main loop ============ */
+function loop(now){
+  requestAnimationFrame(loop);
+  const dt = Math.min(100, now - (lastNow||now));
+  lastNow = now;
+  if(playing){
+    setSimT(simT + dt*speed);
+    if(simT >= SIM.tEnd) setPlaying(false);
+  }
+  /* scossa camera (decadimento reale 700ms) */
+  if(shakeT0 > 0){
+    const u = (performance.now()-shakeT0)/700;
+    if(u<1 && layers.lAudio){
+      const a = (1-u)*(1-u)*0.5;
+      cam.position.x += (Math.random()-0.5)*a;
+      cam.position.y += (Math.random()-0.5)*a*0.7;
+    } else shakeT0 = -1;
+  }
+  if(document.body.classList.contains('scr-sim')){ ctrl.update(); if(composer) composer.render(); else renderer.render(scene, cam); }
+  fpsTick(dt);
+}
+
+addEventListener('resize', ()=>{
+  cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  if(composer) composer.setSize(innerWidth, innerHeight);
+});
+
+/* ============ avvio ============ */
+SIM = buildSim();
+buildScene();
+setSimT(0, true);
+requestAnimationFrame(loop);
+setTimeout(()=>{ const sp=document.getElementById('splash'); if(sp){ sp.classList.add('hide'); setTimeout(()=>sp.remove(),600); } const dev=(location.hostname==='localhost'||location.hostname==='127.0.0.1'); const lg=document.getElementById('screen-login'); if(lg){ if(dev){ lg.style.display='none'; const q=new URLSearchParams(location.search); const g=q.get('go'); if(g) setScreen(g); const st=q.get('simt'); if(st!==null){ try{ setPlaying(false); setSimT(st==='end'?SIM.tEnd:(+st||0), true); }catch(e){} } const dm=q.get('demo'); if(dm){ D2.profilo=[{x:8,y:0},{x:28,y:4},{x:48,y:1}]; D2.incl=12; if($('dIncl'))$('dIncl').value=12; if(dm==='piede'){ D2.tool='piede'; D2.piede=[{x:6,y:-1.5},{x:30,y:-2.2},{x:52,y:-1.2}]; } else D2.tool='fronte'; drawDesign2D(); } const rc=q.get('roccia'); if(rc && ROCCE.find(r=>r.id===rc)){ D2.roccia=rc; const pr=selRoccia(); D2.ucs=pr.ucs; D2.eMod=pr.eMod; syncDesignInputs(); } if(q.get('sim')){ try{ simulaVolata2D(); const st3=q.get('simt'); if(st3!==null){ setPlaying(false); setSimT(st3==='end'?SIM.tEnd:(+st3||0),true); } }catch(e){} } const lk=q.get('look'); if(lk){ try{ applyLook(lk); }catch(e){} } if(q.get('xray')){ try{ layers.lXray=true; if($('lXray'))$('lXray').checked=true; renderSim(simT,true); }catch(e){} } if(q.get('modella')){ try{ $('btnModella').click(); }catch(e){} } } else lg.classList.add('show'); } }, 1250);
+if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('./genesi-sw.js').catch(()=>{}); }); }
+
+/* hook di debug (solo in locale): utile per test automatici, inerte in produzione */
+if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){
+  window.__genesi = {
+    seek:(ms)=>{ setPlaying(false); setSimT(ms, true); return simT; },
+    look:(name)=>applyLook(name),
+    play:()=>setPlaying(true), pause:()=>setPlaying(false),
+    rebuild, get SIM(){return SIM}, get P(){return P}, get simT(){return simT},
+    get frontMesh(){return frontMesh},
+    loadFrontUrl: async (url)=>{ const t=await (await fetch(url)).text(); loadFrontMeshObject(new OBJLoader().parse(t)); return P.fori; },
+    setParam:(k,v)=>{ P[k]=v; const el=$('p'+k.charAt(0).toUpperCase()+k.slice(1)); if(el)el.value=v; }
+  };
+}
+</script>
+</body>
+</html>
