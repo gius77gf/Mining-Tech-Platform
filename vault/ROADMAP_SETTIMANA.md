@@ -1,104 +1,144 @@
-# Roadmap Settimana — 2026-07-20 → 2026-07-24 (v3)
+# Roadmap Settimana — 2026-07-20 → 2026-07-24 (v3.1 — piano esteso)
 
-Elaborata domenica sera 19/07 col fondatore dopo che la v2 è stata
-completata in giornata (rimane aperto solo il task ricerca, in corso).
-Obiettivo della v3: consolidare e migliorare quanto costruito il 19/07
-e far avanzare Genesi, che è l'app su cui il fondatore ha più
-aspettative.
+Elaborata domenica sera 19/07 col fondatore. Versione ESTESA su sua
+istruzione: piano volutamente sovradimensionato per sfruttare al
+massimo ogni ciclo — ciò che non si chiude entro venerdì passa alla
+settimana successiva tramite i checkpoint, senza perdere nulla.
+Ordine di esecuzione: PRIMA la Fase A (Genesi, priorità del fondatore),
+poi Fase B (trasversali), poi Fase C (completamento app verticali),
+poi Fase D (Deepwork ID avanzato), poi Fase E (core). La ricerca resta
+SECONDARIA (regola in fondo).
 
-## 1. Genesi — overhaul estetico schermata 3D (Fase 2 dal vault)
-[sequenziale, dentro apps/genesi] — taglia L — stato: da fare
-Dal vault "Prossimi passi" (il fondatore la considera basilare):
-materiali PBR, luce/cielo, polvere/gas, muckpile realistico, HUD vetro.
-Lavorare a piccole unità con screenshot di verifica ad ogni passo;
-NON toccare il motore fisico esistente (scatter, X50, two-energy).
+═══════════════════════════════════════════════
+## FASE A — Genesi (priorità assoluta del fondatore)
+[sequenziale interna, in apps/genesi — NON toccare il motore fisico]
 
-## 2. Genesi — A2: gittata flyrock
-[sequenziale, dopo o in alternanza con 1] — taglia M — stato: da fare
-Dal vault: modello di gittata flyrock da integrare nella simulazione,
-coerente con la fisica già implementata (Pd, burden esplosivo-aware).
+A1. Ricognizione codice 3D esistente (Three.js, scena, materiali) e
+    piano tecnico dettagliato — taglia S — stato: da fare
+A2. Materiali PBR per roccia/fronte (texture, normal map, roughness)
+    — taglia M — stato: da fare
+A3. Illuminazione e cielo (luce solare direzionale, ombre, sky/HDRI,
+    ora del giorno) — taglia M — stato: da fare
+A4. Effetti volata: polvere e gas (particellari alla detonazione,
+    dissipazione temporale) — taglia M — stato: da fare
+A5. Muckpile realistico per schema di volata (forma del cumulo
+    coerente con la simulazione, Fase B del vault) — taglia L — stato: da fare
+A6. HUD "vetro" (pannelli translucidi, leggibilità dati in scena)
+    — taglia S — stato: da fare
+A7. Gittata flyrock (A2 del vault): modello di gittata coerente con
+    Pd/burden esplosivo-aware, visualizzazione zona di rischio 3D
+    — taglia M — stato: da fare
+A8. Fori bagnati (dal vault: effetto acqua su carica/accoppiamento)
+    — taglia M — stato: da fare
+A9. Rock-factor Lilly (dal vault: caratterizzazione ammasso roccioso)
+    — taglia M — stato: da fare
+A10. Presplit e confronto A/B tra progetti di volata (dal vault)
+    — taglia M — stato: da fare
+Ogni unità: screenshot di verifica prima/dopo, commit, checkpoint.
 
-## 3. CI su GitHub Actions
-[parallelo-gruppo-A] — taglia S — stato: da fare
-Workflow che ad ogni PR esegue: i 19 test delle regole di sicurezza
-(emulatore Firestore + Java disponibili nei runner GitHub) e un check
-di sintassi di sw.js/SDK/functions. Così nessuna PR futura può rompere
-l'isolamento multi-tenant senza accorgersene.
+═══════════════════════════════════════════════
+## FASE B — Trasversali (parallelo-gruppo-A, sbloccano qualità per tutto)
 
-## 4. README e documentazione reale del monorepo
-[parallelo-gruppo-A] — taglia S — stato: da fare
-Il README attuale è una riga. Scrivere: cos'è l'ecosistema, struttura
-cartelle, come si sviluppa/testa, link ai documenti chiave
-(ARCHITETTURA, AUDIT, DEPLOY, CLAUDE.md).
+B1. CI GitHub Actions: 19 test rules + syntax check SDK/functions/sw
+    ad ogni PR — taglia S — stato: da fare
+B2. README reale del monorepo + indice documenti — taglia S — stato: da fare
+B3. Hub ecosistema: pagina indice /apps/ navigabile in stile deepwork
+    (griglia delle app con stato e link, punto d'ingresso del tour)
+    — taglia S — stato: da fare
+B4. Navigazione trasversale: header comune con switcher tra app
+    (componente condiviso in shared/) — taglia M — stato: da fare
 
-## 5. Deepwork core — censimento feature incomplete + lista interventi
-[parallelo-gruppo-B] — taglia M — stato: da fare
-Audit funzionale del monolite (3D/fotogrammetria, import MWD,
-simulatore volate, editor metodi v4.1 citato nel vault): per ogni
-feature, stato reale e cosa manca; produrre lista priorizzata in
-docs/CENSIMENTO_FEATURE.md da rivedere col fondatore al weekend.
+═══════════════════════════════════════════════
+## FASE C — Completamento app verticali (parallelo-gruppo-B tra app diverse)
+Per OGNI app, nell'ordine: modello dati Firestore secondo lo schema
+orgCollection; caricamento dati via SDK con fallback demo (tour);
+form di inserimento/modifica funzionanti; KPI calcolati dai dati veri;
+test con emulatore dove sensato.
 
-## 6. Scudo — iterazione 2: modello dati reale
-[parallelo-gruppo-B] — taglia M — stato: da fare
-Definire le collezioni Firestore di Scudo (lavoratori, scadenze,
-documenti) secondo lo schema orgCollection dello SDK; sostituire i
-dati demo hardcoded con caricamento via SDK (fallback ai dati demo
-quando il backend non c'è, per la modalità tour). Test con emulatore.
+C1. Scudo (prima: è la prima app a uscire): collezioni lavoratori/
+    scadenze/documenti + CRUD completo + KPI reali + import CSV
+    personale — taglia L — stato: da fare
+C2. Campo: attività/squadre/rapportini + compilazione rapportino con
+    foto + stato squadre — taglia L — stato: da fare
+C3. Flotta: mezzi/manutenzioni/costi + registro ore + scadenzario
+    tagliandi con alert — taglia L — stato: da fare
+C4. Conti: fatture/gare + scadenzario incassi + KPI (DSO, margine)
+    calcolati — taglia L — stato: da fare
+C5. Sentinella: monitoraggi/adempimenti/registri + registrazione
+    superamenti con nota — taglia L — stato: da fare
+C6. Terra: fronti/rilievi/piano + calcolo volumi da rilievi +
+    avanzamento piano — taglia L — stato: da fare
 
-## 7. Deepwork ID — rifiniture flusso
-[parallelo-gruppo-B] — taglia S — stato: da fare
-Pagina/stato "non autorizzato" con spiegazione dell'invito; logout
-coerente su tutte le pagine; pagina profilo: mostrare le app secondo
-gli entitlement reali quando presenti (oggi griglia statica).
+═══════════════════════════════════════════════
+## FASE D — Deepwork ID avanzato (dopo B, in parallelo a C)
 
+D1. Pagina/stato "non autorizzato" con spiegazione invito — taglia S — stato: da fare
+D2. Logout coerente su tutte le pagine + griglia app da entitlement
+    reali — taglia S — stato: da fare
+D3. Verifica email + recupero password (flussi Firebase Auth)
+    — taglia M — stato: da fare
+D4. Pannello amministrazione organizzazione (gestione membri/ruoli da
+    UI, usa le callable esistenti) — taglia M — stato: da fare
+D5. Test SDK con emulatore Auth+Firestore (flusso login→org→dati)
+    — taglia M — stato: da fare
+
+═══════════════════════════════════════════════
+## FASE E — Deepwork core
+
+E1. Censimento feature incomplete (3D/fotogrammetria, MWD, simulatore,
+    editor metodi v4.1) → docs/CENSIMENTO_FEATURE.md priorizzato
+    — taglia M — stato: da fare
+E2. Interventi rapidi dal censimento (bug evidenti e fix piccoli,
+    max 1 ciclo) — taglia M — stato: da fare
+
+═══════════════════════════════════════════════
 ## Attività SECONDARIA — ricerca competitor per Genesi
-[secondaria per decisione del fondatore 19/07 — NON prima del primo
-ciclo automatico, e sempre DOPO i task primari 1-7] — stato: sospesa
-La ricerca è stata interrotta dall'esaurimento crediti del 19/07 (10
-fatti non verificati su Paradigm salvati nel checkpoint 2026-07-19_2000).
-Regola: un ciclo può dedicarle tempo SOLO se ha già completato e chiuso
-in modo stabile un'unità di un task primario. Procedere a schede
-piccole (un software per volta: Maxam RioBlast/RIOSUITE, Orica
-ShotPlus, Maptek BlastLogic, altri, poi sintesi con tabella e
-raccomandazioni per Genesi), verificando i fatti e salvando ogni scheda
-in ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
+[decisione fondatore 19/07: NON prima del primo ciclo automatico, e
+sempre DOPO un'unità primaria chiusa in modo stabile] — stato: sospesa
+Interrotta il 19/07 per esaurimento crediti (10 fatti non verificati su
+Paradigm nel checkpoint 2026-07-19_2000, da ri-verificare). Procedere a
+schede piccole: Maxam RioBlast/RIOSUITE → Orica ShotPlus → Maptek
+BlastLogic → altri → sintesi con tabella e raccomandazioni. Salvare in
+ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 
 ## In attesa del fondatore (weekend 25-26/07, promemoria armato sabato 09:00)
-1. Creazione progetto Firebase (GRATUITA, ~10 min, guida pronta:
-   apps/deepwork-id/GUIDA_FIREBASE.md) → poi: config reale nello SDK,
+1. Creazione progetto Firebase (GRATUITA, ~10 min, guida:
+   apps/deepwork-id/GUIDA_FIREBASE.md) → poi config reale nello SDK,
    deploy rules+functions, collaudo online end-to-end.
-2. Regole Firestore del progetto ESISTENTE (AUDIT punto 3) da
-   incollare in chat per versionarle e correggerle.
+2. Regole Firestore del progetto ESISTENTE (AUDIT punto 3).
 3. Dati default del core: reali o di fantasia? (AUDIT punto 2)
-4. Eventuale ok alla mitigazione ponte password
-   (docs/MITIGAZIONE_PASSWORD.md — PREPARATA, NON ATTIVATA).
+4. Eventuale ok alla mitigazione ponte password (PREPARATA, NON ATTIVATA).
 
 ## Fine progetto (fase commercializzazione) — NON prima
-- Acquisto dominio + sottodomini (unica spesa, ~10-20€/anno).
-  DECISIONE DEL FONDATORE: nessuna spesa prima della
-  commercializzazione.
+- Acquisto dominio + sottodomini. DECISIONE DEL FONDATORE: nessuna
+  spesa prima della commercializzazione.
 
 ## Regola dei cicli giornalieri
-- L'ULTIMO ciclo di ogni giornata (fascia serale) parte SEMPRE dalla
-  revisione: analisi del lavoro del giorno, correzione bug, miglioria
-  di funzionalità e sicurezza, coerenza complessiva. Se la revisione
-  è pulita, il ciclo PUÒ proseguire coi task successivi.
-- Gli altri cicli: sviluppo nell'ordine di questa roadmap.
+- ULTIMO ciclo del giorno: SEMPRE prima la revisione (bug, coerenza,
+  sicurezza); prosegue coi task solo a revisione pulita.
+- Altri cicli: sviluppo nell'ordine delle fasi (A prima di tutto).
+- Overflow: ciò che resta passa alla settimana successiva via
+  checkpoint — nessuna fretta, nessun taglio di qualità.
 
 ## Vincoli
 - Non pushare mai su main senza istruzioni esplicite del fondatore
   (prassi: PR anche per vault/ e docs/).
 - Commit piccoli e frequenti; un checkpoint per ogni unità completata.
 - STILE vincolante: shared/deepwork-style.css + dw-app-shell.css.
+- MULTI-TENANT: ogni accesso dati via SDK orgCollection, mai percorsi
+  a mano.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-19_2030_ricerca-secondaria.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-19_2100_roadmap-v31-estesa.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
 
 ## Storico
+
+### v3 prima stesura (19/07 sera, sostituita dalla v3.1 estesa la
+stessa sera su istruzione del fondatore: piano sovradimensionato)
 
 ### v2 (19/07, completata in giornata — conservata integralmente nei
 checkpoint e nella cronologia git di questo file)
