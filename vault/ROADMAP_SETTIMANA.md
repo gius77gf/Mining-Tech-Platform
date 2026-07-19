@@ -64,10 +64,15 @@ i punti di forza per rafforzare Genesi. Nel vault esiste già ricerca su
 Strayos e O-Pitblast (50 - Wiki ricerca) da integrare, non duplicare.
 
 ## Regola dei cicli giornalieri
-- L'ULTIMO ciclo di ogni giornata (fascia serale) è dedicato SOLO alla
-  revisione: rileggere il lavoro del giorno e dei precedenti, correggere
-  bug, garantire coerenza complessiva. Nessuno sviluppo nuovo in quel
-  ciclo.
+- L'ULTIMO ciclo di ogni giornata (fascia serale) parte SEMPRE dalla
+  revisione: analizzare il lavoro svolto nella giornata (e nei giorni
+  precedenti), correggere bug e malfunzionamenti generati dal lavoro
+  automatico, migliorare funzionalità e sicurezza di quanto prodotto,
+  garantire coerenza complessiva del progetto.
+- Se la revisione risulta completata e non emergono problemi da
+  sistemare, il ciclo serale PUÒ proseguire con i task successivi della
+  roadmap — è una valutazione autonoma del ciclo stesso, ma la revisione
+  ha sempre la precedenza e non va mai saltata o fatta di fretta.
 - Gli altri cicli: sviluppo secondo quest'ordine di task.
 
 ## Vincoli
