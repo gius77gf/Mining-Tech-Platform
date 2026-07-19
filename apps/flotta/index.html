@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Flotta — Mezzi & costi</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../shared/deepwork-style.css">
+<link rel="stylesheet" href="../../shared/dw-app-shell.css">
+<style>
+  /* Flotta: accento della palette funzionale deepwork */
+  :root { --app-accent:#5b7186; --app-accent2:#7fbcff; }
+</style>
+</head>
+<body class="dw">
+
+<div class="top">
+  <h1>FLOTTA <span class="accent">·</span> <span style="font-size:14px;color:var(--muted2);">MEZZI & COSTI</span></h1>
+  <div class="sub">Ecosistema Deepwork</div>
+</div>
+<div class="tour-banner" id="tour-banner" style="display:none;">
+  Modalità tour — dati di esempio, sola lettura
+</div>
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dash">
+  <div class="kpis">
+    <div class="kpi ok"><div class="n">11</div><div class="l">Mezzi operativi</div></div>
+    <div class="kpi warn"><div class="n">2</div><div class="l">In manutenzione</div></div>
+    <div class="kpi warn"><div class="n">3</div><div class="l">Tagliandi 30gg</div></div>
+    <div class="kpi accent"><div class="n">€8.4k</div><div class="l">Carburante mese</div></div>
+  </div>
+
+  <div class="sec">Attenzione</div>
+  <div class="item"><div class="avatar">D3</div><div class="info"><div class="name">Dumper D3</div><div class="meta">Fermo — cuscinetto ralla in arrivo</div></div><span class="badge danger">Fermo</span><span class="arr">›</span></div>
+  <div class="item"><div class="avatar">E1</div><div class="info"><div class="name">Escavatore E1</div><div class="meta">Tagliando 500h tra 12 giorni</div></div><span class="badge warn">Tagliando</span><span class="arr">›</span></div>
+  <div class="item"><div class="avatar">P2</div><div class="info"><div class="name">Perforatrice P2</div><div class="meta">Consumo gasolio anomalo (+18%)</div></div><span class="badge warn">Verifica</span><span class="arr">›</span></div>
+</div>
+
+<div class="page" id="page-mez">
+  <div class="sec">Parco mezzi</div>
+  <div class="item"><div class="info"><div class="name">Escavatore E1 — CAT 352</div><div class="meta">5.870 h · fronte Est</div></div><span class="badge ok">Operativo</span></div>
+  <div class="item"><div class="info"><div class="name">Escavatore E2 — Volvo EC480</div><div class="meta">3.210 h · piazzale</div></div><span class="badge ok">Operativo</span></div>
+  <div class="item"><div class="info"><div class="name">Dumper D1 — CAT 745</div><div class="meta">8.420 h</div></div><span class="badge ok">Operativo</span></div>
+  <div class="item"><div class="info"><div class="name">Dumper D3 — CAT 745</div><div class="meta">9.105 h · officina</div></div><span class="badge danger">Fermo</span></div>
+  <div class="item"><div class="info"><div class="name">Perforatrice P2 — Epiroc</div><div class="meta">2.980 h · fronte Est</div></div><span class="badge warn">Verifica</span></div>
+  <div class="item"><div class="info"><div class="name">Pala P1 — CAT 980</div><div class="meta">6.540 h · frantoio</div></div><span class="badge ok">Operativa</span></div>
+</div>
+
+<div class="page" id="page-man">
+  <div class="sec">Programmate</div>
+  <div class="item"><div class="info"><div class="name">Tagliando 500h — Escavatore E1</div><div class="meta">Previsto 31/07</div></div><span class="badge warn">12 gg</span></div>
+  <div class="item"><div class="info"><div class="name">Rotazione gomme — Dumper D1</div><div class="meta">Previsto 05/08</div></div><span class="badge ok">17 gg</span></div>
+  <div class="item"><div class="info"><div class="name">Revisione annuale — Pala P1</div><div class="meta">Previsto 20/08</div></div><span class="badge ok">32 gg</span></div>
+</div>
+
+<div class="page" id="page-cos">
+  <div class="sec">Costi del mese</div>
+  <div class="item"><div class="info"><div class="name">Carburante</div><div class="meta">€8.400 · +6% sul mese scorso</div></div><span class="badge warn">+6%</span></div>
+  <div class="item"><div class="info"><div class="name">Ricambi e officina</div><div class="meta">€3.150</div></div><span class="badge ok">In linea</span></div>
+  <div class="item"><div class="info"><div class="name">Noleggi esterni</div><div class="meta">€1.200 · gru mobile 2gg</div></div><span class="badge ok">Occasionale</span></div>
+</div>
+
+<div class="nav">
+  <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico">▦</span>Quadro</button>
+  <button id="nav-mez" onclick="go('mez')"><span class="ico">🚚</span>Mezzi</button>
+  <button id="nav-man" onclick="go('man')"><span class="ico">🔧</span>Manutenzioni</button>
+  <button id="nav-cos" onclick="go('cos')"><span class="ico">💶</span>Costi</button>
+</div>
+
+<script>
+  function go(id) {
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
+    document.getElementById("page-" + id).classList.add("active");
+    document.getElementById("nav-" + id).classList.add("active");
+    window.scrollTo(0, 0);
+  }
+</script>
+
+<script type="module">
+  // Aggancio a Deepwork ID: se il backend non è configurato la pagina
+  // resta navigabile come mockup (modalità tour implicita).
+  try {
+    const { DeepworkID } = await import("../../shared/deepwork-id-client/index.js");
+    const id = await DeepworkID.init({ appId: "flotta" });
+    if (id.authState() === "tour" || id.authState() === "anonymous") {
+      document.getElementById("tour-banner").style.display = "block";
+    }
+  } catch (e) {
+    document.getElementById("tour-banner").style.display = "block";
+  }
+</script>
+</body>
+</html>
