@@ -145,7 +145,7 @@
   const afterAuth = () => {
     const s = id.authState();
     if (s === 'member') { msg('Accesso riuscito.', 'info'); location.href = './profilo.html'; }
-    else if (s === 'tour') msg('Benvenuto nel tour. Dati di esempio, sola lettura.', 'info');  // TODO: redirect tour
+    else if (s === 'tour') { msg('Benvenuto nel tour. Dati di esempio, sola lettura.', 'info'); location.href = '../scudo/index.html'; }
     else if (s === 'unauthorized') msg('Profilo creato, ma non sei ancora stato invitato in nessuna organizzazione. Chiedi al tuo datore di lavoro di invitarti, oppure prova la modalità tour.', 'info');
   };
 
