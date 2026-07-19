@@ -94,7 +94,8 @@ Nuova settimana avviata ({lunedì} → {venerdì}). Vedi vault/ROADMAP_SETTIMANA
 1. Chiama `list_triggers` e cerca la routine con nome esatto
    `Weekly Dev Session` (nome fisso, riusato ogni settimana — non generarne
    uno nuovo con la data dentro, altrimenti la ricerca fallisce la settimana
-   dopo).
+   dopo). Cerca anche eventuali routine legacy con nome che inizia per
+   `weekly-build-mining-tech` (naming della prima settimana).
 2. Se esiste, chiama `delete_trigger` con il suo `trigger_id` prima di
    crearne una nuova. Se ne trovi più di una (es. da run manuali passati),
    eliminale tutte.
