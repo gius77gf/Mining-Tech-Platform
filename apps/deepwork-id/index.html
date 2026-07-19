@@ -119,7 +119,7 @@
     id = await DeepworkID.init({ appId: 'deepwork-id' });
     if (id.authState() === 'member') {
       msg('Sei già connesso. Reindirizzamento…', 'info');
-      // TODO: redirect alla dashboard/app di provenienza (?redirect=)
+      location.href = './profilo.html';
     }
   } catch (e) {
     // Progetto Firebase non ancora configurato (placeholder): la pagina
@@ -144,7 +144,7 @@
 
   const afterAuth = () => {
     const s = id.authState();
-    if (s === 'member') msg('Accesso riuscito.', 'info');           // TODO: redirect
+    if (s === 'member') { msg('Accesso riuscito.', 'info'); location.href = './profilo.html'; }
     else if (s === 'tour') msg('Benvenuto nel tour. Dati di esempio, sola lettura.', 'info');  // TODO: redirect tour
     else if (s === 'unauthorized') msg('Profilo creato, ma non sei ancora stato invitato in nessuna organizzazione. Chiedi al tuo datore di lavoro di invitarti, oppure prova la modalità tour.', 'info');
   };

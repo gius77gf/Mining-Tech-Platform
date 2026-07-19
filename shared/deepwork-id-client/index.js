@@ -20,7 +20,7 @@ import {
   signInAnonymously, signOut,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  getFirestore, doc, getDoc, collection,
+  getFirestore, doc, getDoc, setDoc, collection,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {
   getFunctions, httpsCallable,
@@ -75,9 +75,14 @@ class DeepworkIDClient {
     const token = await this.user.getIdTokenResult();
     this.orgs = token.claims.orgs || {};
     const orgIds = Object.keys(this.orgs);
-    // org attiva: default utente se valida, altrimenti la prima
-    // TODO: leggere users/{uid}.defaultOrgId e usarla se presente in orgs
-    this.orgId = orgIds[0] || (this.user.isAnonymous ? DEMO_ORG_ID : null);
+    // org attiva: la preferita dell'utente se ancora valida, altrimenti la prima
+    let preferred = null;
+    if (!this.user.isAnonymous && orgIds.length > 1) {
+      const prof = await getDoc(doc(this._db, "users", this.user.uid)).catch(() => null);
+      const d = prof && prof.exists() ? prof.data() : null;
+      if (d && d.defaultOrgId && this.orgs[d.defaultOrgId]) preferred = d.defaultOrgId;
+    }
+    this.orgId = preferred || orgIds[0] || (this.user.isAnonymous ? DEMO_ORG_ID : null);
     if (this.orgId) await this._loadEntitlement();
   }
 
@@ -193,7 +198,9 @@ class DeepworkIDClient {
     if (!this.orgs[orgId]) throw new Error("Non sei membro di questa organizzazione");
     this.orgId = orgId;
     await this._loadEntitlement();
-    // TODO: persistere come defaultOrgId in users/{uid}
+    // persiste la preferenza (best-effort: se fallisce non blocca lo switch)
+    await setDoc(doc(this._db, "users", this.user.uid),
+      { defaultOrgId: orgId }, { merge: true }).catch(() => {});
   }
 }
 
