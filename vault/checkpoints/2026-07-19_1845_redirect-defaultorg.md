@@ -1,0 +1,4 @@
+# Checkpoint — 2026-07-19 18:45
+Task completato: redirect login→profilo.html per gli utenti membri e persistenza dell'organizzazione preferita (defaultOrgId letto al caricamento per utenti multi-org e salvato ad ogni switch, best-effort) — commit b825d93
+Commit di riferimento: b825d93
+Prossimo passo atomico: CICLO SERALE (~21:40): revisione completa della giornata come da REGOLA SERALE e CLAUDE.md — rieseguire i test delle rules (19/19 attesi), controllo coerenza incrociata (tutte le pagine caricano lo shell condiviso? i riferimenti nei documenti puntano a file esistenti? il flusso login→profilo→app è coerente?). Dopo revisione pulita, opzioni in ordine: 1) pagina "unauthorized" dedicata con spiegazione invito; 2) integrare il tour di Scudo con redirect dal bottone tour di deepwork-id; 3) iniziare integrazione SDK nel core Deepwork (fase B migrazione, senza toccare il login esistente).
