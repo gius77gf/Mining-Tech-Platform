@@ -22,22 +22,18 @@ const REGION = "europe-west1";
 // leggendo TUTTE le sue membership attive, e la scrive nel token.
 // ------------------------------------------------------------
 async function rebuildClaims(uid) {
+  // Ogni documento membership porta il campo `uid` (scritto sotto):
+  // la collectionGroup può così filtrare in modo esatto ed efficiente.
   const snap = await db
     .collectionGroup("members")
-    .where(admin.firestore.FieldPath.documentId(), ">=", "")
-    .get()
-    .catch(() => null);
+    .where("uid", "==", uid)
+    .where("status", "==", "active")
+    .get();
 
-  // collectionGroup su documentId con uid: più robusto filtrare a mano
   const orgs = {};
-  if (snap) {
-    for (const doc of snap.docs) {
-      if (doc.id !== uid) continue;
-      const data = doc.data();
-      if (data.status !== "active") continue;
-      const orgId = doc.ref.parent.parent.id;
-      orgs[orgId] = data.role || "member";
-    }
+  for (const doc of snap.docs) {
+    const orgId = doc.ref.parent.parent.id;
+    orgs[orgId] = doc.data().role || "member";
   }
   await admin.auth().setCustomUserClaims(uid, { orgs });
   return orgs;
@@ -75,6 +71,7 @@ exports.createOrganization = onCall({ region: REGION }, async (request) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
     tx.set(orgRef.collection("members").doc(auth.uid), {
+      uid: auth.uid,
       role: "owner",
       status: "active",
       joinedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -141,6 +138,7 @@ exports.acceptInvites = onCall({ region: REGION }, async (request) => {
       continue;
     }
     await db.doc(`organizations/${inv.orgId}/members/${auth.uid}`).set({
+      uid: auth.uid,
       role: inv.role || "member",
       status: "active",
       invitedBy: inv.invitedBy || null,
