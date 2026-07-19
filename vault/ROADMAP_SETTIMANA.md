@@ -16,20 +16,17 @@ SECONDARIA (regola in fondo).
 A1. Ricognizione codice 3D esistente (Three.js, scena, materiali) e
     piano tecnico dettagliato — taglia S — stato: fatto (19/07: incluso
     fix critico moduli vendor mancanti — app era bloccata su splash)
-A2. Materiali PBR per roccia/fronte (texture, normal map, roughness)
-    — taglia M — stato: da fare
-A3. Illuminazione e cielo (luce solare direzionale, ombre, sky/HDRI,
-    ora del giorno) — taglia M — stato: da fare
-A4. Effetti volata: polvere e gas (particellari alla detonazione,
-    dissipazione temporale) — taglia M — stato: da fare
-A5. Muckpile realistico per schema di volata (forma del cumulo
-    coerente con la simulazione, Fase B del vault) — taglia L — stato: da fare
-A6. HUD "vetro" (pannelli translucidi, leggibilità dati in scena)
-    — taglia S — stato: da fare
+A2-A6. Overhaul estetico — GIÀ REALIZZATO nel codice (verificato
+    19/07 sera, vedi apps/genesi/PIANO_3D.md): texture PBR
+    procedurali, sistema LOOKS luce/cielo, particellari calibrati,
+    muckpile heightfield, HUD vetro. La voce del vault è superata:
+    restano solo rifiniture mirate se emergono debolezze nei
+    confronti visivi. — stato: fatto (pre-esistente)
 A7. Gittata flyrock (A2 del vault): modello di gittata coerente con
     Pd/burden esplosivo-aware, visualizzazione zona di rischio 3D
-    — taglia M — stato: da fare
-A8. Fori bagnati (dal vault: effetto acqua su carica/accoppiamento)
+    — taglia M — stato: da fare ← PROSSIMO
+A8. Fori bagnati — completamento (carica/accoppiamento in acqua +
+    indicazione visiva; l'effetto su heave già esiste)
     — taglia M — stato: da fare
 A9. Rock-factor Lilly (dal vault: caratterizzazione ammasso roccioso)
     — taglia M — stato: da fare
@@ -131,7 +128,7 @@ ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-19_2200_a1-fix-genesi.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-19_2230_a1-revisione-stato-reale.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
