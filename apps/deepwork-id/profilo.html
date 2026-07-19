@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Deepwork ID — Profilo</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../shared/deepwork-style.css">
+<link rel="stylesheet" href="../../shared/dw-app-shell.css">
+<style>
+  :root { --app-accent:#c7b794; --app-accent2:#e8dcc0; }
+  .profile-head { display: flex; align-items: center; gap: 14px; padding: 20px 16px 6px; }
+  .avatar-big {
+    width: 54px; height: 54px; border-radius: 50%;
+    background: var(--card2); border: 1px solid var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 800;
+    font-size: 20px; color: var(--app-accent2);
+  }
+  .profile-head .who { flex: 1; }
+  .profile-head .label { font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+  .profile-head .val { font-weight: 600; font-size: 16px; }
+  .org-active { border-color: var(--app-accent) !important; }
+  .org-role { margin-left: auto; }
+  .form-row { display: flex; gap: 8px; margin-top: 10px; }
+  .form-row .dw-input { flex: 1; }
+  .form-row .dw-btn { width: auto; white-space: nowrap; }
+  .apps-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .app-tile {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--r); padding: 14px; text-align: center;
+  }
+  .app-tile .nm { font-family: 'Barlow Condensed', sans-serif; font-weight: 800;
+    letter-spacing: 2px; text-transform: uppercase; font-size: 14px; }
+  .app-tile .st { font-size: 11px; margin-top: 4px; }
+  .app-tile.on { border-color: var(--border2); }
+  .app-tile.on .nm { color: var(--text); }
+  .app-tile.on .st { color: var(--success); }
+  .app-tile.off .nm { color: var(--muted); }
+  .app-tile.off .st { color: var(--muted); }
+</style>
+</head>
+<body class="dw">
+
+<div class="top">
+  <h1>DEEPWORK <span style="color:var(--amber);">ID</span> <span class="accent">·</span> <span style="font-size:14px;color:var(--muted2);">PROFILO</span></h1>
+  <div class="sub">Ecosistema Deepwork</div>
+</div>
+
+<!-- profilo neutro: niente nome/foto Google (decisione fondatore) -->
+<div class="profile-head">
+  <div class="avatar-big" id="avatar">GF</div>
+  <div class="who">
+    <div class="label">Profilo</div>
+    <div class="val" id="who-email">utente@esempio.it</div>
+  </div>
+  <button class="dw-btn secondary" style="width:auto;" id="btn-logout">Esci</button>
+</div>
+
+<div class="page active">
+  <div class="sec">Le tue organizzazioni</div>
+  <div id="orgs-list">
+    <div class="item org-active">
+      <div class="avatar">CA</div>
+      <div class="info"><div class="name">Cava Alfa Srl</div><div class="meta">Organizzazione attiva</div></div>
+      <span class="badge ok org-role">Owner</span>
+    </div>
+    <div class="item">
+      <div class="avatar">CB</div>
+      <div class="info"><div class="name">Consorzio Basalti</div><div class="meta">Tocca per attivare</div></div>
+      <span class="badge warn org-role">Member</span>
+    </div>
+  </div>
+  <div class="form-row">
+    <input class="dw-input" id="new-org" placeholder="Nome nuova organizzazione">
+    <button class="dw-btn" id="btn-create-org">Crea</button>
+  </div>
+
+  <div class="sec">Invita nell'organizzazione attiva</div>
+  <div class="form-row">
+    <input class="dw-input" id="inv-email" type="email" placeholder="email@collega.it">
+    <button class="dw-btn secondary" id="btn-invite">Invita</button>
+  </div>
+  <div class="note" style="text-align:left;margin-top:6px;">Solo owner e admin possono invitare. L'invito scade dopo 14 giorni.</div>
+
+  <div class="sec">Le app del tuo abbonamento</div>
+  <div class="apps-grid" id="apps-grid">
+    <div class="app-tile on"><div class="nm">Deepwork</div><div class="st">Attiva</div></div>
+    <div class="app-tile on"><div class="nm">Scudo</div><div class="st">Attiva</div></div>
+    <div class="app-tile off"><div class="nm">Genesi</div><div class="st">Non inclusa</div></div>
+    <div class="app-tile off"><div class="nm">Campo</div><div class="st">Non inclusa</div></div>
+    <div class="app-tile off"><div class="nm">Flotta</div><div class="st">Non inclusa</div></div>
+    <div class="app-tile off"><div class="nm">Conti</div><div class="st">Non inclusa</div></div>
+    <div class="app-tile off"><div class="nm">Sentinella</div><div class="st">Non inclusa</div></div>
+    <div class="app-tile off"><div class="nm">Terra</div><div class="st">Non inclusa</div></div>
+  </div>
+  <div class="note">Mockup: con il backend attivo, organizzazioni, ruoli e app si caricano dal tuo profilo reale.</div>
+</div>
+
+<div id="msg" class="msg" style="margin:0 16px;"></div>
+
+<script type="module">
+  const $ = (id) => document.getElementById(id);
+  const msg = (text, kind = 'info') => { const el = $('msg'); el.className = 'msg ' + kind; el.textContent = text; };
+
+  let id = null;
+  try {
+    const { DeepworkID } = await import('../../shared/deepwork-id-client/index.js');
+    id = await DeepworkID.init({ appId: 'deepwork-id' });
+    if (id.user && !id.user.isAnonymous) {
+      // profilo NEUTRO: solo email come identificatore, iniziali come avatar
+      $('who-email').textContent = id.user.email || '—';
+      $('avatar').textContent = (id.user.email || '?').slice(0, 2).toUpperCase();
+      await id.redeemInvites();   // riscatta inviti pendenti al volo
+    }
+  } catch (e) {
+    msg('Backend non ancora configurato: schermata in modalità mockup (vedi GUIDA_FIREBASE.md).');
+  }
+
+  const guard = (fn) => async () => {
+    if (!id || !id.user) { msg('Backend non ancora configurato: azione disponibile dopo il setup Firebase.'); return; }
+    try { await fn(); } catch (e) { msg(e.message || 'Operazione non riuscita.', 'error'); }
+  };
+
+  $('btn-create-org').onclick = guard(async () => {
+    const name = $('new-org').value.trim();
+    const orgId = await id.createOrganization(name);
+    msg(`Organizzazione creata (${orgId}). Sei owner.`);
+  });
+  $('btn-invite').onclick = guard(async () => {
+    await id.inviteMember($('inv-email').value.trim());
+    msg('Invito inviato: scade tra 14 giorni.');
+  });
+  $('btn-logout').onclick = guard(async () => { await id.logout(); location.href = './index.html'; });
+</script>
+</body>
+</html>
