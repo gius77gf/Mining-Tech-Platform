@@ -74,13 +74,17 @@ così ogni app diventa visibile online man mano che prende forma. La
 creazione materiale dei siti sull'account Netlify e il collegamento
 del dominio definitivo richiedono il fondatore (vedi coda weekend).
 
-## Coda weekend (25-26 luglio) — richiede il fondatore, ~20 min guidati
+## Coda weekend (25-26 luglio) — richiede il fondatore, ~10 min guidati
 1. Creazione progetto Firebase nuovo su console (account Google del
-   fondatore) — guida passo-passo che sarà pronta nel repo.
-2. Acquisto dominio + collegamento sottodomini alle app su Netlify —
-   struttura consigliata: un dominio unico, sottodomini per app (id.,
-   genesi., scudo., ...).
+   fondatore, GRATUITA — piano base senza costi) — guida passo-passo
+   che sarà pronta nel repo.
 Promemoria automatico armato per sabato mattina 25/07.
+
+## Fine progetto (fase commercializzazione) — NON prima
+- Acquisto dominio + collegamento sottodomini alle app (unica spesa,
+  ~10-20€/anno). DECISIONE DEL FONDATORE: nessuna spesa prima della
+  commercializzazione — fino ad allora solo indirizzi gratuiti
+  *.netlify.app.
 
 ## Regola dei cicli giornalieri
 - L'ULTIMO ciclo di ogni giornata (fascia serale) parte SEMPRE dalla
