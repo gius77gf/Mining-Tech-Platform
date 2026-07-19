@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Sentinella — Ambiente / HSE</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../shared/deepwork-style.css">
+<link rel="stylesheet" href="../../shared/dw-app-shell.css">
+<style>
+  /* Sentinella: accento della palette funzionale deepwork */
+  :root { --app-accent:#6b6459; --app-accent2:#c7b794; }
+</style>
+</head>
+<body class="dw">
+
+<div class="top">
+  <h1>SENTINELLA <span class="accent">·</span> <span style="font-size:14px;color:var(--muted2);">AMBIENTE / HSE</span></h1>
+  <div class="sub">Ecosistema Deepwork</div>
+</div>
+<div class="tour-banner" id="tour-banner" style="display:none;">
+  Modalità tour — dati di esempio, sola lettura
+</div>
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dash">
+  <div class="kpis">
+    <div class="kpi accent"><div class="n">6</div><div class="l">Monitoraggi attivi</div></div>
+    <div class="kpi danger"><div class="n">1</div><div class="l">Superamenti soglia</div></div>
+    <div class="kpi warn"><div class="n">3</div><div class="l">Adempimenti 30gg</div></div>
+    <div class="kpi ok"><div class="n">12</div><div class="l">Campionamenti mese</div></div>
+  </div>
+
+  <div class="sec">Allerte</div>
+  <div class="item"><div class="avatar">VB</div><div class="info"><div class="name">Centralina vibrazioni V2</div><div class="meta">Superamento soglia il 17/07 — volata fronte Nord</div></div><span class="badge danger">Superamento</span><span class="arr">›</span></div>
+  <div class="item"><div class="avatar">PM</div><div class="info"><div class="name">Polveri PM10 — confine Est</div><div class="meta">Media 7gg vicina al limite (92%)</div></div><span class="badge warn">Attenzione</span><span class="arr">›</span></div>
+  <div class="item"><div class="avatar">AD</div><div class="info"><div class="name">Relazione annuale emissioni</div><div class="meta">Da presentare entro 10/08</div></div><span class="badge warn">24 gg</span><span class="arr">›</span></div>
+</div>
+
+<div class="page" id="page-mon">
+  <div class="sec">Centraline e sensori</div>
+  <div class="item"><div class="info"><div class="name">Vibrazioni V1 — abitato Sud</div><div class="meta">Ultimo evento 12/07 · nei limiti</div></div><span class="badge ok">Regolare</span></div>
+  <div class="item"><div class="info"><div class="name">Vibrazioni V2 — confine Nord</div><div class="meta">Superamento 17/07 · da relazionare</div></div><span class="badge danger">Superamento</span></div>
+  <div class="item"><div class="info"><div class="name">Polveri PM10 — confine Est</div><div class="meta">Media 7gg al 92% del limite</div></div><span class="badge warn">Attenzione</span></div>
+  <div class="item"><div class="info"><div class="name">Rumore — perimetro Ovest</div><div class="meta">Ultima campagna 06/2026 · conforme</div></div><span class="badge ok">Conforme</span></div>
+  <div class="item"><div class="info"><div class="name">Acque — vasca decantazione</div><div class="meta">Campionamento 15/07 · conforme</div></div><span class="badge ok">Conforme</span></div>
+</div>
+
+<div class="page" id="page-ade">
+  <div class="sec">Scadenze ambientali</div>
+  <div class="item"><div class="info"><div class="name">Relazione annuale emissioni</div><div class="meta">Entro 10/08 · ARPA</div></div><span class="badge warn">24 gg</span></div>
+  <div class="item"><div class="info"><div class="name">Rinnovo AUA</div><div class="meta">Pratica da avviare entro 09/2026</div></div><span class="badge ok">Pianificare</span></div>
+  <div class="item"><div class="info"><div class="name">Verifica fonometrica semestrale</div><div class="meta">Entro 30/09</div></div><span class="badge ok">Pianificata</span></div>
+</div>
+
+<div class="page" id="page-reg">
+  <div class="sec">Registri</div>
+  <div class="item"><div class="info"><div class="name">Registro rifiuti</div><div class="meta">Ultimo carico 16/07 · in regola</div></div><span class="badge ok">Aggiornato</span></div>
+  <div class="item"><div class="info"><div class="name">Registro acque meteoriche</div><div class="meta">Aggiornato 07/2026</div></div><span class="badge ok">Aggiornato</span></div>
+  <div class="item"><div class="info"><div class="name">Formulari trasporto</div><div class="meta">3 in attesa di quarta copia</div></div><span class="badge warn">In attesa</span></div>
+</div>
+
+<div class="nav">
+  <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico">▦</span>Quadro</button>
+  <button id="nav-mon" onclick="go('mon')"><span class="ico">📡</span>Monitoraggi</button>
+  <button id="nav-ade" onclick="go('ade')"><span class="ico">📋</span>Adempimenti</button>
+  <button id="nav-reg" onclick="go('reg')"><span class="ico">📚</span>Registri</button>
+</div>
+
+<script>
+  function go(id) {
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
+    document.getElementById("page-" + id).classList.add("active");
+    document.getElementById("nav-" + id).classList.add("active");
+    window.scrollTo(0, 0);
+  }
+</script>
+
+<script type="module">
+  // Aggancio a Deepwork ID: se il backend non è configurato la pagina
+  // resta navigabile come mockup (modalità tour implicita).
+  try {
+    const { DeepworkID } = await import("../../shared/deepwork-id-client/index.js");
+    const id = await DeepworkID.init({ appId: "sentinella" });
+    if (id.authState() === "tour" || id.authState() === "anonymous") {
+      document.getElementById("tour-banner").style.display = "block";
+    }
+  } catch (e) {
+    document.getElementById("tour-banner").style.display = "block";
+  }
+</script>
+</body>
+</html>

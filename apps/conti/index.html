@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Conti — Amministrazione & gare</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../shared/deepwork-style.css">
+<link rel="stylesheet" href="../../shared/dw-app-shell.css">
+<style>
+  /* Conti: accento della palette funzionale deepwork */
+  :root { --app-accent:#0e9384; --app-accent2:#23dcc6; }
+</style>
+</head>
+<body class="dw">
+
+<div class="top">
+  <h1>CONTI <span class="accent">·</span> <span style="font-size:14px;color:var(--muted2);">AMMINISTRAZIONE & GARE</span></h1>
+  <div class="sub">Ecosistema Deepwork</div>
+</div>
+<div class="tour-banner" id="tour-banner" style="display:none;">
+  Modalità tour — dati di esempio, sola lettura
+</div>
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dash">
+  <div class="kpis">
+    <div class="kpi warn"><div class="n">€42k</div><div class="l">Da incassare</div></div>
+    <div class="kpi warn"><div class="n">5</div><div class="l">Fatture in scadenza</div></div>
+    <div class="kpi accent"><div class="n">2</div><div class="l">Gare aperte</div></div>
+    <div class="kpi ok"><div class="n">18%</div><div class="l">Margine mese</div></div>
+  </div>
+
+  <div class="sec">Priorità</div>
+  <div class="item"><div class="avatar">FT</div><div class="info"><div class="name">Fattura 2026/031 — Edilcave Srl</div><div class="meta">€18.300 · scaduta da 12 giorni</div></div><span class="badge danger">Insoluta</span><span class="arr">›</span></div>
+  <div class="item"><div class="avatar">GA</div><div class="info"><div class="name">Gara Comune di Ragusa</div><div class="meta">Fornitura inerti · scade 28/07</div></div><span class="badge warn">9 gg</span><span class="arr">›</span></div>
+  <div class="item"><div class="avatar">FT</div><div class="info"><div class="name">Fattura 2026/034 — Stradesud</div><div class="meta">€9.750 · scade 25/07</div></div><span class="badge warn">6 gg</span><span class="arr">›</span></div>
+</div>
+
+<div class="page" id="page-fat">
+  <div class="sec">Fatture attive</div>
+  <div class="item"><div class="info"><div class="name">2026/031 — Edilcave Srl</div><div class="meta">€18.300 · emessa 07/06</div></div><span class="badge danger">Insoluta</span></div>
+  <div class="item"><div class="info"><div class="name">2026/034 — Stradesud</div><div class="meta">€9.750 · scade 25/07</div></div><span class="badge warn">In scadenza</span></div>
+  <div class="item"><div class="info"><div class="name">2026/035 — Comune di Modica</div><div class="meta">€8.100 · scade 10/08</div></div><span class="badge ok">Regolare</span></div>
+  <div class="item"><div class="info"><div class="name">2026/036 — Calcestruzzi RG</div><div class="meta">€5.900 · scade 18/08</div></div><span class="badge ok">Regolare</span></div>
+</div>
+
+<div class="page" id="page-gar">
+  <div class="sec">Gare e appalti</div>
+  <div class="item"><div class="info"><div class="name">Comune di Ragusa — inerti 2026-27</div><div class="meta">Base €120k · scade 28/07</div></div><span class="badge warn">9 gg</span></div>
+  <div class="item"><div class="info"><div class="name">ANAS — manutenzione SS115</div><div class="meta">Base €340k · scade 12/08</div></div><span class="badge ok">24 gg</span></div>
+  <div class="item"><div class="info"><div class="name">Consorzio bonifica — massi scogliera</div><div class="meta">Aggiudicata · avvio 09/2026</div></div><span class="badge ok">Vinta</span></div>
+</div>
+
+<div class="page" id="page-rep">
+  <div class="sec">Report rapidi</div>
+  <div class="item"><div class="info"><div class="name">Fatturato mese</div><div class="meta">€96.400 · +11% su giugno</div></div><span class="badge ok">+11%</span></div>
+  <div class="item"><div class="info"><div class="name">Margine operativo</div><div class="meta">18% · obiettivo 20%</div></div><span class="badge warn">-2pt</span></div>
+  <div class="item"><div class="info"><div class="name">DSO (giorni incasso medio)</div><div class="meta">54 giorni · in peggioramento</div></div><span class="badge warn">54gg</span></div>
+</div>
+
+<div class="nav">
+  <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico">▦</span>Quadro</button>
+  <button id="nav-fat" onclick="go('fat')"><span class="ico">🧾</span>Fatture</button>
+  <button id="nav-gar" onclick="go('gar')"><span class="ico">📑</span>Gare</button>
+  <button id="nav-rep" onclick="go('rep')"><span class="ico">📊</span>Report</button>
+</div>
+
+<script>
+  function go(id) {
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
+    document.getElementById("page-" + id).classList.add("active");
+    document.getElementById("nav-" + id).classList.add("active");
+    window.scrollTo(0, 0);
+  }
+</script>
+
+<script type="module">
+  // Aggancio a Deepwork ID: se il backend non è configurato la pagina
+  // resta navigabile come mockup (modalità tour implicita).
+  try {
+    const { DeepworkID } = await import("../../shared/deepwork-id-client/index.js");
+    const id = await DeepworkID.init({ appId: "conti" });
+    if (id.authState() === "tour" || id.authState() === "anonymous") {
+      document.getElementById("tour-banner").style.display = "block";
+    }
+  } catch (e) {
+    document.getElementById("tour-banner").style.display = "block";
+  }
+</script>
+</body>
+</html>

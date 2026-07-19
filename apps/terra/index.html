@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Terra — Estrattivo & rilievo</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../shared/deepwork-style.css">
+<link rel="stylesheet" href="../../shared/dw-app-shell.css">
+<style>
+  /* Terra: accento della palette funzionale deepwork */
+  :root { --app-accent:#2f9e44; --app-accent2:#5fe05a; }
+</style>
+</head>
+<body class="dw">
+
+<div class="top">
+  <h1>TERRA <span class="accent">·</span> <span style="font-size:14px;color:var(--muted2);">ESTRATTIVO & RILIEVO</span></h1>
+  <div class="sub">Ecosistema Deepwork</div>
+</div>
+<div class="tour-banner" id="tour-banner" style="display:none;">
+  Modalità tour — dati di esempio, sola lettura
+</div>
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dash">
+  <div class="kpis">
+    <div class="kpi accent"><div class="n">38k</div><div class="l">m³ estratti mese</div></div>
+    <div class="kpi ok"><div class="n">64%</div><div class="l">Avanzamento piano</div></div>
+    <div class="kpi ok"><div class="n">2</div><div class="l">Rilievi drone mese</div></div>
+    <div class="kpi ok"><div class="n">1.2M</div><div class="l">m³ riserve stimate</div></div>
+  </div>
+
+  <div class="sec">Fronti di cava</div>
+  <div class="item"><div class="avatar">FN</div><div class="info"><div class="name">Fronte Nord</div><div class="meta">Avanzamento 72% · prossima volata 12:30</div></div><span class="badge ok">Attivo</span><span class="arr">›</span></div>
+  <div class="item"><div class="avatar">FE</div><div class="info"><div class="name">Fronte Est</div><div class="meta">Perforazione in corso · 14/22 fori</div></div><span class="badge ok">Attivo</span><span class="arr">›</span></div>
+  <div class="item"><div class="avatar">FS</div><div class="info"><div class="name">Fronte Sud</div><div class="meta">Sospeso — verifica stabilità scarpata</div></div><span class="badge warn">Sospeso</span><span class="arr">›</span></div>
+</div>
+
+<div class="page" id="page-fro">
+  <div class="sec">Stato dei fronti</div>
+  <div class="item"><div class="info"><div class="name">Fronte Nord — banco 2</div><div class="meta">Quota 340m · avanzamento 72%</div></div><span class="badge ok">Attivo</span></div>
+  <div class="item"><div class="info"><div class="name">Fronte Est — banco 1</div><div class="meta">Quota 355m · perforazione in corso</div></div><span class="badge ok">Attivo</span></div>
+  <div class="item"><div class="info"><div class="name">Fronte Sud — banco 3</div><div class="meta">Sospeso per verifica geotecnica</div></div><span class="badge warn">Sospeso</span></div>
+</div>
+
+<div class="page" id="page-ril">
+  <div class="sec">Rilievi e volumi</div>
+  <div class="item"><div class="info"><div class="name">Rilievo drone 15/07</div><div class="meta">Ortofoto + DEM · volumi calcolati</div></div><span class="badge ok">Elaborato</span></div>
+  <div class="item"><div class="info"><div class="name">Rilievo drone 01/07</div><div class="meta">Confronto: -19.400 m³ estratti</div></div><span class="badge ok">Elaborato</span></div>
+  <div class="item"><div class="info"><div class="name">Prossimo rilievo</div><div class="meta">Pianificato 01/08</div></div><span class="badge ok">Pianificato</span></div>
+</div>
+
+<div class="page" id="page-pia">
+  <div class="sec">Piano estrattivo</div>
+  <div class="item"><div class="info"><div class="name">Autorizzazione vigente</div><div class="meta">Scadenza 2029 · volumi residui 1.2M m³</div></div><span class="badge ok">Vigente</span></div>
+  <div class="item"><div class="info"><div class="name">Avanzamento piano annuale</div><div class="meta">64% al 19/07 · in linea</div></div><span class="badge ok">In linea</span></div>
+  <div class="item"><div class="info"><div class="name">Variante fronte Sud</div><div class="meta">Da valutare dopo verifica stabilità</div></div><span class="badge warn">In esame</span></div>
+</div>
+
+<div class="nav">
+  <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico">▦</span>Quadro</button>
+  <button id="nav-fro" onclick="go('fro')"><span class="ico">⛰</span>Fronti</button>
+  <button id="nav-ril" onclick="go('ril')"><span class="ico">📐</span>Rilievi</button>
+  <button id="nav-pia" onclick="go('pia')"><span class="ico">🗺</span>Piano</button>
+</div>
+
+<script>
+  function go(id) {
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
+    document.getElementById("page-" + id).classList.add("active");
+    document.getElementById("nav-" + id).classList.add("active");
+    window.scrollTo(0, 0);
+  }
+</script>
+
+<script type="module">
+  // Aggancio a Deepwork ID: se il backend non è configurato la pagina
+  // resta navigabile come mockup (modalità tour implicita).
+  try {
+    const { DeepworkID } = await import("../../shared/deepwork-id-client/index.js");
+    const id = await DeepworkID.init({ appId: "terra" });
+    if (id.authState() === "tour" || id.authState() === "anonymous") {
+      document.getElementById("tour-banner").style.display = "block";
+    }
+  } catch (e) {
+    document.getElementById("tour-banner").style.display = "block";
+  }
+</script>
+</body>
+</html>

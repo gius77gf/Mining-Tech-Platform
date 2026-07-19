@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Campo — Operativo di campo</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../shared/deepwork-style.css">
+<link rel="stylesheet" href="../../shared/dw-app-shell.css">
+<style>
+  /* Campo: accento della palette funzionale deepwork */
+  :root { --app-accent:#e8821c; --app-accent2:#ffb733; }
+</style>
+</head>
+<body class="dw">
+
+<div class="top">
+  <h1>CAMPO <span class="accent">·</span> <span style="font-size:14px;color:var(--muted2);">OPERATIVO DI CAMPO</span></h1>
+  <div class="sub">Ecosistema Deepwork</div>
+</div>
+<div class="tour-banner" id="tour-banner" style="display:none;">
+  Modalità tour — dati di esempio, sola lettura
+</div>
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dash">
+  <div class="kpis">
+    <div class="kpi accent"><div class="n">3</div><div class="l">Squadre attive</div></div>
+    <div class="kpi ok"><div class="n">7</div><div class="l">Mezzi in campo</div></div>
+    <div class="kpi ok"><div class="n">4</div><div class="l">Rapportini oggi</div></div>
+    <div class="kpi danger"><div class="n">1</div><div class="l">Anomalie aperte</div></div>
+  </div>
+
+  <div class="sec">Oggi in cava</div>
+  <div class="item"><div class="avatar">V</div><div class="info"><div class="name">Volata fronte Nord</div><div class="meta">Prevista ore 12:30 — area interdetta</div></div><span class="badge warn">Pianificata</span><span class="arr">›</span></div>
+  <div class="item"><div class="avatar">FR</div><div class="info"><div class="name">Frantoio primario</div><div class="meta">Fermo per intasamento tramoggia</div></div><span class="badge danger">Anomalia</span><span class="arr">›</span></div>
+  <div class="item"><div class="avatar">SQ</div><div class="info"><div class="name">Squadra perforazione</div><div class="meta">Fronte Est — 14 fori su 22</div></div><span class="badge ok">In corso</span><span class="arr">›</span></div>
+</div>
+
+<div class="page" id="page-att">
+  <div class="sec">Attività della giornata</div>
+  <div class="item"><div class="info"><div class="name">Perforazione fronte Est</div><div class="meta">Squadra A · 14/22 fori</div></div><span class="badge ok">In corso</span></div>
+  <div class="item"><div class="info"><div class="name">Volata fronte Nord</div><div class="meta">Ore 12:30 · fochino M. Rossi</div></div><span class="badge warn">Pianificata</span></div>
+  <div class="item"><div class="info"><div class="name">Carico e trasporto</div><div class="meta">Piazzale 2 → frantoio</div></div><span class="badge ok">In corso</span></div>
+  <div class="item"><div class="info"><div class="name">Manutenzione dumper D3</div><div class="meta">Officina · in attesa ricambio</div></div><span class="badge warn">In attesa</span></div>
+</div>
+
+<div class="page" id="page-squ">
+  <div class="sec">Squadre in turno</div>
+  <div class="item"><div class="info"><div class="name">Squadra A — Perforazione</div><div class="meta">4 persone · fronte Est</div></div><span class="badge ok">Operativa</span></div>
+  <div class="item"><div class="info"><div class="name">Squadra B — Carico</div><div class="meta">3 persone · piazzale 2</div></div><span class="badge ok">Operativa</span></div>
+  <div class="item"><div class="info"><div class="name">Squadra C — Impianto</div><div class="meta">2 persone · frantoio</div></div><span class="badge danger">Ferma</span></div>
+</div>
+
+<div class="page" id="page-rap">
+  <div class="sec">Rapportini di oggi</div>
+  <div class="item"><div class="info"><div class="name">Rapportino perforazione</div><div class="meta">Squadra A · inviato 11:20</div></div><span class="badge ok">Inviato</span></div>
+  <div class="item"><div class="info"><div class="name">Rapportino impianto</div><div class="meta">Squadra C · bozza</div></div><span class="badge warn">Bozza</span></div>
+  <div class="item"><div class="info"><div class="name">Rapportino trasporti</div><div class="meta">Squadra B · inviato 10:05</div></div><span class="badge ok">Inviato</span></div>
+</div>
+
+<div class="nav">
+  <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico">▦</span>Quadro</button>
+  <button id="nav-att" onclick="go('att')"><span class="ico">⛏</span>Attività</button>
+  <button id="nav-squ" onclick="go('squ')"><span class="ico">👥</span>Squadre</button>
+  <button id="nav-rap" onclick="go('rap')"><span class="ico">📝</span>Rapportini</button>
+</div>
+
+<script>
+  function go(id) {
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
+    document.getElementById("page-" + id).classList.add("active");
+    document.getElementById("nav-" + id).classList.add("active");
+    window.scrollTo(0, 0);
+  }
+</script>
+
+<script type="module">
+  // Aggancio a Deepwork ID: se il backend non è configurato la pagina
+  // resta navigabile come mockup (modalità tour implicita).
+  try {
+    const { DeepworkID } = await import("../../shared/deepwork-id-client/index.js");
+    const id = await DeepworkID.init({ appId: "campo" });
+    if (id.authState() === "tour" || id.authState() === "anonymous") {
+      document.getElementById("tour-banner").style.display = "block";
+    }
+  } catch (e) {
+    document.getElementById("tour-banner").style.display = "block";
+  }
+</script>
+</body>
+</html>
