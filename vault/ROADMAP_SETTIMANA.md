@@ -104,7 +104,7 @@ Promemoria automatico armato per sabato mattina 25/07.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-19_1510_deepwork-id-fondamenta.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-19_1555_test-isolamento-scudo-mockup.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault (mappa, roadmap, MOC
   app, wiki ricerca)
 
