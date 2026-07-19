@@ -109,7 +109,7 @@ Promemoria automatico armato per sabato mattina 25/07.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-19_1745_functions-mitigazione-claudemd.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-19_1820_sdk-functions-profilo.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault (mappa, roadmap, MOC
   app, wiki ricerca)
 
