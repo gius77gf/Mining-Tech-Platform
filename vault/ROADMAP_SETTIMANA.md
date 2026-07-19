@@ -66,6 +66,22 @@ funzionamento, costi, tutto — senza escludere nulla. Obiettivo: estrarre
 i punti di forza per rafforzare Genesi. Nel vault esiste già ricerca su
 Strayos e O-Pitblast (50 - Wiki ricerca) da integrare, non duplicare.
 
+## 6. Configurazione di pubblicazione delle app (fase gratuita Netlify)
+[parallelo-gruppo-A, quando esistono i primi scheletri] — taglia S — stato: da fare
+Preparare la configurazione di deploy per ogni cartella di apps/ (siti
+Netlify separati per sottocartella, indirizzi gratuiti *.netlify.app),
+così ogni app diventa visibile online man mano che prende forma. La
+creazione materiale dei siti sull'account Netlify e il collegamento
+del dominio definitivo richiedono il fondatore (vedi coda weekend).
+
+## Coda weekend (25-26 luglio) — richiede il fondatore, ~20 min guidati
+1. Creazione progetto Firebase nuovo su console (account Google del
+   fondatore) — guida passo-passo che sarà pronta nel repo.
+2. Acquisto dominio + collegamento sottodomini alle app su Netlify —
+   struttura consigliata: un dominio unico, sottodomini per app (id.,
+   genesi., scudo., ...).
+Promemoria automatico armato per sabato mattina 25/07.
+
 ## Regola dei cicli giornalieri
 - L'ULTIMO ciclo di ogni giornata (fascia serale) parte SEMPRE dalla
   revisione: analizzare il lavoro svolto nella giornata (e nei giorni
