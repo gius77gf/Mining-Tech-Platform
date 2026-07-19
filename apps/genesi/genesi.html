@@ -483,6 +483,7 @@ body.scr-sim #tl{bottom:80px}
   <label class="lay"><input type="checkbox" id="lGonna" checked> Gonna di polvere basale</label>
   <label class="lay"><input type="checkbox" id="lNuvola" checked> Nuvola avvolgente</label>
   <label class="lay"><input type="checkbox" id="lMuck" checked> Muckpile</label>
+  <label class="lay"><input type="checkbox" id="lFly"> Zona flyrock (stima)</label>
   <label class="lay"><input type="checkbox" id="lXray"> Raggi-X progetto (fori & cariche)</label>
   <label class="lay" style="display:block;padding-left:22px">Trasparenza fronte <input type="range" id="xrOp" min="4" max="85" value="32" style="width:110px;vertical-align:middle;accent-color:var(--cu)"></label>
   <label class="lay"><input type="checkbox" id="lAudio" checked> Boato + scossa camera</label>
@@ -692,6 +693,26 @@ function rockMat(col){
   return m;
 }
 
+/* stima gittata flyrock — stessa fisica della scheda (Richards&Moore face burst /
+   cratering / rifling + McKenzie SDOB, tetto Lundborg), riusabile da scheda e scena 3D */
+function flyrockEst(){
+  const Dmm=(D2.diam||89), Dm=Dmm/1000, stem=D2.stem||2.5, B=D2.B||SPALLA, Q=D2.kg||P.kg||50;
+  const _e=(typeof selEsplosivo==='function'&&selEsplosivo())||{};
+  const ql=(_e.densita_gcc||0.82)*1000*Math.PI*Dm*Dm/4;                 // carica lineare kg/m
+  const Wtop=Math.min(Q, ql*10*Dm);
+  const sdob=(stem+5*Dm)/Math.pow(Math.max(0.1,Wtop),1/3);
+  const kf=13.5+13.5*Math.max(0,Math.min(1,((D2.ucs||100)-30)/220));    // 13,5 tenere → 27 dure
+  const g9=9.81, sqm=Math.sqrt(Math.max(0.1,ql));
+  const Lff=(kf*kf/g9)*Math.pow(sqm/B,2.6);
+  const Lcr=(kf*kf/g9)*Math.pow(sqm/Math.max(0.3,stem),2.6);
+  const thF=Math.max(5,D2.incl||0)*Math.PI/180, Lrif=Lcr*Math.sin(2*thF);
+  const Rmck=10*Math.pow(sdob,-2.167)*Math.pow(Dmm,0.667);
+  const Llund=30.1*Math.pow(Dmm,2/3);
+  const mech=[['face burst',Lff],['cratering',Lcr],['rifling',Lrif],['McKenzie',Rmck]].sort((a,b)=>b[1]-a[1]);
+  const Lpred=Math.min(mech[0][1],Llund);
+  return { Lpred, Dmez:2*Lpred, Dper:4*Lpred, mech0:mech[0], kf, sdob };
+}
+
 /* ============ stato simulazione ============ */
 let SIM = null;            // costruita da buildSim()
 let simT = 0;              // tempo simulato in ms (reale 1:1)
@@ -699,6 +720,7 @@ let playing = false;
 let speed = 1;             // ms-sim per ms-reale (1 / 0.1 / 0.025)
 let lastNow = 0;
 let staticGroup = null;    // geometria fissa scena
+let flyGroup = null;       // overlay zona flyrock (layer lFly)
 let dynGroup = null;       // oggetti dinamici (pannelli, chunk, polvere, pile)
 let frontMesh = null;      // mesh fronte reale importata (fotogrammetria); null = fronte parametrico
 let frontMeshGroup = null;
@@ -962,6 +984,21 @@ function buildScene(){
   backWall = new THREE.Mesh(jitterGeo(new THREE.PlaneGeometry(Lm, H, Math.max(8,SIM.fori.length), 6),0.5), rockMat(shade(_lt,0.76)));
   backWall.position.set(Lm/2, H/2, DPT-0.05+maxCz); backWall.rotation.y = Math.PI;
   backWall.receiveShadow = true; staticGroup.add(backWall);
+  /* zona flyrock a terra (layer lFly): disco della gittata prevista + anelli di
+     sgombero mezzi (2x) e persone (4x) — stessa stima della scheda validatori */
+  {
+    const F = flyrockEst(); const cx = Lm/2, czf = 0;
+    flyGroup = new THREE.Group();
+    const disc = new THREE.Mesh(new THREE.CircleGeometry(F.Lpred, 72),
+      new THREE.MeshBasicMaterial({ color:0xffab00, transparent:true, opacity:0.10, side:THREE.DoubleSide, depthWrite:false }));
+    disc.rotation.x = -Math.PI/2; disc.position.set(cx, 0.03, czf);
+    const mkRing = (r, col, op) => { const rg = new THREE.Mesh(new THREE.RingGeometry(Math.max(0.5, r-0.4), r+0.4, 96),
+      new THREE.MeshBasicMaterial({ color:col, transparent:true, opacity:op, side:THREE.DoubleSide, depthWrite:false }));
+      rg.rotation.x = -Math.PI/2; rg.position.set(cx, 0.04, czf); return rg; };
+    flyGroup.add(disc, mkRing(F.Lpred, 0xffab00, 0.85), mkRing(F.Dmez, 0xff7043, 0.6), mkRing(F.Dper, 0xef5350, 0.6));
+    flyGroup.visible = !!layers.lFly;
+    staticGroup.add(flyGroup);
+  }
   /* pannelli per-foro (il fronte da sparare; le file dietro stanno più in profondità).
      Rumore continuo nel mondo (bordi combacianti) + texture sfalsata per pannello + shear di inclinazione → parete unica e naturale, non "riquadri". */
   panels = [];
@@ -1112,6 +1149,7 @@ function renderSim(t, force){
   }
   /* vista raggi-X: parete-fantasma unica + cilindri visibili finche il proprio foro non spara */
   if(ghostWall){ ghostWall.visible = !!layers.lXray; if(layers.lXray) ghostWall.material.opacity = xrayOp; }
+  if(flyGroup){ flyGroup.visible = !!layers.lFly; }
   if(xrayGroup){
     xrayGroup.visible = !!layers.lXray;
     if(layers.lXray) for(const g of xrayCyls){ g.visible = t < g.userData.f.tDet; }
@@ -1282,7 +1320,7 @@ function checkShake(prevT, t){
 
 /* ============ UI: timeline ============ */
 const $ = id => document.getElementById(id);
-const layers = { lGetti:true, lChunk:true, lGonna:true, lNuvola:true, lMuck:true, lXray:false, lAudio:true };
+const layers = { lGetti:true, lChunk:true, lGonna:true, lNuvola:true, lMuck:true, lFly:false, lXray:false, lAudio:true };
 let xrayOp = 0.32;   // trasparenza del fronte in vista raggi-X (cursore #xrOp)
 function buildTicks(){
   const tk = $('ticks'); tk.innerHTML = '';
@@ -1871,18 +1909,10 @@ function renderScheda2D(){
     why:_sdob>=1.4?'colletto ben confinato (SDOB≥1,4, def. Chiappetta su carica dei 10Ø superiori): disturbo superficiale minimo.':(_sdob>=0.9?'confinamento intermedio (0,9–1,4): mounding/cratere parziale possibile; valuta più borraggio.':'sotto-confinamento (SDOB<0,9): eiezione da cratere probabile dal colletto. Aumenta il borraggio o riduci la carica.')});
   /* gittata flyrock: max dei meccanismi Richards&Moore (face burst / cratering / rifling) + McKenzie SDOB, tetto Lundborg (30,1·Ø^⅔). Fonti primarie, unità SI verificate */
   (function(){
-    const kf=13.5+13.5*Math.max(0,Math.min(1,((D2.ucs||100)-30)/220));   // costante di sito: 13,5 rocce tenere → 27 dure
-    const g9=9.81, sqm=Math.sqrt(Math.max(0.1,_ql));
-    const Lff=(kf*kf/g9)*Math.pow(sqm/B,2.6);                            // face burst (davanti alla faccia)
-    const Lcr=(kf*kf/g9)*Math.pow(sqm/Math.max(0.3,stem),2.6);           // cratering dal colletto
-    const thF=Math.max(5,D2.incl)*Math.PI/180, Lrif=Lcr*Math.sin(2*thF); // rifling lungo l'asse del foro
-    const Rmck=10*Math.pow(_sdob,-2.167)*Math.pow(D2.diam,0.667);        // McKenzie 2009 (Ø in mm)
-    const Llund=30.1*Math.pow(D2.diam,2/3);                              // tetto Lundborg (masso ottimale, drag-limited)
-    const mech=[['face burst',Lff],['cratering',Lcr],['rifling',Lrif],['McKenzie',Rmck]].sort((a,b)=>b[1]-a[1]);
-    const Lpred=Math.min(mech[0][1], Llund), Dmez=2*Lpred, Dper=4*Lpred;
+    const F=flyrockEst(), Lpred=F.Lpred, Dmez=F.Dmez, Dper=F.Dper;      // stessa stima mostrata in 3D (layer "Zona flyrock")
     rows.push({lab:'Gittata flyrock (stima)',valStr:Math.round(Lpred)+' <span>m → sgombero '+Math.round(Dmez)+' / '+Math.round(Dper)+' m</span>',
       cls:(D2.recDist>=Dper?'sv-ok':(D2.recDist>=Dmez?'sv-warn':'sv-bad')),
-      why:'meccanismo dominante: '+mech[0][0]+' (k='+kf.toFixed(0)+'). Sgombero consigliato: mezzi 2× ('+Math.round(Dmez)+' m), persone 4× ('+Math.round(Dper)+' m) — recettore a '+D2.recDist+' m. STIMA INDICATIVA (Richards&Moore/McKenzie/Lundborg): NON sostituisce il calcolo normativo delle aree di sgombero né il giudizio del responsabile del tiro.'});
+      why:'meccanismo dominante: '+F.mech0[0]+' (k='+F.kf.toFixed(0)+'). Sgombero consigliato: mezzi 2× ('+Math.round(Dmez)+' m), persone 4× ('+Math.round(Dper)+' m) — recettore a '+D2.recDist+' m. STIMA INDICATIVA (Richards&Moore/McKenzie/Lundborg): NON sostituisce il calcolo normativo delle aree di sgombero né il giudizio del responsabile del tiro.'});
   })();
   rows.push(badge(msmHole,'Timing inter-foro',msmHole.toFixed(1)+' <span>ms/m</span>',3,7,2,9,
     'ritardo/interasse nella finestra in-fila 3–7 ms/m: relief corretto tra fori.',
