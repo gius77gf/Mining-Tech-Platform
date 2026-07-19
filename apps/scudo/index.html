@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Scudo — Sicurezza & Personale</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../shared/deepwork-style.css">
+<style>
+  /* Scudo usa l'accento "team" della palette funzionale deepwork */
+  :root { --app-accent:#8b5cf6; --app-accent2:#bd96ff; }
+
+  body.dw { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+
+  /* header */
+  .top {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--panel); border-bottom: 1px solid var(--border);
+    padding: 14px 16px calc(0px + 10px);
+  }
+  .top h1 { margin: 0; font-size: 22px; letter-spacing: 3px; }
+  .top h1 .accent { color: var(--app-accent2); }
+  .top .sub { font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+  .tour-banner {
+    background: rgba(139, 92, 246, .12); border: 1px solid var(--app-accent);
+    color: var(--app-accent2); font-size: 12px; padding: 8px 12px;
+    border-radius: var(--r-sm); margin: 10px 16px 0; text-align: center;
+  }
+
+  /* navigazione a schede in basso (stile PWA deepwork) */
+  .nav {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
+    display: flex; background: var(--panel);
+    border-top: 1px solid var(--border);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .nav button {
+    flex: 1; min-height: var(--tap); padding: 8px 4px 10px;
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  }
+  .nav button.active { color: var(--app-accent2); }
+  .nav .ico { display: block; font-size: 18px; margin-bottom: 2px; }
+
+  /* contenuti */
+  .page { display: none; padding: 16px; }
+  .page.active { display: block; }
+  .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .kpi { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 14px; }
+  .kpi .n { font-family: 'Barlow Condensed', sans-serif; font-size: 30px; font-weight: 800; }
+  .kpi .l { font-size: 11px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; }
+  .kpi.ok .n { color: var(--success); }
+  .kpi.warn .n { color: var(--warn); }
+  .kpi.danger .n { color: var(--danger); }
+  .kpi.accent .n { color: var(--app-accent2); }
+
+  .sec { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700;
+         letter-spacing: 2px; text-transform: uppercase; color: var(--muted2);
+         margin: 18px 0 8px; display: flex; align-items: center; gap: 8px; }
+  .sec::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--app-accent); }
+
+  .item { display: flex; align-items: center; gap: 12px; background: var(--card);
+          border: 1px solid var(--border); border-radius: var(--r);
+          padding: 12px 14px; margin-bottom: 8px; cursor: pointer; }
+  .item:active { background: var(--card2); }
+  .avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--card2);
+            border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center;
+            font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 13px; color: var(--app-accent2); }
+  .info { flex: 1; min-width: 0; }
+  .name { font-weight: 600; font-size: 15px; }
+  .meta { font-size: 12px; color: var(--muted); }
+  .badge { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700;
+           letter-spacing: 1px; padding: 3px 8px; border-radius: 20px; text-transform: uppercase; }
+  .badge.ok { background: rgba(102,187,106,.15); color: var(--success); }
+  .badge.warn { background: rgba(255,167,38,.15); color: var(--warn); }
+  .badge.danger { background: rgba(239,83,80,.15); color: var(--danger); }
+  .arr { color: var(--muted); font-size: 18px; }
+
+  .note { font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 20px; text-align: center; }
+</style>
+</head>
+<body class="dw">
+
+<div class="top">
+  <h1>SCUDO <span class="accent">·</span> <span style="font-size:14px;color:var(--muted2);">SICUREZZA & PERSONALE</span></h1>
+  <div class="sub">Ecosistema Deepwork</div>
+</div>
+<div class="tour-banner" id="tour-banner" style="display:none;">
+  Modalità tour — dati di esempio, sola lettura
+</div>
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dash">
+  <div class="kpis">
+    <div class="kpi danger"><div class="n" id="k-scadute">2</div><div class="l">Scadenze superate</div></div>
+    <div class="kpi warn"><div class="n" id="k-30gg">5</div><div class="l">In scadenza 30gg</div></div>
+    <div class="kpi ok"><div class="n" id="k-regolari">14</div><div class="l">Lavoratori regolari</div></div>
+    <div class="kpi accent"><div class="n" id="k-corsi">3</div><div class="l">Corsi pianificati</div></div>
+  </div>
+
+  <div class="sec">Urgenze</div>
+  <div class="item" onclick="go('pers')">
+    <div class="avatar">MR</div>
+    <div class="info"><div class="name">Mario Rossi</div><div class="meta">Visita medica scaduta il 02/07</div></div>
+    <span class="badge danger">Scaduta</span><span class="arr">›</span>
+  </div>
+  <div class="item" onclick="go('pers')">
+    <div class="avatar">LB</div>
+    <div class="info"><div class="name">Luca Bianchi</div><div class="meta">Corso antincendio scaduto il 11/07</div></div>
+    <span class="badge danger">Scaduto</span><span class="arr">›</span>
+  </div>
+  <div class="item" onclick="go('scad')">
+    <div class="avatar">GV</div>
+    <div class="info"><div class="name">Giulia Verdi</div><div class="meta">Formazione preposto — scade il 09/08</div></div>
+    <span class="badge warn">30 gg</span><span class="arr">›</span>
+  </div>
+</div>
+
+<!-- PERSONALE -->
+<div class="page" id="page-pers">
+  <div class="sec">Lavoratori (21)</div>
+  <div id="pers-list"></div>
+</div>
+
+<!-- SCADENZE -->
+<div class="page" id="page-scad">
+  <div class="sec">Prossimi 60 giorni</div>
+  <div id="scad-list"></div>
+</div>
+
+<!-- DOCUMENTI -->
+<div class="page" id="page-doc">
+  <div class="sec">Documenti aziendali</div>
+  <div class="item"><div class="info"><div class="name">DVR — Documento Valutazione Rischi</div><div class="meta">Aggiornato 03/2026</div></div><span class="badge ok">Valido</span></div>
+  <div class="item"><div class="info"><div class="name">Piano di Emergenza</div><div class="meta">Aggiornato 01/2026</div></div><span class="badge ok">Valido</span></div>
+  <div class="item"><div class="info"><div class="name">Nomine RSPP / addetti</div><div class="meta">Revisione richiesta</div></div><span class="badge warn">Da rivedere</span></div>
+  <div class="note">Scheletro navigabile — le funzioni di modifica arrivano con le prossime iterazioni.</div>
+</div>
+
+<div class="nav">
+  <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico">▦</span>Quadro</button>
+  <button id="nav-pers" onclick="go('pers')"><span class="ico">👷</span>Personale</button>
+  <button id="nav-scad" onclick="go('scad')"><span class="ico">⏰</span>Scadenze</button>
+  <button id="nav-doc" onclick="go('doc')"><span class="ico">📄</span>Documenti</button>
+</div>
+
+<script>
+  // dati di esempio (tenant demo) — nella versione reale arrivano da
+  // Firestore via SDK Deepwork ID (orgCollection), sigillati sull'org
+  const DEMO_PERS = [
+    { n: "Mario Rossi", r: "Fochino", s: "danger", m: "Visita medica scaduta" },
+    { n: "Luca Bianchi", r: "Escavatorista", s: "danger", m: "Corso antincendio scaduto" },
+    { n: "Giulia Verdi", r: "Preposto", s: "warn", m: "Formazione in scadenza" },
+    { n: "Anna Neri", r: "Impiegata", s: "ok", m: "Tutto regolare" },
+    { n: "Paolo Gallo", r: "Autista", s: "ok", m: "Tutto regolare" },
+    { n: "Franco Riva", r: "Fochino", s: "warn", m: "DPI da rinnovare" },
+    { n: "Sara Conti", r: "RSPP esterno", s: "ok", m: "Tutto regolare" },
+  ];
+  const DEMO_SCAD = [
+    { n: "Mario Rossi", m: "Visita medica", d: "02/07/2026", s: "danger" },
+    { n: "Luca Bianchi", m: "Corso antincendio", d: "11/07/2026", s: "danger" },
+    { n: "Giulia Verdi", m: "Formazione preposto", d: "09/08/2026", s: "warn" },
+    { n: "Franco Riva", m: "Consegna DPI", d: "15/08/2026", s: "warn" },
+    { n: "Paolo Gallo", m: "CQC rinnovo", d: "02/09/2026", s: "ok" },
+  ];
+  const badge = { danger: "Scaduta", warn: "In scadenza", ok: "Regolare" };
+  const initials = (n) => n.split(" ").map(w => w[0]).join("");
+
+  document.getElementById("pers-list").innerHTML = DEMO_PERS.map(p => `
+    <div class="item">
+      <div class="avatar">${initials(p.n)}</div>
+      <div class="info"><div class="name">${p.n}</div><div class="meta">${p.r} · ${p.m}</div></div>
+      <span class="badge ${p.s}">${badge[p.s]}</span><span class="arr">›</span>
+    </div>`).join("");
+
+  document.getElementById("scad-list").innerHTML = DEMO_SCAD.map(s => `
+    <div class="item">
+      <div class="info"><div class="name">${s.m}</div><div class="meta">${s.n} · ${s.d}</div></div>
+      <span class="badge ${s.s}">${badge[s.s]}</span>
+    </div>`).join("");
+
+  function go(id) {
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
+    document.getElementById("page-" + id).classList.add("active");
+    document.getElementById("nav-" + id).classList.add("active");
+    window.scrollTo(0, 0);
+  }
+</script>
+
+<script type="module">
+  // Aggancio a Deepwork ID: se il backend non è configurato la pagina
+  // resta navigabile come mockup (modalità tour implicita).
+  try {
+    const { DeepworkID } = await import("../../shared/deepwork-id-client/index.js");
+    const id = await DeepworkID.init({ appId: "scudo" });
+    if (id.authState() === "tour" || id.authState() === "anonymous") {
+      document.getElementById("tour-banner").style.display = "block";
+    }
+  } catch (e) {
+    document.getElementById("tour-banner").style.display = "block";
+  }
+</script>
+</body>
+</html>
