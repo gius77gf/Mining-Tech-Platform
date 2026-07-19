@@ -6,58 +6,62 @@ Obiettivo della v3: consolidare e migliorare quanto costruito il 19/07
 e far avanzare Genesi, che è l'app su cui il fondatore ha più
 aspettative.
 
-## 1. Integrare i risultati della ricerca competitor in un piano per Genesi
-[sequenziale — appena il report è pronto] — taglia S — stato: in corso
-La ricerca (Paradigm, RioBlast/Maxam, ShotPlus, BlastLogic, ecc.) è in
-esecuzione. Al completamento: salvare il report nella wiki del vault
-ecosistema-vault (50 - Wiki ricerca), estrarre i punti di forza da
-adottare e le lacune da sfruttare, e trasformarli in una lista concreta
-di miglioramenti per Genesi in coda a questa roadmap.
-
-## 2. Genesi — overhaul estetico schermata 3D (Fase 2 dal vault)
+## 1. Genesi — overhaul estetico schermata 3D (Fase 2 dal vault)
 [sequenziale, dentro apps/genesi] — taglia L — stato: da fare
 Dal vault "Prossimi passi" (il fondatore la considera basilare):
 materiali PBR, luce/cielo, polvere/gas, muckpile realistico, HUD vetro.
 Lavorare a piccole unità con screenshot di verifica ad ogni passo;
 NON toccare il motore fisico esistente (scatter, X50, two-energy).
 
-## 3. Genesi — A2: gittata flyrock
-[sequenziale, dopo o in alternanza con 2] — taglia M — stato: da fare
+## 2. Genesi — A2: gittata flyrock
+[sequenziale, dopo o in alternanza con 1] — taglia M — stato: da fare
 Dal vault: modello di gittata flyrock da integrare nella simulazione,
 coerente con la fisica già implementata (Pd, burden esplosivo-aware).
 
-## 4. CI su GitHub Actions
+## 3. CI su GitHub Actions
 [parallelo-gruppo-A] — taglia S — stato: da fare
 Workflow che ad ogni PR esegue: i 19 test delle regole di sicurezza
 (emulatore Firestore + Java disponibili nei runner GitHub) e un check
 di sintassi di sw.js/SDK/functions. Così nessuna PR futura può rompere
 l'isolamento multi-tenant senza accorgersene.
 
-## 5. README e documentazione reale del monorepo
+## 4. README e documentazione reale del monorepo
 [parallelo-gruppo-A] — taglia S — stato: da fare
 Il README attuale è una riga. Scrivere: cos'è l'ecosistema, struttura
 cartelle, come si sviluppa/testa, link ai documenti chiave
 (ARCHITETTURA, AUDIT, DEPLOY, CLAUDE.md).
 
-## 6. Deepwork core — censimento feature incomplete + lista interventi
+## 5. Deepwork core — censimento feature incomplete + lista interventi
 [parallelo-gruppo-B] — taglia M — stato: da fare
 Audit funzionale del monolite (3D/fotogrammetria, import MWD,
 simulatore volate, editor metodi v4.1 citato nel vault): per ogni
 feature, stato reale e cosa manca; produrre lista priorizzata in
 docs/CENSIMENTO_FEATURE.md da rivedere col fondatore al weekend.
 
-## 7. Scudo — iterazione 2: modello dati reale
+## 6. Scudo — iterazione 2: modello dati reale
 [parallelo-gruppo-B] — taglia M — stato: da fare
 Definire le collezioni Firestore di Scudo (lavoratori, scadenze,
 documenti) secondo lo schema orgCollection dello SDK; sostituire i
 dati demo hardcoded con caricamento via SDK (fallback ai dati demo
 quando il backend non c'è, per la modalità tour). Test con emulatore.
 
-## 8. Deepwork ID — rifiniture flusso
+## 7. Deepwork ID — rifiniture flusso
 [parallelo-gruppo-B] — taglia S — stato: da fare
 Pagina/stato "non autorizzato" con spiegazione dell'invito; logout
 coerente su tutte le pagine; pagina profilo: mostrare le app secondo
 gli entitlement reali quando presenti (oggi griglia statica).
+
+## Attività SECONDARIA — ricerca competitor per Genesi
+[secondaria per decisione del fondatore 19/07 — NON prima del primo
+ciclo automatico, e sempre DOPO i task primari 1-7] — stato: sospesa
+La ricerca è stata interrotta dall'esaurimento crediti del 19/07 (10
+fatti non verificati su Paradigm salvati nel checkpoint 2026-07-19_2000).
+Regola: un ciclo può dedicarle tempo SOLO se ha già completato e chiuso
+in modo stabile un'unità di un task primario. Procedere a schede
+piccole (un software per volta: Maxam RioBlast/RIOSUITE, Orica
+ShotPlus, Maptek BlastLogic, altri, poi sintesi con tabella e
+raccomandazioni per Genesi), verificando i fatti e salvando ogni scheda
+in ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 
 ## In attesa del fondatore (weekend 25-26/07, promemoria armato sabato 09:00)
 1. Creazione progetto Firebase (GRATUITA, ~10 min, guida pronta:
@@ -89,7 +93,7 @@ gli entitlement reali quando presenti (oggi griglia statica).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-19_1930_roadmap-v3.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-19_2030_ricerca-secondaria.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
