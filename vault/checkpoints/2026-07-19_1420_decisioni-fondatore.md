@@ -1,0 +1,4 @@
+# Checkpoint — 2026-07-19 14:20
+Task completato: le 3 decisioni aperte di Deepwork ID sono state confermate dal fondatore e registrate in apps/deepwork-id/ARCHITETTURA.md sezione 10 — 1) progetto Firebase NUOVO dedicato, regione dati europea; 2) pagamenti rimandati, raccomandazione Stripe registrata; 3) profilo aziendale neutro, personalizzabile in futuro.
+Commit di riferimento: (questo commit)
+Prossimo passo atomico: scrivere la bozza di firestore.rules (regole di sicurezza multi-tenant versionate in apps/deepwork-id/) e lo scheletro dello SDK condiviso shared/deepwork-id-client/ secondo l'architettura approvata. Nota: la CREAZIONE effettiva del progetto Firebase su console richiede il fondatore (account Google) — preparare tutto il preparabile offline e lasciare al fondatore una guida passo-passo quando il codice sarà pronto.
