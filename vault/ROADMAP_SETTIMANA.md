@@ -24,9 +24,10 @@ di accesso multi-repo.
 
 ## 2. Deepwork ID — fondamenta (il punto fondamentale del progetto)
 [sequenziale, dipende da 1] — taglia L — stato: in corso
-(2026-07-19: documento di architettura v0.1 completato, vedi
-apps/deepwork-id/ARCHITETTURA.md — 3 decisioni aperte attendono il
-fondatore, sezione 10 del documento)
+(2026-07-19: architettura v0.1 approvata con decisioni del fondatore;
+fondamenta completate: firestore.rules, SDK condiviso, stile deepwork
+in shared/, pagina di accesso verificata, guida Firebase per il
+weekend. Prossimo: emulatore + test automatici di isolamento.)
 In apps/deepwork-id/. Requisiti dal fondatore:
 - Profilo personale unico per accedere a tutte le app dell'ecosistema
   e alle funzionalità per cui si è pagato (abbonamenti/entitlement).
@@ -104,7 +105,7 @@ Promemoria automatico armato per sabato mattina 25/07.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-19_1350_deepwork-id-architettura.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-19_1510_deepwork-id-fondamenta.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault (mappa, roadmap, MOC
   app, wiki ricerca)
 
