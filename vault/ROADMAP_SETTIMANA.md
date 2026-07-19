@@ -14,7 +14,8 @@ SECONDARIA (regola in fondo).
 [sequenziale interna, in apps/genesi — NON toccare il motore fisico]
 
 A1. Ricognizione codice 3D esistente (Three.js, scena, materiali) e
-    piano tecnico dettagliato — taglia S — stato: da fare
+    piano tecnico dettagliato — taglia S — stato: fatto (19/07: incluso
+    fix critico moduli vendor mancanti — app era bloccata su splash)
 A2. Materiali PBR per roccia/fronte (texture, normal map, roughness)
     — taglia M — stato: da fare
 A3. Illuminazione e cielo (luce solare direzionale, ombre, sky/HDRI,
@@ -130,7 +131,7 @@ ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-19_2100_roadmap-v31-estesa.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-19_2200_a1-fix-genesi.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
