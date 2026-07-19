@@ -1,0 +1,4 @@
+# Checkpoint — 2026-07-19 (ordine finale del fondatore)
+Task completato: roadmap v3 riordinata su istruzione del fondatore — la ricerca competitor è SOSPESA e declassata ad attività secondaria: riprenderla solo dopo il primo ciclo automatico e sempre in coda ai task primari (mai al loro posto). I task primari sono ora: 1 Genesi overhaul 3D, 2 flyrock A2, 3 CI GitHub Actions, 4 README, 5 censimento feature core, 6 Scudo modello dati, 7 rifiniture Deepwork ID.
+Commit di riferimento: (questo commit)
+Prossimo passo atomico: PRIMO CICLO (03:40): iniziare il task 1 — overhaul estetico schermata 3D di Genesi (apps/genesi/genesi.html). Prima unità consigliata: ricognizione del codice 3D esistente (Three.js in vendor/, struttura scena, materiali attuali) e piano a piccole unità per: materiali PBR, luce/cielo, polvere/gas, muckpile, HUD vetro — SENZA toccare il motore fisico. Screenshot di verifica ad ogni unità.
