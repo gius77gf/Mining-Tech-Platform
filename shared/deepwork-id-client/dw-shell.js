@@ -16,6 +16,16 @@ export function esc(s) {
     .replaceAll('"', "&quot;").replaceAll("'", "&#39;");
 }
 
+// Cella CSV sicura: neutralizza la CSV-injection (un valore che inizia
+// con = + - @ può eseguire formule aprendo il file in Excel/Calc) e
+// mette tra virgolette i valori che contengono ; " o a capo.
+export function csvCell(v) {
+  let s = String(v == null ? "" : v);
+  if (/^[=+\-@]/.test(s)) s = "'" + s;                 // apostrofo: la cella resta testo
+  if (/[;"\n\r]/.test(s)) s = '"' + s.replaceAll('"', '""') + '"';
+  return s;
+}
+
 export function mountExit(db) {
   if (!db || db.mode !== "live" || typeof db.logout !== "function") return;
   const top = document.querySelector(".top");
