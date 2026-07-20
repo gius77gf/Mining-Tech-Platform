@@ -157,5 +157,20 @@ await test("un invito SCADUTO non dà membership e viene marcato 'expired'", asy
   expect(inv.status === "expired", `stato invito ${inv.status}`);
 });
 
+console.log("\n— Validazioni input (invito / nome org) —");
+await test("inviteMember rifiuta un'email non valida", async () => {
+  await id.loginWithEmail("boss@cava-alfa.it", "password-123");
+  await expectCode(id.inviteMember("non-una-email", "member"), "invalid-argument",
+    "email non valida accettata");
+});
+await test("inviteMember declassa un ruolo sconosciuto a 'member'", async () => {
+  const invId = await id.inviteMember("ruolo-strano@collega.it", "superadmin");
+  const inv = (await adb.doc(`invites/${invId}`).get()).data();
+  expect(inv.role === "member", `ruolo salvato ${inv.role}`);
+});
+await test("createOrganization rifiuta un nome troppo corto", async () => {
+  await expectCode(id.createOrganization("A"), "invalid-argument", "nome corto accettato");
+});
+
 console.log(`\nRisultato Functions: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
