@@ -93,7 +93,7 @@
 
 <script type="module">
   import { terraData, kpiFrom, fmtM3 } from "./terra-data.js";
-  import { mountExit } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const FB = { attivo: ["ok","Attivo"], sospeso: ["warn","Sospeso"] };
   const RB = { elaborato: ["ok","Elaborato"], pianificato: ["warn","Pianificato"] };
@@ -122,30 +122,30 @@
     if (kn[3]) kn[3].textContent = fmtM3(k.riserveM3);
 
     $("dash-fronti").innerHTML = FRO.map(f => `<div class="item" onclick="go('fro')">
-      <div class="avatar">${sig(f.nome)}</div>
-      <div class="info"><div class="name">${f.nome}</div><div class="meta">Avanzamento ${f.avanzamento}% · ${f.dettaglio||""}</div></div>
+      <div class="avatar">${esc(sig(f.nome))}</div>
+      <div class="info"><div class="name">${esc(f.nome)}</div><div class="meta">Avanzamento ${f.avanzamento}% · ${esc(f.dettaglio||"")}</div></div>
       <span class="badge ${FB[f.stato][0]}">${FB[f.stato][1]}</span><span class="arr">›</span></div>`).join("");
 
     const volFronte = (fid) => RIL.filter(r => r.fronteId === fid && r.stato === "elaborato" && r.volumeM3 != null)
                                   .reduce((s,r) => s + r.volumeM3, 0);
     $("fro-list").innerHTML = FRO.map(f => { const v = volFronte(f.id);
       return `<div class="item" data-fro="${f.id}" style="cursor:pointer" title="Tocca per sospendere/riattivare">
-      <div class="info"><div class="name">${f.nome} — ${f.banco||""}</div><div class="meta">Quota ${f.quota}m · avanzamento ${f.avanzamento}%${v ? " · estratti " + fmtM3(v) + " m³ (rilievi)" : ""} · ${f.dettaglio||""}</div></div>
+      <div class="info"><div class="name">${esc(f.nome)} — ${esc(f.banco||"")}</div><div class="meta">Quota ${f.quota}m · avanzamento ${f.avanzamento}%${v ? " · estratti " + fmtM3(v) + " m³ (rilievi)" : ""} · ${esc(f.dettaglio||"")}</div></div>
       <span class="badge ${FB[f.stato][0]}">${FB[f.stato][1]}</span></div>`; }).join("");
     $("new-ril-fronte").innerHTML = '<option value="">— fronte —</option>' +
-      FRO.map(f => `<option value="${f.id}">${f.nome}</option>`).join("");
+      FRO.map(f => `<option value="${f.id}">${esc(f.nome)}</option>`).join("");
 
     const ril = RIL.filter(r => filtroRil === "tutti" || r.stato === filtroRil)
                    .sort((a,b) => (b.data||"").localeCompare(a.data||""));
     $("ril-list").innerHTML = ril.map(r => `<div class="item">
-      <div class="info"><div class="name">${r.titolo}</div><div class="meta">${dmy(r.data)} · ${r.tipo||""}${r.volumeM3!=null?" · "+r.volumeM3.toLocaleString("it-IT")+" m³":""}</div></div>
+      <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${dmy(r.data)} · ${esc(r.tipo||"")}${r.volumeM3!=null?" · "+r.volumeM3.toLocaleString("it-IT")+" m³":""}</div></div>
       <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${r.stato==="pianificato"?`<span class="arr" style="cursor:pointer" title="Annulla rilievo pianificato" data-del-ril="${r.id}">✕</span>`:""}</div>`).join("")
       || '<div class="note" style="text-align:left;">'+(filtroRil==="tutti"?"Nessun rilievo registrato.":"Nessun rilievo in questa categoria.")+'</div>';
     document.querySelectorAll("#ril-filtri [data-filtro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-filtro") === filtroRil ? "var(--app-accent)" : "");
 
     $("pia-list").innerHTML = PIA.map(p => `<div class="item" ${p.pianificatoAnnuoM3?`data-piano="${p.id}" style="cursor:pointer" title="Tocca per modificare il piano annuo"`:'style="cursor:default;"'}>
-      <div class="info"><div class="name">${p.titolo}</div><div class="meta">${p.dettaglio||""}${p.pianificatoAnnuoM3?" · piano annuo "+fmtM3(p.pianificatoAnnuoM3)+" m³":""}${p.riserveM3?" · riserve "+fmtM3(p.riserveM3)+" m³":""}</div></div>
+      <div class="info"><div class="name">${esc(p.titolo)}</div><div class="meta">${esc(p.dettaglio||"")}${p.pianificatoAnnuoM3?" · piano annuo "+fmtM3(p.pianificatoAnnuoM3)+" m³":""}${p.riserveM3?" · riserve "+fmtM3(p.riserveM3)+" m³":""}</div></div>
       <span class="badge ${PB[p.stato][0]}">${PB[p.stato][1]}</span></div>`).join("");
   }
 

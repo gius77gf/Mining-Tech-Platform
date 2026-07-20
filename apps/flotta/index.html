@@ -102,7 +102,7 @@
 
 <script type="module">
   import { flottaData, urgenza, kpiFrom } from "./flotta-data.js";
-  import { mountExit } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const MB = { operativo: ["ok","Operativo"], fermo: ["danger","Fermo"], verifica: ["warn","Verifica"] };
   const sig = (n) => (n||"?").split(" ")[0].slice(0,2).toUpperCase();
@@ -139,32 +139,32 @@
         .filter(a => a.u[0] !== "ok"),
     ].slice(0, 4);
     $("alert-list").innerHTML = alerts.map(a => `<div class="item">
-      <div class="avatar">${sig(a.t)}</div>
-      <div class="info"><div class="name">${a.t}</div><div class="meta">${a.d}</div></div>
+      <div class="avatar">${esc(sig(a.t))}</div>
+      <div class="info"><div class="name">${esc(a.t)}</div><div class="meta">${esc(a.d)}</div></div>
       <span class="badge ${a.u[0]}">${a.u[1]}</span></div>`).join("") || '<div class="note">Nessuna criticità sul parco mezzi.</div>';
 
     const ordStato = { fermo: 0, verifica: 1, operativo: 2 };
     const mezOrd = MEZ.slice().sort((a, b) => (ordStato[a.stato] ?? 3) - (ordStato[b.stato] ?? 3) || a.nome.localeCompare(b.nome, "it"));
     $("mez-list").innerHTML = mezOrd.map(m => `<div class="item" data-mezzo="${m.id}" style="cursor:pointer" title="Tocca per cambiare stato">
-      <div class="avatar">${sig(m.nome)}</div>
-      <div class="info"><div class="name">${m.nome}</div><div class="meta">${(m.ore||0).toLocaleString("it-IT")} h${m.area ? " · " + m.area : ""}</div></div>
+      <div class="avatar">${esc(sig(m.nome))}</div>
+      <div class="info"><div class="name">${esc(m.nome)}</div><div class="meta">${(m.ore||0).toLocaleString("it-IT")} h${m.area ? " · " + esc(m.area) : ""}</div></div>
       <span class="badge ${MB[m.stato][0]}">${MB[m.stato][1]}</span>${m.stato==="fermo"?`<span class="arr" style="cursor:pointer" title="Dismetti dal parco" data-del-mezzo="${m.id}">✕</span>`:""}</div>`).join("")
       || '<div class="note" style="text-align:left;">Nessun mezzo nel parco.</div>';
 
     $("man-list").innerHTML = MAN.slice().sort((a,b)=>(a.dataPrevista||"9999")<(b.dataPrevista||"9999")?-1:1).map(n => {
       const u = urgDi(n);
-      return `<div class="item"><div class="info"><div class="name">${n.titolo} — ${n.mezzo}</div><div class="meta">${n.orePreviste ? "A " + n.orePreviste + " ore motore" : "Previsto " + n.dataPrevista.split("-").reverse().join("/")}</div></div>
+      return `<div class="item"><div class="info"><div class="name">${esc(n.titolo)} — ${esc(n.mezzo)}</div><div class="meta">${n.orePreviste ? "A " + n.orePreviste + " ore motore" : "Previsto " + n.dataPrevista.split("-").reverse().join("/")}</div></div>
       <span class="badge ${u.cls}">${u.label}</span>
       <span class="arr" style="cursor:pointer" title="Segna come eseguita" data-man-done="${n.id}">✓</span></div>`; }).join("")
       || '<div class="note" style="text-align:left;">Nessuna manutenzione programmata.</div>';
 
     $("cos-list").innerHTML = COS.map(c => `<div class="item">
-      <div class="info"><div class="name">${c.voce}</div><div class="meta">${c.nota || ""}</div></div>
+      <div class="info"><div class="name">${esc(c.voce)}</div><div class="meta">${esc(c.nota || "")}</div></div>
       <span class="badge ok">${eur(c.importo)}</span></div>`).join("");
 
-    const opts = MEZ.map(m => `<option value="${m.id}">${m.nome.split(" — ")[0]}</option>`).join("");
+    const opts = MEZ.map(m => `<option value="${m.id}">${esc(m.nome.split(" — ")[0])}</option>`).join("");
     $("ore-mezzo").innerHTML = opts;
-    $("man-mezzo").innerHTML = MEZ.map(m => `<option>${m.nome.split(" — ")[0]}</option>`).join("");
+    $("man-mezzo").innerHTML = MEZ.map(m => `<option>${esc(m.nome.split(" — ")[0])}</option>`).join("");
   }
 
   document.addEventListener("click", async (e) => {
