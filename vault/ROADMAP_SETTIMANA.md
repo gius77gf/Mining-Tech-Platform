@@ -133,6 +133,11 @@ regola di esaurimento. Sintesi per la revisione del weekend:
   mezzi, multi-org reale nel profilo con test switchOrg.
 - Ricerca competitor COMPLETA (7 schede su ecosistema-vault, incl.
   Italia e prezzi); vault Obsidian "Prossimi passi" allineato.
+- Sicurezza CSV: neutralizzata la CSV-injection negli export delle 4
+  app multi-tenant (csvCell in dw-shell.js) — un nome/ruolo/cliente che
+  inizia con `= + - @` non esegue più formule in Excel/Calc. Core e
+  Genesi esportano solo numeri/etichette fisse: nessun rischio, non
+  toccati.
 Dettaglio per unità: vault/checkpoints/ dal 2026-07-20_1500 in poi.
 
 ## In attesa del fondatore (weekend 25-26/07, promemoria armato sabato 09:00)
@@ -172,7 +177,7 @@ Dettaglio per unità: vault/checkpoints/ dal 2026-07-20_1500 in poi.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-21_1830_test-validazioni.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-21_1845_csv-injection.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
