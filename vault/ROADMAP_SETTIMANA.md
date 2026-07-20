@@ -141,7 +141,7 @@ ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-20_2330_scudo-export-csv.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-20_2359_campo-consuntivo.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
