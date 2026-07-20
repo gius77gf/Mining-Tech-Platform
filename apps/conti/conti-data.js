@@ -7,7 +7,7 @@
 // KPI CALCOLATI: da incassare, in scadenza, gare aperte, DSO.
 // ============================================================
 
-const DEMO = {
+export const DEMO = {
   fatture: [
     { id: "f1", numero: "2026/031", cliente: "Edilcave Srl", importo: 18300, emessa: "2026-06-07", scadenza: "2026-07-08", incassata: false },
     { id: "f2", numero: "2026/034", cliente: "Stradesud", importo: 9750, emessa: "2026-06-25", scadenza: "2026-07-25", incassata: false },

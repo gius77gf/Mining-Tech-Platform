@@ -8,7 +8,7 @@
 //   registri/{id}:    { titolo, nota, stato: aggiornato|in-attesa }
 // ============================================================
 
-const DEMO = {
+export const DEMO = {
   monitoraggi: [
     { id: "v1", nome: "Vibrazioni V1 — abitato Sud", tipo: "vibrazioni", valore: 1.8, soglia: 5, unita: "mm/s", nota: "ultimo evento 12/07" },
     { id: "v2", nome: "Vibrazioni V2 — confine Nord", tipo: "vibrazioni", valore: 5.6, soglia: 5, unita: "mm/s", nota: "volata fronte Nord 17/07" },
