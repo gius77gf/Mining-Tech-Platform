@@ -113,7 +113,7 @@
 
 <script type="module">
   import { scudoData, statoScadenza, kpiFrom } from "./scudo-data.js";
-  import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, parseCsvLine } from "../../shared/deepwork-id-client/dw-shell.js";
 
   const $ = (id) => document.getElementById(id);
   const initials = (n) => (n || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
@@ -243,7 +243,7 @@
     const righe = testo.split(/\r?\n/).map(r => r.trim()).filter(Boolean);
     let aggiunti = 0, saltate = 0;
     for (const riga of righe) {
-      const [nome, ruolo, tel] = riga.split(/[;,\t]/).map(x => (x || "").trim());
+      const [nome, ruolo, tel] = parseCsvLine(riga);
       if (!nome || /^nome$/i.test(nome)) { saltate++; continue; }   // header o riga vuota
       if (LAV.some(l => l.nome.toLowerCase() === nome.toLowerCase())) { saltate++; continue; }  // duplicato
       await db.aggiungi("lavoratori", { nome, ruolo: ruolo || "", tel: tel || "", attivo: true });

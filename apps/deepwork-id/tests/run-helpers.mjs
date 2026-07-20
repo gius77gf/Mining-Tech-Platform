@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const { esc, csvCell } = await import(
+const { esc, csvCell, parseCsvLine } = await import(
   join(HERE, "../../../shared/deepwork-id-client/dw-shell.js")
 );
 
@@ -57,6 +57,27 @@ test("un numero diventa la sua stringa", () =>
   eq(csvCell(42), "42", "numero"));
 test("un testo innocuo resta invariato", () =>
   eq(csvCell("Fochino"), "Fochino", "innocuo"));
+
+const eqArr = (got, exp, why) => eq(JSON.stringify(got), JSON.stringify(exp), why);
+
+console.log("\n— parseCsvLine(): import CSV che rispetta le virgolette —");
+test("riga semplice separata da ;", () =>
+  eqArr(parseCsvLine("Mario;Fochino;333"), ["Mario", "Fochino", "333"], "semplice"));
+test("campo tra virgolette col separatore dentro resta unito", () =>
+  eqArr(parseCsvLine('"Rossi;Mario";Fochino'), ["Rossi;Mario", "Fochino"], "sep interno"));
+test("virgolette raddoppiate = virgoletta letterale", () =>
+  eqArr(parseCsvLine('"dice ""ciao""";x'), ['dice "ciao"', "x"], "virgolette interne"));
+test("toglie l'apostrofo di guardia davanti a =", () =>
+  eqArr(parseCsvLine("'=SUM(A1);ruolo"), ["=SUM(A1)", "ruolo"], "guardia formula"));
+test("NON tocca un apostrofo davanti a testo normale", () =>
+  eqArr(parseCsvLine("'ndrangheta;x"), ["'ndrangheta", "x"], "apostrofo legittimo"));
+test("fallback su virgola se non c'è ;", () =>
+  eqArr(parseCsvLine("Mario,Fochino,333"), ["Mario", "Fochino", "333"], "virgola"));
+test("round-trip: csvCell poi parseCsvLine ricostruisce l'originale", () => {
+  const orig = "=SUM(A1);Mario";
+  const cella = csvCell(orig);                 // -> "\"'=SUM(A1);Mario\"" (guardia + virgolette)
+  eqArr(parseCsvLine(cella), [orig], "round-trip");
+});
 
 console.log(`\nRisultato Helper: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
