@@ -52,6 +52,13 @@
     <button class="dw-btn" id="btn-mis" style="width:auto;">Registra</button>
   </div>
   <div class="note" id="mis-esito" style="text-align:left;"></div>
+  <div class="sec">Nuovo sensore</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <input class="dw-input" id="sen-nome" placeholder="Nome (es. Polveri P2 — piazzale)" style="flex:2;min-width:160px;">
+    <input class="dw-input" id="sen-unita" placeholder="Unità (es. µg/m³)" style="flex:1;min-width:90px;">
+    <input class="dw-input" id="sen-soglia" type="number" step="0.1" min="0" placeholder="Soglia" style="flex:1;min-width:80px;">
+    <button class="dw-btn" id="btn-sen" style="width:auto;">Aggiungi</button>
+  </div>
 </div>
 
 <div class="page" id="page-ade">
@@ -159,6 +166,18 @@
     el.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     el.download = "sentinella_ambiente.csv"; el.click();
     $("mode-note").textContent = "Esportati " + MON.length + " monitoraggi e " + ADE.length + " adempimenti (CSV).";
+  };
+  $("btn-sen").onclick = async () => {
+    const nome = $("sen-nome").value.trim(), unita = $("sen-unita").value.trim(), soglia = +$("sen-soglia").value;
+    if (!nome || !unita || !(soglia > 0)) {
+      [["sen-nome",nome],["sen-unita",unita],["sen-soglia",soglia>0]].forEach(([i,v]) => $(i).style.borderColor = v ? "" : "var(--danger)");
+      $("mis-esito").textContent = "Servono nome, unità di misura e soglia (>0) per aggiungere il sensore."; return;
+    }
+    ["sen-nome","sen-unita","sen-soglia"].forEach(i => $(i).style.borderColor = "");
+    await db.aggiungi("monitoraggi", { nome, unita, soglia, valore: 0, letture: [] });
+    $("sen-nome").value = ""; $("sen-unita").value = ""; $("sen-soglia").value = "";
+    $("mis-esito").textContent = "Sensore " + nome + " aggiunto (soglia " + soglia + " " + unita + ").";
+    await refresh();
   };
   $("btn-mis").onclick = async () => {
     const id = $("mis-sensore").value, raw = $("mis-valore").value.trim(), valore = +raw;
