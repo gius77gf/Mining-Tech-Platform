@@ -122,5 +122,54 @@ test("kpiFrom: squadre attive, in corso, rapportini, anomalie", () => {
     { squadreAttive: 1, inCorso: 1, rapportiniOggi: 1, anomalie: 1 }, "kpi campo");
 });
 
+// ------------------------------------------------------------
+// Condizioni al CONFINE: è qui che si nascondono gli errori di
+// "un giorno di troppo/di meno". Passo un OGGI fisso così le soglie
+// (0 giorni, 30 giorni, rapporto 0,9 e 1,0) sono deterministiche.
+// ------------------------------------------------------------
+const OGGI = new Date("2026-07-20T00:00:00");
+
+console.log("\n— Confini: soglie di scadenza (Scudo) —");
+test("statoScadenza: oggi stesso = in-scadenza (non ancora scaduta)", () =>
+  eq(scudo.statoScadenza("2026-07-20", OGGI), "in-scadenza", "0 giorni"));
+test("statoScadenza: esattamente 30 giorni = in-scadenza", () =>
+  eq(scudo.statoScadenza("2026-08-19", OGGI), "in-scadenza", "30 giorni"));
+test("statoScadenza: 31 giorni = regolare", () =>
+  eq(scudo.statoScadenza("2026-08-20", OGGI), "regolare", "31 giorni"));
+test("statoScadenza: ieri = scaduta", () =>
+  eq(scudo.statoScadenza("2026-07-19", OGGI), "scaduta", "-1 giorno"));
+
+console.log("\n— Confini: urgenza manutenzioni (Flotta) —");
+test("urgenza: senza data = manutenzione a ore", () =>
+  eq(flotta.urgenza(null, OGGI), { cls: "ok", label: "a ore", giorni: 9999 }, "a ore"));
+test("urgenza: oggi stesso = warn (0 gg)", () =>
+  eq(flotta.urgenza("2026-07-20", OGGI), { cls: "warn", label: "0 gg", giorni: 0 }, "0 gg"));
+test("urgenza: esattamente 30 giorni = warn", () =>
+  eq(flotta.urgenza("2026-08-19", OGGI), { cls: "warn", label: "30 gg", giorni: 30 }, "30 gg"));
+test("urgenza: 31 giorni = ok", () =>
+  eq(flotta.urgenza("2026-08-20", OGGI), { cls: "ok", label: "31 gg", giorni: 31 }, "31 gg"));
+test("urgenza: ieri = scaduta", () =>
+  eq(flotta.urgenza("2026-07-19", OGGI), { cls: "danger", label: "Scaduta", giorni: -1 }, "scaduta"));
+
+console.log("\n— Confini: stato misura sensori (Sentinella) —");
+test("statoMisura: rapporto esattamente 1,0 = superamento", () =>
+  eq(sentinella.statoMisura({ valore: 50, soglia: 50 }).cls, "danger", "r=1"));
+test("statoMisura: rapporto esattamente 0,9 = attenzione", () =>
+  eq(sentinella.statoMisura({ valore: 45, soglia: 50 }).cls, "warn", "r=0,9"));
+test("statoMisura: appena sotto 0,9 = conforme", () =>
+  eq(sentinella.statoMisura({ valore: 44, soglia: 50 }).cls, "ok", "r<0,9"));
+test("statoMisura: soglia 0 non manda in crash (guardia 0,001)", () =>
+  eq(sentinella.statoMisura({ valore: 5, soglia: 0 }).cls, "danger", "soglia 0"));
+
+console.log("\n— Confini: giorni alla scadenza (Sentinella/Conti) —");
+test("giorni: oggi stesso = 0", () => {
+  eq(sentinella.giorni("2026-07-20", OGGI), 0, "sentinella 0");
+  eq(conti.giorni("2026-07-20", OGGI), 0, "conti 0");
+});
+test("giorni: domani = 1, ieri = -1", () => {
+  eq(sentinella.giorni("2026-07-21", OGGI), 1, "domani");
+  eq(conti.giorni("2026-07-19", OGGI), -1, "ieri");
+});
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
