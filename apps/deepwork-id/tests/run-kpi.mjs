@@ -136,6 +136,15 @@ test("kpiFrom: operativi, in manutenzione, tagliandi 30gg, carburante", () => {
   eq(flotta.kpiFrom(mezzi, manut, costi),
     { operativi: 2, inManutenzione: 1, tagliandi30: 1, carburante: 8400 }, "kpi flotta");
 });
+test("kpiFrom: carburante somma solo le voci col nome «carburante» (case-insensitive)", () => {
+  const costi = [
+    { voce: "Carburante gasolio", importo: 5000 },  // sottostringa → conta
+    { voce: "CARBURANTE", importo: 3000 },           // maiuscolo → conta
+    { voce: "Ricambi", importo: 999 },               // → non conta
+    { voce: "Assicurazione", importo: 1200 },        // → non conta
+  ];
+  eq(flotta.kpiFrom([], [], costi).carburante, 8000, "5000 + 3000, il resto escluso");
+});
 
 console.log("\n— Campo: attività e squadre —");
 test("kpiFrom: squadre attive, in corso, rapportini, anomalie", () => {
