@@ -217,6 +217,13 @@
     }
     $("new-ril-data").value = ""; $("new-ril-vol").value = ""; await refresh();
   };
+  // Recupero errore: appena l'utente corregge un campo, togli il bordo
+  // rosso e il messaggio di esito, così l'avviso non resta appeso.
+  const clearErr = (inputId, esitoId) => $(inputId).addEventListener("input", () => {
+    $(inputId).style.borderColor = ""; if (esitoId) $(esitoId).textContent = "";
+  });
+  clearErr("fro-nome", "fro-esito");
+  ["new-ril-data","new-ril-vol"].forEach(i => clearErr(i, "ril-esito"));
   await refresh();
 </script>
 </body>
