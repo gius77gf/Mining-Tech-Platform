@@ -77,9 +77,32 @@ progetto volata condivisa, e le liste personale/utenti/volate/home
 (nome, cognome, ruolo, telefono, username, titoli). Le foto (chat,
 personale, utenti) passano da encodeURI. Azione 4 completata.
 
+### 9. Iniezione CSV negli export/import (21/07) — CHIUSO
+Un valore inserito da un membro dell'organizzazione che inizia con
+`= + - @` verrebbe eseguito come formula aprendo il CSV in Excel/
+LibreOffice Calc. Neutralizzato con l'helper condiviso csvCell()
+negli export di scudo/conti/sentinella/terra (apostrofo di guardia
++ virgolette per i valori con `;` `"` o a capo). L'import di Scudo
+ora usa parseCsvLine() (rispetta le virgolette, toglie la guardia
+solo davanti a `= + - @`): round-trip senza perdite. Core
+(reconExportHoles) e Genesi esportano solo numeri/etichette fisse →
+nessun campo libero, non toccati. 22 test di regressione
+(run-helpers.mjs) blindano esc/csvCell/parseCsvLine; suite a 77 (PR #95).
+
+### 10. XSS in contesto-attributo (verifica 21/07) — PULITO
+Verificate TUTTE le interpolazioni dentro attributi HTML delle app
+(`data-*`, `value`, `title`, `style`): sono esclusivamente ID
+generati da Firestore o enum hardcoded (owner/admin/member), mai
+testo libero dell'utente. Il testo libero finisce sempre in contesto-
+elemento con esc(). Nessun vettore di breakout dagli attributi.
+Nessuna azione necessaria; da riverificare se in futuro un ID diventa
+inseribile dall'utente.
+
 ## Prossime azioni in ordine
 1. (weekend, fondatore) Regole attuali del progetto esistente → repo.
 2. (weekend, fondatore) Conferma mitigazione ponte per le password +
    verifica natura dei dati di default (reali o fantasia).
 3. (cicli automatici) Proseguire fasi Deepwork ID (soluzione definitiva).
 4. ✅ (fatto 21/07) Escape HTML nel core come da punto 8.
+5. ✅ (fatto 21/07) Iniezione CSV neutralizzata (punto 9) + verifica
+   XSS contesto-attributo pulita (punto 10).
