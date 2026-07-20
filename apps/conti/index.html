@@ -159,7 +159,10 @@
       || '<div class="note" style="text-align:left;">Nessuna gara registrata.</div>';
 
     const inc = FAT.filter(f => f.incassata).reduce((t,f)=>t+(+f.importo||0),0);
+    const ym = new Date().toISOString().slice(0,7);
+    const incMese = FAT.filter(f => f.incassata && (f.dataIncasso||"").slice(0,7) === ym).reduce((t,f)=>t+(+f.importo||0),0);
     $("rep-list").innerHTML = [
+      ["Incassato questo mese", eur(incMese), incMese > 0 ? "ok" : "warn"],
       ["Incassato (totale registrato)", eur(inc), "ok"],
       ["Da incassare", eur(k.daIncassare), k.inScadenza ? "warn" : "ok"],
       ["DSO — giorni medi di attesa incasso", k.dso + " giorni", k.dso > 45 ? "warn" : "ok"],
