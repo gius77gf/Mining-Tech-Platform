@@ -39,8 +39,9 @@ Ogni unità: screenshot di verifica prima/dopo, commit, checkpoint.
 ═══════════════════════════════════════════════
 ## FASE B — Trasversali (parallelo-gruppo-A, sbloccano qualità per tutto)
 
-B1. CI GitHub Actions: 19 test rules + syntax check SDK/functions/sw
-    ad ogni PR — taglia S — stato: da fare
+B1. CI GitHub Actions — stato: fatto (20/07: 2 job — rules 19 test su
+    emulatore + syntax check moduli e script inline; da verificare il
+    primo run sulla prossima PR)
 B2. README reale del monorepo + indice documenti — taglia S — stato: da fare
 B3. Hub ecosistema: pagina indice /apps/ navigabile in stile deepwork
     (griglia delle app con stato e link, punto d'ingresso del tour)
@@ -130,7 +131,7 @@ ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-20_0330_a10-completo-fase-a-chiusa.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-20_0345_b1-ci.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
