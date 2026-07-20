@@ -72,6 +72,12 @@
       <div class="state-title">Account in attesa di invito</div>
       <div class="who" id="who-email">—</div>
 
+      <div id="verify-row" style="display:none;background:rgba(255,167,38,.10);border:1px solid var(--warn);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:12px;font-size:13px;line-height:1.5;color:var(--muted2);">
+        La tua email non è ancora verificata: apri il messaggio che ti
+        abbiamo inviato e tocca il link.
+        <a id="btn-reverify" style="color:var(--warn);cursor:pointer;text-decoration:underline;">Invia di nuovo l'email</a>
+      </div>
+
       <div class="expl">
         Il tuo profilo esiste, ma non fa ancora parte di nessuna
         <b>organizzazione</b> (l'azienda che usa le app Deepwork).
@@ -114,7 +120,10 @@
     id = await DeepworkID.init({ appId: 'deepwork-id' });
     const s = id.authState();
     if (s === 'member') { location.href = './profilo.html'; }
-    else if (s === 'unauthorized') { $('who-email').textContent = id.user.email || '—'; }
+    else if (s === 'unauthorized') {
+      $('who-email').textContent = id.user.email || '—';
+      if (!id.emailVerified()) $('verify-row').style.display = 'block';
+    }
     else { msg('Non risulti connesso: questa pagina compare dopo l\'accesso, quando l\'account non è ancora in nessuna organizzazione. Anteprima mockup.'); }
   } catch (e) {
     msg('Backend non ancora configurato: schermata in modalità mockup (vedi GUIDA_FIREBASE.md).');
@@ -136,6 +145,10 @@
     await id.createOrganization(name);
     msg('Organizzazione creata! Ti porto al tuo profilo…');
     location.href = './profilo.html';
+  });
+  $('btn-reverify').onclick = guard(async () => {
+    await id.resendVerification();
+    msg('Email di verifica inviata di nuovo. Controlla anche lo spam.');
   });
   $('lnk-tour').onclick = guard(async () => { await id.logout(); await id.loginTour(); location.href = '../scudo/index.html'; });
   $('lnk-logout').onclick = guard(async () => { await id.logout(); location.href = './index.html'; });

@@ -18,6 +18,7 @@ import {
   GoogleAuthProvider, signInWithPopup,
   createUserWithEmailAndPassword, signInWithEmailAndPassword,
   signInAnonymously, signOut,
+  sendEmailVerification, sendPasswordResetEmail,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, getDocs, setDoc, collection,
@@ -107,8 +108,26 @@ class DeepworkIDClient {
   async registerWithEmail(email, password) {
     await createUserWithEmailAndPassword(this._auth, email, password);
     this.user = this._auth.currentUser;
+    // email di verifica subito dopo la registrazione (best-effort:
+    // se l'invio fallisce la registrazione resta valida)
+    await sendEmailVerification(this.user).catch(() => {});
     await this._loadClaimsAndOrg();
     return this.authState();
+  }
+
+  // ---------- verifica email e recupero password ----------
+  emailVerified() {
+    return !!(this.user && !this.user.isAnonymous && this.user.emailVerified);
+  }
+
+  async resendVerification() {
+    if (!this.user || this.user.isAnonymous) throw new Error("Nessun account connesso");
+    await sendEmailVerification(this.user);
+  }
+
+  // funziona anche da NON autenticati: serve solo l'email del profilo
+  async requestPasswordReset(email) {
+    await sendPasswordResetEmail(this._auth, email);
   }
 
   async loginWithEmail(email, password) {

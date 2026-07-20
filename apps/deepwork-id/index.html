@@ -73,6 +73,7 @@
           <button class="dw-btn secondary" id="btn-google">Accedi con Google</button>
         </div>
         <div class="switch">Non hai un profilo? <a id="to-register">Registrati</a></div>
+        <div class="switch" style="margin-top:8px;"><a id="btn-reset">Password dimenticata?</a></div>
       </div>
 
       <!-- vista registrazione -->
@@ -102,8 +103,6 @@
 </div>
 
 <script type="module">
-  import { DeepworkID } from '../../shared/deepwork-id-client/index.js';
-
   const $ = (id) => document.getElementById(id);
   const msg = (text, kind = 'error') => {
     const el = $('msg');
@@ -116,6 +115,9 @@
 
   let id = null;
   try {
+    // import dinamico: se i moduli Firebase non sono raggiungibili la
+    // pagina resta comunque usabile (mockup) invece di morire in silenzio
+    const { DeepworkID } = await import('../../shared/deepwork-id-client/index.js');
     id = await DeepworkID.init({ appId: 'deepwork-id' });
     if (id.authState() === 'member') {
       msg('Sei già connesso. Reindirizzamento…', 'info');
@@ -140,6 +142,7 @@
     if (c.includes('email-already-in-use')) return 'Esiste già un profilo con questa email. Prova ad accedere.';
     if (c.includes('weak-password')) return 'Password troppo debole: usa almeno 8 caratteri.';
     if (c.includes('invalid-email')) return 'Indirizzo email non valido.';
+    if (c.includes('too-many-requests')) return 'Troppi tentativi: aspetta qualche minuto e riprova.';
     if (c.includes('network')) return 'Problema di rete: riprova.';
     return 'Qualcosa non ha funzionato. Riprova.';
   };
@@ -155,6 +158,12 @@
   $('btn-google').onclick   = guard(async () => { await id.loginWithGoogle(); afterAuth(); });
   $('btn-register').onclick = guard(async () => { await id.registerWithEmail($('reg-email').value.trim(), $('reg-pass').value); afterAuth(); });
   $('btn-tour').onclick     = guard(async () => { await id.loginTour(); afterAuth(); });
+  $('btn-reset').onclick    = guard(async () => {
+    const email = $('login-email').value.trim();
+    if (!email) { msg('Scrivi prima la tua email nel campo sopra, poi tocca di nuovo "Password dimenticata?".'); return; }
+    await id.requestPasswordReset(email);
+    msg('Email inviata a ' + email + ': apri il link per scegliere una nuova password. Controlla anche lo spam.', 'info');
+  });
 </script>
 </body>
 </html>
