@@ -210,6 +210,12 @@
   });
   clearErr("att-titolo", "att-esito");
   clearErr("new-rap-titolo");
+  // Invio da tastiera: premere Invio in un campo del form equivale a
+  // toccare il pulsante — data entry più rapida senza spostare il dito.
+  const enterSubmit = (inputIds, btnId) => inputIds.forEach(id =>
+    $(id).addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $(btnId).click(); } }));
+  enterSubmit(["att-titolo", "att-dett"], "btn-att");
+  enterSubmit(["new-rap-titolo"], "btn-add-rap");
   await refresh();
 
   // ── Registro progettato-vs-reale (ponte da Genesi) ──
