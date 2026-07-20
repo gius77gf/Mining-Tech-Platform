@@ -59,8 +59,8 @@ C1. Scudo — stato: fatto (20/07: data layer, KPI calcolati, CRUD,
 C2. Campo — stato: fatto prima iterazione (20/07: data layer, KPI,
     stati al tocco, rapportini bozza→inviato; foto rimandate a quando
     ci sarà lo storage reale)
-C3. Flotta: mezzi/manutenzioni/costi + registro ore + scadenzario
-    tagliandi con alert — taglia L — stato: da fare
+C3. Flotta — stato: fatto prima iterazione (20/07: data layer, KPI
+    calcolati, registro ore, scadenzario con urgenze dalle date)
 C4. Conti: fatture/gare + scadenzario incassi + KPI (DSO, margine)
     calcolati — taglia L — stato: da fare
 C5. Sentinella: monitoraggi/adempimenti/registri + registrazione
@@ -129,7 +129,7 @@ ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-20_0530_c2-campo.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-20_0555_c3-flotta.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
