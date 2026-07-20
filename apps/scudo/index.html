@@ -46,6 +46,12 @@
     <input class="dw-input" id="new-ruolo" placeholder="Ruolo" style="flex:1;min-width:110px;">
     <button class="dw-btn" id="btn-add-pers" style="width:auto;">Aggiungi</button>
   </div>
+  <div style="margin-top:10px;display:flex;align-items:center;gap:10px;">
+    <button class="dw-btn secondary" id="btn-import-csv" style="width:auto;">Importa da CSV</button>
+    <input type="file" id="csv-file" accept=".csv,text/csv" style="display:none;">
+    <span class="dw-muted" style="font-size:12px;">colonne: nome; ruolo; telefono (una riga per persona)</span>
+  </div>
+  <div id="import-esito" class="note" style="text-align:left;"></div>
 </div>
 
 <!-- SCADENZE -->
@@ -158,6 +164,23 @@
     const nome = $("new-nome").value.trim(); if (!nome) return;
     await db.aggiungi("lavoratori", { nome, ruolo: $("new-ruolo").value.trim(), attivo: true });
     $("new-nome").value = ""; $("new-ruolo").value = ""; await refresh();
+  };
+  $("btn-import-csv").onclick = () => $("csv-file").click();
+  $("csv-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const testo = await file.text();
+    const righe = testo.split(/\r?\n/).map(r => r.trim()).filter(Boolean);
+    let aggiunti = 0, saltate = 0;
+    for (const riga of righe) {
+      const [nome, ruolo, tel] = riga.split(/[;,\t]/).map(x => (x || "").trim());
+      if (!nome || /^nome$/i.test(nome)) { saltate++; continue; }   // header o riga vuota
+      if (LAV.some(l => l.nome.toLowerCase() === nome.toLowerCase())) { saltate++; continue; }  // duplicato
+      await db.aggiungi("lavoratori", { nome, ruolo: ruolo || "", tel: tel || "", attivo: true });
+      aggiunti++;
+    }
+    $("import-esito").textContent = `Import completato: ${aggiunti} aggiunti, ${saltate} righe saltate (intestazioni/duplicati).`;
+    e.target.value = "";
+    await refresh();
   };
   $("btn-add-scad").onclick = async () => {
     const descrizione = $("new-scad-desc").value.trim(), dataScadenza = $("new-scad-data").value;
