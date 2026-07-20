@@ -56,8 +56,10 @@
     <input class="dw-input" id="man-titolo" placeholder="Titolo (es. Tagliando 500h)" style="flex:2;min-width:150px;">
     <select class="dw-input" id="man-mezzo" style="flex:1;min-width:130px;"></select>
     <input class="dw-input" id="man-data" type="date" style="flex:1;min-width:130px;">
+    <input class="dw-input" id="man-ore" type="number" placeholder="oppure a ore (es. 6000)" style="flex:1;min-width:120px;">
     <button class="dw-btn" id="btn-man" style="width:auto;">Pianifica</button>
   </div>
+  <div class="note" style="text-align:left;">Data oppure ore motore: per i tagliandi a ore scrivi le ore a cui va fatto (urgenza calcolata dal contatore del mezzo).</div>
 </div>
 
 <div class="page" id="page-cos">
@@ -107,9 +109,18 @@
     if (kn[2]) kn[2].textContent = k.tagliandi30;
     if (kn[3]) kn[3].textContent = "€" + (k.carburante/1000).toFixed(1) + "k";
 
+    const urgOre = (n) => {   // urgenza dal contatore ore del mezzo
+      const m = MEZ.find(x => x.nome.split(" — ")[0] === n.mezzo); if (!m) return { cls:"ok", label:"a " + n.orePreviste + " h" };
+      const mancano = n.orePreviste - (m.ore||0);
+      if (mancano <= 0) return { cls:"danger", label:"SCADUTA (+" + (-mancano) + " h)" };
+      if (mancano <= 50) return { cls:"warn", label:"tra " + mancano + " h" };
+      return { cls:"ok", label:"tra " + mancano + " h" };
+    };
+    const urgDi = (n) => n.orePreviste ? urgOre(n) : urgenza(n.dataPrevista);
     const alerts = [
       ...MEZ.filter(m => m.stato !== "operativo").map(m => ({ t: m.nome, d: m.area || "—", u: MB[m.stato] })),
-      ...MAN.map(n => ({ t: n.titolo + " — " + n.mezzo, d: n.dataPrevista.split("-").reverse().join("/"), u: [urgenza(n.dataPrevista).cls, urgenza(n.dataPrevista).label] }))
+      ...MAN.map(n => { const u = urgDi(n);
+        return { t: n.titolo + " — " + n.mezzo, d: n.orePreviste ? "a " + n.orePreviste + " h" : n.dataPrevista.split("-").reverse().join("/"), u: [u.cls, u.label] }; })
         .filter(a => a.u[0] !== "ok"),
     ].slice(0, 4);
     $("alert-list").innerHTML = alerts.map(a => `<div class="item">
@@ -122,8 +133,9 @@
       <div class="info"><div class="name">${m.nome}</div><div class="meta">${(m.ore||0).toLocaleString("it-IT")} h${m.area ? " · " + m.area : ""}</div></div>
       <span class="badge ${MB[m.stato][0]}">${MB[m.stato][1]}</span></div>`).join("");
 
-    $("man-list").innerHTML = MAN.slice().sort((a,b)=>a.dataPrevista<b.dataPrevista?-1:1).map(n => { const u = urgenza(n.dataPrevista);
-      return `<div class="item"><div class="info"><div class="name">${n.titolo} — ${n.mezzo}</div><div class="meta">Previsto ${n.dataPrevista.split("-").reverse().join("/")}</div></div>
+    $("man-list").innerHTML = MAN.slice().sort((a,b)=>(a.dataPrevista||"9999")<(b.dataPrevista||"9999")?-1:1).map(n => {
+      const u = urgDi(n);
+      return `<div class="item"><div class="info"><div class="name">${n.titolo} — ${n.mezzo}</div><div class="meta">${n.orePreviste ? "A " + n.orePreviste + " ore motore" : "Previsto " + n.dataPrevista.split("-").reverse().join("/")}</div></div>
       <span class="badge ${u.cls}">${u.label}</span>
       <span class="arr" style="cursor:pointer" title="Segna come eseguita" data-man-done="${n.id}">✓</span></div>`; }).join("")
       || '<div class="note" style="text-align:left;">Nessuna manutenzione programmata.</div>';
@@ -155,10 +167,14 @@
     await db.aggiorna("mezzi", id, { ore }); $("ore-nuove").value = ""; await refresh();
   };
   $("btn-man").onclick = async () => {
-    const titolo = $("man-titolo").value.trim(), dataPrevista = $("man-data").value;
-    if (!titolo || !dataPrevista) return;
-    await db.aggiungi("manutenzioni", { titolo, mezzo: $("man-mezzo").value, dataPrevista });
-    $("man-titolo").value = ""; $("man-data").value = ""; await refresh();
+    const titolo = $("man-titolo").value.trim(), dataPrevista = $("man-data").value, orePreviste = +$("man-ore").value || null;
+    if (!titolo || (!dataPrevista && !orePreviste)) {
+      $("man-titolo").style.borderColor = titolo ? "" : "var(--danger)";
+      $("ore-esito").textContent = "Serve il titolo e la data OPPURE le ore motore."; return;
+    }
+    $("man-titolo").style.borderColor = "";
+    await db.aggiungi("manutenzioni", { titolo, mezzo: $("man-mezzo").value, dataPrevista: dataPrevista || null, orePreviste });
+    $("man-titolo").value = ""; $("man-data").value = ""; $("man-ore").value = ""; await refresh();
   };
   await refresh();
 </script>
