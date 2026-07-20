@@ -106,6 +106,15 @@ await test("membro semplice NON legge gli inviti", () =>
   assertFails(getDoc(doc(alice, "invites/invA1"))));
 await test("il concorrente NON legge gli inviti di orgA", () =>
   assertFails(getDoc(doc(eve, "invites/invA1"))));
+await test("un membro NON crea un invito dal client (no escalation, solo admin/Function)", () =>
+  assertFails(setDoc(doc(alice, "invites/hack1"),
+    { email: "x@y.it", orgId: "orgA", role: "member", status: "pending" })));
+await test("il concorrente NON crea inviti per orgA", () =>
+  assertFails(setDoc(doc(eve, "invites/hack2"),
+    { email: "x@y.it", orgId: "orgA", role: "member", status: "pending" })));
+await test("un owner/admin PUÒ creare un invito dal client (come la Function)", () =>
+  assertSucceeds(setDoc(doc(boss, "invites/okCreate"),
+    { email: "nuovo2@collega.it", orgId: "orgA", role: "member", status: "pending" })));
 
 console.log("\n— Profili utente —");
 await test("utente legge il PROPRIO profilo", async () => {
