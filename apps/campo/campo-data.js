@@ -68,6 +68,26 @@ export function scartoLivello(reale, prog) {
   if (s <= 0.25) return "warn";
   return "danger";
 }
+// Riepilogo del consuntivo di volata: progettato totale, stimato reale
+// (carica reale dei fori registrati + progetto per quelli ancora da
+// registrare), scostamento % e livello. È il numero che il fochino legge
+// in cima al registro. Funzione pura e testabile; null se piano vuoto.
+export function pianoRiepilogo(piano) {
+  if (!piano || !piano.length) return null;
+  const reg = piano.filter(p => p.reale != null);
+  const progettatoKg = piano.reduce((t, p) => t + p.prog, 0);
+  const stimatoKg = reg.reduce((t, p) => t + p.reale, 0)
+                  + piano.filter(p => p.reale == null).reduce((t, p) => t + p.prog, 0);
+  const pct = Math.round((stimatoKg - progettatoKg) / progettatoKg * 100);
+  return {
+    registrati: reg.length,
+    totale: piano.length,
+    progettatoKg,
+    stimatoKg,
+    pct,
+    livello: scartoLivello(stimatoKg, progettatoKg),
+  };
+}
 
 export async function campoData() {
   let mode = "demo", api = null;

@@ -334,6 +334,21 @@ test("scartoLivello: foro non ancora registrato = da-registrare (niente crash)",
 });
 test("scartoPct: prog 0 non manda in crash (divisione protetta)", () =>
   eq(Number.isFinite(campo.scartoPct(50, 0)), true, "prog 0 → numero finito"));
+test("pianoRiepilogo: stimato = reale dei registrati + progetto dei non registrati", () => {
+  const piano = [
+    { foro: 1, prog: 100, reale: 130 },  // registrato sopra progetto
+    { foro: 2, prog: 100, reale: null },  // da registrare → conta 100 (progetto)
+  ];
+  const r = campo.pianoRiepilogo(piano);
+  eq(r.registrati, 1, "1 registrato");
+  eq(r.totale, 2, "2 fori");
+  eq(r.progettatoKg, 200, "progettato 200");
+  eq(r.stimatoKg, 230, "stimato 130 + 100");
+  eq(r.pct, 15, "+15% (30/200)");
+  eq(r.livello, "warn", "15% = warn");
+});
+test("pianoRiepilogo: piano vuoto = null (niente crash/divisione per zero)", () =>
+  eq(campo.pianoRiepilogo([]), null, "vuoto"));
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
