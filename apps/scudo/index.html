@@ -291,6 +291,14 @@
   clearErr("new-scad-desc", "scad-esito");
   clearErr("new-scad-data", "scad-esito");
 
+  // Invio da tastiera: premere Invio in un campo del form equivale a
+  // toccare il pulsante — data entry più rapida senza spostare il dito.
+  const enterSubmit = (inputIds, btnId) => inputIds.forEach(id =>
+    $(id).addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $(btnId).click(); } }));
+  enterSubmit(["new-nome", "new-ruolo"], "btn-add-pers");
+  enterSubmit(["new-scad-desc", "new-scad-data"], "btn-add-scad");
+  enterSubmit(["doc-titolo", "doc-meta"], "btn-doc");
+
   await refresh();
 </script>
 </body>
