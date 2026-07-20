@@ -194,5 +194,37 @@ test("Campo kpiFrom([],[],[]) = tutti zero", () =>
   eq(campo.kpiFrom([], [], []),
     { squadreAttive: 0, inCorso: 0, rapportiniOggi: 0, anomalie: 0 }, "campo vuoto"));
 
+// ------------------------------------------------------------
+// Integrità dei DATI DEMO: è ciò che vede chi prova l'app senza account
+// (il "tour", vetrina commerciale). Se una modifica ai dati di esempio
+// sbaglia un nome di campo o un tipo, un KPI diventerebbe NaN/undefined.
+// Qui pretendiamo che ogni kpiFrom, sui PROPRI dati demo, produca solo
+// numeri finiti (o null dove è previsto), senza andare in crash.
+// ------------------------------------------------------------
+console.log("\n— Integrità dei dati demo (tour) —");
+const finitoOnull = (v) => v === null || (typeof v === "number" && Number.isFinite(v));
+const kpiTuttoFinito = (obj, why) => {
+  for (const [k, v] of Object.entries(obj))
+    if (!finitoOnull(v)) throw new Error(`${why}: KPI "${k}" non è un numero finito (${JSON.stringify(v)})`);
+};
+test("Scudo: kpiFrom sui dati demo dà numeri finiti", () => {
+  const d = scudo.DEMO; kpiTuttoFinito(scudo.kpiFrom(d.lavoratori, d.scadenze), "scudo demo");
+});
+test("Campo: kpiFrom sui dati demo dà numeri finiti", () => {
+  const d = campo.DEMO; kpiTuttoFinito(campo.kpiFrom(d.attivita, d.squadre, d.rapportini), "campo demo");
+});
+test("Flotta: kpiFrom sui dati demo dà numeri finiti", () => {
+  const d = flotta.DEMO; kpiTuttoFinito(flotta.kpiFrom(d.mezzi, d.manutenzioni, d.costi), "flotta demo");
+});
+test("Conti: kpiFrom sui dati demo dà numeri finiti", () => {
+  const d = conti.DEMO; kpiTuttoFinito(conti.kpiFrom(d.fatture, d.gare), "conti demo");
+});
+test("Sentinella: kpiFrom sui dati demo dà numeri finiti", () => {
+  const d = sentinella.DEMO; kpiTuttoFinito(sentinella.kpiFrom(d.monitoraggi, d.adempimenti), "sentinella demo");
+});
+test("Terra: kpiFrom sui dati demo dà numeri finiti", () => {
+  const d = terra.DEMO; kpiTuttoFinito(terra.kpiFrom(d.fronti, d.rilievi, d.piano), "terra demo");
+});
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
