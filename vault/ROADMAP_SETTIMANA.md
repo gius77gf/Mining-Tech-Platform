@@ -141,7 +141,7 @@ ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-21_0030_terra-piano-modificabile.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-21_0050_sentinella-export.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
