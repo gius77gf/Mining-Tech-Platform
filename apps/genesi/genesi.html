@@ -395,6 +395,7 @@ body.scr-sim #tl{bottom:80px}
   <div id="d2-insp"></div>
   <div id="d2-scheda"></div>
   <button class="btn-sec" id="btn-piano-csv" style="display:block;margin:10px auto 0;">📤 Esporta piano di carico (CSV per il fochino)</button>
+  <button class="btn-sec" id="btn-scheda-csv" style="display:block;margin:8px auto 0;">📄 Esporta scheda volata (CSV)</button>
   <button class="btn cu" id="d2-cta">▶ Simula questa volata</button>
   <div style="display:flex;gap:8px;margin-top:8px;">
     <button class="btn sm" id="cmpSaveA">Salva come A</button>
@@ -1739,6 +1740,28 @@ function cmpRender(){
     +'</div>'
     +'<div style="margin-top:10px;color:var(--mut);font-size:12px;">In verde il progetto migliore per ciascun KPI (più basso = meglio per X50/X80/PPV/flyrock). Stime indicative: valgono i limiti dichiarati nella scheda validatori.</div>';
 }
+// esporta la scheda della volata (KPI + progetto) in CSV: il fochino la
+// archivia col rapportino. Stesse cifre della Scheda validatori.
+if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
+  const k=computeKPI(), F=flyrockEst();
+  const rows=[
+    ['Maglia', k.maglia],
+    ['Esplosivo', k.setup],
+    ['Fori', k.nf],
+    ['Carica totale (kg)', k.qtot],
+    ['Powder factor (kg/m3)', k.pf],
+    ['X20 (cm)', k.x20], ['X50 (cm)', k.x50], ['X80 (cm)', k.x80],
+    ['PPV recettore (mm/s)', k.ppv], ['Limite PPV (mm/s)', k.lim],
+    ['Gittata flyrock (m)', k.fly],
+    ['Sgombero mezzi 2x (m)', Math.round(F.Dmez)],
+    ['Sgombero persone 4x (m)', Math.round(F.Dper)],
+    ['Presplit', k.presplit?'si':'no'],
+  ];
+  let csv='parametro;valore\n'+rows.map(r=>r[0]+';'+r[1]).join('\n')+'\n';
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='genesi_scheda_volata.csv'; a.click();
+};
 if($('cmpSaveA')) $('cmpSaveA').onclick=()=>cmpSave('A');
 if($('cmpSaveB')) $('cmpSaveB').onclick=()=>cmpSave('B');
 if($('cmpShow')) $('cmpShow').onclick=()=>{ cmpRender(); $('cmpModal').style.display='flex'; };
