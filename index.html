@@ -371,6 +371,9 @@ function parseNum(v){
   return parseFloat(String(v).replace(',','.').trim());
 }
 function parseNum0(v){ const n=parseNum(v); return isNaN(n)?0:n; }
+// Escape HTML per i contenuti inseriti dagli utenti prima di finire in
+// innerHTML (chat, nomi progetto, note): evita XSS memorizzato.
+function escHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 // Parser maglia "BxS" o "B,SxS,S" o "B.SxS.S" → {B, S}
 function parseMaglia(s){
   if(!s||typeof s!=='string')return {B:0,S:0,raw:''};
@@ -2877,9 +2880,9 @@ function renderChat(){
     const mine=m.fromId===me;
     const tick=mine?` <span style="opacity:.9;">${m.letto?'<span style="color:#4fc3f7;">✓✓</span>':'✓'}</span>`:''; // ✓ consegnato · ✓✓ letto
     const meta=`<div class="chat-meta">${t}${tick}</div>`;
-    if(m.volataId){const vv=DB.volate.find(x=>x.id===m.volataId);return`<div class="chat-bubble ${mine?'me':'other'}"><div onclick="openVolataReadonly('${m.volataId}')" style="cursor:pointer;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:8px;display:flex;align-items:center;gap:8px;"><span style="font-size:20px;">📐</span><span><b>${vv?(vv.nomeProgetto||'Volata #'+vv.numero):'Progetto volata'}</b><br><span style="font-size:11px;opacity:.8;">Tocca per visualizzare</span></span></div>${meta}</div>`;}
-    if(m.foto){return`<div class="chat-bubble ${mine?'me':'other'}"><img src="${m.foto}" style="max-width:180px;border-radius:6px;display:block;cursor:pointer;" onclick="window.open('${m.foto}','_blank')">${meta}</div>`;}
-    return`<div class="chat-bubble ${mine?'me':'other'}">${m.testo}${meta}</div>`;}).join('');
+    if(m.volataId){const vv=DB.volate.find(x=>x.id===m.volataId);return`<div class="chat-bubble ${mine?'me':'other'}"><div onclick="openVolataReadonly('${m.volataId}')" style="cursor:pointer;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:8px;display:flex;align-items:center;gap:8px;"><span style="font-size:20px;">📐</span><span><b>${escHtml(vv?(vv.nomeProgetto||'Volata #'+vv.numero):'Progetto volata')}</b><br><span style="font-size:11px;opacity:.8;">Tocca per visualizzare</span></span></div>${meta}</div>`;}
+    if(m.foto){return`<div class="chat-bubble ${mine?'me':'other'}"><img src="${encodeURI(m.foto)}" style="max-width:180px;border-radius:6px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')">${meta}</div>`;}
+    return`<div class="chat-bubble ${mine?'me':'other'}">${escHtml(m.testo)}${meta}</div>`;}).join('');
   setTimeout(()=>{$('chat-msgs').scrollTop=$('chat-msgs').scrollHeight;},50);
 }
 async function inviaMessaggio(e){
