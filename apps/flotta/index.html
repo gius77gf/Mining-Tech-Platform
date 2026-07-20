@@ -232,6 +232,16 @@
     await db.aggiungi("manutenzioni", { titolo, mezzo: $("man-mezzo").value, dataPrevista: dataPrevista || null, orePreviste });
     $("man-titolo").value = ""; $("man-data").value = ""; $("man-ore").value = ""; await refresh();
   };
+  // Recupero errore: appena l'utente corregge un campo, togli il bordo
+  // rosso e il messaggio di esito, così l'avviso non resta appeso.
+  const clearErr = (inputId, esitoId) => $(inputId).addEventListener("input", () => {
+    $(inputId).style.borderColor = ""; if (esitoId) $(esitoId).textContent = "";
+  });
+  clearErr("cos-voce", "cos-esito");
+  clearErr("cos-importo", "cos-esito");
+  clearErr("mez-nome", "ore-esito");
+  clearErr("ore-nuove", "ore-esito");
+  clearErr("man-titolo", "ore-esito");
   await refresh();
 </script>
 </body>
