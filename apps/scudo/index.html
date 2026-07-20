@@ -174,6 +174,7 @@
       return `<div class="item">
         <div class="info"><div class="name">${sc.descrizione}</div><div class="meta">${l ? l.nome : "azienda"} · ${fmtData(sc.dataScadenza)}</div></div>
         <span class="badge ${B[st][0]}">${B[st][1]}</span>
+        <span class="arr" style="cursor:pointer" title="Rinnova a nuova data" data-ren-scad="${sc.id}">↻</span>
         <span class="arr" style="cursor:pointer" title="Rimuovi" data-del-scad="${sc.id}">✕</span></div>`;
     }).join("") || '<div class="note" style="text-align:left;">' + (filtroScad === "tutte" ? "Nessuna scadenza registrata." : "Nessuna scadenza in questa categoria.") + "</div>";
     document.querySelectorAll("#scad-filtri [data-filtro]").forEach(b =>
@@ -194,6 +195,11 @@
     const dc = e.target.closest && e.target.closest("[data-doc]");
     if (dc && db.aggiorna) { const d = DOC.find(x => x.id === dc.getAttribute("data-doc"));
       if (d) { await db.aggiorna("documenti", d.id, { stato: DOC_NEXT[d.stato] || "valido" }); await refresh(); } return; }
+    const rn = e.target.getAttribute && e.target.getAttribute("data-ren-scad");
+    if (rn && db.aggiorna) { const s = SCA.find(x => x.id === rn);
+      if (s) { const v = prompt("Nuova data di scadenza per «" + s.descrizione + "» (AAAA-MM-GG):", s.dataScadenza);
+        if (v && /^\d{4}-\d{2}-\d{2}$/.test(v.trim())) { await db.aggiorna("scadenze", rn, { dataScadenza: v.trim() }); await refresh(); } }
+      return; }
     const dl = e.target.getAttribute && e.target.getAttribute("data-del-lav");
     const ds = e.target.getAttribute && e.target.getAttribute("data-del-scad");
     if (dl) { const l = LAV.find(x => x.id === dl);
