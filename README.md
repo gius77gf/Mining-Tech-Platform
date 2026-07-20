@@ -47,8 +47,11 @@ CLAUDE.md             istruzioni permanenti per le sessioni AI
   organizzazione, controllo abbonamenti, e accesso dati sigillato
   sull'organizzazione (`orgCollection`). Le regole Firestore
   (`apps/deepwork-id/firestore.rules`) negano tutto di default;
-  l'isolamento è dimostrato da **38 test automatici** contro gli
-  emulatori (26 sulle regole + 12 sul flusso reale dello SDK). Architettura completa: `apps/deepwork-id/ARCHITETTURA.md`.
+  l'isolamento è dimostrato da **97 test automatici** contro gli
+  emulatori (helper di sicurezza, KPI delle app, 26 sulle regole,
+  flusso reale dello SDK, guardrail delle Cloud Functions e il
+  percorso di bootstrap live). Architettura completa:
+  `apps/deepwork-id/ARCHITETTURA.md`.
 - **Stile**: un solo design system (`shared/deepwork-style.css`);
   ogni app personalizza solo il proprio colore d'accento.
 - **Automazione di sviluppo**: il progetto avanza tramite cicli di
@@ -72,7 +75,8 @@ controlli di sintassi su ogni pull request.
 ## Documenti chiave
 
 - `apps/deepwork-id/ARCHITETTURA.md` — architettura identità/multi-tenant
-- `apps/deepwork-id/GUIDA_FIREBASE.md` — setup del progetto Firebase
+- `apps/deepwork-id/GUIDA_FIREBASE.md` — setup del progetto Firebase (fondatore)
+- `apps/deepwork-id/ATTIVAZIONE_LIVE.md` — runbook tecnico per andare live
 - `docs/AUDIT_SICUREZZA.md` — censimento sicurezza del core
 - `docs/MITIGAZIONE_PASSWORD.md` — piano ponte password (non attivato)
 - `apps/genesi/PIANO_3D.md` — stato e piano del motore 3D di Genesi
