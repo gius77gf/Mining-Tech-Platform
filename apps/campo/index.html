@@ -98,7 +98,7 @@
 </script>
 
 <script type="module">
-  import { campoData, kpiFrom, parsePianoCsv } from "./campo-data.js";
+  import { campoData, kpiFrom, parsePianoCsv, scartoPct, scartoLivello } from "./campo-data.js";
   import { mountExit, esc } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const AB = { "in-corso": ["ok","In corso"], pianificata: ["warn","Pianificata"], anomalia: ["danger","Anomalia"], conclusa: ["ok","Conclusa"] };
@@ -224,12 +224,11 @@
   // Il fochino importa il piano di carico CSV e registra la carica REALE
   // per foro; lo scostamento è calcolato e colorato (≤10% ok, ≤25% warn).
   let PIANO = [];
-  const scarto = (p) => p.reale == null ? null : Math.abs(p.reale - p.prog) / (p.prog || 1);
-  const scartoBadge = (p) => { const s = scarto(p);
-    if (s == null) return ["warn", "da registrare"];
-    if (s <= 0.10) return ["ok", p.reale + " kg"];
-    if (s <= 0.25) return ["warn", p.reale + " kg (" + Math.round(s*100) + "%)"];
-    return ["danger", p.reale + " kg (" + Math.round(s*100) + "%)"]; };
+  const scarto = (p) => scartoPct(p.reale, p.prog);
+  const scartoBadge = (p) => { const liv = scartoLivello(p.reale, p.prog);
+    if (liv === "da-registrare") return ["warn", "da registrare"];
+    if (liv === "ok") return ["ok", p.reale + " kg"];
+    return [liv, p.reale + " kg (" + Math.round(scarto(p)*100) + "%)"]; };
   function pianoRender(){
     $("btn-piano-export").style.display = PIANO.length ? "inline-block" : "none";
     if (!PIANO.length) { $("piano-list").innerHTML = ""; $("piano-riep").textContent = "Nessun piano importato."; return; }
