@@ -12,9 +12,9 @@
 //   const db = id.orgCollection('turni');        // già sigillata sull'org
 // ============================================================
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
-  getAuth, onAuthStateChanged,
+  getAuth, onAuthStateChanged, connectAuthEmulator,
   GoogleAuthProvider, signInWithPopup,
   createUserWithEmailAndPassword, signInWithEmailAndPassword,
   signInAnonymously, signOut,
@@ -22,10 +22,10 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, getDocs, setDoc, collection,
-  query, where,
+  query, where, connectFirestoreEmulator,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {
-  getFunctions, httpsCallable,
+  getFunctions, httpsCallable, connectFunctionsEmulator,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 
 // Config del progetto Firebase NUOVO dedicato all'ecosistema
@@ -41,7 +41,7 @@ const FIREBASE_CONFIG = {
 const DEMO_ORG_ID = "org_demo";
 
 class DeepworkIDClient {
-  constructor(appId) {
+  constructor(appId, opts = {}) {
     this.appId = appId;        // es. 'deepwork' | 'genesi' | 'scudo' ...
     this.user = null;          // utente Firebase autenticato (o null)
     this.orgId = null;         // organizzazione attiva
@@ -51,15 +51,28 @@ class DeepworkIDClient {
     this._auth = null;
     this._db = null;
     this._fns = null;
+    // emulatori locali (test/sviluppo): { host, authPort, firestorePort, functionsPort }
+    this._emulators = opts.emulators || null;
   }
 
   // ---------- inizializzazione ----------
   async _setup() {
-    this._app = initializeApp(FIREBASE_CONFIG);
+    // riusa l'app se già inizializzata (più client nella stessa pagina/processo)
+    this._app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
     this._auth = getAuth(this._app);
     this._db = getFirestore(this._app);
     // stessa regione delle Cloud Functions (europe-west1, dati EU)
     this._fns = getFunctions(this._app, "europe-west1");
+
+    // collegamento agli emulatori locali (idempotente: su istanze già
+    // collegate il secondo connect fallisce e viene ignorato)
+    const em = this._emulators;
+    if (em) {
+      const host = em.host || "127.0.0.1";
+      try { if (em.authPort) connectAuthEmulator(this._auth, `http://${host}:${em.authPort}`, { disableWarnings: true }); } catch (e) {}
+      try { if (em.firestorePort) connectFirestoreEmulator(this._db, host, em.firestorePort); } catch (e) {}
+      try { if (em.functionsPort) connectFunctionsEmulator(this._fns, host, em.functionsPort); } catch (e) {}
+    }
 
     // attende il primo stato di autenticazione noto
     await new Promise((resolve) => {
@@ -274,7 +287,7 @@ class DeepworkIDClient {
 }
 
 export const DeepworkID = {
-  async init({ appId }) {
-    return new DeepworkIDClient(appId)._setup();
+  async init({ appId, emulators = null }) {
+    return new DeepworkIDClient(appId, { emulators })._setup();
   },
 };

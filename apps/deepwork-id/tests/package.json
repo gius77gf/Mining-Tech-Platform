@@ -3,10 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node run.mjs"
+    "test": "node run.mjs && node run-sdk.mjs"
   },
   "dependencies": {
     "@firebase/rules-unit-testing": "^5.0.1",
-    "firebase": "^12.16.0"
+    "firebase": "^12.16.0",
+    "firebase-admin": "^14.2.0"
   }
 }
