@@ -72,6 +72,8 @@
 <div class="page" id="page-pia">
   <div class="sec">Piano estrattivo</div>
   <div id="pia-list"></div>
+  <button class="dw-btn secondary" id="btn-terra-export" style="width:auto;margin-top:10px;">Esporta fronti e rilievi (CSV)</button>
+  <div class="note" id="terra-esito" style="text-align:left;"></div>
 </div>
 
 <div class="nav">
@@ -168,6 +170,16 @@
       if (nuovo === "sospeso" && !confirm("Sospendere il " + f.nome + "? Le lavorazioni sul fronte risulteranno ferme.")) return;
       await db.aggiorna("fronti", f.id, { stato: nuovo }); await refresh(); }
   });
+  $("btn-terra-export").onclick = () => {
+    let csv = "tipo;nome;stato;dettaglio\n";
+    for (const f of FRO) csv += `fronte;${f.nome} ${f.banco||""};${f.stato};quota ${f.quota}m · avanzamento ${f.avanzamento}%\n`;
+    for (const r of RIL.slice().sort((a,b)=>(b.data||"").localeCompare(a.data||"")))
+      csv += `rilievo;${r.titolo};${r.stato};${dmy(r.data)}${r.volumeM3!=null?" · "+r.volumeM3+" m³":""}\n`;
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.download = "terra_fronti_rilievi.csv"; a.click();
+    $("terra-esito").textContent = "Esportati " + FRO.length + " fronti e " + RIL.length + " rilievi (CSV).";
+  };
   $("btn-fro").onclick = async () => {
     const nome = $("fro-nome").value.trim(), banco = $("fro-banco").value.trim(), quota = +$("fro-quota").value || 0;
     if (!nome) { $("fro-nome").style.borderColor = "var(--danger)"; $("fro-esito").textContent = "Serve il nome del fronte."; return; }
