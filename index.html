@@ -41,7 +41,7 @@
     'openNotifiche','openPromemoriaForm','confermaElimPromemoria',
     'apriCava','apriGemello','uploadCavaFoto','apriRapport','openCavaForm','openCavaEdit','salvaCava','confermaDelCava',
     'filtraVolate','renderVolate','toggleFiltri','applicaFiltriVolate','resetFiltriVolate',
-    'openVolate','openStorico','apriRappFocDett','condividiVolata','openVolataReadonly','rapportinoVuoto','open3DVolata','reconPickPhoto','reconBuild','reconSnapshot','reconCalibra','reconToggleHoles','reconClearHoles','splatPick','splatBuild','splatExit',
+    'openVolate','openStorico','apriRappFocDett','condividiVolata','openVolataReadonly','rapportinoVuoto','open3DVolata','reconPickPhoto','reconBuild','reconSnapshot','reconCalibra','reconToggleHoles','reconClearHoles','reconExportHoles','splatPick','splatBuild','splatExit',
     'renderMacchine','macTab','apriMacLavoro','apriMezzoStr','openMacForm','openMacEdit','salvaMacLav',
     'openMezzoEdit','salvaMezzoStr','openRipForm','uploadMacLavFoto','uploadMezzoStrFoto',
     'confermaDelMacLav','confermaDelMezzoStr',
@@ -3893,6 +3893,20 @@ function reconClearHoles(){
   _recon.markers.forEach(m=>_recon.scene.remove(m));_recon.markers=[];
   $('rc-note').textContent='Fori azzerati';
 }
+function reconExportHoles(){
+  // i fori segnati sul modello non devono andare persi (censimento E1):
+  // esporta le posizioni IN METRI (origine: angolo in basso a sinistra del fronte)
+  if(!_recon||!_recon.markers||!_recon.markers.length){toast('Nessun foro segnato sul modello','err');return;}
+  const W=_recon.W,H=_recon.H;
+  let csv='foro;x_m;y_m;rilievo_m\n';
+  _recon.markers.forEach((m,i)=>{
+    csv+=(i+1)+';'+(m.position.x+W/2).toFixed(2)+';'+(m.position.y+H/2).toFixed(2)+';'+m.position.z.toFixed(2)+'\n';
+  });
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='deepwork_fori_fronte.csv';a.click();
+  toast('Esportati '+_recon.markers.length+' fori (CSV in metri)','success');
+}
 function reconSnapshot(){
   if(!_recon||!_recon.renderer){toast('Ricostruisci prima il modello','err');return;}
   try{_recon.renderer.render(_recon.scene,_recon.cam);const url=_recon.renderer.domElement.toDataURL('image/png');const a=document.createElement('a');a.href=url;a.download='deepwork_fronte_3d.png';a.click();toast('Immagine salvata','success');}
@@ -6383,7 +6397,7 @@ Object.assign(window, {
   markUnsavedFoc,addResoPhoto,delResoPhoto,exitRappFoc,inviaRappFoc,toggleReso,
   addFocFori,removeFocFori,setFocForo,
   allegaVolataFochino,selezionaVolataFoc,rimuoviVolataFoc,
-  focCalcEsp,focCalcMc,focCalcInc,calcKonya,calcPPV,calcKuzRam,open3DVolata,setInclTutti,simulate3D,simReset,reconPickPhoto,reconBuild,reconSnapshot,reconCalibra,reconToggleHoles,reconClearHoles,
+  focCalcEsp,focCalcMc,focCalcInc,calcKonya,calcPPV,calcKuzRam,open3DVolata,setInclTutti,simulate3D,simReset,reconPickPhoto,reconBuild,reconSnapshot,reconCalibra,reconToggleHoles,reconClearHoles,reconExportHoles,
   splatPick,splatBuild,splatExit,
   renderMenu,toggleOutdoor,
   renderClienti,apriCliente,openClienteForm,openClienteEdit,salvaCliente,confermaDelCliente,
@@ -8077,6 +8091,7 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
         <button class="btn-sec" id="rc-holebtn" onclick="reconToggleHoles()">🎯 Segna fori</button>
         <button class="btn-sec" onclick="reconClearHoles()">🗑 Azzera fori</button>
+        <button class="btn-sec" onclick="reconExportHoles()">📤 Esporta fori (CSV)</button>
       </div>
       <button class="btn-sec" style="width:100%;margin-top:8px;" onclick="reconSnapshot()">📸 Salva immagine del modello</button>
     </div>
