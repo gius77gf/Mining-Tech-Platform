@@ -34,6 +34,11 @@ const { DeepworkID } = await import(SDK_PATH);
 // ---- 2. setup scenario con l'admin SDK (bypassa le rules) ----
 process.env.FIREBASE_AUTH_EMULATOR_HOST = `${EMU.host}:${EMU.authPort}`;
 process.env.FIRESTORE_EMULATOR_HOST = `${EMU.host}:${EMU.firestorePort}`;
+
+// azzera gli emulatori: run.mjs (rules) gira PRIMA nella stessa
+// sessione e lascia i suoi dati — questo test vuole un DB pulito
+await fetch(`http://${EMU.host}:${EMU.firestorePort}/emulator/v1/projects/${PROJECT}/databases/(default)/documents`, { method: "DELETE" });
+await fetch(`http://${EMU.host}:${EMU.authPort}/emulator/v1/projects/${PROJECT}/accounts`, { method: "DELETE" });
 const { initializeApp: adminInit } = await import("firebase-admin/app");
 const { getFirestore: adminFirestore } = await import("firebase-admin/firestore");
 const { getAuth: adminAuth } = await import("firebase-admin/auth");
