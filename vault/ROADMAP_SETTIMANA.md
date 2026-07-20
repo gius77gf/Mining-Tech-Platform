@@ -180,7 +180,7 @@ Dettaglio per unità: vault/checkpoints/ dal 2026-07-20_1500 in poi.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/20260720-155805_flotta-clear-errore-input.md
+- Ultimo checkpoint: vault/checkpoints/20260720-160100_conti-clear-errore-input.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
