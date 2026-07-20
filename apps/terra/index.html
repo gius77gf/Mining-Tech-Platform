@@ -52,6 +52,7 @@
   <div id="ril-list"></div>
   <div class="sec">Nuovo rilievo elaborato</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <select class="dw-input" id="new-ril-fronte" style="flex:1;min-width:120px;"></select>
     <input class="dw-input" id="new-ril-data" type="date" style="flex:1;min-width:130px;">
     <input class="dw-input" id="new-ril-vol" type="number" min="0" placeholder="Volume m³" style="flex:1;min-width:110px;">
     <button class="dw-btn" id="btn-add-ril" style="width:auto;">Registra</button>
@@ -117,9 +118,14 @@
       <div class="info"><div class="name">${f.nome}</div><div class="meta">Avanzamento ${f.avanzamento}% · ${f.dettaglio||""}</div></div>
       <span class="badge ${FB[f.stato][0]}">${FB[f.stato][1]}</span><span class="arr">›</span></div>`).join("");
 
-    $("fro-list").innerHTML = FRO.map(f => `<div class="item" data-fro="${f.id}" style="cursor:pointer" title="Tocca per sospendere/riattivare">
-      <div class="info"><div class="name">${f.nome} — ${f.banco||""}</div><div class="meta">Quota ${f.quota}m · avanzamento ${f.avanzamento}% · ${f.dettaglio||""}</div></div>
-      <span class="badge ${FB[f.stato][0]}">${FB[f.stato][1]}</span></div>`).join("");
+    const volFronte = (fid) => RIL.filter(r => r.fronteId === fid && r.stato === "elaborato" && r.volumeM3 != null)
+                                  .reduce((s,r) => s + r.volumeM3, 0);
+    $("fro-list").innerHTML = FRO.map(f => { const v = volFronte(f.id);
+      return `<div class="item" data-fro="${f.id}" style="cursor:pointer" title="Tocca per sospendere/riattivare">
+      <div class="info"><div class="name">${f.nome} — ${f.banco||""}</div><div class="meta">Quota ${f.quota}m · avanzamento ${f.avanzamento}%${v ? " · estratti " + fmtM3(v) + " m³ (rilievi)" : ""} · ${f.dettaglio||""}</div></div>
+      <span class="badge ${FB[f.stato][0]}">${FB[f.stato][1]}</span></div>`; }).join("");
+    $("new-ril-fronte").innerHTML = '<option value="">— fronte —</option>' +
+      FRO.map(f => `<option value="${f.id}">${f.nome}</option>`).join("");
 
     const ril = RIL.filter(r => filtroRil === "tutti" || r.stato === filtroRil)
                    .sort((a,b) => (b.data||"").localeCompare(a.data||""));
@@ -152,12 +158,14 @@
       $("ril-esito").textContent = "Serve la data e, per un rilievo già eseguito, il volume in m³ (per una data futura il volume non serve: verrà pianificato)."; return;
     }
     $("new-ril-vol").style.borderColor = ""; $("new-ril-data").style.borderColor = "";
+    const fronteId = $("new-ril-fronte").value || null;
+    const fr = FRO.find(f => f.id === fronteId);
     if (futuro) {
-      await db.aggiungi("rilievi", { titolo: "Prossimo rilievo", data, tipo: "Drone pianificato", volumeM3: null, stato: "pianificato" });
-      $("ril-esito").textContent = "Rilievo PIANIFICATO per il " + dmy(data) + ".";
+      await db.aggiungi("rilievi", { titolo: "Prossimo rilievo" + (fr ? " — " + fr.nome : ""), data, tipo: "Drone pianificato", volumeM3: null, fronteId, stato: "pianificato" });
+      $("ril-esito").textContent = "Rilievo PIANIFICATO per il " + dmy(data) + (fr ? " su " + fr.nome : "") + ".";
     } else {
-      await db.aggiungi("rilievi", { titolo: "Rilievo drone " + dmy(data), data, tipo: "Ortofoto + DEM", volumeM3: vol, stato: "elaborato" });
-      $("ril-esito").textContent = "Rilievo del " + dmy(data) + " registrato: " + vol.toLocaleString("it-IT") + " m³ (KPI aggiornati).";
+      await db.aggiungi("rilievi", { titolo: "Rilievo drone " + dmy(data) + (fr ? " — " + fr.nome : ""), data, tipo: "Ortofoto + DEM", volumeM3: vol, fronteId, stato: "elaborato" });
+      $("ril-esito").textContent = "Rilievo del " + dmy(data) + " registrato: " + vol.toLocaleString("it-IT") + " m³" + (fr ? " su " + fr.nome : "") + " (KPI aggiornati).";
     }
     $("new-ril-data").value = ""; $("new-ril-vol").value = ""; await refresh();
   };
