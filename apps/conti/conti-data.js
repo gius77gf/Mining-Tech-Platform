@@ -44,7 +44,7 @@ export async function contiData() {
     const { DeepworkID } = await import("../../shared/deepwork-id-client/index.js");
     const id = await DeepworkID.init({ appId: "conti" });
     if (id.user && id.authState() === "member") {
-      const { getDocs, addDoc, updateDoc, doc } =
+      const { getDocs, addDoc, updateDoc, deleteDoc, doc } =
         await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
       mode = "live";
       const read = async (n) => (await getDocs(id.orgCollection(n))).docs.map(d => ({ id: d.id, ...d.data() }));
@@ -53,6 +53,7 @@ export async function contiData() {
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
         logout: () => id.logout(),
         aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n), i), d),
+        rimuovi: (n, i) => deleteDoc(doc(id.orgCollection(n), i)),
       };
     } else if (id.authState() === "tour") mode = "tour";
   } catch (e) {}
@@ -62,6 +63,7 @@ export async function contiData() {
       fatture: async () => mem.fatture, gare: async () => mem.gare,
       aggiungi: async (n, d) => { const id = "m" + Math.random().toString(36).slice(2, 8); mem[n].push({ id, ...d }); return { id }; },
       aggiorna: async (n, i, d) => { const x = mem[n].find(v => v.id === i); if (x) Object.assign(x, d); },
+      rimuovi: async (n, i) => { mem[n] = mem[n].filter(v => v.id !== i); },
     };
   }
   return { mode, ...api };
