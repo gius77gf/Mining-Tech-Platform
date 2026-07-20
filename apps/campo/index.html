@@ -234,7 +234,8 @@
     if (!PIANO.length) { $("piano-list").innerHTML = ""; $("piano-riep").textContent = "Nessun piano importato."; return; }
     const reg = PIANO.filter(p => p.reale != null);
     const totP = PIANO.reduce((t,p)=>t+p.prog,0), totR = reg.reduce((t,p)=>t+p.reale,0) + PIANO.filter(p=>p.reale==null).reduce((t,p)=>t+p.prog,0);
-    $("piano-riep").textContent = "Fori " + reg.length + "/" + PIANO.length + " registrati · progettato " + totP + " kg · stimato reale " + Math.round(totR) + " kg (" + (totR>=totP?"+":"") + Math.round((totR-totP)/totP*100) + "%). Tocca un foro per registrare la carica reale.";
+    const pct = Math.round((totR-totP)/totP*100), livTot = scartoLivello(totR, totP);
+    $("piano-riep").innerHTML = "Fori " + reg.length + "/" + PIANO.length + " registrati · progettato " + totP + " kg · stimato reale " + Math.round(totR) + " kg <span class=\"badge " + livTot + "\">" + (totR>=totP?"+":"") + pct + "%</span>. Tocca un foro per registrare la carica reale.";
     $("piano-list").innerHTML = PIANO.map(p => { const b = scartoBadge(p);
       return `<div class="item" data-foro="${p.foro}" style="cursor:pointer" title="Registra carica reale">
       <div class="avatar">${p.foro}</div>
