@@ -153,7 +153,7 @@
       <span class="arr" style="cursor:pointer" title="Segna come eseguito" data-ade-done="${a.id}">✓</span></div>`; }).join("")
       || '<div class="note" style="text-align:left;">Nessun adempimento in scadenza.</div>';
 
-    $("reg-list").innerHTML = REG.map(r => `<div class="item" data-reg="${r.id}" ${r.stato==="in-attesa"?'style="cursor:pointer" title="Tocca per segnare aggiornato"':''}>
+    $("reg-list").innerHTML = REG.map(r => `<div class="item" data-reg="${r.id}" style="cursor:pointer" title="${r.stato==="in-attesa" ? "Tocca per segnare aggiornato" : "Tocca per rimettere in attesa"}">
       <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${esc(r.nota || "")}</div></div>
       <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span></div>`).join("");
 
@@ -167,7 +167,8 @@
         await db.rimuovi("adempimenti", done); await refresh(); } return; }
     const it = e.target.closest && e.target.closest("[data-reg]");
     if (it) { const r = REG.find(x => x.id === it.getAttribute("data-reg"));
-      if (r && r.stato === "in-attesa") { await db.aggiorna("registri", r.id, { stato: "aggiornato", nota: "aggiornato oggi" }); await refresh(); } }
+      // toggle bidirezionale, SENZA sovrascrivere la nota originale del registro
+      if (r) { await db.aggiorna("registri", r.id, { stato: r.stato === "in-attesa" ? "aggiornato" : "in-attesa" }); await refresh(); } }
   });
   $("btn-export-amb").onclick = () => {
     // per ARPA/consulente ambientale: stato calcolato + storico letture
