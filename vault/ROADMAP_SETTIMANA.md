@@ -92,11 +92,13 @@ D5. Test SDK con emulatori — stato: fatto (20/07: run-sdk.mjs, 12
 ═══════════════════════════════════════════════
 ## FASE E — Deepwork core
 
-E1. Censimento feature incomplete (3D/fotogrammetria, MWD, simulatore,
-    editor metodi v4.1) → docs/CENSIMENTO_FEATURE.md priorizzato
-    — taglia M — stato: da fare
-E2. Interventi rapidi dal censimento (bug evidenti e fix piccoli,
-    max 1 ciclo) — taglia M — stato: da fare
+E1. Censimento feature — stato: fatto (20/07: CENSIMENTO_FEATURE.md;
+    sorpresa: 3D/simulatore/ricostruzione/MWD sono COMPLETI; gap veri:
+    meteo/push spenti da config, splat fuorviante, fori 3D non salvati,
+    dati default sensibili → decisione fondatore)
+E2. Fix rapidi — stato: fatto prima passata (20/07: meteo nascosto
+    senza proxy, splat rinominato onesto, stub morto rimosso; restano
+    i rimandati elencati nel censimento)
 
 ═══════════════════════════════════════════════
 ## Attività SECONDARIA — ricerca competitor per Genesi
@@ -137,7 +139,7 @@ ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-20_0900_d5-test-sdk.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-20_0930_e1-e2-core.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
