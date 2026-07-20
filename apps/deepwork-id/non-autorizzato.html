@@ -152,6 +152,10 @@
   });
   $('lnk-tour').onclick = guard(async () => { await id.logout(); await id.loginTour(); location.href = '../scudo/index.html'; });
   $('lnk-logout').onclick = guard(async () => { await id.logout(); location.href = './index.html'; });
+  // Invio da tastiera: creare l'organizzazione senza toccare il pulsante
+  $('new-org').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); $('btn-create-org').click(); }
+  });
 </script>
 </body>
 </html>
