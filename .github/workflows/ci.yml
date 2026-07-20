@@ -48,6 +48,8 @@ jobs:
           node --check firebase-messaging-sw.js || true   # placeholder note, non-blocking
           node --check apps/deepwork-id/functions/index.js
           node --input-type=module --check < shared/deepwork-id-client/index.js
+          node --input-type=module --check < shared/deepwork-id-client/dw-shell.js
+          for f in apps/*/*-data.js; do node --input-type=module --check < "$f" || exit 1; done
           node --input-type=module --check < apps/genesi/vendor/build/three.module.js
       - name: Check inline scripts (genesi.html and app pages)
         run: |

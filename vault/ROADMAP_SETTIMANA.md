@@ -141,7 +141,7 @@ ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-21_0700_flotta-dismissione.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-21_0730_ci-data-modules.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
