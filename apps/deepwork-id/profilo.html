@@ -122,6 +122,22 @@
       await id.redeemInvites();   // riscatta inviti pendenti al volo
     }
     if (id.authState() === 'member') {
+      // organizzazioni REALI dai claims: tocco → cambio org attiva
+      const sigla = (s) => (s || '?').replace(/^org_?/i, '').slice(0, 2).toUpperCase();
+      $('orgs-list').innerHTML = Object.entries(id.orgs).map(([oid, role]) =>
+        `<div class="item ${oid === id.orgId ? 'org-active' : ''}" data-org="${oid}" style="cursor:pointer">
+          <div class="avatar">${sigla(oid)}</div>
+          <div class="info"><div class="name">${oid}</div><div class="meta">${oid === id.orgId ? 'Organizzazione attiva' : 'Tocca per attivare'}</div></div>
+          <span class="badge ${role === 'owner' ? 'ok' : 'warn'} org-role">${role[0].toUpperCase() + role.slice(1)}</span>
+        </div>`).join('');
+      $('orgs-list').addEventListener('click', async (e) => {
+        const el = e.target.closest && e.target.closest('[data-org]');
+        if (!el) return;
+        const oid = el.getAttribute('data-org');
+        if (oid === id.orgId) return;
+        try { await id.switchOrg(oid); location.reload(); }
+        catch (err) { msg(err.message || 'Cambio organizzazione non riuscito.', 'error'); }
+      });
       // griglia app da entitlement REALI dell'organizzazione attiva
       const APPS = ['Deepwork', 'Genesi', 'Scudo', 'Campo', 'Flotta', 'Conti', 'Sentinella', 'Terra'];
       const ents = await id.listEntitlements();
