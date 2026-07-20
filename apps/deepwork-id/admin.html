@@ -51,6 +51,7 @@
 <div id="msg" class="msg" style="margin:0 16px;"></div>
 
 <script type="module">
+  import { esc } from '../../shared/deepwork-id-client/dw-shell.js';
   const $ = (id) => document.getElementById(id);
   const msg = (text, kind = 'info') => { const el = $('msg'); el.className = 'msg ' + kind; el.textContent = text; };
   const RB = { owner: 'ok', admin: 'warn', member: 'ok' };
@@ -90,8 +91,8 @@
     const canManage = live() ? isAdmin : true;   // in anteprima mostra i comandi
 
     $('mem-list').innerHTML = mem.map(m => `<div class="item" style="cursor:default;">
-      <div class="avatar">${sig(m.email || m.uid)}</div>
-      <div class="info"><div class="name">${m.email || m.uid}</div><div class="meta">${m.status === 'active' ? 'Attivo' : m.status || ''}${m.uid === myUid ? ' · sei tu' : ''}</div></div>
+      <div class="avatar">${esc(sig(m.email || m.uid))}</div>
+      <div class="info"><div class="name">${esc(m.email || m.uid)}</div><div class="meta">${m.status === 'active' ? 'Attivo' : m.status || ''}${m.uid === myUid ? ' · sei tu' : ''}</div></div>
       ${canManage && m.uid !== myUid ? `
         <select class="dw-input role-sel" data-role="${m.uid}">
           ${['owner','admin','member'].map(r => `<option value="${r}" ${m.role === r ? 'selected' : ''}>${r[0].toUpperCase() + r.slice(1)}</option>`).join('')}
@@ -102,7 +103,7 @@
 
     $('inv-list').innerHTML = inv.map(i => `<div class="item" style="cursor:default;">
       <div class="avatar">✉</div>
-      <div class="info"><div class="name">${i.email}</div><div class="meta">Ruolo ${i.role} · scade tra ${giorniA(i.expiresAt)} giorni</div></div>
+      <div class="info"><div class="name">${esc(i.email)}</div><div class="meta">Ruolo ${i.role} · scade tra ${giorniA(i.expiresAt)} giorni</div></div>
       ${canManage ? `<button class="dw-btn secondary btn-mini btn-danger" data-revoke="${i.id}">Revoca</button>` : ''}
     </div>`).join('') || '<div class="note" style="text-align:left;">Nessun invito in attesa.</div>';
   }
