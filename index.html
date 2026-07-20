@@ -1145,8 +1145,8 @@ function renderNotificheFull(){
   const scad=DB.promemoria.filter(p=>p.scaduto||daysBetween(today(),p.data)<0);
   const pros=DB.promemoria.filter(p=>!p.scaduto&&daysBetween(today(),p.data)>=0);
   let html='';
-  if(scad.length){html+='<div class="sec-title"><span class="dot"></span>Scaduti</div>';html+=scad.map(p=>`<div class="sitem warn" onclick="confermaElimPromemoria('${p.id}')"><div class="av av-cv">⏰</div><div class="sinfo"><div class="sname">${p.titolo}</div><div class="ssub">Era ${fmt(p.data)}</div></div><div class="sarr">×</div></div>`).join('');}
-  if(pros.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Prossimi</div>';html+=pros.map(p=>`<div class="sitem" onclick="confermaElimPromemoria('${p.id}')"><div class="av av-cv">📅</div><div class="sinfo"><div class="sname">${p.titolo}</div><div class="ssub">${fmt(p.data)} · fra ${daysBetween(today(),p.data)} giorni</div></div><div class="sarr">×</div></div>`).join('');}
+  if(scad.length){html+='<div class="sec-title"><span class="dot"></span>Scaduti</div>';html+=scad.map(p=>`<div class="sitem warn" onclick="confermaElimPromemoria('${p.id}')"><div class="av av-cv">⏰</div><div class="sinfo"><div class="sname">${escHtml(p.titolo)}</div><div class="ssub">Era ${fmt(p.data)}</div></div><div class="sarr">×</div></div>`).join('');}
+  if(pros.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Prossimi</div>';html+=pros.map(p=>`<div class="sitem" onclick="confermaElimPromemoria('${p.id}')"><div class="av av-cv">📅</div><div class="sinfo"><div class="sname">${escHtml(p.titolo)}</div><div class="ssub">${fmt(p.data)} · fra ${daysBetween(today(),p.data)} giorni</div></div><div class="sarr">×</div></div>`).join('');}
   const mzScad=[];
   DB.mezziStr.forEach(m=>{Object.entries(m.scadenze||{}).forEach(([k,v])=>{if(v){const d=daysBetween(today(),v);if(d<=30)mzScad.push({targa:m.targa,tipo:k,data:v,d});}});});
   if(mzScad.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Scadenze mezzi</div>';html+=mzScad.map(x=>`<div class="sitem ${x.d<0?'warn':''}"><div class="av av-mz">🚛</div><div class="sinfo"><div class="sname">${x.tipo.toUpperCase()} · ${x.targa}</div><div class="ssub">${fmt(x.data)} ${x.d<0?'(scaduta)':'(fra '+x.d+'g)'}</div></div></div>`).join('');}
@@ -1670,7 +1670,7 @@ function renderCave(){
   $('btn-add-cava').style.display=can('addCava')?'flex':'none';
   const caveDisp=DB.cave.filter(c=>can('ufficio')||(state.user.cave&&state.user.cave.includes(c.id)));
   if(caveDisp.length===0){$('cave-list').innerHTML='<div class="empty-state"><div class="empty-icon">⛰️</div><div class="empty-title">Nessuna cava</div><div class="empty-sub">Non sei assegnato a nessuna cava</div></div>';return;}
-  $('cave-list').innerHTML=caveDisp.map(c=>{const nR=DB.rapportini.filter(r=>r.cavaId===c.id).length;return`<div class="sitem" onclick="apriCava('${c.id}')"><div class="av av-cv">${c.nome.substr(0,2).toUpperCase()}</div><div class="sinfo"><div class="sname">${c.nome}</div><div class="ssub">${c.indirizzo||'—'} · ${nR} rapportini</div></div><div class="sarr">›</div></div>`;}).join('');
+  $('cave-list').innerHTML=caveDisp.map(c=>{const nR=DB.rapportini.filter(r=>r.cavaId===c.id).length;return`<div class="sitem" onclick="apriCava('${c.id}')"><div class="av av-cv">${escHtml(c.nome.substr(0,2).toUpperCase())}</div><div class="sinfo"><div class="sname">${escHtml(c.nome)}</div><div class="ssub">${escHtml(c.indirizzo||'—')} · ${nR} rapportini</div></div><div class="sarr">›</div></div>`;}).join('');
 }
 function apriCava(id){
   state.cavaSel=id;const c=DB.cave.find(x=>x.id===id);if(!c)return;
@@ -1687,12 +1687,12 @@ function apriCava(id){
   // Cliente collegato (E6)
   const cli=c.clienteId?DB.clienti.find(x=>x.id===c.clienteId):null;
   const clienteRow=cli?
-    `<div class="preview-row"><span class="preview-lab">Cliente</span><span class="preview-val"><a onclick="apriCliente('${cli.id}')" style="color:var(--amber);cursor:pointer;text-decoration:underline;">${cli.ragsoc}</a></span></div>`:
+    `<div class="preview-row"><span class="preview-lab">Cliente</span><span class="preview-val"><a onclick="apriCliente('${cli.id}')" style="color:var(--amber);cursor:pointer;text-decoration:underline;">${escHtml(cli.ragsoc)}</a></span></div>`:
     `<div class="preview-row"><span class="preview-lab">Cliente</span><span class="preview-val">${c.cliente||'—'}</span></div>`;
   // Operatori assegnati a questa cava
   const operatoriAssegnati=DB.users.filter(u=>u.attivo&&(u.cave||[]).includes(id));
   const operatoriHtml=operatoriAssegnati.length>0
-    ?operatoriAssegnati.map(u=>`<span class="chip" style="cursor:default;">${u.nome} ${u.cognome} <span style="opacity:.6;font-size:10px;">(${u.ruolo})</span></span>`).join('')
+    ?operatoriAssegnati.map(u=>`<span class="chip" style="cursor:default;">${escHtml(u.nome)} ${escHtml(u.cognome)} <span style="opacity:.6;font-size:10px;">(${escHtml(u.ruolo)})</span></span>`).join('')
     :'<span style="font-size:12px;color:var(--muted);">Nessun operatore assegnato</span>';
   // Volate previste oggi
   const volateOggi=DB.volate.filter(v=>v.cavaId===id&&v.data===today());
@@ -2841,10 +2841,10 @@ function globalSearch(q){
   const cli=DB.clienti.filter(c=>(c.ragsoc||'').toLowerCase().includes(q)||(c.piva||'').includes(q));
   const rapp=DB.rapportini.filter(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);return(c&&c.nome.toLowerCase().includes(q))||(r.data||'').includes(q);}).slice(0,5);
   let html='';
-  if(cave.length)html+='<div class="search-res-section">Cave</div>'+cave.map(c=>`<div class="sitem" onclick="apriCava('${c.id}')"><div class="av av-cv">${c.nome.substr(0,2).toUpperCase()}</div><div class="sinfo"><div class="sname">${c.nome}</div><div class="ssub">${c.cliente||'—'}</div></div><div class="sarr">›</div></div>`).join('');
-  if(cli.length)html+='<div class="search-res-section">Clienti</div>'+cli.map(c=>`<div class="sitem" onclick="apriCliente('${c.id}')"><div class="av av-am">${(c.ragsoc||'?').substr(0,2).toUpperCase()}</div><div class="sinfo"><div class="sname">${c.ragsoc}</div><div class="ssub">${c.piva||'—'}</div></div><div class="sarr">›</div></div>`).join('');
-  if(macLav.length)html+='<div class="search-res-section">Mezzi lavoro</div>'+macLav.map(m=>`<div class="sitem" onclick="apriMacLavoro('${m.id}')"><div class="av av-mz">MZ</div><div class="sinfo"><div class="sname">${m.modello}</div><div class="ssub">${m.targa}</div></div><div class="sarr">›</div></div>`).join('');
-  if(pers.length)html+='<div class="search-res-section">Personale</div>'+pers.map(p=>`<div class="sitem"><div class="av av-su">${initials(p.nome,p.cognome)}</div><div class="sinfo"><div class="sname">${p.nome} ${p.cognome}</div><div class="ssub">${p.ruolo||'—'}</div></div></div>`).join('');
+  if(cave.length)html+='<div class="search-res-section">Cave</div>'+cave.map(c=>`<div class="sitem" onclick="apriCava('${c.id}')"><div class="av av-cv">${escHtml(c.nome.substr(0,2).toUpperCase())}</div><div class="sinfo"><div class="sname">${escHtml(c.nome)}</div><div class="ssub">${escHtml(c.cliente||'—')}</div></div><div class="sarr">›</div></div>`).join('');
+  if(cli.length)html+='<div class="search-res-section">Clienti</div>'+cli.map(c=>`<div class="sitem" onclick="apriCliente('${c.id}')"><div class="av av-am">${escHtml((c.ragsoc||'?').substr(0,2).toUpperCase())}</div><div class="sinfo"><div class="sname">${escHtml(c.ragsoc)}</div><div class="ssub">${escHtml(c.piva||'—')}</div></div><div class="sarr">›</div></div>`).join('');
+  if(macLav.length)html+='<div class="search-res-section">Mezzi lavoro</div>'+macLav.map(m=>`<div class="sitem" onclick="apriMacLavoro('${m.id}')"><div class="av av-mz">MZ</div><div class="sinfo"><div class="sname">${escHtml(m.modello)}</div><div class="ssub">${escHtml(m.targa)}</div></div><div class="sarr">›</div></div>`).join('');
+  if(pers.length)html+='<div class="search-res-section">Personale</div>'+pers.map(p=>`<div class="sitem"><div class="av av-su">${escHtml(initials(p.nome,p.cognome))}</div><div class="sinfo"><div class="sname">${escHtml(p.nome)} ${escHtml(p.cognome)}</div><div class="ssub">${escHtml(p.ruolo||'—')}</div></div></div>`).join('');
   if(rapp.length)html+='<div class="search-res-section">Rapportini</div>'+rapp.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);return`<div class="sitem" onclick="apriRapport('${r.id}')"><div class="av av-op">RP</div><div class="sinfo"><div class="sname">${c?c.nome:'—'} · ${fmt(r.data)}</div><div class="ssub">${r.fori} fori · ${(r.mc||0).toFixed(1)} mc</div></div><div class="sarr">›</div></div>`;}).join('');
   if(!html)html='<div class="empty-state" style="padding:20px;"><div class="empty-sub">Nessun risultato</div></div>';
   wrap.innerHTML='<div class="search-results">'+html+'</div>';
@@ -2965,7 +2965,7 @@ function renderClienti(){
   if(DB.clienti.length===0){$('clienti-list').innerHTML='<div class="empty-state"><div class="empty-icon">🏢</div><div class="empty-title">Nessun cliente</div></div>';return;}
   $('clienti-list').innerHTML=DB.clienti.map(c=>{
     const nCave=DB.cave.filter(x=>x.clienteId===c.id).length;
-    return`<div class="sitem" onclick="apriCliente('${c.id}')"><div class="av av-am">${(c.ragsoc||'?').substr(0,2).toUpperCase()}</div><div class="sinfo"><div class="sname">${c.ragsoc}</div><div class="ssub">${c.piva||c.cf||'—'} · ${nCave} cav${nCave===1?'a':'e'}</div></div><div class="sarr">›</div></div>`;
+    return`<div class="sitem" onclick="apriCliente('${c.id}')"><div class="av av-am">${escHtml((c.ragsoc||'?').substr(0,2).toUpperCase())}</div><div class="sinfo"><div class="sname">${escHtml(c.ragsoc)}</div><div class="ssub">${escHtml(c.piva||c.cf||'—')} · ${nCave} cav${nCave===1?'a':'e'}</div></div><div class="sarr">›</div></div>`;
   }).join('');
 }
 function apriCliente(id){
@@ -3177,9 +3177,9 @@ function renderDashboard(){
     <div class="sec-title" style="margin-top:14px;"><span class="dot"></span>Dettaglio per cava</div>
     ${cavaDati.map(c=>`
       <div class="sitem" onclick="dashApriCava('${c.id}')">
-        <div class="av av-cv">${c.nome.substr(0,2).toUpperCase()}</div>
+        <div class="av av-cv">${escHtml(c.nome.substr(0,2).toUpperCase())}</div>
         <div class="sinfo">
-          <div class="sname">${c.nome}</div>
+          <div class="sname">${escHtml(c.nome)}</div>
           <div class="ssub">${c.mc.toFixed(1)} mc · ${rapp.filter(r=>r.cavaId===c.id).length} rapportini</div>
         </div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:var(--amber);padding:0 8px;">${((c.mc/Math.max(totMc,1))*100).toFixed(0)}%</div>

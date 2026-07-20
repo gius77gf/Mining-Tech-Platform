@@ -77,6 +77,18 @@ progetto volata condivisa, e le liste personale/utenti/volate/home
 (nome, cognome, ruolo, telefono, username, titoli). Le foto (chat,
 personale, utenti) passano da encodeURI. Azione 4 completata.
 
+Estensione 21/07 (seconda passata core): bonificati anche i render
+element-context di nomi VISIBILI AI COLLEGHI non coperti dalla prima
+passata — lista cave, dettaglio cava dashboard, risultati della
+ricerca globale (cave/clienti/mezzi/personale), link cliente
+nell'anteprima cava, chip operatori, promemoria. Ogni nome/ragione
+sociale/modello/targa/ruolo passa ora da escHtml. Verificato: escHtml
+neutralizza `< > " ' &`; il core si carica senza errori.
+RESTA DA FARE (prossime unità, stessa cautela): attributi `value="…"`
+dei form di modifica (contesto-attributo), `<option>` di alcune select,
+e i campi NOTE lunghi nelle anteprime modali. Rischio residuo minore
+(richiedono l'apertura del proprio modale di modifica), ma da chiudere.
+
 ### 9. Iniezione CSV negli export/import (21/07) — CHIUSO
 Un valore inserito da un membro dell'organizzazione che inizia con
 `= + - @` verrebbe eseguito come formula aprendo il CSV in Excel/
