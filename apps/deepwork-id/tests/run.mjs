@@ -82,6 +82,10 @@ await test("membro NON modifica i metadati dell'org (solo owner)", () =>
   assertFails(setDoc(doc(alice, "organizations/orgA"), { name: "Rinominata" })));
 await test("owner modifica i metadati della propria org", () =>
   assertSucceeds(setDoc(doc(boss, "organizations/orgA"), { name: "Cava Alfa SRL", status: "active" })));
+await test("NESSUNO crea un'organizzazione dal client (solo Cloud Function)", () =>
+  assertFails(setDoc(doc(boss, "organizations/nuova"), { name: "Cava Nuova", status: "active" })));
+await test("NEMMENO l'owner cancella la propria org dal client", () =>
+  assertFails(deleteDoc(doc(boss, "organizations/orgA"))));
 
 console.log("\n— Abbonamenti (entitlements) —");
 await test("membro LEGGE gli entitlement della propria org", () =>
