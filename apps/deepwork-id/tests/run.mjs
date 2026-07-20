@@ -102,6 +102,8 @@ await test("NESSUNO scrive gli entitlement dal client (nemmeno l'owner)", () =>
   assertFails(setDoc(doc(boss, "organizations/orgA/entitlements/scudo"), { active: true, tier: "premium" })));
 await test("membro del concorrente NON legge gli entitlement di orgA", () =>
   assertFails(getDoc(doc(eve, "organizations/orgA/entitlements/scudo"))));
+await test("NESSUNO cancella un entitlement dal client (nemmeno l'owner: no auto-sblocco abbonamento)", () =>
+  assertFails(deleteDoc(doc(boss, "organizations/orgA/entitlements/scudo"))));
 
 console.log("\n— Membri e inviti (pannello amministrazione) —");
 await test("membro LEGGE l'elenco membri della propria org", () =>
@@ -112,6 +114,8 @@ await test("NEMMENO l'owner scrive membership dal client (solo Cloud Function)",
   assertFails(setDoc(doc(boss, "organizations/orgA/members/intruso"), { uid: "intruso", role: "admin", status: "active" })));
 await test("un membro NON può auto-promuoversi modificando il proprio doc", () =>
   assertFails(setDoc(doc(alice, "organizations/orgA/members/alice"), { uid: "alice", role: "owner", status: "active" })));
+await test("NEMMENO l'owner cancella un membro dal client (solo Cloud Function con guardrail)", () =>
+  assertFails(deleteDoc(doc(boss, "organizations/orgA/members/alice"))));
 await test("owner/admin LEGGE gli inviti della propria org", () =>
   assertSucceeds(getDoc(doc(boss, "invites/invA1"))));
 await test("membro semplice NON legge gli inviti", () =>
