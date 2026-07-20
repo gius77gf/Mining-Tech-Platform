@@ -60,6 +60,14 @@
 <div class="page" id="page-gar">
   <div class="sec">Gare e appalti</div>
   <div id="gar-list"></div>
+  <div class="sec">Nuova gara</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <input class="dw-input" id="gar-titolo" placeholder="Titolo (es. Fornitura inerti Comune X)" style="flex:2;min-width:170px;">
+    <input class="dw-input" id="gar-base" type="number" min="0" placeholder="Base d'asta €" style="flex:1;min-width:110px;">
+    <input class="dw-input" id="gar-data" type="date" style="flex:1;min-width:130px;">
+    <button class="dw-btn" id="btn-gar" style="width:auto;">Aggiungi</button>
+  </div>
+  <div class="note" id="gar-esito" style="text-align:left;"></div>
   </div>
 
 <div class="page" id="page-rep">
@@ -169,6 +177,20 @@
       if (f && !f.incassata && confirm("Segnare incassata la fattura " + f.numero + " (" + eur(f.importo) + " da " + f.cliente + ")?")) {
         await db.aggiorna("fatture", f.id, { incassata: true, dataIncasso: new Date().toISOString().slice(0,10) }); await refresh(); } }
   });
+  $("btn-gar").onclick = async () => {
+    const titolo = $("gar-titolo").value.trim(), base = +$("gar-base").value, scadenza = $("gar-data").value;
+    if (!titolo || !(base > 0) || !scadenza) {
+      $("gar-titolo").style.borderColor = titolo ? "" : "var(--danger)";
+      $("gar-base").style.borderColor = base > 0 ? "" : "var(--danger)";
+      $("gar-data").style.borderColor = scadenza ? "" : "var(--danger)";
+      $("gar-esito").textContent = "Servono titolo, base d'asta e scadenza."; return;
+    }
+    ["gar-titolo","gar-base","gar-data"].forEach(i => $(i).style.borderColor = "");
+    await db.aggiungi("gare", { titolo, base, scadenza, stato: "aperta" });
+    $("gar-titolo").value = ""; $("gar-base").value = ""; $("gar-data").value = "";
+    $("gar-esito").textContent = "Gara aggiunta: " + titolo + " (scade " + fmtD(scadenza) + ").";
+    await refresh();
+  };
   $("btn-ft").onclick = async () => {
     const numero = $("ft-num").value.trim(), cliente = $("ft-cli").value.trim(),
           importo = +$("ft-imp").value, scadenza = $("ft-scad").value;
