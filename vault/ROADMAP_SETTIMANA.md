@@ -164,7 +164,7 @@ Dettaglio per unità: vault/checkpoints/ dal 2026-07-20_1500 in poi.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-21_1500_core-xss-liste.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-21_1530_conti-export.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
