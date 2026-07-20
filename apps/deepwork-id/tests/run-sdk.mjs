@@ -112,6 +112,24 @@ await test("listMembers legge i membri della propria org", async () => {
   expect(mem.length === 1 && mem[0].uid === "tizio", JSON.stringify(mem));
 });
 
+console.log("\n— Multi-org: switchOrg —");
+await test("membro di DUE org cambia org attiva e l'entitlement segue", async () => {
+  await aauth.createUser({ uid: "consul", email: "consul@studio.it", password: "password-789" });
+  await aauth.setCustomUserClaims("consul", { orgs: { orgA: "member", orgB: "member" } });
+  await adb.doc("organizations/orgB/members/consul").set({ uid: "consul", role: "member", status: "active" });
+  await adb.doc("organizations/orgA/members/consul").set({ uid: "consul", role: "member", status: "active" });
+  await adb.doc("organizations/orgB/entitlements/scudo").set({ active: false });
+  await id.logout();
+  await id.loginWithEmail("consul@studio.it", "password-789");
+  const prima = id.orgId;
+  const altra = prima === "orgA" ? "orgB" : "orgA";
+  await id.switchOrg(altra);
+  expect(id.orgId === altra, `orgId ${id.orgId}`);
+  const attesa = altra === "orgA";                       // scudo attivo solo in orgA
+  expect(id.hasEntitlement() === attesa, "entitlement non ricaricato dopo switch");
+  await expectFail(id.switchOrg("orgZ"), "switch verso org estranea riuscito");
+});
+
 console.log("\n— Modalità tour e uscita —");
 await test("loginTour → 'tour' sul tenant demo, lettura ok", async () => {
   await id.logout();
