@@ -50,7 +50,7 @@
     'renderPersonale','apriPersDet','uploadPersFoto','openPersForm','openPersEdit','salvaPers',
     'renderUtenti','uploadUserFoto','openUserForm','openUserEdit','salvaUser',
     'initImp','impTab','salvaProfilo','salvaSettingsApp',
-    'uffTab','calcEspU','calcMagU','calcMcU','calcMcUfficio',
+    'calcEspU','calcMagU','calcMcU','calcMcUfficio',
     'initAdmin','admTab','apriCalcAdmin',
     'globalSearch',
     'renderMessaggi','apriChat','renderChat','inviaMessaggio','inviaFotoChat',
@@ -1176,6 +1176,11 @@ function confermaElimPromemoria(id){
 const CLOUD_PROXY_URL = ''; // es. 'https://europe-west1-deepwork-app-6c56f.cloudfunctions.net/getMeteo'
 
 async function fetchMeteo(){
+  // Senza proxy configurato il meteo non può funzionare: meglio
+  // nascondere il widget che mostrare per sempre "non disponibile".
+  const card=document.querySelector('.meteo-card');
+  if(!CLOUD_PROXY_URL){if(card)card.style.display='none';return;}
+  if(card)card.style.display='';
   const cava=DB.cave.find(c=>state.user.cave&&state.user.cave.includes(c.id))||DB.cave[0];
   if(!cava||!cava.lat){setMeteoFallback(cava);return;}
   // Prova prima il proxy (che usa la API key server-side)
@@ -1224,7 +1229,7 @@ function renderMenu(){
   if(state.user.ruolo==='fochino')items.push({t:'Strumenti fochino',i:'🧨',act:'strumenti-foc',col:'red'});
   if(can('editCava'))items.push({t:'Progetti volata',i:'📐',act:'volate-list',col:'amber'}); // F1
   if(can('editCava')||state.user.ruolo==='fochino')items.push({t:'Ricostruzione 3D',i:'📷',act:'recon3d',col:'teal'}); // v3.6
-  if(can('editCava')||state.user.ruolo==='fochino')items.push({t:'3D fotorealistico',i:'✨',act:'splat',col:'teal'}); // v4.0
+  if(can('editCava')||state.user.ruolo==='fochino')items.push({t:'Visualizzatore 3D',i:'✨',act:'splat',col:'teal'}); // v4.0 (splat: mostra file .ply/.splat già pronti)
   if(can('clienti'))items.push({t:'Clienti',i:'🏢',act:'clienti',col:'teal'}); // E6
   if(can('ufficio'))items.push({t:'Ufficio',i:'🧮',act:'ufficio',col:'teal'});
   if(can('admin')){items.push({t:'Utenti',i:'👤',act:'utenti',col:'pink'});items.push({t:'Admin',i:'⚙️',act:'admin',col:'dark'});}
@@ -2647,8 +2652,6 @@ async function salvaSettingsApp(){
 }
 
 // ══════════ UFFICIO (v3.4.5) ══════════
-// Mantengo uffTab per retrocompatibilità (potrebbe essere richiamato da onclick ancora presenti)
-function uffTab(t,el){}
 function calcEspU(){
   const d=parseNum($('u-d')?.value),col=parseNum($('u-col')?.value),rho=parseNum($('u-esp')?.value);
   if(!d||!col){toast('Compila diametro e colonna','err');return;}
@@ -6363,7 +6366,7 @@ Object.assign(window, {
   renderPersonale,apriPersDet,uploadPersFoto,openPersForm,openPersEdit,salvaPers,
   renderUtenti,uploadUserFoto,openUserForm,openUserEdit,salvaUser,
   initImp,impTab,salvaProfilo,salvaSettingsApp,
-  uffTab,calcEspU,calcMagU,calcMcU,calcMcUfficio,
+  calcEspU,calcMagU,calcMcU,calcMcUfficio,
   calcAction,
   dashSetPeriodo,dashSetFiltro,dashApriCava,dashApriOperatore,
   initAdmin,admTab,apriCalcAdmin,
@@ -8083,9 +8086,9 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
 
 <!-- ══════════ SPLAT 3D FOTOREALISTICO (v4.0 Gaussian Splatting) ══════════ -->
 <div class="screen" id="screen-splat">
-  <div class="ph"><button class="bk" onclick="splatExit()">←</button><div class="ht">3D Fotorealistico (Splat)</div></div>
+  <div class="ph"><button class="bk" onclick="splatExit()">←</button><div class="ht">Visualizzatore 3D (Splat)</div></div>
   <div class="sc">
-    <div class="info-box" style="margin-bottom:12px;">✨ Visualizza un modello <b>fotorealistico</b> del fronte (Gaussian Splatting). Genera il file con un'app di scansione (es. Polycam, Scaniverse, KIRI Engine) esportando in <b>.ply</b> o <b>.splat</b>, poi caricalo qui.</div>
+    <div class="info-box" style="margin-bottom:12px;">✨ Visualizza un modello <b>fotorealistico</b> del fronte (Gaussian Splatting). Questa schermata <b>non crea</b> il modello: generalo con un'app di scansione (es. Polycam, Scaniverse, KIRI Engine) esportando in <b>.ply</b> o <b>.splat</b>, poi caricalo qui.</div>
     <label class="btn-sec" style="display:block;text-align:center;cursor:pointer;">📂 Carica modello .ply / .splat / .ksplat<input type="file" accept=".ply,.splat,.ksplat" onchange="splatPick(event)" style="display:none;"></label>
     <div id="sp-wrap" style="margin-top:12px;height:calc(100vh - 170px);height:calc(100dvh - 150px - env(safe-area-inset-bottom));min-height:360px;position:relative;background:#000;border:1px solid var(--border);display:none;"></div>
     <div id="sp-note" style="font-size:11px;color:var(--muted);margin-top:8px;"></div>
