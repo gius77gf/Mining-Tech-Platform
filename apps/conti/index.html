@@ -73,6 +73,7 @@
 <div class="page" id="page-rep">
   <div class="sec">Report rapidi</div>
   <div id="rep-list"></div>
+  <button class="dw-btn secondary" id="btn-rep-export" style="width:auto;margin-top:8px;">Esporta situazione (CSV)</button>
   <div class="note" id="mode-note" style="text-align:left;"></div>
 </div>
 
@@ -182,6 +183,19 @@
       if (f && !f.incassata && confirm("Segnare incassata la fattura " + f.numero + " (" + eur(f.importo) + " da " + f.cliente + ")?")) {
         await db.aggiorna("fatture", f.id, { incassata: true, dataIncasso: new Date().toISOString().slice(0,10) }); await refresh(); } }
   });
+  $("btn-rep-export").onclick = () => {
+    // situazione fatture per il commercialista: numero, cliente, importo,
+    // scadenza, stato calcolato, data incasso
+    let csv = "numero;cliente;importo;scadenza;stato;data_incasso\n";
+    for (const f of FAT.slice().sort((a,b) => (a.scadenza||"").localeCompare(b.scadenza||""))) {
+      const st = f.incassata ? "incassata" : (giorni(f.scadenza) < 0 ? "insoluta" : "aperta");
+      csv += `${f.numero};${f.cliente};${f.importo};${f.scadenza};${st};${f.dataIncasso||""}\n`;
+    }
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.download = "conti_situazione_fatture.csv"; a.click();
+    $("mode-note").textContent = "Esportate " + FAT.length + " fatture (CSV).";
+  };
   $("btn-gar").onclick = async () => {
     const titolo = $("gar-titolo").value.trim(), base = +$("gar-base").value, scadenza = $("gar-data").value;
     if (!titolo || !(base > 0) || !scadenza) {
