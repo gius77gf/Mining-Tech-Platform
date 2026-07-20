@@ -141,7 +141,7 @@ ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-20_1730_terra-iter2.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-20_1800_genesi-piano-carico.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
