@@ -64,6 +64,10 @@ await test("membro di orgA NON CANCELLA i dati del concorrente (orgB)", () =>
   assertFails(deleteDoc(doc(alice, "organizations/orgB/apps/scudo/turni/t9"))));
 await test("membro di orgB NON cancella i dati di orgA", () =>
   assertFails(deleteDoc(doc(eve, "organizations/orgA/apps/scudo/turni/t1"))));
+await test("l'isolamento vale anche per i dati ANNIDATI in profondità (document=**)", () =>
+  assertFails(getDoc(doc(alice, "organizations/orgB/apps/scudo/turni/t9/note/segreta"))));
+await test("un membro NON legge una sottocollezione NON prevista della propria org (deny di default)", () =>
+  assertFails(getDoc(doc(alice, "organizations/orgA/segreti/x"))));
 
 console.log("\n— Accesso senza login —");
 await test("utente non autenticato NON legge nulla di orgA", () =>
