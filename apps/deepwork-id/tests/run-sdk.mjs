@@ -100,6 +100,17 @@ await test("la lettura dei dati del CONCORRENTE è respinta dalle rules", async 
   await expectFail(getDoc(doc(id._db, "organizations/orgB/apps/scudo/turni/seg")),
     "lettura orgB riuscita: isolamento violato!");
 });
+await test("aggiorna/rimuovi via doc(orgCollection(name), id) — pattern dei data layer", async () => {
+  // Stesso identico pattern usato da scudo/campo/flotta/conti/sentinella/
+  // terra per aggiorna() e rimuovi(): doc(collectionRef, docId).
+  const { addDoc, getDocs, doc, updateDoc, deleteDoc, getDoc } = await import("firebase/firestore");
+  const ref = await addDoc(id.orgCollection("turni"), { operaio: "Luca", ore: 6 });
+  const dref = doc(id.orgCollection("turni"), ref.id);   // <-- niente path a mano
+  await updateDoc(dref, { ore: 10 });
+  expect((await getDoc(dref)).data().ore === 10, "updateDoc non applicato");
+  await deleteDoc(dref);
+  expect((await getDoc(dref)).exists() === false, "deleteDoc non ha rimosso");
+});
 await test("hasEntitlement vero per l'app abbonata (scudo)", async () => {
   expect(id.hasEntitlement() === true, "entitlement scudo non visto");
 });
