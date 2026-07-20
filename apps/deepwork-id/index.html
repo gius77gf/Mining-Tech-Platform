@@ -164,6 +164,10 @@
   });
   onEnter('login-email', 'btn-login'); onEnter('login-pass', 'btn-login');
   onEnter('reg-email', 'btn-register'); onEnter('reg-pass', 'btn-register');
+  // Recupero errore: appena l'utente ricomincia a scrivere, togli il
+  // messaggio di errore (es. "credenziali errate") così non resta appeso.
+  const clearMsg = () => { const el = $('msg'); el.className = 'msg'; el.textContent = ''; };
+  ['login-email', 'login-pass', 'reg-email', 'reg-pass'].forEach(i => $(i).addEventListener('input', clearMsg));
   $('btn-reset').onclick    = guard(async () => {
     const email = $('login-email').value.trim();
     if (!email) { msg('Scrivi prima la tua email nel campo sopra, poi tocca di nuovo "Password dimenticata?".'); return; }

@@ -180,7 +180,7 @@ Dettaglio per unità: vault/checkpoints/ dal 2026-07-20_1500 in poi.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/20260720-175712_deepworkid-profilo-invio.md
+- Ultimo checkpoint: vault/checkpoints/20260720-180026_deepworkid-login-clearmsg.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
