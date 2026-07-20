@@ -45,6 +45,13 @@
     <button class="dw-btn secondary" data-filtro="anomalia" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Anomalie</button>
   </div>
   <div id="att-list"></div>
+  <div class="sec">Nuova attività</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <input class="dw-input" id="att-titolo" placeholder="Titolo (es. Perforazione fronte Sud)" style="flex:2;min-width:160px;">
+    <input class="dw-input" id="att-dett" placeholder="Dettaglio (facoltativo)" style="flex:1;min-width:130px;">
+    <button class="dw-btn" id="btn-att" style="width:auto;">Pianifica</button>
+  </div>
+  <div class="note" id="att-esito" style="text-align:left;"></div>
   <div class="note" style="text-align:left;">Tocca un'attività per cambiarne lo stato (pianificata → in corso → conclusa).</div></div>
 
 <div class="page" id="page-squ">
@@ -162,6 +169,15 @@
       if (r && r.stato === "bozza") { const ora = new Date().toTimeString().slice(0,5);
         await db.aggiorna("rapportini", r.id, { stato: "inviato", ora }); await refresh(); } }
   });
+  $("btn-att").onclick = async () => {
+    const titolo = $("att-titolo").value.trim();
+    if (!titolo) { $("att-titolo").style.borderColor = "var(--danger)"; $("att-esito").textContent = "Serve un titolo per pianificare l'attività."; return; }
+    $("att-titolo").style.borderColor = "";
+    await db.aggiungi("attivita", { titolo, dettaglio: $("att-dett").value.trim(), stato: "pianificata" });
+    $("att-titolo").value = ""; $("att-dett").value = "";
+    $("att-esito").textContent = "Attività pianificata: " + titolo + ".";
+    await refresh();
+  };
   $("btn-add-rap").onclick = async () => {
     const titolo = $("new-rap-titolo").value.trim();
     if (!titolo) { $("new-rap-titolo").style.borderColor = "var(--danger)"; $("new-rap-titolo").placeholder = "Serve un titolo per creare la bozza"; return; }
