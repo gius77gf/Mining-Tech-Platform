@@ -26,10 +26,10 @@
 <!-- DASHBOARD -->
 <div class="page active" id="page-dash">
   <div class="kpis">
-    <div class="kpi accent"><div class="n">—</div><div class="l">m³ estratti mese</div></div>
-    <div class="kpi ok"><div class="n">—</div><div class="l">Avanzamento piano</div></div>
-    <div class="kpi ok"><div class="n">—</div><div class="l">Rilievi drone mese</div></div>
-    <div class="kpi ok"><div class="n">—</div><div class="l">m³ riserve stimate</div></div>
+    <div class="kpi accent" style="cursor:pointer" data-goto="ril" data-filtro="elaborato" title="Vedi i rilievi elaborati"><div class="n">—</div><div class="l">m³ estratti mese</div></div>
+    <div class="kpi ok" style="cursor:pointer" data-goto="pia" title="Vedi il piano"><div class="n">—</div><div class="l">Avanzamento piano</div></div>
+    <div class="kpi ok" style="cursor:pointer" data-goto="ril" data-filtro="tutti" title="Vedi i rilievi"><div class="n">—</div><div class="l">Rilievi drone mese</div></div>
+    <div class="kpi ok" style="cursor:pointer" data-goto="pia" title="Vedi il piano"><div class="n">—</div><div class="l">m³ riserve stimate</div></div>
   </div>
 
   <div class="sec">Fronti di cava</div>
@@ -113,6 +113,11 @@
   $("ril-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroRil = f; refresh(); }
+  });
+  document.querySelector(".kpis").addEventListener("click", (e) => {
+    const card = e.target.closest("[data-goto]"); if (!card) return;
+    const filtro = card.getAttribute("data-filtro"); if (filtro) filtroRil = filtro;
+    go(card.getAttribute("data-goto")); refresh();
   });
   async function refresh(){
     [FRO,RIL,PIA] = await Promise.all([db.fronti(), db.rilievi(), db.piano()]);
