@@ -148,7 +148,7 @@
       <span class="badge ${QB[q.stato][0]}">${QB[q.stato][1]}</span></div>`).join("")
       || '<div class="note" style="text-align:left;">Nessuna squadra in turno.</div>';
 
-    $("rap-list").innerHTML = RAP.map(r => `<div class="item" data-rap="${r.id}" ${r.stato==="bozza"?'style="cursor:pointer" title="Tocca per inviare"':''}>
+    $("rap-list").innerHTML = RAP.map(r => `<div class="item" data-rap="${r.id}" style="cursor:pointer" title="${r.stato==="bozza" ? "Tocca per inviare" : "Tocca per richiamare in bozza"}">
       <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${esc(r.squadra||"—")}${r.ora?" · "+esc(r.ora):""}</div></div>
       <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${r.stato==="bozza"?`<span class="arr" style="cursor:pointer" title="Elimina bozza" data-del-rap="${r.id}">✕</span>`:""}</div>`).join("")
       || '<div class="note" style="text-align:left;">Nessun rapportino oggi.</div>';
@@ -172,8 +172,15 @@
       if (r && confirm("Eliminare la bozza «" + r.titolo + "»?")) { await db.rimuovi("rapportini", delRap); await refresh(); } return; }
     const rp = e.target.closest && e.target.closest("[data-rap]");
     if (rp) { const r = RAP.find(x => x.id === rp.getAttribute("data-rap"));
-      if (r && r.stato === "bozza") { const ora = new Date().toTimeString().slice(0,5);
-        await db.aggiorna("rapportini", r.id, { stato: "inviato", ora }); await refresh(); } }
+      if (!r) return;
+      if (r.stato === "bozza") {
+        const ora = new Date().toTimeString().slice(0,5);
+        await db.aggiorna("rapportini", r.id, { stato: "inviato", ora }); await refresh();
+      } else if (r.stato === "inviato") {
+        if (confirm("Richiamare in bozza il rapportino «" + r.titolo + "»? Potrai correggerlo e reinviarlo.")) {
+          await db.aggiorna("rapportini", r.id, { stato: "bozza", ora: "" }); await refresh(); }
+      }
+    }
   });
   $("btn-att").onclick = async () => {
     const titolo = $("att-titolo").value.trim();
