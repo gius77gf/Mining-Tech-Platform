@@ -169,6 +169,12 @@
     msg('Invito inviato: scade tra 14 giorni.');
   });
   $('btn-logout').onclick = guard(async () => { await id.logout(); location.href = './index.html'; });
+  // Invio da tastiera: creare l'org o inviare l'invito senza toccare il pulsante
+  const onEnter = (inputId, btnId) => $(inputId).addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); $(btnId).click(); }
+  });
+  onEnter('new-org', 'btn-create-org');
+  onEnter('inv-email', 'btn-invite');
 </script>
 </body>
 </html>
