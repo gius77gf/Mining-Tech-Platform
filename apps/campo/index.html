@@ -98,7 +98,7 @@
 </script>
 
 <script type="module">
-  import { campoData, kpiFrom, parsePianoCsv, scartoPct, scartoLivello } from "./campo-data.js";
+  import { campoData, kpiFrom, parsePianoCsv, scartoPct, scartoLivello, pianoRiepilogo } from "./campo-data.js";
   import { mountExit, esc } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const AB = { "in-corso": ["ok","In corso"], pianificata: ["warn","Pianificata"], anomalia: ["danger","Anomalia"], conclusa: ["ok","Conclusa"] };
@@ -232,10 +232,8 @@
   function pianoRender(){
     $("btn-piano-export").style.display = PIANO.length ? "inline-block" : "none";
     if (!PIANO.length) { $("piano-list").innerHTML = ""; $("piano-riep").textContent = "Nessun piano importato."; return; }
-    const reg = PIANO.filter(p => p.reale != null);
-    const totP = PIANO.reduce((t,p)=>t+p.prog,0), totR = reg.reduce((t,p)=>t+p.reale,0) + PIANO.filter(p=>p.reale==null).reduce((t,p)=>t+p.prog,0);
-    const pct = Math.round((totR-totP)/totP*100), livTot = scartoLivello(totR, totP);
-    $("piano-riep").innerHTML = "Fori " + reg.length + "/" + PIANO.length + " registrati · progettato " + totP + " kg · stimato reale " + Math.round(totR) + " kg <span class=\"badge " + livTot + "\">" + (totR>=totP?"+":"") + pct + "%</span>. Tocca un foro per registrare la carica reale.";
+    const r = pianoRiepilogo(PIANO);
+    $("piano-riep").innerHTML = "Fori " + r.registrati + "/" + r.totale + " registrati · progettato " + r.progettatoKg + " kg · stimato reale " + Math.round(r.stimatoKg) + " kg <span class=\"badge " + r.livello + "\">" + (r.pct>=0?"+":"") + r.pct + "%</span>. Tocca un foro per registrare la carica reale.";
     $("piano-list").innerHTML = PIANO.map(p => { const b = scartoBadge(p);
       return `<div class="item" data-foro="${p.foro}" style="cursor:pointer" title="Registra carica reale">
       <div class="avatar">${p.foro}</div>
