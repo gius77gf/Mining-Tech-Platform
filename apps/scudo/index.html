@@ -83,6 +83,14 @@
 <div class="page" id="page-doc">
   <div class="sec">Documenti aziendali</div>
   <div id="doc-list"></div>
+  <div class="sec">Nuovo documento</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <input class="dw-input" id="doc-titolo" placeholder="Titolo (es. Registro infortuni)" style="flex:2;min-width:160px;">
+    <input class="dw-input" id="doc-meta" placeholder="Nota (es. Aggiornato 07/2026)" style="flex:1;min-width:130px;">
+    <button class="dw-btn" id="btn-doc" style="width:auto;">Aggiungi</button>
+  </div>
+  <div class="note" id="doc-esito" style="text-align:left;"></div>
+  <div class="note" style="text-align:left;">Tocca un documento per cambiarne lo stato (valido → da rivedere → scaduto).</div>
   <div class="note" id="mode-note"></div>
 </div>
 
@@ -176,11 +184,16 @@
 
     const D = { valido: ["ok", "Valido"], "da-rivedere": ["warn", "Da rivedere"], scaduto: ["danger", "Scaduto"] };
     $("doc-list").innerHTML = DOC.map(d =>
-      `<div class="item"><div class="info"><div class="name">${d.titolo}</div><div class="meta">${d.meta || ""}</div></div>
-       <span class="badge ${D[d.stato][0]}">${D[d.stato][1]}</span></div>`).join("");
+      `<div class="item" data-doc="${d.id}" style="cursor:pointer" title="Tocca per cambiare stato"><div class="info"><div class="name">${d.titolo}</div><div class="meta">${d.meta || ""}</div></div>
+       <span class="badge ${D[d.stato][0]}">${D[d.stato][1]}</span></div>`).join("")
+      || '<div class="note" style="text-align:left;">Nessun documento registrato.</div>';
   }
 
+  const DOC_NEXT = { valido: "da-rivedere", "da-rivedere": "scaduto", scaduto: "valido" };
   document.addEventListener("click", async (e) => {
+    const dc = e.target.closest && e.target.closest("[data-doc]");
+    if (dc && db.aggiorna) { const d = DOC.find(x => x.id === dc.getAttribute("data-doc"));
+      if (d) { await db.aggiorna("documenti", d.id, { stato: DOC_NEXT[d.stato] || "valido" }); await refresh(); } return; }
     const dl = e.target.getAttribute && e.target.getAttribute("data-del-lav");
     const ds = e.target.getAttribute && e.target.getAttribute("data-del-scad");
     if (dl) { const l = LAV.find(x => x.id === dl);
@@ -191,6 +204,15 @@
     const nome = $("new-nome").value.trim(); if (!nome) return;
     await db.aggiungi("lavoratori", { nome, ruolo: $("new-ruolo").value.trim(), attivo: true });
     $("new-nome").value = ""; $("new-ruolo").value = ""; await refresh();
+  };
+  $("btn-doc").onclick = async () => {
+    const titolo = $("doc-titolo").value.trim();
+    if (!titolo) { $("doc-titolo").style.borderColor = "var(--danger)"; $("doc-esito").textContent = "Serve il titolo del documento."; return; }
+    $("doc-titolo").style.borderColor = "";
+    await db.aggiungi("documenti", { titolo, meta: $("doc-meta").value.trim(), stato: "valido" });
+    $("doc-titolo").value = ""; $("doc-meta").value = "";
+    $("doc-esito").textContent = "Documento aggiunto: " + titolo + " (valido).";
+    await refresh();
   };
   $("btn-import-csv").onclick = () => $("csv-file").click();
   $("btn-export-csv").onclick = () => {
