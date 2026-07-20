@@ -227,6 +227,7 @@
     await db.aggiungi("gare", { titolo, base, scadenza, stato: "aperta" });
     $("gar-titolo").value = ""; $("gar-base").value = ""; $("gar-data").value = "";
     $("gar-esito").textContent = "Gara aggiunta: " + titolo + " (scade " + fmtD(scadenza) + ").";
+    $("gar-titolo").focus();   // pronto per la prossima gara
     await refresh();
   };
   $("btn-ft").onclick = async () => {

@@ -206,6 +206,7 @@
     await db.aggiungi("adempimenti", { titolo, ente, scadenza });
     $("ade-titolo").value = ""; $("ade-ente").value = ""; $("ade-data").value = "";
     $("ade-esito").textContent = "Adempimento aggiunto: " + titolo + " entro " + fmtD(scadenza) + ".";
+    $("ade-titolo").focus();   // pronto per il prossimo adempimento
     await refresh();
   };
   $("btn-sen").onclick = async () => {

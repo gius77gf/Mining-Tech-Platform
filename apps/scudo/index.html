@@ -233,6 +233,7 @@
     await db.aggiungi("documenti", { titolo, meta: $("doc-meta").value.trim(), stato: "valido" });
     $("doc-titolo").value = ""; $("doc-meta").value = "";
     $("doc-esito").textContent = "Documento aggiunto: " + titolo + " (valido).";
+    $("doc-titolo").focus();   // pronto per il prossimo documento
     await refresh();
   };
   $("btn-import-csv").onclick = () => $("csv-file").click();
@@ -279,6 +280,7 @@
     await db.aggiungi("scadenze", { lavoratoreId: $("new-scad-lav").value || null, tipo: $("new-scad-tipo").value, descrizione, dataScadenza });
     $("new-scad-desc").value = ""; $("new-scad-data").value = "";
     $("scad-esito").textContent = "Scadenza aggiunta: " + descrizione + ".";
+    $("new-scad-desc").focus();   // pronto per la prossima scadenza
     await refresh();
   };
 

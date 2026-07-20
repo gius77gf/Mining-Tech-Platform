@@ -203,7 +203,7 @@
     if (!titolo) { $("new-rap-titolo").style.borderColor = "var(--danger)"; $("new-rap-titolo").placeholder = "Serve un titolo per creare la bozza"; return; }
     $("new-rap-titolo").style.borderColor = "";
     await db.aggiungi("rapportini", { titolo, squadra: $("new-rap-squadra").value, ora: "", stato: "bozza" });
-    $("new-rap-titolo").value = ""; await refresh();
+    $("new-rap-titolo").value = ""; $("new-rap-titolo").focus(); await refresh();
   };
   // Recupero errore: appena l'utente corregge un campo, togli il bordo
   // rosso (e il messaggio, dove c'è) così l'avviso non resta appeso.
