@@ -76,9 +76,11 @@ test("sentinella: id unici, valore/soglia numerici, date adempimenti", () => {
 
 test("terra: id unici, date rilievi valide, volumeM3 numerico o null", () => {
   idsOk(T.fronti, "fronti"); idsOk(T.rilievi, "rilievi"); idsOk(T.piano, "piano");
+  const fro = new Set(T.fronti.map(f => f.id));
   for (const r of T.rilievi) {
     ok(isDate(r.data), `rilievo ${r.id}: data ${r.data}`);
     ok(r.volumeM3 === null || isNum(r.volumeM3), `rilievo ${r.id}: volumeM3 ${r.volumeM3}`);
+    ok(r.fronteId == null || fro.has(r.fronteId), `rilievo ${r.id}: fronteId ${r.fronteId} inesistente`);
   }
   for (const f of T.fronti) ok(isNum(f.avanzamento), `fronte ${f.id}: avanzamento non numerico`);
 });
