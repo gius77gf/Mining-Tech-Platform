@@ -370,6 +370,13 @@ body.scr-sim #tl{bottom:80px}
             <label class="dc-f"><span>Colonna acqua (m)</span><input type="number" id="dAcquaCol" step="0.5" min="0" max="40" value="0"></label>
           </div>
         </div>
+        <div class="dc-sec closed"><button type="button" class="dc-sec-h">Presplit (taglio del profilo)<span class="dc-sec-x">▾</span></button>
+          <div class="dc-grid">
+            <label class="dc-f"><span>Presplit</span><select id="dPresplit"><option value="0" selected>No</option><option value="1">Sì — fila di taglio sul nuovo fronte</option></select></label>
+            <label class="dc-f"><span>Spaziatura fori (m)</span><input type="number" id="dPsSpacing" step="0.1" min="0.3" max="2" value="0.9"></label>
+            <label class="dc-f"><span>Carica lineare (kg/m)</span><input type="number" id="dPsCharge" step="0.05" min="0.1" max="2" value="0.4"></label>
+          </div>
+        </div>
         <div class="dc-sec closed"><button type="button" class="dc-sec-h">Vibrazioni & recettore<span class="dc-sec-x">▾</span></button>
           <div class="dc-grid">
             <label class="dc-f"><span>Distanza recettore (m)</span><input type="number" id="dRecDist" step="10" min="20" max="3000" value="300"></label>
@@ -605,7 +612,7 @@ const SEED = 19250606;
 /* ============ parametri correnti ============ */
 const P = { fori:18, ritardo:25, dir:'sx', prof:13, kg:50, diam:89, vento:0.8, profilo:[], foriH:null };
 /* modello di progettazione 2D (Fase 1) — editor multi-fila disaccoppiato dal 3D single-row */
-const D2 = { B:4.5, S:3.5, file:1, perRow:18, bf:4.5, diam:89, prof:13, kg:50, ritardo:25, ritardoFila:42, stem:2.5, sub:1.2, dir:'sx', stagger:true, incl:0, kgAuto:true, esplosivo:'anfo-standard', innesco:'nonel', roccia:'calcare', ucs:100, eMod:55, frat:'media', bagnato:false, acquaCol:0, sequenza:'diagonale', recDist:300, recNorma:'din-res', recFreq:25, tool:'fori', profilo:[], piede:[], selPt:-1, holes:[], sel:-1, lastDet:0, _m:null };
+const D2 = { B:4.5, S:3.5, file:1, perRow:18, bf:4.5, diam:89, prof:13, kg:50, ritardo:25, ritardoFila:42, stem:2.5, sub:1.2, dir:'sx', stagger:true, incl:0, kgAuto:true, esplosivo:'anfo-standard', innesco:'nonel', roccia:'calcare', ucs:100, eMod:55, frat:'media', bagnato:false, acquaCol:0, presplit:false, psSpacing:0.9, psCharge:0.4, sequenza:'diagonale', recDist:300, recNorma:'din-res', recFreq:25, tool:'fori', profilo:[], piede:[], selPt:-1, holes:[], sel:-1, lastDet:0, _m:null };
 
 /* ============ three: scena base ============ */
 const view = document.getElementById('view');
@@ -981,9 +988,22 @@ function buildScene(){
   const bench = new THREE.Mesh(jitterGeo(new THREE.BoxGeometry(Lm, H, 9, 40, 5, 5),0.35), rockMat(shade(_lt,0.9)));
   bench.position.set(Lm/2, H/2, DPT+4.5+maxCz); bench.castShadow = true; bench.receiveShadow = true; staticGroup.add(bench);
   /* nuovo fronte rivelato (taglio fresco, piu scuro e saturo) */
-  backWall = new THREE.Mesh(jitterGeo(new THREE.PlaneGeometry(Lm, H, Math.max(8,SIM.fori.length), 6),0.5), rockMat(shade(_lt,0.76)));
+  backWall = new THREE.Mesh(jitterGeo(new THREE.PlaneGeometry(Lm, H, Math.max(8,SIM.fori.length), 6), D2.presplit?0.12:0.5), rockMat(shade(_lt,0.76)));
   backWall.position.set(Lm/2, H/2, DPT-0.05+maxCz); backWall.rotation.y = Math.PI;
   backWall.receiveShadow = true; staticGroup.add(backWall);
+  /* presplit: mezzifondelli (halfcast) sul nuovo fronte — mezze canne verticali
+     equispaziate, firma del taglio ben riuscito; parete resa più liscia sopra */
+  if(D2.presplit){
+    const hcMat = new THREE.MeshStandardMaterial({ color:shade(_lt,0.6), roughness:0.85, metalness:0, side:THREE.DoubleSide });
+    const rHc = Math.max(0.03, (D2.diam||89)/2000);
+    const hcGeo = new THREE.CylinderGeometry(rHc, rHc, H, 6, 1, true, 0, Math.PI);
+    const zWall = DPT-0.02+maxCz;
+    for(let x=D2.psSpacing/2; x<Lm; x+=D2.psSpacing){
+      const hc = new THREE.Mesh(hcGeo, hcMat);
+      hc.position.set(x, H/2, zWall); hc.rotation.y = Math.PI;   // concavità verso l'osservatore
+      staticGroup.add(hc);
+    }
+  }
   /* zona flyrock a terra (layer lFly): disco della gittata prevista + anelli di
      sgombero mezzi (2x) e persone (4x) — stessa stima della scheda validatori */
   {
@@ -1927,6 +1947,19 @@ function renderScheda2D(){
       cls:(D2.recDist>=Dper?'sv-ok':(D2.recDist>=Dmez?'sv-warn':'sv-bad')),
       why:'meccanismo dominante: '+F.mech0[0]+' (k='+F.kf.toFixed(0)+'). Sgombero consigliato: mezzi 2× ('+Math.round(Dmez)+' m), persone 4× ('+Math.round(Dper)+' m) — recettore a '+D2.recDist+' m. STIMA INDICATIVA (Richards&Moore/McKenzie/Lundborg): NON sostituisce il calcolo normativo delle aree di sgombero né il giudizio del responsabile del tiro.'});
   })();
+  /* presplit: controllo di progetto (spaziatura in diametri 8-14, carica lineare disaccoppiata ~0.3-0.9 kg/m per Ø 76-115) */
+  if(D2.presplit){
+    const _psD = D2.psSpacing/(D2.diam/1000);
+    const _psOkS = _psD>=8 && _psD<=14, _psOkQ = D2.psCharge>=0.25 && D2.psCharge<=0.9;
+    rows.push({lab:'Presplit',valStr:D2.psSpacing.toFixed(1)+' m ('+_psD.toFixed(0)+'·Ø) · '+D2.psCharge.toFixed(2)+' <span>kg/m</span>',
+      cls:(_psOkS&&_psOkQ?'sv-ok':'sv-warn'),
+      why:(_psOkS?'spaziatura nella finestra 8–14 diametri: taglio pulito atteso (halfcast visibili sul profilo).':'spaziatura fuori finestra 8–14·Ø: '+(_psD<8?'fori troppo fitti (costo alto senza beneficio).':'fori troppo radi: il taglio può non propagare tra i fori.'))
+        +' '+(_psOkQ?'Carica lineare disaccoppiata corretta: la parete finale resta integra (meno backbreak).':'Carica lineare '+(D2.psCharge<0.25?'troppo bassa: taglio incompleto.':'alta per un presplit: rischio danno alla parete finale.'))
+        +' La fila presplit va sparata PRIMA della volata principale (o con anticipo di fila).'});
+  } else if(D2.frat==='compatta' && D2.recDist<200){
+    rows.push({lab:'Presplit',valStr:'non previsto',cls:'sv-info',
+      why:'con roccia compatta e recettori vicini, una fila presplit sul profilo finale riduce backbreak e vibrazioni trasmesse dietro il taglio: valutala nella sezione Presplit del progetto.'});
+  }
   rows.push(badge(msmHole,'Timing inter-foro',msmHole.toFixed(1)+' <span>ms/m</span>',3,7,2,9,
     'ritardo/interasse nella finestra in-fila 3–7 ms/m: relief corretto tra fori.',
     'ritardo basso per metro: rischio sovrapposizione cariche (regola 8 ms) e PPV elevata.',
@@ -2021,6 +2054,9 @@ function applyDesign(){
   if($('dFrat')) D2.frat=$('dFrat').value||D2.frat;
   if($('dBagnato')) D2.bagnato = $('dBagnato').value==='1';
   if($('dAcquaCol')) D2.acquaCol = Math.max(0, Math.min(40, +$('dAcquaCol').value||0));
+  if($('dPresplit')) D2.presplit = $('dPresplit').value==='1';
+  if($('dPsSpacing')) D2.psSpacing = Math.max(0.3, Math.min(2, +$('dPsSpacing').value||D2.psSpacing));
+  if($('dPsCharge')) D2.psCharge = Math.max(0.1, Math.min(2, +$('dPsCharge').value||D2.psCharge));
   if($('dSeq')) D2.sequenza = $('dSeq').value||D2.sequenza;
   if($('dRecDist')) D2.recDist = Math.max(20, Math.min(3000, +$('dRecDist').value||D2.recDist));
   if($('dRecNorma')) D2.recNorma = $('dRecNorma').value||D2.recNorma;
@@ -2036,6 +2072,7 @@ function syncDesignInputs(){
   if($('dRoccia')) $('dRoccia').value=D2.roccia;
   if($('dUcs')) $('dUcs').value=D2.ucs; if($('dEmod')) $('dEmod').value=D2.eMod; if($('dFrat')) $('dFrat').value=D2.frat;
   if($('dBagnato')) $('dBagnato').value=D2.bagnato?'1':'0'; if($('dAcquaCol')) $('dAcquaCol').value=D2.acquaCol;
+  if($('dPresplit')) $('dPresplit').value=D2.presplit?'1':'0'; if($('dPsSpacing')) $('dPsSpacing').value=D2.psSpacing; if($('dPsCharge')) $('dPsCharge').value=D2.psCharge;
   if($('dSeq')) $('dSeq').value=D2.sequenza;
   if($('dRecDist')) $('dRecDist').value=D2.recDist; if($('dRecNorma')) $('dRecNorma').value=D2.recNorma; if($('dRecFreq')) $('dRecFreq').value=D2.recFreq;
 }
@@ -2066,7 +2103,7 @@ function simulaVolata2D(){
   } else P.holes=null;
   rebuild(); setScreen('sim');
 }
-['dB','dS','dD','dN','dFile','dH','dKg','dIncl','dStem','dSub','dRit','dRitFila','dRoccia','dUcs','dEmod','dFrat','dBagnato','dAcquaCol','dSeq','dRecDist','dRecNorma','dRecFreq'].forEach(id=>{ const el=$(id); if(el) el.addEventListener('change', applyDesign); });
+['dB','dS','dD','dN','dFile','dH','dKg','dIncl','dStem','dSub','dRit','dRitFila','dRoccia','dUcs','dEmod','dFrat','dBagnato','dAcquaCol','dPresplit','dPsSpacing','dPsCharge','dSeq','dRecDist','dRecNorma','dRecFreq'].forEach(id=>{ const el=$(id); if(el) el.addEventListener('change', applyDesign); });
 document.querySelectorAll('.dc-sec-h').forEach(b=>{ b.addEventListener('click', ()=>b.parentElement.classList.toggle('closed')); });
 if($('dKg')) $('dKg').addEventListener('input', ()=>{ D2.kgAuto=false; });
 function setTool(t){ D2.tool=t; D2.selPt=-1; [['dtFori','fori'],['dtFronte','fronte'],['dtPiede','piede']].forEach(p=>{ const el=$(p[0]); if(el) el.classList.toggle('on',t===p[1]); }); const rb=$('dtReset'); if(rb) rb.textContent='↺ Reset '+(t==='piede'?'piede':'fronte'); drawDesign2D(); renderInspector(); }
