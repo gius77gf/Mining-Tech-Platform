@@ -160,7 +160,7 @@
       <span class="arr" style="cursor:pointer" title="Segna come eseguito" data-ade-done="${a.id}">✓</span></div>`; }).join("")
       || '<div class="note" style="text-align:left;">Nessun adempimento in scadenza.</div>';
 
-    $("reg-list").innerHTML = REG.map(r => `<div class="item" data-reg="${r.id}" style="cursor:pointer" title="${r.stato==="in-attesa" ? "Tocca per segnare aggiornato" : "Tocca per rimettere in attesa"}">
+    $("reg-list").innerHTML = REG.slice().sort((a,b)=>(a.stato==="in-attesa"?0:1)-(b.stato==="in-attesa"?0:1)).map(r => `<div class="item" data-reg="${r.id}" style="cursor:pointer" title="${r.stato==="in-attesa" ? "Tocca per segnare aggiornato" : "Tocca per rimettere in attesa"}">
       <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${esc(r.nota || "")}</div></div>
       <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span></div>`).join("")
       || '<div class="note" style="text-align:left;">Nessuna voce nel registro.</div>';
