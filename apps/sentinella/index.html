@@ -100,7 +100,7 @@
 
 <script type="module">
   import { sentinellaData, statoMisura, giorni, kpiFrom } from "./sentinella-data.js";
-  import { mountExit, esc } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
   const RB = { aggiornato: ["ok","Aggiornato"], "in-attesa": ["warn","In attesa"] };
@@ -174,9 +174,9 @@
     let csv = "tipo;nome;valore;unita;soglia;stato;dettaglio\n";
     for (const m of MON) { const st = statoMisura(m);
       const storico = (m.letture || []).map(l => l.data + ":" + l.valore).join(" ");
-      csv += `monitoraggio;${m.nome};${m.valore};${m.unita};${m.soglia};${st.label};${storico}\n`; }
+      csv += `monitoraggio;${csvCell(m.nome)};${m.valore};${csvCell(m.unita)};${m.soglia};${st.label};${csvCell(storico)}\n`; }
     for (const a of ADE) { const g = giorni(a.scadenza);
-      csv += `adempimento;${a.titolo};;;;${g < 0 ? "scaduto" : "tra " + g + " gg"};${(a.ente!=="—"?a.ente+" · ":"")}entro ${a.scadenza}\n`; }
+      csv += `adempimento;${csvCell(a.titolo)};;;;${g < 0 ? "scaduto" : "tra " + g + " gg"};${csvCell((a.ente!=="—"?a.ente+" · ":"")+"entro "+a.scadenza)}\n`; }
     const el = document.createElement("a");
     el.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     el.download = "sentinella_ambiente.csv"; el.click();

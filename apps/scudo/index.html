@@ -113,7 +113,7 @@
 
 <script type="module">
   import { scudoData, statoScadenza, kpiFrom } from "./scudo-data.js";
-  import { mountExit, esc } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, parseCsvLine } from "../../shared/deepwork-id-client/dw-shell.js";
 
   const $ = (id) => document.getElementById(id);
   const initials = (n) => (n || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
@@ -227,11 +227,11 @@
     let csv = "nome;ruolo;telefono;scadenza;data;stato\n";
     for (const l of LAV) {
       const sc = SCA.filter(s => s.lavoratoreId === l.id);
-      if (!sc.length) csv += `${l.nome};${l.ruolo||""};${l.tel||""};;;\n`;
-      for (const s of sc) csv += `${l.nome};${l.ruolo||""};${l.tel||""};${s.descrizione};${s.dataScadenza};${statoScadenza(s.dataScadenza)}\n`;
+      if (!sc.length) csv += `${csvCell(l.nome)};${csvCell(l.ruolo||"")};${csvCell(l.tel||"")};;;\n`;
+      for (const s of sc) csv += `${csvCell(l.nome)};${csvCell(l.ruolo||"")};${csvCell(l.tel||"")};${csvCell(s.descrizione)};${s.dataScadenza};${statoScadenza(s.dataScadenza)}\n`;
     }
     for (const s of SCA.filter(x => !x.lavoratoreId))
-      csv += `AZIENDA;;;${s.descrizione};${s.dataScadenza};${statoScadenza(s.dataScadenza)}\n`;
+      csv += `AZIENDA;;;${csvCell(s.descrizione)};${s.dataScadenza};${statoScadenza(s.dataScadenza)}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "scudo_personale_scadenze.csv"; a.click();
@@ -243,7 +243,7 @@
     const righe = testo.split(/\r?\n/).map(r => r.trim()).filter(Boolean);
     let aggiunti = 0, saltate = 0;
     for (const riga of righe) {
-      const [nome, ruolo, tel] = riga.split(/[;,\t]/).map(x => (x || "").trim());
+      const [nome, ruolo, tel] = parseCsvLine(riga);
       if (!nome || /^nome$/i.test(nome)) { saltate++; continue; }   // header o riga vuota
       if (LAV.some(l => l.nome.toLowerCase() === nome.toLowerCase())) { saltate++; continue; }  // duplicato
       await db.aggiungi("lavoratori", { nome, ruolo: ruolo || "", tel: tel || "", attivo: true });

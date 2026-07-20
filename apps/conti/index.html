@@ -96,7 +96,7 @@
 
 <script type="module">
   import { contiData, giorni, kpiFrom } from "./conti-data.js";
-  import { mountExit, esc } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const eur = (v) => "€" + (+v||0).toLocaleString("it-IT");
   const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
@@ -189,7 +189,7 @@
     let csv = "numero;cliente;importo;scadenza;stato;data_incasso\n";
     for (const f of FAT.slice().sort((a,b) => (a.scadenza||"").localeCompare(b.scadenza||""))) {
       const st = f.incassata ? "incassata" : (giorni(f.scadenza) < 0 ? "insoluta" : "aperta");
-      csv += `${f.numero};${f.cliente};${f.importo};${f.scadenza};${st};${f.dataIncasso||""}\n`;
+      csv += `${csvCell(f.numero)};${csvCell(f.cliente)};${f.importo};${f.scadenza};${st};${f.dataIncasso||""}\n`;
     }
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
