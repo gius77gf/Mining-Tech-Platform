@@ -175,3 +175,14 @@ vanno sempre trattati come testo libero (esc in HTML, csvCell in export).
 4. ✅ (fatto 21/07) Escape HTML nel core come da punto 8.
 5. ✅ (fatto 21/07) Iniezione CSV neutralizzata (punto 9) + verifica
    XSS contesto-attributo pulita (punto 10).
+
+### 14. XSS nel testo di ricerca dello stato vuoto (Scudo, 20/07) — ✅ CORRETTO
+Nella lista personale di `apps/scudo/index.html`, il messaggio di stato
+vuoto della ricerca ("Nessun lavoratore corrisponde a «…»") inseriva il
+testo digitato dall'utente nell'HTML senza `esc()`. Un payload come
+`<img onerror=...>` digitato nel campo ricerca (che non corrisponde a
+nessun nome) veniva eseguito nella sessione dell'utente stesso
+(self-XSS, severità bassa ma difetto reale). Corretto con `esc()` sul
+testo di ricerca. Verificato con Playwright. Controllati gli altri usi
+del testo di ricerca nelle app: l'unico altro `q` interpolato è in una
+`confirm()` (Campo), che non interpreta HTML. Nessun altro caso.
