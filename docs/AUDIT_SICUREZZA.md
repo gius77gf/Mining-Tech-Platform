@@ -66,19 +66,20 @@ Normale per Firebase (le chiavi web non sono segrete), MA la sicurezza
 dipende interamente dalle regole (punto 3). Nessuna azione sul client;
 tutta l'attenzione va sulle rules.
 
-### 8. Escape HTML nei template (aggiornamento 21/07)
+### 8. Escape HTML nei template (aggiornamento 21/07) — CHIUSO
 Le 6 app dell'ecosistema e le pagine Deepwork ID sono state BLINDATE
 (PR #84-#85): ogni campo inserito dall'utente passa dall'helper
 condiviso esc() prima di finire in innerHTML — provato con tentativi
-di iniezione reali. RESTA DA VERIFICARE il CORE (index.html radice):
-usa gli stessi pattern innerHTML con dati utente (nomi volate, note,
-rapportini) e va passato al setaccio in un ciclo dedicato con lo
-stesso metodo (helper esc + test di iniezione). Rischio attuale
-mitigato dal fatto che il core è mono-azienda con utenti interni.
+di iniezione reali. Il CORE (index.html) è stato passato al setaccio
+allo stesso modo (helper escHtml): CHAT (m.testo, il punto più a
+rischio: contenuto di un utente nella pagina di un altro) + nome
+progetto volata condivisa, e le liste personale/utenti/volate/home
+(nome, cognome, ruolo, telefono, username, titoli). Le foto (chat,
+personale, utenti) passano da encodeURI. Azione 4 completata.
 
 ## Prossime azioni in ordine
 1. (weekend, fondatore) Regole attuali del progetto esistente → repo.
 2. (weekend, fondatore) Conferma mitigazione ponte per le password +
    verifica natura dei dati di default (reali o fantasia).
 3. (cicli automatici) Proseguire fasi Deepwork ID (soluzione definitiva).
-4. (ciclo dedicato) Escape HTML nel core come da punto 8.
+4. ✅ (fatto 21/07) Escape HTML nel core come da punto 8.
