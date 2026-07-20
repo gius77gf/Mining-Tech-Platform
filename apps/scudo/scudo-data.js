@@ -13,7 +13,7 @@
 // (scaduta / entro 30gg / regolare) — niente dati derivati nel DB.
 // ============================================================
 
-const DEMO = {
+export const DEMO = {
   lavoratori: [
     { id: "d1", nome: "Mario Rossi", ruolo: "Fochino", tel: "", attivo: true },
     { id: "d2", nome: "Luca Bianchi", ruolo: "Escavatorista", tel: "", attivo: true },

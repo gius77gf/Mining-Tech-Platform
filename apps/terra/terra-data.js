@@ -14,7 +14,7 @@
 //  avanzamento piano = estratto anno / pianificato anno).
 // ============================================================
 
-const DEMO = {
+export const DEMO = {
   fronti: [
     { id: "f1", nome: "Fronte Nord", banco: "banco 2", quota: 340, dettaglio: "Prossima volata 12:30", avanzamento: 72, stato: "attivo" },
     { id: "f2", nome: "Fronte Est", banco: "banco 1", quota: 355, dettaglio: "Perforazione in corso · 14/22 fori", avanzamento: 41, stato: "attivo" },

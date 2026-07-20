@@ -8,7 +8,7 @@
 //   rapportini/{id}: { titolo, squadra, ora, stato: bozza|inviato }
 // ============================================================
 
-const DEMO = {
+export const DEMO = {
   attivita: [
     { id: "a1", titolo: "Perforazione fronte Est", dettaglio: "Squadra A · 14/22 fori", stato: "in-corso" },
     { id: "a2", titolo: "Volata fronte Nord", dettaglio: "Ore 12:30 · fochino M. Rossi", stato: "pianificata" },
