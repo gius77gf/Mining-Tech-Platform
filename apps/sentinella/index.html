@@ -121,9 +121,10 @@
 
     $("mon-list").innerHTML = MON.map(m => ({ m, st: statoMisura(m) }))
       .filter(x => filtroMon === "tutti" || x.st.cls === filtroMon)
-      .map(({m, st}) => `<div class="item"><div class="info"><div class="name">${m.nome}</div>
-      <div class="meta">${m.valore} ${m.unita} / soglia ${m.soglia} (${Math.round(st.ratio*100)}%)${m.nota ? " · " + m.nota : ""}</div></div>
-      <span class="badge ${st.cls}">${st.label}</span></div>`).join("")
+      .map(({m, st}) => { const ult = (m.letture || []).slice(-3).map(l => l.valore).join(" → ");
+      return `<div class="item"><div class="info"><div class="name">${m.nome}</div>
+      <div class="meta">${m.valore} ${m.unita} / soglia ${m.soglia} (${Math.round(st.ratio*100)}%)${ult ? " · ultime: " + ult : ""}${m.nota ? " · " + m.nota : ""}</div></div>
+      <span class="badge ${st.cls}">${st.label}</span></div>`; }).join("")
       || '<div class="note" style="text-align:left;">'+(filtroMon==="tutti"?"Nessun sensore configurato.":"Nessun sensore in questa categoria.")+'</div>';
     document.querySelectorAll("#mon-filtri [data-filtro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-filtro") === filtroMon ? "var(--app-accent)" : "");
@@ -152,8 +153,11 @@
       $("mis-esito").textContent = "Scrivi un valore valido (zero compreso) per registrare la misura."; return;
     }
     $("mis-valore").style.borderColor = "";
-    await db.aggiorna("monitoraggi", id, { valore });
     const m = MON.find(x => x.id === id);
+    // storico: ogni registrazione si ACCODA alle letture (max 50), non
+    // si perde sovrascrivendo il solo ultimo valore
+    const letture = [ ...((m && m.letture) || []), { data: new Date().toISOString().slice(0,10), valore } ].slice(-50);
+    await db.aggiorna("monitoraggi", id, { valore, letture });
     const st = statoMisura({ ...m, valore });
     $("mis-esito").textContent = "Misura registrata su " + (m ? m.nome.split(" — ")[0] : id) + ": " + valore + (m ? " " + m.unita : "") + " → " + st.label + ".";
     $("mis-valore").value = ""; await refresh();
