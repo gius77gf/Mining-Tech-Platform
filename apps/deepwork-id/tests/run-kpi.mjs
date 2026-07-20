@@ -50,6 +50,19 @@ test("kpiFrom conta scadute/in-scadenza e lavoratori regolari", () => {
   ];
   eq(scudo.kpiFrom(lav, sca), { scadute: 1, trenta: 1, regolari: 0 }, "kpi scudo");
 });
+test("kpiFrom: regolare solo se attivo E senza scadenze problematiche", () => {
+  const lav = [
+    { id: "a", attivo: true },   // solo una scadenza futura → regolare
+    { id: "b", attivo: true },   // nessuna scadenza → regolare
+    { id: "c", attivo: false },  // nessun problema ma inattivo → NON conta
+    { id: "d", attivo: true },   // ha una scaduta → NON regolare
+  ];
+  const sca = [
+    { lavoratoreId: "a", dataScadenza: FUT },
+    { lavoratoreId: "d", dataScadenza: PAST },
+  ];
+  eq(scudo.kpiFrom(lav, sca), { scadute: 1, trenta: 0, regolari: 2 }, "regolari = a + b");
+});
 
 console.log("\n— Conti: fatture e gare —");
 test("giorni calcola la distanza in giorni", () => {
