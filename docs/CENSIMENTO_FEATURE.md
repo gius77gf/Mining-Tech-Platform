@@ -71,16 +71,13 @@ RIMANDATI (con motivo):
   (weekend, già in agenda).
 - Meteo proxy + VAPID push → richiedono il progetto Firebase nuovo
   (weekend).
-- Salvataggio fori della ricostruzione 3D → taglia M, ciclo dedicato.
-  ANALISI FATTA (21/07): i fori delle volate (v.fori) sono in vista
-  PIANTA {x lungo il fronte, y distanza dal fronte}, i marker della
-  ricostruzione in vista FRONTALE {x lungo il fronte, quota}. Mappa
-  diretta: solo la x è trasferibile. Proposta per il ciclo dedicato:
-  pulsante "Invia alla volata" che inserisce i fori come PRIMA FILA
-  della volata selezionata (x dal marker, y = burden di default,
-  prof = profondità di default, nota "da ricostruzione 3D del
-  <data>"), seguendo il pattern dell'import MWD (riga ~5699). Nel
-  frattempo l'export CSV (fatto) preserva il lavoro.
+- [x] Salvataggio fori della ricostruzione 3D → FATTO (21/07):
+  pulsante "📌 Invia alla volata" nella Ricostruzione 3D — i marker
+  entrano nella volata aperta come prima fila (x dal modello, y=1 m,
+  profondità/diametro/esplosivo dai default, nota di provenienza),
+  con conferma, rinumerazione, ricalcolo totali, salvataggio e audit
+  log — stesso pattern dell'import MWD. La quota frontale non è
+  mappabile in pianta (documentato). Export CSV già disponibile.
 - Allineamento versioni three.js → rischio regressione sulla vista 3D
   in produzione: da fare con verifica visiva dedicata.
 - "Editor metodi v4.1" → decisione di prodotto del fondatore

@@ -41,7 +41,7 @@
     'openNotifiche','openPromemoriaForm','confermaElimPromemoria',
     'apriCava','apriGemello','uploadCavaFoto','apriRapport','openCavaForm','openCavaEdit','salvaCava','confermaDelCava',
     'filtraVolate','renderVolate','toggleFiltri','applicaFiltriVolate','resetFiltriVolate',
-    'openVolate','openStorico','apriRappFocDett','condividiVolata','openVolataReadonly','rapportinoVuoto','open3DVolata','reconPickPhoto','reconBuild','reconSnapshot','reconCalibra','reconToggleHoles','reconClearHoles','reconExportHoles','splatPick','splatBuild','splatExit',
+    'openVolate','openStorico','apriRappFocDett','condividiVolata','openVolataReadonly','rapportinoVuoto','open3DVolata','reconPickPhoto','reconBuild','reconSnapshot','reconCalibra','reconToggleHoles','reconClearHoles','reconExportHoles','reconToVolata','splatPick','splatBuild','splatExit',
     'renderMacchine','macTab','apriMacLavoro','apriMezzoStr','openMacForm','openMacEdit','salvaMacLav',
     'openMezzoEdit','salvaMezzoStr','openRipForm','uploadMacLavFoto','uploadMezzoStrFoto',
     'confermaDelMacLav','confermaDelMezzoStr',
@@ -3893,6 +3893,29 @@ function reconClearHoles(){
   _recon.markers.forEach(m=>_recon.scene.remove(m));_recon.markers=[];
   $('rc-note').textContent='Fori azzerati';
 }
+async function reconToVolata(){
+  // porta i fori segnati sul modello nella volata aperta come PRIMA FILA
+  // (vista frontale → pianta: si trasferisce la sola x; y=1 m dal fronte,
+  // profondità/diametro/esplosivo dai default della volata)
+  if(!_recon||!_recon.markers||!_recon.markers.length){toast('Nessun foro segnato sul modello','err');return;}
+  const v=DB.volate.find(x=>x.id===state.volataSel);
+  if(!v){toast('Apri prima una volata (menu Progetti volata), poi torna qui','err');return;}
+  if(!confirm('Aggiungere '+_recon.markers.length+' fori alla volata #'+(v.numero||'?')+' come prima fila (x dal modello, resto dai default)?'))return;
+  const W=_recon.W;
+  _recon.markers.slice().sort((a,b)=>a.position.x-b.position.x).forEach(m=>{
+    const num=v.fori.length+1;
+    v.fori.push({id:'foro_'+genId(),num,x:Math.round((m.position.x+W/2)*100)/100,y:1,
+      prof:parseNum0(v.default.profondita_m)||0,diam:parseNum0(v.default.diametro_mm)||45,
+      kg:v.default.kg_per_foro||'',esplosivo:v.default.esplosivo||'',ritardo:'',innesco:v.default.innesco||'',
+      sequenza:num,note:'da ricostruzione 3D '+today()});
+  });
+  v.fori.forEach((f,i)=>{f.num=i+1;});
+  state.editorUnsaved=true;
+  ricalcolaTotaliVolata(v);
+  await fbSet('volate', v.id, v);
+  auditLog('volata.recon_import', {volataId:v.id, added:_recon.markers.length});
+  toast('Aggiunti '+_recon.markers.length+' fori alla volata #'+(v.numero||'?')+' (nota di provenienza inclusa)','success');
+}
 function reconExportHoles(){
   // i fori segnati sul modello non devono andare persi (censimento E1):
   // esporta le posizioni IN METRI (origine: angolo in basso a sinistra del fronte)
@@ -6397,7 +6420,7 @@ Object.assign(window, {
   markUnsavedFoc,addResoPhoto,delResoPhoto,exitRappFoc,inviaRappFoc,toggleReso,
   addFocFori,removeFocFori,setFocForo,
   allegaVolataFochino,selezionaVolataFoc,rimuoviVolataFoc,
-  focCalcEsp,focCalcMc,focCalcInc,calcKonya,calcPPV,calcKuzRam,open3DVolata,setInclTutti,simulate3D,simReset,reconPickPhoto,reconBuild,reconSnapshot,reconCalibra,reconToggleHoles,reconClearHoles,reconExportHoles,
+  focCalcEsp,focCalcMc,focCalcInc,calcKonya,calcPPV,calcKuzRam,open3DVolata,setInclTutti,simulate3D,simReset,reconPickPhoto,reconBuild,reconSnapshot,reconCalibra,reconToggleHoles,reconClearHoles,reconExportHoles,reconToVolata,
   splatPick,splatBuild,splatExit,
   renderMenu,toggleOutdoor,
   renderClienti,apriCliente,openClienteForm,openClienteEdit,salvaCliente,confermaDelCliente,
@@ -8092,6 +8115,7 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
         <button class="btn-sec" id="rc-holebtn" onclick="reconToggleHoles()">🎯 Segna fori</button>
         <button class="btn-sec" onclick="reconClearHoles()">🗑 Azzera fori</button>
         <button class="btn-sec" onclick="reconExportHoles()">📤 Esporta fori (CSV)</button>
+        <button class="btn-sec" onclick="reconToVolata()">📌 Invia alla volata</button>
       </div>
       <button class="btn-sec" style="width:100%;margin-top:8px;" onclick="reconSnapshot()">📸 Salva immagine del modello</button>
     </div>
