@@ -11,7 +11,7 @@ on:
 
 jobs:
   security-rules:
-    name: Firestore rules + SDK flow tests (38)
+    name: Firestore rules + SDK + Functions tests (48)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,6 +26,9 @@ jobs:
         run: npm install -g firebase-tools
       - name: Install test dependencies
         working-directory: apps/deepwork-id/tests
+        run: npm ci
+      - name: Install functions dependencies (for the functions emulator)
+        working-directory: apps/deepwork-id/functions
         run: npm ci
       - name: Run rules tests against the emulator
         working-directory: apps/deepwork-id
