@@ -180,7 +180,7 @@ Dettaglio per unità: vault/checkpoints/ dal 2026-07-20_1500 in poi.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/20260720-174629_flotta-urgenzaore-puro-test.md
+- Ultimo checkpoint: vault/checkpoints/20260720-175005_terra-volumefronte-puro-test.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
