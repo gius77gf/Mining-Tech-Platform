@@ -103,9 +103,9 @@ E2. Fix rapidi — stato: fatto prima passata (20/07: meteo nascosto
 ═══════════════════════════════════════════════
 ## Attività SECONDARIA — ricerca competitor per Genesi
 [decisione fondatore 19/07: NON prima del primo ciclo automatico, e
-sempre DOPO un'unità primaria chiusa in modo stabile] — stato: IN CORSO
-(20/07: fasi A-E tutte complete → ricerca avviata; scheda Maxam
-RIOBLAST/RIOSUITE pubblicata su ecosistema-vault)
+sempre DOPO un'unità primaria chiusa in modo stabile] — stato: COMPLETA
+(20/07: 5 schede su ecosistema-vault — Maxam, Orica, Maptek, Paradigm
+ri-verificato, sintesi con tabella e raccomandazioni per Genesi)
 Interrotta il 19/07 per esaurimento crediti (10 fatti non verificati su
 Paradigm nel checkpoint 2026-07-19_2000, da ri-verificare). Procedere a
 schede piccole: Maxam RioBlast/RIOSUITE → Orica ShotPlus → Maptek
@@ -141,7 +141,7 @@ ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-20_1030_ricerca-maptek.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-20_1100_ricerca-completa.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
