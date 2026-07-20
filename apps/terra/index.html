@@ -39,6 +39,14 @@
 <div class="page" id="page-fro">
   <div class="sec">Stato dei fronti</div>
   <div id="fro-list"></div>
+  <div class="sec">Nuovo fronte</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <input class="dw-input" id="fro-nome" placeholder="Nome (es. Fronte Ovest)" style="flex:2;min-width:140px;">
+    <input class="dw-input" id="fro-banco" placeholder="Banco" style="flex:1;min-width:80px;">
+    <input class="dw-input" id="fro-quota" type="number" placeholder="Quota m" style="flex:1;min-width:90px;">
+    <button class="dw-btn" id="btn-fro" style="width:auto;">Aggiungi</button>
+  </div>
+  <div class="note" id="fro-esito" style="text-align:left;"></div>
   <div class="note" style="text-align:left;">Tocca un fronte per sospenderlo o riattivarlo.</div>
 </div>
 
@@ -156,6 +164,17 @@
       if (nuovo === "sospeso" && !confirm("Sospendere il " + f.nome + "? Le lavorazioni sul fronte risulteranno ferme.")) return;
       await db.aggiorna("fronti", f.id, { stato: nuovo }); await refresh(); }
   });
+  $("btn-fro").onclick = async () => {
+    const nome = $("fro-nome").value.trim(), banco = $("fro-banco").value.trim(), quota = +$("fro-quota").value || 0;
+    if (!nome) { $("fro-nome").style.borderColor = "var(--danger)"; $("fro-esito").textContent = "Serve il nome del fronte."; return; }
+    if (FRO.some(f => f.nome.toLowerCase() === nome.toLowerCase())) {
+      $("fro-nome").style.borderColor = "var(--danger)"; $("fro-esito").textContent = "Esiste già un fronte con questo nome."; return; }
+    $("fro-nome").style.borderColor = "";
+    await db.aggiungi("fronti", { nome, banco, quota, dettaglio: "", avanzamento: 0, stato: "attivo" });
+    $("fro-nome").value = ""; $("fro-banco").value = ""; $("fro-quota").value = "";
+    $("fro-esito").textContent = "Fronte " + nome + " aggiunto (attivo).";
+    await refresh();
+  };
   $("btn-add-ril").onclick = async () => {
     const data = $("new-ril-data").value, vol = parseInt($("new-ril-vol").value, 10);
     const futuro = data && data > new Date().toISOString().slice(0,10);
