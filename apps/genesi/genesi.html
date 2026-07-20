@@ -2094,6 +2094,17 @@ function renderScheda2D(){
     why:'rock factor A=0,06·(RMD+JF+RDI+HF) (Lilly/Cunningham): '+_rk.nome+', UCS '+(D2.ucs||_rk.ucs)+' MPa, E '+(D2.eMod||_rk.eMod)+' GPa, fratturazione '+D2.frat+'. RDI '+_rf.RDI+', HF '+_rf.HF+', JF '+_rf.JF+'. '+(_A<=6?'roccia facile: frammenta bene con PF moderato.':(_A<=10?'brillabilità media: cura PF e timing per evitare oversize.':'roccia dura/massiccia: serve PF alto, Ø piccolo o esplosivo ad alta VOD.'))});
   rows.push({lab:'X50 prevista',valStr:Math.round(_x50)+' <span>cm</span>'+(_penE>0?' <span>↑bagnato</span>':''),cls:'sv-info',
     why:'frammentazione mediana (Kuz-Ram, '+_rk.nome+' A='+_A.toFixed(1)+' calcolato, RWS '+Math.round(_RWS)+(_penE>0?' effettiva, ridotta da fori bagnati':'')+'): roccia piu dura (A alto) o meno carica/RWS la rende piu grossolana.'});
+  /* === secondo modello: curva KCO/Swebrec (Ouchterlony 2005) — code più realistiche
+     del Rosin-Rammler perché il massello è limitato dal blocco in situ e dalla maglia === */
+  (function(){
+    const _blk={compatta:2.0, media:1.0, fratturata:0.4}[D2.frat]||1.0;      // blocco in situ tipico (m)
+    const _xmax=Math.max(_x50*1.2, Math.min(B, S, _blk)*100);                // cm, mai sotto x50
+    const _b=Math.max(1.5, 0.5*Math.pow(Math.max(1,_x50),0.25)*Math.log(_xmax/_x50));   // undulation (fit Swebrec)
+    const _at=(P)=>_xmax*Math.exp(-Math.log(_xmax/_x50)*Math.pow((1-P)/P,1/_b));
+    const _x80k=_at(0.8), _x20k=_at(0.2);
+    rows.push({lab:'Curva KCO (Swebrec)',valStr:Math.round(_x20k)+'/'+Math.round(_x80k)+' <span>cm x20/x80 · max '+Math.round(_xmax)+'</span>',cls:'sv-info',
+      why:'secondo modello di frammentazione (KCO/Swebrec, Ouchterlony 2005) con lo stesso X50 Kuz-Ram: il massello massimo è limitato dal blocco in situ ('+_blk.toFixed(1)+' m, roccia '+D2.frat+') e dalla maglia, quindi la coda grossolana è più realistica del Rosin-Rammler. Se x80 KCO e x80 Kuz-Ram divergono molto, fidati del più conservativo per il dimensionamento del frantoio.'});
+  })();
   /* === impedance matching roccia <-> esplosivo: frazione d'urto trasmessa all'interfaccia === */
   const _Ze=(_e.densita_gcc||0.82)*1000*(_e.vod_ms||3800), _Zr=_rk.rho*1000*_rk.vp;
   const _trans=1-Math.pow((_Zr-_Ze)/(_Zr+_Ze),2), _trPct=Math.round(_trans*100);
