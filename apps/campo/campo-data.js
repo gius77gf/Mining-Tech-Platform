@@ -52,6 +52,23 @@ export function parsePianoCsv(text) {
     .filter(p => p.foro > 0 && p.prog > 0);
 }
 
+// Ponte progettato-vs-reale (Genesi→Campo): scostamento della carica REALE
+// dal progetto, per foro. Funzioni pure e testabili — sono il cuore del
+// registro che il fochino usa per capire se ha caricato come previsto.
+// scartoPct: frazione |reale-prog|/prog (null se non ancora registrato).
+export function scartoPct(reale, prog) {
+  if (reale == null) return null;
+  return Math.abs(reale - prog) / (prog || 1);
+}
+// scartoLivello: classifica lo scostamento — ok ≤10%, warn ≤25%, oltre danger.
+export function scartoLivello(reale, prog) {
+  const s = scartoPct(reale, prog);
+  if (s == null) return "da-registrare";
+  if (s <= 0.10) return "ok";
+  if (s <= 0.25) return "warn";
+  return "danger";
+}
+
 export async function campoData() {
   let mode = "demo", api = null;
   try {

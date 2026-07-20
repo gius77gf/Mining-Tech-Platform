@@ -321,5 +321,19 @@ test("parsePianoCsv conserva testo/HTML nei campi liberi (l'escape è a valle)",
   eq(out[0].x, "<img src=x onerror=alert(1)>", "campo libero non alterato dal parser");
 });
 
+console.log("\n— Campo: scostamento progettato-vs-reale (ponte Genesi) —");
+test("scartoLivello classifica ai confini (10% ok, 25% warn, oltre danger)", () => {
+  eq(campo.scartoLivello(110, 100), "ok", "esatto 10% = ok");       // 0.10
+  eq(campo.scartoLivello(90, 100), "ok", "in difetto 10% = ok");
+  eq(campo.scartoLivello(125, 100), "warn", "esatto 25% = warn");   // 0.25
+  eq(campo.scartoLivello(126, 100), "danger", "oltre 25% = danger");// 0.26
+});
+test("scartoLivello: foro non ancora registrato = da-registrare (niente crash)", () => {
+  eq(campo.scartoLivello(null, 100), "da-registrare", "reale null");
+  eq(campo.scartoPct(null, 100), null, "scartoPct null se non registrato");
+});
+test("scartoPct: prog 0 non manda in crash (divisione protetta)", () =>
+  eq(Number.isFinite(campo.scartoPct(50, 0)), true, "prog 0 → numero finito"));
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
