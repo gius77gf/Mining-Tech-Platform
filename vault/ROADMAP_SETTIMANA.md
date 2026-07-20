@@ -141,7 +141,7 @@ ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-21_0430_sentinella-adempimenti-done.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-21_0500_flotta-nuovo-costo.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
