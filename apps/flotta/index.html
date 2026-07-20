@@ -107,7 +107,7 @@
 </script>
 
 <script type="module">
-  import { flottaData, urgenza, kpiFrom } from "./flotta-data.js";
+  import { flottaData, urgenza, urgenzaOre, kpiFrom } from "./flotta-data.js";
   import { mountExit, esc } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const MB = { operativo: ["ok","Operativo"], fermo: ["danger","Fermo"], verifica: ["warn","Verifica"] };
@@ -143,10 +143,7 @@
 
     const urgOre = (n) => {   // urgenza dal contatore ore del mezzo
       const m = MEZ.find(x => x.nome.split(" — ")[0] === n.mezzo); if (!m) return { cls:"ok", label:"a " + n.orePreviste + " h" };
-      const mancano = n.orePreviste - (m.ore||0);
-      if (mancano <= 0) return { cls:"danger", label:"SCADUTA (+" + (-mancano) + " h)" };
-      if (mancano <= 50) return { cls:"warn", label:"tra " + mancano + " h" };
-      return { cls:"ok", label:"tra " + mancano + " h" };
+      return urgenzaOre(n.orePreviste, m.ore);
     };
     const urgDi = (n) => n.orePreviste ? urgOre(n) : urgenza(n.dataPrevista);
     const alerts = [

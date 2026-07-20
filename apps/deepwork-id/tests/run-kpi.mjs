@@ -184,6 +184,15 @@ test("kpiFrom: carburante somma solo le voci col nome «carburante» (case-insen
   ];
   eq(flotta.kpiFrom([], [], costi).carburante, 8000, "5000 + 3000, il resto escluso");
 });
+test("urgenzaOre: tagliando a ore motore ai confini (scaduto/50h/oltre)", () => {
+  eq(flotta.urgenzaOre(500, 500).cls, "danger", "0 ore mancanti = scaduto");
+  eq(flotta.urgenzaOre(500, 520).cls, "danger", "già superato");
+  eq(flotta.urgenzaOre(500, 520).label, "SCADUTA (+20 h)", "quante ore oltre");
+  eq(flotta.urgenzaOre(500, 450).cls, "warn", "50 h mancanti = warn");   // confine 50
+  eq(flotta.urgenzaOre(500, 449).cls, "ok", "51 h mancanti = ok");
+});
+test("urgenzaOre: ore attuali mancanti trattate come 0 (niente crash)", () =>
+  eq(flotta.urgenzaOre(500, undefined).mancano, 500, "ore attuali assenti → 0"));
 
 console.log("\n— Campo: attività e squadre —");
 test("kpiFrom: squadre attive, in corso, rapportini, anomalie", () => {
