@@ -50,12 +50,18 @@ test("campo: id unici e stati coerenti", () => {
   idsOk(C.attivita, "attivita"); idsOk(C.squadre, "squadre"); idsOk(C.rapportini, "rapportini");
   for (const r of C.rapportini) ok(["inviato", "bozza"].includes(r.stato), `rapportino ${r.id}: stato ${r.stato}`);
   for (const q of C.squadre) ok(isNum(q.persone), `squadra ${q.id}: persone non numerico`);
+  const sq = new Set(C.squadre.map(s => s.nome.split(" — ")[0]));
+  for (const r of C.rapportini)
+    ok(r.squadra == null || sq.has(r.squadra.split(" — ")[0]), `rapportino ${r.id}: squadra «${r.squadra}» inesistente`);
 });
 
 test("flotta: id unici, date manutenzioni valide, costi numerici", () => {
   idsOk(F.mezzi, "mezzi"); idsOk(F.manutenzioni, "manutenzioni"); idsOk(F.costi, "costi");
   for (const n of F.manutenzioni) ok(isDate(n.dataPrevista), `manutenzione ${n.id}: data ${n.dataPrevista}`);
   for (const c of F.costi) ok(isNum(c.importo), `costo ${c.id}: importo non numerico`);
+  const mz = new Set(F.mezzi.map(m => m.nome.split(" — ")[0]));
+  for (const n of F.manutenzioni)
+    ok(n.mezzo == null || mz.has(n.mezzo.split(" — ")[0]), `manutenzione ${n.id}: mezzo «${n.mezzo}» inesistente`);
   for (const m of F.mezzi) ok(isNum(m.ore), `mezzo ${m.id}: ore non numerico`);
 });
 
