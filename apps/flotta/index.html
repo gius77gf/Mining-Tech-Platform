@@ -201,6 +201,7 @@
     await db.aggiungi("costi", { voce, importo, nota: $("cos-nota").value.trim() });
     $("cos-voce").value = ""; $("cos-importo").value = ""; $("cos-nota").value = "";
     $("cos-esito").textContent = "Costo registrato: " + voce + " (" + eur(importo) + ").";
+    $("cos-voce").focus();   // pronto per la prossima voce di costo
     await refresh();
   };
   $("btn-mez").onclick = async () => {
@@ -231,7 +232,7 @@
     }
     $("man-titolo").style.borderColor = "";
     await db.aggiungi("manutenzioni", { titolo, mezzo: $("man-mezzo").value, dataPrevista: dataPrevista || null, orePreviste });
-    $("man-titolo").value = ""; $("man-data").value = ""; $("man-ore").value = ""; await refresh();
+    $("man-titolo").value = ""; $("man-data").value = ""; $("man-ore").value = ""; $("man-titolo").focus(); await refresh();
   };
   // Recupero errore: appena l'utente corregge un campo, togli il bordo
   // rosso e il messaggio di esito, così l'avviso non resta appeso.

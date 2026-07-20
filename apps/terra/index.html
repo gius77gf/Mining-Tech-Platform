@@ -217,7 +217,7 @@
       await db.aggiungi("rilievi", { titolo: "Rilievo drone " + dmy(data) + (fr ? " — " + fr.nome : ""), data, tipo: "Ortofoto + DEM", volumeM3: vol, fronteId, stato: "elaborato" });
       $("ril-esito").textContent = "Rilievo del " + dmy(data) + " registrato: " + vol.toLocaleString("it-IT") + " m³" + (fr ? " su " + fr.nome : "") + " (KPI aggiornati).";
     }
-    $("new-ril-data").value = ""; $("new-ril-vol").value = ""; await refresh();
+    $("new-ril-data").value = ""; $("new-ril-vol").value = ""; $("new-ril-data").focus(); await refresh();
   };
   // Recupero errore: appena l'utente corregge un campo, togli il bordo
   // rosso e il messaggio di esito, così l'avviso non resta appeso.
