@@ -49,6 +49,7 @@
   </div>
   <div style="margin-top:10px;display:flex;align-items:center;gap:10px;">
     <button class="dw-btn secondary" id="btn-import-csv" style="width:auto;">Importa da CSV</button>
+    <button class="dw-btn secondary" id="btn-export-csv" style="width:auto;">Esporta CSV</button>
     <input type="file" id="csv-file" accept=".csv,text/csv" style="display:none;">
     <span class="dw-muted" style="font-size:12px;">colonne: nome; ruolo; telefono (una riga per persona)</span>
   </div>
@@ -192,6 +193,22 @@
     $("new-nome").value = ""; $("new-ruolo").value = ""; await refresh();
   };
   $("btn-import-csv").onclick = () => $("csv-file").click();
+  $("btn-export-csv").onclick = () => {
+    // backup/condivisione (es. consulente del lavoro): lavoratori con le
+    // rispettive scadenze e lo stato CALCOLATO alla data odierna
+    let csv = "nome;ruolo;telefono;scadenza;data;stato\n";
+    for (const l of LAV) {
+      const sc = SCA.filter(s => s.lavoratoreId === l.id);
+      if (!sc.length) csv += `${l.nome};${l.ruolo||""};${l.tel||""};;;\n`;
+      for (const s of sc) csv += `${l.nome};${l.ruolo||""};${l.tel||""};${s.descrizione};${s.dataScadenza};${statoScadenza(s.dataScadenza)}\n`;
+    }
+    for (const s of SCA.filter(x => !x.lavoratoreId))
+      csv += `AZIENDA;;;${s.descrizione};${s.dataScadenza};${statoScadenza(s.dataScadenza)}\n`;
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.download = "scudo_personale_scadenze.csv"; a.click();
+    $("import-esito").textContent = "Esportati " + LAV.length + " lavoratori e " + SCA.length + " scadenze (CSV).";
+  };
   $("csv-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const testo = await file.text();
