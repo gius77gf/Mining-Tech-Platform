@@ -148,7 +148,8 @@
 
     $("rap-list").innerHTML = RAP.map(r => `<div class="item" data-rap="${r.id}" ${r.stato==="bozza"?'style="cursor:pointer" title="Tocca per inviare"':''}>
       <div class="info"><div class="name">${r.titolo}</div><div class="meta">${r.squadra||"—"}${r.ora?" · "+r.ora:""}</div></div>
-      <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span></div>`).join("");
+      <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${r.stato==="bozza"?`<span class="arr" style="cursor:pointer" title="Elimina bozza" data-del-rap="${r.id}">✕</span>`:""}</div>`).join("")
+      || '<div class="note" style="text-align:left;">Nessun rapportino oggi.</div>';
 
     $("new-rap-squadra").innerHTML = SQU.map(q => `<option>${q.nome.split(" — ")[0]}</option>`).join("");
   }
@@ -164,6 +165,9 @@
       if (q) { const nuovo = q.stato === "operativa" ? "ferma" : "operativa";
         if (nuovo === "ferma" && !confirm("Fermare la " + q.nome + "? Il KPI squadre attive scenderà.")) return;
         await db.aggiorna("squadre", q.id, { stato: nuovo }); await refresh(); } return; }
+    const delRap = e.target.getAttribute && e.target.getAttribute("data-del-rap");
+    if (delRap) { const r = RAP.find(x => x.id === delRap);
+      if (r && confirm("Eliminare la bozza «" + r.titolo + "»?")) { await db.rimuovi("rapportini", delRap); await refresh(); } return; }
     const rp = e.target.closest && e.target.closest("[data-rap]");
     if (rp) { const r = RAP.find(x => x.id === rp.getAttribute("data-rap"));
       if (r && r.stato === "bozza") { const ora = new Date().toTimeString().slice(0,5);
