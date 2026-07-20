@@ -242,6 +242,14 @@
   clearErr("mez-nome", "ore-esito");
   clearErr("ore-nuove", "ore-esito");
   clearErr("man-titolo", "ore-esito");
+  // Invio da tastiera: premere Invio in un campo del form equivale a
+  // toccare il pulsante — data entry più rapida senza spostare il dito.
+  const enterSubmit = (inputIds, btnId) => inputIds.forEach(id =>
+    $(id).addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $(btnId).click(); } }));
+  enterSubmit(["cos-voce", "cos-importo", "cos-nota"], "btn-cos");
+  enterSubmit(["mez-nome", "mez-area", "mez-ore"], "btn-mez");
+  enterSubmit(["ore-nuove"], "btn-ore");
+  enterSubmit(["man-titolo", "man-ore"], "btn-man");
   await refresh();
 </script>
 </body>
