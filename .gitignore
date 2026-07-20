@@ -1,3 +1,5 @@
 node_modules/
 *.log
 firestore-debug.log
+*serviceAccount*.json
+*-firebase-adminsdk-*.json
