@@ -135,6 +135,10 @@ await test("un membro NON modifica un invito dal client (no tampering ruolo)", (
   assertFails(setDoc(doc(alice, "invites/invA1"), { role: "owner" }, { merge: true })));
 await test("un membro NON cancella un invito dal client", () =>
   assertFails(deleteDoc(doc(alice, "invites/invA1"))));
+await test("il concorrente NON cancella un invito di orgA", () =>
+  assertFails(deleteDoc(doc(eve, "invites/invA1"))));
+await test("il concorrente NON manomette un invito di orgA (no dirottamento)", () =>
+  assertFails(setDoc(doc(eve, "invites/invA1"), { email: "eve@concorrente.it" }, { merge: true })));
 
 console.log("\n— Profili utente —");
 await test("utente legge il PROPRIO profilo", async () => {
