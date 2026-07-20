@@ -213,7 +213,8 @@
     const ds = e.target.getAttribute && e.target.getAttribute("data-del-scad");
     if (dl) { const l = LAV.find(x => x.id === dl);
       if (confirm("Rimuovere " + (l ? l.nome : "questo lavoratore") + "? Le sue scadenze restano in elenco come aziendali.")) { await db.rimuovi("lavoratori", dl); await refresh(); } }
-    if (ds) { await db.rimuovi("scadenze", ds); await refresh(); }
+    if (ds) { const sc = SCA.find(x => x.id === ds);
+      if (confirm("Rimuovere la scadenza «" + (sc ? sc.descrizione : "selezionata") + "»?")) { await db.rimuovi("scadenze", ds); await refresh(); } }
   });
   $("btn-add-pers").onclick = async () => {
     const nome = $("new-nome").value.trim();
