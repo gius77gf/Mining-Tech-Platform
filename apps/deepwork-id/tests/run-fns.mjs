@@ -168,6 +168,20 @@ await test("un invito SCADUTO non dà membership e viene marcato 'expired'", asy
   const inv = (await adb.doc("invites/oldInv").get()).data();
   expect(inv.status === "expired", `stato invito ${inv.status}`);
 });
+await test("un invito NON è riscattabile da un'email diversa (isolamento inviti)", async () => {
+  const { Timestamp } = await import("firebase-admin/firestore");
+  await aauth.createUser({ uid: "estraneo", email: "estraneo@studio.it", password: "password-123" });
+  // invito destinato a un ALTRO indirizzo
+  await adb.collection("invites").doc("altrui").set({
+    email: "vittima@studio.it", orgId: "orgA", role: "member", status: "pending",
+    expiresAt: Timestamp.fromMillis(Date.now() + 7 * 86400000) });
+  await id.loginWithEmail("estraneo@studio.it", "password-123");
+  const accepted = await id.redeemInvites();
+  expect(!accepted.includes("orgA"), "invito altrui riscattato!");
+  expect(await roleOf("estraneo") === null, "membership creata da invito altrui!");
+  const inv = (await adb.doc("invites/altrui").get()).data();
+  expect(inv.status === "pending", `l'invito altrui è stato toccato: ${inv.status}`);
+});
 
 console.log("\n— Validazioni input (invito / nome org) —");
 await test("inviteMember rifiuta un'email non valida", async () => {
