@@ -1327,8 +1327,8 @@ function initRapp(){
   $('r-data').value=today();
   $('r-oi').value='';$('r-of').value='';
   const caveDisp=DB.cave.filter(c=>can('ufficio')||(state.user.cave&&state.user.cave.includes(c.id)));
-  $('r-cava').innerHTML=caveDisp.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
-  $('r-mezzo').innerHTML='<option value="">— nessuno —</option>'+DB.mezziLav.map(m=>`<option value="${m.id}">${m.modello} (${m.targa})</option>`).join('');
+  $('r-cava').innerHTML=caveDisp.map(c=>`<option value="${c.id}">${escHtml(`${c.nome}`)}</option>`).join('');
+  $('r-mezzo').innerHTML='<option value="">— nessuno —</option>'+DB.mezziLav.map(m=>`<option value="${m.id}">${escHtml(`${m.modello} (${m.targa})`)}</option>`).join('');
   // Personale: sezione nascosta di default
   $('r-personale').innerHTML=DB.personale.map(p=>`<span class="chip" data-pid="${p.id}" onclick="togglePers(this)">${escHtml(p.nome)} ${escHtml(p.cognome)}</span>`).join('');
   $('r-pers-section').style.display='none';
@@ -1475,7 +1475,7 @@ function previewRapp(){
       ${$('r-oi').value||$('r-of').value?`<div class="preview-row"><span class="preview-lab">Orario</span><span class="preview-val">${$('r-oi').value||'—'} → ${$('r-of').value||'—'}</span></div>`:''}
       ${$('r-d').value?`<div class="preview-row"><span class="preview-lab">Diametro</span><span class="preview-val">${$('r-d').value} mm</span></div>`:''}
       ${$('r-m').value?`<div class="preview-row"><span class="preview-lab">Maglia</span><span class="preview-val">${$('r-m').value}</span></div>`:''}
-      ${mezzo?`<div class="preview-row"><span class="preview-lab">Mezzo</span><span class="preview-val">${mezzo.modello}</span></div>`:''}
+      ${mezzo?`<div class="preview-row"><span class="preview-lab">Mezzo</span><span class="preview-val">${escHtml(mezzo.modello)}</span></div>`:''}
       ${persSel.length?`<div class="preview-row"><span class="preview-lab">Personale</span><span class="preview-val">${persSel.join(', ')}</span></div>`:''}
       ${volata?`<div class="preview-row"><span class="preview-lab">Progetto volata</span><span class="preview-val">Volata #${volata.numero} · ${fmt(volata.data)}</span></div>`:''}
     </div>
@@ -1500,7 +1500,7 @@ function markUnsavedFoc(){if(!state.unsavedFoc){state.unsavedFoc=true;$('rf-unsa
 function initRappFoc(){
   $('rf-data').value=today();
   const caveDisp=DB.cave.filter(c=>can('ufficio')||(state.user.cave&&state.user.cave.includes(c.id)));
-  $('rf-cava').innerHTML=caveDisp.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+  $('rf-cava').innerHTML=caveDisp.map(c=>`<option value="${c.id}">${escHtml(`${c.nome}`)}</option>`).join('');
   $('rf-oi').value='';$('rf-of').value='';$('rf-note').value='';
   if($('rf-reso'))$('rf-reso').value='';
   // Reset fori fochino
@@ -1706,7 +1706,7 @@ function apriCava(id){
     ${mapHtml}
     <div class="preview-sec">
       ${clienteRow}
-      <div class="preview-row"><span class="preview-lab">Indirizzo</span><span class="preview-val">${c.indirizzo||'—'}</span></div>
+      <div class="preview-row"><span class="preview-lab">Indirizzo</span><span class="preview-val">${escHtml(c.indirizzo||'—')}</span></div>
       ${c.tel?`<div class="preview-row"><span class="preview-lab">Telefono</span><span class="preview-val"><a href="tel:${c.tel.replace(/\s/g,'')}" style="color:var(--amber);">${c.tel}</a></span></div>`:''}
       <div class="preview-row"><span class="preview-lab">GPS</span><span class="preview-val">${c.lat?c.lat.toFixed(4)+', '+c.lon.toFixed(4):'—'}</span></div>
     </div>
@@ -1719,7 +1719,7 @@ function apriCava(id){
     ${volateOggiHtml}
     <div class="stats" style="margin-top:10px;"><div class="stat"><div class="sl">Mc totali</div><div class="sv">${totMc.toFixed(1)}</div></div><div class="stat"><div class="sl">Rapportini</div><div class="sv">${DB.rapportini.filter(r=>r.cavaId===id).length}</div></div></div>
     ${chartHtml}
-    ${c.note?`<div class="preview-sec" style="margin-top:10px;"><div class="preview-head">Note</div><div style="font-size:13px;">${c.note}</div></div>`:''}
+    ${c.note?`<div class="preview-sec" style="margin-top:10px;"><div class="preview-head">Note</div><div style="font-size:13px;">${escHtml(c.note)}</div></div>`:''}
     <div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Volate progettate <span class="scad-badge ok" style="margin-left:6px;">F1 nuovo</span></div>
     ${(()=>{const vols=DB.volate.filter(v=>v.cavaId===id);
       return vols.length?
@@ -1784,14 +1784,14 @@ function apriRapport(id){
       ${r.oi||r.of?`<div class="preview-row"><span class="preview-lab">Orario</span><span class="preview-val">${r.oi||'—'} → ${r.of||'—'}</span></div>`:''}
       ${r.diametro?`<div class="preview-row"><span class="preview-lab">Diametro</span><span class="preview-val">${r.diametro} mm</span></div>`:''}
       ${r.maglia?`<div class="preview-row"><span class="preview-lab">Maglia</span><span class="preview-val">${r.maglia}</span></div>`:''}
-      ${m?`<div class="preview-row"><span class="preview-lab">Mezzo</span><span class="preview-val">${m.modello}</span></div>`:''}
+      ${m?`<div class="preview-row"><span class="preview-lab">Mezzo</span><span class="preview-val">${escHtml(m.modello)}</span></div>`:''}
       ${r.fori?`<div class="preview-row"><span class="preview-lab">Fori</span><span class="preview-val">${r.fori}${r.fori_fila2>0?' ('+r.fori_fila1+'+'+r.fori_fila2+')':''}</span></div>`:''}
       ${r.metri?`<div class="preview-row"><span class="preview-lab">Metri</span><span class="preview-val">${r.metri}</span></div>`:''}
       ${r.media_prof?`<div class="preview-row"><span class="preview-lab">Media prof.</span><span class="preview-val">${r.media_prof} m</span></div>`:''}
       ${r.mc?`<div class="preview-row"><span class="preview-lab">Mc in ballo</span><span class="preview-val">${r.mc}</span></div>`:''}
       ${volata?`<div class="preview-row"><span class="preview-lab">Progetto volata</span><span class="preview-val"><a onclick="closeModal();apriEditorCava('${volata.id}')" style="color:var(--amber);cursor:pointer;">Volata #${volata.numero} · ${fmt(volata.data)}</a></span></div>`:''}
     </div>
-    ${r.note?`<div class="preview-sec"><div class="preview-head">Note</div><div style="font-size:13px;">${r.note}</div></div>`:''}
+    ${r.note?`<div class="preview-sec"><div class="preview-head">Note</div><div style="font-size:13px;">${escHtml(r.note)}</div></div>`:''}
   `,[
     {label:'📄 PDF',cls:'mbtn',action:()=>{closeModal();exportRapportinoPDF(r);}},
     ...(puoModificare?[{label:'✎ Modifica',cls:'mbtn',action:()=>{closeModal();apriRappModifica(id);}}]:[]),
@@ -1938,7 +1938,7 @@ async function inviaRapp(){
 }
 function openCavaForm(){
   state.cavaEditId=null;
-  const cliOpts='<option value="">— nessuno —</option>'+DB.clienti.map(c=>`<option value="${c.id}">${c.ragsoc}</option>`).join('');
+  const cliOpts='<option value="">— nessuno —</option>'+DB.clienti.map(c=>`<option value="${c.id}">${escHtml(`${c.ragsoc}`)}</option>`).join('');
   openModal('Nuova cava',`
     <label class="fl">Nome *</label><input type="text" class="finput" id="cf-nome">
     <label class="fl">Indirizzo</label><input type="text" class="finput" id="cf-ind">
@@ -1950,13 +1950,13 @@ function openCavaForm(){
 }
 function openCavaEdit(){
   const c=DB.cave.find(x=>x.id===state.cavaSel);if(!c)return;state.cavaEditId=c.id;
-  const cliOpts='<option value="">— nessuno —</option>'+DB.clienti.map(x=>`<option value="${x.id}" ${c.clienteId===x.id?'selected':''}>${x.ragsoc}</option>`).join('');
+  const cliOpts='<option value="">— nessuno —</option>'+DB.clienti.map(x=>`<option value="${x.id}" ${c.clienteId===x.id?'selected':''}>${escHtml(`${x.ragsoc}`)}</option>`).join('');
   openModal('Modifica cava',`
-    <label class="fl">Nome *</label><input type="text" class="finput" id="cf-nome" value="${c.nome||''}">
-    <label class="fl">Indirizzo</label><input type="text" class="finput" id="cf-ind" value="${c.indirizzo||''}">
+    <label class="fl">Nome *</label><input type="text" class="finput" id="cf-nome" value="${escHtml(c.nome||'')}">
+    <label class="fl">Indirizzo</label><input type="text" class="finput" id="cf-ind" value="${escHtml(c.indirizzo||'')}">
     <label class="fl">Cliente</label><select class="finput" id="cf-cli-id">${cliOpts}</select>
     <div class="frow"><div><label class="fl">Lat GPS</label><input type="number" inputmode="decimal" step="0.0001" class="finput" id="cf-lat" value="${c.lat||''}"></div><div><label class="fl">Lon GPS</label><input type="number" inputmode="decimal" step="0.0001" class="finput" id="cf-lon" value="${c.lon||''}"></div></div>
-    <label class="fl">Telefono</label><input type="tel" class="finput" id="cf-tel" value="${c.tel||''}">
+    <label class="fl">Telefono</label><input type="tel" class="finput" id="cf-tel" value="${escHtml(c.tel||'')}">
     <label class="fl">Note</label><textarea class="finput" id="cf-note" rows="2">${c.note||''}</textarea>
   `,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:(e)=>withLock('salvaCava',e.target,salvaCava)}]);
 }
@@ -1993,8 +1993,8 @@ function renderVolate(){
   const ruolo=state.user?.ruolo;
   const isOp=ruolo==='operatore';
   const mode=state.volateMode||'perf'; // 'foc' = volate fochino, 'perf' = storico perforazione
-  const cavaOpts='<option value="">Tutte le cave</option>'+DB.cave.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
-  const userOpts='<option value="">Tutti</option>'+DB.users.map(u=>`<option value="${u.id}">${u.nome} ${u.cognome}</option>`).join('');
+  const cavaOpts='<option value="">Tutte le cave</option>'+DB.cave.map(c=>`<option value="${c.id}">${escHtml(`${c.nome}`)}</option>`).join('');
+  const userOpts='<option value="">Tutti</option>'+DB.users.map(u=>`<option value="${u.id}">${escHtml(`${u.nome} ${u.cognome}`)}</option>`).join('');
   if($('vf-cava'))$('vf-cava').innerHTML=cavaOpts;
   if($('vf-user'))$('vf-user').innerHTML=userOpts;
   if(isOp){ state.filtriVolate.userId=state.user.id; if($('vf-user'))$('vf-user').disabled=true; }
@@ -2059,7 +2059,7 @@ function apriRappFocDett(id){
       <div class="preview-row"><span class="preview-lab">Esplosivo tot.</span><span class="preview-val">${(r.tot_kg||0).toFixed(1)} kg</span></div>
     </div>
     ${foriRows?`<div class="preview-sec">${foriRows}</div>`:''}
-    ${r.note?`<div class="preview-sec"><div class="preview-head">Note</div><div style="font-size:13px;">${r.note}</div></div>`:''}
+    ${r.note?`<div class="preview-sec"><div class="preview-head">Note</div><div style="font-size:13px;">${escHtml(r.note)}</div></div>`:''}
   `,[{label:'📄 PDF',cls:'mbtn',action:()=>{closeModal();exportRapportinoFocPDF(r);}},{label:'Chiudi',cls:'mbtn primary',action:closeModal}]);
 }
 
@@ -2087,8 +2087,8 @@ function _sismoAssocHtml(){
 function openSismoForm(){ state._tempSismo={data:today(),volataRef:'',cavaId:'',files:[],note:''}; renderSismoModal(); }
 function renderSismoModal(){
   const s=state._tempSismo;if(!s)return;
-  const cavaOpts='<option value="">— nessuna —</option>'+DB.cave.map(c=>`<option value="${c.id}" ${s.cavaId===c.id?'selected':''}>${c.nome}</option>`).join('');
-  const files=(s.files||[]).map((f,i)=>`<div class="sitem"><div class="av av-mz">${/pdf/i.test(f.formato)?'📄':(/(jpg|jpeg|png|tif)/i.test(f.formato)?'🖼️':'📈')}</div><div class="sinfo"><div class="sname">${f.nome}</div><div class="ssub">${f.formato}</div></div><div class="sarr" onclick="event.stopPropagation();rimuoviSismoFile(${i})">✕</div></div>`).join('');
+  const cavaOpts='<option value="">— nessuna —</option>'+DB.cave.map(c=>`<option value="${c.id}" ${s.cavaId===c.id?'selected':''}>${escHtml(`${c.nome}`)}</option>`).join('');
+  const files=(s.files||[]).map((f,i)=>`<div class="sitem"><div class="av av-mz">${/pdf/i.test(f.formato)?'📄':(/(jpg|jpeg|png|tif)/i.test(f.formato)?'🖼️':'📈')}</div><div class="sinfo"><div class="sname">${escHtml(f.nome)}</div><div class="ssub">${f.formato}</div></div><div class="sarr" onclick="event.stopPropagation();rimuoviSismoFile(${i})">✕</div></div>`).join('');
   openModal('〰️ Nuovo sismogramma',`
     <div class="frow"><div><label class="fl">Data</label><input type="date" class="finput" id="sm-data" value="${s.data||today()}" onchange="window._sismoRecalc()"></div>
     <div><label class="fl">Cava / cantiere</label><select class="finput" id="sm-cava" onchange="window._sismoRecalc()">${cavaOpts}</select></div></div>
@@ -2138,7 +2138,7 @@ async function salvaSismo(){
 }
 function apriSismoDett(id){
   const s=(DB.sismogrammi||[]).find(x=>x.id===id);if(!s)return;const c=DB.cave.find(x=>x.id===s.cavaId);const canDel=can('editCava');
-  const files=(s.files||[]).map(f=>`<div class="sitem" onclick="window.open('${f.url}','_blank')"><div class="av av-mz">${/PDF/i.test(f.formato)?'📄':(/(JPG|JPEG|PNG|TIF)/i.test(f.formato)?'🖼️':'📈')}</div><div class="sinfo"><div class="sname">${f.nome}</div><div class="ssub">${f.formato} · apri</div></div><div class="sarr">↗</div></div>`).join('');
+  const files=(s.files||[]).map(f=>`<div class="sitem" onclick="window.open('${f.url}','_blank')"><div class="av av-mz">${/PDF/i.test(f.formato)?'📄':(/(JPG|JPEG|PNG|TIF)/i.test(f.formato)?'🖼️':'📈')}</div><div class="sinfo"><div class="sname">${escHtml(f.nome)}</div><div class="ssub">${f.formato} · apri</div></div><div class="sarr">↗</div></div>`).join('');
   openModal('〰️ Sismogramma '+fmt(s.data),`
     <div class="preview-sec">
       <div class="preview-row"><span class="preview-lab">Data</span><span class="preview-val">${fmt(s.data)}</span></div>
@@ -2146,7 +2146,7 @@ function apriSismoDett(id){
     </div>
     <div class="sec-title" style="margin-top:10px;"><span class="dot"></span>File</div>
     ${files||'<div class="empty-state" style="padding:12px;"><div class="empty-sub">Nessun file</div></div>'}
-    ${s.note?`<div class="preview-sec" style="margin-top:10px;"><div class="preview-head">Note parametri</div><div style="font-size:13px;">${s.note}</div></div>`:''}
+    ${s.note?`<div class="preview-sec" style="margin-top:10px;"><div class="preview-head">Note parametri</div><div style="font-size:13px;">${escHtml(s.note)}</div></div>`:''}
   `,[...(canDel?[{label:'Elimina',cls:'mbtn danger',action:()=>delSismo(id)}]:[]),{label:'Chiudi',cls:'mbtn primary',action:closeModal}]);
 }
 function delSismo(id){fbDelete('sismogrammi',id).finally(()=>{closeModal();toast('Eliminato','success');renderSismogrammi();});}
@@ -2193,10 +2193,10 @@ function renderMacLavoro(){
     const ultimoRapp=DB.rapportini.filter(r=>r.mezzoId===m.id).sort((a,b)=>(b.data||'').localeCompare(a.data||''))[0];
     const assegn=ultimoRapp?DB.users.find(u=>u.id===ultimoRapp.userId):null;
     return`<div class="sitem" onclick="apriMacLavoro('${m.id}')">
-      <div class="photo-avatar-sm">${m.foto?`<img src="${m.foto}">`:'<span style="font-size:16px;">🚜</span>'}</div>
+      <div class="photo-avatar-sm">${m.foto?`<img src="${encodeURI(m.foto)}">`:'<span style="font-size:16px;">🚜</span>'}</div>
       <div class="sinfo">
-        <div class="sname">${m.modello}</div>
-        <div class="ssub">${m.targa} · ${m.oreAttuali} ore · ${c?c.nome:'—'}${assegn?' · 👤 '+assegn.nome+' '+assegn.cognome:''}</div>
+        <div class="sname">${escHtml(m.modello)}</div>
+        <div class="ssub">${escHtml(m.targa)} · ${m.oreAttuali} ore · ${c?c.nome:'—'}${assegn?' · 👤 '+assegn.nome+' '+assegn.cognome:''}</div>
       </div>
       <div class="sarr">›</div>
     </div>`;
@@ -2204,7 +2204,7 @@ function renderMacLavoro(){
 }
 function renderMacStrada(){
   if(DB.mezziStr.length===0){$('mac-strada-list').innerHTML='<div class="empty-state"><div class="empty-icon">🚛</div><div class="empty-title">Nessun mezzo da strada</div></div>';return;}
-  $('mac-strada-list').innerHTML=DB.mezziStr.map(m=>{const scad=Object.entries(m.scadenze||{}).filter(([k,v])=>v).map(([k,v])=>({k,v,d:daysBetween(today(),v)}));const prox=[...scad].sort((a,b)=>a.d-b.d)[0];let badge='',cls='';if(prox){if(prox.d<0){badge=`<span class="scad-badge danger">${prox.k} scaduta</span>`;cls='danger';}else if(prox.d<=30){badge=`<span class="scad-badge warn">${prox.k} in ${prox.d}g</span>`;cls='warn';}else badge=`<span class="scad-badge ok">OK</span>`;}return`<div class="sitem ${cls}" onclick="apriMezzoStr('${m.id}')"><div class="photo-avatar-sm">${m.foto?`<img src="${m.foto}">`:'<span style="font-size:16px;">🚛</span>'}</div><div class="sinfo"><div class="sname">${m.marca} ${m.modello} ${badge}</div><div class="ssub">${m.targa} · ${m.km||0} km</div></div><div class="sarr">›</div></div>`;}).join('');
+  $('mac-strada-list').innerHTML=DB.mezziStr.map(m=>{const scad=Object.entries(m.scadenze||{}).filter(([k,v])=>v).map(([k,v])=>({k,v,d:daysBetween(today(),v)}));const prox=[...scad].sort((a,b)=>a.d-b.d)[0];let badge='',cls='';if(prox){if(prox.d<0){badge=`<span class="scad-badge danger">${prox.k} scaduta</span>`;cls='danger';}else if(prox.d<=30){badge=`<span class="scad-badge warn">${prox.k} in ${prox.d}g</span>`;cls='warn';}else badge=`<span class="scad-badge ok">OK</span>`;}return`<div class="sitem ${cls}" onclick="apriMezzoStr('${m.id}')"><div class="photo-avatar-sm">${m.foto?`<img src="${encodeURI(m.foto)}">`:'<span style="font-size:16px;">🚛</span>'}</div><div class="sinfo"><div class="sname">${escHtml(m.marca)} ${escHtml(m.modello)} ${badge}</div><div class="ssub">${escHtml(m.targa)} · ${m.km||0} km</div></div><div class="sarr">›</div></div>`;}).join('');
 }
 function apriMacLavoro(id){
   state.macSel=id;state.macDetKind='lav';const m=DB.mezziLav.find(x=>x.id===id);if(!m)return;
@@ -2212,16 +2212,16 @@ function apriMacLavoro(id){
   const c=DB.cave.find(x=>x.id===m.cavaId);const rappLink=DB.rapportini.filter(r=>r.mezzoId===id).slice(-5).reverse();const canEdit=can('editMac');
   $('mac-det-body').innerHTML=`
     <div class="photo-hero ${canEdit?'editable':''}" onclick="${canEdit?`uploadMacLavFoto('${id}')`:''}">
-      ${m.foto?`<img src="${m.foto}">`:'<span class="photo-hero-placeholder">🚜</span>'}
+      ${m.foto?`<img src="${encodeURI(m.foto)}">`:'<span class="photo-hero-placeholder">🚜</span>'}
     </div>
     <div class="preview-sec">
-      <div class="preview-row"><span class="preview-lab">Targa</span><span class="preview-val">${m.targa}</span></div>
+      <div class="preview-row"><span class="preview-lab">Targa</span><span class="preview-val">${escHtml(m.targa)}</span></div>
       <div class="preview-row"><span class="preview-lab">Anno</span><span class="preview-val">${m.anno}</span></div>
       <div class="preview-row"><span class="preview-lab">Ore iniziali</span><span class="preview-val">${m.oreIniziali}</span></div>
       <div class="preview-row"><span class="preview-lab">Ore attuali</span><span class="preview-val">${m.oreAttuali}</span></div>
       <div class="preview-row"><span class="preview-lab">Cava</span><span class="preview-val">${c?c.nome:'—'}</span></div>
     </div>
-    ${m.note?`<div class="preview-sec"><div class="preview-head">Note</div><div style="font-size:13px;">${m.note}</div></div>`:''}
+    ${m.note?`<div class="preview-sec"><div class="preview-head">Note</div><div style="font-size:13px;">${escHtml(m.note)}</div></div>`:''}
     <div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Rapportini collegati</div>
     ${rappLink.length?rappLink.map(r=>{const cv=DB.cave.find(x=>x.id===r.cavaId);return`<div class="sitem" onclick="apriRapport('${r.id}')"><div class="av av-op">RP</div><div class="sinfo"><div class="sname">${cv?cv.nome:'—'} · ${fmt(r.data)}</div><div class="ssub">${r.fori} fori · ${(r.mc||0).toFixed(1)} mc</div></div><div class="sarr">›</div></div>`;}).join(''):'<div class="empty-state" style="padding:16px;"><div class="empty-sub">Nessun rapportino</div></div>'}
     ${macGestTabsHtml()}
@@ -2236,11 +2236,11 @@ function apriMezzoStr(id){
   const totRip=(m.riparazioni||[]).reduce((s,r)=>s+(r.costo||0),0);
   $('mezzo-det-body').innerHTML=`
     <div class="photo-hero ${canEdit?'editable':''}" onclick="${canEdit?`uploadMezzoStrFoto('${id}')`:''}">
-      ${m.foto?`<img src="${m.foto}">`:'<span class="photo-hero-placeholder">🚛</span>'}
+      ${m.foto?`<img src="${encodeURI(m.foto)}">`:'<span class="photo-hero-placeholder">🚛</span>'}
     </div>
     <div class="preview-sec">
-      <div class="preview-row"><span class="preview-lab">Targa</span><span class="preview-val">${m.targa}</span></div>
-      <div class="preview-row"><span class="preview-lab">Marca/Modello</span><span class="preview-val">${m.marca} ${m.modello}</span></div>
+      <div class="preview-row"><span class="preview-lab">Targa</span><span class="preview-val">${escHtml(m.targa)}</span></div>
+      <div class="preview-row"><span class="preview-lab">Marca/Modello</span><span class="preview-val">${escHtml(m.marca)} ${escHtml(m.modello)}</span></div>
       <div class="preview-row"><span class="preview-lab">Anno</span><span class="preview-val">${m.anno}</span></div>
       <div class="preview-row"><span class="preview-lab">Km</span><span class="preview-val">${m.km||0}</span></div>
     </div>
@@ -2249,7 +2249,7 @@ function apriMezzoStr(id){
     <div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Riparazioni ${totRip>0?`<span style="color:var(--amber);font-weight:700;margin-left:auto;">Totale €${totRip.toFixed(2)}</span>`:''}</div>
     ${ripHtml||'<div class="empty-state" style="padding:16px;"><div class="empty-sub">Nessuna riparazione</div></div>'}
     ${can('editMac')?`<button class="chg" style="margin-top:10px;" onclick="openRipForm('${id}')">+ Aggiungi riparazione</button>`:''}
-    ${m.note?`<div class="preview-sec" style="margin-top:16px;"><div class="preview-head">Note</div><div style="font-size:13px;">${m.note}</div></div>`:''}
+    ${m.note?`<div class="preview-sec" style="margin-top:16px;"><div class="preview-head">Note</div><div style="font-size:13px;">${escHtml(m.note)}</div></div>`:''}
     ${macGestTabsHtml()}
     ${can('delMac')?`<button class="btn-sv" style="margin-top:16px;background:linear-gradient(135deg,#ef5350,#c62828);" onclick="confermaDelMezzoStr('${id}')">ELIMINA MEZZO</button>`:''}
   `;nav('mezzo-det');macGestRender();
@@ -2257,7 +2257,7 @@ function apriMezzoStr(id){
 function openMacForm(){
   state.macEditId=null;state.mezzoEditId=null;const tab=state.macTabAttivo;
   if(tab==='lavoro'){
-    const cavaOpts=DB.cave.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+    const cavaOpts=DB.cave.map(c=>`<option value="${c.id}">${escHtml(`${c.nome}`)}</option>`).join('');
     openModal('Nuovo mezzo da lavoro',`
       <label class="fl">Modello *</label><input type="text" class="finput" id="mf-mod">
       <label class="fl">Targa *</label><input type="text" class="finput" id="mf-tar">
@@ -2279,10 +2279,10 @@ function openMacForm(){
 }
 function openMacEdit(){
   const m=DB.mezziLav.find(x=>x.id===state.macSel);if(!m)return;state.macEditId=m.id;
-  const cavaOpts=DB.cave.map(c=>`<option value="${c.id}" ${c.id===m.cavaId?'selected':''}>${c.nome}</option>`).join('');
+  const cavaOpts=DB.cave.map(c=>`<option value="${c.id}" ${c.id===m.cavaId?'selected':''}>${escHtml(`${c.nome}`)}</option>`).join('');
   openModal('Modifica mezzo da lavoro',`
-    <label class="fl">Modello *</label><input type="text" class="finput" id="mf-mod" value="${m.modello}">
-    <label class="fl">Targa *</label><input type="text" class="finput" id="mf-tar" value="${m.targa}">
+    <label class="fl">Modello *</label><input type="text" class="finput" id="mf-mod" value="${escHtml(m.modello)}">
+    <label class="fl">Targa *</label><input type="text" class="finput" id="mf-tar" value="${escHtml(m.targa)}">
     <div class="frow"><div><label class="fl">Anno</label><input type="number" inputmode="numeric" class="finput" id="mf-anno" value="${m.anno}"></div><div><label class="fl">Ore attuali</label><input type="number" inputmode="numeric" class="finput" id="mf-ora" value="${m.oreAttuali}"></div></div>
     <label class="fl">Cava</label><select class="finput" id="mf-cava">${cavaOpts}</select>
     <label class="fl">Note</label><textarea class="finput" id="mf-note" rows="2">${m.note||''}</textarea>
@@ -2301,8 +2301,8 @@ async function salvaMacLav(){
 function openMezzoEdit(){
   const m=DB.mezziStr.find(x=>x.id===state.mezzoSel);if(!m)return;state.mezzoEditId=m.id;
   openModal('Modifica mezzo da strada',`
-    <div class="frow"><div><label class="fl">Targa *</label><input type="text" class="finput" id="mf-tar" value="${m.targa}"></div><div><label class="fl">Anno</label><input type="number" inputmode="numeric" class="finput" id="mf-anno" value="${m.anno||''}"></div></div>
-    <div class="frow"><div><label class="fl">Marca</label><input type="text" class="finput" id="mf-mar" value="${m.marca||''}"></div><div><label class="fl">Modello</label><input type="text" class="finput" id="mf-mod" value="${m.modello||''}"></div></div>
+    <div class="frow"><div><label class="fl">Targa *</label><input type="text" class="finput" id="mf-tar" value="${escHtml(m.targa)}"></div><div><label class="fl">Anno</label><input type="number" inputmode="numeric" class="finput" id="mf-anno" value="${m.anno||''}"></div></div>
+    <div class="frow"><div><label class="fl">Marca</label><input type="text" class="finput" id="mf-mar" value="${escHtml(m.marca||'')}"></div><div><label class="fl">Modello</label><input type="text" class="finput" id="mf-mod" value="${escHtml(m.modello||'')}"></div></div>
     <label class="fl">Km</label><input type="number" inputmode="numeric" class="finput" id="mf-km" value="${m.km||0}">
     <div class="sec-title" style="margin-top:10px;"><span class="dot"></span>Scadenze</div>
     <div class="frow"><div><label class="fl">Revisione</label><input type="date" class="finput" id="mf-rev" value="${m.scadenze?.revisione||''}"></div><div><label class="fl">Assicurazione</label><input type="date" class="finput" id="mf-ass" value="${m.scadenze?.assicurazione||''}"></div></div>
@@ -2514,10 +2514,10 @@ function apriPersDet(id){
       ${p.foto?`<img src="${p.foto}">`:`<span class="photo-avatar-placeholder">${initials(p.nome,p.cognome)}</span>`}
     </div>
     <div class="preview-sec">
-      <div class="preview-row"><span class="preview-lab">Ruolo</span><span class="preview-val">${p.ruolo||'—'}</span></div>
+      <div class="preview-row"><span class="preview-lab">Ruolo</span><span class="preview-val">${escHtml(p.ruolo||'—')}</span></div>
       ${p.tel?`<div class="preview-row"><span class="preview-lab">Telefono</span><span class="preview-val"><a href="tel:${p.tel.replace(/\s/g,'')}" style="color:var(--amber);">${p.tel}</a></span></div>`:''}
     </div>
-    ${p.note?`<div class="preview-sec"><div class="preview-head">Note</div><div style="font-size:13px;">${p.note}</div></div>`:''}
+    ${p.note?`<div class="preview-sec"><div class="preview-head">Note</div><div style="font-size:13px;">${escHtml(p.note)}</div></div>`:''}
   `,[...(canEdit?[{label:'Modifica',cls:'mbtn primary',action:()=>{closeModal();openPersEdit(id);}}]:[]),{label:'Chiudi',cls:'mbtn',action:closeModal}]);
 }
 function uploadPersFoto(id){uploadPhoto('p','f',id,async data=>{await fbUpdate('personale',id,{foto:data});toast('Foto aggiornata','success');apriPersDet(id);renderPersonale();});}
@@ -2533,9 +2533,9 @@ function openPersForm(){
 function openPersEdit(id){
   const p=DB.personale.find(x=>x.id===id);state.persEditId=id;
   openModal('Modifica personale',`
-    <div class="frow"><div><label class="fl">Nome *</label><input type="text" class="finput" id="pf-n" value="${p.nome}"></div><div><label class="fl">Cognome *</label><input type="text" class="finput" id="pf-c" value="${p.cognome}"></div></div>
-    <label class="fl">Ruolo</label><input type="text" class="finput" id="pf-r" value="${p.ruolo||''}">
-    <label class="fl">Telefono</label><input type="tel" class="finput" id="pf-tel" value="${p.tel||''}">
+    <div class="frow"><div><label class="fl">Nome *</label><input type="text" class="finput" id="pf-n" value="${escHtml(p.nome)}"></div><div><label class="fl">Cognome *</label><input type="text" class="finput" id="pf-c" value="${escHtml(p.cognome)}"></div></div>
+    <label class="fl">Ruolo</label><input type="text" class="finput" id="pf-r" value="${escHtml(p.ruolo||'')}">
+    <label class="fl">Telefono</label><input type="tel" class="finput" id="pf-tel" value="${escHtml(p.tel||'')}">
     <label class="fl">Note</label><textarea class="finput" id="pf-note" rows="2">${p.note||''}</textarea>
   `,[
     {label:'Elimina',cls:'mbtn danger',action:()=>{closeModal();openModal('Conferma eliminazione','<p>Eliminare definitivamente?</p>',[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'ELIMINA',cls:'mbtn danger',action:async()=>{await fbDelete('personale',id);closeModal();toast('Eliminato','success');}}]);}},
@@ -2558,7 +2558,7 @@ function renderUtenti(){
 function uploadUserFoto(id){uploadPhoto('u','f',id,async data=>{await fbUpdate('users',id,{foto:data});if(state.user.id===id)state.user.foto=data;toast('Foto aggiornata','success');openUserEdit(id);renderUtenti();});}
 function openUserForm(){
   state.userEditId=null;if(!can('admin'))return;
-  const caveOpts=DB.cave.map(c=>`<label style="display:flex;align-items:center;gap:6px;font-size:13px;margin:4px 0;"><input type="checkbox" class="uf-cava" value="${c.id}"> ${c.nome}</label>`).join('');
+  const caveOpts=DB.cave.map(c=>`<label style="display:flex;align-items:center;gap:6px;font-size:13px;margin:4px 0;"><input type="checkbox" class="uf-cava" value="${c.id}"> ${escHtml(c.nome)}</label>`).join('');
   openModal('Nuovo utente',`
     <div class="frow"><div><label class="fl">Nome *</label><input type="text" class="finput" id="uf-n"></div><div><label class="fl">Cognome *</label><input type="text" class="finput" id="uf-c"></div></div>
     <label class="fl">Username *</label><input type="text" class="finput" id="uf-u">
@@ -2570,16 +2570,16 @@ function openUserForm(){
 }
 function openUserEdit(id){
   const u=DB.users.find(x=>x.id===id);state.userEditId=id;
-  const caveOpts=DB.cave.map(c=>`<label style="display:flex;align-items:center;gap:6px;font-size:13px;margin:4px 0;"><input type="checkbox" class="uf-cava" value="${c.id}" ${(u.cave||[]).includes(c.id)?'checked':''}> ${c.nome}</label>`).join('');
+  const caveOpts=DB.cave.map(c=>`<label style="display:flex;align-items:center;gap:6px;font-size:13px;margin:4px 0;"><input type="checkbox" class="uf-cava" value="${c.id}" ${(u.cave||[]).includes(c.id)?'checked':''}> ${escHtml(c.nome)}</label>`).join('');
   const canPhoto=can('admin')||can('ufficio')||u.id===state.user.id;
   openModal('Modifica utente',`
     <div class="photo-avatar ${canPhoto?'editable':''}" onclick="${canPhoto?`uploadUserFoto('${id}')`:''}">
       ${u.foto?`<img src="${u.foto}">`:`<span class="photo-avatar-placeholder">${u.nome[0]}${u.cognome[0]}</span>`}
     </div>
-    <div class="frow"><div><label class="fl">Nome</label><input type="text" class="finput" id="uf-n" value="${u.nome}"></div><div><label class="fl">Cognome</label><input type="text" class="finput" id="uf-c" value="${u.cognome}"></div></div>
-    <label class="fl">Username</label><input type="text" class="finput" id="uf-u" value="${u.user}" ${u.id===state.user.id?'disabled':''}>
+    <div class="frow"><div><label class="fl">Nome</label><input type="text" class="finput" id="uf-n" value="${escHtml(u.nome)}"></div><div><label class="fl">Cognome</label><input type="text" class="finput" id="uf-c" value="${escHtml(u.cognome)}"></div></div>
+    <label class="fl">Username</label><input type="text" class="finput" id="uf-u" value="${escHtml(u.user)}" ${u.id===state.user.id?'disabled':''}>
     <label class="fl">Nuova password (vuoto = non cambia)</label><input type="password" class="finput" id="uf-p" placeholder="••••">
-    <label class="fl">Telefono</label><input type="tel" class="finput" id="uf-tel" value="${u.tel||''}">
+    <label class="fl">Telefono</label><input type="tel" class="finput" id="uf-tel" value="${escHtml(u.tel||'')}">
     <label class="fl">Ruolo</label><select class="finput" id="uf-r">
       <option value="operatore" ${u.ruolo==='operatore'?'selected':''}>Operatore</option>
       <option value="fochino" ${u.ruolo==='fochino'?'selected':''}>Fochino</option>
@@ -2865,8 +2865,8 @@ function renderMessaggi(){
     html+=sys.slice(0,8).map(m=>{const u=DB.users.find(x=>x.id===m.fromId);const vv=DB.volate.find(x=>x.id===m.volataId);return`<div class="sitem ${m.letto?'':'warn'}" onclick="openVolataReadonly('${m.volataId}')"><div class="av av-am">📐</div><div class="sinfo"><div class="sname">${vv?(vv.nomeProgetto||'Volata #'+vv.numero):'Progetto volata'}</div><div class="ssub">da ${u?u.nome+' '+u.cognome:'—'}</div></div><div class="sarr">›</div></div>`;}).join('');
     html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Conversazioni</div>';
   }
-  if(list.length)html+=list.map(p=>{const u=DB.users.find(x=>x.id===p.id);if(!u)return'';const last=p.msgs[p.msgs.length-1];return`<div class="sitem ${p.unread>0?'warn':''}" onclick="apriChat('${u.id}')"><div class="photo-avatar-sm">${u.foto?`<img src="${u.foto}">`:`<span style="font-size:11px;font-weight:800;color:var(--amber);">${initials(u.nome,u.cognome)}</span>`}</div><div class="sinfo"><div class="sname">${u.nome} ${u.cognome} ${p.unread>0?`<span class="scad-badge danger">${p.unread}</span>`:''}</div><div class="ssub">${(last.testo||'').substr(0,50)}</div></div><div class="sarr">›</div></div>`;}).join('');
-  if(noChat.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Nuova conversazione</div>';html+=noChat.map(u=>`<div class="sitem" onclick="apriChat('${u.id}')"><div class="photo-avatar-sm">${u.foto?`<img src="${u.foto}">`:`<span style="font-size:11px;font-weight:800;color:var(--amber);">${initials(u.nome,u.cognome)}</span>`}</div><div class="sinfo"><div class="sname">${u.nome} ${u.cognome}</div><div class="ssub">${u.ruolo}</div></div><div class="sarr">›</div></div>`).join('');}
+  if(list.length)html+=list.map(p=>{const u=DB.users.find(x=>x.id===p.id);if(!u)return'';const last=p.msgs[p.msgs.length-1];return`<div class="sitem ${p.unread>0?'warn':''}" onclick="apriChat('${u.id}')"><div class="photo-avatar-sm">${u.foto?`<img src="${u.foto}">`:`<span style="font-size:11px;font-weight:800;color:var(--amber);">${escHtml(initials(u.nome,u.cognome))}</span>`}</div><div class="sinfo"><div class="sname">${escHtml(u.nome)} ${escHtml(u.cognome)} ${p.unread>0?`<span class="scad-badge danger">${p.unread}</span>`:''}</div><div class="ssub">${escHtml((last.testo||'').substr(0,50))}</div></div><div class="sarr">›</div></div>`;}).join('');
+  if(noChat.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Nuova conversazione</div>';html+=noChat.map(u=>`<div class="sitem" onclick="apriChat('${u.id}')"><div class="photo-avatar-sm">${u.foto?`<img src="${u.foto}">`:`<span style="font-size:11px;font-weight:800;color:var(--amber);">${escHtml(initials(u.nome,u.cognome))}</span>`}</div><div class="sinfo"><div class="sname">${escHtml(u.nome)} ${escHtml(u.cognome)}</div><div class="ssub">${escHtml(u.ruolo)}</div></div><div class="sarr">›</div></div>`).join('');}
   if(!html)html='<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">Nessun utente</div></div>';
   $('msg-list').innerHTML=html;
 }
@@ -2939,7 +2939,7 @@ function renderContatti(){
   let html='';
   if(DB.cave.length){html+='<div class="sec-title"><span class="dot"></span>Cave</div>';html+=DB.cave.filter(c=>c.tel).map(c=>`<a class="contact-item" href="tel:${c.tel.replace(/\s/g,'')}"><div class="contact-icon">⛰️</div><div class="contact-info"><div class="contact-name">${c.nome}</div><div class="contact-num">${c.tel}</div></div></a>`).join('');}
   const uTel=DB.users.filter(u=>u.tel&&u.attivo);
-  if(uTel.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Team</div>';html+=uTel.map(u=>`<a class="contact-item" href="tel:${u.tel.replace(/\s/g,'')}"><div class="photo-avatar-sm">${u.foto?`<img src="${u.foto}">`:`<span style="font-size:11px;font-weight:800;color:var(--amber);">${initials(u.nome,u.cognome)}</span>`}</div><div class="contact-info"><div class="contact-name">${u.nome} ${u.cognome}</div><div class="contact-num">${u.tel}</div></div></a>`).join('');}
+  if(uTel.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Team</div>';html+=uTel.map(u=>`<a class="contact-item" href="tel:${u.tel.replace(/\s/g,'')}"><div class="photo-avatar-sm">${u.foto?`<img src="${u.foto}">`:`<span style="font-size:11px;font-weight:800;color:var(--amber);">${escHtml(initials(u.nome,u.cognome))}</span>`}</div><div class="contact-info"><div class="contact-name">${u.nome} ${u.cognome}</div><div class="contact-num">${u.tel}</div></div></a>`).join('');}
   const pTel=DB.personale.filter(p=>p.tel);
   if(pTel.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Personale</div>';html+=pTel.map(p=>`<a class="contact-item" href="tel:${p.tel.replace(/\s/g,'')}"><div class="photo-avatar-sm">${p.foto?`<img src="${p.foto}">`:`<span style="font-size:11px;font-weight:800;color:var(--amber);">${initials(p.nome,p.cognome)}</span>`}</div><div class="contact-info"><div class="contact-name">${p.nome} ${p.cognome}</div><div class="contact-num">${p.tel}</div></div></a>`).join('');}
   const ex=DB.settings.contattiExtra||[];
@@ -2976,18 +2976,18 @@ function apriCliente(id){
   const totRapp=DB.rapportini.filter(r=>cavCli.some(c2=>c2.id===r.cavaId)).length;
   const canEd=can('clienti');
   let html=`<div class="preview-sec">
-    ${c.piva?`<div class="preview-row"><span class="preview-lab">P.IVA</span><span class="preview-val">${c.piva}</span></div>`:''}
-    ${c.cf?`<div class="preview-row"><span class="preview-lab">C.F.</span><span class="preview-val">${c.cf}</span></div>`:''}
-    ${c.indirizzo?`<div class="preview-row"><span class="preview-lab">Indirizzo</span><span class="preview-val">${c.indirizzo}</span></div>`:''}
+    ${c.piva?`<div class="preview-row"><span class="preview-lab">P.IVA</span><span class="preview-val">${escHtml(c.piva)}</span></div>`:''}
+    ${c.cf?`<div class="preview-row"><span class="preview-lab">C.F.</span><span class="preview-val">${escHtml(c.cf)}</span></div>`:''}
+    ${c.indirizzo?`<div class="preview-row"><span class="preview-lab">Indirizzo</span><span class="preview-val">${escHtml(c.indirizzo)}</span></div>`:''}
     ${c.tel?`<div class="preview-row"><span class="preview-lab">Telefono</span><span class="preview-val"><a href="tel:${c.tel.replace(/\s/g,'')}" style="color:var(--amber);">${c.tel}</a></span></div>`:''}
     ${c.email?`<div class="preview-row"><span class="preview-lab">Email</span><span class="preview-val"><a href="mailto:${c.email}" style="color:var(--amber);">${c.email}</a></span></div>`:''}
     ${c.iban?`<div class="preview-row"><span class="preview-lab">IBAN</span><span class="preview-val" style="font-family:monospace;font-size:12px;">${c.iban}</span></div>`:''}
-    ${c.referente?`<div class="preview-row"><span class="preview-lab">Referente</span><span class="preview-val">${c.referente}</span></div>`:''}
+    ${c.referente?`<div class="preview-row"><span class="preview-lab">Referente</span><span class="preview-val">${escHtml(c.referente)}</span></div>`:''}
   </div>
   <div class="stats" style="margin-top:10px;"><div class="stat"><div class="sl">Cave</div><div class="sv">${cavCli.length}</div></div><div class="stat"><div class="sl">Rapportini</div><div class="sv">${totRapp}</div></div><div class="stat"><div class="sl">Mc totali</div><div class="sv">${totMc.toFixed(0)}</div></div></div>
-  ${c.note?`<div class="preview-sec" style="margin-top:10px;"><div class="preview-head">Note</div><div style="font-size:13px;">${c.note}</div></div>`:''}
+  ${c.note?`<div class="preview-sec" style="margin-top:10px;"><div class="preview-head">Note</div><div style="font-size:13px;">${escHtml(c.note)}</div></div>`:''}
   <div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Cave del cliente</div>
-  ${cavCli.length?cavCli.map(cav=>`<div class="sitem" onclick="apriCava('${cav.id}')"><div class="av av-cv">${cav.nome.substr(0,2).toUpperCase()}</div><div class="sinfo"><div class="sname">${cav.nome}</div><div class="ssub">${cav.indirizzo||'—'}</div></div><div class="sarr">›</div></div>`).join(''):'<div class="empty-state" style="padding:16px;"><div class="empty-sub">Nessuna cava collegata</div></div>'}`;
+  ${cavCli.length?cavCli.map(cav=>`<div class="sitem" onclick="apriCava('${cav.id}')"><div class="av av-cv">${escHtml(cav.nome.substr(0,2).toUpperCase())}</div><div class="sinfo"><div class="sname">${escHtml(cav.nome)}</div><div class="ssub">${escHtml(cav.indirizzo||'—')}</div></div><div class="sarr">›</div></div>`).join(''):'<div class="empty-state" style="padding:16px;"><div class="empty-sub">Nessuna cava collegata</div></div>'}`;
   openModal(c.ragsoc,html,[
     ...(canEd?[{label:'Modifica',cls:'mbtn primary',action:()=>{closeModal();openClienteEdit(id);}}]:[]),
     {label:'Chiudi',cls:'mbtn',action:closeModal}
@@ -3009,12 +3009,12 @@ function openClienteEdit(id){
   const c=DB.clienti.find(x=>x.id===id);if(!c)return;
   state.clienteEditId=id;
   openModal('Modifica cliente',`
-    <label class="fl">Ragione sociale *</label><input type="text" class="finput" id="cli-rs" value="${c.ragsoc||''}">
-    <div class="frow"><div><label class="fl">P.IVA</label><input type="text" inputmode="numeric" class="finput" id="cli-piva" value="${c.piva||''}"></div><div><label class="fl">Cod. Fiscale</label><input type="text" class="finput" id="cli-cf" value="${c.cf||''}"></div></div>
-    <label class="fl">Indirizzo</label><input type="text" class="finput" id="cli-ind" value="${c.indirizzo||''}">
-    <div class="frow"><div><label class="fl">Telefono</label><input type="tel" class="finput" id="cli-tel" value="${c.tel||''}"></div><div><label class="fl">Email</label><input type="email" class="finput" id="cli-em" value="${c.email||''}"></div></div>
-    <label class="fl">IBAN</label><input type="text" class="finput" id="cli-iban" value="${c.iban||''}" style="font-family:monospace;">
-    <label class="fl">Referente</label><input type="text" class="finput" id="cli-ref" value="${c.referente||''}">
+    <label class="fl">Ragione sociale *</label><input type="text" class="finput" id="cli-rs" value="${escHtml(c.ragsoc||'')}">
+    <div class="frow"><div><label class="fl">P.IVA</label><input type="text" inputmode="numeric" class="finput" id="cli-piva" value="${escHtml(c.piva||'')}"></div><div><label class="fl">Cod. Fiscale</label><input type="text" class="finput" id="cli-cf" value="${escHtml(c.cf||'')}"></div></div>
+    <label class="fl">Indirizzo</label><input type="text" class="finput" id="cli-ind" value="${escHtml(c.indirizzo||'')}">
+    <div class="frow"><div><label class="fl">Telefono</label><input type="tel" class="finput" id="cli-tel" value="${escHtml(c.tel||'')}"></div><div><label class="fl">Email</label><input type="email" class="finput" id="cli-em" value="${escHtml(c.email||'')}"></div></div>
+    <label class="fl">IBAN</label><input type="text" class="finput" id="cli-iban" value="${escHtml(c.iban||'')}" style="font-family:monospace;">
+    <label class="fl">Referente</label><input type="text" class="finput" id="cli-ref" value="${escHtml(c.referente||'')}">
     <label class="fl">Note</label><textarea class="finput" id="cli-note" rows="2">${c.note||''}</textarea>
   `,[
     {label:'Elimina',cls:'mbtn danger',action:()=>confermaDelCliente(id)},
@@ -3121,9 +3121,9 @@ function renderDashboard(){
   const mezzoDati=Object.entries(perMezzo).sort((a,b)=>b[1]-a[1]).slice(0,5)
     .map(([mid,mc])=>{const m=DB.mezziLav.find(x=>x.id===mid);return{nome:m?m.modello:'—',mc:+mc.toFixed(1)};});
 
-  const cavaOpts='<option value="">Tutte le cave</option>'+DB.cave.map(c=>`<option value="${c.id}" ${_dashFiltri.cavaId===c.id?'selected':''}>${c.nome}</option>`).join('');
-  const userOpts='<option value="">Tutti gli operatori</option>'+DB.users.map(u=>`<option value="${u.id}" ${_dashFiltri.userId===u.id?'selected':''}>${u.nome} ${u.cognome}</option>`).join('');
-  const mezzoOpts='<option value="">Tutti i mezzi</option>'+DB.mezziLav.map(m=>`<option value="${m.id}" ${_dashFiltri.mezzoId===m.id?'selected':''}>${m.modello}</option>`).join('');
+  const cavaOpts='<option value="">Tutte le cave</option>'+DB.cave.map(c=>`<option value="${c.id}" ${_dashFiltri.cavaId===c.id?'selected':''}>${escHtml(`${c.nome}`)}</option>`).join('');
+  const userOpts='<option value="">Tutti gli operatori</option>'+DB.users.map(u=>`<option value="${u.id}" ${_dashFiltri.userId===u.id?'selected':''}>${escHtml(`${u.nome} ${u.cognome}`)}</option>`).join('');
+  const mezzoOpts='<option value="">Tutti i mezzi</option>'+DB.mezziLav.map(m=>`<option value="${m.id}" ${_dashFiltri.mezzoId===m.id?'selected':''}>${escHtml(`${m.modello}`)}</option>`).join('');
 
   const periodi=[{v:'sett',l:'Sett.'},{v:'mese',l:'Mese'},{v:'6m',l:'6 mesi'},{v:'anno',l:'Anno'},{v:'totale',l:'Totale'}];
 
@@ -3192,7 +3192,7 @@ function renderDashboard(){
       <div class="sitem" onclick="dashApriOperatore('${o.id}')">
         <div class="av av-op">${o.nome[0]}</div>
         <div class="sinfo">
-          <div class="sname">${o.nome}</div>
+          <div class="sname">${escHtml(o.nome)}</div>
           <div class="ssub">${o.mc.toFixed(1)} mc · ${rapp.filter(r=>r.userId===o.id).length} rapportini</div>
         </div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:var(--amber);padding:0 8px;">${((o.mc/Math.max(totMc,1))*100).toFixed(0)}%</div>
@@ -3440,7 +3440,7 @@ async function exportRapportiniXLSX(){
     <label class="fl">Cava (opzionale)</label>
     <select class="finput" id="xlsx-cava">
       <option value="">Tutte le cave</option>
-      ${DB.cave.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}
+      ${DB.cave.map(c=>`<option value="${c.id}">${escHtml(`${c.nome}`)}</option>`).join('')}
     </select>
   `,[
     {label:'Annulla',cls:'mbtn',action:closeModal},
@@ -3515,8 +3515,8 @@ function exportReportTecnicoPDF(){
     <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">Report PDF completo del periodo: rapportini, lavori, guasti e consumi mezzi.</p>
     <div class="frow"><div><label class="fl">Da</label><input type="date" class="finput" id="rt-da" value="${primo}"></div>
     <div><label class="fl">A</label><input type="date" class="finput" id="rt-a" value="${oggi}"></div></div>
-    <label class="fl">Cava / cantiere (opz.)</label><select class="finput" id="rt-cava"><option value="">Tutte</option>${DB.cave.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}</select>
-    <label class="fl">Macchina (opz.)</label><select class="finput" id="rt-mac"><option value="">Tutte</option>${macOpts.map(o=>`<option value="${o.id}">${o.n}</option>`).join('')}</select>
+    <label class="fl">Cava / cantiere (opz.)</label><select class="finput" id="rt-cava"><option value="">Tutte</option>${DB.cave.map(c=>`<option value="${c.id}">${escHtml(`${c.nome}`)}</option>`).join('')}</select>
+    <label class="fl">Macchina (opz.)</label><select class="finput" id="rt-mac"><option value="">Tutte</option>${macOpts.map(o=>`<option value="${o.id}">${escHtml(`${o.n}`)}</option>`).join('')}</select>
   `,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'GENERA',cls:'mbtn primary',action:()=>{const da=$('rt-da').value,a=$('rt-a').value,cv=$('rt-cava').value,mc=$('rt-mac').value;closeModal();_genReportTecnico(da,a,cv,mc);}}]);
 }
 function _genReportTecnico(da,a,cavaId,macRef){
@@ -3568,7 +3568,7 @@ function exportRapportiniMeseCorrentePDF(){
     <label class="fl">Cava (opzionale)</label>
     <select class="finput" id="pdfm-cava">
       <option value="">Tutte le cave</option>
-      ${DB.cave.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}
+      ${DB.cave.map(c=>`<option value="${c.id}">${escHtml(`${c.nome}`)}</option>`).join('')}
     </select>
   `,[
     {label:'Annulla',cls:'mbtn',action:closeModal},
@@ -4690,7 +4690,7 @@ function renderEditorSide(){
       <div style="margin-bottom:6px;">
         <label class="fl">Tipo esplosivo</label>
         <div style="display:flex;gap:4px;">
-          <input type="text" class="finput" style="flex:1;" placeholder="es. ANFO, Emulsione, Gel..." value="${f.esplosivo||''}" oninput="aggiornaForo(${idx},'esplosivo',this.value)">
+          <input type="text" class="finput" style="flex:1;" placeholder="es. ANFO, Emulsione, Gel..." value="${escHtml(f.esplosivo||'')}" oninput="aggiornaForo(${idx},'esplosivo',this.value)">
           <button class="chg" onclick="applicaATutti('esplosivo',this.previousElementSibling.value)" title="Applica a tutti" style="padding:0 8px;font-size:16px;min-height:var(--tap);">⟳</button>
         </div>
       </div>
@@ -4708,7 +4708,7 @@ function renderEditorSide(){
       <div style="margin-bottom:6px;">
         <label class="fl">Tipo innesco</label>
         <div style="display:flex;gap:4px;">
-          <input type="text" class="finput" style="flex:1;" placeholder="es. NONEL, Elettrico, Detonante..." value="${f.innesco||''}" oninput="aggiornaForo(${idx},'innesco',this.value)">
+          <input type="text" class="finput" style="flex:1;" placeholder="es. NONEL, Elettrico, Detonante..." value="${escHtml(f.innesco||'')}" oninput="aggiornaForo(${idx},'innesco',this.value)">
           <button class="chg" onclick="applicaATutti('innesco',this.previousElementSibling.value)" title="Applica a tutti" style="padding:0 8px;font-size:16px;min-height:var(--tap);">⟳</button>
         </div>
       </div>
@@ -4761,9 +4761,9 @@ function renderEditorSide(){
       <input type="number" inputmode="decimal" step="0.1" class="finput" value="${v.default.profondita_m||''}" oninput="aggiornaVolata('default.profondita_m',this.value)">
       <button class="btn-sec" style="width:100%;margin:8px 0;" onclick="rigeneraMaglia()">↻ Rigenera schema (cut + contorno)</button>
       <label class="fl">Esplosivo default</label>
-      <input type="text" class="finput" placeholder="es. dinamite, emulsione..." value="${v.default.esplosivo||''}" oninput="aggiornaVolata('default.esplosivo',this.value)">
+      <input type="text" class="finput" placeholder="es. dinamite, emulsione..." value="${escHtml(v.default.esplosivo||'')}" oninput="aggiornaVolata('default.esplosivo',this.value)">
       <label class="fl">Innesco default</label>
-      <input type="text" class="finput" placeholder="es. detonatore elettrico..." value="${v.default.innesco||''}" oninput="aggiornaVolata('default.innesco',this.value)">
+      <input type="text" class="finput" placeholder="es. detonatore elettrico..." value="${escHtml(v.default.innesco||'')}" oninput="aggiornaVolata('default.innesco',this.value)">
       <div class="info-box" style="margin-top:10px;font-size:11px;">🔴 cut/rinora · 🟡 abbattimento · 🟢 contorno · 🔵 platea. Tool <b>Fori</b>: tocca per aggiungere, trascina per spostare. La sequenza parte dal cut centrale.</div>
       <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
         <button class="btn-sec" onclick="salvaVolata()">💾 Salva</button>
@@ -4817,9 +4817,9 @@ function renderEditorSide(){
       <div><label class="fl">Diametro (mm)</label><input type="number" inputmode="numeric" class="finput" value="${v.default.diametro_mm||''}" oninput="aggiornaVolata('default.diametro_mm',this.value)"></div>
     </div>
     <label class="fl">Esplosivo default</label>
-    <input type="text" class="finput" placeholder="es. ANFO, Emulsione..." value="${v.default.esplosivo||''}" oninput="aggiornaVolata('default.esplosivo',this.value)">
+    <input type="text" class="finput" placeholder="es. ANFO, Emulsione..." value="${escHtml(v.default.esplosivo||'')}" oninput="aggiornaVolata('default.esplosivo',this.value)">
     <label class="fl">Innesco default</label>
-    <input type="text" class="finput" placeholder="es. NONEL, Detonante..." value="${v.default.innesco||''}" oninput="aggiornaVolata('default.innesco',this.value)">
+    <input type="text" class="finput" placeholder="es. NONEL, Detonante..." value="${escHtml(v.default.innesco||'')}" oninput="aggiornaVolata('default.innesco',this.value)">
     <label class="fl" style="margin-top:8px;">Inclinazione fori (°) <span style="opacity:.6;">0=verticale · applicata a tutti</span></label>
     <input type="number" inputmode="decimal" class="finput" value="${v.default.incl||''}" placeholder="0" oninput="setInclTutti(this.value)">
 
@@ -5386,7 +5386,7 @@ function renderFrammentazioneModal(v){
       <div><label class="fl">Data valutazione</label><input type="date" class="finput" id="fr-data" value="${f.dataValutazione||today()}"></div>
       <div><label class="fl">Valutatore</label><select class="finput" id="fr-val">
         <option value="">— Seleziona —</option>
-        ${DB.users.filter(u=>u.attivo).map(u=>`<option value="${u.id}" ${f.valutatoreId===u.id?'selected':''}>${u.nome} ${u.cognome}</option>`).join('')}
+        ${DB.users.filter(u=>u.attivo).map(u=>`<option value="${u.id}" ${f.valutatoreId===u.id?'selected':''}>${escHtml(`${u.nome} ${u.cognome}`)}</option>`).join('')}
       </select></div>
     </div>
     <div class="sec-title" style="margin-top:14px;"><span class="dot"></span>Distribuzione granulometrica (%)</div>
@@ -6324,7 +6324,7 @@ function renderVolateList(){
 }
 
 function openSelezionaCavaPerVolata(){
-  const caveOpts='<option value="">— Nessuna (opzionale) —</option>'+DB.cave.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+  const caveOpts='<option value="">— Nessuna (opzionale) —</option>'+DB.cave.map(c=>`<option value="${c.id}">${escHtml(`${c.nome}`)}</option>`).join('');
   openModal('Nuovo progetto di volata',`
     <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Scegli il tipo di scavo per cui stai progettando la volata.</p>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
