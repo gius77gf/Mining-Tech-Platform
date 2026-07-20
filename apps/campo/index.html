@@ -132,7 +132,9 @@
       <div class="info"><div class="name">${a.titolo}</div><div class="meta">${a.dettaglio||""}</div></div>
       <span class="badge ${AB[a.stato][0]}">${AB[a.stato][1]}</span><span class="arr">›</span></div>`).join("");
 
-    const attVis = ATT.filter(a => filtroAtt === "tutte" || a.stato === filtroAtt);
+    const ordAtt = { anomalia: 0, "in-corso": 1, pianificata: 2, conclusa: 3 };
+    const attVis = ATT.filter(a => filtroAtt === "tutte" || a.stato === filtroAtt)
+                      .sort((a, b) => (ordAtt[a.stato] ?? 4) - (ordAtt[b.stato] ?? 4));
     $("att-list").innerHTML = attVis.map(a => `<div class="item" data-att="${a.id}" style="cursor:pointer" title="Tocca per cambiare stato">
       <div class="info"><div class="name">${a.titolo}</div><div class="meta">${a.dettaglio||""}</div></div>
       <span class="badge ${AB[a.stato][0]}">${AB[a.stato][1]}</span></div>`).join("")

@@ -143,7 +143,9 @@
       <div class="info"><div class="name">${a.t}</div><div class="meta">${a.d}</div></div>
       <span class="badge ${a.u[0]}">${a.u[1]}</span></div>`).join("") || '<div class="note">Nessuna criticità sul parco mezzi.</div>';
 
-    $("mez-list").innerHTML = MEZ.map(m => `<div class="item" data-mezzo="${m.id}" style="cursor:pointer" title="Tocca per cambiare stato">
+    const ordStato = { fermo: 0, verifica: 1, operativo: 2 };
+    const mezOrd = MEZ.slice().sort((a, b) => (ordStato[a.stato] ?? 3) - (ordStato[b.stato] ?? 3) || a.nome.localeCompare(b.nome, "it"));
+    $("mez-list").innerHTML = mezOrd.map(m => `<div class="item" data-mezzo="${m.id}" style="cursor:pointer" title="Tocca per cambiare stato">
       <div class="avatar">${sig(m.nome)}</div>
       <div class="info"><div class="name">${m.nome}</div><div class="meta">${(m.ore||0).toLocaleString("it-IT")} h${m.area ? " · " + m.area : ""}</div></div>
       <span class="badge ${MB[m.stato][0]}">${MB[m.stato][1]}</span>${m.stato==="fermo"?`<span class="arr" style="cursor:pointer" title="Dismetti dal parco" data-del-mezzo="${m.id}">✕</span>`:""}</div>`).join("")
