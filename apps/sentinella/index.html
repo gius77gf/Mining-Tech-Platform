@@ -244,6 +244,13 @@
   ["ade-titolo","ade-data"].forEach(i => clearErr(i, "ade-esito"));
   ["sen-nome","sen-unita","sen-soglia"].forEach(i => clearErr(i, "mis-esito"));
   clearErr("mis-valore", "mis-esito");
+  // Invio da tastiera: premere Invio in un campo del form equivale a
+  // toccare il pulsante — data entry più rapida senza spostare il dito.
+  const enterSubmit = (inputIds, btnId) => inputIds.forEach(id =>
+    $(id).addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $(btnId).click(); } }));
+  enterSubmit(["ade-titolo", "ade-ente", "ade-data"], "btn-ade");
+  enterSubmit(["sen-nome", "sen-unita", "sen-soglia"], "btn-sen");
+  enterSubmit(["mis-valore"], "btn-mis");
   await refresh();
 </script>
 </body>
