@@ -136,13 +136,19 @@
     document.querySelectorAll("#ril-filtri [data-filtro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-filtro") === filtroRil ? "var(--app-accent)" : "");
 
-    $("pia-list").innerHTML = PIA.map(p => `<div class="item">
+    $("pia-list").innerHTML = PIA.map(p => `<div class="item" ${p.pianificatoAnnuoM3?`data-piano="${p.id}" style="cursor:pointer" title="Tocca per modificare il piano annuo"`:'style="cursor:default;"'}>
       <div class="info"><div class="name">${p.titolo}</div><div class="meta">${p.dettaglio||""}${p.pianificatoAnnuoM3?" · piano annuo "+fmtM3(p.pianificatoAnnuoM3)+" m³":""}${p.riserveM3?" · riserve "+fmtM3(p.riserveM3)+" m³":""}</div></div>
       <span class="badge ${PB[p.stato][0]}">${PB[p.stato][1]}</span></div>`).join("");
   }
 
   // interazioni: fronte alterna attivo/sospeso; form registra rilievo elaborato
   document.addEventListener("click", async (e) => {
+    const pi = e.target.closest && e.target.closest("[data-piano]");
+    if (pi) { const p = PIA.find(x => x.id === pi.getAttribute("data-piano"));
+      if (p) { const v = prompt("Volume annuo pianificato (m³) — l'avanzamento si ricalcola:", p.pianificatoAnnuoM3);
+        if (v != null) { const m3 = parseInt(String(v).replace(/\./g,""), 10);
+          if (m3 > 0) { await db.aggiorna("piano", p.id, { pianificatoAnnuoM3: m3 }); await refresh(); } } }
+      return; }
     const it = e.target.closest && e.target.closest("[data-fro]");
     if (it) { const f = FRO.find(x => x.id === it.getAttribute("data-fro"));
       if (!f) return;
