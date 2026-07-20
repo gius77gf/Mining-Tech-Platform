@@ -95,7 +95,7 @@
 
 <script type="module">
   import { contiData, giorni, kpiFrom } from "./conti-data.js";
-  import { mountExit } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const eur = (v) => "€" + (+v||0).toLocaleString("it-IT");
   const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
@@ -140,12 +140,12 @@
             .map(g => ({ t: g.titolo, d: "base " + eur(g.base) + " · scade " + fmtD(g.scadenza), b: ["warn", giorni(g.scadenza) + " gg"] })),
     ].slice(0, 4);
     $("prio-list").innerHTML = prio.map(p => `<div class="item">
-      <div class="info"><div class="name">${p.t}</div><div class="meta">${p.d}</div></div>
+      <div class="info"><div class="name">${esc(p.t)}</div><div class="meta">${esc(p.d)}</div></div>
       <span class="badge ${p.b[0]}">${p.b[1]}</span></div>`).join("") || '<div class="note">Nessuna priorità: incassi e gare sotto controllo.</div>';
 
     $("fat-list").innerHTML = FAT.filter(fatMatch).sort((a,b)=>a.scadenza<b.scadenza?-1:1).map(f => { const b = fatBadge(f);
       return `<div class="item" data-fat="${f.id}" ${!f.incassata?'style="cursor:pointer" title="Tocca per segnare incassata"':''}>
-      <div class="info"><div class="name">${f.numero} — ${f.cliente}</div><div class="meta">${eur(f.importo)} · emessa ${fmtD(f.emessa)} · ${f.incassata ? "incassata " + (f.dataIncasso ? fmtD(f.dataIncasso) : "") : "scad. " + fmtD(f.scadenza)}</div></div>
+      <div class="info"><div class="name">${esc(f.numero)} — ${esc(f.cliente)}</div><div class="meta">${eur(f.importo)} · emessa ${fmtD(f.emessa)} · ${f.incassata ? "incassata " + (f.dataIncasso ? fmtD(f.dataIncasso) : "") : "scad. " + fmtD(f.scadenza)}</div></div>
       <span class="badge ${b[0]}">${b[1]}</span></div>`; }).join("")
       || '<div class="note" style="text-align:left;">'+(filtroFat==="tutte"?"Nessuna fattura registrata.":"Nessuna fattura in questa categoria.")+'</div>';
     document.querySelectorAll("#fat-filtri [data-filtro]").forEach(b =>
@@ -154,7 +154,7 @@
     const garOrd = GAR.slice().sort((a, b) => (a.stato === "aperta" ? 0 : 1) - (b.stato === "aperta" ? 0 : 1)
       || (a.scadenza || "9999").localeCompare(b.scadenza || "9999"));
     $("gar-list").innerHTML = garOrd.map(g => `<div class="item" style="cursor:default;">
-      <div class="info"><div class="name">${g.titolo}</div><div class="meta">base ${eur(g.base)} · ${g.stato==="aperta" ? "scade " + fmtD(g.scadenza) : GB[g.stato][1]}</div></div>
+      <div class="info"><div class="name">${esc(g.titolo)}</div><div class="meta">base ${eur(g.base)} · ${g.stato==="aperta" ? "scade " + fmtD(g.scadenza) : GB[g.stato][1]}</div></div>
       ${g.stato==="aperta" ? `<button class="dw-btn secondary" data-gara-esito="vinta" data-gara="${g.id}" style="width:auto;min-height:32px;padding:2px 10px;font-size:11px;">✓ Vinta</button>
       <button class="dw-btn secondary" data-gara-esito="persa" data-gara="${g.id}" style="width:auto;min-height:32px;padding:2px 10px;font-size:11px;border-color:var(--danger);color:var(--danger);">✗ Persa</button>` : ""}
       <span class="badge ${GB[g.stato][0]}">${g.stato==="aperta" ? giorni(g.scadenza)+" gg" : GB[g.stato][1]}</span></div>`).join("")

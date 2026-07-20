@@ -7,6 +7,15 @@
 //   mountExit(db);   // db = risultato di xxxData()
 // ============================================================
 
+// Escape HTML per i valori inseriti dall'utente nei template delle
+// liste: con Firestore live un nome come "<img onerror=...>" sarebbe
+// XSS memorizzato visibile a tutti i colleghi dell'organizzazione.
+export function esc(s) {
+  return String(s == null ? "" : s)
+    .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;").replaceAll("'", "&#39;");
+}
+
 export function mountExit(db) {
   if (!db || db.mode !== "live" || typeof db.logout !== "function") return;
   const top = document.querySelector(".top");

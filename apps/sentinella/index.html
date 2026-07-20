@@ -100,7 +100,7 @@
 
 <script type="module">
   import { sentinellaData, statoMisura, giorni, kpiFrom } from "./sentinella-data.js";
-  import { mountExit } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
   const RB = { aggiornato: ["ok","Aggiornato"], "in-attesa": ["warn","In attesa"] };
@@ -132,15 +132,15 @@
         .map(a => ({ t: a.titolo, d: (a.ente!=="—"?a.ente+" · ":"") + "entro " + fmtD(a.scadenza), b: ["warn", giorni(a.scadenza) + " gg"] })),
     ].slice(0, 4);
     $("all-list").innerHTML = allerte.map(a => `<div class="item">
-      <div class="info"><div class="name">${a.t}</div><div class="meta">${a.d}</div></div>
+      <div class="info"><div class="name">${esc(a.t)}</div><div class="meta">${esc(a.d)}</div></div>
       <span class="badge ${a.b[0]}">${a.b[1]}</span></div>`).join("") || '<div class="note">Nessuna allerta: tutto conforme.</div>';
 
     $("mon-list").innerHTML = MON.map(m => ({ m, st: statoMisura(m) }))
       .filter(x => filtroMon === "tutti" || x.st.cls === filtroMon)
       .sort((a, b) => b.st.ratio - a.st.ratio)
       .map(({m, st}) => { const ult = (m.letture || []).slice(-3).map(l => l.valore).join(" → ");
-      return `<div class="item"><div class="info"><div class="name">${m.nome}</div>
-      <div class="meta">${m.valore} ${m.unita} / soglia ${m.soglia} (${Math.round(st.ratio*100)}%)${ult ? " · ultime: " + ult : ""}${m.nota ? " · " + m.nota : ""}</div></div>
+      return `<div class="item"><div class="info"><div class="name">${esc(m.nome)}</div>
+      <div class="meta">${m.valore} ${esc(m.unita)} / soglia ${m.soglia} (${Math.round(st.ratio*100)}%)${ult ? " · ultime: " + ult : ""}${m.nota ? " · " + esc(m.nota) : ""}</div></div>
       <span class="badge ${st.cls}">${st.label}</span></div>`; }).join("")
       || '<div class="note" style="text-align:left;">'+(filtroMon==="tutti"?"Nessun sensore configurato.":"Nessun sensore in questa categoria.")+'</div>';
     document.querySelectorAll("#mon-filtri [data-filtro]").forEach(b =>
@@ -148,16 +148,16 @@
 
     $("ade-list").innerHTML = ADE.slice().sort((a,b)=>a.scadenza<b.scadenza?-1:1).map(a => { const g = giorni(a.scadenza);
       const b = g < 0 ? ["danger","Scaduto"] : (g <= 30 ? ["warn", g + " gg"] : ["ok", g + " gg"]);
-      return `<div class="item"><div class="info"><div class="name">${a.titolo}</div><div class="meta">${a.ente!=="—"?a.ente+" · ":""}entro ${fmtD(a.scadenza)}</div></div>
+      return `<div class="item"><div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${a.ente!=="—"?esc(a.ente)+" · ":""}entro ${fmtD(a.scadenza)}</div></div>
       <span class="badge ${b[0]}">${b[1]}</span>
       <span class="arr" style="cursor:pointer" title="Segna come eseguito" data-ade-done="${a.id}">✓</span></div>`; }).join("")
       || '<div class="note" style="text-align:left;">Nessun adempimento in scadenza.</div>';
 
     $("reg-list").innerHTML = REG.map(r => `<div class="item" data-reg="${r.id}" ${r.stato==="in-attesa"?'style="cursor:pointer" title="Tocca per segnare aggiornato"':''}>
-      <div class="info"><div class="name">${r.titolo}</div><div class="meta">${r.nota || ""}</div></div>
+      <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${esc(r.nota || "")}</div></div>
       <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span></div>`).join("");
 
-    $("mis-sensore").innerHTML = MON.map(m => `<option value="${m.id}">${m.nome.split(" — ")[0]}</option>`).join("");
+    $("mis-sensore").innerHTML = MON.map(m => `<option value="${m.id}">${esc(m.nome.split(" — ")[0])}</option>`).join("");
   }
 
   document.addEventListener("click", async (e) => {
