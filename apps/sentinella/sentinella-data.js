@@ -58,6 +58,7 @@ export async function sentinellaData() {
       api = {
         monitoraggi: () => read("monitoraggi"), adempimenti: () => read("adempimenti"), registri: () => read("registri"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
+        logout: () => id.logout(),
         aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n).firestore, id.orgCollection(n).path + "/" + i), d),
       };
     } else if (id.authState() === "tour") mode = "tour";

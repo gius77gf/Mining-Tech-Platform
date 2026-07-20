@@ -84,12 +84,14 @@
 
 <script type="module">
   import { flottaData, urgenza, kpiFrom } from "./flotta-data.js";
+  import { mountExit } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const MB = { operativo: ["ok","Operativo"], fermo: ["danger","Fermo"], verifica: ["warn","Verifica"] };
   const sig = (n) => (n||"?").split(" ")[0].slice(0,2).toUpperCase();
   const eur = (v) => "€" + (+v||0).toLocaleString("it-IT");
 
   const db = await flottaData();
+  mountExit(db);
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 

@@ -73,6 +73,7 @@ export async function scudoData() {
         scadenze:   () => read("scadenze"),
         documenti:  () => read("documenti"),
         aggiungi: (name, data) => addDoc(id.orgCollection(name), data),
+        logout: () => id.logout(),
         rimuovi: (name, docId) => deleteDoc(doc(id.orgCollection(name).firestore,
           id.orgCollection(name).path + "/" + docId)),
       };

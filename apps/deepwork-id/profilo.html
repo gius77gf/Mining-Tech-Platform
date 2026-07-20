@@ -115,6 +115,18 @@
       $('avatar').textContent = (id.user.email || '?').slice(0, 2).toUpperCase();
       await id.redeemInvites();   // riscatta inviti pendenti al volo
     }
+    if (id.authState() === 'member') {
+      // griglia app da entitlement REALI dell'organizzazione attiva
+      const APPS = ['Deepwork', 'Genesi', 'Scudo', 'Campo', 'Flotta', 'Conti', 'Sentinella', 'Terra'];
+      const ents = await id.listEntitlements();
+      const ok = (e) => !!(e && e.active && (!e.validUntil || e.validUntil.toDate() > new Date()));
+      $('apps-grid').innerHTML = APPS.map((n) => {
+        const on = ok(ents[n.toLowerCase()]);
+        return `<div class="app-tile ${on ? 'on' : 'off'}"><div class="nm">${n}</div><div class="st">${on ? 'Attiva' : 'Non inclusa'}</div></div>`;
+      }).join('');
+      const note = $('apps-grid').nextElementSibling;
+      if (note) note.textContent = "App attive secondo l'abbonamento della tua organizzazione.";
+    }
   } catch (e) {
     msg('Backend non ancora configurato: schermata in modalità mockup (vedi GUIDA_FIREBASE.md).');
   }

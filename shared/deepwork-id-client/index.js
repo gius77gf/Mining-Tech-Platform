@@ -20,7 +20,7 @@ import {
   signInAnonymously, signOut,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  getFirestore, doc, getDoc, setDoc, collection,
+  getFirestore, doc, getDoc, getDocs, setDoc, collection,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {
   getFunctions, httpsCallable,
@@ -142,6 +142,18 @@ class DeepworkIDClient {
 
   role() {
     return this.orgId ? this.orgs[this.orgId] || null : null;
+  }
+
+  // tutti gli entitlement dell'org attiva ({appId: dati}) — usato dal
+  // profilo per la griglia delle app incluse nell'abbonamento
+  async listEntitlements() {
+    if (!this.orgId) return {};
+    const snap = await getDocs(
+      collection(this._db, "organizations", this.orgId, "entitlements")
+    );
+    const out = {};
+    snap.docs.forEach((d) => { out[d.id] = d.data(); });
+    return out;
   }
 
   hasEntitlement(tier = null) {

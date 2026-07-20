@@ -75,6 +75,7 @@
 
 <script type="module">
   import { campoData, kpiFrom } from "./campo-data.js";
+  import { mountExit } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const AB = { "in-corso": ["ok","In corso"], pianificata: ["warn","Pianificata"], anomalia: ["danger","Anomalia"], conclusa: ["ok","Conclusa"] };
   const QB = { operativa: ["ok","Operativa"], ferma: ["danger","Ferma"] };
@@ -82,6 +83,7 @@
   const sig = (n) => (n||"?").replace(/Squadra /,"").slice(0,2).toUpperCase();
 
   const db = await campoData();
+  mountExit(db);
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
