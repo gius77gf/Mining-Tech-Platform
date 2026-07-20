@@ -26,10 +26,10 @@
 <!-- DASHBOARD -->
 <div class="page active" id="page-dash">
   <div class="kpis">
-    <div class="kpi danger"><div class="n" id="k-scadute">2</div><div class="l">Scadenze superate</div></div>
-    <div class="kpi warn"><div class="n" id="k-30gg">5</div><div class="l">In scadenza 30gg</div></div>
-    <div class="kpi ok"><div class="n" id="k-regolari">14</div><div class="l">Lavoratori regolari</div></div>
-    <div class="kpi accent"><div class="n" id="k-corsi">3</div><div class="l">Corsi pianificati</div></div>
+    <div class="kpi danger" style="cursor:pointer" data-goto="scad" data-filtro="scaduta" title="Vedi le scadenze superate"><div class="n" id="k-scadute">2</div><div class="l">Scadenze superate</div></div>
+    <div class="kpi warn" style="cursor:pointer" data-goto="scad" data-filtro="in-scadenza" title="Vedi le scadenze entro 30gg"><div class="n" id="k-30gg">5</div><div class="l">In scadenza 30gg</div></div>
+    <div class="kpi ok" style="cursor:pointer" data-goto="pers" title="Vedi i lavoratori"><div class="n" id="k-regolari">14</div><div class="l">Lavoratori regolari</div></div>
+    <div class="kpi accent" style="cursor:pointer" data-goto="scad" data-filtro="tutte" title="Vedi tutte le scadenze"><div class="n" id="k-corsi">3</div><div class="l">Corsi pianificati</div></div>
   </div>
 
   <div class="sec">Urgenze</div>
@@ -133,6 +133,14 @@
   $("scad-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroScad = f; refresh(); }
+  });
+  // scorciatoia: toccare un KPI del quadro porta alla lista pertinente
+  document.querySelector(".kpis").addEventListener("click", (e) => {
+    const card = e.target.closest("[data-goto]"); if (!card) return;
+    const filtro = card.getAttribute("data-filtro");
+    if (filtro) filtroScad = filtro;
+    go(card.getAttribute("data-goto"));
+    refresh();
   });
 
   async function refresh() {
