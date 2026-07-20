@@ -63,6 +63,15 @@ test("kpiFrom: regolare solo se attivo E senza scadenze problematiche", () => {
   ];
   eq(scudo.kpiFrom(lav, sca), { scadute: 1, trenta: 0, regolari: 2 }, "regolari = a + b");
 });
+test("statoScadenza: una scadenza SENZA data non allarma (= regolare)", () => {
+  // dato incompleto (data mancante) → non deve risultare scaduta/in-scadenza
+  eq(scudo.statoScadenza(undefined), "regolare", "undefined");
+  eq(scudo.statoScadenza(""), "regolare", "vuota");
+  eq(scudo.statoScadenza(null), "regolare", "null");
+  // e nel KPI il lavoratore con una scadenza senza data resta "regolare"
+  eq(scudo.kpiFrom([{ id: "l1", attivo: true }], [{ lavoratoreId: "l1" }]),
+    { scadute: 0, trenta: 0, regolari: 1 }, "kpi con scadenza senza data");
+});
 
 console.log("\n— Conti: fatture e gare —");
 test("giorni calcola la distanza in giorni", () => {
