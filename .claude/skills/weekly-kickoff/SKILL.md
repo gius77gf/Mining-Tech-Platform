@@ -119,6 +119,12 @@ Leggi vault/ROADMAP_SETTIMANA.md e il checkpoint più recente in
 vault/checkpoints/ (il file con il timestamp più alto nel nome) per capire
 lo stato del lavoro e cosa fare adesso.
 
+REGOLA FONDAMENTALE DEL FONDATORE: OGNI CICLO LAVORA FINO AD ESAURIMENTO
+DEI CREDITI DISPONIBILI, non una sola unità. Completa un'unità (commit +
+checkpoint + push), poi prosegui SUBITO con la successiva nell'ordine
+della roadmap, senza fermarti finché i crediti della finestra non si
+esauriscono o non resta lavoro eseguibile senza il fondatore.
+
 Lavora a piccole unità: scegli il prossimo task non completato dalla
 roadmap, implementalo, esegui commit frequenti e atomici con messaggi
 chiari.
