@@ -94,9 +94,17 @@ cliente. I titoli dei modali usano textContent (già sicuri). Scansione
 finale: 0 residui nelle classi display (sname/ssub/preview-val/chip)
 per i campi di testo tracciati; il core è passato da ~17 a ~140
 chiamate escHtml. Verificato: sintassi OK sui 3 script inline, core
-carica senza errori in Playwright. Sweep XSS del core considerato
-sostanzialmente COMPLETO (eventuali spot rari residui = manutenzione
-ordinaria).
+carica senza errori in Playwright.
+
+Quarta passata 21/07 (revisione di completezza): una ri-scansione ha
+trovato residui NON coperti dalle passate precedenti — soprattutto il
+contesto `<textarea>...</textarea>` (dove un valore con
+`</textarea><script>` sarebbe un breakout), oltre a targa nelle
+scadenze mezzi, cliente nell'anteprima cava, operazione/note nelle
+liste manutenzioni/controlli/rifornimenti e le iniziali avatar utenti.
+Corretti tutti: 8 textarea (note di cliente/sensore/mezzo/persona/foro/
+fronte) + 8 punti element-context. Ora TUTTE le textarea con
+interpolazione passano da escHtml. Sweep XSS del core COMPLETO.
 
 ### 9. Iniezione CSV negli export/import (21/07) — CHIUSO
 Un valore inserito da un membro dell'organizzazione che inizia con
