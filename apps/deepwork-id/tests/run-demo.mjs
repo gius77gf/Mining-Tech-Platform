@@ -63,6 +63,9 @@ test("flotta: id unici, date manutenzioni valide, costi numerici", () => {
   for (const n of F.manutenzioni)
     ok(n.mezzo == null || mz.has(n.mezzo.split(" — ")[0]), `manutenzione ${n.id}: mezzo «${n.mezzo}» inesistente`);
   for (const m of F.mezzi) ok(isNum(m.ore), `mezzo ${m.id}: ore non numerico`);
+  // stato noto: uno stato con un refuso farebbe crashare il badge (MB[stato])
+  for (const m of F.mezzi)
+    ok(["operativo", "fermo", "verifica"].includes(m.stato), `mezzo ${m.id}: stato «${m.stato}» sconosciuto`);
 });
 
 test("conti: id unici, importi numerici, emessa non dopo scadenza", () => {
@@ -72,6 +75,8 @@ test("conti: id unici, importi numerici, emessa non dopo scadenza", () => {
     ok(isDate(f.emessa) && isDate(f.scadenza), `fattura ${f.id}: date non valide`);
     ok(Date.parse(f.emessa) <= Date.parse(f.scadenza), `fattura ${f.id}: emessa dopo la scadenza`);
   }
+  for (const g of N.gare)
+    ok(["aperta", "vinta", "persa"].includes(g.stato), `gara ${g.id}: stato «${g.stato}» sconosciuto`);
 });
 
 test("sentinella: id unici, valore/soglia numerici, date adempimenti", () => {
@@ -89,6 +94,9 @@ test("terra: id unici, date rilievi valide, volumeM3 numerico o null", () => {
     ok(r.fronteId == null || fro.has(r.fronteId), `rilievo ${r.id}: fronteId ${r.fronteId} inesistente`);
   }
   for (const f of T.fronti) ok(isNum(f.avanzamento), `fronte ${f.id}: avanzamento non numerico`);
+  for (const f of T.fronti) ok(["attivo", "sospeso"].includes(f.stato), `fronte ${f.id}: stato «${f.stato}» sconosciuto`);
+  for (const r of T.rilievi) ok(["elaborato", "pianificato"].includes(r.stato), `rilievo ${r.id}: stato «${r.stato}» sconosciuto`);
+  for (const p of T.piano) ok(["vigente", "in-esame"].includes(p.stato), `piano ${p.id}: stato «${p.stato}» sconosciuto`);
 });
 
 console.log(`\nRisultato Demo: ${passed} passati, ${failed} falliti`);
