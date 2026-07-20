@@ -155,6 +155,9 @@ Dettaglio per unità: vault/checkpoints/ dal 2026-07-20_1500 in poi.
 2. Regole Firestore del progetto ESISTENTE (AUDIT punto 3).
 3. Dati default del core: reali o di fantasia? (AUDIT punto 2)
 4. Eventuale ok alla mitigazione ponte password (PREPARATA, NON ATTIVATA).
+5. Gestione errori scritture live (AUDIT punto 12): decidere COME
+   mostrare un errore all'utente (toast/messaggio) — è una scelta di
+   stile, quindi serve l'ok del fondatore prima di aggiungerla alle app.
 
 ## Fine progetto (fase commercializzazione) — NON prima
 - Acquisto dominio + sottodomini. DECISIONE DEL FONDATORE: nessuna
@@ -177,7 +180,7 @@ Dettaglio per unità: vault/checkpoints/ dal 2026-07-20_1500 in poi.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-21_2345_xss-textarea-review.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-21_2355_audit-robustezza-errori.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
