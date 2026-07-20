@@ -38,6 +38,29 @@ account Google (gius77.gf@gmail.com).
     **copia tutto il blocco** e incollalo in chat a Claude — al resto
     (inserirlo nel codice e caricare le regole di sicurezza) pensiamo noi.
 
+## IMPORTANTE — cosa parte subito gratis e cosa richiede una tua scelta
+Con i passi qui sopra (progetto + Authentication + Firestore) sei nel
+piano **gratuito** (Spark), zero spese. Questo basta per far
+funzionare **le 6 app** (Scudo, Campo, Flotta, Conti, Sentinella,
+Terra) con dati reali e isolamento tra aziende.
+
+C'è però un dettaglio onesto da sapere: la parte di **Deepwork ID che
+crea organizzazioni e invita i colleghi da sola** usa le *Cloud
+Functions*, che Google fa girare **solo sul piano Blaze** (a consumo).
+Il Blaze ha una fascia gratuita ampia — con l'uso di una singola cava
+il costo reale è **0 €** — MA richiede una carta registrata. Visto che
+la tua regola è "nessuna spesa prima della commercializzazione", NON
+attiviamo il Blaze ora.
+
+**Come partiamo comunque live, gratis:** dopo che avrai creato il
+progetto e ti sarai registrato una volta nell'app, io lancio una tantum
+lo script `scripts/bootstrap-owner.mjs` (usa la chiave di servizio, gira
+in locale, gratis) che crea la tua organizzazione e ti rende owner. Da
+lì le 6 app funzionano live sulla tua cava. La creazione self-service
+di nuove organizzazioni e gli inviti automatici resteranno in
+"anteprima" finché non deciderai tu se attivare il Blaze (a costo 0 di
+utilizzo) — decisione rimandata alla commercializzazione.
+
 ## Cosa NON fare
 - Non serve inserire carte o attivare il piano a pagamento (Blaze):
   tutto lo sviluppo sta nel piano gratuito.
