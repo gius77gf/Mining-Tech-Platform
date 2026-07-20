@@ -13,6 +13,33 @@ sanno sempre cosa fare e da dove riprendere.
 Esegui i passi in ordine. Non saltare la pulizia della routine precedente:
 se non viene rimossa, restano due routine attive che duplicano il lavoro.
 
+## Compattazione periodica per risparmiare token (~ogni 15 min)
+
+Regola del fondatore (22/07): per non consumare troppi token in una
+sessione lunga, **compatta la conversazione ~ogni 15 minuti di lavoro**
+(circa ogni 3–5 unità completate).
+
+Come farlo in modo sicuro, senza perdere lavoro:
+
+1. Compatta SOLO a un confine di unità pulito: commit + push fatti e
+   checkpoint appena scritto. Mai a metà di un'unità.
+2. È il checkpoint per-unità a rendere la compattazione senza perdite:
+   deve sempre contenere task completato, **hash del commit** e un
+   **"Prossimo passo atomico" preciso** (abbastanza dettagliato da
+   riprendere a freddo). Dopo la compattazione: rileggi il checkpoint
+   più recente in `vault/checkpoints/` e riprendi ESATTAMENTE da lì.
+3. Come si attiva: in sessione interattiva usa il comando `/compact`
+   della CLI; in sessione automatica (routine) la compattazione del
+   harness avviene da sola quando il contesto cresce — la disciplina
+   dei checkpoint la rende comunque sicura. In entrambi i casi il
+   lavoro riprende dal checkpoint, non dalla cronologia della chat.
+4. Tieni le risposte snelle e non rileggere file già noti: meno
+   contesto accumulato = meno token, e la compattazione resta rara e
+   indolore.
+
+Questa regola NON è un motivo per fermarsi: si compatta e si prosegue
+subito con l'unità successiva (vale sempre la regola di esaurimento).
+
 ## 1. Determina la settimana corrente
 
 Usa `date` in bash per ottenere la data odierna e calcolare lunedì-venerdì
@@ -148,7 +175,18 @@ Al completamento di ogni unità di lavoro:
    YYYYMMDD-HHMMSS_<slug-breve>.md — non modificare né sovrascrivere MAI un
    checkpoint esistente. Includi: tipo (unit-complete), branch, hash
    dell'ultimo commit, cosa è stato completato, stato aggiornato della
-   roadmap, prossimi passi, eventuali blocchi.
+   roadmap, prossimi passi (un "Prossimo passo atomico" preciso,
+   sufficiente a riprendere a freddo dopo una compattazione), blocchi.
+
+COMPATTAZIONE PERIODICA (~ogni 15 min): per non consumare troppi token,
+~ogni 15 minuti di lavoro (circa ogni 3-5 unità) — SOLO a un confine di
+unità pulito (commit+push fatti, checkpoint appena scritto) — compatta
+la conversazione. Il checkpoint garantisce la ripresa senza perdite:
+dopo la compattazione rileggi il checkpoint più recente e riparti da
+lì. In sessione interattiva usa /compact; in sessione automatica la
+compattazione avviene da sola quando il contesto cresce. Tieni le
+risposte snelle e non rileggere file già noti. Compattare NON è un
+motivo per fermarsi: si prosegue subito con l'unità successiva.
 
 Non pushare MAI su main senza autorizzazione esplicita dell'utente in
 questa conversazione: lavora e pusha solo sul branch di sessione
