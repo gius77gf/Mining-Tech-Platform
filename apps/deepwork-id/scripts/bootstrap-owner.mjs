@@ -53,6 +53,22 @@ await orgRef.set({ name: orgName, status: "active", ownerUid: user.uid, createdA
 await orgRef.collection("members").doc(user.uid).set({ uid: user.uid, role: "owner", status: "active", joinedAt: FieldValue.serverTimestamp() });
 await auth.setCustomUserClaims(user.uid, { orgs: { [orgRef.id]: "owner" } });
 
+// Entitlement pieni per l'org interna del fondatore: le app verticali
+// funzionano già con la sola membership, ma senza questi documenti la
+// griglia "abbonamento" del profilo mostrerebbe tutto "Non inclusa".
+// Sono l'accesso pieno del fondatore alla PROPRIA org (nessuna spesa);
+// gli abbonamenti a pagamento dei clienti arriveranno col flusso di
+// fatturazione. Le chiavi coincidono con l'appId di init delle app.
+const APP_IDS = ["deepwork", "genesi", "scudo", "campo", "flotta", "conti", "sentinella", "terra"];
+const batch = db.batch();
+for (const appId of APP_IDS) {
+  batch.set(orgRef.collection("entitlements").doc(appId), {
+    active: true, tier: "full", grantedAt: FieldValue.serverTimestamp(),
+  });
+}
+await batch.commit();
+
 console.log(`OK: organizzazione "${orgName}" creata (${orgRef.id}).`);
-console.log(`${email} è ora OWNER. Esci e rientra nell'app per vederla attiva.`);
-console.log("Le 6 app ora funzionano live su questa organizzazione (isolamento via rules).");
+console.log(`${email} è ora OWNER, con tutte e 8 le app attive nel profilo.`);
+console.log("Esci e rientra nell'app per vederla attiva.");
+console.log("Le app ora funzionano live su questa organizzazione (isolamento via rules).");
