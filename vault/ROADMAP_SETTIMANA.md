@@ -76,8 +76,9 @@ D1. Pagina "non autorizzato" — stato: fatto (20/07: pagina dedicata
     non-autorizzato.html con spiegazione invito 14gg, ricontrollo
     inviti, crea organizzazione, tour/uscita; redirect da login e
     profilo)
-D2. Logout coerente su tutte le pagine + griglia app da entitlement
-    reali — taglia S — stato: da fare
+D2. Logout coerente + griglia da entitlement — stato: fatto (20/07:
+    dw-shell.js mountExit su 6 app solo in live, logout nell'api dei
+    data layer, SDK listEntitlements + griglia profilo reale)
 D3. Verifica email + recupero password (flussi Firebase Auth)
     — taglia M — stato: da fare
 D4. Pannello amministrazione organizzazione (gestione membri/ruoli da
@@ -133,7 +134,7 @@ ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-20_0730_d1-non-autorizzato.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-20_0745_d2-logout-entitlements.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
