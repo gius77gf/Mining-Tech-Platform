@@ -64,6 +64,14 @@
 <div class="page" id="page-ade">
   <div class="sec">Scadenze ambientali</div>
   <div id="ade-list"></div>
+  <div class="sec">Nuovo adempimento</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <input class="dw-input" id="ade-titolo" placeholder="Titolo (es. Relazione annuale AUA)" style="flex:2;min-width:160px;">
+    <input class="dw-input" id="ade-ente" placeholder="Ente (es. ARPA)" style="flex:1;min-width:90px;">
+    <input class="dw-input" id="ade-data" type="date" style="flex:1;min-width:130px;">
+    <button class="dw-btn" id="btn-ade" style="width:auto;">Aggiungi</button>
+  </div>
+  <div class="note" id="ade-esito" style="text-align:left;"></div>
   </div>
 
 <div class="page" id="page-reg">
@@ -166,6 +174,19 @@
     el.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     el.download = "sentinella_ambiente.csv"; el.click();
     $("mode-note").textContent = "Esportati " + MON.length + " monitoraggi e " + ADE.length + " adempimenti (CSV).";
+  };
+  $("btn-ade").onclick = async () => {
+    const titolo = $("ade-titolo").value.trim(), ente = $("ade-ente").value.trim() || "—", scadenza = $("ade-data").value;
+    if (!titolo || !scadenza) {
+      $("ade-titolo").style.borderColor = titolo ? "" : "var(--danger)";
+      $("ade-data").style.borderColor = scadenza ? "" : "var(--danger)";
+      $("ade-esito").textContent = "Servono titolo e data di scadenza."; return;
+    }
+    $("ade-titolo").style.borderColor = ""; $("ade-data").style.borderColor = "";
+    await db.aggiungi("adempimenti", { titolo, ente, scadenza });
+    $("ade-titolo").value = ""; $("ade-ente").value = ""; $("ade-data").value = "";
+    $("ade-esito").textContent = "Adempimento aggiunto: " + titolo + " entro " + fmtD(scadenza) + ".";
+    await refresh();
   };
   $("btn-sen").onclick = async () => {
     const nome = $("sen-nome").value.trim(), unita = $("sen-unita").value.trim(), soglia = +$("sen-soglia").value;
