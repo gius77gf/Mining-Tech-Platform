@@ -56,8 +56,9 @@ test con emulatore dove sensato.
 
 C1. Scudo — stato: fatto (20/07: data layer, KPI calcolati, CRUD,
     import CSV con dedup — tutto testato nel browser)
-C2. Campo: attività/squadre/rapportini + compilazione rapportino con
-    foto + stato squadre — taglia L — stato: da fare
+C2. Campo — stato: fatto prima iterazione (20/07: data layer, KPI,
+    stati al tocco, rapportini bozza→inviato; foto rimandate a quando
+    ci sarà lo storage reale)
 C3. Flotta: mezzi/manutenzioni/costi + registro ore + scadenzario
     tagliandi con alert — taglia L — stato: da fare
 C4. Conti: fatture/gare + scadenzario incassi + KPI (DSO, margine)
@@ -128,7 +129,7 @@ ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-20_0505_c1-completa.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-20_0530_c2-campo.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
