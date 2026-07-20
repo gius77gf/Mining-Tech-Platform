@@ -72,7 +72,10 @@ C6. Terra — stato: fatto prima iterazione (20/07: data layer, KPI
 ═══════════════════════════════════════════════
 ## FASE D — Deepwork ID avanzato (dopo B, in parallelo a C)
 
-D1. Pagina/stato "non autorizzato" con spiegazione invito — taglia S — stato: da fare
+D1. Pagina "non autorizzato" — stato: fatto (20/07: pagina dedicata
+    non-autorizzato.html con spiegazione invito 14gg, ricontrollo
+    inviti, crea organizzazione, tour/uscita; redirect da login e
+    profilo)
 D2. Logout coerente su tutte le pagine + griglia app da entitlement
     reali — taglia S — stato: da fare
 D3. Verifica email + recupero password (flussi Firebase Auth)
@@ -130,7 +133,7 @@ ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-20_0645_c5-sentinella.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-20_0730_d1-non-autorizzato.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
