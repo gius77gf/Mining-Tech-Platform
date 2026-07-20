@@ -1,3 +1,4 @@
 node_modules/
 .sdk-under-test.mjs
 .sdk-under-test-fns.mjs
+.sdk-under-test-boot.mjs
