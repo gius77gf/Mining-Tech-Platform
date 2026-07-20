@@ -138,7 +138,15 @@ Dettaglio per unità: vault/checkpoints/ dal 2026-07-20_1500 in poi.
 ## In attesa del fondatore (weekend 25-26/07, promemoria armato sabato 09:00)
 1. Creazione progetto Firebase (GRATUITA, ~10 min, guida:
    apps/deepwork-id/GUIDA_FIREBASE.md) → poi config reale nello SDK,
-   deploy rules+functions, collaudo online end-to-end.
+   deploy rules, collaudo online.
+   NOVITÀ 21/07 (onestà tecnica): le Cloud Functions (crea org/inviti/
+   ruoli) richiedono il piano BLAZE, non il gratuito Spark. Auth+
+   Firestore sono gratis e bastano per le 6 app. Preparato
+   scripts/bootstrap-owner.mjs (Admin SDK locale, gratis) per creare
+   l'org del fondatore e i claims owner senza Functions → le 6 app
+   partono live subito. Il self-service org/inviti resta in anteprima
+   finché il fondatore non decide sul Blaze (utilizzo 0€, serve carta).
+   DECISIONE FONDATORE al weekend.
 2. Regole Firestore del progetto ESISTENTE (AUDIT punto 3).
 3. Dati default del core: reali o di fantasia? (AUDIT punto 2)
 4. Eventuale ok alla mitigazione ponte password (PREPARATA, NON ATTIVATA).
@@ -164,7 +172,7 @@ Dettaglio per unità: vault/checkpoints/ dal 2026-07-20_1500 in poi.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-21_1730_test-accept-invites.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-21_1800_firebase-blaze-bootstrap.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
