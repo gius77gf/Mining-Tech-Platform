@@ -55,8 +55,10 @@ attiviamo il Blaze ora.
 **Come partiamo comunque live, gratis:** dopo che avrai creato il
 progetto e ti sarai registrato una volta nell'app, io lancio una tantum
 lo script `scripts/bootstrap-owner.mjs` (usa la chiave di servizio, gira
-in locale, gratis) che crea la tua organizzazione e ti rende owner. Da
-lì le 6 app funzionano live sulla tua cava. La creazione self-service
+in locale, gratis) che crea la tua organizzazione, ti rende owner e
+attiva tutte e 8 le app nel tuo profilo. Da lì le app funzionano live
+sulla tua cava e la schermata profilo mostra l'abbonamento "pieno".
+La creazione self-service
 di nuove organizzazioni e gli inviti automatici resteranno in
 "anteprima" finché non deciderai tu se attivare il Blaze (a costo 0 di
 utilizzo) — decisione rimandata alla commercializzazione.
