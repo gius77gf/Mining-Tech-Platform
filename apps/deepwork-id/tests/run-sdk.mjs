@@ -103,6 +103,17 @@ await test("la lettura dei dati del CONCORRENTE è respinta dalle rules", async 
 await test("hasEntitlement vero per l'app abbonata (scudo)", async () => {
   expect(id.hasEntitlement() === true, "entitlement scudo non visto");
 });
+await test("un entitlement SCADUTO (validUntil nel passato) NON dà accesso", async () => {
+  const { Timestamp } = await import("firebase-admin/firestore");
+  await adb.doc("organizations/orgA/entitlements/scudo").set(
+    { active: true, tier: "base", validUntil: Timestamp.fromMillis(Date.now() - 86400000) });
+  await id._loadEntitlement();                 // ricarica l'entitlement dell'app
+  expect(id.hasEntitlement() === false, "entitlement scaduto ancora valido!");
+  // ripristino per i test successivi
+  await adb.doc("organizations/orgA/entitlements/scudo").set({ active: true, tier: "base" });
+  await id._loadEntitlement();
+  expect(id.hasEntitlement() === true, "ripristino entitlement fallito");
+});
 await test("listEntitlements elenca gli abbonamenti dell'org", async () => {
   const ents = await id.listEntitlements();
   expect(ents.scudo && ents.scudo.active === true, JSON.stringify(ents));

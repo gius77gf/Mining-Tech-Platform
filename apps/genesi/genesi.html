@@ -408,7 +408,10 @@ body.scr-sim #tl{bottom:80px}
   <div style="max-width:680px;width:100%;max-height:86vh;overflow:auto;background:var(--card,#221c0e);border:1px solid rgba(255,171,0,.3);border-radius:14px;padding:18px;">
     <div style="font-family:'Barlow Condensed';font-weight:800;font-size:17px;letter-spacing:.08em;text-transform:uppercase;color:#ffd54f;margin-bottom:10px;">Confronto progetti A / B</div>
     <div id="cmpBody" style="font-size:13.5px;"></div>
-    <button class="btn sm" id="cmpClose" style="margin-top:12px;">Chiudi</button>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn sm" id="cmpExport">Esporta confronto (CSV)</button>
+      <button class="btn sm" id="cmpClose">Chiudi</button>
+    </div>
   </div>
 </div>
 
@@ -1766,6 +1769,25 @@ if($('cmpSaveA')) $('cmpSaveA').onclick=()=>cmpSave('A');
 if($('cmpSaveB')) $('cmpSaveB').onclick=()=>cmpSave('B');
 if($('cmpShow')) $('cmpShow').onclick=()=>{ cmpRender(); $('cmpModal').style.display='flex'; };
 if($('cmpClose')) $('cmpClose').onclick=()=>{ $('cmpModal').style.display='none'; };
+if($('cmpExport')) $('cmpExport').onclick=()=>{
+  const A=JSON.parse(localStorage.getItem('genesiCmpA')||'null');
+  const B=JSON.parse(localStorage.getItem('genesiCmpB')||'null');
+  if(!A||!B){ toast('Salva prima i progetti A e B'); return; }
+  const R=[['KPI','A ('+A.ts+')','B ('+B.ts+')'],
+    ['Maglia',A.kpi.maglia,B.kpi.maglia],
+    ['Esplosivo',A.kpi.setup,B.kpi.setup],
+    ['Fori',A.kpi.nf,B.kpi.nf],
+    ['Carica totale (kg)',A.kpi.qtot,B.kpi.qtot],
+    ['Powder factor',A.kpi.pf,B.kpi.pf],
+    ['X20 (cm)',A.kpi.x20,B.kpi.x20],['X50 (cm)',A.kpi.x50,B.kpi.x50],['X80 (cm)',A.kpi.x80,B.kpi.x80],
+    ['PPV (mm/s)',A.kpi.ppv,B.kpi.ppv],['Limite PPV (mm/s)',A.kpi.lim,B.kpi.lim],
+    ['Gittata flyrock (m)',A.kpi.fly,B.kpi.fly],
+    ['Presplit',A.kpi.presplit?'si':'no',B.kpi.presplit?'si':'no']];
+  const csv=R.map(r=>r.join(';')).join('\n')+'\n';
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='genesi_confronto_AB.csv'; a.click();
+};
 
 function maybeConsent(){ if(!localStorage.getItem('genesiDisclaimerV1')){ $('modal').style.display='flex'; } }
 $('disclaimerChk').onchange = e=>{ $('modalOk').classList.toggle('disabled', !e.target.checked); };
