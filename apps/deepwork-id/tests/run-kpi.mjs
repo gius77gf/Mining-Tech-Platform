@@ -161,6 +161,18 @@ test("kpiFrom: l'avanzamento annuo ignora i rilievi di altri anni", () => {
   eq(k.avanzamento, 25, "solo i 3000 del 2026 (non 100% con i 9000 del 2025)");
   eq(k.volumiMese, 0, "nessun rilievo a luglio → volumi mese 0");
 });
+test("volumeFronte: somma solo i rilievi elaborati (con volume) del fronte", () => {
+  const rilievi = [
+    { fronteId: "f1", stato: "elaborato",  volumeM3: 1000 },  // conta
+    { fronteId: "f1", stato: "elaborato",  volumeM3: 500 },   // conta
+    { fronteId: "f1", stato: "pianificato", volumeM3: null }, // pianificato → no
+    { fronteId: "f1", stato: "elaborato",  volumeM3: null },  // senza volume → no
+    { fronteId: "f2", stato: "elaborato",  volumeM3: 9999 },  // altro fronte → no
+  ];
+  eq(terra.volumeFronte(rilievi, "f1"), 1500, "1000 + 500");
+  eq(terra.volumeFronte(rilievi, "f2"), 9999, "solo il suo");
+  eq(terra.volumeFronte([], "f1"), 0, "nessun rilievo = 0");
+});
 
 console.log("\n— Flotta: mezzi e manutenzioni —");
 test("urgenza: a ore / scaduta / in scadenza", () => {
