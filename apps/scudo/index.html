@@ -244,7 +244,7 @@
     let aggiunti = 0, saltate = 0;
     for (const riga of righe) {
       const [nome, ruolo, tel] = parseCsvLine(riga);
-      if (!nome || /^nome$/i.test(nome)) { saltate++; continue; }   // header o riga vuota
+      if (!nome || /^(nome|azienda)$/i.test(nome)) { saltate++; continue; }   // header, riga vuota o riga-azienda dell'export
       if (LAV.some(l => l.nome.toLowerCase() === nome.toLowerCase())) { saltate++; continue; }  // duplicato
       await db.aggiungi("lavoratori", { nome, ruolo: ruolo || "", tel: tel || "", attivo: true });
       aggiunti++;
