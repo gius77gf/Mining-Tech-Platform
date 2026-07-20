@@ -203,6 +203,13 @@
     await db.aggiungi("rapportini", { titolo, squadra: $("new-rap-squadra").value, ora: "", stato: "bozza" });
     $("new-rap-titolo").value = ""; await refresh();
   };
+  // Recupero errore: appena l'utente corregge un campo, togli il bordo
+  // rosso (e il messaggio, dove c'è) così l'avviso non resta appeso.
+  const clearErr = (inputId, esitoId) => $(inputId).addEventListener("input", () => {
+    $(inputId).style.borderColor = ""; if (esitoId) $(esitoId).textContent = "";
+  });
+  clearErr("att-titolo", "att-esito");
+  clearErr("new-rap-titolo");
   await refresh();
 
   // ── Registro progettato-vs-reale (ponte da Genesi) ──
