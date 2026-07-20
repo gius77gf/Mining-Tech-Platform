@@ -244,6 +244,13 @@
     ["ft-num","ft-cli","ft-imp","ft-scad"].forEach(i => $(i).value = "");
     await refresh();
   };
+  // Recupero errore: appena l'utente corregge un campo, togli il bordo
+  // rosso e il messaggio di esito, così l'avviso non resta appeso.
+  const clearErr = (inputId, esitoId) => $(inputId).addEventListener("input", () => {
+    $(inputId).style.borderColor = ""; if (esitoId) $(esitoId).textContent = "";
+  });
+  ["gar-titolo","gar-base","gar-data"].forEach(i => clearErr(i, "gar-esito"));
+  ["ft-num","ft-cli","ft-imp","ft-scad"].forEach(i => clearErr(i, "ft-esito"));
   await refresh();
 </script>
 </body>
