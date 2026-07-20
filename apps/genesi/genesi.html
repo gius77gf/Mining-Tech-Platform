@@ -394,6 +394,7 @@ body.scr-sim #tl{bottom:80px}
   <div id="d2-wrap"><canvas id="d2-canvas" width="960" height="600"></canvas></div>
   <div id="d2-insp"></div>
   <div id="d2-scheda"></div>
+  <button class="btn-sec" id="btn-piano-csv" style="display:block;margin:10px auto 0;">📤 Esporta piano di carico (CSV per il fochino)</button>
   <button class="btn cu" id="d2-cta">▶ Simula questa volata</button>
   <div style="display:flex;gap:8px;margin-top:8px;">
     <button class="btn sm" id="cmpSaveA">Salva come A</button>
@@ -1798,6 +1799,17 @@ document.querySelectorAll('#scr-home .card').forEach(card=>{
   card.addEventListener('pointerleave', ()=>{ card.style.removeProperty('--mx'); card.style.removeProperty('--my'); if(ic){ ic.style.filter=''; ic.style.transform=''; } });
 });
 $('d2-cta').onclick=simulaVolata2D;
+/* piano di carico per foro → CSV per il registro reale in Campo (ponte tra le app) */
+$('btn-piano-csv').onclick=()=>{
+  if(!D2.holes.length) genMaglia2D();
+  let csv='foro;x_m;fila_m;prof_m;carica_prog_kg;borraggio_prog_m;ritardo_ms\n';
+  D2.holes.slice().sort((a,b)=>a.tDet-b.tDet).forEach((h,i)=>{
+    csv+=(i+1)+';'+h.mx.toFixed(2)+';'+h.my.toFixed(2)+';'+D2.prof+';'+D2.kg+';'+D2.stem+';'+(h.tDet!=null?h.tDet:'')+'\n';
+  });
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='genesi_piano_carico.csv'; a.click();
+};
 $('btnParams').onclick=()=>document.body.classList.toggle('show-params');
 
 /* disegno della maglia fori in PIANTA (modulo Progetto 2D) */
