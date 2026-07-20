@@ -131,6 +131,18 @@ per il go-live gratuito con bootstrap NON serve. Alla futura attivazione
 Blaze: `firebase deploy --only firestore` e, se la console segnala altri
 indici mancanti, crearli col link a un clic.
 
+### 12. Gestione errori delle scritture live (21/07) — DA FARE (robustezza)
+I gestori delle app (aggiungi/aggiorna/rimuovi lavoratori, fatture,
+misure…) chiamano `await db.xxx()` SENZA try/catch. In DEMO le
+operazioni in memoria non falliscono mai, ma in LIVE un errore
+Firestore (rete assente, permesso negato, quota) farebbe fallire
+l'azione in SILENZIO: l'utente non vedrebbe né conferma né errore.
+Non è un buco di sicurezza (le rules restano il confine), ma una
+robustezza UX da chiudere prima/subito dopo il go-live: avvolgere i
+gestori mutanti con un messaggio d'errore condiviso ("Operazione non
+riuscita, riprova"). Da fare app per app con verifica del percorso
+felice (demo) e di un errore simulato. Rilevanza: solo modalità live.
+
 ### 10. XSS in contesto-attributo (verifica 21/07) — PULITO
 Verificate TUTTE le interpolazioni dentro attributi HTML delle app
 (`data-*`, `value`, `title`, `style`): sono esclusivamente ID
