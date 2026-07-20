@@ -65,8 +65,9 @@ C4. Conti — stato: fatto prima iterazione (20/07: KPI finanziari
     calcolati, incasso al tocco, nuova fattura, report)
 C5. Sentinella — stato: fatto prima iterazione (20/07: stati da
     soglie, urgenze da date, registrazione misure)
-C6. Terra: fronti/rilievi/piano + calcolo volumi da rilievi +
-    avanzamento piano — taglia L — stato: da fare
+C6. Terra — stato: fatto prima iterazione (20/07: data layer, KPI
+    calcolati dai rilievi — volumi mese, avanzamento = estratto/
+    pianificato —, fronte sospendi/riattiva, form nuovo rilievo)
 
 ═══════════════════════════════════════════════
 ## FASE D — Deepwork ID avanzato (dopo B, in parallelo a C)
