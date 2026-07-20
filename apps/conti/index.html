@@ -242,6 +242,7 @@
     await db.aggiungi("fatture", { numero, cliente, importo, scadenza,
       emessa: new Date().toISOString().slice(0,10), incassata: false });
     ["ft-num","ft-cli","ft-imp","ft-scad"].forEach(i => $(i).value = "");
+    $("ft-num").focus();   // torna al primo campo per emettere subito la prossima
     await refresh();
   };
   // Recupero errore: appena l'utente corregge un campo, togli il bordo

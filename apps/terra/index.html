@@ -196,6 +196,7 @@
     await db.aggiungi("fronti", { nome, banco, quota, dettaglio: "", avanzamento: 0, stato: "attivo" });
     $("fro-nome").value = ""; $("fro-banco").value = ""; $("fro-quota").value = "";
     $("fro-esito").textContent = "Fronte " + nome + " aggiunto (attivo).";
+    $("fro-nome").focus();   // torna al primo campo per aggiungere subito il prossimo
     await refresh();
   };
   $("btn-add-ril").onclick = async () => {

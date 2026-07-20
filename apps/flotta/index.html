@@ -212,6 +212,7 @@
     await db.aggiungi("mezzi", { nome, area, ore, stato: "operativo" });
     $("mez-nome").value = ""; $("mez-area").value = ""; $("mez-ore").value = "";
     $("ore-esito").textContent = "Mezzo " + nome + " aggiunto (operativo, " + ore + " h).";
+    $("mez-nome").focus();   // torna al primo campo per inserire subito il prossimo
     await refresh();
   };
   $("btn-ore").onclick = async () => {
