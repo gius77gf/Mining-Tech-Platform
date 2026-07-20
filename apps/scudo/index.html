@@ -68,6 +68,10 @@
   <div class="sec">Aggiungi scadenza</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
     <select class="dw-input" id="new-scad-lav" style="flex:1;min-width:130px;"></select>
+    <select class="dw-input" id="new-scad-tipo" style="flex:1;min-width:110px;">
+      <option>Visita medica</option><option>Corso</option><option>Formazione</option>
+      <option>DPI</option><option>Patente</option><option selected>Altro</option>
+    </select>
     <input class="dw-input" id="new-scad-desc" placeholder="Descrizione (es. Visita medica)" style="flex:2;min-width:150px;">
     <input class="dw-input" id="new-scad-data" type="date" style="flex:1;min-width:130px;">
     <button class="dw-btn" id="btn-add-scad" style="width:auto;">Aggiungi</button>
@@ -207,7 +211,7 @@
   $("btn-add-scad").onclick = async () => {
     const descrizione = $("new-scad-desc").value.trim(), dataScadenza = $("new-scad-data").value;
     if (!descrizione || !dataScadenza) return;
-    await db.aggiungi("scadenze", { lavoratoreId: $("new-scad-lav").value || null, tipo: "Altro", descrizione, dataScadenza });
+    await db.aggiungi("scadenze", { lavoratoreId: $("new-scad-lav").value || null, tipo: $("new-scad-tipo").value, descrizione, dataScadenza });
     $("new-scad-desc").value = ""; $("new-scad-data").value = ""; await refresh();
   };
 
