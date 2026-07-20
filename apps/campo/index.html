@@ -224,7 +224,7 @@
     $("piano-list").innerHTML = PIANO.map(p => { const b = scartoBadge(p);
       return `<div class="item" data-foro="${p.foro}" style="cursor:pointer" title="Registra carica reale">
       <div class="avatar">${p.foro}</div>
-      <div class="info"><div class="name">Foro ${p.foro} · prog. ${p.prog} kg</div><div class="meta">x ${p.x} m · prof. ${p.prof} m · borr. ${p.borr} m · rit. ${p.rit} ms</div></div>
+      <div class="info"><div class="name">Foro ${p.foro} · prog. ${p.prog} kg</div><div class="meta">x ${esc(p.x)} m · prof. ${esc(p.prof)} m · borr. ${esc(p.borr)} m · rit. ${esc(p.rit)} ms</div></div>
       <span class="badge ${b[0]}">${b[1]}</span></div>`; }).join("");
   }
   $("btn-piano").onclick = () => $("piano-file").click();
