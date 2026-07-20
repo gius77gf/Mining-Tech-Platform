@@ -79,6 +79,16 @@ test("kpiFrom: da incassare, in scadenza, gare aperte, DSO", () => {
   eq(conti.kpiFrom(fatture, gare, oggi),
     { daIncassare: 130, inScadenza: 2, gareAperte: 1, dso: 14 }, "kpi conti");
 });
+test("kpiFrom: inScadenza = solo fatture NON incassate con scadenza entro 10 giorni", () => {
+  const oggi = new Date("2026-07-20T00:00:00");
+  const fatture = [
+    { importo: 10, incassata: false, scadenza: "2026-07-30", emessa: "2026-07-01" }, // +10 gg → conta (confine)
+    { importo: 10, incassata: false, scadenza: "2026-07-31", emessa: "2026-07-01" }, // +11 gg → NON conta
+    { importo: 10, incassata: false, scadenza: "2026-07-10", emessa: "2026-07-01" }, // scaduta → conta
+    { importo: 10, incassata: true,  scadenza: "2026-07-21", emessa: "2026-07-01" }, // incassata e vicina → NON conta
+  ];
+  eq(conti.kpiFrom(fatture, [], oggi).inScadenza, 2, "confine 10gg + scaduta, esclusa l'incassata");
+});
 
 console.log("\n— Sentinella: monitoraggi ambientali —");
 test("statoMisura: superamento/attenzione/conforme dalla soglia", () => {
