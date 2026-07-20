@@ -1,0 +1,4 @@
+# Checkpoint — 2026-07-20 ~04:25
+Task completato: FASE B unità B4 — navigazione trasversale: componente .dw-home nella shell condivisa (link "⌂ ecosistema" in alto a destra), iniettato nelle 6 app verticali + pagina profilo ID; corretta la sovrapposizione col titolo su schermi stretti (padding nel titolo, fix che vale per tutte via shell). Verificato con screenshot. FASE B COMPLETA (B1 CI, B2 README, B3 hub, B4 nav).
+Commit di riferimento: (questo commit)
+Prossimo passo atomico: PR cumulativa verso main (CI+README+hub+nav+checkpoint) — sarà il PRIMO run della CI: verificare l'esito con gli strumenti actions (job security-rules e syntax) e correggere eventuali problemi del runner (es. versioni). Poi FASE C unità C1 — Scudo modello dati reale: definire collezioni lavoratori/scadenze/documenti secondo lo schema orgCollection, caricamento via SDK con fallback demo, prime form di inserimento. Continuare fino a esaurimento crediti (regola del fondatore).
