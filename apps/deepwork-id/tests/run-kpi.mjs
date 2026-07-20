@@ -111,6 +111,17 @@ test("kpiFrom: volumi del mese, avanzamento annuo, fronti attivi", () => {
   eq(terra.kpiFrom(fronti, rilievi, piano, oggi),
     { volumiMese: 1000, rilieviMese: 1, avanzamento: 25, riserveM3: 500000, frontiAttivi: 1 }, "kpi terra");
 });
+test("kpiFrom: l'avanzamento annuo ignora i rilievi di altri anni", () => {
+  const oggi = new Date("2026-07-15T00:00:00");
+  const rilievi = [
+    { stato: "elaborato", volumeM3: 3000, data: "2026-03-01" },  // anno corrente → conta
+    { stato: "elaborato", volumeM3: 9000, data: "2025-12-31" },  // anno scorso → NON conta
+  ];
+  const piano = [{ pianificatoAnnuoM3: 12000 }];
+  const k = terra.kpiFrom([], rilievi, piano, oggi);
+  eq(k.avanzamento, 25, "solo i 3000 del 2026 (non 100% con i 9000 del 2025)");
+  eq(k.volumiMese, 0, "nessun rilievo a luglio → volumi mese 0");
+});
 
 console.log("\n— Flotta: mezzi e manutenzioni —");
 test("urgenza: a ore / scaduta / in scadenza", () => {
