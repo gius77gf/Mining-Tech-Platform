@@ -37,6 +37,17 @@ export function urgenza(dataISO, oggi = new Date()) {
   return { cls: "ok", label: g + " gg", giorni: g };
 }
 
+// Urgenza di un tagliando "a ore motore": confronta le ore previste con
+// quelle attuali del mezzo. mancano ≤0 = scaduta (danger), ≤50 = warn,
+// oltre = ok. Funzione pura e testabile — decide quali manutenzioni a ore
+// segnalare al gestore del parco.
+export function urgenzaOre(orePreviste, oreAttuali) {
+  const mancano = orePreviste - (oreAttuali || 0);
+  if (mancano <= 0) return { cls: "danger", label: "SCADUTA (+" + (-mancano) + " h)", mancano };
+  if (mancano <= 50) return { cls: "warn", label: "tra " + mancano + " h", mancano };
+  return { cls: "ok", label: "tra " + mancano + " h", mancano };
+}
+
 export function kpiFrom(mezzi, manutenzioni, costi) {
   return {
     operativi: mezzi.filter(m => m.stato === "operativo").length,
