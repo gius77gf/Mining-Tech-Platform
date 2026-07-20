@@ -1022,6 +1022,13 @@ function buildScene(){
   {
     const F = flyrockEst(); const cx = Lm/2, czf = 0;
     flyGroup = new THREE.Group();
+    /* terreno virtuale sotto gli anelli: il diorama finisce prima della
+       gittata 4x — un disco tenue evita anelli "sospesi nel vuoto" senza
+       falsificare le distanze di sgombero (che restano in scala reale) */
+    const vGround = new THREE.Mesh(new THREE.CircleGeometry(F.Dper + 6, 72),
+      new THREE.MeshBasicMaterial({ color:0x191410, transparent:true, opacity:0.38, side:THREE.DoubleSide, depthWrite:false }));
+    vGround.rotation.x = -Math.PI/2; vGround.position.set(cx, 0.015, czf);
+    flyGroup.add(vGround);
     const disc = new THREE.Mesh(new THREE.CircleGeometry(F.Lpred, 72),
       new THREE.MeshBasicMaterial({ color:0xffab00, transparent:true, opacity:0.10, side:THREE.DoubleSide, depthWrite:false }));
     disc.rotation.x = -Math.PI/2; disc.position.set(cx, 0.03, czf);
