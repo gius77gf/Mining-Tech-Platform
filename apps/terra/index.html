@@ -44,6 +44,11 @@
 
 <div class="page" id="page-ril">
   <div class="sec">Rilievi e volumi</div>
+  <div id="ril-filtri" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+    <button class="dw-btn secondary" data-filtro="tutti" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Tutti</button>
+    <button class="dw-btn secondary" data-filtro="elaborato" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Elaborati</button>
+    <button class="dw-btn secondary" data-filtro="pianificato" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Pianificati</button>
+  </div>
   <div id="ril-list"></div>
   <div class="sec">Nuovo rilievo elaborato</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -51,6 +56,7 @@
     <input class="dw-input" id="new-ril-vol" type="number" min="0" placeholder="Volume m³" style="flex:1;min-width:110px;">
     <button class="dw-btn" id="btn-add-ril" style="width:auto;">Registra</button>
   </div>
+  <div class="note" id="ril-esito" style="text-align:left;"></div>
   <div class="note" id="mode-note" style="text-align:left;"></div>
 </div>
 
@@ -92,6 +98,11 @@
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
   let FRO=[], RIL=[], PIA=[];
+  let filtroRil = "tutti";
+  $("ril-filtri").addEventListener("click", (e) => {
+    const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
+    if (f) { filtroRil = f; refresh(); }
+  });
   async function refresh(){
     [FRO,RIL,PIA] = await Promise.all([db.fronti(), db.rilievi(), db.piano()]);
     const k = kpiFrom(FRO,RIL,PIA);
@@ -110,10 +121,14 @@
       <div class="info"><div class="name">${f.nome} — ${f.banco||""}</div><div class="meta">Quota ${f.quota}m · avanzamento ${f.avanzamento}% · ${f.dettaglio||""}</div></div>
       <span class="badge ${FB[f.stato][0]}">${FB[f.stato][1]}</span></div>`).join("");
 
-    const ril = RIL.slice().sort((a,b) => (b.data||"").localeCompare(a.data||""));
+    const ril = RIL.filter(r => filtroRil === "tutti" || r.stato === filtroRil)
+                   .sort((a,b) => (b.data||"").localeCompare(a.data||""));
     $("ril-list").innerHTML = ril.map(r => `<div class="item">
       <div class="info"><div class="name">${r.titolo}</div><div class="meta">${dmy(r.data)} · ${r.tipo||""}${r.volumeM3!=null?" · "+r.volumeM3.toLocaleString("it-IT")+" m³":""}</div></div>
-      <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span></div>`).join("");
+      <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span></div>`).join("")
+      || '<div class="note" style="text-align:left;">'+(filtroRil==="tutti"?"Nessun rilievo registrato.":"Nessun rilievo in questa categoria.")+'</div>';
+    document.querySelectorAll("#ril-filtri [data-filtro]").forEach(b =>
+      b.style.borderColor = b.getAttribute("data-filtro") === filtroRil ? "var(--app-accent)" : "");
 
     $("pia-list").innerHTML = PIA.map(p => `<div class="item">
       <div class="info"><div class="name">${p.titolo}</div><div class="meta">${p.dettaglio||""}${p.pianificatoAnnuoM3?" · piano annuo "+fmtM3(p.pianificatoAnnuoM3)+" m³":""}${p.riserveM3?" · riserve "+fmtM3(p.riserveM3)+" m³":""}</div></div>
@@ -124,12 +139,26 @@
   document.addEventListener("click", async (e) => {
     const it = e.target.closest && e.target.closest("[data-fro]");
     if (it) { const f = FRO.find(x => x.id === it.getAttribute("data-fro"));
-      if (f) { await db.aggiorna("fronti", f.id, { stato: f.stato === "attivo" ? "sospeso" : "attivo" }); await refresh(); } }
+      if (!f) return;
+      const nuovo = f.stato === "attivo" ? "sospeso" : "attivo";
+      if (nuovo === "sospeso" && !confirm("Sospendere il " + f.nome + "? Le lavorazioni sul fronte risulteranno ferme.")) return;
+      await db.aggiorna("fronti", f.id, { stato: nuovo }); await refresh(); }
   });
   $("btn-add-ril").onclick = async () => {
     const data = $("new-ril-data").value, vol = parseInt($("new-ril-vol").value, 10);
-    if (!data || !(vol > 0)) return;
-    await db.aggiungi("rilievi", { titolo: "Rilievo drone " + dmy(data), data, tipo: "Ortofoto + DEM", volumeM3: vol, stato: "elaborato" });
+    const futuro = data && data > new Date().toISOString().slice(0,10);
+    if (!data || (!futuro && !(vol > 0))) {
+      $("new-ril-vol").style.borderColor = "var(--danger)"; if (!data) $("new-ril-data").style.borderColor = "var(--danger)";
+      $("ril-esito").textContent = "Serve la data e, per un rilievo già eseguito, il volume in m³ (per una data futura il volume non serve: verrà pianificato)."; return;
+    }
+    $("new-ril-vol").style.borderColor = ""; $("new-ril-data").style.borderColor = "";
+    if (futuro) {
+      await db.aggiungi("rilievi", { titolo: "Prossimo rilievo", data, tipo: "Drone pianificato", volumeM3: null, stato: "pianificato" });
+      $("ril-esito").textContent = "Rilievo PIANIFICATO per il " + dmy(data) + ".";
+    } else {
+      await db.aggiungi("rilievi", { titolo: "Rilievo drone " + dmy(data), data, tipo: "Ortofoto + DEM", volumeM3: vol, stato: "elaborato" });
+      $("ril-esito").textContent = "Rilievo del " + dmy(data) + " registrato: " + vol.toLocaleString("it-IT") + " m³ (KPI aggiornati).";
+    }
     $("new-ril-data").value = ""; $("new-ril-vol").value = ""; await refresh();
   };
   await refresh();

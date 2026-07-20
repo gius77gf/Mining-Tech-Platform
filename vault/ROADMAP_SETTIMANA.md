@@ -141,7 +141,7 @@ ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-20_1430_regola-esaurimento-rafforzata.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-20_1730_terra-iter2.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---

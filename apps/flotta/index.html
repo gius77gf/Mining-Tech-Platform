@@ -45,6 +45,7 @@
     <input class="dw-input" id="ore-nuove" type="number" placeholder="Ore attuali" style="flex:1;min-width:110px;">
     <button class="dw-btn" id="btn-ore" style="width:auto;">Registra</button>
   </div>
+  <div class="note" id="ore-esito" style="text-align:left;"></div>
 </div>
 
 <div class="page" id="page-man">
@@ -123,7 +124,9 @@
 
     $("man-list").innerHTML = MAN.slice().sort((a,b)=>a.dataPrevista<b.dataPrevista?-1:1).map(n => { const u = urgenza(n.dataPrevista);
       return `<div class="item"><div class="info"><div class="name">${n.titolo} — ${n.mezzo}</div><div class="meta">Previsto ${n.dataPrevista.split("-").reverse().join("/")}</div></div>
-      <span class="badge ${u.cls}">${u.label}</span></div>`; }).join("");
+      <span class="badge ${u.cls}">${u.label}</span>
+      <span class="arr" style="cursor:pointer" title="Segna come eseguita" data-man-done="${n.id}">✓</span></div>`; }).join("")
+      || '<div class="note" style="text-align:left;">Nessuna manutenzione programmata.</div>';
 
     $("cos-list").innerHTML = COS.map(c => `<div class="item">
       <div class="info"><div class="name">${c.voce}</div><div class="meta">${c.nota || ""}</div></div>
@@ -135,14 +138,20 @@
   }
 
   document.addEventListener("click", async (e) => {
+    const done = e.target.getAttribute && e.target.getAttribute("data-man-done");
+    if (done) { const n = MAN.find(x => x.id === done);
+      if (n && confirm("Segnare come eseguita «" + n.titolo + " — " + n.mezzo + "»? Verrà tolta dalle programmate.")) {
+        await db.rimuovi("manutenzioni", done); await refresh(); } return; }
     const it = e.target.closest && e.target.closest("[data-mezzo]");
     if (it) { const m = MEZ.find(x => x.id === it.getAttribute("data-mezzo"));
       await db.aggiorna("mezzi", m.id, { stato: MEZ_NEXT[m.stato] || "operativo" }); await refresh(); }
   });
   $("btn-ore").onclick = async () => {
     const id = $("ore-mezzo").value, ore = +$("ore-nuove").value;
-    const m = MEZ.find(x => x.id === id); if (!m || !ore) return;
-    if (ore < (m.ore||0)) { $("mode-note").textContent = "Ore inferiori alle attuali: controlla il valore."; return; }
+    const m = MEZ.find(x => x.id === id);
+    if (!m || !ore) { $("ore-esito").textContent = "Scegli il mezzo e scrivi le ore attuali."; $("ore-nuove").style.borderColor = "var(--danger)"; return; }
+    if (ore < (m.ore||0)) { $("ore-esito").textContent = "Ore (" + ore + ") inferiori alle attuali (" + (m.ore||0) + "): il contatore non può scendere."; $("ore-nuove").style.borderColor = "var(--danger)"; return; }
+    $("ore-nuove").style.borderColor = ""; $("ore-esito").textContent = "Registrate " + ore + " h su " + m.nome.split(" — ")[0] + ".";
     await db.aggiorna("mezzi", id, { ore }); $("ore-nuove").value = ""; await refresh();
   };
   $("btn-man").onclick = async () => {
