@@ -14,6 +14,7 @@ export const DEMO = {
     { id: "a2", titolo: "Volata fronte Nord", dettaglio: "Ore 12:30 · fochino M. Rossi", stato: "pianificata" },
     { id: "a3", titolo: "Carico e trasporto", dettaglio: "Piazzale 2 → frantoio", stato: "in-corso" },
     { id: "a4", titolo: "Frantoio primario", dettaglio: "Fermo per intasamento tramoggia", stato: "anomalia" },
+    { id: "a5", titolo: "Controllo pre-turno mezzi", dettaglio: "Squadra B · completato", stato: "conclusa" },
   ],
   squadre: [
     { id: "q1", nome: "Squadra A — Perforazione", persone: 4, area: "fronte Est", stato: "operativa" },
