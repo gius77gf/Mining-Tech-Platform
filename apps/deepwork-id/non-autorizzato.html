@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Deepwork ID — Account in attesa</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../shared/deepwork-style.css">
+<style>
+  :root { --app-accent:#c7b794; --app-accent2:#e8dcc0; }
+  .wrap {
+    min-height: 100vh; min-height: 100dvh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+  }
+  .logo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 30px; font-weight: 800; letter-spacing: 4px;
+    text-transform: uppercase; color: var(--text);
+  }
+  .logo .id { color: var(--amber); }
+  .box { width: 100%; max-width: 420px; margin-top: 22px; }
+  .box .dw-card { padding: 22px; }
+  .state-ico { font-size: 34px; text-align: center; }
+  .state-title {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 800;
+    font-size: 20px; letter-spacing: 2px; text-transform: uppercase;
+    text-align: center; margin: 8px 0 4px; color: var(--app-accent2);
+  }
+  .who { text-align: center; font-size: 13px; color: var(--muted2); margin-bottom: 14px; }
+  .expl { font-size: 13.5px; color: var(--muted2); line-height: 1.6; }
+  .expl b { color: var(--text); font-weight: 600; }
+  .steps { margin: 12px 0 0; padding: 0; list-style: none; }
+  .steps li {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 8px 0; font-size: 13px; color: var(--muted2); line-height: 1.5;
+  }
+  .steps .n {
+    flex: 0 0 22px; height: 22px; border-radius: 50%;
+    background: var(--card2); border: 1px solid var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 800;
+    font-size: 12px; color: var(--app-accent2);
+  }
+  .actions { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+  .dw-btn { width: 100%; }
+  .sep {
+    display: flex; align-items: center; gap: 10px;
+    margin: 18px 0 10px; color: var(--muted); font-size: 11px;
+    letter-spacing: 2px; text-transform: uppercase;
+  }
+  .sep::before, .sep::after { content: ""; flex: 1; height: 1px; background: var(--border2); }
+  .form-row { display: flex; gap: 8px; }
+  .form-row .dw-input { flex: 1; }
+  .form-row .dw-btn { width: auto; white-space: nowrap; }
+  .note { font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 8px; }
+  .msg { display: none; margin-top: 14px; padding: 10px 12px; border-radius: var(--r-sm); font-size: 13px; line-height: 1.4; }
+  .msg.error { display: block; background: rgba(239,83,80,.12); border: 1px solid var(--danger); color: #ffb4b2; }
+  .msg.info  { display: block; background: rgba(199,183,148,.10); border: 1px solid var(--border2); color: var(--muted2); }
+  .foot-links { margin-top: 16px; display: flex; gap: 18px; justify-content: center; font-size: 13px; }
+  .foot-links a { color: var(--muted2); cursor: pointer; text-decoration: underline; }
+</style>
+</head>
+<body class="dw">
+<div class="wrap">
+  <div class="logo">Deepwork <span class="id">ID</span></div>
+
+  <div class="box">
+    <div class="dw-card">
+      <div class="state-ico">⏳</div>
+      <div class="state-title">Account in attesa di invito</div>
+      <div class="who" id="who-email">—</div>
+
+      <div id="verify-row" style="display:none;background:rgba(255,167,38,.10);border:1px solid var(--warn);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:12px;font-size:13px;line-height:1.5;color:var(--muted2);">
+        La tua email non è ancora verificata: apri il messaggio che ti
+        abbiamo inviato e tocca il link.
+        <a id="btn-reverify" style="color:var(--warn);cursor:pointer;text-decoration:underline;">Invia di nuovo l'email</a>
+      </div>
+
+      <div class="expl">
+        Il tuo profilo esiste, ma non fa ancora parte di nessuna
+        <b>organizzazione</b> (l'azienda che usa le app Deepwork).
+        I dati di ogni azienda sono <b>separati e protetti</b>: per
+        entrare serve un invito di chi la amministra.
+      </div>
+      <ul class="steps">
+        <li><span class="n">1</span><span>Chiedi al titolare o all'amministratore di invitarti dalla sua pagina profilo, con <b>questa stessa email</b>.</span></li>
+        <li><span class="n">2</span><span>L'invito vale <b>14 giorni</b>. Quando è stato inviato, torna qui e tocca il pulsante sotto.</span></li>
+      </ul>
+
+      <div class="actions">
+        <button class="dw-btn" id="btn-check">Ho ricevuto l'invito — controlla ora</button>
+      </div>
+
+      <div class="sep">oppure</div>
+      <div class="expl">Sei tu il titolare? Crea l'organizzazione della tua azienda: ne diventi amministratore e potrai invitare i colleghi.</div>
+      <div class="form-row" style="margin-top:10px;">
+        <input class="dw-input" id="new-org" placeholder="Nome azienda (es. Cava Alfa Srl)">
+        <button class="dw-btn" id="btn-create-org">Crea</button>
+      </div>
+
+      <div id="msg" class="msg"></div>
+    </div>
+
+    <div class="foot-links">
+      <a id="lnk-tour">Prova la modalità tour</a>
+      <a id="lnk-logout">Esci dall'account</a>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  const $ = (id) => document.getElementById(id);
+  const msg = (text, kind = 'info') => { const el = $('msg'); el.className = 'msg ' + kind; el.textContent = text; };
+
+  let id = null;
+  try {
+    const { DeepworkID } = await import('../../shared/deepwork-id-client/index.js');
+    id = await DeepworkID.init({ appId: 'deepwork-id' });
+    const s = id.authState();
+    if (s === 'member') { location.href = './profilo.html'; }
+    else if (s === 'unauthorized') {
+      $('who-email').textContent = id.user.email || '—';
+      if (!id.emailVerified()) $('verify-row').style.display = 'block';
+    }
+    else { msg('Non risulti connesso: questa pagina compare dopo l\'accesso, quando l\'account non è ancora in nessuna organizzazione. Anteprima mockup.'); }
+  } catch (e) {
+    msg('Backend non ancora configurato: schermata in modalità mockup (vedi GUIDA_FIREBASE.md).');
+  }
+
+  const guard = (fn) => async () => {
+    if (!id || !id.user) { msg('Backend non ancora configurato: azione disponibile dopo il setup Firebase.'); return; }
+    try { await fn(); } catch (e) { msg(e.message || 'Operazione non riuscita.', 'error'); }
+  };
+
+  $('btn-check').onclick = guard(async () => {
+    const accepted = await id.redeemInvites();
+    if (accepted.length) { msg('Invito accettato! Ti porto al tuo profilo…'); location.href = './profilo.html'; }
+    else msg('Nessun invito trovato per questa email. Verifica che sia stato inviato proprio a ' + (id.user.email || 'questa email') + ' e che non siano passati più di 14 giorni.');
+  });
+  $('btn-create-org').onclick = guard(async () => {
+    const name = $('new-org').value.trim();
+    if (!name) { msg('Scrivi il nome della tua azienda.', 'error'); return; }
+    await id.createOrganization(name);
+    msg('Organizzazione creata! Ti porto al tuo profilo…');
+    location.href = './profilo.html';
+  });
+  $('btn-reverify').onclick = guard(async () => {
+    await id.resendVerification();
+    msg('Email di verifica inviata di nuovo. Controlla anche lo spam.');
+  });
+  $('lnk-tour').onclick = guard(async () => { await id.logout(); await id.loginTour(); location.href = '../scudo/index.html'; });
+  $('lnk-logout').onclick = guard(async () => { await id.logout(); location.href = './index.html'; });
+</script>
+</body>
+</html>

@@ -52,6 +52,7 @@ export async function campoData() {
         squadre: () => read("squadre"),
         rapportini: () => read("rapportini"),
         aggiungi: (name, data) => addDoc(id.orgCollection(name), data),
+        logout: () => id.logout(),
         aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name).firestore,
           id.orgCollection(name).path + "/" + docId), data),
       };

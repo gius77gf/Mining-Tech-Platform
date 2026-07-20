@@ -78,6 +78,7 @@
 
 <script type="module">
   import { terraData, kpiFrom, fmtM3 } from "./terra-data.js";
+  import { mountExit } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const FB = { attivo: ["ok","Attivo"], sospeso: ["warn","Sospeso"] };
   const RB = { elaborato: ["ok","Elaborato"], pianificato: ["warn","Pianificato"] };
@@ -86,6 +87,7 @@
   const dmy = (iso) => iso ? iso.slice(8,10)+"/"+iso.slice(5,7) : "—";
 
   const db = await terraData();
+  mountExit(db);
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 

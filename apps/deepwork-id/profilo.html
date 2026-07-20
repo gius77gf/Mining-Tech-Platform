@@ -77,6 +77,12 @@
     <button class="dw-btn" id="btn-create-org">Crea</button>
   </div>
 
+  <a class="item" href="./admin.html" style="text-decoration:none;color:inherit;">
+    <div class="avatar">⚙</div>
+    <div class="info"><div class="name">Amministrazione</div><div class="meta">Membri, ruoli e inviti dell'organizzazione attiva</div></div>
+    <span class="arr">›</span>
+  </a>
+
   <div class="sec">Invita nell'organizzazione attiva</div>
   <div class="form-row">
     <input class="dw-input" id="inv-email" type="email" placeholder="email@collega.it">
@@ -108,11 +114,24 @@
   try {
     const { DeepworkID } = await import('../../shared/deepwork-id-client/index.js');
     id = await DeepworkID.init({ appId: 'deepwork-id' });
+    if (id.authState() === 'unauthorized') location.href = './non-autorizzato.html';
     if (id.user && !id.user.isAnonymous) {
       // profilo NEUTRO: solo email come identificatore, iniziali come avatar
       $('who-email').textContent = id.user.email || '—';
       $('avatar').textContent = (id.user.email || '?').slice(0, 2).toUpperCase();
       await id.redeemInvites();   // riscatta inviti pendenti al volo
+    }
+    if (id.authState() === 'member') {
+      // griglia app da entitlement REALI dell'organizzazione attiva
+      const APPS = ['Deepwork', 'Genesi', 'Scudo', 'Campo', 'Flotta', 'Conti', 'Sentinella', 'Terra'];
+      const ents = await id.listEntitlements();
+      const ok = (e) => !!(e && e.active && (!e.validUntil || e.validUntil.toDate() > new Date()));
+      $('apps-grid').innerHTML = APPS.map((n) => {
+        const on = ok(ents[n.toLowerCase()]);
+        return `<div class="app-tile ${on ? 'on' : 'off'}"><div class="nm">${n}</div><div class="st">${on ? 'Attiva' : 'Non inclusa'}</div></div>`;
+      }).join('');
+      const note = $('apps-grid').nextElementSibling;
+      if (note) note.textContent = "App attive secondo l'abbonamento della tua organizzazione.";
     }
   } catch (e) {
     msg('Backend non ancora configurato: schermata in modalità mockup (vedi GUIDA_FIREBASE.md).');

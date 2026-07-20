@@ -1,7 +1,7 @@
 # CI dell'ecosistema Deepwork
-# Ad ogni push/PR: 1) i 19 test delle regole di sicurezza multi-tenant
-# (emulatore Firestore) — nessuna PR può rompere l'isolamento senza
-# che si veda; 2) syntax check dei moduli JS e degli script inline.
+# Ad ogni push/PR: 1) i test delle regole di sicurezza multi-tenant
+# + il flusso SDK (emulatori Auth/Firestore) — nessuna PR può rompere
+# l'isolamento senza che si veda; 2) syntax check di moduli e inline.
 name: CI
 
 on:
@@ -11,7 +11,7 @@ on:
 
 jobs:
   security-rules:
-    name: Firestore rules tests (19)
+    name: Firestore rules + SDK flow tests (38)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -51,7 +51,7 @@ jobs:
           python3 - << 'EOF'
           import re, subprocess, sys, glob
           failed = False
-          for path in ['apps/genesi/genesi.html'] + glob.glob('apps/*/index.html') + glob.glob('apps/*/profilo.html'):
+          for path in sorted(set(['apps/genesi/genesi.html', 'apps/index.html'] + glob.glob('apps/*/*.html'))):
               html = open(path).read()
               for i, sc in enumerate(re.findall(r'<script[^>]*>(.*?)</script>', html, re.S)):
                   body = sc.strip()

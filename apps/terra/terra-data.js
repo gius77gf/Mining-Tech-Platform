@@ -76,6 +76,7 @@ export async function terraData() {
         rilievi: () => read("rilievi"),
         piano: () => read("piano"),
         aggiungi: (name, data) => addDoc(id.orgCollection(name), data),
+        logout: () => id.logout(),
         aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name).firestore,
           id.orgCollection(name).path + "/" + docId), data),
       };

@@ -51,6 +51,7 @@ export async function contiData() {
       api = {
         fatture: () => read("fatture"), gare: () => read("gare"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
+        logout: () => id.logout(),
         aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n).firestore, id.orgCollection(n).path + "/" + i), d),
       };
     } else if (id.authState() === "tour") mode = "tour";

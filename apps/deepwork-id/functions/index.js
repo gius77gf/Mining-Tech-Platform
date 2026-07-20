@@ -115,6 +115,83 @@ exports.inviteMember = onCall({ region: REGION }, async (request) => {
 });
 
 // ------------------------------------------------------------
+// Gestione membri (pannello amministrazione, D4).
+// Guardrail comuni: solo owner/admin; i ruoli owner li tocca solo
+// un owner; MAI lasciare l'organizzazione senza owner attivi.
+// ------------------------------------------------------------
+async function requireAdmin(auth, orgId) {
+  if (!auth) throw new HttpsError("unauthenticated", "Accesso richiesto.");
+  const myRole = auth.token.orgs && auth.token.orgs[orgId];
+  if (myRole !== "owner" && myRole !== "admin") {
+    throw new HttpsError("permission-denied", "Solo owner/admin possono gestire i membri.");
+  }
+  return myRole;
+}
+
+async function countActiveOwners(orgId) {
+  const owners = await db.collection(`organizations/${orgId}/members`)
+    .where("role", "==", "owner").where("status", "==", "active").get();
+  return owners.size;
+}
+
+exports.updateMemberRole = onCall({ region: REGION }, async (request) => {
+  const { orgId, uid, role } = request.data || {};
+  const myRole = await requireAdmin(request.auth, orgId);
+  if (!["owner", "admin", "member"].includes(role)) {
+    throw new HttpsError("invalid-argument", "Ruolo non valido.");
+  }
+  const memRef = db.doc(`organizations/${orgId}/members/${uid}`);
+  const mem = await memRef.get();
+  if (!mem.exists) throw new HttpsError("not-found", "Membro non trovato.");
+  const current = mem.data().role;
+  // i ruoli owner (in entrata o in uscita) li gestisce solo un owner
+  if ((current === "owner" || role === "owner") && myRole !== "owner") {
+    throw new HttpsError("permission-denied", "Solo un owner può gestire altri owner.");
+  }
+  // mai declassare l'ULTIMO owner attivo
+  if (current === "owner" && role !== "owner" && (await countActiveOwners(orgId)) <= 1) {
+    throw new HttpsError("failed-precondition",
+      "È l'ultimo owner: nomina prima un altro owner.");
+  }
+  await memRef.update({ role });
+  await rebuildClaims(uid);
+  return { uid, role };
+});
+
+exports.removeMember = onCall({ region: REGION }, async (request) => {
+  const { orgId, uid } = request.data || {};
+  const myRole = await requireAdmin(request.auth, orgId);
+  const memRef = db.doc(`organizations/${orgId}/members/${uid}`);
+  const mem = await memRef.get();
+  if (!mem.exists) throw new HttpsError("not-found", "Membro non trovato.");
+  if (mem.data().role === "owner") {
+    if (myRole !== "owner") {
+      throw new HttpsError("permission-denied", "Solo un owner può rimuovere un owner.");
+    }
+    if ((await countActiveOwners(orgId)) <= 1) {
+      throw new HttpsError("failed-precondition",
+        "È l'ultimo owner: nomina prima un altro owner.");
+    }
+  }
+  await memRef.delete();
+  await rebuildClaims(uid);
+  return { uid };
+});
+
+exports.revokeInvite = onCall({ region: REGION }, async (request) => {
+  const { inviteId } = request.data || {};
+  const invRef = db.collection("invites").doc(String(inviteId || ""));
+  const inv = await invRef.get();
+  if (!inv.exists) throw new HttpsError("not-found", "Invito non trovato.");
+  await requireAdmin(request.auth, inv.data().orgId);
+  if (inv.data().status !== "pending") {
+    throw new HttpsError("failed-precondition", "L'invito non è più pendente.");
+  }
+  await invRef.update({ status: "revoked", revokedBy: request.auth.uid });
+  return { inviteId };
+});
+
+// ------------------------------------------------------------
 // acceptInvites: al login, l'utente riscatta gli inviti pendenti
 // che corrispondono alla SUA email verificata.
 // ------------------------------------------------------------

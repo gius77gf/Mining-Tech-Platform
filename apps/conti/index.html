@@ -80,12 +80,14 @@
 
 <script type="module">
   import { contiData, giorni, kpiFrom } from "./conti-data.js";
+  import { mountExit } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const eur = (v) => "€" + (+v||0).toLocaleString("it-IT");
   const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
   const GB = { aperta: ["warn","Aperta"], vinta: ["ok","Vinta"], persa: ["danger","Persa"] };
 
   const db = await contiData();
+  mountExit(db);
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 

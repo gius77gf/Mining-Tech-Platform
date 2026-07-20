@@ -12,18 +12,20 @@
 //   const db = id.orgCollection('turni');        // già sigillata sull'org
 // ============================================================
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
-  getAuth, onAuthStateChanged,
+  getAuth, onAuthStateChanged, connectAuthEmulator,
   GoogleAuthProvider, signInWithPopup,
   createUserWithEmailAndPassword, signInWithEmailAndPassword,
   signInAnonymously, signOut,
+  sendEmailVerification, sendPasswordResetEmail,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  getFirestore, doc, getDoc, setDoc, collection,
+  getFirestore, doc, getDoc, getDocs, setDoc, collection,
+  query, where, connectFirestoreEmulator,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {
-  getFunctions, httpsCallable,
+  getFunctions, httpsCallable, connectFunctionsEmulator,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 
 // Config del progetto Firebase NUOVO dedicato all'ecosistema
@@ -39,7 +41,7 @@ const FIREBASE_CONFIG = {
 const DEMO_ORG_ID = "org_demo";
 
 class DeepworkIDClient {
-  constructor(appId) {
+  constructor(appId, opts = {}) {
     this.appId = appId;        // es. 'deepwork' | 'genesi' | 'scudo' ...
     this.user = null;          // utente Firebase autenticato (o null)
     this.orgId = null;         // organizzazione attiva
@@ -49,15 +51,28 @@ class DeepworkIDClient {
     this._auth = null;
     this._db = null;
     this._fns = null;
+    // emulatori locali (test/sviluppo): { host, authPort, firestorePort, functionsPort }
+    this._emulators = opts.emulators || null;
   }
 
   // ---------- inizializzazione ----------
   async _setup() {
-    this._app = initializeApp(FIREBASE_CONFIG);
+    // riusa l'app se già inizializzata (più client nella stessa pagina/processo)
+    this._app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
     this._auth = getAuth(this._app);
     this._db = getFirestore(this._app);
     // stessa regione delle Cloud Functions (europe-west1, dati EU)
     this._fns = getFunctions(this._app, "europe-west1");
+
+    // collegamento agli emulatori locali (idempotente: su istanze già
+    // collegate il secondo connect fallisce e viene ignorato)
+    const em = this._emulators;
+    if (em) {
+      const host = em.host || "127.0.0.1";
+      try { if (em.authPort) connectAuthEmulator(this._auth, `http://${host}:${em.authPort}`, { disableWarnings: true }); } catch (e) {}
+      try { if (em.firestorePort) connectFirestoreEmulator(this._db, host, em.firestorePort); } catch (e) {}
+      try { if (em.functionsPort) connectFunctionsEmulator(this._fns, host, em.functionsPort); } catch (e) {}
+    }
 
     // attende il primo stato di autenticazione noto
     await new Promise((resolve) => {
@@ -107,8 +122,26 @@ class DeepworkIDClient {
   async registerWithEmail(email, password) {
     await createUserWithEmailAndPassword(this._auth, email, password);
     this.user = this._auth.currentUser;
+    // email di verifica subito dopo la registrazione (best-effort:
+    // se l'invio fallisce la registrazione resta valida)
+    await sendEmailVerification(this.user).catch(() => {});
     await this._loadClaimsAndOrg();
     return this.authState();
+  }
+
+  // ---------- verifica email e recupero password ----------
+  emailVerified() {
+    return !!(this.user && !this.user.isAnonymous && this.user.emailVerified);
+  }
+
+  async resendVerification() {
+    if (!this.user || this.user.isAnonymous) throw new Error("Nessun account connesso");
+    await sendEmailVerification(this.user);
+  }
+
+  // funziona anche da NON autenticati: serve solo l'email del profilo
+  async requestPasswordReset(email) {
+    await sendPasswordResetEmail(this._auth, email);
   }
 
   async loginWithEmail(email, password) {
@@ -142,6 +175,18 @@ class DeepworkIDClient {
 
   role() {
     return this.orgId ? this.orgs[this.orgId] || null : null;
+  }
+
+  // tutti gli entitlement dell'org attiva ({appId: dati}) — usato dal
+  // profilo per la griglia delle app incluse nell'abbonamento
+  async listEntitlements() {
+    if (!this.orgId) return {};
+    const snap = await getDocs(
+      collection(this._db, "organizations", this.orgId, "entitlements")
+    );
+    const out = {};
+    snap.docs.forEach((d) => { out[d.id] = d.data(); });
+    return out;
   }
 
   hasEntitlement(tier = null) {
@@ -181,6 +226,43 @@ class DeepworkIDClient {
     return res.data.inviteId;
   }
 
+  // ---------- amministrazione organizzazione (D4) ----------
+  // Letture dirette (le rules le consentono ai membri/admin);
+  // le MODIFICHE passano sempre dalle Cloud Functions coi guardrail.
+
+  async listMembers() {
+    if (!this.orgId) throw new Error("Nessuna organizzazione attiva");
+    const snap = await getDocs(
+      collection(this._db, "organizations", this.orgId, "members")
+    );
+    return snap.docs.map((d) => ({ uid: d.id, ...d.data() }));
+  }
+
+  async listPendingInvites() {
+    if (!this.orgId) throw new Error("Nessuna organizzazione attiva");
+    const snap = await getDocs(query(
+      collection(this._db, "invites"),
+      where("orgId", "==", this.orgId),
+      where("status", "==", "pending")
+    ));
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  }
+
+  async updateMemberRole(uid, role) {
+    const call = httpsCallable(this._fns, "updateMemberRole");
+    await call({ orgId: this.orgId, uid, role });
+  }
+
+  async removeMember(uid) {
+    const call = httpsCallable(this._fns, "removeMember");
+    await call({ orgId: this.orgId, uid });
+  }
+
+  async revokeInvite(inviteId) {
+    const call = httpsCallable(this._fns, "revokeInvite");
+    await call({ inviteId });
+  }
+
   // Da chiamare dopo ogni login registrato: riscatta eventuali inviti
   // pendenti per l'email dell'utente e aggiorna org attiva/claims.
   async redeemInvites() {
@@ -205,7 +287,7 @@ class DeepworkIDClient {
 }
 
 export const DeepworkID = {
-  async init({ appId }) {
-    return new DeepworkIDClient(appId)._setup();
+  async init({ appId, emulators = null }) {
+    return new DeepworkIDClient(appId, { emulators })._setup();
   },
 };

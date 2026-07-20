@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Deepwork ID — Amministrazione</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../shared/deepwork-style.css">
+<link rel="stylesheet" href="../../shared/dw-app-shell.css">
+<style>
+  :root { --app-accent:#c7b794; --app-accent2:#e8dcc0; }
+  .role-sel { width: auto; min-width: 96px; padding: 6px 8px; font-size: 12px; }
+  .btn-mini {
+    width: auto; min-height: 34px; padding: 4px 10px; font-size: 11px;
+    letter-spacing: 1px;
+  }
+  .btn-danger { border-color: var(--danger) !important; color: var(--danger) !important; background: none !important; }
+  .form-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .form-row .dw-input { flex: 1; min-width: 120px; }
+  .form-row .dw-btn { width: auto; white-space: nowrap; }
+</style>
+</head>
+<body class="dw">
+
+<div class="top">
+  <a class="dw-home" href="./profilo.html">← profilo</a>
+  <h1>DEEPWORK <span style="color:var(--amber);">ID</span> <span class="accent">·</span> <span style="font-size:14px;color:var(--muted2);">AMMINISTRAZIONE</span></h1>
+  <div class="sub">Organizzazione attiva</div>
+</div>
+
+<div class="page active">
+  <div class="sec">Membri</div>
+  <div id="mem-list"></div>
+
+  <div class="sec">Inviti in attesa</div>
+  <div id="inv-list"></div>
+
+  <div class="sec">Invita un collega</div>
+  <div class="form-row">
+    <input class="dw-input" id="inv-email" type="email" placeholder="email@collega.it">
+    <select class="dw-input role-sel" id="inv-role">
+      <option value="member">Member</option>
+      <option value="admin">Admin</option>
+    </select>
+    <button class="dw-btn" id="btn-invite">Invita</button>
+  </div>
+  <div class="note" style="text-align:left;">L'invito scade dopo 14 giorni. <b>Member</b> usa le app; <b>Admin</b> può anche invitare e gestire i membri; <b>Owner</b> controlla tutto (abbonamenti inclusi).</div>
+  <div class="note" id="mode-note" style="text-align:left;"></div>
+</div>
+
+<div id="msg" class="msg" style="margin:0 16px;"></div>
+
+<script type="module">
+  const $ = (id) => document.getElementById(id);
+  const msg = (text, kind = 'info') => { const el = $('msg'); el.className = 'msg ' + kind; el.textContent = text; };
+  const RB = { owner: 'ok', admin: 'warn', member: 'ok' };
+  const sig = (s) => (s || '?').slice(0, 2).toUpperCase();
+  const giorniA = (ts) => {
+    try { const d = ts && ts.toDate ? ts.toDate() : new Date(ts); return Math.max(0, Math.ceil((d - new Date()) / 86400000)); }
+    catch (e) { return '—'; }
+  };
+
+  // dati demo per l'anteprima senza backend
+  const DEMO_MEM = [
+    { uid: 'u1', email: 'titolare@cava-alfa.it', role: 'owner', status: 'active' },
+    { uid: 'u2', email: 'ufficio@cava-alfa.it', role: 'admin', status: 'active' },
+    { uid: 'u3', email: 'capocava@cava-alfa.it', role: 'member', status: 'active' },
+  ];
+  const DEMO_INV = [ { id: 'i1', email: 'nuovo@collega.it', role: 'member', expiresAt: new Date(Date.now() + 11 * 86400000) } ];
+
+  let id = null, isAdmin = false, myUid = null;
+  try {
+    const { DeepworkID } = await import('../../shared/deepwork-id-client/index.js');
+    id = await DeepworkID.init({ appId: 'deepwork-id' });
+    if (id.authState() === 'unauthorized') location.href = './non-autorizzato.html';
+    if (id.authState() !== 'member') { /* anteprima mockup sotto */ }
+    else {
+      myUid = id.user.uid;
+      isAdmin = ['owner', 'admin'].includes(id.role());
+      if (!isAdmin) msg('Sei membro semplice: puoi vedere i membri ma solo owner e admin possono gestirli.');
+    }
+  } catch (e) { /* backend assente: anteprima */ }
+
+  const live = () => id && id.authState() === 'member';
+  $('mode-note').textContent = live() ? 'Dati reali della tua organizzazione.' : 'Anteprima con dati di esempio: le azioni saranno attive col backend.';
+
+  async function refresh() {
+    const mem = live() ? await id.listMembers() : DEMO_MEM;
+    const inv = live() ? await id.listPendingInvites() : DEMO_INV;
+    const canManage = live() ? isAdmin : true;   // in anteprima mostra i comandi
+
+    $('mem-list').innerHTML = mem.map(m => `<div class="item" style="cursor:default;">
+      <div class="avatar">${sig(m.email || m.uid)}</div>
+      <div class="info"><div class="name">${m.email || m.uid}</div><div class="meta">${m.status === 'active' ? 'Attivo' : m.status || ''}${m.uid === myUid ? ' · sei tu' : ''}</div></div>
+      ${canManage && m.uid !== myUid ? `
+        <select class="dw-input role-sel" data-role="${m.uid}">
+          ${['owner','admin','member'].map(r => `<option value="${r}" ${m.role === r ? 'selected' : ''}>${r[0].toUpperCase() + r.slice(1)}</option>`).join('')}
+        </select>
+        <button class="dw-btn secondary btn-mini btn-danger" data-remove="${m.uid}">Rimuovi</button>`
+      : `<span class="badge ${RB[m.role] || 'ok'}">${m.role}</span>`}
+    </div>`).join('') || '<div class="note" style="text-align:left;">Nessun membro.</div>';
+
+    $('inv-list').innerHTML = inv.map(i => `<div class="item" style="cursor:default;">
+      <div class="avatar">✉</div>
+      <div class="info"><div class="name">${i.email}</div><div class="meta">Ruolo ${i.role} · scade tra ${giorniA(i.expiresAt)} giorni</div></div>
+      ${canManage ? `<button class="dw-btn secondary btn-mini btn-danger" data-revoke="${i.id}">Revoca</button>` : ''}
+    </div>`).join('') || '<div class="note" style="text-align:left;">Nessun invito in attesa.</div>';
+  }
+
+  const guard = (fn) => async (...a) => {
+    if (!live()) { msg('Anteprima: le azioni saranno attive quando il backend Firebase sarà configurato.'); return; }
+    try { await fn(...a); await refresh(); } catch (e) { msg(e.message || 'Operazione non riuscita.', 'error'); }
+  };
+
+  document.addEventListener('change', guard(async (e) => {
+    const uid = e.target.getAttribute && e.target.getAttribute('data-role');
+    if (uid) { await id.updateMemberRole(uid, e.target.value); msg('Ruolo aggiornato.'); }
+  }));
+  document.addEventListener('click', guard(async (e) => {
+    const rm = e.target.getAttribute && e.target.getAttribute('data-remove');
+    if (rm && confirm('Rimuovere questo membro dall\'organizzazione?')) {
+      await id.removeMember(rm); msg('Membro rimosso.'); return;
+    }
+    const rv = e.target.getAttribute && e.target.getAttribute('data-revoke');
+    if (rv) { await id.revokeInvite(rv); msg('Invito revocato.'); }
+  }));
+  $('btn-invite').onclick = guard(async () => {
+    const email = $('inv-email').value.trim();
+    if (!email) { msg('Scrivi l\'email del collega da invitare.', 'error'); return; }
+    await id.inviteMember(email, $('inv-role').value);
+    $('inv-email').value = '';
+    msg('Invito inviato: scade tra 14 giorni.');
+  });
+
+  await refresh();
+</script>
+</body>
+</html>
