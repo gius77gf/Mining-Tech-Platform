@@ -26,10 +26,10 @@
 <!-- DASHBOARD -->
 <div class="page active" id="page-dash">
   <div class="kpis">
-    <div class="kpi accent"><div class="n">6</div><div class="l">Monitoraggi attivi</div></div>
-    <div class="kpi danger"><div class="n">1</div><div class="l">Superamenti soglia</div></div>
-    <div class="kpi warn"><div class="n">3</div><div class="l">Adempimenti 30gg</div></div>
-    <div class="kpi ok"><div class="n">12</div><div class="l">Campionamenti mese</div></div>
+    <div class="kpi accent" style="cursor:pointer" data-goto="mon" data-filtro="tutti" title="Vedi i monitoraggi"><div class="n">6</div><div class="l">Monitoraggi attivi</div></div>
+    <div class="kpi danger" style="cursor:pointer" data-goto="mon" data-filtro="danger" title="Vedi i superamenti"><div class="n">1</div><div class="l">Superamenti soglia</div></div>
+    <div class="kpi warn" style="cursor:pointer" data-goto="ade" title="Vedi gli adempimenti"><div class="n">3</div><div class="l">Adempimenti 30gg</div></div>
+    <div class="kpi ok" style="cursor:pointer" data-goto="mon" data-filtro="tutti" title="Vedi i monitoraggi"><div class="n">12</div><div class="l">Campionamenti mese</div></div>
   </div>
 
   <div class="sec">Allerte</div>
@@ -112,6 +112,12 @@
 
   let MON=[], ADE=[], REG=[];
   let filtroMon = "tutti";
+  // scorciatoia: toccare un KPI del quadro porta alla lista pertinente
+  document.querySelector(".kpis").addEventListener("click", (e) => {
+    const card = e.target.closest("[data-goto]"); if (!card) return;
+    const filtro = card.getAttribute("data-filtro"); if (filtro) filtroMon = filtro;
+    go(card.getAttribute("data-goto")); refresh();
+  });
   $("mon-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroMon = f; refresh(); }
