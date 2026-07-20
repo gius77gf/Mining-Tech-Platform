@@ -180,7 +180,7 @@ Dettaglio per unità: vault/checkpoints/ dal 2026-07-20_1500 in poi.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/20260720-163610_test-scadenza-senza-data.md
+- Ultimo checkpoint: vault/checkpoints/20260720-163953_fix-conti-dso-nan.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
