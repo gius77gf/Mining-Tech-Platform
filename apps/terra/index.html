@@ -26,37 +26,37 @@
 <!-- DASHBOARD -->
 <div class="page active" id="page-dash">
   <div class="kpis">
-    <div class="kpi accent"><div class="n">38k</div><div class="l">m³ estratti mese</div></div>
-    <div class="kpi ok"><div class="n">64%</div><div class="l">Avanzamento piano</div></div>
-    <div class="kpi ok"><div class="n">2</div><div class="l">Rilievi drone mese</div></div>
-    <div class="kpi ok"><div class="n">1.2M</div><div class="l">m³ riserve stimate</div></div>
+    <div class="kpi accent"><div class="n">—</div><div class="l">m³ estratti mese</div></div>
+    <div class="kpi ok"><div class="n">—</div><div class="l">Avanzamento piano</div></div>
+    <div class="kpi ok"><div class="n">—</div><div class="l">Rilievi drone mese</div></div>
+    <div class="kpi ok"><div class="n">—</div><div class="l">m³ riserve stimate</div></div>
   </div>
 
   <div class="sec">Fronti di cava</div>
-  <div class="item"><div class="avatar">FN</div><div class="info"><div class="name">Fronte Nord</div><div class="meta">Avanzamento 72% · prossima volata 12:30</div></div><span class="badge ok">Attivo</span><span class="arr">›</span></div>
-  <div class="item"><div class="avatar">FE</div><div class="info"><div class="name">Fronte Est</div><div class="meta">Perforazione in corso · 14/22 fori</div></div><span class="badge ok">Attivo</span><span class="arr">›</span></div>
-  <div class="item"><div class="avatar">FS</div><div class="info"><div class="name">Fronte Sud</div><div class="meta">Sospeso — verifica stabilità scarpata</div></div><span class="badge warn">Sospeso</span><span class="arr">›</span></div>
+  <div id="dash-fronti"></div>
 </div>
 
 <div class="page" id="page-fro">
   <div class="sec">Stato dei fronti</div>
-  <div class="item"><div class="info"><div class="name">Fronte Nord — banco 2</div><div class="meta">Quota 340m · avanzamento 72%</div></div><span class="badge ok">Attivo</span></div>
-  <div class="item"><div class="info"><div class="name">Fronte Est — banco 1</div><div class="meta">Quota 355m · perforazione in corso</div></div><span class="badge ok">Attivo</span></div>
-  <div class="item"><div class="info"><div class="name">Fronte Sud — banco 3</div><div class="meta">Sospeso per verifica geotecnica</div></div><span class="badge warn">Sospeso</span></div>
+  <div id="fro-list"></div>
+  <div class="note" style="text-align:left;">Tocca un fronte per sospenderlo o riattivarlo.</div>
 </div>
 
 <div class="page" id="page-ril">
   <div class="sec">Rilievi e volumi</div>
-  <div class="item"><div class="info"><div class="name">Rilievo drone 15/07</div><div class="meta">Ortofoto + DEM · volumi calcolati</div></div><span class="badge ok">Elaborato</span></div>
-  <div class="item"><div class="info"><div class="name">Rilievo drone 01/07</div><div class="meta">Confronto: -19.400 m³ estratti</div></div><span class="badge ok">Elaborato</span></div>
-  <div class="item"><div class="info"><div class="name">Prossimo rilievo</div><div class="meta">Pianificato 01/08</div></div><span class="badge ok">Pianificato</span></div>
+  <div id="ril-list"></div>
+  <div class="sec">Nuovo rilievo elaborato</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <input class="dw-input" id="new-ril-data" type="date" style="flex:1;min-width:130px;">
+    <input class="dw-input" id="new-ril-vol" type="number" min="0" placeholder="Volume m³" style="flex:1;min-width:110px;">
+    <button class="dw-btn" id="btn-add-ril" style="width:auto;">Registra</button>
+  </div>
+  <div class="note" id="mode-note" style="text-align:left;"></div>
 </div>
 
 <div class="page" id="page-pia">
   <div class="sec">Piano estrattivo</div>
-  <div class="item"><div class="info"><div class="name">Autorizzazione vigente</div><div class="meta">Scadenza 2029 · volumi residui 1.2M m³</div></div><span class="badge ok">Vigente</span></div>
-  <div class="item"><div class="info"><div class="name">Avanzamento piano annuale</div><div class="meta">64% al 19/07 · in linea</div></div><span class="badge ok">In linea</span></div>
-  <div class="item"><div class="info"><div class="name">Variante fronte Sud</div><div class="meta">Da valutare dopo verifica stabilità</div></div><span class="badge warn">In esame</span></div>
+  <div id="pia-list"></div>
 </div>
 
 <div class="nav">
@@ -77,17 +77,60 @@
 </script>
 
 <script type="module">
-  // Aggancio a Deepwork ID: se il backend non è configurato la pagina
-  // resta navigabile come mockup (modalità tour implicita).
-  try {
-    const { DeepworkID } = await import("../../shared/deepwork-id-client/index.js");
-    const id = await DeepworkID.init({ appId: "terra" });
-    if (id.authState() === "tour" || id.authState() === "anonymous") {
-      document.getElementById("tour-banner").style.display = "block";
-    }
-  } catch (e) {
-    document.getElementById("tour-banner").style.display = "block";
+  import { terraData, kpiFrom, fmtM3 } from "./terra-data.js";
+  const $ = (id) => document.getElementById(id);
+  const FB = { attivo: ["ok","Attivo"], sospeso: ["warn","Sospeso"] };
+  const RB = { elaborato: ["ok","Elaborato"], pianificato: ["warn","Pianificato"] };
+  const PB = { vigente: ["ok","Vigente"], "in-esame": ["warn","In esame"] };
+  const sig = (n) => (n||"?").split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase();
+  const dmy = (iso) => iso ? iso.slice(8,10)+"/"+iso.slice(5,7) : "—";
+
+  const db = await terraData();
+  if (db.mode !== "live") $("tour-banner").style.display = "block";
+  $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
+
+  let FRO=[], RIL=[], PIA=[];
+  async function refresh(){
+    [FRO,RIL,PIA] = await Promise.all([db.fronti(), db.rilievi(), db.piano()]);
+    const k = kpiFrom(FRO,RIL,PIA);
+    const kn = document.querySelectorAll(".kpis .kpi .n");
+    if (kn[0]) kn[0].textContent = fmtM3(k.volumiMese);
+    if (kn[1]) kn[1].textContent = k.avanzamento == null ? "—" : k.avanzamento + "%";
+    if (kn[2]) kn[2].textContent = k.rilieviMese;
+    if (kn[3]) kn[3].textContent = fmtM3(k.riserveM3);
+
+    $("dash-fronti").innerHTML = FRO.map(f => `<div class="item" onclick="go('fro')">
+      <div class="avatar">${sig(f.nome)}</div>
+      <div class="info"><div class="name">${f.nome}</div><div class="meta">Avanzamento ${f.avanzamento}% · ${f.dettaglio||""}</div></div>
+      <span class="badge ${FB[f.stato][0]}">${FB[f.stato][1]}</span><span class="arr">›</span></div>`).join("");
+
+    $("fro-list").innerHTML = FRO.map(f => `<div class="item" data-fro="${f.id}" style="cursor:pointer" title="Tocca per sospendere/riattivare">
+      <div class="info"><div class="name">${f.nome} — ${f.banco||""}</div><div class="meta">Quota ${f.quota}m · avanzamento ${f.avanzamento}% · ${f.dettaglio||""}</div></div>
+      <span class="badge ${FB[f.stato][0]}">${FB[f.stato][1]}</span></div>`).join("");
+
+    const ril = RIL.slice().sort((a,b) => (b.data||"").localeCompare(a.data||""));
+    $("ril-list").innerHTML = ril.map(r => `<div class="item">
+      <div class="info"><div class="name">${r.titolo}</div><div class="meta">${dmy(r.data)} · ${r.tipo||""}${r.volumeM3!=null?" · "+r.volumeM3.toLocaleString("it-IT")+" m³":""}</div></div>
+      <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span></div>`).join("");
+
+    $("pia-list").innerHTML = PIA.map(p => `<div class="item">
+      <div class="info"><div class="name">${p.titolo}</div><div class="meta">${p.dettaglio||""}${p.pianificatoAnnuoM3?" · piano annuo "+fmtM3(p.pianificatoAnnuoM3)+" m³":""}${p.riserveM3?" · riserve "+fmtM3(p.riserveM3)+" m³":""}</div></div>
+      <span class="badge ${PB[p.stato][0]}">${PB[p.stato][1]}</span></div>`).join("");
   }
+
+  // interazioni: fronte alterna attivo/sospeso; form registra rilievo elaborato
+  document.addEventListener("click", async (e) => {
+    const it = e.target.closest && e.target.closest("[data-fro]");
+    if (it) { const f = FRO.find(x => x.id === it.getAttribute("data-fro"));
+      if (f) { await db.aggiorna("fronti", f.id, { stato: f.stato === "attivo" ? "sospeso" : "attivo" }); await refresh(); } }
+  });
+  $("btn-add-ril").onclick = async () => {
+    const data = $("new-ril-data").value, vol = parseInt($("new-ril-vol").value, 10);
+    if (!data || !(vol > 0)) return;
+    await db.aggiungi("rilievi", { titolo: "Rilievo drone " + dmy(data), data, tipo: "Ortofoto + DEM", volumeM3: vol, stato: "elaborato" });
+    $("new-ril-data").value = ""; $("new-ril-vol").value = ""; await refresh();
+  };
+  await refresh();
 </script>
 </body>
 </html>
