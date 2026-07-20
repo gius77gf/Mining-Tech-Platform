@@ -25,8 +25,15 @@ in italiano, senza dare conoscenze per scontate).
    nuovo file checkpoint (MAI sovrascrivere i precedenti) con task
    completato, hash commit, prossimo passo atomico preciso; aggiornare
    lo stato del task in ROADMAP_SETTIMANA.md.
-3. Fermarsi sempre su un punto stabile (commit pulito, checkpoint
-   scritto per intero).
+3. OGNI ciclo lavora FINO AD ESAURIMENTO DEI CREDITI, senza eccezioni
+   (regola del fondatore, ribadita due volte): finita un'unità se ne
+   inizia SUBITO un'altra; se la roadmap sembra finita si prosegue con
+   seconde iterazioni, rimandati, test, revisioni — il lavoro non
+   finisce mai da solo. VIETATO "chiudere il blocco" o fermarsi per
+   scelta: l'unico stop legittimo è il limite tecnico della
+   piattaforma. Il "punto stabile" (commit pulito + checkpoint
+   completo dopo ogni unità) serve SOLO a rendere sicura
+   l'interruzione forzata, mai a giustificare una fermata volontaria.
 4. Ciclo serale (~21:40 UTC): SEMPRE prima la revisione del lavoro del
    giorno (bug, coerenza, sicurezza); proseguire con nuovi task solo a
    revisione pulita.
