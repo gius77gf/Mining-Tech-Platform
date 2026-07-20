@@ -31,8 +31,9 @@ A8. Fori bagnati — stato: fatto (19/07: colonna d'acqua in raggi-X;
 A9. Rock-factor Lilly — stato: fatto (pre-esistente, verificato 19/07:
     rockFactorA con A=0,06·(RMD+JF+RDI+HF) da UCS/E/fratturazione,
     badge in scheda validatori)
-A10. Presplit e confronto A/B — stato: in corso (20/07: presplit
-    fatto — form+scheda+taglio 3D con halfcast; resta il confronto A/B)
+A10. Presplit e confronto A/B — stato: fatto (20/07: presplit
+    completo + confronto A/B con KPI affiancati e migliore in verde)
+    ★ FASE A COMPLETA ★
 Ogni unità: screenshot di verifica prima/dopo, commit, checkpoint.
 
 ═══════════════════════════════════════════════
@@ -129,7 +130,7 @@ ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-20_0155_a10-presplit.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-20_0330_a10-completo-fase-a-chiusa.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
