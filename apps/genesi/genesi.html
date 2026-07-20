@@ -2105,6 +2105,17 @@ function renderScheda2D(){
     rows.push({lab:'Curva KCO (Swebrec)',valStr:Math.round(_x20k)+'/'+Math.round(_x80k)+' <span>cm x20/x80 · max '+Math.round(_xmax)+'</span>',cls:'sv-info',
       why:'secondo modello di frammentazione (KCO/Swebrec, Ouchterlony 2005) con lo stesso X50 Kuz-Ram: il massello massimo è limitato dal blocco in situ ('+_blk.toFixed(1)+' m, roccia '+D2.frat+') e dalla maglia, quindi la coda grossolana è più realistica del Rosin-Rammler. Se x80 KCO e x80 Kuz-Ram divergono molto, fidati del più conservativo per il dimensionamento del frantoio.'});
   })();
+  /* === loading rule: PF obiettivo dal rock factor A (Lilly) → carica consigliata per foro === */
+  (function(){
+    const _t=_A<=6?[0.25,0.40]:(_A<=10?[0.40,0.55]:[0.55,0.80]);
+    const _pfMid=(_t[0]+_t[1])/2, _Qsug=Math.round(_pfMid*B*S*H);
+    const _ok=pf>=_t[0]&&pf<=_t[1];
+    rows.push({lab:'Carica consigliata (regola)',valStr:'~'+_Qsug+' <span>kg/foro (PF '+_t[0].toFixed(2)+'–'+_t[1].toFixed(2)+')</span>',
+      cls:(_ok?'sv-ok':'sv-warn'),
+      why:'regola di caricamento dalla brillabilità: con A='+_A.toFixed(1)+' ('+(_A<=6?'roccia facile':(_A<=10?'brillabilità media':'roccia dura/massiccia'))+') il PF obiettivo è '+_t[0].toFixed(2)+'–'+_t[1].toFixed(2)+' kg/m³ → ~'+_Qsug+' kg/foro su questa maglia. '
+        +(_ok?'Il PF attuale ('+pf.toFixed(2)+') è nell\'intervallo.':'Il PF attuale ('+pf.toFixed(2)+') è '+(pf<_t[0]?'SOTTO: rischio massello grosso — più carica o maglia più stretta.':'SOPRA: energia in eccesso — meno carica o maglia più larga (costo e vibrazioni).'))
+        +' Regola indicativa: la carica resta decisa dal responsabile del tiro.'});
+  })();
   /* === impedance matching roccia <-> esplosivo: frazione d'urto trasmessa all'interfaccia === */
   const _Ze=(_e.densita_gcc||0.82)*1000*(_e.vod_ms||3800), _Zr=_rk.rho*1000*_rk.vp;
   const _trans=1-Math.pow((_Zr-_Ze)/(_Zr+_Ze),2), _trPct=Math.round(_trans*100);
