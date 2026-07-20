@@ -36,6 +36,21 @@ export function kpiFrom(attivita, squadre, rapportini) {
   };
 }
 
+// Piano di carico importato da CSV (colonne: foro;x;fila;prof;prog;borr;rit).
+// Solo foro e prog vengono usati per calcoli/chiavi, quindi qui si coercono
+// a numero e le righe con valori non validi vengono scartate. Gli altri
+// campi restano testo grezzo del file: vanno SEMPRE escapati dove mostrati
+// (vedi docs/AUDIT_SICUREZZA.md punto 13). Funzione pura e testabile.
+export function parsePianoCsv(text) {
+  return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !/^foro;/i.test(r))
+    .map(r => {
+      const [foro, x, fila, prof, prog, borr, rit] = r.split(";");
+      return { foro: +foro, x, fila, prof, prog: +prog, borr, rit, reale: null };
+    })
+    .filter(p => p.foro > 0 && p.prog > 0);
+}
+
 export async function campoData() {
   let mode = "demo", api = null;
   try {

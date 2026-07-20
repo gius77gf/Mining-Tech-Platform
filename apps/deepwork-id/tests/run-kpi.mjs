@@ -226,5 +226,28 @@ test("Terra: kpiFrom sui dati demo dà numeri finiti", () => {
   const d = terra.DEMO; kpiTuttoFinito(terra.kpiFrom(d.fronti, d.rilievi, d.piano), "terra demo");
 });
 
+// ------------------------------------------------------------
+// Parsing del piano di carico CSV (Campo): funzione pura estratta per
+// poterla blindare. Salta l'header, coerce foro/prog a numero, scarta
+// le righe non valide, e NON altera i campi liberi (che restano testo
+// grezzo: è il rendering a doverli escapare — vedi AUDIT punto 13).
+// ------------------------------------------------------------
+console.log("\n— Campo: parsing del piano di carico CSV —");
+test("parsePianoCsv salta l'header e legge le righe valide", () => {
+  const out = campo.parsePianoCsv("foro;x;fila;prof;prog;borr;rit\n1;3.5;A;12;100;2;20\n2;4;B;12;80;2;18");
+  eq(out.length, 2, "righe");
+  eq(out[0], { foro: 1, x: "3.5", fila: "A", prof: "12", prog: 100, borr: "2", rit: "20", reale: null }, "prima riga");
+});
+test("parsePianoCsv scarta righe con foro o prog non validi", () => {
+  const out = campo.parsePianoCsv("0;x;A;12;100;2;20\n3;x;A;12;0;2;20\n5;x;A;12;90;2;20");
+  eq(out.map(p => p.foro), [5], "solo la riga valida");
+});
+test("parsePianoCsv su testo vuoto = nessuna riga (niente crash)", () =>
+  eq(campo.parsePianoCsv(""), [], "vuoto"));
+test("parsePianoCsv conserva testo/HTML nei campi liberi (l'escape è a valle)", () => {
+  const out = campo.parsePianoCsv("1;<img src=x onerror=alert(1)>;A;12;100;2;20");
+  eq(out[0].x, "<img src=x onerror=alert(1)>", "campo libero non alterato dal parser");
+});
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
