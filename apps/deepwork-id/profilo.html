@@ -107,6 +107,7 @@
 <div id="msg" class="msg" style="margin:0 16px;"></div>
 
 <script type="module">
+  import { esc } from '../../shared/deepwork-id-client/dw-shell.js';
   const $ = (id) => document.getElementById(id);
   const msg = (text, kind = 'info') => { const el = $('msg'); el.className = 'msg ' + kind; el.textContent = text; };
 
@@ -126,8 +127,8 @@
       const sigla = (s) => (s || '?').replace(/^org_?/i, '').slice(0, 2).toUpperCase();
       $('orgs-list').innerHTML = Object.entries(id.orgs).map(([oid, role]) =>
         `<div class="item ${oid === id.orgId ? 'org-active' : ''}" data-org="${oid}" style="cursor:pointer">
-          <div class="avatar">${sigla(oid)}</div>
-          <div class="info"><div class="name">${oid}</div><div class="meta">${oid === id.orgId ? 'Organizzazione attiva' : 'Tocca per attivare'}</div></div>
+          <div class="avatar">${esc(sigla(oid))}</div>
+          <div class="info"><div class="name">${esc(oid)}</div><div class="meta">${oid === id.orgId ? 'Organizzazione attiva' : 'Tocca per attivare'}</div></div>
           <span class="badge ${role === 'owner' ? 'ok' : 'warn'} org-role">${role[0].toUpperCase() + role.slice(1)}</span>
         </div>`).join('');
       $('orgs-list').addEventListener('click', async (e) => {
