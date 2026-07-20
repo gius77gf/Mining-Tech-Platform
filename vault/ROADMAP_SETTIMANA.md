@@ -177,7 +177,7 @@ Dettaglio per unità: vault/checkpoints/ dal 2026-07-20_1500 in poi.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-21_2330_test-anonimo-createorg.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-21_2345_xss-textarea-review.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
