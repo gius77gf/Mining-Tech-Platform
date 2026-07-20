@@ -6,6 +6,7 @@
 // si aspettano. Si esegue dentro npm test (firebase emulators:exec).
 // ============================================================
 
+import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -70,6 +71,39 @@ await test("un'email non registrata viene rifiutata con messaggio chiaro", async
   try { await bootstrapOwner(aauth, adb, "nessuno@cava.it", "X", FieldValue); }
   catch (e) { msg = e.message; }
   expect(/Nessun utente/.test(msg), `messaggio inatteso: ${msg}`);
+});
+
+// ── Loop chiuso: il CLIENT SDK vede il risultato del bootstrap ──
+// Rimappa gli import gstatic dell'SDK sui pacchetti npm (come run-sdk)
+// e verifica l'esperienza REALE del fondatore dopo il bootstrap.
+console.log("\n— Dopo il bootstrap: il client SDK vede owner + app attive —");
+let clientSrc = readFileSync(join(HERE, "../../../shared/deepwork-id-client/index.js"), "utf8");
+clientSrc = clientSrc
+  .replace(/"https:\/\/www\.gstatic\.com\/firebasejs\/[\d.]+\/firebase-app\.js"/g, '"firebase/app"')
+  .replace(/"https:\/\/www\.gstatic\.com\/firebasejs\/[\d.]+\/firebase-auth\.js"/g, '"firebase/auth"')
+  .replace(/"https:\/\/www\.gstatic\.com\/firebasejs\/[\d.]+\/firebase-firestore\.js"/g, '"firebase/firestore"')
+  .replace(/"https:\/\/www\.gstatic\.com\/firebasejs\/[\d.]+\/firebase-functions\.js"/g, '"firebase/functions"')
+  .replace('projectId: "PLACEHOLDER"', `projectId: "${PROJECT}"`)
+  .replace('apiKey: "PLACEHOLDER_IN_ATTESA_DEL_PROGETTO"', 'apiKey: "demo-api-key"');
+const CLIENT_SDK = join(HERE, ".sdk-under-test-boot.mjs");
+writeFileSync(CLIENT_SDK, clientSrc);
+const { DeepworkID } = await import(CLIENT_SDK);
+
+await test("login del fondatore → stato 'member' con l'org creata attiva", async () => {
+  const id = await DeepworkID.init({ appId: "scudo", emulators: EMU });
+  const st = await id.loginWithEmail("gius@cava.it", "password-123");
+  expect(st === "member", `stato ${st}`);
+  expect(id.orgId === orgId, `orgId ${id.orgId} != ${orgId}`);
+  expect(id.role() === "owner", `ruolo ${id.role()}`);
+  globalThis.__bootId = id;   // riuso nel test successivo
+});
+await test("hasEntitlement è vero per Scudo (app attiva dal bootstrap)", async () => {
+  expect(globalThis.__bootId.hasEntitlement() === true, "Scudo non risulta attiva lato client");
+});
+await test("le 8 app risultano attive nel profilo (listEntitlements)", async () => {
+  const ents = await globalThis.__bootId.listEntitlements();
+  const attive = APP_IDS.filter(a => ents[a] && ents[a].active === true);
+  expect(attive.length === APP_IDS.length, `attive ${attive.length}/${APP_IDS.length}`);
 });
 
 console.log(`\nRisultato Bootstrap: ${passed} passati, ${failed} falliti`);
