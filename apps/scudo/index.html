@@ -281,6 +281,16 @@
     await refresh();
   };
 
+  // Recupero errore: appena l'utente corregge un campo, togli il bordo
+  // rosso e il messaggio, così l'avviso non resta appeso mentre digita.
+  const clearErr = (inputId, esitoId) => $(inputId).addEventListener("input", () => {
+    $(inputId).style.borderColor = ""; $(esitoId).textContent = "";
+  });
+  clearErr("new-nome", "import-esito");
+  clearErr("doc-titolo", "doc-esito");
+  clearErr("new-scad-desc", "scad-esito");
+  clearErr("new-scad-data", "scad-esito");
+
   await refresh();
 </script>
 </body>
