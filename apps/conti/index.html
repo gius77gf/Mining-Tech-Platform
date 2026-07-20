@@ -251,6 +251,12 @@
   });
   ["gar-titolo","gar-base","gar-data"].forEach(i => clearErr(i, "gar-esito"));
   ["ft-num","ft-cli","ft-imp","ft-scad"].forEach(i => clearErr(i, "ft-esito"));
+  // Invio da tastiera: premere Invio in un campo del form equivale a
+  // toccare il pulsante — data entry più rapida senza spostare il dito.
+  const enterSubmit = (inputIds, btnId) => inputIds.forEach(id =>
+    $(id).addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $(btnId).click(); } }));
+  enterSubmit(["gar-titolo", "gar-base", "gar-data"], "btn-gar");
+  enterSubmit(["ft-num", "ft-cli", "ft-imp", "ft-scad"], "btn-ft");
   await refresh();
 </script>
 </body>
