@@ -12,7 +12,7 @@ import {
   assertSucceeds,
   assertFails,
 } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, collection, getDocs } from "firebase/firestore";
+import { doc, getDoc, setDoc, deleteDoc, collection, getDocs } from "firebase/firestore";
 
 const rules = readFileSync(new URL("../firestore.rules", import.meta.url), "utf8");
 
@@ -115,6 +115,10 @@ await test("il concorrente NON crea inviti per orgA", () =>
 await test("un owner/admin PUÒ creare un invito dal client (come la Function)", () =>
   assertSucceeds(setDoc(doc(boss, "invites/okCreate"),
     { email: "nuovo2@collega.it", orgId: "orgA", role: "member", status: "pending" })));
+await test("un membro NON modifica un invito dal client (no tampering ruolo)", () =>
+  assertFails(setDoc(doc(alice, "invites/invA1"), { role: "owner" }, { merge: true })));
+await test("un membro NON cancella un invito dal client", () =>
+  assertFails(deleteDoc(doc(alice, "invites/invA1"))));
 
 console.log("\n— Profili utente —");
 await test("utente legge il PROPRIO profilo", async () => {

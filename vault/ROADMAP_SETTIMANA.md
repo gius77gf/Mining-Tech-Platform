@@ -180,7 +180,7 @@ Dettaglio per unità: vault/checkpoints/ dal 2026-07-20_1500 in poi.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-22_0005_test-rules-inviti.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-22_0020_test-rules-tamper-inviti.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
