@@ -33,31 +33,27 @@
   </div>
 
   <div class="sec">Oggi in cava</div>
-  <div class="item"><div class="avatar">V</div><div class="info"><div class="name">Volata fronte Nord</div><div class="meta">Prevista ore 12:30 — area interdetta</div></div><span class="badge warn">Pianificata</span><span class="arr">›</span></div>
-  <div class="item"><div class="avatar">FR</div><div class="info"><div class="name">Frantoio primario</div><div class="meta">Fermo per intasamento tramoggia</div></div><span class="badge danger">Anomalia</span><span class="arr">›</span></div>
-  <div class="item"><div class="avatar">SQ</div><div class="info"><div class="name">Squadra perforazione</div><div class="meta">Fronte Est — 14 fori su 22</div></div><span class="badge ok">In corso</span><span class="arr">›</span></div>
+  <div id="oggi-list"></div>
 </div>
 
 <div class="page" id="page-att">
   <div class="sec">Attività della giornata</div>
-  <div class="item"><div class="info"><div class="name">Perforazione fronte Est</div><div class="meta">Squadra A · 14/22 fori</div></div><span class="badge ok">In corso</span></div>
-  <div class="item"><div class="info"><div class="name">Volata fronte Nord</div><div class="meta">Ore 12:30 · fochino M. Rossi</div></div><span class="badge warn">Pianificata</span></div>
-  <div class="item"><div class="info"><div class="name">Carico e trasporto</div><div class="meta">Piazzale 2 → frantoio</div></div><span class="badge ok">In corso</span></div>
-  <div class="item"><div class="info"><div class="name">Manutenzione dumper D3</div><div class="meta">Officina · in attesa ricambio</div></div><span class="badge warn">In attesa</span></div>
-</div>
+  <div id="att-list"></div></div>
 
 <div class="page" id="page-squ">
   <div class="sec">Squadre in turno</div>
-  <div class="item"><div class="info"><div class="name">Squadra A — Perforazione</div><div class="meta">4 persone · fronte Est</div></div><span class="badge ok">Operativa</span></div>
-  <div class="item"><div class="info"><div class="name">Squadra B — Carico</div><div class="meta">3 persone · piazzale 2</div></div><span class="badge ok">Operativa</span></div>
-  <div class="item"><div class="info"><div class="name">Squadra C — Impianto</div><div class="meta">2 persone · frantoio</div></div><span class="badge danger">Ferma</span></div>
-</div>
+  <div id="squ-list"></div></div>
 
 <div class="page" id="page-rap">
   <div class="sec">Rapportini di oggi</div>
-  <div class="item"><div class="info"><div class="name">Rapportino perforazione</div><div class="meta">Squadra A · inviato 11:20</div></div><span class="badge ok">Inviato</span></div>
-  <div class="item"><div class="info"><div class="name">Rapportino impianto</div><div class="meta">Squadra C · bozza</div></div><span class="badge warn">Bozza</span></div>
-  <div class="item"><div class="info"><div class="name">Rapportino trasporti</div><div class="meta">Squadra B · inviato 10:05</div></div><span class="badge ok">Inviato</span></div>
+  <div id="rap-list"></div>
+  <div class="sec">Nuovo rapportino</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <input class="dw-input" id="new-rap-titolo" placeholder="Titolo (es. Rapportino perforazione)" style="flex:2;min-width:160px;">
+    <select class="dw-input" id="new-rap-squadra" style="flex:1;min-width:130px;"></select>
+    <button class="dw-btn" id="btn-add-rap" style="width:auto;">Crea bozza</button>
+  </div>
+  <div class="note" id="mode-note" style="text-align:left;"></div>
 </div>
 
 <div class="nav">
@@ -78,17 +74,66 @@
 </script>
 
 <script type="module">
-  // Aggancio a Deepwork ID: se il backend non è configurato la pagina
-  // resta navigabile come mockup (modalità tour implicita).
-  try {
-    const { DeepworkID } = await import("../../shared/deepwork-id-client/index.js");
-    const id = await DeepworkID.init({ appId: "campo" });
-    if (id.authState() === "tour" || id.authState() === "anonymous") {
-      document.getElementById("tour-banner").style.display = "block";
-    }
-  } catch (e) {
-    document.getElementById("tour-banner").style.display = "block";
+  import { campoData, kpiFrom } from "./campo-data.js";
+  const $ = (id) => document.getElementById(id);
+  const AB = { "in-corso": ["ok","In corso"], pianificata: ["warn","Pianificata"], anomalia: ["danger","Anomalia"], conclusa: ["ok","Conclusa"] };
+  const QB = { operativa: ["ok","Operativa"], ferma: ["danger","Ferma"] };
+  const RB = { inviato: ["ok","Inviato"], bozza: ["warn","Bozza"] };
+  const sig = (n) => (n||"?").replace(/Squadra /,"").slice(0,2).toUpperCase();
+
+  const db = await campoData();
+  if (db.mode !== "live") $("tour-banner").style.display = "block";
+  $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
+
+  let ATT=[], SQU=[], RAP=[];
+  async function refresh(){
+    [ATT,SQU,RAP] = await Promise.all([db.attivita(), db.squadre(), db.rapportini()]);
+    const k = kpiFrom(ATT,SQU,RAP);
+    const kn = document.querySelectorAll(".kpis .kpi .n");
+    if (kn[0]) kn[0].textContent = k.squadreAttive;
+    if (kn[1]) kn[1].textContent = k.inCorso;
+    if (kn[2]) kn[2].textContent = k.rapportiniOggi;
+    if (kn[3]) kn[3].textContent = k.anomalie;
+
+    const urgenti = ATT.filter(a => a.stato !== "conclusa").slice(0,4);
+    $("oggi-list").innerHTML = urgenti.map(a => `<div class="item" onclick="go('att')">
+      <div class="avatar">${sig(a.titolo)}</div>
+      <div class="info"><div class="name">${a.titolo}</div><div class="meta">${a.dettaglio||""}</div></div>
+      <span class="badge ${AB[a.stato][0]}">${AB[a.stato][1]}</span><span class="arr">›</span></div>`).join("");
+
+    $("att-list").innerHTML = ATT.map(a => `<div class="item" data-att="${a.id}" style="cursor:pointer" title="Tocca per cambiare stato">
+      <div class="info"><div class="name">${a.titolo}</div><div class="meta">${a.dettaglio||""}</div></div>
+      <span class="badge ${AB[a.stato][0]}">${AB[a.stato][1]}</span></div>`).join("");
+
+    $("squ-list").innerHTML = SQU.map(q => `<div class="item">
+      <div class="avatar">${sig(q.nome)}</div>
+      <div class="info"><div class="name">${q.nome}</div><div class="meta">${q.persone} persone · ${q.area||"—"}</div></div>
+      <span class="badge ${QB[q.stato][0]}">${QB[q.stato][1]}</span></div>`).join("");
+
+    $("rap-list").innerHTML = RAP.map(r => `<div class="item" data-rap="${r.id}" ${r.stato==="bozza"?'style="cursor:pointer" title="Tocca per inviare"':''}>
+      <div class="info"><div class="name">${r.titolo}</div><div class="meta">${r.squadra||"—"}${r.ora?" · "+r.ora:""}</div></div>
+      <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span></div>`).join("");
+
+    $("new-rap-squadra").innerHTML = SQU.map(q => `<option>${q.nome.split(" — ")[0]}</option>`).join("");
   }
+
+  // interazioni: attività cicla lo stato; rapportino bozza → inviato
+  const ATT_NEXT = { pianificata: "in-corso", "in-corso": "conclusa", anomalia: "in-corso", conclusa: "pianificata" };
+  document.addEventListener("click", async (e) => {
+    const it = e.target.closest && e.target.closest("[data-att]");
+    if (it) { const a = ATT.find(x => x.id === it.getAttribute("data-att"));
+      await db.aggiorna("attivita", a.id, { stato: ATT_NEXT[a.stato] || "in-corso" }); await refresh(); return; }
+    const rp = e.target.closest && e.target.closest("[data-rap]");
+    if (rp) { const r = RAP.find(x => x.id === rp.getAttribute("data-rap"));
+      if (r && r.stato === "bozza") { const ora = new Date().toTimeString().slice(0,5);
+        await db.aggiorna("rapportini", r.id, { stato: "inviato", ora }); await refresh(); } }
+  });
+  $("btn-add-rap").onclick = async () => {
+    const titolo = $("new-rap-titolo").value.trim(); if (!titolo) return;
+    await db.aggiungi("rapportini", { titolo, squadra: $("new-rap-squadra").value, ora: "", stato: "bozza" });
+    $("new-rap-titolo").value = ""; await refresh();
+  };
+  await refresh();
 </script>
 </body>
 </html>
