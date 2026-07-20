@@ -54,9 +54,8 @@ orgCollection; caricamento dati via SDK con fallback demo (tour);
 form di inserimento/modifica funzionanti; KPI calcolati dai dati veri;
 test con emulatore dove sensato.
 
-C1. Scudo (prima: è la prima app a uscire): collezioni lavoratori/
-    scadenze/documenti + CRUD completo + KPI reali + import CSV
-    personale — taglia L — stato: da fare
+C1. Scudo — stato: in corso (20/07: data layer + KPI calcolati + CRUD
+    lavoratori/scadenze fatto e testato; resta import CSV)
 C2. Campo: attività/squadre/rapportini + compilazione rapportino con
     foto + stato squadre — taglia L — stato: da fare
 C3. Flotta: mezzi/manutenzioni/costi + registro ore + scadenzario
@@ -129,7 +128,7 @@ ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-20_0425_b4-nav-fase-b-chiusa.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-20_0450_c1-scudo-dati.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
