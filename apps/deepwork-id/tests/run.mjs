@@ -60,6 +60,10 @@ await test("membro di orgA NON può nemmeno elencare i documenti di orgB", () =>
   assertFails(getDocs(collection(alice, "organizations/orgB/apps/scudo/turni"))));
 await test("membro di orgA NON scrive nei dati del concorrente", () =>
   assertFails(setDoc(doc(alice, "organizations/orgB/apps/scudo/turni/hack"), { x: 1 })));
+await test("membro di orgA NON CANCELLA i dati del concorrente (orgB)", () =>
+  assertFails(deleteDoc(doc(alice, "organizations/orgB/apps/scudo/turni/t9"))));
+await test("membro di orgB NON cancella i dati di orgA", () =>
+  assertFails(deleteDoc(doc(eve, "organizations/orgA/apps/scudo/turni/t1"))));
 
 console.log("\n— Accesso senza login —");
 await test("utente non autenticato NON legge nulla di orgA", () =>
