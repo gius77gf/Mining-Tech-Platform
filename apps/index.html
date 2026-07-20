@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Deepwork — Ecosistema</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/deepwork-style.css">
+<style>
+  .wrap { max-width: 860px; margin: 0 auto; padding: 28px 18px calc(28px + env(safe-area-inset-bottom)); }
+  .head { text-align: center; margin-bottom: 26px; }
+  .head h1 { margin: 0; font-size: 34px; letter-spacing: 4px; }
+  .head h1 .eco { color: var(--amber); }
+  .head .sub { color: var(--muted); font-size: 13px; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  .tile {
+    display: block; text-decoration: none; color: var(--text);
+    background: var(--card); border: 1px solid var(--border);
+    border-left: 3px solid var(--tile-accent, var(--amber));
+    border-radius: var(--r); padding: 16px 16px 14px;
+    transition: transform .15s, border-color .15s;
+  }
+  .tile:hover { transform: translateY(-2px); border-color: var(--tile-accent, var(--amber)); }
+  .tile .nm { font-family: 'Barlow Condensed', sans-serif; font-size: 19px; font-weight: 800;
+    letter-spacing: 2px; text-transform: uppercase; color: var(--tile-accent, var(--amber)); }
+  .tile .ds { font-size: 13px; color: var(--muted2); margin: 6px 0 10px; line-height: 1.45; min-height: 36px; }
+  .tile .st { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase; padding: 3px 9px; border-radius: 20px; display: inline-block; }
+  .st.live { background: rgba(102,187,106,.14); color: var(--success); }
+  .st.dev { background: rgba(255,171,0,.13); color: var(--amber2); }
+  .st.mock { background: rgba(155,138,96,.16); color: var(--muted2); }
+  .tour {
+    margin: 26px auto 0; max-width: 430px; text-align: center;
+    background: var(--card); border: 1px solid var(--border2); border-radius: var(--r); padding: 18px;
+  }
+  .tour p { font-size: 13px; color: var(--muted); line-height: 1.5; margin: 0 0 12px; }
+  .foot { margin-top: 26px; text-align: center; font-size: 11px; color: var(--muted); letter-spacing: 1.5px; }
+</style>
+</head>
+<body class="dw">
+<div class="wrap">
+  <div class="head">
+    <h1>DEEPWORK <span class="eco">ECOSISTEMA</span></h1>
+    <div class="sub">Le app per la tua cava · un solo accesso</div>
+  </div>
+
+  <div class="grid">
+    <a class="tile" href="../index.html" style="--tile-accent:#ffab00;">
+      <div class="nm">Deepwork</div>
+      <div class="ds">Il core: editor volate, rapportini, dashboard di cava.</div>
+      <span class="st live">In produzione</span>
+    </a>
+    <a class="tile" href="./genesi/genesi.html" style="--tile-accent:#ff6a70;">
+      <div class="nm">Genesi</div>
+      <div class="ds">Simulatore di volate 3D calibrato su volate reali filmate.</div>
+      <span class="st dev">Sviluppo attivo</span>
+    </a>
+    <a class="tile" href="./scudo/index.html" style="--tile-accent:#bd96ff;">
+      <div class="nm">Scudo</div>
+      <div class="ds">Sicurezza & personale: scadenze, formazione, documenti.</div>
+      <span class="st mock">Anteprima</span>
+    </a>
+    <a class="tile" href="./campo/index.html" style="--tile-accent:#ffb733;">
+      <div class="nm">Campo</div>
+      <div class="ds">L'operativo di giornata: attività, squadre, rapportini.</div>
+      <span class="st mock">Anteprima</span>
+    </a>
+    <a class="tile" href="./flotta/index.html" style="--tile-accent:#7fbcff;">
+      <div class="nm">Flotta</div>
+      <div class="ds">Mezzi, manutenzioni, ore e costi sotto controllo.</div>
+      <span class="st mock">Anteprima</span>
+    </a>
+    <a class="tile" href="./conti/index.html" style="--tile-accent:#23dcc6;">
+      <div class="nm">Conti</div>
+      <div class="ds">Amministrazione & gare: fatture, incassi, margini.</div>
+      <span class="st mock">Anteprima</span>
+    </a>
+    <a class="tile" href="./sentinella/index.html" style="--tile-accent:#c7b794;">
+      <div class="nm">Sentinella</div>
+      <div class="ds">Ambiente / HSE: monitoraggi, adempimenti, registri.</div>
+      <span class="st mock">Anteprima</span>
+    </a>
+    <a class="tile" href="./terra/index.html" style="--tile-accent:#5fe05a;">
+      <div class="nm">Terra</div>
+      <div class="ds">Estrattivo & rilievo: fronti, volumi, piano di coltivazione.</div>
+      <span class="st mock">Anteprima</span>
+    </a>
+    <a class="tile" href="./deepwork-id/index.html" style="--tile-accent:#e8dcc0;">
+      <div class="nm">Deepwork ID</div>
+      <div class="ds">Un solo profilo per tutte le app: accesso, organizzazioni, abbonamenti.</div>
+      <span class="st dev">Fondamenta pronte</span>
+    </a>
+  </div>
+
+  <div class="tour">
+    <p>Vuoi vedere come funziona senza registrarti? La modalità tour mostra le app con dati di esempio, in sola lettura.</p>
+    <a class="dw-btn secondary" style="display:inline-block;text-decoration:none;" href="./deepwork-id/index.html">Prova il tour</a>
+  </div>
+
+  <div class="foot">DEEPWORK · ECOSISTEMA PER CAVE E ATTIVITÀ ESTRATTIVE</div>
+</div>
+</body>
+</html>
