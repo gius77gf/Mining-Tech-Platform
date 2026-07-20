@@ -139,7 +139,7 @@
                    .sort((a,b) => (b.data||"").localeCompare(a.data||""));
     $("ril-list").innerHTML = ril.map(r => `<div class="item">
       <div class="info"><div class="name">${r.titolo}</div><div class="meta">${dmy(r.data)} · ${r.tipo||""}${r.volumeM3!=null?" · "+r.volumeM3.toLocaleString("it-IT")+" m³":""}</div></div>
-      <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span></div>`).join("")
+      <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${r.stato==="pianificato"?`<span class="arr" style="cursor:pointer" title="Annulla rilievo pianificato" data-del-ril="${r.id}">✕</span>`:""}</div>`).join("")
       || '<div class="note" style="text-align:left;">'+(filtroRil==="tutti"?"Nessun rilievo registrato.":"Nessun rilievo in questa categoria.")+'</div>';
     document.querySelectorAll("#ril-filtri [data-filtro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-filtro") === filtroRil ? "var(--app-accent)" : "");
@@ -151,6 +151,10 @@
 
   // interazioni: fronte alterna attivo/sospeso; form registra rilievo elaborato
   document.addEventListener("click", async (e) => {
+    const delRil = e.target.getAttribute && e.target.getAttribute("data-del-ril");
+    if (delRil) { const r = RIL.find(x => x.id === delRil);
+      if (r && confirm("Annullare il rilievo pianificato del " + dmy(r.data) + "?")) {
+        await db.rimuovi("rilievi", delRil); await refresh(); } return; }
     const pi = e.target.closest && e.target.closest("[data-piano]");
     if (pi) { const p = PIA.find(x => x.id === pi.getAttribute("data-piano"));
       if (p) { const v = prompt("Volume annuo pianificato (m³) — l'avanzamento si ricalcola:", p.pianificatoAnnuoM3);
