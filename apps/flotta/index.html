@@ -38,6 +38,12 @@
 
 <div class="page" id="page-mez">
   <div class="sec">Parco mezzi</div>
+  <div id="mez-filtri" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+    <button class="dw-btn secondary" data-filtro="tutti" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Tutti</button>
+    <button class="dw-btn secondary" data-filtro="operativo" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Operativi</button>
+    <button class="dw-btn secondary" data-filtro="verifica" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">In verifica</button>
+    <button class="dw-btn secondary" data-filtro="fermo" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Fermi</button>
+  </div>
   <div id="mez-list"></div>
   <div class="sec">Nuovo mezzo</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -118,7 +124,12 @@
   });
 
   let MEZ=[], MAN=[], COS=[];
+  let filtroMez = "tutti";
   const MEZ_NEXT = { operativo: "verifica", verifica: "fermo", fermo: "operativo" };
+  $("mez-filtri").addEventListener("click", (e) => {
+    const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
+    if (f) { filtroMez = f; refresh(); }
+  });
   async function refresh(){
     [MEZ,MAN,COS] = await Promise.all([db.mezzi(), db.manutenzioni(), db.costi()]);
     const k = kpiFrom(MEZ,MAN,COS);
@@ -148,12 +159,15 @@
       <span class="badge ${a.u[0]}">${a.u[1]}</span></div>`).join("") || '<div class="note">Nessuna criticità sul parco mezzi.</div>';
 
     const ordStato = { fermo: 0, verifica: 1, operativo: 2 };
-    const mezOrd = MEZ.slice().sort((a, b) => (ordStato[a.stato] ?? 3) - (ordStato[b.stato] ?? 3) || a.nome.localeCompare(b.nome, "it"));
+    const mezOrd = MEZ.slice().sort((a, b) => (ordStato[a.stato] ?? 3) - (ordStato[b.stato] ?? 3) || a.nome.localeCompare(b.nome, "it"))
+                       .filter(m => filtroMez === "tutti" || m.stato === filtroMez);
     $("mez-list").innerHTML = mezOrd.map(m => `<div class="item" data-mezzo="${m.id}" style="cursor:pointer" title="Tocca per cambiare stato">
       <div class="avatar">${esc(sig(m.nome))}</div>
       <div class="info"><div class="name">${esc(m.nome)}</div><div class="meta">${(m.ore||0).toLocaleString("it-IT")} h${m.area ? " · " + esc(m.area) : ""}</div></div>
       <span class="badge ${MB[m.stato][0]}">${MB[m.stato][1]}</span>${m.stato==="fermo"?`<span class="arr" style="cursor:pointer" title="Dismetti dal parco" data-del-mezzo="${m.id}">✕</span>`:""}</div>`).join("")
-      || '<div class="note" style="text-align:left;">Nessun mezzo nel parco.</div>';
+      || '<div class="note" style="text-align:left;">'+(filtroMez==="tutti"?"Nessun mezzo nel parco.":"Nessun mezzo in questa categoria.")+'</div>';
+    document.querySelectorAll("#mez-filtri [data-filtro]").forEach(b =>
+      b.style.borderColor = b.getAttribute("data-filtro") === filtroMez ? "var(--app-accent)" : "");
 
     $("man-list").innerHTML = MAN.slice().sort((a,b)=>(a.dataPrevista||"9999")<(b.dataPrevista||"9999")?-1:1).map(n => {
       const u = urgDi(n);
