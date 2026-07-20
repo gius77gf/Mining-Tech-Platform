@@ -224,6 +224,12 @@
   });
   clearErr("fro-nome", "fro-esito");
   ["new-ril-data","new-ril-vol"].forEach(i => clearErr(i, "ril-esito"));
+  // Invio da tastiera: premere Invio in un campo del form equivale a
+  // toccare il pulsante — data entry più rapida senza spostare il dito.
+  const enterSubmit = (inputIds, btnId) => inputIds.forEach(id =>
+    $(id).addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $(btnId).click(); } }));
+  enterSubmit(["fro-nome", "fro-banco", "fro-quota"], "btn-fro");
+  enterSubmit(["new-ril-data", "new-ril-vol"], "btn-add-ril");
   await refresh();
 </script>
 </body>
