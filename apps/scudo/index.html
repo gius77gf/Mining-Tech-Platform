@@ -223,6 +223,7 @@
     await db.aggiungi("lavoratori", { nome, ruolo: $("new-ruolo").value.trim(), attivo: true });
     $("new-nome").value = ""; $("new-ruolo").value = "";
     $("import-esito").textContent = "Lavoratore aggiunto: " + nome + ".";
+    $("new-nome").focus();   // torna al primo campo per inserire subito il prossimo
     await refresh();
   };
   $("btn-doc").onclick = async () => {

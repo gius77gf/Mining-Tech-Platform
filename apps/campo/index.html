@@ -194,6 +194,7 @@
     await db.aggiungi("attivita", { titolo, dettaglio: $("att-dett").value.trim(), stato: "pianificata" });
     $("att-titolo").value = ""; $("att-dett").value = "";
     $("att-esito").textContent = "Attività pianificata: " + titolo + ".";
+    $("att-titolo").focus();   // torna al primo campo per inserire subito la prossima
     await refresh();
   };
   $("btn-add-rap").onclick = async () => {

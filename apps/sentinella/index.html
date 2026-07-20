@@ -218,6 +218,7 @@
     await db.aggiungi("monitoraggi", { nome, unita, soglia, valore: 0, letture: [] });
     $("sen-nome").value = ""; $("sen-unita").value = ""; $("sen-soglia").value = "";
     $("mis-esito").textContent = "Sensore " + nome + " aggiunto (soglia " + soglia + " " + unita + ").";
+    $("sen-nome").focus();   // torna al primo campo per aggiungere subito il prossimo
     await refresh();
   };
   $("btn-mis").onclick = async () => {
