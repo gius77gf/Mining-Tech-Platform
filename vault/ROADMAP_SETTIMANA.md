@@ -43,9 +43,7 @@ B1. CI GitHub Actions — stato: fatto (20/07: 2 job — rules 19 test su
     emulatore + syntax check moduli e script inline; da verificare il
     primo run sulla prossima PR)
 B2. README reale del monorepo — stato: fatto (20/07)
-B3. Hub ecosistema: pagina indice /apps/ navigabile in stile deepwork
-    (griglia delle app con stato e link, punto d'ingresso del tour)
-    — taglia S — stato: da fare
+B3. Hub ecosistema /apps/ — stato: fatto (20/07, con screenshot)
 B4. Navigazione trasversale: header comune con switcher tra app
     (componente condiviso in shared/) — taglia M — stato: da fare
 
@@ -131,7 +129,7 @@ ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-20_0355_b2-readme.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-20_0410_b3-hub.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
