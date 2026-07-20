@@ -1,0 +1,67 @@
+# CI dell'ecosistema Deepwork
+# Ad ogni push/PR: 1) i 19 test delle regole di sicurezza multi-tenant
+# (emulatore Firestore) — nessuna PR può rompere l'isolamento senza
+# che si veda; 2) syntax check dei moduli JS e degli script inline.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  security-rules:
+    name: Firestore rules tests (19)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Install firebase-tools
+        run: npm install -g firebase-tools
+      - name: Install test dependencies
+        working-directory: apps/deepwork-id/tests
+        run: npm ci
+      - name: Run rules tests against the emulator
+        working-directory: apps/deepwork-id
+        run: firebase emulators:exec --project demo-deepwork "cd tests && npm test"
+
+  syntax:
+    name: JS syntax checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check standalone modules
+        run: |
+          node --check sw.js
+          node --check firebase-messaging-sw.js || true   # placeholder note, non-blocking
+          node --check apps/deepwork-id/functions/index.js
+          node --input-type=module --check < shared/deepwork-id-client/index.js
+          node --input-type=module --check < apps/genesi/vendor/build/three.module.js
+      - name: Check inline scripts (genesi.html and app pages)
+        run: |
+          python3 - << 'EOF'
+          import re, subprocess, sys, glob
+          failed = False
+          for path in ['apps/genesi/genesi.html'] + glob.glob('apps/*/index.html') + glob.glob('apps/*/profilo.html'):
+              html = open(path).read()
+              for i, sc in enumerate(re.findall(r'<script[^>]*>(.*?)</script>', html, re.S)):
+                  body = sc.strip()
+                  if len(body) < 50 or body.startswith('{'):   # importmap/manifest json
+                      continue
+                  p = subprocess.run(['node', '--input-type=module', '--check'],
+                                     input=body.encode(), capture_output=True)
+                  if p.returncode != 0:
+                      print(f'SYNTAX FAIL {path} script#{i}:')
+                      print(p.stderr.decode()[:500])
+                      failed = True
+          sys.exit(1 if failed else 0)
+          EOF

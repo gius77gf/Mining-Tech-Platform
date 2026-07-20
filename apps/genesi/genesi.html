@@ -395,6 +395,19 @@ body.scr-sim #tl{bottom:80px}
   <div id="d2-insp"></div>
   <div id="d2-scheda"></div>
   <button class="btn cu" id="d2-cta">▶ Simula questa volata</button>
+  <div style="display:flex;gap:8px;margin-top:8px;">
+    <button class="btn sm" id="cmpSaveA">Salva come A</button>
+    <button class="btn sm" id="cmpSaveB">Salva come B</button>
+    <button class="btn sm" id="cmpShow" style="border-color:rgba(255,171,0,.4)">Confronta A/B</button>
+  </div>
+</div>
+
+<div id="cmpModal" style="display:none;position:fixed;inset:0;z-index:220;background:rgba(10,8,4,.82);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:18px;">
+  <div style="max-width:680px;width:100%;max-height:86vh;overflow:auto;background:var(--card,#221c0e);border:1px solid rgba(255,171,0,.3);border-radius:14px;padding:18px;">
+    <div style="font-family:'Barlow Condensed';font-weight:800;font-size:17px;letter-spacing:.08em;text-transform:uppercase;color:#ffd54f;margin-bottom:10px;">Confronto progetti A / B</div>
+    <div id="cmpBody" style="font-size:13.5px;"></div>
+    <button class="btn sm" id="cmpClose" style="margin-top:12px;">Chiudi</button>
+  </div>
 </div>
 
 <div id="scr-esplosivi">
@@ -1647,6 +1660,66 @@ $('meshIn').onchange = e=>{ if(e.target.files[0]) loadFrontMeshFile(e.target.fil
 /* ============ toast / modal ============ */
 let toastTimer=null;
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2800); }
+/* ===== Confronto A/B tra progetti (A10): snapshot KPI in localStorage ===== */
+function computeKPI(){
+  const B=D2.B, S=D2.S, H=D2.prof, Q=D2.kg, Dm=D2.diam/1000;
+  const pf=Q/(B*S*H);
+  const wet=(D2.bagnato?({Nulla:0.70,Bassa:0.40,Media:0.18,Buona:0.05,Eccellente:0}[(selEsplosivo()||{}).acqua]||0):0);
+  const RWS=Math.max(8,((selEsplosivo()||{}).rws_pct||100)*(1-wet));
+  const A=rockFactorA().A;
+  const x50=A*Math.pow(Math.max(0.05,pf),-0.8)*Math.pow(Math.max(1,Q),1/6)*Math.pow(115/RWS,19/30);
+  const Lc=Math.max(0.4,H+(D2.sub||0)-(D2.stem||2.5));
+  let nU=(2.2-14*B/D2.diam)*Math.sqrt((1+S/B)/2)*(1-0.3/B)*(Lc/H); nU=Math.max(0.7,Math.min(2.2,nU));
+  const xc=x50/Math.pow(0.693,1/nU);
+  const x80=xc*Math.pow(-Math.log(0.2),1/nU), x20=xc*Math.pow(-Math.log(0.8),1/nU);
+  const mic=computeMIC(), st=ppvSite();
+  const ppv=st.K*Math.pow(Math.max(0.1,D2.recDist/Math.sqrt(Math.max(1,mic))),-st.beta);
+  const lim=ppvLimit(D2.recNorma,D2.recFreq);
+  const nf=(D2.perRow||18)*(D2.file||1), qtot=nf*Q;
+  const fly=flyrockEst();
+  return { nf, qtot:Math.round(qtot), pf:+pf.toFixed(2),
+    x20:Math.round(x20), x50:Math.round(x50), x80:Math.round(x80),
+    ppv:+ppv.toFixed(1), lim:+lim.toFixed(1), fly:Math.round(fly.Lpred),
+    presplit:!!D2.presplit,
+    setup:(selEsplosivo()||{}).nome_breve||(selEsplosivo()||{}).nome||D2.esplosivo,
+    maglia:B+'×'+S+' m · Ø'+D2.diam+' · '+D2.prof+' m' };
+}
+function cmpSave(slot){
+  const snap={ ts:new Date().toISOString().slice(0,16).replace('T',' '), kpi:computeKPI(), design:JSON.parse(JSON.stringify({B:D2.B,S:D2.S,diam:D2.diam,prof:D2.prof,kg:D2.kg,stem:D2.stem,sub:D2.sub,esplosivo:D2.esplosivo,innesco:D2.innesco,roccia:D2.roccia,frat:D2.frat,bagnato:D2.bagnato,presplit:D2.presplit,sequenza:D2.sequenza})) };
+  localStorage.setItem('genesiCmp'+slot, JSON.stringify(snap));
+  toast('Progetto salvato come '+slot);
+}
+function cmpRender(){
+  const A=JSON.parse(localStorage.getItem('genesiCmpA')||'null');
+  const B=JSON.parse(localStorage.getItem('genesiCmpB')||'null');
+  const body=$('cmpBody');
+  if(!A||!B){ body.innerHTML='<div style="color:var(--mut)">Salva prima due progetti: imposta i parametri, premi "Salva come A", modifica, poi "Salva come B".</div>'; return; }
+  const rows=[
+    ['Impostazione', A.kpi.maglia, B.kpi.maglia, null],
+    ['Esplosivo', A.kpi.setup, B.kpi.setup, null],
+    ['Fori · kg totali', A.kpi.nf+' · '+A.kpi.qtot+' kg', B.kpi.nf+' · '+B.kpi.qtot+' kg', null],
+    ['Powder factor', A.kpi.pf+' kg/m³', B.kpi.pf+' kg/m³', null],
+    ['X50 previsto', A.kpi.x50+' cm', B.kpi.x50+' cm', A.kpi.x50<=B.kpi.x50?'A':'B'],
+    ['X80 (oversize)', A.kpi.x80+' cm', B.kpi.x80+' cm', A.kpi.x80<=B.kpi.x80?'A':'B'],
+    ['PPV al recettore', A.kpi.ppv+' / lim '+A.kpi.lim+' mm/s', B.kpi.ppv+' / lim '+B.kpi.lim+' mm/s', A.kpi.ppv<=B.kpi.ppv?'A':'B'],
+    ['Gittata flyrock', A.kpi.fly+' m', B.kpi.fly+' m', A.kpi.fly<=B.kpi.fly?'A':'B'],
+    ['Presplit', A.kpi.presplit?'sì':'no', B.kpi.presplit?'sì':'no', null],
+  ];
+  body.innerHTML='<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:6px 10px;align-items:center;">'
+    +'<div style="color:var(--mut);font-size:11px;letter-spacing:.1em;text-transform:uppercase">KPI</div>'
+    +'<div style="color:#ffd54f;font-weight:700">A <span style="color:var(--mut);font-weight:400;font-size:11px">'+A.ts+'</span></div>'
+    +'<div style="color:#ffd54f;font-weight:700">B <span style="color:var(--mut);font-weight:400;font-size:11px">'+B.ts+'</span></div>'
+    +rows.map(r=>'<div style="color:var(--mut)">'+r[0]+'</div>'
+      +'<div style="'+(r[3]==='A'?'color:#66bb6a;font-weight:600':'')+'">'+r[1]+'</div>'
+      +'<div style="'+(r[3]==='B'?'color:#66bb6a;font-weight:600':'')+'">'+r[2]+'</div>').join('')
+    +'</div>'
+    +'<div style="margin-top:10px;color:var(--mut);font-size:12px;">In verde il progetto migliore per ciascun KPI (più basso = meglio per X50/X80/PPV/flyrock). Stime indicative: valgono i limiti dichiarati nella scheda validatori.</div>';
+}
+if($('cmpSaveA')) $('cmpSaveA').onclick=()=>cmpSave('A');
+if($('cmpSaveB')) $('cmpSaveB').onclick=()=>cmpSave('B');
+if($('cmpShow')) $('cmpShow').onclick=()=>{ cmpRender(); $('cmpModal').style.display='flex'; };
+if($('cmpClose')) $('cmpClose').onclick=()=>{ $('cmpModal').style.display='none'; };
+
 function maybeConsent(){ if(!localStorage.getItem('genesiDisclaimerV1')){ $('modal').style.display='flex'; } }
 $('disclaimerChk').onchange = e=>{ $('modalOk').classList.toggle('disabled', !e.target.checked); };
 $('modalOk').onclick = ()=>{ localStorage.setItem('genesiDisclaimerV1','1'); $('modal').style.display='none'; };
