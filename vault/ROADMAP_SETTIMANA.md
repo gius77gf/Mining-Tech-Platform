@@ -141,7 +141,7 @@ ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-21_0600_terra-rilievi-annullabili.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-21_0630_scudo-rinnovo-scadenze.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
