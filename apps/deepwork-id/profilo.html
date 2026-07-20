@@ -108,6 +108,7 @@
   try {
     const { DeepworkID } = await import('../../shared/deepwork-id-client/index.js');
     id = await DeepworkID.init({ appId: 'deepwork-id' });
+    if (id.authState() === 'unauthorized') location.href = './non-autorizzato.html';
     if (id.user && !id.user.isAnonymous) {
       // profilo NEUTRO: solo email come identificatore, iniziali come avatar
       $('who-email').textContent = id.user.email || '—';

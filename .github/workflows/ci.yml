@@ -51,7 +51,7 @@ jobs:
           python3 - << 'EOF'
           import re, subprocess, sys, glob
           failed = False
-          for path in ['apps/genesi/genesi.html'] + glob.glob('apps/*/index.html') + glob.glob('apps/*/profilo.html'):
+          for path in sorted(set(['apps/genesi/genesi.html', 'apps/index.html'] + glob.glob('apps/*/*.html'))):
               html = open(path).read()
               for i, sc in enumerate(re.findall(r'<script[^>]*>(.*?)</script>', html, re.S)):
                   body = sc.strip()
