@@ -42,7 +42,7 @@ Ogni unità: screenshot di verifica prima/dopo, commit, checkpoint.
 B1. CI GitHub Actions — stato: fatto (20/07: 2 job — rules 19 test su
     emulatore + syntax check moduli e script inline; da verificare il
     primo run sulla prossima PR)
-B2. README reale del monorepo + indice documenti — taglia S — stato: da fare
+B2. README reale del monorepo — stato: fatto (20/07)
 B3. Hub ecosistema: pagina indice /apps/ navigabile in stile deepwork
     (griglia delle app con stato e link, punto d'ingresso del tour)
     — taglia S — stato: da fare
@@ -131,7 +131,7 @@ ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-20_0345_b1-ci.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-20_0355_b2-readme.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
