@@ -125,6 +125,18 @@ await test("owner invita; la revoca funziona una sola volta", async () => {
   expect(inv.status === "revoked", "invito non revocato");
   await expectCode(id.revokeInvite(invId), "failed-precondition", "revoca doppia riuscita");
 });
+await test("un MEMBER non può invitare né revocare (anti-escalation)", async () => {
+  await mk("operaio", "member");
+  // un invito valido creato dall'owner
+  await id.loginWithEmail("boss@cava-alfa.it", "password-123");
+  const invId = await id.inviteMember("tizia@collega.it", "member");
+  // il member non può creare inviti...
+  await id.loginWithEmail("operaio@cava-alfa.it", "password-123");
+  await expectCode(id.inviteMember("altro@collega.it", "member"), "permission-denied", "member ha invitato");
+  // ...né revocare quello esistente
+  await expectCode(id.revokeInvite(invId), "permission-denied", "member ha revocato un invito");
+  await id.loginWithEmail("boss@cava-alfa.it", "password-123");   // ripristino lo stato per i test successivi
+});
 await test("createOrganization rende owner della nuova org", async () => {
   const orgId = await id.createOrganization("Cava Beta Srl");
   const m = (await adb.doc(`organizations/${orgId}/members/boss`).get()).data();
