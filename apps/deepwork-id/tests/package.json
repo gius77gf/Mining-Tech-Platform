@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node run.mjs && node run-sdk.mjs"
+    "test": "node run.mjs && node run-sdk.mjs && node run-fns.mjs"
   },
   "dependencies": {
     "@firebase/rules-unit-testing": "^5.0.1",

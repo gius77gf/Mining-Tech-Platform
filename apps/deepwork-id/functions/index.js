@@ -10,6 +10,7 @@
 const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
+const { FieldValue, Timestamp } = require("firebase-admin/firestore");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -68,13 +69,13 @@ exports.createOrganization = onCall({ region: REGION }, async (request) => {
       name,
       status: "active",
       ownerUid: auth.uid,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     });
     tx.set(orgRef.collection("members").doc(auth.uid), {
       uid: auth.uid,
       role: "owner",
       status: "active",
-      joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+      joinedAt: FieldValue.serverTimestamp(),
     });
   });
   await rebuildClaims(auth.uid);
@@ -105,8 +106,8 @@ exports.inviteMember = onCall({ region: REGION }, async (request) => {
     role: cleanRole,
     status: "pending",
     invitedBy: auth.uid,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    expiresAt: admin.firestore.Timestamp.fromMillis(
+    createdAt: FieldValue.serverTimestamp(),
+    expiresAt: Timestamp.fromMillis(
       Date.now() + 14 * 24 * 60 * 60 * 1000  // 14 giorni
     ),
   });
@@ -219,7 +220,7 @@ exports.acceptInvites = onCall({ region: REGION }, async (request) => {
       role: inv.role || "member",
       status: "active",
       invitedBy: inv.invitedBy || null,
-      joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+      joinedAt: FieldValue.serverTimestamp(),
     });
     await doc.ref.update({ status: "accepted", acceptedBy: auth.uid });
     accepted.push(inv.orgId);
