@@ -33,7 +33,7 @@ export function kpiFrom(fatture, gare, oggi = new Date()) {
   const gareAperte = gare.filter(g => g.stato === "aperta").length;
   // DSO ~ media dei giorni dall'emissione (sulle fatture non incassate)
   const dso = aperte.length
-    ? Math.round(aperte.reduce((t, f) => t + Math.max(0, -giorni(f.emessa, oggi)), 0) / aperte.length)
+    ? Math.round(aperte.reduce((t, f) => t + Math.max(0, -giorni(f.emessa, oggi) || 0), 0) / aperte.length)
     : 0;
   return { daIncassare, inScadenza, gareAperte, dso };
 }

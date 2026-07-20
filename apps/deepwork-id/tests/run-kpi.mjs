@@ -98,6 +98,18 @@ test("kpiFrom: inScadenza = solo fatture NON incassate con scadenza entro 10 gio
   ];
   eq(conti.kpiFrom(fatture, [], oggi).inScadenza, 2, "confine 10gg + scaduta, esclusa l'incassata");
 });
+test("kpiFrom: una fattura senza data di emissione non rompe il DSO", () => {
+  // regressione: prima una fattura senza "emessa" rendeva il DSO = NaN
+  // (mostrato come "NaN giorni" nel cruscotto). Ora contribuisce 0.
+  const oggi = new Date("2026-07-20T00:00:00");
+  const fatture = [
+    { importo: 100, incassata: false, scadenza: "2026-07-25", emessa: undefined },   // senza data → 0 gg
+    { importo: 50,  incassata: false, scadenza: "2026-07-25", emessa: "2026-07-10" }, // 10 gg
+  ];
+  const dso = conti.kpiFrom(fatture, [], oggi).dso;
+  eq(Number.isFinite(dso), true, "DSO è un numero finito");
+  eq(dso, 5, "media di 0 e 10");
+});
 
 console.log("\n— Sentinella: monitoraggi ambientali —");
 test("statoMisura: superamento/attenzione/conforme dalla soglia", () => {
