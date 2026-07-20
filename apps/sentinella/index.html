@@ -236,6 +236,14 @@
     $("mis-esito").textContent = "Misura registrata su " + (m ? m.nome.split(" — ")[0] : id) + ": " + valore + (m ? " " + m.unita : "") + " → " + st.label + ".";
     $("mis-valore").value = ""; await refresh();
   };
+  // Recupero errore: appena l'utente corregge un campo, togli il bordo
+  // rosso e il messaggio di esito, così l'avviso non resta appeso.
+  const clearErr = (inputId, esitoId) => $(inputId).addEventListener("input", () => {
+    $(inputId).style.borderColor = ""; if (esitoId) $(esitoId).textContent = "";
+  });
+  ["ade-titolo","ade-data"].forEach(i => clearErr(i, "ade-esito"));
+  ["sen-nome","sen-unita","sen-soglia"].forEach(i => clearErr(i, "mis-esito"));
+  clearErr("mis-valore", "mis-esito");
   await refresh();
 </script>
 </body>
