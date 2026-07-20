@@ -162,7 +162,8 @@
 
     $("reg-list").innerHTML = REG.map(r => `<div class="item" data-reg="${r.id}" style="cursor:pointer" title="${r.stato==="in-attesa" ? "Tocca per segnare aggiornato" : "Tocca per rimettere in attesa"}">
       <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${esc(r.nota || "")}</div></div>
-      <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span></div>`).join("");
+      <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span></div>`).join("")
+      || '<div class="note" style="text-align:left;">Nessuna voce nel registro.</div>';
 
     $("mis-sensore").innerHTML = MON.map(m => `<option value="${m.id}">${esc(m.nome.split(" — ")[0])}</option>`).join("");
   }
