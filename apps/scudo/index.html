@@ -77,6 +77,7 @@
     <input class="dw-input" id="new-scad-data" type="date" style="flex:1;min-width:130px;">
     <button class="dw-btn" id="btn-add-scad" style="width:auto;">Aggiungi</button>
   </div>
+  <div class="note" id="scad-esito" style="text-align:left;"></div>
 </div>
 
 <!-- DOCUMENTI -->
@@ -215,9 +216,13 @@
     if (ds) { await db.rimuovi("scadenze", ds); await refresh(); }
   });
   $("btn-add-pers").onclick = async () => {
-    const nome = $("new-nome").value.trim(); if (!nome) return;
+    const nome = $("new-nome").value.trim();
+    if (!nome) { $("new-nome").style.borderColor = "var(--danger)"; $("import-esito").textContent = "Serve il nome del lavoratore."; return; }
+    $("new-nome").style.borderColor = "";
     await db.aggiungi("lavoratori", { nome, ruolo: $("new-ruolo").value.trim(), attivo: true });
-    $("new-nome").value = ""; $("new-ruolo").value = ""; await refresh();
+    $("new-nome").value = ""; $("new-ruolo").value = "";
+    $("import-esito").textContent = "Lavoratore aggiunto: " + nome + ".";
+    await refresh();
   };
   $("btn-doc").onclick = async () => {
     const titolo = $("doc-titolo").value.trim();
@@ -263,9 +268,16 @@
   };
   $("btn-add-scad").onclick = async () => {
     const descrizione = $("new-scad-desc").value.trim(), dataScadenza = $("new-scad-data").value;
-    if (!descrizione || !dataScadenza) return;
+    if (!descrizione || !dataScadenza) {
+      $("new-scad-desc").style.borderColor = descrizione ? "" : "var(--danger)";
+      $("new-scad-data").style.borderColor = dataScadenza ? "" : "var(--danger)";
+      $("scad-esito").textContent = "Servono la descrizione e la data di scadenza."; return;
+    }
+    $("new-scad-desc").style.borderColor = ""; $("new-scad-data").style.borderColor = "";
     await db.aggiungi("scadenze", { lavoratoreId: $("new-scad-lav").value || null, tipo: $("new-scad-tipo").value, descrizione, dataScadenza });
-    $("new-scad-desc").value = ""; $("new-scad-data").value = ""; await refresh();
+    $("new-scad-desc").value = ""; $("new-scad-data").value = "";
+    $("scad-esito").textContent = "Scadenza aggiunta: " + descrizione + ".";
+    await refresh();
   };
 
   await refresh();
