@@ -70,6 +70,7 @@
   </div>
   <div id="piano-riep" class="note" style="text-align:left;"></div>
   <div id="piano-list"></div>
+  <button class="dw-btn secondary" id="btn-piano-export" style="width:auto;display:none;margin-top:8px;">Esporta consuntivo (CSV)</button>
 </div>
 
 <div class="nav">
@@ -181,6 +182,7 @@
     if (s <= 0.25) return ["warn", p.reale + " kg (" + Math.round(s*100) + "%)"];
     return ["danger", p.reale + " kg (" + Math.round(s*100) + "%)"]; };
   function pianoRender(){
+    $("btn-piano-export").style.display = PIANO.length ? "inline-block" : "none";
     if (!PIANO.length) { $("piano-list").innerHTML = ""; $("piano-riep").textContent = "Nessun piano importato."; return; }
     const reg = PIANO.filter(p => p.reale != null);
     const totP = PIANO.reduce((t,p)=>t+p.prog,0), totR = reg.reduce((t,p)=>t+p.reale,0) + PIANO.filter(p=>p.reale==null).reduce((t,p)=>t+p.prog,0);
@@ -192,6 +194,14 @@
       <span class="badge ${b[0]}">${b[1]}</span></div>`; }).join("");
   }
   $("btn-piano").onclick = () => $("piano-file").click();
+  $("btn-piano-export").onclick = () => {
+    let csv = "foro;carica_prog_kg;carica_reale_kg;scarto_pct\n";
+    PIANO.forEach(p => { const s = scarto(p);
+      csv += `${p.foro};${p.prog};${p.reale != null ? p.reale : ""};${s != null ? Math.round(s*100) : ""}\n`; });
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.download = "campo_consuntivo_carico.csv"; a.click();
+  };
   $("piano-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = (await file.text()).split(/\r?\n/).map(r => r.trim()).filter(Boolean);
