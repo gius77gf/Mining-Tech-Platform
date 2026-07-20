@@ -131,7 +131,8 @@
     $("dash-fronti").innerHTML = FRO.map(f => `<div class="item" onclick="go('fro')">
       <div class="avatar">${esc(sig(f.nome))}</div>
       <div class="info"><div class="name">${esc(f.nome)}</div><div class="meta">Avanzamento ${f.avanzamento}% · ${esc(f.dettaglio||"")}</div></div>
-      <span class="badge ${FB[f.stato][0]}">${FB[f.stato][1]}</span><span class="arr">›</span></div>`).join("");
+      <span class="badge ${FB[f.stato][0]}">${FB[f.stato][1]}</span><span class="arr">›</span></div>`).join("")
+      || '<div class="note" style="text-align:left;">Nessun fronte: aggiungine uno dalla sezione Fronti.</div>';
 
     const volFronte = (fid) => RIL.filter(r => r.fronteId === fid && r.stato === "elaborato" && r.volumeM3 != null)
                                   .reduce((s,r) => s + r.volumeM3, 0);

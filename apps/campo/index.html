@@ -135,7 +135,8 @@
     $("oggi-list").innerHTML = urgenti.map(a => `<div class="item" onclick="go('att')">
       <div class="avatar">${esc(sig(a.titolo))}</div>
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc(a.dettaglio||"")}</div></div>
-      <span class="badge ${AB[a.stato][0]}">${AB[a.stato][1]}</span><span class="arr">›</span></div>`).join("");
+      <span class="badge ${AB[a.stato][0]}">${AB[a.stato][1]}</span><span class="arr">›</span></div>`).join("")
+      || '<div class="note" style="text-align:left;">Nessuna attività in corso: la giornata è tranquilla.</div>';
 
     const ordAtt = { anomalia: 0, "in-corso": 1, pianificata: 2, conclusa: 3 };
     const attVis = ATT.filter(a => filtroAtt === "tutte" || a.stato === filtroAtt)
