@@ -98,7 +98,7 @@
 </script>
 
 <script type="module">
-  import { campoData, kpiFrom } from "./campo-data.js";
+  import { campoData, kpiFrom, parsePianoCsv } from "./campo-data.js";
   import { mountExit, esc } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const AB = { "in-corso": ["ok","In corso"], pianificata: ["warn","Pianificata"], anomalia: ["danger","Anomalia"], conclusa: ["ok","Conclusa"] };
@@ -238,11 +238,7 @@
   };
   $("piano-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const righe = (await file.text()).split(/\r?\n/).map(r => r.trim()).filter(Boolean);
-    PIANO = righe.filter(r => !/^foro;/i.test(r)).map(r => {
-      const [foro, x, fila, prof, prog, borr, rit] = r.split(";");
-      return { foro: +foro, x, fila, prof, prog: +prog, borr, rit, reale: null };
-    }).filter(p => p.foro > 0 && p.prog > 0);
+    PIANO = parsePianoCsv(await file.text());
     e.target.value = ""; pianoRender();
     if (PIANO.length) await db.aggiungi("pianocarico", { importato: new Date().toISOString().slice(0,10), fori: PIANO.length });
   };
