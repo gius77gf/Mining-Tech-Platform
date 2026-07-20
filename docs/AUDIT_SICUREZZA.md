@@ -152,6 +152,21 @@ elemento con esc(). Nessun vettore di breakout dagli attributi.
 Nessuna azione necessaria; da riverificare se in futuro un ID diventa
 inseribile dall'utente.
 
+### 13. XSS nel piano di carico importato da CSV (Campo, 20/07) — ✅ CORRETTO
+Trovato durante la revisione di sicurezza del ciclo. In
+`apps/campo/index.html` l'import CSV del piano di carico convertiva in
+numero solo `foro` e `prog`; i campi `x`, `prof`, `borr`, `rit`
+restavano stringhe grezze prese dal file e venivano interpolati
+nell'HTML della lista fori SENZA `esc()`. Un CSV confezionato ad arte
+(una cella con `<img onerror=...>` o `<script>`) poteva quindi eseguire
+codice nella sessione di chi importava il file — un rischio concreto in
+un prodotto multi-tenant dove i file possono arrivare da terzi. Corretto
+avvolgendo i quattro campi in `esc()` al momento del rendering.
+Verificato con Playwright: importando un CSV con payload `<img onerror>`
+e `<script>` nessun elemento viene iniettato e nessun codice eseguito.
+Da tenere presente per ogni futuro import da file: i campi non numerici
+vanno sempre trattati come testo libero (esc in HTML, csvCell in export).
+
 ## Prossime azioni in ordine
 1. (weekend, fondatore) Regole attuali del progetto esistente → repo.
 2. (weekend, fondatore) Conferma mitigazione ponte per le password +
