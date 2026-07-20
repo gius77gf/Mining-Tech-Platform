@@ -112,6 +112,29 @@ schede piccole: Maxam RioBlast/RIOSUITE → Orica ShotPlus → Maptek
 BlastLogic → altri → sintesi con tabella e raccomandazioni. Salvare in
 ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 
+## OLTRE LA ROADMAP — lavoro extra completato (20-21/07, PR #44-#79)
+Dopo il completamento delle fasi A-E, i cicli hanno proseguito per la
+regola di esaurimento. Sintesi per la revisione del weekend:
+- Iterazioni 2 e 3 su TUTTE le app: filtri a chip, ricerca live,
+  conferme sulle azioni delicate, validazioni con feedback, stati
+  vuoti, CRUD completo (creare/lavorare/esportare ogni entità).
+- Ponte Genesi↔Campo: piano di carico CSV → registro carica reale
+  foro per foro con scostamenti → consuntivo esportabile.
+- Genesi: flyrock inverso, curva KCO/Swebrec, regola di caricamento
+  dalla brillabilità, terreno virtuale sotto gli anelli flyrock.
+- Core: export CSV fori ricostruzione + "Invia alla volata" (prima
+  fila dai marker), meteo nascosto senza proxy, visualizzatore 3D
+  rinominato onesto.
+- Test 19 → 49 (26 regole + 13 SDK + 10 functions), TUTTI verdi anche
+  in CI; trovato e corretto un bug che avrebbe fatto crashare le
+  Cloud Functions in produzione (FieldValue undefined).
+- Manutenzioni a ore motore, storico misure sensori, rinnovo
+  scadenze, data di incasso + report mensile, esiti gare, dismissione
+  mezzi, multi-org reale nel profilo con test switchOrg.
+- Ricerca competitor COMPLETA (7 schede su ecosistema-vault, incl.
+  Italia e prezzi); vault Obsidian "Prossimi passi" allineato.
+Dettaglio per unità: vault/checkpoints/ dal 2026-07-20_1500 in poi.
+
 ## In attesa del fondatore (weekend 25-26/07, promemoria armato sabato 09:00)
 1. Creazione progetto Firebase (GRATUITA, ~10 min, guida:
    apps/deepwork-id/GUIDA_FIREBASE.md) → poi config reale nello SDK,
