@@ -33,31 +33,32 @@
   </div>
 
   <div class="sec">Priorità</div>
-  <div class="item"><div class="avatar">FT</div><div class="info"><div class="name">Fattura 2026/031 — Edilcave Srl</div><div class="meta">€18.300 · scaduta da 12 giorni</div></div><span class="badge danger">Insoluta</span><span class="arr">›</span></div>
-  <div class="item"><div class="avatar">GA</div><div class="info"><div class="name">Gara Comune di Ragusa</div><div class="meta">Fornitura inerti · scade 28/07</div></div><span class="badge warn">9 gg</span><span class="arr">›</span></div>
-  <div class="item"><div class="avatar">FT</div><div class="info"><div class="name">Fattura 2026/034 — Stradesud</div><div class="meta">€9.750 · scade 25/07</div></div><span class="badge warn">6 gg</span><span class="arr">›</span></div>
+  <div id="prio-list"></div>
 </div>
 
 <div class="page" id="page-fat">
   <div class="sec">Fatture attive</div>
-  <div class="item"><div class="info"><div class="name">2026/031 — Edilcave Srl</div><div class="meta">€18.300 · emessa 07/06</div></div><span class="badge danger">Insoluta</span></div>
-  <div class="item"><div class="info"><div class="name">2026/034 — Stradesud</div><div class="meta">€9.750 · scade 25/07</div></div><span class="badge warn">In scadenza</span></div>
-  <div class="item"><div class="info"><div class="name">2026/035 — Comune di Modica</div><div class="meta">€8.100 · scade 10/08</div></div><span class="badge ok">Regolare</span></div>
-  <div class="item"><div class="info"><div class="name">2026/036 — Calcestruzzi RG</div><div class="meta">€5.900 · scade 18/08</div></div><span class="badge ok">Regolare</span></div>
+  <div id="fat-list"></div>
+  <div class="sec">Nuova fattura</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <input class="dw-input" id="ft-num" placeholder="Numero (es. 2026/037)" style="flex:1;min-width:110px;">
+    <input class="dw-input" id="ft-cli" placeholder="Cliente" style="flex:2;min-width:140px;">
+    <input class="dw-input" id="ft-imp" type="number" placeholder="Importo €" style="flex:1;min-width:100px;">
+    <input class="dw-input" id="ft-scad" type="date" style="flex:1;min-width:130px;">
+    <button class="dw-btn" id="btn-ft" style="width:auto;">Emetti</button>
+  </div>
+  <div class="note" style="text-align:left;">Tocca una fattura per segnarla incassata.</div>
 </div>
 
 <div class="page" id="page-gar">
   <div class="sec">Gare e appalti</div>
-  <div class="item"><div class="info"><div class="name">Comune di Ragusa — inerti 2026-27</div><div class="meta">Base €120k · scade 28/07</div></div><span class="badge warn">9 gg</span></div>
-  <div class="item"><div class="info"><div class="name">ANAS — manutenzione SS115</div><div class="meta">Base €340k · scade 12/08</div></div><span class="badge ok">24 gg</span></div>
-  <div class="item"><div class="info"><div class="name">Consorzio bonifica — massi scogliera</div><div class="meta">Aggiudicata · avvio 09/2026</div></div><span class="badge ok">Vinta</span></div>
-</div>
+  <div id="gar-list"></div>
+  </div>
 
 <div class="page" id="page-rep">
   <div class="sec">Report rapidi</div>
-  <div class="item"><div class="info"><div class="name">Fatturato mese</div><div class="meta">€96.400 · +11% su giugno</div></div><span class="badge ok">+11%</span></div>
-  <div class="item"><div class="info"><div class="name">Margine operativo</div><div class="meta">18% · obiettivo 20%</div></div><span class="badge warn">-2pt</span></div>
-  <div class="item"><div class="info"><div class="name">DSO (giorni incasso medio)</div><div class="meta">54 giorni · in peggioramento</div></div><span class="badge warn">54gg</span></div>
+  <div id="rep-list"></div>
+  <div class="note" id="mode-note" style="text-align:left;"></div>
 </div>
 
 <div class="nav">
@@ -78,17 +79,77 @@
 </script>
 
 <script type="module">
-  // Aggancio a Deepwork ID: se il backend non è configurato la pagina
-  // resta navigabile come mockup (modalità tour implicita).
-  try {
-    const { DeepworkID } = await import("../../shared/deepwork-id-client/index.js");
-    const id = await DeepworkID.init({ appId: "conti" });
-    if (id.authState() === "tour" || id.authState() === "anonymous") {
-      document.getElementById("tour-banner").style.display = "block";
-    }
-  } catch (e) {
-    document.getElementById("tour-banner").style.display = "block";
+  import { contiData, giorni, kpiFrom } from "./conti-data.js";
+  const $ = (id) => document.getElementById(id);
+  const eur = (v) => "€" + (+v||0).toLocaleString("it-IT");
+  const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
+  const GB = { aperta: ["warn","Aperta"], vinta: ["ok","Vinta"], persa: ["danger","Persa"] };
+
+  const db = await contiData();
+  if (db.mode !== "live") $("tour-banner").style.display = "block";
+  $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
+
+  let FAT=[], GAR=[];
+  function fatBadge(f){
+    if (f.incassata) return ["ok","Incassata"];
+    const g = giorni(f.scadenza);
+    if (g < 0) return ["danger","Insoluta"];
+    if (g <= 10) return ["warn", g + " gg"];
+    return ["ok","Regolare"];
   }
+  async function refresh(){
+    [FAT,GAR] = await Promise.all([db.fatture(), db.gare()]);
+    const k = kpiFrom(FAT,GAR);
+    const kn = document.querySelectorAll(".kpis .kpi .n");
+    if (kn[0]) kn[0].textContent = "€" + Math.round(k.daIncassare/1000) + "k";
+    if (kn[1]) kn[1].textContent = k.inScadenza;
+    if (kn[2]) kn[2].textContent = k.gareAperte;
+    if (kn[3]) kn[3].textContent = k.dso + "gg";
+    const l3 = document.querySelectorAll(".kpis .kpi .l")[3]; if (l3) l3.textContent = "DSO medio";
+
+    const prio = [
+      ...FAT.filter(f => !f.incassata && giorni(f.scadenza) < 10)
+            .map(f => ({ t: "Fattura " + f.numero + " — " + f.cliente, d: eur(f.importo) + " · scad. " + fmtD(f.scadenza), b: fatBadge(f) })),
+      ...GAR.filter(g => g.stato === "aperta" && giorni(g.scadenza) <= 15)
+            .map(g => ({ t: g.titolo, d: "base " + eur(g.base) + " · scade " + fmtD(g.scadenza), b: ["warn", giorni(g.scadenza) + " gg"] })),
+    ].slice(0, 4);
+    $("prio-list").innerHTML = prio.map(p => `<div class="item">
+      <div class="info"><div class="name">${p.t}</div><div class="meta">${p.d}</div></div>
+      <span class="badge ${p.b[0]}">${p.b[1]}</span></div>`).join("") || '<div class="note">Nessuna priorità: incassi e gare sotto controllo.</div>';
+
+    $("fat-list").innerHTML = FAT.slice().sort((a,b)=>a.scadenza<b.scadenza?-1:1).map(f => { const b = fatBadge(f);
+      return `<div class="item" data-fat="${f.id}" ${!f.incassata?'style="cursor:pointer" title="Tocca per segnare incassata"':''}>
+      <div class="info"><div class="name">${f.numero} — ${f.cliente}</div><div class="meta">${eur(f.importo)} · emessa ${fmtD(f.emessa)} · scad. ${fmtD(f.scadenza)}</div></div>
+      <span class="badge ${b[0]}">${b[1]}</span></div>`; }).join("");
+
+    $("gar-list").innerHTML = GAR.map(g => `<div class="item">
+      <div class="info"><div class="name">${g.titolo}</div><div class="meta">base ${eur(g.base)} · ${g.stato==="aperta" ? "scade " + fmtD(g.scadenza) : GB[g.stato][1]}</div></div>
+      <span class="badge ${GB[g.stato][0]}">${g.stato==="aperta" ? giorni(g.scadenza)+" gg" : GB[g.stato][1]}</span></div>`).join("");
+
+    const inc = FAT.filter(f => f.incassata).reduce((t,f)=>t+(+f.importo||0),0);
+    $("rep-list").innerHTML = [
+      ["Incassato (totale registrato)", eur(inc), "ok"],
+      ["Da incassare", eur(k.daIncassare), k.inScadenza ? "warn" : "ok"],
+      ["DSO — giorni medi di attesa incasso", k.dso + " giorni", k.dso > 45 ? "warn" : "ok"],
+      ["Gare aperte", k.gareAperte + " (" + eur(GAR.filter(g=>g.stato==="aperta").reduce((t,g)=>t+(+g.base||0),0)) + " a base d'asta)", "ok"],
+    ].map(r => `<div class="item"><div class="info"><div class="name">${r[0]}</div></div><span class="badge ${r[2]}">${r[1]}</span></div>`).join("");
+  }
+
+  document.addEventListener("click", async (e) => {
+    const it = e.target.closest && e.target.closest("[data-fat]");
+    if (it) { const f = FAT.find(x => x.id === it.getAttribute("data-fat"));
+      if (f && !f.incassata) { await db.aggiorna("fatture", f.id, { incassata: true }); await refresh(); } }
+  });
+  $("btn-ft").onclick = async () => {
+    const numero = $("ft-num").value.trim(), cliente = $("ft-cli").value.trim(),
+          importo = +$("ft-imp").value, scadenza = $("ft-scad").value;
+    if (!numero || !cliente || !importo || !scadenza) return;
+    await db.aggiungi("fatture", { numero, cliente, importo, scadenza,
+      emessa: new Date().toISOString().slice(0,10), incassata: false });
+    ["ft-num","ft-cli","ft-imp","ft-scad"].forEach(i => $(i).value = "");
+    await refresh();
+  };
+  await refresh();
 </script>
 </body>
 </html>

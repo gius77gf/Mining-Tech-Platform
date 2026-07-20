@@ -61,12 +61,13 @@ C2. Campo — stato: fatto prima iterazione (20/07: data layer, KPI,
     ci sarà lo storage reale)
 C3. Flotta — stato: fatto prima iterazione (20/07: data layer, KPI
     calcolati, registro ore, scadenzario con urgenze dalle date)
-C4. Conti: fatture/gare + scadenzario incassi + KPI (DSO, margine)
-    calcolati — taglia L — stato: da fare
-C5. Sentinella: monitoraggi/adempimenti/registri + registrazione
-    superamenti con nota — taglia L — stato: da fare
-C6. Terra: fronti/rilievi/piano + calcolo volumi da rilievi +
-    avanzamento piano — taglia L — stato: da fare
+C4. Conti — stato: fatto prima iterazione (20/07: KPI finanziari
+    calcolati, incasso al tocco, nuova fattura, report)
+C5. Sentinella — stato: fatto prima iterazione (20/07: stati da
+    soglie, urgenze da date, registrazione misure)
+C6. Terra — stato: fatto prima iterazione (20/07: data layer, KPI
+    calcolati dai rilievi — volumi mese, avanzamento = estratto/
+    pianificato —, fronte sospendi/riattiva, form nuovo rilievo)
 
 ═══════════════════════════════════════════════
 ## FASE D — Deepwork ID avanzato (dopo B, in parallelo a C)
@@ -129,7 +130,7 @@ ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-20_0555_c3-flotta.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-20_0645_c5-sentinella.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
