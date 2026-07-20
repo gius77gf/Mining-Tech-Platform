@@ -1080,7 +1080,7 @@ function renderHome(){
   const scad=DB.promemoria.filter(p=>(p.scaduto||daysBetween(today(),p.data)<0)&&!p.letto);
   if(scad.length>0&&DB.settings.notRem){
     $('home-notif').style.display='block';
-    nl.innerHTML=scad.slice(0,3).map(p=>`<div class="sitem warn"><div class="av av-cv">⏰</div><div class="sinfo"><div class="sname">${p.titolo}</div><div class="ssub">Scaduto il ${fmt(p.data)}</div></div></div>`).join('');
+    nl.innerHTML=scad.slice(0,3).map(p=>`<div class="sitem warn"><div class="av av-cv">⏰</div><div class="sinfo"><div class="sname">${escHtml(p.titolo)}</div><div class="ssub">Scaduto il ${fmt(p.data)}</div></div></div>`).join('');
   }else{$('home-notif').style.display='none';}
   const ruolo=state.user.ruolo;
   const isFochino=ruolo==='fochino';
@@ -1330,7 +1330,7 @@ function initRapp(){
   $('r-cava').innerHTML=caveDisp.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
   $('r-mezzo').innerHTML='<option value="">— nessuno —</option>'+DB.mezziLav.map(m=>`<option value="${m.id}">${m.modello} (${m.targa})</option>`).join('');
   // Personale: sezione nascosta di default
-  $('r-personale').innerHTML=DB.personale.map(p=>`<span class="chip" data-pid="${p.id}" onclick="togglePers(this)">${p.nome} ${p.cognome}</span>`).join('');
+  $('r-personale').innerHTML=DB.personale.map(p=>`<span class="chip" data-pid="${p.id}" onclick="togglePers(this)">${escHtml(p.nome)} ${escHtml(p.cognome)}</span>`).join('');
   $('r-pers-section').style.display='none';
   $('btn-toggle-pers').classList.remove('active');
   $('btn-toggle-pers').innerHTML='👥 Aggiungi personale di supporto';
@@ -2036,14 +2036,14 @@ function applicaFiltriVolate(){
     const totFori=all.reduce((s,r)=>s+(r.fori||0),0);
     $('vol-summary').innerHTML=all.length?`<div class="vol-sum"><b>${all.length}</b> volate · <b>${totFori}</b> fori · <b>${totKg.toFixed(1)}</b> kg</div>`:'';
     if(all.length===0){$('vol-list').innerHTML='<div class="empty-state"><div class="empty-icon">💥</div><div class="empty-title">Nessuna volata</div><div class="empty-sub">Non ci sono ancora rapportini fochino</div></div>';return;}
-    $('vol-list').innerHTML=all.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);return`<div class="sitem" onclick="apriRappFocDett('${r.id}')"><div class="av" style="background:linear-gradient(135deg,#ef5350,#c62828);color:#fff;">💥</div><div class="sinfo"><div class="sname">${c?c.nome:'—'} · ${fmt(r.data)}</div><div class="ssub">${u?u.nome+' '+u.cognome:'—'} · ${r.fori||0} fori · ${(r.tot_kg||0).toFixed(1)} kg</div></div><div class="sarr">›</div></div>`;}).join('');
+    $('vol-list').innerHTML=all.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);return`<div class="sitem" onclick="apriRappFocDett('${r.id}')"><div class="av" style="background:linear-gradient(135deg,#ef5350,#c62828);color:#fff;">💥</div><div class="sinfo"><div class="sname">${c?escHtml(c.nome):'—'} · ${fmt(r.data)}</div><div class="ssub">${u?escHtml(u.nome+' '+u.cognome):'—'} · ${r.fori||0} fori · ${(r.tot_kg||0).toFixed(1)} kg</div></div><div class="sarr">›</div></div>`;}).join('');
     return;
   }
   const totMc=all.reduce((s,r)=>s+(r.mc||0),0);
   const totFori=all.reduce((s,r)=>s+(r.fori||0),0);
   $('vol-summary').innerHTML=all.length?`<div class="vol-sum"><b>${all.length}</b> rapportini · <b>${totFori}</b> fori · <b>${totMc.toFixed(1)}</b> mc</div>`:'';
   if(all.length===0){$('vol-list').innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Nessun rapportino</div><div class="empty-sub">Nessun rapportino di perforazione trovato</div></div>';return;}
-  $('vol-list').innerHTML=all.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);return`<div class="sitem" onclick="apriRapport('${r.id}')"><div class="av av-cv">${c?c.nome.substr(0,2).toUpperCase():'—'}</div><div class="sinfo"><div class="sname">${c?c.nome:'—'} · ${fmt(r.data)}</div><div class="ssub">${u?u.nome+' '+u.cognome:'—'} · ${r.fori||0} fori · ${(r.mc||0).toFixed(1)} mc</div></div><div class="sarr">›</div></div>`;}).join('');
+  $('vol-list').innerHTML=all.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);return`<div class="sitem" onclick="apriRapport('${r.id}')"><div class="av av-cv">${c?escHtml(c.nome.substr(0,2).toUpperCase()):'—'}</div><div class="sinfo"><div class="sname">${c?escHtml(c.nome):'—'} · ${fmt(r.data)}</div><div class="ssub">${u?escHtml(u.nome+' '+u.cognome):'—'} · ${r.fori||0} fori · ${(r.mc||0).toFixed(1)} mc</div></div><div class="sarr">›</div></div>`;}).join('');
 }
 // Dettaglio rapportino fochino
 function apriRappFocDett(id){
@@ -2505,7 +2505,7 @@ function openLubrForm(){openModal('Nuovo lubrificante',`<label class="fl">Tipo</
 function renderPersonale(){
   $('btn-add-pers').style.display=can('addPers')?'flex':'none';
   if(DB.personale.length===0){$('pers-list').innerHTML='<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">Nessun personale</div></div>';return;}
-  $('pers-list').innerHTML=DB.personale.map(p=>`<div class="sitem" onclick="apriPersDet('${p.id}')"><div class="photo-avatar-sm">${p.foto?`<img src="${p.foto}">`:`<span style="font-size:11px;font-weight:800;color:var(--amber);">${initials(p.nome,p.cognome)}</span>`}</div><div class="sinfo"><div class="sname">${p.nome} ${p.cognome}</div><div class="ssub">${p.ruolo||'—'}${p.tel?' · '+p.tel:''}</div></div><div class="sarr">›</div></div>`).join('');
+  $('pers-list').innerHTML=DB.personale.map(p=>`<div class="sitem" onclick="apriPersDet('${p.id}')"><div class="photo-avatar-sm">${p.foto?`<img src="${encodeURI(p.foto)}">`:`<span style="font-size:11px;font-weight:800;color:var(--amber);">${escHtml(initials(p.nome,p.cognome))}</span>`}</div><div class="sinfo"><div class="sname">${escHtml(p.nome)} ${escHtml(p.cognome)}</div><div class="ssub">${escHtml(p.ruolo||'—')}${p.tel?' · '+escHtml(p.tel):''}</div></div><div class="sarr">›</div></div>`).join('');
 }
 function apriPersDet(id){
   const p=DB.personale.find(x=>x.id===id);if(!p)return;const canEdit=can('editPers');
@@ -2553,7 +2553,7 @@ async function salvaPers(){
 // ══════════ UTENTI ══════════
 function renderUtenti(){
   if(!can('admin')){$('users-list').innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><div class="empty-title">Accesso riservato</div></div>';return;}
-  $('users-list').innerHTML=DB.users.map(u=>{const rc={admin:'av-am',ufficio:'av-uf',fochino:'av-fc',operatore:'av-op'}[u.ruolo]||'av-op';const av=u.foto?`<div class="photo-avatar-sm"><img src="${u.foto}"></div>`:`<div class="av ${rc}">${u.nome[0]}${u.cognome[0]}</div>`;return`<div class="sitem ${!u.attivo?'inactive':''}" onclick="openUserEdit('${u.id}')">${av}<div class="sinfo"><div class="sname">${u.nome} ${u.cognome} ${!u.attivo?'<span style="background:var(--danger);color:#fff;padding:1px 5px;font-size:9px;margin-left:4px;">DISATTIVO</span>':''}</div><div class="ssub">${u.user} · ${u.ruolo}${u.tel?' · '+u.tel:''}</div></div><div class="sarr">›</div></div>`;}).join('');
+  $('users-list').innerHTML=DB.users.map(u=>{const rc={admin:'av-am',ufficio:'av-uf',fochino:'av-fc',operatore:'av-op'}[u.ruolo]||'av-op';const av=u.foto?`<div class="photo-avatar-sm"><img src="${encodeURI(u.foto)}"></div>`:`<div class="av ${rc}">${escHtml(u.nome[0])}${escHtml(u.cognome[0])}</div>`;return`<div class="sitem ${!u.attivo?'inactive':''}" onclick="openUserEdit('${u.id}')">${av}<div class="sinfo"><div class="sname">${escHtml(u.nome)} ${escHtml(u.cognome)} ${!u.attivo?'<span style="background:var(--danger);color:#fff;padding:1px 5px;font-size:9px;margin-left:4px;">DISATTIVO</span>':''}</div><div class="ssub">${escHtml(u.user)} · ${escHtml(u.ruolo)}${u.tel?' · '+escHtml(u.tel):''}</div></div><div class="sarr">›</div></div>`;}).join('');
 }
 function uploadUserFoto(id){uploadPhoto('u','f',id,async data=>{await fbUpdate('users',id,{foto:data});if(state.user.id===id)state.user.foto=data;toast('Foto aggiornata','success');openUserEdit(id);renderUtenti();});}
 function openUserForm(){
