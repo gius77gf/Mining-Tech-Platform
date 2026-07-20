@@ -82,8 +82,9 @@ D2. Logout coerente + griglia da entitlement — stato: fatto (20/07:
 D3. Verifica email + recupero password — stato: fatto (20/07: SDK
     sendEmailVerification post-registrazione, resend, reset password
     dal login; collaudo online dopo il setup Firebase del weekend)
-D4. Pannello amministrazione organizzazione (gestione membri/ruoli da
-    UI, usa le callable esistenti) — taglia M — stato: da fare
+D4. Pannello amministrazione org — stato: fatto (20/07: admin.html,
+    callable updateMemberRole/removeMember/revokeInvite con guardrail
+    ultimo-owner, rules membri solo-lettura dal client, test 19→26)
 D5. Test SDK con emulatore Auth+Firestore (flusso login→org→dati)
     — taglia M — stato: da fare
 
@@ -135,7 +136,7 @@ ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-20_0800_d3-verifica-reset.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-20_0830_d4-pannello-admin.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
