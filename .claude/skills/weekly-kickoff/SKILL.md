@@ -119,11 +119,24 @@ Leggi vault/ROADMAP_SETTIMANA.md e il checkpoint più recente in
 vault/checkpoints/ (il file con il timestamp più alto nel nome) per capire
 lo stato del lavoro e cosa fare adesso.
 
-REGOLA FONDAMENTALE DEL FONDATORE: OGNI CICLO LAVORA FINO AD ESAURIMENTO
-DEI CREDITI DISPONIBILI, non una sola unità. Completa un'unità (commit +
-checkpoint + push), poi prosegui SUBITO con la successiva nell'ordine
-della roadmap, senza fermarti finché i crediti della finestra non si
-esauriscono o non resta lavoro eseguibile senza il fondatore.
+REGOLA FONDAMENTALE DEL FONDATORE (ribadita due volte, 20/07): OGNI CICLO
+LAVORA FINO AD ESAURIMENTO DEI CREDITI, SENZA ECCEZIONI. Completata
+un'unità (commit + checkpoint + push), prosegui IMMEDIATAMENTE con la
+successiva. È VIETATO "chiudere il blocco", dichiarare la giornata
+conclusa, fermarsi "su un punto stabile" per scelta o terminare con un
+riepilogo di bilancio finché i crediti non sono davvero esauriti: l'UNICO
+stop legittimo è l'errore tecnico di limite/credito dalla piattaforma. Il
+"punto stabile" serve solo a rendere sicura l'interruzione FORZATA, mai a
+giustificare una fermata volontaria.
+
+SE LA ROADMAP SEMBRA FINITA, NON È FINITA. In ordine: 1) seconde
+iterazioni delle app verticali (CRUD mancanti, filtri, validazioni,
+stati vuoti, UX con screenshot); 2) rimandati del censimento
+(docs/CENSIMENTO_FEATURE.md) e raccomandazioni della ricerca competitor;
+3) registro progettato-vs-reale foro per foro (Genesi↔Campo); 4) test
+aggiuntivi sulle suite emulatore; 5) revisione qualità/sicurezza di ciò
+che è su main; 6) approfondimenti "secondo passaggio" delle schede
+ricerca. Poi si ricomincia dal punto 1. Il lavoro non finisce MAI da solo.
 
 Lavora a piccole unità: scegli il prossimo task non completato dalla
 roadmap, implementalo, esegui commit frequenti e atomici con messaggi
@@ -141,8 +154,9 @@ Non pushare MAI su main senza autorizzazione esplicita dell'utente in
 questa conversazione: lavora e pusha solo sul branch di sessione
 designato.
 
-Se la roadmap non ha più task aperti, non inventarne di nuovi: crea un
-checkpoint che segnala la roadmap esaurita e fermati.
+Se la roadmap non ha più task aperti, NON fermarti: prosegui con la lista
+"SE LA ROADMAP SEMBRA FINITA" qui sopra, sempre a piccole unità con
+commit e checkpoint, fino all'esaurimento dei crediti.
 ```
 
 ## 6. Commit e push
