@@ -158,6 +158,12 @@
   $('btn-google').onclick   = guard(async () => { await id.loginWithGoogle(); afterAuth(); });
   $('btn-register').onclick = guard(async () => { await id.registerWithEmail($('reg-email').value.trim(), $('reg-pass').value); afterAuth(); });
   $('btn-tour').onclick     = guard(async () => { await id.loginTour(); afterAuth(); });
+  // Invio da tastiera nei campi: accedere/registrarsi senza toccare il pulsante
+  const onEnter = (inputId, btnId) => $(inputId).addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); $(btnId).click(); }
+  });
+  onEnter('login-email', 'btn-login'); onEnter('login-pass', 'btn-login');
+  onEnter('reg-email', 'btn-register'); onEnter('reg-pass', 'btn-register');
   $('btn-reset').onclick    = guard(async () => {
     const email = $('login-email').value.trim();
     if (!email) { msg('Scrivi prima la tua email nel campo sopra, poi tocca di nuovo "Password dimenticata?".'); return; }
