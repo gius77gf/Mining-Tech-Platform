@@ -84,10 +84,19 @@ ricerca globale (cave/clienti/mezzi/personale), link cliente
 nell'anteprima cava, chip operatori, promemoria. Ogni nome/ragione
 sociale/modello/targa/ruolo passa ora da escHtml. Verificato: escHtml
 neutralizza `< > " ' &`; il core si carica senza errori.
-RESTA DA FARE (prossime unità, stessa cautela): attributi `value="…"`
-dei form di modifica (contesto-attributo), `<option>` di alcune select,
-e i campi NOTE lunghi nelle anteprime modali. Rischio residuo minore
-(richiedono l'apertura del proprio modale di modifica), ma da chiudere.
+Terza passata 21/07 (residuo chiuso): bonificati anche gli attributi
+`value="…"` dei form di modifica (30 campi di testo libero: nome,
+ragsoc, indirizzo, contatti, marca/modello/targa, ecc.), il testo
+visibile di ~19 `<option>` di select, i campi NOTE nelle anteprime, le
+label checkbox, la lista mezzi di strada, la lista chat (nomi +
+anteprima ULTIMO MESSAGGIO, contenuto cross-utente) e il dettaglio
+cliente. I titoli dei modali usano textContent (già sicuri). Scansione
+finale: 0 residui nelle classi display (sname/ssub/preview-val/chip)
+per i campi di testo tracciati; il core è passato da ~17 a ~140
+chiamate escHtml. Verificato: sintassi OK sui 3 script inline, core
+carica senza errori in Playwright. Sweep XSS del core considerato
+sostanzialmente COMPLETO (eventuali spot rari residui = manutenzione
+ordinaria).
 
 ### 9. Iniezione CSV negli export/import (21/07) — CHIUSO
 Un valore inserito da un membro dell'organizzazione che inizia con
