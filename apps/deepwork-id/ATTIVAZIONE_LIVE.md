@@ -35,6 +35,16 @@ Verifica: nella console → Firestore → Regole compaiono quelle del repo
 NB: le regole sono l'UNICO confine multi-tenant. Non lasciare mai il DB
 in "modalità test" aperta.
 
+**Indici**: per il percorso GRATUITO (solo bootstrap, niente Functions)
+NON servono indici compositi: le app leggono con query semplici. Quando
+in futuro attiverai il Blaze e le Cloud Functions, alcune query
+(collectionGroup `members` per uid+status in rebuildClaims; inviti per
+email+status; owner attivi per role+status) potrebbero richiedere un
+indice: è già pronto `firestore.indexes.json` (con l'indice
+collectionGroup members). Deploy allora con
+`firebase deploy --only firestore` (rules + indici). Se la console
+segnala un indice mancante con un link "crea indice", basta un clic.
+
 ## 3. Il fondatore si registra una volta
 Nell'app Deepwork ID (login → Registrati) con gius77.gf@gmail.com, così
 esiste in Authentication. Senza questo, il passo 4 non trova l'uid.
