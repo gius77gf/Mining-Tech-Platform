@@ -137,6 +137,7 @@
 
     $("mon-list").innerHTML = MON.map(m => ({ m, st: statoMisura(m) }))
       .filter(x => filtroMon === "tutti" || x.st.cls === filtroMon)
+      .sort((a, b) => b.st.ratio - a.st.ratio)
       .map(({m, st}) => { const ult = (m.letture || []).slice(-3).map(l => l.valore).join(" → ");
       return `<div class="item"><div class="info"><div class="name">${m.nome}</div>
       <div class="meta">${m.valore} ${m.unita} / soglia ${m.soglia} (${Math.round(st.ratio*100)}%)${ult ? " · ultime: " + ult : ""}${m.nota ? " · " + m.nota : ""}</div></div>

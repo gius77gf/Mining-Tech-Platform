@@ -151,7 +151,9 @@
     document.querySelectorAll("#fat-filtri [data-filtro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-filtro") === filtroFat ? "var(--app-accent)" : "");
 
-    $("gar-list").innerHTML = GAR.map(g => `<div class="item" style="cursor:default;">
+    const garOrd = GAR.slice().sort((a, b) => (a.stato === "aperta" ? 0 : 1) - (b.stato === "aperta" ? 0 : 1)
+      || (a.scadenza || "9999").localeCompare(b.scadenza || "9999"));
+    $("gar-list").innerHTML = garOrd.map(g => `<div class="item" style="cursor:default;">
       <div class="info"><div class="name">${g.titolo}</div><div class="meta">base ${eur(g.base)} · ${g.stato==="aperta" ? "scade " + fmtD(g.scadenza) : GB[g.stato][1]}</div></div>
       ${g.stato==="aperta" ? `<button class="dw-btn secondary" data-gara-esito="vinta" data-gara="${g.id}" style="width:auto;min-height:32px;padding:2px 10px;font-size:11px;">✓ Vinta</button>
       <button class="dw-btn secondary" data-gara-esito="persa" data-gara="${g.id}" style="width:auto;min-height:32px;padding:2px 10px;font-size:11px;border-color:var(--danger);color:var(--danger);">✗ Persa</button>` : ""}
