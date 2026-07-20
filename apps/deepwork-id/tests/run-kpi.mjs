@@ -122,6 +122,14 @@ test("kpiFrom: attivi, superamenti, adempimenti entro 30gg", () => {
   const ade = [{ scadenza: plusDays(10) }, { scadenza: FUT }];
   eq(sentinella.kpiFrom(mon, ade), { attivi: 2, superamenti: 1, adempimenti30: 1 }, "kpi sentinella");
 });
+test("kpiFrom: un adempimento senza scadenza non viene conteggiato (né crash)", () => {
+  // dato incompleto: niente NaN, l'adempimento senza data semplicemente
+  // non entra nel conteggio "entro 30 giorni"
+  const ade = [{ titolo: "senza data" }, { scadenza: plusDays(5) }];
+  const k = sentinella.kpiFrom([], ade);
+  eq(Number.isFinite(k.adempimenti30), true, "adempimenti30 è un numero finito");
+  eq(k.adempimenti30, 1, "conta solo quello con la data");
+});
 
 console.log("\n— Terra: volumi e avanzamento —");
 test("fmtM3 formatta k/M e gestisce il vuoto", () => {
