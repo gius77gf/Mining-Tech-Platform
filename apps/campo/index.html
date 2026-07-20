@@ -61,6 +61,15 @@
     <button class="dw-btn" id="btn-add-rap" style="width:auto;">Crea bozza</button>
   </div>
   <div class="note" id="mode-note" style="text-align:left;"></div>
+
+  <div class="sec">Piano di carico (da Genesi)</div>
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <button class="dw-btn secondary" id="btn-piano" style="width:auto;">Importa piano (CSV)</button>
+    <input type="file" id="piano-file" accept=".csv,text/csv" style="display:none;">
+    <span class="dw-muted" style="font-size:12px;">file esportato dalla Scheda volata di Genesi</span>
+  </div>
+  <div id="piano-riep" class="note" style="text-align:left;"></div>
+  <div id="piano-list"></div>
 </div>
 
 <div class="nav">
@@ -154,6 +163,49 @@
     $("new-rap-titolo").value = ""; await refresh();
   };
   await refresh();
+
+  // ── Registro progettato-vs-reale (ponte da Genesi) ──
+  // Il fochino importa il piano di carico CSV e registra la carica REALE
+  // per foro; lo scostamento è calcolato e colorato (≤10% ok, ≤25% warn).
+  let PIANO = [];
+  const scarto = (p) => p.reale == null ? null : Math.abs(p.reale - p.prog) / (p.prog || 1);
+  const scartoBadge = (p) => { const s = scarto(p);
+    if (s == null) return ["warn", "da registrare"];
+    if (s <= 0.10) return ["ok", p.reale + " kg"];
+    if (s <= 0.25) return ["warn", p.reale + " kg (" + Math.round(s*100) + "%)"];
+    return ["danger", p.reale + " kg (" + Math.round(s*100) + "%)"]; };
+  function pianoRender(){
+    if (!PIANO.length) { $("piano-list").innerHTML = ""; $("piano-riep").textContent = "Nessun piano importato."; return; }
+    const reg = PIANO.filter(p => p.reale != null);
+    const totP = PIANO.reduce((t,p)=>t+p.prog,0), totR = reg.reduce((t,p)=>t+p.reale,0) + PIANO.filter(p=>p.reale==null).reduce((t,p)=>t+p.prog,0);
+    $("piano-riep").textContent = "Fori " + reg.length + "/" + PIANO.length + " registrati · progettato " + totP + " kg · stimato reale " + Math.round(totR) + " kg (" + (totR>=totP?"+":"") + Math.round((totR-totP)/totP*100) + "%). Tocca un foro per registrare la carica reale.";
+    $("piano-list").innerHTML = PIANO.map(p => { const b = scartoBadge(p);
+      return `<div class="item" data-foro="${p.foro}" style="cursor:pointer" title="Registra carica reale">
+      <div class="avatar">${p.foro}</div>
+      <div class="info"><div class="name">Foro ${p.foro} · prog. ${p.prog} kg</div><div class="meta">x ${p.x} m · prof. ${p.prof} m · borr. ${p.borr} m · rit. ${p.rit} ms</div></div>
+      <span class="badge ${b[0]}">${b[1]}</span></div>`; }).join("");
+  }
+  $("btn-piano").onclick = () => $("piano-file").click();
+  $("piano-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const righe = (await file.text()).split(/\r?\n/).map(r => r.trim()).filter(Boolean);
+    PIANO = righe.filter(r => !/^foro;/i.test(r)).map(r => {
+      const [foro, x, fila, prof, prog, borr, rit] = r.split(";");
+      return { foro: +foro, x, fila, prof, prog: +prog, borr, rit, reale: null };
+    }).filter(p => p.foro > 0 && p.prog > 0);
+    e.target.value = ""; pianoRender();
+    if (PIANO.length) await db.aggiungi("pianocarico", { importato: new Date().toISOString().slice(0,10), fori: PIANO.length });
+  };
+  document.addEventListener("click", async (e) => {
+    const it = e.target.closest && e.target.closest("[data-foro]");
+    if (!it) return;
+    const p = PIANO.find(x => x.foro === +it.getAttribute("data-foro")); if (!p) return;
+    const v = prompt("Carica REALE caricata nel foro " + p.foro + " (progettata " + p.prog + " kg):", p.reale != null ? p.reale : p.prog);
+    if (v == null) return;
+    const kg = parseFloat(String(v).replace(",", "."));
+    if (!(kg >= 0)) return;
+    p.reale = kg; pianoRender();
+  });
 </script>
 </body>
 </html>
