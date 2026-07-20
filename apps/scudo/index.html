@@ -175,7 +175,7 @@
         <div class="info"><div class="name">${esc(l.nome)}</div><div class="meta">${esc(l.ruolo || "—")}${prob.length ? " · " + esc(prob[0].descrizione) : ""}</div></div>
         <span class="badge ${B[st][0]}">${B[st][1]}</span>
         <span class="arr" style="cursor:pointer" title="Rimuovi" data-del-lav="${l.id}">✕</span></div>`;
-    }).join("") || '<div class="note" style="text-align:left;">' + (q ? "Nessun lavoratore corrisponde a «" + q + "»." : "Nessun lavoratore: aggiungine uno qui sotto o importa il CSV.") + "</div>";
+    }).join("") || '<div class="note" style="text-align:left;">' + (q ? "Nessun lavoratore corrisponde a «" + esc(q) + "»." : "Nessun lavoratore: aggiungine uno qui sotto o importa il CSV.") + "</div>";
 
     const scaVis = SCA.filter(s => filtroScad === "tutte" || statoScadenza(s.dataScadenza) === filtroScad);
     $("scad-list").innerHTML = scaVis.slice().sort((a, b) => a.dataScadenza < b.dataScadenza ? -1 : 1).map(sc => {
