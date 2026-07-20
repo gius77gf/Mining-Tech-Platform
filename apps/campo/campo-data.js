@@ -42,7 +42,7 @@ export async function campoData() {
     const { DeepworkID } = await import("../../shared/deepwork-id-client/index.js");
     const id = await DeepworkID.init({ appId: "campo" });
     if (id.user && id.authState() === "member") {
-      const { getDocs, addDoc, updateDoc, doc } =
+      const { getDocs, addDoc, updateDoc, deleteDoc, doc } =
         await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
       mode = "live";
       const read = async (name) =>
@@ -55,6 +55,8 @@ export async function campoData() {
         logout: () => id.logout(),
         aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name).firestore,
           id.orgCollection(name).path + "/" + docId), data),
+        rimuovi: (name, docId) => deleteDoc(doc(id.orgCollection(name).firestore,
+          id.orgCollection(name).path + "/" + docId)),
       };
     } else if (id.authState() === "tour") mode = "tour";
   } catch (e) { /* backend assente: demo */ }
@@ -67,6 +69,7 @@ export async function campoData() {
       rapportini: async () => mem.rapportini,
       aggiungi: async (name, data) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[name] = mem[name] || []).push({ id, ...data }); return { id }; },
       aggiorna: async (name, docId, data) => { const x = mem[name].find(v => v.id === docId); if (x) Object.assign(x, data); },
+      rimuovi: async (name, docId) => { mem[name] = mem[name].filter(v => v.id !== docId); },
     };
   }
   return { mode, ...api };
