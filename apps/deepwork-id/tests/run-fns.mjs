@@ -131,5 +131,31 @@ await test("createOrganization rende owner della nuova org", async () => {
   expect(m && m.role === "owner", "creatore non owner");
 });
 
+console.log("\n— acceptInvites: valido vs scaduto —");
+await test("un invito VALIDO viene riscattato → membership creata", async () => {
+  const { Timestamp } = await import("firebase-admin/firestore");
+  await aauth.createUser({ uid: "invA", email: "inva@studio.it", password: "password-123" });
+  await adb.collection("invites").doc("okInv").set({
+    email: "inva@studio.it", orgId: "orgA", role: "member", status: "pending",
+    expiresAt: Timestamp.fromMillis(Date.now() + 7 * 86400000) });
+  await id.loginWithEmail("inva@studio.it", "password-123");
+  const accepted = await id.redeemInvites();
+  expect(accepted.includes("orgA"), "invito valido non riscattato");
+  expect(await roleOf("invA") === "member", "membership non creata");
+});
+await test("un invito SCADUTO non dà membership e viene marcato 'expired'", async () => {
+  const { Timestamp } = await import("firebase-admin/firestore");
+  await aauth.createUser({ uid: "invB", email: "invb@studio.it", password: "password-123" });
+  await adb.collection("invites").doc("oldInv").set({
+    email: "invb@studio.it", orgId: "orgA", role: "member", status: "pending",
+    expiresAt: Timestamp.fromMillis(Date.now() - 86400000) });
+  await id.loginWithEmail("invb@studio.it", "password-123");
+  const accepted = await id.redeemInvites();
+  expect(!accepted.includes("orgA"), "invito scaduto riscattato!");
+  expect(await roleOf("invB") === null, "membership creata da invito scaduto!");
+  const inv = (await adb.doc("invites/oldInv").get()).data();
+  expect(inv.status === "expired", `stato invito ${inv.status}`);
+});
+
 console.log(`\nRisultato Functions: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
