@@ -62,12 +62,14 @@ service cloud.firestore {
       allow update: if isOwner(orgId);
       allow delete: if false;   // mai dal client
 
-      // Membri: visibili ai membri; gestiti da admin.
-      // NOTA: la scrittura della membership passa comunque dalla Cloud
-      // Function per aggiornare i claims; queste rules coprono i dati.
+      // Membri: visibili ai membri; la SCRITTURA passa SOLO dalle
+      // Cloud Functions (updateMemberRole/removeMember), che applicano
+      // i guardrail (ultimo owner, gestione owner riservata agli owner)
+      // e riallineano i claims. Dal client: mai — nemmeno un admin può
+      // auto-promuoversi modificando il proprio documento membership.
       match /members/{uid} {
         allow read:  if memberOf(orgId);
-        allow write: if isAdmin(orgId);
+        allow write: if false;
       }
 
       // Entitlement (abbonamenti per app): i membri li leggono

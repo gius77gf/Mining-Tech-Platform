@@ -36,6 +36,10 @@ await env.withSecurityRulesDisabled(async (ctx) => {
   await setDoc(doc(db, "organizations/orgB/apps/scudo/turni/t9"), { operaio: "SEGRETO-CONCORRENTE", ore: 6 });
   await setDoc(doc(db, "organizations/org_demo/apps/scudo/turni/d1"), { operaio: "Esempio", ore: 8 });
   await setDoc(doc(db, "organizations/orgA/entitlements/scudo"), { active: true, tier: "base" });
+  // membership e inviti per i test del pannello amministrazione (D4)
+  await setDoc(doc(db, "organizations/orgA/members/alice"), { uid: "alice", role: "member", status: "active" });
+  await setDoc(doc(db, "organizations/orgA/members/boss"), { uid: "boss", role: "owner", status: "active" });
+  await setDoc(doc(db, "invites/invA1"), { email: "nuovo@collega.it", orgId: "orgA", role: "member", status: "pending" });
 });
 
 // Utenti simulati con custom claims come li scriverebbe la Cloud Function
@@ -86,6 +90,22 @@ await test("NESSUNO scrive gli entitlement dal client (nemmeno l'owner)", () =>
   assertFails(setDoc(doc(boss, "organizations/orgA/entitlements/scudo"), { active: true, tier: "premium" })));
 await test("membro del concorrente NON legge gli entitlement di orgA", () =>
   assertFails(getDoc(doc(eve, "organizations/orgA/entitlements/scudo"))));
+
+console.log("\n— Membri e inviti (pannello amministrazione) —");
+await test("membro LEGGE l'elenco membri della propria org", () =>
+  assertSucceeds(getDocs(collection(alice, "organizations/orgA/members"))));
+await test("membro del concorrente NON legge i membri di orgA", () =>
+  assertFails(getDocs(collection(eve, "organizations/orgA/members"))));
+await test("NEMMENO l'owner scrive membership dal client (solo Cloud Function)", () =>
+  assertFails(setDoc(doc(boss, "organizations/orgA/members/intruso"), { uid: "intruso", role: "admin", status: "active" })));
+await test("un membro NON può auto-promuoversi modificando il proprio doc", () =>
+  assertFails(setDoc(doc(alice, "organizations/orgA/members/alice"), { uid: "alice", role: "owner", status: "active" })));
+await test("owner/admin LEGGE gli inviti della propria org", () =>
+  assertSucceeds(getDoc(doc(boss, "invites/invA1"))));
+await test("membro semplice NON legge gli inviti", () =>
+  assertFails(getDoc(doc(alice, "invites/invA1"))));
+await test("il concorrente NON legge gli inviti di orgA", () =>
+  assertFails(getDoc(doc(eve, "invites/invA1"))));
 
 console.log("\n— Profili utente —");
 await test("utente legge il PROPRIO profilo", async () => {

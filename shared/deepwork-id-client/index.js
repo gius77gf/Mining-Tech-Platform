@@ -22,6 +22,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, getDocs, setDoc, collection,
+  query, where,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {
   getFunctions, httpsCallable,
@@ -210,6 +211,43 @@ class DeepworkIDClient {
     const call = httpsCallable(this._fns, "inviteMember");
     const res = await call({ orgId: this.orgId, email, role });
     return res.data.inviteId;
+  }
+
+  // ---------- amministrazione organizzazione (D4) ----------
+  // Letture dirette (le rules le consentono ai membri/admin);
+  // le MODIFICHE passano sempre dalle Cloud Functions coi guardrail.
+
+  async listMembers() {
+    if (!this.orgId) throw new Error("Nessuna organizzazione attiva");
+    const snap = await getDocs(
+      collection(this._db, "organizations", this.orgId, "members")
+    );
+    return snap.docs.map((d) => ({ uid: d.id, ...d.data() }));
+  }
+
+  async listPendingInvites() {
+    if (!this.orgId) throw new Error("Nessuna organizzazione attiva");
+    const snap = await getDocs(query(
+      collection(this._db, "invites"),
+      where("orgId", "==", this.orgId),
+      where("status", "==", "pending")
+    ));
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  }
+
+  async updateMemberRole(uid, role) {
+    const call = httpsCallable(this._fns, "updateMemberRole");
+    await call({ orgId: this.orgId, uid, role });
+  }
+
+  async removeMember(uid) {
+    const call = httpsCallable(this._fns, "removeMember");
+    await call({ orgId: this.orgId, uid });
+  }
+
+  async revokeInvite(inviteId) {
+    const call = httpsCallable(this._fns, "revokeInvite");
+    await call({ inviteId });
   }
 
   // Da chiamare dopo ogni login registrato: riscatta eventuali inviti
