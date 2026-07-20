@@ -41,6 +41,15 @@ export function fmtM3(v) {
   return String(v);
 }
 
+// Volume estratto da un fronte = somma dei m³ dei rilievi ELABORATI di
+// quel fronte (i pianificati e i volumi assenti non contano). È il "m³
+// estratti" mostrato per fronte. Funzione pura e testabile.
+export function volumeFronte(rilievi, fronteId) {
+  return (rilievi || [])
+    .filter(r => r.fronteId === fronteId && r.stato === "elaborato" && r.volumeM3 != null)
+    .reduce((s, r) => s + r.volumeM3, 0);
+}
+
 export function kpiFrom(fronti, rilievi, piano, oggi = new Date()) {
   const ym = oggi.toISOString().slice(0, 7);          // yyyy-mm
   const anno = ym.slice(0, 4);
