@@ -36,7 +36,9 @@ account Google (gius77.gf@gmail.com).
     (NON spuntare Firebase Hosting)
 15. Ti mostrerà un blocco di codice con dentro `firebaseConfig = { ... }`:
     **copia tutto il blocco** e incollalo in chat a Claude — al resto
-    (inserirlo nel codice e caricare le regole di sicurezza) pensiamo noi.
+    (inserirlo nel codice, caricare le regole di sicurezza, creare la
+    tua organizzazione) pensiamo noi, seguendo il runbook tecnico
+    `apps/deepwork-id/ATTIVAZIONE_LIVE.md`.
 
 ## IMPORTANTE — cosa parte subito gratis e cosa richiede una tua scelta
 Con i passi qui sopra (progetto + Authentication + Firestore) sei nel
