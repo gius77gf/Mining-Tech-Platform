@@ -33,33 +33,36 @@
   </div>
 
   <div class="sec">Attenzione</div>
-  <div class="item"><div class="avatar">D3</div><div class="info"><div class="name">Dumper D3</div><div class="meta">Fermo — cuscinetto ralla in arrivo</div></div><span class="badge danger">Fermo</span><span class="arr">›</span></div>
-  <div class="item"><div class="avatar">E1</div><div class="info"><div class="name">Escavatore E1</div><div class="meta">Tagliando 500h tra 12 giorni</div></div><span class="badge warn">Tagliando</span><span class="arr">›</span></div>
-  <div class="item"><div class="avatar">P2</div><div class="info"><div class="name">Perforatrice P2</div><div class="meta">Consumo gasolio anomalo (+18%)</div></div><span class="badge warn">Verifica</span><span class="arr">›</span></div>
+  <div id="alert-list"></div>
 </div>
 
 <div class="page" id="page-mez">
   <div class="sec">Parco mezzi</div>
-  <div class="item"><div class="info"><div class="name">Escavatore E1 — CAT 352</div><div class="meta">5.870 h · fronte Est</div></div><span class="badge ok">Operativo</span></div>
-  <div class="item"><div class="info"><div class="name">Escavatore E2 — Volvo EC480</div><div class="meta">3.210 h · piazzale</div></div><span class="badge ok">Operativo</span></div>
-  <div class="item"><div class="info"><div class="name">Dumper D1 — CAT 745</div><div class="meta">8.420 h</div></div><span class="badge ok">Operativo</span></div>
-  <div class="item"><div class="info"><div class="name">Dumper D3 — CAT 745</div><div class="meta">9.105 h · officina</div></div><span class="badge danger">Fermo</span></div>
-  <div class="item"><div class="info"><div class="name">Perforatrice P2 — Epiroc</div><div class="meta">2.980 h · fronte Est</div></div><span class="badge warn">Verifica</span></div>
-  <div class="item"><div class="info"><div class="name">Pala P1 — CAT 980</div><div class="meta">6.540 h · frantoio</div></div><span class="badge ok">Operativa</span></div>
+  <div id="mez-list"></div>
+  <div class="sec">Registro ore</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <select class="dw-input" id="ore-mezzo" style="flex:2;min-width:150px;"></select>
+    <input class="dw-input" id="ore-nuove" type="number" placeholder="Ore attuali" style="flex:1;min-width:110px;">
+    <button class="dw-btn" id="btn-ore" style="width:auto;">Registra</button>
+  </div>
 </div>
 
 <div class="page" id="page-man">
   <div class="sec">Programmate</div>
-  <div class="item"><div class="info"><div class="name">Tagliando 500h — Escavatore E1</div><div class="meta">Previsto 31/07</div></div><span class="badge warn">12 gg</span></div>
-  <div class="item"><div class="info"><div class="name">Rotazione gomme — Dumper D1</div><div class="meta">Previsto 05/08</div></div><span class="badge ok">17 gg</span></div>
-  <div class="item"><div class="info"><div class="name">Revisione annuale — Pala P1</div><div class="meta">Previsto 20/08</div></div><span class="badge ok">32 gg</span></div>
+  <div id="man-list"></div>
+  <div class="sec">Nuova manutenzione</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <input class="dw-input" id="man-titolo" placeholder="Titolo (es. Tagliando 500h)" style="flex:2;min-width:150px;">
+    <select class="dw-input" id="man-mezzo" style="flex:1;min-width:130px;"></select>
+    <input class="dw-input" id="man-data" type="date" style="flex:1;min-width:130px;">
+    <button class="dw-btn" id="btn-man" style="width:auto;">Pianifica</button>
+  </div>
 </div>
 
 <div class="page" id="page-cos">
   <div class="sec">Costi del mese</div>
-  <div class="item"><div class="info"><div class="name">Carburante</div><div class="meta">€8.400 · +6% sul mese scorso</div></div><span class="badge warn">+6%</span></div>
-  <div class="item"><div class="info"><div class="name">Ricambi e officina</div><div class="meta">€3.150</div></div><span class="badge ok">In linea</span></div>
-  <div class="item"><div class="info"><div class="name">Noleggi esterni</div><div class="meta">€1.200 · gru mobile 2gg</div></div><span class="badge ok">Occasionale</span></div>
+  <div id="cos-list"></div>
+  <div class="note" id="mode-note" style="text-align:left;"></div>
 </div>
 
 <div class="nav">
@@ -80,17 +83,73 @@
 </script>
 
 <script type="module">
-  // Aggancio a Deepwork ID: se il backend non è configurato la pagina
-  // resta navigabile come mockup (modalità tour implicita).
-  try {
-    const { DeepworkID } = await import("../../shared/deepwork-id-client/index.js");
-    const id = await DeepworkID.init({ appId: "flotta" });
-    if (id.authState() === "tour" || id.authState() === "anonymous") {
-      document.getElementById("tour-banner").style.display = "block";
-    }
-  } catch (e) {
-    document.getElementById("tour-banner").style.display = "block";
+  import { flottaData, urgenza, kpiFrom } from "./flotta-data.js";
+  const $ = (id) => document.getElementById(id);
+  const MB = { operativo: ["ok","Operativo"], fermo: ["danger","Fermo"], verifica: ["warn","Verifica"] };
+  const sig = (n) => (n||"?").split(" ")[0].slice(0,2).toUpperCase();
+  const eur = (v) => "€" + (+v||0).toLocaleString("it-IT");
+
+  const db = await flottaData();
+  if (db.mode !== "live") $("tour-banner").style.display = "block";
+  $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
+
+  let MEZ=[], MAN=[], COS=[];
+  const MEZ_NEXT = { operativo: "verifica", verifica: "fermo", fermo: "operativo" };
+  async function refresh(){
+    [MEZ,MAN,COS] = await Promise.all([db.mezzi(), db.manutenzioni(), db.costi()]);
+    const k = kpiFrom(MEZ,MAN,COS);
+    const kn = document.querySelectorAll(".kpis .kpi .n");
+    if (kn[0]) kn[0].textContent = k.operativi;
+    if (kn[1]) kn[1].textContent = k.inManutenzione;
+    if (kn[2]) kn[2].textContent = k.tagliandi30;
+    if (kn[3]) kn[3].textContent = "€" + (k.carburante/1000).toFixed(1) + "k";
+
+    const alerts = [
+      ...MEZ.filter(m => m.stato !== "operativo").map(m => ({ t: m.nome, d: m.area || "—", u: MB[m.stato] })),
+      ...MAN.map(n => ({ t: n.titolo + " — " + n.mezzo, d: n.dataPrevista.split("-").reverse().join("/"), u: [urgenza(n.dataPrevista).cls, urgenza(n.dataPrevista).label] }))
+        .filter(a => a.u[0] !== "ok"),
+    ].slice(0, 4);
+    $("alert-list").innerHTML = alerts.map(a => `<div class="item">
+      <div class="avatar">${sig(a.t)}</div>
+      <div class="info"><div class="name">${a.t}</div><div class="meta">${a.d}</div></div>
+      <span class="badge ${a.u[0]}">${a.u[1]}</span></div>`).join("") || '<div class="note">Nessuna criticità sul parco mezzi.</div>';
+
+    $("mez-list").innerHTML = MEZ.map(m => `<div class="item" data-mezzo="${m.id}" style="cursor:pointer" title="Tocca per cambiare stato">
+      <div class="avatar">${sig(m.nome)}</div>
+      <div class="info"><div class="name">${m.nome}</div><div class="meta">${(m.ore||0).toLocaleString("it-IT")} h${m.area ? " · " + m.area : ""}</div></div>
+      <span class="badge ${MB[m.stato][0]}">${MB[m.stato][1]}</span></div>`).join("");
+
+    $("man-list").innerHTML = MAN.slice().sort((a,b)=>a.dataPrevista<b.dataPrevista?-1:1).map(n => { const u = urgenza(n.dataPrevista);
+      return `<div class="item"><div class="info"><div class="name">${n.titolo} — ${n.mezzo}</div><div class="meta">Previsto ${n.dataPrevista.split("-").reverse().join("/")}</div></div>
+      <span class="badge ${u.cls}">${u.label}</span></div>`; }).join("");
+
+    $("cos-list").innerHTML = COS.map(c => `<div class="item">
+      <div class="info"><div class="name">${c.voce}</div><div class="meta">${c.nota || ""}</div></div>
+      <span class="badge ok">${eur(c.importo)}</span></div>`).join("");
+
+    const opts = MEZ.map(m => `<option value="${m.id}">${m.nome.split(" — ")[0]}</option>`).join("");
+    $("ore-mezzo").innerHTML = opts;
+    $("man-mezzo").innerHTML = MEZ.map(m => `<option>${m.nome.split(" — ")[0]}</option>`).join("");
   }
+
+  document.addEventListener("click", async (e) => {
+    const it = e.target.closest && e.target.closest("[data-mezzo]");
+    if (it) { const m = MEZ.find(x => x.id === it.getAttribute("data-mezzo"));
+      await db.aggiorna("mezzi", m.id, { stato: MEZ_NEXT[m.stato] || "operativo" }); await refresh(); }
+  });
+  $("btn-ore").onclick = async () => {
+    const id = $("ore-mezzo").value, ore = +$("ore-nuove").value;
+    const m = MEZ.find(x => x.id === id); if (!m || !ore) return;
+    if (ore < (m.ore||0)) { $("mode-note").textContent = "Ore inferiori alle attuali: controlla il valore."; return; }
+    await db.aggiorna("mezzi", id, { ore }); $("ore-nuove").value = ""; await refresh();
+  };
+  $("btn-man").onclick = async () => {
+    const titolo = $("man-titolo").value.trim(), dataPrevista = $("man-data").value;
+    if (!titolo || !dataPrevista) return;
+    await db.aggiungi("manutenzioni", { titolo, mezzo: $("man-mezzo").value, dataPrevista });
+    $("man-titolo").value = ""; $("man-data").value = ""; await refresh();
+  };
+  await refresh();
 </script>
 </body>
 </html>
