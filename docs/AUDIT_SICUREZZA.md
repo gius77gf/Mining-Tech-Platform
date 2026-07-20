@@ -110,6 +110,19 @@ solo davanti a `= + - @`): round-trip senza perdite. Core
 nessun campo libero, non toccati. 22 test di regressione
 (run-helpers.mjs) blindano esc/csvCell/parseCsvLine; suite a 77 (PR #95).
 
+### 11. Indici Firestore per le query delle Functions (21/07) — PREPARATO
+Le Cloud Functions usano query `collectionGroup`/composte
+(rebuildClaims: members per uid+status; acceptInvites: invites per
+email+status; countActiveOwners: members per role+status) che gli
+EMULATORI non verificano ma la produzione può richiedere come indici
+compositi (stessa classe del bug FieldValue: verde in test, rosso in
+prod). Creato `apps/deepwork-id/firestore.indexes.json` (indice
+collectionGroup members uid+status, il più probabile) e collegato in
+firebase.json. Riguarda solo il percorso Blaze/Functions (differito):
+per il go-live gratuito con bootstrap NON serve. Alla futura attivazione
+Blaze: `firebase deploy --only firestore` e, se la console segnala altri
+indici mancanti, crearli col link a un clic.
+
 ### 10. XSS in contesto-attributo (verifica 21/07) — PULITO
 Verificate TUTTE le interpolazioni dentro attributi HTML delle app
 (`data-*`, `value`, `title`, `style`): sono esclusivamente ID
