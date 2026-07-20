@@ -11,7 +11,7 @@ on:
 
 jobs:
   security-rules:
-    name: Firestore rules + SDK + Functions tests (52)
+    name: Firestore rules + SDK + Functions tests (55)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
