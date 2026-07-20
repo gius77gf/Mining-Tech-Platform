@@ -59,8 +59,8 @@ export async function sentinellaData() {
         monitoraggi: () => read("monitoraggi"), adempimenti: () => read("adempimenti"), registri: () => read("registri"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
         logout: () => id.logout(),
-        aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n).firestore, id.orgCollection(n).path + "/" + i), d),
-        rimuovi: (n, i) => deleteDoc(doc(id.orgCollection(n).firestore, id.orgCollection(n).path + "/" + i)),
+        aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n), i), d),
+        rimuovi: (n, i) => deleteDoc(doc(id.orgCollection(n), i)),
       };
     } else if (id.authState() === "tour") mode = "tour";
   } catch (e) {}

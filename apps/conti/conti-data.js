@@ -52,7 +52,7 @@ export async function contiData() {
         fatture: () => read("fatture"), gare: () => read("gare"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
         logout: () => id.logout(),
-        aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n).firestore, id.orgCollection(n).path + "/" + i), d),
+        aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n), i), d),
       };
     } else if (id.authState() === "tour") mode = "tour";
   } catch (e) {}

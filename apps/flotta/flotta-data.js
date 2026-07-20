@@ -60,8 +60,8 @@ export async function flottaData() {
         mezzi: () => read("mezzi"), manutenzioni: () => read("manutenzioni"), costi: () => read("costi"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
         logout: () => id.logout(),
-        aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n).firestore, id.orgCollection(n).path + "/" + i), d),
-        rimuovi: (n, i) => deleteDoc(doc(id.orgCollection(n).firestore, id.orgCollection(n).path + "/" + i)),
+        aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n), i), d),
+        rimuovi: (n, i) => deleteDoc(doc(id.orgCollection(n), i)),
       };
     } else if (id.authState() === "tour") mode = "tour";
   } catch (e) {}

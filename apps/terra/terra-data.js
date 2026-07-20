@@ -77,10 +77,8 @@ export async function terraData() {
         piano: () => read("piano"),
         aggiungi: (name, data) => addDoc(id.orgCollection(name), data),
         logout: () => id.logout(),
-        aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name).firestore,
-          id.orgCollection(name).path + "/" + docId), data),
-        rimuovi: (name, docId) => deleteDoc(doc(id.orgCollection(name).firestore,
-          id.orgCollection(name).path + "/" + docId)),
+        aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), data),
+        rimuovi: (name, docId) => deleteDoc(doc(id.orgCollection(name), docId)),
       };
     } else if (id.authState() === "tour") mode = "tour";
   } catch (e) { /* backend assente: demo */ }
