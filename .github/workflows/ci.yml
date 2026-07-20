@@ -11,7 +11,7 @@ on:
 
 jobs:
   security-rules:
-    name: Helper + Firestore rules + SDK + Functions + Bootstrap + KPI + Demo tests (105)
+    name: Helper + Firestore rules + SDK + Functions + Bootstrap + KPI + Demo tests (106)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
