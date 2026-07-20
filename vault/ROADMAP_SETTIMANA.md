@@ -141,7 +141,7 @@ ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-20_2130_terra-volumi-fronte.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-20_2200_campo-squadre.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
