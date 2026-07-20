@@ -197,6 +197,10 @@ await test("inviteMember declassa un ruolo sconosciuto a 'member'", async () => 
 await test("createOrganization rifiuta un nome troppo corto", async () => {
   await expectCode(id.createOrganization("A"), "invalid-argument", "nome corto accettato");
 });
+await test("un utente anonimo (tour) NON può creare un'organizzazione", async () => {
+  await id.loginTour();                         // login anonimo
+  await expectCode(id.createOrganization("Cava Pirata"), "unauthenticated", "anonimo ha creato un'org");
+});
 
 console.log(`\nRisultato Functions: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
