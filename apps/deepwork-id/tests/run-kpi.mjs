@@ -171,5 +171,28 @@ test("giorni: domani = 1, ieri = -1", () => {
   eq(conti.giorni("2026-07-19", OGGI), -1, "ieri");
 });
 
+// ------------------------------------------------------------
+// Input VUOTI: un'organizzazione appena creata non ha ancora dati.
+// Ogni kpiFrom deve restituire zeri/null sensati SENZA andare in crash
+// (divisioni per zero, riduzioni o accessi su array vuoto). Blindiamo
+// la forma dell'output per un'azienda "al giorno zero".
+// ------------------------------------------------------------
+console.log("\n— Input vuoti: azienda al giorno zero —");
+test("Scudo kpiFrom([],[]) = tutti zero", () =>
+  eq(scudo.kpiFrom([], []), { scadute: 0, trenta: 0, regolari: 0 }, "scudo vuoto"));
+test("Conti kpiFrom([],[]) = zero e DSO 0 (niente divisione per zero)", () =>
+  eq(conti.kpiFrom([], []), { daIncassare: 0, inScadenza: 0, gareAperte: 0, dso: 0 }, "conti vuoto"));
+test("Sentinella kpiFrom([],[]) = tutti zero", () =>
+  eq(sentinella.kpiFrom([], []), { attivi: 0, superamenti: 0, adempimenti30: 0 }, "sentinella vuoto"));
+test("Terra kpiFrom([],[],[]) = zero, avanzamento e riserve null", () =>
+  eq(terra.kpiFrom([], [], []),
+    { volumiMese: 0, rilieviMese: 0, avanzamento: null, riserveM3: null, frontiAttivi: 0 }, "terra vuoto"));
+test("Flotta kpiFrom([],[],[]) = tutti zero", () =>
+  eq(flotta.kpiFrom([], [], []),
+    { operativi: 0, inManutenzione: 0, tagliandi30: 0, carburante: 0 }, "flotta vuoto"));
+test("Campo kpiFrom([],[],[]) = tutti zero", () =>
+  eq(campo.kpiFrom([], [], []),
+    { squadreAttive: 0, inCorso: 0, rapportiniOggi: 0, anomalie: 0 }, "campo vuoto"));
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
