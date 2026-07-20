@@ -11,14 +11,14 @@ tra organizzazioni** (multi-tenant).
 | App | Cartella | Che cosa fa | Stato |
 |-----|----------|-------------|-------|
 | **Deepwork** (core) | radice (`index.html`) | Editor volate, rapportini, dashboard di cava | In produzione (v4.x) |
-| **Deepwork ID** | `apps/deepwork-id/` | Spina dorsale: account unico, multi-tenant, abbonamenti | Fondamenta complete, attesa progetto Firebase |
+| **Deepwork ID** | `apps/deepwork-id/` | Spina dorsale: account unico, multi-tenant, abbonamenti, pannello amministrazione | Pronto al collaudo (attesa progetto Firebase) |
 | **Genesi** | `apps/genesi/` | Simulatore di volate 3D calibrato su video reali | Sviluppo attivo |
-| **Scudo** | `apps/scudo/` | Sicurezza & personale (prima app a uscire) | Mockup navigabile |
-| **Campo** | `apps/campo/` | Operativo di campo (capocantiere) | Mockup navigabile |
-| **Flotta** | `apps/flotta/` | Mezzi & costi | Mockup navigabile |
-| **Conti** | `apps/conti/` | Amministrazione & gare | Mockup navigabile |
-| **Sentinella** | `apps/sentinella/` | Ambiente / HSE | Mockup navigabile |
-| **Terra** | `apps/terra/` | Estrattivo & rilievo | Mockup navigabile |
+| **Scudo** | `apps/scudo/` | Sicurezza & personale (prima app a uscire) | Dati e KPI reali (demo/live) |
+| **Campo** | `apps/campo/` | Operativo di campo (capocantiere) | Dati e KPI reali (demo/live) |
+| **Flotta** | `apps/flotta/` | Mezzi & costi | Dati e KPI reali (demo/live) |
+| **Conti** | `apps/conti/` | Amministrazione & gare | Dati e KPI reali (demo/live) |
+| **Sentinella** | `apps/sentinella/` | Ambiente / HSE | Dati e KPI reali (demo/live) |
+| **Terra** | `apps/terra/` | Estrattivo & rilievo | Dati e KPI reali (demo/live) |
 
 Ogni app è pubblicata automaticamente ad ogni merge su `main` come
 percorso `/apps/<nome>/` del sito Netlify esistente (`apps/DEPLOY.md`).
@@ -47,8 +47,8 @@ CLAUDE.md             istruzioni permanenti per le sessioni AI
   organizzazione, controllo abbonamenti, e accesso dati sigillato
   sull'organizzazione (`orgCollection`). Le regole Firestore
   (`apps/deepwork-id/firestore.rules`) negano tutto di default;
-  l'isolamento è dimostrato da **19 test automatici** contro
-  l'emulatore. Architettura completa: `apps/deepwork-id/ARCHITETTURA.md`.
+  l'isolamento è dimostrato da **38 test automatici** contro gli
+  emulatori (26 sulle regole + 12 sul flusso reale dello SDK). Architettura completa: `apps/deepwork-id/ARCHITETTURA.md`.
 - **Stile**: un solo design system (`shared/deepwork-style.css`);
   ogni app personalizza solo il proprio colore d'accento.
 - **Automazione di sviluppo**: il progetto avanza tramite cicli di
