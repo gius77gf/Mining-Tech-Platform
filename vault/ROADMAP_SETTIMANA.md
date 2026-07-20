@@ -141,7 +141,7 @@ ecosistema-vault/50 - Wiki ricerca/ (pull prima di scrivere).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/2026-07-20_1330_core-export-fori.md
+- Ultimo checkpoint: vault/checkpoints/2026-07-20_1400_readme-chiusura-blocco.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
