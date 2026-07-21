@@ -390,10 +390,13 @@ Avanzamento:
 - **Scudo — ordinamento scadenze** (#307, mergiato): scadenza (prima le vicine)
   / tipo A→Z / lavoratore A→Z. Utile per raggruppare per persona o per tipo di
   adempimento.
-- **Terra — ordinamento rilievi**: data (più recente) / volume (dal più grande)
-  / titolo A→Z. Utile per confrontare i rilievi per volume estratto.
-- **Prossimo**: continuare ordinamenti/filtri dove mancano (Campo, Sentinella)
-  o test aggiuntivi.
+- **Terra — ordinamento rilievi** (#308, mergiato): data (più recente) / volume
+  (dal più grande) / titolo A→Z. Utile per confrontare i rilievi per volume.
+- **Sentinella — ordinamento sensori**: criticità (dal più critico) / margine
+  (dal più tranquillo) / nome A→Z. Utile per vedere prima i superamenti o, al
+  contrario, controllare chi ha più margine.
+- **Prossimo**: valutare ordinamento Campo attività (stato/titolo) o passare a
+  altre seconde iterazioni UX (stati vuoti, validazioni) e test aggiuntivi.
 
 ### Stato feature Genesi vs competitor (aggiornato)
 Genesi ora ha: frammentazione Kuz-Ram/KCO, flyrock, fori bagnati, presplit,

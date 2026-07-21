@@ -45,6 +45,14 @@
     <button class="dw-btn secondary" data-filtro="danger" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Superamenti</button>
   </div>
   <div id="mon-conf" class="note" style="text-align:left;"></div>
+  <div style="display:flex;align-items:center;gap:6px;margin:2px 0 10px;">
+    <span class="dw-muted" style="font-size:12px;">Ordina:</span>
+    <select id="mon-ord" class="dw-input" style="width:auto;min-height:32px;padding:2px 8px;font-size:12px;">
+      <option value="criticita">Criticità (dal più critico)</option>
+      <option value="margine">Margine (dal più tranquillo)</option>
+      <option value="nome">Nome (A→Z)</option>
+    </select>
+  </div>
   <div id="mon-list"></div>
   <div class="sec">Registra misura</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -161,6 +169,7 @@
 
   let MON=[], ADE=[], REG=[], VOL=[];
   let filtroMon = "tutti";
+  let ordMon = "criticita";
   // scorciatoia: toccare un KPI del quadro porta alla lista pertinente
   document.querySelector(".kpis").addEventListener("click", (e) => {
     const card = e.target.closest("[data-goto]"); if (!card) return;
@@ -171,6 +180,7 @@
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroMon = f; refresh(); }
   });
+  if ($("mon-ord")) $("mon-ord").onchange = () => { ordMon = $("mon-ord").value; refresh(); };
   async function refresh(){
     [MON,ADE,REG,VOL] = await Promise.all([db.monitoraggi(), db.adempimenti(), db.registri(), db.volate ? db.volate() : []]);
     const k = kpiFrom(MON,ADE);
@@ -191,9 +201,12 @@
     $("mon-conf").innerHTML = conf.totale
       ? `Conformità: <b>${conf.conformi}</b> conformi · <b>${conf.attenzione}</b> in attenzione · <b>${conf.superamento}</b> in superamento (su ${conf.totale}).`
       : "";
+    const monCmp = (a, b) => ordMon === "margine" ? a.st.ratio - b.st.ratio
+      : ordMon === "nome" ? String(a.m.nome || "").localeCompare(String(b.m.nome || ""), "it")
+      : b.st.ratio - a.st.ratio;
     $("mon-list").innerHTML = MON.map(m => ({ m, st: statoMisura(m) }))
       .filter(x => filtroMon === "tutti" || x.st.cls === filtroMon)
-      .sort((a, b) => b.st.ratio - a.st.ratio)
+      .sort(monCmp)
       .map(({m, st}) => { const ult = (m.letture || []).slice(-3).map(l => l.valore).join(" → ");
       return `<div class="item"><div class="info"><div class="name">${esc(m.nome)}</div>
       <div class="meta">${m.valore} ${esc(m.unita)} / soglia ${m.soglia} (${Math.round(st.ratio*100)}%)${ult ? " · ultime: " + ult : ""}${m.nota ? " · " + esc(m.nota) : ""}</div></div>
