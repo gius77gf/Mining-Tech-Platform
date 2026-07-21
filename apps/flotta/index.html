@@ -59,6 +59,8 @@
     <input class="dw-input" id="ore-nuove" type="number" placeholder="Ore attuali" style="flex:1;min-width:110px;">
     <button class="dw-btn" id="btn-ore" style="width:auto;">Registra</button>
   </div>
+  <button class="dw-btn secondary" id="btn-tele" style="width:auto;margin-top:8px;">Importa telemetria (CSV)</button>
+  <input type="file" id="tele-file" accept=".csv,text/csv" style="display:none;">
   <div class="note" id="ore-esito" style="text-align:left;"></div>
 </div>
 
@@ -123,7 +125,7 @@
 </script>
 
 <script type="module">
-  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, scaricoGiacenza } from "./flotta-data.js";
+  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, scaricoGiacenza, parseTelemetriaCsv } from "./flotta-data.js";
   import { mountExit, esc } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const MB = { operativo: ["ok","Operativo"], fermo: ["danger","Fermo"], verifica: ["warn","Verifica"] };
@@ -320,6 +322,23 @@
     if (ore < (m.ore||0)) { $("ore-esito").textContent = "Ore (" + ore + ") inferiori alle attuali (" + (m.ore||0) + "): il contatore non può scendere."; $("ore-nuove").style.borderColor = "var(--danger)"; return; }
     $("ore-nuove").style.borderColor = ""; $("ore-esito").textContent = "Registrate " + ore + " h su " + m.nome.split(" — ")[0] + ".";
     await db.aggiorna("mezzi", id, { ore }); $("ore-nuove").value = ""; await refresh();
+  };
+  // Import telemetria da CSV (mezzo;ore[;carburante]): aggiorna le ore dei
+  // mezzi corrispondenti per nome, senza mai far scendere il contatore.
+  $("btn-tele").onclick = () => $("tele-file").click();
+  $("tele-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const testo = await file.text();
+    const righe = parseTelemetriaCsv(testo);
+    let agg = 0, ign = 0;
+    for (const r of righe) {
+      const m = MEZ.find(x => x.nome.split(" — ")[0].toLowerCase() === r.mezzo.toLowerCase() || x.nome.toLowerCase() === r.mezzo.toLowerCase());
+      if (m && r.ore >= (m.ore || 0)) { await db.aggiorna("mezzi", m.id, { ore: r.ore, oreDaTelemetria: true }); agg++; }
+      else ign++;
+    }
+    $("tele-file").value = "";
+    $("ore-esito").textContent = "Telemetria importata: " + agg + " mezzi aggiornati" + (ign ? ", " + ign + " righe ignorate (mezzo non trovato o ore inferiori)" : "") + ".";
+    await refresh();
   };
   $("btn-man").onclick = async () => {
     const titolo = $("man-titolo").value.trim(), dataPrevista = $("man-data").value, orePreviste = +$("man-ore").value || null;
