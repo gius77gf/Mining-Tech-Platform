@@ -258,8 +258,8 @@
     const solId = e.target.getAttribute && e.target.getAttribute("data-sollecito");
     if (solId) { const f = FAT.find(x => x.id === solId);
       const testo = f && testoSollecito(f);
-      if (!testo) { $("mode-note").textContent = "Sollecito disponibile solo per fatture scadute."; return; }
-      const ok = () => { $("mode-note").textContent = "Testo del sollecito per " + f.numero + " copiato: incollalo nell'email o nella PEC (interessi da confermare col commercialista)."; };
+      if (!testo) { $("ft-esito").textContent = "Sollecito disponibile solo per fatture scadute."; return; }
+      const ok = () => { $("ft-esito").textContent = "Testo del sollecito per " + f.numero + " copiato: incollalo nell'email o nella PEC (interessi da confermare col commercialista)."; };
       try {
         if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(testo); ok(); }
         else { const ta = document.createElement("textarea"); ta.value = testo; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); ok(); }

@@ -237,8 +237,8 @@
     if (prom) { const sc = SCA.find(x => x.id === prom);
       const lav = sc && LAV.find(x => x.id === sc.lavoratoreId);
       const testo = sc && testoPromemoria(sc, lav);
-      if (!testo) { $("import-esito").textContent = "Promemoria disponibile solo per scadenze di un lavoratore in scadenza o scadute."; return; }
-      const ok = () => { $("import-esito").textContent = "Promemoria per " + lav.nome + " copiato: incollalo nell'email o nell'SMS al lavoratore."; };
+      if (!testo) { $("scad-esito").textContent = "Promemoria disponibile solo per scadenze di un lavoratore in scadenza o scadute."; return; }
+      const ok = () => { $("scad-esito").textContent = "Promemoria per " + lav.nome + " copiato: incollalo nell'email o nell'SMS al lavoratore."; };
       try {
         if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(testo); ok(); }
         else { const ta = document.createElement("textarea"); ta.value = testo; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); ok(); }
