@@ -25,6 +25,10 @@ riscriverli a mano. È il manuale pratico del **Passo 6 del PIANO_GO_LIVE**.
   saltata, senza bloccare le altre. Alla fine l'app dice quante ne ha caricate.
 - **Isolamento**: i dati caricati entrano SOLO nell'organizzazione del cliente.
   Nessun'altra azienda li vede mai.
+- **Backup**: ogni schermata di import ha accanto un bottone **Esporta (CSV)**
+  che scarica gli stessi dati nel formato ri-caricabile. Serve per fare una
+  copia di sicurezza o per spostare i dati: il file esportato si re-importa
+  senza duplicare (le righe già presenti vengono saltate).
 
 ---
 
