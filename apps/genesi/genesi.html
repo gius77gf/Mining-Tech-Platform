@@ -403,6 +403,8 @@ body.scr-sim #tl{bottom:80px}
     <button class="btn sm" id="cmpShow" style="border-color:rgba(255,171,0,.4)">Confronta A/B</button>
   </div>
   <button class="btn sm" id="riconOpen" style="width:100%;margin-top:8px;border-color:rgba(255,171,0,.4)">🎯 Riconciliazione (previsto vs reale)</button>
+  <button class="btn sm" id="sigOpen" style="width:100%;margin-top:8px;border-color:rgba(255,171,0,.4)">〰️ Signature-hole (vibrazioni da onda reale)</button>
+  <input type="file" id="sigFile" accept=".csv,text/csv,.txt" style="display:none;">
 </div>
 
 <div id="cmpModal" style="display:none;position:fixed;inset:0;z-index:220;background:rgba(10,8,4,.82);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:18px;">
@@ -424,6 +426,18 @@ body.scr-sim #tl{bottom:80px}
       <button class="btn sm" id="riconSave" style="border-color:rgba(255,171,0,.4)">Salva riconciliazione</button>
       <button class="btn sm" id="riconExport">Esporta storico (CSV)</button>
       <button class="btn sm" id="riconClose">Chiudi</button>
+    </div>
+  </div>
+</div>
+
+<div id="sigModal" style="display:none;position:fixed;inset:0;z-index:220;background:rgba(10,8,4,.82);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:18px;">
+  <div style="max-width:680px;width:100%;max-height:86vh;overflow:auto;background:var(--card,#221c0e);border:1px solid rgba(255,171,0,.3);border-radius:14px;padding:18px;">
+    <div style="font-family:'Barlow Condensed';font-weight:800;font-size:17px;letter-spacing:.08em;text-transform:uppercase;color:#ffd54f;margin-bottom:10px;">Signature-hole — vibrazioni da onda reale</div>
+    <div id="sigBody" style="font-size:13.5px;"></div>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+      <button class="btn sm" id="sigImport" style="border-color:rgba(255,171,0,.4)">Importa onda foro singolo (CSV)</button>
+      <button class="btn sm" id="sigExport">Esporta composito (CSV)</button>
+      <button class="btn sm" id="sigClose">Chiudi</button>
     </div>
   </div>
 </div>
@@ -1859,6 +1873,74 @@ if($('riconExport')) $('riconExport').onclick=()=>{
   const csv=H.join(';')+'\n'+st.map(r=>[r.ts,r.nome,r.prev.x50,r.real.x50,r.prev.ppv,r.real.ppv,r.prev.fly,r.real.fly,r.real.ovs,r.real.note].map(cell).join(';')).join('\n')+'\n';
   const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download='genesi_riconciliazione.csv'; a.click();
+};
+
+/* ===== Signature-hole (P0.2): PPV COMPOSITO sommando la registrazione di un
+   foro singolo, ritardata secondo i tempi di detonazione della volata (metodo
+   Orica AVM / letteratura). Più preciso della sola legge di Devine perché usa
+   l'onda reale del sito. Tutto lato browser. ===== */
+let _sigData=null, _sigComp=null;
+function _sigDetTimes(){
+  const H=D2.holes;
+  if(H&&H.length) return H.map(h=>+h.tDet||0);
+  const nc=D2.perRow||18, nr=D2.file||1, ri=+D2.ritardo||25, rf=+D2.ritardoFila||42, out=[];
+  for(let r=0;r<nr;r++) for(let c=0;c<nc;c++) out.push(c*ri+r*rf);
+  return out;
+}
+function _sigParse(text){
+  const rows=String(text||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean)
+    .map(s=>s.split(/[;,\t]/)).filter(p=>p.length>=2)
+    .map(p=>[parseFloat(String(p[0]).replace(',','.')), parseFloat(String(p[1]).replace(',','.'))])
+    .filter(p=>isFinite(p[0])&&isFinite(p[1]));
+  if(rows.length<3) return null;
+  const t=rows.map(r=>r[0]), a=rows.map(r=>r[1]);
+  const dt=Math.max(0.05,(t[t.length-1]-t[0])/(t.length-1));
+  return {t,a,dt};
+}
+function _sigSuperpose(sig,times){
+  const dt=sig.dt, n=sig.a.length, dur=sig.t[n-1]-sig.t[0];
+  const tmax=Math.max.apply(null,times)+dur, steps=Math.min(80000,Math.ceil(tmax/dt)+2);
+  const comp=new Float64Array(steps);
+  for(const td of times){ const off=Math.round(td/dt); for(let i=0;i<n;i++){ const k=off+i; if(k>=0&&k<steps) comp[k]+=sig.a[i]; } }
+  let ppv=0,singolo=0; for(let i=0;i<n;i++) singolo=Math.max(singolo,Math.abs(sig.a[i]));
+  for(let i=0;i<steps;i++){ const v=Math.abs(comp[i]); if(v>ppv) ppv=v; }
+  return {comp,dt,ppv,singolo,steps};
+}
+function _sigSpark(comp,steps){
+  const W=560,Hh=90,st=Math.max(1,Math.floor(steps/240));
+  let mx=1e-9; for(let i=0;i<steps;i++){ const v=Math.abs(comp[i]); if(v>mx) mx=v; }
+  let d='',j=0;
+  for(let i=0;i<steps;i+=st){ const x=(i/steps)*W, y=Hh/2-(comp[i]/mx)*(Hh/2-4); d+=(j++?'L':'M')+x.toFixed(1)+' '+y.toFixed(1); }
+  return '<svg viewBox="0 0 '+W+' '+Hh+'" style="width:100%;height:80px;background:rgba(0,0,0,.25);border-radius:8px"><line x1="0" y1="'+(Hh/2)+'" x2="'+W+'" y2="'+(Hh/2)+'" stroke="rgba(255,255,255,.15)"/><path d="'+d+'" fill="none" stroke="#ffd54f" stroke-width="1.2"/></svg>';
+}
+function sigRender(){
+  const body=$('sigBody');
+  if(!_sigData){ body.innerHTML='<div style="color:var(--mut);font-size:12px;">Importa la <b>registrazione di un foro singolo</b> (CSV: <code>tempo_ms;ampiezza</code>, es. mm/s). Genesi la <b>somma ritardata</b> secondo i tempi di detonazione della volata corrente e stima il <b>PPV composito</b> — il metodo dei big (Orica AVM), più preciso della sola legge di Devine perché usa l&rsquo;onda reale del tuo sito.</div>'; _sigComp=null; return; }
+  const times=_sigDetTimes(), r=_sigSuperpose(_sigData,times); _sigComp=r;
+  const k=computeKPI(), lim=k.lim, dev=k.ppv, rat=r.ppv/Math.max(0.1,lim);
+  const col=rat<0.6?'#66bb6a':(rat<1?'#ffca28':'#ef5350');
+  body.innerHTML=
+    '<div style="color:var(--mut);font-size:12px;margin-bottom:8px;">Onda importata: '+_sigData.a.length+' campioni · '+times.length+' fori · dt '+_sigData.dt.toFixed(2)+' ms</div>'
+    +_sigSpark(r.comp,r.steps)
+    +'<div style="display:grid;grid-template-columns:1.35fr 1fr;gap:6px 10px;margin-top:10px;font-size:13.5px;align-items:center">'
+    +'<div style="color:var(--mut)">PPV foro singolo (picco onda)</div><div>'+r.singolo.toFixed(2)+' mm/s</div>'
+    +'<div style="color:var(--mut)">PPV composito previsto</div><div style="color:'+col+';font-weight:700">'+r.ppv.toFixed(2)+' mm/s</div>'
+    +'<div style="color:var(--mut)">Amplificazione (composito/singolo)</div><div>×'+(r.ppv/Math.max(1e-9,r.singolo)).toFixed(2)+'</div>'
+    +'<div style="color:var(--mut)">Limite norma</div><div>'+lim+' mm/s '+(rat>=1?'<b style="color:#ef5350">SUPERATO</b>':'')+'</div>'
+    +'<div style="color:var(--mut)">Confronto stima Devine</div><div>'+dev+' mm/s</div>'
+    +'</div>'
+    +'<div style="margin-top:8px;color:var(--mut);font-size:12px;">Il composito dipende dai <b>ritardi</b>: se supera il limite, scegli ritardi che spezzino la somma d&rsquo;onda (evita che fori vicini cadano nella stessa finestra). Stima da confermare col sismografo.</div>';
+}
+if($('sigOpen')) $('sigOpen').onclick=()=>{ sigRender(); $('sigModal').style.display='flex'; };
+if($('sigClose')) $('sigClose').onclick=()=>{ $('sigModal').style.display='none'; };
+if($('sigImport')) $('sigImport').onclick=()=>$('sigFile').click();
+if($('sigFile')) $('sigFile').onchange=async(e)=>{ const f=e.target.files&&e.target.files[0]; if(!f) return; const sig=_sigParse(await f.text()); e.target.value=''; if(!sig){ toast('CSV non valido: righe tempo_ms;ampiezza'); return; } _sigData=sig; sigRender(); };
+if($('sigExport')) $('sigExport').onclick=()=>{
+  if(!_sigComp){ toast('Importa prima un&rsquo;onda'); return; }
+  const c=_sigComp; let csv='tempo_ms;ampiezza\n';
+  for(let i=0;i<c.steps;i++) csv+=(i*c.dt).toFixed(2)+';'+c.comp[i].toFixed(4)+'\n';
+  const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='genesi_signature_composito.csv'; a.click();
 };
 
 function maybeConsent(){ if(!localStorage.getItem('genesiDisclaimerV1')){ $('modal').style.display='flex'; } }
