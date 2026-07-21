@@ -87,6 +87,43 @@ export function livelloScadenza(dataISO, oggi = new Date()) {
   return { cls: "ok", label: "tra " + g + " gg", giorni: g };
 }
 
+// Data GG/MM/AAAA da ISO (formattazione pura, per i testi da inviare).
+function dataIt(iso) {
+  const s = String(iso || "").slice(0, 10);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : (s || "—");
+}
+
+// Testo PRONTO di un promemoria/convocazione per il lavoratore la cui scadenza
+// (visita medica, corso, patentino…) è scaduta o in scadenza, da copiare e
+// inviare (email/SMS). Serve al responsabile sicurezza a sollecitare il
+// rinnovo senza riscrivere ogni volta. Ritorna null se non c'è nulla di
+// urgente (scadenza regolare), se manca il nome del lavoratore o la data.
+// Pura e testabile: nessun DOM, `oggi` iniettabile.
+export function testoPromemoria(scadenza, lavoratore, oggi = new Date()) {
+  const sc = scadenza || {};
+  const nome = ((lavoratore && lavoratore.nome) || "").trim();
+  if (!nome || !sc.dataScadenza) return null;
+  const st = statoScadenza(sc.dataScadenza, oggi);
+  if (st === "regolare") return null;                 // niente di urgente da sollecitare
+  const g = giorniTra(sc.dataScadenza, oggi);
+  const tipo = (sc.tipo || "adempimento").trim() || "adempimento";
+  const cosa = (sc.descrizione || sc.tipo || "adempimento").trim() || "adempimento";
+  const quando = st === "scaduta"
+    ? `risulta SCADUTA dal ${dataIt(sc.dataScadenza)} (${-g} giorni fa)`
+    : g === 0
+      ? `scade OGGI, ${dataIt(sc.dataScadenza)}`
+      : `scade il ${dataIt(sc.dataScadenza)} (tra ${g} ${g === 1 ? "giorno" : "giorni"})`;
+  return [
+    `Oggetto: promemoria scadenza — ${tipo}`,
+    ``,
+    `Gentile ${nome},`,
+    `ti ricordiamo che «${cosa}» ${quando}.`,
+    `Ti chiediamo di contattare l'ufficio per programmare il rinnovo il prima possibile, così da mantenere la tua idoneità al lavoro in cava.`,
+    `Grazie per la collaborazione.`,
+  ].join("\n");
+}
+
 // Copertura formazione/competenze PER TIPO (visite mediche, corsi, DPI,
 // patentini…): per ogni tipo conta quante scadenze sono regolari / in
 // scadenza / scadute. È la "matrice" che dice se l'azienda è coperta su
