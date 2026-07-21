@@ -67,6 +67,19 @@ export function agingIncassi(fatture, oggi = new Date()) {
   return b;
 }
 
+// Incasso atteso nei prossimi N giorni: somma delle fatture aperte la cui
+// scadenza cade da oggi a oggi+N (non ancora scadute). È l'entrata di cassa
+// PREVISTA, complementare all'aging (che guarda al ritardo passato).
+export function incassoAtteso(fatture, giorniAvanti = 30, oggi = new Date()) {
+  let importo = 0, conto = 0;
+  for (const f of fatture || []) {
+    if (f.incassata) continue;
+    const g = giorni(f.scadenza, oggi);
+    if (Number.isFinite(g) && g >= 0 && g <= giorniAvanti) { importo += (+f.importo || 0); conto++; }
+  }
+  return { conto, importo };
+}
+
 // Priorità di incasso: ordina le fatture APERTE per urgenza — prima le più
 // in ritardo, a parità di ritardo prima l'importo più alto. Serve a sapere
 // CHI sollecitare per primo. Ogni voce porta i giorni di ritardo (0 se non

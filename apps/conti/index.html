@@ -98,7 +98,7 @@
 </script>
 
 <script type="module">
-  import { contiData, giorni, kpiFrom, agingIncassi, gareRiepilogo, prioritaIncasso } from "./conti-data.js";
+  import { contiData, giorni, kpiFrom, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso } from "./conti-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const eur = (v) => "€" + (+v||0).toLocaleString("it-IT");
@@ -184,6 +184,7 @@
       ["Incassato questo mese", eur(incMese), incMese > 0 ? "ok" : "warn"],
       ["Incassato (totale registrato)", eur(inc), "ok"],
       ["Da incassare", eur(k.daIncassare), k.inScadenza ? "warn" : "ok"],
+      (() => { const ia = incassoAtteso(FAT, 30); return ["Incasso atteso (prossimi 30 gg)", eur(ia.importo) + " · " + ia.conto + (ia.conto === 1 ? " fattura" : " fatture"), "ok"]; })(),
       ["DSO — giorni medi di attesa incasso", k.dso + " giorni", k.dso > 45 ? "warn" : "ok"],
       ["Gare aperte", k.gareAperte + " (" + eur(GAR.filter(g=>g.stato==="aperta").reduce((t,g)=>t+(+g.base||0),0)) + " a base d'asta)", "ok"],
     ].map(r => `<div class="item"><div class="info"><div class="name">${r[0]}</div></div><span class="badge ${r[2]}">${r[1]}</span></div>`).join("");
