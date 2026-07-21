@@ -110,6 +110,34 @@ test("kpiFrom: una fattura senza data di emissione non rompe il DSO", () => {
   eq(Number.isFinite(dso), true, "DSO è un numero finito");
   eq(dso, 5, "media di 0 e 10");
 });
+test("agingIncassi: fatture divise per fascia di ritardo, importi corretti", () => {
+  const oggi = new Date("2026-07-20T00:00:00");
+  const fatture = [
+    { importo: 100, incassata: false, scadenza: "2026-08-01" }, // non scaduto
+    { importo: 200, incassata: false, scadenza: "2026-07-10" }, // scaduto 10 gg → 1-30
+    { importo: 300, incassata: false, scadenza: "2026-06-01" }, // scaduto 49 gg → 31-60
+    { importo: 400, incassata: false, scadenza: "2026-05-01" }, // scaduto 80 gg → 61-90
+    { importo: 500, incassata: false, scadenza: "2026-03-01" }, // scaduto 141 gg → >90
+    { importo: 999, incassata: true,  scadenza: "2026-03-01" }, // incassata → esclusa
+  ];
+  const a = conti.agingIncassi(fatture, oggi);
+  eq(a.nonScaduto, { conto: 1, importo: 100 }, "non scaduto");
+  eq(a.g1_30,   { conto: 1, importo: 200 }, "1-30");
+  eq(a.g31_60,  { conto: 1, importo: 300 }, "31-60");
+  eq(a.g61_90,  { conto: 1, importo: 400 }, "61-90");
+  eq(a.oltre90, { conto: 1, importo: 500 }, ">90");
+  eq(a.scadutoTot, 1400, "totale scaduto = 200+300+400+500");
+});
+test("agingIncassi: nessuna fattura = fasce a zero (niente crash)", () => {
+  const a = conti.agingIncassi([], new Date("2026-07-20T00:00:00"));
+  eq(a.scadutoTot, 0, "scaduto 0");
+  eq(a.nonScaduto.conto, 0, "non scaduto 0");
+});
+test("agingIncassi: scadenza esattamente oggi = non scaduto (g=0)", () => {
+  const a = conti.agingIncassi([{ importo: 10, incassata: false, scadenza: "2026-07-20" }], new Date("2026-07-20T00:00:00"));
+  eq(a.nonScaduto.conto, 1, "g=0 non scaduto");
+  eq(a.scadutoTot, 0, "niente scaduto");
+});
 
 console.log("\n— Sentinella: monitoraggi ambientali —");
 test("statoMisura: superamento/attenzione/conforme dalla soglia", () => {

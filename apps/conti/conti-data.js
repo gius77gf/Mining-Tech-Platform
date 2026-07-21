@@ -39,6 +39,31 @@ export function kpiFrom(fatture, gare, oggi = new Date()) {
   return { daIncassare, inScadenza, gareAperte, dso };
 }
 
+// Aging degli incassi: suddivide le fatture NON incassate per fasce di
+// ritardo rispetto alla scadenza (giorni negativi = scaduto). È lo
+// strumento amministrativo con cui si capisce quanto credito è "vecchio"
+// e va sollecitato per primo. Ogni fascia: numero fatture + importo.
+export function agingIncassi(fatture, oggi = new Date()) {
+  const b = {
+    nonScaduto: { conto: 0, importo: 0 },
+    g1_30:      { conto: 0, importo: 0 },
+    g31_60:     { conto: 0, importo: 0 },
+    g61_90:     { conto: 0, importo: 0 },
+    oltre90:    { conto: 0, importo: 0 },
+  };
+  for (const f of fatture) {
+    if (f.incassata) continue;
+    const g = giorni(f.scadenza, oggi);
+    const imp = +f.importo || 0;
+    let k;
+    if (g >= 0) k = "nonScaduto";
+    else { const r = -g; k = r <= 30 ? "g1_30" : r <= 60 ? "g31_60" : r <= 90 ? "g61_90" : "oltre90"; }
+    b[k].conto++; b[k].importo += imp;
+  }
+  b.scadutoTot = b.g1_30.importo + b.g31_60.importo + b.g61_90.importo + b.oltre90.importo;
+  return b;
+}
+
 export async function contiData() {
   let mode = "demo", api = null;
   try {
