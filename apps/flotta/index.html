@@ -154,7 +154,7 @@
     const alerts = [
       ...MEZ.filter(m => m.stato !== "operativo").map(m => ({ t: m.nome, d: m.area || "—", u: MB[m.stato] })),
       ...MAN.map(n => { const u = urgDi(n);
-        return { t: n.titolo + " — " + n.mezzo, d: n.orePreviste ? "a " + n.orePreviste + " h" : n.dataPrevista.split("-").reverse().join("/"), u: [u.cls, u.label] }; })
+        return { t: n.titolo + " — " + n.mezzo, d: n.orePreviste ? "a " + n.orePreviste + " h" : (n.dataPrevista ? n.dataPrevista.split("-").reverse().join("/") : "—"), u: [u.cls, u.label] }; })
         .filter(a => a.u[0] !== "ok"),
     ].slice(0, 4);
     $("alert-list").innerHTML = alerts.map(a => `<div class="item">
@@ -188,7 +188,7 @@
     };
     $("man-list").innerHTML = MAN.slice().sort((a,b)=>(a.dataPrevista||"9999")<(b.dataPrevista||"9999")?-1:1).map(n => {
       const u = urgDi(n);
-      return `<div class="item"><div class="info"><div class="name">${esc(n.titolo)} — ${esc(n.mezzo)}</div><div class="meta">${n.orePreviste ? "A " + n.orePreviste + " ore motore" + stimaGiorni(n) : "Previsto " + n.dataPrevista.split("-").reverse().join("/")}</div></div>
+      return `<div class="item"><div class="info"><div class="name">${esc(n.titolo)} — ${esc(n.mezzo)}</div><div class="meta">${n.orePreviste ? "A " + n.orePreviste + " ore motore" + stimaGiorni(n) : "Previsto " + (n.dataPrevista ? n.dataPrevista.split("-").reverse().join("/") : "—")}</div></div>
       <span class="badge ${u.cls}">${u.label}</span>
       <span class="arr" style="cursor:pointer" title="Segna come eseguita" data-man-done="${n.id}">✓</span></div>`; }).join("")
       || '<div class="note" style="text-align:left;">Nessuna manutenzione programmata.</div>';
