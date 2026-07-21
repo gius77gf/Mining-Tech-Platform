@@ -54,6 +54,9 @@ export function agingIncassi(fatture, oggi = new Date()) {
   for (const f of fatture) {
     if (f.incassata) continue;
     const g = giorni(f.scadenza, oggi);
+    // fattura senza data (o data non valida): non è classificabile come
+    // scaduta → la contiamo come "non scaduto", non gonfiamo lo scaduto.
+    if (isNaN(g)) { b.nonScaduto.conto++; b.nonScaduto.importo += (+f.importo || 0); continue; }
     const imp = +f.importo || 0;
     let k;
     if (g >= 0) k = "nonScaduto";

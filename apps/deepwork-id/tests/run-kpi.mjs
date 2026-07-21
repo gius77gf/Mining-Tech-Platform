@@ -193,6 +193,14 @@ test("gareRiepilogo: nessuna gara decisa → tasso null (niente divisione per ze
   eq(r.tassoVittoria, null, "nessuna decisa");
   eq(r.vinte, 0, "0 vinte");
 });
+test("agingIncassi: fattura senza scadenza = non scaduto, non gonfia lo scaduto", () => {
+  // robustezza su dati importati/legacy: una data mancante non deve
+  // finire nel bucket 'oltre 90 gg' (regressione da revisione notturna).
+  const a = conti.agingIncassi([{ importo: 100, incassata: false }], new Date("2026-07-20T00:00:00"));
+  eq(a.nonScaduto, { conto: 1, importo: 100 }, "senza data → non scaduto");
+  eq(a.oltre90.conto, 0, "non finisce in oltre 90");
+  eq(a.scadutoTot, 0, "scaduto totale 0");
+});
 
 console.log("\n— Sentinella: monitoraggi ambientali —");
 test("statoMisura: superamento/attenzione/conforme dalla soglia", () => {
@@ -264,6 +272,11 @@ test("valoreMateriale: input non validi contano come 0 (niente NaN)", () => {
   eq(terra.valoreMateriale(1000, undefined, 12), { tonnellate: 0, valore: 0 }, "densità assente → 0");
   eq(terra.valoreMateriale("abc", 1.6, 12), { tonnellate: 0, valore: 0 }, "volume non numerico → 0");
   eq(terra.valoreMateriale(1000, 1.6, ""), { tonnellate: 1600, valore: 0 }, "prezzo vuoto → valore 0");
+});
+test("valoreMateriale: input negativi trattati come 0 (niente valori assurdi)", () => {
+  eq(terra.valoreMateriale(-5, 1.6, 12), { tonnellate: 0, valore: 0 }, "volume negativo → 0");
+  eq(terra.valoreMateriale(1000, -1, 12), { tonnellate: 0, valore: 0 }, "densità negativa → 0");
+  eq(terra.valoreMateriale(1000, 1.6, -3), { tonnellate: 1600, valore: 0 }, "prezzo negativo → 0");
 });
 test("qualitaRilievo: compone metodo + GSD; vuoto se non si sa nulla", () => {
   eq(terra.qualitaRilievo({ metodo: "RTK+GCP", gsd: "2" }), "RTK+GCP · GSD 2 cm", "metodo + gsd");

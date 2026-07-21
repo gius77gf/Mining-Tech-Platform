@@ -55,7 +55,7 @@ export function volumeFronte(rilievi, fronteId) {
 // È l'anello che lega il rilievo alla contabilità. Densità e prezzo
 // dipendono dal materiale (l'utente li imposta). Numeri non validi → 0.
 export function valoreMateriale(volumeM3, densita, prezzoTon) {
-  const v = +volumeM3 || 0, d = +densita || 0, p = +prezzoTon || 0;
+  const v = Math.max(0, +volumeM3 || 0), d = Math.max(0, +densita || 0), p = Math.max(0, +prezzoTon || 0);
   const tonnellate = v * d;
   return { tonnellate, valore: tonnellate * p };
 }
