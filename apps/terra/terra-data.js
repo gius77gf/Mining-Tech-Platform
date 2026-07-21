@@ -182,20 +182,26 @@ export function trendVolumi(rilievi) {
 }
 
 // Import rilievi elaborati da CSV (onboarding: caricare lo storico dei
-// rilievi drone). Colonne: data;volumeM3[;metodo;gsd] (header opzionale).
-// Tiene solo le righe con data valida (AAAA-MM-GG) e volume numerico ≥ 0.
-// Pura e testabile.
+// rilievi drone). Colonne: data;volumeM3[;metodo;gsd;fronte] (header
+// opzionale). Tiene solo le righe con data valida (AAAA-MM-GG) e volume
+// numerico ≥ 0. La colonna `fronte` (facoltativa) è il NOME del fronte: viene
+// riportata come testo grezzo solo se presente, e va risolta in fronteId da
+// chi importa (così il rilievo conta nel volume di quel fronte). Pura e
+// testabile.
 export function parseRilieviCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
     .filter(r => !/^data\s*;/i.test(r))
     .map(r => {
-      const [data, volumeM3, metodo, gsd] = parseCsvLine(r);
-      return {
+      const [data, volumeM3, metodo, gsd, fronte] = parseCsvLine(r);
+      const out = {
         data: (data || "").trim(),
         volumeM3: numIt(volumeM3),
         metodo: (metodo || "").trim() || null,
         gsd: (gsd || "").trim() || null,
       };
+      const fr = (fronte || "").trim();
+      if (fr) out.fronte = fr;   // solo se presente: righe a 4 colonne restano invariate
+      return out;
     })
     .filter(p => /^\d{4}-\d{2}-\d{2}$/.test(p.data) && Number.isFinite(p.volumeM3) && p.volumeM3 >= 0);
 }

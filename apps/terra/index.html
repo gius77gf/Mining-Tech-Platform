@@ -318,13 +318,20 @@
   $("ril-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseRilieviCsv(await file.text());
+    let senzaFronte = 0;
     for (const r of righe) {
-      await db.aggiungi("rilievi", { titolo: "Rilievo drone " + dmy(r.data), data: r.data,
-        tipo: "Ortofoto + DEM", volumeM3: r.volumeM3, fronteId: null, stato: "elaborato",
+      let fronteId = null, frNome = "";
+      if (r.fronte) {
+        const f = FRO.find(x => (x.nome || "").toLowerCase() === r.fronte.toLowerCase());
+        if (f) { fronteId = f.id; frNome = f.nome; } else senzaFronte++;
+      }
+      await db.aggiungi("rilievi", { titolo: "Rilievo drone " + dmy(r.data) + (frNome ? " — " + frNome : ""), data: r.data,
+        tipo: "Ortofoto + DEM", volumeM3: r.volumeM3, fronteId, stato: "elaborato",
         metodo: r.metodo, gsd: r.gsd });
     }
     $("ril-file").value = "";
-    $("ril-esito").textContent = "Import rilievi: " + righe.length + " rilievi elaborati aggiunti.";
+    $("ril-esito").textContent = "Import rilievi: " + righe.length + " rilievi elaborati aggiunti"
+      + (senzaFronte ? " (" + senzaFronte + " con un fronte non riconosciuto: restano non assegnati)" : "") + ".";
     await refresh();
   };
   // Recupero errore: appena l'utente corregge un campo, togli il bordo
