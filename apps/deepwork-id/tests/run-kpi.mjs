@@ -266,6 +266,28 @@ test("incassoAtteso: somma le fatture aperte in scadenza entro N giorni", () => 
 });
 test("incassoAtteso: nessuna in finestra = zero (niente crash)", () =>
   eq(conti.incassoAtteso([], 30, new Date("2026-07-20T00:00:00")), { conto: 0, importo: 0 }, "vuoto"));
+test("incassoPerMese: raggruppa gli incassi attesi per mese, scadute a parte", () => {
+  const oggi = new Date(2026, 6, 15);   // 15 luglio 2026 (ora locale)
+  const fatture = [
+    { importo: 100, incassata: false, scadenza: "2026-07-20" },  // questo mese
+    { importo: 70,  incassata: false, scadenza: "2026-07-31" },  // questo mese
+    { importo: 50,  incassata: false, scadenza: "2026-08-05" },  // mese prossimo
+    { importo: 30,  incassata: false, scadenza: "2026-06-01" },  // già scaduta
+    { importo: 999, incassata: true,  scadenza: "2026-07-25" },  // incassata → ignorata
+    { importo: 40,  incassata: false, scadenza: "2027-06-01" },  // oltre 6 mesi → fuori finestra
+  ];
+  const r = conti.incassoPerMese(fatture, 6, oggi);
+  eq(r.mesi.length, 6, "6 mesi in finestra");
+  eq(r.mesi[0], { mese: "2026-07", conto: 2, importo: 170 }, "luglio: 2 fatture, 170");
+  eq(r.mesi[1], { mese: "2026-08", conto: 1, importo: 50 }, "agosto: 1 fattura, 50");
+  eq(r.scadute, { conto: 1, importo: 30 }, "una scaduta a parte");
+});
+test("incassoPerMese: lista vuota = 6 mesi a zero, niente scadute (no crash)", () => {
+  const r = conti.incassoPerMese([], 6, new Date(2026, 6, 15));
+  eq(r.mesi.length, 6, "6 mesi");
+  eq(r.mesi.every(m => m.conto === 0 && m.importo === 0), true, "tutti a zero");
+  eq(r.scadute, { conto: 0, importo: 0 }, "niente scadute");
+});
 test("parseFattureCsv: legge le fatture, coerce importo/incassata, scarta rotte", () => {
   const csv = "numero;cliente;importo;emessa;scadenza;incassata\n"
     + "2026/050;Edil Srl;1000,50;2026-07-01;2026-08-01;si\n"

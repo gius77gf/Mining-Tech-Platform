@@ -78,6 +78,8 @@
   <div id="rep-list"></div>
   <div class="sec">Aging incassi — crediti aperti per ritardo</div>
   <div id="aging-list"></div>
+  <div class="sec">Previsione incassi (prossimi mesi)</div>
+  <div id="prev-list"></div>
   <button class="dw-btn secondary" id="btn-rep-export" style="width:auto;margin-top:8px;">Esporta situazione (CSV)</button>
   <div class="note" id="mode-note" style="text-align:left;"></div>
 </div>
@@ -100,7 +102,7 @@
 </script>
 
 <script type="module">
-  import { contiData, giorni, kpiFrom, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, livelloSollecito, parseFattureCsv } from "./conti-data.js";
+  import { contiData, giorni, kpiFrom, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, livelloSollecito, parseFattureCsv } from "./conti-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const eur = (v) => "€" + (+v||0).toLocaleString("it-IT");
@@ -208,6 +210,17 @@
       <div class="meta">${v.conto} ${v.conto === 1 ? "fattura" : "fatture"}</div></div>
       <span class="badge ${cls}">${eur(v.importo)}</span></div>`).join("")
       + `<div class="note" style="text-align:left;">Totale scaduto da sollecitare: <b>${eur(ag.scadutoTot)}</b>.</div>`;
+
+    // Previsione incassi per mese: liquidità attesa dalle fatture non ancora
+    // scadute, mese per mese (nomi dei mesi in italiano).
+    const MESI = ["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"];
+    const nomeMese = (k) => { const [y, m] = k.split("-"); return MESI[(+m) - 1] + " " + y; };
+    const prev = incassoPerMese(FAT, 6);
+    $("prev-list").innerHTML = prev.mesi.map(m =>
+      `<div class="item"><div class="info"><div class="name">${nomeMese(m.mese)}</div>
+      <div class="meta">${m.conto} ${m.conto === 1 ? "fattura" : "fatture"}</div></div>
+      <span class="badge ${m.importo > 0 ? "ok" : ""}">${eur(m.importo)}</span></div>`).join("")
+      + (prev.scadute.conto ? `<div class="note" style="text-align:left;">Escluse ${prev.scadute.conto} già scadute (${eur(prev.scadute.importo)}): vanno sollecitate, vedi aging.</div>` : "");
   }
 
   document.addEventListener("click", async (e) => {
