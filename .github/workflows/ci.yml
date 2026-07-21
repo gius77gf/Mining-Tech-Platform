@@ -56,7 +56,10 @@ jobs:
           python3 - << 'EOF'
           import re, subprocess, sys, glob
           failed = False
-          for path in sorted(set(['apps/genesi/genesi.html', 'apps/index.html'] + glob.glob('apps/*/*.html'))):
+          # 'index.html' alla RADICE è il core Deepwork: va in produzione (Netlify)
+          # ad ogni merge su main, quindi un errore di sintassi lì romperebbe il
+          # sito. Prima non era coperto dai glob delle app: ora sì.
+          for path in sorted(set(['index.html', 'apps/genesi/genesi.html', 'apps/index.html'] + glob.glob('apps/*/*.html'))):
               html = open(path).read()
               for i, sc in enumerate(re.findall(r'<script[^>]*>(.*?)</script>', html, re.S)):
                   body = sc.strip()
