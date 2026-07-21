@@ -79,6 +79,12 @@ test("NON tocca un apostrofo davanti a testo normale", () =>
   eqArr(parseCsvLine("'ndrangheta;x"), ["'ndrangheta", "x"], "apostrofo legittimo"));
 test("fallback su virgola se non c'è ;", () =>
   eqArr(parseCsvLine("Mario,Fochino,333"), ["Mario", "Fochino", "333"], "virgola"));
+test("un ; dentro un campo quotato NON scambia il file a virgole per ';'", () =>
+  eqArr(parseCsvLine('"a;b",c'), ["a;b", "c"], "delimitatore fuori dalle virgolette"));
+test("i campi tra virgolette conservano gli spazi, gli altri no", () => {
+  eqArr(parseCsvLine('" Mario ";x'), [" Mario ", "x"], "quotato conserva gli spazi");
+  eqArr(parseCsvLine(" Mario ; x "), ["Mario", "x"], "non quotato ripulito");
+});
 test("round-trip: csvCell poi parseCsvLine ricostruisce l'originale", () => {
   const orig = "=SUM(A1);Mario";
   const cella = csvCell(orig);                 // -> "\"'=SUM(A1);Mario\"" (guardia + virgolette)

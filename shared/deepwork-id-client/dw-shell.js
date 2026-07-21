@@ -34,10 +34,23 @@ export function csvCell(v) {
 // mette davanti a = + - @, così l'export si può re-importare identico.
 // Delimitatore: preferisce ; (default Excel italiano e nostro export),
 // poi TAB, poi virgola.
+// Sceglie il delimitatore contando SOLO le occorrenze FUORI dalle virgolette
+// (priorità ; poi TAB poi virgola): così un ; dentro un campo quotato di un
+// file a virgole non fa scambiare il file per "a punto e virgola".
+function rilevaDelim(line) {
+  let q = false, semi = 0, tab = 0, comma = 0;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { if (q && line[i + 1] === '"') i++; else q = !q; }
+    else if (!q) { if (c === ";") semi++; else if (c === "\t") tab++; else if (c === ",") comma++; }
+  }
+  return semi ? ";" : (tab ? "\t" : ",");
+}
+
 export function parseCsvLine(line) {
-  const delim = line.includes(";") ? ";" : (line.includes("\t") ? "\t" : ",");
-  const out = [];
-  let cur = "", q = false;
+  const delim = rilevaDelim(line);
+  const out = [], quotato = [];
+  let cur = "", q = false, fieldQ = false;
   for (let i = 0; i < line.length; i++) {
     const c = line[i];
     if (q) {
@@ -46,15 +59,20 @@ export function parseCsvLine(line) {
         else q = false;
       } else cur += c;
     } else if (c === '"') {
-      q = true;
+      q = true; fieldQ = true;                          // il campo era tra virgolette
     } else if (c === delim) {
-      out.push(cur); cur = "";
+      out.push(cur); quotato.push(fieldQ); cur = ""; fieldQ = false;
     } else cur += c;
   }
-  out.push(cur);
-  // rimuove l'apostrofo di guardia SOLO se davanti a un carattere di
-  // formula: un nome che inizia davvero con ' non viene toccato.
-  return out.map(v => v.replace(/^'(?=[=+\-@])/, "").trim());
+  out.push(cur); quotato.push(fieldQ);
+  // rimuove l'apostrofo di guardia SOLO se davanti a un carattere di formula
+  // (un nome che inizia davvero con ' non viene toccato); i campi QUOTATI
+  // conservano gli spazi (le virgolette servono proprio a preservarli), gli
+  // altri vengono ripuliti da spazi di contorno.
+  return out.map((v, i) => {
+    v = v.replace(/^'(?=[=+\-@])/, "");
+    return quotato[i] ? v : v.trim();
+  });
 }
 
 // Converte un numero scritto "all'italiana" o "all'inglese" in Number, così
