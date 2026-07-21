@@ -92,6 +92,7 @@
 <div class="page" id="page-pia">
   <div class="sec">Piano estrattivo</div>
   <div id="pia-riserva" class="note" style="text-align:left;"></div>
+  <div id="pia-proiezione" class="note" style="text-align:left;"></div>
   <div id="pia-list"></div>
   <button class="dw-btn secondary" id="btn-terra-export" style="width:auto;margin-top:10px;">Esporta fronti e rilievi (CSV)</button>
   <div class="note" id="terra-esito" style="text-align:left;"></div>
@@ -115,7 +116,7 @@
 </script>
 
 <script type="module">
-  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, parseRilieviCsv, trendVolumi, classeAccuratezza, bandaVolume } from "./terra-data.js";
+  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, trendVolumi, classeAccuratezza, bandaVolume } from "./terra-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const FB = { attivo: ["ok","Attivo"], sospeso: ["warn","Sospeso"] };
@@ -196,6 +197,19 @@
         + (rr.anni != null ? ` · durata ~<b>${(Math.round(rr.anni * 10) / 10).toLocaleString("it-IT")} anni</b> al piano annuo di ${fmtM3(refP.pianificatoAnnuoM3)} m³` : "")
         + ` (estratti ${estrattoAnnoP.toLocaleString("it-IT")} m³ nel ${annoP}).`
       : "";
+
+    // Proiezione di fine anno: al ritmo attuale, si supererà l'autorizzato?
+    const pr = refP ? proiezioneAnnua(RIL, refP.pianificatoAnnuoM3) : null;
+    $("pia-proiezione").innerHTML = (!pr) ? ""
+      : pr.proiezione == null
+        ? `Proiezione di fine anno: ancora presto per una stima (poco anno trascorso). Estratti ${pr.estrattoAnno.toLocaleString("it-IT")} m³ finora.`
+        : `Proiezione di fine anno al ritmo attuale: <b class="badge ${pr.stato}" style="font-size:inherit;">~${pr.proiezione.toLocaleString("it-IT")} m³</b> `
+          + `(${pr.pctPiano}% dell'autorizzato ${fmtM3(pr.pianificato)} m³)`
+          + (pr.stato === "danger"
+              ? ` — <b style="color:var(--danger);">rischio di superare il volume autorizzato</b>: rallenta o chiedi una variante.`
+              : pr.stato === "warn"
+                ? ` — vicino al limite autorizzato, tienilo d'occhio.`
+                : ` — sotto il limite autorizzato.`);
     $("pia-list").innerHTML = PIA.map(p => `<div class="item" ${p.pianificatoAnnuoM3?`data-piano="${p.id}" style="cursor:pointer" title="Tocca per modificare il piano annuo"`:'style="cursor:default;"'}>
       <div class="info"><div class="name">${esc(p.titolo)}</div><div class="meta">${esc(p.dettaglio||"")}${p.pianificatoAnnuoM3?" · piano annuo "+fmtM3(p.pianificatoAnnuoM3)+" m³":""}${p.riserveM3?" · riserve "+fmtM3(p.riserveM3)+" m³":""}</div></div>
       <span class="badge ${PB[p.stato][0]}">${PB[p.stato][1]}</span></div>`).join("")

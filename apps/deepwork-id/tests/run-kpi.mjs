@@ -536,6 +536,28 @@ test("bandaVolume: banda ± sulla base della %tolleranza", () => {
   eq(terra.bandaVolume(100, null), null, "tolleranza assente → null");
   eq(terra.bandaVolume(-5, 2), null, "volume negativo → null");
 });
+test("proiezioneAnnua: al ritmo attuale supera l'autorizzato → danger", () => {
+  const rilievi = [
+    { data: "2026-07-15", volumeM3: 19400, stato: "elaborato" },
+    { data: "2026-07-01", volumeM3: 18600, stato: "elaborato" },
+    { data: "2026-06-16", volumeM3: 21300, stato: "elaborato" },
+    { data: "2026-05-15", volumeM3: 20100, stato: "elaborato" },
+    { data: "2026-08-01", volumeM3: null,  stato: "pianificato" },   // ignorato
+    { data: "2025-12-30", volumeM3: 99999, stato: "elaborato" },     // anno diverso → ignorato
+  ];
+  const p = terra.proiezioneAnnua(rilievi, 125000, new Date(2026, 6, 21));  // ~55% dell'anno, 79400 estratti
+  eq(p.estrattoAnno, 79400, "somma solo elaborati del 2026");
+  eq(p.pianificato, 125000, "piano annuo");
+  eq(p.stato, "danger", "proiezione oltre l'autorizzato");
+  if (!(p.proiezione > 125000)) throw new Error("la proiezione deve superare il piano");
+  if (!(p.pctPiano > 100)) throw new Error("pctPiano deve superare 100");
+});
+test("proiezioneAnnua: null senza piano; proiezione null se troppo presto nell'anno", () => {
+  eq(terra.proiezioneAnnua([{ data: "2026-03-01", volumeM3: 100, stato: "elaborato" }], 0, new Date(2026, 6, 21)), null, "nessun piano → null");
+  const presto = terra.proiezioneAnnua([{ data: "2026-01-03", volumeM3: 500, stato: "elaborato" }], 125000, new Date(2026, 0, 5));
+  eq(presto.proiezione, null, "meno di ~1 mese → niente stima");
+  eq(presto.estrattoAnno, 500, "l'estratto è comunque riportato");
+});
 test("qualitaRilievo: compone metodo + GSD; vuoto se non si sa nulla", () => {
   eq(terra.qualitaRilievo({ metodo: "RTK+GCP", gsd: "2" }), "RTK+GCP · GSD 2 cm", "metodo + gsd");
   eq(terra.qualitaRilievo({ metodo: "PPK" }), "PPK", "solo metodo");
