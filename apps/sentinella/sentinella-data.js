@@ -37,6 +37,20 @@ export function statoMisura(m) {
 export function giorni(dataISO, oggi = new Date()) {
   return Math.floor((new Date(dataISO + "T00:00:00") - oggi) / 86400000);
 }
+// Riepilogo di conformità: quanti monitoraggi sono conformi / in
+// attenzione / in superamento, a colpo d'occhio. Usa statoMisura (stessa
+// logica dei badge). Funzione pura e testabile.
+export function riepilogoConformita(monitoraggi) {
+  const r = { conformi: 0, attenzione: 0, superamento: 0, totale: (monitoraggi || []).length };
+  for (const m of monitoraggi || []) {
+    const c = statoMisura(m).cls;
+    if (c === "danger") r.superamento++;
+    else if (c === "warn") r.attenzione++;
+    else r.conformi++;
+  }
+  return r;
+}
+
 export function kpiFrom(monitoraggi, adempimenti) {
   return {
     attivi: monitoraggi.length,
