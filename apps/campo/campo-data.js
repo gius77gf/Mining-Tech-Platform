@@ -75,6 +75,30 @@ export function riassuntoRapportino(r) {
   return parti.join(" · ");
 }
 
+// Copertura dei rapportini di TURNO: quali squadre hanno già consegnato un
+// rapportino (stato "inviato") e quali mancano ancora — così il preposto, prima
+// del cambio turno (handover), sa chi sollecitare. Una squadra si abbina al suo
+// rapportino per PREFISSO del nome ("Squadra A — Perforazione" ↔ "Squadra A"),
+// stessa convenzione delle altre app. Ritorna { coperte, totale, pct, mancanti }
+// (pct null se non ci sono squadre). Pura e testabile.
+export function coperturaRapportini(squadre, rapportini) {
+  const inviati = new Set((rapportini || [])
+    .filter(r => r.stato === "inviato")
+    .map(r => String(r.squadra || "").trim())
+    .filter(Boolean));
+  const righe = (squadre || []).map(q => {
+    const nome = String(q.nome || "");
+    return { squadra: nome, consegnato: inviati.has(nome.split(" — ")[0].trim()) };
+  });
+  const coperte = righe.filter(r => r.consegnato).length;
+  const totale = righe.length;
+  return {
+    coperte, totale,
+    pct: totale ? Math.round(100 * coperte / totale) : null,
+    mancanti: righe.filter(r => !r.consegnato).map(r => r.squadra),
+  };
+}
+
 export function kpiFrom(attivita, squadre, rapportini) {
   return {
     squadreAttive: squadre.filter(q => q.stato === "operativa").length,
