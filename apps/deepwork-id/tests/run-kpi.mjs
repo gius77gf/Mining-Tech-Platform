@@ -205,6 +205,19 @@ test("prioritaIncasso: ordina per ritardo, poi per importo; esclude incassate", 
   eq(p, ["C", "B", "A"], "C e B (scadute, C più grossa) poi A");
   eq(conti.prioritaIncasso(fatture, oggi)[0].ritardo, 19, "ritardo in giorni");
 });
+test("incassoAtteso: somma le fatture aperte in scadenza entro N giorni", () => {
+  const oggi = new Date("2026-07-20T00:00:00");
+  const fatture = [
+    { importo: 100, incassata: false, scadenza: "2026-07-25" }, // tra 5 gg → dentro
+    { importo: 200, incassata: false, scadenza: "2026-08-19" }, // tra 30 gg → dentro (confine)
+    { importo: 400, incassata: false, scadenza: "2026-08-20" }, // tra 31 gg → fuori
+    { importo: 800, incassata: false, scadenza: "2026-07-10" }, // già scaduta → fuori (non "atteso")
+    { importo: 999, incassata: true,  scadenza: "2026-07-25" }, // incassata → fuori
+  ];
+  eq(conti.incassoAtteso(fatture, 30, oggi), { conto: 2, importo: 300 }, "5gg + 30gg = 300");
+});
+test("incassoAtteso: nessuna in finestra = zero (niente crash)", () =>
+  eq(conti.incassoAtteso([], 30, new Date("2026-07-20T00:00:00")), { conto: 0, importo: 0 }, "vuoto"));
 test("prioritaIncasso: fattura senza data = ritardo 0 (non in cima per errore)", () => {
   const p = conti.prioritaIncasso([{ numero: "X", importo: 50, incassata: false }], new Date("2026-07-20T00:00:00"));
   eq(p[0].ritardo, 0, "senza data → ritardo 0");
