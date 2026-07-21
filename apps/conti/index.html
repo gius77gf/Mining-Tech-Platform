@@ -44,6 +44,14 @@
     <button class="dw-btn secondary" data-filtro="insolute" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Insolute</button>
     <button class="dw-btn secondary" data-filtro="incassate" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Incassate</button>
   </div>
+  <div style="display:flex;align-items:center;gap:6px;margin:-2px 0 10px;">
+    <span class="dw-muted" style="font-size:12px;">Ordina:</span>
+    <select id="fat-ord" class="dw-input" style="width:auto;min-height:32px;padding:2px 8px;font-size:12px;">
+      <option value="scadenza">Scadenza (prima le vicine)</option>
+      <option value="importo">Importo (dal più grande)</option>
+      <option value="cliente">Cliente (A→Z)</option>
+    </select>
+  </div>
   <div id="fat-list"></div>
   <div class="sec">Nuova fattura</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -134,6 +142,11 @@
     || (filtroFat === "aperte" && !f.incassata)
     || (filtroFat === "insolute" && !f.incassata && giorni(f.scadenza) < 0)
     || (filtroFat === "incassate" && !!f.incassata);
+  let ordFat = "scadenza";
+  const fatCmp = (a, b) => ordFat === "importo" ? (+b.importo || 0) - (+a.importo || 0)
+    : ordFat === "cliente" ? String(a.cliente || "").localeCompare(String(b.cliente || ""))
+    : String(a.scadenza || "9999").localeCompare(String(b.scadenza || "9999"));
+  if ($("fat-ord")) $("fat-ord").onchange = () => { ordFat = $("fat-ord").value; refresh(); };
   $("fat-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroFat = f; refresh(); }
@@ -180,7 +193,7 @@
       <div class="info"><div class="name">${esc(p.t)}</div><div class="meta">${esc(p.d)}</div></div>
       <span class="badge ${p.b[0]}">${p.b[1]}</span></div>`).join("") || '<div class="note">Nessuna priorità: incassi e gare sotto controllo.</div>';
 
-    $("fat-list").innerHTML = FAT.filter(fatMatch).sort((a,b)=>a.scadenza<b.scadenza?-1:1).map(f => { const b = fatBadge(f);
+    $("fat-list").innerHTML = FAT.filter(fatMatch).sort(fatCmp).map(f => { const b = fatBadge(f);
       const ritardo = !f.incassata ? Math.max(0, -giorni(f.scadenza)) : 0;
       const sol = !f.incassata ? livelloSollecito(ritardo) : null;
       const mora = ritardo > 0 ? interessiMora(f.importo, ritardo) : null;   // interessi 231/2002
