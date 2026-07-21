@@ -304,6 +304,16 @@ test("urgenza: 31 giorni = ok", () =>
   eq(flotta.urgenza("2026-08-20", OGGI), { cls: "ok", label: "31 gg", giorni: 31 }, "31 gg"));
 test("urgenza: ieri = scaduta", () =>
   eq(flotta.urgenza("2026-07-19", OGGI), { cls: "danger", label: "Scaduta", giorni: -1 }, "scaduta"));
+test("previsioneGiorni: ore mancanti / ritmo = giorni stimati (arrotonda su)", () => {
+  eq(flotta.previsioneGiorni(80, 8), 10, "80h a 8h/gg = 10 gg");
+  eq(flotta.previsioneGiorni(85, 8), 11, "85h a 8h/gg = 11 gg (ceil)");
+});
+test("previsioneGiorni: già scaduto = 0, ritmo assente/zero = null", () => {
+  eq(flotta.previsioneGiorni(0, 8), 0, "mancano 0 → 0");
+  eq(flotta.previsioneGiorni(-10, 8), 0, "negativo → 0");
+  eq(flotta.previsioneGiorni(80, 0), null, "ritmo 0 → non stimabile");
+  eq(flotta.previsioneGiorni(80, undefined), null, "ritmo assente → non stimabile");
+});
 
 console.log("\n— Confini: stato misura sensori (Sentinella) —");
 test("statoMisura: rapporto esattamente 1,0 = superamento", () =>
