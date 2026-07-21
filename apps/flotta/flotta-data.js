@@ -115,6 +115,59 @@ export function disponibilitaFlotta(mezzi) {
   return { pct: totale ? Math.round(100 * operativi / totale) : null, operativi, totale };
 }
 
+// PRIORITÀ OPERATIVE del giorno: un'unica lista ordinata di "cose da fare" per
+// il gestore del parco, che unisce in un colpo solo (1) le manutenzioni urgenti
+// — sia a data sia a ore motore, confrontando le ore previste col contatore del
+// mezzo —, (2) i ricambi sotto scorta (che il riepilogo di dashboard prima non
+// mostrava: un pezzo a zero è una criticità vera) e (3) i mezzi fermi o in
+// verifica. Ogni voce: { gravita ("danger"=subito/scaduto, "warn"=in arrivo),
+// categoria, titolo, dettaglio, badge }. Ordina prima le danger. I campi
+// titolo/dettaglio sono testo grezzo (nome mezzo/ricambio): vanno escapati dove
+// mostrati. Pura e testabile. Il mezzo di una manutenzione "a ore" si abbina
+// per prefisso del nome (stessa convenzione dell'app).
+export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date()) {
+  const items = [];
+  const oreDi = (nomeMezzo) => {
+    const m = (mezzi || []).find(x => String(x.nome || "").split(" — ")[0] === nomeMezzo);
+    return m ? (+m.ore || 0) : null;
+  };
+  for (const n of manutenzioni || []) {
+    let u, dettaglio;
+    if (n.orePreviste) {
+      const ore = oreDi(n.mezzo);
+      if (ore == null) continue;                 // mezzo non trovato: non calcolabile
+      u = urgenzaOre(n.orePreviste, ore);
+      dettaglio = "a " + n.orePreviste + " h motore";
+    } else if (n.dataPrevista) {
+      u = urgenza(n.dataPrevista, oggi);
+      dettaglio = "previsto " + String(n.dataPrevista).split("-").reverse().join("/");
+    } else continue;
+    if (u.cls !== "danger" && u.cls !== "warn") continue;
+    items.push({ gravita: u.cls, categoria: "manutenzione",
+      titolo: (n.titolo || "Manutenzione") + " — " + (n.mezzo || "?"),
+      dettaglio, badge: u.label });
+  }
+  for (const r of sottoScorta(ricambi)) {
+    const zero = (+r.giacenza || 0) <= 0;
+    items.push({ gravita: zero ? "danger" : "warn", categoria: "ricambio",
+      titolo: r.nome || "Ricambio",
+      dettaglio: "giacenza " + (+r.giacenza || 0) + " / min " + (+r.sogliaMin || 0),
+      badge: zero ? "Esaurito" : "Sotto scorta" });
+  }
+  for (const m of mezzi || []) {
+    if ((m.stato || "operativo") === "operativo") continue;
+    items.push({ gravita: m.stato === "fermo" ? "danger" : "warn", categoria: "mezzo",
+      titolo: m.nome || "Mezzo", dettaglio: m.area || "—",
+      badge: m.stato === "fermo" ? "Fermo" : "In verifica" });
+  }
+  const rank = { danger: 0, warn: 1 };
+  const catRank = { manutenzione: 0, ricambio: 1, mezzo: 2 };
+  return items.sort((a, b) =>
+    (rank[a.gravita] - rank[b.gravita]) ||
+    (catRank[a.categoria] - catRank[b.categoria]) ||
+    String(a.titolo).localeCompare(String(b.titolo), "it"));
+}
+
 // Ripartizione dei costi per VOCE: accorpa i costi con lo stesso nome e ne dà
 // l'incidenza % sul totale, dal più pesante. Serve a vedere a colpo d'occhio
 // dove va la spesa della flotta (carburante vs ricambi vs noleggi…). Le voci a
