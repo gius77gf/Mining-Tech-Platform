@@ -57,6 +57,7 @@
     <button class="dw-btn secondary" data-filtro="elaborato" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Elaborati</button>
     <button class="dw-btn secondary" data-filtro="pianificato" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Pianificati</button>
   </div>
+  <div id="ril-trend" class="note" style="text-align:left;"></div>
   <div id="ril-list"></div>
   <div class="sec">Valore del materiale estratto</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
@@ -114,7 +115,7 @@
 </script>
 
 <script type="module">
-  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, parseRilieviCsv } from "./terra-data.js";
+  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, parseRilieviCsv, trendVolumi } from "./terra-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const FB = { attivo: ["ok","Attivo"], sospeso: ["warn","Sospeso"] };
@@ -162,6 +163,12 @@
       || '<div class="note" style="text-align:left;">Nessun fronte registrato: aggiungine uno qui sotto.</div>';
     $("new-ril-fronte").innerHTML = '<option value="">— fronte —</option>' +
       FRO.map(f => `<option value="${f.id}">${esc(f.nome)}</option>`).join("");
+
+    // Andamento volumi: ultimo rilievo elaborato vs precedente.
+    const tv = trendVolumi(RIL);
+    $("ril-trend").innerHTML = tv
+      ? `Andamento: ultimo rilievo <b>${tv.ultimo.toLocaleString("it-IT")} m³</b>, ${tv.delta >= 0 ? "+" : ""}${tv.delta.toLocaleString("it-IT")} m³${tv.pct != null ? " (" + (tv.pct >= 0 ? "+" : "") + tv.pct + "%)" : ""} sul precedente <span class="badge ${tv.delta >= 0 ? "ok" : "warn"}">${tv.delta >= 0 ? "in aumento" : "in calo"}</span>`
+      : "";
 
     const ril = RIL.filter(r => filtroRil === "tutti" || r.stato === filtroRil)
                    .sort((a,b) => (b.data||"").localeCompare(a.data||""));
