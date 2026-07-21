@@ -1082,5 +1082,44 @@ test("terra.kpiFrom: mese/anno LOCALI, coerenti con le date dei rilievi", () => 
   eq(k.volumiMese, 1000, "il rilievo del 1° luglio conta nel mese corrente");
 });
 
+console.log("\n— Confini e casi limite (helper di questa sessione) —");
+test("proiezioneAnnua: soglie di stato ok (<90%) / warn (90-100%) a metà anno", () => {
+  const meta = new Date(2026, 6, 2);   // ~50% dell'anno trascorso
+  const ok = terra.proiezioneAnnua([{ data: "2026-04-01", volumeM3: 20000, stato: "elaborato" }], 100000, meta);
+  eq(ok.stato, "ok", "proiezione ~40% → ok");
+  const warn = terra.proiezioneAnnua([{ data: "2026-04-01", volumeM3: 47500, stato: "elaborato" }], 100000, meta);
+  eq(warn.stato, "warn", "proiezione ~95% → warn");
+  if (!(warn.pctPiano >= 90 && warn.pctPiano < 100)) throw new Error("pctPiano warn deve stare in [90,100): " + warn.pctPiano);
+});
+test("prioritaOperative: manutenzione a ore su un mezzo assente viene ignorata (non crasha)", () => {
+  const p = flotta.prioritaOperative(
+    [{ nome: "Escavatore E1 — CAT 352", ore: 100, stato: "operativo" }],
+    [{ titolo: "Tagliando", mezzo: "Mezzo Fantasma", orePreviste: 50 }],   // mezzo non nel parco
+    []);
+  eq(p, [], "nessuna voce: il mezzo della manutenzione a ore non esiste");
+});
+test("coperturaRapportini: un rapportino di una squadra sconosciuta non falsa il conteggio", () => {
+  const c = campo.coperturaRapportini(
+    [{ nome: "Squadra A — Perforazione" }],
+    [{ squadra: "Squadra Z", stato: "inviato" }, { squadra: "Squadra A", stato: "inviato" }]);
+  eq(c.coperte, 1, "solo A conta");
+  eq(c.totale, 1, "una squadra");
+  eq(c.mancanti, [], "A ha consegnato");
+});
+test("estrattoContoCliente: cliente con sole fatture NON scadute = documento senza mora", () => {
+  const t = conti.estrattoContoCliente("Futura Srl",
+    [{ numero: "2026/050", cliente: "Futura Srl", importo: 5000, scadenza: "2026-09-30", incassata: false }],
+    new Date(2026, 6, 21));
+  if (t == null) throw new Error("deve restituire il documento anche senza scaduti");
+  if (!t.includes("Totale aperto: € 5.000")) throw new Error("manca il totale aperto");
+  if (!t.includes("non ancora scaduta")) throw new Error("la fattura futura va marcata come non scaduta");
+  if (t.includes("Interessi di mora")) throw new Error("senza scaduti non deve comparire la riga mora");
+});
+test("prioritaConformita: misura esattamente al 90% della soglia = attenzione (warn)", () => {
+  const p = sentinella.prioritaConformita([{ nome: "M", valore: 9, soglia: 10, unita: "u" }], [], new Date(2026, 6, 21));
+  eq(p.length, 1, "una misura in attenzione");
+  eq(p[0].gravita, "warn", "ratio 0.90 → attenzione");
+});
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
