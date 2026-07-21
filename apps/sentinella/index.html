@@ -290,9 +290,21 @@
   $("vol-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseVolateCsv(await file.text());
-    for (const r of righe) await db.aggiungi("volate", r);
+    // Dedup come gli altri import: un doppio click su "Importa" non deve
+    // raddoppiare il registro volate (documento regolatorio). Firma =
+    // data|fronte|nFori|kgTotali (due volate diverse stesso giorno/fronte
+    // restano distinte se cambiano fori o carica).
+    const firma = (r) => [(r.data || ""), (r.fronte || "").trim().toLowerCase(), +r.nFori || 0, +r.kgTotali || 0].join("|");
+    const gia = new Set(VOL.map(firma));
+    let agg = 0, dup = 0;
+    for (const r of righe) {
+      if (gia.has(firma(r))) { dup++; continue; }
+      gia.add(firma(r));   // scarta i doppioni anche DENTRO lo stesso file
+      await db.aggiungi("volate", r);
+      agg++;
+    }
     $("vol-file").value = "";
-    $("vol-esito-msg").textContent = "Import registro: " + righe.length + " volate aggiunte.";
+    $("vol-esito-msg").textContent = `Import registro: ${agg} volate aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}.`;
     await refresh();
   };
   $("btn-ade").onclick = async () => {
