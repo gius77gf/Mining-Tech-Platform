@@ -352,6 +352,12 @@ test("previsioneGiorni: già scaduto = 0, ritmo assente/zero = null", () => {
   eq(flotta.previsioneGiorni(80, 0), null, "ritmo 0 → non stimabile");
   eq(flotta.previsioneGiorni(80, undefined), null, "ritmo assente → non stimabile");
 });
+test("disponibilitaFlotta: % operativi sul totale", () => {
+  const mezzi = [{ stato: "operativo" }, { stato: "operativo" }, { stato: "fermo" }, { stato: "verifica" }];
+  eq(flotta.disponibilitaFlotta(mezzi), { pct: 50, operativi: 2, totale: 4 }, "2 su 4 = 50%");
+});
+test("disponibilitaFlotta: nessun mezzo = pct null (niente divisione per zero)", () =>
+  eq(flotta.disponibilitaFlotta([]), { pct: null, operativi: 0, totale: 0 }, "vuoto"));
 
 console.log("\n— Confini: stato misura sensori (Sentinella) —");
 test("statoMisura: rapporto esattamente 1,0 = superamento", () =>
