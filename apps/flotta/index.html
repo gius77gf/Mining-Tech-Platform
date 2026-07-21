@@ -59,7 +59,10 @@
     <input class="dw-input" id="ore-nuove" type="number" placeholder="Ore attuali" style="flex:1;min-width:110px;">
     <button class="dw-btn" id="btn-ore" style="width:auto;">Registra</button>
   </div>
-  <button class="dw-btn secondary" id="btn-tele" style="width:auto;margin-top:8px;">Importa telemetria (CSV)</button>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+    <button class="dw-btn secondary" id="btn-tele" style="width:auto;">Importa telemetria (CSV)</button>
+    <button class="dw-btn secondary" id="btn-flotta-export" style="width:auto;">Esporta situazione (CSV)</button>
+  </div>
   <input type="file" id="tele-file" accept=".csv,text/csv" style="display:none;">
   <div class="note" id="ore-esito" style="text-align:left;"></div>
 </div>
@@ -126,7 +129,7 @@
 
 <script type="module">
   import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, scaricoGiacenza, parseTelemetriaCsv } from "./flotta-data.js";
-  import { mountExit, esc } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const MB = { operativo: ["ok","Operativo"], fermo: ["danger","Fermo"], verifica: ["warn","Verifica"] };
   const sig = (n) => (n||"?").split(" ")[0].slice(0,2).toUpperCase();
@@ -339,6 +342,23 @@
     $("tele-file").value = "";
     $("ore-esito").textContent = "Telemetria importata: " + agg + " mezzi aggiornati" + (ign ? ", " + ign + " righe ignorate (mezzo non trovato o ore inferiori)" : "") + ".";
     await refresh();
+  };
+  // Esporta la situazione della flotta (mezzi, manutenzioni pianificate,
+  // ricambi con evidenza di quelli sotto scorta) in un CSV leggibile, da
+  // girare a un responsabile o all'officina. Colonne: tipo;nome;stato;dettaglio.
+  $("btn-flotta-export").onclick = () => {
+    let csv = "tipo;nome;stato;dettaglio\n";
+    for (const m of MEZ.slice().sort((a, b) => a.nome.localeCompare(b.nome, "it")))
+      csv += `mezzo;${csvCell(m.nome)};${m.stato};${csvCell((m.ore || 0).toLocaleString("it-IT") + " h" + (m.area ? " · " + m.area : ""))}\n`;
+    for (const n of MAN.slice().sort((a, b) => (a.dataPrevista || "9999") < (b.dataPrevista || "9999") ? -1 : 1))
+      csv += `manutenzione;${csvCell(n.titolo + " — " + n.mezzo)};pianificata;${csvCell(n.orePreviste ? "a " + n.orePreviste + " h motore" : "previsto " + (n.dataPrevista ? n.dataPrevista.split("-").reverse().join("/") : "—"))}\n`;
+    const scorta = new Set(sottoScorta(RIC).map(r => r.id));
+    for (const r of RIC.slice().sort((a, b) => a.nome.localeCompare(b.nome, "it")))
+      csv += `ricambio;${csvCell(r.nome)};${scorta.has(r.id) ? "sotto scorta" : "ok"};${csvCell("giacenza " + (+r.giacenza || 0) + " · soglia min " + (+r.sogliaMin || 0))}\n`;
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.download = "flotta_situazione.csv"; a.click();
+    $("ore-esito").textContent = "Esportati " + MEZ.length + " mezzi, " + MAN.length + " manutenzioni, " + RIC.length + " ricambi (CSV).";
   };
   $("btn-man").onclick = async () => {
     const titolo = $("man-titolo").value.trim(), dataPrevista = $("man-data").value, orePreviste = +$("man-ore").value || null;
