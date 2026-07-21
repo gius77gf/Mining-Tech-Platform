@@ -38,6 +38,7 @@
 
 <div class="page" id="page-mez">
   <div class="sec">Parco mezzi</div>
+  <div id="mez-disp" class="note" style="text-align:left;"></div>
   <div id="mez-filtri" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
     <button class="dw-btn secondary" data-filtro="tutti" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Tutti</button>
     <button class="dw-btn secondary" data-filtro="operativo" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Operativi</button>
@@ -110,7 +111,7 @@
 </script>
 
 <script type="module">
-  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni } from "./flotta-data.js";
+  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta } from "./flotta-data.js";
   import { mountExit, esc } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const MB = { operativo: ["ok","Operativo"], fermo: ["danger","Fermo"], verifica: ["warn","Verifica"] };
@@ -162,6 +163,9 @@
       <span class="badge ${a.u[0]}">${a.u[1]}</span></div>`).join("") || '<div class="note">Nessuna criticità sul parco mezzi.</div>';
 
     const ordStato = { fermo: 0, verifica: 1, operativo: 2 };
+    const disp = disponibilitaFlotta(MEZ);
+    $("mez-disp").innerHTML = disp.pct == null ? ""
+      : `Disponibilità flotta: <b>${disp.pct}%</b> (${disp.operativi} operativi su ${disp.totale}). <span style="color:var(--muted);">Riferimento world-class ~92-94%.</span>`;
     const mezOrd = MEZ.slice().sort((a, b) => (ordStato[a.stato] ?? 3) - (ordStato[b.stato] ?? 3) || a.nome.localeCompare(b.nome, "it"))
                        .filter(m => filtroMez === "tutti" || m.stato === filtroMez);
     $("mez-list").innerHTML = mezOrd.map(m => `<div class="item" data-mezzo="${m.id}" style="cursor:pointer" title="Tocca per cambiare stato">

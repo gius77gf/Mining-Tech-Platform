@@ -59,6 +59,15 @@ export function previsioneGiorni(mancanoOre, oreGiorno) {
   return Math.ceil(mancanoOre / rate);
 }
 
+// Disponibilità della flotta: % di mezzi operativi sul totale. È il KPI
+// "di testa" per un parco di cava (world-class ~92-94% per i camion).
+// Ritorna { pct, operativi, totale }; pct null se non ci sono mezzi.
+export function disponibilitaFlotta(mezzi) {
+  const totale = (mezzi || []).length;
+  const operativi = (mezzi || []).filter(m => m.stato === "operativo").length;
+  return { pct: totale ? Math.round(100 * operativi / totale) : null, operativi, totale };
+}
+
 export function kpiFrom(mezzi, manutenzioni, costi) {
   return {
     operativi: mezzi.filter(m => m.stato === "operativo").length,
