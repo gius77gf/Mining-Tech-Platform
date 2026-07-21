@@ -68,6 +68,7 @@
   </div>
   <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
     <button class="dw-btn secondary" id="btn-squ-import" style="width:auto;">Importa squadre (CSV)</button>
+    <button class="dw-btn secondary" id="btn-squ-export" style="width:auto;">Esporta squadre (CSV)</button>
     <input type="file" id="squ-file" accept=".csv,text/csv" style="display:none;">
     <span class="dw-muted" style="font-size:12px;">colonne: nome;persone;area;stato</span>
   </div>
@@ -124,7 +125,7 @@
 
 <script type="module">
   import { campoData, kpiFrom, parsePianoCsv, parseSquadreCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini } from "./campo-data.js";
-  import { mountExit, esc } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const AB = { "in-corso": ["ok","In corso"], pianificata: ["warn","Pianificata"], anomalia: ["danger","Anomalia"], conclusa: ["ok","Conclusa"] };
   const QB = { operativa: ["ok","Operativa"], ferma: ["danger","Ferma"] };
@@ -285,6 +286,17 @@
     $("squ-file").value = "";
     $("squ-esito").textContent = `Import squadre: ${agg} aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}.`;
     await refresh();
+  };
+  $("btn-squ-export").onclick = () => {
+    // backup/condivisione delle squadre, nello STESSO formato dell'import
+    // (nome;persone;area;stato): il file esportato si può re-importare.
+    let csv = "nome;persone;area;stato\n";
+    for (const q of SQU)
+      csv += `${csvCell(q.nome)};${+q.persone || 0};${csvCell(q.area || "")};${q.stato || "operativa"}\n`;
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.download = "campo_squadre.csv"; a.click();
+    $("squ-esito").textContent = "Esportate " + SQU.length + " squadre (CSV).";
   };
   // Consegna di turno (handover): un testo con i rapportini e le anomalie
   // aperte, pronto da passare al turno successivo o da archiviare.
