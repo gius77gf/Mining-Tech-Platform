@@ -1,79 +1,91 @@
-# Genesi — le nuove funzioni "da grandi" (in parole semplici)
+# Genesi — le funzioni recenti (in parole semplici, con onestà)
 
 _Per Giuseppe · aggiornato 2026-07-21_
 
-Genesi è il simulatore di volata (drill & blast) che gira nel browser. In
-questi cicli ha guadagnato tre funzioni che lo avvicinano agli strumenti dei
-big del settore (Orica, Maxam, O-Pitblast…). Qui sotto: **a cosa servono**,
-**perché contano** e **come si usano**. Tutte lavorano nel browser, senza
-server e senza costi.
+**Premessa onesta e importante.** Genesi NON è al livello dei concorrenti, e non
+lo sarà "facilmente". Aziende come Orica, Maxam, Maptek, O-Pitblast hanno
+database di volate reali costruiti in decenni, modelli **calibrati sul campo**,
+integrazione con perforatrici e detonatori veri, team di ingegneri e geologi,
+supporto e certificazioni. Noi abbiamo un simulatore che gira nel browser. Le
+funzioni qui sotto sono **primi passi nella direzione giusta**, non una parità:
+sono utili, ma **non ancora validate su dati reali di una tua cava**. Vanno
+lette così.
 
 ---
 
 ## 1. Riconciliazione: previsto vs reale
 
-**A cosa serve.** Dopo la volata, confronti quello che Genesi aveva *previsto*
-(pezzatura x50, vibrazioni PPV, flyrock) con quello che è *successo davvero* in
-cava. È il modo in cui i professionisti "chiudono il cerchio" e migliorano le
-volate successive.
+**Cosa fa.** Dopo la volata, puoi confrontare quello che Genesi aveva *previsto*
+(pezzatura x50, vibrazioni PPV, flyrock) con quello che è *successo davvero*.
 
-**Perché conta.** Un simulatore che non si confronta col reale resta un
-giocattolo. Con la riconciliazione, Genesi *impara dalla cava*: vedi subito se
-tende a sovrastimare o sottostimare, e di quanto.
+**Perché è utile.** Confrontarsi col reale è il modo giusto per migliorare: si
+vede se il modello tende a sbagliare, e di quanto.
 
-**Come si usa.** Nella scheda dedicata: inserisci i valori reali misurati; la
-tabella mostra lo scarto (verde se vicino, giallo/rosso se lontano). Puoi
-salvare lo storico ed esportarlo in CSV.
+**Il limite.** È un confronto grezzo su numeri inseriti a mano: **non** calibra
+automaticamente il modello, e senza uno storico di volate reali della tua cava
+resta indicativo. I leader su questo hanno anni di dati; noi no (ancora).
+
+**Come si usa.** Scheda dedicata: inserisci i valori reali; la tabella mostra lo
+scarto (verde/giallo/rosso). Salvi lo storico ed esporti in CSV.
 
 ---
 
 ## 2. Signature-hole: le vibrazioni dall'onda vera
 
-**A cosa serve.** Invece di stimare le vibrazioni solo con una formula
-generica, importi la **registrazione di un foro singolo** (un file CSV del
-sismografo) e Genesi la "somma" secondo i ritardi della tua volata, ottenendo
-la vibrazione composita prevista al ricettore.
+**Cosa fa.** Importi la registrazione di un **foro singolo** (CSV del
+sismografo) e Genesi la "somma" secondo i ritardi della volata, stimando la
+vibrazione composita.
 
-**Perché conta.** È il metodo che usano i grandi (es. Orica AVM): tiene conto
-della *tua* roccia e del *tuo* timing, quindi è molto più preciso della sola
-legge di Devine. Aiuta a rispettare i limiti verso le case vicine.
+**Perché è utile.** È lo stesso *principio* dei metodi avanzati (es. Orica AVM):
+tiene conto della tua roccia e del tuo timing meglio di una formula generica.
 
-**Come si usa.** Importi il CSV del foro-firma; Genesi mostra il picco
-composito, l'amplificazione rispetto al singolo foro e un grafico. C'è una nota
-onesta: il metodo assume che i fori contribuiscano in modo simile — è una
-stima, non una misura certificata.
+**Il limite (dichiarato anche nell'app).** La nostra versione è **semplificata**:
+assume che i fori contribuiscano in modo simile, e non è validata con misure di
+controllo. È una **stima**, non una previsione certificata. Il metodo dei big è
+molto più raffinato.
+
+**Come si usa.** Importi il CSV del foro-firma; vedi il picco composito,
+l'amplificazione e un grafico, con la nota di onestà.
 
 ---
 
 ## 3. Export del piano di innesco (XML in stile IREDES)
 
-**A cosa serve.** Dal Progetto 2D esporti un file XML con **tutto il piano**:
-maglia, diametro, esplosivo, tipo di innesco, sequenza, ritardi, e la lista dei
-fori (posizione, profondità, carica, borraggio, ritardo). Serve per passare il
-piano a **detonatori elettronici** o a **software di terzi**.
+**Cosa fa.** Dal Progetto 2D esporti un file XML col piano (maglia, esplosivo,
+innesco, sequenza, ritardi, e i fori con posizione/carica/ritardo), per passarlo
+a detonatori elettronici o software di terzi.
 
-**Perché conta.** In fase commerciale, poter "parlare" con gli strumenti che il
-cliente già usa è un punto a favore: non lo costringi a reinserire tutto a mano.
+**Il limite (dichiarato nel file).** È una **bozza di interscambio**, **non**
+una conformità IREDES certificata. Va provata con lo strumento reale del cliente
+prima di fidarsi.
 
-**Come si usa.** Pulsante "Esporta piano di innesco (XML IREDES-like)". Onestà:
-è una **bozza di interscambio**, non una conformità IREDES certificata (lo
-dichiara il file stesso). Per il fochino resta il "piano di carico" in CSV.
-
----
-
-## Cosa Genesi NON fa ancora (e perché aspettiamo te)
-
-Due funzioni molto potenti — il **burden reale per foro** (dal 3D del fronte) e
-l'**import della deviazione dei fori** (boretrack) — sono **rimandate di
-proposito**. Richiedono di interpretare la geometria del fronte, e un avviso
-sbagliato di flyrock sarebbe **pericoloso per il fochino**. Le faremo solo dopo
-una tua conferma sui dati geometrici. È una scelta di sicurezza, non un ritardo.
+**Come si usa.** Pulsante "Esporta piano di innesco (XML IREDES-like)". Per il
+fochino resta il "piano di carico" in CSV.
 
 ---
+
+## Quanto siamo distanti dai leader (senza girarci intorno)
+
+- **Validazione sul campo**: loro calibrano i modelli su migliaia di volate
+  reali. Noi non abbiamo ancora questo dato. È il divario più grande.
+- **Hardware e integrazioni**: loro dialogano con perforatrici MWD e sistemi di
+  detonatori elettronici reali. Il nostro export è una bozza, non un
+  collegamento certificato.
+- **Immagine/ML**: loro misurano la pezzatura reale da foto del cumulo con
+  modelli addestrati. Noi no (richiede un backend e un dataset).
+- **Persone e supporto**: loro hanno team dedicati e assistenza. Noi siamo
+  all'inizio.
+
+## Cosa Genesi NON fa ancora (rimandato di proposito, per sicurezza)
+
+Il **burden reale per foro** e l'**import della deviazione dei fori**
+(boretrack) toccano la geometria del fronte: un avviso di flyrock sbagliato
+sarebbe **pericoloso per il fochino**. Non li spediamo finché non confermi tu
+come va letta la geometria del fronte, meglio con un caso reale della tua cava.
 
 ## In una riga
 
-Genesi ora **si confronta col reale** (riconciliazione), **stima le vibrazioni
-sull'onda vera** (signature-hole) e **parla con gli strumenti dei clienti**
-(export innesco). Restano da sbloccare, con la tua conferma, le funzioni che
-toccano la geometria del fronte.
+Genesi ha fatto **primi passi utili** (riconciliazione, signature-hole
+semplificato, export in bozza), ma resta **molto distante dai leader**: la
+strada seria passa dalla **validazione sul campo** con dati reali della tua
+cava. Nessuna scorciatoia.

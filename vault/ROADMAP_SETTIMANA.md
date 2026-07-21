@@ -370,12 +370,14 @@ Avanzamento:
   sono il "chiudere il cerchio col dato reale".
 - **Genesi P0.1 — Riconciliazione previsto-vs-reale** (#300): FATTA e in
   produzione. Pannello che affianca previsto (X50/PPV/flyrock) e reale
-  misurato, con scostamento colorato, storico localStorage, export CSV. È il
-  gap #1 dei leader (tipo Maptek BlastLogic). Non tocca il motore fisico.
+  misurato, con scostamento colorato, storico localStorage, export CSV. Affronta
+  lo stesso tema dei leader (tipo Maptek BlastLogic), ma è un primo passo NON
+  validato sul campo, non una parità. Non tocca il motore fisico.
 - **Genesi P0.2 — Signature-hole** (#302): FATTA e in produzione. Importa la
   registrazione di un foro singolo (CSV) e la somma ritardata secondo i tempi
-  della volata → PPV composito + amplificazione + sparkline SVG + export. È il
-  metodo dei big (Orica AVM), più preciso della sola legge di Devine.
+  della volata → PPV composito + amplificazione + sparkline SVG + export. Usa lo
+  stesso principio del metodo dei big (Orica AVM), ma è una versione
+  semplificata e non validata (assume contributi simili tra i fori).
 - **Genesi P1.3 — Export piano di innesco (XML IREDES-like)**: FATTO (bozza). Dal
   Progetto 2D esporta un `BlastPlan` XML (metadati volata + fori con posizione,
   profondità, carica, borraggio, ritardo). Bozza di interscambio, NON conformità
@@ -426,9 +428,11 @@ Avanzamento:
 ### Stato feature Genesi vs competitor (aggiornato)
 Genesi ora ha: frammentazione Kuz-Ram/KCO, flyrock, fori bagnati, presplit,
 A/B, detonatori, **vibrazioni PPV/Devine + airblast**, MWD, 3D-da-foto, e ORA
-**riconciliazione previsto-vs-reale** (#300) + **signature-hole** (#302). I due
-gap #1/#2 dei leader sono coperti lato browser. Restano P1 (dato reale di
-perforazione: burden/boretrack/export) e P2 (immagine/ML, backend).
+**riconciliazione previsto-vs-reale** (#300) + **signature-hole** (#302). Sono
+primi passi lato browser sugli stessi TEMI dei leader — NON parità: manca la
+validazione sul campo, i database reali di volate, le integrazioni hardware
+(perforatrici/detonatori), che restano il vero divario. Restano P1 (dato reale
+di perforazione: burden/boretrack/export) e P2 (immagine/ML, backend).
 
 ## Fine progetto (fase commercializzazione) — NON prima
 - Acquisto dominio + sottodomini. DECISIONE DEL FONDATORE: nessuna

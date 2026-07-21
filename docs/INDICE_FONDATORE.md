@@ -31,9 +31,9 @@ serve**, così non devi ricordarti i nomi.
   cosa è spento da configurazione, cosa è fuorviante.
 
 ## Se vuoi capire Genesi (il simulatore di volata) e le sue novità
-- **`docs/GENESI_NUOVE_FUNZIONI.md`** — le tre nuove funzioni "da grandi"
-  (riconciliazione previsto-vs-reale, vibrazioni dall'onda vera, export del
-  piano di innesco) in parole semplici: a cosa servono e come si usano.
+- **`docs/GENESI_NUOVE_FUNZIONI.md`** — le funzioni recenti (riconciliazione,
+  vibrazioni dall'onda vera, export del piano di innesco) spiegate con onestà:
+  primi passi utili, **non** parità coi leader, e quanto siamo ancora distanti.
 - **`docs/GENESI_ROADMAP_COMPETITOR.md`** — dove siamo rispetto ai concorrenti
   e cosa conviene fare dopo, per impatto/fattibilità.
 
