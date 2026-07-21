@@ -360,10 +360,23 @@ altre app. Fatto sul cuore, in modo sicuro (PR #297):
   dati di produzione + attivazione flag. Toccano infra/produzione → conferma
   del fondatore, come MITIGAZIONE_PASSWORD. Preparate, NON attivate.
 
-## PROSSIMO (direttiva fondatore 21/07): RICERCA Genesi + rivali → poi qualità app
-Ordine richiesto dal fondatore: 1) ricerca approfondita su Genesi e tutti i
-competitor (Orica, Maptek, Maxam, Strayos, O-Pitblast, ecc.) per portare Genesi
-al loro livello (o poco sotto); 2) alzare la qualità delle altre app verticali.
+## DIRETTIVA fondatore 21/07: Genesi al livello dei rivali → poi qualità app
+Ordine richiesto: 1) ricerca su Genesi + competitor (FATTA, docs/
+GENESI_ROADMAP_COMPETITOR.md, #299); 2) portare Genesi al loro livello;
+3) alzare la qualità delle altre app.
+Avanzamento:
+- **Ricerca competitor** (#299): fatta. Scoperto che Genesi ha già molto
+  (vibrazioni PPV/Devine, airblast, MIC, flyrock, KCO/Swebrec...); i gap veri
+  sono il "chiudere il cerchio col dato reale".
+- **Genesi P0.1 — Riconciliazione previsto-vs-reale** (#300): FATTA e in
+  produzione. Pannello che affianca previsto (X50/PPV/flyrock) e reale
+  misurato, con scostamento colorato, storico localStorage, export CSV. È il
+  gap #1 dei leader (tipo Maptek BlastLogic). Non tocca il motore fisico.
+- **Prossimo Genesi**: P0.2 signature-hole (vibrazioni da onda reale), poi P1
+  (burden reale dal 3D, boretrack, export IREDES/detonatori). P2
+  (immagine/ML) richiede backend.
+- **Poi**: qualità delle altre app verticali (già molto rifinite in questa
+  settimana).
 
 ## Fine progetto (fase commercializzazione) — NON prima
 - Acquisto dominio + sottodomini. DECISIONE DEL FONDATORE: nessuna
@@ -386,7 +399,7 @@ al loro livello (o poco sotto); 2) alzare la qualità delle altre app verticali.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/20260721-223500_core-xss-sweep-completo.md
+- Ultimo checkpoint: vault/checkpoints/20260722-000000_genesi-riconciliazione.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
