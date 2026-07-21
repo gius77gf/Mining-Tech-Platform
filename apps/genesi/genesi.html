@@ -1883,9 +1883,9 @@ let _sigData=null, _sigComp=null;
 function _sigDetTimes(){
   const H=D2.holes;
   if(H&&H.length) return H.map(h=>+h.tDet||0);
-  const nc=D2.perRow||18, nr=D2.file||1, ri=+D2.ritardo||25, rf=+D2.ritardoFila||42, out=[];
+  const nc=Math.max(1,+D2.perRow||18), nr=Math.max(1,+D2.file||1), ri=+D2.ritardo||25, rf=+D2.ritardoFila||42, out=[];
   for(let r=0;r<nr;r++) for(let c=0;c<nc;c++) out.push(c*ri+r*rf);
-  return out;
+  return out.length?out:[0];   // mai vuoto: evita Math.max([]) = -Infinity nella superposizione
 }
 function _sigParse(text){
   const rows=String(text||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean)
@@ -1929,7 +1929,7 @@ function sigRender(){
     +'<div style="color:var(--mut)">Limite norma</div><div>'+lim+' mm/s '+(rat>=1?'<b style="color:#ef5350">SUPERATO</b>':'')+'</div>'
     +'<div style="color:var(--mut)">Confronto stima Devine</div><div>'+dev+' mm/s</div>'
     +'</div>'
-    +'<div style="margin-top:8px;color:var(--mut);font-size:12px;">Il composito dipende dai <b>ritardi</b>: se supera il limite, scegli ritardi che spezzino la somma d&rsquo;onda (evita che fori vicini cadano nella stessa finestra). Stima da confermare col sismografo.</div>';
+    +'<div style="margin-top:8px;color:var(--mut);font-size:12px;">Il composito dipende dai <b>ritardi</b>: se supera il limite, scegli ritardi che spezzino la somma d&rsquo;onda (evita che fori vicini cadano nella stessa finestra). Assunzione: ogni foro contribuisce con la <b>stessa firma</b> (stessa distanza/carica del foro registrato); per fori molto più lontani il composito è cautelativo. Stima da confermare col sismografo.</div>';
 }
 if($('sigOpen')) $('sigOpen').onclick=()=>{ sigRender(); $('sigModal').style.display='flex'; };
 if($('sigClose')) $('sigClose').onclick=()=>{ $('sigModal').style.display='none'; };
