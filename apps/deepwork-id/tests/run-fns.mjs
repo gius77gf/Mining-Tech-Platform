@@ -112,7 +112,11 @@ await test("con un secondo owner il declassamento passa", async () => {
   await id.updateMemberRole("tizio", "owner");
   await id.updateMemberRole("boss", "admin");
   expect(await roleOf("boss") === "admin" && await roleOf("tizio") === "owner", "ruoli inattesi");
-  // ripristino: tizio (owner) rimette boss owner e torna member
+  // ripristino: tizio (ora owner) rimette boss owner e torna member. tizio è
+  // diventato owner poco fa via trigger asincrono: attendo la propagazione del
+  // claim prima del login, così il suo token dice "owner" e updateMemberRole
+  // non viene respinto per permessi (stessa classe del fix sull'ultimo owner).
+  await waitClaim("tizio", "orgA", "owner");
   await id.loginWithEmail("tizio@cava-alfa.it", "password-123");
   await id.updateMemberRole("boss", "owner");
   await id.updateMemberRole("tizio", "member");
