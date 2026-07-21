@@ -288,6 +288,22 @@ test("incassoPerMese: lista vuota = 6 mesi a zero, niente scadute (no crash)", (
   eq(r.mesi.every(m => m.conto === 0 && m.importo === 0), true, "tutti a zero");
   eq(r.scadute, { conto: 0, importo: 0 }, "niente scadute");
 });
+test("esposizioneClienti: totale non incassato per cliente, con scaduto, dal più esposto", () => {
+  const oggi = new Date(2026, 6, 20);   // 20 luglio 2026
+  const fatture = [
+    { cliente: "Edil Srl", importo: 5000, incassata: false, scadenza: "2026-07-10" }, // scaduta
+    { cliente: "Edil Srl", importo: 3000, incassata: false, scadenza: "2026-08-30" }, // a scadere
+    { cliente: "Strade Spa", importo: 2000, incassata: false, scadenza: "2026-08-01" },
+    { cliente: "Edil Srl", importo: 9999, incassata: true,  scadenza: "2026-07-01" }, // incassata → esclusa
+    { cliente: "Vuoto", importo: 0, incassata: false, scadenza: "2026-08-01" },       // importo 0 → escluso
+  ];
+  const e = conti.esposizioneClienti(fatture, oggi);
+  eq(e.length, 2, "2 clienti esposti");
+  eq(e[0], { cliente: "Edil Srl", totale: 8000, scaduto: 5000, conto: 2 }, "Edil in cima: 8000, scaduto 5000");
+  eq(e[1], { cliente: "Strade Spa", totale: 2000, scaduto: 0, conto: 1 }, "Strade: 2000, niente scaduto");
+});
+test("esposizioneClienti: nessuna fattura aperta = lista vuota (niente crash)", () =>
+  eq(conti.esposizioneClienti([{ cliente: "X", importo: 100, incassata: true, scadenza: "2026-07-01" }]), [], "tutte incassate"));
 test("parseFattureCsv: legge le fatture, coerce importo/incassata, scarta rotte", () => {
   const csv = "numero;cliente;importo;emessa;scadenza;incassata\n"
     + "2026/050;Edil Srl;1000,50;2026-07-01;2026-08-01;si\n"
