@@ -202,6 +202,27 @@ Cicli automatici proseguiti a oltranza (regola del fondatore). Sintesi:
   `docs/ONBOARDING_DATI.md` (i CSV da preparare per caricare una cava, #220).
 Dettaglio per unità: vault/checkpoints/ dal 2026-07-21_0639 in poi.
 
+## SESSIONE 21/07 (2ª parte) — revisioni "in cerca di bug" + rifiniture
+Su richiesta di massima qualità, quattro **revisioni adversarial** su superfici
+diverse; hanno trovato e fatto correggere **11 bug reali** invisibili ai test:
+- **Import CSV** (#225): `split(";")` ingenuo perdeva righe con `;` nei campi
+  (anche i CSV esportati dall'app) + numeri all'italiana (`18.300,50`) non
+  letti → ora `parseCsvLine` + helper `numIt`.
+- **Calcoli KPI** (#227): off-by-one in TUTTI i conteggi di giorni dal vivo
+  (una scadenza di oggi risultava "scaduta"; fattura di oggi fuori da
+  incassoAtteso) + Terra mese in UTC → helper `giorniTra` (mezzanotte locale).
+- **SDK** (#229): isolamento CONFERMATO solido; corretti 5 bug su entitlement/
+  stato (abbonamento che "restava" cambiando account, tour con org vecchie,
+  validUntil non-Timestamp, ecc.).
+- **Cloud Functions** (#231, SICUREZZA): 2 bug ALTI in acceptInvites — invite
+  hijacking via email non verificata; `.set()` che declassava un owner
+  esistente lasciando l'org senza owner. Corretti + guardie di test.
+Più rifiniture di prodotto: Scudo **adempimenti HSE preimpostati** (#228, da
+`vault/RICERCA_HSE_SCADENZE_CAVA.md` #226), Conti **previsione incassi per
+mese** (#230), Terra **andamento volumi** (#232). Doc fondatore: `INDICE_
+FONDATORE` (#224), `ISOLAMENTO_DATI` (#223) con nota di revisione (#233).
+Suite CI 228 → 247, tutta verde. Isolamento multi-tenant verificato solido.
+
 ## Fine progetto (fase commercializzazione) — NON prima
 - Acquisto dominio + sottodomini. DECISIONE DEL FONDATORE: nessuna
   spesa prima della commercializzazione.
