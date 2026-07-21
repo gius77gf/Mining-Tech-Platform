@@ -783,5 +783,25 @@ test("parseRilieviCsv: metodo con ';' tra virgolette NON sposta il gsd", () => {
   eq(p[0].volumeM3, 19400.5, "volume 19.400,5 letto");
 });
 
+console.log("\n— Conteggio giorni robusto all'ora del giorno (fix off-by-one) —");
+test("giorniTra + Scudo: una scadenza di OGGI non è 'scaduta' nel pomeriggio", () => {
+  const pom = new Date("2026-07-20T15:00:00");
+  eq(shell.giorniTra("2026-07-20", pom), 0, "oggi = 0 giorni");
+  eq(shell.giorniTra("2026-07-25", pom), 5, "tra 5 giorni (non 4)");
+  eq(scudo.statoScadenza("2026-07-20", pom), "in-scadenza", "oggi non è scaduta");
+  eq(scudo.livelloScadenza("2026-07-20", pom), { cls: "danger", label: "scade oggi", giorni: 0 }, "scade oggi");
+});
+test("conti/sentinella/flotta: nessun off-by-one con l'ora del giorno", () => {
+  const pom = new Date("2026-07-20T18:30:00");
+  eq(conti.giorni("2026-07-22", pom), 2, "conti: 2 giorni");
+  eq(sentinella.giorni("2026-07-20", pom), 0, "sentinella: oggi = 0");
+  eq(flotta.urgenza("2026-07-20", pom), { cls: "warn", label: "0 gg", giorni: 0 }, "flotta: 0 gg, non scaduta");
+});
+test("terra.kpiFrom: mese/anno LOCALI, coerenti con le date dei rilievi", () => {
+  const oggi = new Date(2026, 6, 1, 0, 30);   // 1° luglio 2026, 00:30 ORA LOCALE
+  const k = terra.kpiFrom([], [{ data: "2026-07-01", volumeM3: 1000, stato: "elaborato" }], [], oggi);
+  eq(k.volumiMese, 1000, "il rilievo del 1° luglio conta nel mese corrente");
+});
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);

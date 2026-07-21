@@ -13,7 +13,7 @@
 // (scaduta / entro 30gg / regolare) — niente dati derivati nel DB.
 // ============================================================
 
-import { parseCsvLine } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
   lavoratori: [
@@ -40,8 +40,7 @@ export const DEMO = {
 };
 
 export function statoScadenza(dataISO, oggi = new Date()) {
-  const d = new Date(dataISO + "T00:00:00");
-  const giorni = Math.floor((d - oggi) / 86400000);
+  const giorni = giorniTra(dataISO, oggi);
   if (giorni < 0) return "scaduta";
   if (giorni <= 30) return "in-scadenza";
   return "regolare";
@@ -79,7 +78,7 @@ export function idoneitaCriticita(lavoratori) {
 // mancante, così un dato incompleto non allarma).
 export function livelloScadenza(dataISO, oggi = new Date()) {
   if (!dataISO) return { cls: "ok", label: "senza data", giorni: null };
-  const g = Math.floor((new Date(dataISO + "T00:00:00") - oggi) / 86400000);
+  const g = giorniTra(dataISO, oggi);
   if (isNaN(g)) return { cls: "ok", label: "senza data", giorni: null };
   if (g < 0)  return { cls: "danger", label: "scaduta da " + (-g) + " gg", giorni: g };
   if (g === 0) return { cls: "danger", label: "scade oggi", giorni: 0 };
