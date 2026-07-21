@@ -61,11 +61,14 @@
   <div id="ril-list"></div>
   <div class="sec">Valore del materiale estratto</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <label class="note" style="margin:0;">Materiale
+      <select class="dw-input" id="val-materiale" title="Riempie la densità con un valore tipico del litotipo" style="width:auto;display:inline-block;margin-left:4px;"><option value="">— scegli —</option></select></label>
     <label class="note" style="margin:0;">Densità
       <input class="dw-input" id="val-densita" type="number" step="0.1" min="0" value="1.6" style="width:80px;display:inline-block;margin-left:4px;"> t/m³</label>
     <label class="note" style="margin:0;">Prezzo
       <input class="dw-input" id="val-prezzo" type="number" step="0.5" min="0" value="12" style="width:80px;display:inline-block;margin-left:4px;"> €/t</label>
   </div>
+  <div id="val-dens-nota" class="note" style="text-align:left;margin-top:4px;color:var(--muted);"></div>
   <div id="val-out" class="note" style="text-align:left;margin-top:8px;"></div>
   <div class="sec">Nuovo rilievo elaborato</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -116,7 +119,7 @@
 </script>
 
 <script type="module">
-  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, trendVolumi, classeAccuratezza, bandaVolume } from "./terra-data.js";
+  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, trendVolumi, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita } from "./terra-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const FB = { attivo: ["ok","Attivo"], sospeso: ["warn","Sospeso"] };
@@ -233,6 +236,20 @@
       : `Nessun volume elaborato per il ${anno}: registra un rilievo per stimare il valore.`;
   }
   ["val-densita","val-prezzo"].forEach(id => $(id).addEventListener("input", renderValore));
+  // Menù materiali: scelto un litotipo, riempie la densità col valore tipico
+  // (l'utente può poi correggerlo; la nota ricorda che va confermato).
+  $("val-materiale").innerHTML = '<option value="">— scegli —</option>' +
+    DENSITA_PRESET.map(p => `<option value="${p.chiave}">${esc(p.etichetta)}</option>`).join("");
+  $("val-materiale").addEventListener("change", (e) => {
+    const p = presetDensita(e.target.value);
+    if (p) {
+      $("val-densita").value = p.densita;
+      $("val-dens-nota").textContent = `Densità tipica (${p.densita} t/m³, fonte: ${p.fonte}) — valore da confermare col laboratorio.`;
+    } else $("val-dens-nota").textContent = "";
+    renderValore();
+  });
+  // se l'utente modifica la densità a mano, il menù torna neutro
+  $("val-densita").addEventListener("input", () => { $("val-materiale").value = ""; $("val-dens-nota").textContent = ""; });
 
   // interazioni: fronte alterna attivo/sospeso; form registra rilievo elaborato
   document.addEventListener("click", async (e) => {
