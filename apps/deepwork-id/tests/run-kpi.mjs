@@ -91,6 +91,15 @@ test("riepilogoInfortuni: senza infortuni veri giorniSenza è null (non un falso
   eq(r.nearMiss, 1, "un near-miss");
   eq(r.giorniSenza, null, "senza infortuni → null");
 });
+test("parseInfortuniCsv: legge data/tipo/gravità/giorni/descrizione; scarta data non ISO", () => {
+  const csv = "data;tipo;gravita;giorniAssenza;descrizione;luogo\n2026-02-03;infortunio;lieve;4;Taglio alla mano;officina\n2026-05-18;near-miss;lieve;0;Caduta massi;fronte Est\n15/05/2026;infortunio;grave;10;;\n";
+  const p = scudo.parseInfortuniCsv(csv);
+  eq(p.length, 2, "solo le 2 righe con data ISO");
+  eq(p[0], { data: "2026-02-03", tipo: "infortunio", gravita: "lieve", giorniAssenza: 4, descrizione: "Taglio alla mano", luogo: "officina" }, "riga completa");
+  eq(p[1].tipo, "near-miss", "near-miss riconosciuto");
+  const solo = scudo.parseInfortuniCsv("2026-01-01;xyz;;;;");
+  eq(solo[0].tipo, "near-miss", "tipo sconosciuto → near-miss (prudente)");
+});
 test("parseScadenzeCsv: legge lav/tipo/desc/data, azienda=null, scarta data non valida", () => {
   const csv = "lavoratore;tipo;descrizione;scadenza\n"
     + "Mario Rossi;Visita medica;Periodica;2026-09-01\n"

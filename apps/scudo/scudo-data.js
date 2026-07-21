@@ -13,7 +13,7 @@
 // (scaduta / entro 30gg / regolare) — niente dati derivati nel DB.
 // ============================================================
 
-import { parseCsvLine, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, numIt, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
   lavoratori: [
@@ -148,6 +148,30 @@ export function riepilogoInfortuni(infortuni, oggi = new Date()) {
   const giorniAssenzaTot = veri.reduce((s, x) => s + (+x.giorniAssenza || 0), 0);
   const gravi = veri.filter(x => x.gravita === "grave").length;
   return { infortuni: veri.length, nearMiss: nearMiss.length, gravi, giorniSenza, ultimo, giorniAssenzaTot };
+}
+
+// Import registro infortuni da CSV (onboarding: caricare lo storico eventi di
+// una cava). Colonne: data;tipo;gravita;giorniAssenza;descrizione[;luogo]
+// (header opzionale). Tiene solo le righe con data valida (AAAA-MM-GG). tipo:
+// "infortunio" oppure "near-miss" (qualsiasi altro valore → near-miss, il caso
+// più prudente per il contatore "giorni senza infortuni"). descrizione/luogo
+// sono testo grezzo → escapare dove mostrati. Pura e testabile.
+export function parseInfortuniCsv(text) {
+  return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !/^data\s*;/i.test(r))
+    .map(r => {
+      const [data, tipo, gravita, giorniAssenza, descrizione, luogo] = parseCsvLine(r);
+      const g = numIt(giorniAssenza);
+      return {
+        data: (data || "").trim(),
+        tipo: (tipo || "").trim().toLowerCase() === "infortunio" ? "infortunio" : "near-miss",
+        gravita: (gravita || "").trim().toLowerCase() === "grave" ? "grave" : "lieve",
+        giorniAssenza: Number.isFinite(g) ? Math.max(0, g) : 0,
+        descrizione: (descrizione || "").trim(),
+        luogo: (luogo || "").trim(),
+      };
+    })
+    .filter(x => /^\d{4}-\d{2}-\d{2}$/.test(x.data));
 }
 
 // Copertura formazione/competenze PER TIPO (visite mediche, corsi, DPI,

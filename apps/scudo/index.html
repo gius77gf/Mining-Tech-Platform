@@ -114,6 +114,12 @@
     <input class="dw-input" id="inf-desc" placeholder="Descrizione e luogo" style="flex:2;min-width:160px;">
     <button class="dw-btn" id="btn-inf" style="width:auto;">Registra</button>
   </div>
+  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <button class="dw-btn secondary" id="btn-inf-import" style="width:auto;">Importa da CSV</button>
+    <button class="dw-btn secondary" id="btn-inf-export" style="width:auto;">Esporta CSV</button>
+    <input type="file" id="inf-file" accept=".csv,text/csv" style="display:none;">
+    <span class="dw-muted" style="font-size:12px;">colonne: data;tipo;gravita;giorniAssenza;descrizione;luogo</span>
+  </div>
   <div class="note" id="inf-esito" style="text-align:left;"></div>
   <div class="note" style="text-align:left;">I <b>near-miss</b> (mancati infortuni) non azzerano i "giorni senza infortuni" ma vanno registrati: segnalano i rischi prima che diventino infortuni.</div>
   <div class="note" id="mode-note"></div>
@@ -137,7 +143,7 @@
 </script>
 
 <script type="module">
-  import { scudoData, statoScadenza, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, testoPromemoria, riepilogoInfortuni, parseScadenzeCsv, SCADENZE_PRESET, presetScadenza } from "./scudo-data.js";
+  import { scudoData, statoScadenza, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, parseScadenzeCsv, SCADENZE_PRESET, presetScadenza } from "./scudo-data.js";
   import { mountExit, esc, csvCell, parseCsvLine } from "../../shared/deepwork-id-client/dw-shell.js";
 
   const $ = (id) => document.getElementById(id);
@@ -324,6 +330,25 @@
     });
     $("inf-desc").value = ""; $("inf-giorni").value = "";
     $("inf-esito").textContent = (tipo === "infortunio" ? "Infortunio" : "Near-miss") + " registrato del " + data + ".";
+    await refresh();
+  };
+  $("btn-inf-export").onclick = () => {
+    // registro infortuni per l'RSPP / il consulente (e il registro obbligatorio)
+    let csv = "data;tipo;gravita;giorniAssenza;descrizione;luogo\n";
+    for (const x of INF.slice().sort((a, b) => (a.data || "") < (b.data || "") ? -1 : 1))
+      csv += `${x.data||""};${x.tipo||""};${x.gravita||""};${+x.giorniAssenza||0};${csvCell(x.descrizione||"")};${csvCell(x.luogo||"")}\n`;
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.download = "scudo_registro_infortuni.csv"; a.click();
+    $("inf-esito").textContent = "Esportati " + INF.length + " eventi (CSV).";
+  };
+  $("btn-inf-import").onclick = () => $("inf-file").click();
+  $("inf-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const righe = parseInfortuniCsv(await file.text());
+    for (const r of righe) await db.aggiungi("infortuni", r);
+    $("inf-file").value = "";
+    $("inf-esito").textContent = "Import registro: " + righe.length + " eventi aggiunti.";
     await refresh();
   };
   $("btn-import-csv").onclick = () => $("csv-file").click();
