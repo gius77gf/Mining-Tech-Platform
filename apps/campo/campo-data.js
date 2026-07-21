@@ -8,6 +8,8 @@
 //   rapportini/{id}: { titolo, squadra, ora, stato: bozza|inviato }
 // ============================================================
 
+import { parseCsvLine, numIt } from "../../shared/deepwork-id-client/dw-shell.js";
+
 export const DEMO = {
   attivita: [
     { id: "a1", titolo: "Perforazione fronte Est", dettaglio: "Squadra A · 14/22 fori", stato: "in-corso" },
@@ -89,8 +91,8 @@ export function parsePianoCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
     .filter(r => !/^foro;/i.test(r))
     .map(r => {
-      const [foro, x, fila, prof, prog, borr, rit] = r.split(";");
-      return { foro: +foro, x, fila, prof, prog: +prog, borr, rit, reale: null };
+      const [foro, x, fila, prof, prog, borr, rit] = parseCsvLine(r);
+      return { foro: numIt(foro), x, fila, prof, prog: numIt(prog), borr, rit, reale: null };
     })
     .filter(p => p.foro > 0 && p.prog > 0);
 }

@@ -8,6 +8,8 @@
 // L'urgenza delle manutenzioni si CALCOLA dalla data (mai salvata).
 // ============================================================
 
+import { parseCsvLine, numIt } from "../../shared/deepwork-id-client/dw-shell.js";
+
 export const DEMO = {
   mezzi: [
     { id: "m1", nome: "Escavatore E1 — CAT 352", ore: 5870, area: "fronte Est", stato: "operativo" },
@@ -45,11 +47,11 @@ export function parseTelemetriaCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
     .filter(r => !/^mezzo\s*;/i.test(r))
     .map(r => {
-      const [mezzo, ore, carburante] = r.split(";");
+      const [mezzo, ore, carburante] = parseCsvLine(r);
       return {
         mezzo: (mezzo || "").trim(),
-        ore: +ore,
-        carburante: (carburante != null && String(carburante).trim() !== "") ? +carburante : null,
+        ore: numIt(ore),
+        carburante: (carburante != null && String(carburante).trim() !== "") ? numIt(carburante) : null,
       };
     })
     .filter(p => p.mezzo && Number.isFinite(p.ore) && p.ore >= 0);

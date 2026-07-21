@@ -55,6 +55,29 @@ export function parseCsvLine(line) {
   return out.map(v => v.replace(/^'(?=[=+\-@])/, "").trim());
 }
 
+// Converte un numero scritto "all'italiana" o "all'inglese" in Number, così
+// l'import CSV non perde righe per colpa del formato. Regola: l'ULTIMO
+// separatore presente è quello DECIMALE.
+//   "18.300,50" (punto = migliaia, virgola = decimali) → 18300.5
+//   "18,300.50" (formato inglese)                       → 18300.5
+//   "1234,5" → 1234.5   ·   "1234.5" → 1234.5   ·   "1234" → 1234
+// Con il SOLO punto lo si lascia come decimale (così "19.4" resta 19.4): un
+// punto isolato è ambiguo (migliaia o decimali) e non lo si indovina — per
+// questo l'onboarding consiglia di non usare il separatore delle migliaia.
+// Ritorna NaN se non è un numero (le righe non valide vengono poi scartate).
+export function numIt(v) {
+  let s = String(v == null ? "" : v).trim();
+  if (s === "") return NaN;
+  const c = s.lastIndexOf(","), d = s.lastIndexOf(".");
+  if (c >= 0 && d >= 0) {
+    s = c > d ? s.replace(/\./g, "").replace(",", ".")   // italiano: punto = migliaia
+              : s.replace(/,/g, "");                       // inglese: virgola = migliaia
+  } else if (c >= 0) {
+    s = s.replace(",", ".");                               // solo virgola = decimale
+  }
+  return +s;
+}
+
 export function mountExit(db) {
   if (!db || db.mode !== "live" || typeof db.logout !== "function") return;
   const top = document.querySelector(".top");

@@ -8,6 +8,8 @@
 //   registri/{id}:    { titolo, nota, stato: aggiornato|in-attesa }
 // ============================================================
 
+import { parseCsvLine, numIt } from "../../shared/deepwork-id-client/dw-shell.js";
+
 export const DEMO = {
   monitoraggi: [
     { id: "v1", nome: "Vibrazioni V1 — abitato Sud", tipo: "vibrazioni", valore: 1.8, soglia: 5, unita: "mm/s", nota: "ultimo evento 12/07" },
@@ -57,16 +59,15 @@ export function riepilogoConformita(monitoraggi) {
 // le righe con nome, valore numerico ≥ 0 e soglia > 0 (servono per calcolare
 // lo stato conforme/attenzione/superamento). Pura e testabile.
 export function parseMonitoraggiCsv(text) {
-  const num = (v) => +String(v == null ? "" : v).replace(",", ".");
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
     .filter(r => !/^nome\s*;/i.test(r))
     .map(r => {
-      const [nome, tipo, valore, soglia, unita, nota] = r.split(";");
+      const [nome, tipo, valore, soglia, unita, nota] = parseCsvLine(r);
       return {
         nome: (nome || "").trim(),
         tipo: (tipo || "").trim() || "",
-        valore: num(valore),
-        soglia: num(soglia),
+        valore: numIt(valore),
+        soglia: numIt(soglia),
         unita: (unita || "").trim() || "",
         nota: (nota || "").trim() || "",
       };

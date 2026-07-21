@@ -14,6 +14,8 @@
 //  avanzamento piano = estratto anno / pianificato anno).
 // ============================================================
 
+import { parseCsvLine, numIt } from "../../shared/deepwork-id-client/dw-shell.js";
+
 export const DEMO = {
   fronti: [
     { id: "f1", nome: "Fronte Nord", banco: "banco 2", quota: 340, dettaglio: "Prossima volata 12:30", avanzamento: 72, stato: "attivo" },
@@ -90,10 +92,10 @@ export function parseRilieviCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
     .filter(r => !/^data\s*;/i.test(r))
     .map(r => {
-      const [data, volumeM3, metodo, gsd] = r.split(";");
+      const [data, volumeM3, metodo, gsd] = parseCsvLine(r);
       return {
         data: (data || "").trim(),
-        volumeM3: +String(volumeM3 || "").replace(",", "."),
+        volumeM3: numIt(volumeM3),
         metodo: (metodo || "").trim() || null,
         gsd: (gsd || "").trim() || null,
       };

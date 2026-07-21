@@ -13,6 +13,8 @@
 // (scaduta / entro 30gg / regolare) — niente dati derivati nel DB.
 // ============================================================
 
+import { parseCsvLine } from "../../shared/deepwork-id-client/dw-shell.js";
+
 export const DEMO = {
   lavoratori: [
     { id: "d1", nome: "Mario Rossi", ruolo: "Fochino", tel: "", attivo: true },
@@ -116,7 +118,7 @@ export function parseScadenzeCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
     .filter(r => !/^lavoratore\s*;/i.test(r))
     .map(r => {
-      const [lavoratore, tipo, descrizione, scadenza] = r.split(";");
+      const [lavoratore, tipo, descrizione, scadenza] = parseCsvLine(r);
       const lav = (lavoratore || "").trim();
       return {
         lavoratore: (lav && !/^azienda$/i.test(lav)) ? lav : null,

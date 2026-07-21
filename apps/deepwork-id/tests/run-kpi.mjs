@@ -20,6 +20,7 @@ const sentinella = await app("sentinella", "sentinella-data.js");
 const terra = await app("terra", "terra-data.js");
 const flotta = await app("flotta", "flotta-data.js");
 const campo = await app("campo", "campo-data.js");
+const shell = await import(join(HERE, "../../../shared/deepwork-id-client/dw-shell.js"));
 
 let passed = 0, failed = 0;
 const test = (name, fn) => {
@@ -742,6 +743,44 @@ test("riassuntoRapportino: compone turno/squadra/produzione/consegne", () => {
      "Turno Mattina · Squadra A · Produzione: 90 t · Consegne: cambiare benna", "completo");
   eq(campo.riassuntoRapportino({ squadra: "Squadra B" }), "Squadra B", "solo squadra");
   eq(campo.riassuntoRapportino({}), "", "niente → vuoto");
+});
+
+console.log("\n— Import CSV robusto: numeri all'italiana e ';' nei campi —");
+test("numIt: formati italiano/inglese/misti", () => {
+  eq(shell.numIt("18.300,50"), 18300.5, "punto migliaia + virgola decimali");
+  eq(shell.numIt("18,300.50"), 18300.5, "formato inglese");
+  eq(shell.numIt("1234,5"), 1234.5, "solo virgola = decimale");
+  eq(shell.numIt("1234.5"), 1234.5, "solo punto = decimale");
+  eq(shell.numIt("1234"), 1234, "intero");
+  eq(shell.numIt("19.4"), 19.4, "punto isolato resta decimale");
+  eq(Number.isNaN(shell.numIt("")), true, "vuoto = NaN");
+  eq(Number.isNaN(shell.numIt("abc")), true, "non numero = NaN");
+});
+test("parseFattureCsv: cliente con ';' tra virgolette NON perde la fattura (round-trip)", () => {
+  const csv = 'numero;cliente;importo;emessa;scadenza;incassata\n'
+    + '2026/031;"Rossi; & Figli";18.300,50;2026-06-07;2026-07-08;si\n';
+  const f = conti.parseFattureCsv(csv);
+  eq(f.length, 1, "fattura non persa");
+  eq(f[0].cliente, "Rossi; & Figli", "cliente intero (virgolette + ; interno)");
+  eq(f[0].importo, 18300.5, "importo 18.300,50 letto");
+  eq(f[0].incassata, true, "incassata si");
+});
+test("parseMonitoraggiCsv: nome con ';' tra virgolette NON perde il sensore", () => {
+  const csv = 'nome;tipo;valore;soglia;unita;nota\n'
+    + '"Vibrazioni V2; Nord";vibrazioni;5,6;5;mm/s;volata\n';
+  const m = sentinella.parseMonitoraggiCsv(csv);
+  eq(m.length, 1, "sensore non perso");
+  eq(m[0].nome, "Vibrazioni V2; Nord", "nome intero");
+  eq(m[0].valore, 5.6, "valore 5,6 letto");
+});
+test("parseRilieviCsv: metodo con ';' tra virgolette NON sposta il gsd", () => {
+  const csv = 'data;volumeM3;metodo;gsd\n'
+    + '2026-07-15;19.400,5;"RTK; con GCP";2\n';
+  const p = terra.parseRilieviCsv(csv);
+  eq(p.length, 1, "rilievo letto");
+  eq(p[0].metodo, "RTK; con GCP", "metodo intero");
+  eq(p[0].gsd, "2", "gsd corretto (non spostato)");
+  eq(p[0].volumeM3, 19400.5, "volume 19.400,5 letto");
 });
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);

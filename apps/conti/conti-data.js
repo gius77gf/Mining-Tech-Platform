@@ -7,6 +7,8 @@
 // KPI CALCOLATI: da incassare, in scadenza, gare aperte, DSO.
 // ============================================================
 
+import { parseCsvLine, numIt } from "../../shared/deepwork-id-client/dw-shell.js";
+
 export const DEMO = {
   fatture: [
     { id: "f1", numero: "2026/031", cliente: "Edilcave Srl", importo: 18300, emessa: "2026-06-07", scadenza: "2026-07-08", incassata: false },
@@ -77,10 +79,10 @@ export function parseFattureCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
     .filter(r => !/^numero\s*;/i.test(r))
     .map(r => {
-      const [numero, cliente, importo, emessa, scadenza, incassata] = r.split(";");
+      const [numero, cliente, importo, emessa, scadenza, incassata] = parseCsvLine(r);
       return {
         numero: (numero || "").trim(), cliente: (cliente || "").trim(),
-        importo: +String(importo || "").replace(",", "."),
+        importo: numIt(importo),
         emessa: (emessa || "").trim() || null, scadenza: (scadenza || "").trim() || null,
         incassata: vero(incassata),
       };
