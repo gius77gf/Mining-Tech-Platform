@@ -98,7 +98,7 @@
 </script>
 
 <script type="module">
-  import { contiData, giorni, kpiFrom, agingIncassi, gareRiepilogo } from "./conti-data.js";
+  import { contiData, giorni, kpiFrom, agingIncassi, gareRiepilogo, prioritaIncasso } from "./conti-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const eur = (v) => "€" + (+v||0).toLocaleString("it-IT");
@@ -145,8 +145,10 @@
     if (kn[3]) kn[3].textContent = k.dso + "gg";
 
     const prio = [
-      ...FAT.filter(f => !f.incassata && giorni(f.scadenza) < 10)
-            .map(f => ({ t: "Fattura " + f.numero + " — " + f.cliente, d: eur(f.importo) + " · scad. " + fmtD(f.scadenza), b: fatBadge(f) })),
+      // fatture ordinate per priorità di incasso (più in ritardo / più grosse)
+      ...prioritaIncasso(FAT).slice(0, 3)
+            .map(({ f, ritardo }) => ({ t: "Fattura " + f.numero + " — " + f.cliente,
+              d: eur(f.importo) + (ritardo > 0 ? " · scaduta da " + ritardo + " gg" : " · scad. " + fmtD(f.scadenza)), b: fatBadge(f) })),
       ...GAR.filter(g => g.stato === "aperta" && giorni(g.scadenza) <= 15)
             .map(g => ({ t: g.titolo, d: "base " + eur(g.base) + " · scade " + fmtD(g.scadenza), b: ["warn", giorni(g.scadenza) + " gg"] })),
     ].slice(0, 4);

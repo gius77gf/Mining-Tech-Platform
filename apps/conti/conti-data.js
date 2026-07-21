@@ -67,6 +67,20 @@ export function agingIncassi(fatture, oggi = new Date()) {
   return b;
 }
 
+// Priorità di incasso: ordina le fatture APERTE per urgenza — prima le più
+// in ritardo, a parità di ritardo prima l'importo più alto. Serve a sapere
+// CHI sollecitare per primo. Ogni voce porta i giorni di ritardo (0 se non
+// ancora scaduta). Funzione pura e testabile.
+export function prioritaIncasso(fatture, oggi = new Date()) {
+  return (fatture || [])
+    .filter(f => !f.incassata)
+    .map(f => {
+      const g = giorni(f.scadenza, oggi);
+      return { f, ritardo: Number.isFinite(g) ? Math.max(0, -g) : 0 };
+    })
+    .sort((a, b) => b.ritardo - a.ritardo || (+b.f.importo || 0) - (+a.f.importo || 0));
+}
+
 // Riepilogo delle gare d'appalto: quante aperte/vinte/perse, valore a
 // base d'asta per stato, e tasso di vittoria sulle sole gare DECISE
 // (vinte+perse; le aperte non contano ancora). tassoVittoria è null se
