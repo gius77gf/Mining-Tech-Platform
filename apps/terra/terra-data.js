@@ -168,6 +168,7 @@ export async function terraData() {
       fronti: async () => mem.fronti,
       rilievi: async () => mem.rilievi,
       piano: async () => mem.piano,
+      logout: async () => {},
       aggiungi: async (name, data) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[name] = mem[name] || []).push({ id, ...data }); return { id }; },
       aggiorna: async (name, docId, data) => { const x = mem[name].find(v => v.id === docId); if (x) Object.assign(x, data); },
       rimuovi: async (name, docId) => { mem[name] = mem[name].filter(v => v.id !== docId); },

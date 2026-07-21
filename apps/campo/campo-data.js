@@ -6,6 +6,8 @@
 //   attivita/{id}:   { titolo, dettaglio, stato: pianificata|in-corso|anomalia|conclusa }
 //   squadre/{id}:    { nome, persone, area, stato: operativa|ferma }
 //   rapportini/{id}: { titolo, squadra, ora, stato: bozza|inviato }
+//   pianocarico/{id}: { foro, x, fila, prof, prog, borr, rit, reale }
+//                     (piano di carico volata importato da CSV, ponte Genesi)
 // ============================================================
 
 import { parseCsvLine, numIt } from "../../shared/deepwork-id-client/dw-shell.js";
@@ -163,6 +165,7 @@ export async function campoData() {
       attivita: async () => mem.attivita,
       squadre: async () => mem.squadre,
       rapportini: async () => mem.rapportini,
+      logout: async () => {},
       aggiungi: async (name, data) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[name] = mem[name] || []).push({ id, ...data }); return { id }; },
       aggiorna: async (name, docId, data) => { const x = mem[name].find(v => v.id === docId); if (x) Object.assign(x, data); },
       rimuovi: async (name, docId) => { mem[name] = mem[name].filter(v => v.id !== docId); },
