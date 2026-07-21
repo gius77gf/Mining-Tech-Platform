@@ -434,6 +434,12 @@ validazione sul campo, i database reali di volate, le integrazioni hardware
 (perforatrici/detonatori), che restano il vero divario. Restano P1 (dato reale
 di perforazione: burden/boretrack/export) e P2 (immagine/ML, backend).
 
+### CI — copertura sintassi del core in produzione (fallback #5)
+- **`index.html` alla radice** (il core, va in produzione su Netlify ad ogni
+  merge) ora è nel controllo di sintassi della CI: prima non era coperto, un suo
+  errore di sintassi sarebbe finito online. Verificato: 14 file (core incluso)
+  passano.
+
 ### Test — difesa in profondità isolamento (fallback #4, priorità #1)
 - **Utente autenticato senza org** (orgs={}, appena iscritto): +6 test in
   `run.mjs` che verificano il diniego su dati app, cuore, entitlements e membri.
