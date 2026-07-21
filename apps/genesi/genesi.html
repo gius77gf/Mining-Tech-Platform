@@ -396,6 +396,7 @@ body.scr-sim #tl{bottom:80px}
   <div id="d2-scheda"></div>
   <button class="btn-sec" id="btn-piano-csv" style="display:block;margin:10px auto 0;">📤 Esporta piano di carico (CSV per il fochino)</button>
   <button class="btn-sec" id="btn-scheda-csv" style="display:block;margin:8px auto 0;">📄 Esporta scheda volata (CSV)</button>
+  <button class="btn-sec" id="btn-innesco-xml" style="display:block;margin:8px auto 0;" title="Piano di innesco per detonatori elettronici / software terzi (formato XML in stile IREDES)">🧨 Esporta piano di innesco (XML IREDES-like)</button>
   <button class="btn cu" id="d2-cta">▶ Simula questa volata</button>
   <div style="display:flex;gap:8px;margin-top:8px;">
     <button class="btn sm" id="cmpSaveA">Salva come A</button>
@@ -2008,6 +2009,48 @@ $('btn-piano-csv').onclick=()=>{
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download='genesi_piano_carico.csv'; a.click();
+};
+/* P1.3 — Export piano di innesco in XML stile IREDES (interoperabilità con
+   detonatori elettronici e software terzi). NON è conformità IREDES certificata:
+   è una bozza di interscambio con i dati che Genesi già calcola (posizione foro,
+   profondità, carica, ritardo della sequenza). Utile in fase di integrazione. */
+function _xmlEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c])); }
+if($('btn-innesco-xml')) $('btn-innesco-xml').onclick=()=>{
+  if(!D2.holes.length) genMaglia2D();
+  computeSeq2D();
+  const inn=selInnesco(), mic=computeMIC(), last=D2.lastDet||0;
+  const rows=D2.holes.slice().sort((a,b)=>(a.tDet||0)-(b.tDet||0));
+  let xml='<?xml version="1.0" encoding="UTF-8"?>\n';
+  xml+='<!-- Genesi: bozza di interscambio in stile IREDES (non conformità certificata) -->\n';
+  xml+='<BlastPlan xmlns="urn:genesi:blastplan:draft" generator="Genesi" schema="IREDES-like/0.1">\n';
+  xml+='  <PlanData>\n';
+  xml+='    <MeshBurden unit="m">'+_xmlEsc((+D2.B||0).toFixed(2))+'</MeshBurden>\n';
+  xml+='    <MeshSpacing unit="m">'+_xmlEsc((+D2.S||0).toFixed(2))+'</MeshSpacing>\n';
+  xml+='    <HoleDiameter unit="mm">'+_xmlEsc(+D2.diam||0)+'</HoleDiameter>\n';
+  xml+='    <Explosive>'+_xmlEsc(D2.esplosivo)+'</Explosive>\n';
+  xml+='    <Initiation id="'+_xmlEsc(inn.id)+'">'+_xmlEsc(inn.nome)+'</Initiation>\n';
+  xml+='    <Sequence>'+_xmlEsc(D2.sequenza||'diagonale')+'</Sequence>\n';
+  xml+='    <HoleDelay unit="ms">'+_xmlEsc(+D2.ritardo||0)+'</HoleDelay>\n';
+  xml+='    <RowDelay unit="ms">'+_xmlEsc(+D2.ritardoFila||0)+'</RowDelay>\n';
+  xml+='    <LastDetonation unit="ms">'+_xmlEsc((+last).toFixed(1))+'</LastDetonation>\n';
+  xml+='    <MaxInstantCharge unit="kg" window_ms="8">'+_xmlEsc((+mic||0).toFixed(1))+'</MaxInstantCharge>\n';
+  xml+='  </PlanData>\n';
+  xml+='  <Holes count="'+rows.length+'">\n';
+  rows.forEach((h,i)=>{
+    xml+='    <Hole id="H'+(i+1)+'" seq="'+((h.seq!=null?h.seq:i)+1)+'">\n';
+    xml+='      <Position x="'+_xmlEsc((+h.mx||0).toFixed(2))+'" y="'+_xmlEsc((+h.my||0).toFixed(2))+'" unit="m"/>\n';
+    xml+='      <Depth unit="m">'+_xmlEsc(+D2.prof||0)+'</Depth>\n';
+    xml+='      <Charge unit="kg">'+_xmlEsc(+D2.kg||0)+'</Charge>\n';
+    xml+='      <Stemming unit="m">'+_xmlEsc(+D2.stem||0)+'</Stemming>\n';
+    xml+='      <Delay unit="ms">'+_xmlEsc((+h.tDet||0).toFixed(1))+'</Delay>\n';
+    xml+='    </Hole>\n';
+  });
+  xml+='  </Holes>\n';
+  xml+='</BlastPlan>\n';
+  const a=document.createElement('a');
+  a.href='data:application/xml;charset=utf-8,'+encodeURIComponent(xml);
+  a.download='genesi_piano_innesco.xml'; a.click();
+  if(typeof toast==='function') toast('Piano di innesco XML esportato ('+rows.length+' fori)');
 };
 $('btnParams').onclick=()=>document.body.classList.toggle('show-params');
 
