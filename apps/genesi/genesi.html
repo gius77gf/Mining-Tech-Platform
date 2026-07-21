@@ -80,7 +80,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
 .btn{background:var(--panel);border:1px solid var(--line);border-radius:9px;color:var(--tx);
   padding:7px 12px;font-family:'Barlow',sans-serif;font-size:13px;cursor:pointer;transition:border-color .15s}
 .btn:hover{border-color:var(--cu)}
-.btn.cu{background:var(--cu);border-color:var(--cu);color:#2a1407;font-weight:500}
+.btn.cu{background:linear-gradient(135deg,#ffc12e,#ff8c1d);border-color:transparent;color:#3a1e00;font-weight:700;box-shadow:0 4px 14px rgba(255,150,30,.24)}
 .btn.sm{padding:5px 9px;font-size:12px;border-radius:7px}
 .btn.on{border-color:var(--cu);color:var(--cu)}
 .btn.disabled,.btn.disabled:hover{opacity:.4;pointer-events:none;cursor:not-allowed;border-color:var(--line)}
@@ -98,7 +98,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
 .row label{font-size:12.5px;color:var(--mut)}
 .row input[type=number],.row select{width:86px;background:var(--panel2);border:1px solid var(--line);
   border-radius:7px;color:var(--tx);padding:5px 7px;font-family:'Barlow';font-size:13px}
-.row input:focus,.row select:focus{outline:none;border-color:var(--cu)}
+.row input:focus,.row select:focus{outline:none;border-color:var(--cu);box-shadow:0 0 0 3px rgba(255,171,0,.14)}
+.row input,.row select{transition:border-color .16s var(--ease),box-shadow .16s var(--ease)}
 .lay{display:flex;align-items:center;gap:7px;margin-bottom:6px;font-size:12.5px;color:var(--mut);cursor:pointer}
 .lay input{accent-color:var(--cu)}
 #params .sep{height:1px;background:var(--line);margin:11px 0}
@@ -142,6 +143,26 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
   border:1px solid var(--cu);color:var(--tx);border-radius:10px;padding:9px 16px;font-size:13px;
   opacity:0;pointer-events:none;transition:opacity .25s}
 #toast.show{opacity:1}
+/* ---- micro-interazioni: elevazione coerente su tutta l'app ---- */
+:root{ --ease:cubic-bezier(.34,.9,.3,1); }
+.btn{transition:border-color .18s var(--ease),background .18s var(--ease),color .18s var(--ease),transform .12s var(--ease),box-shadow .18s var(--ease)}
+.btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,0,0,.34)}
+.btn:active{transform:translateY(0);box-shadow:none}
+.btn.cu:hover{box-shadow:0 8px 22px rgba(255,150,30,.32)}
+.btn.disabled:hover{transform:none;box-shadow:none}
+:focus-visible{outline:2px solid rgba(255,171,0,.6);outline-offset:2px}
+/* ---- modale elevato (riconciliazione / signature-hole), coerente col resto ---- */
+.gmodal{position:fixed;inset:0;z-index:220;background:rgba(8,6,3,.80);backdrop-filter:blur(10px) saturate(140%);-webkit-backdrop-filter:blur(10px) saturate(140%);align-items:center;justify-content:center;padding:18px;animation:gmFade .26s var(--ease)}
+@keyframes gmFade{from{opacity:0}to{opacity:1}}
+.gmodal-card{position:relative;max-width:680px;width:100%;max-height:86vh;overflow:auto;
+  background:linear-gradient(180deg,#241d12,#1a150d);border:1px solid rgba(255,171,0,.28);border-radius:18px;padding:22px 22px 18px;
+  box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 46px rgba(255,171,0,.07),inset 0 1px 0 rgba(255,224,138,.10);
+  animation:gmUp .32s var(--ease) both}
+@keyframes gmUp{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:none}}
+.gmodal-card::before{content:'';position:absolute;left:22px;right:22px;top:0;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(255,171,0,.6),transparent)}
+.gmodal-title{font-family:'Barlow Condensed';font-weight:800;font-size:19px;letter-spacing:.08em;text-transform:uppercase;
+  background:linear-gradient(180deg,#ffe08a,#ffab00 55%,#ff6d00);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;margin-bottom:12px}
+.gmodal-foot{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;padding-top:14px;border-top:1px solid rgba(255,171,0,.12)}
 #collapse{display:none}
 /* ===== APP SHELL (Genesi come app multi-schermata) ===== */
 #bottomnav{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:70;width:calc(100% - 28px);max-width:412px;display:flex;justify-content:space-around;align-items:center;gap:4px;padding:9px 8px;border-radius:20px;
@@ -419,24 +440,24 @@ body.scr-sim #tl{bottom:80px}
   </div>
 </div>
 
-<div id="riconModal" style="display:none;position:fixed;inset:0;z-index:220;background:rgba(10,8,4,.82);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:18px;">
-  <div style="max-width:680px;width:100%;max-height:86vh;overflow:auto;background:var(--card,#221c0e);border:1px solid rgba(255,171,0,.3);border-radius:14px;padding:18px;">
-    <div style="font-family:'Barlow Condensed';font-weight:800;font-size:17px;letter-spacing:.08em;text-transform:uppercase;color:#ffd54f;margin-bottom:10px;">Riconciliazione — previsto vs reale</div>
+<div id="riconModal" class="gmodal" style="display:none;">
+  <div class="gmodal-card">
+    <div class="gmodal-title">Riconciliazione — previsto vs reale</div>
     <div id="riconBody" style="font-size:13.5px;"></div>
-    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
-      <button class="btn sm" id="riconSave" style="border-color:rgba(255,171,0,.4)">Salva riconciliazione</button>
+    <div class="gmodal-foot">
+      <button class="btn sm cu" id="riconSave">Salva riconciliazione</button>
       <button class="btn sm" id="riconExport">Esporta storico (CSV)</button>
       <button class="btn sm" id="riconClose">Chiudi</button>
     </div>
   </div>
 </div>
 
-<div id="sigModal" style="display:none;position:fixed;inset:0;z-index:220;background:rgba(10,8,4,.82);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:18px;">
-  <div style="max-width:680px;width:100%;max-height:86vh;overflow:auto;background:var(--card,#221c0e);border:1px solid rgba(255,171,0,.3);border-radius:14px;padding:18px;">
-    <div style="font-family:'Barlow Condensed';font-weight:800;font-size:17px;letter-spacing:.08em;text-transform:uppercase;color:#ffd54f;margin-bottom:10px;">Signature-hole — vibrazioni da onda reale</div>
+<div id="sigModal" class="gmodal" style="display:none;">
+  <div class="gmodal-card">
+    <div class="gmodal-title">Signature-hole — vibrazioni da onda reale</div>
     <div id="sigBody" style="font-size:13.5px;"></div>
-    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
-      <button class="btn sm" id="sigImport" style="border-color:rgba(255,171,0,.4)">Importa onda foro singolo (CSV)</button>
+    <div class="gmodal-foot">
+      <button class="btn sm cu" id="sigImport">Importa onda foro singolo (CSV)</button>
       <button class="btn sm" id="sigExport">Esporta composito (CSV)</button>
       <button class="btn sm" id="sigClose">Chiudi</button>
     </div>
