@@ -159,6 +159,32 @@ Dettaglio per unità: vault/checkpoints/ dal 2026-07-20_1500 in poi.
    mostrare un errore all'utente (toast/messaggio) — è una scelta di
    stile, quindi serve l'ok del fondatore prima di aggiungerla alle app.
 
+## Roadmap di Visione — backlog dalla ricerca per app (nuova, 21/07)
+Su richiesta del fondatore (21/07: "puntiamo alla qualità massima,
+aumentare la mole di lavoro; ricerche specifiche su ogni singola app e
+sul potenziale che ognuna può raggiungere") è stata svolta la ricerca di
+prodotto su tutte e 7 le app. Risultati: 7 schede "Potenziale — <App>"
+in ecosistema-vault/50 - Wiki ricerca/ + sintesi in
+**vault/ROADMAP_VISIONE.md**. Da lì nasce un backlog ampio di lavoro
+"subito" (browser, dati a mano, nessun hardware). Prime 10 voci pronte,
+in ordine valore/sforzo (tutte taglia S):
+1. Sentinella — libreria soglie normative preimpostate (PM10, rumore,
+   DIN 4150-3, airblast 133 dB) con avviso "verificare valore ufficiale".
+2. Conti — dashboard DSO + aging incassi.
+3. Scudo — giudizio di idoneità sanitaria strutturato (art. 41).
+4. Terra — conversione m³ → tonnellate → valore (densità/materiale).
+5. Campo — causali di fermo standardizzate (base per OEE/disponibilità).
+6. Flotta — scadenzario manutenzione "predittivo leggero" (proiezione ore).
+7. Genesi — secondo modello frammentazione (KCO/Swebrec) selezionabile.
+8. Conti — modulo gare/appalti (base d'asta, ribasso, stato).
+9. Sentinella — registro volate collegabile alle vibrazioni.
+10. Terra — report con qualità del dato documentata (RTK/PPK, GCP, GSD).
+Poi le epiche M/L (scadenzari completi, KPI, work order, rapportino
+turno, report margine, SdI/pesa/telematics/centraline) e l'epica
+strategica del **ciclo chiuso** (ponti Genesi↔Campo↔Terra↔Conti).
+Ogni voce va spezzata in unità atomiche al momento dell'esecuzione, con
+screenshot di verifica per le modifiche visive.
+
 ## Fine progetto (fase commercializzazione) — NON prima
 - Acquisto dominio + sottodomini. DECISIONE DEL FONDATORE: nessuna
   spesa prima della commercializzazione.
@@ -180,7 +206,7 @@ Dettaglio per unità: vault/checkpoints/ dal 2026-07-20_1500 in poi.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/20260720-182501_test-inviti-isolamento-concorrente.md
+- Ultimo checkpoint: vault/checkpoints/20260721-020203_ricerca-potenziale-7-app-roadmap-visione.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
