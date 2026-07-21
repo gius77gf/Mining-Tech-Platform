@@ -49,6 +49,8 @@ scadenze dei lavoratori, così non ti trovi un operaio non idoneo sul fronte.
 - **Copertura formazione**: a colpo d'occhio quanti sono coperti e quanti no.
 - **Adempimenti tipici di cava preimpostati** (sorveglianza sanitaria,
   formazioni, patentini, DSS…): li scegli da un elenco invece di scriverli.
+- **Promemoria pronto da inviare**: su una scadenza scaduta o in scadenza copi
+  con un tasto il testo della convocazione da mandare al lavoratore (email/SMS).
 - **Import scadenzario** e anagrafica da CSV; **export** CSV per il consulente
   o il medico competente.
 
@@ -66,6 +68,8 @@ scarti) senza carta.
   subito dove perdi tempo.
 - **Scarto %** con livello (accettabile/alto) sul materiale.
 - **Avanzamento della giornata**: quante attività concluse sul totale.
+- **Copertura rapportini di turno**: quante squadre hanno già consegnato il
+  rapportino e chi manca ancora, prima del cambio turno.
 - **Import piano da CSV** ed **export** consuntivo.
 
 **Pronto**: sì. **Aspetta te**: solo l'accensione live comune.
@@ -82,6 +86,9 @@ tagliandi e se stai finendo i ricambi.
 - **Previsione**: fra quanti giorni un mezzo arriva alla soglia tagliando.
 - **Ricambi sotto scorta** e scarico automatico della giacenza.
 - **Ripartizione dei costi** per voce (dove va la spesa: carburante/ricambi/…).
+- **Priorità operative del giorno**: un'unica lista "cosa fare oggi" che unisce
+  manutenzioni urgenti (a data e a ore motore), **ricambi sotto scorta** e mezzi
+  fermi, con i più gravi in cima.
 - **Import telemetria da CSV** (ore-motore dai portali OEM) ed **export** della
   situazione del parco per la direzione/officina.
 
@@ -103,6 +110,10 @@ si fa quando decidi di investirci.
 - **Esposizione per cliente** (chi ci deve di più → chi chiamare per primo).
 - **Interessi di mora di legge** stimati sulle insolute (un numero vero per il
   sollecito) e **riepilogo gare**.
+- **Sollecito pronto da inviare**: su una fattura scaduta copi con un tasto il
+  testo del sollecito (con mora e totale dovuto) da mandare al cliente.
+- **Estratto conto cliente**: per un cliente con più fatture aperte, copi un
+  unico documento con tutte le fatture, la mora e il totale dovuto.
 - **Import fatture da CSV** ed **export** della situazione.
 
 **Pronto**: sì. **Aspetta te**: l'accensione live comune. La **fattura
@@ -146,6 +157,8 @@ quanto te ne resta in autorizzazione.
   difendibile in un controllo o in riconciliazione col venduto.
 - **Riserva residua** e fra quanti anni si esaurisce; **andamento volumi**
   (ultimo rilievo vs precedente).
+- **Proiezione di fine anno**: al ritmo attuale, quanti m³ arriverai a estrarre
+  entro dicembre, con avviso se rischi di **superare il volume autorizzato**.
 - **Import rilievi da CSV** ed **export** di fronti e rilievi.
 
 **Pronto**: sì. **Aspetta te**: solo l'accensione live comune.
