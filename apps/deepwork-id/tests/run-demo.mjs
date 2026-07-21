@@ -89,6 +89,12 @@ test("sentinella: id unici, valore/soglia numerici, date adempimenti", () => {
   idsOk(E.monitoraggi, "monitoraggi"); idsOk(E.adempimenti, "adempimenti"); idsOk(E.registri, "registri");
   for (const m of E.monitoraggi) ok(isNum(m.valore) && isNum(m.soglia) && m.soglia > 0, `monitoraggio ${m.id}: valori`);
   for (const a of E.adempimenti) ok(isDate(a.scadenza), `adempimento ${a.id}: data ${a.scadenza}`);
+  idsOk(E.volate, "volate");
+  for (const v of E.volate) {
+    ok(isDate(v.data), `volata ${v.id}: data non valida ${v.data}`);
+    ok(isNum(v.kgTotali) && isNum(v.kgMaxRitardo) && isNum(v.distanzaRicettore), `volata ${v.id}: numerici`);
+    ok(["regolare", "contestazione"].includes(v.esito), `volata ${v.id}: esito «${v.esito}» sconosciuto`);
+  }
 });
 
 test("terra: id unici, date rilievi valide, volumeM3 numerico o null", () => {
