@@ -286,9 +286,9 @@
     const r = pianoRiepilogo(PIANO);
     $("piano-riep").innerHTML = "Fori " + r.registrati + "/" + r.totale + " registrati · progettato " + r.progettatoKg + " kg · stimato reale " + Math.round(r.stimatoKg) + " kg <span class=\"badge " + r.livello + "\">" + (r.pct>=0?"+":"") + r.pct + "%</span>. Tocca un foro per registrare la carica reale.";
     $("piano-list").innerHTML = PIANO.map(p => { const b = scartoBadge(p);
-      return `<div class="item" data-foro="${p.foro}" style="cursor:pointer" title="Registra carica reale">
-      <div class="avatar">${p.foro}</div>
-      <div class="info"><div class="name">Foro ${p.foro} · prog. ${p.prog} kg</div><div class="meta">x ${esc(p.x)} m · prof. ${esc(p.prof)} m · borr. ${esc(p.borr)} m · rit. ${esc(p.rit)} ms</div></div>
+      return `<div class="item" data-foro="${esc(p.foro)}" style="cursor:pointer" title="Registra carica reale">
+      <div class="avatar">${esc(p.foro)}</div>
+      <div class="info"><div class="name">Foro ${esc(p.foro)} · prog. ${esc(p.prog)} kg</div><div class="meta">x ${esc(p.x)} m · prof. ${esc(p.prof)} m · borr. ${esc(p.borr)} m · rit. ${esc(p.rit)} ms</div></div>
       <span class="badge ${b[0]}">${b[1]}</span></div>`; }).join("");
   }
   $("btn-piano").onclick = () => $("piano-file").click();
