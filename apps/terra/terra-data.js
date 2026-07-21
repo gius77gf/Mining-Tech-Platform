@@ -84,6 +84,31 @@ export function riservaResidua(riserveM3, estrattoAnno, rateAnnuoM3) {
   return { residuo, anni: rate > 0 ? residuo / rate : null };
 }
 
+// Proiezione di FINE ANNO: dal volume già estratto nell'anno e dalla frazione
+// di anno trascorsa, stima con proiezione lineare il totale che si raggiungerà
+// a fine anno e lo confronta col volume annuo AUTORIZZATO/pianificato. Serve a
+// capire PER TEMPO se si sta per superare l'autorizzato (rischio legale: non si
+// può estrarre più di quanto concesso) o si resterà sotto. Ritorna null se non
+// c'è un piano annuo > 0. `proiezione` (e pctPiano) è null se è ancora troppo
+// presto nell'anno (meno di ~1 mese) per una stima sensata. stato: "danger" se
+// la proiezione supera l'autorizzato, "warn" se ≥90%, "ok" sotto. Pura e
+// testabile; `oggi` iniettabile.
+export function proiezioneAnnua(rilievi, pianificatoAnnuoM3, oggi = new Date()) {
+  const piano = +pianificatoAnnuoM3 || 0;
+  if (piano <= 0) return null;
+  const o = new Date(oggi);
+  const anno = o.getFullYear();
+  const estrattoAnno = (rilievi || [])
+    .filter(r => r.stato === "elaborato" && r.volumeM3 != null && String(r.data || "").slice(0, 4) === String(anno))
+    .reduce((s, r) => s + (+r.volumeM3 || 0), 0);
+  const inizio = new Date(anno, 0, 1), fine = new Date(anno + 1, 0, 1);
+  const frazione = (o - inizio) / (fine - inizio);            // 0..1 dell'anno trascorso
+  const proiezione = frazione >= (1 / 12) ? Math.round(estrattoAnno / frazione) : null;
+  const pctPiano = proiezione != null ? Math.round(100 * proiezione / piano) : null;
+  const stato = pctPiano == null ? "ok" : pctPiano > 100 ? "danger" : pctPiano >= 90 ? "warn" : "ok";
+  return { estrattoAnno, pianificato: piano, frazione, proiezione, pctPiano, stato };
+}
+
 // Classe di accuratezza di un rilievo, da metodo e GSD (vedi
 // vault/RICERCA_ACCURATEZZA_RILIEVI.md): "survey-grade" (RTK/PPK o GCP con GSD
 // ≤ 2 cm) → volume difendibile, tolleranza tipica ±2%; "indicativo" (senza
