@@ -21,7 +21,7 @@ export const DEMO = {
     { id: "f3", nome: "Fronte Sud", banco: "banco 3", quota: 320, dettaglio: "Verifica stabilità scarpata", avanzamento: 18, stato: "sospeso" },
   ],
   rilievi: [
-    { id: "r1", titolo: "Rilievo drone 15/07", data: "2026-07-15", tipo: "Ortofoto + DEM", volumeM3: 19400, stato: "elaborato" },
+    { id: "r1", titolo: "Rilievo drone 15/07", data: "2026-07-15", tipo: "Ortofoto + DEM", volumeM3: 19400, stato: "elaborato", metodo: "RTK+GCP", gsd: "2" },
     { id: "r2", titolo: "Rilievo drone 01/07", data: "2026-07-01", tipo: "Ortofoto + DEM", volumeM3: 18600, stato: "elaborato" },
     { id: "r3", titolo: "Rilievo drone 16/06", data: "2026-06-16", tipo: "Ortofoto + DEM", volumeM3: 21300, stato: "elaborato" },
     { id: "r4", titolo: "Rilievo drone 15/05", data: "2026-05-15", tipo: "Ortofoto + DEM", volumeM3: 20100, stato: "elaborato" },
@@ -58,6 +58,16 @@ export function valoreMateriale(volumeM3, densita, prezzoTon) {
   const v = +volumeM3 || 0, d = +densita || 0, p = +prezzoTon || 0;
   const tonnellate = v * d;
   return { tonnellate, valore: tonnellate * p };
+}
+
+// Qualità del dato di un rilievo: mette insieme metodo (RTK/PPK, GCP…) e
+// GSD in una stringa breve, così il volume è "difendibile" in audit senza
+// doverlo ricalcolare. Stringa vuota se non si sa nulla. Pura e testabile.
+export function qualitaRilievo(r) {
+  const parti = [];
+  if (r && r.metodo) parti.push(r.metodo);
+  if (r && r.gsd != null && String(r.gsd).trim() !== "") parti.push("GSD " + r.gsd + " cm");
+  return parti.join(" · ");
 }
 
 export function kpiFrom(fronti, rilievi, piano, oggi = new Date()) {
