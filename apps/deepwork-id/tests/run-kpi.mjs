@@ -70,6 +70,24 @@ test("coperturaFormazione: raggruppa per tipo con stati, peggiore prima", () => 
 });
 test("coperturaFormazione: nessuna scadenza = lista vuota (niente crash)", () =>
   eq(scudo.coperturaFormazione([]), [], "vuoto"));
+test("parseScadenzeCsv: legge lav/tipo/desc/data, azienda=null, scarta data non valida", () => {
+  const csv = "lavoratore;tipo;descrizione;scadenza\n"
+    + "Mario Rossi;Visita medica;Periodica;2026-09-01\n"
+    + "AZIENDA;DVR;Revisione;2026-10-15\n"
+    + "Tizio;Corso;Antincendio;15/10/2026\n"       // data non ISO → scartata
+    + ";;;2026-11-01\n";                            // tipo assente → "Altro", lavoratore null
+  const s = scudo.parseScadenzeCsv(csv);
+  eq(s.length, 3, "3 valide (scartata la data non ISO)");
+  eq(s[0], { lavoratore: "Mario Rossi", tipo: "Visita medica", descrizione: "Periodica", dataScadenza: "2026-09-01" }, "riga lavoratore");
+  eq(s[1].lavoratore, null, "AZIENDA → null");
+  eq(s[2], { lavoratore: null, tipo: "Altro", descrizione: null, dataScadenza: "2026-11-01" }, "tipo assente → Altro");
+});
+test("parseScadenzeCsv: CRLF (Excel) e testo vuoto = niente crash", () => {
+  eq(scudo.parseScadenzeCsv(""), [], "vuoto");
+  const s = scudo.parseScadenzeCsv("Luca;Patente;CQC;2026-12-01\r\n");
+  eq(s.length, 1, "CRLF ok");
+  eq(s[0].dataScadenza, "2026-12-01", "data letta");
+});
 test("kpiFrom conta scadute/in-scadenza e lavoratori regolari", () => {
   const lav = [{ id: "l1", attivo: true }, { id: "l2", attivo: true }, { id: "l3", attivo: false }];
   const sca = [
