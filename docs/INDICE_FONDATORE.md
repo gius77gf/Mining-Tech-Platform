@@ -30,6 +30,13 @@ serve**, così non devi ricordarti i nomi.
 - **`docs/CENSIMENTO_FEATURE.md`** — cosa nel "core" (index.html) è completo,
   cosa è spento da configurazione, cosa è fuorviante.
 
+## Se vuoi capire Genesi (il simulatore di volata) e le sue novità
+- **`docs/GENESI_NUOVE_FUNZIONI.md`** — le tre nuove funzioni "da grandi"
+  (riconciliazione previsto-vs-reale, vibrazioni dall'onda vera, export del
+  piano di innesco) in parole semplici: a cosa servono e come si usano.
+- **`docs/GENESI_ROADMAP_COMPETITOR.md`** — dove siamo rispetto ai concorrenti
+  e cosa conviene fare dopo, per impatto/fattibilità.
+
 ## Se vuoi la visione e i piani a lungo termine
 - **`vault/ROADMAP_VISIONE.md`** — il potenziale di ogni app e la tesi del
   "ciclo chiuso" dei dati di cava.
