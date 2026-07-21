@@ -32,6 +32,7 @@
     <div class="kpi accent" style="cursor:pointer" data-goto="scad" data-filtro="tutte" title="Vedi tutte le scadenze"><div class="n" id="k-corsi">—</div><div class="l">Corsi pianificati</div></div>
   </div>
 
+  <div id="safety-banner" class="note" style="text-align:center;font-size:15px;"></div>
   <div class="sec">Urgenze</div>
   <div id="urg-list"></div>
 </div>
@@ -100,6 +101,21 @@
   </div>
   <div class="note" id="doc-esito" style="text-align:left;"></div>
   <div class="note" style="text-align:left;">Tocca un documento per cambiarne lo stato (valido → da rivedere → scaduto).</div>
+
+  <div class="sec">Infortuni e near-miss</div>
+  <div id="inf-riep" class="note" style="text-align:left;"></div>
+  <div id="inf-list"></div>
+  <div class="sec">Registra evento</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <input class="dw-input" id="inf-data" type="date" style="flex:1;min-width:130px;">
+    <select class="dw-input" id="inf-tipo" style="flex:1;min-width:120px;"><option value="near-miss">Near-miss (mancato infortunio)</option><option value="infortunio">Infortunio</option></select>
+    <select class="dw-input" id="inf-gravita" style="flex:1;min-width:100px;"><option value="lieve">Lieve</option><option value="grave">Grave</option></select>
+    <input class="dw-input" id="inf-giorni" type="number" min="0" placeholder="Giorni assenza" style="flex:1;min-width:120px;">
+    <input class="dw-input" id="inf-desc" placeholder="Descrizione e luogo" style="flex:2;min-width:160px;">
+    <button class="dw-btn" id="btn-inf" style="width:auto;">Registra</button>
+  </div>
+  <div class="note" id="inf-esito" style="text-align:left;"></div>
+  <div class="note" style="text-align:left;">I <b>near-miss</b> (mancati infortuni) non azzerano i "giorni senza infortuni" ma vanno registrati: segnalano i rischi prima che diventino infortuni.</div>
   <div class="note" id="mode-note"></div>
 </div>
 
@@ -121,7 +137,7 @@
 </script>
 
 <script type="module">
-  import { scudoData, statoScadenza, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, testoPromemoria, parseScadenzeCsv, SCADENZE_PRESET, presetScadenza } from "./scudo-data.js";
+  import { scudoData, statoScadenza, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, testoPromemoria, riepilogoInfortuni, parseScadenzeCsv, SCADENZE_PRESET, presetScadenza } from "./scudo-data.js";
   import { mountExit, esc, csvCell, parseCsvLine } from "../../shared/deepwork-id-client/dw-shell.js";
 
   const $ = (id) => document.getElementById(id);
@@ -136,7 +152,7 @@
     ? "Dati reali della tua organizzazione."
     : "Dati di esempio (" + db.mode + "): le modifiche non vengono salvate.";
 
-  let LAV = [], SCA = [], DOC = [];
+  let LAV = [], SCA = [], DOC = [], INF = [];
   let filtroScad = "tutte";
   $("pers-cerca").oninput = () => refresh();
   $("scad-filtri").addEventListener("click", (e) => {
@@ -153,7 +169,7 @@
   });
 
   async function refresh() {
-    [LAV, SCA, DOC] = await Promise.all([db.lavoratori(), db.scadenze(), db.documenti()]);
+    [LAV, SCA, DOC, INF] = await Promise.all([db.lavoratori(), db.scadenze(), db.documenti(), db.infortuni ? db.infortuni() : []]);
     const byId = Object.fromEntries(LAV.map(l => [l.id, l]));
     const k = kpiFrom(LAV, SCA);
     $("k-scadute").textContent = k.scadute;
@@ -223,6 +239,22 @@
       `<div class="item" data-doc="${d.id}" style="cursor:pointer" title="Tocca per cambiare stato"><div class="info"><div class="name">${esc(d.titolo)}</div><div class="meta">${esc(d.meta || "")}</div></div>
        <span class="badge ${D[d.stato][0]}">${D[d.stato][1]}</span></div>`).join("")
       || '<div class="note" style="text-align:left;">Nessun documento registrato.</div>';
+
+    // Sicurezza: giorni senza infortuni (cartellone) + riepilogo + registro
+    const ri = riepilogoInfortuni(INF);
+    $("safety-banner").innerHTML = ri.giorniSenza == null
+      ? `🦺 <b>Nessun infortunio registrato.</b> Registra gli eventi per tenere il conto.`
+      : `🦺 <b style="font-size:22px;color:${ri.giorniSenza >= 30 ? "var(--ok,#26a69a)" : "var(--warn,#ffb300)"};">${ri.giorniSenza}</b> giorni senza infortuni`
+        + (ri.nearMiss ? ` · ${ri.nearMiss} near-miss registrati` : "");
+    $("inf-riep").innerHTML =
+      `Infortuni: <b>${ri.infortuni}</b>${ri.gravi ? ` (di cui ${ri.gravi} gravi)` : ""} · near-miss: <b>${ri.nearMiss}</b> · giorni di assenza totali: <b>${ri.giorniAssenzaTot}</b>`;
+    const TB = { infortunio: ["danger", "Infortunio"], "near-miss": ["warn", "Near-miss"] };
+    $("inf-list").innerHTML = INF.slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1).map(x => {
+      const tb = TB[x.tipo] || ["warn", esc(x.tipo || "—")];
+      return `<div class="item"><div class="info"><div class="name">${esc(x.descrizione || x.tipo || "Evento")}</div>
+        <div class="meta">${esc(x.data || "—")}${x.luogo ? " · " + esc(x.luogo) : ""}${x.gravita ? " · " + esc(x.gravita) : ""}${(+x.giorniAssenza) ? " · " + (+x.giorniAssenza) + " gg assenza" : ""}</div></div>
+        <span class="badge ${tb[0]}">${tb[1]}</span><span class="arr" style="cursor:pointer" title="Rimuovi" data-del-inf="${x.id}">✕</span></div>`;
+    }).join("") || '<div class="note" style="text-align:left;">Nessun evento registrato. Un buon segno — ma registra anche i near-miss.</div>';
   }
 
   const DOC_NEXT = { valido: "da-rivedere", "da-rivedere": "scaduto", scaduto: "valido" };
@@ -230,6 +262,10 @@
     const dc = e.target.closest && e.target.closest("[data-doc]");
     if (dc && db.aggiorna) { const d = DOC.find(x => x.id === dc.getAttribute("data-doc"));
       if (d) { await db.aggiorna("documenti", d.id, { stato: DOC_NEXT[d.stato] || "valido" }); await refresh(); } return; }
+    const delInf = e.target.getAttribute && e.target.getAttribute("data-del-inf");
+    if (delInf) { const x = INF.find(v => v.id === delInf);
+      if (confirm("Rimuovere questo evento dal registro infortuni? (usa solo per correggere un inserimento sbagliato)")) {
+        await db.rimuovi("infortuni", delInf); await refresh(); } return; }
     const idon = e.target.getAttribute && e.target.getAttribute("data-idon");
     if (idon && db.aggiorna) { const l = LAV.find(x => x.id === idon);
       if (l) { await db.aggiorna("lavoratori", l.id, { idoneita: idoneitaSuccessivo(l.idoneita) }); await refresh(); } return; }
@@ -274,6 +310,20 @@
     $("doc-titolo").value = ""; $("doc-meta").value = "";
     $("doc-esito").textContent = "Documento aggiunto: " + titolo + " (valido).";
     $("doc-titolo").focus();   // pronto per il prossimo documento
+    await refresh();
+  };
+  $("btn-inf").onclick = async () => {
+    const data = $("inf-data").value, desc = $("inf-desc").value.trim();
+    if (!data) { $("inf-data").style.borderColor = "var(--danger)"; $("inf-esito").textContent = "Serve la data dell'evento."; return; }
+    $("inf-data").style.borderColor = "";
+    const tipo = $("inf-tipo").value;
+    await db.aggiungi("infortuni", {
+      data, tipo, gravita: $("inf-gravita").value,
+      giorniAssenza: +$("inf-giorni").value || 0,
+      descrizione: desc, luogo: "",
+    });
+    $("inf-desc").value = ""; $("inf-giorni").value = "";
+    $("inf-esito").textContent = (tipo === "infortunio" ? "Infortunio" : "Near-miss") + " registrato del " + data + ".";
     await refresh();
   };
   $("btn-import-csv").onclick = () => $("csv-file").click();

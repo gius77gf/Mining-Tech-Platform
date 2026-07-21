@@ -71,6 +71,26 @@ test("coperturaFormazione: raggruppa per tipo con stati, peggiore prima", () => 
 });
 test("coperturaFormazione: nessuna scadenza = lista vuota (niente crash)", () =>
   eq(scudo.coperturaFormazione([]), [], "vuoto"));
+test("riepilogoInfortuni: giorni senza infortuni; i near-miss non azzerano il contatore", () => {
+  const inf = [
+    { data: "2026-05-18", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0 },
+    { data: "2026-02-03", tipo: "infortunio", gravita: "lieve", giorniAssenza: 4 },
+    { data: "2026-01-10", tipo: "infortunio", gravita: "grave", giorniAssenza: 30 },
+  ];
+  const r = scudo.riepilogoInfortuni(inf, new Date(2026, 6, 21));   // 21 luglio 2026
+  eq(r.infortuni, 2, "due infortuni veri");
+  eq(r.nearMiss, 1, "un near-miss");
+  eq(r.gravi, 1, "uno grave");
+  eq(r.giorniAssenzaTot, 34, "4+30 giorni di assenza");
+  eq(r.ultimo, "2026-02-03", "ultimo infortunio = il più recente (near-miss escluso)");
+  if (!(r.giorniSenza > 160 && r.giorniSenza < 175)) throw new Error("giorniSenza atteso ~168, ottenuto " + r.giorniSenza);
+});
+test("riepilogoInfortuni: senza infortuni veri giorniSenza è null (non un falso 0)", () => {
+  const r = scudo.riepilogoInfortuni([{ data: "2026-07-01", tipo: "near-miss" }], new Date(2026, 6, 21));
+  eq(r.infortuni, 0, "nessun infortunio vero");
+  eq(r.nearMiss, 1, "un near-miss");
+  eq(r.giorniSenza, null, "senza infortuni → null");
+});
 test("parseScadenzeCsv: legge lav/tipo/desc/data, azienda=null, scarta data non valida", () => {
   const csv = "lavoratore;tipo;descrizione;scadenza\n"
     + "Mario Rossi;Visita medica;Periodica;2026-09-01\n"

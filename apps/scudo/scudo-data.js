@@ -37,6 +37,10 @@ export const DEMO = {
     { id: "c2", titolo: "Piano di Emergenza", meta: "Aggiornato 01/2026", stato: "valido" },
     { id: "c3", titolo: "Nomine RSPP / addetti", meta: "Revisione richiesta", stato: "da-rivedere" },
   ],
+  infortuni: [
+    { id: "i1", data: "2026-05-18", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "fronte Est", descrizione: "Caduta massi vicino al perforatore, nessun ferito" },
+    { id: "i2", data: "2026-02-03", tipo: "infortunio", gravita: "lieve", giorniAssenza: 4, luogo: "officina", descrizione: "Taglio alla mano durante una manutenzione" },
+  ],
 };
 
 export function statoScadenza(dataISO, oggi = new Date()) {
@@ -122,6 +126,28 @@ export function testoPromemoria(scadenza, lavoratore, oggi = new Date()) {
     `Ti chiediamo di contattare l'ufficio per programmare il rinnovo il prima possibile, così da mantenere la tua idoneità al lavoro in cava.`,
     `Grazie per la collaborazione.`,
   ].join("\n");
+}
+
+// Registro infortuni e near-miss: riepilogo per il "cartellone sicurezza".
+// La metrica di testa è i GIORNI SENZA INFORTUNI (giorni dall'ultimo infortunio
+// VERO — i near-miss non azzerano il contatore, ma si contano a parte perché
+// segnalano i rischi prima che diventino infortuni). Più: numero infortuni,
+// di cui gravi, near-miss, e giorni di assenza totali. `giorniSenza` è null se
+// non c'è nessun infortunio registrato (nessuna data da cui contare). Pura e
+// testabile; `oggi` iniettabile.
+export function riepilogoInfortuni(infortuni, oggi = new Date()) {
+  const list = infortuni || [];
+  const veri = list.filter(x => x.tipo === "infortunio");
+  const nearMiss = list.filter(x => x.tipo === "near-miss");
+  let ultimo = null;
+  for (const x of veri) {
+    const d = (x.data || "");
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d) && (!ultimo || d > ultimo)) ultimo = d;
+  }
+  const giorniSenza = ultimo ? Math.max(0, -giorniTra(ultimo, oggi)) : null;
+  const giorniAssenzaTot = veri.reduce((s, x) => s + (+x.giorniAssenza || 0), 0);
+  const gravi = veri.filter(x => x.gravita === "grave").length;
+  return { infortuni: veri.length, nearMiss: nearMiss.length, gravi, giorniSenza, ultimo, giorniAssenzaTot };
 }
 
 // Copertura formazione/competenze PER TIPO (visite mediche, corsi, DPI,
@@ -226,6 +252,7 @@ export async function scudoData() {
         lavoratori: () => read("lavoratori"),
         scadenze:   () => read("scadenze"),
         documenti:  () => read("documenti"),
+        infortuni:  () => read("infortuni"),
         aggiungi: (name, data) => addDoc(id.orgCollection(name), data),
         logout: () => id.logout(),
         aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), data),
@@ -243,6 +270,7 @@ export async function scudoData() {
       lavoratori: async () => mem.lavoratori,
       scadenze:   async () => mem.scadenze,
       documenti:  async () => mem.documenti,
+      infortuni:  async () => mem.infortuni,
       logout: async () => {},
       aggiungi: async (name, data) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[name] = mem[name] || []).push({ id, ...data }); return { id }; },
       aggiorna: async (name, docId, data) => { const x = (mem[name] || (mem[name] = [])).find(v => v.id === docId); if (x) Object.assign(x, data); },
