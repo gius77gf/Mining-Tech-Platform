@@ -104,10 +104,20 @@ reale foro per foro.
 - **Note**: servono almeno il numero foro e la carica progettata. È l'unico
   file "tecnico"; per un pilota HSE/flotta non è necessario.
 
-## Sentinella — al momento nessun import CSV
-Le misure (vibrazioni PPV, rumore) arrivano dai **fonometri/sismografi**; oggi
-si inseriscono a mano o si **esportano** in CSV per il report. Un import
-dedicato dai formati degli strumenti è una possibile evoluzione futura.
+## Sentinella — sensori / centraline
+Pagina **Monitoraggi → Importa sensori (CSV)**.
+- **Colonne**: `nome;tipo;valore;soglia;unita;nota` (nota facoltativa)
+- **Esempio**:
+  ```
+  nome;tipo;valore;soglia;unita;nota
+  Vibrazioni V1 — abitato Sud;vibrazioni;1.8;5;mm/s;ultimo evento 12/07
+  Polveri PM10 — confine Est;polveri;36.8;40;µg/m³;media 7gg
+  ```
+- **Note**: servono nome, un valore ≥ 0 e una **soglia > 0** (serve per
+  calcolare lo stato conforme/attenzione/superamento). Un sensore con lo stesso
+  nome viene saltato. Le singole letture nel tempo si registrano poi dall'app;
+  qui si carica il quadro dei punti di misura con l'ultimo valore. Le soglie di
+  legge preimpostate (DIN/USBM/UE) restano disponibili nel form del sensore.
 
 ---
 
@@ -120,7 +130,7 @@ dedicato dai formati degli strumenti è una possibile evoluzione futura.
 | Conti | Fatture | `numero;cliente;importo;emessa;scadenza;incassata` |
 | Terra | Rilievi | `data;volumeM3;metodo;gsd` |
 | Campo | Piano volata | `foro;x;fila;prof;prog;borr;rit` |
-| Sentinella | — | (nessun import per ora) |
+| Sentinella | Sensori | `nome;tipo;valore;soglia;unita;nota` |
 
 Tutte e sei le app verticali hanno anche l'**esportazione** in CSV, per backup
 o per girare i dati a un consulente.

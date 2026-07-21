@@ -564,6 +564,23 @@ test("scaledDistance: dati non validi = null (niente divisione per zero)", () =>
   eq(sentinella.scaledDistance(0, 25), null, "distanza 0");
   eq(sentinella.scaledDistance(100, undefined), null, "carica assente");
 });
+test("parseMonitoraggiCsv: legge sensori, virgola decimale, scarta soglia ≤ 0", () => {
+  const csv = "nome;tipo;valore;soglia;unita;nota\n"
+    + "Vibrazioni V1;vibrazioni;5,6;5;mm/s;confine Nord\n"
+    + "Polveri P2;polveri;36.8;40;µg/m³;\n"
+    + "Rotto;rumore;10;0;dB(A);\n"          // soglia 0 → scartato
+    + ";polveri;5;40;µg/m³;\n";             // senza nome → scartato
+  const m = sentinella.parseMonitoraggiCsv(csv);
+  eq(m.length, 2, "2 validi (scartati soglia 0 e senza nome)");
+  eq(m[0], { nome: "Vibrazioni V1", tipo: "vibrazioni", valore: 5.6, soglia: 5, unita: "mm/s", nota: "confine Nord" }, "riga completa, virgola decimale");
+  eq(sentinella.statoMisura(m[0]).cls, "danger", "5.6/5 → superamento");
+});
+test("parseMonitoraggiCsv: CRLF (Excel) e testo vuoto = niente crash", () => {
+  eq(sentinella.parseMonitoraggiCsv(""), [], "vuoto");
+  const m = sentinella.parseMonitoraggiCsv("Rumore R1;rumore;62;70;dB(A);\r\n");
+  eq(m.length, 1, "CRLF ok");
+  eq(m[0].soglia, 70, "soglia letta");
+});
 test("riepilogoConformita: conta conformi/attenzione/superamento", () => {
   const mon = [
     { valore: 4, soglia: 10 },   // 40% → conforme

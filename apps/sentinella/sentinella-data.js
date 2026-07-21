@@ -51,6 +51,29 @@ export function riepilogoConformita(monitoraggi) {
   return r;
 }
 
+// Import monitoraggi (sensori/centraline) da CSV (onboarding: caricare i punti
+// di misura esistenti con soglia e ultimo valore invece di crearli a mano).
+// Colonne: nome;tipo;valore;soglia;unita[;nota] (header opzionale). Tiene solo
+// le righe con nome, valore numerico ≥ 0 e soglia > 0 (servono per calcolare
+// lo stato conforme/attenzione/superamento). Pura e testabile.
+export function parseMonitoraggiCsv(text) {
+  const num = (v) => +String(v == null ? "" : v).replace(",", ".");
+  return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !/^nome\s*;/i.test(r))
+    .map(r => {
+      const [nome, tipo, valore, soglia, unita, nota] = r.split(";");
+      return {
+        nome: (nome || "").trim(),
+        tipo: (tipo || "").trim() || "",
+        valore: num(valore),
+        soglia: num(soglia),
+        unita: (unita || "").trim() || "",
+        nota: (nota || "").trim() || "",
+      };
+    })
+    .filter(m => m.nome && Number.isFinite(m.valore) && m.valore >= 0 && Number.isFinite(m.soglia) && m.soglia > 0);
+}
+
 export function kpiFrom(monitoraggi, adempimenti) {
   return {
     attivi: monitoraggi.length,
