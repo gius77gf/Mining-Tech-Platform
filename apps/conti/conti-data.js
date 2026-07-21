@@ -90,6 +90,23 @@ export function parseFattureCsv(text) {
     .filter(f => f.numero && f.cliente && Number.isFinite(f.importo) && f.importo > 0);
 }
 
+// Interessi di mora di legge (D.Lgs 231/2002, transazioni commerciali) su una
+// fattura insoluta: danno un NUMERO vero al sollecito. Decorrono dal giorno
+// dopo la scadenza, senza messa in mora. Interessi = importo × tasso%/100 ×
+// giorni/365. Tasso di riferimento BCE + 8 punti (1° sem 2026 = 10,15%); è un
+// parametro aggiornabile ogni semestre, DA CONFERMARE col commercialista. Più
+// €40 forfettari di spese (art. 6), esposti a parte. Zero se non in ritardo.
+// Vedi vault/RICERCA_INTERESSI_MORA.md. Pura e testabile.
+export const TASSO_MORA_DEFAULT = 10.15;   // % annuo — 1° semestre 2026 (GU 15/2026)
+export const SPESE_RECUPERO_231 = 40;      // € forfettari art. 6 D.Lgs 231/2002
+
+export function interessiMora(importo, giorniRitardo, tassoAnnuo = TASSO_MORA_DEFAULT) {
+  const imp = +importo || 0, g = +giorniRitardo || 0, t = +tassoAnnuo || 0;
+  if (imp <= 0 || g <= 0 || t <= 0) return { interessi: 0, giorni: Math.max(0, g), tasso: t };
+  const interessi = Math.round(imp * (t / 100) * (g / 365) * 100) / 100;
+  return { interessi, giorni: g, tasso: t };
+}
+
 // Livello di sollecito in base ai giorni di ritardo di una fattura insoluta:
 // nessuno (non scaduta), 1° sollecito, 2° sollecito, ultimo avviso. Fasce
 // pensate come promemoria progressivi. Pura e testabile.

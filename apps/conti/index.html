@@ -104,7 +104,7 @@
 </script>
 
 <script type="module">
-  import { contiData, giorni, kpiFrom, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, livelloSollecito, parseFattureCsv } from "./conti-data.js";
+  import { contiData, giorni, kpiFrom, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, livelloSollecito, interessiMora, TASSO_MORA_DEFAULT, parseFattureCsv } from "./conti-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const eur = (v) => "€" + (+v||0).toLocaleString("it-IT");
@@ -163,9 +163,11 @@
       <span class="badge ${p.b[0]}">${p.b[1]}</span></div>`).join("") || '<div class="note">Nessuna priorità: incassi e gare sotto controllo.</div>';
 
     $("fat-list").innerHTML = FAT.filter(fatMatch).sort((a,b)=>a.scadenza<b.scadenza?-1:1).map(f => { const b = fatBadge(f);
-      const sol = !f.incassata ? livelloSollecito(Math.max(0, -giorni(f.scadenza))) : null;
+      const ritardo = !f.incassata ? Math.max(0, -giorni(f.scadenza)) : 0;
+      const sol = !f.incassata ? livelloSollecito(ritardo) : null;
+      const mora = ritardo > 0 ? interessiMora(f.importo, ritardo) : null;   // interessi 231/2002
       return `<div class="item" data-fat="${f.id}" style="cursor:pointer" title="${f.incassata ? "Tocca per annullare l'incasso" : "Tocca per segnare incassata"}">
-      <div class="info"><div class="name">${esc(f.numero)} — ${esc(f.cliente)}</div><div class="meta">${eur(f.importo)} · emessa ${fmtD(f.emessa)} · ${f.incassata ? "incassata " + (f.dataIncasso ? fmtD(f.dataIncasso) : "") : "scad. " + fmtD(f.scadenza)}${sol && sol.livello ? " · " + sol.label : ""}</div></div>
+      <div class="info"><div class="name">${esc(f.numero)} — ${esc(f.cliente)}</div><div class="meta">${eur(f.importo)} · emessa ${fmtD(f.emessa)} · ${f.incassata ? "incassata " + (f.dataIncasso ? fmtD(f.dataIncasso) : "") : "scad. " + fmtD(f.scadenza)}${sol && sol.livello ? " · " + sol.label : ""}${mora && mora.interessi > 0 ? ` · <span title="Interessi di mora D.Lgs 231/2002 al ${TASSO_MORA_DEFAULT}% (tipico, da confermare) + €40 spese art. 6">mora ~${eur(Math.round(mora.interessi))}</span>` : ""}</div></div>
       <span class="badge ${b[0]}">${b[1]}</span>${!f.incassata?`<span class="arr" style="cursor:pointer" title="Elimina fattura errata" data-del-fat="${f.id}">✕</span>`:""}</div>`; }).join("")
       || '<div class="note" style="text-align:left;">'+(filtroFat==="tutte"?"Nessuna fattura registrata.":"Nessuna fattura in questa categoria.")+'</div>';
     document.querySelectorAll("#fat-filtri [data-filtro]").forEach(b =>
