@@ -129,7 +129,7 @@
 </script>
 
 <script type="module">
-  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, scaricoGiacenza, parseTelemetriaCsv, ripartizioneCosti } from "./flotta-data.js";
+  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, scaricoGiacenza, parseTelemetriaCsv, ripartizioneCosti, prioritaOperative } from "./flotta-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const MB = { operativo: ["ok","Operativo"], fermo: ["danger","Fermo"], verifica: ["warn","Verifica"] };
@@ -164,21 +164,23 @@
     if (kn[2]) kn[2].textContent = k.tagliandi30;
     if (kn[3]) kn[3].textContent = "€" + (k.carburante/1000).toFixed(1) + "k";
 
-    const urgOre = (n) => {   // urgenza dal contatore ore del mezzo
-      const m = MEZ.find(x => x.nome.split(" — ")[0] === n.mezzo); if (!m) return { cls:"ok", label:"a " + n.orePreviste + " h" };
-      return urgenzaOre(n.orePreviste, m.ore);
+    // Urgenza per riga di manutenzione (badge nella lista Manutenzioni): a ore
+    // motore usa il contatore del mezzo, altrimenti la data prevista.
+    const urgDi = (n) => {
+      if (n.orePreviste) {
+        const m = MEZ.find(x => x.nome.split(" — ")[0] === n.mezzo);
+        return m ? urgenzaOre(n.orePreviste, m.ore) : { cls: "ok", label: "a " + n.orePreviste + " h" };
+      }
+      return urgenza(n.dataPrevista);
     };
-    const urgDi = (n) => n.orePreviste ? urgOre(n) : urgenza(n.dataPrevista);
-    const alerts = [
-      ...MEZ.filter(m => m.stato !== "operativo").map(m => ({ t: m.nome, d: m.area || "—", u: MB[m.stato] })),
-      ...MAN.map(n => { const u = urgDi(n);
-        return { t: n.titolo + " — " + n.mezzo, d: n.orePreviste ? "a " + n.orePreviste + " h" : (n.dataPrevista ? n.dataPrevista.split("-").reverse().join("/") : "—"), u: [u.cls, u.label] }; })
-        .filter(a => a.u[0] !== "ok"),
-    ].slice(0, 4);
-    $("alert-list").innerHTML = alerts.map(a => `<div class="item">
-      <div class="avatar">${esc(sig(a.t))}</div>
-      <div class="info"><div class="name">${esc(a.t)}</div><div class="meta">${esc(a.d)}</div></div>
-      <span class="badge ${a.u[0]}">${a.u[1]}</span></div>`).join("") || '<div class="note">Nessuna criticità sul parco mezzi.</div>';
+
+    // Priorità operative del giorno: manutenzioni urgenti (a data e a ore) +
+    // ricambi sotto scorta + mezzi fermi/in verifica, ordinate danger-first.
+    const prio = prioritaOperative(MEZ, MAN, RIC);
+    $("alert-list").innerHTML = prio.map(a => `<div class="item">
+      <div class="avatar">${esc(sig(a.titolo))}</div>
+      <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc(a.dettaglio)}</div></div>
+      <span class="badge ${a.gravita}">${esc(a.badge)}</span></div>`).join("") || '<div class="note">Nessuna criticità sul parco mezzi.</div>';
 
     const ordStato = { fermo: 0, verifica: 1, operativo: 2 };
     const disp = disponibilitaFlotta(MEZ);

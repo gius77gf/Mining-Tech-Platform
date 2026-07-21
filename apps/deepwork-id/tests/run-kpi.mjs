@@ -645,6 +645,31 @@ test("ripartizioneCosti: accorpa per voce, % sul totale, dal più pesante", () =
 });
 test("ripartizioneCosti: nessun costo = totale 0, voci vuote (niente crash)", () =>
   eq(flotta.ripartizioneCosti([]), { totale: 0, voci: [] }, "vuoto"));
+test("prioritaOperative: unisce manutenzioni urgenti, ricambi sotto scorta e mezzi fermi (danger prima)", () => {
+  const mezzi = [
+    { id: "m1", nome: "Escavatore E1 — CAT 352", ore: 5990, stato: "operativo" },  // tagliando a 6000h → mancano 10h → danger? no, ≤50 = warn
+    { id: "m2", nome: "Dumper D3 — CAT 745", ore: 9105, stato: "fermo", area: "officina" },
+    { id: "m3", nome: "Pala P1 — CAT 980", ore: 6540, stato: "operativo" },
+  ];
+  const manutenzioni = [
+    { titolo: "Tagliando 500h", mezzo: "Escavatore E1", orePreviste: 6000 },        // 10h → warn
+    { titolo: "Revisione", mezzo: "Pala P1", dataPrevista: "2099-12-31" },           // lontana → esclusa (ok)
+  ];
+  const ricambi = [
+    { id: "p4", nome: "Denti benna", giacenza: 0, sogliaMin: 3 },                    // esaurito → danger
+    { id: "p1", nome: "Filtro olio", giacenza: 6, sogliaMin: 4 },                    // ok → escluso
+  ];
+  const p = flotta.prioritaOperative(mezzi, manutenzioni, ricambi, new Date(2026, 6, 21));
+  // atteso: Dumper fermo (danger) + Denti benna esaurito (danger) prima, poi tagliando E1 (warn)
+  eq(p.length, 3, "3 priorità");
+  eq(p.every(x => ["danger", "warn"].includes(x.gravita)), true, "solo danger/warn");
+  eq(p[p.length - 1].gravita, "warn", "l'ultimo è warn (tagliando a ore)");
+  eq(p.filter(x => x.gravita === "danger").length, 2, "due danger (mezzo fermo + ricambio esaurito)");
+  if (!p.some(x => x.categoria === "ricambio" && /Denti benna/.test(x.titolo))) throw new Error("manca il ricambio esaurito");
+  if (!p.some(x => x.categoria === "mezzo" && /Dumper D3/.test(x.titolo))) throw new Error("manca il mezzo fermo");
+});
+test("prioritaOperative: nessuna criticità = lista vuota (niente crash)", () =>
+  eq(flotta.prioritaOperative([{ nome: "X", ore: 10, stato: "operativo" }], [], []), [], "tutto ok"));
 test("sottoScorta: ricambi con giacenza ≤ soglia, ordinati per gravità", () => {
   const ric = [
     { id: "a", nome: "A", giacenza: 6, sogliaMin: 4 },  // sopra → escluso
