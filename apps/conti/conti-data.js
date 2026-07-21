@@ -114,6 +114,29 @@ export function incassoAtteso(fatture, giorniAvanti = 30, oggi = new Date()) {
   return { conto, importo };
 }
 
+// Previsione incassi per MESE: raggruppa le fatture non incassate e non ancora
+// scadute per mese-calendario (yyyy-mm) nei prossimi `mesi` mesi, così si vede
+// la liquidità attesa nel tempo e non solo un totale a finestra. Le fatture già
+// SCADUTE e non incassate finiscono in un bucket "scadute" a parte (vanno
+// sollecitate, non pianificate come entrata futura). Ora locale. Pura e testabile.
+export function incassoPerMese(fatture, mesi = 6, oggi = new Date()) {
+  const o = new Date(oggi); o.setHours(0, 0, 0, 0);
+  const km = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  const ordine = [], perMese = {};
+  for (let i = 0; i < mesi; i++) { const k = km(new Date(o.getFullYear(), o.getMonth() + i, 1)); ordine.push(k); perMese[k] = { mese: k, conto: 0, importo: 0 }; }
+  const scadute = { conto: 0, importo: 0 };
+  for (const f of fatture || []) {
+    if (f.incassata) continue;
+    const g = giorni(f.scadenza, oggi);
+    if (!Number.isFinite(g)) continue;                 // senza data valida: non pianificabile
+    const imp = +f.importo || 0;
+    if (g < 0) { scadute.conto++; scadute.importo += imp; continue; }
+    const k = (f.scadenza || "").slice(0, 7);          // yyyy-mm della scadenza
+    if (perMese[k]) { perMese[k].conto++; perMese[k].importo += imp; }  // oltre l'orizzonte: ignorata
+  }
+  return { mesi: ordine.map(k => perMese[k]), scadute };
+}
+
 // Priorità di incasso: ordina le fatture APERTE per urgenza — prima le più
 // in ritardo, a parità di ritardo prima l'importo più alto. Serve a sapere
 // CHI sollecitare per primo. Ogni voce porta i giorni di ritardo (0 se non
