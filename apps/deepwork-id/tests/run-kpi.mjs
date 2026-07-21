@@ -613,6 +613,17 @@ test("scaledDistance: dati non validi = null (niente divisione per zero)", () =>
   eq(sentinella.scaledDistance(0, 25), null, "distanza 0");
   eq(sentinella.scaledDistance(100, undefined), null, "carica assente");
 });
+test("caricaMax: inverso di SD → W = (R/SD)² (carica max per ritardo)", () => {
+  eq(sentinella.caricaMax(100, 20), 25, "100/20=5 → 25 kg");
+  eq(sentinella.caricaMax(60, 30), 4, "60/30=2 → 4 kg");
+  // coerenza con scaledDistance: SD(caricaMax) ≈ SD obiettivo
+  eq(Math.round(sentinella.scaledDistance(100, sentinella.caricaMax(100, 20))), 20, "andata/ritorno");
+});
+test("caricaMax: dati non validi = null", () => {
+  eq(sentinella.caricaMax(100, 0), null, "SD 0");
+  eq(sentinella.caricaMax(0, 20), null, "distanza 0");
+  eq(sentinella.caricaMax(100, undefined), null, "SD assente");
+});
 test("parseMonitoraggiCsv: legge sensori, virgola decimale, scarta soglia ≤ 0", () => {
   const csv = "nome;tipo;valore;soglia;unita;nota\n"
     + "Vibrazioni V1;vibrazioni;5,6;5;mm/s;confine Nord\n"

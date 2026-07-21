@@ -75,8 +75,11 @@
       <input class="dw-input" id="sd-carica" type="number" min="0" step="1" placeholder="kg" style="width:80px;display:inline-block;margin-left:4px;"></label>
     <label class="note" style="margin:0;">Distanza
       <input class="dw-input" id="sd-dist" type="number" min="0" step="1" placeholder="m" style="width:80px;display:inline-block;margin-left:4px;"></label>
+    <label class="note" style="margin:0;">SD obiettivo
+      <input class="dw-input" id="sd-target" type="number" min="0" step="1" placeholder="m/√kg" style="width:90px;display:inline-block;margin-left:4px;" title="Distanza scalata di sicurezza da non scendere (dallo storico del sito / soglia PPV)"></label>
   </div>
   <div id="sd-out" class="note" style="text-align:left;margin-top:8px;">Inserisci carica per ritardo (kg) e distanza (m) del ricettore per la distanza scalata SD = R/√W.</div>
+  <div id="sd-max" class="note" style="text-align:left;margin-top:4px;"></div>
 </div>
 
 <div class="page" id="page-ade">
@@ -117,7 +120,7 @@
 </script>
 
 <script type="module">
-  import { sentinellaData, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, riepilogoConformita, parseMonitoraggiCsv } from "./sentinella-data.js";
+  import { sentinellaData, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, parseMonitoraggiCsv } from "./sentinella-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
@@ -325,8 +328,13 @@
     $("sd-out").textContent = sd == null
       ? "Inserisci carica per ritardo (kg) e distanza (m) del ricettore per la distanza scalata SD = R/√W."
       : "Distanza scalata SD = " + (Math.round(sd * 10) / 10) + " m/√kg. Più è alta, minore il rischio di superare le soglie PPV (confronta con lo storico del sito).";
+    // inverso: dalla SD obiettivo e dalla distanza, la carica massima per ritardo
+    const wmax = caricaMax($("sd-dist").value, $("sd-target").value);
+    $("sd-max").innerHTML = wmax == null
+      ? ""
+      : "Per restare sopra SD " + $("sd-target").value + ": <b>max " + Math.floor(wmax) + " kg</b> per ritardo a " + $("sd-dist").value + " m.";
   };
-  ["sd-carica","sd-dist"].forEach(id => $(id).addEventListener("input", renderSD));
+  ["sd-carica","sd-dist","sd-target"].forEach(id => $(id).addEventListener("input", renderSD));
   await refresh();
 </script>
 </body>
