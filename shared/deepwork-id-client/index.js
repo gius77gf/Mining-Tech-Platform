@@ -98,6 +98,10 @@ class DeepworkIDClient {
       if (d && d.defaultOrgId && this.orgs[d.defaultOrgId]) preferred = d.defaultOrgId;
     }
     this.orgId = preferred || orgIds[0] || (this.user.isAnonymous ? DEMO_ORG_ID : null);
+    // azzera SEMPRE l'entitlement prima di ricaricarlo: senza questo, passando
+    // da un account con abbonamento a uno senza org (senza logout esplicito)
+    // resterebbe quello vecchio e hasEntitlement darebbe true a torto.
+    this.entitlement = null;
     if (this.orgId) await this._loadEntitlement();
   }
 
@@ -155,6 +159,11 @@ class DeepworkIDClient {
   async loginTour() {
     await signInAnonymously(this._auth);
     this.user = this._auth.currentUser;
+    // ripulisci lo stato di un eventuale login precedente (senza logout): in
+    // tour non si è membri di nessuna org, altrimenti switchOrg potrebbe
+    // "rientrare" nell'org di prima a livello di stato SDK.
+    this.orgs = {};
+    this.entitlement = null;
     this.orgId = DEMO_ORG_ID;
     await this._loadEntitlement();
     return this.authState();
@@ -185,21 +194,36 @@ class DeepworkIDClient {
       collection(this._db, "organizations", this.orgId, "entitlements")
     );
     const out = {};
-    snap.docs.forEach((d) => { out[d.id] = d.data(); });
+    // aggiunge `attivo` calcolato con la STESSA regola di hasEntitlement, così
+    // la griglia del profilo non mostra come incluse app scadute/disattivate.
+    snap.docs.forEach((d) => { const data = d.data(); out[d.id] = { ...data, attivo: this._entitlementAttivo(data) }; });
     return out;
   }
 
-  hasEntitlement(tier = null) {
-    if (!this.entitlement || !this.entitlement.active) return false;
-    if (this.entitlement.validUntil &&
-        this.entitlement.validUntil.toDate() < new Date()) return false;
-    if (tier && this.entitlement.tier !== tier) return false;
+  // Un entitlement è ATTIVO se `active` è true e non è scaduto. `validUntil`
+  // può arrivare come Firestore Timestamp, stringa ISO o millis: si normalizza
+  // senza mai lanciare (un writer diverso non deve far crashare il gate).
+  _entitlementAttivo(ent, tier = null) {
+    if (!ent || !ent.active) return false;
+    const vu = ent.validUntil;
+    if (vu) {
+      const scad = (typeof vu.toDate === "function") ? vu.toDate() : new Date(vu);
+      if (scad instanceof Date && !isNaN(scad) && scad < new Date()) return false;
+    }
+    if (tier && ent.tier !== tier) return false;
     return true;
+  }
+
+  hasEntitlement(tier = null) {
+    return this._entitlementAttivo(this.entitlement, tier);
   }
 
   // ---------- accesso dati sigillato sull'org ----------
   // Le app NON costruiscono mai percorsi Firestore a mano: passano da
   // qui, così è impossibile scrivere per errore fuori dalla propria org.
+  // IMPORTANTE: chiamare orgCollection AD OGNI accesso, mai memorizzare il
+  // riferimento: dopo uno switchOrg un ref vecchio punterebbe ancora all'org
+  // precedente (i data layer delle app rileggono infatti orgCollection ogni volta).
   orgCollection(name) {
     if (!this.orgId) throw new Error("Nessuna organizzazione attiva");
     return collection(
@@ -216,6 +240,13 @@ class DeepworkIDClient {
     const res = await call({ name });
     await this.user.getIdToken(true);      // forza refresh del token → nuovi claims
     await this._loadClaimsAndOrg();
+    // rendi ATTIVA l'org appena creata: senza questo, se l'utente aveva già una
+    // defaultOrgId, orgCollection continuerebbe a puntare alla vecchia org pur
+    // avendo restituito l'id della nuova.
+    if (res.data && res.data.orgId && this.orgs[res.data.orgId]) {
+      this.orgId = res.data.orgId;
+      await this._loadEntitlement();
+    }
     return res.data.orgId;
   }
 
