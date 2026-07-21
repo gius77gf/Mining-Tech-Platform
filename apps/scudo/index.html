@@ -69,6 +69,10 @@
   </div>
   <div id="scad-list"></div>
   <div class="sec">Aggiungi scadenza</div>
+  <select class="dw-input" id="scad-preset" style="width:100%;margin-bottom:8px;">
+    <option value="">Adempimento tipico di cava… (facoltativo)</option>
+  </select>
+  <div class="note" id="scad-preset-nota" style="text-align:left;display:none;"></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
     <select class="dw-input" id="new-scad-lav" style="flex:1;min-width:130px;"></select>
     <select class="dw-input" id="new-scad-tipo" style="flex:1;min-width:110px;">
@@ -117,7 +121,7 @@
 </script>
 
 <script type="module">
-  import { scudoData, statoScadenza, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, parseScadenzeCsv } from "./scudo-data.js";
+  import { scudoData, statoScadenza, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, parseScadenzeCsv, SCADENZE_PRESET, presetScadenza } from "./scudo-data.js";
   import { mountExit, esc, csvCell, parseCsvLine } from "../../shared/deepwork-id-client/dw-shell.js";
 
   const $ = (id) => document.getElementById(id);
@@ -308,6 +312,29 @@
     $("new-scad-desc").focus();   // pronto per la prossima scadenza
     await refresh();
   };
+  // Adempimenti tipici di cava: popola il menu (raggruppato persona/azienda)
+  // e, alla scelta, prepara descrizione e tipo. La data la mette l'utente: la
+  // periodicità di legge dipende dal DVR/DSS e dal medico competente.
+  (function () {
+    const GRP = { persona: "Per lavoratore", azienda: "Azienda / sito" };
+    const sel = $("scad-preset"), byCat = {};
+    for (const p of SCADENZE_PRESET) (byCat[p.categoria] = byCat[p.categoria] || []).push(p);
+    for (const cat of Object.keys(byCat)) {
+      const og = document.createElement("optgroup"); og.label = GRP[cat] || cat;
+      for (const p of byCat[cat]) { const o = document.createElement("option"); o.value = p.chiave; o.textContent = p.etichetta; og.appendChild(o); }
+      sel.appendChild(og);
+    }
+    sel.addEventListener("change", () => {
+      const p = presetScadenza(sel.value), nota = $("scad-preset-nota");
+      if (!p) { nota.style.display = "none"; nota.textContent = ""; return; }
+      $("new-scad-desc").value = p.etichetta;
+      $("new-scad-tipo").value = [...$("new-scad-tipo").options].some(o => o.value === p.tipo) ? p.tipo : "Altro";
+      $("new-scad-desc").style.borderColor = "";
+      nota.style.display = "block";
+      nota.innerHTML = "⚠️ Adempimento di <b>riferimento</b>: la periodicità dipende dal DVR/DSS e dal medico competente. Imposta tu la data di scadenza.";
+      $("new-scad-data").focus();
+    });
+  })();
   // Import scadenze da CSV (lavoratore;tipo;descrizione;scadenza): il nome del
   // lavoratore viene associato all'anagrafica per nome; se non c'è, la
   // scadenza entra come aziendale (lavoratoreId null) e viene conteggiata.
