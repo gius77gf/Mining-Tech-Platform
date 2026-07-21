@@ -104,8 +104,11 @@ export function parseRilieviCsv(text) {
 }
 
 export function kpiFrom(fronti, rilievi, piano, oggi = new Date()) {
-  const ym = oggi.toISOString().slice(0, 7);          // yyyy-mm
-  const anno = ym.slice(0, 4);
+  // mese/anno correnti in ora LOCALE (le date dei rilievi sono stringhe locali
+  // yyyy-mm-dd): con toISOString, nelle prime ore dopo mezzanotte del 1° del
+  // mese si sarebbe puntato al mese/anno precedente azzerando i volumi.
+  const ym = `${oggi.getFullYear()}-${String(oggi.getMonth() + 1).padStart(2, "0")}`;  // yyyy-mm
+  const anno = String(oggi.getFullYear());
   const elaborati = rilievi.filter(r => r.stato === "elaborato" && r.volumeM3 != null);
   const mese = elaborati.filter(r => (r.data || "").slice(0, 7) === ym);
   const volumiMese = mese.reduce((s, r) => s + r.volumeM3, 0);

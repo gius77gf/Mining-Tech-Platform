@@ -8,7 +8,7 @@
 //   registri/{id}:    { titolo, nota, stato: aggiornato|in-attesa }
 // ============================================================
 
-import { parseCsvLine, numIt } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, numIt, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
   monitoraggi: [
@@ -37,7 +37,7 @@ export function statoMisura(m) {
   return { cls: "ok", label: "Conforme", ratio: r };
 }
 export function giorni(dataISO, oggi = new Date()) {
-  return Math.floor((new Date(dataISO + "T00:00:00") - oggi) / 86400000);
+  return giorniTra(dataISO, oggi);
 }
 // Riepilogo di conformità: quanti monitoraggi sono conformi / in
 // attenzione / in superamento, a colpo d'occhio. Usa statoMisura (stessa

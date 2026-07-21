@@ -7,7 +7,7 @@
 // KPI CALCOLATI: da incassare, in scadenza, gare aperte, DSO.
 // ============================================================
 
-import { parseCsvLine, numIt } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, numIt, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
   fatture: [
@@ -26,7 +26,7 @@ export const DEMO = {
 };
 
 export function giorni(dataISO, oggi = new Date()) {
-  return Math.floor((new Date(dataISO + "T00:00:00") - oggi) / 86400000);
+  return giorniTra(dataISO, oggi);
 }
 
 export function kpiFrom(fatture, gare, oggi = new Date()) {

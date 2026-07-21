@@ -78,6 +78,18 @@ export function numIt(v) {
   return +s;
 }
 
+// Giorni di calendario tra `oggi` e una data ISO (yyyy-mm-dd). Normalizza
+// ENTRAMBE le date alla mezzanotte LOCALE prima di sottrarre, così il conteggio
+// non slitta di un giorno per colpa dell'ora corrente: con new Date() come
+// "oggi", un floor darebbe -1 da mezzogiorno in poi (una scadenza di OGGI
+// risulterebbe "scaduta" tutto il giorno). Usa round per essere robusto ai
+// cambi di ora legale (giorni da 23/25 h). Positivo = nel futuro; NaN se la
+// data non è valida (i chiamanti scartano/ignorano il NaN come prima).
+export function giorniTra(dataISO, oggi = new Date()) {
+  const o = new Date(oggi); o.setHours(0, 0, 0, 0);
+  return Math.round((new Date(dataISO + "T00:00:00") - o) / 86400000);
+}
+
 export function mountExit(db) {
   if (!db || db.mode !== "live" || typeof db.logout !== "function") return;
   const top = document.querySelector(".top");

@@ -8,7 +8,7 @@
 // L'urgenza delle manutenzioni si CALCOLA dalla data (mai salvata).
 // ============================================================
 
-import { parseCsvLine, numIt } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, numIt, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
   mezzi: [
@@ -77,7 +77,7 @@ export function sottoScorta(ricambi) {
 
 export function urgenza(dataISO, oggi = new Date()) {
   if (!dataISO) return { cls: "ok", label: "a ore", giorni: 9999 };   // manutenzione a ore motore, non a data
-  const g = Math.floor((new Date(dataISO + "T00:00:00") - oggi) / 86400000);
+  const g = giorniTra(dataISO, oggi);
   if (g < 0) return { cls: "danger", label: "Scaduta", giorni: g };
   if (g <= 30) return { cls: "warn", label: g + " gg", giorni: g };
   return { cls: "ok", label: g + " gg", giorni: g };
