@@ -45,6 +45,30 @@ export function statoScadenza(dataISO, oggi = new Date()) {
   return "regolare";
 }
 
+// Giudizio di IDONEITÀ SANITARIA (D.Lgs 81/2008 art. 41): esito della
+// sorveglianza sanitaria per la mansione. La data della prossima visita
+// resta nella scadenza "Visita medica"; qui si registra l'ESITO.
+// Stati: "" = non definito, "idoneo", "prescrizioni" (idoneo con
+// limitazioni), "non-idoneo".
+export function idoneitaLabel(stato) {
+  switch (stato) {
+    case "idoneo":       return { cls: "ok",     label: "Idoneo" };
+    case "prescrizioni": return { cls: "warn",   label: "Idoneo c/prescriz." };
+    case "non-idoneo":   return { cls: "danger", label: "NON idoneo" };
+    default:             return { cls: "",       label: "Idoneità n.d." };
+  }
+}
+// Ciclo per il tap sul badge: n.d. → idoneo → prescrizioni → non-idoneo → n.d.
+export function idoneitaSuccessivo(stato) {
+  const seq = ["", "idoneo", "prescrizioni", "non-idoneo"];
+  const i = seq.indexOf(seq.includes(stato) ? stato : "");
+  return seq[(i + 1) % seq.length];
+}
+// Lavoratori attivi la cui idoneità richiede attenzione (per le urgenze).
+export function idoneitaCriticita(lavoratori) {
+  return lavoratori.filter(l => l.attivo && (l.idoneita === "non-idoneo" || l.idoneita === "prescrizioni"));
+}
+
 export function kpiFrom(lavoratori, scadenze) {
   const st = scadenze.map(s => statoScadenza(s.dataScadenza));
   const scadute = st.filter(x => x === "scaduta").length;

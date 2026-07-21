@@ -72,6 +72,30 @@ test("statoScadenza: una scadenza SENZA data non allarma (= regolare)", () => {
   eq(scudo.kpiFrom([{ id: "l1", attivo: true }], [{ lavoratoreId: "l1" }]),
     { scadute: 0, trenta: 0, regolari: 1 }, "kpi con scadenza senza data");
 });
+test("idoneitaLabel: esito → classe/etichetta (art. 41)", () => {
+  eq(scudo.idoneitaLabel("idoneo").cls, "ok", "idoneo");
+  eq(scudo.idoneitaLabel("prescrizioni").cls, "warn", "prescrizioni");
+  eq(scudo.idoneitaLabel("non-idoneo").cls, "danger", "non idoneo");
+  eq(scudo.idoneitaLabel("").cls, "", "non definito");
+  eq(scudo.idoneitaLabel(undefined).label, "Idoneità n.d.", "assente = n.d.");
+});
+test("idoneitaSuccessivo: ciclo n.d.→idoneo→prescrizioni→non-idoneo→n.d.", () => {
+  eq(scudo.idoneitaSuccessivo(""), "idoneo", "nd→idoneo");
+  eq(scudo.idoneitaSuccessivo("idoneo"), "prescrizioni", "idoneo→prescrizioni");
+  eq(scudo.idoneitaSuccessivo("prescrizioni"), "non-idoneo", "prescrizioni→non-idoneo");
+  eq(scudo.idoneitaSuccessivo("non-idoneo"), "", "non-idoneo→nd");
+  eq(scudo.idoneitaSuccessivo("valore-strano"), "idoneo", "sconosciuto→idoneo");
+});
+test("idoneitaCriticita: solo attivi non-idonei o con prescrizioni", () => {
+  const lav = [
+    { id: "a", attivo: true,  idoneita: "idoneo" },
+    { id: "b", attivo: true,  idoneita: "prescrizioni" },
+    { id: "c", attivo: true,  idoneita: "non-idoneo" },
+    { id: "d", attivo: false, idoneita: "non-idoneo" },  // inattivo → escluso
+    { id: "e", attivo: true },                            // senza idoneità → escluso
+  ];
+  eq(scudo.idoneitaCriticita(lav).map(l => l.id), ["b", "c"], "solo b e c");
+});
 
 console.log("\n— Conti: fatture e gare —");
 test("giorni calcola la distanza in giorni", () => {
