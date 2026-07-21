@@ -109,7 +109,20 @@ Pagina **Fatture → Importa fatture (CSV)**.
   già presente viene saltato. `incassata` si scrive `si` / `1` / `x` (vuoto =
   non incassata).
 
-## Terra — rilievi drone (volumi)
+## Terra — 1) fronti di scavo
+Pagina **Fronti → Importa fronti (CSV)**.
+- **Colonne**: `nome;banco;quota;stato`
+- **Esempio**:
+  ```
+  nome;banco;quota;stato
+  Fronte Nord;banco 2;340;attivo
+  Fronte Sud;banco 3;320;sospeso
+  ```
+- **Note**: serve solo il **nome**; un fronte con lo stesso nome viene saltato.
+  `stato` è `attivo` o `sospeso` (default attivo). Carica **prima** i fronti se
+  vuoi che i rilievi importati (sotto) si colleghino a un fronte per nome.
+
+## Terra — 2) rilievi drone (volumi)
 Pagina **Rilievi → Importa rilievi (CSV)**.
 - **Colonne**: `data;volumeM3;metodo;gsd` (metodo e gsd facoltativi)
 - **Esempio**:
@@ -178,6 +191,7 @@ Pagina **Registri → Registro volate → Importa da CSV**.
 | Flotta | Parco mezzi | `nome;area;ore;stato` |
 | Flotta | Ore/telemetria | `mezzo;ore;carburante` |
 | Conti | Fatture | `numero;cliente;importo;emessa;scadenza;incassata` |
+| Terra | Fronti | `nome;banco;quota;stato` |
 | Terra | Rilievi | `data;volumeM3;metodo;gsd;fronte` (metodo/gsd/fronte facoltativi) |
 | Campo | Piano volata | `foro;x;fila;prof;prog;borr;rit` |
 | Sentinella | Sensori | `nome;tipo;valore;soglia;unita;nota` |

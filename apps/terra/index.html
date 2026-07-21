@@ -46,6 +46,11 @@
     <input class="dw-input" id="fro-quota" type="number" placeholder="Quota m" style="flex:1;min-width:90px;">
     <button class="dw-btn" id="btn-fro" style="width:auto;">Aggiungi</button>
   </div>
+  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <button class="dw-btn secondary" id="btn-fro-import" style="width:auto;">Importa fronti (CSV)</button>
+    <input type="file" id="fro-file" accept=".csv,text/csv" style="display:none;">
+    <span class="dw-muted" style="font-size:12px;">colonne: nome;banco;quota;stato</span>
+  </div>
   <div class="note" id="fro-esito" style="text-align:left;"></div>
   <div class="note" style="text-align:left;">Tocca un fronte per sospenderlo o riattivarlo.</div>
 </div>
@@ -119,7 +124,7 @@
 </script>
 
 <script type="module">
-  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, trendVolumi, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita } from "./terra-data.js";
+  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, parseFrontiCsv, trendVolumi, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita } from "./terra-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const FB = { attivo: ["ok","Attivo"], sospeso: ["warn","Sospeso"] };
@@ -290,6 +295,20 @@
     $("fro-nome").value = ""; $("fro-banco").value = ""; $("fro-quota").value = "";
     $("fro-esito").textContent = "Fronte " + nome + " aggiunto (attivo).";
     $("fro-nome").focus();   // torna al primo campo per aggiungere subito il prossimo
+    await refresh();
+  };
+  $("btn-fro-import").onclick = () => $("fro-file").click();
+  $("fro-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const righe = parseFrontiCsv(await file.text());
+    let agg = 0, dup = 0;
+    for (const r of righe) {
+      if (FRO.some(f => f.nome.trim().toLowerCase() === r.nome.toLowerCase())) { dup++; continue; }
+      await db.aggiungi("fronti", { nome: r.nome, banco: r.banco, quota: r.quota, dettaglio: "", avanzamento: 0, stato: r.stato });
+      agg++;
+    }
+    $("fro-file").value = "";
+    $("fro-esito").textContent = `Import fronti: ${agg} aggiunti${dup ? `, ${dup} già presenti (saltati)` : ""}.`;
     await refresh();
   };
   $("btn-add-ril").onclick = async () => {
