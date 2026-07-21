@@ -84,9 +84,14 @@ esattamente le funzioni che trasformano un ottimo simulatore in uno strumento
 - **P1.2 Import deviazione fori (boretrack)** *(client)*: importa il profilo
   "as-drilled" (CSV) e mostralo nel 3D; ricalcola burden/carica reali per foro.
   Completa P1.1 col dato reale di perforazione.
-- **P1.3 Export ai detonatori + IREDES** *(client)*: esporta i ritardi per i
-  detonatori elettronici e un XML IREDES per perforatrici/software terzi. Utile
-  in fase commerciale/integrazione.
+- **P1.3 Export ai detonatori + IREDES** *(client)* — **FATTA (bozza)**: dal
+  Progetto 2D il pulsante "Esporta piano di innesco (XML IREDES-like)" produce un
+  XML `BlastPlan` con metadati di volata (maglia, diametro, esplosivo, innesco,
+  sequenza, ritardi, ultima detonazione, MIC) e la lista fori (posizione,
+  profondità, carica, borraggio, ritardo della sequenza), ordinati per tempo. È
+  una **bozza di interscambio in stile IREDES, non conformità certificata** (lo
+  dichiara l'XML stesso): serve per detonatori elettronici/software terzi in
+  fase di integrazione. Il CSV "piano di carico" resta per il fochino.
 
 ### P2 — Differenziante ma pesante (backend/dati)
 - **P2.1 Frammentazione da immagine del muckpile** *(client base / backend per

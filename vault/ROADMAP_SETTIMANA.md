@@ -376,9 +376,13 @@ Avanzamento:
   registrazione di un foro singolo (CSV) e la somma ritardata secondo i tempi
   della volata → PPV composito + amplificazione + sparkline SVG + export. È il
   metodo dei big (Orica AVM), più preciso della sola legge di Devine.
-- **Prossimo Genesi (P1)**: burden reale per foro dal 3D del fronte, import
-  deviazione fori (boretrack), export IREDES/detonatori. P2 (frammentazione da
-  immagine, ML) richiede backend.
+- **Genesi P1.3 — Export piano di innesco (XML IREDES-like)**: FATTO (bozza). Dal
+  Progetto 2D esporta un `BlastPlan` XML (metadati volata + fori con posizione,
+  profondità, carica, borraggio, ritardo). Bozza di interscambio, NON conformità
+  certificata (lo dichiara l'XML). Utile per detonatori elettronici/software terzi.
+- **Prossimo Genesi (P1)**: burden reale per foro dal 3D del fronte (RIMANDATO —
+  segno geometrico da chiarire col fondatore), import deviazione fori (boretrack).
+  P2 (frammentazione da immagine, ML) richiede backend.
 - **Poi**: qualità delle altre app verticali (già molto rifinite in settimana).
 
 ### Seconde iterazioni UX app verticali (fallback #1 — ordinamenti)
