@@ -346,6 +346,15 @@ test("parseFattureCsv: legge le fatture, coerce importo/incassata, scarta rotte"
 });
 test("parseFattureCsv: testo vuoto = lista vuota (niente crash)", () =>
   eq(conti.parseFattureCsv(""), [], "vuoto"));
+test("parseGareCsv: legge titolo/base/scadenza/stato; stato ignoto → aperta; scarta righe senza titolo", () => {
+  const csv = "titolo;base;scadenza;stato\nComune di Ragusa — inerti;120000;2026-07-28;aperta\nANAS — SS115;340.000,50;2026-08-12;vinta\nSenza stato;5000;2026-09-01;boh\n;1000;2026-09-01;aperta\n";
+  const p = conti.parseGareCsv(csv);
+  eq(p.length, 3, "3 gare valide (riga senza titolo scartata)");
+  eq(p[0], { titolo: "Comune di Ragusa — inerti", base: 120000, scadenza: "2026-07-28", stato: "aperta" }, "riga completa");
+  eq(p[1].base, 340000.5, "base all'italiana");
+  eq(p[1].stato, "vinta", "stato valido mantenuto");
+  eq(p[2].stato, "aperta", "stato ignoto → aperta");
+});
 test("parseFattureCsv: gestisce CRLF (export Excel) e scarta importo ≤ 0", () => {
   const csv = "numero;cliente;importo;emessa;scadenza\r\n"
     + "A1;Alfa;100;2026-07-01;2026-08-01\r\n"

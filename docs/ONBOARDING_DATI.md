@@ -95,7 +95,7 @@ Pagina **Mezzi → Importa telemetria (CSV)**.
   ore non fanno mai **scendere** il contatore (un valore più basso è ignorato).
   Le ore sono numeri interi.
 
-## Conti — fatture
+## Conti — 1) fatture
 Pagina **Fatture → Importa fatture (CSV)**.
 - **Colonne**: `numero;cliente;importo;emessa;scadenza;incassata`
   (l'ultima colonna è facoltativa)
@@ -108,6 +108,18 @@ Pagina **Fatture → Importa fatture (CSV)**.
 - **Note**: servono numero, cliente e un importo maggiore di zero. Un numero
   già presente viene saltato. `incassata` si scrive `si` / `1` / `x` (vuoto =
   non incassata).
+
+## Conti — 2) gare d'appalto
+Pagina **Gare → Importa gare (CSV)**.
+- **Colonne**: `titolo;base;scadenza;stato`
+- **Esempio**:
+  ```
+  titolo;base;scadenza;stato
+  Comune di Ragusa — inerti 2026-27;120000;2026-07-28;aperta
+  ANAS — manutenzione SS115;340000;2026-08-12;aperta
+  ```
+- **Note**: serve solo il **titolo**; una gara con lo stesso titolo viene
+  saltata. `stato` è `aperta`, `vinta` o `persa` (default aperta).
 
 ## Terra — 1) fronti di scavo
 Pagina **Fronti → Importa fronti (CSV)**.
@@ -216,6 +228,7 @@ Pagina **Registri → Registro volate → Importa da CSV**.
 | Flotta | Parco mezzi | `nome;area;ore;stato` |
 | Flotta | Ore/telemetria | `mezzo;ore;carburante` |
 | Conti | Fatture | `numero;cliente;importo;emessa;scadenza;incassata` |
+| Conti | Gare | `titolo;base;scadenza;stato` |
 | Terra | Fronti | `nome;banco;quota;stato` |
 | Terra | Rilievi | `data;volumeM3;metodo;gsd;fronte` (metodo/gsd/fronte facoltativi) |
 | Campo | Squadre | `nome;persone;area;stato` |

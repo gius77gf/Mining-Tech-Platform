@@ -90,6 +90,29 @@ export function parseFattureCsv(text) {
     .filter(f => f.numero && f.cliente && Number.isFinite(f.importo) && f.importo > 0);
 }
 
+// Import delle GARE d'appalto da CSV (onboarding: caricare le gare in corso e
+// il loro esito). Colonne: titolo;base;scadenza;stato (header opzionale). Tiene
+// solo le righe con un titolo; base via numIt (≥0); stato aperta|vinta|persa
+// (default aperta). titolo è testo grezzo → escapare dove mostrato. Pura e
+// testabile.
+export function parseGareCsv(text) {
+  const stati = ["aperta", "vinta", "persa"];
+  return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !/^titolo\s*;/i.test(r))
+    .map(r => {
+      const [titolo, base, scadenza, stato] = parseCsvLine(r);
+      const b = numIt(base);
+      const s = (stato || "").trim().toLowerCase();
+      return {
+        titolo: (titolo || "").trim(),
+        base: Number.isFinite(b) ? Math.max(0, b) : 0,
+        scadenza: (scadenza || "").trim() || null,
+        stato: stati.includes(s) ? s : "aperta",
+      };
+    })
+    .filter(g => g.titolo);
+}
+
 // Interessi di mora di legge (D.Lgs 231/2002, transazioni commerciali) su una
 // fattura insoluta: danno un NUMERO vero al sollecito. Decorrono dal giorno
 // dopo la scadenza, senza messa in mora. Interessi = importo × tasso%/100 ×
