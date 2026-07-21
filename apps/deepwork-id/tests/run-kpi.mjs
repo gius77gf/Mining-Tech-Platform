@@ -193,6 +193,22 @@ test("gareRiepilogo: nessuna gara decisa → tasso null (niente divisione per ze
   eq(r.tassoVittoria, null, "nessuna decisa");
   eq(r.vinte, 0, "0 vinte");
 });
+test("prioritaIncasso: ordina per ritardo, poi per importo; esclude incassate", () => {
+  const oggi = new Date("2026-07-20T00:00:00");
+  const fatture = [
+    { numero: "A", importo: 100, incassata: false, scadenza: "2026-08-01" }, // non scaduta
+    { numero: "B", importo: 200, incassata: false, scadenza: "2026-07-01" }, // scaduta 19 gg
+    { numero: "C", importo: 900, incassata: false, scadenza: "2026-07-01" }, // scaduta 19 gg, più grossa
+    { numero: "D", importo: 999, incassata: true,  scadenza: "2026-01-01" }, // incassata → esclusa
+  ];
+  const p = conti.prioritaIncasso(fatture, oggi).map(x => x.f.numero);
+  eq(p, ["C", "B", "A"], "C e B (scadute, C più grossa) poi A");
+  eq(conti.prioritaIncasso(fatture, oggi)[0].ritardo, 19, "ritardo in giorni");
+});
+test("prioritaIncasso: fattura senza data = ritardo 0 (non in cima per errore)", () => {
+  const p = conti.prioritaIncasso([{ numero: "X", importo: 50, incassata: false }], new Date("2026-07-20T00:00:00"));
+  eq(p[0].ritardo, 0, "senza data → ritardo 0");
+});
 test("agingIncassi: fattura senza scadenza = non scaduto, non gonfia lo scaduto", () => {
   // robustezza su dati importati/legacy: una data mancante non deve
   // finire nel bucket 'oltre 90 gg' (regressione da revisione notturna).
