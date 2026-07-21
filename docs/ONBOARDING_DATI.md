@@ -165,6 +165,8 @@ Pagina **Squadre → Importa squadre (CSV)** (oppure aggiungile a mano dal form)
   ```
 - **Note**: serve solo il **nome**; una squadra con lo stesso nome viene
   saltata. `stato` è `operativa` o `ferma` (default operativa).
+- **Backup**: il bottone **Esporta squadre (CSV)** scarica le squadre nello
+  stesso formato dell'import, così il file si può ri-caricare o conservare.
 
 ## Campo — 2) piano di carico della volata (fochino)
 Pagina **Volata → Importa piano (CSV)**. È il "ponte" dal disegno volata
