@@ -1133,7 +1133,7 @@ function renderHome(){
   const miei=DB.rapportini.filter(r=>r.userId===state.user.id).slice(-3).reverse();
   if(miei.length>0){
     const _re=$('recent-empty');if(_re)_re.style.display='none';
-    $('recent-list').innerHTML=miei.map(r=>{const cava=DB.cave.find(c=>c.id===r.cavaId);return`<div class="sitem success"><div class="av av-op">✓</div><div class="sinfo"><div class="sname">${cava?cava.nome:'—'}</div><div class="ssub">${fmt(r.data)} · ${r.fori} fori · ${(r.mc||0).toFixed(1)} mc</div></div></div>`;}).join('');
+    $('recent-list').innerHTML=miei.map(r=>{const cava=DB.cave.find(c=>c.id===r.cavaId);return`<div class="sitem success"><div class="av av-op">✓</div><div class="sinfo"><div class="sname">${escHtml(cava?cava.nome:'—')}</div><div class="ssub">${fmt(r.data)} · ${r.fori} fori · ${(r.mc||0).toFixed(1)} mc</div></div></div>`;}).join('');
   }else{$('recent-list').innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Nessuna attività</div><div class="empty-sub">I rapportini inviati compariranno qui</div></div>';}
 }
 function contaScaduti(){ return DB.promemoria.filter(p=>(p.scaduto||daysBetween(today(),p.data)<0)&&!p.letto).length; }
@@ -1707,7 +1707,7 @@ function apriCava(id){
     <div class="preview-sec">
       ${clienteRow}
       <div class="preview-row"><span class="preview-lab">Indirizzo</span><span class="preview-val">${escHtml(c.indirizzo||'—')}</span></div>
-      ${c.tel?`<div class="preview-row"><span class="preview-lab">Telefono</span><span class="preview-val"><a href="tel:${c.tel.replace(/\s/g,'')}" style="color:var(--amber);">${c.tel}</a></span></div>`:''}
+      ${c.tel?`<div class="preview-row"><span class="preview-lab">Telefono</span><span class="preview-val"><a href="tel:${escHtml(c.tel.replace(/\s/g,''))}" style="color:var(--amber);">${escHtml(c.tel)}</a></span></div>`:''}
       <div class="preview-row"><span class="preview-lab">GPS</span><span class="preview-val">${c.lat?c.lat.toFixed(4)+', '+c.lon.toFixed(4):'—'}</span></div>
     </div>
     <div class="tile" style="background:linear-gradient(135deg,#26a69a,#00695c);color:#fff;border:none;margin:12px 0;" onclick="apriGemello('${id}')">
@@ -1779,7 +1779,7 @@ function apriRapport(id){
   const puoModificare=can('editRapp')||(state.user?.id===r.userId&&can('editRappOwn'));
   openModal(`Rapportino ${fmt(r.data)}`,`
     <div class="preview-sec">
-      <div class="preview-row"><span class="preview-lab">Cava</span><span class="preview-val">${c?c.nome:'—'}</span></div>
+      <div class="preview-row"><span class="preview-lab">Cava</span><span class="preview-val">${escHtml(c?c.nome:'—')}</span></div>
       <div class="preview-row"><span class="preview-lab">Operatore</span><span class="preview-val">${u?u.nome+' '+u.cognome:'—'}</span></div>
       ${r.oi||r.of?`<div class="preview-row"><span class="preview-lab">Orario</span><span class="preview-val">${r.oi||'—'} → ${r.of||'—'}</span></div>`:''}
       ${r.diametro?`<div class="preview-row"><span class="preview-lab">Diametro</span><span class="preview-val">${r.diametro} mm</span></div>`:''}
@@ -2052,7 +2052,7 @@ function apriRappFocDett(id){
   const foriRows=(r.fori_dettaglio||[]).map((f,i)=>`<div class="preview-row"><span class="preview-lab">Foro ${i+1}</span><span class="preview-val">${escHtml(f.esplosivo||'—')}${f.esplosivo2?' + '+escHtml(f.esplosivo2):''} · ${escHtml(f.innesco||'—')}</span></div>`).join('');
   openModal(`Volata ${fmt(r.data)}`,`
     <div class="preview-sec">
-      <div class="preview-row"><span class="preview-lab">Cava</span><span class="preview-val">${c?c.nome:'—'}</span></div>
+      <div class="preview-row"><span class="preview-lab">Cava</span><span class="preview-val">${escHtml(c?c.nome:'—')}</span></div>
       <div class="preview-row"><span class="preview-lab">Fochino</span><span class="preview-val">${u?u.nome+' '+u.cognome:'—'}</span></div>
       ${r.oi||r.of?`<div class="preview-row"><span class="preview-lab">Orario</span><span class="preview-val">${r.oi||'—'} → ${r.of||'—'}</span></div>`:''}
       <div class="preview-row"><span class="preview-lab">Fori</span><span class="preview-val">${r.fori||0}</span></div>
@@ -2068,7 +2068,7 @@ function renderSismogrammi(){
   const canAdd=can('rappFochino')||can('editCava');const add=$('btn-add-sismo');if(add)add.style.display=canAdd?'flex':'none';
   const list=(DB.sismogrammi||[]).slice().sort((a,b)=>(b.data||'').localeCompare(a.data||''));
   const el=$('sismo-list');if(!el)return;
-  el.innerHTML=list.length?list.map(s=>{const c=DB.cave.find(x=>x.id===s.cavaId);const nf=(s.files||[]).length;return`<div class="sitem" onclick="apriSismoDett('${s.id}')"><div class="av av-cv">〰️</div><div class="sinfo"><div class="sname">${fmt(s.data)}${c?' · '+c.nome:''}</div><div class="ssub">${nf} file${nf===1?'':'s'}${s.note?' · '+escHtml(s.note.slice(0,40)):''}</div></div><div class="sarr">›</div></div>`;}).join(''):'<div class="empty-state"><div class="empty-icon">〰️</div><div class="empty-title">Nessun sismogramma</div><div class="empty-sub">Carica i sismogrammi registrati e associali a una volata.</div></div>';
+  el.innerHTML=list.length?list.map(s=>{const c=DB.cave.find(x=>x.id===s.cavaId);const nf=(s.files||[]).length;return`<div class="sitem" onclick="apriSismoDett('${s.id}')"><div class="av av-cv">〰️</div><div class="sinfo"><div class="sname">${fmt(s.data)}${c?' · '+escHtml(c.nome):''}</div><div class="ssub">${nf} file${nf===1?'':'s'}${s.note?' · '+escHtml(s.note.slice(0,40)):''}</div></div><div class="sarr">›</div></div>`;}).join(''):'<div class="empty-state"><div class="empty-icon">〰️</div><div class="empty-title">Nessun sismogramma</div><div class="empty-sub">Carica i sismogrammi registrati e associali a una volata.</div></div>';
 }
 // associazione AUTOMATICA per data+cava (niente scelta manuale → più precisione)
 function _findVolata(data,cavaId){
@@ -2142,7 +2142,7 @@ function apriSismoDett(id){
   openModal('〰️ Sismogramma '+fmt(s.data),`
     <div class="preview-sec">
       <div class="preview-row"><span class="preview-lab">Data</span><span class="preview-val">${fmt(s.data)}</span></div>
-      <div class="preview-row"><span class="preview-lab">Cava</span><span class="preview-val">${c?c.nome:'—'}</span></div>
+      <div class="preview-row"><span class="preview-lab">Cava</span><span class="preview-val">${escHtml(c?c.nome:'—')}</span></div>
     </div>
     <div class="sec-title" style="margin-top:10px;"><span class="dot"></span>File</div>
     ${files||'<div class="empty-state" style="padding:12px;"><div class="empty-sub">Nessun file</div></div>'}
@@ -2196,7 +2196,7 @@ function renderMacLavoro(){
       <div class="photo-avatar-sm">${m.foto?`<img src="${encodeURI(m.foto)}">`:'<span style="font-size:16px;">🚜</span>'}</div>
       <div class="sinfo">
         <div class="sname">${escHtml(m.modello)}</div>
-        <div class="ssub">${escHtml(m.targa)} · ${m.oreAttuali} ore · ${c?c.nome:'—'}${assegn?' · 👤 '+assegn.nome+' '+assegn.cognome:''}</div>
+        <div class="ssub">${escHtml(m.targa)} · ${m.oreAttuali} ore · ${escHtml(c?c.nome:'—')}${assegn?' · 👤 '+escHtml(assegn.nome+' '+assegn.cognome):''}</div>
       </div>
       <div class="sarr">›</div>
     </div>`;
@@ -2219,11 +2219,11 @@ function apriMacLavoro(id){
       <div class="preview-row"><span class="preview-lab">Anno</span><span class="preview-val">${m.anno}</span></div>
       <div class="preview-row"><span class="preview-lab">Ore iniziali</span><span class="preview-val">${m.oreIniziali}</span></div>
       <div class="preview-row"><span class="preview-lab">Ore attuali</span><span class="preview-val">${m.oreAttuali}</span></div>
-      <div class="preview-row"><span class="preview-lab">Cava</span><span class="preview-val">${c?c.nome:'—'}</span></div>
+      <div class="preview-row"><span class="preview-lab">Cava</span><span class="preview-val">${escHtml(c?c.nome:'—')}</span></div>
     </div>
     ${m.note?`<div class="preview-sec"><div class="preview-head">Note</div><div style="font-size:13px;">${escHtml(m.note)}</div></div>`:''}
     <div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Rapportini collegati</div>
-    ${rappLink.length?rappLink.map(r=>{const cv=DB.cave.find(x=>x.id===r.cavaId);return`<div class="sitem" onclick="apriRapport('${r.id}')"><div class="av av-op">RP</div><div class="sinfo"><div class="sname">${cv?cv.nome:'—'} · ${fmt(r.data)}</div><div class="ssub">${r.fori} fori · ${(r.mc||0).toFixed(1)} mc</div></div><div class="sarr">›</div></div>`;}).join(''):'<div class="empty-state" style="padding:16px;"><div class="empty-sub">Nessun rapportino</div></div>'}
+    ${rappLink.length?rappLink.map(r=>{const cv=DB.cave.find(x=>x.id===r.cavaId);return`<div class="sitem" onclick="apriRapport('${r.id}')"><div class="av av-op">RP</div><div class="sinfo"><div class="sname">${escHtml(cv?cv.nome:'—')} · ${fmt(r.data)}</div><div class="ssub">${r.fori} fori · ${(r.mc||0).toFixed(1)} mc</div></div><div class="sarr">›</div></div>`;}).join(''):'<div class="empty-state" style="padding:16px;"><div class="empty-sub">Nessun rapportino</div></div>'}
     ${macGestTabsHtml()}
     ${can('delMac')?`<button class="btn-sv" style="margin-top:16px;background:linear-gradient(135deg,#ef5350,#c62828);" onclick="confermaDelMacLav('${id}')">ELIMINA MEZZO</button>`:''}
   `;nav('mac-det');macGestRender();
@@ -2422,14 +2422,14 @@ function openGuastoForm(){
 }
 function apriGuastoDett(gid){
   const {m}=_macCtx();const g=(m.guasti||[]).find(x=>x.id===gid);if(!g)return;const stLab={segnalato:'Segnalato',in_riparazione:'In riparazione',riparato:'Riparato'};
-  const upd=(g.aggiornamenti||[]).slice().reverse().map(u=>`<div class="sitem"><div class="av av-op">↻</div><div class="sinfo"><div class="sname">${stLab[u.stato]||u.stato}</div><div class="ssub">${fmt(u.data)}${u.nota?' · '+u.nota:''}</div></div></div>`).join('');
+  const upd=(g.aggiornamenti||[]).slice().reverse().map(u=>`<div class="sitem"><div class="av av-op">↻</div><div class="sinfo"><div class="sname">${escHtml(stLab[u.stato]||u.stato)}</div><div class="ssub">${fmt(u.data)}${u.nota?' · '+escHtml(u.nota):''}</div></div></div>`).join('');
   openModal('Guasto: '+(g.componente||''),`
     <div class="preview-sec">
       <div class="preview-row"><span class="preview-lab">Segnalato</span><span class="preview-val">${fmt(g.dataSegn)}</span></div>
       <div class="preview-row"><span class="preview-lab">Gravità</span><span class="preview-val">${g.gravita}</span></div>
       <div class="preview-row"><span class="preview-lab">Stato</span><span class="preview-val">${stLab[g.stato]||g.stato}</span></div>
     </div>
-    ${g.descrizione?`<div class="preview-sec"><div class="preview-head">Descrizione</div><div style="font-size:13px;">${g.descrizione}</div></div>`:''}
+    ${g.descrizione?`<div class="preview-sec"><div class="preview-head">Descrizione</div><div style="font-size:13px;">${escHtml(g.descrizione)}</div></div>`:''}
     <div class="sec-title" style="margin-top:12px;"><span class="dot"></span>Aggiornamenti riparazione</div>
     ${upd||'<div class="empty-state" style="padding:12px;"><div class="empty-sub">Nessun aggiornamento</div></div>'}
     ${_canMac()?`<label class="fl" style="margin-top:10px;">Nuovo stato</label><select class="finput" id="gu-nstato"><option value="segnalato">Segnalato</option><option value="in_riparazione">In riparazione</option><option value="riparato">Riparato</option></select><label class="fl">Nota aggiornamento</label><textarea class="finput" id="gu-nnota" rows="2"></textarea>`:''}
@@ -2515,7 +2515,7 @@ function apriPersDet(id){
     </div>
     <div class="preview-sec">
       <div class="preview-row"><span class="preview-lab">Ruolo</span><span class="preview-val">${escHtml(p.ruolo||'—')}</span></div>
-      ${p.tel?`<div class="preview-row"><span class="preview-lab">Telefono</span><span class="preview-val"><a href="tel:${p.tel.replace(/\s/g,'')}" style="color:var(--amber);">${p.tel}</a></span></div>`:''}
+      ${p.tel?`<div class="preview-row"><span class="preview-lab">Telefono</span><span class="preview-val"><a href="tel:${escHtml(p.tel.replace(/\s/g,''))}" style="color:var(--amber);">${escHtml(p.tel)}</a></span></div>`:''}
     </div>
     ${p.note?`<div class="preview-sec"><div class="preview-head">Note</div><div style="font-size:13px;">${escHtml(p.note)}</div></div>`:''}
   `,[...(canEdit?[{label:'Modifica',cls:'mbtn primary',action:()=>{closeModal();openPersEdit(id);}}]:[]),{label:'Chiudi',cls:'mbtn',action:closeModal}]);
@@ -2910,7 +2910,7 @@ function condividiVolata(volataId){
   if(utenti.length===0){toast('Nessun altro utente disponibile','err');return;}
   openModal('Invia progetto in chat',
     `<div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Seleziona uno o più utenti a cui inviare il progetto.</div>`+
-    utenti.map(u=>`<label class="toggle-row" style="cursor:pointer;"><div><div class="tog-name">${u.nome} ${u.cognome}</div><div class="tog-sub">${u.ruolo}</div></div><input type="checkbox" class="cv-dest" value="${u.id}"></label>`).join(''),
+    utenti.map(u=>`<label class="toggle-row" style="cursor:pointer;"><div><div class="tog-name">${escHtml(u.nome+' '+u.cognome)}</div><div class="tog-sub">${escHtml(u.ruolo)}</div></div><input type="checkbox" class="cv-dest" value="${u.id}"></label>`).join(''),
     [
       {label:'Annulla',cls:'mbtn',action:closeModal},
       {label:'INVIA',cls:'mbtn primary',action:async()=>{
@@ -2937,13 +2937,13 @@ function openVolataReadonly(volataId){
 function renderContatti(){
   $('btn-add-contact').style.display=can('admin')||can('ufficio')?'flex':'none';
   let html='';
-  if(DB.cave.length){html+='<div class="sec-title"><span class="dot"></span>Cave</div>';html+=DB.cave.filter(c=>c.tel).map(c=>`<a class="contact-item" href="tel:${c.tel.replace(/\s/g,'')}"><div class="contact-icon">⛰️</div><div class="contact-info"><div class="contact-name">${c.nome}</div><div class="contact-num">${c.tel}</div></div></a>`).join('');}
+  if(DB.cave.length){html+='<div class="sec-title"><span class="dot"></span>Cave</div>';html+=DB.cave.filter(c=>c.tel).map(c=>`<a class="contact-item" href="tel:${escHtml(c.tel.replace(/\s/g,''))}"><div class="contact-icon">⛰️</div><div class="contact-info"><div class="contact-name">${escHtml(c.nome)}</div><div class="contact-num">${escHtml(c.tel)}</div></div></a>`).join('');}
   const uTel=DB.users.filter(u=>u.tel&&u.attivo);
-  if(uTel.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Team</div>';html+=uTel.map(u=>`<a class="contact-item" href="tel:${u.tel.replace(/\s/g,'')}"><div class="photo-avatar-sm">${u.foto?`<img src="${encodeURI(u.foto)}">`:`<span style="font-size:11px;font-weight:800;color:var(--amber);">${escHtml(initials(u.nome,u.cognome))}</span>`}</div><div class="contact-info"><div class="contact-name">${u.nome} ${u.cognome}</div><div class="contact-num">${u.tel}</div></div></a>`).join('');}
+  if(uTel.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Team</div>';html+=uTel.map(u=>`<a class="contact-item" href="tel:${escHtml(u.tel.replace(/\s/g,''))}"><div class="photo-avatar-sm">${u.foto?`<img src="${encodeURI(u.foto)}">`:`<span style="font-size:11px;font-weight:800;color:var(--amber);">${escHtml(initials(u.nome,u.cognome))}</span>`}</div><div class="contact-info"><div class="contact-name">${escHtml(u.nome+' '+u.cognome)}</div><div class="contact-num">${escHtml(u.tel)}</div></div></a>`).join('');}
   const pTel=DB.personale.filter(p=>p.tel);
-  if(pTel.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Personale</div>';html+=pTel.map(p=>`<a class="contact-item" href="tel:${p.tel.replace(/\s/g,'')}"><div class="photo-avatar-sm">${p.foto?`<img src="${encodeURI(p.foto)}">`:`<span style="font-size:11px;font-weight:800;color:var(--amber);">${initials(p.nome,p.cognome)}</span>`}</div><div class="contact-info"><div class="contact-name">${p.nome} ${p.cognome}</div><div class="contact-num">${p.tel}</div></div></a>`).join('');}
+  if(pTel.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Personale</div>';html+=pTel.map(p=>`<a class="contact-item" href="tel:${escHtml(p.tel.replace(/\s/g,''))}"><div class="photo-avatar-sm">${p.foto?`<img src="${encodeURI(p.foto)}">`:`<span style="font-size:11px;font-weight:800;color:var(--amber);">${escHtml(initials(p.nome,p.cognome))}</span>`}</div><div class="contact-info"><div class="contact-name">${escHtml(p.nome+' '+p.cognome)}</div><div class="contact-num">${escHtml(p.tel)}</div></div></a>`).join('');}
   const ex=DB.settings.contattiExtra||[];
-  if(ex.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Altri contatti</div>';html+=ex.map(c=>`<a class="contact-item" href="tel:${(c.tel||'').replace(/\s/g,'')}"><div class="contact-icon">${c.icona||'📞'}</div><div class="contact-info"><div class="contact-name">${c.nome}</div><div class="contact-num">${c.tel}</div></div></a>`).join('');}
+  if(ex.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Altri contatti</div>';html+=ex.map(c=>`<a class="contact-item" href="tel:${escHtml((c.tel||'').replace(/\s/g,''))}"><div class="contact-icon">${escHtml(c.icona||'📞')}</div><div class="contact-info"><div class="contact-name">${escHtml(c.nome)}</div><div class="contact-num">${escHtml(c.tel)}</div></div></a>`).join('');}
   if(!html)html='<div class="empty-state"><div class="empty-icon">📞</div><div class="empty-title">Nessun contatto</div></div>';
   $('contatti-list').innerHTML=html;
 }
@@ -2979,9 +2979,9 @@ function apriCliente(id){
     ${c.piva?`<div class="preview-row"><span class="preview-lab">P.IVA</span><span class="preview-val">${escHtml(c.piva)}</span></div>`:''}
     ${c.cf?`<div class="preview-row"><span class="preview-lab">C.F.</span><span class="preview-val">${escHtml(c.cf)}</span></div>`:''}
     ${c.indirizzo?`<div class="preview-row"><span class="preview-lab">Indirizzo</span><span class="preview-val">${escHtml(c.indirizzo)}</span></div>`:''}
-    ${c.tel?`<div class="preview-row"><span class="preview-lab">Telefono</span><span class="preview-val"><a href="tel:${c.tel.replace(/\s/g,'')}" style="color:var(--amber);">${c.tel}</a></span></div>`:''}
-    ${c.email?`<div class="preview-row"><span class="preview-lab">Email</span><span class="preview-val"><a href="mailto:${c.email}" style="color:var(--amber);">${c.email}</a></span></div>`:''}
-    ${c.iban?`<div class="preview-row"><span class="preview-lab">IBAN</span><span class="preview-val" style="font-family:monospace;font-size:12px;">${c.iban}</span></div>`:''}
+    ${c.tel?`<div class="preview-row"><span class="preview-lab">Telefono</span><span class="preview-val"><a href="tel:${escHtml(c.tel.replace(/\s/g,''))}" style="color:var(--amber);">${escHtml(c.tel)}</a></span></div>`:''}
+    ${c.email?`<div class="preview-row"><span class="preview-lab">Email</span><span class="preview-val"><a href="mailto:${escHtml(c.email)}" style="color:var(--amber);">${escHtml(c.email)}</a></span></div>`:''}
+    ${c.iban?`<div class="preview-row"><span class="preview-lab">IBAN</span><span class="preview-val" style="font-family:monospace;font-size:12px;">${escHtml(c.iban)}</span></div>`:''}
     ${c.referente?`<div class="preview-row"><span class="preview-lab">Referente</span><span class="preview-val">${escHtml(c.referente)}</span></div>`:''}
   </div>
   <div class="stats" style="margin-top:10px;"><div class="stat"><div class="sl">Cave</div><div class="sv">${cavCli.length}</div></div><div class="stat"><div class="sl">Rapportini</div><div class="sv">${totRapp}</div></div><div class="stat"><div class="sl">Mc totali</div><div class="sv">${totMc.toFixed(0)}</div></div></div>
@@ -4504,7 +4504,7 @@ function renderEditorCanvas(){
   }
   // Etichette
   const tipoLabel2={'cava':'FRONTE CAVA','galleria':'SEZIONE GALLERIA','altro':'FRONTE'}[v.tipo||'cava']||'FRONTE CAVA';
-  const lblCresta=`<text x="${padX+10}" y="${padY-10}" font-family="'Barlow Condensed',sans-serif" font-size="10" fill="#ffab00" letter-spacing="1.5">${tipoLabel2} · L=${Lm}m${v.nomeProgetto?' · '+v.nomeProgetto:''}</text>`;
+  const lblCresta=`<text x="${padX+10}" y="${padY-10}" font-family="'Barlow Condensed',sans-serif" font-size="10" fill="#ffab00" letter-spacing="1.5">${tipoLabel2} · L=${Lm}m${v.nomeProgetto?' · '+escHtml(v.nomeProgetto):''}</text>`;
   const ricHtml=''; // vibrazioni/ricettori rimossi (v3.4.8: funzione esclusa)
   // Quotatura Borraggio
   let quotaB='';
@@ -4568,7 +4568,7 @@ function renderEditorSide(){
       <div class="info-box" style="margin-bottom:10px;border-left-color:var(--info);">🔒 Progetto condiviso in sola lettura.</div>
       <div class="preview-sec">
         <div class="preview-row"><span class="preview-lab">Nome</span><span class="preview-val">${escHtml(v.nomeProgetto||'Volata #'+v.numero)}</span></div>
-        <div class="preview-row"><span class="preview-lab">Cava/Tipo</span><span class="preview-val">${cava?cava.nome:(v.tipo||'—')}</span></div>
+        <div class="preview-row"><span class="preview-lab">Cava/Tipo</span><span class="preview-val">${escHtml(cava?cava.nome:(v.tipo||'—'))}</span></div>
         <div class="preview-row"><span class="preview-lab">Fori</span><span class="preview-val">${v.tot_fori}</span></div>
         <div class="preview-row"><span class="preview-lab">Maglia</span><span class="preview-val">B ${Borr} × S ${Spaz}</span></div>
         <div class="preview-row"><span class="preview-lab">Metri</span><span class="preview-val">${v.tot_metri}</span></div>
