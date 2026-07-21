@@ -70,6 +70,18 @@ export function qualitaRilievo(r) {
   return parti.join(" · ");
 }
 
+// Deplezione delle riserve: dalla riserva stimata, da quanto già estratto
+// nell'anno e dal ritmo annuo pianificato, calcola la riserva RESIDUA e la
+// durata stimata in anni. È la "personalità" di Terra (nessun competitor la
+// racconta in modo semplice). Ritorna null se non c'è una riserva stimata;
+// anni null se il ritmo annuo non è noto. Pura e testabile.
+export function riservaResidua(riserveM3, estrattoAnno, rateAnnuoM3) {
+  if (riserveM3 == null) return null;
+  const residuo = Math.max(0, (+riserveM3 || 0) - (+estrattoAnno || 0));
+  const rate = +rateAnnuoM3 || 0;
+  return { residuo, anni: rate > 0 ? residuo / rate : null };
+}
+
 export function kpiFrom(fronti, rilievi, piano, oggi = new Date()) {
   const ym = oggi.toISOString().slice(0, 7);          // yyyy-mm
   const anno = ym.slice(0, 4);
