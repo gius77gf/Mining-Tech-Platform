@@ -294,6 +294,14 @@ test("valoreMateriale: input negativi trattati come 0 (niente valori assurdi)", 
   eq(terra.valoreMateriale(1000, -1, 12), { tonnellate: 0, valore: 0 }, "densità negativa → 0");
   eq(terra.valoreMateriale(1000, 1.6, -3), { tonnellate: 1600, valore: 0 }, "prezzo negativo → 0");
 });
+test("riservaResidua: residuo = riserve − estratto; anni al ritmo pianificato", () => {
+  eq(terra.riservaResidua(1000000, 100000, 125000), { residuo: 900000, anni: 7.2 }, "900k / 125k = 7,2 anni");
+  eq(terra.riservaResidua(100000, 200000, 125000), { residuo: 0, anni: 0 }, "estratto > riserve → residuo 0");
+});
+test("riservaResidua: senza riserva stimata = null; senza ritmo = anni null", () => {
+  eq(terra.riservaResidua(null, 100, 125000), null, "riserve assenti → null");
+  eq(terra.riservaResidua(1000000, 0, 0).anni, null, "ritmo 0 → anni non stimabili");
+});
 test("qualitaRilievo: compone metodo + GSD; vuoto se non si sa nulla", () => {
   eq(terra.qualitaRilievo({ metodo: "RTK+GCP", gsd: "2" }), "RTK+GCP · GSD 2 cm", "metodo + gsd");
   eq(terra.qualitaRilievo({ metodo: "PPK" }), "PPK", "solo metodo");
