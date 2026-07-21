@@ -136,16 +136,20 @@ Pagina **Fronti → Importa fronti (CSV)**.
 
 ## Terra — 2) rilievi drone (volumi)
 Pagina **Rilievi → Importa rilievi (CSV)**.
-- **Colonne**: `data;volumeM3;metodo;gsd` (metodo e gsd facoltativi)
+- **Colonne**: `data;volumeM3;metodo;gsd;fronte` (metodo, gsd e fronte
+  facoltativi)
 - **Esempio**:
   ```
-  data;volumeM3;metodo;gsd
-  2026-07-15;19400;RTK+GCP;2
-  2026-07-01;18600;;
+  data;volumeM3;metodo;gsd;fronte
+  2026-07-15;19400;RTK+GCP;2;Fronte Nord
+  2026-07-01;18600;;;
   ```
 - **Note**: servono una data valida e un volume in metri cubi ≥ 0. `metodo`
   (RTK, PPK, GCP…) e `gsd` (cm/pixel) rendono il volume "difendibile" in un
-  controllo, ma non sono obbligatori.
+  controllo, ma non sono obbligatori. `fronte` (facoltativo) collega il rilievo
+  a un fronte **per nome**: carica **prima** i fronti (sopra) perché il
+  collegamento funzioni; un nome non riconosciuto lascia il rilievo non
+  assegnato.
 
 ## Campo — 1) squadre di cantiere
 Pagina **Squadre → Importa squadre (CSV)** (oppure aggiungile a mano dal form).
