@@ -276,6 +276,23 @@ Nota tecnica onesta: il ROOT `index.html` NON è coperto dal syntax-check della
 CI (che copre solo apps/*/*.html) né dai test → verifica manuale.
 Suite CI 273 → 294. Isolamento multi-tenant confermato solido su ogni superficie.
 
+## SESSIONE 21/07 (5ª parte) — completamento app (nuovi registri + parità import)
+Dopo l'audit, cicli proseguiti a oltranza con completamenti di prodotto (Fase C):
+- **Scudo — registro infortuni e near-miss** (#270) con il numero grande dei
+  **giorni senza infortuni** (i near-miss non azzerano il conto) + import/export
+  CSV (#271).
+- **Sentinella — registro volate** (brogliaccio di brillamento, #273): log di
+  ogni volata con la distanza scalata per evento e le contestazioni; import/
+  export CSV.
+- **Flotta — import del parco mezzi** da CSV (#276): si carica la flotta intera
+  all'avvio invece di aggiungere i mezzi a mano (parità con gli altri import).
+- Doc fondatore aggiornati: `STATO_PRODOTTO` (registri, #272/#274) e
+  `ONBOARDING_DATI` (colonne dei nuovi import, #275).
+- Smoke test di regressione (Playwright, 6 app × tutte le pagine): 6/6 pulite
+  dopo tutti i PR della sessione.
+Nota: i registri usano la regola Firestore generica (orgCollection) → nessun
+gate; sono LOG di eventi, non soglie di legge. Suite CI 294 → 301.
+
 ## Fine progetto (fase commercializzazione) — NON prima
 - Acquisto dominio + sottodomini. DECISIONE DEL FONDATORE: nessuna
   spesa prima della commercializzazione.
