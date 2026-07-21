@@ -74,9 +74,10 @@
     <select class="dw-input" id="man-mezzo" style="flex:1;min-width:130px;"></select>
     <input class="dw-input" id="man-data" type="date" style="flex:1;min-width:130px;">
     <input class="dw-input" id="man-ore" type="number" placeholder="oppure a ore (es. 6000)" style="flex:1;min-width:120px;">
+    <select class="dw-input" id="man-ricambio" title="Ricambio consumato (facoltativo)" style="flex:1;min-width:130px;"><option value="">— nessun ricambio —</option></select>
     <button class="dw-btn" id="btn-man" style="width:auto;">Pianifica</button>
   </div>
-  <div class="note" style="text-align:left;">Data oppure ore motore: per i tagliandi a ore scrivi le ore a cui va fatto (urgenza calcolata dal contatore del mezzo).</div>
+  <div class="note" style="text-align:left;">Data oppure ore motore: per i tagliandi a ore scrivi le ore a cui va fatto (urgenza calcolata dal contatore del mezzo). Se scegli un ricambio, alla chiusura verrà scaricato dal magazzino.</div>
 
   <div class="sec">Magazzino ricambi</div>
   <div id="ric-alert" class="note" style="text-align:left;"></div>
@@ -122,7 +123,7 @@
 </script>
 
 <script type="module">
-  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta } from "./flotta-data.js";
+  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, scaricoGiacenza } from "./flotta-data.js";
   import { mountExit, esc } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const MB = { operativo: ["ok","Operativo"], fermo: ["danger","Fermo"], verifica: ["warn","Verifica"] };
@@ -199,7 +200,8 @@
     };
     $("man-list").innerHTML = MAN.slice().sort((a,b)=>(a.dataPrevista||"9999")<(b.dataPrevista||"9999")?-1:1).map(n => {
       const u = urgDi(n);
-      return `<div class="item"><div class="info"><div class="name">${esc(n.titolo)} — ${esc(n.mezzo)}</div><div class="meta">${n.orePreviste ? "A " + n.orePreviste + " ore motore" + stimaGiorni(n) : "Previsto " + (n.dataPrevista ? n.dataPrevista.split("-").reverse().join("/") : "—")}</div></div>
+      const ricN = n.ricambioId ? (RIC.find(r => r.id === n.ricambioId) || null) : null;
+      return `<div class="item"><div class="info"><div class="name">${esc(n.titolo)} — ${esc(n.mezzo)}</div><div class="meta">${n.orePreviste ? "A " + n.orePreviste + " ore motore" + stimaGiorni(n) : "Previsto " + (n.dataPrevista ? n.dataPrevista.split("-").reverse().join("/") : "—")}${ricN ? " · usa " + esc(ricN.nome) : ""}</div></div>
       <span class="badge ${u.cls}">${u.label}</span>
       <span class="arr" style="cursor:pointer" title="Segna come eseguita" data-man-done="${n.id}">✓</span></div>`; }).join("")
       || '<div class="note" style="text-align:left;">Nessuna manutenzione programmata.</div>';
@@ -231,12 +233,21 @@
     const opts = MEZ.map(m => `<option value="${m.id}">${esc(m.nome.split(" — ")[0])}</option>`).join("");
     $("ore-mezzo").innerHTML = opts;
     $("man-mezzo").innerHTML = MEZ.map(m => `<option>${esc(m.nome.split(" — ")[0])}</option>`).join("");
+    // opzioni ricambio (conserva la scelta corrente durante il refresh)
+    const ricSel = $("man-ricambio").value;
+    $("man-ricambio").innerHTML = '<option value="">— nessun ricambio —</option>' +
+      RIC.map(r => `<option value="${r.id}"${r.id === ricSel ? " selected" : ""}>${esc(r.nome)} (giac. ${+r.giacenza||0})</option>`).join("");
   }
 
   document.addEventListener("click", async (e) => {
     const done = e.target.getAttribute && e.target.getAttribute("data-man-done");
     if (done) { const n = MAN.find(x => x.id === done);
-      if (n && confirm("Segnare come eseguita «" + n.titolo + " — " + n.mezzo + "»? Verrà tolta dalle programmate.")) {
+      if (!n) return;
+      const ric = n.ricambioId ? RIC.find(r => r.id === n.ricambioId) : null;
+      const msg = "Segnare come eseguita «" + n.titolo + " — " + n.mezzo + "»?"
+        + (ric ? " Verrà scaricato 1 « " + ric.nome + " » dal magazzino." : "") + " Verrà tolta dalle programmate.";
+      if (confirm(msg)) {
+        if (ric) await db.aggiorna("ricambi", ric.id, { giacenza: scaricoGiacenza(ric.giacenza, 1) });
         await db.rimuovi("manutenzioni", done); await refresh(); } return; }
     const delMez = e.target.getAttribute && e.target.getAttribute("data-del-mezzo");
     if (delMez) { const m = MEZ.find(x => x.id === delMez);
@@ -317,8 +328,8 @@
       $("ore-esito").textContent = "Serve il titolo e la data OPPURE le ore motore."; return;
     }
     $("man-titolo").style.borderColor = "";
-    await db.aggiungi("manutenzioni", { titolo, mezzo: $("man-mezzo").value, dataPrevista: dataPrevista || null, orePreviste });
-    $("man-titolo").value = ""; $("man-data").value = ""; $("man-ore").value = ""; $("man-titolo").focus(); await refresh();
+    await db.aggiungi("manutenzioni", { titolo, mezzo: $("man-mezzo").value, dataPrevista: dataPrevista || null, orePreviste, ricambioId: $("man-ricambio").value || null });
+    $("man-titolo").value = ""; $("man-data").value = ""; $("man-ore").value = ""; $("man-ricambio").value = ""; $("man-titolo").focus(); await refresh();
   };
   // Recupero errore: appena l'utente corregge un campo, togli il bordo
   // rosso e il messaggio di esito, così l'avviso non resta appeso.

@@ -421,6 +421,12 @@ test("sottoScorta: ricambi con giacenza ≤ soglia, ordinati per gravità", () =
 });
 test("sottoScorta: nessun ricambio = lista vuota (niente crash)", () =>
   eq(flotta.sottoScorta([]), [], "vuoto"));
+test("scaricoGiacenza: sottrae la quantità, mai sotto zero", () => {
+  eq(flotta.scaricoGiacenza(5), 4, "default −1");
+  eq(flotta.scaricoGiacenza(5, 3), 2, "−3");
+  eq(flotta.scaricoGiacenza(1, 3), 0, "non scende sotto zero");
+  eq(flotta.scaricoGiacenza(undefined, 1), 0, "giacenza assente → 0");
+});
 
 console.log("\n— Confini: stato misura sensori (Sentinella) —");
 test("statoMisura: rapporto esattamente 1,0 = superamento", () =>
