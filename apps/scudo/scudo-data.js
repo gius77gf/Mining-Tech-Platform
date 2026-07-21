@@ -86,6 +86,26 @@ export function livelloScadenza(dataISO, oggi = new Date()) {
   return { cls: "ok", label: "tra " + g + " gg", giorni: g };
 }
 
+// Copertura formazione/competenze PER TIPO (visite mediche, corsi, DPI,
+// patentini…): per ogni tipo conta quante scadenze sono regolari / in
+// scadenza / scadute. È la "matrice" che dice se l'azienda è coperta su
+// ciascun adempimento. Ordinata dalla situazione peggiore (più scadute).
+// Pura e testabile.
+export function coperturaFormazione(scadenze) {
+  const per = {};
+  for (const s of scadenze || []) {
+    const t = (s.tipo || "Altro");
+    const g = per[t] || (per[t] = { tipo: t, totale: 0, scadute: 0, inScadenza: 0, regolari: 0 });
+    g.totale++;
+    const st = statoScadenza(s.dataScadenza);
+    if (st === "scaduta") g.scadute++;
+    else if (st === "in-scadenza") g.inScadenza++;
+    else g.regolari++;
+  }
+  return Object.values(per).sort((a, b) =>
+    (b.scadute - a.scadute) || (b.inScadenza - a.inScadenza) || a.tipo.localeCompare(b.tipo, "it"));
+}
+
 export function kpiFrom(lavoratori, scadenze) {
   const st = scadenze.map(s => statoScadenza(s.dataScadenza));
   const scadute = st.filter(x => x === "scaduta").length;

@@ -54,6 +54,22 @@ test("livelloScadenza: senza data non allarma (giorni null)", () => {
   eq(scudo.livelloScadenza(undefined), { cls: "ok", label: "senza data", giorni: null }, "undefined");
   eq(scudo.livelloScadenza("").giorni, null, "vuota");
 });
+test("coperturaFormazione: raggruppa per tipo con stati, peggiore prima", () => {
+  const o = new Date("2026-07-20T00:00:00");
+  // uso date relative a 'oggi' del test? statoScadenza usa new Date() reale;
+  // per determinismo passo date molto lontane.
+  const sca = [
+    { tipo: "Visita medica", dataScadenza: "2000-01-01" }, // scaduta
+    { tipo: "Visita medica", dataScadenza: "2099-01-01" }, // regolare
+    { tipo: "Corso",         dataScadenza: "2099-01-01" }, // regolare
+  ];
+  const c = scudo.coperturaFormazione(sca);
+  eq(c[0].tipo, "Visita medica", "peggiore (con scadute) prima");
+  eq(c[0], { tipo: "Visita medica", totale: 2, scadute: 1, inScadenza: 0, regolari: 1 }, "conteggi visita");
+  eq(c[1], { tipo: "Corso", totale: 1, scadute: 0, inScadenza: 0, regolari: 1 }, "conteggi corso");
+});
+test("coperturaFormazione: nessuna scadenza = lista vuota (niente crash)", () =>
+  eq(scudo.coperturaFormazione([]), [], "vuoto"));
 test("kpiFrom conta scadute/in-scadenza e lavoratori regolari", () => {
   const lav = [{ id: "l1", attivo: true }, { id: "l2", attivo: true }, { id: "l3", attivo: false }];
   const sca = [
