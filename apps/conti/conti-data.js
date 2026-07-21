@@ -64,6 +64,22 @@ export function agingIncassi(fatture, oggi = new Date()) {
   return b;
 }
 
+// Riepilogo delle gare d'appalto: quante aperte/vinte/perse, valore a
+// base d'asta per stato, e tasso di vittoria sulle sole gare DECISE
+// (vinte+perse; le aperte non contano ancora). tassoVittoria è null se
+// non c'è ancora nessuna gara decisa. Funzione pura e testabile.
+export function gareRiepilogo(gare) {
+  const per = (s) => (gare || []).filter(g => g.stato === s);
+  const somma = (arr) => arr.reduce((t, g) => t + (+g.base || 0), 0);
+  const aperte = per("aperta"), vinte = per("vinta"), perse = per("persa");
+  const decise = vinte.length + perse.length;
+  return {
+    aperte: aperte.length, vinte: vinte.length, perse: perse.length,
+    baseAperta: somma(aperte), baseVinta: somma(vinte), basePersa: somma(perse),
+    tassoVittoria: decise ? Math.round(100 * vinte.length / decise) : null,
+  };
+}
+
 export async function contiData() {
   let mode = "demo", api = null;
   try {

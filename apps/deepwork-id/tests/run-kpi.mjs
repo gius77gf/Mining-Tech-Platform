@@ -162,6 +162,24 @@ test("agingIncassi: scadenza esattamente oggi = non scaduto (g=0)", () => {
   eq(a.nonScaduto.conto, 1, "g=0 non scaduto");
   eq(a.scadutoTot, 0, "niente scaduto");
 });
+test("gareRiepilogo: conta stati, valori e tasso di vittoria (solo decise)", () => {
+  const gare = [
+    { stato: "aperta", base: 100 },
+    { stato: "aperta", base: 200 },
+    { stato: "vinta",  base: 300 },
+    { stato: "vinta",  base: 400 },
+    { stato: "persa",  base: 500 },
+  ];
+  const r = conti.gareRiepilogo(gare);
+  eq(r.aperte, 2, "2 aperte"); eq(r.baseAperta, 300, "base aperte 300");
+  eq(r.vinte, 2, "2 vinte"); eq(r.perse, 1, "1 persa");
+  eq(r.tassoVittoria, 67, "2 vinte su 3 decise = 67%");
+});
+test("gareRiepilogo: nessuna gara decisa → tasso null (niente divisione per zero)", () => {
+  const r = conti.gareRiepilogo([{ stato: "aperta", base: 100 }]);
+  eq(r.tassoVittoria, null, "nessuna decisa");
+  eq(r.vinte, 0, "0 vinte");
+});
 
 console.log("\n— Sentinella: monitoraggi ambientali —");
 test("statoMisura: superamento/attenzione/conforme dalla soglia", () => {
