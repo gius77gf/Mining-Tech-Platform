@@ -1104,6 +1104,14 @@ test("coperturaRapportini: quali squadre hanno consegnato il rapportino, chi man
 });
 test("coperturaRapportini: nessuna squadra = pct null (niente crash)", () =>
   eq(campo.coperturaRapportini([], []), { coperte: 0, totale: 0, pct: null, mancanti: [] }, "vuoto"));
+test("parseSquadreCsv: legge nome/persone/area/stato; persone intere; stato ignoto → operativa", () => {
+  const csv = "nome;persone;area;stato\nSquadra A — Perforazione;4;fronte Est;operativa\nSquadra C — Impianto;2;frantoio;ferma\nSquadra X;3;;boh\n;piazzale;2;operativa\n";
+  const p = campo.parseSquadreCsv(csv);
+  eq(p.length, 3, "3 squadre valide (riga senza nome scartata)");
+  eq(p[0], { nome: "Squadra A — Perforazione", persone: 4, area: "fronte Est", stato: "operativa" }, "riga completa");
+  eq(p[1].stato, "ferma", "stato valido mantenuto");
+  eq(p[2].stato, "operativa", "stato ignoto → operativa");
+});
 
 console.log("\n— Import CSV robusto: numeri all'italiana e ';' nei campi —");
 test("numIt: formati italiano/inglese/misti", () => {

@@ -58,7 +58,21 @@
 
 <div class="page" id="page-squ">
   <div class="sec">Squadre in turno</div>
-  <div id="squ-list"></div></div>
+  <div id="squ-list"></div>
+  <div class="sec">Nuova squadra</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <input class="dw-input" id="squ-nome" placeholder="Nome (es. Squadra D — Perforazione)" style="flex:2;min-width:170px;">
+    <input class="dw-input" id="squ-persone" type="number" min="0" placeholder="Persone" style="flex:1;min-width:90px;">
+    <input class="dw-input" id="squ-area" placeholder="Area (es. fronte Est)" style="flex:1;min-width:120px;">
+    <button class="dw-btn" id="btn-squ" style="width:auto;">Aggiungi</button>
+  </div>
+  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <button class="dw-btn secondary" id="btn-squ-import" style="width:auto;">Importa squadre (CSV)</button>
+    <input type="file" id="squ-file" accept=".csv,text/csv" style="display:none;">
+    <span class="dw-muted" style="font-size:12px;">colonne: nome;persone;area;stato</span>
+  </div>
+  <div class="note" id="squ-esito" style="text-align:left;"></div>
+</div>
 
 <div class="page" id="page-rap">
   <div class="sec">Rapportini di oggi</div>
@@ -109,7 +123,7 @@
 </script>
 
 <script type="module">
-  import { campoData, kpiFrom, parsePianoCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini } from "./campo-data.js";
+  import { campoData, kpiFrom, parsePianoCsv, parseSquadreCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini } from "./campo-data.js";
   import { mountExit, esc } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const AB = { "in-corso": ["ok","In corso"], pianificata: ["warn","Pianificata"], anomalia: ["danger","Anomalia"], conclusa: ["ok","Conclusa"] };
@@ -246,6 +260,31 @@
       ora: "", stato: "bozza" });
     $("new-rap-titolo").value = ""; $("new-rap-turno").value = ""; $("new-rap-prod").value = ""; $("new-rap-note").value = "";
     $("new-rap-titolo").focus(); await refresh();
+  };
+  $("btn-squ").onclick = async () => {
+    const nome = $("squ-nome").value.trim();
+    if (!nome) { $("squ-nome").style.borderColor = "var(--danger)"; $("squ-esito").textContent = "Serve il nome della squadra."; return; }
+    if (SQU.some(q => (q.nome || "").toLowerCase() === nome.toLowerCase())) {
+      $("squ-nome").style.borderColor = "var(--danger)"; $("squ-esito").textContent = "Esiste già una squadra con questo nome."; return; }
+    $("squ-nome").style.borderColor = "";
+    await db.aggiungi("squadre", { nome, persone: +$("squ-persone").value || 0, area: $("squ-area").value.trim(), stato: "operativa" });
+    $("squ-nome").value = ""; $("squ-persone").value = ""; $("squ-area").value = "";
+    $("squ-esito").textContent = "Squadra aggiunta: " + nome + " (operativa)."; $("squ-nome").focus();
+    await refresh();
+  };
+  $("btn-squ-import").onclick = () => $("squ-file").click();
+  $("squ-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const righe = parseSquadreCsv(await file.text());
+    let agg = 0, dup = 0;
+    for (const r of righe) {
+      if (SQU.some(q => (q.nome || "").trim().toLowerCase() === r.nome.toLowerCase())) { dup++; continue; }
+      await db.aggiungi("squadre", { nome: r.nome, persone: r.persone, area: r.area, stato: r.stato });
+      agg++;
+    }
+    $("squ-file").value = "";
+    $("squ-esito").textContent = `Import squadre: ${agg} aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}.`;
+    await refresh();
   };
   // Consegna di turno (handover): un testo con i rapportini e le anomalie
   // aperte, pronto da passare al turno successivo o da archiviare.
