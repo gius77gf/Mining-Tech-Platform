@@ -114,6 +114,25 @@ export function incassoAtteso(fatture, giorniAvanti = 30, oggi = new Date()) {
   return { conto, importo };
 }
 
+// Esposizione per CLIENTE: totale delle fatture NON incassate per ogni cliente,
+// dal più esposto, con quante fatture e quanto è già scaduto. Serve al credito
+// per sapere CHI chiamare per primo (l'esposizione concentrata è il rischio
+// vero). Ignora le fatture con importo ≤ 0. Pura e testabile.
+export function esposizioneClienti(fatture, oggi = new Date()) {
+  const per = {};
+  for (const f of fatture || []) {
+    if (f.incassata) continue;
+    const imp = +f.importo || 0;
+    if (imp <= 0) continue;
+    const cli = ((f.cliente || "").trim()) || "—";
+    const p = per[cli] || (per[cli] = { cliente: cli, totale: 0, scaduto: 0, conto: 0 });
+    p.totale += imp; p.conto++;
+    const g = giorni(f.scadenza, oggi);
+    if (Number.isFinite(g) && g < 0) p.scaduto += imp;
+  }
+  return Object.values(per).sort((a, b) => b.totale - a.totale || a.cliente.localeCompare(b.cliente, "it"));
+}
+
 // Previsione incassi per MESE: raggruppa le fatture non incassate e non ancora
 // scadute per mese-calendario (yyyy-mm) nei prossimi `mesi` mesi, così si vede
 // la liquidità attesa nel tempo e non solo un totale a finestra. Le fatture già
