@@ -45,6 +45,7 @@
     <button class="dw-btn secondary" data-filtro="anomalia" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Anomalie</button>
   </div>
   <div id="att-list"></div>
+  <div id="fermi-riep" class="note" style="text-align:left;"></div>
   <div class="sec">Nuova attività</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
     <input class="dw-input" id="att-titolo" placeholder="Titolo (es. Perforazione fronte Sud)" style="flex:2;min-width:160px;">
@@ -98,7 +99,7 @@
 </script>
 
 <script type="module">
-  import { campoData, kpiFrom, parsePianoCsv, scartoPct, scartoLivello, pianoRiepilogo } from "./campo-data.js";
+  import { campoData, kpiFrom, parsePianoCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi } from "./campo-data.js";
   import { mountExit, esc } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const AB = { "in-corso": ["ok","In corso"], pianificata: ["warn","Pianificata"], anomalia: ["danger","Anomalia"], conclusa: ["ok","Conclusa"] };
@@ -141,12 +142,19 @@
     const ordAtt = { anomalia: 0, "in-corso": 1, pianificata: 2, conclusa: 3 };
     const attVis = ATT.filter(a => filtroAtt === "tutte" || a.stato === filtroAtt)
                       .sort((a, b) => (ordAtt[a.stato] ?? 4) - (ordAtt[b.stato] ?? 4));
+    const optCausali = (sel) => CAUSALI_FERMO.map(c => `<option value="${esc(c)}"${c===sel?" selected":""}>${esc(c)}</option>`).join("");
     $("att-list").innerHTML = attVis.map(a => `<div class="item" data-att="${a.id}" style="cursor:pointer" title="Tocca per cambiare stato">
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc(a.dettaglio||"")}</div></div>
+      ${a.stato==="anomalia" ? `<select class="dw-input" data-causale="${a.id}" title="Causale del fermo" style="width:auto;min-height:32px;padding:2px 6px;font-size:12px;margin-right:6px;"><option value="">Causale…</option>${optCausali(a.causale)}</select>` : ""}
       <span class="badge ${AB[a.stato][0]}">${AB[a.stato][1]}</span></div>`).join("")
       || '<div class="note" style="text-align:left;">'+(filtroAtt==="tutte"?"Nessuna attività registrata oggi.":"Nessuna attività in questa categoria.")+'</div>';
     document.querySelectorAll("#att-filtri [data-filtro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-filtro") === filtroAtt ? "var(--app-accent)" : "");
+    // riepilogo fermi per causale (base per OEE/disponibilità)
+    const fermi = riepilogoFermi(ATT);
+    $("fermi-riep").innerHTML = fermi.length
+      ? "Fermi per causale: " + fermi.map(f => `<b>${esc(f.causale)}</b> ${f.conto}`).join(" · ")
+      : "";
 
     $("squ-list").innerHTML = SQU.map(q => `<div class="item" data-squ="${q.id}" style="cursor:pointer" title="Tocca per fermare/riattivare">
       <div class="avatar">${esc(sig(q.nome))}</div>
@@ -165,6 +173,8 @@
   // interazioni: attività cicla lo stato; rapportino bozza → inviato
   const ATT_NEXT = { pianificata: "in-corso", "in-corso": "conclusa", anomalia: "in-corso", conclusa: "pianificata" };
   document.addEventListener("click", async (e) => {
+    // il tap sul menu causale NON deve cambiare lo stato dell'attività
+    if (e.target.matches && e.target.matches("[data-causale]")) return;
     const it = e.target.closest && e.target.closest("[data-att]");
     if (it) { const a = ATT.find(x => x.id === it.getAttribute("data-att"));
       await db.aggiorna("attivita", a.id, { stato: ATT_NEXT[a.stato] || "in-corso" }); await refresh(); return; }
@@ -186,6 +196,13 @@
         if (confirm("Richiamare in bozza il rapportino «" + r.titolo + "»? Potrai correggerlo e reinviarlo.")) {
           await db.aggiorna("rapportini", r.id, { stato: "bozza", ora: "" }); await refresh(); }
       }
+    }
+  });
+  // salva la causale del fermo quando si sceglie dal menu sull'anomalia
+  document.addEventListener("change", async (e) => {
+    const cid = e.target.getAttribute && e.target.getAttribute("data-causale");
+    if (cid != null && e.target.hasAttribute("data-causale")) {
+      await db.aggiorna("attivita", cid, { causale: e.target.value }); await refresh();
     }
   });
   $("btn-att").onclick = async () => {
