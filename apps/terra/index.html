@@ -149,7 +149,8 @@
   let FRO=[], RIL=[], PIA=[];
   let filtroRil = "tutti";
   let ordRil = "data";
-  if ($("ril-ord")) $("ril-ord").onchange = () => { ordRil = $("ril-ord").value; refresh(); };
+  try { const _s = localStorage.getItem("dwSort_ril"); if (_s) { ordRil = _s; if ($("ril-ord")) $("ril-ord").value = _s; } } catch (e) {}
+  if ($("ril-ord")) $("ril-ord").onchange = () => { ordRil = $("ril-ord").value; try { localStorage.setItem("dwSort_ril", ordRil); } catch (e) {} refresh(); };
   $("ril-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroRil = f; refresh(); }

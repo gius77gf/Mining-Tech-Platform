@@ -174,7 +174,8 @@
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroScad = f; refresh(); }
   });
-  if ($("scad-ord")) $("scad-ord").onchange = () => { ordScad = $("scad-ord").value; refresh(); };
+  try { const _s = localStorage.getItem("dwSort_scad"); if (_s) { ordScad = _s; if ($("scad-ord")) $("scad-ord").value = _s; } } catch (e) {}
+  if ($("scad-ord")) $("scad-ord").onchange = () => { ordScad = $("scad-ord").value; try { localStorage.setItem("dwSort_scad", ordScad); } catch (e) {} refresh(); };
   // scorciatoia: toccare un KPI del quadro porta alla lista pertinente
   document.querySelector(".kpis").addEventListener("click", (e) => {
     const card = e.target.closest("[data-goto]"); if (!card) return;

@@ -180,7 +180,8 @@
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroMon = f; refresh(); }
   });
-  if ($("mon-ord")) $("mon-ord").onchange = () => { ordMon = $("mon-ord").value; refresh(); };
+  try { const _s = localStorage.getItem("dwSort_mon"); if (_s) { ordMon = _s; if ($("mon-ord")) $("mon-ord").value = _s; } } catch (e) {}
+  if ($("mon-ord")) $("mon-ord").onchange = () => { ordMon = $("mon-ord").value; try { localStorage.setItem("dwSort_mon", ordMon); } catch (e) {} refresh(); };
   async function refresh(){
     [MON,ADE,REG,VOL] = await Promise.all([db.monitoraggi(), db.adempimenti(), db.registri(), db.volate ? db.volate() : []]);
     const k = kpiFrom(MON,ADE);
