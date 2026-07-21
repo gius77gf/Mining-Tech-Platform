@@ -89,6 +89,19 @@ test("parseScadenzeCsv: CRLF (Excel) e testo vuoto = niente crash", () => {
   eq(s.length, 1, "CRLF ok");
   eq(s[0].dataScadenza, "2026-12-01", "data letta");
 });
+test("SCADENZE_PRESET: lista non vuota, chiavi uniche, categorie/tipo validi", () => {
+  const P = scudo.SCADENZE_PRESET;
+  eq(P.length > 0, true, "non vuota");
+  eq(P.length, new Set(P.map(x => x.chiave)).size, "chiavi uniche");
+  eq(P.every(x => x.categoria === "persona" || x.categoria === "azienda"), true, "categorie valide");
+  eq(P.every(x => x.tipo && x.etichetta), true, "tipo + etichetta presenti");
+});
+test("presetScadenza: chiave valida → daVerificare true; inesistente → null", () => {
+  const p = scudo.presetScadenza("sorv-sanitaria");
+  eq(p.daVerificare, true, "daVerificare sempre true");
+  eq(p.categoria, "persona", "categoria persona");
+  eq(scudo.presetScadenza("boh"), null, "chiave inesistente = null");
+});
 test("kpiFrom conta scadute/in-scadenza e lavoratori regolari", () => {
   const lav = [{ id: "l1", attivo: true }, { id: "l2", attivo: true }, { id: "l3", attivo: false }];
   const sca = [

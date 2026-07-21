@@ -107,6 +107,39 @@ export function coperturaFormazione(scadenze) {
     (b.scadute - a.scadute) || (b.inScadenza - a.inScadenza) || a.tipo.localeCompare(b.tipo, "it"));
 }
 
+// Adempimenti HSE TIPICI di una cava, come voci preimpostate dello
+// scadenzario (stessa idea di SOGLIE_PRESET in Sentinella): l'utente sceglie
+// l'adempimento invece di digitarlo, e Scudo prepara descrizione e tipo. Fonti
+// e ragionamento in vault/RICERCA_HSE_SCADENZE_CAVA.md. Doppio binario: D.Lgs
+// 81/2008 (generale) + D.Lgs 624/1996 (estrattivo, DSS). categoria = persona
+// (legata al lavoratore) | azienda (di sito). `tipo` mappa sui tipi già
+// presenti nel form. Le PERIODICITÀ non sono qui: dipendono dal DVR/DSS e dal
+// medico competente → ogni preset porta `daVerificare` (niente scadenza
+// automatica, la data la mette l'utente).
+export const SCADENZE_PRESET = [
+  { chiave: "sorv-sanitaria",   categoria: "persona", tipo: "Visita medica", etichetta: "Sorveglianza sanitaria — visita periodica (art. 41)" },
+  { chiave: "form-generale",    categoria: "persona", tipo: "Formazione",    etichetta: "Formazione generale + specifica (art. 37)" },
+  { chiave: "form-aggiorn",     categoria: "persona", tipo: "Formazione",    etichetta: "Aggiornamento formazione lavoratori" },
+  { chiave: "form-preposto",    categoria: "persona", tipo: "Formazione",    etichetta: "Formazione/aggiornamento preposto" },
+  { chiave: "form-dirigente",   categoria: "persona", tipo: "Formazione",    etichetta: "Formazione/aggiornamento dirigente" },
+  { chiave: "primo-soccorso",   categoria: "persona", tipo: "Corso",         etichetta: "Primo soccorso — aggiornamento addetti" },
+  { chiave: "antincendio",      categoria: "persona", tipo: "Corso",         etichetta: "Antincendio — aggiornamento addetti" },
+  { chiave: "rls",              categoria: "persona", tipo: "Formazione",    etichetta: "RLS — aggiornamento periodico" },
+  { chiave: "patentino-attr",   categoria: "persona", tipo: "Patente",       etichetta: "Abilitazione attrezzature (escavatore, PLE, gru…)" },
+  { chiave: "fochino",          categoria: "persona", tipo: "Patente",       etichetta: "Fochino — abilitazione brillamento mine" },
+  { chiave: "dss",              categoria: "azienda", tipo: "Altro",         etichetta: "DSS — Documento di Sicurezza e Salute (D.Lgs 624/96)" },
+  { chiave: "dvr",              categoria: "azienda", tipo: "Altro",         etichetta: "DVR — aggiornamento" },
+  { chiave: "verifica-attr",    categoria: "azienda", tipo: "Altro",         etichetta: "Verifica periodica attrezzature (D.M. 11/04/2011)" },
+  { chiave: "riunione-sic",     categoria: "azienda", tipo: "Altro",         etichetta: "Riunione periodica di sicurezza (art. 35)" },
+];
+
+// Ritorna il preset con quella chiave (o null). daVerificare SEMPRE true: la
+// periodicità va confermata con RSPP / medico competente.
+export function presetScadenza(chiave) {
+  const p = SCADENZE_PRESET.find(x => x.chiave === chiave);
+  return p ? { ...p, daVerificare: true } : null;
+}
+
 // Import scadenze da CSV (onboarding: caricare lo scadenzario esistente —
 // visite mediche, corsi, patentini con le date — invece di riscriverlo a
 // mano). Colonne: lavoratore;tipo;descrizione;scadenza (header opzionale).
