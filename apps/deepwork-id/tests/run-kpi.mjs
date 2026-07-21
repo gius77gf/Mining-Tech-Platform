@@ -234,6 +234,14 @@ test("incassoAtteso: somma le fatture aperte in scadenza entro N giorni", () => 
 });
 test("incassoAtteso: nessuna in finestra = zero (niente crash)", () =>
   eq(conti.incassoAtteso([], 30, new Date("2026-07-20T00:00:00")), { conto: 0, importo: 0 }, "vuoto"));
+test("livelloSollecito: fasce di ritardo → livello di sollecito", () => {
+  eq(conti.livelloSollecito(0).livello, 0, "non scaduta = nessun sollecito");
+  eq(conti.livelloSollecito(10), { livello: 1, label: "1° sollecito", cls: "warn" }, "10 gg = 1°");
+  eq(conti.livelloSollecito(15).livello, 1, "confine 15 gg = 1°");
+  eq(conti.livelloSollecito(16).livello, 2, "16 gg = 2°");
+  eq(conti.livelloSollecito(45).livello, 2, "confine 45 gg = 2°");
+  eq(conti.livelloSollecito(46), { livello: 3, label: "ultimo avviso", cls: "danger" }, "46 gg = ultimo");
+});
 test("prioritaIncasso: fattura senza data = ritardo 0 (non in cima per errore)", () => {
   const p = conti.prioritaIncasso([{ numero: "X", importo: 50, incassata: false }], new Date("2026-07-20T00:00:00"));
   eq(p[0].ritardo, 0, "senza data → ritardo 0");
