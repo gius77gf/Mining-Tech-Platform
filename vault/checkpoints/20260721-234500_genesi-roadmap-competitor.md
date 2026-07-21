@@ -17,25 +17,24 @@ MANUALMENTE con WebSearch (7 query mirate sui fronti chiave), verificando cosa
 Genesi ha già (grep del codice).
 
 ## Completato
-`docs/GENESI_ROADMAP_COMPETITOR.md`: confronto con Orica (ShotPlus/BlastIQ/AVM/
-FRAGTrack), Maptek BlastLogic, Maxam RIOBLAST, Strayos, O-Pitblast; analisi dei
-GAP reali di Genesi (verificati nel codice: mancano previsione vibrazioni/PPV,
-signature-hole, validazione frammentazione da immagine, riconciliazione,
-airblast, boretrack, IREDES) e roadmap prioritizzata:
-- **P0 (browser, alto impatto)**: previsione vibrazioni scaled-distance/PPV
-  (USBM), airblast dB, timing/finestra sicurezza.
-- **P1 (browser, più lavoro)**: signature-hole (superposizione d'onda),
-  riconciliazione previsto-vs-reale, burden reale dal 3D del fronte.
-- **P2 (backend/dati)**: frammentazione da immagine muckpile, ML (XGBoost),
-  boretrack, export IREDES/detonatori.
-Distingue client-side vs backend; con fonti. Rispetta il vincolo "non toccare
-il motore fisico".
+`docs/GENESI_ROADMAP_COMPETITOR.md`: confronto con Orica/Maptek/Maxam/Strayos/
+O-Pitblast. CORREZIONE IMPORTANTE: una prima grep bacata (`\|` in regex estesa)
+mi aveva fatto credere che Genesi non avesse le vibrazioni; rileggendo il codice
+Genesi HA GIÀ previsione vibrazioni (PPV Devine/USBM, MIC 8ms, scaled distance,
+soglie), airblast dB, detonatori elettronici/elettrici, deviazione fronte/piede.
+I gap VERI (verificati) sono il "chiudere il cerchio col dato reale":
+- **P0 (browser)**: P0.1 **riconciliazione previsto-vs-reale** (gap #1, come
+  Maptek BlastLogic), P0.2 **signature-hole** (superposizione d'onda da
+  sismogramma reale, affianca il Devine già presente).
+- **P1 (browser)**: burden reale per foro dal 3D, import deviazione fori
+  (boretrack), export detonatori/IREDES.
+- **P2 (backend/dati)**: frammentazione da immagine muckpile, ML (XGBoost).
+Distingue client vs backend; con fonti; non tocca il motore fisico.
 
 ## Prossimo passo atomico
-Aprire PR. Il primo passo implementativo consigliato è **P0.1 previsione
-vibrazioni (PPV, scaled distance)** in Genesi — matematica, lato browser,
-riusando i coefficienti di Sentinella per coerenza. Poi, per direttiva del
-fondatore, alzare la qualità delle altre app.
+Aprire PR (correzione doc). Il primo passo implementativo consigliato è
+**P0.1 riconciliazione previsto-vs-reale** in Genesi (le vibrazioni ci sono
+già). Poi, per direttiva del fondatore, alzare la qualità delle altre app.
 
 ## Blocchi
 Motore fisico di Genesi: non toccare senza conferma. Backend (P2): fase
