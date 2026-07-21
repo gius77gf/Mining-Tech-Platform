@@ -5636,7 +5636,7 @@ function apriImportMWD(volataId){
         state._mwdParsed=parsed;
         renderMWDPreview(parsed);
       }catch(e){
-        $('mwd-preview').innerHTML=`<div style="color:var(--danger);font-size:12px;padding:8px 12px;background:rgba(239,83,80,.08);border-left:3px solid var(--danger);">Errore parsing: ${e.message}</div>`;
+        $('mwd-preview').innerHTML=`<div style="color:var(--danger);font-size:12px;padding:8px 12px;background:rgba(239,83,80,.08);border-left:3px solid var(--danger);">Errore parsing: ${escHtml(e.message)}</div>`;
         state._mwdParsed=null;
       }
     };
