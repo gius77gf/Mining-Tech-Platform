@@ -50,6 +50,16 @@ export function volumeFronte(rilievi, fronteId) {
     .reduce((s, r) => s + r.volumeM3, 0);
 }
 
+// Da volume estratto (m³ in banco) a tonnellate e valore economico:
+// tonnellate = m³ × densità (t/m³); valore = tonnellate × prezzo (€/t).
+// È l'anello che lega il rilievo alla contabilità. Densità e prezzo
+// dipendono dal materiale (l'utente li imposta). Numeri non validi → 0.
+export function valoreMateriale(volumeM3, densita, prezzoTon) {
+  const v = +volumeM3 || 0, d = +densita || 0, p = +prezzoTon || 0;
+  const tonnellate = v * d;
+  return { tonnellate, valore: tonnellate * p };
+}
+
 export function kpiFrom(fronti, rilievi, piano, oggi = new Date()) {
   const ym = oggi.toISOString().slice(0, 7);          // yyyy-mm
   const anno = ym.slice(0, 4);

@@ -225,6 +225,15 @@ test("volumeFronte: somma solo i rilievi elaborati (con volume) del fronte", () 
   eq(terra.volumeFronte(rilievi, "f2"), 9999, "solo il suo");
   eq(terra.volumeFronte([], "f1"), 0, "nessun rilievo = 0");
 });
+test("valoreMateriale: m³ → tonnellate → valore (densità e prezzo)", () => {
+  eq(terra.valoreMateriale(1000, 1.6, 12), { tonnellate: 1600, valore: 19200 }, "1000 m³ × 1,6 × 12€");
+  eq(terra.valoreMateriale(0, 1.6, 12), { tonnellate: 0, valore: 0 }, "volume 0");
+});
+test("valoreMateriale: input non validi contano come 0 (niente NaN)", () => {
+  eq(terra.valoreMateriale(1000, undefined, 12), { tonnellate: 0, valore: 0 }, "densità assente → 0");
+  eq(terra.valoreMateriale("abc", 1.6, 12), { tonnellate: 0, valore: 0 }, "volume non numerico → 0");
+  eq(terra.valoreMateriale(1000, 1.6, ""), { tonnellate: 1600, valore: 0 }, "prezzo vuoto → valore 0");
+});
 
 console.log("\n— Flotta: mezzi e manutenzioni —");
 test("urgenza: a ore / scaduta / in scadenza", () => {
