@@ -329,6 +329,7 @@
   $("gar-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseGareCsv(await file.text());
+    if (!righe.length) { $("gar-esito").textContent = "Nessuna riga valida: controlla che le colonne siano titolo;base;scadenza;stato."; e.target.value = ""; return; }
     let agg = 0, dup = 0;
     for (const r of righe) {
       if (GAR.some(g => (g.titolo || "").trim().toLowerCase() === r.titolo.toLowerCase())) { dup++; continue; }
@@ -371,6 +372,7 @@
   $("fat-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseFattureCsv(await file.text());
+    if (!righe.length) { $("ft-esito").textContent = "Nessuna riga valida: controlla che le colonne siano numero;cliente;importo;emessa;scadenza."; e.target.value = ""; return; }
     let add = 0, dup = 0;
     for (const f of righe) {
       if (FAT.some(x => x.numero === f.numero)) { dup++; continue; }

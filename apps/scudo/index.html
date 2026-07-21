@@ -346,6 +346,7 @@
   $("inf-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseInfortuniCsv(await file.text());
+    if (!righe.length) { $("inf-esito").textContent = "Nessuna riga valida: controlla che le colonne siano data;tipo;gravita;giorniAssenza;descrizione;luogo."; e.target.value = ""; return; }
     // Dedup come gli altri import: evita che un doppio click su "Importa"
     // raddoppi silenziosamente un registro HSE. Firma = data|tipo|descrizione.
     const firma = (r) => [(r.data || ""), (r.tipo || ""), (r.descrizione || "").trim().toLowerCase()].join("|");
@@ -439,6 +440,7 @@
   $("scad-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseScadenzeCsv(await file.text());
+    if (!righe.length) { $("scad-esito").textContent = "Nessuna riga valida: controlla che le colonne siano lavoratore;tipo;descrizione;scadenza."; e.target.value = ""; return; }
     // Dedup come gli altri import: un doppio click su "Importa" non deve
     // raddoppiare le scadenze. Firma = lavoratoreId|tipo|dataScadenza (stesso
     // lavoratore, tipo di idoneità/certificato e data = stessa scadenza).

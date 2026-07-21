@@ -301,6 +301,7 @@
   $("fro-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseFrontiCsv(await file.text());
+    if (!righe.length) { $("fro-esito").textContent = "Nessuna riga valida: controlla che le colonne siano nome;banco;quota;stato."; e.target.value = ""; return; }
     let agg = 0, dup = 0;
     for (const r of righe) {
       if (FRO.some(f => f.nome.trim().toLowerCase() === r.nome.toLowerCase())) { dup++; continue; }
@@ -337,6 +338,7 @@
   $("ril-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseRilieviCsv(await file.text());
+    if (!righe.length) { $("ril-esito").textContent = "Nessuna riga valida: controlla che le colonne siano data;volumeM3;metodo;gsd;fronte."; e.target.value = ""; return; }
     // Dedup come gli altri import: un doppio click su "Importa" non deve
     // raddoppiare i rilievi. Firma = data|fronteId|volumeM3 (un rilievo dello
     // stesso giorno, fronte e volume è lo stesso dato re-importato).

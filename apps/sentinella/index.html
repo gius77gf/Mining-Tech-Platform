@@ -290,6 +290,7 @@
   $("vol-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseVolateCsv(await file.text());
+    if (!righe.length) { $("vol-esito-msg").textContent = "Nessuna riga valida: controlla che le colonne siano data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note."; e.target.value = ""; return; }
     // Dedup come gli altri import: un doppio click su "Importa" non deve
     // raddoppiare il registro volate (documento regolatorio). Firma =
     // data|fronte|nFori|kgTotali (due volate diverse stesso giorno/fronte
@@ -325,6 +326,7 @@
   $("ade-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseAdempimentiCsv(await file.text());
+    if (!righe.length) { $("ade-esito").textContent = "Nessuna riga valida: controlla che le colonne siano titolo;ente;scadenza."; e.target.value = ""; return; }
     let agg = 0, dup = 0;
     for (const r of righe) {
       if (ADE.some(a => (a.titolo || "").toLowerCase() === r.titolo.toLowerCase() && a.scadenza === r.scadenza)) { dup++; continue; }
@@ -355,6 +357,7 @@
   $("mon-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseMonitoraggiCsv(await file.text());
+    if (!righe.length) { $("mis-esito").textContent = "Nessuna riga valida: controlla che le colonne siano nome;tipo;valore;soglia;unita;nota."; e.target.value = ""; return; }
     let agg = 0, saltati = 0;
     for (const m of righe) {
       if (MON.some(x => x.nome.toLowerCase() === m.nome.toLowerCase())) { saltati++; continue; }
