@@ -334,6 +334,18 @@ test("livelloSollecito: fasce di ritardo → livello di sollecito", () => {
   eq(conti.livelloSollecito(45).livello, 2, "confine 45 gg = 2°");
   eq(conti.livelloSollecito(46), { livello: 3, label: "ultimo avviso", cls: "danger" }, "46 gg = ultimo");
 });
+test("interessiMora: D.Lgs 231/2002, importo × tasso × giorni/365", () => {
+  // 10.000 € al 10,15% per 365 gg = 1015 €
+  eq(conti.interessiMora(10000, 365, 10.15), { interessi: 1015, giorni: 365, tasso: 10.15 }, "1 anno intero");
+  // 10.000 € al 10,15% per 30 gg ≈ 83,42 €
+  eq(conti.interessiMora(10000, 30, 10.15).interessi, 83.42, "30 giorni");
+  eq(conti.interessiMora(10000, 30).tasso, conti.TASSO_MORA_DEFAULT, "tasso di default 10,15%");
+});
+test("interessiMora: non in ritardo o dati non validi = zero", () => {
+  eq(conti.interessiMora(10000, 0).interessi, 0, "0 giorni = 0");
+  eq(conti.interessiMora(0, 30).interessi, 0, "importo 0 = 0");
+  eq(conti.interessiMora(10000, -5).interessi, 0, "ritardo negativo = 0");
+});
 test("prioritaIncasso: fattura senza data = ritardo 0 (non in cima per errore)", () => {
   const p = conti.prioritaIncasso([{ numero: "X", importo: 50, incassata: false }], new Date("2026-07-20T00:00:00"));
   eq(p[0].ritardo, 0, "senza data → ritardo 0");
