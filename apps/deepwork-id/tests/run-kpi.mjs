@@ -522,6 +522,14 @@ test("parseRilieviCsv: legge data/volume/metodo/gsd, scarta righe non valide", (
 });
 test("parseRilieviCsv: testo vuoto = lista vuota (niente crash)", () =>
   eq(terra.parseRilieviCsv(""), [], "vuoto"));
+test("parseFrontiCsv: legge nome/banco/quota/stato; stato ignoto → attivo; scarta righe senza nome", () => {
+  const csv = "nome;banco;quota;stato\nFronte Nord;banco 2;340;attivo\nFronte Sud;banco 3;320;sospeso\nFronte X;;10;boh\n;banco 1;5;attivo\n";
+  const p = terra.parseFrontiCsv(csv);
+  eq(p.length, 3, "3 fronti validi (riga senza nome scartata)");
+  eq(p[0], { nome: "Fronte Nord", banco: "banco 2", quota: 340, stato: "attivo" }, "riga completa");
+  eq(p[1].stato, "sospeso", "stato valido mantenuto");
+  eq(p[2].stato, "attivo", "stato ignoto → attivo");
+});
 test("parseRilieviCsv: colonna fronte facoltativa (nome), righe a 4 colonne invariate", () => {
   const csv = "data;volumeM3;metodo;gsd;fronte\n2026-07-15;19400;RTK;2;Fronte Nord\n2026-06-16;21300\n";
   const p = terra.parseRilieviCsv(csv);

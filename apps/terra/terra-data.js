@@ -181,6 +181,27 @@ export function trendVolumi(rilievi) {
   return { ultimo, precedente, delta, pct: precedente > 0 ? Math.round(100 * delta / precedente) : null };
 }
 
+// Import dei FRONTI di scavo da CSV (onboarding: caricare i fronti di una cava
+// con più fronti, così poi i rilievi importati si possono collegare per nome).
+// Colonne: nome;banco;quota;stato (header opzionale). Tiene solo le righe con
+// un nome; quota via numIt; stato attivo|sospeso (default attivo). nome/banco
+// sono testo grezzo → escapare dove mostrati. Pura e testabile.
+export function parseFrontiCsv(text) {
+  return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !/^nome\s*;/i.test(r))
+    .map(r => {
+      const [nome, banco, quota, stato] = parseCsvLine(r);
+      const q = numIt(quota);
+      return {
+        nome: (nome || "").trim(),
+        banco: (banco || "").trim(),
+        quota: Number.isFinite(q) ? q : 0,
+        stato: (stato || "").trim().toLowerCase() === "sospeso" ? "sospeso" : "attivo",
+      };
+    })
+    .filter(f => f.nome);
+}
+
 // Import rilievi elaborati da CSV (onboarding: caricare lo storico dei
 // rilievi drone). Colonne: data;volumeM3[;metodo;gsd;fronte] (header
 // opzionale). Tiene solo le righe con data valida (AAAA-MM-GG) e volume
