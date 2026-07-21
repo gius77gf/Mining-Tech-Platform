@@ -44,6 +44,12 @@ test("scudo: id unici, scadenze→lavoratore risolve, date valide", () => {
     ok(lav.has(s.lavoratoreId), `scadenza ${s.id}: lavoratoreId ${s.lavoratoreId} inesistente`);
     ok(isDate(s.dataScadenza), `scadenza ${s.id}: data non valida ${s.dataScadenza}`);
   }
+  idsOk(S.infortuni, "infortuni");
+  for (const x of S.infortuni) {
+    ok(isDate(x.data), `infortunio ${x.id}: data non valida ${x.data}`);
+    ok(["infortunio", "near-miss"].includes(x.tipo), `infortunio ${x.id}: tipo «${x.tipo}» sconosciuto`);
+    ok(isNum(x.giorniAssenza), `infortunio ${x.id}: giorniAssenza non numerico`);
+  }
 });
 
 test("campo: id unici e stati coerenti", () => {
