@@ -41,6 +41,19 @@ test("statoScadenza classifica passato/futuro/vicino", () => {
   eq(scudo.statoScadenza(FUT), "regolare", "futuro");
   eq(scudo.statoScadenza(plusDays(10)), "in-scadenza", "entro 30gg");
 });
+test("livelloScadenza: etichette e fasce fini (scaduta/oggi/7/30/oltre)", () => {
+  const o = new Date("2026-07-20T00:00:00");
+  eq(scudo.livelloScadenza("2026-07-19", o), { cls: "danger", label: "scaduta da 1 gg", giorni: -1 }, "scaduta ieri");
+  eq(scudo.livelloScadenza("2026-07-20", o), { cls: "danger", label: "scade oggi", giorni: 0 }, "oggi");
+  eq(scudo.livelloScadenza("2026-07-27", o).cls, "danger", "entro 7 gg = rosso");
+  eq(scudo.livelloScadenza("2026-07-28", o).cls, "warn", "8 gg = giallo");
+  eq(scudo.livelloScadenza("2026-08-19", o).cls, "warn", "30 gg = giallo");
+  eq(scudo.livelloScadenza("2026-08-20", o).cls, "ok", "31 gg = verde");
+});
+test("livelloScadenza: senza data non allarma (giorni null)", () => {
+  eq(scudo.livelloScadenza(undefined), { cls: "ok", label: "senza data", giorni: null }, "undefined");
+  eq(scudo.livelloScadenza("").giorni, null, "vuota");
+});
 test("kpiFrom conta scadute/in-scadenza e lavoratori regolari", () => {
   const lav = [{ id: "l1", attivo: true }, { id: "l2", attivo: true }, { id: "l3", attivo: false }];
   const sca = [

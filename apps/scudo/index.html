@@ -113,7 +113,7 @@
 </script>
 
 <script type="module">
-  import { scudoData, statoScadenza, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita } from "./scudo-data.js";
+  import { scudoData, statoScadenza, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza } from "./scudo-data.js";
   import { mountExit, esc, csvCell, parseCsvLine } from "../../shared/deepwork-id-client/dw-shell.js";
 
   const $ = (id) => document.getElementById(id);
@@ -188,9 +188,9 @@
 
     const scaVis = SCA.filter(s => filtroScad === "tutte" || statoScadenza(s.dataScadenza) === filtroScad);
     $("scad-list").innerHTML = scaVis.slice().sort((a, b) => a.dataScadenza < b.dataScadenza ? -1 : 1).map(sc => {
-      const st = statoScadenza(sc.dataScadenza), l = byId[sc.lavoratoreId];
+      const st = statoScadenza(sc.dataScadenza), l = byId[sc.lavoratoreId], lv = livelloScadenza(sc.dataScadenza);
       return `<div class="item">
-        <div class="info"><div class="name">${esc(sc.descrizione)}</div><div class="meta">${esc(l ? l.nome : "azienda")} · ${fmtData(sc.dataScadenza)}</div></div>
+        <div class="info"><div class="name">${esc(sc.descrizione)}</div><div class="meta">${esc(l ? l.nome : "azienda")} · ${fmtData(sc.dataScadenza)} · ${esc(lv.label)}</div></div>
         <span class="badge ${B[st][0]}">${B[st][1]}</span>
         <span class="arr" style="cursor:pointer" title="Rinnova a nuova data" data-ren-scad="${sc.id}">↻</span>
         <span class="arr" style="cursor:pointer" title="Rimuovi" data-del-scad="${sc.id}">✕</span></div>`;
