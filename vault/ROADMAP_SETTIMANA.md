@@ -392,11 +392,14 @@ Avanzamento:
   adempimento.
 - **Terra — ordinamento rilievi** (#308, mergiato): data (più recente) / volume
   (dal più grande) / titolo A→Z. Utile per confrontare i rilievi per volume.
-- **Sentinella — ordinamento sensori**: criticità (dal più critico) / margine
-  (dal più tranquillo) / nome A→Z. Utile per vedere prima i superamenti o, al
-  contrario, controllare chi ha più margine.
-- **Prossimo**: valutare ordinamento Campo attività (stato/titolo) o passare a
-  altre seconde iterazioni UX (stati vuoti, validazioni) e test aggiuntivi.
+- **Sentinella — ordinamento sensori** (#309, mergiato): criticità (dal più
+  critico) / margine (dal più tranquillo) / nome A→Z. Utile per vedere prima i
+  superamenti o, al contrario, controllare chi ha più margine.
+- **Campo — ordinamento attività**: stato (prima le anomalie) / titolo A→Z.
+  Chiude la serie: TUTTE le liste principali delle app verticali hanno ora un
+  controllo di ordinamento coerente (stesso pattern select + comparatore).
+- **Prossimo**: passare a altre seconde iterazioni UX (stati vuoti, validazioni
+  input) o test aggiuntivi (emulatore, casi limite).
 
 ### Stato feature Genesi vs competitor (aggiornato)
 Genesi ora ha: frammentazione Kuz-Ram/KCO, flyrock, fori bagnati, presplit,

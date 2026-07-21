@@ -45,6 +45,13 @@
     <button class="dw-btn secondary" data-filtro="pianificata" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Pianificate</button>
     <button class="dw-btn secondary" data-filtro="anomalia" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Anomalie</button>
   </div>
+  <div style="display:flex;align-items:center;gap:6px;margin:-2px 0 10px;">
+    <span class="dw-muted" style="font-size:12px;">Ordina:</span>
+    <select id="att-ord" class="dw-input" style="width:auto;min-height:32px;padding:2px 8px;font-size:12px;">
+      <option value="stato">Stato (prima le anomalie)</option>
+      <option value="titolo">Titolo (A→Z)</option>
+    </select>
+  </div>
   <div id="att-list"></div>
   <div id="fermi-riep" class="note" style="text-align:left;"></div>
   <div class="sec">Nuova attività</div>
@@ -139,6 +146,8 @@
 
   let ATT=[], SQU=[], RAP=[];
   let filtroAtt = "tutte";
+  let ordAttSel = "stato";
+  if ($("att-ord")) $("att-ord").onchange = () => { ordAttSel = $("att-ord").value; refresh(); };
   $("att-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroAtt = f; refresh(); }
@@ -171,8 +180,11 @@
       || '<div class="note" style="text-align:left;">Nessuna attività in corso: la giornata è tranquilla.</div>';
 
     const ordAtt = { anomalia: 0, "in-corso": 1, pianificata: 2, conclusa: 3 };
+    const attCmp = (a, b) => ordAttSel === "titolo"
+      ? String(a.titolo || "").localeCompare(String(b.titolo || ""), "it")
+      : (ordAtt[a.stato] ?? 4) - (ordAtt[b.stato] ?? 4);
     const attVis = ATT.filter(a => filtroAtt === "tutte" || a.stato === filtroAtt)
-                      .sort((a, b) => (ordAtt[a.stato] ?? 4) - (ordAtt[b.stato] ?? 4));
+                      .sort(attCmp);
     const optCausali = (sel) => CAUSALI_FERMO.map(c => `<option value="${esc(c)}"${c===sel?" selected":""}>${esc(c)}</option>`).join("");
     $("att-list").innerHTML = attVis.map(a => `<div class="item" data-att="${a.id}" style="cursor:pointer" title="Tocca per cambiare stato">
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc(a.dettaglio||"")}</div></div>
