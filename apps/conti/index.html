@@ -78,6 +78,7 @@
   </div>
   <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
     <button class="dw-btn secondary" id="btn-gar-import" style="width:auto;">Importa gare (CSV)</button>
+    <button class="dw-btn secondary" id="btn-gar-export" style="width:auto;">Esporta gare (CSV)</button>
     <input type="file" id="gar-file" accept=".csv,text/csv" style="display:none;">
     <span class="dw-muted" style="font-size:12px;">colonne: titolo;base;scadenza;stato</span>
   </div>
@@ -337,6 +338,17 @@
     $("gar-file").value = "";
     $("gar-esito").textContent = `Import gare: ${agg} aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}.`;
     await refresh();
+  };
+  $("btn-gar-export").onclick = () => {
+    // backup/condivisione delle gare, nello STESSO formato dell'import
+    // (titolo;base;scadenza;stato): il file esportato si può re-importare.
+    let csv = "titolo;base;scadenza;stato\n";
+    for (const g of GAR.slice().sort((a, b) => (a.scadenza || "9999").localeCompare(b.scadenza || "9999")))
+      csv += `${csvCell(g.titolo)};${+g.base || 0};${g.scadenza || ""};${g.stato || "aperta"}\n`;
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.download = "conti_gare.csv"; a.click();
+    $("gar-esito").textContent = "Esportate " + GAR.length + " gare (CSV).";
   };
   $("btn-ft").onclick = async () => {
     const numero = $("ft-num").value.trim(), cliente = $("ft-cli").value.trim(),
