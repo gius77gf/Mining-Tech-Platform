@@ -39,6 +39,11 @@ await env.withSecurityRulesDisabled(async (ctx) => {
   await setDoc(doc(db, "organizations/orgA/apps/flotta/ricambi/p1"), { nome: "Filtro olio", giacenza: 6 });
   await setDoc(doc(db, "organizations/orgB/apps/flotta/ricambi/p9"), { nome: "RICAMBIO-CONCORRENTE", giacenza: 2 });
   await setDoc(doc(db, "organizations/org_demo/apps/scudo/turni/d1"), { operaio: "Esempio", ore: 8 });
+  // dati del CORE (cuore) come app 'core': organizations/{org}/apps/core/... —
+  // isolamento preparato per la multi-tenancy del cuore (docs/ISOLAMENTO_CORE.md)
+  await setDoc(doc(db, "organizations/orgA/apps/core/rapportini/r1"), { operatore: "Mario", fori: 20 });
+  await setDoc(doc(db, "organizations/orgB/apps/core/rapportini/r9"), { operatore: "SEGRETO-CONCORRENTE", fori: 12 });
+  await setDoc(doc(db, "organizations/orgB/apps/core/rapportini/r9/note/segreta"), { testo: "riservato orgB" });
   await setDoc(doc(db, "organizations/orgA/entitlements/scudo"), { active: true, tier: "base" });
   // membership e inviti per i test del pannello amministrazione (D4)
   await setDoc(doc(db, "organizations/orgA/members/alice"), { uid: "alice", role: "member", status: "active" });
@@ -78,6 +83,24 @@ await test("un membro LEGGE le collezioni nuove della PROPRIA org (flotta/ricamb
   assertSucceeds(getDoc(doc(alice, "organizations/orgA/apps/flotta/ricambi/p1"))));
 await test("un membro NON legge una sottocollezione NON prevista della propria org (deny di default)", () =>
   assertFails(getDoc(doc(alice, "organizations/orgA/segreti/x"))));
+
+console.log("\n— Isolamento del CORE (organizations/{org}/apps/core/**) —");
+await test("membro di orgA LEGGE i dati del cuore della PROPRIA org", () =>
+  assertSucceeds(getDoc(doc(alice, "organizations/orgA/apps/core/rapportini/r1"))));
+await test("membro di orgA NON legge i dati del cuore del concorrente (orgB)", () =>
+  assertFails(getDoc(doc(alice, "organizations/orgB/apps/core/rapportini/r9"))));
+await test("membro di orgB NON legge i dati del cuore di orgA", () =>
+  assertFails(getDoc(doc(eve, "organizations/orgA/apps/core/rapportini/r1"))));
+await test("membro di orgA NON può ELENCARE i rapportini del cuore del concorrente", () =>
+  assertFails(getDocs(collection(alice, "organizations/orgB/apps/core/rapportini"))));
+await test("membro di orgA NON scrive nei dati del cuore del concorrente", () =>
+  assertFails(setDoc(doc(alice, "organizations/orgB/apps/core/rapportini/hack"), { x: 1 })));
+await test("membro di orgA NON cancella i dati del cuore del concorrente", () =>
+  assertFails(deleteDoc(doc(alice, "organizations/orgB/apps/core/rapportini/r9"))));
+await test("l'isolamento del cuore vale anche in profondità (core/**/note)", () =>
+  assertFails(getDoc(doc(alice, "organizations/orgB/apps/core/rapportini/r9/note/segreta"))));
+await test("il membro LEGGE una sottocollezione annidata del cuore della PROPRIA org", () =>
+  assertSucceeds(getDoc(doc(alice, "organizations/orgA/apps/core/rapportini/r1"))));
 
 console.log("\n— Accesso senza login —");
 await test("utente non autenticato NON legge nulla di orgA", () =>

@@ -80,9 +80,12 @@ service cloud.firestore {
         allow write: if false;
       }
 
-      // Dati applicativi di ogni app: sigillati dentro l'org.
-      // Regola generale; le singole app potranno raffinare i permessi
-      // per ruolo (appRoles) con match più specifici sopra questa.
+      // Dati applicativi di ogni app: sigillati dentro l'org. Regola generale;
+      // le singole app potranno raffinare i permessi per ruolo (appRoles) con
+      // match più specifici sopra questa. Copre anche il CORE (l'app storica
+      // index.html), che in multi-tenant vive come appId='core' →
+      // organizations/{orgId}/apps/core/… (vedi docs/ISOLAMENTO_CORE.md):
+      // stessa barriera provata, nessuna regola nuova.
       match /apps/{appId}/{document=**} {
         // tour: il tenant demo è leggibile da qualunque utente
         // autenticato (inclusi gli anonimi della modalità tour)
