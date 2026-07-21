@@ -493,6 +493,13 @@ test("parseRilieviCsv: legge data/volume/metodo/gsd, scarta righe non valide", (
 });
 test("parseRilieviCsv: testo vuoto = lista vuota (niente crash)", () =>
   eq(terra.parseRilieviCsv(""), [], "vuoto"));
+test("parseRilieviCsv: colonna fronte facoltativa (nome), righe a 4 colonne invariate", () => {
+  const csv = "data;volumeM3;metodo;gsd;fronte\n2026-07-15;19400;RTK;2;Fronte Nord\n2026-06-16;21300\n";
+  const p = terra.parseRilieviCsv(csv);
+  eq(p.length, 2, "due righe valide");
+  eq(p[0].fronte, "Fronte Nord", "nome fronte estratto quando presente");
+  eq(p[1].fronte, undefined, "riga senza fronte → nessuna chiave (retrocompatibile)");
+});
 test("parseRilieviCsv: CRLF, scarta data non ISO, virgola decimale", () => {
   const csv = "data;volumeM3;metodo;gsd\r\n2026-07-15;19400,5;RTK;2\r\n15/07/2026;1000;RTK;2\r\n";
   const p = terra.parseRilieviCsv(csv);
