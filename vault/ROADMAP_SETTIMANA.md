@@ -166,23 +166,24 @@ sul potenziale che ognuna può raggiungere") è stata svolta la ricerca di
 prodotto su tutte e 7 le app. Risultati: 7 schede "Potenziale — <App>"
 in ecosistema-vault/50 - Wiki ricerca/ + sintesi in
 **vault/ROADMAP_VISIONE.md**. Da lì nasce un backlog ampio di lavoro
-"subito" (browser, dati a mano, nessun hardware). Prime 10 voci pronte,
-in ordine valore/sforzo (tutte taglia S):
-1. Sentinella — libreria soglie normative preimpostate (PM10, rumore,
-   DIN 4150-3, airblast 133 dB) con avviso "verificare valore ufficiale".
-2. Conti — dashboard DSO + aging incassi.
-3. Scudo — giudizio di idoneità sanitaria strutturato (art. 41).
-4. Terra — conversione m³ → tonnellate → valore (densità/materiale).
-5. Campo — causali di fermo standardizzate (base per OEE/disponibilità).
-6. Flotta — scadenzario manutenzione "predittivo leggero" (proiezione ore).
-7. Genesi — secondo modello frammentazione (KCO/Swebrec) selezionabile.
-8. Conti — modulo gare/appalti (base d'asta, ribasso, stato).
-9. Sentinella — registro volate collegabile alle vibrazioni.
-10. Terra — report con qualità del dato documentata (RTK/PPK, GCP, GSD).
-Poi le epiche M/L (scadenzari completi, KPI, work order, rapportino
-turno, report margine, SdI/pesa/telematics/centraline) e l'epica
-strategica del **ciclo chiuso** (ponti Genesi↔Campo↔Terra↔Conti).
-Ogni voce va spezzata in unità atomiche al momento dell'esecuzione, con
+"subito" (browser, dati a mano, nessun hardware). Stato delle prime voci:
+1. ✅ Sentinella — libreria soglie normative preimpostate (PR #186).
+2. ✅ Conti — aging incassi (PR #187).
+3. ✅ Scudo — giudizio di idoneità sanitaria art. 41 (PR #188).
+4. ✅ Terra — conversione m³ → tonnellate → valore (PR #189).
+5. ✅ Campo — causali di fermo standardizzate (PR #190).
+6. ✅ Flotta — scadenzario predittivo leggero a ore (PR #191).
+7. ⏸ Genesi — secondo modello frammentazione (KCO/Swebrec): RIMANDATO —
+   tocca il motore fisico, da fare con cautela/conferma del fondatore.
+8. ✅ Conti — riepilogo gare d'appalto ed esito (PR #192).
+9. ✅ Sentinella — distanza scalata delle volate SD=R/√W (PR #193).
+   (Il registro volate completo, nuova collezione, resta come voce M.)
+10. ✅ Terra — qualità del dato sui rilievi: metodo + GSD (PR #194).
+Suite test 167 → 190. Restano le EPICHE M/L (scadenzari completi con
+alert multi-soglia, KPI OEE/disponibilità, work order + ricambi,
+rapportino di turno + handover, report margine, SdI/pesa/telematics/
+centraline) e l'epica strategica del **ciclo chiuso** (ponti
+Genesi↔Campo↔Terra↔Conti). Ogni voce va spezzata in unità atomiche con
 screenshot di verifica per le modifiche visive.
 
 ## Fine progetto (fase commercializzazione) — NON prima
@@ -206,7 +207,7 @@ screenshot di verifica per le modifiche visive.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/20260721-020203_ricerca-potenziale-7-app-roadmap-visione.md
+- Ultimo checkpoint: vault/checkpoints/20260721-024921_backlog-visione-9-unita-fatte.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
