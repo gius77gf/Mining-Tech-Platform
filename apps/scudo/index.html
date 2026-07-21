@@ -68,6 +68,14 @@
     <button class="dw-btn secondary" data-filtro="in-scadenza" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Entro 30gg</button>
     <button class="dw-btn secondary" data-filtro="regolare" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Regolari</button>
   </div>
+  <div style="display:flex;align-items:center;gap:6px;margin:-2px 0 10px;">
+    <span class="dw-muted" style="font-size:12px;">Ordina:</span>
+    <select id="scad-ord" class="dw-input" style="width:auto;min-height:32px;padding:2px 8px;font-size:12px;">
+      <option value="scadenza">Scadenza (prima le vicine)</option>
+      <option value="tipo">Tipo (A→Z)</option>
+      <option value="persona">Lavoratore (A→Z)</option>
+    </select>
+  </div>
   <div id="scad-list"></div>
   <div class="sec">Aggiungi scadenza</div>
   <select class="dw-input" id="scad-preset" style="width:100%;margin-bottom:8px;">
@@ -160,11 +168,13 @@
 
   let LAV = [], SCA = [], DOC = [], INF = [];
   let filtroScad = "tutte";
+  let ordScad = "scadenza";
   $("pers-cerca").oninput = () => refresh();
   $("scad-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroScad = f; refresh(); }
   });
+  if ($("scad-ord")) $("scad-ord").onchange = () => { ordScad = $("scad-ord").value; refresh(); };
   // scorciatoia: toccare un KPI del quadro porta alla lista pertinente
   document.querySelector(".kpis").addEventListener("click", (e) => {
     const card = e.target.closest("[data-goto]"); if (!card) return;
@@ -225,7 +235,11 @@
         <span class="badge ${cls}">${lbl}</span></div>`; }).join("")
       || '<div class="note" style="text-align:left;">Nessuna scadenza registrata: la copertura si popola aggiungendo scadenze.</div>';
     const scaVis = SCA.filter(s => filtroScad === "tutte" || statoScadenza(s.dataScadenza) === filtroScad);
-    $("scad-list").innerHTML = scaVis.slice().sort((a, b) => a.dataScadenza < b.dataScadenza ? -1 : 1).map(sc => {
+    const nomeScad = (s) => { const l = byId[s.lavoratoreId]; return l ? l.nome : "azienda"; };
+    const scadCmp = (a, b) => ordScad === "tipo" ? String(a.descrizione || "").localeCompare(String(b.descrizione || ""), "it")
+      : ordScad === "persona" ? nomeScad(a).localeCompare(nomeScad(b), "it") || (a.dataScadenza < b.dataScadenza ? -1 : 1)
+      : (a.dataScadenza < b.dataScadenza ? -1 : 1);
+    $("scad-list").innerHTML = scaVis.slice().sort(scadCmp).map(sc => {
       const st = statoScadenza(sc.dataScadenza), l = byId[sc.lavoratoreId], lv = livelloScadenza(sc.dataScadenza);
       return `<div class="item">
         <div class="info"><div class="name">${esc(sc.descrizione)}</div><div class="meta">${esc(l ? l.nome : "azienda")} · ${fmtData(sc.dataScadenza)} · ${esc(lv.label)}</div></div>

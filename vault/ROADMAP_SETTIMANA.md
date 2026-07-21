@@ -384,11 +384,13 @@ Avanzamento:
 ### Seconde iterazioni UX app verticali (fallback #1 — ordinamenti)
 - **Conti — ordinamento fatture** (#305, mergiato): scadenza / importo (dal
   più grande) / cliente A→Z.
-- **Flotta — ordinamento mezzi**: stato (prima i fermi) / ore motore (dal più
-  alto) / nome A→Z. Utile per manutenzione (chi ha più ore) e per il colpo
-  d'occhio sui fermi.
+- **Flotta — ordinamento mezzi** (#306, mergiato): stato (prima i fermi) / ore
+  motore (dal più alto) / nome A→Z. Utile per manutenzione (chi ha più ore) e
+  per il colpo d'occhio sui fermi.
+- **Scudo — ordinamento scadenze**: scadenza (prima le vicine) / tipo A→Z /
+  lavoratore A→Z. Utile per raggruppare per persona o per tipo di adempimento.
 - **Prossimo**: continuare ordinamenti/filtri dove mancano (Campo, Terra,
-  Scudo, Sentinella) o test aggiuntivi.
+  Sentinella) o test aggiuntivi.
 
 ### Stato feature Genesi vs competitor (aggiornato)
 Genesi ora ha: frammentazione Kuz-Ram/KCO, flyrock, fori bagnati, presplit,
