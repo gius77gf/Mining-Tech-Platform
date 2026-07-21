@@ -316,6 +316,32 @@ con PR CI-verde e checkpoint:
   pulite, zero errori console/pagina.
 Suite CI 301 → 313. Copertura test delle funzioni pure: completa.
 
+## SESSIONE 21/07 (7ª parte) — revisione sicurezza del CORE + messaggi import
+Proseguito a oltranza con revisione di sicurezza e rifiniture:
+- **Messaggi import più utili** (#291): se carichi un CSV con colonne sbagliate
+  (o vuoto), l'app dice quali colonne servono invece di un muto "0 aggiunte".
+- **Test** (#293): confine keyword-prefisso in `isIntestazione`. CI 313 → 314.
+- **Revisione approfondita del CORE `index.html`** (#294, #295) — l'unico file
+  non coperto dal syntax-check CI, che fa deploy automatico in produzione:
+  corretti bug REALI di XSS memorizzato (nome cava/operatore/personale e
+  titolo promemoria interpolati in innerHTML senza escape; 11 punti, di cui 5
+  che la revisione automatica aveva mancato, trovati con grep sistematico) e
+  di robustezza (login/registrazione che si rompevano se un utente non aveva
+  username; avatar che crashava senza nome/cognome). Verificato con node
+  --check + boot Playwright.
+- Sweep XSS esteso a TUTTE le app `apps/*`: già pulite (0 campi testo non
+  escapati). Posture XSS dell'intero ecosistema: a posto.
+
+### ⚠️ DA DECIDERE (fondatore) — isolamento multi-tenant del CORE
+Il core `index.html` NON ha isolamento tra organizzazioni: usa collezioni
+Firestore globali (`users`, `rapportini`, ...), senza `orgCollection`. È
+coerente col fatto che il core è l'app STORICA mono-azienda (un progetto
+Firebase = una cava). Se resta single-tenant "by design" NON è un problema;
+se un giorno servirà servire più aziende dallo stesso progetto Firebase, va
+introdotto l'isolamento (grande intervento). NON toccato: è una decisione
+architetturale del fondatore. L'ecosistema `apps/*` è invece già multi-tenant
+via SDK orgCollection (44 test emulatore).
+
 ## Fine progetto (fase commercializzazione) — NON prima
 - Acquisto dominio + sottodomini. DECISIONE DEL FONDATORE: nessuna
   spesa prima della commercializzazione.
@@ -337,7 +363,7 @@ Suite CI 301 → 313. Copertura test delle funzioni pure: completa.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/20260721-215000_revisione-serale-parita-export.md
+- Ultimo checkpoint: vault/checkpoints/20260721-223500_core-xss-sweep-completo.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
