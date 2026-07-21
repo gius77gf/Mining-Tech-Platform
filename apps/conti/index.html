@@ -53,8 +53,10 @@
     <input class="dw-input" id="ft-scad" type="date" style="flex:1;min-width:130px;">
     <button class="dw-btn" id="btn-ft" style="width:auto;">Emetti</button>
   </div>
+  <button class="dw-btn secondary" id="btn-imp-fat" style="width:auto;margin-top:8px;">Importa fatture (CSV)</button>
+  <input type="file" id="fat-file" accept=".csv,text/csv" style="display:none;">
   <div class="note" id="ft-esito" style="text-align:left;"></div>
-  <div class="note" style="text-align:left;">Tocca una fattura per segnarla incassata.</div>
+  <div class="note" style="text-align:left;">Tocca una fattura per segnarla incassata. CSV: numero;cliente;importo;emessa;scadenza[;incassata].</div>
 </div>
 
 <div class="page" id="page-gar">
@@ -98,7 +100,7 @@
 </script>
 
 <script type="module">
-  import { contiData, giorni, kpiFrom, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, livelloSollecito } from "./conti-data.js";
+  import { contiData, giorni, kpiFrom, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, livelloSollecito, parseFattureCsv } from "./conti-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const eur = (v) => "€" + (+v||0).toLocaleString("it-IT");
@@ -271,6 +273,23 @@
       emessa: new Date().toISOString().slice(0,10), incassata: false });
     ["ft-num","ft-cli","ft-imp","ft-scad"].forEach(i => $(i).value = "");
     $("ft-num").focus();   // torna al primo campo per emettere subito la prossima
+    await refresh();
+  };
+  // Import fatture da CSV (avvio/onboarding). Salta i numeri già presenti.
+  $("btn-imp-fat").onclick = () => $("fat-file").click();
+  $("fat-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const righe = parseFattureCsv(await file.text());
+    let add = 0, dup = 0;
+    for (const f of righe) {
+      if (FAT.some(x => x.numero === f.numero)) { dup++; continue; }
+      await db.aggiungi("fatture", { numero: f.numero, cliente: f.cliente, importo: f.importo,
+        emessa: f.emessa, scadenza: f.scadenza, incassata: f.incassata,
+        dataIncasso: f.incassata ? (f.emessa || null) : null });
+      add++;
+    }
+    $("fat-file").value = "";
+    $("ft-esito").textContent = "Import fatture: " + add + " aggiunte" + (dup ? ", " + dup + " già presenti (numero duplicato)" : "") + ".";
     await refresh();
   };
   // Recupero errore: appena l'utente corregge un campo, togli il bordo

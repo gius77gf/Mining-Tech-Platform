@@ -67,6 +67,27 @@ export function agingIncassi(fatture, oggi = new Date()) {
   return b;
 }
 
+// Import fatture da CSV (per l'avvio: caricare le fatture esistenti invece
+// di riscriverle a mano). Colonne: numero;cliente;importo;emessa;scadenza
+// [;incassata] (header opzionale). Coerce importo a numero, incassata a
+// booleano ("si"/"true"/"1"); scarta le righe senza numero/cliente/importo
+// valido. numero/cliente sono testo grezzo → escapare dove mostrati. Pura.
+export function parseFattureCsv(text) {
+  const vero = (v) => /^(si|sì|true|1|x)$/i.test(String(v || "").trim());
+  return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !/^numero\s*;/i.test(r))
+    .map(r => {
+      const [numero, cliente, importo, emessa, scadenza, incassata] = r.split(";");
+      return {
+        numero: (numero || "").trim(), cliente: (cliente || "").trim(),
+        importo: +String(importo || "").replace(",", "."),
+        emessa: (emessa || "").trim() || null, scadenza: (scadenza || "").trim() || null,
+        incassata: vero(incassata),
+      };
+    })
+    .filter(f => f.numero && f.cliente && Number.isFinite(f.importo) && f.importo > 0);
+}
+
 // Livello di sollecito in base ai giorni di ritardo di una fattura insoluta:
 // nessuno (non scaduta), 1° sollecito, 2° sollecito, ultimo avviso. Fasce
 // pensate come promemoria progressivi. Pura e testabile.

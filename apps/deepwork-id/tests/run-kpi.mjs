@@ -234,6 +234,19 @@ test("incassoAtteso: somma le fatture aperte in scadenza entro N giorni", () => 
 });
 test("incassoAtteso: nessuna in finestra = zero (niente crash)", () =>
   eq(conti.incassoAtteso([], 30, new Date("2026-07-20T00:00:00")), { conto: 0, importo: 0 }, "vuoto"));
+test("parseFattureCsv: legge le fatture, coerce importo/incassata, scarta rotte", () => {
+  const csv = "numero;cliente;importo;emessa;scadenza;incassata\n"
+    + "2026/050;Edil Srl;1000,50;2026-07-01;2026-08-01;si\n"
+    + "2026/051;Strade Spa;2000;2026-07-05;2026-08-05\n"
+    + ";SenzaNumero;500;;;\n"
+    + "2026/052;;300;;;\n";
+  const f = conti.parseFattureCsv(csv);
+  eq(f.length, 2, "solo 2 valide");
+  eq(f[0], { numero: "2026/050", cliente: "Edil Srl", importo: 1000.5, emessa: "2026-07-01", scadenza: "2026-08-01", incassata: true }, "virgola decimale + incassata si");
+  eq(f[1].incassata, false, "senza colonna incassata → false");
+});
+test("parseFattureCsv: testo vuoto = lista vuota (niente crash)", () =>
+  eq(conti.parseFattureCsv(""), [], "vuoto"));
 test("livelloSollecito: fasce di ritardo → livello di sollecito", () => {
   eq(conti.livelloSollecito(0).livello, 0, "non scaduta = nessun sollecito");
   eq(conti.livelloSollecito(10), { livello: 1, label: "1° sollecito", cls: "warn" }, "10 gg = 1°");
