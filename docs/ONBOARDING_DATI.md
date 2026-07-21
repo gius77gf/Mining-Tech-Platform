@@ -10,8 +10,13 @@ riscriverli a mano. È il manuale pratico del **Passo 6 del PIANO_GO_LIVE**.
   serve.
 - **Date**: sempre nel formato **AAAA-MM-GG** (es. `2026-09-15`). È l'errore
   più comune: una data scritta `15/09/2026` viene scartata.
-- **Numeri**: usa il punto per i decimali (`1234.5`); per **importi** e
-  **volumi** va bene anche la virgola (`1234,5`).
+- **Numeri**: va bene sia il formato italiano (`18.300,50`) sia quello con il
+  punto decimale (`18300.50`). Consiglio: per sicurezza evita il separatore
+  delle migliaia quando puoi (scrivi `18300,50`).
+- **Testo con il punto e virgola dentro** (es. un cliente "Rossi; & Figli"):
+  mettilo **tra virgolette** (`"Rossi; & Figli"`). Excel lo fa già da solo
+  quando salvi in CSV, e i file **esportati** dalle app sono già a posto: si
+  possono ri-importare senza perdere nulla.
 - **Prima riga**: puoi lasciare l'intestazione (i nomi delle colonne): il
   sistema la riconosce e la salta.
 - **Righe sbagliate**: una riga senza i dati obbligatori viene semplicemente
