@@ -293,6 +293,29 @@ Dopo l'audit, cicli proseguiti a oltranza con completamenti di prodotto (Fase C)
 Nota: i registri usano la regola Firestore generica (orgCollection) → nessun
 gate; sono LOG di eventi, non soglie di legge. Suite CI 294 → 301.
 
+## SESSIONE 21/07 (6ª parte) — parità import/export completa + robustezza + revisione
+Cicli a oltranza su rifiniture trasversali di alta qualità (Fase B/C), tutte
+con PR CI-verde e checkpoint:
+- **Parità import COMPLETA** (#281): Conti importa anche le gare d'appalto →
+  ogni app verticale carica da CSV tutte le sue entità base.
+- **Filtro gare per stato** in Conti (#282): tutte/aperte/vinte/perse.
+- **Header CSV indipendente dal delimitatore** (#283): nuovo helper condiviso
+  `isIntestazione` (riconosce l'intestazione per ; virgola o TAB); prima un file
+  a virgole con header iniettava una riga-fantasma. +7 test.
+- **Idempotenza degli import "ad append"** (#284, #285): dedup su registro
+  infortuni, volate, rilievi e scadenze → un doppio click su "Importa" non
+  raddoppia più un archivio (importante per i registri HSE/regolatori).
+- **Coerenza documentazione** (#286): `ONBOARDING_DATI` allineato ai parser
+  (colonna `fronte` nei rilievi).
+- **Test confini aging incassi** (#287): off-by-one su 30/31/60/61/90/91 gg.
+- **Parità import-EXPORT** (#288 gare, #289 squadre): ogni entità importabile è
+  ora anche esportabile in formato ri-caricabile (backup/condivisione).
+- Revisione di sicurezza del codice recente: escape XSS universale nelle liste,
+  import robusti (BOM/righe vuote/virgole), validazioni e stati vuoti a posto.
+- Smoke test di regressione (Playwright, CORE + 8 app × tutte le pagine): 9/9
+  pulite, zero errori console/pagina.
+Suite CI 301 → 313. Copertura test delle funzioni pure: completa.
+
 ## Fine progetto (fase commercializzazione) — NON prima
 - Acquisto dominio + sottodomini. DECISIONE DEL FONDATORE: nessuna
   spesa prima della commercializzazione.
@@ -314,7 +337,7 @@ gate; sono LOG di eventi, non soglie di legge. Suite CI 294 → 301.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/20260721-024921_backlog-visione-9-unita-fatte.md
+- Ultimo checkpoint: vault/checkpoints/20260721-215000_revisione-serale-parita-export.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
