@@ -45,6 +45,37 @@ export function kpiFrom(monitoraggi, adempimenti) {
   };
 }
 
+// ------------------------------------------------------------
+// Libreria di SOGLIE NORMATIVE preimpostate: aiuta chi non è
+// tecnico a impostare un sensore con un valore di riferimento
+// corretto invece di doverlo cercare. I valori vengono da fonti
+// secondarie concordanti (vedi ecosistema-vault "Soglie normative
+// — riferimento per Sentinella"): NON sono verità legale, quindi
+// ognuno porta l'avviso `daVerificare`. La soglia reale del sito
+// dipende dalle prescrizioni autorizzative (AUA/AIA), dalla classe
+// acustica comunale e dalla perizia. Il rumore ambientale NON è
+// preimpostato: il limite assoluto dipende dalla classe acustica,
+// quindi metterne uno fisso sarebbe fuorviante.
+export const SOGLIE_PRESET = [
+  { chiave: "din-res-fond",  tipo: "vibrazioni", etichetta: "Vibrazioni · residenziale, <10 Hz (DIN 4150-3)",        valore: 5,    unita: "mm/s",  fonte: "DIN 4150-3, fondazione riga 2" },
+  { chiave: "din-res-alto",  tipo: "vibrazioni", etichetta: "Vibrazioni · residenziale, piano alto (DIN 4150-3)",    valore: 15,   unita: "mm/s",  fonte: "DIN 4150-3, piano più alto riga 2" },
+  { chiave: "din-sens-fond", tipo: "vibrazioni", etichetta: "Vibrazioni · sensibile/storico, <10 Hz (DIN 4150-3)",   valore: 3,    unita: "mm/s",  fonte: "DIN 4150-3, fondazione riga 3" },
+  { chiave: "din-ind-fond",  tipo: "vibrazioni", etichetta: "Vibrazioni · industriale/commerciale, <10 Hz (DIN 4150-3)", valore: 20, unita: "mm/s", fonte: "DIN 4150-3, fondazione riga 1" },
+  { chiave: "usbm-intonaco", tipo: "vibrazioni", etichetta: "Vibrazioni · volata su intonaco, 4-15 Hz (USBM RI8507)", valore: 12.7, unita: "mm/s", fonte: "USBM RI 8507" },
+  { chiave: "usbm-altafreq", tipo: "vibrazioni", etichetta: "Vibrazioni · volata, >40 Hz (USBM RI8507)",             valore: 50.8, unita: "mm/s",  fonte: "USBM RI 8507" },
+  { chiave: "airblast-133",  tipo: "airblast",   etichetta: "Sovrappressione d'aria da volata (USBM RI8485)",        valore: 133,  unita: "dB",    fonte: "USBM RI 8485 / OSM" },
+  { chiave: "pm10-giorno",   tipo: "polveri",    etichetta: "PM10 · media giornaliera (UE 2008/50/CE)",              valore: 50,   unita: "µg/m³", fonte: "Dir. UE 2008/50/CE" },
+  { chiave: "pm10-anno",     tipo: "polveri",    etichetta: "PM10 · media annua (UE 2008/50/CE)",                    valore: 40,   unita: "µg/m³", fonte: "Dir. UE 2008/50/CE" },
+  { chiave: "pm10-2030",     tipo: "polveri",    etichetta: "PM10 · media annua dal 2030 (UE 2024/2881)",            valore: 20,   unita: "µg/m³", fonte: "Dir. UE 2024/2881" },
+];
+
+// Ritorna il preset con quella chiave (o null). daVerificare è
+// SEMPRE true: nessun valore normativo va usato senza controllo.
+export function presetSoglia(chiave) {
+  const p = SOGLIE_PRESET.find(x => x.chiave === chiave);
+  return p ? { ...p, daVerificare: true } : null;
+}
+
 export async function sentinellaData() {
   let mode = "demo", api = null;
   try {

@@ -254,6 +254,29 @@ test("statoMisura: appena sotto 0,9 = conforme", () =>
 test("statoMisura: soglia 0 non manda in crash (guardia 0,001)", () =>
   eq(sentinella.statoMisura({ valore: 5, soglia: 0 }).cls, "danger", "soglia 0"));
 
+console.log("\n— Libreria soglie normative preimpostate (Sentinella) —");
+test("presetSoglia: chiave valida restituisce valore+unità+fonte", () => {
+  const p = sentinella.presetSoglia("pm10-giorno");
+  eq(p.valore, 50, "PM10 giornaliera 50"); eq(p.unita, "µg/m³", "unità"); eq(p.daVerificare, true, "sempre da verificare");
+});
+test("presetSoglia: chiave inesistente = null (niente crash)", () =>
+  eq(sentinella.presetSoglia("boh"), null, "sconosciuta"));
+test("SOGLIE_PRESET: ogni voce ha campi validi e valore > 0", () => {
+  for (const p of sentinella.SOGLIE_PRESET) {
+    if (!p.chiave || !p.tipo || !p.etichetta || !p.unita || !p.fonte) throw new Error("campo mancante in " + JSON.stringify(p));
+    if (!(+p.valore > 0)) throw new Error("valore non positivo in " + p.chiave);
+  }
+});
+test("SOGLIE_PRESET: chiavi tutte uniche", () => {
+  const ch = sentinella.SOGLIE_PRESET.map(p => p.chiave);
+  eq(ch.length, new Set(ch).size, "nessun duplicato");
+});
+test("presetSoglia: valori DIN 4150-3 di riferimento corretti", () => {
+  eq(sentinella.presetSoglia("din-res-fond").valore, 5, "residenziale fondazione <10Hz");
+  eq(sentinella.presetSoglia("din-sens-fond").valore, 3, "sensibile fondazione <10Hz");
+  eq(sentinella.presetSoglia("din-ind-fond").valore, 20, "industriale fondazione <10Hz");
+});
+
 console.log("\n— Confini: giorni alla scadenza (Sentinella/Conti) —");
 test("giorni: oggi stesso = 0", () => {
   eq(sentinella.giorni("2026-07-20", OGGI), 0, "sentinella 0");

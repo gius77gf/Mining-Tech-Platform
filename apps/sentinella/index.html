@@ -53,6 +53,12 @@
   </div>
   <div class="note" id="mis-esito" style="text-align:left;"></div>
   <div class="sec">Nuovo sensore</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+    <select class="dw-input" id="sen-preset" style="flex:1;min-width:100%;">
+      <option value="">Soglia normativa preimpostata… (facoltativa)</option>
+    </select>
+  </div>
+  <div class="note" id="sen-preset-nota" style="text-align:left;display:none;"></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
     <input class="dw-input" id="sen-nome" placeholder="Nome (es. Polveri P2 — piazzale)" style="flex:2;min-width:160px;">
     <input class="dw-input" id="sen-unita" placeholder="Unità (es. µg/m³)" style="flex:1;min-width:90px;">
@@ -99,7 +105,7 @@
 </script>
 
 <script type="module">
-  import { sentinellaData, statoMisura, giorni, kpiFrom } from "./sentinella-data.js";
+  import { sentinellaData, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia } from "./sentinella-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
@@ -218,6 +224,7 @@
     ["sen-nome","sen-unita","sen-soglia"].forEach(i => $(i).style.borderColor = "");
     await db.aggiungi("monitoraggi", { nome, unita, soglia, valore: 0, letture: [] });
     $("sen-nome").value = ""; $("sen-unita").value = ""; $("sen-soglia").value = "";
+    $("sen-preset").value = ""; $("sen-preset-nota").style.display = "none"; $("sen-preset-nota").textContent = "";
     $("mis-esito").textContent = "Sensore " + nome + " aggiunto (soglia " + soglia + " " + unita + ").";
     $("sen-nome").focus();   // torna al primo campo per aggiungere subito il prossimo
     await refresh();
@@ -253,6 +260,31 @@
   enterSubmit(["ade-titolo", "ade-ente", "ade-data"], "btn-ade");
   enterSubmit(["sen-nome", "sen-unita", "sen-soglia"], "btn-sen");
   enterSubmit(["mis-valore"], "btn-mis");
+
+  // Libreria soglie normative preimpostate: riempie unità+soglia con un
+  // valore di riferimento invece di farlo cercare all'utente. Ogni voce
+  // è un valore normativo DA VERIFICARE (avviso sempre mostrato).
+  (() => {
+    const GRP = { vibrazioni: "Vibrazioni (PPV)", airblast: "Sovrappressione d'aria", polveri: "Polveri (PM10)" };
+    const sel = $("sen-preset"); const byTipo = {};
+    for (const p of SOGLIE_PRESET) (byTipo[p.tipo] = byTipo[p.tipo] || []).push(p);
+    for (const tipo of Object.keys(byTipo)) {
+      const og = document.createElement("optgroup"); og.label = GRP[tipo] || tipo;
+      for (const p of byTipo[tipo]) {
+        const o = document.createElement("option"); o.value = p.chiave; o.textContent = p.etichetta; og.appendChild(o);
+      }
+      sel.appendChild(og);
+    }
+    sel.addEventListener("change", () => {
+      const p = presetSoglia(sel.value); const nota = $("sen-preset-nota");
+      if (!p) { nota.style.display = "none"; nota.textContent = ""; return; }
+      $("sen-unita").value = p.unita; $("sen-soglia").value = p.valore;
+      $("sen-unita").style.borderColor = ""; $("sen-soglia").style.borderColor = "";
+      nota.style.display = "block";
+      nota.innerHTML = "Fonte: " + esc(p.fonte) + ". ⚠️ Valore normativo di <b>riferimento</b>: verifica sulla norma ufficiale e sulle prescrizioni (AUA/AIA, classe acustica) del tuo sito prima di usarlo.";
+      $("sen-nome").focus();
+    });
+  })();
   await refresh();
 </script>
 </body>
