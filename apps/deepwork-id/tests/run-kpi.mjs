@@ -619,6 +619,12 @@ test("CAUSALI_FERMO: lista non vuota, tutte stringhe uniche", () => {
   eq(c.length > 0, true, "non vuota");
   eq(c.length, new Set(c).size, "uniche");
 });
+test("riassuntoRapportino: compone turno/squadra/produzione/consegne", () => {
+  eq(campo.riassuntoRapportino({ turno: "Mattina", squadra: "Squadra A", produzione: "90 t", note: "cambiare benna" }),
+     "Turno Mattina · Squadra A · Produzione: 90 t · Consegne: cambiare benna", "completo");
+  eq(campo.riassuntoRapportino({ squadra: "Squadra B" }), "Squadra B", "solo squadra");
+  eq(campo.riassuntoRapportino({}), "", "niente → vuoto");
+});
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
