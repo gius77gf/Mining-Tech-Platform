@@ -53,6 +53,48 @@ export function riepilogoConformita(monitoraggi) {
   return r;
 }
 
+// Data GG/MM/AAAA da ISO (formattazione pura per i testi delle allerte).
+function dataIt(iso) {
+  const s = String(iso || "").slice(0, 10);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : (s || "—");
+}
+
+// PRIORITÀ DI CONFORMITÀ per la dashboard: un'unica lista ordinata di allerte
+// che unisce (1) i monitoraggi non conformi — superamento (danger) o attenzione
+// (warn) — e (2) gli adempimenti ambientali: SCADUTI = danger (un termine
+// mancato con l'ente è una criticità, non un semplice avviso — prima erano
+// mostrati come "warn"), in scadenza entro 30 gg = warn. Danger prima. Ogni
+// voce { gravita, categoria, titolo, dettaglio, badge }; titolo/dettaglio sono
+// testo grezzo (nome misura/nota/ente) → escapare dove mostrati. Pura e
+// testabile; `oggi` iniettabile.
+export function prioritaConformita(monitoraggi, adempimenti, oggi = new Date()) {
+  const items = [];
+  for (const m of monitoraggi || []) {
+    const st = statoMisura(m);
+    if (st.cls === "ok") continue;
+    items.push({ gravita: st.cls, categoria: "misura",
+      titolo: m.nome || "Misura",
+      dettaglio: m.valore + " " + (m.unita || "") + " / soglia " + m.soglia + (m.nota ? " · " + m.nota : ""),
+      badge: st.label });
+  }
+  for (const a of adempimenti || []) {
+    const g = giorni(a.scadenza, oggi);
+    if (!Number.isFinite(g) || g > 30) continue;
+    const scaduto = g < 0;
+    items.push({ gravita: scaduto ? "danger" : "warn", categoria: "adempimento",
+      titolo: a.titolo || "Adempimento",
+      dettaglio: (a.ente && a.ente !== "—" ? a.ente + " · " : "") + "entro " + dataIt(a.scadenza),
+      badge: scaduto ? "scaduto da " + (-g) + " gg" : g + " gg" });
+  }
+  const rank = { danger: 0, warn: 1 };
+  const catRank = { misura: 0, adempimento: 1 };
+  return items.sort((x, y) =>
+    (rank[x.gravita] - rank[y.gravita]) ||
+    (catRank[x.categoria] - catRank[y.categoria]) ||
+    String(x.titolo).localeCompare(String(y.titolo), "it"));
+}
+
 // Import monitoraggi (sensori/centraline) da CSV (onboarding: caricare i punti
 // di misura esistenti con soglia e ultimo valore invece di crearli a mano).
 // Colonne: nome;tipo;valore;soglia;unita[;nota] (header opzionale). Tiene solo

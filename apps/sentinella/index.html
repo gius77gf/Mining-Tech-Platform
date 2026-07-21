@@ -120,7 +120,7 @@
 </script>
 
 <script type="module">
-  import { sentinellaData, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, parseMonitoraggiCsv } from "./sentinella-data.js";
+  import { sentinellaData, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, prioritaConformita, parseMonitoraggiCsv } from "./sentinella-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
@@ -152,15 +152,12 @@
     if (kn[2]) kn[2].textContent = k.adempimenti30;
     if (kn[3]) kn[3].textContent = riepilogoConformita(MON).conformi;   // monitoraggi entro soglia
 
-    const allerte = [
-      ...MON.map(m => ({ m, st: statoMisura(m) })).filter(x => x.st.cls !== "ok")
-        .map(x => ({ t: x.m.nome, d: x.m.valore + " " + x.m.unita + " / soglia " + x.m.soglia + (x.m.nota ? " · " + x.m.nota : ""), b: [x.st.cls, x.st.label] })),
-      ...ADE.filter(a => giorni(a.scadenza) <= 30)
-        .map(a => ({ t: a.titolo, d: (a.ente!=="—"?a.ente+" · ":"") + "entro " + fmtD(a.scadenza), b: ["warn", giorni(a.scadenza) + " gg"] })),
-    ].slice(0, 4);
+    // Priorità di conformità: superamenti/attenzione + adempimenti (scaduti =
+    // danger, in scadenza = warn), ordinati danger-first, senza cap silenzioso.
+    const allerte = prioritaConformita(MON, ADE);
     $("all-list").innerHTML = allerte.map(a => `<div class="item">
-      <div class="info"><div class="name">${esc(a.t)}</div><div class="meta">${esc(a.d)}</div></div>
-      <span class="badge ${a.b[0]}">${a.b[1]}</span></div>`).join("") || '<div class="note">Nessuna allerta: tutto conforme.</div>';
+      <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc(a.dettaglio)}</div></div>
+      <span class="badge ${a.gravita}">${esc(a.badge)}</span></div>`).join("") || '<div class="note">Nessuna allerta: tutto conforme.</div>';
 
     const conf = riepilogoConformita(MON);
     $("mon-conf").innerHTML = conf.totale

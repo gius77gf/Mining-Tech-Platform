@@ -808,6 +808,27 @@ test("riepilogoConformita: conta conformi/attenzione/superamento", () => {
 });
 test("riepilogoConformita: nessun monitoraggio = tutto 0 (niente crash)", () =>
   eq(sentinella.riepilogoConformita([]), { conformi: 0, attenzione: 0, superamento: 0, totale: 0 }, "vuoto"));
+test("prioritaConformita: misure non conformi + adempimenti (scaduto=danger), danger prima", () => {
+  const mon = [
+    { nome: "Vibr V2", valore: 5.6, soglia: 5, unita: "mm/s" },     // 1.12 → superamento (danger)
+    { nome: "PM10", valore: 36.8, soglia: 40, unita: "µg/m³" },     // 0.92 → attenzione (warn)
+    { nome: "Acque", valore: 12, soglia: 35, unita: "mg/l" },       // 0.34 → conforme (escluso)
+  ];
+  const ade = [
+    { titolo: "Relazione ARPA", ente: "ARPA", scadenza: "2026-07-10" }, // scaduto da 11 gg → danger
+    { titolo: "Rinnovo AUA", ente: "SUAP", scadenza: "2026-08-10" },    // tra 20 gg → warn
+    { titolo: "Lontana", ente: "—", scadenza: "2099-01-01" },           // >30 gg → esclusa
+  ];
+  const p = sentinella.prioritaConformita(mon, ade, new Date(2026, 6, 21));
+  eq(p.length, 4, "2 misure non-ok + 2 adempimenti entro 30 gg");
+  eq(p.filter(x => x.gravita === "danger").length, 2, "V2 superamento + ARPA scaduto");
+  eq(p[0].gravita, "danger", "danger in cima");
+  eq(p[p.length - 1].gravita, "warn", "warn in fondo");
+  if (!p.some(x => x.categoria === "adempimento" && x.badge === "scaduto da 11 gg")) throw new Error("adempimento scaduto deve essere danger con i giorni");
+  if (!p.some(x => x.categoria === "adempimento" && /entro 10\/08\/2026/.test(x.dettaglio))) throw new Error("data formattata GG/MM/AAAA");
+});
+test("prioritaConformita: tutto conforme e nessuna scadenza vicina = vuoto", () =>
+  eq(sentinella.prioritaConformita([{ nome: "X", valore: 1, soglia: 10, unita: "u" }], [{ titolo: "Y", scadenza: "2099-01-01" }], new Date(2026, 6, 21)), [], "vuoto"));
 
 console.log("\n— Confini: giorni alla scadenza (Sentinella/Conti) —");
 test("giorni: oggi stesso = 0", () => {
