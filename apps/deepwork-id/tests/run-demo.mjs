@@ -103,5 +103,28 @@ test("terra: id unici, date rilievi valide, volumeM3 numerico o null", () => {
      "nessun rilievo demo collegato a un fronte: volumeFronte mostrerebbe 0 nella vetrina");
 });
 
+// La API demo (usata prima del go-live / in tour) deve fare CRUD in memoria E
+// non crashare su una collezione non ancora presente in DEMO — hardening da
+// revisione del data-layer (aggiorna/rimuovi con guardia `mem[n] || []`).
+// L'import dinamico dell'SDK fallisce in Node → si cade in modalità demo.
+const { scudoData } = await import(join(HERE, "../../scudo/scudo-data.js"));
+const dapi = await scudoData();
+const _before = (await dapi.lavoratori()).length;
+const { id: _nid } = await dapi.aggiungi("lavoratori", { nome: "Test QA" });
+await dapi.aggiorna("lavoratori", _nid, { ruolo: "Collaudo" });
+const _upd = (await dapi.lavoratori()).find(l => l.id === _nid);
+await dapi.rimuovi("lavoratori", _nid);
+const _after = (await dapi.lavoratori()).length;
+let _unseededOk = true, _unseededErr = "";
+try { await dapi.aggiorna("collezione_mai_vista", "x", { a: 1 }); await dapi.rimuovi("collezione_mai_vista", "x"); }
+catch (e) { _unseededOk = false; _unseededErr = e.message; }
+
+test("demo api (scudo): CRUD in memoria + collezione nuova non crasha", () => {
+  ok(dapi.mode === "demo", `senza backend deve cadere in demo (mode=${dapi.mode})`);
+  ok(_before === _after, `il round-trip lascia il conteggio invariato (${_before}→${_after})`);
+  ok(_upd && _upd.ruolo === "Collaudo", "aggiorna applica le modifiche in memoria");
+  ok(_unseededOk, `aggiorna/rimuovi su una collezione nuova non deve lanciare: ${_unseededErr}`);
+});
+
 console.log(`\nRisultato Demo: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);

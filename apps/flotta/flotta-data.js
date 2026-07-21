@@ -224,8 +224,8 @@ export async function flottaData() {
       mezzi: async () => mem.mezzi, manutenzioni: async () => mem.manutenzioni, costi: async () => mem.costi, ricambi: async () => mem.ricambi,
       logout: async () => {},
       aggiungi: async (n, d) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[n] = mem[n] || []).push({ id, ...d }); return { id }; },
-      aggiorna: async (n, i, d) => { const x = mem[n].find(v => v.id === i); if (x) Object.assign(x, d); },
-      rimuovi: async (n, i) => { mem[n] = mem[n].filter(v => v.id !== i); },
+      aggiorna: async (n, i, d) => { const x = (mem[n] || (mem[n] = [])).find(v => v.id === i); if (x) Object.assign(x, d); },
+      rimuovi: async (n, i) => { mem[n] = (mem[n] || []).filter(v => v.id !== i); },
     };
   }
   return { mode, ...api };
