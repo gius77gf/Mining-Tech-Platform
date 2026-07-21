@@ -198,10 +198,13 @@ exports.revokeInvite = onCall({ region: REGION }, async (request) => {
 // ------------------------------------------------------------
 exports.acceptInvites = onCall({ region: REGION }, async (request) => {
   const auth = request.auth;
-  if (!auth || !auth.token.email) {
-    throw new HttpsError("unauthenticated", "Serve un profilo con email.");
+  // email VERIFICATA obbligatoria: senza questo controllo, chi registra un
+  // indirizzo che non possiede (email_verified=false) potrebbe riscattare gli
+  // inviti indirizzati a quell'email ed entrare in un'organizzazione altrui.
+  if (!auth || !auth.token.email || auth.token.email_verified !== true) {
+    throw new HttpsError("unauthenticated", "Serve un profilo con email verificata.");
   }
-  const email = auth.token.email.toLowerCase();
+  const email = auth.token.email.trim().toLowerCase();
 
   const pending = await db.collection("invites")
     .where("email", "==", email)
@@ -215,9 +218,21 @@ exports.acceptInvites = onCall({ region: REGION }, async (request) => {
       await doc.ref.update({ status: "expired" });
       continue;
     }
-    await db.doc(`organizations/${inv.orgId}/members/${auth.uid}`).set({
+    // già membro? NON sovrascrivere il ruolo: un invito 'member' non deve
+    // declassare un owner/admin già presente (altrimenti si potrebbe lasciare
+    // l'org senza owner). Consuma comunque l'invito.
+    const memRef = db.doc(`organizations/${inv.orgId}/members/${auth.uid}`);
+    if ((await memRef.get()).exists) {
+      await doc.ref.update({ status: "accepted", acceptedBy: auth.uid });
+      continue;
+    }
+    // ruolo dell'invito comunque limitato ad admin/member (difesa in profondità:
+    // inviteMember già lo impedisce, ma un invito con role 'owner' non deve mai
+    // creare un owner per questa via).
+    const cleanRole = ["admin", "member"].includes(inv.role) ? inv.role : "member";
+    await memRef.set({
       uid: auth.uid,
-      role: inv.role || "member",
+      role: cleanRole,
       status: "active",
       invitedBy: inv.invitedBy || null,
       joinedAt: FieldValue.serverTimestamp(),
