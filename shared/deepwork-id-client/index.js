@@ -310,7 +310,8 @@ class DeepworkIDClient {
   async switchOrg(orgId) {
     if (!this.orgs[orgId]) throw new Error("Non sei membro di questa organizzazione");
     this.orgId = orgId;
-    await this._loadEntitlement();
+    this.entitlement = null;   // azzera prima del reload: se _loadEntitlement fallisce
+    await this._loadEntitlement();   // (rete) non deve restare l'entitlement dell'org precedente
     // persiste la preferenza (best-effort: se fallisce non blocca lo switch)
     await setDoc(doc(this._db, "users", this.user.uid),
       { defaultOrgId: orgId }, { merge: true }).catch(() => {});
