@@ -28,6 +28,10 @@ export const DEMO = {
     { id: "g2", titolo: "Registro acque meteoriche", nota: "aggiornato 07/2026", stato: "aggiornato" },
     { id: "g3", titolo: "Formulari trasporto", nota: "3 in attesa di quarta copia", stato: "in-attesa" },
   ],
+  volate: [
+    { id: "b1", data: "2026-07-17", fronte: "Fronte Nord", nFori: 42, kgTotali: 480, kgMaxRitardo: 18, distanzaRicettore: 320, esito: "regolare", note: "" },
+    { id: "b2", data: "2026-07-03", fronte: "Fronte Est", nFori: 36, kgTotali: 410, kgMaxRitardo: 22, distanzaRicettore: 280, esito: "regolare", note: "" },
+  ],
 };
 
 export function statoMisura(m) {
@@ -125,6 +129,49 @@ export function kpiFrom(monitoraggi, adempimenti) {
   };
 }
 
+// Registro delle VOLATE (brogliaccio di brillamento): riepilogo per il quadro.
+// In Italia il registro delle volate è un adempimento; qui è il log degli
+// eventi con carica e distanza. Ritorna: totale, quante questo mese, kg totali
+// del mese, data dell'ultima volata, e quante hanno avuto una contestazione.
+// Pura e testabile; `oggi` iniettabile (mese-calendario locale).
+export function riepilogoVolate(volate, oggi = new Date()) {
+  const list = volate || [];
+  const o = new Date(oggi);
+  const ym = `${o.getFullYear()}-${String(o.getMonth() + 1).padStart(2, "0")}`;
+  const questoMese = list.filter(v => (v.data || "").slice(0, 7) === ym);
+  const kgMese = questoMese.reduce((s, v) => s + (+v.kgTotali || 0), 0);
+  let ultima = null;
+  for (const v of list) {
+    const d = (v.data || "");
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d) && (!ultima || d > ultima)) ultima = d;
+  }
+  const contestazioni = list.filter(v => v.esito === "contestazione").length;
+  return { totale: list.length, questoMese: questoMese.length, kgMese, ultima, contestazioni };
+}
+
+// Import registro volate da CSV. Colonne: data;fronte;nFori;kgTotali;
+// kgMaxRitardo;distanzaRicettore;esito[;note] (header opzionale). Tiene solo le
+// righe con data valida (AAAA-MM-GG). esito: "contestazione" o "regolare"
+// (default regolare). I numerici via numIt. fronte/note grezzi → escapare dove
+// mostrati. Pura e testabile.
+export function parseVolateCsv(text) {
+  const num = (v) => { const n = numIt(v); return Number.isFinite(n) ? Math.max(0, n) : 0; };
+  return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !/^data\s*;/i.test(r))
+    .map(r => {
+      const [data, fronte, nFori, kgTotali, kgMaxRitardo, distanzaRicettore, esito, note] = parseCsvLine(r);
+      return {
+        data: (data || "").trim(),
+        fronte: (fronte || "").trim(),
+        nFori: num(nFori), kgTotali: num(kgTotali), kgMaxRitardo: num(kgMaxRitardo),
+        distanzaRicettore: num(distanzaRicettore),
+        esito: (esito || "").trim().toLowerCase() === "contestazione" ? "contestazione" : "regolare",
+        note: (note || "").trim(),
+      };
+    })
+    .filter(v => /^\d{4}-\d{2}-\d{2}$/.test(v.data));
+}
+
 // ------------------------------------------------------------
 // Libreria di SOGLIE NORMATIVE preimpostate: aiuta chi non è
 // tecnico a impostare un sensore con un valore di riferimento
@@ -189,7 +236,7 @@ export async function sentinellaData() {
       mode = "live";
       const read = async (n) => (await getDocs(id.orgCollection(n))).docs.map(d => ({ id: d.id, ...d.data() }));
       api = {
-        monitoraggi: () => read("monitoraggi"), adempimenti: () => read("adempimenti"), registri: () => read("registri"),
+        monitoraggi: () => read("monitoraggi"), adempimenti: () => read("adempimenti"), registri: () => read("registri"), volate: () => read("volate"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
         logout: () => id.logout(),
         aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n), i), d),
@@ -200,7 +247,7 @@ export async function sentinellaData() {
   if (mode !== "live") {
     const mem = JSON.parse(JSON.stringify(DEMO));
     api = {
-      monitoraggi: async () => mem.monitoraggi, adempimenti: async () => mem.adempimenti, registri: async () => mem.registri,
+      monitoraggi: async () => mem.monitoraggi, adempimenti: async () => mem.adempimenti, registri: async () => mem.registri, volate: async () => mem.volate,
       logout: async () => {},
       aggiungi: async (n, d) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[n] = mem[n] || []).push({ id, ...d }); return { id }; },
       aggiorna: async (n, i, d) => { const x = (mem[n] || (mem[n] = [])).find(v => v.id === i); if (x) Object.assign(x, d); },

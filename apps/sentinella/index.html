@@ -99,6 +99,29 @@
   <div class="sec">Registri</div>
   <div id="reg-list"></div>
   <button class="dw-btn secondary" id="btn-export-amb" style="width:auto;margin-top:8px;">Esporta monitoraggi e adempimenti (CSV)</button>
+
+  <div class="sec">Registro volate (brogliaccio di brillamento)</div>
+  <div id="vol-riep" class="note" style="text-align:left;"></div>
+  <div id="vol-list"></div>
+  <div class="sec">Registra volata</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <input class="dw-input" id="vol-data" type="date" style="flex:1;min-width:130px;">
+    <input class="dw-input" id="vol-fronte" placeholder="Fronte" style="flex:1;min-width:120px;">
+    <input class="dw-input" id="vol-nfori" type="number" min="0" placeholder="N° fori" style="flex:1;min-width:90px;">
+    <input class="dw-input" id="vol-kg" type="number" min="0" placeholder="kg totali" style="flex:1;min-width:100px;">
+    <input class="dw-input" id="vol-kgmax" type="number" min="0" placeholder="kg max/ritardo" style="flex:1;min-width:120px;">
+    <input class="dw-input" id="vol-dist" type="number" min="0" placeholder="Distanza ricettore (m)" style="flex:1;min-width:150px;">
+    <select class="dw-input" id="vol-esito" style="flex:1;min-width:130px;"><option value="regolare">Regolare</option><option value="contestazione">Con contestazione</option></select>
+    <button class="dw-btn" id="btn-vol" style="width:auto;">Registra</button>
+  </div>
+  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <button class="dw-btn secondary" id="btn-vol-import" style="width:auto;">Importa da CSV</button>
+    <button class="dw-btn secondary" id="btn-vol-export" style="width:auto;">Esporta CSV</button>
+    <input type="file" id="vol-file" accept=".csv,text/csv" style="display:none;">
+    <span class="dw-muted" style="font-size:12px;">colonne: data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note</span>
+  </div>
+  <div class="note" id="vol-esito-msg" style="text-align:left;"></div>
+  <div class="note" style="text-align:left;">SD = distanza scalata (R/√W con W = kg max per ritardo): più è alta, minore è il rischio di superare le soglie di vibrazione al ricettore.</div>
   <div class="note" id="mode-note" style="text-align:left;"></div>
 </div>
 
@@ -120,7 +143,7 @@
 </script>
 
 <script type="module">
-  import { sentinellaData, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, prioritaConformita, parseMonitoraggiCsv } from "./sentinella-data.js";
+  import { sentinellaData, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, prioritaConformita, riepilogoVolate, parseVolateCsv, parseMonitoraggiCsv } from "./sentinella-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
@@ -131,7 +154,7 @@
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
-  let MON=[], ADE=[], REG=[];
+  let MON=[], ADE=[], REG=[], VOL=[];
   let filtroMon = "tutti";
   // scorciatoia: toccare un KPI del quadro porta alla lista pertinente
   document.querySelector(".kpis").addEventListener("click", (e) => {
@@ -144,7 +167,7 @@
     if (f) { filtroMon = f; refresh(); }
   });
   async function refresh(){
-    [MON,ADE,REG] = await Promise.all([db.monitoraggi(), db.adempimenti(), db.registri()]);
+    [MON,ADE,REG,VOL] = await Promise.all([db.monitoraggi(), db.adempimenti(), db.registri(), db.volate ? db.volate() : []]);
     const k = kpiFrom(MON,ADE);
     const kn = document.querySelectorAll(".kpis .kpi .n");
     if (kn[0]) kn[0].textContent = k.attivi;
@@ -188,6 +211,20 @@
       || '<div class="note" style="text-align:left;">Nessuna voce nel registro.</div>';
 
     $("mis-sensore").innerHTML = MON.map(m => `<option value="${m.id}">${esc(m.nome.split(" — ")[0])}</option>`).join("");
+
+    // Registro volate: riepilogo + lista con la distanza scalata per volata.
+    const rv = riepilogoVolate(VOL);
+    $("vol-riep").innerHTML = rv.totale
+      ? `Volate registrate: <b>${rv.totale}</b> · questo mese: <b>${rv.questoMese}</b> (${rv.kgMese.toLocaleString("it-IT")} kg)${rv.contestazioni ? ` · <span class="badge danger" style="font-size:inherit;">${rv.contestazioni} con contestazione</span>` : ""}`
+      : "Nessuna volata registrata.";
+    const VB = { regolare: ["ok", "Regolare"], contestazione: ["danger", "Contestazione"] };
+    $("vol-list").innerHTML = VOL.slice().sort((a,b)=>(a.data||"")<(b.data||"")?1:-1).map(v => {
+      const sd = scaledDistance(v.distanzaRicettore, v.kgMaxRitardo);
+      const vb = VB[v.esito] || ["ok","—"];
+      return `<div class="item"><div class="info"><div class="name">${esc(v.fronte || "Volata")} · ${esc(v.data || "—")}</div>
+        <div class="meta">${+v.nFori||0} fori · ${(+v.kgTotali||0).toLocaleString("it-IT")} kg${(+v.kgMaxRitardo) ? " · max/ritardo " + (+v.kgMaxRitardo) + " kg" : ""}${sd!=null ? " · SD " + sd.toFixed(1) : ""}${v.note ? " · " + esc(v.note) : ""}</div></div>
+        <span class="badge ${vb[0]}">${vb[1]}</span><span class="arr" style="cursor:pointer" title="Rimuovi" data-del-vol="${v.id}">✕</span></div>`;
+    }).join("") || '<div class="note" style="text-align:left;">Nessuna volata nel registro. Registrale per avere il brogliaccio pronto per gli enti.</div>';
   }
 
   document.addEventListener("click", async (e) => {
@@ -199,6 +236,10 @@
     if (delMon) { const m = MON.find(x => x.id === delMon);
       if (m && confirm("Rimuovere il sensore «" + m.nome + "»? Anche lo storico delle misure verrà perso.")) {
         await db.rimuovi("monitoraggi", delMon); await refresh(); } return; }
+    const delVol = e.target.getAttribute && e.target.getAttribute("data-del-vol");
+    if (delVol) {
+      if (confirm("Rimuovere questa volata dal registro? (usa solo per correggere un inserimento sbagliato)")) {
+        await db.rimuovi("volate", delVol); await refresh(); } return; }
     const it = e.target.closest && e.target.closest("[data-reg]");
     if (it) { const r = REG.find(x => x.id === it.getAttribute("data-reg"));
       // toggle bidirezionale, SENZA sovrascrivere la nota originale del registro
@@ -216,6 +257,38 @@
     el.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     el.download = "sentinella_ambiente.csv"; el.click();
     $("mode-note").textContent = "Esportati " + MON.length + " monitoraggi e " + ADE.length + " adempimenti (CSV).";
+  };
+  $("btn-vol").onclick = async () => {
+    const data = $("vol-data").value;
+    if (!data) { $("vol-data").style.borderColor = "var(--danger)"; $("vol-esito-msg").textContent = "Serve la data della volata."; return; }
+    $("vol-data").style.borderColor = "";
+    await db.aggiungi("volate", {
+      data, fronte: $("vol-fronte").value.trim(),
+      nFori: +$("vol-nfori").value || 0, kgTotali: +$("vol-kg").value || 0,
+      kgMaxRitardo: +$("vol-kgmax").value || 0, distanzaRicettore: +$("vol-dist").value || 0,
+      esito: $("vol-esito").value, note: "",
+    });
+    ["vol-fronte","vol-nfori","vol-kg","vol-kgmax","vol-dist"].forEach(i => $(i).value = "");
+    $("vol-esito-msg").textContent = "Volata registrata del " + data + ".";
+    await refresh();
+  };
+  $("btn-vol-export").onclick = () => {
+    let csv = "data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note\n";
+    for (const v of VOL.slice().sort((a,b)=>(a.data||"")<(b.data||"")?-1:1))
+      csv += `${v.data||""};${csvCell(v.fronte||"")};${+v.nFori||0};${+v.kgTotali||0};${+v.kgMaxRitardo||0};${+v.distanzaRicettore||0};${v.esito||"regolare"};${csvCell(v.note||"")}\n`;
+    const el = document.createElement("a");
+    el.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    el.download = "sentinella_registro_volate.csv"; el.click();
+    $("vol-esito-msg").textContent = "Esportate " + VOL.length + " volate (CSV).";
+  };
+  $("btn-vol-import").onclick = () => $("vol-file").click();
+  $("vol-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const righe = parseVolateCsv(await file.text());
+    for (const r of righe) await db.aggiungi("volate", r);
+    $("vol-file").value = "";
+    $("vol-esito-msg").textContent = "Import registro: " + righe.length + " volate aggiunte.";
+    await refresh();
   };
   $("btn-ade").onclick = async () => {
     const titolo = $("ade-titolo").value.trim(), ente = $("ade-ente").value.trim() || "—", scadenza = $("ade-data").value;

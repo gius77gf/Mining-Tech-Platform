@@ -879,6 +879,28 @@ test("prioritaConformita: misure non conformi + adempimenti (scaduto=danger), da
 });
 test("prioritaConformita: tutto conforme e nessuna scadenza vicina = vuoto", () =>
   eq(sentinella.prioritaConformita([{ nome: "X", valore: 1, soglia: 10, unita: "u" }], [{ titolo: "Y", scadenza: "2099-01-01" }], new Date(2026, 6, 21)), [], "vuoto"));
+test("riepilogoVolate: totale, questo mese, kg del mese, contestazioni", () => {
+  const vol = [
+    { data: "2026-07-17", kgTotali: 480, esito: "regolare" },
+    { data: "2026-07-03", kgTotali: 410, esito: "contestazione" },
+    { data: "2026-06-20", kgTotali: 300, esito: "regolare" },
+  ];
+  const r = sentinella.riepilogoVolate(vol, new Date(2026, 6, 21));   // luglio 2026
+  eq(r.totale, 3, "tre volate");
+  eq(r.questoMese, 2, "due a luglio");
+  eq(r.kgMese, 890, "480+410 kg nel mese");
+  eq(r.ultima, "2026-07-17", "volata più recente");
+  eq(r.contestazioni, 1, "una con contestazione");
+});
+test("riepilogoVolate: vuoto = tutto zero (niente crash)", () =>
+  eq(sentinella.riepilogoVolate([], new Date(2026, 6, 21)), { totale: 0, questoMese: 0, kgMese: 0, ultima: null, contestazioni: 0 }, "vuoto"));
+test("parseVolateCsv: legge le colonne, scarta data non ISO, esito default regolare", () => {
+  const csv = "data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note\n2026-07-17;Fronte Nord;42;480;18;320;regolare;ok\n2026-07-03;Est;36;410;22;280;contestazione;\nboh;X;1;1;1;1;;\n";
+  const p = sentinella.parseVolateCsv(csv);
+  eq(p.length, 2, "solo le 2 righe con data ISO");
+  eq(p[0], { data: "2026-07-17", fronte: "Fronte Nord", nFori: 42, kgTotali: 480, kgMaxRitardo: 18, distanzaRicettore: 320, esito: "regolare", note: "ok" }, "riga completa");
+  eq(p[1].esito, "contestazione", "esito riconosciuto");
+});
 
 console.log("\n— Confini: giorni alla scadenza (Sentinella/Conti) —");
 test("giorni: oggi stesso = 0", () => {
