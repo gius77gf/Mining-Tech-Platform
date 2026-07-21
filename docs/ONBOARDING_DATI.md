@@ -68,7 +68,21 @@ Pagina **Documenti → Infortuni e near-miss → Importa da CSV**.
   diventa *near-miss*, il caso più prudente per il contatore "giorni senza
   infortuni"). `gravita` è `lieve` o `grave`. Serve solo una **data valida**.
 
-## Flotta — ore motore / telemetria
+## Flotta — 1) parco mezzi
+Pagina **Mezzi → Importa parco (CSV)**.
+- **Colonne**: `nome;area;ore;stato`
+- **Esempio**:
+  ```
+  nome;area;ore;stato
+  Escavatore E1 — CAT 352;fronte Est;5870;operativo
+  Dumper D3 — CAT 745;officina;9105;fermo
+  ```
+- **Note**: serve solo il **nome**; un mezzo con lo stesso nome viene saltato
+  (niente doppioni). `stato` è `operativo`, `fermo` o `verifica` (default
+  operativo). È il modo rapido per caricare una flotta intera all'avvio, invece
+  di aggiungere i mezzi uno a uno.
+
+## Flotta — 2) ore motore / telemetria
 Pagina **Mezzi → Importa telemetria (CSV)**.
 - **Colonne**: `mezzo;ore;carburante` (il carburante è facoltativo)
 - **Esempio**:
@@ -161,6 +175,7 @@ Pagina **Registri → Registro volate → Importa da CSV**.
 | Scudo | Anagrafica | `nome;ruolo;telefono` |
 | Scudo | Scadenzario | `lavoratore;tipo;descrizione;scadenza` |
 | Scudo | Infortuni | `data;tipo;gravita;giorniAssenza;descrizione;luogo` |
+| Flotta | Parco mezzi | `nome;area;ore;stato` |
 | Flotta | Ore/telemetria | `mezzo;ore;carburante` |
 | Conti | Fatture | `numero;cliente;importo;emessa;scadenza;incassata` |
 | Terra | Rilievi | `data;volumeM3;metodo;gsd;fronte` (metodo/gsd/fronte facoltativi) |
