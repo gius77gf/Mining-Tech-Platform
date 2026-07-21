@@ -252,14 +252,15 @@
   $("btn-export-csv").onclick = () => {
     // backup/condivisione (es. consulente del lavoro): lavoratori con le
     // rispettive scadenze e lo stato CALCOLATO alla data odierna
-    let csv = "nome;ruolo;telefono;scadenza;data;stato\n";
+    let csv = "nome;ruolo;telefono;idoneita;scadenza;data;stato\n";
     for (const l of LAV) {
+      const idn = idoneitaLabel(l.idoneita).label;
       const sc = SCA.filter(s => s.lavoratoreId === l.id);
-      if (!sc.length) csv += `${csvCell(l.nome)};${csvCell(l.ruolo||"")};${csvCell(l.tel||"")};;;\n`;
-      for (const s of sc) csv += `${csvCell(l.nome)};${csvCell(l.ruolo||"")};${csvCell(l.tel||"")};${csvCell(s.descrizione)};${s.dataScadenza};${statoScadenza(s.dataScadenza)}\n`;
+      if (!sc.length) csv += `${csvCell(l.nome)};${csvCell(l.ruolo||"")};${csvCell(l.tel||"")};${csvCell(idn)};;;\n`;
+      for (const s of sc) csv += `${csvCell(l.nome)};${csvCell(l.ruolo||"")};${csvCell(l.tel||"")};${csvCell(idn)};${csvCell(s.descrizione)};${s.dataScadenza};${statoScadenza(s.dataScadenza)}\n`;
     }
     for (const s of SCA.filter(x => !x.lavoratoreId))
-      csv += `AZIENDA;;;${csvCell(s.descrizione)};${s.dataScadenza};${statoScadenza(s.dataScadenza)}\n`;
+      csv += `AZIENDA;;;;${csvCell(s.descrizione)};${s.dataScadenza};${statoScadenza(s.dataScadenza)}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "scudo_personale_scadenze.csv"; a.click();
