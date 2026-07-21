@@ -67,6 +67,17 @@ export function agingIncassi(fatture, oggi = new Date()) {
   return b;
 }
 
+// Livello di sollecito in base ai giorni di ritardo di una fattura insoluta:
+// nessuno (non scaduta), 1° sollecito, 2° sollecito, ultimo avviso. Fasce
+// pensate come promemoria progressivi. Pura e testabile.
+export function livelloSollecito(giorniRitardo) {
+  const g = +giorniRitardo || 0;
+  if (g <= 0)  return { livello: 0, label: "", cls: "ok" };
+  if (g <= 15) return { livello: 1, label: "1° sollecito", cls: "warn" };
+  if (g <= 45) return { livello: 2, label: "2° sollecito", cls: "warn" };
+  return { livello: 3, label: "ultimo avviso", cls: "danger" };
+}
+
 // Incasso atteso nei prossimi N giorni: somma delle fatture aperte la cui
 // scadenza cade da oggi a oggi+N (non ancora scadute). È l'entrata di cassa
 // PREVISTA, complementare all'aging (che guarda al ritardo passato).
