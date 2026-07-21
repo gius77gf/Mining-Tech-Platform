@@ -47,7 +47,10 @@ scadenze dei lavoratori, così non ti trovi un operaio non idoneo sul fronte.
 - **Idoneità**: etichetta chiara, qual è il prossimo controllo e quanto è
   critico se salta.
 - **Copertura formazione**: a colpo d'occhio quanti sono coperti e quanti no.
-- Esportazione in CSV (per il consulente o il medico competente).
+- **Adempimenti tipici di cava preimpostati** (sorveglianza sanitaria,
+  formazioni, patentini, DSS…): li scegli da un elenco invece di scriverli.
+- **Import scadenzario** e anagrafica da CSV; **export** CSV per il consulente
+  o il medico competente.
 
 **Pronto**: sì, come vetrina. **Aspetta te**: solo l'accensione live comune.
 
@@ -62,7 +65,8 @@ scarti) senza carta.
 - **Fermi macchina** raggruppati per causale (guasto, attesa, ecc.): vedi
   subito dove perdi tempo.
 - **Scarto %** con livello (accettabile/alto) sul materiale.
-- **Import piano da CSV**: carichi il piano di produzione senza riscriverlo.
+- **Avanzamento della giornata**: quante attività concluse sul totale.
+- **Import piano da CSV** ed **export** consuntivo.
 
 **Pronto**: sì. **Aspetta te**: solo l'accensione live comune.
 
@@ -77,8 +81,9 @@ tagliandi e se stai finendo i ricambi.
 - **Urgenza manutenzioni**: ordina cosa va fatto prima, anche in ore-motore.
 - **Previsione**: fra quanti giorni un mezzo arriva alla soglia tagliando.
 - **Ricambi sotto scorta** e scarico automatico della giacenza.
-- **Import telemetria da CSV**: importi le ore-motore dai portali dei
-  costruttori (Caterpillar, Komatsu…) invece di leggerle a mano.
+- **Ripartizione dei costi** per voce (dove va la spesa: carburante/ricambi/…).
+- **Import telemetria da CSV** (ore-motore dai portali OEM) ed **export** della
+  situazione del parco per la direzione/officina.
 
 **Pronto**: sì. **Aspetta te**: l'accensione live comune. Il collegamento
 **automatico in tempo reale** con i portali dei mezzi richiede un pezzo di
@@ -94,9 +99,11 @@ si fa quando decidi di investirci.
 - **Scadenzario incassi** per fasce (a scadere / scaduto da 30-60-90 gg).
 - **Priorità di incasso** e **solleciti a livelli** (dal promemoria gentile
   al sollecito formale) sulle fatture non pagate.
-- **Incasso atteso** nel periodo.
-- **Riepilogo gare** (quante aperte, valore).
-- **Import fatture da CSV**: carichi le fatture esistenti senza riscriverle.
+- **Incasso atteso** nel periodo e **previsione incassi mese per mese**.
+- **Esposizione per cliente** (chi ci deve di più → chi chiamare per primo).
+- **Interessi di mora di legge** stimati sulle insolute (un numero vero per il
+  sollecito) e **riepilogo gare**.
+- **Import fatture da CSV** ed **export** della situazione.
 
 **Pronto**: sì. **Aspetta te**: l'accensione live comune. La **fattura
 elettronica** vera (invio allo SdI dell'Agenzia delle Entrate) **non si può
@@ -113,8 +120,10 @@ su vibrazioni e rumore, così eviti contestazioni dei vicini/enti.
 - Stato di ogni misura rispetto alla soglia.
 - **Preset di soglia** normativi già pronti da scegliere (invece di
   inventarli): parti dal riferimento giusto.
-- **Distanza scalata** (il conto tecnico standard per le vibrazioni).
+- **Distanza scalata** e **carica massima per ritardo** (in progettazione
+  volata: quanti kg non superare per restare sotto la soglia di vibrazione).
 - **Riepilogo conformità**: quante misure dentro/fuori limite.
+- **Import sensori** da CSV ed **export** di monitoraggi e adempimenti.
 
 **Pronto**: sì, ed è una delle app con più "personalità" (pochi competitor la
 raccontano in modo semplice). **Aspetta te**: l'accensione live comune. Le
@@ -132,10 +141,12 @@ quanto te ne resta in autorizzazione.
   (mai scritti a mano: sono difendibili in un controllo).
 - **Da m³ a valore**: metri cubi → tonnellate → euro (leghi il rilievo alla
   contabilità).
-- **Qualità del rilievo** (metodo RTK/GCP, GSD) in una riga, così il volume
-  regge in audit.
-- **Riserva residua** e fra quanti anni si esaurisce al ritmo attuale.
-- **Import rilievi da CSV**: carichi lo storico dei voli drone.
+- **Qualità e classe di accuratezza** del rilievo (metodo RTK/GCP, GSD) con la
+  **banda di incertezza** sul volume ("19.400 m³ ± 388"), così il numero è
+  difendibile in un controllo o in riconciliazione col venduto.
+- **Riserva residua** e fra quanti anni si esaurisce; **andamento volumi**
+  (ultimo rilievo vs precedente).
+- **Import rilievi da CSV** ed **export** di fronti e rilievi.
 
 **Pronto**: sì. **Aspetta te**: solo l'accensione live comune.
 
