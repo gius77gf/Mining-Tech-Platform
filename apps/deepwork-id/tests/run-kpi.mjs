@@ -346,6 +346,18 @@ test("interessiMora: non in ritardo o dati non validi = zero", () => {
   eq(conti.interessiMora(0, 30).interessi, 0, "importo 0 = 0");
   eq(conti.interessiMora(10000, -5).interessi, 0, "ritardo negativo = 0");
 });
+test("testoSollecito: lettera pronta con mora 231/2002 e totale dovuto", () => {
+  const t = conti.testoSollecito(
+    { numero: "2026/031", cliente: "Edilcave Srl", importo: 18300, scadenza: "2026-07-08" },
+    new Date(2026, 6, 21));   // 13 giorni di ritardo
+  const must = ["2026/031", "Edilcave Srl", "€ 18.300", "13 giorni", "€ 66,16", "€ 40", "€ 18.406,16", "231/2002"];
+  for (const s of must) if (!t.includes(s)) throw new Error(`manca "${s}" nel testo del sollecito`);
+});
+test("testoSollecito: null se non scaduta o dati non validi", () => {
+  eq(conti.testoSollecito({ numero: "X", importo: 100, scadenza: "2099-12-31" }, new Date(2026, 6, 21)), null, "non scaduta");
+  eq(conti.testoSollecito({ numero: "X", importo: 0, scadenza: "2000-01-01" }, new Date(2026, 6, 21)), null, "importo 0");
+  eq(conti.testoSollecito({ numero: "X", importo: 100 }, new Date(2026, 6, 21)), null, "senza scadenza");
+});
 test("prioritaIncasso: fattura senza data = ritardo 0 (non in cima per errore)", () => {
   const p = conti.prioritaIncasso([{ numero: "X", importo: 50, incassata: false }], new Date("2026-07-20T00:00:00"));
   eq(p[0].ritardo, 0, "senza data → ritardo 0");

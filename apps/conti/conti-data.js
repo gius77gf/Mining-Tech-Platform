@@ -118,6 +118,59 @@ export function livelloSollecito(giorniRitardo) {
   return { livello: 3, label: "ultimo avviso", cls: "danger" };
 }
 
+// Formattazioni PURE (niente locale ICU, così i test sono deterministici):
+// euro all'italiana (18.300 / 83,42) e data GG/MM/AAAA da ISO.
+function euroIt(v) {
+  const n = Math.round((+v || 0) * 100) / 100;
+  const [int, dec] = Math.abs(n).toFixed(2).split(".");
+  const intG = int.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  const seg = dec === "00" ? intG : intG + "," + dec;
+  return (n < 0 ? "-" : "") + seg;
+}
+function dataIt(iso) {
+  const s = String(iso || "").slice(0, 10);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : (s || "—");
+}
+
+// Testo PRONTO di un sollecito di pagamento per una fattura INSOLUTA, da
+// copiare e inviare (email/PEC). Mette insieme gli estremi della fattura, i
+// giorni di ritardo, gli interessi di mora di legge (D.Lgs 231/2002) e i €40
+// forfettari art. 6, con un totale dovuto. Ritorna null se la fattura NON è
+// scaduta (niente da sollecitare) o se i dati non sono validi. La nota "da
+// confermare col commercialista" resta nell'interfaccia, non nella lettera al
+// cliente. Pura e testabile: nessun DOM, `oggi` e `tasso` iniettabili.
+export function testoSollecito(fattura, oggi = new Date(), tassoAnnuo = TASSO_MORA_DEFAULT) {
+  const f = fattura || {};
+  const imp = +f.importo || 0;
+  const g = giorni(f.scadenza, oggi);
+  if (imp <= 0 || !Number.isFinite(g) || g >= 0) return null;   // non scaduta o dati non validi
+  const ritardo = -g;
+  const m = interessiMora(imp, ritardo, tassoAnnuo);
+  const totale = Math.round((imp + m.interessi + SPESE_RECUPERO_231) * 100) / 100;
+  const cliente = (f.cliente || "").trim() || "Spett.le cliente";
+  const numero = (f.numero || "").trim() || "—";
+  const tassoTxt = String(tassoAnnuo).replace(".", ",");
+  const e = (v) => "€ " + euroIt(v);
+  return [
+    `Oggetto: sollecito di pagamento — fattura ${numero}`,
+    ``,
+    `Spett.le ${cliente},`,
+    `risulta non ancora saldata la fattura n. ${numero} di ${e(imp)}, scaduta il ${dataIt(f.scadenza)} (${ritardo} giorni di ritardo).`,
+    ``,
+    `La preghiamo di provvedere al pagamento nel più breve tempo possibile. Ai sensi del D.Lgs 231/2002 sulle transazioni commerciali, dalla scadenza maturano interessi di mora al tasso del ${tassoTxt}% annuo, oltre a ${e(SPESE_RECUPERO_231)} di spese forfettarie di recupero (art. 6).`,
+    ``,
+    `Riepilogo alla data odierna:`,
+    `- Importo fattura: ${e(imp)}`,
+    `- Interessi di mora (stima, ${ritardo} gg): ${e(m.interessi)}`,
+    `- Spese forfettarie art. 6: ${e(SPESE_RECUPERO_231)}`,
+    `- Totale dovuto: ${e(totale)}`,
+    ``,
+    `Gli interessi sono calcolati al tasso di legge vigente e saranno aggiornati alla data dell'effettivo pagamento. Restiamo a disposizione per ogni chiarimento.`,
+    `Distinti saluti.`,
+  ].join("\n");
+}
+
 // Incasso atteso nei prossimi N giorni: somma delle fatture aperte la cui
 // scadenza cade da oggi a oggi+N (non ancora scadute). È l'entrata di cassa
 // PREVISTA, complementare all'aging (che guarda al ritardo passato).
