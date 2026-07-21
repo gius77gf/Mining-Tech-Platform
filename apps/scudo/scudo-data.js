@@ -13,7 +13,7 @@
 // (scaduta / entro 30gg / regolare) — niente dati derivati nel DB.
 // ============================================================
 
-import { parseCsvLine, numIt, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, numIt, giorniTra, isIntestazione } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
   lavoratori: [
@@ -158,7 +158,7 @@ export function riepilogoInfortuni(infortuni, oggi = new Date()) {
 // sono testo grezzo → escapare dove mostrati. Pura e testabile.
 export function parseInfortuniCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !/^data\s*;/i.test(r))
+    .filter(r => !isIntestazione(r, "data"))
     .map(r => {
       const [data, tipo, gravita, giorniAssenza, descrizione, luogo] = parseCsvLine(r);
       const g = numIt(giorniAssenza);
@@ -235,7 +235,7 @@ export function presetScadenza(chiave) {
 // righe con data valida (AAAA-MM-GG); tipo assente → "Altro". Pura e testabile.
 export function parseScadenzeCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !/^lavoratore\s*;/i.test(r))
+    .filter(r => !isIntestazione(r, "lavoratore"))
     .map(r => {
       const [lavoratore, tipo, descrizione, scadenza] = parseCsvLine(r);
       const lav = (lavoratore || "").trim();

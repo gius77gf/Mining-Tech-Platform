@@ -8,7 +8,7 @@
 //   registri/{id}:    { titolo, nota, stato: aggiornato|in-attesa }
 // ============================================================
 
-import { parseCsvLine, numIt, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, numIt, giorniTra, isIntestazione } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
   monitoraggi: [
@@ -106,7 +106,7 @@ export function prioritaConformita(monitoraggi, adempimenti, oggi = new Date()) 
 // lo stato conforme/attenzione/superamento). Pura e testabile.
 export function parseMonitoraggiCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !/^nome\s*;/i.test(r))
+    .filter(r => !isIntestazione(r, "nome"))
     .map(r => {
       const [nome, tipo, valore, soglia, unita, nota] = parseCsvLine(r);
       return {
@@ -136,7 +136,7 @@ export function kpiFrom(monitoraggi, adempimenti) {
 // sono testo grezzo → escapare dove mostrati. Pura e testabile.
 export function parseAdempimentiCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !/^titolo\s*;/i.test(r))
+    .filter(r => !isIntestazione(r, "titolo"))
     .map(r => {
       const [titolo, ente, scadenza] = parseCsvLine(r);
       return {
@@ -176,7 +176,7 @@ export function riepilogoVolate(volate, oggi = new Date()) {
 export function parseVolateCsv(text) {
   const num = (v) => { const n = numIt(v); return Number.isFinite(n) ? Math.max(0, n) : 0; };
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !/^data\s*;/i.test(r))
+    .filter(r => !isIntestazione(r, "data"))
     .map(r => {
       const [data, fronte, nFori, kgTotali, kgMaxRitardo, distanzaRicettore, esito, note] = parseCsvLine(r);
       return {

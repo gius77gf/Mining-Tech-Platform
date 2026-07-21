@@ -14,7 +14,7 @@
 //  avanzamento piano = estratto anno / pianificato anno).
 // ============================================================
 
-import { parseCsvLine, numIt } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, numIt, isIntestazione } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
   fronti: [
@@ -188,7 +188,7 @@ export function trendVolumi(rilievi) {
 // sono testo grezzo → escapare dove mostrati. Pura e testabile.
 export function parseFrontiCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !/^nome\s*;/i.test(r))
+    .filter(r => !isIntestazione(r, "nome"))
     .map(r => {
       const [nome, banco, quota, stato] = parseCsvLine(r);
       const q = numIt(quota);
@@ -211,7 +211,7 @@ export function parseFrontiCsv(text) {
 // testabile.
 export function parseRilieviCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !/^data\s*;/i.test(r))
+    .filter(r => !isIntestazione(r, "data"))
     .map(r => {
       const [data, volumeM3, metodo, gsd, fronte] = parseCsvLine(r);
       const out = {
