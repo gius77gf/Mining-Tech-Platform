@@ -29,7 +29,7 @@
     <div class="kpi accent" style="cursor:pointer" data-goto="mon" data-filtro="tutti" title="Vedi i monitoraggi"><div class="n">—</div><div class="l">Monitoraggi attivi</div></div>
     <div class="kpi danger" style="cursor:pointer" data-goto="mon" data-filtro="danger" title="Vedi i superamenti"><div class="n">—</div><div class="l">Superamenti soglia</div></div>
     <div class="kpi warn" style="cursor:pointer" data-goto="ade" title="Vedi gli adempimenti"><div class="n">—</div><div class="l">Adempimenti 30gg</div></div>
-    <div class="kpi ok" style="cursor:pointer" data-goto="mon" data-filtro="tutti" title="Vedi i monitoraggi"><div class="n">—</div><div class="l">Campionamenti mese</div></div>
+    <div class="kpi ok" style="cursor:pointer" data-goto="mon" data-filtro="ok" title="Vedi i monitoraggi conformi"><div class="n">—</div><div class="l">Conformi</div></div>
   </div>
 
   <div class="sec">Allerte</div>
@@ -150,7 +150,7 @@
     if (kn[0]) kn[0].textContent = k.attivi;
     if (kn[1]) kn[1].textContent = k.superamenti;
     if (kn[2]) kn[2].textContent = k.adempimenti30;
-    if (kn[3]) kn[3].textContent = MON.length;   // campionamenti registrati (semplice: n. sensori con misura)
+    if (kn[3]) kn[3].textContent = riepilogoConformita(MON).conformi;   // monitoraggi entro soglia
 
     const allerte = [
       ...MON.map(m => ({ m, st: statoMisura(m) })).filter(x => x.st.cls !== "ok")
