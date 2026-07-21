@@ -142,8 +142,12 @@ try {
 // migrazione dei dati (Fasi 3-4), mai da sola (sarebbe un falso isolamento).
 const MULTI_TENANT = false;
 let ORG_ID = null; // organizzazione dell'utente autenticato (valorizzata in Fase 3)
-function dcol(col){ return MULTI_TENANT ? collection(db,'organizations',ORG_ID,'core',col) : collection(db,col); }
-function ddoc(col,id){ return MULTI_TENANT ? doc(db,'organizations',ORG_ID,'core',col,id) : doc(db,col,id); }
+// In modalità multi-tenant il cuore vive come "app" core dentro l'org:
+// organizations/{org}/apps/core/{collezione}/{id}. Così è coperto dalla
+// STESSA regola generica già provata delle app (apps/{appId}/**), senza
+// regole nuove, e i segmenti del percorso restano validi (doc = pari).
+function dcol(col){ return MULTI_TENANT ? collection(db,'organizations',ORG_ID,'apps','core',col) : collection(db,col); }
+function ddoc(col,id){ return MULTI_TENANT ? doc(db,'organizations',ORG_ID,'apps','core',col,id) : doc(db,col,id); }
 
 // ── Firebase Storage (A3 — foto su Storage invece di base64 in Firestore) ──
 const fbStorage = getStorage(fbApp);

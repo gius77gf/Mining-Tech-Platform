@@ -48,9 +48,12 @@ punto 2. Quindi si fanno entrambi, ma con onestà su cosa protegge cosa.
 ## Le due barriere (target)
 Allineiamo il cuore allo STESSO modello già collaudato nell'ecosistema
 `apps/*`:
-1. **Percorso dati per organizzazione**: ogni collezione del cuore va sotto
-   `organizations/{orgId}/core/{collezione}/{id}` invece che alla radice.
-   L'app costruisce il percorso SOLO da un `orgId` centrale, mai a mano.
+1. **Percorso dati per organizzazione**: il cuore vive come **app `core`**
+   dentro l'org — ogni collezione va sotto
+   `organizations/{orgId}/apps/core/{collezione}/{id}` invece che alla radice.
+   Così è coperto dalla STESSA regola generica già provata delle app
+   (`apps/{appId}/**`), senza regole nuove, e i segmenti del percorso restano
+   validi. L'app costruisce il percorso SOLO da un `orgId` centrale, mai a mano.
 2. **Identità autenticata + regole server**: introdurre l'autenticazione
    (Firebase Auth) e i *custom claim* di appartenenza (`memberOf`), rilasciati
    dal server, esattamente come fa Deepwork ID per le app. Le regole Firestore
@@ -65,20 +68,22 @@ emulatore) e mantiene un solo modello di identità in tutto l'ecosistema.
 
 ## Piano a fasi (sicuro, incrementale)
 - **Fase 0 — Design + audit** (questo documento). ✅
-- **Fase 1 — Indirezione del data-layer** *(sicura, mergeabile)*: introdurre
-  helper `dcol(col)`/`ddoc(col,id)` e instradarvi TUTTI gli accessi (4 helper +
-  blocco letture + seed + riferimenti sparsi). Dietro un flag
+- **Fase 1 — Indirezione del data-layer** *(sicura, mergeabile)* ✅: introdotti
+  helper `dcol(col)`/`ddoc(col,id)`; TUTTI gli accessi (39: 4 helper + blocco
+  letture + seed + riferimenti sparsi) passano da lì. Dietro flag
   `MULTI_TENANT` **spento**: con flag spento i percorsi restano IDENTICI a oggi
   (comportamento invariato in produzione), ma tutto l'accesso passa da un solo
-  punto → il passaggio a org-scoped diventa una modifica localizzata.
-- **Fase 2 — Regole nel repo**: portare le regole Firestore del cuore nel repo
-  (`firestore.rules` del progetto core) e prepararne la versione org-scoped +
-  test emulatore d'isolamento (come i 44 delle app).
+  punto → il passaggio a org-scoped (`apps/core/…`) è una modifica localizzata.
+- **Fase 2 — Regola + test d'isolamento** ✅: il cuore vive come app `core`, già
+  coperto dalla regola generica `apps/{appId}/**` (nessuna regola nuova).
+  Aggiunti **8 test emulatore** che provano l'isolamento del cuore tra org
+  concorrenti (il concorrente NON legge/scrive/cancella/elenca i dati
+  `apps/core/**` di un'altra org, anche in profondità). Regole totali: 44 → 52.
 - **Fase 3 — Autenticazione vera** *(gated)*: Firebase Auth + claim `memberOf`
   (via Deepwork ID). È la barriera server-side. Richiede decisioni/infra del
   fondatore (progetto Firebase, eventuali Cloud Functions).
 - **Fase 4 — Migrazione dati + attivazione** *(gated, tocca dati di produzione)*:
-  copiare i dati esistenti sotto `organizations/{orgPrimaria}/core/…`, poi
+  copiare i dati esistenti sotto `organizations/{orgPrimaria}/apps/core/…`, poi
   accendere il flag. Da fare con backup e finestra concordata col fondatore.
 
 ## Cosa è sicuro fare SUBITO vs cosa è gated
