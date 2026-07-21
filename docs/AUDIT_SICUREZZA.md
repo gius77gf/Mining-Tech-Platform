@@ -186,3 +186,17 @@ nessun nome) veniva eseguito nella sessione dell'utente stesso
 testo di ricerca. Verificato con Playwright. Controllati gli altri usi
 del testo di ricerca nelle app: l'unico altro `q` interpolato è in una
 `confirm()` (Campo), che non interpreta HTML. Nessun altro caso.
+
+### 15. XSS nel messaggio d'errore dell'import MWD (core, 21/07) — ✅ CORRETTO
+Residuo sfuggito allo sweep del punto 8 (che copriva i dati salvati, non
+i messaggi d'errore dinamici). Nel core `index.html`, importando un file
+MWD (CSV) con header mancanti, il parser lancia un errore che INCLUDE le
+intestazioni del file dell'utente (`'…Header trovati: '+headers.join(', ')`,
+riga ~5668). Il messaggio veniva poi inserito in `innerHTML` **senza
+escape** (`Errore parsing: ${e.message}`, riga ~5639). Un CSV con un
+header tipo `<img src=x onerror=...>` — realistico se un collega condivide
+un file MWD da importare — eseguiva script nella sessione di CHI importa
+(non solo self-XSS). Corretto: `${escHtml(e.message)}`. Verificato con
+Playwright il prima/dopo: prima l'`<img>` veniva iniettato e l'onerror
+partiva, dopo il testo resta inerte. È l'unico punto del core che inserisce
+un messaggio d'errore in `innerHTML` (verificato con grep).
