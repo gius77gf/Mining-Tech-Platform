@@ -137,6 +137,9 @@ su vibrazioni e rumore, così eviti contestazioni dei vicini/enti.
 - **Distanza scalata** e **carica massima per ritardo** (in progettazione
   volata: quanti kg non superare per restare sotto la soglia di vibrazione).
 - **Riepilogo conformità**: quante misure dentro/fuori limite.
+- **Registro delle volate** (brogliaccio di brillamento): il log di ogni volata
+  (data, fronte, fori, kg, distanza), con la distanza scalata calcolata per
+  ognuna e le eventuali contestazioni; import/export CSV per gli enti.
 - **Import sensori** da CSV ed **export** di monitoraggi e adempimenti.
 
 **Pronto**: sì, ed è una delle app con più "personalità" (pochi competitor la
