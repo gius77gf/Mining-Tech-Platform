@@ -408,6 +408,19 @@ test("disponibilitaFlotta: % operativi sul totale", () => {
 });
 test("disponibilitaFlotta: nessun mezzo = pct null (niente divisione per zero)", () =>
   eq(flotta.disponibilitaFlotta([]), { pct: null, operativi: 0, totale: 0 }, "vuoto"));
+test("sottoScorta: ricambi con giacenza ≤ soglia, ordinati per gravità", () => {
+  const ric = [
+    { id: "a", nome: "A", giacenza: 6, sogliaMin: 4 },  // sopra → escluso
+    { id: "b", nome: "B", giacenza: 2, sogliaMin: 4 },  // sotto di 2
+    { id: "c", nome: "C", giacenza: 0, sogliaMin: 3 },  // sotto di 3 (peggiore)
+    { id: "d", nome: "D", giacenza: 1, sogliaMin: 1 },  // = soglia → incluso (mancano 0)
+  ];
+  const s = flotta.sottoScorta(ric);
+  eq(s.map(x => x.id), ["c", "b", "d"], "peggiore prima; A escluso");
+  eq(s[0].mancano, 3, "a C mancano 3"); eq(s[2].mancano, 0, "a D mancano 0");
+});
+test("sottoScorta: nessun ricambio = lista vuota (niente crash)", () =>
+  eq(flotta.sottoScorta([]), [], "vuoto"));
 
 console.log("\n— Confini: stato misura sensori (Sentinella) —");
 test("statoMisura: rapporto esattamente 1,0 = superamento", () =>

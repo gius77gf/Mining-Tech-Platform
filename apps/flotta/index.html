@@ -77,6 +77,17 @@
     <button class="dw-btn" id="btn-man" style="width:auto;">Pianifica</button>
   </div>
   <div class="note" style="text-align:left;">Data oppure ore motore: per i tagliandi a ore scrivi le ore a cui va fatto (urgenza calcolata dal contatore del mezzo).</div>
+
+  <div class="sec">Magazzino ricambi</div>
+  <div id="ric-alert" class="note" style="text-align:left;"></div>
+  <div id="ric-list"></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+    <input class="dw-input" id="ric-nome" placeholder="Ricambio (es. Filtro olio)" style="flex:2;min-width:150px;">
+    <input class="dw-input" id="ric-giac" type="number" min="0" step="1" placeholder="Giacenza" style="flex:1;min-width:90px;">
+    <input class="dw-input" id="ric-soglia" type="number" min="0" step="1" placeholder="Soglia min" style="flex:1;min-width:90px;">
+    <button class="dw-btn" id="btn-ric" style="width:auto;">Aggiungi</button>
+  </div>
+  <div class="note" id="ric-esito" style="text-align:left;"></div>
 </div>
 
 <div class="page" id="page-cos">
@@ -111,7 +122,7 @@
 </script>
 
 <script type="module">
-  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta } from "./flotta-data.js";
+  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta } from "./flotta-data.js";
   import { mountExit, esc } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const MB = { operativo: ["ok","Operativo"], fermo: ["danger","Fermo"], verifica: ["warn","Verifica"] };
@@ -129,7 +140,7 @@
     go(card.getAttribute("data-goto")); refresh();
   });
 
-  let MEZ=[], MAN=[], COS=[];
+  let MEZ=[], MAN=[], COS=[], RIC=[];
   let filtroMez = "tutti";
   const MEZ_NEXT = { operativo: "verifica", verifica: "fermo", fermo: "operativo" };
   $("man-oregiorno").addEventListener("input", () => refresh());
@@ -138,7 +149,7 @@
     if (f) { filtroMez = f; refresh(); }
   });
   async function refresh(){
-    [MEZ,MAN,COS] = await Promise.all([db.mezzi(), db.manutenzioni(), db.costi()]);
+    [MEZ,MAN,COS,RIC] = await Promise.all([db.mezzi(), db.manutenzioni(), db.costi(), db.ricambi ? db.ricambi() : []]);
     const k = kpiFrom(MEZ,MAN,COS);
     const kn = document.querySelectorAll(".kpis .kpi .n");
     if (kn[0]) kn[0].textContent = k.operativi;
@@ -193,6 +204,24 @@
       <span class="arr" style="cursor:pointer" title="Segna come eseguita" data-man-done="${n.id}">✓</span></div>`; }).join("")
       || '<div class="note" style="text-align:left;">Nessuna manutenzione programmata.</div>';
 
+    // Magazzino ricambi: giacenza, soglia, carico/scarico, sotto-scorta.
+    const scorta = sottoScorta(RIC);
+    $("ric-alert").innerHTML = RIC.length
+      ? (scorta.length
+          ? `<span style="color:var(--danger);">⚠️ ${scorta.length} ${scorta.length === 1 ? "ricambio sotto scorta" : "ricambi sotto scorta"}</span> — da riordinare: ${scorta.map(r => esc(r.nome)).join(", ")}.`
+          : "Tutti i ricambi sopra la soglia minima.")
+      : "";
+    $("ric-list").innerHTML = RIC.slice()
+      .sort((a,b) => ((+a.giacenza||0)-(+a.sogliaMin||0)) - ((+b.giacenza||0)-(+b.sogliaMin||0)))
+      .map(r => { const sotto = (+r.giacenza||0) <= (+r.sogliaMin||0);
+      return `<div class="item">
+        <div class="info"><div class="name">${esc(r.nome)}</div><div class="meta">giacenza ${+r.giacenza||0} · soglia min ${+r.sogliaMin||0}</div></div>
+        <span class="arr" style="cursor:pointer" title="Scarico (−1)" data-ric-meno="${r.id}">−</span>
+        <span class="badge ${sotto ? "danger" : "ok"}">${sotto ? "sotto scorta" : "ok"}</span>
+        <span class="arr" style="cursor:pointer" title="Carico (+1)" data-ric-piu="${r.id}">+</span>
+        <span class="arr" style="cursor:pointer" title="Rimuovi ricambio" data-ric-del="${r.id}">✕</span></div>`; }).join("")
+      || '<div class="note" style="text-align:left;">Nessun ricambio a magazzino: aggiungine uno qui sotto.</div>';
+
     $("cos-list").innerHTML = COS.map(c => `<div class="item">
       <div class="info"><div class="name">${esc(c.voce)}</div><div class="meta">${esc(c.nota || "")}</div></div>
       <span class="badge ok">${eur(c.importo)}</span>
@@ -217,6 +246,17 @@
     if (delCos) { const c = COS.find(x => x.id === delCos);
       if (c && confirm("Rimuovere la voce di costo «" + c.voce + "» (" + eur(c.importo) + ")?")) {
         await db.rimuovi("costi", delCos); await refresh(); } return; }
+    // magazzino ricambi: carico (+1), scarico (−1, mai sotto 0), rimozione
+    const ricPiu = e.target.getAttribute && e.target.getAttribute("data-ric-piu");
+    if (ricPiu) { const r = RIC.find(x => x.id === ricPiu);
+      if (r) { await db.aggiorna("ricambi", r.id, { giacenza: (+r.giacenza || 0) + 1 }); await refresh(); } return; }
+    const ricMeno = e.target.getAttribute && e.target.getAttribute("data-ric-meno");
+    if (ricMeno) { const r = RIC.find(x => x.id === ricMeno);
+      if (r) { await db.aggiorna("ricambi", r.id, { giacenza: Math.max(0, (+r.giacenza || 0) - 1) }); await refresh(); } return; }
+    const ricDel = e.target.getAttribute && e.target.getAttribute("data-ric-del");
+    if (ricDel) { const r = RIC.find(x => x.id === ricDel);
+      if (r && confirm("Rimuovere il ricambio «" + r.nome + "» dal magazzino?")) {
+        await db.rimuovi("ricambi", ricDel); await refresh(); } return; }
     const it = e.target.closest && e.target.closest("[data-mezzo]");
     if (it) { const m = MEZ.find(x => x.id === it.getAttribute("data-mezzo"));
       await db.aggiorna("mezzi", m.id, { stato: MEZ_NEXT[m.stato] || "operativo" }); await refresh(); }
@@ -233,6 +273,21 @@
     $("cos-voce").value = ""; $("cos-importo").value = ""; $("cos-nota").value = "";
     $("cos-esito").textContent = "Costo registrato: " + voce + " (" + eur(importo) + ").";
     $("cos-voce").focus();   // pronto per la prossima voce di costo
+    await refresh();
+  };
+  $("btn-ric").onclick = async () => {
+    const nome = $("ric-nome").value.trim(), giac = +$("ric-giac").value, soglia = +$("ric-soglia").value;
+    if (!nome || !(giac >= 0) || !(soglia >= 0)) {
+      $("ric-nome").style.borderColor = nome ? "" : "var(--danger)";
+      $("ric-giac").style.borderColor = giac >= 0 ? "" : "var(--danger)";
+      $("ric-soglia").style.borderColor = soglia >= 0 ? "" : "var(--danger)";
+      $("ric-esito").textContent = "Servono nome, giacenza e soglia minima (numeri ≥ 0)."; return;
+    }
+    ["ric-nome","ric-giac","ric-soglia"].forEach(i => $(i).style.borderColor = "");
+    await db.aggiungi("ricambi", { nome, giacenza: giac, sogliaMin: soglia });
+    $("ric-nome").value = ""; $("ric-giac").value = ""; $("ric-soglia").value = "";
+    $("ric-esito").textContent = "Ricambio aggiunto: " + nome + " (giacenza " + giac + ", soglia " + soglia + ").";
+    $("ric-nome").focus();
     await refresh();
   };
   $("btn-mez").onclick = async () => {
