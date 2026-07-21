@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const { esc, csvCell, parseCsvLine } = await import(
+const { esc, csvCell, parseCsvLine, numIt } = await import(
   join(HERE, "../../../shared/deepwork-id-client/dw-shell.js")
 );
 
@@ -57,6 +57,12 @@ test("un numero diventa la sua stringa", () =>
   eq(csvCell(42), "42", "numero"));
 test("un testo innocuo resta invariato", () =>
   eq(csvCell("Fochino"), "Fochino", "innocuo"));
+test("neutralizza una formula preceduta da TAB", () =>
+  eq(csvCell("\t=cmd"), "'\t=cmd", "tab+formula"));
+test("neutralizza una formula preceduta da spazio", () =>
+  eq(csvCell(" =cmd"), "' =cmd", "spazio+formula"));
+test("neutralizza una formula preceduta da a-capo (CR) e la mette tra virgolette", () =>
+  eq(csvCell("\r=cmd"), '"\'\r=cmd"', "cr+formula"));
 
 const eqArr = (got, exp, why) => eq(JSON.stringify(got), JSON.stringify(exp), why);
 
@@ -77,6 +83,26 @@ test("round-trip: csvCell poi parseCsvLine ricostruisce l'originale", () => {
   const orig = "=SUM(A1);Mario";
   const cella = csvCell(orig);                 // -> "\"'=SUM(A1);Mario\"" (guardia + virgolette)
   eqArr(parseCsvLine(cella), [orig], "round-trip");
+});
+
+console.log("\n— numIt(): numeri all'italiana/inglese senza perdere righe —");
+test("migliaia inglesi multiple: 1,234,567 → 1234567 (prima dava NaN)", () =>
+  eq(numIt("1,234,567"), 1234567, "en migliaia"));
+test("migliaia italiane multiple: 1.234.567 → 1234567 (prima dava NaN)", () =>
+  eq(numIt("1.234.567"), 1234567, "it migliaia"));
+test("misto italiano 18.300,50 → 18300.5", () =>
+  eq(numIt("18.300,50"), 18300.5, "it misto"));
+test("misto inglese 18,300.50 → 18300.5", () =>
+  eq(numIt("18,300.50"), 18300.5, "en misto"));
+test("una sola virgola = decimale: 1234,5 → 1234.5", () =>
+  eq(numIt("1234,5"), 1234.5, "it decimale"));
+test("punto isolato resta decimale: 19.4 → 19.4", () =>
+  eq(numIt("19.4"), 19.4, "punto decimale"));
+test("negativo all'italiana: -18.300,50 → -18300.5", () =>
+  eq(numIt("-18.300,50"), -18300.5, "negativo"));
+test("vuoto e testo → NaN (la riga verrà scartata)", () => {
+  eq(Number.isNaN(numIt("")), true, "vuoto");
+  eq(Number.isNaN(numIt("abc")), true, "testo");
 });
 
 console.log(`\nRisultato Helper: ${passed} passati, ${failed} falliti`);

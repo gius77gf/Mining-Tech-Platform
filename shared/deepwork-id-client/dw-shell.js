@@ -21,7 +21,9 @@ export function esc(s) {
 // mette tra virgolette i valori che contengono ; " o a capo.
 export function csvCell(v) {
   let s = String(v == null ? "" : v);
-  if (/^[=+\-@]/.test(s)) s = "'" + s;                 // apostrofo: la cella resta testo
+  // Neutralizza la formula anche quando è preceduta da spazi/tab/ritorni a capo
+  // (OWASP: pure TAB e CR fanno da innesco): "\t=cmd" deve restare testo.
+  if (/^[\t\r\n =+\-@]*[=+\-@]/.test(s)) s = "'" + s;  // apostrofo: la cella resta testo
   if (/[;"\n\r]/.test(s)) s = '"' + s.replaceAll('"', '""') + '"';
   return s;
 }
@@ -68,13 +70,21 @@ export function parseCsvLine(line) {
 export function numIt(v) {
   let s = String(v == null ? "" : v).trim();
   if (s === "") return NaN;
-  const c = s.lastIndexOf(","), d = s.lastIndexOf(".");
-  if (c >= 0 && d >= 0) {
-    s = c > d ? s.replace(/\./g, "").replace(",", ".")   // italiano: punto = migliaia
-              : s.replace(/,/g, "");                       // inglese: virgola = migliaia
-  } else if (c >= 0) {
-    s = s.replace(",", ".");                               // solo virgola = decimale
+  const commas = (s.match(/,/g) || []).length;
+  const dots = (s.match(/\./g) || []).length;
+  if (commas && dots) {
+    // entrambi presenti: l'ULTIMO separatore è il decimale, l'altro le migliaia
+    s = s.lastIndexOf(",") > s.lastIndexOf(".")
+      ? s.replace(/\./g, "").replace(",", ".")   // italiano: punto = migliaia
+      : s.replace(/,/g, "");                       // inglese: virgola = migliaia
+  } else if (commas > 1) {
+    s = s.replace(/,/g, "");                       // virgole multiple, senza punto = migliaia (es. 1,234,567)
+  } else if (commas === 1) {
+    s = s.replace(",", ".");                       // una sola virgola = decimale (es. 1234,5)
+  } else if (dots > 1) {
+    s = s.replace(/\./g, "");                       // punti multipli, senza virgola = migliaia (es. 1.234.567)
   }
+  // un solo punto (o nessun separatore) resta com'è: "19.4" è decimale
   return +s;
 }
 
