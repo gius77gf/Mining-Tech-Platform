@@ -372,11 +372,21 @@ Avanzamento:
   produzione. Pannello che affianca previsto (X50/PPV/flyrock) e reale
   misurato, con scostamento colorato, storico localStorage, export CSV. È il
   gap #1 dei leader (tipo Maptek BlastLogic). Non tocca il motore fisico.
-- **Prossimo Genesi**: P0.2 signature-hole (vibrazioni da onda reale), poi P1
-  (burden reale dal 3D, boretrack, export IREDES/detonatori). P2
-  (immagine/ML) richiede backend.
-- **Poi**: qualità delle altre app verticali (già molto rifinite in questa
-  settimana).
+- **Genesi P0.2 — Signature-hole** (#302): FATTA e in produzione. Importa la
+  registrazione di un foro singolo (CSV) e la somma ritardata secondo i tempi
+  della volata → PPV composito + amplificazione + sparkline SVG + export. È il
+  metodo dei big (Orica AVM), più preciso della sola legge di Devine.
+- **Prossimo Genesi (P1)**: burden reale per foro dal 3D del fronte, import
+  deviazione fori (boretrack), export IREDES/detonatori. P2 (frammentazione da
+  immagine, ML) richiede backend.
+- **Poi**: qualità delle altre app verticali (già molto rifinite in settimana).
+
+### Stato feature Genesi vs competitor (aggiornato)
+Genesi ora ha: frammentazione Kuz-Ram/KCO, flyrock, fori bagnati, presplit,
+A/B, detonatori, **vibrazioni PPV/Devine + airblast**, MWD, 3D-da-foto, e ORA
+**riconciliazione previsto-vs-reale** (#300) + **signature-hole** (#302). I due
+gap #1/#2 dei leader sono coperti lato browser. Restano P1 (dato reale di
+perforazione: burden/boretrack/export) e P2 (immagine/ML, backend).
 
 ## Fine progetto (fase commercializzazione) — NON prima
 - Acquisto dominio + sottodomini. DECISIONE DEL FONDATORE: nessuna
@@ -399,7 +409,7 @@ Avanzamento:
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/20260722-000000_genesi-riconciliazione.md
+- Ultimo checkpoint: vault/checkpoints/20260722-001500_genesi-signature-hole.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
