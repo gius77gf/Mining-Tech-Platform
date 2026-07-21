@@ -104,7 +104,7 @@
 </script>
 
 <script type="module">
-  import { contiData, giorni, kpiFrom, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, parseFattureCsv } from "./conti-data.js";
+  import { contiData, giorni, kpiFrom, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, parseFattureCsv } from "./conti-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const eur = (v) => "€" + (+v||0).toLocaleString("it-IT");
@@ -229,8 +229,9 @@
     // Esposizione per cliente: chi ci deve di più (e quanto è già scaduto).
     const espo = esposizioneClienti(FAT);
     $("espo-list").innerHTML = espo.length
-      ? espo.map(c => `<div class="item"><div class="info"><div class="name">${esc(c.cliente)}</div>
+      ? espo.map((c, i) => `<div class="item"><div class="info"><div class="name">${esc(c.cliente)}</div>
         <div class="meta">${c.conto} ${c.conto === 1 ? "fattura" : "fatture"}${c.scaduto > 0 ? " · scaduto " + eur(c.scaduto) : ""}</div></div>
+        <button class="dw-btn secondary" data-espo="${i}" title="Copia l'estratto conto del cliente (tutte le fatture aperte + mora)" style="width:auto;min-height:32px;padding:2px 10px;font-size:11px;">✉ Estratto</button>
         <span class="badge ${c.scaduto > 0 ? "warn" : "ok"}">${eur(c.totale)}</span></div>`).join("")
       : '<div class="note" style="text-align:left;">Nessun credito aperto: tutte le fatture sono incassate.</div>';
   }
@@ -244,6 +245,16 @@
     if (delFat) { const f = FAT.find(x => x.id === delFat);
       if (f && confirm("Eliminare la fattura " + f.numero + " (" + eur(f.importo) + " a " + f.cliente + ")? Usa questa opzione solo per correggere un inserimento sbagliato.")) {
         await db.rimuovi("fatture", delFat); await refresh(); } return; }
+    const espoIdx = e.target.getAttribute && e.target.getAttribute("data-espo");
+    if (espoIdx != null && espoIdx !== "") { const c = esposizioneClienti(FAT)[+espoIdx];
+      const testo = c && estrattoContoCliente(c.cliente, FAT);
+      if (!testo) { $("mode-note").textContent = "Nessuna fattura aperta per questo cliente."; return; }
+      const ok = () => { $("mode-note").textContent = "Estratto conto di " + c.cliente + " copiato: incollalo nell'email o nella PEC (interessi da confermare col commercialista)."; };
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(testo); ok(); }
+        else { const ta = document.createElement("textarea"); ta.value = testo; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); ok(); }
+      } catch (_) { window.prompt("Copia l'estratto conto (Ctrl/Cmd+C):", testo); }
+      return; }
     const solId = e.target.getAttribute && e.target.getAttribute("data-sollecito");
     if (solId) { const f = FAT.find(x => x.id === solId);
       const testo = f && testoSollecito(f);
