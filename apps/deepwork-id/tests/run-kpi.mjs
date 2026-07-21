@@ -358,6 +358,24 @@ test("testoSollecito: null se non scaduta o dati non validi", () => {
   eq(conti.testoSollecito({ numero: "X", importo: 0, scadenza: "2000-01-01" }, new Date(2026, 6, 21)), null, "importo 0");
   eq(conti.testoSollecito({ numero: "X", importo: 100 }, new Date(2026, 6, 21)), null, "senza scadenza");
 });
+// — Scudo: testo del promemoria scadenze —
+test("testoPromemoria: convocazione per scadenza scaduta o in scadenza", () => {
+  const scaduta = scudo.testoPromemoria(
+    { tipo: "Visita medica", descrizione: "Visita medica periodica", dataScadenza: "2026-07-02" },
+    { nome: "Mario Rossi" }, new Date(2026, 6, 21));   // scaduta da 19 gg
+  for (const s of ["Mario Rossi", "Visita medica", "SCADUTA", "02/07/2026", "19 giorni fa"])
+    if (!scaduta.includes(s)) throw new Error(`manca "${s}" nel promemoria (scaduta)`);
+  const prox = scudo.testoPromemoria(
+    { tipo: "Corso", descrizione: "Corso antincendio", dataScadenza: "2026-08-10" },
+    { nome: "Luca Bianchi" }, new Date(2026, 6, 21));   // tra 20 gg
+  for (const s of ["Luca Bianchi", "scade il 10/08/2026", "tra 20 giorni"])
+    if (!prox.includes(s)) throw new Error(`manca "${s}" nel promemoria (in scadenza)`);
+});
+test("testoPromemoria: null se regolare, senza lavoratore o senza data", () => {
+  eq(scudo.testoPromemoria({ tipo: "X", dataScadenza: "2099-12-31" }, { nome: "Y" }, new Date(2026, 6, 21)), null, "regolare");
+  eq(scudo.testoPromemoria({ tipo: "X", dataScadenza: "2000-01-01" }, { nome: "" }, new Date(2026, 6, 21)), null, "senza nome");
+  eq(scudo.testoPromemoria({ tipo: "X" }, { nome: "Y" }, new Date(2026, 6, 21)), null, "senza data");
+});
 test("prioritaIncasso: fattura senza data = ritardo 0 (non in cima per errore)", () => {
   const p = conti.prioritaIncasso([{ numero: "X", importo: 50, incassata: false }], new Date("2026-07-20T00:00:00"));
   eq(p[0].ritardo, 0, "senza data → ritardo 0");
