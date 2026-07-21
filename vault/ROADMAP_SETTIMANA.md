@@ -405,6 +405,17 @@ Avanzamento:
 - **Prossimo**: passare a altre seconde iterazioni UX (stati vuoti, validazioni
   input) o test aggiuntivi (emulatore, casi limite).
 
+### Revisione sicurezza — isolamento app verticali (fallback #5, priorità #1)
+- **Audit isolamento** (`docs/AUDIT_ISOLAMENTO_APP.md`): CONFERMATO che tutte e
+  6 le app usano `orgCollection` per ogni operazione dati, zero percorsi
+  costruiti a mano, con i test regole Firestore in CI a impedire regressioni.
+  Isolamento delle app SOLIDO. Il core resta mono-azienda predisposto (attivo
+  solo col via libera del fondatore).
+- **Verificato anche**: validazioni dei form (tutte le app hanno i controlli sui
+  campi obbligatori + importo/giacenza) e copertura test KPI (comprensiva, fino
+  ai confini di conformità es. valore = soglia → superamento). Niente da
+  correggere: base matura.
+
 ### Stato feature Genesi vs competitor (aggiornato)
 Genesi ora ha: frammentazione Kuz-Ram/KCO, flyrock, fori bagnati, presplit,
 A/B, detonatori, **vibrazioni PPV/Devine + airblast**, MWD, 3D-da-foto, e ORA
