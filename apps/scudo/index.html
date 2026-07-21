@@ -439,18 +439,28 @@
   $("scad-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseScadenzeCsv(await file.text());
-    let agg = 0, senzaLav = 0;
+    // Dedup come gli altri import: un doppio click su "Importa" non deve
+    // raddoppiare le scadenze. Firma = lavoratoreId|tipo|dataScadenza (stesso
+    // lavoratore, tipo di idoneità/certificato e data = stessa scadenza).
+    const firma = (lavId, tipo, data) => [lavId || "", (tipo || "").trim().toLowerCase(), data || ""].join("|");
+    const gia = new Set(SCA.map(s => firma(s.lavoratoreId, s.tipo, s.dataScadenza)));
+    let agg = 0, dup = 0, senzaLav = 0;
     for (const p of righe) {
       let lavoratoreId = null;
       if (p.lavoratore) {
         const l = LAV.find(x => x.nome.toLowerCase() === p.lavoratore.toLowerCase());
         if (l) lavoratoreId = l.id; else senzaLav++;
       }
+      const k = firma(lavoratoreId, p.tipo, p.dataScadenza);
+      if (gia.has(k)) { dup++; continue; }
+      gia.add(k);   // scarta i doppioni anche DENTRO lo stesso file
       await db.aggiungi("scadenze", { lavoratoreId, tipo: p.tipo, descrizione: p.descrizione || p.tipo, dataScadenza: p.dataScadenza });
       agg++;
     }
     $("scad-file").value = "";
-    $("scad-esito").textContent = "Import scadenze: " + agg + " aggiunte" + (senzaLav ? ", " + senzaLav + " senza lavoratore associato (nome non trovato)" : "") + ".";
+    $("scad-esito").textContent = "Import scadenze: " + agg + " aggiunte"
+      + (dup ? ", " + dup + " già presenti (saltate)" : "")
+      + (senzaLav ? ", " + senzaLav + " senza lavoratore associato (nome non trovato)" : "") + ".";
     await refresh();
   };
 

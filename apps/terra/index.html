@@ -337,19 +337,29 @@
   $("ril-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseRilieviCsv(await file.text());
-    let senzaFronte = 0;
+    // Dedup come gli altri import: un doppio click su "Importa" non deve
+    // raddoppiare i rilievi. Firma = data|fronteId|volumeM3 (un rilievo dello
+    // stesso giorno, fronte e volume è lo stesso dato re-importato).
+    const firma = (data, fronteId, vol) => [data || "", fronteId || "", vol == null ? "" : vol].join("|");
+    const gia = new Set(RIL.map(x => firma(x.data, x.fronteId, x.volumeM3)));
+    let agg = 0, dup = 0, senzaFronte = 0;
     for (const r of righe) {
       let fronteId = null, frNome = "";
       if (r.fronte) {
         const f = FRO.find(x => (x.nome || "").toLowerCase() === r.fronte.toLowerCase());
         if (f) { fronteId = f.id; frNome = f.nome; } else senzaFronte++;
       }
+      const k = firma(r.data, fronteId, r.volumeM3);
+      if (gia.has(k)) { dup++; continue; }
+      gia.add(k);   // scarta i doppioni anche DENTRO lo stesso file
       await db.aggiungi("rilievi", { titolo: "Rilievo drone " + dmy(r.data) + (frNome ? " — " + frNome : ""), data: r.data,
         tipo: "Ortofoto + DEM", volumeM3: r.volumeM3, fronteId, stato: "elaborato",
         metodo: r.metodo, gsd: r.gsd });
+      agg++;
     }
     $("ril-file").value = "";
-    $("ril-esito").textContent = "Import rilievi: " + righe.length + " rilievi elaborati aggiunti"
+    $("ril-esito").textContent = `Import rilievi: ${agg} rilievi elaborati aggiunti`
+      + (dup ? `, ${dup} già presenti (saltati)` : "")
       + (senzaFronte ? " (" + senzaFronte + " con un fronte non riconosciuto: restano non assegnati)" : "") + ".";
     await refresh();
   };
