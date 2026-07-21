@@ -5,6 +5,7 @@
 //   mezzi/{id}:        { nome, ore, area, stato: operativo|fermo|verifica }
 //   manutenzioni/{id}: { titolo, mezzo, dataPrevista (ISO) }
 //   costi/{id}:        { voce, importo (EUR), nota }
+//   ricambi/{id}:      { nome, giacenza, sogliaMin }
 // L'urgenza delle manutenzioni si CALCOLA dalla data (mai salvata).
 // ============================================================
 
@@ -146,6 +147,7 @@ export async function flottaData() {
     const mem = JSON.parse(JSON.stringify(DEMO));
     api = {
       mezzi: async () => mem.mezzi, manutenzioni: async () => mem.manutenzioni, costi: async () => mem.costi, ricambi: async () => mem.ricambi,
+      logout: async () => {},
       aggiungi: async (n, d) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[n] = mem[n] || []).push({ id, ...d }); return { id }; },
       aggiorna: async (n, i, d) => { const x = mem[n].find(v => v.id === i); if (x) Object.assign(x, d); },
       rimuovi: async (n, i) => { mem[n] = mem[n].filter(v => v.id !== i); },

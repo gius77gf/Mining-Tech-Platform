@@ -206,6 +206,7 @@ export async function scudoData() {
       lavoratori: async () => mem.lavoratori,
       scadenze:   async () => mem.scadenze,
       documenti:  async () => mem.documenti,
+      logout: async () => {},
       aggiungi: async (name, data) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[name] = mem[name] || []).push({ id, ...data }); return { id }; },
       aggiorna: async (name, docId, data) => { const x = mem[name].find(v => v.id === docId); if (x) Object.assign(x, data); },
       rimuovi: async (name, docId) => { mem[name] = mem[name].filter(x => x.id !== docId); },
