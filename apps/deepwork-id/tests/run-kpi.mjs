@@ -437,6 +437,17 @@ test("scaledDistance: dati non validi = null (niente divisione per zero)", () =>
   eq(sentinella.scaledDistance(0, 25), null, "distanza 0");
   eq(sentinella.scaledDistance(100, undefined), null, "carica assente");
 });
+test("riepilogoConformita: conta conformi/attenzione/superamento", () => {
+  const mon = [
+    { valore: 4, soglia: 10 },   // 40% → conforme
+    { valore: 9.5, soglia: 10 }, // 95% → attenzione
+    { valore: 12, soglia: 10 },  // superamento
+    { valore: 10, soglia: 10 },  // 100% → superamento
+  ];
+  eq(sentinella.riepilogoConformita(mon), { conformi: 1, attenzione: 1, superamento: 2, totale: 4 }, "conteggi");
+});
+test("riepilogoConformita: nessun monitoraggio = tutto 0 (niente crash)", () =>
+  eq(sentinella.riepilogoConformita([]), { conformi: 0, attenzione: 0, superamento: 0, totale: 0 }, "vuoto"));
 
 console.log("\n— Confini: giorni alla scadenza (Sentinella/Conti) —");
 test("giorni: oggi stesso = 0", () => {
