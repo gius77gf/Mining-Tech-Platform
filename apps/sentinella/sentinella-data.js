@@ -129,6 +129,25 @@ export function kpiFrom(monitoraggi, adempimenti) {
   };
 }
 
+// Import degli ADEMPIMENTI ambientali da CSV (onboarding: caricare la lista di
+// scadenze fornita dal consulente — AUA/AIA/ARPA, fonometrie, relazioni…).
+// Colonne: titolo;ente;scadenza (header opzionale). Tiene solo le righe con
+// titolo ed una scadenza valida (AAAA-MM-GG); ente vuoto → "—". titolo/ente
+// sono testo grezzo → escapare dove mostrati. Pura e testabile.
+export function parseAdempimentiCsv(text) {
+  return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !/^titolo\s*;/i.test(r))
+    .map(r => {
+      const [titolo, ente, scadenza] = parseCsvLine(r);
+      return {
+        titolo: (titolo || "").trim(),
+        ente: (ente || "").trim() || "—",
+        scadenza: (scadenza || "").trim(),
+      };
+    })
+    .filter(a => a.titolo && /^\d{4}-\d{2}-\d{2}$/.test(a.scadenza));
+}
+
 // Registro delle VOLATE (brogliaccio di brillamento): riepilogo per il quadro.
 // In Italia il registro delle volate è un adempimento; qui è il log degli
 // eventi con carica e distanza. Ritorna: totale, quante questo mese, kg totali

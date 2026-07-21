@@ -895,6 +895,13 @@ test("prioritaConformita: misure non conformi + adempimenti (scaduto=danger), da
 });
 test("prioritaConformita: tutto conforme e nessuna scadenza vicina = vuoto", () =>
   eq(sentinella.prioritaConformita([{ nome: "X", valore: 1, soglia: 10, unita: "u" }], [{ titolo: "Y", scadenza: "2099-01-01" }], new Date(2026, 6, 21)), [], "vuoto"));
+test("parseAdempimentiCsv: legge titolo/ente/scadenza; ente vuoto → —; scarta data non ISO", () => {
+  const csv = "titolo;ente;scadenza\nRelazione annuale AUA;ARPA;2026-08-10\nRinnovo AUA;;2026-09-30\nSenza data;SUAP;boh\n;ARPA;2026-10-01\n";
+  const p = sentinella.parseAdempimentiCsv(csv);
+  eq(p.length, 2, "2 righe valide (titolo + data ISO)");
+  eq(p[0], { titolo: "Relazione annuale AUA", ente: "ARPA", scadenza: "2026-08-10" }, "riga completa");
+  eq(p[1].ente, "—", "ente vuoto diventa —");
+});
 test("riepilogoVolate: totale, questo mese, kg del mese, contestazioni", () => {
   const vol = [
     { data: "2026-07-17", kgTotali: 480, esito: "regolare" },

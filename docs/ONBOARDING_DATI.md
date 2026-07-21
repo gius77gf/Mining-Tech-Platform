@@ -166,7 +166,20 @@ Pagina **Monitoraggi → Importa sensori (CSV)**.
   qui si carica il quadro dei punti di misura con l'ultimo valore. Le soglie di
   legge preimpostate (DIN/USBM/UE) restano disponibili nel form del sensore.
 
-## Sentinella — 2) registro volate (brogliaccio di brillamento)
+## Sentinella — 2) scadenze ambientali (adempimenti)
+Pagina **Adempimenti → Importa scadenze (CSV)**.
+- **Colonne**: `titolo;ente;scadenza`
+- **Esempio**:
+  ```
+  titolo;ente;scadenza
+  Relazione annuale emissioni;ARPA;2026-08-10
+  Rinnovo AUA;SUAP;2026-09-30
+  ```
+- **Note**: servono **titolo** e una **scadenza valida**; l'ente se manca
+  diventa "—". Righe uguali (stesso titolo e stessa data) già presenti vengono
+  saltate. Comodo per caricare la lista che ti dà il consulente ambientale.
+
+## Sentinella — 3) registro volate (brogliaccio di brillamento)
 Pagina **Registri → Registro volate → Importa da CSV**.
 - **Colonne**: `data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note`
 - **Esempio**:
@@ -195,6 +208,7 @@ Pagina **Registri → Registro volate → Importa da CSV**.
 | Terra | Rilievi | `data;volumeM3;metodo;gsd;fronte` (metodo/gsd/fronte facoltativi) |
 | Campo | Piano volata | `foro;x;fila;prof;prog;borr;rit` |
 | Sentinella | Sensori | `nome;tipo;valore;soglia;unita;nota` |
+| Sentinella | Adempimenti | `titolo;ente;scadenza` |
 | Sentinella | Registro volate | `data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note` |
 
 Tutte e sei le app verticali hanno anche l'**esportazione** in CSV, per backup
