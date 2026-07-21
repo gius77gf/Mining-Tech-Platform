@@ -900,7 +900,7 @@ function doLogin(){
   setTimeout(async ()=>{
     btn.classList.remove('loading');btn.textContent='ACCEDI';
     // Trovo l'utente per username (case-insensitive)
-    const user=DB.users.find(x=>x.user.toLowerCase()===u.toLowerCase());
+    const user=DB.users.find(x=>x.user&&x.user.toLowerCase()===u.toLowerCase());
     if(!user){showLoginMsg('Credenziali errate');$('lp').value='';$('lp').classList.add('err');loginShake();return;}
     // Verifica password (gestisce sia hash che plaintext)
     const ok = await verifyPassword(user.pwd, p);
@@ -1166,7 +1166,7 @@ function openPromemoriaForm(){
 }
 function confermaElimPromemoria(id){
   const p=DB.promemoria.find(x=>x.id===id);if(!p)return;
-  openModal('Elimina promemoria',`<div style="padding:8px 4px;">Vuoi eliminare "<strong>${p.titolo}</strong>"?</div>`,[
+  openModal('Elimina promemoria',`<div style="padding:8px 4px;">Vuoi eliminare "<strong>${escHtml(p.titolo)}</strong>"?</div>`,[
     {label:'ANNULLA',cls:'mbtn',action:closeModal},
     {label:'ELIMINA',cls:'mbtn danger',action:async()=>{await fbDelete('promemoria',id);closeModal();toast('Eliminato','success');}}
   ]);
@@ -1409,7 +1409,7 @@ function allegaProgettoDiVolata(){
   if(vols.length===0){toast('Nessun progetto di volata disponibile','err');return;}
   openModal('Allega progetto volata',
     `<div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Seleziona un progetto da allegare al rapportino.</div>`+
-    vols.map(v=>{const c=DB.cave.find(x=>x.id===v.cavaId);return`<div class="sitem" onclick="selezionaVolataPerRapp('${v.id}')"><div class="av av-am">V${v.numero}</div><div class="sinfo"><div class="sname">Volata #${v.numero} · ${fmt(v.data)}</div><div class="ssub">${c?c.nome:'—'} · ${v.tot_fori||0} fori</div></div></div>`;}).join(''),
+    vols.map(v=>{const c=DB.cave.find(x=>x.id===v.cavaId);return`<div class="sitem" onclick="selezionaVolataPerRapp('${v.id}')"><div class="av av-am">V${v.numero}</div><div class="sinfo"><div class="sname">Volata #${v.numero} · ${fmt(v.data)}</div><div class="ssub">${c?escHtml(c.nome):'—'} · ${v.tot_fori||0} fori</div></div></div>`;}).join(''),
     [{label:'Annulla',cls:'mbtn',action:closeModal}]
   );
 }
@@ -1471,12 +1471,12 @@ function previewRapp(){
   openModal('Anteprima rapportino',`
     <div class="preview-sec"><div class="preview-head">Dati generali</div>
       <div class="preview-row"><span class="preview-lab">Data</span><span class="preview-val">${fmt($('r-data').value)||'—'}</span></div>
-      <div class="preview-row"><span class="preview-lab">Cava</span><span class="preview-val">${cava?cava.nome:'—'}</span></div>
+      <div class="preview-row"><span class="preview-lab">Cava</span><span class="preview-val">${cava?escHtml(cava.nome):'—'}</span></div>
       ${$('r-oi').value||$('r-of').value?`<div class="preview-row"><span class="preview-lab">Orario</span><span class="preview-val">${$('r-oi').value||'—'} → ${$('r-of').value||'—'}</span></div>`:''}
       ${$('r-d').value?`<div class="preview-row"><span class="preview-lab">Diametro</span><span class="preview-val">${$('r-d').value} mm</span></div>`:''}
       ${$('r-m').value?`<div class="preview-row"><span class="preview-lab">Maglia</span><span class="preview-val">${$('r-m').value}</span></div>`:''}
       ${mezzo?`<div class="preview-row"><span class="preview-lab">Mezzo</span><span class="preview-val">${escHtml(mezzo.modello)}</span></div>`:''}
-      ${persSel.length?`<div class="preview-row"><span class="preview-lab">Personale</span><span class="preview-val">${persSel.join(', ')}</span></div>`:''}
+      ${persSel.length?`<div class="preview-row"><span class="preview-lab">Personale</span><span class="preview-val">${escHtml(persSel.join(', '))}</span></div>`:''}
       ${volata?`<div class="preview-row"><span class="preview-lab">Progetto volata</span><span class="preview-val">Volata #${volata.numero} · ${fmt(volata.data)}</span></div>`:''}
     </div>
     ${allValid.length>0?`<div class="preview-sec"><div class="preview-head">Totali</div>
@@ -1542,7 +1542,7 @@ function allegaVolataFochino(){
   if(vols.length===0){toast('Nessun progetto di volata disponibile','err');return;}
   openModal('Allega progetto volata',
     `<div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Seleziona un progetto da allegare.</div>`+
-    vols.map(v=>{const c=DB.cave.find(x=>x.id===v.cavaId);return`<div class="sitem" onclick="selezionaVolataFoc('${v.id}')"><div class="av av-am">V${v.numero}</div><div class="sinfo"><div class="sname">Volata #${v.numero} · ${fmt(v.data)}</div><div class="ssub">${c?c.nome:'—'} · ${v.tot_fori||0} fori</div></div></div>`;}).join(''),
+    vols.map(v=>{const c=DB.cave.find(x=>x.id===v.cavaId);return`<div class="sitem" onclick="selezionaVolataFoc('${v.id}')"><div class="av av-am">V${v.numero}</div><div class="sinfo"><div class="sname">Volata #${v.numero} · ${fmt(v.data)}</div><div class="ssub">${c?escHtml(c.nome):'—'} · ${v.tot_fori||0} fori</div></div></div>`;}).join(''),
     [{label:'Annulla',cls:'mbtn',action:closeModal}]
   );
 }
@@ -1563,7 +1563,7 @@ function allegaRappPerfFochino(){
   if(rs.length===0){toast('Nessun rapportino di perforazione disponibile','err');return;}
   openModal('Allega rapportino perforazione',
     `<div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Seleziona un rapportino.</div>`+
-    rs.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);return`<div class="sitem" onclick="selezionaRappPerfFoc('${r.id}')"><div class="av av-cv">${c?c.nome.substr(0,2).toUpperCase():'—'}</div><div class="sinfo"><div class="sname">${c?c.nome:'—'} · ${fmt(r.data)}</div><div class="ssub">${u?u.nome+' '+u.cognome:'—'} · ${r.fori||0} fori</div></div></div>`;}).join(''),
+    rs.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);return`<div class="sitem" onclick="selezionaRappPerfFoc('${r.id}')"><div class="av av-cv">${c?escHtml(c.nome.substr(0,2).toUpperCase()):'—'}</div><div class="sinfo"><div class="sname">${c?escHtml(c.nome):'—'} · ${fmt(r.data)}</div><div class="ssub">${u?escHtml(u.nome+' '+u.cognome):'—'} · ${r.fori||0} fori</div></div></div>`;}).join(''),
     [{label:'Annulla',cls:'mbtn',action:closeModal}]
   );
 }
@@ -1780,7 +1780,7 @@ function apriRapport(id){
   openModal(`Rapportino ${fmt(r.data)}`,`
     <div class="preview-sec">
       <div class="preview-row"><span class="preview-lab">Cava</span><span class="preview-val">${escHtml(c?c.nome:'—')}</span></div>
-      <div class="preview-row"><span class="preview-lab">Operatore</span><span class="preview-val">${u?u.nome+' '+u.cognome:'—'}</span></div>
+      <div class="preview-row"><span class="preview-lab">Operatore</span><span class="preview-val">${u?escHtml(u.nome+' '+u.cognome):'—'}</span></div>
       ${r.oi||r.of?`<div class="preview-row"><span class="preview-lab">Orario</span><span class="preview-val">${r.oi||'—'} → ${r.of||'—'}</span></div>`:''}
       ${r.diametro?`<div class="preview-row"><span class="preview-lab">Diametro</span><span class="preview-val">${r.diametro} mm</span></div>`:''}
       ${r.maglia?`<div class="preview-row"><span class="preview-lab">Maglia</span><span class="preview-val">${r.maglia}</span></div>`:''}
@@ -2053,7 +2053,7 @@ function apriRappFocDett(id){
   openModal(`Volata ${fmt(r.data)}`,`
     <div class="preview-sec">
       <div class="preview-row"><span class="preview-lab">Cava</span><span class="preview-val">${escHtml(c?c.nome:'—')}</span></div>
-      <div class="preview-row"><span class="preview-lab">Fochino</span><span class="preview-val">${u?u.nome+' '+u.cognome:'—'}</span></div>
+      <div class="preview-row"><span class="preview-lab">Fochino</span><span class="preview-val">${u?escHtml(u.nome+' '+u.cognome):'—'}</span></div>
       ${r.oi||r.of?`<div class="preview-row"><span class="preview-lab">Orario</span><span class="preview-val">${r.oi||'—'} → ${r.of||'—'}</span></div>`:''}
       <div class="preview-row"><span class="preview-lab">Fori</span><span class="preview-val">${r.fori||0}</span></div>
       <div class="preview-row"><span class="preview-lab">Esplosivo tot.</span><span class="preview-val">${(r.tot_kg||0).toFixed(1)} kg</span></div>
@@ -2553,7 +2553,7 @@ async function salvaPers(){
 // ══════════ UTENTI ══════════
 function renderUtenti(){
   if(!can('admin')){$('users-list').innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><div class="empty-title">Accesso riservato</div></div>';return;}
-  $('users-list').innerHTML=DB.users.map(u=>{const rc={admin:'av-am',ufficio:'av-uf',fochino:'av-fc',operatore:'av-op'}[u.ruolo]||'av-op';const av=u.foto?`<div class="photo-avatar-sm"><img src="${encodeURI(u.foto)}"></div>`:`<div class="av ${rc}">${escHtml(u.nome[0])}${escHtml(u.cognome[0])}</div>`;return`<div class="sitem ${!u.attivo?'inactive':''}" onclick="openUserEdit('${u.id}')">${av}<div class="sinfo"><div class="sname">${escHtml(u.nome)} ${escHtml(u.cognome)} ${!u.attivo?'<span style="background:var(--danger);color:#fff;padding:1px 5px;font-size:9px;margin-left:4px;">DISATTIVO</span>':''}</div><div class="ssub">${escHtml(u.user)} · ${escHtml(u.ruolo)}${u.tel?' · '+escHtml(u.tel):''}</div></div><div class="sarr">›</div></div>`;}).join('');
+  $('users-list').innerHTML=DB.users.map(u=>{const rc={admin:'av-am',ufficio:'av-uf',fochino:'av-fc',operatore:'av-op'}[u.ruolo]||'av-op';const av=u.foto?`<div class="photo-avatar-sm"><img src="${encodeURI(u.foto)}"></div>`:`<div class="av ${rc}">${escHtml(initials(u.nome,u.cognome))}</div>`;return`<div class="sitem ${!u.attivo?'inactive':''}" onclick="openUserEdit('${u.id}')">${av}<div class="sinfo"><div class="sname">${escHtml(u.nome)} ${escHtml(u.cognome)} ${!u.attivo?'<span style="background:var(--danger);color:#fff;padding:1px 5px;font-size:9px;margin-left:4px;">DISATTIVO</span>':''}</div><div class="ssub">${escHtml(u.user)} · ${escHtml(u.ruolo)}${u.tel?' · '+escHtml(u.tel):''}</div></div><div class="sarr">›</div></div>`;}).join('');
 }
 function uploadUserFoto(id){uploadPhoto('u','f',id,async data=>{await fbUpdate('users',id,{foto:data});if(state.user.id===id)state.user.foto=data;toast('Foto aggiornata','success');openUserEdit(id);renderUtenti();});}
 function openUserForm(){
@@ -2574,7 +2574,7 @@ function openUserEdit(id){
   const canPhoto=can('admin')||can('ufficio')||u.id===state.user.id;
   openModal('Modifica utente',`
     <div class="photo-avatar ${canPhoto?'editable':''}" onclick="${canPhoto?`uploadUserFoto('${id}')`:''}">
-      ${u.foto?`<img src="${encodeURI(u.foto)}">`:`<span class="photo-avatar-placeholder">${escHtml(u.nome[0])}${escHtml(u.cognome[0])}</span>`}
+      ${u.foto?`<img src="${encodeURI(u.foto)}">`:`<span class="photo-avatar-placeholder">${escHtml(initials(u.nome,u.cognome))}</span>`}
     </div>
     <div class="frow"><div><label class="fl">Nome</label><input type="text" class="finput" id="uf-n" value="${escHtml(u.nome)}"></div><div><label class="fl">Cognome</label><input type="text" class="finput" id="uf-c" value="${escHtml(u.cognome)}"></div></div>
     <label class="fl">Username</label><input type="text" class="finput" id="uf-u" value="${escHtml(u.user)}" ${u.id===state.user.id?'disabled':''}>
@@ -2605,7 +2605,7 @@ async function salvaUser(){
     auditLog('user.update', {targetId:state.userEditId, targetUser:user?.user, fields:Object.keys(upd), passwordChanged:!!p});
   }else{
     if(!n||!c||!u||!p){toast('Compila tutti i campi','err');return;}
-    if(DB.users.some(x=>x.user.toLowerCase()===u.toLowerCase())){toast('Username già esistente','err');return;}
+    if(DB.users.some(x=>x.user&&x.user.toLowerCase()===u.toLowerCase())){toast('Username già esistente','err');return;}
     const id='user_'+genId();
     const pwdHash = await hashPassword(p); // ← A1: hash
     await fbSet('users',id,{id,user:u,pwd:pwdHash,nome:n,cognome:c,ruolo:r,attivo:true,cave,tel,foto:null});
@@ -2845,7 +2845,7 @@ function globalSearch(q){
   if(cli.length)html+='<div class="search-res-section">Clienti</div>'+cli.map(c=>`<div class="sitem" onclick="apriCliente('${c.id}')"><div class="av av-am">${escHtml((c.ragsoc||'?').substr(0,2).toUpperCase())}</div><div class="sinfo"><div class="sname">${escHtml(c.ragsoc)}</div><div class="ssub">${escHtml(c.piva||'—')}</div></div><div class="sarr">›</div></div>`).join('');
   if(macLav.length)html+='<div class="search-res-section">Mezzi lavoro</div>'+macLav.map(m=>`<div class="sitem" onclick="apriMacLavoro('${m.id}')"><div class="av av-mz">MZ</div><div class="sinfo"><div class="sname">${escHtml(m.modello)}</div><div class="ssub">${escHtml(m.targa)}</div></div><div class="sarr">›</div></div>`).join('');
   if(pers.length)html+='<div class="search-res-section">Personale</div>'+pers.map(p=>`<div class="sitem"><div class="av av-su">${escHtml(initials(p.nome,p.cognome))}</div><div class="sinfo"><div class="sname">${escHtml(p.nome)} ${escHtml(p.cognome)}</div><div class="ssub">${escHtml(p.ruolo||'—')}</div></div></div>`).join('');
-  if(rapp.length)html+='<div class="search-res-section">Rapportini</div>'+rapp.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);return`<div class="sitem" onclick="apriRapport('${r.id}')"><div class="av av-op">RP</div><div class="sinfo"><div class="sname">${c?c.nome:'—'} · ${fmt(r.data)}</div><div class="ssub">${r.fori} fori · ${(r.mc||0).toFixed(1)} mc</div></div><div class="sarr">›</div></div>`;}).join('');
+  if(rapp.length)html+='<div class="search-res-section">Rapportini</div>'+rapp.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);return`<div class="sitem" onclick="apriRapport('${r.id}')"><div class="av av-op">RP</div><div class="sinfo"><div class="sname">${c?escHtml(c.nome):'—'} · ${fmt(r.data)}</div><div class="ssub">${r.fori} fori · ${(r.mc||0).toFixed(1)} mc</div></div><div class="sarr">›</div></div>`;}).join('');
   if(!html)html='<div class="empty-state" style="padding:20px;"><div class="empty-sub">Nessun risultato</div></div>';
   wrap.innerHTML='<div class="search-results">'+html+'</div>';
 }
@@ -5251,7 +5251,7 @@ function apriRiconciliazione(volataId){
   const cava=DB.cave.find(c=>c.id===v.cavaId);
   let html=`
     <div style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.5;">
-      Confronto tra volata <b>#${v.numero}</b> (${fmt(v.data)}) di <b>${cava?cava.nome:'cava'}</b> e rapportini di perforazione della stessa cava nei <b>±7 giorni</b>.
+      Confronto tra volata <b>#${v.numero}</b> (${fmt(v.data)}) di <b>${cava?escHtml(cava.nome):'cava'}</b> e rapportini di perforazione della stessa cava nei <b>±7 giorni</b>.
     </div>
     <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:14px;">
       <div style="background:var(--card);border:1px solid var(--border);padding:10px 12px;">
@@ -5284,7 +5284,7 @@ function apriRiconciliazione(volataId){
       ? '<div class="empty-state" style="padding:20px;"><div class="empty-icon">📋</div><div class="empty-sub">Nessun rapportino di perforazione nei ±7 giorni dalla data progetto.</div></div>'
       : range.map(r=>{
           const u=DB.users.find(x=>x.id===r.userId);
-          return `<div class="sitem" onclick="closeModal();apriRapport('${r.id}')"><div class="av av-op">${(u?.nome||'?')[0]}</div><div class="sinfo"><div class="sname">${fmt(r.data)} · ${r.fori||0} fori</div><div class="ssub">${u?u.nome+' '+u.cognome:'—'} · ${(r.metri||0).toFixed(1)}m · ${(r.mc||0).toFixed(1)}mc</div></div><div class="sarr">›</div></div>`;
+          return `<div class="sitem" onclick="closeModal();apriRapport('${r.id}')"><div class="av av-op">${escHtml((u?.nome||'?')[0])}</div><div class="sinfo"><div class="sname">${fmt(r.data)} · ${r.fori||0} fori</div><div class="ssub">${u?escHtml(u.nome+' '+u.cognome):'—'} · ${(r.metri||0).toFixed(1)}m · ${(r.mc||0).toFixed(1)}mc</div></div><div class="sarr">›</div></div>`;
         }).join('')}
   `;
   openModal(`Riconciliazione · Volata #${v.numero}`, html, [
