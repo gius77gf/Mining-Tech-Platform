@@ -125,6 +125,17 @@ export function scaledDistance(distanzaM, caricaKg) {
   return r / Math.sqrt(w);
 }
 
+// Carica MASSIMA per ritardo (kg) per non scendere sotto una distanza scalata
+// OBIETTIVO a una data distanza dal ricettore: è l'inverso di scaledDistance,
+// W = (R / SD)². Serve in progettazione: "a questa casa, per restare sopra la
+// SD di sicurezza, non superare X kg per ritardo". null se i dati non sono
+// validi. La SD obiettivo va scelta dallo storico del sito / dalla soglia PPV.
+export function caricaMax(distanzaM, sdObiettivo) {
+  const r = +distanzaM, sd = +sdObiettivo;
+  if (!(r > 0) || !(sd > 0)) return null;
+  return (r / sd) ** 2;
+}
+
 export async function sentinellaData() {
   let mode = "demo", api = null;
   try {
