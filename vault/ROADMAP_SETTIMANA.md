@@ -223,6 +223,31 @@ mese** (#230), Terra **andamento volumi** (#232). Doc fondatore: `INDICE_
 FONDATORE` (#224), `ISOLAMENTO_DATI` (#223) con nota di revisione (#233).
 Suite CI 228 → 247, tutta verde. Isolamento multi-tenant verificato solido.
 
+## SESSIONE 21/07 (3ª parte) — "documenti pronti" + insight di dashboard
+Cicli proseguiti a oltranza (regola del fondatore). Ogni app verticale ha
+ricevuto un incremento; ognuno via PR, suite verde ad ogni merge (259 → 273).
+- **Conti** (crediti): interessi di mora 231/2002 (#245), **sollecito pronto**
+  da copiare/inviare con mora e totale dovuto (#247), **estratto conto cliente**
+  (tutte le fatture aperte di un cliente in un unico documento) (#249).
+- **Scudo**: **promemoria di scadenza** pronto da inviare al lavoratore (#248).
+- **Flotta**: **priorità operative del giorno** — helper puro che unisce
+  manutenzioni urgenti (a data e a ore) + ricambi sotto scorta + mezzi fermi;
+  prima i ricambi sotto scorta NON comparivano in dashboard (#251).
+- **Terra**: **proiezione di fine anno** vs volume autorizzato, con avviso di
+  rischio sforamento dell'autorizzato (#252).
+- **Campo**: **copertura rapportini di turno** (chi non ha ancora consegnato
+  prima dell'handover) (#253).
+- **Sentinella**: **priorità di conformità** — estratta la logica inline della
+  dashboard in helper testato; **fix severità**: un adempimento SCADUTO ora è
+  danger, non più warn (#255).
+- Revisione adversarial delle UI (6 app): trovati e corretti 2 bug reali (i
+  bottoni "copia" scrivevano la conferma su un elemento di una pagina nascosta)
+  (#250). Doc fondatore `STATO_PRODOTTO` aggiornato due volte (#246, #254).
+Pattern ricorrente utile: estrarre logica di dashboard "inline" in helper PURI
+e testati, scoprendo bug di severità/copertura (ricambi mancanti, scaduto=warn).
+Suite CI 247 → 273. Avviata una revisione del data-layer (isolamento
+multi-tenant + parser CSV); esiti nei checkpoint successivi.
+
 ## Fine progetto (fase commercializzazione) — NON prima
 - Acquisto dominio + sottodomini. DECISIONE DEL FONDATORE: nessuna
   spesa prima della commercializzazione.
