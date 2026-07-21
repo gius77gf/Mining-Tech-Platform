@@ -126,6 +126,11 @@ test("valore che inizia con la keyword ma senza separatore → NON è intestazio
   eq(isIntestazione("titolone di gara", "titolo"), false, "senza delimitatore"));
 test("keyword vuota → mai intestazione", () =>
   eq(isIntestazione("qualsiasi;cosa", ""), false, "keyword vuota"));
+test("keyword PREFISSO di un nome più lungo → NON è intestazione (serve il delimitatore subito dopo)", () => {
+  eq(isIntestazione("dataInizio;x", "data"), false, "dataInizio non è header 'data'");
+  eq(isIntestazione("nominativo;x", "nome"), false, "nominativo non è header 'nome'");
+  eq(isIntestazione("data;x", "data"), true, "data esatto sì");
+});
 
 console.log(`\nRisultato Helper: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
