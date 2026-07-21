@@ -430,6 +430,19 @@ test("riservaResidua: senza riserva stimata = null; senza ritmo = anni null", ()
   eq(terra.riservaResidua(null, 100, 125000), null, "riserve assenti → null");
   eq(terra.riservaResidua(1000000, 0, 0).anni, null, "ritmo 0 → anni non stimabili");
 });
+test("trendVolumi: confronta gli ultimi due rilievi elaborati (per data)", () => {
+  const ril = [
+    { data: "2026-07-01", volumeM3: 18600, stato: "elaborato" },   // precedente
+    { data: "2026-07-15", volumeM3: 19400, stato: "elaborato" },   // ultimo
+    { data: "2026-06-16", volumeM3: 21300, stato: "elaborato" },   // più vecchio
+    { data: "2026-08-01", volumeM3: null,  stato: "pianificato" }, // ignorato
+  ];
+  eq(terra.trendVolumi(ril), { ultimo: 19400, precedente: 18600, delta: 800, pct: 4 }, "+800 (+4%)");
+});
+test("trendVolumi: meno di due rilievi elaborati = null", () => {
+  eq(terra.trendVolumi([{ data: "2026-07-15", volumeM3: 100, stato: "elaborato" }]), null, "uno solo");
+  eq(terra.trendVolumi([]), null, "vuoto");
+});
 test("qualitaRilievo: compone metodo + GSD; vuoto se non si sa nulla", () => {
   eq(terra.qualitaRilievo({ metodo: "RTK+GCP", gsd: "2" }), "RTK+GCP · GSD 2 cm", "metodo + gsd");
   eq(terra.qualitaRilievo({ metodo: "PPK" }), "PPK", "solo metodo");

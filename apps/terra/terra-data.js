@@ -84,6 +84,20 @@ export function riservaResidua(riserveM3, estrattoAnno, rateAnnuoM3) {
   return { residuo, anni: rate > 0 ? residuo / rate : null };
 }
 
+// Andamento dei volumi: confronta gli ULTIMI DUE rilievi elaborati (per data)
+// per dire a colpo d'occhio se l'estrazione sta accelerando o rallentando —
+// utile per capire se si è "in pari" col piano. Ritorna null se non ci sono
+// almeno due rilievi elaborati con volume. Pura e testabile.
+export function trendVolumi(rilievi) {
+  const el = (rilievi || [])
+    .filter(r => r.stato === "elaborato" && r.volumeM3 != null)
+    .sort((a, b) => (b.data || "").localeCompare(a.data || ""));
+  if (el.length < 2) return null;
+  const ultimo = +el[0].volumeM3 || 0, precedente = +el[1].volumeM3 || 0;
+  const delta = ultimo - precedente;
+  return { ultimo, precedente, delta, pct: precedente > 0 ? Math.round(100 * delta / precedente) : null };
+}
+
 // Import rilievi elaborati da CSV (onboarding: caricare lo storico dei
 // rilievi drone). Colonne: data;volumeM3[;metodo;gsd] (header opzionale).
 // Tiene solo le righe con data valida (AAAA-MM-GG) e volume numerico ≥ 0.
