@@ -346,9 +346,19 @@
   $("inf-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseInfortuniCsv(await file.text());
-    for (const r of righe) await db.aggiungi("infortuni", r);
+    // Dedup come gli altri import: evita che un doppio click su "Importa"
+    // raddoppi silenziosamente un registro HSE. Firma = data|tipo|descrizione.
+    const firma = (r) => [(r.data || ""), (r.tipo || ""), (r.descrizione || "").trim().toLowerCase()].join("|");
+    const gia = new Set(INF.map(firma));
+    let agg = 0, dup = 0;
+    for (const r of righe) {
+      if (gia.has(firma(r))) { dup++; continue; }
+      gia.add(firma(r));   // scarta i doppioni anche DENTRO lo stesso file
+      await db.aggiungi("infortuni", r);
+      agg++;
+    }
     $("inf-file").value = "";
-    $("inf-esito").textContent = "Import registro: " + righe.length + " eventi aggiunti.";
+    $("inf-esito").textContent = `Import registro: ${agg} eventi aggiunti${dup ? `, ${dup} già presenti (saltati)` : ""}.`;
     await refresh();
   };
   $("btn-import-csv").onclick = () => $("csv-file").click();
