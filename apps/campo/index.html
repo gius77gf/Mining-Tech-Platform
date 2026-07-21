@@ -62,10 +62,17 @@
 <div class="page" id="page-rap">
   <div class="sec">Rapportini di oggi</div>
   <div id="rap-list"></div>
-  <div class="sec">Nuovo rapportino</div>
+  <div class="sec">Nuovo rapportino di turno</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
     <input class="dw-input" id="new-rap-titolo" placeholder="Titolo (es. Rapportino perforazione)" style="flex:2;min-width:160px;">
     <select class="dw-input" id="new-rap-squadra" style="flex:1;min-width:130px;"></select>
+    <select class="dw-input" id="new-rap-turno" style="flex:1;min-width:110px;">
+      <option value="">Turno…</option><option>Mattina</option><option>Pomeriggio</option><option>Notte</option>
+    </select>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+    <input class="dw-input" id="new-rap-prod" placeholder="Produzione (es. 3 viaggi, 90 t)" style="flex:2;min-width:160px;">
+    <input class="dw-input" id="new-rap-note" placeholder="Consegne al turno dopo (handover)" style="flex:2;min-width:160px;">
     <button class="dw-btn" id="btn-add-rap" style="width:auto;">Crea bozza</button>
   </div>
   <div class="note" id="mode-note" style="text-align:left;"></div>
@@ -99,7 +106,7 @@
 </script>
 
 <script type="module">
-  import { campoData, kpiFrom, parsePianoCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi } from "./campo-data.js";
+  import { campoData, kpiFrom, parsePianoCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, riassuntoRapportino } from "./campo-data.js";
   import { mountExit, esc } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const AB = { "in-corso": ["ok","In corso"], pianificata: ["warn","Pianificata"], anomalia: ["danger","Anomalia"], conclusa: ["ok","Conclusa"] };
@@ -162,9 +169,10 @@
       <span class="badge ${QB[q.stato][0]}">${QB[q.stato][1]}</span></div>`).join("")
       || '<div class="note" style="text-align:left;">Nessuna squadra in turno.</div>';
 
-    $("rap-list").innerHTML = RAP.map(r => `<div class="item" data-rap="${r.id}" style="cursor:pointer" title="${r.stato==="bozza" ? "Tocca per inviare" : "Tocca per richiamare in bozza"}">
-      <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${esc(r.squadra||"—")}${r.ora?" · "+esc(r.ora):""}</div></div>
-      <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${r.stato==="bozza"?`<span class="arr" style="cursor:pointer" title="Elimina bozza" data-del-rap="${r.id}">✕</span>`:""}</div>`).join("")
+    $("rap-list").innerHTML = RAP.map(r => { const rias = riassuntoRapportino(r);
+      return `<div class="item" data-rap="${r.id}" style="cursor:pointer" title="${r.stato==="bozza" ? "Tocca per inviare" : "Tocca per richiamare in bozza"}">
+      <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${rias ? esc(rias) : esc(r.squadra||"—")}${r.ora?" · "+esc(r.ora):""}</div></div>
+      <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${r.stato==="bozza"?`<span class="arr" style="cursor:pointer" title="Elimina bozza" data-del-rap="${r.id}">✕</span>`:""}</div>`; }).join("")
       || '<div class="note" style="text-align:left;">Nessun rapportino oggi.</div>';
 
     $("new-rap-squadra").innerHTML = SQU.map(q => `<option>${esc(q.nome.split(" — ")[0])}</option>`).join("");
@@ -219,8 +227,11 @@
     const titolo = $("new-rap-titolo").value.trim();
     if (!titolo) { $("new-rap-titolo").style.borderColor = "var(--danger)"; $("new-rap-titolo").placeholder = "Serve un titolo per creare la bozza"; return; }
     $("new-rap-titolo").style.borderColor = "";
-    await db.aggiungi("rapportini", { titolo, squadra: $("new-rap-squadra").value, ora: "", stato: "bozza" });
-    $("new-rap-titolo").value = ""; $("new-rap-titolo").focus(); await refresh();
+    await db.aggiungi("rapportini", { titolo, squadra: $("new-rap-squadra").value,
+      turno: $("new-rap-turno").value || "", produzione: $("new-rap-prod").value.trim(), note: $("new-rap-note").value.trim(),
+      ora: "", stato: "bozza" });
+    $("new-rap-titolo").value = ""; $("new-rap-turno").value = ""; $("new-rap-prod").value = ""; $("new-rap-note").value = "";
+    $("new-rap-titolo").focus(); await refresh();
   };
   // Recupero errore: appena l'utente corregge un campo, togli il bordo
   // rosso (e il messaggio, dove c'è) così l'avviso non resta appeso.

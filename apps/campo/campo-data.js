@@ -58,6 +58,19 @@ export function riepilogoFermi(attivita) {
     .sort((a, b) => b.conto - a.conto || a.causale.localeCompare(b.causale, "it"));
 }
 
+// Riassunto testuale di un rapportino di turno STRUTTURATO (turno, squadra,
+// produzione, consegne per il turno successivo = handover). Serve alla lista
+// e all'eventuale export/consegna. Stringa vuota se non c'è nulla. Pura e
+// testabile.
+export function riassuntoRapportino(r) {
+  const parti = [];
+  if (r && r.turno) parti.push("Turno " + r.turno);
+  if (r && r.squadra) parti.push(r.squadra);
+  if (r && r.produzione) parti.push("Produzione: " + r.produzione);
+  if (r && r.note) parti.push("Consegne: " + r.note);
+  return parti.join(" · ");
+}
+
 export function kpiFrom(attivita, squadre, rapportini) {
   return {
     squadreAttive: squadre.filter(q => q.stato === "operativa").length,
