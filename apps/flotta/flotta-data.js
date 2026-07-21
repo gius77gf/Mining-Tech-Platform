@@ -35,6 +35,26 @@ export const DEMO = {
   ],
 };
 
+// Import telemetria da CSV esportato dai portali OEM (colonne:
+// mezzo;ore[;carburante], header opzionale). Coerce a numero e scarta le
+// righe non valide (mezzo mancante o ore non numeriche/negative). È l'MVP
+// di import telemetria (vedi vault "Telematics — cosa può fare Flotta").
+// Il campo `mezzo` va SEMPRE escapato dove mostrato (testo grezzo del file).
+// Funzione pura e testabile.
+export function parseTelemetriaCsv(text) {
+  return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !/^mezzo\s*;/i.test(r))
+    .map(r => {
+      const [mezzo, ore, carburante] = r.split(";");
+      return {
+        mezzo: (mezzo || "").trim(),
+        ore: +ore,
+        carburante: (carburante != null && String(carburante).trim() !== "") ? +carburante : null,
+      };
+    })
+    .filter(p => p.mezzo && Number.isFinite(p.ore) && p.ore >= 0);
+}
+
 // Nuova giacenza dopo uno scarico di `qta` pezzi: mai sotto zero. Serve sia
 // al pulsante scarico sia agli ordini di lavoro (manutenzione eseguita che
 // consuma un ricambio). Pura e testabile.

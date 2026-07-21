@@ -445,6 +445,15 @@ test("sottoScorta: ricambi con giacenza ≤ soglia, ordinati per gravità", () =
 });
 test("sottoScorta: nessun ricambio = lista vuota (niente crash)", () =>
   eq(flotta.sottoScorta([]), [], "vuoto"));
+test("parseTelemetriaCsv: legge mezzo/ore/carburante, scarta righe non valide", () => {
+  const csv = "mezzo;ore;carburante\nEscavatore E1;5900;8400\nDumper D1;8420\n;100;0\nPala P1;abc;10\n";
+  const p = flotta.parseTelemetriaCsv(csv);
+  eq(p.length, 2, "solo 2 righe valide (header e righe rotte scartate)");
+  eq(p[0], { mezzo: "Escavatore E1", ore: 5900, carburante: 8400 }, "riga con carburante");
+  eq(p[1], { mezzo: "Dumper D1", ore: 8420, carburante: null }, "riga senza carburante");
+});
+test("parseTelemetriaCsv: testo vuoto = lista vuota (niente crash)", () =>
+  eq(flotta.parseTelemetriaCsv(""), [], "vuoto"));
 test("scaricoGiacenza: sottrae la quantità, mai sotto zero", () => {
   eq(flotta.scaricoGiacenza(5), 4, "default −1");
   eq(flotta.scaricoGiacenza(5, 3), 2, "−3");
