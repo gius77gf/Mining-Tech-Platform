@@ -186,6 +186,22 @@ centraline) e l'epica strategica del **ciclo chiuso** (ponti
 Genesi↔Campo↔Terra↔Conti). Ogni voce va spezzata in unità atomiche con
 screenshot di verifica per le modifiche visive.
 
+## SESSIONE 21/07 (continuazione) — parità dati + robustezza + go-live
+Cicli automatici proseguiti a oltranza (regola del fondatore). Sintesi:
+- **Import CSV su TUTTE e 6 le app verticali** (parità completa; prima erano
+  a metà): Terra rilievi (#213), Scudo scadenzario (#218), Sentinella sensori
+  (#221), a completare Flotta/Conti/Campo già fatti. Export CSV ora su tutte
+  (aggiunto Flotta, #215).
+- **Robustezza test**: eliminati DUE test flaky della suite Functions (race
+  sulla propagazione asincrona dei custom claims → helper waitClaim, #216 e
+  #219) + edge case CSV (CRLF da Excel, valori non validi). Suite 220 → 228,
+  tutti verdi e deterministici.
+- **Documenti per il fondatore (non tecnico)**: `docs/STATO_PRODOTTO.md` (cosa
+  fa oggi ogni app, #214), `vault/PIANO_GO_LIVE.md` (percorso ordinato al primo
+  cliente, collo di bottiglia = progetto Firebase, #217),
+  `docs/ONBOARDING_DATI.md` (i CSV da preparare per caricare una cava, #220).
+Dettaglio per unità: vault/checkpoints/ dal 2026-07-21_0639 in poi.
+
 ## Fine progetto (fase commercializzazione) — NON prima
 - Acquisto dominio + sottodomini. DECISIONE DEL FONDATORE: nessuna
   spesa prima della commercializzazione.
