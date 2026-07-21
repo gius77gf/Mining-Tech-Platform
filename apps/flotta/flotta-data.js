@@ -35,6 +35,13 @@ export const DEMO = {
   ],
 };
 
+// Nuova giacenza dopo uno scarico di `qta` pezzi: mai sotto zero. Serve sia
+// al pulsante scarico sia agli ordini di lavoro (manutenzione eseguita che
+// consuma un ricambio). Pura e testabile.
+export function scaricoGiacenza(giacenza, qta = 1) {
+  return Math.max(0, (+giacenza || 0) - (+qta || 0));
+}
+
 // Ricambi SOTTO SCORTA: giacenza ≤ soglia minima. Sono quelli da
 // riordinare per non fermare un mezzo in attesa del pezzo (il 34% dei
 // ritardi di riparazione nasce dai ricambi mancanti). Ordinati per gravità
