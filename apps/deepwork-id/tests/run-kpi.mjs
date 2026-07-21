@@ -536,6 +536,22 @@ test("disponibilitaFlotta: % operativi sul totale", () => {
 });
 test("disponibilitaFlotta: nessun mezzo = pct null (niente divisione per zero)", () =>
   eq(flotta.disponibilitaFlotta([]), { pct: null, operativi: 0, totale: 0 }, "vuoto"));
+test("ripartizioneCosti: accorpa per voce, % sul totale, dal più pesante", () => {
+  const costi = [
+    { voce: "Carburante", importo: 8000 },
+    { voce: "Ricambi", importo: 1500 },
+    { voce: "Carburante", importo: 500 },   // stessa voce → accorpata
+    { voce: "Gratis", importo: 0 },          // importo 0 → ignorato
+  ];
+  const r = flotta.ripartizioneCosti(costi);
+  eq(r.totale, 10000, "totale 10000");
+  eq(r.voci, [
+    { voce: "Carburante", importo: 8500, pct: 85 },
+    { voce: "Ricambi", importo: 1500, pct: 15 },
+  ], "carburante 85%, ricambi 15%");
+});
+test("ripartizioneCosti: nessun costo = totale 0, voci vuote (niente crash)", () =>
+  eq(flotta.ripartizioneCosti([]), { totale: 0, voci: [] }, "vuoto"));
 test("sottoScorta: ricambi con giacenza ≤ soglia, ordinati per gravità", () => {
   const ric = [
     { id: "a", nome: "A", giacenza: 6, sogliaMin: 4 },  // sopra → escluso

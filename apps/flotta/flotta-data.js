@@ -115,6 +115,28 @@ export function disponibilitaFlotta(mezzi) {
   return { pct: totale ? Math.round(100 * operativi / totale) : null, operativi, totale };
 }
 
+// Ripartizione dei costi per VOCE: accorpa i costi con lo stesso nome e ne dà
+// l'incidenza % sul totale, dal più pesante. Serve a vedere a colpo d'occhio
+// dove va la spesa della flotta (carburante vs ricambi vs noleggi…). Le voci a
+// importo ≤ 0 sono ignorate. Pura e testabile.
+export function ripartizioneCosti(costi) {
+  const per = {};
+  let totale = 0;
+  for (const c of costi || []) {
+    const imp = +c.importo || 0;
+    if (imp <= 0) continue;
+    const v = ((c.voce || "").trim()) || "Altro";
+    per[v] = (per[v] || 0) + imp;
+    totale += imp;
+  }
+  return {
+    totale,
+    voci: Object.entries(per)
+      .map(([voce, importo]) => ({ voce, importo, pct: totale ? Math.round(100 * importo / totale) : 0 }))
+      .sort((a, b) => b.importo - a.importo || a.voce.localeCompare(b.voce, "it")),
+  };
+}
+
 export function kpiFrom(mezzi, manutenzioni, costi) {
   return {
     operativi: mezzi.filter(m => m.stato === "operativo").length,
