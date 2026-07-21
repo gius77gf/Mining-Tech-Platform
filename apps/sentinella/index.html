@@ -66,6 +66,8 @@
     <input class="dw-input" id="sen-soglia" type="number" step="0.1" min="0" placeholder="Soglia" style="flex:1;min-width:80px;">
     <button class="dw-btn" id="btn-sen" style="width:auto;">Aggiungi</button>
   </div>
+  <button class="dw-btn secondary" id="btn-import-mon" style="width:auto;margin-top:8px;">Importa sensori (CSV)</button>
+  <input type="file" id="mon-file" accept=".csv,text/csv" style="display:none;">
 
   <div class="sec">Distanza scalata (volate)</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
@@ -115,7 +117,7 @@
 </script>
 
 <script type="module">
-  import { sentinellaData, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, riepilogoConformita } from "./sentinella-data.js";
+  import { sentinellaData, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, riepilogoConformita, parseMonitoraggiCsv } from "./sentinella-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
@@ -241,6 +243,22 @@
     $("sen-preset").value = ""; $("sen-preset-nota").style.display = "none"; $("sen-preset-nota").textContent = "";
     $("mis-esito").textContent = "Sensore " + nome + " aggiunto (soglia " + soglia + " " + unita + ").";
     $("sen-nome").focus();   // torna al primo campo per aggiungere subito il prossimo
+    await refresh();
+  };
+  // Import sensori da CSV (nome;tipo;valore;soglia;unita[;nota]): crea le
+  // centraline con la soglia e l'ultimo valore; salta i nomi già presenti.
+  $("btn-import-mon").onclick = () => $("mon-file").click();
+  $("mon-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const righe = parseMonitoraggiCsv(await file.text());
+    let agg = 0, saltati = 0;
+    for (const m of righe) {
+      if (MON.some(x => x.nome.toLowerCase() === m.nome.toLowerCase())) { saltati++; continue; }
+      await db.aggiungi("monitoraggi", { nome: m.nome, tipo: m.tipo, unita: m.unita, soglia: m.soglia, valore: m.valore, nota: m.nota, letture: [] });
+      agg++;
+    }
+    $("mon-file").value = "";
+    $("mis-esito").textContent = "Import sensori: " + agg + " aggiunti" + (saltati ? ", " + saltati + " già presenti (saltati)" : "") + ".";
     await refresh();
   };
   $("btn-mis").onclick = async () => {
