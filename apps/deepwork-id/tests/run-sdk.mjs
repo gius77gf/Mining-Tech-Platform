@@ -134,6 +134,45 @@ await test("listMembers legge i membri della propria org", async () => {
   expect(mem.length === 1 && mem[0].uid === "tizio", JSON.stringify(mem));
 });
 
+console.log("\n— Igiene stato: cambio account / tour / expiry (fix review SDK) —");
+await test("cambio account senza logout verso uno SENZA org: l'entitlement non resta", async () => {
+  await aauth.createUser({ uid: "senzorg", email: "senzorg@nessuna.it", password: "password-000" }); // nessun claim orgs
+  await id.loginWithEmail("tizio@cava-alfa.it", "password-123");
+  expect(id.hasEntitlement() === true, "tizio dovrebbe avere scudo");
+  await id.loginWithEmail("senzorg@nessuna.it", "password-000");   // SENZA logout
+  expect(id.authState() === "unauthorized", `stato ${id.authState()}`);
+  expect(id.hasEntitlement() === false, "entitlement dell'account precedente non azzerato!");
+});
+await test("loginTour ripulisce le org del login precedente (niente rientro via switchOrg)", async () => {
+  await id.loginWithEmail("tizio@cava-alfa.it", "password-123");   // membro di orgA
+  await id.loginTour();                                            // tour SENZA logout
+  expect(id.authState() === "tour", `stato ${id.authState()}`);
+  await expectFail(id.switchOrg("orgA"), "in tour non si deve poter rientrare in orgA");
+});
+await test("hasEntitlement gestisce validUntil come stringa ISO (niente crash)", async () => {
+  await id.loginWithEmail("tizio@cava-alfa.it", "password-123");
+  await adb.doc("organizations/orgA/entitlements/scudo").set(
+    { active: true, tier: "base", validUntil: "2000-01-01T00:00:00Z" });   // ISO passata
+  await id._loadEntitlement();
+  expect(id.hasEntitlement() === false, "ISO passata non vista come scaduta");
+  await adb.doc("organizations/orgA/entitlements/scudo").set(
+    { active: true, tier: "base", validUntil: "2099-12-31T00:00:00Z" });   // ISO futura
+  await id._loadEntitlement();
+  expect(id.hasEntitlement() === true, "ISO futura non vista come valida");
+  await adb.doc("organizations/orgA/entitlements/scudo").set({ active: true, tier: "base" });  // ripristino
+  await id._loadEntitlement();
+});
+await test("listEntitlements segna 'attivo' (un'app scaduta non risulta inclusa)", async () => {
+  await id.loginWithEmail("tizio@cava-alfa.it", "password-123");
+  const { Timestamp } = await import("firebase-admin/firestore");
+  await adb.doc("organizations/orgA/entitlements/genesi").set(
+    { active: true, tier: "base", validUntil: Timestamp.fromMillis(Date.now() - 86400000) });  // scaduto
+  const ents = await id.listEntitlements();
+  expect(ents.scudo && ents.scudo.attivo === true, "scudo dovrebbe essere attivo");
+  expect(ents.genesi && ents.genesi.attivo === false, "genesi scaduto dovrebbe avere attivo=false");
+  await adb.doc("organizations/orgA/entitlements/genesi").delete();   // pulizia
+});
+
 console.log("\n— Multi-org: switchOrg —");
 await test("membro di DUE org cambia org attiva e l'entitlement segue", async () => {
   await aauth.createUser({ uid: "consul", email: "consul@studio.it", password: "password-789" });
