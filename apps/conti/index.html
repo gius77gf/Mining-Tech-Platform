@@ -70,6 +70,11 @@
     <input class="dw-input" id="gar-data" type="date" style="flex:1;min-width:130px;">
     <button class="dw-btn" id="btn-gar" style="width:auto;">Aggiungi</button>
   </div>
+  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <button class="dw-btn secondary" id="btn-gar-import" style="width:auto;">Importa gare (CSV)</button>
+    <input type="file" id="gar-file" accept=".csv,text/csv" style="display:none;">
+    <span class="dw-muted" style="font-size:12px;">colonne: titolo;base;scadenza;stato</span>
+  </div>
   <div class="note" id="gar-esito" style="text-align:left;"></div>
   </div>
 
@@ -104,7 +109,7 @@
 </script>
 
 <script type="module">
-  import { contiData, giorni, kpiFrom, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, parseFattureCsv } from "./conti-data.js";
+  import { contiData, giorni, kpiFrom, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, parseFattureCsv, parseGareCsv } from "./conti-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const eur = (v) => "€" + (+v||0).toLocaleString("it-IT");
@@ -303,6 +308,20 @@
     $("gar-titolo").value = ""; $("gar-base").value = ""; $("gar-data").value = "";
     $("gar-esito").textContent = "Gara aggiunta: " + titolo + " (scade " + fmtD(scadenza) + ").";
     $("gar-titolo").focus();   // pronto per la prossima gara
+    await refresh();
+  };
+  $("btn-gar-import").onclick = () => $("gar-file").click();
+  $("gar-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const righe = parseGareCsv(await file.text());
+    let agg = 0, dup = 0;
+    for (const r of righe) {
+      if (GAR.some(g => (g.titolo || "").trim().toLowerCase() === r.titolo.toLowerCase())) { dup++; continue; }
+      await db.aggiungi("gare", { titolo: r.titolo, base: r.base, scadenza: r.scadenza, stato: r.stato });
+      agg++;
+    }
+    $("gar-file").value = "";
+    $("gar-esito").textContent = `Import gare: ${agg} aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}.`;
     await refresh();
   };
   $("btn-ft").onclick = async () => {
