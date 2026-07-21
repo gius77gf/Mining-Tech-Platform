@@ -168,7 +168,7 @@ await test("createOrganization rende owner della nuova org", async () => {
 console.log("\n— acceptInvites: valido vs scaduto —");
 await test("un invito VALIDO viene riscattato → membership creata", async () => {
   const { Timestamp } = await import("firebase-admin/firestore");
-  await aauth.createUser({ uid: "invA", email: "inva@studio.it", password: "password-123" });
+  await aauth.createUser({ uid: "invA", email: "inva@studio.it", password: "password-123", emailVerified: true });
   await adb.collection("invites").doc("okInv").set({
     email: "inva@studio.it", orgId: "orgA", role: "member", status: "pending",
     expiresAt: Timestamp.fromMillis(Date.now() + 7 * 86400000) });
@@ -179,7 +179,7 @@ await test("un invito VALIDO viene riscattato → membership creata", async () =
 });
 await test("un invito SCADUTO non dà membership e viene marcato 'expired'", async () => {
   const { Timestamp } = await import("firebase-admin/firestore");
-  await aauth.createUser({ uid: "invB", email: "invb@studio.it", password: "password-123" });
+  await aauth.createUser({ uid: "invB", email: "invb@studio.it", password: "password-123", emailVerified: true });
   await adb.collection("invites").doc("oldInv").set({
     email: "invb@studio.it", orgId: "orgA", role: "member", status: "pending",
     expiresAt: Timestamp.fromMillis(Date.now() - 86400000) });
@@ -192,7 +192,7 @@ await test("un invito SCADUTO non dà membership e viene marcato 'expired'", asy
 });
 await test("un invito NON è riscattabile da un'email diversa (isolamento inviti)", async () => {
   const { Timestamp } = await import("firebase-admin/firestore");
-  await aauth.createUser({ uid: "estraneo", email: "estraneo@studio.it", password: "password-123" });
+  await aauth.createUser({ uid: "estraneo", email: "estraneo@studio.it", password: "password-123", emailVerified: true });
   // invito destinato a un ALTRO indirizzo
   await adb.collection("invites").doc("altrui").set({
     email: "vittima@studio.it", orgId: "orgA", role: "member", status: "pending",
@@ -203,6 +203,34 @@ await test("un invito NON è riscattabile da un'email diversa (isolamento inviti
   expect(await roleOf("estraneo") === null, "membership creata da invito altrui!");
   const inv = (await adb.doc("invites/altrui").get()).data();
   expect(inv.status === "pending", `l'invito altrui è stato toccato: ${inv.status}`);
+});
+await test("un'email NON verificata NON può riscattare inviti (anti-hijack)", async () => {
+  const { Timestamp } = await import("firebase-admin/firestore");
+  await aauth.createUser({ uid: "nonver", email: "nonver@studio.it", password: "password-123" }); // emailVerified=false
+  await adb.collection("invites").doc("nvInv").set({
+    email: "nonver@studio.it", orgId: "orgA", role: "member", status: "pending",
+    expiresAt: Timestamp.fromMillis(Date.now() + 7 * 86400000) });
+  await id.loginWithEmail("nonver@studio.it", "password-123");
+  await expectCode(id.redeemInvites(), "unauthenticated", "email non verificata ha riscattato");
+  expect(await roleOf("nonver") === null, "membership creata da email non verificata!");
+  const inv = (await adb.doc("invites/nvInv").get()).data();
+  expect(inv.status === "pending", `invito consumato da email non verificata: ${inv.status}`);
+});
+await test("un invito 'member' NON declassa un membro già esistente (no zero-owner)", async () => {
+  const { Timestamp } = await import("firebase-admin/firestore");
+  await adb.doc("organizations/orgT").set({ name: "Org Test", status: "active" });
+  await aauth.createUser({ uid: "downg", email: "downg@studio.it", password: "password-123", emailVerified: true });
+  await aauth.setCustomUserClaims("downg", { orgs: { orgT: "owner" } });
+  await adb.doc("organizations/orgT/members/downg").set({ uid: "downg", role: "owner", status: "active" });
+  await adb.collection("invites").doc("downgInv").set({
+    email: "downg@studio.it", orgId: "orgT", role: "member", status: "pending",
+    expiresAt: Timestamp.fromMillis(Date.now() + 7 * 86400000) });
+  await id.loginWithEmail("downg@studio.it", "password-123");
+  await id.redeemInvites();
+  const mem = (await adb.doc("organizations/orgT/members/downg").get()).data();
+  expect(mem && mem.role === "owner", `owner declassato da un invito member: ${mem && mem.role}`);
+  const inv = (await adb.doc("invites/downgInv").get()).data();
+  expect(inv.status === "accepted", `invito non consumato: ${inv.status}`);
 });
 
 console.log("\n— Validazioni input (invito / nome org) —");
