@@ -33,6 +33,7 @@
   </div>
 
   <div class="sec">Oggi in cava</div>
+  <div id="att-avanz" class="note" style="text-align:left;"></div>
   <div id="oggi-list"></div>
 </div>
 
@@ -107,7 +108,7 @@
 </script>
 
 <script type="module">
-  import { campoData, kpiFrom, parsePianoCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, riassuntoRapportino } from "./campo-data.js";
+  import { campoData, kpiFrom, parsePianoCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, riassuntoRapportino, avanzamentoGiornata } from "./campo-data.js";
   import { mountExit, esc } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const AB = { "in-corso": ["ok","In corso"], pianificata: ["warn","Pianificata"], anomalia: ["danger","Anomalia"], conclusa: ["ok","Conclusa"] };
@@ -139,6 +140,12 @@
     if (kn[1]) kn[1].textContent = k.inCorso;
     if (kn[2]) kn[2].textContent = k.rapportiniOggi;
     if (kn[3]) kn[3].textContent = k.anomalie;
+
+    // Avanzamento giornata: concluse sul totale, con ripartizione.
+    const av = avanzamentoGiornata(ATT);
+    $("att-avanz").innerHTML = av.totale
+      ? `Avanzamento: <b>${av.concluse}/${av.totale}</b> concluse (${av.pct}%) · ${av.inCorso} in corso · ${av.pianificate} pianificate${av.anomalie ? " · <span style=\"color:var(--danger);\">"+av.anomalie+" anomalie</span>" : ""}`
+      : "";
 
     const urgenti = ATT.filter(a => a.stato !== "conclusa").slice(0,4);
     $("oggi-list").innerHTML = urgenti.map(a => `<div class="item" onclick="go('att')">
