@@ -10,9 +10,11 @@ riscriverli a mano. È il manuale pratico del **Passo 6 del PIANO_GO_LIVE**.
   serve.
 - **Date**: sempre nel formato **AAAA-MM-GG** (es. `2026-09-15`). È l'errore
   più comune: una data scritta `15/09/2026` viene scartata.
-- **Numeri**: va bene sia il formato italiano (`18.300,50`) sia quello con il
-  punto decimale (`18300.50`). Consiglio: per sicurezza evita il separatore
-  delle migliaia quando puoi (scrivi `18300,50`).
+- **Numeri**: va bene sia il formato italiano (`18.300,50`) sia quello inglese
+  (`18,300.50`), con o senza separatore delle migliaia — anche `1.234.567` o
+  `1,234,567` vengono letti correttamente. Regola semplice: l'**ultimo**
+  separatore è quello dei decimali (`1234,5` = 1234,50). Le righe con un numero
+  davvero illeggibile vengono scartate, non caricate storte.
 - **Testo con il punto e virgola dentro** (es. un cliente "Rossi; & Figli"):
   mettilo **tra virgolette** (`"Rossi; & Figli"`). Excel lo fa già da solo
   quando salvi in CSV, e i file **esportati** dalle app sono già a posto: si
