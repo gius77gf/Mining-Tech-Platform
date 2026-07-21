@@ -55,6 +55,19 @@ Pagina **Scadenze → Importa scadenze (CSV)**.
   scadenza entra come **aziendale**. Serve solo una **data valida**; il tipo
   se manca diventa "Altro".
 
+## Scudo — 3) registro infortuni e near-miss
+Pagina **Documenti → Infortuni e near-miss → Importa da CSV**.
+- **Colonne**: `data;tipo;gravita;giorniAssenza;descrizione;luogo`
+- **Esempio**:
+  ```
+  data;tipo;gravita;giorniAssenza;descrizione;luogo
+  2026-02-03;infortunio;lieve;4;Taglio alla mano;officina
+  2026-05-18;near-miss;lieve;0;Caduta massi vicino al perforatore;fronte Est
+  ```
+- **Note**: `tipo` è `infortunio` oppure `near-miss` (qualsiasi altro valore
+  diventa *near-miss*, il caso più prudente per il contatore "giorni senza
+  infortuni"). `gravita` è `lieve` o `grave`. Serve solo una **data valida**.
+
 ## Flotta — ore motore / telemetria
 Pagina **Mezzi → Importa telemetria (CSV)**.
 - **Colonne**: `mezzo;ore;carburante` (il carburante è facoltativo)
@@ -126,6 +139,20 @@ Pagina **Monitoraggi → Importa sensori (CSV)**.
   qui si carica il quadro dei punti di misura con l'ultimo valore. Le soglie di
   legge preimpostate (DIN/USBM/UE) restano disponibili nel form del sensore.
 
+## Sentinella — 2) registro volate (brogliaccio di brillamento)
+Pagina **Registri → Registro volate → Importa da CSV**.
+- **Colonne**: `data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note`
+- **Esempio**:
+  ```
+  data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note
+  2026-07-17;Fronte Nord;42;480;18;320;regolare;
+  2026-07-03;Fronte Est;36;410;22;280;contestazione;reclamo vicino
+  ```
+- **Note**: `esito` è `regolare` o `contestazione` (default *regolare*). I campi
+  numerici accettano formato italiano o inglese. La **distanza scalata** (SD) di
+  ogni volata viene calcolata da `distanzaRicettore` e `kgMaxRitardo`. Serve
+  solo una **data valida**.
+
 ---
 
 ## Riepilogo colonne (per copiare al volo)
@@ -133,11 +160,13 @@ Pagina **Monitoraggi → Importa sensori (CSV)**.
 |---|---|---|
 | Scudo | Anagrafica | `nome;ruolo;telefono` |
 | Scudo | Scadenzario | `lavoratore;tipo;descrizione;scadenza` |
+| Scudo | Infortuni | `data;tipo;gravita;giorniAssenza;descrizione;luogo` |
 | Flotta | Ore/telemetria | `mezzo;ore;carburante` |
 | Conti | Fatture | `numero;cliente;importo;emessa;scadenza;incassata` |
-| Terra | Rilievi | `data;volumeM3;metodo;gsd` |
+| Terra | Rilievi | `data;volumeM3;metodo;gsd;fronte` (metodo/gsd/fronte facoltativi) |
 | Campo | Piano volata | `foro;x;fila;prof;prog;borr;rit` |
 | Sentinella | Sensori | `nome;tipo;valore;soglia;unita;nota` |
+| Sentinella | Registro volate | `data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note` |
 
 Tutte e sei le app verticali hanno anche l'**esportazione** in CSV, per backup
 o per girare i dati a un consulente.
