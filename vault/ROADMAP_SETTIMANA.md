@@ -387,10 +387,13 @@ Avanzamento:
 - **Flotta — ordinamento mezzi** (#306, mergiato): stato (prima i fermi) / ore
   motore (dal più alto) / nome A→Z. Utile per manutenzione (chi ha più ore) e
   per il colpo d'occhio sui fermi.
-- **Scudo — ordinamento scadenze**: scadenza (prima le vicine) / tipo A→Z /
-  lavoratore A→Z. Utile per raggruppare per persona o per tipo di adempimento.
-- **Prossimo**: continuare ordinamenti/filtri dove mancano (Campo, Terra,
-  Sentinella) o test aggiuntivi.
+- **Scudo — ordinamento scadenze** (#307, mergiato): scadenza (prima le vicine)
+  / tipo A→Z / lavoratore A→Z. Utile per raggruppare per persona o per tipo di
+  adempimento.
+- **Terra — ordinamento rilievi**: data (più recente) / volume (dal più grande)
+  / titolo A→Z. Utile per confrontare i rilievi per volume estratto.
+- **Prossimo**: continuare ordinamenti/filtri dove mancano (Campo, Sentinella)
+  o test aggiuntivi.
 
 ### Stato feature Genesi vs competitor (aggiornato)
 Genesi ora ha: frammentazione Kuz-Ram/KCO, flyrock, fori bagnati, presplit,

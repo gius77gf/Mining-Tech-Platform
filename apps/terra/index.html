@@ -63,6 +63,14 @@
     <button class="dw-btn secondary" data-filtro="pianificato" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Pianificati</button>
   </div>
   <div id="ril-trend" class="note" style="text-align:left;"></div>
+  <div style="display:flex;align-items:center;gap:6px;margin:2px 0 10px;">
+    <span class="dw-muted" style="font-size:12px;">Ordina:</span>
+    <select id="ril-ord" class="dw-input" style="width:auto;min-height:32px;padding:2px 8px;font-size:12px;">
+      <option value="data">Data (più recente)</option>
+      <option value="volume">Volume (dal più grande)</option>
+      <option value="titolo">Titolo (A→Z)</option>
+    </select>
+  </div>
   <div id="ril-list"></div>
   <div class="sec">Valore del materiale estratto</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
@@ -140,6 +148,8 @@
 
   let FRO=[], RIL=[], PIA=[];
   let filtroRil = "tutti";
+  let ordRil = "data";
+  if ($("ril-ord")) $("ril-ord").onchange = () => { ordRil = $("ril-ord").value; refresh(); };
   $("ril-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroRil = f; refresh(); }
@@ -179,8 +189,11 @@
       ? `Andamento: ultimo rilievo <b>${tv.ultimo.toLocaleString("it-IT")} m³</b>, ${tv.delta >= 0 ? "+" : ""}${tv.delta.toLocaleString("it-IT")} m³${tv.pct != null ? " (" + (tv.pct >= 0 ? "+" : "") + tv.pct + "%)" : ""} sul precedente <span class="badge ${tv.delta >= 0 ? "ok" : "warn"}">${tv.delta >= 0 ? "in aumento" : "in calo"}</span>`
       : "";
 
+    const rilCmp = (a, b) => ordRil === "volume" ? (+b.volumeM3 || 0) - (+a.volumeM3 || 0) || (b.data||"").localeCompare(a.data||"")
+      : ordRil === "titolo" ? String(a.titolo || "").localeCompare(String(b.titolo || ""), "it")
+      : (b.data||"").localeCompare(a.data||"");
     const ril = RIL.filter(r => filtroRil === "tutti" || r.stato === filtroRil)
-                   .sort((a,b) => (b.data||"").localeCompare(a.data||""));
+                   .sort(rilCmp);
     $("ril-list").innerHTML = ril.map(r => {
       const ca = classeAccuratezza(r);
       const bv = (r.volumeM3 != null && ca.tolleranzaPct != null) ? bandaVolume(r.volumeM3, ca.tolleranzaPct) : null;
