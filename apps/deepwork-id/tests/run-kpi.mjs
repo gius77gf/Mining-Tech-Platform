@@ -252,6 +252,13 @@ test("valoreMateriale: input non validi contano come 0 (niente NaN)", () => {
   eq(terra.valoreMateriale("abc", 1.6, 12), { tonnellate: 0, valore: 0 }, "volume non numerico → 0");
   eq(terra.valoreMateriale(1000, 1.6, ""), { tonnellate: 1600, valore: 0 }, "prezzo vuoto → valore 0");
 });
+test("qualitaRilievo: compone metodo + GSD; vuoto se non si sa nulla", () => {
+  eq(terra.qualitaRilievo({ metodo: "RTK+GCP", gsd: "2" }), "RTK+GCP · GSD 2 cm", "metodo + gsd");
+  eq(terra.qualitaRilievo({ metodo: "PPK" }), "PPK", "solo metodo");
+  eq(terra.qualitaRilievo({ gsd: "3" }), "GSD 3 cm", "solo gsd");
+  eq(terra.qualitaRilievo({}), "", "niente → vuoto");
+  eq(terra.qualitaRilievo({ metodo: null, gsd: "" }), "", "campi vuoti → vuoto");
+});
 
 console.log("\n— Flotta: mezzi e manutenzioni —");
 test("urgenza: a ore / scaduta / in scadenza", () => {

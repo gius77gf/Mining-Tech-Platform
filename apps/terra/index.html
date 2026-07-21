@@ -71,6 +71,15 @@
     <select class="dw-input" id="new-ril-fronte" style="flex:1;min-width:120px;"></select>
     <input class="dw-input" id="new-ril-data" type="date" style="flex:1;min-width:130px;">
     <input class="dw-input" id="new-ril-vol" type="number" min="0" placeholder="Volume m³" style="flex:1;min-width:110px;">
+    <select class="dw-input" id="new-ril-metodo" title="Metodo di rilievo" style="flex:1;min-width:110px;">
+      <option value="">Metodo…</option>
+      <option value="RTK">RTK</option>
+      <option value="PPK">PPK</option>
+      <option value="RTK+GCP">RTK+GCP</option>
+      <option value="GCP">GCP</option>
+      <option value="senza GCP">senza GCP</option>
+    </select>
+    <input class="dw-input" id="new-ril-gsd" type="number" min="0" step="0.1" placeholder="GSD cm" style="flex:1;min-width:90px;">
     <button class="dw-btn" id="btn-add-ril" style="width:auto;">Registra</button>
   </div>
   <div class="note" id="ril-esito" style="text-align:left;"></div>
@@ -102,7 +111,7 @@
 </script>
 
 <script type="module">
-  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale } from "./terra-data.js";
+  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo } from "./terra-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const FB = { attivo: ["ok","Attivo"], sospeso: ["warn","Sospeso"] };
@@ -154,7 +163,7 @@
     const ril = RIL.filter(r => filtroRil === "tutti" || r.stato === filtroRil)
                    .sort((a,b) => (b.data||"").localeCompare(a.data||""));
     $("ril-list").innerHTML = ril.map(r => `<div class="item">
-      <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${dmy(r.data)} · ${esc(r.tipo||"")}${r.volumeM3!=null?" · "+r.volumeM3.toLocaleString("it-IT")+" m³":""}</div></div>
+      <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${dmy(r.data)} · ${esc(r.tipo||"")}${r.volumeM3!=null?" · "+r.volumeM3.toLocaleString("it-IT")+" m³":""}${qualitaRilievo(r)?" · "+esc(qualitaRilievo(r)):""}</div></div>
       <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${r.stato==="pianificato"?`<span class="arr" style="cursor:pointer" title="Annulla rilievo pianificato" data-del-ril="${r.id}">✕</span>`:""}</div>`).join("")
       || '<div class="note" style="text-align:left;">'+(filtroRil==="tutti"?"Nessun rilievo registrato.":"Nessun rilievo in questa categoria.")+'</div>';
     document.querySelectorAll("#ril-filtri [data-filtro]").forEach(b =>
@@ -235,14 +244,16 @@
     $("new-ril-vol").style.borderColor = ""; $("new-ril-data").style.borderColor = "";
     const fronteId = $("new-ril-fronte").value || null;
     const fr = FRO.find(f => f.id === fronteId);
+    const metodo = $("new-ril-metodo").value || null;
+    const gsd = $("new-ril-gsd").value.trim() || null;
     if (futuro) {
       await db.aggiungi("rilievi", { titolo: "Prossimo rilievo" + (fr ? " — " + fr.nome : ""), data, tipo: "Drone pianificato", volumeM3: null, fronteId, stato: "pianificato" });
       $("ril-esito").textContent = "Rilievo PIANIFICATO per il " + dmy(data) + (fr ? " su " + fr.nome : "") + ".";
     } else {
-      await db.aggiungi("rilievi", { titolo: "Rilievo drone " + dmy(data) + (fr ? " — " + fr.nome : ""), data, tipo: "Ortofoto + DEM", volumeM3: vol, fronteId, stato: "elaborato" });
+      await db.aggiungi("rilievi", { titolo: "Rilievo drone " + dmy(data) + (fr ? " — " + fr.nome : ""), data, tipo: "Ortofoto + DEM", volumeM3: vol, fronteId, stato: "elaborato", metodo, gsd });
       $("ril-esito").textContent = "Rilievo del " + dmy(data) + " registrato: " + vol.toLocaleString("it-IT") + " m³" + (fr ? " su " + fr.nome : "") + " (KPI aggiornati).";
     }
-    $("new-ril-data").value = ""; $("new-ril-vol").value = ""; $("new-ril-data").focus(); await refresh();
+    $("new-ril-data").value = ""; $("new-ril-vol").value = ""; $("new-ril-metodo").value = ""; $("new-ril-gsd").value = ""; $("new-ril-data").focus(); await refresh();
   };
   // Recupero errore: appena l'utente corregge un campo, togli il bordo
   // rosso e il messaggio di esito, così l'avviso non resta appeso.
