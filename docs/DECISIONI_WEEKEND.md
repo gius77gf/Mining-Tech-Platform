@@ -61,16 +61,23 @@ può procedere con l'attuazione.
 - **Dettaglio**: `docs/AUDIT_SICUREZZA.md` punto 12.
 - [ ] Stile deciso
 
-## 6. Genesi — prossima priorità
-- **Stato**: Fase A completa (flyrock, fori bagnati, rock-factor Lilly,
-  presplit, confronto A/B). Il motore fisico NON si tocca senza tua
-  indicazione.
-- **Decisione che serve**: quale rifinitura o nuova feature vuoi per prima?
-  (es. una debolezza visiva specifica da correggere, o una nuova scheda di
-  calcolo). Senza una tua indicazione i cicli automatici non modificano il
-  motore.
-- **Dettaglio**: `apps/genesi/PIANO_3D.md`.
-- [ ] Indicata la priorità
+## 6. Genesi — sblocco delle funzioni sulla geometria del fronte
+- **Stato**: hai indicato la direzione ("raggiungere il livello dei
+  concorrenti"). Fatte le funzioni sicure lato browser: **riconciliazione**
+  previsto-vs-reale, **signature-hole** (vibrazioni dall'onda reale) ed
+  **export del piano di innesco** (XML IREDES-like). Dettaglio in
+  `docs/GENESI_NUOVE_FUNZIONI.md` e `docs/GENESI_ROADMAP_COMPETITOR.md`.
+- **Decisione che serve**: due funzioni potenti restano **rimandate di
+  proposito** perché toccano la geometria del fronte e un avviso di flyrock
+  sbagliato sarebbe **pericoloso per il fochino**:
+  1. **Burden reale per foro** dal 3D del fronte (P1.1);
+  2. **Import della deviazione dei fori** (boretrack, P1.2).
+  Per procedere in sicurezza serve che tu confermi **come va letta la
+  deviazione del fronte** (il segno: sporgenza in avanti = burden minore o
+  maggiore?), idealmente con un caso reale della tua cava da verificare.
+- **Il motore fisico** NON si tocca senza tua indicazione.
+- **Dettaglio**: `apps/genesi/PIANO_3D.md`, `docs/GENESI_ROADMAP_COMPETITOR.md` (P1).
+- [ ] Confermata la geometria del fronte (per sbloccare P1.1/P1.2)
 
 ---
 
