@@ -536,6 +536,20 @@ test("bandaVolume: banda ± sulla base della %tolleranza", () => {
   eq(terra.bandaVolume(100, null), null, "tolleranza assente → null");
   eq(terra.bandaVolume(-5, 2), null, "volume negativo → null");
 });
+test("presetDensita: ritorna densità tipica del litotipo con avviso daVerificare", () => {
+  const c = terra.presetDensita("calcare-compatto");
+  eq(c.densita, 2.6, "calcare compatto 2,6 t/m³");
+  eq(c.daVerificare, true, "sempre da verificare");
+  eq(terra.presetDensita("inesistente"), null, "chiave sconosciuta → null");
+  // ogni preset ha chiave/etichetta/densità plausibile per una roccia in banco
+  for (const p of terra.DENSITA_PRESET) {
+    if (!p.chiave || !p.etichetta) throw new Error("preset senza chiave/etichetta");
+    if (!(p.densita >= 1.5 && p.densita <= 3.2)) throw new Error(`densità fuori range per ${p.chiave}: ${p.densita}`);
+  }
+  // le chiavi sono uniche
+  const chiavi = terra.DENSITA_PRESET.map(p => p.chiave);
+  if (new Set(chiavi).size !== chiavi.length) throw new Error("chiavi duplicate nei preset densità");
+});
 test("proiezioneAnnua: al ritmo attuale supera l'autorizzato → danger", () => {
   const rilievi = [
     { data: "2026-07-15", volumeM3: 19400, stato: "elaborato" },
