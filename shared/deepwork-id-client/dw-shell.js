@@ -75,6 +75,20 @@ export function parseCsvLine(line) {
   });
 }
 
+// Riconosce la RIGA D'INTESTAZIONE di un CSV in modo indipendente dal
+// delimitatore. L'header è la prima riga quando inizia col nome della prima
+// colonna seguito da un separatore (; TAB o virgola). Serve perché
+// parseCsvLine rileva anche virgola e TAB, mentre prima ogni parser toglieva
+// l'header solo se separato da ";": un file a virgole CON intestazione avrebbe
+// iniettato una riga-fantasma "header". Case-insensitive, spazi ammessi dopo
+// il nome colonna. La keyword viene "escapata" per sicurezza futura.
+export function isIntestazione(row, primaColonna) {
+  const kw = String(primaColonna || "").trim();
+  if (!kw) return false;
+  const escKw = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp("^" + escKw + "\\s*[;,\\t]", "i").test(String(row || "").trim());
+}
+
 // Converte un numero scritto "all'italiana" o "all'inglese" in Number, così
 // l'import CSV non perde righe per colpa del formato. Regola: l'ULTIMO
 // separatore presente è quello DECIMALE.

@@ -10,7 +10,7 @@
 //                     (piano di carico volata importato da CSV, ponte Genesi)
 // ============================================================
 
-import { parseCsvLine, numIt } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, numIt, isIntestazione } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
   attivita: [
@@ -131,7 +131,7 @@ export function avanzamentoGiornata(attivita) {
 // nome/area sono testo grezzo → escapare dove mostrati. Pura e testabile.
 export function parseSquadreCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !/^nome\s*;/i.test(r))
+    .filter(r => !isIntestazione(r, "nome"))
     .map(r => {
       const [nome, persone, area, stato] = parseCsvLine(r);
       const n = numIt(persone);
@@ -152,7 +152,7 @@ export function parseSquadreCsv(text) {
 // (vedi docs/AUDIT_SICUREZZA.md punto 13). Funzione pura e testabile.
 export function parsePianoCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !/^foro;/i.test(r))
+    .filter(r => !isIntestazione(r, "foro"))
     .map(r => {
       const [foro, x, fila, prof, prog, borr, rit] = parseCsvLine(r);
       return { foro: numIt(foro), x, fila, prof, prog: numIt(prog), borr, rit, reale: null };

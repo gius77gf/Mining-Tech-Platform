@@ -7,7 +7,7 @@
 // KPI CALCOLATI: da incassare, in scadenza, gare aperte, DSO.
 // ============================================================
 
-import { parseCsvLine, numIt, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, numIt, giorniTra, isIntestazione } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
   fatture: [
@@ -77,7 +77,7 @@ export function agingIncassi(fatture, oggi = new Date()) {
 export function parseFattureCsv(text) {
   const vero = (v) => /^(si|sì|true|1|x)$/i.test(String(v || "").trim());
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !/^numero\s*;/i.test(r))
+    .filter(r => !isIntestazione(r, "numero"))
     .map(r => {
       const [numero, cliente, importo, emessa, scadenza, incassata] = parseCsvLine(r);
       return {
@@ -98,7 +98,7 @@ export function parseFattureCsv(text) {
 export function parseGareCsv(text) {
   const stati = ["aperta", "vinta", "persa"];
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !/^titolo\s*;/i.test(r))
+    .filter(r => !isIntestazione(r, "titolo"))
     .map(r => {
       const [titolo, base, scadenza, stato] = parseCsvLine(r);
       const b = numIt(base);

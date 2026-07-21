@@ -9,7 +9,7 @@
 // L'urgenza delle manutenzioni si CALCOLA dalla data (mai salvata).
 // ============================================================
 
-import { parseCsvLine, numIt, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, numIt, giorniTra, isIntestazione } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
   mezzi: [
@@ -46,7 +46,7 @@ export const DEMO = {
 // Funzione pura e testabile.
 export function parseTelemetriaCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !/^mezzo\s*;/i.test(r))
+    .filter(r => !isIntestazione(r, "mezzo"))
     .map(r => {
       const [mezzo, ore, carburante] = parseCsvLine(r);
       return {
@@ -66,7 +66,7 @@ export function parseTelemetriaCsv(text) {
 // e testabile.
 export function parseMezziCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !/^nome\s*;/i.test(r))
+    .filter(r => !isIntestazione(r, "nome"))
     .map(r => {
       const [nome, area, ore, stato] = parseCsvLine(r);
       const s = (stato || "").trim().toLowerCase();

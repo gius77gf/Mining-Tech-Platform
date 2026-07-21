@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const { esc, csvCell, parseCsvLine, numIt } = await import(
+const { esc, csvCell, parseCsvLine, numIt, isIntestazione } = await import(
   join(HERE, "../../../shared/deepwork-id-client/dw-shell.js")
 );
 
@@ -110,6 +110,22 @@ test("vuoto e testo → NaN (la riga verrà scartata)", () => {
   eq(Number.isNaN(numIt("")), true, "vuoto");
   eq(Number.isNaN(numIt("abc")), true, "testo");
 });
+
+console.log("\n— isIntestazione(): riconosce l'header CSV per ogni delimitatore —");
+test("header separato da ; → è intestazione", () =>
+  eq(isIntestazione("titolo;base;scadenza;stato", "titolo"), true, "punto e virgola"));
+test("header separato da virgola → è intestazione (prima veniva importato come riga)", () =>
+  eq(isIntestazione("titolo,base,scadenza,stato", "titolo"), true, "virgola"));
+test("header separato da TAB → è intestazione", () =>
+  eq(isIntestazione("titolo\tbase\tscadenza", "titolo"), true, "tab"));
+test("maiuscole e spazi dopo il nome colonna → è intestazione", () =>
+  eq(isIntestazione("  Titolo ; base", "titolo"), true, "case/spazi"));
+test("riga di dati normale → NON è intestazione", () =>
+  eq(isIntestazione("Fornitura inerti;120000;2026-07-28;aperta", "titolo"), false, "dati"));
+test("valore che inizia con la keyword ma senza separatore → NON è intestazione", () =>
+  eq(isIntestazione("titolone di gara", "titolo"), false, "senza delimitatore"));
+test("keyword vuota → mai intestazione", () =>
+  eq(isIntestazione("qualsiasi;cosa", ""), false, "keyword vuota"));
 
 console.log(`\nRisultato Helper: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
