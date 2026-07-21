@@ -443,6 +443,22 @@ test("trendVolumi: meno di due rilievi elaborati = null", () => {
   eq(terra.trendVolumi([{ data: "2026-07-15", volumeM3: 100, stato: "elaborato" }]), null, "uno solo");
   eq(terra.trendVolumi([]), null, "vuoto");
 });
+test("classeAccuratezza: da metodo+GSD a classe e tolleranza tipica", () => {
+  eq(terra.classeAccuratezza({ metodo: "RTK+GCP", gsd: "2" }).classe, "survey-grade", "RTK+GCP, GSD 2");
+  eq(terra.classeAccuratezza({ metodo: "RTK+GCP", gsd: "2" }).tolleranzaPct, 2, "±2%");
+  eq(terra.classeAccuratezza({ metodo: "PPK" }).classe, "survey-grade", "PPK, GSD ignoto");
+  eq(terra.classeAccuratezza({ metodo: "RTK", gsd: "5" }).classe, "indicativo", "GSD 5 > 2 → indicativo");
+  eq(terra.classeAccuratezza({ gsd: "1.5" }).classe, "indicativo", "solo GSD, niente metodo → indicativo");
+  eq(terra.classeAccuratezza({}).classe, "n.d.", "niente → n.d.");
+  eq(terra.classeAccuratezza({}).tolleranzaPct, null, "n.d. → tolleranza null");
+});
+test("bandaVolume: banda ± sulla base della %tolleranza", () => {
+  eq(terra.bandaVolume(19400, 2), { volume: 19400, banda: 388, min: 19012, max: 19788 }, "19400 ±2% = ±388");
+  eq(terra.bandaVolume(1000, 8), { volume: 1000, banda: 80, min: 920, max: 1080 }, "1000 ±8% = ±80");
+  eq(terra.bandaVolume(50, 8).min, 46, "min non negativo");
+  eq(terra.bandaVolume(100, null), null, "tolleranza assente → null");
+  eq(terra.bandaVolume(-5, 2), null, "volume negativo → null");
+});
 test("qualitaRilievo: compone metodo + GSD; vuoto se non si sa nulla", () => {
   eq(terra.qualitaRilievo({ metodo: "RTK+GCP", gsd: "2" }), "RTK+GCP · GSD 2 cm", "metodo + gsd");
   eq(terra.qualitaRilievo({ metodo: "PPK" }), "PPK", "solo metodo");
