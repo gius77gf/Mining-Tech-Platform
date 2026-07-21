@@ -97,6 +97,10 @@ test("terra: id unici, date rilievi valide, volumeM3 numerico o null", () => {
   for (const f of T.fronti) ok(["attivo", "sospeso"].includes(f.stato), `fronte ${f.id}: stato «${f.stato}» sconosciuto`);
   for (const r of T.rilievi) ok(["elaborato", "pianificato"].includes(r.stato), `rilievo ${r.id}: stato «${r.stato}» sconosciuto`);
   for (const p of T.piano) ok(["vigente", "in-esame"].includes(p.stato), `piano ${p.id}: stato «${p.stato}» sconosciuto`);
+  // vetrina: almeno un rilievo elaborato è collegato a un fronte, così la
+  // demo/tour mostra i m³ estratti per fronte (volumeFronte) invece di 0.
+  ok(T.rilievi.some(r => r.stato === "elaborato" && r.fronteId && fro.has(r.fronteId)),
+     "nessun rilievo demo collegato a un fronte: volumeFronte mostrerebbe 0 nella vetrina");
 });
 
 console.log(`\nRisultato Demo: ${passed} passati, ${failed} falliti`);
