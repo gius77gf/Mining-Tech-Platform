@@ -203,6 +203,61 @@ export function esposizioneClienti(fatture, oggi = new Date()) {
   return Object.values(per).sort((a, b) => b.totale - a.totale || a.cliente.localeCompare(b.cliente, "it"));
 }
 
+// ESTRATTO CONTO di un cliente: testo pronto (email/PEC) che elenca TUTTE le
+// sue fatture aperte con importo, scadenza, ritardo e interessi di mora, e
+// chiude con i totali (aperto, scaduto, mora, spese €40 per fattura scaduta,
+// totale dovuto). Serve quando un cliente ha PIÙ fatture aperte e vuoi
+// mandargli il quadro completo, non un sollecito per singola fattura. Ritorna
+// null se il cliente non ha fatture aperte. La nota "da confermare col
+// commercialista" resta nell'interfaccia. Pura e testabile.
+export function estrattoContoCliente(cliente, fatture, oggi = new Date(), tassoAnnuo = TASSO_MORA_DEFAULT) {
+  const nome = String(cliente || "").trim();
+  if (!nome) return null;
+  const aperte = (fatture || []).filter(f =>
+    !f.incassata && (+f.importo || 0) > 0 && ((f.cliente || "").trim()) === nome);
+  if (!aperte.length) return null;
+  aperte.sort((a, b) => (a.scadenza || "").localeCompare(b.scadenza || ""));
+  const e = (v) => "€ " + euroIt(v);
+  let totale = 0, scaduto = 0, moraTot = 0, scaduteN = 0;
+  const righe = aperte.map(f => {
+    const imp = +f.importo || 0;
+    totale += imp;
+    const g = giorni(f.scadenza, oggi);
+    const ritardo = Number.isFinite(g) && g < 0 ? -g : 0;
+    let coda;
+    if (ritardo > 0) {
+      scaduto += imp; scaduteN++;
+      const m = interessiMora(imp, ritardo, tassoAnnuo);
+      moraTot += m.interessi;
+      coda = `scaduta da ${ritardo} gg · mora ~${e(m.interessi)}`;
+    } else {
+      coda = Number.isFinite(g) ? "non ancora scaduta" : "senza scadenza";
+    }
+    return `- n. ${(f.numero || "—")} · ${e(imp)} · scad. ${dataIt(f.scadenza)} · ${coda}`;
+  });
+  const spese = scaduteN * SPESE_RECUPERO_231;
+  const totaleDovuto = Math.round((totale + moraTot + spese) * 100) / 100;
+  const od = new Date(oggi);
+  const oiso = `${od.getFullYear()}-${String(od.getMonth() + 1).padStart(2, "0")}-${String(od.getDate()).padStart(2, "0")}`;
+  const out = [
+    `Estratto conto — ${nome}`,
+    `Data: ${dataIt(oiso)}`,
+    ``,
+    `Fatture aperte (${aperte.length}):`,
+    ...righe,
+    ``,
+    `Totale aperto: ${e(totale)}`,
+    `Di cui scaduto: ${e(scaduto)}`,
+  ];
+  if (scaduteN > 0) {
+    out.push(`Interessi di mora stimati (D.Lgs 231/2002, ${String(tassoAnnuo).replace(".", ",")}%): ${e(moraTot)}`);
+    out.push(`Spese forfettarie art. 6 (${e(SPESE_RECUPERO_231)} × ${scaduteN} fatture scadute): ${e(spese)}`);
+    out.push(`Totale dovuto ad oggi: ${e(totaleDovuto)}`);
+  }
+  out.push(``, `La preghiamo di provvedere alla regolarizzazione. Restiamo a disposizione per ogni chiarimento.`);
+  return out.join("\n");
+}
+
 // Previsione incassi per MESE: raggruppa le fatture non incassate e non ancora
 // scadute per mese-calendario (yyyy-mm) nei prossimi `mesi` mesi, così si vede
 // la liquidità attesa nel tempo e non solo un totale a finestra. Le fatture già

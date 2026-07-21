@@ -358,6 +358,25 @@ test("testoSollecito: null se non scaduta o dati non validi", () => {
   eq(conti.testoSollecito({ numero: "X", importo: 0, scadenza: "2000-01-01" }, new Date(2026, 6, 21)), null, "importo 0");
   eq(conti.testoSollecito({ numero: "X", importo: 100 }, new Date(2026, 6, 21)), null, "senza scadenza");
 });
+test("estrattoContoCliente: elenca le fatture aperte del cliente con totali e mora", () => {
+  const fatture = [
+    { numero: "2026/031", cliente: "Edilcave Srl", importo: 18300, scadenza: "2026-07-08", incassata: false },  // scaduta 13 gg
+    { numero: "2026/040", cliente: "Edilcave Srl", importo: 5000,  scadenza: "2026-08-30", incassata: false },   // non scaduta
+    { numero: "2026/028", cliente: "Edilcave Srl", importo: 12000, scadenza: "2026-06-12", incassata: true },     // incassata → esclusa
+    { numero: "2026/034", cliente: "Stradesud",    importo: 9750,  scadenza: "2026-07-25", incassata: false },    // altro cliente
+  ];
+  const t = conti.estrattoContoCliente("Edilcave Srl", fatture, new Date(2026, 6, 21));
+  const must = ["Estratto conto — Edilcave Srl", "Data: 21/07/2026", "2026/031", "2026/040",
+                "Totale aperto: € 23.300", "Di cui scaduto: € 18.300", "€ 40 × 1", "231/2002"];
+  for (const s of must) if (!t.includes(s)) throw new Error(`manca "${s}" nell'estratto conto`);
+  if (t.includes("2026/028")) throw new Error("la fattura incassata non deve comparire");
+  if (t.includes("2026/034")) throw new Error("le fatture di altri clienti non devono comparire");
+});
+test("estrattoContoCliente: null se cliente senza fatture aperte o nome vuoto", () => {
+  eq(conti.estrattoContoCliente("Nessuno", [{ cliente: "Altro", importo: 100, incassata: false, scadenza: "2026-07-01" }], new Date(2026, 6, 21)), null, "cliente inesistente");
+  eq(conti.estrattoContoCliente("", [{ cliente: "Altro", importo: 100, incassata: false, scadenza: "2026-07-01" }], new Date(2026, 6, 21)), null, "nome vuoto");
+  eq(conti.estrattoContoCliente("X", [{ cliente: "X", importo: 100, incassata: true, scadenza: "2026-07-01" }], new Date(2026, 6, 21)), null, "solo fatture incassate");
+});
 // — Scudo: testo del promemoria scadenze —
 test("testoPromemoria: convocazione per scadenza scaduta o in scadenza", () => {
   const scaduta = scudo.testoPromemoria(
