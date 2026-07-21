@@ -125,6 +125,26 @@ export function avanzamentoGiornata(attivita) {
   };
 }
 
+// Import delle SQUADRE da CSV (onboarding: caricare le squadre di cantiere).
+// Colonne: nome;persone;area;stato (header opzionale). Tiene solo le righe con
+// un nome; persone via numIt (≥0); stato operativa|ferma (default operativa).
+// nome/area sono testo grezzo → escapare dove mostrati. Pura e testabile.
+export function parseSquadreCsv(text) {
+  return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !/^nome\s*;/i.test(r))
+    .map(r => {
+      const [nome, persone, area, stato] = parseCsvLine(r);
+      const n = numIt(persone);
+      return {
+        nome: (nome || "").trim(),
+        persone: Number.isFinite(n) ? Math.max(0, Math.round(n)) : 0,
+        area: (area || "").trim(),
+        stato: (stato || "").trim().toLowerCase() === "ferma" ? "ferma" : "operativa",
+      };
+    })
+    .filter(q => q.nome);
+}
+
 // Piano di carico importato da CSV (colonne: foro;x;fila;prof;prog;borr;rit).
 // Solo foro e prog vengono usati per calcoli/chiavi, quindi qui si coercono
 // a numero e le righe con valori non validi vengono scartate. Gli altri

@@ -135,7 +135,19 @@ Pagina **Rilievi → Importa rilievi (CSV)**.
   (RTK, PPK, GCP…) e `gsd` (cm/pixel) rendono il volume "difendibile" in un
   controllo, ma non sono obbligatori.
 
-## Campo — piano di carico della volata (fochino)
+## Campo — 1) squadre di cantiere
+Pagina **Squadre → Importa squadre (CSV)** (oppure aggiungile a mano dal form).
+- **Colonne**: `nome;persone;area;stato`
+- **Esempio**:
+  ```
+  nome;persone;area;stato
+  Squadra A — Perforazione;4;fronte Est;operativa
+  Squadra C — Impianto;2;frantoio;ferma
+  ```
+- **Note**: serve solo il **nome**; una squadra con lo stesso nome viene
+  saltata. `stato` è `operativa` o `ferma` (default operativa).
+
+## Campo — 2) piano di carico della volata (fochino)
 Pagina **Volata → Importa piano (CSV)**. È il "ponte" dal disegno volata
 (Genesi) al campo: si carica il piano progettato e poi si registra la carica
 reale foro per foro.
@@ -206,6 +218,7 @@ Pagina **Registri → Registro volate → Importa da CSV**.
 | Conti | Fatture | `numero;cliente;importo;emessa;scadenza;incassata` |
 | Terra | Fronti | `nome;banco;quota;stato` |
 | Terra | Rilievi | `data;volumeM3;metodo;gsd;fronte` (metodo/gsd/fronte facoltativi) |
+| Campo | Squadre | `nome;persone;area;stato` |
 | Campo | Piano volata | `foro;x;fila;prof;prog;borr;rit` |
 | Sentinella | Sensori | `nome;tipo;valore;soglia;unita;nota` |
 | Sentinella | Adempimenti | `titolo;ente;scadenza` |
