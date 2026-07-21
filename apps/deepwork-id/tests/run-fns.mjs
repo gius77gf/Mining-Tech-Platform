@@ -70,6 +70,20 @@ const expectCode = async (p, frag, why) => {
   throw new Error(why + " — nessun errore alzato");
 };
 const roleOf = async (uid) => (await adb.doc(`organizations/orgA/members/${uid}`).get()).data()?.role || null;
+// Attende che i custom claims dell'utente (aggiornati dal trigger onMemberWrite
+// in modo ASINCRONO) riflettano il ruolo atteso, prima di rifare login e
+// chiamare una function che si basa su auth.token.orgs. Senza questa attesa il
+// test è flaky: un token con claim ancora "vecchio" fa scattare il guardrail
+// sbagliato (es. permission-denied invece di failed-precondition).
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const waitClaim = async (uid, orgId, role, tries = 60) => {
+  for (let i = 0; i < tries; i++) {
+    const u = await aauth.getUser(uid);
+    if (u.customClaims && u.customClaims.orgs && u.customClaims.orgs[orgId] === role) return;
+    await sleep(50);
+  }
+  throw new Error(`claim ${uid}.${orgId} non è diventato ${role} in tempo`);
+};
 
 const id = await DeepworkID.init({ appId: "deepwork-id", emulators: EMU });
 
@@ -106,6 +120,10 @@ await test("con un secondo owner il declassamento passa", async () => {
 await test("un ADMIN non può rimuovere un owner; l'ultimo owner non è rimovibile", async () => {
   await id.loginWithEmail("amm@cava-alfa.it", "password-123");
   await expectCode(id.removeMember("boss"), "permission-denied", "admin ha rimosso un owner");
+  // il test precedente ha ripristinato boss=owner via trigger asincrono:
+  // attendo che il claim sia propagato prima di loggarmi come boss, così il
+  // suo token dice "owner" e si arriva al guardrail dell'ultimo owner.
+  await waitClaim("boss", "orgA", "owner");
   await id.loginWithEmail("boss@cava-alfa.it", "password-123");
   await expectCode(id.removeMember("boss"), "failed-precondition", "ultimo owner rimosso");
 });
