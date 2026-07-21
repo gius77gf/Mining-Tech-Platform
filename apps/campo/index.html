@@ -62,6 +62,7 @@
 
 <div class="page" id="page-rap">
   <div class="sec">Rapportini di oggi</div>
+  <div id="rap-cop" class="note" style="text-align:left;"></div>
   <div id="rap-list"></div>
   <div class="sec">Nuovo rapportino di turno</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -108,7 +109,7 @@
 </script>
 
 <script type="module">
-  import { campoData, kpiFrom, parsePianoCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, riassuntoRapportino, avanzamentoGiornata } from "./campo-data.js";
+  import { campoData, kpiFrom, parsePianoCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini } from "./campo-data.js";
   import { mountExit, esc } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const AB = { "in-corso": ["ok","In corso"], pianificata: ["warn","Pianificata"], anomalia: ["danger","Anomalia"], conclusa: ["ok","Conclusa"] };
@@ -177,6 +178,11 @@
       <span class="badge ${QB[q.stato][0]}">${QB[q.stato][1]}</span></div>`).join("")
       || '<div class="note" style="text-align:left;">Nessuna squadra in turno.</div>';
 
+    const cop = coperturaRapportini(SQU, RAP);
+    $("rap-cop").innerHTML = cop.totale === 0 ? ""
+      : cop.mancanti.length === 0
+        ? `Rapportini di turno: <b class="badge ok" style="font-size:inherit;">${cop.coperte}/${cop.totale} squadre</b> — tutte hanno consegnato.`
+        : `Rapportini di turno: <b class="badge warn" style="font-size:inherit;">${cop.coperte}/${cop.totale} squadre</b> — manca ${cop.mancanti.map(esc).join(", ")}.`;
     $("rap-list").innerHTML = RAP.map(r => { const rias = riassuntoRapportino(r);
       return `<div class="item" data-rap="${r.id}" style="cursor:pointer" title="${r.stato==="bozza" ? "Tocca per inviare" : "Tocca per richiamare in bozza"}">
       <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${rias ? esc(rias) : esc(r.squadra||"—")}${r.ora?" · "+esc(r.ora):""}</div></div>

@@ -969,6 +969,25 @@ test("riassuntoRapportino: compone turno/squadra/produzione/consegne", () => {
   eq(campo.riassuntoRapportino({ squadra: "Squadra B" }), "Squadra B", "solo squadra");
   eq(campo.riassuntoRapportino({}), "", "niente → vuoto");
 });
+test("coperturaRapportini: quali squadre hanno consegnato il rapportino, chi manca", () => {
+  const squadre = [
+    { nome: "Squadra A — Perforazione", stato: "operativa" },
+    { nome: "Squadra B — Carico", stato: "operativa" },
+    { nome: "Squadra C — Impianto", stato: "ferma" },
+  ];
+  const rapportini = [
+    { squadra: "Squadra A", stato: "inviato" },
+    { squadra: "Squadra C", stato: "bozza" },      // bozza → non conta
+    { squadra: "Squadra B", stato: "inviato" },
+  ];
+  const c = campo.coperturaRapportini(squadre, rapportini);
+  eq(c.coperte, 2, "A e B hanno consegnato");
+  eq(c.totale, 3, "3 squadre");
+  eq(c.pct, 67, "2/3 = 67%");
+  eq(c.mancanti, ["Squadra C — Impianto"], "manca la C (solo bozza)");
+});
+test("coperturaRapportini: nessuna squadra = pct null (niente crash)", () =>
+  eq(campo.coperturaRapportini([], []), { coperte: 0, totale: 0, pct: null, mancanti: [] }, "vuoto"));
 
 console.log("\n— Import CSV robusto: numeri all'italiana e ';' nei campi —");
 test("numIt: formati italiano/inglese/misti", () => {
