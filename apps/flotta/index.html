@@ -45,6 +45,14 @@
     <button class="dw-btn secondary" data-filtro="verifica" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">In verifica</button>
     <button class="dw-btn secondary" data-filtro="fermo" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Fermi</button>
   </div>
+  <div style="display:flex;align-items:center;gap:6px;margin:-2px 0 10px;">
+    <span class="dw-muted" style="font-size:12px;">Ordina:</span>
+    <select id="mez-ord" class="dw-input" style="width:auto;min-height:32px;padding:2px 8px;font-size:12px;">
+      <option value="stato">Stato (prima i fermi)</option>
+      <option value="ore">Ore motore (dal più alto)</option>
+      <option value="nome">Nome (A→Z)</option>
+    </select>
+  </div>
   <div id="mez-list"></div>
   <div class="sec">Nuovo mezzo</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -152,12 +160,14 @@
 
   let MEZ=[], MAN=[], COS=[], RIC=[];
   let filtroMez = "tutti";
+  let ordMez = "stato";
   const MEZ_NEXT = { operativo: "verifica", verifica: "fermo", fermo: "operativo" };
   $("man-oregiorno").addEventListener("input", () => refresh());
   $("mez-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroMez = f; refresh(); }
   });
+  if ($("mez-ord")) $("mez-ord").onchange = () => { ordMez = $("mez-ord").value; refresh(); };
   async function refresh(){
     [MEZ,MAN,COS,RIC] = await Promise.all([db.mezzi(), db.manutenzioni(), db.costi(), db.ricambi ? db.ricambi() : []]);
     const k = kpiFrom(MEZ,MAN,COS);
@@ -186,10 +196,13 @@
       <span class="badge ${a.gravita}">${esc(a.badge)}</span></div>`).join("") || '<div class="note">Nessuna criticità sul parco mezzi.</div>';
 
     const ordStato = { fermo: 0, verifica: 1, operativo: 2 };
+    const mezCmp = (a, b) => ordMez === "ore" ? (+b.ore || 0) - (+a.ore || 0)
+      : ordMez === "nome" ? a.nome.localeCompare(b.nome, "it")
+      : (ordStato[a.stato] ?? 3) - (ordStato[b.stato] ?? 3) || a.nome.localeCompare(b.nome, "it");
     const disp = disponibilitaFlotta(MEZ);
     $("mez-disp").innerHTML = disp.pct == null ? ""
       : `Disponibilità flotta: <b>${disp.pct}%</b> (${disp.operativi} operativi su ${disp.totale}). <span style="color:var(--muted);">Riferimento world-class ~92-94%.</span>`;
-    const mezOrd = MEZ.slice().sort((a, b) => (ordStato[a.stato] ?? 3) - (ordStato[b.stato] ?? 3) || a.nome.localeCompare(b.nome, "it"))
+    const mezOrd = MEZ.slice().sort(mezCmp)
                        .filter(m => filtroMez === "tutti" || m.stato === filtroMez);
     $("mez-list").innerHTML = mezOrd.map(m => `<div class="item" data-mezzo="${m.id}" style="cursor:pointer" title="Tocca per cambiare stato">
       <div class="avatar">${esc(sig(m.nome))}</div>

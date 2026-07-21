@@ -381,6 +381,15 @@ Avanzamento:
   immagine, ML) richiede backend.
 - **Poi**: qualità delle altre app verticali (già molto rifinite in settimana).
 
+### Seconde iterazioni UX app verticali (fallback #1 — ordinamenti)
+- **Conti — ordinamento fatture** (#305, mergiato): scadenza / importo (dal
+  più grande) / cliente A→Z.
+- **Flotta — ordinamento mezzi**: stato (prima i fermi) / ore motore (dal più
+  alto) / nome A→Z. Utile per manutenzione (chi ha più ore) e per il colpo
+  d'occhio sui fermi.
+- **Prossimo**: continuare ordinamenti/filtri dove mancano (Campo, Terra,
+  Scudo, Sentinella) o test aggiuntivi.
+
 ### Stato feature Genesi vs competitor (aggiornato)
 Genesi ora ha: frammentazione Kuz-Ram/KCO, flyrock, fori bagnati, presplit,
 A/B, detonatori, **vibrazioni PPV/Devine + airblast**, MWD, 3D-da-foto, e ORA
