@@ -167,7 +167,8 @@
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroMez = f; refresh(); }
   });
-  if ($("mez-ord")) $("mez-ord").onchange = () => { ordMez = $("mez-ord").value; refresh(); };
+  try { const _s = localStorage.getItem("dwSort_mez"); if (_s) { ordMez = _s; if ($("mez-ord")) $("mez-ord").value = _s; } } catch (e) {}
+  if ($("mez-ord")) $("mez-ord").onchange = () => { ordMez = $("mez-ord").value; try { localStorage.setItem("dwSort_mez", ordMez); } catch (e) {} refresh(); };
   async function refresh(){
     [MEZ,MAN,COS,RIC] = await Promise.all([db.mezzi(), db.manutenzioni(), db.costi(), db.ricambi ? db.ricambi() : []]);
     const k = kpiFrom(MEZ,MAN,COS);

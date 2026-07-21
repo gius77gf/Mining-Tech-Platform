@@ -405,6 +405,13 @@ Avanzamento:
 - **Prossimo**: passare a altre seconde iterazioni UX (stati vuoti, validazioni
   input) o test aggiuntivi (emulatore, casi limite).
 
+### Ordinamenti — memoria della scelta (rifinitura)
+- **Persistenza dell'ordinamento** (tutte e 6 le app): la scelta "Ordina" viene
+  ricordata tra una visita e l'altra (localStorage `dwSort_*`), così l'utente non
+  la re-imposta ogni volta. Ripristino con guardia (se il valore salvato non è
+  valido, resta il default). Verificato: Conti/Sentinella/Campo ripristinano dopo
+  reload; nessun errore.
+
 ### Revisione sicurezza — isolamento app verticali (fallback #5, priorità #1)
 - **Audit isolamento** (`docs/AUDIT_ISOLAMENTO_APP.md`): CONFERMATO che tutte e
   6 le app usano `orgCollection` per ogni operazione dati, zero percorsi

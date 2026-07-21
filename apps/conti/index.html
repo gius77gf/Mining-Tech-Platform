@@ -146,7 +146,8 @@
   const fatCmp = (a, b) => ordFat === "importo" ? (+b.importo || 0) - (+a.importo || 0)
     : ordFat === "cliente" ? String(a.cliente || "").localeCompare(String(b.cliente || ""))
     : String(a.scadenza || "9999").localeCompare(String(b.scadenza || "9999"));
-  if ($("fat-ord")) $("fat-ord").onchange = () => { ordFat = $("fat-ord").value; refresh(); };
+  try { const _s = localStorage.getItem("dwSort_fat"); if (_s) { ordFat = _s; if ($("fat-ord")) $("fat-ord").value = _s; } } catch (e) {}
+  if ($("fat-ord")) $("fat-ord").onchange = () => { ordFat = $("fat-ord").value; try { localStorage.setItem("dwSort_fat", ordFat); } catch (e) {} refresh(); };
   $("fat-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroFat = f; refresh(); }

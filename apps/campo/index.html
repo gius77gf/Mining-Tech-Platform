@@ -147,7 +147,8 @@
   let ATT=[], SQU=[], RAP=[];
   let filtroAtt = "tutte";
   let ordAttSel = "stato";
-  if ($("att-ord")) $("att-ord").onchange = () => { ordAttSel = $("att-ord").value; refresh(); };
+  try { const _s = localStorage.getItem("dwSort_att"); if (_s) { ordAttSel = _s; if ($("att-ord")) $("att-ord").value = _s; } } catch (e) {}
+  if ($("att-ord")) $("att-ord").onchange = () => { ordAttSel = $("att-ord").value; try { localStorage.setItem("dwSort_att", ordAttSel); } catch (e) {} refresh(); };
   $("att-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroAtt = f; refresh(); }
