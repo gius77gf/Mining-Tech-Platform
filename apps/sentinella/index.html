@@ -92,6 +92,11 @@
     <input class="dw-input" id="ade-data" type="date" style="flex:1;min-width:130px;">
     <button class="dw-btn" id="btn-ade" style="width:auto;">Aggiungi</button>
   </div>
+  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <button class="dw-btn secondary" id="btn-ade-import" style="width:auto;">Importa scadenze (CSV)</button>
+    <input type="file" id="ade-file" accept=".csv,text/csv" style="display:none;">
+    <span class="dw-muted" style="font-size:12px;">colonne: titolo;ente;scadenza</span>
+  </div>
   <div class="note" id="ade-esito" style="text-align:left;"></div>
   </div>
 
@@ -143,7 +148,7 @@
 </script>
 
 <script type="module">
-  import { sentinellaData, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, prioritaConformita, riepilogoVolate, parseVolateCsv, parseMonitoraggiCsv } from "./sentinella-data.js";
+  import { sentinellaData, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, prioritaConformita, riepilogoVolate, parseVolateCsv, parseAdempimentiCsv, parseMonitoraggiCsv } from "./sentinella-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
@@ -302,6 +307,20 @@
     $("ade-titolo").value = ""; $("ade-ente").value = ""; $("ade-data").value = "";
     $("ade-esito").textContent = "Adempimento aggiunto: " + titolo + " entro " + fmtD(scadenza) + ".";
     $("ade-titolo").focus();   // pronto per il prossimo adempimento
+    await refresh();
+  };
+  $("btn-ade-import").onclick = () => $("ade-file").click();
+  $("ade-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const righe = parseAdempimentiCsv(await file.text());
+    let agg = 0, dup = 0;
+    for (const r of righe) {
+      if (ADE.some(a => (a.titolo || "").toLowerCase() === r.titolo.toLowerCase() && a.scadenza === r.scadenza)) { dup++; continue; }
+      await db.aggiungi("adempimenti", { titolo: r.titolo, ente: r.ente, scadenza: r.scadenza });
+      agg++;
+    }
+    $("ade-file").value = "";
+    $("ade-esito").textContent = `Import scadenze: ${agg} aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}.`;
     await refresh();
   };
   $("btn-sen").onclick = async () => {
