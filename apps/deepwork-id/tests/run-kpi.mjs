@@ -786,6 +786,16 @@ test("CAUSALI_FERMO: lista non vuota, tutte stringhe uniche", () => {
   eq(c.length > 0, true, "non vuota");
   eq(c.length, new Set(c).size, "uniche");
 });
+test("avanzamentoGiornata: concluse sul totale + ripartizione per stato", () => {
+  const att = [
+    { stato: "conclusa" }, { stato: "conclusa" }, { stato: "conclusa" },
+    { stato: "in-corso" }, { stato: "pianificata" }, { stato: "anomalia" },
+  ];
+  eq(campo.avanzamentoGiornata(att),
+     { totale: 6, concluse: 3, inCorso: 1, pianificate: 1, anomalie: 1, pct: 50 }, "3/6 = 50%");
+});
+test("avanzamentoGiornata: nessuna attività = tutto zero, pct 0 (niente crash)", () =>
+  eq(campo.avanzamentoGiornata([]), { totale: 0, concluse: 0, inCorso: 0, pianificate: 0, anomalie: 0, pct: 0 }, "vuoto"));
 test("riassuntoRapportino: compone turno/squadra/produzione/consegne", () => {
   eq(campo.riassuntoRapportino({ turno: "Mattina", squadra: "Squadra A", produzione: "90 t", note: "cambiare benna" }),
      "Turno Mattina · Squadra A · Produzione: 90 t · Consegne: cambiare benna", "completo");

@@ -84,6 +84,23 @@ export function kpiFrom(attivita, squadre, rapportini) {
   };
 }
 
+// Avanzamento della giornata: quante attività sono CONCLUSE sul totale, con la
+// ripartizione per stato. Dà al preposto un "quanto manca" a colpo d'occhio.
+// pct = concluse / totale (0 se non ci sono attività). Pura e testabile.
+export function avanzamentoGiornata(attivita) {
+  const per = { pianificata: 0, "in-corso": 0, conclusa: 0, anomalia: 0 };
+  for (const a of attivita || []) if (per[a.stato] != null) per[a.stato]++;
+  const totale = (attivita || []).length;
+  return {
+    totale,
+    concluse: per.conclusa,
+    inCorso: per["in-corso"],
+    pianificate: per.pianificata,
+    anomalie: per.anomalia,
+    pct: totale > 0 ? Math.round(100 * per.conclusa / totale) : 0,
+  };
+}
+
 // Piano di carico importato da CSV (colonne: foro;x;fila;prof;prog;borr;rit).
 // Solo foro e prog vengono usati per calcoli/chiavi, quindi qui si coercono
 // a numero e le righe con valori non validi vengono scartate. Gli altri
