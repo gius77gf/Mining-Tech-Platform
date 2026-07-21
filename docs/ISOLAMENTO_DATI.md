@@ -57,6 +57,19 @@ modifica** (integrazione continua). Tra questi, casi espliciti in cui un
 Se anche uno solo di questi controlli fallisse, la modifica **non passa** in
 CI: la separazione è protetta contro le regressioni.
 
+## Revisione indipendente (onestà)
+Il meccanismo di isolamento è stato messo alla prova con **revisioni mirate
+"in cerca di falle"** (un revisore che prova ad aggirarlo). Esito: la
+**separazione tra aziende è risultata solida** — nessun percorso permette di
+puntare ai dati di un'altra organizzazione, l'app legge sempre l'org attiva nel
+momento dell'accesso, e le regole lato server bloccano il resto. Le stesse
+revisioni hanno però trovato e fatto correggere alcune imperfezioni **attorno
+agli abbonamenti e agli inviti** (es. un abbonamento che poteva "restare"
+cambiando account senza uscire; un invito riscattabile da un'email non
+verificata): tutte già sistemate e coperte da nuovi test. Diciamo anche questo
+perché la fiducia si costruisce con la trasparenza, non nascondendo i difetti
+trovati e risolti.
+
 ## La modalità "tour" (dati di esempio)
 Chi non ha un login vede una **demo** con dati finti, in **sola lettura**: non
 può scrivere sul tenant demo (anche questo è testato). Serve a mostrare le app
