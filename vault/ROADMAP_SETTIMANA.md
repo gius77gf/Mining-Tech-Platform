@@ -342,6 +342,29 @@ introdotto l'isolamento (grande intervento). NON toccato: è una decisione
 architetturale del fondatore. L'ecosistema `apps/*` è invece già multi-tenant
 via SDK orgCollection (44 test emulatore).
 
+## SESSIONE 21/07 (8ª parte) — isolamento del CORE (autorizzato dal fondatore)
+Il fondatore (21/07) ha autorizzato l'isolamento multi-tenant del cuore
+("un domani l'app dovrà essere rivenduta a più aziende") e ha chiesto poi di
+riprendere la RICERCA su Genesi + rivali, e infine alzare la qualità delle
+altre app. Fatto sul cuore, in modo sicuro (PR #297):
+- **Fase 0** design+audit (docs/ISOLAMENTO_CORE.md): scoperto che il cuore NON
+  ha auth server-side (login lato client) → l'isolamento VERO richiede prima
+  identità autenticata + regole server.
+- **Fase 1** indirezione data-layer: helper dcol/ddoc, 39 accessi da un solo
+  punto, flag MULTI_TENANT=false (comportamento invariato). Il cuore userà
+  organizations/{org}/apps/core/… (come "app" core).
+- **Fase 2** regola+test: coperto dalla regola generica già provata
+  apps/{appId}/**; +8 test emulatore d'isolamento del cuore (52 regole tot).
+  CI 314 → 322.
+- **Fasi 3-4 GATED**: auth Firebase (claim orgs, via Deepwork ID) + migrazione
+  dati di produzione + attivazione flag. Toccano infra/produzione → conferma
+  del fondatore, come MITIGAZIONE_PASSWORD. Preparate, NON attivate.
+
+## PROSSIMO (direttiva fondatore 21/07): RICERCA Genesi + rivali → poi qualità app
+Ordine richiesto dal fondatore: 1) ricerca approfondita su Genesi e tutti i
+competitor (Orica, Maptek, Maxam, Strayos, O-Pitblast, ecc.) per portare Genesi
+al loro livello (o poco sotto); 2) alzare la qualità delle altre app verticali.
+
 ## Fine progetto (fase commercializzazione) — NON prima
 - Acquisto dominio + sottodomini. DECISIONE DEL FONDATORE: nessuna
   spesa prima della commercializzazione.
