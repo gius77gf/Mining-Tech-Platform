@@ -454,6 +454,28 @@ test("pianoRiepilogo: stimato = reale dei registrati + progetto dei non registra
 });
 test("pianoRiepilogo: piano vuoto = null (niente crash/divisione per zero)", () =>
   eq(campo.pianoRiepilogo([]), null, "vuoto"));
+test("riepilogoFermi: conta le anomalie per causale, ordinate per frequenza", () => {
+  const att = [
+    { stato: "anomalia", causale: "Guasto meccanico" },
+    { stato: "anomalia", causale: "Guasto meccanico" },
+    { stato: "anomalia", causale: "Meteo" },
+    { stato: "in-corso", causale: "Guasto meccanico" },  // non anomalia → esclusa
+    { stato: "anomalia", causale: "causale-inventata" },  // sconosciuta → Altro
+    { stato: "anomalia" },                                // senza causale → Altro
+  ];
+  eq(campo.riepilogoFermi(att), [
+    { causale: "Altro", conto: 2 },            // a parità, ordine alfabetico
+    { causale: "Guasto meccanico", conto: 2 },
+    { causale: "Meteo", conto: 1 },
+  ], "conteggio e ordine per frequenza");
+});
+test("riepilogoFermi: nessuna anomalia = lista vuota (niente crash)", () =>
+  eq(campo.riepilogoFermi([{ stato: "in-corso" }]), [], "nessun fermo"));
+test("CAUSALI_FERMO: lista non vuota, tutte stringhe uniche", () => {
+  const c = campo.CAUSALI_FERMO;
+  eq(c.length > 0, true, "non vuota");
+  eq(c.length, new Set(c).size, "uniche");
+});
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);

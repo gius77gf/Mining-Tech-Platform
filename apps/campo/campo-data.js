@@ -28,6 +28,36 @@ export const DEMO = {
   ],
 };
 
+// Causali di fermo STANDARDIZZATE: senza una lista fissa non si possono
+// calcolare OEE e disponibilità (servono categorie confrontabili nel
+// tempo, non testo libero). Sono le voci tipiche di un fermo in cava.
+export const CAUSALI_FERMO = [
+  "Guasto meccanico",
+  "Mancanza materiale",
+  "Attesa mezzo",
+  "Intasamento impianto",
+  "Meteo",
+  "Manutenzione programmata",
+  "Cambio turno",
+  "Sicurezza",
+  "Altro",
+];
+
+// Riepilogo dei fermi (attività in stato "anomalia") per causale, ordinato
+// per frequenza decrescente. Una causale non riconosciuta o assente
+// confluisce in "Altro". Funzione pura e testabile.
+export function riepilogoFermi(attivita) {
+  const conteggi = {};
+  for (const a of attivita || []) {
+    if (a.stato !== "anomalia") continue;
+    const c = CAUSALI_FERMO.includes(a.causale) ? a.causale : "Altro";
+    conteggi[c] = (conteggi[c] || 0) + 1;
+  }
+  return Object.entries(conteggi)
+    .map(([causale, conto]) => ({ causale, conto }))
+    .sort((a, b) => b.conto - a.conto || a.causale.localeCompare(b.causale, "it"));
+}
+
 export function kpiFrom(attivita, squadre, rapportini) {
   return {
     squadreAttive: squadre.filter(q => q.stato === "operativa").length,
