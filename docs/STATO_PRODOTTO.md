@@ -51,6 +51,9 @@ scadenze dei lavoratori, così non ti trovi un operaio non idoneo sul fronte.
   formazioni, patentini, DSS…): li scegli da un elenco invece di scriverli.
 - **Promemoria pronto da inviare**: su una scadenza scaduta o in scadenza copi
   con un tasto il testo della convocazione da mandare al lavoratore (email/SMS).
+- **Registro infortuni e near-miss** con il numero grande dei **giorni senza
+  infortuni** (il "cartellone" della sicurezza): i near-miss non azzerano il
+  conto ma si registrano; import/export CSV per l'RSPP.
 - **Import scadenzario** e anagrafica da CSV; **export** CSV per il consulente
   o il medico competente.
 
