@@ -277,6 +277,7 @@
   $("squ-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseSquadreCsv(await file.text());
+    if (!righe.length) { $("squ-esito").textContent = "Nessuna riga valida: controlla che le colonne siano nome;persone;area;stato."; e.target.value = ""; return; }
     let agg = 0, dup = 0;
     for (const r of righe) {
       if (SQU.some(q => (q.nome || "").trim().toLowerCase() === r.nome.toLowerCase())) { dup++; continue; }

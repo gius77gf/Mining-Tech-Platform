@@ -344,6 +344,7 @@
   $("mez-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseMezziCsv(await file.text());
+    if (!righe.length) { $("ore-esito").textContent = "Nessuna riga valida: controlla che le colonne siano nome;area;ore;stato."; e.target.value = ""; return; }
     let agg = 0, dup = 0;
     for (const r of righe) {
       if (MEZ.some(m => m.nome.trim().toLowerCase() === r.nome.toLowerCase())) { dup++; continue; }  // già presente
