@@ -133,6 +133,18 @@ try {
     else if(err.code === 'unimplemented') console.warn('[Firestore] Browser non supporta IndexedDB');
   });
 }
+// ── ISOLAMENTO MULTI-TENANT (Fase 1 — vedi docs/ISOLAMENTO_CORE.md) ──
+// Tutto il data-layer del cuore passa da dcol()/ddoc(): un SOLO punto costruisce
+// i percorsi Firestore, mai a mano altrove. Con MULTI_TENANT=false i percorsi
+// restano quelli STORICI (globali) → comportamento IDENTICO a oggi in
+// produzione. La modalità multi-tenant (organizations/{org}/core/…) è PREPARATA
+// ma NON attiva: si accende SOLO insieme all'autenticazione server-side + alla
+// migrazione dei dati (Fasi 3-4), mai da sola (sarebbe un falso isolamento).
+const MULTI_TENANT = false;
+let ORG_ID = null; // organizzazione dell'utente autenticato (valorizzata in Fase 3)
+function dcol(col){ return MULTI_TENANT ? collection(db,'organizations',ORG_ID,'core',col) : collection(db,col); }
+function ddoc(col,id){ return MULTI_TENANT ? doc(db,'organizations',ORG_ID,'core',col,id) : doc(db,col,id); }
+
 // ── Firebase Storage (A3 — foto su Storage invece di base64 in Firestore) ──
 const fbStorage = getStorage(fbApp);
 
@@ -409,7 +421,7 @@ async function fbSet(col,id,data){
   const k = col+':'+id;
   _trackPending(k);
   try {
-    await setDoc(doc(db,col,id),data);
+    await setDoc(ddoc(col,id),data);
     _clearPending(k);
   } catch(e){
     // Con persistenza attiva, Firestore mette comunque il dato nella coda interna.
@@ -422,7 +434,7 @@ async function fbUpdate(col,id,data){
   const k = col+':'+id;
   _trackPending(k);
   try {
-    await updateDoc(doc(db,col,id),data);
+    await updateDoc(ddoc(col,id),data);
     _clearPending(k);
   } catch(e){
     console.warn('[fbUpdate] In coda offline:', col, id, e.message);
@@ -432,20 +444,20 @@ async function fbDelete(col,id){
   const k = col+':'+id;
   _trackPending(k);
   try {
-    await deleteDoc(doc(db,col,id));
+    await deleteDoc(ddoc(col,id));
     _clearPending(k);
   } catch(e){
     console.warn('[fbDelete] In coda offline:', col, id, e.message);
   }
 }
-async function fbAdd(col,data){ const ref=await addDoc(collection(db,col),data);return ref.id; }
+async function fbAdd(col,data){ const ref=await addDoc(dcol(col),data);return ref.id; }
 
 // ── AUDIT LOG (A5) — registra azioni sensibili ──
 async function auditLog(azione, dettagli){
   if(!state.user) return;
   try {
     const id = genId();
-    await setDoc(doc(db,'auditLog',id),{
+    await setDoc(ddoc('auditLog',id),{
       id,
       ts: Date.now(),
       data: today(),
@@ -603,7 +615,7 @@ async function initDB(){
     let needSeed = false;
     let settingsLoaded = false;
     try {
-      const settingsDoc = await getDoc(doc(db,'config','settings'));
+      const settingsDoc = await getDoc(ddoc('config','settings'));
       if(!settingsDoc.exists()){
         if(!_isOnline){throw new Error('Offline e nessuna cache locale');}
         needSeed = true;
@@ -671,18 +683,18 @@ function initDBOfflineFallback(){
 
 async function seedDB(){
   const b1=writeBatch(db);
-  b1.set(doc(db,'config','settings'),DB.settings);
-  DEFAULT_USERS.forEach(u=>b1.set(doc(db,'users',u.id),u));
-  DEFAULT_CLIENTI.forEach(c=>b1.set(doc(db,'clienti',c.id),c));
-  DEFAULT_CAVE.forEach(c=>b1.set(doc(db,'cave',c.id),c));
-  DEFAULT_MEZZILAV.forEach(m=>b1.set(doc(db,'mezziLav',m.id),m));
-  DEFAULT_MEZZISTR.forEach(m=>b1.set(doc(db,'mezziStr',m.id),m));
-  DEFAULT_PERSONALE.forEach(p=>b1.set(doc(db,'personale',p.id),p));
-  DEFAULT_PROMEMORIA.forEach(p=>b1.set(doc(db,'promemoria',p.id),p));
-  DEFAULT_MESSAGGI.forEach(m=>b1.set(doc(db,'messaggi',m.id),m));
-  DEFAULT_DEPOSITO.punte.forEach(p=>b1.set(doc(db,'deposito_punte',p.id),p));
-  DEFAULT_DEPOSITO.aste.forEach(a=>b1.set(doc(db,'deposito_aste',a.id),a));
-  DEFAULT_DEPOSITO.lubr.forEach(l=>b1.set(doc(db,'deposito_lubr',l.id),l));
+  b1.set(ddoc('config','settings'),DB.settings);
+  DEFAULT_USERS.forEach(u=>b1.set(ddoc('users',u.id),u));
+  DEFAULT_CLIENTI.forEach(c=>b1.set(ddoc('clienti',c.id),c));
+  DEFAULT_CAVE.forEach(c=>b1.set(ddoc('cave',c.id),c));
+  DEFAULT_MEZZILAV.forEach(m=>b1.set(ddoc('mezziLav',m.id),m));
+  DEFAULT_MEZZISTR.forEach(m=>b1.set(ddoc('mezziStr',m.id),m));
+  DEFAULT_PERSONALE.forEach(p=>b1.set(ddoc('personale',p.id),p));
+  DEFAULT_PROMEMORIA.forEach(p=>b1.set(ddoc('promemoria',p.id),p));
+  DEFAULT_MESSAGGI.forEach(m=>b1.set(ddoc('messaggi',m.id),m));
+  DEFAULT_DEPOSITO.punte.forEach(p=>b1.set(ddoc('deposito_punte',p.id),p));
+  DEFAULT_DEPOSITO.aste.forEach(a=>b1.set(ddoc('deposito_aste',a.id),a));
+  DEFAULT_DEPOSITO.lubr.forEach(l=>b1.set(ddoc('deposito_lubr',l.id),l));
   await b1.commit();
 }
 
@@ -696,13 +708,13 @@ async function loadAllData(){
     ['sismogrammi','sismogrammi'] // ← v4.5
   ];
   for(const [col,key] of loads){
-    const snap=await getDocs(collection(db,col));
+    const snap=await getDocs(dcol(col));
     DB[key]=snap.docs.map(d=>({id:d.id,...d.data()}));
   }
   const [ps,as,ls]=await Promise.all([
-    getDocs(collection(db,'deposito_punte')),
-    getDocs(collection(db,'deposito_aste')),
-    getDocs(collection(db,'deposito_lubr'))
+    getDocs(dcol('deposito_punte')),
+    getDocs(dcol('deposito_aste')),
+    getDocs(dcol('deposito_lubr'))
   ]);
   DB.deposito.punte=ps.docs.map(d=>({id:d.id,...d.data()}));
   DB.deposito.aste=as.docs.map(d=>({id:d.id,...d.data()}));
@@ -711,7 +723,7 @@ async function loadAllData(){
 
 // ── REALTIME LISTENERS ──
 function setupRealtimeListeners(){
-  onSnapshot(collection(db,'rapportini'),snap=>{
+  onSnapshot(dcol('rapportini'),snap=>{
     DB.rapportini=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(state.currentScreen==='volate')renderVolate();
     if(state.currentScreen==='home')renderHome();
@@ -719,64 +731,64 @@ function setupRealtimeListeners(){
     if(state.currentScreen==='dashboard')renderDashboard();
     if(state.currentScreen==='cava-det')apriCava(state.cavaSel);
   });
-  onSnapshot(collection(db,'rapportiniFoc'),snap=>{
+  onSnapshot(dcol('rapportiniFoc'),snap=>{
     DB.rapportiniFoc=snap.docs.map(d=>({id:d.id,...d.data()}));
   });
-  onSnapshot(collection(db,'sismogrammi'),snap=>{
+  onSnapshot(dcol('sismogrammi'),snap=>{
     DB.sismogrammi=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(state.currentScreen==='sismogrammi')renderSismogrammi();
   });
-  onSnapshot(collection(db,'messaggi'),snap=>{
+  onSnapshot(dcol('messaggi'),snap=>{
     DB.messaggi=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(state.currentScreen==='messaggi')renderMessaggi();
     if(state.currentScreen==='chat')renderChat();
     aggiornaNotifBadge();
   });
-  onSnapshot(collection(db,'promemoria'),snap=>{
+  onSnapshot(dcol('promemoria'),snap=>{
     DB.promemoria=snap.docs.map(d=>({id:d.id,...d.data()}));
     DB.promemoria.forEach(p=>{if(daysBetween(today(),p.data)<0)p.scaduto=true;});
     if(state.currentScreen==='notifiche')renderNotificheFull();
     aggiornaNotifBadge();
   });
-  onSnapshot(collection(db,'cave'),snap=>{
+  onSnapshot(dcol('cave'),snap=>{
     DB.cave=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(state.currentScreen==='cave')renderCave();
   });
-  onSnapshot(collection(db,'volate'),snap=>{
+  onSnapshot(dcol('volate'),snap=>{
     DB.volate=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(state.currentScreen==='editor-cava')renderEditorCava();
     if(state.currentScreen==='cava-det')apriCava(state.cavaSel);
   });
-  onSnapshot(collection(db,'clienti'),snap=>{
+  onSnapshot(dcol('clienti'),snap=>{
     DB.clienti=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(state.currentScreen==='clienti')renderClienti();
   });
-  onSnapshot(collection(db,'users'),snap=>{
+  onSnapshot(dcol('users'),snap=>{
     DB.users=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(state.currentScreen==='utenti')renderUtenti();
     if(state.user){const u=DB.users.find(x=>x.id===state.user.id);if(u)state.user=u;}
   });
-  onSnapshot(collection(db,'deposito_punte'),snap=>{
+  onSnapshot(dcol('deposito_punte'),snap=>{
     DB.deposito.punte=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(state.currentScreen==='deposito')renderDeposito();
   });
-  onSnapshot(collection(db,'deposito_aste'),snap=>{
+  onSnapshot(dcol('deposito_aste'),snap=>{
     DB.deposito.aste=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(state.currentScreen==='deposito')renderDeposito();
   });
-  onSnapshot(collection(db,'deposito_lubr'),snap=>{
+  onSnapshot(dcol('deposito_lubr'),snap=>{
     DB.deposito.lubr=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(state.currentScreen==='deposito')renderDeposito();
   });
-  onSnapshot(collection(db,'mezziLav'),snap=>{
+  onSnapshot(dcol('mezziLav'),snap=>{
     DB.mezziLav=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(state.currentScreen==='macchine')renderMacchine();
   });
-  onSnapshot(collection(db,'mezziStr'),snap=>{
+  onSnapshot(dcol('mezziStr'),snap=>{
     DB.mezziStr=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(state.currentScreen==='macchine')renderMacchine();
   });
-  onSnapshot(collection(db,'personale'),snap=>{
+  onSnapshot(dcol('personale'),snap=>{
     DB.personale=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(state.currentScreen==='personale')renderPersonale();
   });
@@ -2785,7 +2797,7 @@ async function checkSync(){
   toast('Sync in corso...','info');
   try {
     // Forza un read per triggerare sync interno Firestore
-    await getDoc(doc(db,'config','settings'));
+    await getDoc(ddoc('config','settings'));
     toast('Sync completato','success');
     renderSysInfo();
   } catch(e){
@@ -6364,7 +6376,7 @@ async function renderAuditLog(){
   if(!can('admin')){wrap.innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><div class="empty-title">Accesso riservato</div></div>';return;}
   wrap.innerHTML='<div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-title">Caricamento...</div></div>';
   try {
-    const snap = await getDocs(collection(db,'auditLog'));
+    const snap = await getDocs(dcol('auditLog'));
     const logs = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,200);
     if(logs.length===0){
       wrap.innerHTML='<div class="empty-state"><div class="empty-icon">🛡️</div><div class="empty-title">Nessuna azione registrata</div><div class="empty-sub">Le azioni sensibili (login, eliminazioni, modifiche utenti) compariranno qui</div></div>';
