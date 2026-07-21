@@ -2049,7 +2049,7 @@ function applicaFiltriVolate(){
 function apriRappFocDett(id){
   const r=DB.rapportiniFoc.find(x=>x.id===id);if(!r)return;
   const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);
-  const foriRows=(r.fori_dettaglio||[]).map((f,i)=>`<div class="preview-row"><span class="preview-lab">Foro ${i+1}</span><span class="preview-val">${f.esplosivo||'—'}${f.esplosivo2?' + '+f.esplosivo2:''} · ${f.innesco||'—'}</span></div>`).join('');
+  const foriRows=(r.fori_dettaglio||[]).map((f,i)=>`<div class="preview-row"><span class="preview-lab">Foro ${i+1}</span><span class="preview-val">${escHtml(f.esplosivo||'—')}${f.esplosivo2?' + '+escHtml(f.esplosivo2):''} · ${escHtml(f.innesco||'—')}</span></div>`).join('');
   openModal(`Volata ${fmt(r.data)}`,`
     <div class="preview-sec">
       <div class="preview-row"><span class="preview-lab">Cava</span><span class="preview-val">${c?c.nome:'—'}</span></div>
@@ -2232,7 +2232,7 @@ function apriMezzoStr(id){
   state.mezzoSel=id;state.macDetKind='str';const m=DB.mezziStr.find(x=>x.id===id);if(!m)return;
   $('mzd-title').textContent=`${m.marca} ${m.modello}`;$('btn-edit-mezzo').style.display=can('editMac')?'flex':'none';const canEdit=can('editMac');
   const scadHtml=Object.entries(m.scadenze||{}).map(([k,v])=>{if(!v)return'';const d=daysBetween(today(),v);let cls='',bg='';if(d<0){cls='danger';bg='scad-badge danger';}else if(d<=30){cls='warn';bg='scad-badge warn';}else bg='scad-badge ok';return`<div class="sitem ${cls}"><div class="av av-am">${k.substr(0,2).toUpperCase()}</div><div class="sinfo"><div class="sname">${k} <span class="${bg}">${d<0?'scaduta':d+'g'}</span></div><div class="ssub">${fmt(v)}</div></div></div>`;}).join('');
-  const ripHtml=(m.riparazioni||[]).map(r=>`<div class="sitem"><div class="av av-mz">€</div><div class="sinfo"><div class="sname">${r.desc}</div><div class="ssub">${fmt(r.data)} · ${r.officina} · €${r.costo}</div></div></div>`).join('');
+  const ripHtml=(m.riparazioni||[]).map(r=>`<div class="sitem"><div class="av av-mz">€</div><div class="sinfo"><div class="sname">${escHtml(r.desc)}</div><div class="ssub">${fmt(r.data)} · ${escHtml(r.officina)} · €${r.costo}</div></div></div>`).join('');
   const totRip=(m.riparazioni||[]).reduce((s,r)=>s+(r.costo||0),0);
   $('mezzo-det-body').innerHTML=`
     <div class="photo-hero ${canEdit?'editable':''}" onclick="${canEdit?`uploadMezzoStrFoto('${id}')`:''}">
@@ -2476,7 +2476,7 @@ function renderDepAste(){
 function renderDepLubr(){
   const canTot=can('depTot');
   if(DB.deposito.lubr.length===0){$('dep-lubr-list').innerHTML='<div class="empty-state"><div class="empty-icon">🛢️</div><div class="empty-title">Nessun lubrificante</div></div>';return;}
-  $('dep-lubr-list').innerHTML=DB.deposito.lubr.map(l=>`<div class="dep-item"><div style="flex:1;"><div class="dep-title">${l.tipo}</div><div class="dep-total">Totale: <b>${l.litri}</b> L</div></div><div class="dep-counter"><button class="dep-btn" onclick="depAdj('lubr','${l.id}',-1)">−</button><span class="dep-qty" id="lb-sel-${l.id}">0</span><button class="dep-btn" onclick="depAdj('lubr','${l.id}',1)">+</button></div><div class="dep-actions"><button class="chg" onclick="depInvio('lubr','${l.id}')">PRELEVA</button>${canTot?`<button class="chg" onclick="depEditTot('lubr','${l.id}')">TOTALE</button><button class="chg" onclick="depDel('lubr','${l.id}')">✕</button>`:''}</div></div>`).join('');
+  $('dep-lubr-list').innerHTML=DB.deposito.lubr.map(l=>`<div class="dep-item"><div style="flex:1;"><div class="dep-title">${escHtml(l.tipo)}</div><div class="dep-total">Totale: <b>${l.litri}</b> L</div></div><div class="dep-counter"><button class="dep-btn" onclick="depAdj('lubr','${l.id}',-1)">−</button><span class="dep-qty" id="lb-sel-${l.id}">0</span><button class="dep-btn" onclick="depAdj('lubr','${l.id}',1)">+</button></div><div class="dep-actions"><button class="chg" onclick="depInvio('lubr','${l.id}')">PRELEVA</button>${canTot?`<button class="chg" onclick="depEditTot('lubr','${l.id}')">TOTALE</button><button class="chg" onclick="depDel('lubr','${l.id}')">✕</button>`:''}</div></div>`).join('');
 }
 function depAdj(cat,id,delta){const prefix={punte:'pt',aste:'as',lubr:'lb'}[cat];const el=$(`${prefix}-sel-${id}`);let v=parseInt(el.textContent)||0;el.textContent=Math.max(0,v+delta);}
 function depInvio(cat,id){
@@ -5020,8 +5020,8 @@ function incollaParametriForo(idx){
        ${cb.prof?`<div class="preview-row"><span class="preview-lab">Profondità</span><span class="preview-val">${cb.prof} m</span></div>`:''}
        ${cb.diam?`<div class="preview-row"><span class="preview-lab">Diametro</span><span class="preview-val">${cb.diam} mm</span></div>`:''}
        ${cb.kg?`<div class="preview-row"><span class="preview-lab">Carica</span><span class="preview-val">${cb.kg}</span></div>`:''}
-       ${cb.esplosivo?`<div class="preview-row"><span class="preview-lab">Esplosivo</span><span class="preview-val">${cb.esplosivo}</span></div>`:''}
-       ${cb.innesco?`<div class="preview-row"><span class="preview-lab">Innesco</span><span class="preview-val">${cb.innesco}</span></div>`:''}
+       ${cb.esplosivo?`<div class="preview-row"><span class="preview-lab">Esplosivo</span><span class="preview-val">${escHtml(cb.esplosivo)}</span></div>`:''}
+       ${cb.innesco?`<div class="preview-row"><span class="preview-lab">Innesco</span><span class="preview-val">${escHtml(cb.innesco)}</span></div>`:''}
        ${cb.ritardo?`<div class="preview-row"><span class="preview-lab">Ritardo</span><span class="preview-val">${cb.ritardo}</span></div>`:''}
      </div>`,
     [
