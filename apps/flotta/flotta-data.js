@@ -48,6 +48,17 @@ export function urgenzaOre(orePreviste, oreAttuali) {
   return { cls: "ok", label: "tra " + mancano + " h", mancano };
 }
 
+// Previsione "leggera": da quante ore mancano a un tagliando e dal ritmo
+// d'uso (ore/giorno) stima tra quanti GIORNI andrà fatto — così un
+// tagliando "a ore motore" diventa una data prevedibile. Ritorna 0 se già
+// scaduto, null se il ritmo non è noto (non si può stimare).
+export function previsioneGiorni(mancanoOre, oreGiorno) {
+  const rate = +oreGiorno || 0;
+  if (mancanoOre <= 0) return 0;
+  if (rate <= 0) return null;
+  return Math.ceil(mancanoOre / rate);
+}
+
 export function kpiFrom(mezzi, manutenzioni, costi) {
   return {
     operativi: mezzi.filter(m => m.stato === "operativo").length,
