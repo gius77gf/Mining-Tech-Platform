@@ -84,6 +84,35 @@ export function riservaResidua(riserveM3, estrattoAnno, rateAnnuoM3) {
   return { residuo, anni: rate > 0 ? residuo / rate : null };
 }
 
+// Classe di accuratezza di un rilievo, da metodo e GSD (vedi
+// vault/RICERCA_ACCURATEZZA_RILIEVI.md): "survey-grade" (RTK/PPK o GCP con GSD
+// ≤ 2 cm) → volume difendibile, tolleranza tipica ±2%; "indicativo" (senza
+// metodo affidabile o GSD grosso) → ±8%; "n.d." se non si sa nulla. Serve a
+// dire quanto è affidabile il volume, senza spacciarlo per esatto. Pura e
+// testabile. Le %tolleranza sono TIPICHE (da confermare coi checkpoint).
+export function classeAccuratezza(rilievo) {
+  const m = String((rilievo && rilievo.metodo) || "").toLowerCase();
+  const gsdN = parseFloat(String((rilievo && rilievo.gsd) || "").replace(",", "."));
+  const gsdNoto = Number.isFinite(gsdN) && gsdN > 0;
+  if (!m && !gsdNoto) return { classe: "n.d.", label: "Accuratezza n.d.", tolleranzaPct: null, cls: "" };
+  const buonMetodo = /rtk|ppk|gcp/.test(m);
+  const gsdOk = gsdNoto ? gsdN <= 2 : true;   // se il GSD è noto dev'essere ≤ 2 cm
+  if (buonMetodo && gsdOk) return { classe: "survey-grade", label: "Survey-grade", tolleranzaPct: 2, cls: "ok" };
+  return { classe: "indicativo", label: "Indicativo", tolleranzaPct: 8, cls: "warn" };
+}
+
+// Banda di incertezza sul volume (m³) data una %tolleranza: rende onesto il
+// numero ("19.400 m³ ± 388"). Ritorna {volume, banda, min, max} arrotondati,
+// oppure null se volume o tolleranza non sono validi. Pura e testabile.
+export function bandaVolume(volumeM3, tolleranzaPct) {
+  const v = +volumeM3;
+  if (!(v >= 0) || tolleranzaPct == null) return null;   // niente tolleranza = non calcolabile
+  const t = +tolleranzaPct;
+  if (!(t >= 0)) return null;
+  const banda = Math.round(v * t / 100);
+  return { volume: v, banda, min: Math.max(0, v - banda), max: v + banda };
+}
+
 // Andamento dei volumi: confronta gli ULTIMI DUE rilievi elaborati (per data)
 // per dire a colpo d'occhio se l'estrazione sta accelerando o rallentando —
 // utile per capire se si è "in pari" col piano. Ritorna null se non ci sono
