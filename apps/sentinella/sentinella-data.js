@@ -76,6 +76,17 @@ export function presetSoglia(chiave) {
   return p ? { ...p, daVerificare: true } : null;
 }
 
+// Distanza scalata (scaled distance) di una volata: SD = R / √W, dove R è
+// la distanza (m) dal punto di volata al ricettore e W la carica massima
+// di esplosivo per ritardo (kg). È l'indicatore standard per prevedere le
+// vibrazioni: più è alta, minore è il rischio di superare le soglie PPV.
+// Ritorna null se i dati non sono validi (niente divisione per zero/NaN).
+export function scaledDistance(distanzaM, caricaKg) {
+  const r = +distanzaM, w = +caricaKg;
+  if (!(r > 0) || !(w > 0)) return null;
+  return r / Math.sqrt(w);
+}
+
 export async function sentinellaData() {
   let mode = "demo", api = null;
   try {

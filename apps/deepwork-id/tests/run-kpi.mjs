@@ -365,6 +365,15 @@ test("presetSoglia: valori DIN 4150-3 di riferimento corretti", () => {
   eq(sentinella.presetSoglia("din-sens-fond").valore, 3, "sensibile fondazione <10Hz");
   eq(sentinella.presetSoglia("din-ind-fond").valore, 20, "industriale fondazione <10Hz");
 });
+test("scaledDistance: SD = R/√W (distanza scalata di volata)", () => {
+  eq(sentinella.scaledDistance(100, 25), 20, "100/√25 = 20");
+  eq(sentinella.scaledDistance(60, 4), 30, "60/√4 = 30");
+});
+test("scaledDistance: dati non validi = null (niente divisione per zero)", () => {
+  eq(sentinella.scaledDistance(100, 0), null, "carica 0");
+  eq(sentinella.scaledDistance(0, 25), null, "distanza 0");
+  eq(sentinella.scaledDistance(100, undefined), null, "carica assente");
+});
 
 console.log("\n— Confini: giorni alla scadenza (Sentinella/Conti) —");
 test("giorni: oggi stesso = 0", () => {
