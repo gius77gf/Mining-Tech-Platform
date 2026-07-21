@@ -247,6 +247,24 @@ test("agingIncassi: nessuna fattura = fasce a zero (niente crash)", () => {
   eq(a.scadutoTot, 0, "scaduto 0");
   eq(a.nonScaduto.conto, 0, "non scaduto 0");
 });
+test("agingIncassi: confini esatti delle fasce (off-by-one su 30/31/60/61/90/91 gg)", () => {
+  const oggi = new Date("2026-07-20T00:00:00");
+  // scadenze scelte per cadere a ESATTAMENTE r giorni di ritardo (verificato
+  // con la funzione giorni): il confine di ogni fascia non deve slittare.
+  const fatture = [
+    { importo: 1, incassata: false, scadenza: "2026-06-20" }, // r=30 → g1_30
+    { importo: 1, incassata: false, scadenza: "2026-06-19" }, // r=31 → g31_60
+    { importo: 1, incassata: false, scadenza: "2026-05-21" }, // r=60 → g31_60
+    { importo: 1, incassata: false, scadenza: "2026-05-20" }, // r=61 → g61_90
+    { importo: 1, incassata: false, scadenza: "2026-04-21" }, // r=90 → g61_90
+    { importo: 1, incassata: false, scadenza: "2026-04-20" }, // r=91 → oltre90
+  ];
+  const a = conti.agingIncassi(fatture, oggi);
+  eq(a.g1_30.conto, 1, "r=30 nella prima fascia");
+  eq(a.g31_60.conto, 2, "r=31 e r=60 nella seconda fascia");
+  eq(a.g61_90.conto, 2, "r=61 e r=90 nella terza fascia");
+  eq(a.oltre90.conto, 1, "r=91 oltre i 90 giorni");
+});
 test("agingIncassi: scadenza esattamente oggi = non scaduto (g=0)", () => {
   const a = conti.agingIncassi([{ importo: 10, incassata: false, scadenza: "2026-07-20" }], new Date("2026-07-20T00:00:00"));
   eq(a.nonScaduto.conto, 1, "g=0 non scaduto");
