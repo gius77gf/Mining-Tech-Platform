@@ -58,6 +58,29 @@ export function parseTelemetriaCsv(text) {
     .filter(p => p.mezzo && Number.isFinite(p.ore) && p.ore >= 0);
 }
 
+// Import del PARCO MEZZI da CSV (onboarding: caricare la flotta iniziale invece
+// di aggiungere ogni mezzo a mano). Colonne: nome;area;ore;stato (header
+// opzionale). Tiene solo le righe con un nome; ore via numIt (≥0); stato tra
+// operativo|fermo|verifica (default operativo, così un valore sbagliato non
+// rompe il badge). nome/area sono testo grezzo → escapare dove mostrati. Pura
+// e testabile.
+export function parseMezziCsv(text) {
+  return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !/^nome\s*;/i.test(r))
+    .map(r => {
+      const [nome, area, ore, stato] = parseCsvLine(r);
+      const s = (stato || "").trim().toLowerCase();
+      const n = numIt(ore);
+      return {
+        nome: (nome || "").trim(),
+        area: (area || "").trim(),
+        ore: Number.isFinite(n) ? Math.max(0, n) : 0,
+        stato: ["operativo", "fermo", "verifica"].includes(s) ? s : "operativo",
+      };
+    })
+    .filter(m => m.nome);
+}
+
 // Nuova giacenza dopo uno scarico di `qta` pezzi: mai sotto zero. Serve sia
 // al pulsante scarico sia agli ordini di lavoro (manutenzione eseguita che
 // consuma un ricambio). Pura e testabile.

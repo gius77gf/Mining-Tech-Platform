@@ -762,6 +762,14 @@ test("parseTelemetriaCsv: legge mezzo/ore/carburante, scarta righe non valide", 
   eq(p[0], { mezzo: "Escavatore E1", ore: 5900, carburante: 8400 }, "riga con carburante");
   eq(p[1], { mezzo: "Dumper D1", ore: 8420, carburante: null }, "riga senza carburante");
 });
+test("parseMezziCsv: legge nome/area/ore/stato; stato ignoto → operativo; scarta righe senza nome", () => {
+  const csv = "nome;area;ore;stato\nEscavatore E1 — CAT 352;fronte Est;5870;operativo\nDumper D3;officina;9105;fermo\nPala X;;100;boh\n;piazzale;50;operativo\n";
+  const p = flotta.parseMezziCsv(csv);
+  eq(p.length, 3, "3 mezzi validi (riga senza nome scartata)");
+  eq(p[0], { nome: "Escavatore E1 — CAT 352", area: "fronte Est", ore: 5870, stato: "operativo" }, "riga completa");
+  eq(p[1].stato, "fermo", "stato valido mantenuto");
+  eq(p[2].stato, "operativo", "stato ignoto → operativo (badge non si rompe)");
+});
 test("parseTelemetriaCsv: testo vuoto = lista vuota (niente crash)", () =>
   eq(flotta.parseTelemetriaCsv(""), [], "vuoto"));
 test("parseTelemetriaCsv: CRLF, scarta ore negative, carburante opzionale", () => {
