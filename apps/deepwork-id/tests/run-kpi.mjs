@@ -247,6 +247,15 @@ test("parseFattureCsv: legge le fatture, coerce importo/incassata, scarta rotte"
 });
 test("parseFattureCsv: testo vuoto = lista vuota (niente crash)", () =>
   eq(conti.parseFattureCsv(""), [], "vuoto"));
+test("parseFattureCsv: gestisce CRLF (export Excel) e scarta importo ≤ 0", () => {
+  const csv = "numero;cliente;importo;emessa;scadenza\r\n"
+    + "A1;Alfa;100;2026-07-01;2026-08-01\r\n"
+    + "A2;Beta;0;2026-07-01;2026-08-01\r\n"
+    + "A3;Gamma;-50;2026-07-01;2026-08-01\r\n";
+  const f = conti.parseFattureCsv(csv);
+  eq(f.length, 1, "solo importo > 0");
+  eq(f[0].numero, "A1", "riga valida");
+});
 test("livelloSollecito: fasce di ritardo → livello di sollecito", () => {
   eq(conti.livelloSollecito(0).livello, 0, "non scaduta = nessun sollecito");
   eq(conti.livelloSollecito(10), { livello: 1, label: "1° sollecito", cls: "warn" }, "10 gg = 1°");
@@ -353,6 +362,12 @@ test("parseRilieviCsv: legge data/volume/metodo/gsd, scarta righe non valide", (
 });
 test("parseRilieviCsv: testo vuoto = lista vuota (niente crash)", () =>
   eq(terra.parseRilieviCsv(""), [], "vuoto"));
+test("parseRilieviCsv: CRLF, scarta data non ISO, virgola decimale", () => {
+  const csv = "data;volumeM3;metodo;gsd\r\n2026-07-15;19400,5;RTK;2\r\n15/07/2026;1000;RTK;2\r\n";
+  const p = terra.parseRilieviCsv(csv);
+  eq(p.length, 1, "scarta la data non AAAA-MM-GG");
+  eq(p[0], { data: "2026-07-15", volumeM3: 19400.5, metodo: "RTK", gsd: "2" }, "ISO + virgola decimale");
+});
 test("riservaResidua: residuo = riserve − estratto; anni al ritmo pianificato", () => {
   eq(terra.riservaResidua(1000000, 100000, 125000), { residuo: 900000, anni: 7.2 }, "900k / 125k = 7,2 anni");
   eq(terra.riservaResidua(100000, 200000, 125000), { residuo: 0, anni: 0 }, "estratto > riserve → residuo 0");
@@ -476,6 +491,13 @@ test("parseTelemetriaCsv: legge mezzo/ore/carburante, scarta righe non valide", 
 });
 test("parseTelemetriaCsv: testo vuoto = lista vuota (niente crash)", () =>
   eq(flotta.parseTelemetriaCsv(""), [], "vuoto"));
+test("parseTelemetriaCsv: CRLF, scarta ore negative, carburante opzionale", () => {
+  const csv = "mezzo;ore;carburante\r\nD1;8500;120\r\nD2;-5;10\r\nD3;9000;\r\n";
+  const p = flotta.parseTelemetriaCsv(csv);
+  eq(p.length, 2, "scarta le ore negative");
+  eq(p[0], { mezzo: "D1", ore: 8500, carburante: 120 }, "riga completa");
+  eq(p[1], { mezzo: "D3", ore: 9000, carburante: null }, "carburante mancante = null");
+});
 test("scaricoGiacenza: sottrae la quantità, mai sotto zero", () => {
   eq(flotta.scaricoGiacenza(5), 4, "default −1");
   eq(flotta.scaricoGiacenza(5, 3), 2, "−3");
@@ -619,6 +641,12 @@ test("parsePianoCsv scarta righe con foro o prog non validi", () => {
 });
 test("parsePianoCsv su testo vuoto = nessuna riga (niente crash)", () =>
   eq(campo.parsePianoCsv(""), [], "vuoto"));
+test("parsePianoCsv: gestisce CRLF (export Excel)", () => {
+  const out = campo.parsePianoCsv("foro;x;fila;prof;prog;borr;rit\r\n1;3.5;A;12;100;2;20\r\n2;4;B;12;80;2;18\r\n");
+  eq(out.length, 2, "due fori");
+  eq(out[0].foro, 1, "foro 1");
+  eq(out[1].prog, 80, "prog del secondo foro");
+});
 test("parsePianoCsv conserva testo/HTML nei campi liberi (l'escape è a valle)", () => {
   const out = campo.parsePianoCsv("1;<img src=x onerror=alert(1)>;A;12;100;2;20");
   eq(out[0].x, "<img src=x onerror=alert(1)>", "campo libero non alterato dal parser");
