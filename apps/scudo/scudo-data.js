@@ -69,6 +69,23 @@ export function idoneitaCriticita(lavoratori) {
   return lavoratori.filter(l => l.attivo && (l.idoneita === "non-idoneo" || l.idoneita === "prescrizioni"));
 }
 
+// Livello di urgenza FINE di una scadenza, per un'etichetta parlante nel
+// scadenzario (oltre al badge grezzo di statoScadenza). Fasce ispirate ai
+// promemoria multi-soglia (60/30/15/7/1 gg): rosso se scaduta o entro 7 gg,
+// giallo entro 30, verde oltre. Additiva: NON tocca statoScadenza (che
+// alimenta i KPI). Ritorna { cls, label, giorni } (giorni null se data
+// mancante, così un dato incompleto non allarma).
+export function livelloScadenza(dataISO, oggi = new Date()) {
+  if (!dataISO) return { cls: "ok", label: "senza data", giorni: null };
+  const g = Math.floor((new Date(dataISO + "T00:00:00") - oggi) / 86400000);
+  if (isNaN(g)) return { cls: "ok", label: "senza data", giorni: null };
+  if (g < 0)  return { cls: "danger", label: "scaduta da " + (-g) + " gg", giorni: g };
+  if (g === 0) return { cls: "danger", label: "scade oggi", giorni: 0 };
+  if (g <= 7)  return { cls: "danger", label: "tra " + g + " gg", giorni: g };
+  if (g <= 30) return { cls: "warn",   label: "tra " + g + " gg", giorni: g };
+  return { cls: "ok", label: "tra " + g + " gg", giorni: g };
+}
+
 export function kpiFrom(lavoratori, scadenze) {
   const st = scadenze.map(s => statoScadenza(s.dataScadenza));
   const scadute = st.filter(x => x === "scaduta").length;
