@@ -106,6 +106,28 @@ export function coperturaFormazione(scadenze) {
     (b.scadute - a.scadute) || (b.inScadenza - a.inScadenza) || a.tipo.localeCompare(b.tipo, "it"));
 }
 
+// Import scadenze da CSV (onboarding: caricare lo scadenzario esistente —
+// visite mediche, corsi, patentini con le date — invece di riscriverlo a
+// mano). Colonne: lavoratore;tipo;descrizione;scadenza (header opzionale).
+// Il lavoratore è un NOME (l'associazione all'id avviene a valle, nella UI);
+// vuoto o "AZIENDA" = scadenza aziendale (lavoratore null). Tiene solo le
+// righe con data valida (AAAA-MM-GG); tipo assente → "Altro". Pura e testabile.
+export function parseScadenzeCsv(text) {
+  return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !/^lavoratore\s*;/i.test(r))
+    .map(r => {
+      const [lavoratore, tipo, descrizione, scadenza] = r.split(";");
+      const lav = (lavoratore || "").trim();
+      return {
+        lavoratore: (lav && !/^azienda$/i.test(lav)) ? lav : null,
+        tipo: (tipo || "").trim() || "Altro",
+        descrizione: (descrizione || "").trim() || null,
+        dataScadenza: (scadenza || "").trim(),
+      };
+    })
+    .filter(p => /^\d{4}-\d{2}-\d{2}$/.test(p.dataScadenza));
+}
+
 export function kpiFrom(lavoratori, scadenze) {
   const st = scadenze.map(s => statoScadenza(s.dataScadenza));
   const scadute = st.filter(x => x === "scaduta").length;

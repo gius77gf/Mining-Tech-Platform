@@ -79,6 +79,8 @@
     <input class="dw-input" id="new-scad-data" type="date" style="flex:1;min-width:130px;">
     <button class="dw-btn" id="btn-add-scad" style="width:auto;">Aggiungi</button>
   </div>
+  <button class="dw-btn secondary" id="btn-import-scad" style="width:auto;margin-top:8px;">Importa scadenze (CSV)</button>
+  <input type="file" id="scad-file" accept=".csv,text/csv" style="display:none;">
   <div class="note" id="scad-esito" style="text-align:left;"></div>
 </div>
 
@@ -115,7 +117,7 @@
 </script>
 
 <script type="module">
-  import { scudoData, statoScadenza, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione } from "./scudo-data.js";
+  import { scudoData, statoScadenza, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, parseScadenzeCsv } from "./scudo-data.js";
   import { mountExit, esc, csvCell, parseCsvLine } from "../../shared/deepwork-id-client/dw-shell.js";
 
   const $ = (id) => document.getElementById(id);
@@ -304,6 +306,27 @@
     $("new-scad-desc").value = ""; $("new-scad-data").value = "";
     $("scad-esito").textContent = "Scadenza aggiunta: " + descrizione + ".";
     $("new-scad-desc").focus();   // pronto per la prossima scadenza
+    await refresh();
+  };
+  // Import scadenze da CSV (lavoratore;tipo;descrizione;scadenza): il nome del
+  // lavoratore viene associato all'anagrafica per nome; se non c'è, la
+  // scadenza entra come aziendale (lavoratoreId null) e viene conteggiata.
+  $("btn-import-scad").onclick = () => $("scad-file").click();
+  $("scad-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const righe = parseScadenzeCsv(await file.text());
+    let agg = 0, senzaLav = 0;
+    for (const p of righe) {
+      let lavoratoreId = null;
+      if (p.lavoratore) {
+        const l = LAV.find(x => x.nome.toLowerCase() === p.lavoratore.toLowerCase());
+        if (l) lavoratoreId = l.id; else senzaLav++;
+      }
+      await db.aggiungi("scadenze", { lavoratoreId, tipo: p.tipo, descrizione: p.descrizione || p.tipo, dataScadenza: p.dataScadenza });
+      agg++;
+    }
+    $("scad-file").value = "";
+    $("scad-esito").textContent = "Import scadenze: " + agg + " aggiunte" + (senzaLav ? ", " + senzaLav + " senza lavoratore associato (nome non trovato)" : "") + ".";
     await refresh();
   };
 
