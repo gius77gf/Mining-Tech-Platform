@@ -82,6 +82,25 @@ export function riservaResidua(riserveM3, estrattoAnno, rateAnnuoM3) {
   return { residuo, anni: rate > 0 ? residuo / rate : null };
 }
 
+// Import rilievi elaborati da CSV (onboarding: caricare lo storico dei
+// rilievi drone). Colonne: data;volumeM3[;metodo;gsd] (header opzionale).
+// Tiene solo le righe con data valida (AAAA-MM-GG) e volume numerico ≥ 0.
+// Pura e testabile.
+export function parseRilieviCsv(text) {
+  return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !/^data\s*;/i.test(r))
+    .map(r => {
+      const [data, volumeM3, metodo, gsd] = r.split(";");
+      return {
+        data: (data || "").trim(),
+        volumeM3: +String(volumeM3 || "").replace(",", "."),
+        metodo: (metodo || "").trim() || null,
+        gsd: (gsd || "").trim() || null,
+      };
+    })
+    .filter(p => /^\d{4}-\d{2}-\d{2}$/.test(p.data) && Number.isFinite(p.volumeM3) && p.volumeM3 >= 0);
+}
+
 export function kpiFrom(fronti, rilievi, piano, oggi = new Date()) {
   const ym = oggi.toISOString().slice(0, 7);          // yyyy-mm
   const anno = ym.slice(0, 4);

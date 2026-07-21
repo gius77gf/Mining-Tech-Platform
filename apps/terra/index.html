@@ -82,8 +82,10 @@
     <input class="dw-input" id="new-ril-gsd" type="number" min="0" step="0.1" placeholder="GSD cm" style="flex:1;min-width:90px;">
     <button class="dw-btn" id="btn-add-ril" style="width:auto;">Registra</button>
   </div>
+  <button class="dw-btn secondary" id="btn-imp-ril" style="width:auto;margin-top:8px;">Importa rilievi (CSV)</button>
+  <input type="file" id="ril-file" accept=".csv,text/csv" style="display:none;">
   <div class="note" id="ril-esito" style="text-align:left;"></div>
-  <div class="note" id="mode-note" style="text-align:left;"></div>
+  <div class="note" id="mode-note" style="text-align:left;">CSV rilievi: data;volumeM3[;metodo;gsd].</div>
 </div>
 
 <div class="page" id="page-pia">
@@ -112,7 +114,7 @@
 </script>
 
 <script type="module">
-  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua } from "./terra-data.js";
+  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, parseRilieviCsv } from "./terra-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const FB = { attivo: ["ok","Attivo"], sospeso: ["warn","Sospeso"] };
@@ -266,6 +268,20 @@
       $("ril-esito").textContent = "Rilievo del " + dmy(data) + " registrato: " + vol.toLocaleString("it-IT") + " m³" + (fr ? " su " + fr.nome : "") + " (KPI aggiornati).";
     }
     $("new-ril-data").value = ""; $("new-ril-vol").value = ""; $("new-ril-metodo").value = ""; $("new-ril-gsd").value = ""; $("new-ril-data").focus(); await refresh();
+  };
+  // Import rilievi elaborati da CSV (onboarding storico).
+  $("btn-imp-ril").onclick = () => $("ril-file").click();
+  $("ril-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const righe = parseRilieviCsv(await file.text());
+    for (const r of righe) {
+      await db.aggiungi("rilievi", { titolo: "Rilievo drone " + dmy(r.data), data: r.data,
+        tipo: "Ortofoto + DEM", volumeM3: r.volumeM3, fronteId: null, stato: "elaborato",
+        metodo: r.metodo, gsd: r.gsd });
+    }
+    $("ril-file").value = "";
+    $("ril-esito").textContent = "Import rilievi: " + righe.length + " rilievi elaborati aggiunti.";
+    await refresh();
   };
   // Recupero errore: appena l'utente corregge un campo, togli il bordo
   // rosso e il messaggio di esito, così l'avviso non resta appeso.
