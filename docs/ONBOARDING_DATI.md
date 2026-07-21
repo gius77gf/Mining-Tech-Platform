@@ -120,6 +120,9 @@ Pagina **Gare → Importa gare (CSV)**.
   ```
 - **Note**: serve solo il **titolo**; una gara con lo stesso titolo viene
   saltata. `stato` è `aperta`, `vinta` o `persa` (default aperta).
+- **Backup**: il bottone **Esporta gare (CSV)** scarica le gare nello stesso
+  formato dell'import, così il file si può ri-caricare (o conservare come
+  copia).
 
 ## Terra — 1) fronti di scavo
 Pagina **Fronti → Importa fronti (CSV)**.
