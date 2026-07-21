@@ -34,6 +34,10 @@ await env.withSecurityRulesDisabled(async (ctx) => {
   await setDoc(doc(db, "organizations/org_demo"), { name: "Demo Tour", status: "active" });
   await setDoc(doc(db, "organizations/orgA/apps/scudo/turni/t1"), { operaio: "Mario", ore: 8 });
   await setDoc(doc(db, "organizations/orgB/apps/scudo/turni/t9"), { operaio: "SEGRETO-CONCORRENTE", ore: 6 });
+  // collezioni "nuove" delle app (aggiunte durante lo sviluppo): devono
+  // restare isolate esattamente come le altre (regola generica apps/**)
+  await setDoc(doc(db, "organizations/orgA/apps/flotta/ricambi/p1"), { nome: "Filtro olio", giacenza: 6 });
+  await setDoc(doc(db, "organizations/orgB/apps/flotta/ricambi/p9"), { nome: "RICAMBIO-CONCORRENTE", giacenza: 2 });
   await setDoc(doc(db, "organizations/org_demo/apps/scudo/turni/d1"), { operaio: "Esempio", ore: 8 });
   await setDoc(doc(db, "organizations/orgA/entitlements/scudo"), { active: true, tier: "base" });
   // membership e inviti per i test del pannello amministrazione (D4)
@@ -66,6 +70,12 @@ await test("membro di orgB NON cancella i dati di orgA", () =>
   assertFails(deleteDoc(doc(eve, "organizations/orgA/apps/scudo/turni/t1"))));
 await test("l'isolamento vale anche per i dati ANNIDATI in profondità (document=**)", () =>
   assertFails(getDoc(doc(alice, "organizations/orgB/apps/scudo/turni/t9/note/segreta"))));
+await test("le collezioni NUOVE delle app (es. flotta/ricambi) sono isolate come le altre", () =>
+  assertFails(getDoc(doc(alice, "organizations/orgB/apps/flotta/ricambi/p9"))));
+await test("il concorrente NON scrive nelle collezioni nuove di orgA (flotta/ricambi)", () =>
+  assertFails(setDoc(doc(eve, "organizations/orgA/apps/flotta/ricambi/hack"), { nome: "x", giacenza: 1 })));
+await test("un membro LEGGE le collezioni nuove della PROPRIA org (flotta/ricambi)", () =>
+  assertSucceeds(getDoc(doc(alice, "organizations/orgA/apps/flotta/ricambi/p1"))));
 await test("un membro NON legge una sottocollezione NON prevista della propria org (deny di default)", () =>
   assertFails(getDoc(doc(alice, "organizations/orgA/segreti/x"))));
 
