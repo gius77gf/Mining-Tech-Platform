@@ -68,7 +68,8 @@ esattamente le funzioni che trasformano un ottimo simulatore in uno strumento
   su Firestore)*: per ogni volata, affianca il **previsto** (x50, PPV, flyrock,
   MIC) al **reale** inserito a mano o importato (pezzatura misurata, vibrazione
   del sismografo, oversize, note). Riusa il ponte Genesi↔Campo già esistente
-  (piano→consuntivo). È il gap #1 dei leader e chiude il cerchio. Il confronto è
+  (piano→consuntivo). Affronta un tema che nei leader è centrale, ma da noi è un
+  **primo passo non validato sul campo**, non una parità di funzione. Il confronto è
   puro client; conviene salvare lo storico multi-volata (come già le app).
 - **P0.2 Signature-hole (superposizione d'onda)** *(client)*: importa la
   registrazione di un foro singolo (CSV tempo-ampiezza) e **somma le copie
