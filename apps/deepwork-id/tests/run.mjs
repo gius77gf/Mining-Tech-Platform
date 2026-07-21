@@ -57,6 +57,7 @@ const boss  = env.authenticatedContext("boss",  { orgs: { orgA: "owner" } }).fir
 const eve   = env.authenticatedContext("eve",   { orgs: { orgB: "member" } }).firestore();   // membro del CONCORRENTE
 const tour  = env.authenticatedContext("anon1", { firebase: { sign_in_provider: "anonymous" } }).firestore(); // tour
 const ghost = env.unauthenticatedContext().firestore();                                       // nessun login
+const newbie = env.authenticatedContext("newbie", { orgs: {} }).firestore();                  // registrato ma SENZA org (appena iscritto)
 
 console.log("\n— Isolamento tra organizzazioni (il test che conta) —");
 await test("membro di orgA legge i dati della PROPRIA org", () =>
@@ -115,6 +116,25 @@ await test("utente tour NON scrive nel tenant demo", () =>
   assertFails(setDoc(doc(tour, "organizations/org_demo/apps/scudo/turni/d1"), { ore: 99 })));
 await test("utente tour NON legge le org reali", () =>
   assertFails(getDoc(doc(tour, "organizations/orgA/apps/scudo/turni/t1"))));
+
+// Caso limite realistico: un utente appena registrato è autenticato ma NON è
+// ancora membro di NESSUNA organizzazione (orgs={}). Prima di entrare in un'org
+// (invito) o crearne una (Cloud Function) non deve vedere né toccare i dati di
+// nessuno — né delle app, né del cuore. È un principale DISTINTO dal concorrente
+// (che almeno appartiene a un'org) e dall'anonimo (non autenticato).
+console.log("\n— Utente autenticato SENZA organizzazione (appena iscritto) —");
+await test("iscritto-senza-org NON legge i dati app di un'org", () =>
+  assertFails(getDoc(doc(newbie, "organizations/orgA/apps/scudo/turni/t1"))));
+await test("iscritto-senza-org NON legge i dati del cuore di un'org", () =>
+  assertFails(getDoc(doc(newbie, "organizations/orgA/apps/core/rapportini/r1"))));
+await test("iscritto-senza-org NON elenca i rapportini del cuore di un'org", () =>
+  assertFails(getDocs(collection(newbie, "organizations/orgA/apps/core/rapportini"))));
+await test("iscritto-senza-org NON scrive nei dati di un'org", () =>
+  assertFails(setDoc(doc(newbie, "organizations/orgA/apps/scudo/turni/t1"), { ore: 0 })));
+await test("iscritto-senza-org NON legge gli abbonamenti (entitlements) di un'org", () =>
+  assertFails(getDoc(doc(newbie, "organizations/orgA/entitlements/scudo"))));
+await test("iscritto-senza-org NON legge l'elenco membri di un'org", () =>
+  assertFails(getDoc(doc(newbie, "organizations/orgA/members/alice"))));
 
 console.log("\n— Scritture nella propria organizzazione —");
 await test("membro scrive nei dati app della propria org", () =>
