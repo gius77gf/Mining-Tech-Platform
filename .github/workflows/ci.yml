@@ -45,6 +45,7 @@ jobs:
       - name: Check standalone modules
         run: |
           node --check sw.js
+          node --check apps/genesi/genesi-sw.js            # service worker Genesi (va in produzione)
           node --check firebase-messaging-sw.js || true   # placeholder note, non-blocking
           node --check apps/deepwork-id/functions/index.js
           node --input-type=module --check < shared/deepwork-id-client/index.js
