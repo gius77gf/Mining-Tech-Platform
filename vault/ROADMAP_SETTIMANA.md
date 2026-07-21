@@ -248,6 +248,34 @@ e testati, scoprendo bug di severità/copertura (ricambi mancanti, scaduto=warn)
 Suite CI 247 → 273. Avviata una revisione del data-layer (isolamento
 multi-tenant + parser CSV); esiti nei checkpoint successivi.
 
+## SESSIONE 21/07 (4ª parte) — audit di sicurezza di TUTTE le superfici
+Quattro revisioni adversarial mirate, ciascuna verificata a mano prima di
+correggere. Sintesi per la revisione del fondatore (rilevante per la
+commercializzazione: la promessa n.1 è l'isolamento tra aziende clienti):
+1. **UI delle 6 app**: pulite su XSS/CSV; 2 bug reali di feedback su pagina
+   nascosta corretti (#250).
+2. **Data-layer (i 6 *-data.js + SDK)**: **isolamento VERIFICATO SOLIDO** — ogni
+   accesso passa da `orgCollection`, nessun percorso a mano, nessuna query
+   cross-org. 2 note minori chiuse (fronteId demo #257, guardia demo #260).
+3. **Codice condiviso (dw-shell + SDK)**: isolamento riconfermato; 4 bug nei
+   parser CSV/numeri corretti (numIt perdeva numeri con migliaia multiple #262;
+   parseCsvLine e il delimitatore #263; csvCell e le formule dopo spazi #262) +
+   1 nota SDK (#264). +13 test condivisi.
+4. **Core (index.html, ~8300 righe)**: `escHtml` era usato in modo INCOERENTE →
+   **XSS memorizzato multi-tenant** reale (un collega che salva `<img onerror=>`
+   eseguiva codice nel browser dei colleghi, e in casi condivisi/audit anche in
+   quello del destinatario/admin). Corretti in 3 PR (#266, #267, #268) tutti i
+   campi salvati resi grezzi: nome volata (condivisa in chat), audit log,
+   dettagli fochino, riparazioni, deposito, contatti + href tel/mailto sicuri,
+   nomi cava, note/descrizioni gare. Trovati con grep 4 siti extra oltre la
+   review. Verifica: syntax dei blocchi script + Playwright (carica il login).
+5. **Genesi + hub /apps/**: audit XSS via grep → **puliti**: il core Genesi
+   rende solo numeri/etichette/cataloghi controllati dallo sviluppatore (nessun
+   testo libero multi-tenant in innerHTML); il hub è statico. Nessun fix.
+Nota tecnica onesta: il ROOT `index.html` NON è coperto dal syntax-check della
+CI (che copre solo apps/*/*.html) né dai test → verifica manuale.
+Suite CI 273 → 294. Isolamento multi-tenant confermato solido su ogni superficie.
+
 ## Fine progetto (fase commercializzazione) — NON prima
 - Acquisto dominio + sottodomini. DECISIONE DEL FONDATORE: nessuna
   spesa prima della commercializzazione.
