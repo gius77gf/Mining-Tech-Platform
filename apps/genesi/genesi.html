@@ -545,6 +545,11 @@ body.scr-sim #tl{bottom:80px}
     <div class="row" style="margin-bottom:4px"><label>x50 obiettivo (cm)</label><input type="number" id="inv-x50" min="1" step="1" placeholder="es. 35" style="width:86px"></div>
     <div id="inv-res" style="font-size:11px;color:var(--tx)"></div>
   </div>
+  <div id="meastool" style="margin:4px 0 8px;padding:8px 9px;border:1px solid rgba(79,195,247,.18);border-radius:9px;background:rgba(79,195,247,.04)">
+    <div style="font-size:10.5px;color:var(--mut2);margin-bottom:5px">📏 Confronto con misure reali (previsto vs reale)</div>
+    <input type="text" id="meas-in" placeholder="dimensioni in cm, es. 12 18 25 30 45 60" style="width:100%;box-sizing:border-box;font-size:11px">
+    <div id="meas-res" style="font-size:10.5px;color:var(--tx);margin-top:5px"></div>
+  </div>
   <div class="row"><label>Numero fori</label><input type="number" id="pFori" min="6" max="24" step="1" value="18"></div>
   <div class="row"><label>Ritardo Nonel (ms)</label>
     <select id="pRit"><option>17</option><option selected>25</option><option>42</option><option>65</option></select></div>
@@ -1482,7 +1487,7 @@ function updateInfochip(){
       + `<div style="font-size:10px;color:var(--mut2);margin-top:5px">Fini &lt;${_fThr} cm: <b style="color:#ffd54f">${_fKR}%</b> Kuz-Ram · <b style="color:#ffd54f">${_fSW}%</b> Swebrec</div>`
       + `<div style="font-size:10px;color:var(--mut2);margin:6px 0 -2px">Curva % passante · Kuz-Ram + KCO/Swebrec · dimensione cm (scala log)</div>`
       + _fragCurveSVG(fr, {xmax:_swXmax, x50:fr.x50, b:_swB});
-    _fragLast = fr; _invUpdate();
+    _fragLast = fr; _invUpdate(); _measUpdate();
   }
 }
 /* Calcolo INVERSO della maglia: da una pezzatura-obiettivo x50 propone burden e
@@ -1514,9 +1519,10 @@ function _invUpdate(){
    (Rosin-Rammler): P(x)=1-exp(-(x/xc)^n). Usa i valori GIÀ calcolati (xc, n,
    x20/x50/x80): è una visualizzazione, non cambia la fisica. Emula il grafico
    granulometrico dei competitor nello stile Genesi. */
-function _fragCurveSVG(fr, sw){
+function _fragCurveSVG(fr, sw, meas){
   const W=214, H=104, padL=8, padR=8, padT=6, padB=16, iw=W-padL-padR, ih=H-padT-padB-8;
-  const xMax=Math.max(fr.x80*1.4, fr.x50*2, 10, sw?sw.xmax*1.05:0), xMin=1;   // asse X semi-log (cm), come le curve granulometriche professionali
+  const measMax = (meas&&meas.pts&&meas.pts.length) ? meas.pts[meas.pts.length-1][0] : 0;
+  const xMax=Math.max(fr.x80*1.4, fr.x50*2, 10, sw?sw.xmax*1.05:0, measMax*1.05), xMin=1;   // asse X semi-log (cm), come le curve granulometriche professionali
   const xc=Math.max(0.01, fr.xc||fr.x50||1), n=fr.n||1.5, L0=Math.log10(xMin), L1=Math.log10(xMax);
   const PX=(x)=>padL+(Math.log10(Math.max(xMin,Math.min(xMax,x)))-L0)/(L1-L0)*iw, PY=(p)=>padT+(1-p)*ih;
   const N=60, gx=(i)=>xMin*Math.pow(xMax/xMin, i/N);
@@ -1527,9 +1533,15 @@ function _fragCurveSVG(fr, sw){
   const gridY=[0.2,0.5,0.8].map(p=>`<line x1="${padL}" y1="${PY(p).toFixed(1)}" x2="${(W-padR).toFixed(1)}" y2="${PY(p).toFixed(1)}" stroke="rgba(255,255,255,.08)" stroke-dasharray="2 3"/><text x="${padL}" y="${(PY(p)-2).toFixed(1)}" fill="#b8a574" font-size="7">${(p*100)|0}%</text>`).join('');
   let gridX=''; for(let e=Math.ceil(L0); e<=Math.floor(L1); e++){ const xv=Math.pow(10,e), px=PX(xv); gridX+=`<line x1="${px.toFixed(1)}" y1="${padT}" x2="${px.toFixed(1)}" y2="${(padT+ih).toFixed(1)}" stroke="rgba(255,255,255,.06)"/><text x="${px.toFixed(1)}" y="${(padT+ih+9).toFixed(1)}" fill="#9b8a60" font-size="7" text-anchor="middle">${xv}</text>`; }
   const pts=[['x20',fr.x20,0.2],['x50',fr.x50,0.5],['x80',fr.x80,0.8]].map(([lab,xv,p])=>`<line x1="${PX(xv).toFixed(1)}" y1="${PY(p).toFixed(1)}" x2="${PX(xv).toFixed(1)}" y2="${(padT+ih).toFixed(1)}" stroke="rgba(255,171,0,.3)" stroke-dasharray="2 2"/><circle cx="${PX(xv).toFixed(1)}" cy="${PY(p).toFixed(1)}" r="2.3" fill="#ffd54f"/>`).join('');
+  // overlay MISURATO (riconciliazione previsto-vs-reale): curva empirica dai campioni reali
+  let dmeas='', mmark=''; if(meas && meas.pts && meas.pts.length>=2){
+    meas.pts.forEach((pt,i)=>{ dmeas+=(i?'L':'M')+PX(pt[0]).toFixed(1)+' '+PY(pt[1]).toFixed(1); });
+    mmark = meas.pts.map(pt=>`<circle cx="${PX(pt[0]).toFixed(1)}" cy="${PY(pt[1]).toFixed(1)}" r="1.6" fill="#4fc3f7"/>`).join('');
+  }
   const legY=H-3;
   const legend=`<line x1="${padL}" y1="${legY-2}" x2="${padL+12}" y2="${legY-2}" stroke="url(#fragG)" stroke-width="2"/><text x="${padL+15}" y="${legY}" fill="#9b8a60" font-size="7">Kuz-Ram</text>`
-    + (dsw?`<line x1="${padL+58}" y1="${legY-2}" x2="${padL+70}" y2="${legY-2}" stroke="#ffd54f" stroke-width="1.6" stroke-dasharray="3 2"/><text x="${padL+73}" y="${legY}" fill="#9b8a60" font-size="7">KCO/Swebrec</text>`:'');
+    + (dsw?`<line x1="${padL+58}" y1="${legY-2}" x2="${padL+70}" y2="${legY-2}" stroke="#ffd54f" stroke-width="1.6" stroke-dasharray="3 2"/><text x="${padL+73}" y="${legY}" fill="#9b8a60" font-size="7">KCO/Swebrec</text>`:'')
+    + (dmeas?`<line x1="${padL+140}" y1="${legY-2}" x2="${padL+152}" y2="${legY-2}" stroke="#4fc3f7" stroke-width="1.6"/><text x="${padL+155}" y="${legY}" fill="#9b8a60" font-size="7">Misurato</text>`:'');
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;margin-top:2px;overflow:visible">`
     + `<defs><linearGradient id="fragG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff6d00"/><stop offset="1" stop-color="#ffd54f"/></linearGradient></defs>`
     + gridY + gridX
@@ -1537,7 +1549,38 @@ function _fragCurveSVG(fr, sw){
     + pts
     + (dsw?`<path d="${dsw}" fill="none" stroke="#ffd54f" stroke-width="1.4" stroke-dasharray="3 2" opacity=".85" stroke-linejoin="round"/>`:'')
     + `<path d="${d}" fill="none" stroke="url(#fragG)" stroke-width="2" stroke-linejoin="round"/>`
+    + (dmeas?`<path d="${dmeas}" fill="none" stroke="#4fc3f7" stroke-width="1.6" stroke-linejoin="round"/>`+mmark:'')
     + legend + `</svg>`;
+}
+/* Riconciliazione PREVISTO vs REALE: da un elenco di dimensioni misurate sul
+   muckpile (cm) costruisce la curva granulometrica empirica, pesata per volume
+   (d³, come la base a massa della curva prevista), e la confronta col Kuz-Ram.
+   È un confronto qualitativo su un campione; non è un'analisi strumentale. */
+let _measDist=null;
+function _measFromSizes(arr){
+  const v=arr.filter(x=>x>0).sort((a,b)=>a-b);
+  if(v.length<2) return null;
+  const w=v.map(d=>d*d*d), tot=w.reduce((a,b)=>a+b,0);
+  let c=0; const pts=[];
+  for(let i=0;i<v.length;i++){ c+=w[i]; pts.push([v[i], c/tot]); }
+  let x50=v[v.length-1];
+  for(let i=0;i<pts.length;i++){ if(pts[i][1]>=0.5){
+    if(i===0) x50=pts[0][0];
+    else { const [x0,p0]=pts[i-1], [x1,p1]=pts[i]; x50 = x0 + (0.5-p0)/(p1-p0)*(x1-x0); }
+    break; } }
+  return { pts, x50, n:v.length };
+}
+function _measUpdate(){
+  const inp=$('meas-in'), out=$('meas-res'); if(!inp||!out) return;
+  const nums=(inp.value.match(/[\d]+(?:[.,][\d]+)?/g)||[]).map(s=>parseFloat(s.replace(',','.'))).filter(x=>x>0);
+  if(nums.length<2){ _measDist=null; out.innerHTML = nums.length ? '<span style="color:var(--mut2)">servono almeno 2 misure</span>' : ''; return; }
+  const m=_measFromSizes(nums); _measDist=m;
+  const fr=_fragLast;
+  if(!fr){ out.innerHTML='<span style="color:var(--mut2)">imposta prima una volata</span>'; return; }
+  const dev=(m.x50-fr.x50)/fr.x50*100;
+  out.innerHTML=`<div>x50 misurato <b style="color:#4fc3f7">${m.x50.toFixed(1)} cm</b> vs previsto <b style="color:#ffd54f">${fr.x50.toFixed(1)} cm</b> · scarto <b style="color:${Math.abs(dev)>25?'#ffa726':'var(--cu)'}">${dev>=0?'+':''}${dev.toFixed(0)}%</b> <span style="color:var(--mut2)">(${m.n} campioni)</span></div>`
+    + _fragCurveSVG(fr, null, m)
+    + `<div style="font-size:9.5px;color:var(--mut2);line-height:1.35;margin-top:3px">Confronto qualitativo: campione pesato per volume (d³). Serve un campione rappresentativo e ben misurato; non sostituisce un'analisi granulometrica strumentale.</div>`;
 }
 function fmtT(ms){
   if(ms<1000) return Math.round(ms)+' <small>ms</small>';
@@ -1619,6 +1662,7 @@ addEventListener('keydown', e=>{
 /* ============ parametri / layers ============ */
 $('btnApply').onclick = ()=>{ if(playing) return; readParams(); rebuild(); toast('✓ Volata rigenerata'); };
 if($('inv-x50')) $('inv-x50').oninput = _invUpdate;   // calcolo inverso maglia da pezzatura-obiettivo
+if($('meas-in')) $('meas-in').oninput = _measUpdate;  // riconciliazione previsto-vs-reale da misure reali
 function readParams(){
   P.fori = Math.max(6, Math.min(24, +$('pFori').value||18));
   P.ritardo = +$('pRit').value||25;
