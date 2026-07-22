@@ -537,6 +537,34 @@ Dopo l'inserimento delle 3 funzioni competitor, cicli automatici proseguiti:
   media credito" (campo `etaCredito`, UI, 5 test aggiornati, suite 174 verde).
 Le feature Conti Fascia 1 (listino, DDT, XML) sono DECISIONI del fondatore.
 
+## SESSIONE 22/07 (5ª parte) — direzione DRONE (fondatore) + revisione serale
+Conversazione dal vivo col fondatore: priorità = rilievo con **drone economico
+(DJI Mini)** → **nuvola/mesh** → **Terra/Genesi** per le volate, restando
+**indipendenti** (ODM auto-ospitato) e senza spese. Filosofia: "meno preciso, più
+economico" (coerente col fatto che Genesi è una STIMA). Fatto:
+- **Doc strategico** `docs/DEEPWORK_DRONE_FLUSSO.md`: flusso completo, perché la
+  fotogrammetria non sta nel browser ma si POSSIEDE (ODM open source su macchina
+  nostra o su compute gratis/economico — Colab/Kaggle GPU gratis, HF Spaces, o GPU
+  a noleggio a centesimi/volata), limiti onesti, passi concreti. (PC del fondatore
+  troppo lento → il calcolo pesante si sposta su compute remoto gratis/economico.)
+- **Onestà tecnica ribadita al fondatore**: 3D vero da foto = fotogrammetria multi-
+  vista (pesante, non nel browser); Depth-Anything da 1 foto è solo un'illusione
+  2.5D (lui l'aveva già provato e visto). DUSt3R/MASt3R (AI multi-vista, aperti)
+  come alternativa moderna, ma sempre su compute vero.
+- **Genesi POC — visore nuvola di punti** `apps/genesi/nuvola-poc.html` (file
+  AUTONOMO, non tocca genesi.html): carica PLY (ascii/binario)/XYZ, downsample,
+  centra, colora, OrbitControls. Riusa il Three.js già vendorizzato (offline, gratis).
+- **Genesi POC — passo 2: mesh + ritaglio fronte** (via libera fondatore): carica
+  anche MESH (OBJ/GLB; ODM esporta OBJ), ritaglio del fronte con 6 cursori + piani
+  di clipping + box wireframe + export .xyz del fronte isolato.
+- **Conti — fix onestà "DSO"**: era mal etichettato → "Età media credito" (campo,
+  UI, 5 test) + doc `docs/CONTI_FATTURAZIONE_ROADMAP.md`.
+- **Revisione SERALE (21:41 UTC)**: PULITA — syntax OK (genesi/nuvola-poc/conti),
+  174 test verdi, 3 superfici avviate senza errori, review avversariale del codice
+  nuovo senza bug residui.
+Prossimo (gated sul test weekend del fondatore col dato reale): passo 3 = aggancio
+del fronte ritagliato al motore volata di Genesi; poi ponte Terra→Genesi.
+
 ## Fine progetto (fase commercializzazione) — NON prima
 - Acquisto dominio + sottodomini. DECISIONE DEL FONDATORE: nessuna
   spesa prima della commercializzazione.
@@ -558,7 +586,7 @@ Le feature Conti Fascia 1 (listino, DDT, XML) sono DECISIONI del fondatore.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/20260722-123000_conti-dso-onesto.md
+- Ultimo checkpoint: vault/checkpoints/20260722-173000_genesi-mesh-ritaglio-fronte.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
