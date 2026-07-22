@@ -31,9 +31,9 @@ Legenda "fattibile browser": ✅ sì · 🟡 parziale (solo su dati importati/vi
 | Riconciliazione previsto-vs-reale (input misure) | Maxam, BlastLogic | ✅ sì (curva + pannello) | ✅ | — già presente |
 | Signature-hole (somma ritardata) | ShotPlus, Paradigm | ✅ sì (semplificato) | 🟡 | presente ma senza sismografo resta grezzo |
 | Export dati / IREDES-like | Maptek/Vulcan | ✅ sì (CSV+XML import/export) | ✅ | — già presente |
-| **Progettazione carica con DECKING (cariche multiple/foro)** | JKSimBlast, BlastLogic, tutti | ❌ **no** | ✅ | **DA INSERIRE** |
-| **Stima costi / economia della volata** | JKSimBlast, O-Pitblast, MinePlan | ❌ **no** (solo costo relativo esplosivi) | ✅ | **DA INSERIRE** |
-| **Report volata formattato/stampabile (PDF)** | Austin Global Blast Report, tutti | ❌ **no** (solo CSV/XML) | ✅ | **DA INSERIRE** |
+| **Progettazione carica con DECKING (cariche multiple/foro)** | JKSimBlast, BlastLogic, tutti | ✅ **FATTO** (diagramma colonna + carica/deck + beneficio vibrazioni) | ✅ | ✅ inserito |
+| **Stima costi / economia della volata** | JKSimBlast, O-Pitblast, MinePlan | ✅ **FATTO** (metri/kg/inneschi, €/m³, €/t, margine) | ✅ | ✅ inserito |
+| **Report volata formattato/stampabile (PDF)** | Austin Global Blast Report, tutti | ✅ **FATTO** (report stampabile → PDF) | ✅ | ✅ inserito |
 | Profilo fronte / point cloud / fotogrammetria | Maptek, Strayos | 🟡 mostra mesh importata | ⛔ cattura | serve **drone/laser** (import sì, cattura no) |
 | MWD / integrazione perforatrici | BlastLogic, RIOBLAST | 🟡 import MWD | ⛔ | serve **hardware sui rig** |
 | Deviazione fori reale (boretrack) | O-PitDev, Strayos | ❌ | ⛔ misura | serve **strumento** in foro |
@@ -43,17 +43,19 @@ Legenda "fattibile browser": ✅ sì · 🟡 parziale (solo su dati importati/vi
 | AI/ML "vero" (Strayos-like) | Strayos, FRAGTrack | ❌ | ⛔ | serve **modelli addestrati + dati reali + cloud** |
 | Database reali esplosivi/detonatori | Orica, Maxam, Austin | 🟡 catalogo generico | ⛔ reali | i valori certificati sono **proprietari** dei produttori |
 
-## Cosa INSERISCO ora (le 3 lacune davvero fattibili in browser)
-1. **Decking** — possibilità di più cariche nello stesso foro separate da borraggio/aria
-   (deck), con carica e posizione per deck; ricalcolo di carica totale e powder factor.
-2. **Stima costi / economia** — prezzi unitari inseriti dall'utente (perforazione €/m,
+## Cosa ho INSERITO (le 3 lacune davvero fattibili in browser) — FATTO
+1. **Decking** ✅ — 1/2/3 cariche nello stesso foro separate da borraggio intermedio;
+   nella scheda un diagramma della colonna + lunghezza e carica per deck. Onesto:
+   carica totale e powder factor invariati; se i deck sono su ritardi separati la
+   carica per ritardo scende a ~kg/N → vibrazioni minori (la vista 3D resta semplificata).
+2. **Stima costi / economia** ✅ — prezzi unitari inseriti dall'utente (perforazione €/m,
    esplosivo €/kg, innesco €/foro, opz. valore materiale €/t) → metri perforati, kg,
    inneschi, costo totale, costo €/m³ e €/t, e margine se dai il valore del materiale.
-   Etichetta onesta: ordine di grandezza per confrontare progetti, non un preventivo
-   completo (no manodopera/ammortamenti/oneri).
-3. **Report volata formattato/stampabile** — una scheda stampabile (→ PDF con la stampa
-   del browser) con geometria, carica, sequenza, previsioni (frammentazione, PPV,
-   flyrock), costi, ognuno etichettato PREVISTO. Utile verso cliente/ente.
+   Etichetta onesta: ordine di grandezza, non un preventivo (no manodopera/ammortamenti/oneri).
+3. **Report volata formattato/stampabile** ✅ — bottone "Report volata (stampa/PDF)":
+   documento con geometria, carica, sequenza, roccia, previsioni (frammentazione, PPV,
+   flyrock, sgomberi) e stima economica, ognuno etichettato PREVISTO, + disclaimer.
+   Via la stampa del browser si salva in PDF. Utile verso cliente/ente.
 
 ## Cosa NON inserisco (e perché — onestà)
 Tutte le funzioni marcate ⛔ sopra: **non sono fattibili in un'app browser offline**
