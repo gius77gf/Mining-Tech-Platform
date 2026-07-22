@@ -368,6 +368,8 @@ body.scr-sim #tl{bottom:80px}
             <label class="dc-f"><span>Ritardo foro (ms)</span><select id="dRit"><option>17</option><option selected>25</option><option>42</option><option>65</option></select></label>
             <label class="dc-f"><span>Ritardo fila (ms)</span><input type="number" id="dRitFila" step="1" min="8" max="200" value="42"></label>
             <label class="dc-f"><span>Sequenza di sparo</span><select id="dSeq"><option value="riga">Riga per riga</option><option value="diagonale" selected>Diagonale (echelon)</option><option value="vcut">V-cut</option><option value="box">Box cut</option></select></label>
+            <label class="dc-f"><span>Decking (cariche/foro)</span><select id="dDecks"><option value="1" selected>1 · colonna unica</option><option value="2">2 deck</option><option value="3">3 deck</option></select></label>
+            <label class="dc-f"><span>Borraggio tra deck (m)</span><input type="number" id="dDeckStem" step="0.1" min="0.3" max="4" value="1.0"></label>
           </div>
         </div>
         <div class="dc-sec closed"><button type="button" class="dc-sec-h">Roccia & geologia<span class="dc-sec-x">▾</span></button>
@@ -700,7 +702,7 @@ const SEED = 19250606;
 /* ============ parametri correnti ============ */
 const P = { fori:18, ritardo:25, dir:'sx', prof:13, kg:50, diam:89, vento:0.8, profilo:[], foriH:null };
 /* modello di progettazione 2D (Fase 1) — editor multi-fila disaccoppiato dal 3D single-row */
-const D2 = { B:4.5, S:3.5, file:1, perRow:18, bf:4.5, diam:89, prof:13, kg:50, ritardo:25, ritardoFila:42, stem:2.5, sub:1.2, dir:'sx', stagger:true, incl:0, kgAuto:true, esplosivo:'anfo-standard', innesco:'nonel', roccia:'calcare', ucs:100, eMod:55, frat:'media', bagnato:false, acquaCol:0, presplit:false, psSpacing:0.9, psCharge:0.4, sequenza:'diagonale', recDist:300, recNorma:'din-res', recFreq:25, cPerf:8, cExpl:1.5, cInnesco:12, valMat:0, tool:'fori', profilo:[], piede:[], selPt:-1, holes:[], sel:-1, lastDet:0, _m:null };
+const D2 = { B:4.5, S:3.5, file:1, perRow:18, bf:4.5, diam:89, prof:13, kg:50, ritardo:25, ritardoFila:42, stem:2.5, sub:1.2, dir:'sx', stagger:true, incl:0, kgAuto:true, esplosivo:'anfo-standard', innesco:'nonel', roccia:'calcare', ucs:100, eMod:55, frat:'media', bagnato:false, acquaCol:0, presplit:false, psSpacing:0.9, psCharge:0.4, sequenza:'diagonale', recDist:300, recNorma:'din-res', recFreq:25, cPerf:8, cExpl:1.5, cInnesco:12, valMat:0, decks:1, deckStem:1.0, tool:'fori', profilo:[], piede:[], selPt:-1, holes:[], sel:-1, lastDet:0, _m:null };
 
 /* ============ three: scena base ============ */
 const view = document.getElementById('view');
@@ -2654,12 +2656,30 @@ function renderScheda2D(){
     +_crow('Costo unitario',_cM3.toFixed(2).replace('.',',')+' €/m³ · '+_cT.toFixed(2).replace('.',',')+' €/t');
   if((D2.valMat||0)>0){ const _ric=_ton*D2.valMat, _marg=_ric-_cTot; _costRows+=_crow('Margine (materiale '+D2.valMat+' €/t)',_eur(_marg)+' <span style="color:var(--mut2);font-weight:400">('+_eur(_ric)+' ricavo)</span>','color:'+(_marg>=0?'#66bb6a':'#ef5350')); }
   const _costHtml='<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(255,171,0,.15);border-radius:8px;background:rgba(255,171,0,.03)"><div style="font-size:11px;font-weight:700;color:#ffd54f;margin-bottom:4px">💶 Stima economica <span style="font-weight:400;color:var(--mut2);font-size:9px">prezzi tuoi · ordine di grandezza</span></div>'+_costRows+'</div>';
+  // Decking: colonna di carica divisa in più deck separati da borraggio intermedio.
+  // Motivo tipico: ridurre la carica per ritardo (vibrazioni) sparando i deck su tempi diversi.
+  let _deckHtml='';
+  const _N=Math.max(1,Math.min(3,D2.decks||1));
+  if(_N>1){
+    const _Ltot=H+(D2.sub||0), _Lc=Math.max(0.6, _Ltot-D2.stem);
+    const _gap=Math.min(D2.deckStem||1, (_Lc-0.4*_N)/Math.max(1,_N-1));   // lascia ≥0.4 m per deck
+    const _deckLen=Math.max(0.4,(_Lc-(_N-1)*_gap)/_N), _kgDeck=Q/_N;
+    const _hpx=84, _wpx=20, _yy=(len)=>Math.max(0,len/_Ltot*_hpx);
+    let _segs='<rect x="0" y="0" width="'+_wpx+'" height="'+_yy(D2.stem).toFixed(1)+'" fill="#8a8a8a"/>', _cur=D2.stem;
+    for(let i=0;i<_N;i++){ _segs+='<rect x="0" y="'+_yy(_cur).toFixed(1)+'" width="'+_wpx+'" height="'+_yy(_deckLen).toFixed(1)+'" fill="url(#dkg)"/>'; _cur+=_deckLen;
+      if(i<_N-1){ _segs+='<rect x="0" y="'+_yy(_cur).toFixed(1)+'" width="'+_wpx+'" height="'+_yy(_gap).toFixed(1)+'" fill="#8a8a8a"/>'; _cur+=_gap; } }
+    const _svg='<svg viewBox="0 0 '+_wpx+' '+_hpx+'" width="'+_wpx+'" height="'+_hpx+'" style="flex:none"><defs><linearGradient id="dkg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff6d00"/><stop offset="1" stop-color="#ffab00"/></linearGradient></defs>'+_segs+'<rect x="0.5" y="0.5" width="'+(_wpx-1)+'" height="'+(_hpx-1)+'" fill="none" stroke="rgba(255,255,255,.25)"/></svg>';
+    _deckHtml='<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(255,171,0,.15);border-radius:8px;background:rgba(255,171,0,.03);display:flex;gap:10px;align-items:flex-start"><div style="text-align:center"><div style="font-size:8px;color:var(--mut2)">colletto</div>'+_svg+'<div style="font-size:8px;color:var(--mut2)">fondo</div></div>'
+      +'<div style="font-size:11px"><b style="color:#ffd54f">🧨 Decking · '+_N+' cariche/foro</b>'
+      +'<div style="color:var(--mut2);margin-top:3px">Ogni deck ≈ '+_deckLen.toFixed(1)+' m · <b>'+_kgDeck.toFixed(0)+' kg</b> · borraggio tra deck '+_gap.toFixed(1)+' m. Totale carica '+Q+' kg (invariato), powder factor invariato.</div>'
+      +'<div style="color:var(--mut2);margin-top:3px">Se i deck sono innescati su <b>ritardi separati</b>, la carica per ritardo scende a ≈ '+_kgDeck.toFixed(0)+' kg (−'+Math.round((1-1/_N)*100)+'%): <b>vibrazioni minori</b> al recettore. La vista 3D mostra la colonna semplificata.</div></div></div>';
+  }
   el.innerHTML='<div class="sv-card"><div class="sv-h"><b>Scheda volata</b><span class="sv-sub">'+g.n+' fori· '+g.Lm+' m fronte<br>Ø'+Dmm+' mm · '+Q+' kg/foro · H '+H+' m<br>'+(selEsplosivo()?'Esplosivo: '+selEsplosivo().nome:'')+(selInnesco()?' / innesco '+selInnesco().short:'')+(selRoccia()?'<br>Roccia: '+selRoccia().nome+' ('+selRoccia().cls+')':'')+'</span></div>'
     +bipHtml
     +'<div class="sv-grid">'+rowsHtml+'</div>'
     +'<div class="sv-scale"><div class="sv-lab">Rapporto di rigidità H/B — frammentazione attesa</div>'
     +'<div class="sv-bar">'+barHtml+'<span class="sv-mark" style="left:'+markPct.toFixed(1)+'%"></span></div>'
-    +'<div class="sv-ticks"><span>cratere</span><span>rigido</span><span>buono</span><span>ottimo</span></div></div>'+_costHtml+'</div>';
+    +'<div class="sv-ticks"><span>cratere</span><span>rigido</span><span>buono</span><span>ottimo</span></div></div>'+_deckHtml+_costHtml+'</div>';
 }
 
 /* ===== Fase 1 — maglia editabile: pannello di progettazione live ===== */
@@ -2695,6 +2715,8 @@ function applyDesign(){
   if($('dCExpl')) D2.cExpl = Math.max(0, Math.min(50, +$('dCExpl').value||0));
   if($('dCInn')) D2.cInnesco = Math.max(0, Math.min(500, +$('dCInn').value||0));
   if($('dValMat')) D2.valMat = Math.max(0, Math.min(500, +$('dValMat').value||0));
+  if($('dDecks')) D2.decks = Math.max(1, Math.min(3, Math.round(+$('dDecks').value||1)));
+  if($('dDeckStem')) D2.deckStem = Math.max(0.3, Math.min(4, +$('dDeckStem').value||1));
   genMaglia2D(); drawDesign2D(); renderScheda2D(); renderInspector();   // editing 2D snello, il 3D si aggiorna su "Simula"
 }
 function syncDesignInputs(){
@@ -2710,6 +2732,7 @@ function syncDesignInputs(){
   if($('dSeq')) $('dSeq').value=D2.sequenza;
   if($('dRecDist')) $('dRecDist').value=D2.recDist; if($('dRecNorma')) $('dRecNorma').value=D2.recNorma; if($('dRecFreq')) $('dRecFreq').value=D2.recFreq;
   if($('dCPerf')) $('dCPerf').value=D2.cPerf; if($('dCExpl')) $('dCExpl').value=D2.cExpl; if($('dCInn')) $('dCInn').value=D2.cInnesco; if($('dValMat')) $('dValMat').value=D2.valMat;
+  if($('dDecks')) $('dDecks').value=D2.decks; if($('dDeckStem')) $('dDeckStem').value=D2.deckStem;
 }
 function simulaVolata2D(){
   SPALLA=D2.B; INTERASSE=D2.S; P.diam=D2.diam; P.prof=D2.prof; P.kg=D2.kg; P.ritardo=D2.ritardo; P.dir=D2.dir; P.fori=D2.perRow;
@@ -2738,7 +2761,7 @@ function simulaVolata2D(){
   } else P.holes=null;
   rebuild(); setScreen('sim');
 }
-['dB','dS','dD','dN','dFile','dH','dKg','dIncl','dStem','dSub','dRit','dRitFila','dRoccia','dUcs','dEmod','dFrat','dBagnato','dAcquaCol','dPresplit','dPsSpacing','dPsCharge','dSeq','dRecDist','dRecNorma','dRecFreq','dCPerf','dCExpl','dCInn','dValMat'].forEach(id=>{ const el=$(id); if(el) el.addEventListener('change', applyDesign); });
+['dB','dS','dD','dN','dFile','dH','dKg','dIncl','dStem','dSub','dRit','dRitFila','dRoccia','dUcs','dEmod','dFrat','dBagnato','dAcquaCol','dPresplit','dPsSpacing','dPsCharge','dSeq','dRecDist','dRecNorma','dRecFreq','dCPerf','dCExpl','dCInn','dValMat','dDecks','dDeckStem'].forEach(id=>{ const el=$(id); if(el) el.addEventListener('change', applyDesign); });
 document.querySelectorAll('.dc-sec-h').forEach(b=>{ b.addEventListener('click', ()=>b.parentElement.classList.toggle('closed')); });
 if($('dKg')) $('dKg').addEventListener('input', ()=>{ D2.kgAuto=false; });
 function setTool(t){ D2.tool=t; D2.selPt=-1; [['dtFori','fori'],['dtFronte','fronte'],['dtPiede','piede']].forEach(p=>{ const el=$(p[0]); if(el) el.classList.toggle('on',t===p[1]); }); const rb=$('dtReset'); if(rb) rb.textContent='↺ Reset '+(t==='piede'?'piede':'fronte'); drawDesign2D(); renderInspector(); }
