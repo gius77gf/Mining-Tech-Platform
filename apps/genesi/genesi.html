@@ -2213,8 +2213,11 @@ if($('fileXmlIn')) $('fileXmlIn').onchange=async e=>{
     if(B) D2.B=Math.max(1.5,Math.min(8,B));
     if(S) D2.S=Math.max(1.5,Math.min(8,S));
     const diam=numOf(plan,'HoleDiameter'); if(diam) D2.diam=Math.max(50,Math.min(160,Math.round(diam)));
-    const esp=txtOf(plan,'Explosive'); if(esp) D2.esplosivo=esp;
-    const seq=txtOf(plan,'Sequence'); if(seq) D2.sequenza=seq;
+    // valida i valori testuali contro il vocabolario dell'app (difesa in profondità:
+    // non conservare testo arbitrario da un file esterno; se ignoto, tieni il default)
+    const esp=txtOf(plan,'Explosive'); if(esp && ESPL.some(e=>e.id===esp)) D2.esplosivo=esp;
+    const SEQ_OK=['riga','diagonale','vcut','box'];
+    const seq=txtOf(plan,'Sequence'); if(seq && SEQ_OK.includes(seq)) D2.sequenza=seq;
     const hd=numOf(plan,'HoleDelay'); if(hd) D2.ritardo=Math.max(1,hd);
     const rd=numOf(plan,'RowDelay'); if(rd) D2.ritardoFila=Math.max(8,Math.min(300,rd));
     // scalari uniformi dal primo foro
@@ -2233,7 +2236,7 @@ if($('fileXmlIn')) $('fileXmlIn').onchange=async e=>{
     D2.dir = tMin<=tMax ? 'sx' : 'dx';
     syncDesignInputs();
     genMaglia2D(); drawDesign2D(); renderScheda2D(); renderInspector();
-    if(typeof toast==='function') toast('✓ Piano XML importato: '+holes.length+' fori · B '+D2.B.toFixed(2)+'×S '+D2.S.toFixed(2)+' · '+(seq||D2.sequenza));
+    if(typeof toast==='function') toast('✓ Piano XML importato: '+holes.length+' fori · B '+D2.B.toFixed(2)+'×S '+D2.S.toFixed(2)+' · '+D2.sequenza);
   }catch(err){ if(typeof toast==='function') toast('Import XML fallito: '+err.message); }
   e.target.value='';
 };
