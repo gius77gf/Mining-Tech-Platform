@@ -1475,7 +1475,11 @@ function updateInfochip(){
     const _blk={compatta:2.0, media:1.0, fratturata:0.4}[D2.frat]||1.0;
     const _swXmax=Math.max(fr.x50*1.2, Math.min(SPALLA, INTERASSE, _blk)*100);
     const _swB=Math.max(1.5, 0.5*Math.pow(Math.max(1,fr.x50),0.25)*Math.log(_swXmax/fr.x50));
+    // frazione FINE (% passante sotto soglia): Kuz-Ram sottostima i fini, Swebrec ne mostra di più (JKMRC)
+    const _fThr=2.5, _fKR=Math.round((1-Math.exp(-Math.pow(_fThr/Math.max(0.01,fr.xc),fr.n)))*100),
+      _fSW=(_swXmax>_fThr)?Math.round(1/(1+Math.pow(Math.log(_swXmax/_fThr)/Math.log(_swXmax/Math.max(1,fr.x50)),_swB))*100):0;
     $('fragchip').innerHTML = `<b>Granulometria prevista</b> · Kuz-Ram (n=${fr.n})${seg('x20',fr.x20)}${seg('x50',fr.x50)}${seg('x80',fr.x80)}`
+      + `<div style="font-size:10px;color:var(--mut2);margin-top:5px">Fini &lt;${_fThr} cm: <b style="color:#ffd54f">${_fKR}%</b> Kuz-Ram · <b style="color:#ffd54f">${_fSW}%</b> Swebrec</div>`
       + `<div style="font-size:10px;color:var(--mut2);margin:6px 0 -2px">Curva % passante · Kuz-Ram + KCO/Swebrec · dimensione cm (scala log)</div>`
       + _fragCurveSVG(fr, {xmax:_swXmax, x50:fr.x50, b:_swB});
     _fragLast = fr; _invUpdate();
