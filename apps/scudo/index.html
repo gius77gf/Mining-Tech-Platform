@@ -124,7 +124,8 @@
     <select class="dw-input" id="inf-tipo" style="flex:1;min-width:120px;"><option value="near-miss">Near-miss (mancato infortunio)</option><option value="infortunio">Infortunio</option></select>
     <select class="dw-input" id="inf-gravita" style="flex:1;min-width:100px;"><option value="lieve">Lieve</option><option value="grave">Grave</option></select>
     <input class="dw-input" id="inf-giorni" type="number" min="0" placeholder="Giorni assenza" style="flex:1;min-width:120px;">
-    <input class="dw-input" id="inf-desc" placeholder="Descrizione e luogo" style="flex:2;min-width:160px;">
+    <input class="dw-input" id="inf-luogo" placeholder="Luogo" style="flex:1;min-width:120px;">
+    <input class="dw-input" id="inf-desc" placeholder="Descrizione" style="flex:2;min-width:160px;">
     <button class="dw-btn" id="btn-inf" style="width:auto;">Registra</button>
   </div>
   <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
@@ -358,9 +359,9 @@
     await db.aggiungi("infortuni", {
       data, tipo, gravita: $("inf-gravita").value,
       giorniAssenza: +$("inf-giorni").value || 0,
-      descrizione: desc, luogo: "",
+      descrizione: desc, luogo: $("inf-luogo").value.trim(),
     });
-    $("inf-desc").value = ""; $("inf-giorni").value = "";
+    $("inf-desc").value = ""; $("inf-giorni").value = ""; $("inf-luogo").value = "";
     $("inf-esito").textContent = (tipo === "infortunio" ? "Infortunio" : "Near-miss") + " registrato del " + data + ".";
     await refresh();
   };
