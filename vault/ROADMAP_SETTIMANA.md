@@ -473,6 +473,34 @@ viewer point-cloud (Potree/deck.gl), ML frammentazione (serve modello pre-addest
 Onestà (richiamo del fondatore): sono primi passi lato browser sugli stessi TEMI dei
 leader, NON parità.
 
+## SESSIONE 22/07 (2ª parte) — altre app + revisione sicurezza (ciclo automatico)
+Con Genesi (parte pesante) gated sul fondatore, cicli automatici proseguiti sui
+fallback (non mettere da parte le altre app + revisione). Tutto su #321:
+- **Scudo + Sentinella — blocco date FUTURE** nei registri infortuni/volate
+  (documenti HSE/enti): un refuso con data futura azzerava il cartellone "giorni
+  senza infortuni" o sballava il conteggio volate del mese. `max`=oggi + guardia
+  `giorniTra(data)>0`, riusando l'helper condiviso (mezzanotte locale).
+- **Scudo** — filtro Infortuni/Near-miss nella lista + campo `luogo` reso coerente
+  (prima gli eventi manuali non potevano avere il luogo, che invece esiste in
+  import/export/lista).
+- **Test** — blindato l'invariante del segno di `giorniTra` (base delle guardie);
+  suite CI 328 → 329.
+- **Genesi import XML — hardening**: valori testuali (Explosive/Sequence) validati
+  contro il vocabolario dell'app (whitelist) prima di entrare in D2.
+- **Revisione di sicurezza** (skill security-review) su tutto il diff #321: **nessuna
+  vulnerabilità** (import XML: toast textContent + whitelist; riconciliazione: soli
+  numeri; luogo: esc; XXE non applicabile in DOMParser browser).
+- **Due doc-decisione per il fondatore** sui punti pesanti Genesi:
+  `GENESI_FRAMMENTAZIONE_DA_FOTO.md` (#4) e `GENESI_POINT_CLOUD.md` (#5) — onesti
+  sui limiti, così può scegliere.
+- **Sweep date-future**: confermato che la guardia va SOLO su Scudo/Sentinella
+  (misure di eventi passati). Terra (rilievo futuro = "pianificato", volume null,
+  escluso dai KPI), Campo (nessuna data / stato pianificata), Conti (scadenza
+  futura legittima), Flotta (manutenzione programmata futura) allo stato ATTUALE
+  sono corretti — nessuna estensione (evitata una regressione).
+Restano gated sul fondatore: revisione estetica #321 + scelte sui punti pesanti +
+semantica date Conti + DEFAULT_USERS/mitigazione password/Firebase.
+
 ## Fine progetto (fase commercializzazione) — NON prima
 - Acquisto dominio + sottodomini. DECISIONE DEL FONDATORE: nessuna
   spesa prima della commercializzazione.
@@ -494,7 +522,7 @@ leader, NON parità.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/20260722-032000_genesi-import-xml-iredes.md
+- Ultimo checkpoint: vault/checkpoints/20260722-070000_revisione-sicurezza-sessione.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
