@@ -522,6 +522,21 @@ le funzioni mancanti». Fatto in modo ONESTO:
   in un'app browser → documentate nella matrice come "decisione fondatore", non finte.
 Tutto su #321, verificato (syntax CI, Node, Playwright+screenshot). CI verde.
 
+## SESSIONE 22/07 (4ª parte) — rifiniture competitor + rotazione ricerca Conti
+Dopo l'inserimento delle 3 funzioni competitor, cicli automatici proseguiti:
+- **Genesi rifiniture** (coerenza delle nuove funzioni): fix robustezza decking
+  (foro corto → avviso, no borraggio negativo); **costo** ora coerente e identico
+  su scheda, confronto A/B (progetto più economico in verde), report e CSV;
+  decking anche nel report.
+- **Rotazione ricerca (tempi morti) su Conti** → `docs/CONTI_FATTURAZIONE_ROADMAP.md`:
+  cosa è fattibile in browser (listino inerti, DDT/pesate + fattura differita, IVA
+  22% con reverse charge solo opzionale, generatore XML FatturaPA lato client,
+  export commercialista) vs cosa richiede servizi esterni GRATUITI dell'Agenzia
+  (invio SdI, conservazione) o hardware (automazione pesa). La ricerca ha trovato un
+  **bug di onestà reale**: il KPI "DSO medio" NON era il DSO → **corretto** in "Età
+  media credito" (campo `etaCredito`, UI, 5 test aggiornati, suite 174 verde).
+Le feature Conti Fascia 1 (listino, DDT, XML) sono DECISIONI del fondatore.
+
 ## Fine progetto (fase commercializzazione) — NON prima
 - Acquisto dominio + sottodomini. DECISIONE DEL FONDATORE: nessuna
   spesa prima della commercializzazione.
@@ -543,7 +558,7 @@ Tutto su #321, verificato (syntax CI, Node, Playwright+screenshot). CI verde.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/20260722-114500_genesi-decking-robustezza.md
+- Ultimo checkpoint: vault/checkpoints/20260722-123000_conti-dso-onesto.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
