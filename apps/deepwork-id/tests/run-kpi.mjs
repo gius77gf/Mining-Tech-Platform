@@ -1186,6 +1186,15 @@ test("giorniTra + Scudo: una scadenza di OGGI non è 'scaduta' nel pomeriggio", 
   eq(scudo.statoScadenza("2026-07-20", pom), "in-scadenza", "oggi non è scaduta");
   eq(scudo.livelloScadenza("2026-07-20", pom), { cls: "danger", label: "scade oggi", giorni: 0 }, "scade oggi");
 });
+test("giorniTra: segno futuro/passato — invariante delle guardie data-futura (Scudo/Sentinella)", () => {
+  // le guardie rifiutano un evento se giorniTra(data) > 0 (nel futuro): blindiamo il segno
+  const oggi = new Date("2026-07-20T09:00:00");
+  eq(shell.giorniTra("2026-07-21", oggi) > 0, true, "domani è futuro → rifiutato");
+  eq(shell.giorniTra("2026-08-19", oggi) > 0, true, "+30gg è futuro → rifiutato");
+  eq(shell.giorniTra("2026-07-20", oggi) > 0, false, "oggi NON è futuro → accettato");
+  eq(shell.giorniTra("2026-07-19", oggi) > 0, false, "ieri NON è futuro → accettato");
+  eq(shell.giorniTra("2026-07-19", oggi) < 0, true, "ieri è passato (segno negativo)");
+});
 test("conti/sentinella/flotta: nessun off-by-one con l'ora del giorno", () => {
   const pom = new Date("2026-07-20T18:30:00");
   eq(conti.giorni("2026-07-22", pom), 2, "conti: 2 giorni");
