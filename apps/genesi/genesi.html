@@ -540,6 +540,11 @@ body.scr-sim #tl{bottom:80px}
   <h2>Volata demo</h2>
   <div id="infochip"></div>
   <div id="fragchip"></div>
+  <div id="invtool" style="margin:4px 0 8px;padding:8px 9px;border:1px solid rgba(255,171,0,.18);border-radius:9px;background:rgba(255,171,0,.04)">
+    <div style="font-size:10.5px;color:var(--mut2);margin-bottom:5px">🎯 Maglia da pezzatura-obiettivo (inverso)</div>
+    <div class="row" style="margin-bottom:4px"><label>x50 obiettivo (cm)</label><input type="number" id="inv-x50" min="1" step="1" placeholder="es. 35" style="width:86px"></div>
+    <div id="inv-res" style="font-size:11px;color:var(--tx)"></div>
+  </div>
   <div class="row"><label>Numero fori</label><input type="number" id="pFori" min="6" max="24" step="1" value="18"></div>
   <div class="row"><label>Ritardo Nonel (ms)</label>
     <select id="pRit"><option>17</option><option selected>25</option><option>42</option><option>65</option></select></div>
@@ -890,7 +895,8 @@ function buildSim(){
   const xc = x50 / Math.pow(0.693, 1/nU);                       // size caratteristica Rosin-Rammler
   const x80 = xc * Math.pow(-Math.log(0.2), 1/nU);              // 80% passante
   const x20 = xc * Math.pow(-Math.log(0.8), 1/nU);              // 20% passante
-  const frag = { x50:Math.round(x50), x80:Math.round(x80), x20:Math.round(x20), n:+nU.toFixed(2), xc, pf:+pf.toFixed(2) };
+  const frag = { x50:Math.round(x50), x80:Math.round(x80), x20:Math.round(x20), n:+nU.toFixed(2), xc, pf:+pf.toFixed(2),
+    A:+A_rock.toFixed(3), RWS:+RWS.toFixed(1), kg:P.kg, prof:prof, sbRatio:+(INTERASSE/Math.max(0.1,SPALLA)).toFixed(3) };  // input per il calcolo inverso della maglia
   /* ---- chunk per foro (forma chiusa, atterraggio precalcolato) ---- */
   const chunks = [];
   const tDetach = CAL.distacco.inizioDopoDetonazioneS*1000;
@@ -1472,7 +1478,33 @@ function updateInfochip(){
     $('fragchip').innerHTML = `<b>Granulometria prevista</b> · Kuz-Ram (n=${fr.n})${seg('x20',fr.x20)}${seg('x50',fr.x50)}${seg('x80',fr.x80)}`
       + `<div style="font-size:10px;color:var(--mut2);margin:6px 0 -2px">Curva % passante · Kuz-Ram + KCO/Swebrec · dimensione cm (scala log)</div>`
       + _fragCurveSVG(fr, {xmax:_swXmax, x50:fr.x50, b:_swB});
+    _fragLast = fr; _invUpdate();
   }
+}
+/* Calcolo INVERSO della maglia: da una pezzatura-obiettivo x50 propone burden e
+   spaziatura, invertendo Kuznetsov (x50=A·pf^-0.8·kg^(1/6)·(115/RWS)^(19/30)).
+   È una PROPOSTA DI PARTENZA, non un ordine: il fochino verifica sempre con le
+   condizioni reali del fronte. Non tocca la fisica del modello diretto. */
+let _fragLast=null;
+function _inverseMesh(targetX50){
+  const fr=_fragLast; if(!(targetX50>0)||!fr||!fr.A) return null;
+  const k = fr.A * Math.pow(Math.max(1,fr.kg),1/6) * Math.pow(115/Math.max(8,fr.RWS),19/30);
+  const pfT = Math.pow(k/targetX50, 1/0.8);                       // powder factor richiesto
+  const area = fr.kg / (pfT * Math.max(0.5, fr.prof));            // B·S per foro (m²)
+  const ratio = Math.min(1.4, Math.max(1, fr.sbRatio||1.15));    // S/B
+  const B = Math.sqrt(area/ratio), S = B*ratio;
+  return { pf:pfT, B, S };
+}
+function _invUpdate(){
+  const inp=$('inv-x50'), out=$('inv-res'); if(!inp||!out) return;
+  const t=parseFloat(inp.value);
+  if(!(t>0)){ out.innerHTML=''; return; }
+  const r=_inverseMesh(t);
+  if(!r){ out.innerHTML='<span style="color:var(--mut2)">imposta prima una volata</span>'; return; }
+  const irreale = (r.pf<0.15 || r.pf>2.2 || r.B<1 || r.B>9);   // fuori range pratico → obiettivo poco realistico con carica/altezza attuali
+  out.innerHTML=`<b style="color:${irreale?'#ffa726':'var(--cu)'}">B ${r.B.toFixed(2)} × S ${r.S.toFixed(2)} m</b> · PF ${r.pf.toFixed(2)} kg/m³`
+    +(irreale?`<div style="font-size:9.5px;color:#ffa726;line-height:1.35;margin-top:3px">Obiettivo poco realistico con carica/altezza attuali: cambia kg carica o profondità, o rivedi l'obiettivo.</div>`:'')
+    +`<div style="font-size:9.5px;color:var(--mut2);line-height:1.35;margin-top:3px">⚠ proposta di partenza (a carica/altezza attuali). Verifica sempre col fronte reale, il piede e le distanze di sicurezza: non sostituisce il giudizio del fochino.</div>`;
 }
 /* Curva granulometrica cumulata (% passante vs dimensione) dal modello Kuz-Ram
    (Rosin-Rammler): P(x)=1-exp(-(x/xc)^n). Usa i valori GIÀ calcolati (xc, n,
@@ -1582,6 +1614,7 @@ addEventListener('keydown', e=>{
 
 /* ============ parametri / layers ============ */
 $('btnApply').onclick = ()=>{ if(playing) return; readParams(); rebuild(); toast('✓ Volata rigenerata'); };
+if($('inv-x50')) $('inv-x50').oninput = _invUpdate;   // calcolo inverso maglia da pezzatura-obiettivo
 function readParams(){
   P.fori = Math.max(6, Math.min(24, +$('pFori').value||18));
   P.ritardo = +$('pRit').value||25;
