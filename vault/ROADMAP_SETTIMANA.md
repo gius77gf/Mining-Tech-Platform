@@ -501,6 +501,27 @@ fallback (non mettere da parte le altre app + revisione). Tutto su #321:
 Restano gated sul fondatore: revisione estetica #321 + scelte sui punti pesanti +
 semantica date Conti + DEFAULT_USERS/mitigazione password/Firebase.
 
+## SESSIONE 22/07 (3ª parte) — Genesi vs competitor: ricerca + confronto + inserimento
+Richiesta esplicita del fondatore: «ricerca su tutte le funzionalità della
+concorrenza, cosa si può fare e cosa no, confronta con Genesi ed inserisci tutte
+le funzioni mancanti». Fatto in modo ONESTO:
+- **Ricerca competitor completa** (Orica ShotPlus/BlastIQ/OREPro/FRAGTrack, Maptek
+  BlastLogic/PointStudio, Maxam RIOBLAST, Strayos, O-Pitblast, Austin, Hexagon,
+  Deswik, BMT, JKSimBlast): cosa fanno e cosa no, per categoria.
+- **Matrice di confronto** `docs/GENESI_VS_COMPETITOR_MATRICE.md`. Scoperta chiave:
+  nessun competitor è solo-browser; il loro vantaggio forte è la MISURA reale
+  (hardware/cloud/dati/ML). Genesi copriva già quasi tutto il fattibile in browser.
+- **Le 3 (uniche) lacune fattibili in browser — INSERITE in Genesi:**
+  1. **Stima costi/economia** (perforazione/esplosivo/innesco €, €/m³, €/t, margine).
+  2. **Report volata stampabile/PDF** (geometria+carica+previsioni+costi, ogni
+     previsione etichettata PREVISTO, disclaimer).
+  3. **Decking** (1/2/3 cariche/foro, diagramma colonna, carica/deck, beneficio
+     vibrazioni; + fix robustezza foro corto).
+- **Onestà**: le funzioni che richiedono hardware (droni/sismografi/MWD/detonatori/
+  BMT), backend/cloud, dati misurati, ML o database proprietari NON sono fattibili
+  in un'app browser → documentate nella matrice come "decisione fondatore", non finte.
+Tutto su #321, verificato (syntax CI, Node, Playwright+screenshot). CI verde.
+
 ## Fine progetto (fase commercializzazione) — NON prima
 - Acquisto dominio + sottodomini. DECISIONE DEL FONDATORE: nessuna
   spesa prima della commercializzazione.
@@ -522,7 +543,7 @@ semantica date Conti + DEFAULT_USERS/mitigazione password/Firebase.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/20260722-070000_revisione-sicurezza-sessione.md
+- Ultimo checkpoint: vault/checkpoints/20260722-114500_genesi-decking-robustezza.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
