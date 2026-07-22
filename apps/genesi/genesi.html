@@ -425,6 +425,7 @@ body.scr-sim #tl{bottom:80px}
   <div id="d2-scheda"></div>
   <button class="btn-sec" id="btn-piano-csv" style="display:block;margin:10px auto 0;">📤 Esporta piano di carico (CSV per il fochino)</button>
   <button class="btn-sec" id="btn-scheda-csv" style="display:block;margin:8px auto 0;">📄 Esporta scheda volata (CSV)</button>
+  <button class="btn-sec" id="btn-report" style="display:block;margin:8px auto 0;" title="Report della volata formattato, stampabile o salvabile in PDF (stampa del browser)">🖨 Report volata (stampa / PDF)</button>
   <button class="btn-sec" id="btn-innesco-xml" style="display:block;margin:8px auto 0;" title="Piano di innesco per detonatori elettronici / software terzi (formato XML in stile IREDES)">🧨 Esporta piano di innesco (XML IREDES-like)</button>
   <button class="btn-sec" id="btn-innesco-xml-in" style="display:block;margin:8px auto 0;" title="Rileggi un piano XML in stile IREDES esportato da Genesi (round-trip: geometria, sequenza, ritardi)">📥 Importa piano di innesco (XML)</button>
   <input type="file" id="fileXmlIn" accept=".xml,application/xml,text/xml" style="display:none">
@@ -1939,6 +1940,42 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download='genesi_scheda_volata.csv'; a.click();
+};
+/* Report volata formattato e stampabile (→ PDF con la stampa del browser).
+   Emula il "blast report" dei competitor lato browser. Ogni previsione è
+   etichettata come tale: è un progetto/stima, non una misura di campo. */
+if($('btn-report')) $('btn-report').onclick=()=>{
+  if(!D2.holes.length) genMaglia2D();
+  computeSeq2D();
+  const k=computeKPI(), F=flyrockEst(), g=measureGeom2D(), E=selEsplosivo()||{}, I=selInnesco()||{}, R=selRoccia()||{};
+  const nf=g.n, mPerf=nf*(D2.prof+(D2.sub||0)), kgTot=nf*D2.kg, vol=nf*D2.B*D2.S*D2.prof, rho=R.rho||2.5, ton=vol*rho;
+  const cP=mPerf*(D2.cPerf||0), cE=kgTot*(D2.cExpl||0), cI=nf*(D2.cInnesco||0), cTot=cP+cE+cI;
+  const eur=(x)=>'€'+Math.round(x).toLocaleString('it-IT'), esc=_rEsc;
+  const now=new Date().toLocaleString('it-IT');
+  const seqL={riga:'Riga per riga',diagonale:'Diagonale (echelon)',vcut:'V-cut',box:'Box cut'}[D2.sequenza]||D2.sequenza;
+  const normL={'din-res':'DIN residenziale','din-ind':'DIN industriale','din-sens':'DIN sensibile/storico','usbm-old':'USBM intonaco','usbm-modern':'USBM cartongesso'}[D2.recNorma]||D2.recNorma;
+  const sec=(t,rows)=>'<h2>'+esc(t)+'</h2><table>'+rows.map(r=>'<tr><td>'+esc(r[0])+'</td><td>'+r[1]+'</td></tr>').join('')+'</table>';
+  const body=
+    sec('Geometria',[['Maglia (spalla × interasse)',D2.B.toFixed(1)+' × '+D2.S.toFixed(1)+' m'],['Diametro foro',esc(D2.diam)+' mm'],['Fori × file',nf+' ('+D2.perRow+' × '+D2.file+')'],['Profondità / sottoperf.',D2.prof+' / '+(D2.sub||0)+' m'],['Borraggio',D2.stem+' m'],['Inclinazione',(D2.incl||0)+'°'],['Fronte',g.Lm+' m']])
+   +sec('Carica & sequenza',[['Esplosivo',esc(E.nome||D2.esplosivo)],['Carica per foro',D2.kg+' kg'],['Carica totale',kgTot.toFixed(0)+' kg'],['Powder factor',k.pf+' kg/m³'],['Innesco',esc(I.nome||D2.innesco)],['Sequenza',esc(seqL)],['Ritardo foro / fila',D2.ritardo+' / '+(D2.ritardoFila||0)+' ms']])
+   +sec('Roccia',[['Litologia',esc(R.nome||D2.roccia)],['UCS',D2.ucs+' MPa'],['Fratturazione',esc(D2.frat)],['Fori bagnati',D2.bagnato?'sì':'no']])
+   +sec('Previsioni (PREVISTO — non misura)',[['Frammentazione x20 / x50 / x80',k.x20+' / '+k.x50+' / '+k.x80+' cm'],['PPV al recettore ('+D2.recDist+' m)',k.ppv+' mm/s (limite '+k.lim+', '+esc(normL)+')'],['Gittata flyrock',k.fly+' m'],['Sgombero mezzi 2× / persone 4×',Math.round(F.Dmez)+' / '+Math.round(F.Dper)+' m'],['Presplit',k.presplit?'sì':'no']])
+   +sec('Stima economica (ordine di grandezza)',[['Metri perforati',mPerf.toFixed(0)+' m → '+eur(cP)],['Esplosivo',kgTot.toFixed(0)+' kg → '+eur(cE)],['Inneschi',nf+' → '+eur(cI)],['Costo totale volata','<b>'+eur(cTot)+'</b>'],['Volume / tonnellaggio',vol.toFixed(0)+' m³ / '+ton.toFixed(0)+' t'],['Costo unitario',cTot/vol?(cTot/vol).toFixed(2).replace('.',',')+' €/m³ · '+(cTot/ton).toFixed(2).replace('.',',')+' €/t':'—']].concat((D2.valMat||0)>0?[['Margine (materiale '+D2.valMat+' €/t)',eur(ton*D2.valMat-cTot)]]:[]));
+  const doc='<!doctype html><html lang="it"><head><meta charset="utf-8"><title>Report volata Genesi</title><style>'
+    +'body{font-family:system-ui,Arial,sans-serif;color:#1a1a1a;max-width:720px;margin:24px auto;padding:0 16px;font-size:13px}'
+    +'h1{font-size:20px;margin:0 0 2px;color:#a05a00}.sub{color:#666;font-size:12px;margin-bottom:16px}'
+    +'h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:#a05a00;border-bottom:1px solid #e0c090;padding-bottom:3px;margin:16px 0 6px}'
+    +'table{width:100%;border-collapse:collapse}td{padding:3px 6px;border-bottom:1px solid #f0f0f0;vertical-align:top}td:first-child{color:#555;width:52%}'
+    +'.foot{margin-top:20px;font-size:10.5px;color:#888;border-top:1px solid #ddd;padding-top:8px}@media print{body{margin:0}}</style></head><body>'
+    +'<h1>Report volata — Genesi</h1><div class="sub">Generato il '+esc(now)+' · progetto/stima, non misura di campo</div>'
+    +body
+    +'<div class="foot">Genesi è un simulatore di progettazione. Le previsioni (frammentazione, vibrazioni, flyrock) derivano da modelli empirici (Kuz-Ram/Swebrec, scaled-distance) e sono STIME, non misure certificate: vanno verificate sul campo. La stima economica è un ordine di grandezza (non include manodopera, ammortamenti, oneri).</div>'
+    +'</body></html>';
+  const w=window.open('','_blank');
+  if(!w){ if(typeof toast==='function') toast('Consenti i popup per aprire il report'); return; }
+  w.document.write(doc); w.document.close(); w.focus();
+  setTimeout(()=>{ try{ w.print(); }catch(e){} }, 350);
+  if(typeof toast==='function') toast('Report aperto: usa "Stampa → Salva come PDF"');
 };
 if($('cmpSaveA')) $('cmpSaveA').onclick=()=>cmpSave('A');
 if($('cmpSaveB')) $('cmpSaveB').onclick=()=>cmpSave('B');
