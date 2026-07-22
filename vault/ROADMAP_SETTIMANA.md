@@ -446,6 +446,33 @@ di perforazione: burden/boretrack/export) e P2 (immagine/ML, backend).
   Suite run.mjs 52 → 58; totale CI 322 → 328. Principale realistico che mancava
   (distinto da anonimo e da concorrente).
 
+## SESSIONE 22/07 — "completa tutti i punti Genesi" (branch #321, attende revisione)
+Direttiva fondatore: proseguire da solo sui punti previsti di Genesi ("completa
+tutti i punti"); Genesi è priorità ORA, ma non mettere da parte le altre app; lui
+rivedrà la GRAFICA "tra qualche ora". Tutto sul branch di sessione (#321), che
+resta APERTO per il suo giudizio estetico. Unità di questa sessione (verificate:
+syntax CI + logica in Node / DOM di browser reale):
+- **Curva granulometrica** completata a 2 modelli (Kuz-Ram + KCO/Swebrec) su asse
+  semi-log, punti x20/x50/x80. Solo visualizzazione dei valori GIÀ calcolati.
+- **Frazione fine <2.5 cm** dai due modelli (Swebrec mostra più fini: Kuz-Ram
+  sottostima la coda fine — onesto, è il motivo del KCO/Swebrec).
+- **Calcolo inverso maglia** (punto 1): da un x50 OBIETTIVO propone B×S e powder
+  factor invertendo Kuznetsov. Proposta di partenza con AVVERTENZA (verifica col
+  fronte, non sostituisce il fochino); round-trip verificato. Nessun tocco alla fisica.
+- **Riconciliazione da misure reali** (curva): l'operatore inserisce le dimensioni
+  misurate sul muckpile → curva empirica pesata per volume (d³) sovrapposta alla
+  previsione, con x50 misurato vs previsto e scarto. NESSUNA auto-segmentazione da
+  foto (darebbe numeri fuorvianti): le misure le dà l'operatore, il dato è reale.
+- **Import piano XML** (punto 2): round-trip con l'export IREDES-like (#311) → il
+  piano diventa portabile; DOMParser+getElementsByTagName rilegge geometria/
+  esplosivo/sequenza/ritardi in Progetto 2D. NON è import IREDES certificato.
+- Doc `GENESI_OPENSOURCE_EMULAZIONE.md` + funzione di ricerca continua nella skill.
+RESTANO (pesanti, rischio numeri fuorvianti se fatti male → DECISIONE fondatore su
+librerie/asset e sua revisione grafica): auto-pezzatura-da-foto (watershed/ML),
+viewer point-cloud (Potree/deck.gl), ML frammentazione (serve modello pre-addestrato).
+Onestà (richiamo del fondatore): sono primi passi lato browser sugli stessi TEMI dei
+leader, NON parità.
+
 ## Fine progetto (fase commercializzazione) — NON prima
 - Acquisto dominio + sottodomini. DECISIONE DEL FONDATORE: nessuna
   spesa prima della commercializzazione.
@@ -467,7 +494,7 @@ di perforazione: burden/boretrack/export) e P2 (immagine/ML, backend).
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/20260722-001500_genesi-signature-hole.md
+- Ultimo checkpoint: vault/checkpoints/20260722-032000_genesi-import-xml-iredes.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
