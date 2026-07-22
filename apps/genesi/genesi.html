@@ -1939,6 +1939,7 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
     ['Sgombero mezzi 2x (m)', Math.round(F.Dmez)],
     ['Sgombero persone 4x (m)', Math.round(F.Dper)],
     ['Presplit', k.presplit?'si':'no'],
+    ['Costo totale stima (EUR)', k.cost],
   ];
   let csv='parametro;valore\n'+rows.map(r=>r[0]+';'+r[1]).join('\n')+'\n';
   const a=document.createElement('a');
