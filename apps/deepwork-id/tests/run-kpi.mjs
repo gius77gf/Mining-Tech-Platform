@@ -191,7 +191,7 @@ console.log("\n— Conti: fatture e gare —");
 test("giorni calcola la distanza in giorni", () => {
   eq(conti.giorni("2026-07-20", new Date("2026-07-10T00:00:00")), 10, "10 giorni");
 });
-test("kpiFrom: da incassare, in scadenza, gare aperte, DSO", () => {
+test("kpiFrom: da incassare, in scadenza, gare aperte, età media credito", () => {
   const oggi = new Date("2026-07-20T00:00:00");
   const fatture = [
     { importo: 100, incassata: false, scadenza: "2026-07-25", emessa: "2026-07-10" },
@@ -200,7 +200,7 @@ test("kpiFrom: da incassare, in scadenza, gare aperte, DSO", () => {
   ];
   const gare = [{ stato: "aperta" }, { stato: "vinta" }];
   eq(conti.kpiFrom(fatture, gare, oggi),
-    { daIncassare: 130, inScadenza: 2, gareAperte: 1, dso: 14 }, "kpi conti");
+    { daIncassare: 130, inScadenza: 2, gareAperte: 1, etaCredito: 14 }, "kpi conti");
 });
 test("kpiFrom: inScadenza = solo fatture NON incassate con scadenza entro 10 giorni", () => {
   const oggi = new Date("2026-07-20T00:00:00");
@@ -212,17 +212,17 @@ test("kpiFrom: inScadenza = solo fatture NON incassate con scadenza entro 10 gio
   ];
   eq(conti.kpiFrom(fatture, [], oggi).inScadenza, 2, "confine 10gg + scaduta, esclusa l'incassata");
 });
-test("kpiFrom: una fattura senza data di emissione non rompe il DSO", () => {
-  // regressione: prima una fattura senza "emessa" rendeva il DSO = NaN
-  // (mostrato come "NaN giorni" nel cruscotto). Ora contribuisce 0.
+test("kpiFrom: una fattura senza data di emissione non rompe l'età media credito", () => {
+  // regressione: prima una fattura senza "emessa" rendeva la metrica = NaN
+  // (mostrata come "NaN giorni" nel cruscotto). Ora contribuisce 0.
   const oggi = new Date("2026-07-20T00:00:00");
   const fatture = [
     { importo: 100, incassata: false, scadenza: "2026-07-25", emessa: undefined },   // senza data → 0 gg
     { importo: 50,  incassata: false, scadenza: "2026-07-25", emessa: "2026-07-10" }, // 10 gg
   ];
-  const dso = conti.kpiFrom(fatture, [], oggi).dso;
-  eq(Number.isFinite(dso), true, "DSO è un numero finito");
-  eq(dso, 5, "media di 0 e 10");
+  const etaCredito = conti.kpiFrom(fatture, [], oggi).etaCredito;
+  eq(Number.isFinite(etaCredito), true, "età media credito è un numero finito");
+  eq(etaCredito, 5, "media di 0 e 10");
 });
 test("agingIncassi: fatture divise per fascia di ritardo, importi corretti", () => {
   const oggi = new Date("2026-07-20T00:00:00");
@@ -971,8 +971,8 @@ test("giorni: domani = 1, ieri = -1", () => {
 console.log("\n— Input vuoti: azienda al giorno zero —");
 test("Scudo kpiFrom([],[]) = tutti zero", () =>
   eq(scudo.kpiFrom([], []), { scadute: 0, trenta: 0, regolari: 0 }, "scudo vuoto"));
-test("Conti kpiFrom([],[]) = zero e DSO 0 (niente divisione per zero)", () =>
-  eq(conti.kpiFrom([], []), { daIncassare: 0, inScadenza: 0, gareAperte: 0, dso: 0 }, "conti vuoto"));
+test("Conti kpiFrom([],[]) = zero e età media credito 0 (niente divisione per zero)", () =>
+  eq(conti.kpiFrom([], []), { daIncassare: 0, inScadenza: 0, gareAperte: 0, etaCredito: 0 }, "conti vuoto"));
 test("Sentinella kpiFrom([],[]) = tutti zero", () =>
   eq(sentinella.kpiFrom([], []), { attivi: 0, superamenti: 0, adempimenti30: 0 }, "sentinella vuoto"));
 test("Terra kpiFrom([],[],[]) = zero, avanzamento e riserve null", () =>

@@ -4,7 +4,7 @@
 // Collezioni (sotto organizations/{org}/apps/conti/):
 //   fatture/{id}: { numero, cliente, importo, emessa (ISO), scadenza (ISO), incassata (bool) }
 //   gare/{id}:    { titolo, base, scadenza (ISO), stato: aperta|vinta|persa }
-// KPI CALCOLATI: da incassare, in scadenza, gare aperte, DSO.
+// KPI CALCOLATI: da incassare, in scadenza, gare aperte, età media del credito.
 // ============================================================
 
 import { parseCsvLine, numIt, giorniTra, isIntestazione } from "../../shared/deepwork-id-client/dw-shell.js";
@@ -34,11 +34,14 @@ export function kpiFrom(fatture, gare, oggi = new Date()) {
   const daIncassare = aperte.reduce((t, f) => t + (+f.importo || 0), 0);
   const inScadenza = aperte.filter(f => giorni(f.scadenza, oggi) <= 10).length;
   const gareAperte = gare.filter(g => g.stato === "aperta").length;
-  // DSO ~ media dei giorni dall'emissione (sulle fatture non incassate)
-  const dso = aperte.length
+  // Età media del credito aperto: media dei giorni dall'emissione sulle fatture NON
+  // ancora incassate. NON è il DSO (Days Sales Outstanding = crediti/vendite×giorni):
+  // è l'anzianità media dei crediti aperti, onesta e utile per capire quanto "vecchio"
+  // è il credito che l'azienda ha in giro. (DSO vero → roadmap: serve il fatturato del periodo.)
+  const etaCredito = aperte.length
     ? Math.round(aperte.reduce((t, f) => t + Math.max(0, -giorni(f.emessa, oggi) || 0), 0) / aperte.length)
     : 0;
-  return { daIncassare, inScadenza, gareAperte, dso };
+  return { daIncassare, inScadenza, gareAperte, etaCredito };
 }
 
 // Aging degli incassi: suddivide le fatture NON incassate per fasce di

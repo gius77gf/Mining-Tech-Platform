@@ -29,7 +29,7 @@
     <div class="kpi warn" style="cursor:pointer" data-goto="fat" data-filtro="aperte" title="Vedi le fatture da incassare"><div class="n">—</div><div class="l">Da incassare</div></div>
     <div class="kpi warn" style="cursor:pointer" data-goto="fat" data-filtro="aperte" title="Vedi le fatture aperte"><div class="n">—</div><div class="l">Fatture in scadenza</div></div>
     <div class="kpi accent" style="cursor:pointer" data-goto="gar" title="Vedi le gare"><div class="n">—</div><div class="l">Gare aperte</div></div>
-    <div class="kpi ok" style="cursor:pointer" data-goto="rep" title="Vedi il report"><div class="n">—</div><div class="l">DSO medio</div></div>
+    <div class="kpi ok" style="cursor:pointer" data-goto="rep" title="Vedi il report"><div class="n">—</div><div class="l">Età media credito</div></div>
   </div>
 
   <div class="sec">Priorità</div>
@@ -180,7 +180,7 @@
     if (kn[0]) kn[0].textContent = "€" + Math.round(k.daIncassare/1000) + "k";
     if (kn[1]) kn[1].textContent = k.inScadenza;
     if (kn[2]) kn[2].textContent = k.gareAperte;
-    if (kn[3]) kn[3].textContent = k.dso + "gg";
+    if (kn[3]) kn[3].textContent = k.etaCredito + "gg";
 
     const prio = [
       // fatture ordinate per priorità di incasso (più in ritardo / più grosse)
@@ -228,7 +228,7 @@
       ["Incassato (totale registrato)", eur(inc), "ok"],
       ["Da incassare", eur(k.daIncassare), k.inScadenza ? "warn" : "ok"],
       (() => { const ia = incassoAtteso(FAT, 30); return ["Incasso atteso (prossimi 30 gg)", eur(ia.importo) + " · " + ia.conto + (ia.conto === 1 ? " fattura" : " fatture"), "ok"]; })(),
-      ["DSO — giorni medi di attesa incasso", k.dso + " giorni", k.dso > 45 ? "warn" : "ok"],
+      ["Età media del credito aperto", k.etaCredito + " giorni", k.etaCredito > 45 ? "warn" : "ok"],
       ["Gare aperte", k.gareAperte + " (" + eur(GAR.filter(g=>g.stato==="aperta").reduce((t,g)=>t+(+g.base||0),0)) + " a base d'asta)", "ok"],
     ].map(r => `<div class="item"><div class="info"><div class="name">${r[0]}</div></div><span class="badge ${r[2]}">${r[1]}</span></div>`).join("");
 
