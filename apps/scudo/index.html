@@ -152,7 +152,7 @@
 
 <script type="module">
   import { scudoData, statoScadenza, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, parseScadenzeCsv, SCADENZE_PRESET, presetScadenza } from "./scudo-data.js";
-  import { mountExit, esc, csvCell, parseCsvLine } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, parseCsvLine, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
 
   const $ = (id) => document.getElementById(id);
   const initials = (n) => (n || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
@@ -333,9 +333,13 @@
     $("doc-titolo").focus();   // pronto per il prossimo documento
     await refresh();
   };
+  // niente eventi datati nel futuro: il registro infortuni è un documento HSE e la
+  // data più recente pilota il cartellone "giorni senza infortuni" (un refuso lo azzererebbe)
+  { const d = new Date(); $("inf-data").max = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
   $("btn-inf").onclick = async () => {
     const data = $("inf-data").value, desc = $("inf-desc").value.trim();
     if (!data) { $("inf-data").style.borderColor = "var(--danger)"; $("inf-esito").textContent = "Serve la data dell'evento."; return; }
+    if (giorniTra(data) > 0) { $("inf-data").style.borderColor = "var(--danger)"; $("inf-esito").textContent = "La data dell'evento non può essere nel futuro."; return; }
     $("inf-data").style.borderColor = "";
     const tipo = $("inf-tipo").value;
     await db.aggiungi("infortuni", {

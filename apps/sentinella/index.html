@@ -157,7 +157,7 @@
 
 <script type="module">
   import { sentinellaData, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, prioritaConformita, riepilogoVolate, parseVolateCsv, parseAdempimentiCsv, parseMonitoraggiCsv } from "./sentinella-data.js";
-  import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
   const RB = { aggiornato: ["ok","Aggiornato"], "in-attesa": ["warn","In attesa"] };
@@ -277,9 +277,13 @@
     el.download = "sentinella_ambiente.csv"; el.click();
     $("mode-note").textContent = "Esportati " + MON.length + " monitoraggi e " + ADE.length + " adempimenti (CSV).";
   };
+  // niente volate datate nel futuro: il registro è un documento verso gli enti e
+  // il conteggio "questo mese" si baserebbe su un dato impossibile
+  { const d = new Date(); $("vol-data").max = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
   $("btn-vol").onclick = async () => {
     const data = $("vol-data").value;
     if (!data) { $("vol-data").style.borderColor = "var(--danger)"; $("vol-esito-msg").textContent = "Serve la data della volata."; return; }
+    if (giorniTra(data) > 0) { $("vol-data").style.borderColor = "var(--danger)"; $("vol-esito-msg").textContent = "La data della volata non può essere nel futuro."; return; }
     $("vol-data").style.borderColor = "";
     await db.aggiungi("volate", {
       data, fronte: $("vol-fronte").value.trim(),
