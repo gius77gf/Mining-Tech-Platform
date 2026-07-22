@@ -112,6 +112,11 @@
 
   <div class="sec">Infortuni e near-miss</div>
   <div id="inf-riep" class="note" style="text-align:left;"></div>
+  <div id="inf-filtri" style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;">
+    <button class="dw-btn secondary" data-filtro="tutti" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Tutti</button>
+    <button class="dw-btn secondary" data-filtro="infortunio" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Infortuni</button>
+    <button class="dw-btn secondary" data-filtro="near-miss" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Near-miss</button>
+  </div>
   <div id="inf-list"></div>
   <div class="sec">Registra evento</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -168,11 +173,16 @@
 
   let LAV = [], SCA = [], DOC = [], INF = [];
   let filtroScad = "tutte";
+  let filtroInf = "tutti";
   let ordScad = "scadenza";
   $("pers-cerca").oninput = () => refresh();
   $("scad-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroScad = f; refresh(); }
+  });
+  $("inf-filtri").addEventListener("click", (e) => {
+    const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
+    if (f) { filtroInf = f; refresh(); }
   });
   try { const _s = localStorage.getItem("dwSort_scad"); if (_s) { ordScad = _s; if ($("scad-ord")) $("scad-ord").value = _s; } } catch (e) {}
   if ($("scad-ord")) $("scad-ord").onchange = () => { ordScad = $("scad-ord").value; try { localStorage.setItem("dwSort_scad", ordScad); } catch (e) {} refresh(); };
@@ -270,12 +280,15 @@
     $("inf-riep").innerHTML =
       `Infortuni: <b>${ri.infortuni}</b>${ri.gravi ? ` (di cui ${ri.gravi} gravi)` : ""} · near-miss: <b>${ri.nearMiss}</b> · giorni di assenza totali: <b>${ri.giorniAssenzaTot}</b>`;
     const TB = { infortunio: ["danger", "Infortunio"], "near-miss": ["warn", "Near-miss"] };
-    $("inf-list").innerHTML = INF.slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1).map(x => {
+    const infVis = INF.filter(x => filtroInf === "tutti" || x.tipo === filtroInf);
+    $("inf-list").innerHTML = infVis.slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1).map(x => {
       const tb = TB[x.tipo] || ["warn", esc(x.tipo || "—")];
       return `<div class="item"><div class="info"><div class="name">${esc(x.descrizione || x.tipo || "Evento")}</div>
         <div class="meta">${esc(x.data || "—")}${x.luogo ? " · " + esc(x.luogo) : ""}${x.gravita ? " · " + esc(x.gravita) : ""}${(+x.giorniAssenza) ? " · " + (+x.giorniAssenza) + " gg assenza" : ""}</div></div>
         <span class="badge ${tb[0]}">${tb[1]}</span><span class="arr" style="cursor:pointer" title="Rimuovi" data-del-inf="${x.id}">✕</span></div>`;
-    }).join("") || '<div class="note" style="text-align:left;">Nessun evento registrato. Un buon segno — ma registra anche i near-miss.</div>';
+    }).join("") || '<div class="note" style="text-align:left;">' + (filtroInf === "tutti" ? "Nessun evento registrato. Un buon segno — ma registra anche i near-miss." : "Nessun evento di questo tipo.") + "</div>";
+    document.querySelectorAll("#inf-filtri [data-filtro]").forEach(b =>
+      b.style.borderColor = b.getAttribute("data-filtro") === filtroInf ? "var(--app-accent)" : "");
   }
 
   const DOC_NEXT = { valido: "da-rivedere", "da-rivedere": "scaduto", scaduto: "valido" };
