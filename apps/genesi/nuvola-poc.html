@@ -105,7 +105,7 @@ async function loadFile(f){
   $('err').textContent=''; $('info').textContent='Lettura…'; $('crop').style.display='none';
   try{
     const name=(f.name||'').toLowerCase();
-    if(name.endsWith('.obj')){ const g=new OBJLoader().parse(await f.text()); placeMesh(g, f.name); }
+    if(name.endsWith('.obj')){ const s=preShiftOBJ(await f.text()); const g=new OBJLoader().parse(s.shifted); placeMesh(g, f.name, s.off); }
     else if(name.endsWith('.glb')||name.endsWith('.gltf')){ const buf=await f.arrayBuffer();
       new GLTFLoader().parse(buf, '', gltf=>placeMesh(gltf.scene, f.name), err=>{ $('info').textContent=''; $('err').textContent='GLB non letto: '+err; }); }
     else { const buf=await f.arrayBuffer();
@@ -191,13 +191,23 @@ function placeCloud(p, fname){
 }
 
 // ---------- posiziona mesh ----------
-function placeMesh(group, fname){
-  clearObj();
+// pre-trasla i vertici dell'OBJ in DOPPIA precisione (primo vertice come origine) PRIMA di
+// darlo a OBJLoader, che altrimenti li mette in Float32 perdendo precisione sulle coord UTM
+function preShiftOBJ(txt){
+  const lines=txt.split(/\r?\n/); let ox=null, oy=0, oz=0;
+  for(const ln of lines){ if(ln[0]==='v' && ln[1]===' '){ const p=ln.trim().split(/\s+/); ox=+p[1]; oy=+p[2]; oz=+p[3]; break; } }
+  if(ox==null || !isFinite(ox)) return { shifted:txt, off:{x:0,y:0,z:0} };
+  const out=lines.map(ln=>{ if(ln[0]==='v' && ln[1]===' '){ const p=ln.trim().split(/\s+/);
+    return 'v '+(+p[1]-ox)+' '+(+p[2]-oy)+' '+(+p[3]-oz)+(p.length>4?' '+p.slice(4).join(' '):''); } return ln; });
+  return { shifted:out.join('\n'), off:{x:ox,y:oy,z:oz} };
+}
+function placeMesh(group, fname, off){
+  clearObj(); off=off||{x:0,y:0,z:0};
   const box=new THREE.Box3().setFromObject(group); const c=box.getCenter(new THREE.Vector3());
   group.position.sub(c);                       // centra
   const size=box.getSize(new THREE.Vector3());
   const bb={ min:{x:-size.x/2,y:-size.y/2,z:-size.z/2}, max:{x:size.x/2,y:size.y/2,z:size.z/2} };
-  offset={ x:c.x, y:c.y, z:c.z };
+  offset={ x:c.x+off.x, y:c.y+off.y, z:c.z+off.z };   // baricentro + pre-shift → riesporta in coord reali
   mats=[]; let nv=0;
   group.traverse(o=>{ if(o.isMesh){ const m=new THREE.MeshStandardMaterial({ color:0xffb04a, roughness:.95, metalness:0, flatShading:true, side:THREE.DoubleSide, clippingPlanes:planes, clipIntersection:false }); o.material=m; mats.push(m); if(o.geometry&&o.geometry.attributes.position) nv+=o.geometry.attributes.position.count; } });
   obj=group; scene.add(group);
