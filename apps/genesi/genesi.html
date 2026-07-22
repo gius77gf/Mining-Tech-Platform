@@ -418,6 +418,8 @@ body.scr-sim #tl{bottom:80px}
   <button class="btn-sec" id="btn-piano-csv" style="display:block;margin:10px auto 0;">📤 Esporta piano di carico (CSV per il fochino)</button>
   <button class="btn-sec" id="btn-scheda-csv" style="display:block;margin:8px auto 0;">📄 Esporta scheda volata (CSV)</button>
   <button class="btn-sec" id="btn-innesco-xml" style="display:block;margin:8px auto 0;" title="Piano di innesco per detonatori elettronici / software terzi (formato XML in stile IREDES)">🧨 Esporta piano di innesco (XML IREDES-like)</button>
+  <button class="btn-sec" id="btn-innesco-xml-in" style="display:block;margin:8px auto 0;" title="Rileggi un piano XML in stile IREDES esportato da Genesi (round-trip: geometria, sequenza, ritardi)">📥 Importa piano di innesco (XML)</button>
+  <input type="file" id="fileXmlIn" accept=".xml,application/xml,text/xml" style="display:none">
   <button class="btn cu" id="d2-cta">▶ Simula questa volata</button>
   <div style="display:flex;gap:8px;margin-top:8px;">
     <button class="btn sm" id="cmpSaveA">Salva come A</button>
@@ -2188,6 +2190,52 @@ if($('btn-innesco-xml')) $('btn-innesco-xml').onclick=()=>{
   a.href='data:application/xml;charset=utf-8,'+encodeURIComponent(xml);
   a.download='genesi_piano_innesco.xml'; a.click();
   if(typeof toast==='function') toast('Piano di innesco XML esportato ('+rows.length+' fori)');
+};
+/* Import del piano di innesco XML: round-trip con l'export stile IREDES di Genesi.
+   Rilegge geometria/esplosivo/sequenza/ritardi nel Progetto 2D. NON è un import
+   IREDES certificato: legge lo schema draft di Genesi (BlastPlan). getElementsByTagName
+   è robusto al namespace di default dell'XML (a differenza dei selettori CSS di tipo). */
+if($('btn-innesco-xml-in')) $('btn-innesco-xml-in').onclick=()=> $('fileXmlIn') && $('fileXmlIn').click();
+if($('fileXmlIn')) $('fileXmlIn').onchange=async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  try{
+    const doc=new DOMParser().parseFromString(await f.text(),'application/xml');
+    if(doc.getElementsByTagName('parsererror').length) throw new Error('XML non valido');
+    const root=doc.getElementsByTagName('BlastPlan')[0];
+    if(!root) throw new Error('non è un piano Genesi (BlastPlan)');
+    const first=(el,tag)=>el.getElementsByTagName(tag)[0]||null;
+    const numOf=(el,tag)=>{ const n=first(el,tag); const v=n?parseFloat((n.textContent||'').replace(',','.')):NaN; return isFinite(v)?v:null; };
+    const txtOf=(el,tag)=>{ const n=first(el,tag); return n?(n.textContent||'').trim():''; };
+    const plan=first(root,'PlanData')||root;
+    const holes=[...root.getElementsByTagName('Hole')];
+    if(!holes.length) throw new Error('nessun foro nel file');
+    const B=numOf(plan,'MeshBurden'), S=numOf(plan,'MeshSpacing');
+    if(B) D2.B=Math.max(1.5,Math.min(8,B));
+    if(S) D2.S=Math.max(1.5,Math.min(8,S));
+    const diam=numOf(plan,'HoleDiameter'); if(diam) D2.diam=Math.max(50,Math.min(160,Math.round(diam)));
+    const esp=txtOf(plan,'Explosive'); if(esp) D2.esplosivo=esp;
+    const seq=txtOf(plan,'Sequence'); if(seq) D2.sequenza=seq;
+    const hd=numOf(plan,'HoleDelay'); if(hd) D2.ritardo=Math.max(1,hd);
+    const rd=numOf(plan,'RowDelay'); if(rd) D2.ritardoFila=Math.max(8,Math.min(300,rd));
+    // scalari uniformi dal primo foro
+    const depth=numOf(holes[0],'Depth'); if(depth!=null) D2.prof=Math.max(6,Math.min(18,depth));
+    const charge=numOf(holes[0],'Charge'); if(charge!=null){ D2.kg=Math.max(5,Math.min(200,charge)); D2.kgAuto=false; if($('dKgAuto')) $('dKgAuto').checked=false; }
+    const stem=numOf(holes[0],'Stemming'); if(stem!=null) D2.stem=Math.max(0.5,Math.min(6,stem));
+    // file/perRow dalle posizioni; direzione da chi detona per primo (Delay minore)
+    const pos=holes.map(h=>{ const p=first(h,'Position'); const dEl=first(h,'Delay');
+      return { x:p?parseFloat(p.getAttribute('x')||'0'):0, y:p?parseFloat(p.getAttribute('y')||'0'):0, t:dEl?parseFloat(dEl.textContent||'0'):0 }; });
+    const rows=[...new Set(pos.map(o=>Math.round(o.y*10)))];
+    D2.file=Math.max(1,Math.min(6,rows.length));
+    D2.perRow=Math.max(3,Math.min(30,Math.round(holes.length/D2.file)));
+    const xs=pos.map(o=>o.x), minx=Math.min(...xs), maxx=Math.max(...xs);
+    const tMin=Math.min(...pos.filter(o=>o.x<=minx+0.01).map(o=>o.t));
+    const tMax=Math.min(...pos.filter(o=>o.x>=maxx-0.01).map(o=>o.t));
+    D2.dir = tMin<=tMax ? 'sx' : 'dx';
+    syncDesignInputs();
+    genMaglia2D(); drawDesign2D(); renderScheda2D(); renderInspector();
+    if(typeof toast==='function') toast('✓ Piano XML importato: '+holes.length+' fori · B '+D2.B.toFixed(2)+'×S '+D2.S.toFixed(2)+' · '+(seq||D2.sequenza));
+  }catch(err){ if(typeof toast==='function') toast('Import XML fallito: '+err.message); }
+  e.target.value='';
 };
 $('btnParams').onclick=()=>document.body.classList.toggle('show-params');
 
