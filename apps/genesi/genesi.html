@@ -2661,8 +2661,11 @@ function renderScheda2D(){
   let _deckHtml='';
   const _N=Math.max(1,Math.min(3,D2.decks||1));
   if(_N>1){
-    const _Ltot=H+(D2.sub||0), _Lc=Math.max(0.6, _Ltot-D2.stem);
-    const _gap=Math.min(D2.deckStem||1, (_Lc-0.4*_N)/Math.max(1,_N-1));   // lascia ≥0.4 m per deck
+    const _Ltot=H+(D2.sub||0), _Lc=Math.max(0.4, _Ltot-D2.stem), _minNeed=_N*0.4+(_N-1)*0.3;
+    if(_Lc < _minNeed){   // foro troppo corto per N deck sensati: avviso onesto invece di un diagramma fuorviante
+      _deckHtml='<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(255,167,38,.3);border-radius:8px;background:rgba(255,167,38,.06);font-size:11px;color:#ffa726">🧨 <b>Decking '+_N+' deck</b>: foro troppo corto (zona carica ≈ '+_Lc.toFixed(1)+' m). Riduci il numero di deck, la profondità del borraggio di testa, o aumenta la profondità.</div>';
+    } else {
+    const _gap=Math.max(0.2, Math.min(D2.deckStem||1, (_Lc-0.4*_N)/(_N-1)));   // borraggio interm.: ≥0.2 m, lascia ≥0.4 m/deck
     const _deckLen=Math.max(0.4,(_Lc-(_N-1)*_gap)/_N), _kgDeck=Q/_N;
     const _hpx=84, _wpx=20, _yy=(len)=>Math.max(0,len/_Ltot*_hpx);
     let _segs='<rect x="0" y="0" width="'+_wpx+'" height="'+_yy(D2.stem).toFixed(1)+'" fill="#8a8a8a"/>', _cur=D2.stem;
@@ -2673,6 +2676,7 @@ function renderScheda2D(){
       +'<div style="font-size:11px"><b style="color:#ffd54f">🧨 Decking · '+_N+' cariche/foro</b>'
       +'<div style="color:var(--mut2);margin-top:3px">Ogni deck ≈ '+_deckLen.toFixed(1)+' m · <b>'+_kgDeck.toFixed(0)+' kg</b> · borraggio tra deck '+_gap.toFixed(1)+' m. Totale carica '+Q+' kg (invariato), powder factor invariato.</div>'
       +'<div style="color:var(--mut2);margin-top:3px">Se i deck sono innescati su <b>ritardi separati</b>, la carica per ritardo scende a ≈ '+_kgDeck.toFixed(0)+' kg (−'+Math.round((1-1/_N)*100)+'%): <b>vibrazioni minori</b> al recettore. La vista 3D mostra la colonna semplificata.</div></div></div>';
+    }
   }
   el.innerHTML='<div class="sv-card"><div class="sv-h"><b>Scheda volata</b><span class="sv-sub">'+g.n+' fori· '+g.Lm+' m fronte<br>Ø'+Dmm+' mm · '+Q+' kg/foro · H '+H+' m<br>'+(selEsplosivo()?'Esplosivo: '+selEsplosivo().nome:'')+(selInnesco()?' / innesco '+selInnesco().short:'')+(selRoccia()?'<br>Roccia: '+selRoccia().nome+' ('+selRoccia().cls+')':'')+'</span></div>'
     +bipHtml
