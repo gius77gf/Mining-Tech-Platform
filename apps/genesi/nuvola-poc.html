@@ -171,12 +171,18 @@ function parsePLY(buf){
 // ---------- posiziona nuvola ----------
 function placeCloud(p, fname){
   clearObj();
-  const arr=new Float32Array(p.pos);
-  const bb=bbOf(arr); centerInPlace(arr, bb);
+  // Centra in DOPPIA precisione PRIMA di passare a Float32: le nuvole georeferenziate
+  // hanno coordinate enormi (UTM ~5.000.000) e Float32 a quella scala perderebbe ~0,3 m.
+  const src=p.pos, bbD=bbOf(src);
+  const cx=(bbD.min.x+bbD.max.x)/2, cy=(bbD.min.y+bbD.max.y)/2, cz=(bbD.min.z+bbD.max.z)/2;
+  offset={x:cx,y:cy,z:cz};
+  const arr=new Float32Array(src.length);
+  for(let i=0;i<src.length;i+=3){ arr[i]=src[i]-cx; arr[i+1]=src[i+1]-cy; arr[i+2]=src[i+2]-cz; }
+  const bb={ min:{x:bbD.min.x-cx,y:bbD.min.y-cy,z:bbD.min.z-cz}, max:{x:bbD.max.x-cx,y:bbD.max.y-cy,z:bbD.max.z-cz} };
   const geo=new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(arr,3));
   let cols;
   if(p.col) cols=new Float32Array(p.col);
-  else { cols=new Float32Array(arr.length); const dz=(bb.max.z-bb.min.z)||1; for(let i=0;i<arr.length;i+=3){ const t=(arr[i+2]+ (bb.max.z-bb.min.z)/2)/dz; cols[i]=0.6+0.4*t; cols[i+1]=0.35+0.45*t; cols[i+2]=0.05+0.1*t; } }
+  else { cols=new Float32Array(arr.length); const dz=(bb.max.z-bb.min.z)||1; for(let i=0;i<arr.length;i+=3){ const t=(arr[i+2]-bb.min.z)/dz; cols[i]=0.6+0.4*t; cols[i+1]=0.35+0.45*t; cols[i+2]=0.05+0.1*t; } }
   geo.setAttribute('color', new THREE.BufferAttribute(cols,3));
   const diag=diagOf(bb);
   const mat=new THREE.PointsMaterial({ size:diag/900, vertexColors:true, clippingPlanes:planes, clipIntersection:false });
@@ -202,10 +208,6 @@ function placeMesh(group, fname){
 function bbOf(arr){ let mnx=Infinity,mny=Infinity,mnz=Infinity,mxx=-Infinity,mxy=-Infinity,mxz=-Infinity;
   for(let i=0;i<arr.length;i+=3){ const x=arr[i],y=arr[i+1],z=arr[i+2]; if(x<mnx)mnx=x;if(y<mny)mny=y;if(z<mnz)mnz=z;if(x>mxx)mxx=x;if(y>mxy)mxy=y;if(z>mxz)mxz=z; }
   return { min:{x:mnx,y:mny,z:mnz}, max:{x:mxx,y:mxy,z:mxz} }; }
-function centerInPlace(arr, bb){ const cx=(bb.min.x+bb.max.x)/2, cy=(bb.min.y+bb.max.y)/2, cz=(bb.min.z+bb.max.z)/2;
-  offset={x:cx,y:cy,z:cz}; for(let i=0;i<arr.length;i+=3){ arr[i]-=cx; arr[i+1]-=cy; arr[i+2]-=cz; }
-  // aggiorna bb alle coordinate centrate
-  bb.min={x:bb.min.x-cx,y:bb.min.y-cy,z:bb.min.z-cz}; bb.max={x:bb.max.x-cx,y:bb.max.y-cy,z:bb.max.z-cz}; }
 function diagOf(bb){ return Math.hypot(bb.max.x-bb.min.x, bb.max.y-bb.min.y, bb.max.z-bb.min.z)||1; }
 
 function afterPlace(bb, diag, fname, shown, step, total, colInfo){
