@@ -1882,8 +1882,9 @@ function computeKPI(){
   const ppv=st.K*Math.pow(Math.max(0.1,D2.recDist/Math.sqrt(Math.max(1,mic))),-st.beta);
   const lim=ppvLimit(D2.recNorma,D2.recFreq);
   const nf=(D2.perRow||18)*(D2.file||1), qtot=nf*Q;
+  const _mPerfK=nf*(D2.prof+(D2.sub||0)), _cTotK=_mPerfK*(D2.cPerf||0)+qtot*(D2.cExpl||0)+nf*(D2.cInnesco||0);
   const fly=flyrockEst();
-  return { nf, qtot:Math.round(qtot), pf:+pf.toFixed(2),
+  return { nf, qtot:Math.round(qtot), pf:+pf.toFixed(2), cost:Math.round(_cTotK),
     x20:Math.round(x20), x50:Math.round(x50), x80:Math.round(x80),
     ppv:+ppv.toFixed(1), lim:+lim.toFixed(1), fly:Math.round(fly.Lpred),
     presplit:!!D2.presplit,
@@ -1909,6 +1910,7 @@ function cmpRender(){
     ['X80 (oversize)', A.kpi.x80+' cm', B.kpi.x80+' cm', A.kpi.x80<=B.kpi.x80?'A':'B'],
     ['PPV al recettore', A.kpi.ppv+' / lim '+A.kpi.lim+' mm/s', B.kpi.ppv+' / lim '+B.kpi.lim+' mm/s', A.kpi.ppv<=B.kpi.ppv?'A':'B'],
     ['Gittata flyrock', A.kpi.fly+' m', B.kpi.fly+' m', A.kpi.fly<=B.kpi.fly?'A':'B'],
+    ['Costo totale (stima)', '€'+(A.kpi.cost||0).toLocaleString('it-IT'), '€'+(B.kpi.cost||0).toLocaleString('it-IT'), (A.kpi.cost||0)<=(B.kpi.cost||0)?'A':'B'],
     ['Presplit', A.kpi.presplit?'sì':'no', B.kpi.presplit?'sì':'no', null],
   ];
   body.innerHTML='<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:6px 10px;align-items:center;">'
