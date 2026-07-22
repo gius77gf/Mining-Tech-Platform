@@ -405,6 +405,14 @@ body.scr-sim #tl{bottom:80px}
             <label class="dc-f"><span>Freq. dominante (Hz)</span><input type="number" id="dRecFreq" step="1" min="2" max="120" value="25"></label>
           </div>
         </div>
+        <div class="dc-sec closed"><button type="button" class="dc-sec-h">Costi &amp; resa (stima)<span class="dc-sec-x">▾</span></button>
+          <div class="dc-grid">
+            <label class="dc-f"><span>Perforazione (€/m)</span><input type="number" id="dCPerf" step="0.5" min="0" max="500" value="8"></label>
+            <label class="dc-f"><span>Esplosivo (€/kg)</span><input type="number" id="dCExpl" step="0.1" min="0" max="50" value="1.5"></label>
+            <label class="dc-f"><span>Innesco (€/foro)</span><input type="number" id="dCInn" step="0.5" min="0" max="500" value="12"></label>
+            <label class="dc-f"><span>Valore materiale (€/t)</span><input type="number" id="dValMat" step="0.5" min="0" max="500" value="0"></label>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -691,7 +699,7 @@ const SEED = 19250606;
 /* ============ parametri correnti ============ */
 const P = { fori:18, ritardo:25, dir:'sx', prof:13, kg:50, diam:89, vento:0.8, profilo:[], foriH:null };
 /* modello di progettazione 2D (Fase 1) — editor multi-fila disaccoppiato dal 3D single-row */
-const D2 = { B:4.5, S:3.5, file:1, perRow:18, bf:4.5, diam:89, prof:13, kg:50, ritardo:25, ritardoFila:42, stem:2.5, sub:1.2, dir:'sx', stagger:true, incl:0, kgAuto:true, esplosivo:'anfo-standard', innesco:'nonel', roccia:'calcare', ucs:100, eMod:55, frat:'media', bagnato:false, acquaCol:0, presplit:false, psSpacing:0.9, psCharge:0.4, sequenza:'diagonale', recDist:300, recNorma:'din-res', recFreq:25, tool:'fori', profilo:[], piede:[], selPt:-1, holes:[], sel:-1, lastDet:0, _m:null };
+const D2 = { B:4.5, S:3.5, file:1, perRow:18, bf:4.5, diam:89, prof:13, kg:50, ritardo:25, ritardoFila:42, stem:2.5, sub:1.2, dir:'sx', stagger:true, incl:0, kgAuto:true, esplosivo:'anfo-standard', innesco:'nonel', roccia:'calcare', ucs:100, eMod:55, frat:'media', bagnato:false, acquaCol:0, presplit:false, psSpacing:0.9, psCharge:0.4, sequenza:'diagonale', recDist:300, recNorma:'din-res', recFreq:25, cPerf:8, cExpl:1.5, cInnesco:12, valMat:0, tool:'fori', profilo:[], piede:[], selPt:-1, holes:[], sel:-1, lastDet:0, _m:null };
 
 /* ============ three: scena base ============ */
 const view = document.getElementById('view');
@@ -2596,12 +2604,25 @@ function renderScheda2D(){
   const sMax=6, segs=[['#ef5350',0,2],['#ffb300',2,3],['#66bb6a',3,4],['#3ea76a',4,6]];
   const barHtml=segs.map(s=>'<i style="background:'+s[0]+';width:'+((s[2]-s[1])/sMax*100)+'%"></i>').join('');
   const markPct=Math.min(100,Math.max(0,hb/sMax*100));
+  // Stima economica della volata (prezzi unitari inseriti dall'utente): ordine di
+  // grandezza per confrontare progetti, NON un preventivo (no manodopera/ammortamenti/oneri)
+  const _nf=g.n||0, _mPerf=_nf*(H+(D2.sub||0)), _kgTot=_nf*Q, _vol=_nf*B*S*H, _rhoRock=(selRoccia()||{}).rho||2.5, _ton=_vol*_rhoRock;
+  const _cP=_mPerf*(D2.cPerf||0), _cE=_kgTot*(D2.cExpl||0), _cI=_nf*(D2.cInnesco||0), _cTot=_cP+_cE+_cI;
+  const _cM3=_vol>0?_cTot/_vol:0, _cT=_ton>0?_cTot/_ton:0, _eur=(x)=>'€'+Math.round(x).toLocaleString('it-IT');
+  const _crow=(l,v,ex)=>'<div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;padding:2px 0;'+(ex||'')+'"><span style="color:var(--mut2)">'+l+'</span><b>'+v+'</b></div>';
+  let _costRows=_crow('Perforazione',_mPerf.toFixed(0)+' m · '+_eur(_cP))
+    +_crow('Esplosivo',_kgTot.toFixed(0)+' kg · '+_eur(_cE))
+    +_crow('Inneschi',_nf+' fori · '+_eur(_cI))
+    +_crow('Totale volata',_eur(_cTot),'border-top:1px solid rgba(255,171,0,.2);margin-top:3px;padding-top:4px;color:var(--cu)')
+    +_crow('Costo unitario',_cM3.toFixed(2).replace('.',',')+' €/m³ · '+_cT.toFixed(2).replace('.',',')+' €/t');
+  if((D2.valMat||0)>0){ const _ric=_ton*D2.valMat, _marg=_ric-_cTot; _costRows+=_crow('Margine (materiale '+D2.valMat+' €/t)',_eur(_marg)+' <span style="color:var(--mut2);font-weight:400">('+_eur(_ric)+' ricavo)</span>','color:'+(_marg>=0?'#66bb6a':'#ef5350')); }
+  const _costHtml='<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(255,171,0,.15);border-radius:8px;background:rgba(255,171,0,.03)"><div style="font-size:11px;font-weight:700;color:#ffd54f;margin-bottom:4px">💶 Stima economica <span style="font-weight:400;color:var(--mut2);font-size:9px">prezzi tuoi · ordine di grandezza</span></div>'+_costRows+'</div>';
   el.innerHTML='<div class="sv-card"><div class="sv-h"><b>Scheda volata</b><span class="sv-sub">'+g.n+' fori· '+g.Lm+' m fronte<br>Ø'+Dmm+' mm · '+Q+' kg/foro · H '+H+' m<br>'+(selEsplosivo()?'Esplosivo: '+selEsplosivo().nome:'')+(selInnesco()?' / innesco '+selInnesco().short:'')+(selRoccia()?'<br>Roccia: '+selRoccia().nome+' ('+selRoccia().cls+')':'')+'</span></div>'
     +bipHtml
     +'<div class="sv-grid">'+rowsHtml+'</div>'
     +'<div class="sv-scale"><div class="sv-lab">Rapporto di rigidità H/B — frammentazione attesa</div>'
     +'<div class="sv-bar">'+barHtml+'<span class="sv-mark" style="left:'+markPct.toFixed(1)+'%"></span></div>'
-    +'<div class="sv-ticks"><span>cratere</span><span>rigido</span><span>buono</span><span>ottimo</span></div></div></div>';
+    +'<div class="sv-ticks"><span>cratere</span><span>rigido</span><span>buono</span><span>ottimo</span></div></div>'+_costHtml+'</div>';
 }
 
 /* ===== Fase 1 — maglia editabile: pannello di progettazione live ===== */
@@ -2633,6 +2654,10 @@ function applyDesign(){
   if($('dRecDist')) D2.recDist = Math.max(20, Math.min(3000, +$('dRecDist').value||D2.recDist));
   if($('dRecNorma')) D2.recNorma = $('dRecNorma').value||D2.recNorma;
   if($('dRecFreq')) D2.recFreq = Math.max(2, Math.min(120, +$('dRecFreq').value||D2.recFreq));
+  if($('dCPerf')) D2.cPerf = Math.max(0, Math.min(500, +$('dCPerf').value||0));
+  if($('dCExpl')) D2.cExpl = Math.max(0, Math.min(50, +$('dCExpl').value||0));
+  if($('dCInn')) D2.cInnesco = Math.max(0, Math.min(500, +$('dCInn').value||0));
+  if($('dValMat')) D2.valMat = Math.max(0, Math.min(500, +$('dValMat').value||0));
   genMaglia2D(); drawDesign2D(); renderScheda2D(); renderInspector();   // editing 2D snello, il 3D si aggiorna su "Simula"
 }
 function syncDesignInputs(){
@@ -2647,6 +2672,7 @@ function syncDesignInputs(){
   if($('dPresplit')) $('dPresplit').value=D2.presplit?'1':'0'; if($('dPsSpacing')) $('dPsSpacing').value=D2.psSpacing; if($('dPsCharge')) $('dPsCharge').value=D2.psCharge;
   if($('dSeq')) $('dSeq').value=D2.sequenza;
   if($('dRecDist')) $('dRecDist').value=D2.recDist; if($('dRecNorma')) $('dRecNorma').value=D2.recNorma; if($('dRecFreq')) $('dRecFreq').value=D2.recFreq;
+  if($('dCPerf')) $('dCPerf').value=D2.cPerf; if($('dCExpl')) $('dCExpl').value=D2.cExpl; if($('dCInn')) $('dCInn').value=D2.cInnesco; if($('dValMat')) $('dValMat').value=D2.valMat;
 }
 function simulaVolata2D(){
   SPALLA=D2.B; INTERASSE=D2.S; P.diam=D2.diam; P.prof=D2.prof; P.kg=D2.kg; P.ritardo=D2.ritardo; P.dir=D2.dir; P.fori=D2.perRow;
@@ -2675,7 +2701,7 @@ function simulaVolata2D(){
   } else P.holes=null;
   rebuild(); setScreen('sim');
 }
-['dB','dS','dD','dN','dFile','dH','dKg','dIncl','dStem','dSub','dRit','dRitFila','dRoccia','dUcs','dEmod','dFrat','dBagnato','dAcquaCol','dPresplit','dPsSpacing','dPsCharge','dSeq','dRecDist','dRecNorma','dRecFreq'].forEach(id=>{ const el=$(id); if(el) el.addEventListener('change', applyDesign); });
+['dB','dS','dD','dN','dFile','dH','dKg','dIncl','dStem','dSub','dRit','dRitFila','dRoccia','dUcs','dEmod','dFrat','dBagnato','dAcquaCol','dPresplit','dPsSpacing','dPsCharge','dSeq','dRecDist','dRecNorma','dRecFreq','dCPerf','dCExpl','dCInn','dValMat'].forEach(id=>{ const el=$(id); if(el) el.addEventListener('change', applyDesign); });
 document.querySelectorAll('.dc-sec-h').forEach(b=>{ b.addEventListener('click', ()=>b.parentElement.classList.toggle('closed')); });
 if($('dKg')) $('dKg').addEventListener('input', ()=>{ D2.kgAuto=false; });
 function setTool(t){ D2.tool=t; D2.selPt=-1; [['dtFori','fori'],['dtFronte','fronte'],['dtPiede','piede']].forEach(p=>{ const el=$(p[0]); if(el) el.classList.toggle('on',t===p[1]); }); const rb=$('dtReset'); if(rb) rb.textContent='↺ Reset '+(t==='piede'?'piede':'fronte'); drawDesign2D(); renderInspector(); }
