@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Genesi — Visualizzatore nuvola di punti (prova)</title>
+<title>Genesi — Nuvola/Mesh → fronte (prova)</title>
 <script type="importmap">
 { "imports": {
   "three":"./vendor/build/three.module.js",
@@ -11,20 +11,25 @@
 }}
 </script>
 <style>
-  :root{ --bg:#100d07; --panel:rgba(16,13,7,.86); --cu:#ffab00; --cu2:#ffd54f; --tx:#f0e8d8; --mut:#9b8a60; --mut2:#b8a574; --line:rgba(255,171,0,.22); }
+  :root{ --bg:#100d07; --panel:rgba(16,13,7,.88); --cu:#ffab00; --cu2:#ffd54f; --tx:#f0e8d8; --mut:#9b8a60; --mut2:#b8a574; --line:rgba(255,171,0,.22); }
   *{ box-sizing:border-box; }
   html,body{ margin:0; height:100%; background:var(--bg); color:var(--tx); font-family:Barlow,system-ui,Arial,sans-serif; overflow:hidden; }
   #c{ position:fixed; inset:0; display:block; }
-  #panel{ position:fixed; top:14px; left:14px; width:290px; max-width:calc(100vw - 28px); background:var(--panel); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border:1px solid var(--line); border-radius:14px; padding:14px 16px; box-shadow:0 10px 34px rgba(0,0,0,.5); z-index:10; font-size:13px; line-height:1.5; }
+  #panel{ position:fixed; top:14px; left:14px; width:300px; max-width:calc(100vw - 28px); max-height:calc(100vh - 28px); overflow:auto; background:var(--panel); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border:1px solid var(--line); border-radius:14px; padding:14px 16px; box-shadow:0 10px 34px rgba(0,0,0,.5); z-index:10; font-size:13px; line-height:1.5; }
   #panel h1{ font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:17px; letter-spacing:.05em; text-transform:uppercase; color:var(--cu2); margin:0 0 2px; }
   .sub{ color:var(--mut); font-size:11.5px; margin-bottom:10px; }
   .btn{ display:block; width:100%; text-align:center; cursor:pointer; background:linear-gradient(135deg,#ffc12e,#ff8c1d); color:#3a1e00; border:none; font-weight:800; letter-spacing:.04em; text-transform:uppercase; padding:10px; border-radius:10px; font-size:12.5px; }
   .btn:hover{ filter:brightness(1.06); }
+  .btn.sec{ background:none; border:1px solid var(--line); color:var(--cu2); font-weight:700; }
   #drop{ margin-top:10px; border:1px dashed var(--line); border-radius:10px; padding:12px; text-align:center; color:var(--mut2); font-size:11.5px; }
   #drop.hot{ border-color:var(--cu); color:var(--cu2); background:rgba(255,171,0,.06); }
   #info{ margin-top:10px; font-size:11.5px; color:var(--mut2); }
   #info b{ color:var(--tx); }
   .row{ display:flex; justify-content:space-between; gap:8px; padding:2px 0; }
+  #crop{ display:none; margin-top:12px; border-top:1px solid rgba(255,255,255,.08); padding-top:10px; }
+  #crop h2{ font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--cu2); margin:0 0 6px; }
+  .cf{ display:grid; grid-template-columns:52px 1fr 1fr; gap:4px 6px; align-items:center; font-size:10.5px; color:var(--mut2); margin-bottom:2px; }
+  .cf input[type=range]{ width:100%; accent-color:var(--cu); }
   .note{ margin-top:10px; font-size:10px; color:var(--mut); line-height:1.4; border-top:1px solid rgba(255,255,255,.08); padding-top:8px; }
   #err{ color:#ffa726; font-size:11.5px; margin-top:8px; }
   #hint{ position:fixed; bottom:12px; left:50%; transform:translateX(-50%); color:var(--mut); font-size:11px; z-index:10; background:rgba(16,13,7,.7); padding:5px 12px; border-radius:20px; border:1px solid var(--line); }
@@ -33,165 +38,216 @@
 <body>
 <canvas id="c"></canvas>
 <div id="panel">
-  <h1>Nuvola di punti · prova</h1>
-  <div class="sub">Carica il file esportato da OpenDroneMap (PLY o XYZ/TXT) e vedilo in 3D.</div>
-  <label class="btn">Carica nuvola<input type="file" id="file" accept=".ply,.xyz,.txt,.pts,.asc" style="display:none"></label>
-  <div id="drop">…oppure trascina qui il file</div>
+  <h1>3D → fronte · prova</h1>
+  <div class="sub">Carica la nuvola o la mesh (dal drone/ODM), isola il fronte col ritaglio, esportalo.</div>
+  <label class="btn">Carica 3D<input type="file" id="file" accept=".ply,.xyz,.txt,.pts,.asc,.obj,.glb,.gltf" style="display:none"></label>
+  <div id="drop">…oppure trascina qui il file (PLY, XYZ, OBJ, GLB)</div>
   <div id="info"></div>
+  <div id="crop">
+    <h2>Ritaglio del fronte</h2>
+    <div class="cf"><span>Larghezza</span><input type="range" id="xmin" min="0" max="100" value="0"><input type="range" id="xmax" min="0" max="100" value="100"></div>
+    <div class="cf"><span>Altezza</span><input type="range" id="ymin" min="0" max="100" value="0"><input type="range" id="ymax" min="0" max="100" value="100"></div>
+    <div class="cf"><span>Profondità</span><input type="range" id="zmin" min="0" max="100" value="0"><input type="range" id="zmax" min="0" max="100" value="100"></div>
+    <div id="cropdim" style="font-size:10.5px;color:var(--mut2);margin-top:4px"></div>
+    <button class="btn sec" id="export" style="margin-top:8px">Esporta ritaglio (.xyz)</button>
+  </div>
   <div id="err"></div>
-  <div class="note">Visualizzatore di PROVA. Formati: PLY (ascii e binario) e XYZ/TXT. Il LAZ compresso va prima esportato in PLY o XYZ. Le dimensioni sono nelle unità della nuvola (di solito metri): da drone consumer la scala è approssimativa — buona per progettare, non per misure certificate.</div>
+  <div class="note">Prova. Formati: nuvola PLY (ascii/binario) o XYZ/TXT; mesh OBJ o GLB (ODM esporta la mesh in OBJ). Il ritaglio isola la faccia della cava per progettarci la volata. Scala da drone consumer: approssimativa — buona per progettare, non per misure certificate.</div>
 </div>
 <div id="hint">Mouse: ruota · rotella: zoom · tasto destro: sposta</div>
 
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-const MAXPTS = 700000;   // cap per non impiantare il browser: sopra questo, downsample
+const MAXPTS = 700000;
 const $ = id => document.getElementById(id);
 
 const renderer = new THREE.WebGLRenderer({ canvas:$('c'), antialias:true });
 renderer.setPixelRatio(Math.min(2, window.devicePixelRatio||1));
 renderer.setSize(innerWidth, innerHeight);
+renderer.localClippingEnabled = true;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x100d07);
 const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 1e7);
 camera.position.set(0, 0, 60);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-scene.add(new THREE.AmbientLight(0xffffff, 0.9));
-// piccola griglia di riferimento
+scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+const dir = new THREE.DirectionalLight(0xffffff, 0.9); dir.position.set(1, -1, 1.5); scene.add(dir);
 const grid = new THREE.GridHelper(200, 20, 0x5a4a20, 0x2a2410); grid.rotation.x = Math.PI/2; scene.add(grid);
-let cloud = null;
 
-addEventListener('resize', ()=>{ camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+let obj=null;               // Points o Group(mesh) corrente
+let mats=[];                // materiali su cui applicare il clipping
+let bounds=null;            // {min:{x,y,z}, max:{x,y,z}} della geometria CENTRATA
+let offset={x:0,y:0,z:0};   // baricentro tolto (per riesportare in coordinate reali)
+const planes=[ new THREE.Plane(new THREE.Vector3(1,0,0),0), new THREE.Plane(new THREE.Vector3(-1,0,0),0),
+               new THREE.Plane(new THREE.Vector3(0,1,0),0), new THREE.Plane(new THREE.Vector3(0,-1,0),0),
+               new THREE.Plane(new THREE.Vector3(0,0,1),0), new THREE.Plane(new THREE.Vector3(0,0,-1),0) ];
+let cropBox=null;
+
+addEventListener('resize', ()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
 (function loop(){ requestAnimationFrame(loop); controls.update(); renderer.render(scene, camera); })();
 
 $('file').addEventListener('change', e=>{ const f=e.target.files[0]; if(f) loadFile(f); });
-const drop = $('drop');
+const drop=$('drop');
 ['dragover','dragenter'].forEach(ev=>document.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.add('hot'); }));
 ['dragleave','drop'].forEach(ev=>document.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.remove('hot'); }));
 document.addEventListener('drop', e=>{ const f=e.dataTransfer.files[0]; if(f) loadFile(f); });
+['xmin','xmax','ymin','ymax','zmin','zmax'].forEach(id=> $(id).addEventListener('input', updateCrop));
+$('export').addEventListener('click', exportCrop);
+
+function clearObj(){ if(obj){ scene.remove(obj); obj.traverse&&obj.traverse(o=>{ o.geometry&&o.geometry.dispose(); }); if(obj.geometry)obj.geometry.dispose(); obj=null; } mats=[]; }
 
 async function loadFile(f){
-  $('err').textContent=''; $('info').textContent='Lettura…';
+  $('err').textContent=''; $('info').textContent='Lettura…'; $('crop').style.display='none';
   try{
-    const buf = await f.arrayBuffer();
-    const name = (f.name||'').toLowerCase();
-    let parsed;
-    if(name.endsWith('.ply')) parsed = parsePLY(buf);
-    else parsed = parseXYZ(new TextDecoder().decode(buf));
-    if(!parsed || !parsed.count) throw new Error('nessun punto letto dal file');
-    showCloud(parsed, f.name);
-  }catch(err){ $('info').textContent=''; $('err').textContent = 'Errore: '+err.message; }
+    const name=(f.name||'').toLowerCase();
+    if(name.endsWith('.obj')){ const g=new OBJLoader().parse(await f.text()); placeMesh(g, f.name); }
+    else if(name.endsWith('.glb')||name.endsWith('.gltf')){ const buf=await f.arrayBuffer();
+      new GLTFLoader().parse(buf, '', gltf=>placeMesh(gltf.scene, f.name), err=>{ $('info').textContent=''; $('err').textContent='GLB non letto: '+err; }); }
+    else { const buf=await f.arrayBuffer();
+      const p = name.endsWith('.ply') ? parsePLY(buf) : parseXYZ(new TextDecoder().decode(buf));
+      if(!p||!p.count) throw new Error('nessun punto letto');
+      placeCloud(p, f.name); }
+  }catch(err){ $('info').textContent=''; $('err').textContent='Errore: '+err.message; }
 }
 
-// ---- Parser XYZ / TXT (x y z [r g b]) separati da spazio, virgola o tab ----
+// ---------- parser nuvola (XYZ / PLY ascii+binario) ----------
 function parseXYZ(txt){
-  const lines = txt.split(/\r?\n/);
-  const pos=[], col=[]; let hasCol=false;
-  for(const ln of lines){
-    const s=ln.trim(); if(!s || s[0]==='#') continue;
+  const lines=txt.split(/\r?\n/); const pos=[], col=[]; let hasCol=false;
+  for(const ln of lines){ const s=ln.trim(); if(!s||s[0]==='#') continue;
     const p=s.split(/[\s,;]+/).map(Number);
-    if(p.length<3 || !isFinite(p[0])||!isFinite(p[1])||!isFinite(p[2])) continue;
+    if(p.length<3||!isFinite(p[0])||!isFinite(p[1])||!isFinite(p[2])) continue;
     pos.push(p[0],p[1],p[2]);
-    if(p.length>=6 && isFinite(p[3])){ hasCol=true; col.push(p[3]/255,p[4]/255,p[5]/255); }
-  }
-  return { count: pos.length/3, pos, col: hasCol?col:null };
+    if(p.length>=6&&isFinite(p[3])){ hasCol=true; col.push(p[3]/255,p[4]/255,p[5]/255); } }
+  return { count:pos.length/3, pos, col:hasCol?col:null };
 }
-
-// ---- Parser PLY (ascii + binary_little/big_endian) ----
-const PLY_SZ = { char:1,uchar:1,int8:1,uint8:1,short:2,ushort:2,int16:2,uint16:2,int:4,uint:4,int32:4,uint32:4,float:4,float32:4,double:8,float64:8 };
-const PLY_RD = {
-  char:(dv,o,le)=>dv.getInt8(o), uchar:(dv,o,le)=>dv.getUint8(o), int8:(dv,o,le)=>dv.getInt8(o), uint8:(dv,o,le)=>dv.getUint8(o),
-  short:(dv,o,le)=>dv.getInt16(o,le), ushort:(dv,o,le)=>dv.getUint16(o,le), int16:(dv,o,le)=>dv.getInt16(o,le), uint16:(dv,o,le)=>dv.getUint16(o,le),
-  int:(dv,o,le)=>dv.getInt32(o,le), uint:(dv,o,le)=>dv.getUint32(o,le), int32:(dv,o,le)=>dv.getInt32(o,le), uint32:(dv,o,le)=>dv.getUint32(o,le),
-  float:(dv,o,le)=>dv.getFloat32(o,le), float32:(dv,o,le)=>dv.getFloat32(o,le), double:(dv,o,le)=>dv.getFloat64(o,le), float64:(dv,o,le)=>dv.getFloat64(o,le)
-};
+const PLY_SZ={ char:1,uchar:1,int8:1,uint8:1,short:2,ushort:2,int16:2,uint16:2,int:4,uint:4,int32:4,uint32:4,float:4,float32:4,double:8,float64:8 };
+const PLY_RD={ char:(d,o)=>d.getInt8(o),uchar:(d,o)=>d.getUint8(o),int8:(d,o)=>d.getInt8(o),uint8:(d,o)=>d.getUint8(o),
+ short:(d,o,l)=>d.getInt16(o,l),ushort:(d,o,l)=>d.getUint16(o,l),int16:(d,o,l)=>d.getInt16(o,l),uint16:(d,o,l)=>d.getUint16(o,l),
+ int:(d,o,l)=>d.getInt32(o,l),uint:(d,o,l)=>d.getUint32(o,l),int32:(d,o,l)=>d.getInt32(o,l),uint32:(d,o,l)=>d.getUint32(o,l),
+ float:(d,o,l)=>d.getFloat32(o,l),float32:(d,o,l)=>d.getFloat32(o,l),double:(d,o,l)=>d.getFloat64(o,l),float64:(d,o,l)=>d.getFloat64(o,l) };
 function parsePLY(buf){
-  const bytes = new Uint8Array(buf);
-  // trova la fine dell'header ("end_header\n") leggendo come ascii
-  let hdrEnd=-1; const tok='end_header';
-  for(let i=0;i<bytes.length-tok.length;i++){ let ok=true; for(let j=0;j<tok.length;j++){ if(bytes[i+j]!==tok.charCodeAt(j)){ ok=false; break; } } if(ok){ hdrEnd=i+tok.length; break; } }
-  if(hdrEnd<0) throw new Error('PLY senza header valido');
-  // salta fino a fine riga
-  while(hdrEnd<bytes.length && bytes[hdrEnd]!==10) hdrEnd++;
-  hdrEnd++;
-  const header = new TextDecoder().decode(bytes.subarray(0,hdrEnd));
-  const lines = header.split(/\r?\n/);
-  let format='ascii', vcount=0, inVertex=false; const props=[];
-  for(const ln of lines){
-    const t=ln.trim().split(/\s+/);
+  const bytes=new Uint8Array(buf); let hdrEnd=-1; const tok='end_header';
+  for(let i=0;i<bytes.length-tok.length;i++){ let ok=true; for(let j=0;j<tok.length;j++){ if(bytes[i+j]!==tok.charCodeAt(j)){ok=false;break;} } if(ok){ hdrEnd=i+tok.length; break; } }
+  if(hdrEnd<0) throw new Error('PLY senza header');
+  while(hdrEnd<bytes.length&&bytes[hdrEnd]!==10) hdrEnd++; hdrEnd++;
+  const lines=new TextDecoder().decode(bytes.subarray(0,hdrEnd)).split(/\r?\n/);
+  let format='ascii', vcount=0, inV=false; const props=[];
+  for(const ln of lines){ const t=ln.trim().split(/\s+/);
     if(t[0]==='format') format=t[1];
-    else if(t[0]==='element'){ inVertex = (t[1]==='vertex'); if(inVertex) vcount=+t[2]; }
-    else if(t[0]==='property' && inVertex){ if(t[1]==='list'){ props.push({list:true}); } else props.push({type:t[1], name:t[t.length-1]}); }
-  }
+    else if(t[0]==='element'){ inV=(t[1]==='vertex'); if(inV)vcount=+t[2]; }
+    else if(t[0]==='property'&&inV){ if(t[1]==='list')props.push({list:true}); else props.push({type:t[1],name:t[t.length-1]}); } }
   if(!vcount) throw new Error('PLY senza vertici');
-  const nameIdx = {}; props.forEach((p,i)=>{ if(p.name) nameIdx[p.name]=i; });
-  const need = ['x','y','z']; for(const n of need) if(!(n in nameIdx)) throw new Error('PLY senza coordinate '+n);
-  const hasCol = ('red' in nameIdx) && ('green' in nameIdx) && ('blue' in nameIdx);
-  const step = Math.max(1, Math.ceil(vcount/MAXPTS));
-  const pos=[], col=[];
+  const idx={}; props.forEach((p,i)=>{ if(p.name)idx[p.name]=i; });
+  for(const n of ['x','y','z']) if(!(n in idx)) throw new Error('PLY senza coordinata '+n);
+  const hasCol=('red'in idx)&&('green'in idx)&&('blue'in idx);
+  const step=Math.max(1,Math.ceil(vcount/MAXPTS)); const pos=[], col=[];
   if(format==='ascii'){
-    const body = new TextDecoder().decode(bytes.subarray(hdrEnd)).split(/\r?\n/);
-    let vi=0;
-    for(const ln of body){ if(vi>=vcount) break; const s=ln.trim(); if(!s) continue;
-      if(vi % step===0){ const v=s.split(/\s+/).map(Number);
-        pos.push(v[nameIdx.x],v[nameIdx.y],v[nameIdx.z]);
-        if(hasCol) col.push(v[nameIdx.red]/255,v[nameIdx.green]/255,v[nameIdx.blue]/255);
-      }
-      vi++;
-    }
+    const body=new TextDecoder().decode(bytes.subarray(hdrEnd)).split(/\r?\n/); let vi=0;
+    for(const ln of body){ if(vi>=vcount)break; const s=ln.trim(); if(!s)continue;
+      if(vi%step===0){ const v=s.split(/\s+/).map(Number); pos.push(v[idx.x],v[idx.y],v[idx.z]);
+        if(hasCol)col.push(v[idx.red]/255,v[idx.green]/255,v[idx.blue]/255); } vi++; }
   } else {
-    const le = (format!=='binary_big_endian');
-    const dv = new DataView(buf, hdrEnd);
-    let stride=0; for(const p of props){ if(p.list) throw new Error('PLY con liste non supportato in questa prova'); stride += PLY_SZ[p.type]||0; }
+    const le=(format!=='binary_big_endian'); const dv=new DataView(buf,hdrEnd);
+    let stride=0; for(const p of props){ if(p.list) throw new Error('PLY con facce/liste: caricalo come OBJ per la mesh'); stride+=PLY_SZ[p.type]||0; }
     const off=[]; { let a=0; for(const p of props){ off.push(a); a+=PLY_SZ[p.type]||0; } }
-    for(let i=0;i<vcount;i++){
-      if(i % step===0){ const base=i*stride;
-        pos.push(PLY_RD[props[nameIdx.x].type](dv, base+off[nameIdx.x], le),
-                 PLY_RD[props[nameIdx.y].type](dv, base+off[nameIdx.y], le),
-                 PLY_RD[props[nameIdx.z].type](dv, base+off[nameIdx.z], le));
-        if(hasCol) col.push(PLY_RD[props[nameIdx.red].type](dv, base+off[nameIdx.red], le)/255,
-                            PLY_RD[props[nameIdx.green].type](dv, base+off[nameIdx.green], le)/255,
-                            PLY_RD[props[nameIdx.blue].type](dv, base+off[nameIdx.blue], le)/255);
-      }
-    }
+    for(let i=0;i<vcount;i++){ if(i%step===0){ const b=i*stride;
+      pos.push(PLY_RD[props[idx.x].type](dv,b+off[idx.x],le),PLY_RD[props[idx.y].type](dv,b+off[idx.y],le),PLY_RD[props[idx.z].type](dv,b+off[idx.z],le));
+      if(hasCol)col.push(PLY_RD[props[idx.red].type](dv,b+off[idx.red],le)/255,PLY_RD[props[idx.green].type](dv,b+off[idx.green],le)/255,PLY_RD[props[idx.blue].type](dv,b+off[idx.blue],le)/255); } }
   }
-  return { count: pos.length/3, pos, col: hasCol?col:null, total:vcount, step };
+  return { count:pos.length/3, pos, col:hasCol?col:null, total:vcount, step };
 }
 
-function showCloud(p, fname){
-  if(cloud){ scene.remove(cloud); cloud.geometry.dispose(); cloud.material.dispose(); cloud=null; }
-  const n=p.count, arr=new Float32Array(p.pos);
-  // centro (le nuvole georeferenziate hanno coordinate enormi): centro sul baricentro del bounding box
-  let minx=Infinity,miny=Infinity,minz=Infinity,maxx=-Infinity,maxy=-Infinity,maxz=-Infinity;
-  for(let i=0;i<arr.length;i+=3){ const x=arr[i],y=arr[i+1],z=arr[i+2];
-    if(x<minx)minx=x; if(y<miny)miny=y; if(z<minz)minz=z; if(x>maxx)maxx=x; if(y>maxy)maxy=y; if(z>maxz)maxz=z; }
-  const cx=(minx+maxx)/2, cy=(miny+maxy)/2, cz=(minz+maxz)/2;
-  const dx=maxx-minx, dy=maxy-miny, dz=maxz-minz, diag=Math.hypot(dx,dy,dz)||1;
-  const geo=new THREE.BufferGeometry();
-  const centered=new Float32Array(arr.length);
-  for(let i=0;i<arr.length;i+=3){ centered[i]=arr[i]-cx; centered[i+1]=arr[i+1]-cy; centered[i+2]=arr[i+2]-cz; }
-  geo.setAttribute('position', new THREE.BufferAttribute(centered,3));
-  let mat;
-  if(p.col){ geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(p.col),3)); mat=new THREE.PointsMaterial({ size:diag/900, vertexColors:true }); }
-  else {
-    // colora per quota (z) in gradiente ambra se non ci sono colori
-    const cols=new Float32Array(arr.length);
-    for(let i=0;i<arr.length;i+=3){ const t=(arr[i+2]-minz)/(dz||1); cols[i]=0.6+0.4*t; cols[i+1]=0.35+0.45*t; cols[i+2]=0.05+0.1*t; }
-    geo.setAttribute('color', new THREE.BufferAttribute(cols,3)); mat=new THREE.PointsMaterial({ size:diag/900, vertexColors:true });
-  }
-  cloud=new THREE.Points(geo, mat); scene.add(cloud);
-  // inquadra
+// ---------- posiziona nuvola ----------
+function placeCloud(p, fname){
+  clearObj();
+  const arr=new Float32Array(p.pos);
+  const bb=bbOf(arr); centerInPlace(arr, bb);
+  const geo=new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(arr,3));
+  let cols;
+  if(p.col) cols=new Float32Array(p.col);
+  else { cols=new Float32Array(arr.length); const dz=(bb.max.z-bb.min.z)||1; for(let i=0;i<arr.length;i+=3){ const t=(arr[i+2]+ (bb.max.z-bb.min.z)/2)/dz; cols[i]=0.6+0.4*t; cols[i+1]=0.35+0.45*t; cols[i+2]=0.05+0.1*t; } }
+  geo.setAttribute('color', new THREE.BufferAttribute(cols,3));
+  const diag=diagOf(bb);
+  const mat=new THREE.PointsMaterial({ size:diag/900, vertexColors:true, clippingPlanes:planes, clipIntersection:false });
+  obj=new THREE.Points(geo, mat); mats=[mat]; scene.add(obj);
+  afterPlace(bb, diag, fname, p.count, p.step, p.total, p.col?'dal drone':'per quota');
+}
+
+// ---------- posiziona mesh ----------
+function placeMesh(group, fname){
+  clearObj();
+  const box=new THREE.Box3().setFromObject(group); const c=box.getCenter(new THREE.Vector3());
+  group.position.sub(c);                       // centra
+  const size=box.getSize(new THREE.Vector3());
+  const bb={ min:{x:-size.x/2,y:-size.y/2,z:-size.z/2}, max:{x:size.x/2,y:size.y/2,z:size.z/2} };
+  offset={ x:c.x, y:c.y, z:c.z };
+  mats=[]; let nv=0;
+  group.traverse(o=>{ if(o.isMesh){ const m=new THREE.MeshStandardMaterial({ color:0xffb04a, roughness:.95, metalness:0, flatShading:true, side:THREE.DoubleSide, clippingPlanes:planes, clipIntersection:false }); o.material=m; mats.push(m); if(o.geometry&&o.geometry.attributes.position) nv+=o.geometry.attributes.position.count; } });
+  obj=group; scene.add(group);
+  const diag=diagOf(bb);
+  afterPlace(bb, diag, fname, nv, 1, nv, 'mesh (superficie)');
+}
+
+function bbOf(arr){ let mnx=Infinity,mny=Infinity,mnz=Infinity,mxx=-Infinity,mxy=-Infinity,mxz=-Infinity;
+  for(let i=0;i<arr.length;i+=3){ const x=arr[i],y=arr[i+1],z=arr[i+2]; if(x<mnx)mnx=x;if(y<mny)mny=y;if(z<mnz)mnz=z;if(x>mxx)mxx=x;if(y>mxy)mxy=y;if(z>mxz)mxz=z; }
+  return { min:{x:mnx,y:mny,z:mnz}, max:{x:mxx,y:mxy,z:mxz} }; }
+function centerInPlace(arr, bb){ const cx=(bb.min.x+bb.max.x)/2, cy=(bb.min.y+bb.max.y)/2, cz=(bb.min.z+bb.max.z)/2;
+  offset={x:cx,y:cy,z:cz}; for(let i=0;i<arr.length;i+=3){ arr[i]-=cx; arr[i+1]-=cy; arr[i+2]-=cz; }
+  // aggiorna bb alle coordinate centrate
+  bb.min={x:bb.min.x-cx,y:bb.min.y-cy,z:bb.min.z-cz}; bb.max={x:bb.max.x-cx,y:bb.max.y-cy,z:bb.max.z-cz}; }
+function diagOf(bb){ return Math.hypot(bb.max.x-bb.min.x, bb.max.y-bb.min.y, bb.max.z-bb.min.z)||1; }
+
+function afterPlace(bb, diag, fname, shown, step, total, colInfo){
+  bounds=bb;
   camera.position.set(0, -diag*0.9, diag*0.6); controls.target.set(0,0,0); controls.update();
   grid.scale.setScalar(Math.max(1, diag/200));
+  ['xmin','ymin','zmin'].forEach(id=>$(id).value=0); ['xmax','ymax','zmax'].forEach(id=>$(id).value=100);
   $('info').innerHTML =
     '<div class="row"><span>File</span><b>'+escq(fname)+'</b></div>'
-    +'<div class="row"><span>Punti mostrati</span><b>'+n.toLocaleString('it-IT')+(p.step>1?' <span style="color:var(--mut)">di '+p.total.toLocaleString('it-IT')+' (1/'+p.step+')</span>':'')+'</b></div>'
-    +'<div class="row"><span>Colori</span><b>'+(p.col?'dal drone':'per quota')+'</b></div>'
-    +'<div class="row"><span>Dimensioni</span><b>'+dx.toFixed(1)+' × '+dy.toFixed(1)+' × '+dz.toFixed(1)+'</b></div>'
-    +'<div class="row"><span>Diagonale</span><b>'+diag.toFixed(1)+' unità</b></div>';
+    +'<div class="row"><span>Tipo</span><b>'+escq(colInfo)+'</b></div>'
+    +'<div class="row"><span>Elementi</span><b>'+shown.toLocaleString('it-IT')+(step>1?' <span style="color:var(--mut)">di '+total.toLocaleString('it-IT')+'</span>':'')+'</b></div>'
+    +'<div class="row"><span>Dimensioni</span><b>'+(bb.max.x-bb.min.x).toFixed(1)+' × '+(bb.max.z-bb.min.z).toFixed(1)+' × '+(bb.max.y-bb.min.y).toFixed(1)+'</b></div>';
+  $('crop').style.display='block';
+  updateCrop();
+}
+
+function frac(id){ return (+$(id).value)/100; }
+function updateCrop(){
+  if(!bounds) return;
+  const lx=bounds.max.x-bounds.min.x, ly=bounds.max.y-bounds.min.y, lz=bounds.max.z-bounds.min.z;
+  let x0=bounds.min.x+frac('xmin')*lx, x1=bounds.min.x+frac('xmax')*lx;
+  let y0=bounds.min.y+frac('ymin')*ly, y1=bounds.min.y+frac('ymax')*ly;
+  let z0=bounds.min.z+frac('zmin')*lz, z1=bounds.min.z+frac('zmax')*lz;
+  if(x1<x0)[x0,x1]=[x1,x0]; if(y1<y0)[y0,y1]=[y1,y0]; if(z1<z0)[z0,z1]=[z1,z0];
+  // piani: tieni la regione dentro la scatola
+  planes[0].constant=-x0; planes[1].constant=x1;
+  planes[2].constant=-y0; planes[3].constant=y1;
+  planes[4].constant=-z0; planes[5].constant=z1;
+  // scatola wireframe
+  if(cropBox){ scene.remove(cropBox); cropBox.geometry.dispose(); cropBox.material.dispose(); }
+  const g=new THREE.BoxGeometry(x1-x0||0.01, y1-y0||0.01, z1-z0||0.01);
+  cropBox=new THREE.LineSegments(new THREE.EdgesGeometry(g), new THREE.LineBasicMaterial({ color:0xffab00 }));
+  cropBox.position.set((x0+x1)/2,(y0+y1)/2,(z0+z1)/2); scene.add(cropBox);
+  window._crop={x0,x1,y0,y1,z0,z1};
+  $('cropdim').innerHTML='Ritaglio: <b style="color:var(--tx)">'+(x1-x0).toFixed(1)+' L × '+(y1-y0).toFixed(1)+' H × '+(z1-z0).toFixed(1)+' P</b> (unità nuvola)';
+}
+
+function insideCrop(x,y,z){ const c=window._crop; return x>=c.x0&&x<=c.x1&&y>=c.y0&&y<=c.y1&&z>=c.z0&&z<=c.z1; }
+function exportCrop(){
+  if(!obj||!bounds){ return; }
+  const out=[]; const c=window._crop;
+  const push=(x,y,z)=>{ if(insideCrop(x,y,z)) out.push((x+offset.x).toFixed(3)+' '+(y+offset.y).toFixed(3)+' '+(z+offset.z).toFixed(3)); };
+  if(obj.isPoints){ const a=obj.geometry.attributes.position.array; for(let i=0;i<a.length;i+=3) push(a[i],a[i+1],a[i+2]); }
+  else { obj.updateMatrixWorld(true); const v=new THREE.Vector3(); obj.traverse(o=>{ if(o.isMesh&&o.geometry.attributes.position){ const a=o.geometry.attributes.position; for(let i=0;i<a.count;i++){ v.set(a.getX(i),a.getY(i),a.getZ(i)).applyMatrix4(o.matrixWorld); push(v.x,v.y,v.z); } } }); }
+  if(!out.length){ $('err').textContent='Ritaglio vuoto: allarga i cursori.'; return; }
+  const blob=new Blob([out.join('\n')+'\n'], {type:'text/plain'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='fronte_ritaglio.xyz'; a.click();
+  $('err').textContent='';
 }
 function escq(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 </script>
