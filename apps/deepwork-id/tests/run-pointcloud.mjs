@@ -109,6 +109,11 @@ test("parseLAS formato 2: legge il colore RGB", () => {
   const r = pc.parseLAS(lasBuf([[500000, 5000000, 0, 65535, 0, 32768]], { fmt: 2 }));
   ok(r.col && Math.abs(r.col[0] - 1) < 1e-4 && r.col[1] === 0 && Math.abs(r.col[2] - 0.5) < 0.01, "colore 16 bit normalizzato");
 });
+test("parseLAS colore a 8 bit (alcuni LAS ODM): normalizza su 255, non 65535 (niente colori quasi neri)", () => {
+  const r = pc.parseLAS(lasBuf([[500000, 5000000, 0, 200, 100, 50]], { fmt: 2 }));
+  // se normalizzasse su 65535 verrebbe ~0.003 (nero); su 255 dà ~0.78/0.39/0.20 (corretto).
+  ok(r.col && Math.abs(r.col[0] - 200/255) < 1e-4 && Math.abs(r.col[1] - 100/255) < 1e-4 && Math.abs(r.col[2] - 50/255) < 1e-4, "colore 8 bit normalizzato su 255");
+});
 test("parseLAS formato 3 (GPS-time + RGB, tipico ODM): RGB letto all'offset giusto (28)", () => {
   const r = pc.parseLAS(lasBuf([[500001, 5000002, 3.5, 65535, 32768, 0]], { fmt: 3 }));
   eq(r.count, 1, "un punto");
