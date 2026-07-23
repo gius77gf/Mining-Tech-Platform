@@ -575,6 +575,10 @@ Prossimo (gated sul test weekend del fondatore col dato reale): passo 3 = agganc
 del fronte ritagliato al motore volata di Genesi; poi ponte Terra→Genesi. La catena
 di lettura ora copre i formati che ODM produce davvero (LAS/PLY/XYZ + mesh OBJ/GLB).
 
+### Ciclo 23/07 (pomeriggio): ricerca+conteggio nei ricambi Flotta
+Ricerca per nome + conteggio nel magazzino ricambi (lista che cresce con le scorte).
+Ora Flotta ha ricerca su mezzi e ricambi. Verificato: "filtro" → 2 su 4, zero errori.
+
 ### Ciclo 23/07 (pomeriggio): ricerca+conteggio nelle scadenze Scudo
 La lista scadenze (cuore compliance HSE, spesso lunga) aveva solo filtri; aggiunta
 ricerca per tipo/lavoratore + conteggio "N · su TOT" + stato vuoto. Ora Scudo ha

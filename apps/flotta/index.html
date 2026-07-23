@@ -99,6 +99,8 @@
 
   <div class="sec">Magazzino ricambi</div>
   <div id="ric-alert" class="note" style="text-align:left;"></div>
+  <input class="dw-input" id="ric-cerca" type="search" placeholder="🔍 Cerca ricambio…" style="margin-bottom:6px;">
+  <div id="ric-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
   <div id="ric-list"></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
     <input class="dw-input" id="ric-nome" placeholder="Ricambio (es. Filtro olio)" style="flex:2;min-width:150px;">
@@ -173,6 +175,7 @@
   try { const _s = localStorage.getItem("dwSort_mez"); if (_s) { ordMez = _s; if ($("mez-ord")) $("mez-ord").value = _s; } } catch (e) {}
   if ($("mez-ord")) $("mez-ord").onchange = () => { ordMez = $("mez-ord").value; try { localStorage.setItem("dwSort_mez", ordMez); } catch (e) {} refresh(); };
   if ($("mez-cerca")) $("mez-cerca").oninput = () => refresh();
+  if ($("ric-cerca")) $("ric-cerca").oninput = () => refresh();
   async function refresh(){
     [MEZ,MAN,COS,RIC] = await Promise.all([db.mezzi(), db.manutenzioni(), db.costi(), db.ricambi ? db.ricambi() : []]);
     const k = kpiFrom(MEZ,MAN,COS);
@@ -246,8 +249,10 @@
           ? `<span style="color:var(--danger);">⚠️ ${scorta.length} ${scorta.length === 1 ? "ricambio sotto scorta" : "ricambi sotto scorta"}</span> — da riordinare: ${scorta.map(r => esc(r.nome)).join(", ")}.`
           : "Tutti i ricambi sopra la soglia minima.")
       : "";
+    const qRic = ($("ric-cerca") && $("ric-cerca").value || "").trim().toLowerCase();
     $("ric-list").innerHTML = RIC.slice()
       .sort((a,b) => ((+a.giacenza||0)-(+a.sogliaMin||0)) - ((+b.giacenza||0)-(+b.sogliaMin||0)))
+      .filter(r => !qRic || (r.nome || "").toLowerCase().includes(qRic))
       .map(r => { const sotto = (+r.giacenza||0) <= (+r.sogliaMin||0);
       return `<div class="item">
         <div class="info"><div class="name">${esc(r.nome)}</div><div class="meta">giacenza ${+r.giacenza||0} · soglia min ${+r.sogliaMin||0}</div></div>
@@ -255,7 +260,9 @@
         <span class="badge ${sotto ? "danger" : "ok"}">${sotto ? "sotto scorta" : "ok"}</span>
         <span class="arr" style="cursor:pointer" title="Carico (+1)" data-ric-piu="${r.id}">+</span>
         <span class="arr" style="cursor:pointer" title="Rimuovi ricambio" data-ric-del="${r.id}">✕</span></div>`; }).join("")
-      || '<div class="note" style="text-align:left;">Nessun ricambio a magazzino: aggiungine uno qui sotto.</div>';
+      || '<div class="note" style="text-align:left;">'+(qRic?"Nessun ricambio trovato per «"+esc(qRic)+"».":"Nessun ricambio a magazzino: aggiungine uno qui sotto.")+'</div>';
+    { const n = $("ric-list").querySelectorAll(".item").length;
+      $("ric-count").textContent = n === 0 ? "" : n + (n === 1 ? " ricambio" : " ricambi") + (qRic ? " · su " + RIC.length : ""); }
 
     // Ripartizione costi per voce: dove va la spesa della flotta.
     const rip = ripartizioneCosti(COS);
