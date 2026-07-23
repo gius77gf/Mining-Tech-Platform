@@ -575,6 +575,14 @@ Prossimo (gated sul test weekend del fondatore col dato reale): passo 3 = agganc
 del fronte ritagliato al motore volata di Genesi; poi ponte Terra→Genesi. La catena
 di lettura ora copre i formati che ODM produce davvero (LAS/PLY/XYZ + mesh OBJ/GLB).
 
+### Ciclo 23/07 (mezzogiorno): modifica in-place dei record (CRUD mancante)
+Fallback #1 — le app aggiungevano/eliminavano ma non MODIFICAVANO (correggere un
+refuso = cancella e rifai). Aggiunta la modifica in-place, una entità per unità.
+- **Conti** (fatture): ✎ accanto alla ✕ → popola il form "Nuova fattura", "Salva
+  modifica" via aggiorna (stesso id, no duplicati), ri-tocco = annulla. Verificato:
+  importo 18.300→20.000 salvato in place, conteggio invariato, zero errori.
+  [PROSSIME: Flotta mezzi, Scudo lavoratori, Terra fronti, Sentinella, Campo]
+
 ### Ciclo 23/07 (mattina): ricerca testuale nelle liste (seconda iterazione UX)
 Fallback #1 — solo Scudo aveva la ricerca libera (personale); estesa alle altre liste,
 una app per unità, stesso pattern + stato vuoto dedicato + verifica screenshot. Pura
