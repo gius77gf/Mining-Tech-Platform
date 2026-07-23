@@ -72,8 +72,11 @@ cliente** (la cava paga il servizio, tu paghi centesimi di calcolo).
 - **RAM**: il consumo di ODM dipende da **quante foto** e a che risoluzione. Rilievi
   piccoli entrano nel gratis; rilievi grandi vogliono più RAM/tempo (ODM ha
   impostazioni per ridurre — coerente con "meno preciso, più economico").
-- **Formati**: dal WebODM conviene esportare **PLY** o una nuvola già **decimata**;
-  il LAZ (compresso) è leggibile nel browser con un piccolo decompressore (laz-perf).
+- **Formati**: il visore ora legge **direttamente il LAS** (è il formato con cui ODM
+  esporta la nuvola: `odm_georeferenced_model.las`), oltre a **PLY** e **XYZ**. Il
+  **LAZ** (la stessa nuvola ma compressa) va prima riesportato in LAS o PLY (in
+  WebODM/CloudCompare "Salva con nome") — il decompressore LAZ nel browser sarebbe
+  pesante e per ora non serve.
 - **Free a sessione** (Colab): non è "produzione" affidabile (si scollega) — va bene
   per validare e per l'uso saltuario di adesso.
 
@@ -94,15 +97,17 @@ Per verificare il flusso a costo zero, col tuo DJI Mini:
 1. **Scatta le foto** del fronte col drone (tante, sovrapposte tra loro ~70%).
 2. **Genera il 3D senza usare il tuo PC**: apri **Google Colab** o una **Space di
    Hugging Face** (gratis, dal browser) con WebODM/una demo di fotogrammetria;
-   carica le foto → ottieni la **nuvola** (PLY/XYZ) e/o la **mesh** (OBJ).
+   carica le foto → ottieni la **nuvola** (LAS/PLY/XYZ) e/o la **mesh** (OBJ).
 3. **Caricalo in Genesi**: apri il deploy-preview di #321 + `/apps/genesi/nuvola-poc.html`,
-   premi **"Carica 3D"** e scegli il file (PLY, XYZ, o OBJ).
+   premi **"Carica 3D"** e scegli il file. Va bene il **`.las`** che ti dà ODM
+   (o PLY/XYZ per la nuvola, OBJ/GLB per la mesh) — il visore li apre direttamente.
 4. **Isola il fronte**: coi 3 cursori (larghezza/altezza/profondità) stringi il box
    finché resta solo la faccia della cava; controlla le **dimensioni** (in metri).
 5. **Esporta** il fronte ritagliato (.xyz) — servirà per l'aggancio alla volata (passo 3).
 Note: il POC gestisce nuvole grandi (downsample automatico) e coordinate
-georeferenziate (UTM) senza perdere precisione. Se ODM ti dà un **LAZ** compresso,
-esportalo prima in PLY o XYZ. Poi dimmi com'è andata: costruisco l'aggancio alla
+georeferenziate (UTM) senza perdere precisione. Il **`.las`** di ODM si carica
+così com'è; solo se ti ritrovi un **`.laz`** (compresso) va prima riesportato in
+LAS o PLY. Poi dimmi com'è andata: costruisco l'aggancio alla
 simulazione volata sui tuoi dati veri.
 
 ## Collegati
