@@ -71,6 +71,7 @@
       <option value="titolo">Titolo (A→Z)</option>
     </select>
   </div>
+  <input class="dw-input" id="ril-cerca" type="search" placeholder="🔍 Cerca per titolo o tipo…" style="margin-bottom:10px;">
   <div id="ril-list"></div>
   <div class="sec">Valore del materiale estratto</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
@@ -151,6 +152,7 @@
   let ordRil = "data";
   try { const _s = localStorage.getItem("dwSort_ril"); if (_s) { ordRil = _s; if ($("ril-ord")) $("ril-ord").value = _s; } } catch (e) {}
   if ($("ril-ord")) $("ril-ord").onchange = () => { ordRil = $("ril-ord").value; try { localStorage.setItem("dwSort_ril", ordRil); } catch (e) {} refresh(); };
+  if ($("ril-cerca")) $("ril-cerca").oninput = () => refresh();
   $("ril-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroRil = f; refresh(); }
@@ -193,7 +195,9 @@
     const rilCmp = (a, b) => ordRil === "volume" ? (+b.volumeM3 || 0) - (+a.volumeM3 || 0) || (b.data||"").localeCompare(a.data||"")
       : ordRil === "titolo" ? String(a.titolo || "").localeCompare(String(b.titolo || ""), "it")
       : (b.data||"").localeCompare(a.data||"");
+    const qRil = ($("ril-cerca") && $("ril-cerca").value || "").trim().toLowerCase();
     const ril = RIL.filter(r => filtroRil === "tutti" || r.stato === filtroRil)
+                   .filter(r => !qRil || ((r.titolo || "") + " " + (r.tipo || "")).toLowerCase().includes(qRil))
                    .sort(rilCmp);
     $("ril-list").innerHTML = ril.map(r => {
       const ca = classeAccuratezza(r);
@@ -204,7 +208,7 @@
       ${ca.cls ? `<span class="badge ${ca.cls}" title="Accuratezza tipica del metodo — da confermare coi checkpoint del rilevatore">${ca.label}</span>` : ""}
       <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${r.stato==="pianificato"?`<span class="arr" style="cursor:pointer" title="Annulla rilievo pianificato" data-del-ril="${r.id}">✕</span>`:""}</div>`;
     }).join("")
-      || '<div class="note" style="text-align:left;">'+(filtroRil==="tutti"?"Nessun rilievo registrato.":"Nessun rilievo in questa categoria.")+'</div>';
+      || '<div class="note" style="text-align:left;">'+(qRil?"Nessun rilievo trovato per «"+esc(qRil)+"».":(filtroRil==="tutti"?"Nessun rilievo registrato.":"Nessun rilievo in questa categoria."))+'</div>';
     document.querySelectorAll("#ril-filtri [data-filtro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-filtro") === filtroRil ? "var(--app-accent)" : "");
 

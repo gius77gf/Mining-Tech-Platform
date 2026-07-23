@@ -588,7 +588,10 @@ UX, nessun tocco al modello dati.
   "fronte" → 2 attività; assente → stato vuoto. NB: la "ricerca live su tutte le
   app" del riepilogo storico era un overclaim (solo Scudo l'aveva).
 - **Sentinella** (monitoraggi): `#mon-cerca`, filtra per nome/nota. Verificato:
-  "vibrazioni" → 2 sensori; assente → stato vuoto. [PROSSIMA: Terra]
+  "vibrazioni" → 2 sensori; assente → stato vuoto.
+- **Terra** (rilievi): `#ril-cerca`, filtra per titolo/tipo. Verificato: "ortofoto"
+  → 4 rilievi; assente → stato vuoto. ★ SERIE COMPLETA: tutte e 6 le app hanno la
+  ricerca libera coerente.
 
 ### Ciclo notturno 23/07 (dopo il LAS): piano passo 3 + ricerche app
 - **`vault/PASSO3_FRONTE_METODO.md`**: metodo del passo 3 (PCA→sezione→envelope→
