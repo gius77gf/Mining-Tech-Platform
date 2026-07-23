@@ -67,6 +67,55 @@ test("parsePLY errori: header assente e vertici assenti lanciano", () => {
   ok(e1, "header mancante lancia"); ok(e2, "vertici mancanti lancia");
 });
 
+console.log("\n— pointcloud: parseLAS (formato nativo ODM) —");
+// Costruisce un LAS 1.2 minimale in memoria: header pubblico (227 byte) + N record.
+// Formato-punto 0 (solo XYZ, 20 byte) o 2 (con RGB, 26 byte).
+function lasBuf(pts, { fmt = 0, scale = [0.01, 0.01, 0.01], off = [500000, 5000000, 0], ver = [1, 2], legacyCount = null } = {}) {
+  const recLen = fmt === 2 ? 26 : 20;
+  const ptOffset = 227;
+  const ab = new ArrayBuffer(ptOffset + pts.length * recLen);
+  const dv = new DataView(ab);
+  const enc = new TextEncoder().encode("LASF"); new Uint8Array(ab).set(enc, 0);
+  dv.setUint8(24, ver[0]); dv.setUint8(25, ver[1]);
+  dv.setUint16(94, ptOffset, true);      // header size
+  dv.setUint32(96, ptOffset, true);      // offset to point data
+  dv.setUint8(104, fmt);
+  dv.setUint16(105, recLen, true);
+  dv.setUint32(107, legacyCount == null ? pts.length : legacyCount, true);
+  dv.setFloat64(131, scale[0], true); dv.setFloat64(139, scale[1], true); dv.setFloat64(147, scale[2], true);
+  dv.setFloat64(155, off[0], true); dv.setFloat64(163, off[1], true); dv.setFloat64(171, off[2], true);
+  pts.forEach((p, i) => {
+    const b = ptOffset + i * recLen;
+    dv.setInt32(b, Math.round((p[0] - off[0]) / scale[0]), true);
+    dv.setInt32(b + 4, Math.round((p[1] - off[1]) / scale[1]), true);
+    dv.setInt32(b + 8, Math.round((p[2] - off[2]) / scale[2]), true);
+    if (fmt === 2 && p.length >= 6) { dv.setUint16(b + 20, p[3], true); dv.setUint16(b + 22, p[4], true); dv.setUint16(b + 24, p[5], true); }
+  });
+  return ab;
+}
+test("parseLAS: coordinate reali = intero*scala+offset (doppia precisione UTM)", () => {
+  const r = pc.parseLAS(lasBuf([[500001.23, 5000002.5, 10.75], [500003.1, 5000004.2, 12.3]]));
+  eq(r.count, 2, "conteggio");
+  ok(Math.abs(r.pos[0] - 500001.23) < 1e-6 && Math.abs(r.pos[1] - 5000002.5) < 1e-6 && Math.abs(r.pos[2] - 10.75) < 1e-6, "primo punto ricostruito");
+  ok(Math.abs(r.pos[3] - 500003.1) < 1e-6 && Math.abs(r.pos[5] - 12.3) < 1e-6, "secondo punto ricostruito");
+});
+test("parseLAS formato 2: legge il colore RGB", () => {
+  const r = pc.parseLAS(lasBuf([[500000, 5000000, 0, 65535, 0, 32768]], { fmt: 2 }));
+  ok(r.col && Math.abs(r.col[0] - 1) < 1e-4 && r.col[1] === 0 && Math.abs(r.col[2] - 0.5) < 0.01, "colore 16 bit normalizzato");
+});
+test("parseLAS downsample: oltre il cap → step>1, total conservato", () => {
+  const pts = []; for (let i = 0; i < 100; i++) pts.push([500000 + i, 5000000, 0]);
+  const r = pc.parseLAS(lasBuf(pts), 10);
+  ok(r.step > 1 && r.count <= 10, "sotto il cap"); eq(r.total, 100, "totale originale");
+});
+test("parseLAS: LAZ (bit 7 del formato) e firma errata lanciano", () => {
+  let e1 = false, e2 = false;
+  const laz = lasBuf([[500000, 5000000, 0]]); new DataView(laz).setUint8(104, 0 | 0x80);  // compresso
+  try { pc.parseLAS(laz); } catch (e) { e1 = /LAZ/.test(e.message); }
+  try { pc.parseLAS(new TextEncoder().encode("non un las........................................................................................................................................................................................................................................").buffer); } catch (e) { e2 = /LASF/.test(e.message); }
+  ok(e1, "LAZ compresso lanciato con messaggio LAZ"); ok(e2, "firma errata lanciata");
+});
+
 console.log("\n— pointcloud: preShiftOBJ (precisione UTM) —");
 test("preShiftOBJ: primo vertice come origine, coordinate piccole, offset restituito", () => {
   const r = pc.preShiftOBJ("v 512345 5043210 100\nv 512346 5043211 101\n");

@@ -76,6 +76,53 @@ export function parsePLY(buf, maxpts = MAXPTS) {
   return { count: pos.length / 3, pos, col: hasCol ? col : null, total: vcount, step };
 }
 
+// ---- Parser LAS (nuvola binaria): è il formato PREDEFINITO con cui ODM/WebODM
+// esporta la nuvola (odm_georeferenced_model.las). Header pubblico a offset fissi
+// (little-endian) + record di punto. Coordinata reale = intero * scala + offset,
+// calcolata in DOPPIA precisione: le UTM stanno sui milioni e — come per OBJ/PLY —
+// il centraggio a valle (placeCloud) evita la perdita di Float32. Il LAZ (LAS
+// compresso) NON è gestito: richiede un decompressore pesante; va riesportato in
+// LAS o PLY. La firma resta "LASF" anche per il LAZ, che si riconosce dal bit 7
+// del formato-punto. ----
+const LAS_RGB_OFF = { 2: 20, 3: 28, 5: 28, 7: 30, 8: 30, 10: 30 };  // offset RGB nel record, per formato-punto
+export function parseLAS(buf, maxpts = MAXPTS) {
+  const dv = new DataView(buf);
+  if (buf.byteLength < 227 || dv.getUint8(0) !== 76 || dv.getUint8(1) !== 65 || dv.getUint8(2) !== 83 || dv.getUint8(3) !== 70)
+    throw new Error('LAS senza firma LASF');
+  const verMinor = dv.getUint8(25);
+  const ptOffset = dv.getUint32(96, true);
+  let ptFormat = dv.getUint8(104);
+  if (ptFormat & 0x80) throw new Error('LAS compresso (LAZ): riesportalo in LAS o PLY');
+  ptFormat &= 0x3f;
+  const recLen = dv.getUint16(105, true);
+  let count = dv.getUint32(107, true);
+  if (!count && verMinor >= 4 && buf.byteLength >= 255) count = Number(dv.getBigUint64(247, true));
+  if (!count) throw new Error('LAS senza punti');
+  if (recLen < 12) throw new Error('LAS: record punto troppo corto');
+  const sx = dv.getFloat64(131, true), sy = dv.getFloat64(139, true), sz = dv.getFloat64(147, true);
+  const ox = dv.getFloat64(155, true), oy = dv.getFloat64(163, true), oz = dv.getFloat64(171, true);
+  const rgbOff = LAS_RGB_OFF[ptFormat];
+  const hasCol = rgbOff != null && ptOffset + (count - 1) * recLen + rgbOff + 6 <= buf.byteLength;
+  const step = Math.max(1, Math.ceil(count / maxpts));
+  const pos = [], rawCol = []; let maxCol = 0;
+  for (let i = 0; i < count; i++) {
+    if (i % step !== 0) continue;
+    const b = ptOffset + i * recLen;
+    if (b + 12 > buf.byteLength) break;
+    pos.push(dv.getInt32(b, true) * sx + ox, dv.getInt32(b + 4, true) * sy + oy, dv.getInt32(b + 8, true) * sz + oz);
+    if (hasCol) {
+      const r = dv.getUint16(b + rgbOff, true), g = dv.getUint16(b + rgbOff + 2, true), bl = dv.getUint16(b + rgbOff + 4, true);
+      if (r > maxCol) maxCol = r; if (g > maxCol) maxCol = g; if (bl > maxCol) maxCol = bl;
+      rawCol.push(r, g, bl);
+    }
+  }
+  // LAS memorizza il colore in 16 bit, ma alcuni file (anche da ODM) ci mettono valori
+  // a 8 bit (0-255): normalizzo sul divisore giusto per non renderli quasi neri.
+  let col = null;
+  if (hasCol && rawCol.length) { const d = maxCol > 255 ? 65535 : 255; col = rawCol.map(v => v / d); }
+  return { count: pos.length / 3, pos, col, total: count, step };
+}
+
 // ---- Pre-shift OBJ: trasla i vertici in DOPPIA precisione (primo vertice come
 // origine) PRIMA di OBJLoader, che altrimenti li mette in Float32 perdendo
 // precisione sulle coordinate georeferenziate (UTM ~5.000.000). ----

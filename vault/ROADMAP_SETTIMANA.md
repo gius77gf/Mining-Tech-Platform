@@ -562,8 +562,18 @@ economico" (coerente col fatto che Genesi è una STIMA). Fatto:
 - **Revisione SERALE (21:41 UTC)**: PULITA — syntax OK (genesi/nuvola-poc/conti),
   174 test verdi, 3 superfici avviate senza errori, review avversariale del codice
   nuovo senza bug residui.
+- **Parser in modulo testabile** (`apps/genesi/pointcloud.js`): estratti
+  parseXYZ/parsePLY/preShiftOBJ come funzioni pure + 11 test CI (blindano i 3 fix
+  serali: downsample XYZ, precisione UTM nuvola/mesh). Riusabili per il passo 3.
+- **Formato nativo ODM — lettura LAS** (in vista della prova weekend): ODM esporta
+  la nuvola come `.las` (non PLY/XYZ), che il POC non apriva → aggiunto
+  `parseLAS` (header LAS + record punto, coordinate UTM in doppia precisione, RGB,
+  downsample, riconoscimento LAZ compresso con messaggio guida). POC: accept/loader
+  estesi a `.las`/`.laz`. +4 test (11→15). CI 340→344. Smoke browser: LAS da 500
+  punti caricato, ritaglio ok, zero errori. È fix di FORMATO, non ipotesi sulla forma.
 Prossimo (gated sul test weekend del fondatore col dato reale): passo 3 = aggancio
-del fronte ritagliato al motore volata di Genesi; poi ponte Terra→Genesi.
+del fronte ritagliato al motore volata di Genesi; poi ponte Terra→Genesi. La catena
+di lettura ora copre i formati che ODM produce davvero (LAS/PLY/XYZ + mesh OBJ/GLB).
 
 ## Fine progetto (fase commercializzazione) — NON prima
 - Acquisto dominio + sottodomini. DECISIONE DEL FONDATORE: nessuna
