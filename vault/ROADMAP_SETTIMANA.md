@@ -601,6 +601,12 @@ Completa la ricerca: sotto ogni lista principale un conteggio "N entità · su T
 Terra: nuovo `#*-count`; Scudo: potenziato `pers-count`. Verificato: Conti 2 su 5,
 Terra 4 su 5; zero errori.
 
+### Ciclo 23/07 (pomeriggio): manifest PWA sulle 6 verticali (installabili)
+Core e Genesi erano installabili come app; le 6 verticali no. Aggiunto manifest PWA
+(data URI) + meta apple/android a tutte: schermo intero, colore tema per app, icona.
+Solo <head>, nessun service worker → rischio nullo. Verificato: manifest parsano e il
+browser li carica; utile per l'uso sul campo dal telefono.
+
 ### Ciclo 23/07 (pomeriggio): la modifica in-place si annulla cambiando pagina
 Robustezza integrità dati: cambiare pagina durante una modifica ora la annulla (form
 pulito, pulsante alla default), evitando di sovrascrivere un record credendo di
