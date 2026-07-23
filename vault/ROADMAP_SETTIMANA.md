@@ -575,6 +575,14 @@ Prossimo (gated sul test weekend del fondatore col dato reale): passo 3 = agganc
 del fronte ritagliato al motore volata di Genesi; poi ponte Terra→Genesi. La catena
 di lettura ora copre i formati che ODM produce davvero (LAS/PLY/XYZ + mesh OBJ/GLB).
 
+### Ciclo 23/07 (mattina): ricerca testuale nelle liste (seconda iterazione UX)
+Fallback #1 — solo Scudo aveva la ricerca libera (personale); estesa alle altre liste,
+una app per unità, stesso pattern + stato vuoto dedicato + verifica screenshot. Pura
+UX, nessun tocco al modello dati.
+- **Conti** (fatture): campo `#fat-cerca`, filtra per cliente/numero, si compone con
+  filtro categoria + ordinamento. Verificato: "edilcave" → 2 fatture; assente → stato
+  vuoto; zero errori. [PROSSIME: Flotta, Campo, Sentinella, Terra]
+
 ### Ciclo notturno 23/07 (dopo il LAS): piano passo 3 + ricerche app
 - **`vault/PASSO3_FRONTE_METODO.md`**: metodo del passo 3 (PCA→sezione→envelope→
   burden reale) messo per iscritto SENZA codice (si costruisce sul dato reale).
