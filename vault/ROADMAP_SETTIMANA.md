@@ -575,6 +575,17 @@ Prossimo (gated sul test weekend del fondatore col dato reale): passo 3 = agganc
 del fronte ritagliato al motore volata di Genesi; poi ponte Terra→Genesi. La catena
 di lettura ora copre i formati che ODM produce davvero (LAS/PLY/XYZ + mesh OBJ/GLB).
 
+### Ciclo notturno 23/07 (dopo il LAS): piano passo 3 + ricerche app
+- **`vault/PASSO3_FRONTE_METODO.md`**: metodo del passo 3 (PCA→sezione→envelope→
+  burden reale) messo per iscritto SENZA codice (si costruisce sul dato reale).
+- **`docs/SCUDO_HSE_ROADMAP.md`** e **`docs/FLOTTA_MANUTENZIONE_ROADMAP.md`**:
+  confronto onesto con i software di settore + passi fattibili nel browser (consigliati:
+  loop azione correttiva per Scudo, ordine di lavoro per Flotta) — modifiche dati gated.
+- **Censimento onesto**: verificato che le verticali sono mature e coperte (~345 test)
+  e che il lavoro ad alto valore residuo richiede un input del fondatore (dato drone,
+  scelta app, revisione estetica). Stop alla generazione di doc/test speculativi per
+  non ricadere nella sovra-produzione. Branch a punto stabile, CI verde.
+
 ## Fine progetto (fase commercializzazione) — NON prima
 - Acquisto dominio + sottodomini. DECISIONE DEL FONDATORE: nessuna
   spesa prima della commercializzazione.
