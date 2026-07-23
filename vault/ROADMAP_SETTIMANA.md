@@ -581,7 +581,10 @@ refuso = cancella e rifai). Aggiunta la modifica in-place, una entità per unit�
 - **Conti** (fatture): ✎ accanto alla ✕ → popola il form "Nuova fattura", "Salva
   modifica" via aggiorna (stesso id, no duplicati), ri-tocco = annulla. Verificato:
   importo 18.300→20.000 salvato in place, conteggio invariato, zero errori.
-  [PROSSIMA: Campo]
+  [—]
+- **Campo** (attività): ✎ → modifica titolo/dettaglio via aggiorna, stato/causale
+  restano. Verificato in place, conteggio invariato. ★ SERIE COMPLETA: modifica
+  in-place su tutte e 6 le verticali (prima solo aggiungi/elimina).
 - **Scudo** (lavoratori): ✎ → modifica nome/ruolo via aggiorna, idoneità/scadenze
   restano. Verificato: ruolo Impiegata→Capocantiere in place, conteggio invariato.
 - **Flotta** (mezzi): ✎ → modifica nome/area/ore via aggiorna, stato e manutenzioni
