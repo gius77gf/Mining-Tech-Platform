@@ -72,7 +72,8 @@ console.log("\n— pointcloud: parseLAS (formato nativo ODM) —");
 // Formato-punto 0 (solo XYZ, 20 byte) o 2 (con RGB, 26 byte).
 function lasBuf(pts, { fmt = 0, scale = [0.01, 0.01, 0.01], off = [500000, 5000000, 0], ver = [1, 2], legacyCount = null } = {}) {
   const recLen = fmt === 2 ? 26 : 20;
-  const ptOffset = 227;
+  // Header 227 byte per LAS 1.2, 375 per 1.4 (dove il conteggio a 64 bit sta a offset 247).
+  const ptOffset = ver[1] >= 4 ? 375 : 227;
   const ab = new ArrayBuffer(ptOffset + pts.length * recLen);
   const dv = new DataView(ab);
   const enc = new TextEncoder().encode("LASF"); new Uint8Array(ab).set(enc, 0);
@@ -82,6 +83,7 @@ function lasBuf(pts, { fmt = 0, scale = [0.01, 0.01, 0.01], off = [500000, 50000
   dv.setUint8(104, fmt);
   dv.setUint16(105, recLen, true);
   dv.setUint32(107, legacyCount == null ? pts.length : legacyCount, true);
+  if (ver[1] >= 4) dv.setBigUint64(247, BigInt(pts.length), true);   // conteggio "vero" a 64 bit (LAS 1.4)
   dv.setFloat64(131, scale[0], true); dv.setFloat64(139, scale[1], true); dv.setFloat64(147, scale[2], true);
   dv.setFloat64(155, off[0], true); dv.setFloat64(163, off[1], true); dv.setFloat64(171, off[2], true);
   pts.forEach((p, i) => {
@@ -107,6 +109,11 @@ test("parseLAS downsample: oltre il cap → step>1, total conservato", () => {
   const pts = []; for (let i = 0; i < 100; i++) pts.push([500000 + i, 5000000, 0]);
   const r = pc.parseLAS(lasBuf(pts), 10);
   ok(r.step > 1 && r.count <= 10, "sotto il cap"); eq(r.total, 100, "totale originale");
+});
+test("parseLAS 1.4: conteggio legacy=0 → usa il conteggio a 64 bit (offset 247)", () => {
+  const r = pc.parseLAS(lasBuf([[500000, 5000000, 1], [500001, 5000001, 2], [500002, 5000002, 3]], { ver: [1, 4], legacyCount: 0 }));
+  eq(r.count, 3, "legge i 3 punti dal conteggio a 64 bit");
+  ok(Math.abs(r.pos[8] - 3) < 1e-6, "terzo punto (Z) ricostruito");
 });
 test("parseLAS: LAZ (bit 7 del formato) e firma errata lanciano", () => {
   let e1 = false, e2 = false;
