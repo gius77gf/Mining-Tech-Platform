@@ -754,6 +754,31 @@ scene.add(sun); scene.add(sun.target);
 const ctrl = new OrbitControls(cam, renderer.domElement);
 ctrl.enableDamping = true; ctrl.dampingFactor = 0.08; ctrl.maxPolarAngle = Math.PI/2 - 0.02;
 
+/* HUD professionale (unità estetica 2 — direttiva fondatore): bussola di
+   orientamento vista (ruota con la camera; la scena non è georeferenziata, quindi
+   indica una direzione di riferimento fissa, utile per orientarsi) + barra di
+   scala dinamica in metri alla distanza del target. Solo overlay DOM: zero costo render. */
+const hudNord=document.createElement('div');
+hudNord.title='Orientamento vista';
+hudNord.style.cssText='position:absolute;bottom:44px;right:16px;width:44px;height:44px;border-radius:50%;background:rgba(20,16,10,.55);border:1px solid rgba(255,171,0,.35);display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:5';
+hudNord.innerHTML='<svg width="30" height="30" viewBox="-15 -15 30 30" style="transition:transform .15s linear"><polygon points="0,-11 4,3 0,0.5 -4,3" fill="#ffab00"/><polygon points="0,11 4,-3 0,-0.5 -4,-3" fill="rgba(255,213,79,.35)"/><text x="0" y="-11.5" text-anchor="middle" font-size="7" fill="#ffd54f" font-family="sans-serif" font-weight="700">N</text></svg>';
+view.appendChild(hudNord);
+const hudScala=document.createElement('div');
+hudScala.style.cssText='position:absolute;bottom:14px;right:16px;color:#ffd54f;font:600 11px/1.2 sans-serif;text-align:center;pointer-events:none;z-index:5;text-shadow:0 1px 2px rgba(0,0,0,.8)';
+hudScala.innerHTML='<div style="height:5px;border:1px solid #ffab00;border-top:none"></div><span style="display:block;margin-top:2px"></span>';
+view.appendChild(hudScala);
+const _hudBar=hudScala.children[0], _hudTxt=hudScala.children[1];
+let _hudLast=0;
+function hudUpdate(now){
+  if(now-_hudLast<120) return; _hudLast=now;   // 8 volte/s basta, il DOM non frulla
+  const dx=cam.position.x-ctrl.target.x, dz=cam.position.z-ctrl.target.z;
+  hudNord.firstChild.style.transform='rotate('+(Math.atan2(dx,dz)*180/Math.PI)+'deg)';
+  const d=cam.position.distanceTo(ctrl.target);
+  const mpp=2*d*Math.tan(cam.fov*Math.PI/360)/Math.max(1,renderer.domElement.clientHeight);
+  let m=1; for(const s of [1,2,5,10,20,50,100,200,500]){ if(s/mpp<=150) m=s; }
+  _hudBar.style.width=Math.max(18,m/mpp)+'px'; _hudTxt.textContent=m+' m';
+}
+
 /* materiale roccia irregolare (clonato dall'approccio del core: jitter vertici + flatShading) */
 function jitterGeo(g, amp){ const a = g.attributes.position.array; const rj = mulberry32(7); for(let i=0;i<a.length;i++) a[i]+=(rj()-0.5)*amp; g.computeVertexNormals(); return g; }
 /* rumore continuo NEL MONDO: pannelli adiacenti si deformano allo stesso modo sui bordi → niente "riquadri disegnati", il fronte è una parete unica */
@@ -2842,7 +2867,7 @@ function loop(now){
       cam.position.y += (Math.random()-0.5)*a*0.7;
     } else shakeT0 = -1;
   }
-  if(document.body.classList.contains('scr-sim')){ ctrl.update(); if(composer) composer.render(); else renderer.render(scene, cam); }
+  if(document.body.classList.contains('scr-sim')){ ctrl.update(); hudUpdate(now); if(composer) composer.render(); else renderer.render(scene, cam); }
   fpsTick(dt);
 }
 
