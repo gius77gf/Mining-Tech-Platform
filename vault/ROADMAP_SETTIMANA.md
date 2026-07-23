@@ -609,6 +609,9 @@ Terra 4 su 5; zero errori.
 - **Revisione core** (fallback #5): rivisto index.html (flagship, ~8300 righe) via
   subagent. Un solo bug: **XSS self nell'anteprima import MWD** (intestazioni/celle CSV
   grezze in innerHTML senza escape) → CORRETTO con escHtml. Resto pulito. Verificato.
+- **Sweep sicurezza Genesi** (fallback #5): nessun XSS/crash import (escaper _rEsc su
+  testo libero, resto numerico/cataloghi statici, import con try/catch). Unico esito:
+  hardening JSON.parse localStorage in cmpRender/cmpExport (helper _cmpLoad con try/catch).
 
 ### Ciclo 23/07 (pomeriggio): manifest PWA sulle 6 verticali (installabili)
 Core e Genesi erano installabili come app; le 6 verticali no. Aggiunto manifest PWA

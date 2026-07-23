@@ -1896,9 +1896,10 @@ function cmpSave(slot){
   localStorage.setItem('genesiCmp'+slot, JSON.stringify(snap));
   toast('Progetto salvato come '+slot);
 }
+function _cmpLoad(k){ try{ return JSON.parse(localStorage.getItem(k)||'null'); }catch(e){ return null; } }  // robusto a localStorage corrotto
 function cmpRender(){
-  const A=JSON.parse(localStorage.getItem('genesiCmpA')||'null');
-  const B=JSON.parse(localStorage.getItem('genesiCmpB')||'null');
+  const A=_cmpLoad('genesiCmpA');
+  const B=_cmpLoad('genesiCmpB');
   const body=$('cmpBody');
   if(!A||!B){ body.innerHTML='<div style="color:var(--mut)">Salva prima due progetti: imposta i parametri, premi "Salva come A", modifica, poi "Salva come B".</div>'; return; }
   const rows=[
@@ -1987,8 +1988,8 @@ if($('cmpSaveB')) $('cmpSaveB').onclick=()=>cmpSave('B');
 if($('cmpShow')) $('cmpShow').onclick=()=>{ cmpRender(); $('cmpModal').style.display='flex'; };
 if($('cmpClose')) $('cmpClose').onclick=()=>{ $('cmpModal').style.display='none'; };
 if($('cmpExport')) $('cmpExport').onclick=()=>{
-  const A=JSON.parse(localStorage.getItem('genesiCmpA')||'null');
-  const B=JSON.parse(localStorage.getItem('genesiCmpB')||'null');
+  const A=_cmpLoad('genesiCmpA');
+  const B=_cmpLoad('genesiCmpB');
   if(!A||!B){ toast('Salva prima i progetti A e B'); return; }
   const R=[['KPI','A ('+A.ts+')','B ('+B.ts+')'],
     ['Maglia',A.kpi.maglia,B.kpi.maglia],
