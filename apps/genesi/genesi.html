@@ -1999,7 +1999,8 @@ if($('cmpExport')) $('cmpExport').onclick=()=>{
     ['X20 (cm)',A.kpi.x20,B.kpi.x20],['X50 (cm)',A.kpi.x50,B.kpi.x50],['X80 (cm)',A.kpi.x80,B.kpi.x80],
     ['PPV (mm/s)',A.kpi.ppv,B.kpi.ppv],['Limite PPV (mm/s)',A.kpi.lim,B.kpi.lim],
     ['Gittata flyrock (m)',A.kpi.fly,B.kpi.fly],
-    ['Presplit',A.kpi.presplit?'si':'no',B.kpi.presplit?'si':'no']];
+    ['Presplit',A.kpi.presplit?'si':'no',B.kpi.presplit?'si':'no'],
+    ['Costo totale stima (EUR)',A.kpi.cost||0,B.kpi.cost||0]];
   const csv=R.map(r=>r.join(';')).join('\n')+'\n';
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
