@@ -581,7 +581,9 @@ una app per unità, stesso pattern + stato vuoto dedicato + verifica screenshot.
 UX, nessun tocco al modello dati.
 - **Conti** (fatture): campo `#fat-cerca`, filtra per cliente/numero, si compone con
   filtro categoria + ordinamento. Verificato: "edilcave" → 2 fatture; assente → stato
-  vuoto; zero errori. [PROSSIME: Flotta, Campo, Sentinella, Terra]
+  vuoto; zero errori.
+- **Flotta** (mezzi): `#mez-cerca`, filtra per nome/area. Verificato: "escavatore"
+  → 2 mezzi; assente → stato vuoto; zero errori. [PROSSIME: Campo, Sentinella, Terra]
 
 ### Ciclo notturno 23/07 (dopo il LAS): piano passo 3 + ricerche app
 - **`vault/PASSO3_FRONTE_METODO.md`**: metodo del passo 3 (PCA→sezione→envelope→
