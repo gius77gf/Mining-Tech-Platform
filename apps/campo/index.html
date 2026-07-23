@@ -56,6 +56,7 @@
   <div id="att-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
   <div id="att-list"></div>
   <div id="fermi-riep" class="note" style="text-align:left;"></div>
+  <button class="dw-btn secondary" id="btn-att-export" style="width:auto;margin-top:6px;">Esporta attività (CSV)</button>
   <div class="sec">Nuova attività</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
     <input class="dw-input" id="att-titolo" placeholder="Titolo (es. Perforazione fronte Sud)" style="flex:2;min-width:160px;">
@@ -288,6 +289,18 @@
     $("att-esito").textContent = "Attività salvata: " + titolo + ".";
     $("att-titolo").focus();   // torna al primo campo per inserire subito la prossima
     await refresh();
+  };
+  // Esporta l'elenco attività (registro/archivio della giornata, handover)
+  $("btn-att-export").onclick = () => {
+    if (!ATT.length) { $("att-esito").textContent = "Nessuna attività da esportare."; return; }
+    const ordExp = { anomalia: 0, "in-corso": 1, pianificata: 2, conclusa: 3 };
+    let csv = "titolo;dettaglio;stato;causale\n";
+    for (const a of ATT.slice().sort((x, y) => (ordExp[x.stato] ?? 4) - (ordExp[y.stato] ?? 4)))
+      csv += `${csvCell(a.titolo || "")};${csvCell(a.dettaglio || "")};${a.stato || ""};${csvCell(a.stato === "anomalia" ? (a.causale || "") : "")}\n`;
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.download = "campo_attivita.csv"; a.click();
+    $("att-esito").textContent = "Esportate " + ATT.length + " attività (CSV).";
   };
   $("btn-add-rap").onclick = async () => {
     const titolo = $("new-rap-titolo").value.trim();

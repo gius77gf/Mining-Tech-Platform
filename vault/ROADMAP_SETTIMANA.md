@@ -575,6 +575,12 @@ Prossimo (gated sul test weekend del fondatore col dato reale): passo 3 = agganc
 del fronte ritagliato al motore volata di Genesi; poi ponte Terra→Genesi. La catena
 di lettura ora copre i formati che ODM produce davvero (LAS/PLY/XYZ + mesh OBJ/GLB).
 
+### Ciclo 23/07 (pomeriggio): export CSV lista attività (Campo)
+Censimento export liste principali: 5/6 già esportavano; mancava solo Campo attività.
+Aggiunto "Esporta attività (CSV)" (titolo;dettaglio;stato;causale, csvCell anti-injection).
+Verificato con download: header corretto, 5 righe, zero errori. Ora tutte e 6 le app
+esportano la lista principale.
+
 ### Ciclo 23/07 (primo pomeriggio): conteggio risultati nelle liste
 Completa la ricerca: sotto ogni lista principale un conteggio "N entità · su TOT"
 (quando si cerca/filtra), dai nodi realmente resi. Conti/Flotta/Campo/Sentinella/
