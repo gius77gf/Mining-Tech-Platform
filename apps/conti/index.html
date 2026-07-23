@@ -52,7 +52,8 @@
       <option value="cliente">Cliente (A→Z)</option>
     </select>
   </div>
-  <input class="dw-input" id="fat-cerca" type="search" placeholder="🔍 Cerca per cliente o numero…" style="margin-bottom:10px;">
+  <input class="dw-input" id="fat-cerca" type="search" placeholder="🔍 Cerca per cliente o numero…" style="margin-bottom:6px;">
+  <div id="fat-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
   <div id="fat-list"></div>
   <div class="sec">Nuova fattura</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -207,6 +208,8 @@
       <div class="info"><div class="name">${esc(f.numero)} — ${esc(f.cliente)}</div><div class="meta">${eur(f.importo)} · emessa ${fmtD(f.emessa)} · ${f.incassata ? "incassata " + (f.dataIncasso ? fmtD(f.dataIncasso) : "") : "scad. " + fmtD(f.scadenza)}${sol && sol.livello ? " · " + sol.label : ""}${mora && mora.interessi > 0 ? ` · <span title="Interessi di mora D.Lgs 231/2002 al ${TASSO_MORA_DEFAULT}% (tipico, da confermare) + €40 spese art. 6">mora ~${eur(Math.round(mora.interessi))}</span>` : ""}</div></div>
       <span class="badge ${b[0]}">${b[1]}</span>${ritardo>0?`<button class="dw-btn secondary" data-sollecito="${f.id}" title="Copia il testo del sollecito (con mora 231/2002) da inviare al cliente" style="width:auto;min-height:32px;padding:2px 10px;font-size:11px;">✉ Sollecito</button>`:""}${!f.incassata?`<span class="arr" style="cursor:pointer" title="Modifica fattura" data-edit-fat="${f.id}">✎</span>`:""}${!f.incassata?`<span class="arr" style="cursor:pointer" title="Elimina fattura errata" data-del-fat="${f.id}">✕</span>`:""}</div>`; }).join("")
       || '<div class="note" style="text-align:left;">'+(qFat?"Nessuna fattura trovata per «"+esc(qFat)+"».":(filtroFat==="tutte"?"Nessuna fattura registrata.":"Nessuna fattura in questa categoria."))+'</div>';
+    { const n = $("fat-list").querySelectorAll(".item").length, filtrata = qFat || filtroFat !== "tutte";
+      $("fat-count").textContent = n === 0 ? "" : n + (n === 1 ? " fattura" : " fatture") + (filtrata ? " · su " + FAT.length : ""); }
     document.querySelectorAll("#fat-filtri [data-filtro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-filtro") === filtroFat ? "var(--app-accent)" : "");
 

@@ -53,7 +53,8 @@
       <option value="nome">Nome (A→Z)</option>
     </select>
   </div>
-  <input class="dw-input" id="mez-cerca" type="search" placeholder="🔍 Cerca per nome o area…" style="margin-bottom:10px;">
+  <input class="dw-input" id="mez-cerca" type="search" placeholder="🔍 Cerca per nome o area…" style="margin-bottom:6px;">
+  <div id="mez-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
   <div id="mez-list"></div>
   <div class="sec">Nuovo mezzo</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -215,6 +216,8 @@
       <div class="info"><div class="name">${esc(m.nome)}</div><div class="meta">${(m.ore||0).toLocaleString("it-IT")} h${m.area ? " · " + esc(m.area) : ""}</div></div>
       <span class="badge ${MB[m.stato][0]}">${MB[m.stato][1]}</span><span class="arr" style="cursor:pointer" title="Modifica mezzo" data-edit-mezzo="${m.id}">✎</span>${m.stato==="fermo"?`<span class="arr" style="cursor:pointer" title="Dismetti dal parco" data-del-mezzo="${m.id}">✕</span>`:""}</div>`).join("")
       || '<div class="note" style="text-align:left;">'+(qMez?"Nessun mezzo trovato per «"+esc(qMez)+"».":(filtroMez==="tutti"?"Nessun mezzo nel parco.":"Nessun mezzo in questa categoria."))+'</div>';
+    { const n = $("mez-list").querySelectorAll(".item").length, filtrata = qMez || filtroMez !== "tutti";
+      $("mez-count").textContent = n === 0 ? "" : n + (n === 1 ? " mezzo" : " mezzi") + (filtrata ? " · su " + MEZ.length : ""); }
     document.querySelectorAll("#mez-filtri [data-filtro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-filtro") === filtroMez ? "var(--app-accent)" : "");
 

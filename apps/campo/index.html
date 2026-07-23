@@ -52,7 +52,8 @@
       <option value="titolo">Titolo (A→Z)</option>
     </select>
   </div>
-  <input class="dw-input" id="att-cerca" type="search" placeholder="🔍 Cerca per titolo o dettaglio…" style="margin-bottom:10px;">
+  <input class="dw-input" id="att-cerca" type="search" placeholder="🔍 Cerca per titolo o dettaglio…" style="margin-bottom:6px;">
+  <div id="att-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
   <div id="att-list"></div>
   <div id="fermi-riep" class="note" style="text-align:left;"></div>
   <div class="sec">Nuova attività</div>
@@ -198,6 +199,8 @@
       <span class="badge ${AB[a.stato][0]}">${AB[a.stato][1]}</span>
       <span class="arr" style="cursor:pointer" title="Modifica attività" data-edit-att="${a.id}">✎</span></div>`).join("")
       || '<div class="note" style="text-align:left;">'+(qAtt?"Nessuna attività trovata per «"+esc(qAtt)+"».":(filtroAtt==="tutte"?"Nessuna attività registrata oggi.":"Nessuna attività in questa categoria."))+'</div>';
+    { const n = $("att-list").querySelectorAll(".item").length, filtrata = qAtt || filtroAtt !== "tutte";
+      $("att-count").textContent = n === 0 ? "" : n + (n === 1 ? " attività" : " attività") + (filtrata ? " · su " + ATT.length : ""); }
     document.querySelectorAll("#att-filtri [data-filtro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-filtro") === filtroAtt ? "var(--app-accent)" : "");
     // riepilogo fermi per causale (base per OEE/disponibilità)

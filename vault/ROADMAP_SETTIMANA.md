@@ -575,6 +575,12 @@ Prossimo (gated sul test weekend del fondatore col dato reale): passo 3 = agganc
 del fronte ritagliato al motore volata di Genesi; poi ponte Terra→Genesi. La catena
 di lettura ora copre i formati che ODM produce davvero (LAS/PLY/XYZ + mesh OBJ/GLB).
 
+### Ciclo 23/07 (primo pomeriggio): conteggio risultati nelle liste
+Completa la ricerca: sotto ogni lista principale un conteggio "N entità · su TOT"
+(quando si cerca/filtra), dai nodi realmente resi. Conti/Flotta/Campo/Sentinella/
+Terra: nuovo `#*-count`; Scudo: potenziato `pers-count`. Verificato: Conti 2 su 5,
+Terra 4 su 5; zero errori.
+
 ### Ciclo 23/07 (mezzogiorno): modifica in-place dei record (CRUD mancante)
 Fallback #1 — le app aggiungevano/eliminavano ma non MODIFICAVANO (correggere un
 refuso = cancella e rifai). Aggiunta la modifica in-place, una entità per unità.

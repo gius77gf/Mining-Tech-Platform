@@ -53,7 +53,8 @@
       <option value="nome">Nome (A→Z)</option>
     </select>
   </div>
-  <input class="dw-input" id="mon-cerca" type="search" placeholder="🔍 Cerca per nome o nota…" style="margin-bottom:10px;">
+  <input class="dw-input" id="mon-cerca" type="search" placeholder="🔍 Cerca per nome o nota…" style="margin-bottom:6px;">
+  <div id="mon-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
   <div id="mon-list"></div>
   <div class="sec">Registra misura</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -220,6 +221,8 @@
       <span class="arr" style="cursor:pointer" title="Modifica sensore" data-edit-mon="${m.id}">✎</span>
       <span class="arr" style="cursor:pointer" title="Rimuovi sensore" data-del-mon="${m.id}">✕</span></div>`; }).join("")
       || '<div class="note" style="text-align:left;">'+(qMon?"Nessun sensore trovato per «"+esc(qMon)+"».":(filtroMon==="tutti"?"Nessun sensore configurato.":"Nessun sensore in questa categoria."))+'</div>';
+    { const n = $("mon-list").querySelectorAll(".item").length, filtrata = qMon || filtroMon !== "tutti";
+      $("mon-count").textContent = n === 0 ? "" : n + (n === 1 ? " sensore" : " sensori") + (filtrata ? " · su " + MON.length : ""); }
     document.querySelectorAll("#mon-filtri [data-filtro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-filtro") === filtroMon ? "var(--app-accent)" : "");
 

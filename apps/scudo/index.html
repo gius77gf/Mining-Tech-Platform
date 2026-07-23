@@ -226,7 +226,7 @@
     const q = ($("pers-cerca").value || "").trim().toLowerCase();
     const lavVis = LAV.filter(l => !q || (l.nome + " " + (l.ruolo || "")).toLowerCase().includes(q))
                       .sort((a, b) => a.nome.localeCompare(b.nome, "it"));
-    $("pers-count").textContent = LAV.length;
+    $("pers-count").textContent = (q && lavVis.length !== LAV.length) ? lavVis.length + " su " + LAV.length : LAV.length;
     $("pers-list").innerHTML = lavVis.map(l => {
       const prob = SCA.filter(s => s.lavoratoreId === l.id && statoScadenza(s.dataScadenza) !== "regolare");
       const st = prob.some(s => statoScadenza(s.dataScadenza) === "scaduta") ? "scaduta" : (prob.length ? "in-scadenza" : "regolare");

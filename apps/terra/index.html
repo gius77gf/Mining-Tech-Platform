@@ -71,7 +71,8 @@
       <option value="titolo">Titolo (A→Z)</option>
     </select>
   </div>
-  <input class="dw-input" id="ril-cerca" type="search" placeholder="🔍 Cerca per titolo o tipo…" style="margin-bottom:10px;">
+  <input class="dw-input" id="ril-cerca" type="search" placeholder="🔍 Cerca per titolo o tipo…" style="margin-bottom:6px;">
+  <div id="ril-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
   <div id="ril-list"></div>
   <div class="sec">Valore del materiale estratto</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
@@ -211,6 +212,8 @@
       <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${r.stato==="pianificato"?`<span class="arr" style="cursor:pointer" title="Annulla rilievo pianificato" data-del-ril="${r.id}">✕</span>`:""}</div>`;
     }).join("")
       || '<div class="note" style="text-align:left;">'+(qRil?"Nessun rilievo trovato per «"+esc(qRil)+"».":(filtroRil==="tutti"?"Nessun rilievo registrato.":"Nessun rilievo in questa categoria."))+'</div>';
+    { const n = $("ril-list").querySelectorAll(".item").length, filtrata = qRil || filtroRil !== "tutti";
+      $("ril-count").textContent = n === 0 ? "" : n + (n === 1 ? " rilievo" : " rilievi") + (filtrata ? " · su " + RIL.length : ""); }
     document.querySelectorAll("#ril-filtri [data-filtro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-filtro") === filtroRil ? "var(--app-accent)" : "");
 
