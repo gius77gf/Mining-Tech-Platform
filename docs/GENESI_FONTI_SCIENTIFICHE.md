@@ -74,26 +74,57 @@ calibrazione di sito). È coerente con la filosofia "stima onesta, non misura" e
 distingue dai venditori di certezze. xP-frag stesso è un candidato "modello v2"
 (pesante: da valutare col fondatore).
 
-## 4. Vibrazioni — distanza scalata e limiti USBM
+## 4. Vibrazioni — distanza scalata e limiti USBM — ✅ VERIFICATO (24/07 notte)
 
-**Fonti primarie da acquisire**: Siskind et al. (1980), USBM **RI 8507**; Devine
-(1966); Oriard (1970); per l'airblast Siskind et al., USBM **RI 8485**.
+**Fonte verificata**: manuale tecnico SME/REVEY Associates ("Vibration and
+Air-Overpressure", 2013) che riproduce la figura originale della curva Z e cita le
+primarie: **Siskind, Stagg, Kopp, Dowding (1980), RI 8507, USBM**; **Siskind,
+Stagg, Wiegand, Schultz (1993), RI 9523, USBM**; **Oriard (1970/72, Bulletin AEG
+IX-1)**; Bauer & Caldwell (1971); Wiss & Parmalee (1974). Verifica fatta LEGGENDO
+il PDF (pagg. 5-11), non da indice di ricerca.
 
-- **[NV]** Forma standard: **PPV = K·(D/√W)^m** con K e m **fortemente
-  sito-specifici**: per pendenza −1,6 K varia tipicamente tra **24 e 605**
-  (imperiale; 171–4316 metrico), e le pendenze variano tra **−1,0 e −1,9**
-  (limiti di Oriard). → K/m NON sono costanti universali.
-- **[NV]** La **curva Z di RI 8507**: da 0,2 a 2,0 in/s (**5,1–50,8 mm/s**);
-  ancoraggi 12,7 mm/s (intonaco su listelli) e 19,0 mm/s (cartongesso) a bassa
-  frequenza; 50,8 mm/s da 40 Hz in su.
-- **[NV]** **Limiti di validità dichiarati di RI 8507**: derivata SOLO per
-  prevenire **crepe cosmetiche in case residenziali a telaio di legno** vicino a
-  miniere di superficie (la rottura reale del cartongesso richiede in genere PPV
-  > 100 mm/s); MAI intesa per strutture civili in cemento/acciaio o tubazioni
-  interrate (RI 9523 dà 127 mm/s per le tubazioni interrate). → un simulatore
-  NON deve presentare la curva Z come soglia di danno universale.
-- **[NV]** La definizione di **carica-per-ritardo** nella distanza scalata dipende
-  dalla convenzione della finestra temporale (claim parziale, da completare).
+- ✅ Forma standard **PPV = K·(D/√W)^m**, W = massima carica-per-ritardo:
+  confermata, con K = "rock energy transfer constant" e m sempre negativo.
+- ✅ **Inviluppo di Oriard confermato al numero**: per pendenza −1,6, K da **24 a
+  605 imperiale (171–4316 metrico)**; pendenze tipiche **da −1,0 a −1,9**.
+  → i K 1200–2800 / β 1,40–1,75 di Genesi sono DENTRO l'inviluppo. ✅
+- ✅ **Curva Z di RI 8507 — punti esatti dalla figura originale**:
+  - parte da **5,1 mm/s a 1 Hz** e sale lungo uno **spostamento costante ≈0,76 mm
+    (0,030 in)** → PPV_lim ≈ **4,8·f mm/s** fino a incontrare il plateau;
+  - plateau **12,7 mm/s** (intonaco su listelli) e **19,0 mm/s** (cartongesso)
+    nella banda centrale (~4–12 Hz);
+  - poi risale lungo lo **spostamento costante 0,2 mm (0,008 in)** → PPV_lim ≈
+    **1,28·f mm/s** fino a 40 Hz;
+  - da **40 Hz**: plateau **50,8 mm/s**. 
+- ✅ **Validità**: SOLO crepe cosmetiche in case residenziali a telaio di legno
+  (la rottura reale di intonaco/cartongesso in genere richiede **>100 mm/s**);
+  mai intesa per cemento/acciaio/tubazioni (RI 9523: tubazioni interrate sicure
+  fino a **127 mm/s**). Bonus verificato (Bauer & Caldwell 1971): la roccia
+  intatta non si frattura sotto **254 mm/s**.
+- ✅ **Scaling**: radice quadrata per cariche cilindriche in foro; **radice cubica**
+  per cariche sferiche e per l'**airblast** (utile per la parte airblast di Genesi).
+
+### ➜ CONFRONTO COL CODICE (verificato) e PROPOSTA DI CORREZIONE — GATED
+`ppvLimit()` in genesi.html (righe 682-687) usa un gradino piatto: 12,7/19 sotto i
+40 Hz, 50,8 sopra. Rispetto alla curva Z vera:
+- **4–12 Hz**: combacia. ✅
+- **≥40 Hz**: combacia. ✅
+- **Sotto ~4 Hz**: Genesi è **MENO conservativo** della curva Z (es. a 2 Hz la
+  curva vera dà ~9,6 mm/s, Genesi concede 19). È il caso di grandi distanze/terreni
+  soffici (frequenze dominanti basse) → rilevante per SICUREZZA, anche se raro in
+  cava a corto raggio.
+- **12/15–40 Hz**: Genesi è PIÙ conservativo del necessario (a 30 Hz la curva vera
+  concede ~38 mm/s, Genesi tiene 19): non pericoloso, ma sovra-restrittivo.
+**Proposta pronta (attende via libera del fondatore — tocca soglie di sicurezza):**
+sostituire i due rami USBM con la curva piecewise esatta:
+`lim(f) = min(plateau, max(4.79*f, …))` ovvero — cartongesso:
+`f<4 → 4.79*f; 4–15 → 19; 15–40 → 1.277*f; ≥40 → 50.8`; intonaco:
+`f<2.65 → 4.79*f; 2.65–10 → 12.7; 10–40 → 1.277*f; ≥40 → 50.8` (mm/s).
+Con nota UI: "curva USBM RI 8507 — valida per edifici residenziali (crepe
+cosmetiche), non per strutture in c.a./acciaio". I rami DIN 4150-3 restano da
+verificare a parte (non coperti da questa fonte).
+- ✅ (parziale) **Carica-per-ritardo**: la finestra è convenzionale; Genesi usa 8 ms
+  (prassi USBM/OSMRE comune) — coerente, la conferma normativa puntuale resta [NV].
 
 **Implicazione per Genesi (sicurezza, priorità massima)**:
 1. Verificare nel codice quali K/m usiamo e come li presentiamo: devono essere
@@ -135,13 +166,10 @@ Fatta subito, senza rete, confrontando `genesi.html` con i valori raccolti:
   tipo di edificio** (DIN res/ind/sensibile, USBM intonaco/cartongesso), NON come
   soglia universale — proprio ciò che la letteratura raccomanda.
 
-**Discrepanza candidata da verificare (unica trovata, bassa-media):**
-- La curva Z di RI 8507 raccolta parte da **5,1 mm/s** alle frequenze molto basse,
-  mentre Genesi usa un gradino piatto (12,7/19 sotto i 40 Hz): alle frequenze
-  dominanti MOLTO basse (grandi distanze) il nostro limite potrebbe essere **meno
-  conservativo** della curva Z reale. DA VERIFICARE sul testo di RI 8507 (forma
-  esatta della curva a bassa frequenza) prima di proporre qualunque modifica al
-  fondatore. Se confermata, è una correzione di sicurezza piccola e chiara.
+**Discrepanza candidata — ✅ CONFERMATA il 24/07 leggendo la figura originale di
+RI 8507** (vedi sezione 4: sotto ~4 Hz Genesi è meno conservativo; tra 15 e 40 Hz
+è sovra-restrittivo). Proposta di correzione piecewise esatta pronta in sezione 4,
+**in attesa del via libera del fondatore** (tocca soglie di sicurezza).
 
 ## Fonti raccolte (da riverificare aprendole)
 - Gheibie et al. — *Modified Kuz-Ram fragmentation model and its use at the Sungun
