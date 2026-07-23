@@ -601,6 +601,14 @@ Completa la ricerca: sotto ogni lista principale un conteggio "N entità · su T
 Terra: nuovo `#*-count`; Scudo: potenziato `pers-count`. Verificato: Conti 2 su 5,
 Terra 4 su 5; zero errori.
 
+### Ciclo 23/07 (notte): direttive fondatore — scienza + estetica 3D
+Il fondatore (in chat, su Fable) ha chiesto: (1) fondare Genesi sulla letteratura
+scientifica; (2) estetica 3D professionale stile Paradigm. Due deep-research fatte:
+raccolta ricca salvata in docs/GENESI_FONTI_SCIENTIFICHE.md e docs/GENESI_ESTETICA_3D.md
+(claim [NV]: la verifica incrociata è stata bloccata dal LIMITE DI SESSIONE, reset
+21:40 UTC). Domani: verifica claim, ricerca flyrock (sicurezza), confronto formule-codice,
+prime 2 unità estetiche con prima/dopo.
+
 ### Ciclo 23/07 (sera): PWA test + POC georef + revisione core
 - **Test manifest** (`run-manifest.mjs`, 9): blinda i manifest PWA di tutte le 8
   superfici (JSON valido, campi PWA, theme distinti). CI 347→356.
