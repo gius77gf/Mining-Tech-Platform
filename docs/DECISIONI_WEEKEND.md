@@ -79,10 +79,40 @@ può procedere con l'attuazione.
 - **Dettaglio**: `apps/genesi/PIANO_3D.md`, `docs/GENESI_ROADMAP_COMPETITOR.md` (P1).
 - [ ] Confermata la geometria del fronte (per sbloccare P1.1/P1.2)
 
+## 7. Drone → Genesi: prova del weekend (priorità ATTUALE)
+- **Stato**: il visore nuvola `apps/genesi/nuvola-poc.html` è **pronto per la
+  prova**. Legge la nuvola nei formati che ODM produce davvero (**LAS** 1.2/1.4,
+  PLY, XYZ) e la mesh (OBJ/GLB), la ritaglia coi cursori isolando il fronte,
+  **conta i punti** nel ritaglio (per capire se hai catturato la faccia) ed
+  esporta il fronte in `.xyz`. Il metodo del passo successivo è scritto in
+  `vault/PASSO3_FRONTE_METODO.md`.
+- **Decisione/azione che serve**: nel weekend **provi il flusso col tuo DJI Mini**
+  (foto → ODM → carichi il `.las` nel visore → ritagli → esporti) e mi dici com'è
+  andata. Con quel dato reale costruisco il **passo 3** (aggancio del fronte alla
+  simulazione della volata) sulla forma vera, non a indovinare.
+- **Dettaglio passo-passo**: `docs/DEEPWORK_DRONE_FLUSSO.md` (sezione "Prova pratica
+  del weekend").
+- [ ] Provato il flusso col dato reale (per sbloccare il passo 3)
+
+## 8. Scelte di prodotto sulle app verticali (da ricerca competitor)
+- **Stato**: due ricerche oneste hanno individuato i passi a maggior valore,
+  fattibili nel browser, ma che **toccano il modello dati** (quindi in attesa di te):
+  1. **Scudo** — *loop azione correttiva*: a un near-miss/infortunio si aggancia
+     un'azione (cosa fare, responsabile, scadenza) che entra nelle scadenze/promemoria
+     già esistenti (`docs/SCUDO_HSE_ROADMAP.md`).
+  2. **Flotta** — *ordine di lavoro*: legare una manutenzione ai ricambi consumati
+     + ore, così il magazzino si aggiorna dall'evento (`docs/FLOTTA_MANUTENZIONE_ROADMAP.md`).
+- **Decisione che serve**: quale (se una) vuoi che costruisca. Sono proposte, non
+  attivate.
+- [ ] Scelta la prossima feature app (o "nessuna per ora")
+
 ---
 
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde
 iterazioni UX delle app, test aggiuntivi, revisioni di qualità/sicurezza,
-ricerca competitor (repo `ecosistema-vault`). Le voci qui sopra restano in
-attesa finché non le sblocchi in conversazione.
+ricerca competitor (repo `ecosistema-vault`). **Fatto nei cicli recenti** (tutto
+verificato, niente di gated): ricerca+conteggio su TUTTE le liste delle 6 app,
+**modifica in-place** dei record (prima solo aggiungi/elimina), export CSV completo,
+e l'irrobustimento del visore drone (LAS, conteggio ritaglio). Le voci numerate qui
+sopra restano in attesa finché non le sblocchi in conversazione.
