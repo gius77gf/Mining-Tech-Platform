@@ -581,7 +581,10 @@ refuso = cancella e rifai). Aggiunta la modifica in-place, una entità per unit�
 - **Conti** (fatture): ✎ accanto alla ✕ → popola il form "Nuova fattura", "Salva
   modifica" via aggiorna (stesso id, no duplicati), ri-tocco = annulla. Verificato:
   importo 18.300→20.000 salvato in place, conteggio invariato, zero errori.
-  [PROSSIME: Flotta mezzi, Scudo lavoratori, Terra fronti, Sentinella, Campo]
+  [PROSSIME: Terra fronti, Flotta mezzi, Scudo lavoratori, Campo]
+- **Sentinella** (sensori): ✎ → modifica nome/unità/soglia via aggiorna, lo storico
+  misure RESTA (prima si perdeva con cancella+ricrea). Verificato: soglia 5→8 in
+  place, conteggio invariato, zero errori.
 
 ### Ciclo 23/07 (mattina): ricerca testuale nelle liste (seconda iterazione UX)
 Fallback #1 — solo Scudo aveva la ricerca libera (personale); estesa alle altre liste,

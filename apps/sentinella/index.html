@@ -170,6 +170,7 @@
 
   let MON=[], ADE=[], REG=[], VOL=[];
   let filtroMon = "tutti";
+  let editMon = null;   // id del sensore in modifica (riusa il form "Nuovo sensore"; lo storico misure resta)
   let ordMon = "criticita";
   // scorciatoia: toccare un KPI del quadro porta alla lista pertinente
   document.querySelector(".kpis").addEventListener("click", (e) => {
@@ -216,6 +217,7 @@
       return `<div class="item"><div class="info"><div class="name">${esc(m.nome)}</div>
       <div class="meta">${m.valore} ${esc(m.unita)} / soglia ${m.soglia} (${Math.round(st.ratio*100)}%)${ult ? " · ultime: " + ult : ""}${m.nota ? " · " + esc(m.nota) : ""}</div></div>
       <span class="badge ${st.cls}">${st.label}</span>
+      <span class="arr" style="cursor:pointer" title="Modifica sensore" data-edit-mon="${m.id}">✎</span>
       <span class="arr" style="cursor:pointer" title="Rimuovi sensore" data-del-mon="${m.id}">✕</span></div>`; }).join("")
       || '<div class="note" style="text-align:left;">'+(qMon?"Nessun sensore trovato per «"+esc(qMon)+"».":(filtroMon==="tutti"?"Nessun sensore configurato.":"Nessun sensore in questa categoria."))+'</div>';
     document.querySelectorAll("#mon-filtri [data-filtro]").forEach(b =>
@@ -263,6 +265,19 @@
     if (delVol) {
       if (confirm("Rimuovere questa volata dal registro? (usa solo per correggere un inserimento sbagliato)")) {
         await db.rimuovi("volate", delVol); await refresh(); } return; }
+    const editMonId = e.target.getAttribute && e.target.getAttribute("data-edit-mon");
+    if (editMonId) { const m = MON.find(x => x.id === editMonId); if (!m) return;
+      if (editMon === m.id) {   // ri-tocco la ✎ dello stesso sensore = annulla
+        editMon = null; $("btn-sen").textContent = "Aggiungi"; $("mis-esito").textContent = "Modifica annullata.";
+        ["sen-nome","sen-unita","sen-soglia"].forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; }); return; }
+      editMon = m.id;
+      $("sen-nome").value = m.nome || ""; $("sen-unita").value = m.unita || ""; $("sen-soglia").value = m.soglia != null ? m.soglia : "";
+      if ($("sen-preset")) $("sen-preset").value = "";
+      if ($("sen-preset-nota")) { $("sen-preset-nota").style.display = "none"; $("sen-preset-nota").textContent = ""; }
+      ["sen-nome","sen-unita","sen-soglia"].forEach(i => $(i).style.borderColor = "");
+      $("btn-sen").textContent = "Salva modifica";
+      $("mis-esito").textContent = "Stai modificando «" + m.nome + "»: cambi nome/unità/soglia, lo storico misure resta.";
+      $("sen-nome").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
     const it = e.target.closest && e.target.closest("[data-reg]");
     if (it) { const r = REG.find(x => x.id === it.getAttribute("data-reg"));
       // toggle bidirezionale, SENZA sovrascrivere la nota originale del registro
@@ -363,13 +378,18 @@
     const nome = $("sen-nome").value.trim(), unita = $("sen-unita").value.trim(), soglia = +$("sen-soglia").value;
     if (!nome || !unita || !(soglia > 0)) {
       [["sen-nome",nome],["sen-unita",unita],["sen-soglia",soglia>0]].forEach(([i,v]) => $(i).style.borderColor = v ? "" : "var(--danger)");
-      $("mis-esito").textContent = "Servono nome, unità di misura e soglia (>0) per aggiungere il sensore."; return;
+      $("mis-esito").textContent = "Servono nome, unità di misura e soglia (>0) per " + (editMon ? "salvare la modifica" : "aggiungere il sensore") + "."; return;
     }
     ["sen-nome","sen-unita","sen-soglia"].forEach(i => $(i).style.borderColor = "");
-    await db.aggiungi("monitoraggi", { nome, unita, soglia, valore: 0, letture: [] });
+    if (editMon) {
+      await db.aggiorna("monitoraggi", editMon, { nome, unita, soglia });   // valore/letture restano
+      editMon = null; $("btn-sen").textContent = "Aggiungi";
+    } else {
+      await db.aggiungi("monitoraggi", { nome, unita, soglia, valore: 0, letture: [] });
+    }
     $("sen-nome").value = ""; $("sen-unita").value = ""; $("sen-soglia").value = "";
     $("sen-preset").value = ""; $("sen-preset-nota").style.display = "none"; $("sen-preset-nota").textContent = "";
-    $("mis-esito").textContent = "Sensore " + nome + " aggiunto (soglia " + soglia + " " + unita + ").";
+    $("mis-esito").textContent = "Sensore " + nome + " salvato (soglia " + soglia + " " + unita + ").";
     $("sen-nome").focus();   // torna al primo campo per aggiungere subito il prossimo
     await refresh();
   };
