@@ -719,6 +719,30 @@ renderer.toneMappingExposure = 1.04;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 view.appendChild(renderer.domElement);
+/* IBL — illuminazione d'ambiente procedurale (direttiva estetica fondatore 23/07):
+   PMREM da una mini-scena cielo/orizzonte/suolo generata al volo (zero asset esterni,
+   solo core Three.js). Dà ai materiali PBR riflessi ambientali coerenti col cielo:
+   più profondità su fronte e terreno. Reversibile: una sola assegnazione. */
+(function(){
+  try{
+    const pm = new THREE.PMREMGenerator(renderer);
+    const es = new THREE.Scene();
+    const g = new THREE.SphereGeometry(50, 32, 16);
+    const pos = g.attributes.position, cols = [];
+    const _dim=0.34;   // intensità ambiente: bassa, per dare riflessi/profondità SENZA slavare le texture
+    const cTop=new THREE.Color(0x8fb6dd).multiplyScalar(_dim), cHor=new THREE.Color(0xe8dcc2).multiplyScalar(_dim), cBot=new THREE.Color(0x6e5a41).multiplyScalar(_dim);
+    for(let i=0;i<pos.count;i++){ const y=pos.getY(i)/50;
+      const c = y>=0 ? cHor.clone().lerp(cTop, Math.pow(y,0.7)) : cHor.clone().lerp(cBot, Math.pow(-y,0.8));
+      cols.push(c.r,c.g,c.b); }
+    g.setAttribute('color', new THREE.Float32BufferAttribute(cols,3));
+    es.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors:true, side:THREE.BackSide })));
+    const sole = new THREE.Mesh(new THREE.SphereGeometry(3.5,16,8), new THREE.MeshBasicMaterial({ color:0xfff4e0 }));
+    sole.material.color.multiplyScalar(1.6); // punto caldo tipo sole (riflessi speculari, moderato)
+    sole.position.set(20, 30, -18); es.add(sole);
+    scene.environment = pm.fromScene(es, 0.04).texture;
+    pm.dispose();
+  }catch(e){ console.warn('IBL non attivo:', e); }
+})();
 const ambL = new THREE.AmbientLight(0xfff4e0, 0.5); scene.add(ambL);
 const hemiL = new THREE.HemisphereLight(0xb8cce4, 0x4a3a1e, 0.55); scene.add(hemiL);
 const sun = new THREE.DirectionalLight(0xfff2d8, 1.5); sun.position.set(40, 95, -55);
