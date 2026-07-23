@@ -586,7 +586,9 @@ UX, nessun tocco al modello dati.
   → 2 mezzi; assente → stato vuoto; zero errori.
 - **Campo** (attività): `#att-cerca`, filtra per titolo/dettaglio. Verificato:
   "fronte" → 2 attività; assente → stato vuoto. NB: la "ricerca live su tutte le
-  app" del riepilogo storico era un overclaim (solo Scudo l'aveva). [PROSSIME: Sentinella, Terra]
+  app" del riepilogo storico era un overclaim (solo Scudo l'aveva).
+- **Sentinella** (monitoraggi): `#mon-cerca`, filtra per nome/nota. Verificato:
+  "vibrazioni" → 2 sensori; assente → stato vuoto. [PROSSIMA: Terra]
 
 ### Ciclo notturno 23/07 (dopo il LAS): piano passo 3 + ricerche app
 - **`vault/PASSO3_FRONTE_METODO.md`**: metodo del passo 3 (PCA→sezione→envelope→

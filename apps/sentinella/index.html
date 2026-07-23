@@ -53,6 +53,7 @@
       <option value="nome">Nome (A→Z)</option>
     </select>
   </div>
+  <input class="dw-input" id="mon-cerca" type="search" placeholder="🔍 Cerca per nome o nota…" style="margin-bottom:10px;">
   <div id="mon-list"></div>
   <div class="sec">Registra misura</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -182,6 +183,7 @@
   });
   try { const _s = localStorage.getItem("dwSort_mon"); if (_s) { ordMon = _s; if ($("mon-ord")) $("mon-ord").value = _s; } } catch (e) {}
   if ($("mon-ord")) $("mon-ord").onchange = () => { ordMon = $("mon-ord").value; try { localStorage.setItem("dwSort_mon", ordMon); } catch (e) {} refresh(); };
+  if ($("mon-cerca")) $("mon-cerca").oninput = () => refresh();
   async function refresh(){
     [MON,ADE,REG,VOL] = await Promise.all([db.monitoraggi(), db.adempimenti(), db.registri(), db.volate ? db.volate() : []]);
     const k = kpiFrom(MON,ADE);
@@ -205,15 +207,17 @@
     const monCmp = (a, b) => ordMon === "margine" ? a.st.ratio - b.st.ratio
       : ordMon === "nome" ? String(a.m.nome || "").localeCompare(String(b.m.nome || ""), "it")
       : b.st.ratio - a.st.ratio;
+    const qMon = ($("mon-cerca") && $("mon-cerca").value || "").trim().toLowerCase();
     $("mon-list").innerHTML = MON.map(m => ({ m, st: statoMisura(m) }))
       .filter(x => filtroMon === "tutti" || x.st.cls === filtroMon)
+      .filter(x => !qMon || ((x.m.nome || "") + " " + (x.m.nota || "")).toLowerCase().includes(qMon))
       .sort(monCmp)
       .map(({m, st}) => { const ult = (m.letture || []).slice(-3).map(l => l.valore).join(" → ");
       return `<div class="item"><div class="info"><div class="name">${esc(m.nome)}</div>
       <div class="meta">${m.valore} ${esc(m.unita)} / soglia ${m.soglia} (${Math.round(st.ratio*100)}%)${ult ? " · ultime: " + ult : ""}${m.nota ? " · " + esc(m.nota) : ""}</div></div>
       <span class="badge ${st.cls}">${st.label}</span>
       <span class="arr" style="cursor:pointer" title="Rimuovi sensore" data-del-mon="${m.id}">✕</span></div>`; }).join("")
-      || '<div class="note" style="text-align:left;">'+(filtroMon==="tutti"?"Nessun sensore configurato.":"Nessun sensore in questa categoria.")+'</div>';
+      || '<div class="note" style="text-align:left;">'+(qMon?"Nessun sensore trovato per «"+esc(qMon)+"».":(filtroMon==="tutti"?"Nessun sensore configurato.":"Nessun sensore in questa categoria."))+'</div>';
     document.querySelectorAll("#mon-filtri [data-filtro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-filtro") === filtroMon ? "var(--app-accent)" : "");
 
