@@ -5692,8 +5692,8 @@ function renderMWDPreview(parsed){
       <div style="color:var(--muted);margin-bottom:6px;">Colonne riconosciute:</div>
       <div style="margin-bottom:8px;">${colsFound.length>0?colsFound.map(c=>`<span class="scad-badge ok" style="margin-right:3px;">${c}</span>`).join(''):'<span style="color:var(--danger);">Nessuna riconosciuta!</span>'}</div>
       <div style="max-height:140px;overflow:auto;background:var(--dark);padding:6px;font-family:monospace;font-size:10px;border:1px solid var(--border);">
-        <div style="color:var(--amber);font-weight:700;border-bottom:1px solid var(--border);padding-bottom:3px;margin-bottom:3px;">${parsed.headers.join(' | ')}</div>
-        ${sample.map(r=>`<div style="color:var(--muted2);">${parsed.headers.map(h=>r._raw[h]||'').join(' | ')}</div>`).join('')}
+        <div style="color:var(--amber);font-weight:700;border-bottom:1px solid var(--border);padding-bottom:3px;margin-bottom:3px;">${escHtml(parsed.headers.join(' | '))}</div>
+        ${sample.map(r=>`<div style="color:var(--muted2);">${escHtml(parsed.headers.map(h=>r._raw[h]||'').join(' | '))}</div>`).join('')}
         ${parsed.rows.length>5?`<div style="color:var(--muted);font-style:italic;margin-top:3px;">... +${parsed.rows.length-5} altre righe</div>`:''}
       </div>
     </div>

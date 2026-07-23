@@ -606,8 +606,9 @@ Terra 4 su 5; zero errori.
   superfici (JSON valido, campi PWA, theme distinti). CI 347→356.
 - **POC drone**: indica se la nuvola è georeferenziata (UTM → metri reali) o relativa,
   dalla magnitudine coordinate; unità corretta su dimensioni/ritaglio. Verificato.
-- **Revisione core** (fallback #5): avviata revisione di correttezza/sicurezza di
-  index.html (flagship), esclusi gli item già gated (DEFAULT_USERS/password/meteo).
+- **Revisione core** (fallback #5): rivisto index.html (flagship, ~8300 righe) via
+  subagent. Un solo bug: **XSS self nell'anteprima import MWD** (intestazioni/celle CSV
+  grezze in innerHTML senza escape) → CORRETTO con escHtml. Resto pulito. Verificato.
 
 ### Ciclo 23/07 (pomeriggio): manifest PWA sulle 6 verticali (installabili)
 Core e Genesi erano installabili come app; le 6 verticali no. Aggiunto manifest PWA
