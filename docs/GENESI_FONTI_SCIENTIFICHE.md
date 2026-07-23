@@ -117,6 +117,32 @@ distingue dai venditori di certezze. xP-frag stesso è un candidato "modello v2"
 4. **Elenco correzioni per il fondatore**, ordinato per sicurezza (flyrock e
    vibrazioni prima). Il motore fisico si tocca SOLO col suo via libera.
 
+## Prima verifica LOCALE codice-vs-letteratura (23/07 sera — vibrazioni)
+
+Fatta subito, senza rete, confrontando `genesi.html` con i valori raccolti:
+
+**Coerenze trovate (buone notizie):**
+- La formula è la **scaled distance canonica**: `PPV = K·(D/√MIC)^−β` (riga ~1882),
+  con **MIC su finestra 8 ms** raggruppando i tempi reali dei fori (riga 689) —
+  combacia con la convenzione standard di carica-per-ritardo [NV].
+- `ppvSite()` (riga 680): **K 1200–2800 (metrico), β 1,40–1,75** derivati dalla
+  litologia — DENTRO l'inviluppo di Oriard raccolto (K 171–4316, β 1,0–1,9) [NV],
+  e il commento nel codice dichiara già "K conservativo/upper-bound, STIMA — da
+  calibrare con monitoraggio reale". Onestà già presente.
+- `ppvLimit()` (righe 682-687): le soglie USBM combaciano con gli ancoraggi
+  raccolti di RI 8507: **12,7 mm/s** (intonaco) e **19 mm/s** (cartongesso) sotto
+  i 40 Hz, **50,8 mm/s** da 40 Hz in su [NV]. E i limiti sono già presentati **per
+  tipo di edificio** (DIN res/ind/sensibile, USBM intonaco/cartongesso), NON come
+  soglia universale — proprio ciò che la letteratura raccomanda.
+
+**Discrepanza candidata da verificare (unica trovata, bassa-media):**
+- La curva Z di RI 8507 raccolta parte da **5,1 mm/s** alle frequenze molto basse,
+  mentre Genesi usa un gradino piatto (12,7/19 sotto i 40 Hz): alle frequenze
+  dominanti MOLTO basse (grandi distanze) il nostro limite potrebbe essere **meno
+  conservativo** della curva Z reale. DA VERIFICARE sul testo di RI 8507 (forma
+  esatta della curva a bassa frequenza) prima di proporre qualunque modifica al
+  fondatore. Se confermata, è una correzione di sicurezza piccola e chiara.
+
 ## Fonti raccolte (da riverificare aprendole)
 - Gheibie et al. — *Modified Kuz-Ram fragmentation model and its use at the Sungun
   Copper Mine* (via ResearchGate).
