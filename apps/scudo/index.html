@@ -173,6 +173,7 @@
     : "Dati di esempio (" + db.mode + "): le modifiche non vengono salvate.";
 
   let LAV = [], SCA = [], DOC = [], INF = [];
+  let editLav = null;   // id del lavoratore in modifica (riusa il form "Aggiungi"; idoneità/scadenze restano)
   let filtroScad = "tutte";
   let filtroInf = "tutti";
   let ordScad = "scadenza";
@@ -235,6 +236,7 @@
         <div class="info"><div class="name">${esc(l.nome)}</div><div class="meta">${esc(l.ruolo || "—")}${prob.length ? " · " + esc(prob[0].descrizione) : ""}</div></div>
         <span class="badge ${idn.cls}" style="cursor:pointer" title="Idoneità sanitaria (art. 41) — tocca per cambiare esito" data-idon="${l.id}">${idn.label}</span>
         <span class="badge ${B[st][0]}">${B[st][1]}</span>
+        <span class="arr" style="cursor:pointer" title="Modifica lavoratore" data-edit-lav="${l.id}">✎</span>
         <span class="arr" style="cursor:pointer" title="Rimuovi" data-del-lav="${l.id}">✕</span></div>`;
     }).join("") || '<div class="note" style="text-align:left;">' + (q ? "Nessun lavoratore corrisponde a «" + esc(q) + "»." : "Nessun lavoratore: aggiungine uno qui sotto o importa il CSV.") + "</div>";
 
@@ -320,6 +322,16 @@
       if (s) { const v = prompt("Nuova data di scadenza per «" + s.descrizione + "» (AAAA-MM-GG):", s.dataScadenza);
         if (v && /^\d{4}-\d{2}-\d{2}$/.test(v.trim())) { await db.aggiorna("scadenze", rn, { dataScadenza: v.trim() }); await refresh(); } }
       return; }
+    const editLavId = e.target.getAttribute && e.target.getAttribute("data-edit-lav");
+    if (editLavId) { const l = LAV.find(x => x.id === editLavId); if (!l) return;
+      if (editLav === l.id) {   // ri-tocco la ✎ dello stesso lavoratore = annulla
+        editLav = null; $("btn-add-pers").textContent = "Aggiungi"; $("import-esito").textContent = "Modifica annullata.";
+        $("new-nome").value = ""; $("new-ruolo").value = ""; $("new-nome").style.borderColor = ""; return; }
+      editLav = l.id;
+      $("new-nome").value = l.nome || ""; $("new-ruolo").value = l.ruolo || ""; $("new-nome").style.borderColor = "";
+      $("btn-add-pers").textContent = "Salva modifica";
+      $("import-esito").textContent = "Stai modificando «" + l.nome + "»: cambi nome/ruolo, idoneità e scadenze restano.";
+      $("new-nome").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
     const dl = e.target.getAttribute && e.target.getAttribute("data-del-lav");
     const ds = e.target.getAttribute && e.target.getAttribute("data-del-scad");
     if (dl) { const l = LAV.find(x => x.id === dl);
@@ -331,9 +343,14 @@
     const nome = $("new-nome").value.trim();
     if (!nome) { $("new-nome").style.borderColor = "var(--danger)"; $("import-esito").textContent = "Serve il nome del lavoratore."; return; }
     $("new-nome").style.borderColor = "";
-    await db.aggiungi("lavoratori", { nome, ruolo: $("new-ruolo").value.trim(), attivo: true });
+    if (editLav) {
+      await db.aggiorna("lavoratori", editLav, { nome, ruolo: $("new-ruolo").value.trim() });   // idoneità/attivo/scadenze restano
+      editLav = null; $("btn-add-pers").textContent = "Aggiungi";
+    } else {
+      await db.aggiungi("lavoratori", { nome, ruolo: $("new-ruolo").value.trim(), attivo: true });
+    }
     $("new-nome").value = ""; $("new-ruolo").value = "";
-    $("import-esito").textContent = "Lavoratore aggiunto: " + nome + ".";
+    $("import-esito").textContent = "Lavoratore salvato: " + nome + ".";
     $("new-nome").focus();   // torna al primo campo per inserire subito il prossimo
     await refresh();
   };
