@@ -52,6 +52,7 @@
       <option value="titolo">Titolo (A→Z)</option>
     </select>
   </div>
+  <input class="dw-input" id="att-cerca" type="search" placeholder="🔍 Cerca per titolo o dettaglio…" style="margin-bottom:10px;">
   <div id="att-list"></div>
   <div id="fermi-riep" class="note" style="text-align:left;"></div>
   <div class="sec">Nuova attività</div>
@@ -149,6 +150,7 @@
   let ordAttSel = "stato";
   try { const _s = localStorage.getItem("dwSort_att"); if (_s) { ordAttSel = _s; if ($("att-ord")) $("att-ord").value = _s; } } catch (e) {}
   if ($("att-ord")) $("att-ord").onchange = () => { ordAttSel = $("att-ord").value; try { localStorage.setItem("dwSort_att", ordAttSel); } catch (e) {} refresh(); };
+  if ($("att-cerca")) $("att-cerca").oninput = () => refresh();
   $("att-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroAtt = f; refresh(); }
@@ -184,14 +186,16 @@
     const attCmp = (a, b) => ordAttSel === "titolo"
       ? String(a.titolo || "").localeCompare(String(b.titolo || ""), "it")
       : (ordAtt[a.stato] ?? 4) - (ordAtt[b.stato] ?? 4);
+    const qAtt = ($("att-cerca") && $("att-cerca").value || "").trim().toLowerCase();
     const attVis = ATT.filter(a => filtroAtt === "tutte" || a.stato === filtroAtt)
+                      .filter(a => !qAtt || ((a.titolo || "") + " " + (a.dettaglio || "")).toLowerCase().includes(qAtt))
                       .sort(attCmp);
     const optCausali = (sel) => CAUSALI_FERMO.map(c => `<option value="${esc(c)}"${c===sel?" selected":""}>${esc(c)}</option>`).join("");
     $("att-list").innerHTML = attVis.map(a => `<div class="item" data-att="${a.id}" style="cursor:pointer" title="Tocca per cambiare stato">
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc(a.dettaglio||"")}</div></div>
       ${a.stato==="anomalia" ? `<select class="dw-input" data-causale="${a.id}" title="Causale del fermo" style="width:auto;min-height:32px;padding:2px 6px;font-size:12px;margin-right:6px;"><option value="">Causale…</option>${optCausali(a.causale)}</select>` : ""}
       <span class="badge ${AB[a.stato][0]}">${AB[a.stato][1]}</span></div>`).join("")
-      || '<div class="note" style="text-align:left;">'+(filtroAtt==="tutte"?"Nessuna attività registrata oggi.":"Nessuna attività in questa categoria.")+'</div>';
+      || '<div class="note" style="text-align:left;">'+(qAtt?"Nessuna attività trovata per «"+esc(qAtt)+"».":(filtroAtt==="tutte"?"Nessuna attività registrata oggi.":"Nessuna attività in questa categoria."))+'</div>';
     document.querySelectorAll("#att-filtri [data-filtro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-filtro") === filtroAtt ? "var(--app-accent)" : "");
     // riepilogo fermi per causale (base per OEE/disponibilità)

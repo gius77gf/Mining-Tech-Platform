@@ -583,7 +583,10 @@ UX, nessun tocco al modello dati.
   filtro categoria + ordinamento. Verificato: "edilcave" → 2 fatture; assente → stato
   vuoto; zero errori.
 - **Flotta** (mezzi): `#mez-cerca`, filtra per nome/area. Verificato: "escavatore"
-  → 2 mezzi; assente → stato vuoto; zero errori. [PROSSIME: Campo, Sentinella, Terra]
+  → 2 mezzi; assente → stato vuoto; zero errori.
+- **Campo** (attività): `#att-cerca`, filtra per titolo/dettaglio. Verificato:
+  "fronte" → 2 attività; assente → stato vuoto. NB: la "ricerca live su tutte le
+  app" del riepilogo storico era un overclaim (solo Scudo l'aveva). [PROSSIME: Sentinella, Terra]
 
 ### Ciclo notturno 23/07 (dopo il LAS): piano passo 3 + ricerche app
 - **`vault/PASSO3_FRONTE_METODO.md`**: metodo del passo 3 (PCA→sezione→envelope→
