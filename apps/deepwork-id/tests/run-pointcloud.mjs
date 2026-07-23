@@ -68,10 +68,13 @@ test("parsePLY errori: header assente e vertici assenti lanciano", () => {
 });
 
 console.log("\n— pointcloud: parseLAS (formato nativo ODM) —");
-// Costruisce un LAS 1.2 minimale in memoria: header pubblico (227 byte) + N record.
-// Formato-punto 0 (solo XYZ, 20 byte) o 2 (con RGB, 26 byte).
+// Costruisce un LAS 1.2/1.4 minimale in memoria: header pubblico + N record.
+// Formati-punto supportati: 0 (solo XYZ, 20 byte), 2 (RGB a offset 20, 26 byte),
+// 3 (GPS-time + RGB a offset 28, 34 byte — il tipico output di ODM).
+const LAS_TEST_RECLEN = { 0: 20, 1: 28, 2: 26, 3: 34 };
+const LAS_TEST_RGBOFF = { 2: 20, 3: 28 };
 function lasBuf(pts, { fmt = 0, scale = [0.01, 0.01, 0.01], off = [500000, 5000000, 0], ver = [1, 2], legacyCount = null } = {}) {
-  const recLen = fmt === 2 ? 26 : 20;
+  const recLen = LAS_TEST_RECLEN[fmt] || 20;
   // Header 227 byte per LAS 1.2, 375 per 1.4 (dove il conteggio a 64 bit sta a offset 247).
   const ptOffset = ver[1] >= 4 ? 375 : 227;
   const ab = new ArrayBuffer(ptOffset + pts.length * recLen);
@@ -91,7 +94,8 @@ function lasBuf(pts, { fmt = 0, scale = [0.01, 0.01, 0.01], off = [500000, 50000
     dv.setInt32(b, Math.round((p[0] - off[0]) / scale[0]), true);
     dv.setInt32(b + 4, Math.round((p[1] - off[1]) / scale[1]), true);
     dv.setInt32(b + 8, Math.round((p[2] - off[2]) / scale[2]), true);
-    if (fmt === 2 && p.length >= 6) { dv.setUint16(b + 20, p[3], true); dv.setUint16(b + 22, p[4], true); dv.setUint16(b + 24, p[5], true); }
+    const rgbOff = LAS_TEST_RGBOFF[fmt];
+    if (rgbOff != null && p.length >= 6) { dv.setUint16(b + rgbOff, p[3], true); dv.setUint16(b + rgbOff + 2, p[4], true); dv.setUint16(b + rgbOff + 4, p[5], true); }
   });
   return ab;
 }
@@ -104,6 +108,12 @@ test("parseLAS: coordinate reali = intero*scala+offset (doppia precisione UTM)",
 test("parseLAS formato 2: legge il colore RGB", () => {
   const r = pc.parseLAS(lasBuf([[500000, 5000000, 0, 65535, 0, 32768]], { fmt: 2 }));
   ok(r.col && Math.abs(r.col[0] - 1) < 1e-4 && r.col[1] === 0 && Math.abs(r.col[2] - 0.5) < 0.01, "colore 16 bit normalizzato");
+});
+test("parseLAS formato 3 (GPS-time + RGB, tipico ODM): RGB letto all'offset giusto (28)", () => {
+  const r = pc.parseLAS(lasBuf([[500001, 5000002, 3.5, 65535, 32768, 0]], { fmt: 3 }));
+  eq(r.count, 1, "un punto");
+  ok(Math.abs(r.pos[0] - 500001) < 1e-6 && Math.abs(r.pos[2] - 3.5) < 1e-6, "coordinate ok nonostante il GPS-time in mezzo");
+  ok(r.col && Math.abs(r.col[0] - 1) < 1e-4 && Math.abs(r.col[1] - 0.5) < 0.01 && r.col[2] === 0, "RGB del formato 3 letto a offset 28");
 });
 test("parseLAS downsample: oltre il cap → step>1, total conservato", () => {
   const pts = []; for (let i = 0; i < 100; i++) pts.push([500000 + i, 5000000, 0]);
