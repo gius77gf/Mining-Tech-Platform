@@ -40,9 +40,12 @@ solo l'uso.
 - **Il tuo PC** — WebODM in locale. Zero costo, zero dipendenza. Ideale per iniziare.
 - **Google Colab / Kaggle** — potenza gratis (12–30 GB RAM), "a sessione" (dura poche
   ore, poi si scollega). Perfetto per **provare**, non per un servizio sempre pronto.
-- **Oracle Cloud "Always Free"** — ~24 GB RAM ARM, gratis e sempre acceso: il più
-  vicino a un "server gratis" vero. Cavilli: architettura ARM (ODM va configurato),
-  installazione manuale, disponibilità gratuita a volte limitata.
+- **Oracle Cloud "Always Free"** — fino a **4 core ARM (Ampere A1) + 24 GB RAM**,
+  gratis e sempre acceso: il più vicino a un "server gratis" vero, e la RAM supera
+  gli 8 GB minimi di ODM. Buona notizia (verificato luglio 2026): **NodeODM ha
+  immagini Docker per ARM64**, quindi gira direttamente sull'ARM di Oracle senza
+  ricompilare. Cavilli: installazione manuale (Docker), disponibilità del tier
+  gratuito a volte limitata nella tua regione.
 
 **ECONOMICHE (quando serve stabilità, in commercializzazione):**
 - **VPS economico** (Hetzner/Contabo/OVH): ~5–15 €/mese, sempre acceso.
@@ -52,6 +55,25 @@ solo l'uso.
 **Regola "no spesa ora":** validare tutto sul tuo PC o su un free-tier; il costo
 (piccolo, a consumo) arriva solo in commercializzazione e si **gira sul prezzo al
 cliente** (la cava paga il servizio, tu paghi centesimi di calcolo).
+
+### Aggiornamento luglio 2026 (verificato)
+- **ODM si è diviso in due (6 aprile 2026)**: la fondazione no-profit tiene il nome
+  **OpenDroneMap / ODM** (motore open, `github.com/OpenDroneMap/NodeODM`); l'altra
+  parte si è rinominata **ODX** sotto la nuova organizzazione WebODM. Per restare
+  **indipendenti e gratis**, la strada è l'**ODM della fondazione** (open, senza
+  vincoli commerciali) — è quella su cui puntiamo.
+- **Il modo più rapido per la PROVA del weekend, senza installare niente**: un account
+  **NUOVO** su **WebODM Lightning** riceve **150 crediti gratis** (dato luglio 2026),
+  che coprono qualche elaborazione — così processi le foto del DJI subito e scarichi
+  il `.las` da caricare nel visore, senza usare il tuo PC lento.
+- **Il "server gratis nostro" per l'uso ripetuto**: **Oracle Always Free (ARM 24 GB)
+  + NodeODM Docker (ARM64)** — zero spesa, sempre acceso, indipendente. È il passo da
+  fare quando la prova col Lightning ti convince e vuoi smettere di dipendere dai crediti.
+
+Fonti: [OpenDroneMap (Wikipedia)](https://en.wikipedia.org/wiki/OpenDroneMap) ·
+[NodeODM (GitHub, build ARM64)](https://github.com/opendronemap/nodeodm) ·
+[Docker su Oracle Cloud Free Tier](https://oneuptime.com/blog/post/2026-02-08-how-to-set-up-docker-on-an-oracle-cloud-free-tier-instance/view) ·
+[ecosistema ODM: WebODM/NodeODM/ClusterODM](https://aerocartwright.com/library/odm-ecosystem-intro/)
 
 ## Cosa posso costruire io (browser, gratis, senza enti esterni)
 1. **Caricatore della nuvola di punti** in Genesi/Terra: apre il file esportato da
@@ -95,9 +117,11 @@ cliente** (la cava paga il servizio, tu paghi centesimi di calcolo).
 ## Prova pratica del weekend (passo-passo)
 Per verificare il flusso a costo zero, col tuo DJI Mini:
 1. **Scatta le foto** del fronte col drone (tante, sovrapposte tra loro ~70%).
-2. **Genera il 3D senza usare il tuo PC**: apri **Google Colab** o una **Space di
-   Hugging Face** (gratis, dal browser) con WebODM/una demo di fotogrammetria;
-   carica le foto → ottieni la **nuvola** (LAS/PLY/XYZ) e/o la **mesh** (OBJ).
+2. **Genera il 3D senza usare il tuo PC**: il modo più semplice per la prova è aprire
+   **WebODM Lightning** con un **account nuovo** (dà ~150 crediti gratis, luglio 2026),
+   caricare le foto e scaricare il risultato — così non serve installare nulla né usare
+   il tuo PC lento. (Alternative gratis: Google Colab / Oracle Always Free, vedi sopra.)
+   Ottieni la **nuvola** (LAS/PLY/XYZ) e/o la **mesh** (OBJ).
 3. **Caricalo in Genesi**: apri il deploy-preview di #321 + `/apps/genesi/nuvola-poc.html`,
    premi **"Carica 3D"** e scegli il file. Va bene il **`.las`** che ti dà ODM
    (o PLY/XYZ per la nuvola, OBJ/GLB per la mesh) — il visore li apre direttamente.
