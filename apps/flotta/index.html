@@ -176,6 +176,11 @@
   if ($("mez-ord")) $("mez-ord").onchange = () => { ordMez = $("mez-ord").value; try { localStorage.setItem("dwSort_mez", ordMez); } catch (e) {} refresh(); };
   if ($("mez-cerca")) $("mez-cerca").oninput = () => refresh();
   if ($("ric-cerca")) $("ric-cerca").oninput = () => refresh();
+  // cambiare pagina annulla una modifica mezzo in corso (torna su "Aggiungi")
+  document.querySelector(".nav") && document.querySelector(".nav").addEventListener("click", () => {
+    if (editMez) { editMez = null; $("btn-mez").textContent = "Aggiungi"; $("ore-esito").textContent = "";
+      ["mez-nome","mez-area","mez-ore"].forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; }); }
+  });
   async function refresh(){
     [MEZ,MAN,COS,RIC] = await Promise.all([db.mezzi(), db.manutenzioni(), db.costi(), db.ricambi ? db.ricambi() : []]);
     const k = kpiFrom(MEZ,MAN,COS);

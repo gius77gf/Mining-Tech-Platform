@@ -191,6 +191,11 @@
   try { const _s = localStorage.getItem("dwSort_scad"); if (_s) { ordScad = _s; if ($("scad-ord")) $("scad-ord").value = _s; } } catch (e) {}
   if ($("scad-ord")) $("scad-ord").onchange = () => { ordScad = $("scad-ord").value; try { localStorage.setItem("dwSort_scad", ordScad); } catch (e) {} refresh(); };
   if ($("scad-cerca")) $("scad-cerca").oninput = () => refresh();
+  // cambiare pagina annulla una modifica lavoratore in corso (torna su "Aggiungi")
+  document.querySelector(".nav") && document.querySelector(".nav").addEventListener("click", () => {
+    if (editLav) { editLav = null; $("btn-add-pers").textContent = "Aggiungi"; $("import-esito").textContent = "";
+      $("new-nome").value = ""; $("new-ruolo").value = ""; $("new-nome").style.borderColor = ""; }
+  });
   // scorciatoia: toccare un KPI del quadro porta alla lista pertinente
   document.querySelector(".kpis").addEventListener("click", (e) => {
     const card = e.target.closest("[data-goto]"); if (!card) return;

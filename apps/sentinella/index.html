@@ -189,6 +189,11 @@
   if ($("mon-ord")) $("mon-ord").onchange = () => { ordMon = $("mon-ord").value; try { localStorage.setItem("dwSort_mon", ordMon); } catch (e) {} refresh(); };
   if ($("mon-cerca")) $("mon-cerca").oninput = () => refresh();
   if ($("ade-cerca")) $("ade-cerca").oninput = () => refresh();
+  // cambiare pagina annulla una modifica sensore in corso (torna su "Aggiungi")
+  document.querySelector(".nav") && document.querySelector(".nav").addEventListener("click", () => {
+    if (editMon) { editMon = null; $("btn-sen").textContent = "Aggiungi"; $("mis-esito").textContent = "";
+      ["sen-nome","sen-unita","sen-soglia"].forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; }); }
+  });
   async function refresh(){
     [MON,ADE,REG,VOL] = await Promise.all([db.monitoraggi(), db.adempimenti(), db.registri(), db.volate ? db.volate() : []]);
     const k = kpiFrom(MON,ADE);

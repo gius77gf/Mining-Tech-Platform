@@ -155,6 +155,12 @@
   if ($("fat-ord")) $("fat-ord").onchange = () => { ordFat = $("fat-ord").value; try { localStorage.setItem("dwSort_fat", ordFat); } catch (e) {} refresh(); };
   if ($("fat-cerca")) $("fat-cerca").oninput = () => refresh();
   if ($("gar-cerca")) $("gar-cerca").oninput = () => refresh();
+  // cambiare pagina annulla una modifica fattura in corso (evita di sovrascrivere
+  // per sbaglio credendo di aggiungere): il form torna pulito su "Emetti".
+  document.querySelector(".nav") && document.querySelector(".nav").addEventListener("click", () => {
+    if (editFat) { editFat = null; $("btn-ft").textContent = "Emetti"; $("ft-esito").textContent = "";
+      ["ft-num","ft-cli","ft-imp","ft-scad"].forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; }); }
+  });
   $("fat-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroFat = f; refresh(); }

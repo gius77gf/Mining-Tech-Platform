@@ -154,6 +154,11 @@
   try { const _s = localStorage.getItem("dwSort_att"); if (_s) { ordAttSel = _s; if ($("att-ord")) $("att-ord").value = _s; } } catch (e) {}
   if ($("att-ord")) $("att-ord").onchange = () => { ordAttSel = $("att-ord").value; try { localStorage.setItem("dwSort_att", ordAttSel); } catch (e) {} refresh(); };
   if ($("att-cerca")) $("att-cerca").oninput = () => refresh();
+  // cambiare pagina annulla una modifica attività in corso (torna su "Pianifica")
+  document.querySelector(".nav") && document.querySelector(".nav").addEventListener("click", () => {
+    if (editAtt) { editAtt = null; $("btn-att").textContent = "Pianifica"; $("att-esito").textContent = "";
+      $("att-titolo").value = ""; $("att-dett").value = ""; $("att-titolo").style.borderColor = ""; }
+  });
   $("att-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroAtt = f; refresh(); }
