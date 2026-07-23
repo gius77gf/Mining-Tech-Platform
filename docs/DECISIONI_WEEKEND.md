@@ -106,6 +106,19 @@ può procedere con l'attuazione.
   attivate.
 - [ ] Scelta la prossima feature app (o "nessuna per ora")
 
+## 9. Scienza in Genesi: correzione della curva dei limiti di vibrazione
+- **Stato**: su tua direttiva ("fondiamo Genesi sulla scienza") ho verificato i
+  modelli sulle fonti. Buone notizie: vibrazioni e flyrock di Genesi **combaciano
+  con la letteratura** (formule, coefficienti nei range pubblicati, tetto di
+  Lundborg esatto). Trovata UNA correzione da fare: i limiti USBM di Genesi, sotto
+  le frequenze molto basse (~4 Hz), sono **meno prudenti** della curva ufficiale
+  USBM (e tra 15–40 Hz più severi del necessario). La correzione esatta, con la
+  fonte, è pronta in `docs/GENESI_FONTI_SCIENTIFICHE.md` (sezione 4).
+- **Decisione che serve**: via libera ad applicare la curva USBM esatta al posto
+  del gradino semplificato (tocca soglie di SICUREZZA → per regola non lo faccio
+  da solo). È una modifica piccola, più prudente dove conta, con fonte citata.
+- [ ] Via libera alla curva USBM esatta in ppvLimit
+
 ---
 
 ## Cosa procede intanto SENZA di te

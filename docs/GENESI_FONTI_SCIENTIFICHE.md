@@ -133,12 +133,40 @@ verificare a parte (non coperti da questa fonte).
 2. Nelle schermate dei limiti, precisare **a cosa si applica** la soglia (edifici
    residenziali vs altro).
 
-## 5. Aree NON coperte da questa raccolta (da completare nei prossimi cicli)
-- **Flyrock** (Lundborg, McKenzie; dispersione delle formule empiriche; fattori di
-  sicurezza): le ricerche dedicate sono state troncate dal limite di sessione.
-  PRIORITÀ 1 alla ripresa: è l'area dove un numero sbagliato è più pericoloso.
-- **Airblast** (RI 8485): raccolto solo parzialmente.
+## 5. Flyrock — ✅ VERIFICATO in larga parte (24/07 notte)
+
+**Fonti**: Richards & Moore (2004, Terrock); Lundborg et al. (1975); McKenzie
+(2009, SDOB); review moderna van der Walt & Spiteri (2020).
+
+**Esito del confronto col codice (`flyrockEst`, righe 795-811): MOLTO BUONO.**
+- ✅ **I 3 meccanismi di Richards & Moore confermati** (face burst dal fronte,
+  cratering dal piano, rifling dal borraggio) e la **formula confermata**:
+  L = (k²/g)·(√m/B)^2,6 — identica al codice (stesso esponente 2,6, m = carica
+  lineare kg/m, cratering con lo stemming al posto del burden, rifling con
+  sin(2θ)). La struttura di Genesi è quella pubblicata.
+- ✅ **Tetto di Lundborg (1975) confermato**: Lm = 260·d^⅔ (d in POLLICI). Il
+  codice usa 30,1·d^⅔ con d in mm = **conversione esatta** (260/25,4^⅔ = 30,14). ✓
+- ✅ **McKenzie (2009)** = modello su scaled depth of burial (radice cubica),
+  giudicato dalla review 2020 **il più efficace** per la stima della gittata →
+  la scelta di Genesi di includerlo è supportata. **[NV]** restano da pinnare gli
+  esponenti esatti usati nel codice (−2,167 e 0,667) contro il testo di McKenzie.
+- ✅ (parziale) **Fattori di sicurezza**: il fattore **×2** sulla gittata prevista è
+  confermato come "minimo appropriato" nella prassi Terrock/R&M (con moltiplicatori
+  separati mezzi/persone come input standard); il **×4 persone** usato da Genesi è
+  prassi diffusa ma il valore esatto resta **[NV]** da fonte primaria. Essendo PIÙ
+  conservativo, non è un rischio.
+- **[NV]** Il range del **k** (13,5 tenero → 27 duro) mappato da Genesi sull'UCS è
+  plausibile e coerente con l'uso Terrock, ma il range pubblicato preciso resta da
+  verificare su Richards & Moore 2004.
+- **Avvertenza di letteratura**: TUTTE le formule empiriche di flyrock hanno grande
+  dispersione (è il motivo dei fattori di sicurezza e dell'avvertenza già presente
+  in Genesi che vieta di usare la stima per definire le aree di sgombero reali —
+  scelta CORRETTA e da mantenere).
+
+## 5-bis. Aree ancora da completare
+- **Airblast** (RI 8485): raccolto solo parzialmente (scaling cubico ✅).
 - **Fori bagnati / decoupling / decking**: non ancora coperti.
+- **DIN 4150-3** (i rami din-* di ppvLimit): da verificare a parte.
 
 ## 6. Prossimi passi (ordine)
 1. **Verificare i claim [NV]** aprendo le fonti (dopo il reset del limite).
