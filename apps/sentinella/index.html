@@ -94,6 +94,8 @@
 
 <div class="page" id="page-ade">
   <div class="sec">Scadenze ambientali</div>
+  <input class="dw-input" id="ade-cerca" type="search" placeholder="🔍 Cerca per titolo o ente…" style="margin-bottom:6px;">
+  <div id="ade-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
   <div id="ade-list"></div>
   <div class="sec">Nuovo adempimento</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -186,6 +188,7 @@
   try { const _s = localStorage.getItem("dwSort_mon"); if (_s) { ordMon = _s; if ($("mon-ord")) $("mon-ord").value = _s; } } catch (e) {}
   if ($("mon-ord")) $("mon-ord").onchange = () => { ordMon = $("mon-ord").value; try { localStorage.setItem("dwSort_mon", ordMon); } catch (e) {} refresh(); };
   if ($("mon-cerca")) $("mon-cerca").oninput = () => refresh();
+  if ($("ade-cerca")) $("ade-cerca").oninput = () => refresh();
   async function refresh(){
     [MON,ADE,REG,VOL] = await Promise.all([db.monitoraggi(), db.adempimenti(), db.registri(), db.volate ? db.volate() : []]);
     const k = kpiFrom(MON,ADE);
@@ -226,12 +229,17 @@
     document.querySelectorAll("#mon-filtri [data-filtro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-filtro") === filtroMon ? "var(--app-accent)" : "");
 
-    $("ade-list").innerHTML = ADE.slice().sort((a,b)=>a.scadenza<b.scadenza?-1:1).map(a => { const g = giorni(a.scadenza);
+    const qAde = ($("ade-cerca") && $("ade-cerca").value || "").trim().toLowerCase();
+    $("ade-list").innerHTML = ADE.slice().sort((a,b)=>a.scadenza<b.scadenza?-1:1)
+      .filter(a => !qAde || ((a.titolo || "") + " " + (a.ente || "")).toLowerCase().includes(qAde))
+      .map(a => { const g = giorni(a.scadenza);
       const b = g < 0 ? ["danger","Scaduto"] : (g <= 30 ? ["warn", g + " gg"] : ["ok", g + " gg"]);
       return `<div class="item"><div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${a.ente!=="—"?esc(a.ente)+" · ":""}entro ${fmtD(a.scadenza)}</div></div>
       <span class="badge ${b[0]}">${b[1]}</span>
       <span class="arr" style="cursor:pointer" title="Segna come eseguito" data-ade-done="${a.id}">✓</span></div>`; }).join("")
-      || '<div class="note" style="text-align:left;">Nessun adempimento in scadenza.</div>';
+      || '<div class="note" style="text-align:left;">'+(qAde?"Nessun adempimento trovato per «"+esc(qAde)+"».":"Nessun adempimento in scadenza.")+'</div>';
+    { const n = $("ade-list").querySelectorAll(".item").length;
+      $("ade-count").textContent = n === 0 ? "" : n + (n === 1 ? " adempimento" : " adempimenti") + (qAde ? " · su " + ADE.length : ""); }
 
     $("reg-list").innerHTML = REG.slice().sort((a,b)=>(a.stato==="in-attesa"?0:1)-(b.stato==="in-attesa"?0:1)).map(r => `<div class="item" data-reg="${r.id}" style="cursor:pointer" title="${r.stato==="in-attesa" ? "Tocca per segnare aggiornato" : "Tocca per rimettere in attesa"}">
       <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${esc(r.nota || "")}</div></div>

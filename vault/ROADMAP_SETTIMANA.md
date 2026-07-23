@@ -575,6 +575,11 @@ Prossimo (gated sul test weekend del fondatore col dato reale): passo 3 = agganc
 del fronte ritagliato al motore volata di Genesi; poi ponte Terra→Genesi. La catena
 di lettura ora copre i formati che ODM produce davvero (LAS/PLY/XYZ + mesh OBJ/GLB).
 
+### Ciclo 23/07 (pomeriggio): ricerca uniforme (Conti gare + Sentinella adempimenti)
+Aggiunta ricerca+conteggio alle ultime due liste (Conti gare per titolo, Sentinella
+adempimenti per titolo/ente). Ora OGNI lista delle 6 app ha ricerca+conteggio: UX
+uniforme. Verificato: gare "anas" 1/4, adempimenti "aua" 1/3, zero errori.
+
 ### Ciclo 23/07 (pomeriggio): ricerca+conteggio nei ricambi Flotta
 Ricerca per nome + conteggio nel magazzino ricambi (lista che cresce con le scorte).
 Ora Flotta ha ricerca su mezzi e ricambi. Verificato: "filtro" → 2 su 4, zero errori.
