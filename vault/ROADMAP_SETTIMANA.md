@@ -601,6 +601,14 @@ Completa la ricerca: sotto ogni lista principale un conteggio "N entità · su T
 Terra: nuovo `#*-count`; Scudo: potenziato `pers-count`. Verificato: Conti 2 su 5,
 Terra 4 su 5; zero errori.
 
+### Ciclo 23/07 (sera): PWA test + POC georef + revisione core
+- **Test manifest** (`run-manifest.mjs`, 9): blinda i manifest PWA di tutte le 8
+  superfici (JSON valido, campi PWA, theme distinti). CI 347→356.
+- **POC drone**: indica se la nuvola è georeferenziata (UTM → metri reali) o relativa,
+  dalla magnitudine coordinate; unità corretta su dimensioni/ritaglio. Verificato.
+- **Revisione core** (fallback #5): avviata revisione di correttezza/sicurezza di
+  index.html (flagship), esclusi gli item già gated (DEFAULT_USERS/password/meteo).
+
 ### Ciclo 23/07 (pomeriggio): manifest PWA sulle 6 verticali (installabili)
 Core e Genesi erano installabili come app; le 6 verticali no. Aggiunto manifest PWA
 (data URI) + meta apple/android a tutte: schermo intero, colore tema per app, icona.
