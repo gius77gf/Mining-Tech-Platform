@@ -575,6 +575,11 @@ Prossimo (gated sul test weekend del fondatore col dato reale): passo 3 = agganc
 del fronte ritagliato al motore volata di Genesi; poi ponte Terra→Genesi. La catena
 di lettura ora copre i formati che ODM produce davvero (LAS/PLY/XYZ + mesh OBJ/GLB).
 
+### Ciclo 23/07 (pomeriggio): ricerca+conteggio nelle scadenze Scudo
+La lista scadenze (cuore compliance HSE, spesso lunga) aveva solo filtri; aggiunta
+ricerca per tipo/lavoratore + conteggio "N · su TOT" + stato vuoto. Ora Scudo ha
+ricerca su entrambe le liste. Verificato: "corso" → 1 su 5, zero errori.
+
 ### Ciclo 23/07 (pomeriggio): export CSV lista attività (Campo)
 Censimento export liste principali: 5/6 già esportavano; mancava solo Campo attività.
 Aggiunto "Esporta attività (CSV)" (titolo;dettaglio;stato;causale, csvCell anti-injection).

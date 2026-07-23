@@ -76,6 +76,8 @@
       <option value="persona">Lavoratore (A→Z)</option>
     </select>
   </div>
+  <input class="dw-input" id="scad-cerca" type="search" placeholder="🔍 Cerca per tipo o lavoratore…" style="margin-bottom:6px;">
+  <div id="scad-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
   <div id="scad-list"></div>
   <div class="sec">Aggiungi scadenza</div>
   <select class="dw-input" id="scad-preset" style="width:100%;margin-bottom:8px;">
@@ -188,6 +190,7 @@
   });
   try { const _s = localStorage.getItem("dwSort_scad"); if (_s) { ordScad = _s; if ($("scad-ord")) $("scad-ord").value = _s; } } catch (e) {}
   if ($("scad-ord")) $("scad-ord").onchange = () => { ordScad = $("scad-ord").value; try { localStorage.setItem("dwSort_scad", ordScad); } catch (e) {} refresh(); };
+  if ($("scad-cerca")) $("scad-cerca").oninput = () => refresh();
   // scorciatoia: toccare un KPI del quadro porta alla lista pertinente
   document.querySelector(".kpis").addEventListener("click", (e) => {
     const card = e.target.closest("[data-goto]"); if (!card) return;
@@ -248,8 +251,10 @@
         <div class="meta">${c.regolari} regolari · ${c.inScadenza} in scadenza · ${c.scadute} scadute (su ${c.totale})</div></div>
         <span class="badge ${cls}">${lbl}</span></div>`; }).join("")
       || '<div class="note" style="text-align:left;">Nessuna scadenza registrata: la copertura si popola aggiungendo scadenze.</div>';
-    const scaVis = SCA.filter(s => filtroScad === "tutte" || statoScadenza(s.dataScadenza) === filtroScad);
     const nomeScad = (s) => { const l = byId[s.lavoratoreId]; return l ? l.nome : "azienda"; };
+    const qScad = ($("scad-cerca") && $("scad-cerca").value || "").trim().toLowerCase();
+    const scaVis = SCA.filter(s => filtroScad === "tutte" || statoScadenza(s.dataScadenza) === filtroScad)
+                      .filter(s => !qScad || ((s.descrizione || "") + " " + nomeScad(s)).toLowerCase().includes(qScad));
     const scadCmp = (a, b) => ordScad === "tipo" ? String(a.descrizione || "").localeCompare(String(b.descrizione || ""), "it")
       : ordScad === "persona" ? nomeScad(a).localeCompare(nomeScad(b), "it") || (a.dataScadenza < b.dataScadenza ? -1 : 1)
       : (a.dataScadenza < b.dataScadenza ? -1 : 1);
@@ -261,7 +266,9 @@
         ${(st !== "regolare" && l) ? `<button class="dw-btn secondary" data-prom-scad="${sc.id}" title="Copia il promemoria da inviare al lavoratore" style="width:auto;min-height:32px;padding:2px 10px;font-size:11px;">✉ Promemoria</button>` : ""}
         <span class="arr" style="cursor:pointer" title="Rinnova a nuova data" data-ren-scad="${sc.id}">↻</span>
         <span class="arr" style="cursor:pointer" title="Rimuovi" data-del-scad="${sc.id}">✕</span></div>`;
-    }).join("") || '<div class="note" style="text-align:left;">' + (filtroScad === "tutte" ? "Nessuna scadenza registrata." : "Nessuna scadenza in questa categoria.") + "</div>";
+    }).join("") || '<div class="note" style="text-align:left;">' + (qScad ? "Nessuna scadenza trovata per «" + esc(qScad) + "»." : (filtroScad === "tutte" ? "Nessuna scadenza registrata." : "Nessuna scadenza in questa categoria.")) + "</div>";
+    { const n = $("scad-list").querySelectorAll(".item").length, filtrata = qScad || filtroScad !== "tutte";
+      $("scad-count").textContent = n === 0 ? "" : n + (n === 1 ? " scadenza" : " scadenze") + (filtrata ? " · su " + SCA.length : ""); }
     document.querySelectorAll("#scad-filtri [data-filtro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-filtro") === filtroScad ? "var(--app-accent)" : "");
 
