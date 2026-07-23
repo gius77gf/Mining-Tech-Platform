@@ -192,7 +192,13 @@ function updateCrop(){
   cropBox=new THREE.LineSegments(new THREE.EdgesGeometry(g), new THREE.LineBasicMaterial({ color:0xffab00 }));
   cropBox.position.set((x0+x1)/2,(y0+y1)/2,(z0+z1)/2); scene.add(cropBox);
   window._crop={x0,x1,y0,y1,z0,z1};
-  $('cropdim').innerHTML='Ritaglio: <b style="color:var(--tx)">'+(x1-x0).toFixed(1)+' L × '+(y1-y0).toFixed(1)+' H × '+(z1-z0).toFixed(1)+' P</b> (unità nuvola)';
+  // conta i punti dentro il ritaglio (solo nuvole): conferma che il fronte è stato
+  // catturato prima di esportare — utile alla prova col drone.
+  let cntTxt='';
+  if(obj&&obj.isPoints){ const a=obj.geometry.attributes.position.array; let n=0;
+    for(let i=0;i<a.length;i+=3){ if(insideCrop(a[i],a[i+1],a[i+2])) n++; }
+    cntTxt=' · <b style="color:var(--tx)">'+n.toLocaleString('it-IT')+' punti</b>'; }
+  $('cropdim').innerHTML='Ritaglio: <b style="color:var(--tx)">'+(x1-x0).toFixed(1)+' L × '+(y1-y0).toFixed(1)+' H × '+(z1-z0).toFixed(1)+' P</b> (unità nuvola)'+cntTxt;
 }
 
 function insideCrop(x,y,z){ const c=window._crop; return x>=c.x0&&x<=c.x1&&y>=c.y0&&y<=c.y1&&z>=c.z0&&z<=c.z1; }
