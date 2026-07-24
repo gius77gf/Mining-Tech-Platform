@@ -2024,7 +2024,7 @@ if($('btn-report')) $('btn-report').onclick=()=>{
     +'.foot{margin-top:20px;font-size:10.5px;color:#888;border-top:1px solid #ddd;padding-top:8px}@media print{body{margin:0}}</style></head><body>'
     +'<h1>Report volata — Genesi</h1><div class="sub">Generato il '+esc(now)+' · progetto/stima, non misura di campo</div>'
     +body
-    +'<div class="foot">Genesi è un simulatore di progettazione. Le previsioni (frammentazione, vibrazioni, flyrock) derivano da modelli empirici (Kuz-Ram/Swebrec, scaled-distance) e sono STIME, non misure certificate: vanno verificate sul campo. La stima economica è un ordine di grandezza (non include manodopera, ammortamenti, oneri).</div>'
+    +'<div class="foot">Genesi è un simulatore di progettazione. Le previsioni (frammentazione, vibrazioni, flyrock) derivano da modelli empirici (Kuz-Ram/Swebrec, scaled-distance) e sono STIME, non misure certificate: vanno verificate sul campo. Per la frammentazione la letteratura indica un errore atteso dell\'ordine del ±50% per i modelli di questa famiglia senza calibrazione di sito (Sanchidrián & Ouchterlony 2017): usa la Riconciliazione per calibrare sulla tua cava. La stima economica è un ordine di grandezza (non include manodopera, ammortamenti, oneri).</div>'
     +'</body></html>';
   const w=window.open('','_blank');
   if(!w){ if(typeof toast==='function') toast('Consenti i popup per aprire il report'); return; }

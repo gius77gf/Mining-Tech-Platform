@@ -4,13 +4,14 @@ Richiesta esplicita del fondatore (23/07): tracciare OGNI modello di Genesi alla
 letteratura scientifica primaria — formula pubblicata, limiti di validità, critiche,
 sviluppi moderni — e derivarne correzioni concrete.
 
-**STATO ONESTO DI QUESTO DOCUMENTO**: la raccolta delle fonti è stata fatta con una
-ricerca strutturata (23/07 sera), ma la fase di **verifica incrociata automatica è
-fallita per limite tecnico della sessione** (non per problemi nelle fonti). Quindi:
-ogni affermazione qui sotto è marcata **[NV]** = *non ancora verificata contro la
-fonte primaria*. I prossimi cicli devono: (1) verificare i claim [NV] aprendo le
-fonti; (2) confrontare le formule con il codice reale di `genesi.html`. NON usare
-questo documento come fonte certa finché le etichette [NV] non vengono sciolte.
+**STATO DEL DOCUMENTO (agg. 24/07 notte)**: le aree CORE sono ora **verificate
+sulle fonti** e confrontate col codice — ✅ vibrazioni USBM (curva Z letta dalla
+figura originale), ✅ DIN 4150-3 (fatto strutturale multi-fonte), ✅ flyrock
+(Richards & Moore / Lundborg / McKenzie), ✅ frammentazione (Swebrec/KCO e xP-frag
+dagli abstract). Le voci ancora marcate **[NV]** sono minori e non bloccanti
+(prefattore Sungun, range k di R&M, airblast RI 8485, fori bagnati, numeri di
+frontiera DIN da ri-confermare sul testo della norma). Le PROPOSTE DI CORREZIONE
+alle soglie (sez. 4 e 4-bis) restano GATED sul fondatore.
 
 ---
 
