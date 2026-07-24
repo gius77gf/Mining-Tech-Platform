@@ -698,6 +698,15 @@ UX, nessun tocco al modello dati.
   scelta app, revisione estetica). Stop alla generazione di doc/test speculativi per
   non ricadere nella sovra-produzione. Branch a punto stabile, CI verde.
 
+## ★ CHIUSURA SETTIMANA 20–24/07 (venerdì sera, revisione PULITA) ★
+Revisione serale del 24/07: 256 test puri verdi + CI verde su f0af83b +
+sintassi OK + smoke Playwright (nuvola-poc, Campo) senza errori JS. Nessun
+bug residuo. Riassunto completo della settimana e indice per la revisione
+weekend del fondatore nel checkpoint:
+**vault/checkpoints/20260724-215500_chiusura-settimana.md**
+(punti chiave: 361 test in CI, scienza Genesi verificata, catena drone
+pronta, PR #321 mergiabile, 9 decisioni in docs/DECISIONI_WEEKEND.md).
+
 ## Fine progetto (fase commercializzazione) — NON prima
 - Acquisto dominio + sottodomini. DECISIONE DEL FONDATORE: nessuna
   spesa prima della commercializzazione.
@@ -719,7 +728,7 @@ UX, nessun tocco al modello dati.
 - Lavoro certosino: evitare ogni errore o confusione tra le app.
 
 ## Riferimenti
-- Ultimo checkpoint: vault/checkpoints/20260722-173000_genesi-mesh-ritaglio-fronte.md
+- Ultimo checkpoint: vault/checkpoints/20260724-215500_chiusura-settimana.md
 - Vault ecosistema: repo gius77gf/ecosistema-vault
 
 ---
