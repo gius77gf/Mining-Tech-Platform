@@ -192,10 +192,29 @@ con (5,15,20) residenziale, (20,40,50) industriale, (3,8,10) sensibile — la
 struttura esatta della norma. Prima dell'attivazione: ri-confermare i sei numeri
 di frontiera sul testo DIN.
 
+## 6. Airblast — ✅ VERIFICATO in struttura (24/07 mattina)
+
+**Fonte primaria**: Siskind, Stachura, Stagg & Kopp (1980), USBM **RI 8485** (lo
+studio che abbassò i limiti dal precedente 140 dB ai livelli attuali).
+
+**Confronto col codice** (`_db = 172 − 24·log10(SD³)`, limite 133 dB(L)):
+- ✅ **Scaling a radice cubica** per l'airblast: confermato (due fonti indipendenti).
+- ✅ **Pendenza −24 dB/decade** = esponente −1,2: la forma standard USBM
+  (dB lineare in log(SD) è la relazione canonica di RI 8485).
+- ✅ **Limite 133 dB(L)**: è il valore regolatorio OSM per i sistemi di misura più
+  comuni (2 Hz high-pass); la scala completa OSM/RI 8485 è 134 (0,1 Hz) / 133
+  (2 Hz) / 129 dB (5-6 Hz) a seconda dello strumento. La scelta di Genesi è quella
+  standard; la fascia warn 128-133 è prudente.
+- **[NV]** L'**intercetta 172** (metrico): plausibile e nell'ordine delle equazioni
+  pubblicate per volate da fronte, ma non pinnata a una specifica regressione
+  pubblicata → correttamente il codice la presenta già come "stima da calibrare".
+  Da pinnare quando la fonte integrale sarà accessibile.
+
 ## 5-bis. Aree ancora da completare
-- **Airblast** (RI 8485): raccolto solo parzialmente (scaling cubico ✅).
-- **Fori bagnati / decoupling / decking**: non ancora coperti.
-- **Numeri di frontiera DIN** da ri-confermare sul testo della norma (sopra).
+- **Fori bagnati / decoupling / decking**: non ancora coperti dalla letteratura
+  (la fisica implementata resta dichiarata come stima).
+- **Numeri di frontiera DIN** da ri-confermare sul testo della norma (sez. 4-bis).
+- **Intercetta airblast 172** da pinnare (sez. 6).
 
 ## 6. Prossimi passi (ordine)
 1. **Verificare i claim [NV]** aprendo le fonti (dopo il reset del limite).
