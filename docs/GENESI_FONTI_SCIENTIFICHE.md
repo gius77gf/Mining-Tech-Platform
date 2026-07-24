@@ -9,8 +9,8 @@ sulle fonti** e confrontate col codice — ✅ vibrazioni USBM (curva Z letta da
 figura originale), ✅ DIN 4150-3 (fatto strutturale multi-fonte), ✅ flyrock
 (Richards & Moore / Lundborg / McKenzie), ✅ frammentazione (Swebrec/KCO e xP-frag
 dagli abstract). Le voci ancora marcate **[NV]** sono minori e non bloccanti
-(prefattore Sungun, range k di R&M, intercetta airblast, fori bagnati, numeri di
-frontiera DIN — tutti minori; McKenzie ora verificato al 100%). Le PROPOSTE DI CORREZIONE
+(prefattore Sungun, range k di R&M, intercetta airblast, fori bagnati — tutti
+minori; McKenzie verificato al 100%; frontiere DIN confermate multi-fonte). Le PROPOSTE DI CORREZIONE
 alle soglie (sez. 4 e 4-bis) restano GATED sul fondatore.
 
 ---
@@ -193,8 +193,11 @@ media distanza). Sopra i 100 Hz e ai bordi banda combacia.
 `function dinInterp(f,v10,v50,v100){ if(f<=10)return v10; if(f<=50)return
 v10+(v50-v10)*(f-10)/40; if(f<=100)return v50+(v100-v50)*(f-50)/50; return v100; }`
 con (5,15,20) residenziale, (20,40,50) industriale, (3,8,10) sensibile — la
-struttura esatta della norma. Prima dell'attivazione: ri-confermare i sei numeri
-di frontiera sul testo DIN.
+struttura esatta della norma. **Livello di conferma dei sei numeri di frontiera:
+ALTO** (24/07: 5+ fonti indipendenti concordi su valori e bande — ResearchGate
+"Table 1 DIN 4150-3", Svantek, Micromega, Oculus, ISSMGE; il testo integrale della
+norma resta non accessibile, quindi non "letto in originale" ma la convergenza è
+completa e i valori coincidono con quelli già in Genesi).
 
 ## 6. Airblast — ✅ VERIFICATO in struttura (24/07 mattina)
 
