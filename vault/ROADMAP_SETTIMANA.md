@@ -601,6 +601,13 @@ Completa la ricerca: sotto ogni lista principale un conteggio "N entità · su T
 Terra: nuovo `#*-count`; Scudo: potenziato `pers-count`. Verificato: Conti 2 su 5,
 Terra 4 su 5; zero errori.
 
+### Ciclo 24/07 (mattina): airblast verificato + VOLUME dal ritaglio nel POC
+- **Airblast verificato** (RI 8485): scaling cubico, pendenza −24 dB/decade, 133 dB
+  = OSM standard. Tutte le aree di SICUREZZA di Genesi ora verificate.
+- **volumeCumulo** in pointcloud.js (griglia, 4 test, CI 360) + volume del ritaglio
+  mostrato nel POC ("stima, base piana") + **fix etichette assi** (quota=z per i
+  dati ODM: cursori e riquadro erano invertiti/incoerenti). Guida weekend aggiornata.
+
 ### Ciclo 24/07 (notte): verifiche scienza complete + ricerche Terra/Campo + report turno
 - SCIENZA (direttiva fondatore) — verificati sulle fonti: DIN 4150-3 (rampa
   interpolata, Genesi usa il fine-banda → punto 9 esteso USBM+DIN), Swebrec/KCO

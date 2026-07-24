@@ -125,8 +125,11 @@ Per verificare il flusso a costo zero, col tuo DJI Mini:
 3. **Caricalo in Genesi**: apri il deploy-preview di #321 + `/apps/genesi/nuvola-poc.html`,
    premi **"Carica 3D"** e scegli il file. Va bene il **`.las`** che ti dà ODM
    (o PLY/XYZ per la nuvola, OBJ/GLB per la mesh) — il visore li apre direttamente.
-4. **Isola il fronte**: coi 3 cursori (larghezza/altezza/profondità) stringi il box
-   finché resta solo la faccia della cava; controlla le **dimensioni** (in metri).
+4. **Isola il fronte**: coi 3 cursori (larghezza / profondità / altezza-quota)
+   stringi il box finché resta solo la faccia della cava; controlla **dimensioni**
+   (in metri), **numero di punti** e il **volume stimato** del ritaglio (metodo a
+   griglia, base piana — è una stima, l'etichetta lo dice). Il volume è utile
+   soprattutto se ritagli un CUMULO: è la funzione dei tool a pagamento, gratis.
 5. **Esporta** il fronte ritagliato (.xyz) — servirà per l'aggancio alla volata (passo 3).
 Note: il POC gestisce nuvole grandi (downsample automatico) e coordinate
 georeferenziate (UTM) senza perdere precisione. Il **`.las`** di ODM si carica
