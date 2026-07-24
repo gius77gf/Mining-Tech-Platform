@@ -42,31 +42,33 @@ evoluzione naturale (il motore fisico non si tocca senza suo via libera).
 **Fonte primaria**: Ouchterlony (2005), "The Swebrec function…", *Mining
 Technology*, DOI 10.1179/037178405X44539.
 
-- **[NV]** La funzione Swebrec è una distribuzione a **3 parametri (x50, xmax, b)**
-  introdotta proprio in quel paper, come forma unica per frammentazione da volata E
-  da frantumazione — la nostra implementazione KCO traccia a questa fonte.
-- **[NV]** **Range di validità dichiarato**: fit su centinaia di curve
-  granulometriche VAGLIATE con r² > 0,995 su un range di **2–3 ordini di grandezza**
-  di dimensione. → La forma base è validata su ~2–3 decadi, NON illimitatamente
-  nei fini: questo è il range da mostrare all'utente.
-- **[NV]** Ouchterlony dichiara esplicitamente che inserire la Swebrec nel Kuz-Ram
-  (= modello KCO) **rimuove due difetti noti del Kuz-Ram**: la cattiva predizione
-  dei fini e l'assenza di un taglio superiore. → è la base primaria della scelta
-  già fatta in Genesi (KCO oltre a Kuz-Ram): scelta CONFERMATA dalla letteratura.
+- ✅ **VERIFICATO (24/07, dall'abstract della fonte)**: la Swebrec è a **3
+  parametri (x50, xmax, b)**, forma unica per volata E frantumazione — la nostra
+  implementazione KCO traccia a questa fonte.
+- ✅ **Range di validità verificato**: fit su centinaia di curve granulometriche
+  VAGLIATE con correlazione **0,997 o migliore (r² > 0,995)** su **2–3 ordini di
+  grandezza** di dimensione. → validata su ~2–3 decadi, NON illimitatamente nei
+  fini: è il range da mostrare all'utente.
+- ✅ **Verificato testualmente**: la Swebrec nel Kuz-Ram (= **modello KCO**, nome
+  proposto nello stesso paper) "rimuove due dei suoi difetti: la scarsa capacità
+  predittiva nei fini e l'assenza del taglio superiore alle pezzature". → la
+  scelta già fatta in Genesi (KCO accanto a Kuz-Ram) è CONFERMATA dalla fonte.
 
 ## 3. Incertezza intrinseca — xP-frag (Sanchidrián & Ouchterlony)
 
 **Fonte primaria**: Sanchidrián & Ouchterlony (2017), *Rock Mechanics and Rock
 Engineering*, DOI 10.1007/s00603-016-1131-9.
 
-- **[NV]** xP-frag predice **direttamente i percentili** (dal 5° al 100°) senza
-  assumere alcuna distribuzione; calibrato con regressioni su **169 volate reali**
-  con curve granulometriche da **vagliatura** (non da foto).
-- **[NV]** Errore atteso di xP-frag: **< 25% a qualunque percentile**, cioè da metà
-  a un terzo dell'errore dei migliori modelli preesistenti → i modelli tipo
-  Kuz-Ram/KCO hanno errori attesi dell'ordine del **50–75%**.
-- **[NV]** Il modello incorpora l'effetto del **ritardo tra fori** (timing) sulla
-  frammentazione.
+- ✅ **VERIFICATO (24/07)**: xP-frag predice **direttamente i percentili dal 5°
+  al 100°** senza assumere alcuna distribuzione ("distribution-free"); parametri
+  calibrati su **169 volate a gradone reali** in siti e litologie diverse.
+  Citazione esatta: *Rock Mechanics and Rock Engineering* **50: 781-806 (2017)**.
+- ✅ **Errore atteso verificato: < 25% a qualunque percentile** (testuale). Il
+  rapporto "metà-un terzo dei modelli preesistenti" (→ Kuz-Ram/KCO ~50-75%) resta
+  inferenza dall'abstract, ragionevole ma da citare come tale.
+- ✅ Il modello incorpora fattori di forma del gradone, rapporto
+  resistenza/energia e scala; l'effetto del **ritardo** è parte del quadro
+  (fragmentation-energy fan degli stessi autori).
 
 **Implicazione per Genesi (onestà, priorità alta)**: dichiarare all'utente la
 **banda d'incertezza** delle previsioni di frammentazione (ordine ±50% senza
