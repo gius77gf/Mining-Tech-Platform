@@ -109,6 +109,7 @@
     <button class="dw-btn" id="btn-add-rap" style="width:auto;">Crea bozza</button>
   </div>
   <button class="dw-btn secondary" id="btn-consegna" style="width:auto;margin-top:8px;">Esporta consegna turno (testo)</button>
+  <button class="dw-btn secondary" id="btn-rapporto-turno" style="width:auto;margin-top:8px;margin-left:6px;">🖨 Rapporto di fine turno</button>
   <div class="note" id="mode-note" style="text-align:left;"></div>
 
   <div class="sec">Piano di carico (da Genesi)</div>
@@ -374,6 +375,36 @@
     el.href = "data:text/plain;charset=utf-8," + encodeURIComponent(txt);
     el.download = "consegna_turno.txt"; el.click();
     $("mode-note").textContent = "Consegna di turno esportata (" + RAP.length + " rapportini, " + fermi.length + " causali di fermo).";
+  };
+  // Rapporto di fine turno STAMPABILE (stesso pattern del report di Genesi):
+  // il deliverable che i supervisori si aspettano — solo dati già presenti.
+  $("btn-rapporto-turno").onclick = () => {
+    const oggi = new Date().toLocaleDateString("it-IT");
+    const av = avanzamentoGiornata(ATT), fermi = riepilogoFermi(ATT), cop = coperturaRapportini(SQU, RAP);
+    const st = { "in-corso": "In corso", pianificata: "Pianificata", conclusa: "Conclusa", anomalia: "ANOMALIA" };
+    const riga = (a) => `<tr><td>${esc(a.titolo)}</td><td>${esc(a.dettaglio||"")}</td><td>${st[a.stato]||esc(a.stato)}${a.stato==="anomalia"&&a.causale?" — "+esc(a.causale):""}</td></tr>`;
+    const ordR = { anomalia:0, "in-corso":1, pianificata:2, conclusa:3 };
+    const html = `<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><title>Rapporto di fine turno — ${oggi}</title>
+<style>body{font:13px/1.45 sans-serif;color:#222;margin:28px;max-width:800px}h1{font-size:19px;margin:0 0 2px}h2{font-size:14px;margin:18px 0 6px;border-bottom:1px solid #999;padding-bottom:2px}
+table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px 8px;text-align:left;font-size:12px}th{background:#f2f2f2}
+.muted{color:#666;font-size:11px}.kpi{display:inline-block;margin-right:18px}.kpi b{font-size:17px}</style></head><body>
+<h1>Rapporto di fine turno</h1><div class="muted">Deepwork Campo · ${oggi}</div>
+<h2>Quadro</h2>
+<div><span class="kpi"><b>${av.concluse}/${av.totale}</b> attività concluse</span>
+<span class="kpi"><b>${ATT.filter(a=>a.stato==="anomalia").length}</b> anomalie aperte</span>
+<span class="kpi"><b>${cop.coperte}/${cop.totale}</b> squadre con rapportino</span></div>
+<h2>Attività</h2>
+<table><tr><th>Attività</th><th>Dettaglio</th><th>Stato</th></tr>${ATT.slice().sort((a,b)=>(ordR[a.stato]??4)-(ordR[b.stato]??4)).map(riga).join("")||"<tr><td colspan=3>Nessuna attività registrata.</td></tr>"}</table>
+<h2>Fermi per causale</h2>
+${fermi.length?`<table><tr><th>Causale</th><th>Anomalie</th></tr>${fermi.map(f=>`<tr><td>${esc(f.causale)}</td><td>${f.conto}</td></tr>`).join("")}</table>`:"<div>Nessuna anomalia aperta.</div>"}
+<h2>Rapportini</h2>
+${RAP.length?`<table><tr><th>Titolo</th><th>Squadra · turno</th><th>Produzione</th><th>Consegne al turno dopo</th><th>Stato</th></tr>${RAP.map(r=>`<tr><td>${esc(r.titolo)}</td><td>${esc(r.squadra||"—")}${r.turno?" · "+esc(r.turno):""}</td><td>${esc(r.produzione||"—")}</td><td>${esc(r.note||"—")}</td><td>${esc(r.stato)}${r.ora?" "+esc(r.ora):""}</td></tr>`).join("")}</table>`:"<div>Nessun rapportino oggi.</div>"}
+${cop.mancanti.length?`<div class="muted" style="margin-top:6px">Squadre senza rapportino: ${cop.mancanti.map(esc).join(", ")}.</div>`:""}
+<div class="muted" style="margin-top:20px">Generato da Deepwork Campo — registro operativo di giornata; non sostituisce i registri obbligatori.</div>
+<script>window.print()</` + `script></body></html>`;
+    const w = window.open("", "_blank"); if(!w){ $("mode-note").textContent = "Sblocca i popup per stampare il rapporto."; return; }
+    w.document.write(html); w.document.close();
+    $("mode-note").textContent = "Rapporto di fine turno aperto per la stampa.";
   };
   // Recupero errore: appena l'utente corregge un campo, togli il bordo
   // rosso (e il messaggio, dove c'è) così l'avviso non resta appeso.
