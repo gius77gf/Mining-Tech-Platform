@@ -163,10 +163,36 @@ verificare a parte (non coperti da questa fonte).
   in Genesi che vieta di usare la stima per definire le aree di sgombero reali —
   scelta CORRETTA e da mantenere).
 
+## 4-bis. DIN 4150-3 — ✅ VERIFICATO il fatto strutturale (24/07 notte)
+
+**Fonti**: convergenza multi-fonte (Micromega Dynamics, Oculus Monitoring, ISSMGE
+TC203, tabelle riprodotte in letteratura) — i PDF integrali erano inaccessibili
+stanotte, quindi i NUMERI di frontiera vanno ri-confermati sul testo della norma,
+ma il fatto chiave è confermato da più fonti indipendenti:
+- ✅ La Tabella 1 di DIN 4150-3 (breve durata, in fondazione) dà limiti **in
+  funzione della frequenza** per 3 classi (industriale / residenziale / sensibile),
+  con range **20→50 / 5→20 / 3→10 mm/s** — che combaciano coi valori di frontiera
+  usati da Genesi;
+- ✅ **I valori intermedi si calcolano per INTERPOLAZIONE LINEARE** dentro le
+  bande (10–50 Hz e 50–100 Hz): la norma è una rampa, NON un gradino.
+
+### ➜ CONFRONTO COL CODICE: stessa semplificazione del caso USBM
+`ppvLimit()` applica il valore di FINE banda a tutta la banda (es. residenziale:
+f<50 → 15 mm/s). Rispetto alla rampa DIN: a **20 Hz** la norma interpolata dà
+**≈7,5 mm/s**, Genesi concede **15** → **meno conservativo fino a ~2×** nella
+parte bassa delle bande (11–30 Hz, che è proprio la banda tipica delle volate a
+media distanza). Sopra i 100 Hz e ai bordi banda combacia.
+**Proposta pronta (stessa decisione del punto USBM — attende via libera):**
+`function dinInterp(f,v10,v50,v100){ if(f<=10)return v10; if(f<=50)return
+v10+(v50-v10)*(f-10)/40; if(f<=100)return v50+(v100-v50)*(f-50)/50; return v100; }`
+con (5,15,20) residenziale, (20,40,50) industriale, (3,8,10) sensibile — la
+struttura esatta della norma. Prima dell'attivazione: ri-confermare i sei numeri
+di frontiera sul testo DIN.
+
 ## 5-bis. Aree ancora da completare
 - **Airblast** (RI 8485): raccolto solo parzialmente (scaling cubico ✅).
 - **Fori bagnati / decoupling / decking**: non ancora coperti.
-- **DIN 4150-3** (i rami din-* di ppvLimit): da verificare a parte.
+- **Numeri di frontiera DIN** da ri-confermare sul testo della norma (sopra).
 
 ## 6. Prossimi passi (ordine)
 1. **Verificare i claim [NV]** aprendo le fonti (dopo il reset del limite).

@@ -114,10 +114,13 @@ può procedere con l'attuazione.
   le frequenze molto basse (~4 Hz), sono **meno prudenti** della curva ufficiale
   USBM (e tra 15–40 Hz più severi del necessario). La correzione esatta, con la
   fonte, è pronta in `docs/GENESI_FONTI_SCIENTIFICHE.md` (sezione 4).
-- **Decisione che serve**: via libera ad applicare la curva USBM esatta al posto
-  del gradino semplificato (tocca soglie di SICUREZZA → per regola non lo faccio
-  da solo). È una modifica piccola, più prudente dove conta, con fonte citata.
-- [ ] Via libera alla curva USBM esatta in ppvLimit
+- **Decisione che serve**: via libera ad applicare le curve esatte al posto dei
+  gradini semplificati (tocca soglie di SICUREZZA → per regola non lo faccio da
+  solo). Vale per ENTRAMBI i rami: la curva **USBM** (sotto ~4 Hz siamo meno
+  prudenti) e le rampe **DIN 4150-3** (la norma interpola linearmente: a 20 Hz
+  residenziale concediamo 15 mm/s dove la norma interpolata dà ~7,5). Modifica
+  piccola, più prudente dove conta, con fonti citate (sez. 4 e 4-bis del doc).
+- [ ] Via libera alle curve esatte (USBM + DIN) in ppvLimit
 
 ---
 
