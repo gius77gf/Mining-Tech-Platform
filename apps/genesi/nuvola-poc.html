@@ -46,8 +46,8 @@
   <div id="crop">
     <h2>Ritaglio del fronte</h2>
     <div class="cf"><span>Larghezza</span><input type="range" id="xmin" min="0" max="100" value="0"><input type="range" id="xmax" min="0" max="100" value="100"></div>
-    <div class="cf"><span>Altezza</span><input type="range" id="ymin" min="0" max="100" value="0"><input type="range" id="ymax" min="0" max="100" value="100"></div>
-    <div class="cf"><span>Profondità</span><input type="range" id="zmin" min="0" max="100" value="0"><input type="range" id="zmax" min="0" max="100" value="100"></div>
+    <div class="cf"><span>Profondità</span><input type="range" id="ymin" min="0" max="100" value="0"><input type="range" id="ymax" min="0" max="100" value="100"></div>
+    <div class="cf"><span>Altezza (quota)</span><input type="range" id="zmin" min="0" max="100" value="0"><input type="range" id="zmax" min="0" max="100" value="100"></div>
     <div id="cropdim" style="font-size:10.5px;color:var(--mut2);margin-top:4px"></div>
     <button class="btn sec" id="export" style="margin-top:8px">Esporta ritaglio (.xyz)</button>
   </div>
@@ -61,7 +61,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { parseXYZ, parsePLY, parseLAS, preShiftOBJ } from './pointcloud.js';
+import { parseXYZ, parsePLY, parseLAS, preShiftOBJ, volumeCumulo } from './pointcloud.js';
 
 const $ = id => document.getElementById(id);
 
@@ -203,8 +203,17 @@ function updateCrop(){
   if(obj&&obj.isPoints){ const a=obj.geometry.attributes.position.array; let n=0;
     for(let i=0;i<a.length;i+=3){ if(insideCrop(a[i],a[i+1],a[i+2])) n++; }
     cntTxt=' · <b style="color:var(--tx)">'+n.toLocaleString('it-IT')+' punti</b>'; }
-  const _um = (Math.abs(offset.x) > 10000 || Math.abs(offset.y) > 10000) ? 'metri' : 'unità nuvola';
-  $('cropdim').innerHTML='Ritaglio: <b style="color:var(--tx)">'+(x1-x0).toFixed(1)+' L × '+(y1-y0).toFixed(1)+' H × '+(z1-z0).toFixed(1)+' P</b> ('+_um+')'+cntTxt;
+  const _georef = (Math.abs(offset.x) > 10000 || Math.abs(offset.y) > 10000);
+  const _um = _georef ? 'metri' : 'unità nuvola';
+  // volume del ritaglio (solo nuvole, metodo griglia — stessa convenzione z=quota di ODM)
+  let volTxt='';
+  if(obj&&obj.isPoints){
+    const a=obj.geometry.attributes.position.array, sel=[];
+    for(let i=0;i<a.length;i+=3){ if(insideCrop(a[i],a[i+1],a[i+2])) sel.push(a[i],a[i+1],a[i+2]); }
+    if(sel.length>=90){ try{ const v=volumeCumulo(sel, Math.max(0.25, Math.min(2,(x1-x0)/60)));
+      volTxt=' · volume ≈ <b style="color:var(--tx)">'+Math.round(v.volume).toLocaleString('it-IT')+(_georef?' m³':' u³')+'</b> <span style="color:var(--mut)">(griglia, base piana — stima)</span>'; }catch(e){} }
+  }
+  $('cropdim').innerHTML='Ritaglio: <b style="color:var(--tx)">'+(x1-x0).toFixed(1)+' L × '+(z1-z0).toFixed(1)+' H × '+(y1-y0).toFixed(1)+' P</b> ('+_um+')'+cntTxt+volTxt;
 }
 
 function insideCrop(x,y,z){ const c=window._crop; return x>=c.x0&&x<=c.x1&&y>=c.y0&&y<=c.y1&&z>=c.z0&&z<=c.z1; }

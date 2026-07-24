@@ -138,6 +138,36 @@ test("parseLAS: LAZ (bit 7 del formato) e firma errata lanciano", () => {
   ok(e1, "LAZ compresso lanciato con messaggio LAZ"); ok(e2, "firma errata lanciata");
 });
 
+console.log("\n— pointcloud: volumeCumulo (volume del ritaglio a griglia) —");
+function boxCloud(w, d, h, step) {   // prisma pieno: superficie a quota h su base w×d + punti di base
+  const pos = [];
+  for (let x = 0; x <= w; x += step) for (let y = 0; y <= d; y += step) { pos.push(x, y, h); pos.push(x, y, 0); }
+  return pos;
+}
+test("volumeCumulo: prisma 10×8×2 → ~160 m³ (entro il 12%, errore di bordo griglia)", () => {
+  const r = pc.volumeCumulo(boxCloud(10, 8, 2, 0.25), 0.5);
+  ok(Math.abs(r.volume - 160) / 160 < 0.12, `atteso ~160, ottenuto ${r.volume.toFixed(1)}`);
+  ok(r.zBase === 0 && r.celle > 0, "base e celle");
+});
+test("volumeCumulo: invariante per traslazione (coordinate centrate o UTM)", () => {
+  const a = pc.volumeCumulo(boxCloud(10, 8, 2, 0.25), 0.5).volume;
+  const posT = boxCloud(10, 8, 2, 0.25).map((v, i) => v + [512000, 5043000, 100][i % 3]);
+  const b = pc.volumeCumulo(posT, 0.5).volume;
+  ok(Math.abs(a - b) < 1e-6, `traslato deve dare lo stesso volume (${a.toFixed(2)} vs ${b.toFixed(2)})`);
+});
+test("volumeCumulo: superficie inclinata (cuneo) ≈ metà del prisma", () => {
+  const pos = [];
+  for (let x = 0; x <= 10; x += 0.25) for (let y = 0; y <= 8; y += 0.25) { pos.push(x, y, 2 * x / 10); pos.push(x, y, 0); }
+  const r = pc.volumeCumulo(pos, 0.5);
+  ok(Math.abs(r.volume - 80) / 80 < 0.15, `atteso ~80 (cuneo), ottenuto ${r.volume.toFixed(1)}`);
+});
+test("volumeCumulo: pochi punti o cella non valida → errore chiaro", () => {
+  let e1 = false, e2 = false;
+  try { pc.volumeCumulo([1, 2, 3, 4, 5, 6]); } catch (e) { e1 = /pochi punti/.test(e.message); }
+  try { pc.volumeCumulo(boxCloud(4, 4, 1, 0.5), 0); } catch (e) { e2 = /cella/.test(e.message); }
+  ok(e1, "pochi punti lancia"); ok(e2, "cella 0 lancia");
+});
+
 console.log("\n— pointcloud: preShiftOBJ (precisione UTM) —");
 test("preShiftOBJ: primo vertice come origine, coordinate piccole, offset restituito", () => {
   const r = pc.preShiftOBJ("v 512345 5043210 100\nv 512346 5043211 101\n");

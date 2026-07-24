@@ -123,6 +123,39 @@ export function parseLAS(buf, maxpts = MAXPTS) {
   return { count: pos.length / 3, pos, col, total: count, step };
 }
 
+// ---- Volume del ritaglio (metodo a griglia, come i tool di volumetria drone):
+// i punti (x,y,z con z=quota, convenzione ODM/LAS) vengono proiettati su una
+// griglia XY di lato cellM; per ogni cella si prende la quota MASSIMA (superficie)
+// e si integra sopra il piano di base z=minimo del ritaglio. Assunzione ONESTA:
+// il ritaglio contiene un cumulo/rilievo sopra una base ~piana — è una STIMA
+// (stessa famiglia del metodo standard dei tool commerciali), non una misura
+// certificata. Funziona anche su coordinate centrate (contano solo le differenze). ----
+export function volumeCumulo(pos, cellM = 0.5) {
+  const n = Math.floor(pos.length / 3);
+  if (n < 30) throw new Error('troppi pochi punti per stimare un volume');
+  if (!(cellM > 0)) throw new Error('lato cella non valido');
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, minZ = Infinity;
+  for (let i = 0; i < n; i++) {
+    const x = pos[3*i], y = pos[3*i+1], z = pos[3*i+2];
+    if (x < minX) minX = x; if (x > maxX) maxX = x;
+    if (y < minY) minY = y; if (y > maxY) maxY = y;
+    if (z < minZ) minZ = z;
+  }
+  const W = Math.max(1, Math.ceil((maxX - minX) / cellM));
+  const H = Math.max(1, Math.ceil((maxY - minY) / cellM));
+  if (W * H > 4e6) throw new Error('area troppo estesa per questa cella: aumenta il lato');
+  const top = new Float64Array(W * H).fill(-Infinity);
+  for (let i = 0; i < n; i++) {
+    const cx = Math.min(W - 1, Math.floor((pos[3*i] - minX) / cellM));
+    const cy = Math.min(H - 1, Math.floor((pos[3*i+1] - minY) / cellM));
+    const k = cy * W + cx, z = pos[3*i+2];
+    if (z > top[k]) top[k] = z;
+  }
+  let vol = 0, filled = 0;
+  for (let k = 0; k < W * H; k++) if (top[k] > -Infinity) { filled++; vol += (top[k] - minZ) * cellM * cellM; }
+  return { volume: vol, areaCelle: filled * cellM * cellM, celle: filled, zBase: minZ, cella: cellM };
+}
+
 // ---- Pre-shift OBJ: trasla i vertici in DOPPIA precisione (primo vertice come
 // origine) PRIMA di OBJLoader, che altrimenti li mette in Float32 perdendo
 // precisione sulle coordinate georeferenziate (UTM ~5.000.000). ----
