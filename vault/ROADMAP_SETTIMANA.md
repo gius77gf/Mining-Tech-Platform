@@ -601,6 +601,16 @@ Completa la ricerca: sotto ogni lista principale un conteggio "N entità · su T
 Terra: nuovo `#*-count`; Scudo: potenziato `pers-count`. Verificato: Conti 2 su 5,
 Terra 4 su 5; zero errori.
 
+### Ciclo 24/07 (notte): verifiche scienza complete + ricerche Terra/Campo + report turno
+- SCIENZA (direttiva fondatore) — verificati sulle fonti: DIN 4150-3 (rampa
+  interpolata, Genesi usa il fine-banda → punto 9 esteso USBM+DIN), Swebrec/KCO
+  (r²>0,995, KCO conferma la scelta di Genesi), xP-frag (errore <25%, 169 volate).
+  Nel report di Genesi ora è DICHIARATA la banda ±50% senza calibrazione (solo testo).
+- RICERCHE: Terra (proposto volume-dal-ritaglio nel browser → chiude il flusso
+  drone) e Campo (handover già nostro; report fine turno) — ora TUTTE le 7 superfici
+  hanno il confronto competitor.
+- CAMPO: **rapporto di fine turno stampabile** implementato e verificato (non-gated).
+
 ### Ciclo 23/07 (notte): direttive fondatore — scienza + estetica 3D
 Il fondatore (in chat, su Fable) ha chiesto: (1) fondare Genesi sulla letteratura
 scientifica; (2) estetica 3D professionale stile Paradigm. Due deep-research fatte:
