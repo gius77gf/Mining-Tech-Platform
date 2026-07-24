@@ -9,8 +9,8 @@ sulle fonti** e confrontate col codice — ✅ vibrazioni USBM (curva Z letta da
 figura originale), ✅ DIN 4150-3 (fatto strutturale multi-fonte), ✅ flyrock
 (Richards & Moore / Lundborg / McKenzie), ✅ frammentazione (Swebrec/KCO e xP-frag
 dagli abstract). Le voci ancora marcate **[NV]** sono minori e non bloccanti
-(prefattore Sungun, range k di R&M, airblast RI 8485, fori bagnati, numeri di
-frontiera DIN da ri-confermare sul testo della norma). Le PROPOSTE DI CORREZIONE
+(prefattore Sungun, range k di R&M, intercetta airblast, fori bagnati, numeri di
+frontiera DIN — tutti minori; McKenzie ora verificato al 100%). Le PROPOSTE DI CORREZIONE
 alle soglie (sez. 4 e 4-bis) restano GATED sul fondatore.
 
 ---
@@ -149,10 +149,14 @@ verificare a parte (non coperti da questa fonte).
   sin(2θ)). La struttura di Genesi è quella pubblicata.
 - ✅ **Tetto di Lundborg (1975) confermato**: Lm = 260·d^⅔ (d in POLLICI). Il
   codice usa 30,1·d^⅔ con d in mm = **conversione esatta** (260/25,4^⅔ = 30,14). ✓
-- ✅ **McKenzie (2009)** = modello su scaled depth of burial (radice cubica),
-  giudicato dalla review 2020 **il più efficace** per la stima della gittata →
-  la scelta di Genesi di includerlo è supportata. **[NV]** restano da pinnare gli
-  esponenti esatti usati nel codice (−2,167 e 0,667) contro il testo di McKenzie.
+- ✅ **McKenzie (2009) VERIFICATO AL 100%** (24/07): la formula pubblicata è
+  **Range_max = 10 · SDOB^(−2,167) · Ø^0,667** (Ø in mm, SDOB in m/kg^⅓) —
+  **identica al codice** di Genesi (coefficiente 10 ed entrambi gli esponenti).
+  Anche la definizione di SDOB nel codice (borraggio + 5Ø sulla radice cubica
+  della carica nei primi 10Ø) segue la convenzione standard (centro della carica
+  di testa). Bonus dalla stessa fonte: esiste la formula gemella per la PEZZATURA
+  del frammento (3,1·SDOB^−2,167·Ø^0,667·(2,6/ρ)) — possibile estensione futura.
+  E la review 2020 giudica l'approccio SDOB **il più efficace** per la gittata.
 - ✅ (parziale) **Fattori di sicurezza**: il fattore **×2** sulla gittata prevista è
   confermato come "minimo appropriato" nella prassi Terrock/R&M (con moltiplicatori
   separati mezzi/persone come input standard); il **×4 persone** usato da Genesi è
