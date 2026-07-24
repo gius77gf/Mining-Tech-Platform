@@ -144,6 +144,14 @@ export function volumeCumulo(pos, cellM = 0.5) {
   const W = Math.max(1, Math.ceil((maxX - minX) / cellM));
   const H = Math.max(1, Math.ceil((maxY - minY) / cellM));
   if (W * H > 4e6) throw new Error('area troppo estesa per questa cella: aumenta il lato');
+  // base ROBUSTA: 2° percentile delle quote, non il minimo assoluto — un singolo
+  // punto spurio sotto il piano (rumore tipico dei droni consumer) gonfierebbe il
+  // volume di (errore × area). Percentile su campione a passo fisso (deterministico).
+  const stride = Math.max(1, Math.floor(n / 50000));
+  const zs = [];
+  for (let i = 0; i < n; i += stride) zs.push(pos[3*i+2]);
+  zs.sort((a, b) => a - b);
+  const zBase = zs[Math.min(zs.length - 1, Math.floor(zs.length * 0.02))];
   const top = new Float64Array(W * H).fill(-Infinity);
   for (let i = 0; i < n; i++) {
     const cx = Math.min(W - 1, Math.floor((pos[3*i] - minX) / cellM));
@@ -152,8 +160,8 @@ export function volumeCumulo(pos, cellM = 0.5) {
     if (z > top[k]) top[k] = z;
   }
   let vol = 0, filled = 0;
-  for (let k = 0; k < W * H; k++) if (top[k] > -Infinity) { filled++; vol += (top[k] - minZ) * cellM * cellM; }
-  return { volume: vol, areaCelle: filled * cellM * cellM, celle: filled, zBase: minZ, cella: cellM };
+  for (let k = 0; k < W * H; k++) if (top[k] > -Infinity) { filled++; vol += Math.max(0, top[k] - zBase) * cellM * cellM; }
+  return { volume: vol, areaCelle: filled * cellM * cellM, celle: filled, zBase, cella: cellM };
 }
 
 // ---- Pre-shift OBJ: trasla i vertici in DOPPIA precisione (primo vertice come

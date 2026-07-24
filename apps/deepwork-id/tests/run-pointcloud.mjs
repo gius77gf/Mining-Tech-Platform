@@ -161,6 +161,14 @@ test("volumeCumulo: superficie inclinata (cuneo) ≈ metà del prisma", () => {
   const r = pc.volumeCumulo(pos, 0.5);
   ok(Math.abs(r.volume - 80) / 80 < 0.15, `atteso ~80 (cuneo), ottenuto ${r.volume.toFixed(1)}`);
 });
+test("volumeCumulo: robusto a un punto spurio sotto il piano (rumore drone)", () => {
+  // stessa scena del prisma + UN punto a z=-50: con base=minimo il volume
+  // esploderebbe (+50·area); con base al 2° percentile resta ~160.
+  const pos = boxCloud(10, 8, 2, 0.25); pos.push(5, 4, -50);
+  const r = pc.volumeCumulo(pos, 0.5);
+  ok(Math.abs(r.volume - 160) / 160 < 0.12, `outlier non assorbito: ${r.volume.toFixed(1)} (atteso ~160)`);
+  ok(Math.abs(r.zBase - 0) < 0.5, `base deve restare ~0, è ${r.zBase}`);
+});
 test("volumeCumulo: pochi punti o cella non valida → errore chiaro", () => {
   let e1 = false, e2 = false;
   try { pc.volumeCumulo([1, 2, 3, 4, 5, 6]); } catch (e) { e1 = /pochi punti/.test(e.message); }
