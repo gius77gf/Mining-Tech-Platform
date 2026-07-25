@@ -34,6 +34,10 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
 #view{position:fixed;inset:0}
 #view canvas{display:block}
 .hud{position:fixed;z-index:10;user-select:none}
+#holeInfo{left:16px;bottom:128px;background:linear-gradient(160deg,rgba(36,26,13,.95),rgba(23,17,10,.95));border:1px solid rgba(255,213,79,.3);border-radius:12px;padding:10px 30px 10px 12px;font-size:11.5px;line-height:1.5;color:var(--tx);box-shadow:0 14px 40px rgba(0,0,0,.5)}
+#holeInfo b{color:var(--cu)}
+#holeInfo button{position:absolute;top:6px;right:6px;background:none;border:none;color:var(--mut);cursor:pointer;font-size:11px;padding:2px}
+#holeInfo button:hover{color:var(--tx)}
 /* ---- brand ---- */
 #brand{top:14px;left:16px;display:flex;align-items:center;gap:10px;pointer-events:none}
 #brand .mark{display:flex;align-items:center;justify-content:center}
@@ -598,6 +602,8 @@ body.scr-sim #tl{bottom:80px}
   <label class="lay"><input type="checkbox" id="lAudio" checked> Boato + scossa camera</label>
   <div class="mini">Parametri della volata: schermata 2D.</div>
 </div>
+
+<div class="hud" id="holeInfo" style="display:none"></div>
 
 <div class="hud" id="tl">
   <div id="tlrow1">
@@ -1196,10 +1202,9 @@ function buildScene(){
   /* pannelli per-foro (il fronte da sparare; le file dietro stanno più in profondità).
      Rumore continuo nel mondo (bordi combacianti) + texture sfalsata per pannello + shear di inclinazione → parete unica e naturale, non "riquadri". */
   panels = [];
-  const _tanI = Math.tan((D2.incl||0)*Math.PI/180);
   for(const f of SIM.fori){
     const pgeo = new THREE.BoxGeometry(INTERASSE, f.h, SPALLA, 4, 7, 3);
-    if(_tanI){ const a=pgeo.attributes.position.array; for(let i=0;i<a.length;i+=3) a[i+2]+=(a[i+1]+f.h/2)*_tanI; }   // fronte inclinato come i fori (cresta arretrata)
+    /* fondatore 25/07: l'inclinazione riguarda i FORI, il fronte resta com'e' */
     const pos = new THREE.Vector3(f.x, f.h/2, SPALLA/2 + f.cz + (f.zoff||0));
     worldJitter(pgeo, pos, 0.62);
     const pm = rockMat(_lt); pm.transparent = true;               // per la vista raggi-X
@@ -1765,9 +1770,46 @@ function readParams(){
 for(const id of Object.keys(layers)){
   $(id).onchange = e=>{ layers[id] = e.target.checked; renderSim(simT, true); if(id==='lAudio'&&playing){ cancelAudio(); if(layers.lAudio) scheduleBooms(); } };
 }
-if($('xrOp')) $('xrOp').oninput = e=>{ xrayOp = (+e.target.value||32)/100; if(layers.lXray) renderSim(simT, true); };
+if($('xrOp')) $('xrOp').oninput = e=>{ xrayOp = (+e.target.value||32)/100;
+  if(!layers.lXray){ layers.lXray=true; if($('lXray')) $('lXray').checked=true; }   // il cursore mostra i fori da solo (fondatore 25/07)
+  renderSim(simT, true); };
 if($('btnHelp')) $('btnHelp').onclick = ()=>{ const h=$('helpcard'); h.style.display = h.style.display==='none' ? 'block' : 'none'; };
 if($('btnHelpClose')) $('btnHelpClose').onclick = ()=>{ $('helpcard').style.display='none'; };
+/* ===== interazione col SINGOLO FORO (fondatore 25/07): con la vista fori attiva,
+   un clic sul foro apre la sua scheda (n°, fila, tempo, profondità, carica) ===== */
+let holeSel=null;
+const holeRay=new THREE.Raycaster(), holeV2=new THREE.Vector2();
+function holeInfoHide(){ const el=$('holeInfo'); if(el) el.style.display='none';
+  if(holeSel){ holeSel.traverse(o=>{ if(o.material&&o.material.emissiveIntensity!=null&&o.userData._ei0!=null){ o.material.emissiveIntensity=o.userData._ei0; } }); holeSel=null; } }
+function holeInfoShow(g){
+  holeInfoHide();
+  holeSel=g; g.traverse(o=>{ if(o.material&&o.material.emissiveIntensity!=null){ o.userData._ei0=o.material.emissiveIntensity; o.material.emissiveIntensity=Math.min(1.2,(o.material.emissiveIntensity||0.2)*2.5+0.3); } });
+  const f=g.userData.f||{}; const fila=Math.round((f.zoff||0)/Math.max(1,SPALLA))+1;
+  const el=$('holeInfo'); if(!el) return;
+  el.innerHTML='<b>Foro '+((f.i!=null?f.i:0)+1)+'</b> · fila '+fila
+    +'<br>spara a <b>'+Math.round(f.tDet||0)+' ms</b>'
+    +'<br>profondità '+(+(f.h||P.prof)).toFixed(1)+' m · carica '+Math.round(P.kg)+' kg'
+    +'<br>borraggio '+(+D2.stem).toFixed(1)+' m · Ø'+P.diam+' mm'
+    +'<button id="holeInfoX" title="Chiudi">✕</button>';
+  el.style.display='block';
+  const x=$('holeInfoX'); if(x) x.onclick=holeInfoHide;
+}
+renderer.domElement.addEventListener('pointerdown', e=>{
+  if(modella || !xrayGroup || !xrayGroup.visible) return;
+  const r=renderer.domElement.getBoundingClientRect();
+  holeV2.set(((e.clientX-r.left)/r.width)*2-1, -((e.clientY-r.top)/r.height)*2+1);
+  holeRay.setFromCamera(holeV2, cam);
+  const hit=holeRay.intersectObjects(xrayGroup.children, true)[0];
+  if(hit){ let g=hit.object; while(g && !(g.userData&&g.userData.f)) g=g.parent; if(g){ holeInfoShow(g); return; } }
+  /* i cilindri sono sottili: se il clic cade sulla parete, seleziona il foro più vicino */
+  const wall=holeRay.intersectObjects(panels||[], false)[0];
+  if(!wall) return;
+  let best=null, bd=Infinity;
+  for(const g of xrayGroup.children){ const f=g.userData&&g.userData.f; if(!f) continue;
+    const d=Math.abs(g.position.x-wall.point.x)+Math.abs(g.position.z-wall.point.z)*0.5;
+    if(d<bd){ bd=d; best=g; } }
+  if(best && bd<INTERASSE) holeInfoShow(best);
+});
 /* ===== Modellazione fronte in 3D — proportional editing stile Blender: trascini una maniglia sulla cresta, le vicine seguono con falloff gaussiano ===== */
 let modella=false, mdlHandles=[], mdlDrag=-1, mdlBase=null, mdlGroup=null;
 const mdlRay=new THREE.Raycaster(), mdlV2=new THREE.Vector2(), mdlPlane=new THREE.Plane(new THREE.Vector3(0,1,0), 0);
