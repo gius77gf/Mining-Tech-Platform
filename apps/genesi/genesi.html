@@ -278,14 +278,18 @@ body.scr-sim #tl{bottom:80px}
 .sv-h b{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;letter-spacing:.04em;color:var(--tx);text-transform:uppercase}
 .sv-h .sv-sub{font-size:10.5px;color:var(--mut);margin-left:auto;text-align:right;line-height:1.3}
 .sv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:9px}
-.sv-row{display:flex;gap:9px;align-items:flex-start;background:rgba(255,255,255,.015);border:1px solid var(--line);border-radius:11px;padding:9px 10px}
+.sv-row{display:flex;gap:9px;align-items:flex-start;background:rgba(255,255,255,.015);border:1px solid var(--line);border-radius:11px;padding:9px 10px;cursor:pointer;transition:border-color .16s,background .16s}
+.sv-row:hover{border-color:rgba(255,213,79,.32);background:rgba(255,255,255,.03)}
+.sv-chev{flex:none;margin-left:auto;margin-top:4px;color:var(--mut2);font-size:9px;transition:transform .18s}
+.sv-row.open .sv-chev{transform:rotate(180deg);color:var(--cu)}
 .sv-dot{flex:none;width:9px;height:9px;border-radius:50%;margin-top:5px;box-shadow:0 0 8px currentColor}
 .sv-ok{color:#66bb6a}.sv-warn{color:#ffb300}.sv-bad{color:#ef5350}.sv-info{color:#86b0d8}
 .sv-tx{min-width:0}
 .sv-lab{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}
 .sv-val{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;line-height:1.05;color:var(--tx)}
 .sv-val span{font-size:11px;font-weight:600;color:var(--mut2)}
-.sv-why{font-size:11px;color:var(--mut2);line-height:1.42;margin-top:3px}
+.sv-why{display:none;font-size:11px;color:var(--mut2);line-height:1.42;margin-top:5px;padding-top:5px;border-top:1px dashed rgba(255,228,180,.14)}
+.sv-row.open .sv-why{display:block}
 .sv-scale{margin-top:13px}
 .sv-scale .sv-lab{margin-bottom:6px}
 .sv-bar{position:relative;height:12px;border-radius:7px;overflow:hidden;display:flex}
@@ -2511,6 +2515,16 @@ function renderInspector(){
 (function(){ const cv=$('d2-canvas'); if(cv){ cv.addEventListener('pointerdown',d2Down); cv.addEventListener('pointermove',d2Move); window.addEventListener('pointerup',d2Up); } })();
 
 /* ===== Fase 0 — scheda volata: validatore di progetto live (regole + "perché") ===== */
+/* stato "aperto" delle voci della scheda (persiste tra i ricalcoli) + clic delegato */
+const SVOPEN=new Set();
+(function(){ const el=$('d2-scheda'); if(!el) return;
+  el.addEventListener('click',e=>{
+    const row=e.target.closest('.sv-row'); if(!row) return;
+    const lab=row.getAttribute('data-lab')||'';
+    if(SVOPEN.has(lab)){ SVOPEN.delete(lab); row.classList.remove('open'); }
+    else { SVOPEN.add(lab); row.classList.add('open'); }
+  });
+})();
 function renderScheda2D(){
   const el=$('d2-scheda'); if(!el) return; const g=measureGeom2D();
   if($('d2-mat')) $('d2-mat').textContent='⛏ '+(selEsplosivo()?selEsplosivo().nome.split(' ')[0]:'—')+' · '+(selInnesco()?selInnesco().short:'—')+(D2.bagnato?' · 💧':'');
@@ -2683,7 +2697,9 @@ function renderScheda2D(){
   const _sd3=D2.recDist/Math.cbrt(Math.max(0.1,_mic)), _db=172-24*Math.log10(Math.max(1,_sd3));
   rows.push({lab:'Airblast (sovrappr.)',valStr:Math.round(_db)+' <span>dB(L)</span>',cls:(_db<128?'sv-ok':(_db<=133?'sv-warn':'sv-bad')),
     why:'rumore d\'aria stimato a '+D2.recDist+' m (cube-root SD '+_sd3.toFixed(0)+'): '+(_db>133?'oltre il limite USBM/OSM di 133 dB(L): borraggio corto/colletto scoperto amplifica; allunga il borraggio.':'sotto il limite USBM/OSM di 133 dB(L).')+' Stima da calibrare.'});
-  const rowsHtml=rows.map(r=>'<div class="sv-row"><span class="sv-dot '+r.cls+'"></span><div class="sv-tx"><div class="sv-lab">'+r.lab+'</div><div class="sv-val">'+r.valStr+'</div><div class="sv-why">'+r.why+'</div></div></div>').join('');
+  /* descrizioni compatte (richiesta fondatore 25/07): nome+valore sempre visibili,
+     spiegazione solo al clic sulla voce (stato ricordato tra i ricalcoli) */
+  const rowsHtml=rows.map(r=>'<div class="sv-row'+(SVOPEN.has(r.lab)?' open':'')+'" data-lab="'+r.lab.replace(/"/g,'&quot;')+'"><span class="sv-dot '+r.cls+'"></span><div class="sv-tx"><div class="sv-lab">'+r.lab+'</div><div class="sv-val">'+r.valStr+'</div><div class="sv-why">'+r.why+'</div></div><span class="sv-chev">▼</span></div>').join('');
   /* === barra bipolare shock <-> heave (carattere energetico esplosivo, da VOD) === */
   const _vod=_e.vod_ms||3800;
   const _shock=Math.max(0.04,Math.min(0.96,(_vod*_vod-3000*3000)/(6000*6000-3000*3000)));
@@ -2732,7 +2748,7 @@ function renderScheda2D(){
       +'<div style="color:var(--mut2);margin-top:3px">Se i deck sono innescati su <b>ritardi separati</b>, la carica per ritardo scende a ≈ '+_kgDeck.toFixed(0)+' kg (−'+Math.round((1-1/_N)*100)+'%): <b>vibrazioni minori</b> al recettore. La vista 3D mostra la colonna semplificata.</div></div></div>';
     }
   }
-  el.innerHTML='<div class="sv-card"><div class="sv-h"><b>Scheda volata</b><span class="sv-sub">'+g.n+' fori· '+g.Lm+' m fronte<br>Ø'+Dmm+' mm · '+Q+' kg/foro · H '+H+' m<br>'+(selEsplosivo()?'Esplosivo: '+selEsplosivo().nome:'')+(selInnesco()?' / innesco '+selInnesco().short:'')+(selRoccia()?'<br>Roccia: '+selRoccia().nome+' ('+selRoccia().cls+')':'')+'</span></div>'
+  el.innerHTML='<div class="sv-card"><div class="sv-h"><b>Scheda volata</b><span class="sv-sub">'+g.n+' fori· '+g.Lm+' m fronte<br>Ø'+Dmm+' mm · '+Q+' kg/foro · H '+H+' m<br>'+(selEsplosivo()?'Esplosivo: '+selEsplosivo().nome:'')+(selInnesco()?' / innesco '+selInnesco().short:'')+(selRoccia()?'<br>Roccia: '+selRoccia().nome+' ('+selRoccia().cls+')':'')+'<br><i style="color:var(--mut2)">tocca una voce per i dettagli</i></span></div>'
     +bipHtml
     +'<div class="sv-grid">'+rowsHtml+'</div>'
     +'<div class="sv-scale"><div class="sv-lab">Rapporto di rigidità H/B — frammentazione attesa</div>'
