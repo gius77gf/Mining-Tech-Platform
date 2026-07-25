@@ -707,6 +707,32 @@ weekend del fondatore nel checkpoint:
 (punti chiave: 361 test in CI, scienza Genesi verificata, catena drone
 pronta, PR #321 mergiabile, 9 decisioni in docs/DECISIONI_WEEKEND.md).
 
+## ★ SESSIONE 25-26/07 — REVISIONE SEVERA DEL FONDATORE → BLOCCO ATTUATIVO ★
+Il fondatore ha revisionato tutto il lavoro (25/07) con giudizio esigente e
+richieste puntuali. Attuate in ~12 unità consecutive (dettaglio nei
+checkpoint dal 20260725-183000):
+- **REGOLA FERREA (permanente, in CLAUDE.md)**: i suoi dati orientativi
+  (190 video, 6/23 volate, maglia 4,5×3,5, Nonel 25 ms, calcare…) non
+  compaiono MAI più in interfaccia/export/documenti; default neutri ovunque.
+- **Genesi**: menu 2D/3D, «Geometria volata», scheda compatta (dettagli al
+  clic), esplosivo DENTRO la progettazione (via la sezione Indice,
+  approfondimento su richiesta), carica per totale volata, 3D «Nuova
+  volata» con pannello live (il progetto 2D si conserva), inclinazione del
+  FORO, trasparenza→fori cliccabili con scheda, **fronte/terreno rifatti**
+  (UV spazio-mondo, shading liscio, via il "maculato" = piano muckpile
+  pre-sparo), **home centro di comando** (storico volate, rilievi drone,
+  ponte Deepwork).
+- **Verticali**: firme estetiche del core nei fogli condivisi (ombre,
+  hover, focus ring, barra nav) + colori identitari (Sentinella → blu);
+  differenziazione: Scudo (cantieri + documenti DSS/POS/DPI con allegati
+  firmati + base normativa 81/08-624/96), Flotta (ordine di lavoro →
+  registro interventi + costi), Campo (minuti di fermo + Pareto «dove si
+  perde tempo», +3 test), Terra (volume dal visore drone nel rilievo).
+- Qualità: CI 361→364, smoke finale 9/9 superfici pulite.
+Restano dichiarati: login Genesi (bassa priorità), seconda passata "100%
+core" (topbar/tab), eventuali incrementi Conti/Sentinella dopo la sua
+revisione.
+
 ## Fine progetto (fase commercializzazione) — NON prima
 - Acquisto dominio + sottodomini. DECISIONE DEL FONDATORE: nessuna
   spesa prima della commercializzazione.
