@@ -357,15 +357,15 @@ body.scr-sim #tl{bottom:80px}
       <div class="dc-acc">
         <div class="dc-sec"><button type="button" class="dc-sec-h">Geometria volata<span class="dc-sec-x">▾</span></button>
           <div class="dc-grid">
-            <label class="dc-f"><span>Spalla (m)</span><input type="number" id="dB" step="0.1" min="1.5" max="8" value="4.5"></label>
+            <label class="dc-f"><span>Spalla (m)</span><input type="number" id="dB" step="0.1" min="1.5" max="8" value="3.0"></label>
             <label class="dc-f"><span>Interasse (m)</span><input type="number" id="dS" step="0.1" min="1.5" max="8" value="3.5"></label>
-            <label class="dc-f"><span>Ø foro (mm)</span><input type="number" id="dD" step="1" min="50" max="160" value="89"></label>
-            <label class="dc-f"><span>Fori per fila</span><input type="number" id="dN" step="1" min="3" max="30" value="18"></label>
+            <label class="dc-f"><span>Ø foro (mm)</span><input type="number" id="dD" step="1" min="50" max="160" value="102"></label>
+            <label class="dc-f"><span>Fori per fila</span><input type="number" id="dN" step="1" min="3" max="30" value="12"></label>
             <label class="dc-f"><span>N° file</span><input type="number" id="dFile" step="1" min="1" max="6" value="1"></label>
-            <label class="dc-f"><span>Profondità H (m)</span><input type="number" id="dH" step="0.5" min="6" max="18" value="13"></label>
+            <label class="dc-f"><span>Profondità H (m)</span><input type="number" id="dH" step="0.5" min="6" max="18" value="10"></label>
             <label class="dc-f"><span>Inclinazione (°)</span><input type="number" id="dIncl" step="1" min="0" max="30" value="0"></label>
-            <label class="dc-f"><span>Borraggio (m)</span><input type="number" id="dStem" step="0.1" min="0.5" max="6" value="2.5"></label>
-            <label class="dc-f"><span>Sottoperf. (m)</span><input type="number" id="dSub" step="0.1" min="0" max="4" value="1.2"></label>
+            <label class="dc-f"><span>Borraggio (m)</span><input type="number" id="dStem" step="0.1" min="0.5" max="6" value="2.2"></label>
+            <label class="dc-f"><span>Sottoperf. (m)</span><input type="number" id="dSub" step="0.1" min="0" max="4" value="0.9"></label>
           </div>
         </div>
         <div class="dc-sec"><button type="button" class="dc-sec-h">Carica & sequenza<span class="dc-sec-x">▾</span></button>
@@ -373,9 +373,9 @@ body.scr-sim #tl{bottom:80px}
             <label class="dc-f"><span>Esplosivo <button type="button" class="dc-info" id="dEsplInfo" title="Approfondimento esplosivo">ⓘ</button></span><select id="dEspl"></select></label>
             <label class="dc-f"><span>Innesco <button type="button" class="dc-info" id="dInnInfo" title="Approfondimento innesco">ⓘ</button></span><select id="dInnSel"></select></label>
             <label class="dc-f"><span>Esplosivo totale (kg)</span><input type="number" id="dKgTot" step="10" min="0" placeholder="tutta la volata"></label>
-            <label class="dc-f"><span>Carica (kg/foro)</span><input type="number" id="dKg" step="5" min="10" max="120" value="50"></label>
-            <label class="dc-f"><span>Ritardo foro (ms)</span><select id="dRit"><option>17</option><option selected>25</option><option>42</option><option>65</option></select></label>
-            <label class="dc-f"><span>Ritardo fila (ms)</span><input type="number" id="dRitFila" step="1" min="8" max="200" value="42"></label>
+            <label class="dc-f"><span>Carica (kg/foro)</span><input type="number" id="dKg" step="5" min="10" max="120" value="60"></label>
+            <label class="dc-f"><span>Ritardo foro (ms)</span><select id="dRit"><option>17</option><option>25</option><option selected>42</option><option>65</option></select></label>
+            <label class="dc-f"><span>Ritardo fila (ms)</span><input type="number" id="dRitFila" step="1" min="8" max="200" value="84"></label>
             <label class="dc-f"><span>Sequenza di sparo</span><select id="dSeq"><option value="riga">Riga per riga</option><option value="diagonale" selected>Diagonale (echelon)</option><option value="vcut">V-cut</option><option value="box">Box cut</option></select></label>
             <label class="dc-f"><span>Decking (cariche/foro)</span><select id="dDecks"><option value="1" selected>1 · colonna unica</option><option value="2">2 deck</option><option value="3">3 deck</option></select></label>
             <label class="dc-f"><span>Borraggio tra deck (m)</span><input type="number" id="dDeckStem" step="0.1" min="0.3" max="4" value="1.0"></label>
@@ -561,7 +561,7 @@ body.scr-sim #tl{bottom:80px}
 </div>
 
 <div class="hud" id="params">
-  <h2>Volata demo</h2>
+  <h2 id="pTitle">Nuova volata</h2>
   <div id="infochip"></div>
   <div id="fragchip"></div>
   <div id="invtool" style="margin:4px 0 8px;padding:8px 9px;border:1px solid rgba(255,171,0,.18);border-radius:9px;background:rgba(255,171,0,.04)">
@@ -574,17 +574,17 @@ body.scr-sim #tl{bottom:80px}
     <input type="text" id="meas-in" placeholder="dimensioni in cm, es. 12 18 25 30 45 60" style="width:100%;box-sizing:border-box;font-size:11px">
     <div id="meas-res" style="font-size:10.5px;color:var(--tx);margin-top:5px"></div>
   </div>
-  <div class="row"><label>Numero fori</label><input type="number" id="pFori" min="6" max="24" step="1" value="18"></div>
+  <div class="row"><label>Numero fori</label><input type="number" id="pFori" min="6" max="24" step="1" value="12"></div>
   <div class="row"><label>Ritardo foro (ms)</label>
-    <select id="pRit"><option>17</option><option selected>25</option><option>42</option><option>65</option></select></div>
+    <select id="pRit"><option>17</option><option>25</option><option selected>42</option><option>65</option></select></div>
   <div class="row"><label>Esplosivo <button type="button" class="dc-info" id="pEsplInfo" title="Approfondimento">ⓘ</button></label><select id="pEspl" style="max-width:150px"></select></div>
   <div class="row"><label>Direzione innesco</label>
     <select id="pDir"><option value="sx" selected>sx → dx</option><option value="dx">dx → sx</option></select></div>
-  <div class="row"><label>Profondità fori (m)</label><input type="number" id="pProf" min="6" max="18" step="0.5" value="13"></div>
-  <div class="row"><label>Carica per foro (kg)</label><input type="number" id="pKg" min="10" max="120" step="5" value="50"></div>
+  <div class="row"><label>Profondità fori (m)</label><input type="number" id="pProf" min="6" max="18" step="0.5" value="10"></div>
+  <div class="row"><label>Carica per foro (kg)</label><input type="number" id="pKg" min="10" max="120" step="5" value="60"></div>
   <div class="row"><label>Vento (m/s)</label><input type="number" id="pVento" min="-4" max="4" step="0.2" value="0.8"></div>
   <div class="row"><label>Inclinazione fori (°)</label><input type="number" id="pIncl" min="0" max="30" step="1" value="0"></div>
-  <button class="btn cu" id="btnApply" style="width:100%;margin-top:4px">Rigenera volata</button>
+  <button class="btn cu" id="btnApply" style="width:100%;margin-top:4px">Genera volata</button>
   <div class="sep"></div>
   <h2>Livelli</h2>
   <label class="lay"><input type="checkbox" id="lGetti" checked> Getti dai colletti</label>
@@ -701,7 +701,7 @@ function ppvLimit(norma,f){ switch(norma){
 function computeMIC(){ const H=D2.holes; if(!H.length) return D2.kg; const ts=H.map(h=>h.tDet||0); let n=1; for(const t0 of ts){ let c=0; for(const t of ts) if(t>=t0 && t<t0+8) c++; if(c>n) n=c; } return n*D2.kg; }
 
 /* ============ costanti progetto-tipo ============ */
-let SPALLA = 4.5, INTERASSE = 3.5;            // maglia editabile (Fase 1) — default 4.5 x 3.5 (m)
+let SPALLA = 3.0, INTERASSE = 3.5;            // maglia editabile — default NEUTRI da regole generali (B~28·D, S/B~1.15)
 const G = CAL.caduta.gM_s2, DRAG_K = CAL.caduta.dragK_s;
 const QUALITA = { Piena:{chunk:100,jet:180,gonna:500,nuvola:50,px:2}, Media:{chunk:60,jet:110,gonna:300,nuvola:34,px:1.5}, Base:{chunk:34,jet:64,gonna:150,nuvola:20,px:1} };
 let qLevel = 'Piena';
@@ -711,9 +711,9 @@ function mulberry32(a){return function(){let t=a+=0x6D2B79F5;t=Math.imul(t^t>>>1
 const SEED = 19250606;
 
 /* ============ parametri correnti ============ */
-const P = { fori:18, ritardo:25, dir:'sx', prof:13, kg:50, diam:89, vento:0.8, profilo:[], foriH:null };
+const P = { fori:12, ritardo:42, dir:'sx', prof:10, kg:60, diam:102, vento:0.8, profilo:[], foriH:null };
 /* modello di progettazione 2D (Fase 1) — editor multi-fila disaccoppiato dal 3D single-row */
-const D2 = { B:4.5, S:3.5, file:1, perRow:18, bf:4.5, diam:89, prof:13, kg:50, ritardo:25, ritardoFila:42, stem:2.5, sub:1.2, dir:'sx', stagger:true, incl:0, kgAuto:true, esplosivo:'anfo-standard', innesco:'nonel', roccia:'calcare', ucs:100, eMod:55, frat:'media', bagnato:false, acquaCol:0, presplit:false, psSpacing:0.9, psCharge:0.4, sequenza:'diagonale', recDist:300, recNorma:'din-res', recFreq:25, cPerf:8, cExpl:1.5, cInnesco:12, valMat:0, decks:1, deckStem:1.0, tool:'fori', profilo:[], piede:[], selPt:-1, holes:[], sel:-1, lastDet:0, _m:null };
+const D2 = { B:3.0, S:3.5, file:1, perRow:12, bf:3.0, diam:102, prof:10, kg:60, ritardo:42, ritardoFila:84, stem:2.2, sub:0.9, dir:'sx', stagger:true, incl:0, kgAuto:true, esplosivo:'anfo-standard', innesco:'nonel', roccia:'calcare', ucs:100, eMod:55, frat:'media', bagnato:false, acquaCol:0, presplit:false, psSpacing:0.9, psCharge:0.4, sequenza:'diagonale', recDist:300, recNorma:'din-res', recFreq:25, cPerf:8, cExpl:1.5, cInnesco:12, valMat:0, decks:1, deckStem:1.0, tool:'fori', profilo:[], piede:[], selPt:-1, holes:[], sel:-1, lastDet:0, _m:null };
 
 /* ============ three: scena base ============ */
 const view = document.getElementById('view');
@@ -1733,15 +1733,31 @@ addEventListener('keydown', e=>{
 });
 
 /* ============ parametri / layers ============ */
-$('btnApply').onclick = ()=>{ if(playing) return; readParams(); rebuild(); toast('✓ Volata rigenerata'); };
+let simSource='nuova';
+/* pannello 3D come strumento di programmazione (fondatore 25/07): ogni modifica
+   ricalcola subito la volata; se questa viene dal progetto 2D, fronte e fori
+   disegnati vengono CONSERVATI e si aggiornano solo i numeri */
+function liveApply(){ if(playing) return;
+  if(simSource==='progetto'){
+    P.ritardo=+$('pRit').value||P.ritardo; P.dir=$('pDir').value;
+    P.kg=Math.max(10,Math.min(120,+$('pKg').value||P.kg));
+    P.vento=Math.max(-4,Math.min(4,+$('pVento').value||0));
+    P.prof=Math.max(6,Math.min(18,+$('pProf').value||P.prof));
+    const nf=Math.max(6,Math.min(24,+$('pFori').value||P.fori));
+    if(nf!==P.fori){ P.fori=nf; P.foriH=null; P.holes=null; }
+    rebuild();
+  } else { readParams(); rebuild(); }
+}
+['pFori','pRit','pDir','pProf','pKg','pVento'].forEach(id=>{ const el=$(id); if(el) el.addEventListener('change', liveApply); });
+$('btnApply').onclick = ()=>{ if(playing) return; simSource='nuova'; if($('pTitle')) $('pTitle').textContent='Nuova volata'; readParams(); rebuild(); toast('\u2713 Volata generata'); };
 if($('inv-x50')) $('inv-x50').oninput = _invUpdate;   // calcolo inverso maglia da pezzatura-obiettivo
 if($('meas-in')) $('meas-in').oninput = _measUpdate;  // riconciliazione previsto-vs-reale da misure reali
 function readParams(){
-  P.fori = Math.max(6, Math.min(24, +$('pFori').value||18));
-  P.ritardo = +$('pRit').value||25;
+  P.fori = Math.max(6, Math.min(24, +$('pFori').value||12));
+  P.ritardo = +$('pRit').value||42;
   P.dir = $('pDir').value;
-  P.prof = Math.max(6, Math.min(18, +$('pProf').value||13));
-  P.kg = Math.max(10, Math.min(120, +$('pKg').value||50));
+  P.prof = Math.max(6, Math.min(18, +$('pProf').value||10));
+  P.kg = Math.max(10, Math.min(120, +$('pKg').value||60));
   P.vento = Math.max(-4, Math.min(4, +$('pVento').value||0));
   P.profilo = []; P.foriH = null; P.holes = null; // demo manuale = fronte dritto, una fila, griglia regolare
   clearFrontMesh();                               // rimuove l'eventuale fronte 3D reale caricato
@@ -1811,12 +1827,12 @@ function rebuild(){
 /* ============ import / export volata.json ============ */
 $('btnExport').onclick = ()=>{
   const fori = SIM.fori.map(f=>({ id:'foro_'+(f.i+1), num:f.i+1, x:+f.x.toFixed(2), prof:+(f.prof||P.prof), diam:P.diam,
-    kg:P.kg, esplosivo:'ANFO', ritardo:f.tDet, innesco:'Nonel', sequenza:f.i+1 }));
+    kg:P.kg, esplosivo:(selEsplosivo()||{}).nome||'', ritardo:f.tDet, innesco:(selInnesco()||{}).short||'', sequenza:f.i+1 }));
   const out = { schemaV:1, tipo:'volata-deepwork',
     volata:{ id:'vol_demo_genesi', sitoId:null, tipo:'cava', numero:1, data:new Date().toISOString().slice(0,10),
       fronte:{ lunghezza_m:SIM.Lm, altezza_m:SIM.H, profilo:(P.profilo||[]).map(p=>({x:+p.x.toFixed(2),y:+p.z.toFixed(2)})) },
-      geometria:{ spalla_m:SPALLA, interasse_m:INTERASSE, borraggio_m:2.5, file:1 },
-      default:{ diametro_mm:89, profondita_m:P.prof, esplosivo:'ANFO', ritardo_ms:P.ritardo, innesco:'Nonel' },
+      geometria:{ spalla_m:SPALLA, interasse_m:INTERASSE, borraggio_m:D2.stem, file:1 },
+      default:{ diametro_mm:P.diam, profondita_m:P.prof, esplosivo:(selEsplosivo()||{}).nome||'', ritardo_ms:P.ritardo, innesco:(selInnesco()||{}).short||'' },
       fori, connessioni:[] },
     sim:{ frontePath:null, fronteFormato:null,
       sequenzaTipicaMs:CAL.sequenza.durataTipicaMs } };
@@ -2210,6 +2226,7 @@ function setScreen(name){
   document.body.classList.add('scr-'+name);
   document.querySelectorAll('#bottomnav button').forEach(b=>b.classList.toggle('on', b.dataset.scr===name));
   if(name==='design'){ deriveCharge(); syncDesignInputs(); draw2D(); }
+  if(name==='sim' && typeof simSource!=='undefined' && simSource==='nuova') document.body.classList.add('show-params');
 }
 document.querySelectorAll('#bottomnav button').forEach(b=> b.onclick=()=>setScreen(b.dataset.scr));
 /* ============ esplosivo & innesco DENTRO la progettazione (fondatore 25/07):
@@ -2855,6 +2872,7 @@ function simulaVolata2D(){
     const mxs=D2.holes.map(h=>h.mx), mys=D2.holes.map(h=>h.my), minMx=Math.min(...mxs), minMy=Math.min(...mys);
     P.holes = D2.holes.map(h=>({ x:h.mx-minMx+INTERASSE/2, zoff:Math.max(0,h.my-minMy), tDet:h.tDet||0 }));
   } else P.holes=null;
+  simSource='progetto'; if($('pTitle')) $('pTitle').textContent='Volata dal progetto 2D';
   rebuild(); setScreen('sim');
 }
 ['dB','dS','dD','dN','dFile','dH','dKg','dIncl','dStem','dSub','dRit','dRitFila','dEspl','dInnSel','dRoccia','dUcs','dEmod','dFrat','dBagnato','dAcquaCol','dPresplit','dPsSpacing','dPsCharge','dSeq','dRecDist','dRecNorma','dRecFreq','dCPerf','dCExpl','dCInn','dValMat','dDecks','dDeckStem'].forEach(id=>{ const el=$(id); if(el) el.addEventListener('change', applyDesign); });
