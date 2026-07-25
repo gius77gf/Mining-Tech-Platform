@@ -108,6 +108,7 @@
     <button class="dw-btn" id="btn-add-ril" style="width:auto;">Registra</button>
   </div>
   <button class="dw-btn secondary" id="btn-imp-ril" style="width:auto;margin-top:8px;">Importa rilievi (CSV)</button>
+  <button class="dw-btn secondary" id="btn-dal-drone" style="width:auto;margin-top:8px;" title="Riprende l'ultimo volume calcolato nel visore nuvola di Genesi">🛸 Dal visore drone</button>
   <input type="file" id="ril-file" accept=".csv,text/csv" style="display:none;">
   <div class="note" id="ril-esito" style="text-align:left;"></div>
   <div class="note" id="mode-note" style="text-align:left;">CSV rilievi: data;volumeM3[;metodo;gsd].</div>
@@ -382,6 +383,21 @@
       $("ril-esito").textContent = "Rilievo del " + dmy(data) + " registrato: " + vol.toLocaleString("it-IT") + " m³" + (fr ? " su " + fr.nome : "") + " (KPI aggiornati).";
     }
     $("new-ril-data").value = ""; $("new-ril-vol").value = ""; $("new-ril-metodo").value = ""; $("new-ril-gsd").value = ""; $("new-ril-data").focus(); await refresh();
+  };
+  // Ponte col visore nuvola (Genesi): riprende l'ULTIMO ritaglio con volume
+  // calcolato e precompila il form del rilievo — il flusso drone→Terra chiuso.
+  $("btn-dal-drone").onclick = () => {
+    let ultimo = null;
+    try { const a = JSON.parse(localStorage.getItem("genesiNuvole") || "[]");
+      for (let i = a.length - 1; i >= 0; i--) if (a[i] && a[i].volume != null) { ultimo = a[i]; break; } } catch (e) {}
+    if (!ultimo) { $("ril-esito").textContent = "Nessun volume dal visore: apri il visore nuvola (in Genesi), carica la nuvola del drone, ritaglia il cumulo/fronte e torna qui."; return; }
+    const vol = Math.max(0, Math.round(+String(ultimo.volume).replace(/[^0-9.,-]/g, "").replace(",", ".")) || 0);
+    if (!vol) { $("ril-esito").textContent = "L'ultimo ritaglio del visore non ha un volume in metri reali (nuvola non georeferenziata)."; return; }
+    const oggiISO = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    $("new-ril-data").value = oggiISO;
+    $("new-ril-vol").value = vol;
+    $("new-ril-metodo").value = "senza GCP";   // drone consumer: scala approssimata, onesto
+    $("ril-esito").textContent = "Precompilato dal visore: «" + (ultimo.nome || "rilievo") + "» ≈ " + vol.toLocaleString("it-IT") + " m³ (" + (ultimo.data || "") + "). Controlla fronte e metodo, poi Registra.";
   };
   // Import rilievi elaborati da CSV (onboarding storico).
   $("btn-imp-ril").onclick = () => $("ril-file").click();
