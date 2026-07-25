@@ -103,6 +103,11 @@
   </div>
   <div class="note" style="text-align:left;">Data oppure ore motore: per i tagliandi a ore scrivi le ore a cui va fatto (urgenza calcolata dal contatore del mezzo). Se scegli un ricambio, alla chiusura verrà scaricato dal magazzino.</div>
 
+  <div class="sec">Registro interventi (<span id="int-count">0</span>)</div>
+  <div id="int-list"></div>
+  <div style="margin-top:6px;"><button class="dw-btn secondary" id="btn-int-csv" style="width:auto;">Esporta registro (CSV)</button></div>
+  <div class="note" style="text-align:left;">Ogni manutenzione chiusa diventa un intervento nello storico del mezzo: cosa è stato fatto, quando, con quale ricambio e a che costo. È il libretto-macchina che vale in garanzia e alla rivendita.</div>
+
   <div class="sec">Magazzino ricambi</div>
   <div id="ric-alert" class="note" style="text-align:left;"></div>
   <input class="dw-input" id="ric-cerca" type="search" placeholder="🔍 Cerca ricambio…" style="margin-bottom:6px;">
@@ -168,7 +173,7 @@
     go(card.getAttribute("data-goto")); refresh();
   });
 
-  let MEZ=[], MAN=[], COS=[], RIC=[];
+  let MEZ=[], MAN=[], COS=[], RIC=[], INT=[];
   let filtroMez = "tutti";
   let editMez = null;   // id del mezzo in modifica (riusa il form "Nuovo mezzo"; stato/manutenzioni restano)
   let ordMez = "stato";
@@ -188,7 +193,7 @@
       ["mez-nome","mez-area","mez-ore"].forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; }); }
   });
   async function refresh(){
-    [MEZ,MAN,COS,RIC] = await Promise.all([db.mezzi(), db.manutenzioni(), db.costi(), db.ricambi ? db.ricambi() : []]);
+    [MEZ,MAN,COS,RIC,INT] = await Promise.all([db.mezzi(), db.manutenzioni(), db.costi(), db.ricambi ? db.ricambi() : [], db.interventi ? db.interventi() : []]);
     const k = kpiFrom(MEZ,MAN,COS);
     const kn = document.querySelectorAll(".kpis .kpi .n");
     if (kn[0]) kn[0].textContent = k.operativi;
@@ -255,6 +260,12 @@
 
     // Magazzino ricambi: giacenza, soglia, carico/scarico, sotto-scorta.
     const scorta = sottoScorta(RIC);
+    // registro interventi (ordini di lavoro chiusi), più recenti in alto
+    $("int-count").textContent = INT.length;
+    $("int-list").innerHTML = INT.slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1).map(w =>
+      `<div class="item"><div class="info"><div class="name">${esc(w.titolo)} — ${esc(w.mezzo)}</div>
+        <div class="meta">${esc(w.data || "—")}${w.ricambio ? " · 🔩 " + esc(w.ricambio) : ""}${(+w.costo) ? " · " + eur(+w.costo) : ""}${w.note ? " · " + esc(w.note) : ""}</div></div></div>`).join("")
+      || '<div class="note" style="text-align:left;">Nessun intervento registrato: chiudi una manutenzione programmata (✓) e comparirà qui.</div>';
     $("ric-alert").innerHTML = RIC.length
       ? (scorta.length
           ? `<span style="color:var(--danger);">⚠️ ${scorta.length} ${scorta.length === 1 ? "ricambio sotto scorta" : "ricambi sotto scorta"}</span> — da riordinare: ${scorta.map(r => esc(r.nome)).join(", ")}.`
@@ -301,10 +312,17 @@
     if (done) { const n = MAN.find(x => x.id === done);
       if (!n) return;
       const ric = n.ricambioId ? RIC.find(r => r.id === n.ricambioId) : null;
-      const msg = "Segnare come eseguita «" + n.titolo + " — " + n.mezzo + "»?"
-        + (ric ? " Verrà scaricato 1 « " + ric.nome + " » dal magazzino." : "") + " Verrà tolta dalle programmate.";
+      const msg = "Chiudere l'ordine di lavoro «" + n.titolo + " — " + n.mezzo + "»?"
+        + (ric ? " Verrà scaricato 1 « " + ric.nome + " » dal magazzino." : "") + " L'intervento finisce nel registro.";
       if (confirm(msg)) {
+        // ordine di lavoro (25/07): la chiusura REGISTRA l'intervento invece di cancellare e basta
+        const costoTx = prompt("Costo dell'intervento in € (vuoto = nessun costo):", "");
+        const costo = Math.max(0, Math.round(+String(costoTx || "0").replace(",", ".") * 100) / 100) || 0;
+        const note = (prompt("Note sull'intervento (facoltative):", "") || "").trim();
+        const oggiISO = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
         if (ric) await db.aggiorna("ricambi", ric.id, { giacenza: scaricoGiacenza(ric.giacenza, 1) });
+        await db.aggiungi("interventi", { data: oggiISO, titolo: n.titolo, mezzo: n.mezzo, ricambio: ric ? ric.nome : null, costo, note });
+        if (costo > 0) await db.aggiungi("costi", { voce: "Manutenzione: " + n.titolo + " (" + n.mezzo + ")", importo: costo, nota: note });
         await db.rimuovi("manutenzioni", done); await refresh(); } return; }
     const delMez = e.target.getAttribute && e.target.getAttribute("data-del-mezzo");
     if (delMez) { const m = MEZ.find(x => x.id === delMez);
@@ -340,6 +358,14 @@
     if (it) { const m = MEZ.find(x => x.id === it.getAttribute("data-mezzo"));
       await db.aggiorna("mezzi", m.id, { stato: MEZ_NEXT[m.stato] || "operativo" }); await refresh(); }
   });
+  $("btn-int-csv").onclick = () => {
+    const righe = [["data", "titolo", "mezzo", "ricambio", "costo", "note"].join(";")]
+      .concat(INT.slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1)
+        .map(w => [w.data || "", w.titolo || "", w.mezzo || "", w.ricambio || "", (+w.costo) || 0, w.note || ""].map(csvCell).join(";")));
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    a.download = "flotta-registro-interventi.csv"; a.click();
+  };
   $("btn-cos").onclick = async () => {
     const voce = $("cos-voce").value.trim(), importo = +$("cos-importo").value;
     if (!voce || !(importo > 0)) {
