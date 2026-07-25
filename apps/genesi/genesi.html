@@ -173,22 +173,24 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
 #bottomnav button.on{color:var(--cu);background:linear-gradient(180deg,rgba(255,171,0,.16),rgba(255,109,0,.05))}
 #bottomnav button.on .ic{filter:drop-shadow(0 0 9px rgba(255,171,0,.55))}
 #bottomnav button.on::before{content:'';position:absolute;top:4px;width:24px;height:3px;border-radius:2px;background:var(--cu);box-shadow:0 0 10px var(--cu)}
-#scr-home,#scr-design,#scr-esplosivi{position:fixed;inset:0;z-index:30;background:radial-gradient(ellipse 760px 540px at 14% 4%,rgba(255,171,0,.06) 0%,transparent 62%),radial-gradient(ellipse 560px 460px at 86% 90%,rgba(255,109,0,.055) 0%,transparent 60%),var(--bg);display:none;flex-direction:column}
+#scr-home,#scr-design{position:fixed;inset:0;z-index:30;background:radial-gradient(ellipse 760px 540px at 14% 4%,rgba(255,171,0,.06) 0%,transparent 62%),radial-gradient(ellipse 560px 460px at 86% 90%,rgba(255,109,0,.055) 0%,transparent 60%),var(--bg);display:none;flex-direction:column}
 body.scr-home #scr-home{display:flex}
 body.scr-design #scr-design{display:flex}
-body.scr-esplosivi #scr-esplosivi{display:flex}
-#scr-esplosivi{padding-top:62px;padding-bottom:108px;overflow-y:auto}
 #es-head{position:absolute;top:14px;left:0;right:0;z-index:6;display:flex;align-items:center;justify-content:center;gap:10px;pointer-events:none}
 #es-head .d2-title{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:19px;letter-spacing:.05em;text-transform:uppercase;background:linear-gradient(180deg,#ffe08a,#ffab00 55%,#ff6d00);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
 #es-head .d2-chip{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#ffd54f;padding:3px 10px;border-radius:999px;background:rgba(255,171,0,.1);border:1px solid rgba(255,171,0,.26)}
-#es-tabs{display:flex;justify-content:center;margin:0 auto 10px;padding:0 14px}
-#es-tabs button{background:#1a140b;border:1px solid var(--line);color:var(--mut);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase;padding:9px 22px;cursor:pointer}
-#es-tabs button:first-child{border-radius:11px 0 0 11px;border-right:none}
-#es-tabs button:last-child{border-radius:0 11px 11px 0}
-#es-tabs button.on{background:linear-gradient(135deg,#ffc12e,#ff8c1d);color:#3a1e00;border-color:transparent}
 .dc-mat{margin-left:auto;background:rgba(255,171,0,.1);border:1px solid rgba(255,171,0,.28);color:#ffd54f;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:.04em;padding:5px 11px;border-radius:9px;cursor:pointer}
 .dc-mat:hover{border-color:var(--cu);color:#ffe08a}
-#es-list{width:100%;max-width:700px;margin:0 auto;padding:4px 14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:12px}
+.dc-info{background:none;border:1px solid rgba(255,213,79,.35);color:#ffd54f;border-radius:50%;width:16px;height:16px;line-height:13px;font-size:10px;padding:0;cursor:pointer;vertical-align:1px;margin-left:3px}
+.dc-info:hover{background:rgba(255,171,0,.14)}
+#esplInfo{position:fixed;inset:0;z-index:60;background:rgba(8,6,3,.78);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:18px}
+.ei-card{width:100%;max-width:430px;max-height:86vh;overflow-y:auto;background:linear-gradient(160deg,#241a0d,#17110a);border:1px solid rgba(255,213,79,.28);border-radius:18px;padding:16px 17px;box-shadow:0 24px 70px rgba(0,0,0,.6)}
+.ei-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.ei-h b{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:17px;letter-spacing:.05em;text-transform:uppercase;background:linear-gradient(180deg,#ffe08a,#ffab00 55%,#ff6d00);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.ei-h button{background:none;border:1px solid var(--line);color:var(--mut);border-radius:9px;width:30px;height:30px;cursor:pointer;font-size:13px}
+.ei-h button:hover{color:var(--tx);border-color:rgba(255,213,79,.4)}
+#ei-body .es-card{cursor:default;margin-bottom:11px}
+#ei-body .es-card:last-child{margin-bottom:0}
 .es-card{position:relative;background:linear-gradient(150deg,rgba(255,236,200,.06),rgba(255,210,150,.02));border:1px solid rgba(255,228,180,.16);border-radius:16px;padding:14px 15px;cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s;box-shadow:0 10px 28px rgba(0,0,0,.38)}
 .es-card:hover{transform:translateY(-2px);border-color:rgba(255,196,120,.5)}
 .es-card.sel{border-color:var(--cu);box-shadow:0 0 0 1px var(--cu),0 12px 30px rgba(255,150,30,.2)}
@@ -368,6 +370,8 @@ body.scr-sim #tl{bottom:80px}
         </div>
         <div class="dc-sec"><button type="button" class="dc-sec-h">Carica & sequenza<span class="dc-sec-x">▾</span></button>
           <div class="dc-grid">
+            <label class="dc-f"><span>Esplosivo <button type="button" class="dc-info" id="dEsplInfo" title="Approfondimento esplosivo">ⓘ</button></span><select id="dEspl"></select></label>
+            <label class="dc-f"><span>Innesco <button type="button" class="dc-info" id="dInnInfo" title="Approfondimento innesco">ⓘ</button></span><select id="dInnSel"></select></label>
             <label class="dc-f"><span>Carica (kg/foro)</span><input type="number" id="dKg" step="5" min="10" max="120" value="50"></label>
             <label class="dc-f"><span>Ritardo foro (ms)</span><select id="dRit"><option>17</option><option selected>25</option><option>42</option><option>65</option></select></label>
             <label class="dc-f"><span>Ritardo fila (ms)</span><input type="number" id="dRitFila" step="1" min="8" max="200" value="42"></label>
@@ -481,16 +485,18 @@ body.scr-sim #tl{bottom:80px}
   </div>
 </div>
 
-<div id="scr-esplosivi">
-  <div id="es-head"><span class="d2-title">Indice esplosivi</span></div>
-  <div id="es-tabs"><button type="button" id="etEspl" class="on">Esplosivi</button><button type="button" id="etInn">Inneschi</button></div>
-  <div id="es-list"></div>
+<!-- Approfondimento esplosivo/innesco su richiesta (la sezione «Indice» è stata
+     eliminata su indicazione del fondatore: la scelta vive nella progettazione) -->
+<div id="esplInfo" style="display:none">
+  <div class="ei-card">
+    <div class="ei-h"><b id="ei-title">Approfondimento</b><button type="button" id="ei-close" title="Chiudi">✕</button></div>
+    <div id="ei-body"></div>
+  </div>
 </div>
 
 <nav id="bottomnav">
   <button data-scr="home" class="on"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg>Home</button>
   <button data-scr="design"><svg class="ic" viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="7" r="1.6"/><circle cx="12" cy="7" r="1.6"/><circle cx="18" cy="7" r="1.6"/><circle cx="6" cy="13" r="1.6"/><circle cx="12" cy="13" r="1.6"/><circle cx="18" cy="13" r="1.6"/><circle cx="9" cy="19" r="1.6"/><circle cx="15" cy="19" r="1.6"/></svg>2D</button>
-  <button data-scr="esplosivi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/><path d="M12 2v3.5M12 18.5V22M2 12h3.5M18.5 12H22M4.9 4.9l2.5 2.5M16.6 16.6l2.5 2.5M19.1 4.9l-2.5 2.5M7.4 16.6l-2.5 2.5"/></svg>Indice</button>
   <button data-scr="sim"><svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7z"/></svg>3D</button>
 </nav>
 
@@ -568,8 +574,9 @@ body.scr-sim #tl{bottom:80px}
     <div id="meas-res" style="font-size:10.5px;color:var(--tx);margin-top:5px"></div>
   </div>
   <div class="row"><label>Numero fori</label><input type="number" id="pFori" min="6" max="24" step="1" value="18"></div>
-  <div class="row"><label>Ritardo Nonel (ms)</label>
+  <div class="row"><label>Ritardo foro (ms)</label>
     <select id="pRit"><option>17</option><option selected>25</option><option>42</option><option>65</option></select></div>
+  <div class="row"><label>Esplosivo <button type="button" class="dc-info" id="pEsplInfo" title="Approfondimento">ⓘ</button></label><select id="pEspl" style="max-width:150px"></select></div>
   <div class="row"><label>Direzione innesco</label>
     <select id="pDir"><option value="sx" selected>sx → dx</option><option value="dx">dx → sx</option></select></div>
   <div class="row"><label>Profondità fori (m)</label><input type="number" id="pProf" min="6" max="18" step="0.5" value="13"></div>
@@ -691,7 +698,6 @@ function ppvLimit(norma,f){ switch(norma){
   default: return f<10?5:(f<50?15:20); } }  // din-res
 /* MIC = massima carica entro finestra 8 ms, raggruppando i fori sui tempi tDet reali (V-cut/box: piu fori sullo stesso ritardo) */
 function computeMIC(){ const H=D2.holes; if(!H.length) return D2.kg; const ts=H.map(h=>h.tDet||0); let n=1; for(const t0 of ts){ let c=0; for(const t of ts) if(t>=t0 && t<t0+8) c++; if(c>n) n=c; } return n*D2.kg; }
-let esTab='esplosivi';
 
 /* ============ costanti progetto-tipo ============ */
 let SPALLA = 4.5, INTERASSE = 3.5;            // maglia editabile (Fase 1) — default 4.5 x 3.5 (m)
@@ -2199,35 +2205,46 @@ $('lp').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
 /* ============ APP SHELL: schermate + navigazione ============ */
 function setScreen(name){
   if(name!=='sim') setPlaying(false);
-  document.body.classList.remove('scr-home','scr-design','scr-sim','scr-esplosivi','show-params');
+  document.body.classList.remove('scr-home','scr-design','scr-sim','show-params');
   document.body.classList.add('scr-'+name);
   document.querySelectorAll('#bottomnav button').forEach(b=>b.classList.toggle('on', b.dataset.scr===name));
   if(name==='design'){ deriveCharge(); syncDesignInputs(); draw2D(); }
-  if(name==='esplosivi') renderEsplosivi();
 }
 document.querySelectorAll('#bottomnav button').forEach(b=> b.onclick=()=>setScreen(b.dataset.scr));
-function renderEsplosivi(){
-  const el=$('es-list'); if(!el) return;
-  if($('etEspl')){ $('etEspl').classList.toggle('on', esTab==='esplosivi'); $('etEspl').onclick=()=>{ esTab='esplosivi'; renderEsplosivi(); }; }
-  if($('etInn')){ $('etInn').classList.toggle('on', esTab==='inneschi'); $('etInn').onclick=()=>{ esTab='inneschi'; renderEsplosivi(); }; }
-  if(esTab==='inneschi'){
-    el.innerHTML = INNESCHI.map(e=>{ const sel=e.id===D2.innesco; const specs=['scatter '+e.scatter,'ritardi '+e.ritardi,'Acqua: '+e.acqua];
-      return '<div class="es-card'+(sel?' sel':'')+'" data-id="'+e.id+'"><div class="es-nome">'+e.nome+'</div><div class="es-tipo">'+e.tipo+'</div><div class="es-specs">'+specs.map(s=>'<span>'+s+'</span>').join('')+'</div><div class="es-pc"><span class="ok">+</span> '+e.pro+'</div><div class="es-pc"><span class="no">-</span> '+e.contro+'</div><div class="es-foot"><span class="es-costo"></span><span class="es-pick">'+(sel?'Selezionato':'Scegli')+'</span></div></div>';
-    }).join('');
-    el.querySelectorAll('.es-card').forEach(c=> c.onclick=()=>{ D2.innesco=c.dataset.id; renderEsplosivi(); });
-    return;
-  }
-  el.innerHTML = ESPL.map(e=>{
-    const sel = e.id===D2.esplosivo; const specs=[];
-    if(e.densita_gcc!=null) specs.push(e.densita_gcc+' g/cc');
-    if(e.vod_ms!=null) specs.push((e.vod_ms/1000).toFixed(1)+'k m/s VOD');
-    if(e.rws_pct!=null) specs.push('RWS '+e.rws_pct);
-    if(e.rbs_pct!=null) specs.push('RBS '+e.rbs_pct);
-    specs.push('Acqua: '+e.acqua);
-    return '<div class="es-card'+(sel?' sel':'')+'" data-id="'+e.id+'"><div class="es-nome">'+e.nome+'</div><div class="es-tipo">'+e.tipo+'</div><div class="es-specs">'+specs.map(s=>'<span>'+s+'</span>').join('')+'</div><div class="es-app">'+e.applicazione+'</div><div class="es-pc"><span class="ok">+</span> '+e.pro+'</div><div class="es-pc"><span class="no">-</span> '+e.contro+'</div><div class="es-foot"><span class="es-costo">'+e.costo+'</span><span class="es-pick">'+(sel?'Selezionato':'Scegli')+'</span></div></div>';
-  }).join('');
-  el.querySelectorAll('.es-card').forEach(c=> c.onclick=()=>{ D2.esplosivo=c.dataset.id; deriveCharge(); renderEsplosivi(); });
+/* ============ esplosivo & innesco DENTRO la progettazione (fondatore 25/07):
+   nei form compare SOLO la dicitura; l'approfondimento (scheda completa) si apre
+   su richiesta col bottone ⓘ. La vecchia schermata «Indice» è stata eliminata. */
+function esplCardHtml(e){ const specs=[];
+  if(e.densita_gcc!=null) specs.push(e.densita_gcc+' g/cc');
+  if(e.vod_ms!=null) specs.push((e.vod_ms/1000).toFixed(1)+'k m/s VOD');
+  if(e.rws_pct!=null) specs.push('RWS '+e.rws_pct);
+  if(e.rbs_pct!=null) specs.push('RBS '+e.rbs_pct);
+  specs.push('Acqua: '+e.acqua);
+  return '<div class="es-card"><div class="es-nome">'+e.nome+'</div><div class="es-tipo">'+e.tipo+'</div><div class="es-specs">'+specs.map(s=>'<span>'+s+'</span>').join('')+'</div><div class="es-app">'+(e.applicazione||'')+'</div><div class="es-pc"><span class="ok">+</span> '+e.pro+'</div><div class="es-pc"><span class="no">-</span> '+e.contro+'</div><div class="es-foot"><span class="es-costo">'+(e.costo||'')+'</span></div></div>';
 }
+function innCardHtml(e){ const specs=['scatter '+e.scatter,'ritardi '+e.ritardi,'Acqua: '+e.acqua];
+  return '<div class="es-card"><div class="es-nome">'+e.nome+'</div><div class="es-tipo">'+e.tipo+'</div><div class="es-specs">'+specs.map(s=>'<span>'+s+'</span>').join('')+'</div><div class="es-pc"><span class="ok">+</span> '+e.pro+'</div><div class="es-pc"><span class="no">-</span> '+e.contro+'</div></div>';
+}
+function showEsplInfo(kind){
+  const box=$('esplInfo'); if(!box) return;
+  if(kind==='innesco'){ $('ei-title').textContent='Approfondimento — innesco'; $('ei-body').innerHTML=innCardHtml(selInnesco()||INNESCHI[0]); }
+  else { $('ei-title').textContent='Approfondimento — esplosivo'; $('ei-body').innerHTML=esplCardHtml(selEsplosivo()||ESPL[0]); }
+  box.style.display='flex';
+}
+if($('ei-close')) $('ei-close').onclick=()=>{ $('esplInfo').style.display='none'; };
+if($('esplInfo')) $('esplInfo').addEventListener('click',e=>{ if(e.target.id==='esplInfo') $('esplInfo').style.display='none'; });
+function fillEsplSelects(){
+  const oEspl=ESPL.map(e=>'<option value="'+e.id+'"'+(e.id===D2.esplosivo?' selected':'')+'>'+e.nome+'</option>').join('');
+  const oInn=INNESCHI.map(e=>'<option value="'+e.id+'"'+(e.id===D2.innesco?' selected':'')+'>'+e.nome+'</option>').join('');
+  if($('dEspl')) $('dEspl').innerHTML=oEspl;
+  if($('dInnSel')) $('dInnSel').innerHTML=oInn;
+  if($('pEspl')) $('pEspl').innerHTML=oEspl;
+}
+fillEsplSelects();
+if($('dEsplInfo')) $('dEsplInfo').onclick=e=>{ e.preventDefault(); showEsplInfo('esplosivo'); };
+if($('dInnInfo')) $('dInnInfo').onclick=e=>{ e.preventDefault(); showEsplInfo('innesco'); };
+if($('pEsplInfo')) $('pEsplInfo').onclick=e=>{ e.preventDefault(); showEsplInfo('esplosivo'); };
+if($('pEspl')) $('pEspl').addEventListener('change',()=>{ D2.esplosivo=$('pEspl').value; deriveCharge(); fillEsplSelects(); });
 document.querySelectorAll('#scr-home .card').forEach(c=> c.onclick=()=>setScreen(c.dataset.go));
 /* ombra/luce che segue il cursore sulle card e sulle icone (come Deepwork) */
 document.querySelectorAll('#scr-home .card').forEach(card=>{
@@ -2766,6 +2783,8 @@ function applyDesign(){
   D2.perRow = Math.max(3, Math.min(30, Math.round(+$('dN').value||D2.perRow)));
   D2.file = Math.max(1, Math.min(6, Math.round(+($('dFile')?$('dFile').value:D2.file)||D2.file)));
   D2.prof = Math.max(6, Math.min(18, +$('dH').value||D2.prof));
+  if($('dEspl') && $('dEspl').value) D2.esplosivo=$('dEspl').value;
+  if($('dInnSel') && $('dInnSel').value) D2.innesco=$('dInnSel').value;
   D2.kg = Math.max(5, Math.min(200, +$('dKg').value||D2.kg)); deriveCharge();
   D2.ritardo = +$('dRit').value||D2.ritardo;
   D2.incl = Math.max(0, Math.min(30, +($('dIncl')?$('dIncl').value:D2.incl)||0));
@@ -2800,6 +2819,7 @@ function syncDesignInputs(){
   if($('dIncl')) $('dIncl').value=D2.incl; $('dRit').value=D2.ritardo;
   if($('dStem')) $('dStem').value=D2.stem; if($('dSub')) $('dSub').value=D2.sub; if($('dRitFila')) $('dRitFila').value=D2.ritardoFila;
   if($('dRoccia')) $('dRoccia').value=D2.roccia;
+  if($('dEspl')) $('dEspl').value=D2.esplosivo; if($('dInnSel')) $('dInnSel').value=D2.innesco; if($('pEspl')) $('pEspl').value=D2.esplosivo;
   if($('dUcs')) $('dUcs').value=D2.ucs; if($('dEmod')) $('dEmod').value=D2.eMod; if($('dFrat')) $('dFrat').value=D2.frat;
   if($('dBagnato')) $('dBagnato').value=D2.bagnato?'1':'0'; if($('dAcquaCol')) $('dAcquaCol').value=D2.acquaCol;
   if($('dPresplit')) $('dPresplit').value=D2.presplit?'1':'0'; if($('dPsSpacing')) $('dPsSpacing').value=D2.psSpacing; if($('dPsCharge')) $('dPsCharge').value=D2.psCharge;
@@ -2835,7 +2855,7 @@ function simulaVolata2D(){
   } else P.holes=null;
   rebuild(); setScreen('sim');
 }
-['dB','dS','dD','dN','dFile','dH','dKg','dIncl','dStem','dSub','dRit','dRitFila','dRoccia','dUcs','dEmod','dFrat','dBagnato','dAcquaCol','dPresplit','dPsSpacing','dPsCharge','dSeq','dRecDist','dRecNorma','dRecFreq','dCPerf','dCExpl','dCInn','dValMat','dDecks','dDeckStem'].forEach(id=>{ const el=$(id); if(el) el.addEventListener('change', applyDesign); });
+['dB','dS','dD','dN','dFile','dH','dKg','dIncl','dStem','dSub','dRit','dRitFila','dEspl','dInnSel','dRoccia','dUcs','dEmod','dFrat','dBagnato','dAcquaCol','dPresplit','dPsSpacing','dPsCharge','dSeq','dRecDist','dRecNorma','dRecFreq','dCPerf','dCExpl','dCInn','dValMat','dDecks','dDeckStem'].forEach(id=>{ const el=$(id); if(el) el.addEventListener('change', applyDesign); });
 document.querySelectorAll('.dc-sec-h').forEach(b=>{ b.addEventListener('click', ()=>b.parentElement.classList.toggle('closed')); });
 if($('dKg')) $('dKg').addEventListener('input', ()=>{ D2.kgAuto=false; });
 function setTool(t){ D2.tool=t; D2.selPt=-1; [['dtFori','fori'],['dtFronte','fronte'],['dtPiede','piede']].forEach(p=>{ const el=$(p[0]); if(el) el.classList.toggle('on',t===p[1]); }); const rb=$('dtReset'); if(rb) rb.textContent='↺ Reset '+(t==='piede'?'piede':'fronte'); drawDesign2D(); renderInspector(); }
@@ -2843,7 +2863,7 @@ if($('dtFori')) $('dtFori').onclick=()=>setTool('fori');
 if($('dtFronte')) $('dtFronte').onclick=()=>setTool('fronte');
 if($('dtPiede')) $('dtPiede').onclick=()=>setTool('piede');
 if($('dtReset')) $('dtReset').onclick=()=>{ if(D2.tool==='piede')D2.piede=[]; else D2.profilo=[]; D2.selPt=-1; drawDesign2D(); renderScheda2D(); };
-if($('d2-mat')) $('d2-mat').onclick=()=>setScreen('esplosivi');
+if($('d2-mat')) $('d2-mat').onclick=()=>showEsplInfo('esplosivo');
 
 /* ============ qualità adattiva ============ */
 let fpsAcc=0, fpsN=0, fpsLow=0;
