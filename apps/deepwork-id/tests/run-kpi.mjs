@@ -1091,6 +1091,30 @@ test("riepilogoFermi: conta le anomalie per causale, ordinate per frequenza", ()
 });
 test("riepilogoFermi: nessuna anomalia = lista vuota (niente crash)", () =>
   eq(campo.riepilogoFermi([{ stato: "in-corso" }]), [], "nessun fermo"));
+test("paretoFermi: somma i minuti per causale e ordina per tempo perso", () => {
+  const att = [
+    { stato: "anomalia", causale: "Meteo", fermoMin: 30 },
+    { stato: "anomalia", causale: "Guasto meccanico", fermoMin: 45 },
+    { stato: "anomalia", causale: "Guasto meccanico", fermoMin: 15 },
+    { stato: "in-corso", causale: "Meteo", fermoMin: 999 },   // non anomalia → esclusa
+    { stato: "anomalia", causale: "sconosciuta" },            // senza minuti → 0, in Altro
+  ];
+  const pf = campo.paretoFermi(att);
+  eq(pf.totaleMin, 90, "totale minuti");
+  eq(pf.voci[0], { causale: "Guasto meccanico", conto: 2, minuti: 60 }, "prima la causale col tempo maggiore");
+  eq(pf.voci[1], { causale: "Meteo", conto: 1, minuti: 30 }, "poi meteo");
+  eq(pf.voci[2], { causale: "Altro", conto: 1, minuti: 0 }, "sconosciuta in Altro con 0 min");
+});
+test("paretoFermi: minuti non numerici o negativi contano 0 (mai NaN)", () => {
+  const pf = campo.paretoFermi([
+    { stato: "anomalia", causale: "Meteo", fermoMin: "abc" },
+    { stato: "anomalia", causale: "Meteo", fermoMin: -20 },
+  ]);
+  eq(pf.totaleMin, 0, "totale 0");
+  eq(pf.voci[0].conto, 2, "conteggio corretto");
+});
+test("paretoFermi: nessuna anomalia = struttura vuota", () =>
+  eq(campo.paretoFermi([]), { voci: [], totaleMin: 0 }, "vuoto"));
 test("CAUSALI_FERMO: lista non vuota, tutte stringhe uniche", () => {
   const c = campo.CAUSALI_FERMO;
   eq(c.length > 0, true, "non vuota");
