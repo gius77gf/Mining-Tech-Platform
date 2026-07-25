@@ -12,12 +12,14 @@
     position: sticky; top: 0; z-index: 10;
     background: var(--panel); border-bottom: 1px solid var(--border);
     padding: 14px 16px calc(0px + 10px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .25);
   }
   .top h1 { margin: 0; font-size: 22px; letter-spacing: 3px; }
   .top h1 .accent { color: var(--app-accent2); }
   .top .sub { font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
   .tour-banner {
-    background: rgba(139, 92, 246, .12); border: 1px solid var(--app-accent);
+    background: color-mix(in srgb, var(--app-accent) 12%, transparent);
+    border: 1px solid var(--app-accent);
     color: var(--app-accent2); font-size: 12px; padding: 8px 12px;
     border-radius: var(--r-sm); margin: 10px 16px 0; text-align: center;
   }
@@ -35,14 +37,22 @@
     color: var(--muted); font-family: 'Barlow Condensed', sans-serif;
     font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
   }
-  .nav button.active { color: var(--app-accent2); }
+  .nav button.active { color: var(--app-accent2); position: relative; }
+  .nav button.active::before { content: ""; position: absolute; top: 0; left: 22%; right: 22%;
+    height: 2px; border-radius: 0 0 3px 3px; background: linear-gradient(90deg, var(--app-accent), var(--app-accent2));
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--app-accent) 50%, transparent); }
   .nav .ico { display: block; font-size: 18px; margin-bottom: 2px; }
 
   /* contenuti */
   .page { display: none; padding: 16px; }
   .page.active { display: block; }
   .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-  .kpi { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 14px; }
+  .kpi { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 14px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .22);
+    transition: transform .18s var(--ease), box-shadow .18s var(--ease), border-color .2s; }
+  .kpi:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0, 0, 0, .32);
+    border-color: color-mix(in srgb, var(--app-accent) 45%, var(--border)); }
+  .kpi.accent { border-color: color-mix(in srgb, var(--app-accent) 35%, var(--border)); }
   .kpi .n { font-family: 'Barlow Condensed', sans-serif; font-size: 30px; font-weight: 800; }
   .kpi .l { font-size: 11px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; }
   .kpi.ok .n { color: var(--success); }
@@ -56,8 +66,12 @@
   .sec::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--app-accent); }
 
   .item { display: flex; align-items: center; gap: 12px; background: var(--card);
-          border: 1px solid var(--border); border-radius: var(--r);
-          padding: 12px 14px; margin-bottom: 8px; cursor: pointer; }
+          border: 1px solid var(--border); border-radius: var(--r-sm);
+          padding: 12px 14px; margin-bottom: 8px; cursor: pointer;
+          box-shadow: 0 1px 5px rgba(0, 0, 0, .18);
+          transition: transform .15s var(--ease), box-shadow .15s, border-color .2s, background .2s; }
+  .item:hover { transform: translateX(3px); box-shadow: 0 6px 16px rgba(0, 0, 0, .28);
+    border-color: color-mix(in srgb, var(--app-accent) 40%, var(--border)); }
   .item:active { background: var(--card2); }
   .avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--card2);
             border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center;
