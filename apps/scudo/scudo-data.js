@@ -8,7 +8,11 @@
 //   lavoratori/{id}: { nome, ruolo, tel, note, attivo }
 //   scadenze/{id}:   { lavoratoreId|null, tipo, descrizione,
 //                      dataScadenza (ISO yyyy-mm-dd), stato? }
-//   documenti/{id}:  { titolo, meta, stato: valido|da-rivedere|scaduto }
+//   documenti/{id}:  { titolo, meta, tipo?, cantiereId?|null,
+//                      lavoratoreId?|null, allegatoNome?, allegatoData?
+//                      (dataURL ≤ 400 KB — file grandi: Firebase Storage,
+//                      arriverà col progetto live), stato: valido|da-rivedere|scaduto }
+//   cantieri/{id}:   { nome, comune, tipo: cava|cantiere, stato: attivo|chiuso }
 // Lo "stato" delle scadenze non si salva: si CALCOLA dalla data
 // (scaduta / entro 30gg / regolare) — niente dati derivati nel DB.
 // ============================================================
@@ -33,15 +37,30 @@ export const DEMO = {
     { id: "s5", lavoratoreId: "d5", tipo: "Patente", descrizione: "CQC rinnovo", dataScadenza: "2026-09-02" },
   ],
   documenti: [
-    { id: "c1", titolo: "DVR — Documento Valutazione Rischi", meta: "Aggiornato 03/2026", stato: "valido" },
-    { id: "c2", titolo: "Piano di Emergenza", meta: "Aggiornato 01/2026", stato: "valido" },
-    { id: "c3", titolo: "Nomine RSPP / addetti", meta: "Revisione richiesta", stato: "da-rivedere" },
+    { id: "c1", titolo: "DVR — Documento Valutazione Rischi", meta: "Aggiornato 03/2026", tipo: "DVR", stato: "valido" },
+    { id: "c2", titolo: "Piano di Emergenza", meta: "Aggiornato 01/2026", tipo: "Altro", stato: "valido" },
+    { id: "c3", titolo: "Nomine RSPP / addetti", meta: "Revisione richiesta", tipo: "Nomina", stato: "da-rivedere" },
+    { id: "c4", titolo: "DSS — Documento Sicurezza e Salute", meta: "Inviato ASL 02/2026", tipo: "DSS", cantiereId: "k1", stato: "valido" },
+    { id: "c5", titolo: "Verbale consegna DPI — M. Rossi", meta: "Firmato 04/2026", tipo: "Verbale DPI", lavoratoreId: "d1", stato: "valido" },
+  ],
+  cantieri: [
+    { id: "k1", nome: "Cava Monte Alto", comune: "Comune di esempio", tipo: "cava", stato: "attivo" },
+    { id: "k2", nome: "Cantiere cliente Edilcave", comune: "Comune di esempio", tipo: "cantiere", stato: "attivo" },
   ],
   infortuni: [
     { id: "i1", data: "2026-05-18", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "fronte Est", descrizione: "Caduta massi vicino al perforatore, nessun ferito" },
     { id: "i2", data: "2026-02-03", tipo: "infortunio", gravita: "lieve", giorniAssenza: 4, luogo: "officina", descrizione: "Taglio alla mano durante una manutenzione" },
   ],
 };
+
+/* Tipi di documento HSE gestiti (base normativa: D.Lgs 81/08; per le cave il
+   documento di valutazione specifico è il DSS ex D.Lgs 624/96 art. 6/10,
+   da inviare all'ASL prima dell'avvio; il POS riguarda i cantieri edili
+   in cui l'azienda opera come impresa esecutrice — D.Lgs 81/08 art. 89). */
+export const TIPI_DOCUMENTO = [
+  "DSS", "POS", "DVR", "DUVRI", "Nomina", "Verbale DPI",
+  "Idoneità sanitaria", "Attestato formazione", "Altro",
+];
 
 export function statoScadenza(dataISO, oggi = new Date()) {
   const giorni = giorniTra(dataISO, oggi);
@@ -277,6 +296,7 @@ export async function scudoData() {
         scadenze:   () => read("scadenze"),
         documenti:  () => read("documenti"),
         infortuni:  () => read("infortuni"),
+        cantieri:   () => read("cantieri"),
         aggiungi: (name, data) => addDoc(id.orgCollection(name), data),
         logout: () => id.logout(),
         aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), data),
@@ -295,6 +315,7 @@ export async function scudoData() {
       scadenze:   async () => mem.scadenze,
       documenti:  async () => mem.documenti,
       infortuni:  async () => mem.infortuni,
+      cantieri:   async () => mem.cantieri,
       logout: async () => {},
       aggiungi: async (name, data) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[name] = mem[name] || []).push({ id, ...data }); return { id }; },
       aggiorna: async (name, docId, data) => { const x = (mem[name] || (mem[name] = [])).find(v => v.id === docId); if (x) Object.assign(x, data); },

@@ -107,16 +107,34 @@
 
 <!-- DOCUMENTI -->
 <div class="page" id="page-doc">
+  <div class="sec">Cantieri e siti (<span id="cant-count">0</span>)</div>
+  <div id="cant-list"></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <input class="dw-input" id="cant-nome" placeholder="Nome cantiere/cava" style="flex:2;min-width:150px;">
+    <input class="dw-input" id="cant-comune" placeholder="Comune" style="flex:1;min-width:110px;">
+    <select class="dw-input" id="cant-tipo" style="flex:1;min-width:110px;"><option value="cava">Cava</option><option value="cantiere">Cantiere esterno</option></select>
+    <button class="dw-btn" id="btn-cant" style="width:auto;">Aggiungi</button>
+  </div>
+  <div class="note" id="cant-esito" style="text-align:left;"></div>
+
   <div class="sec">Documenti aziendali</div>
   <div id="doc-list"></div>
   <div class="sec">Nuovo documento</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <input class="dw-input" id="doc-titolo" placeholder="Titolo (es. Registro infortuni)" style="flex:2;min-width:160px;">
+    <select class="dw-input" id="doc-tipo" style="flex:1;min-width:130px;"></select>
+    <input class="dw-input" id="doc-titolo" placeholder="Titolo (es. DSS Cava Monte Alto)" style="flex:2;min-width:160px;">
     <input class="dw-input" id="doc-meta" placeholder="Nota (es. Aggiornato 07/2026)" style="flex:1;min-width:130px;">
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+    <select class="dw-input" id="doc-cantiere" style="flex:1;min-width:140px;"><option value="">— nessun cantiere —</option></select>
+    <select class="dw-input" id="doc-lavoratore" style="flex:1;min-width:140px;"><option value="">— nessun lavoratore —</option></select>
+    <button class="dw-btn secondary" id="btn-doc-file" style="width:auto;" title="Foto o scansione firmata (immagine/PDF)">📎 Allega file</button>
+    <input type="file" id="doc-file" accept="image/*,.pdf" style="display:none;">
+    <span class="dw-muted" id="doc-file-nome" style="font-size:12px;align-self:center;"></span>
     <button class="dw-btn" id="btn-doc" style="width:auto;">Aggiungi</button>
   </div>
   <div class="note" id="doc-esito" style="text-align:left;"></div>
-  <div class="note" style="text-align:left;">Tocca un documento per cambiarne lo stato (valido → da rivedere → scaduto).</div>
+  <div class="note" style="text-align:left;">Tocca un documento per cambiarne lo stato (valido → da rivedere → scaduto). Collega il <b>DSS/POS al cantiere</b> e i <b>verbali DPI al lavoratore</b>; l'allegato (foto o scansione firmata) si riapre con 📎. In questa fase gli allegati fino a ~400 KB; per l'archivio completo serve lo storage del progetto live.</div>
 
   <div class="sec">Infortuni e near-miss</div>
   <div id="inf-riep" class="note" style="text-align:left;"></div>
@@ -165,7 +183,7 @@
 </script>
 
 <script type="module">
-  import { scudoData, statoScadenza, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, parseScadenzeCsv, SCADENZE_PRESET, presetScadenza } from "./scudo-data.js";
+  import { scudoData, statoScadenza, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, parseScadenzeCsv, SCADENZE_PRESET, presetScadenza, TIPI_DOCUMENTO } from "./scudo-data.js";
   import { mountExit, esc, csvCell, parseCsvLine, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
 
   const $ = (id) => document.getElementById(id);
@@ -180,7 +198,8 @@
     ? "Dati reali della tua organizzazione."
     : "Dati di esempio (" + db.mode + "): le modifiche non vengono salvate.";
 
-  let LAV = [], SCA = [], DOC = [], INF = [];
+  let LAV = [], SCA = [], DOC = [], INF = [], CANT = [];
+  let docFileSel = null;   // allegato scelto per il prossimo documento {nome, dataURL}
   let editLav = null;   // id del lavoratore in modifica (riusa il form "Aggiungi"; idoneità/scadenze restano)
   let filtroScad = "tutte";
   let filtroInf = "tutti";
@@ -212,7 +231,7 @@
   });
 
   async function refresh() {
-    [LAV, SCA, DOC, INF] = await Promise.all([db.lavoratori(), db.scadenze(), db.documenti(), db.infortuni ? db.infortuni() : []]);
+    [LAV, SCA, DOC, INF, CANT] = await Promise.all([db.lavoratori(), db.scadenze(), db.documenti(), db.infortuni ? db.infortuni() : [], db.cantieri ? db.cantieri() : []]);
     const byId = Object.fromEntries(LAV.map(l => [l.id, l]));
     const k = kpiFrom(LAV, SCA);
     $("k-scadute").textContent = k.scadute;
@@ -287,9 +306,28 @@
       LAV.map(l => `<option value="${l.id}">${esc(l.nome)}</option>`).join("");
 
     const D = { valido: ["ok", "Valido"], "da-rivedere": ["warn", "Da rivedere"], scaduto: ["danger", "Scaduto"] };
-    $("doc-list").innerHTML = DOC.map(d =>
-      `<div class="item" data-doc="${d.id}" style="cursor:pointer" title="Tocca per cambiare stato"><div class="info"><div class="name">${esc(d.titolo)}</div><div class="meta">${esc(d.meta || "")}</div></div>
-       <span class="badge ${D[d.stato][0]}">${D[d.stato][1]}</span></div>`).join("")
+    // cantieri e siti
+    const TC = { cava: ["ok", "Cava"], cantiere: ["warn", "Cantiere"] };
+    $("cant-count").textContent = CANT.length;
+    $("cant-list").innerHTML = CANT.map(c => {
+      const tb = TC[c.tipo] || ["warn", esc(c.tipo || "—")];
+      const nDoc = DOC.filter(d => d.cantiereId === c.id).length;
+      return `<div class="item"><div class="avatar">${esc((c.nome || "?").split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase())}</div>
+        <div class="info"><div class="name">${esc(c.nome)}</div><div class="meta">${esc(c.comune || "—")}${nDoc ? ` · ${nDoc} documenti` : " · nessun documento"}</div></div>
+        <span class="badge ${tb[0]}">${tb[1]}</span><span class="arr" style="cursor:pointer" title="Rimuovi" data-del-cant="${c.id}">✕</span></div>`;
+    }).join("") || '<div class="note" style="text-align:left;">Nessun cantiere. Aggiungi la cava e gli eventuali cantieri esterni: DSS e POS si collegano qui.</div>';
+    // selettori del form documento
+    const selC = $("doc-cantiere"), selL = $("doc-lavoratore");
+    if (selC && selC.children.length !== CANT.length + 1) selC.innerHTML = '<option value="">— nessun cantiere —</option>' + CANT.map(c => `<option value="${c.id}">${esc(c.nome)}</option>`).join("");
+    if (selL && selL.children.length !== LAV.length + 1) selL.innerHTML = '<option value="">— nessun lavoratore —</option>' + LAV.map(l => `<option value="${l.id}">${esc(l.nome)}</option>`).join("");
+    if ($("doc-tipo") && !$("doc-tipo").children.length) $("doc-tipo").innerHTML = TIPI_DOCUMENTO.map(t => `<option${t === "DSS" ? " selected" : ""}>${t}</option>`).join("");
+    const cById = Object.fromEntries(CANT.map(c => [c.id, c]));
+    $("doc-list").innerHTML = DOC.map(d => {
+      const legami = [d.cantiereId && cById[d.cantiereId] ? "📍 " + esc(cById[d.cantiereId].nome) : "", d.lavoratoreId && byId[d.lavoratoreId] ? "👷 " + esc(byId[d.lavoratoreId].nome) : ""].filter(Boolean).join(" · ");
+      return `<div class="item" data-doc="${d.id}" style="cursor:pointer" title="Tocca per cambiare stato"><div class="info"><div class="name">${d.tipo ? `<span class="badge ok" style="margin-right:6px;">${esc(d.tipo)}</span>` : ""}${esc(d.titolo)}</div><div class="meta">${esc(d.meta || "")}${legami ? " · " + legami : ""}</div></div>
+       ${d.allegatoData ? `<span class="arr" style="cursor:pointer" title="Apri allegato ${esc(d.allegatoNome || "")}" data-open-doc="${d.id}">📎</span>` : ""}
+       <span class="badge ${D[d.stato][0]}">${D[d.stato][1]}</span></div>`;
+    }).join("")
       || '<div class="note" style="text-align:left;">Nessun documento registrato.</div>';
 
     // Sicurezza: giorni senza infortuni (cartellone) + riepilogo + registro
@@ -314,6 +352,15 @@
 
   const DOC_NEXT = { valido: "da-rivedere", "da-rivedere": "scaduto", scaduto: "valido" };
   document.addEventListener("click", async (e) => {
+    // 📎 apre l'allegato (foto/scansione) senza toccare lo stato del documento
+    const op = e.target.getAttribute && e.target.getAttribute("data-open-doc");
+    if (op) { e.stopPropagation(); const d = DOC.find(x => x.id === op);
+      if (d && d.allegatoData) { try {
+        const parts = d.allegatoData.split(","), mime = (parts[0].match(/data:(.*?);/) || [])[1] || "application/octet-stream";
+        const bin = atob(parts[1]); const buf = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+        window.open(URL.createObjectURL(new Blob([buf], { type: mime })), "_blank");
+      } catch (err) { window.open(d.allegatoData, "_blank"); } } return; }
     const dc = e.target.closest && e.target.closest("[data-doc]");
     if (dc && db.aggiorna) { const d = DOC.find(x => x.id === dc.getAttribute("data-doc"));
       if (d) { await db.aggiorna("documenti", d.id, { stato: DOC_NEXT[d.stato] || "valido" }); await refresh(); } return; }
@@ -372,16 +419,48 @@
     $("new-nome").focus();   // torna al primo campo per inserire subito il prossimo
     await refresh();
   };
+  // allegato: foto o scansione firmata (immagine/PDF). Limite prudente 400 KB:
+  // gli allegati viaggiano nel documento Firestore (tetto 1 MB) finché non ci
+  // sarà lo storage del progetto live — dichiarato in interfaccia.
+  $("btn-doc-file").onclick = () => $("doc-file").click();
+  $("doc-file").onchange = () => {
+    const f = $("doc-file").files[0]; docFileSel = null; $("doc-file-nome").textContent = "";
+    if (!f) return;
+    if (f.size > 400 * 1024) { $("doc-esito").textContent = "Allegato troppo grande (" + Math.round(f.size / 1024) + " KB): riduci la foto/scansione sotto i 400 KB."; $("doc-file").value = ""; return; }
+    const r = new FileReader();
+    r.onload = () => { docFileSel = { nome: f.name, dataURL: r.result }; $("doc-file-nome").textContent = "📎 " + f.name + " (" + Math.round(f.size / 1024) + " KB)"; $("doc-esito").textContent = ""; };
+    r.readAsDataURL(f);
+  };
   $("btn-doc").onclick = async () => {
     const titolo = $("doc-titolo").value.trim();
     if (!titolo) { $("doc-titolo").style.borderColor = "var(--danger)"; $("doc-esito").textContent = "Serve il titolo del documento."; return; }
     $("doc-titolo").style.borderColor = "";
-    await db.aggiungi("documenti", { titolo, meta: $("doc-meta").value.trim(), stato: "valido" });
-    $("doc-titolo").value = ""; $("doc-meta").value = "";
+    const rec = { titolo, meta: $("doc-meta").value.trim(), tipo: $("doc-tipo").value || "Altro",
+      cantiereId: $("doc-cantiere").value || null, lavoratoreId: $("doc-lavoratore").value || null, stato: "valido" };
+    if (docFileSel) { rec.allegatoNome = docFileSel.nome; rec.allegatoData = docFileSel.dataURL; }
+    await db.aggiungi("documenti", rec);
+    $("doc-titolo").value = ""; $("doc-meta").value = ""; $("doc-file").value = ""; $("doc-file-nome").textContent = ""; docFileSel = null;
     $("doc-esito").textContent = "Documento aggiunto: " + titolo + " (valido).";
     $("doc-titolo").focus();   // pronto per il prossimo documento
     await refresh();
   };
+  $("btn-cant").onclick = async () => {
+    const nome = $("cant-nome").value.trim();
+    if (!nome) { $("cant-nome").style.borderColor = "var(--danger)"; $("cant-esito").textContent = "Serve il nome del cantiere o della cava."; return; }
+    $("cant-nome").style.borderColor = "";
+    await db.aggiungi("cantieri", { nome, comune: $("cant-comune").value.trim(), tipo: $("cant-tipo").value, stato: "attivo" });
+    $("cant-nome").value = ""; $("cant-comune").value = "";
+    $("cant-esito").textContent = "Aggiunto: " + nome + ".";
+    await refresh();
+  };
+  $("cant-list").addEventListener("click", async (e) => {
+    const del = e.target.getAttribute && e.target.getAttribute("data-del-cant");
+    if (!del) return;
+    const c = CANT.find(x => x.id === del);
+    const nDoc = DOC.filter(d => d.cantiereId === del).length;
+    if (!confirm("Rimuovere " + (c ? c.nome : "il cantiere") + (nDoc ? " (" + nDoc + " documenti resteranno senza collegamento)" : "") + "?")) return;
+    await db.rimuovi("cantieri", del); await refresh();
+  });
   // niente eventi datati nel futuro: il registro infortuni è un documento HSE e la
   // data più recente pilota il cartellone "giorni senza infortuni" (un refuso lo azzererebbe)
   { const d = new Date(); $("inf-data").max = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
