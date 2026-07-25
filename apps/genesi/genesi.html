@@ -372,6 +372,7 @@ body.scr-sim #tl{bottom:80px}
           <div class="dc-grid">
             <label class="dc-f"><span>Esplosivo <button type="button" class="dc-info" id="dEsplInfo" title="Approfondimento esplosivo">ⓘ</button></span><select id="dEspl"></select></label>
             <label class="dc-f"><span>Innesco <button type="button" class="dc-info" id="dInnInfo" title="Approfondimento innesco">ⓘ</button></span><select id="dInnSel"></select></label>
+            <label class="dc-f"><span>Esplosivo totale (kg)</span><input type="number" id="dKgTot" step="10" min="0" placeholder="tutta la volata"></label>
             <label class="dc-f"><span>Carica (kg/foro)</span><input type="number" id="dKg" step="5" min="10" max="120" value="50"></label>
             <label class="dc-f"><span>Ritardo foro (ms)</span><select id="dRit"><option>17</option><option selected>25</option><option>42</option><option>65</option></select></label>
             <label class="dc-f"><span>Ritardo fila (ms)</span><input type="number" id="dRitFila" step="1" min="8" max="200" value="42"></label>
@@ -2545,6 +2546,7 @@ const SVOPEN=new Set();
 function renderScheda2D(){
   const el=$('d2-scheda'); if(!el) return; const g=measureGeom2D();
   if($('d2-mat')) $('d2-mat').textContent='⛏ '+(selEsplosivo()?selEsplosivo().nome.split(' ')[0]:'—')+' · '+(selInnesco()?selInnesco().short:'—')+(D2.bagnato?' · 💧':'');
+  if($('dKgTot') && document.activeElement!==$('dKgTot')) $('dKgTot').value=Math.round(D2.kg*(g.n||0));
   const B=g.B, S=g.S, H=D2.prof, Dmm=D2.diam, Dm=Dmm/1000, Q=D2.kg, rit=D2.ritardo;
   const pf=Q/(B*S*H), sb=S/B, hb=H/B, bd=B/Dm, stem=D2.stem, stemB=stem/B, msmHole=rit/S, msmRow=(D2.ritardoFila||rit)/B, sub=D2.sub, subB=sub/B, subRec=0.3*B;
   function badge(x,lab,valStr,lo,hi,wlo,whi,whyOk,whyLo,whyHi){
@@ -2858,6 +2860,18 @@ function simulaVolata2D(){
 ['dB','dS','dD','dN','dFile','dH','dKg','dIncl','dStem','dSub','dRit','dRitFila','dEspl','dInnSel','dRoccia','dUcs','dEmod','dFrat','dBagnato','dAcquaCol','dPresplit','dPsSpacing','dPsCharge','dSeq','dRecDist','dRecNorma','dRecFreq','dCPerf','dCExpl','dCInn','dValMat','dDecks','dDeckStem'].forEach(id=>{ const el=$(id); if(el) el.addEventListener('change', applyDesign); });
 document.querySelectorAll('.dc-sec-h').forEach(b=>{ b.addEventListener('click', ()=>b.parentElement.classList.toggle('closed')); });
 if($('dKg')) $('dKg').addEventListener('input', ()=>{ D2.kgAuto=false; });
+/* quantitativo TOTALE della volata (fondatore 25/07): l'app lo divide sui fori
+   e genera gli altri dati; il campo si tiene allineato quando cambiano maglia o kg/foro */
+if($('dKgTot')) $('dKgTot').addEventListener('change', ()=>{
+  const tot=Math.max(0, +$('dKgTot').value||0);
+  const n=(measureGeom2D().n || D2.perRow*D2.file || 1);
+  if(tot>0 && n>0){
+    D2.kgAuto=false;
+    D2.kg=Math.max(5, Math.min(200, +(tot/n).toFixed(1)));
+    if($('dKg')) $('dKg').value=D2.kg;
+    applyDesign();
+  }
+});
 function setTool(t){ D2.tool=t; D2.selPt=-1; [['dtFori','fori'],['dtFronte','fronte'],['dtPiede','piede']].forEach(p=>{ const el=$(p[0]); if(el) el.classList.toggle('on',t===p[1]); }); const rb=$('dtReset'); if(rb) rb.textContent='↺ Reset '+(t==='piede'?'piede':'fronte'); drawDesign2D(); renderInspector(); }
 if($('dtFori')) $('dtFori').onclick=()=>setTool('fori');
 if($('dtFronte')) $('dtFronte').onclick=()=>setTool('fronte');
