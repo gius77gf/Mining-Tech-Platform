@@ -162,6 +162,10 @@ function diagOf(bb){ return Math.hypot(bb.max.x-bb.min.x, bb.max.y-bb.min.y, bb.
 
 function afterPlace(bb, diag, fname, shown, step, total, colInfo){
   bounds=bb;
+  /* storico lavorazioni per la home di Genesi (localStorage condiviso, max 30) */
+  try{ const k='genesiNuvole', a=JSON.parse(localStorage.getItem(k)||'[]');
+    a.push({ nome:String(fname||'rilievo'), punti:shown||0, data:new Date().toISOString().slice(0,16).replace('T',' ') });
+    while(a.length>30) a.shift(); localStorage.setItem(k, JSON.stringify(a)); }catch(e){}
   camera.position.set(0, -diag*0.9, diag*0.6); controls.target.set(0,0,0); controls.update();
   grid.scale.setScalar(Math.max(1, diag/200));
   ['xmin','ymin','zmin'].forEach(id=>$(id).value=0); ['xmax','ymax','zmax'].forEach(id=>$(id).value=100);
@@ -211,7 +215,10 @@ function updateCrop(){
     const a=obj.geometry.attributes.position.array, sel=[];
     for(let i=0;i<a.length;i+=3){ if(insideCrop(a[i],a[i+1],a[i+2])) sel.push(a[i],a[i+1],a[i+2]); }
     if(sel.length>=90){ try{ const v=volumeCumulo(sel, Math.max(0.25, Math.min(2,(x1-x0)/60)));
-      volTxt=' · volume ≈ <b style="color:var(--tx)">'+Math.round(v.volume).toLocaleString('it-IT')+(_georef?' m³':' u³')+'</b> <span style="color:var(--mut)">(griglia, base piana — stima)</span>'; }catch(e){} }
+      volTxt=' · volume ≈ <b style="color:var(--tx)">'+Math.round(v.volume).toLocaleString('it-IT')+(_georef?' m³':' u³')+'</b> <span style="color:var(--mut)">(griglia, base piana — stima)</span>';
+      try{ const k='genesiNuvole', a=JSON.parse(localStorage.getItem(k)||'[]');
+        if(a.length){ a[a.length-1].volume=Math.round(v.volume)+(_georef?'':' u³'); localStorage.setItem(k, JSON.stringify(a)); } }catch(e){}
+    }catch(e){} }
   }
   $('cropdim').innerHTML='Ritaglio: <b style="color:var(--tx)">'+(x1-x0).toFixed(1)+' L × '+(z1-z0).toFixed(1)+' H × '+(y1-y0).toFixed(1)+' P</b> ('+_um+')'+cntTxt+volTxt;
 }

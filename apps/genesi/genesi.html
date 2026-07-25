@@ -211,7 +211,22 @@ body.scr-design #scr-design{display:flex}
 .es-card.sel .es-pick{background:#1a140b;color:#ffd54f;border:1px solid var(--cu)}
 body:not(.scr-sim) #view,body:not(.scr-sim) #cams,body:not(.scr-sim) #params,body:not(.scr-sim) #topright,body:not(.scr-sim) #tl,body:not(.scr-sim) #helpcard{display:none!important}
 body.scr-sim #tl{bottom:80px}
-#scr-home{align-items:center;justify-content:center;gap:15px;text-align:center;padding:24px 22px 124px}
+#scr-home{align-items:center;justify-content:flex-start;gap:15px;text-align:center;padding:26px 22px 124px;overflow-y:auto}
+#homeGrid{width:100%;max-width:620px;display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px;text-align:left}
+.hg-panel{background:linear-gradient(150deg,rgba(255,236,200,.055),rgba(255,210,150,.018));border:1px solid rgba(255,228,180,.16);border-radius:16px;padding:13px 14px;box-shadow:0 12px 34px rgba(0,0,0,.4),0 1px 0 rgba(255,240,210,.1) inset}
+.hg-panel h4{margin:0 0 8px;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13.5px;letter-spacing:.07em;text-transform:uppercase;color:#ffd54f;display:flex;align-items:center;gap:7px}
+.hg-panel h4 .hg-n{margin-left:auto;font-size:10px;color:var(--mut2);letter-spacing:.04em}
+.hg-list{display:flex;flex-direction:column;gap:6px;max-height:172px;overflow-y:auto}
+.hg-item{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:10px;padding:7px 9px;font-size:11.5px}
+.hg-item .t{min-width:0;flex:1}
+.hg-item .t b{display:block;color:var(--tx);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hg-item .t small{color:var(--mut2);font-size:10px}
+.hg-item button{background:none;border:1px solid var(--line);color:var(--mut);border-radius:7px;font-size:10px;padding:3px 7px;cursor:pointer;flex:none}
+.hg-item button:hover{color:var(--cu);border-color:rgba(255,171,0,.4)}
+.hg-empty{font-size:11px;color:var(--mut2);padding:6px 2px;line-height:1.5}
+.hg-actions{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
+.hg-actions .btn{font-size:11px;padding:7px 11px}
+
 /* logo con cerchio/alone luminoso (da variante Brace) */
 #scr-home .logo-stage{position:relative;display:flex;align-items:center;justify-content:center;margin-top:2px}
 #scr-home .logo-stage .bloom{position:absolute;top:50%;left:50%;width:280px;height:280px;border-radius:50%;pointer-events:none;background:radial-gradient(circle,rgba(255,213,79,.16) 0%,rgba(255,171,0,.10) 28%,rgba(255,109,0,.055) 50%,transparent 72%);filter:blur(5px);transform:translate(-50%,-50%);animation:gBreathe 4.6s ease-in-out infinite}
@@ -351,6 +366,32 @@ body.scr-sim #tl{bottom:80px}
       <svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
     </div>
   </div>
+  <!-- centro di comando (fondatore 25/07): storico, drone, ponte Deepwork -->
+  <div id="homeGrid">
+    <div class="hg-panel">
+      <h4>🗂 Le tue volate<span class="hg-n" id="hgVolN"></span></h4>
+      <div class="hg-list" id="hgVolate"></div>
+      <div class="hg-actions">
+        <button class="btn" id="hgSalva">💾 Salva la volata attuale</button>
+      </div>
+    </div>
+    <div class="hg-panel">
+      <h4>🛸 Drone & rilievi 3D<span class="hg-n" id="hgNuvN"></span></h4>
+      <div class="hg-list" id="hgNuvole"></div>
+      <div class="hg-actions">
+        <a class="btn" href="./nuvola-poc.html" style="text-decoration:none">Apri il visore nuvola</a>
+      </div>
+    </div>
+    <div class="hg-panel">
+      <h4>🔗 Ponte Deepwork</h4>
+      <div class="hg-empty">Scambia i progetti di volata col gestionale Deepwork tramite file <b>.volata.json</b>: esporta da qui e importa in Deepwork, o viceversa.</div>
+      <div class="hg-actions">
+        <button class="btn" id="hgImporta">⬇ Importa volata</button>
+        <button class="btn" id="hgEsporta">⬆ Invia a Deepwork</button>
+        <a class="btn" href="../../index.html" style="text-decoration:none">Apri Deepwork</a>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div id="scr-design">
@@ -440,6 +481,7 @@ body.scr-sim #tl{bottom:80px}
   <div id="d2-scheda"></div>
   <button class="btn-sec" id="btn-piano-csv" style="display:block;margin:10px auto 0;">📤 Esporta piano di carico (CSV per il fochino)</button>
   <button class="btn-sec" id="btn-scheda-csv" style="display:block;margin:8px auto 0;">📄 Esporta scheda volata (CSV)</button>
+  <button class="btn-sec" id="btn-salva-volata" style="display:block;margin:6px auto 0;">💾 Salva nello storico (Home)</button>
   <button class="btn-sec" id="btn-report" style="display:block;margin:8px auto 0;" title="Report della volata formattato, stampabile o salvabile in PDF (stampa del browser)">🖨 Report volata (stampa / PDF)</button>
   <button class="btn-sec" id="btn-innesco-xml" style="display:block;margin:8px auto 0;" title="Piano di innesco per detonatori elettronici / software terzi (formato XML in stile IREDES)">🧨 Esporta piano di innesco (XML IREDES-like)</button>
   <button class="btn-sec" id="btn-innesco-xml-in" style="display:block;margin:8px auto 0;" title="Rileggi un piano XML in stile IREDES esportato da Genesi (round-trip: geometria, sequenza, ritardi)">📥 Importa piano di innesco (XML)</button>
@@ -2286,6 +2328,7 @@ function setScreen(name){
   document.body.classList.add('scr-'+name);
   document.querySelectorAll('#bottomnav button').forEach(b=>b.classList.toggle('on', b.dataset.scr===name));
   if(name==='design'){ deriveCharge(); syncDesignInputs(); draw2D(); }
+  if(name==='home' && typeof renderHome==='function') renderHome();
   if(name==='sim' && typeof simSource!=='undefined' && simSource==='nuova') document.body.classList.add('show-params');
 }
 document.querySelectorAll('#bottomnav button').forEach(b=> b.onclick=()=>setScreen(b.dataset.scr));
@@ -2324,6 +2367,61 @@ if($('dInnInfo')) $('dInnInfo').onclick=e=>{ e.preventDefault(); showEsplInfo('i
 if($('pEsplInfo')) $('pEsplInfo').onclick=e=>{ e.preventDefault(); showEsplInfo('esplosivo'); };
 if($('pEspl')) $('pEspl').addEventListener('change',()=>{ D2.esplosivo=$('pEspl').value; deriveCharge(); fillEsplSelects(); });
 document.querySelectorAll('#scr-home .card').forEach(c=> c.onclick=()=>setScreen(c.dataset.go));
+/* ============ HOME = centro di comando (fondatore 25/07): storico volate,
+   rilievi drone, ponte Deepwork ============ */
+function _lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)||'[]'); }catch(e){ return []; } }
+function _lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function volSnapshot(nome){
+  let sintesi=(D2.perRow*D2.file)+' fori';
+  try{ const k=computeKPI(); sintesi=k.nf+' fori · '+k.qtot+' kg · X50 '+k.x50+' cm'; }catch(e){}
+  return { id:'v'+Date.now(), nome:nome,
+    data:new Date().toISOString().slice(0,16).replace('T',' '),
+    design:JSON.parse(JSON.stringify({B:D2.B,S:D2.S,file:D2.file,perRow:D2.perRow,diam:D2.diam,prof:D2.prof,kg:D2.kg,kgAuto:D2.kgAuto,ritardo:D2.ritardo,ritardoFila:D2.ritardoFila,stem:D2.stem,sub:D2.sub,incl:D2.incl,esplosivo:D2.esplosivo,innesco:D2.innesco,roccia:D2.roccia,ucs:D2.ucs,eMod:D2.eMod,frat:D2.frat,bagnato:D2.bagnato,acquaCol:D2.acquaCol,presplit:D2.presplit,psSpacing:D2.psSpacing,psCharge:D2.psCharge,sequenza:D2.sequenza,recDist:D2.recDist,recNorma:D2.recNorma,recFreq:D2.recFreq,decks:D2.decks,deckStem:D2.deckStem,profilo:D2.profilo,piede:D2.piede})),
+    sintesi:sintesi };
+}
+function renderHome(){
+  const arr=_lsGet('genesiVolate');
+  if($('hgVolN')) $('hgVolN').textContent=arr.length? (arr.length+' salvate'):'';
+  const list=$('hgVolate');
+  if(list) list.innerHTML = arr.length
+    ? arr.slice().reverse().map(v=>'<div class="hg-item" data-id="'+v.id+'"><div class="t"><b>'+_rEsc(v.nome)+'</b><small>'+v.data+' · '+_rEsc(v.sintesi||'')+'</small></div><button data-act="apri">Apri</button><button data-act="dup">Duplica</button><button data-act="del" title="Elimina">✕</button></div>').join('')
+    : '<div class="hg-empty">Nessuna volata salvata. Progetta nel 2D e premi «Salva la volata attuale»: la ritroverai qui.</div>';
+  const nv=_lsGet('genesiNuvole');
+  if($('hgNuvN')) $('hgNuvN').textContent=nv.length? (nv.length+' lavorazioni'):'';
+  const ln=$('hgNuvole');
+  if(ln) ln.innerHTML = nv.length
+    ? nv.slice(-6).reverse().map(e=>'<div class="hg-item"><div class="t"><b>'+_rEsc(e.nome)+'</b><small>'+_rEsc(e.data||'')+(e.punti?(' · '+(+e.punti).toLocaleString('it-IT')+' punti'):'')+(e.volume?(' · volume ≈ '+_rEsc(String(e.volume))+' m³'):'')+'</small></div></div>').join('')
+    : '<div class="hg-empty">Nessun rilievo ancora. Carica la nuvola del drone nel visore: le lavorazioni compaiono qui.</div>';
+}
+if($('hgSalva')) $('hgSalva').onclick=()=>{
+  const nome=(prompt('Nome della volata da salvare:','Volata '+new Date().toLocaleDateString('it-IT'))||'').trim();
+  if(!nome) return;
+  const arr=_lsGet('genesiVolate'); arr.push(volSnapshot(nome)); while(arr.length>50) arr.shift();
+  _lsSet('genesiVolate',arr); renderHome(); toast('✓ Volata salvata');
+};
+if($('hgVolate')) $('hgVolate').addEventListener('click',e=>{
+  const btn=e.target.closest('button'); if(!btn) return;
+  const item=e.target.closest('.hg-item'); const id=item&&item.getAttribute('data-id'); if(!id) return;
+  const arr=_lsGet('genesiVolate'); const i=arr.findIndex(v=>v.id===id); if(i<0) return;
+  const act=btn.getAttribute('data-act');
+  if(act==='del'){ if(confirm('Eliminare «'+arr[i].nome+'»?')){ arr.splice(i,1); _lsSet('genesiVolate',arr); renderHome(); } return; }
+  if(act==='dup'){ const c=JSON.parse(JSON.stringify(arr[i])); c.id='v'+Date.now(); c.nome=arr[i].nome+' (copia)'; c.data=new Date().toISOString().slice(0,16).replace('T',' '); arr.push(c); _lsSet('genesiVolate',arr); renderHome(); toast('✓ Duplicata'); return; }
+  if(act==='apri'){
+    Object.assign(D2, JSON.parse(JSON.stringify(arr[i].design)));
+    D2.holes=[]; D2.sel=-1; D2.selPt=-1;
+    fillEsplSelects(); setScreen('design');
+    toast('✓ «'+arr[i].nome+'» aperta nel 2D');
+  }
+});
+if($('btn-salva-volata')) $('btn-salva-volata').onclick=()=>{
+  const nome=(prompt('Nome della volata da salvare:','Volata '+new Date().toLocaleDateString('it-IT'))||'').trim();
+  if(!nome) return;
+  const arr=_lsGet('genesiVolate'); arr.push(volSnapshot(nome)); while(arr.length>50) arr.shift();
+  _lsSet('genesiVolate',arr); renderHome(); toast('\u2713 Volata salvata: la trovi in Home');
+};
+if($('hgImporta')) $('hgImporta').onclick=()=>$('fileIn').click();
+if($('hgEsporta')) $('hgEsporta').onclick=()=>$('btnExport').click();
+renderHome();
 /* ombra/luce che segue il cursore sulle card e sulle icone (come Deepwork) */
 document.querySelectorAll('#scr-home .card').forEach(card=>{
   const ic=card.querySelector('.ci');
