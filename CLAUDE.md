@@ -39,6 +39,15 @@ in italiano, senza dare conoscenze per scontate).
    revisione pulita.
 
 ## Regole vincolanti
+- ⛔ DATI DI RIFERIMENTO DEL FONDATORE — REGOLA FERREA E IMMUTABILE
+  (25/07, non va più ripetuta): i dati che il fondatore ha fornito
+  all'inizio erano SOLO ORIENTATIVI, per far capire i video che stava
+  mostrando. NON devono comparire da nessuna parte nell'interfaccia,
+  nei testi, negli export o nei documenti dell'app: archivio dei 190
+  video, le 6/23 volate misurate, maglia 4,5×3,5, Nonel 25 ms, 15-20
+  fori, calcare come "dominio di validità", e qualunque altra citazione
+  di quella origine. Si possono USARE internamente per i calcoli e le
+  calibrazioni, ma MAI mostrare né citare. Nessuna eccezione.
 - STILE: tutte le app usano i token di shared/deepwork-style.css e la
   shell shared/dw-app-shell.css. Personalizzazione ammessa SOLO via
   --app-accent/--app-accent2 (mappa accenti nel file di stile).

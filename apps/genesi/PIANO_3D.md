@@ -27,7 +27,7 @@ almeno in parte da questo: l'app non si vedeva proprio.
 - Ombre PCFSoft 2048, bloom (UnrealBloom) + OutputPass, pixel ratio
   adattivo su 3 livelli QUALITA.
 - Particellari a 3 strati (getti dai colletti, gonna basale, nuvola)
-  con tempi calibrati su 190 video reali di volate.
+  con tempi calibrati internamente sulla dinamica osservata.
 - Muckpile: heightfield fisico (cella 0.5 m, angolo riposo 37°,
   rigonfiamento 1.4, heave esplosivo-aware e ridotto per fori
   bagnati) + mesh del cumulo con materiale roccia.
