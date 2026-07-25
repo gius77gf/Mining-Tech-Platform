@@ -847,11 +847,23 @@ function rockTextures(strat){
     d[i*4]=Math.round((nx/l*0.5+0.5)*255); d[i*4+1]=Math.round((ny/l*0.5+0.5)*255); d[i*4+2]=Math.round((1/l*0.5+0.5)*255); d[i*4+3]=255; } });
   return _rockTex[key]={ map:albedo, roughnessMap:rough, normalMap:normal };
 }
-function rockMat(col){
-  const m = new THREE.MeshStandardMaterial({ color:col, roughness:0.97, metalness:0, flatShading:true });
+function rockMat(col, smooth){
+  const m = new THREE.MeshStandardMaterial({ color:col, roughness:0.97, metalness:0, flatShading:!smooth });
   if(typeof qLevel!=='undefined' && qLevel!=='Base'){
     const r=(typeof selRoccia==='function')&&selRoccia(); const tx=rockTextures(!r||r.strat!==false);
     m.map=tx.map; m.roughnessMap=tx.roughnessMap; m.normalMap=tx.normalMap; m.normalScale=new THREE.Vector2(0.85,0.85); m.roughness=1;
+  }
+  return m;
+}
+/* UV in SPAZIO MONDO (ricerca 25/07): la texture roccia rappresenta ~TEXM metri;
+   repeat/offset derivati dalle dimensioni e posizione reali → scala corretta a
+   terra (niente chiazze giganti) e parete CONTINUA tra i pannelli (niente patchwork) */
+const TEXM=8;
+function matWorldUV(m, wu, wv, ou, ov){
+  for(const k of ['map','roughnessMap','normalMap']){
+    if(m[k]){ m[k]=m[k].clone(); m[k].repeat.set(wu/TEXM, wv/TEXM);
+      m[k].offset.set((((ou||0)%TEXM)+TEXM)%TEXM/TEXM, (((ov||0)%TEXM)+TEXM)%TEXM/TEXM);
+      m[k].needsUpdate=true; }
   }
   return m;
 }
@@ -1155,13 +1167,18 @@ function buildScene(){
   sun.target.position.set(Lm/2, 0, -4); sun.target.updateMatrixWorld();
   const _lt = lithoTint();                                   // colore del litotipo scelto in progettazione
   /* DIORAMA "solo volata" (linea Deepwork): niente piazzale infinito ne spalle — solo il blocco, un grembiule di terreno per il cumulo e un accenno di banco dietro */
-  const floor = new THREE.Mesh(jitterGeo(new THREE.PlaneGeometry(Lm+44, 66, 48, 34),0.25), rockMat(shade(_lt,1.04)));
+  /* a terra la variante NON stratificata: le bande da parete sul piazzale
+     sembravano strisce che "disegnano" l'area di lancio (fondatore 25/07) */
+  const floorMat = rockMat(shade(_lt,1.0), true);
+  if(floorMat.map){ const _txm=rockTextures(false); floorMat.map=_txm.map; floorMat.roughnessMap=_txm.roughnessMap; floorMat.normalMap=_txm.normalMap; floorMat.normalScale=new THREE.Vector2(0.5,0.5); }
+  matWorldUV(floorMat, Lm+44, 66, 0, 0);
+  const floor = new THREE.Mesh(jitterGeo(new THREE.PlaneGeometry(Lm+44, 66, 48, 34),0.10), floorMat);
   floor.rotation.x = -Math.PI/2; floor.position.set(Lm/2, -0.02, -14); floor.receiveShadow = true; staticGroup.add(floor);
   /* banco residuo dietro il nuovo fronte (blocco corto: il diorama finisce li) */
-  const bench = new THREE.Mesh(jitterGeo(new THREE.BoxGeometry(Lm, H, 9, 40, 5, 5),0.35), rockMat(shade(_lt,0.9)));
+  const bench = new THREE.Mesh(jitterGeo(new THREE.BoxGeometry(Lm, H, 9, 40, 5, 5),0.35), matWorldUV(rockMat(shade(_lt,0.92), true), Lm, H, 0, 0));
   bench.position.set(Lm/2, H/2, DPT+4.5+maxCz); bench.castShadow = true; bench.receiveShadow = true; staticGroup.add(bench);
   /* nuovo fronte rivelato (taglio fresco, piu scuro e saturo) */
-  backWall = new THREE.Mesh(jitterGeo(new THREE.PlaneGeometry(Lm, H, Math.max(8,SIM.fori.length), 6), D2.presplit?0.12:0.5), rockMat(shade(_lt,0.76)));
+  backWall = new THREE.Mesh(jitterGeo(new THREE.PlaneGeometry(Lm, H, Math.max(8,SIM.fori.length), 6), D2.presplit?0.12:0.5), matWorldUV(rockMat(shade(_lt,0.8), true), Lm, H, 0, 0));
   backWall.position.set(Lm/2, H/2, DPT-0.05+maxCz); backWall.rotation.y = Math.PI;
   backWall.receiveShadow = true; staticGroup.add(backWall);
   /* presplit: mezzifondelli (halfcast) sul nuovo fronte — mezze canne verticali
@@ -1207,9 +1224,7 @@ function buildScene(){
     /* fondatore 25/07: l'inclinazione riguarda i FORI, il fronte resta com'e' */
     const pos = new THREE.Vector3(f.x, f.h/2, SPALLA/2 + f.cz + (f.zoff||0));
     worldJitter(pgeo, pos, 0.62);
-    const pm = rockMat(_lt); pm.transparent = true;               // per la vista raggi-X
-    if(pm.map){ pm.map=pm.map.clone(); pm.map.offset.set((f.x*0.173)%1,((f.zoff||0)*0.137+f.i*0.311)%1); pm.map.needsUpdate=true; }
-    if(pm.normalMap){ pm.normalMap=pm.normalMap.clone(); pm.normalMap.offset.copy(pm.map.offset); pm.normalMap.needsUpdate=true; }
+    const pm = matWorldUV(rockMat(shade(_lt,0.92), true), INTERASSE, f.h, f.x-INTERASSE/2, 0); pm.transparent = true;   // per la vista raggi-X
     const m = new THREE.Mesh(pgeo, pm);
     m.position.copy(pos);
     m.castShadow = true; m.receiveShadow = true;
@@ -1449,7 +1464,10 @@ function renderSim(t, force){
   }
   /* muckpile: ricostruzione eventi <= t, con CRESCITA GRADUALE per cella (~0,7 s dal valore precedente: la pila si accumula, non appare) */
   if(layers.lMuck){
-    pileMesh.visible = true;
+    /* prima del primo materiale a terra il piano del cumulo resta INVISIBILE:
+       da piatto "macchiava" il suolo disegnando in anticipo l'area di caduta
+       (fondatore 25/07) */
+    pileMesh.visible = (S.events.length>0 && t >= S.events[0].t);
     const RISE = 700;
     if(!hgtNow || force){ hgtNow = new Float32Array(S.grid.NX*S.grid.NZ); hgtDisp = new Float32Array(S.grid.NX*S.grid.NZ); evPtr = 0; lastEvPtr = -1; }
     if(t < (S.events[evPtr-1]?.t ?? -1)){ hgtNow.fill(0); evPtr = 0; }   // scrub indietro: replay
@@ -3004,7 +3022,8 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){
     rebuild, get SIM(){return SIM}, get P(){return P}, get D2(){return D2}, get simT(){return simT},
     get frontMesh(){return frontMesh},
     loadFrontUrl: async (url)=>{ const t=await (await fetch(url)).text(); loadFrontMeshObject(new OBJLoader().parse(t)); return P.fori; },
-    setParam:(k,v)=>{ P[k]=v; const el=$('p'+k.charAt(0).toUpperCase()+k.slice(1)); if(el)el.value=v; }
+    setParam:(k,v)=>{ P[k]=v; const el=$('p'+k.charAt(0).toUpperCase()+k.slice(1)); if(el)el.value=v; },
+    setQuality:(q)=>{ if(QUALITA[q]){ qLevel=q; $('qlab').textContent=q; rebuild(); } return qLevel; }
   };
 }
 </script>

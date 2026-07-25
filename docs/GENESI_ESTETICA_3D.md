@@ -61,6 +61,26 @@ fototessuturato dal drone (quando il flusso Terra→Genesi porterà la mesh real
 SUO sito — a quel punto la "foto drappeggiata" arriva gratis dal nostro stesso
 flusso drone, che è la convergenza più bella di tutte).
 
+## Rifacimento fronte/terreno (25/07 — dalla revisione severa del fondatore)
+
+Diagnosi (confermata da ricerca su texture mapping per terreni): i difetti
+"maculato/patchwork/blocchi" venivano da TRE cause tecniche:
+1. **Texture senza scala reale**: le mappe procedurali erano stirate sull'intera
+   superficie (una piastrella da 256 px su ~100 m) → chiazze giganti a terra.
+   Fix: **UV in spazio-mondo** con scala fissa (8 m/piastrella), `repeat/offset`
+   derivati da dimensioni e posizione reali → parete CONTINUA tra i pannelli
+   (offset per-pannello casuali eliminati) e suolo in scala.
+2. **Flat shading** su terreno e parete → faccette dure "low-poly".
+   Fix: shading liscio (normali interpolate) + normal map per il dettaglio.
+3. **Piano del muckpile visibile da subito**: da piatto "macchiava" il suolo
+   disegnando in anticipo l'area di caduta (il "maculato" del fondatore).
+   Fix: invisibile fino al primo materiale a terra.
+Più: variante di texture NON stratificata a terra (le bancate orizzontali
+sembravano strisce), tonalità unificata blocco/banco (0,92), suolo 1,0.
+Fonti ricerca: gamedev.net "Texturing large terrain", NVIDIA GPU Gems 2 cap. 12
+(tile-based texture mapping), polycount "UV mapping for terrain", discoverthreejs
+(texture intro), discussioni Unity su texture stirate su pendii.
+
 ## Prossimi passi
 1. Verificare i claim [NV] (dopo il reset del limite di sessione).
 2. Implementare le unità 1–2 e mostrare il **prima/dopo** al fondatore.
