@@ -40,8 +40,10 @@ gli interventi pesanti, quelli visibili a colpo d'occhio.
       i deck si vedono davvero (prima la colonna era unica anche col
       decking), innesco rosso alla base di ogni deck, legenda in scena con
       borraggio/esplosivo/innesco/acqua e carica per ritardo.
-- [ ] **A3. Mappa delle quote sul terreno + legenda** — colorazione per quota
-      con scala configurabile, sul fronte e sul piazzale. *Taglia M.*
+- [x] **A3. Mappa delle quote sul terreno + legenda** ✅ *(26/07, `64c08cf`)*
+      — livello attivabile: fronte, banco e piazzale colorati per altezza
+      (rampa topografica sopra la texture), legenda in metri, spegnimento
+      che ripristina la roccia originale.
 - [ ] **A4. Editor visuale della sequenza di sparo** — clic sui fori per
       assegnare i ritardi, linee di innesco disegnate, tempi mostrati sul
       foro, contorni isocroni. *Taglia L.*
