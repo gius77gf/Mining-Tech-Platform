@@ -36,6 +36,9 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
 .hud{position:fixed;z-index:10;user-select:none}
 #holeInfo{left:16px;bottom:128px;background:linear-gradient(160deg,rgba(36,26,13,.95),rgba(23,17,10,.95));border:1px solid rgba(255,213,79,.3);border-radius:12px;padding:10px 30px 10px 12px;font-size:11.5px;line-height:1.5;color:var(--tx);box-shadow:0 14px 40px rgba(0,0,0,.5)}
 #holeInfo b{color:var(--cu)}
+#mdlQuote{left:50%;transform:translateX(-50%);top:74px;background:linear-gradient(160deg,rgba(36,26,13,.95),rgba(23,17,10,.95));border:1px solid rgba(255,171,0,.45);border-radius:12px;padding:9px 14px;font-size:12px;line-height:1.5;color:var(--tx);box-shadow:0 14px 40px rgba(0,0,0,.5);text-align:center;white-space:nowrap;pointer-events:none}
+#mdlQuote b{color:var(--cu);font-size:14px}
+#mdlQuote .q-sub{color:var(--mut);font-size:10.5px;margin-top:2px}
 #holeInfo button{position:absolute;top:6px;right:6px;background:none;border:none;color:var(--mut);cursor:pointer;font-size:11px;padding:2px}
 #holeInfo button:hover{color:var(--tx)}
 /* ---- brand ---- */
@@ -593,6 +596,19 @@ body.scr-sim #tl{bottom:80px}
   <button class="btn sm" data-cam="2">Laterale<span class="k">3</span></button>
   <button class="btn sm" data-cam="3">Libera<span class="k">4 / mouse</span></button>
   <button class="btn sm" id="btnModella" style="margin-top:8px;border-color:rgba(255,171,0,.4)">✋ Modella fronte</button>
+  <div id="mdlTools" style="display:none;margin-top:8px">
+    <div style="font-size:10px;color:#d8cbb0;line-height:1.55;margin-bottom:7px;text-align:left;background:rgba(0,0,0,.28);border-radius:7px;padding:6px 8px">
+      <span style="color:#ffab00;font-size:12px">●</span> cresta: sposta la faccia<br>
+      <span style="color:#ffe27a;font-size:12px">●</span> piede: alza/abbassa la faccia
+    </div>
+    <label style="display:block;font-size:10.5px;color:#d8cbb0;margin-bottom:3px">Raggio d'influenza <b id="mdlRLab" style="color:var(--cu)">—</b></label>
+    <input type="range" id="mdlR" min="10" max="100" step="5" value="20" style="width:100%">
+    <div style="display:flex;gap:5px;margin-top:6px">
+      <button class="btn sm" id="mdlUndo" style="flex:1;padding:5px 4px;font-size:10.5px" title="Annulla l'ultima modifica (Ctrl+Z)" disabled>↩ Annulla</button>
+      <button class="btn sm" id="mdlRedo" style="flex:1;padding:5px 4px;font-size:10.5px" title="Ripristina (Ctrl+Y)" disabled>↪ Ripristina</button>
+    </div>
+    <button class="btn sm" id="mdlReset" style="width:100%;margin-top:5px;padding:5px 4px;font-size:10.5px" title="Riporta il fronte dritto">⟲ Fronte dritto</button>
+  </div>
 </div>
 
 <div class="hud" id="helpcard" style="display:none;top:60px;right:16px;width:300px;background:rgba(16,13,7,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,171,0,.25);border-radius:14px;padding:14px 16px;box-shadow:0 0 40px rgba(255,171,0,.1),0 10px 34px rgba(0,0,0,.5);z-index:60;font-size:12.5px;line-height:1.55;color:var(--tx)">
@@ -646,6 +662,7 @@ body.scr-sim #tl{bottom:80px}
 </div>
 
 <div class="hud" id="holeInfo" style="display:none"></div>
+<div class="hud" id="mdlQuote" style="display:none"></div>
 
 <div class="hud" id="tl">
   <div id="tlrow1">
@@ -1871,51 +1888,179 @@ renderer.domElement.addEventListener('pointerdown', e=>{
   if(best && bd<INTERASSE) holeInfoShow(best);
 });
 /* ===== Modellazione fronte in 3D — proportional editing stile Blender: trascini una maniglia sulla cresta, le vicine seguono con falloff gaussiano ===== */
-let modella=false, mdlHandles=[], mdlDrag=-1, mdlBase=null, mdlGroup=null;
+let modella=false, mdlHandles=[], mdlPie=[], mdlDrag=-1, mdlTipo='cresta', mdlBase=null, mdlGroup=null;
+/* deviazione del piede in x (m): negativo = piede avanzato verso il piazzale → faccia più alta */
+function pieDev(x){ return (D2.piede && D2.piede.length>=2) ? interpProf(D2.piede, x) : 0; }
 const mdlRay=new THREE.Raycaster(), mdlV2=new THREE.Vector2(), mdlPlane=new THREE.Plane(new THREE.Vector3(0,1,0), 0);
+/* raggio d'influenza: quanta cresta segue la maniglia trascinata, in % della lunghezza del fronte */
+let mdlRaggioPct=20;
+/* cronologia annulla/ripristino: pile di profili (copie), così una modellazione sbagliata non è mai definitiva */
+let mdlUndoStack=[], mdlRedoStack=[];
+const MDL_UNDO_MAX=40;
+/* uno scatto salva ENTRAMBI i profili: cresta e piede si annullano insieme, senza sorprese */
+function mdlProfSnap(){ return { cresta:(P.profilo||[]).map(p=>({ x:p.x, z:p.z })),
+                                 piede:((D2.piede||[]).map(p=>({ x:p.x, y:p.y }))) }; }
+function mdlPushUndo(){
+  mdlUndoStack.push(mdlProfSnap());
+  if(mdlUndoStack.length>MDL_UNDO_MAX) mdlUndoStack.shift();
+  mdlRedoStack=[]; mdlBtnSync();
+}
+function mdlBtnSync(){
+  const u=$('mdlUndo'), r=$('mdlRedo');
+  if(u) u.disabled=!mdlUndoStack.length;
+  if(r) r.disabled=!mdlRedoStack.length;
+}
+/* applica uno scatto (da undo/redo) a 3D + 2D e ricostruisce la scena */
+function mdlApplyProf(snap){
+  const s = Array.isArray(snap) ? { cresta:snap, piede:[] } : (snap||{ cresta:[], piede:[] });
+  P.profilo=(s.cresta||[]).map(p=>({ x:p.x, z:p.z }));
+  D2.profilo=(s.cresta||[]).map(p=>({ x:p.x, y:p.z }));
+  D2.piede=(s.piede||[]).map(p=>({ x:p.x, y:p.y }));
+  mdlSyncAltezze();
+  const t0=simT; rebuild(); setSimT(Math.min(t0, SIM.tEnd), true);
+  mdlBuild();
+}
+/* il piede modellato riscrive l'altezza della faccia foro per foro (stessa regola del 2D) */
+function mdlSyncAltezze(){
+  if(!(D2.piede && D2.piede.length>=2)){ P.foriH=null; return; }
+  const n=P.fori||0; if(!n) return;
+  P.foriH=[];
+  for(let i=0;i<n;i++){
+    const x=i*INTERASSE + INTERASSE/2;
+    P.foriH.push(Math.max(5, Math.min(20, (D2.prof||P.prof) - interpProf(D2.piede, x))));
+  }
+}
+function mdlUndo(){
+  if(!mdlUndoStack.length) return;
+  mdlRedoStack.push(mdlProfSnap());
+  mdlApplyProf(mdlUndoStack.pop()); mdlBtnSync();
+  toast('↩ Modifica annullata');
+}
+function mdlRedo(){
+  if(!mdlRedoStack.length) return;
+  mdlUndoStack.push(mdlProfSnap());
+  mdlApplyProf(mdlRedoStack.pop()); mdlBtnSync();
+  toast('↪ Modifica ripristinata');
+}
+/* quote in tempo reale: mentre trascini vedi di quanto stai spostando la cresta e dove finisce */
+function mdlQuoteShow(i0, dz){
+  const el=$('mdlQuote'); if(!el||!SIM) return;
+  const set=mdlSet(), h=set[i0]; if(!h) return;
+  const seg=Math.max(1, set.length-1);
+  const sposta=(dz>=0?'+':'')+dz.toFixed(2);
+  const dir=Math.abs(dz)<0.005 ? 'fermo' : (dz>0 ? 'indietro (dentro il fronte)' : 'avanti (verso il piazzale)');
+  const raggio=(SIM.Lm*mdlRaggioPct/100);
+  if(mdlTipo==='piede'){
+    /* col piede l'informazione utile è l'altezza della faccia che ne risulta */
+    const dev=h.position.z-crestZ(h.position.x);
+    const hFaccia=Math.max(5, Math.min(20, (D2.prof||P.prof) - dev));
+    el.innerHTML='<b>Piede '+sposta+' m</b> · '+dir
+      +'<div class="q-sub">punto '+(i0+1)+'/'+(seg+1)+' a '+h.position.x.toFixed(1)+' m dall\'inizio'
+      +' · altezza faccia qui <b style="font-size:11px">'+hFaccia.toFixed(1)+' m</b>'
+      +' · raggio d\'influenza '+raggio.toFixed(1)+' m</div>';
+  } else {
+    el.innerHTML='<b>Cresta '+sposta+' m</b> · '+dir
+      +'<div class="q-sub">punto '+(i0+1)+'/'+(seg+1)+' a '+h.position.x.toFixed(1)+' m dall\'inizio'
+      +' · quota faccia '+h.position.z.toFixed(2)+' m'
+      +' · raggio d\'influenza '+raggio.toFixed(1)+' m</div>';
+  }
+  el.style.display='block';
+}
+function mdlQuoteHide(){ const el=$('mdlQuote'); if(el) el.style.display='none'; }
 function mdlBuild(){
   if(mdlGroup){ scene.remove(mdlGroup); mdlGroup.traverse(o=>{ if(o.geometry)o.geometry.dispose(); if(o.material)o.material.dispose(); }); mdlGroup=null; }
-  mdlHandles=[];
+  mdlHandles=[]; mdlPie=[];
   if(!modella || !SIM) return;
   mdlGroup=new THREE.Group();
   const N=9, Lm=SIM.Lm, Hh=SIM.H;
   for(let i=0;i<N;i++){
     const x=Lm*i/(N-1);
+    /* maniglia di CRESTA (arancio, in alto): sposta la faccia avanti/indietro in pianta */
     const s=new THREE.Mesh(new THREE.SphereGeometry(0.55,12,10),
       new THREE.MeshStandardMaterial({ color:0xffab00, emissive:0xff8c1d, emissiveIntensity:0.75 }));
-    s.position.set(x, Hh+0.5, crestZ(x)); s.userData.i=i;
+    s.position.set(x, Hh+0.5, crestZ(x)); s.userData.i=i; s.userData.tipo='cresta';
     mdlGroup.add(s); mdlHandles.push(s);
+    /* maniglia di PIEDE (giallo chiaro, a terra): avanzando il piede la faccia si alza (come il 2D) */
+    const pz=crestZ(x) + pieDev(x);
+    const b=new THREE.Mesh(new THREE.SphereGeometry(0.48,12,10),
+      new THREE.MeshStandardMaterial({ color:0xffe27a, emissive:0xffc04a, emissiveIntensity:0.6 }));
+    b.position.set(x, 0.45, pz); b.userData.i=i; b.userData.tipo='piede';
+    mdlGroup.add(b); mdlPie.push(b);
   }
   scene.add(mdlGroup);
+  const lab=$('mdlRLab'); if(lab) lab.textContent=(Lm*mdlRaggioPct/100).toFixed(1)+' m';   // il raggio è in metri veri
 }
 function mdlNDC(e){ const r=renderer.domElement.getBoundingClientRect(); mdlV2.set(((e.clientX-r.left)/r.width)*2-1, -((e.clientY-r.top)/r.height)*2+1); }
 renderer.domElement.addEventListener('pointerdown', e=>{
   if(!modella || !mdlHandles.length) return;
   mdlNDC(e); mdlRay.setFromCamera(mdlV2, cam);
-  const hit=mdlRay.intersectObjects(mdlHandles)[0];
-  if(hit){ mdlDrag=hit.object.userData.i; mdlBase=mdlHandles.map(h=>h.position.z); ctrl.enabled=false; e.preventDefault(); e.stopPropagation(); }
+  const hit=mdlRay.intersectObjects(mdlHandles.concat(mdlPie))[0];
+  if(hit){ mdlTipo=hit.object.userData.tipo||'cresta';
+    const set=mdlSet();
+    mdlDrag=hit.object.userData.i; mdlBase=set.map(h=>h.position.z);
+    mdlPushUndo();                                                   // salva PRIMA di muovere: l'annulla riporta qui
+    mdlQuoteShow(mdlDrag, 0);
+    ctrl.enabled=false; e.preventDefault(); e.stopPropagation(); }
 }, true);
+function mdlSet(){ return mdlTipo==='piede' ? mdlPie : mdlHandles; }
 addEventListener('pointermove', e=>{
   if(mdlDrag<0) return;
   mdlNDC(e); mdlRay.setFromCamera(mdlV2, cam);
-  mdlPlane.constant = -(SIM.H+0.5);                                  // piano orizzontale alla quota delle maniglie
+  const set=mdlSet();
+  mdlPlane.constant = -(mdlTipo==='piede' ? 0.45 : SIM.H+0.5);       // piano orizzontale alla quota delle maniglie
   const pt=new THREE.Vector3(); if(!mdlRay.ray.intersectPlane(mdlPlane, pt)) return;
-  const i0=mdlDrag, dz=pt.z-mdlBase[i0], sigma=Math.max(4, SIM.Lm/5);
-  for(let j=0;j<mdlHandles.length;j++){
-    const w=Math.exp(-Math.pow(mdlHandles[j].position.x-mdlHandles[i0].position.x,2)/(2*sigma*sigma));
-    mdlHandles[j].position.z=Math.max(-6, Math.min(10, mdlBase[j]+dz*w));
+  const i0=mdlDrag, dz=pt.z-mdlBase[i0], sigma=Math.max(2, SIM.Lm*mdlRaggioPct/100);
+  for(let j=0;j<set.length;j++){
+    const w=Math.exp(-Math.pow(set[j].position.x-set[i0].position.x,2)/(2*sigma*sigma));
+    set[j].position.z=Math.max(-6, Math.min(10, mdlBase[j]+dz*w));
   }
+  mdlQuoteShow(i0, set[i0].position.z-mdlBase[i0]);                 // quota effettiva dopo i limiti
 });
 addEventListener('pointerup', ()=>{
   if(mdlDrag<0) return;
-  mdlDrag=-1; ctrl.enabled=true;
-  const pts=mdlHandles.map(h=>({ x:+h.position.x.toFixed(2), z:+h.position.z.toFixed(2) }));
+  const set=mdlSet(), i0=mdlDrag, dzFin=mdlBase?(set[i0].position.z-mdlBase[i0]):0;
+  mdlDrag=-1; ctrl.enabled=true; mdlQuoteHide();
+  if(Math.abs(dzFin)<0.005){ mdlUndoStack.pop(); mdlBtnSync(); return; }   // tocco senza spostamento: non sporcare la cronologia
+  if(mdlTipo==='piede'){
+    /* il piede è memorizzato come deviazione rispetto alla cresta: è quella che alza/abbassa la faccia */
+    D2.piede=set.map(h=>({ x:+h.position.x.toFixed(2), y:+(h.position.z-crestZ(h.position.x)).toFixed(2) }));
+    mdlSyncAltezze();
+    const t0=simT; rebuild(); setSimT(Math.min(t0, SIM.tEnd), true);
+    mdlBuild();
+    toast('✓ Piede modellato '+(dzFin>=0?'+':'')+dzFin.toFixed(2)+' m · la faccia si '+(dzFin<0?'alza':'abbassa'));
+    return;
+  }
+  const pts=set.map(h=>({ x:+h.position.x.toFixed(2), z:+h.position.z.toFixed(2) }));
   P.profilo=pts;                                                     // il 3D si ricostruisce sul nuovo fronte
   D2.profilo=pts.map(p=>({ x:p.x, y:p.z }));                         // sync verso il Progetto 2D
   const t0=simT; rebuild(); setSimT(Math.min(t0, SIM.tEnd), true);
-  mdlBuild(); toast('✓ Fronte modellato (sincronizzato col 2D)');
+  mdlBuild(); toast('✓ Fronte modellato '+(dzFin>=0?'+':'')+dzFin.toFixed(2)+' m (sincronizzato col 2D)');
 });
-if($('btnModella')) $('btnModella').onclick=()=>{ modella=!modella; $('btnModella').classList.toggle('on', modella); if(modella && playing) setPlaying(false); mdlBuild(); toast(modella?'✋ Trascina le sfere sulla cresta (le vicine seguono)':'Modellazione chiusa'); };
+if($('btnModella')) $('btnModella').onclick=()=>{ modella=!modella; $('btnModella').classList.toggle('on', modella); if(modella && playing) setPlaying(false);
+  const tl=$('mdlTools'); if(tl) tl.style.display=modella?'block':'none';
+  if(!modella) mdlQuoteHide();
+  mdlBuild(); mdlBtnSync();
+  toast(modella?'✋ Trascina le sfere sulla cresta (le vicine seguono) · Ctrl+Z annulla':'Modellazione chiusa'); };
+if($('mdlR')) $('mdlR').oninput = e=>{
+  mdlRaggioPct=Math.max(5, Math.min(100, +e.target.value||20));
+  const lab=$('mdlRLab');
+  if(lab) lab.textContent = SIM ? (SIM.Lm*mdlRaggioPct/100).toFixed(1)+' m' : mdlRaggioPct+'%';
+};
+if($('mdlUndo')) $('mdlUndo').onclick=mdlUndo;
+if($('mdlRedo')) $('mdlRedo').onclick=mdlRedo;
+if($('mdlReset')) $('mdlReset').onclick=()=>{
+  if(!(P.profilo||[]).length && !((D2.piede||[]).length)){ toast('Il fronte è già dritto'); return; }
+  mdlPushUndo(); mdlApplyProf({ cresta:[], piede:[] }); toast('⟲ Fronte e piede riportati dritti');
+};
+addEventListener('keydown', e=>{
+  if(!modella) return;
+  const t=e.target, tag=t&&t.tagName;
+  if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||(t&&t.isContentEditable)) return;
+  if(!(e.ctrlKey||e.metaKey)) return;
+  const k=e.key.toLowerCase();
+  if(k==='z' && !e.shiftKey){ e.preventDefault(); mdlUndo(); }
+  else if(k==='y' || (k==='z' && e.shiftKey)){ e.preventDefault(); mdlRedo(); }
+});
 if($('pIncl')) $('pIncl').onchange = e=>{ D2.incl = Math.max(0, Math.min(30, +e.target.value||0)); if($('dIncl')) $('dIncl').value = D2.incl; rebuild(); toast('✓ Inclinazione '+D2.incl+'°'); };
 function rebuild(){
   setPlaying(false);
