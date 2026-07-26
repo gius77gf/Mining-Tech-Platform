@@ -42,6 +42,10 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
 #xrayLeg .lg-t{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
 #xrayLeg i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:middle}
 #xrayLeg .lg-n{color:var(--mut2);font-size:9.5px;margin-top:4px;max-width:180px;line-height:1.45}
+#quotaLeg{right:16px;bottom:150px;background:linear-gradient(160deg,rgba(36,26,13,.94),rgba(23,17,10,.94));border:1px solid rgba(255,171,0,.25);border-radius:12px;padding:9px 12px;font-size:11px;line-height:1.6;color:var(--tx);box-shadow:0 14px 40px rgba(0,0,0,.5)}
+#quotaLeg .lg-t{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+#quotaLeg i{display:inline-block;width:16px;height:9px;border-radius:2px;margin-right:7px;vertical-align:middle}
+#quotaLeg .lg-n{color:var(--mut2);font-size:9.5px;margin-top:5px;max-width:170px;line-height:1.45}
 #mdlQuote .q-sub{color:var(--mut);font-size:10.5px;margin-top:2px}
 #holeInfo button{position:absolute;top:6px;right:6px;background:none;border:none;color:var(--mut);cursor:pointer;font-size:11px;padding:2px}
 #holeInfo button:hover{color:var(--tx)}
@@ -660,6 +664,7 @@ body.scr-sim #tl{bottom:80px}
   <label class="lay"><input type="checkbox" id="lMuck" checked> Muckpile</label>
   <label class="lay"><input type="checkbox" id="lFly"> Zona flyrock (stima)</label>
   <label class="lay"><input type="checkbox" id="lXray"> Raggi-X progetto (fori & cariche)</label>
+  <label class="lay"><input type="checkbox" id="lQuote"> Mappa delle quote (altimetria)</label>
   <label class="lay" style="display:block;padding-left:22px">Trasparenza fronte <input type="range" id="xrOp" min="4" max="85" value="32" style="width:110px;vertical-align:middle;accent-color:var(--cu)"></label>
   <label class="lay"><input type="checkbox" id="lAudio" checked> Boato + scossa camera</label>
   <div class="mini">Parametri della volata: schermata 2D.</div>
@@ -668,6 +673,7 @@ body.scr-sim #tl{bottom:80px}
 <div class="hud" id="holeInfo" style="display:none"></div>
 <div class="hud" id="mdlQuote" style="display:none"></div>
 <div class="hud" id="xrayLeg" style="display:none"></div>
+<div class="hud" id="quotaLeg" style="display:none"></div>
 
 <div class="hud" id="tl">
   <div id="tlrow1">
@@ -1170,6 +1176,71 @@ function buildSim(){
 
 /* ============ costruzione scena 3D ============ */
 let panels=[], chunkMeshes=[], jetPts=null, gonnaPts=null, curtainPts=null, cloudSprites=[], pileMesh=null, pileGeo=null, xrayGroup=null, xrayCyls=[], ghostWall=null;
+let quotaFloor=null, quotaBench=null;   // piazzale e banco: servono alla mappa delle quote
+/* ===== MAPPA DELLE QUOTE (altimetria) =====
+   Colora fronte e piazzale in base all'altezza: si legge a colpo d'occhio dove
+   il fronte è alto e dove il piazzale non è in piano. I colori moltiplicano la
+   texture della roccia, così il rilievo resta visibile. */
+const QUOTA_RAMPA = [                                  // rampa topografica tenue, dal basso all'alto
+  { t:0.00, c:[0.16,0.34,0.42] },                      // impluvio / quote basse
+  { t:0.28, c:[0.25,0.48,0.35] },                      // verde profondo
+  { t:0.52, c:[0.72,0.68,0.34] },                      // ocra
+  { t:0.76, c:[0.92,0.60,0.22] },                      // ambra (colore di casa)
+  { t:1.00, c:[1.00,0.92,0.78] } ];                    // creste
+function quotaColore(u){
+  const x=Math.max(0, Math.min(1, u));
+  for(let i=1;i<QUOTA_RAMPA.length;i++){
+    const a=QUOTA_RAMPA[i-1], b=QUOTA_RAMPA[i];
+    if(x<=b.t){ const k=(x-a.t)/Math.max(1e-6,(b.t-a.t));
+      return [a.c[0]+(b.c[0]-a.c[0])*k, a.c[1]+(b.c[1]-a.c[1])*k, a.c[2]+(b.c[2]-a.c[2])*k]; }
+  }
+  return QUOTA_RAMPA[QUOTA_RAMPA.length-1].c;
+}
+let quotaMin=0, quotaMax=1, quotaMesh=[];
+/* tinge i vertici di una mesh in base alla loro quota REALE (world), non locale */
+function quotaTingi(m){
+  const g=m.geometry; if(!g||!g.attributes||!g.attributes.position) return;
+  m.updateWorldMatrix(true,false);
+  const pos=g.attributes.position, n=pos.count, col=new Float32Array(n*3), v=new THREE.Vector3();
+  for(let i=0;i<n;i++){
+    v.fromBufferAttribute(pos,i).applyMatrix4(m.matrixWorld);
+    const c=quotaColore((v.y-quotaMin)/Math.max(0.001, quotaMax-quotaMin));
+    col[i*3]=c[0]; col[i*3+1]=c[1]; col[i*3+2]=c[2];
+  }
+  if(!m.userData._vc0) m.userData._vc0 = !!m.material.vertexColors;
+  g.setAttribute('color', new THREE.BufferAttribute(col,3));
+  m.material.vertexColors=true; m.material.needsUpdate=true;
+  quotaMesh.push(m);
+}
+function quotaApplica(){
+  quotaSpegni();
+  if(!layers.lQuote || !SIM) return;
+  quotaMin=0; quotaMax=Math.max(1, SIM.H);                       // dal piazzale alla cresta più alta
+  const target=[].concat(panels||[], backWall?[backWall]:[], quotaFloor?[quotaFloor]:[], quotaBench?[quotaBench]:[]);
+  for(const m of target){ if(m && m.geometry && m.material) quotaTingi(m); }
+  quotaLegSync();
+}
+function quotaSpegni(){
+  for(const m of quotaMesh){
+    if(!m.material) continue;
+    m.material.vertexColors = !!m.userData._vc0; m.material.needsUpdate=true;
+    if(m.geometry && m.geometry.attributes.color) m.geometry.deleteAttribute('color');
+  }
+  quotaMesh=[];
+  const el=$('quotaLeg'); if(el) el.style.display='none';
+}
+function quotaLegSync(){
+  const el=$('quotaLeg'); if(!el) return;
+  if(!layers.lQuote || !SIM){ el.style.display='none'; return; }
+  const N=5; let barre='';
+  for(let i=N;i>=0;i--){
+    const u=i/N, c=quotaColore(u), q=quotaMin+(quotaMax-quotaMin)*u;
+    barre+='<div><i style="background:rgb('+Math.round(c[0]*255)+','+Math.round(c[1]*255)+','+Math.round(c[2]*255)+')"></i>'+q.toFixed(1)+' m</div>';
+  }
+  el.innerHTML='<div class="lg-t">Quota sul piazzale</div>'+barre
+    +'<div class="lg-n">Colore = altezza dal piano di lavoro. Fronte alto ≈ '+quotaMax.toFixed(1)+' m.</div>';
+  el.style.display='block';
+}
 /* legenda della colonna di carica: compare con i raggi-X, spiega i colori dei segmenti */
 function xrayLegSync(){
   const el=$('xrayLeg'); if(!el) return;
@@ -1251,10 +1322,10 @@ function buildScene(){
   if(floorMat.map){ const _txm=rockTextures(false); floorMat.map=_txm.map; floorMat.roughnessMap=_txm.roughnessMap; floorMat.normalMap=_txm.normalMap; floorMat.normalScale=new THREE.Vector2(0.5,0.5); }
   matWorldUV(floorMat, Lm+44, 66, 0, 0);
   const floor = new THREE.Mesh(jitterGeo(new THREE.PlaneGeometry(Lm+44, 66, 48, 34),0.10), floorMat);
-  floor.rotation.x = -Math.PI/2; floor.position.set(Lm/2, -0.02, -14); floor.receiveShadow = true; staticGroup.add(floor);
+  floor.rotation.x = -Math.PI/2; floor.position.set(Lm/2, -0.02, -14); floor.receiveShadow = true; staticGroup.add(floor); quotaFloor = floor;
   /* banco residuo dietro il nuovo fronte (blocco corto: il diorama finisce li) */
   const bench = new THREE.Mesh(jitterGeo(new THREE.BoxGeometry(Lm, H, 9, 40, 5, 5),0.35), matWorldUV(rockMat(shade(_lt,0.92), true), Lm, H, 0, 0));
-  bench.position.set(Lm/2, H/2, DPT+4.5+maxCz); bench.castShadow = true; bench.receiveShadow = true; staticGroup.add(bench);
+  bench.position.set(Lm/2, H/2, DPT+4.5+maxCz); bench.castShadow = true; bench.receiveShadow = true; staticGroup.add(bench); quotaBench = bench;
   /* nuovo fronte rivelato (taglio fresco, piu scuro e saturo) */
   backWall = new THREE.Mesh(jitterGeo(new THREE.PlaneGeometry(Lm, H, Math.max(8,SIM.fori.length), 6), D2.presplit?0.12:0.5), matWorldUV(rockMat(shade(_lt,0.8), true), Lm, H, 0, 0));
   backWall.position.set(Lm/2, H/2, DPT-0.05+maxCz); backWall.rotation.y = Math.PI;
@@ -1651,7 +1722,7 @@ function checkShake(prevT, t){
 
 /* ============ UI: timeline ============ */
 const $ = id => document.getElementById(id);
-const layers = { lGetti:true, lChunk:true, lGonna:true, lNuvola:true, lMuck:true, lFly:false, lXray:false, lAudio:true };
+const layers = { lGetti:true, lChunk:true, lGonna:true, lNuvola:true, lMuck:true, lFly:false, lXray:false, lQuote:false, lAudio:true };
 let xrayOp = 0.32;   // trasparenza del fronte in vista raggi-X (cursore #xrOp)
 function buildTicks(){
   const tk = $('ticks'); tk.innerHTML = '';
@@ -1887,7 +1958,7 @@ function readParams(){
   clearFrontMesh();                               // rimuove l'eventuale fronte 3D reale caricato
 }
 for(const id of Object.keys(layers)){
-  $(id).onchange = e=>{ layers[id] = e.target.checked; renderSim(simT, true); if(id==='lAudio'&&playing){ cancelAudio(); if(layers.lAudio) scheduleBooms(); } };
+  $(id).onchange = e=>{ layers[id] = e.target.checked; if(id==='lQuote') quotaApplica(); renderSim(simT, true); if(id==='lAudio'&&playing){ cancelAudio(); if(layers.lAudio) scheduleBooms(); } };
 }
 if($('xrOp')) $('xrOp').oninput = e=>{ xrayOp = (+e.target.value||32)/100;
   if(!layers.lXray){ layers.lXray=true; if($('lXray')) $('lXray').checked=true; }   // il cursore mostra i fori da solo (fondatore 25/07)
@@ -2109,6 +2180,7 @@ function rebuild(){
   SIM = buildSim();
   hgtNow = null; evPtr = 0; shakeQueue = [];
   buildScene();
+  quotaMesh=[]; if(layers.lQuote) quotaApplica();      // la scena è nuova: ricoloro le quote
   setSimT(0, true);
   if(document.body.classList.contains('scr-design')) draw2D();   // aggiorna la vista 2D in pianta
 }
