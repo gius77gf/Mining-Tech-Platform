@@ -31,10 +31,11 @@ commit + checkpoint + verifica visiva.
 Il fondatore: *«Genesi deve smettere di essere un prodotto mediocre»*. Sono
 gli interventi pesanti, quelli visibili a colpo d'occhio.
 
-- [ ] **A1. Editor del fronte NEL 3D** — disegnare il fronte da zero dentro la
-      scena (maniglie sulla cresta e al piede, quote, annulla/ripristino),
-      non solo dal 2D. Chiude la richiesta "fronte vergine da disegnare".
-      *Taglia L — screenshot prima/dopo.*
+- [x] **A1. Editor del fronte NEL 3D** ✅ *(26/07, `af9d6aa`)* — quote in
+      tempo reale durante il trascinamento (metri + direzione a parole),
+      annulla/ripristino a 40 passi con Ctrl+Z/Ctrl+Y, raggio d'influenza
+      regolabile, **maniglie del piede** (avanzando il piede la faccia si
+      alza), "fronte dritto". Verificato con trascinamento reale in Chromium.
 - [ ] **A2. Colonne di carica segmentate a colori nel 3D** — aria / borraggio /
       esplosivo / innesco / acqua visibili sul foro nella scena (oggi solo
       nei raggi-X). È la firma visiva dei software professionali. *Taglia M.*
