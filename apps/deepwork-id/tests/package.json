@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node run-helpers.mjs && node run-kpi.mjs && node run-demo.mjs && node run.mjs && node run-sdk.mjs && node run-fns.mjs && node run-bootstrap.mjs"
+    "test": "node run-helpers.mjs && node run-kpi.mjs && node run-pointcloud.mjs && node run-manifest.mjs && node run-demo.mjs && node run.mjs && node run-sdk.mjs && node run-fns.mjs && node run-bootstrap.mjs"
   },
   "dependencies": {
     "@firebase/rules-unit-testing": "^5.0.1",

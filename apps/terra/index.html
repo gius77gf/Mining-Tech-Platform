@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Terra — Estrattivo & rilievo</title>
+<meta name="theme-color" content="#2f9e44">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Terra">
+<link rel="manifest" href='data:application/manifest+json,{"name":"Deepwork Terra","short_name":"Terra","description":"Estrattivo e rilievo","start_url":".","scope":".","display":"standalone","orientation":"portrait","background_color":"%23100d07","theme_color":"%232f9e44","categories":["business","productivity"],"lang":"it","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 180 180%27><rect width=%27180%27 height=%27180%27 rx=%2732%27 fill=%27%232f9e44%27/><text x=%2790%27 y=%27126%27 font-family=%27sans-serif%27 font-size=%27104%27 font-weight=%27700%27 fill=%27%23ffffff%27 text-anchor=%27middle%27>T</text></svg>","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}'>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../shared/deepwork-style.css">
 <link rel="stylesheet" href="../../shared/dw-app-shell.css">
@@ -71,6 +77,8 @@
       <option value="titolo">Titolo (A→Z)</option>
     </select>
   </div>
+  <input class="dw-input" id="ril-cerca" type="search" placeholder="🔍 Cerca per titolo o tipo…" style="margin-bottom:6px;">
+  <div id="ril-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
   <div id="ril-list"></div>
   <div class="sec">Valore del materiale estratto</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
@@ -100,6 +108,7 @@
     <button class="dw-btn" id="btn-add-ril" style="width:auto;">Registra</button>
   </div>
   <button class="dw-btn secondary" id="btn-imp-ril" style="width:auto;margin-top:8px;">Importa rilievi (CSV)</button>
+  <button class="dw-btn secondary" id="btn-dal-drone" style="width:auto;margin-top:8px;" title="Riprende l'ultimo volume calcolato nel visore nuvola di Genesi">🛸 Dal visore drone</button>
   <input type="file" id="ril-file" accept=".csv,text/csv" style="display:none;">
   <div class="note" id="ril-esito" style="text-align:left;"></div>
   <div class="note" id="mode-note" style="text-align:left;">CSV rilievi: data;volumeM3[;metodo;gsd].</div>
@@ -147,10 +156,17 @@
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
   let FRO=[], RIL=[], PIA=[];
+  let editFro = null;   // id del fronte in modifica (riusa il form "Nuovo fronte"; rilievi/avanzamento restano)
   let filtroRil = "tutti";
   let ordRil = "data";
   try { const _s = localStorage.getItem("dwSort_ril"); if (_s) { ordRil = _s; if ($("ril-ord")) $("ril-ord").value = _s; } } catch (e) {}
   if ($("ril-ord")) $("ril-ord").onchange = () => { ordRil = $("ril-ord").value; try { localStorage.setItem("dwSort_ril", ordRil); } catch (e) {} refresh(); };
+  if ($("ril-cerca")) $("ril-cerca").oninput = () => refresh();
+  // cambiare pagina annulla una modifica fronte in corso (torna su "Aggiungi")
+  document.querySelector(".nav") && document.querySelector(".nav").addEventListener("click", () => {
+    if (editFro) { editFro = null; $("btn-fro").textContent = "Aggiungi"; $("fro-esito").textContent = "";
+      ["fro-nome","fro-banco","fro-quota"].forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; }); }
+  });
   $("ril-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroRil = f; refresh(); }
@@ -179,7 +195,8 @@
     $("fro-list").innerHTML = FRO.map(f => { const v = volFronte(f.id);
       return `<div class="item" data-fro="${f.id}" style="cursor:pointer" title="Tocca per sospendere/riattivare">
       <div class="info"><div class="name">${esc(f.nome)} — ${esc(f.banco||"")}</div><div class="meta">Quota ${f.quota}m · avanzamento ${f.avanzamento}%${v ? " · estratti " + fmtM3(v) + " m³ (rilievi)" : ""} · ${esc(f.dettaglio||"")}</div></div>
-      <span class="badge ${FB[f.stato][0]}">${FB[f.stato][1]}</span></div>`; }).join("")
+      <span class="badge ${FB[f.stato][0]}">${FB[f.stato][1]}</span>
+      <span class="arr" style="cursor:pointer" title="Modifica fronte" data-edit-fro="${f.id}">✎</span></div>`; }).join("")
       || '<div class="note" style="text-align:left;">Nessun fronte registrato: aggiungine uno qui sotto.</div>';
     $("new-ril-fronte").innerHTML = '<option value="">— fronte —</option>' +
       FRO.map(f => `<option value="${f.id}">${esc(f.nome)}</option>`).join("");
@@ -193,7 +210,9 @@
     const rilCmp = (a, b) => ordRil === "volume" ? (+b.volumeM3 || 0) - (+a.volumeM3 || 0) || (b.data||"").localeCompare(a.data||"")
       : ordRil === "titolo" ? String(a.titolo || "").localeCompare(String(b.titolo || ""), "it")
       : (b.data||"").localeCompare(a.data||"");
+    const qRil = ($("ril-cerca") && $("ril-cerca").value || "").trim().toLowerCase();
     const ril = RIL.filter(r => filtroRil === "tutti" || r.stato === filtroRil)
+                   .filter(r => !qRil || ((r.titolo || "") + " " + (r.tipo || "")).toLowerCase().includes(qRil))
                    .sort(rilCmp);
     $("ril-list").innerHTML = ril.map(r => {
       const ca = classeAccuratezza(r);
@@ -204,7 +223,9 @@
       ${ca.cls ? `<span class="badge ${ca.cls}" title="Accuratezza tipica del metodo — da confermare coi checkpoint del rilevatore">${ca.label}</span>` : ""}
       <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${r.stato==="pianificato"?`<span class="arr" style="cursor:pointer" title="Annulla rilievo pianificato" data-del-ril="${r.id}">✕</span>`:""}</div>`;
     }).join("")
-      || '<div class="note" style="text-align:left;">'+(filtroRil==="tutti"?"Nessun rilievo registrato.":"Nessun rilievo in questa categoria.")+'</div>';
+      || '<div class="note" style="text-align:left;">'+(qRil?"Nessun rilievo trovato per «"+esc(qRil)+"».":(filtroRil==="tutti"?"Nessun rilievo registrato.":"Nessun rilievo in questa categoria."))+'</div>';
+    { const n = $("ril-list").querySelectorAll(".item").length, filtrata = qRil || filtroRil !== "tutti";
+      $("ril-count").textContent = n === 0 ? "" : n + (n === 1 ? " rilievo" : " rilievi") + (filtrata ? " · su " + RIL.length : ""); }
     document.querySelectorAll("#ril-filtri [data-filtro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-filtro") === filtroRil ? "var(--app-accent)" : "");
 
@@ -282,6 +303,17 @@
         if (v != null) { const m3 = parseInt(String(v).replace(/\./g,""), 10);
           if (m3 > 0) { await db.aggiorna("piano", p.id, { pianificatoAnnuoM3: m3 }); await refresh(); } } }
       return; }
+    const editFroId = e.target.getAttribute && e.target.getAttribute("data-edit-fro");
+    if (editFroId) { const f = FRO.find(x => x.id === editFroId); if (!f) return;
+      if (editFro === f.id) {   // ri-tocco la ✎ dello stesso fronte = annulla
+        editFro = null; $("btn-fro").textContent = "Aggiungi"; $("fro-esito").textContent = "Modifica annullata.";
+        ["fro-nome","fro-banco","fro-quota"].forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; }); return; }
+      editFro = f.id;
+      $("fro-nome").value = f.nome || ""; $("fro-banco").value = f.banco || ""; $("fro-quota").value = f.quota != null ? f.quota : "";
+      ["fro-nome","fro-banco","fro-quota"].forEach(i => $(i).style.borderColor = "");
+      $("btn-fro").textContent = "Salva modifica";
+      $("fro-esito").textContent = "Stai modificando «" + f.nome + "»: cambi nome/banco/quota, rilievi e avanzamento restano.";
+      $("fro-nome").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
     const it = e.target.closest && e.target.closest("[data-fro]");
     if (it) { const f = FRO.find(x => x.id === it.getAttribute("data-fro"));
       if (!f) return;
@@ -302,12 +334,17 @@
   $("btn-fro").onclick = async () => {
     const nome = $("fro-nome").value.trim(), banco = $("fro-banco").value.trim(), quota = +$("fro-quota").value || 0;
     if (!nome) { $("fro-nome").style.borderColor = "var(--danger)"; $("fro-esito").textContent = "Serve il nome del fronte."; return; }
-    if (FRO.some(f => f.nome.toLowerCase() === nome.toLowerCase())) {
+    if (FRO.some(f => f.nome.toLowerCase() === nome.toLowerCase() && f.id !== editFro)) {
       $("fro-nome").style.borderColor = "var(--danger)"; $("fro-esito").textContent = "Esiste già un fronte con questo nome."; return; }
     $("fro-nome").style.borderColor = "";
-    await db.aggiungi("fronti", { nome, banco, quota, dettaglio: "", avanzamento: 0, stato: "attivo" });
+    if (editFro) {
+      await db.aggiorna("fronti", editFro, { nome, banco, quota });   // rilievi/avanzamento/stato restano
+      editFro = null; $("btn-fro").textContent = "Aggiungi";
+    } else {
+      await db.aggiungi("fronti", { nome, banco, quota, dettaglio: "", avanzamento: 0, stato: "attivo" });
+    }
     $("fro-nome").value = ""; $("fro-banco").value = ""; $("fro-quota").value = "";
-    $("fro-esito").textContent = "Fronte " + nome + " aggiunto (attivo).";
+    $("fro-esito").textContent = "Fronte " + nome + " salvato.";
     $("fro-nome").focus();   // torna al primo campo per aggiungere subito il prossimo
     await refresh();
   };
@@ -346,6 +383,21 @@
       $("ril-esito").textContent = "Rilievo del " + dmy(data) + " registrato: " + vol.toLocaleString("it-IT") + " m³" + (fr ? " su " + fr.nome : "") + " (KPI aggiornati).";
     }
     $("new-ril-data").value = ""; $("new-ril-vol").value = ""; $("new-ril-metodo").value = ""; $("new-ril-gsd").value = ""; $("new-ril-data").focus(); await refresh();
+  };
+  // Ponte col visore nuvola (Genesi): riprende l'ULTIMO ritaglio con volume
+  // calcolato e precompila il form del rilievo — il flusso drone→Terra chiuso.
+  $("btn-dal-drone").onclick = () => {
+    let ultimo = null;
+    try { const a = JSON.parse(localStorage.getItem("genesiNuvole") || "[]");
+      for (let i = a.length - 1; i >= 0; i--) if (a[i] && a[i].volume != null) { ultimo = a[i]; break; } } catch (e) {}
+    if (!ultimo) { $("ril-esito").textContent = "Nessun volume dal visore: apri il visore nuvola (in Genesi), carica la nuvola del drone, ritaglia il cumulo/fronte e torna qui."; return; }
+    const vol = Math.max(0, Math.round(+String(ultimo.volume).replace(/[^0-9.,-]/g, "").replace(",", ".")) || 0);
+    if (!vol) { $("ril-esito").textContent = "L'ultimo ritaglio del visore non ha un volume in metri reali (nuvola non georeferenziata)."; return; }
+    const oggiISO = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    $("new-ril-data").value = oggiISO;
+    $("new-ril-vol").value = vol;
+    $("new-ril-metodo").value = "senza GCP";   // drone consumer: scala approssimata, onesto
+    $("ril-esito").textContent = "Precompilato dal visore: «" + (ultimo.nome || "rilievo") + "» ≈ " + vol.toLocaleString("it-IT") + " m³ (" + (ultimo.data || "") + "). Controlla fronte e metodo, poi Registra.";
   };
   // Import rilievi elaborati da CSV (onboarding storico).
   $("btn-imp-ril").onclick = () => $("ril-file").click();

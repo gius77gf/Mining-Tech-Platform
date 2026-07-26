@@ -200,3 +200,28 @@ un file MWD da importare — eseguiva script nella sessione di CHI importa
 Playwright il prima/dopo: prima l'`<img>` veniva iniettato e l'onerror
 partiva, dopo il testo resta inerte. È l'unico punto del core che inserisce
 un messaggio d'errore in `innerHTML` (verificato con grep).
+
+### 16. XSS nell'ANTEPRIMA dell'import MWD (core, 23/07) — ✅ CORRETTO
+Trovato da una revisione mirata del core (fallback #5). Distinto dal punto 15
+(che era il MESSAGGIO D'ERRORE): qui è l'**anteprima** dell'import MWD
+(`renderMWDPreview`, righe ~5695-5696) che costruiva l'HTML dalle
+**intestazioni e dalle celle GREZZE** del file importato senza escape, mentre
+il resto del core usa `escHtml()` (~90 volte). Un file MWD con
+`<img src=x onerror=...>` in un'intestazione o in una cella eseguiva script
+all'apertura dell'anteprima. Gravità moderata (self-XSS: la vittima apre il
+proprio file, e i MWD arrivano dalla perforatrice), ma va chiuso. Corretto:
+le due interpolazioni ora passano da `escHtml()`. Verificato: `escHtml('<img
+onerror=…>')` → testo inerte. `colsFound` NON è coinvolto (sono i nomi
+canonici delle colonne, non input grezzo). Nessun altro sink del core
+inserisce dati d'import grezzi in `innerHTML` (verificato con grep), e le 6
+app verticali non hanno anteprime CSV grezze (verificato).
+
+### 17. Sweep sicurezza di Genesi (23/07) — PULITO (+ hardening)
+Revisione mirata di `apps/genesi/genesi.html` (analoga al core, per cercare
+lo stesso schema). Nessun XSS né crash d'import: l'escaper `_rEsc` copre gli
+unici campi di testo libero (nome/nota riconciliazione); gli altri 21 sink
+`innerHTML` sono numerici o da cataloghi statici/server; gli import (JSON, XML,
+CSV signature, mesh) hanno try/catch e null-guard; gli ID esplosivo/roccia/
+innesco sono validati. Unico intervento (robustezza, non vulnerabilità):
+`cmpRender`/`cmpExport` facevano `JSON.parse(localStorage…)` senza try/catch →
+aggiunto helper `_cmpLoad` guardato (coerente con `riconStorico`).

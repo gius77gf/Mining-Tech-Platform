@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Conti — Amministrazione & gare</title>
+<meta name="theme-color" content="#0e9384">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Conti">
+<link rel="manifest" href='data:application/manifest+json,{"name":"Deepwork Conti","short_name":"Conti","description":"Amministrazione e gare","start_url":".","scope":".","display":"standalone","orientation":"portrait","background_color":"%23100d07","theme_color":"%230e9384","categories":["business","productivity"],"lang":"it","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 180 180%27><rect width=%27180%27 height=%27180%27 rx=%2732%27 fill=%27%230e9384%27/><text x=%2790%27 y=%27126%27 font-family=%27sans-serif%27 font-size=%27104%27 font-weight=%27700%27 fill=%27%23ffffff%27 text-anchor=%27middle%27>C</text></svg>","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}'>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../shared/deepwork-style.css">
 <link rel="stylesheet" href="../../shared/dw-app-shell.css">
@@ -29,7 +35,7 @@
     <div class="kpi warn" style="cursor:pointer" data-goto="fat" data-filtro="aperte" title="Vedi le fatture da incassare"><div class="n">—</div><div class="l">Da incassare</div></div>
     <div class="kpi warn" style="cursor:pointer" data-goto="fat" data-filtro="aperte" title="Vedi le fatture aperte"><div class="n">—</div><div class="l">Fatture in scadenza</div></div>
     <div class="kpi accent" style="cursor:pointer" data-goto="gar" title="Vedi le gare"><div class="n">—</div><div class="l">Gare aperte</div></div>
-    <div class="kpi ok" style="cursor:pointer" data-goto="rep" title="Vedi il report"><div class="n">—</div><div class="l">DSO medio</div></div>
+    <div class="kpi ok" style="cursor:pointer" data-goto="rep" title="Vedi il report"><div class="n">—</div><div class="l">Età media credito</div></div>
   </div>
 
   <div class="sec">Priorità</div>
@@ -52,6 +58,8 @@
       <option value="cliente">Cliente (A→Z)</option>
     </select>
   </div>
+  <input class="dw-input" id="fat-cerca" type="search" placeholder="🔍 Cerca per cliente o numero…" style="margin-bottom:6px;">
+  <div id="fat-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
   <div id="fat-list"></div>
   <div class="sec">Nuova fattura</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -76,6 +84,8 @@
     <button class="dw-btn secondary" data-gfiltro="vinta" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Vinte</button>
     <button class="dw-btn secondary" data-gfiltro="persa" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Perse</button>
   </div>
+  <input class="dw-input" id="gar-cerca" type="search" placeholder="🔍 Cerca gara…" style="margin-bottom:6px;">
+  <div id="gar-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
   <div id="gar-list"></div>
   <div class="sec">Nuova gara</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -138,6 +148,7 @@
 
   let FAT=[], GAR=[];
   let filtroFat = "tutte";
+  let editFat = null;   // id della fattura in modifica (riusa il form "Nuova fattura")
   const fatMatch = (f) => filtroFat === "tutte"
     || (filtroFat === "aperte" && !f.incassata)
     || (filtroFat === "insolute" && !f.incassata && giorni(f.scadenza) < 0)
@@ -148,6 +159,14 @@
     : String(a.scadenza || "9999").localeCompare(String(b.scadenza || "9999"));
   try { const _s = localStorage.getItem("dwSort_fat"); if (_s) { ordFat = _s; if ($("fat-ord")) $("fat-ord").value = _s; } } catch (e) {}
   if ($("fat-ord")) $("fat-ord").onchange = () => { ordFat = $("fat-ord").value; try { localStorage.setItem("dwSort_fat", ordFat); } catch (e) {} refresh(); };
+  if ($("fat-cerca")) $("fat-cerca").oninput = () => refresh();
+  if ($("gar-cerca")) $("gar-cerca").oninput = () => refresh();
+  // cambiare pagina annulla una modifica fattura in corso (evita di sovrascrivere
+  // per sbaglio credendo di aggiungere): il form torna pulito su "Emetti".
+  document.querySelector(".nav") && document.querySelector(".nav").addEventListener("click", () => {
+    if (editFat) { editFat = null; $("btn-ft").textContent = "Emetti"; $("ft-esito").textContent = "";
+      ["ft-num","ft-cli","ft-imp","ft-scad"].forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; }); }
+  });
   $("fat-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroFat = f; refresh(); }
@@ -180,7 +199,7 @@
     if (kn[0]) kn[0].textContent = "€" + Math.round(k.daIncassare/1000) + "k";
     if (kn[1]) kn[1].textContent = k.inScadenza;
     if (kn[2]) kn[2].textContent = k.gareAperte;
-    if (kn[3]) kn[3].textContent = k.dso + "gg";
+    if (kn[3]) kn[3].textContent = k.etaCredito + "gg";
 
     const prio = [
       // fatture ordinate per priorità di incasso (più in ritardo / più grosse)
@@ -194,18 +213,24 @@
       <div class="info"><div class="name">${esc(p.t)}</div><div class="meta">${esc(p.d)}</div></div>
       <span class="badge ${p.b[0]}">${p.b[1]}</span></div>`).join("") || '<div class="note">Nessuna priorità: incassi e gare sotto controllo.</div>';
 
-    $("fat-list").innerHTML = FAT.filter(fatMatch).sort(fatCmp).map(f => { const b = fatBadge(f);
+    const qFat = ($("fat-cerca") && $("fat-cerca").value || "").trim().toLowerCase();
+    const fatCerca = (f) => !qFat || ((f.cliente || "") + " " + (f.numero || "")).toLowerCase().includes(qFat);
+    $("fat-list").innerHTML = FAT.filter(fatMatch).filter(fatCerca).sort(fatCmp).map(f => { const b = fatBadge(f);
       const ritardo = !f.incassata ? Math.max(0, -giorni(f.scadenza)) : 0;
       const sol = !f.incassata ? livelloSollecito(ritardo) : null;
       const mora = ritardo > 0 ? interessiMora(f.importo, ritardo) : null;   // interessi 231/2002
       return `<div class="item" data-fat="${f.id}" style="cursor:pointer" title="${f.incassata ? "Tocca per annullare l'incasso" : "Tocca per segnare incassata"}">
       <div class="info"><div class="name">${esc(f.numero)} — ${esc(f.cliente)}</div><div class="meta">${eur(f.importo)} · emessa ${fmtD(f.emessa)} · ${f.incassata ? "incassata " + (f.dataIncasso ? fmtD(f.dataIncasso) : "") : "scad. " + fmtD(f.scadenza)}${sol && sol.livello ? " · " + sol.label : ""}${mora && mora.interessi > 0 ? ` · <span title="Interessi di mora D.Lgs 231/2002 al ${TASSO_MORA_DEFAULT}% (tipico, da confermare) + €40 spese art. 6">mora ~${eur(Math.round(mora.interessi))}</span>` : ""}</div></div>
-      <span class="badge ${b[0]}">${b[1]}</span>${ritardo>0?`<button class="dw-btn secondary" data-sollecito="${f.id}" title="Copia il testo del sollecito (con mora 231/2002) da inviare al cliente" style="width:auto;min-height:32px;padding:2px 10px;font-size:11px;">✉ Sollecito</button>`:""}${!f.incassata?`<span class="arr" style="cursor:pointer" title="Elimina fattura errata" data-del-fat="${f.id}">✕</span>`:""}</div>`; }).join("")
-      || '<div class="note" style="text-align:left;">'+(filtroFat==="tutte"?"Nessuna fattura registrata.":"Nessuna fattura in questa categoria.")+'</div>';
+      <span class="badge ${b[0]}">${b[1]}</span>${ritardo>0?`<button class="dw-btn secondary" data-sollecito="${f.id}" title="Copia il testo del sollecito (con mora 231/2002) da inviare al cliente" style="width:auto;min-height:32px;padding:2px 10px;font-size:11px;">✉ Sollecito</button>`:""}${!f.incassata?`<span class="arr" style="cursor:pointer" title="Modifica fattura" data-edit-fat="${f.id}">✎</span>`:""}${!f.incassata?`<span class="arr" style="cursor:pointer" title="Elimina fattura errata" data-del-fat="${f.id}">✕</span>`:""}</div>`; }).join("")
+      || '<div class="note" style="text-align:left;">'+(qFat?"Nessuna fattura trovata per «"+esc(qFat)+"».":(filtroFat==="tutte"?"Nessuna fattura registrata.":"Nessuna fattura in questa categoria."))+'</div>';
+    { const n = $("fat-list").querySelectorAll(".item").length, filtrata = qFat || filtroFat !== "tutte";
+      $("fat-count").textContent = n === 0 ? "" : n + (n === 1 ? " fattura" : " fatture") + (filtrata ? " · su " + FAT.length : ""); }
     document.querySelectorAll("#fat-filtri [data-filtro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-filtro") === filtroFat ? "var(--app-accent)" : "");
 
-    const garOrd = GAR.filter(garMatch).sort((a, b) => (a.stato === "aperta" ? 0 : 1) - (b.stato === "aperta" ? 0 : 1)
+    const qGar = ($("gar-cerca") && $("gar-cerca").value || "").trim().toLowerCase();
+    const garOrd = GAR.filter(garMatch).filter(g => !qGar || (g.titolo || "").toLowerCase().includes(qGar))
+      .sort((a, b) => (a.stato === "aperta" ? 0 : 1) - (b.stato === "aperta" ? 0 : 1)
       || (a.scadenza || "9999").localeCompare(b.scadenza || "9999"));
     document.querySelectorAll("#gar-filtri [data-gfiltro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-gfiltro") === filtroGar ? "var(--app-accent)" : "");
@@ -218,7 +243,9 @@
       ${g.stato==="aperta" ? `<button class="dw-btn secondary" data-gara-esito="vinta" data-gara="${g.id}" style="width:auto;min-height:32px;padding:2px 10px;font-size:11px;">✓ Vinta</button>
       <button class="dw-btn secondary" data-gara-esito="persa" data-gara="${g.id}" style="width:auto;min-height:32px;padding:2px 10px;font-size:11px;border-color:var(--danger);color:var(--danger);">✗ Persa</button>` : ""}
       <span class="badge ${GB[g.stato][0]}">${g.stato==="aperta" ? giorni(g.scadenza)+" gg" : GB[g.stato][1]}</span></div>`).join("")
-      || '<div class="note" style="text-align:left;">'+(filtroGar==="tutte"?"Nessuna gara registrata.":"Nessuna gara in questo stato.")+'</div>';
+      || '<div class="note" style="text-align:left;">'+(qGar?"Nessuna gara trovata per «"+esc(qGar)+"».":(filtroGar==="tutte"?"Nessuna gara registrata.":"Nessuna gara in questo stato."))+'</div>';
+    { const n = $("gar-list").querySelectorAll(".item").length, filtrata = qGar || filtroGar !== "tutte";
+      $("gar-count").textContent = n === 0 ? "" : n + (n === 1 ? " gara" : " gare") + (filtrata ? " · su " + GAR.length : ""); }
 
     const inc = FAT.filter(f => f.incassata).reduce((t,f)=>t+(+f.importo||0),0);
     const ym = new Date().toISOString().slice(0,7);
@@ -228,7 +255,7 @@
       ["Incassato (totale registrato)", eur(inc), "ok"],
       ["Da incassare", eur(k.daIncassare), k.inScadenza ? "warn" : "ok"],
       (() => { const ia = incassoAtteso(FAT, 30); return ["Incasso atteso (prossimi 30 gg)", eur(ia.importo) + " · " + ia.conto + (ia.conto === 1 ? " fattura" : " fatture"), "ok"]; })(),
-      ["DSO — giorni medi di attesa incasso", k.dso + " giorni", k.dso > 45 ? "warn" : "ok"],
+      ["Età media del credito aperto", k.etaCredito + " giorni", k.etaCredito > 45 ? "warn" : "ok"],
       ["Gare aperte", k.gareAperte + " (" + eur(GAR.filter(g=>g.stato==="aperta").reduce((t,g)=>t+(+g.base||0),0)) + " a base d'asta)", "ok"],
     ].map(r => `<div class="item"><div class="info"><div class="name">${r[0]}</div></div><span class="badge ${r[2]}">${r[1]}</span></div>`).join("");
 
@@ -298,6 +325,19 @@
         if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(testo); ok(); }
         else { const ta = document.createElement("textarea"); ta.value = testo; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); ok(); }
       } catch (_) { window.prompt("Copia il testo del sollecito (Ctrl/Cmd+C):", testo); }
+      return; }
+    const editFatId = e.target.getAttribute && e.target.getAttribute("data-edit-fat");
+    if (editFatId) { const f = FAT.find(x => x.id === editFatId); if (!f) return;
+      if (editFat === f.id) {   // ri-tocco la ✎ della stessa fattura = annulla modifica
+        editFat = null; $("btn-ft").textContent = "Emetti"; $("ft-esito").textContent = "Modifica annullata.";
+        ["ft-num","ft-cli","ft-imp","ft-scad"].forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; }); return; }
+      editFat = f.id;
+      $("ft-num").value = f.numero || ""; $("ft-cli").value = f.cliente || "";
+      $("ft-imp").value = f.importo != null ? f.importo : ""; $("ft-scad").value = f.scadenza || "";
+      ["ft-num","ft-cli","ft-imp","ft-scad"].forEach(i => $(i).style.borderColor = "");
+      $("btn-ft").textContent = "Salva modifica";
+      $("ft-esito").textContent = "Stai modificando la fattura " + f.numero + ": cambia i campi e premi «Salva modifica».";
+      $("ft-num").scrollIntoView({ behavior: "smooth", block: "center" });
       return; }
     const it = e.target.closest && e.target.closest("[data-fat]");
     if (it) { const f = FAT.find(x => x.id === it.getAttribute("data-fat"));
@@ -371,12 +411,17 @@
     const manca = [["ft-num",numero],["ft-cli",cliente],["ft-imp",importo>0],["ft-scad",scadenza]].filter(x=>!x[1]);
     ["ft-num","ft-cli","ft-imp","ft-scad"].forEach(i => $(i).style.borderColor = "");
     if (manca.length) { manca.forEach(x => $(x[0]).style.borderColor = "var(--danger)");
-      $("ft-esito").textContent = "Compila i campi evidenziati per emettere la fattura."; return; }
-    if (FAT.some(f => f.numero === numero)) { $("ft-num").style.borderColor = "var(--danger)";
+      $("ft-esito").textContent = "Compila i campi evidenziati per " + (editFat ? "salvare la modifica" : "emettere la fattura") + "."; return; }
+    if (FAT.some(f => f.numero === numero && f.id !== editFat)) { $("ft-num").style.borderColor = "var(--danger)";
       $("ft-esito").textContent = "Esiste già una fattura con numero " + numero + "."; return; }
     $("ft-esito").textContent = "";
-    await db.aggiungi("fatture", { numero, cliente, importo, scadenza,
-      emessa: new Date().toISOString().slice(0,10), incassata: false });
+    if (editFat) {
+      await db.aggiorna("fatture", editFat, { numero, cliente, importo, scadenza });
+      editFat = null; $("btn-ft").textContent = "Emetti";
+    } else {
+      await db.aggiungi("fatture", { numero, cliente, importo, scadenza,
+        emessa: new Date().toISOString().slice(0,10), incassata: false });
+    }
     ["ft-num","ft-cli","ft-imp","ft-scad"].forEach(i => $(i).value = "");
     $("ft-num").focus();   // torna al primo campo per emettere subito la prossima
     await refresh();

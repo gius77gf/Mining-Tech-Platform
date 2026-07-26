@@ -1,6 +1,6 @@
 # Parti da qui — indice dei documenti per il fondatore
 
-Data: 2026-07-21 · Per Giuseppe. Sono stati scritti diversi documenti in
+Data: 2026-07-23 · Per Giuseppe. Sono stati scritti diversi documenti in
 parole semplici. Questo foglio ti dice **quale aprire in base a cosa ti
 serve**, così non devi ricordarti i nomi.
 
@@ -30,12 +30,33 @@ serve**, così non devi ricordarti i nomi.
 - **`docs/CENSIMENTO_FEATURE.md`** — cosa nel "core" (index.html) è completo,
   cosa è spento da configurazione, cosa è fuorviante.
 
+## Se vuoi il flusso DRONE → nuvola → volata (la direzione attuale)
+- **`docs/DEEPWORK_DRONE_FLUSSO.md`** — il flusso completo (drone economico → ODM →
+  Terra/Genesi), come generare la nuvola **gratis** (aggiornato luglio 2026:
+  Lightning per la prova, Oracle Free per il seguito) e la **prova pratica del
+  weekend** passo-passo. *Parti da qui per il drone.*
+- **`vault/PASSO3_FRONTE_METODO.md`** — come, dalla nuvola ritagliata, nascerà la
+  simulazione della volata (in parole semplici + metodo tecnico).
+- **`docs/GENESI_POINT_CLOUD.md`** e **`docs/GENESI_FRAMMENTAZIONE_DA_FOTO.md`** —
+  dettaglio tecnico onesto sul visore point-cloud e sui limiti della
+  frammentazione-da-foto.
+
 ## Se vuoi capire Genesi (il simulatore di volata) e le sue novità
 - **`docs/GENESI_NUOVE_FUNZIONI.md`** — le funzioni recenti (riconciliazione,
   vibrazioni dall'onda vera, export del piano di innesco) spiegate con onestà:
   primi passi utili, **non** parità coi leader, e quanto siamo ancora distanti.
-- **`docs/GENESI_ROADMAP_COMPETITOR.md`** — dove siamo rispetto ai concorrenti
-  e cosa conviene fare dopo, per impatto/fattibilità.
+- **`docs/GENESI_ROADMAP_COMPETITOR.md`** e **`docs/GENESI_VS_COMPETITOR_MATRICE.md`**
+  — dove siamo rispetto ai concorrenti, la matrice funzione-per-funzione e cosa
+  conviene fare dopo, per impatto/fattibilità.
+- **`docs/GENESI_OPENSOURCE_EMULAZIONE.md`** — su quali fondamenta open-source si
+  può costruire restando indipendenti.
+
+## Se vuoi le idee per le altre app (confronto concorrenza + prossimi passi)
+- **`docs/SCUDO_HSE_ROADMAP.md`** (sicurezza/HSE), **`docs/FLOTTA_MANUTENZIONE_ROADMAP.md`**
+  (mezzi/manutenzione), **`docs/CONTI_FATTURAZIONE_ROADMAP.md`** (fatturazione),
+  **`docs/SENTINELLA_VIBRAZIONI_ROADMAP.md`** (vibrazioni/ambiente) — per ciascuna:
+  cosa fa oggi, cosa fanno i concorrenti, e i passi fattibili nel browser ordinati
+  per impatto (con le scelte che aspettano te).
 
 ## Se vuoi la visione e i piani a lungo termine
 - **`vault/ROADMAP_VISIONE.md`** — il potenziale di ogni app e la tesi del

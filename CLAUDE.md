@@ -39,11 +39,22 @@ in italiano, senza dare conoscenze per scontate).
    revisione pulita.
 
 ## Regole vincolanti
-- STILE: tutte le app usano i token di shared/deepwork-style.css e la
-  shell shared/dw-app-shell.css. Personalizzazione ammessa SOLO via
-  --app-accent/--app-accent2 (mappa accenti nel file di stile).
-  Nessuna direzione estetica diversa senza dichiarazione esplicita del
-  fondatore.
+- ⛔ DATI DI RIFERIMENTO DEL FONDATORE — REGOLA FERREA E IMMUTABILE
+  (25/07, non va più ripetuta): i dati che il fondatore ha fornito
+  all'inizio erano SOLO ORIENTATIVI, per far capire i video che stava
+  mostrando. NON devono comparire da nessuna parte nell'interfaccia,
+  nei testi, negli export o nei documenti dell'app: archivio dei 190
+  video, le 6/23 volate misurate, maglia 4,5×3,5, Nonel 25 ms, 15-20
+  fori, calcare come "dominio di validità", e qualunque altra citazione
+  di quella origine. Si possono USARE internamente per i calcoli e le
+  calibrazioni, ma MAI mostrare né citare. Nessuna eccezione.
+- STILE (direttiva fondatore 25/07, sostituisce la precedente): le app
+  verticali devono copiare AL 100% il modello estetico del core
+  Deepwork (index.html alla radice — "quello costruito passo passo":
+  ombre, riquadri, tutta l'estetica), personalizzato SOLO nei colori
+  di base per app (es. Terra verde) per renderle riconoscibili.
+  shared/deepwork-style.css resta il veicolo tecnico: va allineato al
+  look del core, con accenti per app via --app-accent/--app-accent2.
 - MULTI-TENANT: isolamento totale dei dati tra organizzazioni. Ogni
   accesso dati delle app passa dallo SDK deepwork-id-client
   (orgCollection), mai percorsi Firestore costruiti a mano.

@@ -1,6 +1,6 @@
 # Stato del prodotto — le 6 app in parole semplici
 
-Data: 2026-07-21 · Per Giuseppe (fondatore). Questo file risponde a una
+Data: 2026-07-23 · Per Giuseppe (fondatore). Questo file risponde a una
 domanda sola: **oggi, cosa fa ciascuna app, cos'è pronto e cosa aspetta una
 tua decisione?** Niente gergo. Se una cosa serve una tua scelta, la trovi
 anche in `docs/DECISIONI_WEEKEND.md` (l'elenco delle decisioni).
@@ -34,6 +34,16 @@ Cosa manca in generale, per passare da "demo" a "vendibile davvero":
    scelta di stile, poi è meccanica. Vedi `DECISIONI_WEEKEND.md` punto 5.
 
 Nessuna delle due tocca le funzioni: sono il "collaudo per la vendita".
+
+### Novità trasversali (dopo il 21/07) — valgono per tutte e 6 le app
+Rifiniture d'uso quotidiano aggiunte in modo uniforme, verificate con screenshot:
+- **Ricerca + conteggio in ogni lista**: scrivi e trovi subito (una fattura, un
+  mezzo, una scadenza, un ricambio…), con "N · su totale".
+- **Modifica dei record al volo** (icona matita ✎): correggi un dato senza cancellare
+  e rifare (prima si perdeva lo storico). Cambiare pagina annulla la modifica in corso.
+- **Export CSV di ogni lista principale** (per il commercialista/consulente/ente).
+- **App installabili sul telefono** (PWA): ogni app si può mettere sulla home come
+  un'app vera, a schermo intero, utile in cava con poca connettività.
 
 ---
 

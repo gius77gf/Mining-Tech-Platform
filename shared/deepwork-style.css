@@ -67,7 +67,8 @@
    cava        #2f9e44 / #5fe05a   (Terra)
    logistica   #5b7186 / #7fbcff   (Flotta)
    team        #8b5cf6 / #bd96ff   (Scudo)
-   sistema     #6b6459 / #c7b794   (Sentinella / Deepwork ID)      */
+   ambiente    #1971c2 / #74c0fc   (Sentinella — blu, riconoscibile; 25/07)
+   sistema     #6b6459 / #c7b794   (Deepwork ID)      */
 
 /* --- base comune minima --- */
 * { box-sizing: border-box; transition-timing-function: var(--ease); }
@@ -91,6 +92,8 @@ body.dw {
   border: 1px solid var(--border);
   border-radius: var(--r);
   padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .22);
+  transition: transform .18s var(--ease), box-shadow .18s var(--ease), border-color .2s;
 }
 
 .dw-btn {
@@ -106,7 +109,14 @@ body.dw {
   letter-spacing: 2px;
   text-transform: uppercase;
   cursor: pointer;
+  /* firma Deepwork core (.btn-main): ombra calda, pressione fisica */
+  box-shadow: 0 5px 16px rgba(255, 109, 0, .26);
+  transition: transform .12s var(--ease), box-shadow .2s, opacity .2s;
 }
+.dw-btn:hover { box-shadow: 0 8px 22px rgba(255, 109, 0, .34); }
+.dw-btn:active { transform: translateY(2px); box-shadow: 0 2px 8px rgba(255, 109, 0, .2); }
+.dw-btn.secondary:hover { border-color: var(--app-accent); box-shadow: 0 4px 14px color-mix(in srgb, var(--app-accent) 18%, transparent); }
+.dw-btn.secondary:active { transform: translateY(2px); }
 
 .dw-btn.secondary {
   background: none;
@@ -124,6 +134,13 @@ body.dw {
   color: var(--text);
   font-family: 'Barlow', sans-serif;
   font-size: 15px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.dw-input:focus {
+  outline: none;
+  border-color: var(--app-accent);
+  /* anello di fuoco del core (.finput:focus) declinato sull'accento dell'app */
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-accent) 16%, transparent);
 }
 
 .dw-muted { color: var(--muted); }

@@ -6,6 +6,9 @@
 //   manutenzioni/{id}: { titolo, mezzo, dataPrevista (ISO) }
 //   costi/{id}:        { voce, importo (EUR), nota }
 //   ricambi/{id}:      { nome, giacenza, sogliaMin }
+//   interventi/{id}:   { data (ISO), titolo, mezzo, ricambio|null,
+//                        costo|0, note } — ORDINE DI LAVORO chiuso:
+//                        lo storico manutenzioni del mezzo (25/07)
 // L'urgenza delle manutenzioni si CALCOLA dalla data (mai salvata).
 // ============================================================
 
@@ -29,6 +32,9 @@ export const DEMO = {
     { id: "c1", voce: "Carburante", importo: 8400, nota: "+6% sul mese scorso" },
     { id: "c2", voce: "Ricambi e officina", importo: 3150, nota: "" },
     { id: "c3", voce: "Noleggi esterni", importo: 1200, nota: "gru mobile 2gg" },
+  ],
+  interventi: [
+    { id: "w1", data: "2026-07-10", titolo: "Tagliando 500h", mezzo: "Escavatore PC210", ricambio: "Filtro olio", costo: 420, note: "olio + filtri" },
   ],
   ricambi: [
     { id: "p1", nome: "Filtro olio motore CAT", giacenza: 6, sogliaMin: 4 },
@@ -233,7 +239,7 @@ export async function flottaData() {
       mode = "live";
       const read = async (n) => (await getDocs(id.orgCollection(n))).docs.map(d => ({ id: d.id, ...d.data() }));
       api = {
-        mezzi: () => read("mezzi"), manutenzioni: () => read("manutenzioni"), costi: () => read("costi"), ricambi: () => read("ricambi"),
+        mezzi: () => read("mezzi"), manutenzioni: () => read("manutenzioni"), costi: () => read("costi"), ricambi: () => read("ricambi"), interventi: () => read("interventi"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
         logout: () => id.logout(),
         aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n), i), d),
@@ -244,7 +250,7 @@ export async function flottaData() {
   if (mode !== "live") {
     const mem = JSON.parse(JSON.stringify(DEMO));
     api = {
-      mezzi: async () => mem.mezzi, manutenzioni: async () => mem.manutenzioni, costi: async () => mem.costi, ricambi: async () => mem.ricambi,
+      mezzi: async () => mem.mezzi, manutenzioni: async () => mem.manutenzioni, costi: async () => mem.costi, ricambi: async () => mem.ricambi, interventi: async () => mem.interventi,
       logout: async () => {},
       aggiungi: async (n, d) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[n] = mem[n] || []).push({ id, ...d }); return { id }; },
       aggiorna: async (n, i, d) => { const x = (mem[n] || (mem[n] = [])).find(v => v.id === i); if (x) Object.assign(x, d); },

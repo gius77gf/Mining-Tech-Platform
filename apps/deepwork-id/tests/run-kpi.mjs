@@ -191,7 +191,7 @@ console.log("\n— Conti: fatture e gare —");
 test("giorni calcola la distanza in giorni", () => {
   eq(conti.giorni("2026-07-20", new Date("2026-07-10T00:00:00")), 10, "10 giorni");
 });
-test("kpiFrom: da incassare, in scadenza, gare aperte, DSO", () => {
+test("kpiFrom: da incassare, in scadenza, gare aperte, età media credito", () => {
   const oggi = new Date("2026-07-20T00:00:00");
   const fatture = [
     { importo: 100, incassata: false, scadenza: "2026-07-25", emessa: "2026-07-10" },
@@ -200,7 +200,7 @@ test("kpiFrom: da incassare, in scadenza, gare aperte, DSO", () => {
   ];
   const gare = [{ stato: "aperta" }, { stato: "vinta" }];
   eq(conti.kpiFrom(fatture, gare, oggi),
-    { daIncassare: 130, inScadenza: 2, gareAperte: 1, dso: 14 }, "kpi conti");
+    { daIncassare: 130, inScadenza: 2, gareAperte: 1, etaCredito: 14 }, "kpi conti");
 });
 test("kpiFrom: inScadenza = solo fatture NON incassate con scadenza entro 10 giorni", () => {
   const oggi = new Date("2026-07-20T00:00:00");
@@ -212,17 +212,17 @@ test("kpiFrom: inScadenza = solo fatture NON incassate con scadenza entro 10 gio
   ];
   eq(conti.kpiFrom(fatture, [], oggi).inScadenza, 2, "confine 10gg + scaduta, esclusa l'incassata");
 });
-test("kpiFrom: una fattura senza data di emissione non rompe il DSO", () => {
-  // regressione: prima una fattura senza "emessa" rendeva il DSO = NaN
-  // (mostrato come "NaN giorni" nel cruscotto). Ora contribuisce 0.
+test("kpiFrom: una fattura senza data di emissione non rompe l'età media credito", () => {
+  // regressione: prima una fattura senza "emessa" rendeva la metrica = NaN
+  // (mostrata come "NaN giorni" nel cruscotto). Ora contribuisce 0.
   const oggi = new Date("2026-07-20T00:00:00");
   const fatture = [
     { importo: 100, incassata: false, scadenza: "2026-07-25", emessa: undefined },   // senza data → 0 gg
     { importo: 50,  incassata: false, scadenza: "2026-07-25", emessa: "2026-07-10" }, // 10 gg
   ];
-  const dso = conti.kpiFrom(fatture, [], oggi).dso;
-  eq(Number.isFinite(dso), true, "DSO è un numero finito");
-  eq(dso, 5, "media di 0 e 10");
+  const etaCredito = conti.kpiFrom(fatture, [], oggi).etaCredito;
+  eq(Number.isFinite(etaCredito), true, "età media credito è un numero finito");
+  eq(etaCredito, 5, "media di 0 e 10");
 });
 test("agingIncassi: fatture divise per fascia di ritardo, importi corretti", () => {
   const oggi = new Date("2026-07-20T00:00:00");
@@ -971,8 +971,8 @@ test("giorni: domani = 1, ieri = -1", () => {
 console.log("\n— Input vuoti: azienda al giorno zero —");
 test("Scudo kpiFrom([],[]) = tutti zero", () =>
   eq(scudo.kpiFrom([], []), { scadute: 0, trenta: 0, regolari: 0 }, "scudo vuoto"));
-test("Conti kpiFrom([],[]) = zero e DSO 0 (niente divisione per zero)", () =>
-  eq(conti.kpiFrom([], []), { daIncassare: 0, inScadenza: 0, gareAperte: 0, dso: 0 }, "conti vuoto"));
+test("Conti kpiFrom([],[]) = zero e età media credito 0 (niente divisione per zero)", () =>
+  eq(conti.kpiFrom([], []), { daIncassare: 0, inScadenza: 0, gareAperte: 0, etaCredito: 0 }, "conti vuoto"));
 test("Sentinella kpiFrom([],[]) = tutti zero", () =>
   eq(sentinella.kpiFrom([], []), { attivi: 0, superamenti: 0, adempimenti30: 0 }, "sentinella vuoto"));
 test("Terra kpiFrom([],[],[]) = zero, avanzamento e riserve null", () =>
@@ -1091,6 +1091,30 @@ test("riepilogoFermi: conta le anomalie per causale, ordinate per frequenza", ()
 });
 test("riepilogoFermi: nessuna anomalia = lista vuota (niente crash)", () =>
   eq(campo.riepilogoFermi([{ stato: "in-corso" }]), [], "nessun fermo"));
+test("paretoFermi: somma i minuti per causale e ordina per tempo perso", () => {
+  const att = [
+    { stato: "anomalia", causale: "Meteo", fermoMin: 30 },
+    { stato: "anomalia", causale: "Guasto meccanico", fermoMin: 45 },
+    { stato: "anomalia", causale: "Guasto meccanico", fermoMin: 15 },
+    { stato: "in-corso", causale: "Meteo", fermoMin: 999 },   // non anomalia → esclusa
+    { stato: "anomalia", causale: "sconosciuta" },            // senza minuti → 0, in Altro
+  ];
+  const pf = campo.paretoFermi(att);
+  eq(pf.totaleMin, 90, "totale minuti");
+  eq(pf.voci[0], { causale: "Guasto meccanico", conto: 2, minuti: 60 }, "prima la causale col tempo maggiore");
+  eq(pf.voci[1], { causale: "Meteo", conto: 1, minuti: 30 }, "poi meteo");
+  eq(pf.voci[2], { causale: "Altro", conto: 1, minuti: 0 }, "sconosciuta in Altro con 0 min");
+});
+test("paretoFermi: minuti non numerici o negativi contano 0 (mai NaN)", () => {
+  const pf = campo.paretoFermi([
+    { stato: "anomalia", causale: "Meteo", fermoMin: "abc" },
+    { stato: "anomalia", causale: "Meteo", fermoMin: -20 },
+  ]);
+  eq(pf.totaleMin, 0, "totale 0");
+  eq(pf.voci[0].conto, 2, "conteggio corretto");
+});
+test("paretoFermi: nessuna anomalia = struttura vuota", () =>
+  eq(campo.paretoFermi([]), { voci: [], totaleMin: 0 }, "vuoto"));
 test("CAUSALI_FERMO: lista non vuota, tutte stringhe uniche", () => {
   const c = campo.CAUSALI_FERMO;
   eq(c.length > 0, true, "non vuota");
@@ -1185,6 +1209,15 @@ test("giorniTra + Scudo: una scadenza di OGGI non è 'scaduta' nel pomeriggio", 
   eq(shell.giorniTra("2026-07-25", pom), 5, "tra 5 giorni (non 4)");
   eq(scudo.statoScadenza("2026-07-20", pom), "in-scadenza", "oggi non è scaduta");
   eq(scudo.livelloScadenza("2026-07-20", pom), { cls: "danger", label: "scade oggi", giorni: 0 }, "scade oggi");
+});
+test("giorniTra: segno futuro/passato — invariante delle guardie data-futura (Scudo/Sentinella)", () => {
+  // le guardie rifiutano un evento se giorniTra(data) > 0 (nel futuro): blindiamo il segno
+  const oggi = new Date("2026-07-20T09:00:00");
+  eq(shell.giorniTra("2026-07-21", oggi) > 0, true, "domani è futuro → rifiutato");
+  eq(shell.giorniTra("2026-08-19", oggi) > 0, true, "+30gg è futuro → rifiutato");
+  eq(shell.giorniTra("2026-07-20", oggi) > 0, false, "oggi NON è futuro → accettato");
+  eq(shell.giorniTra("2026-07-19", oggi) > 0, false, "ieri NON è futuro → accettato");
+  eq(shell.giorniTra("2026-07-19", oggi) < 0, true, "ieri è passato (segno negativo)");
 });
 test("conti/sentinella/flotta: nessun off-by-one con l'ora del giorno", () => {
   const pom = new Date("2026-07-20T18:30:00");

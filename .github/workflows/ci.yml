@@ -11,7 +11,7 @@ on:
 
 jobs:
   security-rules:
-    name: Helper + Firestore rules + SDK + Functions + Bootstrap + KPI + Demo tests (328)
+    name: Helper + Firestore rules + SDK + Functions + Bootstrap + KPI + Demo + Pointcloud + Manifest tests (364)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -51,6 +51,7 @@ jobs:
           node --input-type=module --check < shared/deepwork-id-client/index.js
           node --input-type=module --check < shared/deepwork-id-client/dw-shell.js
           for f in apps/*/*-data.js; do node --input-type=module --check < "$f" || exit 1; done
+          node --input-type=module --check < apps/genesi/pointcloud.js   # parser nuvola/mesh del visualizzatore drone
           node --input-type=module --check < apps/genesi/vendor/build/three.module.js
       - name: Check inline scripts (genesi.html and app pages)
         run: |

@@ -4,12 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Sentinella — Ambiente / HSE</title>
+<meta name="theme-color" content="#1971c2">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sentinella">
+<link rel="manifest" href='data:application/manifest+json,{"name":"Deepwork Sentinella","short_name":"Sentinella","description":"Ambiente e HSE","start_url":".","scope":".","display":"standalone","orientation":"portrait","background_color":"%23100d07","theme_color":"%231971c2","categories":["business","productivity"],"lang":"it","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 180 180%27><rect width=%27180%27 height=%27180%27 rx=%2732%27 fill=%27%231971c2%27/><text x=%2790%27 y=%27126%27 font-family=%27sans-serif%27 font-size=%27104%27 font-weight=%27700%27 fill=%27%23ffffff%27 text-anchor=%27middle%27>S</text></svg>","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}'>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../shared/deepwork-style.css">
 <link rel="stylesheet" href="../../shared/dw-app-shell.css">
 <style>
   /* Sentinella: accento della palette funzionale deepwork */
-  :root { --app-accent:#6b6459; --app-accent2:#c7b794; }
+  :root { --app-accent:#1971c2; --app-accent2:#74c0fc; }
 </style>
 </head>
 <body class="dw">
@@ -53,6 +59,8 @@
       <option value="nome">Nome (A→Z)</option>
     </select>
   </div>
+  <input class="dw-input" id="mon-cerca" type="search" placeholder="🔍 Cerca per nome o nota…" style="margin-bottom:6px;">
+  <div id="mon-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
   <div id="mon-list"></div>
   <div class="sec">Registra misura</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -92,6 +100,8 @@
 
 <div class="page" id="page-ade">
   <div class="sec">Scadenze ambientali</div>
+  <input class="dw-input" id="ade-cerca" type="search" placeholder="🔍 Cerca per titolo o ente…" style="margin-bottom:6px;">
+  <div id="ade-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
   <div id="ade-list"></div>
   <div class="sec">Nuovo adempimento</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -157,7 +167,7 @@
 
 <script type="module">
   import { sentinellaData, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, prioritaConformita, riepilogoVolate, parseVolateCsv, parseAdempimentiCsv, parseMonitoraggiCsv } from "./sentinella-data.js";
-  import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
   const RB = { aggiornato: ["ok","Aggiornato"], "in-attesa": ["warn","In attesa"] };
@@ -169,6 +179,7 @@
 
   let MON=[], ADE=[], REG=[], VOL=[];
   let filtroMon = "tutti";
+  let editMon = null;   // id del sensore in modifica (riusa il form "Nuovo sensore"; lo storico misure resta)
   let ordMon = "criticita";
   // scorciatoia: toccare un KPI del quadro porta alla lista pertinente
   document.querySelector(".kpis").addEventListener("click", (e) => {
@@ -182,6 +193,13 @@
   });
   try { const _s = localStorage.getItem("dwSort_mon"); if (_s) { ordMon = _s; if ($("mon-ord")) $("mon-ord").value = _s; } } catch (e) {}
   if ($("mon-ord")) $("mon-ord").onchange = () => { ordMon = $("mon-ord").value; try { localStorage.setItem("dwSort_mon", ordMon); } catch (e) {} refresh(); };
+  if ($("mon-cerca")) $("mon-cerca").oninput = () => refresh();
+  if ($("ade-cerca")) $("ade-cerca").oninput = () => refresh();
+  // cambiare pagina annulla una modifica sensore in corso (torna su "Aggiungi")
+  document.querySelector(".nav") && document.querySelector(".nav").addEventListener("click", () => {
+    if (editMon) { editMon = null; $("btn-sen").textContent = "Aggiungi"; $("mis-esito").textContent = "";
+      ["sen-nome","sen-unita","sen-soglia"].forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; }); }
+  });
   async function refresh(){
     [MON,ADE,REG,VOL] = await Promise.all([db.monitoraggi(), db.adempimenti(), db.registri(), db.volate ? db.volate() : []]);
     const k = kpiFrom(MON,ADE);
@@ -205,24 +223,34 @@
     const monCmp = (a, b) => ordMon === "margine" ? a.st.ratio - b.st.ratio
       : ordMon === "nome" ? String(a.m.nome || "").localeCompare(String(b.m.nome || ""), "it")
       : b.st.ratio - a.st.ratio;
+    const qMon = ($("mon-cerca") && $("mon-cerca").value || "").trim().toLowerCase();
     $("mon-list").innerHTML = MON.map(m => ({ m, st: statoMisura(m) }))
       .filter(x => filtroMon === "tutti" || x.st.cls === filtroMon)
+      .filter(x => !qMon || ((x.m.nome || "") + " " + (x.m.nota || "")).toLowerCase().includes(qMon))
       .sort(monCmp)
       .map(({m, st}) => { const ult = (m.letture || []).slice(-3).map(l => l.valore).join(" → ");
       return `<div class="item"><div class="info"><div class="name">${esc(m.nome)}</div>
       <div class="meta">${m.valore} ${esc(m.unita)} / soglia ${m.soglia} (${Math.round(st.ratio*100)}%)${ult ? " · ultime: " + ult : ""}${m.nota ? " · " + esc(m.nota) : ""}</div></div>
       <span class="badge ${st.cls}">${st.label}</span>
+      <span class="arr" style="cursor:pointer" title="Modifica sensore" data-edit-mon="${m.id}">✎</span>
       <span class="arr" style="cursor:pointer" title="Rimuovi sensore" data-del-mon="${m.id}">✕</span></div>`; }).join("")
-      || '<div class="note" style="text-align:left;">'+(filtroMon==="tutti"?"Nessun sensore configurato.":"Nessun sensore in questa categoria.")+'</div>';
+      || '<div class="note" style="text-align:left;">'+(qMon?"Nessun sensore trovato per «"+esc(qMon)+"».":(filtroMon==="tutti"?"Nessun sensore configurato.":"Nessun sensore in questa categoria."))+'</div>';
+    { const n = $("mon-list").querySelectorAll(".item").length, filtrata = qMon || filtroMon !== "tutti";
+      $("mon-count").textContent = n === 0 ? "" : n + (n === 1 ? " sensore" : " sensori") + (filtrata ? " · su " + MON.length : ""); }
     document.querySelectorAll("#mon-filtri [data-filtro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-filtro") === filtroMon ? "var(--app-accent)" : "");
 
-    $("ade-list").innerHTML = ADE.slice().sort((a,b)=>a.scadenza<b.scadenza?-1:1).map(a => { const g = giorni(a.scadenza);
+    const qAde = ($("ade-cerca") && $("ade-cerca").value || "").trim().toLowerCase();
+    $("ade-list").innerHTML = ADE.slice().sort((a,b)=>a.scadenza<b.scadenza?-1:1)
+      .filter(a => !qAde || ((a.titolo || "") + " " + (a.ente || "")).toLowerCase().includes(qAde))
+      .map(a => { const g = giorni(a.scadenza);
       const b = g < 0 ? ["danger","Scaduto"] : (g <= 30 ? ["warn", g + " gg"] : ["ok", g + " gg"]);
       return `<div class="item"><div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${a.ente!=="—"?esc(a.ente)+" · ":""}entro ${fmtD(a.scadenza)}</div></div>
       <span class="badge ${b[0]}">${b[1]}</span>
       <span class="arr" style="cursor:pointer" title="Segna come eseguito" data-ade-done="${a.id}">✓</span></div>`; }).join("")
-      || '<div class="note" style="text-align:left;">Nessun adempimento in scadenza.</div>';
+      || '<div class="note" style="text-align:left;">'+(qAde?"Nessun adempimento trovato per «"+esc(qAde)+"».":"Nessun adempimento in scadenza.")+'</div>';
+    { const n = $("ade-list").querySelectorAll(".item").length;
+      $("ade-count").textContent = n === 0 ? "" : n + (n === 1 ? " adempimento" : " adempimenti") + (qAde ? " · su " + ADE.length : ""); }
 
     $("reg-list").innerHTML = REG.slice().sort((a,b)=>(a.stato==="in-attesa"?0:1)-(b.stato==="in-attesa"?0:1)).map(r => `<div class="item" data-reg="${r.id}" style="cursor:pointer" title="${r.stato==="in-attesa" ? "Tocca per segnare aggiornato" : "Tocca per rimettere in attesa"}">
       <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${esc(r.nota || "")}</div></div>
@@ -259,6 +287,19 @@
     if (delVol) {
       if (confirm("Rimuovere questa volata dal registro? (usa solo per correggere un inserimento sbagliato)")) {
         await db.rimuovi("volate", delVol); await refresh(); } return; }
+    const editMonId = e.target.getAttribute && e.target.getAttribute("data-edit-mon");
+    if (editMonId) { const m = MON.find(x => x.id === editMonId); if (!m) return;
+      if (editMon === m.id) {   // ri-tocco la ✎ dello stesso sensore = annulla
+        editMon = null; $("btn-sen").textContent = "Aggiungi"; $("mis-esito").textContent = "Modifica annullata.";
+        ["sen-nome","sen-unita","sen-soglia"].forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; }); return; }
+      editMon = m.id;
+      $("sen-nome").value = m.nome || ""; $("sen-unita").value = m.unita || ""; $("sen-soglia").value = m.soglia != null ? m.soglia : "";
+      if ($("sen-preset")) $("sen-preset").value = "";
+      if ($("sen-preset-nota")) { $("sen-preset-nota").style.display = "none"; $("sen-preset-nota").textContent = ""; }
+      ["sen-nome","sen-unita","sen-soglia"].forEach(i => $(i).style.borderColor = "");
+      $("btn-sen").textContent = "Salva modifica";
+      $("mis-esito").textContent = "Stai modificando «" + m.nome + "»: cambi nome/unità/soglia, lo storico misure resta.";
+      $("sen-nome").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
     const it = e.target.closest && e.target.closest("[data-reg]");
     if (it) { const r = REG.find(x => x.id === it.getAttribute("data-reg"));
       // toggle bidirezionale, SENZA sovrascrivere la nota originale del registro
@@ -277,9 +318,13 @@
     el.download = "sentinella_ambiente.csv"; el.click();
     $("mode-note").textContent = "Esportati " + MON.length + " monitoraggi e " + ADE.length + " adempimenti (CSV).";
   };
+  // niente volate datate nel futuro: il registro è un documento verso gli enti e
+  // il conteggio "questo mese" si baserebbe su un dato impossibile
+  { const d = new Date(); $("vol-data").max = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
   $("btn-vol").onclick = async () => {
     const data = $("vol-data").value;
     if (!data) { $("vol-data").style.borderColor = "var(--danger)"; $("vol-esito-msg").textContent = "Serve la data della volata."; return; }
+    if (giorniTra(data) > 0) { $("vol-data").style.borderColor = "var(--danger)"; $("vol-esito-msg").textContent = "La data della volata non può essere nel futuro."; return; }
     $("vol-data").style.borderColor = "";
     await db.aggiungi("volate", {
       data, fronte: $("vol-fronte").value.trim(),
@@ -355,13 +400,18 @@
     const nome = $("sen-nome").value.trim(), unita = $("sen-unita").value.trim(), soglia = +$("sen-soglia").value;
     if (!nome || !unita || !(soglia > 0)) {
       [["sen-nome",nome],["sen-unita",unita],["sen-soglia",soglia>0]].forEach(([i,v]) => $(i).style.borderColor = v ? "" : "var(--danger)");
-      $("mis-esito").textContent = "Servono nome, unità di misura e soglia (>0) per aggiungere il sensore."; return;
+      $("mis-esito").textContent = "Servono nome, unità di misura e soglia (>0) per " + (editMon ? "salvare la modifica" : "aggiungere il sensore") + "."; return;
     }
     ["sen-nome","sen-unita","sen-soglia"].forEach(i => $(i).style.borderColor = "");
-    await db.aggiungi("monitoraggi", { nome, unita, soglia, valore: 0, letture: [] });
+    if (editMon) {
+      await db.aggiorna("monitoraggi", editMon, { nome, unita, soglia });   // valore/letture restano
+      editMon = null; $("btn-sen").textContent = "Aggiungi";
+    } else {
+      await db.aggiungi("monitoraggi", { nome, unita, soglia, valore: 0, letture: [] });
+    }
     $("sen-nome").value = ""; $("sen-unita").value = ""; $("sen-soglia").value = "";
     $("sen-preset").value = ""; $("sen-preset-nota").style.display = "none"; $("sen-preset-nota").textContent = "";
-    $("mis-esito").textContent = "Sensore " + nome + " aggiunto (soglia " + soglia + " " + unita + ").";
+    $("mis-esito").textContent = "Sensore " + nome + " salvato (soglia " + soglia + " " + unita + ").";
     $("sen-nome").focus();   // torna al primo campo per aggiungere subito il prossimo
     await refresh();
   };

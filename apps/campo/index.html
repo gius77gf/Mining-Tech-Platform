@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Campo — Operativo di campo</title>
+<meta name="theme-color" content="#e8821c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Campo">
+<link rel="manifest" href='data:application/manifest+json,{"name":"Deepwork Campo","short_name":"Campo","description":"Operativo di campo","start_url":".","scope":".","display":"standalone","orientation":"portrait","background_color":"%23100d07","theme_color":"%23e8821c","categories":["business","productivity"],"lang":"it","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 180 180%27><rect width=%27180%27 height=%27180%27 rx=%2732%27 fill=%27%23e8821c%27/><text x=%2790%27 y=%27126%27 font-family=%27sans-serif%27 font-size=%27104%27 font-weight=%27700%27 fill=%27%23ffffff%27 text-anchor=%27middle%27>C</text></svg>","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}'>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../shared/deepwork-style.css">
 <link rel="stylesheet" href="../../shared/dw-app-shell.css">
@@ -52,8 +58,13 @@
       <option value="titolo">Titolo (A→Z)</option>
     </select>
   </div>
+  <input class="dw-input" id="att-cerca" type="search" placeholder="🔍 Cerca per titolo o dettaglio…" style="margin-bottom:6px;">
+  <div id="att-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
   <div id="att-list"></div>
   <div id="fermi-riep" class="note" style="text-align:left;"></div>
+  <div class="sec">Dove si perde tempo (fermi di oggi)</div>
+  <div id="fermi-pareto" style="margin-bottom:6px;"></div>
+  <button class="dw-btn secondary" id="btn-att-export" style="width:auto;margin-top:6px;">Esporta attività (CSV)</button>
   <div class="sec">Nuova attività</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
     <input class="dw-input" id="att-titolo" placeholder="Titolo (es. Perforazione fronte Sud)" style="flex:2;min-width:160px;">
@@ -100,6 +111,7 @@
     <button class="dw-btn" id="btn-add-rap" style="width:auto;">Crea bozza</button>
   </div>
   <button class="dw-btn secondary" id="btn-consegna" style="width:auto;margin-top:8px;">Esporta consegna turno (testo)</button>
+  <button class="dw-btn secondary" id="btn-rapporto-turno" style="width:auto;margin-top:8px;margin-left:6px;">🖨 Rapporto di fine turno</button>
   <div class="note" id="mode-note" style="text-align:left;"></div>
 
   <div class="sec">Piano di carico (da Genesi)</div>
@@ -131,7 +143,7 @@
 </script>
 
 <script type="module">
-  import { campoData, kpiFrom, parsePianoCsv, parseSquadreCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini } from "./campo-data.js";
+  import { campoData, kpiFrom, parsePianoCsv, parseSquadreCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini } from "./campo-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const AB = { "in-corso": ["ok","In corso"], pianificata: ["warn","Pianificata"], anomalia: ["danger","Anomalia"], conclusa: ["ok","Conclusa"] };
@@ -146,9 +158,16 @@
 
   let ATT=[], SQU=[], RAP=[];
   let filtroAtt = "tutte";
+  let editAtt = null;   // id dell'attività in modifica (riusa il form "Nuova attività"; stato/causale restano)
   let ordAttSel = "stato";
   try { const _s = localStorage.getItem("dwSort_att"); if (_s) { ordAttSel = _s; if ($("att-ord")) $("att-ord").value = _s; } } catch (e) {}
   if ($("att-ord")) $("att-ord").onchange = () => { ordAttSel = $("att-ord").value; try { localStorage.setItem("dwSort_att", ordAttSel); } catch (e) {} refresh(); };
+  if ($("att-cerca")) $("att-cerca").oninput = () => refresh();
+  // cambiare pagina annulla una modifica attività in corso (torna su "Pianifica")
+  document.querySelector(".nav") && document.querySelector(".nav").addEventListener("click", () => {
+    if (editAtt) { editAtt = null; $("btn-att").textContent = "Pianifica"; $("att-esito").textContent = "";
+      $("att-titolo").value = ""; $("att-dett").value = ""; $("att-titolo").style.borderColor = ""; }
+  });
   $("att-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroAtt = f; refresh(); }
@@ -184,16 +203,29 @@
     const attCmp = (a, b) => ordAttSel === "titolo"
       ? String(a.titolo || "").localeCompare(String(b.titolo || ""), "it")
       : (ordAtt[a.stato] ?? 4) - (ordAtt[b.stato] ?? 4);
+    const qAtt = ($("att-cerca") && $("att-cerca").value || "").trim().toLowerCase();
     const attVis = ATT.filter(a => filtroAtt === "tutte" || a.stato === filtroAtt)
+                      .filter(a => !qAtt || ((a.titolo || "") + " " + (a.dettaglio || "")).toLowerCase().includes(qAtt))
                       .sort(attCmp);
     const optCausali = (sel) => CAUSALI_FERMO.map(c => `<option value="${esc(c)}"${c===sel?" selected":""}>${esc(c)}</option>`).join("");
     $("att-list").innerHTML = attVis.map(a => `<div class="item" data-att="${a.id}" style="cursor:pointer" title="Tocca per cambiare stato">
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc(a.dettaglio||"")}</div></div>
-      ${a.stato==="anomalia" ? `<select class="dw-input" data-causale="${a.id}" title="Causale del fermo" style="width:auto;min-height:32px;padding:2px 6px;font-size:12px;margin-right:6px;"><option value="">Causale…</option>${optCausali(a.causale)}</select>` : ""}
-      <span class="badge ${AB[a.stato][0]}">${AB[a.stato][1]}</span></div>`).join("")
-      || '<div class="note" style="text-align:left;">'+(filtroAtt==="tutte"?"Nessuna attività registrata oggi.":"Nessuna attività in questa categoria.")+'</div>';
+      ${a.stato==="anomalia" ? `<select class="dw-input" data-causale="${a.id}" title="Causale del fermo" style="width:auto;min-height:32px;padding:2px 6px;font-size:12px;margin-right:6px;"><option value="">Causale…</option>${optCausali(a.causale)}</select><input class="dw-input" data-fermomin="${a.id}" type="number" min="0" step="5" value="${(+a.fermoMin)||""}" placeholder="min" title="Minuti di fermo" style="width:64px;min-height:32px;padding:2px 6px;font-size:12px;margin-right:6px;">` : ""}
+      <span class="badge ${AB[a.stato][0]}">${AB[a.stato][1]}</span>
+      <span class="arr" style="cursor:pointer" title="Modifica attività" data-edit-att="${a.id}">✎</span></div>`).join("")
+      || '<div class="note" style="text-align:left;">'+(qAtt?"Nessuna attività trovata per «"+esc(qAtt)+"».":(filtroAtt==="tutte"?"Nessuna attività registrata oggi.":"Nessuna attività in questa categoria."))+'</div>';
+    { const n = $("att-list").querySelectorAll(".item").length, filtrata = qAtt || filtroAtt !== "tutte";
+      $("att-count").textContent = n === 0 ? "" : n + (n === 1 ? " attività" : " attività") + (filtrata ? " · su " + ATT.length : ""); }
     document.querySelectorAll("#att-filtri [data-filtro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-filtro") === filtroAtt ? "var(--app-accent)" : "");
+    // Pareto dei fermi con i MINUTI persi (base disponibilità di giornata)
+    { const pf = paretoFermi(ATT);
+      const box = $("fermi-pareto");
+      if (box) box.innerHTML = pf.voci.length
+        ? `<div class="dw-muted" style="font-size:12px;margin-bottom:6px;">Tempo perso oggi: <b style="color:var(--danger);">${pf.totaleMin} min</b>${pf.voci[0] && pf.voci[0].minuti ? ` — causale peggiore: <b>${esc(pf.voci[0].causale)}</b> (${pf.voci[0].minuti} min)` : ""}</div>`
+          + pf.voci.map(v => { const w = pf.totaleMin ? Math.round(v.minuti / pf.totaleMin * 100) : 0;
+            return `<div style="display:flex;align-items:center;gap:8px;margin:3px 0;font-size:12px;"><span style="flex:0 0 150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(v.causale)}</span><span style="flex:1;background:var(--card2);border-radius:4px;overflow:hidden;height:10px;"><i style="display:block;height:100%;width:${Math.max(2, w)}%;background:linear-gradient(90deg,var(--warn),var(--danger));"></i></span><b style="flex:0 0 84px;text-align:right;">${v.minuti} min · ×${v.conto}</b></div>`; }).join("")
+        : '<span class="dw-muted" style="font-size:12px;">Nessun fermo oggi. Quando un\'attività va in anomalia, indica causale e minuti: qui compare dove si perde tempo.</span>'; }
     // riepilogo fermi per causale (base per OEE/disponibilità)
     const fermi = riepilogoFermi(ATT);
     $("fermi-riep").innerHTML = fermi.length
@@ -225,6 +257,16 @@
   document.addEventListener("click", async (e) => {
     // il tap sul menu causale NON deve cambiare lo stato dell'attività
     if (e.target.matches && e.target.matches("[data-causale]")) return;
+    const editAttId = e.target.getAttribute && e.target.getAttribute("data-edit-att");
+    if (editAttId) { const a = ATT.find(x => x.id === editAttId); if (!a) return;
+      if (editAtt === a.id) {   // ri-tocco la ✎ della stessa attività = annulla
+        editAtt = null; $("btn-att").textContent = "Pianifica"; $("att-esito").textContent = "Modifica annullata.";
+        $("att-titolo").value = ""; $("att-dett").value = ""; $("att-titolo").style.borderColor = ""; return; }
+      editAtt = a.id;
+      $("att-titolo").value = a.titolo || ""; $("att-dett").value = a.dettaglio || ""; $("att-titolo").style.borderColor = "";
+      $("btn-att").textContent = "Salva modifica";
+      $("att-esito").textContent = "Stai modificando «" + a.titolo + "»: cambi titolo/dettaglio, lo stato resta.";
+      $("att-titolo").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
     const it = e.target.closest && e.target.closest("[data-att]");
     if (it) { const a = ATT.find(x => x.id === it.getAttribute("data-att"));
       await db.aggiorna("attivita", a.id, { stato: ATT_NEXT[a.stato] || "in-corso" }); await refresh(); return; }
@@ -248,6 +290,13 @@
       }
     }
   });
+  // salva i minuti di fermo digitati sull'anomalia
+  document.addEventListener("change", async (e) => {
+    const fid = e.target.getAttribute && e.target.getAttribute("data-fermomin");
+    if (!fid) return;
+    const v = Math.max(0, Math.round(+e.target.value || 0));
+    await db.aggiorna("attivita", fid, { fermoMin: v }); await refresh();
+  });
   // salva la causale del fermo quando si sceglie dal menu sull'anomalia
   document.addEventListener("change", async (e) => {
     const cid = e.target.getAttribute && e.target.getAttribute("data-causale");
@@ -257,13 +306,30 @@
   });
   $("btn-att").onclick = async () => {
     const titolo = $("att-titolo").value.trim();
-    if (!titolo) { $("att-titolo").style.borderColor = "var(--danger)"; $("att-esito").textContent = "Serve un titolo per pianificare l'attività."; return; }
+    if (!titolo) { $("att-titolo").style.borderColor = "var(--danger)"; $("att-esito").textContent = "Serve un titolo per " + (editAtt ? "salvare la modifica" : "pianificare l'attività") + "."; return; }
     $("att-titolo").style.borderColor = "";
-    await db.aggiungi("attivita", { titolo, dettaglio: $("att-dett").value.trim(), stato: "pianificata" });
+    if (editAtt) {
+      await db.aggiorna("attivita", editAtt, { titolo, dettaglio: $("att-dett").value.trim() });   // stato/causale restano
+      editAtt = null; $("btn-att").textContent = "Pianifica";
+    } else {
+      await db.aggiungi("attivita", { titolo, dettaglio: $("att-dett").value.trim(), stato: "pianificata" });
+    }
     $("att-titolo").value = ""; $("att-dett").value = "";
-    $("att-esito").textContent = "Attività pianificata: " + titolo + ".";
+    $("att-esito").textContent = "Attività salvata: " + titolo + ".";
     $("att-titolo").focus();   // torna al primo campo per inserire subito la prossima
     await refresh();
+  };
+  // Esporta l'elenco attività (registro/archivio della giornata, handover)
+  $("btn-att-export").onclick = () => {
+    if (!ATT.length) { $("att-esito").textContent = "Nessuna attività da esportare."; return; }
+    const ordExp = { anomalia: 0, "in-corso": 1, pianificata: 2, conclusa: 3 };
+    let csv = "titolo;dettaglio;stato;causale\n";
+    for (const a of ATT.slice().sort((x, y) => (ordExp[x.stato] ?? 4) - (ordExp[y.stato] ?? 4)))
+      csv += `${csvCell(a.titolo || "")};${csvCell(a.dettaglio || "")};${a.stato || ""};${csvCell(a.stato === "anomalia" ? (a.causale || "") : "")}\n`;
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.download = "campo_attivita.csv"; a.click();
+    $("att-esito").textContent = "Esportate " + ATT.length + " attività (CSV).";
   };
   $("btn-add-rap").onclick = async () => {
     const titolo = $("new-rap-titolo").value.trim();
@@ -326,6 +392,36 @@
     el.href = "data:text/plain;charset=utf-8," + encodeURIComponent(txt);
     el.download = "consegna_turno.txt"; el.click();
     $("mode-note").textContent = "Consegna di turno esportata (" + RAP.length + " rapportini, " + fermi.length + " causali di fermo).";
+  };
+  // Rapporto di fine turno STAMPABILE (stesso pattern del report di Genesi):
+  // il deliverable che i supervisori si aspettano — solo dati già presenti.
+  $("btn-rapporto-turno").onclick = () => {
+    const oggi = new Date().toLocaleDateString("it-IT");
+    const av = avanzamentoGiornata(ATT), fermi = riepilogoFermi(ATT), cop = coperturaRapportini(SQU, RAP);
+    const st = { "in-corso": "In corso", pianificata: "Pianificata", conclusa: "Conclusa", anomalia: "ANOMALIA" };
+    const riga = (a) => `<tr><td>${esc(a.titolo)}</td><td>${esc(a.dettaglio||"")}</td><td>${st[a.stato]||esc(a.stato)}${a.stato==="anomalia"&&a.causale?" — "+esc(a.causale):""}</td></tr>`;
+    const ordR = { anomalia:0, "in-corso":1, pianificata:2, conclusa:3 };
+    const html = `<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><title>Rapporto di fine turno — ${oggi}</title>
+<style>body{font:13px/1.45 sans-serif;color:#222;margin:28px;max-width:800px}h1{font-size:19px;margin:0 0 2px}h2{font-size:14px;margin:18px 0 6px;border-bottom:1px solid #999;padding-bottom:2px}
+table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px 8px;text-align:left;font-size:12px}th{background:#f2f2f2}
+.muted{color:#666;font-size:11px}.kpi{display:inline-block;margin-right:18px}.kpi b{font-size:17px}</style></head><body>
+<h1>Rapporto di fine turno</h1><div class="muted">Deepwork Campo · ${oggi}</div>
+<h2>Quadro</h2>
+<div><span class="kpi"><b>${av.concluse}/${av.totale}</b> attività concluse</span>
+<span class="kpi"><b>${ATT.filter(a=>a.stato==="anomalia").length}</b> anomalie aperte</span>
+<span class="kpi"><b>${cop.coperte}/${cop.totale}</b> squadre con rapportino</span></div>
+<h2>Attività</h2>
+<table><tr><th>Attività</th><th>Dettaglio</th><th>Stato</th></tr>${ATT.slice().sort((a,b)=>(ordR[a.stato]??4)-(ordR[b.stato]??4)).map(riga).join("")||"<tr><td colspan=3>Nessuna attività registrata.</td></tr>"}</table>
+<h2>Fermi per causale</h2>
+${fermi.length?`<table><tr><th>Causale</th><th>Anomalie</th></tr>${fermi.map(f=>`<tr><td>${esc(f.causale)}</td><td>${f.conto}</td></tr>`).join("")}</table>`:"<div>Nessuna anomalia aperta.</div>"}
+<h2>Rapportini</h2>
+${RAP.length?`<table><tr><th>Titolo</th><th>Squadra · turno</th><th>Produzione</th><th>Consegne al turno dopo</th><th>Stato</th></tr>${RAP.map(r=>`<tr><td>${esc(r.titolo)}</td><td>${esc(r.squadra||"—")}${r.turno?" · "+esc(r.turno):""}</td><td>${esc(r.produzione||"—")}</td><td>${esc(r.note||"—")}</td><td>${esc(r.stato)}${r.ora?" "+esc(r.ora):""}</td></tr>`).join("")}</table>`:"<div>Nessun rapportino oggi.</div>"}
+${cop.mancanti.length?`<div class="muted" style="margin-top:6px">Squadre senza rapportino: ${cop.mancanti.map(esc).join(", ")}.</div>`:""}
+<div class="muted" style="margin-top:20px">Generato da Deepwork Campo — registro operativo di giornata; non sostituisce i registri obbligatori.</div>
+<script>window.print()</` + `script></body></html>`;
+    const w = window.open("", "_blank"); if(!w){ $("mode-note").textContent = "Sblocca i popup per stampare il rapporto."; return; }
+    w.document.write(html); w.document.close();
+    $("mode-note").textContent = "Rapporto di fine turno aperto per la stampa.";
   };
   // Recupero errore: appena l'utente corregge un campo, togli il bordo
   // rosso (e il messaggio, dove c'è) così l'avviso non resta appeso.

@@ -40,6 +40,40 @@ Come farlo in modo sicuro, senza perdere lavoro:
 Questa regola NON è un motivo per fermarsi: si compatta e si prosegue
 subito con l'unità successiva (vale sempre la regola di esaurimento).
 
+## Funzione di ricerca continua (deep-research)
+
+Regola del fondatore (21/07): usa **/deep-research OGNI VOLTA CHE PUOI**,
+soprattutto nei **tempi morti** (attese della CI, tra un'unità e l'altra),
+per capire cosa migliorare di **ogni singola app**. Rende il ciclo più
+efficiente perché il lavoro di ricerca gira in parallelo, senza bloccare.
+
+Come farlo:
+
+1. **Lancia in BACKGROUND**, così riempie i tempi morti senza fermare il
+   lavoro: `Workflow({ name: "deep-research", args: "<domanda>" })`. Se il
+   workflow deep-research fallisce nell'ambiente (es. cap di retry dello
+   StructuredOutput), ripiega su un **agente in background** (`Agent`,
+   subagent_type general-purpose) che usa WebSearch e sintetizza — l'importante
+   è che la ricerca sia reale, con fonti, e non blocchi il ciclo.
+2. **Ruota tra le app** (una ricerca per app, poi si ricomincia con un
+   secondo passaggio più profondo): Genesi, Scudo, Campo, Flotta, Conti,
+   Sentinella, Terra, Deepwork ID.
+3. **Domanda tipo**: «Su quali fondamenta open-source, algoritmi pubblici e
+   best practice si basano i competitor di *&lt;app&gt;*? Cosa è riutilizzabile
+   in un'app browser (JS/WebGL, senza backend) e quali migliorie concrete
+   (feature, UX, estetica) può adottare *&lt;app&gt;* nel proprio stile?»
+   Per Genesi, includi le fonti open-source dei software di blast design
+   (frammentazione, point cloud, fotogrammetria, standard IREDES/WITSML,
+   vibrazioni).
+4. **Traduci i risultati in unità concrete** (feature/UX/estetica) **IN STILE**
+   dell'app, con verifica e screenshot. Non copiare direttamente i competitor;
+   **non gonfiare** i risultati: sii onesto su quanto siamo distanti (i leader
+   hanno dati reali, team, hardware). Le migliorie sono passi, non parità.
+5. Salva le sintesi utili in `docs/` o nel vault e citale nei checkpoint.
+
+La ricerca NON è un motivo per fermarsi: gira in background mentre prosegui
+con le unità di sviluppo.
+
 ## 1. Determina la settimana corrente
 
 Usa `date` in bash per ottenere la data odierna e calcolare lunedì-venerdì
@@ -158,12 +192,24 @@ giustificare una fermata volontaria.
 
 SE LA ROADMAP SEMBRA FINITA, NON È FINITA. In ordine: 1) seconde
 iterazioni delle app verticali (CRUD mancanti, filtri, validazioni,
-stati vuoti, UX con screenshot); 2) rimandati del censimento
+stati vuoti, UX/estetica con screenshot); 2) rimandati del censimento
 (docs/CENSIMENTO_FEATURE.md) e raccomandazioni della ricerca competitor;
 3) registro progettato-vs-reale foro per foro (Genesi↔Campo); 4) test
 aggiuntivi sulle suite emulatore; 5) revisione qualità/sicurezza di ciò
 che è su main; 6) approfondimenti "secondo passaggio" delle schede
-ricerca. Poi si ricomincia dal punto 1. Il lavoro non finisce MAI da solo.
+ricerca; 7) NUOVE deep-research (una per app, a rotazione) su cosa
+migliorare di ogni app e su quali fondamenta open-source si basano i
+competitor, da tradurre poi in migliorie concrete IN STILE dell'app.
+Poi si ricomincia dal punto 1. Il lavoro non finisce MAI da solo.
+
+RICERCA NEI TEMPI MORTI: ogni volta che c'è un'attesa (CI in corso, tra
+un'unità e l'altra), lancia una /deep-research in BACKGROUND
+(Workflow name deep-research; se fallisce, un Agent general-purpose con
+WebSearch) su una app a rotazione — così i tempi morti diventano ricerca
+utile senza fermare lo sviluppo. Quando torna, traducila in unità concrete
+(feature/UX/estetica) verificate. NON gonfiare i risultati: le migliorie
+sono passi verso i competitor, non parità (loro hanno dati reali, team,
+hardware). Vedi la sezione "Funzione di ricerca continua" della skill.
 
 Lavora a piccole unità: scegli il prossimo task non completato dalla
 roadmap, implementalo, esegui commit frequenti e atomici con messaggi

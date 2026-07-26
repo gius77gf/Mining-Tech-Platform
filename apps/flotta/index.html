@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Flotta — Mezzi & costi</title>
+<meta name="theme-color" content="#5b7186">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Flotta">
+<link rel="manifest" href='data:application/manifest+json,{"name":"Deepwork Flotta","short_name":"Flotta","description":"Mezzi e manutenzione","start_url":".","scope":".","display":"standalone","orientation":"portrait","background_color":"%23100d07","theme_color":"%235b7186","categories":["business","productivity"],"lang":"it","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 180 180%27><rect width=%27180%27 height=%27180%27 rx=%2732%27 fill=%27%235b7186%27/><text x=%2790%27 y=%27126%27 font-family=%27sans-serif%27 font-size=%27104%27 font-weight=%27700%27 fill=%27%23ffffff%27 text-anchor=%27middle%27>F</text></svg>","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}'>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../shared/deepwork-style.css">
 <link rel="stylesheet" href="../../shared/dw-app-shell.css">
@@ -53,6 +59,8 @@
       <option value="nome">Nome (A→Z)</option>
     </select>
   </div>
+  <input class="dw-input" id="mez-cerca" type="search" placeholder="🔍 Cerca per nome o area…" style="margin-bottom:6px;">
+  <div id="mez-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
   <div id="mez-list"></div>
   <div class="sec">Nuovo mezzo</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -95,8 +103,15 @@
   </div>
   <div class="note" style="text-align:left;">Data oppure ore motore: per i tagliandi a ore scrivi le ore a cui va fatto (urgenza calcolata dal contatore del mezzo). Se scegli un ricambio, alla chiusura verrà scaricato dal magazzino.</div>
 
+  <div class="sec">Registro interventi (<span id="int-count">0</span>)</div>
+  <div id="int-list"></div>
+  <div style="margin-top:6px;"><button class="dw-btn secondary" id="btn-int-csv" style="width:auto;">Esporta registro (CSV)</button></div>
+  <div class="note" style="text-align:left;">Ogni manutenzione chiusa diventa un intervento nello storico del mezzo: cosa è stato fatto, quando, con quale ricambio e a che costo. È il libretto-macchina che vale in garanzia e alla rivendita.</div>
+
   <div class="sec">Magazzino ricambi</div>
   <div id="ric-alert" class="note" style="text-align:left;"></div>
+  <input class="dw-input" id="ric-cerca" type="search" placeholder="🔍 Cerca ricambio…" style="margin-bottom:6px;">
+  <div id="ric-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
   <div id="ric-list"></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
     <input class="dw-input" id="ric-nome" placeholder="Ricambio (es. Filtro olio)" style="flex:2;min-width:150px;">
@@ -158,8 +173,9 @@
     go(card.getAttribute("data-goto")); refresh();
   });
 
-  let MEZ=[], MAN=[], COS=[], RIC=[];
+  let MEZ=[], MAN=[], COS=[], RIC=[], INT=[];
   let filtroMez = "tutti";
+  let editMez = null;   // id del mezzo in modifica (riusa il form "Nuovo mezzo"; stato/manutenzioni restano)
   let ordMez = "stato";
   const MEZ_NEXT = { operativo: "verifica", verifica: "fermo", fermo: "operativo" };
   $("man-oregiorno").addEventListener("input", () => refresh());
@@ -169,8 +185,15 @@
   });
   try { const _s = localStorage.getItem("dwSort_mez"); if (_s) { ordMez = _s; if ($("mez-ord")) $("mez-ord").value = _s; } } catch (e) {}
   if ($("mez-ord")) $("mez-ord").onchange = () => { ordMez = $("mez-ord").value; try { localStorage.setItem("dwSort_mez", ordMez); } catch (e) {} refresh(); };
+  if ($("mez-cerca")) $("mez-cerca").oninput = () => refresh();
+  if ($("ric-cerca")) $("ric-cerca").oninput = () => refresh();
+  // cambiare pagina annulla una modifica mezzo in corso (torna su "Aggiungi")
+  document.querySelector(".nav") && document.querySelector(".nav").addEventListener("click", () => {
+    if (editMez) { editMez = null; $("btn-mez").textContent = "Aggiungi"; $("ore-esito").textContent = "";
+      ["mez-nome","mez-area","mez-ore"].forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; }); }
+  });
   async function refresh(){
-    [MEZ,MAN,COS,RIC] = await Promise.all([db.mezzi(), db.manutenzioni(), db.costi(), db.ricambi ? db.ricambi() : []]);
+    [MEZ,MAN,COS,RIC,INT] = await Promise.all([db.mezzi(), db.manutenzioni(), db.costi(), db.ricambi ? db.ricambi() : [], db.interventi ? db.interventi() : []]);
     const k = kpiFrom(MEZ,MAN,COS);
     const kn = document.querySelectorAll(".kpis .kpi .n");
     if (kn[0]) kn[0].textContent = k.operativi;
@@ -203,13 +226,17 @@
     const disp = disponibilitaFlotta(MEZ);
     $("mez-disp").innerHTML = disp.pct == null ? ""
       : `Disponibilità flotta: <b>${disp.pct}%</b> (${disp.operativi} operativi su ${disp.totale}). <span style="color:var(--muted);">Riferimento world-class ~92-94%.</span>`;
+    const qMez = ($("mez-cerca") && $("mez-cerca").value || "").trim().toLowerCase();
     const mezOrd = MEZ.slice().sort(mezCmp)
-                       .filter(m => filtroMez === "tutti" || m.stato === filtroMez);
+                       .filter(m => filtroMez === "tutti" || m.stato === filtroMez)
+                       .filter(m => !qMez || ((m.nome || "") + " " + (m.area || "")).toLowerCase().includes(qMez));
     $("mez-list").innerHTML = mezOrd.map(m => `<div class="item" data-mezzo="${m.id}" style="cursor:pointer" title="Tocca per cambiare stato">
       <div class="avatar">${esc(sig(m.nome))}</div>
       <div class="info"><div class="name">${esc(m.nome)}</div><div class="meta">${(m.ore||0).toLocaleString("it-IT")} h${m.area ? " · " + esc(m.area) : ""}</div></div>
-      <span class="badge ${MB[m.stato][0]}">${MB[m.stato][1]}</span>${m.stato==="fermo"?`<span class="arr" style="cursor:pointer" title="Dismetti dal parco" data-del-mezzo="${m.id}">✕</span>`:""}</div>`).join("")
-      || '<div class="note" style="text-align:left;">'+(filtroMez==="tutti"?"Nessun mezzo nel parco.":"Nessun mezzo in questa categoria.")+'</div>';
+      <span class="badge ${MB[m.stato][0]}">${MB[m.stato][1]}</span><span class="arr" style="cursor:pointer" title="Modifica mezzo" data-edit-mezzo="${m.id}">✎</span>${m.stato==="fermo"?`<span class="arr" style="cursor:pointer" title="Dismetti dal parco" data-del-mezzo="${m.id}">✕</span>`:""}</div>`).join("")
+      || '<div class="note" style="text-align:left;">'+(qMez?"Nessun mezzo trovato per «"+esc(qMez)+"».":(filtroMez==="tutti"?"Nessun mezzo nel parco.":"Nessun mezzo in questa categoria."))+'</div>';
+    { const n = $("mez-list").querySelectorAll(".item").length, filtrata = qMez || filtroMez !== "tutti";
+      $("mez-count").textContent = n === 0 ? "" : n + (n === 1 ? " mezzo" : " mezzi") + (filtrata ? " · su " + MEZ.length : ""); }
     document.querySelectorAll("#mez-filtri [data-filtro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-filtro") === filtroMez ? "var(--app-accent)" : "");
 
@@ -233,13 +260,21 @@
 
     // Magazzino ricambi: giacenza, soglia, carico/scarico, sotto-scorta.
     const scorta = sottoScorta(RIC);
+    // registro interventi (ordini di lavoro chiusi), più recenti in alto
+    $("int-count").textContent = INT.length;
+    $("int-list").innerHTML = INT.slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1).map(w =>
+      `<div class="item"><div class="info"><div class="name">${esc(w.titolo)} — ${esc(w.mezzo)}</div>
+        <div class="meta">${esc(w.data || "—")}${w.ricambio ? " · 🔩 " + esc(w.ricambio) : ""}${(+w.costo) ? " · " + eur(+w.costo) : ""}${w.note ? " · " + esc(w.note) : ""}</div></div></div>`).join("")
+      || '<div class="note" style="text-align:left;">Nessun intervento registrato: chiudi una manutenzione programmata (✓) e comparirà qui.</div>';
     $("ric-alert").innerHTML = RIC.length
       ? (scorta.length
           ? `<span style="color:var(--danger);">⚠️ ${scorta.length} ${scorta.length === 1 ? "ricambio sotto scorta" : "ricambi sotto scorta"}</span> — da riordinare: ${scorta.map(r => esc(r.nome)).join(", ")}.`
           : "Tutti i ricambi sopra la soglia minima.")
       : "";
+    const qRic = ($("ric-cerca") && $("ric-cerca").value || "").trim().toLowerCase();
     $("ric-list").innerHTML = RIC.slice()
       .sort((a,b) => ((+a.giacenza||0)-(+a.sogliaMin||0)) - ((+b.giacenza||0)-(+b.sogliaMin||0)))
+      .filter(r => !qRic || (r.nome || "").toLowerCase().includes(qRic))
       .map(r => { const sotto = (+r.giacenza||0) <= (+r.sogliaMin||0);
       return `<div class="item">
         <div class="info"><div class="name">${esc(r.nome)}</div><div class="meta">giacenza ${+r.giacenza||0} · soglia min ${+r.sogliaMin||0}</div></div>
@@ -247,7 +282,9 @@
         <span class="badge ${sotto ? "danger" : "ok"}">${sotto ? "sotto scorta" : "ok"}</span>
         <span class="arr" style="cursor:pointer" title="Carico (+1)" data-ric-piu="${r.id}">+</span>
         <span class="arr" style="cursor:pointer" title="Rimuovi ricambio" data-ric-del="${r.id}">✕</span></div>`; }).join("")
-      || '<div class="note" style="text-align:left;">Nessun ricambio a magazzino: aggiungine uno qui sotto.</div>';
+      || '<div class="note" style="text-align:left;">'+(qRic?"Nessun ricambio trovato per «"+esc(qRic)+"».":"Nessun ricambio a magazzino: aggiungine uno qui sotto.")+'</div>';
+    { const n = $("ric-list").querySelectorAll(".item").length;
+      $("ric-count").textContent = n === 0 ? "" : n + (n === 1 ? " ricambio" : " ricambi") + (qRic ? " · su " + RIC.length : ""); }
 
     // Ripartizione costi per voce: dove va la spesa della flotta.
     const rip = ripartizioneCosti(COS);
@@ -275,10 +312,17 @@
     if (done) { const n = MAN.find(x => x.id === done);
       if (!n) return;
       const ric = n.ricambioId ? RIC.find(r => r.id === n.ricambioId) : null;
-      const msg = "Segnare come eseguita «" + n.titolo + " — " + n.mezzo + "»?"
-        + (ric ? " Verrà scaricato 1 « " + ric.nome + " » dal magazzino." : "") + " Verrà tolta dalle programmate.";
+      const msg = "Chiudere l'ordine di lavoro «" + n.titolo + " — " + n.mezzo + "»?"
+        + (ric ? " Verrà scaricato 1 « " + ric.nome + " » dal magazzino." : "") + " L'intervento finisce nel registro.";
       if (confirm(msg)) {
+        // ordine di lavoro (25/07): la chiusura REGISTRA l'intervento invece di cancellare e basta
+        const costoTx = prompt("Costo dell'intervento in € (vuoto = nessun costo):", "");
+        const costo = Math.max(0, Math.round(+String(costoTx || "0").replace(",", ".") * 100) / 100) || 0;
+        const note = (prompt("Note sull'intervento (facoltative):", "") || "").trim();
+        const oggiISO = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
         if (ric) await db.aggiorna("ricambi", ric.id, { giacenza: scaricoGiacenza(ric.giacenza, 1) });
+        await db.aggiungi("interventi", { data: oggiISO, titolo: n.titolo, mezzo: n.mezzo, ricambio: ric ? ric.nome : null, costo, note });
+        if (costo > 0) await db.aggiungi("costi", { voce: "Manutenzione: " + n.titolo + " (" + n.mezzo + ")", importo: costo, nota: note });
         await db.rimuovi("manutenzioni", done); await refresh(); } return; }
     const delMez = e.target.getAttribute && e.target.getAttribute("data-del-mezzo");
     if (delMez) { const m = MEZ.find(x => x.id === delMez);
@@ -299,10 +343,29 @@
     if (ricDel) { const r = RIC.find(x => x.id === ricDel);
       if (r && confirm("Rimuovere il ricambio «" + r.nome + "» dal magazzino?")) {
         await db.rimuovi("ricambi", ricDel); await refresh(); } return; }
+    const editMezId = e.target.getAttribute && e.target.getAttribute("data-edit-mezzo");
+    if (editMezId) { const m = MEZ.find(x => x.id === editMezId); if (!m) return;
+      if (editMez === m.id) {   // ri-tocco la ✎ dello stesso mezzo = annulla
+        editMez = null; $("btn-mez").textContent = "Aggiungi"; $("ore-esito").textContent = "Modifica annullata.";
+        ["mez-nome","mez-area","mez-ore"].forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; }); return; }
+      editMez = m.id;
+      $("mez-nome").value = m.nome || ""; $("mez-area").value = m.area || ""; $("mez-ore").value = m.ore != null ? m.ore : "";
+      ["mez-nome","mez-area","mez-ore"].forEach(i => $(i).style.borderColor = "");
+      $("btn-mez").textContent = "Salva modifica";
+      $("ore-esito").textContent = "Stai modificando «" + m.nome + "»: cambi nome/area/ore, lo stato e le manutenzioni restano.";
+      $("mez-nome").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
     const it = e.target.closest && e.target.closest("[data-mezzo]");
     if (it) { const m = MEZ.find(x => x.id === it.getAttribute("data-mezzo"));
       await db.aggiorna("mezzi", m.id, { stato: MEZ_NEXT[m.stato] || "operativo" }); await refresh(); }
   });
+  $("btn-int-csv").onclick = () => {
+    const righe = [["data", "titolo", "mezzo", "ricambio", "costo", "note"].join(";")]
+      .concat(INT.slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1)
+        .map(w => [w.data || "", w.titolo || "", w.mezzo || "", w.ricambio || "", (+w.costo) || 0, w.note || ""].map(csvCell).join(";")));
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    a.download = "flotta-registro-interventi.csv"; a.click();
+  };
   $("btn-cos").onclick = async () => {
     const voce = $("cos-voce").value.trim(), importo = +$("cos-importo").value;
     if (!voce || !(importo > 0)) {
@@ -335,12 +398,17 @@
   $("btn-mez").onclick = async () => {
     const nome = $("mez-nome").value.trim(), area = $("mez-area").value.trim(), ore = +$("mez-ore").value || 0;
     if (!nome) { $("mez-nome").style.borderColor = "var(--danger)"; $("ore-esito").textContent = "Serve il nome del mezzo."; return; }
-    if (MEZ.some(m => m.nome.split(" — ")[0].toLowerCase() === nome.toLowerCase())) {
+    if (MEZ.some(m => m.id !== editMez && m.nome.split(" — ")[0].toLowerCase() === nome.split(" — ")[0].toLowerCase())) {
       $("mez-nome").style.borderColor = "var(--danger)"; $("ore-esito").textContent = "Esiste già un mezzo con questo nome."; return; }
     $("mez-nome").style.borderColor = "";
-    await db.aggiungi("mezzi", { nome, area, ore, stato: "operativo" });
+    if (editMez) {
+      await db.aggiorna("mezzi", editMez, { nome, area, ore });   // stato/manutenzioni restano
+      editMez = null; $("btn-mez").textContent = "Aggiungi";
+    } else {
+      await db.aggiungi("mezzi", { nome, area, ore, stato: "operativo" });
+    }
     $("mez-nome").value = ""; $("mez-area").value = ""; $("mez-ore").value = "";
-    $("ore-esito").textContent = "Mezzo " + nome + " aggiunto (operativo, " + ore + " h).";
+    $("ore-esito").textContent = "Mezzo " + nome + " salvato (" + ore + " h).";
     $("mez-nome").focus();   // torna al primo campo per inserire subito il prossimo
     await refresh();
   };

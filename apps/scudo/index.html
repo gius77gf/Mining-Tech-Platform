@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Scudo — Sicurezza & Personale</title>
+<meta name="theme-color" content="#8b5cf6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Scudo">
+<link rel="manifest" href='data:application/manifest+json,{"name":"Deepwork Scudo","short_name":"Scudo","description":"Sicurezza e personale","start_url":".","scope":".","display":"standalone","orientation":"portrait","background_color":"%23100d07","theme_color":"%238b5cf6","categories":["business","productivity"],"lang":"it","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 180 180%27><rect width=%27180%27 height=%27180%27 rx=%2732%27 fill=%27%238b5cf6%27/><text x=%2790%27 y=%27126%27 font-family=%27sans-serif%27 font-size=%27104%27 font-weight=%27700%27 fill=%27%23ffffff%27 text-anchor=%27middle%27>S</text></svg>","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}'>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../shared/deepwork-style.css">
 <link rel="stylesheet" href="../../shared/dw-app-shell.css">
@@ -76,6 +82,8 @@
       <option value="persona">Lavoratore (A→Z)</option>
     </select>
   </div>
+  <input class="dw-input" id="scad-cerca" type="search" placeholder="🔍 Cerca per tipo o lavoratore…" style="margin-bottom:6px;">
+  <div id="scad-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
   <div id="scad-list"></div>
   <div class="sec">Aggiungi scadenza</div>
   <select class="dw-input" id="scad-preset" style="width:100%;margin-bottom:8px;">
@@ -99,19 +107,42 @@
 
 <!-- DOCUMENTI -->
 <div class="page" id="page-doc">
+  <div class="sec">Cantieri e siti (<span id="cant-count">0</span>)</div>
+  <div id="cant-list"></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <input class="dw-input" id="cant-nome" placeholder="Nome cantiere/cava" style="flex:2;min-width:150px;">
+    <input class="dw-input" id="cant-comune" placeholder="Comune" style="flex:1;min-width:110px;">
+    <select class="dw-input" id="cant-tipo" style="flex:1;min-width:110px;"><option value="cava">Cava</option><option value="cantiere">Cantiere esterno</option></select>
+    <button class="dw-btn" id="btn-cant" style="width:auto;">Aggiungi</button>
+  </div>
+  <div class="note" id="cant-esito" style="text-align:left;"></div>
+
   <div class="sec">Documenti aziendali</div>
   <div id="doc-list"></div>
   <div class="sec">Nuovo documento</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <input class="dw-input" id="doc-titolo" placeholder="Titolo (es. Registro infortuni)" style="flex:2;min-width:160px;">
+    <select class="dw-input" id="doc-tipo" style="flex:1;min-width:130px;"></select>
+    <input class="dw-input" id="doc-titolo" placeholder="Titolo (es. DSS Cava Monte Alto)" style="flex:2;min-width:160px;">
     <input class="dw-input" id="doc-meta" placeholder="Nota (es. Aggiornato 07/2026)" style="flex:1;min-width:130px;">
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+    <select class="dw-input" id="doc-cantiere" style="flex:1;min-width:140px;"><option value="">— nessun cantiere —</option></select>
+    <select class="dw-input" id="doc-lavoratore" style="flex:1;min-width:140px;"><option value="">— nessun lavoratore —</option></select>
+    <button class="dw-btn secondary" id="btn-doc-file" style="width:auto;" title="Foto o scansione firmata (immagine/PDF)">📎 Allega file</button>
+    <input type="file" id="doc-file" accept="image/*,.pdf" style="display:none;">
+    <span class="dw-muted" id="doc-file-nome" style="font-size:12px;align-self:center;"></span>
     <button class="dw-btn" id="btn-doc" style="width:auto;">Aggiungi</button>
   </div>
   <div class="note" id="doc-esito" style="text-align:left;"></div>
-  <div class="note" style="text-align:left;">Tocca un documento per cambiarne lo stato (valido → da rivedere → scaduto).</div>
+  <div class="note" style="text-align:left;">Tocca un documento per cambiarne lo stato (valido → da rivedere → scaduto). Collega il <b>DSS/POS al cantiere</b> e i <b>verbali DPI al lavoratore</b>; l'allegato (foto o scansione firmata) si riapre con 📎. In questa fase gli allegati fino a ~400 KB; per l'archivio completo serve lo storage del progetto live.</div>
 
   <div class="sec">Infortuni e near-miss</div>
   <div id="inf-riep" class="note" style="text-align:left;"></div>
+  <div id="inf-filtri" style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;">
+    <button class="dw-btn secondary" data-filtro="tutti" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Tutti</button>
+    <button class="dw-btn secondary" data-filtro="infortunio" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Infortuni</button>
+    <button class="dw-btn secondary" data-filtro="near-miss" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Near-miss</button>
+  </div>
   <div id="inf-list"></div>
   <div class="sec">Registra evento</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -119,7 +150,8 @@
     <select class="dw-input" id="inf-tipo" style="flex:1;min-width:120px;"><option value="near-miss">Near-miss (mancato infortunio)</option><option value="infortunio">Infortunio</option></select>
     <select class="dw-input" id="inf-gravita" style="flex:1;min-width:100px;"><option value="lieve">Lieve</option><option value="grave">Grave</option></select>
     <input class="dw-input" id="inf-giorni" type="number" min="0" placeholder="Giorni assenza" style="flex:1;min-width:120px;">
-    <input class="dw-input" id="inf-desc" placeholder="Descrizione e luogo" style="flex:2;min-width:160px;">
+    <input class="dw-input" id="inf-luogo" placeholder="Luogo" style="flex:1;min-width:120px;">
+    <input class="dw-input" id="inf-desc" placeholder="Descrizione" style="flex:2;min-width:160px;">
     <button class="dw-btn" id="btn-inf" style="width:auto;">Registra</button>
   </div>
   <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
@@ -151,8 +183,8 @@
 </script>
 
 <script type="module">
-  import { scudoData, statoScadenza, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, parseScadenzeCsv, SCADENZE_PRESET, presetScadenza } from "./scudo-data.js";
-  import { mountExit, esc, csvCell, parseCsvLine } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { scudoData, statoScadenza, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, parseScadenzeCsv, SCADENZE_PRESET, presetScadenza, TIPI_DOCUMENTO } from "./scudo-data.js";
+  import { mountExit, esc, csvCell, parseCsvLine, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
 
   const $ = (id) => document.getElementById(id);
   const initials = (n) => (n || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
@@ -166,16 +198,29 @@
     ? "Dati reali della tua organizzazione."
     : "Dati di esempio (" + db.mode + "): le modifiche non vengono salvate.";
 
-  let LAV = [], SCA = [], DOC = [], INF = [];
+  let LAV = [], SCA = [], DOC = [], INF = [], CANT = [];
+  let docFileSel = null;   // allegato scelto per il prossimo documento {nome, dataURL}
+  let editLav = null;   // id del lavoratore in modifica (riusa il form "Aggiungi"; idoneità/scadenze restano)
   let filtroScad = "tutte";
+  let filtroInf = "tutti";
   let ordScad = "scadenza";
   $("pers-cerca").oninput = () => refresh();
   $("scad-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroScad = f; refresh(); }
   });
+  $("inf-filtri").addEventListener("click", (e) => {
+    const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
+    if (f) { filtroInf = f; refresh(); }
+  });
   try { const _s = localStorage.getItem("dwSort_scad"); if (_s) { ordScad = _s; if ($("scad-ord")) $("scad-ord").value = _s; } } catch (e) {}
   if ($("scad-ord")) $("scad-ord").onchange = () => { ordScad = $("scad-ord").value; try { localStorage.setItem("dwSort_scad", ordScad); } catch (e) {} refresh(); };
+  if ($("scad-cerca")) $("scad-cerca").oninput = () => refresh();
+  // cambiare pagina annulla una modifica lavoratore in corso (torna su "Aggiungi")
+  document.querySelector(".nav") && document.querySelector(".nav").addEventListener("click", () => {
+    if (editLav) { editLav = null; $("btn-add-pers").textContent = "Aggiungi"; $("import-esito").textContent = "";
+      $("new-nome").value = ""; $("new-ruolo").value = ""; $("new-nome").style.borderColor = ""; }
+  });
   // scorciatoia: toccare un KPI del quadro porta alla lista pertinente
   document.querySelector(".kpis").addEventListener("click", (e) => {
     const card = e.target.closest("[data-goto]"); if (!card) return;
@@ -186,7 +231,7 @@
   });
 
   async function refresh() {
-    [LAV, SCA, DOC, INF] = await Promise.all([db.lavoratori(), db.scadenze(), db.documenti(), db.infortuni ? db.infortuni() : []]);
+    [LAV, SCA, DOC, INF, CANT] = await Promise.all([db.lavoratori(), db.scadenze(), db.documenti(), db.infortuni ? db.infortuni() : [], db.cantieri ? db.cantieri() : []]);
     const byId = Object.fromEntries(LAV.map(l => [l.id, l]));
     const k = kpiFrom(LAV, SCA);
     $("k-scadute").textContent = k.scadute;
@@ -214,7 +259,7 @@
     const q = ($("pers-cerca").value || "").trim().toLowerCase();
     const lavVis = LAV.filter(l => !q || (l.nome + " " + (l.ruolo || "")).toLowerCase().includes(q))
                       .sort((a, b) => a.nome.localeCompare(b.nome, "it"));
-    $("pers-count").textContent = LAV.length;
+    $("pers-count").textContent = (q && lavVis.length !== LAV.length) ? lavVis.length + " su " + LAV.length : LAV.length;
     $("pers-list").innerHTML = lavVis.map(l => {
       const prob = SCA.filter(s => s.lavoratoreId === l.id && statoScadenza(s.dataScadenza) !== "regolare");
       const st = prob.some(s => statoScadenza(s.dataScadenza) === "scaduta") ? "scaduta" : (prob.length ? "in-scadenza" : "regolare");
@@ -224,6 +269,7 @@
         <div class="info"><div class="name">${esc(l.nome)}</div><div class="meta">${esc(l.ruolo || "—")}${prob.length ? " · " + esc(prob[0].descrizione) : ""}</div></div>
         <span class="badge ${idn.cls}" style="cursor:pointer" title="Idoneità sanitaria (art. 41) — tocca per cambiare esito" data-idon="${l.id}">${idn.label}</span>
         <span class="badge ${B[st][0]}">${B[st][1]}</span>
+        <span class="arr" style="cursor:pointer" title="Modifica lavoratore" data-edit-lav="${l.id}">✎</span>
         <span class="arr" style="cursor:pointer" title="Rimuovi" data-del-lav="${l.id}">✕</span></div>`;
     }).join("") || '<div class="note" style="text-align:left;">' + (q ? "Nessun lavoratore corrisponde a «" + esc(q) + "»." : "Nessun lavoratore: aggiungine uno qui sotto o importa il CSV.") + "</div>";
 
@@ -235,8 +281,10 @@
         <div class="meta">${c.regolari} regolari · ${c.inScadenza} in scadenza · ${c.scadute} scadute (su ${c.totale})</div></div>
         <span class="badge ${cls}">${lbl}</span></div>`; }).join("")
       || '<div class="note" style="text-align:left;">Nessuna scadenza registrata: la copertura si popola aggiungendo scadenze.</div>';
-    const scaVis = SCA.filter(s => filtroScad === "tutte" || statoScadenza(s.dataScadenza) === filtroScad);
     const nomeScad = (s) => { const l = byId[s.lavoratoreId]; return l ? l.nome : "azienda"; };
+    const qScad = ($("scad-cerca") && $("scad-cerca").value || "").trim().toLowerCase();
+    const scaVis = SCA.filter(s => filtroScad === "tutte" || statoScadenza(s.dataScadenza) === filtroScad)
+                      .filter(s => !qScad || ((s.descrizione || "") + " " + nomeScad(s)).toLowerCase().includes(qScad));
     const scadCmp = (a, b) => ordScad === "tipo" ? String(a.descrizione || "").localeCompare(String(b.descrizione || ""), "it")
       : ordScad === "persona" ? nomeScad(a).localeCompare(nomeScad(b), "it") || (a.dataScadenza < b.dataScadenza ? -1 : 1)
       : (a.dataScadenza < b.dataScadenza ? -1 : 1);
@@ -248,7 +296,9 @@
         ${(st !== "regolare" && l) ? `<button class="dw-btn secondary" data-prom-scad="${sc.id}" title="Copia il promemoria da inviare al lavoratore" style="width:auto;min-height:32px;padding:2px 10px;font-size:11px;">✉ Promemoria</button>` : ""}
         <span class="arr" style="cursor:pointer" title="Rinnova a nuova data" data-ren-scad="${sc.id}">↻</span>
         <span class="arr" style="cursor:pointer" title="Rimuovi" data-del-scad="${sc.id}">✕</span></div>`;
-    }).join("") || '<div class="note" style="text-align:left;">' + (filtroScad === "tutte" ? "Nessuna scadenza registrata." : "Nessuna scadenza in questa categoria.") + "</div>";
+    }).join("") || '<div class="note" style="text-align:left;">' + (qScad ? "Nessuna scadenza trovata per «" + esc(qScad) + "»." : (filtroScad === "tutte" ? "Nessuna scadenza registrata." : "Nessuna scadenza in questa categoria.")) + "</div>";
+    { const n = $("scad-list").querySelectorAll(".item").length, filtrata = qScad || filtroScad !== "tutte";
+      $("scad-count").textContent = n === 0 ? "" : n + (n === 1 ? " scadenza" : " scadenze") + (filtrata ? " · su " + SCA.length : ""); }
     document.querySelectorAll("#scad-filtri [data-filtro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-filtro") === filtroScad ? "var(--app-accent)" : "");
 
@@ -256,9 +306,28 @@
       LAV.map(l => `<option value="${l.id}">${esc(l.nome)}</option>`).join("");
 
     const D = { valido: ["ok", "Valido"], "da-rivedere": ["warn", "Da rivedere"], scaduto: ["danger", "Scaduto"] };
-    $("doc-list").innerHTML = DOC.map(d =>
-      `<div class="item" data-doc="${d.id}" style="cursor:pointer" title="Tocca per cambiare stato"><div class="info"><div class="name">${esc(d.titolo)}</div><div class="meta">${esc(d.meta || "")}</div></div>
-       <span class="badge ${D[d.stato][0]}">${D[d.stato][1]}</span></div>`).join("")
+    // cantieri e siti
+    const TC = { cava: ["ok", "Cava"], cantiere: ["warn", "Cantiere"] };
+    $("cant-count").textContent = CANT.length;
+    $("cant-list").innerHTML = CANT.map(c => {
+      const tb = TC[c.tipo] || ["warn", esc(c.tipo || "—")];
+      const nDoc = DOC.filter(d => d.cantiereId === c.id).length;
+      return `<div class="item"><div class="avatar">${esc((c.nome || "?").split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase())}</div>
+        <div class="info"><div class="name">${esc(c.nome)}</div><div class="meta">${esc(c.comune || "—")}${nDoc ? ` · ${nDoc} documenti` : " · nessun documento"}</div></div>
+        <span class="badge ${tb[0]}">${tb[1]}</span><span class="arr" style="cursor:pointer" title="Rimuovi" data-del-cant="${c.id}">✕</span></div>`;
+    }).join("") || '<div class="note" style="text-align:left;">Nessun cantiere. Aggiungi la cava e gli eventuali cantieri esterni: DSS e POS si collegano qui.</div>';
+    // selettori del form documento
+    const selC = $("doc-cantiere"), selL = $("doc-lavoratore");
+    if (selC && selC.children.length !== CANT.length + 1) selC.innerHTML = '<option value="">— nessun cantiere —</option>' + CANT.map(c => `<option value="${c.id}">${esc(c.nome)}</option>`).join("");
+    if (selL && selL.children.length !== LAV.length + 1) selL.innerHTML = '<option value="">— nessun lavoratore —</option>' + LAV.map(l => `<option value="${l.id}">${esc(l.nome)}</option>`).join("");
+    if ($("doc-tipo") && !$("doc-tipo").children.length) $("doc-tipo").innerHTML = TIPI_DOCUMENTO.map(t => `<option${t === "DSS" ? " selected" : ""}>${t}</option>`).join("");
+    const cById = Object.fromEntries(CANT.map(c => [c.id, c]));
+    $("doc-list").innerHTML = DOC.map(d => {
+      const legami = [d.cantiereId && cById[d.cantiereId] ? "📍 " + esc(cById[d.cantiereId].nome) : "", d.lavoratoreId && byId[d.lavoratoreId] ? "👷 " + esc(byId[d.lavoratoreId].nome) : ""].filter(Boolean).join(" · ");
+      return `<div class="item" data-doc="${d.id}" style="cursor:pointer" title="Tocca per cambiare stato"><div class="info"><div class="name">${d.tipo ? `<span class="badge ok" style="margin-right:6px;">${esc(d.tipo)}</span>` : ""}${esc(d.titolo)}</div><div class="meta">${esc(d.meta || "")}${legami ? " · " + legami : ""}</div></div>
+       ${d.allegatoData ? `<span class="arr" style="cursor:pointer" title="Apri allegato ${esc(d.allegatoNome || "")}" data-open-doc="${d.id}">📎</span>` : ""}
+       <span class="badge ${D[d.stato][0]}">${D[d.stato][1]}</span></div>`;
+    }).join("")
       || '<div class="note" style="text-align:left;">Nessun documento registrato.</div>';
 
     // Sicurezza: giorni senza infortuni (cartellone) + riepilogo + registro
@@ -270,16 +339,28 @@
     $("inf-riep").innerHTML =
       `Infortuni: <b>${ri.infortuni}</b>${ri.gravi ? ` (di cui ${ri.gravi} gravi)` : ""} · near-miss: <b>${ri.nearMiss}</b> · giorni di assenza totali: <b>${ri.giorniAssenzaTot}</b>`;
     const TB = { infortunio: ["danger", "Infortunio"], "near-miss": ["warn", "Near-miss"] };
-    $("inf-list").innerHTML = INF.slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1).map(x => {
+    const infVis = INF.filter(x => filtroInf === "tutti" || x.tipo === filtroInf);
+    $("inf-list").innerHTML = infVis.slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1).map(x => {
       const tb = TB[x.tipo] || ["warn", esc(x.tipo || "—")];
       return `<div class="item"><div class="info"><div class="name">${esc(x.descrizione || x.tipo || "Evento")}</div>
         <div class="meta">${esc(x.data || "—")}${x.luogo ? " · " + esc(x.luogo) : ""}${x.gravita ? " · " + esc(x.gravita) : ""}${(+x.giorniAssenza) ? " · " + (+x.giorniAssenza) + " gg assenza" : ""}</div></div>
         <span class="badge ${tb[0]}">${tb[1]}</span><span class="arr" style="cursor:pointer" title="Rimuovi" data-del-inf="${x.id}">✕</span></div>`;
-    }).join("") || '<div class="note" style="text-align:left;">Nessun evento registrato. Un buon segno — ma registra anche i near-miss.</div>';
+    }).join("") || '<div class="note" style="text-align:left;">' + (filtroInf === "tutti" ? "Nessun evento registrato. Un buon segno — ma registra anche i near-miss." : "Nessun evento di questo tipo.") + "</div>";
+    document.querySelectorAll("#inf-filtri [data-filtro]").forEach(b =>
+      b.style.borderColor = b.getAttribute("data-filtro") === filtroInf ? "var(--app-accent)" : "");
   }
 
   const DOC_NEXT = { valido: "da-rivedere", "da-rivedere": "scaduto", scaduto: "valido" };
   document.addEventListener("click", async (e) => {
+    // 📎 apre l'allegato (foto/scansione) senza toccare lo stato del documento
+    const op = e.target.getAttribute && e.target.getAttribute("data-open-doc");
+    if (op) { e.stopPropagation(); const d = DOC.find(x => x.id === op);
+      if (d && d.allegatoData) { try {
+        const parts = d.allegatoData.split(","), mime = (parts[0].match(/data:(.*?);/) || [])[1] || "application/octet-stream";
+        const bin = atob(parts[1]); const buf = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+        window.open(URL.createObjectURL(new Blob([buf], { type: mime })), "_blank");
+      } catch (err) { window.open(d.allegatoData, "_blank"); } } return; }
     const dc = e.target.closest && e.target.closest("[data-doc]");
     if (dc && db.aggiorna) { const d = DOC.find(x => x.id === dc.getAttribute("data-doc"));
       if (d) { await db.aggiorna("documenti", d.id, { stato: DOC_NEXT[d.stato] || "valido" }); await refresh(); } return; }
@@ -306,6 +387,16 @@
       if (s) { const v = prompt("Nuova data di scadenza per «" + s.descrizione + "» (AAAA-MM-GG):", s.dataScadenza);
         if (v && /^\d{4}-\d{2}-\d{2}$/.test(v.trim())) { await db.aggiorna("scadenze", rn, { dataScadenza: v.trim() }); await refresh(); } }
       return; }
+    const editLavId = e.target.getAttribute && e.target.getAttribute("data-edit-lav");
+    if (editLavId) { const l = LAV.find(x => x.id === editLavId); if (!l) return;
+      if (editLav === l.id) {   // ri-tocco la ✎ dello stesso lavoratore = annulla
+        editLav = null; $("btn-add-pers").textContent = "Aggiungi"; $("import-esito").textContent = "Modifica annullata.";
+        $("new-nome").value = ""; $("new-ruolo").value = ""; $("new-nome").style.borderColor = ""; return; }
+      editLav = l.id;
+      $("new-nome").value = l.nome || ""; $("new-ruolo").value = l.ruolo || ""; $("new-nome").style.borderColor = "";
+      $("btn-add-pers").textContent = "Salva modifica";
+      $("import-esito").textContent = "Stai modificando «" + l.nome + "»: cambi nome/ruolo, idoneità e scadenze restano.";
+      $("new-nome").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
     const dl = e.target.getAttribute && e.target.getAttribute("data-del-lav");
     const ds = e.target.getAttribute && e.target.getAttribute("data-del-scad");
     if (dl) { const l = LAV.find(x => x.id === dl);
@@ -317,33 +408,74 @@
     const nome = $("new-nome").value.trim();
     if (!nome) { $("new-nome").style.borderColor = "var(--danger)"; $("import-esito").textContent = "Serve il nome del lavoratore."; return; }
     $("new-nome").style.borderColor = "";
-    await db.aggiungi("lavoratori", { nome, ruolo: $("new-ruolo").value.trim(), attivo: true });
+    if (editLav) {
+      await db.aggiorna("lavoratori", editLav, { nome, ruolo: $("new-ruolo").value.trim() });   // idoneità/attivo/scadenze restano
+      editLav = null; $("btn-add-pers").textContent = "Aggiungi";
+    } else {
+      await db.aggiungi("lavoratori", { nome, ruolo: $("new-ruolo").value.trim(), attivo: true });
+    }
     $("new-nome").value = ""; $("new-ruolo").value = "";
-    $("import-esito").textContent = "Lavoratore aggiunto: " + nome + ".";
+    $("import-esito").textContent = "Lavoratore salvato: " + nome + ".";
     $("new-nome").focus();   // torna al primo campo per inserire subito il prossimo
     await refresh();
+  };
+  // allegato: foto o scansione firmata (immagine/PDF). Limite prudente 400 KB:
+  // gli allegati viaggiano nel documento Firestore (tetto 1 MB) finché non ci
+  // sarà lo storage del progetto live — dichiarato in interfaccia.
+  $("btn-doc-file").onclick = () => $("doc-file").click();
+  $("doc-file").onchange = () => {
+    const f = $("doc-file").files[0]; docFileSel = null; $("doc-file-nome").textContent = "";
+    if (!f) return;
+    if (f.size > 400 * 1024) { $("doc-esito").textContent = "Allegato troppo grande (" + Math.round(f.size / 1024) + " KB): riduci la foto/scansione sotto i 400 KB."; $("doc-file").value = ""; return; }
+    const r = new FileReader();
+    r.onload = () => { docFileSel = { nome: f.name, dataURL: r.result }; $("doc-file-nome").textContent = "📎 " + f.name + " (" + Math.round(f.size / 1024) + " KB)"; $("doc-esito").textContent = ""; };
+    r.readAsDataURL(f);
   };
   $("btn-doc").onclick = async () => {
     const titolo = $("doc-titolo").value.trim();
     if (!titolo) { $("doc-titolo").style.borderColor = "var(--danger)"; $("doc-esito").textContent = "Serve il titolo del documento."; return; }
     $("doc-titolo").style.borderColor = "";
-    await db.aggiungi("documenti", { titolo, meta: $("doc-meta").value.trim(), stato: "valido" });
-    $("doc-titolo").value = ""; $("doc-meta").value = "";
+    const rec = { titolo, meta: $("doc-meta").value.trim(), tipo: $("doc-tipo").value || "Altro",
+      cantiereId: $("doc-cantiere").value || null, lavoratoreId: $("doc-lavoratore").value || null, stato: "valido" };
+    if (docFileSel) { rec.allegatoNome = docFileSel.nome; rec.allegatoData = docFileSel.dataURL; }
+    await db.aggiungi("documenti", rec);
+    $("doc-titolo").value = ""; $("doc-meta").value = ""; $("doc-file").value = ""; $("doc-file-nome").textContent = ""; docFileSel = null;
     $("doc-esito").textContent = "Documento aggiunto: " + titolo + " (valido).";
     $("doc-titolo").focus();   // pronto per il prossimo documento
     await refresh();
   };
+  $("btn-cant").onclick = async () => {
+    const nome = $("cant-nome").value.trim();
+    if (!nome) { $("cant-nome").style.borderColor = "var(--danger)"; $("cant-esito").textContent = "Serve il nome del cantiere o della cava."; return; }
+    $("cant-nome").style.borderColor = "";
+    await db.aggiungi("cantieri", { nome, comune: $("cant-comune").value.trim(), tipo: $("cant-tipo").value, stato: "attivo" });
+    $("cant-nome").value = ""; $("cant-comune").value = "";
+    $("cant-esito").textContent = "Aggiunto: " + nome + ".";
+    await refresh();
+  };
+  $("cant-list").addEventListener("click", async (e) => {
+    const del = e.target.getAttribute && e.target.getAttribute("data-del-cant");
+    if (!del) return;
+    const c = CANT.find(x => x.id === del);
+    const nDoc = DOC.filter(d => d.cantiereId === del).length;
+    if (!confirm("Rimuovere " + (c ? c.nome : "il cantiere") + (nDoc ? " (" + nDoc + " documenti resteranno senza collegamento)" : "") + "?")) return;
+    await db.rimuovi("cantieri", del); await refresh();
+  });
+  // niente eventi datati nel futuro: il registro infortuni è un documento HSE e la
+  // data più recente pilota il cartellone "giorni senza infortuni" (un refuso lo azzererebbe)
+  { const d = new Date(); $("inf-data").max = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
   $("btn-inf").onclick = async () => {
     const data = $("inf-data").value, desc = $("inf-desc").value.trim();
     if (!data) { $("inf-data").style.borderColor = "var(--danger)"; $("inf-esito").textContent = "Serve la data dell'evento."; return; }
+    if (giorniTra(data) > 0) { $("inf-data").style.borderColor = "var(--danger)"; $("inf-esito").textContent = "La data dell'evento non può essere nel futuro."; return; }
     $("inf-data").style.borderColor = "";
     const tipo = $("inf-tipo").value;
     await db.aggiungi("infortuni", {
       data, tipo, gravita: $("inf-gravita").value,
       giorniAssenza: +$("inf-giorni").value || 0,
-      descrizione: desc, luogo: "",
+      descrizione: desc, luogo: $("inf-luogo").value.trim(),
     });
-    $("inf-desc").value = ""; $("inf-giorni").value = "";
+    $("inf-desc").value = ""; $("inf-giorni").value = ""; $("inf-luogo").value = "";
     $("inf-esito").textContent = (tipo === "infortunio" ? "Infortunio" : "Near-miss") + " registrato del " + data + ".";
     await refresh();
   };

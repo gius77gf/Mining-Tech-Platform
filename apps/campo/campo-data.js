@@ -62,6 +62,25 @@ export function riepilogoFermi(attivita) {
     .sort((a, b) => b.conto - a.conto || a.causale.localeCompare(b.causale, "it"));
 }
 
+// Pareto dei fermi CON I MINUTI (25/07): oltre a "quante volte", QUANTO tempo
+// si è perso e per quale causale — la base della disponibilità di giornata.
+// I minuti (a.fermoMin) li inserisce il capocantiere sull'anomalia; un valore
+// assente o non numerico conta 0 (mai NaN). Pura e testabile.
+export function paretoFermi(attivita) {
+  const acc = {};
+  for (const a of attivita || []) {
+    if (a.stato !== "anomalia") continue;
+    const c = CAUSALI_FERMO.includes(a.causale) ? a.causale : "Altro";
+    const m = Math.max(0, +a.fermoMin || 0);
+    if (!acc[c]) acc[c] = { causale: c, conto: 0, minuti: 0 };
+    acc[c].conto++; acc[c].minuti += m;
+  }
+  const voci = Object.values(acc)
+    .sort((a, b) => b.minuti - a.minuti || b.conto - a.conto || a.causale.localeCompare(b.causale, "it"));
+  const totaleMin = voci.reduce((t, v) => t + v.minuti, 0);
+  return { voci, totaleMin };
+}
+
 // Riassunto testuale di un rapportino di turno STRUTTURATO (turno, squadra,
 // produzione, consegne per il turno successivo = handover). Serve alla lista
 // e all'eventuale export/consegna. Stringa vuota se non c'è nulla. Pura e
