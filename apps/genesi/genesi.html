@@ -38,6 +38,10 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
 #holeInfo b{color:var(--cu)}
 #mdlQuote{left:50%;transform:translateX(-50%);top:74px;background:linear-gradient(160deg,rgba(36,26,13,.95),rgba(23,17,10,.95));border:1px solid rgba(255,171,0,.45);border-radius:12px;padding:9px 14px;font-size:12px;line-height:1.5;color:var(--tx);box-shadow:0 14px 40px rgba(0,0,0,.5);text-align:center;white-space:nowrap;pointer-events:none}
 #mdlQuote b{color:var(--cu);font-size:14px}
+#xrayLeg{right:16px;top:264px;background:linear-gradient(160deg,rgba(36,26,13,.94),rgba(23,17,10,.94));border:1px solid rgba(255,171,0,.25);border-radius:12px;padding:9px 12px;font-size:11px;line-height:1.75;color:var(--tx);box-shadow:0 14px 40px rgba(0,0,0,.5)}
+#xrayLeg .lg-t{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+#xrayLeg i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:middle}
+#xrayLeg .lg-n{color:var(--mut2);font-size:9.5px;margin-top:4px;max-width:180px;line-height:1.45}
 #mdlQuote .q-sub{color:var(--mut);font-size:10.5px;margin-top:2px}
 #holeInfo button{position:absolute;top:6px;right:6px;background:none;border:none;color:var(--mut);cursor:pointer;font-size:11px;padding:2px}
 #holeInfo button:hover{color:var(--tx)}
@@ -663,6 +667,7 @@ body.scr-sim #tl{bottom:80px}
 
 <div class="hud" id="holeInfo" style="display:none"></div>
 <div class="hud" id="mdlQuote" style="display:none"></div>
+<div class="hud" id="xrayLeg" style="display:none"></div>
 
 <div class="hud" id="tl">
   <div id="tlrow1">
@@ -1165,6 +1170,20 @@ function buildSim(){
 
 /* ============ costruzione scena 3D ============ */
 let panels=[], chunkMeshes=[], jetPts=null, gonnaPts=null, curtainPts=null, cloudSprites=[], pileMesh=null, pileGeo=null, xrayGroup=null, xrayCyls=[], ghostWall=null;
+/* legenda della colonna di carica: compare con i raggi-X, spiega i colori dei segmenti */
+function xrayLegSync(){
+  const el=$('xrayLeg'); if(!el) return;
+  if(!layers.lXray){ el.style.display='none'; return; }
+  const n=Math.max(1, Math.min(3, D2.decks||1));
+  const wet=(D2.bagnato && (D2.acquaCol||0)>0);
+  el.innerHTML='<div class="lg-t">Colonna di carica</div>'
+    +'<div><i style="background:#a8a49a"></i>borraggio '+(+D2.stem).toFixed(1)+' m</div>'
+    +'<div><i style="background:linear-gradient(90deg,#ff6d00,#ffab00)"></i>esplosivo '+Math.round(D2.kg||P.kg)+' kg'+(n>1?' · '+n+' deck':'')+'</div>'
+    +'<div><i style="background:#e53935"></i>innesco'+(n>1?' (uno per deck)':'')+'</div>'
+    +(wet?'<div><i style="background:#42a5f5"></i>acqua '+(+D2.acquaCol).toFixed(1)+' m</div>':'')
+    +(n>1?'<div class="lg-n">Deck su ritardi separati: la carica per ritardo scende a ≈'+Math.round((D2.kg||P.kg)/n)+' kg.</div>':'');
+  el.style.display='block';
+}
 let backWall=null;
 
 function disposeGroup(g){ if(!g) return; g.traverse(o=>{ if(o.geometry)o.geometry.dispose(); if(o.material){ (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{ if(m.map)m.map.dispose(); m.dispose(); }); } }); scene.remove(g); }
@@ -1306,6 +1325,8 @@ function buildScene(){
     const rCyl=0.18, stemL=Math.min(D2.stem, P.prof), filaCols=[0x42a5f5,0xab47bc,0xff7043,0x26c6da,0xe0b34c,0x8d6e63];
     const matStem=new THREE.MeshStandardMaterial({ color:0xa8a49a, roughness:0.6 });
     const matChg =new THREE.MeshStandardMaterial({ color:0xffab00, emissive:0xff8c1d, emissiveIntensity:0.5, roughness:0.45 });
+    /* innesco (primer): rosso acceso, ben distinguibile dalla colonna di esplosivo */
+    const matPrimer=new THREE.MeshStandardMaterial({ color:0xe53935, emissive:0xff1744, emissiveIntensity:0.85, roughness:0.35 });
     /* colonna d'acqua nei fori bagnati: azzurra, semitrasparente, dal fondo foro
        fino al livello indicato (acquaCol, m) — solo indicazione visiva, la fisica
        (perdita RWS/heave, pressione idrostatica) è già nei calcoli */
@@ -1318,8 +1339,28 @@ function buildScene(){
       const Lchg=Math.max(0.4, f.h+(D2.sub||0)-stemL);           // colonna carica = H+sub−borraggio
       const cStem=new THREE.Mesh(new THREE.CylinderGeometry(rCyl,rCyl,stemL,8), matStem);
       cStem.position.y=-stemL/2;                                 // borraggio: dal colletto in giù
-      const cChg=new THREE.Mesh(new THREE.CylinderGeometry(rCyl*1.05,rCyl*1.05,Lchg,8), matChg);
-      cChg.position.y=-stemL-Lchg/2;                             // carica: sotto il borraggio, fino a −sub
+      g.add(cStem);
+      /* COLONNA SEGMENTATA: con il decking la carica è divisa in più deck separati
+         da borraggio intermedio. Stesse regole del diagramma della scheda volata,
+         così 3D e report raccontano la stessa cosa. */
+      const nDeck=Math.max(1, Math.min(3, D2.decks||1));
+      const minNeed=nDeck*0.4+(nDeck-1)*0.3;
+      const segDeck=(nDeck>1 && Lchg>=minNeed);
+      const gapD=segDeck ? Math.max(0.2, Math.min(D2.deckStem||1, (Lchg-0.4*nDeck)/(nDeck-1))) : 0;
+      const lenD=segDeck ? Math.max(0.4, (Lchg-(nDeck-1)*gapD)/nDeck) : Lchg;
+      let cur=stemL;                                             // quota corrente sotto il colletto (m)
+      for(let d=0; d<(segDeck?nDeck:1); d++){
+        const cChgD=new THREE.Mesh(new THREE.CylinderGeometry(rCyl*1.05,rCyl*1.05,lenD,8), matChg);
+        cChgD.position.y=-cur-lenD/2; g.add(cChgD);
+        /* innesco alla base del deck (bottom priming): il punto da cui parte la detonazione */
+        const prim=new THREE.Mesh(new THREE.CylinderGeometry(rCyl*1.35,rCyl*1.35,0.26,10), matPrimer);
+        prim.position.y=-cur-lenD+0.13; prim.renderOrder=3; g.add(prim);
+        cur+=lenD;
+        if(segDeck && d<nDeck-1){                                // borraggio tra un deck e l'altro
+          const cGap=new THREE.Mesh(new THREE.CylinderGeometry(rCyl,rCyl,gapD,8), matStem);
+          cGap.position.y=-cur-gapD/2; g.add(cGap); cur+=gapD;
+        }
+      }
       if(matH2O){                                                // acqua: dal fondo foro (−prof−sub) su per wetH metri
         const hTot=f.h+(D2.sub||0);
         const hW=Math.min(wetH, hTot);
@@ -1332,7 +1373,7 @@ function buildScene(){
       const ring=new THREE.Mesh(new THREE.CylinderGeometry(0.36,0.36,0.1,10),
         new THREE.MeshStandardMaterial({ color:fc, emissive:fc, emissiveIntensity:0.35 }));
       ring.position.y=0.06;                                      // anello al colletto, colore = fila
-      g.add(cStem); g.add(cChg); g.add(ring);
+      g.add(ring);
       if(D2.incl) g.rotation.x=-D2.incl*Math.PI/180;             // inclinazione verso la faccia
       g.position.set(f.x, f.h, zc);
       g.userData.f=f;
@@ -1436,6 +1477,7 @@ function renderSim(t, force){
   /* vista raggi-X: parete-fantasma unica + cilindri visibili finche il proprio foro non spara */
   if(ghostWall){ ghostWall.visible = !!layers.lXray; if(layers.lXray) ghostWall.material.opacity = xrayOp; }
   if(flyGroup){ flyGroup.visible = !!layers.lFly; }
+  xrayLegSync();
   if(xrayGroup){
     xrayGroup.visible = !!layers.lXray;
     if(layers.lXray) for(const g of xrayCyls){ g.visible = t < g.userData.f.tDet; }
@@ -3084,7 +3126,7 @@ function renderScheda2D(){
     _deckHtml='<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(255,171,0,.15);border-radius:8px;background:rgba(255,171,0,.03);display:flex;gap:10px;align-items:flex-start"><div style="text-align:center"><div style="font-size:8px;color:var(--mut2)">colletto</div>'+_svg+'<div style="font-size:8px;color:var(--mut2)">fondo</div></div>'
       +'<div style="font-size:11px"><b style="color:#ffd54f">🧨 Decking · '+_N+' cariche/foro</b>'
       +'<div style="color:var(--mut2);margin-top:3px">Ogni deck ≈ '+_deckLen.toFixed(1)+' m · <b>'+_kgDeck.toFixed(0)+' kg</b> · borraggio tra deck '+_gap.toFixed(1)+' m. Totale carica '+Q+' kg (invariato), powder factor invariato.</div>'
-      +'<div style="color:var(--mut2);margin-top:3px">Se i deck sono innescati su <b>ritardi separati</b>, la carica per ritardo scende a ≈ '+_kgDeck.toFixed(0)+' kg (−'+Math.round((1-1/_N)*100)+'%): <b>vibrazioni minori</b> al recettore. La vista 3D mostra la colonna semplificata.</div></div></div>';
+      +'<div style="color:var(--mut2);margin-top:3px">Se i deck sono innescati su <b>ritardi separati</b>, la carica per ritardo scende a ≈ '+_kgDeck.toFixed(0)+' kg (−'+Math.round((1-1/_N)*100)+'%): <b>vibrazioni minori</b> al recettore. La vista 3D (raggi-X) mostra i deck e gli inneschi come sono qui.</div></div></div>';
     }
   }
   el.innerHTML='<div class="sv-card"><div class="sv-h"><b>Scheda volata</b><span class="sv-sub">'+g.n+' fori· '+g.Lm+' m fronte<br>Ø'+Dmm+' mm · '+Q+' kg/foro · H '+H+' m<br>'+(selEsplosivo()?'Esplosivo: '+selEsplosivo().nome:'')+(selInnesco()?' / innesco '+selInnesco().short:'')+(selRoccia()?'<br>Roccia: '+selRoccia().nome+' ('+selRoccia().cls+')':'')+'<br><i style="color:var(--mut2)">tocca una voce per i dettagli</i></span></div>'
