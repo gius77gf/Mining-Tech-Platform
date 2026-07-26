@@ -36,9 +36,10 @@ gli interventi pesanti, quelli visibili a colpo d'occhio.
       annulla/ripristino a 40 passi con Ctrl+Z/Ctrl+Y, raggio d'influenza
       regolabile, **maniglie del piede** (avanzando il piede la faccia si
       alza), "fronte dritto". Verificato con trascinamento reale in Chromium.
-- [ ] **A2. Colonne di carica segmentate a colori nel 3D** — aria / borraggio /
-      esplosivo / innesco / acqua visibili sul foro nella scena (oggi solo
-      nei raggi-X). È la firma visiva dei software professionali. *Taglia M.*
+- [x] **A2. Colonne di carica segmentate nel 3D** ✅ *(26/07, `c966d45`)* —
+      i deck si vedono davvero (prima la colonna era unica anche col
+      decking), innesco rosso alla base di ogni deck, legenda in scena con
+      borraggio/esplosivo/innesco/acqua e carica per ritardo.
 - [ ] **A3. Mappa delle quote sul terreno + legenda** — colorazione per quota
       con scala configurabile, sul fronte e sul piazzale. *Taglia M.*
 - [ ] **A4. Editor visuale della sequenza di sparo** — clic sui fori per
