@@ -34,9 +34,14 @@ in italiano, senza dare conoscenze per scontate).
    piattaforma. Il "punto stabile" (commit pulito + checkpoint
    completo dopo ogni unità) serve SOLO a rendere sicura
    l'interruzione forzata, mai a giustificare una fermata volontaria.
-4. Ciclo serale (~21:40 UTC): SEMPRE prima la revisione del lavoro del
-   giorno (bug, coerenza, sicurezza); proseguire con nuovi task solo a
-   revisione pulita.
+4. Ciclo serale: NON più un blocco fisso di revisione (direttiva
+   fondatore 26/07). Al suo posto si prosegue con ricerca e sviluppo; la
+   qualità si tiene con verifiche dentro OGNI unità (screenshot, test,
+   controllo sintassi).
+5. LAVORO IN CONTEMPORANEA su tutte e sei le app (direttiva 26/07): in
+   ogni ciclo più cantieri aperti insieme, un agente per app (i file
+   sono separati in apps/<nome>/, nessun conflitto). Si serializza solo
+   ciò che tocca shared/, docs/, vault/.
 
 ## Regole vincolanti
 - ⛔ DATI DI RIFERIMENTO DEL FONDATORE — REGOLA FERREA E IMMUTABILE
@@ -48,13 +53,33 @@ in italiano, senza dare conoscenze per scontate).
   fori, calcare come "dominio di validità", e qualunque altra citazione
   di quella origine. Si possono USARE internamente per i calcoli e le
   calibrazioni, ma MAI mostrare né citare. Nessuna eccezione.
-- STILE (direttiva fondatore 25/07, sostituisce la precedente): le app
-  verticali devono copiare AL 100% il modello estetico del core
-  Deepwork (index.html alla radice — "quello costruito passo passo":
-  ombre, riquadri, tutta l'estetica), personalizzato SOLO nei colori
-  di base per app (es. Terra verde) per renderle riconoscibili.
-  shared/deepwork-style.css resta il veicolo tecnico: va allineato al
-  look del core, con accenti per app via --app-accent/--app-accent2.
+- ⛔ STILE — DIRETTIVA VINCOLANTE (fondatore 27/07, sostituisce quella
+  del 25/07; «su questo non transigo»). Due metà da non confondere:
+  1. **STRUTTURA: IDENTICA AL CORE, PELO PER PELO.** Le app copiano
+     l'impianto estetico e le dinamiche di funzionamento del core
+     Deepwork (index.html alla radice) senza cambiare "una virgola":
+     stessa struttura di pagina, topbar, navigazione, card, liste,
+     form, modali, toast, stati vuoti; stessi raggi, bordi, gradienti,
+     ombre, spaziature, tipografia, transizioni, animazioni, alone che
+     seguo il mouse; stessi comportamenti di interazione. Niente
+     scorciatoie: `alert()`/`confirm()` del browser sono vietati, si usa
+     il toast del core.
+  2. **COLORE: IDENTITÀ PROPRIA DI OGNI APP.** NON si copiano i colori
+     del core: quelli sono di Deepwork. Ogni app ha una **palette
+     propria e un proprio carattere**, costruita attorno al suo colore
+     principale, che va **fuso in tutto il contesto** (sfondi, aloni
+     d'ambiente, bordi, grafici, stati) — non un accento sparso su un
+     tema altrui. Ammessi colori di appoggio scelti per armonia, se
+     servono a renderla più professionale e piacevole.
+  Il punto di partenza è che oggi le app sono «un'accozzaglia di colori
+  che non porta da nessuna parte»: l'obiettivo è una palette **armonica,
+  accattivante e professionale** per ciascuna, decisa con ricerca
+  cromatica vera e verificata per contrasto/leggibilità.
+  shared/deepwork-style.css resta il veicolo tecnico della STRUTTURA;
+  la palette per app passa dalle variabili di tema dell'app.
+- 🎯 OBIETTIVO DELLA SETTIMANA (fondatore 27/07, da tenere in memoria):
+  **portare le app su un altro livello, aumentare la qualità AD OGNI
+  COSTO.** Ogni scelta si giudica con questo metro.
 - MULTI-TENANT: isolamento totale dei dati tra organizzazioni. Ogni
   accesso dati delle app passa dallo SDK deepwork-id-client
   (orgCollection), mai percorsi Firestore costruiti a mano.
