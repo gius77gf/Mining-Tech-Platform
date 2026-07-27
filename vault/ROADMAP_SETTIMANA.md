@@ -14,6 +14,21 @@ quindi non ci sono conflitti). Si serializza solo ciò che tocca `shared/`,
 
 ---
 
+## L'ECCELLENZA È LO STANDARD — dottrina permanente
+*(fondatore 27/07: «salvale come determinanti per qualsiasi scelta futura»
+— versione integrale in `CLAUDE.md`)*
+
+1. **Nulla lasciato al caso**, nemmeno una virgola.
+2. **Si parte dai migliori prodotti in circolazione**: si cercano, si
+   studiano, si emulano, e poi si fa **meglio di loro**.
+3. **Ricerca approfondita prima di ogni scelta**, su tutto.
+4. **Confronto affiancato col riferimento, almeno tre iterazioni.** Non ci
+   si ferma quando funziona: ci si ferma quando è **eccellente**.
+
+**Sequenza dichiarata dal fondatore**: *questa settimana l'estetica* →
+*nei giorni successivi lo standard di ogni funzione e funzionalità*, con
+lo stesso livello di approfondimento.
+
 ## LO STANDARD DI QUALITÀ — come si giudica "fatto bene"
 *(fondatore 27/07: «si può aumentare e di molto la qualità... puoi fare di
 meglio». Applicare le variabili di colore NON produce qualità.)*
