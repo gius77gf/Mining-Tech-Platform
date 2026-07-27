@@ -16,6 +16,28 @@
 <style>
   /* Terra: accento della palette funzionale deepwork */
   :root { --app-accent:#2f9e44; --app-accent2:#5fe05a; }
+
+  /* Contatore vita cava: stessa cassa delle .kpi/.item (card, bordo,
+     ombra del core) con in più la barra di avanzamento del consumato. */
+  .vita { background:var(--card); border:1px solid var(--border); border-radius:var(--r);
+          padding:14px; margin-bottom:10px; box-shadow:0 6px 16px rgba(0,0,0,.22); }
+  .vita.warn   { border-color:color-mix(in srgb, var(--warn) 45%, var(--border)); }
+  .vita.danger { border-color:color-mix(in srgb, var(--danger) 55%, var(--border)); }
+  .vita .titolo { font-size:11px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; }
+  .vita .n { font-family:'Barlow Condensed',sans-serif; font-size:30px; font-weight:800;
+             color:var(--app-accent2); line-height:1.1; }
+  .vita.warn .n   { color:var(--warn); }
+  .vita.danger .n { color:var(--danger); }
+  .vita .riga { font-size:12px; color:var(--muted2); line-height:1.6; }
+  .barra { position:relative; height:14px; margin:10px 0 6px; border-radius:8px;
+           background:var(--panel); border:1px solid var(--border); overflow:hidden; }
+  .barra > i { display:block; height:100%; border-radius:8px 0 0 8px;
+               background:linear-gradient(90deg, var(--app-accent), var(--app-accent2));
+               transition:width .4s var(--ease); }
+  .barra.warn   > i { background:linear-gradient(90deg,#ff8f00,#ffd54f); }
+  .barra.danger > i { background:var(--grad-danger); }
+  .barra > b { position:absolute; top:-1px; bottom:-1px; width:2px; background:var(--muted2); opacity:.9; }
+  .prescr { white-space:pre-wrap; }
 </style>
 </head>
 <body class="dw">
@@ -38,8 +60,91 @@
     <div class="kpi ok" style="cursor:pointer" data-goto="pia" title="Vedi il piano"><div class="n">—</div><div class="l">m³ riserve stimate</div></div>
   </div>
 
+  <div class="sec">Vita della cava</div>
+  <div id="dash-vita"></div>
+
+  <div class="sec">Scadenze da tenere d'occhio</div>
+  <div id="dash-scad"></div>
+
   <div class="sec">Fronti di cava</div>
   <div id="dash-fronti"></div>
+</div>
+
+<!-- TITOLO: autorizzazione, vita cava, scadenzario -->
+<div class="page" id="page-tit">
+  <div class="sec">Contatore vita cava</div>
+  <div id="tit-vita"></div>
+
+  <div class="sec">Autorizzazioni registrate</div>
+  <div id="aut-list"></div>
+
+  <div class="sec" id="aut-form-sec">Scheda autorizzazione</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <input class="dw-input" id="aut-numero" placeholder="Numero dell'atto" style="flex:2;min-width:160px;">
+    <input class="dw-input" id="aut-ente" placeholder="Ente che l'ha rilasciato" style="flex:2;min-width:160px;">
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+    <label class="note" style="margin:0;flex:1;min-width:150px;text-align:left;">Rilascio
+      <input class="dw-input" id="aut-rilascio" type="date"></label>
+    <label class="note" style="margin:0;flex:1;min-width:150px;text-align:left;">Scadenza del titolo
+      <input class="dw-input" id="aut-scadenza" type="date"></label>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+    <label class="note" style="margin:0;flex:1;min-width:150px;text-align:left;">Superficie autorizzata (m²)
+      <input class="dw-input" id="aut-superficie" type="number" min="0" placeholder="es. 78000"></label>
+    <label class="note" style="margin:0;flex:1;min-width:150px;text-align:left;">Volume totale autorizzato (m³)
+      <input class="dw-input" id="aut-volume" type="number" min="0" placeholder="es. 1200000"></label>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+    <label class="note" style="margin:0;flex:1;min-width:150px;text-align:left;">Già estratto prima di Terra (m³)
+      <input class="dw-input" id="aut-pregresso" type="number" min="0" placeholder="0"></label>
+    <label class="note" style="margin:0;flex:1;min-width:150px;text-align:left;">Materiale autorizzato
+      <input class="dw-input" id="aut-materiale" placeholder="es. Sabbia e ghiaia"></label>
+  </div>
+  <div class="note" style="text-align:left;">Il «già estratto» è quanto era stato scavato sotto questo atto prima di usare Terra: senza quel numero il contatore sarebbe ottimista.</div>
+  <label class="note" style="margin:8px 0 0;display:block;text-align:left;">Prescrizioni dell'atto
+    <textarea class="dw-input" id="aut-prescrizioni" rows="4" placeholder="Copia qui le prescrizioni da rispettare (una per riga)" style="min-height:90px;padding:10px;resize:vertical;"></textarea></label>
+  <label class="note" style="margin:8px 0 0;display:block;text-align:left;">Riferimenti
+    <input class="dw-input" id="aut-riferimenti" placeholder="Protocollo, elaborati allegati, pratica…"></label>
+  <div class="sec" style="margin-top:16px;">Impostazioni del controllo</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <label class="note" style="margin:0;flex:1;min-width:130px;text-align:left;">Soglia di guardia (%)
+      <input class="dw-input" id="aut-soglia" type="number" min="1" max="100" value="80"></label>
+    <label class="note" style="margin:0;flex:1;min-width:130px;text-align:left;">Ritmo medio su (anni)
+      <input class="dw-input" id="aut-anni" type="number" min="1" max="20" value="3"></label>
+    <label class="note" style="margin:0;flex:1;min-width:130px;text-align:left;">Preavviso predefinito (giorni)
+      <input class="dw-input" id="aut-preavviso" type="number" min="0" max="1095" value="60"></label>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+    <button class="dw-btn" id="btn-aut-salva" style="width:auto;">Salva scheda</button>
+    <button class="dw-btn secondary" id="btn-aut-nuova" style="width:auto;">Nuova scheda</button>
+  </div>
+  <div class="note" id="aut-esito" style="text-align:left;"></div>
+  <div class="note" style="text-align:left;">Le cave sono materia <b>regionale</b>: soglie, preavvisi e periodicità qui sono solo tuoi, Terra non applica nessuna regola di legge. Verifica sempre l'atto e le norme della tua regione.</div>
+
+  <div class="sec">Scadenzario</div>
+  <div id="scad-filtri" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+    <button class="dw-btn secondary" data-filtro="tutte" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Tutte</button>
+    <button class="dw-btn secondary" data-filtro="scaduta" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Scadute</button>
+    <button class="dw-btn secondary" data-filtro="in-scadenza" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">In scadenza</button>
+    <button class="dw-btn secondary" data-filtro="a-posto" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">A posto</button>
+  </div>
+  <div id="scad-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
+  <div id="scad-list"></div>
+  <div class="sec">Aggiungi scadenza</div>
+  <select class="dw-input" id="scad-preset" style="width:100%;margin-bottom:8px;">
+    <option value="">Adempimento tipico del titolo… (facoltativo)</option>
+  </select>
+  <div class="note" id="scad-preset-nota" style="text-align:left;display:none;"></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <input class="dw-input" id="new-scad-desc" placeholder="Descrizione (es. Rinnovo polizza fideiussoria)" style="flex:2;min-width:180px;">
+    <input class="dw-input" id="new-scad-data" type="date" style="flex:1;min-width:140px;">
+    <input class="dw-input" id="new-scad-pre" type="number" min="0" max="1095" placeholder="Preavviso gg" title="Con quanti giorni di anticipo vuoi essere avvisato" style="flex:1;min-width:110px;">
+    <input class="dw-input" id="new-scad-ric" type="number" min="0" max="240" placeholder="Ogni… mesi" title="Lascia vuoto se la scadenza non si ripete" style="flex:1;min-width:110px;">
+    <button class="dw-btn" id="btn-add-scad" style="width:auto;">Aggiungi</button>
+  </div>
+  <div class="note" id="scad-esito" style="text-align:left;"></div>
+  <div class="note" style="text-align:left;">Su una scadenza che si ripete, il tasto ✔ la chiude e propone la data successiva calcolata coi mesi che hai indicato: la proposta si può sempre correggere.</div>
 </div>
 
 <div class="page" id="page-fro">
@@ -125,6 +230,7 @@
 
 <div class="nav">
   <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico">▦</span>Quadro</button>
+  <button id="nav-tit" onclick="go('tit')"><span class="ico">📜</span>Titolo</button>
   <button id="nav-fro" onclick="go('fro')"><span class="ico">⛰</span>Fronti</button>
   <button id="nav-ril" onclick="go('ril')"><span class="ico">📐</span>Rilievi</button>
   <button id="nav-pia" onclick="go('pia')"><span class="ico">🗺</span>Piano</button>
@@ -141,7 +247,8 @@
 </script>
 
 <script type="module">
-  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, parseFrontiCsv, trendVolumi, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita } from "./terra-data.js";
+  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, parseFrontiCsv, trendVolumi, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita,
+           autorizzazioneVigente, vitaCava, statoScadenzaTerra, livelloScadenzaTerra, prossimaData, riepilogoScadenze, TIPI_SCADENZA_TERRA, presetScadenzaTerra, etichettaTipoScadenza } from "./terra-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const FB = { attivo: ["ok","Attivo"], sospeso: ["warn","Sospeso"] };
@@ -155,8 +262,10 @@
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
-  let FRO=[], RIL=[], PIA=[];
+  let FRO=[], RIL=[], PIA=[], AUT=[], SCA=[];
   let editFro = null;   // id del fronte in modifica (riusa il form "Nuovo fronte"; rilievi/avanzamento restano)
+  let editAut = null;   // id dell'autorizzazione in modifica (null = la scheda compilata è nuova)
+  let filtroScad = "tutte";
   let filtroRil = "tutti";
   let ordRil = "data";
   try { const _s = localStorage.getItem("dwSort_ril"); if (_s) { ordRil = _s; if ($("ril-ord")) $("ril-ord").value = _s; } } catch (e) {}
@@ -177,7 +286,8 @@
     go(card.getAttribute("data-goto")); refresh();
   });
   async function refresh(){
-    [FRO,RIL,PIA] = await Promise.all([db.fronti(), db.rilievi(), db.piano()]);
+    [FRO,RIL,PIA,AUT,SCA] = await Promise.all([db.fronti(), db.rilievi(), db.piano(),
+      db.autorizzazioni ? db.autorizzazioni() : [], db.scadenze ? db.scadenze() : []]);
     const k = kpiFrom(FRO,RIL,PIA);
     const kn = document.querySelectorAll(".kpis .kpi .n");
     if (kn[0]) kn[0].textContent = fmtM3(k.volumiMese);
@@ -258,8 +368,233 @@
       <span class="badge ${PB[p.stato][0]}">${PB[p.stato][1]}</span></div>`).join("")
       || '<div class="note" style="text-align:left;">Nessuna voce di piano registrata.</div>';
 
+    renderTitolo();
     renderValore();
   }
+
+  // ---------------- TITOLO: autorizzazione, vita cava, scadenzario ----------
+  const SB = { scaduta: ["danger","Scaduta"], "in-scadenza": ["warn","In scadenza"], "a-posto": ["ok","A posto"] };
+  const n0 = (v) => Math.round(+v || 0).toLocaleString("it-IT");
+  const fmtData = (iso) => /^\d{4}-\d{2}-\d{2}$/.test(String(iso||"")) ? iso.slice(8,10)+"/"+iso.slice(5,7)+"/"+iso.slice(0,4) : "—";
+  const un1 = (v) => (Math.round(v * 10) / 10).toLocaleString("it-IT");
+
+  // Card del contatore vita cava: quanto resta del TOTALE concesso (non
+  // dell'anno) e per quanti anni al ritmo medio. `breve` = versione per il
+  // quadro, senza il confronto con la scadenza del titolo.
+  function cardVita(vc, breve) {
+    if (!vc) return '<div class="note" style="text-align:left;">Volume totale autorizzato non ancora inserito: compila la <b>scheda autorizzazione</b> per sapere quanto resta di vita della cava.</div>';
+    const w = Math.max(0, Math.min(100, vc.pct));
+    const soglia = vc.soglia != null ? `<b style="left:calc(${Math.min(100, vc.soglia)}% - 1px);" title="Soglia di guardia ${vc.soglia}%"></b>` : "";
+    const ritmo = vc.ritmoAnnuo
+      ? `Al ritmo medio di <b>${n0(vc.ritmoAnnuo)} m³/anno</b> (dai rilievi degli ultimi ${un1(vc.ritmo.durataAnni)} anni) restano circa <b>${un1(vc.anniResidui)} anni</b>, esaurimento stimato verso il <b>${vc.annoEsaurimento}</b>.`
+      : `Ritmo medio non ancora calcolabile: servono almeno tre mesi di rilievi elaborati per stimare gli anni che restano.`;
+    const avviso = vc.stato === "danger"
+      ? `<div class="riga" style="color:var(--danger);"><b>⛔ Volume autorizzato esaurito o superato.</b> Fermati o chiedi una variante prima di continuare a scavare.</div>`
+      : vc.stato === "warn"
+        ? `<div class="riga" style="color:var(--warn);"><b>⚠ Soglia di guardia superata</b> (hai impostato ${vc.soglia}%): è il momento di preparare rinnovo o variante.</div>`
+        : "";
+    const titolo = vc.scadePrimaIlTitolo === true
+      ? `<div class="riga">L'autorizzazione scade <b>prima</b> che il volume finisca: il vincolo che arriva per primo è la data del titolo.</div>`
+      : vc.scadePrimaIlTitolo === false
+        ? `<div class="riga">Il volume finisce <b>prima</b> della scadenza del titolo: il vincolo che arriva per primo sono i m³.</div>` : "";
+    return `<div class="vita ${vc.stato === "ok" ? "" : vc.stato}">
+      <div class="titolo">Quanto resta del volume autorizzato</div>
+      <div class="n">${n0(vc.residuo)} m³</div>
+      <div class="barra ${vc.stato === "ok" ? "" : vc.stato}"><i style="width:${w}%"></i>${soglia}</div>
+      <div class="riga">Consumato <b>${un1(vc.pct)}%</b>: ${n0(vc.estratto)} m³ estratti su ${n0(vc.totale)} m³ autorizzati${vc.pregresso ? ` (di cui ${n0(vc.pregresso)} m³ dichiarati prima di Terra)` : ""}.</div>
+      <div class="riga">${ritmo}</div>
+      ${breve ? "" : titolo}${avviso}
+    </div>`;
+  }
+
+  // Riga di una scadenza col semaforo (stesso linguaggio visivo di Scudo:
+  // badge scaduta / in scadenza / a posto + etichetta parlante).
+  function itemScadenza(s, azioni) {
+    const lv = livelloScadenzaTerra(s.dataScadenza, s.preavvisoGiorni);
+    const st = lv.stato, ric = +s.ricorrenzaMesi || 0;
+    return `<div class="item">
+      <div class="info"><div class="name">${esc(s.descrizione || etichettaTipoScadenza(s.tipo))}</div>
+      <div class="meta">${esc(etichettaTipoScadenza(s.tipo))} · ${fmtData(s.dataScadenza)} · ${esc(lv.label)} · preavviso ${+s.preavvisoGiorni || 0} gg${ric ? " · ogni " + ric + " mesi" : ""}</div></div>
+      <span class="badge ${SB[st][0]}">${SB[st][1]}</span>
+      ${azioni ? `<span class="arr" style="cursor:pointer" title="${ric ? "Segna come fatta e proponi la prossima" : "Segna come fatta e rimuovi"}" data-fatta-scad="${s.id}">✔</span>
+      <span class="arr" style="cursor:pointer" title="Rimuovi la scadenza" data-del-scad="${s.id}">✕</span>` : ""}</div>`;
+  }
+
+  function renderTitolo() {
+    const aut = autorizzazioneVigente(AUT);
+    const vc = vitaCava(aut, RIL);
+    $("tit-vita").innerHTML = cardVita(vc, false)
+      + (aut && aut.prescrizioni ? `<div class="note prescr" style="text-align:left;"><b>Prescrizioni dell'atto:</b>\n${esc(aut.prescrizioni)}</div>` : "");
+    $("dash-vita").innerHTML = cardVita(vc, true);
+
+    // Autorizzazioni registrate: la vigente regge il contatore, le altre
+    // restano come storico/varianti (si commuta toccando la riga).
+    $("aut-list").innerHTML = AUT.map(a => {
+      const lv = livelloScadenzaTerra(a.dataScadenza, a.preavvisoGiorni);
+      const dett = [a.ente, "rilascio " + fmtData(a.dataRilascio), "scadenza " + fmtData(a.dataScadenza),
+        a.superficieMq ? n0(a.superficieMq) + " m²" : "", a.volumeAutorizzatoM3 ? n0(a.volumeAutorizzatoM3) + " m³ autorizzati" : ""]
+        .filter(Boolean).join(" · ");
+      return `<div class="item" data-aut="${a.id}" style="cursor:pointer" title="Tocca per rendere vigente questa scheda">
+        <div class="info"><div class="name">${esc(a.numeroAtto || "Atto senza numero")}</div><div class="meta">${esc(dett)}${a.dataScadenza ? " · " + esc(lv.label) : ""}</div></div>
+        <span class="badge ${a.stato === "vigente" ? "ok" : ""}">${a.stato === "vigente" ? "Vigente" : "Archiviata"}</span>
+        <span class="arr" style="cursor:pointer" title="Modifica la scheda" data-edit-aut="${a.id}">✎</span>
+        <span class="arr" style="cursor:pointer" title="Rimuovi la scheda" data-del-aut="${a.id}">✕</span></div>`;
+    }).join("") || '<div class="note" style="text-align:left;">Nessuna autorizzazione registrata: compila la scheda qui sotto (numero dell\'atto, ente, date e volume totale concesso).</div>';
+    $("aut-form-sec").textContent = editAut ? "Scheda autorizzazione — modifica in corso" : "Scheda autorizzazione";
+    $("btn-aut-salva").textContent = editAut ? "Salva modifiche" : "Salva scheda";
+
+    // Scadenzario
+    const vis = SCA.filter(s => filtroScad === "tutte" || statoScadenzaTerra(s.dataScadenza, s.preavvisoGiorni) === filtroScad)
+                   .slice().sort((a, b) => String(a.dataScadenza||"").localeCompare(String(b.dataScadenza||"")));
+    $("scad-list").innerHTML = vis.map(s => itemScadenza(s, true)).join("")
+      || '<div class="note" style="text-align:left;">' + (filtroScad === "tutte"
+          ? "Nessuna scadenza registrata: comincia dall'autorizzazione e dalla fideiussione."
+          : "Nessuna scadenza in questa categoria.") + "</div>";
+    const rp = riepilogoScadenze(SCA);
+    $("scad-count").textContent = rp.totale
+      ? `${rp.totale} ${rp.totale === 1 ? "scadenza" : "scadenze"} · ${rp.scadute} ${rp.scadute === 1 ? "scaduta" : "scadute"} · ${rp.inScadenza} in scadenza · ${rp.aPosto} a posto` : "";
+    document.querySelectorAll("#scad-filtri [data-filtro]").forEach(b =>
+      b.style.borderColor = b.getAttribute("data-filtro") === filtroScad ? "var(--app-accent)" : "");
+
+    // Quadro: solo le scadenze che chiedono attenzione (le prime tre).
+    const urgenti = SCA.filter(s => statoScadenzaTerra(s.dataScadenza, s.preavvisoGiorni) !== "a-posto")
+                       .sort((a, b) => String(a.dataScadenza||"").localeCompare(String(b.dataScadenza||""))).slice(0, 3);
+    $("dash-scad").innerHTML = urgenti.map(s => itemScadenza(s, false)).join("")
+      || (rp.totale ? '<div class="note" style="text-align:left;">Nessuna scadenza da segnalare: tutte oltre il preavviso che hai impostato.</div>'
+                    : '<div class="note" style="text-align:left;">Scadenzario vuoto: dalla scheda <b>Titolo</b> puoi registrare autorizzazione, fideiussione, collaudo e rilievo periodico.</div>');
+  }
+
+  // Scheda autorizzazione: form ⇄ dati. I campi vuoti restano null, così una
+  // scheda incompleta non finge numeri che non ci sono.
+  function riempiFormAut(a) {
+    const v = (id, val) => $(id).value = (val == null ? "" : val);
+    v("aut-numero", a && a.numeroAtto); v("aut-ente", a && a.ente);
+    v("aut-rilascio", a && a.dataRilascio); v("aut-scadenza", a && a.dataScadenza);
+    v("aut-superficie", a && a.superficieMq); v("aut-volume", a && a.volumeAutorizzatoM3);
+    v("aut-pregresso", a && a.estrattoPregressoM3); v("aut-materiale", a && a.materiale);
+    v("aut-prescrizioni", a && a.prescrizioni); v("aut-riferimenti", a && a.riferimenti);
+    $("aut-soglia").value = a && a.sogliaGuardiaPct != null ? a.sogliaGuardiaPct : 80;
+    $("aut-anni").value = a && a.anniRitmo != null ? a.anniRitmo : 3;
+    $("aut-preavviso").value = a && a.preavvisoGiorni != null ? a.preavvisoGiorni : 60;
+  }
+  function leggiFormAut() {
+    const t = (id) => $(id).value.trim();
+    const num = (id) => { const n = parseFloat($(id).value); return Number.isFinite(n) && n >= 0 ? n : null; };
+    return {
+      numeroAtto: t("aut-numero"), ente: t("aut-ente") || null,
+      dataRilascio: t("aut-rilascio") || null, dataScadenza: t("aut-scadenza") || null,
+      superficieMq: num("aut-superficie"), volumeAutorizzatoM3: num("aut-volume"),
+      estrattoPregressoM3: num("aut-pregresso") || 0, materiale: t("aut-materiale") || null,
+      prescrizioni: t("aut-prescrizioni") || null, riferimenti: t("aut-riferimenti") || null,
+      sogliaGuardiaPct: num("aut-soglia"), anniRitmo: num("aut-anni"), preavvisoGiorni: num("aut-preavviso"),
+    };
+  }
+  $("btn-aut-salva").onclick = async () => {
+    const d = leggiFormAut();
+    if (!d.numeroAtto) { $("aut-numero").style.borderColor = "var(--danger)";
+      $("aut-esito").textContent = "Serve almeno il numero dell'atto per identificare l'autorizzazione."; return; }
+    $("aut-numero").style.borderColor = "";
+    const senzaVolume = d.volumeAutorizzatoM3 ? "" : " Senza il volume totale autorizzato il contatore vita cava resta spento.";
+    if (editAut) {
+      await db.aggiorna("autorizzazioni", editAut, d);
+      $("aut-esito").textContent = "Scheda «" + d.numeroAtto + "» aggiornata." + senzaVolume;
+      editAut = null;
+    } else {
+      const cera = AUT.some(a => a.stato === "vigente");
+      for (const a of AUT) if (a.stato === "vigente") await db.aggiorna("autorizzazioni", a.id, { stato: "archiviata" });
+      await db.aggiungi("autorizzazioni", { ...d, stato: "vigente" });
+      $("aut-esito").textContent = "Autorizzazione «" + d.numeroAtto + "» registrata come vigente"
+        + (cera ? " (la precedente è stata archiviata)" : "") + "." + senzaVolume;
+    }
+    await refresh();
+  };
+  $("btn-aut-nuova").onclick = () => {
+    editAut = null; riempiFormAut(null);
+    $("aut-esito").textContent = "Scheda vuota: compilala per registrare una nuova autorizzazione o una variante.";
+    renderTitolo(); $("aut-numero").focus();
+  };
+
+  // Scadenzario: menù degli adempimenti tipici (solo etichette, nessuna
+  // periodicità cablata: date, preavvisi e ricorrenze li decide l'utente).
+  $("scad-preset").innerHTML = '<option value="">Adempimento tipico del titolo… (facoltativo)</option>' +
+    TIPI_SCADENZA_TERRA.map(p => `<option value="${p.chiave}">${esc(p.etichetta)}</option>`).join("");
+  $("scad-preset").addEventListener("change", (e) => {
+    const p = presetScadenzaTerra(e.target.value);
+    if (p) {
+      $("new-scad-desc").value = p.etichetta.split(" — ")[0];
+      $("scad-preset-nota").style.display = "block";
+      $("scad-preset-nota").innerHTML = (p.nota ? esc(p.nota) + " " : "")
+        + "<b>Data, preavviso e ricorrenza vanno letti nel tuo atto e nelle norme della tua regione</b>: Terra non li presume.";
+      const pre = parseInt($("aut-preavviso").value, 10);
+      if (!$("new-scad-pre").value && pre >= 0) $("new-scad-pre").value = pre;
+      $("new-scad-data").focus();
+    } else { $("scad-preset-nota").style.display = "none"; $("scad-preset-nota").textContent = ""; }
+  });
+  $("scad-filtri").addEventListener("click", (e) => {
+    const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
+    if (f) { filtroScad = f; renderTitolo(); }
+  });
+  $("btn-add-scad").onclick = async () => {
+    const desc = $("new-scad-desc").value.trim(), data = $("new-scad-data").value;
+    if (!desc || !data) {
+      if (!desc) $("new-scad-desc").style.borderColor = "var(--danger)";
+      if (!data) $("new-scad-data").style.borderColor = "var(--danger)";
+      $("scad-esito").textContent = "Servono la descrizione e la data di scadenza."; return;
+    }
+    $("new-scad-desc").style.borderColor = ""; $("new-scad-data").style.borderColor = "";
+    const pre = parseInt($("new-scad-pre").value, 10);
+    const ric = parseInt($("new-scad-ric").value, 10);
+    const preav = Number.isFinite(pre) && pre >= 0 ? pre : (parseInt($("aut-preavviso").value, 10) || 60);
+    await db.aggiungi("scadenze", { tipo: $("scad-preset").value || "altro", descrizione: desc,
+      dataScadenza: data, preavvisoGiorni: preav, ricorrenzaMesi: Number.isFinite(ric) && ric > 0 ? ric : null, note: "" });
+    $("scad-esito").textContent = "Scadenza «" + desc + "» del " + fmtData(data) + " registrata (preavviso " + preav + " giorni"
+      + (Number.isFinite(ric) && ric > 0 ? ", si ripete ogni " + ric + " mesi" : "") + ").";
+    $("new-scad-desc").value = ""; $("new-scad-data").value = ""; $("new-scad-ric").value = "";
+    $("scad-preset").value = ""; $("scad-preset-nota").style.display = "none";
+    await refresh();
+  };
+  // Azioni su autorizzazioni e scadenze (delega sul documento, come il resto
+  // dell'app). Chiudere una scadenza ricorrente propone la data successiva.
+  document.addEventListener("click", async (e) => {
+    const at = e.target.getAttribute && e.target.getAttribute("data-edit-aut");
+    if (at) { const a = AUT.find(x => x.id === at); if (!a) return;
+      editAut = a.id; riempiFormAut(a); renderTitolo();
+      $("aut-esito").textContent = "Stai modificando la scheda «" + (a.numeroAtto || "senza numero") + "».";
+      $("aut-numero").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+    const ad = e.target.getAttribute && e.target.getAttribute("data-del-aut");
+    if (ad) { const a = AUT.find(x => x.id === ad); if (!a) return;
+      if (confirm("Rimuovere la scheda «" + (a.numeroAtto || "senza numero") + "»? Le scadenze registrate restano.")) {
+        if (editAut === ad) { editAut = null; riempiFormAut(null); }
+        await db.rimuovi("autorizzazioni", ad); await refresh(); } return; }
+    const av = e.target.closest && e.target.closest("[data-aut]");
+    if (av) {
+      const a = AUT.find(x => x.id === av.getAttribute("data-aut")); if (!a) return;
+      if (a.stato === "vigente") { $("aut-esito").textContent = "Questa scheda è già quella vigente: è lei a reggere il contatore vita cava."; return; }
+      if (!confirm("Rendere vigente «" + (a.numeroAtto || "senza numero") + "»? L'attuale verrà archiviata e il contatore userà questa.")) return;
+      for (const x of AUT) if (x.stato === "vigente") await db.aggiorna("autorizzazioni", x.id, { stato: "archiviata" });
+      await db.aggiorna("autorizzazioni", a.id, { stato: "vigente" }); await refresh(); return; }
+    const sf = e.target.getAttribute && e.target.getAttribute("data-fatta-scad");
+    if (sf) { const s = SCA.find(x => x.id === sf); if (!s) return;
+      const ric = +s.ricorrenzaMesi || 0;
+      if (ric > 0) {
+        const prop = prossimaData(s.dataScadenza, ric) || "";
+        const v = prompt("«" + s.descrizione + "» fatta. Prossima scadenza proposta (ogni " + ric + " mesi) — puoi correggerla:", prop);
+        if (v && /^\d{4}-\d{2}-\d{2}$/.test(v.trim())) {
+          await db.aggiorna("scadenze", s.id, { dataScadenza: v.trim() });
+          $("scad-esito").textContent = "«" + s.descrizione + "» rinnovata al " + fmtData(v.trim()) + ".";
+          await refresh();
+        }
+      } else if (confirm("Segnare «" + s.descrizione + "» come fatta e toglierla dallo scadenzario?")) {
+        await db.rimuovi("scadenze", s.id);
+        $("scad-esito").textContent = "«" + s.descrizione + "» chiusa e rimossa dallo scadenzario.";
+        await refresh();
+      }
+      return; }
+    const sd = e.target.getAttribute && e.target.getAttribute("data-del-scad");
+    if (sd) { const s = SCA.find(x => x.id === sd);
+      if (s && confirm("Rimuovere la scadenza «" + s.descrizione + "»?")) {
+        await db.rimuovi("scadenze", sd); await refresh(); } return; }
+  });
 
   // Valore del materiale estratto: volume elaborato dell'anno × densità ×
   // prezzo. Ricalcolo dal vivo quando l'utente cambia densità o prezzo.
@@ -438,13 +773,20 @@
   });
   clearErr("fro-nome", "fro-esito");
   ["new-ril-data","new-ril-vol"].forEach(i => clearErr(i, "ril-esito"));
+  clearErr("aut-numero", "aut-esito");
+  ["new-scad-desc","new-scad-data"].forEach(i => clearErr(i, "scad-esito"));
   // Invio da tastiera: premere Invio in un campo del form equivale a
   // toccare il pulsante — data entry più rapida senza spostare il dito.
   const enterSubmit = (inputIds, btnId) => inputIds.forEach(id =>
     $(id).addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $(btnId).click(); } }));
   enterSubmit(["fro-nome", "fro-banco", "fro-quota"], "btn-fro");
   enterSubmit(["new-ril-data", "new-ril-vol"], "btn-add-ril");
+  enterSubmit(["new-scad-desc", "new-scad-data", "new-scad-pre", "new-scad-ric"], "btn-add-scad");
   await refresh();
+  // All'apertura la scheda mostra già l'autorizzazione vigente in modifica:
+  // così "Salva" aggiorna quella che c'è invece di creare un doppione.
+  { const a0 = autorizzazioneVigente(AUT);
+    if (a0) { editAut = a0.id; riempiFormAut(a0); renderTitolo(); } }
 </script>
 </body>
 </html>

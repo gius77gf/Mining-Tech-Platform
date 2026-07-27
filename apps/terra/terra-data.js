@@ -9,12 +9,23 @@
 //                   volumeM3|null, stato: elaborato|pianificato }
 //   piano/{id}:   { titolo, dettaglio, stato: vigente|in-esame,
 //                   pianificatoAnnuoM3?, riserveM3? }
+//   autorizzazioni/{id}: { numeroAtto, ente, dataRilascio (ISO),
+//                   dataScadenza (ISO), superficieMq, volumeAutorizzatoM3,
+//                   estrattoPregressoM3, materiale, prescrizioni,
+//                   riferimenti, stato: vigente|archiviata,
+//                   sogliaGuardiaPct, preavvisoGiorni, anniRitmo }
+//   scadenze/{id}: { tipo, descrizione, dataScadenza (ISO),
+//                   preavvisoGiorni, ricorrenzaMesi|null, note }
 // I KPI non si salvano mai: si CALCOLANO dai rilievi
 // (volumi mese = somma dei volumi elaborati del mese,
 //  avanzamento piano = estratto anno / pianificato anno).
+// Anche lo STATO di una scadenza non si salva: si calcola dalla data e
+// dal preavviso scelto dall'utente (stesso principio di Scudo).
+// NIENTE regole di legge scritte nel codice: le cave sono materia
+// REGIONALE, quindi soglie, preavvisi e periodicità li imposta l'utente.
 // ============================================================
 
-import { parseCsvLine, numIt, isIntestazione } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, numIt, isIntestazione, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
   fronti: [
@@ -28,10 +39,27 @@ export const DEMO = {
     { id: "r3", titolo: "Rilievo drone 16/06", data: "2026-06-16", tipo: "Ortofoto + DEM", volumeM3: 21300, stato: "elaborato", fronteId: "f1" },
     { id: "r4", titolo: "Rilievo drone 15/05", data: "2026-05-15", tipo: "Ortofoto + DEM", volumeM3: 20100, stato: "elaborato", fronteId: "f2" },
     { id: "r5", titolo: "Prossimo rilievo", data: "2026-08-01", tipo: "Drone pianificato", volumeM3: null, stato: "pianificato" },
+    // rilievo dell'anno prima: serve al contatore vita cava per avere uno
+    // storico abbastanza lungo da stimare il ritmo medio annuo
+    { id: "r0", titolo: "Rilievo drone 20/11", data: "2025-11-20", tipo: "Ortofoto + DEM", volumeM3: 22000, stato: "elaborato", metodo: "RTK", gsd: "2", fronteId: "f1" },
   ],
   piano: [
     { id: "p1", titolo: "Autorizzazione vigente", dettaglio: "Scadenza 2029", stato: "vigente", pianificatoAnnuoM3: 125000, riserveM3: 1200000 },
     { id: "p2", titolo: "Variante fronte Sud", dettaglio: "Da valutare dopo verifica stabilità", stato: "in-esame" },
+  ],
+  autorizzazioni: [
+    { id: "a1", numeroAtto: "Atto n. 128 del 2021 (esempio)", ente: "Ente competente di esempio",
+      dataRilascio: "2021-03-15", dataScadenza: "2031-03-14", superficieMq: 78000,
+      volumeAutorizzatoM3: 1200000, estrattoPregressoM3: 340000, materiale: "Sabbia e ghiaia",
+      prescrizioni: "Recupero ambientale contestuale alla coltivazione, lotto per lotto.\nRilievo dei lavori da tenere aggiornato e trasmettere all'ente.",
+      riferimenti: "Protocollo di esempio · progetto di coltivazione allegato all'atto",
+      stato: "vigente", sogliaGuardiaPct: 80, preavvisoGiorni: 90, anniRitmo: 3 },
+  ],
+  scadenze: [
+    { id: "t1", tipo: "autorizzazione", descrizione: "Scadenza del titolo autorizzativo", dataScadenza: "2031-03-14", preavvisoGiorni: 180, ricorrenzaMesi: null, note: "" },
+    { id: "t2", tipo: "fideiussione", descrizione: "Polizza fideiussoria — rinnovo annuale", dataScadenza: "2026-09-30", preavvisoGiorni: 90, ricorrenzaMesi: 12, note: "Si svincola solo dopo il collaudo finale." },
+    { id: "t3", tipo: "rilievo", descrizione: "Rilievo periodico dei lavori", dataScadenza: "2026-08-10", preavvisoGiorni: 30, ricorrenzaMesi: 6, note: "" },
+    { id: "t4", tipo: "screening-via", descrizione: "Prescrizione dello screening da ottemperare", dataScadenza: "2026-07-10", preavvisoGiorni: 60, ricorrenzaMesi: null, note: "" },
   ],
 };
 
@@ -181,6 +209,192 @@ export function trendVolumi(rilievi) {
   return { ultimo, precedente, delta, pct: precedente > 0 ? Math.round(100 * delta / precedente) : null };
 }
 
+// ============================================================
+// TITOLO AUTORIZZATIVO — scheda, vita cava, scadenzario
+// Tutte funzioni PURE (nessun DOM, `oggi` iniettabile) e senza alcuna
+// regola di legge cablata: le attività estrattive sono materia REGIONALE
+// (ogni regione ha la sua legge, il suo PRAE e i suoi moduli), quindi
+// soglie di guardia, giorni di preavviso e periodicità arrivano SEMPRE
+// dai dati inseriti dall'utente. Vedi docs/RICERCA_TERRA_202607.md.
+// ============================================================
+
+// L'autorizzazione VIGENTE tra quelle registrate (le altre restano come
+// storico/varianti). Se nessuna è marcata vigente, prende la prima.
+// Ritorna null se non ce n'è nessuna.
+export function autorizzazioneVigente(autorizzazioni) {
+  const a = autorizzazioni || [];
+  return a.find(x => x.stato === "vigente") || a[0] || null;
+}
+
+// Volume estratto COMPLESSIVO sotto un titolo autorizzativo:
+//  - `rilevato`: somma dei rilievi elaborati con volume, contati solo dalla
+//    data di rilascio in poi (se la data c'è): quello che è stato scavato
+//    prima appartiene a un altro titolo;
+//  - `pregresso`: quanto era già stato estratto quando si è iniziato a usare
+//    Terra, dichiarato dall'utente nella scheda (senza questo numero il
+//    contatore vita cava sarebbe ottimista e quindi pericoloso).
+export function estrattoComplessivo(rilievi, autorizzazione) {
+  const a = autorizzazione || {};
+  const da = /^\d{4}-\d{2}-\d{2}$/.test(String(a.dataRilascio || "")) ? String(a.dataRilascio) : null;
+  const rilevato = (rilievi || [])
+    .filter(r => r.stato === "elaborato" && r.volumeM3 != null)
+    .filter(r => !da || String(r.data || "") >= da)
+    .reduce((s, r) => s + (+r.volumeM3 || 0), 0);
+  const pregresso = Math.max(0, +a.estrattoPregressoM3 || 0);
+  return { rilevato, pregresso, totale: rilevato + pregresso, daData: da };
+}
+
+// RITMO MEDIO annuo degli ultimi `anni` anni (finestra scelta dall'utente):
+// somma dei volumi elaborati nella finestra diviso gli anni effettivamente
+// coperti dallo storico. Il periodo parte dal primo rilievo dentro la
+// finestra: se lo storico è corto il ritmo risulta un po' alto, quindi la
+// durata residua stimata è prudente (meglio sottostimare gli anni che
+// restano). Ritorna null se non c'è abbastanza storico (< 3 mesi) o volume.
+export function ritmoMedioAnnuo(rilievi, anni, oggi = new Date()) {
+  const n = Math.max(0.5, +anni || 0) || 3;
+  const o = new Date(oggi); o.setHours(0, 0, 0, 0);
+  const ANNO_MS = 365.25 * 86400000;
+  const dal = new Date(o.getTime() - n * ANNO_MS);
+  const dalISO = dal.toISOString().slice(0, 10);
+  const el = (rilievi || [])
+    .filter(r => r.stato === "elaborato" && r.volumeM3 != null && /^\d{4}-\d{2}-\d{2}$/.test(String(r.data || "")))
+    .filter(r => String(r.data) >= dalISO && String(r.data) <= o.toISOString().slice(0, 10));
+  if (!el.length) return null;
+  const volume = el.reduce((s, r) => s + (+r.volumeM3 || 0), 0);
+  if (!(volume > 0)) return null;
+  const primo = el.map(r => String(r.data)).sort()[0];
+  const inizio = new Date(primo + "T00:00:00");
+  const durataAnni = (o - inizio) / ANNO_MS;
+  if (!(durataAnni >= 0.25)) return null;       // meno di 3 mesi: media senza senso
+  return { volume, durataAnni, annuo: volume / durataAnni, dal: primo, rilievi: el.length };
+}
+
+// CONTATORE VITA CAVA: volume totale autorizzato − estratto complessivo =
+// quanto resta, e per quanti anni al ritmo medio. È il rischio VERO per il
+// cliente: la proiezione annuale dice se si sfora l'anno, questo dice se si
+// sfora il TOTALE concesso, che è la violazione grave.
+// La soglia di guardia (`sogliaGuardiaPct`) è quella impostata dall'utente:
+// se non c'è, si segnala solo il superamento del 100%. Ritorna null se il
+// volume autorizzato non è noto. Pura e testabile.
+export function vitaCava(autorizzazione, rilievi, oggi = new Date()) {
+  const a = autorizzazione || {};
+  const totale = +a.volumeAutorizzatoM3 || 0;
+  if (!(totale > 0)) return null;
+  const est = estrattoComplessivo(rilievi, a);
+  const residuo = Math.max(0, totale - est.totale);
+  const pct = Math.round(1000 * est.totale / totale) / 10;      // un decimale
+  const sogliaN = +a.sogliaGuardiaPct;
+  const soglia = Number.isFinite(sogliaN) && sogliaN > 0 && sogliaN <= 100 ? sogliaN : null;
+  const stato = pct >= 100 ? "danger" : (soglia != null && pct >= soglia) ? "warn" : "ok";
+  const rm = ritmoMedioAnnuo(rilievi, a.anniRitmo, oggi);
+  const annuo = rm ? rm.annuo : 0;
+  const anniResidui = annuo > 0 ? residuo / annuo : null;
+  let annoEsaurimento = null;
+  if (anniResidui != null) {
+    const d = new Date(oggi);
+    annoEsaurimento = new Date(d.getTime() + anniResidui * 365.25 * 86400000).getFullYear();
+  }
+  // Confronto con la scadenza del titolo: arriva prima l'esaurimento del
+  // volume o la scadenza dell'atto? Cambia completamente cosa si deve fare.
+  let scadePrimaIlTitolo = null;
+  if (anniResidui != null && /^\d{4}-\d{2}-\d{2}$/.test(String(a.dataScadenza || ""))) {
+    const g = giorniTra(String(a.dataScadenza), oggi);
+    if (Number.isFinite(g)) scadePrimaIlTitolo = (g / 365.25) < anniResidui;
+  }
+  return {
+    totale, estratto: est.totale, rilevato: est.rilevato, pregresso: est.pregresso,
+    residuo, pct, soglia, stato, ritmoAnnuo: annuo > 0 ? annuo : null,
+    ritmo: rm, anniResidui, annoEsaurimento, scadePrimaIlTitolo,
+  };
+}
+
+// Tipi di scadenza TIPICI del titolo di cava, come voci preimpostate dello
+// scadenzario (stessa idea di SCADENZE_PRESET in Scudo: l'utente sceglie
+// invece di digitare). ATTENZIONE: qui NON ci sono periodicità né preavvisi,
+// perché cambiano da regione a regione e da atto ad atto — data, preavviso e
+// ricorrenza li mette sempre l'utente. `nota` spiega in italiano semplice
+// perché quella scadenza conta.
+export const TIPI_SCADENZA_TERRA = [
+  { chiave: "autorizzazione", etichetta: "Autorizzazione / concessione — scadenza del titolo",
+    nota: "È il titolo che regge tutto il lavoro: senza rinnovo o proroga l'attività si ferma." },
+  { chiave: "fideiussione", etichetta: "Fideiussione — validità o rinnovo della polizza",
+    nota: "La garanzia va tenuta in vita fino allo svincolo, che di norma arriva solo dopo il collaudo finale." },
+  { chiave: "screening-via", etichetta: "Screening / VIA — validità o prescrizioni del provvedimento",
+    nota: "Anche l'esito della verifica ambientale ha tempi e prescrizioni da rispettare." },
+  { chiave: "collaudo", etichetta: "Collaudo finale / fine lavori",
+    nota: "Passaggio necessario per chiudere il cantiere e liberare la garanzia." },
+  { chiave: "rilievo", etichetta: "Rilievo periodico dei lavori (planimetrie aggiornate)",
+    nota: "Tenere il rilievo aggiornato è un obbligo ricorrente, non un lusso." },
+  { chiave: "denuncia", etichetta: "Comunicazione periodica dei volumi all'ente",
+    nota: "Diverse regioni chiedono di comunicare i volumi estratti, anche quando non si è scavato." },
+  { chiave: "altro", etichetta: "Altro adempimento", nota: "" },
+];
+
+// Ritorna il tipo di scadenza con quella chiave (o null). daVerificare è
+// SEMPRE true: la periodicità e i termini vanno letti nell'atto e nella
+// legge regionale, Terra non li può indovinare.
+export function presetScadenzaTerra(chiave) {
+  const p = TIPI_SCADENZA_TERRA.find(x => x.chiave === chiave);
+  return p ? { ...p, daVerificare: true } : null;
+}
+// Etichetta breve del tipo, per l'elenco.
+export function etichettaTipoScadenza(chiave) {
+  const p = TIPI_SCADENZA_TERRA.find(x => x.chiave === chiave);
+  return p ? p.etichetta.split(" — ")[0] : (chiave || "Altro");
+}
+
+// SEMAFORO di una scadenza: scaduta / in-scadenza / a-posto. Il preavviso è
+// quello impostato sulla singola scadenza (giorni): niente soglia fissa.
+// Senza data valida ritorna "a-posto" (un dato incompleto non deve allarmare).
+export function statoScadenzaTerra(dataISO, preavvisoGiorni, oggi = new Date()) {
+  const g = giorniTra(String(dataISO || ""), oggi);
+  if (!Number.isFinite(g)) return "a-posto";
+  const pre = Math.max(0, +preavvisoGiorni || 0);
+  if (g < 0) return "scaduta";
+  return g <= pre ? "in-scadenza" : "a-posto";
+}
+
+// Etichetta parlante della scadenza ("scaduta da 17 gg", "tra 12 gg"), con la
+// classe del badge. Stesso linguaggio visivo di Scudo, adattato a Terra.
+export function livelloScadenzaTerra(dataISO, preavvisoGiorni, oggi = new Date()) {
+  const g = giorniTra(String(dataISO || ""), oggi);
+  const stato = statoScadenzaTerra(dataISO, preavvisoGiorni, oggi);
+  const cls = stato === "scaduta" ? "danger" : stato === "in-scadenza" ? "warn" : "ok";
+  if (!Number.isFinite(g)) return { cls: "ok", label: "senza data", giorni: null, stato };
+  const label = g < 0 ? "scaduta da " + (-g) + " gg" : g === 0 ? "scade oggi" : "tra " + g + " gg";
+  return { cls, label, giorni: g, stato };
+}
+
+// Data proposta per la RICORRENZA successiva: data + mesi di ricorrenza.
+// Se il giorno non esiste nel mese di arrivo (31 gennaio + 1 mese) si torna
+// all'ultimo giorno del mese. Ritorna null se data o mesi non sono validi:
+// la proposta è solo un suggerimento, l'utente conferma o corregge.
+export function prossimaData(dataISO, ricorrenzaMesi) {
+  const s = String(dataISO || "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  const mesi = Math.round(+ricorrenzaMesi || 0);
+  if (!(mesi > 0)) return null;
+  const [y, m, d] = s.split("-").map(Number);
+  const t = new Date(y, m - 1 + mesi, d);
+  if (t.getDate() !== d) t.setDate(0);               // fine mese corto
+  const p = (n) => String(n).padStart(2, "0");
+  return `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())}`;
+}
+
+// Riepilogo del scadenzario per i KPI e per il quadro: quante scadute,
+// quante in scadenza (col preavviso di ognuna), quante a posto.
+export function riepilogoScadenze(scadenze, oggi = new Date()) {
+  const out = { scadute: 0, inScadenza: 0, aPosto: 0, totale: 0 };
+  for (const s of scadenze || []) {
+    const st = statoScadenzaTerra(s.dataScadenza, s.preavvisoGiorni, oggi);
+    out.totale++;
+    if (st === "scaduta") out.scadute++;
+    else if (st === "in-scadenza") out.inScadenza++;
+    else out.aPosto++;
+  }
+  return out;
+}
+
 // Import dei FRONTI di scavo da CSV (onboarding: caricare i fronti di una cava
 // con più fronti, così poi i rilievi importati si possono collegare per nome).
 // Colonne: nome;banco;quota;stato (header opzionale). Tiene solo le righe con
@@ -264,6 +478,8 @@ export async function terraData() {
         fronti: () => read("fronti"),
         rilievi: () => read("rilievi"),
         piano: () => read("piano"),
+        autorizzazioni: () => read("autorizzazioni"),
+        scadenze: () => read("scadenze"),
         aggiungi: (name, data) => addDoc(id.orgCollection(name), data),
         logout: () => id.logout(),
         aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), data),
@@ -278,6 +494,8 @@ export async function terraData() {
       fronti: async () => mem.fronti,
       rilievi: async () => mem.rilievi,
       piano: async () => mem.piano,
+      autorizzazioni: async () => mem.autorizzazioni,
+      scadenze: async () => mem.scadenze,
       logout: async () => {},
       aggiungi: async (name, data) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[name] = mem[name] || []).push({ id, ...data }); return { id }; },
       aggiorna: async (name, docId, data) => { const x = (mem[name] || (mem[name] = [])).find(v => v.id === docId); if (x) Object.assign(x, data); },

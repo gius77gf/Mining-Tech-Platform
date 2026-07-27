@@ -16,6 +16,8 @@
 <style>
   /* Scudo usa l'accento "team" della palette funzionale deepwork */
   :root { --app-accent:#8b5cf6; --app-accent2:#bd96ff; }
+  /* badge nel colore dell'app (azioni correttive), stessa forma degli altri */
+  .badge.accent { background: color-mix(in srgb, var(--app-accent) 18%, transparent); color: var(--app-accent2); }
 </style>
 </head>
 <body class="dw">
@@ -36,6 +38,8 @@
     <div class="kpi warn" style="cursor:pointer" data-goto="scad" data-filtro="in-scadenza" title="Vedi le scadenze entro 30gg"><div class="n" id="k-30gg">—</div><div class="l">In scadenza 30gg</div></div>
     <div class="kpi ok" style="cursor:pointer" data-goto="pers" title="Vedi i lavoratori"><div class="n" id="k-regolari">—</div><div class="l">Lavoratori regolari</div></div>
     <div class="kpi accent" style="cursor:pointer" data-goto="scad" data-filtro="tutte" title="Vedi tutte le scadenze"><div class="n" id="k-corsi">—</div><div class="l">Corsi pianificati</div></div>
+    <div class="kpi danger" style="cursor:pointer" data-goto="azio" data-filtro-azi="scaduta" title="Vedi le azioni correttive fuori tempo"><div class="n" id="k-azi-scadute">—</div><div class="l">Azioni fuori tempo</div></div>
+    <div class="kpi accent" style="cursor:pointer" data-goto="azio" data-filtro-azi="da-fare" title="Vedi le azioni correttive ancora da chiudere"><div class="n" id="k-azi-aperte">—</div><div class="l">Azioni da chiudere</div></div>
   </div>
 
   <div id="safety-banner" class="note" style="text-align:center;font-size:15px;"></div>
@@ -90,6 +94,11 @@
     <option value="">Adempimento tipico di cava… (facoltativo)</option>
   </select>
   <div class="note" id="scad-preset-nota" style="text-align:left;display:none;"></div>
+  <div id="scad-preset-per" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px;">
+    <span class="dw-muted" style="font-size:12px;">Si ripete ogni</span>
+    <input class="dw-input" id="scad-preset-mesi" type="number" min="1" max="240" step="1" style="width:80px;min-height:32px;padding:2px 8px;font-size:12px;">
+    <span class="dw-muted" style="font-size:12px;">mesi — è solo una proposta: cambia il numero (o direttamente la data) come serve alla tua cava.</span>
+  </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
     <select class="dw-input" id="new-scad-lav" style="flex:1;min-width:130px;"></select>
     <select class="dw-input" id="new-scad-tipo" style="flex:1;min-width:110px;">
@@ -103,6 +112,48 @@
   <button class="dw-btn secondary" id="btn-import-scad" style="width:auto;margin-top:8px;">Importa scadenze (CSV)</button>
   <input type="file" id="scad-file" accept=".csv,text/csv" style="display:none;">
   <div class="note" id="scad-esito" style="text-align:left;"></div>
+</div>
+
+<!-- AZIONI CORRETTIVE (CAPA) -->
+<div class="page" id="page-azio">
+  <div class="sec">Azioni correttive (<span id="azi-count-tot">0</span>)</div>
+  <div id="azi-riep" class="note" style="text-align:left;margin-top:0;"></div>
+  <div id="azi-filtri" style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;">
+    <button class="dw-btn secondary" data-filtro-azi="tutte" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Tutte</button>
+    <button class="dw-btn secondary" data-filtro-azi="da-fare" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Da chiudere</button>
+    <button class="dw-btn secondary" data-filtro-azi="scaduta" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Fuori tempo</button>
+    <button class="dw-btn secondary" data-filtro-azi="aperta" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Aperte</button>
+    <button class="dw-btn secondary" data-filtro-azi="in-corso" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">In corso</button>
+    <button class="dw-btn secondary" data-filtro-azi="chiusa" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Chiuse</button>
+  </div>
+  <input class="dw-input" id="azi-cerca" type="search" placeholder="🔍 Cerca per azione, responsabile o luogo…" style="margin-bottom:6px;">
+  <div id="azi-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
+  <div id="azi-list"></div>
+
+  <div class="sec">Nuova azione correttiva</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <select class="dw-input" id="azi-origine" style="flex:2;min-width:200px;"><option value="">— nasce da una non conformità / controllo —</option></select>
+    <input class="dw-input" id="azi-nota" placeholder="Non conformità rilevata (se non nasce da un evento)" style="flex:2;min-width:200px;">
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+    <input class="dw-input" id="azi-desc" placeholder="Cosa si deve fare (es. disgaggio del fronte Est)" style="flex:3;min-width:220px;">
+    <select class="dw-input" id="azi-resp" style="flex:1;min-width:150px;"><option value="">— responsabile da assegnare —</option></select>
+    <input class="dw-input" id="azi-data" type="date" title="Entro quando" style="flex:1;min-width:140px;">
+    <button class="dw-btn" id="btn-azi" style="width:auto;">Aggiungi</button>
+  </div>
+  <div id="azi-chiusura" style="display:none;gap:8px;flex-wrap:wrap;margin-top:8px;">
+    <select class="dw-input" id="azi-stato" style="flex:1;min-width:150px;">
+      <option value="aperta">Aperta</option><option value="in-corso">In corso</option><option value="chiusa">Chiusa</option>
+    </select>
+    <input class="dw-input" id="azi-esito" placeholder="Esito (cosa è stato fatto davvero)" style="flex:2;min-width:200px;">
+    <input class="dw-input" id="azi-dchius" type="date" title="Data di chiusura" style="flex:1;min-width:140px;">
+  </div>
+  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <button class="dw-btn secondary" id="btn-azi-export" style="width:auto;">Esporta CSV</button>
+    <span class="dw-muted" style="font-size:12px;">colonne: descrizione;responsabile;scadenza;stato;esito;dataChiusura;origine</span>
+  </div>
+  <div class="note" id="azi-esito-msg" style="text-align:left;"></div>
+  <div class="note" style="text-align:left;">Ogni infortunio o near-miss dovrebbe portare a <b>un'azione correttiva</b>: cosa si fa, chi la fa, entro quando, e com'è finita. Tocca il badge dello stato per farla avanzare (aperta → in corso → chiusa); l'icona ✎ apre la modifica qui sotto e ↗ riporta all'evento che l'ha generata. Le azioni non chiuse con una data entrano nel <b>semaforo del Quadro e nello scadenzario</b> come tutte le altre scadenze.</div>
 </div>
 
 <!-- DOCUMENTI -->
@@ -169,6 +220,7 @@
   <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico">▦</span>Quadro</button>
   <button id="nav-pers" onclick="go('pers')"><span class="ico">👷</span>Personale</button>
   <button id="nav-scad" onclick="go('scad')"><span class="ico">⏰</span>Scadenze</button>
+  <button id="nav-azio" onclick="go('azio')"><span class="ico">🛠</span>Azioni</button>
   <button id="nav-doc" onclick="go('doc')"><span class="ico">📄</span>Documenti</button>
 </div>
 
@@ -183,7 +235,7 @@
 </script>
 
 <script type="module">
-  import { scudoData, statoScadenza, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, parseScadenzeCsv, SCADENZE_PRESET, presetScadenza, TIPI_DOCUMENTO } from "./scudo-data.js";
+  import { scudoData, statoScadenza, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, parseScadenzeCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, azioniUrgenti, riepilogoAzioni, azioniDiEvento } from "./scudo-data.js";
   import { mountExit, esc, csvCell, parseCsvLine, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
 
   const $ = (id) => document.getElementById(id);
@@ -198,13 +250,21 @@
     ? "Dati reali della tua organizzazione."
     : "Dati di esempio (" + db.mode + "): le modifiche non vengono salvate.";
 
-  let LAV = [], SCA = [], DOC = [], INF = [], CANT = [];
+  let LAV = [], SCA = [], DOC = [], INF = [], CANT = [], AZI = [];
   let docFileSel = null;   // allegato scelto per il prossimo documento {nome, dataURL}
   let editLav = null;   // id del lavoratore in modifica (riusa il form "Aggiungi"; idoneità/scadenze restano)
+  let editAzi = null;   // id dell'azione correttiva in modifica (stesso schema: il form fa doppio servizio)
   let filtroScad = "tutte";
   let filtroInf = "tutti";
+  let filtroAzi = "tutte";
+  let filtroEvt = null;   // se valorizzato, mostra solo le azioni di quell'evento
   let ordScad = "scadenza";
   $("pers-cerca").oninput = () => refresh();
+  $("azi-filtri").addEventListener("click", (e) => {
+    const f = e.target.getAttribute && e.target.getAttribute("data-filtro-azi");
+    if (f) { filtroAzi = f; refresh(); }
+  });
+  $("azi-cerca").oninput = () => refresh();
   $("scad-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroScad = f; refresh(); }
@@ -220,24 +280,31 @@
   document.querySelector(".nav") && document.querySelector(".nav").addEventListener("click", () => {
     if (editLav) { editLav = null; $("btn-add-pers").textContent = "Aggiungi"; $("import-esito").textContent = "";
       $("new-nome").value = ""; $("new-ruolo").value = ""; $("new-nome").style.borderColor = ""; }
+    if (editAzi) { annullaEditAzi(); $("azi-esito-msg").textContent = ""; }
   });
   // scorciatoia: toccare un KPI del quadro porta alla lista pertinente
   document.querySelector(".kpis").addEventListener("click", (e) => {
     const card = e.target.closest("[data-goto]"); if (!card) return;
     const filtro = card.getAttribute("data-filtro");
     if (filtro) filtroScad = filtro;
+    const filtroA = card.getAttribute("data-filtro-azi");
+    if (filtroA) filtroAzi = filtroA;
     go(card.getAttribute("data-goto"));
     refresh();
   });
 
   async function refresh() {
-    [LAV, SCA, DOC, INF, CANT] = await Promise.all([db.lavoratori(), db.scadenze(), db.documenti(), db.infortuni ? db.infortuni() : [], db.cantieri ? db.cantieri() : []]);
+    [LAV, SCA, DOC, INF, CANT, AZI] = await Promise.all([db.lavoratori(), db.scadenze(), db.documenti(), db.infortuni ? db.infortuni() : [], db.cantieri ? db.cantieri() : [], db.azioni ? db.azioni() : []]);
     const byId = Object.fromEntries(LAV.map(l => [l.id, l]));
+    const infById = Object.fromEntries(INF.map(x => [x.id, x]));
     const k = kpiFrom(LAV, SCA);
+    const ra = riepilogoAzioni(AZI);
     $("k-scadute").textContent = k.scadute;
     $("k-30gg").textContent = k.trenta;
     $("k-regolari").textContent = k.regolari;
     $("k-corsi").textContent = SCA.filter(s => s.tipo === "Corso" || s.tipo === "Formazione").length;
+    $("k-azi-scadute").textContent = ra.scadute;
+    $("k-azi-aperte").textContent = ra.daChiudere;
 
     // Urgenze: prima l'idoneità sanitaria critica (non idoneo / con
     // prescrizioni), poi le scadenze non regolari.
@@ -246,9 +313,19 @@
         <div class="avatar">${esc(initials(l.nome))}</div>
         <div class="info"><div class="name">${esc(l.nome)}</div><div class="meta">Idoneità sanitaria · ${esc(l.ruolo || "—")}</div></div>
         <span class="badge ${idn.cls}">${idn.label}</span><span class="arr">›</span></div>`; });
+    // Le azioni correttive non chiuse e fuori tempo (o in scadenza) entrano
+    // nelle urgenze con lo stesso semaforo delle scadenze: chi apre Scudo
+    // deve vedere subito che una correzione promessa non è stata fatta.
+    const aziUrg = azioniUrgenti(AZI).slice(0, 5).map(a => {
+      const st = statoAzione(a), r = byId[a.responsabileId], lv = livelloScadenza(a.scadenza);
+      return `<div class="item" onclick="go('azio')">
+        <div class="avatar">🛠</div>
+        <div class="info"><div class="name">${esc(a.descrizione)}</div>
+        <div class="meta">Azione correttiva · ${esc(r ? r.nome : "responsabile da assegnare")} · ${fmtData(a.scadenza)} · ${esc(lv.label)}</div></div>
+        <span class="badge ${B[st][0]}">${B[st][1]}</span><span class="arr">›</span></div>`; });
     const urg = SCA.filter(s => statoScadenza(s.dataScadenza) !== "regolare")
                    .sort((a, b) => a.dataScadenza < b.dataScadenza ? -1 : 1).slice(0, 5);
-    $("urg-list").innerHTML = (idonUrg.join("") + urg.map(sc => {
+    $("urg-list").innerHTML = (idonUrg.join("") + aziUrg.join("") + urg.map(sc => {
       const st = statoScadenza(sc.dataScadenza), l = byId[sc.lavoratoreId];
       return `<div class="item" onclick="go('scad')">
         <div class="avatar">${esc(initials(l && l.nome))}</div>
@@ -281,15 +358,28 @@
         <div class="meta">${c.regolari} regolari · ${c.inScadenza} in scadenza · ${c.scadute} scadute (su ${c.totale})</div></div>
         <span class="badge ${cls}">${lbl}</span></div>`; }).join("")
       || '<div class="note" style="text-align:left;">Nessuna scadenza registrata: la copertura si popola aggiungendo scadenze.</div>';
-    const nomeScad = (s) => { const l = byId[s.lavoratoreId]; return l ? l.nome : "azienda"; };
+    // Scadenzario = scadenze + azioni correttive non ancora chiuse: stessa
+    // lista, stesso semaforo, stessi filtri (l'azione è a tutti gli effetti
+    // una cosa da fare entro una data). Le azioni restano di sola lettura
+    // qui: si modificano nella loro pagina, raggiungibile con ↗.
+    const scadAzioni = AZI.filter(a => a.stato !== "chiusa" && a.scadenza).map(a => ({
+      id: a.id, azione: true, lavoratoreId: a.responsabileId || null,
+      tipo: "Azione correttiva", descrizione: a.descrizione, dataScadenza: a.scadenza }));
+    const scadTutte = SCA.concat(scadAzioni);
+    const nomeScad = (s) => { const l = byId[s.lavoratoreId]; return l ? l.nome : (s.azione ? "da assegnare" : "azienda"); };
     const qScad = ($("scad-cerca") && $("scad-cerca").value || "").trim().toLowerCase();
-    const scaVis = SCA.filter(s => filtroScad === "tutte" || statoScadenza(s.dataScadenza) === filtroScad)
-                      .filter(s => !qScad || ((s.descrizione || "") + " " + nomeScad(s)).toLowerCase().includes(qScad));
+    const scaVis = scadTutte.filter(s => filtroScad === "tutte" || statoScadenza(s.dataScadenza) === filtroScad)
+                      .filter(s => !qScad || ((s.descrizione || "") + " " + (s.tipo || "") + " " + nomeScad(s)).toLowerCase().includes(qScad));
     const scadCmp = (a, b) => ordScad === "tipo" ? String(a.descrizione || "").localeCompare(String(b.descrizione || ""), "it")
       : ordScad === "persona" ? nomeScad(a).localeCompare(nomeScad(b), "it") || (a.dataScadenza < b.dataScadenza ? -1 : 1)
       : (a.dataScadenza < b.dataScadenza ? -1 : 1);
     $("scad-list").innerHTML = scaVis.slice().sort(scadCmp).map(sc => {
       const st = statoScadenza(sc.dataScadenza), l = byId[sc.lavoratoreId], lv = livelloScadenza(sc.dataScadenza);
+      if (sc.azione) return `<div class="item">
+        <div class="info"><div class="name"><span class="badge accent" style="margin-right:6px;">Azione</span>${esc(sc.descrizione)}</div>
+        <div class="meta">Azione correttiva · ${esc(nomeScad(sc))} · ${fmtData(sc.dataScadenza)} · ${esc(lv.label)}</div></div>
+        <span class="badge ${B[st][0]}">${B[st][1]}</span>
+        <span class="arr" style="cursor:pointer" title="Vai all'azione correttiva" data-vai-azi="${sc.id}">↗</span></div>`;
       return `<div class="item">
         <div class="info"><div class="name">${esc(sc.descrizione)}</div><div class="meta">${esc(l ? l.nome : "azienda")} · ${fmtData(sc.dataScadenza)} · ${esc(lv.label)}</div></div>
         <span class="badge ${B[st][0]}">${B[st][1]}</span>
@@ -342,12 +432,83 @@
     const infVis = INF.filter(x => filtroInf === "tutti" || x.tipo === filtroInf);
     $("inf-list").innerHTML = infVis.slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1).map(x => {
       const tb = TB[x.tipo] || ["warn", esc(x.tipo || "—")];
-      return `<div class="item"><div class="info"><div class="name">${esc(x.descrizione || x.tipo || "Evento")}</div>
+      // Dall'evento si risale alle sue azioni correttive (e viceversa): è il
+      // legame che la L. 198/2025 chiede di poter mostrare.
+      const az = azioniDiEvento(AZI, x.id), azChiuse = az.filter(a => a.stato === "chiusa").length;
+      const ab = !az.length ? ["warn", "0 azioni"]
+        : (azChiuse === az.length ? ["ok", az.length + (az.length === 1 ? " azione chiusa" : " azioni chiuse")]
+                                  : ["warn", (az.length - azChiuse) + " da chiudere"]);
+      return `<div class="item" data-evt="${x.id}"><div class="info"><div class="name">${esc(x.descrizione || x.tipo || "Evento")}</div>
         <div class="meta">${esc(x.data || "—")}${x.luogo ? " · " + esc(x.luogo) : ""}${x.gravita ? " · " + esc(x.gravita) : ""}${(+x.giorniAssenza) ? " · " + (+x.giorniAssenza) + " gg assenza" : ""}</div></div>
-        <span class="badge ${tb[0]}">${tb[1]}</span><span class="arr" style="cursor:pointer" title="Rimuovi" data-del-inf="${x.id}">✕</span></div>`;
+        <span class="badge ${tb[0]}">${tb[1]}</span>
+        <span class="badge ${ab[0]}" style="cursor:pointer" title="Vedi le azioni correttive di questo evento" data-azi-evt="${x.id}">${ab[1]}</span>
+        <button class="dw-btn secondary" data-azi-da="${x.id}" title="Apri un'azione correttiva da questo evento" style="width:auto;min-height:32px;padding:2px 10px;font-size:11px;">+ Azione</button>
+        <span class="arr" style="cursor:pointer" title="Rimuovi" data-del-inf="${x.id}">✕</span></div>`;
     }).join("") || '<div class="note" style="text-align:left;">' + (filtroInf === "tutti" ? "Nessun evento registrato. Un buon segno — ma registra anche i near-miss." : "Nessun evento di questo tipo.") + "</div>";
     document.querySelectorAll("#inf-filtri [data-filtro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-filtro") === filtroInf ? "var(--app-accent)" : "");
+
+    // --- AZIONI CORRETTIVE (CAPA) ---------------------------------------
+    const origineTesto = (a) => a.origineTipo === "evento"
+      ? (infById[a.origineId]
+          ? "da " + (infById[a.origineId].tipo === "infortunio" ? "infortunio" : "near-miss") + " del " + fmtData(infById[a.origineId].data)
+          : "da un evento rimosso dal registro")
+      : (a.origineNota ? "non conformità: " + a.origineNota : "");
+    $("azi-count-tot").textContent = AZI.length;
+    $("azi-riep").innerHTML = AZI.length
+      ? `Da chiudere: <b>${ra.daChiudere}</b> (di cui <b>${ra.scadute}</b> fuori tempo e ${ra.inScadenza} in scadenza entro 30 giorni) · in corso: <b>${ra.inCorso}</b> · chiuse: <b>${ra.chiuse}</b> su ${ra.totale}.`
+      : "Nessuna azione correttiva registrata. Da ogni infortunio o near-miss dovrebbe nascerne almeno una.";
+    const qAzi = ($("azi-cerca").value || "").trim().toLowerCase();
+    const passaFiltroAzi = (a) => (filtroEvt && !(a.origineTipo === "evento" && a.origineId === filtroEvt)) ? false
+      : filtroAzi === "tutte" ? true
+      : filtroAzi === "da-fare" ? a.stato !== "chiusa"
+      : filtroAzi === "scaduta" ? (a.stato !== "chiusa" && statoAzione(a) === "scaduta")
+      : (a.stato || "aperta") === filtroAzi;
+    const aziVis = AZI.filter(passaFiltroAzi).filter(a => {
+      if (!qAzi) return true;
+      const r = byId[a.responsabileId];
+      return ((a.descrizione || "") + " " + (r ? r.nome : "") + " " + (a.esito || "") + " " + origineTesto(a)).toLowerCase().includes(qAzi);
+    });
+    // Prima le più urgenti: non chiuse in ordine di scadenza, chiuse in fondo.
+    const aziCmp = (a, b) => (a.stato === "chiusa") - (b.stato === "chiusa")
+      || String(a.scadenza || "9999").localeCompare(String(b.scadenza || "9999"));
+    $("azi-list").innerHTML = aziVis.slice().sort(aziCmp).map(a => {
+      const al = azioneLabel(a.stato), st = statoAzione(a), lv = livelloScadenza(a.scadenza);
+      const r = byId[a.responsabileId], org = origineTesto(a);
+      const meta = [
+        r ? "👷 " + esc(r.nome) : "responsabile da assegnare",
+        a.scadenza ? "entro il " + fmtData(a.scadenza) + (a.stato === "chiusa" ? "" : " · " + esc(lv.label)) : "senza data",
+        a.stato === "chiusa" ? "chiusa il " + fmtData(a.dataChiusura) + (a.esito ? " · esito: " + esc(a.esito) : "") : "",
+        org ? esc(org) : "",
+      ].filter(Boolean).join(" · ");
+      return `<div class="item">
+        <div class="avatar">🛠</div>
+        <div class="info"><div class="name">${esc(a.descrizione)}</div><div class="meta">${meta}</div></div>
+        <span class="badge ${al.cls}" style="cursor:pointer" title="Tocca per far avanzare lo stato (aperta → in corso → chiusa)" data-azi-stato="${a.id}">${al.label}</span>
+        ${(a.stato !== "chiusa" && a.scadenza && st !== "regolare") ? `<span class="badge ${B[st][0]}">${B[st][1]}</span>` : ""}
+        ${(a.origineTipo === "evento" && infById[a.origineId]) ? `<span class="arr" style="cursor:pointer" title="Vai all'evento che l'ha generata" data-vai-evt="${a.origineId}">↗</span>` : ""}
+        <span class="arr" style="cursor:pointer" title="Modifica azione" data-edit-azi="${a.id}">✎</span>
+        <span class="arr" style="cursor:pointer" title="Rimuovi" data-del-azi="${a.id}">✕</span></div>`;
+    }).join("") || '<div class="note" style="text-align:left;">' + (qAzi ? "Nessuna azione trovata per «" + esc(qAzi) + "»."
+      : (filtroAzi === "tutte" ? "Nessuna azione correttiva: aggiungine una qui sotto, oppure aprila da un evento con il pulsante «+ Azione»."
+                               : "Nessuna azione in questa categoria.")) + "</div>";
+    { const n = aziVis.length, filtrata = qAzi || filtroAzi !== "tutte" || filtroEvt;
+      const evt = filtroEvt && infById[filtroEvt];
+      $("azi-count").innerHTML = (n === 0 ? "" : n + (n === 1 ? " azione" : " azioni") + (filtrata ? " · su " + AZI.length : ""))
+        + (filtroEvt ? (n ? " · " : "") + "solo le azioni dell'evento del " + fmtData(evt ? evt.data : "")
+            + ' · <span style="cursor:pointer;text-decoration:underline;" data-azi-evt-clear="1">mostra tutte</span>' : ""); }
+    document.querySelectorAll("#azi-filtri [data-filtro-azi]").forEach(b =>
+      b.style.borderColor = b.getAttribute("data-filtro-azi") === filtroAzi ? "var(--app-accent)" : "");
+    // selettori del form azione: origine (eventi del registro) e responsabile
+    { const selO = $("azi-origine"), val = selO.value;
+      const opzioni = '<option value="">— nasce da una non conformità / controllo —</option>' +
+        INF.slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1).map(x =>
+          `<option value="evt:${x.id}">${x.tipo === "infortunio" ? "Infortunio" : "Near-miss"} del ${fmtData(x.data)} — ${esc((x.descrizione || "evento").slice(0, 60))}</option>`).join("");
+      if (selO.innerHTML !== opzioni) { selO.innerHTML = opzioni; selO.value = [...selO.options].some(o => o.value === val) ? val : ""; }
+      const selR = $("azi-resp"), valR = selR.value;
+      const opzR = '<option value="">— responsabile da assegnare —</option>' + LAV.map(l => `<option value="${l.id}">${esc(l.nome)}</option>`).join("");
+      if (selR.innerHTML !== opzR) { selR.innerHTML = opzR; selR.value = [...selR.options].some(o => o.value === valR) ? valR : ""; }
+    }
   }
 
   const DOC_NEXT = { valido: "da-rivedere", "da-rivedere": "scaduto", scaduto: "valido" };
@@ -361,6 +522,65 @@
         for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
         window.open(URL.createObjectURL(new Blob([buf], { type: mime })), "_blank");
       } catch (err) { window.open(d.allegatoData, "_blank"); } } return; }
+    // --- azioni correttive: navigazione nei due sensi evento ↔ azione ---
+    const at = (n) => e.target.getAttribute && e.target.getAttribute(n);
+    const vaiAzi = at("data-vai-azi");
+    if (vaiAzi) { filtroAzi = "tutte"; filtroEvt = null; go("azio"); await refresh(); return; }
+    const vaiEvt = at("data-vai-evt");
+    if (vaiEvt) { filtroInf = "tutti"; go("doc"); await refresh();
+      const el = document.querySelector('[data-evt="' + vaiEvt + '"]');
+      if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.style.borderColor = "var(--app-accent)"; setTimeout(() => { el.style.borderColor = ""; }, 2500); }
+      return; }
+    const aziEvt = at("data-azi-evt");
+    if (aziEvt) { filtroEvt = aziEvt; filtroAzi = "tutte"; $("azi-cerca").value = ""; go("azio"); await refresh(); return; }
+    if (at("data-azi-evt-clear")) { filtroEvt = null; await refresh(); return; }
+    // "+ Azione" da un evento: apre il form con l'origine già impostata
+    const aziDa = at("data-azi-da");
+    if (aziDa) { const ev = INF.find(x => x.id === aziDa);
+      annullaEditAzi();
+      go("azio"); filtroEvt = null; await refresh();
+      $("azi-origine").value = "evt:" + aziDa; $("azi-nota").value = "";
+      $("azi-esito-msg").textContent = ev
+        ? "Nuova azione correttiva per l'" + (ev.tipo === "infortunio" ? "infortunio" : "evento near-miss") + " del " + fmtData(ev.data) + ": scrivi cosa si deve fare, chi lo fa ed entro quando."
+        : "Nuova azione correttiva.";
+      $("azi-desc").focus(); $("azi-desc").scrollIntoView({ behavior: "smooth", block: "center" });
+      return; }
+    // badge dello stato: aperta → in corso → chiusa (chiudendo si chiede l'esito)
+    const aziStato = at("data-azi-stato");
+    if (aziStato && db.aggiorna) { const a = AZI.find(x => x.id === aziStato); if (!a) return;
+      const nuovo = azioneStatoSuccessivo(a.stato);
+      const patch = { stato: nuovo };
+      if (nuovo === "chiusa") {
+        const esito = prompt("Chiudi l'azione «" + a.descrizione + "».\nCosa è stato fatto davvero? (esito, resta scritto nel registro)", a.esito || "");
+        if (esito === null) return;                      // annullato: nessuna modifica
+        patch.esito = esito.trim();
+        patch.dataChiusura = oggiISO();
+      } else if (a.stato === "chiusa") { patch.dataChiusura = null; }   // riaperta: l'esito resta a memoria
+      await db.aggiorna("azioni", a.id, patch);
+      $("azi-esito-msg").textContent = "Azione «" + a.descrizione + "»: stato " + (nuovo === "in-corso" ? "in corso" : nuovo) + ".";
+      await refresh(); return; }
+    const editAziId = at("data-edit-azi");
+    if (editAziId) { const a = AZI.find(x => x.id === editAziId); if (!a) return;
+      if (editAzi === a.id) { annullaEditAzi(); $("azi-esito-msg").textContent = "Modifica annullata."; return; }
+      editAzi = a.id;
+      $("azi-desc").value = a.descrizione || "";
+      $("azi-resp").value = a.responsabileId || "";
+      $("azi-data").value = a.scadenza || "";
+      $("azi-origine").value = a.origineTipo === "evento" && a.origineId ? "evt:" + a.origineId : "";
+      $("azi-nota").value = a.origineTipo === "nc" ? (a.origineNota || "") : "";
+      $("azi-stato").value = a.stato || "aperta";
+      $("azi-esito").value = a.esito || "";
+      $("azi-dchius").value = a.dataChiusura || "";
+      $("azi-chiusura").style.display = "flex";
+      $("btn-azi").textContent = "Salva modifica";
+      $("azi-esito-msg").textContent = "Stai modificando l'azione «" + a.descrizione + "». Tocca di nuovo ✎ per annullare.";
+      $("azi-desc").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+    const delAzi = at("data-del-azi");
+    if (delAzi) { const a = AZI.find(x => x.id === delAzi);
+      if (confirm("Rimuovere l'azione correttiva «" + (a ? a.descrizione : "selezionata") + "»? (usa solo per correggere un inserimento sbagliato: le azioni chiuse sono la prova di ciò che è stato fatto)")) {
+        if (editAzi === delAzi) annullaEditAzi();
+        await db.rimuovi("azioni", delAzi); await refresh(); }
+      return; }
     const dc = e.target.closest && e.target.closest("[data-doc]");
     if (dc && db.aggiorna) { const d = DOC.find(x => x.id === dc.getAttribute("data-doc"));
       if (d) { await db.aggiorna("documenti", d.id, { stato: DOC_NEXT[d.stato] || "valido" }); await refresh(); } return; }
@@ -557,11 +777,74 @@
     $("new-scad-desc").focus();   // pronto per la prossima scadenza
     await refresh();
   };
+  // ---- AZIONI CORRETTIVE (CAPA): form unico per aggiunta e modifica -------
+  // Stesso schema del form "Aggiungi lavoratore": il pulsante fa doppio
+  // servizio (Aggiungi / Salva modifica) e la ✎ riporta i dati nei campi.
+  const oggiISO = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  function annullaEditAzi() {
+    editAzi = null;
+    $("btn-azi").textContent = "Aggiungi";
+    $("azi-chiusura").style.display = "none";
+    $("azi-desc").value = ""; $("azi-nota").value = ""; $("azi-esito").value = "";
+    $("azi-dchius").value = ""; $("azi-data").value = ""; $("azi-resp").value = "";
+    $("azi-origine").value = ""; $("azi-stato").value = "aperta";
+    $("azi-desc").style.borderColor = ""; $("azi-data").style.borderColor = "";
+  }
+  $("btn-azi").onclick = async () => {
+    const descrizione = $("azi-desc").value.trim(), scadenza = $("azi-data").value;
+    if (!descrizione || !scadenza) {
+      $("azi-desc").style.borderColor = descrizione ? "" : "var(--danger)";
+      $("azi-data").style.borderColor = scadenza ? "" : "var(--danger)";
+      $("azi-esito-msg").textContent = "Servono l'azione da fare e la data entro cui farla: senza una data non entra nello scadenzario.";
+      return;
+    }
+    $("azi-desc").style.borderColor = ""; $("azi-data").style.borderColor = "";
+    const orig = $("azi-origine").value, nota = $("azi-nota").value.trim();
+    const daEvento = orig.indexOf("evt:") === 0;
+    const rec = {
+      descrizione, responsabileId: $("azi-resp").value || null, scadenza,
+      origineTipo: daEvento ? "evento" : (nota ? "nc" : ""),
+      origineId: daEvento ? orig.slice(4) : null,
+      origineNota: daEvento ? "" : nota,
+    };
+    if (editAzi) {
+      const stato = $("azi-stato").value;
+      rec.stato = stato;
+      rec.esito = $("azi-esito").value.trim();
+      rec.dataChiusura = stato === "chiusa" ? ($("azi-dchius").value || oggiISO()) : null;
+      await db.aggiorna("azioni", editAzi, rec);
+      annullaEditAzi();
+      $("azi-esito-msg").textContent = "Azione aggiornata: " + descrizione + ".";
+    } else {
+      rec.stato = "aperta"; rec.esito = ""; rec.dataChiusura = null;
+      await db.aggiungi("azioni", rec);
+      annullaEditAzi();
+      $("azi-esito-msg").textContent = "Azione correttiva aperta: " + descrizione + " (entro il " + fmtData(scadenza) + ").";
+      $("azi-desc").focus();   // pronto per la prossima
+    }
+    await refresh();
+  };
+  $("btn-azi-export").onclick = () => {
+    // registro delle azioni correttive per l'RSPP, la direzione e (con la
+    // L. 198/2025) la comunicazione dei dati aggregati sugli eventi
+    let csv = "descrizione;responsabile;scadenza;stato;esito;dataChiusura;origine\n";
+    const nome = (id) => { const l = LAV.find(x => x.id === id); return l ? l.nome : ""; };
+    const orig = (a) => { if (a.origineTipo === "evento") { const e = INF.find(x => x.id === a.origineId);
+        return e ? (e.tipo || "evento") + " del " + (e.data || "") + (e.descrizione ? " — " + e.descrizione : "") : "evento non più in archivio"; }
+      return a.origineNota ? "non conformità: " + a.origineNota : ""; };
+    for (const a of AZI.slice().sort((x, y) => String(x.scadenza || "").localeCompare(String(y.scadenza || ""))))
+      csv += `${csvCell(a.descrizione || "")};${csvCell(nome(a.responsabileId))};${a.scadenza || ""};${a.stato || "aperta"};${csvCell(a.esito || "")};${a.dataChiusura || ""};${csvCell(orig(a))}\n`;
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.download = "scudo_azioni_correttive.csv"; a.click();
+    $("azi-esito-msg").textContent = "Esportate " + AZI.length + " azioni correttive (CSV).";
+  };
+
   // Adempimenti tipici di cava: popola il menu (raggruppato persona/azienda)
   // e, alla scelta, prepara descrizione e tipo. La data la mette l'utente: la
   // periodicità di legge dipende dal DVR/DSS e dal medico competente.
   (function () {
-    const GRP = { persona: "Per lavoratore", azienda: "Azienda / sito" };
+    const GRP = { persona: "Per lavoratore", azienda: "Azienda / sito", cava: "Cava — attività estrattive (D.Lgs 624/96)" };
     const sel = $("scad-preset"), byCat = {};
     for (const p of SCADENZE_PRESET) (byCat[p.categoria] = byCat[p.categoria] || []).push(p);
     for (const cat of Object.keys(byCat)) {
@@ -569,16 +852,33 @@
       for (const p of byCat[cat]) { const o = document.createElement("option"); o.value = p.chiave; o.textContent = p.etichetta; og.appendChild(o); }
       sel.appendChild(og);
     }
+    // Scelto un adempimento: descrizione e tipo pronti, nota con il
+    // riferimento normativo e periodicità PROPOSTA (modificabile). La data
+    // resta sempre dell'utente: le periodicità non sono verità assolute.
+    const applicaPeriodicita = () => {
+      const mesi = +$("scad-preset-mesi").value;
+      const d = dataDaPeriodicita(mesi);
+      if (d) $("new-scad-data").value = d;
+      $("new-scad-data").style.borderColor = "";
+    };
+    let presetCorrente = null;
     sel.addEventListener("change", () => {
-      const p = presetScadenza(sel.value), nota = $("scad-preset-nota");
-      if (!p) { nota.style.display = "none"; nota.textContent = ""; return; }
+      const p = presetScadenza(sel.value), nota = $("scad-preset-nota"), per = $("scad-preset-per");
+      presetCorrente = p;
+      if (!p) { nota.style.display = "none"; nota.textContent = ""; per.style.display = "none"; return; }
       $("new-scad-desc").value = p.etichetta;
       $("new-scad-tipo").value = [...$("new-scad-tipo").options].some(o => o.value === p.tipo) ? p.tipo : "Altro";
       $("new-scad-desc").style.borderColor = "";
       nota.style.display = "block";
-      nota.innerHTML = "⚠️ Adempimento di <b>riferimento</b>: la periodicità dipende dal DVR/DSS e dal medico competente. Imposta tu la data di scadenza.";
+      nota.innerHTML = "⚠️ Adempimento di <b>riferimento</b>: la periodicità dipende dal DVR/DSS, dal medico competente e dal tuo consulente — qui è solo una proposta modificabile, non un parere legale."
+        + (p.riferimento ? '<br><span style="opacity:.9;">📘 ' + esc(p.riferimento) + "</span>" : "")
+        + (p.mesi ? "" : "<br>Per questa voce la norma non fissa una cadenza fissa: metti tu la data.");
+      if (p.mesi) { per.style.display = "flex"; $("scad-preset-mesi").value = p.mesi; applicaPeriodicita(); }
+      else { per.style.display = "none"; $("scad-preset-mesi").value = ""; }
       $("new-scad-data").focus();
     });
+    // cambiando i mesi si ricalcola la data proposta (l'utente resta padrone)
+    $("scad-preset-mesi").addEventListener("input", () => { if (presetCorrente) applicaPeriodicita(); });
   })();
   // Import scadenze da CSV (lavoratore;tipo;descrizione;scadenza): il nome del
   // lavoratore viene associato all'anagrafica per nome; se non c'è, la
@@ -622,6 +922,8 @@
   clearErr("doc-titolo", "doc-esito");
   clearErr("new-scad-desc", "scad-esito");
   clearErr("new-scad-data", "scad-esito");
+  clearErr("azi-desc", "azi-esito-msg");
+  clearErr("azi-data", "azi-esito-msg");
 
   // Invio da tastiera: premere Invio in un campo del form equivale a
   // toccare il pulsante — data entry più rapida senza spostare il dito.
@@ -630,6 +932,7 @@
   enterSubmit(["new-nome", "new-ruolo"], "btn-add-pers");
   enterSubmit(["new-scad-desc", "new-scad-data"], "btn-add-scad");
   enterSubmit(["doc-titolo", "doc-meta"], "btn-doc");
+  enterSubmit(["azi-desc", "azi-data", "azi-nota"], "btn-azi");
 
   await refresh();
 </script>
