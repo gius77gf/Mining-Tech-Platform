@@ -4,182 +4,925 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Sentinella — Ambiente / HSE</title>
-<meta name="theme-color" content="#1971c2">
+<meta name="theme-color" content="#090e13">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Sentinella">
-<link rel="manifest" href='data:application/manifest+json,{"name":"Deepwork Sentinella","short_name":"Sentinella","description":"Ambiente e HSE","start_url":".","scope":".","display":"standalone","orientation":"portrait","background_color":"%23100d07","theme_color":"%231971c2","categories":["business","productivity"],"lang":"it","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 180 180%27><rect width=%27180%27 height=%27180%27 rx=%2732%27 fill=%27%231971c2%27/><text x=%2790%27 y=%27126%27 font-family=%27sans-serif%27 font-size=%27104%27 font-weight=%27700%27 fill=%27%23ffffff%27 text-anchor=%27middle%27>S</text></svg>","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}'>
+<link rel="manifest" href='data:application/manifest+json,{"name":"Deepwork Sentinella","short_name":"Sentinella","description":"Ambiente e HSE","start_url":".","scope":".","display":"standalone","orientation":"portrait","background_color":"%23090e13","theme_color":"%23090e13","categories":["business","productivity"],"lang":"it","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 180 180%27><rect width=%27180%27 height=%27180%27 rx=%2732%27 fill=%27%23288ee0%27/><text x=%2790%27 y=%27126%27 font-family=%27sans-serif%27 font-size=%27104%27 font-weight=%27700%27 fill=%27%23090e13%27 text-anchor=%27middle%27>S</text></svg>","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}'>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../shared/deepwork-style.css">
 <link rel="stylesheet" href="../../shared/dw-app-shell.css">
 <style>
-  /* Sentinella: accento della palette funzionale deepwork */
-  :root { --app-accent:#1971c2; --app-accent2:#74c0fc; }
+/* ══════════════════════════════════════════════════════════════════════
+   SENTINELLA — ambiente e monitoraggi
+   STRUTTURA: identica al core Deepwork (index.html alla radice): stesse
+   misure, raggi, ombre, curve, comportamenti.
+   COLORE: palette propria di Sentinella (blu strumentale 248°,
+   docs/PALETTE_APP.md §3.5), fusa in TUTTE le superfici. Carattere
+   attento, strumentale, freddo: il sensore che non dorme.
+   ══════════════════════════════════════════════════════════════════════ */
 
-  /* Serie storica di un punto di misura: stessa carta degli .item,
-     grafico SVG puro (nessuna libreria, pagina autonoma). */
-  .graf { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-sm);
-          padding: 10px 12px 8px; margin: -2px 0 10px; box-shadow: 0 1px 5px rgba(0,0,0,.18); }
-  .graf-head { font-size: 12px; color: var(--muted2); margin-bottom: 4px; }
-  .graf-head b { font-family: 'Barlow Condensed', sans-serif; letter-spacing: 1px;
-                 text-transform: uppercase; color: var(--app-accent2); }
-  .graf svg { display: block; width: 100%; height: auto; overflow: visible; }
-  .graf-leg { font-size: 11px; color: var(--muted); margin-top: 6px;
-              display: flex; gap: 12px; flex-wrap: wrap; }
-  .graf-leg .lg-dati { color: var(--app-accent2); }
-  .graf-leg .lg-over { color: var(--danger); }
-  .graf-vuoto { font-size: 12px; color: var(--muted); line-height: 1.5; }
-  .graf-grid { stroke: rgba(255,255,255,.07); }
-  .graf-ax   { stroke: rgba(255,255,255,.16); }
-  .graf-tick { fill: var(--muted); font-size: 8px; font-family: 'Barlow', sans-serif; }
-  .graf-linea { fill: none; stroke: var(--app-accent); stroke-width: 2;
-                stroke-linejoin: round; stroke-linecap: round; }
-  .graf-pt   { fill: var(--app-accent2); stroke: var(--card); stroke-width: .6; }
-  .graf-over { fill: var(--danger); stroke: var(--bg); stroke-width: .7; }
-  .graf-soglia { stroke: var(--danger); stroke-width: 1.4; stroke-dasharray: 5 3; }
-  /* alone scuro sotto l'etichetta della soglia: resta leggibile anche
-     quando ci passano sopra la linea o i marcatori di superamento */
-  .graf-soglia-txt { fill: var(--danger); font-size: 8px; font-family: 'Barlow', sans-serif;
-                     paint-order: stroke; stroke: var(--card); stroke-width: 2.6px; stroke-linejoin: round; }
+:root{
+  /* ---- rampa dell'accento (4 gradini) ---- */
+  --app-accent-deep:#005e9d;
+  --app-accent:     #288ee0;   /* SOLO grafica: bordi, strisce, pallini   */
+  --app-accent2:    #78bcfc;   /* UNICO ammesso per il testo              */
+  --app-accent-soft:#c0ddf9;
+  --app-support:    #007781;   /* ciano strumentale d'appoggio (205°)     */
+  --app-support2:   #59b5bf;
+
+  /* ---- superfici: tutte velate di blu ---- */
+  --bg:#090e13; --dark:#0b1117; --panel:#0d151d;
+  --card:#131e29; --card2:#162432;
+  --border:#1c2d3d; --border2:#21364a; --border-hi:#536a80;
+
+  /* ---- testo ---- */
+  --text:#e0eaf5; --muted2:#9db4cb; --muted:#7c95ae; --disabled:#617283;
+
+  /* ---- stati. Scelta dichiarata (§3.5): in Sentinella l'informazione
+         È il colore dell'app — due blu quasi identici confonderebbero. ---- */
+  --success:#6abb6e; --warn:#f8ac3d; --danger:#f05f5a; --info:#78bcfc;
+
+  /* ---- gradienti ---- */
+  --grad:    linear-gradient(135deg,#34a3fe,#0086dd);
+  --grad-on: #090e13;
+  --grad-sup:linear-gradient(135deg,#8fd2da,#2c8f99);
+  --gradSuc: linear-gradient(135deg,#6abb6e,#2f7a33);
+  --grad3:   linear-gradient(135deg,#f05f5a,#a32b27);
+  --grad-ok: linear-gradient(135deg,#96d89a,#5aa85e);
+  --grad-wr: linear-gradient(135deg,#ffc873,#e5972c);
+  --grad-dg: linear-gradient(135deg,#ff9490,#d84f4a);
+
+  /* ---- luce, aloni, ombre ---- */
+  --shadow-app:0 10px 30px rgba(0,48,84,.42);
+  --glow-app:  rgba(40,142,224,.30);
+  --tint-app:  rgba(40,142,224,.14);
+  --focus-ring:rgba(120,188,252,.34);
+  --sel:       rgba(40,142,224,.30);
+  --halo-1:    rgba(40,142,224,.06);
+  --halo-2:    rgba(89,181,191,.05);
+
+  /* Stratificazione della luce: riflesso sul bordo alto + ombra propria
+     sul bordo basso. È ciò che dà spessore fisico agli oggetti. */
+  --edge:   inset 0 1px 0 rgba(255,255,255,.055), inset 0 -1px 0 rgba(0,0,0,.28);
+  --edge-hi:inset 0 1px 0 rgba(255,255,255,.20);
+  --sh1:0 1px 5px rgba(0,0,0,.20);
+  --sh2:0 2px 8px rgba(0,0,0,.26);
+  --sh3:0 6px 16px rgba(0,0,0,.32);
+  --sh4:0 10px 24px rgba(0,0,0,.38);
+  --sh-btn:0 5px 16px rgba(0,94,157,.45);
+  --sh-btn-hi:0 8px 22px rgba(0,94,157,.58);
+}
+
+/* ─────────────── fondo e atmosfera ─────────────── */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+body.dw{
+  background:var(--bg); color:var(--text);
+  overflow-x:hidden; overscroll-behavior-y:contain;
+  padding-bottom:calc(104px + env(safe-area-inset-bottom));
+}
+body.dw::before{
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(ellipse 700px 500px at 15% 5%,  var(--halo-1) 0%, transparent 65%),
+    radial-gradient(ellipse 500px 400px at 85% 85%, var(--halo-2) 0%, transparent 65%);
+}
+.top,.page,.nav,.tour-banner,.toast,.modal-ov{position:relative; z-index:1;}
+*{-webkit-tap-highlight-color:transparent;}
+button,a,label,select,input,.item,.kpi,.chg,.mbtn{touch-action:manipulation;}
+::selection{background:var(--sel);}
+:focus{outline:none;}
+:focus-visible{outline:none; box-shadow:0 0 0 3px var(--focus-ring); border-radius:5px;}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-track{background:var(--dark);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px;}
+::-webkit-scrollbar-thumb:hover{background:var(--app-accent);}
+img{max-width:100%;}
+
+/* ─────────────── barra alta (copia di .topbar del core) ─────────────── */
+.top{
+  position:sticky; top:0; z-index:100;
+  display:flex; align-items:center; gap:10px;
+  min-height:62px; padding:0 14px;
+  background:linear-gradient(180deg,rgba(22,36,50,.97),rgba(11,17,23,.97));
+  -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  box-shadow:0 2px 12px rgba(0,0,0,.34);
+}
+.top::after{                       /* la riga luminosa del core, in blu */
+  content:""; position:absolute; left:0; right:0; bottom:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--app-accent),transparent);
+  opacity:.55;
+}
+.top-brand{flex:1; min-width:0;}
+.logo-sm{
+  font-family:'Barlow Condensed',sans-serif; font-size:17px; font-weight:800;
+  letter-spacing:3px; text-transform:uppercase; color:var(--app-accent2);
+  text-shadow:0 0 14px rgba(40,142,224,.45); line-height:1.1;
+}
+.role-sm{
+  font-size:9px; color:var(--muted); letter-spacing:2px; text-transform:uppercase;
+  margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.dw-home,.dw-exit{
+  position:static; top:auto; right:auto;
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  min-height:var(--tap); min-width:var(--tap); padding:0 11px;
+  border:1px solid var(--border2); border-radius:var(--r-sm);
+  background:var(--card); color:var(--muted2);
+  font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; text-decoration:none; cursor:pointer;
+  flex-shrink:0; box-shadow:var(--edge); transition:all .18s var(--ease);
+}
+.dw-home{padding:0 13px; line-height:0;}
+.dw-home svg{width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:1.7;
+  stroke-linecap:round; stroke-linejoin:round;}
+.dw-home:hover{color:var(--app-accent2); border-color:var(--app-accent); background:var(--card2);}
+.dw-exit:hover{color:var(--danger); border-color:var(--danger);}
+.top h1,body.has-exit .top h1{padding-right:0 !important;}
+
+/* nastro "modalità tour" — forma .info-box del core */
+.tour-banner{
+  background:var(--card2); border:1px solid var(--border);
+  border-left:3px solid var(--app-accent); border-radius:var(--r-sm);
+  color:var(--muted2); font-size:12px; line-height:1.5;
+  padding:10px 13px; margin:14px 16px 0; text-align:left; box-shadow:var(--edge);
+}
+.tour-banner b{color:var(--text);}
+
+/* ─────────────── pagine ─────────────── */
+.page{padding:16px 16px calc(24px + env(safe-area-inset-bottom));}
+.page.active{display:block; animation:scrFade .22s var(--ease);}
+@keyframes scrFade{from{opacity:0} to{opacity:1}}
+
+/* ─────────────── KPI (copia di .kpi-card del core) ─────────────── */
+.kpis{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px;}
+.kpi{
+  position:relative; overflow:hidden;
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--border);
+  border-top:3px solid var(--app-accent);
+  border-left:3px solid var(--app-accent);
+  border-radius:var(--r-sm); padding:11px 13px 12px;
+  /* la striscia di sinistra resta sempre blu: è l'app. Lo stato sta in alto. */
+  box-shadow:var(--sh1),var(--edge);
+  transition:transform .18s var(--ease),box-shadow .18s var(--ease),border-color .2s;
+}
+.kpi::after{                                   /* alone che segue il mouse */
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+  border-radius:inherit;
+  background:radial-gradient(200px 160px at var(--mx,50%) var(--my,30%),
+             var(--kpi-glow,var(--glow-app)), transparent 62%);
+  opacity:0; transition:opacity .25s var(--ease);
+}
+.kpi:hover::after{opacity:1;}
+.kpi>*{position:relative; z-index:1;}
+.kpi:hover{transform:translateY(-3px); box-shadow:var(--sh4),var(--edge);}
+.kpi:active{transform:translateY(-1px) scale(.99);}
+.kpi .l{
+  font-family:'Barlow',sans-serif; font-size:10px; font-weight:600;
+  letter-spacing:2px; text-transform:uppercase; color:var(--muted); line-height:1.3;
+}
+.kpi .n{
+  font-family:'Barlow Condensed',sans-serif; font-size:32px; font-weight:800;
+  line-height:1.05; margin-top:3px; font-variant-numeric:tabular-nums;
+  background:var(--grad); -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent; color:transparent;
+}
+.kpi.ok    {border-top-color:var(--success); --kpi-glow:rgba(106,187,110,.24);}
+.kpi.warn  {border-top-color:var(--warn);    --kpi-glow:rgba(248,172,61,.24);}
+.kpi.danger{border-top-color:var(--danger);  --kpi-glow:rgba(240,95,90,.24); animation:pulseDanger 2.4s ease-in-out infinite;}
+.kpi.ok .n    {background:var(--grad-ok);}
+.kpi.warn .n  {background:var(--grad-wr);}
+.kpi.danger .n{background:var(--grad-dg);}
+.kpi.ok .n,.kpi.warn .n,.kpi.danger .n{-webkit-background-clip:text; background-clip:text;}
+@keyframes pulseDanger{0%,100%{border-top-color:var(--danger)}50%{border-top-color:#8a3532}}
+
+/* ─────────────── cartellone di conformità (copia di .safety) ─────────────── */
+.safety{
+  position:relative; overflow:hidden;
+  display:flex; align-items:center; gap:14px;
+  background:linear-gradient(135deg,var(--card2),var(--card));
+  border:1px solid var(--border); border-left:3px solid var(--success);
+  border-radius:var(--r); padding:13px 16px; margin:0 0 4px;
+  box-shadow:var(--sh2),var(--edge);
+}
+.safety::before{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(260px 150px at 8% 0%,rgba(106,187,110,.10),transparent 70%);
+}
+.safety.warn{border-left-color:var(--warn);}
+.safety.warn::before{background:radial-gradient(260px 150px at 8% 0%,rgba(248,172,61,.10),transparent 70%);}
+.safety.danger{border-left-color:var(--danger);}
+.safety.danger::before{background:radial-gradient(260px 150px at 8% 0%,rgba(240,95,90,.11),transparent 70%);}
+.safety.none{border-left-color:var(--app-accent);}
+.safety.none::before{background:radial-gradient(260px 150px at 8% 0%,var(--tint-app),transparent 70%);}
+.safety>*{position:relative;}
+.safety-ico{
+  display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
+  width:44px; height:44px; border-radius:13px; line-height:0;
+  color:var(--app-accent2); background:var(--tint-app);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 0 14px var(--tint-app);
+}
+.safety-ico svg{width:24px; height:24px; stroke:currentColor; fill:none; stroke-width:1.7;
+  stroke-linecap:round; stroke-linejoin:round;}
+.safety-num{
+  font-family:'Barlow Condensed',sans-serif; font-size:38px; font-weight:800; line-height:.95;
+  font-variant-numeric:tabular-nums;
+  background:var(--grad-ok); -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+.safety.warn .safety-num{background:var(--grad-wr); -webkit-background-clip:text; background-clip:text;}
+.safety.danger .safety-num{background:var(--grad-dg); -webkit-background-clip:text; background-clip:text;}
+.safety-lab{font-size:10.5px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-top:2px;}
+.safety-sub{font-size:11.5px; color:var(--muted2); margin-top:4px;}
+.safety-txt{font-size:13px; color:var(--muted2); line-height:1.5;}
+.safety-txt b{color:var(--text);}
+
+/* ─────────────── titolo di sezione (copia di .sec-title) ─────────────── */
+.sec{
+  display:flex; align-items:center; gap:8px;
+  font-family:'Barlow Condensed',sans-serif; font-size:11.5px; font-weight:700;
+  letter-spacing:2.5px; text-transform:uppercase; color:var(--muted2);
+  margin:24px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--border);
+}
+.sec::before{
+  content:""; width:5px; height:5px; border-radius:50%; flex-shrink:0;
+  background:var(--app-accent); box-shadow:0 0 8px var(--app-accent);
+}
+.page>.sec:first-child{margin-top:2px;}
+.sec .cnt{
+  margin-left:auto; font-size:10px; letter-spacing:1.5px; color:var(--muted);
+  background:var(--card); border:1px solid var(--border); border-radius:20px;
+  padding:2px 9px; box-shadow:var(--edge);
+}
+
+/* ─────────────── voci di lista (copia di .sitem) ─────────────── */
+.item{
+  position:relative; overflow:hidden;
+  display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px;
+  background:var(--card); border:1px solid var(--border); border-radius:var(--r-sm);
+  padding:12px 13px; margin-bottom:5px; min-height:var(--tap);
+  box-shadow:var(--sh1),var(--edge);
+  transition:transform .15s var(--ease),box-shadow .15s var(--ease),border-color .2s,background .2s;
+}
+.item::after{
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0; border-radius:inherit;
+  background:radial-gradient(170px 120px at var(--mx,50%) var(--my,50%),var(--glow-app),transparent 62%);
+  opacity:0; transition:opacity .25s var(--ease);
+}
+.item:hover::after{opacity:1;}
+.item>*{position:relative; z-index:1;}
+.item:hover{
+  background:var(--card2);
+  border-color:color-mix(in srgb,var(--app-accent) 42%,var(--border));
+  transform:translateX(3px); box-shadow:var(--sh3),var(--edge);
+}
+.item:active{transform:translateX(1px) scale(.995);}
+.item.cliccabile{cursor:pointer;}
+.item.st-danger {border-left:3px solid var(--danger);}
+.item.st-warn   {border-left:3px solid var(--warn);}
+.item.st-ok     {border-left:3px solid var(--success);}
+.item.st-accent {border-left:3px solid var(--app-accent);}
+.item.st-mute   {border-left:3px solid var(--border2);}
+/* la voce con la serie storica aperta resta agganciata al grafico sotto */
+.item.aperto{
+  border-color:var(--app-accent) !important; background:var(--card2);
+  border-bottom-left-radius:0; border-bottom-right-radius:0; margin-bottom:0;
+}
+
+.avatar{
+  width:36px; height:36px; border-radius:11px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; line-height:0;
+  font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:800;
+  letter-spacing:1px; color:var(--grad-on); background:var(--grad); border:none;
+  box-shadow:0 2px 6px rgba(0,0,0,.35),var(--edge-hi);
+}
+.avatar.sup{background:var(--grad-sup);}
+.avatar.ok{background:var(--grad-ok);}
+.avatar.warn{background:var(--grad-wr);}
+.avatar.danger{background:var(--grad-dg);}
+.avatar svg{width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:2;
+  stroke-linecap:round; stroke-linejoin:round;}
+.info{flex:1 1 110px; min-width:0;}
+/* riga di lettura di un punto: stato + valore misurato sulla stessa linea.
+   Tenere il badge QUI (e non fra le azioni) lascia respiro al nome e fa
+   stare la voce su una riga sola anche con tre bersagli da 44px. */
+.riga{display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-top:4px;}
+.riga .meta{margin-top:0; flex:1 1 100%; min-width:0;}
+.acts{
+  display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap;
+  gap:5px; margin-left:auto;
+}
+/* come nel core le voci restano compatte: al massimo due righe, poi «…» */
+.name{
+  font-size:13.5px; font-weight:600; color:var(--text); line-height:1.3;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; overflow-wrap:anywhere;
+}
+.meta{
+  font-size:11px; color:var(--muted); margin-top:3px; line-height:1.4;
+  font-variant-numeric:tabular-nums;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; overflow-wrap:anywhere;
+}
+.meta b{color:var(--muted2); font-weight:600;}
+.arr svg{width:17px; height:17px; stroke:currentColor; fill:none; stroke-width:1.7;
+  stroke-linecap:round; stroke-linejoin:round;}
+.arr{
+  color:var(--muted); font-size:15px; line-height:1; background:none; border:none; padding:0;
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:var(--tap); min-height:var(--tap); border-radius:8px; flex-shrink:0; cursor:pointer;
+  transition:color .15s var(--ease),background .15s var(--ease);
+}
+.arr:hover{color:var(--app-accent2); background:color-mix(in srgb,var(--app-accent) 16%,transparent);}
+.arr.on{color:var(--app-accent2); background:color-mix(in srgb,var(--app-accent) 22%,transparent);}
+.arr.rimuovi:hover{color:var(--danger); background:rgba(240,95,90,.14);}
+
+/* ─────────────── badge (copia di .scad-badge: raggio 3px, pieno) ─────────────── */
+.badge{
+  display:inline-flex; align-items:center; gap:4px; flex-shrink:0;
+  padding:3px 8px; border-radius:3px; white-space:nowrap;
+  font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:800;
+  letter-spacing:1px; text-transform:uppercase;
+  background:var(--card2); color:var(--muted2); border:1px solid var(--border2);
+  box-shadow:0 1px 3px rgba(0,0,0,.35),var(--edge-hi);
+}
+.badge.ok,.badge.warn,.badge.danger,.badge.info,.badge.accent{border-color:transparent;}
+.badge.inline{vertical-align:middle; margin:0 0 0 2px; font-size:9.5px; padding:2px 7px;}
+.badge.ok     {background:var(--success);     color:#08160a;}
+.badge.warn   {background:var(--warn);        color:#231402;}
+.badge.danger {background:var(--danger);      color:#2b0705;}
+.badge.info   {background:var(--info);        color:#04161e;}
+.badge.accent {background:var(--app-accent);  color:var(--grad-on);}
+.badge.tag{
+  background:var(--card2); color:var(--muted2);
+  border:1px solid var(--border2); box-shadow:none; font-weight:700;
+}
+
+/* ─────────────── campi (copia di .finput) ─────────────── */
+.dw-input{
+  width:100%; min-height:var(--tap); padding:11px 13px;
+  background:var(--card); border:1px solid var(--border-hi); border-radius:9px;
+  color:var(--text); font-family:'Barlow',sans-serif; font-size:16px; outline:none;
+  box-shadow:var(--edge);
+  transition:border-color .18s var(--ease),box-shadow .18s var(--ease),background .18s;
+}
+.dw-input::placeholder{color:var(--disabled);}
+.dw-input:hover{border-color:color-mix(in srgb,var(--app-accent) 55%,var(--border-hi));}
+.dw-input:focus{
+  border-color:var(--app-accent); background:var(--card2);
+  box-shadow:0 0 0 3px var(--focus-ring),var(--edge);
+}
+.dw-input.err{border-color:var(--danger) !important; background:rgba(240,95,90,.08);}
+.dw-input[readonly],.dw-input[disabled]{color:var(--muted2); opacity:.7;}
+select.dw-input{font-size:16px; cursor:pointer;}
+select.dw-input option,select.dw-input optgroup{background:var(--card); color:var(--text);}
+textarea.dw-input{resize:vertical; min-height:60px;}
+input[type=date].dw-input::-webkit-calendar-picker-indicator,
+input[type=search].dw-input::-webkit-search-cancel-button{
+  filter:invert(.68); cursor:pointer; opacity:.8;
+}
+input[type=date].dw-input::-webkit-calendar-picker-indicator:hover{
+  filter:invert(.72) sepia(.45) saturate(4) hue-rotate(175deg); opacity:1;
+}
+.dw-muted{color:var(--muted);}
+.dw-accent{color:var(--app-accent2);}
+
+/* ─────────────── bottoni (copia di .btn-sv / .btn-sec) ─────────────── */
+.dw-btn{
+  min-height:var(--tap); padding:12px 18px; border:none; border-radius:var(--r-sm);
+  background:var(--grad); color:var(--grad-on);
+  font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:800;
+  letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  box-shadow:var(--sh-btn),var(--edge-hi);
+  transition:transform .12s var(--ease),box-shadow .2s var(--ease),filter .2s;
+}
+.dw-btn:hover{box-shadow:var(--sh-btn-hi),var(--edge-hi); filter:brightness(1.07);}
+.dw-btn:active{transform:translateY(2px); box-shadow:0 2px 8px rgba(0,94,157,.32),var(--edge-hi);}
+.dw-btn:disabled{opacity:.6; cursor:wait; filter:none; transform:none;}
+.dw-btn.secondary{
+  background:var(--card); border:1px solid var(--border2); color:var(--text);
+  font-size:13px; font-weight:600; letter-spacing:1px; padding:11px 14px;
+  box-shadow:var(--edge); filter:none;
+}
+.dw-btn.secondary:hover{
+  border-color:var(--app-accent); color:var(--app-accent2); background:var(--card2);
+  transform:translateY(-1px); box-shadow:var(--sh2),var(--edge); filter:none;
+}
+.dw-btn.secondary:active{transform:translateY(1px); box-shadow:var(--edge);}
+.dw-btn.mini{min-height:var(--tap); padding:6px 12px; font-size:11px; letter-spacing:1px;}
+
+/* ─────────────── filtri a segmento (copia di .chg) ─────────────── */
+.chgs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;}
+.chg{
+  background:var(--card); border:1px solid var(--border); color:var(--muted2);
+  padding:7px 13px; min-height:var(--tap); border-radius:7px;
+  font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700;
+  letter-spacing:1px; text-transform:uppercase; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+  box-shadow:var(--edge); transition:all .15s var(--ease);
+}
+.chg:hover{border-color:var(--app-accent); color:var(--app-accent2);}
+.chg.active{
+  background:var(--app-accent); border-color:var(--app-accent); color:var(--grad-on);
+  box-shadow:0 2px 10px rgba(40,142,224,.35),var(--edge-hi);
+}
+.chg:active{transform:scale(.95);}
+
+/* ─────────────── form come oggetti veri (superficie del core) ─────────────── */
+.form{
+  display:flex; flex-wrap:wrap; gap:9px;
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--border); border-radius:var(--r); padding:13px;
+  box-shadow:var(--sh2),var(--edge);
+}
+.form.col{flex-direction:column; align-items:stretch;}
+.form .dw-input{flex:1 1 150px; width:auto; min-width:0; max-width:100%;}
+.form.col>.dw-input,.form.col>select.dw-input{width:100%; flex:0 0 auto;}
+.form>*,.frow>*{min-width:0; max-width:100%;}
+.form .dw-btn{flex:0 0 auto;}
+.frow{display:flex; flex-wrap:wrap; gap:9px; width:100%; align-items:center;}
+.form-hint{font-size:11.5px; color:var(--muted); line-height:1.5; flex-basis:100%;}
+.form-hint b{color:var(--muted2);}
+.flab{
+  font-family:'Barlow Condensed',sans-serif; font-size:10.5px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; color:var(--muted);
+  display:flex; flex-direction:column; gap:5px; flex:1 1 120px;
+}
+.flab .dw-input{width:100%; flex:0 0 auto;}
+.tools{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px;}
+.ord{display:flex; align-items:center; gap:8px; margin:0 0 10px;}
+.ord label{
+  font-family:'Barlow Condensed',sans-serif; font-size:10.5px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); flex-shrink:0;
+}
+.ord .dw-input{width:auto; flex:1; max-width:280px;}
+.count{
+  font-family:'Barlow Condensed',sans-serif; font-size:10.5px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; color:var(--muted);
+  margin:0 0 8px; min-height:14px;
+}
+.count b{color:var(--app-accent2);}
+
+/* ─────────────── riquadri informativi (copia di .info-box) ─────────────── */
+.note{
+  background:var(--card2); border:1px solid var(--border);
+  border-left:3px solid var(--app-support2); border-radius:var(--r-sm);
+  padding:11px 13px; margin-top:12px; text-align:left;
+  font-size:12px; line-height:1.6; color:var(--muted2); box-shadow:var(--edge);
+}
+.note:empty{display:none;}
+.note b{color:var(--text);}
+.note.esito{border-left-color:var(--app-accent); color:var(--text); font-size:12.5px;}
+.note.esito.err{border-left-color:var(--danger);}
+.note.recap{border-left-color:var(--app-accent);}
+.note.recap b{
+  color:var(--app-accent2); font-family:'Barlow Condensed',sans-serif;
+  font-size:15px; font-weight:800; font-variant-numeric:tabular-nums;
+  padding:0 1px;
+}
+.note.avviso{border-left-color:var(--warn);}
+
+/* ─────────────── stato vuoto (copia di .empty-state) ─────────────── */
+.empty-state{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:38px 20px; text-align:center; color:var(--muted); border-radius:var(--r);
+  background:radial-gradient(360px 220px at 50% 0%,
+             color-mix(in srgb,var(--app-accent) 7%,transparent),transparent 70%);
+}
+.empty-icon{
+  margin-bottom:12px; line-height:0; color:var(--app-accent2); opacity:.55;
+  filter:drop-shadow(0 0 16px color-mix(in srgb,var(--app-accent) 30%,transparent));
+}
+.empty-icon svg{
+  width:46px; height:46px; stroke:currentColor; fill:none; stroke-width:1.3;
+  stroke-linecap:round; stroke-linejoin:round;
+}
+.empty-title{
+  font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:800;
+  letter-spacing:2px; text-transform:uppercase; color:var(--text); margin-bottom:6px;
+}
+.empty-sub{font-size:12px; color:var(--muted); max-width:300px; line-height:1.55;}
+.empty-sub b{color:var(--muted2);}
+
+/* ══════════════════════════════════════════════════════════════════════
+   SERIE STORICA — il pezzo forte di Sentinella.
+   Deve leggersi come uno strumento di misura: pannello scuro, griglia
+   discreta, assi etichettati, soglia inequivocabile. La soglia è quella
+   impostata dall'utente sul punto: qui si disegna soltanto.
+   ══════════════════════════════════════════════════════════════════════ */
+.graf{
+  position:relative; overflow:hidden;
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--app-accent); border-top:none;
+  border-radius:0 0 var(--r) var(--r);
+  padding:12px 13px 11px; margin:0 0 10px;
+  box-shadow:var(--sh3),var(--edge);
+}
+.graf-head{
+  display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;
+  padding-bottom:8px; border-bottom:1px solid var(--border);
+}
+.graf-title{
+  font-family:'Barlow Condensed',sans-serif; font-size:11.5px; font-weight:800;
+  letter-spacing:2.5px; text-transform:uppercase; color:var(--app-accent2);
+}
+.graf-meta{font-size:11px; color:var(--muted); margin-left:auto; font-variant-numeric:tabular-nums;}
+
+/* quadrante di lettura: ultimo valore, massimo, superamenti */
+.graf-stats{
+  display:flex; margin:10px 0 11px; overflow:hidden;
+  background:var(--dark); border:1px solid var(--border); border-radius:var(--r-sm);
+  box-shadow:var(--edge);
+}
+.graf-stat{flex:1 1 0; min-width:0; padding:7px 10px 8px; border-right:1px solid var(--border);}
+.graf-stat:last-child{border-right:none;}
+.graf-stat .k{
+  font-family:'Barlow',sans-serif; font-size:8px; font-weight:600;
+  letter-spacing:1.1px; text-transform:uppercase; color:var(--muted);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.graf-stat .v{
+  font-family:'Barlow Condensed',sans-serif; font-size:19px; font-weight:800;
+  line-height:1.15; color:var(--text); font-variant-numeric:tabular-nums;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.graf-stat .v small{font-size:11px; font-weight:600; color:var(--muted); letter-spacing:.5px;}
+.graf-stat.over .v{color:var(--danger);}
+.graf-stat.sotto .v{color:var(--success);}
+
+.graf svg.plot{display:block; width:100%; height:auto; overflow:visible;}
+.graf-grid{stroke:color-mix(in srgb,var(--app-accent) 17%,transparent); stroke-width:1;}
+.graf-ax{stroke:color-mix(in srgb,var(--app-accent) 38%,transparent); stroke-width:1;}
+.graf-tick{
+  fill:var(--muted); font-size:10px; font-family:'Barlow',sans-serif;
+  font-variant-numeric:tabular-nums;
+}
+.graf-axlab{
+  fill:var(--disabled); font-size:8.5px; font-family:'Barlow',sans-serif;
+  letter-spacing:1.4px; text-transform:uppercase;
+}
+.graf-area{stroke:none;}
+/* il gradiente dell'area si tinge con l'accento dell'app: stop-color è
+   una proprietà CSS, così var() funziona anche dentro l'SVG */
+.graf-a0{stop-color:var(--app-accent); stop-opacity:.34;}
+.graf-a1{stop-color:var(--app-accent); stop-opacity:.015;}
+.graf-linea{
+  fill:none; stroke:var(--app-accent2); stroke-width:2.2;
+  stroke-linejoin:round; stroke-linecap:round;
+}
+.graf-pt{fill:var(--card); stroke:var(--app-accent2); stroke-width:1.8;}
+.graf-pt-ultimo{fill:var(--app-accent-soft); stroke:var(--card); stroke-width:1.6;}
+/* superamento: rombo (FORMA diversa) oltre che rosso — si riconosce
+   anche senza distinguere i colori */
+.graf-over{fill:var(--danger); stroke:var(--card); stroke-width:1.4; stroke-linejoin:round;}
+.graf-soglia{stroke:var(--danger); stroke-width:1.8; stroke-dasharray:8 4; stroke-linecap:butt;}
+.graf-zona{fill:var(--danger); opacity:.075;}
+.graf-chip{fill:var(--panel); stroke:var(--danger); stroke-width:1;}
+.graf-chip-txt{
+  fill:var(--danger); font-size:9.5px; font-family:'Barlow Condensed',sans-serif;
+  font-weight:700; letter-spacing:.8px; text-transform:uppercase;
+}
+.graf-leg{
+  display:flex; gap:7px 16px; flex-wrap:wrap; align-items:center;
+  margin-top:10px; padding-top:9px; border-top:1px solid var(--border);
+  font-size:11px; color:var(--muted); line-height:1.35;
+}
+.graf-leg .lg{display:inline-flex; align-items:center; gap:6px;}
+.graf-leg .lg svg{width:24px; height:11px; overflow:visible; flex-shrink:0;}
+.graf-leg .lg b{color:var(--muted2); font-weight:600;}
+.graf-leg .lg.over b{color:var(--danger);}
+.graf-nota{
+  margin-top:8px; font-size:11px; line-height:1.5; color:var(--muted);
+  padding-left:9px; border-left:2px solid var(--warn);
+}
+
+/* ─────────────── navigazione: pillola flottante (copia di #global-nav.bnav) ─────────────── */
+.nav{
+  position:fixed; left:50%; right:auto; transform:translateX(-50%);
+  bottom:calc(8px + env(safe-area-inset-bottom));
+  width:calc(100% - 16px); max-width:520px; z-index:90;
+  display:grid; grid-template-columns:repeat(4,1fr);
+  background:rgba(13,21,29,.97);
+  -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+  border:1px solid var(--border2); border-top:1px solid var(--border2);
+  border-radius:18px; overflow:hidden; padding-bottom:0;
+  box-shadow:0 10px 28px rgba(0,0,0,.5),var(--edge);
+}
+.nav button{
+  position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:3px; padding:10px 2px 9px; min-height:var(--tap);
+  background:none; border:none; border-top:2px solid transparent; cursor:pointer;
+  color:var(--muted); font-family:'Barlow Condensed',sans-serif;
+  font-size:9px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase;
+  transition:color .2s var(--ease),transform .15s var(--ease);
+}
+.nav button:hover{color:var(--app-accent2);}
+.nav button.active{color:var(--app-accent2); border-top-color:var(--app-accent); transform:translateY(-2px);}
+.nav button.active::before{
+  content:""; position:absolute; top:5px; left:50%; transform:translateX(-50%);
+  width:42px; height:30px; border-radius:10px; z-index:0;
+  background:color-mix(in srgb,var(--app-accent) 20%,transparent);
+}
+.nav button>*{position:relative; z-index:1;}
+.nav .ico{display:flex; align-items:center; justify-content:center; height:22px;}
+.nav .ico svg{width:21px; height:21px; stroke:currentColor; fill:none; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round; transition:transform .15s var(--ease),filter .2s;}
+.nav button.active .ico svg{
+  transform:scale(1.06);
+  filter:drop-shadow(0 0 6px color-mix(in srgb,var(--app-accent) 65%,transparent));
+}
+
+/* ─────────────── modale (copia di .modal-* del core) ─────────────── */
+.modal-ov{
+  position:fixed; inset:0; z-index:300; display:none; padding:20px;
+  align-items:center; justify-content:center;
+  background:rgba(5,9,13,.86);
+  -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
+}
+.modal-ov.show{display:flex; animation:ovFade .2s var(--ease);}
+@keyframes ovFade{from{opacity:0} to{opacity:1}}
+.modal-box{
+  position:relative; width:100%; max-width:440px; max-height:92dvh;
+  display:flex; flex-direction:column; overflow:hidden;
+  background:linear-gradient(180deg,var(--panel),var(--dark));
+  border:1px solid var(--border2); border-radius:var(--r);
+  box-shadow:0 20px 60px rgba(0,0,0,.65),var(--edge);
+  animation:fadeUp .25s ease;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)}}
+.modal-head{
+  position:relative; padding:15px 18px; border-bottom:1px solid var(--border);
+  font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:800;
+  letter-spacing:2px; text-transform:uppercase; color:var(--text);
+}
+.modal-head::after{
+  content:""; position:absolute; left:0; right:0; bottom:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--app-accent),transparent); opacity:.55;
+}
+.modal-body{
+  padding:15px 18px; overflow-y:auto; overscroll-behavior:contain; flex:1; max-height:55vh;
+  font-size:13.5px; line-height:1.6; color:var(--muted2); user-select:text;
+}
+.modal-body b{color:var(--text);}
+.modal-body .fl{
+  display:block; font-family:'Barlow',sans-serif; font-size:11px; font-weight:600;
+  letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin:12px 0 6px;
+}
+.modal-foot{
+  padding:12px 18px; border-top:1px solid var(--border); background:var(--dark);
+  display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap;
+  position:sticky; bottom:0;
+}
+.mbtn{
+  background:none; border:1px solid var(--border2); color:var(--text);
+  padding:10px 16px; border-radius:var(--r-sm); min-height:var(--tap);
+  display:inline-flex; align-items:center; justify-content:center;
+  font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700;
+  letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+  transition:all .15s var(--ease);
+}
+.mbtn:hover{border-color:var(--app-accent); color:var(--app-accent2);}
+.mbtn:active{transform:scale(.97);}
+.mbtn.primary{
+  background:var(--grad); border-color:transparent; color:var(--grad-on); font-weight:800;
+  box-shadow:var(--sh-btn),var(--edge-hi);
+}
+.mbtn.primary:hover{filter:brightness(1.07); color:var(--grad-on);}
+.mbtn.danger{background:var(--danger); border-color:var(--danger); color:#2b0705; font-weight:800;}
+.mbtn.danger:hover{filter:brightness(1.08); color:#2b0705;}
+body.modal-open{overflow:hidden;}
+
+/* ─────────────── toast (copia del core) ─────────────── */
+.toast{
+  position:fixed; left:50%; bottom:calc(100px + env(safe-area-inset-bottom));
+  transform:translateX(-50%) translateY(8px);
+  max-width:min(92vw,460px); padding:11px 20px; border-radius:10px;
+  background:var(--grad); color:var(--grad-on); text-align:center;
+  font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:800;
+  letter-spacing:1px; line-height:1.35;
+  box-shadow:0 8px 30px rgba(0,0,0,.5),var(--edge-hi);
+  opacity:0; pointer-events:none; z-index:999;
+  transition:opacity .3s var(--ease),transform .3s var(--ease);
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+.toast.err{background:var(--danger); color:#2b0705;}
+.toast.success{background:var(--success); color:#08160a;}
+
+/* ─────────────── desktop ─────────────── */
+@media(min-width:768px){
+  .top{padding-left:max(24px,calc((100% - 900px) / 2)); padding-right:max(24px,calc((100% - 900px) / 2));}
+  .page{max-width:900px; margin:0 auto; padding-left:24px; padding-right:24px;}
+  .tour-banner{max-width:900px; margin-left:auto; margin-right:auto;}
+  .kpis{grid-template-columns:repeat(4,1fr);}
+  .nav{max-width:560px;}
+  .logo-sm{font-size:18px;}
+}
+@media(max-width:360px){
+  .page{padding-left:10px; padding-right:10px;}
+  .top{padding-left:10px; padding-right:10px;}
+  .nav button{font-size:8px; letter-spacing:.8px;}
+  .graf-stat{padding:6px 7px 7px;}
+  .graf-stat .v{font-size:16px;}
+}
+
+/* ─────────────── touch: come il core, niente effetti "incollati" ─────────────── */
+@media(hover:none),(pointer:coarse){
+  body.dw::before{display:none !important;}
+  .top::after{display:none !important;}
+  .top{border-bottom:2px solid color-mix(in srgb,var(--app-accent) 45%,transparent) !important;}
+  .item::after,.kpi::after{display:none !important;}
+  .top,.nav{backdrop-filter:none !important; -webkit-backdrop-filter:none !important;}
+  .top{background:#101b25 !important;}
+  .nav{background:#101b25 !important;}
+  input,textarea,select,.dw-input{font-size:16px !important;}
+  .item:hover,.kpi:hover,.dw-btn.secondary:hover,.chg:hover{transform:none !important;}
+  .item:hover{background:var(--card); box-shadow:var(--sh1),var(--edge);}
+  .item.aperto:hover{background:var(--card2);}
+  .item:active,.kpi:active{transform:scale(.985);}
+  .nav .ico svg{filter:none !important;}
+  .empty-icon{filter:none !important;}
+}
+@media(prefers-reduced-motion:reduce){
+  *{transition:none !important; animation:none !important;}
+  .item::after,.kpi::after{display:none !important;}
+}
 </style>
 </head>
 <body class="dw">
 
-<div class="top">
-  <a class="dw-home" href="../index.html">⌂ ecosistema</a>
-  <h1>SENTINELLA <span class="accent">·</span> <span style="font-size:14px;color:var(--muted2);">AMBIENTE / HSE</span></h1>
-  <div class="sub">Ecosistema Deepwork</div>
-</div>
+<header class="top">
+  <div class="top-brand">
+    <div class="logo-sm">Sentinella</div>
+    <div class="role-sm">Ambiente &amp; monitoraggi · Deepwork</div>
+  </div>
+  <a class="dw-home" href="../index.html" title="Torna all'ecosistema Deepwork" aria-label="Torna all'ecosistema Deepwork"><svg viewBox="0 0 24 24"><path d="M3.5 10.4L12 3.5l8.5 6.9V20a1.5 1.5 0 0 1-1.5 1.5h-4v-6h-6v6H5A1.5 1.5 0 0 1 3.5 20z"/></svg></a>
+</header>
 <div class="tour-banner" id="tour-banner" style="display:none;">
-  Modalità tour — dati di esempio, sola lettura
+  <b>Modalità tour.</b> Stai guardando dati di esempio: puoi provare tutto,
+  ma nulla viene salvato.
 </div>
 
 <!-- DASHBOARD -->
 <div class="page active" id="page-dash">
+  <div class="sec">Quadro ambientale</div>
   <div class="kpis">
-    <div class="kpi accent" style="cursor:pointer" data-goto="mon" data-filtro="tutti" title="Vedi i monitoraggi"><div class="n">—</div><div class="l">Monitoraggi attivi</div></div>
-    <div class="kpi danger" style="cursor:pointer" data-goto="mon" data-filtro="danger" title="Vedi i superamenti"><div class="n">—</div><div class="l">Superamenti soglia</div></div>
-    <div class="kpi warn" style="cursor:pointer" data-goto="ade" title="Vedi gli adempimenti"><div class="n">—</div><div class="l">Adempimenti 30gg</div></div>
-    <div class="kpi ok" style="cursor:pointer" data-goto="mon" data-filtro="ok" title="Vedi i monitoraggi conformi"><div class="n">—</div><div class="l">Conformi</div></div>
+    <div class="kpi danger" role="button" tabindex="0" style="cursor:pointer" data-goto="mon" data-filtro="danger" title="Vedi i punti in superamento"><div class="l">Superamenti soglia</div><div class="n" id="k-super">—</div></div>
+    <div class="kpi warn" role="button" tabindex="0" style="cursor:pointer" data-goto="ade" title="Vedi gli adempimenti in scadenza"><div class="l">Adempimenti 30gg</div><div class="n" id="k-ade">—</div></div>
+    <div class="kpi ok" role="button" tabindex="0" style="cursor:pointer" data-goto="mon" data-filtro="ok" title="Vedi i punti conformi"><div class="l">Punti conformi</div><div class="n" id="k-conf">—</div></div>
+    <div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-goto="mon" data-filtro="tutti" title="Vedi tutti i punti di misura"><div class="l">Punti in ascolto</div><div class="n" id="k-attivi">—</div></div>
   </div>
 
+  <div id="conf-banner"></div>
   <div class="sec">Allerte</div>
   <div id="all-list"></div>
 </div>
 
 <div class="page" id="page-mon">
-  <div class="sec">Centraline e sensori</div>
-  <div id="mon-filtri" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
-    <button class="dw-btn secondary" data-filtro="tutti" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Tutti</button>
-    <button class="dw-btn secondary" data-filtro="ok" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Conformi</button>
-    <button class="dw-btn secondary" data-filtro="warn" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Attenzione</button>
-    <button class="dw-btn secondary" data-filtro="danger" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Superamenti</button>
+  <div class="sec">Centraline e sensori<span class="cnt" id="mon-tot">0</span></div>
+  <div id="mon-conf" class="note recap" style="margin-top:0;"></div>
+  <div id="mon-filtri" class="chgs" style="margin-top:10px;">
+    <button class="chg active" data-filtro="tutti">Tutti</button>
+    <button class="chg" data-filtro="ok">Conformi</button>
+    <button class="chg" data-filtro="warn">Attenzione</button>
+    <button class="chg" data-filtro="danger">Superamenti</button>
   </div>
-  <div id="mon-conf" class="note" style="text-align:left;"></div>
-  <div style="display:flex;align-items:center;gap:6px;margin:2px 0 10px;">
-    <span class="dw-muted" style="font-size:12px;">Ordina:</span>
-    <select id="mon-ord" class="dw-input" style="width:auto;min-height:32px;padding:2px 8px;font-size:12px;">
+  <div class="ord">
+    <label for="mon-ord">Ordina</label>
+    <select id="mon-ord" class="dw-input">
       <option value="criticita">Criticità (dal più critico)</option>
       <option value="margine">Margine (dal più tranquillo)</option>
       <option value="nome">Nome (A→Z)</option>
     </select>
   </div>
-  <input class="dw-input" id="mon-cerca" type="search" placeholder="🔍 Cerca per nome o nota…" style="margin-bottom:6px;">
-  <div id="mon-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
+  <input class="dw-input" id="mon-cerca" type="search" placeholder="Cerca per nome o nota…" style="margin-bottom:8px;">
+  <div id="mon-count" class="count"></div>
   <div id="mon-list"></div>
+
   <div class="sec">Registra misura</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <select class="dw-input" id="mis-sensore" style="flex:2;min-width:150px;"></select>
-    <input class="dw-input" id="mis-valore" type="number" step="0.1" placeholder="Valore" style="flex:1;min-width:90px;">
-    <button class="dw-btn" id="btn-mis" style="width:auto;">Registra</button>
+  <div class="form">
+    <select class="dw-input" id="mis-sensore" style="flex:2 1 190px;"></select>
+    <input class="dw-input" id="mis-valore" type="number" step="0.1" placeholder="Valore letto" style="flex:1 1 120px;">
+    <button class="dw-btn" id="btn-mis">Registra</button>
+    <div class="form-hint">Ogni lettura si <b>accoda allo storico</b> del punto: la serie storica qui sopra si aggiorna e mostra subito se il valore ha superato la soglia.</div>
   </div>
-  <div class="note" id="mis-esito" style="text-align:left;"></div>
-  <div class="sec">Nuovo sensore</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-    <select class="dw-input" id="sen-preset" style="flex:1;min-width:100%;">
+  <div class="note esito" id="mis-esito"></div>
+
+  <div class="sec">Nuovo punto di misura</div>
+  <div class="form col">
+    <select class="dw-input" id="sen-preset">
       <option value="">Soglia normativa preimpostata… (facoltativa)</option>
     </select>
+    <div class="note avviso" id="sen-preset-nota" style="display:none;margin-top:0;"></div>
+    <div class="frow">
+      <input class="dw-input" id="sen-nome" placeholder="Nome (es. Polveri P2 — piazzale)" style="flex:2 1 190px;">
+      <input class="dw-input" id="sen-unita" placeholder="Unità (es. µg/m³)" style="flex:1 1 120px;">
+    </div>
+    <div class="frow">
+      <input class="dw-input" id="sen-soglia" type="number" step="0.1" min="0" placeholder="Soglia" style="flex:1 1 120px;">
+      <button class="dw-btn" id="btn-sen">Aggiungi</button>
+    </div>
   </div>
-  <div class="note" id="sen-preset-nota" style="text-align:left;display:none;"></div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <input class="dw-input" id="sen-nome" placeholder="Nome (es. Polveri P2 — piazzale)" style="flex:2;min-width:160px;">
-    <input class="dw-input" id="sen-unita" placeholder="Unità (es. µg/m³)" style="flex:1;min-width:90px;">
-    <input class="dw-input" id="sen-soglia" type="number" step="0.1" min="0" placeholder="Soglia" style="flex:1;min-width:80px;">
-    <button class="dw-btn" id="btn-sen" style="width:auto;">Aggiungi</button>
+  <div class="tools">
+    <button class="dw-btn secondary" id="btn-import-mon">Importa sensori (CSV)</button>
+    <input type="file" id="mon-file" accept=".csv,text/csv" style="display:none;">
   </div>
-  <button class="dw-btn secondary" id="btn-import-mon" style="width:auto;margin-top:8px;">Importa sensori (CSV)</button>
-  <input type="file" id="mon-file" accept=".csv,text/csv" style="display:none;">
+  <div class="form-hint" style="margin-top:8px;">Colonne del file: <b>nome; tipo; valore; soglia; unita; nota</b>.</div>
 
   <div class="sec">Distanza scalata (volate)</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-    <label class="note" style="margin:0;">Carica/ritardo
-      <input class="dw-input" id="sd-carica" type="number" min="0" step="1" placeholder="kg" style="width:80px;display:inline-block;margin-left:4px;"></label>
-    <label class="note" style="margin:0;">Distanza
-      <input class="dw-input" id="sd-dist" type="number" min="0" step="1" placeholder="m" style="width:80px;display:inline-block;margin-left:4px;"></label>
-    <label class="note" style="margin:0;">SD obiettivo
-      <input class="dw-input" id="sd-target" type="number" min="0" step="1" placeholder="m/√kg" style="width:90px;display:inline-block;margin-left:4px;" title="Distanza scalata di sicurezza da non scendere (dallo storico del sito / soglia PPV)"></label>
+  <div class="form">
+    <label class="flab" for="sd-carica">Carica per ritardo
+      <input class="dw-input" id="sd-carica" type="number" min="0" step="1" placeholder="kg"></label>
+    <label class="flab" for="sd-dist">Distanza ricettore
+      <input class="dw-input" id="sd-dist" type="number" min="0" step="1" placeholder="m"></label>
+    <label class="flab" for="sd-target">SD obiettivo
+      <input class="dw-input" id="sd-target" type="number" min="0" step="1" placeholder="m/√kg" title="Distanza scalata di sicurezza da non scendere (dallo storico del sito / soglia PPV)"></label>
   </div>
-  <div id="sd-out" class="note" style="text-align:left;margin-top:8px;">Inserisci carica per ritardo (kg) e distanza (m) del ricettore per la distanza scalata SD = R/√W.</div>
-  <div id="sd-max" class="note" style="text-align:left;margin-top:4px;"></div>
+  <div id="sd-out" class="note">Inserisci carica per ritardo (kg) e distanza (m) del ricettore per la distanza scalata SD = R/√W.</div>
+  <div id="sd-max" class="note recap"></div>
 </div>
 
 <div class="page" id="page-ade">
-  <div class="sec">Scadenze ambientali</div>
-  <input class="dw-input" id="ade-cerca" type="search" placeholder="🔍 Cerca per titolo o ente…" style="margin-bottom:6px;">
-  <div id="ade-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
+  <div class="sec">Scadenze ambientali<span class="cnt" id="ade-tot">0</span></div>
+  <input class="dw-input" id="ade-cerca" type="search" placeholder="Cerca per titolo o ente…" style="margin-bottom:8px;">
+  <div id="ade-count" class="count"></div>
   <div id="ade-list"></div>
   <div class="sec">Nuovo adempimento</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <input class="dw-input" id="ade-titolo" placeholder="Titolo (es. Relazione annuale AUA)" style="flex:2;min-width:160px;">
-    <input class="dw-input" id="ade-ente" placeholder="Ente (es. ARPA)" style="flex:1;min-width:90px;">
-    <input class="dw-input" id="ade-data" type="date" style="flex:1;min-width:130px;">
-    <button class="dw-btn" id="btn-ade" style="width:auto;">Aggiungi</button>
+  <div class="form col">
+    <div class="frow">
+      <input class="dw-input" id="ade-titolo" placeholder="Titolo (es. Relazione annuale AUA)" style="flex:2 1 200px;">
+      <input class="dw-input" id="ade-ente" placeholder="Ente (es. ARPA)" style="flex:1 1 130px;">
+    </div>
+    <div class="frow">
+      <input class="dw-input" id="ade-data" type="date" title="Entro quando" style="flex:1 1 160px;">
+      <button class="dw-btn" id="btn-ade">Aggiungi</button>
+    </div>
   </div>
-  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-    <button class="dw-btn secondary" id="btn-ade-import" style="width:auto;">Importa scadenze (CSV)</button>
+  <div class="tools">
+    <button class="dw-btn secondary" id="btn-ade-import">Importa scadenze (CSV)</button>
     <input type="file" id="ade-file" accept=".csv,text/csv" style="display:none;">
-    <span class="dw-muted" style="font-size:12px;">colonne: titolo;ente;scadenza</span>
   </div>
-  <div class="note" id="ade-esito" style="text-align:left;"></div>
-  </div>
+  <div class="form-hint" style="margin-top:8px;">Colonne del file: <b>titolo; ente; scadenza</b>.</div>
+  <div class="note esito" id="ade-esito"></div>
+</div>
 
 <div class="page" id="page-reg">
   <div class="sec">Registri</div>
   <div id="reg-list"></div>
-  <button class="dw-btn secondary" id="btn-export-amb" style="width:auto;margin-top:8px;">Esporta monitoraggi e adempimenti (CSV)</button>
+  <div class="tools">
+    <button class="dw-btn secondary" id="btn-export-amb">Esporta monitoraggi e adempimenti (CSV)</button>
+  </div>
 
-  <div class="sec">Registro volate (brogliaccio di brillamento)</div>
-  <div id="vol-riep" class="note" style="text-align:left;"></div>
-  <div id="vol-list"></div>
+  <div class="sec">Registro volate<span class="cnt" id="vol-tot">0</span></div>
+  <div id="vol-riep" class="note recap" style="margin-top:0;"></div>
+  <div id="vol-list" style="margin-top:10px;"></div>
   <div class="sec">Registra volata</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <input class="dw-input" id="vol-data" type="date" style="flex:1;min-width:130px;">
-    <input class="dw-input" id="vol-fronte" placeholder="Fronte" style="flex:1;min-width:120px;">
-    <input class="dw-input" id="vol-nfori" type="number" min="0" placeholder="N° fori" style="flex:1;min-width:90px;">
-    <input class="dw-input" id="vol-kg" type="number" min="0" placeholder="kg totali" style="flex:1;min-width:100px;">
-    <input class="dw-input" id="vol-kgmax" type="number" min="0" placeholder="kg max/ritardo" style="flex:1;min-width:120px;">
-    <input class="dw-input" id="vol-dist" type="number" min="0" placeholder="Distanza ricettore (m)" style="flex:1;min-width:150px;">
-    <select class="dw-input" id="vol-esito" style="flex:1;min-width:130px;"><option value="regolare">Regolare</option><option value="contestazione">Con contestazione</option></select>
-    <button class="dw-btn" id="btn-vol" style="width:auto;">Registra</button>
+  <div class="form col">
+    <div class="frow">
+      <input class="dw-input" id="vol-data" type="date" title="Data della volata" style="flex:1 1 160px;">
+      <input class="dw-input" id="vol-fronte" placeholder="Fronte" style="flex:1 1 140px;">
+    </div>
+    <div class="frow">
+      <input class="dw-input" id="vol-nfori" type="number" min="0" placeholder="N° fori" style="flex:1 1 110px;">
+      <input class="dw-input" id="vol-kg" type="number" min="0" placeholder="kg totali" style="flex:1 1 120px;">
+      <input class="dw-input" id="vol-kgmax" type="number" min="0" placeholder="kg max/ritardo" style="flex:1 1 140px;">
+    </div>
+    <div class="frow">
+      <input class="dw-input" id="vol-dist" type="number" min="0" placeholder="Distanza ricettore (m)" style="flex:2 1 180px;">
+      <select class="dw-input" id="vol-esito" style="flex:1 1 150px;"><option value="regolare">Regolare</option><option value="contestazione">Con contestazione</option></select>
+      <button class="dw-btn" id="btn-vol">Registra</button>
+    </div>
   </div>
-  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-    <button class="dw-btn secondary" id="btn-vol-import" style="width:auto;">Importa da CSV</button>
-    <button class="dw-btn secondary" id="btn-vol-export" style="width:auto;">Esporta CSV</button>
+  <div class="tools">
+    <button class="dw-btn secondary" id="btn-vol-import">Importa da CSV</button>
+    <button class="dw-btn secondary" id="btn-vol-export">Esporta CSV</button>
     <input type="file" id="vol-file" accept=".csv,text/csv" style="display:none;">
-    <span class="dw-muted" style="font-size:12px;">colonne: data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note</span>
   </div>
-  <div class="note" id="vol-esito-msg" style="text-align:left;"></div>
-  <div class="note" style="text-align:left;">SD = distanza scalata (R/√W con W = kg max per ritardo): più è alta, minore è il rischio di superare le soglie di vibrazione al ricettore.</div>
-  <div class="note" id="mode-note" style="text-align:left;"></div>
+  <div class="form-hint" style="margin-top:8px;">Colonne del file: <b>data; fronte; nFori; kgTotali; kgMaxRitardo; distanzaRicettore; esito; note</b>.</div>
+  <div class="note esito" id="vol-esito-msg"></div>
+  <div class="note"><b>SD</b> = distanza scalata (R/√W con W = kg max per ritardo): più è alta, minore è il rischio di superare le soglie di vibrazione al ricettore. Il brogliaccio è un documento verso gli enti: tienilo completo.</div>
+  <div class="note" id="mode-note"></div>
 </div>
 
-<div class="nav">
-  <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico">▦</span>Quadro</button>
-  <button id="nav-mon" onclick="go('mon')"><span class="ico">📡</span>Monitoraggi</button>
-  <button id="nav-ade" onclick="go('ade')"><span class="ico">📋</span>Adempimenti</button>
-  <button id="nav-reg" onclick="go('reg')"><span class="ico">📚</span>Registri</button>
+<nav class="nav" aria-label="Sezioni di Sentinella">
+  <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg></span>Quadro</button>
+  <button id="nav-mon" onclick="go('mon')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M12 21v-6.2"/><path d="M4.6 15.2A9.4 9.4 0 0 1 3.2 10 8.8 8.8 0 0 1 12 2.6 8.8 8.8 0 0 1 20.8 10a9.4 9.4 0 0 1-1.4 5.2"/><path d="M7.9 13.6A5.6 5.6 0 0 1 7 10.4 5 5 0 0 1 12 6a5 5 0 0 1 5 4.4 5.6 5.6 0 0 1-.9 3.2"/><circle cx="12" cy="10.4" r="1.5"/><path d="M8.8 21h6.4"/></svg></span>Monitoraggi</button>
+  <button id="nav-ade" onclick="go('ade')"><span class="ico"><svg viewBox="0 0 24 24"><rect x="4" y="4.5" width="16" height="16.5" rx="2.4"/><path d="M4 9.4h16"/><path d="M8.4 2.6v3.6M15.6 2.6v3.6"/><path d="M8.6 13.6l2.2 2.2 4.4-4.4"/></svg></span>Adempimenti</button>
+  <button id="nav-reg" onclick="go('reg')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M4 5a2.4 2.4 0 0 1 2.4-2.4H19V18H6.4A2.4 2.4 0 0 0 4 20.4z"/><path d="M4 20.4A2.4 2.4 0 0 1 6.4 18H19v3.4H6.4A2.4 2.4 0 0 1 4 20.4z"/><path d="M8.4 7.4h6.2M8.4 11h4.2"/></svg></span>Registri</button>
+</nav>
+
+<!-- modale in stile core: sostituisce alert()/confirm()/prompt() del browser -->
+<div class="modal-ov" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-box">
+    <div class="modal-head" id="modal-title">Conferma</div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot" id="modal-foot"></div>
+  </div>
 </div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
   function go(id) {
@@ -189,6 +932,87 @@
     document.getElementById("nav-" + id).classList.add("active");
     window.scrollTo(0, 0);
   }
+
+  /* ── Toast del core: nessun alert() del browser ────────────────────── */
+  let toastT = null;
+  function toast(msg, tipo) {
+    const t = document.getElementById("toast");
+    t.className = "toast " + (tipo || "");
+    t.textContent = msg;
+    void t.offsetWidth;
+    t.classList.add("show");
+    clearTimeout(toastT);
+    toastT = setTimeout(() => t.classList.remove("show"), msg.length > 70 ? 4200 : 2800);
+  }
+
+  /* ── Modale del core: sostituisce confirm() e prompt() ─────────────── */
+  let modalPrec = null;
+  function apriModale(titolo, corpo, bottoni) {
+    modalPrec = document.activeElement;
+    document.getElementById("modal-title").textContent = titolo;
+    document.getElementById("modal-body").innerHTML = corpo;
+    const foot = document.getElementById("modal-foot");
+    foot.innerHTML = "";
+    (bottoni || []).forEach(b => {
+      const el = document.createElement("button");
+      el.className = "mbtn " + (b.cls || "");
+      el.textContent = b.label;
+      el.onclick = b.azione;
+      foot.appendChild(el);
+    });
+    document.getElementById("modal").classList.add("show");
+    document.body.classList.add("modal-open");
+    const primo = document.getElementById("modal-body").querySelector("input,select,textarea")
+               || foot.querySelector(".mbtn.primary,.mbtn.danger") || foot.querySelector(".mbtn");
+    if (primo) setTimeout(() => { try { primo.focus({ preventScroll: true }); primo.select && primo.select(); } catch (e) {} }, 80);
+  }
+  function chiudiModale() {
+    document.getElementById("modal").classList.remove("show");
+    document.body.classList.remove("modal-open");
+    if (modalPrec && modalPrec.focus) { try { modalPrec.focus({ preventScroll: true }); } catch (e) {} }
+    modalPrec = null;
+  }
+  // Conferma in stile core: restituisce una Promise<boolean>
+  function chiedi(titolo, corpo, etichettaOk, pericolo) {
+    return new Promise(res => {
+      apriModale(titolo, corpo, [
+        { label: "Annulla", azione: () => { chiudiModale(); res(false); } },
+        { label: etichettaOk || "Conferma", cls: pericolo ? "danger" : "primary",
+          azione: () => { chiudiModale(); res(true); } },
+      ]);
+    });
+  }
+  document.getElementById("modal").addEventListener("click", e => {
+    if (e.target.id === "modal") { const b = document.querySelector("#modal-foot .mbtn"); if (b) b.click(); }
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Escape") return;
+    const m = document.getElementById("modal");
+    if (m && m.classList.contains("show")) { const b = m.querySelector("#modal-foot .mbtn"); if (b) b.click(); }
+  });
+  // KPI raggiungibili da tastiera (Invio/Spazio = tocco)
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const k = e.target.closest && e.target.closest(".kpi[data-goto]");
+    if (k) { e.preventDefault(); k.click(); }
+  });
+
+  /* ── Alone che segue il mouse (firma dinamica del core: --mx/--my) ─── */
+  (function () {
+    if (matchMedia("(prefers-reduced-motion:reduce)").matches) return;
+    if (!matchMedia("(hover:hover) and (pointer:fine)").matches) return;
+    const sel = ".item,.kpi";
+    let cur = null, px = 50, py = 50, pend = false;
+    const apply = () => { pend = false; if (cur) { cur.style.setProperty("--mx", px + "%"); cur.style.setProperty("--my", py + "%"); } };
+    window.addEventListener("pointermove", e => {
+      const t = e.target.closest ? e.target.closest(sel) : null;
+      cur = t; if (!t) return;
+      const r = t.getBoundingClientRect();
+      px = (e.clientX - r.left) / r.width * 100;
+      py = (e.clientY - r.top) / r.height * 100;
+      if (!pend) { pend = true; requestAnimationFrame(apply); }
+    }, { passive: true });
+  })();
 </script>
 
 <script type="module">
@@ -197,6 +1021,46 @@
   const $ = (id) => document.getElementById(id);
   const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
   const RB = { aggiornato: ["ok","Aggiornato"], "in-attesa": ["warn","In attesa"] };
+
+  // ── Messaggi: toast del core + traccia scritta accanto al form ────────
+  // (l'esito resta visibile per chi torna a guardare, il toast lo annuncia)
+  // `breve` è il testo del toast quando quello scritto è troppo lungo per
+  // una striscia: la nota accanto al form resta completa, il toast annuncia.
+  const esito = (id, testo, tipo, breve) => {
+    const el = $(id); if (el) { el.textContent = testo; el.className = "note esito" + (tipo === "err" ? " err" : ""); }
+    if (testo) toast(breve || testo, tipo);
+  };
+  const pulisci = (id) => { const el = $(id); if (el) el.textContent = ""; };
+  // ── Errori di campo: bordo rosso + messaggio utile, mai un alert ──────
+  const err = (id, on) => { const el = $(id); if (el) el.classList.toggle("err", !!on); };
+  // primo campo sbagliato: bordo rosso E fuoco, così il dito è già dove serve
+  const fuocoErr = (ids) => { const p = ids.find(i => $(i) && $(i).classList.contains("err"));
+    if (p) { try { $(p).focus({ preventScroll: false }); } catch (e) {} } };
+
+  // stato vuoto in stile core: icona, titolo, spiegazione di cosa fare
+  const vuoto = (icona, titolo, sotto) =>
+    `<div class="empty-state"><div class="empty-icon">${icona}</div>
+      <div class="empty-title">${titolo}</div><div class="empty-sub">${sotto}</div></div>`;
+
+  // ── Icone disegnate (stessa famiglia di quelle del menu): niente emoji ──
+  const I = {
+    sensore: '<svg viewBox="0 0 24 24"><path d="M12 21v-6.2"/><path d="M4.6 15.2A9.4 9.4 0 0 1 3.2 10 8.8 8.8 0 0 1 12 2.6 8.8 8.8 0 0 1 20.8 10a9.4 9.4 0 0 1-1.4 5.2"/><path d="M7.9 13.6A5.6 5.6 0 0 1 7 10.4 5 5 0 0 1 12 6a5 5 0 0 1 5 4.4 5.6 5.6 0 0 1-.9 3.2"/><circle cx="12" cy="10.4" r="1.5"/><path d="M8.8 21h6.4"/></svg>',
+    onda:    '<svg viewBox="0 0 24 24"><path d="M2.5 12h2.8l2-6.4 3.2 13L14 8.6l1.6 3.4h5.9"/></svg>',
+    serie:   '<svg viewBox="0 0 24 24"><path d="M3 3.5v17h18"/><path d="M6.5 15.5l4-4.5 3 2.6 4.4-6"/><circle cx="6.5" cy="15.5" r="1.2"/><circle cx="17.9" cy="7.6" r="1.2"/></svg>',
+    chiudi:  '<svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>',
+    modifica:'<svg viewBox="0 0 24 24"><path d="M4 20h4.2L19.4 8.8a2.2 2.2 0 0 0 0-3.1l-1.1-1.1a2.2 2.2 0 0 0-3.1 0L4 15.8z"/><path d="M13.8 6.2l4 4"/></svg>',
+    cestino: '<svg viewBox="0 0 24 24"><path d="M4.5 6.6h15"/><path d="M9.4 6.6V4.5h5.2v2.1"/><path d="M6.6 6.6l.9 13a1.8 1.8 0 0 0 1.8 1.7h5.4a1.8 1.8 0 0 0 1.8-1.7l.9-13"/><path d="M10.4 10.6v6.6M13.6 10.6v6.6"/></svg>',
+    fatto:   '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.2 12.3l2.7 2.7 5-5.4"/></svg>',
+    scudo:   '<svg viewBox="0 0 24 24"><path d="M12 2.6l7.5 3v6.1c0 4.6-3.1 8.8-7.5 10-4.4-1.2-7.5-5.4-7.5-10V5.6z"/><path d="M8.8 12.2l2.3 2.3 4.3-4.6"/></svg>',
+    allerta: '<svg viewBox="0 0 24 24"><path d="M10.3 3.6L2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.6a2 2 0 0 0-3.4 0z"/><path d="M12 9.2v4.4M12 17.2h.01"/></svg>',
+    calendario:'<svg viewBox="0 0 24 24"><rect x="4" y="4.5" width="16" height="16.5" rx="2.4"/><path d="M4 9.4h16"/><path d="M8.4 2.6v3.6M15.6 2.6v3.6"/></svg>',
+    registro:'<svg viewBox="0 0 24 24"><path d="M4 5a2.4 2.4 0 0 1 2.4-2.4H19V18H6.4A2.4 2.4 0 0 0 4 20.4z"/><path d="M4 20.4A2.4 2.4 0 0 1 6.4 18H19v3.4H6.4A2.4 2.4 0 0 1 4 20.4z"/><path d="M8.4 7.4h6.2M8.4 11h4.2"/></svg>',
+    volata:  '<svg viewBox="0 0 24 24"><path d="M12 2.6v5M12 16.4v5M2.6 12h5M16.4 12h5"/><path d="M5.6 5.6l3.1 3.1M18.4 5.6l-3.1 3.1M5.6 18.4l3.1-3.1M18.4 18.4l-3.1-3.1"/><circle cx="12" cy="12" r="3"/></svg>',
+    cerca:   '<svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.8"/><path d="M15.5 15.5L21 21"/></svg>',
+    avanti:  '<svg viewBox="0 0 24 24"><path d="M9.5 5.5l7 6.5-7 6.5"/></svg>',
+  };
+  // classe della striscia laterale: lo stato si legge anche senza colore
+  const striscia = { danger: "st-danger", warn: "st-warn", ok: "st-ok", accent: "st-accent" };
 
   const db = await sentinellaData();
   mountExit(db);
@@ -213,42 +1077,132 @@
   // geometria arriva da serieStorica() in sentinella-data.js; qui si
   // disegna soltanto. La soglia è quella impostata dall'utente sul
   // punto: non ne esistono altre e non ne vengono inventate.
+  let grafSeq = 0;   // id univoci per i gradienti SVG (più grafici in pagina)
+  // Il grafico è un SVG con viewBox: se la geometria restasse quella del
+  // telefono, su desktop verrebbe ingrandita 2,5 volte e testi e tratti
+  // sembrerebbero un disegno gonfiato. Si chiede quindi a serieStorica una
+  // geometria vicina alla larghezza reale, così 1 unità ≈ 1 pixel su
+  // entrambi e la tipografia resta quella giusta.
+  const GRAF_LARGO = matchMedia("(min-width:768px)");
+  const grafGeom = () => GRAF_LARGO.matches
+    ? { larghezza: 720, altezza: 300, maxEtichette: 8 }
+    : { larghezza: 360, altezza: 215 };
+  GRAF_LARGO.addEventListener("change", () => { if (grafMon) refresh(); });
   function svgSerie(m) {
-    const g = serieStorica(m, { larghezza: 320, altezza: 170 });
+    const g = serieStorica(m, grafGeom());
     const unita = unitaMisura(m);
-    if (g.vuoto) return `<div class="graf-vuoto"><b>Nessuna lettura registrata</b> per «${esc(m.nome)}».<br>
-      Registra una misura qui sotto (o importa i dati dello strumento): da quel momento la serie storica compare in questo riquadro.</div>`;
-    const B = g.box;
-    const griglia = g.yTicks.map(t =>
-      `<line class="graf-grid" x1="${B.x0}" y1="${t.y}" x2="${B.x1}" y2="${t.y}"/>` +
-      `<text class="graf-tick" x="${B.x0 - 5}" y="${t.y + 3}" text-anchor="end">${esc(t.label)}</text>`).join("");
+    const u = unita ? " <small>" + esc(unita) + "</small>" : "";
+    if (g.vuoto) return `<div class="graf-head"><span class="graf-title">Serie storica</span></div>` +
+      vuoto(I.serie, "Nessuna lettura",
+        `Per «<b>${esc(m.nome)}</b>» non c'è ancora nessuna misura registrata. Usa <b>Registra misura</b> qui sotto (o importa i dati dello strumento): la serie storica compare da quel momento.`);
+
+    const B = g.box, uid = "sg" + (++grafSeq);
+    const sogliaViva = g.lineaSoglia && !g.lineaSoglia.fuoriScala;
+
+    /* ── fondo: zona oltre soglia + griglia. Leggere, mai invadenti ── */
+    const zona = sogliaViva && g.lineaSoglia.y > B.y0
+      ? `<rect class="graf-zona" x="${B.x0}" y="${B.y0}" width="${B.x1 - B.x0}" height="${(g.lineaSoglia.y - B.y0).toFixed(1)}"/>` : "";
+    const grigliaY = g.yTicks.map(t =>
+      `<line class="graf-grid" x1="${B.x0}" y1="${t.y}" x2="${B.x1}" y2="${t.y}"/>`).join("");
+    const grigliaX = g.xTicks.map(t =>
+      `<line class="graf-grid" x1="${t.x}" y1="${B.y0}" x2="${t.x}" y2="${B.y1}"/>`).join("");
+
+    /* ── assi con etichette leggibili (10px, cifre allineate) ── */
     const assi = `<line class="graf-ax" x1="${B.x0}" y1="${B.y0}" x2="${B.x0}" y2="${B.y1}"/>` +
       `<line class="graf-ax" x1="${B.x0}" y1="${B.y1}" x2="${B.x1}" y2="${B.y1}"/>`;
-    const tempi = g.xTicks.map(t =>
-      `<text class="graf-tick" x="${t.x}" y="${B.y1 + 12}" text-anchor="middle">${esc(t.label)}</text>`).join("");
-    const disegnaSoglia = g.lineaSoglia && !g.lineaSoglia.fuoriScala;
-    const sogLinea = disegnaSoglia
-      ? `<line class="graf-soglia" x1="${B.x0}" y1="${g.lineaSoglia.y}" x2="${B.x1}" y2="${g.lineaSoglia.y}"/>` : "";
-    // l'etichetta della soglia si disegna PER ULTIMA (sopra linea e
-    // marcatori) e con l'alone: resta leggibile in ogni caso
-    const sogTxt = disegnaSoglia
-      ? `<text class="graf-soglia-txt" x="${B.x1}" y="${Math.max(B.y0 + 7, g.lineaSoglia.y - 5)}" text-anchor="end">soglia ${esc(g.lineaSoglia.label)}</text>` : "";
-    // superamenti: colore DIVERSO e forma DIVERSA (rombo), così si
-    // riconoscono anche senza distinguere bene i colori
-    const punti = g.punti.map(p => {
-      const tip = `<title>${esc(p.dataIt)} · ${esc(p.etichetta)}${p.oltre ? " · oltre soglia" : ""}</title>`;
-      if (p.oltre) return `<path class="graf-over" d="M${p.x} ${p.y - 4.6}L${p.x + 4.6} ${p.y}L${p.x} ${p.y + 4.6}L${p.x - 4.6} ${p.y}Z">${tip}</path>`;
-      return g.mostraPunti ? `<circle class="graf-pt" cx="${p.x}" cy="${p.y}" r="2.6">${tip}</circle>` : "";
+    const etY = g.yTicks.map(t =>
+      `<text class="graf-tick" x="${B.x0 - 7}" y="${(t.y + 3.4).toFixed(1)}" text-anchor="end">${esc(t.label)}</text>`).join("");
+    // Etichette dei tempi: due letture dello stesso giorno darebbero due
+    // date identiche affiancate — si tiene la più a destra della sequenza.
+    // Agli estremi l'ancoraggio va al bordo: niente testo fuori dal riquadro.
+    const tickX = [];
+    for (const t of g.xTicks) {
+      if (tickX.length && tickX[tickX.length - 1].label === t.label) tickX[tickX.length - 1] = t;
+      else tickX.push(t);
+    }
+    const etX = tickX.map(t => {
+      const anc = t.x <= B.x0 + 18 ? "start" : t.x >= B.x1 - 18 ? "end" : "middle";
+      return `<text class="graf-tick" x="${t.x}" y="${B.y1 + 15}" text-anchor="${anc}">${esc(t.label)}</text>`;
     }).join("");
+    // unità nell'angolo libero sotto l'asse Y: posto classico e mai in
+    // collisione con l'etichetta più alta della scala
+    const etUnita = unita
+      ? `<text class="graf-axlab" x="0" y="${B.y1 + 15}" text-anchor="start">${esc(unita)}</text>` : "";
+
+    /* ── area sotto la linea: gradiente tenue nella tinta dell'app ── */
+    const area = g.punti.length > 1
+      ? `<path class="graf-area" fill="url(#${uid})" d="${g.path} L${g.punti[g.punti.length - 1].x} ${B.y1} L${g.punti[0].x} ${B.y1} Z"/>` : "";
+
+    /* ── soglia: linea tratteggiata + targhetta opaca. È il dato di
+          sicurezza impostato dall'utente: deve saltare all'occhio ── */
+    const sogLinea = sogliaViva
+      ? `<line class="graf-soglia" x1="${B.x0}" y1="${g.lineaSoglia.y}" x2="${B.x1}" y2="${g.lineaSoglia.y}"/>` : "";
+    let sogChip = "";
+    if (sogliaViva) {
+      const testo = "soglia " + g.lineaSoglia.label;
+      const w = Math.min(testo.length * 5.6 + 16, B.x1 - B.x0);
+      const sy = g.lineaSoglia.y;
+      // La targhetta si mette dove disturba meno: si misura quanto passano
+      // vicino alla soglia i punti a sinistra e quelli a destra, e si sceglie
+      // il lato più libero. La soglia è un dato di sicurezza: va letta senza
+      // che ci finisca sopra la linea delle misure.
+      const distanza = (dentro) => {
+        const ps = g.punti.filter(dentro);
+        return ps.length ? Math.min(...ps.map(p => Math.abs(p.y - sy))) : 999;
+      };
+      const aSinistra = distanza(p => p.x <= B.x0 + w + 8) >= distanza(p => p.x >= B.x1 - w - 8);
+      const sopra = sy - B.y0 > 22;            // c'è spazio sopra la linea?
+      const cy = sopra ? sy - 12 : sy + 12;
+      const x0 = aSinistra ? B.x0 + 1 : B.x1 - w;
+      sogChip = `<g><rect class="graf-chip" x="${x0.toFixed(1)}" y="${(cy - 7.5).toFixed(1)}" width="${w.toFixed(1)}" height="15" rx="3"/>` +
+        `<text class="graf-chip-txt" x="${(x0 + w / 2).toFixed(1)}" y="${(cy + 3.6).toFixed(1)}" text-anchor="middle">${esc(testo)}</text></g>`;
+    }
+
+    /* ── punti: chi supera la soglia è ROMBO oltre che rosso, così si
+          riconosce anche senza distinguere i colori ── */
+    const ultimoIdx = g.punti.length - 1;
+    const punti = g.punti.map((p, i) => {
+      const tip = `<title>${esc(p.dataIt)} · ${esc(p.etichetta)}${p.oltre ? " · oltre soglia" : ""}</title>`;
+      if (p.oltre) return `<path class="graf-over" d="M${p.x} ${(p.y - 5.4).toFixed(1)}L${(p.x + 5.4).toFixed(1)} ${p.y}L${p.x} ${(p.y + 5.4).toFixed(1)}L${(p.x - 5.4).toFixed(1)} ${p.y}Z">${tip}</path>`;
+      if (i === ultimoIdx) return `<circle class="graf-pt-ultimo" cx="${p.x}" cy="${p.y}" r="4">${tip}</circle>`;
+      return g.mostraPunti ? `<circle class="graf-pt" cx="${p.x}" cy="${p.y}" r="3">${tip}</circle>` : "";
+    }).join("");
+
+    /* ── quadrante di lettura: come il display di uno strumento ── */
+    const ultimoOltre = g.punti[ultimoIdx].oltre;
+    const stats = `<div class="graf-stats">
+      <div class="graf-stat ${g.soglia != null ? (ultimoOltre ? "over" : "sotto") : ""}"><div class="k">Ultima</div><div class="v">${esc(numeroIt(g.ultimo))}${u}</div></div>
+      <div class="graf-stat"><div class="k">Massimo</div><div class="v">${esc(numeroIt(g.max))}${u}</div></div>
+      ${g.soglia != null ? `<div class="graf-stat"><div class="k">Soglia</div><div class="v">${esc(numeroIt(g.soglia))}${u}</div></div>
+      <div class="graf-stat ${g.superamenti ? "over" : "sotto"}"><div class="k">Oltre</div><div class="v">${g.superamenti}</div></div>` : ""}
+    </div>`;
+
     const aria = `Serie storica di ${m.nome}: ${g.n} letture dal ${g.dal} al ${g.al}, massimo ${numeroIt(g.max)} ${unita}` +
       (g.soglia != null ? `, soglia ${numeroIt(g.soglia)} ${unita}, ${g.superamenti} superamenti` : "");
-    const legenda = `<span class="lg-dati">▬ letture${g.mostraPunti ? " (●)" : ""}</span>` +
-      (g.superamenti ? `<span class="lg-over">◆ oltre soglia: ${g.superamenti}</span>` : "") +
-      (g.lineaSoglia ? `<span>– – soglia ${esc(g.lineaSoglia.label)}${g.lineaSoglia.fuoriScala ? " (sopra la scala del grafico)" : ""}</span>` : "");
-    return `<div class="graf-head"><b>Serie storica</b> — ${g.n} ${g.n === 1 ? "lettura" : "letture"} dal ${esc(g.dal)} al ${esc(g.al)}${unita ? " · valori in " + esc(unita) : ""}</div>
-      <svg viewBox="0 0 ${B.w} ${B.h}" role="img" aria-label="${esc(aria)}">${griglia}${sogLinea}${assi}
-        <path class="graf-linea" d="${g.path}"/>${punti}${sogTxt}${tempi}</svg>
-      <div class="graf-leg">${legenda}</div>`;
+
+    /* ── legenda con i segni veri, non caratteri di ripiego ── */
+    const lg = (svg, testo, cls) => `<span class="lg ${cls || ""}"><svg viewBox="0 0 24 11" aria-hidden="true">${svg}</svg>${testo}</span>`;
+    const legenda =
+      lg(`<line class="graf-linea" x1="1" y1="5.5" x2="23" y2="5.5"/>${g.mostraPunti ? '<circle class="graf-pt" cx="12" cy="5.5" r="3"/>' : ""}`,
+         `<b>${g.n}</b>&nbsp;${g.n === 1 ? "lettura" : "letture"}`) +
+      (g.lineaSoglia ? lg(`<line class="graf-soglia" x1="1" y1="5.5" x2="23" y2="5.5"/>`,
+         `soglia <b>${esc(g.lineaSoglia.label)}</b>`) : "") +
+      (g.superamenti ? lg(`<path class="graf-over" d="M12 .6L17 5.5L12 10.4L7 5.5Z"/>`,
+         `oltre soglia: <b>${g.superamenti}</b>`, "over") : "");
+
+    const notaScala = g.lineaSoglia && g.lineaSoglia.fuoriScala
+      ? `<div class="graf-nota">La soglia (<b>${esc(g.lineaSoglia.label)}</b>) è molto più alta dei valori misurati: resta fuori dalla scala del grafico, che si adatta alle letture per farne vedere l'andamento.</div>` : "";
+
+    return `<div class="graf-head"><span class="graf-title">Serie storica</span>
+        <span class="graf-meta">${esc(g.dal)} → ${esc(g.al)}</span></div>
+      ${stats}
+      <svg class="plot" viewBox="0 0 ${B.w} ${B.h}" role="img" aria-label="${esc(aria)}">
+        <defs><linearGradient id="${uid}" x1="0" y1="0" x2="0" y2="1">
+          <stop class="graf-a0" offset="0"/><stop class="graf-a1" offset="1"/>
+        </linearGradient></defs>
+        ${zona}${grigliaY}${grigliaX}${area}${sogLinea}${assi}
+        <path class="graf-linea" d="${g.path}"/>${punti}${sogChip}${etY}${etX}${etUnita}</svg>
+      <div class="graf-leg">${legenda}</div>${notaScala}`;
   }
   // scorciatoia: toccare un KPI del quadro porta alla lista pertinente
   document.querySelector(".kpis").addEventListener("click", (e) => {
@@ -257,8 +1211,8 @@
     go(card.getAttribute("data-goto")); refresh();
   });
   $("mon-filtri").addEventListener("click", (e) => {
-    const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
-    if (f) { filtroMon = f; refresh(); }
+    const b = e.target.closest && e.target.closest("[data-filtro]");
+    if (b) { filtroMon = b.getAttribute("data-filtro"); refresh(); }
   });
   try { const _s = localStorage.getItem("dwSort_mon"); if (_s) { ordMon = _s; if ($("mon-ord")) $("mon-ord").value = _s; } } catch (e) {}
   if ($("mon-ord")) $("mon-ord").onchange = () => { ordMon = $("mon-ord").value; try { localStorage.setItem("dwSort_mon", ordMon); } catch (e) {} refresh(); };
@@ -266,119 +1220,190 @@
   if ($("ade-cerca")) $("ade-cerca").oninput = () => refresh();
   // cambiare pagina annulla una modifica sensore in corso (torna su "Aggiungi")
   document.querySelector(".nav") && document.querySelector(".nav").addEventListener("click", () => {
-    if (editMon) { editMon = null; $("btn-sen").textContent = "Aggiungi"; $("mis-esito").textContent = "";
-      ["sen-nome","sen-unita","sen-soglia"].forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; }); }
+    if (editMon) { editMon = null; $("btn-sen").textContent = "Aggiungi"; pulisci("mis-esito");
+      ["sen-nome","sen-unita","sen-soglia"].forEach(i => { $(i).value = ""; err(i, false); }); }
   });
   async function refresh(){
     [MON,ADE,REG,VOL] = await Promise.all([db.monitoraggi(), db.adempimenti(), db.registri(), db.volate ? db.volate() : []]);
     const k = kpiFrom(MON,ADE);
-    const kn = document.querySelectorAll(".kpis .kpi .n");
-    if (kn[0]) kn[0].textContent = k.attivi;
-    if (kn[1]) kn[1].textContent = k.superamenti;
-    if (kn[2]) kn[2].textContent = k.adempimenti30;
-    if (kn[3]) kn[3].textContent = riepilogoConformita(MON).conformi;   // monitoraggi entro soglia
+    const conf = riepilogoConformita(MON);
+    $("k-attivi").textContent = k.attivi;
+    $("k-super").textContent  = k.superamenti;
+    $("k-ade").textContent    = k.adempimenti30;
+    $("k-conf").textContent   = conf.conformi;   // monitoraggi entro soglia
+
+    // Cartellone: lo stato d'insieme dell'ambiente, letto in un colpo d'occhio
+    // (come i "giorni senza infortuni" di Scudo). Nessuna soglia inventata:
+    // si contano solo i punti configurati dall'utente.
+    const cls = conf.superamento ? "danger" : conf.attenzione ? "warn" : conf.totale ? "" : "none";
+    const ico = conf.superamento ? I.allerta : conf.totale ? I.scudo : I.sensore;
+    const num = conf.totale ? (conf.superamento || conf.attenzione || conf.conformi) : 0;
+    const lab = conf.superamento ? (conf.superamento === 1 ? "punto in superamento" : "punti in superamento")
+      : conf.attenzione ? (conf.attenzione === 1 ? "punto in attenzione" : "punti in attenzione")
+      : conf.totale ? (conf.conformi === 1 ? "punto entro soglia" : "punti entro soglia") : "punti di misura";
+    const sub = conf.totale
+      ? `${conf.conformi} conformi · ${conf.attenzione} in attenzione · ${conf.superamento} in superamento, su ${conf.totale} punti in ascolto.`
+      : "Nessun punto di misura configurato: aggiungi la prima centralina dai Monitoraggi.";
+    $("conf-banner").innerHTML = `<div class="safety ${cls}">
+      <div class="safety-ico">${ico}</div>
+      <div><div class="safety-num">${num}</div><div class="safety-lab">${lab}</div>
+        <div class="safety-sub">${esc(sub)}</div></div></div>`;
 
     // Priorità di conformità: superamenti/attenzione + adempimenti (scaduti =
     // danger, in scadenza = warn), ordinati danger-first, senza cap silenzioso.
     const allerte = prioritaConformita(MON, ADE);
-    $("all-list").innerHTML = allerte.map(a => `<div class="item">
+    $("all-list").innerHTML = allerte.map(a => { const ade = a.categoria === "adempimento";
+      return `<div class="item cliccabile ${striscia[a.gravita] || "st-mute"}" data-allerta="${ade ? "ade" : "mon"}"
+        title="${ade ? "Vai agli adempimenti" : "Vai al punto di misura"}">
+      <div class="avatar ${a.gravita === "danger" ? "danger" : a.gravita === "warn" ? "warn" : "sup"}">${ade ? I.calendario : I.sensore}</div>
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc(a.dettaglio)}</div></div>
-      <span class="badge ${a.gravita}">${esc(a.badge)}</span></div>`).join("") || '<div class="note">Nessuna allerta: tutto conforme.</div>';
+      <span class="acts"><span class="badge ${a.gravita}">${esc(a.badge)}</span><span class="arr">${I.avanti}</span></span></div>`; }).join("")
+      || vuoto(I.fatto, "Nessuna allerta",
+          "Tutti i punti di misura sono entro soglia e nessun adempimento è vicino alla scadenza. Il quadro resta pulito finché un valore non si avvicina al limite.");
 
-    const conf = riepilogoConformita(MON);
+    $("mon-tot").textContent = MON.length;
     $("mon-conf").innerHTML = conf.totale
-      ? `Conformità: <b>${conf.conformi}</b> conformi · <b>${conf.attenzione}</b> in attenzione · <b>${conf.superamento}</b> in superamento (su ${conf.totale}).`
+      ? `Conformità: <b>${conf.conformi}</b> conformi · <b>${conf.attenzione}</b> in attenzione · <b>${conf.superamento}</b> in superamento, su <b>${conf.totale}</b> punti.`
       : "";
     const monCmp = (a, b) => ordMon === "margine" ? a.st.ratio - b.st.ratio
       : ordMon === "nome" ? String(a.m.nome || "").localeCompare(String(b.m.nome || ""), "it")
       : b.st.ratio - a.st.ratio;
     const qMon = ($("mon-cerca") && $("mon-cerca").value || "").trim().toLowerCase();
-    $("mon-list").innerHTML = MON.map(m => ({ m, st: statoMisura(m) }))
+    const monVis = MON.map(m => ({ m, st: statoMisura(m) }))
       .filter(x => filtroMon === "tutti" || x.st.cls === filtroMon)
       .filter(x => !qMon || ((x.m.nome || "") + " " + (x.m.nota || "")).toLowerCase().includes(qMon))
-      .sort(monCmp)
-      .map(({m, st}) => { const nl = (m.letture || []).length;
-      return `<div class="item"><div class="info"><div class="name">${esc(m.nome)}</div>
-      <div class="meta">${m.valore} ${esc(m.unita)} / soglia ${m.soglia} (${Math.round(st.ratio*100)}%)${nl ? " · " + nl + (nl === 1 ? " lettura" : " letture") : ""}${m.nota ? " · " + esc(m.nota) : ""}</div></div>
-      <span class="badge ${st.cls}">${st.label}</span>
-      <span class="arr" style="cursor:pointer" title="${grafMon === m.id ? "Chiudi la serie storica" : "Serie storica nel tempo"}" data-graf-mon="${m.id}">${grafMon === m.id ? "▣" : "📈"}</span>
-      <span class="arr" style="cursor:pointer" title="Modifica sensore" data-edit-mon="${m.id}">✎</span>
-      <span class="arr" style="cursor:pointer" title="Rimuovi sensore" data-del-mon="${m.id}">✕</span></div>`
-      + (grafMon === m.id ? `<div class="graf" id="graf-${m.id}">${svgSerie(m)}</div>` : ""); }).join("")
-      || '<div class="note" style="text-align:left;">'+(qMon?"Nessun sensore trovato per «"+esc(qMon)+"».":(filtroMon==="tutti"?"Nessun sensore configurato.":"Nessun sensore in questa categoria."))+'</div>';
-    { const n = $("mon-list").querySelectorAll(".item").length, filtrata = qMon || filtroMon !== "tutti";
-      $("mon-count").textContent = n === 0 ? "" : n + (n === 1 ? " sensore" : " sensori") + (filtrata ? " · su " + MON.length : ""); }
+      .sort(monCmp);
+    $("mon-list").innerHTML = monVis.map(({m, st}) => { const nl = (m.letture || []).length, aperto = grafMon === m.id;
+      return `<div class="item ${striscia[st.cls] || "st-accent"}${aperto ? " aperto" : ""}">
+      <div class="avatar ${st.cls === "danger" ? "danger" : st.cls === "warn" ? "warn" : ""}">${I.sensore}</div>
+      <div class="info"><div class="name">${esc(m.nome)}</div>
+      <div class="riga"><span class="badge ${st.cls}">${st.label}</span>
+      <span class="meta"><b>${esc(numeroIt(m.valore))} ${esc(m.unita)}</b> / soglia ${esc(numeroIt(m.soglia))} · ${Math.round(st.ratio*100)}%${nl ? " · " + nl + (nl === 1 ? " lettura" : " letture") : " · nessuna lettura"}${m.nota ? " · " + esc(m.nota) : ""}</span></div></div>
+      <span class="acts">
+      <button type="button" class="arr${aperto ? " on" : ""}" title="${aperto ? "Chiudi la serie storica" : "Apri la serie storica nel tempo"}" aria-label="${aperto ? "Chiudi la serie storica" : "Apri la serie storica"} di ${esc(m.nome)}" aria-expanded="${aperto}" data-graf-mon="${m.id}">${aperto ? I.chiudi : I.serie}</button>
+      <button type="button" class="arr" title="Modifica il punto di misura" aria-label="Modifica ${esc(m.nome)}" data-edit-mon="${m.id}">${I.modifica}</button>
+      <button type="button" class="arr rimuovi" title="Rimuovi il punto di misura" aria-label="Rimuovi ${esc(m.nome)}" data-del-mon="${m.id}">${I.cestino}</button></span></div>`
+      + (aperto ? `<div class="graf" id="graf-${m.id}">${svgSerie(m)}</div>` : ""); }).join("")
+      || (MON.length
+          ? vuoto(I.cerca, "Nessun punto trovato",
+              qMon ? `Nessun punto di misura corrisponde a «<b>${esc(qMon)}</b>». Prova con una parte del nome o svuota la ricerca.`
+                   : "Nessun punto di misura in questa categoria. Tocca <b>Tutti</b> per rivedere l'elenco completo.")
+          : vuoto(I.sensore, "Nessun punto di misura",
+              "Aggiungi la prima centralina qui sotto: nome, unità e soglia. Da lì in poi ogni misura registrata alimenta la serie storica e il semaforo di conformità."));
+    { const n = monVis.length, filtrata = qMon || filtroMon !== "tutti";
+      $("mon-count").innerHTML = n === 0 ? "" : `<b>${n}</b> ${n === 1 ? "punto" : "punti"}${filtrata ? " · su " + MON.length : ""}`; }
     document.querySelectorAll("#mon-filtri [data-filtro]").forEach(b =>
-      b.style.borderColor = b.getAttribute("data-filtro") === filtroMon ? "var(--app-accent)" : "");
+      b.classList.toggle("active", b.getAttribute("data-filtro") === filtroMon));
 
     const qAde = ($("ade-cerca") && $("ade-cerca").value || "").trim().toLowerCase();
-    $("ade-list").innerHTML = ADE.slice().sort((a,b)=>a.scadenza<b.scadenza?-1:1)
-      .filter(a => !qAde || ((a.titolo || "") + " " + (a.ente || "")).toLowerCase().includes(qAde))
-      .map(a => { const g = giorni(a.scadenza);
+    $("ade-tot").textContent = ADE.length;
+    const adeVis = ADE.slice().sort((a,b)=>a.scadenza<b.scadenza?-1:1)
+      .filter(a => !qAde || ((a.titolo || "") + " " + (a.ente || "")).toLowerCase().includes(qAde));
+    $("ade-list").innerHTML = adeVis.map(a => { const g = giorni(a.scadenza);
       const b = g < 0 ? ["danger","Scaduto"] : (g <= 30 ? ["warn", g + " gg"] : ["ok", g + " gg"]);
-      return `<div class="item"><div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${a.ente!=="—"?esc(a.ente)+" · ":""}entro ${fmtD(a.scadenza)}</div></div>
-      <span class="badge ${b[0]}">${b[1]}</span>
-      <span class="arr" style="cursor:pointer" title="Segna come eseguito" data-ade-done="${a.id}">✓</span></div>`; }).join("")
-      || '<div class="note" style="text-align:left;">'+(qAde?"Nessun adempimento trovato per «"+esc(qAde)+"».":"Nessun adempimento in scadenza.")+'</div>';
-    { const n = $("ade-list").querySelectorAll(".item").length;
-      $("ade-count").textContent = n === 0 ? "" : n + (n === 1 ? " adempimento" : " adempimenti") + (qAde ? " · su " + ADE.length : ""); }
+      return `<div class="item ${striscia[b[0]]}">
+      <div class="avatar ${b[0] === "danger" ? "danger" : b[0] === "warn" ? "warn" : "ok"}">${I.calendario}</div>
+      <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${a.ente!=="—"?esc(a.ente)+" · ":""}entro ${fmtD(a.scadenza)}</div></div>
+      <span class="acts"><span class="badge ${b[0]}">${b[1]}</span>
+      <button type="button" class="arr" title="Segna come eseguito" aria-label="Segna come eseguito ${esc(a.titolo)}" data-ade-done="${a.id}">${I.fatto}</button></span></div>`; }).join("")
+      || (ADE.length
+          ? vuoto(I.cerca, "Nessun adempimento trovato",
+              `Nessuna scadenza corrisponde a «<b>${esc(qAde)}</b>». Prova con il titolo o con il nome dell'ente.`)
+          : vuoto(I.calendario, "Nessuna scadenza",
+              "Aggiungi qui sotto le scadenze ambientali (relazioni, rinnovi, analisi): l'app le porta nel quadro appena entrano nei 30 giorni."));
+    { const n = adeVis.length;
+      $("ade-count").innerHTML = n === 0 ? "" : `<b>${n}</b> ${n === 1 ? "adempimento" : "adempimenti"}${qAde ? " · su " + ADE.length : ""}`; }
 
-    $("reg-list").innerHTML = REG.slice().sort((a,b)=>(a.stato==="in-attesa"?0:1)-(b.stato==="in-attesa"?0:1)).map(r => `<div class="item" data-reg="${r.id}" style="cursor:pointer" title="${r.stato==="in-attesa" ? "Tocca per segnare aggiornato" : "Tocca per rimettere in attesa"}">
+    $("reg-list").innerHTML = REG.slice().sort((a,b)=>(a.stato==="in-attesa"?0:1)-(b.stato==="in-attesa"?0:1)).map(r => `<div class="item cliccabile ${striscia[RB[r.stato][0]]}" data-reg="${r.id}" title="${r.stato==="in-attesa" ? "Tocca per segnare aggiornato" : "Tocca per rimettere in attesa"}">
+      <div class="avatar ${r.stato === "in-attesa" ? "warn" : "ok"}">${I.registro}</div>
       <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${esc(r.nota || "")}</div></div>
-      <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span></div>`).join("")
-      || '<div class="note" style="text-align:left;">Nessuna voce nel registro.</div>';
+      <span class="acts"><span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span></span></div>`).join("")
+      || vuoto(I.registro, "Registro vuoto",
+          "Qui compaiono i registri ambientali da tenere aggiornati verso gli enti. Tocca una voce per segnarla aggiornata o rimetterla in attesa.");
 
-    $("mis-sensore").innerHTML = MON.map(m => `<option value="${m.id}">${esc(m.nome.split(" — ")[0])}</option>`).join("");
+    $("mis-sensore").innerHTML = MON.length
+      ? MON.map(m => `<option value="${m.id}">${esc(m.nome.split(" — ")[0])}</option>`).join("")
+      : '<option value="">— nessun punto di misura configurato —</option>';
 
     // Registro volate: riepilogo + lista con la distanza scalata per volata.
     const rv = riepilogoVolate(VOL);
+    $("vol-tot").textContent = rv.totale;
     $("vol-riep").innerHTML = rv.totale
-      ? `Volate registrate: <b>${rv.totale}</b> · questo mese: <b>${rv.questoMese}</b> (${rv.kgMese.toLocaleString("it-IT")} kg)${rv.contestazioni ? ` · <span class="badge danger" style="font-size:inherit;">${rv.contestazioni} con contestazione</span>` : ""}`
-      : "Nessuna volata registrata.";
+      ? `Volate registrate: <b>${rv.totale}</b> · questo mese: <b>${rv.questoMese}</b> (${rv.kgMese.toLocaleString("it-IT")} kg)${rv.contestazioni ? ` · <span class="badge danger" style="font-size:11px;">${rv.contestazioni} con contestazione</span>` : ""}`
+      : "";
     const VB = { regolare: ["ok", "Regolare"], contestazione: ["danger", "Contestazione"] };
     $("vol-list").innerHTML = VOL.slice().sort((a,b)=>(a.data||"")<(b.data||"")?1:-1).map(v => {
       const sd = scaledDistance(v.distanzaRicettore, v.kgMaxRitardo);
       const vb = VB[v.esito] || ["ok","—"];
-      return `<div class="item"><div class="info"><div class="name">${esc(v.fronte || "Volata")} · ${esc(v.data || "—")}</div>
-        <div class="meta">${+v.nFori||0} fori · ${(+v.kgTotali||0).toLocaleString("it-IT")} kg${(+v.kgMaxRitardo) ? " · max/ritardo " + (+v.kgMaxRitardo) + " kg" : ""}${sd!=null ? " · SD " + sd.toFixed(1) : ""}${v.note ? " · " + esc(v.note) : ""}</div></div>
-        <span class="badge ${vb[0]}">${vb[1]}</span><span class="arr" style="cursor:pointer" title="Rimuovi" data-del-vol="${v.id}">✕</span></div>`;
-    }).join("") || '<div class="note" style="text-align:left;">Nessuna volata nel registro. Registrale per avere il brogliaccio pronto per gli enti.</div>';
+      return `<div class="item ${striscia[vb[0]]}">
+        <div class="avatar ${vb[0] === "danger" ? "danger" : "sup"}">${I.volata}</div>
+        <div class="info"><div class="name">${esc(v.fronte || "Volata")} · ${fmtD(v.data)}</div>
+        <div class="meta">${+v.nFori||0} fori · ${(+v.kgTotali||0).toLocaleString("it-IT")} kg${(+v.kgMaxRitardo) ? " · max/ritardo " + (+v.kgMaxRitardo) + " kg" : ""}${sd!=null ? " · <b>SD " + sd.toFixed(1) + "</b>" : ""}${v.note ? " · " + esc(v.note) : ""}</div></div>
+        <span class="acts"><span class="badge ${vb[0]}">${vb[1]}</span>
+        <button type="button" class="arr rimuovi" title="Rimuovi dal registro" aria-label="Rimuovi la volata del ${fmtD(v.data)}" data-del-vol="${v.id}">${I.cestino}</button></span></div>`;
+    }).join("") || vuoto(I.volata, "Nessuna volata registrata",
+        "Registra qui sotto data, fronte, fori e carica di ogni volata: il brogliaccio di brillamento resta pronto da mostrare agli enti, con la distanza scalata già calcolata.");
   }
 
+  // Le azioni di riga sono <button> con dentro un'icona SVG: il bersaglio del
+  // click è spesso il <path>, quindi si risale con closest() all'elemento che
+  // porta l'attributo. (Con e.target.getAttribute i tocchi sull'icona si
+  // perderebbero.)
+  const attr = (e, nome) => { const el = e.target.closest && e.target.closest("[" + nome + "]");
+    return el ? el.getAttribute(nome) : null; };
   document.addEventListener("click", async (e) => {
-    const done = e.target.getAttribute && e.target.getAttribute("data-ade-done");
+    const done = attr(e, "data-ade-done");
     if (done) { const a = ADE.find(x => x.id === done);
-      if (a && confirm("Segnare come eseguito «" + a.titolo + "»? Verrà tolto dalle scadenze.")) {
-        await db.rimuovi("adempimenti", done); await refresh(); } return; }
-    const delMon = e.target.getAttribute && e.target.getAttribute("data-del-mon");
+      if (a && await chiedi("Adempimento eseguito",
+        `Segnare come eseguito <b>${esc(a.titolo)}</b>${a.ente !== "—" ? " (" + esc(a.ente) + ")" : ""}, in scadenza il <b>${fmtD(a.scadenza)}</b>?<br><br>
+         Viene tolto dalle scadenze e non conta più nel quadro. Se si ripete ogni anno, riaggiungilo con la nuova data.`,
+        "Segna eseguito")) {
+        await db.rimuovi("adempimenti", done); await refresh();
+        toast("Adempimento «" + a.titolo + "» segnato come eseguito.", "success"); } return; }
+    const delMon = attr(e, "data-del-mon");
     if (delMon) { const m = MON.find(x => x.id === delMon);
-      if (m && confirm("Rimuovere il sensore «" + m.nome + "»? Anche lo storico delle misure verrà perso.")) {
+      const nl = m ? (m.letture || []).length : 0;
+      if (m && await chiedi("Rimuovere il punto di misura",
+        `Stai per rimuovere <b>${esc(m.nome)}</b> (soglia ${esc(numeroIt(m.soglia))} ${esc(m.unita)}).<br><br>
+         ${nl ? `Insieme al punto si perdono anche le <b>${nl} ${nl === 1 ? "lettura registrata" : "letture registrate"}</b>: la serie storica non è più recuperabile.` : "Il punto non ha ancora letture registrate."}
+         <br><br>Se ti serve solo cambiare nome, unità o soglia, usa la <b>matita</b> invece di rimuovere: lo storico resta.`,
+        "Rimuovi", true)) {
         if (grafMon === delMon) grafMon = null;
-        await db.rimuovi("monitoraggi", delMon); await refresh(); } return; }
-    const delVol = e.target.getAttribute && e.target.getAttribute("data-del-vol");
-    if (delVol) {
-      if (confirm("Rimuovere questa volata dal registro? (usa solo per correggere un inserimento sbagliato)")) {
-        await db.rimuovi("volate", delVol); await refresh(); } return; }
-    const grafMonId = e.target.getAttribute && e.target.getAttribute("data-graf-mon");
+        await db.rimuovi("monitoraggi", delMon); await refresh();
+        toast("Punto di misura «" + m.nome + "» rimosso."); } return; }
+    const delVol = attr(e, "data-del-vol");
+    if (delVol) { const v = VOL.find(x => x.id === delVol);
+      if (await chiedi("Rimuovere la volata",
+        `Stai per togliere dal registro la volata${v ? ` del <b>${fmtD(v.data)}</b>${v.fronte ? " sul fronte <b>" + esc(v.fronte) + "</b>" : ""}` : ""}.<br><br>
+         Il registro volate è un <b>documento verso gli enti</b>: rimuovi una riga solo per correggere un inserimento sbagliato, mai per alleggerire lo storico.`,
+        "Rimuovi", true)) {
+        await db.rimuovi("volate", delVol); await refresh();
+        toast("Volata rimossa dal registro."); } return; }
+    const grafMonId = attr(e, "data-graf-mon");
     if (grafMonId) {   // apre/chiude la serie storica del punto (una alla volta)
       grafMon = grafMon === grafMonId ? null : grafMonId;
       await refresh();
       const el = grafMon && $("graf-" + grafMon);
       if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest" });
       return; }
-    const editMonId = e.target.getAttribute && e.target.getAttribute("data-edit-mon");
+    const editMonId = attr(e, "data-edit-mon");
     if (editMonId) { const m = MON.find(x => x.id === editMonId); if (!m) return;
-      if (editMon === m.id) {   // ri-tocco la ✎ dello stesso sensore = annulla
-        editMon = null; $("btn-sen").textContent = "Aggiungi"; $("mis-esito").textContent = "Modifica annullata.";
-        ["sen-nome","sen-unita","sen-soglia"].forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; }); return; }
+      if (editMon === m.id) {   // ri-tocco la matita dello stesso punto = annulla
+        editMon = null; $("btn-sen").textContent = "Aggiungi";
+        esito("mis-esito", "Modifica annullata: il punto resta com'era.");
+        ["sen-nome","sen-unita","sen-soglia"].forEach(i => { $(i).value = ""; err(i, false); }); return; }
       editMon = m.id;
       $("sen-nome").value = m.nome || ""; $("sen-unita").value = m.unita || ""; $("sen-soglia").value = m.soglia != null ? m.soglia : "";
       if ($("sen-preset")) $("sen-preset").value = "";
       if ($("sen-preset-nota")) { $("sen-preset-nota").style.display = "none"; $("sen-preset-nota").textContent = ""; }
-      ["sen-nome","sen-unita","sen-soglia"].forEach(i => $(i).style.borderColor = "");
+      ["sen-nome","sen-unita","sen-soglia"].forEach(i => err(i, false));
       $("btn-sen").textContent = "Salva modifica";
-      $("mis-esito").textContent = "Stai modificando «" + m.nome + "»: cambi nome/unità/soglia, lo storico misure resta.";
-      $("sen-nome").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+      esito("mis-esito", "Stai modificando «" + m.nome + "»: cambi nome, unità o soglia; lo storico delle misure resta.",
+        "", "Modifica di «" + m.nome.split(" — ")[0] + "» in corso.");
+      $("sen-nome").scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => { try { $("sen-nome").focus({ preventScroll: true }); } catch (er) {} }, 300); return; }
+    const all = attr(e, "data-allerta");
+    if (all) { if (all === "mon") filtroMon = "tutti"; go(all); await refresh(); return; }
     const it = e.target.closest && e.target.closest("[data-reg]");
     if (it) { const r = REG.find(x => x.id === it.getAttribute("data-reg"));
       // toggle bidirezionale, SENZA sovrascrivere la nota originale del registro
@@ -396,15 +1421,18 @@
     el.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     el.download = "sentinella_ambiente.csv"; el.click();
     $("mode-note").textContent = "Esportati " + MON.length + " monitoraggi e " + ADE.length + " adempimenti (CSV).";
+    toast("Esportati " + MON.length + " monitoraggi e " + ADE.length + " adempimenti.", "success");
   };
   // niente volate datate nel futuro: il registro è un documento verso gli enti e
   // il conteggio "questo mese" si baserebbe su un dato impossibile
   { const d = new Date(); $("vol-data").max = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
   $("btn-vol").onclick = async () => {
     const data = $("vol-data").value;
-    if (!data) { $("vol-data").style.borderColor = "var(--danger)"; $("vol-esito-msg").textContent = "Serve la data della volata."; return; }
-    if (giorniTra(data) > 0) { $("vol-data").style.borderColor = "var(--danger)"; $("vol-esito-msg").textContent = "La data della volata non può essere nel futuro."; return; }
-    $("vol-data").style.borderColor = "";
+    if (!data) { err("vol-data", true); fuocoErr(["vol-data"]);
+      esito("vol-esito-msg", "Serve la data della volata: è il riferimento con cui gli enti leggono il registro.", "err", "Serve la data della volata."); return; }
+    if (giorniTra(data) > 0) { err("vol-data", true); fuocoErr(["vol-data"]);
+      esito("vol-esito-msg", "La data della volata non può essere nel futuro: correggila con il giorno in cui è stata sparata.", "err", "La data non può essere nel futuro."); return; }
+    err("vol-data", false);
     await db.aggiungi("volate", {
       data, fronte: $("vol-fronte").value.trim(),
       nFori: +$("vol-nfori").value || 0, kgTotali: +$("vol-kg").value || 0,
@@ -412,7 +1440,7 @@
       esito: $("vol-esito").value, note: "",
     });
     ["vol-fronte","vol-nfori","vol-kg","vol-kgmax","vol-dist"].forEach(i => $(i).value = "");
-    $("vol-esito-msg").textContent = "Volata registrata del " + data + ".";
+    esito("vol-esito-msg", "Volata del " + fmtD(data) + " registrata nel brogliaccio.", "success");
     await refresh();
   };
   $("btn-vol-export").onclick = () => {
@@ -422,13 +1450,13 @@
     const el = document.createElement("a");
     el.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     el.download = "sentinella_registro_volate.csv"; el.click();
-    $("vol-esito-msg").textContent = "Esportate " + VOL.length + " volate (CSV).";
+    esito("vol-esito-msg", "Esportate " + VOL.length + " volate (CSV).", "success");
   };
   $("btn-vol-import").onclick = () => $("vol-file").click();
   $("vol-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseVolateCsv(await file.text());
-    if (!righe.length) { $("vol-esito-msg").textContent = "Nessuna riga valida: controlla che le colonne siano data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note."; e.target.value = ""; return; }
+    if (!righe.length) { esito("vol-esito-msg", "Nessuna riga valida nel file: le colonne devono essere data; fronte; nFori; kgTotali; kgMaxRitardo; distanzaRicettore; esito; note.", "err", "Nessuna riga valida: controlla le colonne."); e.target.value = ""; return; }
     // Dedup come gli altri import: un doppio click su "Importa" non deve
     // raddoppiare il registro volate (documento regolatorio). Firma =
     // data|fronte|nFori|kgTotali (due volate diverse stesso giorno/fronte
@@ -443,20 +1471,24 @@
       agg++;
     }
     $("vol-file").value = "";
-    $("vol-esito-msg").textContent = `Import registro: ${agg} volate aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}.`;
+    esito("vol-esito-msg", `Import registro: ${agg} volate aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}.`, agg ? "success" : "");
     await refresh();
   };
   $("btn-ade").onclick = async () => {
     const titolo = $("ade-titolo").value.trim(), ente = $("ade-ente").value.trim() || "—", scadenza = $("ade-data").value;
     if (!titolo || !scadenza) {
-      $("ade-titolo").style.borderColor = titolo ? "" : "var(--danger)";
-      $("ade-data").style.borderColor = scadenza ? "" : "var(--danger)";
-      $("ade-esito").textContent = "Servono titolo e data di scadenza."; return;
+      err("ade-titolo", !titolo); err("ade-data", !scadenza);
+      fuocoErr(["ade-titolo", "ade-data"]);
+      esito("ade-esito", !titolo && !scadenza ? "Servono il titolo dell'adempimento e la data entro cui va fatto."
+        : !titolo ? "Serve il titolo: scrivi cosa va consegnato (es. Relazione annuale AUA)."
+        : "Serve la data di scadenza: senza data l'adempimento non entra nel quadro.", "err",
+        !titolo && !scadenza ? "Servono titolo e scadenza." : !titolo ? "Serve il titolo." : "Serve la data di scadenza."); return;
     }
-    $("ade-titolo").style.borderColor = ""; $("ade-data").style.borderColor = "";
+    err("ade-titolo", false); err("ade-data", false);
     await db.aggiungi("adempimenti", { titolo, ente, scadenza });
     $("ade-titolo").value = ""; $("ade-ente").value = ""; $("ade-data").value = "";
-    $("ade-esito").textContent = "Adempimento aggiunto: " + titolo + " entro " + fmtD(scadenza) + ".";
+    esito("ade-esito", "Adempimento aggiunto: " + titolo + ", entro il " + fmtD(scadenza) + ".", "success",
+      "Adempimento aggiunto per il " + fmtD(scadenza) + ".");
     $("ade-titolo").focus();   // pronto per il prossimo adempimento
     await refresh();
   };
@@ -464,7 +1496,7 @@
   $("ade-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseAdempimentiCsv(await file.text());
-    if (!righe.length) { $("ade-esito").textContent = "Nessuna riga valida: controlla che le colonne siano titolo;ente;scadenza."; e.target.value = ""; return; }
+    if (!righe.length) { esito("ade-esito", "Nessuna riga valida nel file: le colonne devono essere titolo; ente; scadenza.", "err", "Nessuna riga valida: controlla le colonne."); e.target.value = ""; return; }
     let agg = 0, dup = 0;
     for (const r of righe) {
       if (ADE.some(a => (a.titolo || "").toLowerCase() === r.titolo.toLowerCase() && a.scadenza === r.scadenza)) { dup++; continue; }
@@ -472,16 +1504,20 @@
       agg++;
     }
     $("ade-file").value = "";
-    $("ade-esito").textContent = `Import scadenze: ${agg} aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}.`;
+    esito("ade-esito", `Import scadenze: ${agg} aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}.`, agg ? "success" : "");
     await refresh();
   };
   $("btn-sen").onclick = async () => {
     const nome = $("sen-nome").value.trim(), unita = $("sen-unita").value.trim(), soglia = +$("sen-soglia").value;
     if (!nome || !unita || !(soglia > 0)) {
-      [["sen-nome",nome],["sen-unita",unita],["sen-soglia",soglia>0]].forEach(([i,v]) => $(i).style.borderColor = v ? "" : "var(--danger)");
-      $("mis-esito").textContent = "Servono nome, unità di misura e soglia (>0) per " + (editMon ? "salvare la modifica" : "aggiungere il sensore") + "."; return;
+      [["sen-nome",nome],["sen-unita",unita],["sen-soglia",soglia>0]].forEach(([i,v]) => err(i, !v));
+      fuocoErr(["sen-nome","sen-unita","sen-soglia"]);
+      esito("mis-esito", !nome ? "Serve il nome del punto di misura (es. Polveri P2 — piazzale)."
+        : !unita ? "Serve l'unità di misura (es. mm/s, dB(A), µg/m³): senza, i valori non si possono confrontare."
+        : "Serve una soglia maggiore di zero: è il limite rispetto a cui l'app calcola conformità e superamenti.", "err",
+        !nome ? "Serve il nome del punto." : !unita ? "Serve l'unità di misura." : "Serve una soglia maggiore di zero."); return;
     }
-    ["sen-nome","sen-unita","sen-soglia"].forEach(i => $(i).style.borderColor = "");
+    ["sen-nome","sen-unita","sen-soglia"].forEach(i => err(i, false));
     if (editMon) {
       await db.aggiorna("monitoraggi", editMon, { nome, unita, soglia });   // valore/letture restano
       editMon = null; $("btn-sen").textContent = "Aggiungi";
@@ -490,7 +1526,8 @@
     }
     $("sen-nome").value = ""; $("sen-unita").value = ""; $("sen-soglia").value = "";
     $("sen-preset").value = ""; $("sen-preset-nota").style.display = "none"; $("sen-preset-nota").textContent = "";
-    $("mis-esito").textContent = "Sensore " + nome + " salvato (soglia " + soglia + " " + unita + ").";
+    esito("mis-esito", "Punto di misura «" + nome + "» salvato, soglia " + numeroIt(soglia) + " " + unita + ".", "success",
+      "«" + nome.split(" — ")[0] + "» salvato.");
     $("sen-nome").focus();   // torna al primo campo per aggiungere subito il prossimo
     await refresh();
   };
@@ -500,7 +1537,7 @@
   $("mon-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseMonitoraggiCsv(await file.text());
-    if (!righe.length) { $("mis-esito").textContent = "Nessuna riga valida: controlla che le colonne siano nome;tipo;valore;soglia;unita;nota."; e.target.value = ""; return; }
+    if (!righe.length) { esito("mis-esito", "Nessuna riga valida nel file: le colonne devono essere nome; tipo; valore; soglia; unita; nota.", "err", "Nessuna riga valida: controlla le colonne."); e.target.value = ""; return; }
     let agg = 0, saltati = 0;
     for (const m of righe) {
       if (MON.some(x => x.nome.toLowerCase() === m.nome.toLowerCase())) { saltati++; continue; }
@@ -508,23 +1545,28 @@
       agg++;
     }
     $("mon-file").value = "";
-    $("mis-esito").textContent = "Import sensori: " + agg + " aggiunti" + (saltati ? ", " + saltati + " già presenti (saltati)" : "") + ".";
+    esito("mis-esito", "Import sensori: " + agg + " aggiunti" + (saltati ? ", " + saltati + " già presenti (saltati)" : "") + ".", agg ? "success" : "");
     await refresh();
   };
   $("btn-mis").onclick = async () => {
     const id = $("mis-sensore").value, raw = $("mis-valore").value.trim(), valore = +raw;
-    if (!id || raw === "" || isNaN(valore) || valore < 0) {
-      $("mis-valore").style.borderColor = "var(--danger)";
-      $("mis-esito").textContent = "Scrivi un valore valido (zero compreso) per registrare la misura."; return;
+    if (!id) { esito("mis-esito", "Prima configura almeno un punto di misura: senza sensore la lettura non ha dove andare.", "err", "Configura prima un punto di misura."); return; }
+    if (raw === "" || isNaN(valore) || valore < 0) {
+      err("mis-valore", true); fuocoErr(["mis-valore"]);
+      esito("mis-esito", raw === "" ? "Scrivi il valore letto sullo strumento (anche zero è un dato valido)."
+        : "Il valore deve essere un numero non negativo: usa il punto per i decimali (es. 4.8).", "err",
+        raw === "" ? "Scrivi il valore letto." : "Il valore deve essere un numero non negativo."); return;
     }
-    $("mis-valore").style.borderColor = "";
+    err("mis-valore", false);
     const m = MON.find(x => x.id === id);
     // storico: ogni registrazione si ACCODA alle letture (max 50), non
     // si perde sovrascrivendo il solo ultimo valore
     const letture = [ ...((m && m.letture) || []), { data: new Date().toISOString().slice(0,10), valore } ].slice(-50);
     await db.aggiorna("monitoraggi", id, { valore, letture });
     const st = statoMisura({ ...m, valore });
-    $("mis-esito").textContent = "Misura registrata su " + (m ? m.nome.split(" — ")[0] : id) + ": " + valore + (m ? " " + m.unita : "") + " → " + st.label + ". La serie storica qui sopra è aggiornata.";
+    esito("mis-esito", "Misura su " + (m ? m.nome.split(" — ")[0] : id) + ": " + numeroIt(valore) + (m ? " " + m.unita : "") + " → " + st.label + ". La serie storica del punto è aggiornata.",
+      st.cls === "danger" ? "err" : "success",
+      numeroIt(valore) + (m ? " " + m.unita : "") + " → " + st.label);
     $("mis-valore").value = "";
     grafMon = id;   // dopo una misura si vede subito l'andamento del punto
     await refresh();
@@ -532,9 +1574,10 @@
   // Recupero errore: appena l'utente corregge un campo, togli il bordo
   // rosso e il messaggio di esito, così l'avviso non resta appeso.
   const clearErr = (inputId, esitoId) => $(inputId).addEventListener("input", () => {
-    $(inputId).style.borderColor = ""; if (esitoId) $(esitoId).textContent = "";
+    err(inputId, false); if (esitoId) pulisci(esitoId);
   });
   ["ade-titolo","ade-data"].forEach(i => clearErr(i, "ade-esito"));
+  clearErr("vol-data", "vol-esito-msg");
   ["sen-nome","sen-unita","sen-soglia"].forEach(i => clearErr(i, "mis-esito"));
   clearErr("mis-valore", "mis-esito");
   // Invio da tastiera: premere Invio in un campo del form equivale a
@@ -563,9 +1606,9 @@
       const p = presetSoglia(sel.value); const nota = $("sen-preset-nota");
       if (!p) { nota.style.display = "none"; nota.textContent = ""; return; }
       $("sen-unita").value = p.unita; $("sen-soglia").value = p.valore;
-      $("sen-unita").style.borderColor = ""; $("sen-soglia").style.borderColor = "";
+      err("sen-unita", false); err("sen-soglia", false);
       nota.style.display = "block";
-      nota.innerHTML = "Fonte: " + esc(p.fonte) + ". ⚠️ Valore normativo di <b>riferimento</b>: verifica sulla norma ufficiale e sulle prescrizioni (AUA/AIA, classe acustica) del tuo sito prima di usarlo.";
+      nota.innerHTML = "Fonte: " + esc(p.fonte) + ". Valore normativo di <b>riferimento</b>: verificalo sulla norma ufficiale e sulle prescrizioni (AUA/AIA, classe acustica) del tuo sito prima di usarlo come soglia.";
       $("sen-nome").focus();
     });
   })();
@@ -574,9 +1617,9 @@
   // vibrazioni da volata (più alta = più sicura). Ricalcolo dal vivo.
   const renderSD = () => {
     const sd = scaledDistance($("sd-dist").value, $("sd-carica").value);
-    $("sd-out").textContent = sd == null
-      ? "Inserisci carica per ritardo (kg) e distanza (m) del ricettore per la distanza scalata SD = R/√W."
-      : "Distanza scalata SD = " + (Math.round(sd * 10) / 10) + " m/√kg. Più è alta, minore il rischio di superare le soglie PPV (confronta con lo storico del sito).";
+    $("sd-out").innerHTML = sd == null
+      ? "Inserisci carica per ritardo (kg) e distanza (m) del ricettore per la distanza scalata SD = R/&radic;W."
+      : "Distanza scalata <b>SD = " + (Math.round(sd * 10) / 10) + " m/&radic;kg</b>. Più è alta, minore il rischio di superare le soglie di vibrazione (confronta con lo storico del sito).";
     // inverso: dalla SD obiettivo e dalla distanza, la carica massima per ritardo
     const wmax = caricaMax($("sd-dist").value, $("sd-target").value);
     $("sd-max").innerHTML = wmax == null
