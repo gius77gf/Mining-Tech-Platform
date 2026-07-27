@@ -1181,8 +1181,10 @@ body.modal-open{overflow:hidden;}
     { const anom = ATT_G.filter(a => a.stato === "anomalia").length;
       const totFermi = fermi.reduce((s, f) => s + f.conto, 0);
       $("fermi-riep").innerHTML = fermi.length
-        ? `<b>${totFermi}</b> fermi registrati su <b>${fermi.length}</b> caus${fermi.length === 1 ? "ale" : "ali"} diverse`
-          + (anom ? ` · <b>${anom}</b> attività ancora in anomalia` : " · nessuna attività ancora in anomalia")
+        ? `<b>${totFermi}</b> ${totFermi === 1 ? "fermo registrato" : "fermi registrati"}`
+          + ` su <b>${fermi.length}</b> ${fermi.length === 1 ? "causale" : "causali diverse"}`
+          + (anom ? ` · <b>${anom}</b> ${anom === 1 ? "attività ancora aperta" : "attività ancora aperte"} in anomalia`
+                  : " · nessuna attività ancora in anomalia")
         : ""; }
 
     $("squ-count").textContent = SQU.length;
