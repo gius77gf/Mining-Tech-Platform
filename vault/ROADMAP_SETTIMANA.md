@@ -88,18 +88,17 @@ Vengono prima di ogni funzione nuova: senza queste basi il resto non regge.
 Dettaglio e fonti in `docs/RICERCA_<APP>_202607.md`.
 
 **Scudo** (sicurezza) — `docs/RICERCA_SCUDO_202607.md`
-- [ ] S1. **Azioni correttive (CAPA)**: da evento o non conformità nasce
-      un'azione con responsabile e scadenza. È il pezzo che manca e che tutti
-      i concorrenti hanno.
+- [x] S1. **Azioni correttive (CAPA)** ✅ *(27/07)* — legame nei due sensi
+      con l'evento, stati aperta→in corso→chiusa con esito, dentro il
+      semaforo e lo scadenzario esistenti.
 - [ ] S2. **Near-miss dal telefono** + riepilogo aggregato.
 - [ ] S3. **Ispezioni e checklist periodiche** (fronte, piste, impianto):
       le voci non conformi generano automaticamente le azioni di S1.
 - [ ] S4. **Matrice formazione per mansione** + nomine (incluso il
       **sorvegliante**, obbligatorio in cava, e il preposto).
 - [ ] S5. **Registro DPI per lavoratore** (consegna, addestramento, verbale).
-- [ ] S6. *Vittoria rapida*: preset scadenze specifici del **D.Lgs. 624/96**
-      che nessun software generalista conosce (relazione annuale sulla
-      stabilità dei fronti, aggiornamento del DSS).
+- [x] S6. **Preset D.Lgs. 624/96** ✅ *(27/07)* — 7 voci specifiche delle
+      industrie estrattive, periodicità solo proposta e modificabile.
 
 **Campo** (operazioni) — `docs/RICERCA_CAMPO_202607.md`
 - [ ] C1. **Assegnazione attività a squadra/mezzo** (oggi sono anonime).
@@ -138,14 +137,13 @@ Dettaglio e fonti in `docs/RICERCA_<APP>_202607.md`.
 - [ ] T4. **Registro reclami/esposti dei residenti**.
 
 **Terra** (rilievi e autorizzazioni) — `docs/RICERCA_TERRA_202607.md`
-- [ ] R1. **Scheda autorizzazione** (atto, ente, scadenza, superficie,
-      **volume totale autorizzato**, prescrizioni). Oggi Terra non sa quando
-      scade il titolo che regge tutto il lavoro.
-- [ ] R2. **Contatore vita cava**: autorizzato − estratto = quanto resta e
-      per quanti anni. Oggi si controlla solo l'anno in corso, ma il rischio
-      vero è sforare il **totale** concesso.
-- [ ] R3. **Scadenzario Terra** (autorizzazione, **fideiussione**, VIA,
-      collaudo, rilievo periodico).
+- [x] R1. **Scheda autorizzazione** ✅ *(27/07)* — con storico delle
+      varianti e badge vigente/archiviata.
+- [x] R2. **Contatore vita cava** ✅ *(27/07)* — residuo sul totale
+      concesso, soglia di guardia impostabile, anni residui dal ritmo medio,
+      confronto 'scade prima il titolo o il volume'.
+- [x] R3. **Scadenzario Terra** ✅ *(27/07)* — semaforo, ricorrenze e
+      proposta automatica della scadenza successiva.
 - [ ] R4. **Riepilogo annuale volumi per la denuncia agli enti** (i dati ci
       sono già, manca la vista).
 - [ ] R5. **Provenienza del volume dal visore**: distinguere **scavo da
