@@ -4,67 +4,689 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Scudo — Sicurezza & Personale</title>
-<meta name="theme-color" content="#8b5cf6">
+<meta name="theme-color" content="#0d0c13">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Scudo">
-<link rel="manifest" href='data:application/manifest+json,{"name":"Deepwork Scudo","short_name":"Scudo","description":"Sicurezza e personale","start_url":".","scope":".","display":"standalone","orientation":"portrait","background_color":"%23100d07","theme_color":"%238b5cf6","categories":["business","productivity"],"lang":"it","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 180 180%27><rect width=%27180%27 height=%27180%27 rx=%2732%27 fill=%27%238b5cf6%27/><text x=%2790%27 y=%27126%27 font-family=%27sans-serif%27 font-size=%27104%27 font-weight=%27700%27 fill=%27%23ffffff%27 text-anchor=%27middle%27>S</text></svg>","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}'>
+<link rel="manifest" href='data:application/manifest+json,{"name":"Deepwork Scudo","short_name":"Scudo","description":"Sicurezza e personale","start_url":".","scope":".","display":"standalone","orientation":"portrait","background_color":"%230d0c13","theme_color":"%230d0c13","categories":["business","productivity"],"lang":"it","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 180 180%27><rect width=%27180%27 height=%27180%27 rx=%2732%27 fill=%27%238c75dc%27/><text x=%2790%27 y=%27126%27 font-family=%27sans-serif%27 font-size=%27104%27 font-weight=%27700%27 fill=%27%230d0c13%27 text-anchor=%27middle%27>S</text></svg>","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}'>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../shared/deepwork-style.css">
 <link rel="stylesheet" href="../../shared/dw-app-shell.css">
 <style>
-  /* Scudo usa l'accento "team" della palette funzionale deepwork */
-  :root { --app-accent:#8b5cf6; --app-accent2:#bd96ff; }
-  /* badge nel colore dell'app (azioni correttive), stessa forma degli altri */
-  .badge.accent { background: color-mix(in srgb, var(--app-accent) 18%, transparent); color: var(--app-accent2); }
+/* ══════════════════════════════════════════════════════════════════════
+   SCUDO — sicurezza e personale
+   STRUTTURA: identica al core Deepwork (index.html alla radice): stesse
+   misure, raggi, ombre, curve, comportamenti.
+   COLORE: palette propria di Scudo (viola-indaco 292°, docs/PALETTE_APP.md
+   §3.1), fusa in TUTTE le superfici — non un accento sopra un tema altrui.
+   ══════════════════════════════════════════════════════════════════════ */
+
+:root{
+  /* ---- rampa dell'accento (4 gradini) ---- */
+  --app-accent-deep:#5e499d;
+  --app-accent:     #8c75dc;   /* SOLO grafica: bordi, strisce, pallini   */
+  --app-accent2:    #b7a8f9;   /* UNICO ammesso per il testo              */
+  --app-accent-soft:#d9d4f8;
+  --app-support:    #4467a9;   /* indigo d'appoggio (262°)                */
+  --app-support2:   #86a5de;
+
+  /* ---- superfici: tutte velate di viola ---- */
+  --bg:#0d0c13; --dark:#111017; --panel:#14131d;
+  --card:#1d1b28; --card2:#232032;
+  --border:#2b283c; --border2:#343049; --border-hi:#686481;
+
+  /* ---- testo ---- */
+  --text:#e9e7f4; --muted2:#b1adca; --muted:#928ead; --disabled:#706d82;
+
+  /* ---- stati (nessuno litiga con il viola) ---- */
+  --success:#6abb6e; --warn:#f8ac3d; --danger:#f05f5a; --info:#34aede;
+
+  /* ---- gradienti ---- */
+  --grad:    linear-gradient(135deg,#a68cff,#8a6fe0);
+  --grad-on: #0d0c13;
+  --grad-sup:linear-gradient(135deg,#9db8e8,#5c7fbe);
+  --gradSuc: linear-gradient(135deg,#6abb6e,#2f7a33);
+  --grad3:   linear-gradient(135deg,#f05f5a,#a32b27);
+  --grad-ok: linear-gradient(135deg,#96d89a,#5aa85e);
+  --grad-wr: linear-gradient(135deg,#ffc873,#e5972c);
+  --grad-dg: linear-gradient(135deg,#ff9490,#d84f4a);
+
+  /* ---- luce, aloni, ombre ---- */
+  --shadow-app:0 10px 30px rgba(49,31,93,.42);
+  --glow-app:  rgba(140,117,220,.30);
+  --tint-app:  rgba(140,117,220,.14);
+  --focus-ring:rgba(183,168,249,.34);
+  --sel:       rgba(140,117,220,.30);
+  --halo-1:    rgba(140,117,220,.07);
+  --halo-2:    rgba(134,165,222,.06);
+
+  /* Stratificazione della luce: riflesso sul bordo alto + ombra propria
+     sul bordo basso. È ciò che dà spessore fisico agli oggetti. */
+  --edge:   inset 0 1px 0 rgba(255,255,255,.055), inset 0 -1px 0 rgba(0,0,0,.28);
+  --edge-hi:inset 0 1px 0 rgba(255,255,255,.20);
+  --sh1:0 1px 5px rgba(0,0,0,.20);
+  --sh2:0 2px 8px rgba(0,0,0,.26);
+  --sh3:0 6px 16px rgba(0,0,0,.32);
+  --sh4:0 10px 24px rgba(0,0,0,.38);
+  --sh-btn:0 5px 16px rgba(94,73,157,.42);
+  --sh-btn-hi:0 8px 22px rgba(94,73,157,.55);
+}
+
+/* ─────────────── fondo e atmosfera ─────────────── */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+body.dw{
+  background:var(--bg); color:var(--text);
+  overflow-x:hidden; overscroll-behavior-y:contain;
+  padding-bottom:calc(104px + env(safe-area-inset-bottom));
+}
+body.dw::before{
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(ellipse 700px 500px at 15% 5%,  var(--halo-1) 0%, transparent 65%),
+    radial-gradient(ellipse 500px 400px at 85% 85%, var(--halo-2) 0%, transparent 65%);
+}
+.top,.page,.nav,.tour-banner,.toast,.modal-ov{position:relative; z-index:1;}
+*{-webkit-tap-highlight-color:transparent;}
+button,a,label,select,input,.item,.kpi,.chg,.mbtn{touch-action:manipulation;}
+::selection{background:var(--sel);}
+:focus{outline:none;}
+:focus-visible{outline:none; box-shadow:0 0 0 3px var(--focus-ring); border-radius:5px;}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-track{background:var(--dark);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px;}
+::-webkit-scrollbar-thumb:hover{background:var(--app-accent);}
+img{max-width:100%;}
+
+/* ─────────────── barra alta (copia di .topbar del core) ─────────────── */
+.top{
+  position:sticky; top:0; z-index:100;
+  display:flex; align-items:center; gap:10px;
+  min-height:62px; padding:0 14px;
+  background:linear-gradient(180deg,rgba(35,32,50,.97),rgba(17,16,23,.97));
+  -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  box-shadow:0 2px 12px rgba(0,0,0,.34);
+}
+.top::after{                       /* la riga luminosa del core, in viola */
+  content:""; position:absolute; left:0; right:0; bottom:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--app-accent),transparent);
+  opacity:.55;
+}
+.top-brand{flex:1; min-width:0;}
+.logo-sm{
+  font-family:'Barlow Condensed',sans-serif; font-size:17px; font-weight:800;
+  letter-spacing:3px; text-transform:uppercase; color:var(--app-accent2);
+  text-shadow:0 0 14px rgba(140,117,220,.45); line-height:1.1;
+}
+.role-sm{
+  font-size:9px; color:var(--muted); letter-spacing:2px; text-transform:uppercase;
+  margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.dw-home,.dw-exit{
+  position:static; top:auto; right:auto;
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  min-height:var(--tap); min-width:var(--tap); padding:0 11px;
+  border:1px solid var(--border2); border-radius:var(--r-sm);
+  background:var(--card); color:var(--muted2);
+  font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; text-decoration:none; cursor:pointer;
+  flex-shrink:0; box-shadow:var(--edge); transition:all .18s var(--ease);
+}
+.dw-home{padding:0 13px; line-height:0;}
+.dw-home svg{width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:1.7;
+  stroke-linecap:round; stroke-linejoin:round;}
+.dw-home:hover{color:var(--app-accent2); border-color:var(--app-accent); background:var(--card2);}
+.dw-exit:hover{color:var(--danger); border-color:var(--danger);}
+.top h1,body.has-exit .top h1{padding-right:0 !important;}
+
+/* nastro "modalità tour" — forma .info-box del core */
+.tour-banner{
+  background:var(--card2); border:1px solid var(--border);
+  border-left:3px solid var(--app-accent); border-radius:var(--r-sm);
+  color:var(--muted2); font-size:12px; line-height:1.5;
+  padding:10px 13px; margin:14px 16px 0; text-align:left; box-shadow:var(--edge);
+}
+.tour-banner b{color:var(--text);}
+
+/* ─────────────── pagine ─────────────── */
+.page{padding:16px 16px calc(24px + env(safe-area-inset-bottom));}
+.page.active{display:block; animation:scrFade .22s var(--ease);}
+@keyframes scrFade{from{opacity:0} to{opacity:1}}
+
+/* ─────────────── KPI (copia di .kpi-card del core) ─────────────── */
+.kpis{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px;}
+.kpi{
+  position:relative; overflow:hidden;
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--border);
+  border-top:3px solid var(--app-accent);
+  border-left:3px solid var(--app-accent);
+  border-radius:var(--r-sm); padding:11px 13px 12px;
+  /* la striscia di sinistra resta sempre viola: è l'app. Lo stato sta in alto. */
+  box-shadow:var(--sh1),var(--edge);
+  transition:transform .18s var(--ease),box-shadow .18s var(--ease),border-color .2s;
+}
+.kpi::after{                                   /* alone che segue il mouse */
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+  border-radius:inherit;
+  background:radial-gradient(200px 160px at var(--mx,50%) var(--my,30%),
+             var(--kpi-glow,var(--glow-app)), transparent 62%);
+  opacity:0; transition:opacity .25s var(--ease);
+}
+.kpi:hover::after{opacity:1;}
+.kpi>*{position:relative; z-index:1;}
+.kpi:hover{transform:translateY(-3px); box-shadow:var(--sh4),var(--edge);}
+.kpi:active{transform:translateY(-1px) scale(.99);}
+.kpi .l{
+  font-family:'Barlow',sans-serif; font-size:10px; font-weight:600;
+  letter-spacing:2px; text-transform:uppercase; color:var(--muted); line-height:1.3;
+}
+.kpi .n{
+  font-family:'Barlow Condensed',sans-serif; font-size:32px; font-weight:800;
+  line-height:1.05; margin-top:3px; font-variant-numeric:tabular-nums;
+  background:var(--grad); -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent; color:transparent;
+}
+.kpi.ok    {border-top-color:var(--success); --kpi-glow:rgba(106,187,110,.24);}
+.kpi.warn  {border-top-color:var(--warn);    --kpi-glow:rgba(248,172,61,.24);}
+.kpi.danger{border-top-color:var(--danger);  --kpi-glow:rgba(240,95,90,.24); animation:pulseDanger 2.4s ease-in-out infinite;}
+.kpi.ok .n    {background:var(--grad-ok);}
+.kpi.warn .n  {background:var(--grad-wr);}
+.kpi.danger .n{background:var(--grad-dg);}
+.kpi.ok .n,.kpi.warn .n,.kpi.danger .n{-webkit-background-clip:text; background-clip:text;}
+@keyframes pulseDanger{0%,100%{border-top-color:var(--danger)}50%{border-top-color:#8a3532}}
+
+/* ─────────────── cartellone sicurezza ─────────────── */
+.safety{
+  position:relative; overflow:hidden;
+  display:flex; align-items:center; gap:14px;
+  background:linear-gradient(135deg,var(--card2),var(--card));
+  border:1px solid var(--border); border-left:3px solid var(--success);
+  border-radius:var(--r); padding:13px 16px; margin:0 0 4px;
+  box-shadow:var(--sh2),var(--edge);
+}
+.safety::before{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(260px 150px at 8% 0%,rgba(106,187,110,.10),transparent 70%);
+}
+.safety.warn{border-left-color:var(--warn);}
+.safety.warn::before{background:radial-gradient(260px 150px at 8% 0%,rgba(248,172,61,.10),transparent 70%);}
+.safety.none{border-left-color:var(--app-accent);}
+.safety.none::before{background:radial-gradient(260px 150px at 8% 0%,var(--tint-app),transparent 70%);}
+.safety>*{position:relative;}
+.safety-ico{
+  display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
+  width:44px; height:44px; border-radius:13px; line-height:0;
+  color:var(--app-accent2); background:var(--tint-app);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 0 14px var(--tint-app);
+}
+.safety-ico svg{width:24px; height:24px; stroke:currentColor; fill:none; stroke-width:1.7;
+  stroke-linecap:round; stroke-linejoin:round;}
+.safety-num{
+  font-family:'Barlow Condensed',sans-serif; font-size:38px; font-weight:800; line-height:.95;
+  font-variant-numeric:tabular-nums;
+  background:var(--grad-ok); -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+.safety.warn .safety-num{background:var(--grad-wr); -webkit-background-clip:text; background-clip:text;}
+.safety-lab{font-size:10.5px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-top:2px;}
+.safety-sub{font-size:11.5px; color:var(--muted2); margin-top:4px;}
+.safety-txt{font-size:13px; color:var(--muted2); line-height:1.5;}
+.safety-txt b{color:var(--text);}
+
+/* ─────────────── titolo di sezione (copia di .sec-title) ─────────────── */
+.sec{
+  display:flex; align-items:center; gap:8px;
+  font-family:'Barlow Condensed',sans-serif; font-size:11.5px; font-weight:700;
+  letter-spacing:2.5px; text-transform:uppercase; color:var(--muted2);
+  margin:24px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--border);
+}
+.sec::before{
+  content:""; width:5px; height:5px; border-radius:50%; flex-shrink:0;
+  background:var(--app-accent); box-shadow:0 0 8px var(--app-accent);
+}
+.page>.sec:first-child{margin-top:2px;}
+.sec .cnt{
+  margin-left:auto; font-size:10px; letter-spacing:1.5px; color:var(--muted);
+  background:var(--card); border:1px solid var(--border); border-radius:20px;
+  padding:2px 9px; box-shadow:var(--edge);
+}
+
+/* ─────────────── voci di lista (copia di .sitem) ─────────────── */
+.item{
+  position:relative; overflow:hidden;
+  display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px;
+  background:var(--card); border:1px solid var(--border); border-radius:var(--r-sm);
+  padding:12px 13px; margin-bottom:5px; min-height:var(--tap); cursor:pointer;
+  box-shadow:var(--sh1),var(--edge);
+  transition:transform .15s var(--ease),box-shadow .15s var(--ease),border-color .2s,background .2s;
+}
+.item::after{
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0; border-radius:inherit;
+  background:radial-gradient(170px 120px at var(--mx,50%) var(--my,50%),var(--glow-app),transparent 62%);
+  opacity:0; transition:opacity .25s var(--ease);
+}
+.item:hover::after{opacity:1;}
+.item>*{position:relative; z-index:1;}
+.item:hover{
+  background:var(--card2);
+  border-color:color-mix(in srgb,var(--app-accent) 42%,var(--border));
+  transform:translateX(3px); box-shadow:var(--sh3),var(--edge);
+}
+.item:active{transform:translateX(1px) scale(.995);}
+.item.st-danger {border-left:3px solid var(--danger);}
+.item.st-warn   {border-left:3px solid var(--warn);}
+.item.st-ok     {border-left:3px solid var(--success);}
+.item.st-accent {border-left:3px solid var(--app-accent);}
+.item.st-mute   {border-left:3px solid var(--border2);}
+.item.evidenzia{
+  border-color:var(--app-accent) !important;
+  box-shadow:0 0 0 3px var(--focus-ring),var(--sh3) !important;
+}
+
+.avatar{
+  width:36px; height:36px; border-radius:11px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:800;
+  letter-spacing:1px; color:var(--grad-on); background:var(--grad); border:none;
+  box-shadow:0 2px 6px rgba(0,0,0,.35),var(--edge-hi);
+}
+.avatar.sup{background:var(--grad-sup);}
+.avatar svg{width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:2;
+  stroke-linecap:round; stroke-linejoin:round;}
+.info{flex:1 1 120px; min-width:0;}
+.acts{
+  display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap;
+  gap:5px; margin-left:auto;
+}
+/* come nel core le voci restano compatte: al massimo due righe, poi «…» */
+.name{
+  font-size:13.5px; font-weight:600; color:var(--text); line-height:1.3;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; overflow-wrap:anywhere;
+}
+.meta{
+  font-size:11px; color:var(--muted); margin-top:3px; line-height:1.4;
+  font-variant-numeric:tabular-nums;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; overflow-wrap:anywhere;
+}
+.arr svg{width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round;}
+.arr{
+  color:var(--muted); font-size:15px; line-height:1;
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:30px; min-height:30px; border-radius:7px; flex-shrink:0;
+  transition:color .15s var(--ease),background .15s var(--ease);
+}
+.arr[data-edit-lav],.arr[data-edit-azi],.arr[data-ren-scad],
+.arr[data-vai-azi],.arr[data-vai-evt],.arr[data-open-doc]{border:1px solid transparent;}
+.arr:hover{color:var(--app-accent2); background:color-mix(in srgb,var(--app-accent) 16%,transparent);}
+.arr[data-del-lav]:hover,.arr[data-del-scad]:hover,.arr[data-del-inf]:hover,
+.arr[data-del-cant]:hover,.arr[data-del-azi]:hover{color:var(--danger); background:rgba(240,95,90,.14);}
+
+/* ─────────────── badge (copia di .scad-badge: raggio 3px, pieno) ─────────────── */
+.badge{
+  display:inline-flex; align-items:center; gap:4px; flex-shrink:0;
+  padding:3px 8px; border-radius:3px; white-space:nowrap;
+  font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:800;
+  letter-spacing:1px; text-transform:uppercase;
+  background:var(--card2); color:var(--muted2); border:1px solid var(--border2);
+  box-shadow:0 1px 3px rgba(0,0,0,.35),var(--edge-hi);
+}
+.badge.ok,.badge.warn,.badge.danger,.badge.info,.badge.accent{border-color:transparent;}
+/* badge dentro una riga di testo (idoneità, azioni dell'evento) */
+.badge.inline{vertical-align:middle; margin:0 0 0 2px; font-size:9.5px; padding:2px 7px;}
+.badge.ok     {background:var(--success);     color:#08160a;}
+.badge.warn   {background:var(--warn);        color:#231402;}
+.badge.danger {background:var(--danger);      color:#2b0705;}
+.badge.info   {background:var(--info);        color:#04161e;}
+.badge.accent {background:var(--app-accent);  color:var(--grad-on);}
+.badge.tag{                                   /* etichetta neutra (tipo documento) */
+  background:var(--card2); color:var(--muted2);
+  border:1px solid var(--border2); box-shadow:none; font-weight:700;
+}
+
+/* ─────────────── campi (copia di .finput) ─────────────── */
+.dw-input{
+  width:100%; min-height:var(--tap); padding:11px 13px;
+  background:var(--card); border:1px solid var(--border-hi); border-radius:9px;
+  color:var(--text); font-family:'Barlow',sans-serif; font-size:16px; outline:none;
+  box-shadow:var(--edge);
+  transition:border-color .18s var(--ease),box-shadow .18s var(--ease),background .18s;
+}
+.dw-input::placeholder{color:var(--disabled);}
+.dw-input:hover{border-color:color-mix(in srgb,var(--app-accent) 55%,var(--border-hi));}
+.dw-input:focus{
+  border-color:var(--app-accent); background:var(--card2);
+  box-shadow:0 0 0 3px var(--focus-ring),var(--edge);
+}
+.dw-input.err{border-color:var(--danger) !important; background:rgba(240,95,90,.08);}
+.dw-input[readonly],.dw-input[disabled]{color:var(--muted2); opacity:.7;}
+select.dw-input{font-size:16px; cursor:pointer;}
+select.dw-input option,select.dw-input optgroup{background:var(--card); color:var(--text);}
+textarea.dw-input{resize:vertical; min-height:60px;}
+input[type=date].dw-input::-webkit-calendar-picker-indicator,
+input[type=search].dw-input::-webkit-search-cancel-button{
+  filter:invert(.68); cursor:pointer; opacity:.8;
+}
+input[type=date].dw-input::-webkit-calendar-picker-indicator:hover{
+  filter:invert(.72) sepia(.45) saturate(4) hue-rotate(220deg); opacity:1;
+}
+.dw-muted{color:var(--muted);}
+.dw-accent{color:var(--app-accent2);}
+
+/* ─────────────── bottoni (copia di .btn-sv / .btn-sec) ─────────────── */
+.dw-btn{
+  min-height:var(--tap); padding:12px 18px; border:none; border-radius:var(--r-sm);
+  background:var(--grad); color:var(--grad-on);
+  font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:800;
+  letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  box-shadow:var(--sh-btn),var(--edge-hi);
+  transition:transform .12s var(--ease),box-shadow .2s var(--ease),filter .2s;
+}
+.dw-btn:hover{box-shadow:var(--sh-btn-hi),var(--edge-hi); filter:brightness(1.07);}
+.dw-btn:active{transform:translateY(2px); box-shadow:0 2px 8px rgba(94,73,157,.3),var(--edge-hi);}
+.dw-btn:disabled{opacity:.6; cursor:wait; filter:none; transform:none;}
+.dw-btn.secondary{
+  background:var(--card); border:1px solid var(--border2); color:var(--text);
+  font-size:13px; font-weight:600; letter-spacing:1px; padding:11px 14px;
+  box-shadow:var(--edge); filter:none;
+}
+.dw-btn.secondary:hover{
+  border-color:var(--app-accent); color:var(--app-accent2); background:var(--card2);
+  transform:translateY(-1px); box-shadow:var(--sh2),var(--edge); filter:none;
+}
+.dw-btn.secondary:active{transform:translateY(1px); box-shadow:var(--edge);}
+.dw-btn.mini{min-height:var(--tap); padding:6px 12px; font-size:11px; letter-spacing:1px;}
+
+/* ─────────────── filtri a segmento (copia di .chg) ─────────────── */
+.chgs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;}
+.chg{
+  background:var(--card); border:1px solid var(--border); color:var(--muted2);
+  padding:7px 13px; min-height:var(--tap); border-radius:7px;
+  font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700;
+  letter-spacing:1px; text-transform:uppercase; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+  box-shadow:var(--edge); transition:all .15s var(--ease);
+}
+.chg:hover{border-color:var(--app-accent); color:var(--app-accent2);}
+.chg.active{
+  background:var(--app-accent); border-color:var(--app-accent); color:var(--grad-on);
+  box-shadow:0 2px 10px rgba(140,117,220,.35),var(--edge-hi);
+}
+.chg:active{transform:scale(.95);}
+
+/* ─────────────── form come oggetti veri (superficie del core) ─────────────── */
+.form{
+  display:flex; flex-wrap:wrap; gap:9px;
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--border); border-radius:var(--r); padding:13px;
+  box-shadow:var(--sh2),var(--edge);
+}
+.form.col{flex-direction:column; align-items:stretch;}
+.form .dw-input{flex:1 1 150px; width:auto; min-width:0; max-width:100%;}
+/* un <select> con opzioni lunghe non deve allargare la pagina */
+.form.col>.dw-input,.form.col>select.dw-input{width:100%; flex:0 0 auto;}
+.form>*,.frow>*{min-width:0; max-width:100%;}
+.form .dw-btn{flex:0 0 auto;}
+.frow{display:flex; flex-wrap:wrap; gap:9px; width:100%; align-items:center;}
+.form-hint{font-size:11.5px; color:var(--muted); line-height:1.5; flex-basis:100%;}
+.tools{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px;}
+.ord{display:flex; align-items:center; gap:8px; margin:0 0 10px;}
+.ord label{
+  font-family:'Barlow Condensed',sans-serif; font-size:10.5px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); flex-shrink:0;
+}
+.ord .dw-input{width:auto; flex:1; max-width:280px;}
+.count{
+  font-family:'Barlow Condensed',sans-serif; font-size:10.5px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; color:var(--muted);
+  margin:0 0 8px; min-height:14px;
+}
+.count b{color:var(--app-accent2);}
+.count .link{color:var(--app-accent2); cursor:pointer; text-decoration:underline; text-underline-offset:3px;}
+
+/* ─────────────── riquadri informativi (copia di .info-box) ─────────────── */
+.note{
+  background:var(--card2); border:1px solid var(--border);
+  border-left:3px solid var(--info); border-radius:var(--r-sm);
+  padding:11px 13px; margin-top:12px; text-align:left;
+  font-size:12px; line-height:1.6; color:var(--muted2); box-shadow:var(--edge);
+}
+.note:empty{display:none;}
+.note b{color:var(--text);}
+.note.esito{border-left-color:var(--app-accent); color:var(--text); font-size:12.5px;}
+.note.recap{border-left-color:var(--app-accent);}
+.note.recap b{
+  color:var(--app-accent2); font-family:'Barlow Condensed',sans-serif;
+  font-size:15px; font-weight:800; font-variant-numeric:tabular-nums;
+  padding:0 1px;
+}
+
+/* ─────────────── stato vuoto (copia di .empty-state) ─────────────── */
+.empty-state{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:38px 20px; text-align:center; color:var(--muted); border-radius:var(--r);
+  background:radial-gradient(360px 220px at 50% 0%,
+             color-mix(in srgb,var(--app-accent) 7%,transparent),transparent 70%);
+}
+.empty-icon{
+  margin-bottom:12px; line-height:0; color:var(--app-accent2); opacity:.55;
+  filter:drop-shadow(0 0 16px color-mix(in srgb,var(--app-accent) 30%,transparent));
+}
+.empty-icon svg{
+  width:46px; height:46px; stroke:currentColor; fill:none; stroke-width:1.3;
+  stroke-linecap:round; stroke-linejoin:round;
+}
+.empty-title{
+  font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:800;
+  letter-spacing:2px; text-transform:uppercase; color:var(--text); margin-bottom:6px;
+}
+.empty-sub{font-size:12px; color:var(--muted); max-width:300px; line-height:1.55;}
+.empty-sub b{color:var(--muted2);}
+
+/* ─────────────── navigazione: pillola flottante (copia di #global-nav.bnav) ─────────────── */
+.nav{
+  position:fixed; left:50%; right:auto; transform:translateX(-50%);
+  bottom:calc(8px + env(safe-area-inset-bottom));
+  width:calc(100% - 16px); max-width:520px; z-index:90;
+  display:grid; grid-template-columns:repeat(5,1fr);
+  background:rgba(20,19,29,.97);
+  -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+  border:1px solid var(--border2); border-top:1px solid var(--border2);
+  border-radius:18px; overflow:hidden; padding-bottom:0;
+  box-shadow:0 10px 28px rgba(0,0,0,.5),var(--edge);
+}
+.nav button{
+  position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:3px; padding:10px 2px 9px; min-height:var(--tap);
+  background:none; border:none; border-top:2px solid transparent; cursor:pointer;
+  color:var(--muted); font-family:'Barlow Condensed',sans-serif;
+  font-size:9px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase;
+  transition:color .2s var(--ease),transform .15s var(--ease);
+}
+.nav button:hover{color:var(--app-accent2);}
+.nav button.active{color:var(--app-accent2); border-top-color:var(--app-accent); transform:translateY(-2px);}
+.nav button.active::before{
+  content:""; position:absolute; top:5px; left:50%; transform:translateX(-50%);
+  width:42px; height:30px; border-radius:10px; z-index:0;
+  background:color-mix(in srgb,var(--app-accent) 20%,transparent);
+}
+.nav button>*{position:relative; z-index:1;}
+.nav .ico{display:flex; align-items:center; justify-content:center; height:22px;}
+.nav .ico svg{width:21px; height:21px; stroke:currentColor; fill:none; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round; transition:transform .15s var(--ease),filter .2s;}
+.nav button.active .ico svg{
+  transform:scale(1.06);
+  filter:drop-shadow(0 0 6px color-mix(in srgb,var(--app-accent) 65%,transparent));
+}
+
+/* ─────────────── modale (copia di .modal-* del core) ─────────────── */
+.modal-ov{
+  position:fixed; inset:0; z-index:300; display:none; padding:20px;
+  align-items:center; justify-content:center;
+  background:rgba(9,8,14,.86);
+  -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
+}
+.modal-ov.show{display:flex; animation:ovFade .2s var(--ease);}
+@keyframes ovFade{from{opacity:0} to{opacity:1}}
+.modal-box{
+  position:relative; width:100%; max-width:440px; max-height:92dvh;
+  display:flex; flex-direction:column; overflow:hidden;
+  background:linear-gradient(180deg,var(--panel),var(--dark));
+  border:1px solid var(--border2); border-radius:var(--r);
+  box-shadow:0 20px 60px rgba(0,0,0,.65),var(--edge);
+  animation:fadeUp .25s ease;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)}}
+.modal-head{
+  position:relative; padding:15px 18px; border-bottom:1px solid var(--border);
+  font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:800;
+  letter-spacing:2px; text-transform:uppercase; color:var(--text);
+}
+.modal-head::after{
+  content:""; position:absolute; left:0; right:0; bottom:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--app-accent),transparent); opacity:.55;
+}
+.modal-body{
+  padding:15px 18px; overflow-y:auto; overscroll-behavior:contain; flex:1; max-height:55vh;
+  font-size:13.5px; line-height:1.6; color:var(--muted2); user-select:text;
+}
+.modal-body b{color:var(--text);}
+.modal-body .fl{
+  display:block; font-family:'Barlow',sans-serif; font-size:11px; font-weight:600;
+  letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin:12px 0 6px;
+}
+.modal-foot{
+  padding:12px 18px; border-top:1px solid var(--border); background:var(--dark);
+  display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap;
+  position:sticky; bottom:0;
+}
+.mbtn{
+  background:none; border:1px solid var(--border2); color:var(--text);
+  padding:10px 16px; border-radius:var(--r-sm); min-height:var(--tap);
+  display:inline-flex; align-items:center; justify-content:center;
+  font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700;
+  letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+  transition:all .15s var(--ease);
+}
+.mbtn:hover{border-color:var(--app-accent); color:var(--app-accent2);}
+.mbtn:active{transform:scale(.97);}
+.mbtn.primary{
+  background:var(--grad); border-color:transparent; color:var(--grad-on); font-weight:800;
+  box-shadow:var(--sh-btn),var(--edge-hi);
+}
+.mbtn.primary:hover{filter:brightness(1.07); color:var(--grad-on);}
+.mbtn.danger{background:var(--danger); border-color:var(--danger); color:#2b0705; font-weight:800;}
+.mbtn.danger:hover{filter:brightness(1.08); color:#2b0705;}
+body.modal-open{overflow:hidden;}
+
+/* ─────────────── toast (copia del core) ─────────────── */
+.toast{
+  position:fixed; left:50%; bottom:calc(100px + env(safe-area-inset-bottom));
+  transform:translateX(-50%) translateY(8px);
+  max-width:min(92vw,460px); padding:11px 20px; border-radius:10px;
+  background:var(--grad); color:var(--grad-on); text-align:center;
+  font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:800;
+  letter-spacing:1px; line-height:1.35;
+  box-shadow:0 8px 30px rgba(0,0,0,.5),var(--edge-hi);
+  opacity:0; pointer-events:none; z-index:999;
+  transition:opacity .3s var(--ease),transform .3s var(--ease);
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+.toast.err{background:var(--danger); color:#2b0705;}
+.toast.success{background:var(--success); color:#08160a;}
+
+/* ─────────────── desktop ─────────────── */
+@media(min-width:768px){
+  /* la barra si allinea alla colonna dei contenuti, non al bordo dello schermo */
+  .top{padding-left:max(24px,calc((100% - 900px) / 2)); padding-right:max(24px,calc((100% - 900px) / 2));}
+  .page{max-width:900px; margin:0 auto; padding-left:24px; padding-right:24px;}
+  .tour-banner{max-width:900px; margin-left:auto; margin-right:auto;}
+  .kpis{grid-template-columns:repeat(3,1fr);}
+  .nav{max-width:560px;}
+  .logo-sm{font-size:18px;}
+}
+@media(max-width:360px){
+  .page{padding-left:10px; padding-right:10px;}
+  .top{padding-left:10px; padding-right:10px;}
+  .nav button{font-size:8px; letter-spacing:.8px;}
+}
+
+/* ─────────────── touch: come il core, niente effetti "incollati" ─────────────── */
+@media(hover:none),(pointer:coarse){
+  body.dw::before{display:none !important;}
+  .top::after{display:none !important;}
+  .top{border-bottom:2px solid color-mix(in srgb,var(--app-accent) 45%,transparent) !important;}
+  .item::after,.kpi::after{display:none !important;}
+  .top,.nav{backdrop-filter:none !important; -webkit-backdrop-filter:none !important;}
+  .top{background:#17161f !important;}
+  .nav{background:#17161f !important;}
+  input,textarea,select,.dw-input{font-size:16px !important;}
+  .item:hover,.kpi:hover,.dw-btn.secondary:hover,.chg:hover{transform:none !important;}
+  .item:hover{background:var(--card); box-shadow:var(--sh1),var(--edge);}
+  .item:active,.kpi:active{transform:scale(.985);}
+  .nav .ico svg{filter:none !important;}
+  .empty-icon{filter:none !important;}
+}
+@media(prefers-reduced-motion:reduce){
+  *{transition:none !important; animation:none !important;}
+  .item::after,.kpi::after{display:none !important;}
+}
 </style>
 </head>
 <body class="dw">
 
-<div class="top">
-  <a class="dw-home" href="../index.html">⌂ ecosistema</a>
-  <h1>SCUDO <span class="accent">·</span> <span style="font-size:14px;color:var(--muted2);">SICUREZZA & PERSONALE</span></h1>
-  <div class="sub">Ecosistema Deepwork</div>
-</div>
+<header class="top">
+  <div class="top-brand">
+    <div class="logo-sm">Scudo</div>
+    <div class="role-sm">Sicurezza &amp; personale · Deepwork</div>
+  </div>
+  <a class="dw-home" href="../index.html" title="Torna all'ecosistema Deepwork" aria-label="Torna all'ecosistema Deepwork"><svg viewBox="0 0 24 24"><path d="M3.5 10.4L12 3.5l8.5 6.9V20a1.5 1.5 0 0 1-1.5 1.5h-4v-6h-6v6H5A1.5 1.5 0 0 1 3.5 20z"/></svg></a>
+</header>
 <div class="tour-banner" id="tour-banner" style="display:none;">
-  Modalità tour — dati di esempio, sola lettura
+  <b>Modalità tour.</b> Stai guardando dati di esempio: puoi provare tutto,
+  ma nulla viene salvato.
 </div>
 
 <!-- DASHBOARD -->
 <div class="page active" id="page-dash">
+  <div class="sec">Quadro della sicurezza</div>
   <div class="kpis">
-    <div class="kpi danger" style="cursor:pointer" data-goto="scad" data-filtro="scaduta" title="Vedi le scadenze superate"><div class="n" id="k-scadute">—</div><div class="l">Scadenze superate</div></div>
-    <div class="kpi warn" style="cursor:pointer" data-goto="scad" data-filtro="in-scadenza" title="Vedi le scadenze entro 30gg"><div class="n" id="k-30gg">—</div><div class="l">In scadenza 30gg</div></div>
-    <div class="kpi ok" style="cursor:pointer" data-goto="pers" title="Vedi i lavoratori"><div class="n" id="k-regolari">—</div><div class="l">Lavoratori regolari</div></div>
-    <div class="kpi accent" style="cursor:pointer" data-goto="scad" data-filtro="tutte" title="Vedi tutte le scadenze"><div class="n" id="k-corsi">—</div><div class="l">Corsi pianificati</div></div>
-    <div class="kpi danger" style="cursor:pointer" data-goto="azio" data-filtro-azi="scaduta" title="Vedi le azioni correttive fuori tempo"><div class="n" id="k-azi-scadute">—</div><div class="l">Azioni fuori tempo</div></div>
-    <div class="kpi accent" style="cursor:pointer" data-goto="azio" data-filtro-azi="da-fare" title="Vedi le azioni correttive ancora da chiudere"><div class="n" id="k-azi-aperte">—</div><div class="l">Azioni da chiudere</div></div>
+    <div class="kpi danger" role="button" tabindex="0" style="cursor:pointer" data-goto="scad" data-filtro="scaduta" title="Vedi le scadenze superate"><div class="l">Scadenze superate</div><div class="n" id="k-scadute">—</div></div>
+    <div class="kpi warn" role="button" tabindex="0" style="cursor:pointer" data-goto="scad" data-filtro="in-scadenza" title="Vedi le scadenze entro 30 giorni"><div class="l">In scadenza 30gg</div><div class="n" id="k-30gg">—</div></div>
+    <div class="kpi ok" role="button" tabindex="0" style="cursor:pointer" data-goto="pers" title="Vedi i lavoratori"><div class="l">Lavoratori regolari</div><div class="n" id="k-regolari">—</div></div>
+    <div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-goto="scad" data-filtro="tutte" title="Vedi tutte le scadenze"><div class="l">Corsi pianificati</div><div class="n" id="k-corsi">—</div></div>
+    <div class="kpi danger" role="button" tabindex="0" style="cursor:pointer" data-goto="azio" data-filtro-azi="scaduta" title="Vedi le azioni correttive fuori tempo"><div class="l">Azioni fuori tempo</div><div class="n" id="k-azi-scadute">—</div></div>
+    <div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-goto="azio" data-filtro-azi="da-fare" title="Vedi le azioni correttive ancora da chiudere"><div class="l">Azioni da chiudere</div><div class="n" id="k-azi-aperte">—</div></div>
   </div>
 
-  <div id="safety-banner" class="note" style="text-align:center;font-size:15px;"></div>
+  <div id="safety-banner"></div>
   <div class="sec">Urgenze</div>
   <div id="urg-list"></div>
 </div>
 
 <!-- PERSONALE -->
 <div class="page" id="page-pers">
-  <div class="sec">Lavoratori (<span id="pers-count">0</span>)</div>
-  <input class="dw-input" id="pers-cerca" type="search" placeholder="🔍 Cerca per nome o ruolo…" style="margin-bottom:10px;">
+  <div class="sec">Lavoratori<span class="cnt" id="pers-count">0</span></div>
+  <input class="dw-input" id="pers-cerca" type="search" placeholder="Cerca per nome o ruolo…" style="margin-bottom:10px;">
   <div id="pers-list"></div>
   <div class="sec">Aggiungi lavoratore</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <input class="dw-input" id="new-nome" placeholder="Nome e cognome" style="flex:2;min-width:150px;">
-    <input class="dw-input" id="new-ruolo" placeholder="Ruolo" style="flex:1;min-width:110px;">
-    <button class="dw-btn" id="btn-add-pers" style="width:auto;">Aggiungi</button>
+  <div class="form">
+    <input class="dw-input" id="new-nome" placeholder="Nome e cognome" style="flex:2 1 180px;">
+    <input class="dw-input" id="new-ruolo" placeholder="Ruolo (es. escavatorista)" style="flex:1 1 140px;">
+    <button class="dw-btn" id="btn-add-pers">Aggiungi</button>
   </div>
-  <div style="margin-top:10px;display:flex;align-items:center;gap:10px;">
-    <button class="dw-btn secondary" id="btn-import-csv" style="width:auto;">Importa da CSV</button>
-    <button class="dw-btn secondary" id="btn-export-csv" style="width:auto;">Esporta CSV</button>
+  <div class="tools">
+    <button class="dw-btn secondary" id="btn-import-csv">Importa da CSV</button>
+    <button class="dw-btn secondary" id="btn-export-csv">Esporta CSV</button>
     <input type="file" id="csv-file" accept=".csv,text/csv" style="display:none;">
-    <span class="dw-muted" style="font-size:12px;">colonne: nome; ruolo; telefono (una riga per persona)</span>
   </div>
-  <div id="import-esito" class="note" style="text-align:left;"></div>
+  <div class="form-hint" style="margin-top:8px;">Colonne del file: <b>nome; ruolo; telefono</b> — una riga per persona.</div>
+  <div id="import-esito" class="note esito"></div>
 </div>
 
 <!-- SCADENZE -->
@@ -72,157 +694,188 @@
   <div class="sec">Copertura formazione (per tipo)</div>
   <div id="cop-list"></div>
   <div class="sec">Scadenze</div>
-  <div id="scad-filtri" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
-    <button class="dw-btn secondary" data-filtro="tutte" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Tutte</button>
-    <button class="dw-btn secondary" data-filtro="scaduta" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Scadute</button>
-    <button class="dw-btn secondary" data-filtro="in-scadenza" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Entro 30gg</button>
-    <button class="dw-btn secondary" data-filtro="regolare" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Regolari</button>
+  <div id="scad-filtri" class="chgs">
+    <button class="chg active" data-filtro="tutte">Tutte</button>
+    <button class="chg" data-filtro="scaduta">Scadute</button>
+    <button class="chg" data-filtro="in-scadenza">Entro 30gg</button>
+    <button class="chg" data-filtro="regolare">Regolari</button>
   </div>
-  <div style="display:flex;align-items:center;gap:6px;margin:-2px 0 10px;">
-    <span class="dw-muted" style="font-size:12px;">Ordina:</span>
-    <select id="scad-ord" class="dw-input" style="width:auto;min-height:32px;padding:2px 8px;font-size:12px;">
+  <div class="ord">
+    <label for="scad-ord">Ordina</label>
+    <select id="scad-ord" class="dw-input">
       <option value="scadenza">Scadenza (prima le vicine)</option>
       <option value="tipo">Tipo (A→Z)</option>
       <option value="persona">Lavoratore (A→Z)</option>
     </select>
   </div>
-  <input class="dw-input" id="scad-cerca" type="search" placeholder="🔍 Cerca per tipo o lavoratore…" style="margin-bottom:6px;">
-  <div id="scad-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
+  <input class="dw-input" id="scad-cerca" type="search" placeholder="Cerca per tipo o lavoratore…" style="margin-bottom:8px;">
+  <div id="scad-count" class="count"></div>
   <div id="scad-list"></div>
   <div class="sec">Aggiungi scadenza</div>
-  <select class="dw-input" id="scad-preset" style="width:100%;margin-bottom:8px;">
-    <option value="">Adempimento tipico di cava… (facoltativo)</option>
-  </select>
-  <div class="note" id="scad-preset-nota" style="text-align:left;display:none;"></div>
-  <div id="scad-preset-per" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px;">
-    <span class="dw-muted" style="font-size:12px;">Si ripete ogni</span>
-    <input class="dw-input" id="scad-preset-mesi" type="number" min="1" max="240" step="1" style="width:80px;min-height:32px;padding:2px 8px;font-size:12px;">
-    <span class="dw-muted" style="font-size:12px;">mesi — è solo una proposta: cambia il numero (o direttamente la data) come serve alla tua cava.</span>
-  </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <select class="dw-input" id="new-scad-lav" style="flex:1;min-width:130px;"></select>
-    <select class="dw-input" id="new-scad-tipo" style="flex:1;min-width:110px;">
-      <option>Visita medica</option><option>Corso</option><option>Formazione</option>
-      <option>DPI</option><option>Patente</option><option selected>Altro</option>
+  <div class="form col">
+    <select class="dw-input" id="scad-preset" style="flex:1 1 100%;">
+      <option value="">Adempimento tipico di cava… (facoltativo)</option>
     </select>
-    <input class="dw-input" id="new-scad-desc" placeholder="Descrizione (es. Visita medica)" style="flex:2;min-width:150px;">
-    <input class="dw-input" id="new-scad-data" type="date" style="flex:1;min-width:130px;">
-    <button class="dw-btn" id="btn-add-scad" style="width:auto;">Aggiungi</button>
+    <div class="note" id="scad-preset-nota" style="display:none;margin-top:0;"></div>
+    <div class="frow" id="scad-preset-per" style="display:none;">
+      <span class="form-hint" style="flex-basis:auto;">Si ripete ogni</span>
+      <input class="dw-input" id="scad-preset-mesi" type="number" min="1" max="240" step="1" style="flex:0 0 92px;">
+      <span class="form-hint" style="flex-basis:auto;">mesi</span>
+      <span class="form-hint">È solo una proposta: cambia il numero (o direttamente la data) come serve alla tua cava.</span>
+    </div>
+    <div class="frow">
+      <select class="dw-input" id="new-scad-lav" style="flex:1 1 150px;"></select>
+      <select class="dw-input" id="new-scad-tipo" style="flex:1 1 130px;">
+        <option>Visita medica</option><option>Corso</option><option>Formazione</option>
+        <option>DPI</option><option>Patente</option><option selected>Altro</option>
+      </select>
+    </div>
+    <div class="frow">
+      <input class="dw-input" id="new-scad-desc" placeholder="Descrizione (es. Visita medica)" style="flex:2 1 190px;">
+      <input class="dw-input" id="new-scad-data" type="date" style="flex:1 1 150px;">
+      <button class="dw-btn" id="btn-add-scad">Aggiungi</button>
+    </div>
   </div>
-  <button class="dw-btn secondary" id="btn-import-scad" style="width:auto;margin-top:8px;">Importa scadenze (CSV)</button>
-  <input type="file" id="scad-file" accept=".csv,text/csv" style="display:none;">
-  <div class="note" id="scad-esito" style="text-align:left;"></div>
+  <div class="tools">
+    <button class="dw-btn secondary" id="btn-import-scad">Importa scadenze (CSV)</button>
+    <input type="file" id="scad-file" accept=".csv,text/csv" style="display:none;">
+  </div>
+  <div class="form-hint" style="margin-top:8px;">Colonne del file: <b>lavoratore; tipo; descrizione; scadenza</b>.</div>
+  <div class="note esito" id="scad-esito"></div>
 </div>
 
 <!-- AZIONI CORRETTIVE (CAPA) -->
 <div class="page" id="page-azio">
-  <div class="sec">Azioni correttive (<span id="azi-count-tot">0</span>)</div>
-  <div id="azi-riep" class="note" style="text-align:left;margin-top:0;"></div>
-  <div id="azi-filtri" style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;">
-    <button class="dw-btn secondary" data-filtro-azi="tutte" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Tutte</button>
-    <button class="dw-btn secondary" data-filtro-azi="da-fare" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Da chiudere</button>
-    <button class="dw-btn secondary" data-filtro-azi="scaduta" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Fuori tempo</button>
-    <button class="dw-btn secondary" data-filtro-azi="aperta" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Aperte</button>
-    <button class="dw-btn secondary" data-filtro-azi="in-corso" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">In corso</button>
-    <button class="dw-btn secondary" data-filtro-azi="chiusa" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Chiuse</button>
+  <div class="sec">Azioni correttive<span class="cnt" id="azi-count-tot">0</span></div>
+  <div id="azi-riep" class="note recap" style="margin-top:0;"></div>
+  <div id="azi-filtri" class="chgs" style="margin-top:10px;">
+    <button class="chg active" data-filtro-azi="tutte">Tutte</button>
+    <button class="chg" data-filtro-azi="da-fare">Da chiudere</button>
+    <button class="chg" data-filtro-azi="scaduta">Fuori tempo</button>
+    <button class="chg" data-filtro-azi="aperta">Aperte</button>
+    <button class="chg" data-filtro-azi="in-corso">In corso</button>
+    <button class="chg" data-filtro-azi="chiusa">Chiuse</button>
   </div>
-  <input class="dw-input" id="azi-cerca" type="search" placeholder="🔍 Cerca per azione, responsabile o luogo…" style="margin-bottom:6px;">
-  <div id="azi-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
+  <input class="dw-input" id="azi-cerca" type="search" placeholder="Cerca per azione, responsabile o luogo…" style="margin-bottom:8px;">
+  <div id="azi-count" class="count"></div>
   <div id="azi-list"></div>
 
   <div class="sec">Nuova azione correttiva</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <select class="dw-input" id="azi-origine" style="flex:2;min-width:200px;"><option value="">— nasce da una non conformità / controllo —</option></select>
-    <input class="dw-input" id="azi-nota" placeholder="Non conformità rilevata (se non nasce da un evento)" style="flex:2;min-width:200px;">
+  <div class="form col">
+    <div class="frow">
+      <select class="dw-input" id="azi-origine" style="flex:2 1 230px;"><option value="">— nasce da una non conformità / controllo —</option></select>
+      <input class="dw-input" id="azi-nota" placeholder="Non conformità rilevata (se non nasce da un evento)" style="flex:2 1 230px;">
+    </div>
+    <div class="frow">
+      <input class="dw-input" id="azi-desc" placeholder="Cosa si deve fare (es. disgaggio del fronte Est)" style="flex:3 1 240px;">
+      <select class="dw-input" id="azi-resp" style="flex:1 1 170px;"><option value="">— responsabile da assegnare —</option></select>
+    </div>
+    <div class="frow">
+      <input class="dw-input" id="azi-data" type="date" title="Entro quando" style="flex:1 1 160px;">
+      <button class="dw-btn" id="btn-azi">Aggiungi</button>
+    </div>
+    <div class="frow" id="azi-chiusura" style="display:none;">
+      <select class="dw-input" id="azi-stato" style="flex:1 1 160px;">
+        <option value="aperta">Aperta</option><option value="in-corso">In corso</option><option value="chiusa">Chiusa</option>
+      </select>
+      <input class="dw-input" id="azi-esito" placeholder="Esito (cosa è stato fatto davvero)" style="flex:2 1 220px;">
+      <input class="dw-input" id="azi-dchius" type="date" title="Data di chiusura" style="flex:1 1 160px;">
+    </div>
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-    <input class="dw-input" id="azi-desc" placeholder="Cosa si deve fare (es. disgaggio del fronte Est)" style="flex:3;min-width:220px;">
-    <select class="dw-input" id="azi-resp" style="flex:1;min-width:150px;"><option value="">— responsabile da assegnare —</option></select>
-    <input class="dw-input" id="azi-data" type="date" title="Entro quando" style="flex:1;min-width:140px;">
-    <button class="dw-btn" id="btn-azi" style="width:auto;">Aggiungi</button>
+  <div class="tools">
+    <button class="dw-btn secondary" id="btn-azi-export">Esporta CSV</button>
   </div>
-  <div id="azi-chiusura" style="display:none;gap:8px;flex-wrap:wrap;margin-top:8px;">
-    <select class="dw-input" id="azi-stato" style="flex:1;min-width:150px;">
-      <option value="aperta">Aperta</option><option value="in-corso">In corso</option><option value="chiusa">Chiusa</option>
-    </select>
-    <input class="dw-input" id="azi-esito" placeholder="Esito (cosa è stato fatto davvero)" style="flex:2;min-width:200px;">
-    <input class="dw-input" id="azi-dchius" type="date" title="Data di chiusura" style="flex:1;min-width:140px;">
-  </div>
-  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-    <button class="dw-btn secondary" id="btn-azi-export" style="width:auto;">Esporta CSV</button>
-    <span class="dw-muted" style="font-size:12px;">colonne: descrizione;responsabile;scadenza;stato;esito;dataChiusura;origine</span>
-  </div>
-  <div class="note" id="azi-esito-msg" style="text-align:left;"></div>
-  <div class="note" style="text-align:left;">Ogni infortunio o near-miss dovrebbe portare a <b>un'azione correttiva</b>: cosa si fa, chi la fa, entro quando, e com'è finita. Tocca il badge dello stato per farla avanzare (aperta → in corso → chiusa); l'icona ✎ apre la modifica qui sotto e ↗ riporta all'evento che l'ha generata. Le azioni non chiuse con una data entrano nel <b>semaforo del Quadro e nello scadenzario</b> come tutte le altre scadenze.</div>
+  <div class="note esito" id="azi-esito-msg"></div>
+  <div class="note">Ogni infortunio o near-miss dovrebbe portare a <b>un'azione correttiva</b>: cosa si fa, chi la fa, entro quando, e com'è finita. Tocca il badge dello stato per farla avanzare (aperta → in corso → chiusa); l'icona ✎ apre la modifica qui sopra e ↗ riporta all'evento che l'ha generata. Le azioni non chiuse con una data entrano nel <b>semaforo del Quadro e nello scadenzario</b> come tutte le altre scadenze.</div>
 </div>
 
 <!-- DOCUMENTI -->
 <div class="page" id="page-doc">
-  <div class="sec">Cantieri e siti (<span id="cant-count">0</span>)</div>
+  <div class="sec">Cantieri e siti<span class="cnt" id="cant-count">0</span></div>
   <div id="cant-list"></div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <input class="dw-input" id="cant-nome" placeholder="Nome cantiere/cava" style="flex:2;min-width:150px;">
-    <input class="dw-input" id="cant-comune" placeholder="Comune" style="flex:1;min-width:110px;">
-    <select class="dw-input" id="cant-tipo" style="flex:1;min-width:110px;"><option value="cava">Cava</option><option value="cantiere">Cantiere esterno</option></select>
-    <button class="dw-btn" id="btn-cant" style="width:auto;">Aggiungi</button>
+  <div class="form">
+    <input class="dw-input" id="cant-nome" placeholder="Nome cantiere/cava" style="flex:2 1 180px;">
+    <input class="dw-input" id="cant-comune" placeholder="Comune" style="flex:1 1 130px;">
+    <select class="dw-input" id="cant-tipo" style="flex:1 1 150px;"><option value="cava">Cava</option><option value="cantiere">Cantiere esterno</option></select>
+    <button class="dw-btn" id="btn-cant">Aggiungi</button>
   </div>
-  <div class="note" id="cant-esito" style="text-align:left;"></div>
+  <div class="note esito" id="cant-esito"></div>
 
   <div class="sec">Documenti aziendali</div>
   <div id="doc-list"></div>
   <div class="sec">Nuovo documento</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <select class="dw-input" id="doc-tipo" style="flex:1;min-width:130px;"></select>
-    <input class="dw-input" id="doc-titolo" placeholder="Titolo (es. DSS Cava Monte Alto)" style="flex:2;min-width:160px;">
-    <input class="dw-input" id="doc-meta" placeholder="Nota (es. Aggiornato 07/2026)" style="flex:1;min-width:130px;">
+  <div class="form col">
+    <div class="frow">
+      <select class="dw-input" id="doc-tipo" style="flex:1 1 150px;"></select>
+      <input class="dw-input" id="doc-titolo" placeholder="Titolo (es. DSS Cava Monte Alto)" style="flex:2 1 200px;">
+      <input class="dw-input" id="doc-meta" placeholder="Nota (es. Aggiornato 07/2026)" style="flex:1 1 160px;">
+    </div>
+    <div class="frow">
+      <select class="dw-input" id="doc-cantiere" style="flex:1 1 170px;"><option value="">— nessun cantiere —</option></select>
+      <select class="dw-input" id="doc-lavoratore" style="flex:1 1 170px;"><option value="">— nessun lavoratore —</option></select>
+    </div>
+    <div class="frow">
+      <button class="dw-btn secondary" id="btn-doc-file" title="Foto o scansione firmata (immagine o PDF)">Allega file</button>
+      <input type="file" id="doc-file" accept="image/*,.pdf" style="display:none;">
+      <span class="form-hint" id="doc-file-nome" style="flex:1 1 auto;align-self:center;"></span>
+      <button class="dw-btn" id="btn-doc">Aggiungi</button>
+    </div>
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-    <select class="dw-input" id="doc-cantiere" style="flex:1;min-width:140px;"><option value="">— nessun cantiere —</option></select>
-    <select class="dw-input" id="doc-lavoratore" style="flex:1;min-width:140px;"><option value="">— nessun lavoratore —</option></select>
-    <button class="dw-btn secondary" id="btn-doc-file" style="width:auto;" title="Foto o scansione firmata (immagine/PDF)">📎 Allega file</button>
-    <input type="file" id="doc-file" accept="image/*,.pdf" style="display:none;">
-    <span class="dw-muted" id="doc-file-nome" style="font-size:12px;align-self:center;"></span>
-    <button class="dw-btn" id="btn-doc" style="width:auto;">Aggiungi</button>
-  </div>
-  <div class="note" id="doc-esito" style="text-align:left;"></div>
-  <div class="note" style="text-align:left;">Tocca un documento per cambiarne lo stato (valido → da rivedere → scaduto). Collega il <b>DSS/POS al cantiere</b> e i <b>verbali DPI al lavoratore</b>; l'allegato (foto o scansione firmata) si riapre con 📎. In questa fase gli allegati fino a ~400 KB; per l'archivio completo serve lo storage del progetto live.</div>
+  <div class="note esito" id="doc-esito"></div>
+  <div class="note">Tocca un documento per cambiarne lo stato (valido → da rivedere → scaduto). Collega il <b>DSS/POS al cantiere</b> e i <b>verbali DPI al lavoratore</b>; l'allegato (foto o scansione firmata) si riapre con la graffetta. In questa fase gli allegati arrivano a ~400 KB; per l'archivio completo serve lo storage del progetto live.</div>
 
   <div class="sec">Infortuni e near-miss</div>
-  <div id="inf-riep" class="note" style="text-align:left;"></div>
-  <div id="inf-filtri" style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;">
-    <button class="dw-btn secondary" data-filtro="tutti" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Tutti</button>
-    <button class="dw-btn secondary" data-filtro="infortunio" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Infortuni</button>
-    <button class="dw-btn secondary" data-filtro="near-miss" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Near-miss</button>
+  <div id="inf-riep" class="note recap"></div>
+  <div id="inf-filtri" class="chgs" style="margin-top:10px;">
+    <button class="chg active" data-filtro="tutti">Tutti</button>
+    <button class="chg" data-filtro="infortunio">Infortuni</button>
+    <button class="chg" data-filtro="near-miss">Near-miss</button>
   </div>
   <div id="inf-list"></div>
   <div class="sec">Registra evento</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <input class="dw-input" id="inf-data" type="date" style="flex:1;min-width:130px;">
-    <select class="dw-input" id="inf-tipo" style="flex:1;min-width:120px;"><option value="near-miss">Near-miss (mancato infortunio)</option><option value="infortunio">Infortunio</option></select>
-    <select class="dw-input" id="inf-gravita" style="flex:1;min-width:100px;"><option value="lieve">Lieve</option><option value="grave">Grave</option></select>
-    <input class="dw-input" id="inf-giorni" type="number" min="0" placeholder="Giorni assenza" style="flex:1;min-width:120px;">
-    <input class="dw-input" id="inf-luogo" placeholder="Luogo" style="flex:1;min-width:120px;">
-    <input class="dw-input" id="inf-desc" placeholder="Descrizione" style="flex:2;min-width:160px;">
-    <button class="dw-btn" id="btn-inf" style="width:auto;">Registra</button>
+  <div class="form col">
+    <div class="frow">
+      <input class="dw-input" id="inf-data" type="date" style="flex:1 1 150px;">
+      <select class="dw-input" id="inf-tipo" style="flex:2 1 200px;"><option value="near-miss">Near-miss (mancato infortunio)</option><option value="infortunio">Infortunio</option></select>
+      <select class="dw-input" id="inf-gravita" style="flex:1 1 130px;"><option value="lieve">Lieve</option><option value="grave">Grave</option></select>
+    </div>
+    <div class="frow">
+      <input class="dw-input" id="inf-giorni" type="number" min="0" placeholder="Giorni assenza" style="flex:1 1 150px;">
+      <input class="dw-input" id="inf-luogo" placeholder="Luogo (es. fronte Est)" style="flex:1 1 150px;">
+    </div>
+    <div class="frow">
+      <input class="dw-input" id="inf-desc" placeholder="Descrizione dell'evento" style="flex:2 1 220px;">
+      <button class="dw-btn" id="btn-inf">Registra</button>
+    </div>
   </div>
-  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-    <button class="dw-btn secondary" id="btn-inf-import" style="width:auto;">Importa da CSV</button>
-    <button class="dw-btn secondary" id="btn-inf-export" style="width:auto;">Esporta CSV</button>
+  <div class="tools">
+    <button class="dw-btn secondary" id="btn-inf-import">Importa da CSV</button>
+    <button class="dw-btn secondary" id="btn-inf-export">Esporta CSV</button>
     <input type="file" id="inf-file" accept=".csv,text/csv" style="display:none;">
-    <span class="dw-muted" style="font-size:12px;">colonne: data;tipo;gravita;giorniAssenza;descrizione;luogo</span>
   </div>
-  <div class="note" id="inf-esito" style="text-align:left;"></div>
-  <div class="note" style="text-align:left;">I <b>near-miss</b> (mancati infortuni) non azzerano i "giorni senza infortuni" ma vanno registrati: segnalano i rischi prima che diventino infortuni.</div>
+  <div class="form-hint" style="margin-top:8px;">Colonne del file: <b>data; tipo; gravita; giorniAssenza; descrizione; luogo</b>.</div>
+  <div class="note esito" id="inf-esito"></div>
+  <div class="note">I <b>near-miss</b> (mancati infortuni) non azzerano i "giorni senza infortuni" ma vanno registrati: segnalano i rischi prima che diventino infortuni.</div>
   <div class="note" id="mode-note"></div>
 </div>
 
-<div class="nav">
-  <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico">▦</span>Quadro</button>
-  <button id="nav-pers" onclick="go('pers')"><span class="ico">👷</span>Personale</button>
-  <button id="nav-scad" onclick="go('scad')"><span class="ico">⏰</span>Scadenze</button>
-  <button id="nav-azio" onclick="go('azio')"><span class="ico">🛠</span>Azioni</button>
-  <button id="nav-doc" onclick="go('doc')"><span class="ico">📄</span>Documenti</button>
+<nav class="nav" aria-label="Sezioni di Scudo">
+  <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg></span>Quadro</button>
+  <button id="nav-pers" onclick="go('pers')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M20 21v-1.8a4.2 4.2 0 0 0-4.2-4.2H8.2A4.2 4.2 0 0 0 4 19.2V21"/><circle cx="12" cy="7.2" r="4.2"/></svg></span>Personale</button>
+  <button id="nav-scad" onclick="go('scad')"><span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12.5" r="8.5"/><path d="M12 7.5v5.2l3.2 2"/></svg></span>Scadenze</button>
+  <button id="nav-azio" onclick="go('azio')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M20.8 11.2V12a8.8 8.8 0 1 1-5.2-8"/><path d="M8.6 11.4l3.2 3.2 9-9"/></svg></span>Azioni</button>
+  <button id="nav-doc" onclick="go('doc')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M14 3H7.5A2.5 2.5 0 0 0 5 5.5v13A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V8z"/><path d="M14 3v5h5"/><path d="M8.8 13h6.4M8.8 16.6h4.4"/></svg></span>Documenti</button>
+</nav>
+
+<!-- modale in stile core: sostituisce alert()/confirm()/prompt() del browser -->
+<div class="modal-ov" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-box">
+    <div class="modal-head" id="modal-title">Conferma</div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot" id="modal-foot"></div>
+  </div>
 </div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
   function go(id) {
@@ -232,6 +885,104 @@
     document.getElementById("nav-" + id).classList.add("active");
     window.scrollTo(0, 0);
   }
+
+  /* ── Toast del core: nessun alert() del browser ────────────────────── */
+  let toastT = null;
+  function toast(msg, tipo) {
+    const t = document.getElementById("toast");
+    t.className = "toast " + (tipo || "");
+    t.textContent = msg;
+    void t.offsetWidth;
+    t.classList.add("show");
+    clearTimeout(toastT);
+    toastT = setTimeout(() => t.classList.remove("show"), msg.length > 70 ? 4200 : 2800);
+  }
+
+  /* ── Modale del core: sostituisce confirm() e prompt() ─────────────── */
+  let modalPrec = null;
+  function apriModale(titolo, corpo, bottoni) {
+    modalPrec = document.activeElement;
+    document.getElementById("modal-title").textContent = titolo;
+    document.getElementById("modal-body").innerHTML = corpo;
+    const foot = document.getElementById("modal-foot");
+    foot.innerHTML = "";
+    (bottoni || []).forEach(b => {
+      const el = document.createElement("button");
+      el.className = "mbtn " + (b.cls || "");
+      el.textContent = b.label;
+      el.onclick = b.azione;
+      foot.appendChild(el);
+    });
+    document.getElementById("modal").classList.add("show");
+    document.body.classList.add("modal-open");
+    const primo = document.getElementById("modal-body").querySelector("input,select,textarea")
+               || foot.querySelector(".mbtn.primary,.mbtn.danger") || foot.querySelector(".mbtn");
+    if (primo) setTimeout(() => { try { primo.focus({ preventScroll: true }); primo.select && primo.select(); } catch (e) {} }, 80);
+  }
+  function chiudiModale() {
+    document.getElementById("modal").classList.remove("show");
+    document.body.classList.remove("modal-open");
+    if (modalPrec && modalPrec.focus) { try { modalPrec.focus({ preventScroll: true }); } catch (e) {} }
+    modalPrec = null;
+  }
+  // Conferma in stile core: restituisce una Promise<boolean>
+  function chiedi(titolo, corpo, etichettaOk, pericolo) {
+    return new Promise(res => {
+      apriModale(titolo, corpo, [
+        { label: "Annulla", azione: () => { chiudiModale(); res(false); } },
+        { label: etichettaOk || "Conferma", cls: pericolo ? "danger" : "primary",
+          azione: () => { chiudiModale(); res(true); } },
+      ]);
+    });
+  }
+  // Richiesta di un valore in stile core: restituisce Promise<string|null>
+  function chiediValore(titolo, corpo, campoHtml, etichettaOk) {
+    return new Promise(res => {
+      apriModale(titolo, corpo + campoHtml, [
+        { label: "Annulla", azione: () => { chiudiModale(); res(null); } },
+        { label: etichettaOk || "Salva", cls: "primary", azione: () => {
+            const c = document.getElementById("modal-campo");
+            const v = c ? c.value : "";
+            chiudiModale(); res(v);
+          } },
+      ]);
+      const c = document.getElementById("modal-campo");
+      if (c) c.addEventListener("keydown", e => {
+        if (e.key === "Enter") { e.preventDefault(); document.querySelector("#modal-foot .mbtn.primary").click(); }
+      });
+    });
+  }
+  document.getElementById("modal").addEventListener("click", e => {
+    if (e.target.id === "modal") { const b = document.querySelector("#modal-foot .mbtn"); if (b) b.click(); }
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Escape") return;
+    const m = document.getElementById("modal");
+    if (m && m.classList.contains("show")) { const b = m.querySelector("#modal-foot .mbtn"); if (b) b.click(); }
+  });
+  // KPI raggiungibili da tastiera (Invio/Spazio = tocco)
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const k = e.target.closest && e.target.closest(".kpi[data-goto]");
+    if (k) { e.preventDefault(); k.click(); }
+  });
+
+  /* ── Alone che segue il mouse (firma dinamica del core: --mx/--my) ─── */
+  (function () {
+    if (matchMedia("(prefers-reduced-motion:reduce)").matches) return;
+    if (!matchMedia("(hover:hover) and (pointer:fine)").matches) return;
+    const sel = ".item,.kpi";
+    let cur = null, px = 50, py = 50, pend = false;
+    const apply = () => { pend = false; if (cur) { cur.style.setProperty("--mx", px + "%"); cur.style.setProperty("--my", py + "%"); } };
+    window.addEventListener("pointermove", e => {
+      const t = e.target.closest ? e.target.closest(sel) : null;
+      cur = t; if (!t) return;
+      const r = t.getBoundingClientRect();
+      px = (e.clientX - r.left) / r.width * 100;
+      py = (e.clientY - r.top) / r.height * 100;
+      if (!pend) { pend = true; requestAnimationFrame(apply); }
+    }, { passive: true });
+  })();
 </script>
 
 <script type="module">
@@ -243,12 +994,46 @@
   const B = { scaduta: ["danger", "Scaduta"], "in-scadenza": ["warn", "In scadenza"], regolare: ["ok", "Regolare"] };
   const fmtData = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
 
+  // ── Messaggi: toast del core + traccia scritta accanto al form ────────
+  // (l'esito resta visibile per chi torna a guardare, il toast lo annuncia)
+  const esito = (id, testo, tipo) => {
+    const el = $(id); if (el) { el.textContent = testo; el.className = "note esito" + (tipo === "err" ? " err" : ""); }
+    if (testo) toast(testo, tipo);
+  };
+  const pulisci = (id) => { const el = $(id); if (el) el.textContent = ""; };
+  // ── Errori di campo: bordo rosso + messaggio utile, mai un alert ──────
+  const err = (id, on) => { const el = $(id); if (el) el.classList.toggle("err", !!on); };
+
+  // stato vuoto in stile core: icona, titolo, spiegazione di cosa fare
+  const vuoto = (icona, titolo, sotto) =>
+    `<div class="empty-state"><div class="empty-icon">${icona}</div>
+      <div class="empty-title">${titolo}</div><div class="empty-sub">${sotto}</div></div>`;
+
+  // ── Icone disegnate (stessa famiglia di quelle del menu): niente emoji ──
+  const I = {
+    cerca:  '<svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.8"/><path d="M15.5 15.5L21 21"/></svg>',
+    persone:'<svg viewBox="0 0 24 24"><path d="M16.5 20.5v-1.6a3.8 3.8 0 0 0-3.8-3.8H6.3a3.8 3.8 0 0 0-3.8 3.8v1.6"/><circle cx="9.5" cy="7.3" r="3.8"/><path d="M21.5 20.5v-1.6a3.8 3.8 0 0 0-2.9-3.7M15.6 3.7a3.8 3.8 0 0 1 0 7.2"/></svg>',
+    grafico:'<svg viewBox="0 0 24 24"><path d="M3 20.5h18"/><rect x="4.5" y="12" width="4" height="6.5" rx="1"/><rect x="10" y="7.5" width="4" height="11" rx="1"/><rect x="15.5" y="3.5" width="4" height="15" rx="1"/></svg>',
+    sveglia:'<svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 8.5V13l3 2"/><path d="M4.5 4.5l2.5-2M19.5 4.5L17 2.5"/></svg>',
+    luogo:  '<svg viewBox="0 0 24 24"><path d="M19 10.3c0 5.2-7 11.2-7 11.2s-7-6-7-11.2a7 7 0 1 1 14 0z"/><circle cx="12" cy="10" r="2.6"/></svg>',
+    doc:    '<svg viewBox="0 0 24 24"><path d="M14 2.5H7.5A2.5 2.5 0 0 0 5 5v14a2.5 2.5 0 0 0 2.5 2.5h9A2.5 2.5 0 0 0 19 19V7.5z"/><path d="M14 2.5v5h5"/><path d="M8.8 12.5h6.4M8.8 16h4.4"/></svg>',
+    scudo:  '<svg viewBox="0 0 24 24"><path d="M12 2.6l7.5 3v6.1c0 4.6-3.1 8.8-7.5 10-4.4-1.2-7.5-5.4-7.5-10V5.6z"/><path d="M8.8 12.2l2.3 2.3 4.3-4.6"/></svg>',
+    attrezzo:'<svg viewBox="0 0 24 24"><path d="M20.8 11.2V12a8.8 8.8 0 1 1-5.2-8"/><path d="M8.6 11.4l3.2 3.2 9-9"/></svg>',
+    ok:     '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.2 12.3l2.7 2.7 5-5.4"/></svg>',
+    clip:   '<svg viewBox="0 0 24 24"><path d="M20.5 11.5l-8.6 8.6a5 5 0 0 1-7.1-7.1l9-9a3.4 3.4 0 0 1 4.8 4.8l-8.9 9a1.8 1.8 0 0 1-2.5-2.5l8.2-8.2"/></svg>',
+  };
+
+  const SVG_AZIONE = I.attrezzo;
+
+  // classe della striscia laterale: lo stato si legge anche senza colore
+  const striscia = { danger: "st-danger", warn: "st-warn", ok: "st-ok", accent: "st-accent" };
+
   const db = await scudoData();
   mountExit(db);
   if (db.mode !== "live") $("tour-banner").style.display = "block";
-  $("mode-note").textContent = db.mode === "live"
-    ? "Dati reali della tua organizzazione."
-    : "Dati di esempio (" + db.mode + "): le modifiche non vengono salvate.";
+  $("mode-note").innerHTML = db.mode === "live"
+    ? "Stai lavorando sui <b>dati reali</b> della tua organizzazione."
+    : "Stai guardando <b>dati di esempio</b> (" + db.mode + "): le modifiche non vengono salvate.";
 
   let LAV = [], SCA = [], DOC = [], INF = [], CANT = [], AZI = [];
   let docFileSel = null;   // allegato scelto per il prossimo documento {nome, dataURL}
@@ -278,9 +1063,9 @@
   if ($("scad-cerca")) $("scad-cerca").oninput = () => refresh();
   // cambiare pagina annulla una modifica lavoratore in corso (torna su "Aggiungi")
   document.querySelector(".nav") && document.querySelector(".nav").addEventListener("click", () => {
-    if (editLav) { editLav = null; $("btn-add-pers").textContent = "Aggiungi"; $("import-esito").textContent = "";
-      $("new-nome").value = ""; $("new-ruolo").value = ""; $("new-nome").style.borderColor = ""; }
-    if (editAzi) { annullaEditAzi(); $("azi-esito-msg").textContent = ""; }
+    if (editLav) { editLav = null; $("btn-add-pers").textContent = "Aggiungi"; pulisci("import-esito");
+      $("new-nome").value = ""; $("new-ruolo").value = ""; err("new-nome", false); }
+    if (editAzi) { annullaEditAzi(); pulisci("azi-esito-msg"); }
   });
   // scorciatoia: toccare un KPI del quadro porta alla lista pertinente
   document.querySelector(".kpis").addEventListener("click", (e) => {
@@ -309,29 +1094,30 @@
     // Urgenze: prima l'idoneità sanitaria critica (non idoneo / con
     // prescrizioni), poi le scadenze non regolari.
     const idonUrg = idoneitaCriticita(LAV).map(l => { const idn = idoneitaLabel(l.idoneita);
-      return `<div class="item" onclick="go('pers')">
+      return `<div class="item ${striscia[idn.cls] || "st-mute"}" onclick="go('pers')" title="Vai al lavoratore">
         <div class="avatar">${esc(initials(l.nome))}</div>
         <div class="info"><div class="name">${esc(l.nome)}</div><div class="meta">Idoneità sanitaria · ${esc(l.ruolo || "—")}</div></div>
-        <span class="badge ${idn.cls}">${idn.label}</span><span class="arr">›</span></div>`; });
+        <span class="acts"><span class="badge ${idn.cls}">${idn.label}</span><span class="arr">›</span></span></div>`; });
     // Le azioni correttive non chiuse e fuori tempo (o in scadenza) entrano
     // nelle urgenze con lo stesso semaforo delle scadenze: chi apre Scudo
     // deve vedere subito che una correzione promessa non è stata fatta.
     const aziUrg = azioniUrgenti(AZI).slice(0, 5).map(a => {
       const st = statoAzione(a), r = byId[a.responsabileId], lv = livelloScadenza(a.scadenza);
-      return `<div class="item" onclick="go('azio')">
-        <div class="avatar">🛠</div>
+      return `<div class="item ${striscia[B[st][0]]}" onclick="go('azio')" title="Vai all'azione correttiva">
+        <div class="avatar sup">${SVG_AZIONE}</div>
         <div class="info"><div class="name">${esc(a.descrizione)}</div>
         <div class="meta">Azione correttiva · ${esc(r ? r.nome : "responsabile da assegnare")} · ${fmtData(a.scadenza)} · ${esc(lv.label)}</div></div>
-        <span class="badge ${B[st][0]}">${B[st][1]}</span><span class="arr">›</span></div>`; });
+        <span class="acts"><span class="badge ${B[st][0]}">${B[st][1]}</span><span class="arr">›</span></span></div>`; });
     const urg = SCA.filter(s => statoScadenza(s.dataScadenza) !== "regolare")
                    .sort((a, b) => a.dataScadenza < b.dataScadenza ? -1 : 1).slice(0, 5);
     $("urg-list").innerHTML = (idonUrg.join("") + aziUrg.join("") + urg.map(sc => {
       const st = statoScadenza(sc.dataScadenza), l = byId[sc.lavoratoreId];
-      return `<div class="item" onclick="go('scad')">
+      return `<div class="item ${striscia[B[st][0]]}" onclick="go('scad')" title="Vai allo scadenzario">
         <div class="avatar">${esc(initials(l && l.nome))}</div>
-        <div class="info"><div class="name">${esc(l ? l.nome : "—")}</div><div class="meta">${esc(sc.descrizione)} · ${fmtData(sc.dataScadenza)}</div></div>
-        <span class="badge ${B[st][0]}">${B[st][1]}</span><span class="arr">›</span></div>`;
-    }).join("")) || '<div class="note">Nessuna urgenza: tutto regolare.</div>';
+        <div class="info"><div class="name">${esc(l ? l.nome : "Scadenza aziendale")}</div><div class="meta">${esc(sc.descrizione)} · ${fmtData(sc.dataScadenza)}</div></div>
+        <span class="acts"><span class="badge ${B[st][0]}">${B[st][1]}</span><span class="arr">›</span></span></div>`;
+    }).join("")) || vuoto(I.ok, "Nessuna urgenza",
+        "Idoneità, scadenze e azioni correttive sono tutte in regola. Il quadro resta pulito finché una data non si avvicina.");
 
     const q = ($("pers-cerca").value || "").trim().toLowerCase();
     const lavVis = LAV.filter(l => !q || (l.nome + " " + (l.ruolo || "")).toLowerCase().includes(q))
@@ -341,23 +1127,27 @@
       const prob = SCA.filter(s => s.lavoratoreId === l.id && statoScadenza(s.dataScadenza) !== "regolare");
       const st = prob.some(s => statoScadenza(s.dataScadenza) === "scaduta") ? "scaduta" : (prob.length ? "in-scadenza" : "regolare");
       const idn = idoneitaLabel(l.idoneita);
-      return `<div class="item">
+      return `<div class="item ${striscia[B[st][0]]}">
         <div class="avatar">${esc(initials(l.nome))}</div>
-        <div class="info"><div class="name">${esc(l.nome)}</div><div class="meta">${esc(l.ruolo || "—")}${prob.length ? " · " + esc(prob[0].descrizione) : ""}</div></div>
-        <span class="badge ${idn.cls}" style="cursor:pointer" title="Idoneità sanitaria (art. 41) — tocca per cambiare esito" data-idon="${l.id}">${idn.label}</span>
+        <div class="info"><div class="name">${esc(l.nome)}</div><div class="meta">${esc(l.ruolo || "ruolo non indicato")}${prob.length ? " · " + esc(prob[0].descrizione) : ""} <span class="badge inline ${idn.cls}" style="cursor:pointer" title="Idoneità sanitaria (art. 41) — tocca per cambiare esito" data-idon="${l.id}">${idn.label}</span></div></div>
+        <span class="acts">
         <span class="badge ${B[st][0]}">${B[st][1]}</span>
         <span class="arr" style="cursor:pointer" title="Modifica lavoratore" data-edit-lav="${l.id}">✎</span>
-        <span class="arr" style="cursor:pointer" title="Rimuovi" data-del-lav="${l.id}">✕</span></div>`;
-    }).join("") || '<div class="note" style="text-align:left;">' + (q ? "Nessun lavoratore corrisponde a «" + esc(q) + "»." : "Nessun lavoratore: aggiungine uno qui sotto o importa il CSV.") + "</div>";
+        <span class="arr" style="cursor:pointer" title="Rimuovi lavoratore" data-del-lav="${l.id}">✕</span></span></div>`;
+    }).join("") || (q
+      ? vuoto(I.cerca, "Nessun risultato", "Nessun lavoratore corrisponde a <b>«" + esc(q) + "»</b>. Prova con una parte del nome o del ruolo.")
+      : vuoto(I.persone, "Nessun lavoratore", "Aggiungi la prima persona con il modulo qui sotto, oppure importa l'elenco da un file CSV in un colpo solo."));
 
     // Copertura formazione per tipo: badge dominante per gravità.
     $("cop-list").innerHTML = coperturaFormazione(SCA).map(c => {
       const cls = c.scadute ? "danger" : (c.inScadenza ? "warn" : "ok");
-      const lbl = c.scadute ? c.scadute + " scadute" : (c.inScadenza ? c.inScadenza + " in scadenza" : "tutte regolari");
-      return `<div class="item"><div class="info"><div class="name">${esc(c.tipo)}</div>
-        <div class="meta">${c.regolari} regolari · ${c.inScadenza} in scadenza · ${c.scadute} scadute (su ${c.totale})</div></div>
-        <span class="badge ${cls}">${lbl}</span></div>`; }).join("")
-      || '<div class="note" style="text-align:left;">Nessuna scadenza registrata: la copertura si popola aggiungendo scadenze.</div>';
+      const lbl = c.scadute ? c.scadute + (c.scadute === 1 ? " scaduta" : " scadute")
+                : (c.inScadenza ? c.inScadenza + " in scadenza" : "tutte regolari");
+      return `<div class="item ${striscia[cls]}"><div class="info"><div class="name">${esc(c.tipo)}</div>
+        <div class="meta">${c.regolari} in regola · ${c.inScadenza} in scadenza · ${c.scadute} ${c.scadute === 1 ? "scaduta" : "scadute"} — su ${c.totale} in totale</div></div>
+        <span class="acts"><span class="badge ${cls}">${lbl}</span></span></div>`; }).join("")
+      || vuoto(I.grafico, "Copertura da costruire",
+          "La copertura per tipo di formazione si calcola da sola: appena registri le prime scadenze, qui vedi chi è in regola e chi no.");
     // Scadenzario = scadenze + azioni correttive non ancora chiuse: stessa
     // lista, stesso semaforo, stessi filtri (l'azione è a tutti gli effetti
     // una cosa da fare entro una data). Le azioni restano di sola lettura
@@ -375,37 +1165,42 @@
       : (a.dataScadenza < b.dataScadenza ? -1 : 1);
     $("scad-list").innerHTML = scaVis.slice().sort(scadCmp).map(sc => {
       const st = statoScadenza(sc.dataScadenza), l = byId[sc.lavoratoreId], lv = livelloScadenza(sc.dataScadenza);
-      if (sc.azione) return `<div class="item">
+      if (sc.azione) return `<div class="item ${striscia[B[st][0]]}">
         <div class="info"><div class="name"><span class="badge accent" style="margin-right:6px;">Azione</span>${esc(sc.descrizione)}</div>
         <div class="meta">Azione correttiva · ${esc(nomeScad(sc))} · ${fmtData(sc.dataScadenza)} · ${esc(lv.label)}</div></div>
-        <span class="badge ${B[st][0]}">${B[st][1]}</span>
-        <span class="arr" style="cursor:pointer" title="Vai all'azione correttiva" data-vai-azi="${sc.id}">↗</span></div>`;
-      return `<div class="item">
+        <span class="acts"><span class="badge ${B[st][0]}">${B[st][1]}</span>
+        <span class="arr" style="cursor:pointer" title="Vai all'azione correttiva" data-vai-azi="${sc.id}">↗</span></span></div>`;
+      return `<div class="item ${striscia[B[st][0]]}">
         <div class="info"><div class="name">${esc(sc.descrizione)}</div><div class="meta">${esc(l ? l.nome : "azienda")} · ${fmtData(sc.dataScadenza)} · ${esc(lv.label)}</div></div>
-        <span class="badge ${B[st][0]}">${B[st][1]}</span>
-        ${(st !== "regolare" && l) ? `<button class="dw-btn secondary" data-prom-scad="${sc.id}" title="Copia il promemoria da inviare al lavoratore" style="width:auto;min-height:32px;padding:2px 10px;font-size:11px;">✉ Promemoria</button>` : ""}
-        <span class="arr" style="cursor:pointer" title="Rinnova a nuova data" data-ren-scad="${sc.id}">↻</span>
-        <span class="arr" style="cursor:pointer" title="Rimuovi" data-del-scad="${sc.id}">✕</span></div>`;
-    }).join("") || '<div class="note" style="text-align:left;">' + (qScad ? "Nessuna scadenza trovata per «" + esc(qScad) + "»." : (filtroScad === "tutte" ? "Nessuna scadenza registrata." : "Nessuna scadenza in questa categoria.")) + "</div>";
+        <span class="acts"><span class="badge ${B[st][0]}">${B[st][1]}</span>
+        ${(st !== "regolare" && l) ? `<button class="dw-btn secondary mini" data-prom-scad="${sc.id}" title="Copia il promemoria da inviare al lavoratore">Promemoria</button>` : ""}
+        <span class="arr" style="cursor:pointer" title="Rinnova a una nuova data" data-ren-scad="${sc.id}">↻</span>
+        <span class="arr" style="cursor:pointer" title="Rimuovi scadenza" data-del-scad="${sc.id}">✕</span></span></div>`;
+    }).join("") || (qScad
+      ? vuoto(I.cerca, "Nessun risultato", "Nessuna scadenza trovata per <b>«" + esc(qScad) + "»</b>. Prova con il tipo di corso o il nome del lavoratore.")
+      : (filtroScad === "tutte"
+        ? vuoto(I.sveglia, "Scadenzario vuoto", "Aggiungi la prima scadenza qui sotto: puoi partire da un adempimento tipico di cava e correggere la data come serve a te.")
+        : vuoto(I.ok, "Niente in questa categoria", "Nessuna scadenza rientra nel filtro scelto. Tocca <b>Tutte</b> per vedere l'elenco completo.")));
     { const n = $("scad-list").querySelectorAll(".item").length, filtrata = qScad || filtroScad !== "tutte";
-      $("scad-count").textContent = n === 0 ? "" : n + (n === 1 ? " scadenza" : " scadenze") + (filtrata ? " · su " + SCA.length : ""); }
+      $("scad-count").innerHTML = n === 0 ? "" : "<b>" + n + "</b> " + (n === 1 ? "scadenza" : "scadenze") + (filtrata ? " · su " + scadTutte.length : ""); }
     document.querySelectorAll("#scad-filtri [data-filtro]").forEach(b =>
-      b.style.borderColor = b.getAttribute("data-filtro") === filtroScad ? "var(--app-accent)" : "");
+      b.classList.toggle("active", b.getAttribute("data-filtro") === filtroScad));
 
     $("new-scad-lav").innerHTML = '<option value="">— azienda —</option>' +
       LAV.map(l => `<option value="${l.id}">${esc(l.nome)}</option>`).join("");
 
     const D = { valido: ["ok", "Valido"], "da-rivedere": ["warn", "Da rivedere"], scaduto: ["danger", "Scaduto"] };
     // cantieri e siti
-    const TC = { cava: ["ok", "Cava"], cantiere: ["warn", "Cantiere"] };
+    const TC = { cava: ["tag", "Cava"], cantiere: ["tag", "Cantiere esterno"] };
     $("cant-count").textContent = CANT.length;
     $("cant-list").innerHTML = CANT.map(c => {
-      const tb = TC[c.tipo] || ["warn", esc(c.tipo || "—")];
+      const tb = TC[c.tipo] || ["tag", esc(c.tipo || "—")];
       const nDoc = DOC.filter(d => d.cantiereId === c.id).length;
-      return `<div class="item"><div class="avatar">${esc((c.nome || "?").split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase())}</div>
-        <div class="info"><div class="name">${esc(c.nome)}</div><div class="meta">${esc(c.comune || "—")}${nDoc ? ` · ${nDoc} documenti` : " · nessun documento"}</div></div>
-        <span class="badge ${tb[0]}">${tb[1]}</span><span class="arr" style="cursor:pointer" title="Rimuovi" data-del-cant="${c.id}">✕</span></div>`;
-    }).join("") || '<div class="note" style="text-align:left;">Nessun cantiere. Aggiungi la cava e gli eventuali cantieri esterni: DSS e POS si collegano qui.</div>';
+      return `<div class="item st-accent"><div class="avatar sup">${esc((c.nome || "?").split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase())}</div>
+        <div class="info"><div class="name">${esc(c.nome)}</div><div class="meta">${esc(c.comune || "comune non indicato")}${nDoc ? ` · ${nDoc} ${nDoc === 1 ? "documento" : "documenti"}` : " · nessun documento collegato"}</div></div>
+        <span class="acts"><span class="badge ${tb[0]}">${tb[1]}</span><span class="arr" style="cursor:pointer" title="Rimuovi cantiere" data-del-cant="${c.id}">✕</span></span></div>`;
+    }).join("") || vuoto(I.luogo, "Nessun cantiere",
+        "Aggiungi la cava e gli eventuali cantieri esterni: il <b>DSS</b> e i <b>POS</b> si collegano qui, così ogni documento sa a quale sito appartiene.");
     // selettori del form documento
     const selC = $("doc-cantiere"), selL = $("doc-lavoratore");
     if (selC && selC.children.length !== CANT.length + 1) selC.innerHTML = '<option value="">— nessun cantiere —</option>' + CANT.map(c => `<option value="${c.id}">${esc(c.nome)}</option>`).join("");
@@ -413,21 +1208,26 @@
     if ($("doc-tipo") && !$("doc-tipo").children.length) $("doc-tipo").innerHTML = TIPI_DOCUMENTO.map(t => `<option${t === "DSS" ? " selected" : ""}>${t}</option>`).join("");
     const cById = Object.fromEntries(CANT.map(c => [c.id, c]));
     $("doc-list").innerHTML = DOC.map(d => {
-      const legami = [d.cantiereId && cById[d.cantiereId] ? "📍 " + esc(cById[d.cantiereId].nome) : "", d.lavoratoreId && byId[d.lavoratoreId] ? "👷 " + esc(byId[d.lavoratoreId].nome) : ""].filter(Boolean).join(" · ");
-      return `<div class="item" data-doc="${d.id}" style="cursor:pointer" title="Tocca per cambiare stato"><div class="info"><div class="name">${d.tipo ? `<span class="badge ok" style="margin-right:6px;">${esc(d.tipo)}</span>` : ""}${esc(d.titolo)}</div><div class="meta">${esc(d.meta || "")}${legami ? " · " + legami : ""}</div></div>
-       ${d.allegatoData ? `<span class="arr" style="cursor:pointer" title="Apri allegato ${esc(d.allegatoNome || "")}" data-open-doc="${d.id}">📎</span>` : ""}
-       <span class="badge ${D[d.stato][0]}">${D[d.stato][1]}</span></div>`;
+      const legami = [d.cantiereId && cById[d.cantiereId] ? "sito: " + esc(cById[d.cantiereId].nome) : "", d.lavoratoreId && byId[d.lavoratoreId] ? "lavoratore: " + esc(byId[d.lavoratoreId].nome) : ""].filter(Boolean).join(" · ");
+      return `<div class="item ${striscia[D[d.stato][0]]}" data-doc="${d.id}" style="cursor:pointer" title="Tocca per cambiare stato"><div class="info"><div class="name">${d.tipo ? `<span class="badge tag" style="margin-right:6px;">${esc(d.tipo)}</span>` : ""}${esc(d.titolo)}</div><div class="meta">${esc(d.meta || "")}${legami ? (d.meta ? " · " : "") + legami : ""}</div></div>
+       <span class="acts">${d.allegatoData ? `<span class="arr" style="cursor:pointer" title="Apri allegato ${esc(d.allegatoNome || "")}" data-open-doc="${d.id}">${I.clip}</span>` : ""}
+       <span class="badge ${D[d.stato][0]}">${D[d.stato][1]}</span></span></div>`;
     }).join("")
-      || '<div class="note" style="text-align:left;">Nessun documento registrato.</div>';
+      || vuoto(I.doc, "Nessun documento",
+          "Registra qui DSS, POS, DVR e verbali. Ogni documento porta il suo stato (valido, da rivedere, scaduto) e può avere in allegato la scansione firmata.");
 
     // Sicurezza: giorni senza infortuni (cartellone) + riepilogo + registro
     const ri = riepilogoInfortuni(INF);
     $("safety-banner").innerHTML = ri.giorniSenza == null
-      ? `🦺 <b>Nessun infortunio registrato.</b> Registra gli eventi per tenere il conto.`
-      : `🦺 <b style="font-size:22px;color:${ri.giorniSenza >= 30 ? "var(--ok,#26a69a)" : "var(--warn,#ffb300)"};">${ri.giorniSenza}</b> giorni senza infortuni`
-        + (ri.nearMiss ? ` · ${ri.nearMiss} near-miss registrati` : "");
+      ? `<div class="safety none"><div class="safety-ico">${I.scudo}</div>
+          <div><div class="safety-txt"><b>Nessun infortunio registrato.</b></div>
+          <div class="safety-sub">Registra gli eventi (anche i near-miss) per far partire il conteggio dei giorni.</div></div></div>`
+      : `<div class="safety ${ri.giorniSenza >= 30 ? "" : "warn"}"><div class="safety-ico">${I.scudo}</div>
+          <div><div class="safety-num">${ri.giorniSenza}</div>
+          <div class="safety-lab">Giorni senza infortuni</div>
+          ${ri.nearMiss ? `<div class="safety-sub">${ri.nearMiss} near-miss registrati — non azzerano il conteggio, ma vanno guardati.</div>` : ""}</div></div>`;
     $("inf-riep").innerHTML =
-      `Infortuni: <b>${ri.infortuni}</b>${ri.gravi ? ` (di cui ${ri.gravi} gravi)` : ""} · near-miss: <b>${ri.nearMiss}</b> · giorni di assenza totali: <b>${ri.giorniAssenzaTot}</b>`;
+      `Infortuni: <b>${ri.infortuni}</b>${ri.gravi ? ` (di cui <b>${ri.gravi}</b> gravi)` : ""} · near-miss: <b>${ri.nearMiss}</b> · giorni di assenza totali: <b>${ri.giorniAssenzaTot}</b>`;
     const TB = { infortunio: ["danger", "Infortunio"], "near-miss": ["warn", "Near-miss"] };
     const infVis = INF.filter(x => filtroInf === "tutti" || x.tipo === filtroInf);
     $("inf-list").innerHTML = infVis.slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1).map(x => {
@@ -438,15 +1238,16 @@
       const ab = !az.length ? ["warn", "0 azioni"]
         : (azChiuse === az.length ? ["ok", az.length + (az.length === 1 ? " azione chiusa" : " azioni chiuse")]
                                   : ["warn", (az.length - azChiuse) + " da chiudere"]);
-      return `<div class="item" data-evt="${x.id}"><div class="info"><div class="name">${esc(x.descrizione || x.tipo || "Evento")}</div>
-        <div class="meta">${esc(x.data || "—")}${x.luogo ? " · " + esc(x.luogo) : ""}${x.gravita ? " · " + esc(x.gravita) : ""}${(+x.giorniAssenza) ? " · " + (+x.giorniAssenza) + " gg assenza" : ""}</div></div>
-        <span class="badge ${tb[0]}">${tb[1]}</span>
-        <span class="badge ${ab[0]}" style="cursor:pointer" title="Vedi le azioni correttive di questo evento" data-azi-evt="${x.id}">${ab[1]}</span>
-        <button class="dw-btn secondary" data-azi-da="${x.id}" title="Apri un'azione correttiva da questo evento" style="width:auto;min-height:32px;padding:2px 10px;font-size:11px;">+ Azione</button>
-        <span class="arr" style="cursor:pointer" title="Rimuovi" data-del-inf="${x.id}">✕</span></div>`;
-    }).join("") || '<div class="note" style="text-align:left;">' + (filtroInf === "tutti" ? "Nessun evento registrato. Un buon segno — ma registra anche i near-miss." : "Nessun evento di questo tipo.") + "</div>";
+      return `<div class="item ${striscia[tb[0]]}" data-evt="${x.id}"><div class="info"><div class="name">${esc(x.descrizione || x.tipo || "Evento")}</div>
+        <div class="meta">${fmtData(x.data)}${x.luogo ? " · " + esc(x.luogo) : ""}${x.gravita ? " · " + esc(x.gravita) : ""}${(+x.giorniAssenza) ? " · " + (+x.giorniAssenza) + " gg assenza" : ""} <span class="badge inline ${ab[0]}" style="cursor:pointer" title="Vedi le azioni correttive di questo evento" data-azi-evt="${x.id}">${ab[1]}</span></div></div>
+        <span class="acts"><span class="badge ${tb[0]}">${tb[1]}</span>
+        <button class="dw-btn secondary mini" data-azi-da="${x.id}" title="Apri un'azione correttiva da questo evento">+ Azione</button>
+        <span class="arr" style="cursor:pointer" title="Rimuovi evento" data-del-inf="${x.id}">✕</span></span></div>`;
+    }).join("") || (filtroInf === "tutti"
+      ? vuoto(I.scudo, "Registro pulito", "Nessun infortunio né near-miss registrato. È un buon segno — ma registra comunque i <b>mancati infortuni</b>: sono l'avviso che arriva prima del danno.")
+      : vuoto(I.cerca, "Nessun evento di questo tipo", "Cambia filtro per vedere gli altri eventi del registro."));
     document.querySelectorAll("#inf-filtri [data-filtro]").forEach(b =>
-      b.style.borderColor = b.getAttribute("data-filtro") === filtroInf ? "var(--app-accent)" : "");
+      b.classList.toggle("active", b.getAttribute("data-filtro") === filtroInf));
 
     // --- AZIONI CORRETTIVE (CAPA) ---------------------------------------
     const origineTesto = (a) => a.origineTipo === "evento"
@@ -476,29 +1277,33 @@
       const al = azioneLabel(a.stato), st = statoAzione(a), lv = livelloScadenza(a.scadenza);
       const r = byId[a.responsabileId], org = origineTesto(a);
       const meta = [
-        r ? "👷 " + esc(r.nome) : "responsabile da assegnare",
+        r ? "resp. " + esc(r.nome) : "responsabile da assegnare",
         a.scadenza ? "entro il " + fmtData(a.scadenza) + (a.stato === "chiusa" ? "" : " · " + esc(lv.label)) : "senza data",
         a.stato === "chiusa" ? "chiusa il " + fmtData(a.dataChiusura) + (a.esito ? " · esito: " + esc(a.esito) : "") : "",
         org ? esc(org) : "",
       ].filter(Boolean).join(" · ");
-      return `<div class="item">
-        <div class="avatar">🛠</div>
+      const cls = a.stato === "chiusa" ? "st-ok" : (striscia[B[st][0]] || "st-accent");
+      return `<div class="item ${cls}">
+        <div class="avatar sup">${SVG_AZIONE}</div>
         <div class="info"><div class="name">${esc(a.descrizione)}</div><div class="meta">${meta}</div></div>
+        <span class="acts">
         <span class="badge ${al.cls}" style="cursor:pointer" title="Tocca per far avanzare lo stato (aperta → in corso → chiusa)" data-azi-stato="${a.id}">${al.label}</span>
         ${(a.stato !== "chiusa" && a.scadenza && st !== "regolare") ? `<span class="badge ${B[st][0]}">${B[st][1]}</span>` : ""}
         ${(a.origineTipo === "evento" && infById[a.origineId]) ? `<span class="arr" style="cursor:pointer" title="Vai all'evento che l'ha generata" data-vai-evt="${a.origineId}">↗</span>` : ""}
         <span class="arr" style="cursor:pointer" title="Modifica azione" data-edit-azi="${a.id}">✎</span>
-        <span class="arr" style="cursor:pointer" title="Rimuovi" data-del-azi="${a.id}">✕</span></div>`;
-    }).join("") || '<div class="note" style="text-align:left;">' + (qAzi ? "Nessuna azione trovata per «" + esc(qAzi) + "»."
-      : (filtroAzi === "tutte" ? "Nessuna azione correttiva: aggiungine una qui sotto, oppure aprila da un evento con il pulsante «+ Azione»."
-                               : "Nessuna azione in questa categoria.")) + "</div>";
+        <span class="arr" style="cursor:pointer" title="Rimuovi azione" data-del-azi="${a.id}">✕</span></span></div>`;
+    }).join("") || (qAzi
+      ? vuoto(I.cerca, "Nessun risultato", "Nessuna azione trovata per <b>«" + esc(qAzi) + "»</b>. Prova con il testo dell'azione o il nome del responsabile.")
+      : (filtroAzi === "tutte" && !filtroEvt
+        ? vuoto(I.attrezzo, "Nessuna azione correttiva", "Da ogni infortunio o near-miss dovrebbe nascerne almeno una. Aggiungila qui sotto, oppure aprila direttamente dall'evento con il pulsante <b>+ Azione</b>.")
+        : vuoto(I.ok, "Niente in questa categoria", "Nessuna azione rientra nel filtro scelto. Tocca <b>Tutte</b> per vedere l'elenco completo.")));
     { const n = aziVis.length, filtrata = qAzi || filtroAzi !== "tutte" || filtroEvt;
       const evt = filtroEvt && infById[filtroEvt];
-      $("azi-count").innerHTML = (n === 0 ? "" : n + (n === 1 ? " azione" : " azioni") + (filtrata ? " · su " + AZI.length : ""))
+      $("azi-count").innerHTML = (n === 0 ? "" : "<b>" + n + "</b> " + (n === 1 ? "azione" : "azioni") + (filtrata ? " · su " + AZI.length : ""))
         + (filtroEvt ? (n ? " · " : "") + "solo le azioni dell'evento del " + fmtData(evt ? evt.data : "")
-            + ' · <span style="cursor:pointer;text-decoration:underline;" data-azi-evt-clear="1">mostra tutte</span>' : ""); }
+            + ' · <span class="link" data-azi-evt-clear="1">mostra tutte</span>' : ""); }
     document.querySelectorAll("#azi-filtri [data-filtro-azi]").forEach(b =>
-      b.style.borderColor = b.getAttribute("data-filtro-azi") === filtroAzi ? "var(--app-accent)" : "");
+      b.classList.toggle("active", b.getAttribute("data-filtro-azi") === filtroAzi));
     // selettori del form azione: origine (eventi del registro) e responsabile
     { const selO = $("azi-origine"), val = selO.value;
       const opzioni = '<option value="">— nasce da una non conformità / controllo —</option>' +
@@ -529,7 +1334,7 @@
     const vaiEvt = at("data-vai-evt");
     if (vaiEvt) { filtroInf = "tutti"; go("doc"); await refresh();
       const el = document.querySelector('[data-evt="' + vaiEvt + '"]');
-      if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.style.borderColor = "var(--app-accent)"; setTimeout(() => { el.style.borderColor = ""; }, 2500); }
+      if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("evidenzia"); setTimeout(() => el.classList.remove("evidenzia"), 2500); }
       return; }
     const aziEvt = at("data-azi-evt");
     if (aziEvt) { filtroEvt = aziEvt; filtroAzi = "tutte"; $("azi-cerca").value = ""; go("azio"); await refresh(); return; }
@@ -540,9 +1345,9 @@
       annullaEditAzi();
       go("azio"); filtroEvt = null; await refresh();
       $("azi-origine").value = "evt:" + aziDa; $("azi-nota").value = "";
-      $("azi-esito-msg").textContent = ev
+      esito("azi-esito-msg", ev
         ? "Nuova azione correttiva per l'" + (ev.tipo === "infortunio" ? "infortunio" : "evento near-miss") + " del " + fmtData(ev.data) + ": scrivi cosa si deve fare, chi lo fa ed entro quando."
-        : "Nuova azione correttiva.";
+        : "Nuova azione correttiva.");
       $("azi-desc").focus(); $("azi-desc").scrollIntoView({ behavior: "smooth", block: "center" });
       return; }
     // badge dello stato: aperta → in corso → chiusa (chiudendo si chiede l'esito)
@@ -551,17 +1356,21 @@
       const nuovo = azioneStatoSuccessivo(a.stato);
       const patch = { stato: nuovo };
       if (nuovo === "chiusa") {
-        const esito = prompt("Chiudi l'azione «" + a.descrizione + "».\nCosa è stato fatto davvero? (esito, resta scritto nel registro)", a.esito || "");
-        if (esito === null) return;                      // annullato: nessuna modifica
-        patch.esito = esito.trim();
+        const v = await chiediValore("Chiudi l'azione",
+          "<b>" + esc(a.descrizione) + "</b><br>Cosa è stato fatto davvero? L'esito resta scritto nel registro e vale come prova del lavoro svolto.",
+          '<label class="fl" for="modal-campo">Esito</label><textarea class="dw-input" id="modal-campo" rows="3" placeholder="Es. disgaggio eseguito e fronte messo in sicurezza">' + esc(a.esito || "") + "</textarea>",
+          "Chiudi l'azione");
+        if (v === null) return;                          // annullato: nessuna modifica
+        patch.esito = v.trim();
         patch.dataChiusura = oggiISO();
       } else if (a.stato === "chiusa") { patch.dataChiusura = null; }   // riaperta: l'esito resta a memoria
       await db.aggiorna("azioni", a.id, patch);
-      $("azi-esito-msg").textContent = "Azione «" + a.descrizione + "»: stato " + (nuovo === "in-corso" ? "in corso" : nuovo) + ".";
+      esito("azi-esito-msg", "Azione «" + a.descrizione + "»: stato " + (nuovo === "in-corso" ? "in corso" : nuovo) + ".",
+            nuovo === "chiusa" ? "success" : "");
       await refresh(); return; }
     const editAziId = at("data-edit-azi");
     if (editAziId) { const a = AZI.find(x => x.id === editAziId); if (!a) return;
-      if (editAzi === a.id) { annullaEditAzi(); $("azi-esito-msg").textContent = "Modifica annullata."; return; }
+      if (editAzi === a.id) { annullaEditAzi(); esito("azi-esito-msg", "Modifica annullata."); return; }
       editAzi = a.id;
       $("azi-desc").value = a.descrizione || "";
       $("azi-resp").value = a.responsabileId || "";
@@ -573,21 +1382,33 @@
       $("azi-dchius").value = a.dataChiusura || "";
       $("azi-chiusura").style.display = "flex";
       $("btn-azi").textContent = "Salva modifica";
-      $("azi-esito-msg").textContent = "Stai modificando l'azione «" + a.descrizione + "». Tocca di nuovo ✎ per annullare.";
+      esito("azi-esito-msg", "Stai modificando l'azione «" + a.descrizione + "». Tocca di nuovo ✎ per annullare.");
       $("azi-desc").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
     const delAzi = at("data-del-azi");
     if (delAzi) { const a = AZI.find(x => x.id === delAzi);
-      if (confirm("Rimuovere l'azione correttiva «" + (a ? a.descrizione : "selezionata") + "»? (usa solo per correggere un inserimento sbagliato: le azioni chiuse sono la prova di ciò che è stato fatto)")) {
+      const ok = await chiedi("Rimuovere l'azione?",
+        "Stai per rimuovere <b>" + esc(a ? a.descrizione : "l'azione selezionata") + "</b>.<br><br>"
+        + "Usalo solo per correggere un inserimento sbagliato: <b>le azioni chiuse sono la prova di ciò che è stato fatto</b> e all'ispettore servono.",
+        "Rimuovi", true);
+      if (ok) {
         if (editAzi === delAzi) annullaEditAzi();
-        await db.rimuovi("azioni", delAzi); await refresh(); }
+        await db.rimuovi("azioni", delAzi); await refresh();
+        esito("azi-esito-msg", "Azione rimossa dal registro.", "err"); }
       return; }
     const dc = e.target.closest && e.target.closest("[data-doc]");
     if (dc && db.aggiorna) { const d = DOC.find(x => x.id === dc.getAttribute("data-doc"));
       if (d) { await db.aggiorna("documenti", d.id, { stato: DOC_NEXT[d.stato] || "valido" }); await refresh(); } return; }
     const delInf = e.target.getAttribute && e.target.getAttribute("data-del-inf");
     if (delInf) { const x = INF.find(v => v.id === delInf);
-      if (confirm("Rimuovere questo evento dal registro infortuni? (usa solo per correggere un inserimento sbagliato)")) {
-        await db.rimuovi("infortuni", delInf); await refresh(); } return; }
+      const naz = azioniDiEvento(AZI, delInf).length;
+      const ok = await chiedi("Rimuovere l'evento?",
+        "Stai per togliere dal registro l'evento del <b>" + fmtData(x ? x.data : "") + "</b>"
+        + (x && x.descrizione ? " — " + esc(x.descrizione) : "") + ".<br><br>"
+        + (naz ? "Attenzione: <b>" + naz + (naz === 1 ? " azione correttiva</b> resterà" : " azioni correttive</b> resteranno") + " senza l'evento di origine.<br><br>" : "")
+        + "Il registro infortuni è un documento HSE: rimuovi solo per correggere un inserimento sbagliato.",
+        "Rimuovi", true);
+      if (ok) { await db.rimuovi("infortuni", delInf); await refresh();
+        esito("inf-esito", "Evento rimosso dal registro.", "err"); } return; }
     const idon = e.target.getAttribute && e.target.getAttribute("data-idon");
     if (idon && db.aggiorna) { const l = LAV.find(x => x.id === idon);
       if (l) { await db.aggiorna("lavoratori", l.id, { idoneita: idoneitaSuccessivo(l.idoneita) }); await refresh(); } return; }
@@ -595,39 +1416,68 @@
     if (prom) { const sc = SCA.find(x => x.id === prom);
       const lav = sc && LAV.find(x => x.id === sc.lavoratoreId);
       const testo = sc && testoPromemoria(sc, lav);
-      if (!testo) { $("scad-esito").textContent = "Promemoria disponibile solo per scadenze di un lavoratore in scadenza o scadute."; return; }
-      const ok = () => { $("scad-esito").textContent = "Promemoria per " + lav.nome + " copiato: incollalo nell'email o nell'SMS al lavoratore."; };
+      if (!testo) { esito("scad-esito", "Il promemoria si può preparare solo per la scadenza di un lavoratore, e solo se è in scadenza o già scaduta.", "err"); return; }
+      const ok = () => esito("scad-esito", "Promemoria per " + lav.nome + " copiato: incollalo nell'email o nell'SMS.", "success");
       try {
         if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(testo); ok(); }
         else { const ta = document.createElement("textarea"); ta.value = testo; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); ok(); }
-      } catch (_) { window.prompt("Copia il promemoria (Ctrl/Cmd+C):", testo); }
+      } catch (_) {
+        // Nessun accesso agli appunti: mostriamo il testo nella modale del core,
+        // già selezionato, così basta un Ctrl/Cmd+C.
+        apriModale("Promemoria per " + (lav ? lav.nome : "il lavoratore"),
+          "Gli appunti non sono disponibili in questo browser. Copia il testo qui sotto (Ctrl/Cmd+C) e incollalo nell'email o nell'SMS."
+          + '<label class="fl" for="modal-campo">Testo del promemoria</label><textarea class="dw-input" id="modal-campo" rows="6" readonly>' + esc(testo) + "</textarea>",
+          [{ label: "Chiudi", cls: "primary", azione: chiudiModale }]);
+      }
       return; }
     const rn = e.target.getAttribute && e.target.getAttribute("data-ren-scad");
     if (rn && db.aggiorna) { const s = SCA.find(x => x.id === rn);
-      if (s) { const v = prompt("Nuova data di scadenza per «" + s.descrizione + "» (AAAA-MM-GG):", s.dataScadenza);
-        if (v && /^\d{4}-\d{2}-\d{2}$/.test(v.trim())) { await db.aggiorna("scadenze", rn, { dataScadenza: v.trim() }); await refresh(); } }
+      if (s) {
+        const v = await chiediValore("Rinnova la scadenza",
+          "<b>" + esc(s.descrizione) + "</b><br>Scadenza attuale: " + fmtData(s.dataScadenza)
+          + ". Indica la nuova data, quella del rinnovo appena fatto.",
+          '<label class="fl" for="modal-campo">Nuova scadenza</label><input class="dw-input" id="modal-campo" type="date" value="' + esc(s.dataScadenza || "") + '">',
+          "Rinnova");
+        if (v === null) return;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test((v || "").trim())) { esito("scad-esito", "Serve una data valida per rinnovare la scadenza.", "err"); return; }
+        await db.aggiorna("scadenze", rn, { dataScadenza: v.trim() });
+        await refresh();
+        esito("scad-esito", "«" + s.descrizione + "» rinnovata al " + fmtData(v.trim()) + ".", "success");
+      }
       return; }
     const editLavId = e.target.getAttribute && e.target.getAttribute("data-edit-lav");
     if (editLavId) { const l = LAV.find(x => x.id === editLavId); if (!l) return;
       if (editLav === l.id) {   // ri-tocco la ✎ dello stesso lavoratore = annulla
-        editLav = null; $("btn-add-pers").textContent = "Aggiungi"; $("import-esito").textContent = "Modifica annullata.";
-        $("new-nome").value = ""; $("new-ruolo").value = ""; $("new-nome").style.borderColor = ""; return; }
+        editLav = null; $("btn-add-pers").textContent = "Aggiungi"; esito("import-esito", "Modifica annullata.");
+        $("new-nome").value = ""; $("new-ruolo").value = ""; err("new-nome", false); return; }
       editLav = l.id;
-      $("new-nome").value = l.nome || ""; $("new-ruolo").value = l.ruolo || ""; $("new-nome").style.borderColor = "";
+      $("new-nome").value = l.nome || ""; $("new-ruolo").value = l.ruolo || ""; err("new-nome", false);
       $("btn-add-pers").textContent = "Salva modifica";
-      $("import-esito").textContent = "Stai modificando «" + l.nome + "»: cambi nome/ruolo, idoneità e scadenze restano.";
+      esito("import-esito", "Stai modificando «" + l.nome + "»: cambi nome e ruolo, idoneità e scadenze restano com'erano.");
       $("new-nome").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
     const dl = e.target.getAttribute && e.target.getAttribute("data-del-lav");
     const ds = e.target.getAttribute && e.target.getAttribute("data-del-scad");
     if (dl) { const l = LAV.find(x => x.id === dl);
-      if (confirm("Rimuovere " + (l ? l.nome : "questo lavoratore") + "? Le sue scadenze restano in elenco come aziendali.")) { await db.rimuovi("lavoratori", dl); await refresh(); } }
+      const nsc = SCA.filter(s => s.lavoratoreId === dl).length;
+      const ok = await chiedi("Rimuovere il lavoratore?",
+        "Stai per togliere <b>" + esc(l ? l.nome : "questo lavoratore") + "</b> dall'anagrafica."
+        + (nsc ? "<br><br>Le sue <b>" + nsc + (nsc === 1 ? " scadenza resterà</b> in elenco" : " scadenze resteranno</b> in elenco") + " come scadenze aziendali: non vanno perse." : ""),
+        "Rimuovi", true);
+      if (ok) { await db.rimuovi("lavoratori", dl); await refresh();
+        esito("import-esito", (l ? l.nome : "Lavoratore") + " rimosso dall'anagrafica.", "err"); } }
     if (ds) { const sc = SCA.find(x => x.id === ds);
-      if (confirm("Rimuovere la scadenza «" + (sc ? sc.descrizione : "selezionata") + "»?")) { await db.rimuovi("scadenze", ds); await refresh(); } }
+      const ok = await chiedi("Rimuovere la scadenza?",
+        "Stai per rimuovere <b>" + esc(sc ? sc.descrizione : "la scadenza selezionata") + "</b>"
+        + (sc && sc.dataScadenza ? " del " + fmtData(sc.dataScadenza) : "") + " dallo scadenzario.",
+        "Rimuovi", true);
+      if (ok) { await db.rimuovi("scadenze", ds); await refresh();
+        esito("scad-esito", "Scadenza rimossa.", "err"); } }
   });
   $("btn-add-pers").onclick = async () => {
     const nome = $("new-nome").value.trim();
-    if (!nome) { $("new-nome").style.borderColor = "var(--danger)"; $("import-esito").textContent = "Serve il nome del lavoratore."; return; }
-    $("new-nome").style.borderColor = "";
+    if (!nome) { err("new-nome", true); $("new-nome").focus();
+      esito("import-esito", "Serve il nome del lavoratore: scrivilo nel primo campo.", "err"); return; }
+    err("new-nome", false);
     if (editLav) {
       await db.aggiorna("lavoratori", editLav, { nome, ruolo: $("new-ruolo").value.trim() });   // idoneità/attivo/scadenze restano
       editLav = null; $("btn-add-pers").textContent = "Aggiungi";
@@ -635,7 +1485,7 @@
       await db.aggiungi("lavoratori", { nome, ruolo: $("new-ruolo").value.trim(), attivo: true });
     }
     $("new-nome").value = ""; $("new-ruolo").value = "";
-    $("import-esito").textContent = "Lavoratore salvato: " + nome + ".";
+    esito("import-esito", "Lavoratore salvato: " + nome + ".", "success");
     $("new-nome").focus();   // torna al primo campo per inserire subito il prossimo
     await refresh();
   };
@@ -646,31 +1496,33 @@
   $("doc-file").onchange = () => {
     const f = $("doc-file").files[0]; docFileSel = null; $("doc-file-nome").textContent = "";
     if (!f) return;
-    if (f.size > 400 * 1024) { $("doc-esito").textContent = "Allegato troppo grande (" + Math.round(f.size / 1024) + " KB): riduci la foto/scansione sotto i 400 KB."; $("doc-file").value = ""; return; }
+    if (f.size > 400 * 1024) { esito("doc-esito", "Allegato troppo grande (" + Math.round(f.size / 1024) + " KB): serve una foto o scansione sotto i 400 KB.", "err"); $("doc-file").value = ""; return; }
     const r = new FileReader();
-    r.onload = () => { docFileSel = { nome: f.name, dataURL: r.result }; $("doc-file-nome").textContent = "📎 " + f.name + " (" + Math.round(f.size / 1024) + " KB)"; $("doc-esito").textContent = ""; };
+    r.onload = () => { docFileSel = { nome: f.name, dataURL: r.result }; $("doc-file-nome").textContent = "Allegato: " + f.name + " (" + Math.round(f.size / 1024) + " KB)"; pulisci("doc-esito"); };
     r.readAsDataURL(f);
   };
   $("btn-doc").onclick = async () => {
     const titolo = $("doc-titolo").value.trim();
-    if (!titolo) { $("doc-titolo").style.borderColor = "var(--danger)"; $("doc-esito").textContent = "Serve il titolo del documento."; return; }
-    $("doc-titolo").style.borderColor = "";
+    if (!titolo) { err("doc-titolo", true); $("doc-titolo").focus();
+      esito("doc-esito", "Serve il titolo del documento (es. «DSS Cava Monte Alto»).", "err"); return; }
+    err("doc-titolo", false);
     const rec = { titolo, meta: $("doc-meta").value.trim(), tipo: $("doc-tipo").value || "Altro",
       cantiereId: $("doc-cantiere").value || null, lavoratoreId: $("doc-lavoratore").value || null, stato: "valido" };
     if (docFileSel) { rec.allegatoNome = docFileSel.nome; rec.allegatoData = docFileSel.dataURL; }
     await db.aggiungi("documenti", rec);
     $("doc-titolo").value = ""; $("doc-meta").value = ""; $("doc-file").value = ""; $("doc-file-nome").textContent = ""; docFileSel = null;
-    $("doc-esito").textContent = "Documento aggiunto: " + titolo + " (valido).";
+    esito("doc-esito", "Documento aggiunto: " + titolo + " (valido).", "success");
     $("doc-titolo").focus();   // pronto per il prossimo documento
     await refresh();
   };
   $("btn-cant").onclick = async () => {
     const nome = $("cant-nome").value.trim();
-    if (!nome) { $("cant-nome").style.borderColor = "var(--danger)"; $("cant-esito").textContent = "Serve il nome del cantiere o della cava."; return; }
-    $("cant-nome").style.borderColor = "";
+    if (!nome) { err("cant-nome", true); $("cant-nome").focus();
+      esito("cant-esito", "Serve il nome del cantiere o della cava.", "err"); return; }
+    err("cant-nome", false);
     await db.aggiungi("cantieri", { nome, comune: $("cant-comune").value.trim(), tipo: $("cant-tipo").value, stato: "attivo" });
     $("cant-nome").value = ""; $("cant-comune").value = "";
-    $("cant-esito").textContent = "Aggiunto: " + nome + ".";
+    esito("cant-esito", "Cantiere aggiunto: " + nome + ".", "success");
     await refresh();
   };
   $("cant-list").addEventListener("click", async (e) => {
@@ -678,17 +1530,24 @@
     if (!del) return;
     const c = CANT.find(x => x.id === del);
     const nDoc = DOC.filter(d => d.cantiereId === del).length;
-    if (!confirm("Rimuovere " + (c ? c.nome : "il cantiere") + (nDoc ? " (" + nDoc + " documenti resteranno senza collegamento)" : "") + "?")) return;
+    const ok = await chiedi("Rimuovere il cantiere?",
+      "Stai per rimuovere <b>" + esc(c ? c.nome : "il cantiere") + "</b>."
+      + (nDoc ? "<br><br><b>" + nDoc + (nDoc === 1 ? " documento resterà</b>" : " documenti resteranno</b>") + " in archivio ma senza collegamento al sito." : ""),
+      "Rimuovi", true);
+    if (!ok) return;
     await db.rimuovi("cantieri", del); await refresh();
+    esito("cant-esito", (c ? c.nome : "Cantiere") + " rimosso.", "err");
   });
   // niente eventi datati nel futuro: il registro infortuni è un documento HSE e la
   // data più recente pilota il cartellone "giorni senza infortuni" (un refuso lo azzererebbe)
   { const d = new Date(); $("inf-data").max = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
   $("btn-inf").onclick = async () => {
     const data = $("inf-data").value, desc = $("inf-desc").value.trim();
-    if (!data) { $("inf-data").style.borderColor = "var(--danger)"; $("inf-esito").textContent = "Serve la data dell'evento."; return; }
-    if (giorniTra(data) > 0) { $("inf-data").style.borderColor = "var(--danger)"; $("inf-esito").textContent = "La data dell'evento non può essere nel futuro."; return; }
-    $("inf-data").style.borderColor = "";
+    if (!data) { err("inf-data", true); $("inf-data").focus();
+      esito("inf-esito", "Serve la data dell'evento: è quella che fa ripartire il conteggio dei giorni.", "err"); return; }
+    if (giorniTra(data) > 0) { err("inf-data", true); $("inf-data").focus();
+      esito("inf-esito", "La data dell'evento non può essere nel futuro.", "err"); return; }
+    err("inf-data", false);
     const tipo = $("inf-tipo").value;
     await db.aggiungi("infortuni", {
       data, tipo, gravita: $("inf-gravita").value,
@@ -696,7 +1555,7 @@
       descrizione: desc, luogo: $("inf-luogo").value.trim(),
     });
     $("inf-desc").value = ""; $("inf-giorni").value = ""; $("inf-luogo").value = "";
-    $("inf-esito").textContent = (tipo === "infortunio" ? "Infortunio" : "Near-miss") + " registrato del " + data + ".";
+    esito("inf-esito", (tipo === "infortunio" ? "Infortunio" : "Near-miss") + " registrato del " + fmtData(data) + ".", "success");
     await refresh();
   };
   $("btn-inf-export").onclick = () => {
@@ -707,13 +1566,13 @@
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "scudo_registro_infortuni.csv"; a.click();
-    $("inf-esito").textContent = "Esportati " + INF.length + " eventi (CSV).";
+    esito("inf-esito", "Esportati " + INF.length + " eventi del registro (CSV).", "success");
   };
   $("btn-inf-import").onclick = () => $("inf-file").click();
   $("inf-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseInfortuniCsv(await file.text());
-    if (!righe.length) { $("inf-esito").textContent = "Nessuna riga valida: controlla che le colonne siano data;tipo;gravita;giorniAssenza;descrizione;luogo."; e.target.value = ""; return; }
+    if (!righe.length) { esito("inf-esito", "Nessuna riga valida nel file: le colonne devono essere data; tipo; gravita; giorniAssenza; descrizione; luogo.", "err"); e.target.value = ""; return; }
     // Dedup come gli altri import: evita che un doppio click su "Importa"
     // raddoppi silenziosamente un registro HSE. Firma = data|tipo|descrizione.
     const firma = (r) => [(r.data || ""), (r.tipo || ""), (r.descrizione || "").trim().toLowerCase()].join("|");
@@ -726,7 +1585,7 @@
       agg++;
     }
     $("inf-file").value = "";
-    $("inf-esito").textContent = `Import registro: ${agg} eventi aggiunti${dup ? `, ${dup} già presenti (saltati)` : ""}.`;
+    esito("inf-esito", `Import registro: ${agg} eventi aggiunti${dup ? `, ${dup} già presenti (saltati)` : ""}.`, agg ? "success" : "");
     await refresh();
   };
   $("btn-import-csv").onclick = () => $("csv-file").click();
@@ -745,7 +1604,7 @@
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "scudo_personale_scadenze.csv"; a.click();
-    $("import-esito").textContent = "Esportati " + LAV.length + " lavoratori e " + SCA.length + " scadenze (CSV).";
+    esito("import-esito", "Esportati " + LAV.length + " lavoratori e " + SCA.length + " scadenze (CSV).", "success");
   };
   $("csv-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
@@ -759,21 +1618,21 @@
       await db.aggiungi("lavoratori", { nome, ruolo: ruolo || "", tel: tel || "", attivo: true });
       aggiunti++;
     }
-    $("import-esito").textContent = `Import completato: ${aggiunti} aggiunti, ${saltate} righe saltate (intestazioni/duplicati).`;
+    esito("import-esito", `Import completato: ${aggiunti} aggiunti, ${saltate} righe saltate (intestazioni o duplicati).`, aggiunti ? "success" : "");
     e.target.value = "";
     await refresh();
   };
   $("btn-add-scad").onclick = async () => {
     const descrizione = $("new-scad-desc").value.trim(), dataScadenza = $("new-scad-data").value;
     if (!descrizione || !dataScadenza) {
-      $("new-scad-desc").style.borderColor = descrizione ? "" : "var(--danger)";
-      $("new-scad-data").style.borderColor = dataScadenza ? "" : "var(--danger)";
-      $("scad-esito").textContent = "Servono la descrizione e la data di scadenza."; return;
+      err("new-scad-desc", !descrizione); err("new-scad-data", !dataScadenza);
+      (!descrizione ? $("new-scad-desc") : $("new-scad-data")).focus();
+      esito("scad-esito", "Servono la descrizione e la data: senza una data la scadenza non entra nello scadenzario.", "err"); return;
     }
-    $("new-scad-desc").style.borderColor = ""; $("new-scad-data").style.borderColor = "";
+    err("new-scad-desc", false); err("new-scad-data", false);
     await db.aggiungi("scadenze", { lavoratoreId: $("new-scad-lav").value || null, tipo: $("new-scad-tipo").value, descrizione, dataScadenza });
     $("new-scad-desc").value = ""; $("new-scad-data").value = "";
-    $("scad-esito").textContent = "Scadenza aggiunta: " + descrizione + ".";
+    esito("scad-esito", "Scadenza aggiunta: " + descrizione + " (entro il " + fmtData(dataScadenza) + ").", "success");
     $("new-scad-desc").focus();   // pronto per la prossima scadenza
     await refresh();
   };
@@ -788,17 +1647,17 @@
     $("azi-desc").value = ""; $("azi-nota").value = ""; $("azi-esito").value = "";
     $("azi-dchius").value = ""; $("azi-data").value = ""; $("azi-resp").value = "";
     $("azi-origine").value = ""; $("azi-stato").value = "aperta";
-    $("azi-desc").style.borderColor = ""; $("azi-data").style.borderColor = "";
+    err("azi-desc", false); err("azi-data", false);
   }
   $("btn-azi").onclick = async () => {
     const descrizione = $("azi-desc").value.trim(), scadenza = $("azi-data").value;
     if (!descrizione || !scadenza) {
-      $("azi-desc").style.borderColor = descrizione ? "" : "var(--danger)";
-      $("azi-data").style.borderColor = scadenza ? "" : "var(--danger)";
-      $("azi-esito-msg").textContent = "Servono l'azione da fare e la data entro cui farla: senza una data non entra nello scadenzario.";
+      err("azi-desc", !descrizione); err("azi-data", !scadenza);
+      (!descrizione ? $("azi-desc") : $("azi-data")).focus();
+      esito("azi-esito-msg", "Servono l'azione da fare e la data entro cui farla: senza una data non entra nello scadenzario.", "err");
       return;
     }
-    $("azi-desc").style.borderColor = ""; $("azi-data").style.borderColor = "";
+    err("azi-desc", false); err("azi-data", false);
     const orig = $("azi-origine").value, nota = $("azi-nota").value.trim();
     const daEvento = orig.indexOf("evt:") === 0;
     const rec = {
@@ -814,12 +1673,12 @@
       rec.dataChiusura = stato === "chiusa" ? ($("azi-dchius").value || oggiISO()) : null;
       await db.aggiorna("azioni", editAzi, rec);
       annullaEditAzi();
-      $("azi-esito-msg").textContent = "Azione aggiornata: " + descrizione + ".";
+      esito("azi-esito-msg", "Azione aggiornata: " + descrizione + ".", "success");
     } else {
       rec.stato = "aperta"; rec.esito = ""; rec.dataChiusura = null;
       await db.aggiungi("azioni", rec);
       annullaEditAzi();
-      $("azi-esito-msg").textContent = "Azione correttiva aperta: " + descrizione + " (entro il " + fmtData(scadenza) + ").";
+      esito("azi-esito-msg", "Azione correttiva aperta: " + descrizione + " (entro il " + fmtData(scadenza) + ").", "success");
       $("azi-desc").focus();   // pronto per la prossima
     }
     await refresh();
@@ -837,7 +1696,7 @@
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "scudo_azioni_correttive.csv"; a.click();
-    $("azi-esito-msg").textContent = "Esportate " + AZI.length + " azioni correttive (CSV).";
+    esito("azi-esito-msg", "Esportate " + AZI.length + " azioni correttive (CSV).", "success");
   };
 
   // Adempimenti tipici di cava: popola il menu (raggruppato persona/azienda)
@@ -859,7 +1718,7 @@
       const mesi = +$("scad-preset-mesi").value;
       const d = dataDaPeriodicita(mesi);
       if (d) $("new-scad-data").value = d;
-      $("new-scad-data").style.borderColor = "";
+      err("new-scad-data", false);
     };
     let presetCorrente = null;
     sel.addEventListener("change", () => {
@@ -868,10 +1727,10 @@
       if (!p) { nota.style.display = "none"; nota.textContent = ""; per.style.display = "none"; return; }
       $("new-scad-desc").value = p.etichetta;
       $("new-scad-tipo").value = [...$("new-scad-tipo").options].some(o => o.value === p.tipo) ? p.tipo : "Altro";
-      $("new-scad-desc").style.borderColor = "";
+      err("new-scad-desc", false);
       nota.style.display = "block";
-      nota.innerHTML = "⚠️ Adempimento di <b>riferimento</b>: la periodicità dipende dal DVR/DSS, dal medico competente e dal tuo consulente — qui è solo una proposta modificabile, non un parere legale."
-        + (p.riferimento ? '<br><span style="opacity:.9;">📘 ' + esc(p.riferimento) + "</span>" : "")
+      nota.innerHTML = "Adempimento di <b>riferimento</b>: la periodicità dipende dal DVR/DSS, dal medico competente e dal tuo consulente — qui è solo una proposta modificabile, non un parere legale."
+        + (p.riferimento ? '<br><span style="opacity:.9;">Riferimento: ' + esc(p.riferimento) + "</span>" : "")
         + (p.mesi ? "" : "<br>Per questa voce la norma non fissa una cadenza fissa: metti tu la data.");
       if (p.mesi) { per.style.display = "flex"; $("scad-preset-mesi").value = p.mesi; applicaPeriodicita(); }
       else { per.style.display = "none"; $("scad-preset-mesi").value = ""; }
@@ -887,7 +1746,7 @@
   $("scad-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseScadenzeCsv(await file.text());
-    if (!righe.length) { $("scad-esito").textContent = "Nessuna riga valida: controlla che le colonne siano lavoratore;tipo;descrizione;scadenza."; e.target.value = ""; return; }
+    if (!righe.length) { esito("scad-esito", "Nessuna riga valida nel file: le colonne devono essere lavoratore; tipo; descrizione; scadenza.", "err"); e.target.value = ""; return; }
     // Dedup come gli altri import: un doppio click su "Importa" non deve
     // raddoppiare le scadenze. Firma = lavoratoreId|tipo|dataScadenza (stesso
     // lavoratore, tipo di idoneità/certificato e data = stessa scadenza).
@@ -907,16 +1766,16 @@
       agg++;
     }
     $("scad-file").value = "";
-    $("scad-esito").textContent = "Import scadenze: " + agg + " aggiunte"
+    esito("scad-esito", "Import scadenze: " + agg + " aggiunte"
       + (dup ? ", " + dup + " già presenti (saltate)" : "")
-      + (senzaLav ? ", " + senzaLav + " senza lavoratore associato (nome non trovato)" : "") + ".";
+      + (senzaLav ? ", " + senzaLav + " senza lavoratore associato (nome non trovato)" : "") + ".", agg ? "success" : "");
     await refresh();
   };
 
   // Recupero errore: appena l'utente corregge un campo, togli il bordo
   // rosso e il messaggio, così l'avviso non resta appeso mentre digita.
   const clearErr = (inputId, esitoId) => $(inputId).addEventListener("input", () => {
-    $(inputId).style.borderColor = ""; $(esitoId).textContent = "";
+    err(inputId, false); pulisci(esitoId);
   });
   clearErr("new-nome", "import-esito");
   clearErr("doc-titolo", "doc-esito");
