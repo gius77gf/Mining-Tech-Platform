@@ -13,6 +13,11 @@
 //                      (dataURL ≤ 400 KB — file grandi: Firebase Storage,
 //                      arriverà col progetto live), stato: valido|da-rivedere|scaduto }
 //   cantieri/{id}:   { nome, comune, tipo: cava|cantiere, stato: attivo|chiuso }
+//   azioni/{id}:     { descrizione, responsabileId|null, scadenza (ISO),
+//                      stato: aperta|in-corso|chiusa, esito?, dataChiusura?,
+//                      origineTipo: evento|nc|"", origineId?|null, origineNota? }
+//                    → azione correttiva (CAPA) nata da un evento del registro
+//                      infortuni/near-miss o da una non conformità rilevata.
 // Lo "stato" delle scadenze non si salva: si CALCOLA dalla data
 // (scaduta / entro 30gg / regolare) — niente dati derivati nel DB.
 // ============================================================
@@ -50,6 +55,11 @@ export const DEMO = {
   infortuni: [
     { id: "i1", data: "2026-05-18", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "fronte Est", descrizione: "Caduta massi vicino al perforatore, nessun ferito" },
     { id: "i2", data: "2026-02-03", tipo: "infortunio", gravita: "lieve", giorniAssenza: 4, luogo: "officina", descrizione: "Taglio alla mano durante una manutenzione" },
+  ],
+  azioni: [
+    { id: "a1", descrizione: "Disgaggio del fronte Est e ripristino della fascia di rispetto a valle", responsabileId: "d3", scadenza: "2026-07-31", stato: "in-corso", origineTipo: "evento", origineId: "i1" },
+    { id: "a2", descrizione: "Consegna guanti antitaglio e addestramento agli addetti officina", responsabileId: "d7", scadenza: "2026-03-15", stato: "chiusa", esito: "Guanti consegnati e addestramento registrato", dataChiusura: "2026-03-12", origineTipo: "evento", origineId: "i2" },
+    { id: "a3", descrizione: "Ripristinare la segnaletica di viabilità sulla pista principale", responsabileId: null, scadenza: "2026-06-30", stato: "aperta", origineTipo: "nc", origineNota: "Non conformità rilevata durante il giro di sorveglianza" },
   ],
 };
 
@@ -169,6 +179,69 @@ export function riepilogoInfortuni(infortuni, oggi = new Date()) {
   return { infortuni: veri.length, nearMiss: nearMiss.length, gravi, giorniSenza, ultimo, giorniAssenzaTot };
 }
 
+// ============================================================
+// AZIONI CORRETTIVE (CAPA)
+// Da un evento (infortunio o near-miss) o da una non conformità nasce
+// un'azione: cosa fare, chi la fa, entro quando, com'è finita. Chiude il
+// cerchio "segnala → correggi → verifica" ed è ciò che la L. 198/2025
+// chiede di tracciare insieme agli eventi (eventi *e azioni correttive*).
+// Lo stato AVANZAMENTO si salva (aperta → in corso → chiusa), mentre il
+// semaforo della SCADENZA resta CALCOLATO dalla data, con lo stesso schema
+// già usato dallo scadenzario (statoScadenza/livelloScadenza): nessun dato
+// derivato nel database.
+// ============================================================
+
+// Etichetta dell'avanzamento (non del semaforo: quello viene dalla data).
+export function azioneLabel(stato) {
+  switch (stato) {
+    case "in-corso": return { cls: "warn", label: "In corso" };
+    case "chiusa":   return { cls: "ok",   label: "Chiusa" };
+    default:         return { cls: "danger", label: "Aperta" };
+  }
+}
+// Ciclo per il tap sul badge: aperta → in corso → chiusa → aperta.
+export function azioneStatoSuccessivo(stato) {
+  const seq = ["aperta", "in-corso", "chiusa"];
+  const i = seq.indexOf(seq.includes(stato) ? stato : "aperta");
+  return seq[(i + 1) % seq.length];
+}
+// Semaforo di un'azione, con lo STESSO schema delle scadenze: un'azione
+// chiusa è sempre "regolare" (non scade più), le altre seguono la data.
+// Ritorna "scaduta" | "in-scadenza" | "regolare".
+export function statoAzione(azione, oggi = new Date()) {
+  const a = azione || {};
+  if (a.stato === "chiusa") return "regolare";
+  if (!a.scadenza) return "regolare";          // senza data non allarma
+  return statoScadenza(a.scadenza, oggi);
+}
+// Azioni ancora da chiudere che sono scadute o in scadenza: sono quelle che
+// devono entrare nel semaforo del Quadro e nello scadenzario, prima le più
+// urgenti. Pura e testabile; `oggi` iniettabile.
+export function azioniUrgenti(azioni, oggi = new Date()) {
+  return (azioni || [])
+    .filter(a => a.stato !== "chiusa" && a.scadenza && statoAzione(a, oggi) !== "regolare")
+    .sort((a, b) => (a.scadenza < b.scadenza ? -1 : a.scadenza > b.scadenza ? 1 : 0));
+}
+// Riepilogo per la testata della pagina Azioni e per i KPI del Quadro.
+export function riepilogoAzioni(azioni, oggi = new Date()) {
+  const list = azioni || [];
+  const aperte = list.filter(a => a.stato !== "chiusa");
+  const scadute = aperte.filter(a => statoAzione(a, oggi) === "scaduta").length;
+  const inScadenza = aperte.filter(a => statoAzione(a, oggi) === "in-scadenza").length;
+  return {
+    totale: list.length,
+    aperte: list.filter(a => (a.stato || "aperta") === "aperta").length,
+    inCorso: list.filter(a => a.stato === "in-corso").length,
+    chiuse: list.filter(a => a.stato === "chiusa").length,
+    daChiudere: aperte.length, scadute, inScadenza,
+  };
+}
+// Azioni generate da un evento del registro (per risalire evento → azioni).
+export function azioniDiEvento(azioni, eventoId) {
+  if (!eventoId) return [];
+  return (azioni || []).filter(a => a.origineTipo === "evento" && a.origineId === eventoId);
+}
+
 // Import registro infortuni da CSV (onboarding: caricare lo storico eventi di
 // una cava). Colonne: data;tipo;gravita;giorniAssenza;descrizione[;luogo]
 // (header opzionale). Tiene solo le righe con data valida (AAAA-MM-GG). tipo:
@@ -222,28 +295,59 @@ export function coperturaFormazione(scadenze) {
 // presenti nel form. Le PERIODICITÀ non sono qui: dipendono dal DVR/DSS e dal
 // medico competente → ogni preset porta `daVerificare` (niente scadenza
 // automatica, la data la mette l'utente).
+// I preset del blocco "cava" (D.Lgs 624/96) portano anche una PERIODICITÀ
+// SUGGERITA in mesi (`mesi`) e il RIFERIMENTO normativo (`riferimento`) da
+// mostrare come nota informativa. La periodicità è solo una PROPOSTA che
+// l'utente può cambiare: non è una verità assoluta e non è consulenza legale.
+// `mesi: null` = periodicità non fissata dalla norma (la decide l'azienda col
+// proprio consulente, oppure l'evento che la fa scattare).
 export const SCADENZE_PRESET = [
-  { chiave: "sorv-sanitaria",   categoria: "persona", tipo: "Visita medica", etichetta: "Sorveglianza sanitaria — visita periodica (art. 41)" },
-  { chiave: "form-generale",    categoria: "persona", tipo: "Formazione",    etichetta: "Formazione generale + specifica (art. 37)" },
-  { chiave: "form-aggiorn",     categoria: "persona", tipo: "Formazione",    etichetta: "Aggiornamento formazione lavoratori" },
-  { chiave: "form-preposto",    categoria: "persona", tipo: "Formazione",    etichetta: "Formazione/aggiornamento preposto" },
-  { chiave: "form-dirigente",   categoria: "persona", tipo: "Formazione",    etichetta: "Formazione/aggiornamento dirigente" },
-  { chiave: "primo-soccorso",   categoria: "persona", tipo: "Corso",         etichetta: "Primo soccorso — aggiornamento addetti" },
-  { chiave: "antincendio",      categoria: "persona", tipo: "Corso",         etichetta: "Antincendio — aggiornamento addetti" },
-  { chiave: "rls",              categoria: "persona", tipo: "Formazione",    etichetta: "RLS — aggiornamento periodico" },
-  { chiave: "patentino-attr",   categoria: "persona", tipo: "Patente",       etichetta: "Abilitazione attrezzature (escavatore, PLE, gru…)" },
-  { chiave: "fochino",          categoria: "persona", tipo: "Patente",       etichetta: "Fochino — abilitazione brillamento mine" },
-  { chiave: "dss",              categoria: "azienda", tipo: "Altro",         etichetta: "DSS — Documento di Sicurezza e Salute (D.Lgs 624/96)" },
-  { chiave: "dvr",              categoria: "azienda", tipo: "Altro",         etichetta: "DVR — aggiornamento" },
-  { chiave: "verifica-attr",    categoria: "azienda", tipo: "Altro",         etichetta: "Verifica periodica attrezzature (D.M. 11/04/2011)" },
-  { chiave: "riunione-sic",     categoria: "azienda", tipo: "Altro",         etichetta: "Riunione periodica di sicurezza (art. 35)" },
+  { chiave: "sorv-sanitaria",   categoria: "persona", tipo: "Visita medica", etichetta: "Sorveglianza sanitaria — visita periodica (art. 41)", mesi: 12, riferimento: "D.Lgs 81/2008 art. 41 — di norma annuale, salvo diversa periodicità stabilita dal medico competente." },
+  { chiave: "form-generale",    categoria: "persona", tipo: "Formazione",    etichetta: "Formazione generale + specifica (art. 37)", mesi: null, riferimento: "D.Lgs 81/2008 art. 37 e Accordo Stato-Regioni — la formazione iniziale non ha scadenza, ma va aggiornata." },
+  { chiave: "form-aggiorn",     categoria: "persona", tipo: "Formazione",    etichetta: "Aggiornamento formazione lavoratori", mesi: 60, riferimento: "Accordo Stato-Regioni — aggiornamento periodico (di prassi quinquennale)." },
+  { chiave: "form-preposto",    categoria: "persona", tipo: "Formazione",    etichetta: "Formazione/aggiornamento preposto", mesi: 24, riferimento: "D.L. 146/2021 — individuazione obbligatoria del preposto e aggiornamento almeno biennale." },
+  { chiave: "form-dirigente",   categoria: "persona", tipo: "Formazione",    etichetta: "Formazione/aggiornamento dirigente", mesi: 60, riferimento: "Accordo Stato-Regioni — aggiornamento periodico del dirigente." },
+  { chiave: "primo-soccorso",   categoria: "persona", tipo: "Corso",         etichetta: "Primo soccorso — aggiornamento addetti", mesi: 36, riferimento: "D.M. 388/2003 — aggiornamento della parte pratica di norma triennale." },
+  { chiave: "antincendio",      categoria: "persona", tipo: "Corso",         etichetta: "Antincendio — aggiornamento addetti", mesi: 60, riferimento: "D.M. 2 settembre 2021 — aggiornamento periodico degli addetti antincendio." },
+  { chiave: "rls",              categoria: "persona", tipo: "Formazione",    etichetta: "RLS — aggiornamento periodico", mesi: 12, riferimento: "D.Lgs 81/2008 art. 37 — aggiornamento annuale (durata secondo il numero di lavoratori)." },
+  { chiave: "patentino-attr",   categoria: "persona", tipo: "Patente",       etichetta: "Abilitazione attrezzature (escavatore, PLE, gru…)", mesi: 60, riferimento: "Accordo Stato-Regioni 22/02/2012 — aggiornamento quinquennale delle abilitazioni." },
+  { chiave: "fochino",          categoria: "persona", tipo: "Patente",       etichetta: "Fochino — abilitazione brillamento mine", mesi: null, riferimento: "D.P.R. 302/1956 — licenza rilasciata dal Prefetto: la scadenza è quella indicata sul titolo." },
+  { chiave: "dss",              categoria: "azienda", tipo: "Altro",         etichetta: "DSS — Documento di Sicurezza e Salute (D.Lgs 624/96)", mesi: null, riferimento: "D.Lgs 624/96 artt. 6 e 10 — il DSS integra l'art. 28 del D.Lgs 81/08; va trasmesso all'autorità di vigilanza prima dell'inizio dei lavori." },
+  { chiave: "dvr",              categoria: "azienda", tipo: "Altro",         etichetta: "DVR — aggiornamento", mesi: null, riferimento: "D.Lgs 81/2008 art. 29 — rielaborazione in occasione di modifiche significative, infortuni o nuovi rischi." },
+  { chiave: "verifica-attr",    categoria: "azienda", tipo: "Altro",         etichetta: "Verifica periodica attrezzature (D.M. 11/04/2011)", mesi: 12, riferimento: "D.M. 11/04/2011 — periodicità secondo l'allegato VII del D.Lgs 81/08: dipende dal tipo di attrezzatura." },
+  { chiave: "riunione-sic",     categoria: "azienda", tipo: "Altro",         etichetta: "Riunione periodica di sicurezza (art. 35)", mesi: 12, riferimento: "D.Lgs 81/2008 art. 35 — almeno una volta l'anno nelle aziende con più di 15 lavoratori, con verbale." },
+  // --- Adempimenti tipici delle industrie estrattive (D.Lgs 624/96) ---
+  { chiave: "stabilita-fronti", categoria: "azienda", tipo: "Altro",         etichetta: "Relazione annuale sulla stabilità dei fronti", mesi: 12, riferimento: "D.Lgs 624/96 — coltivazioni a cielo aperto: relazione su stabilità dei fronti, caduta massi e franamento, predisposta o aggiornata annualmente." },
+  { chiave: "dss-certif",       categoria: "azienda", tipo: "Altro",         etichetta: "DSS — certificazione annuale del datore di lavoro", mesi: 12, riferimento: "D.Lgs 624/96 art. 6 — il datore di lavoro certifica ogni anno l'attualità del Documento di Sicurezza e Salute." },
+  { chiave: "dss-aggiorn",      categoria: "azienda", tipo: "Altro",         etichetta: "DSS — aggiornamento dopo modifiche o incidenti", mesi: null, riferimento: "D.Lgs 624/96 artt. 6 e 10 — il DSS va aggiornato quando cambiano le lavorazioni o dopo un incidente: la data la fissa l'evento, non il calendario." },
+  { chiave: "dss-trasmiss",     categoria: "azienda", tipo: "Altro",         etichetta: "DSS — trasmissione all'autorità di vigilanza", mesi: null, riferimento: "D.Lgs 624/96 — il DSS va trasmesso all'autorità di vigilanza prima dell'inizio dei lavori (e dopo gli aggiornamenti)." },
+  { chiave: "esposti-silice",   categoria: "azienda", tipo: "Altro",         etichetta: "Registro esposti — silice cristallina respirabile", mesi: 36, riferimento: "D.Lgs 81/08 art. 243 (silice cristallina respirabile da processo: allegato XLII dal D.Lgs 44/2020) — registro degli esposti aggiornato almeno ogni tre anni." },
+  { chiave: "rumore-vibraz",    categoria: "azienda", tipo: "Altro",         etichetta: "Valutazione rumore e vibrazioni — aggiornamento", mesi: 48, riferimento: "D.Lgs 81/08 titolo VIII capi II e III — la valutazione va aggiornata periodicamente e a ogni modifica rilevante delle lavorazioni." },
+  { chiave: "sorvegliante",     categoria: "azienda", tipo: "Altro",         etichetta: "Sorvegliante di cava — nomina e formazione", mesi: null, riferimento: "D.Lgs 624/96 — figura obbligatoria nelle attività estrattive: verificare nomina in essere e formazione aggiornata." },
 ];
 
 // Ritorna il preset con quella chiave (o null). daVerificare SEMPRE true: la
-// periodicità va confermata con RSPP / medico competente.
+// periodicità è una proposta, va confermata con RSPP, medico competente e
+// consulente dell'azienda.
 export function presetScadenza(chiave) {
   const p = SCADENZE_PRESET.find(x => x.chiave === chiave);
-  return p ? { ...p, daVerificare: true } : null;
+  return p ? { ...p, mesi: (p.mesi == null ? null : p.mesi), daVerificare: true } : null;
+}
+
+// Data proposta a partire da oggi + N mesi (ISO AAAA-MM-GG), per precompilare
+// la scadenza di un preset. Ritorna null se la periodicità non è un numero
+// positivo (periodicità non fissata: la data la mette l'utente). Se il giorno
+// non esiste nel mese di arrivo (31 → mese di 30 giorni) si prende l'ultimo
+// giorno utile, così non si scivola al mese dopo. Pura e testabile.
+export function dataDaPeriodicita(mesi, oggi = new Date()) {
+  const m = Number(mesi);
+  if (!Number.isFinite(m) || m <= 0) return null;
+  const d = new Date(oggi.getFullYear(), oggi.getMonth(), 1);
+  d.setMonth(d.getMonth() + Math.round(m));
+  const giorno = Math.min(oggi.getDate(), new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate());
+  d.setDate(giorno);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
 // Import scadenze da CSV (onboarding: caricare lo scadenzario esistente —
