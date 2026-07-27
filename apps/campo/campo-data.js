@@ -3,22 +3,64 @@
 // Firestore via SDK Deepwork ID (orgCollection) da autenticati,
 // demo in memoria altrimenti (tour/mockup).
 // Collezioni (sotto organizations/{org}/apps/campo/):
-//   attivita/{id}:   { titolo, dettaglio, stato: pianificata|in-corso|anomalia|conclusa }
+//   attivita/{id}:   { data, turno, titolo, dettaglio, stato: pianificata|in-corso|anomalia|conclusa }
 //   squadre/{id}:    { nome, persone, area, stato: operativa|ferma }
-//   rapportini/{id}: { titolo, squadra, ora, stato: bozza|inviato }
-//   pianocarico/{id}: { foro, x, fila, prof, prog, borr, rit, reale }
-//                     (piano di carico volata importato da CSV, ponte Genesi)
+//   rapportini/{id}: { data, turno, titolo, squadra, prodQta, prodUnita, ora, stato: bozza|inviato }
+//   pianocarico/{id}: { data, turno, foro, x, fila, prof, prog, borr, rit, reale }
+//                     (piano di carico volata importato da CSV, ponte Genesi;
+//                      una riga per foro, salvata come il resto dei dati)
+// La "data" è il giorno di lavoro in formato ISO aaaa-mm-gg: senza di essa
+// non esistono storico né conteggi veri (i vecchi record che ne sono privi
+// restano visibili come "senza data", vedi eDelGiorno).
 // ============================================================
 
 import { parseCsvLine, numIt, isIntestazione } from "../../shared/deepwork-id-client/dw-shell.js";
 
+// Giorno di lavoro corrente in ISO (aaaa-mm-gg) e in ora LOCALE: usare
+// toISOString() sulla data grezza darebbe il giorno UTC e in Italia, la sera
+// tardi, sbaglierebbe di un giorno intero. Pura e testabile.
+export function oggiISO(adesso = new Date()) {
+  return new Date(adesso.getTime() - adesso.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+
+// I turni di lavoro previsti dall'app (gli stessi già usati dal rapportino).
+export const TURNI = ["Mattina", "Pomeriggio", "Notte"];
+
+// Turno suggerito in base all'ora, così chi registra non deve sceglierlo ogni
+// volta: 6-14 mattina, 14-22 pomeriggio, il resto notte. Pura e testabile.
+export function turnoCorrente(adesso = new Date()) {
+  const h = adesso.getHours();
+  if (h >= 6 && h < 14) return TURNI[0];
+  if (h >= 14 && h < 22) return TURNI[1];
+  return TURNI[2];
+}
+
+// Una registrazione appartiene al giorno indicato se ha quella data. I record
+// SENZA data sono quelli salvati prima che la data esistesse: non devono
+// sparire, quindi restano nella vista corrente e l'interfaccia li etichetta
+// esplicitamente "senza data". Pura e testabile.
+export function eDelGiorno(rec, giorno) {
+  if (!rec) return false;
+  const d = String(rec.data || "").trim();
+  return d ? d === giorno : true;
+}
+export function diGiorno(righe, giorno) {
+  return (righe || []).filter(r => eDelGiorno(r, giorno));
+}
+// Quante registrazioni sono ancora prive di data (avviso in interfaccia).
+export function senzaData(righe) {
+  return (righe || []).filter(r => r && !String(r.data || "").trim()).length;
+}
+
+const OGGI_DEMO = oggiISO();
+
 export const DEMO = {
   attivita: [
-    { id: "a1", titolo: "Perforazione fronte Est", dettaglio: "Squadra A · 14/22 fori", stato: "in-corso" },
-    { id: "a2", titolo: "Volata fronte Nord", dettaglio: "Ore 12:30 · fochino M. Rossi", stato: "pianificata" },
-    { id: "a3", titolo: "Carico e trasporto", dettaglio: "Piazzale 2 → frantoio", stato: "in-corso" },
-    { id: "a4", titolo: "Frantoio primario", dettaglio: "Fermo per intasamento tramoggia", stato: "anomalia" },
-    { id: "a5", titolo: "Controllo pre-turno mezzi", dettaglio: "Squadra B · completato", stato: "conclusa" },
+    { id: "a1", data: OGGI_DEMO, turno: "Mattina", titolo: "Perforazione fronte Est", dettaglio: "Squadra A · 14/22 fori", stato: "in-corso" },
+    { id: "a2", data: OGGI_DEMO, turno: "Mattina", titolo: "Volata fronte Nord", dettaglio: "Ore 12:30 · fochino M. Rossi", stato: "pianificata" },
+    { id: "a3", data: OGGI_DEMO, turno: "Mattina", titolo: "Carico e trasporto", dettaglio: "Piazzale 2 → frantoio", stato: "in-corso" },
+    { id: "a4", data: OGGI_DEMO, turno: "Mattina", titolo: "Frantoio primario", dettaglio: "Fermo per intasamento tramoggia", stato: "anomalia" },
+    { id: "a5", data: OGGI_DEMO, turno: "Mattina", titolo: "Controllo pre-turno mezzi", dettaglio: "Squadra B · completato", stato: "conclusa" },
   ],
   squadre: [
     { id: "q1", nome: "Squadra A — Perforazione", persone: 4, area: "fronte Est", stato: "operativa" },
@@ -26,10 +68,11 @@ export const DEMO = {
     { id: "q3", nome: "Squadra C — Impianto", persone: 2, area: "frantoio", stato: "ferma" },
   ],
   rapportini: [
-    { id: "r1", titolo: "Rapportino perforazione", squadra: "Squadra A", ora: "11:20", stato: "inviato" },
-    { id: "r2", titolo: "Rapportino impianto", squadra: "Squadra C", ora: "", stato: "bozza" },
-    { id: "r3", titolo: "Rapportino trasporti", squadra: "Squadra B", ora: "10:05", stato: "inviato" },
+    { id: "r1", data: OGGI_DEMO, turno: "Mattina", titolo: "Rapportino perforazione", squadra: "Squadra A", prodQta: 120, prodUnita: "t", ora: "11:20", stato: "inviato" },
+    { id: "r2", data: OGGI_DEMO, turno: "Mattina", titolo: "Rapportino impianto", squadra: "Squadra C", prodQta: null, prodUnita: "t", ora: "", stato: "bozza" },
+    { id: "r3", data: OGGI_DEMO, turno: "Mattina", titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 90, prodUnita: "t", ora: "10:05", stato: "inviato" },
   ],
+  pianocarico: [],
 };
 
 // Causali di fermo STANDARDIZZATE: senza una lista fissa non si possono
@@ -89,9 +132,53 @@ export function riassuntoRapportino(r) {
   const parti = [];
   if (r && r.turno) parti.push("Turno " + r.turno);
   if (r && r.squadra) parti.push(r.squadra);
-  if (r && r.produzione) parti.push("Produzione: " + r.produzione);
+  const p = produzioneDi(r);
+  if (p) parti.push("Produzione: " + formattaProduzione(p.qta, p.unita));
+  else if (r && r.produzione) parti.push("Produzione: " + r.produzione);   // vecchio testo libero
   if (r && r.note) parti.push("Consegne: " + r.note);
   return parti.join(" · ");
+}
+
+// Unità di misura ammesse per la produzione di turno. Tonnellate e metri cubi
+// NON si sommano fra loro (dipendono dalla densità del materiale): i totali
+// restano quindi separati per unità.
+export const UNITA_PRODUZIONE = ["t", "m³"];
+
+// Produzione NUMERICA di un rapportino: { qta, unita } se c'è una quantità
+// valida (> 0), altrimenti null. Il vecchio campo "produzione" era testo
+// libero e non è sommabile: resta solo come nota. Pura e testabile.
+export function produzioneDi(r) {
+  const q = +((r && r.prodQta) ?? NaN);
+  if (!Number.isFinite(q) || q <= 0) return null;
+  return { qta: q, unita: UNITA_PRODUZIONE.includes(r.prodUnita) ? r.prodUnita : UNITA_PRODUZIONE[0] };
+}
+// "1.250 t" — numero all'italiana con l'unità accanto.
+export function formattaProduzione(qta, unita) {
+  return (Math.round((+qta || 0) * 100) / 100).toLocaleString("it-IT") + " " + (unita || UNITA_PRODUZIONE[0]);
+}
+
+// Totali di produzione: per unità di misura sull'insieme passato e, dentro,
+// per turno — è il numero che il preposto legge a fine turno. I rapportini
+// senza quantità non contano; il turno mancante finisce in "Senza turno".
+// Ritorna { perUnita: {t: n, ...}, perTurno: [{turno, perUnita}] }, i turni
+// nell'ordine mattina → pomeriggio → notte. Pura e testabile.
+export function totaliProduzione(rapportini) {
+  const perUnita = {}, turni = {};
+  for (const r of rapportini || []) {
+    const p = produzioneDi(r);
+    if (!p) continue;
+    perUnita[p.unita] = (perUnita[p.unita] || 0) + p.qta;
+    const t = (r.turno || "").trim() || "Senza turno";
+    if (!turni[t]) turni[t] = {};
+    turni[t][p.unita] = (turni[t][p.unita] || 0) + p.qta;
+  }
+  const ord = (t) => { const i = TURNI.indexOf(t); return i < 0 ? TURNI.length : i; };
+  return {
+    perUnita,
+    perTurno: Object.entries(turni)
+      .map(([turno, u]) => ({ turno, perUnita: u }))
+      .sort((a, b) => ord(a.turno) - ord(b.turno) || a.turno.localeCompare(b.turno, "it")),
+  };
 }
 
 // Copertura dei rapportini di TURNO: quali squadre hanno già consegnato un
@@ -179,6 +266,18 @@ export function parsePianoCsv(text) {
     .filter(p => p.foro > 0 && p.prog > 0);
 }
 
+// Righe del piano di carico rilette dal salvataggio: si tengono solo quelle
+// con foro e progetto validi (nella collezione possono esserci vecchi documenti
+// di riepilogo import, senza foro) e si riordinano per numero di foro. La
+// carica reale torna a null se non è un numero. Pura e testabile.
+export function normalizzaPiano(righe) {
+  return (righe || [])
+    .map(p => ({ ...p, foro: numIt(p.foro), prog: numIt(p.prog),
+                 reale: Number.isFinite(+p.reale) && p.reale !== null && p.reale !== "" ? +p.reale : null }))
+    .filter(p => p.foro > 0 && p.prog > 0)
+    .sort((a, b) => a.foro - b.foro);
+}
+
 // Ponte progettato-vs-reale (Genesi→Campo): scostamento della carica REALE
 // dal progetto, per foro. Funzioni pure e testabili — sono il cuore del
 // registro che il fochino usa per capire se ha caricato come previsto.
@@ -231,6 +330,7 @@ export async function campoData() {
         attivita: () => read("attivita"),
         squadre: () => read("squadre"),
         rapportini: () => read("rapportini"),
+        pianocarico: () => read("pianocarico"),
         aggiungi: (name, data) => addDoc(id.orgCollection(name), data),
         logout: () => id.logout(),
         aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), data),
@@ -245,6 +345,7 @@ export async function campoData() {
       attivita: async () => mem.attivita,
       squadre: async () => mem.squadre,
       rapportini: async () => mem.rapportini,
+      pianocarico: async () => mem.pianocarico || (mem.pianocarico = []),
       logout: async () => {},
       aggiungi: async (name, data) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[name] = mem[name] || []).push({ id, ...data }); return { id }; },
       aggiorna: async (name, docId, data) => { const x = (mem[name] || (mem[name] = [])).find(v => v.id === docId); if (x) Object.assign(x, data); },

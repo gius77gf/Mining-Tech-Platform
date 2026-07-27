@@ -64,7 +64,8 @@
   <div class="sec">Nuova fattura</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
     <input class="dw-input" id="ft-num" placeholder="Numero (es. 2026/037)" style="flex:1;min-width:110px;">
-    <input class="dw-input" id="ft-cli" placeholder="Cliente" style="flex:2;min-width:140px;">
+    <select class="dw-input" id="ft-cli" style="flex:2;min-width:150px;"></select>
+    <input class="dw-input" id="ft-cli-nuovo" placeholder="Ragione sociale del nuovo cliente" style="flex:2;min-width:150px;display:none;">
     <input class="dw-input" id="ft-imp" type="number" placeholder="Importo €" style="flex:1;min-width:100px;">
     <input class="dw-input" id="ft-scad" type="date" style="flex:1;min-width:130px;">
     <button class="dw-btn" id="btn-ft" style="width:auto;">Emetti</button>
@@ -72,7 +73,30 @@
   <button class="dw-btn secondary" id="btn-imp-fat" style="width:auto;margin-top:8px;">Importa fatture (CSV)</button>
   <input type="file" id="fat-file" accept=".csv,text/csv" style="display:none;">
   <div class="note" id="ft-esito" style="text-align:left;"></div>
-  <div class="note" style="text-align:left;">Tocca una fattura per segnarla incassata. CSV: numero;cliente;importo;emessa;scadenza[;incassata].</div>
+  <div class="note" style="text-align:left;">Tocca una fattura per segnarla incassata. Il cliente si sceglie dall'anagrafica (scheda Clienti): scegli «➕ Nuovo cliente…» per crearlo al volo. CSV: numero;cliente;importo;emessa;scadenza[;incassata].</div>
+</div>
+
+<div class="page" id="page-cli">
+  <div class="sec">Anagrafica clienti</div>
+  <input class="dw-input" id="cli-cerca" type="search" placeholder="🔍 Cerca per ragione sociale, P.IVA o indirizzo…" style="margin-bottom:6px;">
+  <div id="cli-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
+  <div id="cli-list"></div>
+  <div class="sec">Nuovo cliente</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <input class="dw-input" id="cl-nome" placeholder="Ragione sociale" style="flex:2;min-width:170px;">
+    <input class="dw-input" id="cl-piva" placeholder="P.IVA o codice fiscale" style="flex:1;min-width:150px;">
+    <input class="dw-input" id="cl-sdi" placeholder="Codice destinatario SDI o PEC" style="flex:1;min-width:170px;">
+    <input class="dw-input" id="cl-ind" placeholder="Indirizzo" style="flex:2;min-width:170px;">
+    <input class="dw-input" id="cl-sconto" type="number" min="0" max="100" placeholder="Sconto %" style="flex:1;min-width:100px;">
+    <input class="dw-input" id="cl-fido" type="number" min="0" placeholder="Fido €" style="flex:1;min-width:100px;">
+    <input class="dw-input" id="cl-note" placeholder="Note" style="flex:2;min-width:170px;">
+    <button class="dw-btn" id="btn-cl" style="width:auto;">Aggiungi</button>
+  </div>
+  <button class="dw-btn secondary" id="btn-cli-export" style="width:auto;margin-top:8px;">Esporta clienti (CSV)</button>
+  <div class="note" id="cl-esito" style="text-align:left;"></div>
+  <div class="note" style="text-align:left;">Il badge mostra l'esposizione aperta del cliente; diventa rosso se supera il fido.</div>
+  <div class="sec">Fatture da collegare all'anagrafica</div>
+  <div id="cli-mig"></div>
 </div>
 
 <div class="page" id="page-gar">
@@ -119,6 +143,7 @@
 <div class="nav">
   <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico">▦</span>Quadro</button>
   <button id="nav-fat" onclick="go('fat')"><span class="ico">🧾</span>Fatture</button>
+  <button id="nav-cli" onclick="go('cli')"><span class="ico">👥</span>Clienti</button>
   <button id="nav-gar" onclick="go('gar')"><span class="ico">📑</span>Gare</button>
   <button id="nav-rep" onclick="go('rep')"><span class="ico">📊</span>Report</button>
 </div>
@@ -134,7 +159,7 @@
 </script>
 
 <script type="module">
-  import { contiData, giorni, kpiFrom, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, parseFattureCsv, parseGareCsv } from "./conti-data.js";
+  import { contiData, giorni, kpiFrom, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, parseFattureCsv, parseGareCsv, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare } from "./conti-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const eur = (v) => "€" + (+v||0).toLocaleString("it-IT");
@@ -146,26 +171,36 @@
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
-  let FAT=[], GAR=[];
+  let FAT=[], GAR=[], CLI=[];
   let filtroFat = "tutte";
   let editFat = null;   // id della fattura in modifica (riusa il form "Nuova fattura")
+  let editCli = null;   // id del cliente in modifica (riusa il form "Nuovo cliente")
   const fatMatch = (f) => filtroFat === "tutte"
     || (filtroFat === "aperte" && !f.incassata)
     || (filtroFat === "insolute" && !f.incassata && giorni(f.scadenza) < 0)
     || (filtroFat === "incassate" && !!f.incassata);
   let ordFat = "scadenza";
   const fatCmp = (a, b) => ordFat === "importo" ? (+b.importo || 0) - (+a.importo || 0)
-    : ordFat === "cliente" ? String(a.cliente || "").localeCompare(String(b.cliente || ""))
+    : ordFat === "cliente" ? nomeCliente(a, CLI).localeCompare(nomeCliente(b, CLI), "it")
     : String(a.scadenza || "9999").localeCompare(String(b.scadenza || "9999"));
+  // Campi del form fattura: il cliente si sceglie dall'anagrafica (select) e
+  // "ft-cli-nuovo" compare solo quando si crea un cliente al volo.
+  const FT_CAMPI = ["ft-num","ft-cli","ft-cli-nuovo","ft-imp","ft-scad"];
+  const CL_CAMPI = ["cl-nome","cl-piva","cl-sdi","cl-ind","cl-sconto","cl-fido","cl-note"];
+  const syncCliNuovo = () => { $("ft-cli-nuovo").style.display = $("ft-cli").value === "__nuovo" ? "" : "none"; };
+  const pulisciFat = () => { FT_CAMPI.forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; }); syncCliNuovo(); };
+  const pulisciCli = () => CL_CAMPI.forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; });
+  $("ft-cli").onchange = () => { syncCliNuovo(); if ($("ft-cli").value === "__nuovo") $("ft-cli-nuovo").focus(); };
   try { const _s = localStorage.getItem("dwSort_fat"); if (_s) { ordFat = _s; if ($("fat-ord")) $("fat-ord").value = _s; } } catch (e) {}
   if ($("fat-ord")) $("fat-ord").onchange = () => { ordFat = $("fat-ord").value; try { localStorage.setItem("dwSort_fat", ordFat); } catch (e) {} refresh(); };
   if ($("fat-cerca")) $("fat-cerca").oninput = () => refresh();
   if ($("gar-cerca")) $("gar-cerca").oninput = () => refresh();
-  // cambiare pagina annulla una modifica fattura in corso (evita di sovrascrivere
+  if ($("cli-cerca")) $("cli-cerca").oninput = () => refresh();
+  // cambiare pagina annulla una modifica in corso (evita di sovrascrivere
   // per sbaglio credendo di aggiungere): il form torna pulito su "Emetti".
   document.querySelector(".nav") && document.querySelector(".nav").addEventListener("click", () => {
-    if (editFat) { editFat = null; $("btn-ft").textContent = "Emetti"; $("ft-esito").textContent = "";
-      ["ft-num","ft-cli","ft-imp","ft-scad"].forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; }); }
+    if (editFat) { editFat = null; $("btn-ft").textContent = "Emetti"; $("ft-esito").textContent = ""; pulisciFat(); }
+    if (editCli) { editCli = null; $("btn-cl").textContent = "Aggiungi"; $("cl-esito").textContent = ""; pulisciCli(); }
   });
   $("fat-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
@@ -193,7 +228,7 @@
     return ["ok","Regolare"];
   }
   async function refresh(){
-    [FAT,GAR] = await Promise.all([db.fatture(), db.gare()]);
+    [FAT,GAR,CLI] = await Promise.all([db.fatture(), db.gare(), db.clienti()]);
     const k = kpiFrom(FAT,GAR);
     const kn = document.querySelectorAll(".kpis .kpi .n");
     if (kn[0]) kn[0].textContent = "€" + Math.round(k.daIncassare/1000) + "k";
@@ -204,7 +239,7 @@
     const prio = [
       // fatture ordinate per priorità di incasso (più in ritardo / più grosse)
       ...prioritaIncasso(FAT).slice(0, 3)
-            .map(({ f, ritardo }) => ({ t: "Fattura " + f.numero + " — " + f.cliente,
+            .map(({ f, ritardo }) => ({ t: "Fattura " + f.numero + " — " + nomeCliente(f, CLI),
               d: eur(f.importo) + (ritardo > 0 ? " · scaduta da " + ritardo + " gg" : " · scad. " + fmtD(f.scadenza)), b: fatBadge(f) })),
       ...GAR.filter(g => g.stato === "aperta" && giorni(g.scadenza) <= 15)
             .map(g => ({ t: g.titolo, d: "base " + eur(g.base) + " · scade " + fmtD(g.scadenza), b: ["warn", giorni(g.scadenza) + " gg"] })),
@@ -214,19 +249,65 @@
       <span class="badge ${p.b[0]}">${p.b[1]}</span></div>`).join("") || '<div class="note">Nessuna priorità: incassi e gare sotto controllo.</div>';
 
     const qFat = ($("fat-cerca") && $("fat-cerca").value || "").trim().toLowerCase();
-    const fatCerca = (f) => !qFat || ((f.cliente || "") + " " + (f.numero || "")).toLowerCase().includes(qFat);
+    // cerca sia sul nome di anagrafica sia sul testo salvato nella fattura, così
+    // si trova anche cercando il vecchio modo di scrivere il cliente
+    const fatCerca = (f) => !qFat || (nomeCliente(f, CLI) + " " + (f.cliente || "") + " " + (f.numero || "")).toLowerCase().includes(qFat);
     $("fat-list").innerHTML = FAT.filter(fatMatch).filter(fatCerca).sort(fatCmp).map(f => { const b = fatBadge(f);
       const ritardo = !f.incassata ? Math.max(0, -giorni(f.scadenza)) : 0;
       const sol = !f.incassata ? livelloSollecito(ritardo) : null;
       const mora = ritardo > 0 ? interessiMora(f.importo, ritardo) : null;   // interessi 231/2002
       return `<div class="item" data-fat="${f.id}" style="cursor:pointer" title="${f.incassata ? "Tocca per annullare l'incasso" : "Tocca per segnare incassata"}">
-      <div class="info"><div class="name">${esc(f.numero)} — ${esc(f.cliente)}</div><div class="meta">${eur(f.importo)} · emessa ${fmtD(f.emessa)} · ${f.incassata ? "incassata " + (f.dataIncasso ? fmtD(f.dataIncasso) : "") : "scad. " + fmtD(f.scadenza)}${sol && sol.livello ? " · " + sol.label : ""}${mora && mora.interessi > 0 ? ` · <span title="Interessi di mora D.Lgs 231/2002 al ${TASSO_MORA_DEFAULT}% (tipico, da confermare) + €40 spese art. 6">mora ~${eur(Math.round(mora.interessi))}</span>` : ""}</div></div>
+      <div class="info"><div class="name">${esc(f.numero)} — ${esc(nomeCliente(f, CLI))}${clienteDiFattura(f, CLI) ? "" : ' <span class="dw-muted" title="Cliente non ancora collegato all\'anagrafica: collegalo dalla scheda Clienti">· da collegare</span>'}</div><div class="meta">${eur(f.importo)} · emessa ${fmtD(f.emessa)} · ${f.incassata ? "incassata " + (f.dataIncasso ? fmtD(f.dataIncasso) : "") : "scad. " + fmtD(f.scadenza)}${sol && sol.livello ? " · " + sol.label : ""}${mora && mora.interessi > 0 ? ` · <span title="Interessi di mora D.Lgs 231/2002 al ${TASSO_MORA_DEFAULT}% (tipico, da confermare) + €40 spese art. 6">mora ~${eur(Math.round(mora.interessi))}</span>` : ""}</div></div>
       <span class="badge ${b[0]}">${b[1]}</span>${ritardo>0?`<button class="dw-btn secondary" data-sollecito="${f.id}" title="Copia il testo del sollecito (con mora 231/2002) da inviare al cliente" style="width:auto;min-height:32px;padding:2px 10px;font-size:11px;">✉ Sollecito</button>`:""}${!f.incassata?`<span class="arr" style="cursor:pointer" title="Modifica fattura" data-edit-fat="${f.id}">✎</span>`:""}${!f.incassata?`<span class="arr" style="cursor:pointer" title="Elimina fattura errata" data-del-fat="${f.id}">✕</span>`:""}</div>`; }).join("")
       || '<div class="note" style="text-align:left;">'+(qFat?"Nessuna fattura trovata per «"+esc(qFat)+"».":(filtroFat==="tutte"?"Nessuna fattura registrata.":"Nessuna fattura in questa categoria."))+'</div>';
     { const n = $("fat-list").querySelectorAll(".item").length, filtrata = qFat || filtroFat !== "tutte";
       $("fat-count").textContent = n === 0 ? "" : n + (n === 1 ? " fattura" : " fatture") + (filtrata ? " · su " + FAT.length : ""); }
     document.querySelectorAll("#fat-filtri [data-filtro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-filtro") === filtroFat ? "var(--app-accent)" : "");
+
+    // Anagrafica clienti: esposizione aperta per cliente (per il badge e il fido),
+    // elenco con ricerca e conteggio, tendina del form fattura, fatture da collegare.
+    const espoPerId = {};
+    for (const c of esposizioneClienti(FAT, new Date(), CLI)) if (c.clienteId) espoPerId[c.clienteId] = c;
+    const cliOrd = CLI.slice().sort((a, b) => String(a.ragioneSociale || "").localeCompare(String(b.ragioneSociale || ""), "it"));
+    { // tendina "cliente" della nuova fattura: conserva la scelta in corso
+      const sel = $("ft-cli"), prima = sel.value;
+      sel.innerHTML = '<option value="">— cliente dall\'anagrafica —</option>'
+        + cliOrd.map(c => `<option value="${esc(c.id)}">${esc(c.ragioneSociale)}</option>`).join("")
+        + '<option value="__nuovo">➕ Nuovo cliente…</option>';
+      sel.value = prima; if (sel.value !== prima) sel.value = "";   // cliente sparito nel frattempo
+      syncCliNuovo(); }
+    const qCli = ($("cli-cerca") && $("cli-cerca").value || "").trim().toLowerCase();
+    const cliCerca = (c) => !qCli || [c.ragioneSociale, c.piva, c.sdi, c.indirizzo, c.note]
+      .map(v => String(v || "")).join(" ").toLowerCase().includes(qCli);
+    const cliVisti = cliOrd.filter(cliCerca);
+    $("cli-list").innerHTML = cliVisti.map(c => {
+      const e = espoPerId[c.id], fido = +c.fido || 0, sconto = +c.sconto || 0;
+      const meta = [c.piva ? "P.IVA/CF " + c.piva : "", c.sdi || "", c.indirizzo || "",
+        sconto > 0 ? "sconto " + sconto + "%" : "", fido > 0 ? "fido " + eur(fido) : "", c.note || ""]
+        .filter(Boolean).join(" · ");
+      return `<div class="item">
+      <div class="info"><div class="name">${esc(c.ragioneSociale)}</div><div class="meta">${esc(meta) || "nessun dato aggiuntivo"}</div></div>
+      <span class="badge ${e && e.oltreFido ? "danger" : e && e.scaduto > 0 ? "warn" : "ok"}" title="${e ? e.conto + " fatture aperte" + (e.oltreFido ? " — fido superato" : "") : "Nessuna fattura aperta"}">${e ? eur(e.totale) + (e.oltreFido ? " ⚠ fido" : "") : "—"}</span>
+      <span class="arr" style="cursor:pointer" title="Modifica cliente" data-edit-cli="${c.id}">✎</span>
+      <span class="arr" style="cursor:pointer" title="Elimina cliente" data-del-cli="${c.id}">✕</span></div>`; }).join("")
+      || '<div class="note" style="text-align:left;">'+(qCli?"Nessun cliente trovato per «"+esc(qCli)+"».":"Nessun cliente in anagrafica: aggiungi il primo qui sotto.")+'</div>';
+    $("cli-count").textContent = cliVisti.length === 0 ? ""
+      : cliVisti.length + (cliVisti.length === 1 ? " cliente" : " clienti") + (qCli ? " · su " + CLI.length : "");
+
+    // Migrazione: fatture il cui cliente è ancora solo testo. Le varianti di
+    // scrittura sono già raggruppate, così si collegano tutte in un colpo.
+    const daColl = clientiDaCollegare(FAT, CLI);
+    $("cli-mig").innerHTML = daColl.length
+      ? daColl.map(g => `<div class="item" style="flex-wrap:wrap;">
+        <div class="info" style="flex:1 0 100%;"><div class="name">${esc(g.nome)}</div>
+        <div class="meta">${g.conto} ${g.conto === 1 ? "fattura" : "fatture"} · ${eur(g.importo)}</div></div>
+        <select class="dw-input" data-mig-sel="${esc(g.chiave)}" style="flex:1;min-width:0;min-height:32px;padding:2px 8px;font-size:12px;">
+          <option value="">➕ Crea cliente con questo nome</option>
+          ${cliOrd.map(c => `<option value="${esc(c.id)}">${esc(c.ragioneSociale)}</option>`).join("")}
+        </select>
+        <button class="dw-btn secondary" data-mig="${esc(g.chiave)}" title="Collega tutte queste fatture al cliente scelto" style="width:auto;min-height:32px;padding:2px 10px;font-size:11px;">Collega</button></div>`).join("")
+      : '<div class="note" style="text-align:left;">Tutte le fatture sono collegate all\'anagrafica.</div>';
 
     const qGar = ($("gar-cerca") && $("gar-cerca").value || "").trim().toLowerCase();
     const garOrd = GAR.filter(garMatch).filter(g => !qGar || (g.titolo || "").toLowerCase().includes(qGar))
@@ -288,12 +369,14 @@
       + (prev.scadute.conto ? `<div class="note" style="text-align:left;">Escluse ${prev.scadute.conto} già scadute (${eur(prev.scadute.importo)}): vanno sollecitate, vedi aging.</div>` : "");
 
     // Esposizione per cliente: chi ci deve di più (e quanto è già scaduto).
-    const espo = esposizioneClienti(FAT);
+    // Raggruppa per anagrafica: le varianti dello stesso nome non fanno più righe
+    // separate. Con il fido impostato segnala anche chi lo ha superato.
+    const espo = esposizioneClienti(FAT, new Date(), CLI);
     $("espo-list").innerHTML = espo.length
       ? espo.map((c, i) => `<div class="item"><div class="info"><div class="name">${esc(c.cliente)}</div>
-        <div class="meta">${c.conto} ${c.conto === 1 ? "fattura" : "fatture"}${c.scaduto > 0 ? " · scaduto " + eur(c.scaduto) : ""}</div></div>
+        <div class="meta">${c.conto} ${c.conto === 1 ? "fattura" : "fatture"}${c.scaduto > 0 ? " · scaduto " + eur(c.scaduto) : ""}${c.oltreFido ? " · <b>fido superato</b> (" + eur(c.fido) + ")" : ""}</div></div>
         <button class="dw-btn secondary" data-espo="${i}" title="Copia l'estratto conto del cliente (tutte le fatture aperte + mora)" style="width:auto;min-height:32px;padding:2px 10px;font-size:11px;">✉ Estratto</button>
-        <span class="badge ${c.scaduto > 0 ? "warn" : "ok"}">${eur(c.totale)}</span></div>`).join("")
+        <span class="badge ${c.oltreFido || c.scaduto > 0 ? "warn" : "ok"}">${eur(c.totale)}</span></div>`).join("")
       : '<div class="note" style="text-align:left;">Nessun credito aperto: tutte le fatture sono incassate.</div>';
   }
 
@@ -304,11 +387,52 @@
         await db.aggiorna("gare", g.id, { stato: esito }); await refresh(); } return; }
     const delFat = e.target.getAttribute && e.target.getAttribute("data-del-fat");
     if (delFat) { const f = FAT.find(x => x.id === delFat);
-      if (f && confirm("Eliminare la fattura " + f.numero + " (" + eur(f.importo) + " a " + f.cliente + ")? Usa questa opzione solo per correggere un inserimento sbagliato.")) {
+      if (f && confirm("Eliminare la fattura " + f.numero + " (" + eur(f.importo) + " a " + nomeCliente(f, CLI) + ")? Usa questa opzione solo per correggere un inserimento sbagliato.")) {
         await db.rimuovi("fatture", delFat); await refresh(); } return; }
+    // Migrazione: collega TUTTE le fatture di un nome scritto a mano al cliente
+    // scelto (o a uno nuovo creato con quel nome). Il testo resta nella fattura
+    // come ripiego: non si perde niente di quello che c'era scritto.
+    const migKey = e.target.getAttribute && e.target.getAttribute("data-mig");
+    if (migKey) { const g = clientiDaCollegare(FAT, CLI).find(x => x.chiave === migKey); if (!g) return;
+      const sel = document.querySelector('[data-mig-sel="' + CSS.escape(migKey) + '"]');
+      let clienteId = sel && sel.value, nome = g.nome;
+      if (!clienteId) {
+        const r = await db.aggiungi("clienti", { ragioneSociale: g.nome, piva: "", sdi: "", indirizzo: "", sconto: 0, fido: 0, note: "" });
+        clienteId = r && r.id;
+      } else { const c = CLI.find(x => x.id === clienteId); nome = (c && c.ragioneSociale) || nome; }
+      if (!clienteId) { $("cl-esito").textContent = "Non è stato possibile creare il cliente: riprova."; return; }
+      for (const id of g.ids) await db.aggiorna("fatture", id, { clienteId });
+      $("cl-esito").textContent = "Collegate " + g.conto + (g.conto === 1 ? " fattura" : " fatture") + " di «" + g.nome + "» al cliente " + nome + ".";
+      await refresh(); return; }
+    const editCliId = e.target.getAttribute && e.target.getAttribute("data-edit-cli");
+    if (editCliId) { const c = CLI.find(x => x.id === editCliId); if (!c) return;
+      if (editCli === c.id) {   // ri-tocco la ✎ dello stesso cliente = annulla modifica
+        editCli = null; $("btn-cl").textContent = "Aggiungi"; $("cl-esito").textContent = "Modifica annullata.";
+        pulisciCli(); return; }
+      editCli = c.id;
+      $("cl-nome").value = c.ragioneSociale || ""; $("cl-piva").value = c.piva || "";
+      $("cl-sdi").value = c.sdi || ""; $("cl-ind").value = c.indirizzo || "";
+      $("cl-sconto").value = c.sconto != null ? c.sconto : ""; $("cl-fido").value = c.fido != null ? c.fido : "";
+      $("cl-note").value = c.note || "";
+      CL_CAMPI.forEach(i => $(i).style.borderColor = "");
+      $("btn-cl").textContent = "Salva modifica";
+      $("cl-esito").textContent = "Stai modificando il cliente " + c.ragioneSociale + ": cambia i campi e premi «Salva modifica».";
+      $("cl-nome").scrollIntoView({ behavior: "smooth", block: "center" });
+      return; }
+    const delCli = e.target.getAttribute && e.target.getAttribute("data-del-cli");
+    if (delCli) { const c = CLI.find(x => x.id === delCli); if (!c) return;
+      // niente cancellazioni che lasciano fatture orfane: prima si spostano
+      const usate = FAT.filter(f => { const k = clienteDiFattura(f, CLI); return k && k.id === c.id; }).length;
+      if (usate) { $("cl-esito").textContent = "Non puoi eliminare " + c.ragioneSociale + ": ha " + usate + (usate === 1 ? " fattura collegata" : " fatture collegate") + ". Collegale prima a un altro cliente.";
+        go("cli"); return; }
+      if (confirm("Eliminare il cliente " + c.ragioneSociale + " dall'anagrafica?")) {
+        if (editCli === c.id) { editCli = null; $("btn-cl").textContent = "Aggiungi"; pulisciCli(); }
+        await db.rimuovi("clienti", c.id);
+        $("cl-esito").textContent = "Cliente " + c.ragioneSociale + " eliminato."; await refresh(); }
+      return; }
     const espoIdx = e.target.getAttribute && e.target.getAttribute("data-espo");
-    if (espoIdx != null && espoIdx !== "") { const c = esposizioneClienti(FAT)[+espoIdx];
-      const testo = c && estrattoContoCliente(c.cliente, FAT);
+    if (espoIdx != null && espoIdx !== "") { const c = esposizioneClienti(FAT, new Date(), CLI)[+espoIdx];
+      const testo = c && estrattoContoCliente(c, FAT, new Date(), TASSO_MORA_DEFAULT, CLI);
       if (!testo) { $("mode-note").textContent = "Nessuna fattura aperta per questo cliente."; return; }
       const ok = () => { $("mode-note").textContent = "Estratto conto di " + c.cliente + " copiato: incollalo nell'email o nella PEC (interessi da confermare col commercialista)."; };
       try {
@@ -318,7 +442,8 @@
       return; }
     const solId = e.target.getAttribute && e.target.getAttribute("data-sollecito");
     if (solId) { const f = FAT.find(x => x.id === solId);
-      const testo = f && testoSollecito(f);
+      // il sollecito viaggia col nome di anagrafica, non con il testo vecchio
+      const testo = f && testoSollecito({ ...f, cliente: nomeCliente(f, CLI) });
       if (!testo) { $("ft-esito").textContent = "Sollecito disponibile solo per fatture scadute."; return; }
       const ok = () => { $("ft-esito").textContent = "Testo del sollecito per " + f.numero + " copiato: incollalo nell'email o nella PEC (interessi da confermare col commercialista)."; };
       try {
@@ -330,11 +455,17 @@
     if (editFatId) { const f = FAT.find(x => x.id === editFatId); if (!f) return;
       if (editFat === f.id) {   // ri-tocco la ✎ della stessa fattura = annulla modifica
         editFat = null; $("btn-ft").textContent = "Emetti"; $("ft-esito").textContent = "Modifica annullata.";
-        ["ft-num","ft-cli","ft-imp","ft-scad"].forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; }); return; }
+        pulisciFat(); return; }
       editFat = f.id;
-      $("ft-num").value = f.numero || ""; $("ft-cli").value = f.cliente || "";
+      $("ft-num").value = f.numero || "";
+      // cliente: se è già in anagrafica lo preseleziono, altrimenti apro
+      // "nuovo cliente" col testo vecchio già scritto, pronto da confermare
+      { const c = clienteDiFattura(f, CLI);
+        $("ft-cli").value = c ? c.id : "__nuovo";
+        $("ft-cli-nuovo").value = c ? "" : (f.cliente || "");
+        syncCliNuovo(); }
       $("ft-imp").value = f.importo != null ? f.importo : ""; $("ft-scad").value = f.scadenza || "";
-      ["ft-num","ft-cli","ft-imp","ft-scad"].forEach(i => $(i).style.borderColor = "");
+      FT_CAMPI.forEach(i => $(i).style.borderColor = "");
       $("btn-ft").textContent = "Salva modifica";
       $("ft-esito").textContent = "Stai modificando la fattura " + f.numero + ": cambia i campi e premi «Salva modifica».";
       $("ft-num").scrollIntoView({ behavior: "smooth", block: "center" });
@@ -343,7 +474,7 @@
     if (it) { const f = FAT.find(x => x.id === it.getAttribute("data-fat"));
       if (!f) return;
       if (!f.incassata) {
-        if (confirm("Segnare incassata la fattura " + f.numero + " (" + eur(f.importo) + " da " + f.cliente + ")?")) {
+        if (confirm("Segnare incassata la fattura " + f.numero + " (" + eur(f.importo) + " da " + nomeCliente(f, CLI) + ")?")) {
           await db.aggiorna("fatture", f.id, { incassata: true, dataIncasso: new Date().toISOString().slice(0,10) }); await refresh(); }
       } else {
         if (confirm("Annullare l'incasso della fattura " + f.numero + "? Tornerà tra le fatture aperte.")) {
@@ -357,12 +488,48 @@
     let csv = "numero;cliente;importo;scadenza;stato;data_incasso\n";
     for (const f of FAT.slice().sort((a,b) => (a.scadenza||"").localeCompare(b.scadenza||""))) {
       const st = f.incassata ? "incassata" : (giorni(f.scadenza) < 0 ? "insoluta" : "aperta");
-      csv += `${csvCell(f.numero)};${csvCell(f.cliente)};${f.importo};${f.scadenza};${st};${f.dataIncasso||""}\n`;
+      csv += `${csvCell(f.numero)};${csvCell(nomeCliente(f, CLI))};${f.importo};${f.scadenza};${st};${f.dataIncasso||""}\n`;
     }
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "conti_situazione_fatture.csv"; a.click();
     $("mode-note").textContent = "Esportate " + FAT.length + " fatture (CSV).";
+  };
+  // Anagrafica clienti: aggiunta e modifica in-place (stesso form, come le
+  // fatture). La ragione sociale è l'unico campo obbligatorio e non può
+  // ripetersi a meno di maiuscole/punteggiatura: è tutto il senso dell'anagrafica.
+  $("btn-cl").onclick = async () => {
+    const ragioneSociale = $("cl-nome").value.trim();
+    if (!ragioneSociale) { $("cl-nome").style.borderColor = "var(--danger)";
+      $("cl-esito").textContent = "Serve almeno la ragione sociale."; return; }
+    const k = chiaveNome(ragioneSociale);
+    if (CLI.some(c => c.id !== editCli && chiaveNome(c.ragioneSociale) === k)) {
+      $("cl-nome").style.borderColor = "var(--danger)";
+      $("cl-esito").textContent = "C'è già un cliente con questa ragione sociale."; return; }
+    const dati = { ragioneSociale, piva: $("cl-piva").value.trim(), sdi: $("cl-sdi").value.trim(),
+      indirizzo: $("cl-ind").value.trim(), sconto: Math.min(100, Math.max(0, +$("cl-sconto").value || 0)),
+      fido: Math.max(0, +$("cl-fido").value || 0), note: $("cl-note").value.trim() };
+    if (editCli) {
+      await db.aggiorna("clienti", editCli, dati);
+      editCli = null; $("btn-cl").textContent = "Aggiungi";
+      $("cl-esito").textContent = "Cliente " + ragioneSociale + " aggiornato.";
+    } else {
+      await db.aggiungi("clienti", dati);
+      $("cl-esito").textContent = "Cliente aggiunto: " + ragioneSociale + ".";
+    }
+    pulisciCli();
+    $("cl-nome").focus();   // pronto per il prossimo cliente
+    await refresh();
+  };
+  $("btn-cli-export").onclick = () => {
+    // anagrafica completa per il commercialista o per un altro gestionale
+    let csv = "ragione_sociale;piva_cf;sdi_pec;indirizzo;sconto;fido;note\n";
+    for (const c of CLI.slice().sort((a, b) => String(a.ragioneSociale || "").localeCompare(String(b.ragioneSociale || ""), "it")))
+      csv += `${csvCell(c.ragioneSociale)};${csvCell(c.piva)};${csvCell(c.sdi)};${csvCell(c.indirizzo)};${+c.sconto || 0};${+c.fido || 0};${csvCell(c.note)}\n`;
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.download = "conti_clienti.csv"; a.click();
+    $("cl-esito").textContent = "Esportati " + CLI.length + " clienti (CSV).";
   };
   $("btn-gar").onclick = async () => {
     const titolo = $("gar-titolo").value.trim(), base = +$("gar-base").value, scadenza = $("gar-data").value;
@@ -406,23 +573,41 @@
     $("gar-esito").textContent = "Esportate " + GAR.length + " gare (CSV).";
   };
   $("btn-ft").onclick = async () => {
-    const numero = $("ft-num").value.trim(), cliente = $("ft-cli").value.trim(),
+    const numero = $("ft-num").value.trim(), scelta = $("ft-cli").value,
+          nuovoCli = $("ft-cli-nuovo").value.trim(),
           importo = +$("ft-imp").value, scadenza = $("ft-scad").value;
-    const manca = [["ft-num",numero],["ft-cli",cliente],["ft-imp",importo>0],["ft-scad",scadenza]].filter(x=>!x[1]);
-    ["ft-num","ft-cli","ft-imp","ft-scad"].forEach(i => $(i).style.borderColor = "");
+    // cliente valido = uno scelto dall'anagrafica, oppure un nome per il nuovo
+    const campoCli = scelta === "__nuovo" ? "ft-cli-nuovo" : "ft-cli";
+    const clienteOk = scelta === "__nuovo" ? !!nuovoCli : !!scelta;
+    const manca = [["ft-num",numero],[campoCli,clienteOk],["ft-imp",importo>0],["ft-scad",scadenza]].filter(x=>!x[1]);
+    FT_CAMPI.forEach(i => $(i).style.borderColor = "");
     if (manca.length) { manca.forEach(x => $(x[0]).style.borderColor = "var(--danger)");
       $("ft-esito").textContent = "Compila i campi evidenziati per " + (editFat ? "salvare la modifica" : "emettere la fattura") + "."; return; }
     if (FAT.some(f => f.numero === numero && f.id !== editFat)) { $("ft-num").style.borderColor = "var(--danger)";
       $("ft-esito").textContent = "Esiste già una fattura con numero " + numero + "."; return; }
     $("ft-esito").textContent = "";
+    // cliente nuovo: se esiste già uno con lo stesso nome (a meno di
+    // maiuscole/punteggiatura) si riusa quello, altrimenti si crea al volo
+    let clienteId = scelta;
+    if (scelta === "__nuovo") {
+      const gia = CLI.find(c => chiaveNome(c.ragioneSociale) === chiaveNome(nuovoCli));
+      if (gia) clienteId = gia.id;
+      else {
+        const r = await db.aggiungi("clienti", { ragioneSociale: nuovoCli, piva: "", sdi: "", indirizzo: "", sconto: 0, fido: 0, note: "" });
+        clienteId = r && r.id;
+        CLI = await db.clienti();
+      }
+    }
+    // `cliente` resta salvato come testo di ripiego accanto al collegamento
+    const cliente = (CLI.find(c => c.id === clienteId) || {}).ragioneSociale || nuovoCli;
     if (editFat) {
-      await db.aggiorna("fatture", editFat, { numero, cliente, importo, scadenza });
+      await db.aggiorna("fatture", editFat, { numero, cliente, clienteId, importo, scadenza });
       editFat = null; $("btn-ft").textContent = "Emetti";
     } else {
-      await db.aggiungi("fatture", { numero, cliente, importo, scadenza,
+      await db.aggiungi("fatture", { numero, cliente, clienteId, importo, scadenza,
         emessa: new Date().toISOString().slice(0,10), incassata: false });
     }
-    ["ft-num","ft-cli","ft-imp","ft-scad"].forEach(i => $(i).value = "");
+    pulisciFat();
     $("ft-num").focus();   // torna al primo campo per emettere subito la prossima
     await refresh();
   };
@@ -435,8 +620,11 @@
     let add = 0, dup = 0;
     for (const f of righe) {
       if (FAT.some(x => x.numero === f.numero)) { dup++; continue; }
-      await db.aggiungi("fatture", { numero: f.numero, cliente: f.cliente, importo: f.importo,
-        emessa: f.emessa, scadenza: f.scadenza, incassata: f.incassata,
+      // se il nome importato corrisponde a un cliente in anagrafica, la fattura
+      // nasce già collegata; altrimenti resta il testo e si collega dopo
+      const c = clienteDiFattura(f, CLI);
+      await db.aggiungi("fatture", { numero: f.numero, cliente: f.cliente, clienteId: c ? c.id : null,
+        importo: f.importo, emessa: f.emessa, scadenza: f.scadenza, incassata: f.incassata,
         dataIncasso: f.incassata ? (f.emessa || null) : null });
       add++;
     }
@@ -450,13 +638,15 @@
     $(inputId).style.borderColor = ""; if (esitoId) $(esitoId).textContent = "";
   });
   ["gar-titolo","gar-base","gar-data"].forEach(i => clearErr(i, "gar-esito"));
-  ["ft-num","ft-cli","ft-imp","ft-scad"].forEach(i => clearErr(i, "ft-esito"));
+  FT_CAMPI.forEach(i => clearErr(i, "ft-esito"));
+  CL_CAMPI.forEach(i => clearErr(i, "cl-esito"));
   // Invio da tastiera: premere Invio in un campo del form equivale a
   // toccare il pulsante — data entry più rapida senza spostare il dito.
   const enterSubmit = (inputIds, btnId) => inputIds.forEach(id =>
     $(id).addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $(btnId).click(); } }));
   enterSubmit(["gar-titolo", "gar-base", "gar-data"], "btn-gar");
-  enterSubmit(["ft-num", "ft-cli", "ft-imp", "ft-scad"], "btn-ft");
+  enterSubmit(FT_CAMPI, "btn-ft");
+  enterSubmit(CL_CAMPI, "btn-cl");
   await refresh();
 </script>
 </body>

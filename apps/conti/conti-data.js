@@ -2,20 +2,32 @@
 // Conti — accesso dati (C4). Schema condiviso (orgCollection da
 // autenticati, demo in memoria altrimenti).
 // Collezioni (sotto organizations/{org}/apps/conti/):
-//   fatture/{id}: { numero, cliente, importo, emessa (ISO), scadenza (ISO), incassata (bool) }
+//   fatture/{id}: { numero, cliente, clienteId?, importo, emessa (ISO), scadenza (ISO), incassata (bool) }
+//   clienti/{id}: { ragioneSociale, piva, sdi (codice destinatario o PEC), indirizzo,
+//                   sconto (%), fido (€), note }
 //   gare/{id}:    { titolo, base, scadenza (ISO), stato: aperta|vinta|persa }
+// CLIENTE DI UNA FATTURA: `clienteId` è il collegamento all'anagrafica; `cliente`
+// resta salvato come TESTO di ripiego (fatture vecchie o cliente cancellato), così
+// niente si rompe né sparisce. Vedi clienteDiFattura/nomeCliente più sotto.
 // KPI CALCOLATI: da incassare, in scadenza, gare aperte, età media del credito.
 // ============================================================
 
 import { parseCsvLine, numIt, giorniTra, isIntestazione } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
+  // fatture d'esempio: alcune già collegate all'anagrafica (clienteId), altre
+  // con il solo testo libero — e volutamente scritto in modi diversi — per far
+  // vedere come funziona il collegamento delle fatture vecchie.
   fatture: [
-    { id: "f1", numero: "2026/031", cliente: "Edilcave Srl", importo: 18300, emessa: "2026-06-07", scadenza: "2026-07-08", incassata: false },
-    { id: "f2", numero: "2026/034", cliente: "Stradesud", importo: 9750, emessa: "2026-06-25", scadenza: "2026-07-25", incassata: false },
+    { id: "f1", numero: "2026/031", cliente: "Edilcave Srl", clienteId: "c1", importo: 18300, emessa: "2026-06-07", scadenza: "2026-07-08", incassata: false },
+    { id: "f2", numero: "2026/034", cliente: "Stradesud", clienteId: "c2", importo: 9750, emessa: "2026-06-25", scadenza: "2026-07-25", incassata: false },
     { id: "f3", numero: "2026/035", cliente: "Comune di Modica", importo: 8100, emessa: "2026-07-10", scadenza: "2026-08-10", incassata: false },
     { id: "f4", numero: "2026/036", cliente: "Calcestruzzi RG", importo: 5900, emessa: "2026-07-18", scadenza: "2026-08-18", incassata: false },
-    { id: "f5", numero: "2026/028", cliente: "Edilcave Srl", importo: 12000, emessa: "2026-05-12", scadenza: "2026-06-12", incassata: true },
+    { id: "f5", numero: "2026/028", cliente: "edilcave s.r.l.", importo: 12000, emessa: "2026-05-12", scadenza: "2026-06-12", incassata: true },
+  ],
+  clienti: [
+    { id: "c1", ragioneSociale: "Edilcave Srl", piva: "01234567890", sdi: "ABC1234", indirizzo: "Zona industriale, Ragusa", sconto: 5, fido: 25000, note: "" },
+    { id: "c2", ragioneSociale: "Stradesud", piva: "09876543210", sdi: "stradesud@pec.example.it", indirizzo: "SS115 km 12, Modica", sconto: 0, fido: 15000, note: "" },
   ],
   gare: [
     { id: "g1", titolo: "Comune di Ragusa — inerti 2026-27", base: 120000, scadenza: "2026-07-28", stato: "aperta" },
@@ -210,23 +222,87 @@ export function incassoAtteso(fatture, giorniAvanti = 30, oggi = new Date()) {
   return { conto, importo };
 }
 
+// ---------- ANAGRAFICA CLIENTI (F4) ----------
+// Chiave di confronto di un nome scritto a mano: minuscole, senza accenti né
+// punteggiatura, spazi normalizzati. È il cuore della correzione: "Rossi srl",
+// "Rossi S.r.l." e "rossi  srl" sono LO STESSO cliente, ma finivano in tre righe
+// diverse di esposizione ed estratto conto. Pura e testabile.
+export function chiaveNome(nome) {
+  return String(nome || "")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")   // accenti via (Società = Societa)
+    .toLowerCase()
+    .replace(/[.,;:'"`´&()\[\]{}\-_/\\]/g, "")          // punteggiatura via (S.r.l. = srl)
+    .replace(/\s+/g, " ").trim();
+}
+
+// Cliente di anagrafica collegato a una fattura: il documento con quel
+// `clienteId`, oppure — per le fatture vecchie che hanno solo il testo — il
+// cliente la cui ragione sociale coincide a meno di maiuscole/punteggiatura.
+// null se non c'è corrispondenza (allora vale il testo libero). Pura.
+export function clienteDiFattura(fattura, clienti) {
+  const f = fattura || {}, lista = clienti || [];
+  if (f.clienteId) return lista.find(c => c.id === f.clienteId) || null;
+  const k = chiaveNome(f.cliente);
+  return k ? (lista.find(c => chiaveNome(c.ragioneSociale) === k) || null) : null;
+}
+
+// Nome del cliente da MOSTRARE per una fattura: la ragione sociale
+// dell'anagrafica quando il cliente è collegato, altrimenti il testo libero
+// salvato (ripiego, così nessuna fattura resta senza nome). Pura.
+export function nomeCliente(fattura, clienti) {
+  const c = clienteDiFattura(fattura, clienti);
+  return String((c && c.ragioneSociale) || (fattura || {}).cliente || "").trim() || "—";
+}
+
+// Chiave con cui le fatture vengono RAGGRUPPATE per cliente: l'id di anagrafica
+// se il cliente è collegato (o riconosciuto dal nome), altrimenti il nome
+// normalizzato. Così le varianti di scrittura tornano una riga sola. Pura.
+export function chiaveCliente(fattura, clienti) {
+  const c = clienteDiFattura(fattura, clienti);
+  return c ? "id:" + c.id : "nome:" + (chiaveNome((fattura || {}).cliente) || "—");
+}
+
+// Fatture ancora NON riconducibili all'anagrafica, raggruppate per nome
+// normalizzato: è l'elenco di lavoro della migrazione ("questi nomi vanno
+// collegati a un cliente, o ne creo uno"). Porta gli id delle fatture del
+// gruppo, così l'interfaccia le collega tutte in un colpo. Pura e testabile.
+export function clientiDaCollegare(fatture, clienti) {
+  const per = {};
+  for (const f of fatture || []) {
+    if (clienteDiFattura(f, clienti)) continue;
+    const nome = String(f.cliente || "").trim();
+    const k = chiaveNome(nome);
+    if (!k) continue;                       // fattura senza nome: niente da collegare
+    const p = per[k] || (per[k] = { chiave: k, nome, conto: 0, importo: 0, ids: [] });
+    p.conto++; p.importo += (+f.importo || 0); p.ids.push(f.id);
+  }
+  return Object.values(per).sort((a, b) => b.conto - a.conto || a.nome.localeCompare(b.nome, "it"));
+}
+
 // Esposizione per CLIENTE: totale delle fatture NON incassate per ogni cliente,
 // dal più esposto, con quante fatture e quanto è già scaduto. Serve al credito
 // per sapere CHI chiamare per primo (l'esposizione concentrata è il rischio
-// vero). Ignora le fatture con importo ≤ 0. Pura e testabile.
-export function esposizioneClienti(fatture, oggi = new Date()) {
+// vero). Raggruppa per anagrafica quando il cliente è collegato o riconoscibile
+// dal nome (niente più doppioni da maiuscole/punteggiatura) e segnala il
+// superamento del fido. Ignora le fatture con importo ≤ 0. Pura e testabile.
+export function esposizioneClienti(fatture, oggi = new Date(), clienti = []) {
   const per = {};
   for (const f of fatture || []) {
     if (f.incassata) continue;
     const imp = +f.importo || 0;
     if (imp <= 0) continue;
-    const cli = ((f.cliente || "").trim()) || "—";
-    const p = per[cli] || (per[cli] = { cliente: cli, totale: 0, scaduto: 0, conto: 0 });
+    const k = chiaveCliente(f, clienti);
+    const c = clienteDiFattura(f, clienti);
+    const p = per[k] || (per[k] = { chiave: k, cliente: nomeCliente(f, clienti),
+      clienteId: c ? c.id : null, fido: c && +c.fido > 0 ? +c.fido : 0,
+      totale: 0, scaduto: 0, conto: 0 });
     p.totale += imp; p.conto++;
     const g = giorni(f.scadenza, oggi);
     if (Number.isFinite(g) && g < 0) p.scaduto += imp;
   }
-  return Object.values(per).sort((a, b) => b.totale - a.totale || a.cliente.localeCompare(b.cliente, "it"));
+  return Object.values(per)
+    .map(p => ({ ...p, oltreFido: p.fido > 0 && p.totale > p.fido }))
+    .sort((a, b) => b.totale - a.totale || a.cliente.localeCompare(b.cliente, "it"));
 }
 
 // ESTRATTO CONTO di un cliente: testo pronto (email/PEC) che elenca TUTTE le
@@ -235,12 +311,20 @@ export function esposizioneClienti(fatture, oggi = new Date()) {
 // totale dovuto). Serve quando un cliente ha PIÙ fatture aperte e vuoi
 // mandargli il quadro completo, non un sollecito per singola fattura. Ritorna
 // null se il cliente non ha fatture aperte. La nota "da confermare col
-// commercialista" resta nell'interfaccia. Pura e testabile.
-export function estrattoContoCliente(cliente, fatture, oggi = new Date(), tassoAnnuo = TASSO_MORA_DEFAULT) {
-  const nome = String(cliente || "").trim();
-  if (!nome) return null;
+// commercialista" resta nell'interfaccia. `cliente` accetta il nome (testo)
+// oppure una riga di esposizioneClienti ({ chiave, cliente }): con la chiave le
+// fatture del gruppo entrano tutte, comprese quelle col nome scritto in un
+// altro modo. Pura e testabile.
+export function estrattoContoCliente(cliente, fatture, oggi = new Date(), tassoAnnuo = TASSO_MORA_DEFAULT, clienti = []) {
+  const rif = cliente && typeof cliente === "object" ? cliente : { cliente: cliente };
+  const nome = String(rif.cliente || "").trim();
+  const chiave = rif.chiave || null;
+  if (!nome && !chiave) return null;
+  const kNome = chiaveNome(nome);
   const aperte = (fatture || []).filter(f =>
-    !f.incassata && (+f.importo || 0) > 0 && ((f.cliente || "").trim()) === nome);
+    !f.incassata && (+f.importo || 0) > 0 && (chiave
+      ? chiaveCliente(f, clienti) === chiave
+      : chiaveNome(nomeCliente(f, clienti)) === kNome));
   if (!aperte.length) return null;
   aperte.sort((a, b) => (a.scadenza || "").localeCompare(b.scadenza || ""));
   const e = (v) => "€ " + euroIt(v);
@@ -266,7 +350,7 @@ export function estrattoContoCliente(cliente, fatture, oggi = new Date(), tassoA
   const od = new Date(oggi);
   const oiso = `${od.getFullYear()}-${String(od.getMonth() + 1).padStart(2, "0")}-${String(od.getDate()).padStart(2, "0")}`;
   const out = [
-    `Estratto conto — ${nome}`,
+    `Estratto conto — ${nome || nomeCliente(aperte[0], clienti)}`,
     `Data: ${dataIt(oiso)}`,
     ``,
     `Fatture aperte (${aperte.length}):`,
@@ -348,7 +432,7 @@ export async function contiData() {
       mode = "live";
       const read = async (n) => (await getDocs(id.orgCollection(n))).docs.map(d => ({ id: d.id, ...d.data() }));
       api = {
-        fatture: () => read("fatture"), gare: () => read("gare"),
+        fatture: () => read("fatture"), gare: () => read("gare"), clienti: () => read("clienti"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
         logout: () => id.logout(),
         aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n), i), d),
@@ -359,7 +443,7 @@ export async function contiData() {
   if (mode !== "live") {
     const mem = JSON.parse(JSON.stringify(DEMO));
     api = {
-      fatture: async () => mem.fatture, gare: async () => mem.gare,
+      fatture: async () => mem.fatture, gare: async () => mem.gare, clienti: async () => mem.clienti,
       logout: async () => {},
       aggiungi: async (n, d) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[n] = mem[n] || []).push({ id, ...d }); return { id }; },
       aggiorna: async (n, i, d) => { const x = (mem[n] || (mem[n] = [])).find(v => v.id === i); if (x) Object.assign(x, d); },

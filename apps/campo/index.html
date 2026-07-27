@@ -51,7 +51,12 @@
     <button class="dw-btn secondary" data-filtro="pianificata" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Pianificate</button>
     <button class="dw-btn secondary" data-filtro="anomalia" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Anomalie</button>
   </div>
-  <div style="display:flex;align-items:center;gap:6px;margin:-2px 0 10px;">
+  <div style="display:flex;align-items:center;gap:6px;margin:-2px 0 10px;flex-wrap:wrap;">
+    <span class="dw-muted" style="font-size:12px;">Giorno:</span>
+    <select id="att-giorno" class="dw-input" style="width:auto;min-height:32px;padding:2px 8px;font-size:12px;">
+      <option value="oggi">Oggi</option>
+      <option value="tutti">Tutti i giorni</option>
+    </select>
     <span class="dw-muted" style="font-size:12px;">Ordina:</span>
     <select id="att-ord" class="dw-input" style="width:auto;min-height:32px;padding:2px 8px;font-size:12px;">
       <option value="stato">Stato (prima le anomalie)</option>
@@ -62,13 +67,17 @@
   <div id="att-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
   <div id="att-list"></div>
   <div id="fermi-riep" class="note" style="text-align:left;"></div>
-  <div class="sec">Dove si perde tempo (fermi di oggi)</div>
+  <div class="sec">Dove si perde tempo (fermi)</div>
   <div id="fermi-pareto" style="margin-bottom:6px;"></div>
   <button class="dw-btn secondary" id="btn-att-export" style="width:auto;margin-top:6px;">Esporta attività (CSV)</button>
   <div class="sec">Nuova attività</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
     <input class="dw-input" id="att-titolo" placeholder="Titolo (es. Perforazione fronte Sud)" style="flex:2;min-width:160px;">
     <input class="dw-input" id="att-dett" placeholder="Dettaglio (facoltativo)" style="flex:1;min-width:130px;">
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+    <input class="dw-input" id="att-data" type="date" title="Giorno di lavoro" style="flex:1;min-width:140px;">
+    <select class="dw-input" id="att-turno" title="Turno" style="flex:1;min-width:120px;"></select>
     <button class="dw-btn" id="btn-att" style="width:auto;">Pianifica</button>
   </div>
   <div class="note" id="att-esito" style="text-align:left;"></div>
@@ -94,19 +103,31 @@
 </div>
 
 <div class="page" id="page-rap">
-  <div class="sec">Rapportini di oggi</div>
+  <div class="sec">Rapportini di turno</div>
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
+    <span class="dw-muted" style="font-size:12px;">Giorno:</span>
+    <select id="rap-giorno" class="dw-input" style="width:auto;min-height:32px;padding:2px 8px;font-size:12px;">
+      <option value="oggi">Oggi</option>
+      <option value="tutti">Tutti i giorni</option>
+    </select>
+  </div>
   <div id="rap-cop" class="note" style="text-align:left;"></div>
+  <div id="rap-prod" class="note" style="text-align:left;"></div>
   <div id="rap-list"></div>
   <div class="sec">Nuovo rapportino di turno</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
     <input class="dw-input" id="new-rap-titolo" placeholder="Titolo (es. Rapportino perforazione)" style="flex:2;min-width:160px;">
     <select class="dw-input" id="new-rap-squadra" style="flex:1;min-width:130px;"></select>
-    <select class="dw-input" id="new-rap-turno" style="flex:1;min-width:110px;">
-      <option value="">Turno…</option><option>Mattina</option><option>Pomeriggio</option><option>Notte</option>
-    </select>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-    <input class="dw-input" id="new-rap-prod" placeholder="Produzione (es. 3 viaggi, 90 t)" style="flex:2;min-width:160px;">
+    <input class="dw-input" id="new-rap-data" type="date" title="Giorno di lavoro" style="flex:1;min-width:140px;">
+    <select class="dw-input" id="new-rap-turno" title="Turno" style="flex:1;min-width:120px;"></select>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+    <input class="dw-input" id="new-rap-prod" type="number" min="0" step="0.1" inputmode="decimal" placeholder="Produzione del turno (es. 90)" style="flex:2;min-width:150px;">
+    <select class="dw-input" id="new-rap-unita" title="Unità di misura della produzione" style="flex:1;min-width:90px;"></select>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
     <input class="dw-input" id="new-rap-note" placeholder="Consegne al turno dopo (handover)" style="flex:2;min-width:160px;">
     <button class="dw-btn" id="btn-add-rap" style="width:auto;">Crea bozza</button>
   </div>
@@ -143,9 +164,11 @@
 </script>
 
 <script type="module">
-  import { campoData, kpiFrom, parsePianoCsv, parseSquadreCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini } from "./campo-data.js";
+  import { campoData, kpiFrom, parsePianoCsv, parseSquadreCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
+           oggiISO, TURNI, turnoCorrente, diGiorno, senzaData, UNITA_PRODUZIONE, totaliProduzione, formattaProduzione, normalizzaPiano } from "./campo-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
+  const dmy = (iso) => iso ? iso.slice(8,10)+"/"+iso.slice(5,7)+"/"+iso.slice(0,4) : "senza data";
   const AB = { "in-corso": ["ok","In corso"], pianificata: ["warn","Pianificata"], anomalia: ["danger","Anomalia"], conclusa: ["ok","Conclusa"] };
   const QB = { operativa: ["ok","Operativa"], ferma: ["danger","Ferma"] };
   const RB = { inviato: ["ok","Inviato"], bozza: ["warn","Bozza"] };
@@ -157,16 +180,40 @@
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
   let ATT=[], SQU=[], RAP=[];
+  // ATT/RAP restano SEMPRE la lista completa (serve per ritrovare per id anche
+  // ciò che non è a schermo); ATT_G/RAP_G sono la fetta del giorno mostrata e
+  // conteggiata. Una registrazione senza data resta dentro (dato vecchio).
+  let ATT_G=[], RAP_G=[], ATT_OGGI=[], RAP_OGGI=[];
+  const OGGI = oggiISO();
+  // Etichetta "quando": il giorno solo se NON è oggi (o se manca del tutto,
+  // caso dei dati salvati prima che la data esistesse).
+  const etData = (r) => { const d = String((r && r.data) || "").trim();
+    return !d ? "senza data" : (d === OGGI ? "" : dmy(d)); };
   let filtroAtt = "tutte";
   let editAtt = null;   // id dell'attività in modifica (riusa il form "Nuova attività"; stato/causale restano)
   let ordAttSel = "stato";
   try { const _s = localStorage.getItem("dwSort_att"); if (_s) { ordAttSel = _s; if ($("att-ord")) $("att-ord").value = _s; } } catch (e) {}
   if ($("att-ord")) $("att-ord").onchange = () => { ordAttSel = $("att-ord").value; try { localStorage.setItem("dwSort_att", ordAttSel); } catch (e) {} refresh(); };
   if ($("att-cerca")) $("att-cerca").oninput = () => refresh();
+  // Vista sul giorno: di default "oggi" (l'app è la lavagna della giornata),
+  // "tutti i giorni" per rileggere anche le registrazioni degli altri giorni.
+  $("att-giorno").onchange = () => refresh();
+  $("rap-giorno").onchange = () => refresh();
+  // Data e turno dei form: precompilati con oggi e col turno dell'ora corrente,
+  // così registrare resta un solo tocco ma il dato nasce sempre datato.
+  const optTurni = (sel) => TURNI.map(t => `<option${t===sel?" selected":""}>${t}</option>`).join("");
+  $("att-turno").innerHTML = optTurni(turnoCorrente());
+  $("new-rap-turno").innerHTML = optTurni(turnoCorrente());
+  $("new-rap-unita").innerHTML = UNITA_PRODUZIONE.map(u => `<option>${u}</option>`).join("");
+  $("att-data").value = OGGI;
+  $("new-rap-data").value = OGGI;
+  // Svuota il form attività riportando data e turno ai valori di default.
+  const resetFormAtt = () => { $("att-titolo").value = ""; $("att-dett").value = "";
+    $("att-data").value = OGGI; $("att-turno").value = turnoCorrente();
+    $("att-titolo").style.borderColor = ""; $("att-data").style.borderColor = ""; };
   // cambiare pagina annulla una modifica attività in corso (torna su "Pianifica")
   document.querySelector(".nav") && document.querySelector(".nav").addEventListener("click", () => {
-    if (editAtt) { editAtt = null; $("btn-att").textContent = "Pianifica"; $("att-esito").textContent = "";
-      $("att-titolo").value = ""; $("att-dett").value = ""; $("att-titolo").style.borderColor = ""; }
+    if (editAtt) { editAtt = null; $("btn-att").textContent = "Pianifica"; $("att-esito").textContent = ""; resetFormAtt(); }
   });
   $("att-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
@@ -179,7 +226,13 @@
   });
   async function refresh(){
     [ATT,SQU,RAP] = await Promise.all([db.attivita(), db.squadre(), db.rapportini()]);
-    const k = kpiFrom(ATT,SQU,RAP);
+    // Il giorno di lavoro è la chiave di tutto: i KPI del quadro contano SEMPRE
+    // e solo le registrazioni di oggi (prima "Rapportini oggi" sommava tutti i
+    // rapportini mai inviati), mentre le liste seguono il selettore "Giorno".
+    ATT_OGGI = diGiorno(ATT, OGGI); RAP_OGGI = diGiorno(RAP, OGGI);
+    const tuttiAtt = $("att-giorno").value === "tutti", tuttiRap = $("rap-giorno").value === "tutti";
+    ATT_G = tuttiAtt ? ATT : ATT_OGGI; RAP_G = tuttiRap ? RAP : RAP_OGGI;
+    const k = kpiFrom(ATT_OGGI,SQU,RAP_OGGI);
     const kn = document.querySelectorAll(".kpis .kpi .n");
     if (kn[0]) kn[0].textContent = k.squadreAttive;
     if (kn[1]) kn[1].textContent = k.inCorso;
@@ -187,15 +240,15 @@
     if (kn[3]) kn[3].textContent = k.anomalie;
 
     // Avanzamento giornata: concluse sul totale, con ripartizione.
-    const av = avanzamentoGiornata(ATT);
+    const av = avanzamentoGiornata(ATT_OGGI);
     $("att-avanz").innerHTML = av.totale
       ? `Avanzamento: <b>${av.concluse}/${av.totale}</b> concluse (${av.pct}%) · ${av.inCorso} in corso · ${av.pianificate} pianificate${av.anomalie ? " · <span style=\"color:var(--danger);\">"+av.anomalie+" anomalie</span>" : ""}`
       : "";
 
-    const urgenti = ATT.filter(a => a.stato !== "conclusa").slice(0,4);
+    const urgenti = ATT_OGGI.filter(a => a.stato !== "conclusa").slice(0,4);
     $("oggi-list").innerHTML = urgenti.map(a => `<div class="item" onclick="go('att')">
       <div class="avatar">${esc(sig(a.titolo))}</div>
-      <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc(a.dettaglio||"")}</div></div>
+      <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc([a.dettaglio, a.turno, etData(a)].filter(Boolean).join(" · "))}</div></div>
       <span class="badge ${AB[a.stato][0]}">${AB[a.stato][1]}</span><span class="arr">›</span></div>`).join("")
       || '<div class="note" style="text-align:left;">Nessuna attività in corso: la giornata è tranquilla.</div>';
 
@@ -204,30 +257,34 @@
       ? String(a.titolo || "").localeCompare(String(b.titolo || ""), "it")
       : (ordAtt[a.stato] ?? 4) - (ordAtt[b.stato] ?? 4);
     const qAtt = ($("att-cerca") && $("att-cerca").value || "").trim().toLowerCase();
-    const attVis = ATT.filter(a => filtroAtt === "tutte" || a.stato === filtroAtt)
+    const attVis = ATT_G.filter(a => filtroAtt === "tutte" || a.stato === filtroAtt)
                       .filter(a => !qAtt || ((a.titolo || "") + " " + (a.dettaglio || "")).toLowerCase().includes(qAtt))
                       .sort(attCmp);
     const optCausali = (sel) => CAUSALI_FERMO.map(c => `<option value="${esc(c)}"${c===sel?" selected":""}>${esc(c)}</option>`).join("");
     $("att-list").innerHTML = attVis.map(a => `<div class="item" data-att="${a.id}" style="cursor:pointer" title="Tocca per cambiare stato">
-      <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc(a.dettaglio||"")}</div></div>
+      <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc([a.dettaglio, a.turno, etData(a)].filter(Boolean).join(" · "))}</div></div>
       ${a.stato==="anomalia" ? `<select class="dw-input" data-causale="${a.id}" title="Causale del fermo" style="width:auto;min-height:32px;padding:2px 6px;font-size:12px;margin-right:6px;"><option value="">Causale…</option>${optCausali(a.causale)}</select><input class="dw-input" data-fermomin="${a.id}" type="number" min="0" step="5" value="${(+a.fermoMin)||""}" placeholder="min" title="Minuti di fermo" style="width:64px;min-height:32px;padding:2px 6px;font-size:12px;margin-right:6px;">` : ""}
       <span class="badge ${AB[a.stato][0]}">${AB[a.stato][1]}</span>
       <span class="arr" style="cursor:pointer" title="Modifica attività" data-edit-att="${a.id}">✎</span></div>`).join("")
-      || '<div class="note" style="text-align:left;">'+(qAtt?"Nessuna attività trovata per «"+esc(qAtt)+"».":(filtroAtt==="tutte"?"Nessuna attività registrata oggi.":"Nessuna attività in questa categoria."))+'</div>';
+      || '<div class="note" style="text-align:left;">'+(qAtt?"Nessuna attività trovata per «"+esc(qAtt)+"».":(filtroAtt==="tutte"?(tuttiAtt?"Nessuna attività registrata.":"Nessuna attività registrata oggi."):"Nessuna attività in questa categoria."))+'</div>';
+    // Conteggio della lista + avviso sui dati vecchi ancora privi di data: non
+    // spariscono (restano nella vista di oggi), ma vanno dichiarati.
     { const n = $("att-list").querySelectorAll(".item").length, filtrata = qAtt || filtroAtt !== "tutte";
-      $("att-count").textContent = n === 0 ? "" : n + (n === 1 ? " attività" : " attività") + (filtrata ? " · su " + ATT.length : ""); }
+      const sd = senzaData(ATT);
+      $("att-count").textContent = (n === 0 ? "" : n + " attività" + (filtrata ? " · su " + ATT_G.length : ""))
+        + (sd ? (n === 0 ? "" : " · ") + sd + " senza data" : ""); }
     document.querySelectorAll("#att-filtri [data-filtro]").forEach(b =>
       b.style.borderColor = b.getAttribute("data-filtro") === filtroAtt ? "var(--app-accent)" : "");
     // Pareto dei fermi con i MINUTI persi (base disponibilità di giornata)
-    { const pf = paretoFermi(ATT);
+    { const pf = paretoFermi(ATT_G);
       const box = $("fermi-pareto");
       if (box) box.innerHTML = pf.voci.length
-        ? `<div class="dw-muted" style="font-size:12px;margin-bottom:6px;">Tempo perso oggi: <b style="color:var(--danger);">${pf.totaleMin} min</b>${pf.voci[0] && pf.voci[0].minuti ? ` — causale peggiore: <b>${esc(pf.voci[0].causale)}</b> (${pf.voci[0].minuti} min)` : ""}</div>`
+        ? `<div class="dw-muted" style="font-size:12px;margin-bottom:6px;">Tempo perso ${tuttiAtt ? "in tutti i giorni" : "oggi"}: <b style="color:var(--danger);">${pf.totaleMin} min</b>${pf.voci[0] && pf.voci[0].minuti ? ` — causale peggiore: <b>${esc(pf.voci[0].causale)}</b> (${pf.voci[0].minuti} min)` : ""}</div>`
           + pf.voci.map(v => { const w = pf.totaleMin ? Math.round(v.minuti / pf.totaleMin * 100) : 0;
             return `<div style="display:flex;align-items:center;gap:8px;margin:3px 0;font-size:12px;"><span style="flex:0 0 150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(v.causale)}</span><span style="flex:1;background:var(--card2);border-radius:4px;overflow:hidden;height:10px;"><i style="display:block;height:100%;width:${Math.max(2, w)}%;background:linear-gradient(90deg,var(--warn),var(--danger));"></i></span><b style="flex:0 0 84px;text-align:right;">${v.minuti} min · ×${v.conto}</b></div>`; }).join("")
-        : '<span class="dw-muted" style="font-size:12px;">Nessun fermo oggi. Quando un\'attività va in anomalia, indica causale e minuti: qui compare dove si perde tempo.</span>'; }
+        : '<span class="dw-muted" style="font-size:12px;">Nessun fermo. Quando un\'attività va in anomalia, indica causale e minuti: qui compare dove si perde tempo.</span>'; }
     // riepilogo fermi per causale (base per OEE/disponibilità)
-    const fermi = riepilogoFermi(ATT);
+    const fermi = riepilogoFermi(ATT_G);
     $("fermi-riep").innerHTML = fermi.length
       ? "Fermi per causale: " + fermi.map(f => `<b>${esc(f.causale)}</b> ${f.conto}`).join(" · ")
       : "";
@@ -238,16 +295,28 @@
       <span class="badge ${QB[q.stato][0]}">${QB[q.stato][1]}</span></div>`).join("")
       || '<div class="note" style="text-align:left;">Nessuna squadra in turno.</div>';
 
-    const cop = coperturaRapportini(SQU, RAP);
-    $("rap-cop").innerHTML = cop.totale === 0 ? ""
+    const cop = coperturaRapportini(SQU, RAP_G);
+    const sdRap = senzaData(RAP);
+    const avvisoSdRap = sdRap ? ` <span class="dw-muted">(${sdRap} rapportini ancora senza data)</span>` : "";
+    $("rap-cop").innerHTML = cop.totale === 0 ? (avvisoSdRap ? avvisoSdRap : "")
       : cop.mancanti.length === 0
-        ? `Rapportini di turno: <b class="badge ok" style="font-size:inherit;">${cop.coperte}/${cop.totale} squadre</b> — tutte hanno consegnato.`
-        : `Rapportini di turno: <b class="badge warn" style="font-size:inherit;">${cop.coperte}/${cop.totale} squadre</b> — manca ${cop.mancanti.map(esc).join(", ")}.`;
-    $("rap-list").innerHTML = RAP.map(r => { const rias = riassuntoRapportino(r);
+        ? `Rapportini di turno: <b class="badge ok" style="font-size:inherit;">${cop.coperte}/${cop.totale} squadre</b> — tutte hanno consegnato.${avvisoSdRap}`
+        : `Rapportini di turno: <b class="badge warn" style="font-size:inherit;">${cop.coperte}/${cop.totale} squadre</b> — manca ${cop.mancanti.map(esc).join(", ")}.${avvisoSdRap}`;
+    // Totale della produzione registrata (sommabile grazie a quantità + unità):
+    // il totale complessivo e, sotto, quello di ogni turno. Tonnellate e metri
+    // cubi restano separati: non si sommano tra loro.
+    { const tp = totaliProduzione(RAP_G);
+      const somma = (u) => Object.entries(u).map(([un, q]) => formattaProduzione(q, un)).join(" + ");
+      const voci = Object.keys(tp.perUnita);
+      $("rap-prod").innerHTML = voci.length
+        ? `Produzione ${tuttiRap ? "registrata" : "di oggi"}: <b>${esc(somma(tp.perUnita))}</b>`
+          + (tp.perTurno.length ? ` — ${tp.perTurno.map(t => `turno ${esc(t.turno)}: <b>${esc(somma(t.perUnita))}</b>`).join(" · ")}` : "")
+        : ""; }
+    $("rap-list").innerHTML = RAP_G.map(r => { const rias = riassuntoRapportino(r), quando = etData(r);
       return `<div class="item" data-rap="${r.id}" style="cursor:pointer" title="${r.stato==="bozza" ? "Tocca per inviare" : "Tocca per richiamare in bozza"}">
-      <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${rias ? esc(rias) : esc(r.squadra||"—")}${r.ora?" · "+esc(r.ora):""}</div></div>
+      <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${quando?esc(quando)+" · ":""}${rias ? esc(rias) : esc(r.squadra||"—")}${r.ora?" · "+esc(r.ora):""}</div></div>
       <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${r.stato==="bozza"?`<span class="arr" style="cursor:pointer" title="Elimina bozza" data-del-rap="${r.id}">✕</span>`:""}</div>`; }).join("")
-      || '<div class="note" style="text-align:left;">Nessun rapportino oggi.</div>';
+      || `<div class="note" style="text-align:left;">${tuttiRap ? "Nessun rapportino registrato." : "Nessun rapportino oggi."}</div>`;
 
     $("new-rap-squadra").innerHTML = SQU.map(q => `<option>${esc(q.nome.split(" — ")[0])}</option>`).join("");
   }
@@ -261,11 +330,14 @@
     if (editAttId) { const a = ATT.find(x => x.id === editAttId); if (!a) return;
       if (editAtt === a.id) {   // ri-tocco la ✎ della stessa attività = annulla
         editAtt = null; $("btn-att").textContent = "Pianifica"; $("att-esito").textContent = "Modifica annullata.";
-        $("att-titolo").value = ""; $("att-dett").value = ""; $("att-titolo").style.borderColor = ""; return; }
+        resetFormAtt(); return; }
       editAtt = a.id;
       $("att-titolo").value = a.titolo || ""; $("att-dett").value = a.dettaglio || ""; $("att-titolo").style.borderColor = "";
+      // data e turno del record: così la modifica serve anche a DATARE un'attività
+      // vecchia rimasta senza giorno di lavoro.
+      $("att-data").value = a.data || OGGI; $("att-turno").value = a.turno || turnoCorrente();
       $("btn-att").textContent = "Salva modifica";
-      $("att-esito").textContent = "Stai modificando «" + a.titolo + "»: cambi titolo/dettaglio, lo stato resta.";
+      $("att-esito").textContent = "Stai modificando «" + a.titolo + "»: cambi titolo, dettaglio, giorno e turno; lo stato resta.";
       $("att-titolo").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
     const it = e.target.closest && e.target.closest("[data-att]");
     if (it) { const a = ATT.find(x => x.id === it.getAttribute("data-att"));
@@ -308,37 +380,60 @@
     const titolo = $("att-titolo").value.trim();
     if (!titolo) { $("att-titolo").style.borderColor = "var(--danger)"; $("att-esito").textContent = "Serve un titolo per " + (editAtt ? "salvare la modifica" : "pianificare l'attività") + "."; return; }
     $("att-titolo").style.borderColor = "";
+    // Senza giorno di lavoro la registrazione non entrerebbe in nessuno storico.
+    const data = $("att-data").value;
+    if (!data) { $("att-data").style.borderColor = "var(--danger)"; $("att-esito").textContent = "Serve il giorno di lavoro dell'attività."; return; }
+    $("att-data").style.borderColor = "";
+    const turno = $("att-turno").value || turnoCorrente();
     if (editAtt) {
-      await db.aggiorna("attivita", editAtt, { titolo, dettaglio: $("att-dett").value.trim() });   // stato/causale restano
+      await db.aggiorna("attivita", editAtt, { titolo, dettaglio: $("att-dett").value.trim(), data, turno });   // stato/causale restano
       editAtt = null; $("btn-att").textContent = "Pianifica";
     } else {
-      await db.aggiungi("attivita", { titolo, dettaglio: $("att-dett").value.trim(), stato: "pianificata" });
+      await db.aggiungi("attivita", { titolo, dettaglio: $("att-dett").value.trim(), data, turno, stato: "pianificata" });
     }
-    $("att-titolo").value = ""; $("att-dett").value = "";
-    $("att-esito").textContent = "Attività salvata: " + titolo + ".";
+    resetFormAtt();
+    $("att-esito").textContent = "Attività salvata: " + titolo + " (" + dmy(data) + " · turno " + turno + ").";
     $("att-titolo").focus();   // torna al primo campo per inserire subito la prossima
     await refresh();
   };
   // Esporta l'elenco attività (registro/archivio della giornata, handover)
   $("btn-att-export").onclick = () => {
-    if (!ATT.length) { $("att-esito").textContent = "Nessuna attività da esportare."; return; }
+    if (!ATT_G.length) { $("att-esito").textContent = "Nessuna attività da esportare."; return; }
     const ordExp = { anomalia: 0, "in-corso": 1, pianificata: 2, conclusa: 3 };
-    let csv = "titolo;dettaglio;stato;causale\n";
-    for (const a of ATT.slice().sort((x, y) => (ordExp[x.stato] ?? 4) - (ordExp[y.stato] ?? 4)))
-      csv += `${csvCell(a.titolo || "")};${csvCell(a.dettaglio || "")};${a.stato || ""};${csvCell(a.stato === "anomalia" ? (a.causale || "") : "")}\n`;
+    // data e turno in testa: il CSV diventa un registro archiviabile, non una
+    // fotografia senza tempo.
+    let csv = "data;turno;titolo;dettaglio;stato;causale\n";
+    for (const a of ATT_G.slice().sort((x, y) => (ordExp[x.stato] ?? 4) - (ordExp[y.stato] ?? 4)))
+      csv += `${a.data || ""};${csvCell(a.turno || "")};${csvCell(a.titolo || "")};${csvCell(a.dettaglio || "")};${a.stato || ""};${csvCell(a.stato === "anomalia" ? (a.causale || "") : "")}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "campo_attivita.csv"; a.click();
-    $("att-esito").textContent = "Esportate " + ATT.length + " attività (CSV).";
+    $("att-esito").textContent = "Esportate " + ATT_G.length + " attività (CSV).";
   };
   $("btn-add-rap").onclick = async () => {
     const titolo = $("new-rap-titolo").value.trim();
     if (!titolo) { $("new-rap-titolo").style.borderColor = "var(--danger)"; $("new-rap-titolo").placeholder = "Serve un titolo per creare la bozza"; return; }
     $("new-rap-titolo").style.borderColor = "";
-    await db.aggiungi("rapportini", { titolo, squadra: $("new-rap-squadra").value,
-      turno: $("new-rap-turno").value || "", produzione: $("new-rap-prod").value.trim(), note: $("new-rap-note").value.trim(),
+    const data = $("new-rap-data").value;
+    if (!data) { $("new-rap-data").style.borderColor = "var(--danger)"; $("mode-note").textContent = "Serve il giorno di lavoro del rapportino."; return; }
+    $("new-rap-data").style.borderColor = "";
+    // Produzione: numero facoltativo ma, se c'è, dev'essere un numero valido e
+    // non negativo — è ciò che rende la produzione sommabile (t o m³).
+    const grezzo = $("new-rap-prod").value.trim().replace(",", ".");
+    const qta = grezzo === "" ? null : parseFloat(grezzo);
+    if (grezzo !== "" && !(Number.isFinite(qta) && qta >= 0)) {
+      $("new-rap-prod").style.borderColor = "var(--danger)";
+      $("mode-note").textContent = "La produzione dev'essere un numero non negativo (lascia vuoto se non la registri).";
+      return;
+    }
+    $("new-rap-prod").style.borderColor = "";
+    const turno = $("new-rap-turno").value || turnoCorrente(), unita = $("new-rap-unita").value || UNITA_PRODUZIONE[0];
+    await db.aggiungi("rapportini", { titolo, squadra: $("new-rap-squadra").value, data, turno,
+      prodQta: qta, prodUnita: unita, note: $("new-rap-note").value.trim(),
       ora: "", stato: "bozza" });
-    $("new-rap-titolo").value = ""; $("new-rap-turno").value = ""; $("new-rap-prod").value = ""; $("new-rap-note").value = "";
+    $("new-rap-titolo").value = ""; $("new-rap-prod").value = ""; $("new-rap-note").value = "";
+    $("new-rap-data").value = OGGI; $("new-rap-turno").value = turnoCorrente();
+    $("mode-note").textContent = "Bozza creata: " + titolo + " (" + dmy(data) + " · turno " + turno + (qta != null ? " · " + formattaProduzione(qta, unita) : "") + ").";
     $("new-rap-titolo").focus(); await refresh();
   };
   $("btn-squ").onclick = async () => {
@@ -381,25 +476,34 @@
   // Consegna di turno (handover): un testo con i rapportini e le anomalie
   // aperte, pronto da passare al turno successivo o da archiviare.
   $("btn-consegna").onclick = () => {
-    const oggi = new Date().toLocaleDateString("it-IT");
+    const oggi = dmy(OGGI);
     let txt = "CONSEGNA DI TURNO — " + oggi + "\n\n";
     txt += "RAPPORTINI\n";
-    txt += (RAP.length ? RAP.map(r => "- " + r.titolo + (riassuntoRapportino(r) ? " — " + riassuntoRapportino(r) : "") + " [" + r.stato + "]").join("\n") : "- nessun rapportino") + "\n\n";
-    const fermi = riepilogoFermi(ATT);
+    txt += (RAP_OGGI.length ? RAP_OGGI.map(r => "- " + r.titolo + (riassuntoRapportino(r) ? " — " + riassuntoRapportino(r) : "") + " [" + r.stato + "]").join("\n") : "- nessun rapportino") + "\n\n";
+    const tp = totaliProduzione(RAP_OGGI), unita = Object.entries(tp.perUnita);
+    txt += "PRODUZIONE\n";
+    txt += (unita.length ? "- totale: " + unita.map(([u, q]) => formattaProduzione(q, u)).join(" + ") + "\n"
+      + tp.perTurno.map(t => "- turno " + t.turno + ": " + Object.entries(t.perUnita).map(([u, q]) => formattaProduzione(q, u)).join(" + ")).join("\n")
+      : "- nessuna produzione registrata") + "\n\n";
+    const fermi = riepilogoFermi(ATT_OGGI);
     txt += "ANOMALIE / FERMI\n";
     txt += (fermi.length ? fermi.map(f => "- " + f.causale + ": " + f.conto).join("\n") : "- nessuna anomalia aperta") + "\n";
     const el = document.createElement("a");
     el.href = "data:text/plain;charset=utf-8," + encodeURIComponent(txt);
     el.download = "consegna_turno.txt"; el.click();
-    $("mode-note").textContent = "Consegna di turno esportata (" + RAP.length + " rapportini, " + fermi.length + " causali di fermo).";
+    $("mode-note").textContent = "Consegna di turno esportata (" + RAP_OGGI.length + " rapportini, " + fermi.length + " causali di fermo).";
   };
   // Rapporto di fine turno STAMPABILE (stesso pattern del report di Genesi):
   // il deliverable che i supervisori si aspettano — solo dati già presenti.
   $("btn-rapporto-turno").onclick = () => {
-    const oggi = new Date().toLocaleDateString("it-IT");
-    const av = avanzamentoGiornata(ATT), fermi = riepilogoFermi(ATT), cop = coperturaRapportini(SQU, RAP);
+    // Il rapporto è SEMPRE quello della giornata di oggi, qualunque cosa si
+    // stia guardando a schermo: è un documento datato.
+    const oggi = dmy(OGGI);
+    const av = avanzamentoGiornata(ATT_OGGI), fermi = riepilogoFermi(ATT_OGGI), cop = coperturaRapportini(SQU, RAP_OGGI);
+    const tp = totaliProduzione(RAP_OGGI), unitaProd = Object.entries(tp.perUnita);
+    const somma = (u) => Object.entries(u).map(([un, q]) => formattaProduzione(q, un)).join(" + ");
     const st = { "in-corso": "In corso", pianificata: "Pianificata", conclusa: "Conclusa", anomalia: "ANOMALIA" };
-    const riga = (a) => `<tr><td>${esc(a.titolo)}</td><td>${esc(a.dettaglio||"")}</td><td>${st[a.stato]||esc(a.stato)}${a.stato==="anomalia"&&a.causale?" — "+esc(a.causale):""}</td></tr>`;
+    const riga = (a) => `<tr><td>${esc(a.turno||"—")}</td><td>${esc(a.titolo)}</td><td>${esc(a.dettaglio||"")}</td><td>${st[a.stato]||esc(a.stato)}${a.stato==="anomalia"&&a.causale?" — "+esc(a.causale):""}</td></tr>`;
     const ordR = { anomalia:0, "in-corso":1, pianificata:2, conclusa:3 };
     const html = `<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><title>Rapporto di fine turno — ${oggi}</title>
 <style>body{font:13px/1.45 sans-serif;color:#222;margin:28px;max-width:800px}h1{font-size:19px;margin:0 0 2px}h2{font-size:14px;margin:18px 0 6px;border-bottom:1px solid #999;padding-bottom:2px}
@@ -408,14 +512,17 @@ table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4p
 <h1>Rapporto di fine turno</h1><div class="muted">Deepwork Campo · ${oggi}</div>
 <h2>Quadro</h2>
 <div><span class="kpi"><b>${av.concluse}/${av.totale}</b> attività concluse</span>
-<span class="kpi"><b>${ATT.filter(a=>a.stato==="anomalia").length}</b> anomalie aperte</span>
-<span class="kpi"><b>${cop.coperte}/${cop.totale}</b> squadre con rapportino</span></div>
+<span class="kpi"><b>${ATT_OGGI.filter(a=>a.stato==="anomalia").length}</b> anomalie aperte</span>
+<span class="kpi"><b>${cop.coperte}/${cop.totale}</b> squadre con rapportino</span>
+<span class="kpi"><b>${unitaProd.length?esc(somma(tp.perUnita)):"—"}</b> prodotti</span></div>
 <h2>Attività</h2>
-<table><tr><th>Attività</th><th>Dettaglio</th><th>Stato</th></tr>${ATT.slice().sort((a,b)=>(ordR[a.stato]??4)-(ordR[b.stato]??4)).map(riga).join("")||"<tr><td colspan=3>Nessuna attività registrata.</td></tr>"}</table>
+<table><tr><th>Turno</th><th>Attività</th><th>Dettaglio</th><th>Stato</th></tr>${ATT_OGGI.slice().sort((a,b)=>(ordR[a.stato]??4)-(ordR[b.stato]??4)).map(riga).join("")||"<tr><td colspan=4>Nessuna attività registrata.</td></tr>"}</table>
 <h2>Fermi per causale</h2>
 ${fermi.length?`<table><tr><th>Causale</th><th>Anomalie</th></tr>${fermi.map(f=>`<tr><td>${esc(f.causale)}</td><td>${f.conto}</td></tr>`).join("")}</table>`:"<div>Nessuna anomalia aperta.</div>"}
+<h2>Produzione</h2>
+${unitaProd.length?`<table><tr><th>Turno</th><th>Produzione</th></tr>${tp.perTurno.map(t=>`<tr><td>${esc(t.turno)}</td><td>${esc(somma(t.perUnita))}</td></tr>`).join("")}<tr><th>Totale</th><th>${esc(somma(tp.perUnita))}</th></tr></table>`:"<div>Nessuna produzione registrata.</div>"}
 <h2>Rapportini</h2>
-${RAP.length?`<table><tr><th>Titolo</th><th>Squadra · turno</th><th>Produzione</th><th>Consegne al turno dopo</th><th>Stato</th></tr>${RAP.map(r=>`<tr><td>${esc(r.titolo)}</td><td>${esc(r.squadra||"—")}${r.turno?" · "+esc(r.turno):""}</td><td>${esc(r.produzione||"—")}</td><td>${esc(r.note||"—")}</td><td>${esc(r.stato)}${r.ora?" "+esc(r.ora):""}</td></tr>`).join("")}</table>`:"<div>Nessun rapportino oggi.</div>"}
+${RAP_OGGI.length?`<table><tr><th>Titolo</th><th>Squadra · turno</th><th>Produzione</th><th>Consegne al turno dopo</th><th>Stato</th></tr>${RAP_OGGI.map(r=>`<tr><td>${esc(r.titolo)}</td><td>${esc(r.squadra||"—")}${r.turno?" · "+esc(r.turno):""}</td><td>${esc(+r.prodQta>0?formattaProduzione(r.prodQta,r.prodUnita):(r.produzione||"—"))}</td><td>${esc(r.note||"—")}</td><td>${esc(r.stato)}${r.ora?" "+esc(r.ora):""}</td></tr>`).join("")}</table>`:"<div>Nessun rapportino oggi.</div>"}
 ${cop.mancanti.length?`<div class="muted" style="margin-top:6px">Squadre senza rapportino: ${cop.mancanti.map(esc).join(", ")}.</div>`:""}
 <div class="muted" style="margin-top:20px">Generato da Deepwork Campo — registro operativo di giornata; non sostituisce i registri obbligatori.</div>
 <script>window.print()</` + `script></body></html>`;
@@ -429,18 +536,23 @@ ${cop.mancanti.length?`<div class="muted" style="margin-top:6px">Squadre senza r
     $(inputId).style.borderColor = ""; if (esitoId) $(esitoId).textContent = "";
   });
   clearErr("att-titolo", "att-esito");
+  clearErr("att-data", "att-esito");
   clearErr("new-rap-titolo");
+  clearErr("new-rap-data");
+  clearErr("new-rap-prod");
   // Invio da tastiera: premere Invio in un campo del form equivale a
   // toccare il pulsante — data entry più rapida senza spostare il dito.
   const enterSubmit = (inputIds, btnId) => inputIds.forEach(id =>
     $(id).addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $(btnId).click(); } }));
-  enterSubmit(["att-titolo", "att-dett"], "btn-att");
-  enterSubmit(["new-rap-titolo"], "btn-add-rap");
+  enterSubmit(["att-titolo", "att-dett", "att-data"], "btn-att");
+  enterSubmit(["new-rap-titolo", "new-rap-data", "new-rap-prod"], "btn-add-rap");
   await refresh();
 
   // ── Registro progettato-vs-reale (ponte da Genesi) ──
   // Il fochino importa il piano di carico CSV e registra la carica REALE
   // per foro; lo scostamento è calcolato e colorato (≤10% ok, ≤25% warn).
+  // Il piano è SALVATO come il resto dei dati (collezione "pianocarico" via
+  // SDK): prima viveva solo in memoria e un refresh cancellava il lavoro.
   let PIANO = [];
   const scarto = (p) => scartoPct(p.reale, p.prog);
   const scartoBadge = (p) => { const liv = scartoLivello(p.reale, p.prog);
@@ -451,38 +563,53 @@ ${cop.mancanti.length?`<div class="muted" style="margin-top:6px">Squadre senza r
     $("btn-piano-export").style.display = PIANO.length ? "inline-block" : "none";
     if (!PIANO.length) { $("piano-list").innerHTML = ""; $("piano-riep").textContent = "Nessun piano importato."; return; }
     const r = pianoRiepilogo(PIANO);
-    $("piano-riep").innerHTML = "Fori " + r.registrati + "/" + r.totale + " registrati · progettato " + r.progettatoKg + " kg · stimato reale " + Math.round(r.stimatoKg) + " kg <span class=\"badge " + r.livello + "\">" + (r.pct>=0?"+":"") + r.pct + "%</span>. Tocca un foro per registrare la carica reale.";
+    const quandoPiano = PIANO[0] && (PIANO[0].data || PIANO[0].turno)
+      ? "Piano del " + dmy(PIANO[0].data) + (PIANO[0].turno ? " · turno " + esc(PIANO[0].turno) : "") + " — " : "";
+    $("piano-riep").innerHTML = quandoPiano + "Fori " + r.registrati + "/" + r.totale + " registrati · progettato " + r.progettatoKg + " kg · stimato reale " + Math.round(r.stimatoKg) + " kg <span class=\"badge " + r.livello + "\">" + (r.pct>=0?"+":"") + r.pct + "%</span>. Tocca un foro per registrare la carica reale (viene salvata).";
     $("piano-list").innerHTML = PIANO.map(p => { const b = scartoBadge(p);
-      return `<div class="item" data-foro="${esc(p.foro)}" style="cursor:pointer" title="Registra carica reale">
+      return `<div class="item" data-foro-id="${esc(p.id)}" style="cursor:pointer" title="Registra carica reale">
       <div class="avatar">${esc(p.foro)}</div>
       <div class="info"><div class="name">Foro ${esc(p.foro)} · prog. ${esc(p.prog)} kg</div><div class="meta">x ${esc(p.x)} m · prof. ${esc(p.prof)} m · borr. ${esc(p.borr)} m · rit. ${esc(p.rit)} ms</div></div>
       <span class="badge ${b[0]}">${b[1]}</span></div>`; }).join("");
   }
   $("btn-piano").onclick = () => $("piano-file").click();
   $("btn-piano-export").onclick = () => {
-    let csv = "foro;carica_prog_kg;carica_reale_kg;scarto_pct\n";
+    let csv = "data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct\n";
     PIANO.forEach(p => { const s = scarto(p);
-      csv += `${p.foro};${p.prog};${p.reale != null ? p.reale : ""};${s != null ? Math.round(s*100) : ""}\n`; });
+      csv += `${p.data || ""};${csvCell(p.turno || "")};${p.foro};${p.prog};${p.reale != null ? p.reale : ""};${s != null ? Math.round(s*100) : ""}\n`; });
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "campo_consuntivo_carico.csv"; a.click();
   };
+  // Rilettura del piano salvato: si tiene una sola volata alla volta, quindi
+  // l'import SOSTITUISCE quella precedente (previa conferma).
+  const pianoRicarica = async () => { PIANO = normalizzaPiano(await db.pianocarico()); pianoRender(); };
   $("piano-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    PIANO = parsePianoCsv(await file.text());
-    e.target.value = ""; pianoRender();
-    if (PIANO.length) await db.aggiungi("pianocarico", { importato: new Date().toISOString().slice(0,10), fori: PIANO.length });
+    const righe = parsePianoCsv(await file.text());
+    e.target.value = "";
+    if (!righe.length) { $("piano-riep").textContent = "Nessuna riga valida: controlla che le colonne siano foro;x;fila;prof;prog;borr;rit."; return; }
+    if (PIANO.length && !confirm("C'è già un piano salvato di " + PIANO.length + " fori: sostituirlo con quello importato? Le cariche reali già registrate andranno perse.")) return;
+    $("piano-riep").textContent = "Salvataggio del piano in corso…";
+    for (const vecchio of await db.pianocarico()) await db.rimuovi("pianocarico", vecchio.id);
+    const data = $("new-rap-data").value || OGGI, turno = $("new-rap-turno").value || turnoCorrente();
+    for (const p of righe)
+      await db.aggiungi("pianocarico", { data, turno, foro: p.foro, x: p.x, fila: p.fila,
+        prof: p.prof, prog: p.prog, borr: p.borr, rit: p.rit, reale: null });
+    await pianoRicarica();
   };
   document.addEventListener("click", async (e) => {
-    const it = e.target.closest && e.target.closest("[data-foro]");
+    const it = e.target.closest && e.target.closest("[data-foro-id]");
     if (!it) return;
-    const p = PIANO.find(x => x.foro === +it.getAttribute("data-foro")); if (!p) return;
+    const p = PIANO.find(x => x.id === it.getAttribute("data-foro-id")); if (!p) return;
     const v = prompt("Carica REALE caricata nel foro " + p.foro + " (progettata " + p.prog + " kg):", p.reale != null ? p.reale : p.prog);
     if (v == null) return;
     const kg = parseFloat(String(v).replace(",", "."));
     if (!(kg >= 0)) return;
+    await db.aggiorna("pianocarico", p.id, { reale: kg });   // salvata: non si perde più al refresh
     p.reale = kg; pianoRender();
   });
+  await pianoRicarica();
 </script>
 </body>
 </html>

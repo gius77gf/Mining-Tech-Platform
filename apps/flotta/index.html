@@ -38,6 +38,9 @@
     <div class="kpi accent" style="cursor:pointer" data-goto="cos" title="Vedi i costi"><div class="n">—</div><div class="l">Carburante mese</div></div>
   </div>
 
+  <div class="sec">Scadenze di legge</div>
+  <div id="dash-sca" class="note" style="text-align:left;cursor:pointer;" title="Vai alle scadenze di legge"></div>
+
   <div class="sec">Attenzione</div>
   <div id="alert-list"></div>
 </div>
@@ -122,6 +125,45 @@
   <div class="note" id="ric-esito" style="text-align:left;"></div>
 </div>
 
+<!-- SCADENZE DI LEGGE DEL MEZZO (F6) -->
+<div class="page" id="page-sca">
+  <div class="sec">Semaforo scadenze</div>
+  <div class="kpis" id="sca-kpis">
+    <div class="kpi danger" style="cursor:pointer" data-sca-filtro="scaduta" title="Vedi solo le scadenze scadute"><div class="n">—</div><div class="l">Scadute</div></div>
+    <div class="kpi warn" style="cursor:pointer" data-sca-filtro="in-scadenza" title="Vedi solo quelle in scadenza"><div class="n">—</div><div class="l">In scadenza</div></div>
+    <div class="kpi ok" style="cursor:pointer" data-sca-filtro="a-posto" title="Vedi solo quelle a posto"><div class="n">—</div><div class="l">A posto</div></div>
+    <div class="kpi accent" style="cursor:pointer" data-sca-filtro="tutte" title="Vedi tutte le scadenze"><div class="n">—</div><div class="l">Mezzi coinvolti</div></div>
+  </div>
+  <div class="note" style="text-align:left;">Avvisami
+    <input class="dw-input" id="sca-preavviso" type="number" min="1" max="365" step="1" value="30" style="width:70px;display:inline-block;margin:0 4px;"> giorni prima
+    — sotto questa soglia la scadenza diventa gialla (“in scadenza”).</div>
+  <div id="sca-filtri" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+    <button class="dw-btn secondary" data-sca-filtro="tutte" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Tutte</button>
+    <button class="dw-btn secondary" data-sca-filtro="scaduta" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Scadute</button>
+    <button class="dw-btn secondary" data-sca-filtro="in-scadenza" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">In scadenza</button>
+    <button class="dw-btn secondary" data-sca-filtro="a-posto" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">A posto</button>
+  </div>
+  <input class="dw-input" id="sca-cerca" type="search" placeholder="🔍 Cerca per mezzo o tipo…" style="margin-bottom:6px;">
+  <div id="sca-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
+  <div id="sca-list"></div>
+
+  <div class="sec">Nuova scadenza</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <select class="dw-input" id="sca-mezzo" title="Mezzo a cui si riferisce la scadenza" style="flex:1;min-width:140px;"></select>
+    <select class="dw-input" id="sca-preset" title="Tipo di scadenza (voci già pronte)" style="flex:2;min-width:200px;"></select>
+    <input class="dw-input" id="sca-data" type="date" title="Data di scadenza" style="flex:1;min-width:140px;">
+    <input class="dw-input" id="sca-mesi" type="number" min="0" max="600" step="1" placeholder="Ogni quanti mesi" title="Periodicità in mesi: puoi cambiarla, vuoto = non si ripete" style="flex:1;min-width:130px;">
+    <input class="dw-input" id="sca-doc" placeholder="Documento (es. verbale ASL n. 118)" title="Riferimento al documento cartaceo o al file" style="flex:2;min-width:180px;">
+    <input class="dw-input" id="sca-note" placeholder="Note / esito (facoltativo)" style="flex:2;min-width:160px;">
+    <button class="dw-btn" id="btn-sca" style="width:auto;">Aggiungi</button>
+  </div>
+  <div class="note" id="sca-norma" style="text-align:left;"></div>
+  <div class="note" id="sca-esito" style="text-align:left;"></div>
+  <div style="margin-top:6px;"><button class="dw-btn secondary" id="btn-sca-csv" style="width:auto;">Esporta scadenze (CSV)</button></div>
+  <div class="note" style="text-align:left;">La periodicità proposta è solo un punto di partenza: <b>puoi sempre cambiarla</b>, perché cambia da attrezzatura ad attrezzatura e da cantiere a cantiere. I riferimenti di legge qui sotto sono un'informazione, <b>non una consulenza legale</b>: verifica sempre le periodicità con il tuo consulente o con l'RSPP.</div>
+  <div class="note" style="text-align:left;">Flotta ti <i>ricorda</i> le scadenze e conserva la storia, ma <b>non sostituisce</b> il libretto ufficiale della macchina né i verbali dell'ente che fa la verifica. Le abilitazioni delle <i>persone</i> (patentini, corsi) si gestiscono in Scudo.</div>
+</div>
+
 <div class="page" id="page-cos">
   <div class="sec">Costi del mese</div>
   <div id="cos-riep" class="note" style="text-align:left;"></div>
@@ -141,6 +183,7 @@
   <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico">▦</span>Quadro</button>
   <button id="nav-mez" onclick="go('mez')"><span class="ico">🚚</span>Mezzi</button>
   <button id="nav-man" onclick="go('man')"><span class="ico">🔧</span>Manutenzioni</button>
+  <button id="nav-sca" onclick="go('sca')"><span class="ico">⚖</span>Scadenze</button>
   <button id="nav-cos" onclick="go('cos')"><span class="ico">💶</span>Costi</button>
 </div>
 
@@ -155,7 +198,8 @@
 </script>
 
 <script type="module">
-  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, scaricoGiacenza, parseTelemetriaCsv, parseMezziCsv, ripartizioneCosti, prioritaOperative } from "./flotta-data.js";
+  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, scaricoGiacenza, parseTelemetriaCsv, parseMezziCsv, ripartizioneCosti, prioritaOperative,
+           SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi } from "./flotta-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const MB = { operativo: ["ok","Operativo"], fermo: ["danger","Fermo"], verifica: ["warn","Verifica"] };
@@ -173,8 +217,52 @@
     go(card.getAttribute("data-goto")); refresh();
   });
 
-  let MEZ=[], MAN=[], COS=[], RIC=[], INT=[];
+  let MEZ=[], MAN=[], COS=[], RIC=[], INT=[], SCA=[];
   let filtroMez = "tutti";
+  // Scadenze di legge (F6): filtro del semaforo e soglia di preavviso, che
+  // l'utente sceglie e che restano ricordate sul suo dispositivo.
+  let filtroSca = "tutte";
+  let preavvisoSca = 30;
+  const dataIt = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || "").slice(0,10)); return m ? `${m[3]}/${m[2]}/${m[1]}` : "—"; };
+  const itToIso = (s) => { const m = /^\s*(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})\s*$/.exec(String(s || "")); return m ? `${m[3]}-${String(+m[2]).padStart(2,"0")}-${String(+m[1]).padStart(2,"0")}` : null; };
+  const oggiISO = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  try { const _p = +localStorage.getItem("dwFlottaPreavviso"); if (_p >= 1 && _p <= 365) preavvisoSca = _p; } catch (e) {}
+  $("sca-preavviso").value = preavvisoSca;
+  $("sca-preavviso").addEventListener("input", () => {
+    const v = Math.round(+$("sca-preavviso").value);
+    if (!(v >= 1 && v <= 365)) return;                 // valore fuori scala: si ignora finché non è sensato
+    preavvisoSca = v; try { localStorage.setItem("dwFlottaPreavviso", String(v)); } catch (e) {}
+    refresh();
+  });
+  $("sca-filtri").addEventListener("click", (e) => {
+    const f = e.target.getAttribute && e.target.getAttribute("data-sca-filtro");
+    if (f) { filtroSca = f; refresh(); }
+  });
+  $("sca-kpis").addEventListener("click", (e) => {
+    const card = e.target.closest("[data-sca-filtro]"); if (!card) return;
+    filtroSca = card.getAttribute("data-sca-filtro"); refresh();
+  });
+  $("dash-sca").addEventListener("click", () => { go("sca"); refresh(); });
+  if ($("sca-cerca")) $("sca-cerca").oninput = () => refresh();
+  // Voci di legge già pronte: scegliendone una l'app propone la periodicità
+  // e mostra il riferimento normativo (informazione, non consulenza legale).
+  $("sca-preset").innerHTML = SCADENZE_MEZZO_PRESET
+    .map(p => `<option value="${p.chiave}">${esc(p.etichetta)}</option>`).join("");
+  function mostraNorma() {
+    const p = presetScadenzaMezzo($("sca-preset").value);
+    if (!p) { $("sca-norma").innerHTML = ""; return; }
+    $("sca-norma").innerHTML = (p.norma ? `⚖ <b>${esc(p.norma)}</b><br>` : "")
+      + (p.nota ? esc(p.nota) : "")
+      + (p.mesi ? `<br><span style="color:var(--muted2);">Periodicità proposta: ogni ${p.mesi} mesi (modificabile).</span>`
+                : `<br><span style="color:var(--muted2);">Non ricorrente: nessuna periodicità proposta.</span>`);
+  }
+  $("sca-preset").onchange = () => {
+    const p = presetScadenzaMezzo($("sca-preset").value);
+    $("sca-mesi").value = p && p.mesi ? p.mesi : "";
+    mostraNorma();
+  };
+  mostraNorma();
+  $("sca-mesi").value = (SCADENZE_MEZZO_PRESET[0] && SCADENZE_MEZZO_PRESET[0].mesi) || "";
   let editMez = null;   // id del mezzo in modifica (riusa il form "Nuovo mezzo"; stato/manutenzioni restano)
   let ordMez = "stato";
   const MEZ_NEXT = { operativo: "verifica", verifica: "fermo", fermo: "operativo" };
@@ -193,7 +281,7 @@
       ["mez-nome","mez-area","mez-ore"].forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; }); }
   });
   async function refresh(){
-    [MEZ,MAN,COS,RIC,INT] = await Promise.all([db.mezzi(), db.manutenzioni(), db.costi(), db.ricambi ? db.ricambi() : [], db.interventi ? db.interventi() : []]);
+    [MEZ,MAN,COS,RIC,INT,SCA] = await Promise.all([db.mezzi(), db.manutenzioni(), db.costi(), db.ricambi ? db.ricambi() : [], db.interventi ? db.interventi() : [], db.scadenze ? db.scadenze() : []]);
     const k = kpiFrom(MEZ,MAN,COS);
     const kn = document.querySelectorAll(".kpis .kpi .n");
     if (kn[0]) kn[0].textContent = k.operativi;
@@ -213,7 +301,7 @@
 
     // Priorità operative del giorno: manutenzioni urgenti (a data e a ore) +
     // ricambi sotto scorta + mezzi fermi/in verifica, ordinate danger-first.
-    const prio = prioritaOperative(MEZ, MAN, RIC);
+    const prio = prioritaOperative(MEZ, MAN, RIC, new Date(), SCA, preavvisoSca);
     $("alert-list").innerHTML = prio.map(a => `<div class="item">
       <div class="avatar">${esc(sig(a.titolo))}</div>
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc(a.dettaglio)}</div></div>
@@ -298,9 +386,61 @@
       <span class="arr" style="cursor:pointer" title="Rimuovi voce di costo" data-del-cos="${c.id}">✕</span></div>`).join("")
       || '<div class="note" style="text-align:left;">Nessun costo registrato.</div>';
 
+    // SCADENZE DI LEGGE (F6): semaforo (scaduta / in scadenza / a posto),
+    // conteggi in evidenza e lista ordinata per urgenza. Lo stato non è mai
+    // salvato: si calcola dalla data e dalla soglia di preavviso scelta.
+    const conta = contaScadenzeMezzi(SCA, new Date(), preavvisoSca);
+    const skn = document.querySelectorAll("#sca-kpis .kpi .n");
+    if (skn[0]) skn[0].textContent = conta.scadute;
+    if (skn[1]) skn[1].textContent = conta.inScadenza;
+    if (skn[2]) skn[2].textContent = conta.aPosto;
+    if (skn[3]) skn[3].textContent = conta.mezzi;
+    $("dash-sca").innerHTML = conta.totale === 0
+      ? 'Nessuna scadenza di legge registrata. <span style="color:var(--app-accent2);">Aprila e aggiungi la prima →</span>'
+      : (conta.scadute + conta.inScadenza) === 0
+        ? `Tutte a posto: <b>${conta.totale}</b> scadenze su ${conta.mezzi} ${conta.mezzi === 1 ? "mezzo" : "mezzi"}, nessuna entro ${preavvisoSca} giorni.`
+        : `<span style="color:var(--danger);">⚠️ ${conta.scadute} ${conta.scadute === 1 ? "scaduta" : "scadute"}</span> · <span style="color:var(--warn);">${conta.inScadenza} in scadenza entro ${preavvisoSca} gg</span> · ${conta.aPosto} a posto. <span style="color:var(--app-accent2);">Vedi →</span>`;
+    const qSca = ($("sca-cerca") && $("sca-cerca").value || "").trim().toLowerCase();
+    const scaOrd = scadenzeOrdinate(SCA, new Date(), preavvisoSca)
+      .filter(s => filtroSca === "tutte" || s.sem.stato === filtroSca
+        || (filtroSca === "in-scadenza" && s.sem.stato === "senza-data"))
+      .filter(s => !qSca || ((s.mezzo || "") + " " + (s.tipo || "") + " " + (s.documento || "")).toLowerCase().includes(qSca));
+    $("sca-list").innerHTML = scaOrd.map(s => {
+      const p = presetScadenzaMezzo(s.chiave);
+      const meta = [
+        "scade il " + dataIt(s.dataScadenza),
+        s.mesi ? "ogni " + s.mesi + (s.mesi === 1 ? " mese" : " mesi") : "non si ripete",
+        s.documento ? "📄 " + s.documento : "",
+        s.ultimaData ? "ultima: " + dataIt(s.ultimaData) + (s.ultimoEsito ? " (" + s.ultimoEsito + ")" : "") : "",
+        s.note || "",
+      ].filter(Boolean).map(esc).join(" · ");
+      return `<div class="item">
+        <div class="avatar">${esc(sig(s.mezzo))}</div>
+        <div class="info"><div class="name">${esc(s.tipo || "Scadenza")} — ${esc(s.mezzo || "?")}</div>
+          <div class="meta">${meta}</div>
+          ${p && p.norma ? `<div class="meta" style="color:var(--muted);">⚖ ${esc(p.norma)}</div>` : ""}</div>
+        <span class="badge ${s.sem.cls}">${esc(s.sem.label)}</span>
+        <span class="arr" style="cursor:pointer" title="Registra che è stata fatta" data-sca-done="${s.id}">✓</span>
+        <span class="arr" style="cursor:pointer" title="Rimuovi la scadenza" data-sca-del="${s.id}">✕</span></div>`;
+    }).join("")
+      || '<div class="note" style="text-align:left;">' + (qSca
+        ? "Nessuna scadenza trovata per «" + esc(qSca) + "»."
+        : filtroSca !== "tutte"
+          ? "Nessuna scadenza in questa categoria: tocca «Tutte» per vederle tutte."
+          : "Nessuna scadenza registrata.<br>Qui tieni le scadenze obbligatorie dei mezzi — verifica periodica dell'attrezzatura, funi e catene, revisione, assicurazione — quelle che l'ispettore chiede di vedere.<br>Scegli il mezzo e una voce già pronta qui sotto: l'app propone la periodicità e, quando segni che la verifica è stata fatta, ti prepara da sola la prossima.") + '</div>';
+    { const n = scaOrd.length, filtrata = qSca || filtroSca !== "tutte";
+      $("sca-count").textContent = n === 0 ? "" : n + (n === 1 ? " scadenza" : " scadenze") + (filtrata ? " · su " + SCA.length : ""); }
+    document.querySelectorAll("#sca-filtri [data-sca-filtro]").forEach(b =>
+      b.style.borderColor = b.getAttribute("data-sca-filtro") === filtroSca ? "var(--app-accent)" : "");
+
     const opts = MEZ.map(m => `<option value="${m.id}">${esc(m.nome.split(" — ")[0])}</option>`).join("");
     $("ore-mezzo").innerHTML = opts;
     $("man-mezzo").innerHTML = MEZ.map(m => `<option>${esc(m.nome.split(" — ")[0])}</option>`).join("");
+    // elenco mezzi per le scadenze di legge (conserva la scelta in corso)
+    { const scaSel = $("sca-mezzo").value;
+      $("sca-mezzo").innerHTML = MEZ.map(m => { const n = m.nome.split(" — ")[0];
+        return `<option${n === scaSel ? " selected" : ""}>${esc(n)}</option>`; }).join("")
+        || '<option value="">— nessun mezzo nel parco —</option>'; }
     // opzioni ricambio (conserva la scelta corrente durante il refresh)
     const ricSel = $("man-ricambio").value;
     $("man-ricambio").innerHTML = '<option value="">— nessun ricambio —</option>' +
@@ -354,6 +494,47 @@
       $("btn-mez").textContent = "Salva modifica";
       $("ore-esito").textContent = "Stai modificando «" + m.nome + "»: cambi nome/area/ore, lo stato e le manutenzioni restano.";
       $("mez-nome").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+    // SCADENZE DI LEGGE: "✓ è stata fatta" registra l'esecuzione e, se la
+    // scadenza è ricorrente, PROPONE da sola la prossima data (ultima
+    // verifica + periodicità). L'utente può correggerla o non riprogrammarla.
+    const scaDone = e.target.getAttribute && e.target.getAttribute("data-sca-done");
+    if (scaDone) {
+      const s = SCA.find(x => x.id === scaDone); if (!s) return;
+      const quale = (s.tipo || "Scadenza") + " — " + (s.mezzo || "?");
+      const esito = prompt("«" + quale + "»: com'è andata? (es. regolare, con prescrizioni)", s.ultimoEsito || "regolare");
+      if (esito === null) return;
+      const fattaTx = prompt("In che data è stata fatta? (gg/mm/aaaa)", dataIt(oggiISO()));
+      if (fattaTx === null) return;
+      const fatta = itToIso(fattaTx);
+      if (!fatta) { alert("La data «" + fattaTx + "» non è valida: scrivila come gg/mm/aaaa."); return; }
+      const eseguita = { ultimaData: fatta, ultimoEsito: (esito || "").trim() || "regolare" };
+      if (s.mesi) {
+        const prop = aggiungiMesi(fatta, s.mesi);
+        const nuovaTx = prompt("Verifica registrata. La prossima, ogni " + s.mesi + " mesi, cade il "
+          + dataIt(prop) + ".\nConfermi la data (puoi cambiarla) oppure lascia vuoto per chiudere questa scadenza e toglierla dall'elenco.", dataIt(prop));
+        if (nuovaTx === null) return;
+        if (!nuovaTx.trim()) {
+          if (!confirm("Nessuna prossima scadenza: «" + quale + "» verrà tolta dall'elenco. Procedo?")) return;
+          await db.rimuovi("scadenze", s.id);
+          $("sca-esito").textContent = "Registrata come fatta il " + dataIt(fatta) + " e chiusa: " + quale + ".";
+        } else {
+          const nuova = itToIso(nuovaTx);
+          const v = validaScadenzaMezzo({ mezzo: s.mezzo, tipo: s.tipo, dataScadenza: nuova, mesi: s.mesi });
+          if (!v.ok) { alert(Object.values(v.errori).join(" ")); return; }
+          await db.aggiorna("scadenze", s.id, { ...eseguita, dataScadenza: nuova });
+          $("sca-esito").textContent = "Fatta il " + dataIt(fatta) + ": la prossima « " + quale + " » è al " + dataIt(nuova) + ".";
+        }
+      } else {
+        if (!confirm("«" + quale + "» non è ricorrente: la registro come fatta il " + dataIt(fatta) + " e la tolgo dall'elenco. Procedo?")) return;
+        await db.rimuovi("scadenze", s.id);
+        $("sca-esito").textContent = "Registrata come fatta il " + dataIt(fatta) + " e chiusa: " + quale + ".";
+      }
+      await refresh(); return;
+    }
+    const scaDel = e.target.getAttribute && e.target.getAttribute("data-sca-del");
+    if (scaDel) { const s = SCA.find(x => x.id === scaDel);
+      if (s && confirm("Rimuovere la scadenza «" + (s.tipo || "") + " — " + (s.mezzo || "") + "» (" + dataIt(s.dataScadenza) + ")?")) {
+        await db.rimuovi("scadenze", scaDel); await refresh(); } return; }
     const it = e.target.closest && e.target.closest("[data-mezzo]");
     if (it) { const m = MEZ.find(x => x.id === it.getAttribute("data-mezzo"));
       await db.aggiorna("mezzi", m.id, { stato: MEZ_NEXT[m.stato] || "operativo" }); await refresh(); }
@@ -365,6 +546,46 @@
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-registro-interventi.csv"; a.click();
+  };
+  // Nuova scadenza di legge: il tipo arriva dalle voci già pronte, la
+  // periodicità è solo PROPOSTA (l'utente la può cambiare o svuotare).
+  $("btn-sca").onclick = async () => {
+    if (!MEZ.length) { $("sca-esito").textContent = "Prima aggiungi almeno un mezzo nel parco (schermata Mezzi)."; return; }
+    const p = presetScadenzaMezzo($("sca-preset").value);
+    const dati = { mezzo: ($("sca-mezzo").value || "").trim(), tipo: p ? p.tipo : "",
+                   dataScadenza: $("sca-data").value, mesi: $("sca-mesi").value };
+    const v = validaScadenzaMezzo(dati);
+    $("sca-mezzo").style.borderColor = v.errori.mezzo ? "var(--danger)" : "";
+    $("sca-data").style.borderColor = v.errori.dataScadenza ? "var(--danger)" : "";
+    $("sca-mesi").style.borderColor = v.errori.mesi ? "var(--danger)" : "";
+    if (!v.ok) { $("sca-esito").textContent = Object.values(v.errori).join(" "); return; }
+    if (SCA.some(s => s.mezzo === dati.mezzo && s.chiave === (p ? p.chiave : null))
+        && !confirm("Per « " + dati.mezzo + " » esiste già una scadenza di questo tipo. Ne aggiungo un'altra lo stesso?")) return;
+    await db.aggiungi("scadenze", {
+      mezzo: dati.mezzo, tipo: dati.tipo, chiave: p ? p.chiave : null,
+      dataScadenza: dati.dataScadenza, mesi: v.mesi,
+      documento: $("sca-doc").value.trim(), note: $("sca-note").value.trim(),
+      ultimaData: null, ultimoEsito: null,
+    });
+    $("sca-data").value = ""; $("sca-doc").value = ""; $("sca-note").value = "";
+    $("sca-esito").textContent = "Scadenza aggiunta: " + dati.tipo + " per " + dati.mezzo + " (" + dataIt(dati.dataScadenza) + ")"
+      + (v.mesi ? ", si ripete ogni " + v.mesi + (v.mesi === 1 ? " mese" : " mesi") : ", non ricorrente") + ".";
+    await refresh();
+  };
+  // Esporta lo scadenzario dei mezzi: è la lista che si stampa e si porta al
+  // controllo, o si gira al responsabile della sicurezza.
+  $("btn-sca-csv").onclick = () => {
+    const righe = [["mezzo","tipo","scadenza","stato","ogni_mesi","documento","ultima_verifica","esito","note","riferimento_normativo"].join(";")]
+      .concat(scadenzeOrdinate(SCA, new Date(), preavvisoSca).map(s => {
+        const p = presetScadenzaMezzo(s.chiave);
+        return [s.mezzo || "", s.tipo || "", dataIt(s.dataScadenza), s.sem.stato, s.mesi || "",
+                s.documento || "", s.ultimaData ? dataIt(s.ultimaData) : "", s.ultimoEsito || "",
+                s.note || "", p ? p.norma : ""].map(csvCell).join(";");
+      }));
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    a.download = "flotta-scadenze-di-legge.csv"; a.click();
+    $("sca-esito").textContent = "Esportate " + SCA.length + " scadenze (CSV).";
   };
   $("btn-cos").onclick = async () => {
     const voce = $("cos-voce").value.trim(), importo = +$("cos-importo").value;
@@ -489,6 +710,8 @@
   clearErr("mez-nome", "ore-esito");
   clearErr("ore-nuove", "ore-esito");
   clearErr("man-titolo", "ore-esito");
+  clearErr("sca-data", "sca-esito");
+  clearErr("sca-mesi", "sca-esito");
   // Invio da tastiera: premere Invio in un campo del form equivale a
   // toccare il pulsante — data entry più rapida senza spostare il dito.
   const enterSubmit = (inputIds, btnId) => inputIds.forEach(id =>
@@ -497,6 +720,7 @@
   enterSubmit(["mez-nome", "mez-area", "mez-ore"], "btn-mez");
   enterSubmit(["ore-nuove"], "btn-ore");
   enterSubmit(["man-titolo", "man-ore"], "btn-man");
+  enterSubmit(["sca-data", "sca-mesi", "sca-doc", "sca-note"], "btn-sca");
   await refresh();
 </script>
 </body>

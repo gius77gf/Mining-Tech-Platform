@@ -9,6 +9,10 @@
 //   interventi/{id}:   { data (ISO), titolo, mezzo, ricambio|null,
 //                        costo|0, note } — ORDINE DI LAVORO chiuso:
 //                        lo storico manutenzioni del mezzo (25/07)
+//   scadenze/{id}:     { mezzo, tipo, chiave|null, dataScadenza (ISO),
+//                        mesi|null (periodicità), documento, note,
+//                        ultimaData|null, ultimoEsito|null } — SCADENZE
+//                        DI LEGGE del mezzo (F6, 27/07)
 // L'urgenza delle manutenzioni si CALCOLA dalla data (mai salvata).
 // ============================================================
 
@@ -42,7 +46,160 @@ export const DEMO = {
     { id: "p3", nome: "Olio idraulico (fusto 200L)", giacenza: 1, sogliaMin: 1 },
     { id: "p4", nome: "Denti benna escavatore", giacenza: 0, sogliaMin: 3 },
   ],
+  scadenze: [
+    { id: "sc1", mezzo: "Escavatore E1", tipo: "Verifica periodica", chiave: "verifica-periodica",
+      dataScadenza: "2026-07-10", mesi: 12, documento: "verbale ASL 2025/118", note: "",
+      ultimaData: "2025-07-10", ultimoEsito: "regolare" },
+    { id: "sc2", mezzo: "Pala P1", tipo: "Funi e catene", chiave: "funi-catene",
+      dataScadenza: "2026-08-12", mesi: 3, documento: "registro di controllo", note: "" },
+    { id: "sc3", mezzo: "Dumper D1", tipo: "Revisione", chiave: "revisione",
+      dataScadenza: "2029-03-01", mesi: 60, documento: "libretto di circolazione", note: "mezzo targato" },
+  ],
 };
+
+// ============================================================
+// F6 — SCADENZE DI LEGGE DEL MEZZO
+// Voci preimpostate prese dalla scheda docs/RICERCA_FLOTTA_202607.md.
+// `mesi` è solo una PROPOSTA di periodicità: l'utente la può cambiare
+// su ogni singola scadenza, perché le regole cambiano da attrezzatura ad
+// attrezzatura e da contesto a contesto (mesi null = scadenza singola,
+// non ricorrente). `norma` e `nota` si MOSTRANO all'utente come
+// informazione, non come consulenza legale.
+// Le abilitazioni delle PERSONE (patentini, corsi) restano in Scudo:
+// qui ci sono solo le scadenze del MEZZO, per non fare doppioni.
+// ============================================================
+export const SCADENZE_MEZZO_PRESET = [
+  { chiave: "verifica-periodica", tipo: "Verifica periodica", mesi: 12,
+    etichetta: "Verifica periodica dell'attrezzatura",
+    norma: "D.Lgs. 81/2008, art. 71 c.11 e Allegato VII",
+    nota: "Riguarda gru su autocarro, autogrù, carrelli semoventi a braccio telescopico, piattaforme elevabili, ponti sviluppabili, argani e paranchi. La prima verifica la fa l'INAIL, le successive l'ASL o un soggetto privato abilitato. La periodicità cambia da attrezzatura ad attrezzatura: controlla l'Allegato VII per la tua." },
+  { chiave: "gru-autocarro", tipo: "Verifica periodica", mesi: 12,
+    etichetta: "Gru su autocarro / autogrù — verifica",
+    norma: "D.Lgs. 81/2008, Allegato VII",
+    nota: "Nel settore estrattivo la verifica è ogni 12 mesi (negli altri settori 24), e comunque ogni 12 mesi se la macchina ha più di 10 anni." },
+  { chiave: "funi-catene", tipo: "Funi e catene", mesi: 3,
+    etichetta: "Funi, catene e ganci — controllo trimestrale",
+    norma: "D.Lgs. 81/2008, Allegato VII — registro di controllo",
+    nota: "Controllo di funi, catene e ganci da parte di tecnico qualificato, da annotare sul libretto/registro di controllo della macchina." },
+  { chiave: "registro-controllo", tipo: "Registro di controllo", mesi: 12,
+    etichetta: "Registro di controllo / libretto macchina — riepilogo",
+    norma: "D.Lgs. 81/2008, art. 71",
+    nota: "Ogni verifica va annotata con data, firma di chi l'ha fatta e descrizione. I risultati vanno tenuti a disposizione degli organi di vigilanza per 5 anni." },
+  { chiave: "revisione", tipo: "Revisione", mesi: 60,
+    etichetta: "Revisione alla Motorizzazione (mezzo targato)",
+    norma: "Codice della Strada — macchine operatrici immatricolate",
+    nota: "Riguarda i mezzi immatricolati che circolano su strada (dumper, pale con targa): revisione ogni 5 anni." },
+  { chiave: "assicurazione", tipo: "Assicurazione", mesi: 12,
+    etichetta: "Assicurazione / polizza RC del mezzo",
+    norma: "obbligo assicurativo del mezzo",
+    nota: "La data la trovi sulla polizza: metti qui la scadenza concordata con l'assicurazione." },
+  { chiave: "sorveglianza-cava", tipo: "Sorveglianza cava", mesi: 12,
+    etichetta: "Sorveglianza macchine e impianti in cava",
+    norma: "D.P.R. 128/1959 — polizia delle miniere e delle cave",
+    nota: "In cava il direttore responsabile e i sorveglianti garantiscono la sorveglianza su macchine e impianti e tengono i documenti a disposizione dell'ingegnere capo." },
+  { chiave: "noleggio-freddo", tipo: "Noleggio a freddo", mesi: null,
+    etichetta: "Noleggio a freddo — attestazione e dichiarazioni",
+    norma: "D.Lgs. 81/2008, art. 72",
+    nota: "Chi noleggia un mezzo senza operatore attesta che è in buono stato e si fa consegnare la dichiarazione che gli operatori sono formati e abilitati, conservandola per tutta la durata del noleggio. Non è ricorrente: vale per il singolo noleggio (metti come data la fine del noleggio)." },
+  { chiave: "registro-carburante", tipo: "Registro carburante", mesi: 12,
+    etichetta: "Registro carico/scarico gasolio (cisterna oltre 10 mc)",
+    norma: "obblighi dei depositi di carburante a uso privato/industriale",
+    nota: "Serve solo se in cava c'è una cisterna aziendale sopra i 10 metri cubi: sotto i 10 mc si è esenti." },
+  { chiave: "altro", tipo: "Altro", mesi: null,
+    etichetta: "Altra scadenza del mezzo",
+    norma: "", nota: "Usa questa voce per una scadenza che non rientra nelle altre: scrivi tu il tipo nelle note." },
+];
+
+// Preset con quella chiave (o null se non esiste). Pura e testabile.
+export function presetScadenzaMezzo(chiave) {
+  return SCADENZE_MEZZO_PRESET.find(p => p.chiave === chiave) || null;
+}
+
+// Data (ISO) ottenuta aggiungendo `mesi` a una data ISO: serve a PROPORRE
+// la prossima scadenza quando se ne chiude una ricorrente. Se il giorno non
+// esiste nel mese di arrivo (31 gennaio + 1 mese) si usa l'ultimo giorno del
+// mese. Ritorna null se la data non è valida o la periodicità non è
+// positiva. Pura e testabile.
+export function aggiungiMesi(dataISO, mesi) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dataISO || "").slice(0, 10));
+  const n = Math.round(+mesi || 0);
+  if (!m || !(n > 0)) return null;
+  const anno = +m[1], mese = +m[2], giorno = +m[3];
+  const tot = anno * 12 + (mese - 1) + n;
+  const ny = Math.floor(tot / 12), nm = (tot % 12) + 1;
+  const ultimoGiorno = new Date(Date.UTC(ny, nm, 0)).getUTCDate();
+  const nd = Math.min(giorno, ultimoGiorno);
+  return `${ny}-${String(nm).padStart(2, "0")}-${String(nd).padStart(2, "0")}`;
+}
+
+// SEMAFORO di una scadenza di legge: scaduta (rosso) / in scadenza entro il
+// preavviso (giallo) / a posto (verde). Il preavviso è impostabile
+// dall'utente (default 30 giorni). Stesso linguaggio visivo del resto di
+// Flotta: cls "danger" | "warn" | "ok" per il badge. Lo stato non si salva
+// MAI: si calcola dalla data. Pura e testabile.
+export function statoScadenzaMezzo(dataISO, oggi = new Date(), preavvisoGiorni = 30) {
+  const soglia = Math.max(0, Math.round(+preavvisoGiorni || 0));
+  if (!dataISO) return { stato: "senza-data", cls: "warn", label: "senza data", giorni: null };
+  const g = giorniTra(String(dataISO).slice(0, 10), oggi);
+  if (!Number.isFinite(g)) return { stato: "senza-data", cls: "warn", label: "senza data", giorni: null };
+  if (g < 0) return { stato: "scaduta", cls: "danger", label: "scaduta da " + (-g) + " gg", giorni: g };
+  if (g === 0) return { stato: "in-scadenza", cls: "danger", label: "scade oggi", giorni: 0 };
+  if (g <= soglia) return { stato: "in-scadenza", cls: "warn", label: "tra " + g + " gg", giorni: g };
+  return { stato: "a-posto", cls: "ok", label: "tra " + g + " gg", giorni: g };
+}
+
+// Scadenze ORDINATE PER URGENZA (prima le più scadute, poi le più vicine),
+// ognuna arricchita con il suo semaforo. Pura e testabile: `oggi` iniettabile.
+export function scadenzeOrdinate(scadenze, oggi = new Date(), preavvisoGiorni = 30) {
+  return (scadenze || [])
+    .map(s => ({ ...s, sem: statoScadenzaMezzo(s.dataScadenza, oggi, preavvisoGiorni) }))
+    .sort((a, b) =>
+      (a.sem.giorni == null ? -1e9 : a.sem.giorni) - (b.sem.giorni == null ? -1e9 : b.sem.giorni) ||
+      String(a.mezzo || "").localeCompare(String(b.mezzo || ""), "it") ||
+      String(a.tipo || "").localeCompare(String(b.tipo || ""), "it"));
+}
+
+// Conteggi del semaforo, per i numeri in evidenza: scadute / in scadenza /
+// a posto / mezzi coinvolti. Pura e testabile.
+export function contaScadenzeMezzi(scadenze, oggi = new Date(), preavvisoGiorni = 30) {
+  const c = { scadute: 0, inScadenza: 0, aPosto: 0, totale: 0, mezzi: 0 };
+  const mezzi = new Set();
+  for (const s of scadenze || []) {
+    c.totale++;
+    if (s.mezzo) mezzi.add(String(s.mezzo));
+    const st = statoScadenzaMezzo(s.dataScadenza, oggi, preavvisoGiorni).stato;
+    if (st === "scaduta") c.scadute++;
+    else if (st === "in-scadenza" || st === "senza-data") c.inScadenza++;
+    else c.aPosto++;
+  }
+  c.mezzi = mezzi.size;
+  return c;
+}
+
+// Validazione di una scadenza prima di salvarla: campi obbligatori e date
+// non assurde (un anno digitato male è l'errore più frequente). Ritorna
+// { ok, errori: {campo: messaggio}, mesi }. Pura e testabile.
+export function validaScadenzaMezzo(dati, oggi = new Date()) {
+  const d = dati || {}, errori = {};
+  if (!String(d.mezzo || "").trim()) errori.mezzo = "Scegli il mezzo a cui si riferisce la scadenza.";
+  if (!String(d.tipo || "").trim()) errori.tipo = "Scegli il tipo di scadenza.";
+  const iso = String(d.dataScadenza || "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+    errori.dataScadenza = "Serve la data di scadenza.";
+  } else {
+    const g = giorniTra(iso, oggi);
+    if (!Number.isFinite(g)) errori.dataScadenza = "La data non è valida.";
+    else if (g < -3650) errori.dataScadenza = "Data troppo indietro nel tempo (oltre 10 anni fa): controlla l'anno.";
+    else if (g > 5475) errori.dataScadenza = "Data troppo lontana (oltre 15 anni): controlla l'anno.";
+  }
+  let mesi = null;
+  if (d.mesi != null && String(d.mesi).trim() !== "") {
+    const n = Math.round(+d.mesi);
+    if (!Number.isFinite(n) || n < 0 || n > 600) errori.mesi = "La periodicità va da 1 a 600 mesi (lascia vuoto se non si ripete).";
+    else mesi = n > 0 ? n : null;
+  }
+  return { ok: Object.keys(errori).length === 0, errori, mesi };
+}
 
 // Import telemetria da CSV esportato dai portali OEM (colonne:
 // mezzo;ore[;carburante], header opzionale). Coerce a numero e scarta le
@@ -154,8 +311,20 @@ export function disponibilitaFlotta(mezzi) {
 // titolo/dettaglio sono testo grezzo (nome mezzo/ricambio): vanno escapati dove
 // mostrati. Pura e testabile. Il mezzo di una manutenzione "a ore" si abbina
 // per prefisso del nome (stessa convenzione dell'app).
-export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date()) {
+// Dal 27/07 include anche (0) le SCADENZE DI LEGGE scadute o in scadenza,
+// che vengono prima di tutto il resto: un mezzo non verificato va fermato.
+// I parametri `scadenze` e `preavvisoGiorni` sono facoltativi (chi non li
+// passa ha esattamente il comportamento di prima).
+export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(), scadenze = [], preavvisoGiorni = 30) {
   const items = [];
+  for (const s of scadenze || []) {
+    const sem = statoScadenzaMezzo(s.dataScadenza, oggi, preavvisoGiorni);
+    if (sem.stato === "a-posto") continue;
+    items.push({ gravita: sem.stato === "scaduta" ? "danger" : "warn", categoria: "scadenza",
+      titolo: (s.tipo || "Scadenza di legge") + " — " + (s.mezzo || "?"),
+      dettaglio: "scadenza di legge" + (s.dataScadenza ? " del " + String(s.dataScadenza).split("-").reverse().join("/") : ""),
+      badge: sem.label });
+  }
   const oreDi = (nomeMezzo) => {
     const m = (mezzi || []).find(x => String(x.nome || "").split(" — ")[0] === nomeMezzo);
     return m ? (+m.ore || 0) : null;
@@ -190,7 +359,7 @@ export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(
       badge: m.stato === "fermo" ? "Fermo" : "In verifica" });
   }
   const rank = { danger: 0, warn: 1 };
-  const catRank = { manutenzione: 0, ricambio: 1, mezzo: 2 };
+  const catRank = { scadenza: 0, manutenzione: 1, ricambio: 2, mezzo: 3 };
   return items.sort((a, b) =>
     (rank[a.gravita] - rank[b.gravita]) ||
     (catRank[a.categoria] - catRank[b.categoria]) ||
@@ -239,7 +408,7 @@ export async function flottaData() {
       mode = "live";
       const read = async (n) => (await getDocs(id.orgCollection(n))).docs.map(d => ({ id: d.id, ...d.data() }));
       api = {
-        mezzi: () => read("mezzi"), manutenzioni: () => read("manutenzioni"), costi: () => read("costi"), ricambi: () => read("ricambi"), interventi: () => read("interventi"),
+        mezzi: () => read("mezzi"), manutenzioni: () => read("manutenzioni"), costi: () => read("costi"), ricambi: () => read("ricambi"), interventi: () => read("interventi"), scadenze: () => read("scadenze"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
         logout: () => id.logout(),
         aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n), i), d),
@@ -250,7 +419,7 @@ export async function flottaData() {
   if (mode !== "live") {
     const mem = JSON.parse(JSON.stringify(DEMO));
     api = {
-      mezzi: async () => mem.mezzi, manutenzioni: async () => mem.manutenzioni, costi: async () => mem.costi, ricambi: async () => mem.ricambi, interventi: async () => mem.interventi,
+      mezzi: async () => mem.mezzi, manutenzioni: async () => mem.manutenzioni, costi: async () => mem.costi, ricambi: async () => mem.ricambi, interventi: async () => mem.interventi, scadenze: async () => mem.scadenze,
       logout: async () => {},
       aggiungi: async (n, d) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[n] = mem[n] || []).push({ id, ...d }); return { id }; },
       aggiorna: async (n, i, d) => { const x = (mem[n] || (mem[n] = [])).find(v => v.id === i); if (x) Object.assign(x, d); },

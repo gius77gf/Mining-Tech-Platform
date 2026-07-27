@@ -16,6 +16,32 @@
 <style>
   /* Sentinella: accento della palette funzionale deepwork */
   :root { --app-accent:#1971c2; --app-accent2:#74c0fc; }
+
+  /* Serie storica di un punto di misura: stessa carta degli .item,
+     grafico SVG puro (nessuna libreria, pagina autonoma). */
+  .graf { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-sm);
+          padding: 10px 12px 8px; margin: -2px 0 10px; box-shadow: 0 1px 5px rgba(0,0,0,.18); }
+  .graf-head { font-size: 12px; color: var(--muted2); margin-bottom: 4px; }
+  .graf-head b { font-family: 'Barlow Condensed', sans-serif; letter-spacing: 1px;
+                 text-transform: uppercase; color: var(--app-accent2); }
+  .graf svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .graf-leg { font-size: 11px; color: var(--muted); margin-top: 6px;
+              display: flex; gap: 12px; flex-wrap: wrap; }
+  .graf-leg .lg-dati { color: var(--app-accent2); }
+  .graf-leg .lg-over { color: var(--danger); }
+  .graf-vuoto { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .graf-grid { stroke: rgba(255,255,255,.07); }
+  .graf-ax   { stroke: rgba(255,255,255,.16); }
+  .graf-tick { fill: var(--muted); font-size: 8px; font-family: 'Barlow', sans-serif; }
+  .graf-linea { fill: none; stroke: var(--app-accent); stroke-width: 2;
+                stroke-linejoin: round; stroke-linecap: round; }
+  .graf-pt   { fill: var(--app-accent2); stroke: var(--card); stroke-width: .6; }
+  .graf-over { fill: var(--danger); stroke: var(--bg); stroke-width: .7; }
+  .graf-soglia { stroke: var(--danger); stroke-width: 1.4; stroke-dasharray: 5 3; }
+  /* alone scuro sotto l'etichetta della soglia: resta leggibile anche
+     quando ci passano sopra la linea o i marcatori di superamento */
+  .graf-soglia-txt { fill: var(--danger); font-size: 8px; font-family: 'Barlow', sans-serif;
+                     paint-order: stroke; stroke: var(--card); stroke-width: 2.6px; stroke-linejoin: round; }
 </style>
 </head>
 <body class="dw">
@@ -166,7 +192,7 @@
 </script>
 
 <script type="module">
-  import { sentinellaData, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, prioritaConformita, riepilogoVolate, parseVolateCsv, parseAdempimentiCsv, parseMonitoraggiCsv } from "./sentinella-data.js";
+  import { sentinellaData, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, prioritaConformita, riepilogoVolate, parseVolateCsv, parseAdempimentiCsv, parseMonitoraggiCsv, serieStorica, numeroIt, unitaMisura } from "./sentinella-data.js";
   import { mountExit, esc, csvCell, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
@@ -181,6 +207,49 @@
   let filtroMon = "tutti";
   let editMon = null;   // id del sensore in modifica (riusa il form "Nuovo sensore"; lo storico misure resta)
   let ordMon = "criticita";
+  let grafMon = null;   // id del punto con la serie storica aperta (📈)
+
+  // SERIE STORICA (F5): grafico SVG puro di un punto di misura. La
+  // geometria arriva da serieStorica() in sentinella-data.js; qui si
+  // disegna soltanto. La soglia è quella impostata dall'utente sul
+  // punto: non ne esistono altre e non ne vengono inventate.
+  function svgSerie(m) {
+    const g = serieStorica(m, { larghezza: 320, altezza: 170 });
+    const unita = unitaMisura(m);
+    if (g.vuoto) return `<div class="graf-vuoto"><b>Nessuna lettura registrata</b> per «${esc(m.nome)}».<br>
+      Registra una misura qui sotto (o importa i dati dello strumento): da quel momento la serie storica compare in questo riquadro.</div>`;
+    const B = g.box;
+    const griglia = g.yTicks.map(t =>
+      `<line class="graf-grid" x1="${B.x0}" y1="${t.y}" x2="${B.x1}" y2="${t.y}"/>` +
+      `<text class="graf-tick" x="${B.x0 - 5}" y="${t.y + 3}" text-anchor="end">${esc(t.label)}</text>`).join("");
+    const assi = `<line class="graf-ax" x1="${B.x0}" y1="${B.y0}" x2="${B.x0}" y2="${B.y1}"/>` +
+      `<line class="graf-ax" x1="${B.x0}" y1="${B.y1}" x2="${B.x1}" y2="${B.y1}"/>`;
+    const tempi = g.xTicks.map(t =>
+      `<text class="graf-tick" x="${t.x}" y="${B.y1 + 12}" text-anchor="middle">${esc(t.label)}</text>`).join("");
+    const disegnaSoglia = g.lineaSoglia && !g.lineaSoglia.fuoriScala;
+    const sogLinea = disegnaSoglia
+      ? `<line class="graf-soglia" x1="${B.x0}" y1="${g.lineaSoglia.y}" x2="${B.x1}" y2="${g.lineaSoglia.y}"/>` : "";
+    // l'etichetta della soglia si disegna PER ULTIMA (sopra linea e
+    // marcatori) e con l'alone: resta leggibile in ogni caso
+    const sogTxt = disegnaSoglia
+      ? `<text class="graf-soglia-txt" x="${B.x1}" y="${Math.max(B.y0 + 7, g.lineaSoglia.y - 5)}" text-anchor="end">soglia ${esc(g.lineaSoglia.label)}</text>` : "";
+    // superamenti: colore DIVERSO e forma DIVERSA (rombo), così si
+    // riconoscono anche senza distinguere bene i colori
+    const punti = g.punti.map(p => {
+      const tip = `<title>${esc(p.dataIt)} · ${esc(p.etichetta)}${p.oltre ? " · oltre soglia" : ""}</title>`;
+      if (p.oltre) return `<path class="graf-over" d="M${p.x} ${p.y - 4.6}L${p.x + 4.6} ${p.y}L${p.x} ${p.y + 4.6}L${p.x - 4.6} ${p.y}Z">${tip}</path>`;
+      return g.mostraPunti ? `<circle class="graf-pt" cx="${p.x}" cy="${p.y}" r="2.6">${tip}</circle>` : "";
+    }).join("");
+    const aria = `Serie storica di ${m.nome}: ${g.n} letture dal ${g.dal} al ${g.al}, massimo ${numeroIt(g.max)} ${unita}` +
+      (g.soglia != null ? `, soglia ${numeroIt(g.soglia)} ${unita}, ${g.superamenti} superamenti` : "");
+    const legenda = `<span class="lg-dati">▬ letture${g.mostraPunti ? " (●)" : ""}</span>` +
+      (g.superamenti ? `<span class="lg-over">◆ oltre soglia: ${g.superamenti}</span>` : "") +
+      (g.lineaSoglia ? `<span>– – soglia ${esc(g.lineaSoglia.label)}${g.lineaSoglia.fuoriScala ? " (sopra la scala del grafico)" : ""}</span>` : "");
+    return `<div class="graf-head"><b>Serie storica</b> — ${g.n} ${g.n === 1 ? "lettura" : "letture"} dal ${esc(g.dal)} al ${esc(g.al)}${unita ? " · valori in " + esc(unita) : ""}</div>
+      <svg viewBox="0 0 ${B.w} ${B.h}" role="img" aria-label="${esc(aria)}">${griglia}${sogLinea}${assi}
+        <path class="graf-linea" d="${g.path}"/>${punti}${sogTxt}${tempi}</svg>
+      <div class="graf-leg">${legenda}</div>`;
+  }
   // scorciatoia: toccare un KPI del quadro porta alla lista pertinente
   document.querySelector(".kpis").addEventListener("click", (e) => {
     const card = e.target.closest("[data-goto]"); if (!card) return;
@@ -228,12 +297,14 @@
       .filter(x => filtroMon === "tutti" || x.st.cls === filtroMon)
       .filter(x => !qMon || ((x.m.nome || "") + " " + (x.m.nota || "")).toLowerCase().includes(qMon))
       .sort(monCmp)
-      .map(({m, st}) => { const ult = (m.letture || []).slice(-3).map(l => l.valore).join(" → ");
+      .map(({m, st}) => { const nl = (m.letture || []).length;
       return `<div class="item"><div class="info"><div class="name">${esc(m.nome)}</div>
-      <div class="meta">${m.valore} ${esc(m.unita)} / soglia ${m.soglia} (${Math.round(st.ratio*100)}%)${ult ? " · ultime: " + ult : ""}${m.nota ? " · " + esc(m.nota) : ""}</div></div>
+      <div class="meta">${m.valore} ${esc(m.unita)} / soglia ${m.soglia} (${Math.round(st.ratio*100)}%)${nl ? " · " + nl + (nl === 1 ? " lettura" : " letture") : ""}${m.nota ? " · " + esc(m.nota) : ""}</div></div>
       <span class="badge ${st.cls}">${st.label}</span>
+      <span class="arr" style="cursor:pointer" title="${grafMon === m.id ? "Chiudi la serie storica" : "Serie storica nel tempo"}" data-graf-mon="${m.id}">${grafMon === m.id ? "▣" : "📈"}</span>
       <span class="arr" style="cursor:pointer" title="Modifica sensore" data-edit-mon="${m.id}">✎</span>
-      <span class="arr" style="cursor:pointer" title="Rimuovi sensore" data-del-mon="${m.id}">✕</span></div>`; }).join("")
+      <span class="arr" style="cursor:pointer" title="Rimuovi sensore" data-del-mon="${m.id}">✕</span></div>`
+      + (grafMon === m.id ? `<div class="graf" id="graf-${m.id}">${svgSerie(m)}</div>` : ""); }).join("")
       || '<div class="note" style="text-align:left;">'+(qMon?"Nessun sensore trovato per «"+esc(qMon)+"».":(filtroMon==="tutti"?"Nessun sensore configurato.":"Nessun sensore in questa categoria."))+'</div>';
     { const n = $("mon-list").querySelectorAll(".item").length, filtrata = qMon || filtroMon !== "tutti";
       $("mon-count").textContent = n === 0 ? "" : n + (n === 1 ? " sensore" : " sensori") + (filtrata ? " · su " + MON.length : ""); }
@@ -282,11 +353,19 @@
     const delMon = e.target.getAttribute && e.target.getAttribute("data-del-mon");
     if (delMon) { const m = MON.find(x => x.id === delMon);
       if (m && confirm("Rimuovere il sensore «" + m.nome + "»? Anche lo storico delle misure verrà perso.")) {
+        if (grafMon === delMon) grafMon = null;
         await db.rimuovi("monitoraggi", delMon); await refresh(); } return; }
     const delVol = e.target.getAttribute && e.target.getAttribute("data-del-vol");
     if (delVol) {
       if (confirm("Rimuovere questa volata dal registro? (usa solo per correggere un inserimento sbagliato)")) {
         await db.rimuovi("volate", delVol); await refresh(); } return; }
+    const grafMonId = e.target.getAttribute && e.target.getAttribute("data-graf-mon");
+    if (grafMonId) {   // apre/chiude la serie storica del punto (una alla volta)
+      grafMon = grafMon === grafMonId ? null : grafMonId;
+      await refresh();
+      const el = grafMon && $("graf-" + grafMon);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      return; }
     const editMonId = e.target.getAttribute && e.target.getAttribute("data-edit-mon");
     if (editMonId) { const m = MON.find(x => x.id === editMonId); if (!m) return;
       if (editMon === m.id) {   // ri-tocco la ✎ dello stesso sensore = annulla
@@ -445,8 +524,10 @@
     const letture = [ ...((m && m.letture) || []), { data: new Date().toISOString().slice(0,10), valore } ].slice(-50);
     await db.aggiorna("monitoraggi", id, { valore, letture });
     const st = statoMisura({ ...m, valore });
-    $("mis-esito").textContent = "Misura registrata su " + (m ? m.nome.split(" — ")[0] : id) + ": " + valore + (m ? " " + m.unita : "") + " → " + st.label + ".";
-    $("mis-valore").value = ""; await refresh();
+    $("mis-esito").textContent = "Misura registrata su " + (m ? m.nome.split(" — ")[0] : id) + ": " + valore + (m ? " " + m.unita : "") + " → " + st.label + ". La serie storica qui sopra è aggiornata.";
+    $("mis-valore").value = "";
+    grafMon = id;   // dopo una misura si vede subito l'andamento del punto
+    await refresh();
   };
   // Recupero errore: appena l'utente corregge un campo, togli il bordo
   // rosso e il messaggio di esito, così l'avviso non resta appeso.

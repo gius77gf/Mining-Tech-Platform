@@ -12,10 +12,14 @@ import { parseCsvLine, numIt, giorniTra, isIntestazione } from "../../shared/dee
 
 export const DEMO = {
   monitoraggi: [
-    { id: "v1", nome: "Vibrazioni V1 — abitato Sud", tipo: "vibrazioni", valore: 1.8, soglia: 5, unita: "mm/s", nota: "ultimo evento 12/07" },
-    { id: "v2", nome: "Vibrazioni V2 — confine Nord", tipo: "vibrazioni", valore: 5.6, soglia: 5, unita: "mm/s", nota: "volata fronte Nord 17/07" },
-    { id: "p1", nome: "Polveri PM10 — confine Est", tipo: "polveri", valore: 36.8, soglia: 40, unita: "µg/m³", nota: "media 7gg" },
-    { id: "r1", nome: "Rumore — perimetro Ovest", tipo: "rumore", valore: 62, soglia: 70, unita: "dB(A)", nota: "campagna 06/2026" },
+    { id: "v1", nome: "Vibrazioni V1 — abitato Sud", tipo: "vibrazioni", valore: 1.8, soglia: 5, unita: "mm/s", nota: "ultimo evento 12/07",
+      letture: [ { data: "2026-06-08", valore: 2.4 }, { data: "2026-06-19", valore: 1.9 }, { data: "2026-06-30", valore: 3.1 }, { data: "2026-07-12", valore: 1.8 } ] },
+    { id: "v2", nome: "Vibrazioni V2 — confine Nord", tipo: "vibrazioni", valore: 5.6, soglia: 5, unita: "mm/s", nota: "volata fronte Nord 17/07",
+      letture: [ { data: "2026-06-05", valore: 3.2 }, { data: "2026-06-16", valore: 4.4 }, { data: "2026-06-27", valore: 5.2 }, { data: "2026-07-06", valore: 3.9 }, { data: "2026-07-17", valore: 5.6 } ] },
+    { id: "p1", nome: "Polveri PM10 — confine Est", tipo: "polveri", valore: 36.8, soglia: 40, unita: "µg/m³", nota: "media 7gg",
+      letture: [ { data: "2026-06-14", valore: 22.5 }, { data: "2026-06-21", valore: 31 }, { data: "2026-06-28", valore: 44.2 }, { data: "2026-07-05", valore: 28.4 }, { data: "2026-07-12", valore: 33.7 }, { data: "2026-07-19", valore: 36.8 } ] },
+    { id: "r1", nome: "Rumore — perimetro Ovest", tipo: "rumore", valore: 62, soglia: 70, unita: "dB(A)", nota: "campagna 06/2026",
+      letture: [ { data: "2026-06-10", valore: 58 }, { data: "2026-06-24", valore: 64 }, { data: "2026-07-08", valore: 61 }, { data: "2026-07-22", valore: 62 } ] },
     { id: "a1", nome: "Acque — vasca decantazione", tipo: "acque", valore: 12, soglia: 35, unita: "mg/l SST", nota: "campionamento 15/07" },
   ],
   adempimenti: [
@@ -97,6 +101,123 @@ export function prioritaConformita(monitoraggi, adempimenti, oggi = new Date()) 
     (rank[x.gravita] - rank[y.gravita]) ||
     (catRank[x.categoria] - catRank[y.categoria]) ||
     String(x.titolo).localeCompare(String(y.titolo), "it"));
+}
+
+// ------------------------------------------------------------
+// SERIE STORICA di un punto di misura (F5). Lo storico `letture`
+// esisteva già nei dati ma non si vedeva da nessuna parte: qui si
+// calcola la GEOMETRIA del grafico (funzione pura, testabile), il
+// disegno SVG lo fa la pagina. Nessuna libreria esterna.
+// ------------------------------------------------------------
+
+// Unità di ripiego per tipo di grandezza, usata SOLO se il punto non
+// ha già la sua unità scritta dall'utente (che ha sempre la priorità).
+export const UNITA_TIPO = {
+  vibrazioni: "mm/s",
+  airblast: "dB",
+  rumore: "dB(A)",
+  polveri: "µg/m³",
+  acque: "mg/l",
+};
+export function unitaMisura(m) {
+  const u = String((m && m.unita) || "").trim();
+  return u || UNITA_TIPO[String((m && m.tipo) || "").trim().toLowerCase()] || "";
+}
+
+// Numero in formato italiano (virgola decimale), senza decimali inutili.
+export function numeroIt(v) {
+  const n = +v;
+  if (!Number.isFinite(n)) return "—";
+  return n.toLocaleString("it-IT", { maximumFractionDigits: Math.abs(n) >= 100 ? 0 : 2 });
+}
+
+// Data GG/MM/AAAA (o GG/MM) da ISO, per le etichette del grafico.
+function dataBreve(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ""));
+  return m ? `${m[3]}/${m[2]}` : String(iso || "");
+}
+
+// Passo "gradevole" per le tacche dell'asse dei valori (1, 2, 2.5, 5, 10 × 10^n).
+function passoGradevole(grezzo) {
+  if (!(grezzo > 0)) return 1;
+  const e = Math.pow(10, Math.floor(Math.log10(grezzo)));
+  const n = grezzo / e;
+  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * e;
+}
+
+const r1 = (n) => Math.round(n * 10) / 10;
+
+// Geometria della serie storica di un punto di misura.
+// Ritorna { vuoto, n, unita, soglia, box, punti, path, xTicks, yTicks,
+//           lineaSoglia, superamenti, mostraPunti, max, ultimo, dal, al }.
+// Regole: l'asse dei valori parte da 0; la SOGLIA è quella impostata
+// dall'utente sul punto (mai inventata) e rientra nella scala solo se
+// non schiaccia la linea dei dati — altrimenti resta segnalata come
+// `fuoriScala`. Le etichette delle date si diradano da sole quando le
+// letture sono tante, e i pallini spariscono sopra `maxPunti` lasciando
+// solo la linea e i superamenti (che restano SEMPRE marcati).
+export function serieStorica(m, opts = {}) {
+  const w = +opts.larghezza || 320, h = +opts.altezza || 170;
+  const maxEtichette = Math.max(2, +opts.maxEtichette || 6);
+  const maxPunti = Math.max(2, +opts.maxPunti || 30);
+  const padL = 42, padR = 12, padT = 14, padB = 26;
+  const box = { w, h, x0: padL, y0: padT, x1: w - padR, y1: h - padB };
+  const unita = unitaMisura(m);
+  const sogliaRaw = +((m || {}).soglia);
+  const soglia = Number.isFinite(sogliaRaw) && sogliaRaw > 0 ? sogliaRaw : null;
+  const letture = (((m || {}).letture) || [])
+    .map(l => ({ data: String((l && l.data) || "").slice(0, 10), valore: +((l || {}).valore) }))
+    .filter(l => Number.isFinite(l.valore))
+    .sort((a, b) => a.data < b.data ? -1 : a.data > b.data ? 1 : 0);
+
+  const base = {
+    vuoto: letture.length === 0, n: letture.length, unita, soglia, box,
+    punti: [], path: "", xTicks: [], yTicks: [], lineaSoglia: null,
+    superamenti: 0, mostraPunti: true, max: null, ultimo: null, dal: "", al: "",
+  };
+  if (!letture.length) return base;
+
+  const valori = letture.map(l => l.valore);
+  const vmax = Math.max(...valori);
+  const sogliaInScala = soglia != null && (vmax <= 0 || soglia <= vmax * 2.5);
+  const alto = Math.max(vmax, sogliaInScala ? soglia : 0) * 1.1;
+  const passo = passoGradevole((alto || 1) / 4);
+  const yMax = Math.max(passo, Math.ceil((alto || passo) / passo) * passo);
+  const px = (i) => letture.length === 1
+    ? (box.x0 + box.x1) / 2
+    : box.x0 + (i * (box.x1 - box.x0)) / (letture.length - 1);
+  const py = (v) => box.y1 - (Math.min(Math.max(v, 0), yMax) / yMax) * (box.y1 - box.y0);
+
+  const punti = letture.map((l, i) => ({
+    x: r1(px(i)), y: r1(py(l.valore)), valore: l.valore, data: l.data,
+    dataIt: dataIt(l.data), etichetta: numeroIt(l.valore) + (unita ? " " + unita : ""),
+    oltre: soglia != null && l.valore >= soglia,
+  }));
+
+  // etichette dei tempi diradate: prima, ultima e alcune intermedie
+  const passoEt = Math.max(1, Math.ceil((letture.length - 1) / (maxEtichette - 1)) || 1);
+  const idx = [];
+  for (let i = 0; i < letture.length; i += passoEt) idx.push(i);
+  if (idx[idx.length - 1] !== letture.length - 1) idx.push(letture.length - 1);
+  const xTicks = idx.map(i => ({ x: punti[i].x, label: dataBreve(letture[i].data) }));
+
+  const yTicks = [];
+  for (let v = 0; v <= yMax + passo / 1000; v += passo) yTicks.push({ y: r1(py(v)), valore: v, label: numeroIt(v) });
+
+  return {
+    ...base,
+    punti,
+    path: punti.map((p, i) => (i ? "L" : "M") + p.x + " " + p.y).join(" "),
+    xTicks, yTicks,
+    lineaSoglia: soglia == null ? null : {
+      y: r1(py(soglia)), valore: soglia, fuoriScala: !sogliaInScala,
+      label: numeroIt(soglia) + (unita ? " " + unita : ""),
+    },
+    superamenti: punti.filter(p => p.oltre).length,
+    mostraPunti: letture.length <= maxPunti,
+    max: vmax, ultimo: letture[letture.length - 1].valore,
+    dal: dataIt(letture[0].data), al: dataIt(letture[letture.length - 1].data),
+  };
 }
 
 // Import monitoraggi (sensori/centraline) da CSV (onboarding: caricare i punti
