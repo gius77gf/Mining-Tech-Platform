@@ -77,9 +77,32 @@ in italiano, senza dare conoscenze per scontate).
   cromatica vera e verificata per contrasto/leggibilità.
   shared/deepwork-style.css resta il veicolo tecnico della STRUTTURA;
   la palette per app passa dalle variabili di tema dell'app.
-- 🎯 OBIETTIVO DELLA SETTIMANA (fondatore 27/07, da tenere in memoria):
-  **portare le app su un altro livello, aumentare la qualità AD OGNI
-  COSTO.** Ogni scelta si giudica con questo metro.
+- 🎯 **L'ECCELLENZA È LO STANDARD — DETERMINANTE PER OGNI SCELTA FUTURA**
+  (fondatore 27/07, da applicare a qualsiasi decisione, per sempre):
+  1. **Nulla è lasciato al caso.** Ogni singola virgola e ogni singolo
+     dettaglio vanno decisi con cognizione, non per abitudine o fretta.
+  2. **Si parte dai migliori prodotti in circolazione**: si cercano, si
+     studiano, si emulano — e poi si fa **meglio di loro**. Il metro non è
+     "funziona", è "è il migliore che si possa fare".
+  3. **Ricerca approfondita prima di ogni scelta**, su tutto: funzioni,
+     interazioni, testi, estetica. Le ricerche vivono in `docs/` e vanno
+     tradotte in unità concrete, mai gonfiate.
+  4. **Metodo del confronto affiancato**: dopo ogni modifica si mette il
+     risultato accanto al riferimento (il core, o il miglior prodotto di
+     categoria) e si corregge dove il nostro è più povero. **Almeno tre
+     iterazioni**: la prima versione non è mai quella buona. Non ci si
+     ferma quando funziona, ci si ferma **quando è eccellente**.
+  5. Sequenza dichiarata dal fondatore: **questa settimana l'estetica**,
+     nei giorni successivi **lo standard di ogni funzione e funzionalità**,
+     con lo stesso livello di approfondimento.
+- **QUALITÀ VISIVA — cosa la produce davvero** (non basta applicare le
+  variabili di colore): luce stratificata (ambiente + riflesso sul bordo
+  alto + ombra propria + ombra proiettata), bordi che catturano la luce,
+  aloni d'ambiente nella tinta dell'app, alone che segue il mouse,
+  micro-profondità su badge/pillole/bottoni/campi, gerarchia tipografica
+  vera con cifre allineate, movimento con curve morbide, spaziature su una
+  scala coerente. Riferimenti: `docs/SPECIFICA_ESTETICA_CORE.md`,
+  `docs/PALETTE_APP.md`.
 - MULTI-TENANT: isolamento totale dei dati tra organizzazioni. Ogni
   accesso dati delle app passa dallo SDK deepwork-id-client
   (orgCollection), mai percorsi Firestore costruiti a mano.
