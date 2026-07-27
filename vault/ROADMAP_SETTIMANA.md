@@ -33,6 +33,36 @@ dominante. Verifica obbligatoria con screenshot prima/dopo.
 - [ ] **E8. Verifica finale** — le sette pagine affiancate: devono sembrare
       la stessa famiglia, distinguibili solo dal colore.
 
+**Accenti definitivi** (decisi il 27/07; Flotta cambia perché aveva la
+tinta identica a Sentinella e le due app non si distinguevano):
+
+| App | Accento | Chiaro | Nota |
+|---|---|---|---|
+| Campo | `#e8821c` | `#ffb733` | arancio |
+| Scudo | `#8b5cf6` | `#bd96ff` | viola |
+| Terra | `#2f9e44` | `#5fe05a` | verde |
+| Conti | `#0e9384` | `#23dcc6` | teal |
+| Sentinella | `#1971c2` | `#74c0fc` | blu (invariato, 25/07) |
+| **Flotta** | **`#d0559e`** | **`#f39ccd`** | **magenta — nuovo** |
+
+Regola di leggibilità: l'accento base solo per bordi e pallini, l'accento
+**chiaro** è l'unico ammesso per il testo (va corretto `.dw-btn.secondary`,
+usato 65 volte, oggi sotto la soglia di contrasto).
+
+## BLOCCO 0-bis — SECONDA ONDATA DI RICERCA *(valore del prodotto)*
+Taglio diverso dalla prima ondata: non "cosa manca per legge", ma **cosa
+rende il prodotto prezioso per chi lo compra**.
+- [ ] `docs/RICERCA_VALORE_PRODOTTO_202607.md` — funzioni ad alto rapporto
+      valore/lavoro, i dieci dettagli che fanno sembrare il prodotto curato,
+      e il vantaggio dell'ecosistema collegato (un dato inserito una volta,
+      utile in cinque posti).
+- [ ] `docs/RICERCA_DOCUMENTI_ENTI_202607.md` — il calendario annuale degli
+      adempimenti di una cava italiana e quali documenti possiamo generare
+      noi: è la funzione per cui il cliente paga volentieri.
+- [ ] `docs/RICERCA_CRUSCOTTO_TITOLARE_202607.md` — la vista che fa capire
+      in dieci secondi come sta andando la cava, e il centro avvisi unico
+      che raccoglie scadenze e anomalie dalle sei app.
+
 ## BLOCCO 1 — FONDAMENTA: I DIFETTI REALI TROVATI NEL CODICE
 La ricerca ha trovato **difetti concreti**, non solo funzioni mancanti.
 Vengono prima di ogni funzione nuova: senza queste basi il resto non regge.
