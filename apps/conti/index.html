@@ -4,128 +4,920 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Conti — Amministrazione & gare</title>
-<meta name="theme-color" content="#0e9384">
+<meta name="theme-color" content="#009f8f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Conti">
-<link rel="manifest" href='data:application/manifest+json,{"name":"Deepwork Conti","short_name":"Conti","description":"Amministrazione e gare","start_url":".","scope":".","display":"standalone","orientation":"portrait","background_color":"%23100d07","theme_color":"%230e9384","categories":["business","productivity"],"lang":"it","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 180 180%27><rect width=%27180%27 height=%27180%27 rx=%2732%27 fill=%27%230e9384%27/><text x=%2790%27 y=%27126%27 font-family=%27sans-serif%27 font-size=%27104%27 font-weight=%27700%27 fill=%27%23ffffff%27 text-anchor=%27middle%27>C</text></svg>","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}'>
+<link rel="manifest" href='data:application/manifest+json,{"name":"Deepwork Conti","short_name":"Conti","description":"Amministrazione e gare","start_url":".","scope":".","display":"standalone","orientation":"portrait","background_color":"%23070f0e","theme_color":"%23009f8f","categories":["business","productivity"],"lang":"it","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 180 180%27><rect width=%27180%27 height=%27180%27 rx=%2732%27 fill=%27%23009f8f%27/><text x=%2790%27 y=%27126%27 font-family=%27sans-serif%27 font-size=%27104%27 font-weight=%27700%27 fill=%27%23ffffff%27 text-anchor=%27middle%27>C</text></svg>","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}'>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../shared/deepwork-style.css">
 <link rel="stylesheet" href="../../shared/dw-app-shell.css">
 <style>
-  /* Conti: accento della palette funzionale deepwork */
-  :root { --app-accent:#0e9384; --app-accent2:#23dcc6; }
+/* ══════════════════════════════════════════════════════════════════════
+   CONTI — amministrazione (fatture, incassi, clienti, gare)
+   STRUTTURA: identica al core Deepwork (index.html alla radice): stesse
+   misure, raggi, ombre, curve, comportamenti.
+   COLORE: palette propria di Conti (teal profondo 183°, docs/PALETTE_APP.md
+   §3.4), fusa in TUTTE le superfici. Carattere: ordinata, sobria, contabile.
+   CIFRE: tabular-nums ovunque, importi incolonnati a destra, formato
+   italiano (€ 48.200,00). È un'app di soldi: le colonne devono quadrare.
+   ══════════════════════════════════════════════════════════════════════ */
+
+:root{
+  /* ---- rampa dell'accento (4 gradini) ---- */
+  --app-accent-deep:#006a5f;
+  --app-accent:     #009f8f;   /* SOLO grafica: bordi, strisce, pallini   */
+  --app-accent2:    #4dcebd;   /* UNICO ammesso per il testo              */
+  --app-accent-soft:#b5e4dc;
+  --app-support:    #896100;   /* ottone: il registro, non l'ambra core   */
+  --app-support2:   #c49e5d;
+
+  /* ---- superfici: tutte velate di teal ---- */
+  --bg:#070f0e; --dark:#091311; --panel:#0a1715;
+  --card:#0d211e; --card2:#0f2824;
+  --border:#12312d; --border2:#153b36; --border-hi:#496f69;
+
+  /* ---- testo ---- */
+  --text:#ddedea; --muted2:#94bab3; --muted:#739c95; --disabled:#5b7772;
+
+  /* ---- stati: nessuno litiga con il teal ---- */
+  --success:#79b862; --warn:#ffa566; --danger:#f05f5a; --info:#55a6ec;
+
+  /* ---- gradienti ---- */
+  --grad:    linear-gradient(135deg,#00b1a1,#009284);
+  --grad-on: #070f0e;
+  --grad-num:linear-gradient(135deg,#7fe0d1,#3fbcab);  /* cifre: 6,47:1 */
+  --grad-sup:linear-gradient(135deg,#d9b87c,#a8823f);
+  --gradSuc: linear-gradient(135deg,#79b862,#3d7a2c);
+  --grad3:   linear-gradient(135deg,#f05f5a,#a32b27);
+  --grad-ok: linear-gradient(135deg,#a3d68f,#6aa955);
+  --grad-wr: linear-gradient(135deg,#ffc79b,#e8894a);
+  --grad-dg: linear-gradient(135deg,#ff9490,#d84f4a);
+
+  /* ---- luce, aloni, ombre ---- */
+  --shadow-app:0 10px 30px rgba(0,54,48,.42);
+  --glow-app:  rgba(0,159,143,.28);
+  --tint-app:  rgba(0,159,143,.14);
+  --focus-ring:rgba(77,206,189,.34);
+  --sel:       rgba(0,159,143,.30);
+  --halo-1:    rgba(0,159,143,.07);
+  --halo-2:    rgba(196,158,93,.055);
+
+  /* Stratificazione della luce: riflesso sul bordo alto + ombra propria
+     sul bordo basso. È ciò che dà spessore fisico agli oggetti. */
+  --edge:   inset 0 1px 0 rgba(255,255,255,.055), inset 0 -1px 0 rgba(0,0,0,.28);
+  --edge-hi:inset 0 1px 0 rgba(255,255,255,.20);
+  --sh1:0 1px 5px rgba(0,0,0,.20);
+  --sh2:0 2px 8px rgba(0,0,0,.26);
+  --sh3:0 6px 16px rgba(0,0,0,.32);
+  --sh4:0 10px 24px rgba(0,0,0,.38);
+  --sh-btn:0 5px 16px rgba(0,106,95,.42);
+  --sh-btn-hi:0 8px 22px rgba(0,106,95,.55);
+}
+
+/* ─────────────── fondo e atmosfera ─────────────── */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+body.dw{
+  background:var(--bg); color:var(--text);
+  overflow-x:hidden; overscroll-behavior-y:contain;
+  padding-bottom:calc(104px + env(safe-area-inset-bottom));
+}
+body.dw::before{
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(ellipse 700px 500px at 15% 5%,  var(--halo-1) 0%, transparent 65%),
+    radial-gradient(ellipse 500px 400px at 85% 85%, var(--halo-2) 0%, transparent 65%);
+}
+.top,.page,.nav,.tour-banner,.toast,.modal-ov{position:relative; z-index:1;}
+*{-webkit-tap-highlight-color:transparent;}
+button,a,label,select,input,.item,.kpi,.chg,.mbtn{touch-action:manipulation;}
+::selection{background:var(--sel);}
+:focus{outline:none;}
+:focus-visible{outline:none; box-shadow:0 0 0 3px var(--focus-ring); border-radius:5px;}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-track{background:var(--dark);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px;}
+::-webkit-scrollbar-thumb:hover{background:var(--app-accent);}
+img{max-width:100%;}
+
+/* ─────────────── barra alta (copia di .topbar del core) ─────────────── */
+.top{
+  position:sticky; top:0; z-index:100;
+  display:flex; align-items:center; gap:10px;
+  min-height:62px; padding:0 14px;
+  background:linear-gradient(180deg,rgba(15,40,36,.97),rgba(9,19,17,.97));
+  -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  box-shadow:0 2px 12px rgba(0,0,0,.34);
+}
+.top::after{                        /* la riga luminosa del core, in teal */
+  content:""; position:absolute; left:0; right:0; bottom:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--app-accent),transparent);
+  opacity:.55;
+}
+.top-brand{flex:1; min-width:0;}
+.logo-sm{
+  font-family:'Barlow Condensed',sans-serif; font-size:17px; font-weight:800;
+  letter-spacing:3px; text-transform:uppercase; color:var(--app-accent2);
+  text-shadow:0 0 14px rgba(0,159,143,.45); line-height:1.1;
+}
+.role-sm{
+  font-size:9px; color:var(--muted); letter-spacing:2px; text-transform:uppercase;
+  margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.dw-home,.dw-exit{
+  position:static; top:auto; right:auto;
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  min-height:var(--tap); min-width:var(--tap); padding:0 11px;
+  border:1px solid var(--border2); border-radius:var(--r-sm);
+  background:var(--card); color:var(--muted2);
+  font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; text-decoration:none; cursor:pointer;
+  flex-shrink:0; box-shadow:var(--edge); transition:all .18s var(--ease);
+}
+.dw-home{padding:0 13px; line-height:0;}
+.dw-home svg{width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:1.7;
+  stroke-linecap:round; stroke-linejoin:round;}
+.dw-home:hover{color:var(--app-accent2); border-color:var(--app-accent); background:var(--card2);}
+.dw-exit:hover{color:var(--danger); border-color:var(--danger);}
+.top h1,body.has-exit .top h1{padding-right:0 !important;}
+
+/* nastro "modalità tour" — forma .info-box del core */
+.tour-banner{
+  background:var(--card2); border:1px solid var(--border);
+  border-left:3px solid var(--app-accent); border-radius:var(--r-sm);
+  color:var(--muted2); font-size:12px; line-height:1.5;
+  padding:10px 13px; margin:14px 16px 0; text-align:left; box-shadow:var(--edge);
+}
+.tour-banner b{color:var(--text);}
+
+/* ─────────────── pagine ─────────────── */
+.page{display:none; padding:16px 16px calc(24px + env(safe-area-inset-bottom));}
+.page.active{display:block; animation:scrFade .22s var(--ease);}
+@keyframes scrFade{from{opacity:0} to{opacity:1}}
+
+/* ─────────────── cifre: la regola di casa ───────────────
+   Conti è un'app di importi: ovunque compaia un numero le cifre hanno
+   tutte la stessa larghezza, così le colonne si incolonnano davvero. */
+.kpi .n,.meta,.amt,.amt-n,.amt-s,.badge,.count,.note b,.recap b,
+.bar-val,.tot-n,input[type=number],input[type=date],
+.modal-body b,.sec .cnt{font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1;}
+
+/* ─────────────── KPI (copia di .kpi-card del core) ─────────────── */
+.kpis{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px;}
+.kpi{
+  position:relative; overflow:hidden;
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--border);
+  border-top:3px solid var(--app-accent);
+  border-left:3px solid var(--app-accent);
+  border-radius:var(--r-sm); padding:11px 13px 12px;
+  box-shadow:var(--sh1),var(--edge);
+  transition:transform .18s var(--ease),box-shadow .18s var(--ease),border-color .2s;
+}
+.kpi::after{                                   /* alone che segue il mouse */
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+  border-radius:inherit;
+  background:radial-gradient(200px 160px at var(--mx,50%) var(--my,30%),
+             var(--kpi-glow,var(--glow-app)), transparent 62%);
+  opacity:0; transition:opacity .25s var(--ease);
+}
+.kpi:hover::after{opacity:1;}
+.kpi>*{position:relative; z-index:1;}
+.kpi:hover{transform:translateY(-3px); box-shadow:var(--sh4),var(--edge);}
+.kpi:active{transform:translateY(-1px) scale(.99);}
+.kpi .l{
+  font-family:'Barlow',sans-serif; font-size:10px; font-weight:600;
+  letter-spacing:2px; text-transform:uppercase; color:var(--muted); line-height:1.3;
+}
+.kpi .n{
+  font-family:'Barlow Condensed',sans-serif; font-size:32px; font-weight:800;
+  line-height:1.05; margin-top:3px;
+  background:var(--grad-num); -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent; color:transparent;
+}
+.kpi .n .u{font-size:19px; font-weight:700; letter-spacing:.5px;}
+.kpi .s{font-size:10.5px; color:var(--muted2); margin-top:3px; line-height:1.35;}
+.kpi.ok    {border-top-color:var(--success); --kpi-glow:rgba(121,184,98,.22);}
+.kpi.warn  {border-top-color:var(--warn);    --kpi-glow:rgba(255,165,102,.22);}
+.kpi.danger{border-top-color:var(--danger);  --kpi-glow:rgba(240,95,90,.22); animation:pulseDanger 2.4s ease-in-out infinite;}
+.kpi.ok .n    {background:var(--grad-ok);}
+.kpi.warn .n  {background:var(--grad-wr);}
+.kpi.danger .n{background:var(--grad-dg);}
+.kpi.ok .n,.kpi.warn .n,.kpi.danger .n{-webkit-background-clip:text; background-clip:text;}
+@keyframes pulseDanger{0%,100%{border-top-color:var(--danger)}50%{border-top-color:#8a3532}}
+
+/* ─────────────── cartellone di cassa (saldo del mese) ─────────────── */
+.cassa{
+  position:relative; overflow:hidden;
+  display:flex; align-items:center; gap:14px;
+  background:linear-gradient(135deg,var(--card2),var(--card));
+  border:1px solid var(--border); border-left:3px solid var(--app-accent);
+  border-radius:var(--r); padding:13px 16px; margin:0 0 4px;
+  box-shadow:var(--sh2),var(--edge);
+}
+.cassa::before{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(260px 150px at 8% 0%,var(--tint-app),transparent 70%);
+}
+.cassa.vuota{border-left-color:var(--app-support2);}
+.cassa.vuota::before{background:radial-gradient(260px 150px at 8% 0%,rgba(196,158,93,.10),transparent 70%);}
+.cassa.vuota .cassa-ico{color:var(--app-support2); background:rgba(196,158,93,.14);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 0 14px rgba(196,158,93,.14);}
+.cassa>*{position:relative;}
+.cassa-ico{
+  display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
+  width:44px; height:44px; border-radius:13px; line-height:0;
+  color:var(--app-accent2); background:var(--tint-app);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 0 14px var(--tint-app);
+}
+.cassa-ico svg{width:24px; height:24px; stroke:currentColor; fill:none; stroke-width:1.7;
+  stroke-linecap:round; stroke-linejoin:round;}
+.cassa-num{
+  font-family:'Barlow Condensed',sans-serif; font-size:34px; font-weight:800; line-height:.98;
+  font-variant-numeric:tabular-nums;
+  background:var(--grad-num); -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+.cassa.vuota .cassa-num{background:var(--grad-sup); -webkit-background-clip:text; background-clip:text;}
+.cassa-lab{font-size:10.5px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-top:2px;}
+.cassa-txt{font-size:12.5px; color:var(--muted2); line-height:1.5;}
+.cassa-txt b{color:var(--text); font-variant-numeric:tabular-nums;}
+
+/* ─────────────── titolo di sezione (copia di .sec-title) ─────────────── */
+.sec{
+  display:flex; align-items:center; gap:8px;
+  font-family:'Barlow Condensed',sans-serif; font-size:11.5px; font-weight:700;
+  letter-spacing:2.5px; text-transform:uppercase; color:var(--muted2);
+  margin:24px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--border);
+}
+.sec::before{
+  content:""; width:5px; height:5px; border-radius:50%; flex-shrink:0;
+  background:var(--app-accent); box-shadow:0 0 8px var(--app-accent);
+}
+.page>.sec:first-child{margin-top:2px;}
+.sec .cnt{
+  margin-left:auto; font-size:10px; letter-spacing:1.5px; color:var(--muted);
+  background:var(--card); border:1px solid var(--border); border-radius:20px;
+  padding:2px 9px; box-shadow:var(--edge);
+}
+
+/* ─────────────── voci di lista (copia di .sitem) ─────────────── */
+.item{
+  position:relative; overflow:hidden;
+  display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px;
+  background:var(--card); border:1px solid var(--border); border-radius:var(--r-sm);
+  padding:12px 13px; margin-bottom:5px; min-height:var(--tap);
+  box-shadow:var(--sh1),var(--edge);
+  transition:transform .15s var(--ease),box-shadow .15s var(--ease),border-color .2s,background .2s;
+}
+.item.tap{cursor:pointer;}
+.item::after{
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0; border-radius:inherit;
+  background:radial-gradient(170px 120px at var(--mx,50%) var(--my,50%),var(--glow-app),transparent 62%);
+  opacity:0; transition:opacity .25s var(--ease);
+}
+.item:hover::after{opacity:1;}
+.item>*{position:relative; z-index:1;}
+.item:hover{
+  background:var(--card2);
+  border-color:color-mix(in srgb,var(--app-accent) 42%,var(--border));
+  transform:translateX(3px); box-shadow:var(--sh3),var(--edge);
+}
+.item.tap:active{transform:translateX(1px) scale(.995);}
+.item.st-danger {border-left:3px solid var(--danger);}
+.item.st-warn   {border-left:3px solid var(--warn);}
+.item.st-ok     {border-left:3px solid var(--success);}
+.item.st-accent {border-left:3px solid var(--app-accent);}
+.item.st-sup    {border-left:3px solid var(--app-support2);}
+.item.st-mute   {border-left:3px solid var(--border2);}
+
+.avatar{
+  width:36px; height:36px; border-radius:11px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:800;
+  letter-spacing:1px; color:var(--grad-on); background:var(--grad); border:none;
+  box-shadow:0 2px 6px rgba(0,0,0,.35),var(--edge-hi);
+}
+.avatar.sup{background:var(--grad-sup);}
+.avatar svg{width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:2;
+  stroke-linecap:round; stroke-linejoin:round;}
+.info{flex:1 1 130px; min-width:0;}
+.acts{display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:5px;}
+.name{
+  font-size:13.5px; font-weight:600; color:var(--text); line-height:1.3;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; overflow-wrap:anywhere;
+}
+.name .num-doc{font-family:'Barlow Condensed',sans-serif; font-weight:800;
+  letter-spacing:.6px; color:var(--app-accent2); font-variant-numeric:tabular-nums;}
+.meta{
+  font-size:11px; color:var(--muted); margin-top:3px; line-height:1.4;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; overflow-wrap:anywhere;
+}
+.meta b{color:var(--muted2);}
+
+/* ── LA COLONNA DEGLI IMPORTI ──
+   L'importo è SEMPRE l'ultimo elemento della riga, con larghezza fissa e
+   cifre tabellari: è così che dieci righe di seguito hanno le migliaia
+   esattamente incolonnate, qualunque cosa ci sia prima (badge, bottoni).
+   È la differenza fra un elenco e un registro. */
+.amt{
+  order:99; flex:0 0 auto; margin-left:auto; text-align:right; min-width:118px;
+  display:flex; flex-direction:column; align-items:flex-end; justify-content:center;
+}
+/* ordine fisso della riga: pittogramma, testo, stato, azioni, IMPORTO.
+   Sta scritto qui una volta sola così nessuna riga può sfuggire. */
+.item>.avatar{order:1;} .item>.info{order:2;} .item>.acts{order:3;}
+/* il badge sta SEMPRE appena a sinistra dell'importo: due colonne allineate,
+   non due elementi che galleggiano dove capita */
+.item>.badge{order:4; min-width:92px; justify-content:center;}
+.item>.frow{order:100; flex-basis:100%; margin-top:2px;}
+/* badge di stato a larghezza uniforme: anche le etichette si incolonnano */
+.amt-n{
+  font-family:'Barlow Condensed',sans-serif; font-size:17px; font-weight:800;
+  letter-spacing:.4px; color:var(--text); line-height:1.1; white-space:nowrap;
+}
+.amt-n.pos{color:var(--app-accent2);}
+.amt-n.neg{color:var(--danger);}
+.amt-n.mute{color:var(--muted2); font-weight:700;}
+.amt-s{font-size:10px; color:var(--muted); letter-spacing:.4px; margin-top:2px; white-space:nowrap;}
+
+.arr svg{width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round;}
+.arr{
+  -webkit-appearance:none; appearance:none; background:none; padding:0; font:inherit;
+  color:var(--muted); line-height:0; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:var(--tap); min-height:var(--tap); border-radius:7px; flex-shrink:0;
+  border:1px solid transparent;
+  transition:color .15s var(--ease),background .15s var(--ease),border-color .15s;
+}
+.arr:hover{color:var(--app-accent2); background:color-mix(in srgb,var(--app-accent) 16%,transparent);}
+.arr.del:hover{color:var(--danger); background:rgba(240,95,90,.14);}
+
+/* ─────────────── badge (copia di .scad-badge: raggio 3px, pieno) ─────────────── */
+.badge{
+  display:inline-flex; align-items:center; gap:4px; flex-shrink:0;
+  padding:3px 8px; border-radius:3px; white-space:nowrap;
+  font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:800;
+  letter-spacing:1px; text-transform:uppercase;
+  background:var(--card2); color:var(--muted2); border:1px solid var(--border2);
+  box-shadow:0 1px 3px rgba(0,0,0,.35),var(--edge-hi);
+}
+.badge svg{width:11px; height:11px; stroke:currentColor; fill:none; stroke-width:2.2;
+  stroke-linecap:round; stroke-linejoin:round;}
+.badge.ok,.badge.warn,.badge.danger,.badge.info,.badge.accent{border-color:transparent;}
+.badge.ok     {background:var(--success);     color:#0b1806;}
+.badge.warn   {background:var(--warn);        color:#2a1405;}
+.badge.danger {background:var(--danger);      color:#2b0705;}
+.badge.info   {background:var(--info);        color:#04161e;}
+.badge.accent {background:var(--app-accent);  color:var(--grad-on);}
+.badge.tag{background:var(--card2); color:var(--muted2);
+  border:1px solid var(--border2); box-shadow:none; font-weight:700;}
+
+/* ─────────────── campi (copia di .finput) ─────────────── */
+.dw-input{
+  width:100%; min-height:var(--tap); padding:11px 13px;
+  background:var(--card); border:1px solid var(--border-hi); border-radius:9px;
+  color:var(--text); font-family:'Barlow',sans-serif; font-size:16px; outline:none;
+  box-shadow:var(--edge);
+  transition:border-color .18s var(--ease),box-shadow .18s var(--ease),background .18s;
+}
+.dw-input::placeholder{color:var(--disabled);}
+.dw-input:hover{border-color:color-mix(in srgb,var(--app-accent) 55%,var(--border-hi));}
+.dw-input:focus{
+  border-color:var(--app-accent); background:var(--card2);
+  box-shadow:0 0 0 3px var(--focus-ring),var(--edge);
+}
+.dw-input.err{border-color:var(--danger) !important; background:rgba(240,95,90,.08);}
+.dw-input[readonly],.dw-input[disabled]{color:var(--muted2); opacity:.7;}
+select.dw-input{font-size:16px; cursor:pointer;}
+select.dw-input option,select.dw-input optgroup{background:var(--card); color:var(--text);}
+textarea.dw-input{resize:vertical; min-height:60px;}
+/* i campi che contengono cifre si comportano da colonna contabile */
+input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums;}
+input[type=date].dw-input::-webkit-calendar-picker-indicator,
+input[type=search].dw-input::-webkit-search-cancel-button{
+  filter:invert(.68); cursor:pointer; opacity:.8;
+}
+input[type=date].dw-input::-webkit-calendar-picker-indicator:hover{
+  filter:invert(.72) sepia(.55) saturate(5) hue-rotate(120deg); opacity:1;
+}
+.dw-muted{color:var(--muted);}
+.dw-accent{color:var(--app-accent2);}
+.fld{display:flex; flex-direction:column; gap:5px; min-width:0;}
+.fld>label{
+  font-family:'Barlow',sans-serif; font-size:10px; font-weight:600;
+  letter-spacing:1.8px; text-transform:uppercase; color:var(--muted);
+}
+.fld .err-msg{
+  display:none; font-size:11px; color:var(--danger); line-height:1.35;
+  align-items:center; gap:5px;
+}
+.fld.bad .err-msg{display:flex;}
+.fld .err-msg svg{width:12px; height:12px; flex-shrink:0; stroke:currentColor;
+  fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round;}
+
+/* ─────────────── bottoni (copia di .btn-sv / .btn-sec) ─────────────── */
+.dw-btn{
+  min-height:var(--tap); padding:12px 18px; border:none; border-radius:var(--r-sm);
+  background:var(--grad); color:var(--grad-on);
+  font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:800;
+  letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  box-shadow:var(--sh-btn),var(--edge-hi);
+  transition:transform .12s var(--ease),box-shadow .2s var(--ease),filter .2s;
+}
+.dw-btn svg{width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2.1;
+  stroke-linecap:round; stroke-linejoin:round; flex-shrink:0;}
+.dw-btn:hover{box-shadow:var(--sh-btn-hi),var(--edge-hi); filter:brightness(1.07);}
+.dw-btn:active{transform:translateY(2px); box-shadow:0 2px 8px rgba(0,106,95,.3),var(--edge-hi);}
+.dw-btn:disabled{opacity:.6; cursor:wait; filter:none; transform:none;}
+.dw-btn.secondary{
+  background:var(--card); border:1px solid var(--border2); color:var(--text);
+  font-size:13px; font-weight:600; letter-spacing:1px; padding:11px 14px;
+  box-shadow:var(--edge); filter:none;
+}
+.dw-btn.secondary:hover{
+  border-color:var(--app-accent); color:var(--app-accent2); background:var(--card2);
+  transform:translateY(-1px); box-shadow:var(--sh2),var(--edge); filter:none;
+}
+.dw-btn.secondary:active{transform:translateY(1px); box-shadow:var(--edge);}
+.dw-btn.mini{min-height:var(--tap); padding:6px 12px; font-size:11px; letter-spacing:1px;}
+.dw-btn.mini svg{width:13px; height:13px;}
+.dw-btn.mini.no{border-color:color-mix(in srgb,var(--danger) 55%,var(--border2)); color:var(--muted2);}
+.dw-btn.mini.no:hover{border-color:var(--danger); color:var(--danger); background:rgba(240,95,90,.10);}
+
+/* ─────────────── filtri a segmento (copia di .chg) ─────────────── */
+.chgs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;}
+.chg{
+  background:var(--card); border:1px solid var(--border); color:var(--muted2);
+  padding:7px 13px; min-height:var(--tap); border-radius:7px;
+  font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700;
+  letter-spacing:1px; text-transform:uppercase; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  box-shadow:var(--edge); transition:all .15s var(--ease);
+}
+.chg .qt{font-size:10px; opacity:.75; font-variant-numeric:tabular-nums;}
+.chg:hover{border-color:var(--app-accent); color:var(--app-accent2);}
+.chg.active{
+  background:var(--app-accent); border-color:var(--app-accent); color:var(--grad-on);
+  box-shadow:0 2px 10px rgba(0,159,143,.35),var(--edge-hi);
+}
+.chg.active .qt{opacity:.85;}
+.chg:active{transform:scale(.95);}
+
+/* ─────────────── form come oggetti veri ─────────────── */
+.form{
+  display:flex; flex-wrap:wrap; gap:11px;
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--border); border-radius:var(--r); padding:14px 13px 13px;
+  box-shadow:var(--sh2),var(--edge);
+}
+.form .fld{flex:1 1 150px;}
+.form .fld.w2{flex:2 1 200px;}
+.form>*,.frow>*{min-width:0; max-width:100%;}
+.form .dw-btn{flex:0 0 auto; align-self:flex-end;}
+.frow{display:flex; flex-wrap:wrap; gap:11px; width:100%; align-items:flex-end;}
+.form-hint{font-size:11.5px; color:var(--muted); line-height:1.5; flex-basis:100%;}
+.form-hint b{color:var(--muted2);}
+.tools{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px;}
+.tools .hint{font-size:11px; color:var(--muted);}
+.ord{display:flex; align-items:center; gap:8px; margin:0 0 10px;}
+.ord label{
+  font-family:'Barlow Condensed',sans-serif; font-size:10.5px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); flex-shrink:0;
+}
+.ord .dw-input{width:auto; flex:1; max-width:280px;}
+.count{
+  font-family:'Barlow Condensed',sans-serif; font-size:10.5px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; color:var(--muted);
+  margin:0 0 8px; min-height:14px;
+}
+.count b{color:var(--app-accent2);}
+
+/* ─────────────── riquadri informativi (copia di .info-box) ─────────────── */
+.note{
+  background:var(--card2); border:1px solid var(--border);
+  border-left:3px solid var(--info); border-radius:var(--r-sm);
+  padding:11px 13px; margin-top:12px; text-align:left;
+  font-size:12px; line-height:1.6; color:var(--muted2); box-shadow:var(--edge);
+}
+.note:empty{display:none;}
+.note b{color:var(--text);}
+.note.esito{border-left-color:var(--app-accent); color:var(--text); font-size:12.5px;}
+.note.recap{border-left-color:var(--app-support2);}
+.note.recap b{
+  color:var(--app-accent2); font-family:'Barlow Condensed',sans-serif;
+  font-size:15px; font-weight:800; padding:0 1px;
+}
+
+/* ─────────────── riga di totale: la somma che chiude la colonna ─────────────── */
+.tot{
+  display:flex; align-items:center; gap:10px;
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--border2); border-top:2px solid var(--app-accent);
+  border-radius:var(--r-sm); padding:11px 13px; margin-top:7px;
+  box-shadow:var(--sh2),var(--edge);
+}
+.tot-l{
+  font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700;
+  letter-spacing:2px; text-transform:uppercase; color:var(--muted2);
+}
+.tot-n{
+  margin-left:auto; text-align:right; min-width:112px;
+  font-family:'Barlow Condensed',sans-serif; font-size:20px; font-weight:800;
+  letter-spacing:.4px; white-space:nowrap;
+  background:var(--grad-num); -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+.tot.warn{border-top-color:var(--warn);}
+.tot.warn .tot-n{background:var(--grad-wr); -webkit-background-clip:text; background-clip:text;}
+
+/* ─────────────── barra di peso (aging, previsione) ─────────────── */
+.bar{
+  position:absolute; left:0; bottom:0; height:2px; z-index:0;
+  background:linear-gradient(90deg,var(--app-accent),color-mix(in srgb,var(--app-accent) 20%,transparent));
+  opacity:.75; transition:width .4s var(--ease);
+}
+.item.st-warn .bar{background:linear-gradient(90deg,var(--warn),color-mix(in srgb,var(--warn) 20%,transparent));}
+.item.st-danger .bar{background:linear-gradient(90deg,var(--danger),color-mix(in srgb,var(--danger) 20%,transparent));}
+.item.st-sup .bar{background:linear-gradient(90deg,var(--app-support2),color-mix(in srgb,var(--app-support2) 20%,transparent));}
+
+/* ─────────────── stato vuoto (copia di .empty-state) ─────────────── */
+.empty-state{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:38px 20px; text-align:center; color:var(--muted); border-radius:var(--r);
+  background:radial-gradient(360px 220px at 50% 0%,
+             color-mix(in srgb,var(--app-accent) 7%,transparent),transparent 70%);
+}
+.empty-icon{
+  margin-bottom:12px; line-height:0; color:var(--app-accent2); opacity:.55;
+  filter:drop-shadow(0 0 16px color-mix(in srgb,var(--app-accent) 30%,transparent));
+}
+.empty-icon svg{
+  width:46px; height:46px; stroke:currentColor; fill:none; stroke-width:1.3;
+  stroke-linecap:round; stroke-linejoin:round;
+}
+.empty-title{
+  font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:800;
+  letter-spacing:2px; text-transform:uppercase; color:var(--text); margin-bottom:6px;
+}
+.empty-sub{font-size:12px; color:var(--muted); max-width:320px; line-height:1.55;}
+.empty-sub b{color:var(--muted2);}
+
+/* ─────────────── navigazione: pillola flottante ─────────────── */
+.nav{
+  position:fixed; left:50%; right:auto; transform:translateX(-50%);
+  bottom:calc(8px + env(safe-area-inset-bottom));
+  width:calc(100% - 16px); max-width:520px; z-index:90;
+  display:grid; grid-template-columns:repeat(5,1fr);
+  background:rgba(10,23,21,.97);
+  -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+  border:1px solid var(--border2); border-radius:18px; overflow:hidden;
+  box-shadow:0 10px 28px rgba(0,0,0,.5),var(--edge);
+}
+.nav button{
+  position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:3px; padding:10px 2px 9px; min-height:var(--tap);
+  background:none; border:none; border-top:2px solid transparent; cursor:pointer;
+  color:var(--muted); font-family:'Barlow Condensed',sans-serif;
+  font-size:9px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase;
+  transition:color .2s var(--ease),transform .15s var(--ease);
+}
+.nav button:hover{color:var(--app-accent2);}
+.nav button.active{color:var(--app-accent2); border-top-color:var(--app-accent); transform:translateY(-2px);}
+.nav button.active::before{
+  content:""; position:absolute; top:5px; left:50%; transform:translateX(-50%);
+  width:42px; height:30px; border-radius:10px; z-index:0;
+  background:color-mix(in srgb,var(--app-accent) 20%,transparent);
+}
+.nav button>*{position:relative; z-index:1;}
+.nav .ico{display:flex; align-items:center; justify-content:center; height:22px;}
+.nav .ico svg{width:21px; height:21px; stroke:currentColor; fill:none; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round; transition:transform .15s var(--ease),filter .2s;}
+.nav button.active .ico svg{
+  transform:scale(1.06);
+  filter:drop-shadow(0 0 6px color-mix(in srgb,var(--app-accent) 65%,transparent));
+}
+
+/* ─────────────── modale (copia di .modal-* del core) ─────────────── */
+.modal-ov{
+  position:fixed; inset:0; z-index:300; display:none; padding:20px;
+  align-items:center; justify-content:center;
+  background:rgba(4,10,9,.86);
+  -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
+}
+.modal-ov.show{display:flex; animation:ovFade .2s var(--ease);}
+@keyframes ovFade{from{opacity:0} to{opacity:1}}
+.modal-box{
+  position:relative; width:100%; max-width:440px; max-height:92dvh;
+  display:flex; flex-direction:column; overflow:hidden;
+  background:linear-gradient(180deg,var(--panel),var(--dark));
+  border:1px solid var(--border2); border-radius:var(--r);
+  box-shadow:0 20px 60px rgba(0,0,0,.65),var(--edge);
+  animation:fadeUp .25s ease;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)}}
+.modal-head{
+  position:relative; padding:15px 18px; border-bottom:1px solid var(--border);
+  font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:800;
+  letter-spacing:2px; text-transform:uppercase; color:var(--text);
+}
+.modal-head::after{
+  content:""; position:absolute; left:0; right:0; bottom:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--app-accent),transparent); opacity:.55;
+}
+.modal-body{
+  padding:15px 18px; overflow-y:auto; overscroll-behavior:contain; flex:1; max-height:55vh;
+  font-size:13.5px; line-height:1.6; color:var(--muted2); user-select:text;
+}
+.modal-body b{color:var(--text);}
+.modal-body .fl{
+  display:block; font-family:'Barlow',sans-serif; font-size:11px; font-weight:600;
+  letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin:12px 0 6px;
+}
+/* riepilogo contabile dentro la modale: etichetta a sinistra, cifra a destra */
+.mrec{
+  display:flex; align-items:baseline; gap:10px; padding:7px 0;
+  border-bottom:1px dashed var(--border);
+}
+.mrec:last-child{border-bottom:none;}
+.mrec .k{font-size:11px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted);}
+.mrec .v{
+  margin-left:auto; text-align:right; white-space:nowrap; color:var(--text);
+  font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:800;
+  letter-spacing:.4px; font-variant-numeric:tabular-nums;
+}
+.mrec .v.accent{color:var(--app-accent2);}
+.modal-foot{
+  padding:12px 18px; border-top:1px solid var(--border); background:var(--dark);
+  display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap;
+  position:sticky; bottom:0;
+}
+.mbtn{
+  background:none; border:1px solid var(--border2); color:var(--text);
+  padding:10px 16px; border-radius:var(--r-sm); min-height:var(--tap);
+  display:inline-flex; align-items:center; justify-content:center;
+  font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700;
+  letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+  transition:all .15s var(--ease);
+}
+.mbtn:hover{border-color:var(--app-accent); color:var(--app-accent2);}
+.mbtn:active{transform:scale(.97);}
+.mbtn.primary{
+  background:var(--grad); border-color:transparent; color:var(--grad-on); font-weight:800;
+  box-shadow:var(--sh-btn),var(--edge-hi);
+}
+.mbtn.primary:hover{filter:brightness(1.07); color:var(--grad-on);}
+.mbtn.danger{background:var(--danger); border-color:var(--danger); color:#2b0705; font-weight:800;}
+.mbtn.danger:hover{filter:brightness(1.08); color:#2b0705;}
+body.modal-open{overflow:hidden;}
+
+/* ─────────────── toast (copia del core) ─────────────── */
+.toast{
+  position:fixed; left:50%; bottom:calc(100px + env(safe-area-inset-bottom));
+  transform:translateX(-50%) translateY(8px);
+  max-width:min(92vw,460px); padding:11px 20px; border-radius:10px;
+  background:var(--grad); color:var(--grad-on); text-align:center;
+  font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:800;
+  letter-spacing:1px; line-height:1.35;
+  box-shadow:0 8px 30px rgba(0,0,0,.5),var(--edge-hi);
+  opacity:0; pointer-events:none; z-index:999;
+  transition:opacity .3s var(--ease),transform .3s var(--ease);
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+.toast.err{background:var(--danger); color:#2b0705;}
+.toast.success{background:var(--success); color:#0b1806;}
+
+/* ─────────────── desktop ─────────────── */
+@media(min-width:768px){
+  .top{padding-left:max(24px,calc((100% - 900px) / 2)); padding-right:max(24px,calc((100% - 900px) / 2));}
+  .page{max-width:900px; margin:0 auto; padding-left:24px; padding-right:24px;}
+  .tour-banner{max-width:900px; margin-left:auto; margin-right:auto;}
+  .kpis{grid-template-columns:repeat(4,1fr);}
+  .nav{max-width:560px;}
+  .logo-sm{font-size:18px;}
+  .amt{min-width:132px;}
+  .amt-n{font-size:18px;}
+}
+@media(max-width:360px){
+  .page{padding-left:10px; padding-right:10px;}
+  .top{padding-left:10px; padding-right:10px;}
+  .nav button{font-size:8px; letter-spacing:.8px;}
+  .amt{min-width:96px;}
+}
+
+/* ─────────────── touch: come il core, niente effetti "incollati" ─────────────── */
+@media(hover:none),(pointer:coarse){
+  body.dw::before{display:none !important;}
+  .top::after{display:none !important;}
+  .top{border-bottom:2px solid color-mix(in srgb,var(--app-accent) 45%,transparent) !important;
+       background:#0c1d1a !important;}
+  .item::after,.kpi::after{display:none !important;}
+  .top,.nav{backdrop-filter:none !important; -webkit-backdrop-filter:none !important;}
+  .nav{background:#0c1d1a !important;}
+  input,textarea,select,.dw-input{font-size:16px !important;}
+  .item:hover,.kpi:hover,.dw-btn.secondary:hover,.chg:hover{transform:none !important;}
+  .item:hover{background:var(--card); box-shadow:var(--sh1),var(--edge);}
+  .item.tap:active,.kpi:active{transform:scale(.985);}
+  .nav .ico svg{filter:none !important;}
+  .empty-icon{filter:none !important;}
+}
+@media(prefers-reduced-motion:reduce){
+  *{transition:none !important; animation:none !important;}
+  .item::after,.kpi::after{display:none !important;}
+}
 </style>
 </head>
 <body class="dw">
 
-<div class="top">
-  <a class="dw-home" href="../index.html">⌂ ecosistema</a>
-  <h1>CONTI <span class="accent">·</span> <span style="font-size:14px;color:var(--muted2);">AMMINISTRAZIONE & GARE</span></h1>
-  <div class="sub">Ecosistema Deepwork</div>
-</div>
+<header class="top">
+  <div class="top-brand">
+    <div class="logo-sm">Conti</div>
+    <div class="role-sm">Amministrazione &amp; gare · Deepwork</div>
+  </div>
+  <a class="dw-home" href="../index.html" title="Torna all'ecosistema Deepwork" aria-label="Torna all'ecosistema Deepwork"><svg viewBox="0 0 24 24"><path d="M3.5 10.4L12 3.5l8.5 6.9V20a1.5 1.5 0 0 1-1.5 1.5h-4v-6h-6v6H5A1.5 1.5 0 0 1 3.5 20z"/></svg></a>
+</header>
 <div class="tour-banner" id="tour-banner" style="display:none;">
-  Modalità tour — dati di esempio, sola lettura
+  <b>Modalità tour.</b> Stai guardando dati di esempio: puoi provare tutto,
+  ma nulla viene salvato.
 </div>
 
 <!-- DASHBOARD -->
 <div class="page active" id="page-dash">
+  <div class="sec">Quadro dei conti</div>
   <div class="kpis">
-    <div class="kpi warn" style="cursor:pointer" data-goto="fat" data-filtro="aperte" title="Vedi le fatture da incassare"><div class="n">—</div><div class="l">Da incassare</div></div>
-    <div class="kpi warn" style="cursor:pointer" data-goto="fat" data-filtro="aperte" title="Vedi le fatture aperte"><div class="n">—</div><div class="l">Fatture in scadenza</div></div>
-    <div class="kpi accent" style="cursor:pointer" data-goto="gar" title="Vedi le gare"><div class="n">—</div><div class="l">Gare aperte</div></div>
-    <div class="kpi ok" style="cursor:pointer" data-goto="rep" title="Vedi il report"><div class="n">—</div><div class="l">Età media credito</div></div>
+    <div class="kpi warn" role="button" tabindex="0" style="cursor:pointer" data-goto="fat" data-filtro="aperte" title="Vedi le fatture ancora da incassare"><div class="l">Da incassare</div><div class="n" id="k-daincassare">—</div><div class="s" id="k-daincassare-s">&nbsp;</div></div>
+    <div class="kpi danger" role="button" tabindex="0" style="cursor:pointer" data-goto="fat" data-filtro="insolute" title="Vedi le fatture già scadute"><div class="l">Scaduto</div><div class="n" id="k-scaduto">—</div><div class="s" id="k-scaduto-s">&nbsp;</div></div>
+    <div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-goto="gar" title="Vedi le gare aperte"><div class="l">Gare aperte</div><div class="n" id="k-gare">—</div><div class="s" id="k-gare-s">&nbsp;</div></div>
+    <div class="kpi ok" role="button" tabindex="0" style="cursor:pointer" data-goto="rep" title="Vedi il report degli incassi"><div class="l">Età media credito</div><div class="n" id="k-eta">—</div><div class="s" id="k-eta-s">&nbsp;</div></div>
   </div>
 
-  <div class="sec">Priorità</div>
+  <div id="cassa-banner"></div>
+  <div class="sec">Priorità: chi sollecitare per primo</div>
   <div id="prio-list"></div>
 </div>
 
 <div class="page" id="page-fat">
-  <div class="sec">Fatture attive</div>
-  <div id="fat-filtri" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
-    <button class="dw-btn secondary" data-filtro="tutte" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Tutte</button>
-    <button class="dw-btn secondary" data-filtro="aperte" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Da incassare</button>
-    <button class="dw-btn secondary" data-filtro="insolute" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Insolute</button>
-    <button class="dw-btn secondary" data-filtro="incassate" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Incassate</button>
+  <div class="sec">Fatture attive<span class="cnt" id="fat-cnt">0</span></div>
+  <div id="fat-filtri" class="chgs">
+    <button class="chg active" data-filtro="tutte">Tutte<span class="qt" data-qt="tutte"></span></button>
+    <button class="chg" data-filtro="aperte">Da incassare<span class="qt" data-qt="aperte"></span></button>
+    <button class="chg" data-filtro="insolute">Insolute<span class="qt" data-qt="insolute"></span></button>
+    <button class="chg" data-filtro="incassate">Incassate<span class="qt" data-qt="incassate"></span></button>
   </div>
-  <div style="display:flex;align-items:center;gap:6px;margin:-2px 0 10px;">
-    <span class="dw-muted" style="font-size:12px;">Ordina:</span>
-    <select id="fat-ord" class="dw-input" style="width:auto;min-height:32px;padding:2px 8px;font-size:12px;">
+  <div class="ord">
+    <label for="fat-ord">Ordina</label>
+    <select id="fat-ord" class="dw-input">
       <option value="scadenza">Scadenza (prima le vicine)</option>
       <option value="importo">Importo (dal più grande)</option>
       <option value="cliente">Cliente (A→Z)</option>
     </select>
   </div>
-  <input class="dw-input" id="fat-cerca" type="search" placeholder="🔍 Cerca per cliente o numero…" style="margin-bottom:6px;">
-  <div id="fat-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
+  <input class="dw-input" id="fat-cerca" type="search" placeholder="Cerca per cliente o numero…" style="margin-bottom:10px;">
+  <div id="fat-count" class="count"></div>
   <div id="fat-list"></div>
+  <div id="fat-tot"></div>
+
   <div class="sec">Nuova fattura</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <input class="dw-input" id="ft-num" placeholder="Numero (es. 2026/037)" style="flex:1;min-width:110px;">
-    <select class="dw-input" id="ft-cli" style="flex:2;min-width:150px;"></select>
-    <input class="dw-input" id="ft-cli-nuovo" placeholder="Ragione sociale del nuovo cliente" style="flex:2;min-width:150px;display:none;">
-    <input class="dw-input" id="ft-imp" type="number" placeholder="Importo €" style="flex:1;min-width:100px;">
-    <input class="dw-input" id="ft-scad" type="date" style="flex:1;min-width:130px;">
-    <button class="dw-btn" id="btn-ft" style="width:auto;">Emetti</button>
+  <div class="form" id="ft-form">
+    <div class="fld" id="fld-ft-num" style="flex:1 1 140px;">
+      <label for="ft-num">Numero</label>
+      <input class="dw-input" id="ft-num" placeholder="es. 2026/037" autocomplete="off">
+      <span class="err-msg" id="err-ft-num"></span>
+    </div>
+    <div class="fld w2" id="fld-ft-cli">
+      <label for="ft-cli">Cliente</label>
+      <select class="dw-input" id="ft-cli"></select>
+      <span class="err-msg" id="err-ft-cli"></span>
+    </div>
+    <div class="fld w2" id="fld-ft-cli-nuovo" style="display:none;">
+      <label for="ft-cli-nuovo">Ragione sociale del nuovo cliente</label>
+      <input class="dw-input" id="ft-cli-nuovo" placeholder="es. Cava Verdi S.r.l." autocomplete="off">
+      <span class="err-msg" id="err-ft-cli-nuovo"></span>
+    </div>
+    <div class="fld" id="fld-ft-imp" style="flex:1 1 130px;">
+      <label for="ft-imp">Importo €</label>
+      <input class="dw-input" id="ft-imp" type="number" min="0" step="0.01" placeholder="0,00" inputmode="decimal">
+      <span class="err-msg" id="err-ft-imp"></span>
+    </div>
+    <div class="fld" id="fld-ft-scad" style="flex:1 1 150px;">
+      <label for="ft-scad">Scadenza</label>
+      <input class="dw-input" id="ft-scad" type="date">
+      <span class="err-msg" id="err-ft-scad"></span>
+    </div>
+    <button class="dw-btn" id="btn-ft">Emetti</button>
   </div>
-  <button class="dw-btn secondary" id="btn-imp-fat" style="width:auto;margin-top:8px;">Importa fatture (CSV)</button>
-  <input type="file" id="fat-file" accept=".csv,text/csv" style="display:none;">
-  <div class="note" id="ft-esito" style="text-align:left;"></div>
-  <div class="note" style="text-align:left;">Tocca una fattura per segnarla incassata. Il cliente si sceglie dall'anagrafica (scheda Clienti): scegli «➕ Nuovo cliente…» per crearlo al volo. CSV: numero;cliente;importo;emessa;scadenza[;incassata].</div>
+  <div class="tools">
+    <button class="dw-btn secondary" id="btn-imp-fat">Importa fatture (CSV)</button>
+    <input type="file" id="fat-file" accept=".csv,text/csv" style="display:none;">
+    <span class="hint">colonne: numero;cliente;importo;emessa;scadenza[;incassata]</span>
+  </div>
+  <div class="note esito" id="ft-esito"></div>
+  <div class="note">Tocca una fattura per <b>segnarla incassata</b>. Il cliente si sceglie
+    dall'anagrafica (scheda Clienti): scegli «Nuovo cliente…» per crearlo al volo.</div>
 </div>
 
 <div class="page" id="page-cli">
-  <div class="sec">Anagrafica clienti</div>
-  <input class="dw-input" id="cli-cerca" type="search" placeholder="🔍 Cerca per ragione sociale, P.IVA o indirizzo…" style="margin-bottom:6px;">
-  <div id="cli-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
+  <div class="sec">Anagrafica clienti<span class="cnt" id="cli-cnt">0</span></div>
+  <input class="dw-input" id="cli-cerca" type="search" placeholder="Cerca per ragione sociale, P.IVA o indirizzo…" style="margin-bottom:10px;">
+  <div id="cli-count" class="count"></div>
   <div id="cli-list"></div>
+
   <div class="sec">Nuovo cliente</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <input class="dw-input" id="cl-nome" placeholder="Ragione sociale" style="flex:2;min-width:170px;">
-    <input class="dw-input" id="cl-piva" placeholder="P.IVA o codice fiscale" style="flex:1;min-width:150px;">
-    <input class="dw-input" id="cl-sdi" placeholder="Codice destinatario SDI o PEC" style="flex:1;min-width:170px;">
-    <input class="dw-input" id="cl-ind" placeholder="Indirizzo" style="flex:2;min-width:170px;">
-    <input class="dw-input" id="cl-sconto" type="number" min="0" max="100" placeholder="Sconto %" style="flex:1;min-width:100px;">
-    <input class="dw-input" id="cl-fido" type="number" min="0" placeholder="Fido €" style="flex:1;min-width:100px;">
-    <input class="dw-input" id="cl-note" placeholder="Note" style="flex:2;min-width:170px;">
-    <button class="dw-btn" id="btn-cl" style="width:auto;">Aggiungi</button>
+  <div class="form" id="cl-form">
+    <div class="fld w2" id="fld-cl-nome">
+      <label for="cl-nome">Ragione sociale</label>
+      <input class="dw-input" id="cl-nome" placeholder="es. Cava Verdi S.r.l." autocomplete="off">
+      <span class="err-msg" id="err-cl-nome"></span>
+    </div>
+    <div class="fld" id="fld-cl-piva" style="flex:1 1 160px;">
+      <label for="cl-piva">P.IVA o codice fiscale</label>
+      <input class="dw-input" id="cl-piva" placeholder="es. 01234567890" autocomplete="off">
+      <span class="err-msg" id="err-cl-piva"></span>
+    </div>
+    <div class="fld" id="fld-cl-sdi" style="flex:1 1 170px;">
+      <label for="cl-sdi">Destinatario SDI o PEC</label>
+      <input class="dw-input" id="cl-sdi" placeholder="es. ABC1234" autocomplete="off">
+      <span class="err-msg" id="err-cl-sdi"></span>
+    </div>
+    <div class="fld w2" id="fld-cl-ind">
+      <label for="cl-ind">Indirizzo</label>
+      <input class="dw-input" id="cl-ind" placeholder="via, città" autocomplete="off">
+      <span class="err-msg" id="err-cl-ind"></span>
+    </div>
+    <div class="fld" id="fld-cl-sconto" style="flex:1 1 110px;">
+      <label for="cl-sconto">Sconto %</label>
+      <input class="dw-input" id="cl-sconto" type="number" min="0" max="100" step="0.5" placeholder="0" inputmode="decimal">
+      <span class="err-msg" id="err-cl-sconto"></span>
+    </div>
+    <div class="fld" id="fld-cl-fido" style="flex:1 1 130px;">
+      <label for="cl-fido">Fido €</label>
+      <input class="dw-input" id="cl-fido" type="number" min="0" step="100" placeholder="0,00" inputmode="decimal">
+      <span class="err-msg" id="err-cl-fido"></span>
+    </div>
+    <div class="fld w2" id="fld-cl-note">
+      <label for="cl-note">Note</label>
+      <input class="dw-input" id="cl-note" placeholder="condizioni, referente…" autocomplete="off">
+      <span class="err-msg" id="err-cl-note"></span>
+    </div>
+    <button class="dw-btn" id="btn-cl">Aggiungi</button>
   </div>
-  <button class="dw-btn secondary" id="btn-cli-export" style="width:auto;margin-top:8px;">Esporta clienti (CSV)</button>
-  <div class="note" id="cl-esito" style="text-align:left;"></div>
-  <div class="note" style="text-align:left;">Il badge mostra l'esposizione aperta del cliente; diventa rosso se supera il fido.</div>
+  <div class="tools">
+    <button class="dw-btn secondary" id="btn-cli-export">Esporta clienti (CSV)</button>
+  </div>
+  <div class="note esito" id="cl-esito"></div>
+  <div class="note">L'importo a destra è l'<b>esposizione aperta</b> del cliente: quanto ti deve
+    ancora. Diventa rosso se supera il fido che hai impostato.</div>
+
   <div class="sec">Fatture da collegare all'anagrafica</div>
   <div id="cli-mig"></div>
 </div>
 
 <div class="page" id="page-gar">
-  <div class="sec">Gare e appalti</div>
-  <div id="gar-riep" class="note" style="text-align:left;"></div>
-  <div id="gar-filtri" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-    <button class="dw-btn secondary" data-gfiltro="tutte" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Tutte</button>
-    <button class="dw-btn secondary" data-gfiltro="aperta" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Aperte</button>
-    <button class="dw-btn secondary" data-gfiltro="vinta" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Vinte</button>
-    <button class="dw-btn secondary" data-gfiltro="persa" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Perse</button>
+  <div class="sec">Gare e appalti<span class="cnt" id="gar-cnt">0</span></div>
+  <div id="gar-riep" class="note recap"></div>
+  <div id="gar-filtri" class="chgs">
+    <button class="chg active" data-gfiltro="tutte">Tutte<span class="qt" data-gqt="tutte"></span></button>
+    <button class="chg" data-gfiltro="aperta">Aperte<span class="qt" data-gqt="aperta"></span></button>
+    <button class="chg" data-gfiltro="vinta">Vinte<span class="qt" data-gqt="vinta"></span></button>
+    <button class="chg" data-gfiltro="persa">Perse<span class="qt" data-gqt="persa"></span></button>
   </div>
-  <input class="dw-input" id="gar-cerca" type="search" placeholder="🔍 Cerca gara…" style="margin-bottom:6px;">
-  <div id="gar-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
+  <input class="dw-input" id="gar-cerca" type="search" placeholder="Cerca gara…" style="margin-bottom:10px;">
+  <div id="gar-count" class="count"></div>
   <div id="gar-list"></div>
+
   <div class="sec">Nuova gara</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <input class="dw-input" id="gar-titolo" placeholder="Titolo (es. Fornitura inerti Comune X)" style="flex:2;min-width:170px;">
-    <input class="dw-input" id="gar-base" type="number" min="0" placeholder="Base d'asta €" style="flex:1;min-width:110px;">
-    <input class="dw-input" id="gar-data" type="date" style="flex:1;min-width:130px;">
-    <button class="dw-btn" id="btn-gar" style="width:auto;">Aggiungi</button>
+  <div class="form" id="gar-form">
+    <div class="fld w2" id="fld-gar-titolo">
+      <label for="gar-titolo">Titolo</label>
+      <input class="dw-input" id="gar-titolo" placeholder="es. Fornitura inerti Comune X" autocomplete="off">
+      <span class="err-msg" id="err-gar-titolo"></span>
+    </div>
+    <div class="fld" id="fld-gar-base" style="flex:1 1 140px;">
+      <label for="gar-base">Base d'asta €</label>
+      <input class="dw-input" id="gar-base" type="number" min="0" step="0.01" placeholder="0,00" inputmode="decimal">
+      <span class="err-msg" id="err-gar-base"></span>
+    </div>
+    <div class="fld" id="fld-gar-data" style="flex:1 1 150px;">
+      <label for="gar-data">Scadenza</label>
+      <input class="dw-input" id="gar-data" type="date">
+      <span class="err-msg" id="err-gar-data"></span>
+    </div>
+    <button class="dw-btn" id="btn-gar">Aggiungi</button>
   </div>
-  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-    <button class="dw-btn secondary" id="btn-gar-import" style="width:auto;">Importa gare (CSV)</button>
-    <button class="dw-btn secondary" id="btn-gar-export" style="width:auto;">Esporta gare (CSV)</button>
+  <div class="tools">
+    <button class="dw-btn secondary" id="btn-gar-import">Importa gare (CSV)</button>
+    <button class="dw-btn secondary" id="btn-gar-export">Esporta gare (CSV)</button>
     <input type="file" id="gar-file" accept=".csv,text/csv" style="display:none;">
-    <span class="dw-muted" style="font-size:12px;">colonne: titolo;base;scadenza;stato</span>
+    <span class="hint">colonne: titolo;base;scadenza;stato</span>
   </div>
-  <div class="note" id="gar-esito" style="text-align:left;"></div>
-  </div>
+  <div class="note esito" id="gar-esito"></div>
+</div>
 
 <div class="page" id="page-rep">
   <div class="sec">Report rapidi</div>
@@ -136,17 +928,29 @@
   <div id="prev-list"></div>
   <div class="sec">Esposizione per cliente (chi chiamare per primo)</div>
   <div id="espo-list"></div>
-  <button class="dw-btn secondary" id="btn-rep-export" style="width:auto;margin-top:8px;">Esporta situazione (CSV)</button>
-  <div class="note" id="mode-note" style="text-align:left;"></div>
+  <div class="tools">
+    <button class="dw-btn secondary" id="btn-rep-export">Esporta situazione (CSV)</button>
+  </div>
+  <div class="note" id="mode-note"></div>
 </div>
 
-<div class="nav">
-  <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico">▦</span>Quadro</button>
-  <button id="nav-fat" onclick="go('fat')"><span class="ico">🧾</span>Fatture</button>
-  <button id="nav-cli" onclick="go('cli')"><span class="ico">👥</span>Clienti</button>
-  <button id="nav-gar" onclick="go('gar')"><span class="ico">📑</span>Gare</button>
-  <button id="nav-rep" onclick="go('rep')"><span class="ico">📊</span>Report</button>
+<nav class="nav" aria-label="Sezioni di Conti">
+  <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg></span>Quadro</button>
+  <button id="nav-fat" onclick="go('fat')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M5.5 3.2h13v17.6l-2.6-1.5-2.6 1.5-2.6-1.5-2.6 1.5L5.5 20.8z"/><path d="M9 8.2h6M9 12h6M9 15.4h3.6"/></svg></span>Fatture</button>
+  <button id="nav-cli" onclick="go('cli')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M16.6 20.5v-1.6a3.9 3.9 0 0 0-3.9-3.9H6.9A3.9 3.9 0 0 0 3 18.9v1.6"/><circle cx="9.8" cy="7.6" r="3.9"/><path d="M21 20.5v-1.6a3.9 3.9 0 0 0-2.9-3.8M15.6 4a3.9 3.9 0 0 1 0 7.2"/></svg></span>Clienti</button>
+  <button id="nav-gar" onclick="go('gar')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M9 4.2H6.5A2 2 0 0 0 4.5 6.2v13a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-13a2 2 0 0 0-2-2H15"/><rect x="9" y="2.5" width="6" height="3.6" rx="1.2"/><path d="M8.6 12.4l2.2 2.2 4.6-4.6"/></svg></span>Gare</button>
+  <button id="nav-rep" onclick="go('rep')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M3.5 20.5h17"/><rect x="5" y="11" width="3.6" height="7" rx="1"/><rect x="10.2" y="6.5" width="3.6" height="11.5" rx="1"/><rect x="15.4" y="9" width="3.6" height="9" rx="1"/></svg></span>Report</button>
+</nav>
+
+<!-- modale in stile core: sostituisce alert()/confirm()/prompt() del browser -->
+<div class="modal-ov" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-box">
+    <div class="modal-head" id="modal-title">Conferma</div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot" id="modal-foot"></div>
+  </div>
 </div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
   function go(id) {
@@ -156,15 +960,166 @@
     document.getElementById("nav-" + id).classList.add("active");
     window.scrollTo(0, 0);
   }
+
+  /* ── Toast del core: nessun alert() del browser ────────────────────── */
+  let toastT = null;
+  function toast(msg, tipo) {
+    const t = document.getElementById("toast");
+    t.className = "toast " + (tipo || "");
+    t.textContent = msg;
+    void t.offsetWidth;
+    t.classList.add("show");
+    clearTimeout(toastT);
+    toastT = setTimeout(() => t.classList.remove("show"), msg.length > 70 ? 4200 : 2800);
+  }
+
+  /* ── Modale del core: sostituisce confirm() e prompt() ─────────────── */
+  let modalPrec = null;
+  function apriModale(titolo, corpo, bottoni) {
+    modalPrec = document.activeElement;
+    document.getElementById("modal-title").textContent = titolo;
+    document.getElementById("modal-body").innerHTML = corpo;
+    const foot = document.getElementById("modal-foot");
+    foot.innerHTML = "";
+    (bottoni || []).forEach(b => {
+      const el = document.createElement("button");
+      el.className = "mbtn " + (b.cls || "");
+      el.textContent = b.label;
+      el.onclick = b.azione;
+      foot.appendChild(el);
+    });
+    document.getElementById("modal").classList.add("show");
+    document.body.classList.add("modal-open");
+    const primo = document.getElementById("modal-body").querySelector("input,select,textarea")
+               || foot.querySelector(".mbtn.primary,.mbtn.danger") || foot.querySelector(".mbtn");
+    if (primo) setTimeout(() => { try { primo.focus({ preventScroll: true }); primo.select && primo.select(); } catch (e) {} }, 80);
+  }
+  function chiudiModale() {
+    document.getElementById("modal").classList.remove("show");
+    document.body.classList.remove("modal-open");
+    if (modalPrec && modalPrec.focus) { try { modalPrec.focus({ preventScroll: true }); } catch (e) {} }
+    modalPrec = null;
+  }
+  // Conferma in stile core: restituisce una Promise<boolean>
+  function chiedi(titolo, corpo, etichettaOk, pericolo) {
+    return new Promise(res => {
+      apriModale(titolo, corpo, [
+        { label: "Annulla", azione: () => { chiudiModale(); res(false); } },
+        { label: etichettaOk || "Conferma", cls: pericolo ? "danger" : "primary",
+          azione: () => { chiudiModale(); res(true); } },
+      ]);
+    });
+  }
+  // Avviso informativo: un solo bottone, non c'è niente da annullare
+  function avvisa(titolo, corpo, etichetta) {
+    return new Promise(res => apriModale(titolo, corpo, [
+      { label: etichetta || "Ho capito", cls: "primary", azione: () => { chiudiModale(); res(true); } },
+    ]));
+  }
+  // Testo lungo da copiare a mano (ripiego quando la clipboard è negata):
+  // niente prompt() del browser, si mostra il testo dentro la modale.
+  function mostraTesto(titolo, spiega, testo) {
+    apriModale(titolo,
+      '<p>' + spiega + '</p><span class="fl">Testo da copiare</span>' +
+      '<textarea class="dw-input" id="modal-campo" readonly rows="9" style="min-height:150px;font-size:12.5px;line-height:1.5;"></textarea>',
+      [{ label: "Chiudi", cls: "primary", azione: chiudiModale }]);
+    const c = document.getElementById("modal-campo");
+    if (c) c.value = testo;
+  }
+  document.getElementById("modal").addEventListener("click", e => {
+    if (e.target.id === "modal") { const b = document.querySelector("#modal-foot .mbtn"); if (b) b.click(); }
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Escape") return;
+    const m = document.getElementById("modal");
+    if (m && m.classList.contains("show")) { const b = m.querySelector("#modal-foot .mbtn"); if (b) b.click(); }
+  });
+  // KPI raggiungibili da tastiera (Invio/Spazio = tocco)
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const k = e.target.closest && e.target.closest(".kpi[data-goto]");
+    if (k) { e.preventDefault(); k.click(); }
+  });
+
+  /* ── Alone che segue il mouse (firma dinamica del core: --mx/--my) ─── */
+  (function () {
+    if (matchMedia("(prefers-reduced-motion:reduce)").matches) return;
+    if (!matchMedia("(hover:hover) and (pointer:fine)").matches) return;
+    const sel = ".item,.kpi";
+    let cur = null, px = 50, py = 50, pend = false;
+    const apply = () => { pend = false; if (cur) { cur.style.setProperty("--mx", px + "%"); cur.style.setProperty("--my", py + "%"); } };
+    window.addEventListener("pointermove", e => {
+      const t = e.target.closest ? e.target.closest(sel) : null;
+      cur = t; if (!t) return;
+      const r = t.getBoundingClientRect();
+      px = (e.clientX - r.left) / r.width * 100;
+      py = (e.clientY - r.top) / r.height * 100;
+      if (!pend) { pend = true; requestAnimationFrame(apply); }
+    }, { passive: true });
+  })();
 </script>
 
 <script type="module">
   import { contiData, giorni, kpiFrom, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, parseFattureCsv, parseGareCsv, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare } from "./conti-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
-  const eur = (v) => "€" + (+v||0).toLocaleString("it-IT");
+  // ── CIFRE: formato italiano, sempre due decimali, spazio unificatore
+  //    dopo l'euro. Le colonne devono incolonnarsi: mai formati misti.
+  const NUM2 = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const NUM0 = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0 });
+  const eur  = (v) => "€ " + NUM2.format(+v || 0);                 // € 48.200,00
+  const eur0 = (v) => "€ " + NUM0.format(Math.round(+v || 0));     // € 48.200
+  // KPI: cifre grosse e leggibili — sopra i 10.000 si passa ai "k"
+  const eurK = (v) => { const n = Math.abs(+v || 0);
+    return n >= 10000 ? "€ " + NUM0.format(Math.round(n / 1000)) + '<span class="u">k</span>'
+                      : "€ " + NUM0.format(Math.round(n)); };
+  const plur = (n, s, p) => n + " " + (n === 1 ? s : p);
+  // iniziali per l'avatar del cliente (massimo due lettere, come nel core)
+  const iniziali = (nome) => String(nome || "?").replace(/[^\p{L}\s]/gu, " ").trim()
+    .split(/\s+/).slice(0, 2).map(w => w[0] || "").join("").toUpperCase() || "?";
   const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
   const GB = { aperta: ["warn","Aperta"], vinta: ["ok","Vinta"], persa: ["danger","Persa"] };
+
+  // ── Icone SVG (niente emoji: tratto coerente, 24×24, stroke) ────────
+  const IC = {
+    fattura: '<svg viewBox="0 0 24 24"><path d="M5.5 3.2h13v17.6l-2.6-1.5-2.6 1.5-2.6-1.5-2.6 1.5L5.5 20.8z"/><path d="M9 8.2h6M9 12h6M9 15.4h3.6"/></svg>',
+    cliente: '<svg viewBox="0 0 24 24"><path d="M20 21v-1.8a4.2 4.2 0 0 0-4.2-4.2H8.2A4.2 4.2 0 0 0 4 19.2V21"/><circle cx="12" cy="7.2" r="4.2"/></svg>',
+    gara:    '<svg viewBox="0 0 24 24"><path d="M9 4.2H6.5A2 2 0 0 0 4.5 6.2v13a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-13a2 2 0 0 0-2-2H15"/><rect x="9" y="2.5" width="6" height="3.6" rx="1.2"/><path d="M8.6 12.4l2.2 2.2 4.6-4.6"/></svg>',
+    euro:    '<svg viewBox="0 0 24 24"><path d="M17.5 5.6A7.2 7.2 0 0 0 7 12a7.2 7.2 0 0 0 10.5 6.4"/><path d="M4 10.2h8.6M4 13.8h8.6"/></svg>',
+    grafico: '<svg viewBox="0 0 24 24"><path d="M3.5 20.5h17"/><rect x="5" y="11" width="3.6" height="7" rx="1"/><rect x="10.2" y="6.5" width="3.6" height="11.5" rx="1"/><rect x="15.4" y="9" width="3.6" height="9" rx="1"/></svg>',
+    matita:  '<svg viewBox="0 0 24 24"><path d="M16.4 3.9a2 2 0 0 1 2.8 2.8L8 17.9l-3.7.9.9-3.7z"/></svg>',
+    croce:   '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    spunta:  '<svg viewBox="0 0 24 24"><path d="M4.5 12.4l5 5 10-10"/></svg>',
+    busta:   '<svg viewBox="0 0 24 24"><rect x="2.8" y="5" width="18.4" height="14" rx="2.2"/><path d="M3.4 6.6L12 12.8l8.6-6.2"/></svg>',
+    ok:      '<svg viewBox="0 0 24 24"><path d="M4.5 12.4l5 5 10-10"/></svg>',
+    allarme: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.4v5.2M12 16.2v.2"/></svg>',
+    vuoto:   '<svg viewBox="0 0 24 24"><path d="M3.5 8.5h17v11a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M3.5 8.5L6 3.4h12l2.5 5.1M9.4 12.6h5.2"/></svg>',
+  };
+  // Stato vuoto in stile core: icona, titolo, istruzione su cosa fare
+  const vuoto = (icona, titolo, istruzione) =>
+    `<div class="empty-state"><div class="empty-icon">${IC[icona] || IC.vuoto}</div>
+      <div class="empty-title">${titolo}</div>
+      <div class="empty-sub">${istruzione}</div></div>`;
+
+  // ── Errori di campo: bordo rosso + messaggio che spiega + fuoco ─────
+  const segnaErr = (campo, messaggio) => {
+    const inp = $(campo), fld = $("fld-" + campo), msg = $("err-" + campo);
+    if (inp) inp.classList.add("err");
+    if (fld) fld.classList.add("bad");
+    if (msg) msg.innerHTML = IC.allarme + "<span>" + messaggio + "</span>";
+  };
+  const puliscoErr = (campo) => {
+    const inp = $(campo), fld = $("fld-" + campo), msg = $("err-" + campo);
+    if (inp) inp.classList.remove("err");
+    if (fld) fld.classList.remove("bad");
+    if (msg) msg.innerHTML = "";
+  };
+  // Il primo campo sbagliato prende il fuoco: l'utente sa dove intervenire
+  const primoErrore = (campi) => { const c = campi.find(id => $("fld-" + id) && $("fld-" + id).classList.contains("bad"));
+    if (c && $(c)) { try { $(c).focus({ preventScroll: false }); } catch (e) {} } };
+  // Esito accanto al form + toast: il messaggio resta, l'annuncio passa
+  const esito = (id, testo, tipo) => { const n = $(id); if (n) n.textContent = testo || "";
+    if (testo) toast(testo, tipo); };
 
   const db = await contiData();
   mountExit(db);
@@ -187,9 +1142,9 @@
   // "ft-cli-nuovo" compare solo quando si crea un cliente al volo.
   const FT_CAMPI = ["ft-num","ft-cli","ft-cli-nuovo","ft-imp","ft-scad"];
   const CL_CAMPI = ["cl-nome","cl-piva","cl-sdi","cl-ind","cl-sconto","cl-fido","cl-note"];
-  const syncCliNuovo = () => { $("ft-cli-nuovo").style.display = $("ft-cli").value === "__nuovo" ? "" : "none"; };
-  const pulisciFat = () => { FT_CAMPI.forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; }); syncCliNuovo(); };
-  const pulisciCli = () => CL_CAMPI.forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; });
+  const syncCliNuovo = () => { $("fld-ft-cli-nuovo").style.display = $("ft-cli").value === "__nuovo" ? "" : "none"; };
+  const pulisciFat = () => { FT_CAMPI.forEach(i => { $(i).value = ""; puliscoErr(i); }); syncCliNuovo(); };
+  const pulisciCli = () => CL_CAMPI.forEach(i => { $(i).value = ""; puliscoErr(i); });
   $("ft-cli").onchange = () => { syncCliNuovo(); if ($("ft-cli").value === "__nuovo") $("ft-cli-nuovo").focus(); };
   try { const _s = localStorage.getItem("dwSort_fat"); if (_s) { ordFat = _s; if ($("fat-ord")) $("fat-ord").value = _s; } } catch (e) {}
   if ($("fat-ord")) $("fat-ord").onchange = () => { ordFat = $("fat-ord").value; try { localStorage.setItem("dwSort_fat", ordFat); } catch (e) {} refresh(); };
@@ -230,40 +1185,100 @@
   async function refresh(){
     [FAT,GAR,CLI] = await Promise.all([db.fatture(), db.gare(), db.clienti()]);
     const k = kpiFrom(FAT,GAR);
-    const kn = document.querySelectorAll(".kpis .kpi .n");
-    if (kn[0]) kn[0].textContent = "€" + Math.round(k.daIncassare/1000) + "k";
-    if (kn[1]) kn[1].textContent = k.inScadenza;
-    if (kn[2]) kn[2].textContent = k.gareAperte;
-    if (kn[3]) kn[3].textContent = k.etaCredito + "gg";
+    const aperte  = FAT.filter(f => !f.incassata);
+    const scadute = aperte.filter(f => giorni(f.scadenza) < 0);
+    const scadutoTot = scadute.reduce((t,f) => t + (+f.importo || 0), 0);
+    const baseAperta = GAR.filter(g => g.stato === "aperta").reduce((t,g) => t + (+g.base || 0), 0);
+    $("k-daincassare").innerHTML = eurK(k.daIncassare);
+    $("k-daincassare-s").textContent = plur(aperte.length, "fattura aperta", "fatture aperte");
+    $("k-scaduto").innerHTML = eurK(scadutoTot);
+    $("k-scaduto-s").textContent = scadute.length
+      ? plur(scadute.length, "fattura scaduta", "fatture scadute") : "nessun ritardo";
+    $("k-gare").textContent = k.gareAperte;
+    $("k-gare-s").textContent = baseAperta > 0 ? eur0(baseAperta) + " a base d'asta" : "nessuna gara aperta";
+    $("k-eta").innerHTML = k.etaCredito + '<span class="u"> gg</span>';
+    $("k-eta-s").textContent = k.etaCredito > 45 ? "sopra i 45 giorni" : "sotto controllo";
+    // il KPI dello scaduto pulsa in rosso solo se c'è davvero uno scaduto
+    document.querySelector('[data-filtro="insolute"].kpi')
+      && document.querySelector('[data-filtro="insolute"].kpi').classList.toggle("danger", scadutoTot > 0);
+    document.querySelector('[data-filtro="insolute"].kpi')
+      && document.querySelector('[data-filtro="insolute"].kpi').classList.toggle("ok", scadutoTot === 0);
+
+    // Cartellone di cassa: l'incassato del mese in corso, la cifra che il
+    // fondatore guarda per prima quando apre l'app.
+    { const ym = new Date().toISOString().slice(0,7);
+      const incMese = FAT.filter(f => f.incassata && (f.dataIncasso||"").slice(0,7) === ym);
+      const totMese = incMese.reduce((t,f) => t + (+f.importo || 0), 0);
+      $("cassa-banner").innerHTML = `<div class="cassa${totMese > 0 ? "" : " vuota"}">
+        <span class="cassa-ico">${IC.euro}</span>
+        <div><div class="cassa-num">${eur(totMese)}</div>
+        <div class="cassa-lab">Incassato questo mese</div></div>
+        <div class="cassa-txt" style="margin-left:auto;text-align:right;">
+        ${totMese > 0 ? plur(incMese.length, "fattura saldata", "fatture saldate") + "<br>"
+                      : "Nessun incasso registrato questo mese.<br>"}
+        Restano <b>${eur(k.daIncassare)}</b> da incassare.</div></div>`; }
 
     const prio = [
       // fatture ordinate per priorità di incasso (più in ritardo / più grosse)
       ...prioritaIncasso(FAT).slice(0, 3)
-            .map(({ f, ritardo }) => ({ t: "Fattura " + f.numero + " — " + nomeCliente(f, CLI),
-              d: eur(f.importo) + (ritardo > 0 ? " · scaduta da " + ritardo + " gg" : " · scad. " + fmtD(f.scadenza)), b: fatBadge(f) })),
+            .map(({ f, ritardo }) => ({ ico: IC.fattura, t: "Fattura " + f.numero + " — " + nomeCliente(f, CLI),
+              d: ritardo > 0 ? "scaduta da " + plur(ritardo, "giorno", "giorni") : "scade il " + fmtD(f.scadenza),
+              v: eur(f.importo), s: "", b: fatBadge(f),
+              st: ritardo > 0 ? "st-danger" : "st-warn" })),
       ...GAR.filter(g => g.stato === "aperta" && giorni(g.scadenza) <= 15)
-            .map(g => ({ t: g.titolo, d: "base " + eur(g.base) + " · scade " + fmtD(g.scadenza), b: ["warn", giorni(g.scadenza) + " gg"] })),
+            .map(g => ({ ico: IC.gara, t: g.titolo, d: "gara in scadenza il " + fmtD(g.scadenza),
+              v: eur(g.base), s: "base d'asta", b: ["warn", plur(giorni(g.scadenza), "gg", "gg")], st: "st-sup" })),
     ].slice(0, 4);
-    $("prio-list").innerHTML = prio.map(p => `<div class="item">
+    $("prio-list").innerHTML = prio.map(p => `<div class="item ${p.st}">
+      <span class="avatar${p.st === "st-sup" ? " sup" : ""}">${p.ico}</span>
       <div class="info"><div class="name">${esc(p.t)}</div><div class="meta">${esc(p.d)}</div></div>
-      <span class="badge ${p.b[0]}">${p.b[1]}</span></div>`).join("") || '<div class="note">Nessuna priorità: incassi e gare sotto controllo.</div>';
+      <div class="amt"><div class="amt-n">${p.v}</div>${p.s ? `<div class="amt-s">${p.s}</div>` : ""}</div>
+      <span class="badge ${p.b[0]}">${p.b[1]}</span></div>`).join("")
+      || vuoto("ok", "Tutto in ordine", "Nessun credito in ritardo e nessuna gara in scadenza. Le fatture nuove le emetti dalla scheda <b>Fatture</b>.");
 
     const qFat = ($("fat-cerca") && $("fat-cerca").value || "").trim().toLowerCase();
     // cerca sia sul nome di anagrafica sia sul testo salvato nella fattura, così
     // si trova anche cercando il vecchio modo di scrivere il cliente
     const fatCerca = (f) => !qFat || (nomeCliente(f, CLI) + " " + (f.cliente || "") + " " + (f.numero || "")).toLowerCase().includes(qFat);
-    $("fat-list").innerHTML = FAT.filter(fatMatch).filter(fatCerca).sort(fatCmp).map(f => { const b = fatBadge(f);
+    const fatViste = FAT.filter(fatMatch).filter(fatCerca).sort(fatCmp);
+    $("fat-list").innerHTML = fatViste.map(f => { const b = fatBadge(f);
       const ritardo = !f.incassata ? Math.max(0, -giorni(f.scadenza)) : 0;
       const sol = !f.incassata ? livelloSollecito(ritardo) : null;
       const mora = ritardo > 0 ? interessiMora(f.importo, ritardo) : null;   // interessi 231/2002
-      return `<div class="item" data-fat="${f.id}" style="cursor:pointer" title="${f.incassata ? "Tocca per annullare l'incasso" : "Tocca per segnare incassata"}">
-      <div class="info"><div class="name">${esc(f.numero)} — ${esc(nomeCliente(f, CLI))}${clienteDiFattura(f, CLI) ? "" : ' <span class="dw-muted" title="Cliente non ancora collegato all\'anagrafica: collegalo dalla scheda Clienti">· da collegare</span>'}</div><div class="meta">${eur(f.importo)} · emessa ${fmtD(f.emessa)} · ${f.incassata ? "incassata " + (f.dataIncasso ? fmtD(f.dataIncasso) : "") : "scad. " + fmtD(f.scadenza)}${sol && sol.livello ? " · " + sol.label : ""}${mora && mora.interessi > 0 ? ` · <span title="Interessi di mora D.Lgs 231/2002 al ${TASSO_MORA_DEFAULT}% (tipico, da confermare) + €40 spese art. 6">mora ~${eur(Math.round(mora.interessi))}</span>` : ""}</div></div>
-      <span class="badge ${b[0]}">${b[1]}</span>${ritardo>0?`<button class="dw-btn secondary" data-sollecito="${f.id}" title="Copia il testo del sollecito (con mora 231/2002) da inviare al cliente" style="width:auto;min-height:32px;padding:2px 10px;font-size:11px;">✉ Sollecito</button>`:""}${!f.incassata?`<span class="arr" style="cursor:pointer" title="Modifica fattura" data-edit-fat="${f.id}">✎</span>`:""}${!f.incassata?`<span class="arr" style="cursor:pointer" title="Elimina fattura errata" data-del-fat="${f.id}">✕</span>`:""}</div>`; }).join("")
-      || '<div class="note" style="text-align:left;">'+(qFat?"Nessuna fattura trovata per «"+esc(qFat)+"».":(filtroFat==="tutte"?"Nessuna fattura registrata.":"Nessuna fattura in questa categoria."))+'</div>';
-    { const n = $("fat-list").querySelectorAll(".item").length, filtrata = qFat || filtroFat !== "tutte";
-      $("fat-count").textContent = n === 0 ? "" : n + (n === 1 ? " fattura" : " fatture") + (filtrata ? " · su " + FAT.length : ""); }
+      const st = f.incassata ? "st-ok" : ritardo > 0 ? "st-danger" : giorni(f.scadenza) <= 10 ? "st-warn" : "st-accent";
+      const meta = [
+        "emessa " + fmtD(f.emessa),
+        f.incassata ? "incassata " + (f.dataIncasso ? fmtD(f.dataIncasso) : "") : "scade " + fmtD(f.scadenza),
+        sol && sol.livello ? sol.label : "",
+      ].filter(Boolean).join(" · ");
+      return `<div class="item tap ${st}" data-fat="${f.id}" title="${f.incassata ? "Tocca per annullare l'incasso" : "Tocca per segnare incassata"}">
+      <span class="avatar">${IC.fattura}</span>
+      <div class="info"><div class="name"><span class="num-doc">${esc(f.numero)}</span> · ${esc(nomeCliente(f, CLI))}${clienteDiFattura(f, CLI) ? "" : ' <span class="badge tag" title="Cliente non ancora collegato all\'anagrafica: collegalo dalla scheda Clienti">da collegare</span>'}</div>
+      <div class="meta">${esc(meta)}${mora && mora.interessi > 0 ? ` · <span title="Interessi di mora D.Lgs 231/2002 al ${TASSO_MORA_DEFAULT}% (tipico, da confermare) + € 40,00 di spese art. 6">mora ~${eur(mora.interessi)}</span>` : ""}</div></div>
+      <div class="amt"><div class="amt-n${f.incassata ? " mute" : ritardo > 0 ? " neg" : ""}">${eur(f.importo)}</div>
+        <div class="amt-s">${f.incassata ? "saldata" : ritardo > 0 ? "in ritardo di " + ritardo + " gg" : "da incassare"}</div></div>
+      <span class="badge ${b[0]}">${b[1]}</span>
+      <div class="acts">${ritardo>0?`<button class="dw-btn secondary mini" data-sollecito="${f.id}" title="Copia il testo del sollecito (con mora 231/2002) da inviare al cliente">${IC.busta}Sollecito</button>`:""}${!f.incassata?`<button class="arr" type="button" title="Modifica fattura" aria-label="Modifica fattura ${esc(f.numero)}" data-edit-fat="${f.id}">${IC.matita}</button>`:""}${!f.incassata?`<button class="arr del" type="button" title="Elimina fattura errata" aria-label="Elimina fattura ${esc(f.numero)}" data-del-fat="${f.id}">${IC.croce}</button>`:""}</div></div>`; }).join("")
+      || (qFat ? vuoto("fattura", "Nessun risultato", "Nessuna fattura trovata per «<b>" + esc(qFat) + "</b>». Prova con il numero o con una parte del nome del cliente.")
+         : filtroFat === "tutte" ? vuoto("fattura", "Nessuna fattura", "Emetti la prima fattura dal riquadro <b>Nuova fattura</b> qui sotto, oppure importa un CSV dal tuo gestionale.")
+         : vuoto("fattura", "Categoria vuota", "Nessuna fattura in questa categoria. Tocca <b>Tutte</b> per vedere l'elenco completo."));
+    // Totale della vista: la colonna di importi si chiude con la sua somma
+    { const somma = fatViste.reduce((t,f) => t + (+f.importo || 0), 0);
+      const etichetta = { tutte:"Totale fatturato", aperte:"Totale da incassare",
+        insolute:"Totale insoluto", incassate:"Totale incassato" }[filtroFat] || "Totale";
+      $("fat-tot").innerHTML = fatViste.length
+        ? `<div class="tot${filtroFat === "insolute" ? " warn" : ""}"><span class="tot-l">${etichetta}</span>
+           <span class="tot-n">${eur(somma)}</span></div>` : ""; }
+    { const n = fatViste.length, filtrata = qFat || filtroFat !== "tutte";
+      $("fat-count").innerHTML = n === 0 ? "" : "<b>" + n + "</b>" + (n === 1 ? " fattura" : " fatture") + (filtrata ? " su " + FAT.length : ""); }
+    $("fat-cnt").textContent = FAT.length;
     document.querySelectorAll("#fat-filtri [data-filtro]").forEach(b =>
-      b.style.borderColor = b.getAttribute("data-filtro") === filtroFat ? "var(--app-accent)" : "");
+      b.classList.toggle("active", b.getAttribute("data-filtro") === filtroFat));
+    // quantità dentro il filtro: si vede quanto pesa una categoria prima di aprirla
+    { const q = { tutte: FAT.length, aperte: aperte.length, insolute: scadute.length,
+        incassate: FAT.length - aperte.length };
+      document.querySelectorAll("#fat-filtri .qt").forEach(s => {
+        const v = q[s.getAttribute("data-qt")]; s.textContent = v ? v : ""; }); }
 
     // Anagrafica clienti: esposizione aperta per cliente (per il badge e il fido),
     // elenco con ricerca e conteggio, tendina del form fattura, fatture da collegare.
@@ -274,7 +1289,7 @@
       const sel = $("ft-cli"), prima = sel.value;
       sel.innerHTML = '<option value="">— cliente dall\'anagrafica —</option>'
         + cliOrd.map(c => `<option value="${esc(c.id)}">${esc(c.ragioneSociale)}</option>`).join("")
-        + '<option value="__nuovo">➕ Nuovo cliente…</option>';
+        + '<option value="__nuovo">+ Nuovo cliente…</option>';
       sel.value = prima; if (sel.value !== prima) sel.value = "";   // cliente sparito nel frattempo
       syncCliNuovo(); }
     const qCli = ($("cli-cerca") && $("cli-cerca").value || "").trim().toLowerCase();
@@ -284,61 +1299,90 @@
     $("cli-list").innerHTML = cliVisti.map(c => {
       const e = espoPerId[c.id], fido = +c.fido || 0, sconto = +c.sconto || 0;
       const meta = [c.piva ? "P.IVA/CF " + c.piva : "", c.sdi || "", c.indirizzo || "",
-        sconto > 0 ? "sconto " + sconto + "%" : "", fido > 0 ? "fido " + eur(fido) : "", c.note || ""]
+        sconto > 0 ? "sconto " + sconto + "%" : "", fido > 0 ? "fido " + eur0(fido) : "", c.note || ""]
         .filter(Boolean).join(" · ");
-      return `<div class="item">
-      <div class="info"><div class="name">${esc(c.ragioneSociale)}</div><div class="meta">${esc(meta) || "nessun dato aggiuntivo"}</div></div>
-      <span class="badge ${e && e.oltreFido ? "danger" : e && e.scaduto > 0 ? "warn" : "ok"}" title="${e ? e.conto + " fatture aperte" + (e.oltreFido ? " — fido superato" : "") : "Nessuna fattura aperta"}">${e ? eur(e.totale) + (e.oltreFido ? " ⚠ fido" : "") : "—"}</span>
-      <span class="arr" style="cursor:pointer" title="Modifica cliente" data-edit-cli="${c.id}">✎</span>
-      <span class="arr" style="cursor:pointer" title="Elimina cliente" data-del-cli="${c.id}">✕</span></div>`; }).join("")
-      || '<div class="note" style="text-align:left;">'+(qCli?"Nessun cliente trovato per «"+esc(qCli)+"».":"Nessun cliente in anagrafica: aggiungi il primo qui sotto.")+'</div>';
-    $("cli-count").textContent = cliVisti.length === 0 ? ""
-      : cliVisti.length + (cliVisti.length === 1 ? " cliente" : " clienti") + (qCli ? " · su " + CLI.length : "");
+      const st = e && e.oltreFido ? "st-danger" : e && e.scaduto > 0 ? "st-warn" : e ? "st-accent" : "st-mute";
+      return `<div class="item ${st}">
+      <span class="avatar">${iniziali(c.ragioneSociale)}</span>
+      <div class="info"><div class="name">${esc(c.ragioneSociale)}${e && e.oltreFido ? ' <span class="badge danger">Fido superato</span>' : ""}</div>
+      <div class="meta">${esc(meta) || "nessun dato aggiuntivo"}</div></div>
+      <div class="amt" title="${e ? plur(e.conto, "fattura aperta", "fatture aperte") + (e.oltreFido ? " — fido superato" : "") : "Nessuna fattura aperta"}">
+        <div class="amt-n${e && e.oltreFido ? " neg" : e ? "" : " mute"}">${e ? eur(e.totale) : "€ 0,00"}</div>
+        <div class="amt-s">${e ? (e.scaduto > 0 ? "di cui " + eur0(e.scaduto) + " scaduti" : "esposizione aperta") : "nessuna fattura aperta"}</div></div>
+      <div class="acts">
+      <button class="arr" type="button" title="Modifica cliente" aria-label="Modifica ${esc(c.ragioneSociale)}" data-edit-cli="${c.id}">${IC.matita}</button>
+      <button class="arr del" type="button" title="Elimina cliente" aria-label="Elimina ${esc(c.ragioneSociale)}" data-del-cli="${c.id}">${IC.croce}</button></div></div>`; }).join("")
+      || (qCli ? vuoto("cliente", "Nessun risultato", "Nessun cliente trovato per «<b>" + esc(qCli) + "</b>». Prova con la P.IVA o con una parte della ragione sociale.")
+               : vuoto("cliente", "Anagrafica vuota", "Aggiungi il primo cliente dal riquadro <b>Nuovo cliente</b> qui sotto: da lì in poi le fatture si collegano da sole."));
+    $("cli-count").innerHTML = cliVisti.length === 0 ? ""
+      : "<b>" + cliVisti.length + "</b>" + (cliVisti.length === 1 ? " cliente" : " clienti") + (qCli ? " su " + CLI.length : "");
+    $("cli-cnt").textContent = CLI.length;
 
     // Migrazione: fatture il cui cliente è ancora solo testo. Le varianti di
     // scrittura sono già raggruppate, così si collegano tutte in un colpo.
     const daColl = clientiDaCollegare(FAT, CLI);
     $("cli-mig").innerHTML = daColl.length
-      ? daColl.map(g => `<div class="item" style="flex-wrap:wrap;">
-        <div class="info" style="flex:1 0 100%;"><div class="name">${esc(g.nome)}</div>
-        <div class="meta">${g.conto} ${g.conto === 1 ? "fattura" : "fatture"} · ${eur(g.importo)}</div></div>
-        <select class="dw-input" data-mig-sel="${esc(g.chiave)}" style="flex:1;min-width:0;min-height:32px;padding:2px 8px;font-size:12px;">
-          <option value="">➕ Crea cliente con questo nome</option>
+      ? daColl.map(g => `<div class="item st-sup" style="flex-wrap:wrap;">
+        <span class="avatar sup">${iniziali(g.nome)}</span>
+        <div class="info"><div class="name">${esc(g.nome)}</div>
+        <div class="meta">${plur(g.conto, "fattura scritta a mano", "fatture scritte a mano")}</div></div>
+        <div class="amt"><div class="amt-n mute">${eur(g.importo)}</div><div class="amt-s">da collegare</div></div>
+        <div class="frow" style="margin-top:2px;">
+        <select class="dw-input" data-mig-sel="${esc(g.chiave)}" aria-label="Cliente a cui collegare le fatture di ${esc(g.nome)}" style="flex:1 1 180px;">
+          <option value="">Crea un cliente con questo nome</option>
           ${cliOrd.map(c => `<option value="${esc(c.id)}">${esc(c.ragioneSociale)}</option>`).join("")}
         </select>
-        <button class="dw-btn secondary" data-mig="${esc(g.chiave)}" title="Collega tutte queste fatture al cliente scelto" style="width:auto;min-height:32px;padding:2px 10px;font-size:11px;">Collega</button></div>`).join("")
-      : '<div class="note" style="text-align:left;">Tutte le fatture sono collegate all\'anagrafica.</div>';
+        <button class="dw-btn secondary" data-mig="${esc(g.chiave)}" title="Collega tutte queste fatture al cliente scelto">Collega</button>
+        </div></div>`).join("")
+      : vuoto("spunta", "Tutto collegato", "Ogni fattura è agganciata a un cliente dell'anagrafica: esposizioni e fidi sono affidabili.");
 
     const qGar = ($("gar-cerca") && $("gar-cerca").value || "").trim().toLowerCase();
     const garOrd = GAR.filter(garMatch).filter(g => !qGar || (g.titolo || "").toLowerCase().includes(qGar))
       .sort((a, b) => (a.stato === "aperta" ? 0 : 1) - (b.stato === "aperta" ? 0 : 1)
       || (a.scadenza || "9999").localeCompare(b.scadenza || "9999"));
     document.querySelectorAll("#gar-filtri [data-gfiltro]").forEach(b =>
-      b.style.borderColor = b.getAttribute("data-gfiltro") === filtroGar ? "var(--app-accent)" : "");
+      b.classList.toggle("active", b.getAttribute("data-gfiltro") === filtroGar));
+    { const q = { tutte: GAR.length, aperta: GAR.filter(g=>g.stato==="aperta").length,
+        vinta: GAR.filter(g=>g.stato==="vinta").length, persa: GAR.filter(g=>g.stato==="persa").length };
+      document.querySelectorAll("#gar-filtri .qt").forEach(s => {
+        const v = q[s.getAttribute("data-gqt")]; s.textContent = v ? v : ""; }); }
     const gr = gareRiepilogo(GAR);
     $("gar-riep").innerHTML =
-      `Aperte <b>${gr.aperte}</b> (${eur(gr.baseAperta)} a base d'asta) · Vinte <b>${gr.vinte}</b> (${eur(gr.baseVinta)}) · Perse <b>${gr.perse}</b>`
+      `Aperte <b>${gr.aperte}</b> (${eur0(gr.baseAperta)} a base d'asta) · Vinte <b>${gr.vinte}</b> (${eur0(gr.baseVinta)}) · Perse <b>${gr.perse}</b>`
       + (gr.tassoVittoria == null ? " · nessuna gara ancora decisa" : ` · tasso di vittoria <b>${gr.tassoVittoria}%</b>`);
-    $("gar-list").innerHTML = garOrd.map(g => `<div class="item" style="cursor:default;">
-      <div class="info"><div class="name">${esc(g.titolo)}</div><div class="meta">base ${eur(g.base)} · ${g.stato==="aperta" ? "scade " + fmtD(g.scadenza) : GB[g.stato][1]}</div></div>
-      ${g.stato==="aperta" ? `<button class="dw-btn secondary" data-gara-esito="vinta" data-gara="${g.id}" style="width:auto;min-height:32px;padding:2px 10px;font-size:11px;">✓ Vinta</button>
-      <button class="dw-btn secondary" data-gara-esito="persa" data-gara="${g.id}" style="width:auto;min-height:32px;padding:2px 10px;font-size:11px;border-color:var(--danger);color:var(--danger);">✗ Persa</button>` : ""}
-      <span class="badge ${GB[g.stato][0]}">${g.stato==="aperta" ? giorni(g.scadenza)+" gg" : GB[g.stato][1]}</span></div>`).join("")
-      || '<div class="note" style="text-align:left;">'+(qGar?"Nessuna gara trovata per «"+esc(qGar)+"».":(filtroGar==="tutte"?"Nessuna gara registrata.":"Nessuna gara in questo stato."))+'</div>';
-    { const n = $("gar-list").querySelectorAll(".item").length, filtrata = qGar || filtroGar !== "tutte";
-      $("gar-count").textContent = n === 0 ? "" : n + (n === 1 ? " gara" : " gare") + (filtrata ? " · su " + GAR.length : ""); }
+    $("gar-list").innerHTML = garOrd.map(g => { const gg = giorni(g.scadenza);
+      const st = g.stato === "vinta" ? "st-ok" : g.stato === "persa" ? "st-mute" : gg <= 15 ? "st-warn" : "st-accent";
+      return `<div class="item ${st}">
+      <span class="avatar${g.stato === "aperta" ? "" : " sup"}">${IC.gara}</span>
+      <div class="info"><div class="name">${esc(g.titolo)}</div>
+      <div class="meta">${g.stato === "aperta" ? "scade il " + fmtD(g.scadenza) : "esito: " + GB[g.stato][1].toLowerCase() + " · scadeva il " + fmtD(g.scadenza)}</div></div>
+      <div class="amt"><div class="amt-n${g.stato === "persa" ? " mute" : ""}">${eur(g.base)}</div><div class="amt-s">base d'asta</div></div>
+      <span class="badge ${GB[g.stato][0]}">${g.stato==="aperta" ? gg + " gg" : GB[g.stato][1]}</span>
+      ${g.stato==="aperta" ? `<div class="acts">
+      <button class="dw-btn secondary mini" data-gara-esito="vinta" data-gara="${g.id}" title="Segna questa gara come vinta">${IC.spunta}Vinta</button>
+      <button class="dw-btn secondary mini no" data-gara-esito="persa" data-gara="${g.id}" title="Segna questa gara come persa">${IC.croce}Persa</button></div>` : ""}
+      </div>`; }).join("")
+      || (qGar ? vuoto("gara", "Nessun risultato", "Nessuna gara trovata per «<b>" + esc(qGar) + "</b>». Prova con una parola del titolo.")
+         : filtroGar === "tutte" ? vuoto("gara", "Nessuna gara", "Registra la prima gara dal riquadro <b>Nuova gara</b>: da lì tieni sotto controllo scadenze e tasso di vittoria.")
+         : vuoto("gara", "Categoria vuota", "Nessuna gara in questo stato. Tocca <b>Tutte</b> per vedere l'elenco completo."));
+    { const n = garOrd.length, filtrata = qGar || filtroGar !== "tutte";
+      $("gar-count").innerHTML = n === 0 ? "" : "<b>" + n + "</b>" + (n === 1 ? " gara" : " gare") + (filtrata ? " su " + GAR.length : ""); }
+    $("gar-cnt").textContent = GAR.length;
 
     const inc = FAT.filter(f => f.incassata).reduce((t,f)=>t+(+f.importo||0),0);
     const ym = new Date().toISOString().slice(0,7);
     const incMese = FAT.filter(f => f.incassata && (f.dataIncasso||"").slice(0,7) === ym).reduce((t,f)=>t+(+f.importo||0),0);
+    const ia30 = incassoAtteso(FAT, 30);
     $("rep-list").innerHTML = [
-      ["Incassato questo mese", eur(incMese), incMese > 0 ? "ok" : "warn"],
-      ["Incassato (totale registrato)", eur(inc), "ok"],
-      ["Da incassare", eur(k.daIncassare), k.inScadenza ? "warn" : "ok"],
-      (() => { const ia = incassoAtteso(FAT, 30); return ["Incasso atteso (prossimi 30 gg)", eur(ia.importo) + " · " + ia.conto + (ia.conto === 1 ? " fattura" : " fatture"), "ok"]; })(),
-      ["Età media del credito aperto", k.etaCredito + " giorni", k.etaCredito > 45 ? "warn" : "ok"],
-      ["Gare aperte", k.gareAperte + " (" + eur(GAR.filter(g=>g.stato==="aperta").reduce((t,g)=>t+(+g.base||0),0)) + " a base d'asta)", "ok"],
-    ].map(r => `<div class="item"><div class="info"><div class="name">${r[0]}</div></div><span class="badge ${r[2]}">${r[1]}</span></div>`).join("");
+      ["Incassato questo mese", eur(incMese), "entrate registrate", incMese > 0 ? "ok" : "warn"],
+      ["Incassato (totale registrato)", eur(inc), "da inizio archivio", "ok"],
+      ["Da incassare", eur(k.daIncassare), plur(aperte.length, "fattura aperta", "fatture aperte"), k.inScadenza ? "warn" : "ok"],
+      ["Incasso atteso (prossimi 30 gg)", eur(ia30.importo), plur(ia30.conto, "fattura in scadenza", "fatture in scadenza"), "ok"],
+      ["Età media del credito aperto", k.etaCredito + " gg", k.etaCredito > 45 ? "sopra i 45 giorni" : "sotto controllo", k.etaCredito > 45 ? "warn" : "ok"],
+      ["Gare aperte", eur(baseAperta), plur(k.gareAperte, "gara a base d'asta", "gare a base d'asta"), "ok"],
+    ].map(r => `<div class="item st-${r[3] === "ok" ? "accent" : r[3]}">
+      <div class="info"><div class="name">${r[0]}</div><div class="meta">${r[2]}</div></div>
+      <div class="amt"><div class="amt-n${r[3] === "warn" ? "" : " pos"}">${r[1]}</div></div></div>`).join("");
 
     // Aging incassi: crediti aperti per fascia di ritardo. Le fasce
     // scadute usano il badge d'attenzione/allarme così l'occhio va subito
@@ -351,48 +1395,88 @@
       ["Scaduto 61–90 gg",   ag.g61_90,    ag.g61_90.conto ? "danger" : "ok"],
       ["Scaduto oltre 90 gg",ag.oltre90,   ag.oltre90.conto ? "danger" : "ok"],
     ];
+    // la barra sotto la riga dà il peso relativo: si vede a colpo d'occhio
+    // dove è fermo il grosso del credito, senza leggere le cifre
+    const agMax = Math.max(1, ...righe.map(r => r[1].importo || 0));
     $("aging-list").innerHTML = righe.map(([et, v, cls]) =>
-      `<div class="item"><div class="info"><div class="name">${et}</div>
-      <div class="meta">${v.conto} ${v.conto === 1 ? "fattura" : "fatture"}</div></div>
-      <span class="badge ${cls}">${eur(v.importo)}</span></div>`).join("")
-      + `<div class="note" style="text-align:left;">Totale scaduto da sollecitare: <b>${eur(ag.scadutoTot)}</b>.</div>`;
+      `<div class="item st-${!v.conto ? "mute" : cls === "ok" ? "accent" : cls}">
+      <div class="info"><div class="name">${et}</div>
+      <div class="meta">${v.conto ? plur(v.conto, "fattura", "fatture") : "nessuna fattura"}</div></div>
+      <div class="amt"><div class="amt-n${v.conto ? (cls === "danger" ? " neg" : "") : " mute"}">${eur(v.importo)}</div></div>
+      <span class="bar" style="width:${Math.round((v.importo || 0) / agMax * 100)}%"></span></div>`).join("")
+      + `<div class="tot${ag.scadutoTot > 0 ? " warn" : ""}"><span class="tot-l">Totale scaduto da sollecitare</span>
+         <span class="tot-n">${eur(ag.scadutoTot)}</span></div>`;
 
     // Previsione incassi per mese: liquidità attesa dalle fatture non ancora
     // scadute, mese per mese (nomi dei mesi in italiano).
     const MESI = ["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"];
     const nomeMese = (k) => { const [y, m] = k.split("-"); return MESI[(+m) - 1] + " " + y; };
     const prev = incassoPerMese(FAT, 6);
-    $("prev-list").innerHTML = prev.mesi.map(m =>
-      `<div class="item"><div class="info"><div class="name">${nomeMese(m.mese)}</div>
-      <div class="meta">${m.conto} ${m.conto === 1 ? "fattura" : "fatture"}</div></div>
-      <span class="badge ${m.importo > 0 ? "ok" : ""}">${eur(m.importo)}</span></div>`).join("")
-      + (prev.scadute.conto ? `<div class="note" style="text-align:left;">Escluse ${prev.scadute.conto} già scadute (${eur(prev.scadute.importo)}): vanno sollecitate, vedi aging.</div>` : "");
+    const prevMax = Math.max(1, ...prev.mesi.map(m => m.importo || 0));
+    $("prev-list").innerHTML = (prev.mesi.some(m => m.conto)
+      ? prev.mesi.map(m =>
+      `<div class="item st-${m.importo > 0 ? "accent" : "mute"}">
+      <div class="info"><div class="name">${nomeMese(m.mese)}</div>
+      <div class="meta">${m.conto ? plur(m.conto, "fattura in scadenza", "fatture in scadenza") : "nessuna scadenza"}</div></div>
+      <div class="amt"><div class="amt-n${m.importo > 0 ? " pos" : " mute"}">${eur(m.importo)}</div></div>
+      <span class="bar" style="width:${Math.round((m.importo || 0) / prevMax * 100)}%"></span></div>`).join("")
+      : vuoto("grafico", "Niente in arrivo", "Nessuna fattura in scadenza nei prossimi mesi: la previsione si riempie man mano che emetti."))
+      + (prev.scadute.conto ? `<div class="note">Escluse <b>${prev.scadute.conto}</b> già scadute (<b>${eur(prev.scadute.importo)}</b>): quelle vanno sollecitate, le trovi nell'aging qui sopra.</div>` : "");
 
     // Esposizione per cliente: chi ci deve di più (e quanto è già scaduto).
     // Raggruppa per anagrafica: le varianti dello stesso nome non fanno più righe
     // separate. Con il fido impostato segnala anche chi lo ha superato.
     const espo = esposizioneClienti(FAT, new Date(), CLI);
+    const espoMax = Math.max(1, ...espo.map(c => c.totale || 0));
     $("espo-list").innerHTML = espo.length
-      ? espo.map((c, i) => `<div class="item"><div class="info"><div class="name">${esc(c.cliente)}</div>
-        <div class="meta">${c.conto} ${c.conto === 1 ? "fattura" : "fatture"}${c.scaduto > 0 ? " · scaduto " + eur(c.scaduto) : ""}${c.oltreFido ? " · <b>fido superato</b> (" + eur(c.fido) + ")" : ""}</div></div>
-        <button class="dw-btn secondary" data-espo="${i}" title="Copia l'estratto conto del cliente (tutte le fatture aperte + mora)" style="width:auto;min-height:32px;padding:2px 10px;font-size:11px;">✉ Estratto</button>
-        <span class="badge ${c.oltreFido || c.scaduto > 0 ? "warn" : "ok"}">${eur(c.totale)}</span></div>`).join("")
-      : '<div class="note" style="text-align:left;">Nessun credito aperto: tutte le fatture sono incassate.</div>';
+      ? espo.map((c, i) => `<div class="item st-${c.oltreFido ? "danger" : c.scaduto > 0 ? "warn" : "accent"}">
+        <span class="avatar">${iniziali(c.cliente)}</span>
+        <div class="info"><div class="name">${esc(c.cliente)}${c.oltreFido ? ' <span class="badge danger">Fido superato</span>' : ""}</div>
+        <div class="meta">${plur(c.conto, "fattura aperta", "fatture aperte")}${c.scaduto > 0 ? " · scaduto " + eur0(c.scaduto) : ""}${c.oltreFido ? " · fido " + eur0(c.fido) : ""}</div></div>
+        <div class="amt"><div class="amt-n${c.oltreFido || c.scaduto > 0 ? " neg" : ""}">${eur(c.totale)}</div>
+          <div class="amt-s">esposizione</div></div>
+        <div class="acts"><button class="dw-btn secondary mini" data-espo="${i}" title="Copia l'estratto conto del cliente (tutte le fatture aperte + mora)">${IC.busta}Estratto</button></div>
+        <span class="bar" style="width:${Math.round((c.totale || 0) / espoMax * 100)}%"></span></div>`).join("")
+        + `<div class="tot"><span class="tot-l">Credito aperto totale</span>
+           <span class="tot-n">${eur(espo.reduce((t,c) => t + (+c.totale || 0), 0))}</span></div>`
+      : vuoto("spunta", "Nessun credito aperto", "Tutte le fatture emesse risultano incassate: non c'è nessuno da chiamare.");
   }
 
   document.addEventListener("click", async (e) => {
-    const esito = e.target.getAttribute && e.target.getAttribute("data-gara-esito");
-    if (esito) { const g = GAR.find(x => x.id === e.target.getAttribute("data-gara"));
-      if (g && confirm("Segnare la gara «" + g.titolo + "» come " + esito.toUpperCase() + "?")) {
-        await db.aggiorna("gare", g.id, { stato: esito }); await refresh(); } return; }
-    const delFat = e.target.getAttribute && e.target.getAttribute("data-del-fat");
-    if (delFat) { const f = FAT.find(x => x.id === delFat);
-      if (f && confirm("Eliminare la fattura " + f.numero + " (" + eur(f.importo) + " a " + nomeCliente(f, CLI) + ")? Usa questa opzione solo per correggere un inserimento sbagliato.")) {
-        await db.rimuovi("fatture", delFat); await refresh(); } return; }
+    const btnGara = e.target.closest && e.target.closest("[data-gara-esito]");
+    if (btnGara) { const g = GAR.find(x => x.id === btnGara.getAttribute("data-gara"));
+      const es = btnGara.getAttribute("data-gara-esito"); if (!g) return;
+      const ok = await chiedi("Esito della gara",
+        `<p>Stai per registrare la gara <b>${esc(g.titolo)}</b> come <b>${es}</b>.</p>
+         <div class="mrec"><span class="k">Base d'asta</span><span class="v">${eur(g.base)}</span></div>
+         <div class="mrec"><span class="k">Scadenza</span><span class="v">${fmtD(g.scadenza)}</span></div>
+         <p style="margin-top:10px;">La gara esce dalle aperte e ${es === "vinta"
+           ? "entra nel conteggio del tasso di vittoria." : "resta in archivio fra le perse."}
+           Puoi sempre correggere l'esito riaprendola dalla scheda Gare.</p>`,
+        es === "vinta" ? "Segna vinta" : "Segna persa");
+      if (ok) { await db.aggiorna("gare", g.id, { stato: es });
+        esito("gar-esito", "Gara «" + g.titolo + "» registrata come " + es + ".", es === "vinta" ? "success" : "");
+        await refresh(); }
+      return; }
+    const btnDelFat = e.target.closest && e.target.closest("[data-del-fat]");
+    if (btnDelFat) { const f = FAT.find(x => x.id === btnDelFat.getAttribute("data-del-fat")); if (!f) return;
+      const ok = await chiedi("Elimina fattura",
+        `<p>Stai per eliminare definitivamente questa fattura dall'archivio.</p>
+         <div class="mrec"><span class="k">Numero</span><span class="v">${esc(f.numero)}</span></div>
+         <div class="mrec"><span class="k">Cliente</span><span class="v">${esc(nomeCliente(f, CLI))}</span></div>
+         <div class="mrec"><span class="k">Importo</span><span class="v accent">${eur(f.importo)}</span></div>
+         <p style="margin-top:10px;">Sparisce da elenchi, totali, aging ed esposizione del cliente.
+           <b>Usa questa opzione solo per correggere un inserimento sbagliato</b>: una fattura
+           realmente emessa non va cancellata, va gestita con una nota di credito.</p>`,
+        "Elimina", true);
+      if (ok) { await db.rimuovi("fatture", f.id);
+        esito("ft-esito", "Fattura " + f.numero + " eliminata.", "err"); await refresh(); }
+      return; }
     // Migrazione: collega TUTTE le fatture di un nome scritto a mano al cliente
     // scelto (o a uno nuovo creato con quel nome). Il testo resta nella fattura
     // come ripiego: non si perde niente di quello che c'era scritto.
-    const migKey = e.target.getAttribute && e.target.getAttribute("data-mig");
+    const btnMig = e.target.closest && e.target.closest("[data-mig]");
+    const migKey = btnMig && btnMig.getAttribute("data-mig");
     if (migKey) { const g = clientiDaCollegare(FAT, CLI).find(x => x.chiave === migKey); if (!g) return;
       const sel = document.querySelector('[data-mig-sel="' + CSS.escape(migKey) + '"]');
       let clienteId = sel && sel.value, nome = g.nome;
@@ -400,58 +1484,87 @@
         const r = await db.aggiungi("clienti", { ragioneSociale: g.nome, piva: "", sdi: "", indirizzo: "", sconto: 0, fido: 0, note: "" });
         clienteId = r && r.id;
       } else { const c = CLI.find(x => x.id === clienteId); nome = (c && c.ragioneSociale) || nome; }
-      if (!clienteId) { $("cl-esito").textContent = "Non è stato possibile creare il cliente: riprova."; return; }
+      if (!clienteId) { esito("cl-esito", "Non è stato possibile creare il cliente: riprova.", "err"); return; }
       for (const id of g.ids) await db.aggiorna("fatture", id, { clienteId });
-      $("cl-esito").textContent = "Collegate " + g.conto + (g.conto === 1 ? " fattura" : " fatture") + " di «" + g.nome + "» al cliente " + nome + ".";
+      esito("cl-esito", "Collegate " + plur(g.conto, "fattura", "fatture") + " di «" + g.nome + "» al cliente " + nome + ".", "success");
       await refresh(); return; }
-    const editCliId = e.target.getAttribute && e.target.getAttribute("data-edit-cli");
+    const btnEditCli = e.target.closest && e.target.closest("[data-edit-cli]");
+    const editCliId = btnEditCli && btnEditCli.getAttribute("data-edit-cli");
     if (editCliId) { const c = CLI.find(x => x.id === editCliId); if (!c) return;
-      if (editCli === c.id) {   // ri-tocco la ✎ dello stesso cliente = annulla modifica
-        editCli = null; $("btn-cl").textContent = "Aggiungi"; $("cl-esito").textContent = "Modifica annullata.";
+      if (editCli === c.id) {   // ri-tocco la matita dello stesso cliente = annulla modifica
+        editCli = null; $("btn-cl").textContent = "Aggiungi"; esito("cl-esito", "Modifica annullata.");
         pulisciCli(); return; }
       editCli = c.id;
       $("cl-nome").value = c.ragioneSociale || ""; $("cl-piva").value = c.piva || "";
       $("cl-sdi").value = c.sdi || ""; $("cl-ind").value = c.indirizzo || "";
       $("cl-sconto").value = c.sconto != null ? c.sconto : ""; $("cl-fido").value = c.fido != null ? c.fido : "";
       $("cl-note").value = c.note || "";
-      CL_CAMPI.forEach(i => $(i).style.borderColor = "");
+      CL_CAMPI.forEach(puliscoErr);
       $("btn-cl").textContent = "Salva modifica";
-      $("cl-esito").textContent = "Stai modificando il cliente " + c.ragioneSociale + ": cambia i campi e premi «Salva modifica».";
+      esito("cl-esito", "Stai modificando il cliente " + c.ragioneSociale + ": cambia i campi e premi «Salva modifica».");
       $("cl-nome").scrollIntoView({ behavior: "smooth", block: "center" });
       return; }
-    const delCli = e.target.getAttribute && e.target.getAttribute("data-del-cli");
-    if (delCli) { const c = CLI.find(x => x.id === delCli); if (!c) return;
+    const btnDelCli = e.target.closest && e.target.closest("[data-del-cli]");
+    if (btnDelCli) { const c = CLI.find(x => x.id === btnDelCli.getAttribute("data-del-cli")); if (!c) return;
       // niente cancellazioni che lasciano fatture orfane: prima si spostano
       const usate = FAT.filter(f => { const k = clienteDiFattura(f, CLI); return k && k.id === c.id; }).length;
-      if (usate) { $("cl-esito").textContent = "Non puoi eliminare " + c.ragioneSociale + ": ha " + usate + (usate === 1 ? " fattura collegata" : " fatture collegate") + ". Collegale prima a un altro cliente.";
+      if (usate) {
+        await avvisa("Cliente non eliminabile",
+          `<p>Il cliente <b>${esc(c.ragioneSociale)}</b> ha
+            <b>${plur(usate, "fattura collegata", "fatture collegate")}</b>.</p>
+           <p>Se lo cancellassi ora quelle fatture resterebbero senza intestatario e
+            l'esposizione non tornerebbe più. Collegale prima a un altro cliente dal
+            riquadro <b>Fatture da collegare</b>, poi riprova.</p>`);
+        esito("cl-esito", "Non puoi eliminare " + c.ragioneSociale + ": ha " + plur(usate, "fattura collegata", "fatture collegate") + ".", "err");
         go("cli"); return; }
-      if (confirm("Eliminare il cliente " + c.ragioneSociale + " dall'anagrafica?")) {
+      const ok = await chiedi("Elimina cliente",
+        `<p>Stai per togliere <b>${esc(c.ragioneSociale)}</b> dall'anagrafica.</p>
+         ${c.piva ? `<div class="mrec"><span class="k">P.IVA / CF</span><span class="v">${esc(c.piva)}</span></div>` : ""}
+         ${+c.fido ? `<div class="mrec"><span class="k">Fido</span><span class="v">${eur(c.fido)}</span></div>` : ""}
+         <p style="margin-top:10px;">Non ha fatture collegate, quindi non si perde nessun importo:
+           sparisce solo la scheda con i suoi dati (P.IVA, SDI, indirizzo, sconto, fido).</p>`,
+        "Elimina", true);
+      if (ok) {
         if (editCli === c.id) { editCli = null; $("btn-cl").textContent = "Aggiungi"; pulisciCli(); }
         await db.rimuovi("clienti", c.id);
-        $("cl-esito").textContent = "Cliente " + c.ragioneSociale + " eliminato."; await refresh(); }
+        esito("cl-esito", "Cliente " + c.ragioneSociale + " eliminato.", "err"); await refresh(); }
       return; }
-    const espoIdx = e.target.getAttribute && e.target.getAttribute("data-espo");
-    if (espoIdx != null && espoIdx !== "") { const c = esposizioneClienti(FAT, new Date(), CLI)[+espoIdx];
-      const testo = c && estrattoContoCliente(c, FAT, new Date(), TASSO_MORA_DEFAULT, CLI);
-      if (!testo) { $("mode-note").textContent = "Nessuna fattura aperta per questo cliente."; return; }
-      const ok = () => { $("mode-note").textContent = "Estratto conto di " + c.cliente + " copiato: incollalo nell'email o nella PEC (interessi da confermare col commercialista)."; };
+    // Copia negli appunti: se il browser la nega, il testo si mostra nella
+    // modale del core (mai il prompt() del browser, vietato dalla direttiva).
+    const copia = async (testo, titoloModale, spiega, messaggio) => {
       try {
-        if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(testo); ok(); }
-        else { const ta = document.createElement("textarea"); ta.value = testo; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); ok(); }
-      } catch (_) { window.prompt("Copia l'estratto conto (Ctrl/Cmd+C):", testo); }
+        if (navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(testo);
+        else { const ta = document.createElement("textarea"); ta.value = testo; ta.style.position = "fixed";
+          ta.style.opacity = "0"; document.body.appendChild(ta); ta.select();
+          if (!document.execCommand("copy")) throw new Error("no-copy"); ta.remove(); }
+        toast(messaggio, "success"); return true;
+      } catch (_) { mostraTesto(titoloModale, spiega, testo); return false; }
+    };
+    const btnEspo = e.target.closest && e.target.closest("[data-espo]");
+    if (btnEspo) { const c = esposizioneClienti(FAT, new Date(), CLI)[+btnEspo.getAttribute("data-espo")];
+      const testo = c && estrattoContoCliente(c, FAT, new Date(), TASSO_MORA_DEFAULT, CLI);
+      if (!testo) { esito("mode-note", "Nessuna fattura aperta per questo cliente.", "err"); return; }
+      const fatto = await copia(testo, "Estratto conto di " + c.cliente,
+        "Il browser non ha permesso la copia automatica: seleziona il testo qui sotto e copialo a mano.",
+        "Estratto conto di " + c.cliente + " copiato.");
+      $("mode-note").textContent = fatto
+        ? "Estratto conto di " + c.cliente + " copiato: incollalo nell'email o nella PEC (interessi da confermare col commercialista)."
+        : "Estratto conto di " + c.cliente + " pronto nella finestra: copialo a mano.";
       return; }
-    const solId = e.target.getAttribute && e.target.getAttribute("data-sollecito");
-    if (solId) { const f = FAT.find(x => x.id === solId);
+    const btnSol = e.target.closest && e.target.closest("[data-sollecito]");
+    if (btnSol) { const f = FAT.find(x => x.id === btnSol.getAttribute("data-sollecito"));
       // il sollecito viaggia col nome di anagrafica, non con il testo vecchio
       const testo = f && testoSollecito({ ...f, cliente: nomeCliente(f, CLI) });
-      if (!testo) { $("ft-esito").textContent = "Sollecito disponibile solo per fatture scadute."; return; }
-      const ok = () => { $("ft-esito").textContent = "Testo del sollecito per " + f.numero + " copiato: incollalo nell'email o nella PEC (interessi da confermare col commercialista)."; };
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(testo); ok(); }
-        else { const ta = document.createElement("textarea"); ta.value = testo; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); ok(); }
-      } catch (_) { window.prompt("Copia il testo del sollecito (Ctrl/Cmd+C):", testo); }
+      if (!testo) { esito("ft-esito", "Sollecito disponibile solo per fatture scadute.", "err"); return; }
+      const fatto = await copia(testo, "Sollecito per la fattura " + f.numero,
+        "Il browser non ha permesso la copia automatica: seleziona il testo qui sotto e copialo a mano.",
+        "Sollecito per la fattura " + f.numero + " copiato.");
+      $("ft-esito").textContent = fatto
+        ? "Testo del sollecito per " + f.numero + " copiato: incollalo nell'email o nella PEC (interessi da confermare col commercialista)."
+        : "Testo del sollecito per " + f.numero + " pronto nella finestra: copialo a mano.";
       return; }
-    const editFatId = e.target.getAttribute && e.target.getAttribute("data-edit-fat");
+    const btnEditFat = e.target.closest && e.target.closest("[data-edit-fat]");
+    const editFatId = btnEditFat && btnEditFat.getAttribute("data-edit-fat");
     if (editFatId) { const f = FAT.find(x => x.id === editFatId); if (!f) return;
       if (editFat === f.id) {   // ri-tocco la ✎ della stessa fattura = annulla modifica
         editFat = null; $("btn-ft").textContent = "Emetti"; $("ft-esito").textContent = "Modifica annullata.";
@@ -465,20 +1578,42 @@
         $("ft-cli-nuovo").value = c ? "" : (f.cliente || "");
         syncCliNuovo(); }
       $("ft-imp").value = f.importo != null ? f.importo : ""; $("ft-scad").value = f.scadenza || "";
-      FT_CAMPI.forEach(i => $(i).style.borderColor = "");
+      FT_CAMPI.forEach(puliscoErr);
       $("btn-ft").textContent = "Salva modifica";
-      $("ft-esito").textContent = "Stai modificando la fattura " + f.numero + ": cambia i campi e premi «Salva modifica».";
+      esito("ft-esito", "Stai modificando la fattura " + f.numero + ": cambia i campi e premi «Salva modifica».");
       $("ft-num").scrollIntoView({ behavior: "smooth", block: "center" });
       return; }
     const it = e.target.closest && e.target.closest("[data-fat]");
     if (it) { const f = FAT.find(x => x.id === it.getAttribute("data-fat"));
       if (!f) return;
+      const oggi = new Date().toISOString().slice(0,10);
+      const ritardo = Math.max(0, -giorni(f.scadenza));
       if (!f.incassata) {
-        if (confirm("Segnare incassata la fattura " + f.numero + " (" + eur(f.importo) + " da " + nomeCliente(f, CLI) + ")?")) {
-          await db.aggiorna("fatture", f.id, { incassata: true, dataIncasso: new Date().toISOString().slice(0,10) }); await refresh(); }
+        const ok = await chiedi("Registra l'incasso",
+          `<p>Stai per segnare questa fattura come <b>incassata oggi</b> (${fmtD(oggi)}).</p>
+           <div class="mrec"><span class="k">Numero</span><span class="v">${esc(f.numero)}</span></div>
+           <div class="mrec"><span class="k">Cliente</span><span class="v">${esc(nomeCliente(f, CLI))}</span></div>
+           <div class="mrec"><span class="k">Importo</span><span class="v accent">${eur(f.importo)}</span></div>
+           <div class="mrec"><span class="k">Scadenza</span><span class="v">${fmtD(f.scadenza)}${ritardo ? " (+" + ritardo + " gg)" : ""}</span></div>
+           <p style="margin-top:10px;">L'importo esce dal credito aperto ed entra
+             nell'incassato del mese; l'esposizione del cliente cala di conseguenza.
+             Se sbagli puoi annullare l'incasso ritoccando la stessa riga.</p>`,
+          "Segna incassata");
+        if (ok) { await db.aggiorna("fatture", f.id, { incassata: true, dataIncasso: oggi });
+          esito("ft-esito", "Fattura " + f.numero + " incassata: " + eur(f.importo) + ".", "success");
+          await refresh(); }
       } else {
-        if (confirm("Annullare l'incasso della fattura " + f.numero + "? Tornerà tra le fatture aperte.")) {
-          await db.aggiorna("fatture", f.id, { incassata: false, dataIncasso: null }); await refresh(); }
+        const ok = await chiedi("Annulla l'incasso",
+          `<p>Stai per rimettere questa fattura tra quelle <b>da incassare</b>.</p>
+           <div class="mrec"><span class="k">Numero</span><span class="v">${esc(f.numero)}</span></div>
+           <div class="mrec"><span class="k">Importo</span><span class="v accent">${eur(f.importo)}</span></div>
+           <div class="mrec"><span class="k">Incassata il</span><span class="v">${fmtD(f.dataIncasso)}</span></div>
+           <p style="margin-top:10px;">L'importo torna nel credito aperto e la data
+             d'incasso viene cancellata. Serve quando l'incasso era stato segnato per sbaglio.</p>`,
+          "Annulla incasso", true);
+        if (ok) { await db.aggiorna("fatture", f.id, { incassata: false, dataIncasso: null });
+          esito("ft-esito", "Incasso della fattura " + f.numero + " annullato.");
+          await refresh(); }
       }
     }
   });
@@ -493,29 +1628,31 @@
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "conti_situazione_fatture.csv"; a.click();
-    $("mode-note").textContent = "Esportate " + FAT.length + " fatture (CSV).";
+    esito("mode-note", "Esportate " + plur(FAT.length, "fattura", "fatture") + " in CSV.", "success");
   };
   // Anagrafica clienti: aggiunta e modifica in-place (stesso form, come le
   // fatture). La ragione sociale è l'unico campo obbligatorio e non può
   // ripetersi a meno di maiuscole/punteggiatura: è tutto il senso dell'anagrafica.
   $("btn-cl").onclick = async () => {
     const ragioneSociale = $("cl-nome").value.trim();
-    if (!ragioneSociale) { $("cl-nome").style.borderColor = "var(--danger)";
-      $("cl-esito").textContent = "Serve almeno la ragione sociale."; return; }
+    CL_CAMPI.forEach(puliscoErr);
+    if (!ragioneSociale) {
+      segnaErr("cl-nome", "Scrivi la ragione sociale: è il nome con cui il cliente comparirà nelle fatture.");
+      esito("cl-esito", "Serve almeno la ragione sociale.", "err"); primoErrore(CL_CAMPI); return; }
     const k = chiaveNome(ragioneSociale);
     if (CLI.some(c => c.id !== editCli && chiaveNome(c.ragioneSociale) === k)) {
-      $("cl-nome").style.borderColor = "var(--danger)";
-      $("cl-esito").textContent = "C'è già un cliente con questa ragione sociale."; return; }
+      segnaErr("cl-nome", "C'è già un cliente con questo nome: modifica quello esistente invece di crearne un doppione.");
+      esito("cl-esito", "C'è già un cliente con questa ragione sociale.", "err"); primoErrore(CL_CAMPI); return; }
     const dati = { ragioneSociale, piva: $("cl-piva").value.trim(), sdi: $("cl-sdi").value.trim(),
       indirizzo: $("cl-ind").value.trim(), sconto: Math.min(100, Math.max(0, +$("cl-sconto").value || 0)),
       fido: Math.max(0, +$("cl-fido").value || 0), note: $("cl-note").value.trim() };
     if (editCli) {
       await db.aggiorna("clienti", editCli, dati);
       editCli = null; $("btn-cl").textContent = "Aggiungi";
-      $("cl-esito").textContent = "Cliente " + ragioneSociale + " aggiornato.";
+      esito("cl-esito", "Cliente " + ragioneSociale + " aggiornato.", "success");
     } else {
       await db.aggiungi("clienti", dati);
-      $("cl-esito").textContent = "Cliente aggiunto: " + ragioneSociale + ".";
+      esito("cl-esito", "Cliente aggiunto: " + ragioneSociale + ".", "success");
     }
     pulisciCli();
     $("cl-nome").focus();   // pronto per il prossimo cliente
@@ -529,20 +1666,22 @@
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "conti_clienti.csv"; a.click();
-    $("cl-esito").textContent = "Esportati " + CLI.length + " clienti (CSV).";
+    esito("cl-esito", "Esportati " + plur(CLI.length, "cliente", "clienti") + " in CSV.", "success");
   };
   $("btn-gar").onclick = async () => {
     const titolo = $("gar-titolo").value.trim(), base = +$("gar-base").value, scadenza = $("gar-data").value;
+    const GAR_CAMPI = ["gar-titolo","gar-base","gar-data"];
+    GAR_CAMPI.forEach(puliscoErr);
     if (!titolo || !(base > 0) || !scadenza) {
-      $("gar-titolo").style.borderColor = titolo ? "" : "var(--danger)";
-      $("gar-base").style.borderColor = base > 0 ? "" : "var(--danger)";
-      $("gar-data").style.borderColor = scadenza ? "" : "var(--danger)";
-      $("gar-esito").textContent = "Servono titolo, base d'asta e scadenza."; return;
+      if (!titolo) segnaErr("gar-titolo", "Dai un titolo alla gara: serve a riconoscerla nell'elenco.");
+      if (!(base > 0)) segnaErr("gar-base", "Scrivi la base d'asta in euro: deve essere maggiore di zero.");
+      if (!scadenza) segnaErr("gar-data", "Indica entro quando va presentata l'offerta.");
+      esito("gar-esito", "Compila i campi evidenziati per aggiungere la gara.", "err");
+      primoErrore(GAR_CAMPI); return;
     }
-    ["gar-titolo","gar-base","gar-data"].forEach(i => $(i).style.borderColor = "");
     await db.aggiungi("gare", { titolo, base, scadenza, stato: "aperta" });
     $("gar-titolo").value = ""; $("gar-base").value = ""; $("gar-data").value = "";
-    $("gar-esito").textContent = "Gara aggiunta: " + titolo + " (scade " + fmtD(scadenza) + ").";
+    esito("gar-esito", "Gara aggiunta: " + titolo + " (scade " + fmtD(scadenza) + ").", "success");
     $("gar-titolo").focus();   // pronto per la prossima gara
     await refresh();
   };
@@ -550,7 +1689,7 @@
   $("gar-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseGareCsv(await file.text());
-    if (!righe.length) { $("gar-esito").textContent = "Nessuna riga valida: controlla che le colonne siano titolo;base;scadenza;stato."; e.target.value = ""; return; }
+    if (!righe.length) { esito("gar-esito", "Nessuna riga valida: controlla che le colonne siano titolo;base;scadenza;stato.", "err"); e.target.value = ""; return; }
     let agg = 0, dup = 0;
     for (const r of righe) {
       if (GAR.some(g => (g.titolo || "").trim().toLowerCase() === r.titolo.toLowerCase())) { dup++; continue; }
@@ -558,7 +1697,7 @@
       agg++;
     }
     $("gar-file").value = "";
-    $("gar-esito").textContent = `Import gare: ${agg} aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}.`;
+    esito("gar-esito", `Import gare: ${agg} aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}.`, agg ? "success" : "err");
     await refresh();
   };
   $("btn-gar-export").onclick = () => {
@@ -570,7 +1709,7 @@
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "conti_gare.csv"; a.click();
-    $("gar-esito").textContent = "Esportate " + GAR.length + " gare (CSV).";
+    esito("gar-esito", "Esportate " + plur(GAR.length, "gara", "gare") + " in CSV.", "success");
   };
   $("btn-ft").onclick = async () => {
     const numero = $("ft-num").value.trim(), scelta = $("ft-cli").value,
@@ -580,11 +1719,22 @@
     const campoCli = scelta === "__nuovo" ? "ft-cli-nuovo" : "ft-cli";
     const clienteOk = scelta === "__nuovo" ? !!nuovoCli : !!scelta;
     const manca = [["ft-num",numero],[campoCli,clienteOk],["ft-imp",importo>0],["ft-scad",scadenza]].filter(x=>!x[1]);
-    FT_CAMPI.forEach(i => $(i).style.borderColor = "");
-    if (manca.length) { manca.forEach(x => $(x[0]).style.borderColor = "var(--danger)");
-      $("ft-esito").textContent = "Compila i campi evidenziati per " + (editFat ? "salvare la modifica" : "emettere la fattura") + "."; return; }
-    if (FAT.some(f => f.numero === numero && f.id !== editFat)) { $("ft-num").style.borderColor = "var(--danger)";
-      $("ft-esito").textContent = "Esiste già una fattura con numero " + numero + "."; return; }
+    FT_CAMPI.forEach(puliscoErr);
+    if (manca.length) {
+      const SPIEGA = {
+        "ft-num": "Scrivi il numero della fattura, quello che compare sul documento (es. 2026/037).",
+        "ft-cli": "Scegli il cliente dall'anagrafica, oppure «Nuovo cliente…» per crearlo adesso.",
+        "ft-cli-nuovo": "Scrivi la ragione sociale del nuovo cliente: verrà creato in anagrafica.",
+        "ft-imp": "Scrivi l'importo in euro: deve essere maggiore di zero.",
+        "ft-scad": "Indica entro quando il cliente deve pagare: serve per aging e solleciti.",
+      };
+      manca.forEach(x => segnaErr(x[0], SPIEGA[x[0]]));
+      esito("ft-esito", "Compila i campi evidenziati per " + (editFat ? "salvare la modifica" : "emettere la fattura") + ".", "err");
+      primoErrore(FT_CAMPI); return; }
+    if (FAT.some(f => f.numero === numero && f.id !== editFat)) {
+      segnaErr("ft-num", "Questo numero è già usato da un'altra fattura: due fatture non possono avere lo stesso numero.");
+      esito("ft-esito", "Esiste già una fattura con numero " + numero + ".", "err");
+      primoErrore(FT_CAMPI); return; }
     $("ft-esito").textContent = "";
     // cliente nuovo: se esiste già uno con lo stesso nome (a meno di
     // maiuscole/punteggiatura) si riusa quello, altrimenti si crea al volo
@@ -616,7 +1766,7 @@
   $("fat-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseFattureCsv(await file.text());
-    if (!righe.length) { $("ft-esito").textContent = "Nessuna riga valida: controlla che le colonne siano numero;cliente;importo;emessa;scadenza."; e.target.value = ""; return; }
+    if (!righe.length) { esito("ft-esito", "Nessuna riga valida: controlla che le colonne siano numero;cliente;importo;emessa;scadenza.", "err"); e.target.value = ""; return; }
     let add = 0, dup = 0;
     for (const f of righe) {
       if (FAT.some(x => x.numero === f.numero)) { dup++; continue; }
@@ -629,14 +1779,15 @@
       add++;
     }
     $("fat-file").value = "";
-    $("ft-esito").textContent = "Import fatture: " + add + " aggiunte" + (dup ? ", " + dup + " già presenti (numero duplicato)" : "") + ".";
+    esito("ft-esito", "Import fatture: " + add + " aggiunte" + (dup ? ", " + dup + " già presenti (numero duplicato)" : "") + ".", add ? "success" : "err");
     await refresh();
   };
   // Recupero errore: appena l'utente corregge un campo, togli il bordo
   // rosso e il messaggio di esito, così l'avviso non resta appeso.
-  const clearErr = (inputId, esitoId) => $(inputId).addEventListener("input", () => {
-    $(inputId).style.borderColor = ""; if (esitoId) $(esitoId).textContent = "";
-  });
+  const clearErr = (inputId, esitoId) => ["input","change"].forEach(ev =>
+    $(inputId).addEventListener(ev, () => {
+      puliscoErr(inputId); if (esitoId) $(esitoId).textContent = "";
+    }));
   ["gar-titolo","gar-base","gar-data"].forEach(i => clearErr(i, "gar-esito"));
   FT_CAMPI.forEach(i => clearErr(i, "ft-esito"));
   CL_CAMPI.forEach(i => clearErr(i, "cl-esito"));

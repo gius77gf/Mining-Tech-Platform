@@ -3,155 +3,872 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Campo — Operativo di campo</title>
-<meta name="theme-color" content="#e8821c">
+<title>Campo — Operativo di giornata</title>
+<meta name="theme-color" content="#130b09">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Campo">
-<link rel="manifest" href='data:application/manifest+json,{"name":"Deepwork Campo","short_name":"Campo","description":"Operativo di campo","start_url":".","scope":".","display":"standalone","orientation":"portrait","background_color":"%23100d07","theme_color":"%23e8821c","categories":["business","productivity"],"lang":"it","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 180 180%27><rect width=%27180%27 height=%27180%27 rx=%2732%27 fill=%27%23e8821c%27/><text x=%2790%27 y=%27126%27 font-family=%27sans-serif%27 font-size=%27104%27 font-weight=%27700%27 fill=%27%23ffffff%27 text-anchor=%27middle%27>C</text></svg>","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}'>
+<link rel="manifest" href='data:application/manifest+json,{"name":"Deepwork Campo","short_name":"Campo","description":"Operativo di giornata","start_url":".","scope":".","display":"standalone","orientation":"portrait","background_color":"%23130b09","theme_color":"%23130b09","categories":["business","productivity"],"lang":"it","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 180 180%27><rect width=%27180%27 height=%27180%27 rx=%2732%27 fill=%27%23d3633a%27/><text x=%2790%27 y=%27126%27 font-family=%27sans-serif%27 font-size=%27104%27 font-weight=%27700%27 fill=%27%23130b09%27 text-anchor=%27middle%27>C</text></svg>","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}'>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../shared/deepwork-style.css">
 <link rel="stylesheet" href="../../shared/dw-app-shell.css">
 <style>
-  /* Campo: accento della palette funzionale deepwork */
-  :root { --app-accent:#e8821c; --app-accent2:#ffb733; }
+/* ══════════════════════════════════════════════════════════════════════
+   CAMPO — operatività di giornata
+   STRUTTURA: identica al core Deepwork (index.html alla radice): stesse
+   misure, raggi, ombre, curve, comportamenti.
+   COLORE: palette propria di Campo (cotto/terracotta 40°, docs/PALETTE_APP.md
+   §3.2), fusa in TUTTE le superfici — operativa, calda, concreta.
+   Tutti i rapporti di contrasto sono calcolati (WCAG 2, AA).
+   ══════════════════════════════════════════════════════════════════════ */
+
+:root{
+  /* ---- rampa dell'accento (4 gradini) ---- */
+  --app-accent-deep:#953b17;
+  --app-accent:     #d3633a;   /* SOLO grafica: bordi, strisce, pallini   */
+  --app-accent2:    #f49c7d;   /* UNICO ammesso per il testo (7,99 su card)*/
+  --app-accent-soft:#f7cfc1;
+  --app-support:    #00787d;   /* blu petrolio d'appoggio (200°)          */
+  --app-support2:   #56b6bb;
+
+  /* ---- superfici: tutte velate di cotto ---- */
+  --bg:#130b09; --dark:#170f0c; --panel:#1c110e;
+  --card:#281913; --card2:#311e17;
+  --border:#3b251d; --border2:#482c23; --border-hi:#806055;
+
+  /* ---- testo ---- */
+  --text:#f4e5e0; --muted2:#caa99d; --muted:#ac897d; --disabled:#826a62;
+
+  /* ---- stati: ricalibrati per non confondersi col cotto ---- */
+  --success:#6abb6e; --warn:#d4bf3e; --danger:#ef5d66; --info:#55a6ec;
+
+  /* ---- gradienti ---- */
+  --grad:    linear-gradient(135deg,#f77a4d,#d65c2d);
+  --grad-on: #130b09;
+  --grad-num:linear-gradient(135deg,#fbd9cb,#e2794b);   /* 11,9 → 5,3 su --card */
+  --grad-sup:linear-gradient(135deg,#7fcbd0,#3d9aa0);
+  --gradSuc: linear-gradient(135deg,#6abb6e,#2f7a33);
+  --grad3:   linear-gradient(135deg,#ef5d66,#a22b33);
+  --grad-ok: linear-gradient(135deg,#96d89a,#5aa85e);
+  --grad-wr: linear-gradient(135deg,#e8d36a,#b9a326);
+  --grad-dg: linear-gradient(135deg,#ff9490,#d84f4a);
+
+  /* ---- luce, aloni, ombre ---- */
+  --shadow-app:0 10px 30px rgba(83,23,0,.42);
+  --glow-app:  rgba(211,99,58,.30);
+  --tint-app:  rgba(211,99,58,.14);
+  --tint-sup:  rgba(86,182,187,.14);
+  --focus-ring:rgba(244,156,125,.34);
+  --sel:       rgba(211,99,58,.30);
+  --halo-1:    rgba(211,99,58,.07);
+  --halo-2:    rgba(86,182,187,.06);
+
+  /* Stratificazione della luce: riflesso sul bordo alto + ombra propria
+     sul bordo basso. È ciò che dà spessore fisico agli oggetti. */
+  --edge:   inset 0 1px 0 rgba(255,255,255,.055), inset 0 -1px 0 rgba(0,0,0,.28);
+  --edge-hi:inset 0 1px 0 rgba(255,255,255,.20);
+  --sh1:0 1px 5px rgba(0,0,0,.20);
+  --sh2:0 2px 8px rgba(0,0,0,.26);
+  --sh3:0 6px 16px rgba(0,0,0,.32);
+  --sh4:0 10px 24px rgba(0,0,0,.38);
+  --sh-btn:0 5px 16px rgba(149,59,23,.42);
+  --sh-btn-hi:0 8px 22px rgba(149,59,23,.55);
+}
+
+/* ─────────────── fondo e atmosfera ─────────────── */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+body.dw{
+  background:var(--bg); color:var(--text);
+  overflow-x:hidden; overscroll-behavior-y:contain;
+  padding-bottom:calc(104px + env(safe-area-inset-bottom));
+}
+body.dw::before{
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(ellipse 700px 500px at 15% 5%,  var(--halo-1) 0%, transparent 65%),
+    radial-gradient(ellipse 500px 400px at 85% 85%, var(--halo-2) 0%, transparent 65%);
+}
+.top,.page,.nav,.tour-banner,.toast,.modal-ov{position:relative; z-index:1;}
+*{-webkit-tap-highlight-color:transparent;}
+button,a,label,select,input,.item,.kpi,.chg,.mbtn{touch-action:manipulation;}
+::selection{background:var(--sel);}
+:focus{outline:none;}
+:focus-visible{outline:none; box-shadow:0 0 0 3px var(--focus-ring); border-radius:5px;}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-track{background:var(--dark);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px;}
+::-webkit-scrollbar-thumb:hover{background:var(--app-accent);}
+img{max-width:100%;}
+
+/* ─────────────── barra alta (copia di .topbar del core) ─────────────── */
+.top{
+  position:sticky; top:0; z-index:100;
+  display:flex; align-items:center; gap:10px;
+  min-height:62px; padding:0 14px;
+  background:linear-gradient(180deg,rgba(49,30,23,.97),rgba(23,15,12,.97));
+  -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  box-shadow:0 2px 12px rgba(0,0,0,.34);
+}
+.top::after{                       /* la riga luminosa del core, in cotto */
+  content:""; position:absolute; left:0; right:0; bottom:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--app-accent),transparent);
+  opacity:.55;
+}
+.top-brand{flex:1; min-width:0;}
+.logo-sm{
+  font-family:'Barlow Condensed',sans-serif; font-size:17px; font-weight:800;
+  letter-spacing:3px; text-transform:uppercase; color:var(--app-accent2);
+  text-shadow:0 0 14px rgba(211,99,58,.45); line-height:1.1;
+}
+.role-sm{
+  font-size:9px; color:var(--muted); letter-spacing:2px; text-transform:uppercase;
+  margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.dw-home,.dw-exit{
+  position:static; top:auto; right:auto;
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  min-height:var(--tap); min-width:var(--tap); padding:0 11px;
+  border:1px solid var(--border2); border-radius:var(--r-sm);
+  background:var(--card); color:var(--muted2);
+  font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; text-decoration:none; cursor:pointer;
+  flex-shrink:0; box-shadow:var(--edge); transition:all .18s var(--ease);
+}
+.dw-home{padding:0 13px; line-height:0;}
+.dw-home svg{width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:1.7;
+  stroke-linecap:round; stroke-linejoin:round;}
+.dw-home:hover{color:var(--app-accent2); border-color:var(--app-accent); background:var(--card2);}
+.dw-exit:hover{color:var(--danger); border-color:var(--danger);}
+.top h1,body.has-exit .top h1{padding-right:0 !important;}
+
+/* nastro "modalità tour" — forma .info-box del core */
+.tour-banner{
+  background:var(--card2); border:1px solid var(--border);
+  border-left:3px solid var(--app-accent); border-radius:var(--r-sm);
+  color:var(--muted2); font-size:12px; line-height:1.5;
+  padding:10px 13px; margin:14px 16px 0; text-align:left; box-shadow:var(--edge);
+}
+.tour-banner b{color:var(--text);}
+
+/* ─────────────── pagine ─────────────── */
+.page{padding:16px 16px calc(24px + env(safe-area-inset-bottom));}
+.page.active{display:block; animation:scrFade .22s var(--ease);}
+@keyframes scrFade{from{opacity:0} to{opacity:1}}
+
+/* ─────────────── KPI (copia di .kpi-card del core) ─────────────── */
+.kpis{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px;}
+.kpi{
+  position:relative; overflow:hidden;
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--border);
+  border-top:3px solid var(--app-accent);
+  border-left:3px solid var(--app-accent);
+  border-radius:var(--r-sm); padding:11px 13px 12px;
+  /* la striscia di sinistra resta sempre cotta: è l'app. Lo stato sta in alto. */
+  box-shadow:var(--sh1),var(--edge);
+  transition:transform .18s var(--ease),box-shadow .18s var(--ease),border-color .2s;
+}
+.kpi::after{                                   /* alone che segue il mouse */
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+  border-radius:inherit;
+  background:radial-gradient(200px 160px at var(--mx,50%) var(--my,30%),
+             var(--kpi-glow,var(--glow-app)), transparent 62%);
+  opacity:0; transition:opacity .25s var(--ease);
+}
+.kpi:hover::after{opacity:1;}
+.kpi>*{position:relative; z-index:1;}
+.kpi:hover{transform:translateY(-3px); box-shadow:var(--sh4),var(--edge);}
+.kpi:active{transform:translateY(-1px) scale(.99);}
+.kpi .l{
+  font-family:'Barlow',sans-serif; font-size:10px; font-weight:600;
+  letter-spacing:2px; text-transform:uppercase; color:var(--muted); line-height:1.3;
+}
+.kpi .n{
+  font-family:'Barlow Condensed',sans-serif; font-size:32px; font-weight:800;
+  line-height:1.05; margin-top:3px; font-variant-numeric:tabular-nums;
+  background:var(--grad-num); -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent; color:transparent;
+}
+.kpi.ok    {border-top-color:var(--success); --kpi-glow:rgba(106,187,110,.24);}
+.kpi.warn  {border-top-color:var(--warn);    --kpi-glow:rgba(212,191,62,.24);}
+.kpi.danger{border-top-color:var(--danger);  --kpi-glow:rgba(239,93,102,.24); animation:pulseDanger 2.4s ease-in-out infinite;}
+.kpi.ok .n    {background:var(--grad-ok);}
+.kpi.warn .n  {background:var(--grad-wr);}
+.kpi.danger .n{background:var(--grad-dg);}
+.kpi.ok .n,.kpi.warn .n,.kpi.danger .n{-webkit-background-clip:text; background-clip:text;}
+@keyframes pulseDanger{0%,100%{border-top-color:var(--danger)}50%{border-top-color:#8b3339}}
+
+/* ─────────────── cartellone della giornata (forma .safety del core) ─────────────── */
+.board{
+  position:relative; overflow:hidden;
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  background:linear-gradient(135deg,var(--card2),var(--card));
+  border:1px solid var(--border); border-left:3px solid var(--app-accent);
+  border-radius:var(--r); padding:13px 16px; margin:0 0 4px;
+  box-shadow:var(--sh2),var(--edge);
+}
+.board::before{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(260px 150px at 8% 0%,var(--tint-app),transparent 70%);
+}
+.board.ok{border-left-color:var(--success);}
+.board.ok::before{background:radial-gradient(260px 150px at 8% 0%,rgba(106,187,110,.10),transparent 70%);}
+.board.warn{border-left-color:var(--warn);}
+.board.warn::before{background:radial-gradient(260px 150px at 8% 0%,rgba(212,191,62,.10),transparent 70%);}
+.board>*{position:relative;}
+.board-ico{
+  display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
+  width:44px; height:44px; border-radius:13px; line-height:0;
+  color:var(--app-accent2); background:var(--tint-app);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 0 14px var(--tint-app);
+}
+.board-ico svg{width:24px; height:24px; stroke:currentColor; fill:none; stroke-width:1.7;
+  stroke-linecap:round; stroke-linejoin:round;}
+.board.ok .board-ico{color:#96d89a; background:rgba(106,187,110,.14); box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 0 14px rgba(106,187,110,.14);}
+.board.warn .board-ico{color:#e8d36a; background:rgba(212,191,62,.14); box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 0 14px rgba(212,191,62,.14);}
+.board-num{
+  font-family:'Barlow Condensed',sans-serif; font-size:38px; font-weight:800; line-height:.95;
+  font-variant-numeric:tabular-nums;
+  background:var(--grad-num); -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+.board.ok .board-num{background:var(--grad-ok); -webkit-background-clip:text; background-clip:text;}
+.board.warn .board-num{background:var(--grad-wr); -webkit-background-clip:text; background-clip:text;}
+.board-lab{font-size:10.5px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-top:2px;}
+.board-txt{font-size:12.5px; color:var(--muted2); line-height:1.55; flex:1 1 190px; min-width:0;}
+.board-txt b{color:var(--text); font-variant-numeric:tabular-nums;}
+.board-txt b.bad{color:var(--danger);}
+
+/* ─────────────── titolo di sezione (copia di .sec-title) ─────────────── */
+.sec{
+  display:flex; align-items:center; gap:8px;
+  font-family:'Barlow Condensed',sans-serif; font-size:11.5px; font-weight:700;
+  letter-spacing:2.5px; text-transform:uppercase; color:var(--muted2);
+  margin:24px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--border);
+}
+.sec::before{
+  content:""; width:5px; height:5px; border-radius:50%; flex-shrink:0;
+  background:var(--app-accent); box-shadow:0 0 8px var(--app-accent);
+}
+.page>.sec:first-child{margin-top:2px;}
+.sec .cnt{
+  margin-left:auto; font-size:10px; letter-spacing:1.5px; color:var(--muted);
+  background:var(--card); border:1px solid var(--border); border-radius:20px;
+  padding:2px 9px; box-shadow:var(--edge); font-variant-numeric:tabular-nums;
+}
+
+/* ─────────────── voci di lista (copia di .sitem) ─────────────── */
+.item{
+  position:relative; overflow:hidden;
+  display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px;
+  background:var(--card); border:1px solid var(--border); border-radius:var(--r-sm);
+  padding:12px 13px; margin-bottom:5px; min-height:var(--tap); cursor:pointer;
+  box-shadow:var(--sh1),var(--edge);
+  transition:transform .15s var(--ease),box-shadow .15s var(--ease),border-color .2s,background .2s;
+}
+.item::after{
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0; border-radius:inherit;
+  background:radial-gradient(170px 120px at var(--mx,50%) var(--my,50%),var(--glow-app),transparent 62%);
+  opacity:0; transition:opacity .25s var(--ease);
+}
+.item:hover::after{opacity:1;}
+.item>*{position:relative; z-index:1;}
+.item:hover{
+  background:var(--card2);
+  border-color:color-mix(in srgb,var(--app-accent) 42%,var(--border));
+  transform:translateX(3px); box-shadow:var(--sh3),var(--edge);
+}
+.item:active{transform:translateX(1px) scale(.995);}
+.item.st-danger {border-left:3px solid var(--danger);}
+.item.st-warn   {border-left:3px solid var(--warn);}
+.item.st-ok     {border-left:3px solid var(--success);}
+.item.st-accent {border-left:3px solid var(--app-accent);}
+.item.st-mute   {border-left:3px solid var(--border2);}
+
+.avatar{
+  width:36px; height:36px; border-radius:11px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:800;
+  letter-spacing:1px; color:var(--grad-on); background:var(--grad); border:none;
+  box-shadow:0 2px 6px rgba(0,0,0,.35),var(--edge-hi);
+}
+.avatar.sup{background:var(--grad-sup);}   /* petrolio d'appoggio: rapportini */
+.avatar.mute{background:var(--card2); color:var(--muted2); border:1px solid var(--border2);
+  box-shadow:var(--edge);}                 /* fermo/inattivo: niente colore acceso */
+.avatar svg{width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:2;
+  stroke-linecap:round; stroke-linejoin:round;}
+.info{flex:1 1 120px; min-width:0;}
+.acts{display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:5px; margin-left:auto;}
+/* come nel core le voci restano compatte: al massimo due righe, poi «…» */
+.name{
+  font-size:13.5px; font-weight:600; color:var(--text); line-height:1.3;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; overflow-wrap:anywhere;
+}
+.meta{
+  font-size:11px; color:var(--muted); margin-top:3px; line-height:1.4;
+  font-variant-numeric:tabular-nums;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; overflow-wrap:anywhere;
+}
+.arr{
+  color:var(--muted); line-height:0; flex-shrink:0;
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:var(--tap); min-height:var(--tap); border-radius:9px;
+  background:none; border:1px solid transparent;
+  transition:color .15s var(--ease),background .15s var(--ease),border-color .15s;
+}
+.arr svg{width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.9;
+  stroke-linecap:round; stroke-linejoin:round;}
+.arr.deco{min-width:26px; min-height:26px;}   /* solo chevron: la riga intera è il bersaglio */
+button.arr{cursor:pointer; padding:0;}
+button.arr:hover{color:var(--app-accent2); background:color-mix(in srgb,var(--app-accent) 16%,transparent);
+  border-color:color-mix(in srgb,var(--app-accent) 40%,transparent);}
+button.arr.del:hover{color:var(--danger); background:rgba(239,93,102,.14); border-color:rgba(239,93,102,.4);}
+
+/* ─────────────── badge (copia di .scad-badge: raggio 3px, pieno) ─────────────── */
+.badge{
+  display:inline-flex; align-items:center; gap:4px; flex-shrink:0;
+  padding:3px 8px; border-radius:3px; white-space:nowrap;
+  font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:800;
+  letter-spacing:1px; text-transform:uppercase;
+  background:var(--card2); color:var(--muted2); border:1px solid var(--border2);
+  box-shadow:0 1px 3px rgba(0,0,0,.35),var(--edge-hi);
+}
+.badge.ok,.badge.warn,.badge.danger,.badge.info,.badge.accent{border-color:transparent;}
+.badge.inline{vertical-align:middle; margin:0 0 0 2px; font-size:9.5px; padding:2px 7px;}
+.badge.ok     {background:var(--success);    color:#08160a;}   /* 7,92 */
+.badge.warn   {background:var(--warn);       color:#221e02;}   /* 9,02 */
+.badge.danger {background:var(--danger);     color:#2b0708;}   /* 5,66 */
+.badge.info   {background:var(--info);       color:#04121e;}   /* 7,25 */
+.badge.accent {background:var(--app-accent); color:var(--grad-on);} /* 5,20 */
+.badge svg{width:11px; height:11px; stroke:currentColor; fill:none; stroke-width:2.4;
+  stroke-linecap:round; stroke-linejoin:round;}
+/* regola 5 della palette: in Campo il badge d'errore porta SEMPRE l'icona
+   e la pulsazione — mai il solo colore (accento ed errore distano 20°). */
+.badge.danger{animation:badgePulse 2.6s ease-in-out infinite;}
+@keyframes badgePulse{0%,100%{box-shadow:0 1px 3px rgba(0,0,0,.35),var(--edge-hi)}
+  50%{box-shadow:0 1px 3px rgba(0,0,0,.35),0 0 0 3px rgba(239,93,102,.22),var(--edge-hi)}}
+.badge.tag{background:var(--card2); color:var(--muted2); border:1px solid var(--border2);
+  box-shadow:none; font-weight:700; animation:none;}
+
+/* ─────────────── campi (copia di .finput) ─────────────── */
+.dw-input{
+  width:100%; min-height:var(--tap); padding:11px 13px;
+  background:var(--card); border:1px solid var(--border-hi); border-radius:9px;
+  color:var(--text); font-family:'Barlow',sans-serif; font-size:16px; outline:none;
+  box-shadow:var(--edge);
+  transition:border-color .18s var(--ease),box-shadow .18s var(--ease),background .18s;
+}
+.dw-input::placeholder{color:var(--disabled);}
+.dw-input:hover{border-color:color-mix(in srgb,var(--app-accent) 55%,var(--border-hi));}
+.dw-input:focus{
+  border-color:var(--app-accent); background:var(--card2);
+  box-shadow:0 0 0 3px var(--focus-ring),var(--edge);
+}
+.dw-input.err{border-color:var(--danger) !important; background:rgba(239,93,102,.08);}
+.dw-input[readonly],.dw-input[disabled]{color:var(--muted2); opacity:.7;}
+select.dw-input{font-size:16px; cursor:pointer;}
+select.dw-input option,select.dw-input optgroup{background:var(--card); color:var(--text);}
+textarea.dw-input{resize:vertical; min-height:60px;}
+input[type=date].dw-input::-webkit-calendar-picker-indicator,
+input[type=search].dw-input::-webkit-search-cancel-button{filter:invert(.68); cursor:pointer; opacity:.8;}
+input[type=date].dw-input::-webkit-calendar-picker-indicator:hover{
+  filter:invert(.72) sepia(.7) saturate(4) hue-rotate(340deg); opacity:1;
+}
+.dw-muted{color:var(--muted);}
+.dw-accent{color:var(--app-accent2);}
+/* campo di ricerca con la lente disegnata, non un'emoji nel placeholder */
+.search{position:relative;}
+.search .dw-input{padding-left:38px;}
+.search>svg{
+  position:absolute; left:12px; top:50%; transform:translateY(-50%);
+  width:17px; height:17px; stroke:var(--muted); fill:none; stroke-width:1.9;
+  stroke-linecap:round; stroke-linejoin:round; pointer-events:none;
+}
+.search .dw-input:focus~svg{stroke:var(--app-accent2);}
+
+/* ─────────────── bottoni (copia di .btn-sv / .btn-sec) ─────────────── */
+.dw-btn{
+  min-height:var(--tap); padding:12px 18px; border:none; border-radius:var(--r-sm);
+  background:var(--grad); color:var(--grad-on);
+  font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:800;
+  letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  box-shadow:var(--sh-btn),var(--edge-hi);
+  transition:transform .12s var(--ease),box-shadow .2s var(--ease),filter .2s;
+}
+.dw-btn svg{width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.9;
+  stroke-linecap:round; stroke-linejoin:round;}
+.dw-btn:hover{box-shadow:var(--sh-btn-hi),var(--edge-hi); filter:brightness(1.07);}
+.dw-btn:active{transform:translateY(2px); box-shadow:0 2px 8px rgba(149,59,23,.3),var(--edge-hi);}
+.dw-btn:disabled{opacity:.6; cursor:wait; filter:none; transform:none;}
+.dw-btn.secondary{
+  background:var(--card); border:1px solid var(--border2); color:var(--text);
+  font-size:13px; font-weight:600; letter-spacing:1px; padding:11px 14px;
+  box-shadow:var(--edge); filter:none;
+}
+.dw-btn.secondary:hover{
+  border-color:var(--app-accent); color:var(--app-accent2); background:var(--card2);
+  transform:translateY(-1px); box-shadow:var(--sh2),var(--edge); filter:none;
+}
+.dw-btn.secondary:active{transform:translateY(1px); box-shadow:var(--edge);}
+.dw-btn.mini{min-height:var(--tap); padding:6px 12px; font-size:11px; letter-spacing:1px;}
+
+/* ─────────────── filtri a segmento (copia di .chg) ─────────────── */
+.chgs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;}
+.chg{
+  background:var(--card); border:1px solid var(--border); color:var(--muted2);
+  padding:7px 13px; min-height:var(--tap); border-radius:7px;
+  font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700;
+  letter-spacing:1px; text-transform:uppercase; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+  box-shadow:var(--edge); transition:all .15s var(--ease);
+}
+.chg:hover{border-color:var(--app-accent); color:var(--app-accent2);}
+.chg.active{
+  background:var(--app-accent); border-color:var(--app-accent); color:var(--grad-on);
+  box-shadow:0 2px 10px rgba(211,99,58,.35),var(--edge-hi);
+}
+.chg:active{transform:scale(.95);}
+
+/* ─────────────── form come oggetti veri (superficie del core) ─────────────── */
+.form{
+  display:flex; flex-wrap:wrap; gap:9px;
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--border); border-radius:var(--r); padding:13px;
+  box-shadow:var(--sh2),var(--edge);
+}
+.form.col{flex-direction:column; align-items:stretch;}
+.form .dw-input{flex:1 1 150px; width:auto; min-width:0; max-width:100%;}
+.form.col>.dw-input,.form.col>select.dw-input{width:100%; flex:0 0 auto;}
+.form>*,.frow>*{min-width:0; max-width:100%;}
+.form .dw-btn{flex:0 0 auto;}
+.frow{display:flex; flex-wrap:wrap; gap:9px; width:100%; align-items:center;}
+.form-hint{font-size:11.5px; color:var(--muted); line-height:1.5; flex-basis:100%;}
+.form-hint b{color:var(--muted2);}
+.tools{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px;}
+/* label + menu restano SEMPRE appaiati: se non ci stanno, va a capo la
+   coppia intera, non l'etichetta da una parte e il menu dall'altra. */
+.ord{display:flex; align-items:center; gap:8px 10px; margin:0 0 10px; flex-wrap:wrap;}
+.ord .of{display:flex; align-items:center; gap:8px; flex:1 1 210px; min-width:0;}
+.ord label{
+  font-family:'Barlow Condensed',sans-serif; font-size:10.5px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); flex-shrink:0;
+}
+.ord .dw-input{width:auto; flex:1 1 auto; min-width:0; max-width:300px;}
+.count{
+  font-family:'Barlow Condensed',sans-serif; font-size:10.5px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; color:var(--muted);
+  margin:0 0 8px; min-height:14px; font-variant-numeric:tabular-nums;
+}
+.count b{color:var(--app-accent2);}
+
+/* ─────────────── riquadri informativi (copia di .info-box) ─────────────── */
+.note{
+  background:var(--card2); border:1px solid var(--border);
+  border-left:3px solid var(--info); border-radius:var(--r-sm);
+  padding:11px 13px; margin-top:12px; text-align:left;
+  font-size:12px; line-height:1.6; color:var(--muted2); box-shadow:var(--edge);
+}
+.note:empty{display:none;}
+.note b{color:var(--text);}
+.note.esito{border-left-color:var(--app-accent); color:var(--text); font-size:12.5px;}
+.note.esito.err{border-left-color:var(--danger);}
+.note.recap{border-left-color:var(--app-accent);}
+.note.recap b{
+  color:var(--app-accent2); font-family:'Barlow Condensed',sans-serif;
+  font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; padding:0 1px;
+}
+
+/* ─────────────── Pareto dei fermi (barre in cotto/petrolio) ─────────────── */
+.pareto{
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--border); border-left:3px solid var(--warn);
+  border-radius:var(--r); padding:12px 14px; box-shadow:var(--sh2),var(--edge);
+}
+.pareto.vuota{border-left-color:var(--border2);}
+.pareto.vuota .pt{display:none;}   /* senza minuti non c'è niente da misurare */
+.pareto.vuota .pl{flex:1 1 auto;}
+.pareto-head{font-size:12px; color:var(--muted2); line-height:1.5; margin-bottom:9px;}
+.pareto-head b{color:var(--text); font-variant-numeric:tabular-nums;}
+.pareto-head b.bad{color:var(--danger);}
+.pbar{display:flex; align-items:center; gap:9px; margin:6px 0; font-size:12px;}
+.pbar .pl{
+  flex:0 0 128px; color:var(--muted2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.pbar .pt{
+  flex:1 1 auto; background:var(--dark); border:1px solid var(--border);
+  border-radius:5px; overflow:hidden; height:12px; box-shadow:inset 0 1px 3px rgba(0,0,0,.45);
+}
+.pbar .pt i{
+  display:block; height:100%; border-radius:4px;
+  background:linear-gradient(90deg,var(--app-accent-deep),var(--app-accent));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22);
+}
+.pbar.top .pt i{background:linear-gradient(90deg,#a2333a,var(--danger));}
+.pbar .pv{
+  flex:0 0 88px; text-align:right; color:var(--text); font-weight:600;
+  font-variant-numeric:tabular-nums; font-size:11.5px;
+}
+
+/* ─────────────── minuti/causale del fermo dentro la voce ─────────────── */
+.fermo{
+  display:flex; align-items:center; gap:7px; flex:1 1 100%; flex-wrap:wrap;
+  margin-top:8px; padding-top:9px; border-top:1px dashed var(--border2);
+}
+.fermo .fl{
+  font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); flex-shrink:0;
+}
+/* min-width:0 è indispensabile: un <input> senza di esso pretende la
+   larghezza di 20 caratteri e sfonda la riga. */
+.fermo .dw-input{flex:1 1 130px; width:auto; min-width:0; max-width:300px; font-size:14px; padding:9px 10px;}
+.fermo .dw-input.min{flex:0 0 96px;}
+
+/* ─────────────── stato vuoto (copia di .empty-state) ─────────────── */
+.empty-state{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:38px 20px; text-align:center; color:var(--muted); border-radius:var(--r);
+  background:radial-gradient(360px 220px at 50% 0%,
+             color-mix(in srgb,var(--app-accent) 7%,transparent),transparent 70%);
+}
+.empty-icon{
+  margin-bottom:12px; line-height:0; color:var(--app-accent2); opacity:.55;
+  filter:drop-shadow(0 0 16px color-mix(in srgb,var(--app-accent) 30%,transparent));
+}
+.empty-icon svg{
+  width:46px; height:46px; stroke:currentColor; fill:none; stroke-width:1.3;
+  stroke-linecap:round; stroke-linejoin:round;
+}
+.empty-title{
+  font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:800;
+  letter-spacing:2px; text-transform:uppercase; color:var(--text); margin-bottom:6px;
+}
+.empty-sub{font-size:12px; color:var(--muted); max-width:300px; line-height:1.55;}
+.empty-sub b{color:var(--muted2);}
+
+/* ─────────────── navigazione: pillola flottante (copia di #global-nav.bnav) ─────────────── */
+.nav{
+  position:fixed; left:50%; right:auto; transform:translateX(-50%);
+  bottom:calc(8px + env(safe-area-inset-bottom));
+  width:calc(100% - 16px); max-width:520px; z-index:90;
+  display:grid; grid-template-columns:repeat(4,1fr);
+  background:rgba(28,17,14,.97);
+  -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+  border:1px solid var(--border2); border-top:1px solid var(--border2);
+  border-radius:18px; overflow:hidden; padding-bottom:0;
+  box-shadow:0 10px 28px rgba(0,0,0,.5),var(--edge);
+}
+.nav button{
+  position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:3px; padding:10px 2px 9px; min-height:var(--tap);
+  background:none; border:none; border-top:2px solid transparent; cursor:pointer;
+  color:var(--muted); font-family:'Barlow Condensed',sans-serif;
+  font-size:9px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase;
+  transition:color .2s var(--ease),transform .15s var(--ease);
+}
+.nav button:hover{color:var(--app-accent2);}
+.nav button.active{color:var(--app-accent2); border-top-color:var(--app-accent); transform:translateY(-2px);}
+.nav button.active::before{
+  content:""; position:absolute; top:5px; left:50%; transform:translateX(-50%);
+  width:42px; height:30px; border-radius:10px; z-index:0;
+  background:color-mix(in srgb,var(--app-accent) 20%,transparent);
+}
+.nav button>*{position:relative; z-index:1;}
+.nav .ico{display:flex; align-items:center; justify-content:center; height:22px;}
+.nav .ico svg{width:21px; height:21px; stroke:currentColor; fill:none; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round; transition:transform .15s var(--ease),filter .2s;}
+.nav button.active .ico svg{
+  transform:scale(1.06);
+  filter:drop-shadow(0 0 6px color-mix(in srgb,var(--app-accent) 65%,transparent));
+}
+
+/* ─────────────── modale (copia di .modal-* del core) ─────────────── */
+.modal-ov{
+  position:fixed; inset:0; z-index:300; display:none; padding:20px;
+  align-items:center; justify-content:center;
+  background:rgba(12,7,5,.86);
+  -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
+}
+.modal-ov.show{display:flex; animation:ovFade .2s var(--ease);}
+@keyframes ovFade{from{opacity:0} to{opacity:1}}
+.modal-box{
+  position:relative; width:100%; max-width:440px; max-height:92dvh;
+  display:flex; flex-direction:column; overflow:hidden;
+  background:linear-gradient(180deg,var(--panel),var(--dark));
+  border:1px solid var(--border2); border-radius:var(--r);
+  box-shadow:0 20px 60px rgba(0,0,0,.65),var(--edge);
+  animation:fadeUp .25s ease;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)}}
+.modal-head{
+  position:relative; padding:15px 18px; border-bottom:1px solid var(--border);
+  font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:800;
+  letter-spacing:2px; text-transform:uppercase; color:var(--text);
+}
+.modal-head::after{
+  content:""; position:absolute; left:0; right:0; bottom:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--app-accent),transparent); opacity:.55;
+}
+.modal-body{
+  padding:15px 18px; overflow-y:auto; overscroll-behavior:contain; flex:1; max-height:55vh;
+  font-size:13.5px; line-height:1.6; color:var(--muted2); user-select:text;
+}
+.modal-body b{color:var(--text);}
+.modal-body .fl{
+  display:block; font-family:'Barlow',sans-serif; font-size:11px; font-weight:600;
+  letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin:12px 0 6px;
+}
+.modal-foot{
+  padding:12px 18px; border-top:1px solid var(--border); background:var(--dark);
+  display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap;
+  position:sticky; bottom:0;
+}
+.mbtn{
+  background:none; border:1px solid var(--border2); color:var(--text);
+  padding:10px 16px; border-radius:var(--r-sm); min-height:var(--tap);
+  display:inline-flex; align-items:center; justify-content:center;
+  font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700;
+  letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+  transition:all .15s var(--ease);
+}
+.mbtn:hover{border-color:var(--app-accent); color:var(--app-accent2);}
+.mbtn:active{transform:scale(.97);}
+.mbtn.primary{
+  background:var(--grad); border-color:transparent; color:var(--grad-on); font-weight:800;
+  box-shadow:var(--sh-btn),var(--edge-hi);
+}
+.mbtn.primary:hover{filter:brightness(1.07); color:var(--grad-on);}
+.mbtn.danger{background:var(--danger); border-color:var(--danger); color:#2b0708; font-weight:800;}
+.mbtn.danger:hover{filter:brightness(1.08); color:#2b0708;}
+body.modal-open{overflow:hidden;}
+
+/* ─────────────── toast (copia del core) ─────────────── */
+.toast{
+  position:fixed; left:50%; bottom:calc(100px + env(safe-area-inset-bottom));
+  transform:translateX(-50%) translateY(8px);
+  /* width:max-content è indispensabile: un elemento fisso ancorato a left:50%
+     si stringerebbe a metà schermo e spezzerebbe il messaggio su quattro righe. */
+  width:max-content; max-width:min(92vw,460px); padding:11px 20px; border-radius:10px;
+  background:var(--grad); color:var(--grad-on); text-align:center;
+  font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:800;
+  letter-spacing:1px; line-height:1.35;
+  box-shadow:0 8px 30px rgba(0,0,0,.5),var(--edge-hi);
+  opacity:0; pointer-events:none; z-index:999;
+  transition:opacity .3s var(--ease),transform .3s var(--ease);
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+.toast.err{background:var(--danger); color:#2b0708;}
+.toast.success{background:var(--success); color:#08160a;}
+
+/* ─────────────── desktop ─────────────── */
+@media(min-width:768px){
+  .top{padding-left:max(24px,calc((100% - 900px) / 2)); padding-right:max(24px,calc((100% - 900px) / 2));}
+  .page{max-width:900px; margin:0 auto; padding-left:24px; padding-right:24px;}
+  .tour-banner{max-width:900px; margin-left:auto; margin-right:auto;}
+  .kpis{grid-template-columns:repeat(4,1fr);}
+  .nav{max-width:560px;}
+  .logo-sm{font-size:18px;}
+}
+@media(max-width:360px){
+  .page{padding-left:10px; padding-right:10px;}
+  .top{padding-left:10px; padding-right:10px;}
+  .nav button{font-size:8px; letter-spacing:.8px;}
+  .pbar .pl{flex-basis:96px;}
+  .pbar .pv{flex-basis:76px;}
+}
+
+/* ─────────────── touch: come il core, niente effetti "incollati" ─────────────── */
+@media(hover:none),(pointer:coarse){
+  body.dw::before{display:none !important;}
+  .top::after{display:none !important;}
+  .top{border-bottom:2px solid color-mix(in srgb,var(--app-accent) 45%,transparent) !important;}
+  .item::after,.kpi::after{display:none !important;}
+  .top,.nav{backdrop-filter:none !important; -webkit-backdrop-filter:none !important;}
+  .top{background:#1f130f !important;}
+  .nav{background:#1f130f !important;}
+  input,textarea,select,.dw-input{font-size:16px !important;}
+  .item:hover,.kpi:hover,.dw-btn.secondary:hover,.chg:hover{transform:none !important;}
+  .item:hover{background:var(--card); box-shadow:var(--sh1),var(--edge);}
+  .item:active,.kpi:active{transform:scale(.985);}
+  .nav .ico svg{filter:none !important;}
+  .empty-icon{filter:none !important;}
+}
+@media(prefers-reduced-motion:reduce){
+  *{transition:none !important; animation:none !important;}
+  .item::after,.kpi::after{display:none !important;}
+}
 </style>
 </head>
 <body class="dw">
 
-<div class="top">
-  <a class="dw-home" href="../index.html">⌂ ecosistema</a>
-  <h1>CAMPO <span class="accent">·</span> <span style="font-size:14px;color:var(--muted2);">OPERATIVO DI CAMPO</span></h1>
-  <div class="sub">Ecosistema Deepwork</div>
-</div>
+<header class="top">
+  <div class="top-brand">
+    <div class="logo-sm">Campo</div>
+    <div class="role-sm">Operativo di giornata &middot; Deepwork</div>
+  </div>
+  <a class="dw-home" href="../index.html" title="Torna all'ecosistema Deepwork" aria-label="Torna all'ecosistema Deepwork"><svg viewBox="0 0 24 24"><path d="M3.5 10.4L12 3.5l8.5 6.9V20a1.5 1.5 0 0 1-1.5 1.5h-4v-6h-6v6H5A1.5 1.5 0 0 1 3.5 20z"/></svg></a>
+</header>
 <div class="tour-banner" id="tour-banner" style="display:none;">
-  Modalità tour — dati di esempio, sola lettura
+  <b>Modalità tour.</b> Stai guardando dati di esempio: puoi provare tutto,
+  ma nulla viene salvato.
 </div>
 
 <!-- DASHBOARD -->
 <div class="page active" id="page-dash">
+  <div class="sec">Quadro della giornata</div>
   <div class="kpis">
-    <div class="kpi accent" style="cursor:pointer" data-goto="squ" title="Vedi le squadre"><div class="n">—</div><div class="l">Squadre attive</div></div>
-    <div class="kpi ok" style="cursor:pointer" data-goto="att" data-filtro="in-corso" title="Vedi le attività in corso"><div class="n">—</div><div class="l">Attività in corso</div></div>
-    <div class="kpi ok" style="cursor:pointer" data-goto="rap" title="Vedi i rapportini"><div class="n">—</div><div class="l">Rapportini oggi</div></div>
-    <div class="kpi danger" style="cursor:pointer" data-goto="att" data-filtro="anomalia" title="Vedi le anomalie"><div class="n">—</div><div class="l">Anomalie aperte</div></div>
+    <div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-goto="squ" title="Vedi le squadre in turno"><div class="l">Squadre attive</div><div class="n">—</div></div>
+    <div class="kpi ok" role="button" tabindex="0" style="cursor:pointer" data-goto="att" data-filtro="in-corso" title="Vedi le attività in corso"><div class="l">Attività in corso</div><div class="n">—</div></div>
+    <div class="kpi ok" role="button" tabindex="0" style="cursor:pointer" data-goto="rap" title="Vedi i rapportini di oggi"><div class="l">Rapportini oggi</div><div class="n">—</div></div>
+    <div class="kpi danger" role="button" tabindex="0" style="cursor:pointer" data-goto="att" data-filtro="anomalia" title="Vedi le anomalie aperte"><div class="l">Anomalie aperte</div><div class="n">—</div></div>
   </div>
 
+  <div id="att-avanz"></div>
   <div class="sec">Oggi in cava</div>
-  <div id="att-avanz" class="note" style="text-align:left;"></div>
   <div id="oggi-list"></div>
 </div>
 
 <div class="page" id="page-att">
-  <div class="sec">Attività della giornata</div>
-  <div id="att-filtri" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
-    <button class="dw-btn secondary" data-filtro="tutte" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Tutte</button>
-    <button class="dw-btn secondary" data-filtro="in-corso" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">In corso</button>
-    <button class="dw-btn secondary" data-filtro="pianificata" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Pianificate</button>
-    <button class="dw-btn secondary" data-filtro="anomalia" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Anomalie</button>
+  <div class="sec">Attività della giornata<span class="cnt" id="att-count-tot">0</span></div>
+  <div id="att-filtri" class="chgs">
+    <button class="chg active" data-filtro="tutte">Tutte</button>
+    <button class="chg" data-filtro="in-corso">In corso</button>
+    <button class="chg" data-filtro="pianificata">Pianificate</button>
+    <button class="chg" data-filtro="anomalia">Anomalie</button>
   </div>
-  <div style="display:flex;align-items:center;gap:6px;margin:-2px 0 10px;flex-wrap:wrap;">
-    <span class="dw-muted" style="font-size:12px;">Giorno:</span>
-    <select id="att-giorno" class="dw-input" style="width:auto;min-height:32px;padding:2px 8px;font-size:12px;">
-      <option value="oggi">Oggi</option>
-      <option value="tutti">Tutti i giorni</option>
-    </select>
-    <span class="dw-muted" style="font-size:12px;">Ordina:</span>
-    <select id="att-ord" class="dw-input" style="width:auto;min-height:32px;padding:2px 8px;font-size:12px;">
-      <option value="stato">Stato (prima le anomalie)</option>
-      <option value="titolo">Titolo (A→Z)</option>
-    </select>
+  <div class="ord">
+    <span class="of"><label for="att-giorno">Giorno</label>
+      <select id="att-giorno" class="dw-input">
+        <option value="oggi">Oggi</option>
+        <option value="tutti">Tutti i giorni</option>
+      </select></span>
+    <span class="of"><label for="att-ord">Ordina</label>
+      <select id="att-ord" class="dw-input">
+        <option value="stato">Stato (prima le anomalie)</option>
+        <option value="titolo">Titolo (A→Z)</option>
+      </select></span>
   </div>
-  <input class="dw-input" id="att-cerca" type="search" placeholder="🔍 Cerca per titolo o dettaglio…" style="margin-bottom:6px;">
-  <div id="att-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
+  <div class="search" style="margin-bottom:8px;">
+    <input class="dw-input" id="att-cerca" type="search" placeholder="Cerca per titolo o dettaglio…" aria-label="Cerca fra le attività">
+    <svg viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="M15.8 15.8L21 21"/></svg>
+  </div>
+  <div id="att-count" class="count"></div>
   <div id="att-list"></div>
-  <div id="fermi-riep" class="note" style="text-align:left;"></div>
   <div class="sec">Dove si perde tempo (fermi)</div>
-  <div id="fermi-pareto" style="margin-bottom:6px;"></div>
-  <button class="dw-btn secondary" id="btn-att-export" style="width:auto;margin-top:6px;">Esporta attività (CSV)</button>
+  <div id="fermi-riep" class="note recap" style="margin-top:0;margin-bottom:10px;"></div>
+  <div id="fermi-pareto"></div>
+  <div class="tools">
+    <button class="dw-btn secondary" id="btn-att-export"><svg viewBox="0 0 24 24"><path d="M12 3.6v11.2"/><path d="M7.8 10.6L12 14.8l4.2-4.2"/><path d="M4.5 18.4v1.1A1.4 1.4 0 0 0 5.9 21h12.2a1.4 1.4 0 0 0 1.4-1.5v-1.1"/></svg>Esporta attività (CSV)</button>
+  </div>
   <div class="sec">Nuova attività</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <input class="dw-input" id="att-titolo" placeholder="Titolo (es. Perforazione fronte Sud)" style="flex:2;min-width:160px;">
-    <input class="dw-input" id="att-dett" placeholder="Dettaglio (facoltativo)" style="flex:1;min-width:130px;">
+  <div class="form col">
+    <div class="frow">
+      <input class="dw-input" id="att-titolo" placeholder="Titolo (es. Perforazione fronte Sud)" style="flex:2 1 180px;">
+      <input class="dw-input" id="att-dett" placeholder="Dettaglio (facoltativo)" style="flex:1 1 140px;">
+    </div>
+    <div class="frow">
+      <input class="dw-input" id="att-data" type="date" title="Giorno di lavoro" aria-label="Giorno di lavoro" style="flex:1 1 150px;">
+      <select class="dw-input" id="att-turno" title="Turno" aria-label="Turno" style="flex:1 1 130px;"></select>
+      <button class="dw-btn" id="btn-att">Pianifica</button>
+    </div>
+    <div class="form-hint">Il giorno e il turno servono a mettere l'attività nello storico giusto: senza di essi non entra in nessun conteggio.</div>
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-    <input class="dw-input" id="att-data" type="date" title="Giorno di lavoro" style="flex:1;min-width:140px;">
-    <select class="dw-input" id="att-turno" title="Turno" style="flex:1;min-width:120px;"></select>
-    <button class="dw-btn" id="btn-att" style="width:auto;">Pianifica</button>
-  </div>
-  <div class="note" id="att-esito" style="text-align:left;"></div>
-  <div class="note" style="text-align:left;">Tocca un'attività per cambiarne lo stato (pianificata → in corso → conclusa).</div></div>
+  <div class="note esito" id="att-esito"></div>
+  <div class="note">Tocca un'attività per farla avanzare: <b>pianificata → in corso → conclusa</b>. La matita apre la modifica qui sopra; quando un'attività è in anomalia, indica <b>causale e minuti di fermo</b> e compare qui sopra dove si perde tempo.</div></div>
 
 <div class="page" id="page-squ">
-  <div class="sec">Squadre in turno</div>
+  <div class="sec">Squadre in turno<span class="cnt" id="squ-count">0</span></div>
   <div id="squ-list"></div>
   <div class="sec">Nuova squadra</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <input class="dw-input" id="squ-nome" placeholder="Nome (es. Squadra D — Perforazione)" style="flex:2;min-width:170px;">
-    <input class="dw-input" id="squ-persone" type="number" min="0" placeholder="Persone" style="flex:1;min-width:90px;">
-    <input class="dw-input" id="squ-area" placeholder="Area (es. fronte Est)" style="flex:1;min-width:120px;">
-    <button class="dw-btn" id="btn-squ" style="width:auto;">Aggiungi</button>
+  <div class="form col">
+    <div class="frow">
+      <input class="dw-input" id="squ-nome" placeholder="Nome (es. Squadra D — Perforazione)" style="flex:2 1 190px;">
+      <input class="dw-input" id="squ-persone" type="number" min="0" inputmode="numeric" placeholder="Persone" aria-label="Numero di persone" style="flex:1 1 110px;">
+    </div>
+    <div class="frow">
+      <input class="dw-input" id="squ-area" placeholder="Area (es. fronte Est)" style="flex:2 1 160px;">
+      <button class="dw-btn" id="btn-squ">Aggiungi</button>
+    </div>
   </div>
-  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-    <button class="dw-btn secondary" id="btn-squ-import" style="width:auto;">Importa squadre (CSV)</button>
-    <button class="dw-btn secondary" id="btn-squ-export" style="width:auto;">Esporta squadre (CSV)</button>
+  <div class="tools">
+    <button class="dw-btn secondary" id="btn-squ-import"><svg viewBox="0 0 24 24"><path d="M12 14.8V3.6"/><path d="M7.8 7.8L12 3.6l4.2 4.2"/><path d="M4.5 18.4v1.1A1.4 1.4 0 0 0 5.9 21h12.2a1.4 1.4 0 0 0 1.4-1.5v-1.1"/></svg>Importa squadre (CSV)</button>
+    <button class="dw-btn secondary" id="btn-squ-export"><svg viewBox="0 0 24 24"><path d="M12 3.6v11.2"/><path d="M7.8 10.6L12 14.8l4.2-4.2"/><path d="M4.5 18.4v1.1A1.4 1.4 0 0 0 5.9 21h12.2a1.4 1.4 0 0 0 1.4-1.5v-1.1"/></svg>Esporta squadre (CSV)</button>
     <input type="file" id="squ-file" accept=".csv,text/csv" style="display:none;">
-    <span class="dw-muted" style="font-size:12px;">colonne: nome;persone;area;stato</span>
   </div>
-  <div class="note" id="squ-esito" style="text-align:left;"></div>
+  <div class="form-hint" style="margin-top:8px;">Colonne del file: <b>nome; persone; area; stato</b> — una riga per squadra.</div>
+  <div class="note esito" id="squ-esito"></div>
+  <div class="note">Tocca una squadra per <b>fermarla o rimetterla in turno</b>: le squadre ferme escono subito dal conteggio del Quadro.</div>
 </div>
 
 <div class="page" id="page-rap">
-  <div class="sec">Rapportini di turno</div>
-  <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
-    <span class="dw-muted" style="font-size:12px;">Giorno:</span>
-    <select id="rap-giorno" class="dw-input" style="width:auto;min-height:32px;padding:2px 8px;font-size:12px;">
-      <option value="oggi">Oggi</option>
-      <option value="tutti">Tutti i giorni</option>
-    </select>
+  <div class="sec">Rapportini di turno<span class="cnt" id="rap-count">0</span></div>
+  <div class="ord">
+    <span class="of"><label for="rap-giorno">Giorno</label>
+      <select id="rap-giorno" class="dw-input">
+        <option value="oggi">Oggi</option>
+        <option value="tutti">Tutti i giorni</option>
+      </select></span>
   </div>
-  <div id="rap-cop" class="note" style="text-align:left;"></div>
-  <div id="rap-prod" class="note" style="text-align:left;"></div>
+  <div id="rap-cop" class="note recap"></div>
+  <div id="rap-prod" class="note recap"></div>
   <div id="rap-list"></div>
   <div class="sec">Nuovo rapportino di turno</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <input class="dw-input" id="new-rap-titolo" placeholder="Titolo (es. Rapportino perforazione)" style="flex:2;min-width:160px;">
-    <select class="dw-input" id="new-rap-squadra" style="flex:1;min-width:130px;"></select>
+  <div class="form col">
+    <div class="frow">
+      <input class="dw-input" id="new-rap-titolo" placeholder="Titolo (es. Rapportino perforazione)" style="flex:2 1 190px;">
+      <select class="dw-input" id="new-rap-squadra" title="Squadra" aria-label="Squadra" style="flex:1 1 140px;"></select>
+    </div>
+    <div class="frow">
+      <input class="dw-input" id="new-rap-data" type="date" title="Giorno di lavoro" aria-label="Giorno di lavoro" style="flex:1 1 150px;">
+      <select class="dw-input" id="new-rap-turno" title="Turno" aria-label="Turno" style="flex:1 1 130px;"></select>
+    </div>
+    <div class="frow">
+      <input class="dw-input" id="new-rap-prod" type="number" min="0" step="0.1" inputmode="decimal" placeholder="Produzione del turno (es. 90)" aria-label="Produzione del turno" style="flex:2 1 170px;">
+      <select class="dw-input" id="new-rap-unita" title="Unità di misura della produzione" aria-label="Unità di misura" style="flex:1 1 110px;"></select>
+    </div>
+    <div class="frow">
+      <input class="dw-input" id="new-rap-note" placeholder="Consegne al turno dopo (handover)" style="flex:2 1 190px;">
+      <button class="dw-btn" id="btn-add-rap">Crea bozza</button>
+    </div>
+    <div class="form-hint">La produzione è facoltativa, ma se la registri il turno entra nel totale di giornata (tonnellate e metri cubi restano separati).</div>
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-    <input class="dw-input" id="new-rap-data" type="date" title="Giorno di lavoro" style="flex:1;min-width:140px;">
-    <select class="dw-input" id="new-rap-turno" title="Turno" style="flex:1;min-width:120px;"></select>
+  <div class="tools">
+    <button class="dw-btn secondary" id="btn-consegna"><svg viewBox="0 0 24 24"><path d="M14 3H7.5A2.5 2.5 0 0 0 5 5.5v13A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V8z"/><path d="M14 3v5h5"/><path d="M8.8 13h6.4M8.8 16.6h4.4"/></svg>Consegna di turno (testo)</button>
+    <button class="dw-btn secondary" id="btn-rapporto-turno"><svg viewBox="0 0 24 24"><path d="M7 9.2V3.8h10v5.4"/><rect x="4" y="9.2" width="16" height="7.2" rx="1.8"/><path d="M7 14.4h10v5.8H7z"/></svg>Rapporto di fine turno</button>
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-    <input class="dw-input" id="new-rap-prod" type="number" min="0" step="0.1" inputmode="decimal" placeholder="Produzione del turno (es. 90)" style="flex:2;min-width:150px;">
-    <select class="dw-input" id="new-rap-unita" title="Unità di misura della produzione" style="flex:1;min-width:90px;"></select>
-  </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-    <input class="dw-input" id="new-rap-note" placeholder="Consegne al turno dopo (handover)" style="flex:2;min-width:160px;">
-    <button class="dw-btn" id="btn-add-rap" style="width:auto;">Crea bozza</button>
-  </div>
-  <button class="dw-btn secondary" id="btn-consegna" style="width:auto;margin-top:8px;">Esporta consegna turno (testo)</button>
-  <button class="dw-btn secondary" id="btn-rapporto-turno" style="width:auto;margin-top:8px;margin-left:6px;">🖨 Rapporto di fine turno</button>
-  <div class="note" id="mode-note" style="text-align:left;"></div>
+  <div class="note esito" id="mode-note"></div>
 
   <div class="sec">Piano di carico (da Genesi)</div>
-  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-    <button class="dw-btn secondary" id="btn-piano" style="width:auto;">Importa piano (CSV)</button>
+  <div class="tools" style="margin-top:0;">
+    <button class="dw-btn secondary" id="btn-piano"><svg viewBox="0 0 24 24"><path d="M12 14.8V3.6"/><path d="M7.8 7.8L12 3.6l4.2 4.2"/><path d="M4.5 18.4v1.1A1.4 1.4 0 0 0 5.9 21h12.2a1.4 1.4 0 0 0 1.4-1.5v-1.1"/></svg>Importa piano (CSV)</button>
     <input type="file" id="piano-file" accept=".csv,text/csv" style="display:none;">
-    <span class="dw-muted" style="font-size:12px;">file esportato dalla Scheda volata di Genesi</span>
+    <button class="dw-btn secondary" id="btn-piano-export" style="display:none;"><svg viewBox="0 0 24 24"><path d="M12 3.6v11.2"/><path d="M7.8 10.6L12 14.8l4.2-4.2"/><path d="M4.5 18.4v1.1A1.4 1.4 0 0 0 5.9 21h12.2a1.4 1.4 0 0 0 1.4-1.5v-1.1"/></svg>Esporta consuntivo (CSV)</button>
   </div>
-  <div id="piano-riep" class="note" style="text-align:left;"></div>
+  <div class="form-hint" style="margin-top:8px;">Il file è quello esportato dalla <b>Scheda volata di Genesi</b>: colonne <b>foro; x; fila; prof; prog; borr; rit</b>.</div>
+  <div id="piano-riep" class="note recap"></div>
   <div id="piano-list"></div>
-  <button class="dw-btn secondary" id="btn-piano-export" style="width:auto;display:none;margin-top:8px;">Esporta consuntivo (CSV)</button>
 </div>
 
-<div class="nav">
-  <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico">▦</span>Quadro</button>
-  <button id="nav-att" onclick="go('att')"><span class="ico">⛏</span>Attività</button>
-  <button id="nav-squ" onclick="go('squ')"><span class="ico">👥</span>Squadre</button>
-  <button id="nav-rap" onclick="go('rap')"><span class="ico">📝</span>Rapportini</button>
+<nav class="nav" aria-label="Sezioni di Campo">
+  <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg></span>Quadro</button>
+  <button id="nav-att" onclick="go('att')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M3.2 20.8l8.1-8.1"/><path d="M9.6 11.3l3.1 3.1"/><path d="M2.9 9.6a11.5 11.5 0 0 1 9-5.4 11.5 11.5 0 0 1 9 5.4"/><path d="M11.9 4.2v3.9"/></svg></span>Attività</button>
+  <button id="nav-squ" onclick="go('squ')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M16.8 20.4v-1.6a3.8 3.8 0 0 0-3.8-3.8H6.6a3.8 3.8 0 0 0-3.8 3.8v1.6"/><circle cx="9.8" cy="7.6" r="3.8"/><path d="M21.2 20.4v-1.6a3.8 3.8 0 0 0-2.9-3.7"/><path d="M15.4 4a3.8 3.8 0 0 1 0 7.3"/></svg></span>Squadre</button>
+  <button id="nav-rap" onclick="go('rap')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M14 3H7.5A2.5 2.5 0 0 0 5 5.5v13A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V8z"/><path d="M14 3v5h5"/><path d="M8.8 13h6.4M8.8 16.6h4.4"/></svg></span>Rapportini</button>
+</nav>
+
+<!-- modale in stile core: sostituisce alert()/confirm()/prompt() del browser -->
+<div class="modal-ov" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-box">
+    <div class="modal-head" id="modal-title">Conferma</div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot" id="modal-foot"></div>
+  </div>
 </div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
   function go(id) {
@@ -161,6 +878,110 @@
     document.getElementById("nav-" + id).classList.add("active");
     window.scrollTo(0, 0);
   }
+
+  /* ── Toast del core: nessun alert() del browser ────────────────────── */
+  let toastT = null;
+  function toast(msg, tipo) {
+    const t = document.getElementById("toast");
+    t.className = "toast " + (tipo || "");
+    t.textContent = msg;
+    void t.offsetWidth;
+    t.classList.add("show");
+    clearTimeout(toastT);
+    toastT = setTimeout(() => t.classList.remove("show"), msg.length > 70 ? 4200 : 2800);
+  }
+
+  /* ── Modale del core: sostituisce confirm() e prompt() ─────────────── */
+  let modalPrec = null;
+  function apriModale(titolo, corpo, bottoni) {
+    modalPrec = document.activeElement;
+    document.getElementById("modal-title").textContent = titolo;
+    document.getElementById("modal-body").innerHTML = corpo;
+    const foot = document.getElementById("modal-foot");
+    foot.innerHTML = "";
+    (bottoni || []).forEach(b => {
+      const el = document.createElement("button");
+      el.className = "mbtn " + (b.cls || "");
+      el.textContent = b.label;
+      el.onclick = b.azione;
+      foot.appendChild(el);
+    });
+    document.getElementById("modal").classList.add("show");
+    document.body.classList.add("modal-open");
+    const primo = document.getElementById("modal-body").querySelector("input,select,textarea")
+               || foot.querySelector(".mbtn.primary,.mbtn.danger") || foot.querySelector(".mbtn");
+    if (primo) setTimeout(() => { try { primo.focus({ preventScroll: true }); primo.select && primo.select(); } catch (e) {} }, 80);
+  }
+  function chiudiModale() {
+    document.getElementById("modal").classList.remove("show");
+    document.body.classList.remove("modal-open");
+    if (modalPrec && modalPrec.focus) { try { modalPrec.focus({ preventScroll: true }); } catch (e) {} }
+    modalPrec = null;
+  }
+  // Conferma in stile core: restituisce una Promise<boolean>
+  function chiedi(titolo, corpo, etichettaOk, pericolo) {
+    return new Promise(res => {
+      apriModale(titolo, corpo, [
+        { label: "Annulla", azione: () => { chiudiModale(); res(false); } },
+        { label: etichettaOk || "Conferma", cls: pericolo ? "danger" : "primary",
+          azione: () => { chiudiModale(); res(true); } },
+      ]);
+    });
+  }
+  // Richiesta di un valore in stile core: restituisce Promise<string|null>
+  function chiediValore(titolo, corpo, campoHtml, etichettaOk) {
+    return new Promise(res => {
+      apriModale(titolo, corpo + campoHtml, [
+        { label: "Annulla", azione: () => { chiudiModale(); res(null); } },
+        { label: etichettaOk || "Salva", cls: "primary", azione: () => {
+            const c = document.getElementById("modal-campo");
+            const v = c ? c.value : "";
+            chiudiModale(); res(v);
+          } },
+      ]);
+      const c = document.getElementById("modal-campo");
+      if (c) c.addEventListener("keydown", e => {
+        if (e.key === "Enter") { e.preventDefault(); document.querySelector("#modal-foot .mbtn.primary").click(); }
+      });
+    });
+  }
+  document.getElementById("modal").addEventListener("click", e => {
+    if (e.target.id === "modal") { const b = document.querySelector("#modal-foot .mbtn"); if (b) b.click(); }
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Escape") return;
+    const m = document.getElementById("modal");
+    if (m && m.classList.contains("show")) { const b = m.querySelector("#modal-foot .mbtn"); if (b) b.click(); }
+  });
+  // KPI e voci di lista raggiungibili da tastiera (Invio/Spazio = tocco).
+  // I campi dentro la voce (causale, minuti) restano campi: lì Invio non
+  // deve far avanzare lo stato dell'attività.
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const t = e.target;
+    if (!t.closest) return;
+    // campi e bottoni gestiscono già il tasto per conto loro
+    if (/^(INPUT|SELECT|TEXTAREA|BUTTON|A)$/.test(t.tagName) || t.closest(".fermo")) return;
+    const k = t.closest('.kpi[data-goto], .item[role="button"]');
+    if (k) { e.preventDefault(); k.click(); }
+  });
+
+  /* ── Alone che segue il mouse (firma dinamica del core: --mx/--my) ─── */
+  (function () {
+    if (matchMedia("(prefers-reduced-motion:reduce)").matches) return;
+    if (!matchMedia("(hover:hover) and (pointer:fine)").matches) return;
+    const sel = ".item,.kpi";
+    let cur = null, px = 50, py = 50, pend = false;
+    const apply = () => { pend = false; if (cur) { cur.style.setProperty("--mx", px + "%"); cur.style.setProperty("--my", py + "%"); } };
+    window.addEventListener("pointermove", e => {
+      const t = e.target.closest ? e.target.closest(sel) : null;
+      cur = t; if (!t) return;
+      const r = t.getBoundingClientRect();
+      px = (e.clientX - r.left) / r.width * 100;
+      py = (e.clientY - r.top) / r.height * 100;
+      if (!pend) { pend = true; requestAnimationFrame(apply); }
+    }, { passive: true });
+  })();
 </script>
 
 <script type="module">
@@ -169,10 +990,49 @@
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const dmy = (iso) => iso ? iso.slice(8,10)+"/"+iso.slice(5,7)+"/"+iso.slice(0,4) : "senza data";
-  const AB = { "in-corso": ["ok","In corso"], pianificata: ["warn","Pianificata"], anomalia: ["danger","Anomalia"], conclusa: ["ok","Conclusa"] };
+  // Badge di stato: colore + PAROLA + (per l'errore) icona e pulsazione, mai il
+  // solo colore — in Campo cotto ed errore sono vicini di tinta.
+  // «Conclusa» è neutra apposta: il verde deve restare per ciò che sta
+  // succedendo adesso, altrimenti a colpo d'occhio la giornata sembra tutta uguale.
+  const AB = { "in-corso": ["ok","In corso"], pianificata: ["warn","Pianificata"], anomalia: ["danger","Anomalia"], conclusa: ["tag","Conclusa"] };
   const QB = { operativa: ["ok","Operativa"], ferma: ["danger","Ferma"] };
   const RB = { inviato: ["ok","Inviato"], bozza: ["warn","Bozza"] };
+  // striscia di stato a sinistra della voce: informazione doppia (colore + posizione)
+  const AS = { "in-corso": "st-ok", pianificata: "st-warn", anomalia: "st-danger", conclusa: "st-mute" };
   const sig = (n) => (n||"?").replace(/Squadra /,"").slice(0,2).toUpperCase();
+
+  // ── Icone in SVG (niente emoji né glifi di sistema) ───────────────────
+  const I = {
+    chevron: '<svg viewBox="0 0 24 24"><path d="M9.5 5.5L16 12l-6.5 6.5"/></svg>',
+    matita:  '<svg viewBox="0 0 24 24"><path d="M4 20.2l.9-3.7L15.6 5.8a2 2 0 0 1 2.8 0l1 1a2 2 0 0 1 0 2.8L8.7 20.3 5 21z"/><path d="M14.4 7l3.6 3.6"/></svg>',
+    croce:   '<svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>',
+    allarme: '<svg viewBox="0 0 24 24"><path d="M12 8.4v4.2M12 16.2h.01"/><path d="M10.3 4.2L2.9 17.4A1.9 1.9 0 0 0 4.6 20.3h14.8a1.9 1.9 0 0 0 1.7-2.9L13.7 4.2a1.9 1.9 0 0 0-3.4 0z"/></svg>',
+    orologio:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12.5" r="8.5"/><path d="M12 7.5v5.2l3.2 2"/></svg>',
+    calend:  '<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="16" rx="2.2"/><path d="M3.5 10h17M8.4 3v4M15.6 3v4"/></svg>',
+    picco:   '<svg viewBox="0 0 24 24"><path d="M3.2 20.8l8.1-8.1"/><path d="M9.6 11.3l3.1 3.1"/><path d="M2.9 9.6a11.5 11.5 0 0 1 9-5.4 11.5 11.5 0 0 1 9 5.4"/><path d="M11.9 4.2v3.9"/></svg>',
+    persone: '<svg viewBox="0 0 24 24"><path d="M16.8 20.4v-1.6a3.8 3.8 0 0 0-3.8-3.8H6.6a3.8 3.8 0 0 0-3.8 3.8v1.6"/><circle cx="9.8" cy="7.6" r="3.8"/><path d="M21.2 20.4v-1.6a3.8 3.8 0 0 0-2.9-3.7"/><path d="M15.4 4a3.8 3.8 0 0 1 0 7.3"/></svg>',
+    foglio:  '<svg viewBox="0 0 24 24"><path d="M14 3H7.5A2.5 2.5 0 0 0 5 5.5v13A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V8z"/><path d="M14 3v5h5"/><path d="M8.8 13h6.4M8.8 16.6h4.4"/></svg>',
+    foro:    '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="3"/></svg>',
+    avanti:  '<svg viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0-9-9"/><path d="M3 12l2.6 2.8L8.4 12"/><path d="M12 7.6V12l3 1.9"/></svg>',
+  };
+  // stato vuoto in stile core: icona, titolo, spiegazione di cosa fare
+  const vuoto = (icona, titolo, sotto) =>
+    `<div class="empty-state"><div class="empty-icon">${icona}</div>
+      <div class="empty-title">${titolo}</div><div class="empty-sub">${sotto}</div></div>`;
+  // ── Messaggi: toast del core + traccia scritta accanto al form ────────
+  const esito = (id, testo, tipo) => {
+    const el = $(id); if (el) { el.textContent = testo; el.className = "note esito" + (tipo === "err" ? " err" : ""); }
+    if (testo) toast(testo, tipo);
+  };
+  // ── Errori di campo: classe dedicata + fuoco automatico sul campo sbagliato
+  const err = (id, on) => { const el = $(id); if (el) el.classList.toggle("err", !!on); };
+  const sbaglia = (campoId, esitoId, messaggio) => {
+    err(campoId, true);
+    esito(esitoId, messaggio, "err");
+    const el = $(campoId);
+    if (el) { try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); }
+      el.scrollIntoView({ behavior: "smooth", block: "center" }); }
+  };
 
   const db = await campoData();
   mountExit(db);
@@ -210,13 +1070,14 @@
   // Svuota il form attività riportando data e turno ai valori di default.
   const resetFormAtt = () => { $("att-titolo").value = ""; $("att-dett").value = "";
     $("att-data").value = OGGI; $("att-turno").value = turnoCorrente();
-    $("att-titolo").style.borderColor = ""; $("att-data").style.borderColor = ""; };
+    err("att-titolo", false); err("att-data", false); };
   // cambiare pagina annulla una modifica attività in corso (torna su "Pianifica")
   document.querySelector(".nav") && document.querySelector(".nav").addEventListener("click", () => {
     if (editAtt) { editAtt = null; $("btn-att").textContent = "Pianifica"; $("att-esito").textContent = ""; resetFormAtt(); }
   });
   $("att-filtri").addEventListener("click", (e) => {
-    const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
+    const b = e.target.closest && e.target.closest("[data-filtro]");
+    const f = b && b.getAttribute("data-filtro");
     if (f) { filtroAtt = f; refresh(); }
   });
   document.querySelector(".kpis").addEventListener("click", (e) => {
@@ -239,18 +1100,28 @@
     if (kn[2]) kn[2].textContent = k.rapportiniOggi;
     if (kn[3]) kn[3].textContent = k.anomalie;
 
-    // Avanzamento giornata: concluse sul totale, con ripartizione.
+    // Avanzamento giornata: cartellone con la percentuale e la ripartizione.
     const av = avanzamentoGiornata(ATT_OGGI);
     $("att-avanz").innerHTML = av.totale
-      ? `Avanzamento: <b>${av.concluse}/${av.totale}</b> concluse (${av.pct}%) · ${av.inCorso} in corso · ${av.pianificate} pianificate${av.anomalie ? " · <span style=\"color:var(--danger);\">"+av.anomalie+" anomalie</span>" : ""}`
+      ? `<div class="board ${av.anomalie ? "warn" : (av.pct === 100 ? "ok" : "")}">
+           <div class="board-ico">${av.anomalie ? I.allarme : I.avanti}</div>
+           <div>
+             <div class="board-num">${av.pct}%</div>
+             <div class="board-lab">Avanzamento di oggi</div>
+           </div>
+           <div class="board-txt"><b>${av.concluse}/${av.totale}</b> attività concluse ·
+             ${av.inCorso} in corso · ${av.pianificate} pianificate${av.anomalie
+               ? ` · <b class="bad">${av.anomalie} in anomalia</b>` : ""}</div>
+         </div>`
       : "";
 
     const urgenti = ATT_OGGI.filter(a => a.stato !== "conclusa").slice(0,4);
-    $("oggi-list").innerHTML = urgenti.map(a => `<div class="item" onclick="go('att')">
+    $("oggi-list").innerHTML = urgenti.map(a => `<div class="item ${AS[a.stato]||""}" onclick="go('att')" role="button" tabindex="0" title="Vai alle attività della giornata">
       <div class="avatar">${esc(sig(a.titolo))}</div>
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc([a.dettaglio, a.turno, etData(a)].filter(Boolean).join(" · "))}</div></div>
-      <span class="badge ${AB[a.stato][0]}">${AB[a.stato][1]}</span><span class="arr">›</span></div>`).join("")
-      || '<div class="note" style="text-align:left;">Nessuna attività in corso: la giornata è tranquilla.</div>';
+      <span class="badge ${AB[a.stato][0]}">${a.stato==="anomalia"?I.allarme:""}${AB[a.stato][1]}</span><span class="arr deco">${I.chevron}</span></div>`).join("")
+      || vuoto(I.picco, "Giornata tranquilla",
+          "Non c'è nessuna attività aperta oggi. Aprine una da <b>Attività → Nuova attività</b>: bastano titolo, giorno e turno.");
 
     const ordAtt = { anomalia: 0, "in-corso": 1, pianificata: 2, conclusa: 3 };
     const attCmp = (a, b) => ordAttSel === "titolo"
@@ -261,47 +1132,74 @@
                       .filter(a => !qAtt || ((a.titolo || "") + " " + (a.dettaglio || "")).toLowerCase().includes(qAtt))
                       .sort(attCmp);
     const optCausali = (sel) => CAUSALI_FERMO.map(c => `<option value="${esc(c)}"${c===sel?" selected":""}>${esc(c)}</option>`).join("");
-    $("att-list").innerHTML = attVis.map(a => `<div class="item" data-att="${a.id}" style="cursor:pointer" title="Tocca per cambiare stato">
+    $("att-list").innerHTML = attVis.map(a => `<div class="item ${AS[a.stato]||""}" data-att="${a.id}" role="button" tabindex="0" style="cursor:pointer" title="Tocca per far avanzare lo stato">
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc([a.dettaglio, a.turno, etData(a)].filter(Boolean).join(" · "))}</div></div>
-      ${a.stato==="anomalia" ? `<select class="dw-input" data-causale="${a.id}" title="Causale del fermo" style="width:auto;min-height:32px;padding:2px 6px;font-size:12px;margin-right:6px;"><option value="">Causale…</option>${optCausali(a.causale)}</select><input class="dw-input" data-fermomin="${a.id}" type="number" min="0" step="5" value="${(+a.fermoMin)||""}" placeholder="min" title="Minuti di fermo" style="width:64px;min-height:32px;padding:2px 6px;font-size:12px;margin-right:6px;">` : ""}
-      <span class="badge ${AB[a.stato][0]}">${AB[a.stato][1]}</span>
-      <span class="arr" style="cursor:pointer" title="Modifica attività" data-edit-att="${a.id}">✎</span></div>`).join("")
-      || '<div class="note" style="text-align:left;">'+(qAtt?"Nessuna attività trovata per «"+esc(qAtt)+"».":(filtroAtt==="tutte"?(tuttiAtt?"Nessuna attività registrata.":"Nessuna attività registrata oggi."):"Nessuna attività in questa categoria."))+'</div>';
+      <span class="badge ${AB[a.stato][0]}">${a.stato==="anomalia"?I.allarme:""}${AB[a.stato][1]}</span>
+      <button type="button" class="arr" title="Modifica questa attività" aria-label="Modifica ${esc(a.titolo)}" data-edit-att="${a.id}">${I.matita}</button>
+      ${a.stato==="anomalia" ? `<div class="fermo">
+        <span class="fl">Fermo</span>
+        <select class="dw-input" data-causale="${a.id}" title="Causale del fermo" aria-label="Causale del fermo"><option value="">Causale…</option>${optCausali(a.causale)}</select>
+        <input class="dw-input min" data-fermomin="${a.id}" type="number" min="0" step="5" inputmode="numeric" value="${(+a.fermoMin)||""}" placeholder="minuti" title="Minuti di fermo" aria-label="Minuti di fermo">
+      </div>` : ""}</div>`).join("")
+      || vuoto(I.picco,
+          qAtt ? "Nessuna corrispondenza" : (filtroAtt === "tutte" ? "Nessuna attività" : "Nessuna attività in questa voce"),
+          qAtt ? `Non c'è nessuna attività che contenga «<b>${esc(qAtt)}</b>». Svuota la ricerca o cambia filtro.`
+               : (filtroAtt === "tutte"
+                   ? (tuttiAtt ? "Non è ancora stata registrata nessuna attività. Aggiungine una qui sotto con <b>Pianifica</b>."
+                               : "Oggi non è ancora stata registrata nessuna attività. Aggiungila qui sotto, oppure passa il giorno a <b>Tutti i giorni</b>.")
+                   : "Il filtro selezionato non contiene nulla. Tocca <b>Tutte</b> per rivedere l'intera giornata."));
     // Conteggio della lista + avviso sui dati vecchi ancora privi di data: non
     // spariscono (restano nella vista di oggi), ma vanno dichiarati.
     { const n = $("att-list").querySelectorAll(".item").length, filtrata = qAtt || filtroAtt !== "tutte";
       const sd = senzaData(ATT);
-      $("att-count").textContent = (n === 0 ? "" : n + " attività" + (filtrata ? " · su " + ATT_G.length : ""))
-        + (sd ? (n === 0 ? "" : " · ") + sd + " senza data" : ""); }
-    document.querySelectorAll("#att-filtri [data-filtro]").forEach(b =>
-      b.style.borderColor = b.getAttribute("data-filtro") === filtroAtt ? "var(--app-accent)" : "");
+      $("att-count").innerHTML = (n === 0 ? "" : "<b>" + n + "</b> attività" + (filtrata ? " · su " + ATT_G.length : ""))
+        + (sd ? (n === 0 ? "" : " · ") + sd + " senza data" : "");
+      $("att-count-tot").textContent = ATT_G.length; }
+    document.querySelectorAll("#att-filtri [data-filtro]").forEach(b => {
+      const on = b.getAttribute("data-filtro") === filtroAtt;
+      b.classList.toggle("active", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
     // Pareto dei fermi con i MINUTI persi (base disponibilità di giornata)
     { const pf = paretoFermi(ATT_G);
       const box = $("fermi-pareto");
-      if (box) box.innerHTML = pf.voci.length
-        ? `<div class="dw-muted" style="font-size:12px;margin-bottom:6px;">Tempo perso ${tuttiAtt ? "in tutti i giorni" : "oggi"}: <b style="color:var(--danger);">${pf.totaleMin} min</b>${pf.voci[0] && pf.voci[0].minuti ? ` — causale peggiore: <b>${esc(pf.voci[0].causale)}</b> (${pf.voci[0].minuti} min)` : ""}</div>`
-          + pf.voci.map(v => { const w = pf.totaleMin ? Math.round(v.minuti / pf.totaleMin * 100) : 0;
-            return `<div style="display:flex;align-items:center;gap:8px;margin:3px 0;font-size:12px;"><span style="flex:0 0 150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(v.causale)}</span><span style="flex:1;background:var(--card2);border-radius:4px;overflow:hidden;height:10px;"><i style="display:block;height:100%;width:${Math.max(2, w)}%;background:linear-gradient(90deg,var(--warn),var(--danger));"></i></span><b style="flex:0 0 84px;text-align:right;">${v.minuti} min · ×${v.conto}</b></div>`; }).join("")
-        : '<span class="dw-muted" style="font-size:12px;">Nessun fermo. Quando un\'attività va in anomalia, indica causale e minuti: qui compare dove si perde tempo.</span>'; }
-    // riepilogo fermi per causale (base per OEE/disponibilità)
+      if (box) box.innerHTML = !pf.voci.length
+        ? vuoto(I.orologio, "Nessun fermo registrato",
+            "Quando un'attività va in anomalia, indica <b>causale e minuti</b>: qui compare subito dove la giornata perde tempo.")
+        : `<div class="pareto${pf.totaleMin ? "" : " vuota"}"><div class="pareto-head">${pf.totaleMin
+             ? `Tempo perso ${tuttiAtt ? "in tutti i giorni" : "oggi"}: <b class="bad">${pf.totaleMin} min</b>`
+               + (pf.voci[0] && pf.voci[0].minuti ? ` — la causale peggiore è <b>${esc(pf.voci[0].causale)}</b> (${pf.voci[0].minuti} min)` : "")
+             : `Ci sono fermi registrati ma <b>nessun minuto</b>: scrivi i minuti accanto alla causale,
+                sulla voce in anomalia, e qui si vede quanto è costato ogni fermo.`}</div>`
+          + pf.voci.map((v, i) => { const w = pf.totaleMin ? Math.round(v.minuti / pf.totaleMin * 100) : 0;
+            return `<div class="pbar${i === 0 && pf.totaleMin ? " top" : ""}"><span class="pl" title="${esc(v.causale)}">${esc(v.causale)}</span>
+              <span class="pt"><i style="width:${pf.totaleMin ? Math.max(3, w) : 0}%"></i></span>
+              <b class="pv">${pf.totaleMin ? v.minuti + " min · " : ""}×${v.conto}</b></div>`; }).join("")
+          + `</div>`; }
+    // Riepilogo dei fermi (base per OEE/disponibilità). Il dettaglio per
+    // causale sta già nelle barre qui sotto: qui va la sintesi, non la
+    // stessa lista scritta due volte.
     const fermi = riepilogoFermi(ATT_G);
-    $("fermi-riep").innerHTML = fermi.length
-      ? "Fermi per causale: " + fermi.map(f => `<b>${esc(f.causale)}</b> ${f.conto}`).join(" · ")
-      : "";
+    { const anom = ATT_G.filter(a => a.stato === "anomalia").length;
+      const totFermi = fermi.reduce((s, f) => s + f.conto, 0);
+      $("fermi-riep").innerHTML = fermi.length
+        ? `<b>${totFermi}</b> fermi registrati su <b>${fermi.length}</b> caus${fermi.length === 1 ? "ale" : "ali"} diverse`
+          + (anom ? ` · <b>${anom}</b> attività ancora in anomalia` : " · nessuna attività ancora in anomalia")
+        : ""; }
 
-    $("squ-list").innerHTML = SQU.map(q => `<div class="item" data-squ="${q.id}" style="cursor:pointer" title="Tocca per fermare/riattivare">
-      <div class="avatar">${esc(sig(q.nome))}</div>
-      <div class="info"><div class="name">${esc(q.nome)}</div><div class="meta">${esc(q.persone)} persone · ${esc(q.area||"—")}</div></div>
-      <span class="badge ${QB[q.stato][0]}">${QB[q.stato][1]}</span></div>`).join("")
-      || '<div class="note" style="text-align:left;">Nessuna squadra in turno.</div>';
+    $("squ-count").textContent = SQU.length;
+    $("squ-list").innerHTML = SQU.map(q => `<div class="item ${q.stato==="ferma"?"st-danger":"st-ok"}" data-squ="${q.id}" role="button" tabindex="0" style="cursor:pointer" title="Tocca per fermare o rimettere in turno">
+      <div class="avatar${q.stato==="ferma"?" mute":""}">${esc(sig(q.nome))}</div>
+      <div class="info"><div class="name">${esc(q.nome)}</div><div class="meta">${esc(q.persone)} persone · ${esc(q.area||"area non indicata")}</div></div>
+      <span class="badge ${QB[q.stato][0]}">${q.stato==="ferma"?I.allarme:""}${QB[q.stato][1]}</span></div>`).join("")
+      || vuoto(I.persone, "Nessuna squadra in turno",
+          "Aggiungi le squadre qui sotto (nome, persone, area) oppure importale da un file CSV: sono la base dei rapportini e del Quadro.");
 
     const cop = coperturaRapportini(SQU, RAP_G);
     const sdRap = senzaData(RAP);
     const avvisoSdRap = sdRap ? ` <span class="dw-muted">(${sdRap} rapportini ancora senza data)</span>` : "";
     $("rap-cop").innerHTML = cop.totale === 0 ? (avvisoSdRap ? avvisoSdRap : "")
       : cop.mancanti.length === 0
-        ? `Rapportini di turno: <b class="badge ok" style="font-size:inherit;">${cop.coperte}/${cop.totale} squadre</b> — tutte hanno consegnato.${avvisoSdRap}`
-        : `Rapportini di turno: <b class="badge warn" style="font-size:inherit;">${cop.coperte}/${cop.totale} squadre</b> — manca ${cop.mancanti.map(esc).join(", ")}.${avvisoSdRap}`;
+        ? `Rapportini consegnati da <b>${cop.coperte}/${cop.totale}</b> squadre <span class="badge ok">tutte a posto</span>${avvisoSdRap}`
+        : `Rapportini consegnati da <b>${cop.coperte}/${cop.totale}</b> squadre <span class="badge warn">da consegnare</span><br>Manca ancora: ${esc(cop.mancanti.join(", "))}.${avvisoSdRap}`;
     // Totale della produzione registrata (sommabile grazie a quantità + unità):
     // il totale complessivo e, sotto, quello di ogni turno. Tonnellate e metri
     // cubi restano separati: non si sommano tra loro.
@@ -312,53 +1210,82 @@
         ? `Produzione ${tuttiRap ? "registrata" : "di oggi"}: <b>${esc(somma(tp.perUnita))}</b>`
           + (tp.perTurno.length ? ` — ${tp.perTurno.map(t => `turno ${esc(t.turno)}: <b>${esc(somma(t.perUnita))}</b>`).join(" · ")}` : "")
         : ""; }
+    $("rap-count").textContent = RAP_G.length;
     $("rap-list").innerHTML = RAP_G.map(r => { const rias = riassuntoRapportino(r), quando = etData(r);
-      return `<div class="item" data-rap="${r.id}" style="cursor:pointer" title="${r.stato==="bozza" ? "Tocca per inviare" : "Tocca per richiamare in bozza"}">
+      return `<div class="item ${r.stato==="bozza"?"st-warn":"st-ok"}" data-rap="${r.id}" role="button" tabindex="0" style="cursor:pointer" title="${r.stato==="bozza" ? "Tocca per inviare il rapportino" : "Tocca per richiamarlo in bozza"}">
+      <div class="avatar sup">${I.foglio}</div>
       <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${quando?esc(quando)+" · ":""}${rias ? esc(rias) : esc(r.squadra||"—")}${r.ora?" · "+esc(r.ora):""}</div></div>
-      <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${r.stato==="bozza"?`<span class="arr" style="cursor:pointer" title="Elimina bozza" data-del-rap="${r.id}">✕</span>`:""}</div>`; }).join("")
-      || `<div class="note" style="text-align:left;">${tuttiRap ? "Nessun rapportino registrato." : "Nessun rapportino oggi."}</div>`;
+      <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${r.stato==="bozza"?`<button type="button" class="arr del" title="Elimina questa bozza" aria-label="Elimina la bozza ${esc(r.titolo)}" data-del-rap="${r.id}">${I.croce}</button>`:""}</div>`; }).join("")
+      || vuoto(I.foglio, tuttiRap ? "Nessun rapportino" : "Nessun rapportino oggi",
+          "Crea la bozza qui sotto: titolo, squadra, giorno e turno. Poi tocca la voce per <b>inviarla</b> quando il turno è chiuso.");
 
     $("new-rap-squadra").innerHTML = SQU.map(q => `<option>${esc(q.nome.split(" — ")[0])}</option>`).join("");
   }
 
   // interazioni: attività cicla lo stato; rapportino bozza → inviato
   const ATT_NEXT = { pianificata: "in-corso", "in-corso": "conclusa", anomalia: "in-corso", conclusa: "pianificata" };
+  const STATO_LAB = { pianificata: "Pianificata", "in-corso": "In corso", conclusa: "Conclusa", anomalia: "Anomalia" };
   document.addEventListener("click", async (e) => {
-    // il tap sul menu causale NON deve cambiare lo stato dell'attività
-    if (e.target.matches && e.target.matches("[data-causale]")) return;
-    const editAttId = e.target.getAttribute && e.target.getAttribute("data-edit-att");
+    // il tap dentro il riquadro del fermo (causale/minuti) NON deve far
+    // avanzare lo stato dell'attività: è un campo, non il corpo della voce.
+    if (e.target.closest && e.target.closest(".fermo")) return;
+    const btnEdit = e.target.closest && e.target.closest("[data-edit-att]");
+    const editAttId = btnEdit && btnEdit.getAttribute("data-edit-att");
     if (editAttId) { const a = ATT.find(x => x.id === editAttId); if (!a) return;
-      if (editAtt === a.id) {   // ri-tocco la ✎ della stessa attività = annulla
-        editAtt = null; $("btn-att").textContent = "Pianifica"; $("att-esito").textContent = "Modifica annullata.";
+      if (editAtt === a.id) {   // ri-tocco la matita della stessa attività = annulla
+        editAtt = null; $("btn-att").textContent = "Pianifica";
+        esito("att-esito", "Modifica annullata: il form torna vuoto.");
         resetFormAtt(); return; }
       editAtt = a.id;
-      $("att-titolo").value = a.titolo || ""; $("att-dett").value = a.dettaglio || ""; $("att-titolo").style.borderColor = "";
+      $("att-titolo").value = a.titolo || ""; $("att-dett").value = a.dettaglio || ""; err("att-titolo", false);
       // data e turno del record: così la modifica serve anche a DATARE un'attività
       // vecchia rimasta senza giorno di lavoro.
       $("att-data").value = a.data || OGGI; $("att-turno").value = a.turno || turnoCorrente();
       $("btn-att").textContent = "Salva modifica";
-      $("att-esito").textContent = "Stai modificando «" + a.titolo + "»: cambi titolo, dettaglio, giorno e turno; lo stato resta.";
+      esito("att-esito", "Stai modificando «" + a.titolo + "»: puoi cambiare titolo, dettaglio, giorno e turno; lo stato resta com'è.");
       $("att-titolo").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
     const it = e.target.closest && e.target.closest("[data-att]");
     if (it) { const a = ATT.find(x => x.id === it.getAttribute("data-att"));
-      await db.aggiorna("attivita", a.id, { stato: ATT_NEXT[a.stato] || "in-corso" }); await refresh(); return; }
+      if (!a) return;
+      const nuovo = ATT_NEXT[a.stato] || "in-corso";
+      await db.aggiorna("attivita", a.id, { stato: nuovo }); await refresh();
+      toast("«" + a.titolo + "» → " + (STATO_LAB[nuovo] || nuovo), nuovo === "conclusa" ? "success" : "");
+      return; }
     const sq = e.target.closest && e.target.closest("[data-squ]");
     if (sq) { const q = SQU.find(x => x.id === sq.getAttribute("data-squ"));
       if (q) { const nuovo = q.stato === "operativa" ? "ferma" : "operativa";
-        if (nuovo === "ferma" && !confirm("Fermare la " + q.nome + "? Il KPI squadre attive scenderà.")) return;
-        await db.aggiorna("squadre", q.id, { stato: nuovo }); await refresh(); } return; }
-    const delRap = e.target.getAttribute && e.target.getAttribute("data-del-rap");
+        if (nuovo === "ferma" && !await chiedi("Fermare la squadra",
+              `Stai per mettere <b>${esc(q.nome)}</b> fuori turno.<br><br>
+               La squadra sparisce dal conteggio <b>Squadre attive</b> del Quadro e resta segnata come
+               <b>ferma</b> finché non la rimetti in turno. I rapportini già consegnati non cambiano.`,
+              "Ferma la squadra", true)) return;
+        await db.aggiorna("squadre", q.id, { stato: nuovo }); await refresh();
+        toast(nuovo === "ferma" ? q.nome + " è ferma." : q.nome + " è di nuovo in turno.",
+              nuovo === "ferma" ? "err" : "success"); } return; }
+    const btnDel = e.target.closest && e.target.closest("[data-del-rap]");
+    const delRap = btnDel && btnDel.getAttribute("data-del-rap");
     if (delRap) { const r = RAP.find(x => x.id === delRap);
-      if (r && confirm("Eliminare la bozza «" + r.titolo + "»?")) { await db.rimuovi("rapportini", delRap); await refresh(); } return; }
+      if (!r) return;
+      if (await chiedi("Eliminare la bozza",
+            `Stai per eliminare la bozza <b>${esc(r.titolo)}</b>${r.squadra ? " (" + esc(r.squadra) + ")" : ""}.<br><br>
+             Sparisce dall'elenco dei rapportini e dai totali di produzione del giorno.
+             <b>Non si può annullare.</b>`, "Elimina", true)) {
+        await db.rimuovi("rapportini", delRap); await refresh();
+        toast("Bozza eliminata: " + r.titolo, "err"); } return; }
     const rp = e.target.closest && e.target.closest("[data-rap]");
     if (rp) { const r = RAP.find(x => x.id === rp.getAttribute("data-rap"));
       if (!r) return;
       if (r.stato === "bozza") {
         const ora = new Date().toTimeString().slice(0,5);
         await db.aggiorna("rapportini", r.id, { stato: "inviato", ora }); await refresh();
+        toast("Rapportino inviato alle " + ora + ": " + r.titolo, "success");
       } else if (r.stato === "inviato") {
-        if (confirm("Richiamare in bozza il rapportino «" + r.titolo + "»? Potrai correggerlo e reinviarlo.")) {
-          await db.aggiorna("rapportini", r.id, { stato: "bozza", ora: "" }); await refresh(); }
+        if (await chiedi("Richiamare in bozza",
+              `Il rapportino <b>${esc(r.titolo)}</b> risulta inviato${r.ora ? " alle " + esc(r.ora) : ""}.<br><br>
+               Riportandolo in bozza <b>perde l'orario di invio</b> e torna modificabile:
+               lo correggi e lo reinvii quando è a posto.`, "Riporta in bozza")) {
+          await db.aggiorna("rapportini", r.id, { stato: "bozza", ora: "" }); await refresh();
+          toast("Rapportino di nuovo in bozza: " + r.titolo); }
       }
     }
   });
@@ -378,12 +1305,14 @@
   });
   $("btn-att").onclick = async () => {
     const titolo = $("att-titolo").value.trim();
-    if (!titolo) { $("att-titolo").style.borderColor = "var(--danger)"; $("att-esito").textContent = "Serve un titolo per " + (editAtt ? "salvare la modifica" : "pianificare l'attività") + "."; return; }
-    $("att-titolo").style.borderColor = "";
+    if (!titolo) { sbaglia("att-titolo", "att-esito",
+      "Manca il titolo: scrivi che lavoro è (per esempio «Perforazione fronte Sud») e poi tocca " + (editAtt ? "Salva modifica" : "Pianifica") + "."); return; }
+    err("att-titolo", false);
     // Senza giorno di lavoro la registrazione non entrerebbe in nessuno storico.
     const data = $("att-data").value;
-    if (!data) { $("att-data").style.borderColor = "var(--danger)"; $("att-esito").textContent = "Serve il giorno di lavoro dell'attività."; return; }
-    $("att-data").style.borderColor = "";
+    if (!data) { sbaglia("att-data", "att-esito",
+      "Manca il giorno di lavoro: senza data l'attività non entra in nessuno storico né nei conteggi della giornata."); return; }
+    err("att-data", false);
     const turno = $("att-turno").value || turnoCorrente();
     if (editAtt) {
       await db.aggiorna("attivita", editAtt, { titolo, dettaglio: $("att-dett").value.trim(), data, turno });   // stato/causale restano
@@ -392,13 +1321,13 @@
       await db.aggiungi("attivita", { titolo, dettaglio: $("att-dett").value.trim(), data, turno, stato: "pianificata" });
     }
     resetFormAtt();
-    $("att-esito").textContent = "Attività salvata: " + titolo + " (" + dmy(data) + " · turno " + turno + ").";
+    esito("att-esito", "Attività salvata: " + titolo + " (" + dmy(data) + " · turno " + turno + ").", "success");
     $("att-titolo").focus();   // torna al primo campo per inserire subito la prossima
     await refresh();
   };
   // Esporta l'elenco attività (registro/archivio della giornata, handover)
   $("btn-att-export").onclick = () => {
-    if (!ATT_G.length) { $("att-esito").textContent = "Nessuna attività da esportare."; return; }
+    if (!ATT_G.length) { esito("att-esito", "Non c'è nessuna attività da esportare: registrane almeno una.", "err"); return; }
     const ordExp = { anomalia: 0, "in-corso": 1, pianificata: 2, conclusa: 3 };
     // data e turno in testa: il CSV diventa un registro archiviabile, non una
     // fotografia senza tempo.
@@ -408,50 +1337,53 @@
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "campo_attivita.csv"; a.click();
-    $("att-esito").textContent = "Esportate " + ATT_G.length + " attività (CSV).";
+    esito("att-esito", "Esportate " + ATT_G.length + " attività nel file campo_attivita.csv.", "success");
   };
   $("btn-add-rap").onclick = async () => {
     const titolo = $("new-rap-titolo").value.trim();
-    if (!titolo) { $("new-rap-titolo").style.borderColor = "var(--danger)"; $("new-rap-titolo").placeholder = "Serve un titolo per creare la bozza"; return; }
-    $("new-rap-titolo").style.borderColor = "";
+    if (!titolo) { sbaglia("new-rap-titolo", "mode-note",
+      "Manca il titolo del rapportino: scrivi di che turno parla (per esempio «Rapportino perforazione»)."); return; }
+    err("new-rap-titolo", false);
     const data = $("new-rap-data").value;
-    if (!data) { $("new-rap-data").style.borderColor = "var(--danger)"; $("mode-note").textContent = "Serve il giorno di lavoro del rapportino."; return; }
-    $("new-rap-data").style.borderColor = "";
+    if (!data) { sbaglia("new-rap-data", "mode-note",
+      "Manca il giorno di lavoro: senza data il rapportino non entra nei totali della giornata."); return; }
+    err("new-rap-data", false);
     // Produzione: numero facoltativo ma, se c'è, dev'essere un numero valido e
     // non negativo — è ciò che rende la produzione sommabile (t o m³).
     const grezzo = $("new-rap-prod").value.trim().replace(",", ".");
     const qta = grezzo === "" ? null : parseFloat(grezzo);
     if (grezzo !== "" && !(Number.isFinite(qta) && qta >= 0)) {
-      $("new-rap-prod").style.borderColor = "var(--danger)";
-      $("mode-note").textContent = "La produzione dev'essere un numero non negativo (lascia vuoto se non la registri).";
+      sbaglia("new-rap-prod", "mode-note",
+        "La produzione dev'essere un numero, zero o più (per esempio 90 oppure 90,5). Se non la registri, lascia il campo vuoto.");
       return;
     }
-    $("new-rap-prod").style.borderColor = "";
+    err("new-rap-prod", false);
     const turno = $("new-rap-turno").value || turnoCorrente(), unita = $("new-rap-unita").value || UNITA_PRODUZIONE[0];
     await db.aggiungi("rapportini", { titolo, squadra: $("new-rap-squadra").value, data, turno,
       prodQta: qta, prodUnita: unita, note: $("new-rap-note").value.trim(),
       ora: "", stato: "bozza" });
     $("new-rap-titolo").value = ""; $("new-rap-prod").value = ""; $("new-rap-note").value = "";
     $("new-rap-data").value = OGGI; $("new-rap-turno").value = turnoCorrente();
-    $("mode-note").textContent = "Bozza creata: " + titolo + " (" + dmy(data) + " · turno " + turno + (qta != null ? " · " + formattaProduzione(qta, unita) : "") + ").";
+    esito("mode-note", "Bozza creata: " + titolo + " (" + dmy(data) + " · turno " + turno + (qta != null ? " · " + formattaProduzione(qta, unita) : "") + "). Toccala nell'elenco per inviarla.", "success");
     $("new-rap-titolo").focus(); await refresh();
   };
   $("btn-squ").onclick = async () => {
     const nome = $("squ-nome").value.trim();
-    if (!nome) { $("squ-nome").style.borderColor = "var(--danger)"; $("squ-esito").textContent = "Serve il nome della squadra."; return; }
+    if (!nome) { sbaglia("squ-nome", "squ-esito",
+      "Manca il nome della squadra: serve a riconoscerla nei rapportini (per esempio «Squadra D — Perforazione»)."); return; }
     if (SQU.some(q => (q.nome || "").toLowerCase() === nome.toLowerCase())) {
-      $("squ-nome").style.borderColor = "var(--danger)"; $("squ-esito").textContent = "Esiste già una squadra con questo nome."; return; }
-    $("squ-nome").style.borderColor = "";
+      sbaglia("squ-nome", "squ-esito", "Esiste già una squadra chiamata «" + nome + "»: cambia nome, altrimenti i rapportini non si capiscono più."); return; }
+    err("squ-nome", false);
     await db.aggiungi("squadre", { nome, persone: +$("squ-persone").value || 0, area: $("squ-area").value.trim(), stato: "operativa" });
     $("squ-nome").value = ""; $("squ-persone").value = ""; $("squ-area").value = "";
-    $("squ-esito").textContent = "Squadra aggiunta: " + nome + " (operativa)."; $("squ-nome").focus();
+    esito("squ-esito", "Squadra aggiunta: " + nome + " — è in turno.", "success"); $("squ-nome").focus();
     await refresh();
   };
   $("btn-squ-import").onclick = () => $("squ-file").click();
   $("squ-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseSquadreCsv(await file.text());
-    if (!righe.length) { $("squ-esito").textContent = "Nessuna riga valida: controlla che le colonne siano nome;persone;area;stato."; e.target.value = ""; return; }
+    if (!righe.length) { esito("squ-esito", "Nessuna riga valida nel file: le colonne devono essere nome; persone; area; stato.", "err"); e.target.value = ""; return; }
     let agg = 0, dup = 0;
     for (const r of righe) {
       if (SQU.some(q => (q.nome || "").trim().toLowerCase() === r.nome.toLowerCase())) { dup++; continue; }
@@ -459,7 +1391,7 @@
       agg++;
     }
     $("squ-file").value = "";
-    $("squ-esito").textContent = `Import squadre: ${agg} aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}.`;
+    esito("squ-esito", `Import squadre: ${agg} aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}.`, agg ? "success" : "err");
     await refresh();
   };
   $("btn-squ-export").onclick = () => {
@@ -471,7 +1403,7 @@
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "campo_squadre.csv"; a.click();
-    $("squ-esito").textContent = "Esportate " + SQU.length + " squadre (CSV).";
+    esito("squ-esito", "Esportate " + SQU.length + " squadre nel file campo_squadre.csv.", "success");
   };
   // Consegna di turno (handover): un testo con i rapportini e le anomalie
   // aperte, pronto da passare al turno successivo o da archiviare.
@@ -491,7 +1423,7 @@
     const el = document.createElement("a");
     el.href = "data:text/plain;charset=utf-8," + encodeURIComponent(txt);
     el.download = "consegna_turno.txt"; el.click();
-    $("mode-note").textContent = "Consegna di turno esportata (" + RAP_OGGI.length + " rapportini, " + fermi.length + " causali di fermo).";
+    esito("mode-note", "Consegna di turno esportata: " + RAP_OGGI.length + " rapportini e " + fermi.length + " causali di fermo.", "success");
   };
   // Rapporto di fine turno STAMPABILE (stesso pattern del report di Genesi):
   // il deliverable che i supervisori si aspettano — solo dati già presenti.
@@ -526,20 +1458,21 @@ ${RAP_OGGI.length?`<table><tr><th>Titolo</th><th>Squadra · turno</th><th>Produz
 ${cop.mancanti.length?`<div class="muted" style="margin-top:6px">Squadre senza rapportino: ${cop.mancanti.map(esc).join(", ")}.</div>`:""}
 <div class="muted" style="margin-top:20px">Generato da Deepwork Campo — registro operativo di giornata; non sostituisce i registri obbligatori.</div>
 <script>window.print()</` + `script></body></html>`;
-    const w = window.open("", "_blank"); if(!w){ $("mode-note").textContent = "Sblocca i popup per stampare il rapporto."; return; }
+    const w = window.open("", "_blank"); if(!w){ esito("mode-note", "Il browser ha bloccato la finestra: sblocca i popup per questo sito e riprova.", "err"); return; }
     w.document.write(html); w.document.close();
-    $("mode-note").textContent = "Rapporto di fine turno aperto per la stampa.";
+    esito("mode-note", "Rapporto di fine turno aperto in una nuova scheda, pronto da stampare.", "success");
   };
-  // Recupero errore: appena l'utente corregge un campo, togli il bordo
-  // rosso (e il messaggio, dove c'è) così l'avviso non resta appeso.
+  // Recupero errore: appena l'utente corregge un campo, togli la segnalazione
+  // rossa (e il messaggio, dove c'è) così l'avviso non resta appeso.
   const clearErr = (inputId, esitoId) => $(inputId).addEventListener("input", () => {
-    $(inputId).style.borderColor = ""; if (esitoId) $(esitoId).textContent = "";
+    err(inputId, false); if (esitoId) $(esitoId).textContent = "";
   });
   clearErr("att-titolo", "att-esito");
   clearErr("att-data", "att-esito");
-  clearErr("new-rap-titolo");
-  clearErr("new-rap-data");
-  clearErr("new-rap-prod");
+  clearErr("new-rap-titolo", "mode-note");
+  clearErr("new-rap-data", "mode-note");
+  clearErr("new-rap-prod", "mode-note");
+  clearErr("squ-nome", "squ-esito");
   // Invio da tastiera: premere Invio in un campo del form equivale a
   // toccare il pulsante — data entry più rapida senza spostare il dito.
   const enterSubmit = (inputIds, btnId) => inputIds.forEach(id =>
@@ -560,17 +1493,21 @@ ${cop.mancanti.length?`<div class="muted" style="margin-top:6px">Squadre senza r
     if (liv === "ok") return ["ok", p.reale + " kg"];
     return [liv, p.reale + " kg (" + Math.round(scarto(p)*100) + "%)"]; };
   function pianoRender(){
-    $("btn-piano-export").style.display = PIANO.length ? "inline-block" : "none";
-    if (!PIANO.length) { $("piano-list").innerHTML = ""; $("piano-riep").textContent = "Nessun piano importato."; return; }
+    $("btn-piano-export").style.display = PIANO.length ? "inline-flex" : "none";
+    if (!PIANO.length) { $("piano-riep").textContent = "";
+      $("piano-list").innerHTML = vuoto(I.foro, "Nessun piano importato",
+        "Esporta la <b>Scheda volata da Genesi</b> e importa qui il file: per ogni foro potrai registrare la carica davvero usata e vedere subito lo scostamento dal progetto.");
+      return; }
     const r = pianoRiepilogo(PIANO);
     const quandoPiano = PIANO[0] && (PIANO[0].data || PIANO[0].turno)
       ? "Piano del " + dmy(PIANO[0].data) + (PIANO[0].turno ? " · turno " + esc(PIANO[0].turno) : "") + " — " : "";
-    $("piano-riep").innerHTML = quandoPiano + "Fori " + r.registrati + "/" + r.totale + " registrati · progettato " + r.progettatoKg + " kg · stimato reale " + Math.round(r.stimatoKg) + " kg <span class=\"badge " + r.livello + "\">" + (r.pct>=0?"+":"") + r.pct + "%</span>. Tocca un foro per registrare la carica reale (viene salvata).";
+    $("piano-riep").innerHTML = quandoPiano + "Fori <b>" + r.registrati + "/" + r.totale + "</b> registrati · progettato <b>" + r.progettatoKg + "</b> kg · stimato reale <b>" + Math.round(r.stimatoKg) + "</b> kg <span class=\"badge " + r.livello + "\">" + (r.pct>=0?"+":"") + r.pct + "%</span><br>Tocca un foro per registrare la carica davvero caricata: viene salvata.";
     $("piano-list").innerHTML = PIANO.map(p => { const b = scartoBadge(p);
-      return `<div class="item" data-foro-id="${esc(p.id)}" style="cursor:pointer" title="Registra carica reale">
+      const liv = scartoLivello(p.reale, p.prog);
+      return `<div class="item ${liv==="da-registrare"?"st-warn":(liv==="ok"?"st-ok":(liv==="warn"?"st-warn":"st-danger"))}" data-foro-id="${esc(p.id)}" role="button" tabindex="0" style="cursor:pointer" title="Registra la carica reale di questo foro">
       <div class="avatar">${esc(p.foro)}</div>
-      <div class="info"><div class="name">Foro ${esc(p.foro)} · prog. ${esc(p.prog)} kg</div><div class="meta">x ${esc(p.x)} m · prof. ${esc(p.prof)} m · borr. ${esc(p.borr)} m · rit. ${esc(p.rit)} ms</div></div>
-      <span class="badge ${b[0]}">${b[1]}</span></div>`; }).join("");
+      <div class="info"><div class="name">Foro ${esc(p.foro)} · progettati ${esc(p.prog)} kg</div><div class="meta">x ${esc(p.x)} m · prof. ${esc(p.prof)} m · borr. ${esc(p.borr)} m · rit. ${esc(p.rit)} ms</div></div>
+      <span class="badge ${b[0]}">${b[0]==="danger"?I.allarme:""}${b[1]}</span></div>`; }).join("");
   }
   $("btn-piano").onclick = () => $("piano-file").click();
   $("btn-piano-export").onclick = () => {
@@ -580,6 +1517,7 @@ ${cop.mancanti.length?`<div class="muted" style="margin-top:6px">Squadre senza r
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "campo_consuntivo_carico.csv"; a.click();
+    toast("Consuntivo di carico esportato: " + PIANO.length + " fori.", "success");
   };
   // Rilettura del piano salvato: si tiene una sola volata alla volta, quindi
   // l'import SOSTITUISCE quella precedente (previa conferma).
@@ -588,8 +1526,13 @@ ${cop.mancanti.length?`<div class="muted" style="margin-top:6px">Squadre senza r
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parsePianoCsv(await file.text());
     e.target.value = "";
-    if (!righe.length) { $("piano-riep").textContent = "Nessuna riga valida: controlla che le colonne siano foro;x;fila;prof;prog;borr;rit."; return; }
-    if (PIANO.length && !confirm("C'è già un piano salvato di " + PIANO.length + " fori: sostituirlo con quello importato? Le cariche reali già registrate andranno perse.")) return;
+    if (!righe.length) { $("piano-riep").textContent = "Nessuna riga valida nel file: le colonne devono essere foro; x; fila; prof; prog; borr; rit.";
+      toast("File non riconosciuto: controlla le colonne.", "err"); return; }
+    if (PIANO.length && !await chiedi("Sostituire il piano salvato",
+          `C'è già un piano salvato di <b>${PIANO.length} fori</b> e stai per caricarne uno di <b>${righe.length}</b>.<br><br>
+           Campo tiene <b>una volata alla volta</b>: il piano vecchio viene cancellato e con lui
+           <b>le cariche reali già registrate</b>. Se ti servono, esporta prima il consuntivo.`,
+          "Sostituisci il piano", true)) return;
     $("piano-riep").textContent = "Salvataggio del piano in corso…";
     for (const vecchio of await db.pianocarico()) await db.rimuovi("pianocarico", vecchio.id);
     const data = $("new-rap-data").value || OGGI, turno = $("new-rap-turno").value || turnoCorrente();
@@ -597,17 +1540,26 @@ ${cop.mancanti.length?`<div class="muted" style="margin-top:6px">Squadre senza r
       await db.aggiungi("pianocarico", { data, turno, foro: p.foro, x: p.x, fila: p.fila,
         prof: p.prof, prog: p.prog, borr: p.borr, rit: p.rit, reale: null });
     await pianoRicarica();
+    toast("Piano importato: " + righe.length + " fori (" + dmy(data) + " · turno " + turno + ").", "success");
   };
   document.addEventListener("click", async (e) => {
     const it = e.target.closest && e.target.closest("[data-foro-id]");
     if (!it) return;
     const p = PIANO.find(x => x.id === it.getAttribute("data-foro-id")); if (!p) return;
-    const v = prompt("Carica REALE caricata nel foro " + p.foro + " (progettata " + p.prog + " kg):", p.reale != null ? p.reale : p.prog);
+    // niente prompt() del browser: campo etichettato dentro la modale del core
+    const v = await chiediValore("Carica reale del foro " + p.foro,
+      `Progettati <b>${esc(p.prog)} kg</b>. Scrivi quanti chili di esplosivo sono stati
+       <b>davvero caricati</b>: Campo calcola da solo lo scostamento dal progetto e lo salva.`,
+      `<label class="fl" for="modal-campo">Carica reale in kg</label>
+       <input class="dw-input" id="modal-campo" type="number" min="0" step="0.1" inputmode="decimal"
+              value="${p.reale != null ? esc(String(p.reale)) : esc(String(p.prog))}">`,
+      "Salva la carica");
     if (v == null) return;
     const kg = parseFloat(String(v).replace(",", "."));
-    if (!(kg >= 0)) return;
+    if (!(kg >= 0)) { toast("Serve un numero di chili valido (zero o più).", "err"); return; }
     await db.aggiorna("pianocarico", p.id, { reale: kg });   // salvata: non si perde più al refresh
     p.reale = kg; pianoRender();
+    toast("Foro " + p.foro + ": registrati " + kg + " kg.", "success");
   });
   await pianoRicarica();
 </script>

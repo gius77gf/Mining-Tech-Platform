@@ -4,64 +4,796 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Terra — Estrattivo & rilievo</title>
-<meta name="theme-color" content="#2f9e44">
+<meta name="theme-color" content="#0b0f09">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Terra">
-<link rel="manifest" href='data:application/manifest+json,{"name":"Deepwork Terra","short_name":"Terra","description":"Estrattivo e rilievo","start_url":".","scope":".","display":"standalone","orientation":"portrait","background_color":"%23100d07","theme_color":"%232f9e44","categories":["business","productivity"],"lang":"it","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 180 180%27><rect width=%27180%27 height=%27180%27 rx=%2732%27 fill=%27%232f9e44%27/><text x=%2790%27 y=%27126%27 font-family=%27sans-serif%27 font-size=%27104%27 font-weight=%27700%27 fill=%27%23ffffff%27 text-anchor=%27middle%27>T</text></svg>","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}'>
+<link rel="manifest" href='data:application/manifest+json,{"name":"Deepwork Terra","short_name":"Terra","description":"Estrattivo e rilievo","start_url":".","scope":".","display":"standalone","orientation":"portrait","background_color":"%230b0f09","theme_color":"%230b0f09","categories":["business","productivity"],"lang":"it","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 180 180%27><rect width=%27180%27 height=%27180%27 rx=%2732%27 fill=%27%23659b2c%27/><text x=%2790%27 y=%27126%27 font-family=%27sans-serif%27 font-size=%27104%27 font-weight=%27700%27 fill=%27%230b0f09%27 text-anchor=%27middle%27>T</text></svg>","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}'>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../shared/deepwork-style.css">
 <link rel="stylesheet" href="../../shared/dw-app-shell.css">
 <style>
-  /* Terra: accento della palette funzionale deepwork */
-  :root { --app-accent:#2f9e44; --app-accent2:#5fe05a; }
+/* ══════════════════════════════════════════════════════════════════════
+   TERRA — estrattivo e rilievo
+   STRUTTURA: identica al core Deepwork (index.html alla radice): stesse
+   misure, raggi, ombre, curve, comportamenti.
+   COLORE: palette propria di Terra (verde cava oliva-erba 132°,
+   docs/PALETTE_APP.md §3.6), fusa in TUTTE le superfici. Il successo è
+   verde-acqua (178°) apposta: non deve confondersi con «sei in Terra».
+   ══════════════════════════════════════════════════════════════════════ */
 
-  /* Contatore vita cava: stessa cassa delle .kpi/.item (card, bordo,
-     ombra del core) con in più la barra di avanzamento del consumato. */
-  .vita { background:var(--card); border:1px solid var(--border); border-radius:var(--r);
-          padding:14px; margin-bottom:10px; box-shadow:0 6px 16px rgba(0,0,0,.22); }
-  .vita.warn   { border-color:color-mix(in srgb, var(--warn) 45%, var(--border)); }
-  .vita.danger { border-color:color-mix(in srgb, var(--danger) 55%, var(--border)); }
-  .vita .titolo { font-size:11px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; }
-  .vita .n { font-family:'Barlow Condensed',sans-serif; font-size:30px; font-weight:800;
-             color:var(--app-accent2); line-height:1.1; }
-  .vita.warn .n   { color:var(--warn); }
-  .vita.danger .n { color:var(--danger); }
-  .vita .riga { font-size:12px; color:var(--muted2); line-height:1.6; }
-  .barra { position:relative; height:14px; margin:10px 0 6px; border-radius:8px;
-           background:var(--panel); border:1px solid var(--border); overflow:hidden; }
-  .barra > i { display:block; height:100%; border-radius:8px 0 0 8px;
-               background:linear-gradient(90deg, var(--app-accent), var(--app-accent2));
-               transition:width .4s var(--ease); }
-  .barra.warn   > i { background:linear-gradient(90deg,#ff8f00,#ffd54f); }
-  .barra.danger > i { background:var(--grad-danger); }
-  .barra > b { position:absolute; top:-1px; bottom:-1px; width:2px; background:var(--muted2); opacity:.9; }
-  .prescr { white-space:pre-wrap; }
+:root{
+  /* ---- rampa dell'accento (4 gradini) ---- */
+  --app-accent-deep:#3e6901;
+  --app-accent:     #659b2c;   /* SOLO grafica: bordi, strisce, pallini   */
+  --app-accent2:    #9ac577;   /* UNICO ammesso per il testo              */
+  --app-accent-soft:#cde1bf;
+  --app-support:    #7a6643;   /* pietra calcarea d'appoggio (80°)        */
+  --app-support2:   #b0a38d;
+
+  /* ---- superfici: tutte velate di verde cava ---- */
+  --bg:#0b0f09; --dark:#0e120b; --panel:#11160d;
+  --card:#181f12; --card2:#1d2616;
+  /* --border-hi è schiarito rispetto alla tavolozza (#5d6c52): quel valore
+     dava 3,00 su --card ma solo 2,78 su --card2, e i campi vivono anche
+     sopra i form in gradiente. Così sta a 3,46 e 3,21 — AA su entrambi. */
+  --border:#242f1b; --border2:#2c3921; --border-hi:#66765b;
+
+  /* ---- testo ---- */
+  --text:#e4ecdf; --muted2:#a7b79c; --muted:#88997c; --disabled:#697461;
+
+  /* ---- stati: il successo sta a 46° dall'accento, non si confondono ---- */
+  --success:#27bea5; --warn:#ffa752; --danger:#f05f5a; --info:#55a6ec;
+
+  /* ---- gradienti ---- */
+  --grad:    linear-gradient(135deg,#73af34,#579100);
+  --grad-on: #0b0f09;
+  --grad-sup:linear-gradient(135deg,#c6b9a3,#8a7757);
+  --gradSuc: linear-gradient(135deg,#27bea5,#0d7a68);
+  --grad3:   linear-gradient(135deg,#f05f5a,#a32b27);
+  --grad-ok: linear-gradient(135deg,#63d8c3,#17a08b);
+  --grad-wr: linear-gradient(135deg,#ffc78c,#e08a35);
+  --grad-dg: linear-gradient(135deg,#ff9490,#d84f4a);
+
+  /* ---- luce, aloni, ombre ---- */
+  --shadow-app:0 10px 30px rgba(29,54,0,.42);
+  --glow-app:  rgba(101,155,44,.30);
+  --tint-app:  rgba(101,155,44,.14);
+  --focus-ring:rgba(154,197,119,.34);
+  --sel:       rgba(101,155,44,.30);
+  --halo-1:    rgba(101,155,44,.07);
+  --halo-2:    rgba(176,163,141,.055);
+
+  /* Stratificazione della luce: riflesso sul bordo alto + ombra propria
+     sul bordo basso. È ciò che dà spessore fisico agli oggetti. */
+  --edge:   inset 0 1px 0 rgba(255,255,255,.055), inset 0 -1px 0 rgba(0,0,0,.28);
+  --edge-hi:inset 0 1px 0 rgba(255,255,255,.20);
+  --sh1:0 1px 5px rgba(0,0,0,.20);
+  --sh2:0 2px 8px rgba(0,0,0,.26);
+  --sh3:0 6px 16px rgba(0,0,0,.32);
+  --sh4:0 10px 24px rgba(0,0,0,.38);
+  --sh-btn:0 5px 16px rgba(50,86,4,.48);
+  --sh-btn-hi:0 8px 22px rgba(50,86,4,.62);
+}
+
+/* ─────────────── fondo e atmosfera ─────────────── */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+body.dw{
+  background:var(--bg); color:var(--text);
+  overflow-x:hidden; overscroll-behavior-y:contain;
+  padding-bottom:calc(104px + env(safe-area-inset-bottom));
+}
+body.dw::before{
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(ellipse 700px 500px at 15% 5%,  var(--halo-1) 0%, transparent 65%),
+    radial-gradient(ellipse 500px 400px at 85% 85%, var(--halo-2) 0%, transparent 65%);
+}
+.top,.page,.nav,.tour-banner,.toast,.modal-ov{position:relative; z-index:1;}
+*{-webkit-tap-highlight-color:transparent;}
+button,a,label,select,input,.item,.kpi,.chg,.mbtn{touch-action:manipulation;}
+::selection{background:var(--sel);}
+:focus{outline:none;}
+:focus-visible{outline:none; box-shadow:0 0 0 3px var(--focus-ring); border-radius:5px;}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-track{background:var(--dark);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px;}
+::-webkit-scrollbar-thumb:hover{background:var(--app-accent);}
+img{max-width:100%;}
+
+/* ─────────────── barra alta (copia di .topbar del core) ─────────────── */
+.top{
+  position:sticky; top:0; z-index:100;
+  display:flex; align-items:center; gap:10px;
+  min-height:62px; padding:0 14px;
+  background:linear-gradient(180deg,rgba(29,38,22,.97),rgba(14,18,11,.97));
+  -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  box-shadow:0 2px 12px rgba(0,0,0,.34);
+}
+.top::after{                        /* la riga luminosa del core, in verde */
+  content:""; position:absolute; left:0; right:0; bottom:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--app-accent),transparent);
+  opacity:.55;
+}
+.top-brand{flex:1; min-width:0;}
+.logo-sm{
+  font-family:'Barlow Condensed',sans-serif; font-size:17px; font-weight:800;
+  letter-spacing:3px; text-transform:uppercase; color:var(--app-accent2);
+  text-shadow:0 0 14px rgba(101,155,44,.45); line-height:1.1;
+}
+.role-sm{
+  font-size:9px; color:var(--muted); letter-spacing:2px; text-transform:uppercase;
+  margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.dw-home,.dw-exit{
+  position:static; top:auto; right:auto;
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  min-height:var(--tap); min-width:var(--tap); padding:0 11px;
+  border:1px solid var(--border2); border-radius:var(--r-sm);
+  background:var(--card); color:var(--muted2);
+  font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; text-decoration:none; cursor:pointer;
+  flex-shrink:0; box-shadow:var(--edge); transition:all .18s var(--ease);
+}
+.dw-home{padding:0 13px; line-height:0;}
+.dw-home svg{width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:1.7;
+  stroke-linecap:round; stroke-linejoin:round;}
+.dw-home:hover{color:var(--app-accent2); border-color:var(--app-accent); background:var(--card2);}
+.dw-exit:hover{color:var(--danger); border-color:var(--danger);}
+.top h1,body.has-exit .top h1{padding-right:0 !important;}
+
+/* nastro "modalità tour" — forma .info-box del core */
+.tour-banner{
+  background:var(--card2); border:1px solid var(--border);
+  border-left:3px solid var(--app-accent); border-radius:var(--r-sm);
+  color:var(--muted2); font-size:12px; line-height:1.5;
+  padding:10px 13px; margin:14px 16px 0; text-align:left; box-shadow:var(--edge);
+}
+.tour-banner b{color:var(--text);}
+
+/* ─────────────── pagine ─────────────── */
+.page{padding:16px 16px calc(24px + env(safe-area-inset-bottom));}
+.page.active{display:block; animation:scrFade .22s var(--ease);}
+@keyframes scrFade{from{opacity:0} to{opacity:1}}
+
+/* ─────────────── KPI (copia di .kpi-card del core) ─────────────── */
+.kpis{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px;}
+.kpi{
+  position:relative; overflow:hidden;
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--border);
+  border-top:3px solid var(--app-accent);
+  border-left:3px solid var(--app-accent);
+  border-radius:var(--r-sm); padding:11px 13px 12px;
+  /* la striscia di sinistra resta sempre verde: è l'app. Lo stato sta in alto. */
+  box-shadow:var(--sh1),var(--edge);
+  transition:transform .18s var(--ease),box-shadow .18s var(--ease),border-color .2s;
+}
+.kpi::after{                                   /* alone che segue il mouse */
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+  border-radius:inherit;
+  background:radial-gradient(200px 160px at var(--mx,50%) var(--my,30%),
+             var(--kpi-glow,var(--glow-app)), transparent 62%);
+  opacity:0; transition:opacity .25s var(--ease);
+}
+.kpi:hover::after{opacity:1;}
+.kpi>*{position:relative; z-index:1;}
+.kpi:hover{transform:translateY(-3px); box-shadow:var(--sh4),var(--edge);}
+.kpi:active{transform:translateY(-1px) scale(.99);}
+.kpi .l{
+  font-family:'Barlow',sans-serif; font-size:10px; font-weight:600;
+  letter-spacing:2px; text-transform:uppercase; color:var(--muted); line-height:1.3;
+}
+.kpi .n{
+  font-family:'Barlow Condensed',sans-serif; font-size:32px; font-weight:800;
+  line-height:1.05; margin-top:3px; font-variant-numeric:tabular-nums;
+  background:var(--grad); -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent; color:transparent;
+}
+.kpi.ok    {border-top-color:var(--success); --kpi-glow:rgba(39,190,165,.24);}
+.kpi.warn  {border-top-color:var(--warn);    --kpi-glow:rgba(255,167,82,.24);}
+.kpi.danger{border-top-color:var(--danger);  --kpi-glow:rgba(240,95,90,.24); animation:pulseDanger 2.4s ease-in-out infinite;}
+.kpi.ok .n    {background:var(--grad-ok);}
+.kpi.warn .n  {background:var(--grad-wr);}
+.kpi.danger .n{background:var(--grad-dg);}
+.kpi.ok .n,.kpi.warn .n,.kpi.danger .n{-webkit-background-clip:text; background-clip:text;}
+@keyframes pulseDanger{0%,100%{border-top-color:var(--danger)}50%{border-top-color:#8a3532}}
+
+/* ══════════════════════════════════════════════════════════════════════
+   LA BARRA DELLA VITA CAVA — il numero che il titolare guarda per primo.
+   Cassa del core (gradiente card2→card, riflesso alto, ombra propria),
+   numero enorme a cifre allineate, barra con profondità reale e tacca
+   della soglia di guardia leggibile ed etichettata.
+   ══════════════════════════════════════════════════════════════════════ */
+.vita{
+  position:relative;
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--border);
+  border-top:3px solid var(--app-accent);
+  border-left:3px solid var(--app-accent);
+  border-radius:var(--r); padding:15px 16px 16px; margin-bottom:10px;
+  box-shadow:var(--sh3),var(--edge);
+}
+.vita::before{                       /* alone d'ambiente dentro la scheda */
+  content:""; position:absolute; inset:0; pointer-events:none;
+  border-radius:inherit; overflow:hidden;
+  background:radial-gradient(320px 190px at 6% 0%,var(--tint-app),transparent 72%);
+}
+.vita>*{position:relative;}
+.vita.warn  {border-top-color:var(--warn);}
+.vita.warn::before  {background:radial-gradient(320px 190px at 6% 0%,rgba(255,167,82,.11),transparent 72%);}
+.vita.danger{border-top-color:var(--danger);}
+.vita.danger::before{background:radial-gradient(320px 190px at 6% 0%,rgba(240,95,90,.12),transparent 72%);}
+
+.vita-head{display:flex; align-items:center; gap:12px; margin-bottom:10px;}
+.vita-ico{
+  display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
+  width:44px; height:44px; border-radius:13px; line-height:0;
+  color:var(--app-accent2); background:var(--tint-app);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 0 14px var(--tint-app);
+}
+.vita.warn   .vita-ico{color:var(--warn);   background:rgba(255,167,82,.13); box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 0 14px rgba(255,167,82,.13);}
+.vita.danger .vita-ico{color:var(--danger); background:rgba(240,95,90,.14);  box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 0 14px rgba(240,95,90,.14);}
+.vita-ico svg{width:24px; height:24px; stroke:currentColor; fill:none; stroke-width:1.7;
+  stroke-linecap:round; stroke-linejoin:round;}
+.vita-htxt{flex:1; min-width:0;}
+.vita-lab{
+  font-family:'Barlow',sans-serif; font-size:10px; font-weight:600;
+  letter-spacing:2px; text-transform:uppercase; color:var(--muted); line-height:1.35;
+}
+.vita-sub{font-size:11.5px; color:var(--muted2); margin-top:3px; line-height:1.4;
+  overflow-wrap:anywhere;}
+
+/* il numero grande: cifre allineate, gradiente nella tinta dell'app */
+.vita-num{display:flex; align-items:baseline; gap:7px; flex-wrap:wrap; margin:2px 0 4px;}
+.vita-cifre{
+  font-family:'Barlow Condensed',sans-serif; font-size:46px; font-weight:800;
+  line-height:.98; letter-spacing:-.5px; font-variant-numeric:tabular-nums;
+  background:var(--grad); -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent; color:transparent;
+}
+.vita.warn   .vita-cifre{background:var(--grad-wr); -webkit-background-clip:text; background-clip:text;}
+.vita.danger .vita-cifre{background:var(--grad-dg); -webkit-background-clip:text; background-clip:text;}
+.vita-un{
+  font-family:'Barlow Condensed',sans-serif; font-size:17px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; color:var(--muted2);
+}
+.vita-pct{
+  margin-left:auto; align-self:center;
+  font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:800;
+  letter-spacing:1.4px; text-transform:uppercase; color:var(--app-accent2);
+  font-variant-numeric:tabular-nums; white-space:nowrap;
+  padding:4px 10px; border-radius:20px;
+  background:var(--card); border:1px solid var(--border2); box-shadow:var(--edge);
+}
+.vita.warn   .vita-pct{color:var(--warn);   border-color:color-mix(in srgb,var(--warn) 40%,var(--border2));}
+.vita.danger .vita-pct{color:var(--danger); border-color:color-mix(in srgb,var(--danger) 45%,var(--border2));}
+
+/* la barra: incavata nella scheda (profondità), non un rettangolo piatto */
+.vita-bar{position:relative; margin:12px 0 4px;}
+.vita-track{
+  position:relative; height:22px; border-radius:11px;
+  background:linear-gradient(180deg,#080b06,#131a0e);
+  border:1px solid var(--border2);
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.55), inset 0 -1px 0 rgba(255,255,255,.045);
+  overflow:hidden;
+}
+.vita-track::before{                  /* tacche di quarto: aria cartografica */
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:2;
+  background:
+    linear-gradient(90deg,transparent 25%, rgba(228,236,223,.10) 25%, rgba(228,236,223,.10) calc(25% + 1px), transparent calc(25% + 1px)),
+    linear-gradient(90deg,transparent 50%, rgba(228,236,223,.10) 50%, rgba(228,236,223,.10) calc(50% + 1px), transparent calc(50% + 1px)),
+    linear-gradient(90deg,transparent 75%, rgba(228,236,223,.10) 75%, rgba(228,236,223,.10) calc(75% + 1px), transparent calc(75% + 1px));
+}
+.vita-fill{
+  display:block; height:100%; min-width:6px;
+  border-radius:11px 3px 3px 11px; position:relative; z-index:1;
+  background:linear-gradient(180deg,#7fbb3a,#4d7d18 62%,#3e6901);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22), 0 0 14px rgba(101,155,44,.30);
+  transition:width .5s var(--ease),background .3s;
+}
+.vita-fill::after{                    /* testa del riempimento: bordo vivo  */
+  content:""; position:absolute; top:0; bottom:0; right:0; width:2px;
+  background:var(--app-accent-soft); opacity:.75;
+}
+.vita.warn .vita-fill{
+  background:linear-gradient(180deg,#ffc78c,#e08a35 62%,#b3651b);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.26), 0 0 14px rgba(255,167,82,.30);
+}
+.vita.warn .vita-fill::after{background:#ffe0bd;}
+.vita.danger .vita-fill{
+  background:linear-gradient(180deg,#ff9490,#d84f4a 62%,#a32b27);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.26), 0 0 16px rgba(240,95,90,.36);
+}
+.vita.danger .vita-fill::after{background:#ffd4d2;}
+/* sforamento: la barra è piena e si riga, così si vede anche in bianco e nero */
+.vita.danger .vita-track{border-color:color-mix(in srgb,var(--danger) 50%,var(--border2));}
+.vita.danger .vita-fill::before{
+  content:""; position:absolute; inset:0; opacity:.30;
+  background:repeating-linear-gradient(135deg,
+    rgba(11,15,9,0) 0 7px, rgba(11,15,9,.9) 7px 12px);
+}
+
+/* la tacca della soglia: linea che esce dalla barra + etichetta sotto.
+   Il nucleo chiaro con contorno scuro la rende leggibile sia sul pieno
+   sia sul vuoto, in tutti e tre gli stati. */
+.vita-soglia{
+  position:absolute; top:-5px; height:34px; width:3px; z-index:4;
+  background:#f2f7ee; border-radius:2px; transform:translateX(-1.5px);
+  box-shadow:0 0 0 1.5px rgba(6,9,5,.92), 0 0 9px rgba(242,247,238,.6);
+}
+.vita-scala{
+  position:relative; height:20px; margin-top:9px;
+  font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:700;
+  letter-spacing:1.2px; text-transform:uppercase; color:var(--muted);
+  font-variant-numeric:tabular-nums;
+}
+.vita-scala .s0 {position:absolute; left:0;  top:3px;}
+.vita-scala .s100{position:absolute; right:0; top:3px;}
+.vita-scala.no0 .s0{display:none;}
+.vita-scala.no100 .s100{display:none;}
+.vita-tag{
+  position:absolute; top:0; transform:translateX(-50%); white-space:nowrap;
+  padding:2px 8px; border-radius:3px; color:var(--grad-on);
+  background:#f2f7ee; font-size:9.5px; font-weight:800; letter-spacing:1px;
+  box-shadow:0 1px 5px rgba(0,0,0,.5),var(--edge-hi);
+}
+.vita-tag::before{                    /* punta che aggancia l'etichetta alla tacca */
+  content:""; position:absolute; top:-4px; left:50%; margin-left:-4px;
+  border:4px solid transparent; border-bottom-color:#f2f7ee;
+}
+.vita .riga{font-size:12.5px; color:var(--muted2); line-height:1.6; margin-top:7px;}
+.vita .riga b{color:var(--text);}
+.vita .riga.att{color:var(--warn);}   .vita .riga.att b{color:var(--warn);}
+.vita .riga.dng{color:var(--danger);} .vita .riga.dng b{color:var(--danger);}
+.vita .riga.dng,.vita .riga.att{
+  display:flex; gap:8px; align-items:flex-start;
+  border-top:1px solid var(--border); padding-top:9px; margin-top:10px;
+}
+.vita .riga svg{width:17px; height:17px; flex-shrink:0; margin-top:2px;
+  stroke:currentColor; fill:none; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round;}
+.prescr{white-space:pre-wrap;}
+
+/* ─────────────── titolo di sezione (copia di .sec-title) ─────────────── */
+.sec{
+  display:flex; align-items:center; gap:8px;
+  font-family:'Barlow Condensed',sans-serif; font-size:11.5px; font-weight:700;
+  letter-spacing:2.5px; text-transform:uppercase; color:var(--muted2);
+  margin:24px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--border);
+}
+.sec::before{
+  content:""; width:5px; height:5px; border-radius:50%; flex-shrink:0;
+  background:var(--app-accent); box-shadow:0 0 8px var(--app-accent);
+}
+.page>.sec:first-child{margin-top:2px;}
+.sec .cnt{
+  margin-left:auto; font-size:10px; letter-spacing:1.5px; color:var(--muted);
+  background:var(--card); border:1px solid var(--border); border-radius:20px;
+  padding:2px 9px; box-shadow:var(--edge);
+}
+
+/* ─────────────── voci di lista (copia di .sitem) ─────────────── */
+.item{
+  position:relative; overflow:hidden;
+  display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px;
+  background:var(--card); border:1px solid var(--border); border-radius:var(--r-sm);
+  padding:12px 13px; margin-bottom:5px; min-height:var(--tap); cursor:pointer;
+  box-shadow:var(--sh1),var(--edge);
+  transition:transform .15s var(--ease),box-shadow .15s var(--ease),border-color .2s,background .2s;
+}
+.item::after{
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0; border-radius:inherit;
+  background:radial-gradient(170px 120px at var(--mx,50%) var(--my,50%),var(--glow-app),transparent 62%);
+  opacity:0; transition:opacity .25s var(--ease);
+}
+.item:hover::after{opacity:1;}
+.item>*{position:relative; z-index:1;}
+.item:hover{
+  background:var(--card2);
+  border-color:color-mix(in srgb,var(--app-accent) 42%,var(--border));
+  transform:translateX(3px); box-shadow:var(--sh3),var(--edge);
+}
+.item:active{transform:translateX(1px) scale(.995);}
+.item.st-danger {border-left:3px solid var(--danger);}
+.item.st-warn   {border-left:3px solid var(--warn);}
+.item.st-ok     {border-left:3px solid var(--success);}
+.item.st-accent {border-left:3px solid var(--app-accent);}
+.item.st-mute   {border-left:3px solid var(--border2);}
+
+.avatar{
+  width:36px; height:36px; border-radius:11px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:800;
+  letter-spacing:1px; color:var(--grad-on); background:var(--grad); border:none;
+  box-shadow:0 2px 6px rgba(0,0,0,.35),var(--edge-hi);
+}
+.avatar.sup{background:var(--grad-sup);}
+.avatar svg{width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:2;
+  stroke-linecap:round; stroke-linejoin:round;}
+.info{flex:1 1 120px; min-width:0;}
+.acts{display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap;
+  gap:5px; margin-left:auto;}
+.name{
+  font-size:13.5px; font-weight:600; color:var(--text); line-height:1.3;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; overflow-wrap:anywhere;
+}
+.meta{
+  font-size:11px; color:var(--muted); margin-top:3px; line-height:1.4;
+  font-variant-numeric:tabular-nums;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; overflow-wrap:anywhere;
+}
+/* la freccia decorativa resta piccola; i bottoni veri sono bersagli da 44px */
+.arr{
+  color:var(--muted2); font-size:15px; line-height:1;
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:30px; min-height:30px; border-radius:8px; flex-shrink:0;
+  border:1px solid transparent; background:none; padding:0;
+  transition:color .15s var(--ease),background .15s var(--ease),border-color .15s;
+}
+button.arr{
+  min-width:var(--tap); min-height:var(--tap); cursor:pointer;
+  border-color:var(--border2); background:var(--card2);
+}
+.arr svg{width:17px; height:17px; stroke:currentColor; fill:none; stroke-width:1.9;
+  stroke-linecap:round; stroke-linejoin:round; pointer-events:none;}
+span.arr svg{width:15px; height:15px;}
+.arr:hover{color:var(--app-accent2); border-color:var(--app-accent);
+  background:color-mix(in srgb,var(--app-accent) 18%,var(--card2));}
+.arr.ok:hover{color:var(--success); border-color:var(--success); background:rgba(39,190,165,.16);}
+.arr.del:hover{color:var(--danger);  border-color:var(--danger);  background:rgba(240,95,90,.16);}
+.arr:active{transform:scale(.94);}
+
+/* ─────────────── badge (copia di .scad-badge: raggio 3px, pieno) ─────────────── */
+.badge{
+  display:inline-flex; align-items:center; gap:4px; flex-shrink:0;
+  padding:3px 8px; border-radius:3px; white-space:nowrap;
+  font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:800;
+  letter-spacing:1px; text-transform:uppercase;
+  background:var(--card2); color:var(--muted2); border:1px solid var(--border2);
+  box-shadow:0 1px 3px rgba(0,0,0,.35),var(--edge-hi);
+}
+.badge.ok,.badge.warn,.badge.danger,.badge.info,.badge.accent{border-color:transparent;}
+.badge.inline{vertical-align:middle; margin:0 0 0 2px; font-size:9.5px; padding:2px 7px;}
+.badge.ok     {background:var(--success);    color:#03150f;}
+.badge.warn   {background:var(--warn);       color:#231402;}
+.badge.danger {background:var(--danger);     color:#2b0705;}
+.badge.info   {background:var(--info);       color:#04161e;}
+.badge.accent {background:var(--app-accent); color:var(--grad-on);}
+.badge.tag{background:var(--card2); color:var(--muted2);
+  border:1px solid var(--border2); box-shadow:none; font-weight:700;}
+
+/* ─────────────── campi (copia di .finput) ─────────────── */
+.dw-input{
+  width:100%; min-height:var(--tap); padding:11px 13px;
+  background:var(--card); border:1px solid var(--border-hi); border-radius:9px;
+  color:var(--text); font-family:'Barlow',sans-serif; font-size:16px; outline:none;
+  box-shadow:var(--edge);
+  transition:border-color .18s var(--ease),box-shadow .18s var(--ease),background .18s;
+}
+.dw-input::placeholder{color:var(--disabled);}
+.dw-input:hover{border-color:color-mix(in srgb,var(--app-accent) 55%,var(--border-hi));}
+.dw-input:focus{
+  border-color:var(--app-accent); background:var(--card2);
+  box-shadow:0 0 0 3px var(--focus-ring),var(--edge);
+}
+.dw-input.err{border-color:var(--danger) !important; background:rgba(240,95,90,.08);}
+.dw-input[readonly],.dw-input[disabled]{color:var(--muted2); opacity:.7;}
+select.dw-input{font-size:16px; cursor:pointer;}
+select.dw-input option,select.dw-input optgroup{background:var(--card); color:var(--text);}
+textarea.dw-input{resize:vertical; min-height:60px; line-height:1.5;}
+input[type=date].dw-input::-webkit-calendar-picker-indicator,
+input[type=search].dw-input::-webkit-search-cancel-button{
+  filter:invert(.68); cursor:pointer; opacity:.8;
+}
+input[type=date].dw-input::-webkit-calendar-picker-indicator:hover{
+  filter:invert(.72) sepia(.55) saturate(4) hue-rotate(55deg); opacity:1;
+}
+.dw-muted{color:var(--muted);}
+.dw-accent{color:var(--app-accent2);}
+/* etichetta di campo: stessa forma delle etichette di modale del core */
+.fl{
+  display:block; font-family:'Barlow',sans-serif; font-size:10px; font-weight:600;
+  letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:5px;
+}
+.fld{display:flex; flex-direction:column; min-width:0;}
+.fld .dw-input{width:100%;}
+.unit{
+  display:inline-flex; align-items:center; font-family:'Barlow Condensed',sans-serif;
+  font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase;
+  color:var(--muted); margin-left:7px;
+}
+
+/* ─────────────── bottoni (copia di .btn-sv / .btn-sec) ─────────────── */
+.dw-btn{
+  min-height:var(--tap); padding:12px 18px; border:none; border-radius:var(--r-sm);
+  background:var(--grad); color:var(--grad-on);
+  font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:800;
+  letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  box-shadow:var(--sh-btn),var(--edge-hi);
+  transition:transform .12s var(--ease),box-shadow .2s var(--ease),filter .2s;
+}
+.dw-btn svg{width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2;
+  stroke-linecap:round; stroke-linejoin:round;}
+.dw-btn:hover{box-shadow:var(--sh-btn-hi),var(--edge-hi); filter:brightness(1.07);}
+.dw-btn:active{transform:translateY(2px); box-shadow:0 2px 8px rgba(50,86,4,.35),var(--edge-hi);}
+.dw-btn:disabled{opacity:.6; cursor:wait; filter:none; transform:none;}
+.dw-btn.secondary{
+  background:var(--card); border:1px solid var(--border2); color:var(--text);
+  font-size:13px; font-weight:600; letter-spacing:1px; padding:11px 14px;
+  box-shadow:var(--edge); filter:none;
+}
+.dw-btn.secondary:hover{
+  border-color:var(--app-accent); color:var(--app-accent2); background:var(--card2);
+  transform:translateY(-1px); box-shadow:var(--sh2),var(--edge); filter:none;
+}
+.dw-btn.secondary:active{transform:translateY(1px); box-shadow:var(--edge);}
+.dw-btn.mini{min-height:var(--tap); padding:6px 12px; font-size:11px; letter-spacing:1px;}
+
+/* ─────────────── filtri a segmento (copia di .chg) ─────────────── */
+.chgs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;}
+.chg{
+  background:var(--card); border:1px solid var(--border); color:var(--muted2);
+  padding:7px 13px; min-height:var(--tap); border-radius:7px;
+  font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700;
+  letter-spacing:1px; text-transform:uppercase; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+  box-shadow:var(--edge); transition:all .15s var(--ease);
+}
+.chg:hover{border-color:var(--app-accent); color:var(--app-accent2);}
+.chg.active{
+  background:var(--app-accent); border-color:var(--app-accent); color:var(--grad-on);
+  box-shadow:0 2px 10px rgba(101,155,44,.35),var(--edge-hi);
+}
+.chg:active{transform:scale(.95);}
+
+/* ─────────────── form come oggetti veri (superficie del core) ─────────────── */
+.form{
+  display:flex; flex-wrap:wrap; gap:11px;
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--border); border-radius:var(--r); padding:13px;
+  box-shadow:var(--sh2),var(--edge);
+}
+.form.col{flex-direction:column; align-items:stretch;}
+.form .dw-input{flex:1 1 150px; width:auto; min-width:0; max-width:100%;}
+.form.col>.dw-input,.form.col>select.dw-input{width:100%; flex:0 0 auto;}
+.form>*,.frow>*{min-width:0; max-width:100%;}
+.form .dw-btn{flex:0 0 auto;}
+.form .fld .dw-input{flex:1 1 auto;}
+.frow{display:flex; flex-wrap:wrap; gap:11px; width:100%; align-items:flex-end;}
+.frow.mid{align-items:center;}
+.form-hint{font-size:11.5px; color:var(--muted); line-height:1.5; flex-basis:100%;}
+.form-hint b{color:var(--muted2);}
+.tools{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px;}
+.ord{display:flex; align-items:center; gap:8px; margin:0 0 10px; flex-wrap:wrap;}
+.ord label{
+  font-family:'Barlow Condensed',sans-serif; font-size:10.5px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); flex-shrink:0;
+}
+.ord .dw-input{width:auto; flex:1; max-width:280px;}
+.count{
+  font-family:'Barlow Condensed',sans-serif; font-size:10.5px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; color:var(--muted);
+  margin:0 0 8px; min-height:14px; font-variant-numeric:tabular-nums;
+}
+.count b{color:var(--app-accent2);}
+
+/* ─────────────── riquadri informativi (copia di .info-box) ─────────────── */
+.note{
+  background:var(--card2); border:1px solid var(--border);
+  border-left:3px solid var(--info); border-radius:var(--r-sm);
+  padding:11px 13px; margin-top:12px; text-align:left;
+  font-size:12px; line-height:1.6; color:var(--muted2); box-shadow:var(--edge);
+}
+.note:empty{display:none;}
+.note b{color:var(--text);}
+.note.esito{border-left-color:var(--app-accent); color:var(--text); font-size:12.5px;}
+.note.err{border-left-color:var(--danger);}
+.note.recap{border-left-color:var(--app-accent);}
+.note.recap b{
+  color:var(--app-accent2); font-family:'Barlow Condensed',sans-serif;
+  font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; padding:0 1px;
+}
+.note.avviso{border-left-color:var(--warn);}
+
+/* ─────────────── stato vuoto (copia di .empty-state) ─────────────── */
+.empty-state{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:38px 20px; text-align:center; color:var(--muted); border-radius:var(--r);
+  background:radial-gradient(360px 220px at 50% 0%,
+             color-mix(in srgb,var(--app-accent) 8%,transparent),transparent 70%);
+}
+.empty-icon{
+  margin-bottom:12px; line-height:0; color:var(--app-accent2); opacity:.55;
+  filter:drop-shadow(0 0 16px color-mix(in srgb,var(--app-accent) 30%,transparent));
+}
+.empty-icon svg{width:46px; height:46px; stroke:currentColor; fill:none; stroke-width:1.3;
+  stroke-linecap:round; stroke-linejoin:round;}
+.empty-title{
+  font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:800;
+  letter-spacing:2px; text-transform:uppercase; color:var(--text); margin-bottom:6px;
+}
+.empty-sub{font-size:12px; color:var(--muted); max-width:320px; line-height:1.55;}
+.empty-sub b{color:var(--muted2);}
+
+/* ─────────────── navigazione: pillola flottante (copia di #global-nav.bnav) ─────────────── */
+.nav{
+  position:fixed; left:50%; right:auto; transform:translateX(-50%);
+  bottom:calc(8px + env(safe-area-inset-bottom));
+  width:calc(100% - 16px); max-width:520px; z-index:90;
+  display:grid; grid-template-columns:repeat(5,1fr);
+  background:rgba(17,22,13,.97);
+  -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+  border:1px solid var(--border2); border-top:1px solid var(--border2);
+  border-radius:18px; overflow:hidden; padding-bottom:0;
+  box-shadow:0 10px 28px rgba(0,0,0,.5),var(--edge);
+}
+.nav button{
+  position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:3px; padding:10px 2px 9px; min-height:var(--tap);
+  background:none; border:none; border-top:2px solid transparent; cursor:pointer;
+  color:var(--muted); font-family:'Barlow Condensed',sans-serif;
+  font-size:9px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase;
+  transition:color .2s var(--ease),transform .15s var(--ease);
+}
+.nav button:hover{color:var(--app-accent2);}
+.nav button.active{color:var(--app-accent2); border-top-color:var(--app-accent); transform:translateY(-2px);}
+.nav button.active::before{
+  content:""; position:absolute; top:5px; left:50%; transform:translateX(-50%);
+  width:42px; height:30px; border-radius:10px; z-index:0;
+  background:color-mix(in srgb,var(--app-accent) 20%,transparent);
+}
+.nav button>*{position:relative; z-index:1;}
+.nav .ico{display:flex; align-items:center; justify-content:center; height:22px;}
+.nav .ico svg{width:21px; height:21px; stroke:currentColor; fill:none; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round; transition:transform .15s var(--ease),filter .2s;}
+.nav button.active .ico svg{
+  transform:scale(1.06);
+  filter:drop-shadow(0 0 6px color-mix(in srgb,var(--app-accent) 65%,transparent));
+}
+
+/* ─────────────── modale (copia di .modal-* del core) ─────────────── */
+.modal-ov{
+  position:fixed; inset:0; z-index:300; display:none; padding:20px;
+  align-items:center; justify-content:center;
+  background:rgba(6,9,5,.86);
+  -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
+}
+.modal-ov.show{display:flex; animation:ovFade .2s var(--ease);}
+@keyframes ovFade{from{opacity:0} to{opacity:1}}
+.modal-box{
+  position:relative; width:100%; max-width:440px; max-height:92dvh;
+  display:flex; flex-direction:column; overflow:hidden;
+  background:linear-gradient(180deg,var(--panel),var(--dark));
+  border:1px solid var(--border2); border-radius:var(--r);
+  box-shadow:0 20px 60px rgba(0,0,0,.65),var(--edge);
+  animation:fadeUp .25s ease;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)}}
+.modal-head{
+  position:relative; padding:15px 18px; border-bottom:1px solid var(--border);
+  font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:800;
+  letter-spacing:2px; text-transform:uppercase; color:var(--text);
+}
+.modal-head::after{
+  content:""; position:absolute; left:0; right:0; bottom:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--app-accent),transparent); opacity:.55;
+}
+.modal-body{
+  padding:15px 18px; overflow-y:auto; overscroll-behavior:contain; flex:1; max-height:55vh;
+  font-size:13.5px; line-height:1.6; color:var(--muted2); user-select:text;
+}
+.modal-body b{color:var(--text);}
+.modal-body .fl{margin:12px 0 6px;}
+.modal-foot{
+  padding:12px 18px; border-top:1px solid var(--border); background:var(--dark);
+  display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap;
+  position:sticky; bottom:0;
+}
+.mbtn{
+  background:none; border:1px solid var(--border2); color:var(--text);
+  padding:10px 16px; border-radius:var(--r-sm); min-height:var(--tap);
+  display:inline-flex; align-items:center; justify-content:center;
+  font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700;
+  letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+  transition:all .15s var(--ease);
+}
+.mbtn:hover{border-color:var(--app-accent); color:var(--app-accent2);}
+.mbtn:active{transform:scale(.97);}
+.mbtn.primary{
+  background:var(--grad); border-color:transparent; color:var(--grad-on); font-weight:800;
+  box-shadow:var(--sh-btn),var(--edge-hi);
+}
+.mbtn.primary:hover{filter:brightness(1.07); color:var(--grad-on);}
+.mbtn.danger{background:var(--danger); border-color:var(--danger); color:#2b0705; font-weight:800;}
+.mbtn.danger:hover{filter:brightness(1.08); color:#2b0705;}
+body.modal-open{overflow:hidden;}
+
+/* ─────────────── toast (copia del core) ─────────────── */
+.toast{
+  position:fixed; left:50%; bottom:calc(100px + env(safe-area-inset-bottom));
+  transform:translateX(-50%) translateY(8px);
+  max-width:min(92vw,460px); padding:11px 20px; border-radius:10px;
+  background:var(--grad); color:var(--grad-on); text-align:center;
+  font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:800;
+  letter-spacing:1px; line-height:1.35;
+  box-shadow:0 8px 30px rgba(0,0,0,.5),var(--edge-hi);
+  opacity:0; pointer-events:none; z-index:999;
+  transition:opacity .3s var(--ease),transform .3s var(--ease);
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+.toast.err{background:var(--danger); color:#2b0705;}
+.toast.success{background:var(--success); color:#03150f;}
+
+/* ─────────────── desktop ─────────────── */
+@media(min-width:768px){
+  .top{padding-left:max(24px,calc((100% - 900px) / 2)); padding-right:max(24px,calc((100% - 900px) / 2));}
+  .page{max-width:900px; margin:0 auto; padding-left:24px; padding-right:24px;}
+  .tour-banner{max-width:900px; margin-left:auto; margin-right:auto;}
+  .kpis{grid-template-columns:repeat(4,1fr);}
+  .nav{max-width:560px;}
+  .logo-sm{font-size:18px;}
+  .vita-cifre{font-size:54px;}
+}
+@media(max-width:360px){
+  .page{padding-left:10px; padding-right:10px;}
+  .top{padding-left:10px; padding-right:10px;}
+  .nav button{font-size:8px; letter-spacing:.8px;}
+  .vita-cifre{font-size:38px;}
+}
+
+/* ─────────────── touch: come il core, niente effetti "incollati" ─────────────── */
+@media(hover:none),(pointer:coarse){
+  body.dw::before{display:none !important;}
+  .top::after{display:none !important;}
+  .top{border-bottom:2px solid color-mix(in srgb,var(--app-accent) 45%,transparent) !important;}
+  .item::after,.kpi::after{display:none !important;}
+  .top,.nav{backdrop-filter:none !important; -webkit-backdrop-filter:none !important;}
+  .top{background:#151b10 !important;}
+  .nav{background:#151b10 !important;}
+  input,textarea,select,.dw-input{font-size:16px !important;}
+  .item:hover,.kpi:hover,.dw-btn.secondary:hover,.chg:hover{transform:none !important;}
+  .item:hover{background:var(--card); box-shadow:var(--sh1),var(--edge);}
+  .item:active,.kpi:active{transform:scale(.985);}
+  .nav .ico svg{filter:none !important;}
+  .empty-icon{filter:none !important;}
+}
+@media(prefers-reduced-motion:reduce){
+  *{transition:none !important; animation:none !important;}
+  .item::after,.kpi::after{display:none !important;}
+}
 </style>
 </head>
 <body class="dw">
 
-<div class="top">
-  <a class="dw-home" href="../index.html">⌂ ecosistema</a>
-  <h1>TERRA <span class="accent">·</span> <span style="font-size:14px;color:var(--muted2);">ESTRATTIVO & RILIEVO</span></h1>
-  <div class="sub">Ecosistema Deepwork</div>
-</div>
+<header class="top">
+  <div class="top-brand">
+    <div class="logo-sm">Terra</div>
+    <div class="role-sm">Estrattivo &amp; rilievo · Deepwork</div>
+  </div>
+  <a class="dw-home" href="../index.html" title="Torna all'ecosistema Deepwork" aria-label="Torna all'ecosistema Deepwork"><svg viewBox="0 0 24 24"><path d="M3.5 10.4L12 3.5l8.5 6.9V20a1.5 1.5 0 0 1-1.5 1.5h-4v-6h-6v6H5A1.5 1.5 0 0 1 3.5 20z"/></svg></a>
+</header>
 <div class="tour-banner" id="tour-banner" style="display:none;">
-  Modalità tour — dati di esempio, sola lettura
+  <b>Modalità tour.</b> Stai guardando dati di esempio: puoi provare tutto,
+  ma nulla viene salvato.
 </div>
 
 <!-- DASHBOARD -->
 <div class="page active" id="page-dash">
-  <div class="kpis">
-    <div class="kpi accent" style="cursor:pointer" data-goto="ril" data-filtro="elaborato" title="Vedi i rilievi elaborati"><div class="n">—</div><div class="l">m³ estratti mese</div></div>
-    <div class="kpi ok" style="cursor:pointer" data-goto="pia" title="Vedi il piano"><div class="n">—</div><div class="l">Avanzamento piano</div></div>
-    <div class="kpi ok" style="cursor:pointer" data-goto="ril" data-filtro="tutti" title="Vedi i rilievi"><div class="n">—</div><div class="l">Rilievi drone mese</div></div>
-    <div class="kpi ok" style="cursor:pointer" data-goto="pia" title="Vedi il piano"><div class="n">—</div><div class="l">m³ riserve stimate</div></div>
-  </div>
-
   <div class="sec">Vita della cava</div>
   <div id="dash-vita"></div>
+
+  <div class="sec">Il mese e il piano</div>
+  <div class="kpis">
+    <div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-goto="ril" data-filtro="elaborato" title="Vedi i rilievi elaborati"><div class="l">m³ estratti mese</div><div class="n">—</div></div>
+    <div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-goto="pia" title="Vedi il piano estrattivo"><div class="l">Avanzamento piano</div><div class="n">—</div></div>
+    <div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-goto="ril" data-filtro="tutti" title="Vedi tutti i rilievi"><div class="l">Rilievi drone mese</div><div class="n">—</div></div>
+    <div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-goto="pia" title="Vedi le riserve stimate"><div class="l">m³ riserve stimate</div><div class="n">—</div></div>
+  </div>
 
   <div class="sec">Scadenze da tenere d'occhio</div>
   <div id="dash-scad"></div>
@@ -79,162 +811,211 @@
   <div id="aut-list"></div>
 
   <div class="sec" id="aut-form-sec">Scheda autorizzazione</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <input class="dw-input" id="aut-numero" placeholder="Numero dell'atto" style="flex:2;min-width:160px;">
-    <input class="dw-input" id="aut-ente" placeholder="Ente che l'ha rilasciato" style="flex:2;min-width:160px;">
+  <div class="form col">
+    <div class="frow">
+      <div class="fld" style="flex:2 1 180px;"><label class="fl" for="aut-numero">Numero dell'atto</label>
+        <input class="dw-input" id="aut-numero" placeholder="es. Det. 412/2024"></div>
+      <div class="fld" style="flex:2 1 180px;"><label class="fl" for="aut-ente">Ente che l'ha rilasciato</label>
+        <input class="dw-input" id="aut-ente" placeholder="es. Provincia di…"></div>
+    </div>
+    <div class="frow">
+      <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-rilascio">Data di rilascio</label>
+        <input class="dw-input" id="aut-rilascio" type="date"></div>
+      <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-scadenza">Scadenza del titolo</label>
+        <input class="dw-input" id="aut-scadenza" type="date"></div>
+    </div>
+    <div class="frow">
+      <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-superficie">Superficie autorizzata (m²)</label>
+        <input class="dw-input" id="aut-superficie" type="number" min="0" placeholder="es. 78000"></div>
+      <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-volume">Volume totale autorizzato (m³)</label>
+        <input class="dw-input" id="aut-volume" type="number" min="0" placeholder="es. 1200000"></div>
+    </div>
+    <div class="frow">
+      <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-pregresso">Già estratto prima di Terra (m³)</label>
+        <input class="dw-input" id="aut-pregresso" type="number" min="0" placeholder="0"></div>
+      <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-materiale">Materiale autorizzato</label>
+        <input class="dw-input" id="aut-materiale" placeholder="es. Sabbia e ghiaia"></div>
+    </div>
+    <div class="form-hint">Il <b>già estratto</b> è quanto era stato scavato sotto questo atto prima di usare Terra: senza quel numero il contatore sarebbe ottimista.</div>
+    <div class="fld"><label class="fl" for="aut-prescrizioni">Prescrizioni dell'atto</label>
+      <textarea class="dw-input" id="aut-prescrizioni" rows="4" placeholder="Copia qui le prescrizioni da rispettare (una per riga)" style="min-height:90px;"></textarea></div>
+    <div class="fld"><label class="fl" for="aut-riferimenti">Riferimenti</label>
+      <input class="dw-input" id="aut-riferimenti" placeholder="Protocollo, elaborati allegati, pratica…"></div>
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-    <label class="note" style="margin:0;flex:1;min-width:150px;text-align:left;">Rilascio
-      <input class="dw-input" id="aut-rilascio" type="date"></label>
-    <label class="note" style="margin:0;flex:1;min-width:150px;text-align:left;">Scadenza del titolo
-      <input class="dw-input" id="aut-scadenza" type="date"></label>
+
+  <div class="sec">Impostazioni del controllo</div>
+  <div class="form col">
+    <div class="frow">
+      <div class="fld" style="flex:1 1 130px;"><label class="fl" for="aut-soglia">Soglia di guardia (%)</label>
+        <input class="dw-input" id="aut-soglia" type="number" min="1" max="100" value="80"></div>
+      <div class="fld" style="flex:1 1 130px;"><label class="fl" for="aut-anni">Ritmo medio su (anni)</label>
+        <input class="dw-input" id="aut-anni" type="number" min="1" max="20" value="3"></div>
+      <div class="fld" style="flex:1 1 130px;"><label class="fl" for="aut-preavviso">Preavviso predefinito (gg)</label>
+        <input class="dw-input" id="aut-preavviso" type="number" min="0" max="1095" value="60"></div>
+    </div>
+    <div class="frow">
+      <button class="dw-btn" id="btn-aut-salva">Salva scheda</button>
+      <button class="dw-btn secondary" id="btn-aut-nuova">Nuova scheda</button>
+    </div>
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-    <label class="note" style="margin:0;flex:1;min-width:150px;text-align:left;">Superficie autorizzata (m²)
-      <input class="dw-input" id="aut-superficie" type="number" min="0" placeholder="es. 78000"></label>
-    <label class="note" style="margin:0;flex:1;min-width:150px;text-align:left;">Volume totale autorizzato (m³)
-      <input class="dw-input" id="aut-volume" type="number" min="0" placeholder="es. 1200000"></label>
-  </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-    <label class="note" style="margin:0;flex:1;min-width:150px;text-align:left;">Già estratto prima di Terra (m³)
-      <input class="dw-input" id="aut-pregresso" type="number" min="0" placeholder="0"></label>
-    <label class="note" style="margin:0;flex:1;min-width:150px;text-align:left;">Materiale autorizzato
-      <input class="dw-input" id="aut-materiale" placeholder="es. Sabbia e ghiaia"></label>
-  </div>
-  <div class="note" style="text-align:left;">Il «già estratto» è quanto era stato scavato sotto questo atto prima di usare Terra: senza quel numero il contatore sarebbe ottimista.</div>
-  <label class="note" style="margin:8px 0 0;display:block;text-align:left;">Prescrizioni dell'atto
-    <textarea class="dw-input" id="aut-prescrizioni" rows="4" placeholder="Copia qui le prescrizioni da rispettare (una per riga)" style="min-height:90px;padding:10px;resize:vertical;"></textarea></label>
-  <label class="note" style="margin:8px 0 0;display:block;text-align:left;">Riferimenti
-    <input class="dw-input" id="aut-riferimenti" placeholder="Protocollo, elaborati allegati, pratica…"></label>
-  <div class="sec" style="margin-top:16px;">Impostazioni del controllo</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <label class="note" style="margin:0;flex:1;min-width:130px;text-align:left;">Soglia di guardia (%)
-      <input class="dw-input" id="aut-soglia" type="number" min="1" max="100" value="80"></label>
-    <label class="note" style="margin:0;flex:1;min-width:130px;text-align:left;">Ritmo medio su (anni)
-      <input class="dw-input" id="aut-anni" type="number" min="1" max="20" value="3"></label>
-    <label class="note" style="margin:0;flex:1;min-width:130px;text-align:left;">Preavviso predefinito (giorni)
-      <input class="dw-input" id="aut-preavviso" type="number" min="0" max="1095" value="60"></label>
-  </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
-    <button class="dw-btn" id="btn-aut-salva" style="width:auto;">Salva scheda</button>
-    <button class="dw-btn secondary" id="btn-aut-nuova" style="width:auto;">Nuova scheda</button>
-  </div>
-  <div class="note" id="aut-esito" style="text-align:left;"></div>
-  <div class="note" style="text-align:left;">Le cave sono materia <b>regionale</b>: soglie, preavvisi e periodicità qui sono solo tuoi, Terra non applica nessuna regola di legge. Verifica sempre l'atto e le norme della tua regione.</div>
+  <div class="note esito" id="aut-esito"></div>
+  <div class="note avviso">Le cave sono materia <b>regionale</b>: soglie, preavvisi e periodicità qui sono solo tuoi, Terra non applica nessuna regola di legge. Verifica sempre l'atto e le norme della tua regione.</div>
 
   <div class="sec">Scadenzario</div>
-  <div id="scad-filtri" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
-    <button class="dw-btn secondary" data-filtro="tutte" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Tutte</button>
-    <button class="dw-btn secondary" data-filtro="scaduta" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Scadute</button>
-    <button class="dw-btn secondary" data-filtro="in-scadenza" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">In scadenza</button>
-    <button class="dw-btn secondary" data-filtro="a-posto" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">A posto</button>
+  <div id="scad-filtri" class="chgs">
+    <button class="chg active" data-filtro="tutte">Tutte</button>
+    <button class="chg" data-filtro="scaduta">Scadute</button>
+    <button class="chg" data-filtro="in-scadenza">In scadenza</button>
+    <button class="chg" data-filtro="a-posto">A posto</button>
   </div>
-  <div id="scad-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
+  <div id="scad-count" class="count"></div>
   <div id="scad-list"></div>
   <div class="sec">Aggiungi scadenza</div>
-  <select class="dw-input" id="scad-preset" style="width:100%;margin-bottom:8px;">
-    <option value="">Adempimento tipico del titolo… (facoltativo)</option>
-  </select>
-  <div class="note" id="scad-preset-nota" style="text-align:left;display:none;"></div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <input class="dw-input" id="new-scad-desc" placeholder="Descrizione (es. Rinnovo polizza fideiussoria)" style="flex:2;min-width:180px;">
-    <input class="dw-input" id="new-scad-data" type="date" style="flex:1;min-width:140px;">
-    <input class="dw-input" id="new-scad-pre" type="number" min="0" max="1095" placeholder="Preavviso gg" title="Con quanti giorni di anticipo vuoi essere avvisato" style="flex:1;min-width:110px;">
-    <input class="dw-input" id="new-scad-ric" type="number" min="0" max="240" placeholder="Ogni… mesi" title="Lascia vuoto se la scadenza non si ripete" style="flex:1;min-width:110px;">
-    <button class="dw-btn" id="btn-add-scad" style="width:auto;">Aggiungi</button>
+  <div class="form col">
+    <div class="fld"><label class="fl" for="scad-preset">Adempimento tipico del titolo (facoltativo)</label>
+      <select class="dw-input" id="scad-preset"><option value="">— scegli, oppure scrivi tu la descrizione —</option></select></div>
+    <div class="form-hint" id="scad-preset-nota" style="display:none;"></div>
+    <div class="frow">
+      <div class="fld" style="flex:2 1 200px;"><label class="fl" for="new-scad-desc">Descrizione</label>
+        <input class="dw-input" id="new-scad-desc" placeholder="es. Rinnovo polizza fideiussoria"></div>
+      <div class="fld" style="flex:1 1 150px;"><label class="fl" for="new-scad-data">Data di scadenza</label>
+        <input class="dw-input" id="new-scad-data" type="date"></div>
+    </div>
+    <div class="frow">
+      <div class="fld" style="flex:1 1 130px;"><label class="fl" for="new-scad-pre">Preavviso (giorni)</label>
+        <input class="dw-input" id="new-scad-pre" type="number" min="0" max="1095" placeholder="60" title="Con quanti giorni di anticipo vuoi essere avvisato"></div>
+      <div class="fld" style="flex:1 1 130px;"><label class="fl" for="new-scad-ric">Si ripete ogni (mesi)</label>
+        <input class="dw-input" id="new-scad-ric" type="number" min="0" max="240" placeholder="vuoto = non si ripete" title="Lascia vuoto se la scadenza non si ripete"></div>
+      <button class="dw-btn" id="btn-add-scad">Aggiungi</button>
+    </div>
   </div>
-  <div class="note" id="scad-esito" style="text-align:left;"></div>
-  <div class="note" style="text-align:left;">Su una scadenza che si ripete, il tasto ✔ la chiude e propone la data successiva calcolata coi mesi che hai indicato: la proposta si può sempre correggere.</div>
+  <div class="note esito" id="scad-esito"></div>
+  <div class="note">Su una scadenza che si ripete, il tasto <b>fatto</b> (la spunta) la chiude e propone la data successiva calcolata coi mesi che hai indicato: la proposta si può sempre correggere.</div>
 </div>
 
 <div class="page" id="page-fro">
   <div class="sec">Stato dei fronti</div>
   <div id="fro-list"></div>
-  <div class="sec">Nuovo fronte</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <input class="dw-input" id="fro-nome" placeholder="Nome (es. Fronte Ovest)" style="flex:2;min-width:140px;">
-    <input class="dw-input" id="fro-banco" placeholder="Banco" style="flex:1;min-width:80px;">
-    <input class="dw-input" id="fro-quota" type="number" placeholder="Quota m" style="flex:1;min-width:90px;">
-    <button class="dw-btn" id="btn-fro" style="width:auto;">Aggiungi</button>
+  <div class="sec" id="fro-form-sec">Nuovo fronte</div>
+  <div class="form col">
+    <div class="frow">
+      <div class="fld" style="flex:2 1 160px;"><label class="fl" for="fro-nome">Nome del fronte</label>
+        <input class="dw-input" id="fro-nome" placeholder="es. Fronte Ovest"></div>
+      <div class="fld" style="flex:1 1 100px;"><label class="fl" for="fro-banco">Banco</label>
+        <input class="dw-input" id="fro-banco" placeholder="es. B2"></div>
+      <div class="fld" style="flex:1 1 110px;"><label class="fl" for="fro-quota">Quota (m)</label>
+        <input class="dw-input" id="fro-quota" type="number" placeholder="es. 148"></div>
+      <button class="dw-btn" id="btn-fro">Aggiungi</button>
+    </div>
   </div>
-  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-    <button class="dw-btn secondary" id="btn-fro-import" style="width:auto;">Importa fronti (CSV)</button>
+  <div class="tools">
+    <button class="dw-btn secondary" id="btn-fro-import">Importa fronti (CSV)</button>
     <input type="file" id="fro-file" accept=".csv,text/csv" style="display:none;">
-    <span class="dw-muted" style="font-size:12px;">colonne: nome;banco;quota;stato</span>
   </div>
-  <div class="note" id="fro-esito" style="text-align:left;"></div>
-  <div class="note" style="text-align:left;">Tocca un fronte per sospenderlo o riattivarlo.</div>
+  <div class="form-hint" style="margin-top:8px;">Colonne del file: <b>nome; banco; quota; stato</b> — una riga per fronte.</div>
+  <div class="note esito" id="fro-esito"></div>
+  <div class="note">Tocca un fronte per sospenderlo o riattivarlo; la matita ne corregge nome, banco e quota senza toccare rilievi e avanzamento.</div>
 </div>
 
 <div class="page" id="page-ril">
   <div class="sec">Rilievi e volumi</div>
-  <div id="ril-filtri" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
-    <button class="dw-btn secondary" data-filtro="tutti" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Tutti</button>
-    <button class="dw-btn secondary" data-filtro="elaborato" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Elaborati</button>
-    <button class="dw-btn secondary" data-filtro="pianificato" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Pianificati</button>
+  <div id="ril-trend" class="note recap"></div>
+  <div id="ril-filtri" class="chgs">
+    <button class="chg active" data-filtro="tutti">Tutti</button>
+    <button class="chg" data-filtro="elaborato">Elaborati</button>
+    <button class="chg" data-filtro="pianificato">Pianificati</button>
   </div>
-  <div id="ril-trend" class="note" style="text-align:left;"></div>
-  <div style="display:flex;align-items:center;gap:6px;margin:2px 0 10px;">
-    <span class="dw-muted" style="font-size:12px;">Ordina:</span>
-    <select id="ril-ord" class="dw-input" style="width:auto;min-height:32px;padding:2px 8px;font-size:12px;">
+  <div class="ord">
+    <label for="ril-ord">Ordina</label>
+    <select id="ril-ord" class="dw-input">
       <option value="data">Data (più recente)</option>
       <option value="volume">Volume (dal più grande)</option>
       <option value="titolo">Titolo (A→Z)</option>
     </select>
   </div>
-  <input class="dw-input" id="ril-cerca" type="search" placeholder="🔍 Cerca per titolo o tipo…" style="margin-bottom:6px;">
-  <div id="ril-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
+  <input class="dw-input" id="ril-cerca" type="search" placeholder="Cerca per titolo o tipo…" style="margin-bottom:10px;">
+  <div id="ril-count" class="count"></div>
   <div id="ril-list"></div>
+
   <div class="sec">Valore del materiale estratto</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-    <label class="note" style="margin:0;">Materiale
-      <select class="dw-input" id="val-materiale" title="Riempie la densità con un valore tipico del litotipo" style="width:auto;display:inline-block;margin-left:4px;"><option value="">— scegli —</option></select></label>
-    <label class="note" style="margin:0;">Densità
-      <input class="dw-input" id="val-densita" type="number" step="0.1" min="0" value="1.6" style="width:80px;display:inline-block;margin-left:4px;"> t/m³</label>
-    <label class="note" style="margin:0;">Prezzo
-      <input class="dw-input" id="val-prezzo" type="number" step="0.5" min="0" value="12" style="width:80px;display:inline-block;margin-left:4px;"> €/t</label>
+  <div class="form col">
+    <div class="frow">
+      <div class="fld" style="flex:2 1 190px;"><label class="fl" for="val-materiale">Materiale</label>
+        <select class="dw-input" id="val-materiale" title="Riempie la densità con un valore tipico del litotipo"><option value="">— scegli —</option></select></div>
+      <div class="fld" style="flex:1 1 120px;"><label class="fl" for="val-densita">Densità (t/m³)</label>
+        <input class="dw-input" id="val-densita" type="number" step="0.1" min="0" value="1.6"></div>
+      <div class="fld" style="flex:1 1 120px;"><label class="fl" for="val-prezzo">Prezzo (€/t)</label>
+        <input class="dw-input" id="val-prezzo" type="number" step="0.5" min="0" value="12"></div>
+    </div>
+    <div class="form-hint" id="val-dens-nota"></div>
   </div>
-  <div id="val-dens-nota" class="note" style="text-align:left;margin-top:4px;color:var(--muted);"></div>
-  <div id="val-out" class="note" style="text-align:left;margin-top:8px;"></div>
-  <div class="sec">Nuovo rilievo elaborato</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <select class="dw-input" id="new-ril-fronte" style="flex:1;min-width:120px;"></select>
-    <input class="dw-input" id="new-ril-data" type="date" style="flex:1;min-width:130px;">
-    <input class="dw-input" id="new-ril-vol" type="number" min="0" placeholder="Volume m³" style="flex:1;min-width:110px;">
-    <select class="dw-input" id="new-ril-metodo" title="Metodo di rilievo" style="flex:1;min-width:110px;">
-      <option value="">Metodo…</option>
-      <option value="RTK">RTK</option>
-      <option value="PPK">PPK</option>
-      <option value="RTK+GCP">RTK+GCP</option>
-      <option value="GCP">GCP</option>
-      <option value="senza GCP">senza GCP</option>
-    </select>
-    <input class="dw-input" id="new-ril-gsd" type="number" min="0" step="0.1" placeholder="GSD cm" style="flex:1;min-width:90px;">
-    <button class="dw-btn" id="btn-add-ril" style="width:auto;">Registra</button>
+  <div id="val-out" class="note recap"></div>
+
+  <div class="sec">Nuovo rilievo</div>
+  <div class="form col">
+    <div class="frow">
+      <div class="fld" style="flex:2 1 170px;"><label class="fl" for="new-ril-fronte">Fronte</label>
+        <select class="dw-input" id="new-ril-fronte"></select></div>
+      <div class="fld" style="flex:1 1 150px;"><label class="fl" for="new-ril-data">Data del rilievo</label>
+        <input class="dw-input" id="new-ril-data" type="date"></div>
+      <div class="fld" style="flex:1 1 130px;"><label class="fl" for="new-ril-vol">Volume (m³)</label>
+        <input class="dw-input" id="new-ril-vol" type="number" min="0" placeholder="es. 4200"></div>
+    </div>
+    <div class="frow">
+      <div class="fld" style="flex:1 1 140px;"><label class="fl" for="new-ril-metodo">Metodo</label>
+        <select class="dw-input" id="new-ril-metodo" title="Metodo di rilievo">
+          <option value="">— scegli —</option>
+          <option value="RTK">RTK</option>
+          <option value="PPK">PPK</option>
+          <option value="RTK+GCP">RTK+GCP</option>
+          <option value="GCP">GCP</option>
+          <option value="senza GCP">senza GCP</option>
+        </select></div>
+      <div class="fld" style="flex:1 1 120px;"><label class="fl" for="new-ril-gsd">GSD (cm)</label>
+        <input class="dw-input" id="new-ril-gsd" type="number" min="0" step="0.1" placeholder="es. 2,5"></div>
+      <button class="dw-btn" id="btn-add-ril">Registra</button>
+    </div>
+    <div class="form-hint">Con una data <b>futura</b> il volume non serve: il rilievo viene messo in calendario come pianificato.</div>
   </div>
-  <button class="dw-btn secondary" id="btn-imp-ril" style="width:auto;margin-top:8px;">Importa rilievi (CSV)</button>
-  <button class="dw-btn secondary" id="btn-dal-drone" style="width:auto;margin-top:8px;" title="Riprende l'ultimo volume calcolato nel visore nuvola di Genesi">🛸 Dal visore drone</button>
-  <input type="file" id="ril-file" accept=".csv,text/csv" style="display:none;">
-  <div class="note" id="ril-esito" style="text-align:left;"></div>
-  <div class="note" id="mode-note" style="text-align:left;">CSV rilievi: data;volumeM3[;metodo;gsd].</div>
+  <div class="tools">
+    <button class="dw-btn secondary" id="btn-imp-ril">Importa rilievi (CSV)</button>
+    <button class="dw-btn secondary" id="btn-dal-drone" title="Riprende l'ultimo volume calcolato nel visore nuvola di Genesi">Dal visore drone</button>
+    <input type="file" id="ril-file" accept=".csv,text/csv" style="display:none;">
+  </div>
+  <div class="form-hint" style="margin-top:8px;">Colonne del file: <b>data; volumeM3; metodo; gsd; fronte</b>.</div>
+  <div class="note esito" id="ril-esito"></div>
+  <div class="note" id="mode-note"></div>
 </div>
 
 <div class="page" id="page-pia">
   <div class="sec">Piano estrattivo</div>
-  <div id="pia-riserva" class="note" style="text-align:left;"></div>
-  <div id="pia-proiezione" class="note" style="text-align:left;"></div>
+  <div id="pia-riserva" class="note recap"></div>
+  <div id="pia-proiezione" class="note"></div>
   <div id="pia-list"></div>
-  <button class="dw-btn secondary" id="btn-terra-export" style="width:auto;margin-top:10px;">Esporta fronti e rilievi (CSV)</button>
-  <div class="note" id="terra-esito" style="text-align:left;"></div>
+  <div class="tools">
+    <button class="dw-btn secondary" id="btn-terra-export">Esporta fronti e rilievi (CSV)</button>
+  </div>
+  <div class="note esito" id="terra-esito"></div>
+  <div class="note">Tocca una voce di piano con un volume annuo per correggerlo: riserve, avanzamento e proiezione si ricalcolano subito.</div>
 </div>
 
-<div class="nav">
-  <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico">▦</span>Quadro</button>
-  <button id="nav-tit" onclick="go('tit')"><span class="ico">📜</span>Titolo</button>
-  <button id="nav-fro" onclick="go('fro')"><span class="ico">⛰</span>Fronti</button>
-  <button id="nav-ril" onclick="go('ril')"><span class="ico">📐</span>Rilievi</button>
-  <button id="nav-pia" onclick="go('pia')"><span class="ico">🗺</span>Piano</button>
+<nav class="nav" aria-label="Sezioni di Terra">
+  <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg></span>Quadro</button>
+  <button id="nav-tit" onclick="go('tit')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M6.5 3h8.2L19 7.3V19a2 2 0 0 1-2 2H6.5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14.4 3v4.4H19"/><path d="M8.2 12.6h7.2M8.2 16.2h4.6"/></svg></span>Titolo</button>
+  <button id="nav-fro" onclick="go('fro')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M2.5 19.5h19"/><path d="M2.5 19.5L9 8l3.4 5.6L15 9.4l6.5 10.1"/><path d="M7 19.5l2.4-4.2h5.3l2.4 4.2"/></svg></span>Fronti</button>
+  <button id="nav-ril" onclick="go('ril')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M3 20.5h18L12 3.5z"/><path d="M8.4 13.4h7.2"/><path d="M12 3.5v17"/></svg></span>Rilievi</button>
+  <button id="nav-pia" onclick="go('pia')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M9.2 3.5L3 6v14.5l6.2-2.5 5.6 2.5L21 18V3.5l-6.2 2.5z"/><path d="M9.2 3.5V18M14.8 6v14.5"/></svg></span>Piano</button>
+</nav>
+
+<!-- modale in stile core: sostituisce alert()/confirm()/prompt() del browser -->
+<div class="modal-ov" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-box">
+    <div class="modal-head" id="modal-title">Conferma</div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot" id="modal-foot"></div>
+  </div>
 </div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
   function go(id) {
@@ -244,6 +1025,104 @@
     document.getElementById("nav-" + id).classList.add("active");
     window.scrollTo(0, 0);
   }
+
+  /* ── Toast del core: nessun alert() del browser ────────────────────── */
+  let toastT = null;
+  function toast(msg, tipo) {
+    const t = document.getElementById("toast");
+    t.className = "toast " + (tipo || "");
+    t.textContent = msg;
+    void t.offsetWidth;
+    t.classList.add("show");
+    clearTimeout(toastT);
+    toastT = setTimeout(() => t.classList.remove("show"), msg.length > 70 ? 4200 : 2800);
+  }
+
+  /* ── Modale del core: sostituisce confirm() e prompt() ─────────────── */
+  let modalPrec = null;
+  function apriModale(titolo, corpo, bottoni) {
+    modalPrec = document.activeElement;
+    document.getElementById("modal-title").textContent = titolo;
+    document.getElementById("modal-body").innerHTML = corpo;
+    const foot = document.getElementById("modal-foot");
+    foot.innerHTML = "";
+    (bottoni || []).forEach(b => {
+      const el = document.createElement("button");
+      el.className = "mbtn " + (b.cls || "");
+      el.textContent = b.label;
+      el.onclick = b.azione;
+      foot.appendChild(el);
+    });
+    document.getElementById("modal").classList.add("show");
+    document.body.classList.add("modal-open");
+    const primo = document.getElementById("modal-body").querySelector("input,select,textarea")
+               || foot.querySelector(".mbtn.primary,.mbtn.danger") || foot.querySelector(".mbtn");
+    if (primo) setTimeout(() => { try { primo.focus({ preventScroll: true }); primo.select && primo.select(); } catch (e) {} }, 80);
+  }
+  function chiudiModale() {
+    document.getElementById("modal").classList.remove("show");
+    document.body.classList.remove("modal-open");
+    if (modalPrec && modalPrec.focus) { try { modalPrec.focus({ preventScroll: true }); } catch (e) {} }
+    modalPrec = null;
+  }
+  // Conferma in stile core: restituisce una Promise<boolean>
+  function chiedi(titolo, corpo, etichettaOk, pericolo) {
+    return new Promise(res => {
+      apriModale(titolo, corpo, [
+        { label: "Annulla", azione: () => { chiudiModale(); res(false); } },
+        { label: etichettaOk || "Conferma", cls: pericolo ? "danger" : "primary",
+          azione: () => { chiudiModale(); res(true); } },
+      ]);
+    });
+  }
+  // Richiesta di un valore in stile core: restituisce Promise<string|null>
+  function chiediValore(titolo, corpo, campoHtml, etichettaOk) {
+    return new Promise(res => {
+      apriModale(titolo, corpo + campoHtml, [
+        { label: "Annulla", azione: () => { chiudiModale(); res(null); } },
+        { label: etichettaOk || "Salva", cls: "primary", azione: () => {
+            const c = document.getElementById("modal-campo");
+            const v = c ? c.value : "";
+            chiudiModale(); res(v);
+          } },
+      ]);
+      const c = document.getElementById("modal-campo");
+      if (c) c.addEventListener("keydown", e => {
+        if (e.key === "Enter") { e.preventDefault(); document.querySelector("#modal-foot .mbtn.primary").click(); }
+      });
+    });
+  }
+  document.getElementById("modal").addEventListener("click", e => {
+    if (e.target.id === "modal") { const b = document.querySelector("#modal-foot .mbtn"); if (b) b.click(); }
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Escape") return;
+    const m = document.getElementById("modal");
+    if (m && m.classList.contains("show")) { const b = m.querySelector("#modal-foot .mbtn"); if (b) b.click(); }
+  });
+  // KPI raggiungibili da tastiera (Invio/Spazio = tocco)
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const k = e.target.closest && e.target.closest(".kpi[data-goto]");
+    if (k) { e.preventDefault(); k.click(); }
+  });
+
+  /* ── Alone che segue il mouse (firma dinamica del core: --mx/--my) ─── */
+  (function () {
+    if (matchMedia("(prefers-reduced-motion:reduce)").matches) return;
+    if (!matchMedia("(hover:hover) and (pointer:fine)").matches) return;
+    const sel = ".item,.kpi";
+    let cur = null, px = 50, py = 50, pend = false;
+    const apply = () => { pend = false; if (cur) { cur.style.setProperty("--mx", px + "%"); cur.style.setProperty("--my", py + "%"); } };
+    window.addEventListener("pointermove", e => {
+      const t = e.target.closest ? e.target.closest(sel) : null;
+      cur = t; if (!t) return;
+      const r = t.getBoundingClientRect();
+      px = (e.clientX - r.left) / r.width * 100;
+      py = (e.clientY - r.top) / r.height * 100;
+      if (!pend) { pend = true; requestAnimationFrame(apply); }
+    }, { passive: true });
+  })();
 </script>
 
 <script type="module">
@@ -256,6 +1135,42 @@
   const PB = { vigente: ["ok","Vigente"], "in-esame": ["warn","In esame"] };
   const sig = (n) => (n||"?").split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase();
   const dmy = (iso) => iso ? iso.slice(8,10)+"/"+iso.slice(5,7) : "—";
+
+  // ── Icone: tutte in SVG, nessuna emoji e nessun carattere tipografico ──
+  const I = {
+    cerca:  '<svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.8"/><path d="M15.5 15.5L21 21"/></svg>',
+    monte:  '<svg viewBox="0 0 24 24"><path d="M2.5 19.5h19"/><path d="M2.5 19.5L9 8l3.4 5.6L15 9.4l6.5 10.1"/><path d="M7 19.5l2.4-4.2h5.3l2.4 4.2"/></svg>',
+    riga:   '<svg viewBox="0 0 24 24"><path d="M3 20.5h18L12 3.5z"/><path d="M8.4 13.4h7.2"/><path d="M12 3.5v17"/></svg>',
+    mappa:  '<svg viewBox="0 0 24 24"><path d="M9.2 3.5L3 6v14.5l6.2-2.5 5.6 2.5L21 18V3.5l-6.2 2.5z"/><path d="M9.2 3.5V18M14.8 6v14.5"/></svg>',
+    atto:   '<svg viewBox="0 0 24 24"><path d="M6.5 3h8.2L19 7.3V19a2 2 0 0 1-2 2H6.5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14.4 3v4.4H19"/><path d="M8.2 12.6h7.2M8.2 16.2h4.6"/></svg>',
+    sveglia:'<svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 8.5V13l3 2"/><path d="M4.5 4.5l2.5-2M19.5 4.5L17 2.5"/></svg>',
+    ok:     '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.2 12.3l2.7 2.7 5-5.4"/></svg>',
+    clessi: '<svg viewBox="0 0 24 24"><path d="M6.5 3h11M6.5 21h11"/><path d="M7.5 3v3.4c0 2 4.5 4 4.5 5.6s-4.5 3.6-4.5 5.6V21"/><path d="M16.5 3v3.4c0 2-4.5 4-4.5 5.6s4.5 3.6 4.5 5.6V21"/></svg>',
+    allarme:'<svg viewBox="0 0 24 24"><path d="M12 3.6l9 15.6H3z"/><path d="M12 9.6v4.2M12 16.6v.1"/></svg>',
+    stop:   '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.8"/><path d="M8.6 8.6l6.8 6.8"/></svg>',
+  };
+  // azioni di riga: pittogrammi, non caratteri
+  const A = {
+    vai:    '<svg viewBox="0 0 24 24"><path d="M9.2 5.2l6.6 6.8-6.6 6.8"/></svg>',
+    mod:    '<svg viewBox="0 0 24 24"><path d="M4 20h4.2L19.4 8.8a2.1 2.1 0 0 0-3-3L5.2 17z"/><path d="M14.6 5.6l3.8 3.8"/></svg>',
+    del:    '<svg viewBox="0 0 24 24"><path d="M6.6 6.6l10.8 10.8M17.4 6.6L6.6 17.4"/></svg>',
+    fatto:  '<svg viewBox="0 0 24 24"><path d="M5.2 12.6l4.4 4.4L18.8 7"/></svg>',
+  };
+  // stato vuoto in stile core: icona, titolo, spiegazione di cosa fare
+  const vuoto = (icona, titolo, sotto) =>
+    `<div class="empty-state"><div class="empty-icon">${icona}</div>
+      <div class="empty-title">${titolo}</div><div class="empty-sub">${sotto}</div></div>`;
+  // ── Messaggi: toast del core + traccia scritta accanto al form ────────
+  const esito = (id, testo, tipo) => {
+    const el = $(id); if (el) { el.textContent = testo; el.className = "note esito" + (tipo === "err" ? " err" : ""); }
+    if (testo) toast(testo, tipo);
+  };
+  // ── Errori di campo: bordo rosso, fuoco automatico, messaggio utile ───
+  const err = (id, on) => { const el = $(id); if (el) el.classList.toggle("err", !!on); };
+  const fuoco = (id) => { const el = $(id); if (el) { try { el.focus({ preventScroll: false }); } catch (e) { el.focus(); } } };
+  // filtri a segmento: la pillola attiva è una classe, non un bordo inline
+  const segna = (contId, valore) => document.querySelectorAll("#" + contId + " [data-filtro]")
+    .forEach(b => b.classList.toggle("active", b.getAttribute("data-filtro") === valore));
 
   const db = await terraData();
   mountExit(db);
@@ -272,13 +1187,18 @@
   if ($("ril-ord")) $("ril-ord").onchange = () => { ordRil = $("ril-ord").value; try { localStorage.setItem("dwSort_ril", ordRil); } catch (e) {} refresh(); };
   if ($("ril-cerca")) $("ril-cerca").oninput = () => refresh();
   // cambiare pagina annulla una modifica fronte in corso (torna su "Aggiungi")
+  function annullaEditFronte() {
+    editFro = null;
+    $("btn-fro").textContent = "Aggiungi";
+    $("fro-form-sec").textContent = "Nuovo fronte";
+    ["fro-nome","fro-banco","fro-quota"].forEach(i => { $(i).value = ""; err(i, false); });
+  }
   document.querySelector(".nav") && document.querySelector(".nav").addEventListener("click", () => {
-    if (editFro) { editFro = null; $("btn-fro").textContent = "Aggiungi"; $("fro-esito").textContent = "";
-      ["fro-nome","fro-banco","fro-quota"].forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; }); }
+    if (editFro) { annullaEditFronte(); $("fro-esito").textContent = ""; }
   });
   $("ril-filtri").addEventListener("click", (e) => {
-    const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
-    if (f) { filtroRil = f; refresh(); }
+    const b = e.target.closest && e.target.closest("[data-filtro]"); if (!b) return;
+    filtroRil = b.getAttribute("data-filtro"); refresh();
   });
   document.querySelector(".kpis").addEventListener("click", (e) => {
     const card = e.target.closest("[data-goto]"); if (!card) return;
@@ -295,19 +1215,23 @@
     if (kn[2]) kn[2].textContent = k.rilieviMese;
     if (kn[3]) kn[3].textContent = fmtM3(k.riserveM3);
 
-    $("dash-fronti").innerHTML = FRO.map(f => `<div class="item" onclick="go('fro')">
+    $("dash-fronti").innerHTML = FRO.map(f => `<div class="item ${f.stato === "attivo" ? "st-accent" : "st-warn"}" onclick="go('fro')" title="Vai ai fronti di cava">
       <div class="avatar">${esc(sig(f.nome))}</div>
-      <div class="info"><div class="name">${esc(f.nome)}</div><div class="meta">Avanzamento ${f.avanzamento}% · ${esc(f.dettaglio||"")}</div></div>
-      <span class="badge ${FB[f.stato][0]}">${FB[f.stato][1]}</span><span class="arr">›</span></div>`).join("")
-      || '<div class="note" style="text-align:left;">Nessun fronte: aggiungine uno dalla sezione Fronti.</div>';
+      <div class="info"><div class="name">${esc(f.nome)}</div><div class="meta">Avanzamento ${f.avanzamento}%${f.dettaglio ? " · " + esc(f.dettaglio) : ""}</div></div>
+      <span class="badge ${FB[f.stato][0]}">${FB[f.stato][1]}</span>
+      <span class="arr" aria-hidden="true">${A.vai}</span></div>`).join("")
+      || vuoto(I.monte, "Nessun fronte di cava",
+          "Un fronte è il pezzo di cava che stai coltivando. Aggiungi il primo dalla sezione <b>Fronti</b>: da lì i rilievi sapranno a cosa attaccarsi.");
 
     const volFronte = (fid) => volumeFronte(RIL, fid);
     $("fro-list").innerHTML = FRO.map(f => { const v = volFronte(f.id);
-      return `<div class="item" data-fro="${f.id}" style="cursor:pointer" title="Tocca per sospendere/riattivare">
-      <div class="info"><div class="name">${esc(f.nome)} — ${esc(f.banco||"")}</div><div class="meta">Quota ${f.quota}m · avanzamento ${f.avanzamento}%${v ? " · estratti " + fmtM3(v) + " m³ (rilievi)" : ""} · ${esc(f.dettaglio||"")}</div></div>
+      return `<div class="item ${f.stato === "attivo" ? "st-accent" : "st-warn"}" data-fro="${f.id}" title="Tocca per sospendere o riattivare il fronte">
+      <div class="avatar">${esc(sig(f.nome))}</div>
+      <div class="info"><div class="name">${esc(f.nome)}${f.banco ? " — " + esc(f.banco) : ""}</div><div class="meta">Quota ${f.quota} m · avanzamento ${f.avanzamento}%${v ? " · estratti " + fmtM3(v) + " m³ (rilievi)" : ""}${f.dettaglio ? " · " + esc(f.dettaglio) : ""}</div></div>
       <span class="badge ${FB[f.stato][0]}">${FB[f.stato][1]}</span>
-      <span class="arr" style="cursor:pointer" title="Modifica fronte" data-edit-fro="${f.id}">✎</span></div>`; }).join("")
-      || '<div class="note" style="text-align:left;">Nessun fronte registrato: aggiungine uno qui sotto.</div>';
+      <button class="arr" type="button" title="Modifica nome, banco e quota" aria-label="Modifica il fronte ${esc(f.nome)}" data-edit-fro="${f.id}">${A.mod}</button></div>`; }).join("")
+      || vuoto(I.monte, "Nessun fronte registrato",
+          "Aggiungi il primo fronte col modulo qui sotto (nome, banco e quota), oppure importa l'elenco completo da un file CSV.");
     $("new-ril-fronte").innerHTML = '<option value="">— fronte —</option>' +
       FRO.map(f => `<option value="${f.id}">${esc(f.nome)}</option>`).join("");
 
@@ -328,16 +1252,19 @@
       const ca = classeAccuratezza(r);
       const bv = (r.volumeM3 != null && ca.tolleranzaPct != null) ? bandaVolume(r.volumeM3, ca.tolleranzaPct) : null;
       const volTxt = r.volumeM3 != null ? " · " + r.volumeM3.toLocaleString("it-IT") + " m³" + (bv ? " ± " + bv.banda.toLocaleString("it-IT") : "") : "";
-      return `<div class="item">
+      return `<div class="item ${r.stato === "elaborato" ? "st-accent" : "st-warn"}" style="cursor:default;">
       <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${dmy(r.data)} · ${esc(r.tipo||"")}${volTxt}${qualitaRilievo(r)?" · "+esc(qualitaRilievo(r)):""}</div></div>
       ${ca.cls ? `<span class="badge ${ca.cls}" title="Accuratezza tipica del metodo — da confermare coi checkpoint del rilevatore">${ca.label}</span>` : ""}
-      <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${r.stato==="pianificato"?`<span class="arr" style="cursor:pointer" title="Annulla rilievo pianificato" data-del-ril="${r.id}">✕</span>`:""}</div>`;
+      <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${r.stato==="pianificato"?`<button class="arr del" type="button" title="Annulla il rilievo pianificato" aria-label="Annulla il rilievo pianificato del ${dmy(r.data)}" data-del-ril="${r.id}">${A.del}</button>`:""}</div>`;
     }).join("")
-      || '<div class="note" style="text-align:left;">'+(qRil?"Nessun rilievo trovato per «"+esc(qRil)+"».":(filtroRil==="tutti"?"Nessun rilievo registrato.":"Nessun rilievo in questa categoria."))+'</div>';
+      || (qRil
+          ? vuoto(I.cerca, "Nessun risultato", "Nessun rilievo corrisponde a <b>«" + esc(qRil) + "»</b>. Prova con una parte del titolo o del tipo di rilievo.")
+          : filtroRil === "tutti"
+            ? vuoto(I.riga, "Nessun rilievo registrato", "Registra il primo rilievo qui sotto: data, fronte e volume in m³. Da lì partono il contatore della vita cava e la proiezione di fine anno.")
+            : vuoto(I.ok, "Niente in questa categoria", "Nessun rilievo rientra nel filtro scelto. Tocca <b>Tutti</b> per vedere l'elenco completo."));
     { const n = $("ril-list").querySelectorAll(".item").length, filtrata = qRil || filtroRil !== "tutti";
-      $("ril-count").textContent = n === 0 ? "" : n + (n === 1 ? " rilievo" : " rilievi") + (filtrata ? " · su " + RIL.length : ""); }
-    document.querySelectorAll("#ril-filtri [data-filtro]").forEach(b =>
-      b.style.borderColor = b.getAttribute("data-filtro") === filtroRil ? "var(--app-accent)" : "");
+      $("ril-count").innerHTML = n === 0 ? "" : "<b>" + n + "</b> " + (n === 1 ? "rilievo" : "rilievi") + (filtrata ? " · su " + RIL.length : ""); }
+    segna("ril-filtri", filtroRil);
 
     // Deplezione riserve: residuo e durata stimata al ritmo pianificato.
     const refP = PIA.find(p => p.pianificatoAnnuoM3 > 0);
@@ -353,6 +1280,9 @@
 
     // Proiezione di fine anno: al ritmo attuale, si supererà l'autorizzato?
     const pr = refP ? proiezioneAnnua(RIL, refP.pianificatoAnnuoM3) : null;
+    // il riquadro prende il colore del suo stato: la striscia dice già tutto
+    $("pia-proiezione").className = "note recap"
+      + (pr && pr.stato === "danger" ? " err" : pr && pr.stato === "warn" ? " avviso" : "");
     $("pia-proiezione").innerHTML = (!pr) ? ""
       : pr.proiezione == null
         ? `Proiezione di fine anno: ancora presto per una stima (poco anno trascorso). Estratti ${pr.estrattoAnno.toLocaleString("it-IT")} m³ finora.`
@@ -363,10 +1293,11 @@
               : pr.stato === "warn"
                 ? ` — vicino al limite autorizzato, tienilo d'occhio.`
                 : ` — sotto il limite autorizzato.`);
-    $("pia-list").innerHTML = PIA.map(p => `<div class="item" ${p.pianificatoAnnuoM3?`data-piano="${p.id}" style="cursor:pointer" title="Tocca per modificare il piano annuo"`:'style="cursor:default;"'}>
+    $("pia-list").innerHTML = PIA.map(p => `<div class="item ${p.stato === "vigente" ? "st-accent" : "st-warn"}" ${p.pianificatoAnnuoM3?`data-piano="${p.id}" title="Tocca per modificare il volume annuo pianificato"`:'style="cursor:default;"'}>
       <div class="info"><div class="name">${esc(p.titolo)}</div><div class="meta">${esc(p.dettaglio||"")}${p.pianificatoAnnuoM3?" · piano annuo "+fmtM3(p.pianificatoAnnuoM3)+" m³":""}${p.riserveM3?" · riserve "+fmtM3(p.riserveM3)+" m³":""}</div></div>
-      <span class="badge ${PB[p.stato][0]}">${PB[p.stato][1]}</span></div>`).join("")
-      || '<div class="note" style="text-align:left;">Nessuna voce di piano registrata.</div>';
+      <span class="badge ${PB[p.stato][0]}">${PB[p.stato][1]}</span>${p.pianificatoAnnuoM3?`<span class="arr" aria-hidden="true">${A.mod}</span>`:""}</div>`).join("")
+      || vuoto(I.mappa, "Piano estrattivo vuoto",
+          "Qui vivono le voci del piano: volume annuo pianificato e riserve stimate. Senza di esse Terra non può calcolare avanzamento e proiezione di fine anno.");
 
     renderTitolo();
     renderValore();
@@ -382,26 +1313,57 @@
   // dell'anno) e per quanti anni al ritmo medio. `breve` = versione per il
   // quadro, senza il confronto con la scadenza del titolo.
   function cardVita(vc, breve) {
-    if (!vc) return '<div class="note" style="text-align:left;">Volume totale autorizzato non ancora inserito: compila la <b>scheda autorizzazione</b> per sapere quanto resta di vita della cava.</div>';
+    if (!vc) return vuoto(I.clessi, "Contatore vita cava spento",
+      "Terra non sa ancora quanto volume ti è stato concesso. Compila la <b>scheda autorizzazione</b> qui sotto — servono il numero dell'atto e il <b>volume totale autorizzato in m³</b> — e il contatore si accende.");
     const w = Math.max(0, Math.min(100, vc.pct));
-    const soglia = vc.soglia != null ? `<b style="left:calc(${Math.min(100, vc.soglia)}% - 1px);" title="Soglia di guardia ${vc.soglia}%"></b>` : "";
+    const st = vc.stato === "ok" ? "" : vc.stato;
+    // Tacca della soglia di guardia: linea sulla barra + etichetta agganciata
+    // sotto, tenuta dentro la scheda anche con soglie agli estremi.
+    let soglia = "", tag = "", scalaCls = "";
+    if (vc.soglia != null) {
+      const s = Math.max(0, Math.min(100, vc.soglia));
+      const sTag = Math.max(6, Math.min(94, s));   // l'etichetta resta dentro la scheda
+      soglia = `<b class="vita-soglia" style="left:${s}%" title="Soglia di guardia ${un1(s)}%"></b>`;
+      tag = `<span class="vita-tag" style="left:${sTag}%">soglia ${un1(s)}%</span>`;
+      // gli estremi della scala si tolgono di mezzo quando l'etichetta li sfiora
+      if (sTag < 34) scalaCls += " no0";
+      if (sTag > 64) scalaCls += " no100";
+    }
     const ritmo = vc.ritmoAnnuo
       ? `Al ritmo medio di <b>${n0(vc.ritmoAnnuo)} m³/anno</b> (dai rilievi degli ultimi ${un1(vc.ritmo.durataAnni)} anni) restano circa <b>${un1(vc.anniResidui)} anni</b>, esaurimento stimato verso il <b>${vc.annoEsaurimento}</b>.`
       : `Ritmo medio non ancora calcolabile: servono almeno tre mesi di rilievi elaborati per stimare gli anni che restano.`;
     const avviso = vc.stato === "danger"
-      ? `<div class="riga" style="color:var(--danger);"><b>⛔ Volume autorizzato esaurito o superato.</b> Fermati o chiedi una variante prima di continuare a scavare.</div>`
+      ? `<div class="riga dng">${I.stop}<span><b>Volume autorizzato esaurito o superato.</b> Fermati o chiedi una variante prima di continuare a scavare.</span></div>`
       : vc.stato === "warn"
-        ? `<div class="riga" style="color:var(--warn);"><b>⚠ Soglia di guardia superata</b> (hai impostato ${vc.soglia}%): è il momento di preparare rinnovo o variante.</div>`
+        ? `<div class="riga att">${I.allarme}<span><b>Soglia di guardia superata</b> (l'hai messa al ${un1(vc.soglia)}%): è il momento di preparare rinnovo o variante.</span></div>`
         : "";
     const titolo = vc.scadePrimaIlTitolo === true
       ? `<div class="riga">L'autorizzazione scade <b>prima</b> che il volume finisca: il vincolo che arriva per primo è la data del titolo.</div>`
       : vc.scadePrimaIlTitolo === false
         ? `<div class="riga">Il volume finisce <b>prima</b> della scadenza del titolo: il vincolo che arriva per primo sono i m³.</div>` : "";
-    return `<div class="vita ${vc.stato === "ok" ? "" : vc.stato}">
-      <div class="titolo">Quanto resta del volume autorizzato</div>
-      <div class="n">${n0(vc.residuo)} m³</div>
-      <div class="barra ${vc.stato === "ok" ? "" : vc.stato}"><i style="width:${w}%"></i>${soglia}</div>
-      <div class="riga">Consumato <b>${un1(vc.pct)}%</b>: ${n0(vc.estratto)} m³ estratti su ${n0(vc.totale)} m³ autorizzati${vc.pregresso ? ` (di cui ${n0(vc.pregresso)} m³ dichiarati prima di Terra)` : ""}.</div>
+    const bStato = vc.stato === "danger" ? '<span class="badge danger">Fuori limite</span>'
+      : vc.stato === "warn" ? '<span class="badge warn">In guardia</span>'
+      : '<span class="badge ok">Nei limiti</span>';
+    return `<div class="vita ${st}">
+      <div class="vita-head">
+        <div class="vita-ico" aria-hidden="true">${I.clessi}</div>
+        <div class="vita-htxt">
+          <div class="vita-lab">Quanto resta del volume autorizzato</div>
+          <div class="vita-sub">${n0(vc.estratto)} m³ estratti su ${n0(vc.totale)} m³ concessi</div>
+        </div>
+        ${bStato}
+      </div>
+      <div class="vita-num">
+        <span class="vita-cifre">${n0(vc.residuo)}</span><span class="vita-un">m³ residui</span>
+        <span class="vita-pct">${un1(vc.pct)}% consumato</span>
+      </div>
+      <div class="vita-bar">
+        <div class="vita-track" role="img" aria-label="Consumato ${un1(vc.pct)} per cento del volume autorizzato${vc.soglia != null ? ", soglia di guardia al " + un1(vc.soglia) + " per cento" : ""}">
+          <i class="vita-fill" style="width:${w}%"></i>
+        </div>${soglia}
+        <div class="vita-scala${scalaCls}"><span class="s0">0%</span>${tag}<span class="s100">100%</span></div>
+      </div>
+      <div class="riga">Consumato <b>${un1(vc.pct)}%</b> del concesso${vc.pregresso ? `, di cui ${n0(vc.pregresso)} m³ dichiarati prima di Terra` : ""}.</div>
       <div class="riga">${ritmo}</div>
       ${breve ? "" : titolo}${avviso}
     </div>`;
@@ -412,12 +1374,14 @@
   function itemScadenza(s, azioni) {
     const lv = livelloScadenzaTerra(s.dataScadenza, s.preavvisoGiorni);
     const st = lv.stato, ric = +s.ricorrenzaMesi || 0;
-    return `<div class="item">
-      <div class="info"><div class="name">${esc(s.descrizione || etichettaTipoScadenza(s.tipo))}</div>
+    const cls = st === "scaduta" ? "st-danger" : st === "in-scadenza" ? "st-warn" : "st-ok";
+    const nome = esc(s.descrizione || etichettaTipoScadenza(s.tipo));
+    return `<div class="item ${cls}" style="cursor:default;">
+      <div class="info"><div class="name">${nome}</div>
       <div class="meta">${esc(etichettaTipoScadenza(s.tipo))} · ${fmtData(s.dataScadenza)} · ${esc(lv.label)} · preavviso ${+s.preavvisoGiorni || 0} gg${ric ? " · ogni " + ric + " mesi" : ""}</div></div>
       <span class="badge ${SB[st][0]}">${SB[st][1]}</span>
-      ${azioni ? `<span class="arr" style="cursor:pointer" title="${ric ? "Segna come fatta e proponi la prossima" : "Segna come fatta e rimuovi"}" data-fatta-scad="${s.id}">✔</span>
-      <span class="arr" style="cursor:pointer" title="Rimuovi la scadenza" data-del-scad="${s.id}">✕</span>` : ""}</div>`;
+      ${azioni ? `<button class="arr ok" type="button" title="${ric ? "Segna come fatta e proponi la prossima data" : "Segna come fatta e rimuovi"}" aria-label="Segna come fatta la scadenza ${nome}" data-fatta-scad="${s.id}">${A.fatto}</button>
+      <button class="arr del" type="button" title="Rimuovi la scadenza" aria-label="Rimuovi la scadenza ${nome}" data-del-scad="${s.id}">${A.del}</button>` : ""}</div>`;
   }
 
   function renderTitolo() {
@@ -434,12 +1398,15 @@
       const dett = [a.ente, "rilascio " + fmtData(a.dataRilascio), "scadenza " + fmtData(a.dataScadenza),
         a.superficieMq ? n0(a.superficieMq) + " m²" : "", a.volumeAutorizzatoM3 ? n0(a.volumeAutorizzatoM3) + " m³ autorizzati" : ""]
         .filter(Boolean).join(" · ");
-      return `<div class="item" data-aut="${a.id}" style="cursor:pointer" title="Tocca per rendere vigente questa scheda">
-        <div class="info"><div class="name">${esc(a.numeroAtto || "Atto senza numero")}</div><div class="meta">${esc(dett)}${a.dataScadenza ? " · " + esc(lv.label) : ""}</div></div>
-        <span class="badge ${a.stato === "vigente" ? "ok" : ""}">${a.stato === "vigente" ? "Vigente" : "Archiviata"}</span>
-        <span class="arr" style="cursor:pointer" title="Modifica la scheda" data-edit-aut="${a.id}">✎</span>
-        <span class="arr" style="cursor:pointer" title="Rimuovi la scheda" data-del-aut="${a.id}">✕</span></div>`;
-    }).join("") || '<div class="note" style="text-align:left;">Nessuna autorizzazione registrata: compila la scheda qui sotto (numero dell\'atto, ente, date e volume totale concesso).</div>';
+      const nome = esc(a.numeroAtto || "Atto senza numero");
+      return `<div class="item ${a.stato === "vigente" ? "st-accent" : "st-mute"}" data-aut="${a.id}" title="Tocca per rendere vigente questa scheda">
+        <div class="avatar${a.stato === "vigente" ? "" : " sup"}" aria-hidden="true">${I.atto}</div>
+        <div class="info"><div class="name">${nome}</div><div class="meta">${esc(dett)}${a.dataScadenza ? " · " + esc(lv.label) : ""}</div></div>
+        <span class="badge ${a.stato === "vigente" ? "accent" : "tag"}">${a.stato === "vigente" ? "Vigente" : "Archiviata"}</span>
+        <button class="arr" type="button" title="Modifica la scheda" aria-label="Modifica la scheda ${nome}" data-edit-aut="${a.id}">${A.mod}</button>
+        <button class="arr del" type="button" title="Rimuovi la scheda" aria-label="Rimuovi la scheda ${nome}" data-del-aut="${a.id}">${A.del}</button></div>`;
+    }).join("") || vuoto(I.atto, "Nessuna autorizzazione",
+        "Registra qui l'atto che ti autorizza a coltivare: numero, ente, date e soprattutto il <b>volume totale concesso</b>. È il dato da cui nasce tutto il resto.");
     $("aut-form-sec").textContent = editAut ? "Scheda autorizzazione — modifica in corso" : "Scheda autorizzazione";
     $("btn-aut-salva").textContent = editAut ? "Salva modifiche" : "Salva scheda";
 
@@ -447,21 +1414,21 @@
     const vis = SCA.filter(s => filtroScad === "tutte" || statoScadenzaTerra(s.dataScadenza, s.preavvisoGiorni) === filtroScad)
                    .slice().sort((a, b) => String(a.dataScadenza||"").localeCompare(String(b.dataScadenza||"")));
     $("scad-list").innerHTML = vis.map(s => itemScadenza(s, true)).join("")
-      || '<div class="note" style="text-align:left;">' + (filtroScad === "tutte"
-          ? "Nessuna scadenza registrata: comincia dall'autorizzazione e dalla fideiussione."
-          : "Nessuna scadenza in questa categoria.") + "</div>";
+      || (filtroScad === "tutte"
+          ? vuoto(I.sveglia, "Scadenzario vuoto", "Aggiungi la prima scadenza qui sotto: puoi partire da un adempimento tipico del titolo e mettere tu la data che leggi nel tuo atto.")
+          : vuoto(I.ok, "Niente in questa categoria", "Nessuna scadenza rientra nel filtro scelto. Tocca <b>Tutte</b> per vedere l'elenco completo."));
     const rp = riepilogoScadenze(SCA);
-    $("scad-count").textContent = rp.totale
-      ? `${rp.totale} ${rp.totale === 1 ? "scadenza" : "scadenze"} · ${rp.scadute} ${rp.scadute === 1 ? "scaduta" : "scadute"} · ${rp.inScadenza} in scadenza · ${rp.aPosto} a posto` : "";
-    document.querySelectorAll("#scad-filtri [data-filtro]").forEach(b =>
-      b.style.borderColor = b.getAttribute("data-filtro") === filtroScad ? "var(--app-accent)" : "");
+    $("scad-count").innerHTML = rp.totale
+      ? `<b>${rp.totale}</b> ${rp.totale === 1 ? "scadenza" : "scadenze"} · <b>${rp.scadute}</b> ${rp.scadute === 1 ? "scaduta" : "scadute"} · <b>${rp.inScadenza}</b> in scadenza · <b>${rp.aPosto}</b> a posto` : "";
+    segna("scad-filtri", filtroScad);
 
     // Quadro: solo le scadenze che chiedono attenzione (le prime tre).
     const urgenti = SCA.filter(s => statoScadenzaTerra(s.dataScadenza, s.preavvisoGiorni) !== "a-posto")
                        .sort((a, b) => String(a.dataScadenza||"").localeCompare(String(b.dataScadenza||""))).slice(0, 3);
     $("dash-scad").innerHTML = urgenti.map(s => itemScadenza(s, false)).join("")
-      || (rp.totale ? '<div class="note" style="text-align:left;">Nessuna scadenza da segnalare: tutte oltre il preavviso che hai impostato.</div>'
-                    : '<div class="note" style="text-align:left;">Scadenzario vuoto: dalla scheda <b>Titolo</b> puoi registrare autorizzazione, fideiussione, collaudo e rilievo periodico.</div>');
+      || (rp.totale
+          ? vuoto(I.ok, "Nessuna urgenza", "Tutte le scadenze registrate sono oltre il preavviso che hai impostato. Le trovi comunque nella scheda <b>Titolo</b>.")
+          : vuoto(I.sveglia, "Scadenzario vuoto", "Dalla scheda <b>Titolo</b> puoi registrare le scadenze del tuo atto — rinnovi, garanzie, rilievi periodici — con la data e il preavviso che decidi tu."));
   }
 
   // Scheda autorizzazione: form ⇄ dati. I campi vuoti restano null, così una
@@ -491,32 +1458,32 @@
   }
   $("btn-aut-salva").onclick = async () => {
     const d = leggiFormAut();
-    if (!d.numeroAtto) { $("aut-numero").style.borderColor = "var(--danger)";
-      $("aut-esito").textContent = "Serve almeno il numero dell'atto per identificare l'autorizzazione."; return; }
-    $("aut-numero").style.borderColor = "";
+    if (!d.numeroAtto) { err("aut-numero", true); fuoco("aut-numero");
+      esito("aut-esito", "Serve almeno il numero dell'atto per identificare l'autorizzazione.", "err"); return; }
+    err("aut-numero", false);
     const senzaVolume = d.volumeAutorizzatoM3 ? "" : " Senza il volume totale autorizzato il contatore vita cava resta spento.";
     if (editAut) {
       await db.aggiorna("autorizzazioni", editAut, d);
-      $("aut-esito").textContent = "Scheda «" + d.numeroAtto + "» aggiornata." + senzaVolume;
+      esito("aut-esito", "Scheda «" + d.numeroAtto + "» aggiornata." + senzaVolume);
       editAut = null;
     } else {
       const cera = AUT.some(a => a.stato === "vigente");
       for (const a of AUT) if (a.stato === "vigente") await db.aggiorna("autorizzazioni", a.id, { stato: "archiviata" });
       await db.aggiungi("autorizzazioni", { ...d, stato: "vigente" });
-      $("aut-esito").textContent = "Autorizzazione «" + d.numeroAtto + "» registrata come vigente"
-        + (cera ? " (la precedente è stata archiviata)" : "") + "." + senzaVolume;
+      esito("aut-esito", "Autorizzazione «" + d.numeroAtto + "» registrata come vigente"
+        + (cera ? " (la precedente è stata archiviata)" : "") + "." + senzaVolume);
     }
     await refresh();
   };
   $("btn-aut-nuova").onclick = () => {
-    editAut = null; riempiFormAut(null);
-    $("aut-esito").textContent = "Scheda vuota: compilala per registrare una nuova autorizzazione o una variante.";
-    renderTitolo(); $("aut-numero").focus();
+    editAut = null; riempiFormAut(null); err("aut-numero", false);
+    esito("aut-esito", "Scheda vuota: compilala per registrare una nuova autorizzazione o una variante.");
+    renderTitolo(); fuoco("aut-numero");
   };
 
   // Scadenzario: menù degli adempimenti tipici (solo etichette, nessuna
   // periodicità cablata: date, preavvisi e ricorrenze li decide l'utente).
-  $("scad-preset").innerHTML = '<option value="">Adempimento tipico del titolo… (facoltativo)</option>' +
+  $("scad-preset").innerHTML = '<option value="">— scegli, oppure scrivi tu la descrizione —</option>' +
     TIPI_SCADENZA_TERRA.map(p => `<option value="${p.chiave}">${esc(p.etichetta)}</option>`).join("");
   $("scad-preset").addEventListener("change", (e) => {
     const p = presetScadenzaTerra(e.target.value);
@@ -527,28 +1494,31 @@
         + "<b>Data, preavviso e ricorrenza vanno letti nel tuo atto e nelle norme della tua regione</b>: Terra non li presume.";
       const pre = parseInt($("aut-preavviso").value, 10);
       if (!$("new-scad-pre").value && pre >= 0) $("new-scad-pre").value = pre;
-      $("new-scad-data").focus();
+      err("new-scad-desc", false); fuoco("new-scad-data");
     } else { $("scad-preset-nota").style.display = "none"; $("scad-preset-nota").textContent = ""; }
   });
   $("scad-filtri").addEventListener("click", (e) => {
-    const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
-    if (f) { filtroScad = f; renderTitolo(); }
+    const b = e.target.closest && e.target.closest("[data-filtro]"); if (!b) return;
+    filtroScad = b.getAttribute("data-filtro"); renderTitolo();
   });
   $("btn-add-scad").onclick = async () => {
     const desc = $("new-scad-desc").value.trim(), data = $("new-scad-data").value;
     if (!desc || !data) {
-      if (!desc) $("new-scad-desc").style.borderColor = "var(--danger)";
-      if (!data) $("new-scad-data").style.borderColor = "var(--danger)";
-      $("scad-esito").textContent = "Servono la descrizione e la data di scadenza."; return;
+      err("new-scad-desc", !desc); err("new-scad-data", !data);
+      fuoco(!desc ? "new-scad-desc" : "new-scad-data");
+      esito("scad-esito", !desc
+        ? "Scrivi che cosa scade (per esempio «Rinnovo polizza fideiussoria»): senza descrizione non riconosceresti la riga."
+        : "Manca la data di scadenza: è quella che decide se la riga è scaduta, in scadenza o a posto.", "err");
+      return;
     }
-    $("new-scad-desc").style.borderColor = ""; $("new-scad-data").style.borderColor = "";
+    err("new-scad-desc", false); err("new-scad-data", false);
     const pre = parseInt($("new-scad-pre").value, 10);
     const ric = parseInt($("new-scad-ric").value, 10);
     const preav = Number.isFinite(pre) && pre >= 0 ? pre : (parseInt($("aut-preavviso").value, 10) || 60);
     await db.aggiungi("scadenze", { tipo: $("scad-preset").value || "altro", descrizione: desc,
       dataScadenza: data, preavvisoGiorni: preav, ricorrenzaMesi: Number.isFinite(ric) && ric > 0 ? ric : null, note: "" });
-    $("scad-esito").textContent = "Scadenza «" + desc + "» del " + fmtData(data) + " registrata (preavviso " + preav + " giorni"
-      + (Number.isFinite(ric) && ric > 0 ? ", si ripete ogni " + ric + " mesi" : "") + ").";
+    esito("scad-esito", "Scadenza «" + desc + "» del " + fmtData(data) + " registrata (preavviso " + preav + " giorni"
+      + (Number.isFinite(ric) && ric > 0 ? ", si ripete ogni " + ric + " mesi" : "") + ").");
     $("new-scad-desc").value = ""; $("new-scad-data").value = ""; $("new-scad-ric").value = "";
     $("scad-preset").value = ""; $("scad-preset-nota").style.display = "none";
     await refresh();
@@ -556,44 +1526,82 @@
   // Azioni su autorizzazioni e scadenze (delega sul documento, come il resto
   // dell'app). Chiudere una scadenza ricorrente propone la data successiva.
   document.addEventListener("click", async (e) => {
-    const at = e.target.getAttribute && e.target.getAttribute("data-edit-aut");
-    if (at) { const a = AUT.find(x => x.id === at); if (!a) return;
+    const bEdA = e.target.closest && e.target.closest("[data-edit-aut]");
+    if (bEdA) { e.stopPropagation();
+      const a = AUT.find(x => x.id === bEdA.getAttribute("data-edit-aut")); if (!a) return;
       editAut = a.id; riempiFormAut(a); renderTitolo();
-      $("aut-esito").textContent = "Stai modificando la scheda «" + (a.numeroAtto || "senza numero") + "».";
+      esito("aut-esito", "Stai modificando la scheda «" + (a.numeroAtto || "senza numero") + "»: correggi i campi e tocca Salva modifiche.");
       $("aut-numero").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
-    const ad = e.target.getAttribute && e.target.getAttribute("data-del-aut");
-    if (ad) { const a = AUT.find(x => x.id === ad); if (!a) return;
-      if (confirm("Rimuovere la scheda «" + (a.numeroAtto || "senza numero") + "»? Le scadenze registrate restano.")) {
-        if (editAut === ad) { editAut = null; riempiFormAut(null); }
-        await db.rimuovi("autorizzazioni", ad); await refresh(); } return; }
+    const bDelA = e.target.closest && e.target.closest("[data-del-aut]");
+    if (bDelA) { e.stopPropagation();
+      const ad = bDelA.getAttribute("data-del-aut");
+      const a = AUT.find(x => x.id === ad); if (!a) return;
+      const ok = await chiedi("Rimuovere l'autorizzazione",
+        "Stai per togliere la scheda <b>«" + esc(a.numeroAtto || "senza numero") + "»</b>.<br><br>"
+        + "Le <b>scadenze</b> che hai registrato restano dove sono."
+        + (a.stato === "vigente" ? " Questa però è la scheda <b>vigente</b>: togliendola il contatore della vita cava resta senza volume autorizzato finché non ne rendi vigente un'altra." : "")
+        + "<br><br>L'operazione non si può annullare.", "Rimuovi la scheda", true);
+      if (!ok) return;
+      if (editAut === ad) { editAut = null; riempiFormAut(null); }
+      await db.rimuovi("autorizzazioni", ad);
+      esito("aut-esito", "Scheda «" + (a.numeroAtto || "senza numero") + "» rimossa.");
+      await refresh(); return; }
     const av = e.target.closest && e.target.closest("[data-aut]");
     if (av) {
       const a = AUT.find(x => x.id === av.getAttribute("data-aut")); if (!a) return;
-      if (a.stato === "vigente") { $("aut-esito").textContent = "Questa scheda è già quella vigente: è lei a reggere il contatore vita cava."; return; }
-      if (!confirm("Rendere vigente «" + (a.numeroAtto || "senza numero") + "»? L'attuale verrà archiviata e il contatore userà questa.")) return;
+      if (a.stato === "vigente") { esito("aut-esito", "Questa scheda è già quella vigente: è lei a reggere il contatore della vita cava."); return; }
+      const viga = AUT.find(x => x.stato === "vigente");
+      const ok = await chiedi("Rendere vigente questa scheda",
+        "Il contatore della vita cava userà <b>«" + esc(a.numeroAtto || "senza numero") + "»</b>"
+        + (a.volumeAutorizzatoM3 ? " (" + n0(a.volumeAutorizzatoM3) + " m³ autorizzati)" : " — attenzione: questa scheda <b>non ha un volume autorizzato</b>, il contatore resterebbe spento")
+        + ".<br><br>" + (viga ? "La scheda «" + esc(viga.numeroAtto || "senza numero") + "», oggi vigente, viene <b>archiviata</b>: resta nell'elenco come storico." : "Nessun'altra scheda è vigente al momento."),
+        "Rendi vigente");
+      if (!ok) return;
       for (const x of AUT) if (x.stato === "vigente") await db.aggiorna("autorizzazioni", x.id, { stato: "archiviata" });
-      await db.aggiorna("autorizzazioni", a.id, { stato: "vigente" }); await refresh(); return; }
-    const sf = e.target.getAttribute && e.target.getAttribute("data-fatta-scad");
-    if (sf) { const s = SCA.find(x => x.id === sf); if (!s) return;
+      await db.aggiorna("autorizzazioni", a.id, { stato: "vigente" });
+      esito("aut-esito", "«" + (a.numeroAtto || "senza numero") + "» è ora la scheda vigente.");
+      await refresh(); return; }
+    const bFatta = e.target.closest && e.target.closest("[data-fatta-scad]");
+    if (bFatta) { e.stopPropagation();
+      const s = SCA.find(x => x.id === bFatta.getAttribute("data-fatta-scad")); if (!s) return;
       const ric = +s.ricorrenzaMesi || 0;
       if (ric > 0) {
         const prop = prossimaData(s.dataScadenza, ric) || "";
-        const v = prompt("«" + s.descrizione + "» fatta. Prossima scadenza proposta (ogni " + ric + " mesi) — puoi correggerla:", prop);
-        if (v && /^\d{4}-\d{2}-\d{2}$/.test(v.trim())) {
-          await db.aggiorna("scadenze", s.id, { dataScadenza: v.trim() });
-          $("scad-esito").textContent = "«" + s.descrizione + "» rinnovata al " + fmtData(v.trim()) + ".";
-          await refresh();
+        const v = await chiediValore("Scadenza fatta: quando torna?",
+          "Hai chiuso <b>«" + esc(s.descrizione) + "»</b>, che si ripete ogni <b>" + ric + " mesi</b>.<br><br>"
+          + "Terra propone la data ottenuta aggiungendo quei mesi alla scadenza precedente. <b>Controllala sul tuo atto</b> e correggila se lì è scritto altro: qui non c'è nessuna regola di legge.",
+          '<label class="fl" for="modal-campo">Prossima scadenza</label><input class="dw-input" id="modal-campo" type="date" value="' + prop + '">',
+          "Rinnova");
+        if (v == null) return;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(String(v).trim())) {
+          esito("scad-esito", "Data non valida: la scadenza «" + s.descrizione + "» è rimasta com'era.", "err"); return;
         }
-      } else if (confirm("Segnare «" + s.descrizione + "» come fatta e toglierla dallo scadenzario?")) {
+        await db.aggiorna("scadenze", s.id, { dataScadenza: String(v).trim() });
+        esito("scad-esito", "«" + s.descrizione + "» rinnovata al " + fmtData(String(v).trim()) + ".");
+        await refresh();
+      } else {
+        const ok = await chiedi("Segnare come fatta",
+          "<b>«" + esc(s.descrizione) + "»</b> del " + fmtData(s.dataScadenza) + " esce dallo scadenzario.<br><br>"
+          + "Questa scadenza <b>non si ripete</b>, quindi viene rimossa del tutto. Se invece torna ogni tanto, annulla e rimettila con i mesi di ricorrenza.",
+          "Fatta, rimuovi");
+        if (!ok) return;
         await db.rimuovi("scadenze", s.id);
-        $("scad-esito").textContent = "«" + s.descrizione + "» chiusa e rimossa dallo scadenzario.";
+        esito("scad-esito", "«" + s.descrizione + "» chiusa e rimossa dallo scadenzario.");
         await refresh();
       }
       return; }
-    const sd = e.target.getAttribute && e.target.getAttribute("data-del-scad");
-    if (sd) { const s = SCA.find(x => x.id === sd);
-      if (s && confirm("Rimuovere la scadenza «" + s.descrizione + "»?")) {
-        await db.rimuovi("scadenze", sd); await refresh(); } return; }
+    const bDelS = e.target.closest && e.target.closest("[data-del-scad]");
+    if (bDelS) { e.stopPropagation();
+      const sd = bDelS.getAttribute("data-del-scad");
+      const s = SCA.find(x => x.id === sd); if (!s) return;
+      const ok = await chiedi("Rimuovere la scadenza",
+        "<b>«" + esc(s.descrizione) + "»</b> del " + fmtData(s.dataScadenza) + " sparisce dallo scadenzario e non ti avviserà più.<br><br>"
+        + "Usalo quando la scadenza non ti riguarda più; se invece l'hai solo <b>evasa</b>, chiudila con la spunta.",
+        "Rimuovi", true);
+      if (!ok) return;
+      await db.rimuovi("scadenze", sd);
+      esito("scad-esito", "Scadenza «" + s.descrizione + "» rimossa.");
+      await refresh(); return; }
   });
 
   // Valore del materiale estratto: volume elaborato dell'anno × densità ×
@@ -628,33 +1636,57 @@
 
   // interazioni: fronte alterna attivo/sospeso; form registra rilievo elaborato
   document.addEventListener("click", async (e) => {
-    const delRil = e.target.getAttribute && e.target.getAttribute("data-del-ril");
-    if (delRil) { const r = RIL.find(x => x.id === delRil);
-      if (r && confirm("Annullare il rilievo pianificato del " + dmy(r.data) + "?")) {
-        await db.rimuovi("rilievi", delRil); await refresh(); } return; }
+    const bDelR = e.target.closest && e.target.closest("[data-del-ril]");
+    if (bDelR) { e.stopPropagation();
+      const delRil = bDelR.getAttribute("data-del-ril");
+      const r = RIL.find(x => x.id === delRil); if (!r) return;
+      const ok = await chiedi("Annullare il rilievo pianificato",
+        "Il rilievo previsto per il <b>" + fmtData(r.data) + "</b>" + (r.titolo ? " (" + esc(r.titolo) + ")" : "") + " esce dal calendario.<br><br>"
+        + "Nessun volume viene toccato: i rilievi <b>già elaborati</b> restano tutti al loro posto.",
+        "Annulla il rilievo", true);
+      if (!ok) return;
+      await db.rimuovi("rilievi", delRil);
+      esito("ril-esito", "Rilievo pianificato del " + fmtData(r.data) + " annullato.");
+      await refresh(); return; }
     const pi = e.target.closest && e.target.closest("[data-piano]");
-    if (pi) { const p = PIA.find(x => x.id === pi.getAttribute("data-piano"));
-      if (p) { const v = prompt("Volume annuo pianificato (m³) — l'avanzamento si ricalcola:", p.pianificatoAnnuoM3);
-        if (v != null) { const m3 = parseInt(String(v).replace(/\./g,""), 10);
-          if (m3 > 0) { await db.aggiorna("piano", p.id, { pianificatoAnnuoM3: m3 }); await refresh(); } } }
-      return; }
-    const editFroId = e.target.getAttribute && e.target.getAttribute("data-edit-fro");
-    if (editFroId) { const f = FRO.find(x => x.id === editFroId); if (!f) return;
-      if (editFro === f.id) {   // ri-tocco la ✎ dello stesso fronte = annulla
-        editFro = null; $("btn-fro").textContent = "Aggiungi"; $("fro-esito").textContent = "Modifica annullata.";
-        ["fro-nome","fro-banco","fro-quota"].forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; }); return; }
+    if (pi) { const p = PIA.find(x => x.id === pi.getAttribute("data-piano")); if (!p) return;
+      const v = await chiediValore("Volume annuo pianificato",
+        "Quanti m³ prevedi di estrarre in un anno su <b>«" + esc(p.titolo) + "»</b>?<br><br>"
+        + "È il numero con cui Terra calcola l'<b>avanzamento del piano</b> e la <b>proiezione di fine anno</b>: mettici quello che hai scritto nel tuo programma di coltivazione.",
+        '<label class="fl" for="modal-campo">Volume annuo (m³)</label><input class="dw-input" id="modal-campo" type="number" min="1" value="' + (p.pianificatoAnnuoM3 || "") + '">',
+        "Salva");
+      if (v == null) return;
+      const m3 = parseInt(String(v).replace(/\./g, ""), 10);
+      if (!(m3 > 0)) { esito("terra-esito", "Serve un volume annuo maggiore di zero: il piano è rimasto com'era.", "err"); return; }
+      await db.aggiorna("piano", p.id, { pianificatoAnnuoM3: m3 });
+      esito("terra-esito", "Piano annuo di «" + p.titolo + "» portato a " + n0(m3) + " m³.");
+      await refresh(); return; }
+    const bEdF = e.target.closest && e.target.closest("[data-edit-fro]");
+    if (bEdF) { e.stopPropagation();
+      const f = FRO.find(x => x.id === bEdF.getAttribute("data-edit-fro")); if (!f) return;
+      if (editFro === f.id) {   // ri-tocco la matita dello stesso fronte = annulla
+        annullaEditFronte(); esito("fro-esito", "Modifica annullata."); return; }
       editFro = f.id;
       $("fro-nome").value = f.nome || ""; $("fro-banco").value = f.banco || ""; $("fro-quota").value = f.quota != null ? f.quota : "";
-      ["fro-nome","fro-banco","fro-quota"].forEach(i => $(i).style.borderColor = "");
+      ["fro-nome","fro-banco","fro-quota"].forEach(i => err(i, false));
       $("btn-fro").textContent = "Salva modifica";
-      $("fro-esito").textContent = "Stai modificando «" + f.nome + "»: cambi nome/banco/quota, rilievi e avanzamento restano.";
+      $("fro-form-sec").textContent = "Fronte in modifica";
+      esito("fro-esito", "Stai modificando «" + f.nome + "»: cambi nome, banco e quota — rilievi e avanzamento restano.");
       $("fro-nome").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
     const it = e.target.closest && e.target.closest("[data-fro]");
     if (it) { const f = FRO.find(x => x.id === it.getAttribute("data-fro"));
       if (!f) return;
       const nuovo = f.stato === "attivo" ? "sospeso" : "attivo";
-      if (nuovo === "sospeso" && !confirm("Sospendere il " + f.nome + "? Le lavorazioni sul fronte risulteranno ferme.")) return;
-      await db.aggiorna("fronti", f.id, { stato: nuovo }); await refresh(); }
+      if (nuovo === "sospeso") {
+        const ok = await chiedi("Sospendere il fronte",
+          "<b>«" + esc(f.nome) + "»</b> passa a <b>sospeso</b>: nelle liste risulterà fermo, così chi guarda sa che lì non si sta coltivando.<br><br>"
+          + "Rilievi e volumi già registrati non cambiano, e puoi riattivarlo quando vuoi toccandolo di nuovo.",
+          "Sospendi");
+        if (!ok) return;
+      }
+      await db.aggiorna("fronti", f.id, { stato: nuovo });
+      esito("fro-esito", "Fronte «" + f.nome + "» " + (nuovo === "sospeso" ? "sospeso." : "riattivato."));
+      await refresh(); }
   });
   $("btn-terra-export").onclick = () => {
     let csv = "tipo;nome;stato;dettaglio\n";
@@ -664,30 +1696,32 @@
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "terra_fronti_rilievi.csv"; a.click();
-    $("terra-esito").textContent = "Esportati " + FRO.length + " fronti e " + RIL.length + " rilievi (CSV).";
+    esito("terra-esito", "Esportati " + FRO.length + " fronti e " + RIL.length + " rilievi (CSV).");
   };
   $("btn-fro").onclick = async () => {
     const nome = $("fro-nome").value.trim(), banco = $("fro-banco").value.trim(), quota = +$("fro-quota").value || 0;
-    if (!nome) { $("fro-nome").style.borderColor = "var(--danger)"; $("fro-esito").textContent = "Serve il nome del fronte."; return; }
+    if (!nome) { err("fro-nome", true); fuoco("fro-nome");
+      esito("fro-esito", "Serve il nome del fronte: è quello che leggerai nelle liste e nei rilievi.", "err"); return; }
     if (FRO.some(f => f.nome.toLowerCase() === nome.toLowerCase() && f.id !== editFro)) {
-      $("fro-nome").style.borderColor = "var(--danger)"; $("fro-esito").textContent = "Esiste già un fronte con questo nome."; return; }
-    $("fro-nome").style.borderColor = "";
+      err("fro-nome", true); fuoco("fro-nome");
+      esito("fro-esito", "Esiste già un fronte chiamato «" + nome + "»: scegli un nome diverso per non confonderli.", "err"); return; }
+    err("fro-nome", false);
+    const modifica = !!editFro;
     if (editFro) {
       await db.aggiorna("fronti", editFro, { nome, banco, quota });   // rilievi/avanzamento/stato restano
-      editFro = null; $("btn-fro").textContent = "Aggiungi";
     } else {
       await db.aggiungi("fronti", { nome, banco, quota, dettaglio: "", avanzamento: 0, stato: "attivo" });
     }
-    $("fro-nome").value = ""; $("fro-banco").value = ""; $("fro-quota").value = "";
-    $("fro-esito").textContent = "Fronte " + nome + " salvato.";
-    $("fro-nome").focus();   // torna al primo campo per aggiungere subito il prossimo
+    annullaEditFronte();
+    esito("fro-esito", "Fronte «" + nome + "» " + (modifica ? "aggiornato." : "aggiunto."));
+    fuoco("fro-nome");   // torna al primo campo per aggiungere subito il prossimo
     await refresh();
   };
   $("btn-fro-import").onclick = () => $("fro-file").click();
   $("fro-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseFrontiCsv(await file.text());
-    if (!righe.length) { $("fro-esito").textContent = "Nessuna riga valida: controlla che le colonne siano nome;banco;quota;stato."; e.target.value = ""; return; }
+    if (!righe.length) { esito("fro-esito", "Nessuna riga valida nel file: controlla che le colonne siano nome; banco; quota; stato.", "err"); e.target.value = ""; return; }
     let agg = 0, dup = 0;
     for (const r of righe) {
       if (FRO.some(f => f.nome.trim().toLowerCase() === r.nome.toLowerCase())) { dup++; continue; }
@@ -695,29 +1729,33 @@
       agg++;
     }
     $("fro-file").value = "";
-    $("fro-esito").textContent = `Import fronti: ${agg} aggiunti${dup ? `, ${dup} già presenti (saltati)` : ""}.`;
+    esito("fro-esito", `Import fronti: ${agg} aggiunti${dup ? `, ${dup} già presenti (saltati)` : ""}.`);
     await refresh();
   };
   $("btn-add-ril").onclick = async () => {
     const data = $("new-ril-data").value, vol = parseInt($("new-ril-vol").value, 10);
     const futuro = data && data > new Date().toISOString().slice(0,10);
-    if (!data || (!futuro && !(vol > 0))) {
-      $("new-ril-vol").style.borderColor = "var(--danger)"; if (!data) $("new-ril-data").style.borderColor = "var(--danger)";
-      $("ril-esito").textContent = "Serve la data e, per un rilievo già eseguito, il volume in m³ (per una data futura il volume non serve: verrà pianificato)."; return;
+    if (!data) {
+      err("new-ril-data", true); fuoco("new-ril-data");
+      esito("ril-esito", "Manca la data del rilievo: è lei a dire se il rilievo è già stato fatto o va messo in calendario.", "err"); return;
     }
-    $("new-ril-vol").style.borderColor = ""; $("new-ril-data").style.borderColor = "";
+    if (!futuro && !(vol > 0)) {
+      err("new-ril-data", false); err("new-ril-vol", true); fuoco("new-ril-vol");
+      esito("ril-esito", "Per un rilievo già eseguito serve il volume in m³. Se invece il rilievo deve ancora avvenire, metti una data futura: il volume non serve.", "err"); return;
+    }
+    err("new-ril-vol", false); err("new-ril-data", false);
     const fronteId = $("new-ril-fronte").value || null;
     const fr = FRO.find(f => f.id === fronteId);
     const metodo = $("new-ril-metodo").value || null;
     const gsd = $("new-ril-gsd").value.trim() || null;
     if (futuro) {
       await db.aggiungi("rilievi", { titolo: "Prossimo rilievo" + (fr ? " — " + fr.nome : ""), data, tipo: "Drone pianificato", volumeM3: null, fronteId, stato: "pianificato" });
-      $("ril-esito").textContent = "Rilievo PIANIFICATO per il " + dmy(data) + (fr ? " su " + fr.nome : "") + ".";
+      esito("ril-esito", "Rilievo pianificato per il " + fmtData(data) + (fr ? " su " + fr.nome : "") + ".");
     } else {
       await db.aggiungi("rilievi", { titolo: "Rilievo drone " + dmy(data) + (fr ? " — " + fr.nome : ""), data, tipo: "Ortofoto + DEM", volumeM3: vol, fronteId, stato: "elaborato", metodo, gsd });
-      $("ril-esito").textContent = "Rilievo del " + dmy(data) + " registrato: " + vol.toLocaleString("it-IT") + " m³" + (fr ? " su " + fr.nome : "") + " (KPI aggiornati).";
+      esito("ril-esito", "Rilievo del " + fmtData(data) + " registrato: " + vol.toLocaleString("it-IT") + " m³" + (fr ? " su " + fr.nome : "") + ".");
     }
-    $("new-ril-data").value = ""; $("new-ril-vol").value = ""; $("new-ril-metodo").value = ""; $("new-ril-gsd").value = ""; $("new-ril-data").focus(); await refresh();
+    $("new-ril-data").value = ""; $("new-ril-vol").value = ""; $("new-ril-metodo").value = ""; $("new-ril-gsd").value = ""; fuoco("new-ril-data"); await refresh();
   };
   // Ponte col visore nuvola (Genesi): riprende l'ULTIMO ritaglio con volume
   // calcolato e precompila il form del rilievo — il flusso drone→Terra chiuso.
@@ -725,21 +1763,22 @@
     let ultimo = null;
     try { const a = JSON.parse(localStorage.getItem("genesiNuvole") || "[]");
       for (let i = a.length - 1; i >= 0; i--) if (a[i] && a[i].volume != null) { ultimo = a[i]; break; } } catch (e) {}
-    if (!ultimo) { $("ril-esito").textContent = "Nessun volume dal visore: apri il visore nuvola (in Genesi), carica la nuvola del drone, ritaglia il cumulo/fronte e torna qui."; return; }
+    if (!ultimo) { esito("ril-esito", "Nessun volume dal visore: apri il visore nuvola (in Genesi), carica la nuvola del drone, ritaglia il cumulo o il fronte e torna qui.", "err"); return; }
     const vol = Math.max(0, Math.round(+String(ultimo.volume).replace(/[^0-9.,-]/g, "").replace(",", ".")) || 0);
-    if (!vol) { $("ril-esito").textContent = "L'ultimo ritaglio del visore non ha un volume in metri reali (nuvola non georeferenziata)."; return; }
+    if (!vol) { esito("ril-esito", "L'ultimo ritaglio del visore non ha un volume in metri reali: la nuvola non è georeferenziata.", "err"); return; }
     const oggiISO = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
     $("new-ril-data").value = oggiISO;
     $("new-ril-vol").value = vol;
     $("new-ril-metodo").value = "senza GCP";   // drone consumer: scala approssimata, onesto
-    $("ril-esito").textContent = "Precompilato dal visore: «" + (ultimo.nome || "rilievo") + "» ≈ " + vol.toLocaleString("it-IT") + " m³ (" + (ultimo.data || "") + "). Controlla fronte e metodo, poi Registra.";
+    err("new-ril-data", false); err("new-ril-vol", false);
+    esito("ril-esito", "Precompilato dal visore: «" + (ultimo.nome || "rilievo") + "» ≈ " + vol.toLocaleString("it-IT") + " m³. Controlla fronte e metodo, poi tocca Registra.");
   };
   // Import rilievi elaborati da CSV (onboarding storico).
   $("btn-imp-ril").onclick = () => $("ril-file").click();
   $("ril-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseRilieviCsv(await file.text());
-    if (!righe.length) { $("ril-esito").textContent = "Nessuna riga valida: controlla che le colonne siano data;volumeM3;metodo;gsd;fronte."; e.target.value = ""; return; }
+    if (!righe.length) { esito("ril-esito", "Nessuna riga valida nel file: controlla che le colonne siano data; volumeM3; metodo; gsd; fronte.", "err"); e.target.value = ""; return; }
     // Dedup come gli altri import: un doppio click su "Importa" non deve
     // raddoppiare i rilievi. Firma = data|fronteId|volumeM3 (un rilievo dello
     // stesso giorno, fronte e volume è lo stesso dato re-importato).
@@ -761,15 +1800,15 @@
       agg++;
     }
     $("ril-file").value = "";
-    $("ril-esito").textContent = `Import rilievi: ${agg} rilievi elaborati aggiunti`
+    esito("ril-esito", `Import rilievi: ${agg} rilievi elaborati aggiunti`
       + (dup ? `, ${dup} già presenti (saltati)` : "")
-      + (senzaFronte ? " (" + senzaFronte + " con un fronte non riconosciuto: restano non assegnati)" : "") + ".";
+      + (senzaFronte ? " (" + senzaFronte + " con un fronte non riconosciuto: restano non assegnati)" : "") + ".");
     await refresh();
   };
   // Recupero errore: appena l'utente corregge un campo, togli il bordo
   // rosso e il messaggio di esito, così l'avviso non resta appeso.
   const clearErr = (inputId, esitoId) => $(inputId).addEventListener("input", () => {
-    $(inputId).style.borderColor = ""; if (esitoId) $(esitoId).textContent = "";
+    err(inputId, false); if (esitoId) { const el = $(esitoId); if (el) { el.textContent = ""; el.className = "note esito"; } }
   });
   clearErr("fro-nome", "fro-esito");
   ["new-ril-data","new-ril-vol"].forEach(i => clearErr(i, "ril-esito"));
