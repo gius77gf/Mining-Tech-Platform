@@ -14,6 +14,31 @@ quindi non ci sono conflitti). Si serializza solo ciò che tocca `shared/`,
 
 ---
 
+## LO STANDARD DI QUALITÀ — come si giudica "fatto bene"
+*(fondatore 27/07: «si può aumentare e di molto la qualità... puoi fare di
+meglio». Applicare le variabili di colore NON produce qualità.)*
+
+La qualità percepita nasce da **materia e profondità**, non dalla tinta:
+1. **Luce stratificata**: non un gradiente solo, ma luce d'ambiente +
+   riflesso sul bordo alto + ombra propria + ombra proiettata. Gli oggetti
+   devono avere spessore, non essere rettangoli colorati.
+2. **Bordi che catturano la luce**: bordo alto più chiaro, basso più scuro,
+   come un oggetto illuminato dall'alto (la riga `::before` del core).
+3. **Aloni d'ambiente** nella tinta dell'app: atmosfera, non nero piatto.
+4. **Alone che segue il mouse** sulle superfici interattive: è la firma
+   dinamica del core, oggi assente nelle app.
+5. **Micro-profondità** su badge, pillole, bottoni, campi: ognuno col suo
+   spessore.
+6. **Tipografia**: gerarchia vera, cifre allineate nelle tabelle, titoli col
+   trattamento del core.
+7. **Movimento**: curve morbide, stati hover/focus/attivo che rispondono.
+8. **Ritmo**: spaziature su una scala coerente, nessun "quasi allineato".
+
+**Il metodo che fa la differenza**: dopo ogni modifica, aprire l'app e il
+core affiancati, e correggere dove l'app è più povera. **Almeno tre
+iterazioni** guarda-correggi-riguarda: la prima versione non è mai quella
+buona. Non ci si ferma quando funziona, ci si ferma quando è **bello**.
+
 ## BLOCCO 0 — ESTETICA: LE APP DIVENTANO GEMELLE DEL CORE *(trasversale)*
 Riferimento vincolante: `docs/SPECIFICA_ESTETICA_CORE.md` (specifica estratta
 valore per valore dal core `index.html`). Ogni app cambia **solo** nel colore
