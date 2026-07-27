@@ -4,188 +4,904 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Flotta — Mezzi & costi</title>
-<meta name="theme-color" content="#5b7186">
+<meta name="theme-color" content="#110b0f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Flotta">
-<link rel="manifest" href='data:application/manifest+json,{"name":"Deepwork Flotta","short_name":"Flotta","description":"Mezzi e manutenzione","start_url":".","scope":".","display":"standalone","orientation":"portrait","background_color":"%23100d07","theme_color":"%235b7186","categories":["business","productivity"],"lang":"it","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 180 180%27><rect width=%27180%27 height=%27180%27 rx=%2732%27 fill=%27%235b7186%27/><text x=%2790%27 y=%27126%27 font-family=%27sans-serif%27 font-size=%27104%27 font-weight=%27700%27 fill=%27%23ffffff%27 text-anchor=%27middle%27>F</text></svg>","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}'>
+<link rel="manifest" href='data:application/manifest+json,{"name":"Deepwork Flotta","short_name":"Flotta","description":"Mezzi e manutenzione","start_url":".","scope":".","display":"standalone","orientation":"portrait","background_color":"%23110b0f","theme_color":"%23110b0f","categories":["business","productivity"],"lang":"it","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 180 180%27><rect width=%27180%27 height=%27180%27 rx=%2732%27 fill=%27%23c360a6%27/><text x=%2790%27 y=%27126%27 font-family=%27sans-serif%27 font-size=%27104%27 font-weight=%27700%27 fill=%27%23110b0f%27 text-anchor=%27middle%27>F</text></svg>","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}'>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../shared/deepwork-style.css">
 <link rel="stylesheet" href="../../shared/dw-app-shell.css">
 <style>
-  /* Flotta: accento della palette funzionale deepwork */
-  :root { --app-accent:#5b7186; --app-accent2:#7fbcff; }
+/* ══════════════════════════════════════════════════════════════════════
+   FLOTTA — mezzi e manutenzione
+   STRUTTURA: identica al core Deepwork (index.html alla radice): stesse
+   misure, raggi, ombre, curve, comportamenti.
+   COLORE: palette propria di Flotta (magenta lampone 340° + acciaio
+   ardesia 255°, docs/PALETTE_APP.md §3.3), fusa in TUTTE le superfici.
+   Carattere: meccanica, precisa, d'officina.
+   ══════════════════════════════════════════════════════════════════════ */
+
+:root{
+  color-scheme:dark;   /* selettori, calendari e frecce dei numeri in scuro */
+  /* ---- rampa dell'accento (4 gradini) ---- */
+  --app-accent-deep:#883871;
+  --app-accent:     #c360a6;   /* SOLO grafica: bordi, strisce, pallini   */
+  --app-accent2:    #e798cd;   /* UNICO ammesso per il testo              */
+  --app-accent-soft:#f1cde4;
+  --app-support:    #4d6b91;   /* acciaio ardesia (255°): è ciò che rende */
+  --app-support2:   #91a7c3;   /* l'app "officina" e non "moda"           */
+
+  /* ---- superfici: tutte velate di lampone ---- */
+  --bg:#110b0f; --dark:#150e13; --panel:#1b1117;
+  --card:#251821; --card2:#2e1d28;
+  --border:#382431; --border2:#432b3b; --border-hi:#7b5f71;
+
+  /* ---- testo ---- */
+  --text:#f2e4ed; --muted2:#c4a7ba; --muted:#a6889b; --disabled:#7e6976;
+
+  /* ---- stati (nessuno litiga con il lampone: min 44° di distanza) ---- */
+  --success:#6abb6e; --warn:#f8ac3d; --danger:#f05e5c; --info:#55a6ec;
+
+  /* ---- gradienti ---- */
+  --grad:    linear-gradient(135deg,#e677c5,#c65aa7);
+  --grad-on: #110b0f;
+  --grad-sup:linear-gradient(135deg,#a9bcd6,#5d7fa8);
+  --gradSuc: linear-gradient(135deg,#6abb6e,#2f7a33);
+  --grad3:   linear-gradient(135deg,#f05e5c,#a32a29);
+  --grad-ok: linear-gradient(135deg,#96d89a,#5aa85e);
+  --grad-wr: linear-gradient(135deg,#ffc873,#e5972c);
+  --grad-dg: linear-gradient(135deg,#ff9490,#d84f4a);
+
+  /* ---- luce, aloni, ombre ---- */
+  --shadow-app:0 10px 30px rgba(77,17,62,.42);
+  --glow-app:  rgba(195,96,166,.30);
+  --tint-app:  rgba(195,96,166,.14);
+  --tint-sup:  rgba(145,167,195,.14);
+  --focus-ring:rgba(231,152,205,.34);
+  --sel:       rgba(195,96,166,.30);
+  --halo-1:    rgba(195,96,166,.065);
+  --halo-2:    rgba(145,167,195,.055);
+
+  /* Stratificazione della luce: riflesso sul bordo alto + ombra propria
+     sul bordo basso. È ciò che dà spessore fisico agli oggetti. */
+  --edge:   inset 0 1px 0 rgba(255,255,255,.055), inset 0 -1px 0 rgba(0,0,0,.28);
+  --edge-hi:inset 0 1px 0 rgba(255,255,255,.20);
+  --sh1:0 1px 5px rgba(0,0,0,.20);
+  --sh2:0 2px 8px rgba(0,0,0,.26);
+  --sh3:0 6px 16px rgba(0,0,0,.32);
+  --sh4:0 10px 24px rgba(0,0,0,.38);
+  --sh-btn:0 5px 16px rgba(136,56,113,.42);
+  --sh-btn-hi:0 8px 22px rgba(136,56,113,.55);
+}
+
+/* ─────────────── fondo e atmosfera ─────────────── */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+body.dw{
+  background:var(--bg); color:var(--text);
+  overflow-x:hidden; overscroll-behavior-y:contain;
+  padding-bottom:calc(104px + env(safe-area-inset-bottom));
+}
+body.dw::before{
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(ellipse 700px 500px at 15% 5%,  var(--halo-1) 0%, transparent 65%),
+    radial-gradient(ellipse 500px 400px at 85% 85%, var(--halo-2) 0%, transparent 65%);
+}
+.top,.page,.nav,.tour-banner,.toast,.modal-ov{position:relative; z-index:1;}
+*{-webkit-tap-highlight-color:transparent;}
+button,a,label,select,input,.item,.kpi,.chg,.mbtn{touch-action:manipulation;}
+::selection{background:var(--sel);}
+:focus{outline:none;}
+:focus-visible{outline:none; box-shadow:0 0 0 3px var(--focus-ring); border-radius:5px;}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-track{background:var(--dark);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px;}
+::-webkit-scrollbar-thumb:hover{background:var(--app-accent);}
+img{max-width:100%;}
+
+/* ─────────────── barra alta (copia di .topbar del core) ─────────────── */
+.top{
+  position:sticky; top:0; z-index:100;
+  display:flex; align-items:center; gap:10px;
+  min-height:62px; padding:0 14px;
+  background:linear-gradient(180deg,rgba(46,29,40,.97),rgba(21,14,19,.97));
+  -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  box-shadow:0 2px 12px rgba(0,0,0,.34);
+}
+.top::after{                    /* la riga luminosa del core, in lampone */
+  content:""; position:absolute; left:0; right:0; bottom:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--app-accent),transparent);
+  opacity:.55;
+}
+.top-brand{flex:1; min-width:0;}
+.logo-sm{
+  font-family:'Barlow Condensed',sans-serif; font-size:17px; font-weight:800;
+  letter-spacing:3px; text-transform:uppercase; color:var(--app-accent2);
+  text-shadow:0 0 14px rgba(195,96,166,.45); line-height:1.1;
+}
+.role-sm{
+  font-size:9px; color:var(--muted); letter-spacing:2px; text-transform:uppercase;
+  margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.dw-home,.dw-exit{
+  position:static; top:auto; right:auto;
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  min-height:var(--tap); min-width:var(--tap); padding:0 11px;
+  border:1px solid var(--border2); border-radius:var(--r-sm);
+  background:var(--card); color:var(--muted2);
+  font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; text-decoration:none; cursor:pointer;
+  flex-shrink:0; box-shadow:var(--edge); transition:all .18s var(--ease);
+}
+.dw-home{padding:0 13px; line-height:0;}
+.dw-home svg{width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:1.7;
+  stroke-linecap:round; stroke-linejoin:round;}
+.dw-home:hover{color:var(--app-accent2); border-color:var(--app-accent); background:var(--card2);}
+.dw-exit:hover{color:var(--danger); border-color:var(--danger);}
+.top h1,body.has-exit .top h1{padding-right:0 !important;}
+
+/* nastro "modalità tour" — forma .info-box del core */
+.tour-banner{
+  background:var(--card2); border:1px solid var(--border);
+  border-left:3px solid var(--app-accent); border-radius:var(--r-sm);
+  color:var(--muted2); font-size:12px; line-height:1.5;
+  padding:10px 13px; margin:14px 16px 0; text-align:left; box-shadow:var(--edge);
+}
+.tour-banner b{color:var(--text);}
+
+/* ─────────────── pagine ─────────────── */
+.page{padding:16px 16px calc(24px + env(safe-area-inset-bottom));}
+.page.active{display:block; animation:flFade .22s var(--ease);}
+@keyframes flFade{from{opacity:0} to{opacity:1}}
+
+/* ─────────────── KPI (copia di .kpi-card del core) ─────────────── */
+.kpis{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px;}
+.kpi{
+  position:relative; overflow:hidden;
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--border);
+  border-top:3px solid var(--app-accent);
+  border-left:3px solid var(--app-accent);
+  border-radius:var(--r-sm); padding:11px 13px 12px;
+  /* la striscia di sinistra resta sempre lampone: è l'app. Lo stato sta in alto. */
+  box-shadow:var(--sh1),var(--edge);
+  transition:transform .18s var(--ease),box-shadow .18s var(--ease),border-color .2s;
+}
+.kpi::after{                                   /* alone che segue il mouse */
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+  border-radius:inherit;
+  background:radial-gradient(200px 160px at var(--mx,50%) var(--my,30%),
+             var(--kpi-glow,var(--glow-app)), transparent 62%);
+  opacity:0; transition:opacity .25s var(--ease);
+}
+.kpi:hover::after{opacity:1;}
+.kpi>*{position:relative; z-index:1;}
+.kpi:hover{transform:translateY(-3px); box-shadow:var(--sh4),var(--edge);}
+.kpi:active{transform:translateY(-1px) scale(.99);}
+.kpi .l{
+  font-family:'Barlow',sans-serif; font-size:10px; font-weight:600;
+  letter-spacing:2px; text-transform:uppercase; color:var(--muted); line-height:1.3;
+}
+.kpi .n{
+  font-family:'Barlow Condensed',sans-serif; font-size:32px; font-weight:800;
+  line-height:1.05; margin-top:3px; font-variant-numeric:tabular-nums;
+  background:var(--grad); -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent; color:transparent;
+}
+.kpi.ok    {border-top-color:var(--success); --kpi-glow:rgba(106,187,110,.24);}
+.kpi.warn  {border-top-color:var(--warn);    --kpi-glow:rgba(248,172,61,.24);}
+.kpi.danger{border-top-color:var(--danger);  --kpi-glow:rgba(240,94,92,.24); animation:pulseDanger 2.4s ease-in-out infinite;}
+.kpi.accent{border-top-color:var(--app-accent);}
+.kpi.ok .n    {background:var(--grad-ok);}
+.kpi.warn .n  {background:var(--grad-wr);}
+.kpi.danger .n{background:var(--grad-dg);}
+.kpi.ok .n,.kpi.warn .n,.kpi.danger .n{-webkit-background-clip:text; background-clip:text;}
+@keyframes pulseDanger{0%,100%{border-top-color:var(--danger)}50%{border-top-color:#8a3230}}
+
+/* ─────────────── cartellone disponibilità flotta (quadro strumenti) ─────────────── */
+.gauge{
+  position:relative; overflow:hidden;
+  display:flex; align-items:center; gap:14px;
+  background:linear-gradient(135deg,var(--card2),var(--card));
+  border:1px solid var(--border); border-left:3px solid var(--success);
+  border-radius:var(--r); padding:13px 16px; margin:0 0 4px;
+  box-shadow:var(--sh2),var(--edge);
+}
+.gauge::before{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(260px 150px at 8% 0%,rgba(106,187,110,.10),transparent 70%);
+}
+.gauge.warn{border-left-color:var(--warn);}
+.gauge.warn::before{background:radial-gradient(260px 150px at 8% 0%,rgba(248,172,61,.10),transparent 70%);}
+.gauge.danger{border-left-color:var(--danger);}
+.gauge.danger::before{background:radial-gradient(260px 150px at 8% 0%,rgba(240,94,92,.10),transparent 70%);}
+.gauge.none{border-left-color:var(--app-accent);}
+.gauge.none::before{background:radial-gradient(260px 150px at 8% 0%,var(--tint-app),transparent 70%);}
+.gauge>*{position:relative;}
+.gauge-ico{
+  display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
+  width:44px; height:44px; border-radius:13px; line-height:0;
+  color:var(--app-accent2); background:var(--tint-app);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 0 14px var(--tint-app);
+}
+.gauge-ico svg{width:24px; height:24px; stroke:currentColor; fill:none; stroke-width:1.7;
+  stroke-linecap:round; stroke-linejoin:round;}
+.gauge-body{flex:1; min-width:0;}
+.gauge-num{
+  font-family:'Barlow Condensed',sans-serif; font-size:38px; font-weight:800; line-height:.95;
+  font-variant-numeric:tabular-nums;
+  background:var(--grad-ok); -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+.gauge.warn .gauge-num  {background:var(--grad-wr); -webkit-background-clip:text; background-clip:text;}
+.gauge.danger .gauge-num{background:var(--grad-dg); -webkit-background-clip:text; background-clip:text;}
+.gauge.none .gauge-num  {background:var(--grad);    -webkit-background-clip:text; background-clip:text;}
+.gauge-lab{font-size:10.5px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-top:2px;}
+.gauge-sub{font-size:11.5px; color:var(--muted2); margin-top:5px; line-height:1.5;}
+.gauge-sub b{color:var(--text);}
+/* barra di riempimento: la lancetta dello strumento d'officina */
+.gauge-bar{
+  position:relative; height:6px; border-radius:3px; margin-top:8px;
+  background:var(--dark); border:1px solid var(--border); overflow:hidden;
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.45);
+}
+.gauge-bar i{
+  display:block; height:100%; border-radius:3px; background:var(--grad-ok);
+  box-shadow:0 0 10px rgba(106,187,110,.45);
+}
+.gauge.warn .gauge-bar i  {background:var(--grad-wr); box-shadow:0 0 10px rgba(248,172,61,.45);}
+.gauge.danger .gauge-bar i{background:var(--grad-dg); box-shadow:0 0 10px rgba(240,94,92,.45);}
+
+/* ─────────────── titolo di sezione (copia di .sec-title) ─────────────── */
+.sec{
+  display:flex; align-items:center; gap:8px;
+  font-family:'Barlow Condensed',sans-serif; font-size:11.5px; font-weight:700;
+  letter-spacing:2.5px; text-transform:uppercase; color:var(--muted2);
+  margin:24px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--border);
+}
+.sec::before{
+  content:""; width:5px; height:5px; border-radius:50%; flex-shrink:0;
+  background:var(--app-accent); box-shadow:0 0 8px var(--app-accent);
+}
+.page>.sec:first-child{margin-top:2px;}
+.sec .cnt{
+  margin-left:auto; font-size:10px; letter-spacing:1.5px; color:var(--muted);
+  background:var(--card); border:1px solid var(--border); border-radius:20px;
+  padding:2px 9px; box-shadow:var(--edge);
+}
+
+/* ─────────────── voci di lista (copia di .sitem) ─────────────── */
+.item{
+  position:relative; overflow:hidden;
+  display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px;
+  background:var(--card); border:1px solid var(--border); border-radius:var(--r-sm);
+  padding:12px 13px; margin-bottom:5px; min-height:var(--tap); cursor:pointer;
+  box-shadow:var(--sh1),var(--edge);
+  transition:transform .15s var(--ease),box-shadow .15s var(--ease),border-color .2s,background .2s;
+}
+.item::after{
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0; border-radius:inherit;
+  background:radial-gradient(170px 120px at var(--mx,50%) var(--my,50%),var(--glow-app),transparent 62%);
+  opacity:0; transition:opacity .25s var(--ease);
+}
+.item:hover::after{opacity:1;}
+.item>*{position:relative; z-index:1;}
+.item:hover{
+  background:var(--card2);
+  border-color:color-mix(in srgb,var(--app-accent) 42%,var(--border));
+  transform:translateX(3px); box-shadow:var(--sh3),var(--edge);
+}
+.item:active{transform:translateX(1px) scale(.995);}
+.item.st-danger {border-left:3px solid var(--danger);}
+.item.st-warn   {border-left:3px solid var(--warn);}
+.item.st-ok     {border-left:3px solid var(--success);}
+.item.st-accent {border-left:3px solid var(--app-accent);}
+.item.st-sup    {border-left:3px solid var(--app-support2);}
+.item.st-mute   {border-left:3px solid var(--border2);}
+.item.statico{cursor:default;}
+.item.statico:hover{transform:none;}
+
+.avatar{
+  width:36px; height:36px; border-radius:11px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:800;
+  letter-spacing:1px; color:var(--grad-on); background:var(--grad); border:none;
+  box-shadow:0 2px 6px rgba(0,0,0,.35),var(--edge-hi);
+}
+.avatar.sup{background:var(--grad-sup);}
+.avatar svg{width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:2;
+  stroke-linecap:round; stroke-linejoin:round;}
+.info{flex:1 1 120px; min-width:0;}
+.acts{
+  display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap;
+  gap:5px; margin-left:auto;
+}
+/* come nel core le voci restano compatte: al massimo due righe, poi «…» */
+.name{
+  font-size:13.5px; font-weight:600; color:var(--text); line-height:1.3;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; overflow-wrap:anywhere;
+}
+.meta{
+  font-size:11px; color:var(--muted); margin-top:3px; line-height:1.4;
+  font-variant-numeric:tabular-nums;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; overflow-wrap:anywhere;
+}
+.meta.norma{color:var(--muted); display:block; -webkit-line-clamp:none;}
+.meta.norma svg{width:12px; height:12px; margin-right:4px; vertical-align:-2px;
+  stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;}
+.arr svg{width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:1.9;
+  stroke-linecap:round; stroke-linejoin:round;}
+.arr{
+  color:var(--muted2); font-size:15px; line-height:1;
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:32px; min-height:32px; border-radius:7px; flex-shrink:0;
+  border:1px solid transparent; cursor:pointer;
+  transition:color .15s var(--ease),background .15s var(--ease),border-color .15s;
+}
+.arr:hover{color:var(--app-accent2); background:color-mix(in srgb,var(--app-accent) 16%,transparent);
+  border-color:color-mix(in srgb,var(--app-accent) 40%,transparent);}
+.arr.ok:hover  {color:var(--success); background:rgba(106,187,110,.14); border-color:rgba(106,187,110,.4);}
+.arr.dan:hover {color:var(--danger);  background:rgba(240,94,92,.14);   border-color:rgba(240,94,92,.4);}
+
+/* ─────────────── badge (copia di .scad-badge: raggio 3px, pieno) ─────────────── */
+.badge{
+  display:inline-flex; align-items:center; gap:4px; flex-shrink:0;
+  padding:3px 8px; border-radius:3px; white-space:nowrap;
+  font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:800;
+  letter-spacing:1px; text-transform:uppercase;
+  background:var(--card2); color:var(--muted2); border:1px solid var(--border2);
+  box-shadow:0 1px 3px rgba(0,0,0,.35),var(--edge-hi);
+}
+.badge.ok,.badge.warn,.badge.danger,.badge.info,.badge.accent{border-color:transparent;}
+.badge.ok     {background:var(--success);    color:#08160a;}
+.badge.warn   {background:var(--warn);       color:#231402;}
+.badge.danger {background:var(--danger);     color:#2b0705;}
+.badge.info   {background:var(--info);       color:#04161e;}
+.badge.accent {background:var(--app-accent); color:var(--grad-on);}
+.badge.tag{                                   /* etichetta neutra */
+  background:var(--card2); color:var(--muted2);
+  border:1px solid var(--border2); box-shadow:none; font-weight:700;
+}
+.badge.euro{font-variant-numeric:tabular-nums; letter-spacing:.5px;}
+
+/* ─────────────── campi (copia di .finput) ─────────────── */
+.dw-input{
+  width:100%; min-height:var(--tap); padding:11px 13px;
+  background:var(--card); border:1px solid var(--border-hi); border-radius:9px;
+  color:var(--text); font-family:'Barlow',sans-serif; font-size:16px; outline:none;
+  box-shadow:var(--edge);
+  transition:border-color .18s var(--ease),box-shadow .18s var(--ease),background .18s;
+}
+.dw-input::placeholder{color:var(--disabled);}
+.dw-input:hover{border-color:color-mix(in srgb,var(--app-accent) 55%,var(--border-hi));}
+.dw-input:focus{
+  border-color:var(--app-accent); background:var(--card2);
+  box-shadow:0 0 0 3px var(--focus-ring),var(--edge);
+}
+.dw-input.err{border-color:var(--danger) !important; background:rgba(240,94,92,.08);}
+.dw-input[readonly],.dw-input[disabled]{color:var(--muted2); opacity:.7;}
+select.dw-input{font-size:16px; cursor:pointer;}
+select.dw-input option,select.dw-input optgroup{background:var(--card); color:var(--text);}
+textarea.dw-input{resize:vertical; min-height:60px;}
+input[type=date].dw-input::-webkit-calendar-picker-indicator,
+input[type=search].dw-input::-webkit-search-cancel-button{
+  filter:invert(.68); cursor:pointer; opacity:.8;
+}
+input[type=date].dw-input::-webkit-calendar-picker-indicator:hover{
+  filter:invert(.72) sepia(.6) saturate(5) hue-rotate(270deg); opacity:1;
+}
+/* campo di ricerca con la lente disegnata dentro (niente emoji) */
+.search{position:relative;}
+.search .dw-input{padding-left:40px;}
+.search svg{
+  position:absolute; left:13px; top:50%; transform:translateY(-50%);
+  width:17px; height:17px; stroke:var(--muted); fill:none; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round; pointer-events:none;
+}
+.search .dw-input:focus + svg{stroke:var(--app-accent2);}
+.dw-muted{color:var(--muted);}
+.dw-accent{color:var(--app-accent2);}
+
+/* ─────────────── bottoni (copia di .btn-sv / .btn-sec) ─────────────── */
+.dw-btn{
+  width:auto;               /* il core non stira i bottoni su tutta la riga */
+  min-height:var(--tap); padding:12px 18px; border:none; border-radius:var(--r-sm);
+  background:var(--grad); color:var(--grad-on);
+  font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:800;
+  letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  box-shadow:var(--sh-btn),var(--edge-hi);
+  transition:transform .12s var(--ease),box-shadow .2s var(--ease),filter .2s;
+}
+.dw-btn:hover{box-shadow:var(--sh-btn-hi),var(--edge-hi); filter:brightness(1.07);}
+.dw-btn:active{transform:translateY(2px); box-shadow:0 2px 8px rgba(136,56,113,.3),var(--edge-hi);}
+.dw-btn:disabled{opacity:.6; cursor:wait; filter:none; transform:none;}
+.dw-btn.secondary{
+  background:var(--card); border:1px solid var(--border2); color:var(--text);
+  font-size:13px; font-weight:600; letter-spacing:1px; padding:11px 14px;
+  box-shadow:var(--edge); filter:none;
+}
+.dw-btn.secondary:hover{
+  border-color:var(--app-accent); color:var(--app-accent2); background:var(--card2);
+  transform:translateY(-1px); box-shadow:var(--sh2),var(--edge); filter:none;
+}
+.dw-btn.secondary:active{transform:translateY(1px); box-shadow:var(--edge);}
+.dw-btn svg{width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.9;
+  stroke-linecap:round; stroke-linejoin:round; flex-shrink:0;}
+
+/* ─────────────── filtri a segmento (copia di .chg) ─────────────── */
+.chgs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;}
+.chg{
+  background:var(--card); border:1px solid var(--border); color:var(--muted2);
+  padding:7px 13px; min-height:var(--tap); border-radius:7px;
+  font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700;
+  letter-spacing:1px; text-transform:uppercase; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+  box-shadow:var(--edge); transition:all .15s var(--ease);
+}
+.chg:hover{border-color:var(--app-accent); color:var(--app-accent2);}
+.chg.active{
+  background:var(--app-accent); border-color:var(--app-accent); color:var(--grad-on);
+  box-shadow:0 2px 10px rgba(195,96,166,.35),var(--edge-hi);
+}
+.chg:active{transform:scale(.95);}
+
+/* ─────────────── form come oggetti veri (superficie del core) ─────────────── */
+.form{
+  display:flex; flex-wrap:wrap; gap:9px;
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--border); border-radius:var(--r); padding:13px;
+  box-shadow:var(--sh2),var(--edge);
+}
+.form.col{flex-direction:column; align-items:stretch;}
+.form .dw-input{flex:1 1 150px; width:auto; min-width:0; max-width:100%;}
+.form.col>.dw-input,.form.col>select.dw-input{width:100%; flex:0 0 auto;}
+.form>*,.frow>*{min-width:0; max-width:100%;}
+.form .dw-btn{flex:0 0 auto;}
+.frow{display:flex; flex-wrap:wrap; gap:9px; width:100%; align-items:center;}
+.form-hint{font-size:11.5px; color:var(--muted); line-height:1.5; flex-basis:100%;}
+.form-hint b{color:var(--muted2);}
+.tools{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px;}
+.ord{display:flex; align-items:center; gap:8px; margin:0 0 10px;}
+.ord label{
+  font-family:'Barlow Condensed',sans-serif; font-size:10.5px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); flex-shrink:0;
+}
+.ord .dw-input{width:auto; flex:1; max-width:280px;}
+.count{
+  font-family:'Barlow Condensed',sans-serif; font-size:10.5px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; color:var(--muted);
+  margin:0 0 8px; min-height:14px;
+}
+.count b{color:var(--app-accent2);}
+
+/* ─────────────── riquadri informativi (copia di .info-box) ─────────────── */
+.note{
+  background:var(--card2); border:1px solid var(--border);
+  border-left:3px solid var(--info); border-radius:var(--r-sm);
+  padding:11px 13px; margin-top:12px; text-align:left;
+  font-size:12px; line-height:1.6; color:var(--muted2); box-shadow:var(--edge);
+}
+.note:empty{display:none;}
+.note b{color:var(--text);}
+.note.esito{border-left-color:var(--app-accent); color:var(--text); font-size:12.5px;}
+.note.esito.err{border-left-color:var(--danger);}
+.note.recap{border-left-color:var(--app-accent);}
+.note.recap b{
+  color:var(--app-accent2); font-family:'Barlow Condensed',sans-serif;
+  font-size:15px; font-weight:800; font-variant-numeric:tabular-nums;
+  padding:0 1px;
+}
+.note.norma{border-left-color:var(--app-support2);}
+.note.link{
+  cursor:pointer; min-height:var(--tap); padding-top:13px; padding-bottom:13px;
+  transition:border-color .18s var(--ease),background .18s var(--ease);
+}
+.note.link:hover{border-left-color:var(--app-accent); background:var(--card);}
+.note .go{color:var(--app-accent2); white-space:nowrap;}
+.note .rosso{color:var(--danger); font-weight:600;}
+.note .giallo{color:var(--warn); font-weight:600;}
+
+/* ─────────────── stato vuoto (copia di .empty-state) ─────────────── */
+.empty-state{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:38px 20px; text-align:center; color:var(--muted); border-radius:var(--r);
+  background:radial-gradient(360px 220px at 50% 0%,
+             color-mix(in srgb,var(--app-accent) 7%,transparent),transparent 70%);
+}
+.empty-icon{
+  margin-bottom:12px; line-height:0; color:var(--app-accent2); opacity:.55;
+  filter:drop-shadow(0 0 16px color-mix(in srgb,var(--app-accent) 30%,transparent));
+}
+.empty-icon svg{
+  width:46px; height:46px; stroke:currentColor; fill:none; stroke-width:1.3;
+  stroke-linecap:round; stroke-linejoin:round;
+}
+.empty-title{
+  font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:800;
+  letter-spacing:2px; text-transform:uppercase; color:var(--text); margin-bottom:6px;
+}
+.empty-sub{font-size:12px; color:var(--muted); max-width:320px; line-height:1.55;}
+.empty-sub b{color:var(--muted2);}
+
+/* ─────────────── navigazione: pillola flottante (copia di #global-nav.bnav) ─────────────── */
+.nav{
+  position:fixed; left:50%; right:auto; transform:translateX(-50%);
+  bottom:calc(8px + env(safe-area-inset-bottom));
+  width:calc(100% - 16px); max-width:520px; z-index:90;
+  display:grid; grid-template-columns:repeat(5,1fr);
+  background:rgba(27,17,23,.97);
+  -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+  border:1px solid var(--border2); border-top:1px solid var(--border2);
+  border-radius:18px; overflow:hidden; padding-bottom:0;
+  box-shadow:0 10px 28px rgba(0,0,0,.5),var(--edge);
+}
+.nav button{
+  position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:3px; padding:10px 2px 9px; min-height:var(--tap);
+  background:none; border:none; border-top:2px solid transparent; cursor:pointer;
+  color:var(--muted); font-family:'Barlow Condensed',sans-serif;
+  font-size:9px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase;
+  transition:color .2s var(--ease),transform .15s var(--ease);
+}
+.nav button:hover{color:var(--app-accent2);}
+.nav button.active{color:var(--app-accent2); border-top-color:var(--app-accent); transform:translateY(-2px);}
+.nav button.active::before{
+  content:""; position:absolute; top:5px; left:50%; transform:translateX(-50%);
+  width:42px; height:30px; border-radius:10px; z-index:0;
+  background:color-mix(in srgb,var(--app-accent) 20%,transparent);
+}
+.nav button>*{position:relative; z-index:1;}
+.nav .ico{display:flex; align-items:center; justify-content:center; height:22px;}
+.nav .ico svg{width:21px; height:21px; stroke:currentColor; fill:none; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round; transition:transform .15s var(--ease),filter .2s;}
+.nav button.active .ico svg{
+  transform:scale(1.06);
+  filter:drop-shadow(0 0 6px color-mix(in srgb,var(--app-accent) 65%,transparent));
+}
+
+/* ─────────────── modale (copia di .modal-* del core) ─────────────── */
+.modal-ov{
+  position:fixed; inset:0; z-index:300; display:none; padding:20px;
+  align-items:center; justify-content:center;
+  background:rgba(12,7,10,.86);
+  -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
+}
+.modal-ov.show{display:flex; animation:ovFade .2s var(--ease);}
+@keyframes ovFade{from{opacity:0} to{opacity:1}}
+.modal-box{
+  position:relative; width:100%; max-width:440px; max-height:92dvh;
+  display:flex; flex-direction:column; overflow:hidden;
+  background:linear-gradient(180deg,var(--panel),var(--dark));
+  border:1px solid var(--border2); border-radius:var(--r);
+  box-shadow:0 20px 60px rgba(0,0,0,.65),var(--edge);
+  animation:fadeUp .25s ease;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)}}
+.modal-head{
+  position:relative; padding:15px 18px; border-bottom:1px solid var(--border);
+  font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:800;
+  letter-spacing:2px; text-transform:uppercase; color:var(--text);
+}
+.modal-head::after{
+  content:""; position:absolute; left:0; right:0; bottom:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--app-accent),transparent); opacity:.55;
+}
+.modal-body{
+  padding:15px 18px; overflow-y:auto; overscroll-behavior:contain; flex:1; max-height:55vh;
+  font-size:13.5px; line-height:1.6; color:var(--muted2); user-select:text;
+}
+.modal-body b{color:var(--text);}
+.modal-body .fl{
+  display:block; font-family:'Barlow',sans-serif; font-size:11px; font-weight:600;
+  letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin:12px 0 6px;
+}
+.modal-body .dw-input{margin-bottom:2px;}
+.modal-foot{
+  padding:12px 18px; border-top:1px solid var(--border); background:var(--dark);
+  display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap;
+  position:sticky; bottom:0;
+}
+.mbtn{
+  background:none; border:1px solid var(--border2); color:var(--text);
+  padding:10px 16px; border-radius:var(--r-sm); min-height:var(--tap);
+  display:inline-flex; align-items:center; justify-content:center;
+  font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700;
+  letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+  transition:all .15s var(--ease);
+}
+.mbtn:hover{border-color:var(--app-accent); color:var(--app-accent2);}
+.mbtn:active{transform:scale(.97);}
+.mbtn.primary{
+  background:var(--grad); border-color:transparent; color:var(--grad-on); font-weight:800;
+  box-shadow:var(--sh-btn),var(--edge-hi);
+}
+.mbtn.primary:hover{filter:brightness(1.07); color:var(--grad-on);}
+.mbtn.danger{background:var(--danger); border-color:var(--danger); color:#2b0705; font-weight:800;}
+.mbtn.danger:hover{filter:brightness(1.08); color:#2b0705;}
+body.modal-open{overflow:hidden;}
+
+/* ─────────────── toast (copia del core) ─────────────── */
+.toast{
+  position:fixed; left:50%; bottom:calc(100px + env(safe-area-inset-bottom));
+  transform:translateX(-50%) translateY(8px);
+  max-width:min(92vw,460px); padding:11px 20px; border-radius:10px;
+  background:var(--grad); color:var(--grad-on); text-align:center;
+  font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:800;
+  letter-spacing:1px; line-height:1.35;
+  box-shadow:0 8px 30px rgba(0,0,0,.5),var(--edge-hi);
+  opacity:0; pointer-events:none; z-index:999;
+  transition:opacity .3s var(--ease),transform .3s var(--ease);
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+.toast.err{background:var(--danger); color:#2b0705;}
+.toast.success{background:var(--success); color:#08160a;}
+
+/* ─────────────── desktop ─────────────── */
+@media(min-width:768px){
+  .top{padding-left:max(24px,calc((100% - 900px) / 2)); padding-right:max(24px,calc((100% - 900px) / 2));}
+  .page{max-width:900px; margin:0 auto; padding-left:24px; padding-right:24px;}
+  .tour-banner{max-width:900px; margin-left:auto; margin-right:auto;}
+  .kpis{grid-template-columns:repeat(4,1fr);}
+  .nav{max-width:560px;}
+  .logo-sm{font-size:18px;}
+}
+@media(max-width:360px){
+  .page{padding-left:10px; padding-right:10px;}
+  .top{padding-left:10px; padding-right:10px;}
+  .nav button{font-size:8px; letter-spacing:.8px;}
+}
+
+/* ─────────────── touch: come il core, niente effetti "incollati" ─────────────── */
+@media(hover:none),(pointer:coarse){
+  body.dw::before{display:none !important;}
+  .top::after{display:none !important;}
+  .top{border-bottom:2px solid color-mix(in srgb,var(--app-accent) 45%,transparent) !important;}
+  .item::after,.kpi::after{display:none !important;}
+  .top,.nav{backdrop-filter:none !important; -webkit-backdrop-filter:none !important;}
+  .top{background:#221620 !important;}
+  .nav{background:#221620 !important;}
+  input,textarea,select,.dw-input{font-size:16px !important;}
+  .item:hover,.kpi:hover,.dw-btn.secondary:hover,.chg:hover{transform:none !important;}
+  .item:hover{background:var(--card); box-shadow:var(--sh1),var(--edge);}
+  .item:active,.kpi:active{transform:scale(.985);}
+  .nav .ico svg{filter:none !important;}
+  .empty-icon{filter:none !important;}
+  /* col dito serve il bersaglio pieno: le icone d'azione salgono a 44px */
+  .arr{min-width:var(--tap); min-height:var(--tap);}
+}
+@media(prefers-reduced-motion:reduce){
+  *{transition:none !important; animation:none !important;}
+  .item::after,.kpi::after{display:none !important;}
+}
 </style>
 </head>
 <body class="dw">
 
-<div class="top">
-  <a class="dw-home" href="../index.html">⌂ ecosistema</a>
-  <h1>FLOTTA <span class="accent">·</span> <span style="font-size:14px;color:var(--muted2);">MEZZI & COSTI</span></h1>
-  <div class="sub">Ecosistema Deepwork</div>
-</div>
+<header class="top">
+  <div class="top-brand">
+    <div class="logo-sm">Flotta</div>
+    <div class="role-sm">Mezzi &amp; manutenzione · Deepwork</div>
+  </div>
+  <a class="dw-home" href="../index.html" title="Torna all'ecosistema Deepwork" aria-label="Torna all'ecosistema Deepwork"><svg viewBox="0 0 24 24"><path d="M3.5 10.4L12 3.5l8.5 6.9V20a1.5 1.5 0 0 1-1.5 1.5h-4v-6h-6v6H5A1.5 1.5 0 0 1 3.5 20z"/></svg></a>
+</header>
 <div class="tour-banner" id="tour-banner" style="display:none;">
-  Modalità tour — dati di esempio, sola lettura
+  <b>Modalità tour.</b> Stai guardando dati di esempio: puoi provare tutto,
+  ma nulla viene salvato.
 </div>
 
 <!-- DASHBOARD -->
 <div class="page active" id="page-dash">
+  <div class="sec">Quadro della flotta</div>
   <div class="kpis">
-    <div class="kpi ok" style="cursor:pointer" data-goto="mez" data-filtro="operativo" title="Vedi i mezzi operativi"><div class="n">—</div><div class="l">Mezzi operativi</div></div>
-    <div class="kpi warn" style="cursor:pointer" data-goto="mez" data-filtro="tutti" title="Vedi tutti i mezzi"><div class="n">—</div><div class="l">In manutenzione</div></div>
-    <div class="kpi warn" style="cursor:pointer" data-goto="man" title="Vedi le manutenzioni"><div class="n">—</div><div class="l">Tagliandi 30gg</div></div>
-    <div class="kpi accent" style="cursor:pointer" data-goto="cos" title="Vedi i costi"><div class="n">—</div><div class="l">Carburante mese</div></div>
+    <div class="kpi ok" role="button" tabindex="0" style="cursor:pointer" data-goto="mez" data-filtro="operativo" title="Vedi i mezzi operativi"><div class="l">Mezzi operativi</div><div class="n">—</div></div>
+    <div class="kpi warn" role="button" tabindex="0" style="cursor:pointer" data-goto="mez" data-filtro="tutti" title="Vedi tutti i mezzi"><div class="l">In manutenzione</div><div class="n">—</div></div>
+    <div class="kpi warn" role="button" tabindex="0" style="cursor:pointer" data-goto="man" title="Vedi le manutenzioni"><div class="l">Tagliandi 30gg</div><div class="n">—</div></div>
+    <div class="kpi accent" role="button" tabindex="0" style="cursor:pointer" data-goto="cos" title="Vedi i costi"><div class="l">Carburante mese</div><div class="n">—</div></div>
   </div>
 
-  <div class="sec">Scadenze di legge</div>
-  <div id="dash-sca" class="note" style="text-align:left;cursor:pointer;" title="Vai alle scadenze di legge"></div>
+  <div id="dash-gauge"></div>
 
-  <div class="sec">Attenzione</div>
+  <div class="sec">Scadenze di legge</div>
+  <div id="dash-sca" class="note link" role="button" tabindex="0" title="Vai alle scadenze di legge"></div>
+
+  <div class="sec">Priorità di oggi</div>
   <div id="alert-list"></div>
 </div>
 
 <div class="page" id="page-mez">
-  <div class="sec">Parco mezzi</div>
-  <div id="mez-disp" class="note" style="text-align:left;"></div>
-  <div id="mez-filtri" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
-    <button class="dw-btn secondary" data-filtro="tutti" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Tutti</button>
-    <button class="dw-btn secondary" data-filtro="operativo" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Operativi</button>
-    <button class="dw-btn secondary" data-filtro="verifica" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">In verifica</button>
-    <button class="dw-btn secondary" data-filtro="fermo" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Fermi</button>
+  <div class="sec">Parco mezzi<span class="cnt" id="mez-tot">0</span></div>
+  <div id="mez-disp" class="note recap"></div>
+  <div id="mez-filtri" class="chgs" style="margin-top:12px;">
+    <button class="chg active" data-filtro="tutti">Tutti</button>
+    <button class="chg" data-filtro="operativo">Operativi</button>
+    <button class="chg" data-filtro="verifica">In verifica</button>
+    <button class="chg" data-filtro="fermo">Fermi</button>
   </div>
-  <div style="display:flex;align-items:center;gap:6px;margin:-2px 0 10px;">
-    <span class="dw-muted" style="font-size:12px;">Ordina:</span>
-    <select id="mez-ord" class="dw-input" style="width:auto;min-height:32px;padding:2px 8px;font-size:12px;">
+  <div class="ord">
+    <label for="mez-ord">Ordina</label>
+    <select id="mez-ord" class="dw-input">
       <option value="stato">Stato (prima i fermi)</option>
       <option value="ore">Ore motore (dal più alto)</option>
       <option value="nome">Nome (A→Z)</option>
     </select>
   </div>
-  <input class="dw-input" id="mez-cerca" type="search" placeholder="🔍 Cerca per nome o area…" style="margin-bottom:6px;">
-  <div id="mez-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
+  <div class="search" style="margin-bottom:8px;">
+    <input class="dw-input" id="mez-cerca" type="search" placeholder="Cerca per nome o area…">
+    <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.8"/><path d="M15.5 15.5L21 21"/></svg>
+  </div>
+  <div id="mez-count" class="count"></div>
   <div id="mez-list"></div>
+
   <div class="sec">Nuovo mezzo</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <input class="dw-input" id="mez-nome" placeholder="Nome (es. Dumper D4)" style="flex:2;min-width:150px;">
-    <input class="dw-input" id="mez-area" placeholder="Area (es. piazzale 2)" style="flex:1;min-width:120px;">
-    <input class="dw-input" id="mez-ore" type="number" min="0" placeholder="Ore attuali" style="flex:1;min-width:100px;">
-    <button class="dw-btn" id="btn-mez" style="width:auto;">Aggiungi</button>
+  <div class="form">
+    <input class="dw-input" id="mez-nome" placeholder="Nome (es. Dumper D4)" style="flex:2 1 170px;">
+    <input class="dw-input" id="mez-area" placeholder="Area (es. piazzale 2)" style="flex:1 1 140px;">
+    <input class="dw-input" id="mez-ore" type="number" min="0" placeholder="Ore attuali" style="flex:1 1 120px;">
+    <button class="dw-btn" id="btn-mez">Aggiungi</button>
   </div>
+
   <div class="sec">Registro ore</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <select class="dw-input" id="ore-mezzo" style="flex:2;min-width:150px;"></select>
-    <input class="dw-input" id="ore-nuove" type="number" placeholder="Ore attuali" style="flex:1;min-width:110px;">
-    <button class="dw-btn" id="btn-ore" style="width:auto;">Registra</button>
+  <div class="form">
+    <select class="dw-input" id="ore-mezzo" style="flex:2 1 170px;"></select>
+    <input class="dw-input" id="ore-nuove" type="number" placeholder="Ore attuali" style="flex:1 1 130px;">
+    <button class="dw-btn" id="btn-ore">Registra</button>
+    <div class="form-hint">Il contatore delle ore non può mai scendere: se sbagli a digitare, l'app te lo dice invece di salvare un valore falso.</div>
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-    <button class="dw-btn secondary" id="btn-mez-import" style="width:auto;">Importa parco (CSV)</button>
-    <button class="dw-btn secondary" id="btn-tele" style="width:auto;">Importa telemetria (CSV)</button>
-    <button class="dw-btn secondary" id="btn-flotta-export" style="width:auto;">Esporta situazione (CSV)</button>
+  <div class="tools">
+    <button class="dw-btn secondary" id="btn-mez-import">Importa parco (CSV)</button>
+    <button class="dw-btn secondary" id="btn-tele">Importa telemetria (CSV)</button>
+    <button class="dw-btn secondary" id="btn-flotta-export">Esporta situazione (CSV)</button>
   </div>
   <input type="file" id="tele-file" accept=".csv,text/csv" style="display:none;">
   <input type="file" id="mez-file" accept=".csv,text/csv" style="display:none;">
-  <div class="note" style="text-align:left;color:var(--muted);font-size:12px;">Import parco: colonne <code>nome;area;ore;stato</code> (una riga per mezzo).</div>
-  <div class="note" id="ore-esito" style="text-align:left;"></div>
+  <div class="form-hint" style="margin-top:8px;">Colonne del file del parco: <b>nome; area; ore; stato</b> — una riga per mezzo. La telemetria vuole <b>mezzo; ore</b>.</div>
+  <div class="note esito" id="ore-esito"></div>
 </div>
 
 <div class="page" id="page-man">
-  <div class="sec">Programmate</div>
-  <div class="note" style="text-align:left;">Ritmo d'uso medio
-    <input class="dw-input" id="man-oregiorno" type="number" min="0" step="0.5" value="8" style="width:70px;display:inline-block;margin:0 4px;"> ore/giorno
-    — usato per stimare tra quanti giorni cadranno i tagliandi "a ore motore".</div>
-  <div id="man-list"></div>
+  <div class="sec">Manutenzioni programmate<span class="cnt" id="man-count">0</span></div>
+  <div class="form col">
+    <div class="frow">
+      <span class="form-hint" style="flex-basis:auto;">Ritmo d'uso medio</span>
+      <input class="dw-input" id="man-oregiorno" type="number" min="0" step="0.5" value="8" style="flex:0 0 92px;">
+      <span class="form-hint" style="flex-basis:auto;">ore al giorno</span>
+      <span class="form-hint">Serve a stimare fra quanti giorni cadranno i tagliandi contati «a ore motore». Cambia il numero se in cava si lavora di più o di meno.</span>
+    </div>
+  </div>
+  <div id="man-list" style="margin-top:12px;"></div>
+
   <div class="sec">Nuova manutenzione</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <input class="dw-input" id="man-titolo" placeholder="Titolo (es. Tagliando 500h)" style="flex:2;min-width:150px;">
-    <select class="dw-input" id="man-mezzo" style="flex:1;min-width:130px;"></select>
-    <input class="dw-input" id="man-data" type="date" style="flex:1;min-width:130px;">
-    <input class="dw-input" id="man-ore" type="number" placeholder="oppure a ore (es. 6000)" style="flex:1;min-width:120px;">
-    <select class="dw-input" id="man-ricambio" title="Ricambio consumato (facoltativo)" style="flex:1;min-width:130px;"><option value="">— nessun ricambio —</option></select>
-    <button class="dw-btn" id="btn-man" style="width:auto;">Pianifica</button>
+  <div class="form col">
+    <div class="frow">
+      <input class="dw-input" id="man-titolo" placeholder="Titolo (es. Tagliando 500h)" style="flex:2 1 190px;">
+      <select class="dw-input" id="man-mezzo" style="flex:1 1 150px;"></select>
+    </div>
+    <div class="frow">
+      <input class="dw-input" id="man-data" type="date" title="Data prevista" style="flex:1 1 150px;">
+      <input class="dw-input" id="man-ore" type="number" placeholder="oppure a ore (es. 6000)" style="flex:1 1 160px;">
+    </div>
+    <div class="frow">
+      <select class="dw-input" id="man-ricambio" title="Ricambio consumato (facoltativo)" style="flex:2 1 190px;"><option value="">— nessun ricambio —</option></select>
+      <button class="dw-btn" id="btn-man">Pianifica</button>
+    </div>
+    <div class="form-hint">Metti la <b>data</b> oppure le <b>ore motore</b>: per i tagliandi a ore scrivi il contatore a cui va fatto, l'urgenza la calcola l'app. Se scegli un ricambio, alla chiusura viene scaricato dal magazzino.</div>
   </div>
-  <div class="note" style="text-align:left;">Data oppure ore motore: per i tagliandi a ore scrivi le ore a cui va fatto (urgenza calcolata dal contatore del mezzo). Se scegli un ricambio, alla chiusura verrà scaricato dal magazzino.</div>
+  <div class="note esito" id="man-esito"></div>
 
-  <div class="sec">Registro interventi (<span id="int-count">0</span>)</div>
+  <div class="sec">Registro interventi<span class="cnt" id="int-count">0</span></div>
   <div id="int-list"></div>
-  <div style="margin-top:6px;"><button class="dw-btn secondary" id="btn-int-csv" style="width:auto;">Esporta registro (CSV)</button></div>
-  <div class="note" style="text-align:left;">Ogni manutenzione chiusa diventa un intervento nello storico del mezzo: cosa è stato fatto, quando, con quale ricambio e a che costo. È il libretto-macchina che vale in garanzia e alla rivendita.</div>
+  <div class="tools"><button class="dw-btn secondary" id="btn-int-csv">Esporta registro (CSV)</button></div>
+  <div class="note">Ogni manutenzione chiusa diventa un intervento nello storico del mezzo: cosa è stato fatto, quando, con quale ricambio e a che costo. È il <b>libretto-macchina</b> che vale in garanzia e alla rivendita.</div>
 
-  <div class="sec">Magazzino ricambi</div>
-  <div id="ric-alert" class="note" style="text-align:left;"></div>
-  <input class="dw-input" id="ric-cerca" type="search" placeholder="🔍 Cerca ricambio…" style="margin-bottom:6px;">
-  <div id="ric-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
-  <div id="ric-list"></div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
-    <input class="dw-input" id="ric-nome" placeholder="Ricambio (es. Filtro olio)" style="flex:2;min-width:150px;">
-    <input class="dw-input" id="ric-giac" type="number" min="0" step="1" placeholder="Giacenza" style="flex:1;min-width:90px;">
-    <input class="dw-input" id="ric-soglia" type="number" min="0" step="1" placeholder="Soglia min" style="flex:1;min-width:90px;">
-    <button class="dw-btn" id="btn-ric" style="width:auto;">Aggiungi</button>
+  <div class="sec">Magazzino ricambi<span class="cnt" id="ric-tot">0</span></div>
+  <div id="ric-alert" class="note recap"></div>
+  <div class="search" style="margin:12px 0 8px;">
+    <input class="dw-input" id="ric-cerca" type="search" placeholder="Cerca ricambio…">
+    <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.8"/><path d="M15.5 15.5L21 21"/></svg>
   </div>
-  <div class="note" id="ric-esito" style="text-align:left;"></div>
+  <div id="ric-count" class="count"></div>
+  <div id="ric-list"></div>
+  <div class="form" style="margin-top:12px;">
+    <input class="dw-input" id="ric-nome" placeholder="Ricambio (es. Filtro olio)" style="flex:2 1 170px;">
+    <input class="dw-input" id="ric-giac" type="number" min="0" step="1" placeholder="Giacenza" style="flex:1 1 110px;">
+    <input class="dw-input" id="ric-soglia" type="number" min="0" step="1" placeholder="Soglia min" style="flex:1 1 110px;">
+    <button class="dw-btn" id="btn-ric">Aggiungi</button>
+  </div>
+  <div class="note esito" id="ric-esito"></div>
 </div>
 
 <!-- SCADENZE DI LEGGE DEL MEZZO (F6) -->
 <div class="page" id="page-sca">
   <div class="sec">Semaforo scadenze</div>
   <div class="kpis" id="sca-kpis">
-    <div class="kpi danger" style="cursor:pointer" data-sca-filtro="scaduta" title="Vedi solo le scadenze scadute"><div class="n">—</div><div class="l">Scadute</div></div>
-    <div class="kpi warn" style="cursor:pointer" data-sca-filtro="in-scadenza" title="Vedi solo quelle in scadenza"><div class="n">—</div><div class="l">In scadenza</div></div>
-    <div class="kpi ok" style="cursor:pointer" data-sca-filtro="a-posto" title="Vedi solo quelle a posto"><div class="n">—</div><div class="l">A posto</div></div>
-    <div class="kpi accent" style="cursor:pointer" data-sca-filtro="tutte" title="Vedi tutte le scadenze"><div class="n">—</div><div class="l">Mezzi coinvolti</div></div>
+    <div class="kpi danger" role="button" tabindex="0" style="cursor:pointer" data-sca-filtro="scaduta" title="Vedi solo le scadenze scadute"><div class="l">Scadute</div><div class="n">—</div></div>
+    <div class="kpi warn" role="button" tabindex="0" style="cursor:pointer" data-sca-filtro="in-scadenza" title="Vedi solo quelle in scadenza"><div class="l">In scadenza</div><div class="n">—</div></div>
+    <div class="kpi ok" role="button" tabindex="0" style="cursor:pointer" data-sca-filtro="a-posto" title="Vedi solo quelle a posto"><div class="l">A posto</div><div class="n">—</div></div>
+    <div class="kpi accent" role="button" tabindex="0" style="cursor:pointer" data-sca-filtro="tutte" title="Vedi tutte le scadenze"><div class="l">Mezzi coinvolti</div><div class="n">—</div></div>
   </div>
-  <div class="note" style="text-align:left;">Avvisami
-    <input class="dw-input" id="sca-preavviso" type="number" min="1" max="365" step="1" value="30" style="width:70px;display:inline-block;margin:0 4px;"> giorni prima
-    — sotto questa soglia la scadenza diventa gialla (“in scadenza”).</div>
-  <div id="sca-filtri" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
-    <button class="dw-btn secondary" data-sca-filtro="tutte" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Tutte</button>
-    <button class="dw-btn secondary" data-sca-filtro="scaduta" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">Scadute</button>
-    <button class="dw-btn secondary" data-sca-filtro="in-scadenza" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">In scadenza</button>
-    <button class="dw-btn secondary" data-sca-filtro="a-posto" style="width:auto;min-height:34px;padding:4px 12px;font-size:12px;">A posto</button>
+  <div class="form col">
+    <div class="frow">
+      <span class="form-hint" style="flex-basis:auto;">Avvisami</span>
+      <input class="dw-input" id="sca-preavviso" type="number" min="1" max="365" step="1" value="30" style="flex:0 0 92px;">
+      <span class="form-hint" style="flex-basis:auto;">giorni prima</span>
+      <span class="form-hint">Sotto questa soglia la scadenza diventa gialla («in scadenza»). L'app se lo ricorda sul tuo dispositivo.</span>
+    </div>
   </div>
-  <input class="dw-input" id="sca-cerca" type="search" placeholder="🔍 Cerca per mezzo o tipo…" style="margin-bottom:6px;">
-  <div id="sca-count" class="dw-muted" style="font-size:11px;margin-bottom:6px;"></div>
+  <div id="sca-filtri" class="chgs" style="margin-top:12px;">
+    <button class="chg active" data-sca-filtro="tutte">Tutte</button>
+    <button class="chg" data-sca-filtro="scaduta">Scadute</button>
+    <button class="chg" data-sca-filtro="in-scadenza">In scadenza</button>
+    <button class="chg" data-sca-filtro="a-posto">A posto</button>
+  </div>
+  <div class="search" style="margin-bottom:8px;">
+    <input class="dw-input" id="sca-cerca" type="search" placeholder="Cerca per mezzo o tipo…">
+    <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.8"/><path d="M15.5 15.5L21 21"/></svg>
+  </div>
+  <div id="sca-count" class="count"></div>
   <div id="sca-list"></div>
 
   <div class="sec">Nuova scadenza</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <select class="dw-input" id="sca-mezzo" title="Mezzo a cui si riferisce la scadenza" style="flex:1;min-width:140px;"></select>
-    <select class="dw-input" id="sca-preset" title="Tipo di scadenza (voci già pronte)" style="flex:2;min-width:200px;"></select>
-    <input class="dw-input" id="sca-data" type="date" title="Data di scadenza" style="flex:1;min-width:140px;">
-    <input class="dw-input" id="sca-mesi" type="number" min="0" max="600" step="1" placeholder="Ogni quanti mesi" title="Periodicità in mesi: puoi cambiarla, vuoto = non si ripete" style="flex:1;min-width:130px;">
-    <input class="dw-input" id="sca-doc" placeholder="Documento (es. verbale ASL n. 118)" title="Riferimento al documento cartaceo o al file" style="flex:2;min-width:180px;">
-    <input class="dw-input" id="sca-note" placeholder="Note / esito (facoltativo)" style="flex:2;min-width:160px;">
-    <button class="dw-btn" id="btn-sca" style="width:auto;">Aggiungi</button>
+  <div class="form col">
+    <div class="frow">
+      <select class="dw-input" id="sca-mezzo" title="Mezzo a cui si riferisce la scadenza" style="flex:1 1 160px;"></select>
+      <select class="dw-input" id="sca-preset" title="Tipo di scadenza (voci già pronte)" style="flex:2 1 220px;"></select>
+    </div>
+    <div class="note norma" id="sca-norma"></div>
+    <div class="frow">
+      <input class="dw-input" id="sca-data" type="date" title="Data di scadenza" style="flex:1 1 160px;">
+      <input class="dw-input" id="sca-mesi" type="number" min="0" max="600" step="1" placeholder="Ogni quanti mesi" title="Periodicità in mesi: puoi cambiarla, vuoto = non si ripete" style="flex:1 1 150px;">
+    </div>
+    <div class="frow">
+      <input class="dw-input" id="sca-doc" placeholder="Documento (es. verbale n. 118)" title="Riferimento al documento cartaceo o al file" style="flex:2 1 200px;">
+      <input class="dw-input" id="sca-note" placeholder="Note / esito (facoltativo)" style="flex:2 1 180px;">
+      <button class="dw-btn" id="btn-sca">Aggiungi</button>
+    </div>
   </div>
-  <div class="note" id="sca-norma" style="text-align:left;"></div>
-  <div class="note" id="sca-esito" style="text-align:left;"></div>
-  <div style="margin-top:6px;"><button class="dw-btn secondary" id="btn-sca-csv" style="width:auto;">Esporta scadenze (CSV)</button></div>
-  <div class="note" style="text-align:left;">La periodicità proposta è solo un punto di partenza: <b>puoi sempre cambiarla</b>, perché cambia da attrezzatura ad attrezzatura e da cantiere a cantiere. I riferimenti di legge qui sotto sono un'informazione, <b>non una consulenza legale</b>: verifica sempre le periodicità con il tuo consulente o con l'RSPP.</div>
-  <div class="note" style="text-align:left;">Flotta ti <i>ricorda</i> le scadenze e conserva la storia, ma <b>non sostituisce</b> il libretto ufficiale della macchina né i verbali dell'ente che fa la verifica. Le abilitazioni delle <i>persone</i> (patentini, corsi) si gestiscono in Scudo.</div>
+  <div class="note esito" id="sca-esito"></div>
+  <div class="tools"><button class="dw-btn secondary" id="btn-sca-csv">Esporta scadenze (CSV)</button></div>
+  <div class="note">La periodicità proposta è solo un punto di partenza: <b>puoi sempre cambiarla</b>, perché cambia da attrezzatura ad attrezzatura e da cantiere a cantiere. I riferimenti di legge sono un'informazione, <b>non una consulenza legale</b>: verificali con il tuo consulente o con l'RSPP.</div>
+  <div class="note">Flotta ti <i>ricorda</i> le scadenze e conserva la storia, ma <b>non sostituisce</b> il libretto ufficiale della macchina né i verbali dell'ente che fa la verifica. Le abilitazioni delle <i>persone</i> (patentini, corsi) si gestiscono in Scudo.</div>
 </div>
 
 <div class="page" id="page-cos">
-  <div class="sec">Costi del mese</div>
-  <div id="cos-riep" class="note" style="text-align:left;"></div>
-  <div id="cos-list"></div>
+  <div class="sec">Costi della flotta<span class="cnt" id="cos-count">0</span></div>
+  <div id="cos-riep" class="note recap"></div>
+  <div id="cos-list" style="margin-top:12px;"></div>
   <div class="sec">Nuovo costo</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <input class="dw-input" id="cos-voce" placeholder="Voce (es. Carburante settimana 30)" style="flex:2;min-width:160px;">
-    <input class="dw-input" id="cos-importo" type="number" min="0" placeholder="Importo €" style="flex:1;min-width:100px;">
-    <input class="dw-input" id="cos-nota" placeholder="Nota (facoltativa)" style="flex:1;min-width:120px;">
-    <button class="dw-btn" id="btn-cos" style="width:auto;">Registra</button>
+  <div class="form">
+    <input class="dw-input" id="cos-voce" placeholder="Voce (es. Carburante settimana 30)" style="flex:2 1 190px;">
+    <input class="dw-input" id="cos-importo" type="number" min="0" placeholder="Importo €" style="flex:1 1 120px;">
+    <input class="dw-input" id="cos-nota" placeholder="Nota (facoltativa)" style="flex:1 1 140px;">
+    <button class="dw-btn" id="btn-cos">Registra</button>
+    <div class="form-hint">Raggruppa le voci con lo stesso nome (es. «Carburante») e l'app ti dice da sola quanta parte della spesa se ne va lì.</div>
   </div>
-  <div class="note" id="cos-esito" style="text-align:left;"></div>
-  <div class="note" id="mode-note" style="text-align:left;"></div>
+  <div class="note esito" id="cos-esito"></div>
+  <div class="note" id="mode-note"></div>
 </div>
 
-<div class="nav">
-  <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico">▦</span>Quadro</button>
-  <button id="nav-mez" onclick="go('mez')"><span class="ico">🚚</span>Mezzi</button>
-  <button id="nav-man" onclick="go('man')"><span class="ico">🔧</span>Manutenzioni</button>
-  <button id="nav-sca" onclick="go('sca')"><span class="ico">⚖</span>Scadenze</button>
-  <button id="nav-cos" onclick="go('cos')"><span class="ico">💶</span>Costi</button>
+<nav class="nav" aria-label="Sezioni di Flotta">
+  <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg></span>Quadro</button>
+  <button id="nav-mez" onclick="go('mez')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M2.5 16.5V7.2A1.2 1.2 0 0 1 3.7 6h9.1v10.5"/><path d="M12.8 9.4h3.6l3.1 3.3v3.8"/><circle cx="7" cy="17.6" r="2.1"/><circle cx="16.6" cy="17.6" r="2.1"/><path d="M9.1 17.6h5.4M2.5 17.6h2.4M18.7 17.6h2.8"/></svg></span>Mezzi</button>
+  <button id="nav-man" onclick="go('man')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M15.4 3.4a5.4 5.4 0 0 0-6.3 7.1L3.2 16.4a2.1 2.1 0 0 0 3 3l5.9-5.9a5.4 5.4 0 0 0 7.1-6.3l-3.1 3.1-3-.8-.8-3z"/></svg></span>Manutenzioni</button>
+  <button id="nav-sca" onclick="go('sca')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M12 3.2v17M5.4 5.6h13.2M4 20.4h16"/><path d="M6.6 5.9L3.4 12.2h6.4zM17.4 5.9l-3.2 6.3h6.4z"/></svg></span>Scadenze</button>
+  <button id="nav-cos" onclick="go('cos')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M17.4 6.2A6.4 6.4 0 0 0 7.6 8.4a7.4 7.4 0 0 0 0 7.2 6.4 6.4 0 0 0 9.8 2.2"/><path d="M4.4 10.6h7.2M4.4 13.6h7.2"/></svg></span>Costi</button>
+</nav>
+
+<!-- modale in stile core: sostituisce alert()/confirm()/prompt() del browser -->
+<div class="modal-ov" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-box">
+    <div class="modal-head" id="modal-title">Conferma</div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot" id="modal-foot"></div>
+  </div>
 </div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
   function go(id) {
@@ -195,6 +911,120 @@
     document.getElementById("nav-" + id).classList.add("active");
     window.scrollTo(0, 0);
   }
+
+  /* ── Toast del core: nessun alert() del browser ────────────────────── */
+  let toastT = null;
+  function toast(msg, tipo) {
+    const t = document.getElementById("toast");
+    t.className = "toast " + (tipo || "");
+    t.textContent = msg;
+    void t.offsetWidth;
+    t.classList.add("show");
+    clearTimeout(toastT);
+    toastT = setTimeout(() => t.classList.remove("show"), msg.length > 70 ? 4200 : 2800);
+  }
+
+  /* ── Modale del core: sostituisce confirm() e prompt() ─────────────── */
+  let modalPrec = null;
+  function apriModale(titolo, corpo, bottoni) {
+    modalPrec = document.activeElement;
+    document.getElementById("modal-title").textContent = titolo;
+    document.getElementById("modal-body").innerHTML = corpo;
+    const foot = document.getElementById("modal-foot");
+    foot.innerHTML = "";
+    (bottoni || []).forEach(b => {
+      const el = document.createElement("button");
+      el.className = "mbtn " + (b.cls || "");
+      el.textContent = b.label;
+      el.onclick = b.azione;
+      foot.appendChild(el);
+    });
+    document.getElementById("modal").classList.add("show");
+    document.body.classList.add("modal-open");
+    const primo = document.getElementById("modal-body").querySelector("input,select,textarea")
+               || foot.querySelector(".mbtn.primary,.mbtn.danger") || foot.querySelector(".mbtn");
+    if (primo) setTimeout(() => { try { primo.focus({ preventScroll: true }); primo.select && primo.select(); } catch (e) {} }, 80);
+  }
+  function chiudiModale() {
+    document.getElementById("modal").classList.remove("show");
+    document.body.classList.remove("modal-open");
+    if (modalPrec && modalPrec.focus) { try { modalPrec.focus({ preventScroll: true }); } catch (e) {} }
+    modalPrec = null;
+  }
+  // Conferma in stile core: restituisce una Promise<boolean>
+  function chiedi(titolo, corpo, etichettaOk, pericolo) {
+    return new Promise(res => {
+      apriModale(titolo, corpo, [
+        { label: "Annulla", azione: () => { chiudiModale(); res(false); } },
+        { label: etichettaOk || "Conferma", cls: pericolo ? "danger" : "primary",
+          azione: () => { chiudiModale(); res(true); } },
+      ]);
+    });
+  }
+  // Avviso in stile core (sostituisce alert): Promise che si chiude col tasto
+  function avvisa(titolo, corpo) {
+    return new Promise(res => {
+      apriModale(titolo, corpo, [
+        { label: "Ho capito", cls: "primary", azione: () => { chiudiModale(); res(); } },
+      ]);
+    });
+  }
+  // Richiesta di uno o più valori in stile core: restituisce Promise<object|null>.
+  // campi = [{id, label, tipo, valore, placeholder, aiuto}]
+  function chiediDati(titolo, corpo, campi, etichettaOk) {
+    return new Promise(res => {
+      const html = (corpo || "") + campi.map(c =>
+        `<label class="fl" for="mc-${c.id}">${c.label}</label>
+         <input class="dw-input" id="mc-${c.id}" type="${c.tipo || "text"}"
+           value="${(c.valore == null ? "" : String(c.valore)).replace(/"/g, "&quot;")}"
+           placeholder="${(c.placeholder || "").replace(/"/g, "&quot;")}"
+           ${c.min != null ? `min="${c.min}"` : ""} ${c.step ? `step="${c.step}"` : ""}>
+         ${c.aiuto ? `<div class="form-hint" style="margin-top:5px;">${c.aiuto}</div>` : ""}`).join("");
+      apriModale(titolo, html, [
+        { label: "Annulla", azione: () => { chiudiModale(); res(null); } },
+        { label: etichettaOk || "Salva", cls: "primary", azione: () => {
+            const out = {};
+            campi.forEach(c => { const el = document.getElementById("mc-" + c.id); out[c.id] = el ? el.value : ""; });
+            chiudiModale(); res(out);
+          } },
+      ]);
+      const box = document.getElementById("modal-body");
+      box.addEventListener("keydown", e => {
+        if (e.key === "Enter") { e.preventDefault(); document.querySelector("#modal-foot .mbtn.primary").click(); }
+      });
+    });
+  }
+  document.getElementById("modal").addEventListener("click", e => {
+    if (e.target.id === "modal") { const b = document.querySelector("#modal-foot .mbtn"); if (b) b.click(); }
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Escape") return;
+    const m = document.getElementById("modal");
+    if (m && m.classList.contains("show")) { const b = m.querySelector("#modal-foot .mbtn"); if (b) b.click(); }
+  });
+  // KPI e riquadri cliccabili raggiungibili da tastiera (Invio/Spazio = tocco)
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const k = e.target.closest && e.target.closest('.kpi[role="button"],.note.link[role="button"]');
+    if (k) { e.preventDefault(); k.click(); }
+  });
+
+  /* ── Alone che segue il mouse (firma dinamica del core: --mx/--my) ─── */
+  (function () {
+    if (matchMedia("(prefers-reduced-motion:reduce)").matches) return;
+    if (!matchMedia("(hover:hover) and (pointer:fine)").matches) return;
+    const sel = ".item,.kpi";
+    let cur = null, px = 50, py = 50, pend = false;
+    const apply = () => { pend = false; if (cur) { cur.style.setProperty("--mx", px + "%"); cur.style.setProperty("--my", py + "%"); } };
+    window.addEventListener("pointermove", e => {
+      const t = e.target.closest ? e.target.closest(sel) : null;
+      cur = t; if (!t) return;
+      const r = t.getBoundingClientRect();
+      px = (e.clientX - r.left) / r.width * 100;
+      py = (e.clientY - r.top) / r.height * 100;
+      if (!pend) { pend = true; requestAnimationFrame(apply); }
+    }, { passive: true });
+  })();
 </script>
 
 <script type="module">
@@ -206,10 +1036,48 @@
   const sig = (n) => (n||"?").split(" ")[0].slice(0,2).toUpperCase();
   const eur = (v) => "€" + (+v||0).toLocaleString("it-IT");
 
+  // ── Icone disegnate (stessa famiglia di quelle del menu): niente emoji ──
+  const I = {
+    cerca:   '<svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.8"/><path d="M15.5 15.5L21 21"/></svg>',
+    mezzo:   '<svg viewBox="0 0 24 24"><path d="M2.5 16.5V7.2A1.2 1.2 0 0 1 3.7 6h9.1v10.5"/><path d="M12.8 9.4h3.6l3.1 3.3v3.8"/><circle cx="7" cy="17.6" r="2.1"/><circle cx="16.6" cy="17.6" r="2.1"/><path d="M9.1 17.6h5.4M2.5 17.6h2.4M18.7 17.6h2.8"/></svg>',
+    chiave:  '<svg viewBox="0 0 24 24"><path d="M15.4 3.4a5.4 5.4 0 0 0-6.3 7.1L3.2 16.4a2.1 2.1 0 0 0 3 3l5.9-5.9a5.4 5.4 0 0 0 7.1-6.3l-3.1 3.1-3-.8-.8-3z"/></svg>',
+    bullone: '<svg viewBox="0 0 24 24"><path d="M12 2.8l7.4 4.3v8.8L12 20.2 4.6 15.9V7.1z"/><circle cx="12" cy="11.5" r="3.4"/></svg>',
+    bilancia:'<svg viewBox="0 0 24 24"><path d="M12 3.2v17M5.4 5.6h13.2M4 20.4h16"/><path d="M6.6 5.9L3.4 12.2h6.4zM17.4 5.9l-3.2 6.3h6.4z"/></svg>',
+    euro:    '<svg viewBox="0 0 24 24"><path d="M17.4 6.2A6.4 6.4 0 0 0 7.6 8.4a7.4 7.4 0 0 0 0 7.2 6.4 6.4 0 0 0 9.8 2.2"/><path d="M4.4 10.6h7.2M4.4 13.6h7.2"/></svg>',
+    tempo:   '<svg viewBox="0 0 24 24"><circle cx="12" cy="12.5" r="8.5"/><path d="M12 7.5v5.2l3.2 2"/></svg>',
+    ok:      '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.2 12.3l2.7 2.7 5-5.4"/></svg>',
+    spunta:  '<svg viewBox="0 0 24 24"><path d="M4.5 12.6l5 5 10-11"/></svg>',
+    matita:  '<svg viewBox="0 0 24 24"><path d="M16.4 3.6l4 4L8.2 19.8l-5 1 1-5z"/><path d="M14.4 5.6l4 4"/></svg>',
+    croce:   '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    piu:     '<svg viewBox="0 0 24 24"><path d="M12 5.5v13M5.5 12h13"/></svg>',
+    meno:    '<svg viewBox="0 0 24 24"><path d="M5.5 12h13"/></svg>',
+    tachi:   '<svg viewBox="0 0 24 24"><path d="M3.4 17.6a9 9 0 1 1 17.2 0"/><path d="M12 17.2l4.4-5.6"/><circle cx="12" cy="17.6" r="1.5"/></svg>',
+    registro:'<svg viewBox="0 0 24 24"><path d="M14 2.5H7.5A2.5 2.5 0 0 0 5 5v14a2.5 2.5 0 0 0 2.5 2.5h9A2.5 2.5 0 0 0 19 19V7.5z"/><path d="M14 2.5v5h5"/><path d="M8.8 12.5h6.4M8.8 16h4.4"/></svg>',
+    avviso:  '<svg viewBox="0 0 24 24"><path d="M12 3.4l9 15.6H3z"/><path d="M12 9.4v4.4M12 16.6v.1"/></svg>',
+  };
+
+  // stato vuoto in stile core: icona, titolo, spiegazione di cosa fare
+  const vuoto = (icona, titolo, sotto) =>
+    `<div class="empty-state"><div class="empty-icon">${icona}</div>
+      <div class="empty-title">${titolo}</div><div class="empty-sub">${sotto}</div></div>`;
+
+  // ── Messaggi: toast del core + traccia scritta accanto al form ────────
+  const esito = (id, testo, tipo) => {
+    const el = $(id); if (el) { el.textContent = testo; el.className = "note esito" + (tipo === "err" ? " err" : ""); }
+    if (testo) toast(testo, tipo);
+  };
+  // ── Errori di campo: bordo rosso + fuoco sul campo sbagliato ──────────
+  const err = (id, on) => { const el = $(id); if (el) el.classList.toggle("err", !!on); };
+  const fuoco = (id) => { const el = $(id); if (el) { try { el.focus({ preventScroll: false }); } catch (e) { el.focus(); } } };
+  // classe della striscia laterale: lo stato si legge anche senza colore
+  const striscia = { danger: "st-danger", warn: "st-warn", ok: "st-ok", info: "st-sup", accent: "st-accent" };
+
   const db = await flottaData();
   mountExit(db);
   if (db.mode !== "live") $("tour-banner").style.display = "block";
-  $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
+  $("mode-note").innerHTML = db.mode === "live"
+    ? "Stai lavorando sui <b>dati reali</b> della tua organizzazione."
+    : "Stai guardando <b>dati di esempio</b> (" + db.mode + "): le modifiche non vengono salvate.";
   // scorciatoia: toccare un KPI del quadro porta alla lista pertinente
   document.querySelector(".kpis").addEventListener("click", (e) => {
     const card = e.target.closest("[data-goto]"); if (!card) return;
@@ -251,7 +1119,7 @@
   function mostraNorma() {
     const p = presetScadenzaMezzo($("sca-preset").value);
     if (!p) { $("sca-norma").innerHTML = ""; return; }
-    $("sca-norma").innerHTML = (p.norma ? `⚖ <b>${esc(p.norma)}</b><br>` : "")
+    $("sca-norma").innerHTML = (p.norma ? `<b>${esc(p.norma)}</b><br>` : "")
       + (p.nota ? esc(p.nota) : "")
       + (p.mesi ? `<br><span style="color:var(--muted2);">Periodicità proposta: ogni ${p.mesi} mesi (modificabile).</span>`
                 : `<br><span style="color:var(--muted2);">Non ricorrente: nessuna periodicità proposta.</span>`);
@@ -278,7 +1146,7 @@
   // cambiare pagina annulla una modifica mezzo in corso (torna su "Aggiungi")
   document.querySelector(".nav") && document.querySelector(".nav").addEventListener("click", () => {
     if (editMez) { editMez = null; $("btn-mez").textContent = "Aggiungi"; $("ore-esito").textContent = "";
-      ["mez-nome","mez-area","mez-ore"].forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; }); }
+      ["mez-nome","mez-area","mez-ore"].forEach(i => { $(i).value = ""; err(i, false); }); }
   });
   async function refresh(){
     [MEZ,MAN,COS,RIC,INT,SCA] = await Promise.all([db.mezzi(), db.manutenzioni(), db.costi(), db.ricambi ? db.ricambi() : [], db.interventi ? db.interventi() : [], db.scadenze ? db.scadenze() : []]);
@@ -301,32 +1169,60 @@
 
     // Priorità operative del giorno: manutenzioni urgenti (a data e a ore) +
     // ricambi sotto scorta + mezzi fermi/in verifica, ordinate danger-first.
+    // ogni priorità porta l'icona del suo mestiere: si riconosce a colpo
+    // d'occhio se è una scadenza di legge, un tagliando, un ricambio o un mezzo
+    const PRIO_ICO = { scadenza: I.bilancia, manutenzione: I.chiave, ricambio: I.bullone, mezzo: I.mezzo };
     const prio = prioritaOperative(MEZ, MAN, RIC, new Date(), SCA, preavvisoSca);
-    $("alert-list").innerHTML = prio.map(a => `<div class="item">
-      <div class="avatar">${esc(sig(a.titolo))}</div>
+    $("alert-list").innerHTML = prio.map(a => `<div class="item statico ${striscia[a.gravita] || "st-accent"}">
+      <div class="avatar${a.categoria === "ricambio" || a.categoria === "mezzo" ? " sup" : ""}">${PRIO_ICO[a.categoria] || I.avviso}</div>
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc(a.dettaglio)}</div></div>
-      <span class="badge ${a.gravita}">${esc(a.badge)}</span></div>`).join("") || '<div class="note">Nessuna criticità sul parco mezzi.</div>';
+      <span class="badge ${a.gravita}">${esc(a.badge)}</span></div>`).join("")
+      || vuoto(I.ok, "Tutto in ordine",
+          "Nessuna criticità sul parco mezzi: nessun tagliando scaduto, nessun ricambio sotto scorta, nessun mezzo fermo. Quando qualcosa richiederà attenzione comparirà qui, in cima alla giornata.");
 
     const ordStato = { fermo: 0, verifica: 1, operativo: 2 };
     const mezCmp = (a, b) => ordMez === "ore" ? (+b.ore || 0) - (+a.ore || 0)
       : ordMez === "nome" ? a.nome.localeCompare(b.nome, "it")
       : (ordStato[a.stato] ?? 3) - (ordStato[b.stato] ?? 3) || a.nome.localeCompare(b.nome, "it");
+    // Disponibilità della flotta: il quadrante d'officina del Quadro, e la
+    // stessa informazione in forma breve in cima al Parco mezzi.
     const disp = disponibilitaFlotta(MEZ);
-    $("mez-disp").innerHTML = disp.pct == null ? ""
-      : `Disponibilità flotta: <b>${disp.pct}%</b> (${disp.operativi} operativi su ${disp.totale}). <span style="color:var(--muted);">Riferimento world-class ~92-94%.</span>`;
+    if (disp.pct == null) {
+      $("dash-gauge").innerHTML = `<div class="gauge none">
+        <div class="gauge-ico">${I.mezzo}</div>
+        <div class="gauge-body"><div class="gauge-num">—</div>
+          <div class="gauge-lab">Disponibilità flotta</div>
+          <div class="gauge-sub">Nessun mezzo nel parco: aggiungi il primo dalla schermata <b>Mezzi</b> e qui vedrai quanta parte della flotta è pronta a lavorare.</div></div></div>`;
+      $("mez-disp").innerHTML = "";
+    } else {
+      const cls = disp.pct >= 90 ? "" : disp.pct >= 75 ? "warn" : "danger";
+      $("dash-gauge").innerHTML = `<div class="gauge ${cls}">
+        <div class="gauge-ico">${I.tachi}</div>
+        <div class="gauge-body"><div class="gauge-num">${disp.pct}%</div>
+          <div class="gauge-lab">Disponibilità flotta</div>
+          <div class="gauge-sub"><b>${disp.operativi}</b> mezzi operativi su <b>${disp.totale}</b>. Una flotta tenuta bene sta stabilmente sopra il 90%.</div>
+          <div class="gauge-bar"><i style="width:${Math.max(2, Math.min(100, disp.pct))}%"></i></div></div></div>`;
+      $("mez-disp").innerHTML = `Disponibilità: <b>${disp.pct}%</b> — ${disp.operativi} mezzi operativi su ${disp.totale}.`;
+    }
+    $("mez-tot").textContent = MEZ.length;
     const qMez = ($("mez-cerca") && $("mez-cerca").value || "").trim().toLowerCase();
     const mezOrd = MEZ.slice().sort(mezCmp)
                        .filter(m => filtroMez === "tutti" || m.stato === filtroMez)
                        .filter(m => !qMez || ((m.nome || "") + " " + (m.area || "")).toLowerCase().includes(qMez));
-    $("mez-list").innerHTML = mezOrd.map(m => `<div class="item" data-mezzo="${m.id}" style="cursor:pointer" title="Tocca per cambiare stato">
+    $("mez-list").innerHTML = mezOrd.map(m => `<div class="item ${striscia[MB[m.stato][0]]}" data-mezzo="${m.id}" title="Tocca per cambiare stato: operativo → in verifica → fermo">
       <div class="avatar">${esc(sig(m.nome))}</div>
-      <div class="info"><div class="name">${esc(m.nome)}</div><div class="meta">${(m.ore||0).toLocaleString("it-IT")} h${m.area ? " · " + esc(m.area) : ""}</div></div>
-      <span class="badge ${MB[m.stato][0]}">${MB[m.stato][1]}</span><span class="arr" style="cursor:pointer" title="Modifica mezzo" data-edit-mezzo="${m.id}">✎</span>${m.stato==="fermo"?`<span class="arr" style="cursor:pointer" title="Dismetti dal parco" data-del-mezzo="${m.id}">✕</span>`:""}</div>`).join("")
-      || '<div class="note" style="text-align:left;">'+(qMez?"Nessun mezzo trovato per «"+esc(qMez)+"».":(filtroMez==="tutti"?"Nessun mezzo nel parco.":"Nessun mezzo in questa categoria."))+'</div>';
-    { const n = $("mez-list").querySelectorAll(".item").length, filtrata = qMez || filtroMez !== "tutti";
+      <div class="info"><div class="name">${esc(m.nome)}</div><div class="meta">${(m.ore||0).toLocaleString("it-IT")} ore motore${m.area ? " · " + esc(m.area) : ""}</div></div>
+      <div class="acts"><span class="badge ${MB[m.stato][0]}">${MB[m.stato][1]}</span>
+      <span class="arr" role="button" tabindex="0" title="Modifica nome, area od ore" aria-label="Modifica ${esc(m.nome)}" data-edit-mezzo="${m.id}">${I.matita}</span>${m.stato==="fermo"?`<span class="arr dan" role="button" tabindex="0" title="Dismetti dal parco" aria-label="Dismetti ${esc(m.nome)}" data-del-mezzo="${m.id}">${I.croce}</span>`:""}</div></div>`).join("")
+      || (qMez
+        ? vuoto(I.cerca, "Nessun mezzo trovato", "Non c'è nessun mezzo che contenga «<b>" + esc(qMez) + "</b>» nel nome o nell'area. Prova a scrivere meno lettere, o svuota la casella di ricerca.")
+        : filtroMez !== "tutti"
+          ? vuoto(I.mezzo, "Nessun mezzo qui", "Nessun mezzo in questa categoria. Tocca <b>Tutti</b> per rivedere l'intero parco.")
+          : vuoto(I.mezzo, "Parco mezzi vuoto", "Qui vive l'elenco delle macchine della cava: escavatori, pale, dumper, perforatrici. Aggiungi il primo mezzo con il modulo <b>Nuovo mezzo</b> qui sotto, oppure importa tutto il parco da un file CSV."));
+    { const n = mezOrd.length, filtrata = qMez || filtroMez !== "tutti";
       $("mez-count").textContent = n === 0 ? "" : n + (n === 1 ? " mezzo" : " mezzi") + (filtrata ? " · su " + MEZ.length : ""); }
-    document.querySelectorAll("#mez-filtri [data-filtro]").forEach(b =>
-      b.style.borderColor = b.getAttribute("data-filtro") === filtroMez ? "var(--app-accent)" : "");
+    document.querySelectorAll("#mez-filtri .chg").forEach(b =>
+      b.classList.toggle("active", b.getAttribute("data-filtro") === filtroMez));
 
     const oreGiorno = $("man-oregiorno").value;
     const stimaGiorni = (n) => {  // previsione data per i tagliandi a ore
@@ -341,50 +1237,63 @@
     $("man-list").innerHTML = MAN.slice().sort((a,b)=>(a.dataPrevista||"9999")<(b.dataPrevista||"9999")?-1:1).map(n => {
       const u = urgDi(n);
       const ricN = n.ricambioId ? (RIC.find(r => r.id === n.ricambioId) || null) : null;
-      return `<div class="item"><div class="info"><div class="name">${esc(n.titolo)} — ${esc(n.mezzo)}</div><div class="meta">${n.orePreviste ? "A " + n.orePreviste + " ore motore" + stimaGiorni(n) : "Previsto " + (n.dataPrevista ? n.dataPrevista.split("-").reverse().join("/") : "—")}${ricN ? " · usa " + esc(ricN.nome) : ""}</div></div>
-      <span class="badge ${u.cls}">${u.label}</span>
-      <span class="arr" style="cursor:pointer" title="Segna come eseguita" data-man-done="${n.id}">✓</span></div>`; }).join("")
-      || '<div class="note" style="text-align:left;">Nessuna manutenzione programmata.</div>';
+      return `<div class="item ${striscia[u.cls] || "st-accent"}"><div class="avatar">${I.chiave}</div>
+      <div class="info"><div class="name">${esc(n.titolo)} — ${esc(n.mezzo)}</div><div class="meta">${n.orePreviste ? "A " + n.orePreviste + " ore motore" + stimaGiorni(n) : "Previsto " + (n.dataPrevista ? n.dataPrevista.split("-").reverse().join("/") : "—")}${ricN ? " · usa " + esc(ricN.nome) : ""}</div></div>
+      <div class="acts"><span class="badge ${u.cls}">${u.label}</span>
+      <span class="arr ok" role="button" tabindex="0" title="Segna come eseguita e registra l'intervento" aria-label="Chiudi ${esc(n.titolo)}" data-man-done="${n.id}">${I.spunta}</span></div></div>`; }).join("")
+      || vuoto(I.chiave, "Nessuna manutenzione in programma",
+          "Qui si pianificano tagliandi e revisioni, <b>a data</b> oppure <b>a ore motore</b>. L'app calcola da sola quanto manca e ti avvisa in tempo. Pianifica la prima con il modulo qui sotto.");
+    $("man-count").textContent = MAN.length;
 
     // Magazzino ricambi: giacenza, soglia, carico/scarico, sotto-scorta.
     const scorta = sottoScorta(RIC);
     // registro interventi (ordini di lavoro chiusi), più recenti in alto
     $("int-count").textContent = INT.length;
     $("int-list").innerHTML = INT.slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1).map(w =>
-      `<div class="item"><div class="info"><div class="name">${esc(w.titolo)} — ${esc(w.mezzo)}</div>
-        <div class="meta">${esc(w.data || "—")}${w.ricambio ? " · 🔩 " + esc(w.ricambio) : ""}${(+w.costo) ? " · " + eur(+w.costo) : ""}${w.note ? " · " + esc(w.note) : ""}</div></div></div>`).join("")
-      || '<div class="note" style="text-align:left;">Nessun intervento registrato: chiudi una manutenzione programmata (✓) e comparirà qui.</div>';
+      `<div class="item statico st-ok"><div class="avatar sup">${I.registro}</div>
+        <div class="info"><div class="name">${esc(w.titolo)} — ${esc(w.mezzo)}</div>
+        <div class="meta">${esc(dataIt(w.data))}${w.ricambio ? " · " + esc(w.ricambio) : ""}${w.note ? " · " + esc(w.note) : ""}</div></div>
+        ${(+w.costo) ? `<span class="badge tag euro">${eur(+w.costo)}</span>` : ""}</div>`).join("")
+      || vuoto(I.registro, "Libretto ancora bianco",
+          "Nessun intervento registrato. Quando segni <b>eseguita</b> una manutenzione programmata, finisce qui con data, ricambio usato e costo: è lo storico che vale in garanzia e alla rivendita del mezzo.");
     $("ric-alert").innerHTML = RIC.length
       ? (scorta.length
-          ? `<span style="color:var(--danger);">⚠️ ${scorta.length} ${scorta.length === 1 ? "ricambio sotto scorta" : "ricambi sotto scorta"}</span> — da riordinare: ${scorta.map(r => esc(r.nome)).join(", ")}.`
-          : "Tutti i ricambi sopra la soglia minima.")
+          ? `<span class="rosso">${scorta.length} ${scorta.length === 1 ? "ricambio sotto scorta" : "ricambi sotto scorta"}</span> — da riordinare: ${scorta.map(r => esc(r.nome)).join(", ")}.`
+          : `Tutti i <b>${RIC.length}</b> ricambi sono sopra la soglia minima.`)
       : "";
+    $("ric-tot").textContent = RIC.length;
     const qRic = ($("ric-cerca") && $("ric-cerca").value || "").trim().toLowerCase();
     $("ric-list").innerHTML = RIC.slice()
       .sort((a,b) => ((+a.giacenza||0)-(+a.sogliaMin||0)) - ((+b.giacenza||0)-(+b.sogliaMin||0)))
       .filter(r => !qRic || (r.nome || "").toLowerCase().includes(qRic))
       .map(r => { const sotto = (+r.giacenza||0) <= (+r.sogliaMin||0);
-      return `<div class="item">
-        <div class="info"><div class="name">${esc(r.nome)}</div><div class="meta">giacenza ${+r.giacenza||0} · soglia min ${+r.sogliaMin||0}</div></div>
-        <span class="arr" style="cursor:pointer" title="Scarico (−1)" data-ric-meno="${r.id}">−</span>
+      return `<div class="item statico ${sotto ? "st-danger" : "st-ok"}">
+        <div class="avatar sup">${I.bullone}</div>
+        <div class="info"><div class="name">${esc(r.nome)}</div><div class="meta">giacenza ${+r.giacenza||0} · soglia minima ${+r.sogliaMin||0}</div></div>
+        <div class="acts"><span class="arr" role="button" tabindex="0" title="Scarico: togli 1 pezzo" aria-label="Scarica un ${esc(r.nome)}" data-ric-meno="${r.id}">${I.meno}</span>
         <span class="badge ${sotto ? "danger" : "ok"}">${sotto ? "sotto scorta" : "ok"}</span>
-        <span class="arr" style="cursor:pointer" title="Carico (+1)" data-ric-piu="${r.id}">+</span>
-        <span class="arr" style="cursor:pointer" title="Rimuovi ricambio" data-ric-del="${r.id}">✕</span></div>`; }).join("")
-      || '<div class="note" style="text-align:left;">'+(qRic?"Nessun ricambio trovato per «"+esc(qRic)+"».":"Nessun ricambio a magazzino: aggiungine uno qui sotto.")+'</div>';
+        <span class="arr" role="button" tabindex="0" title="Carico: aggiungi 1 pezzo" aria-label="Carica un ${esc(r.nome)}" data-ric-piu="${r.id}">${I.piu}</span>
+        <span class="arr dan" role="button" tabindex="0" title="Rimuovi il ricambio dal magazzino" aria-label="Rimuovi ${esc(r.nome)}" data-ric-del="${r.id}">${I.croce}</span></div></div>`; }).join("")
+      || (qRic
+        ? vuoto(I.cerca, "Nessun ricambio trovato", "Non c'è nessun ricambio che contenga «<b>" + esc(qRic) + "</b>». Prova a scrivere meno lettere, o svuota la casella di ricerca.")
+        : vuoto(I.bullone, "Magazzino vuoto", "Segna qui i pezzi che tieni a scorta — filtri, cinghie, denti benna — con la <b>soglia minima</b> sotto la quale vuoi essere avvisato. Aggiungi il primo con il modulo qui sotto."));
     { const n = $("ric-list").querySelectorAll(".item").length;
       $("ric-count").textContent = n === 0 ? "" : n + (n === 1 ? " ricambio" : " ricambi") + (qRic ? " · su " + RIC.length : ""); }
 
     // Ripartizione costi per voce: dove va la spesa della flotta.
     const rip = ripartizioneCosti(COS);
     $("cos-riep").innerHTML = rip.voci.length
-      ? "Totale <b>" + eur(rip.totale) + "</b> — " + rip.voci.map(v => esc(v.voce) + " " + v.pct + "%").join(" · ")
+      ? "Totale speso <b>" + eur(rip.totale) + "</b> — " + rip.voci.map(v => esc(v.voce) + " " + v.pct + "%").join(" · ")
       : "";
+    $("cos-count").textContent = COS.length;
 
-    $("cos-list").innerHTML = COS.map(c => `<div class="item">
-      <div class="info"><div class="name">${esc(c.voce)}</div><div class="meta">${esc(c.nota || "")}</div></div>
-      <span class="badge ok">${eur(c.importo)}</span>
-      <span class="arr" style="cursor:pointer" title="Rimuovi voce di costo" data-del-cos="${c.id}">✕</span></div>`).join("")
-      || '<div class="note" style="text-align:left;">Nessun costo registrato.</div>';
+    $("cos-list").innerHTML = COS.map(c => `<div class="item statico st-accent">
+      <div class="avatar">${I.euro}</div>
+      <div class="info"><div class="name">${esc(c.voce)}</div><div class="meta">${esc(c.nota || "nessuna nota")}</div></div>
+      <div class="acts"><span class="badge accent euro">${eur(c.importo)}</span>
+      <span class="arr dan" role="button" tabindex="0" title="Rimuovi questa voce di costo" aria-label="Rimuovi ${esc(c.voce)}" data-del-cos="${c.id}">${I.croce}</span></div></div>`).join("")
+      || vuoto(I.euro, "Nessun costo registrato",
+          "Qui si tiene la spesa della flotta: carburante, olio, gomme, officina esterna. Registra la prima voce qui sotto e l'app ti mostrerà subito <b>dove se ne va il denaro</b>.");
 
     // SCADENZE DI LEGGE (F6): semaforo (scaduta / in scadenza / a posto),
     // conteggi in evidenza e lista ordinata per urgenza. Lo stato non è mai
@@ -395,11 +1304,12 @@
     if (skn[1]) skn[1].textContent = conta.inScadenza;
     if (skn[2]) skn[2].textContent = conta.aPosto;
     if (skn[3]) skn[3].textContent = conta.mezzi;
+    $("dash-sca").className = "note link" + ((conta.scadute + conta.inScadenza) === 0 ? "" : " recap");
     $("dash-sca").innerHTML = conta.totale === 0
-      ? 'Nessuna scadenza di legge registrata. <span style="color:var(--app-accent2);">Aprila e aggiungi la prima →</span>'
+      ? 'Nessuna scadenza di legge registrata. <span class="go">Apri e aggiungi la prima →</span>'
       : (conta.scadute + conta.inScadenza) === 0
-        ? `Tutte a posto: <b>${conta.totale}</b> scadenze su ${conta.mezzi} ${conta.mezzi === 1 ? "mezzo" : "mezzi"}, nessuna entro ${preavvisoSca} giorni.`
-        : `<span style="color:var(--danger);">⚠️ ${conta.scadute} ${conta.scadute === 1 ? "scaduta" : "scadute"}</span> · <span style="color:var(--warn);">${conta.inScadenza} in scadenza entro ${preavvisoSca} gg</span> · ${conta.aPosto} a posto. <span style="color:var(--app-accent2);">Vedi →</span>`;
+        ? `Tutte a posto: <b>${conta.totale}</b> scadenze su ${conta.mezzi} ${conta.mezzi === 1 ? "mezzo" : "mezzi"}, nessuna entro ${preavvisoSca} giorni. <span class="go">Vedi →</span>`
+        : `<span class="rosso">${conta.scadute} ${conta.scadute === 1 ? "scaduta" : "scadute"}</span> · <span class="giallo">${conta.inScadenza} in scadenza entro ${preavvisoSca} gg</span> · ${conta.aPosto} a posto. <span class="go">Vedi →</span>`;
     const qSca = ($("sca-cerca") && $("sca-cerca").value || "").trim().toLowerCase();
     const scaOrd = scadenzeOrdinate(SCA, new Date(), preavvisoSca)
       .filter(s => filtroSca === "tutte" || s.sem.stato === filtroSca
@@ -410,28 +1320,29 @@
       const meta = [
         "scade il " + dataIt(s.dataScadenza),
         s.mesi ? "ogni " + s.mesi + (s.mesi === 1 ? " mese" : " mesi") : "non si ripete",
-        s.documento ? "📄 " + s.documento : "",
+        s.documento ? "doc. " + s.documento : "",
         s.ultimaData ? "ultima: " + dataIt(s.ultimaData) + (s.ultimoEsito ? " (" + s.ultimoEsito + ")" : "") : "",
         s.note || "",
       ].filter(Boolean).map(esc).join(" · ");
-      return `<div class="item">
+      return `<div class="item ${striscia[s.sem.cls] || "st-accent"}">
         <div class="avatar">${esc(sig(s.mezzo))}</div>
         <div class="info"><div class="name">${esc(s.tipo || "Scadenza")} — ${esc(s.mezzo || "?")}</div>
           <div class="meta">${meta}</div>
-          ${p && p.norma ? `<div class="meta" style="color:var(--muted);">⚖ ${esc(p.norma)}</div>` : ""}</div>
-        <span class="badge ${s.sem.cls}">${esc(s.sem.label)}</span>
-        <span class="arr" style="cursor:pointer" title="Registra che è stata fatta" data-sca-done="${s.id}">✓</span>
-        <span class="arr" style="cursor:pointer" title="Rimuovi la scadenza" data-sca-del="${s.id}">✕</span></div>`;
+          ${p && p.norma ? `<div class="meta norma">${I.bilancia}${esc(p.norma)}</div>` : ""}</div>
+        <div class="acts"><span class="badge ${s.sem.cls}">${esc(s.sem.label)}</span>
+        <span class="arr ok" role="button" tabindex="0" title="Registra che la verifica è stata fatta" aria-label="Registra ${esc(s.tipo || "scadenza")} fatta" data-sca-done="${s.id}">${I.spunta}</span>
+        <span class="arr dan" role="button" tabindex="0" title="Rimuovi la scadenza" aria-label="Rimuovi ${esc(s.tipo || "scadenza")}" data-sca-del="${s.id}">${I.croce}</span></div></div>`;
     }).join("")
-      || '<div class="note" style="text-align:left;">' + (qSca
-        ? "Nessuna scadenza trovata per «" + esc(qSca) + "»."
+      || (qSca
+        ? vuoto(I.cerca, "Nessuna scadenza trovata", "Non c'è nessuna scadenza che contenga «<b>" + esc(qSca) + "</b>». Prova a scrivere meno lettere, o svuota la casella di ricerca.")
         : filtroSca !== "tutte"
-          ? "Nessuna scadenza in questa categoria: tocca «Tutte» per vederle tutte."
-          : "Nessuna scadenza registrata.<br>Qui tieni le scadenze obbligatorie dei mezzi — verifica periodica dell'attrezzatura, funi e catene, revisione, assicurazione — quelle che l'ispettore chiede di vedere.<br>Scegli il mezzo e una voce già pronta qui sotto: l'app propone la periodicità e, quando segni che la verifica è stata fatta, ti prepara da sola la prossima.") + '</div>';
+          ? vuoto(I.bilancia, "Nessuna scadenza qui", "Nessuna scadenza in questa categoria. Tocca <b>Tutte</b> per rivederle tutte.")
+          : vuoto(I.bilancia, "Scadenzario vuoto",
+              "Qui tieni le scadenze obbligatorie dei mezzi: verifica periodica dell'attrezzatura, funi e catene, revisione, assicurazione — quelle che l'ispettore chiede di vedere. Scegli il mezzo e una voce già pronta qui sotto: l'app propone la periodicità e, quando segni che la verifica è stata fatta, <b>prepara da sola la prossima</b>."));
     { const n = scaOrd.length, filtrata = qSca || filtroSca !== "tutte";
       $("sca-count").textContent = n === 0 ? "" : n + (n === 1 ? " scadenza" : " scadenze") + (filtrata ? " · su " + SCA.length : ""); }
-    document.querySelectorAll("#sca-filtri [data-sca-filtro]").forEach(b =>
-      b.style.borderColor = b.getAttribute("data-sca-filtro") === filtroSca ? "var(--app-accent)" : "");
+    document.querySelectorAll("#sca-filtri .chg").forEach(b =>
+      b.classList.toggle("active", b.getAttribute("data-sca-filtro") === filtroSca));
 
     const opts = MEZ.map(m => `<option value="${m.id}">${esc(m.nome.split(" — ")[0])}</option>`).join("");
     $("ore-mezzo").innerHTML = opts;
@@ -447,97 +1358,162 @@
       RIC.map(r => `<option value="${r.id}"${r.id === ricSel ? " selected" : ""}>${esc(r.nome)} (giac. ${+r.giacenza||0})</option>`).join("");
   }
 
+  // il bersaglio del tocco può essere l'icona SVG dentro il bottone: si
+  // risale sempre all'elemento che porta l'attributo.
+  const attr = (e, nome) => { const el = e.target.closest && e.target.closest("[" + nome + "]"); return el ? el.getAttribute(nome) : null; };
+
   document.addEventListener("click", async (e) => {
-    const done = e.target.getAttribute && e.target.getAttribute("data-man-done");
+    const done = attr(e, "data-man-done");
     if (done) { const n = MAN.find(x => x.id === done);
       if (!n) return;
       const ric = n.ricambioId ? RIC.find(r => r.id === n.ricambioId) : null;
-      const msg = "Chiudere l'ordine di lavoro «" + n.titolo + " — " + n.mezzo + "»?"
-        + (ric ? " Verrà scaricato 1 « " + ric.nome + " » dal magazzino." : "") + " L'intervento finisce nel registro.";
-      if (confirm(msg)) {
-        // ordine di lavoro (25/07): la chiusura REGISTRA l'intervento invece di cancellare e basta
-        const costoTx = prompt("Costo dell'intervento in € (vuoto = nessun costo):", "");
-        const costo = Math.max(0, Math.round(+String(costoTx || "0").replace(",", ".") * 100) / 100) || 0;
-        const note = (prompt("Note sull'intervento (facoltative):", "") || "").trim();
-        const oggiISO = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-        if (ric) await db.aggiorna("ricambi", ric.id, { giacenza: scaricoGiacenza(ric.giacenza, 1) });
-        await db.aggiungi("interventi", { data: oggiISO, titolo: n.titolo, mezzo: n.mezzo, ricambio: ric ? ric.nome : null, costo, note });
-        if (costo > 0) await db.aggiungi("costi", { voce: "Manutenzione: " + n.titolo + " (" + n.mezzo + ")", importo: costo, nota: note });
-        await db.rimuovi("manutenzioni", done); await refresh(); } return; }
-    const delMez = e.target.getAttribute && e.target.getAttribute("data-del-mezzo");
-    if (delMez) { const m = MEZ.find(x => x.id === delMez);
-      if (m && confirm("Dismettere " + m.nome + " dal parco? Le sue manutenzioni programmate a ore non saranno più calcolabili.")) {
-        await db.rimuovi("mezzi", delMez); await refresh(); } return; }
-    const delCos = e.target.getAttribute && e.target.getAttribute("data-del-cos");
-    if (delCos) { const c = COS.find(x => x.id === delCos);
-      if (c && confirm("Rimuovere la voce di costo «" + c.voce + "» (" + eur(c.importo) + ")?")) {
-        await db.rimuovi("costi", delCos); await refresh(); } return; }
+      // ordine di lavoro: la chiusura REGISTRA l'intervento invece di cancellare e basta
+      const dati = await chiediDati("Manutenzione eseguita",
+        `<b>${esc(n.titolo)} — ${esc(n.mezzo)}</b><br>
+         Confermando, questa manutenzione esce dal programma ed entra nel <b>registro interventi</b>
+         del mezzo${ric ? `, e dal magazzino viene scaricato <b>1 ${esc(ric.nome)}</b>` : ""}.`,
+        [{ id: "costo", label: "Costo dell'intervento (€)", tipo: "number", min: 0, step: "0.01",
+           placeholder: "0", aiuto: "Lascia vuoto se non c'è un costo. Se lo scrivi, finisce anche fra i costi della flotta." },
+         { id: "note", label: "Note sull'intervento", placeholder: "es. sostituiti filtri e olio motore",
+           aiuto: "Facoltative: è la memoria che ritrovi fra due anni." }],
+        "Registra l'intervento");
+      if (dati === null) return;
+      const costo = Math.max(0, Math.round(+String(dati.costo || "0").replace(",", ".") * 100) / 100) || 0;
+      const note = (dati.note || "").trim();
+      if (ric) await db.aggiorna("ricambi", ric.id, { giacenza: scaricoGiacenza(ric.giacenza, 1) });
+      await db.aggiungi("interventi", { data: oggiISO(), titolo: n.titolo, mezzo: n.mezzo, ricambio: ric ? ric.nome : null, costo, note });
+      if (costo > 0) await db.aggiungi("costi", { voce: "Manutenzione: " + n.titolo + " (" + n.mezzo + ")", importo: costo, nota: note });
+      await db.rimuovi("manutenzioni", done);
+      toast("Intervento registrato: " + n.titolo + " su " + n.mezzo + ".", "success");
+      await refresh(); return; }
+    const delMez = attr(e, "data-del-mezzo");
+    if (delMez) { const m = MEZ.find(x => x.id === delMez); if (!m) return;
+      const ok = await chiedi("Dismettere il mezzo",
+        `Stai per togliere <b>${esc(m.nome)}</b> dal parco.<br>
+         Le manutenzioni programmate «a ore motore» su questo mezzo non saranno più calcolabili,
+         e lo storico degli interventi resta ma senza il mezzo davanti.<br>
+         <b>L'operazione non si può annullare.</b>`, "Dismetti", true);
+      if (!ok) return;
+      await db.rimuovi("mezzi", delMez);
+      toast(m.nome + " dismesso dal parco.");
+      await refresh(); return; }
+    const delCos = attr(e, "data-del-cos");
+    if (delCos) { const c = COS.find(x => x.id === delCos); if (!c) return;
+      const ok = await chiedi("Rimuovere la voce di costo",
+        `Stai per togliere <b>${esc(c.voce)}</b> (${eur(c.importo)}) dai costi della flotta.<br>
+         Il totale e le percentuali qui sopra si ricalcolano subito. <b>Non si può annullare.</b>`, "Rimuovi", true);
+      if (!ok) return;
+      await db.rimuovi("costi", delCos);
+      toast("Voce di costo rimossa: " + c.voce + ".");
+      await refresh(); return; }
     // magazzino ricambi: carico (+1), scarico (−1, mai sotto 0), rimozione
-    const ricPiu = e.target.getAttribute && e.target.getAttribute("data-ric-piu");
+    const ricPiu = attr(e, "data-ric-piu");
     if (ricPiu) { const r = RIC.find(x => x.id === ricPiu);
       if (r) { await db.aggiorna("ricambi", r.id, { giacenza: (+r.giacenza || 0) + 1 }); await refresh(); } return; }
-    const ricMeno = e.target.getAttribute && e.target.getAttribute("data-ric-meno");
+    const ricMeno = attr(e, "data-ric-meno");
     if (ricMeno) { const r = RIC.find(x => x.id === ricMeno);
       if (r) { await db.aggiorna("ricambi", r.id, { giacenza: Math.max(0, (+r.giacenza || 0) - 1) }); await refresh(); } return; }
-    const ricDel = e.target.getAttribute && e.target.getAttribute("data-ric-del");
-    if (ricDel) { const r = RIC.find(x => x.id === ricDel);
-      if (r && confirm("Rimuovere il ricambio «" + r.nome + "» dal magazzino?")) {
-        await db.rimuovi("ricambi", ricDel); await refresh(); } return; }
-    const editMezId = e.target.getAttribute && e.target.getAttribute("data-edit-mezzo");
+    const ricDel = attr(e, "data-ric-del");
+    if (ricDel) { const r = RIC.find(x => x.id === ricDel); if (!r) return;
+      const ok = await chiedi("Rimuovere il ricambio",
+        `Stai per togliere <b>${esc(r.nome)}</b> dal magazzino (giacenza attuale ${+r.giacenza || 0}).<br>
+         Le manutenzioni che lo usano resteranno, ma senza ricambio collegato. <b>Non si può annullare.</b>`, "Rimuovi", true);
+      if (!ok) return;
+      await db.rimuovi("ricambi", ricDel);
+      toast("Ricambio rimosso: " + r.nome + ".");
+      await refresh(); return; }
+    const editMezId = attr(e, "data-edit-mezzo");
     if (editMezId) { const m = MEZ.find(x => x.id === editMezId); if (!m) return;
-      if (editMez === m.id) {   // ri-tocco la ✎ dello stesso mezzo = annulla
-        editMez = null; $("btn-mez").textContent = "Aggiungi"; $("ore-esito").textContent = "Modifica annullata.";
-        ["mez-nome","mez-area","mez-ore"].forEach(i => { $(i).value = ""; $(i).style.borderColor = ""; }); return; }
+      if (editMez === m.id) {   // ri-tocco la matita dello stesso mezzo = annulla
+        editMez = null; $("btn-mez").textContent = "Aggiungi";
+        esito("ore-esito", "Modifica annullata.");
+        ["mez-nome","mez-area","mez-ore"].forEach(i => { $(i).value = ""; err(i, false); }); return; }
       editMez = m.id;
       $("mez-nome").value = m.nome || ""; $("mez-area").value = m.area || ""; $("mez-ore").value = m.ore != null ? m.ore : "";
-      ["mez-nome","mez-area","mez-ore"].forEach(i => $(i).style.borderColor = "");
+      ["mez-nome","mez-area","mez-ore"].forEach(i => err(i, false));
       $("btn-mez").textContent = "Salva modifica";
-      $("ore-esito").textContent = "Stai modificando «" + m.nome + "»: cambi nome/area/ore, lo stato e le manutenzioni restano.";
-      $("mez-nome").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+      esito("ore-esito", "Stai modificando «" + m.nome + "»: cambi nome, area e ore. Lo stato e le manutenzioni restano come sono.");
+      $("mez-nome").scrollIntoView({ behavior: "smooth", block: "center" });
+      fuoco("mez-nome"); return; }
     // SCADENZE DI LEGGE: "✓ è stata fatta" registra l'esecuzione e, se la
     // scadenza è ricorrente, PROPONE da sola la prossima data (ultima
     // verifica + periodicità). L'utente può correggerla o non riprogrammarla.
-    const scaDone = e.target.getAttribute && e.target.getAttribute("data-sca-done");
+    const scaDone = attr(e, "data-sca-done");
     if (scaDone) {
       const s = SCA.find(x => x.id === scaDone); if (!s) return;
       const quale = (s.tipo || "Scadenza") + " — " + (s.mezzo || "?");
-      const esito = prompt("«" + quale + "»: com'è andata? (es. regolare, con prescrizioni)", s.ultimoEsito || "regolare");
-      if (esito === null) return;
-      const fattaTx = prompt("In che data è stata fatta? (gg/mm/aaaa)", dataIt(oggiISO()));
-      if (fattaTx === null) return;
-      const fatta = itToIso(fattaTx);
-      if (!fatta) { alert("La data «" + fattaTx + "» non è valida: scrivila come gg/mm/aaaa."); return; }
-      const eseguita = { ultimaData: fatta, ultimoEsito: (esito || "").trim() || "regolare" };
+      // 1) com'è andata e quando: un solo passaggio, campi etichettati
+      const reg = await chiediDati("Verifica eseguita",
+        `<b>${esc(quale)}</b><br>Registra che la verifica è stata fatta: resta nello storico della macchina
+         e l'app prepara la prossima${s.mesi ? "" : " (questa scadenza non è ricorrente)"}.`,
+        [{ id: "data", label: "In che data è stata fatta", tipo: "date", valore: oggiISO(),
+           aiuto: "Di norma è oggi; se il verbale porta un'altra data, cambiala." },
+         { id: "esitoTx", label: "Com'è andata", valore: s.ultimoEsito || "regolare",
+           placeholder: "es. regolare, con prescrizioni",
+           aiuto: "Poche parole: è quello che rileggerai al controllo successivo." }],
+        "Registra");
+      if (reg === null) return;
+      const fatta = reg.data;
+      if (!fatta) { await avvisa("Manca la data",
+        "Non hai scelto <b>la data in cui la verifica è stata fatta</b>: senza quella non si può calcolare la prossima scadenza. Riapri e indica il giorno."); return; }
+      const eseguita = { ultimaData: fatta, ultimoEsito: (reg.esitoTx || "").trim() || "regolare" };
+
       if (s.mesi) {
+        // 2) la prossima data, già proposta dall'app: si conferma o si corregge
         const prop = aggiungiMesi(fatta, s.mesi);
-        const nuovaTx = prompt("Verifica registrata. La prossima, ogni " + s.mesi + " mesi, cade il "
-          + dataIt(prop) + ".\nConfermi la data (puoi cambiarla) oppure lascia vuoto per chiudere questa scadenza e toglierla dall'elenco.", dataIt(prop));
-        if (nuovaTx === null) return;
-        if (!nuovaTx.trim()) {
-          if (!confirm("Nessuna prossima scadenza: «" + quale + "» verrà tolta dall'elenco. Procedo?")) return;
+        const nx = await chiediDati("La prossima scadenza",
+          `Verifica registrata al <b>${dataIt(fatta)}</b>.<br>
+           Ogni <b>${s.mesi} ${s.mesi === 1 ? "mese" : "mesi"}</b>, la prossima cade il <b>${dataIt(prop)}</b>.
+           Confermala così com'è, correggila se la tua cava ha un ritmo diverso,
+           oppure <b>svuota il campo</b> per chiudere questa scadenza e toglierla dall'elenco.`,
+          [{ id: "data", label: "Data della prossima verifica", tipo: "date", valore: prop,
+             aiuto: "Vuoto = questa scadenza si chiude qui e sparisce dall'elenco." }],
+          "Conferma");
+        if (nx === null) return;
+        if (!nx.data) {
+          const ok = await chiedi("Chiudere la scadenza",
+            `Hai lasciato vuota la prossima data: <b>${esc(quale)}</b> viene registrata come fatta
+             il ${dataIt(fatta)} e <b>tolta dall'elenco</b>. Potrai sempre riaggiungerla in seguito.`, "Chiudi", true);
+          if (!ok) return;
           await db.rimuovi("scadenze", s.id);
-          $("sca-esito").textContent = "Registrata come fatta il " + dataIt(fatta) + " e chiusa: " + quale + ".";
+          esito("sca-esito", "Registrata come fatta il " + dataIt(fatta) + " e chiusa: " + quale + ".");
         } else {
-          const nuova = itToIso(nuovaTx);
-          const v = validaScadenzaMezzo({ mezzo: s.mezzo, tipo: s.tipo, dataScadenza: nuova, mesi: s.mesi });
-          if (!v.ok) { alert(Object.values(v.errori).join(" ")); return; }
-          await db.aggiorna("scadenze", s.id, { ...eseguita, dataScadenza: nuova });
-          $("sca-esito").textContent = "Fatta il " + dataIt(fatta) + ": la prossima « " + quale + " » è al " + dataIt(nuova) + ".";
+          const v = validaScadenzaMezzo({ mezzo: s.mezzo, tipo: s.tipo, dataScadenza: nx.data, mesi: s.mesi });
+          if (!v.ok) { await avvisa("Data non valida", Object.values(v.errori).map(esc).join(" ")); return; }
+          await db.aggiorna("scadenze", s.id, { ...eseguita, dataScadenza: nx.data });
+          esito("sca-esito", "Fatta il " + dataIt(fatta) + ": la prossima « " + quale + " » è al " + dataIt(nx.data) + ".", "success");
         }
       } else {
-        if (!confirm("«" + quale + "» non è ricorrente: la registro come fatta il " + dataIt(fatta) + " e la tolgo dall'elenco. Procedo?")) return;
+        const ok = await chiedi("Chiudere la scadenza",
+          `<b>${esc(quale)}</b> non è ricorrente: viene registrata come fatta il <b>${dataIt(fatta)}</b>
+           e tolta dall'elenco. Procedo?`, "Registra e chiudi");
+        if (!ok) return;
         await db.rimuovi("scadenze", s.id);
-        $("sca-esito").textContent = "Registrata come fatta il " + dataIt(fatta) + " e chiusa: " + quale + ".";
+        esito("sca-esito", "Registrata come fatta il " + dataIt(fatta) + " e chiusa: " + quale + ".", "success");
       }
       await refresh(); return;
     }
-    const scaDel = e.target.getAttribute && e.target.getAttribute("data-sca-del");
-    if (scaDel) { const s = SCA.find(x => x.id === scaDel);
-      if (s && confirm("Rimuovere la scadenza «" + (s.tipo || "") + " — " + (s.mezzo || "") + "» (" + dataIt(s.dataScadenza) + ")?")) {
-        await db.rimuovi("scadenze", scaDel); await refresh(); } return; }
+    const scaDel = attr(e, "data-sca-del");
+    if (scaDel) { const s = SCA.find(x => x.id === scaDel); if (!s) return;
+      const ok = await chiedi("Rimuovere la scadenza",
+        `Stai per togliere <b>${esc(s.tipo || "")} — ${esc(s.mezzo || "")}</b> (${dataIt(s.dataScadenza)}) dallo scadenzario.<br>
+         Sparisce anche dal semaforo e dalle priorità del Quadro. <b>Non si può annullare.</b>`, "Rimuovi", true);
+      if (!ok) return;
+      await db.rimuovi("scadenze", scaDel);
+      toast("Scadenza rimossa: " + (s.tipo || "") + " — " + (s.mezzo || "") + ".");
+      await refresh(); return; }
     const it = e.target.closest && e.target.closest("[data-mezzo]");
-    if (it) { const m = MEZ.find(x => x.id === it.getAttribute("data-mezzo"));
-      await db.aggiorna("mezzi", m.id, { stato: MEZ_NEXT[m.stato] || "operativo" }); await refresh(); }
+    if (it) { const m = MEZ.find(x => x.id === it.getAttribute("data-mezzo")); if (!m) return;
+      const nuovo = MEZ_NEXT[m.stato] || "operativo";
+      await db.aggiorna("mezzi", m.id, { stato: nuovo });
+      toast(m.nome.split(" — ")[0] + ": ora è « " + MB[nuovo][1].toLowerCase() + " ».");
+      await refresh(); }
+  });
+  // le icone d'azione dentro le liste rispondono anche da tastiera
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const a = e.target.closest && e.target.closest(".arr[role='button']");
+    if (a) { e.preventDefault(); a.click(); }
   });
   $("btn-int-csv").onclick = () => {
     const righe = [["data", "titolo", "mezzo", "ricambio", "costo", "note"].join(";")]
@@ -546,21 +1522,27 @@
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-registro-interventi.csv"; a.click();
+    toast("Esportati " + INT.length + " interventi (CSV).", "success");
   };
   // Nuova scadenza di legge: il tipo arriva dalle voci già pronte, la
   // periodicità è solo PROPOSTA (l'utente la può cambiare o svuotare).
   $("btn-sca").onclick = async () => {
-    if (!MEZ.length) { $("sca-esito").textContent = "Prima aggiungi almeno un mezzo nel parco (schermata Mezzi)."; return; }
+    if (!MEZ.length) { esito("sca-esito", "Prima aggiungi almeno un mezzo nel parco: apri la schermata Mezzi e inseriscilo.", "err"); return; }
     const p = presetScadenzaMezzo($("sca-preset").value);
     const dati = { mezzo: ($("sca-mezzo").value || "").trim(), tipo: p ? p.tipo : "",
                    dataScadenza: $("sca-data").value, mesi: $("sca-mesi").value };
     const v = validaScadenzaMezzo(dati);
-    $("sca-mezzo").style.borderColor = v.errori.mezzo ? "var(--danger)" : "";
-    $("sca-data").style.borderColor = v.errori.dataScadenza ? "var(--danger)" : "";
-    $("sca-mesi").style.borderColor = v.errori.mesi ? "var(--danger)" : "";
-    if (!v.ok) { $("sca-esito").textContent = Object.values(v.errori).join(" "); return; }
-    if (SCA.some(s => s.mezzo === dati.mezzo && s.chiave === (p ? p.chiave : null))
-        && !confirm("Per « " + dati.mezzo + " » esiste già una scadenza di questo tipo. Ne aggiungo un'altra lo stesso?")) return;
+    err("sca-mezzo", v.errori.mezzo); err("sca-data", v.errori.dataScadenza); err("sca-mesi", v.errori.mesi);
+    if (!v.ok) {
+      esito("sca-esito", Object.values(v.errori).join(" "), "err");
+      fuoco(v.errori.mezzo ? "sca-mezzo" : v.errori.dataScadenza ? "sca-data" : "sca-mesi"); return;
+    }
+    if (SCA.some(s => s.mezzo === dati.mezzo && s.chiave === (p ? p.chiave : null))) {
+      const ok = await chiedi("Scadenza già presente",
+        `Per <b>${esc(dati.mezzo)}</b> hai già una scadenza di tipo <b>${esc(dati.tipo)}</b>.<br>
+         Di solito ce n'è una sola per mezzo. Ne aggiungo comunque una seconda?`, "Aggiungi lo stesso");
+      if (!ok) return;
+    }
     await db.aggiungi("scadenze", {
       mezzo: dati.mezzo, tipo: dati.tipo, chiave: p ? p.chiave : null,
       dataScadenza: dati.dataScadenza, mesi: v.mesi,
@@ -568,8 +1550,9 @@
       ultimaData: null, ultimoEsito: null,
     });
     $("sca-data").value = ""; $("sca-doc").value = ""; $("sca-note").value = "";
-    $("sca-esito").textContent = "Scadenza aggiunta: " + dati.tipo + " per " + dati.mezzo + " (" + dataIt(dati.dataScadenza) + ")"
-      + (v.mesi ? ", si ripete ogni " + v.mesi + (v.mesi === 1 ? " mese" : " mesi") : ", non ricorrente") + ".";
+    esito("sca-esito", "Scadenza aggiunta: " + dati.tipo + " per " + dati.mezzo + " (" + dataIt(dati.dataScadenza) + ")"
+      + (v.mesi ? ", si ripete ogni " + v.mesi + (v.mesi === 1 ? " mese" : " mesi") : ", non ricorrente") + ".", "success");
+    fuoco("sca-data");
     await refresh();
   };
   // Esporta lo scadenzario dei mezzi: è la lista che si stampa e si porta al
@@ -585,43 +1568,48 @@
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-scadenze-di-legge.csv"; a.click();
-    $("sca-esito").textContent = "Esportate " + SCA.length + " scadenze (CSV).";
+    esito("sca-esito", "Esportate " + SCA.length + " scadenze (CSV).", "success");
   };
   $("btn-cos").onclick = async () => {
     const voce = $("cos-voce").value.trim(), importo = +$("cos-importo").value;
     if (!voce || !(importo > 0)) {
-      $("cos-voce").style.borderColor = voce ? "" : "var(--danger)";
-      $("cos-importo").style.borderColor = importo > 0 ? "" : "var(--danger)";
-      $("cos-esito").textContent = "Servono la voce e un importo maggiore di zero."; return;
+      err("cos-voce", !voce); err("cos-importo", !(importo > 0));
+      esito("cos-esito", !voce
+        ? "Manca la voce di costo: scrivi di cosa si tratta (es. «Carburante settimana 30»)."
+        : "L'importo deve essere un numero maggiore di zero.", "err");
+      fuoco(!voce ? "cos-voce" : "cos-importo"); return;
     }
-    ["cos-voce","cos-importo"].forEach(i => $(i).style.borderColor = "");
+    ["cos-voce","cos-importo"].forEach(i => err(i, false));
     await db.aggiungi("costi", { voce, importo, nota: $("cos-nota").value.trim() });
     $("cos-voce").value = ""; $("cos-importo").value = ""; $("cos-nota").value = "";
-    $("cos-esito").textContent = "Costo registrato: " + voce + " (" + eur(importo) + ").";
-    $("cos-voce").focus();   // pronto per la prossima voce di costo
+    esito("cos-esito", "Costo registrato: " + voce + " (" + eur(importo) + ").", "success");
+    fuoco("cos-voce");   // pronto per la prossima voce di costo
     await refresh();
   };
   $("btn-ric").onclick = async () => {
     const nome = $("ric-nome").value.trim(), giac = +$("ric-giac").value, soglia = +$("ric-soglia").value;
-    if (!nome || !(giac >= 0) || !(soglia >= 0)) {
-      $("ric-nome").style.borderColor = nome ? "" : "var(--danger)";
-      $("ric-giac").style.borderColor = giac >= 0 ? "" : "var(--danger)";
-      $("ric-soglia").style.borderColor = soglia >= 0 ? "" : "var(--danger)";
-      $("ric-esito").textContent = "Servono nome, giacenza e soglia minima (numeri ≥ 0)."; return;
+    const giacOk = $("ric-giac").value !== "" && giac >= 0, sogliaOk = $("ric-soglia").value !== "" && soglia >= 0;
+    if (!nome || !giacOk || !sogliaOk) {
+      err("ric-nome", !nome); err("ric-giac", !giacOk); err("ric-soglia", !sogliaOk);
+      esito("ric-esito", !nome
+        ? "Manca il nome del ricambio (es. «Filtro olio»)."
+        : !giacOk ? "Scrivi quanti pezzi hai adesso in magazzino: un numero da 0 in su."
+                  : "Scrivi la soglia minima: sotto quel numero l'app ti avvisa che è ora di riordinare.", "err");
+      fuoco(!nome ? "ric-nome" : !giacOk ? "ric-giac" : "ric-soglia"); return;
     }
-    ["ric-nome","ric-giac","ric-soglia"].forEach(i => $(i).style.borderColor = "");
+    ["ric-nome","ric-giac","ric-soglia"].forEach(i => err(i, false));
     await db.aggiungi("ricambi", { nome, giacenza: giac, sogliaMin: soglia });
     $("ric-nome").value = ""; $("ric-giac").value = ""; $("ric-soglia").value = "";
-    $("ric-esito").textContent = "Ricambio aggiunto: " + nome + " (giacenza " + giac + ", soglia " + soglia + ").";
-    $("ric-nome").focus();
+    esito("ric-esito", "Ricambio aggiunto: " + nome + " (giacenza " + giac + ", soglia " + soglia + ").", "success");
+    fuoco("ric-nome");
     await refresh();
   };
   $("btn-mez").onclick = async () => {
     const nome = $("mez-nome").value.trim(), area = $("mez-area").value.trim(), ore = +$("mez-ore").value || 0;
-    if (!nome) { $("mez-nome").style.borderColor = "var(--danger)"; $("ore-esito").textContent = "Serve il nome del mezzo."; return; }
+    if (!nome) { err("mez-nome", true); esito("ore-esito", "Manca il nome del mezzo: è come lo chiamate in cava (es. «Dumper D4»).", "err"); fuoco("mez-nome"); return; }
     if (MEZ.some(m => m.id !== editMez && m.nome.split(" — ")[0].toLowerCase() === nome.split(" — ")[0].toLowerCase())) {
-      $("mez-nome").style.borderColor = "var(--danger)"; $("ore-esito").textContent = "Esiste già un mezzo con questo nome."; return; }
-    $("mez-nome").style.borderColor = "";
+      err("mez-nome", true); esito("ore-esito", "C'è già un mezzo che si chiama «" + nome + "»: dagli un nome diverso, altrimenti in cantiere non si capisce di quale si parla.", "err"); fuoco("mez-nome"); return; }
+    err("mez-nome", false);
     if (editMez) {
       await db.aggiorna("mezzi", editMez, { nome, area, ore });   // stato/manutenzioni restano
       editMez = null; $("btn-mez").textContent = "Aggiungi";
@@ -629,16 +1617,21 @@
       await db.aggiungi("mezzi", { nome, area, ore, stato: "operativo" });
     }
     $("mez-nome").value = ""; $("mez-area").value = ""; $("mez-ore").value = "";
-    $("ore-esito").textContent = "Mezzo " + nome + " salvato (" + ore + " h).";
-    $("mez-nome").focus();   // torna al primo campo per inserire subito il prossimo
+    esito("ore-esito", "Mezzo salvato: " + nome + " (" + ore.toLocaleString("it-IT") + " ore motore).", "success");
+    fuoco("mez-nome");   // torna al primo campo per inserire subito il prossimo
     await refresh();
   };
   $("btn-ore").onclick = async () => {
     const id = $("ore-mezzo").value, ore = +$("ore-nuove").value;
     const m = MEZ.find(x => x.id === id);
-    if (!m || !ore) { $("ore-esito").textContent = "Scegli il mezzo e scrivi le ore attuali."; $("ore-nuove").style.borderColor = "var(--danger)"; return; }
-    if (ore < (m.ore||0)) { $("ore-esito").textContent = "Ore (" + ore + ") inferiori alle attuali (" + (m.ore||0) + "): il contatore non può scendere."; $("ore-nuove").style.borderColor = "var(--danger)"; return; }
-    $("ore-nuove").style.borderColor = ""; $("ore-esito").textContent = "Registrate " + ore + " h su " + m.nome.split(" — ")[0] + ".";
+    if (!m) { err("ore-mezzo", true); esito("ore-esito", "Scegli prima il mezzo su cui vuoi registrare le ore.", "err"); fuoco("ore-mezzo"); return; }
+    err("ore-mezzo", false);
+    if (!ore) { err("ore-nuove", true); esito("ore-esito", "Scrivi le ore che legge adesso il contatore del mezzo.", "err"); fuoco("ore-nuove"); return; }
+    if (ore < (m.ore||0)) { err("ore-nuove", true);
+      esito("ore-esito", "Hai scritto " + ore.toLocaleString("it-IT") + " ore, ma il mezzo ne ha già " + (m.ore||0).toLocaleString("it-IT") + ": il contatore non può scendere. Controlla il numero.", "err");
+      fuoco("ore-nuove"); return; }
+    err("ore-nuove", false);
+    esito("ore-esito", "Registrate " + ore.toLocaleString("it-IT") + " ore su " + m.nome.split(" — ")[0] + ".", "success");
     await db.aggiorna("mezzi", id, { ore }); $("ore-nuove").value = ""; await refresh();
   };
   // Import telemetria da CSV (mezzo;ore[;carburante]): aggiorna le ore dei
@@ -647,7 +1640,7 @@
   $("mez-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseMezziCsv(await file.text());
-    if (!righe.length) { $("ore-esito").textContent = "Nessuna riga valida: controlla che le colonne siano nome;area;ore;stato."; e.target.value = ""; return; }
+    if (!righe.length) { esito("ore-esito", "Nessuna riga valida nel file: le colonne devono essere nome;area;ore;stato, una riga per mezzo.", "err"); e.target.value = ""; return; }
     let agg = 0, dup = 0;
     for (const r of righe) {
       if (MEZ.some(m => m.nome.trim().toLowerCase() === r.nome.toLowerCase())) { dup++; continue; }  // già presente
@@ -655,7 +1648,7 @@
       agg++;
     }
     $("mez-file").value = "";
-    $("ore-esito").textContent = `Import parco: ${agg} mezzi aggiunti${dup ? `, ${dup} già presenti (saltati)` : ""}.`;
+    esito("ore-esito", `Import parco: ${agg} ${agg === 1 ? "mezzo aggiunto" : "mezzi aggiunti"}${dup ? `, ${dup} già presenti (saltati)` : ""}.`, agg ? "success" : "err");
     await refresh();
   };
   $("btn-tele").onclick = () => $("tele-file").click();
@@ -670,7 +1663,8 @@
       else ign++;
     }
     $("tele-file").value = "";
-    $("ore-esito").textContent = "Telemetria importata: " + agg + " mezzi aggiornati" + (ign ? ", " + ign + " righe ignorate (mezzo non trovato o ore inferiori)" : "") + ".";
+    esito("ore-esito", "Telemetria importata: " + agg + (agg === 1 ? " mezzo aggiornato" : " mezzi aggiornati")
+      + (ign ? ", " + ign + (ign === 1 ? " riga ignorata" : " righe ignorate") + " (mezzo non trovato, o ore più basse di quelle già registrate)" : "") + ".", agg ? "success" : "err");
     await refresh();
   };
   // Esporta la situazione della flotta (mezzi, manutenzioni pianificate,
@@ -688,28 +1682,42 @@
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "flotta_situazione.csv"; a.click();
-    $("ore-esito").textContent = "Esportati " + MEZ.length + " mezzi, " + MAN.length + " manutenzioni, " + RIC.length + " ricambi (CSV).";
+    esito("ore-esito", "Esportati " + MEZ.length + " mezzi, " + MAN.length + " manutenzioni, " + RIC.length + " ricambi (CSV).", "success");
   };
   $("btn-man").onclick = async () => {
     const titolo = $("man-titolo").value.trim(), dataPrevista = $("man-data").value, orePreviste = +$("man-ore").value || null;
+    if (!MEZ.length) { esito("man-esito", "Prima aggiungi almeno un mezzo nel parco: apri la schermata Mezzi e inseriscilo.", "err"); return; }
     if (!titolo || (!dataPrevista && !orePreviste)) {
-      $("man-titolo").style.borderColor = titolo ? "" : "var(--danger)";
-      $("ore-esito").textContent = "Serve il titolo e la data OPPURE le ore motore."; return;
+      err("man-titolo", !titolo); err("man-data", !titolo ? false : true); err("man-ore", !titolo ? false : true);
+      esito("man-esito", !titolo
+        ? "Manca il titolo della manutenzione: scrivi cosa va fatto (es. «Tagliando 500h»)."
+        : "Indica QUANDO va fatta: metti una data, oppure le ore motore a cui scatta il tagliando. Basta uno dei due.", "err");
+      fuoco(!titolo ? "man-titolo" : "man-data"); return;
     }
-    $("man-titolo").style.borderColor = "";
+    ["man-titolo","man-data","man-ore"].forEach(i => err(i, false));
     await db.aggiungi("manutenzioni", { titolo, mezzo: $("man-mezzo").value, dataPrevista: dataPrevista || null, orePreviste, ricambioId: $("man-ricambio").value || null });
-    $("man-titolo").value = ""; $("man-data").value = ""; $("man-ore").value = ""; $("man-ricambio").value = ""; $("man-titolo").focus(); await refresh();
+    esito("man-esito", "Manutenzione pianificata: " + titolo + " su " + $("man-mezzo").value
+      + (dataPrevista ? " per il " + dataIt(dataPrevista) : " a " + orePreviste + " ore motore") + ".", "success");
+    $("man-titolo").value = ""; $("man-data").value = ""; $("man-ore").value = ""; $("man-ricambio").value = "";
+    fuoco("man-titolo"); await refresh();
   };
   // Recupero errore: appena l'utente corregge un campo, togli il bordo
   // rosso e il messaggio di esito, così l'avviso non resta appeso.
   const clearErr = (inputId, esitoId) => $(inputId).addEventListener("input", () => {
-    $(inputId).style.borderColor = ""; if (esitoId) $(esitoId).textContent = "";
+    err(inputId, false); if (esitoId) { const el = $(esitoId); if (el) el.textContent = ""; }
   });
   clearErr("cos-voce", "cos-esito");
   clearErr("cos-importo", "cos-esito");
   clearErr("mez-nome", "ore-esito");
+  clearErr("ore-mezzo", "ore-esito");
   clearErr("ore-nuove", "ore-esito");
-  clearErr("man-titolo", "ore-esito");
+  clearErr("man-titolo", "man-esito");
+  clearErr("man-data", "man-esito");
+  clearErr("man-ore", "man-esito");
+  clearErr("ric-nome", "ric-esito");
+  clearErr("ric-giac", "ric-esito");
+  clearErr("ric-soglia", "ric-esito");
+  clearErr("sca-mezzo", "sca-esito");
   clearErr("sca-data", "sca-esito");
   clearErr("sca-mesi", "sca-esito");
   // Invio da tastiera: premere Invio in un campo del form equivale a
@@ -720,6 +1728,7 @@
   enterSubmit(["mez-nome", "mez-area", "mez-ore"], "btn-mez");
   enterSubmit(["ore-nuove"], "btn-ore");
   enterSubmit(["man-titolo", "man-ore"], "btn-man");
+  enterSubmit(["ric-nome", "ric-giac", "ric-soglia"], "btn-ric");
   enterSubmit(["sca-data", "sca-mesi", "sca-doc", "sca-note"], "btn-sca");
   await refresh();
 </script>
