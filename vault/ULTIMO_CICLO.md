@@ -1,15 +1,31 @@
 # Ultimo ciclo automatico
 
 > **A cosa serve questo file.** Ogni volta che un ciclo di lavoro automatico
-> parte davvero e riesce a raggiungere il repository, aggiorna questa riga.
-> Se la data qui sotto è vecchia, vuol dire che **la routine non sta
+> parte davvero e riesce a raggiungere il repository, aggiorna le righe qui
+> sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-07-28 18:50 UTC
-**Esito:** riparazione della routine (scatto di prova manuale)
-**Commit di riferimento:** 1aed72a
+**Ultimo ciclo riuscito:** 2026-07-28 21:45 UTC
+**Cosa sta per fare:** riprendere dalla roadmap v5.0 dopo il consolidamento
+dello stile in `shared/`, proseguendo con le proposte delle schede di
+ricerca (Blocco 1 e Blocco 2).
+**Commit di partenza:** `ad0b18c`
 
 ---
+
+## ✅ La routine funziona — prova del 28/07
+
+Questo è il **primo canarino scritto da un ciclo automatico vero**, non a
+mano. Dimostra che la catena regge: la sveglia scatta, il messaggio arriva,
+la sessione raggiunge il repository e committa.
+
+Una cosa imparata, che vale la pena scrivere: gli scatti di prova delle
+19:00 non erano falliti — erano **in coda**. Un messaggio programmato entra
+solo quando la conversazione è libera, e in quel momento era occupata da
+ore di lavoro ininterrotto. Non era un guasto: era traffico. Quindi
+**l'assenza immediata del canarino non significa che la routine è rotta**:
+può voler dire che la sessione sta lavorando. Va giudicata sull'arco di
+qualche ora, non sui minuti.
 
 ## Come si legge
 
@@ -21,7 +37,8 @@
 ## Regola per i cicli automatici
 
 Ogni ciclo, **appena verificato di poter raggiungere il repository**, deve
-aggiornare le tre righe qui sopra (data e ora UTC, cosa sta per fare, hash
-del commit di partenza) e includerle nel primo commit dell'unità. Non è un
-adempimento burocratico: è l'unico segnale che dice al fondatore, in un
-colpo d'occhio, se il lavoro automatico è vivo.
+aggiornare le tre righe in cima (data e ora UTC, cosa sta per fare, hash del
+commit di partenza) e committarle con un messaggio che inizia per
+`canarino:`. Non è un adempimento burocratico: è l'unico segnale che dice al
+fondatore, in un colpo d'occhio, se il lavoro automatico è vivo — ed è
+quello che la sentinella su GitHub controlla per avvisarlo via email.
