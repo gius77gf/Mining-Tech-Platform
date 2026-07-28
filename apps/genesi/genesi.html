@@ -297,6 +297,19 @@ body.scr-sim #tl{bottom:80px}
 .dt-seg button.on{background:linear-gradient(135deg,#ffc12e,#ff8c1d);color:#3a1e00;box-shadow:0 4px 12px rgba(255,150,30,.3)}
 .dt-reset{margin-left:auto;background:rgba(255,255,255,.03);border:1px solid var(--line);color:var(--mut2);font-family:'Barlow',sans-serif;font-size:11.5px;padding:7px 11px;border-radius:9px;cursor:pointer}
 .dt-reset:hover{border-color:var(--cu);color:var(--cu)}
+/* livelli di lettura della pianta (isocrone dei tempi, mappa del relief) */
+#d2-layers{width:100%;max-width:560px;margin:8px auto 0;padding:0 14px;display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.dl-tog{display:flex;align-items:center;gap:6px;background:#1a140b;border:1px solid var(--line);color:var(--mut);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;padding:8px 14px;border-radius:11px;cursor:pointer;min-height:38px;transition:.15s}
+.dl-tog:hover{border-color:rgba(255,171,0,.4);color:var(--mut2)}
+.dl-tog i{width:9px;height:9px;border-radius:50%;background:currentColor;opacity:.5;box-shadow:0 0 8px currentColor;transition:.15s}
+.dl-tog.on{background:linear-gradient(135deg,#ffc12e,#ff8c1d);border-color:rgba(255,196,120,.5);color:#3a1e00;box-shadow:0 4px 12px rgba(255,150,30,.3),0 1px 0 rgba(255,245,220,.35) inset}
+.dl-tog.on i{opacity:1}
+.dl-f{display:none;align-items:center;gap:6px;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:11px;padding:4px 9px;min-height:38px}
+.dl-f.on{display:flex}
+.dl-f>span{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);white-space:nowrap}
+.dl-f select,.dl-f input{background:#241d12;border:1px solid #473a1f;color:var(--tx);font-family:'Barlow',sans-serif;font-size:13px;padding:5px 6px;border-radius:8px;outline:none;transition:border-color .15s,box-shadow .15s}
+.dl-f input{width:48px;text-align:center}
+.dl-f select:focus,.dl-f input:focus{border-color:var(--cu);box-shadow:0 0 0 3px rgba(255,171,0,.12)}
 #d2-insp{display:none;width:100%;max-width:560px;margin:6px auto 0;padding:0 14px;align-items:center;gap:10px}
 #d2-insp .di-info{flex:1;min-width:0;background:linear-gradient(150deg,rgba(255,236,200,.06),rgba(255,210,150,.02));border:1px solid rgba(255,228,180,.16);border-radius:12px;padding:9px 13px}
 #d2-insp .di-info b{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:14px;color:var(--cu);letter-spacing:.03em;margin-right:8px}
@@ -486,6 +499,17 @@ body.scr-sim #tl{bottom:80px}
   <div id="d2-tools">
     <div class="dt-seg"><button type="button" id="dtFori" class="on">Fori</button><button type="button" id="dtFronte">Fronte</button><button type="button" id="dtPiede">Piede</button></div>
     <button type="button" id="dtReset" class="dt-reset">↺ Reset fronte</button>
+  </div>
+  <div id="d2-layers">
+    <button type="button" id="dlIso" class="dl-tog" title="Isolinee dei tempi di sparo: uniscono i punti che detonano nello stesso istante"><i></i>Isocrone</button>
+    <button type="button" id="dlRel" class="dl-tog" title="Millisecondi disponibili a ogni foro per metro di roccia da liberare (ms/m)"><i></i>Relief</button>
+    <label class="dl-f" id="dlIsoStepF"><span>passo</span><select id="dlIsoStep">
+      <option value="0" selected>auto</option><option value="5">5 ms</option><option value="10">10 ms</option>
+      <option value="20">20 ms</option><option value="25">25 ms</option><option value="50">50 ms</option>
+      <option value="100">100 ms</option><option value="200">200 ms</option></select></label>
+    <label class="dl-f" id="dlRelWinF"><span>finestra ms/m</span>
+      <input type="number" id="dlRelLo" step="0.5" min="0.5" max="60" value="5" title="Sotto questo valore il foro spara senza spazio libero sufficiente">
+      <input type="number" id="dlRelHi" step="0.5" min="1" max="99" value="15" title="Sopra questo valore il relief è eccessivo"></label>
   </div>
   <div id="d2-wrap"><canvas id="d2-canvas" width="960" height="600"></canvas></div>
   <div id="d2-insp"></div>
@@ -789,7 +813,9 @@ const SEED = 19250606;
 /* ============ parametri correnti ============ */
 const P = { fori:12, ritardo:42, dir:'sx', prof:10, kg:60, diam:102, vento:0.8, profilo:[], foriH:null };
 /* modello di progettazione 2D (Fase 1) — editor multi-fila disaccoppiato dal 3D single-row */
-const D2 = { B:3.0, S:3.5, file:1, perRow:12, bf:3.0, diam:102, prof:10, kg:60, ritardo:42, ritardoFila:84, stem:2.2, sub:0.9, dir:'sx', stagger:true, incl:0, kgAuto:true, esplosivo:'anfo-standard', innesco:'nonel', roccia:'calcare', ucs:100, eMod:55, frat:'media', bagnato:false, acquaCol:0, presplit:false, psSpacing:0.9, psCharge:0.4, sequenza:'diagonale', recDist:300, recNorma:'din-res', recFreq:25, cPerf:8, cExpl:1.5, cInnesco:12, valMat:0, decks:1, deckStem:1.0, tool:'fori', profilo:[], piede:[], selPt:-1, holes:[], sel:-1, lastDet:0, _m:null };
+const D2 = { B:3.0, S:3.5, file:1, perRow:12, bf:3.0, diam:102, prof:10, kg:60, ritardo:42, ritardoFila:84, stem:2.2, sub:0.9, dir:'sx', stagger:true, incl:0, kgAuto:true, esplosivo:'anfo-standard', innesco:'nonel', roccia:'calcare', ucs:100, eMod:55, frat:'media', bagnato:false, acquaCol:0, presplit:false, psSpacing:0.9, psCharge:0.4, sequenza:'diagonale', recDist:300, recNorma:'din-res', recFreq:25, cPerf:8, cExpl:1.5, cInnesco:12, valMat:0, decks:1, deckStem:1.0, tool:'fori', profilo:[], piede:[], selPt:-1, holes:[], sel:-1, lastDet:0, _m:null,
+  /* livelli di lettura della pianta: isocrone dei tempi + mappa del burden relief (ms/m per foro) */
+  iso:false, isoStep:0, rel:false, relLo:5, relHi:15 };
 
 /* ============ three: scena base ============ */
 const view = document.getElementById('view');
