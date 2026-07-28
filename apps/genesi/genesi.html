@@ -3014,7 +3014,7 @@ function drawIsocrone2D(ctx,g){
     let bs=null, bx=0, by=0;
     for(let q=0;q<cand.length;q++){
       const c=cand[q];
-      if(c.cx<g.padX+150 && c.cy<g.faceY+30) continue;                                 // non coprire la scritta del FRONTE
+      if(c.cx<g.padX+170 && c.cy<g.faceY+40) continue;                                 // non coprire la scritta del FRONTE
       if(pos.some(p=>Math.abs(p[0]-c.cx)<38 && Math.abs(p[1]-c.cy)<15)) continue;      // non coprire i fori
       if(messe.some(m=>Math.abs(m[0]-c.cx)<52 && Math.abs(m[1]-c.cy)<19)) continue;    // non coprire un'altra etichetta
       bs=c.s; bx=c.cx; by=c.cy; break;
@@ -3330,17 +3330,13 @@ function renderScheda2D(){
     const mn=Math.min(...rr), mx=Math.max(...rr);
     const cls=nBad>0?'sv-bad':(nLo>0?'sv-warn':(nHi>0?'sv-warn':'sv-ok'));
     rows.push({lab:'Relief per foro',valStr:fmtMs(mn)+'–'+fmtMs(mx)+' <span>ms/m · '+nLo+' sotto / '+nHi+' sopra</span>',cls:cls,
-      why:'ogni foro ha bisogno di spazio libero davanti per lavorare: il relief dice quanti millisecondi passano da quando spara il foro che gli apre lo spazio, per ogni metro che li separa (ms/m). '
-        +'Su questa volata va da '+fmtMs(mn)+' a '+fmtMs(mx)+' ms/m; la finestra impostata è '+fmtMs(lo)+'–'+fmtMs(hi)+' ms/m (modificabile sopra la pianta, accanto al pulsante Relief). '
-        +'<b>Sotto la finestra</b>: il foro spara quando la roccia davanti non si è ancora mossa → resta confinato, e da lì nascono blocchi, picchi di vibrazione e proiezioni. '
-        +'<b>Sopra la finestra</b>: passa troppo tempo, la roccia davanti è già andata via e il foro lavora quasi da solo → frammentazione più grossa e cumulo sparpagliato. '
-        +(nLo+nHi>0?'Qui '+(nLo+nHi)+' fori sono fuori finestra: attiva il livello <b>Relief</b> per vedere quali (anello tratteggiato) e su quale lato della maglia stanno. '
+      why:'millisecondi che ogni foro ha per liberare un metro della roccia che lo separa dal foro vicino già sparato (si tiene il vincolo più stretto). Qui va da '+fmtMs(mn)+' a '+fmtMs(mx)+' ms/m, finestra '+fmtMs(lo)+'–'+fmtMs(hi)+' modificabile accanto al pulsante Relief. '
+        +'<b>Sotto</b>: il foro spara quando la roccia davanti non si è ancora mossa → resta confinato: blocchi, picchi di vibrazione, proiezioni. '
+        +'<b>Sopra</b>: passa troppo tempo, la roccia è già andata via e il foro lavora da solo → pezzatura più grossa e cumulo sparpagliato. '
+        +(nLo+nHi>0?'Qui '+(nLo+nHi)+' fori fuori finestra: il livello <b>Relief</b> li segna con un anello sulla pianta. Da guardare: ritardo tra fori e tra file, distanza fra quei fori, ordine della sequenza. '
                    :'Tutti i fori sono dentro la finestra impostata. ')
-        +'Cosa guardare se sono fuori: il ritardo tra i fori e tra le file, la distanza fra i fori interessati e l\'ordine della sequenza. '
-        +'Come si legge: per ogni foro si guardano solo i fori <b>vicini</b> (adiacenti nella maglia) e si tiene il vincolo più stretto; i fori che partono entro la dispersione dell\'innesco ('+fmtMs(scatterMs())+' ms qui) contano come un istante solo, perché sparando insieme non si liberano a vicenda. '
-        +'I due badge Timing inter-foro e Timing inter-fila qui sopra restano la lettura media del progetto (3–7 e 8–15 ms/m); questa riga è la stessa cosa letta foro per foro, quindi può segnalare un singolo foro mentre le medie sono a posto. '
-        +'Riferimenti di letteratura: ≈8–14 ms/m tra prima e seconda fila, ≈5 ms/m tra le ultime, regola pratica ~3 ms per piede di burden. '
-        +'È una <b>diagnosi</b> del progetto, non un\'istruzione: la scelta dei ritardi resta del responsabile del tiro.'});
+        +'I fori che partono entro la dispersione dell\'innesco ('+fmtMs(scatterMs())+' ms) contano come un istante solo: sparando insieme non si liberano a vicenda. I badge Timing inter-foro/inter-fila restano la media di progetto. '
+        +'Letteratura: ≈8–14 ms/m tra prima e seconda fila, ≈5 tra le ultime. È una <b>diagnosi</b>, non un\'istruzione: i ritardi restano decisione del responsabile del tiro.'});
   })();
   rows.push(badge(subB,'Sottoperforazione',sub.toFixed(1)+' m ('+subB.toFixed(2)+'·B)',0.2,0.4,0.1,0.55,
     'sottoperf. nel range 0,2–0,4·B (~'+subRec.toFixed(1)+' m, 8–12·Ø): piede pulito.',
