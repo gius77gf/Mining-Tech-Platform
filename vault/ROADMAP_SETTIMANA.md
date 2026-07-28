@@ -59,7 +59,18 @@ Riferimento vincolante: `docs/SPECIFICA_ESTETICA_CORE.md` (specifica estratta
 valore per valore dal core `index.html`). Ogni app cambia **solo** nel colore
 dominante. Verifica obbligatoria con screenshot prima/dopo.
 
-- [ ] **E0. Allineare `shared/deepwork-style.css` al core** — card (raggi,
+- [x] **E1-E6. Le sei app portate al livello del core** ✅ *(27/07)* —
+      Scudo, Flotta, Sentinella, Conti, Campo, Terra: struttura del core
+      pelo per pelo, palette propria fusa in tutte le superfici, 43
+      dialoghi del browser eliminati, icone in SVG, ~40 stati vuoti, oltre
+      150 coppie di contrasto verificate. Sette difetti funzionali trovati
+      col confronto affiancato e corretti.
+- [ ] **E0. CONSOLIDAMENTO in `shared/`** *(in corso)* — la parte comune
+      dello stile sale nei fogli condivisi, in ogni app restano solo
+      palette e regole specifiche. Aggiunti nello stesso passaggio **tema
+      chiaro, modalità sole** (oggi chi la attiva nel core resta al buio
+      nelle app) e **scheletri di caricamento**. Verifica immagine per
+      immagine prima/dopo: l'aspetto non deve cambiare di un pixel. — card (raggi,
       bordi, gradienti, ombre complete, riga luminosa in cima, glow al
       passaggio del mouse), bottoni e loro stati, campi e select, tabelle e
       liste, modali, toast, badge, animazioni e durate. *Taglia L, tocca
