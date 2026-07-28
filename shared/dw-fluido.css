@@ -1,0 +1,122 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   DEEPWORK — FLUIDITÀ DELLE SCHERMATE (compagno di shared/dw-fluido.js)
+   ══════════════════════════════════════════════════════════════════════════
+   Il problema: oggi il passaggio da una pagina all'altra dell'app è secco,
+   come una lampadina che si spegne e se ne accende un'altra. L'occhio perde
+   il filo e non capisce da dove è arrivato il contenuto nuovo.
+
+   La cura, in tre mosse:
+   1. la pagina che entra fa una dissolvenza con un micro-scorrimento
+      (190 ms, curva morbida): abbastanza da vedersi, mai da aspettare;
+   2. la pillola della navigazione SCIVOLA da una voce all'altra invece di
+      saltare: è lei a dire "ti sei spostato di lì a lì";
+   3. le voci di una lista compaiono sfasate di pochi millisecondi, così
+      l'occhio le legge come una cascata e non come un muro.
+
+   Regole che non si violano:
+   · si muovono SOLO transform e opacity — mai altezze, margini, top/left:
+     tutto il resto fa ricalcolare il layout e su telefono si vede.
+   · niente animazione che faccia ASPETTARE: nessun elemento è disattivato
+     mentre si muove, e due tocchi rapidi non si bloccano a vicenda.
+   · prefers-reduced-motion spegne tutto il movimento non essenziale.
+
+   Uso:
+     <link rel="stylesheet" href="../../shared/dw-fluido.css">
+     <script src="../../shared/dw-fluido.js" defer></script>
+   Non serve altro: il modulo si attacca da solo alle .page, alla .nav e
+   alle liste marcate con  data-dw-scagliona.
+   Niente si attiva finché il JS non mette la classe .dwf sul <body>: se il
+   file non viene caricato, l'app resta esattamente com'era.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --dwf-t: 190ms;                          /* durata del cambio pagina */
+  --dwf-passo: 26ms;                       /* sfasamento fra una voce e l'altra */
+  --dwf-curva: cubic-bezier(.22, .68, .28, 1);
+}
+
+/* ─────────────── 1 · cambio pagina ─────────────── */
+body.dwf .page.dwf-entra {
+  animation: dwfEntra var(--dwf-t) var(--dwf-curva) both;
+}
+@keyframes dwfEntra {
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+/* tornando indietro il movimento arriva dall'altra parte: si capisce il verso */
+body.dwf .page.dwf-entra.indietro { animation-name: dwfEntraIndietro; }
+@keyframes dwfEntraIndietro {
+  from { opacity: 0; transform: translate3d(-10px, 0, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+/* ─────────────── 2 · la pillola della navigazione che scivola ─────────────── */
+body.dwf .nav { position: fixed; }
+body.dwf .nav.dwf-nav { isolation: isolate; }
+body.dwf .nav.dwf-nav button.active::before { display: none; }   /* la sostituisce quella mobile */
+.dwf-pillola {
+  position: absolute; top: 5px; left: 0; width: 42px; height: 30px;
+  border-radius: 10px; pointer-events: none; z-index: 0;
+  background: color-mix(in srgb, var(--app-accent) 20%, transparent);
+  opacity: 0;
+  transform: translate3d(0, 0, 0);
+  transition: transform .26s var(--dwf-curva), width .26s var(--dwf-curva), opacity .18s var(--dwf-curva);
+}
+.dwf-pillola.on { opacity: 1; }
+
+/* ─────────────── 3 · comparsa scaglionata delle liste ─────────────── */
+body.dwf .dwf-in {
+  animation: dwfSali .26s var(--dwf-curva) both;
+  animation-delay: calc(var(--dwf-i, 0) * var(--dwf-passo));
+}
+@keyframes dwfSali {
+  from { opacity: 0; transform: translate3d(0, 7px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+/* se l'utente sta scorrendo, la cascata si interrompe: niente elementi che
+   arrivano in ritardo sotto il dito */
+body.dwf.dwf-scorre .dwf-in { animation: none !important; }
+
+/* ─────────────── 4 · micro-interazioni ─────────────── */
+/* pressione dei bottoni: affonda, non scatta */
+body.dwf .dw-btn, body.dwf .mbtn, body.dwf .chg, body.dwf .dw-home, body.dwf .dw-exit {
+  transition: transform .11s var(--dwf-curva), box-shadow .2s var(--ease),
+              border-color .18s var(--ease), color .18s var(--ease), filter .2s;
+}
+body.dwf .dw-btn:active { transform: translate3d(0, 2px, 0) scale(.985); }
+body.dwf .mbtn:active, body.dwf .chg:active { transform: scale(.96); }
+body.dwf .dw-home:active, body.dwf .dw-exit:active { transform: scale(.94); }
+/* le voci di lista rispondono al tocco anche senza mouse */
+body.dwf .item:active { transform: translate3d(2px, 0, 0) scale(.995); }
+body.dwf .kpi:active { transform: translate3d(0, -1px, 0) scale(.99); }
+
+/* modale: entra con una scala leggera, non piomba dall'alto */
+body.dwf .modal-ov.show { animation: dwfVelo .17s var(--dwf-curva); }
+body.dwf .modal-ov.show .modal-box { animation: dwfModale .22s var(--dwf-curva); }
+@keyframes dwfVelo { from { opacity: 0; } to { opacity: 1; } }
+@keyframes dwfModale {
+  from { opacity: 0; transform: translate3d(0, 10px, 0) scale(.972); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+/* toast: sale e si gonfia appena — si nota con la coda dell'occhio */
+body.dwf .toast {
+  transform: translateX(-50%) translate3d(0, 10px, 0) scale(.96);
+  transition: opacity .22s var(--dwf-curva), transform .28s var(--dwf-curva);
+}
+body.dwf .toast.show { transform: translateX(-50%) translate3d(0, 0, 0) scale(1); }
+
+/* ─────────────── chi ha chiesto meno movimento non deve vedere niente ─────────────── */
+@media (prefers-reduced-motion: reduce) {
+  body.dwf .page.dwf-entra, body.dwf .dwf-in,
+  body.dwf .modal-ov.show, body.dwf .modal-ov.show .modal-box { animation: none !important; }
+  .dwf-pillola { transition: none !important; }
+  body.dwf .toast { transition: opacity .15s linear !important; transform: translateX(-50%) !important; }
+  body.dwf .dw-btn:active, body.dwf .mbtn:active, body.dwf .chg:active,
+  body.dwf .item:active, body.dwf .kpi:active { transform: none !important; }
+}
+
+/* col dito i movimenti restano, ma niente effetti "incollati" al puntatore */
+@media (hover: none), (pointer: coarse) {
+  .dwf-pillola { transition-duration: .2s; }
+}

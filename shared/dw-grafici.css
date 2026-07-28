@@ -1,0 +1,354 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   DEEPWORK — VESTITO DEI GRAFICI (compagno di shared/dw-grafici.js)
+   ══════════════════════════════════════════════════════════════════════════
+   Questo foglio NON decide nessun colore d'identità: prende la tinta
+   dall'app che lo ospita (--app-accent, --app-support2, …) e ne ricava i
+   ruoli del dato. Vale la stessa regola dei fogli fratelli: la STRUTTURA
+   sta qui, il COLORE sta nel :root dell'app.
+
+   Come si usa (dopo deepwork-style.css e dw-app-ui.css):
+     <link rel="stylesheet" href="../../shared/dw-grafici.css">
+     <script src="../../shared/dw-grafici.js" defer></script>
+
+   I RUOLI DEL COLORE (perché sono così e non altrimenti)
+   ──────────────────────────────────────────────────────
+   · SEQUENZIALE (--dwg-s1…s5): una SOLA tinta, dal chiaro allo scuro.
+     Serve quando i pezzi sono parti di una stessa cosa (la ripartizione di
+     un costo, i gradini di una classifica). Mai un arcobaleno.
+   · CATEGORICO (--dwg-c1…c3 + --dwg-altro): ordine FISSO, mai ciclato.
+     Tre posti soli, e non è una mancanza: sono i tre che restano
+     distinguibili anche a chi non separa i colori, perché differiscono per
+     tinta E per luminosità. Dalla quarta serie in poi si spezza il grafico
+     in più grafici (piccoli multipli) invece di inventare un quarto colore.
+   · STATI (--dwg-ok / --dwg-wr / --dwg-dg): riservati. Il rosso vuol dire
+     errore, il verde vuol dire a posto. Non si usano mai come "serie 4".
+   · TESTO: sempre i colori del testo (--text/--muted2/--muted), mai il
+     colore della serie. L'identità la porta il segno colorato ACCANTO
+     all'etichetta (pallino, trattino), non l'etichetta colorata.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ---- inchiostri e superfici del grafico ---- */
+  --dwg-surf: var(--card);
+  --dwg-grid: color-mix(in srgb, var(--app-accent) 15%, transparent);
+  --dwg-axis: color-mix(in srgb, var(--app-accent) 34%, transparent);
+  --dwg-tick: var(--muted);
+  --dwg-lab: var(--muted2);
+  --dwg-val: var(--text);
+
+  /* ---- rampa sequenziale: una sola tinta, dal chiaro allo scuro ---- */
+  --dwg-s1: var(--app-accent-soft);
+  --dwg-s2: var(--app-accent2);
+  --dwg-s3: color-mix(in srgb, var(--app-accent2) 45%, var(--app-accent));
+  --dwg-s4: var(--app-accent);
+  --dwg-s5: color-mix(in srgb, var(--app-accent) 55%, var(--app-accent-deep));
+
+  /* ---- categorico: ordine fisso, tre posti + "altro" ---- */
+  --dwg-c1: var(--app-accent);
+  --dwg-c2: var(--app-support2);
+  --dwg-c3: var(--app-accent-soft);
+  --dwg-altro: var(--muted);
+
+  /* ---- stati (riservati) ---- */
+  --dwg-ok: var(--success);
+  --dwg-wr: var(--warn);
+  --dwg-dg: var(--danger);
+
+  /* ---- toni di appoggio ---- */
+  --dwg-fade: color-mix(in srgb, var(--app-accent) 34%, var(--card2));
+  --dwg-track: color-mix(in srgb, var(--app-accent) 12%, var(--dark));
+  --dwg-rif: var(--muted2);
+  --dwg-tip-bg: color-mix(in srgb, var(--panel) 92%, #000);
+}
+
+/* Tema chiaro e modalità sole: sul bianco le tinte chiare spariscono, quindi
+   le rampe si ribaltano e partono dal gradino profondo. Le luminosità sono
+   scelte perché ogni riempimento resti ≥3:1 sulla superficie della scheda. */
+body.dw.light-mode, body.dw.outdoor-mode {
+  --dwg-grid: color-mix(in srgb, var(--app-accent-deep) 20%, transparent);
+  --dwg-axis: color-mix(in srgb, var(--app-accent-deep) 46%, transparent);
+
+  --dwg-s1: color-mix(in srgb, var(--app-accent) 55%, #ffffff);
+  --dwg-s2: var(--app-accent);
+  --dwg-s3: color-mix(in srgb, var(--app-accent) 48%, var(--app-accent-deep));
+  --dwg-s4: var(--app-accent-deep);
+  --dwg-s5: color-mix(in srgb, var(--app-accent-deep) 62%, #000000);
+
+  --dwg-c1: var(--app-accent-deep);
+  --dwg-c2: var(--app-support);
+  --dwg-c3: color-mix(in srgb, var(--app-accent) 74%, #000000);
+  --dwg-altro: color-mix(in srgb, var(--muted) 80%, #000000);
+
+  --dwg-ok: color-mix(in srgb, var(--success) 72%, #000000);
+  --dwg-wr: color-mix(in srgb, var(--warn) 62%, #000000);
+  --dwg-dg: color-mix(in srgb, var(--danger) 78%, #000000);
+
+  --dwg-fade: color-mix(in srgb, var(--app-accent-deep) 30%, #ffffff);
+  --dwg-track: color-mix(in srgb, var(--app-accent) 12%, #ffffff);
+  --dwg-rif: color-mix(in srgb, var(--muted) 70%, #000000);
+  --dwg-tip-bg: #ffffff;
+}
+
+/* ─────────────── la cassa del grafico (forma .kpi/.form del core) ─────────────── */
+.dwg {
+  position: relative;
+  margin: 0 0 10px;
+  padding: 13px 14px 14px;
+  background: linear-gradient(180deg, var(--card2), var(--card));
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: var(--sh2), var(--edge);
+}
+.dwg.nudo { background: none; border: none; box-shadow: none; padding: 0; margin: 0; }
+
+.dwg-head {
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.dwg-head:empty { display: none; }
+.dwg-title {
+  font-family: 'Barlow Condensed', sans-serif; font-size: 11.5px; font-weight: 800;
+  letter-spacing: 2.5px; text-transform: uppercase; color: var(--app-accent2);
+}
+.dwg-meta {
+  margin-left: auto; font-size: 11px; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.dwg-plot { position: relative; margin-top: 10px; }
+.dwg svg.dwg-svg {
+  display: block; width: 100%; height: auto; overflow: visible;
+  /* col dito si scorre la pagina in verticale e si legge il grafico in
+     orizzontale: nessuna delle due cose ruba l'altra */
+  touch-action: pan-y;
+}
+.dwg svg.dwg-svg:focus { outline: none; }
+.dwg svg.dwg-svg:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus-ring); border-radius: 6px; }
+
+/* ─────────────── impianto: griglia, assi, marcature (devono stare DIETRO) ─────────────── */
+.dwg-grid { stroke: var(--dwg-grid); stroke-width: 1; shape-rendering: crispEdges; }
+.dwg-ax { stroke: var(--dwg-axis); stroke-width: 1; shape-rendering: crispEdges; }
+.dwg-tick {
+  fill: var(--dwg-tick); font-family: 'Barlow', sans-serif; font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.dwg-axlab {
+  fill: var(--disabled); font-family: 'Barlow', sans-serif; font-size: 8.5px;
+  letter-spacing: 1.4px; text-transform: uppercase;
+}
+.dwg-vallab {
+  fill: var(--dwg-val); font-family: 'Barlow Condensed', sans-serif; font-size: 11.5px;
+  font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: .3px;
+}
+.dwg-catlab {
+  fill: var(--dwg-lab); font-family: 'Barlow', sans-serif; font-size: 11px;
+}
+
+/* ─────────────── linea e area ─────────────── */
+.dwg-linea {
+  fill: none; stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round;
+}
+.dwg-linea.s1 { stroke: var(--dwg-c1); }
+.dwg-linea.s2 { stroke: var(--dwg-c2); stroke-dasharray: 7 4.5; }
+.dwg-linea.s3 { stroke: var(--dwg-c3); stroke-dasharray: 1.5 4.5; }
+.dwg-area { stroke: none; }
+.dwg-a0 { stop-color: var(--dwg-c1); stop-opacity: .30; }
+.dwg-a1 { stop-color: var(--dwg-c1); stop-opacity: .015; }
+
+/* i punti portano l'anello nella superficie: restano leggibili anche quando
+   due serie si incrociano */
+.dwg-pt { stroke: var(--card); stroke-width: 2; }
+.dwg-pt.s1 { fill: var(--dwg-c1); }
+.dwg-pt.s2 { fill: var(--dwg-c2); }
+.dwg-pt.s3 { fill: var(--dwg-c3); }
+.dwg-fine { stroke: var(--card); stroke-width: 2.2; }
+.dwg-fine.s1 { fill: var(--dwg-c1); }
+.dwg-fine.s2 { fill: var(--dwg-c2); }
+.dwg-fine.s3 { fill: var(--dwg-c3); }
+
+/* fuori soglia: ROMBO oltre che rosso — si riconosce senza distinguere i colori */
+.dwg-oltre { fill: var(--dwg-dg); stroke: var(--card); stroke-width: 1.4; stroke-linejoin: round; }
+.dwg-soglia { stroke: var(--dwg-dg); stroke-width: 1.8; stroke-dasharray: 8 4; fill: none; }
+.dwg-zona { fill: var(--dwg-dg); opacity: .07; }
+.dwg-chip { fill: var(--dwg-tip-bg); stroke: var(--dwg-dg); stroke-width: 1; }
+.dwg-chip-txt {
+  fill: var(--dwg-dg); font-family: 'Barlow Condensed', sans-serif; font-size: 9.5px;
+  font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
+}
+
+/* ─────────────── barre ─────────────── */
+.dwg-barra { stroke: none; }
+.dwg-barra.c1 { fill: var(--dwg-c1); }
+.dwg-barra.c2 { fill: var(--dwg-c2); }
+.dwg-barra.c3 { fill: var(--dwg-c3); }
+.dwg-barra.coda { fill: var(--dwg-fade); }
+.dwg-barra.st-ok { fill: var(--dwg-ok); }
+.dwg-barra.st-warn { fill: var(--dwg-wr); }
+.dwg-barra.st-danger { fill: var(--dwg-dg); }
+.dwg-barra.r1 { fill: var(--dwg-s5); }
+.dwg-barra.r2 { fill: var(--dwg-s4); }
+.dwg-barra.r3 { fill: var(--dwg-s3); }
+.dwg-barra.r4 { fill: var(--dwg-s2); }
+.dwg-barra.r5 { fill: var(--dwg-s1); }
+.dwg-taglio { stroke: var(--dwg-rif); stroke-width: 1.6; stroke-dasharray: 6 4; }
+
+/* ─────────────── ciambella ─────────────── */
+.dwg-fetta { fill: none; stroke-linecap: butt; }
+.dwg-fetta.r1 { stroke: var(--dwg-s5); }
+.dwg-fetta.r2 { stroke: var(--dwg-s4); }
+.dwg-fetta.r3 { stroke: var(--dwg-s3); }
+.dwg-fetta.r4 { stroke: var(--dwg-s2); }
+.dwg-fetta.r5 { stroke: var(--dwg-s1); }
+.dwg-fetta.altro { stroke: var(--dwg-altro); }
+.dwg-centro-n {
+  fill: var(--dwg-val); font-family: 'Barlow Condensed', sans-serif; font-weight: 800;
+  font-size: 28px; text-anchor: middle; font-variant-numeric: tabular-nums;
+}
+.dwg-centro-l {
+  fill: var(--muted); font-family: 'Barlow', sans-serif; font-size: 9.5px;
+  letter-spacing: 1.6px; text-transform: uppercase; text-anchor: middle;
+}
+
+/* ─────────────── barra di avanzamento con tacca di riferimento ─────────────── */
+.dwg-track { fill: var(--dwg-track); }
+.dwg-fill { fill: var(--dwg-c1); }
+.dwg-fill.st-ok { fill: var(--dwg-ok); }
+.dwg-fill.st-warn { fill: var(--dwg-wr); }
+.dwg-fill.st-danger { fill: var(--dwg-dg); }
+.dwg-tacca { stroke: var(--dwg-rif); stroke-width: 2; stroke-linecap: round; }
+.dwg-tacca-orlo { stroke: var(--card); stroke-width: 4.4; stroke-linecap: round; }
+.dwg-riflesso { fill: #fff; opacity: .10; }
+
+/* ─────────────── sparkline (dentro una tessera) ─────────────── */
+.dwg-spark { display: block; overflow: visible; }
+.dwg-spark .dwg-linea { stroke-width: 1.8; stroke: var(--dwg-c1); }
+.dwg-spark .dwg-soglia { stroke-width: 1.2; stroke-dasharray: 4 3; }
+
+/* ─────────────── crosshair e tooltip ─────────────── */
+.dwg-cross { stroke: var(--app-accent2); stroke-width: 1; stroke-dasharray: 3 3; opacity: .8; }
+.dwg-mira { fill: none; stroke: var(--card); stroke-width: 2.4; }
+.dwg-hit { fill: transparent; stroke: none; cursor: pointer; }
+.dwg-evid { fill: var(--app-accent); opacity: .10; }
+
+.dwg-tip {
+  position: absolute; z-index: 40; min-width: 96px; max-width: 240px;
+  padding: 8px 10px; pointer-events: none; opacity: 0;
+  transform: translate3d(0, 4px, 0);
+  background: var(--dwg-tip-bg); border: 1px solid var(--border2);
+  border-radius: var(--r-sm); box-shadow: var(--sh4), var(--edge);
+  transition: opacity .13s var(--ease), transform .13s var(--ease);
+}
+.dwg-tip.on { opacity: 1; transform: translate3d(0, 0, 0); }
+.dwg-tip-k {
+  font-family: 'Barlow Condensed', sans-serif; font-size: 10.5px; font-weight: 700;
+  letter-spacing: 1.4px; text-transform: uppercase; color: var(--muted);
+  margin-bottom: 5px; line-height: 1.2;
+}
+.dwg-tip-r { display: flex; align-items: baseline; gap: 7px; line-height: 1.35; margin-top: 3px; }
+.dwg-tip-seg { width: 12px; height: 0; flex-shrink: 0; align-self: center; border-top: 2.5px solid var(--dwg-c1); border-radius: 2px; }
+.dwg-tip-seg.s2 { border-top-color: var(--dwg-c2); border-top-style: dashed; }
+.dwg-tip-seg.s3 { border-top-color: var(--dwg-c3); border-top-style: dotted; }
+.dwg-tip-seg.stato-ok { border-top-color: var(--dwg-ok); }
+.dwg-tip-seg.stato-warn { border-top-color: var(--dwg-wr); }
+.dwg-tip-seg.stato-danger { border-top-color: var(--dwg-dg); }
+/* il valore comanda, il nome della serie segue */
+.dwg-tip-v {
+  font-family: 'Barlow Condensed', sans-serif; font-size: 15.5px; font-weight: 800;
+  color: var(--text); font-variant-numeric: tabular-nums; letter-spacing: .3px;
+}
+.dwg-tip-n { font-size: 11px; color: var(--muted2); }
+.dwg-tip-x { font-size: 10.5px; color: var(--muted); margin-top: 4px; }
+
+/* ─────────────── legenda (c'è sempre da 2 serie in su) ─────────────── */
+.dwg-leg {
+  display: flex; gap: 7px 16px; flex-wrap: wrap; align-items: center;
+  margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--border);
+  font-size: 11px; color: var(--muted); line-height: 1.35;
+}
+.dwg-leg:empty { display: none; }
+.dwg-leg .lg { display: inline-flex; align-items: center; gap: 6px; }
+.dwg-leg .lg svg { width: 22px; height: 11px; overflow: visible; flex-shrink: 0; }
+.dwg-leg .lg b { color: var(--muted2); font-weight: 600; font-variant-numeric: tabular-nums; }
+.dwg-leg .lg.dg b { color: var(--danger); }
+
+.dwg-nota {
+  margin-top: 9px; font-size: 11.5px; line-height: 1.5; color: var(--muted);
+  border-left: 3px solid var(--border2); padding-left: 9px;
+}
+.dwg-nota:empty { display: none; }
+.dwg-nota b { color: var(--muted2); }
+
+/* ─────────────── tabella dei dati (il tooltip aiuta, non fa da cancello) ─────────────── */
+.dwg-tab { margin-top: 9px; }
+.dwg-tab > summary {
+  list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  min-height: 30px; padding: 4px 10px; border: 1px solid var(--border2);
+  border-radius: var(--r-sm); background: var(--card);
+  font-family: 'Barlow Condensed', sans-serif; font-size: 10.5px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted2);
+  transition: border-color .18s var(--ease), color .18s var(--ease);
+}
+.dwg-tab > summary::-webkit-details-marker { display: none; }
+.dwg-tab > summary:hover { border-color: var(--app-accent); color: var(--app-accent2); }
+.dwg-tab table {
+  width: 100%; margin-top: 8px; border-collapse: collapse; font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.dwg-tab th, .dwg-tab td {
+  padding: 5px 8px; border-bottom: 1px solid var(--border); text-align: right; color: var(--muted2);
+}
+.dwg-tab th:first-child, .dwg-tab td:first-child { text-align: left; }
+.dwg-tab thead th {
+  color: var(--muted); font-family: 'Barlow Condensed', sans-serif; font-size: 10px;
+  font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase;
+}
+.dwg-tab tbody td:first-child { color: var(--text); }
+
+/* ─────────────── ingresso: breve e morbido, mai un'attesa ─────────────── */
+.dwg-anim .dwg-linea, .dwg-anim .dwg-spark-linea {
+  stroke-dasharray: 1; stroke-dashoffset: 1; animation: dwgTratto .62s var(--ease) forwards;
+}
+.dwg-anim .dwg-area { animation: dwgVela .5s var(--ease) .16s backwards; }
+.dwg-anim .dwg-pt, .dwg-anim .dwg-fine, .dwg-anim .dwg-oltre { animation: dwgPunto .3s var(--ease) backwards; }
+.dwg-anim .dwg-barra, .dwg-anim .dwg-fill {
+  transform-box: fill-box; transform-origin: bottom center;
+  animation: dwgCresci .44s var(--ease) backwards;
+}
+.dwg-anim.oriz .dwg-barra, .dwg-anim .dwg-fill {
+  transform-origin: left center; animation-name: dwgCresciX;
+}
+.dwg-anim .dwg-vallab, .dwg-anim .dwg-catlab { animation: dwgVela .34s var(--ease) .3s backwards; }
+@keyframes dwgTratto { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes dwgVela { from { opacity: 0; } to { opacity: 1; } }
+@keyframes dwgPunto { from { opacity: 0; transform: scale(.5); } to { opacity: 1; transform: scale(1); } }
+@keyframes dwgCresci { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes dwgCresciX { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.dwg-anim .dwg-pt, .dwg-anim .dwg-fine, .dwg-anim .dwg-oltre,
+.dwg-anim .dwg-barra { transform-box: fill-box; }
+.dwg-anim .dwg-pt, .dwg-anim .dwg-fine, .dwg-anim .dwg-oltre { transform-origin: center; }
+.dwg-fetta { transition: stroke-dashoffset .68s var(--ease); }
+
+/* chi ha chiesto meno movimento non deve aspettare niente: il grafico c'è
+   già finito al primo fotogramma */
+@media (prefers-reduced-motion: reduce) {
+  .dwg-anim .dwg-linea, .dwg-anim .dwg-spark-linea,
+  .dwg-anim .dwg-area, .dwg-anim .dwg-pt, .dwg-anim .dwg-fine,
+  .dwg-anim .dwg-oltre, .dwg-anim .dwg-barra, .dwg-anim .dwg-fill,
+  .dwg-anim .dwg-vallab, .dwg-anim .dwg-catlab { animation: none !important; stroke-dashoffset: 0 !important; }
+  .dwg-fetta { transition: none !important; }
+  .dwg-tip { transition: none !important; }
+}
+
+/* modalità sole: niente aloni, bordi più marcati, testi più grandi */
+body.dw.outdoor-mode .dwg { border-width: 2px; }
+body.dw.outdoor-mode .dwg-tick { font-size: 11.5px; fill: var(--muted2); }
+body.dw.outdoor-mode .dwg-catlab { font-size: 12.5px; fill: var(--muted2); }
+body.dw.outdoor-mode .dwg-vallab { font-size: 13px; }
+body.dw.outdoor-mode .dwg-leg { font-size: 12.5px; color: var(--muted2); }
+body.dw.outdoor-mode .dwg-grid { stroke-width: 1.2; }
+body.dw.outdoor-mode .dwg-tip { border-width: 2px; }
+body.dw.outdoor-mode .dwg-pt, body.dw.outdoor-mode .dwg-fine { stroke: #fff; }
+
+@media (min-width: 768px) {
+  .dwg-title { font-size: 12.5px; }
+}
