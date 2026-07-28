@@ -70,15 +70,7 @@ dominante. Verifica obbligatoria con screenshot prima/dopo.
       palette e regole specifiche. Aggiunti nello stesso passaggio **tema
       chiaro, modalità sole** (oggi chi la attiva nel core resta al buio
       nelle app) e **scheletri di caricamento**. Verifica immagine per
-      immagine prima/dopo: l'aspetto non deve cambiare di un pixel. — card (raggi,
-      bordi, gradienti, ombre complete, riga luminosa in cima, glow al
-      passaggio del mouse), bottoni e loro stati, campi e select, tabelle e
-      liste, modali, toast, badge, animazioni e durate. *Taglia L, tocca
-      `shared/`: va fatto per PRIMO e da solo, poi le app in parallelo.*
-- [ ] **E1–E6. Passata per app** *(in parallelo dopo E0)*: Scudo, Campo,
-      Flotta, Conti, Sentinella, Terra. Per ognuna: topbar, tab interni,
-      card, liste, form, stati vuoti, modali. Colore dominante applicato via
-      `--app-accent`/`--app-accent2`, tutto il resto identico al core.
+      immagine prima/dopo: l'aspetto non deve cambiare di un pixel.
 - [ ] **E7. Genesi** — allineamento delle parti 2D/HUD al core (la scena 3D
       ha una sua estetica già approvata).
 - [ ] **E8. Verifica finale** — le sette pagine affiancate: devono sembrare
@@ -89,12 +81,12 @@ tinta identica a Sentinella e le due app non si distinguevano):
 
 | App | Accento | Chiaro | Nota |
 |---|---|---|---|
-| Campo | `#e8821c` | `#ffb733` | arancio |
-| Scudo | `#8b5cf6` | `#bd96ff` | viola |
-| Terra | `#2f9e44` | `#5fe05a` | verde |
-| Conti | `#0e9384` | `#23dcc6` | teal |
-| Sentinella | `#1971c2` | `#74c0fc` | blu (invariato, 25/07) |
-| **Flotta** | **`#d0559e`** | **`#f39ccd`** | **magenta — nuovo** |
+| Campo | `#d3633a` | `#f49c7d` | cotto |
+| Scudo | `#8c75dc` | `#b7a8f9` | viola-indaco |
+| Terra | `#659b2c` | `#9ac577` | oliva-erba |
+| Conti | `#009f8f` | `#4dcebd` | teal profondo |
+| Sentinella | `#288ee0` | `#78bcfc` | blu (schiarito per il contrasto) |
+| **Flotta** | **`#c360a6`** | **`#e798cd`** | **magenta lampone** |
 
 Regola di leggibilità: l'accento base solo per bordi e pallini, l'accento
 **chiaro** è l'unico ammesso per il testo (va corretto `.dw-btn.secondary`,
