@@ -1,0 +1,730 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   DEEPWORK — IMPIANTO VISIVO COMUNE DELLE APP VERTICALI
+   (scudo · campo · flotta · conti · sentinella · terra)
+
+   A cosa serve: fino a ieri ognuna delle sei app portava dentro di sé la
+   propria copia di queste stesse regole. Un ritocco andava fatto sei volte
+   e le app finivano per allontanarsi l'una dall'altra. Da qui in avanti la
+   STRUTTURA sta scritta una volta sola, qui.
+
+   Le due metà della direttiva del fondatore, tradotte in pratica:
+   1. STRUTTURA identica al core Deepwork (index.html alla radice) — misure,
+      raggi, ombre, curve, comportamenti: stanno in questo foglio.
+   2. COLORE proprio di ogni app — questo foglio non decide nessun colore:
+      nomina soltanto le variabili. I valori li mette ogni app nel proprio
+      blocco :root, ed è lì che vive la sua identità.
+
+   Come si usa (dopo deepwork-style.css e dw-app-shell.css):
+     <link rel="stylesheet" href="../../shared/deepwork-style.css">
+     <link rel="stylesheet" href="../../shared/dw-app-shell.css">
+     <link rel="stylesheet" href="../../shared/dw-app-ui.css">
+   e nell'app resta solo il :root con la sua palette più le regole dei suoi
+   componenti (il grafico di Sentinella, la barra vita cava di Terra, la
+   colonna degli importi di Conti, e così via).
+
+   Variabili che ogni app DEVE definire (i valori di partenza neutri stanno
+   in deepwork-style.css, ma vanno sempre ridichiarati con la propria tinta):
+     superfici  --bg --dark --panel --card --card2 --border --border2 --border-hi
+     testo      --text --muted --muted2 --disabled
+     accento    --app-accent --app-accent2 --app-accent-deep --app-support2
+     gradienti  --grad --grad-on --grad-ok --grad-wr --grad-sup --grad-num(opz.)
+     luce       --glow-app --tint-app --halo-1 --halo-2 --focus-ring --sel
+     superfici piene --top-bg --nav-bg --solid --ov-bg
+     testo su pieno  --on-ok --on-wr --on-dg --on-info
+     aloni di stato  --glow-ok --glow-wr --glow-dg --danger-pulse --err-bg
+     misure     --nav-cols --kpi-cols --info-basis --arr-ico --arr-stroke
+                --form-gap --form-pad --frow-align --ord-gap --empty-w --empty-tint
+     ombre bottoni   --sh-btn --sh-btn-hi --sh-btn-act --sh-chg
+   ══════════════════════════════════════════════════════════════════════════ */
+/* ─────────────── fondo e atmosfera ─────────────── */
+html{-webkit-text-size-adjust:100%; text-size-adjust:100%}
+body.dw{
+  background:var(--bg); color:var(--text); overflow-x:hidden;
+  overscroll-behavior-y:contain;
+  padding-bottom:calc(104px + env(safe-area-inset-bottom));
+}
+body.dw::before{
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:radial-gradient(ellipse 700px 500px at 15% 5%, var(--halo-1) 0%, transparent 65%), radial-gradient(ellipse 500px 400px at 85% 85%, var(--halo-2) 0%, transparent 65%);
+}
+.top,.page,.nav,.tour-banner,.toast,.modal-ov{position:relative; z-index:1}
+*{-webkit-tap-highlight-color:transparent}
+button,a,label,select,input,.item,.kpi,.chg,.mbtn{touch-action:manipulation}
+::selection{background:var(--sel)}
+:focus{outline:none}
+:focus-visible{outline:none; box-shadow:0 0 0 3px var(--focus-ring); border-radius:5px}
+::-webkit-scrollbar{width:9px; height:9px}
+::-webkit-scrollbar-track{background:var(--dark)}
+::-webkit-scrollbar-thumb{background:var(--border2); border-radius:6px}
+::-webkit-scrollbar-thumb:hover{background:var(--app-accent)}
+img{max-width:100%}
+
+/* ─────────────── barra alta (copia di .topbar del core) ─────────────── */
+.top{
+  position:sticky; top:0; z-index:100; display:flex; align-items:center; gap:10px;
+  min-height:62px; padding:0 14px; background:var(--top-bg);
+  -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border); box-shadow:0 2px 12px rgba(0,0,0,.34);
+}
+.top::after{
+  /* la riga luminosa del core, nella tinta dell'app */
+  content:""; position:absolute; left:0; right:0; bottom:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--app-accent),transparent);
+  opacity:.55;
+}
+.top-brand{flex:1; min-width:0}
+.logo-sm{
+  font-family:'Barlow Condensed',sans-serif; font-size:17px; font-weight:800;
+  letter-spacing:3px; text-transform:uppercase; color:var(--app-accent2);
+  text-shadow:0 0 14px var(--glow-logo); line-height:1.1;
+}
+.role-sm{
+  font-size:9px; color:var(--muted); letter-spacing:2px; text-transform:uppercase;
+  margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.dw-home,.dw-exit{
+  position:static; top:auto; right:auto; display:inline-flex; align-items:center;
+  justify-content:center; gap:6px; min-height:var(--tap); min-width:var(--tap);
+  padding:0 11px; border:1px solid var(--border2); border-radius:var(--r-sm);
+  background:var(--card); color:var(--muted2);
+  font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; text-decoration:none; cursor:pointer;
+  flex-shrink:0; box-shadow:var(--edge); transition:all .18s var(--ease);
+}
+.dw-home{padding:0 13px; line-height:0}
+.dw-home svg{
+  width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:1.7;
+  stroke-linecap:round; stroke-linejoin:round;
+}
+.dw-home:hover{
+  color:var(--app-accent2); border-color:var(--app-accent); background:var(--card2);
+}
+.dw-exit:hover{color:var(--danger); border-color:var(--danger)}
+.top h1,body.has-exit .top h1{padding-right:0 !important}
+
+/* nastro "modalità tour" — forma .info-box del core */
+.tour-banner{
+  background:var(--card2); border:1px solid var(--border);
+  border-left:3px solid var(--app-accent); border-radius:var(--r-sm);
+  color:var(--muted2); font-size:12px; line-height:1.5; padding:10px 13px;
+  margin:14px 16px 0; text-align:left; box-shadow:var(--edge);
+}
+.tour-banner b{color:var(--text)}
+
+/* ─────────────── pagine ─────────────── */
+.page{padding:16px 16px calc(24px + env(safe-area-inset-bottom))}
+.page.active{display:block}
+
+/* ─────────────── KPI (copia di .kpi-card del core) ─────────────── */
+.kpis{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px}
+.kpi{
+  position:relative; overflow:hidden;
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--border); border-top:3px solid var(--app-accent);
+  border-left:3px solid var(--app-accent); border-radius:var(--r-sm);
+  padding:11px 13px 12px;
+  /* la striscia di sinistra resta sempre nella tinta dell'app: lo stato sta in alto */
+  box-shadow:var(--sh1),var(--edge);
+  transition:transform .18s var(--ease),box-shadow .18s var(--ease),border-color .2s;
+}
+.kpi::after{
+  /* alone che segue il mouse */
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+  border-radius:inherit;
+  background:radial-gradient(200px 160px at var(--mx,50%) var(--my,30%), var(--kpi-glow,var(--glow-app)), transparent 62%);
+  opacity:0; transition:opacity .25s var(--ease);
+}
+.kpi:hover::after{opacity:1}
+.kpi>*{position:relative; z-index:1}
+.kpi:hover{transform:translateY(-3px); box-shadow:var(--sh4),var(--edge)}
+.kpi:active{transform:translateY(-1px) scale(.99)}
+.kpi .l{
+  font-family:'Barlow',sans-serif; font-size:10px; font-weight:600; letter-spacing:2px;
+  text-transform:uppercase; color:var(--muted); line-height:1.3;
+}
+.kpi .n{
+  font-family:'Barlow Condensed',sans-serif; font-size:32px; font-weight:800;
+  line-height:1.05; margin-top:3px; background:var(--grad-num,var(--grad));
+  -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent; color:transparent;
+}
+.kpi.ok{border-top-color:var(--success); --kpi-glow:var(--glow-ok)}
+.kpi.warn{border-top-color:var(--warn); --kpi-glow:var(--glow-wr)}
+.kpi.danger{
+  border-top-color:var(--danger); --kpi-glow:var(--glow-dg);
+  animation:pulseDanger 2.4s ease-in-out infinite;
+}
+.kpi.ok .n{background:var(--grad-ok)}
+.kpi.warn .n{background:var(--grad-wr)}
+.kpi.danger .n{background:var(--grad-dg)}
+.kpi.ok .n,.kpi.warn .n,.kpi.danger .n{-webkit-background-clip:text; background-clip:text}
+@keyframes pulseDanger{0%,100%{border-top-color:var(--danger)}50%{border-top-color:var(--danger-pulse)}}
+
+/* ─────────────── titolo di sezione (copia di .sec-title) ─────────────── */
+.sec{
+  display:flex; align-items:center; gap:8px; font-family:'Barlow Condensed',sans-serif;
+  font-size:11.5px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase;
+  color:var(--muted2); margin:24px 0 10px; padding-bottom:6px;
+  border-bottom:1px solid var(--border);
+}
+.sec::before{
+  content:""; width:5px; height:5px; border-radius:50%; flex-shrink:0;
+  background:var(--app-accent); box-shadow:0 0 8px var(--app-accent);
+}
+.page>.sec:first-child{margin-top:2px}
+.sec .cnt{
+  margin-left:auto; font-size:10px; letter-spacing:1.5px; color:var(--muted);
+  background:var(--card); border:1px solid var(--border); border-radius:20px;
+  padding:2px 9px; box-shadow:var(--edge);
+}
+
+/* ─────────────── voci di lista (copia di .sitem) ─────────────── */
+.item{
+  position:relative; overflow:hidden; display:flex; align-items:center; flex-wrap:wrap;
+  gap:6px 10px; background:var(--card); border:1px solid var(--border);
+  border-radius:var(--r-sm); padding:12px 13px; margin-bottom:5px;
+  min-height:var(--tap); box-shadow:var(--sh1),var(--edge);
+  transition:transform .15s var(--ease),box-shadow .15s var(--ease),border-color .2s,background .2s;
+}
+.item::after{
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+  border-radius:inherit;
+  background:radial-gradient(170px 120px at var(--mx,50%) var(--my,50%),var(--glow-app),transparent 62%);
+  opacity:0; transition:opacity .25s var(--ease);
+}
+.item:hover::after{opacity:1}
+.item>*{position:relative; z-index:1}
+.item:hover{
+  background:var(--card2);
+  border-color:color-mix(in srgb,var(--app-accent) 42%,var(--border));
+  transform:translateX(3px); box-shadow:var(--sh3),var(--edge);
+}
+.item.st-danger{border-left:3px solid var(--danger)}
+.item.st-warn{border-left:3px solid var(--warn)}
+.item.st-ok{border-left:3px solid var(--success)}
+.item.st-accent{border-left:3px solid var(--app-accent)}
+.item.st-mute{border-left:3px solid var(--border2)}
+.avatar{
+  width:36px; height:36px; border-radius:11px; flex-shrink:0; display:flex;
+  align-items:center; justify-content:center; font-family:'Barlow Condensed',sans-serif;
+  font-size:12px; font-weight:800; letter-spacing:1px; color:var(--grad-on);
+  background:var(--grad); border:none;
+  box-shadow:0 2px 6px rgba(0,0,0,.35),var(--edge-hi);
+}
+.avatar.sup{background:var(--grad-sup)}
+.avatar svg{
+  width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:2;
+  stroke-linecap:round; stroke-linejoin:round;
+}
+.info{flex:1 1 var(--info-basis); min-width:0}
+.acts{display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:5px}
+
+/* come nel core le voci restano compatte: al massimo due righe, poi «…» */
+.name{
+  font-size:13.5px; font-weight:600; color:var(--text); line-height:1.3;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; overflow-wrap:anywhere;
+}
+.meta{
+  font-size:11px; color:var(--muted); margin-top:3px; line-height:1.4;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; overflow-wrap:anywhere;
+}
+.arr svg{
+  width:var(--arr-ico); height:var(--arr-ico); stroke:currentColor; fill:none;
+  stroke-width:var(--arr-stroke); stroke-linecap:round; stroke-linejoin:round;
+}
+.arr{display:inline-flex; align-items:center; justify-content:center; flex-shrink:0}
+
+/* ─────────────── badge (copia di .scad-badge: raggio 3px, pieno) ─────────────── */
+.badge{
+  display:inline-flex; align-items:center; gap:4px; flex-shrink:0; padding:3px 8px;
+  border-radius:3px; white-space:nowrap; font-family:'Barlow Condensed',sans-serif;
+  font-size:10px; font-weight:800; letter-spacing:1px; text-transform:uppercase;
+  background:var(--card2); color:var(--muted2); border:1px solid var(--border2);
+  box-shadow:0 1px 3px rgba(0,0,0,.35),var(--edge-hi);
+}
+.badge.ok,.badge.warn,.badge.danger,.badge.info,.badge.accent{border-color:transparent}
+
+.badge.ok{background:var(--success); color:var(--on-ok)}
+.badge.warn{background:var(--warn); color:var(--on-wr)}
+.badge.danger{background:var(--danger); color:var(--on-dg)}
+.badge.info{background:var(--info); color:var(--on-info)}
+.badge.accent{background:var(--app-accent); color:var(--grad-on)}
+.badge.tag{
+  /* etichetta neutra (tipo documento) */
+  background:var(--card2); color:var(--muted2); border:1px solid var(--border2);
+  box-shadow:none; font-weight:700;
+}
+
+/* ─────────────── campi (copia di .finput) ─────────────── */
+.dw-input{
+  width:100%; min-height:var(--tap); padding:11px 13px; background:var(--card);
+  border:1px solid var(--border-hi); border-radius:9px; color:var(--text);
+  font-family:'Barlow',sans-serif; font-size:16px; outline:none; box-shadow:var(--edge);
+  transition:border-color .18s var(--ease),box-shadow .18s var(--ease),background .18s;
+}
+.dw-input::placeholder{color:var(--disabled)}
+.dw-input:hover{border-color:color-mix(in srgb,var(--app-accent) 55%,var(--border-hi))}
+.dw-input:focus{
+  border-color:var(--app-accent); background:var(--card2);
+  box-shadow:0 0 0 3px var(--focus-ring),var(--edge);
+}
+.dw-input.err{border-color:var(--danger) !important; background:var(--err-bg)}
+.dw-input[readonly],.dw-input[disabled]{color:var(--muted2); opacity:.7}
+select.dw-input{font-size:16px; cursor:pointer}
+select.dw-input option,select.dw-input optgroup{background:var(--card); color:var(--text)}
+textarea.dw-input{resize:vertical; min-height:60px}
+input[type=date].dw-input::-webkit-calendar-picker-indicator, input[type=search].dw-input::-webkit-search-cancel-button{
+  filter:invert(.68); cursor:pointer; opacity:.8;
+}
+input[type=date].dw-input::-webkit-calendar-picker-indicator:hover{
+  filter:var(--date-filter-hi); opacity:1;
+}
+.dw-muted{color:var(--muted)}
+.dw-accent{color:var(--app-accent2)}
+
+/* ─────────────── bottoni (copia di .btn-sv / .btn-sec) ─────────────── */
+.dw-btn{
+  min-height:var(--tap); padding:12px 18px; border:none; border-radius:var(--r-sm);
+  background:var(--grad); color:var(--grad-on);
+  font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:800;
+  letter-spacing:2px; text-transform:uppercase; cursor:pointer; display:inline-flex;
+  align-items:center; justify-content:center; gap:7px;
+  box-shadow:var(--sh-btn),var(--edge-hi);
+  transition:transform .12s var(--ease),box-shadow .2s var(--ease),filter .2s;
+}
+.dw-btn:hover{box-shadow:var(--sh-btn-hi),var(--edge-hi); filter:brightness(1.07)}
+.dw-btn:active{transform:translateY(2px); box-shadow:var(--sh-btn-act),var(--edge-hi)}
+.dw-btn:disabled{opacity:.6; cursor:wait; filter:none; transform:none}
+.dw-btn.secondary{
+  background:var(--card); border:1px solid var(--border2); color:var(--text);
+  font-size:13px; font-weight:600; letter-spacing:1px; padding:11px 14px;
+  box-shadow:var(--edge); filter:none;
+}
+.dw-btn.secondary:hover{
+  border-color:var(--app-accent); color:var(--app-accent2); background:var(--card2);
+  transform:translateY(-1px); box-shadow:var(--sh2),var(--edge); filter:none;
+}
+.dw-btn.secondary:active{transform:translateY(1px); box-shadow:var(--edge)}
+
+/* ─────────────── filtri a segmento (copia di .chg) ─────────────── */
+.chgs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px}
+.chg{
+  background:var(--card); border:1px solid var(--border); color:var(--muted2);
+  padding:7px 13px; min-height:var(--tap); border-radius:7px;
+  font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700;
+  letter-spacing:1px; text-transform:uppercase; cursor:pointer; display:inline-flex;
+  align-items:center; justify-content:center; box-shadow:var(--edge);
+  transition:all .15s var(--ease);
+}
+.chg:hover{border-color:var(--app-accent); color:var(--app-accent2)}
+.chg.active{
+  background:var(--app-accent); border-color:var(--app-accent); color:var(--grad-on);
+  box-shadow:var(--sh-chg),var(--edge-hi);
+}
+.chg:active{transform:scale(.95)}
+
+/* ─────────────── form come oggetti veri (superficie del core) ─────────────── */
+.form{
+  display:flex; flex-wrap:wrap; gap:var(--form-gap);
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--border); border-radius:var(--r); padding:var(--form-pad);
+  box-shadow:var(--sh2),var(--edge);
+}
+
+/* un <select> con opzioni lunghe non deve allargare la pagina */
+.form>*,.frow>*{min-width:0; max-width:100%}
+.form .dw-btn{flex:0 0 auto}
+.frow{
+  display:flex; flex-wrap:wrap; gap:var(--form-gap); width:100%;
+  align-items:var(--frow-align);
+}
+.form-hint{font-size:11.5px; color:var(--muted); line-height:1.5; flex-basis:100%}
+.tools{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px}
+.ord{display:flex; align-items:center; gap:var(--ord-gap); margin:0 0 10px}
+.ord label{
+  font-family:'Barlow Condensed',sans-serif; font-size:10.5px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); flex-shrink:0;
+}
+.ord .dw-input{width:auto}
+.count{
+  font-family:'Barlow Condensed',sans-serif; font-size:10.5px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin:0 0 8px;
+  min-height:14px;
+}
+.count b{color:var(--app-accent2)}
+
+/* ─────────────── riquadri informativi (copia di .info-box) ─────────────── */
+.note{
+  background:var(--card2); border:1px solid var(--border);
+  border-left:3px solid var(--note-bar); border-radius:var(--r-sm); padding:11px 13px;
+  margin-top:12px; text-align:left; font-size:12px; line-height:1.6;
+  color:var(--muted2); box-shadow:var(--edge);
+}
+.note:empty{display:none}
+.note b{color:var(--text)}
+.note.esito{border-left-color:var(--app-accent); color:var(--text); font-size:12.5px}
+.note.recap b{
+  color:var(--app-accent2); font-family:'Barlow Condensed',sans-serif; font-size:15px;
+  font-weight:800; padding:0 1px;
+}
+
+/* ─────────────── stato vuoto (copia di .empty-state) ─────────────── */
+.empty-state{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:38px 20px; text-align:center; color:var(--muted); border-radius:var(--r);
+  background:radial-gradient(360px 220px at 50% 0%, color-mix(in srgb,var(--app-accent) var(--empty-tint),transparent),transparent 70%);
+}
+.empty-icon{
+  margin-bottom:12px; line-height:0; color:var(--app-accent2); opacity:.55;
+  filter:drop-shadow(0 0 16px color-mix(in srgb,var(--app-accent) 30%,transparent));
+}
+.empty-icon svg{
+  width:46px; height:46px; stroke:currentColor; fill:none; stroke-width:1.3;
+  stroke-linecap:round; stroke-linejoin:round;
+}
+.empty-title{
+  font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:800;
+  letter-spacing:2px; text-transform:uppercase; color:var(--text); margin-bottom:6px;
+}
+.empty-sub{font-size:12px; color:var(--muted); max-width:var(--empty-w); line-height:1.55}
+.empty-sub b{color:var(--muted2)}
+
+/* ─────────────── navigazione: pillola flottante (copia di #global-nav.bnav) ─────────────── */
+.nav{
+  position:fixed; left:50%; right:auto; transform:translateX(-50%);
+  bottom:calc(8px + env(safe-area-inset-bottom)); width:calc(100% - 16px);
+  max-width:520px; z-index:90; display:grid;
+  grid-template-columns:repeat(var(--nav-cols),1fr); background:var(--nav-bg);
+  -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+  border:1px solid var(--border2); border-radius:18px; overflow:hidden;
+  box-shadow:0 10px 28px rgba(0,0,0,.5),var(--edge);
+}
+.nav button{
+  position:relative; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:3px; padding:10px 2px 9px; min-height:var(--tap);
+  background:none; border:none; border-top:2px solid transparent; cursor:pointer;
+  color:var(--muted); font-family:'Barlow Condensed',sans-serif; font-size:9px;
+  font-weight:700; letter-spacing:1.2px; text-transform:uppercase;
+  transition:color .2s var(--ease),transform .15s var(--ease);
+}
+.nav button:hover{color:var(--app-accent2)}
+.nav button.active{
+  color:var(--app-accent2); border-top-color:var(--app-accent);
+  transform:translateY(-2px);
+}
+.nav button.active::before{
+  content:""; position:absolute; top:5px; left:50%; transform:translateX(-50%);
+  width:42px; height:30px; border-radius:10px; z-index:0;
+  background:color-mix(in srgb,var(--app-accent) 20%,transparent);
+}
+.nav button>*{position:relative; z-index:1}
+.nav .ico{display:flex; align-items:center; justify-content:center; height:22px}
+.nav .ico svg{
+  width:21px; height:21px; stroke:currentColor; fill:none; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round;
+  transition:transform .15s var(--ease),filter .2s;
+}
+.nav button.active .ico svg{
+  transform:scale(1.06);
+  filter:drop-shadow(0 0 6px color-mix(in srgb,var(--app-accent) 65%,transparent));
+}
+
+/* ─────────────── modale (copia di .modal-* del core) ─────────────── */
+.modal-ov{
+  position:fixed; inset:0; z-index:300; display:none; padding:20px; align-items:center;
+  justify-content:center; background:var(--ov-bg); -webkit-backdrop-filter:blur(4px);
+  backdrop-filter:blur(4px);
+}
+.modal-ov.show{display:flex; animation:ovFade .2s var(--ease)}
+@keyframes ovFade{from{opacity:0} to{opacity:1}}
+.modal-box{
+  position:relative; width:100%; max-width:440px; max-height:92dvh; display:flex;
+  flex-direction:column; overflow:hidden;
+  background:linear-gradient(180deg,var(--panel),var(--dark));
+  border:1px solid var(--border2); border-radius:var(--r);
+  box-shadow:0 20px 60px rgba(0,0,0,.65),var(--edge); animation:fadeUp .25s ease;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)}}
+.modal-head{
+  position:relative; padding:15px 18px; border-bottom:1px solid var(--border);
+  font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:800;
+  letter-spacing:2px; text-transform:uppercase; color:var(--text);
+}
+.modal-head::after{
+  content:""; position:absolute; left:0; right:0; bottom:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--app-accent),transparent);
+  opacity:.55;
+}
+.modal-body{
+  padding:15px 18px; overflow-y:auto; overscroll-behavior:contain; flex:1;
+  max-height:55vh; font-size:13.5px; line-height:1.6; color:var(--muted2);
+  user-select:text;
+}
+.modal-body b{color:var(--text)}
+.modal-body .fl{margin:12px 0 6px}
+.modal-foot{
+  padding:12px 18px; border-top:1px solid var(--border); background:var(--dark);
+  display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap; position:sticky;
+  bottom:0;
+}
+.mbtn{
+  background:none; border:1px solid var(--border2); color:var(--text);
+  padding:10px 16px; border-radius:var(--r-sm); min-height:var(--tap);
+  display:inline-flex; align-items:center; justify-content:center;
+  font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700;
+  letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+  transition:all .15s var(--ease);
+}
+.mbtn:hover{border-color:var(--app-accent); color:var(--app-accent2)}
+.mbtn:active{transform:scale(.97)}
+.mbtn.primary{
+  background:var(--grad); border-color:transparent; color:var(--grad-on);
+  font-weight:800; box-shadow:var(--sh-btn),var(--edge-hi);
+}
+.mbtn.primary:hover{filter:brightness(1.07); color:var(--grad-on)}
+.mbtn.danger{
+  background:var(--danger); border-color:var(--danger); color:var(--on-dg);
+  font-weight:800;
+}
+.mbtn.danger:hover{filter:brightness(1.08); color:var(--on-dg)}
+body.modal-open{overflow:hidden}
+
+/* ─────────────── toast (copia del core) ─────────────── */
+.toast{
+  position:fixed; left:50%; bottom:calc(100px + env(safe-area-inset-bottom));
+  transform:translateX(-50%) translateY(8px); max-width:min(92vw,460px);
+  padding:11px 20px; border-radius:10px; background:var(--grad); color:var(--grad-on);
+  text-align:center; font-family:'Barlow Condensed',sans-serif; font-size:13px;
+  font-weight:800; letter-spacing:1px; line-height:1.35;
+  box-shadow:0 8px 30px rgba(0,0,0,.5),var(--edge-hi); opacity:0; pointer-events:none;
+  z-index:999; transition:opacity .3s var(--ease),transform .3s var(--ease);
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+.toast.err{background:var(--danger); color:var(--on-dg)}
+.toast.success{background:var(--success); color:var(--on-ok)}
+
+/* ─────────────── desktop ─────────────── */
+
+@media(min-width:768px){
+  /* la barra si allinea alla colonna dei contenuti, non al bordo dello schermo */
+  .top{
+    padding-left:max(24px,calc((100% - 900px) / 2));
+    padding-right:max(24px,calc((100% - 900px) / 2));
+  }
+  .page{max-width:900px; margin:0 auto; padding-left:24px; padding-right:24px}
+  .tour-banner{max-width:900px; margin-left:auto; margin-right:auto}
+  .kpis{grid-template-columns:repeat(var(--kpi-cols),1fr)}
+  .nav{max-width:560px}
+  .logo-sm{font-size:18px}
+}
+
+@media(max-width:360px){
+  .page{padding-left:10px; padding-right:10px}
+  .top{padding-left:10px; padding-right:10px}
+  .nav button{font-size:8px; letter-spacing:.8px}
+}
+
+/* ─────────────── touch: come il core, niente effetti "incollati" ─────────────── */
+
+@media(hover:none),(pointer:coarse){
+  body.dw::before{display:none !important}
+  .top::after{display:none !important}
+  .top{
+    border-bottom:2px solid color-mix(in srgb,var(--app-accent) 45%,transparent) !important;
+    background:var(--solid) !important;
+  }
+  .item::after,.kpi::after{display:none !important}
+  .top,.nav{backdrop-filter:none !important; -webkit-backdrop-filter:none !important}
+  .nav{background:var(--solid) !important}
+  input,textarea,select,.dw-input{font-size:16px !important}
+  .item:hover,.kpi:hover,.dw-btn.secondary:hover,.chg:hover{transform:none !important}
+  .item:hover{background:var(--card); box-shadow:var(--sh1),var(--edge)}
+  .nav .ico svg{filter:none !important}
+  .empty-icon{filter:none !important}
+}
+
+@media(prefers-reduced-motion:reduce){
+  *{transition:none !important; animation:none !important}
+  .item::after,.kpi::after{display:none !important}
+}
+/* ══════════════════════════════════════════════════════════════════════════
+   SCHELETRI DI CARICAMENTO (come nel core)
+   Le liste non devono comparire di colpo: al posto delle voci si mostra la
+   loro sagoma che respira, così l'occhio sa già dove guarderà.
+   Uso:  <div class="dw-skel"></div>  (una per voce attesa)
+   ══════════════════════════════════════════════════════════════════════════ */
+.dw-skel{
+  background:linear-gradient(90deg,var(--card) 25%,var(--card2) 37%,var(--card) 63%);
+  background-size:400% 100%; animation:dwshim 1.2s ease infinite;
+  border:1px solid var(--border); border-radius:var(--r-sm); min-height:64px;
+  margin-bottom:5px; box-shadow:var(--sh1),var(--edge);
+}
+.dw-skel.riga{min-height:44px;}
+.dw-skel.kpi{min-height:74px; border-radius:var(--r-sm);}
+.dw-skel.alto{min-height:120px; border-radius:var(--r);}
+@keyframes dwshim{0%{background-position:100% 0} 100%{background-position:-100% 0}}
+@media(prefers-reduced-motion:reduce){
+  .dw-skel{animation:dwpulse 1.4s ease-in-out infinite; background:var(--card);}
+}
+@keyframes dwpulse{0%,100%{opacity:1} 50%{opacity:.55}}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TEMA CHIARO E MODALITÀ SOLE
+   Il core ha due modi di stare al mondo: al chiuso (scuro) e sotto il sole.
+   In cava, a mezzogiorno, uno schermo scuro non si legge. Qui le stesse due
+   modalità valgono per tutte e sei le app, SENZA copiare i colori del core:
+   ogni tinta viene ricalcolata a partire dall'accento dell'app, quindi Scudo
+   resta viola, Terra resta verde, Conti resta verde-acqua anche di giorno.
+
+   Come si accendono: la classe sul <body> — 'light-mode' oppure
+   'outdoor-mode'. Ci pensa shared/dw-tema.js, che legge la preferenza
+   condivisa (localStorage 'dw-tema': scuro | chiaro | sole) e la applica a
+   qualunque app si apra. Di serie non è attiva nessuna delle due: senza
+   preferenza salvata le app restano scure esattamente come oggi.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── superfici, testo e luce: valgono per il chiaro e per il sole ── */
+body.dw.light-mode,
+body.dw.outdoor-mode{
+  color-scheme:light;
+
+  /* superfici: carta, non nero. Un velo dell'accento le tiene "di famiglia" */
+  --bg:        color-mix(in srgb, var(--app-accent)  6%, #f5f3ef);
+  --dark:      #ffffff;
+  --panel:     color-mix(in srgb, var(--app-accent)  4%, #ffffff);
+  --card:      #ffffff;
+  --card2:     color-mix(in srgb, var(--app-accent)  8%, #ffffff);
+  --border:    color-mix(in srgb, var(--app-accent) 24%, #d6d2ca);
+  --border2:   color-mix(in srgb, var(--app-accent) 34%, #c3beb3);
+  --border-hi: color-mix(in srgb, var(--app-accent) 46%, #aca699);
+
+  /* testo: scuro, con dentro un soffio del colore dell'app */
+  --text:      color-mix(in srgb, var(--app-accent-deep) 16%, #17150f);
+  --muted2:    color-mix(in srgb, var(--app-accent-deep) 28%, #3a352d);
+  --muted:     color-mix(in srgb, var(--app-accent-deep) 24%, #5b554a);
+  --disabled:  color-mix(in srgb, var(--app-accent-deep) 14%, #8a8477);
+
+  /* sul chiaro il gradino chiaro dell'accento sparisce: per il testo si usa
+     il gradino profondo, e sopra i pieni si scrive in bianco */
+  --app-accent2: var(--app-accent-deep);
+  --grad-on:   #ffffff;
+  --grad:      linear-gradient(135deg, var(--app-accent-deep),
+                                       color-mix(in srgb, var(--app-accent-deep) 74%, #000));
+  --grad-num:  linear-gradient(135deg, var(--app-accent-deep),
+                                       color-mix(in srgb, var(--app-accent-deep) 68%, #000));
+  --grad-sup:  linear-gradient(135deg, color-mix(in srgb, var(--app-support2) 80%, #000),
+                                       color-mix(in srgb, var(--app-support2) 52%, #000));
+  --grad-ok:   linear-gradient(135deg, color-mix(in srgb, var(--success) 86%, #000),
+                                       color-mix(in srgb, var(--success) 54%, #000));
+  --gradSuc:   var(--grad-ok);
+  --grad-wr:   linear-gradient(135deg, color-mix(in srgb, var(--warn) 78%, #000),
+                                       color-mix(in srgb, var(--warn) 48%, #000));
+  --grad-dg:   linear-gradient(135deg, color-mix(in srgb, var(--danger) 82%, #000),
+                                       color-mix(in srgb, var(--danger) 52%, #000));
+  --grad3:     var(--grad-dg);
+
+  /* luce: sul chiaro la luce viene dall'alto e le ombre sono grigie, non nere */
+  --edge:      inset 0 1px 0 rgba(255,255,255,.9), inset 0 -1px 0 rgba(28,24,16,.06);
+  --edge-hi:   inset 0 1px 0 rgba(255,255,255,.5);
+  --sh1:       0 1px 3px rgba(30,26,18,.09);
+  --sh2:       0 2px 6px rgba(30,26,18,.11);
+  --sh3:       0 6px 14px rgba(30,26,18,.14);
+  --sh4:       0 10px 22px rgba(30,26,18,.17);
+  --sh-btn:    0 4px 14px color-mix(in srgb, var(--app-accent-deep) 30%, transparent);
+  --sh-btn-hi: 0 7px 20px color-mix(in srgb, var(--app-accent-deep) 40%, transparent);
+  --sh-btn-act:0 2px 6px  color-mix(in srgb, var(--app-accent-deep) 26%, transparent);
+  --sh-chg:    0 2px 8px  color-mix(in srgb, var(--app-accent-deep) 28%, transparent);
+  --shadow-app:0 8px 24px color-mix(in srgb, var(--app-accent-deep) 18%, transparent);
+
+  /* aloni: appena accennati, altrimenti sporcano il bianco */
+  --halo-1:    color-mix(in srgb, var(--app-accent)   9%, transparent);
+  --halo-2:    color-mix(in srgb, var(--app-support2) 8%, transparent);
+  --glow-app:  color-mix(in srgb, var(--app-accent)  14%, transparent);
+  --tint-app:  color-mix(in srgb, var(--app-accent)  12%, transparent);
+  --tint-sup:  color-mix(in srgb, var(--app-support2) 12%, transparent);
+  --focus-ring:color-mix(in srgb, var(--app-accent)  30%, transparent);
+  --sel:       color-mix(in srgb, var(--app-accent)  26%, transparent);
+  --glow-ok:   color-mix(in srgb, var(--success) 16%, transparent);
+  --glow-wr:   color-mix(in srgb, var(--warn)    16%, transparent);
+  --glow-dg:   color-mix(in srgb, var(--danger)  16%, transparent);
+  --err-bg:    color-mix(in srgb, var(--danger)   8%, transparent);
+  --danger-pulse: color-mix(in srgb, var(--danger) 45%, #fff);
+
+  /* superfici piene: barra alta, navigazione, velo della modale */
+  --top-bg:    #ffffff;
+  --nav-bg:    rgba(255,255,255,.97);
+  --solid:     #ffffff;
+  --ov-bg:     rgba(28,25,18,.42);
+}
+
+/* le poche regole in cui un colore di stato faceva da TESTO: sul chiaro va scurito */
+body.dw.light-mode  .dw-exit:hover,
+body.dw.outdoor-mode .dw-exit:hover{color:color-mix(in srgb,var(--danger) 82%,#000);}
+/* pieni nell'accento: sul chiaro si usa il gradino profondo, il bianco sopra deve reggere */
+body.dw.light-mode  .badge.accent,
+body.dw.outdoor-mode .badge.accent{background:var(--app-accent-deep);}
+body.dw.light-mode  .chg.active,
+body.dw.outdoor-mode .chg.active{background:var(--app-accent-deep); border-color:var(--app-accent-deep);}
+/* le icone dei campi data/ricerca sono disegnate per il fondo scuro */
+body.dw.light-mode  input[type=date].dw-input::-webkit-calendar-picker-indicator,
+body.dw.light-mode  input[type=search].dw-input::-webkit-search-cancel-button,
+body.dw.outdoor-mode input[type=date].dw-input::-webkit-calendar-picker-indicator,
+body.dw.outdoor-mode input[type=search].dw-input::-webkit-search-cancel-button{filter:none;}
+body.dw.light-mode  input[type=date].dw-input::-webkit-calendar-picker-indicator:hover,
+body.dw.outdoor-mode input[type=date].dw-input::-webkit-calendar-picker-indicator:hover{filter:none; opacity:1;}
+body.dw.light-mode  ::-webkit-scrollbar-track,
+body.dw.outdoor-mode ::-webkit-scrollbar-track{background:var(--card2);}
+
+/* ── MODALITÀ SOLE: tutto ciò che il sole cancella va tolto di mezzo ── */
+body.dw.outdoor-mode{
+  /* niente mezzitoni: bianco pieno, testo quasi nero, bordi che si vedono */
+  --bg:#ffffff; --panel:#ffffff; --card:#ffffff;
+  --card2: color-mix(in srgb, var(--app-accent) 6%, #ffffff);
+  --border:    color-mix(in srgb, var(--app-accent-deep) 34%, #a9a396);
+  --border2:   color-mix(in srgb, var(--app-accent-deep) 44%, #8f8a7d);
+  --border-hi: color-mix(in srgb, var(--app-accent-deep) 55%, #777266);
+  --text:#100e09;
+  --muted2: color-mix(in srgb, var(--app-accent-deep) 22%, #241f16);
+  --muted:  color-mix(in srgb, var(--app-accent-deep) 22%, #40392c);
+  /* con i guanti si colpisce largo: bersagli da 60px come nel core */
+  --tap:60px;
+  /* niente aloni, niente bagliori: alla luce del sole sono solo sporco */
+  --halo-1:transparent; --halo-2:transparent;
+  --glow-app:transparent; --glow-ok:transparent; --glow-wr:transparent; --glow-dg:transparent;
+  --edge:none; --edge-hi:none;
+  --sh1:0 1px 2px rgba(40,34,22,.16); --sh2:0 1px 3px rgba(40,34,22,.18);
+  --sh3:0 2px 5px rgba(40,34,22,.20);  --sh4:0 3px 7px rgba(40,34,22,.22);
+  --sh-btn:0 2px 5px rgba(40,34,22,.24); --sh-btn-hi:0 3px 8px rgba(40,34,22,.3);
+  --sh-btn-act:0 1px 3px rgba(40,34,22,.24); --sh-chg:0 1px 3px rgba(40,34,22,.24);
+}
+body.dw.outdoor-mode::before{display:none;}
+body.dw.outdoor-mode .top,
+body.dw.outdoor-mode .nav{
+  -webkit-backdrop-filter:none; backdrop-filter:none; background:#ffffff;
+}
+body.dw.outdoor-mode .top{border-bottom:2px solid var(--border2);}
+body.dw.outdoor-mode .top::after{display:none;}
+body.dw.outdoor-mode .nav{border:2px solid var(--border2);}
+body.dw.outdoor-mode .item,
+body.dw.outdoor-mode .kpi,
+body.dw.outdoor-mode .form,
+body.dw.outdoor-mode .note,
+body.dw.outdoor-mode .dw-input,
+body.dw.outdoor-mode .modal-box{border-width:2px;}
+body.dw.outdoor-mode .item::after,
+body.dw.outdoor-mode .kpi::after{display:none;}
+body.dw.outdoor-mode .empty-state{background:none;}
+body.dw.outdoor-mode .empty-icon{filter:none; opacity:.8;}
+body.dw.outdoor-mode .nav .ico svg{filter:none;}
+/* testi più grandi: si legge in piedi, col sole di traverso */
+body.dw.outdoor-mode .name{font-size:15.5px; font-weight:700;}
+body.dw.outdoor-mode .meta{font-size:12.5px; color:var(--muted2);}
+body.dw.outdoor-mode .badge{font-size:11px; padding:4px 9px;}
+body.dw.outdoor-mode .nav button{font-size:11px; letter-spacing:1px;}
+body.dw.outdoor-mode .nav .ico svg{width:24px; height:24px;}
+body.dw.outdoor-mode .sec{font-size:12.5px; color:var(--muted2);}
+body.dw.outdoor-mode .kpi .l{font-size:11px;}
+body.dw.outdoor-mode .toast{font-size:15px; padding:14px 24px;}
+body.dw.outdoor-mode .dw-btn{font-size:15px;}

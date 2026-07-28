@@ -2872,21 +2872,28 @@ function computeSeq2D(){
    gia sparati vince il PIU VINCOLANTE (rapporto piu basso): e quello che decide se
    la roccia davanti ha fatto in tempo a muoversi. NON tocca tDet/seq, quindi la
    catena sequenza -> computeMIC() -> vibrazioni resta identica. ===== */
+/* dispersione dell'innesco (stessa formula del badge "Scatter innesco"): due fori
+   separati da meno di cosi sparano di fatto insieme e non si liberano a vicenda */
+function scatterMs(){
+  const Th=D2.ritardo||42, tmx=Math.max(Th, D2.lastDet||Th);
+  return (D2.innesco==='elettronico')?0.1:((D2.innesco==='elettrico')?0.5:((D2.innesco==='cordtex')?0.03*tmx:0.02*tmx));
+}
 function computeRelief2D(){
   const H=D2.holes; if(!H||!H.length) return;
-  const dMax=2.2*Math.max(D2.S||3.5, D2.B||3.0);             // oltre questo raggio il foro non e piu "davanti": non apre spazio
+  const dMax=1.5*Math.max(D2.S||3.5, D2.B||3.0, _spazTipico(H));   // solo i fori ADIACENTI: oltre, la roccia in mezzo e di un altro foro
+  const dtMin=Math.max(1, scatterMs());                      // sotto la dispersione dell'innesco i due fori sono un istante solo
   for(let i=0;i<H.length;i++){
     const h=H[i]; let best=null;
     for(let j=0;j<H.length;j++){
       if(j===i) continue;
       const dt=(h.tDet||0)-(H[j].tDet||0);
-      if(dt<=0.01) continue;                                 // solo fori gia sparati
+      if(dt<dtMin) continue;                                 // solo fori che hanno gia sparato, e non "insieme" a questo
       const d=Math.hypot(H[j].mx-h.mx, H[j].my-h.my);
       if(d<0.05 || d>dMax) continue;
       const r=dt/d;                                          // ms/m disponibili verso QUEL foro
-      if(!best || r<best.r) best={r:r,j:j,d:d,dt:dt};
+      if(!best || r<best.r) best={r:r,j:j,d:d,dt:dt};        // vince il vincolo piu stretto
     }
-    h.relief = best? +best.r.toFixed(2) : null;              // null = primo della sua zona: si libera sulla faccia gia aperta
+    h.relief = best? +best.r.toFixed(2) : null;              // null = nessun vicino ha gia sparato: si libera sulla faccia gia aperta
     h.relFrom = best? best.j : -1;
     h.relD = best? +best.d.toFixed(2) : null;
     h.relDt = best? +best.dt.toFixed(1) : null;
@@ -2961,6 +2968,7 @@ function drawIsocrone2D(ctx,g){
   for(let j=0;j<ny;j++){ const py=y0+j*gs;
     for(let i=0;i<nx;i++){ const px=x0+i*gs;
       const mx=(px-g.startX)/g.scale, my=(py-g.faceY)/g.scale-interpFronte(mx);   // stessa deformazione con cui sono disegnati i fori
+      if(my<-0.25){ val[j*nx+i]=NaN; continue; }             // davanti alla faccia libera non c'e roccia da temporizzare
       const r=_tempoInPunto(mx,my,H,h2);
       val[j*nx+i]=(r.t==null||r.dmin>mask)?NaN:r.t;          // fuori dalla nuvola dei fori non si estrapola
     } }
@@ -2994,19 +3002,30 @@ function drawIsocrone2D(ctx,g){
     ctx.strokeStyle='rgba(8,6,3,.55)'; ctx.lineWidth=3.4; ctx.stroke();   // sottotraccia scura: le curve restano leggibili sulla roccia
     ctx.save(); ctx.strokeStyle=isoColore(L/Math.max(1,T)); ctx.shadowColor=ctx.strokeStyle; ctx.shadowBlur=5; ctx.lineWidth=1.5; ctx.stroke(); ctx.restore();
   });
-  /* etichette: una per curva, sfalsate in verticale per non accavallarsi */
+  /* etichette: una per curva, sfalsate in verticale, mai sopra un foro o sopra un'altra etichetta */
   let nEtich=0;
+  const pos=H.map(h=>[g.startX+h.mx*g.scale, g.faceY+(h.my+interpFronte(h.mx))*g.scale]), messe=[];
   livelli.forEach((L,k)=>{
     if(!segs[k].length) return;
-    const ty=g.padTop+(((k*0.37)%1)*0.78+0.11)*(g.bottomY-g.padTop);
+    const ty=g.padTop+(((k*0.37)%1)*0.74+0.13)*(g.bottomY-g.padTop);
     const tx=g.W/2+(((k%3)-1)*0.17)*(g.W-2*g.padX);
-    let bs=null, bd=Infinity;
-    segs[k].forEach(s=>{ const cx=(s[0]+s[2])/2, cy=(s[1]+s[3])/2, d=(cx-tx)*(cx-tx)+(cy-ty)*(cy-ty); if(d<bd){bd=d;bs=s;} });
+    const cand=segs[k].map(s=>{ const cx=(s[0]+s[2])/2, cy=(s[1]+s[3])/2;
+      return {s:s, cx:cx, cy:cy, d:(cx-tx)*(cx-tx)+(cy-ty)*(cy-ty)}; }).sort((a,b)=>a.d-b.d);
+    let bs=null, bx=0, by=0;
+    for(let q=0;q<cand.length;q++){
+      const c=cand[q];
+      if(c.cx<g.padX+150 && c.cy<g.faceY+30) continue;                                 // non coprire la scritta del FRONTE
+      if(pos.some(p=>Math.abs(p[0]-c.cx)<38 && Math.abs(p[1]-c.cy)<15)) continue;      // non coprire i fori
+      if(messe.some(m=>Math.abs(m[0]-c.cx)<52 && Math.abs(m[1]-c.cy)<19)) continue;    // non coprire un'altra etichetta
+      bs=c.s; bx=c.cx; by=c.cy; break;
+    }
     if(!bs) return;
+    messe.push([bx,by]);
     let ang=Math.atan2(bs[3]-bs[1], bs[2]-bs[0]);
     if(ang>Math.PI/2) ang-=Math.PI; if(ang<-Math.PI/2) ang+=Math.PI;    // testo sempre dritto
+    if(Math.abs(ang)>0.62) ang=0;                                       // curve ripide: etichetta orizzontale, si legge meglio
     const txt=Math.round(L)+' ms', col=isoColore(L/Math.max(1,T));
-    ctx.save(); ctx.translate((bs[0]+bs[2])/2,(bs[1]+bs[3])/2); ctx.rotate(ang);
+    ctx.save(); ctx.translate(bx,by); ctx.rotate(ang);
     ctx.font="700 9.5px 'Barlow',sans-serif"; ctx.textAlign='center'; ctx.textBaseline='middle';
     const w=ctx.measureText(txt).width+11, hh=14;
     ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(-w/2,-hh/2,w,hh,7); else ctx.rect(-w/2,-hh/2,w,hh);
@@ -3122,8 +3141,10 @@ function drawDesign2D(){
   H.forEach((h,i)=>{ const cx=mx2(h.mx), cy=my2(h.my+interpFronte(h.mx)), u=(h.tDet||0)/tMax;
     const rcl=reliefCls(h.relief);
     const col=D2.rel ? RELCOL[rcl] : 'hsl('+(42-u*16)+','+(90-u*26)+'%,'+(60-u*20)+'%)';
-    if(D2.rel && rcl!=='ok' && rcl!=='none'){                // fuori finestra: anello di segnalazione
-      ctx.save(); ctx.setLineDash([3.5,3.5]); ctx.strokeStyle=RELCOL[rcl]; ctx.lineWidth=1.6; ctx.globalAlpha=.9;
+    if(D2.rel && rcl!=='ok' && rcl!=='none'){                // fuori finestra: anello di segnalazione (pieno se molto sotto)
+      ctx.save(); ctx.strokeStyle=RELCOL[rcl];
+      if(rcl==='bad'){ ctx.lineWidth=1.8; ctx.globalAlpha=.95; ctx.shadowColor=RELCOL.bad; ctx.shadowBlur=8; }
+      else { ctx.setLineDash([2.5,3.5]); ctx.lineWidth=1.2; ctx.globalAlpha=.6; }
       ctx.beginPath(); ctx.arc(cx,cy,13.5,0,7); ctx.stroke(); ctx.restore(); }
     if(D2.incl>0){ const off=D2.prof*Math.sin(D2.incl*Math.PI/180)*scale; ctx.strokeStyle='rgba(255,213,121,.5)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx,cy-off); ctx.stroke(); ctx.fillStyle='rgba(255,213,121,.85)'; ctx.beginPath(); ctx.arc(cx,cy-off,2.2,0,7); ctx.fill(); }
     if(i===D2.sel){ ctx.save(); ctx.shadowColor='rgba(255,255,255,.55)'; ctx.shadowBlur=15; ctx.beginPath(); ctx.arc(cx,cy,12,0,7); ctx.fillStyle='rgba(255,255,255,.10)'; ctx.fill(); ctx.restore(); }
@@ -3316,6 +3337,8 @@ function renderScheda2D(){
         +(nLo+nHi>0?'Qui '+(nLo+nHi)+' fori sono fuori finestra: attiva il livello <b>Relief</b> per vedere quali (anello tratteggiato) e su quale lato della maglia stanno. '
                    :'Tutti i fori sono dentro la finestra impostata. ')
         +'Cosa guardare se sono fuori: il ritardo tra i fori e tra le file, la distanza fra i fori interessati e l\'ordine della sequenza. '
+        +'Come si legge: per ogni foro si guardano solo i fori <b>vicini</b> (adiacenti nella maglia) e si tiene il vincolo più stretto; i fori che partono entro la dispersione dell\'innesco ('+fmtMs(scatterMs())+' ms qui) contano come un istante solo, perché sparando insieme non si liberano a vicenda. '
+        +'I due badge Timing inter-foro e Timing inter-fila qui sopra restano la lettura media del progetto (3–7 e 8–15 ms/m); questa riga è la stessa cosa letta foro per foro, quindi può segnalare un singolo foro mentre le medie sono a posto. '
         +'Riferimenti di letteratura: ≈8–14 ms/m tra prima e seconda fila, ≈5 ms/m tra le ultime, regola pratica ~3 ms per piede di burden. '
         +'È una <b>diagnosi</b> del progetto, non un\'istruzione: la scelta dei ritardi resta del responsabile del tiro.'});
   })();
@@ -3332,7 +3355,7 @@ function renderScheda2D(){
     why:_mk.dirTxt+'. Burden effettivo Be '+_mk.Be.toFixed(1)+' m (angolo isocrono '+_mk.theta+'°); spread laterale '+_mk.spreadLat+'.'});
   const _rk=selRoccia(), _rf=rockFactorA(), _A=_rf.A, _RWS0=(selEsplosivo()||{}).rws_pct||100, _RWS=Math.max(8,_RWS0*(1-_penE));
   const _x50=_A*Math.pow(Math.max(0.05,pf),-0.8)*Math.pow(Math.max(1,Q),1/6)*Math.pow(115/_RWS,0.633);
-  const _Th=rit, _tmx=Math.max(_Th,D2.lastDet||_Th), _sd=(D2.innesco==='elettronico')?0.1:((D2.innesco==='elettrico')?0.5:((D2.innesco==='cordtex')?0.03*_tmx:0.02*_tmx)), _Rs=_sd/Math.max(1,_Th);
+  const _Th=rit, _sd=scatterMs(), _Rs=_sd/Math.max(1,_Th);   // scatter: unica formula, condivisa col relief per foro
   rows.push({lab:'Brillabilità (BI/A)',valStr:_A.toFixed(1)+' <span>A · BI '+_rf.BI+'</span>',cls:(_A<=6?'sv-ok':(_A<=10?'sv-warn':'sv-bad')),
     why:'rock factor A=0,06·(RMD+JF+RDI+HF) (Lilly/Cunningham): '+_rk.nome+', UCS '+(D2.ucs||_rk.ucs)+' MPa, E '+(D2.eMod||_rk.eMod)+' GPa, fratturazione '+D2.frat+'. RDI '+_rf.RDI+', HF '+_rf.HF+', JF '+_rf.JF+'. '+(_A<=6?'roccia facile: frammenta bene con PF moderato.':(_A<=10?'brillabilità media: cura PF e timing per evitare oversize.':'roccia dura/massiccia: serve PF alto, Ø piccolo o esplosivo ad alta VOD.'))});
   rows.push({lab:'X50 prevista',valStr:Math.round(_x50)+' <span>cm</span>'+(_penE>0?' <span>↑bagnato</span>':''),cls:'sv-info',

@@ -145,3 +145,73 @@ body.dw {
 
 .dw-muted { color: var(--muted); }
 .dw-accent { color: var(--app-accent); }
+
+/* ============================================================
+   TOKEN COMUNI DELLE APP VERTICALI (consolidamento 28/07)
+   Prima queste righe erano ricopiate identiche dentro ognuna
+   delle sei app. Ora stanno qui una volta sola. Non sono colori
+   d'identità: sono la LUCE e le OMBRE, uguali per tutti, come
+   nel core. La tinta di ogni app resta nel suo :root.
+   ============================================================ */
+:root {
+  /* Stratificazione della luce: riflesso sul bordo alto + ombra propria
+     sul bordo basso. È ciò che dà spessore fisico agli oggetti. */
+  --edge: inset 0 1px 0 rgba(255, 255, 255, .055), inset 0 -1px 0 rgba(0, 0, 0, .28);
+  --edge-hi: inset 0 1px 0 rgba(255, 255, 255, .20);
+  --sh1: 0 1px 5px rgba(0, 0, 0, .20);
+  --sh2: 0 2px 8px rgba(0, 0, 0, .26);
+  --sh3: 0 6px 16px rgba(0, 0, 0, .32);
+  --sh4: 0 10px 24px rgba(0, 0, 0, .38);
+  /* gradiente del "pericolo": identico in tutte le app */
+  --grad-dg: linear-gradient(135deg, #ff9490, #d84f4a);
+
+  /* --- valori di ripiego per i token che ogni app ridichiara con la
+     propria tinta (vedi shared/dw-app-ui.css). Servono solo perché una
+     pagina che dimentica di dichiararli non si rompa. --- */
+  --app-accent-deep: var(--app-accent);
+  --app-support2: var(--app-accent2);
+  --grad-on: var(--bg);
+  --grad-ok: var(--grad-success, linear-gradient(135deg, #96d89a, #5aa85e));
+  --grad-wr: linear-gradient(135deg, #ffc873, #e5972c);
+  --grad-sup: var(--grad);
+  --glow-app: var(--glow-warm);
+  --tint-app: color-mix(in srgb, var(--app-accent) 14%, transparent);
+  --focus-ring: color-mix(in srgb, var(--app-accent2) 34%, transparent);
+  --sel: color-mix(in srgb, var(--app-accent) 30%, transparent);
+  --halo-1: color-mix(in srgb, var(--app-accent) 7%, transparent);
+  --halo-2: color-mix(in srgb, var(--app-accent2) 6%, transparent);
+  --border-hi: var(--border2);
+  --disabled: var(--muted);
+  --top-bg: var(--panel);
+  --nav-bg: var(--panel);
+  --solid: var(--panel);
+  --ov-bg: rgba(0, 0, 0, .86);
+  --glow-logo: color-mix(in srgb, var(--app-accent) 45%, transparent);
+  --glow-ok: rgba(106, 187, 110, .24);
+  --glow-wr: rgba(248, 172, 61, .24);
+  --glow-dg: rgba(240, 95, 90, .24);
+  --danger-pulse: color-mix(in srgb, var(--danger) 55%, #000);
+  --err-bg: color-mix(in srgb, var(--danger) 8%, transparent);
+  --on-ok: #08160a;
+  --on-wr: #231402;
+  --on-dg: #2b0705;
+  --on-info: #04161e;
+  --note-bar: var(--info);
+  --sh-btn: 0 5px 16px color-mix(in srgb, var(--app-accent) 42%, transparent);
+  --sh-btn-hi: 0 8px 22px color-mix(in srgb, var(--app-accent) 55%, transparent);
+  --sh-btn-act: 0 2px 8px color-mix(in srgb, var(--app-accent) 30%, transparent);
+  --sh-chg: 0 2px 10px color-mix(in srgb, var(--app-accent) 35%, transparent);
+  --date-filter-hi: invert(.72);
+  /* misure regolabili per app */
+  --nav-cols: 5;
+  --kpi-cols: 4;
+  --info-basis: 120px;
+  --arr-ico: 15px;
+  --arr-stroke: 1.8;
+  --form-gap: 9px;
+  --form-pad: 13px;
+  --frow-align: center;
+  --ord-gap: 8px;
+  --empty-w: 300px;
+  --empty-tint: 7%;
+}

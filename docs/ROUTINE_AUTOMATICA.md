@@ -1,102 +1,73 @@
 # La routine di lavoro automatico — come funziona e come si ripara
 
-> Scritto per il fondatore, in italiano semplice. Serve a capire se il
-> lavoro automatico sta girando e a rimetterlo in piedi quando si ferma,
-> **senza dover ricostruire ogni volta il ragionamento**.
+> Scritto per il fondatore, in italiano semplice. Serve a capire se il lavoro
+> automatico sta girando e a rimetterlo in piedi quando si ferma.
+
+## 1. Cos'è
+Una sveglia programmata (una "Routine"). Ogni 3 ore, da lunedì a sabato, manda
+un messaggio con tutte le istruzioni a una **sessione di Claude Code già aperta
+che ha il progetto scaricato dentro**. Quella sessione riprende dalla roadmap e
+dall'ultimo checkpoint e lavora finché ha crediti.
+
+Routine attiva oggi: `trig_01VaUGXswecYtsbrJbvormJC`, orario `43 */3 * * 1-6`
+(UTC), agganciata alla sessione `session_01NVNe624qGFRzmj2Jc8FqUt`.
+Il minuto (:43) non lo scegliamo noi: il server lo aggancia al minuto in cui la
+routine viene creata. È normale, non è un errore.
+
+## 2. Perché si era fermata (e cosa resta incerto)
+Il 27-28 luglio la routine era impostata su **"apri una sessione nuova a ogni
+scatto"**. Quelle sessioni non hanno prodotto niente: zero commit, zero
+checkpoint, 22 ore di buco. La spiegazione più probabile è che la sessione nuova
+nasca **senza il progetto collegato** e muoia subito.
+Onestà: nessuno ha letto i log di quelle sessioni, quindi non è dimostrato al
+100%; una seconda spiegazione possibile è il limite di utilizzo del piano. Ciò
+che è **certo** è: le routine agganciate a una sessione viva col progetto hanno
+sempre prodotto lavoro, le altre mai.
+
+## 3. Come capire in dieci secondi se sta lavorando
+Apri **`vault/ULTIMO_CICLO.md`**: la prima riga ha data e ora dell'ultimo ciclo.
+- data di oggi o di ieri → tutto bene;
+- più vecchia di un giorno (lun-sab) → **è ferma**, vai al punto 5.
+Su GitHub lo stesso segnale sono i commit che iniziano con `canarino:`.
+⚠️ In una lista di run, il pallino verde vuol dire solo "la sessione è partita e
+non è esplosa", **non** "il lavoro è stato fatto". Fidati solo del canarino.
+
+## 4. L'avviso automatico
+`.github/workflows/canarino.yml` gira su GitHub due volte al giorno e guarda la
+data del canarino. Se è più vecchia di 6 ore in un giorno lavorativo, apre una
+**issue** sul repository e GitHub ti manda una **email**. Regola da ricordare:
+**«se ricevo un'email da GitHub che dice che la routine è ferma, la riarmo».**
+Questo controllo gira su computer di GitHub: funziona anche se tutte le sessioni
+di Claude sono morte. Non ripara: avvisa.
+
+## 5. Come si ripara (procedura esatta)
+Apri **una sessione qualsiasi su claude.ai/code con il repository
+Mining-Tech-Platform collegato** (è il punto essenziale) e scrivi:
+
+    /riarma-routine
+
+Se la scorciatoia non fosse disponibile, incolla questo testo:
+
+> Riarma la routine di sviluppo automatico. 1) `list_triggers` e `delete_trigger`
+> delle routine di sviluppo che puntano a una sessione morta. 2) `create_trigger`
+> con name "Weekly Dev Session", cron `0 */3 * * 1-6`, `persistent_session_id` =
+> l'ID di QUESTA sessione, e il prompt del ciclo descritto in
+> `.claude/skills/weekly-kickoff/SKILL.md` (canarino come prima azione).
+> 3) `fire_trigger` subito e verifica che entro pochi minuti compaia un commit
+> `canarino:` e che `vault/ULTIMO_CICLO.md` porti la data di oggi.
+
+## 6. Cose da non fare
+- Non creare la routine con "sessione nuova a ogni scatto" finché il test
+  descritto in questo documento non dimostra che funziona.
+- Non tenere due routine di lavoro attive insieme sullo stesso branch: si
+  pestano i piedi. Il "Guardiano" (routine di sorveglianza su una seconda
+  sessione) lavora **solo** se la principale è ferma da più di 4 ore, e prima di
+  partire scrive un file di lock.
+- Non aspettarti notifiche push dalla routine: con la sessione persistente il
+  sistema **non le supporta** (il server rifiuta il parametro). L'unico avviso
+  automatico è l'email di GitHub del punto 4.
+- Non accorciare il prompt della routine: contiene le direttive vincolanti
+  (dati riservati, niente spese, niente push diretto su main).
 
 ---
-
-## 1. Cos'è la routine
-
-È una sveglia programmata. A un orario fisso — oggi **ogni 3 ore, da lunedì
-a sabato** — fa partire da sola una sessione di lavoro che legge la roadmap
-della settimana, riprende dall'ultimo checkpoint e lavora fino a esaurire i
-crediti disponibili.
-
-Non è magia: è un messaggio programmato che arriva a una sessione di Claude
-Code, con dentro tutte le istruzioni (le direttive, i vincoli, il metodo).
-
-## 2. Il guasto del 27–28 luglio — cosa è successo
-
-La routine è stata riarmata scegliendo l'opzione **"apri una sessione nuova
-a ogni scatto"**. Sembra la scelta più pulita: ogni ciclo parte fresco.
-
-In questo ambiente però le sessioni create da zero **nascono senza il
-repository collegato**. Il ciclo si sveglia, cerca il progetto, non lo trova
-e muore subito. Ha fatto esattamente questo il 27 e il 28 luglio alle 18:15.
-
-**La regola da ricordare:** in questo ambiente la routine deve essere
-**agganciata a una sessione che ha già il repository**, non creare sessioni
-nuove. Tecnicamente si chiama `persistent_session_id`.
-
-## 3. Come capire, in dieci secondi, se sta lavorando
-
-Apri il file **`vault/ULTIMO_CICLO.md`** e guarda la data in cima:
-
-- **oggi o ieri** → tutto a posto;
-- **più vecchia di un giorno** (in una settimana lavorativa) → **si è
-  fermata**, vai al punto 4.
-
-In alternativa, su GitHub: guarda se sul branch di lavoro compaiono commit
-nuovi nelle ore notturne. Se la notte è vuota, la routine non ha lavorato.
-
-## 4. Come si ripara
-
-Chiedi a Claude, in una sessione che **ha il repository aperto** (cioè una
-sessione avviata normalmente sul progetto):
-
-> «La routine automatica si è fermata. Riarmala seguendo
-> `docs/ROUTINE_AUTOMATICA.md`.»
-
-Questi sono i passi che verranno eseguiti, elencati qui perché restino
-scritti anche se cambia chi li esegue:
-
-1. **Elencare le routine esistenti** e trovare quella chiamata
-   `Weekly Dev Session`.
-2. **Cancellarla**, se c'è (per non ritrovarsi con due routine che
-   duplicano il lavoro).
-3. **Ricrearla** con:
-   - cadenza `0 */3 * * 1-6` (ogni 3 ore, lunedì–sabato);
-   - **`persistent_session_id` uguale all'id della sessione corrente** —
-     è il punto che fa la differenza fra funzionare e non funzionare;
-   - **mai** l'opzione che crea sessioni nuove a ogni scatto;
-   - il prompt completo con le direttive (obiettivo, regole estetiche,
-     lavoro in parallelo, vincoli invariati).
-4. **Provarla subito** invece di aspettare l'orario: si può far scattare a
-   mano. La prova non è "la routine dice che va bene", ma **compaiono
-   commit nuovi sul branch** entro pochi minuti.
-
-La stessa procedura è già scritta, con i dettagli tecnici, nella skill
-`.claude/skills/weekly-kickoff/SKILL.md`, che viene eseguita a ogni
-kickoff settimanale.
-
-## 5. Il punto debole che resta, detto chiaramente
-
-La routine vive **agganciata a una sessione**. Se quella sessione termina —
-per esempio perché il contenitore viene liberato dopo un lungo periodo di
-inattività — la routine perde il suo aggancio e smette di lavorare.
-
-Non è un difetto di configurazione: è come funziona l'ambiente. Le difese
-messe in campo sono:
-
-- **Il canarino** (`vault/ULTIMO_CICLO.md`): rende l'assenza di lavoro
-  visibile subito, invece di scoprirla dopo giorni.
-- **La procedura qui sopra**: riarmarla costa un minuto, non un'indagine.
-- **Le notifiche push** attive sulla routine: arrivano sul telefono quando
-  un ciclo finisce.
-
-## 6. Cosa NON fare
-
-- **Non creare una seconda routine "di scorta" con lo stesso nome e la
-  stessa cadenza**: due routine attive fanno lavorare due sessioni sugli
-  stessi file, e i lavori si sovrascrivono a vicenda.
-- **Non usare l'opzione delle sessioni nuove** sperando che "stavolta
-  funzioni": è già stata provata due volte, con lo stesso esito.
-- **Non cambiare il prompt della routine per accorciarlo**: contiene le
-  direttive vincolanti (regola dei dati riservati, niente spese, niente
-  push diretto su main). Se si perdono, i cicli automatici perdono le
-  regole.
-
----
-
-*Aggiornato il 28/07/2026, dopo il guasto e la riparazione.*
+*Aggiornato il 28/07/2026 dopo il guasto, la riparazione e le verifiche incrociate.*
