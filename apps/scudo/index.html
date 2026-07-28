@@ -97,12 +97,6 @@
   --ord-gap:8px;
 }
 
-/* ─────────────── fondo e atmosfera ─────────────── */
-
-/* ─────────────── barra alta (copia di .topbar del core) ─────────────── */
-
-/* nastro "modalità tour" — forma .info-box del core */
-
 /* ─────────────── pagine ─────────────── */
 .page.active{animation:scrFade .22s var(--ease)}
 @keyframes scrFade{from{opacity:0} to{opacity:1}}
@@ -158,8 +152,6 @@
 .safety-txt{font-size:13px; color:var(--muted2); line-height:1.5}
 .safety-txt b{color:var(--text)}
 
-/* ─────────────── titolo di sezione (copia di .sec-title) ─────────────── */
-
 /* ─────────────── voci di lista (copia di .sitem) ─────────────── */
 .item{cursor:pointer}
 .item:active{transform:translateX(1px) scale(.995)}
@@ -186,17 +178,11 @@
   color:var(--danger); background:rgba(240,95,90,.14);
 }
 
-/* ─────────────── badge (copia di .scad-badge: raggio 3px, pieno) ─────────────── */
-
 /* badge dentro una riga di testo (idoneità, azioni dell'evento) */
 .badge.inline{vertical-align:middle; margin:0 0 0 2px; font-size:9.5px; padding:2px 7px}
 
-/* ─────────────── campi (copia di .finput) ─────────────── */
-
 /* ─────────────── bottoni (copia di .btn-sv / .btn-sec) ─────────────── */
 .dw-btn.mini{min-height:var(--tap); padding:6px 12px; font-size:11px; letter-spacing:1px}
-
-/* ─────────────── filtri a segmento (copia di .chg) ─────────────── */
 
 /* ─────────────── form come oggetti veri (superficie del core) ─────────────── */
 .form.col{flex-direction:column; align-items:stretch}
@@ -214,8 +200,6 @@
 .note.recap{border-left-color:var(--app-accent)}
 .note.recap b{font-variant-numeric:tabular-nums}
 
-/* ─────────────── stato vuoto (copia di .empty-state) ─────────────── */
-
 /* ─────────────── navigazione: pillola flottante (copia di #global-nav.bnav) ─────────────── */
 .nav{border-top:1px solid var(--border2); padding-bottom:0}
 
@@ -225,15 +209,12 @@
   letter-spacing:2px; text-transform:uppercase; color:var(--muted);
 }
 
-/* ─────────────── toast (copia del core) ─────────────── */
-
-/* ─────────────── desktop ─────────────── */
-
 /* ─────────────── touch: come il core, niente effetti "incollati" ─────────────── */
 
 @media(hover:none),(pointer:coarse){
   .item:active,.kpi:active{transform:scale(.985)}
 }
+
 </style>
 </head>
 <body class="dw">

@@ -100,12 +100,6 @@
   --ord-gap:8px;
 }
 
-/* ─────────────── fondo e atmosfera ─────────────── */
-
-/* ─────────────── barra alta (copia di .topbar del core) ─────────────── */
-
-/* nastro "modalità tour" — forma .info-box del core */
-
 /* ─────────────── pagine ─────────────── */
 .page{display:none}
 .page.active{animation:scrFade .22s var(--ease)}
@@ -169,8 +163,6 @@
 .cassa-txt{font-size:12.5px; color:var(--muted2); line-height:1.5}
 .cassa-txt b{color:var(--text); font-variant-numeric:tabular-nums}
 
-/* ─────────────── titolo di sezione (copia di .sec-title) ─────────────── */
-
 /* ─────────────── voci di lista (copia di .sitem) ─────────────── */
 .item.tap{cursor:pointer}
 .item.tap:active{transform:translateX(1px) scale(.995)}
@@ -231,8 +223,6 @@
   width:11px; height:11px; stroke:currentColor; fill:none; stroke-width:2.2;
   stroke-linecap:round; stroke-linejoin:round;
 }
-
-/* ─────────────── campi (copia di .finput) ─────────────── */
 
 /* i campi che contengono cifre si comportano da colonna contabile */
 input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
@@ -321,10 +311,6 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
   background:linear-gradient(90deg,var(--app-support2),color-mix(in srgb,var(--app-support2) 20%,transparent));
 }
 
-/* ─────────────── stato vuoto (copia di .empty-state) ─────────────── */
-
-/* ─────────────── navigazione: pillola flottante ─────────────── */
-
 /* ─────────────── modale (copia di .modal-* del core) ─────────────── */
 .modal-body .fl{
   display:block; font-family:'Barlow',sans-serif; font-size:11px; font-weight:600;
@@ -345,8 +331,6 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
 }
 .mrec .v.accent{color:var(--app-accent2)}
 
-/* ─────────────── toast (copia del core) ─────────────── */
-
 /* ─────────────── desktop ─────────────── */
 
 @media(min-width:768px){
@@ -363,6 +347,7 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
 @media(hover:none),(pointer:coarse){
   .item.tap:active,.kpi:active{transform:scale(.985)}
 }
+
 </style>
 </head>
 <body class="dw">

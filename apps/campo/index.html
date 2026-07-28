@@ -100,12 +100,6 @@
   --ord-gap:8px 10px;
 }
 
-/* ─────────────── fondo e atmosfera ─────────────── */
-
-/* ─────────────── barra alta (copia di .topbar del core) ─────────────── */
-
-/* nastro "modalità tour" — forma .info-box del core */
-
 /* ─────────────── pagine ─────────────── */
 .page.active{animation:scrFade .22s var(--ease)}
 @keyframes scrFade{from{opacity:0} to{opacity:1}}
@@ -152,6 +146,12 @@
   color:#e8d36a; background:rgba(212,191,62,.14);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 0 14px rgba(212,191,62,.14);
 }
+/* tema chiaro e modalità sole: i due pittogrammi del cartellone erano scelti
+   chiari per stare sul fondo scuro; sul bianco vanno riportati a terra. */
+body.dw.light-mode .board.ok .board-ico,
+body.dw.outdoor-mode .board.ok .board-ico{color:color-mix(in srgb,var(--success) 68%,#000);}
+body.dw.light-mode .board.warn .board-ico,
+body.dw.outdoor-mode .board.warn .board-ico{color:color-mix(in srgb,var(--warn) 58%,#000);}
 .board-num{
   font-family:'Barlow Condensed',sans-serif; font-size:38px; font-weight:800;
   line-height:.95; font-variant-numeric:tabular-nums; background:var(--grad-num);
@@ -214,14 +214,8 @@ button.arr.del:hover{
 /* ─────────────── badge (copia di .scad-badge: raggio 3px, pieno) ─────────────── */
 .badge.inline{vertical-align:middle; margin:0 0 0 2px; font-size:9.5px; padding:2px 7px}
 
-/* 7,92 */
-
 /* 9,02 */
 .badge.danger{animation:badgePulse 2.6s ease-in-out infinite}
-
-/* 5,66 */
-
-/* 7,25 */
 
 /* 5,20 */
 .badge svg{
@@ -233,8 +227,6 @@ button.arr.del:hover{
    e la pulsazione — mai il solo colore (accento ed errore distano 20°). */
 @keyframes badgePulse{0%,100%{box-shadow:0 1px 3px rgba(0,0,0,.35),var(--edge-hi)} 50%{box-shadow:0 1px 3px rgba(0,0,0,.35),0 0 0 3px rgba(239,93,102,.22),var(--edge-hi)}}
 .badge.tag{animation:none}
-
-/* ─────────────── campi (copia di .finput) ─────────────── */
 
 /* campo di ricerca con la lente disegnata, non un'emoji nel placeholder */
 .search{position:relative}
@@ -252,8 +244,6 @@ button.arr.del:hover{
   stroke-linecap:round; stroke-linejoin:round;
 }
 .dw-btn.mini{min-height:var(--tap); padding:6px 12px; font-size:11px; letter-spacing:1px}
-
-/* ─────────────── filtri a segmento (copia di .chg) ─────────────── */
 
 /* ─────────────── form come oggetti veri (superficie del core) ─────────────── */
 .form.col{flex-direction:column; align-items:stretch}
@@ -326,8 +316,6 @@ button.arr.del:hover{
 }
 .fermo .dw-input.min{flex:0 0 96px}
 
-/* ─────────────── stato vuoto (copia di .empty-state) ─────────────── */
-
 /* ─────────────── navigazione: pillola flottante (copia di #global-nav.bnav) ─────────────── */
 .nav{border-top:1px solid var(--border2); padding-bottom:0}
 
@@ -356,6 +344,7 @@ button.arr.del:hover{
 @media(hover:none),(pointer:coarse){
   .item:active,.kpi:active{transform:scale(.985)}
 }
+
 </style>
 </head>
 <body class="dw">

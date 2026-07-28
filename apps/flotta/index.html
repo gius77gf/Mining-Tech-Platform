@@ -100,12 +100,6 @@
   --ord-gap:8px;
 }
 
-/* ─────────────── fondo e atmosfera ─────────────── */
-
-/* ─────────────── barra alta (copia di .topbar del core) ─────────────── */
-
-/* nastro "modalità tour" — forma .info-box del core */
-
 /* ─────────────── pagine ─────────────── */
 .page.active{animation:flFade .22s var(--ease)}
 @keyframes flFade{from{opacity:0} to{opacity:1}}
@@ -189,8 +183,6 @@
   background:var(--grad-dg); box-shadow:0 0 10px rgba(240,94,92,.45);
 }
 
-/* ─────────────── titolo di sezione (copia di .sec-title) ─────────────── */
-
 /* ─────────────── voci di lista (copia di .sitem) ─────────────── */
 .item{cursor:pointer}
 .item:active{transform:translateX(1px) scale(.995)}
@@ -227,8 +219,6 @@
 /* ─────────────── badge (copia di .scad-badge: raggio 3px, pieno) ─────────────── */
 .badge.euro{font-variant-numeric:tabular-nums; letter-spacing:.5px}
 
-/* ─────────────── campi (copia di .finput) ─────────────── */
-
 /* campo di ricerca con la lente disegnata dentro (niente emoji) */
 .search{position:relative}
 .search .dw-input{padding-left:40px}
@@ -245,8 +235,6 @@
   width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.9;
   stroke-linecap:round; stroke-linejoin:round; flex-shrink:0;
 }
-
-/* ─────────────── filtri a segmento (copia di .chg) ─────────────── */
 
 /* ─────────────── form come oggetti veri (superficie del core) ─────────────── */
 .form.col{flex-direction:column; align-items:stretch}
@@ -269,8 +257,6 @@
 .note .rosso{color:var(--danger); font-weight:600}
 .note .giallo{color:var(--warn); font-weight:600}
 
-/* ─────────────── stato vuoto (copia di .empty-state) ─────────────── */
-
 /* ─────────────── navigazione: pillola flottante (copia di #global-nav.bnav) ─────────────── */
 .nav{border-top:1px solid var(--border2); padding-bottom:0}
 
@@ -281,10 +267,6 @@
 }
 .modal-body .dw-input{margin-bottom:2px}
 
-/* ─────────────── toast (copia del core) ─────────────── */
-
-/* ─────────────── desktop ─────────────── */
-
 /* ─────────────── touch: come il core, niente effetti "incollati" ─────────────── */
 
 @media(hover:none),(pointer:coarse){
@@ -292,6 +274,7 @@
   /* col dito serve il bersaglio pieno: le icone d'azione salgono a 44px */
   .arr{min-width:var(--tap); min-height:var(--tap)}
 }
+
 </style>
 </head>
 <body class="dw">

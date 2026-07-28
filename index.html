@@ -805,7 +805,10 @@ function aggiornaNotifBadge(){
 }
 
 // ── TEMA (v4.4: SOLO 2 modalità — Dark / Light. outdoor legacy assorbito in light) ──
-function applyTheme(){ const light=(DB.settings.theme==='light'||!!DB.settings.outdoor); document.body.classList.remove('outdoor-mode'); document.body.classList.toggle('light-mode',light); const b=$('btn-outdoor'); if(b)b.classList.toggle('active',light); }
+function applyTheme(){ const light=(DB.settings.theme==='light'||!!DB.settings.outdoor); document.body.classList.remove('outdoor-mode'); document.body.classList.toggle('light-mode',light); const b=$('btn-outdoor'); if(b)b.classList.toggle('active',light);
+  /* la scelta vale per tutto l'ecosistema: le app verticali la rileggono da qui
+     (shared/dw-tema.js), così chi accende il chiaro in cava non torna al buio */
+  try{ localStorage.setItem('dw-tema', light?'chiaro':'scuro'); }catch(e){} }
 function applyOutdoor(){ applyTheme(); }
 async function toggleOutdoor(){
   const light=(DB.settings.theme==='light'||!!DB.settings.outdoor);

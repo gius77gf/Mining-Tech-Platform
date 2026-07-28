@@ -99,12 +99,6 @@
   --ord-gap:8px;
 }
 
-/* ─────────────── fondo e atmosfera ─────────────── */
-
-/* ─────────────── barra alta (copia di .topbar del core) ─────────────── */
-
-/* nastro "modalità tour" — forma .info-box del core */
-
 /* ─────────────── pagine ─────────────── */
 .page.active{animation:scrFade .22s var(--ease)}
 @keyframes scrFade{from{opacity:0} to{opacity:1}}
@@ -167,8 +161,6 @@
 .safety-txt{font-size:13px; color:var(--muted2); line-height:1.5}
 .safety-txt b{color:var(--text)}
 
-/* ─────────────── titolo di sezione (copia di .sec-title) ─────────────── */
-
 /* ─────────────── voci di lista (copia di .sitem) ─────────────── */
 .item:active{transform:translateX(1px) scale(.995)}
 .item.cliccabile{cursor:pointer}
@@ -211,12 +203,8 @@
 /* ─────────────── badge (copia di .scad-badge: raggio 3px, pieno) ─────────────── */
 .badge.inline{vertical-align:middle; margin:0 0 0 2px; font-size:9.5px; padding:2px 7px}
 
-/* ─────────────── campi (copia di .finput) ─────────────── */
-
 /* ─────────────── bottoni (copia di .btn-sv / .btn-sec) ─────────────── */
 .dw-btn.mini{min-height:var(--tap); padding:6px 12px; font-size:11px; letter-spacing:1px}
-
-/* ─────────────── filtri a segmento (copia di .chg) ─────────────── */
 
 /* ─────────────── form come oggetti veri (superficie del core) ─────────────── */
 .form.col{flex-direction:column; align-items:stretch}
@@ -348,8 +336,6 @@
   letter-spacing:2px; text-transform:uppercase; color:var(--muted);
 }
 
-/* ─────────────── toast (copia del core) ─────────────── */
-
 /* ─────────────── desktop ─────────────── */
 
 @media(max-width:360px){
@@ -363,6 +349,7 @@
   .item.aperto:hover{background:var(--card2)}
   .item:active,.kpi:active{transform:scale(.985)}
 }
+
 </style>
 </head>
 <body class="dw">
