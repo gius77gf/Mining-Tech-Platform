@@ -304,6 +304,8 @@ body.scr-sim #tl{bottom:80px}
 .dl-tog i{width:9px;height:9px;border-radius:50%;background:currentColor;opacity:.5;box-shadow:0 0 8px currentColor;transition:.15s}
 .dl-tog.on{background:linear-gradient(135deg,#ffc12e,#ff8c1d);border-color:rgba(255,196,120,.5);color:#3a1e00;box-shadow:0 4px 12px rgba(255,150,30,.3),0 1px 0 rgba(255,245,220,.35) inset}
 .dl-tog.on i{opacity:1}
+#dlIso i{background:#7ec9e8;box-shadow:0 0 8px rgba(126,201,232,.75)}
+#dlRel i{width:22px;height:8px;border-radius:999px;background:linear-gradient(90deg,#ef5350,#ffb300 34%,#66bb6a 68%,#86b0d8);box-shadow:0 0 8px rgba(255,255,255,.18)}
 .dl-f{display:none;align-items:center;gap:6px;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:11px;padding:4px 9px;min-height:38px}
 .dl-f.on{display:flex}
 .dl-f>span{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);white-space:nowrap}
@@ -2724,9 +2726,9 @@ $('d2-cta').onclick=simulaVolata2D;
 /* piano di carico per foro → CSV per il registro reale in Campo (ponte tra le app) */
 $('btn-piano-csv').onclick=()=>{
   if(!D2.holes.length) genMaglia2D();
-  let csv='foro;x_m;fila_m;prof_m;carica_prog_kg;borraggio_prog_m;ritardo_ms\n';
+  let csv='foro;x_m;fila_m;prof_m;carica_prog_kg;borraggio_prog_m;ritardo_ms;relief_ms_per_m\n';
   D2.holes.slice().sort((a,b)=>a.tDet-b.tDet).forEach((h,i)=>{
-    csv+=(i+1)+';'+h.mx.toFixed(2)+';'+h.my.toFixed(2)+';'+D2.prof+';'+D2.kg+';'+D2.stem+';'+(h.tDet!=null?h.tDet:'')+'\n';
+    csv+=(i+1)+';'+h.mx.toFixed(2)+';'+h.my.toFixed(2)+';'+D2.prof+';'+D2.kg+';'+D2.stem+';'+(h.tDet!=null?h.tDet:'')+';'+(h.relief!=null?h.relief.toFixed(2):'')+'\n';
   });
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
@@ -2861,6 +2863,173 @@ function computeSeq2D(){
   });
   H.map((h,i)=>i).sort((a,b)=>H[a].tDet-H[b].tDet).forEach((i,k)=>{ H[i].seq=k; });
   D2.lastDet = Math.max(...H.map(h=>h.tDet));
+  computeRelief2D();                                         // il relief dipende solo dai tDet appena calcolati
+}
+/* ===== G2 — burden relief FORO PER FORO (il ms/m dei badge e una media di progetto:
+   qui diventa un valore del singolo foro, che e dove nascono blocchi, picchi di
+   vibrazione e proiezioni). Per ogni foro: quanti millisecondi passano dal foro che
+   gli ha gia aperto lo spazio, diviso la distanza da quel foro. Fra tutti i vicini
+   gia sparati vince il PIU VINCOLANTE (rapporto piu basso): e quello che decide se
+   la roccia davanti ha fatto in tempo a muoversi. NON tocca tDet/seq, quindi la
+   catena sequenza -> computeMIC() -> vibrazioni resta identica. ===== */
+function computeRelief2D(){
+  const H=D2.holes; if(!H||!H.length) return;
+  const dMax=2.2*Math.max(D2.S||3.5, D2.B||3.0);             // oltre questo raggio il foro non e piu "davanti": non apre spazio
+  for(let i=0;i<H.length;i++){
+    const h=H[i]; let best=null;
+    for(let j=0;j<H.length;j++){
+      if(j===i) continue;
+      const dt=(h.tDet||0)-(H[j].tDet||0);
+      if(dt<=0.01) continue;                                 // solo fori gia sparati
+      const d=Math.hypot(H[j].mx-h.mx, H[j].my-h.my);
+      if(d<0.05 || d>dMax) continue;
+      const r=dt/d;                                          // ms/m disponibili verso QUEL foro
+      if(!best || r<best.r) best={r:r,j:j,d:d,dt:dt};
+    }
+    h.relief = best? +best.r.toFixed(2) : null;              // null = primo della sua zona: si libera sulla faccia gia aperta
+    h.relFrom = best? best.j : -1;
+    h.relD = best? +best.d.toFixed(2) : null;
+    h.relDt = best? +best.dt.toFixed(1) : null;
+  }
+}
+const RELCOL={bad:'#ef5350', warn:'#ffb300', ok:'#66bb6a', hi:'#86b0d8', none:'#9b8a60'};
+const RELSV={bad:'sv-bad', warn:'sv-warn', ok:'sv-ok', hi:'sv-info', none:'sv-info'};
+function reliefCls(r){
+  if(r==null) return 'none';
+  const lo=D2.relLo||5, hi=Math.max((D2.relLo||5)+0.5, D2.relHi||15);
+  if(r<lo*0.6) return 'bad';                                 // molto sotto finestra
+  if(r<lo) return 'warn';                                    // sotto finestra
+  if(r<=hi) return 'ok';                                     // in finestra
+  return 'hi';                                               // relief eccessivo
+}
+function fmtMs(v){ return (Math.round(v*10)/10).toFixed(1).replace('.',','); }
+/* ===== G1 — isocrone dei tempi di sparo sulla pianta =====
+   Il campo dei tempi e ricostruito DAI tDet DEI FORI REALI (nessun dato inventato):
+   in ogni punto si adatta un piano t = a + b·dx + c·dy sui fori vicini, pesati per
+   distanza (minimi quadrati mobili). La sequenza di Genesi e lineare a tratti, quindi
+   il piano la riproduce fedelmente; il termine di regolarizzazione fa reggere anche
+   il caso di una fila sola, dove il piano degenera in una retta. */
+function _spazTipico(H){
+  if(!H||H.length<2) return Math.max(D2.S||3.5, D2.B||3);
+  const dd=[];
+  for(let i=0;i<H.length;i++){ let m=Infinity;
+    for(let j=0;j<H.length;j++){ if(j===i) continue; const d=Math.hypot(H[j].mx-H[i].mx,H[j].my-H[i].my); if(d<m)m=d; }
+    if(isFinite(m)) dd.push(m); }
+  dd.sort((a,b)=>a-b);
+  return dd.length? dd[Math.floor(dd.length/2)] : Math.max(D2.S||3.5, D2.B||3);
+}
+function _tempoInPunto(px,py,H,h2){
+  let W=0,Sx=0,Sy=0,Sxx=0,Sxy=0,Syy=0,St=0,Stx=0,Sty=0,dmin=Infinity;
+  for(let i=0;i<H.length;i++){
+    const dx=H[i].mx-px, dy=H[i].my-py, d2=dx*dx+dy*dy;
+    if(d2<dmin) dmin=d2;
+    if(d2>9*h2) continue;                                    // peso trascurabile: si salta
+    const w=Math.exp(-d2/h2), t=H[i].tDet||0;
+    W+=w; Sx+=w*dx; Sy+=w*dy; Sxx+=w*dx*dx; Sxy+=w*dx*dy; Syy+=w*dy*dy;
+    St+=w*t; Stx+=w*dx*t; Sty+=w*dy*t;
+  }
+  const dm=Math.sqrt(dmin);
+  if(W<=0) return {t:null, dmin:dm};
+  const lam=1e-3*W*h2;                                       // regolarizzazione su b,c: regge i fori allineati
+  const a11=W,a12=Sx,a13=Sy, a22=Sxx+lam,a23=Sxy, a33=Syy+lam;
+  const det=a11*(a22*a33-a23*a23) - a12*(a12*a33-a23*a13) + a13*(a12*a23-a22*a13);
+  if(!isFinite(det) || Math.abs(det)<1e-12) return {t:St/W, dmin:dm};
+  const d0=St*(a22*a33-a23*a23) - a12*(Stx*a33-a23*Sty) + a13*(Stx*a23-a22*Sty);
+  const t=d0/det;
+  return {t:isFinite(t)?t:St/W, dmin:dm};
+}
+const ISO_PASSI=[1,2,5,10,20,25,50,100,200,250,500,1000];
+function isoPasso(){
+  if(D2.isoStep>0) return D2.isoStep;
+  const T=Math.max(1,D2.lastDet||0);
+  for(let i=0;i<ISO_PASSI.length;i++) if(T/ISO_PASSI[i]<=10) return ISO_PASSI[i];   // ~6-10 curve: leggibili senza affollare
+  return ISO_PASSI[ISO_PASSI.length-1];
+}
+function isoColore(u){ return 'hsl('+(188+u*26).toFixed(0)+','+(62-u*10).toFixed(0)+'%,'+(72-u*14).toFixed(0)+'%)'; }
+function drawIsocrone2D(ctx,g){
+  const H=D2.holes; if(!H||H.length<2) return null;
+  const T=D2.lastDet||0; if(T<0.5) return null;              // volata praticamente istantanea: non c'e nulla da separare
+  const passo=isoPasso(), livelli=[];
+  for(let L=passo; L<T-1e-6; L+=passo) livelli.push(+L.toFixed(3));
+  if(!livelli.length) return {passo:passo, n:0};
+  const sp=_spazTipico(H), h2=Math.pow(1.15*sp,2), mask=Math.max(1.15*sp, (D2.B||3)*0.9);
+  const gs=8;                                                // passo di campionamento in pixel (le curve restano dritte dove il campo e lineare)
+  const x0=Math.max(2,g.padX-30), x1=Math.min(g.W-2,g.W-g.padX+30);
+  const y0=Math.max(2,g.padTop-16), y1=Math.min(g.Hc-2,g.bottomY+16);
+  const nx=Math.max(2,Math.floor((x1-x0)/gs)+1), ny=Math.max(2,Math.floor((y1-y0)/gs)+1);
+  const val=new Float32Array(nx*ny);
+  for(let j=0;j<ny;j++){ const py=y0+j*gs;
+    for(let i=0;i<nx;i++){ const px=x0+i*gs;
+      const mx=(px-g.startX)/g.scale, my=(py-g.faceY)/g.scale-interpFronte(mx);   // stessa deformazione con cui sono disegnati i fori
+      const r=_tempoInPunto(mx,my,H,h2);
+      val[j*nx+i]=(r.t==null||r.dmin>mask)?NaN:r.t;          // fuori dalla nuvola dei fori non si estrapola
+    } }
+  const segs=livelli.map(()=>[]);
+  const ip=(xa,ya,xb,yb,va,vb,L)=>{ const t=(L-va)/((vb-va)||1e-9); return [xa+(xb-xa)*t, ya+(yb-ya)*t]; };
+  for(let j=0;j<ny-1;j++) for(let i=0;i<nx-1;i++){
+    const v00=val[j*nx+i], v10=val[j*nx+i+1], v11=val[(j+1)*nx+i+1], v01=val[(j+1)*nx+i];
+    if(isNaN(v00)||isNaN(v10)||isNaN(v11)||isNaN(v01)) continue;
+    const xa=x0+i*gs, ya=y0+j*gs, xb=xa+gs, yb=ya+gs;
+    const mn=Math.min(v00,v10,v11,v01), mx4=Math.max(v00,v10,v11,v01);
+    for(let k=0;k<livelli.length;k++){
+      const L=livelli[k]+1e-4;                               // scarto minimo: evita i casi degeneri sui vertici
+      if(L<mn||L>mx4) continue;
+      const P=[];
+      if((v00<L)!==(v10<L)) P.push(ip(xa,ya,xb,ya,v00,v10,L));
+      if((v10<L)!==(v11<L)) P.push(ip(xb,ya,xb,yb,v10,v11,L));
+      if((v11<L)!==(v01<L)) P.push(ip(xb,yb,xa,yb,v11,v01,L));
+      if((v01<L)!==(v00<L)) P.push(ip(xa,yb,xa,ya,v01,v00,L));
+      if(P.length===2) segs[k].push([P[0][0],P[0][1],P[1][0],P[1][1]]);
+      else if(P.length===4){                                 // sella: si collega secondo il valore al centro della cella
+        const c=(v00+v10+v11+v01)/4;
+        if((c<L)===(v00<L)){ segs[k].push([P[0][0],P[0][1],P[1][0],P[1][1]]); segs[k].push([P[2][0],P[2][1],P[3][0],P[3][1]]); }
+        else { segs[k].push([P[0][0],P[0][1],P[3][0],P[3][1]]); segs[k].push([P[1][0],P[1][1],P[2][0],P[2][1]]); }
+      }
+    }
+  }
+  ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round';
+  livelli.forEach((L,k)=>{
+    if(!segs[k].length) return;
+    ctx.beginPath(); segs[k].forEach(s=>{ ctx.moveTo(s[0],s[1]); ctx.lineTo(s[2],s[3]); });
+    ctx.strokeStyle='rgba(8,6,3,.55)'; ctx.lineWidth=3.4; ctx.stroke();   // sottotraccia scura: le curve restano leggibili sulla roccia
+    ctx.save(); ctx.strokeStyle=isoColore(L/Math.max(1,T)); ctx.shadowColor=ctx.strokeStyle; ctx.shadowBlur=5; ctx.lineWidth=1.5; ctx.stroke(); ctx.restore();
+  });
+  /* etichette: una per curva, sfalsate in verticale per non accavallarsi */
+  let nEtich=0;
+  livelli.forEach((L,k)=>{
+    if(!segs[k].length) return;
+    const ty=g.padTop+(((k*0.37)%1)*0.78+0.11)*(g.bottomY-g.padTop);
+    const tx=g.W/2+(((k%3)-1)*0.17)*(g.W-2*g.padX);
+    let bs=null, bd=Infinity;
+    segs[k].forEach(s=>{ const cx=(s[0]+s[2])/2, cy=(s[1]+s[3])/2, d=(cx-tx)*(cx-tx)+(cy-ty)*(cy-ty); if(d<bd){bd=d;bs=s;} });
+    if(!bs) return;
+    let ang=Math.atan2(bs[3]-bs[1], bs[2]-bs[0]);
+    if(ang>Math.PI/2) ang-=Math.PI; if(ang<-Math.PI/2) ang+=Math.PI;    // testo sempre dritto
+    const txt=Math.round(L)+' ms', col=isoColore(L/Math.max(1,T));
+    ctx.save(); ctx.translate((bs[0]+bs[2])/2,(bs[1]+bs[3])/2); ctx.rotate(ang);
+    ctx.font="700 9.5px 'Barlow',sans-serif"; ctx.textAlign='center'; ctx.textBaseline='middle';
+    const w=ctx.measureText(txt).width+11, hh=14;
+    ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(-w/2,-hh/2,w,hh,7); else ctx.rect(-w/2,-hh/2,w,hh);
+    ctx.fillStyle='rgba(13,10,6,.9)'; ctx.fill(); ctx.strokeStyle=col; ctx.lineWidth=1; ctx.stroke();
+    ctx.fillStyle=col; ctx.fillText(txt,0,0.5); ctx.restore(); nEtich++;
+  });
+  ctx.restore();
+  return {passo:passo, n:nEtich};
+}
+/* legenda della mappa del relief, disegnata sulla pianta (resta anche negli screenshot) */
+function drawReliefLegenda(ctx,g){
+  const lo=D2.relLo||5, hi=Math.max(lo+0.5,D2.relHi||15);
+  const voci=[['bad','< '+fmtMs(lo*0.6)],['warn',fmtMs(lo*0.6)+'–'+fmtMs(lo)],['ok',fmtMs(lo)+'–'+fmtMs(hi)+' in finestra'],['hi','> '+fmtMs(hi)],['none','faccia libera']];
+  const y=g.Hc-32;
+  ctx.save(); ctx.textBaseline='middle'; ctx.textAlign='left';
+  ctx.font="600 10px 'Barlow Condensed',sans-serif"; ctx.fillStyle='#b8a574';
+  let x=g.padX-18; ctx.fillText('RELIEF ms/m', x, y); x+=ctx.measureText('RELIEF ms/m').width+12;
+  ctx.font="10px 'Barlow',sans-serif";
+  voci.forEach(v=>{
+    ctx.beginPath(); ctx.arc(x+4,y,4,0,7); ctx.fillStyle=RELCOL[v[0]]; ctx.shadowColor=RELCOL[v[0]]; ctx.shadowBlur=6; ctx.fill(); ctx.shadowBlur=0;
+    ctx.fillStyle='#9b8a60'; ctx.fillText(v[1], x+12, y); x+=ctx.measureText(v[1]).width+24;
+  });
+  ctx.restore();
 }
 /* forma muckpile per sequenza (5 correzioni verifica: angolo isocrono corretto tanθ=(B·tHole)/(S·tRow),
    range tRow coerenti, balistica con quota h0=H/2, spread laterale V-cut separato, v0 ancorata a heave non a √PF grezzo) */
@@ -2945,9 +3114,17 @@ function drawDesign2D(){
     ctx.fillStyle=dimC; ctx.textAlign='center'; ctx.font="11px 'Barlow',sans-serif"; ctx.fillText('S '+D2.S.toFixed(1)+' m',(a+b)/2,yy-4); }
   if(fr.length){ const fx=mx2(fr[0].mx)-20; ctx.strokeStyle=dimC; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(fx,faceY); ctx.lineTo(fx,my2(D2.B)); ctx.stroke();
     ctx.save(); ctx.translate(fx-6,(faceY+my2(D2.B))/2); ctx.rotate(-Math.PI/2); ctx.fillStyle=dimC; ctx.textAlign='center'; ctx.font="11px 'Barlow',sans-serif"; ctx.fillText('B '+D2.B.toFixed(1)+' m',0,0); ctx.restore(); }
+  /* livelli di lettura (G1/G2): isocrone sotto i fori, cosi i fori restano sempre in primo piano */
+  const gGeo={W:W, Hc:Hc, padX:padX, padTop:padTop, bottomY:bottomY, scale:scale, startX:startX, faceY:faceY};
+  let isoInfo=null;
+  if(D2.iso) isoInfo=drawIsocrone2D(ctx,gGeo);
   const tMax=Math.max(1,D2.lastDet||1);
   H.forEach((h,i)=>{ const cx=mx2(h.mx), cy=my2(h.my+interpFronte(h.mx)), u=(h.tDet||0)/tMax;
-    const col='hsl('+(42-u*16)+','+(90-u*26)+'%,'+(60-u*20)+'%)';
+    const rcl=reliefCls(h.relief);
+    const col=D2.rel ? RELCOL[rcl] : 'hsl('+(42-u*16)+','+(90-u*26)+'%,'+(60-u*20)+'%)';
+    if(D2.rel && rcl!=='ok' && rcl!=='none'){                // fuori finestra: anello di segnalazione
+      ctx.save(); ctx.setLineDash([3.5,3.5]); ctx.strokeStyle=RELCOL[rcl]; ctx.lineWidth=1.6; ctx.globalAlpha=.9;
+      ctx.beginPath(); ctx.arc(cx,cy,13.5,0,7); ctx.stroke(); ctx.restore(); }
     if(D2.incl>0){ const off=D2.prof*Math.sin(D2.incl*Math.PI/180)*scale; ctx.strokeStyle='rgba(255,213,121,.5)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx,cy-off); ctx.stroke(); ctx.fillStyle='rgba(255,213,121,.85)'; ctx.beginPath(); ctx.arc(cx,cy-off,2.2,0,7); ctx.fill(); }
     if(i===D2.sel){ ctx.save(); ctx.shadowColor='rgba(255,255,255,.55)'; ctx.shadowBlur=15; ctx.beginPath(); ctx.arc(cx,cy,12,0,7); ctx.fillStyle='rgba(255,255,255,.10)'; ctx.fill(); ctx.restore(); }
     ctx.save(); ctx.shadowColor='rgba(255,150,30,.5)'; ctx.shadowBlur=9; ctx.beginPath(); ctx.arc(cx,cy,9,0,7); ctx.fillStyle=col; ctx.fill(); ctx.restore();
@@ -2960,6 +3137,9 @@ function drawDesign2D(){
   ctx.fillStyle='#8fcf92'; ctx.textAlign=sign>0?'left':'right'; ctx.font="11px 'Barlow',sans-serif"; ctx.fillText('sequenza di sparo', sign>0?padX:W-padX, 52);
   ctx.fillStyle='#f0e8d8'; ctx.textAlign='right'; ctx.font="600 12px 'Barlow Condensed',sans-serif";
   ctx.fillText(H.length+' fori · '+D2.file+(D2.file>1?' file':' fila')+' · '+(selInnesco()?selInnesco().short:'Nonel')+' '+D2.ritardo+' ms', W-padX, 30);
+  if(isoInfo){ ctx.fillStyle=isoColore(.35); ctx.textAlign='right'; ctx.font="600 11px 'Barlow Condensed',sans-serif";
+    ctx.fillText('isocrone ogni '+isoInfo.passo+' ms · ultimo foro a '+Math.round(D2.lastDet||0)+' ms', W-padX, 48); }
+  if(D2.rel) drawReliefLegenda(ctx,gGeo);
   if(D2.tool==='fronte'||D2.tool==='piede'){ const arr=activeProf(); arr.forEach((p,k)=>{ const X=mx2(p.x), Y=my2(p.y); ctx.beginPath(); ctx.arc(X,Y,7,0,7); ctx.fillStyle=(k===D2.selPt)?'#fff':(D2.tool==='piede'?'#ffe27a':'#ffd54f'); ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#ff6d00'; ctx.stroke(); }); }
   ctx.fillStyle='#7a6a44'; ctx.textAlign='center'; ctx.font="10px 'Barlow',sans-serif";
   ctx.fillText(D2.tool==='fori'?'trascina un foro · clic sul vuoto per aggiungerne':('tocca per aggiungere un punto · trascina per modellare il '+(D2.tool==='piede'?'piede':'fronte')), W/2, Hc-12);
@@ -2987,7 +3167,14 @@ function renderInspector(){
   const h=D2.holes[D2.sel]; let nn=Infinity;
   for(let i=0;i<D2.holes.length;i++){ if(i===D2.sel) continue; const o=D2.holes[i]; const d=Math.hypot(o.mx-h.mx,o.my-h.my); if(d<nn) nn=d; }
   el.style.display='flex';
-  el.innerHTML='<div class="di-info"><b>Foro '+((h.seq!=null?h.seq:D2.sel)+1)+'</b><span>spalla '+h.my.toFixed(1)+' m · vicino '+(isFinite(nn)?nn.toFixed(1):'-')+' m · t '+(h.tDet||0)+' ms</span></div><button class="di-del" id="diDel">✕ Elimina</button>';
+  /* G2 — il relief del singolo foro in chiaro nella sua scheda */
+  const rcl=reliefCls(h.relief), from=(h.relFrom>=0 && D2.holes[h.relFrom])?((D2.holes[h.relFrom].seq||0)+1):null;
+  const relTx = (h.relief==null)
+    ? '<span style="color:'+RELCOL.none+'">relief — primo della sua zona: spara sulla faccia gia libera</span>'
+    : '<b style="color:'+RELCOL[rcl]+';margin-right:6px">'+fmtMs(h.relief)+' ms/m</b><span>relief'+(from?' dal foro '+from:'')+' · '+fmtMs(h.relDt)+' ms su '+fmtMs(h.relD)+' m'
+      +(rcl==='ok'?' · in finestra':(rcl==='hi'?' · sopra finestra':' · sotto finestra'))+'</span>';
+  el.innerHTML='<div class="di-info"><b>Foro '+((h.seq!=null?h.seq:D2.sel)+1)+'</b><span>spalla '+h.my.toFixed(1)+' m · vicino '+(isFinite(nn)?nn.toFixed(1):'-')+' m · t '+(h.tDet||0)+' ms</span>'
+    +'<div style="margin-top:4px;display:flex;align-items:baseline;flex-wrap:wrap;gap:2px">'+relTx+'</div></div><button class="di-del" id="diDel">✕ Elimina</button>';
   const db=$('diDel'); if(db) db.onclick=()=>{ if(D2.sel<0) return; D2.holes.splice(D2.sel,1); D2.sel=-1; computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); };
 }
 (function(){ const cv=$('d2-canvas'); if(cv){ cv.addEventListener('pointerdown',d2Down); cv.addEventListener('pointermove',d2Move); window.addEventListener('pointerup',d2Up); } })();
@@ -3112,6 +3299,26 @@ function renderScheda2D(){
     'ritardo/spalla tra file 8–15 ms/m: buono spostamento del cumulo.',
     'ritardo basso tra file: la fila dietro spara nel burden ancora fermo → confinamento/backbreak.',
     'ritardo alto tra file: relief eccessivo → blocchi e cumulo troppo disteso.'));
+  /* G2 — relief foro per foro: sintesi della mappa (la media sopra non dice DOVE) */
+  (function(){
+    const HH=D2.holes||[], rr=HH.map(h=>h.relief).filter(v=>v!=null);
+    const lo=D2.relLo||5, hi=Math.max(lo+0.5,D2.relHi||15);
+    if(!rr.length){ rows.push({lab:'Relief per foro',valStr:'—',cls:'sv-info',
+      why:'con un foro solo (o con tutti i fori sullo stesso istante) non c\'è un foro che ne libera un altro: il relief non è definito.'}); return; }
+    const nLo=rr.filter(v=>v<lo).length, nHi=rr.filter(v=>v>hi).length, nBad=rr.filter(v=>v<lo*0.6).length;
+    const mn=Math.min(...rr), mx=Math.max(...rr);
+    const cls=nBad>0?'sv-bad':(nLo>0?'sv-warn':(nHi>0?'sv-warn':'sv-ok'));
+    rows.push({lab:'Relief per foro',valStr:fmtMs(mn)+'–'+fmtMs(mx)+' <span>ms/m · '+nLo+' sotto / '+nHi+' sopra</span>',cls:cls,
+      why:'ogni foro ha bisogno di spazio libero davanti per lavorare: il relief dice quanti millisecondi passano da quando spara il foro che gli apre lo spazio, per ogni metro che li separa (ms/m). '
+        +'Su questa volata va da '+fmtMs(mn)+' a '+fmtMs(mx)+' ms/m; la finestra impostata è '+fmtMs(lo)+'–'+fmtMs(hi)+' ms/m (modificabile sopra la pianta, accanto al pulsante Relief). '
+        +'<b>Sotto la finestra</b>: il foro spara quando la roccia davanti non si è ancora mossa → resta confinato, e da lì nascono blocchi, picchi di vibrazione e proiezioni. '
+        +'<b>Sopra la finestra</b>: passa troppo tempo, la roccia davanti è già andata via e il foro lavora quasi da solo → frammentazione più grossa e cumulo sparpagliato. '
+        +(nLo+nHi>0?'Qui '+(nLo+nHi)+' fori sono fuori finestra: attiva il livello <b>Relief</b> per vedere quali (anello tratteggiato) e su quale lato della maglia stanno. '
+                   :'Tutti i fori sono dentro la finestra impostata. ')
+        +'Cosa guardare se sono fuori: il ritardo tra i fori e tra le file, la distanza fra i fori interessati e l\'ordine della sequenza. '
+        +'Riferimenti di letteratura: ≈8–14 ms/m tra prima e seconda fila, ≈5 ms/m tra le ultime, regola pratica ~3 ms per piede di burden. '
+        +'È una <b>diagnosi</b> del progetto, non un\'istruzione: la scelta dei ritardi resta del responsabile del tiro.'});
+  })();
   rows.push(badge(subB,'Sottoperforazione',sub.toFixed(1)+' m ('+subB.toFixed(2)+'·B)',0.2,0.4,0.1,0.55,
     'sottoperf. nel range 0,2–0,4·B (~'+subRec.toFixed(1)+' m, 8–12·Ø): piede pulito.',
     'sottoperf. scarsa → rischio toe/zoccoli e blocchi al piede; consigliata ~'+subRec.toFixed(1)+' m.',
@@ -3319,6 +3526,24 @@ function simulaVolata2D(){
   rebuild(); setScreen('sim');
 }
 ['dB','dS','dD','dN','dFile','dH','dKg','dIncl','dStem','dSub','dRit','dRitFila','dEspl','dInnSel','dRoccia','dUcs','dEmod','dFrat','dBagnato','dAcquaCol','dPresplit','dPsSpacing','dPsCharge','dSeq','dRecDist','dRecNorma','dRecFreq','dCPerf','dCExpl','dCInn','dValMat','dDecks','dDeckStem'].forEach(id=>{ const el=$(id); if(el) el.addEventListener('change', applyDesign); });
+/* livelli di lettura della pianta: isocrone dei tempi (G1) e mappa del relief (G2) */
+function syncLayerUI(){
+  if($('dlIso')) $('dlIso').classList.toggle('on', !!D2.iso);
+  if($('dlRel')) $('dlRel').classList.toggle('on', !!D2.rel);
+  if($('dlIsoStepF')) $('dlIsoStepF').classList.toggle('on', !!D2.iso);
+  if($('dlRelWinF')) $('dlRelWinF').classList.toggle('on', !!D2.rel);
+}
+if($('dlIso')) $('dlIso').addEventListener('click', ()=>{ D2.iso=!D2.iso; syncLayerUI(); drawDesign2D();
+  if(typeof toast==='function') toast(D2.iso?('Isocrone attive — passo '+isoPasso()+' ms: ogni curva unisce i punti che sparano nello stesso istante'):'Isocrone disattivate'); });
+if($('dlRel')) $('dlRel').addEventListener('click', ()=>{ D2.rel=!D2.rel; syncLayerUI(); drawDesign2D(); renderInspector();
+  if(typeof toast==='function') toast(D2.rel?('Relief per foro attivo — finestra '+fmtMs(D2.relLo)+'–'+fmtMs(D2.relHi)+' ms/m'):'Mappa del relief disattivata'); });
+if($('dlIsoStep')) $('dlIsoStep').addEventListener('change', ()=>{ D2.isoStep=Math.max(0,+$('dlIsoStep').value||0); drawDesign2D(); });
+['dlRelLo','dlRelHi'].forEach(id=>{ const el=$(id); if(!el) return; el.addEventListener('change', ()=>{
+  D2.relLo=Math.max(0.5, Math.min(60, +$('dlRelLo').value||5));
+  D2.relHi=Math.max(D2.relLo+0.5, Math.min(99, +$('dlRelHi').value||15));
+  $('dlRelLo').value=D2.relLo; $('dlRelHi').value=D2.relHi;
+  drawDesign2D(); renderScheda2D(); renderInspector(); }); });
+syncLayerUI();
 document.querySelectorAll('.dc-sec-h').forEach(b=>{ b.addEventListener('click', ()=>b.parentElement.classList.toggle('closed')); });
 if($('dKg')) $('dKg').addEventListener('input', ()=>{ D2.kgAuto=false; });
 /* quantitativo TOTALE della volata (fondatore 25/07): l'app lo divide sui fori
