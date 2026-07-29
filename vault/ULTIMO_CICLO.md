@@ -5,10 +5,11 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-07-29 06:44 UTC
-**Cosa sta per fare:** calare i primi grafici sulle app (Flotta, Conti,
-Terra) secondo `docs/PIANO_GRAFICI.md`, usando il motore condiviso.
-**Commit di partenza:** `3173458`
+**Ultimo ciclo riuscito:** 2026-07-29 09:45 UTC
+**Cosa sta per fare:** aggiungere i campi data che oggi rendono impossibili
+i grafici di andamento (costi Flotta, parco mezzi, incassi Conti), e i
+grafici restanti su Scudo, Sentinella e Campo.
+**Commit di partenza:** `cd87551`
 
 ---
 
