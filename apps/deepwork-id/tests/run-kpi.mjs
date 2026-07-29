@@ -31,6 +31,11 @@ const eq = (got, exp, why) => {
   const a = JSON.stringify(got), b = JSON.stringify(exp);
   if (a !== b) throw new Error(`${why}: atteso ${b}, ottenuto ${a}`);
 };
+/* Asserzione vero/falso con il motivo scritto: serve dove il controllo non è
+   «questo valore è quello» ma «questa condizione regge» — un residuo azzerato,
+   un turno che risulta chiuso, un motivo che nomina il corso mancante. */
+const ok = (cond, why) => { if (!cond) throw new Error(String(why || "condizione non verificata")); };
+
 /* Come eq, ma guarda solo i campi elencati e ignora quelli in più.
    Serve dove il risultato è destinato a crescere: aggiungere un campo nuovo a
    un KPI o a un parser è una cosa voluta, e non deve far fallire un test che
@@ -1313,6 +1318,153 @@ test("prioritaConformita: misura esattamente al 90% della soglia = attenzione (w
   eq(p.length, 1, "una misura in attenzione");
   eq(p[0].gravita, "warn", "ratio 0.90 → attenzione");
 });
+
+
+// ============================================================
+// LE FUNZIONI NUOVE DEL 29/07, BLINDATE
+// Queste asserzioni nascono dalle verifiche fatte a mano mentre si
+// controllavano i sei cantieri della giornata. Erano prove usa-e-getta:
+// qui diventano permanenti, perché sono esattamente i punti in cui una
+// regressione costerebbe di più — soldi incassati, turni firmati, chi può
+// andare a fare un lavoro, volumi denunciati agli enti.
+// ============================================================
+
+console.log("\n— Conti: incassi parziali e data di incasso vera —");
+test("acconto + saldo tornano al centesimo e azzerano il residuo", () => {
+  const f = { id: "f1", importo: 9750, emessa: "2026-06-25", scadenza: "2026-07-25" };
+  const inc = [{ fatturaId: "f1", importo: 3000.50, data: "2026-07-20" },
+               { fatturaId: "f1", importo: 6749.50, data: "2026-07-28" }];
+  const s = conti.statoIncasso(f, inc);
+  ok(Math.abs(s.incassato - 9750) < 0.005, `incassato ${s.incassato} invece di 9750`);
+  ok(Math.abs(s.residuo) < 0.005, `residuo ${s.residuo} invece di 0`);
+  ok(s.saldata === true, "con tutto incassato deve risultare saldata");
+});
+test("col solo acconto la fattura resta parziale, non incassata", () => {
+  const f = { id: "f1", importo: 9750, emessa: "2026-06-25" };
+  const s = conti.statoIncasso(f, [{ fatturaId: "f1", importo: 3000.50, data: "2026-07-20" }]);
+  ok(s.saldata === false, "un acconto non salda la fattura");
+  ok(s.parziale === true, "deve risultare parziale");
+  ok(Math.abs(s.residuo - 6749.50) < 0.005, `residuo ${s.residuo} invece di 6749,50`);
+});
+test("l'aperto scende del SOLO acconto, non dell'intera fattura", () => {
+  const f = { id: "f1", importo: 9750, emessa: "2026-06-25", scadenza: "2026-07-25" };
+  const a = conti.applicaIncassi([f], [{ fatturaId: "f1", importo: 3000.50, data: "2026-07-20" }]);
+  ok(Math.abs(conti.apertoDi(a[0]) - 6749.50) < 0.005, `aperto ${conti.apertoDi(a[0])} invece di 6749,50`);
+});
+// COMPATIBILITÀ: è il punto che romperebbe i conti di chi usa già l'app
+test("una fattura vecchia incassata SENZA data resta incassata", () => {
+  const vecchia = { id: "f0", importo: 5000, emessa: "2026-05-12", incassata: true };
+  const a = conti.applicaIncassi([vecchia], undefined);
+  ok(a[0].incassata === true, "senza movimenti vale la marcatura di prima");
+  ok(a[0].senzaDataIncasso === true, "e deve dichiarare che la data non è registrata");
+});
+test("collezione incassi assente: nessun totale si muove da solo", () => {
+  const f = { id: "f1", importo: 9750, emessa: "2026-06-25", scadenza: "2026-07-25" };
+  const v = { id: "f0", importo: 5000, emessa: "2026-05-12", incassata: true };
+  const k = conti.kpiFrom(conti.applicaIncassi([v, f], undefined), []);
+  ok(Math.abs(k.daIncassare - 9750) < 0.005, `da incassare ${k.daIncassare}: la vecchia incassata non deve rientrare`);
+});
+test("giorni reali di pagamento fra emissione e saldo", () =>
+  ok(conti.giorniFraDate("2026-06-25", "2026-07-28") === 33,
+     `${conti.giorniFraDate("2026-06-25", "2026-07-28")} invece di 33`));
+
+console.log("\n— Flotta: ordine di lavoro e fermi macchina —");
+test("il costo dell'ordine è la somma esatta di manodopera, ricambi e spese", () => {
+  const c = flotta.costoOrdine({
+    manodopera: [{ chi: "Marco", ore: 4, tariffa: 32 }, { chi: "Luca", ore: 2.5, tariffa: 40 }],
+    ricambi: [{ nome: "Filtro", qta: 2, prezzo: 31.5 }, { nome: "Olio", qta: 1, prezzo: 48 }],
+    altreSpese: 50 });
+  ok(Math.abs(c.manodopera.costo - 228) < 0.005, `manodopera ${c.manodopera.costo} invece di 228`);
+  ok(Math.abs(c.manodopera.ore - 6.5) < 0.005, `ore ${c.manodopera.ore} invece di 6,5`);
+  ok(Math.abs(c.ricambi.costo - 111) < 0.005, `ricambi ${c.ricambi.costo} invece di 111`);
+  ok(Math.abs(c.totale - 389) < 0.005, `totale ${c.totale} invece di 389`);
+});
+test("un ricambio senza prezzo NON passa per gratis: viene contato a parte", () => {
+  const c = flotta.costoOrdine({ ricambi: [{ nome: "X", qta: 2 }] });
+  ok(c.ricambi.senzaPrezzo > 0, "va dichiarato quante righe non hanno prezzo");
+});
+test("ordine vuoto o sporco: zero, mai NaN", () => {
+  ok(flotta.costoOrdine({}).totale === 0, "ordine vuoto = 0");
+  const s = flotta.costoOrdine({ manodopera: [{ chi: "X", ore: "due", tariffa: 30 }], ricambi: [{ qta: -3, prezzo: 10 }] });
+  ok(Number.isFinite(s.totale), `totale non finito: ${s.totale}`);
+});
+test("una manutenzione vecchia senza stato risulta «da fare»", () =>
+  ok(flotta.statoOrdine({}).chiave === "da-fare", `stato ${flotta.statoOrdine({}).chiave}`));
+test("disponibilità: 3 giorni persi su 60 giorni-macchina = 95%", () => {
+  const mezzi = [{ id: "m1", nome: "Escavatore E1 — CAT 352" }, { id: "m2", nome: "Dumper D1 — Volvo" }];
+  const oggi = new Date("2026-07-29T12:00:00Z");
+  ok(flotta.affidabilitaFlotta([], mezzi, 30, oggi).pct === 100, "senza fermi = 100%");
+  const t = flotta.affidabilitaFlotta([{ mezzo: "Escavatore E1", inizio: "2026-07-20", fine: "2026-07-22" }], mezzi, 30, oggi);
+  ok(Math.abs(t.pct - 95) < 0.05, `${t.pct}% con ${t.persi} persi su ${t.giorniMacchina}`);
+});
+test("un fermo di un mezzo non in parco non falsa la disponibilità", () => {
+  const mezzi = [{ id: "m1", nome: "Escavatore E1 — CAT 352" }, { id: "m2", nome: "Dumper D1 — Volvo" }];
+  const f = flotta.affidabilitaFlotta([{ mezzo: "Mezzo inesistente", inizio: "2026-07-20", fine: "2026-07-22" }],
+                                      mezzi, 30, new Date("2026-07-29T12:00:00Z"));
+  ok(f.pct === 100 && f.fuoriParco === 1, `pct ${f.pct}, fuoriParco ${f.fuoriParco}: va escluso E dichiarato`);
+});
+
+console.log("\n— Campo: il turno firmato non è più riscrivibile —");
+test("un turno firmato risulta chiuso, e torna la chiusura per poter dire chi ha firmato", () => {
+  const c = [{ data: "2026-07-29", turno: "mattina", da: "Rossi", a: "Bianchi", ora: "14:20" }];
+  const t = campo.turnoChiuso(c, "2026-07-29", "mattina");
+  ok(!!t, "il turno firmato deve risultare chiuso");
+  ok(t.ora === "14:20", "deve tornare la chiusura, non solo un sì");
+});
+test("una consegna SENZA ora non chiude niente", () =>
+  ok(!campo.turnoChiuso([{ data: "2026-07-29", turno: "mattina", da: "Rossi" }], "2026-07-29", "mattina"),
+     "senza l'ora la consegna non è firmata e non deve bloccare"));
+test("il blocco vale solo per quel giorno e quel turno", () => {
+  const c = [{ data: "2026-07-29", turno: "mattina", ora: "14:20" }];
+  ok(!campo.turnoChiuso(c, "2026-07-29", "pomeriggio"), "l'altro turno resta aperto");
+  ok(!campo.turnoChiuso(c, "2026-07-28", "mattina"), "l'altro giorno resta aperto");
+});
+test("le registrazioni vecchie senza data né turno restano modificabili", () =>
+  ok(!campo.turnoChiuso([{ data: "2026-07-29", turno: "mattina", ora: "14:20" }], null, null),
+     "chi non appartiene a un turno non può essere bloccato da una firma"));
+test("le riaperture non si perdono e si leggono", () => {
+  ok(campo.riaperture({ riaperture: [{ da: "Verdi", ora: "15:10" }] }).length === 1, "una riapertura registrata si vede");
+  ok(campo.riaperture({}).length === 0, "senza riaperture la lista è vuota, non un errore");
+});
+
+console.log("\n— Scudo: chi può andare a fare quel lavoro —");
+const _mansFoch = () => {
+  const p = scudo.mansionePreset("fochino") || {};
+  return { id: "M1", nome: "Fochino", requisiti: p.requisiti || [], dpi: p.dpi || [], lavoratoriIds: ["L1"] };
+};
+test("senza i corsi non può andare, e la scheda dice QUALI mancano", () => {
+  const a = scudo.abilitazioneLavoratore({ id: "L1", nome: "Mario", attivo: true }, _mansFoch(), [], [],
+                                         new Date("2026-07-29T12:00:00Z"));
+  ok(a.esito === "no", `esito ${a.esito}`);
+  ok(a.bloccanti.some(b => /^manca /.test(b)), `i motivi devono nominare il corso: ${a.bloccanti.join(" | ")}`);
+});
+test("un corso SCADUTO blocca, e lo dice con la data", () => {
+  const m = _mansFoch(), oggi = new Date("2026-07-29T12:00:00Z");
+  const sc = m.requisiti.map((ch, i) => ({ id: "x" + i, lavoratoreId: "L1", preset: ch, dataScadenza: "2026-03-10" }));
+  const a = scudo.abilitazioneLavoratore({ id: "L1", attivo: true }, m, sc, [], oggi);
+  ok(a.esito === "no", `esito ${a.esito}`);
+  ok(a.bloccanti.some(b => /scaduta il/.test(b)), `manca la data nel motivo: ${a.bloccanti[0]}`);
+});
+// La distinzione che rende utile la matrice: il corso BLOCCA, il DPI AVVISA
+test("un DPI mai consegnato avvisa, non blocca", () => {
+  const m = _mansFoch(), oggi = new Date("2026-07-29T12:00:00Z");
+  if (!m.dpi.length) return;                        // se il preset non richiede DPI il caso non esiste
+  const sc = m.requisiti.map((ch, i) => ({ id: "s" + i, lavoratoreId: "L1", preset: ch, dataScadenza: "2027-06-30" }));
+  const a = scudo.abilitazioneLavoratore({ id: "L1", attivo: true }, m, sc, [], oggi);
+  ok(a.esito === "attenzione", `esito ${a.esito}: col corso valido il DPI mancante è un avviso, non un blocco`);
+});
+test("chi non è in forza non può andare comunque", () => {
+  const m = _mansFoch(), oggi = new Date("2026-07-29T12:00:00Z");
+  const sc = m.requisiti.map((ch, i) => ({ id: "s" + i, lavoratoreId: "L1", preset: ch, dataScadenza: "2027-06-30" }));
+  const a = scudo.abilitazioneLavoratore({ id: "L1", attivo: false }, m, sc, [], oggi);
+  ok(a.esito === "no" && a.bloccanti.some(b => /in forza/.test(b)), `${a.esito}: ${a.bloccanti.join(" | ")}`);
+});
+test("collezioni di formazione e DPI assenti: nessun crash e nessun NaN", () => {
+  const r = scudo.riepilogoMansioni([_mansFoch()], [{ id: "L1", attivo: true }], undefined, undefined,
+                                    new Date("2026-07-29T12:00:00Z"));
+  ok(JSON.stringify(r).indexOf("NaN") < 0, "un NaN in una tessera è un numero sbagliato mostrato all'utente");
+});
+
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
