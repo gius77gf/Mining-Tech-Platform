@@ -245,9 +245,14 @@ danno mappe per foro.
       i dati che non fanno una legge onesta (meno di 3 referti, stessa
       distanza scalata, pendenza fuori da 0,5–3). Opt-in: senza attivazione
       restano i valori da litologia.
-- [ ] **G4. Editor visuale della sequenza di sparo** (ritardi a mano sui
-      fori, linee di innesco).
-- [ ] **G5. Mappa dell'energia** (powder factor locale per foro).
+- [x] **G4. Ritardi a mano e rete di innesco** ✅ *(29/07, `c542009`)* — il
+      ritardo del singolo foro si mette a mano e si torna al calcolato; il
+      livello «Innesco» ricostruisce chi accende chi e verifica che i
+      raccordi richiesti esistano davvero fra quelli in commercio, indicando
+      il taglio più vicino quando non ci sono.
+- [x] **G5. Mappa dell'energia** ✅ *(29/07, `8ddd8d8`)* — consumo specifico
+      sul blocco che ogni foro serve davvero, più il burden vero in
+      perpendicolare alla faccia, che è cosa diversa dal volume servito.
 - [ ] **G6. Banda d'incertezza da precisione di perforazione** (Monte-Carlo,
       tutto sintetico).
 - [ ] G7–G9: ottimizzatore di volata, report professionale, rifiniture scena.
