@@ -364,6 +364,7 @@
 }
 .pon-az.ok{border-left-color:var(--success)}
 .pon-az.warn{border-left-color:var(--warn)}
+.pon-az.danger{border-left-color:var(--danger)}
 .pon-az-txt{flex:1 1 auto; min-width:0; font-size:12px; line-height:1.55; color:var(--muted2)}
 .pon-az-txt b{color:var(--text)}
 .pon-cmd{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
@@ -1755,7 +1756,7 @@ textarea.dw-input{
     $("pon-riep").innerHTML = (ponteKO ? esc(ponteKO) + "<br>" : "") + (!voci.length
       ? ""
       : `Fatti che chiedono una risposta: <b>${voci.length}</b> · con un'azione correttiva già aperta: <b>${conAz}</b> · ancora senza: <b>${voci.length - conAz}</b>`
-        + (daChiudere ? ` · azioni <b>${daChiudere}</b> da chiudere.` : ".")
+        + (daChiudere ? ` · azioni ancora da chiudere: <b>${daChiudere}</b>.` : ".")
         + " Le azioni correttive vivono in Scudo, nello stesso scadenzario della sicurezza: lì hanno un responsabile e una data.");
 
     $("pon-list").innerHTML = voci.map(v => {
