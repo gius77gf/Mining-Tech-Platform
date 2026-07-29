@@ -63,7 +63,16 @@ test("campo: id unici e stati coerenti", () => {
 
 test("flotta: id unici, date manutenzioni valide, costi numerici", () => {
   idsOk(F.mezzi, "mezzi"); idsOk(F.manutenzioni, "manutenzioni"); idsOk(F.costi, "costi");
-  for (const n of F.manutenzioni) ok(isDate(n.dataPrevista), `manutenzione ${n.id}: data ${n.dataPrevista}`);
+  /* Un tagliando può essere programmato in due modi, e sono alternativi: a
+     calendario (ha una data) oppure a ore del contatore (ha le ore, e la data
+     non esiste finché non è dovuto). Quello che NON deve mai succedere è che
+     non abbia né l'una né le altre: sarebbe un intervento invisibile in
+     entrambe le viste. Se la data c'è dev'essere una data vera. */
+  for (const n of F.manutenzioni) {
+    const aData = n.dataPrevista != null, aOre = isNum(n.orePreviste);
+    ok(aData || aOre, `manutenzione ${n.id}: né data né ore previste — non comparirebbe da nessuna parte`);
+    ok(!aData || isDate(n.dataPrevista), `manutenzione ${n.id}: data ${n.dataPrevista} non valida`);
+  }
   for (const c of F.costi) ok(isNum(c.importo), `costo ${c.id}: importo non numerico`);
   const mz = new Set(F.mezzi.map(m => m.nome.split(" — ")[0]));
   for (const n of F.manutenzioni)
