@@ -327,6 +327,14 @@ button.arr.del:hover{
   background:var(--card2); color:var(--muted2); border:1px solid var(--border-hi);
   box-shadow:var(--edge); margin-left:6px;
 }
+/* I comandi spenti dal turno chiuso devono VEDERSI spenti: un bottone che
+   sembra vivo e non risponde fa pensare a un guasto, non a una firma. */
+.chg:disabled,.chg:disabled:hover{
+  opacity:.45; cursor:not-allowed; filter:grayscale(.4); transform:none;
+  box-shadow:none;
+}
+.chg.active:disabled{opacity:.7; filter:grayscale(.25)}
+.dw-input:disabled,select.dw-input:disabled,.dw-btn:disabled{cursor:not-allowed}
 
 /* ─────────────── traccia delle riaperture ───────────────
    Una riga per riapertura, sotto al cartellone della chiusura: chi ha
@@ -357,7 +365,9 @@ button.arr.del:hover{
    di quell'anomalia. Bersagli grandi: in cava si tocca coi guanti. */
 .foto-riga{margin-top:6px; padding-top:8px}
 .foto-mini{
-  width:var(--tap); height:var(--tap); min-width:var(--tap); padding:0; flex-shrink:0;
+  /* più grande del bersaglio minimo: una miniatura da 44 px non si CAPISCE,
+     e la foto serve proprio a capire al volo di cosa si sta parlando */
+  width:54px; height:54px; min-width:54px; padding:0; flex-shrink:0;
   border-radius:11px; overflow:hidden; cursor:pointer; line-height:0;
   background:var(--card2); border:1px solid var(--border2);
   box-shadow:var(--edge); transition:border-color .15s var(--ease),box-shadow .15s var(--ease);
