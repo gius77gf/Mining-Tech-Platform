@@ -94,7 +94,7 @@
   --info-basis:120px;
   --arr-ico:16px;
   --arr-stroke:1.9;
-  --nav-cols:4;
+  --nav-cols:5;
   --kpi-cols:4;
   --form-gap:9px;
   --form-pad:13px;
@@ -295,8 +295,90 @@ button.arr.del:hover{
 }
 .fermo .dw-input.min{flex:0 0 96px}
 
+/* ─────────────── assegnazione: chi fa cosa dentro la voce ───────────────
+   L'attività assegnata porta il nome di chi la fa; quella di nessuno lo
+   dichiara con una pillola, perché è il vero problema del capocantiere. */
+.chi{
+  display:inline-flex; align-items:center; gap:5px; flex-shrink:0; padding:2px 8px;
+  border-radius:20px; white-space:nowrap; font-family:'Barlow Condensed',sans-serif;
+  font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase;
+  background:var(--tint-app); color:var(--app-accent2);
+  border:1px solid color-mix(in srgb,var(--app-accent) 34%,transparent);
+  box-shadow:var(--edge);
+}
+/* La pillola sta DENTRO il blocco di testo, su una riga sua: se fosse un
+   figlio della voce si contenderebbe la larghezza con badge e matita, e
+   sul telefono la riga si spezzerebbe in tre pezzi sparsi. */
+.chi-riga{margin-top:6px; line-height:0}
+.chi.nessuno{
+  background:transparent; color:var(--muted); border:1px dashed var(--border-hi);
+  box-shadow:none;
+}
+.chi svg{
+  width:11px; height:11px; stroke:currentColor; fill:none; stroke-width:2.1;
+  stroke-linecap:round; stroke-linejoin:round;
+}
+
+/* ─────────────── checklist di inizio turno ───────────────
+   Tre risposte per voce, grandi come il resto dei bersagli: si tocca coi
+   guanti. La risposta scelta si accende — colore E parola, mai il solo
+   colore. Sotto i 400 px la terna va a capo e prende tutta la riga. */
+.chk-row{display:flex; gap:6px; flex-wrap:wrap; flex:1 1 250px; justify-content:flex-end}
+.chk-row .chg{flex:1 1 76px; padding:7px 8px; letter-spacing:.8px}
+.chk-row .chg.active.si{
+  background:var(--success); border-color:var(--success); color:var(--on-ok);
+  box-shadow:0 2px 10px var(--glow-ok),var(--edge-hi);
+}
+.chk-row .chg.active.no{
+  background:var(--danger); border-color:var(--danger); color:var(--on-dg);
+  box-shadow:0 2px 10px var(--glow-dg),var(--edge-hi);
+}
+/* «non applicabile» non è uno stato allegro: resta grigio. Ma dev'essere
+   inequivocabile che è stato SCELTO, non che è ancora vuoto — quindi
+   anello pieno e testo acceso, non un bordo più chiaro e basta. */
+.chk-row .chg.active.na{
+  background:var(--card2); border-color:var(--border-hi); color:var(--text);
+  box-shadow:inset 0 0 0 2px var(--border2),var(--edge-hi);
+}
+/* Tema chiaro e modalità sole: il foglio condiviso riporta OGNI .chg.active
+   al colore dell'app (giusto per i filtri, sbagliato qui: «a posto» e «non a
+   posto» non possono diventare tutti e due cotto). Si riafferma la coppia
+   verde/rosso con lo stesso metodo del foglio: tinta scurita e testo bianco,
+   per restare leggibile sotto il sole. */
+body.dw.light-mode  .chk-row .chg.active.si,
+body.dw.outdoor-mode .chk-row .chg.active.si{
+  background:color-mix(in srgb,var(--success) 86%,#000);
+  border-color:color-mix(in srgb,var(--success) 86%,#000); color:#fff;
+}
+body.dw.light-mode  .chk-row .chg.active.no,
+body.dw.outdoor-mode .chk-row .chg.active.no{
+  background:color-mix(in srgb,var(--danger) 82%,#000);
+  border-color:color-mix(in srgb,var(--danger) 82%,#000); color:#fff;
+}
+body.dw.light-mode  .chk-row .chg.active.na,
+body.dw.outdoor-mode .chk-row .chg.active.na{
+  background:var(--card2); border-color:var(--border-hi); color:var(--text);
+  box-shadow:inset 0 0 0 2px var(--border2),var(--edge-hi);
+}
+.chk-area{
+  font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; color:var(--muted);
+}
+
+/* ─────────────── giornata dello storico: i numeri incolonnati ───────────────
+   In una lista di giorni l'occhio scorre in verticale: le cifre devono
+   stare sulla stessa colonna, altrimenti non si confronta niente. */
+.gio-num{
+  display:flex; gap:12px; flex-wrap:wrap; align-items:baseline;
+  font-variant-numeric:tabular-nums;
+}
+.gio-num span{font-size:11px; color:var(--muted)}
+.gio-num b{font-size:13px; color:var(--text); font-weight:700}
+
 /* ─────────────── navigazione: pillola flottante (copia di #global-nav.bnav) ─────────────── */
 .nav{border-top:1px solid var(--border2); padding-bottom:0}
+/* cinque voci: sotto i 360 px l'etichetta si stringe invece di andare a capo */
+@media(max-width:359px){.nav button{font-size:8.5px; letter-spacing:.6px}}
 
 /* ─────────────── modale (copia di .modal-* del core) ─────────────── */
 .modal-body .fl{
@@ -346,6 +428,17 @@ button.arr.del:hover{
   </div>
 
   <div id="att-avanz"></div>
+  <div id="ob-board"></div>
+
+  <div class="sec">Cosa tocca a me<span class="cnt" id="mie-count">0</span></div>
+  <div class="ord">
+    <span class="of"><label for="io-squadra">Squadra</label>
+      <select id="io-squadra" class="dw-input" aria-label="La mia squadra"></select></span>
+    <span class="of"><label for="io-operatore">Sono</label>
+      <select id="io-operatore" class="dw-input" aria-label="Chi sono"></select></span>
+  </div>
+  <div id="mie-list"></div>
+
   <div class="sec">Oggi in cava</div>
   <div id="oggi-list"></div>
 </div>
@@ -357,6 +450,7 @@ button.arr.del:hover{
     <button class="chg" data-filtro="in-corso">In corso</button>
     <button class="chg" data-filtro="pianificata">Pianificate</button>
     <button class="chg" data-filtro="anomalia">Anomalie</button>
+    <button class="chg" data-filtro="senza-squadra">Senza squadra</button>
   </div>
   <div class="ord">
     <span class="of"><label for="att-giorno">Giorno</label>
@@ -391,11 +485,15 @@ button.arr.del:hover{
       <input class="dw-input" id="att-dett" placeholder="Dettaglio (facoltativo)" style="flex:1 1 140px;">
     </div>
     <div class="frow">
+      <select class="dw-input" id="att-squadra" title="Squadra che se ne occupa" aria-label="Squadra che se ne occupa" style="flex:1 1 160px;"></select>
+      <select class="dw-input" id="att-operatore" title="Persona incaricata" aria-label="Persona incaricata" style="flex:1 1 160px;"></select>
+    </div>
+    <div class="frow">
       <input class="dw-input" id="att-data" type="date" title="Giorno di lavoro" aria-label="Giorno di lavoro" style="flex:1 1 150px;">
       <select class="dw-input" id="att-turno" title="Turno" aria-label="Turno" style="flex:1 1 130px;"></select>
       <button class="dw-btn" id="btn-att">Pianifica</button>
     </div>
-    <div class="form-hint">Il giorno e il turno servono a mettere l'attività nello storico giusto: senza di essi non entra in nessun conteggio.</div>
+    <div class="form-hint">Il giorno e il turno servono a mettere l'attività nello storico giusto: senza di essi non entra in nessun conteggio. La <b>squadra</b> dice a chi tocca: un'attività senza squadra non la fa nessuno.</div>
   </div>
   <div class="note esito" id="att-esito"></div>
   <div class="note">Tocca un'attività per farla avanzare: <b>pianificata → in corso → conclusa</b>. La matita apre la modifica qui sopra; quando un'attività è in anomalia, indica <b>causale e minuti di fermo</b> e compare qui sopra dove si perde tempo.</div></div>
@@ -422,9 +520,75 @@ button.arr.del:hover{
   <div class="form-hint" style="margin-top:8px;">Colonne del file: <b>nome; persone; area; stato</b> — una riga per squadra.</div>
   <div class="note esito" id="squ-esito"></div>
   <div class="note">Tocca una squadra per <b>fermarla o rimetterla in turno</b>: le squadre ferme escono subito dal conteggio del Quadro.</div>
+
+  <div class="sec">Chi c'è in squadra<span class="cnt" id="ope-count">0</span></div>
+  <div class="ord">
+    <span class="of"><label for="ope-filtro">Squadra</label>
+      <select id="ope-filtro" class="dw-input" aria-label="Filtra gli operatori per squadra"></select></span>
+  </div>
+  <div id="ope-list"></div>
+  <div class="sec">Nuovo operatore</div>
+  <div class="form col">
+    <div class="frow">
+      <input class="dw-input" id="ope-nome" placeholder="Nome e cognome" style="flex:2 1 190px;">
+      <select class="dw-input" id="ope-ruolo" title="Ruolo" aria-label="Ruolo" style="flex:1 1 150px;"></select>
+    </div>
+    <div class="frow">
+      <select class="dw-input" id="ope-squadra" title="Squadra" aria-label="Squadra" style="flex:2 1 170px;"></select>
+      <button class="dw-btn" id="btn-ope">Aggiungi</button>
+    </div>
+    <div class="form-hint">Servono solo nome, ruolo e squadra: bastano per assegnare il lavoro e per sapere chi lo sta facendo.</div>
+  </div>
+  <div class="note esito" id="ope-esito"></div>
+  <div class="note">Tocca un operatore per segnarlo <b>non disponibile</b> (malattia, ferie, altro cantiere) e per rimetterlo in forza: chi non è disponibile non compare fra le persone a cui assegnare un'attività.</div>
 </div>
 
 <div class="page" id="page-rap">
+  <div class="sec">Inizio turno</div>
+  <div class="ord">
+    <span class="of"><label for="chk-squadra">Squadra</label>
+      <select id="chk-squadra" class="dw-input" aria-label="Squadra del turno"></select></span>
+    <span class="of"><label for="chk-turno">Turno</label>
+      <select id="chk-turno" class="dw-input" aria-label="Turno"></select></span>
+  </div>
+  <div class="form-hint" style="margin-bottom:4px;">Squadra e turno scelti qui valgono sia per la <b>checklist</b> sia per l'<b>appello</b> qui sotto.</div>
+
+  <div class="sec">Checklist di inizio turno</div>
+  <div id="chk-board"></div>
+  <div id="chk-list"></div>
+  <div class="tools" id="chk-tools" style="display:none;">
+    <button class="dw-btn" id="btn-chk-salva"><svg viewBox="0 0 24 24"><path d="M4.5 12.6l5 5 10-10.6"/></svg>Chiudi la checklist</button>
+    <button class="dw-btn secondary" id="btn-chk-ok"><svg viewBox="0 0 24 24"><path d="M4.5 12.6l5 5 10-10.6"/></svg>Tutto a posto</button>
+  </div>
+  <div class="note esito" id="chk-esito"></div>
+
+  <div class="sec">Chi c'è oggi<span class="cnt" id="pre-count">0</span></div>
+  <div id="pre-board"></div>
+  <div id="pre-list"></div>
+  <div class="tools" id="pre-tools" style="display:none;">
+    <button class="dw-btn secondary" id="btn-pre-tutti"><svg viewBox="0 0 24 24"><path d="M4.5 12.6l5 5 10-10.6"/></svg>Ci sono tutti</button>
+    <button class="dw-btn secondary" id="btn-pre-export"><svg viewBox="0 0 24 24"><path d="M12 3.6v11.2"/><path d="M7.8 10.6L12 14.8l4.2-4.2"/><path d="M4.5 18.4v1.1A1.4 1.4 0 0 0 5.9 21h12.2a1.4 1.4 0 0 0 1.4-1.5v-1.1"/></svg>Elenco per l'appello (CSV)</button>
+  </div>
+  <div class="note esito" id="pre-esito"></div>
+  <div class="note">L'appello serve a sapere <b>chi è in cava adesso</b>: se suona l'allarme, al punto di raccolta si conta su questa lista. Chi non è ancora stato spuntato resta <b>da spuntare</b>: «non lo so» non è «non c'è».</div>
+
+  <div class="sec">Obiettivo del turno</div>
+  <div id="ob-stato"></div>
+  <div id="ob-graf"></div>
+  <div class="form col">
+    <div class="frow">
+      <input class="dw-input" id="ob-valore" type="number" min="0" step="1" inputmode="decimal" placeholder="Obiettivo del turno (es. 900)" aria-label="Valore dell'obiettivo" style="flex:2 1 180px;">
+      <select class="dw-input" id="ob-unita" title="Unità dell'obiettivo" aria-label="Unità dell'obiettivo" style="flex:1 1 150px;"></select>
+    </div>
+    <div class="frow">
+      <input class="dw-input" id="ob-data" type="date" title="Giorno di lavoro" aria-label="Giorno di lavoro" style="flex:1 1 150px;">
+      <select class="dw-input" id="ob-turno" title="Turno" aria-label="Turno" style="flex:1 1 130px;"></select>
+      <button class="dw-btn" id="btn-ob">Imposta obiettivo</button>
+    </div>
+    <div class="form-hint">Si può puntare solo a ciò che l'app misura davvero: la <b>produzione dei rapportini</b> (tonnellate, metri cubi, viaggi) o le <b>attività concluse</b>. Un obiettivo per turno; reimpostandolo si sostituisce quello di prima.</div>
+  </div>
+  <div class="note esito" id="ob-esito"></div>
+
   <div class="sec">Rapportini di turno<span class="cnt" id="rap-count">0</span></div>
   <div class="ord">
     <span class="of"><label for="rap-giorno">Giorno</label>
@@ -462,6 +626,24 @@ button.arr.del:hover{
   </div>
   <div class="note esito" id="mode-note"></div>
 
+  <div class="sec">Chiusura del turno</div>
+  <div id="fir-board"></div>
+  <div class="form col" id="fir-form">
+    <div class="frow">
+      <input class="dw-input" id="fir-consegna" placeholder="Chi consegna (nome e cognome)" style="flex:1 1 190px;">
+      <input class="dw-input" id="fir-ricevuta" placeholder="Chi riceve (nome e cognome)" style="flex:1 1 190px;">
+    </div>
+    <div class="frow">
+      <input class="dw-input" id="fir-note" placeholder="Note della consegna (facoltative)" style="flex:2 1 200px;">
+      <button class="dw-btn" id="btn-fir">Chiudi il turno</button>
+    </div>
+    <div class="form-hint">La chiusura mette <b>due nomi e un'ora</b> sul rapporto di fine turno: chi consegna e chi riceve. Vale per il turno scelto in cima alla pagina.</div>
+  </div>
+  <div class="tools" id="fir-tools" style="display:none;">
+    <button class="dw-btn secondary" id="btn-fir-riapri"><svg viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0-9-9"/><path d="M3 12l2.6 2.8L8.4 12"/></svg>Riapri il turno</button>
+  </div>
+  <div class="note esito" id="fir-esito"></div>
+
   <div class="sec">Piano di carico (da Genesi)</div>
   <div class="tools" style="margin-top:0;">
     <button class="dw-btn secondary" id="btn-piano"><svg viewBox="0 0 24 24"><path d="M12 14.8V3.6"/><path d="M7.8 7.8L12 3.6l4.2 4.2"/><path d="M4.5 18.4v1.1A1.4 1.4 0 0 0 5.9 21h12.2a1.4 1.4 0 0 0 1.4-1.5v-1.1"/></svg>Importa piano (CSV)</button>
@@ -474,11 +656,33 @@ button.arr.del:hover{
   <div id="piano-list"></div>
 </div>
 
+<div class="page" id="page-set">
+  <div class="sec">La settimana in cava</div>
+  <div class="ord">
+    <span class="of"><label for="set-giorni">Periodo</label>
+      <select id="set-giorni" class="dw-input" aria-label="Periodo dello storico">
+        <option value="7">Ultimi 7 giorni</option>
+        <option value="14">Ultimi 14 giorni</option>
+        <option value="30">Ultimi 30 giorni</option>
+      </select></span>
+  </div>
+  <div id="set-board"></div>
+  <div id="set-graf"></div>
+  <div class="sec">Giorno per giorno<span class="cnt" id="set-count">0</span></div>
+  <div id="set-list"></div>
+  <div class="tools">
+    <button class="dw-btn secondary" id="btn-set-export"><svg viewBox="0 0 24 24"><path d="M12 3.6v11.2"/><path d="M7.8 10.6L12 14.8l4.2-4.2"/><path d="M4.5 18.4v1.1A1.4 1.4 0 0 0 5.9 21h12.2a1.4 1.4 0 0 0 1.4-1.5v-1.1"/></svg>Esporta lo storico (CSV)</button>
+  </div>
+  <div class="note esito" id="set-esito"></div>
+  <div class="note">Tocca una giornata per <b>aprirla</b>: attività e rapportini si spostano su quel giorno e puoi rileggere tutto quello che è stato registrato.</div>
+</div>
+
 <nav class="nav" aria-label="Sezioni di Campo">
   <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg></span>Quadro</button>
   <button id="nav-att" onclick="go('att')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M3.2 20.8l8.1-8.1"/><path d="M9.6 11.3l3.1 3.1"/><path d="M2.9 9.6a11.5 11.5 0 0 1 9-5.4 11.5 11.5 0 0 1 9 5.4"/><path d="M11.9 4.2v3.9"/></svg></span>Attività</button>
   <button id="nav-squ" onclick="go('squ')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M16.8 20.4v-1.6a3.8 3.8 0 0 0-3.8-3.8H6.6a3.8 3.8 0 0 0-3.8 3.8v1.6"/><circle cx="9.8" cy="7.6" r="3.8"/><path d="M21.2 20.4v-1.6a3.8 3.8 0 0 0-2.9-3.7"/><path d="M15.4 4a3.8 3.8 0 0 1 0 7.3"/></svg></span>Squadre</button>
-  <button id="nav-rap" onclick="go('rap')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M14 3H7.5A2.5 2.5 0 0 0 5 5.5v13A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V8z"/><path d="M14 3v5h5"/><path d="M8.8 13h6.4M8.8 16.6h4.4"/></svg></span>Rapportini</button>
+  <button id="nav-rap" onclick="go('rap')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M14 3H7.5A2.5 2.5 0 0 0 5 5.5v13A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V8z"/><path d="M14 3v5h5"/><path d="M8.8 13h6.4M8.8 16.6h4.4"/></svg></span>Turno</button>
+  <button id="nav-set" onclick="go('set')"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="16" rx="2.2"/><path d="M3.5 10h17M8.4 3v4M15.6 3v4"/><path d="M7.6 14h2.2M13.4 14h3M7.6 17.6h4.6"/></svg></span>Storico</button>
 </nav>
 
 <!-- modale in stile core: sostituisce alert()/confirm()/prompt() del browser -->
@@ -607,7 +811,12 @@ button.arr.del:hover{
 
 <script type="module">
   import { campoData, kpiFrom, parsePianoCsv, parseSquadreCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, fermiPerGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
-           oggiISO, TURNI, turnoCorrente, diGiorno, senzaData, UNITA_PRODUZIONE, totaliProduzione, formattaProduzione, normalizzaPiano } from "./campo-data.js";
+           oggiISO, TURNI, turnoCorrente, diGiorno, senzaData, UNITA_PRODUZIONE, totaliProduzione, formattaProduzione, normalizzaPiano,
+           squadraBase, RUOLI, operatoriDi, etichettaAssegnazione, eMia, caricoSquadre,
+           UNITA_ATTIVITA, obiettivoDi, statoObiettivo,
+           storicoSettimana, totaliSettimana, unitaPrevalente,
+           CHECKLIST_INIZIO, ESITI_CHECK, statoChecklist, checklistDi,
+           STATI_PRESENZA, presenzaDi, appelloTurno, chiusuraDi, riassuntoChiusura } from "./campo-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const dmy = (iso) => iso ? iso.slice(8,10)+"/"+iso.slice(5,7)+"/"+iso.slice(0,4) : "senza data";
@@ -632,6 +841,9 @@ button.arr.del:hover{
     calend:  '<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="16" rx="2.2"/><path d="M3.5 10h17M8.4 3v4M15.6 3v4"/></svg>',
     picco:   '<svg viewBox="0 0 24 24"><path d="M3.2 20.8l8.1-8.1"/><path d="M9.6 11.3l3.1 3.1"/><path d="M2.9 9.6a11.5 11.5 0 0 1 9-5.4 11.5 11.5 0 0 1 9 5.4"/><path d="M11.9 4.2v3.9"/></svg>',
     persone: '<svg viewBox="0 0 24 24"><path d="M16.8 20.4v-1.6a3.8 3.8 0 0 0-3.8-3.8H6.6a3.8 3.8 0 0 0-3.8 3.8v1.6"/><circle cx="9.8" cy="7.6" r="3.8"/><path d="M21.2 20.4v-1.6a3.8 3.8 0 0 0-2.9-3.7"/><path d="M15.4 4a3.8 3.8 0 0 1 0 7.3"/></svg>',
+    persona: '<svg viewBox="0 0 24 24"><path d="M19.2 20.6v-1.8a4.2 4.2 0 0 0-4.2-4.2H9a4.2 4.2 0 0 0-4.2 4.2v1.8"/><circle cx="12" cy="7.4" r="4.2"/></svg>',
+    spunta:  '<svg viewBox="0 0 24 24"><path d="M4.5 12.6l5 5 10-10.6"/></svg>',
+    bersaglio:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><circle cx="12" cy="12" r="4.6"/><circle cx="12" cy="12" r="1"/></svg>',
     foglio:  '<svg viewBox="0 0 24 24"><path d="M14 3H7.5A2.5 2.5 0 0 0 5 5.5v13A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V8z"/><path d="M14 3v5h5"/><path d="M8.8 13h6.4M8.8 16.6h4.4"/></svg>',
     foro:    '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="3"/></svg>',
     avanti:  '<svg viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0-9-9"/><path d="M3 12l2.6 2.8L8.4 12"/><path d="M12 7.6V12l3 1.9"/></svg>',
@@ -769,12 +981,40 @@ button.arr.del:hover{
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
-  let ATT=[], SQU=[], RAP=[];
+  let ATT=[], SQU=[], RAP=[], OPER=[], OBIE=[], CHK=[], PRE=[], CHI=[];
   // ATT/RAP restano SEMPRE la lista completa (serve per ritrovare per id anche
   // ciò che non è a schermo); ATT_G/RAP_G sono la fetta del giorno mostrata e
   // conteggiata. Una registrazione senza data resta dentro (dato vecchio).
   let ATT_G=[], RAP_G=[], ATT_OGGI=[], RAP_OGGI=[];
   const OGGI = oggiISO();
+
+  // ── Chi sono io: serve a rispondere a «cosa tocca a me» ────────────────
+  // Resta sul telefono di chi lo usa (è una preferenza del dispositivo, non
+  // un dato dell'organizzazione: il muletto di Luca è sempre il suo).
+  let IO = { squadra: "", operatore: "" };
+  try { const _io = JSON.parse(localStorage.getItem("campoIo") || "null");
+    if (_io && typeof _io === "object") IO = { squadra: _io.squadra || "", operatore: _io.operatore || "" }; } catch (e) {}
+  const salvaIo = () => { try { localStorage.setItem("campoIo", JSON.stringify(IO)); } catch (e) {} };
+
+  // Giornata aperta dallo storico della settimana: i selettori «Giorno»
+  // guadagnano una terza voce con quella data, così da Settimana si entra
+  // davvero dentro il giorno invece di guardarlo da fuori.
+  let GIORNO_SCELTO = "";
+  const opzioneGiorno = (selId) => {
+    const s = $(selId); if (!s) return;
+    let o = s.querySelector('option[value="scelto"]');
+    if (!GIORNO_SCELTO) {
+      if (o) { if (s.value === "scelto") s.value = "oggi"; o.remove(); }
+      return;
+    }
+    if (!o) { o = document.createElement("option"); o.value = "scelto"; s.appendChild(o); }
+    o.textContent = dmy(GIORNO_SCELTO);
+  };
+  // Il giorno che una lista sta guardando: oggi, la giornata aperta, o tutti.
+  const giornoDi = (selId) => {
+    const v = $(selId).value;
+    return v === "scelto" && GIORNO_SCELTO ? GIORNO_SCELTO : OGGI;
+  };
   // Etichetta "quando": il giorno solo se NON è oggi (o se manca del tutto,
   // caso dei dati salvati prima che la data esistesse).
   const etData = (r) => { const d = String((r && r.data) || "").trim();
@@ -794,12 +1034,20 @@ button.arr.del:hover{
   const optTurni = (sel) => TURNI.map(t => `<option${t===sel?" selected":""}>${t}</option>`).join("");
   $("att-turno").innerHTML = optTurni(turnoCorrente());
   $("new-rap-turno").innerHTML = optTurni(turnoCorrente());
+  $("ob-turno").innerHTML = optTurni(turnoCorrente());
+  $("chk-turno").innerHTML = optTurni(turnoCorrente());
   $("new-rap-unita").innerHTML = UNITA_PRODUZIONE.map(u => `<option>${u}</option>`).join("");
+  // L'obiettivo si può mettere solo su ciò che l'app misura: la produzione
+  // registrata nei rapportini e le attività concluse. Niente altro.
+  $("ob-unita").innerHTML = UNITA_PRODUZIONE.concat([UNITA_ATTIVITA]).map(u => `<option>${esc(u)}</option>`).join("");
+  $("ope-ruolo").innerHTML = RUOLI.map(r => `<option>${esc(r)}</option>`).join("");
   $("att-data").value = OGGI;
   $("new-rap-data").value = OGGI;
-  // Svuota il form attività riportando data e turno ai valori di default.
+  $("ob-data").value = OGGI;
+  // Svuota il form attività riportando data, turno e assegnazione ai default.
   const resetFormAtt = () => { $("att-titolo").value = ""; $("att-dett").value = "";
     $("att-data").value = OGGI; $("att-turno").value = turnoCorrente();
+    $("att-squadra").value = ""; aggiornaOperatoriDelForm();
     err("att-titolo", false); err("att-data", false); };
   // cambiare pagina annulla una modifica attività in corso (torna su "Pianifica")
   document.querySelector(".nav") && document.querySelector(".nav").addEventListener("click", () => {
@@ -816,13 +1064,16 @@ button.arr.del:hover{
     go(card.getAttribute("data-goto")); refresh();
   });
   async function refresh(){
-    [ATT,SQU,RAP] = await Promise.all([db.attivita(), db.squadre(), db.rapportini()]);
+    [ATT,SQU,RAP,OPER,OBIE,CHK,PRE,CHI] = await Promise.all([db.attivita(), db.squadre(), db.rapportini(),
+      db.operatori(), db.obiettivi(), db.checklist(), db.presenze(), db.chiusure()]);
     // Il giorno di lavoro è la chiave di tutto: i KPI del quadro contano SEMPRE
     // e solo le registrazioni di oggi (prima "Rapportini oggi" sommava tutti i
     // rapportini mai inviati), mentre le liste seguono il selettore "Giorno".
     ATT_OGGI = diGiorno(ATT, OGGI); RAP_OGGI = diGiorno(RAP, OGGI);
+    opzioneGiorno("att-giorno"); opzioneGiorno("rap-giorno");
     const tuttiAtt = $("att-giorno").value === "tutti", tuttiRap = $("rap-giorno").value === "tutti";
-    ATT_G = tuttiAtt ? ATT : ATT_OGGI; RAP_G = tuttiRap ? RAP : RAP_OGGI;
+    const gAtt = giornoDi("att-giorno"), gRap = giornoDi("rap-giorno");
+    ATT_G = tuttiAtt ? ATT : diGiorno(ATT, gAtt); RAP_G = tuttiRap ? RAP : diGiorno(RAP, gRap);
     const k = kpiFrom(ATT_OGGI,SQU,RAP_OGGI);
     const kn = document.querySelectorAll(".kpis .kpi .n");
     if (kn[0]) kn[0].textContent = k.squadreAttive;
@@ -845,10 +1096,15 @@ button.arr.del:hover{
          </div>`
       : "";
 
+    // C2 · Obiettivo del turno in corso: quanto manca, a colpo d'occhio.
+    renderObiettivo();
+    // C1 · Cosa tocca a me / alla mia squadra.
+    renderIo();
+
     const urgenti = ATT_OGGI.filter(a => a.stato !== "conclusa").slice(0,4);
     $("oggi-list").innerHTML = urgenti.map(a => `<div class="item ${AS[a.stato]||""}" onclick="go('att')" role="button" tabindex="0" title="Vai alle attività della giornata">
       <div class="avatar">${esc(sig(a.titolo))}</div>
-      <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc([a.dettaglio, a.turno, etData(a)].filter(Boolean).join(" · "))}</div></div>
+      <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc([etichettaAssegnazione(a) || "da assegnare", a.dettaglio, a.turno, etData(a)].filter(Boolean).join(" · "))}</div></div>
       <span class="badge ${AB[a.stato][0]}">${a.stato==="anomalia"?I.allarme:""}${AB[a.stato][1]}</span><span class="arr deco">${I.chevron}</span></div>`).join("")
       || vuoto(I.picco, "Giornata tranquilla",
           "Non c'è nessuna attività aperta oggi. Aprine una da <b>Attività → Nuova attività</b>: bastano titolo, giorno e turno.");
@@ -858,12 +1114,15 @@ button.arr.del:hover{
       ? String(a.titolo || "").localeCompare(String(b.titolo || ""), "it")
       : (ordAtt[a.stato] ?? 4) - (ordAtt[b.stato] ?? 4);
     const qAtt = ($("att-cerca") && $("att-cerca").value || "").trim().toLowerCase();
-    const attVis = ATT_G.filter(a => filtroAtt === "tutte" || a.stato === filtroAtt)
+    const attVis = ATT_G.filter(a => filtroAtt === "tutte" ? true
+                        : filtroAtt === "senza-squadra" ? !squadraBase(a.squadra)
+                        : a.stato === filtroAtt)
                       .filter(a => !qAtt || ((a.titolo || "") + " " + (a.dettaglio || "")).toLowerCase().includes(qAtt))
                       .sort(attCmp);
     const optCausali = (sel) => CAUSALI_FERMO.map(c => `<option value="${esc(c)}"${c===sel?" selected":""}>${esc(c)}</option>`).join("");
     $("att-list").innerHTML = attVis.map(a => `<div class="item ${AS[a.stato]||""}" data-att="${a.id}" role="button" tabindex="0" style="cursor:pointer" title="Tocca per far avanzare lo stato">
-      <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc([a.dettaglio, a.turno, etData(a)].filter(Boolean).join(" · "))}</div></div>
+      <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc([a.dettaglio, a.turno, etData(a)].filter(Boolean).join(" · "))}</div>
+        <div class="chi-riga">${pillolaChi(a)}</div></div>
       <span class="badge ${AB[a.stato][0]}">${a.stato==="anomalia"?I.allarme:""}${AB[a.stato][1]}</span>
       <button type="button" class="arr" title="Modifica questa attività" aria-label="Modifica ${esc(a.titolo)}" data-edit-att="${a.id}">${I.matita}</button>
       ${a.stato==="anomalia" ? `<div class="fermo">
@@ -871,13 +1130,18 @@ button.arr.del:hover{
         <select class="dw-input" data-causale="${a.id}" title="Causale del fermo" aria-label="Causale del fermo"><option value="">Causale…</option>${optCausali(a.causale)}</select>
         <input class="dw-input min" data-fermomin="${a.id}" type="number" min="0" step="5" inputmode="numeric" value="${(+a.fermoMin)||""}" placeholder="minuti" title="Minuti di fermo" aria-label="Minuti di fermo">
       </div>` : ""}</div>`).join("")
-      || vuoto(I.picco,
-          qAtt ? "Nessuna corrispondenza" : (filtroAtt === "tutte" ? "Nessuna attività" : "Nessuna attività in questa voce"),
+      || vuoto(filtroAtt === "senza-squadra" && !qAtt ? I.spunta : I.picco,
+          qAtt ? "Nessuna corrispondenza"
+               : filtroAtt === "tutte" ? "Nessuna attività"
+               : filtroAtt === "senza-squadra" ? "Tutto assegnato"
+               : "Nessuna attività in questa voce",
           qAtt ? `Non c'è nessuna attività che contenga «<b>${esc(qAtt)}</b>». Svuota la ricerca o cambia filtro.`
                : (filtroAtt === "tutte"
                    ? (tuttiAtt ? "Non è ancora stata registrata nessuna attività. Aggiungine una qui sotto con <b>Pianifica</b>."
-                               : "Oggi non è ancora stata registrata nessuna attività. Aggiungila qui sotto, oppure passa il giorno a <b>Tutti i giorni</b>.")
-                   : "Il filtro selezionato non contiene nulla. Tocca <b>Tutte</b> per rivedere l'intera giornata."));
+                               : `Il ${dmy(gAtt)} non è ancora stata registrata nessuna attività. Aggiungila qui sotto, oppure passa il giorno a <b>Tutti i giorni</b>.`)
+                   : filtroAtt === "senza-squadra"
+                     ? "Ogni attività di questa giornata ha una squadra: non ce n'è nessuna che non stia facendo nessuno."
+                     : "Il filtro selezionato non contiene nulla. Tocca <b>Tutte</b> per rivedere l'intera giornata."));
     // Conteggio della lista + avviso sui dati vecchi ancora privi di data: non
     // spariscono (restano nella vista di oggi), ma vanno dichiarati.
     { const n = $("att-list").querySelectorAll(".item").length, filtrata = qAtt || filtroAtt !== "tutte";
@@ -905,13 +1169,22 @@ button.arr.del:hover{
                   : " · nessuna attività ancora in anomalia")
         : ""; }
 
+    // Carico di lavoro della giornata, squadra per squadra: è la risposta a
+    // «chi sta facendo cosa», che prima non esisteva.
+    const carico = caricoSquadre(ATT_OGGI, SQU);
+    const caricoDi = (nome) => carico.righe.find(r => r.squadra === squadraBase(nome));
     $("squ-count").textContent = SQU.length;
-    $("squ-list").innerHTML = SQU.map(q => `<div class="item ${q.stato==="ferma"?"st-danger":"st-ok"}" data-squ="${q.id}" role="button" tabindex="0" style="cursor:pointer" title="Tocca per fermare o rimettere in turno">
+    $("squ-list").innerHTML = SQU.map(q => { const c = caricoDi(q.nome) || { aperte: 0, concluse: 0 };
+      const inForza = operatoriDi(OPER, q.nome).filter(o => o.stato !== "non-disponibile").length;
+      return `<div class="item ${q.stato==="ferma"?"st-danger":"st-ok"}" data-squ="${q.id}" role="button" tabindex="0" style="cursor:pointer" title="Tocca per fermare o rimettere in turno">
       <div class="avatar${q.stato==="ferma"?" mute":""}">${esc(sig(q.nome))}</div>
-      <div class="info"><div class="name">${esc(q.nome)}</div><div class="meta">${esc(q.persone)} persone · ${esc(q.area||"area non indicata")}</div></div>
-      <span class="badge ${QB[q.stato][0]}">${q.stato==="ferma"?I.allarme:""}${QB[q.stato][1]}</span></div>`).join("")
+      <div class="info"><div class="name">${esc(q.nome)}</div><div class="meta">${esc(q.persone)} persone${inForza?" · "+inForza+" in anagrafica":""} · ${esc(q.area||"area non indicata")}<br>oggi: <b>${c.aperte}</b> ${c.aperte===1?"attività aperta":"attività aperte"} · ${c.concluse} ${c.concluse===1?"conclusa":"concluse"}</div></div>
+      <span class="badge ${QB[q.stato][0]}">${q.stato==="ferma"?I.allarme:""}${QB[q.stato][1]}</span></div>`; }).join("")
       || vuoto(I.persone, "Nessuna squadra in turno",
           "Aggiungi le squadre qui sotto (nome, persone, area) oppure importale da un file CSV: sono la base dei rapportini e del Quadro.");
+    // C1 · Anagrafica delle persone e assegnazione.
+    renderOperatori();
+    aggiornaSceltaSquadre();
 
     const cop = coperturaRapportini(SQU, RAP_G);
     const sdRap = senzaData(RAP);
@@ -939,8 +1212,577 @@ button.arr.del:hover{
       || vuoto(I.foglio, tuttiRap ? "Nessun rapportino" : "Nessun rapportino oggi",
           "Crea la bozza qui sotto: titolo, squadra, giorno e turno. Poi tocca la voce per <b>inviarla</b> quando il turno è chiuso.");
 
-    $("new-rap-squadra").innerHTML = SQU.map(q => `<option>${esc(q.nome.split(" — ")[0])}</option>`).join("");
+    $("new-rap-squadra").innerHTML = SQU.map(q => `<option>${esc(squadraBase(q.nome))}</option>`).join("");
+    // C3 · Checklist di inizio turno, appello e storico della settimana.
+    renderChecklist();
+    renderPresenze();
+    renderChiusura();
+    renderSettimana();
   }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // C1 · CHI FA COSA — anagrafica, assegnazione, «cosa tocca a me»
+  // ══════════════════════════════════════════════════════════════════════
+
+  // Menu delle squadre: sempre con una prima voce esplicita, perché «non
+  // assegnata» dev'essere una scelta dichiarata, non un campo lasciato lì.
+  const optSquadre = (sel, primo) => `<option value="">${esc(primo)}</option>`
+    + SQU.map(q => { const b = squadraBase(q.nome);
+        return `<option value="${esc(b)}"${b === sel ? " selected" : ""}>${esc(q.nome)}</option>`; }).join("");
+
+  // Menu delle persone di una squadra: chi non è disponibile non compare
+  // (assegnargli un lavoro sarebbe una promessa vuota).
+  const optOperatori = (squadra, sel) => {
+    const disp = operatoriDi(OPER, squadra).filter(o => o.stato !== "non-disponibile");
+    // chi è già assegnato resta nel menu anche se nel frattempo è diventato
+    // non disponibile: altrimenti riaprendo l'attività l'assegnazione
+    // sparirebbe da sola, senza che nessuno l'abbia tolta
+    const scelto = String(sel || "").trim();
+    const fuori = scelto && !disp.some(o => o.nome === scelto);
+    return `<option value="">${squadra ? "Chiunque della squadra" : "Nessuna persona indicata"}</option>`
+      + (fuori ? `<option value="${esc(scelto)}" selected>${esc(scelto)} — non disponibile</option>` : "")
+      + disp.map(o => `<option value="${esc(o.nome)}"${o.nome === scelto ? " selected" : ""}>${esc(o.nome)}${o.ruolo ? " — " + esc(o.ruolo) : ""}</option>`).join("");
+  };
+
+  // Il menu «persona» del form attività segue la squadra scelta: si sceglie
+  // prima la squadra, poi (se serve) il nome. Due tocchi, non venti.
+  function aggiornaOperatoriDelForm(mantieni) {
+    const squ = $("att-squadra").value;
+    $("att-operatore").innerHTML = optOperatori(squ, mantieni || "");
+    $("att-operatore").disabled = false;
+  }
+
+  // Tiene allineati tutti i menu che elencano le squadre, senza perdere la
+  // scelta già fatta dall'utente.
+  function aggiornaSceltaSquadre() {
+    const tieni = (id, primo) => { const v = $(id).value; $(id).innerHTML = optSquadre(v, primo);
+      if (v) $(id).value = v; };
+    tieni("att-squadra", "Nessuna squadra (da assegnare)");
+    tieni("ope-squadra", "Senza squadra");
+    tieni("ope-filtro", "Tutte le squadre");
+    // «io» e la checklist hanno bisogno di una squadra vera: la prima voce
+    // resta un invito a sceglierla, non un valore.
+    $("io-squadra").innerHTML = optSquadre(IO.squadra, "— scegli la squadra —");
+    $("io-squadra").value = IO.squadra || "";
+    $("io-operatore").innerHTML = optOperatori(IO.squadra, IO.operatore);
+    $("io-operatore").value = IO.operatore || "";
+    const chkPrec = $("chk-squadra").value;
+    $("chk-squadra").innerHTML = optSquadre(chkPrec || IO.squadra, "— scegli la squadra —");
+    $("chk-squadra").value = chkPrec || IO.squadra || "";
+    aggiornaOperatoriDelForm($("att-operatore").value);
+  }
+
+  // La pillola «chi lo fa» dentro la voce di lista.
+  const pillolaChi = (a) => {
+    const et = etichettaAssegnazione(a);
+    return et
+      ? `<span class="chi" title="Assegnata a ${esc(et)}">${I.persona}${esc(et)}</span>`
+      : `<span class="chi nessuno" title="Nessuno se ne sta occupando">da assegnare</span>`;
+  };
+
+  // «Cosa tocca a me»: le attività di oggi assegnate a me o alla mia squadra.
+  function renderIo() {
+    const mie = IO.squadra ? ATT_OGGI.filter(a => eMia(a, IO) && a.stato !== "conclusa") : [];
+    const fatte = IO.squadra ? ATT_OGGI.filter(a => eMia(a, IO) && a.stato === "conclusa").length : 0;
+    $("mie-count").textContent = mie.length;
+    const ordMie = { anomalia: 0, "in-corso": 1, pianificata: 2 };
+    $("mie-list").innerHTML = !IO.squadra
+      ? vuoto(I.persona, "Dimmi chi sei",
+          "Scegli qui sopra la <b>tua squadra</b>: qui restano solo le attività che tocca a lei. Se aggiungi anche il <b>tuo nome</b>, restano solo le tue e quelle che non hanno ancora un nome sopra.")
+      : (mie.slice().sort((a, b) => (ordMie[a.stato] ?? 3) - (ordMie[b.stato] ?? 3))
+          .map(a => `<div class="item ${AS[a.stato]||""}" data-att="${a.id}" role="button" tabindex="0" style="cursor:pointer" title="Tocca per far avanzare lo stato">
+        <div class="avatar">${esc(sig(a.titolo))}</div>
+        <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc([etichettaAssegnazione(a), a.dettaglio, a.turno].filter(Boolean).join(" · "))}</div></div>
+        <span class="badge ${AB[a.stato][0]}">${a.stato==="anomalia"?I.allarme:""}${AB[a.stato][1]}</span></div>`).join("")
+        || vuoto(I.spunta, fatte ? "Tutto fatto" : "Niente in carico",
+            fatte ? `Le <b>${fatte}</b> attività di oggi assegnate a te o alla tua squadra sono <b>tutte concluse</b>.`
+                  : "Oggi non c'è nessuna attività assegnata a te o alla tua squadra. Il capocantiere le assegna da <b>Attività → Nuova attività</b>."));
+  }
+
+  // Elenco delle persone, filtrabile per squadra.
+  function renderOperatori() {
+    const filtro = $("ope-filtro").value;
+    const righe = operatoriDi(OPER, filtro);
+    $("ope-count").textContent = righe.length;
+    $("ope-list").innerHTML = righe.map(o => { const giu = o.stato === "non-disponibile";
+      const carico = ATT_OGGI.filter(a => String(a.operatore || "").trim() === o.nome && a.stato !== "conclusa").length;
+      return `<div class="item ${giu ? "st-mute" : "st-ok"}" data-ope="${esc(o.id)}" role="button" tabindex="0" style="cursor:pointer" title="Tocca per cambiare la disponibilità">
+      <div class="avatar${giu ? " mute" : ""}">${esc((o.nome || "?").split(/\s+/).map(p => p[0] || "").join("").slice(0, 2).toUpperCase())}</div>
+      <div class="info"><div class="name">${esc(o.nome)}</div><div class="meta">${esc(o.ruolo || "ruolo non indicato")} · ${esc(squadraBase(o.squadra) || "senza squadra")}${carico ? " · " + carico + " in carico oggi" : ""}</div></div>
+      <span class="badge ${giu ? "tag" : "ok"}">${giu ? "Non disponibile" : "In forza"}</span></div>`; }).join("")
+      || vuoto(I.persona, filtro ? "Nessuno in questa squadra" : "Nessun operatore in anagrafica",
+          filtro ? "In questa squadra non è registrata ancora nessuna persona: aggiungila qui sotto e potrai assegnarle il lavoro."
+                 : "Aggiungi le persone qui sotto: nome, ruolo e squadra. Da lì in poi ogni attività può avere un nome sopra, e chi lavora sa cosa gli tocca.");
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // C2 · OBIETTIVO DI TURNO E SCOSTAMENTO
+  // ══════════════════════════════════════════════════════════════════════
+  // Il turno guardato è quello scelto nel form qui sotto (di partenza: oggi e
+  // il turno dell'ora corrente). Il Quadro mostra lo stesso obiettivo: una
+  // sola scelta, due letture che non possono contraddirsi.
+  const obUnita = (st) => st.unita === UNITA_ATTIVITA
+    ? st.fatto + " su " + st.obiettivo + " attività concluse"
+    : formattaProduzione(st.fatto, st.unita) + " su " + formattaProduzione(st.obiettivo, st.unita);
+  const obQuanto = (v, unita) => unita === UNITA_ATTIVITA
+    ? v + " attività" : formattaProduzione(v, unita);
+
+  function renderObiettivo() {
+    const data = $("ob-data").value || OGGI, turno = $("ob-turno").value || turnoCorrente();
+    const ob = obiettivoDi(OBIE, data, turno);
+    const st = statoObiettivo(ob, RAP, ATT);
+    const board = $("ob-board"), stato = $("ob-stato");
+    if (!st) {
+      board.innerHTML = "";
+      stato.innerHTML = vuoto(I.bersaglio, "Nessun obiettivo per questo turno",
+        `Scrivi qui sotto quanto ci si aspetta dal turno <b>${esc(turno)}</b> del <b>${dmy(data)}</b>: `
+        + "Campo confronta da solo quello che viene registrato con l'obiettivo e ti dice quanto manca, senza fare conti a mano.");
+      svuotaGraf("ob-graf");
+      return;
+    }
+    const cls = st.livello === "ok" ? "ok" : st.livello === "warn" ? "warn" : "";
+    const testo = st.livello === "ok"
+      ? `<b>${esc(obUnita(st))}</b> · obiettivo raggiunto, <b>${esc(obQuanto(Math.abs(st.scarto), st.unita))}</b> in più`
+      : `<b>${esc(obUnita(st))}</b> · mancano <b class="bad">${esc(obQuanto(st.mancante, st.unita))}</b>`;
+    const cartello = `<div class="board ${cls}">
+        <div class="board-ico">${I.bersaglio}</div>
+        <div><div class="board-num">${st.pct}%</div>
+          <div class="board-lab">Obiettivo turno ${esc(st.turno)}</div></div>
+        <div class="board-txt">${testo}</div>
+      </div>`;
+    board.innerHTML = data === OGGI ? cartello : "";
+    stato.innerHTML = cartello;
+    // Barra di avanzamento con la tacca dell'obiettivo: si vede in un colpo
+    // d'occhio dove si è arrivati e dove si doveva arrivare.
+    const el = svuotaGraf("ob-graf");
+    if (el && window.dwGrafici) {
+      dwGrafici.avanzamento(el, {
+        titolo: "Quanto manca all'obiettivo",
+        meta: dmy(st.data) + " · turno " + st.turno,
+        valore: st.fatto,
+        // finché si è sotto, il fondo della barra È l'obiettivo: la tacca
+        // sarebbe appiccicata al bordo e non aggiungerebbe niente. Quando
+        // invece l'obiettivo è stato superato la tacca serve, perché dice
+        // dov'era il traguardo rispetto a dove si è arrivati.
+        massimo: Math.max(st.obiettivo, st.fatto),
+        unita: st.unita === UNITA_ATTIVITA ? "" : st.unita,
+        riferimento: st.fatto > st.obiettivo ? { valore: st.obiettivo, etichetta: "obiettivo" } : null,
+        stato: st.livello === "ok" ? "ok" : st.livello === "warn" ? "warn" : null,
+        nota: st.livello === "ok"
+          ? `Registrati <b>${obUnita(st)}</b>: l'obiettivo del turno è stato superato di <b>${obQuanto(Math.abs(st.scarto), st.unita)}</b>.`
+          : `Registrati <b>${obUnita(st)}</b>: mancano <b>${obQuanto(st.mancante, st.unita)}</b>. `
+            + (st.unita === UNITA_ATTIVITA
+                ? "Il conto sale quando un'attività del turno passa a «conclusa»."
+                : "Il conto sale quando registri la produzione dentro un rapportino di questo turno."),
+        aria: "Obiettivo del turno " + st.turno + ": " + obUnita(st) + ", pari al " + st.pct + " per cento.",
+      });
+    }
+  }
+
+  $("btn-ob").onclick = async () => {
+    const grezzo = $("ob-valore").value.trim().replace(",", ".");
+    const valore = parseFloat(grezzo);
+    if (!(Number.isFinite(valore) && valore > 0)) {
+      sbaglia("ob-valore", "ob-esito",
+        "Serve un numero maggiore di zero: quanto ci si aspetta da questo turno (per esempio 900).");
+      return;
+    }
+    err("ob-valore", false);
+    const data = $("ob-data").value || OGGI, turno = $("ob-turno").value || turnoCorrente();
+    const unita = $("ob-unita").value || UNITA_PRODUZIONE[0];
+    const gia = obiettivoDi(OBIE, data, turno);
+    if (gia) await db.aggiorna("obiettivi", gia.id, { valore, unita });
+    else await db.aggiungi("obiettivi", { data, turno, unita, valore });
+    $("ob-valore").value = "";
+    esito("ob-esito", (gia ? "Obiettivo aggiornato: " : "Obiettivo impostato: ")
+      + obQuanto(valore, unita) + " per il turno " + turno + " del " + dmy(data) + ".", "success");
+    await refresh();
+  };
+  ["ob-data", "ob-turno"].forEach(id => $(id).addEventListener("change", () => renderObiettivo()));
+
+  // ══════════════════════════════════════════════════════════════════════
+  // C3 · CHECKLIST DI INIZIO TURNO
+  // ══════════════════════════════════════════════════════════════════════
+  // Si compila prima di cominciare: ogni voce ha tre risposte grandi da
+  // toccare (a posto / non a posto / non applicabile) e si salva da sola,
+  // subito. In cava non c'è tempo per cercare un tasto «salva».
+  const ET_ESITO = { ok: ["si", "A posto"], no: ["no", "Non a posto"], na: ["na", "N.A."] };
+  let salvataggioChk = null;   // evita due creazioni in parallelo sul primo tocco
+
+  function chkCorrente() {
+    const squ = $("chk-squadra").value, turno = $("chk-turno").value || turnoCorrente();
+    return { squ, turno, doc: squ ? checklistDi(CHK, OGGI, turno, squ) : null };
+  }
+
+  function renderChecklist() {
+    const { squ, turno, doc } = chkCorrente();
+    const board = $("chk-board"), lista = $("chk-list"), tools = $("chk-tools");
+    if (!squ) {
+      board.innerHTML = vuoto(I.spunta, "Scegli la squadra",
+        "La checklist di inizio turno si compila <b>una per squadra</b>: scegli qui sopra quale, e compaiono i controlli da fare prima di cominciare.");
+      lista.innerHTML = ""; tools.style.display = "none";
+      return;
+    }
+    const esiti = (doc && doc.esiti) || {};
+    const st = statoChecklist(esiti);
+    const chiusa = !!(doc && doc.ora);
+    const cls = st.no ? "warn" : (chiusa ? "ok" : "");
+    board.innerHTML = `<div class="board ${cls}">
+        <div class="board-ico">${st.no ? I.allarme : I.spunta}</div>
+        <div><div class="board-num">${st.risposte}/${st.totale}</div>
+          <div class="board-lab">Controlli del turno ${esc(turno)}</div></div>
+        <div class="board-txt">${esc(squ)} · ${dmy(OGGI)}<br>
+          ${chiusa ? `chiusa alle <b>${esc(doc.ora)}</b>` : (st.mancanti ? `${st.mancanti === 1 ? "manca" : "mancano"} <b>${st.mancanti}</b> ${st.mancanti === 1 ? "risposta" : "risposte"}` : "tutte le risposte ci sono: puoi chiuderla")}
+          ${st.no ? ` · <b class="bad">${st.no} ${st.no === 1 ? "voce non a posto" : "voci non a posto"}</b>` : ""}</div>
+      </div>`;
+    lista.innerHTML = CHECKLIST_INIZIO.map((v, i) => {
+      const val = esiti[String(i)] || "";
+      const stile = val === "no" ? "st-danger" : val === "ok" ? "st-ok" : val === "na" ? "st-mute" : "st-warn";
+      return `<div class="item ${stile}" style="cursor:default">
+        <div class="info"><div class="name">${esc(v.testo)}</div><div class="meta chk-area">${esc(v.area)}</div></div>
+        <div class="chk-row">${ESITI_CHECK.map(e => {
+          const [c, lab] = ET_ESITO[e];
+          return `<button type="button" class="chg ${c}${val === e ? " active" : ""}" data-chk="${i}" data-esito="${e}"
+            aria-pressed="${val === e ? "true" : "false"}" title="${esc(v.testo)}: ${lab}">${lab}</button>`;
+        }).join("")}</div>
+      </div>`;
+    }).join("");
+    tools.style.display = "flex";
+    $("btn-chk-salva").textContent = chiusa ? "Checklist chiusa" : "Chiudi la checklist";
+    $("btn-chk-salva").disabled = chiusa;
+    $("btn-chk-ok").style.display = st.mancanti ? "inline-flex" : "none";
+  }
+
+  // Scrive una o più risposte sulla checklist del turno, creandola se non
+  // c'è ancora. Toccare una risposta dopo la chiusura la riapre: un
+  // controllo cambiato è un controllo da rifirmare.
+  async function salvaEsiti(nuovi) {
+    const { squ, turno, doc } = chkCorrente();
+    if (!squ || salvataggioChk) return;
+    salvataggioChk = true;
+    try {
+      if (!doc) {
+        await db.aggiungi("checklist", { data: OGGI, turno, squadra: squ, esiti: nuovi, note: "", ora: "" });
+      } else {
+        const esiti = Object.assign({}, doc.esiti || {}, nuovi);
+        await db.aggiorna("checklist", doc.id, { esiti, ora: "" });
+        if (doc.ora) toast("Checklist riaperta: hai cambiato una risposta.", "");
+      }
+      await refresh();
+    } finally { salvataggioChk = null; }
+  }
+
+  document.addEventListener("click", async (e) => {
+    const b = e.target.closest && e.target.closest("[data-chk]");
+    if (!b) return;
+    await salvaEsiti({ [b.getAttribute("data-chk")]: b.getAttribute("data-esito") });
+  });
+  // squadra e turno in cima alla pagina comandano checklist E appello
+  $("chk-squadra").onchange = () => { renderChecklist(); renderPresenze(); };
+  $("chk-turno").onchange = () => { renderChecklist(); renderPresenze(); renderChiusura(); };
+  $("btn-chk-ok").onclick = async () => {
+    const { doc } = chkCorrente();
+    const esiti = (doc && doc.esiti) || {}, nuovi = {};
+    CHECKLIST_INIZIO.forEach((v, i) => { if (!esiti[String(i)]) nuovi[String(i)] = "ok"; });
+    if (!Object.keys(nuovi).length) return;
+    if (!await chiedi("Segnare tutto a posto",
+          `Stai per mettere <b>a posto</b> le ${Object.keys(nuovi).length} voci a cui non hai ancora risposto.<br><br>
+           Fallo solo se i controlli li hai <b>davvero fatti</b>: la checklist resta scritta con la tua squadra,
+           il giorno e l'ora. Le voci a cui hai già risposto non cambiano.`, "Sono tutte a posto")) return;
+    await salvaEsiti(nuovi);
+    esito("chk-esito", "Segnate a posto le voci che mancavano: ora puoi chiudere la checklist.", "success");
+  };
+  $("btn-chk-salva").onclick = async () => {
+    const { squ, turno, doc } = chkCorrente();
+    if (!doc) { esito("chk-esito", "Non hai ancora risposto a niente: tocca una risposta su ogni voce.", "err"); return; }
+    const st = statoChecklist(doc.esiti || {});
+    if (!st.completa) {
+      esito("chk-esito", `${st.mancanti === 1 ? "Manca ancora una risposta" : "Mancano ancora " + st.mancanti + " risposte"}: rispondi a tutte le voci prima di chiudere la checklist.`, "err");
+      return;
+    }
+    if (st.no && !await chiedi("Chiudere con voci non a posto",
+          `Ci ${st.no === 1 ? "è" : "sono"} <b>${st.no}</b> ${st.no === 1 ? "voce non a posto" : "voci non a posto"}:<br>
+           ${st.problemi.map(p => "· " + esc(p)).join("<br>")}<br><br>
+           Chiudere la checklist così significa <b>cominciare il turno sapendolo</b>. Il rapporto di fine
+           turno lo scrive.`, "Chiudo lo stesso", true)) return;
+    const ora = new Date().toTimeString().slice(0, 5);
+    await db.aggiorna("checklist", doc.id, { ora });
+    esito("chk-esito", `Checklist di ${squ} chiusa alle ${ora} (turno ${turno}).`, st.no ? "" : "success");
+    await refresh();
+  };
+
+  // ══════════════════════════════════════════════════════════════════════
+  // C3 · PRESENZE — l'appello del turno
+  // ══════════════════════════════════════════════════════════════════════
+  // Due sole risposte, grandi: c'è / non c'è. Si salva a ogni tocco, con
+  // l'ora. Segue la squadra e il turno scelti in cima alla pagina.
+  const ET_PRESENZA = { presente: ["si", "C'è"], assente: ["no", "Non c'è"] };
+  let salvataggioPre = null;
+
+  function renderPresenze() {
+    const squ = $("chk-squadra").value, turno = $("chk-turno").value || turnoCorrente();
+    const app = appelloTurno(OPER, PRE, OGGI, turno, squ);
+    $("pre-count").textContent = app.totale;
+    if (!app.totale) {
+      $("pre-board").innerHTML = "";
+      $("pre-list").innerHTML = vuoto(I.persone,
+        squ ? "Nessuno in questa squadra" : "Nessuno in anagrafica",
+        squ ? "In questa squadra non c'è nessuna persona disponibile: aggiungila da <b>Squadre → Nuovo operatore</b> e potrai fare l'appello."
+            : "Per fare l'appello servono i nomi: aggiungili da <b>Squadre → Nuovo operatore</b>. Bastano nome, ruolo e squadra.");
+      $("pre-tools").style.display = "none";
+      return;
+    }
+    const cls = app.daFare ? "warn" : (app.assenti ? "" : "ok");
+    $("pre-board").innerHTML = `<div class="board ${cls}">
+        <div class="board-ico">${app.daFare ? I.allarme : I.persone}</div>
+        <div><div class="board-num">${app.presenti}/${app.totale}</div>
+          <div class="board-lab">Presenti · turno ${esc(turno)}</div></div>
+        <div class="board-txt">${esc(squ || "tutte le squadre")} · ${dmy(OGGI)}<br>
+          ${app.assenti ? `<b>${app.assenti}</b> ${app.assenti === 1 ? "assente" : "assenti"}` : "nessun assente"}
+          ${app.daFare ? ` · <b class="bad">${app.daFare} ancora da spuntare</b>` : " · appello completo"}</div>
+      </div>`;
+    $("pre-list").innerHTML = app.righe.map(r => {
+      const o = r.operatore;
+      const stile = r.stato === "assente" ? "st-danger" : r.stato === "presente" ? "st-ok" : "st-warn";
+      return `<div class="item ${stile}" style="cursor:default">
+        <div class="avatar${r.stato === "assente" ? " mute" : ""}">${esc((o.nome || "?").split(/\s+/).map(p => p[0] || "").join("").slice(0, 2).toUpperCase())}</div>
+        <div class="info"><div class="name">${esc(o.nome)}</div>
+          <div class="meta">${esc(o.ruolo || "ruolo non indicato")} · ${esc(squadraBase(o.squadra) || "senza squadra")}${r.ora ? " · spuntato alle " + esc(r.ora) : ""}</div></div>
+        <div class="chk-row">${STATI_PRESENZA.map(s => {
+          const [c, lab] = ET_PRESENZA[s];
+          return `<button type="button" class="chg ${c}${r.stato === s ? " active" : ""}" data-pre="${esc(o.id)}" data-stato="${s}"
+            aria-pressed="${r.stato === s ? "true" : "false"}" title="${esc(o.nome)}: ${lab}">${lab}</button>`;
+        }).join("")}</div>
+      </div>`;
+    }).join("");
+    $("pre-tools").style.display = "flex";
+    $("btn-pre-tutti").style.display = app.daFare ? "inline-flex" : "none";
+  }
+
+  async function salvaPresenza(operatoreId, stato) {
+    if (salvataggioPre) return;
+    salvataggioPre = true;
+    try {
+      const turno = $("chk-turno").value || turnoCorrente();
+      const o = OPER.find(x => x.id === operatoreId);
+      const gia = presenzaDi(PRE, OGGI, turno, operatoreId);
+      const ora = new Date().toTimeString().slice(0, 5);
+      if (gia) await db.aggiorna("presenze", gia.id, { stato, ora });
+      else await db.aggiungi("presenze", { data: OGGI, turno, operatoreId, nome: (o && o.nome) || "", stato, ora });
+      await refresh();
+    } finally { salvataggioPre = null; }
+  }
+
+  document.addEventListener("click", async (e) => {
+    const b = e.target.closest && e.target.closest("[data-pre]");
+    if (!b) return;
+    await salvaPresenza(b.getAttribute("data-pre"), b.getAttribute("data-stato"));
+  });
+  $("btn-pre-tutti").onclick = async () => {
+    const turno = $("chk-turno").value || turnoCorrente();
+    const app = appelloTurno(OPER, PRE, OGGI, turno, $("chk-squadra").value);
+    const mancanti = app.righe.filter(r => !r.stato);
+    if (!mancanti.length) return;
+    if (!await chiedi("Segnare tutti presenti",
+          `Stai per segnare presenti le <b>${mancanti.length}</b> persone non ancora spuntate:<br>
+           ${mancanti.map(r => "· " + esc(r.operatore.nome)).join("<br>")}<br><br>
+           Fallo solo se le hai <b>viste davvero</b>: su questa lista si conta l'appello in caso di emergenza.`,
+          "Ci sono tutti")) return;
+    for (const r of mancanti) await salvaPresenza(r.operatore.id, "presente");
+    esito("pre-esito", "Segnate presenti " + mancanti.length + " persone.", "success");
+  };
+  $("btn-pre-export").onclick = () => {
+    const turno = $("chk-turno").value || turnoCorrente();
+    const app = appelloTurno(OPER, PRE, OGGI, turno, $("chk-squadra").value);
+    if (!app.totale) { esito("pre-esito", "Non c'è nessuno da mettere nell'elenco.", "err"); return; }
+    let csv = "data;turno;nome;ruolo;squadra;stato;ora\n";
+    for (const r of app.righe)
+      csv += `${OGGI};${csvCell(turno)};${csvCell(r.operatore.nome)};${csvCell(r.operatore.ruolo || "")};`
+           + `${csvCell(squadraBase(r.operatore.squadra))};${r.stato || "da spuntare"};${r.ora || ""}\n`;
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.download = "campo_appello.csv"; a.click();
+    esito("pre-esito", "Elenco per l'appello esportato: " + app.totale + " persone.", "success");
+  };
+
+  // ══════════════════════════════════════════════════════════════════════
+  // C3 · CHIUSURA DEL TURNO — la firma della consegna
+  // ══════════════════════════════════════════════════════════════════════
+  // Riapre chi deve correggere, ma la riapertura è un gesto dichiarato: il
+  // turno non torna aperto da solo e chi guarda il rapporto vede sempre se
+  // è chiuso e da chi.
+  function renderChiusura() {
+    const turno = $("chk-turno").value || turnoCorrente();
+    const c = chiusuraDi(CHI, OGGI, turno);
+    const chiuso = !!(c && c.ora);
+    $("fir-board").innerHTML = chiuso
+      ? `<div class="board ok">
+           <div class="board-ico">${I.spunta}</div>
+           <div><div class="board-num">${esc(c.ora)}</div>
+             <div class="board-lab">Turno ${esc(turno)} chiuso</div></div>
+           <div class="board-txt"><b>${esc(riassuntoChiusura(c))}</b>${c.note ? "<br>" + esc(c.note) : ""}</div>
+         </div>`
+      : "";
+    $("fir-form").style.display = chiuso ? "none" : "flex";
+    $("fir-tools").style.display = chiuso ? "flex" : "none";
+  }
+
+  $("btn-fir").onclick = async () => {
+    const consegna = $("fir-consegna").value.trim();
+    if (!consegna) { sbaglia("fir-consegna", "fir-esito",
+      "Manca il nome di chi consegna: è la firma della consegna, senza non è un documento."); return; }
+    err("fir-consegna", false);
+    const turno = $("chk-turno").value || turnoCorrente();
+    const ricevuta = $("fir-ricevuta").value.trim(), note = $("fir-note").value.trim();
+    const ora = new Date().toTimeString().slice(0, 5);
+    const gia = chiusuraDi(CHI, OGGI, turno);
+    if (gia) await db.aggiorna("chiusure", gia.id, { consegna, ricevuta, note, ora });
+    else await db.aggiungi("chiusure", { data: OGGI, turno, consegna, ricevuta, note, ora });
+    $("fir-consegna").value = ""; $("fir-ricevuta").value = ""; $("fir-note").value = "";
+    esito("fir-esito", "Turno " + turno + " chiuso alle " + ora
+      + " da " + consegna + (ricevuta ? ", ricevuto da " + ricevuta : "") + ".", "success");
+    await refresh();
+  };
+  $("btn-fir-riapri").onclick = async () => {
+    const turno = $("chk-turno").value || turnoCorrente();
+    const c = chiusuraDi(CHI, OGGI, turno);
+    if (!c) return;
+    if (!await chiedi("Riaprire il turno",
+          `Il turno <b>${esc(turno)}</b> risulta chiuso alle <b>${esc(c.ora)}</b>${c.consegna ? " da <b>" + esc(c.consegna) + "</b>" : ""}.<br><br>
+           Riaprendolo <b>la firma viene tolta</b> e il rapporto di fine turno torna a dire che il turno
+           non è stato consegnato. Si rifirma quando è a posto.`, "Riapri il turno", true)) return;
+    await db.aggiorna("chiusure", c.id, { ora: "" });
+    esito("fir-esito", "Turno " + turno + " riaperto: la firma è stata tolta.", "");
+    await refresh();
+  };
+  // (clearErr/enterSubmit per questi campi stanno più in basso, insieme a
+  //  quelli degli altri form: lì sono già definiti.)
+
+  // ══════════════════════════════════════════════════════════════════════
+  // C3 · STORICO DELLA SETTIMANA
+  // ══════════════════════════════════════════════════════════════════════
+  // Campo smette di essere solo la lavagna di oggi e diventa un registro:
+  // giorno per giorno, quanto si è prodotto, quanto ci si è fermati, quante
+  // attività si sono chiuse.
+  let SET_RIGHE = [];
+  const giornoLungo = (iso) => {
+    try { return new Date(iso + "T12:00:00").toLocaleDateString("it-IT", { weekday: "long" }); }
+    catch (e) { return ""; }
+  };
+  const prodTesto = (prod) => Object.entries(prod || {})
+    .map(([u, q]) => formattaProduzione(q, u)).join(" + ");
+
+  function renderSettimana() {
+    const giorni = +$("set-giorni").value || 7;
+    SET_RIGHE = storicoSettimana(ATT, RAP, giorni);
+    const tot = totaliSettimana(SET_RIGHE);
+    const unita = unitaPrevalente(SET_RIGHE);
+    const prodTot = prodTesto(tot.prod);
+    $("set-board").innerHTML = `<div class="board ${tot.minutiFermo && !tot.giorniConDati ? "warn" : ""}">
+        <div class="board-ico">${I.calend}</div>
+        <div><div class="board-num">${tot.giorniConDati}</div>
+          <div class="board-lab">${tot.giorniConDati === 1 ? "Giornata registrata" : "Giornate registrate"} su ${tot.giorni}</div></div>
+        <div class="board-txt">
+          Prodotto: <b>${prodTot ? esc(prodTot) : "niente registrato"}</b> ·
+          fermi: <b>${tot.minutiFermo} min</b><br>
+          Attività concluse: <b>${tot.attConcluse}/${tot.attTot}</b>${tot.pctConcluse != null ? " (" + tot.pctConcluse + "%)" : ""} ·
+          rapportini inviati: <b>${tot.rapInviati}</b>
+        </div>
+      </div>`;
+    graficoSettimana(SET_RIGHE, unita);
+    $("set-count").textContent = SET_RIGHE.length;
+    $("set-list").innerHTML = SET_RIGHE.slice().reverse().map(g => {
+      const vuota = !g.attTot && !g.rapTot && !Object.keys(g.prod).length;
+      const oggi = g.data === OGGI;
+      const p = prodTesto(g.prod);
+      return `<div class="item ${vuota ? "st-mute" : (g.fermi ? "st-warn" : "st-ok")}" data-giorno="${g.data}" role="button" tabindex="0" style="cursor:pointer" title="Apri la giornata del ${dmy(g.data)}">
+        <div class="avatar${vuota ? " mute" : ""}">${esc(g.data.slice(8, 10))}</div>
+        <div class="info">
+          <div class="name">${esc(giornoLungo(g.data))} ${dmy(g.data)}${oggi ? " · oggi" : ""}</div>
+          <div class="meta gio-num">${vuota
+            ? "nessuna registrazione"
+            : `<span>prodotto <b>${p ? esc(p) : "—"}</b></span>
+               <span>fermi <b>${g.minutiFermo} min</b></span>
+               <span>attività <b>${g.attConcluse}/${g.attTot}</b></span>
+               <span>rapportini <b>${g.rapInviati}</b></span>`}</div>
+        </div>
+        <span class="arr deco">${I.chevron}</span></div>`;
+    }).join("");
+  }
+
+  // Il grafico della settimana: una colonna per giornata. Si disegna la
+  // produzione se ce n'è (nell'unità che pesa di più: tonnellate e metri
+  // cubi non si sommano fra loro), altrimenti le attività concluse — mai
+  // un grafico vuoto e mai due grandezze sullo stesso asse.
+  function graficoSettimana(righe, unita) {
+    const el = svuotaGraf("set-graf"); if (!el) return;
+    const conProd = !!unita;
+    const attTot = righe.reduce((t, g) => t + g.attTot, 0);
+    if (!conProd && !attTot) {
+      el.innerHTML = vuoto(I.calend, "Ancora nessuna giornata da confrontare",
+        "In questo periodo non è stata registrata né produzione né attività. Registra le attività con il loro <b>giorno di lavoro</b> e la produzione dentro i rapportini: la settimana si disegna da sola.");
+      return;
+    }
+    if (!window.dwGrafici) return;
+    const valori = righe.map(g => ({
+      etichetta: g.data.slice(8, 10),
+      valore: conProd ? (g.prod[unita] || 0) : g.attConcluse,
+    }));
+    const totale = valori.reduce((t, v) => t + v.valore, 0);
+    if (!totale) {
+      // colonne tutte a zero: disegnarle direbbe «abbiamo lavorato zero»,
+      // mentre la verità è che non è ancora stato chiuso niente.
+      el.innerHTML = vuoto(I.calend, "Niente da mettere in colonna",
+        `In questo periodo ci sono <b>${attTot}</b> ${attTot === 1 ? "attività registrata" : "attività registrate"} ma nessuna conclusa e nessuna produzione. `
+        + "Fai avanzare le attività fino a <b>conclusa</b>, oppure registra la produzione dentro un rapportino.");
+      return;
+    }
+    const conDati = valori.filter(v => v.valore > 0).length;
+    const media = conDati ? Math.round(totale / conDati * 10) / 10 : 0;
+    const migliore = valori.reduce((a, b) => b.valore > a.valore ? b : a);
+    const gMigliore = righe.find(g => g.data.slice(8, 10) === migliore.etichetta);
+    dwGrafici.barre(el, {
+      titolo: conProd ? "Produzione per giornata" : "Attività concluse per giornata",
+      meta: "dal " + dmy(righe[0].data).slice(0, 5) + " al " + dmy(righe[righe.length - 1].data).slice(0, 5),
+      unita: conProd ? unita : "",
+      valori,
+      nota: `Ogni colonna è una giornata di lavoro. `
+        + (conProd
+            ? `Si disegna la grandezza che pesa di più nel periodo, <b>${unita}</b>: le altre unità di misura non si sommano a questa e restano nell'elenco qui sotto. `
+            : `Non c'è ancora produzione registrata, quindi si contano le <b>attività concluse</b>. `)
+        + `Nelle giornate con qualcosa registrato la media è <b>${media}${conProd ? " " + unita : ""}</b>; `
+        + `la migliore è il <b>${gMigliore ? dmy(gMigliore.data) : migliore.etichetta}</b> con <b>${migliore.valore}${conProd ? " " + unita : ""}</b>. `
+        + `Le colonne a zero sono giornate senza registrazioni: nel registro di una settimana anche quelle contano.`,
+      aria: (conProd ? "Produzione" : "Attività concluse") + " per giornata: "
+        + righe.map((g, i) => dmy(g.data) + " " + valori[i].valore).join(", ") + ".",
+    });
+  }
+
+  $("set-giorni").onchange = () => renderSettimana();
+  // Aprire una giornata dallo storico: attività e rapportini si spostano lì.
+  document.addEventListener("click", (e) => {
+    const g = e.target.closest && e.target.closest("[data-giorno]");
+    if (!g) return;
+    GIORNO_SCELTO = g.getAttribute("data-giorno");
+    opzioneGiorno("att-giorno"); opzioneGiorno("rap-giorno");
+    $("att-giorno").value = "scelto"; $("rap-giorno").value = "scelto";
+    filtroAtt = "tutte";
+    go("att"); refresh();
+    toast("Giornata aperta: " + dmy(GIORNO_SCELTO) + ".", "");
+  });
+  $("btn-set-export").onclick = () => {
+    if (!SET_RIGHE.length) { esito("set-esito", "Non c'è nessuna giornata da esportare.", "err"); return; }
+    const unita = [...new Set(SET_RIGHE.flatMap(g => Object.keys(g.prod)))].sort();
+    let csv = "data;" + unita.map(u => "prodotto_" + u).join(";") + (unita.length ? ";" : "")
+            + "minuti_fermo;fermi;attivita_totali;attivita_concluse;rapportini_inviati\n";
+    for (const g of SET_RIGHE)
+      csv += `${g.data};${unita.map(u => g.prod[u] || 0).join(";")}${unita.length ? ";" : ""}`
+           + `${g.minutiFermo};${g.fermi};${g.attTot};${g.attConcluse};${g.rapInviati}\n`;
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.download = "campo_storico.csv"; a.click();
+    esito("set-esito", "Esportate " + SET_RIGHE.length + " giornate nel file campo_storico.csv.", "success");
+  };
 
   // interazioni: attività cicla lo stato; rapportino bozza → inviato
   const ATT_NEXT = { pianificata: "in-corso", "in-corso": "conclusa", anomalia: "in-corso", conclusa: "pianificata" };
@@ -961,8 +1803,11 @@ button.arr.del:hover{
       // data e turno del record: così la modifica serve anche a DATARE un'attività
       // vecchia rimasta senza giorno di lavoro.
       $("att-data").value = a.data || OGGI; $("att-turno").value = a.turno || turnoCorrente();
+      // la modifica serve anche a (ri)assegnare il lavoro a un'altra squadra
+      $("att-squadra").value = squadraBase(a.squadra) || "";
+      aggiornaOperatoriDelForm(String(a.operatore || "").trim());
       $("btn-att").textContent = "Salva modifica";
-      esito("att-esito", "Stai modificando «" + a.titolo + "»: puoi cambiare titolo, dettaglio, giorno e turno; lo stato resta com'è.");
+      esito("att-esito", "Stai modificando «" + a.titolo + "»: puoi cambiare titolo, dettaglio, giorno, turno e a chi tocca; lo stato resta com'è.");
       $("att-titolo").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
     const it = e.target.closest && e.target.closest("[data-att]");
     if (it) { const a = ATT.find(x => x.id === it.getAttribute("data-att"));
@@ -1034,14 +1879,19 @@ button.arr.del:hover{
       "Manca il giorno di lavoro: senza data l'attività non entra in nessuno storico né nei conteggi della giornata."); return; }
     err("att-data", false);
     const turno = $("att-turno").value || turnoCorrente();
+    // Assegnazione: la squadra dice a chi tocca, la persona (facoltativa) dice
+    // a chi in particolare. Senza squadra l'attività non è di nessuno, e
+    // l'app lo scrive invece di far finta di niente.
+    const squadra = $("att-squadra").value, operatore = squadra ? $("att-operatore").value : "";
     if (editAtt) {
-      await db.aggiorna("attivita", editAtt, { titolo, dettaglio: $("att-dett").value.trim(), data, turno });   // stato/causale restano
+      await db.aggiorna("attivita", editAtt, { titolo, dettaglio: $("att-dett").value.trim(), data, turno, squadra, operatore });   // stato/causale restano
       editAtt = null; $("btn-att").textContent = "Pianifica";
     } else {
-      await db.aggiungi("attivita", { titolo, dettaglio: $("att-dett").value.trim(), data, turno, stato: "pianificata" });
+      await db.aggiungi("attivita", { titolo, dettaglio: $("att-dett").value.trim(), data, turno, squadra, operatore, stato: "pianificata" });
     }
     resetFormAtt();
-    esito("att-esito", "Attività salvata: " + titolo + " (" + dmy(data) + " · turno " + turno + ").", "success");
+    esito("att-esito", "Attività salvata: " + titolo + " (" + dmy(data) + " · turno " + turno
+      + (squadra ? " · " + squadra + (operatore ? " · " + operatore : "") : " · da assegnare") + ").", "success");
     $("att-titolo").focus();   // torna al primo campo per inserire subito la prossima
     await refresh();
   };
@@ -1099,6 +1949,49 @@ button.arr.del:hover{
     esito("squ-esito", "Squadra aggiunta: " + nome + " — è in turno.", "success"); $("squ-nome").focus();
     await refresh();
   };
+  // ── Operatori: anagrafica minima e disponibilità ──────────────────────
+  $("btn-ope").onclick = async () => {
+    const nome = $("ope-nome").value.trim();
+    if (!nome) { sbaglia("ope-nome", "ope-esito",
+      "Manca il nome: serve a sapere chi sta facendo il lavoro (per esempio «Marco Rossi»)."); return; }
+    if (OPER.some(o => (o.nome || "").trim().toLowerCase() === nome.toLowerCase())) {
+      sbaglia("ope-nome", "ope-esito", "C'è già una persona con questo nome: se sono due persone diverse, aggiungi l'iniziale del cognome per distinguerle."); return; }
+    err("ope-nome", false);
+    const squadra = $("ope-squadra").value, ruolo = $("ope-ruolo").value || RUOLI[0];
+    await db.aggiungi("operatori", { nome, ruolo, squadra, stato: "in-forza" });
+    $("ope-nome").value = "";
+    esito("ope-esito", "Aggiunto: " + nome + " — " + ruolo + (squadra ? " · " + squadra : " · senza squadra") + ".", "success");
+    $("ope-nome").focus();
+    await refresh();
+  };
+  $("ope-filtro").onchange = () => renderOperatori();
+  $("att-squadra").onchange = () => aggiornaOperatoriDelForm();
+  // «Chi sono io»: resta sul telefono di chi lo usa e comanda «cosa tocca a me».
+  $("io-squadra").onchange = () => {
+    IO.squadra = $("io-squadra").value; IO.operatore = "";
+    salvaIo(); aggiornaSceltaSquadre(); renderIo();
+  };
+  $("io-operatore").onchange = () => { IO.operatore = $("io-operatore").value; salvaIo(); renderIo(); };
+  document.addEventListener("click", async (e) => {
+    const el = e.target.closest && e.target.closest("[data-ope]");
+    if (!el) return;
+    const o = OPER.find(x => x.id === el.getAttribute("data-ope"));
+    if (!o) return;
+    const nuovo = o.stato === "non-disponibile" ? "in-forza" : "non-disponibile";
+    if (nuovo === "non-disponibile") {
+      const inCarico = ATT.filter(a => String(a.operatore || "").trim() === o.nome && a.stato !== "conclusa").length;
+      if (!await chiedi("Segnare non disponibile",
+            `Stai per segnare <b>${esc(o.nome)}</b> come non disponibile (malattia, ferie, altro cantiere).<br><br>
+             Non comparirà più fra le persone a cui assegnare un'attività.
+             ${inCarico ? `Attenzione: ha ancora <b>${inCarico}</b> ${inCarico === 1 ? "attività aperta" : "attività aperte"} a suo nome, che restano lì: riassegnale a qualcun altro.` : "Le attività già concluse non cambiano."}`,
+            "Segna non disponibile", true)) return;
+    }
+    await db.aggiorna("operatori", o.id, { stato: nuovo });
+    toast(nuovo === "in-forza" ? o.nome + " è di nuovo in forza." : o.nome + " è segnato non disponibile.",
+          nuovo === "in-forza" ? "success" : "err");
+    await refresh();
+  });
+
   $("btn-squ-import").onclick = () => $("squ-file").click();
   $("squ-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
@@ -1137,6 +2030,26 @@ button.arr.del:hover{
     txt += (unita.length ? "- totale: " + unita.map(([u, q]) => formattaProduzione(q, u)).join(" + ") + "\n"
       + tp.perTurno.map(t => "- turno " + t.turno + ": " + Object.entries(t.perUnita).map(([u, q]) => formattaProduzione(q, u)).join(" + ")).join("\n")
       : "- nessuna produzione registrata") + "\n\n";
+    const obT = OBIE.filter(o => String(o.data || "") === OGGI)
+      .map(o => statoObiettivo(o, RAP_OGGI, ATT_OGGI)).filter(Boolean);
+    txt += "OBIETTIVO DEL TURNO\n";
+    txt += (obT.length ? obT.map(o => "- turno " + o.turno + ": "
+      + (o.unita === UNITA_ATTIVITA ? o.fatto + " su " + o.obiettivo + " attività concluse"
+                                    : formattaProduzione(o.fatto, o.unita) + " su " + formattaProduzione(o.obiettivo, o.unita))
+      + " (" + o.pct + "%, " + (o.scarto >= 0 ? "+" : "−") + Math.abs(o.scarto) + ")").join("\n")
+      : "- nessun obiettivo impostato") + "\n\n";
+    const chkT = CHK.filter(c => String(c.data || "") === OGGI);
+    txt += "CHECKLIST DI INIZIO TURNO\n";
+    txt += (chkT.length ? chkT.map(c => { const s = statoChecklist(c.esiti || {});
+      return "- " + (c.squadra || "—") + " (turno " + (c.turno || "—") + "): " + s.ok + "/" + s.totale + " a posto"
+        + (s.no ? ", NON A POSTO: " + s.problemi.join("; ") : "")
+        + (c.ora ? " — chiusa alle " + c.ora : " — non chiusa"); }).join("\n")
+      : "- nessuna checklist compilata") + "\n\n";
+    const chiuT = CHI.filter(c => String(c.data || "") === OGGI && c.ora);
+    txt += "CHIUSURA DEL TURNO\n";
+    txt += (chiuT.length ? chiuT.map(c => "- turno " + c.turno + ": " + riassuntoChiusura(c)
+      + (c.note ? " — " + c.note : "")).join("\n")
+      : "- nessun turno chiuso: consegna non firmata") + "\n\n";
     const fermi = riepilogoFermi(ATT_OGGI);
     txt += "ANOMALIE / FERMI\n";
     txt += (fermi.length ? fermi.map(f => "- " + f.causale + ": " + f.conto).join("\n") : "- nessuna anomalia aperta") + "\n";
@@ -1155,8 +2068,22 @@ button.arr.del:hover{
     const tp = totaliProduzione(RAP_OGGI), unitaProd = Object.entries(tp.perUnita);
     const somma = (u) => Object.entries(u).map(([un, q]) => formattaProduzione(q, un)).join(" + ");
     const st = { "in-corso": "In corso", pianificata: "Pianificata", conclusa: "Conclusa", anomalia: "ANOMALIA" };
-    const riga = (a) => `<tr><td>${esc(a.turno||"—")}</td><td>${esc(a.titolo)}</td><td>${esc(a.dettaglio||"")}</td><td>${st[a.stato]||esc(a.stato)}${a.stato==="anomalia"&&a.causale?" — "+esc(a.causale):""}</td></tr>`;
+    const riga = (a) => `<tr><td>${esc(a.turno||"—")}</td><td>${esc(a.titolo)}</td><td>${esc(a.dettaglio||"")}</td><td>${esc(etichettaAssegnazione(a)||"da assegnare")}</td><td>${st[a.stato]||esc(a.stato)}${a.stato==="anomalia"&&a.causale?" — "+esc(a.causale):""}</td></tr>`;
     const ordR = { anomalia:0, "in-corso":1, pianificata:2, conclusa:3 };
+    // Obiettivi del giorno (uno per turno) con lo scostamento a consuntivo.
+    const obOggi = OBIE.filter(o => String(o.data||"") === OGGI)
+      .map(o => statoObiettivo(o, RAP_OGGI, ATT_OGGI)).filter(Boolean);
+    const segno = (n) => (n >= 0 ? "+" : "−") + Math.abs(n);
+    // Checklist di inizio turno chiuse o in corso oggi.
+    const chkOggi = CHK.filter(c => String(c.data||"") === OGGI)
+      .map(c => ({ c, st: statoChecklist(c.esiti || {}) }));
+    // Personale presente: la voce che ogni rapporto di turno professionale ha
+    // e che serve, sul serio, all'appello di emergenza.
+    const preOggi = TURNI.map(t => ({ turno: t, app: appelloTurno(OPER, PRE, OGGI, t, "") }))
+      .filter(x => x.app.presenti || x.app.assenti);
+    // Firme di chiusura: se non ce ne sono, il rapporto porta le righe vuote
+    // da compilare a penna — un documento senza firma resta un appunto.
+    const chiuOggi = CHI.filter(c => String(c.data||"") === OGGI && c.ora);
     const html = `<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><title>Rapporto di fine turno — ${oggi}</title>
 <style>body{font:13px/1.45 sans-serif;color:#222;margin:28px;max-width:800px}h1{font-size:19px;margin:0 0 2px}h2{font-size:14px;margin:18px 0 6px;border-bottom:1px solid #999;padding-bottom:2px}
 table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px 8px;text-align:left;font-size:12px}th{background:#f2f2f2}
@@ -1167,8 +2094,15 @@ table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4p
 <span class="kpi"><b>${ATT_OGGI.filter(a=>a.stato==="anomalia").length}</b> anomalie aperte</span>
 <span class="kpi"><b>${cop.coperte}/${cop.totale}</b> squadre con rapportino</span>
 <span class="kpi"><b>${unitaProd.length?esc(somma(tp.perUnita)):"—"}</b> prodotti</span></div>
+<h2>Checklist di inizio turno</h2>
+${chkOggi.length?`<table><tr><th>Squadra</th><th>Turno</th><th>Risposte</th><th>Voci non a posto</th><th>Chiusa alle</th></tr>${chkOggi.map(x=>`<tr><td>${esc(x.c.squadra||"—")}</td><td>${esc(x.c.turno||"—")}</td><td>${x.st.ok} a posto · ${x.st.na} n.a. · ${x.st.mancanti} senza risposta</td><td>${x.st.problemi.length?x.st.problemi.map(esc).join("; "):"nessuna"}</td><td>${esc(x.c.ora||"non chiusa")}</td></tr>`).join("")}</table>`:"<div>Nessuna checklist di inizio turno compilata oggi.</div>"}
+<h2>Personale presente</h2>
+${preOggi.length?preOggi.map(x=>`<div><b>Turno ${esc(x.turno)}</b>: ${x.app.presenti} ${x.app.presenti===1?"presente":"presenti"} su ${x.app.totale}${x.app.daFare?`, ${x.app.daFare} ${x.app.daFare===1?"non spuntato":"non spuntati"}`:""}.</div>
+<table><tr><th>Nome</th><th>Ruolo</th><th>Squadra</th><th>Stato</th><th>Ora</th></tr>${x.app.righe.map(r=>`<tr><td>${esc(r.operatore.nome)}</td><td>${esc(r.operatore.ruolo||"—")}</td><td>${esc(squadraBase(r.operatore.squadra)||"—")}</td><td>${r.stato==="presente"?"presente":r.stato==="assente"?"ASSENTE":"non spuntato"}</td><td>${esc(r.ora||"")}</td></tr>`).join("")}</table>`).join(""):"<div>Nessun appello registrato oggi.</div>"}
+<h2>Obiettivo del turno</h2>
+${obOggi.length?`<table><tr><th>Turno</th><th>Obiettivo</th><th>Fatto</th><th>Scostamento</th></tr>${obOggi.map(o=>`<tr><td>${esc(o.turno)}</td><td>${esc(o.unita===UNITA_ATTIVITA?o.obiettivo+" attività":formattaProduzione(o.obiettivo,o.unita))}</td><td>${esc(o.unita===UNITA_ATTIVITA?o.fatto+" attività":formattaProduzione(o.fatto,o.unita))} (${o.pct}%)</td><td>${esc(segno(o.scarto))}${o.unita===UNITA_ATTIVITA?" attività":" "+o.unita}</td></tr>`).join("")}</table>`:"<div>Nessun obiettivo impostato per i turni di oggi.</div>"}
 <h2>Attività</h2>
-<table><tr><th>Turno</th><th>Attività</th><th>Dettaglio</th><th>Stato</th></tr>${ATT_OGGI.slice().sort((a,b)=>(ordR[a.stato]??4)-(ordR[b.stato]??4)).map(riga).join("")||"<tr><td colspan=4>Nessuna attività registrata.</td></tr>"}</table>
+<table><tr><th>Turno</th><th>Attività</th><th>Dettaglio</th><th>Assegnata a</th><th>Stato</th></tr>${ATT_OGGI.slice().sort((a,b)=>(ordR[a.stato]??4)-(ordR[b.stato]??4)).map(riga).join("")||"<tr><td colspan=5>Nessuna attività registrata.</td></tr>"}</table>
 <h2>Fermi per causale</h2>
 ${fermi.length?`<table><tr><th>Causale</th><th>Anomalie</th></tr>${fermi.map(f=>`<tr><td>${esc(f.causale)}</td><td>${f.conto}</td></tr>`).join("")}</table>`:"<div>Nessuna anomalia aperta.</div>"}
 <h2>Produzione</h2>
@@ -1176,6 +2110,10 @@ ${unitaProd.length?`<table><tr><th>Turno</th><th>Produzione</th></tr>${tp.perTur
 <h2>Rapportini</h2>
 ${RAP_OGGI.length?`<table><tr><th>Titolo</th><th>Squadra · turno</th><th>Produzione</th><th>Consegne al turno dopo</th><th>Stato</th></tr>${RAP_OGGI.map(r=>`<tr><td>${esc(r.titolo)}</td><td>${esc(r.squadra||"—")}${r.turno?" · "+esc(r.turno):""}</td><td>${esc(+r.prodQta>0?formattaProduzione(r.prodQta,r.prodUnita):(r.produzione||"—"))}</td><td>${esc(r.note||"—")}</td><td>${esc(r.stato)}${r.ora?" "+esc(r.ora):""}</td></tr>`).join("")}</table>`:"<div>Nessun rapportino oggi.</div>"}
 ${cop.mancanti.length?`<div class="muted" style="margin-top:6px">Squadre senza rapportino: ${cop.mancanti.map(esc).join(", ")}.</div>`:""}
+<h2>Chiusura e firme</h2>
+${chiuOggi.length?`<table><tr><th>Turno</th><th>Consegnato da</th><th>Ricevuto da</th><th>Ora</th><th>Note</th></tr>${chiuOggi.map(c=>`<tr><td>${esc(c.turno)}</td><td>${esc(c.consegna||"—")}</td><td>${esc(c.ricevuta||"—")}</td><td>${esc(c.ora)}</td><td>${esc(c.note||"")}</td></tr>`).join("")}</table>`
+ :`<div>Nessun turno chiuso oggi: questo rapporto <b>non è stato consegnato</b> da nessuno.</div>
+   <div style="margin-top:14px">Consegnato da ______________________ &nbsp; Ricevuto da ______________________ &nbsp; Ora ____________</div>`}
 <div class="muted" style="margin-top:20px">Generato da Deepwork Campo — registro operativo di giornata; non sostituisce i registri obbligatori.</div>
 <script>window.print()</` + `script></body></html>`;
     const w = window.open("", "_blank"); if(!w){ esito("mode-note", "Il browser ha bloccato la finestra: sblocca i popup per questo sito e riprova.", "err"); return; }
@@ -1193,12 +2131,18 @@ ${cop.mancanti.length?`<div class="muted" style="margin-top:6px">Squadre senza r
   clearErr("new-rap-data", "mode-note");
   clearErr("new-rap-prod", "mode-note");
   clearErr("squ-nome", "squ-esito");
+  clearErr("ope-nome", "ope-esito");
+  clearErr("ob-valore", "ob-esito");
+  clearErr("fir-consegna", "fir-esito");
   // Invio da tastiera: premere Invio in un campo del form equivale a
   // toccare il pulsante — data entry più rapida senza spostare il dito.
   const enterSubmit = (inputIds, btnId) => inputIds.forEach(id =>
     $(id).addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $(btnId).click(); } }));
   enterSubmit(["att-titolo", "att-dett", "att-data"], "btn-att");
   enterSubmit(["new-rap-titolo", "new-rap-data", "new-rap-prod"], "btn-add-rap");
+  enterSubmit(["ope-nome"], "btn-ope");
+  enterSubmit(["ob-valore"], "btn-ob");
+  enterSubmit(["fir-consegna", "fir-ricevuta", "fir-note"], "btn-fir");
   await refresh();
 
   // ── Registro progettato-vs-reale (ponte da Genesi) ──
