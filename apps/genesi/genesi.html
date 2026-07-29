@@ -452,6 +452,8 @@ body.scr-sim #tl{bottom:80px}
             <label class="dc-f"><span>Inclinazione (°)</span><input type="number" id="dIncl" step="1" min="0" max="30" value="0"></label>
             <label class="dc-f"><span>Borraggio (m)</span><input type="number" id="dStem" step="0.1" min="0.5" max="6" value="2.2"></label>
             <label class="dc-f"><span>Sottoperf. (m)</span><input type="number" id="dSub" step="0.1" min="0" max="4" value="0.9"></label>
+            <label class="dc-f"><span>Errore al colletto (m)</span><input type="number" id="dErrColl" step="0.05" min="0" max="1.5" value="0.15" title="Di quanto il foro parte spostato dal punto segnato: dipende da come si marca la maglia e da come si posiziona il carro"></label>
+            <label class="dc-f"><span>Deviazione (% lungh.)</span><input type="number" id="dDev" step="0.5" min="0" max="15" value="2.5" title="Quanto il foro scappa dal suo asse scendendo: percentuale della lunghezza perforata. Dipende dal metodo e dallo stato dell'attrezzatura"></label>
           </div>
         </div>
         <div class="dc-sec"><button type="button" class="dc-sec-h">Carica & sequenza<span class="dc-sec-x">▾</span></button>
@@ -919,7 +921,8 @@ const P = { fori:12, ritardo:42, dir:'sx', prof:10, kg:60, diam:102, vento:0.8, 
 /* modello di progettazione 2D (Fase 1) — editor multi-fila disaccoppiato dal 3D single-row */
 const D2 = { B:3.0, S:3.5, file:1, perRow:12, bf:3.0, diam:102, prof:10, kg:60, ritardo:42, ritardoFila:84, stem:2.2, sub:0.9, dir:'sx', stagger:true, incl:0, kgAuto:true, esplosivo:'anfo-standard', innesco:'nonel', roccia:'calcare', ucs:100, eMod:55, frat:'media', bagnato:false, acquaCol:0, presplit:false, psSpacing:0.9, psCharge:0.4, sequenza:'diagonale', recDist:300, recNorma:'din-res', recFreq:25, cPerf:8, cExpl:1.5, cInnesco:12, valMat:0, decks:1, deckStem:1.0, tool:'fori', profilo:[], piede:[], selPt:-1, holes:[], sel:-1, lastDet:0, _m:null,
   /* livelli di lettura della pianta: isocrone dei tempi + mappa del burden relief (ms/m per foro) */
-  iso:false, isoStep:0, rel:false, relLo:5, relHi:15, ene:false, inn:false };
+  iso:false, isoStep:0, rel:false, relLo:5, relHi:15, ene:false, inn:false,
+  errColl:0.15, dev:2.5 };
 
 /* ============ three: scena base ============ */
 const view = document.getElementById('view');
@@ -3335,6 +3338,79 @@ function pfNominale(){ return D2.kg/Math.max(.1,(D2.B||3)*(D2.S||3.5)*(D2.prof||
    tagli (li si compra così), quindi un ritardo che non corrisponde a nessuno
    di quelli non è realizzabile — va detto prima di andare in cava, non dopo.
    Coi detonatori elettronici il vincolo non c'è: si programma il valore esatto. */
+/* ═══════════ G6 — LA BANDA D'INCERTEZZA DELLA PERFORAZIONE ═══════════
+   Tutti i numeri di questa app partono da una maglia disegnata perfetta. In
+   cava non lo è mai: il foro parte spostato dal punto segnato (errore al
+   colletto) e scende scappando dal suo asse (deviazione). Al piede, dove
+   conta, il burden reale non è quello di progetto — ed è lì che nascono i
+   piedi sporchi da un lato e le proiezioni dall'altro.
+   Qui la geometria vera viene perturbata molte volte e si guarda cosa
+   succede: non per fare una previsione più precisa, ma per dire **di quanto
+   quella previsione può sbagliare**. Un numero senza banda è mezzo numero.
+   Il seme del sorteggio dipende dalla geometria: la banda resta ferma finché
+   il progetto non cambia, invece di ballare a ogni ridisegno. */
+function _rngDa(seme){
+  let s=(seme>>>0)||1;
+  return function(){ s=(s*1664525+1013904223)>>>0; return s/4294967296; };
+}
+function _gauss(r){ const u=Math.max(1e-9,r()), v=r(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+function _perc(v,p){ if(!v.length) return null; const a=v.slice().sort((x,y)=>x-y); const i=Math.min(a.length-1,Math.max(0,Math.round(p*(a.length-1)))); return a[i]; }
+
+function simulaPerforazione(N){
+  const H=D2.holes; if(!H||H.length<1) return null;
+  const sCol=Math.max(0,+D2.errColl||0), pDev=Math.max(0,+D2.dev||0)/100;
+  if(sCol<=0 && pDev<=0) return { perfetta:true };
+  const L=Math.max(0.5,(D2.prof||10)+(D2.sub||0)), Bnom=Math.max(0.2,D2.B||3);
+  const Snom=Math.max(0.5,D2.S||3.5);
+  /* la faccia libera campionata più grossolanamente che nella mappa
+     dell'energia: qui serve tante volte, e mezzo metro di passo non cambia
+     il risultato di una simulazione statistica */
+  const xs=H.map(h=>h.mx), fx0=Math.min(...xs)-Snom, fx1=Math.max(...xs)+Snom;
+  const passo=Math.max(.4,(fx1-fx0)/60), faccia=[];
+  for(let x=fx0;x<=fx1+1e-9;x+=passo) faccia.push([x, interpFronte(x)]);
+  const file=_fileDiFori(H);
+  /* seme dalla geometria: stessa volata, stessa banda */
+  let seme=Math.round((Bnom*1000)+(Snom*97)+(L*31)+H.length*7+(sCol*1e4)+(pDev*1e5));
+  const rng=_rngDa(seme);
+  const minimi=[], medie=[];
+  const M=Math.max(30,Math.min(600,N||300));
+  for(let k=0;k<M;k++){
+    /* posizioni reali del PIEDE di ogni foro in questa realizzazione */
+    const p=H.map(h=>{
+      const ang=2*Math.PI*rng(), dev=pDev*L*Math.abs(_gauss(rng))*0.7978;   // |N| ha media 0,7978σ: così la deviazione MEDIA è quella dichiarata
+      return { mx:h.mx + sCol*_gauss(rng) + dev*Math.cos(ang),
+               my:h.my + sCol*_gauss(rng) + dev*Math.sin(ang), r:null };
+    });
+    /* le file si ricostruiscono sulle posizioni perturbate: anche la fila
+       davanti si è spostata, non solo quella che si sta guardando */
+    let mn=Infinity, som=0, n=0;
+    for(let r=0;r<file.length;r++){
+      const davanti = r>0
+        ? file[r-1].holes.map(i=>[p[i].mx, p[i].my+interpFronte(p[i].mx)]).sort((a,b)=>a[0]-b[0])
+        : faccia;
+      if(davanti.length<2) continue;
+      for(const i of file[r].holes){
+        const d=_distSpezzata(p[i].mx, p[i].my+interpFronte(p[i].mx), davanti);
+        if(d==null) continue;
+        if(d<mn) mn=d; som+=d; n++;
+      }
+    }
+    if(n>0){ minimi.push(mn); medie.push(som/n); }
+  }
+  if(!minimi.length) return null;
+  const x50=computeKPI().x50;
+  /* propagazione al primo ordine sulla pezzatura: il consumo specifico va
+     come 1/burden, e Kuz-Ram dà X50 ∝ pf^−0,8 */
+  const x50k=medie.map(b=>x50*Math.pow(Math.max(0.2,b)/Bnom,0.8));
+  const sotto=minimi.filter(b=>b<0.7*Bnom).length/minimi.length;
+  return {
+    n:M, Bnom:+Bnom.toFixed(2),
+    bMin5:+_perc(minimi,0.05).toFixed(2), bMin50:+_perc(minimi,0.50).toFixed(2), bMin95:+_perc(minimi,0.95).toFixed(2),
+    x5:Math.round(_perc(x50k,0.05)), x50:Math.round(_perc(x50k,0.50)), x95:Math.round(_perc(x50k,0.95)),
+    rischio:+(sotto*100).toFixed(0)
+  };
+}
+
 const INN_TAGLI=[9,17,25,42,65,100,109,176,200];           // raccordi di superficie di uso comune
 function computeInnesco2D(){
   const H=D2.holes; if(!H||!H.length) return;
@@ -3980,6 +4056,22 @@ function renderScheda2D(){
         +bVero
         +'L\'altezza del banco è considerata costante: se il fronte ha altezze molto diverse, il dato locale va letto come indicativo.'});
   })();
+  /* G6 — di quanto può sbagliare la previsione, per colpa della perforazione */
+  (function(){
+    const S=simulaPerforazione(300);
+    if(!S){ return; }
+    if(S.perfetta){ rows.push({lab:'Precisione di perforazione',valStr:'—',cls:'sv-info',
+      why:'errore al colletto e deviazione sono a zero: la simulazione presume una maglia perfetta, che in cava non esiste. Metti i valori del tuo carro (li trovi nel campo «Errore al colletto» e «Deviazione») per vedere di quanto la previsione può sbagliare.'}); return; }
+    const banda=S.bMin95-S.bMin5;
+    const cls = S.rischio>=20 ? 'sv-bad' : (S.rischio>=5 ? 'sv-warn' : 'sv-ok');
+    rows.push({lab:'Precisione di perforazione',
+      valStr:fmtMs(S.bMin5)+'–'+fmtMs(S.bMin95)+' <span>m di burden minimo · X50 '+S.x5+'–'+S.x95+' cm</span>', cls:cls,
+      why:'la maglia disegnata è perfetta, quella perforata no: il foro parte spostato dal punto segnato ('+fmtKg(D2.errColl)+' m) e scende scappando dal suo asse ('+fmtMs(D2.dev)+'% della lunghezza). Perturbando la geometria vera '+S.n+' volte, il <b>burden minimo al piede</b> sta fra '+fmtMs(S.bMin5)+' e '+fmtMs(S.bMin95)+' m (mediana '+fmtMs(S.bMin50)+'), contro '+fmtMs(S.Bnom)+' m di progetto; la pezzatura X50 fra '+S.x5+' e '+S.x95+' cm. La banda sulla pezzatura è <b>stretta</b>, e non è un errore: su tanti fori gli scarti si compensano e il burden <i>medio</i> resta quasi quello di progetto. Quello che peggiora è il <b>minimo</b>, cioè il singolo foro sfortunato — e i guai in cava li fa quello, non la media. '
+        +(S.rischio>=5
+          ? '<b>Nel '+S.rischio+'% dei casi almeno un foro finisce con meno del 70% del burden di progetto</b>: è la condizione classica delle proiezioni, perché quel foro si scarica verso la faccia invece che nella roccia. Si riduce marcando meglio la maglia, curando il posizionamento del carro, o accorciando i fori — la deviazione cresce con la lunghezza.'
+          : 'Il rischio che un foro scenda sotto il 70% del burden di progetto resta sotto il 5%: la maglia regge la precisione dichiarata.')
+        +' Attenzione a cosa <b>non</b> c\'è dentro: qui si propaga solo la geometria della perforazione. La variabilità della roccia è di solito più grande, e per quella serve la riconciliazione col dato reale.'});
+  })();
   /* G4 — la rete di innesco: si può davvero collegare così in cava? */
   (function(){
     const HH=(D2.holes||[]).filter(h=>h.innFrom!=null && h.innFrom>=0 && h.innDt!=null);
@@ -4157,6 +4249,11 @@ function applyDesign(){
   D2.incl = Math.max(0, Math.min(30, +($('dIncl')?$('dIncl').value:D2.incl)||0));
   if($('dStem')) D2.stem = Math.max(0.5, Math.min(6, +$('dStem').value||D2.stem));
   if($('dSub')) D2.sub = Math.max(0, Math.min(4, +$('dSub').value||D2.sub));
+  /* G6 — precisione della perforazione: lo zero è ammesso (vuol dire «non
+     considerarla»), quindi non si può usare il valore precedente come
+     ripiego con ||, che scarterebbe proprio lo zero */
+  if($('dErrColl')){ const v=+$('dErrColl').value; D2.errColl = isFinite(v)? Math.max(0,Math.min(1.5,v)) : D2.errColl; }
+  if($('dDev')){ const v=+$('dDev').value; D2.dev = isFinite(v)? Math.max(0,Math.min(15,v)) : D2.dev; }
   if($('dRitFila')) D2.ritardoFila = Math.max(8, Math.min(300, +$('dRitFila').value||D2.ritardoFila));
   if($('dRoccia')){ const nr=$('dRoccia').value||D2.roccia; if(nr!==D2.roccia){ D2.roccia=nr; const pr=selRoccia(); D2.ucs=pr.ucs; D2.eMod=pr.eMod; if($('dUcs'))$('dUcs').value=pr.ucs; if($('dEmod'))$('dEmod').value=pr.eMod; } }
   if($('dUcs')) D2.ucs=Math.max(5, Math.min(400, +$('dUcs').value||D2.ucs));
@@ -4184,6 +4281,7 @@ function syncDesignInputs(){
   $('dB').value=D2.B; $('dS').value=D2.S; $('dD').value=D2.diam; $('dN').value=D2.perRow;
   if($('dFile')) $('dFile').value=D2.file; $('dH').value=+D2.prof.toFixed(1); $('dKg').value=Math.round(D2.kg);
   if($('dIncl')) $('dIncl').value=D2.incl; $('dRit').value=D2.ritardo;
+  if($('dErrColl')) $('dErrColl').value=D2.errColl; if($('dDev')) $('dDev').value=D2.dev;
   if($('dStem')) $('dStem').value=D2.stem; if($('dSub')) $('dSub').value=D2.sub; if($('dRitFila')) $('dRitFila').value=D2.ritardoFila;
   if($('dRoccia')) $('dRoccia').value=D2.roccia;
   if($('dEspl')) $('dEspl').value=D2.esplosivo; if($('dInnSel')) $('dInnSel').value=D2.innesco; if($('pEspl')) $('pEspl').value=D2.esplosivo;
@@ -4223,7 +4321,7 @@ function simulaVolata2D(){
   simSource='progetto'; if($('pTitle')) $('pTitle').textContent='Volata dal progetto 2D';
   rebuild(); setScreen('sim');
 }
-['dB','dS','dD','dN','dFile','dH','dKg','dIncl','dStem','dSub','dRit','dRitFila','dEspl','dInnSel','dRoccia','dUcs','dEmod','dFrat','dBagnato','dAcquaCol','dPresplit','dPsSpacing','dPsCharge','dSeq','dRecDist','dRecNorma','dRecFreq','dCPerf','dCExpl','dCInn','dValMat','dDecks','dDeckStem'].forEach(id=>{ const el=$(id); if(el) el.addEventListener('change', applyDesign); });
+['dB','dS','dD','dN','dFile','dH','dKg','dIncl','dStem','dSub','dRit','dRitFila','dEspl','dInnSel','dRoccia','dUcs','dEmod','dFrat','dBagnato','dAcquaCol','dPresplit','dPsSpacing','dPsCharge','dSeq','dRecDist','dRecNorma','dRecFreq','dCPerf','dCExpl','dCInn','dValMat','dDecks','dDeckStem','dErrColl','dDev'].forEach(id=>{ const el=$(id); if(el) el.addEventListener('change', applyDesign); });
 /* livelli di lettura della pianta: isocrone dei tempi (G1) e mappa del relief (G2) */
 function syncLayerUI(){
   if($('dlIso')) $('dlIso').classList.toggle('on', !!D2.iso);
