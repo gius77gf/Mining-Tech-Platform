@@ -137,7 +137,6 @@ body.dw.outdoor-mode{
    d'asse e per l'intestazione della tabella dei grafici (del motore
    condiviso si corregge SOLO il maiuscolo: misure, colore e peso restano
    quelli di shared/, che è di tutte le app). */
-.vita-un{text-transform:none; letter-spacing:.6px}
 .dwg-axlab{text-transform:none}
 .dwg-tab thead th{text-transform:none; letter-spacing:.5px}
 
@@ -213,7 +212,9 @@ body.dw.outdoor-mode{
 }
 .vita-un{
   font-family:'Barlow Condensed',sans-serif; font-size:17px; font-weight:700;
-  letter-spacing:1.5px; text-transform:uppercase; color:var(--muted2);
+  /* niente maiuscolo: qui dentro c'è l'unità di misura, e «m³» in maiuscolo
+     diventa «M³», che si legge come un'altra grandezza */
+  letter-spacing:.8px; color:var(--muted2);
 }
 .vita-pct{
   margin-left:auto; align-self:center; font-family:'Barlow Condensed',sans-serif;
