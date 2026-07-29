@@ -304,6 +304,10 @@ body.dw.outdoor-mode{
 }
 .prescr{white-space:pre-wrap}
 
+/* tre tessere su una griglia a due colonne lasciano l'ultima spaiata: su
+   telefono prende tutta la riga, come fa il core con i numeri singoli */
+@media(max-width:767px){ .kpis .kpi.largo{grid-column:1 / -1} }
+
 /* ─────────────── voci di lista (copia di .sitem) ─────────────── */
 .item{cursor:pointer}
 .item:active{transform:translateX(1px) scale(.995)}
@@ -1959,14 +1963,22 @@ a.dw-btn{text-decoration:none}
     return `<div class="kpis" style="--kpi-cols:3;">
       <div class="kpi"><div class="l">m³ scavati fra le due date</div><div class="n">${fmtM3(c.scavato)}</div></div>
       <div class="kpi"><div class="l">Giorni fra i due rilievi</div><div class="n">${c.giorni}</div></div>
-      <div class="kpi"><div class="l">Ritmo m³ al mese</div><div class="n">${c.alMese != null ? fmtM3(Math.round(c.alMese)) : "—"}</div></div>
+      <div class="kpi largo"><div class="l">Ritmo m³ al mese</div><div class="n">${c.alMese != null ? fmtM3(Math.round(c.alMese)) : "—"}</div></div>
     </div>
     <div class="note recap">Fra il <b>${fmtData(c.primo.data)}</b> e il <b>${fmtData(c.secondo.data)}</b> su <b>${esc(nome)}</b> risultano misurati <b>${n0(c.scavato)}${band} m³</b> di scavo. ${rit}</div>
-    <div class="note">Il conto somma i <b>${c.rilieviInMezzo}</b> ${c.rilieviInMezzo === 1 ? "rilievo successivo" : "rilievi successivi"} al primo, fino al secondo compreso: ogni rilievo porta il materiale tolto <b>da quando c'era quello prima</b>, quindi i volumi si sommano e non si sottraggono.${c.banda > 0 ? ` Il <b>± ${n0(c.banda)} m³</b> è l'incertezza dei rilievi del periodo sommata (stima prudente).` : ""} ${conf}</div>`;
+    <div class="note">Il conto somma ${c.rilieviInMezzo === 1 ? "<b>il rilievo</b> successivo" : "i <b>" + c.rilieviInMezzo + "</b> rilievi successivi"} al primo, fino al secondo compreso: ogni rilievo porta il materiale tolto <b>da quando c'era quello prima</b>, quindi i volumi si sommano e non si sottraggono.${c.banda > 0 ? ` Il <b>± ${n0(c.banda)} m³</b> è l'incertezza dei rilievi del periodo sommata (stima prudente).` : ""} ${conf}</div>`;
   }
+  // Scegliere due volte lo stesso rilievo non è un errore da rimproverare: si
+  // sposta l'ALTRA tendina sul rilievo più vicino, così la scelta appena
+  // fatta resta quella dell'utente e il confronto continua a esistere.
+  const altroRilievo = (escluso) => {
+    const l = rilieviScavoFronte(RIL, cfFronte || null).filter(r => r.id !== escluso);
+    return l.length ? l[0].id : null;
+  };
   ["cf-fronte","cf-a","cf-b"].forEach(id => { const el = $(id); if (el) el.addEventListener("change", () => {
     if (id === "cf-fronte") { cfFronte = el.value; cfA = cfB = null; }
-    else if (id === "cf-a") cfA = el.value; else cfB = el.value;
+    else if (id === "cf-a") { cfA = el.value; if (cfA === cfB) cfB = altroRilievo(cfA); }
+    else { cfB = el.value; if (cfA === cfB) cfA = altroRilievo(cfB); }
     renderConfronto();
   }); });
 
