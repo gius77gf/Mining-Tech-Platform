@@ -128,6 +128,19 @@ body.dw.outdoor-mode{
 /* ─────────────── KPI (copia di .kpi-card del core) ─────────────── */
 .kpi .n{font-variant-numeric:tabular-nums}
 
+/* LE UNITÀ DI MISURA NON VANNO MAI IN MAIUSCOLO. Etichette dei KPI e badge
+   sono maiuscoli per struttura (è il core), ma «m³» in maiuscolo diventa
+   «M³», che si legge come un'altra grandezza (M = mega). Cambia solo il
+   pezzo che porta l'unità: forma, peso e spaziatura del core restano. */
+.kpi .l .u,.badge .u,.fl .u{text-transform:none; letter-spacing:.2px}
+/* stessi motivi per l'unità grande della scheda «vita cava», per l'etichetta
+   d'asse e per l'intestazione della tabella dei grafici (del motore
+   condiviso si corregge SOLO il maiuscolo: misure, colore e peso restano
+   quelli di shared/, che è di tutte le app). */
+.vita-un{text-transform:none; letter-spacing:.6px}
+.dwg-axlab{text-transform:none}
+.dwg-tab thead th{text-transform:none; letter-spacing:.5px}
+
 /* ══════════════════════════════════════════════════════════════════════
    LA BARRA DELLA VITA CAVA — il numero che il titolare guarda per primo.
    Cassa del core (gradiente card2→card, riflesso alto, ombra propria),
@@ -446,10 +459,10 @@ a.dw-btn{text-decoration:none}
 
   <div class="sec">Il mese e il piano</div>
   <div class="kpis">
-    <div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-goto="ril" data-filtro="elaborato" title="Vedi i rilievi elaborati"><div class="l">m³ estratti mese</div><div class="n">—</div></div>
+    <div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-goto="ril" data-filtro="elaborato" title="Vedi i rilievi elaborati"><div class="l"><span class="u">m³</span> estratti mese</div><div class="n">—</div></div>
     <div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-goto="pia" title="Vedi il piano estrattivo"><div class="l">Avanzamento piano</div><div class="n">—</div></div>
     <div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-goto="ril" data-filtro="tutti" title="Vedi tutti i rilievi"><div class="l">Rilievi drone mese</div><div class="n">—</div></div>
-    <div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-goto="pia" title="Vedi le riserve stimate"><div class="l">m³ riserve stimate</div><div class="n">—</div></div>
+    <div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-goto="pia" title="Vedi le riserve stimate"><div class="l"><span class="u">m³</span> riserve stimate</div><div class="n">—</div></div>
   </div>
   <div id="dash-anno"></div>
 
@@ -483,13 +496,13 @@ a.dw-btn{text-decoration:none}
         <input class="dw-input" id="aut-scadenza" type="date"></div>
     </div>
     <div class="frow">
-      <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-superficie">Superficie autorizzata (m²)</label>
+      <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-superficie">Superficie autorizzata (<span class="u">m²</span>)</label>
         <input class="dw-input" id="aut-superficie" type="number" min="0" placeholder="es. 78000"></div>
-      <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-volume">Volume totale autorizzato (m³)</label>
+      <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-volume">Volume totale autorizzato (<span class="u">m³</span>)</label>
         <input class="dw-input" id="aut-volume" type="number" min="0" placeholder="es. 1200000"></div>
     </div>
     <div class="frow">
-      <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-pregresso">Già estratto prima di Terra (m³)</label>
+      <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-pregresso">Già estratto prima di Terra (<span class="u">m³</span>)</label>
         <input class="dw-input" id="aut-pregresso" type="number" min="0" placeholder="0"></div>
       <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-materiale">Materiale autorizzato</label>
         <input class="dw-input" id="aut-materiale" placeholder="es. Sabbia e ghiaia"></div>
@@ -618,9 +631,9 @@ a.dw-btn{text-decoration:none}
     <div class="frow">
       <div class="fld" style="flex:2 1 190px;"><label class="fl" for="val-materiale">Materiale</label>
         <select class="dw-input" id="val-materiale" title="Riempie la densità con un valore tipico del litotipo"><option value="">— scegli —</option></select></div>
-      <div class="fld" style="flex:1 1 120px;"><label class="fl" for="val-densita">Densità (t/m³)</label>
+      <div class="fld" style="flex:1 1 120px;"><label class="fl" for="val-densita">Densità (<span class="u">t/m³</span>)</label>
         <input class="dw-input" id="val-densita" type="number" step="0.1" min="0" value="1.6"></div>
-      <div class="fld" style="flex:1 1 120px;"><label class="fl" for="val-prezzo">Prezzo (€/t)</label>
+      <div class="fld" style="flex:1 1 120px;"><label class="fl" for="val-prezzo">Prezzo (<span class="u">€/t</span>)</label>
         <input class="dw-input" id="val-prezzo" type="number" step="0.5" min="0" value="12"></div>
     </div>
     <div class="form-hint" id="val-dens-nota"></div>
@@ -634,7 +647,7 @@ a.dw-btn{text-decoration:none}
         <select class="dw-input" id="new-ril-fronte"></select></div>
       <div class="fld" style="flex:1 1 150px;"><label class="fl" for="new-ril-data">Data del rilievo</label>
         <input class="dw-input" id="new-ril-data" type="date"></div>
-      <div class="fld" style="flex:1 1 130px;"><label class="fl" for="new-ril-vol">Volume (m³)</label>
+      <div class="fld" style="flex:1 1 130px;"><label class="fl" for="new-ril-vol">Volume (<span class="u">m³</span>)</label>
         <input class="dw-input" id="new-ril-vol" type="number" min="0" placeholder="es. 4200"></div>
     </div>
     <div class="frow">
@@ -1024,7 +1037,7 @@ a.dw-btn{text-decoration:none}
     $("pia-proiezione").innerHTML = (!pr) ? ""
       : pr.proiezione == null
         ? `Proiezione di fine anno: ancora presto per una stima (poco anno trascorso). Estratti ${pr.estrattoAnno.toLocaleString("it-IT")} m³ finora.`
-        : `Proiezione di fine anno al ritmo attuale: <b class="badge ${pr.stato}" style="font-size:inherit;">~${pr.proiezione.toLocaleString("it-IT")} m³</b> `
+        : `Proiezione di fine anno al ritmo attuale: <b class="badge ${pr.stato}" style="font-size:inherit;">~${pr.proiezione.toLocaleString("it-IT")} <span class="u">m³</span></b> `
           + `(${pr.pctPiano}% dell'autorizzato ${fmtM3(pr.pianificato)} m³)`
           + (pr.stato === "danger"
               ? ` — <b style="color:var(--danger);">rischio di superare il volume autorizzato</b>: rallenta o chiedi una variante.`
@@ -1437,9 +1450,10 @@ a.dw-btn{text-decoration:none}
     // 2 · i quattro numeri della denuncia
     const stRes = R.pctFineAnno == null ? "" : R.pctFineAnno >= 100 ? "danger"
       : (soglia != null && R.pctFineAnno >= soglia) ? "warn" : "ok";
+    const U = '<span class="u">m³</span>';
     const tessere = [
-      ["m³ scavati nel " + R.anno, fmtM3(R.scavo), ""],
-      ["m³ ripresi da cumuli", fmtM3(R.cumulo), ""],
+      [U + " scavati nel " + R.anno, fmtM3(R.scavo), ""],
+      [U + " ripresi da cumuli", fmtM3(R.cumulo), ""],
       ["Cumulato sul titolo", R.concesso ? fmtM3(R.cumulatoFineAnno) : "—", ""],
       ["Residuo a fine " + R.anno, R.residuoFineAnno != null ? fmtM3(R.residuoFineAnno) : "—", stRes],
     ];
@@ -1453,7 +1467,7 @@ a.dw-btn{text-decoration:none}
         <div class="info"><div class="name">${MESI_NOME[m.mese - 1]} ${R.anno}</div>
         <div class="meta">${zero ? "nessun volume registrato" : m.rilievi + (m.rilievi === 1 ? " rilievo" : " rilievi")
           + (m.cumulo ? " · ripresi da cumuli " + n0(m.cumulo) + " m³" : "")}</div></div>
-        <span class="badge ${zero ? "tag" : "accent"}">${n0(m.scavo)} m³</span></div>`;
+        <span class="badge ${zero ? "tag" : "accent"}">${n0(m.scavo)} <span class="u">m³</span></span></div>`;
     }).join("");
     $("den-mesi-nota").innerHTML = "I mesi a <b>zero</b> restano in elenco apposta: nel modulo dell'ente un mese senza scavo va dichiarato zero, non saltato."
       + (R.inCorso ? " Dell'anno in corso si vedono i mesi fino a <b>" + MESI_NOME[meseOggi - 1].toLowerCase() + "</b>." : "")
@@ -1464,7 +1478,7 @@ a.dw-btn{text-decoration:none}
       `<div class="item ${f.scavo > 0 ? "st-accent" : "st-mute"}" style="cursor:default;">
         <div class="info"><div class="name">${esc(etFronte(f))}</div>
         <div class="meta">${f.rilievi} ${f.rilievi === 1 ? "rilievo" : "rilievi"}${f.cumulo ? " · ripresi da cumuli " + n0(f.cumulo) + " m³" : ""}</div></div>
-        <span class="badge ${f.scavo > 0 ? "accent" : "tag"}">${n0(f.scavo)} m³</span></div>`).join("")
+        <span class="badge ${f.scavo > 0 ? "accent" : "tag"}">${n0(f.scavo)} <span class="u">m³</span></span></div>`).join("")
       || vuoto(I.monte, "Nessun volume da ripartire nel " + R.anno,
           "Quando registri un rilievo scegliendo il <b>fronte</b>, qui compare la ripartizione che molti moduli chiedono: quanto è uscito da ciascun fronte.");
 
@@ -1961,9 +1975,9 @@ a.dw-btn{text-decoration:none}
       ? `I due rilievi hanno misurato lo stesso volume (<b>${n0(c.primo.volumeM3)} m³</b>).`
       : `Preso da solo, il rilievo del <b>${fmtData(c.secondo.data)}</b> vale <b>${n0(c.secondo.volumeM3)} m³</b> contro i <b>${n0(c.primo.volumeM3)} m³</b> del ${fmtData(c.primo.data)}: <b>${c.delta > 0 ? "+" : "−"}${n0(Math.abs(c.delta))} m³</b>${c.pct != null ? ` (${c.delta > 0 ? "+" : "−"}${Math.abs(c.pct)}%)` : ""}. È un confronto di <b>ritmo fra due misure</b>, non materiale in più o in meno.`;
     return `<div class="kpis" style="--kpi-cols:3;">
-      <div class="kpi"><div class="l">m³ scavati fra le due date</div><div class="n">${fmtM3(c.scavato)}</div></div>
+      <div class="kpi"><div class="l"><span class="u">m³</span> scavati fra le due date</div><div class="n">${fmtM3(c.scavato)}</div></div>
       <div class="kpi"><div class="l">Giorni fra i due rilievi</div><div class="n">${c.giorni}</div></div>
-      <div class="kpi largo"><div class="l">Ritmo m³ al mese</div><div class="n">${c.alMese != null ? fmtM3(Math.round(c.alMese)) : "—"}</div></div>
+      <div class="kpi largo"><div class="l">Ritmo <span class="u">m³</span> al mese</div><div class="n">${c.alMese != null ? fmtM3(Math.round(c.alMese)) : "—"}</div></div>
     </div>
     <div class="note recap">Fra il <b>${fmtData(c.primo.data)}</b> e il <b>${fmtData(c.secondo.data)}</b> su <b>${esc(nome)}</b> risultano misurati <b>${n0(c.scavato)}${band} m³</b> di scavo. ${rit}</div>
     <div class="note">Il conto somma ${c.rilieviInMezzo === 1 ? "<b>il rilievo</b> successivo" : "i <b>" + c.rilieviInMezzo + "</b> rilievi successivi"} al primo, fino al secondo compreso: ogni rilievo porta il materiale tolto <b>da quando c'era quello prima</b>, quindi i volumi si sommano e non si sottraggono.${c.banda > 0 ? ` Il <b>± ${n0(c.banda)} m³</b> è l'incertezza dei rilievi del periodo sommata (stima prudente).` : ""} ${conf}</div>`;

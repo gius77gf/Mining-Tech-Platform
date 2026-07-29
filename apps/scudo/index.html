@@ -249,8 +249,11 @@
    telefono il mouse non c'è. Due date affiancate senza etichetta sono un
    indovinello — qui c'è scritto quale è quale. */
 .fcamp{display:flex; flex-direction:column; gap:5px}
-.fcamp>.nm-lab{margin:0}
-.fcamp>.dw-input{width:100%}
+.fcamp>.nm-lab{margin:0; min-height:2.2em; display:flex; align-items:flex-end}
+/* In colonna il flex-basis dei campi del form diventa un'ALTEZZA: senza
+   questo l'input data si stira a 150px di altezza. Qui il campo torna alto
+   quanto deve. */
+.form .fcamp>.dw-input{width:100%; flex:0 0 auto}
 .modal-body .chgs{margin-bottom:0}
 /* Tastierino: due colonne per «che cosa», tre per «dove». Bersagli larghi e
    sempre nello stesso posto — con i guanti si colpisce a memoria, senza
