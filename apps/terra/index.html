@@ -95,7 +95,7 @@
   --info-basis:120px;
   --arr-ico:17px;
   --arr-stroke:1.9;
-  --nav-cols:5;
+  --nav-cols:6;
   --kpi-cols:4;
   --form-gap:11px;
   --form-pad:13px;
@@ -616,6 +616,8 @@ textarea.dw-input{line-height:1.5}
         <input class="dw-input" id="new-ril-vol" type="number" min="0" placeholder="es. 4200"></div>
     </div>
     <div class="frow">
+      <div class="fld" style="flex:2 1 190px;"><label class="fl" for="new-ril-prov">Provenienza del volume</label>
+        <select class="dw-input" id="new-ril-prov" title="Scavo dal fronte oppure materiale ripreso da un cumulo"></select></div>
       <div class="fld" style="flex:1 1 140px;"><label class="fl" for="new-ril-metodo">Metodo</label>
         <select class="dw-input" id="new-ril-metodo" title="Metodo di rilievo">
           <option value="">— scegli —</option>
@@ -630,13 +632,14 @@ textarea.dw-input{line-height:1.5}
       <button class="dw-btn" id="btn-add-ril">Registra</button>
     </div>
     <div class="form-hint">Con una data <b>futura</b> il volume non serve: il rilievo viene messo in calendario come pianificato.</div>
+    <div class="form-hint" id="prov-nota"></div>
   </div>
   <div class="tools">
     <button class="dw-btn secondary" id="btn-imp-ril">Importa rilievi (CSV)</button>
     <button class="dw-btn secondary" id="btn-dal-drone" title="Riprende l'ultimo volume calcolato nel visore nuvola di Genesi">Dal visore drone</button>
     <input type="file" id="ril-file" accept=".csv,text/csv" style="display:none;">
   </div>
-  <div class="form-hint" style="margin-top:8px;">Colonne del file: <b>data; volumeM3; metodo; gsd; fronte</b>.</div>
+  <div class="form-hint" style="margin-top:8px;">Colonne del file: <b>data; volumeM3; metodo; gsd; fronte; provenienza</b> — l'ultima vale <b>cumulo</b> solo se scritta così, altrimenti la riga conta come scavo.</div>
   <div class="note esito" id="ril-esito"></div>
   <div class="note" id="mode-note"></div>
 </div>
@@ -653,12 +656,45 @@ textarea.dw-input{line-height:1.5}
   <div class="note">Tocca una voce di piano con un volume annuo per correggerlo: riserve, avanzamento e proiezione si ricalcolano subito.</div>
 </div>
 
+<!-- DENUNCIA: riepilogo annuale dei volumi da consegnare all'ente -->
+<div class="page" id="page-den">
+  <div class="sec">Riepilogo annuale dei volumi</div>
+  <div class="form-hint" style="margin-bottom:9px;">Scegli l'<b>anno da dichiarare</b>: sotto trovi i numeri di quell'anno, pronti da ricopiare nel modulo dell'ente o da allegare stampati.</div>
+  <div id="den-anni" class="chgs"></div>
+  <div id="den-testata"></div>
+  <div class="kpis" id="den-kpi"></div>
+  <div id="den-graf"></div>
+
+  <div class="sec">Mese per mese</div>
+  <div id="den-mesi"></div>
+  <div class="form-hint" id="den-mesi-nota" style="margin-top:8px;"></div>
+
+  <div class="sec">Da quale fronte</div>
+  <div id="den-fronti"></div>
+
+  <div class="sec">Rispetto al volume concesso</div>
+  <div id="den-concesso"></div>
+
+  <div class="sec">Anno per anno</div>
+  <div id="den-storico"></div>
+
+  <div class="sec">Come lo consegni</div>
+  <div class="tools">
+    <button class="dw-btn" id="btn-den-stampa">Stampa il riepilogo</button>
+    <button class="dw-btn secondary" id="btn-den-csv">Esporta CSV</button>
+  </div>
+  <div class="form-hint" style="margin-top:8px;">La stampa apre una pagina bianca pronta da firmare: dal riquadro di stampa puoi anche scegliere <b>Salva come PDF</b>. Il CSV serve a chi deve ricopiare i numeri in un foglio o nel modulo dell'ente.</div>
+  <div class="note esito" id="den-esito"></div>
+  <div class="note avviso">Il modulo, la scadenza e perfino il modo di contare cambiano da <b>regione a regione</b>: Terra ti dà i tuoi numeri ordinati, non compila la denuncia al posto tuo. Molte regioni chiedono l'invio <b>anche negli anni in cui non si è scavato</b>: controlla sempre le regole della tua.</div>
+</div>
+
 <nav class="nav" aria-label="Sezioni di Terra">
   <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg></span>Quadro</button>
   <button id="nav-tit" onclick="go('tit')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M6.5 3h8.2L19 7.3V19a2 2 0 0 1-2 2H6.5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14.4 3v4.4H19"/><path d="M8.2 12.6h7.2M8.2 16.2h4.6"/></svg></span>Titolo</button>
   <button id="nav-fro" onclick="go('fro')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M2.5 19.5h19"/><path d="M2.5 19.5L9 8l3.4 5.6L15 9.4l6.5 10.1"/><path d="M7 19.5l2.4-4.2h5.3l2.4 4.2"/></svg></span>Fronti</button>
   <button id="nav-ril" onclick="go('ril')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M3 20.5h18L12 3.5z"/><path d="M8.4 13.4h7.2"/><path d="M12 3.5v17"/></svg></span>Rilievi</button>
   <button id="nav-pia" onclick="go('pia')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M9.2 3.5L3 6v14.5l6.2-2.5 5.6 2.5L21 18V3.5l-6.2 2.5z"/><path d="M9.2 3.5V18M14.8 6v14.5"/></svg></span>Piano</button>
+  <button id="nav-den" onclick="go('den')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M6 2.8h9.4L19.5 7v9.4"/><path d="M4.5 6.6h9.4l4.1 4.2v9.2a1.8 1.8 0 0 1-1.8 1.8H6.3a1.8 1.8 0 0 1-1.8-1.8z"/><path d="M13.4 6.6v4.2h4.6"/><path d="M7.6 15.4h6.6M7.6 18.2h4.2"/></svg></span>Denuncia</button>
 </nav>
 
 <!-- modale in stile core: sostituisce alert()/confirm()/prompt() del browser -->
@@ -781,7 +817,9 @@ textarea.dw-input{line-height:1.5}
 
 <script type="module">
   import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, parseFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita,
-           autorizzazioneVigente, vitaCava, statoScadenzaTerra, livelloScadenzaTerra, prossimaData, riepilogoScadenze, TIPI_SCADENZA_TERRA, presetScadenzaTerra, etichettaTipoScadenza } from "./terra-data.js";
+           autorizzazioneVigente, vitaCava, statoScadenzaTerra, livelloScadenzaTerra, prossimaData, riepilogoScadenze, TIPI_SCADENZA_TERRA, presetScadenzaTerra, etichettaTipoScadenza,
+           provenienzaRilievo, soloScavo, soloCumulo, PROVENIENZE, etichettaProvenienza,
+           anniConVolumi, riepilogoAnnuale, serieAnnuale } from "./terra-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const FB = { attivo: ["ok","Attivo"], sospeso: ["warn","Sospeso"] };
@@ -872,8 +910,8 @@ textarea.dw-input{line-height:1.5}
     $("dash-fronti").innerHTML = FRO.map(f => `<div class="item ${f.stato === "attivo" ? "st-accent" : "st-warn"}" onclick="go('fro')" title="Vai ai fronti di cava">
       <div class="avatar">${esc(sig(f.nome))}</div>
       <div class="info"><div class="name">${esc(f.nome)}</div><div class="meta">Avanzamento ${f.avanzamento}%${f.dettaglio ? " · " + esc(f.dettaglio) : ""}</div></div>
-      <span class="badge ${FB[f.stato][0]}">${FB[f.stato][1]}</span>
-      <span class="arr" aria-hidden="true">${A.vai}</span></div>`).join("")
+      <div class="acts"><span class="badge ${FB[f.stato][0]}">${FB[f.stato][1]}</span>
+      <span class="arr" aria-hidden="true">${A.vai}</span></div></div>`).join("")
       || vuoto(I.monte, "Nessun fronte di cava",
           "Un fronte è il pezzo di cava che stai coltivando. Aggiungi il primo dalla sezione <b>Fronti</b>: da lì i rilievi sapranno a cosa attaccarsi.");
 
@@ -882,8 +920,8 @@ textarea.dw-input{line-height:1.5}
       return `<div class="item ${f.stato === "attivo" ? "st-accent" : "st-warn"}" data-fro="${f.id}" title="Tocca per sospendere o riattivare il fronte">
       <div class="avatar">${esc(sig(f.nome))}</div>
       <div class="info"><div class="name">${esc(f.nome)}${f.banco ? " — " + esc(f.banco) : ""}</div><div class="meta">Quota ${f.quota} m · avanzamento ${f.avanzamento}%${v ? " · estratti " + fmtM3(v) + " m³ (rilievi)" : ""}${f.dettaglio ? " · " + esc(f.dettaglio) : ""}</div></div>
-      <span class="badge ${FB[f.stato][0]}">${FB[f.stato][1]}</span>
-      <button class="arr" type="button" title="Modifica nome, banco e quota" aria-label="Modifica il fronte ${esc(f.nome)}" data-edit-fro="${f.id}">${A.mod}</button></div>`; }).join("")
+      <div class="acts"><span class="badge ${FB[f.stato][0]}">${FB[f.stato][1]}</span>
+      <button class="arr" type="button" title="Modifica nome, banco e quota" aria-label="Modifica il fronte ${esc(f.nome)}" data-edit-fro="${f.id}">${A.mod}</button></div></div>`; }).join("")
       || vuoto(I.monte, "Nessun fronte registrato",
           "Aggiungi il primo fronte col modulo qui sotto (nome, banco e quota), oppure importa l'elenco completo da un file CSV.");
     $("new-ril-fronte").innerHTML = '<option value="">— fronte —</option>' +
@@ -900,16 +938,20 @@ textarea.dw-input{line-height:1.5}
       : (b.data||"").localeCompare(a.data||"");
     const qRil = ($("ril-cerca") && $("ril-cerca").value || "").trim().toLowerCase();
     const ril = RIL.filter(r => filtroRil === "tutti" || r.stato === filtroRil)
-                   .filter(r => !qRil || ((r.titolo || "") + " " + (r.tipo || "")).toLowerCase().includes(qRil))
+                   .filter(r => !qRil || ((r.titolo || "") + " " + (r.tipo || "") + " " + etichettaProvenienza(r.provenienza)).toLowerCase().includes(qRil))
                    .sort(rilCmp);
     $("ril-list").innerHTML = ril.map(r => {
       const ca = classeAccuratezza(r);
       const bv = (r.volumeM3 != null && ca.tolleranzaPct != null) ? bandaVolume(r.volumeM3, ca.tolleranzaPct) : null;
       const volTxt = r.volumeM3 != null ? " · " + r.volumeM3.toLocaleString("it-IT") + " m³" + (bv ? " ± " + bv.banda.toLocaleString("it-IT") : "") : "";
-      return `<div class="item ${r.stato === "elaborato" ? "st-accent" : "st-warn"}" style="cursor:default;">
+      // Il cumulo si dichiara: senza etichetta, un volume ripreso dal
+      // piazzale sembrerebbe scavo nuovo. Lo scavo resta senza badge, com'era.
+      const cum = provenienzaRilievo(r) === "cumulo";
+      return `<div class="item ${cum ? "st-mute" : r.stato === "elaborato" ? "st-accent" : "st-warn"}" style="cursor:default;">
       <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${dmy(r.data)} · ${esc(r.tipo||"")}${volTxt}${qualitaRilievo(r)?" · "+esc(qualitaRilievo(r)):""}</div></div>
+      <div class="acts">${cum ? '<span class="badge tag" title="Materiale già estratto, ripreso da un cumulo: non consuma il volume concesso">Da cumulo</span>' : ""}
       ${ca.cls ? `<span class="badge ${ca.cls}" title="Accuratezza tipica del metodo — da confermare coi checkpoint del rilevatore">${ca.label}</span>` : ""}
-      <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${r.stato==="pianificato"?`<button class="arr del" type="button" title="Annulla il rilievo pianificato" aria-label="Annulla il rilievo pianificato del ${dmy(r.data)}" data-del-ril="${r.id}">${A.del}</button>`:""}</div>`;
+      <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${r.stato==="pianificato"?`<button class="arr del" type="button" title="Annulla il rilievo pianificato" aria-label="Annulla il rilievo pianificato del ${dmy(r.data)}" data-del-ril="${r.id}">${A.del}</button>`:""}</div></div>`;
     }).join("")
       || (qRil
           ? vuoto(I.cerca, "Nessun risultato", "Nessun rilievo corrisponde a <b>«" + esc(qRil) + "»</b>. Prova con una parte del titolo o del tipo di rilievo.")
@@ -917,7 +959,10 @@ textarea.dw-input{line-height:1.5}
             ? vuoto(I.riga, "Nessun rilievo registrato", "Registra il primo rilievo qui sotto: data, fronte e volume in m³. Da lì partono il contatore della vita cava e la proiezione di fine anno.")
             : vuoto(I.ok, "Niente in questa categoria", "Nessun rilievo rientra nel filtro scelto. Tocca <b>Tutti</b> per vedere l'elenco completo."));
     { const n = $("ril-list").querySelectorAll(".item").length, filtrata = qRil || filtroRil !== "tutti";
-      $("ril-count").innerHTML = n === 0 ? "" : "<b>" + n + "</b> " + (n === 1 ? "rilievo" : "rilievi") + (filtrata ? " · su " + RIL.length : ""); }
+      const nCum = ril.filter(r => provenienzaRilievo(r) === "cumulo").length;
+      $("ril-count").innerHTML = n === 0 ? "" : "<b>" + n + "</b> " + (n === 1 ? "rilievo" : "rilievi")
+        + (filtrata ? " · su " + RIL.length : "")
+        + (nCum ? " · di cui <b>" + nCum + "</b> " + (nCum === 1 ? "ripreso da cumulo" : "ripresi da cumuli") : ""); }
     segna("ril-filtri", filtroRil);
 
     // Deplezione riserve: residuo e durata stimata al ritmo pianificato.
@@ -954,11 +999,12 @@ textarea.dw-input{line-height:1.5}
                 : ` — sotto il limite autorizzato.`);
     $("pia-list").innerHTML = PIA.map(p => `<div class="item ${p.stato === "vigente" ? "st-accent" : "st-warn"}" ${p.pianificatoAnnuoM3?`data-piano="${p.id}" title="Tocca per modificare il volume annuo pianificato"`:'style="cursor:default;"'}>
       <div class="info"><div class="name">${esc(p.titolo)}</div><div class="meta">${esc(p.dettaglio||"")}${p.pianificatoAnnuoM3?" · piano annuo "+fmtM3(p.pianificatoAnnuoM3)+" m³":""}${p.riserveM3?" · riserve "+fmtM3(p.riserveM3)+" m³":""}</div></div>
-      <span class="badge ${PB[p.stato][0]}">${PB[p.stato][1]}</span>${p.pianificatoAnnuoM3?`<span class="arr" aria-hidden="true">${A.mod}</span>`:""}</div>`).join("")
+      <div class="acts"><span class="badge ${PB[p.stato][0]}">${PB[p.stato][1]}</span>${p.pianificatoAnnuoM3?`<span class="arr" aria-hidden="true">${A.mod}</span>`:""}</div></div>`).join("")
       || vuoto(I.mappa, "Piano estrattivo vuoto",
           "Qui vivono le voci del piano: volume annuo pianificato e riserve stimate. Senza di esse Terra non può calcolare avanzamento e proiezione di fine anno.");
 
     renderTitolo();
+    renderDenuncia();
     renderValore();
     grafici();
   }
@@ -990,6 +1036,7 @@ textarea.dw-input{line-height:1.5}
     if (id === "page-dash") grafAnno();
     else if (id === "page-ril") grafMesi();
     else if (id === "page-fro") grafFronti();
+    else if (id === "page-den") grafDen();
   }
   { const goPrec = window.go;
     window.go = function (id) { goPrec(id); grafici(); }; }
@@ -1154,7 +1201,10 @@ textarea.dw-input{line-height:1.5}
     const el = $("fro-volumi"); if (!el) return;
     const noti = new Set(FRO.map(f => f.id));
     const voci = FRO.map(f => ({ etichetta: f.nome, valore: volumeFronte(RIL, f.id) }));
-    const nonAss = RIL.filter(r => r.stato === "elaborato" && r.volumeM3 != null && !noti.has(r.fronteId))
+    // solo SCAVO, come volumeFronte: i cumuli ripresi non escono dal fronte
+    const nonAss = soloScavo(RIL).filter(r => r.stato === "elaborato" && r.volumeM3 != null && !noti.has(r.fronteId))
+      .reduce((s, r) => s + (+r.volumeM3 || 0), 0);
+    const cumTot = soloCumulo(RIL).filter(r => r.stato === "elaborato" && r.volumeM3 != null)
       .reduce((s, r) => s + (+r.volumeM3 || 0), 0);
     if (nonAss > 0) voci.push({ etichetta: "Non assegnato", valore: nonAss });
     if (!(voci.reduce((s, v) => s + v.valore, 0) > 0)) {
@@ -1168,9 +1218,12 @@ textarea.dw-input{line-height:1.5}
       meta: "somma dei rilievi elaborati",
       orientamento: "orizzontale", ordina: true, unita: "m³", formato: "compatto",
       valori: voci,
-      nota: nonAss > 0
+      nota: (nonAss > 0
         ? "«Non assegnato» sono i rilievi elaborati senza fronte: restano in vista, altrimenti la somma non tornerebbe. Per farli sparire basta indicare il fronte quando registri il rilievo."
-        : "Somma dei rilievi elaborati di ogni fronte, dal più al meno produttivo.",
+        : "Somma dei rilievi elaborati di ogni fronte, dal più al meno produttivo.")
+        + (cumTot > 0
+          ? " Fuori da questo conto restano <b>" + n0(cumTot) + " m³</b> ripresi da cumuli: erano già stati scavati, non escono adesso dal fronte."
+          : ""),
     });
   }
 
@@ -1235,6 +1288,7 @@ textarea.dw-input{line-height:1.5}
         <div class="vita-scala${scalaCls}"><span class="s0">0%</span>${tag}<span class="s100">100%</span></div>
       </div>
       <div class="riga">Consumato <b>${un1(vc.pct)}%</b> del concesso${vc.pregresso ? `, di cui ${n0(vc.pregresso)} m³ dichiarati prima di Terra` : ""}.</div>
+      ${vc.daCumulo > 0 ? `<div class="riga">Altri <b>${n0(vc.daCumulo)} m³</b> arrivano dalla <b>ripresa di cumuli</b>: era materiale già scavato, quindi <b>non</b> scala il volume concesso.</div>` : ""}
       <div class="riga">${ritmo}</div>
       ${breve ? "" : titolo}${avviso}
     </div>`;
@@ -1252,9 +1306,9 @@ textarea.dw-input{line-height:1.5}
       <div class="avatar ico ${ico[0]}" aria-hidden="true">${ico[1]}</div>
       <div class="info"><div class="name">${nome}</div>
       <div class="meta">${esc(etichettaTipoScadenza(s.tipo))} · ${fmtData(s.dataScadenza)} · ${esc(lv.label)} · preavviso ${+s.preavvisoGiorni || 0} gg${ric ? " · ogni " + ric + " mesi" : ""}</div></div>
-      <span class="badge ${SB[st][0]}">${SB[st][1]}</span>
+      <div class="acts"><span class="badge ${SB[st][0]}">${SB[st][1]}</span>
       ${azioni ? `<button class="arr ok" type="button" title="${ric ? "Segna come fatta e proponi la prossima data" : "Segna come fatta e rimuovi"}" aria-label="Segna come fatta la scadenza ${nome}" data-fatta-scad="${s.id}">${A.fatto}</button>
-      <button class="arr del" type="button" title="Rimuovi la scadenza" aria-label="Rimuovi la scadenza ${nome}" data-del-scad="${s.id}">${A.del}</button>` : ""}</div>`;
+      <button class="arr del" type="button" title="Rimuovi la scadenza" aria-label="Rimuovi la scadenza ${nome}" data-del-scad="${s.id}">${A.del}</button>` : ""}</div></div>`;
   }
 
   function renderTitolo() {
@@ -1275,9 +1329,9 @@ textarea.dw-input{line-height:1.5}
       return `<div class="item ${a.stato === "vigente" ? "st-accent" : "st-mute"}" data-aut="${a.id}" title="Tocca per rendere vigente questa scheda">
         <div class="avatar${a.stato === "vigente" ? "" : " sup"}" aria-hidden="true">${I.atto}</div>
         <div class="info"><div class="name">${nome}</div><div class="meta">${esc(dett)}${a.dataScadenza ? " · " + esc(lv.label) : ""}</div></div>
-        <span class="badge ${a.stato === "vigente" ? "accent" : "tag"}">${a.stato === "vigente" ? "Vigente" : "Archiviata"}</span>
+        <div class="acts"><span class="badge ${a.stato === "vigente" ? "accent" : "tag"}">${a.stato === "vigente" ? "Vigente" : "Archiviata"}</span>
         <button class="arr" type="button" title="Modifica la scheda" aria-label="Modifica la scheda ${nome}" data-edit-aut="${a.id}">${A.mod}</button>
-        <button class="arr del" type="button" title="Rimuovi la scheda" aria-label="Rimuovi la scheda ${nome}" data-del-aut="${a.id}">${A.del}</button></div>`;
+        <button class="arr del" type="button" title="Rimuovi la scheda" aria-label="Rimuovi la scheda ${nome}" data-del-aut="${a.id}">${A.del}</button></div></div>`;
     }).join("") || vuoto(I.atto, "Nessuna autorizzazione",
         "Registra qui l'atto che ti autorizza a coltivare: numero, ente, date e soprattutto il <b>volume totale concesso</b>. È il dato da cui nasce tutto il resto.");
     $("aut-form-sec").textContent = editAut ? "Scheda autorizzazione — modifica in corso" : "Scheda autorizzazione";
@@ -1303,6 +1357,286 @@ textarea.dw-input{line-height:1.5}
           ? vuoto(I.ok, "Nessuna urgenza", "Tutte le scadenze registrate sono oltre il preavviso che hai impostato. Le trovi comunque nella scheda <b>Titolo</b>.")
           : vuoto(I.sveglia, "Scadenzario vuoto", "Dalla scheda <b>Titolo</b> puoi registrare le scadenze del tuo atto — rinnovi, garanzie, rilievi periodici — con la data e il preavviso che decidi tu."));
   }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // R4 — RIEPILOGO ANNUALE DEI VOLUMI (la denuncia agli enti)
+  // Chi compila la denuncia annuale ha bisogno di quattro cose, in
+  // quest'ordine: il totale dell'anno, come si scompone (mese per mese e
+  // fronte per fronte, perché i moduli lo chiedono), dove arriva il titolo
+  // dopo quell'anno, e un foglio da allegare o da ricopiare. Tutto il
+  // resto è rumore e resta fuori.
+  // Due scelte che sembrano dettagli e non lo sono:
+  //  · i mesi a zero restano scritti (nel modulo un mese senza scavo va
+  //    dichiarato zero, non saltato);
+  //  · lo scavo e la ripresa dei cumuli non si sommano mai, nemmeno qui.
+  // ══════════════════════════════════════════════════════════════════════
+  const MESI_NOME = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
+                     "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+  let annoDen = null;
+  const nomeFronte = (id) => { const f = FRO.find(x => x.id === id); return f ? f.nome : null; };
+  const etFronte = (v) => v.fronteId ? (nomeFronte(v.fronteId) || "Fronte non più in elenco") : "Senza fronte indicato";
+  // ultimo riepilogo calcolato: lo riusano stampa ed export senza rifare i conti
+  let DEN = null;
+
+  function renderDenuncia() {
+    const anni = anniConVolumi(RIL);
+    if (annoDen == null || !anni.includes(annoDen)) annoDen = anni[0];
+    $("den-anni").innerHTML = anni.map(a =>
+      `<button class="chg${a === annoDen ? " active" : ""}" type="button" data-anno="${a}">${a}</button>`).join("");
+
+    const aut = autorizzazioneVigente(AUT);
+    const R = riepilogoAnnuale(RIL, annoDen, aut);
+    const soglia = aut && +aut.sogliaGuardiaPct > 0 ? +aut.sogliaGuardiaPct : null;
+    DEN = { R, aut, soglia };
+    const meseOggi = new Date().getMonth() + 1;
+    const mesiVisti = R.inCorso ? R.mesi.slice(0, meseOggi) : R.mesi;
+
+    // 1 · sotto quale titolo si dichiara
+    $("den-testata").innerHTML = aut
+      ? `<div class="note recap">Anno <b>${R.anno}</b>${R.inCorso ? " — ancora in corso: i numeri crescono fino al 31 dicembre" : ""} · titolo <b>${esc(aut.numeroAtto || "senza numero")}</b>`
+        + (aut.ente ? ", rilasciato da <b>" + esc(aut.ente) + "</b>" : "")
+        + (aut.materiale ? " · materiale <b>" + esc(aut.materiale) + "</b>" : "")
+        + (aut.volumeAutorizzatoM3 ? " · concessi <b>" + n0(aut.volumeAutorizzatoM3) + " m³</b>" : "") + ".</div>"
+      : `<div class="note avviso">Non c'è ancora una <b>scheda autorizzazione</b>: qui sotto trovi comunque i volumi dell'anno, ma senza gli estremi dell'atto e senza il confronto col concesso. La compili nella scheda <b>Titolo</b>.</div>`;
+
+    // 2 · i quattro numeri della denuncia
+    const stRes = R.pctFineAnno == null ? "" : R.pctFineAnno >= 100 ? "danger"
+      : (soglia != null && R.pctFineAnno >= soglia) ? "warn" : "ok";
+    const tessere = [
+      ["m³ scavati nel " + R.anno, fmtM3(R.scavo), ""],
+      ["m³ ripresi da cumuli", fmtM3(R.cumulo), ""],
+      ["Cumulato sul titolo", R.concesso ? fmtM3(R.cumulatoFineAnno) : "—", ""],
+      ["Residuo a fine " + R.anno, R.residuoFineAnno != null ? fmtM3(R.residuoFineAnno) : "—", stRes],
+    ];
+    $("den-kpi").innerHTML = tessere.map(([l, n, c]) =>
+      `<div class="kpi ${c}"><div class="l">${l}</div><div class="n">${n}</div></div>`).join("");
+
+    // 3 · mese per mese, tutti e dodici (o fino a oggi se l'anno è in corso)
+    $("den-mesi").innerHTML = mesiVisti.map(m => {
+      const zero = m.scavo === 0 && m.cumulo === 0;
+      return `<div class="item ${zero ? "st-mute" : "st-accent"}" style="cursor:default;">
+        <div class="info"><div class="name">${MESI_NOME[m.mese - 1]} ${R.anno}</div>
+        <div class="meta">${zero ? "nessun volume registrato" : m.rilievi + (m.rilievi === 1 ? " rilievo" : " rilievi")
+          + (m.cumulo ? " · ripresi da cumuli " + n0(m.cumulo) + " m³" : "")}</div></div>
+        <span class="badge ${zero ? "tag" : "accent"}">${n0(m.scavo)} m³</span></div>`;
+    }).join("");
+    $("den-mesi-nota").innerHTML = "I mesi a <b>zero</b> restano in elenco apposta: nel modulo dell'ente un mese senza scavo va dichiarato zero, non saltato."
+      + (R.inCorso ? " Dell'anno in corso si vedono i mesi fino a <b>" + MESI_NOME[meseOggi - 1].toLowerCase() + "</b>." : "")
+      + " I metri cubi in etichetta sono <b>solo scavo</b>; le riprese dai cumuli sono scritte a parte nella riga.";
+
+    // 4 · da quale fronte è uscito
+    $("den-fronti").innerHTML = R.fronti.map(f =>
+      `<div class="item ${f.scavo > 0 ? "st-accent" : "st-mute"}" style="cursor:default;">
+        <div class="info"><div class="name">${esc(etFronte(f))}</div>
+        <div class="meta">${f.rilievi} ${f.rilievi === 1 ? "rilievo" : "rilievi"}${f.cumulo ? " · ripresi da cumuli " + n0(f.cumulo) + " m³" : ""}</div></div>
+        <span class="badge ${f.scavo > 0 ? "accent" : "tag"}">${n0(f.scavo)} m³</span></div>`).join("")
+      || vuoto(I.monte, "Nessun volume da ripartire nel " + R.anno,
+          "Quando registri un rilievo scegliendo il <b>fronte</b>, qui compare la ripartizione che molti moduli chiedono: quanto è uscito da ciascun fronte.");
+
+    // 5 · dove arriva il titolo alla fine di quell'anno
+    const cel = $("den-concesso");
+    if (!R.concesso) {
+      cel.innerHTML = vuoto(I.atto, "Manca il volume concesso",
+        "Senza il <b>volume totale autorizzato</b> Terra non può dire quanto resta dopo quest'anno. Lo trovi nel tuo atto e lo scrivi nella scheda <b>Titolo</b>: da lì in poi il confronto compare da solo, qui e nel foglio stampato.");
+    } else {
+      const fine = R.inCorso ? "a oggi" : "al 31/12/" + R.anno;
+      cel.innerHTML = '<div id="den-barra"></div>'
+        + `<div class="note recap">Volume concesso dall'atto: <b>${n0(R.concesso)} m³</b>.`
+        + (R.pregresso ? ` Di questi, <b>${n0(R.pregresso)} m³</b> risultavano già estratti prima di usare Terra.` : "")
+        + ` Sommando lo scavo misurato fino ${fine}, il cumulato sotto questo titolo arriva a <b>${n0(R.cumulatoFineAnno)} m³</b>`
+        + ` — il <b>${un1(R.pctFineAnno)}%</b> del concesso — e restano <b>${n0(R.residuoFineAnno)} m³</b>.`
+        + (R.cumulo ? ` I <b>${n0(R.cumulo)} m³</b> ripresi dai cumuli nel ${R.anno} <b>non</b> entrano in questo conto: erano già stati scavati e già scalati a suo tempo.` : "")
+        + "</div>";
+    }
+
+    // 6 · anno per anno: la riga di controllo che l'ente ricostruisce da sé
+    const S = serieAnnuale(RIL, aut).reverse();
+    $("den-storico").innerHTML = S.map(s => `<div class="item ${s.anno === annoDen ? "st-accent" : "st-mute"}" data-anno="${s.anno}" title="Vedi il riepilogo del ${s.anno}">
+      <div class="info"><div class="name">${s.anno}${s.inCorso ? " — anno in corso" : ""}</div>
+      <div class="meta">Scavati ${n0(s.scavo)} m³${s.pct != null ? " · cumulato " + n0(s.cumulato) + " m³" : ""}${s.cumulo ? " · da cumuli " + n0(s.cumulo) + " m³" : ""} · ${s.rilievi} ${s.rilievi === 1 ? "rilievo" : "rilievi"}</div></div>
+      <div class="acts">${s.pct != null ? `<span class="badge ${s.pct >= 100 ? "danger" : (soglia != null && s.pct >= soglia) ? "warn" : "ok"}" title="Quota del volume concesso consumata alla fine di quell'anno">${un1(s.pct)}% del concesso</span>` : ""}
+      <span class="arr" aria-hidden="true">${A.vai}</span></div></div>`).join("")
+      || vuoto(I.riga, "Ancora nessun anno da confrontare",
+          "Appena registri i rilievi di più anni, qui compare la riga di controllo: quanto per anno e a che punto era il titolo alla fine di ognuno.");
+
+    grafDen();
+  }
+
+  // I disegni della denuncia si fanno solo a pagina visibile (dentro una
+  // pagina nascosta le misure non esistono e il grafico nasce storto).
+  function grafDen() {
+    if (!window.dwGrafici || !DEN) return;
+    const att = document.querySelector(".page.active");
+    if (!att || att.id !== "page-den") return;
+    const R = DEN.R;
+    const meseOggi = new Date().getMonth() + 1;
+    const mesiVisti = R.inCorso ? R.mesi.slice(0, meseOggi) : R.mesi;
+    const conDati = mesiVisti.filter(m => m.rilievi > 0).length;
+    const gel = $("den-graf");
+    if (gel) {
+      if (R.scavo === 0 && R.cumulo === 0) {
+        gel.innerHTML = vuoto(I.riga, "Nessun volume nel " + R.anno,
+          "Per quest'anno non risulta nessun rilievo elaborato. <b>Molte regioni chiedono la comunicazione lo stesso</b>, spiegando il motivo: il foglio qui sotto si stampa comunque, con tutti i mesi a zero.");
+      } else if (conDati < 4) {
+        gel.innerHTML = "";
+      } else {
+        gel.innerHTML = "";
+        dwGrafici.barre(gel, {
+          titolo: "Volumi scavati nel " + R.anno,
+          meta: R.inCorso ? "fino a " + MESI_NOME[meseOggi - 1].toLowerCase() : "anno completo",
+          unita: "m³",
+          valori: mesiVisti.map(m => ({ etichetta: MESI3[m.mese - 1], valore: m.scavo })),
+          nota: "Solo scavo: le riprese dai cumuli non sono qui dentro."
+            + (R.cumulo ? " Nel " + R.anno + " sono state <b>" + n0(R.cumulo) + " m³</b>." : "")
+            + " Un mese a zero vuol dire che in quel mese non è stato misurato niente, non per forza che la cava fosse ferma.",
+        });
+      }
+    }
+    const bar = $("den-barra");
+    if (bar && R.concesso) {
+      bar.innerHTML = "";
+      const rif = DEN.soglia != null
+        ? { valore: Math.round(R.concesso * DEN.soglia / 100), etichetta: "soglia di guardia" } : null;
+      const st = R.pctFineAnno >= 100 ? "danger" : (DEN.soglia != null && R.pctFineAnno >= DEN.soglia) ? "warn" : null;
+      dwGrafici.avanzamento(bar, {
+        titolo: "Consumo del volume concesso a fine " + R.anno,
+        meta: n0(R.cumulatoFineAnno) + " di " + n0(R.concesso) + " m³",
+        valore: R.cumulatoFineAnno, massimo: R.concesso, unita: "m³",
+        riferimento: rif, etichettaValore: false, stato: st,
+        nota: "Barra del <b>totale concesso</b>, non dell'anno: comprende il pregresso dichiarato e tutto lo scavo misurato fino alla fine del "
+          + R.anno + ". È il numero che l'ente ricostruisce sommando le denunce.",
+        aria: "Cumulato " + n0(R.cumulatoFineAnno) + " metri cubi sul volume concesso di " + n0(R.concesso) + " metri cubi.",
+      });
+    }
+  }
+
+  // Cambio anno: sia dalle pillole in alto sia dalle righe «anno per anno».
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest && e.target.closest("#den-anni [data-anno], #den-storico [data-anno]");
+    if (!b) return;
+    const a = parseInt(b.getAttribute("data-anno"), 10);
+    if (!Number.isFinite(a) || a === annoDen) return;
+    annoDen = a; renderDenuncia();
+    $("den-anni").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  // ── Il foglio da consegnare ────────────────────────────────────────────
+  // Pagina bianca, nessun colore d'interfaccia, un solo scopo: essere
+  // stampata o salvata in PDF e allegata alla comunicazione. Contiene solo
+  // dati dell'utente e numeri calcolati dai suoi rilievi.
+  function fogliaStampa() {
+    const { R, aut, soglia } = DEN;
+    const oggi = new Date();
+    const dataOggi = fmtData(new Date(oggi.getTime() - oggi.getTimezoneOffset() * 60000).toISOString().slice(0, 10));
+    const meseOggi = oggi.getMonth() + 1;
+    const mesiVisti = R.inCorso ? R.mesi.slice(0, meseOggi) : R.mesi;
+    const riga = (c, tag) => "<tr>" + c.map(x => "<" + (tag || "td") + ">" + x + "</" + (tag || "td") + ">").join("") + "</tr>";
+    const dati = [
+      ["Numero dell'atto", aut && aut.numeroAtto ? esc(aut.numeroAtto) : "—"],
+      ["Ente che l'ha rilasciato", aut && aut.ente ? esc(aut.ente) : "—"],
+      ["Data di rilascio", aut ? fmtData(aut.dataRilascio) : "—"],
+      ["Scadenza del titolo", aut ? fmtData(aut.dataScadenza) : "—"],
+      ["Materiale autorizzato", aut && aut.materiale ? esc(aut.materiale) : "—"],
+      ["Superficie autorizzata", aut && aut.superficieMq ? n0(aut.superficieMq) + " m²" : "—"],
+      ["Volume totale concesso", R.concesso ? n0(R.concesso) + " m³" : "—"],
+    ];
+    const qual = [];
+    if (R.qualita.surveyGrade) qual.push(R.qualita.surveyGrade + " di qualità topografica");
+    if (R.qualita.indicativo) qual.push(R.qualita.indicativo + " indicativi");
+    if (R.qualita.nd) qual.push(R.qualita.nd + " senza metodo dichiarato");
+    const conta = (R.rilieviScavo + R.rilieviCumulo === 0)
+      ? "nessun rilievo, quindi volumi a zero per tutto l'anno"
+      : R.rilieviScavo + (R.rilieviScavo === 1 ? " rilievo di scavo" : " rilievi di scavo")
+        + (R.rilieviCumulo ? " e " + R.rilieviCumulo + (R.rilieviCumulo === 1 ? " ripresa da cumulo" : " riprese da cumuli") : "");
+    const doc = "<!DOCTYPE html><html lang='it'><head><meta charset='utf-8'>"
+      + "<title>Riepilogo volumi " + R.anno + "</title><style>"
+      + "*{box-sizing:border-box}body{margin:26px;font:12px/1.5 Arial,Helvetica,sans-serif;color:#111}"
+      + "h1{font-size:19px;margin:0 0 2px}h2{font-size:13px;margin:20px 0 6px;padding-bottom:3px;border-bottom:1px solid #bbb;text-transform:uppercase;letter-spacing:1px}"
+      + ".sub{color:#555;margin-bottom:14px}"
+      + "table{width:100%;border-collapse:collapse;margin-bottom:6px}"
+      + "th,td{border:1px solid #bbb;padding:5px 7px;text-align:left;vertical-align:top}"
+      + "th{background:#eee;font-size:11px;text-transform:uppercase;letter-spacing:.5px}"
+      + "td.n,th.n,.n{text-align:right;white-space:nowrap}span.n{display:block}"
+      + "tr.tot td{font-weight:bold;background:#f3f3f3}"
+      + ".mini{color:#555;font-size:11px;margin:4px 0 0}"
+      + ".firma{margin-top:26px;display:flex;gap:30px}.firma div{flex:1;border-top:1px solid #777;padding-top:5px;font-size:11px;color:#555}"
+      + ".foot{margin-top:22px;padding-top:8px;border-top:1px solid #ddd;color:#666;font-size:10.5px}"
+      + "@media print{body{margin:14mm}h2{page-break-after:avoid}tr{page-break-inside:avoid}}"
+      + "</style></head><body>"
+      + "<h1>Riepilogo annuale dei volumi — anno " + R.anno + "</h1>"
+      + "<div class='sub'>Documento preparato con Deepwork Terra il " + dataOggi
+      + (R.inCorso ? " · <b>anno ancora in corso</b>: i dati si fermano a oggi e cresceranno fino al 31 dicembre" : "") + "</div>"
+      + "<h2>Titolo autorizzativo</h2><table>"
+      + dati.map(d => riga(["<b>" + d[0] + "</b>", d[1]])).join("") + "</table>"
+      + "<p class='mini'>Ditta titolare, sede e cava di riferimento vanno indicate secondo il modello richiesto dall'ente.</p>"
+      + "<h2>Volumi dell'anno " + R.anno + "</h2><table>"
+      + riga(["Mese", "<span class='n'>Scavo (m³)</span>", "<span class='n'>Ripreso da cumuli (m³)</span>", "<span class='n'>Rilievi</span>"], "th")
+      + mesiVisti.map(m => riga([MESI_NOME[m.mese - 1],
+          "<span class='n'>" + n0(m.scavo) + "</span>", "<span class='n'>" + n0(m.cumulo) + "</span>",
+          "<span class='n'>" + m.rilievi + "</span>"])).join("")
+      + "<tr class='tot'><td>Totale " + R.anno + "</td><td class='n'>" + n0(R.scavo) + "</td><td class='n'>"
+      + n0(R.cumulo) + "</td><td class='n'>" + (R.rilieviScavo + R.rilieviCumulo) + "</td></tr>"
+      + "</table>"
+      + "<p class='mini'>Lo <b>scavo</b> è materiale nuovo tolto dal fronte e consuma il volume concesso. La <b>ripresa da cumuli</b> è materiale già estratto in passato e rimosso da un deposito: è indicata a parte perché non costituisce nuovo scavo.</p>"
+      + "<h2>Ripartizione per fronte</h2><table>"
+      + riga(["Fronte", "<span class='n'>Scavo (m³)</span>", "<span class='n'>Ripreso da cumuli (m³)</span>", "<span class='n'>Rilievi</span>"], "th")
+      + (R.fronti.length
+          ? R.fronti.map(f => riga([esc(etFronte(f)), "<span class='n'>" + n0(f.scavo) + "</span>",
+              "<span class='n'>" + n0(f.cumulo) + "</span>", "<span class='n'>" + f.rilievi + "</span>"])).join("")
+          : riga(["Nessun volume registrato nell'anno", "<span class='n'>0</span>", "<span class='n'>0</span>", "<span class='n'>0</span>"]))
+      + "</table>"
+      + "<h2>Posizione rispetto al volume concesso</h2><table>"
+      + riga(["<b>Volume concesso dall'atto</b>", "<span class='n'>" + (R.concesso ? n0(R.concesso) + " m³" : "non indicato") + "</span>"])
+      + riga(["<b>Estratto dichiarato prima dell'uso di Terra</b>", "<span class='n'>" + n0(R.pregresso) + " m³</span>"])
+      + riga(["<b>Scavo misurato sotto questo titolo fino al 31/12/" + R.anno + "</b>", "<span class='n'>" + n0(Math.max(0, R.cumulatoFineAnno - R.pregresso)) + " m³</span>"])
+      + "<tr class='tot'><td>Cumulato a fine " + R.anno + "</td><td class='n'>" + n0(R.cumulatoFineAnno) + " m³"
+      + (R.pctFineAnno != null ? " (" + un1(R.pctFineAnno) + "% del concesso)" : "") + "</td></tr>"
+      + riga(["<b>Residuo del volume concesso</b>", "<span class='n'>" + (R.residuoFineAnno != null ? n0(R.residuoFineAnno) + " m³" : "non calcolabile") + "</span>"])
+      + (soglia != null ? riga(["Soglia di guardia impostata", "<span class='n'>" + un1(soglia) + "%</span>"]) : "")
+      + "</table>"
+      + "<h2>Come sono stati ottenuti i numeri</h2>"
+      + "<p class='mini'>Per l'anno " + R.anno + " risultano registrati in Terra: " + conta + "."
+      + (qual.length ? " Qualità dei rilievi di scavo: " + qual.join(", ") + "." : "")
+      + (R.banda > 0 ? " Incertezza complessiva stimata sullo scavo: ± " + n0(R.banda)
+          + " m³, ottenuta sommando la tolleranza tipica del metodo di ogni rilievo (stima prudente)." : "")
+      + (R.rilieviScavo > 0 ? " Le tolleranze sono valori tipici del metodo di rilievo e vanno confermate con i punti di controllo del rilevatore." : "")
+      + "</p>"
+      + "<div class='firma'><div>Luogo e data</div><div>Il titolare / il direttore dei lavori</div></div>"
+      + "<div class='foot'>Prospetto generato da Deepwork Terra a partire dai rilievi registrati dall'utente. "
+      + "Le attività estrattive sono materia regionale: modello, termini e modalità di invio della comunicazione annuale "
+      + "cambiano da regione a regione e vanno verificati presso l'ente competente. Questo prospetto non sostituisce il modulo ufficiale.</div>"
+      + "</body></html>";
+    return doc;
+  }
+
+  $("btn-den-stampa").onclick = () => {
+    if (!DEN) return;
+    const w = window.open("", "_blank");
+    if (!w) { esito("den-esito", "Il browser ha bloccato la finestra della stampa: consenti le finestre pop-up per questo sito e riprova.", "err"); return; }
+    w.document.write(fogliaStampa());
+    w.document.close(); w.focus();
+    setTimeout(() => { try { w.print(); } catch (e) {} }, 350);
+    esito("den-esito", "Riepilogo " + DEN.R.anno + " aperto in una pagina bianca: dal riquadro di stampa puoi anche scegliere «Salva come PDF».");
+  };
+
+  $("btn-den-csv").onclick = () => {
+    if (!DEN) return;
+    const { R } = DEN;
+    const meseOggi = new Date().getMonth() + 1;
+    const mesiVisti = R.inCorso ? R.mesi.slice(0, meseOggi) : R.mesi;
+    let csv = "sezione;voce;scavoM3;cumuloM3;rilievi\n";
+    for (const m of mesiVisti) csv += `mese;${csvCell(MESI_NOME[m.mese - 1] + " " + R.anno)};${m.scavo};${m.cumulo};${m.rilievi}\n`;
+    csv += `totale;${csvCell("Anno " + R.anno)};${R.scavo};${R.cumulo};${R.rilieviScavo + R.rilieviCumulo}\n`;
+    for (const f of R.fronti) csv += `fronte;${csvCell(etFronte(f))};${f.scavo};${f.cumulo};${f.rilievi}\n`;
+    csv += `titolo;${csvCell("Volume concesso")};${R.concesso || ""};;\n`;
+    csv += `titolo;${csvCell("Estratto prima di Terra")};${R.pregresso};;\n`;
+    csv += `titolo;${csvCell("Cumulato a fine " + R.anno)};${R.cumulatoFineAnno};;\n`;
+    csv += `titolo;${csvCell("Residuo del concesso")};${R.residuoFineAnno != null ? R.residuoFineAnno : ""};;\n`;
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.download = "terra_riepilogo_" + R.anno + ".csv"; a.click();
+    esito("den-esito", "Riepilogo " + R.anno + " esportato in CSV: mesi, fronti e confronto col volume concesso.");
+  };
 
   // Scheda autorizzazione: form ⇄ dati. I campi vuoti restano null, così una
   // scheda incompleta non finge numeri che non ci sono.
@@ -1481,15 +1815,21 @@ textarea.dw-input{line-height:1.5}
   // prezzo. Ricalcolo dal vivo quando l'utente cambia densità o prezzo.
   function renderValore() {
     const anno = new Date().toISOString().slice(0, 4);
-    const volAnno = (RIL || []).filter(r => r.stato === "elaborato" && r.volumeM3 != null && (r.data||"").slice(0,4) === anno)
-                               .reduce((s, r) => s + r.volumeM3, 0);
+    const dellAnno = (RIL || []).filter(r => r.stato === "elaborato" && r.volumeM3 != null && (r.data||"").slice(0,4) === anno);
+    // «estratto» = SCAVO: il materiale ripreso da un cumulo era già stato
+    // estratto (e già valorizzato) prima, sommarlo conterebbe due volte lo
+    // stesso metro cubo
+    const volAnno = soloScavo(dellAnno).reduce((s, r) => s + r.volumeM3, 0);
+    const volCum = soloCumulo(dellAnno).reduce((s, r) => s + r.volumeM3, 0);
     const dens = $("val-densita").value, prezzo = $("val-prezzo").value;
     const { tonnellate, valore } = valoreMateriale(volAnno, dens, prezzo);
     const eur = (n) => "€ " + Math.round(n).toLocaleString("it-IT");
     const ton = (n) => Math.round(n).toLocaleString("it-IT");
     $("val-out").innerHTML = volAnno
       ? `Estratto ${anno}: <b>${volAnno.toLocaleString("it-IT")} m³</b> → <b>${ton(tonnellate)} t</b> → <b>${eur(valore)}</b> di materiale.`
-      : `Nessun volume elaborato per il ${anno}: registra un rilievo per stimare il valore.`;
+        + (volCum ? ` Fuori dal conto restano <b>${volCum.toLocaleString("it-IT")} m³</b> ripresi da cumuli: erano già stati estratti, contarli qui varrebbe due volte lo stesso materiale.` : "")
+      : `Nessun volume di scavo elaborato per il ${anno}: registra un rilievo per stimare il valore.`
+        + (volCum ? ` Nell'anno risultano solo <b>${volCum.toLocaleString("it-IT")} m³</b> ripresi da cumuli.` : "");
   }
   ["val-densita","val-prezzo"].forEach(id => $(id).addEventListener("input", renderValore));
   // Menù materiali: scelto un litotipo, riempie la densità col valore tipico
@@ -1562,10 +1902,10 @@ textarea.dw-input{line-height:1.5}
       await refresh(); }
   });
   $("btn-terra-export").onclick = () => {
-    let csv = "tipo;nome;stato;dettaglio\n";
-    for (const f of FRO) csv += `fronte;${csvCell(f.nome+" "+(f.banco||""))};${f.stato};quota ${f.quota}m · avanzamento ${f.avanzamento}%\n`;
+    let csv = "tipo;nome;stato;provenienza;dettaglio\n";
+    for (const f of FRO) csv += `fronte;${csvCell(f.nome+" "+(f.banco||""))};${f.stato};;quota ${f.quota}m · avanzamento ${f.avanzamento}%\n`;
     for (const r of RIL.slice().sort((a,b)=>(b.data||"").localeCompare(a.data||"")))
-      csv += `rilievo;${csvCell(r.titolo)};${r.stato};${dmy(r.data)}${r.volumeM3!=null?" · "+r.volumeM3+" m³":""}\n`;
+      csv += `rilievo;${csvCell(r.titolo)};${r.stato};${provenienzaRilievo(r)};${dmy(r.data)}${r.volumeM3!=null?" · "+r.volumeM3+" m³":""}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "terra_fronti_rilievi.csv"; a.click();
@@ -1621,30 +1961,59 @@ textarea.dw-input{line-height:1.5}
     const fr = FRO.find(f => f.id === fronteId);
     const metodo = $("new-ril-metodo").value || null;
     const gsd = $("new-ril-gsd").value.trim() || null;
+    const prov = provenienzaRilievo({ provenienza: $("new-ril-prov").value });
     if (futuro) {
-      await db.aggiungi("rilievi", { titolo: "Prossimo rilievo" + (fr ? " — " + fr.nome : ""), data, tipo: "Drone pianificato", volumeM3: null, fronteId, stato: "pianificato" });
+      await db.aggiungi("rilievi", { titolo: "Prossimo rilievo" + (fr ? " — " + fr.nome : ""), data, tipo: "Drone pianificato", volumeM3: null, fronteId, stato: "pianificato", provenienza: prov });
       esito("ril-esito", "Rilievo pianificato per il " + fmtData(data) + (fr ? " su " + fr.nome : "") + ".");
     } else {
-      await db.aggiungi("rilievi", { titolo: "Rilievo drone " + dmy(data) + (fr ? " — " + fr.nome : ""), data, tipo: "Ortofoto + DEM", volumeM3: vol, fronteId, stato: "elaborato", metodo, gsd });
-      esito("ril-esito", "Rilievo del " + fmtData(data) + " registrato: " + vol.toLocaleString("it-IT") + " m³" + (fr ? " su " + fr.nome : "") + ".");
+      await db.aggiungi("rilievi", { titolo: (prov === "cumulo" ? "Ripresa da cumulo " : "Rilievo drone ") + dmy(data) + (fr ? " — " + fr.nome : ""), data, tipo: "Ortofoto + DEM", volumeM3: vol, fronteId, stato: "elaborato", metodo, gsd, provenienza: prov });
+      esito("ril-esito", "Rilievo del " + fmtData(data) + " registrato: " + vol.toLocaleString("it-IT") + " m³"
+        + (fr ? " su " + fr.nome : "")
+        + (prov === "cumulo" ? " — ripresa da cumulo: non scala il volume concesso." : "."));
     }
     $("new-ril-data").value = ""; $("new-ril-vol").value = ""; $("new-ril-metodo").value = ""; $("new-ril-gsd").value = ""; fuoco("new-ril-data"); await refresh();
   };
+  // Provenienza del volume: menù sempre pieno, di serie SCAVO — così chi
+  // registra un rilievo senza pensarci ottiene il comportamento di prima.
+  $("new-ril-prov").innerHTML = PROVENIENZE
+    .map(p => `<option value="${p.chiave}">${esc(p.etichetta)}</option>`).join("");
+  const notaProv = () => {
+    const p = PROVENIENZE.find(x => x.chiave === $("new-ril-prov").value) || PROVENIENZE[0];
+    $("prov-nota").innerHTML = "<b>" + esc(p.etichetta) + ".</b> " + esc(p.nota);
+  };
+  $("new-ril-prov").addEventListener("change", notaProv);
+  notaProv();
+
   // Ponte col visore nuvola (Genesi): riprende l'ULTIMO ritaglio con volume
   // calcolato e precompila il form del rilievo — il flusso drone→Terra chiuso.
-  $("btn-dal-drone").onclick = () => {
+  $("btn-dal-drone").onclick = async () => {
     let ultimo = null;
     try { const a = JSON.parse(localStorage.getItem("genesiNuvole") || "[]");
       for (let i = a.length - 1; i >= 0; i--) if (a[i] && a[i].volume != null) { ultimo = a[i]; break; } } catch (e) {}
     if (!ultimo) { esito("ril-esito", "Nessun volume dal visore: apri il visore nuvola (in Genesi), carica la nuvola del drone, ritaglia il cumulo o il fronte e torna qui.", "err"); return; }
     const vol = Math.max(0, Math.round(+String(ultimo.volume).replace(/[^0-9.,-]/g, "").replace(",", ".")) || 0);
     if (!vol) { esito("ril-esito", "L'ultimo ritaglio del visore non ha un volume in metri reali: la nuvola non è georeferenziata.", "err"); return; }
+    // Il visore misura un volume, ma non sa CHE COSA ha misurato: un fronte
+    // scavato o un mucchio sul piazzale. È l'unica cosa che deve dirla una
+    // persona, e cambia se quel volume scala o no il concesso.
+    const scelta = await chiediValore("Che cosa hai misurato?",
+      "Il visore ha calcolato <b>" + vol.toLocaleString("it-IT") + " m³</b> su «" + esc(ultimo.nome || "ritaglio") + "».<br><br>"
+      + "Se è <b>scavo</b> del fronte, quei metri cubi consumano il volume concesso dall'autorizzazione. "
+      + "Se è la <b>ripresa di un cumulo</b>, quel materiale era già stato scavato (e già scalato) in passato: contarlo di nuovo "
+      + "farebbe risultare consumata più concessione di quella vera.",
+      '<label class="fl" for="modal-campo">Provenienza del volume</label><select class="dw-input" id="modal-campo">'
+      + PROVENIENZE.map(p => `<option value="${p.chiave}">${esc(p.etichetta)}</option>`).join("") + "</select>",
+      "Usa questo volume");
+    if (scelta == null) return;
+    const prov = provenienzaRilievo({ provenienza: scelta });
     const oggiISO = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
     $("new-ril-data").value = oggiISO;
     $("new-ril-vol").value = vol;
     $("new-ril-metodo").value = "senza GCP";   // drone consumer: scala approssimata, onesto
+    $("new-ril-prov").value = prov; notaProv();
     err("new-ril-data", false); err("new-ril-vol", false);
-    esito("ril-esito", "Precompilato dal visore: «" + (ultimo.nome || "rilievo") + "» ≈ " + vol.toLocaleString("it-IT") + " m³. Controlla fronte e metodo, poi tocca Registra.");
+    esito("ril-esito", "Precompilato dal visore: «" + (ultimo.nome || "rilievo") + "» ≈ " + vol.toLocaleString("it-IT") + " m³ come "
+      + (prov === "cumulo" ? "ripresa da cumulo" : "scavo dal fronte") + ". Controlla fronte e metodo, poi tocca Registra.");
   };
   // Import rilievi elaborati da CSV (onboarding storico).
   $("btn-imp-ril").onclick = () => $("ril-file").click();
@@ -1655,25 +2024,28 @@ textarea.dw-input{line-height:1.5}
     // Dedup come gli altri import: un doppio click su "Importa" non deve
     // raddoppiare i rilievi. Firma = data|fronteId|volumeM3 (un rilievo dello
     // stesso giorno, fronte e volume è lo stesso dato re-importato).
-    const firma = (data, fronteId, vol) => [data || "", fronteId || "", vol == null ? "" : vol].join("|");
-    const gia = new Set(RIL.map(x => firma(x.data, x.fronteId, x.volumeM3)));
-    let agg = 0, dup = 0, senzaFronte = 0;
+    const firma = (data, fronteId, vol, prov) => [data || "", fronteId || "", vol == null ? "" : vol, prov || "scavo"].join("|");
+    const gia = new Set(RIL.map(x => firma(x.data, x.fronteId, x.volumeM3, provenienzaRilievo(x))));
+    let agg = 0, dup = 0, senzaFronte = 0, cum = 0;
     for (const r of righe) {
       let fronteId = null, frNome = "";
       if (r.fronte) {
         const f = FRO.find(x => (x.nome || "").toLowerCase() === r.fronte.toLowerCase());
         if (f) { fronteId = f.id; frNome = f.nome; } else senzaFronte++;
       }
-      const k = firma(r.data, fronteId, r.volumeM3);
+      const prov = provenienzaRilievo(r);
+      const k = firma(r.data, fronteId, r.volumeM3, prov);
       if (gia.has(k)) { dup++; continue; }
       gia.add(k);   // scarta i doppioni anche DENTRO lo stesso file
-      await db.aggiungi("rilievi", { titolo: "Rilievo drone " + dmy(r.data) + (frNome ? " — " + frNome : ""), data: r.data,
+      await db.aggiungi("rilievi", { titolo: (prov === "cumulo" ? "Ripresa da cumulo " : "Rilievo drone ") + dmy(r.data) + (frNome ? " — " + frNome : ""), data: r.data,
         tipo: "Ortofoto + DEM", volumeM3: r.volumeM3, fronteId, stato: "elaborato",
-        metodo: r.metodo, gsd: r.gsd });
+        metodo: r.metodo, gsd: r.gsd, provenienza: prov });
+      if (prov === "cumulo") cum++;
       agg++;
     }
     $("ril-file").value = "";
     esito("ril-esito", `Import rilievi: ${agg} rilievi elaborati aggiunti`
+      + (cum ? `, di cui ${cum} ${cum === 1 ? "ripreso da cumulo" : "ripresi da cumuli"}` : "")
       + (dup ? `, ${dup} già presenti (saltati)` : "")
       + (senzaFronte ? " (" + senzaFronte + " con un fronte non riconosciuto: restano non assegnati)" : "") + ".");
     await refresh();
