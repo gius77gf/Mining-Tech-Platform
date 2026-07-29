@@ -610,6 +610,7 @@ body.scr-sim #tl{bottom:80px}
   <input type="file" id="sigFile" accept=".csv,text/csv,.txt" style="display:none;">
   <button class="btn sm" id="sitoOpen" style="width:100%;margin-top:8px;border-color:rgba(255,171,0,.4)">📐 Legge di sito (K/β dai tuoi referti)</button>
   <input type="file" id="sitoFile" accept=".csv,text/csv,.txt" style="display:none;">
+  <button class="btn sm" id="sentOpen" style="width:100%;margin-top:8px;border-color:rgba(255,171,0,.4)" title="Manda la volata progettata al registro volate di Sentinella: entra come PREVISTA, coi numeri già dentro, senza ridigitare niente">📡 Manda a Sentinella (registro volate)</button>
 </div>
 
 <div id="cmpModal" style="display:none;position:fixed;inset:0;z-index:220;background:rgba(10,8,4,.82);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:18px;">
@@ -657,6 +658,22 @@ body.scr-sim #tl{bottom:80px}
       <button class="btn sm cu" id="sitoImport">Importa referti (CSV)</button>
       <button class="btn sm" id="sitoExport">Esporta referti (CSV)</button>
       <button class="btn sm" id="sitoClose">Chiudi</button>
+    </div>
+  </div>
+</div>
+
+<!-- T9 · IL VERSO OPPOSTO DEL PONTE: la volata PROGETTATA va nel registro
+     volate di Sentinella. Genesi conosce già tutto quello che quel registro
+     chiede (data, fronte, fori, kg, MIC, distanza del recettore, PPV prevista):
+     ridigitarlo a mano è una seconda occasione di sbagliare. Il file esce nel
+     formato che Sentinella già importa, e la volata entra come PREVISTA. -->
+<div id="sentModal" class="gmodal" style="display:none;">
+  <div class="gmodal-card">
+    <div class="gmodal-title">Manda a Sentinella — la volata nel registro</div>
+    <div id="sentBody" style="font-size:13.5px;"></div>
+    <div class="gmodal-foot">
+      <button class="btn sm cu" id="sentExport">Esporta per Sentinella (CSV)</button>
+      <button class="btn sm" id="sentClose">Chiudi</button>
     </div>
   </div>
 </div>
@@ -955,6 +972,11 @@ function ppvSite(){
   const vp=(selRoccia()||{}).vp||4500, t=Math.max(0,Math.min(1,(vp-2600)/(6000-2600)));
   return { K:Math.round(2800-1600*t), beta:+(1.75-0.35*t).toFixed(2), fonte:'litologia' };
 }
+/* nome leggibile della normativa scelta per il limite PPV: serve nel report,
+   e serve al file per Sentinella (che deve poter dire ACCANTO al numero quale
+   limite è stato citato). Sta qui, accanto ai codici che traduce. */
+const NORME_PPV={'din-res':'DIN residenziale','din-ind':'DIN industriale','din-sens':'DIN sensibile/storico','usbm-old':'USBM intonaco','usbm-modern':'USBM cartongesso'};
+function normaPpvLab(n){ return NORME_PPV[n]||String(n==null?'':n); }
 /* soglia PPV [mm/s] per normativa/edificio e frequenza dominante (soglie verificate USBM RI8507 e DIN 4150-3) */
 function ppvLimit(norma,f){ switch(norma){
   case 'usbm-old': return f<40?12.7:50.8;
@@ -962,6 +984,11 @@ function ppvLimit(norma,f){ switch(norma){
   case 'din-ind': return f<10?20:(f<50?40:50);
   case 'din-sens': return f<10?3:(f<50?8:10);
   default: return f<10?5:(f<50?15:20); } }  // din-res
+/* Sovrappressione d'aria (airblast) al recettore, in dB(L): scala cube-root
+   della carica per ritardo. La formula sta QUI perché la usano in due — la
+   scheda validatori e il file per Sentinella — e due copie di una formula
+   prima o poi dicono due numeri diversi. STIMA, da calibrare. */
+function airblastDb(dist,mic){ const sd3=Math.max(0.001,+dist||0)/Math.cbrt(Math.max(0.1,+mic||0)); return 172-24*Math.log10(Math.max(1,sd3)); }
 /* MIC = massima carica entro finestra 8 ms, raggruppando i fori sui tempi tDet reali (V-cut/box: piu fori sullo stesso ritardo) */
 function computeMIC(){ const H=D2.holes; if(!H.length) return D2.kg; const ts=H.map(h=>h.tDet||0); let n=1; for(const t0 of ts){ let c=0; for(const t of ts) if(t>=t0 && t<t0+8) c++; if(c>n) n=c; } return n*D2.kg; }
 
@@ -2588,7 +2615,7 @@ if($('btn-report')) $('btn-report').onclick=()=>{
   const eur=(x)=>'€'+Math.round(x).toLocaleString('it-IT'), esc=_rEsc;
   const now=new Date().toLocaleString('it-IT');
   const seqL={riga:'Riga per riga',diagonale:'Diagonale (echelon)',vcut:'V-cut',box:'Box cut'}[D2.sequenza]||D2.sequenza;
-  const normL={'din-res':'DIN residenziale','din-ind':'DIN industriale','din-sens':'DIN sensibile/storico','usbm-old':'USBM intonaco','usbm-modern':'USBM cartongesso'}[D2.recNorma]||D2.recNorma;
+  const normL=normaPpvLab(D2.recNorma);
   const sec=(t,rows)=>'<h2>'+esc(t)+'</h2><table>'+rows.map(r=>'<tr><td>'+esc(r[0])+'</td><td>'+r[1]+'</td></tr>').join('')+'</table>';
   const body=
     sec('Geometria',[['Maglia (spalla × interasse)',D2.B.toFixed(1)+' × '+D2.S.toFixed(1)+' m'],['Diametro foro',esc(D2.diam)+' mm'],['Fori × file',nf+' ('+D2.perRow+' × '+D2.file+')'],['Profondità / sottoperf.',D2.prof+' / '+(D2.sub||0)+' m'],['Borraggio',D2.stem+' m'],['Inclinazione',(D2.incl||0)+'°'],['Fronte',g.Lm+' m']])
@@ -3306,6 +3333,113 @@ if($('sitoExport')) $('sitoExport').onclick=()=>{
     +P.map(p=>[p.ts||'',p.nome||'',p.d,p.w,p.ppv,(p.d/Math.sqrt(p.w)).toFixed(2),p.fonte||''].map(cell).join(';')).join('\n')+'\n';
   const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download='genesi_legge_di_sito.csv'; a.click();
+};
+
+/* ═══ T9 · MANDA A SENTINELLA — la volata progettata entra nel registro ══════
+   È il verso opposto della «Legge di sito» (che porta qui i referti misurati).
+   Chi progetta una volata qui, per poterla monitorare, doveva ridigitarla nel
+   registro volate di Sentinella: stessa volata, due digitazioni, due occasioni
+   di sbagliare. Genesi però conosce già tutto quello che quel registro chiede:
+   data, fronte, numero di fori, kg totali, MIC (kg massimi per ritardo),
+   distanza del recettore, e la PPV PREVISTA.
+
+   DUE REGOLE, e sono la ragione per cui questo ponte è onesto:
+   1. Il file NON inventa un formato nuovo: sono le colonne che
+      `parseVolateCsv` di Sentinella già legge (apps/sentinella/sentinella-data.js,
+      CSV_VOLATE_INTESTAZIONE), con in coda quelle della volata prevista.
+   2. Le quattro colonne della PPV MISURATA escono VUOTE, sempre. Una volata
+      progettata non è stata sparata: nessuno strumento può averla misurata. La
+      PPV prevista viaggia nella SUA colonna (`ppvPrevista`) e in Sentinella non
+      diventerà mai un referto per la legge di sito — se lo diventasse, la legge
+      confermerebbe sé stessa e le distanze di sicurezza uscirebbero da un
+      calcolo circolare. */
+const CSV_SENT_HEAD='data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note;'
+  +'ppvMisurata;ppvFonte;ppvPunto;ppvOra;'
+  +'stato;ppvPrevista;ppvPrevLimite;ppvPrevNorma;ppvPrevFonte;airblastPrevisto;codiceVolata';
+let _sentFatto=null;                        /* ultimo file mandato, per dirlo a schermo */
+function _sentStore(){ try{ return JSON.parse(localStorage.getItem('genesiSent')||'{}')||{}; }catch(e){ return {}; } }
+function _sentSave(o){ try{ localStorage.setItem('genesiSent',JSON.stringify(o)); }catch(e){} }
+function _sentOggi(){ const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+/* numero per il file: punto decimale (è un file per un'altra macchina) */
+function _sentNum(n){ const v=+n; return Number.isFinite(v)?String(Math.round(v*1e4)/1e4):''; }
+/* cella di testo: si virgoletta se contiene il separatore (il lettore di
+   Sentinella rispetta le virgolette, quindi il dato non si perde) */
+function _sentCell(v){ const s=String(v==null?'':v).replace(/[\r\n\t]+/g,' ').trim(); return /[;"]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }
+/* I numeri della volata come li vede Genesi ADESSO. Sono gli stessi che
+   mostrano la scheda validatori e il report: se qui uscisse un numero diverso
+   da quello a schermo, non si saprebbe più a quale credere. */
+function _sentDati(){
+  if(!D2.holes.length) genMaglia2D();
+  computeSeq2D();
+  const g=measureGeom2D(), k=computeKPI(), st=ppvSite(), mic=computeMIC();
+  const nf=g.n||k.nf;                       /* i fori DAVVERO in pianta */
+  return { nFori:nf, kgTotali:Math.round(nf*D2.kg*10)/10, mic:Math.round(mic*10)/10,
+    dist:+D2.recDist, sd:D2.recDist/Math.sqrt(Math.max(1,mic)),
+    ppv:k.ppv, lim:k.lim, freq:+D2.recFreq,
+    norma:normaPpvLab(D2.recNorma)+' @ '+D2.recFreq+' Hz',
+    fonte:(st.fonte==='sito'?'genesi-sito':'genesi-litologia'),
+    calibrata:st.fonte==='sito', db:Math.round(airblastDb(D2.recDist,mic)) };
+}
+/* Il CODICE della volata: deterministico, ricavato dal progetto (data, fronte,
+   fori, chili, MIC, distanza). Serve a Sentinella per riconoscere i doppioni
+   anche DOPO che la volata è stata confermata come eseguita correggendo fori e
+   chili: un codice casuale a ogni export non servirebbe a niente. */
+function _sentCodice(d,data,fronte){
+  const base=[data,String(fronte||'').trim().toLowerCase(),d.nFori,d.kgTotali,d.mic,d.dist].join('|');
+  let h=0; for(let i=0;i<base.length;i++) h=(Math.imul(h,31)+base.charCodeAt(i))|0;
+  return 'GEN-'+String(data||'').replace(/-/g,'')+'-'+(h>>>0).toString(36);
+}
+function sentRender(){
+  const body=$('sentBody'); if(!body) return;
+  const s=_sentStore(), d=_sentDati(), it=(n,dec)=>(+n).toLocaleString('it-IT',{maximumFractionDigits:dec==null?1:dec});
+  const data=s.data&&/^\d{4}-\d{2}-\d{2}$/.test(s.data)?s.data:_sentOggi();
+  const fronte=s.fronte||'';
+  const riga=(l,v,n)=>'<div style="display:flex;justify-content:space-between;gap:10px;border-top:1px solid rgba(255,255,255,.07);padding:4px 0">'
+    +'<span style="color:var(--mut)">'+l+'</span><span style="font-variant-numeric:tabular-nums'+(n?';color:#ffd54f;font-weight:600':'')+'">'+v+'</span></div>';
+  body.innerHTML='<div style="color:var(--mut);font-size:12px;margin-bottom:10px;">Il registro volate di Sentinella chiede esattamente i numeri che Genesi ha già calcolato. Da qui esce il file che Sentinella importa: la volata entra come <b>PREVISTA</b>, e nessuno la ridigita.</div>'
+    +'<div class="sito-form" style="grid-template-columns:1fr 1fr">'
+    +'<label>Data prevista della volata<br><input id="sent-data" type="date" value="'+_rEsc(data)+'" style="width:100%"></label>'
+    +'<label>Fronte<br><input id="sent-fronte" type="text" value="'+_rEsc(fronte)+'" placeholder="es. Fronte Nord" style="width:100%"></label></div>'
+    +'<div style="border:1px solid rgba(255,171,0,.18);border-radius:11px;padding:10px 12px;background:rgba(255,255,255,.015);margin-top:12px">'
+    +'<div style="color:#ffd54f;font-family:\'Barlow Condensed\',sans-serif;font-weight:800;font-size:12px;letter-spacing:.09em;text-transform:uppercase;margin-bottom:6px">Che cosa parte</div>'
+    +riga('Numero di fori',it(d.nFori,0),1)
+    +riga('Carica totale',it(d.kgTotali)+' kg',1)
+    +riga('Carica massima per ritardo (MIC)',it(d.mic)+' kg',1)
+    +riga('Distanza del recettore',it(d.dist,0)+' m',1)
+    +riga('Distanza scalata (la ricalcola Sentinella)',it(d.sd)+' m/kg^½')
+    +riga('PPV <b>prevista</b>',it(d.ppv)+' mm/s',1)
+    +riga('Limite citato',it(d.lim)+' mm/s')
+    +riga('Norma citata',_rEsc(d.norma))
+    +riga('Airblast previsto',it(d.db,0)+' dB(L)')
+    +riga('Base della previsione',d.calibrata?'legge di sito calibrata sui tuoi referti':'stima dalla litologia')
+    +'</div>'
+    +'<div style="margin-top:10px;color:var(--mut);font-size:12px;">In Sentinella: <b>Registri → Registro volate → «Importa da CSV»</b>. La riga arriva col badge <b>Prevista</b>: non conta fra le volate eseguite, non entra nel report di conformità, e dopo lo sparo si conferma (correggendo i dati se in cava è andata diversamente).</div>'
+    +'<div style="margin-top:8px;color:var(--mut);font-size:12px;">La <b>PPV misurata</b> non parte da qui, e non partirà mai: la volata non è ancora stata sparata. La aggancia Sentinella dalla lettura del sismografo, e solo quella può tornare qui come <b>referto</b> per la legge di sito. La PPV <b>prevista</b> viaggia in una colonna sua, dichiarata come previsione.</div>'
+    +(_sentFatto?'<div style="margin-top:10px;color:#66bb6a;font-size:12px;">File pronto: <b>'+_rEsc(_sentFatto.file)+'</b> · volata del <b>'+_rEsc(_sentFatto.data.split('-').reverse().join('/'))+'</b> · codice <b>'+_rEsc(_sentFatto.codice)+'</b>. Riesportando lo stesso progetto il codice non cambia: Sentinella non creerà una riga doppia.</div>':'');
+  const salva=()=>{ const o=_sentStore(); o.data=$('sent-data').value||''; o.fronte=$('sent-fronte').value||''; _sentSave(o); };
+  if($('sent-data')) $('sent-data').onchange=salva;
+  if($('sent-fronte')) $('sent-fronte').onchange=salva;
+}
+if($('sentOpen')) $('sentOpen').onclick=()=>{ _sentFatto=null; sentRender(); $('sentModal').style.display='flex'; };
+if($('sentClose')) $('sentClose').onclick=()=>{ $('sentModal').style.display='none'; };
+if($('sentExport')) $('sentExport').onclick=()=>{
+  const data=$('sent-data')?$('sent-data').value:'';
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(data)){ toast('Serve la data prevista della volata'); return; }
+  const fronte=$('sent-fronte')?$('sent-fronte').value.trim():'';
+  const d=_sentDati(), codice=_sentCodice(d,data,fronte);
+  /* le 8 colonne di sempre · le 4 della PPV misurata (VUOTE: la volata non è
+     stata sparata) · le 7 della volata prevista */
+  const riga=[data,_sentCell(fronte),_sentNum(d.nFori),_sentNum(d.kgTotali),_sentNum(d.mic),_sentNum(d.dist),
+    '','',
+    '','','','',
+    'prevista',_sentNum(d.ppv),_sentNum(d.lim),_sentCell(d.norma),d.fonte,_sentNum(d.db),_sentCell(codice)].join(';');
+  const csv=CSV_SENT_HEAD+'\n'+riga+'\n';
+  const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  const file='genesi_volata_per_sentinella_'+data+'.csv';
+  a.download=file; a.click();
+  _sentSave({data,fronte});
+  _sentFatto={file,data,codice}; sentRender();
+  toast('Volata pronta per Sentinella: Registri → Registro volate → «Importa da CSV»');
 };
 
 function maybeConsent(){ if(!localStorage.getItem('genesiDisclaimerV1')){ $('modal').style.display='flex'; } }
@@ -4556,7 +4690,7 @@ function renderScheda2D(){
     why:'a '+D2.recDist+' m (SD '+_sd2.toFixed(1)+' m/kg^½, MIC '+_mic+' kg), legge di Devine PPV=K·SD^−β con '+_fonte+'. Soglia '+_normaLab+' '+_lim+' mm/s @ '+D2.recFreq+' Hz → '+(_rat>=1?'<b>SUPERA</b>: riduci la MIC (meno kg/foro o frazionamento ritardi) o allontana il recettore.':(_rat>=0.6?'sotto soglia ma vicino: monitora.':'ampiamente sotto soglia.'))+_coda});
   rows.push({lab:'MIC (carica/ritardo)',valStr:_mic+' <span>kg</span>',cls:'sv-info',
     why:'massima carica entro la finestra di 8 ms (fori sullo stesso ritardo). W max ammissibile alla soglia scelta ≈ '+Math.round(_wmax)+' kg a '+D2.recDist+' m: oltre, il PPV supera il limite.'});
-  const _sd3=D2.recDist/Math.cbrt(Math.max(0.1,_mic)), _db=172-24*Math.log10(Math.max(1,_sd3));
+  const _sd3=D2.recDist/Math.cbrt(Math.max(0.1,_mic)), _db=airblastDb(D2.recDist,_mic);
   rows.push({lab:'Airblast (sovrappr.)',valStr:Math.round(_db)+' <span>dB(L)</span>',cls:(_db<128?'sv-ok':(_db<=133?'sv-warn':'sv-bad')),
     why:'rumore d\'aria stimato a '+D2.recDist+' m (cube-root SD '+_sd3.toFixed(0)+'): '+(_db>133?'oltre il limite USBM/OSM di 133 dB(L): borraggio corto/colletto scoperto amplifica; allunga il borraggio.':'sotto il limite USBM/OSM di 133 dB(L).')+' Stima da calibrare.'});
   /* descrizioni compatte (richiesta fondatore 25/07): nome+valore sempre visibili,

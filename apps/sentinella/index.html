@@ -348,6 +348,9 @@
 .pon-det.st-danger{border-left:3px solid var(--danger)}
 .pon-det.st-warn{border-left:3px solid var(--warn)}
 .pon-det.st-ok{border-left:3px solid var(--success)}
+/* T9 · la volata ancora PREVISTA non è un giudizio di conformità: prende il
+   colore dell'app, non quello del semaforo */
+.pon-det.st-accent{border-left:3px solid var(--app-accent)}
 
 /* T7 · contenuto del pannello: righe di testo, l'avviso di coincidenza e
    l'elenco delle azioni correttive aperte in Scudo. Micro-profondità come
@@ -1044,6 +1047,9 @@ textarea.dw-input{
   <div class="sec">Registro volate<span class="cnt" id="vol-tot">0</span></div>
   <div id="vol-riep" class="note recap" style="margin-top:0;"></div>
   <div id="vol-list" style="margin-top:10px;"></div>
+  <!-- T9 · le volate PREVISTE arrivate da Genesi: la spiegazione dei due stati
+       compare solo se ce ne sono (vedi renderVolate). -->
+  <div id="vol-nota-previste" class="note" style="display:none;"></div>
   <div class="sec">Registra volata</div>
   <div class="form col">
     <div class="frow">
@@ -1067,8 +1073,14 @@ textarea.dw-input{
     <input type="file" id="vol-file" accept=".csv,text/csv" style="display:none;">
   </div>
   <div class="form-hint" style="margin-top:8px;">Colonne del file: <b>data; fronte; nFori; kgTotali; kgMaxRitardo; distanzaRicettore; esito; note</b>,
-    e in coda, facoltative, <b>ppvMisurata; ppvFonte; ppvPunto; ppvOra</b>: sono quelle che l'export
-    di Sentinella riempie da sé, così la PPV misurata non si perde nel giro export → import.</div>
+    e in coda, facoltative, <b>ppvMisurata; ppvFonte; ppvPunto; ppvOra</b> (la misura del sismografo) e
+    <b>stato; ppvPrevista; ppvPrevLimite; ppvPrevNorma; ppvPrevFonte; airblastPrevisto; codiceVolata</b>
+    (il progetto che arriva da Genesi). Le riempie da sé l'export di Sentinella, così niente si perde nel
+    giro export → import. Una riga senza la colonna <b>stato</b> vale come <b>eseguita</b>: è ciò che è.</div>
+  <div class="form-hint" style="margin-top:6px;">Da <b>Genesi</b>: progetta la volata, poi
+    <b>«Manda a Sentinella»</b> → il file esce con queste colonne e la volata entra qui come
+    <b>prevista</b>, coi numeri già dentro (fori, kg, kg max per ritardo, distanza del ricettore) e la
+    <b>PPV prevista</b> tenuta separata dalla misura.</div>
   <div class="note esito" id="vol-esito-msg"></div>
   <div class="note"><b>SD</b> = distanza scalata (R/√W con W = kg max per ritardo): più è alta, minore è il rischio di superare le soglie di vibrazione al ricettore. Il brogliaccio è un documento verso gli enti: tienilo completo.</div>
 
@@ -1283,7 +1295,10 @@ textarea.dw-input{
            bozzaAzioneReclamo, coincidenzaVolata, dataPiuGiorni, AVVISO_COINCIDENZA,
            ppvDiVolata, testoFontePpv, lettureVibrazioniDelGiorno, campiPpvVolata, CAMPI_PPV_VUOTI,
            refertiDaVolate, motivoReferto, MOTIVI_REFERTO, csvRefertiGenesi, riferimentoReferto,
-           PPV_STRUMENTO, PPV_MANUALE } from "./sentinella-data.js";
+           PPV_STRUMENTO, PPV_MANUALE,
+           VOL_PREVISTA, statoVolata, volataPrevista, etichettaStatoVolata, previsioneDiVolata,
+           testoFontePrevisione, scartoPpvVolata, confermaVolataEseguita, riepilogoPreviste,
+           volateOrdinate, firmaVolata, csvRegistroVolate, CSV_VOLATE_INTESTAZIONE } from "./sentinella-data.js";
   import { mountExit, esc, csvCell, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
@@ -1926,6 +1941,16 @@ textarea.dw-input{
 
   async function collegaPpv(id) {
     const v = VOL.find(x => x.id === id); if (!v) return;
+    // ⛔ Guardia T9: su una volata PREVISTA non si collega niente. Non è
+    // prudenza eccessiva: una misura su un evento non avvenuto è un dato falso,
+    // e da qui passa la strada verso la legge di sito. Il pulsante su una
+    // prevista non c'è, ma un clic rimasto in coda a un ridisegno arriverebbe
+    // comunque fin qui.
+    if (volataPrevista(v)) {
+      esito("ref-esito", "Questa volata è ancora soltanto PREVISTA: non è stata sparata, quindi nessuno strumento può averla misurata. Confermala prima come eseguita (la spunta sulla riga del registro), poi collega la PPV del sismografo.", "err",
+        "Prima confermala come eseguita: una prevista non ha misure.");
+      return;
+    }
     const gia = ppvDiVolata(v);
     const cand = lettureVibrazioniDelGiorno(MON, v.data);
     const usabili = cand.filter(c => c.unitaOk);
@@ -2049,6 +2074,89 @@ textarea.dw-input{
   // il referto di UNA volata, riletto dopo il salvataggio (per il messaggio)
   const refertoDaVolata_ui = (id) => refertiDaVolate(VOL).tutti.find(r => r.id === id) || null;
 
+  // ══════════════════════════════════════════════════════════════════
+  // T9 · DA PREVISTA A ESEGUITA — la conferma dopo lo sparo
+  // Il progetto arrivato da Genesi diventa un evento del brogliaccio solo
+  // qui, e solo se qualcuno lo dice. I dati si possono correggere perché in
+  // cava il progetto cambia: fori saltati, carica ridotta, giorno spostato.
+  // La PREVISIONE non si tocca: resta scritta com'era, altrimenti il
+  // confronto previsto → misurato sarebbe un confronto con un numero
+  // aggiustato dopo, cioè con niente.
+  // ══════════════════════════════════════════════════════════════════
+  const CAMPI_CONF = ["conf-data","conf-fronte","conf-nfori","conf-kg","conf-kgmax","conf-dist"];
+  async function confermaVolata(id) {
+    const v = VOL.find(x => x.id === id); if (!v) return;
+    if (!volataPrevista(v)) {
+      esito("vol-esito-msg", "Questa volata è già registrata come eseguita: non c'è niente da confermare.", "err");
+      return;
+    }
+    const pv = previsioneDiVolata(v);
+    const d = new Date();
+    const oggiISO = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    const num = (x) => x == null || x === "" ? "" : esc(String(x));
+    const corpo = `<div class="note" style="margin-top:0;">Stai registrando come <b>eseguita</b> la volata prevista del <b>${fmtD(v.data)}</b>${v.fronte ? " sul fronte <b>" + esc(v.fronte) + "</b>" : ""}: da questo momento entra nel brogliaccio e conta nelle volate del mese, nei kg del mese e nel report di conformità. Correggi quello che in cava è andato diversamente dal progetto: <b>i numeri veri sono questi</b>, non quelli disegnati.</div>
+      <label class="fl" for="conf-data">Giorno in cui è stata sparata</label>
+      <input class="dw-input" id="conf-data" type="date" max="${oggiISO}" value="${esc(String(v.data || "").slice(0, 10))}">
+      <label class="fl" for="conf-fronte">Fronte</label>
+      <input class="dw-input" id="conf-fronte" value="${esc(v.fronte || "")}" placeholder="Fronte">
+      <label class="fl" for="conf-nfori">N° fori</label>
+      <input class="dw-input" id="conf-nfori" type="number" min="0" value="${num(+v.nFori || 0)}">
+      <label class="fl" for="conf-kg">Carica totale (kg)</label>
+      <input class="dw-input" id="conf-kg" type="number" min="0" step="0.1" value="${num(+v.kgTotali || 0)}">
+      <label class="fl" for="conf-kgmax">Carica massima per ritardo (kg)</label>
+      <input class="dw-input" id="conf-kgmax" type="number" min="0" step="0.1" value="${num(+v.kgMaxRitardo || 0)}">
+      <label class="fl" for="conf-dist">Distanza del ricettore (m)</label>
+      <input class="dw-input" id="conf-dist" type="number" min="0" value="${num(+v.distanzaRicettore || 0)}">
+      <label class="fl" for="conf-esito">Esito</label>
+      <select class="dw-input" id="conf-esito"><option value="regolare">Regolare</option><option value="contestazione"${v.esito === "contestazione" ? " selected" : ""}>Con contestazione</option></select>
+      <label class="fl" for="conf-note">Note</label>
+      <input class="dw-input" id="conf-note" value="${esc(v.note || "")}" placeholder="Cosa è andato diversamente, se è andato diversamente">
+      <div id="conf-err" class="note" style="display:none;"></div>
+      ${pv ? `<div class="note" style="margin-bottom:0;">La <b>PPV prevista</b> di Genesi (${esc(numeroIt(pv.valore))} mm/s) resta scritta come previsione e <b>non viene toccata</b>: serve a confrontarla con quella che misurerà il sismografo. La misura si collega <b>dopo</b>, col pulsante <b>〰</b> sulla riga: è quella — e solo quella — che può diventare un referto per la legge di sito.</div>`
+        : `<div class="note" style="margin-bottom:0;">Dopo la conferma potrai collegare la <b>PPV misurata</b> dal sismografo col pulsante <b>〰</b> sulla riga.</div>`}`;
+
+    const res = await new Promise(resolve => {
+      apriModale("Confermare la volata come eseguita", corpo, [
+        { label: "Annulla", azione: () => { chiudiModale(); resolve(null); } },
+        { label: "Conferma eseguita", cls: "primary", azione: () => {
+          const c = confermaVolataEseguita(v, {
+            data: $("conf-data").value, fronte: $("conf-fronte").value,
+            nFori: $("conf-nfori").value, kgTotali: $("conf-kg").value,
+            kgMaxRitardo: $("conf-kgmax").value, distanzaRicettore: $("conf-dist").value,
+            esito: $("conf-esito").value, note: $("conf-note").value,
+          }, new Date());
+          if (c.ok) { chiudiModale(); resolve(c); return; }
+          // la modale RESTA APERTA: l'errore si legge dove si corregge, senza
+          // perdere quello che l'utente aveva già scritto
+          CAMPI_CONF.forEach(i => err(i, false));
+          for (const e of c.errori) if (e.campo) err("conf-" + (e.campo === "data" ? "data" : e.campo), true);
+          const box = $("conf-err");
+          if (box) { box.style.display = ""; box.className = "note avviso";
+            box.innerHTML = c.errori.map(e => esc(e.testo)).join("<br>"); }
+          fuocoErr(CAMPI_CONF);
+        } },
+      ]);
+    });
+    if (!res) return;
+    await db.aggiorna("volate", id, res.campi);
+    await refresh();
+    const et = { data: "il giorno", fronte: "il fronte", nFori: "il numero di fori",
+      kgTotali: "i kg totali", kgMaxRitardo: "i kg massimi per ritardo",
+      distanzaRicettore: "la distanza del ricettore", esito: "l'esito", note: "le note" };
+    const cambi = res.cambi.map(c => (et[c.campo] || c.etichetta)
+      + " (" + (c.campo === "data" ? fmtD(String(c.da)) + " → " + fmtD(String(c.a)) : String(c.da || "—") + " → " + String(c.a || "—")) + ")");
+    esito("vol-esito-msg", "Volata del " + fmtD(res.campi.data) + " confermata come eseguita: adesso è un evento del brogliaccio."
+      + (cambi.length ? " Rispetto al progetto " + (cambi.length === 1 ? "è stato corretto " : "sono stati corretti ") + cambi.join(", ") + "." : " Nessuna correzione: è stata sparata come progettata.")
+      + " Ora si può collegare la PPV misurata dal sismografo (pulsante 〰 sulla riga): la previsione di Genesi resta al suo posto e il confronto fra le due comparirà da sé.",
+      "success", "Volata del " + fmtD(res.campi.data) + " confermata come eseguita.");
+  }
+  document.addEventListener("click", async (e) => {
+    const b = e.target.closest && e.target.closest("[data-conf-vol]");
+    if (!b) return;
+    e.preventDefault();
+    await confermaVolata(b.getAttribute("data-conf-vol"));
+  });
+
   // LA VISTA: quante volate sono già referti e quante no, col motivo. Serve
   // a far capire cosa manca per avere la legge del proprio sito, invece di
   // lasciare l'utente davanti a un numero che non arriva.
@@ -2065,6 +2173,11 @@ textarea.dw-input{
     if (R.motivi.ppv) motivi.push(`PPV misurata su <b>${R.motivi.ppv}</b>`);
     if (R.motivi.distanza) motivi.push(`distanza del ricettore su <b>${R.motivi.distanza}</b>`);
     if (R.motivi.carica) motivi.push(`carica per ritardo su <b>${R.motivi.carica}</b>`);
+    // le previste si dicono a parte: non è un dato che manca, è un fatto che
+    // non è ancora avvenuto — e nessuna PPV prevista potrà mai sostituirlo
+    const testoPreviste = R.nPreviste
+      ? `<br>Ci ${R.nPreviste === 1 ? "è <b>1</b> volata" : `sono <b>${R.nPreviste}</b> volate`} ancora <b>prevista</b>${R.nPreviste === 1 ? "" : "e"}: ${R.nPreviste === 1 ? "è un progetto" : "sono progetti"} arrivat${R.nPreviste === 1 ? "o" : "i"} da Genesi e non ${R.nPreviste === 1 ? "può" : "possono"} diventare referti, nemmeno con la PPV prevista. Dopo lo sparo confermal${R.nPreviste === 1 ? "a" : "e"} nel registro qui sopra, poi collega la misura.`
+      : "";
     let quanto;
     if (!R.totale) quanto = "Il registro volate è vuoto: i referti nascono dalle volate registrate qui sopra.";
     else if (!R.nPronti) quanto = `Nessuna volata è ancora utilizzabile come referto. Ne servono almeno <b>${R.minimo}</b>: da due punti passa qualunque retta, e una legge di sito ricavata da due misure non è una legge.`;
@@ -2074,6 +2187,7 @@ textarea.dw-input{
 
     $("ref-riep").innerHTML = quanto
       + (motivi.length ? `<br>Restano fuori <b>${R.nMancanti}</b> volate: manca la ` + motivi.join(", la ") + "." : "")
+      + testoPreviste
       + (R.nPronti >= R.minimo && R.sdTutteUguali
         ? `<br>Attenzione: i referti pronti hanno tutti la stessa distanza scalata (<b>${numeroIt(R.sdMin)}</b> m/√kg). Senza misure a distanze o cariche diverse la pendenza β non si ricava, e Genesi rifiuterà la legge.`
         : (R.nPronti >= 2 && R.sdMin != null ? `<br>Distanza scalata coperta dai referti: da <b>${numeroIt(R.sdMin)}</b> a <b>${numeroIt(R.sdMax)}</b> m/√kg. Fuori da questo intervallo la legge sarebbe un'estrapolazione.` : ""));
@@ -2091,27 +2205,37 @@ textarea.dw-input{
 
     $("ref-list").innerHTML = vis.map(r => {
       const v = VOL.find(x => x.id === r.id) || {};
-      const cls = r.pronto ? "ok" : "warn";
+      // tre facce, non due: pronta (verde), da completare (giallo) e ancora
+      // prevista (colore dell'app) — quest'ultima non è un dato mancante
+      const cls = r.pronto ? "ok" : (r.prevista ? "accent" : "warn");
       const pezzi = [
         r.d != null ? `<b>${esc(numeroIt(r.d))} m</b>` : "distanza —",
         r.w != null ? `<b>${esc(numeroIt(r.w))} kg</b>/ritardo` : "carica/ritardo —",
-        r.ppv != null ? `<b>${esc(numeroIt(r.ppv))} mm/s</b>` : "PPV —",
       ];
+      if (r.prevista) pezzi.push(r.previsione
+        ? `PPV <b>prevista</b> ${esc(numeroIt(r.previsione.valore))} mm/s`
+        : "PPV —");
+      else pezzi.push(r.ppv != null ? `PPV misurata <b>${esc(numeroIt(r.ppv))} mm/s</b>` : "PPV —");
       if (r.pronto && r.sd != null) pezzi.push(`SD <b>${esc(numeroIt(r.sd))}</b>`);
       if (r.misura) pezzi.push(esc(testoFontePpv(r.misura)));
       const testa = `<div class="item ${r.pronto ? "" : "pon-voce "}${striscia[cls]}">
-        <div class="avatar ${r.pronto ? "ok" : "warn"}">${r.pronto ? I.fatto : I.onda}</div>
+        <div class="avatar ${r.pronto ? "ok" : (r.prevista ? "" : "warn")}">${r.pronto ? I.fatto : (r.prevista ? I.volata : I.onda)}</div>
         <div class="info"><div class="name">${esc(v.fronte || "Volata")} · ${fmtD(r.data)}</div>
-        <div class="riga"><span class="badge ${cls}">${r.pronto ? "Pronta come referto" : "Da completare"}</span>
+        <div class="riga"><span class="badge ${cls}">${r.pronto ? "Pronta come referto" : (r.prevista ? "Prevista" : "Da completare")}</span>
         <span class="meta">${pezzi.join(" · ")}</span></div></div></div>`;
       if (r.pronto) return testa;
       // il motivo, riga per riga, senza ripetere otto volte come si rimedia:
       // il come sta una volta sola nella legenda sotto i filtri
       return testa + `<div class="pon-det ${striscia[cls]}">`
-        + `<div class="pon-riga">Manca ${r.motivi.map(ch => "<b>" + esc(motivoReferto(ch).breve) + "</b>").join(", ")}.</div>`
-        + (r.motivi.includes("ppv")
-          ? `<div class="pon-cmd"><button type="button" class="dw-btn secondary mini" data-ppv-vol="${esc(r.id)}">Collega la PPV</button></div>`
-          : "")
+        + (r.prevista
+          ? `<div class="pon-riga">È una volata <b>ancora prevista</b>: non è stata sparata, quindi non esiste nessuna misura da usare`
+              + (r.previsione ? ` — e la PPV prevista da Genesi (<b>${esc(numeroIt(r.previsione.valore))} mm/s</b>) <b>non conta</b>: è il risultato di un calcolo, non il referto di uno strumento` : "")
+              + `. Confermala come eseguita dopo lo sparo, poi collega la PPV del sismografo.</div>`
+            + `<div class="pon-cmd"><button type="button" class="dw-btn secondary mini" data-conf-vol="${esc(r.id)}">Conferma come eseguita</button></div>`
+          : `<div class="pon-riga">Manca ${r.motivi.map(ch => "<b>" + esc(motivoReferto(ch).breve) + "</b>").join(", ")}.</div>`
+            + (r.motivi.includes("ppv")
+              ? `<div class="pon-cmd"><button type="button" class="dw-btn secondary mini" data-ppv-vol="${esc(r.id)}">Collega la PPV</button></div>`
+              : ""))
         + "</div>";
     }).join("")
       || (R.totale && filtroRef !== "tutte"
@@ -2145,10 +2269,18 @@ textarea.dw-input{
     const el = document.createElement("a");
     el.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     el.download = "sentinella_referti_legge_di_sito.csv"; el.click();
-    esito("ref-esito", `Esportati ${R.nPronti} referti` + (R.nMancanti ? ` (le ${R.nMancanti} volate incomplete sono rimaste fuori: senza PPV misurata non sono referti)` : "")
+    // chi resta fuori resta fuori per motivi diversi, e vanno detti diversi:
+    // «manca un dato» si rimedia, «non è ancora stata sparata» si aspetta
+    const fuoriPrev = R.nPreviste;
+    const fuoriIncompl = R.nMancanti - fuoriPrev;
+    const fuori = [];
+    if (fuoriIncompl > 0) fuori.push(`${fuoriIncompl === 1 ? "1 volata incompleta è rimasta" : fuoriIncompl + " volate incomplete sono rimaste"} fuori (senza PPV misurata non sono referti)`);
+    if (fuoriPrev > 0) fuori.push(`${fuoriPrev === 1 ? "1 volata è ancora prevista" : fuoriPrev + " volate sono ancora previste"}: ${fuoriPrev === 1 ? "non è" : "non sono"} ${fuoriPrev === 1 ? "stata sparata" : "state sparate"}, quindi ${fuoriPrev === 1 ? "non può" : "non possono"} essere referti`);
+    esito("ref-esito", `${R.nPronti === 1 ? "Esportato 1 referto" : "Esportati " + R.nPronti + " referti"}`
+      + (fuori.length ? " · " + fuori.join(" · ") : "")
       + ". In Genesi: «Legge di sito» → «Importa referti (CSV)» → conferma le colonne."
       + (R.nPronti < R.minimo ? ` Attenzione: sono meno di ${R.minimo}, Genesi non ricaverà ancora nessuna legge.` : ""),
-      "success", `Esportati ${R.nPronti} referti per Genesi.`);
+      "success", `${R.nPronti === 1 ? "Esportato 1 referto" : "Esportati " + R.nPronti + " referti"} per Genesi.`);
   };
 
   // Riempie le tendine che dipendono dai dati (punti e ricettori),
@@ -2594,27 +2726,77 @@ textarea.dw-input{
       : '<option value="">— nessun punto di misura configurato —</option>';
 
     // Registro volate: riepilogo + lista con la distanza scalata per volata.
+    // Il conteggio in cima è quello del BROGLIACCIO, cioè le volate davvero
+    // sparate: le previste (T9) si contano a parte, perché sono progetti.
     const rv = riepilogoVolate(VOL);
+    const rp = riepilogoPreviste(VOL);
     $("vol-tot").textContent = rv.totale;
-    $("vol-riep").innerHTML = rv.totale
-      ? `Volate registrate: <b>${rv.totale}</b> · questo mese: <b>${rv.questoMese}</b> (${rv.kgMese.toLocaleString("it-IT")} kg)${rv.contestazioni ? ` · <span class="badge danger" style="font-size:11px;">${rv.contestazioni} con contestazione</span>` : ""}`
+    $("vol-riep").innerHTML = (rv.totale || rp.totale)
+      ? (rv.totale
+          ? `Volate eseguite: <b>${rv.totale}</b> · questo mese: <b>${rv.questoMese}</b> (${rv.kgMese.toLocaleString("it-IT")} kg)${rv.contestazioni ? ` · <span class="badge danger" style="font-size:11px;">${rv.contestazioni} con contestazione</span>` : ""}`
+          : "Nessuna volata eseguita registrata.")
+        + (rp.totale
+          ? `<br>Previste (progetti arrivati da Genesi, non ancora sparati): <b>${rp.totale}</b>`
+            + (rp.daConfermare ? ` · <span class="badge warn" style="font-size:11px;">${rp.daConfermare} da confermare</span>` : "")
+            + (rp.prossima ? ` · la prossima il <b>${fmtD(rp.prossima)}</b>` : "")
+          : "")
       : "";
     const VB = { regolare: ["ok", "Regolare"], contestazione: ["danger", "Contestazione"] };
-    $("vol-list").innerHTML = VOL.slice().sort((a,b)=>(a.data||"")<(b.data||"")?1:-1).map(v => {
+    $("vol-list").innerHTML = volateOrdinate(VOL).map(v => {
+      const prev = volataPrevista(v);
       const sd = scaledDistance(v.distanzaRicettore, v.kgMaxRitardo);
       const vb = VB[v.esito] || ["ok","—"];
       // la PPV misurata si mostra SEMPRE con la sua provenienza attaccata:
       // un numero di cui non si sa da dove viene non è un dato
-      const ppv = ppvDiVolata(v);
-      return `<div class="item ${striscia[vb[0]]}">
-        <div class="avatar ${vb[0] === "danger" ? "danger" : "sup"}">${I.volata}</div>
-        <div class="info"><div class="name">${esc(v.fronte || "Volata")} · ${fmtD(v.data)}</div>
-        <div class="meta">${+v.nFori||0} fori · ${(+v.kgTotali||0).toLocaleString("it-IT")} kg${(+v.kgMaxRitardo) ? " · max/ritardo " + (+v.kgMaxRitardo) + " kg" : ""}${sd!=null ? " · <b>SD " + sd.toFixed(1) + "</b>" : ""}${ppv ? " · <b>PPV " + esc(numeroIt(ppv.valore)) + " mm/s</b> (" + esc(testoFontePpv(ppv)) + ")" : ""}${v.note ? " · " + esc(v.note) : ""}</div></div>
-        <span class="acts"><span class="badge ${vb[0]}">${vb[1]}</span>
-        <button type="button" class="arr${ppv ? " on" : ""}" title="${ppv ? "Cambia o togli la PPV misurata" : "Collega la PPV misurata del sismografo"}" aria-label="${ppv ? "Cambia la PPV misurata della volata del " + fmtD(v.data) : "Collega la PPV misurata alla volata del " + fmtD(v.data)}" data-ppv-vol="${v.id}">${I.onda}</button>
+      const ppv = prev ? null : ppvDiVolata(v);   // una volata non sparata non può avere misure
+      const pv = previsioneDiVolata(v);
+      const sc = scartoPpvVolata(v);
+      const gg = prev ? giorniTra(v.data) : null;
+      // stato: la prevista NON prende i colori del semaforo (non è un giudizio
+      // di conformità), prende il colore dell'app
+      const st = etichettaStatoVolata(v);
+      const cls = prev ? "accent" : vb[0];
+      // I NUMERI su una riga, LE VIBRAZIONI sulla riga sotto. Messi in fila,
+      // su una volata che porta previsto, misurato e scarto la riga andava a
+      // capo tre volte — e una riga di dati che va a capo tre volte non si
+      // legge, si scorre. Una volata senza PPV resta com'era: una riga sola.
+      const pezzi = [`${+v.nFori||0} fori`, `${(+v.kgTotali||0).toLocaleString("it-IT")} kg`];
+      if (+v.kgMaxRitardo) pezzi.push("max/ritardo " + esc(numeroIt(+v.kgMaxRitardo)) + " kg");
+      if (+v.distanzaRicettore) pezzi.push("ricettore a " + esc(numeroIt(+v.distanzaRicettore)) + " m");
+      if (sd != null) pezzi.push("<b>SD " + esc(numeroIt(sd)) + "</b>");
+      if (prev && Number.isFinite(gg) && gg > 0) pezzi.push("fra <b>" + gg + (gg === 1 ? " giorno" : " giorni") + "</b>");
+      if (v.note) pezzi.push(esc(v.note));
+      // ⛔ la PPV PREVISTA si scrive con la parola «prevista» attaccata, sempre:
+      // è l'unica cosa che impedisce di leggerla come una misura
+      const vibr = [];
+      if (pv) vibr.push("PPV <b>prevista</b> " + esc(numeroIt(pv.valore)) + " mm/s"
+        + (pv.limite != null ? " · limite dichiarato " + esc(numeroIt(pv.limite)) + " mm/s" + (pv.norma ? " (" + esc(pv.norma) + ")" : "") : ""));
+      // l'airblast previsto arriva da Genesi insieme alla PPV: si mostra dov'è
+      // arrivato, altrimenti sarebbe un dato importato che nessuno vede mai
+      if (pv && pv.airblast != null) vibr.push("airblast <b>previsto</b> " + esc(numeroIt(pv.airblast)) + " dB(L)");
+      if (ppv) vibr.push("PPV <b>misurata</b> " + esc(numeroIt(ppv.valore)) + " mm/s · " + esc(testoFontePpv(ppv)));
+      if (sc) vibr.push("scarto <b>" + (sc.delta > 0 ? "+" : "") + esc(numeroIt(sc.delta)) + " mm/s"
+        + (sc.pct != null ? " (" + (sc.pct > 0 ? "+" : "") + esc(numeroIt(sc.pct)) + "%)" : "") + "</b>");
+      if (prev && pv) vibr.push(esc(testoFontePrevisione(pv)));
+      return `<div class="item ${striscia[cls]}">
+        <div class="avatar ${prev ? "" : (vb[0] === "danger" ? "danger" : "sup")}">${prev ? I.calendario : I.volata}</div>
+        <div class="info"><div class="name">${esc(v.fronte || "Volata")} · ${fmtD(v.data)}${prev && Number.isFinite(gg) && gg <= 0 ? ' <span class="badge warn inline">da confermare</span>' : ""}</div>
+        <div class="meta">${pezzi.join(" · ")}</div>
+        ${vibr.length ? `<div class="meta">${vibr.join(" · ")}</div>` : ""}</div>
+        <span class="acts"><span class="badge ${cls}">${prev ? st.label : vb[1]}</span>
+        ${prev
+          ? `<button type="button" class="arr" title="Confermala come eseguita (potendo correggere i dati)" aria-label="Conferma come eseguita la volata prevista del ${fmtD(v.data)}" data-conf-vol="${v.id}">${I.fatto}</button>`
+          : `<button type="button" class="arr${ppv ? " on" : ""}" title="${ppv ? "Cambia o togli la PPV misurata" : "Collega la PPV misurata del sismografo"}" aria-label="${ppv ? "Cambia la PPV misurata della volata del " + fmtD(v.data) : "Collega la PPV misurata alla volata del " + fmtD(v.data)}" data-ppv-vol="${v.id}">${I.onda}</button>`}
         <button type="button" class="arr rimuovi" title="Rimuovi dal registro" aria-label="Rimuovi la volata del ${fmtD(v.data)}" data-del-vol="${v.id}">${I.cestino}</button></span></div>`;
     }).join("") || vuoto(I.volata, "Nessuna volata registrata",
         "Registra qui sotto data, fronte, fori e carica di ogni volata: il brogliaccio di brillamento resta pronto da mostrare agli enti, con la distanza scalata già calcolata.");
+    // la spiegazione dei due stati compare solo quando ci sono previste: una
+    // nota fissa che nessuno deve leggere è rumore
+    { const n = $("vol-nota-previste");
+      if (n) { n.style.display = rp.totale ? "" : "none";
+        n.innerHTML = rp.totale
+          ? `Le righe con il badge <span class="badge accent" style="font-size:11px;">Prevista</span> sono <b>progetti</b> arrivati da Genesi: non contano fra le volate eseguite, non entrano nel report di conformità e <b>non possono diventare referti</b> per la legge di sito. Dopo lo sparo premi la spunta sulla riga: puoi correggere i dati (in cava il progetto cambia) e la volata diventa <b>eseguita</b>. Solo allora si collega la <b>PPV misurata</b> del sismografo.`
+          : ""; } }
 
     renderReferti();
 
@@ -2781,20 +2963,20 @@ textarea.dw-input{
     await refresh();
   };
   $("btn-vol-export").onclick = () => {
-    // le quattro colonne della PPV misurata stanno in CODA e sono vuote
-    // quando la volata non ha misura: così il file resta leggibile da chi
-    // aspettava le vecchie otto colonne, e la PPV non si perde nel giro
-    // export → import (mai un valore riempito per far quadrare una colonna).
-    let csv = "data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note;ppvMisurata;ppvFonte;ppvPunto;ppvOra\n";
-    for (const v of VOL.slice().sort((a,b)=>(a.data||"")<(b.data||"")?-1:1)) {
-      const p = ppvDiVolata(v);
-      csv += `${v.data||""};${csvCell(v.fronte||"")};${+v.nFori||0};${+v.kgTotali||0};${+v.kgMaxRitardo||0};${+v.distanzaRicettore||0};${v.esito||"regolare"};${csvCell(v.note||"")};`
-        + `${p ? p.valore : ""};${p ? p.fonte : ""};${csvCell(p ? p.punto : "")};${p ? p.ora : ""}\n`;
-    }
+    // Il file lo costruisce csvRegistroVolate (sentinella-data.js), nello
+    // stesso file di parseVolateCsv: le colonne le decide un posto solo,
+    // altrimenti export e import si scollano al primo cambiamento.
+    // Le colonne facoltative in coda restano VUOTE quando il dato non c'è:
+    // mai un valore riempito per far quadrare una colonna. Ogni riga dichiara
+    // il suo `stato`, così il giro export → import non perde la distinzione
+    // fra un progetto e una volata sparata.
+    const csv = csvRegistroVolate(VOL);
     const el = document.createElement("a");
     el.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     el.download = "sentinella_registro_volate.csv"; el.click();
-    esito("vol-esito-msg", "Esportate " + VOL.length + " volate (CSV).", "success");
+    const nP = VOL.filter(volataPrevista).length;
+    esito("vol-esito-msg", "Esportate " + VOL.length + " volate (CSV)"
+      + (nP ? ", di cui " + nP + (nP === 1 ? " prevista" : " previste") + " (la colonna «stato» lo dice riga per riga)" : "") + ".", "success");
   };
   $("btn-vol-import").onclick = () => $("vol-file").click();
   $("vol-file").onchange = async (e) => {
@@ -2802,20 +2984,24 @@ textarea.dw-input{
     const righe = parseVolateCsv(await file.text());
     if (!righe.length) { esito("vol-esito-msg", "Nessuna riga valida nel file: le colonne devono essere data; fronte; nFori; kgTotali; kgMaxRitardo; distanzaRicettore; esito; note.", "err", "Nessuna riga valida: controlla le colonne."); e.target.value = ""; return; }
     // Dedup come gli altri import: un doppio click su "Importa" non deve
-    // raddoppiare il registro volate (documento regolatorio). Firma =
-    // data|fronte|nFori|kgTotali (due volate diverse stesso giorno/fronte
-    // restano distinte se cambiano fori o carica).
-    const firma = (r) => [(r.data || ""), (r.fronte || "").trim().toLowerCase(), +r.nFori || 0, +r.kgTotali || 0].join("|");
-    const gia = new Set(VOL.map(firma));
-    let agg = 0, dup = 0;
+    // raddoppiare il registro volate (documento regolatorio). La firma la
+    // decide firmaVolata: il codice volata se c'è (lo scrive Genesi, e
+    // sopravvive alla conferma), altrimenti data|fronte|nFori|kgTotali come
+    // prima — così i file già in giro si deduplicano esattamente come prima.
+    const gia = new Set(VOL.map(firmaVolata));
+    let agg = 0, dup = 0, prev = 0;
     for (const r of righe) {
-      if (gia.has(firma(r))) { dup++; continue; }
-      gia.add(firma(r));   // scarta i doppioni anche DENTRO lo stesso file
+      if (gia.has(firmaVolata(r))) { dup++; continue; }
+      gia.add(firmaVolata(r));   // scarta i doppioni anche DENTRO lo stesso file
       await db.aggiungi("volate", r);
       agg++;
+      if (volataPrevista(r)) prev++;
     }
     $("vol-file").value = "";
-    esito("vol-esito-msg", `Import registro: ${agg} volate aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}.`, agg ? "success" : "");
+    esito("vol-esito-msg", `Import registro: ${agg === 1 ? "1 volata aggiunta" : agg + " volate aggiunte"}${dup ? `, ${dup === 1 ? "1 era già presente" : dup + " erano già presenti"} (saltat${dup === 1 ? "a" : "e"})` : ""}.`
+      + (prev ? ` ${prev === 1 ? "Una è entrata" : prev + " sono entrate"} come PREVISTA: ${prev === 1 ? "è un progetto, non una volata sparata" : "sono progetti, non volate sparate"}. Dopo lo sparo confermal${prev === 1 ? "a" : "e"} con la spunta sulla riga, correggendo i dati se in cava è andata diversamente.` : ""),
+      agg ? "success" : "",
+      `Import registro: ${agg === 1 ? "1 volata" : agg + " volate"}${prev ? `, di cui ${prev} prevista${prev === 1 ? "" : "e"}` : ""}.`);
     await refresh();
   };
   $("btn-ade").onclick = async () => {

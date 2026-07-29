@@ -196,6 +196,71 @@ giorno — **nessuna formula nuova**: la regressione la fa Genesi, che ce l'ha.
 - **Volate vecchie**: registrate prima che questi campi esistessero, compaiono
   come «da completare» con il motivo. Nessun crash, nessun valore dedotto.
 
+## Dalla volata progettata al registro: il ponte DA Genesi — T9
+
+Il verso opposto di T8, e serve a togliere una **doppia digitazione**: chi
+progetta una volata in Genesi doveva riscriverla a mano qui per poterla
+monitorare. Stessa volata, due digitazioni, due occasioni di sbagliare. Genesi
+però conosce già tutto quello che questo registro chiede — data, fronte, numero
+di fori, kg totali, kg massimi per ritardo (la **MIC**, che calcola dai tempi di
+detonazione), distanza del recettore, e la **PPV prevista**.
+
+In Genesi: *progetta la volata → «📡 Manda a Sentinella»* → il file esce nel
+formato che questo registro **già** importa. Qui: *Registri → Registro volate →
+Importa da CSV*.
+
+**Le due distinzioni che tengono in piedi tutto.**
+
+1. **PREVISTA ≠ ESEGUITA.** Una volata progettata non è una volata sparata: i
+   suoi chili sono ancora in deposito e la sua data può essere domani. La riga
+   nasce **prevista** (badge col colore dell'app, icona del calendario, striscia
+   `st-accent`) e diventa **eseguita** solo quando qualcuno lo conferma. Le
+   previste **non** contano fra le volate eseguite, **non** entrano nel report di
+   conformità (`reportConformita`) e **non** compaiono come «volata di quel
+   giorno» accanto a un superamento (`volateDelGiorno`, `coincidenzaVolata`): un
+   progetto non è un fatto, e un documento che va all'ente non può dire che è
+   stato sparato dell'esplosivo che non è stato sparato.
+2. **PPV PREVISTA ≠ PPV MISURATA.** Campi diversi (`ppvPrevista` /
+   `ppvMisurata`), etichette diverse a schermo («PPV **prevista**» / «PPV
+   **misurata**», sempre con la parola attaccata), colonne diverse nel CSV. Dove
+   ci sono entrambe compare lo **scarto** previsto → misurato in mm/s e in
+   percentuale: è la cosa che rende utile il registro, perché dice se il modello
+   ci prende **in questa cava**.
+
+- **⛔ Una volata prevista non diventa MAI un referto per la legge di sito.**
+  `refertoDaVolata` la marca `prevista` e non `pronto`, con un unico motivo
+  scritto («è ancora prevista»): non le si chiede una PPV che non può esistere.
+  `csvRefertiGenesi` ha una **seconda guardia** ridondante (`!r.prevista`), e il
+  pulsante 〰 sulle previste non c'è; se un clic ci arrivasse comunque,
+  `collegaPpv` si ferma e lo spiega. Tre controlli su una cosa sola perché da
+  quella legge dipendono le **distanze di sicurezza**: se un valore previsto
+  entrasse nella regressione, la legge confermerebbe sé stessa.
+- **La conferma dopo lo sparo** (spunta sulla riga): modale con i dati del
+  progetto già dentro e **correggibili** — in cava il progetto cambia (fori
+  saltati, carica ridotta, giorno spostato). Il messaggio dice **che cosa** è
+  stato corretto rispetto al progetto. La data **non può essere nel futuro** (una
+  volata eseguita è un fatto avvenuto): l'errore si legge dentro la modale, che
+  resta aperta con quello che si era già scritto. La **previsione non si tocca**,
+  altrimenti il confronto previsto → misurato sarebbe con un numero aggiustato
+  dopo, cioè con niente.
+- **Compatibilità**: una volata **senza** il campo `stato` — tutte quelle
+  registrate finora — vale come **eseguita**, che è ciò che è. `riepilogoVolate`
+  restituisce su uno storico esistente esattamente gli stessi numeri di prima;
+  le previste si contano a parte (`riepilogoPreviste`, con l'avviso **da
+  confermare** quando la data è già arrivata).
+- **Colonne** (in coda a quelle di T8, tutte facoltative): `stato; ppvPrevista;
+  ppvPrevLimite; ppvPrevNorma; ppvPrevFonte; airblastPrevisto; codiceVolata`.
+  L'intestazione completa è `CSV_VOLATE_INTESTAZIONE`, **nello stesso file** di
+  `parseVolateCsv`: due elenchi di colonne in due punti diversi si scollano.
+  Export e import passano da `csvRegistroVolate` / `parseVolateCsv`. Genesi
+  lascia **vuote** le quattro colonne della PPV misurata: non ha niente da
+  scriverci.
+- **Doppioni**: `firmaVolata` usa il **codice volata** se c'è (lo scrive Genesi,
+  deterministico dal progetto) e sopravvive alla conferma — così reimportare il
+  file dopo aver corretto fori e chili non crea una riga fantasma. Senza codice
+  si torna alla firma di prima (`data|fronte|nFori|kgTotali`): i file già in giro
+  si deduplicano esattamente come prima.
+
 ## Regole rispettate
 
 - **Soglie di sicurezza**: i preset normativi (`SOGLIE_PRESET`, DIN 4150-3 /

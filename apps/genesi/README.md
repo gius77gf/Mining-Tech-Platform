@@ -76,4 +76,39 @@ volata e alla lettura del sismografo di quel giorno.
   *PPV al recettore* («ricavati dai tuoi N referti») e avvisa quando la
   distanza scalata del progetto è **fuori dall'intervallo calibrato**.
 
+## Manda a Sentinella (la volata progettata entra nel registro volate)
+
+È il verso opposto della *Legge di sito*, e **toglie una doppia digitazione**:
+finora chi progettava una volata qui doveva riscriverla a mano nel registro
+volate di Sentinella per poterla monitorare. Stessa volata, due digitazioni, due
+occasioni di sbagliare. Genesi però ha già tutto quello che quel registro chiede.
+
+*Progettazione → «📡 Manda a Sentinella (registro volate)»*: la modale mostra
+**che cosa parte** — numero di fori (quelli davvero in pianta), carica totale,
+**MIC** (carica massima per ritardo), distanza del recettore, distanza scalata,
+**PPV prevista**, limite e norma citati, airblast previsto, e su che base è
+stata fatta la previsione (legge di sito calibrata oppure stima dalla
+litologia). Si scelgono la **data prevista** e il **fronte** (ricordati per la
+volta dopo), e il file esce con le colonne che Sentinella **già** importa
+(`CSV_VOLATE_INTESTAZIONE` in `apps/sentinella/sentinella-data.js`): nessun
+formato nuovo. In Sentinella: *Registri → Registro volate → Importa da CSV*.
+
+- **La volata entra come PREVISTA**, non come eseguita: non conta fra le volate
+  eseguite di Sentinella e non entra nel report di conformità finché qualcuno non
+  la conferma dopo lo sparo (potendo correggere i dati).
+- **⛔ Le quattro colonne della PPV misurata escono VUOTE, sempre.** Una volata
+  progettata non è stata sparata: nessuno strumento può averla misurata. La PPV
+  prevista viaggia nella **sua** colonna (`ppvPrevista`) e in Sentinella non
+  diventerà mai un referto per la legge di sito — se lo diventasse, la legge
+  confermerebbe sé stessa e le distanze di sicurezza uscirebbero da un calcolo
+  circolare. Il giro onesto è: previsione da qui → misura del sismografo in
+  Sentinella → referto → K e β → previsioni migliori qui.
+- **Codice volata deterministico** (`GEN-<data>-<hash del progetto>`):
+  riesportando lo stesso progetto il codice non cambia, quindi Sentinella
+  riconosce il doppione anche dopo che la volata è stata confermata correggendo
+  fori e chili.
+- I numeri del file sono gli **stessi** che mostrano la Scheda validatori e il
+  report: `computeKPI()`, `computeMIC()`, `airblastDb()`, `normaPpvLab()` — una
+  formula sola per ogni cosa, altrimenti due schermate direbbero due numeri.
+
 © 2026 Deepwork · Mining-Tech Platform

@@ -19,7 +19,7 @@
 //       da fare / in ritardo) si CALCOLA dall'ultima lettura del punto.
 // ============================================================
 
-import { parseCsvLine, numIt, giorniTra, isIntestazione } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
   monitoraggi: [
@@ -67,8 +67,20 @@ export const DEMO = {
     { id: "pr5", monitoraggioId: "a1", ogniGiorni: 182, tolleranzaGiorni: 10, dal: "", nota: "Campionamento acque della vasca.", attivo: true },
   ],
   volate: [
-    { id: "b1", data: "2026-07-17", fronte: "Fronte Nord", nFori: 42, kgTotali: 480, kgMaxRitardo: 18, distanzaRicettore: 320, esito: "regolare", note: "" },
+    // b1 · progettata in Genesi (porta con sé la PPV PREVISTA) e già sparata:
+    //      appena si collega la PPV misurata del sismografo compare lo scarto
+    //      previsto → misurato, che è il motivo per cui il registro serve.
+    { id: "b1", data: "2026-07-17", fronte: "Fronte Nord", nFori: 42, kgTotali: 480, kgMaxRitardo: 18, distanzaRicettore: 320, esito: "regolare", note: "",
+      stato: "eseguita", ppvPrevista: 4.6, ppvPrevLimite: 5, ppvPrevNorma: "DIN residenziale @ 25 Hz",
+      ppvPrevFonte: "genesi-litologia", airblastPrevisto: 118, codiceVolata: "GEN-20260717-4f2a1" },
+    // b2 · registrata a mano prima che esistesse il campo «stato»: vale come
+    //      ESEGUITA, ed è la prova di compatibilità con lo storico.
     { id: "b2", data: "2026-07-03", fronte: "Fronte Est", nFori: 36, kgTotali: 410, kgMaxRitardo: 22, distanzaRicettore: 280, esito: "regolare", note: "" },
+    // b3 · progettata in Genesi e NON ancora sparata: sta nel registro come
+    //      PREVISTA, non conta nei kg del mese e non può diventare un referto.
+    { id: "b3", data: "2026-08-04", fronte: "Fronte Sud", nFori: 38, kgTotali: 430, kgMaxRitardo: 20, distanzaRicettore: 240, esito: "regolare", note: "",
+      stato: "prevista", ppvPrevista: 3.9, ppvPrevLimite: 5, ppvPrevNorma: "DIN residenziale @ 25 Hz",
+      ppvPrevFonte: "genesi-litologia", airblastPrevisto: 121, codiceVolata: "GEN-20260804-9c71b" },
   ],
 };
 
@@ -318,8 +330,16 @@ export function parseAdempimentiCsv(text) {
 // eventi con carica e distanza. Ritorna: totale, quante questo mese, kg totali
 // del mese, data dell'ultima volata, e quante hanno avuto una contestazione.
 // Pura e testabile; `oggi` iniettabile (mese-calendario locale).
+// ⛔ QUI DENTRO ENTRANO SOLO LE VOLATE ESEGUITE (T9). Una volata soltanto
+// PREVISTA non è un evento: i suoi chili non sono stati sparati e la sua data
+// non è ancora accaduta. Contarla falserebbe «questo mese», i kg del mese e
+// l'ultima volata — numeri che finiscono in un documento verso gli enti. Le
+// previste si contano a parte, con `riepilogoPreviste`.
+// COMPATIBILITÀ: una volata senza il campo `stato` (tutte quelle registrate
+// prima che esistesse) vale come ESEGUITA, quindi su uno storico esistente
+// questa funzione restituisce esattamente gli stessi numeri di prima.
 export function riepilogoVolate(volate, oggi = new Date()) {
-  const list = volate || [];
+  const list = (volate || []).filter(v => !volataPrevista(v));
   const o = new Date(oggi);
   const ym = `${o.getFullYear()}-${String(o.getMonth() + 1).padStart(2, "0")}`;
   const questoMese = list.filter(v => (v.data || "").slice(0, 7) === ym);
@@ -335,20 +355,26 @@ export function riepilogoVolate(volate, oggi = new Date()) {
 
 // Import registro volate da CSV. Colonne: data;fronte;nFori;kgTotali;
 // kgMaxRitardo;distanzaRicettore;esito[;note][;ppvMisurata;ppvFonte;ppvPunto;ppvOra]
+// [;stato;ppvPrevista;ppvPrevLimite;ppvPrevNorma;ppvPrevFonte;airblastPrevisto;codiceVolata]
 // (header opzionale). Tiene solo le righe con data valida (AAAA-MM-GG).
 // esito: "contestazione" o "regolare" (default regolare). I numerici via numIt.
 // fronte/note grezzi → escapare dove mostrati. Pura e testabile.
-// Le quattro colonne della PPV misurata (T8) sono FACOLTATIVE e stanno in
-// coda: un file esportato prima che esistessero si importa esattamente come
-// prima, e la volata resta semplicemente senza PPV — mai con una inventata.
+// Le quattro colonne della PPV misurata (T8) e le sette della volata prevista
+// (T9) sono FACOLTATIVE e stanno in coda: un file esportato prima che
+// esistessero si importa esattamente come prima — stessi campi, niente in più —
+// e la volata resta senza PPV e ESEGUITA, che è quello che è.
+// ⛔ La PPV PREVISTA non entra MAI nelle colonne della PPV misurata: sono due
+// colonne diverse perché sono due cose diverse (vedi T9).
 export function parseVolateCsv(text) {
   const num = (v) => { const n = numIt(v); return Number.isFinite(n) ? Math.max(0, n) : 0; };
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
     .filter(r => !isIntestazione(r, "data"))
     .map(r => {
       const [data, fronte, nFori, kgTotali, kgMaxRitardo, distanzaRicettore, esito, note,
-             ppvMisurata, ppvFonte, ppvPunto, ppvOra] = parseCsvLine(r);
-      const v = {
+             ppvMisurata, ppvFonte, ppvPunto, ppvOra,
+             stato, ppvPrevista, ppvPrevLimite, ppvPrevNorma, ppvPrevFonte, airblastPrevisto,
+             codiceVolata] = parseCsvLine(r);
+      let v = {
         data: (data || "").trim(),
         fronte: (fronte || "").trim(),
         nFori: num(nFori), kgTotali: num(kgTotali), kgMaxRitardo: num(kgMaxRitardo),
@@ -360,7 +386,17 @@ export function parseVolateCsv(text) {
         fonte: (ppvFonte || "").trim().toLowerCase() === PPV_STRUMENTO ? PPV_STRUMENTO : PPV_MANUALE,
         punto: (ppvPunto || "").trim(), data: v.data, ora: (ppvOra || "").trim(),
       });
-      return ppv ? { ...v, ...ppv } : v;
+      if (ppv) v = { ...v, ...ppv };
+      const prev = campiPrevisioneVolata(numIt(ppvPrevista), {
+        limite: numIt(ppvPrevLimite), norma: ppvPrevNorma,
+        fonte: ppvPrevFonte, airblast: numIt(airblastPrevisto),
+      });
+      if (prev) v = { ...v, ...prev };
+      const st = statoDaTesto(stato);
+      if (st) v = { ...v, stato: st };
+      const cod = String(codiceVolata == null ? "" : codiceVolata).trim();
+      if (cod) v = { ...v, codiceVolata: cod };
+      return v;
     })
     .filter(v => /^\d{4}-\d{2}-\d{2}$/.test(v.data));
 }
@@ -733,7 +769,10 @@ export function reportConformita(o = {}) {
   // Le volate del periodo entrano come CONTESTO: spiegano i picchi. Se il
   // report è di un solo ricettore restano comunque, perché la volata è un
   // evento della cava, non del ricettore.
-  const volate = (o.volate || []).filter(v => nelPeriodo(v.data))
+  // ⛔ Solo le ESEGUITE (T9): questo documento va all'ente e dice «cosa è
+  // avvenuto». Una volata soltanto prevista non è avvenuta, e scriverla qui
+  // sarebbe una dichiarazione falsa.
+  const volate = (o.volate || []).filter(v => !volataPrevista(v)).filter(v => nelPeriodo(v.data))
     .sort((a, b) => String(a.data || "") < String(b.data || "") ? 1 : -1);
 
   return {
@@ -1187,10 +1226,14 @@ export const AVVISO_COINCIDENZA =
   "Coincidenza di data, non una causa dimostrata: per collegare i due fatti "
   + "servono la misura strumentale dell'evento, l'ora e una valutazione tecnica.";
 
+// ⛔ Solo le volate ESEGUITE (T9): «quel giorno è stata registrata una volata»
+// è un fatto, e un progetto non è un fatto. Con una prevista qui, un
+// superamento risulterebbe accompagnato da un evento mai avvenuto.
 export function volateDelGiorno(volate, dataISO) {
   const d = String(dataISO || "").slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return [];
-  return (volate || []).filter(v => String((v || {}).data || "").slice(0, 10) === d);
+  return (volate || []).filter(v => !volataPrevista(v))
+    .filter(v => String((v || {}).data || "").slice(0, 10) === d);
 }
 
 // Riga di contesto pronta da mostrare accanto a un superamento (o a un
@@ -1302,6 +1345,10 @@ export const REFERTI_SOLIDI = 8;
 // Perché una volata non è ancora un referto. Ogni motivo dice anche COME si
 // rimedia: un elenco di mancanze senza il rimedio lascia l'utente fermo.
 export const MOTIVI_REFERTO = [
+  // Sta per primo perché è il motivo più grave: non è un dato che manca, è un
+  // fatto che non è ancora avvenuto (T9).
+  { chiave: "prevista", breve: "la conferma che è stata sparata", etichetta: "Volata ancora soltanto prevista",
+    come: "È un progetto arrivato da Genesi, non un evento: dopo lo sparo confermala come eseguita (correggendo i dati se in cava è cambiato qualcosa), poi collega la PPV misurata dal sismografo. La PPV prevista non diventa mai un referto." },
   { chiave: "ppv", breve: "la PPV misurata", etichetta: "Manca la PPV misurata",
     come: "Collega la lettura del sismografo di quel giorno, oppure trascrivi il valore dal referto dello strumento." },
   { chiave: "distanza", breve: "la distanza del ricettore", etichetta: "Manca la distanza del ricettore",
@@ -1387,21 +1434,35 @@ export const CAMPI_PPV_VUOTI = { ppvMisurata: 0, ppvFonte: "", ppvPuntoId: "", p
 // UNA volata letta come referto: i tre numeri che servono a Genesi, più
 // l'elenco di quelli che mancano. `pronto` è vero solo se ci sono tutti e
 // tre — e la PPV deve essere una misura, non una stima.
+// ⛔ VINCOLO T9, IL PIÙ IMPORTANTE DI TUTTO IL PONTE: una volata PREVISTA non
+// diventa un referto, mai, per nessun motivo — nemmeno se porta una PPV
+// prevista da Genesi e nemmeno se ha distanza e carica. La legge di sito
+// decide le distanze di sicurezza: se dentro la regressione entrasse un valore
+// PREVISTO al posto di uno MISURATO, la legge confermerebbe sé stessa e le
+// distanze di sicurezza uscirebbero da un calcolo circolare. Per questo il
+// motivo «prevista» è l'UNICO che viene elencato quando la volata è prevista:
+// non si chiede all'utente di riempire una PPV che non può esistere ancora.
 export function refertoDaVolata(volata) {
   const v = volata || {};
   const d = +v.distanzaRicettore, w = +v.kgMaxRitardo;
-  const ppv = ppvDiVolata(v);
+  const prevista = volataPrevista(v);
+  const ppv = prevista ? null : ppvDiVolata(v);
   const motivi = [];
-  if (!ppv) motivi.push("ppv");
-  if (!(d > 0)) motivi.push("distanza");
-  if (!(w > 0)) motivi.push("carica");
+  if (prevista) motivi.push("prevista");
+  else {
+    if (!ppv) motivi.push("ppv");
+    if (!(d > 0)) motivi.push("distanza");
+    if (!(w > 0)) motivi.push("carica");
+  }
   return {
     id: String(v.id || ""), data: String(v.data || "").slice(0, 10),
     fronte: String(v.fronte || "").trim(),
     d: d > 0 ? d : null, w: w > 0 ? w : null,
     ppv: ppv ? ppv.valore : null, misura: ppv,
+    prevista,
+    previsione: previsioneDiVolata(v),
     sd: scaledDistance(d, w),
-    pronto: motivi.length === 0, motivi,
+    pronto: !prevista && motivi.length === 0, motivi,
   };
 }
 
@@ -1426,7 +1487,7 @@ export function refertiDaVolate(volate) {
       || String(b.data || "").localeCompare(String(a.data || "")));
   const pronti = tutti.filter(r => r.pronto);
   const mancanti = tutti.filter(r => !r.pronto);
-  const motivi = { ppv: 0, distanza: 0, carica: 0 };
+  const motivi = { prevista: 0, ppv: 0, distanza: 0, carica: 0 };
   for (const r of mancanti) for (const m of r.motivi) if (motivi[m] != null) motivi[m]++;
   const sd = pronti.map(r => r.sd).filter(x => Number.isFinite(x));
   const sdMin = sd.length ? Math.min.apply(null, sd) : null;
@@ -1444,6 +1505,9 @@ export function refertiDaVolate(volate) {
     sdMin, sdMax, escursione,
     sdTutteUguali: escursione != null && escursione < 1.02,
     conPpv: tutti.filter(r => r.misura).length,
+    // quante righe del registro sono ancora progetti: si dice a parte, perché
+    // «da completare» e «non ancora sparata» sono due situazioni diverse
+    nPreviste: tutti.filter(r => r.prevista).length,
   };
 }
 
@@ -1471,14 +1535,290 @@ export const CSV_REFERTI_INTESTAZIONE = "distanza_m;carica_per_ritardo_kg;ppv_mm
 
 // Il file dei referti per Genesi. Entrano SOLO le volate pronte: una volata
 // senza PPV misurata non compare, e non compare nemmeno con la PPV a zero.
+// ⛔ `!r.prevista` è una SECONDA guardia, volutamente ridondante con
+// refertoDaVolata (che già non marca `pronto` una prevista): questo file
+// determina le distanze di sicurezza, e un solo punto di controllo su una cosa
+// così è troppo poco. Se un domani qualcuno costruisse un referto a mano
+// dimenticandosi lo stato, qui si fermerebbe comunque.
 export function csvRefertiGenesi(referti) {
-  const pronti = (referti || []).filter(r => r && r.pronto && r.d > 0 && r.w > 0 && r.ppv > 0)
+  const pronti = (referti || []).filter(r => r && r.pronto && !r.prevista && r.d > 0 && r.w > 0 && r.ppv > 0)
     .slice().sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")));
   const righe = pronti.map(r => [
     numeroCsvReferto(r.d), numeroCsvReferto(r.w), numeroCsvReferto(r.ppv),
     cellaCsvReferto(riferimentoReferto(r)), r.data || "", "sentinella",
   ].join(";"));
   return CSV_REFERTI_INTESTAZIONE + "\n" + (righe.length ? righe.join("\n") + "\n" : "");
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// T9 · IL PONTE DA GENESI — la volata PROGETTATA entra nel registro
+//
+// Il verso opposto di T8. Chi progetta una volata in Genesi conosce già tutto
+// quello che il registro chiede: data, fronte, numero di fori, kg totali, kg
+// massimi per ritardo (la MIC, che Genesi calcola dai tempi di detonazione),
+// distanza del ricettore e la PPV PREVISTA. Finora quei numeri andavano
+// ridigitati a mano qui: stessa volata, due digitazioni, due occasioni di
+// sbagliare. Qui arrivano dal file, nello stesso formato del registro volate
+// che Sentinella già importa (`parseVolateCsv`): nessun formato nuovo.
+//
+// LE DUE DISTINZIONI CHE TENGONO IN PIEDI TUTTO:
+//
+// 1. PREVISTA ≠ ESEGUITA. Una volata progettata non è una volata sparata: i
+//    suoi chili non sono stati consumati, la sua data può essere domani. Se le
+//    due cose si mescolassero, il registro — che è un documento verso gli enti
+//    — direbbe che è stato sparato dell'esplosivo che è ancora in deposito.
+//    Perciò la volata nasce PREVISTA e diventa ESEGUITA solo quando qualcuno lo
+//    conferma, potendo correggere i dati: in cava il progetto cambia.
+//
+// 2. PPV PREVISTA ≠ PPV MISURATA. La prima è il risultato di un modello (la
+//    legge di Devine di Genesi), la seconda è quello che ha registrato un
+//    sismografo. Stanno in campi diversi (`ppvPrevista` / `ppvMisurata`), si
+//    mostrano con etichette diverse, e solo la seconda può diventare un referto
+//    per la legge di sito. Il confronto fra le due è il motivo per cui questo
+//    registro serve: dice se il modello ci prende, nella cava del cliente.
+//
+// COMPATIBILITÀ (regola dura): una volata che non ha il campo `stato` — cioè
+// tutte quelle registrate prima di oggi — vale come ESEGUITA. È ciò che è: era
+// stata scritta nel brogliaccio dopo lo sparo. Nessun conteggio esistente
+// cambia, e nessuna riga va convertita.
+// ══════════════════════════════════════════════════════════════════════
+
+export const VOL_PREVISTA = "prevista";   // progettata, non ancora sparata
+export const VOL_ESEGUITA = "eseguita";   // sparata: è un evento del registro
+
+// Lo stato scritto in un file, letto con tolleranza (Genesi scrive "prevista",
+// ma un file compilato a mano può dire "progetto" o "sparata"). Ritorna ""
+// quando la colonna non c'è o non dice niente: chi chiama decide, e per il
+// registro il silenzio significa ESEGUITA — vedi statoVolata.
+export function statoDaTesto(s) {
+  const t = String(s == null ? "" : s).trim().toLowerCase();
+  if (!t) return "";
+  if (/^(prevista|previsto|progetto|progettata|programmata|pianificata)$/.test(t)) return VOL_PREVISTA;
+  if (/^(eseguita|eseguito|sparata|sparato|fatta|effettuata)$/.test(t)) return VOL_ESEGUITA;
+  return "";
+}
+
+// Lo stato di una volata del registro. UNICO punto in cui si decide, così non
+// esistono due parti dell'app che leggono lo stesso campo in due modi.
+export function statoVolata(v) {
+  return statoDaTesto((v || {}).stato) === VOL_PREVISTA ? VOL_PREVISTA : VOL_ESEGUITA;
+}
+export const volataPrevista = (v) => statoVolata(v) === VOL_PREVISTA;
+export const volatePreviste = (volate) => (volate || []).filter(volataPrevista);
+export const volateEseguite = (volate) => (volate || []).filter(v => !volataPrevista(v));
+
+// Come si presenta lo stato a schermo. La prevista NON usa i colori del
+// semaforo (verde/giallo/rosso): non è un giudizio di conformità, è un'altra
+// natura di riga, e prende il colore dell'app.
+export function etichettaStatoVolata(v) {
+  return volataPrevista(v)
+    ? { stato: VOL_PREVISTA, cls: "accent", label: "Prevista" }
+    : { stato: VOL_ESEGUITA, cls: "", label: "Eseguita" };
+}
+
+// I campi della PREVISIONE arrivata da Genesi. Funzione pura: prepara il
+// record, non lo salva. `null` se non c'è una PPV prevista utilizzabile —
+// senza il numero principale il resto (limite, norma, airblast) non ha un
+// significato proprio, e mezza previsione è peggio di nessuna.
+// ⛔ Non scrive MAI nei campi ppvMisurata*: quelli sono della misura.
+export function campiPrevisioneVolata(valore, opts = {}) {
+  const v = +valore;
+  if (!Number.isFinite(v) || v <= 0) return null;
+  const lim = +opts.limite, ab = +opts.airblast;
+  const fonte = String(opts.fonte || "").trim().toLowerCase();
+  return {
+    ppvPrevista: Math.round(v * 1e4) / 1e4,
+    ppvPrevLimite: Number.isFinite(lim) && lim > 0 ? Math.round(lim * 1e4) / 1e4 : 0,
+    ppvPrevNorma: String(opts.norma || "").trim(),
+    ppvPrevFonte: /^genesi/.test(fonte) ? fonte : (fonte || "genesi"),
+    airblastPrevisto: Number.isFinite(ab) && ab > 0 ? Math.round(ab * 10) / 10 : 0,
+  };
+}
+// I campi che TOLGONO la previsione (per esempio quando la riga viene
+// ricompilata a mano e il progetto non c'entra più): si azzerano insieme, mai
+// il numero senza la sua provenienza.
+export const CAMPI_PREVISIONE_VUOTI = { ppvPrevista: 0, ppvPrevLimite: 0, ppvPrevNorma: "", ppvPrevFonte: "", airblastPrevisto: 0 };
+
+// La previsione agganciata a una volata, o null. Come ppvDiVolata non deduce
+// niente: legge soltanto quello che è scritto. Una volata registrata a mano
+// non ha previsione, e resta senza — non con una calcolata qui.
+export function previsioneDiVolata(v) {
+  const val = +((v || {}).ppvPrevista);
+  if (!Number.isFinite(val) || val <= 0) return null;
+  const lim = +((v || {}).ppvPrevLimite), ab = +((v || {}).airblastPrevisto);
+  const fonte = String((v || {}).ppvPrevFonte || "").trim().toLowerCase();
+  return {
+    valore: val,
+    limite: Number.isFinite(lim) && lim > 0 ? lim : null,
+    norma: String((v || {}).ppvPrevNorma || "").trim(),
+    fonte, daGenesi: /^genesi/.test(fonte),
+    // Genesi dice anche SU CHE BASE ha previsto: la legge di sito ricavata dai
+    // referti di questa cava, oppure i valori da manuale della litologia. Una
+    // previsione calibrata sul sito vale più di una da manuale, e l'utente ha
+    // il diritto di sapere quale delle due sta leggendo.
+    calibrata: /sito/.test(fonte),
+    airblast: Number.isFinite(ab) && ab > 0 ? ab : null,
+  };
+}
+
+// Come si dice a parole da dove viene una previsione. Sta accanto al numero
+// ovunque compaia: una PPV senza la sua provenienza si confonde con una misura.
+// Corto di proposito: sta in coda a una riga che porta già il previsto, il
+// limite e la norma, e su un telefono ogni parola in più mangia quella dopo.
+export function testoFontePrevisione(p) {
+  if (!p) return "";
+  if (!p.daGenesi) return "previsione";
+  return "da Genesi · " + (p.calibrata ? "legge di sito calibrata" : "stima dalla litologia");
+}
+
+// IL CONFRONTO PREVISTO → MISURATO: esiste solo quando ci sono entrambi i
+// numeri, e non si inventa nulla quando ne manca uno. Nessun giudizio di
+// conformità qui: il limite arrivato da Genesi si RIPORTA come contesto
+// dichiarato, ma il semaforo di Sentinella resta quello della soglia del punto
+// di misura (o del ricettore). Due semafori diversi sullo stesso schermo
+// sarebbero un difetto, non una funzione.
+export function scartoPpvVolata(v) {
+  const p = previsioneDiVolata(v), m = ppvDiVolata(v);
+  if (!p || !m) return null;
+  const delta = m.valore - p.valore;
+  return {
+    previsto: p.valore, misurato: m.valore,
+    delta: Math.round(delta * 1e4) / 1e4,
+    pct: p.valore > 0 ? Math.round(1000 * delta / p.valore) / 10 : null,
+    verso: delta > 0.00005 ? "sopra" : delta < -0.00005 ? "sotto" : "uguale",
+    previsione: p, misura: m,
+  };
+}
+
+// LA CONFERMA: da PREVISTA a ESEGUITA. Funzione pura — prepara i campi da
+// scrivere e l'elenco di ciò che non va, senza salvare niente.
+// I dati si possono correggere perché in cava il progetto cambia: fori saltati,
+// carica ridotta, data spostata. Quello che NON si tocca è la previsione: resta
+// scritta com'era, altrimenti il confronto previsto→misurato sarebbe un
+// confronto con un numero aggiustato dopo, cioè niente.
+// La data non può essere nel futuro: è la stessa regola del registro a mano,
+// per lo stesso motivo (una volata eseguita è un fatto avvenuto).
+export function confermaVolataEseguita(volata, corr = {}, oggi = new Date()) {
+  const v = volata || {};
+  const errori = [];
+  if (!v.id) errori.push({ campo: "", testo: "Volata non trovata nel registro." });
+  else if (!volataPrevista(v)) errori.push({ campo: "", testo: "Questa volata è già registrata come eseguita: non c'è niente da confermare." });
+  // Campo NON toccato (chiave assente) → resta il valore del progetto.
+  // Campo SVUOTATO dall'utente ("") → zero: è una correzione, non una
+  // dimenticanza, e va rispettata come nel form del registro a mano.
+  const num = (x, fall) => {
+    if (x === undefined || x === null) { const f = +fall; return Number.isFinite(f) && f >= 0 ? f : 0; }
+    const n = +String(x).replace(",", ".").trim();
+    return Number.isFinite(n) && n >= 0 ? n : 0;
+  };
+  const data = String(corr.data == null ? (v.data || "") : corr.data).slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data))
+    errori.push({ campo: "data", testo: "Serve la data in cui la volata è stata sparata." });
+  else if (giorniTra(data, oggi) > 0)
+    errori.push({ campo: "data", testo: "La data non può essere nel futuro: una volata eseguita è già avvenuta. Se non è ancora stata sparata, lasciala prevista." });
+  const campi = {
+    stato: VOL_ESEGUITA,
+    data,
+    fronte: String(corr.fronte == null ? (v.fronte || "") : corr.fronte).trim(),
+    nFori: num(corr.nFori, v.nFori),
+    kgTotali: num(corr.kgTotali, v.kgTotali),
+    kgMaxRitardo: num(corr.kgMaxRitardo, v.kgMaxRitardo),
+    distanzaRicettore: num(corr.distanzaRicettore, v.distanzaRicettore),
+    esito: String(corr.esito || v.esito || "").trim().toLowerCase() === "contestazione" ? "contestazione" : "regolare",
+    note: String(corr.note == null ? (v.note || "") : corr.note).trim(),
+  };
+  // che cosa è cambiato rispetto al progetto: si mostra all'utente prima di
+  // salvare, perché una correzione silenziosa su un documento è un problema
+  const cambi = [];
+  const conf = [["data", "data"], ["fronte", "fronte"], ["nFori", "n° fori"],
+    ["kgTotali", "kg totali"], ["kgMaxRitardo", "kg max per ritardo"],
+    ["distanzaRicettore", "distanza del ricettore"], ["esito", "esito"], ["note", "note"]];
+  for (const [k, et] of conf) {
+    const prima = k === "esito" ? (v.esito || "regolare") : (v[k] == null ? "" : v[k]);
+    if (String(prima) !== String(campi[k])) cambi.push({ campo: k, etichetta: et, da: prima, a: campi[k] });
+  }
+  return { ok: errori.length === 0, errori, campi, cambi };
+}
+
+// Riepilogo delle volate PREVISTE, per la riga sopra il registro. `daConfermare`
+// sono quelle la cui data è già arrivata e che nessuno ha ancora confermato: è
+// l'unico avviso che serve, perché una volata sparata e mai confermata lascia un
+// buco nel brogliaccio. Pura; `oggi` iniettabile.
+export function riepilogoPreviste(volate, oggi = new Date()) {
+  const l = volatePreviste(volate);
+  let daConfermare = 0, prossima = null;
+  let kgTotali = 0;
+  for (const v of l) {
+    kgTotali += +v.kgTotali || 0;
+    const d = String(v.data || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
+    if (giorniTra(d, oggi) <= 0) daConfermare++;
+    else if (!prossima || d < prossima) prossima = d;
+  }
+  return { totale: l.length, daConfermare, prossima, kgTotali };
+}
+
+// L'ordine del registro a schermo: prima le PREVISTE in ordine di calendario
+// (quelle la cui data è passata vengono per prime: sono quelle da confermare),
+// poi le ESEGUITE dalla più recente, che è l'ordine che il registro ha sempre
+// avuto. Pura, così l'ordine è testabile e non vive dentro un innerHTML.
+export function volateOrdinate(volate) {
+  const p = volatePreviste(volate).slice()
+    .sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")));
+  const e = volateEseguite(volate).slice()
+    .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
+  return [...p, ...e];
+}
+
+// LA FIRMA per riconoscere i DOPPIONI all'import. Se il file porta un codice
+// volata (lo scrive Genesi) vale quello: sopravvive alla conferma, che può
+// aver corretto fori, chili e persino la data — quindi reimportare il file del
+// progetto dopo la conferma non crea una riga fantasma. Senza codice si torna
+// alla firma di prima (data|fronte|fori|kg), così i file già in giro si
+// deduplicano esattamente come prima.
+export function firmaVolata(v) {
+  const cod = String((v || {}).codiceVolata || "").trim().toLowerCase();
+  if (cod) return "cod|" + cod;
+  return [String((v || {}).data || ""), String((v || {}).fronte || "").trim().toLowerCase(),
+    +((v || {}).nFori) || 0, +((v || {}).kgTotali) || 0].join("|");
+}
+
+// L'INTESTAZIONE del registro volate: le 8 colonne di sempre, le 4 della PPV
+// misurata (T8) e le 7 della volata prevista (T9), in coda e facoltative.
+// È lo stesso ordine che legge parseVolateCsv qui sopra — stanno nello stesso
+// file di proposito: due elenchi di colonne in due punti diversi si scollano.
+// Genesi scrive queste stesse colonne (vedi apps/genesi/genesi.html, «Manda a
+// Sentinella»): lasciando VUOTE le quattro della PPV misurata, che una volata
+// non ancora sparata non può avere.
+export const CSV_VOLATE_INTESTAZIONE =
+  "data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note;"
+  + "ppvMisurata;ppvFonte;ppvPunto;ppvOra;"
+  + "stato;ppvPrevista;ppvPrevLimite;ppvPrevNorma;ppvPrevFonte;airblastPrevisto;codiceVolata";
+
+// Il file del registro volate. Ogni riga dichiara il suo `stato`, così il giro
+// export → import non perde la distinzione fra progetto e evento. Pura e
+// testabile: le celle di testo passano da csvCell (virgolette e guardia
+// anti-formula), i numeri escono col punto decimale perché è un file per
+// un'altra macchina.
+export function csvRegistroVolate(volate) {
+  const n = (x) => { const v = +x; return Number.isFinite(v) ? String(Math.round(v * 1e4) / 1e4) : ""; };
+  const righe = (volate || []).slice()
+    .sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")))
+    .map(v => {
+      const p = ppvDiVolata(v), q = previsioneDiVolata(v);
+      return [
+        String(v.data || ""), csvCell(v.fronte || ""),
+        n(+v.nFori || 0), n(+v.kgTotali || 0), n(+v.kgMaxRitardo || 0), n(+v.distanzaRicettore || 0),
+        v.esito === "contestazione" ? "contestazione" : "regolare", csvCell(v.note || ""),
+        p ? n(p.valore) : "", p ? p.fonte : "", csvCell(p ? p.punto : ""), p ? p.ora : "",
+        statoVolata(v),
+        q ? n(q.valore) : "", q && q.limite != null ? n(q.limite) : "",
+        csvCell(q ? q.norma : ""), q ? q.fonte : "",
+        q && q.airblast != null ? n(q.airblast) : "",
+        csvCell(v.codiceVolata || ""),
+      ].join(";");
+    });
+  return CSV_VOLATE_INTESTAZIONE + "\n" + (righe.length ? righe.join("\n") + "\n" : "");
 }
 
 export async function sentinellaData() {
