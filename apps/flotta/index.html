@@ -978,11 +978,15 @@
               : " Tutti i giorni del periodo hanno la loro fotografia."),
       });
     } else if (puntiDisp.length) {
+      const unGiorno = puntiDisp.length === 1;
       const elenco = puntiDisp.map(p => dataIt(p.data) + " (" + p.pct + "%, " + p.operativi + " mezzi su " + p.totale + ")").join(" e ");
       grafVuoto("graf-disp", I.tachi,
-        puntiDisp.length === 1 ? "Una sola giornata registrata" : "Due giornate registrate",
-        "Finora c'è la fotografia di " + esc(elenco) + ". Con meno di <b>tre giorni</b> registrati non c'è nessuna tendenza da leggere — due punti fanno una riga, non un andamento. "
-        + "Servono ancora <b>" + (3 - puntiDisp.length) + (puntiDisp.length === 2 ? " giorno</b>" : " giorni</b>")
+        unGiorno ? "Una sola giornata registrata" : "Due giornate registrate",
+        "Finora c'è la fotografia di " + esc(elenco) + ". "
+        + (unGiorno ? "Un giorno solo è una fotografia, non un andamento."
+                    : "Due giorni dicono solo che uno è andato meglio dell'altro: non sono ancora una tendenza.")
+        + " Ne servono almeno <b>tre</b>, e ne "
+        + (unGiorno ? "mancano <b>2</b>" : "manca <b>1</b>")
         + ": Flotta ne segna uno ogni volta che apri l'app, non devi fare niente.");
     } else if (MEZ.length) {
       grafVuoto("graf-disp", I.tachi, "Nessuna giornata registrata negli ultimi 14 giorni",
@@ -1199,12 +1203,15 @@
           + codaSenzaData,
       });
     } else if (mesiCosti.length) {
+      const unMese = mesiCosti.length === 1;
       const elenco = mesiCosti.map(m => m.etichetta + " " + eur(m.importo)).join(" e ");
       grafVuoto("graf-costi-mese", I.tempo,
-        mesiCosti.length === 1 ? "Un solo mese con data" : "Due mesi con data",
-        "Per ora la spesa datata è: " + esc(elenco) + ". Con meno di <b>tre mesi</b> non c'è nessuna tendenza da leggere: "
-        + "due colonne dicono solo che un mese è più alto dell'altro. Continua a registrare le spese con la loro data e "
-        + "qui comparirà <b>come cambia la spesa nel tempo</b>." + codaSenzaData);
+        unMese ? "Un solo mese con data" : "Due mesi con data",
+        "Per ora la spesa datata è: " + esc(elenco) + ". "
+        + (unMese ? "Con un mese solo non c'è niente da confrontare."
+                  : "Due mesi dicono solo che uno è più alto dell'altro: non sono ancora una tendenza.")
+        + " Ne servono almeno <b>tre</b>: continua a registrare le spese con la loro data e qui comparirà "
+        + "<b>come cambia la spesa nel tempo</b>." + codaSenzaData);
     } else if (COS.length) {
       grafVuoto("graf-costi-mese", I.tempo, "Nessuna voce di costo ha una data",
         "L'andamento nel tempo si può disegnare solo se ogni spesa sa a quando si riferisce. Le voci che hai registrato sono "
