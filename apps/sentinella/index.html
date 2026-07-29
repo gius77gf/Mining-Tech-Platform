@@ -1748,7 +1748,10 @@ textarea.dw-input{
         // sotto, che è la parte del documento che fa fede.
         x: p.letture.map(l => fmtD(l.data).slice(0, 5)),
         serie: [{ nome: "Misurato", valori: p.letture.map(l => l.valore), area: true }],
-        soglia: p.soglia.valore != null ? { valore: p.soglia.valore, etichetta: "soglia applicata" } : null,
+        // inclusiva: Sentinella conta superamento anche una lettura ESATTAMENTE
+        // pari alla soglia (>=). Senza dirlo al motore, la legenda del grafico
+        // conterebbe con > e direbbe un numero diverso dalla tabella accanto.
+        soglia: p.soglia.valore != null ? { valore: p.soglia.valore, etichetta: "soglia applicata", inclusiva: true } : null,
         aria: `Andamento di ${p.nome} nel periodo: ${p.n} letture, massimo ${numeroIt(p.max)} ${p.unita}`
           + (p.soglia.valore != null ? `, soglia ${numeroIt(p.soglia.valore)} ${p.unita}, ${p.nSuperamenti} superamenti` : "") + ".",
       }));

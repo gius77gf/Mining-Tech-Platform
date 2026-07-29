@@ -31,6 +31,19 @@ const eq = (got, exp, why) => {
   const a = JSON.stringify(got), b = JSON.stringify(exp);
   if (a !== b) throw new Error(`${why}: atteso ${b}, ottenuto ${a}`);
 };
+/* Come eq, ma guarda solo i campi elencati e ignora quelli in più.
+   Serve dove il risultato è destinato a crescere: aggiungere un campo nuovo a
+   un KPI o a un parser è una cosa voluta, e non deve far fallire un test che
+   parlava d'altro. I valori vengono comunque confrontati uno per uno, quindi
+   un numero sbagliato viene preso lo stesso; per i campi nuovi si scrive una
+   riga in più, così la novità è coperta invece che solo tollerata. */
+const contiene = (got, exp, why) => {
+  if (got == null || typeof got !== "object") throw new Error(`${why}: atteso un oggetto, ottenuto ${JSON.stringify(got)}`);
+  for (const k of Object.keys(exp)) {
+    const a = JSON.stringify(got[k]), b = JSON.stringify(exp[k]);
+    if (a !== b) throw new Error(`${why}: campo ${k} atteso ${b}, ottenuto ${a}`);
+  }
+};
 // date relative a OGGI per i test che usano internamente new Date()
 const iso = (d) => d.toISOString().slice(0, 10);
 const plusDays = (n) => iso(new Date(Date.now() + n * 86400000));
@@ -512,8 +525,26 @@ test("kpiFrom: volumi del mese, avanzamento annuo, fronti attivi", () => {
     { stato: "pianificato", volumeM3: null, data: "2026-07-20" },
   ];
   const piano = [{ pianificatoAnnuoM3: 12000, riserveM3: 500000 }];
-  eq(terra.kpiFrom(fronti, rilievi, piano, oggi),
+  contiene(terra.kpiFrom(fronti, rilievi, piano, oggi),
     { volumiMese: 1000, rilieviMese: 1, avanzamento: 25, riserveM3: 500000, frontiAttivi: 1 }, "kpi terra");
+});
+/* Il punto della separazione scavo/cumulo: il materiale ripreso da un cumulo
+   già estratto NON è nuovo scavo e non deve consumare il volume concesso. */
+test("kpiFrom: la ripresa da cumulo non consuma il concesso", () => {
+  const oggi = new Date("2026-07-15T00:00:00");
+  const piano = [{ pianificatoAnnuoM3: 12000, riserveM3: 500000 }];
+  const soloScavo = [{ stato: "elaborato", volumeM3: 1000, data: "2026-07-05" }];
+  const conCumulo = soloScavo.concat([{ stato: "elaborato", volumeM3: 4000, data: "2026-07-06", provenienza: "cumulo" }]);
+  const a = terra.kpiFrom([], soloScavo, piano, oggi);
+  const b = terra.kpiFrom([], conCumulo, piano, oggi);
+  eq(b.volumiMese, a.volumiMese, "i volumi di scavo del mese non cambiano");
+  eq(b.avanzamento, a.avanzamento, "l'avanzamento sul concesso non cambia");
+  eq(b.volumiMeseCumulo, 4000, "la ripresa da cumulo si conta a parte");
+});
+test("provenienzaRilievo: un rilievo senza il campo vale scavo (dati vecchi intatti)", () => {
+  eq(terra.provenienzaRilievo({}), "scavo", "campo assente");
+  eq(terra.provenienzaRilievo({ provenienza: "CUMULO" }), "cumulo", "maiuscole e spazi non contano");
+  eq(terra.provenienzaRilievo({ provenienza: "boh" }), "scavo", "valore non previsto = scavo, mai perdere volume");
 });
 test("kpiFrom: l'avanzamento annuo ignora i rilievi di altri anni", () => {
   const oggi = new Date("2026-07-15T00:00:00");
@@ -556,8 +587,9 @@ test("parseRilieviCsv: legge data/volume/metodo/gsd, scarta righe non valide", (
   const csv = "data;volumeM3;metodo;gsd\n2026-07-15;19400;RTK+GCP;2\n2026-06-16;21300\nquando;100;;\n2026-05-01;abc;;\n";
   const p = terra.parseRilieviCsv(csv);
   eq(p.length, 2, "solo 2 valide (data e volume validi)");
-  eq(p[0], { data: "2026-07-15", volumeM3: 19400, metodo: "RTK+GCP", gsd: "2" }, "riga completa");
-  eq(p[1], { data: "2026-06-16", volumeM3: 21300, metodo: null, gsd: null }, "riga minima");
+  contiene(p[0], { data: "2026-07-15", volumeM3: 19400, metodo: "RTK+GCP", gsd: "2" }, "riga completa");
+  contiene(p[1], { data: "2026-06-16", volumeM3: 21300, metodo: null, gsd: null }, "riga minima");
+  eq(p[0].provenienza, "scavo", "senza sesta colonna il volume vale scavo, come prima");
 });
 test("parseRilieviCsv: testo vuoto = lista vuota (niente crash)", () =>
   eq(terra.parseRilieviCsv(""), [], "vuoto"));
@@ -580,7 +612,7 @@ test("parseRilieviCsv: CRLF, scarta data non ISO, virgola decimale", () => {
   const csv = "data;volumeM3;metodo;gsd\r\n2026-07-15;19400,5;RTK;2\r\n15/07/2026;1000;RTK;2\r\n";
   const p = terra.parseRilieviCsv(csv);
   eq(p.length, 1, "scarta la data non AAAA-MM-GG");
-  eq(p[0], { data: "2026-07-15", volumeM3: 19400.5, metodo: "RTK", gsd: "2" }, "ISO + virgola decimale");
+  contiene(p[0], { data: "2026-07-15", volumeM3: 19400.5, metodo: "RTK", gsd: "2" }, "ISO + virgola decimale");
 });
 test("riservaResidua: residuo = riserve − estratto; anni al ritmo pianificato", () => {
   eq(terra.riservaResidua(1000000, 100000, 125000), { residuo: 900000, anni: 7.2 }, "900k / 125k = 7,2 anni");
@@ -988,8 +1020,8 @@ test("Conti kpiFrom([],[]) = zero e età media credito 0 (niente divisione per z
 test("Sentinella kpiFrom([],[]) = tutti zero", () =>
   eq(sentinella.kpiFrom([], []), { attivi: 0, superamenti: 0, adempimenti30: 0 }, "sentinella vuoto"));
 test("Terra kpiFrom([],[],[]) = zero, avanzamento e riserve null", () =>
-  eq(terra.kpiFrom([], [], []),
-    { volumiMese: 0, rilieviMese: 0, avanzamento: null, riserveM3: null, frontiAttivi: 0 }, "terra vuoto"));
+  contiene(terra.kpiFrom([], [], []),
+    { volumiMese: 0, volumiMeseCumulo: 0, rilieviMese: 0, avanzamento: null, riserveM3: null, frontiAttivi: 0 }, "terra vuoto"));
 test("Flotta kpiFrom([],[],[]) = tutti zero", () =>
   eq(flotta.kpiFrom([], [], []),
     { operativi: 0, inManutenzione: 0, tagliandi30: 0, carburante: 0 }, "flotta vuoto"));

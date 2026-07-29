@@ -399,6 +399,14 @@
     var vmin = Math.min.apply(null, tutti), vmax = Math.max.apply(null, tutti);
     var soglia = s.soglia && num(s.soglia.valore) ? s.soglia.valore : null;
     var sogliaFuori = false;
+    /* Una lettura ESATTAMENTE pari alla soglia: superamento o no? Dipende dalla
+       norma, non dal grafico. Di serie no (v > soglia), come nella maggior
+       parte dei limiti ambientali; chi ha una norma che conta anche l'uguale
+       passa soglia:{ valore:…, inclusiva:true } e il conteggio, i rombi e il
+       tooltip si allineano tutti insieme — non si può avere una tabella che
+       dice «1 superamento» e una legenda che dice zero. */
+    var sogliaIncl = !!(s.soglia && s.soglia.inclusiva);
+    function oltreSoglia(v) { return soglia != null && !sogliaFuori && (sogliaIncl ? v >= soglia : v > soglia); }
     if (soglia != null) {
       if (soglia > vmax * 2.6 && vmax > 0) sogliaFuori = true;
       else { vmax = Math.max(vmax, soglia); vmin = Math.min(vmin, soglia); }
@@ -464,9 +472,9 @@
       var ult = ultimoIndice(S.valori);
       S.valori.forEach(function (v, i) {
         if (!num(v)) return;
-        var oltre = soglia != null && !sogliaFuori && v > soglia;
+        var oltreQ = oltreSoglia(v);
         var cx = px(i).toFixed(1), cy = py(v).toFixed(1);
-        if (oltre) {
+        if (oltreQ) {
           svg.appendChild(nodo('path', {
             'class': 'dwg-oltre',
             d: 'M' + cx + ' ' + (py(v) - 5.4).toFixed(1) + 'L' + (px(i) + 5.4).toFixed(1) + ' ' + cy +
@@ -542,11 +550,11 @@
         a.setAttribute('r', 6.4);
         a.style.stroke = 'var(--card)';
         a.style.fill = 'var(--dwg-c' + (si + 1) + ')';
-        var oltre = soglia != null && !sogliaFuori && v > soglia;
+        var oltreQ = oltreSoglia(v);
         righe.push({
-          nome: (serie.length > 1 ? S.nome : '') + (oltre ? (serie.length > 1 ? ' · ' : '') + 'oltre soglia' : ''),
+          nome: (serie.length > 1 ? S.nome : '') + (oltreQ ? (serie.length > 1 ? ' · ' : '') + 'oltre soglia' : ''),
           valore: conUnita(fmt(v), s.unita),
-          cls: oltre ? 'stato-danger' : 's' + (si + 1)
+          cls: oltreQ ? 'stato-danger' : 's' + (si + 1)
         });
       });
       mira.setAttribute('opacity', '1');
@@ -578,7 +586,7 @@
       g.legenda.appendChild(vocelegenda([nodo('line', { 'class': 'dwg-soglia', x1: 1, y1: 5.5, x2: 21, y2: 5.5 })],
         (s.soglia.etichetta || 'soglia') + ' ', conUnita(fmt(soglia), s.unita)));
       var quanti = 0;
-      serie.forEach(function (S) { S.valori.forEach(function (v) { if (num(v) && v > soglia) quanti++; }); });
+      serie.forEach(function (S) { S.valori.forEach(function (v) { if (num(v) && oltreSoglia(v)) quanti++; }); });
       if (quanti) g.legenda.appendChild(vocelegenda(
         [nodo('path', { 'class': 'dwg-oltre', d: 'M11 .6L16 5.5L11 10.4L6 5.5Z' })], 'oltre soglia: ', String(quanti), 'dg'));
     }
