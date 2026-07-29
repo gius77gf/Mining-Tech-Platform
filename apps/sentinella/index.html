@@ -950,8 +950,10 @@ textarea.dw-input{
   <!-- T6 · ANDAMENTO PER RICETTORE ───────────────────────────────────── -->
   <div class="sec">Andamento per ricettore</div>
   <div class="form col">
-    <label class="flab" for="and-ric">Ricettore
-      <select class="dw-input" id="and-ric"></select></label>
+    <div class="frow">
+      <label class="flab" for="and-ric" style="flex:2 1 240px;">Ricettore
+        <select class="dw-input" id="and-ric"></select></label>
+    </div>
     <div class="form-hint">Si vedono i punti di misura collegati a quel ricettore, con la
       <b>soglia applicata</b> e il confronto fra il <b>mese in corso</b> e quello prima. Se le
       letture sono poche il grafico non si disegna: una linea fra due misure non è un andamento.</div>
@@ -2628,10 +2630,13 @@ textarea.dw-input{
     $("prg-list").innerHTML = righe.map(v => {
       const s = v.stato, sosp = s.stato === "sospesa";
       const cls = sosp ? "st-mute" : (striscia[s.cls] || "st-accent");
+      // ordine pensato per lo schermo stretto, dove la riga viene tagliata:
+      // prima quello che serve a decidere (ogni quanto, entro quando), poi
+      // il contorno (ultima misura, tolleranza, nota)
       const dett = [
         s.ogniGiorni > 0 ? etichettaFrequenza(s.ogniGiorni) : "frequenza non impostata",
+        s.prossima ? "entro il " + fmtD(s.prossima) : null,
         s.ultima ? "ultima misura " + fmtD(s.ultima) : "nessuna misura registrata",
-        s.prossima ? "prossima entro il " + fmtD(s.prossima) : null,
         s.tolleranzaGiorni ? "tolleranza " + s.tolleranzaGiorni + " gg" : null,
         v.riga.nota || null,
       ].filter(Boolean).join(" · ");

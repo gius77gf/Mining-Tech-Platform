@@ -1929,13 +1929,24 @@
         + (rDpi.addestramenti ? ` · addestramenti da registrare: <b>${rDpi.addestramenti}</b>` : "")
         + (rDpi.daSistemare ? "." : " · niente da sistemare.")
       : "Nessuna consegna registrata. Il verbale di consegna firmato è la prima cosa che viene chiesta in ispezione (art. 77 D.Lgs 81/08): registra qui sotto cosa hai dato, a chi e quando.";
-    $("dpi-allarmi").innerHTML = alDpi.map(a =>
-      `<div class="item ${a.gravita === "danger" ? "st-danger" : "st-warn"}">
+    $("dpi-allarmi").innerHTML = alDpi.map(a => {
+      // Il pulsante deve fare la cosa giusta: se il dispositivo manca o è da
+      // sostituire si registra una consegna; se manca solo l'addestramento si
+      // segna l'addestramento sulla consegna che c'è già.
+      const soloAddestramento = a.motivo === "addestramento non registrato" && a.consegnaId;
+      const badge = a.motivo.includes("mai consegnato") ? "Mai consegnato"
+        : a.motivo.includes("da sostituire") ? "Da sostituire"
+        : a.motivo.includes("in scadenza") ? "In scadenza" : "Addestramento";
+      return `<div class="item ${a.gravita === "danger" ? "st-danger" : "st-warn"}">
         <div class="avatar">${esc(initials(a.lavoratore))}</div>
         <div class="info"><div class="name">${esc(a.lavoratore)} — ${esc(a.etichetta)}</div>
         <div class="meta">${esc(a.motivo)}${a.scadenza ? " · " + fmtData(a.scadenza) : ""}${a.mansione ? " · previsto dalla mansione " + esc(a.mansione) : ""}</div></div>
-        <span class="acts"><span class="badge ${a.gravita}">${a.motivo === "mai consegnato" ? "Mai consegnato" : a.motivo === "da sostituire" ? "Da sostituire" : a.motivo === "in scadenza" ? "In scadenza" : "Addestramento"}</span>
-        <button class="dw-btn secondary mini" data-dpi-fix="${a.lavoratoreId}|${a.tipo}" title="Registra la consegna">Registra</button></span></div>`).join("")
+        <span class="acts"><span class="badge ${a.gravita}">${badge}</span>
+        ${soloAddestramento
+          ? `<button class="dw-btn secondary mini" data-dpi-addestr="${a.consegnaId}" title="Segna l'addestramento come fatto">Addestrato</button>`
+          : `<button class="dw-btn secondary mini" data-dpi-fix="${a.lavoratoreId}|${a.tipo}" title="Registra la consegna">Registra</button>`}
+        </span></div>`;
+    }).join("")
       || (MANS.length
         ? vuoto(I.ok, "Nessun DPI da sistemare",
             "Per ogni persona assegnata a una mansione, i DPI previsti risultano consegnati, in corso di validità e con l'addestramento registrato dove serve.")
@@ -2690,10 +2701,15 @@
   }
   function stampaVerbale(lav) {
     costruisciVerbale(lav);
+    // La classe accende le regole di stampa. Si toglie quando il browser dice
+    // che ha finito (afterprint): NON a tempo, perché su alcuni browser la
+    // finestra di stampa resta aperta e il foglio uscirebbe a metà. Se
+    // l'avviso non arrivasse, la classe resterebbe: sullo schermo non cambia
+    // niente, si vede solo quando si stampa.
     document.body.classList.add("stampa-verbale");
     const fine = () => { document.body.classList.remove("stampa-verbale"); window.removeEventListener("afterprint", fine); };
     window.addEventListener("afterprint", fine);
-    try { window.print(); } finally { setTimeout(fine, 500); }
+    window.print();
   }
   $("btn-dpi-verb").onclick = async () => {
     const lav = LAV.find(l => l.id === $("dpi-verb-lav").value);

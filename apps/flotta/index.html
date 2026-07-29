@@ -688,6 +688,25 @@
     <div class="form-hint">Il <b>prezzo al pezzo</b> è facoltativo, ma se lo scrivi il costo dei ricambi negli ordini di lavoro esce da solo, senza doverlo ricordare ogni volta.</div>
   </div>
   <div class="note esito" id="ric-esito"></div>
+
+  <!-- L7 — QUANTO TENERNE A SCORTA. La soglia minima smette di essere un
+       numero scritto una volta e diventa un conto: quanto se ne consuma al
+       giorno × quanto ci mette il fornitore + i giorni di margine. -->
+  <div class="sec">Quanto tenerne a scorta</div>
+  <div class="form col">
+    <div class="frow">
+      <span class="form-hint" style="flex-basis:auto;">Il fornitore consegna in</span>
+      <input class="dw-input" id="sco-consegna" type="number" min="0" max="365" step="1" placeholder="giorni" style="flex:0 0 96px;">
+      <span class="form-hint" style="flex-basis:auto;">giorni · margine di sicurezza</span>
+      <input class="dw-input" id="sco-sicurezza" type="number" min="0" max="365" step="1" value="7" style="flex:0 0 88px;">
+      <span class="form-hint" style="flex-basis:auto;">giorni</span>
+      <span class="form-hint">Scrivi <b>quanti giorni</b> passano fra quando ordini un pezzo e quando ti arriva: senza quel numero non si può dire quanti pezzi tenere. Il <b>margine</b> è il cuscinetto per i giorni in cui se ne usa più del solito.</span>
+    </div>
+  </div>
+  <div id="sco-riep" class="note recap" style="margin-top:12px;"></div>
+  <div id="sco-list" style="margin-top:12px;"></div>
+  <div class="tools"><button class="dw-btn secondary" id="btn-sco-csv">Esporta la lista della spesa (CSV)</button></div>
+  <div class="note">Il conto è questo: <b>pezzi usati al giorno × (giorni di consegna + margine)</b>. I pezzi usati li legge dagli <b>interventi chiusi</b>, non li stima: un ricambio che non è mai stato usato non ha una proposta, e viene detto. Con un solo consumo registrato la media è fragile, e anche questo viene detto — la soglia la scegli tu, l'app fa solo il conto.</div>
 </div>
 
 <!-- SCADENZE DI LEGGE DEL MEZZO (F6) -->
@@ -1077,7 +1096,8 @@
            STATI_ORDINE, statoOrdine, costoOrdine, ordineDaManutenzione,
            validaRigaManodopera, validaRigaRicambio, riepilogoOrdini,
            CAUSALI_FERMO, causaleFermo, etichettaCausale, validaFermo,
-           fermiOrdinati, durataFermo, affidabilitaFlotta } from "./flotta-data.js";
+           fermiOrdinati, durataFermo, affidabilitaFlotta,
+           consumoRicambi, puntoDiRiordino, propostaScorte } from "./flotta-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const MB = { operativo: ["ok","Operativo"], fermo: ["danger","Fermo"], verifica: ["warn","Verifica"] };
@@ -1802,6 +1822,7 @@
     disegnaGiro();
     disegnaRifornimenti();
     disegnaFermi();
+    disegnaScorte();
     if (schedaId) disegnaScheda();
     if (odlId) disegnaOrdine();
 

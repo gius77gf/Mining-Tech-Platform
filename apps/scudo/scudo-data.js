@@ -1214,14 +1214,26 @@ export function nomineDaSistemare(organigramma) {
 // registrate: mai consegnato, da sostituire, addestramento non registrato.
 // ============================================================
 export function allarmiDpi(mansioni, lavoratori, consegne, oggi = new Date()) {
-  const out = [], visti = new Set();
+  const out = [], indice = new Map();
   const lavById = Object.fromEntries((lavoratori || []).map(l => [l.id, l]));
-  const aggiungi = (lav, tipo, etichetta, motivo, gravita, mansione, scadenza) => {
-    const k = lav.id + "|" + tipo + "|" + motivo;
-    if (visti.has(k)) return;
-    visti.add(k);
-    out.push({ lavoratoreId: lav.id, lavoratore: lav.nome, tipo, etichetta, motivo, gravita,
-      mansione: mansione || "", scadenza: scadenza || null });
+  // Una riga per persona e dispositivo: se sullo stesso elmetto c'è più di un
+  // problema (scaduto E senza addestramento) si scrivono nella stessa riga.
+  // Due righe uguali una sotto l'altra sembrano un errore del programma.
+  const aggiungi = (lav, tipo, etichetta, motivo, gravita, mansione, scadenza, consegnaId, addestramento) => {
+    const k = lav.id + "|" + tipo;
+    const gia = indice.get(k);
+    if (gia) {
+      if (!gia.motivo.includes(motivo)) gia.motivo += " · " + motivo;
+      if (gravita === "danger") gia.gravita = "danger";
+      if (!gia.mansione && mansione) gia.mansione = mansione;
+      if (addestramento) gia.addestramento = true;
+      return;
+    }
+    const rec = { lavoratoreId: lav.id, lavoratore: lav.nome, tipo, etichetta, motivo, gravita,
+      mansione: mansione || "", scadenza: scadenza || null, consegnaId: consegnaId || null,
+      addestramento: !!addestramento };
+    indice.set(k, rec);
+    out.push(rec);
   };
   for (const m of mansioni || []) {
     for (const id of m.lavoratoriIds || []) {
@@ -1231,11 +1243,12 @@ export function allarmiDpi(mansioni, lavoratori, consegne, oggi = new Date()) {
         const t = tipoDpiSicuro(ch);
         const c = ultimaConsegnaDpi(consegne, id, ch);
         const st = statoConsegnaDpi(c, oggi);
-        if (st.stato === "mancante") aggiungi(l, ch, t.etichetta, "mai consegnato", "danger", m.nome, null);
-        else if (st.stato === "scaduta") aggiungi(l, ch, t.etichetta, "da sostituire", "danger", m.nome, st.scadenza);
-        else if (st.stato === "in-scadenza") aggiungi(l, ch, t.etichetta, "in scadenza", "warn", m.nome, st.scadenza);
+        const cid = c ? c.id : null;
+        if (st.stato === "mancante") aggiungi(l, ch, t.etichetta, "mai consegnato", "danger", m.nome, null, null, false);
+        else if (st.stato === "scaduta") aggiungi(l, ch, t.etichetta, "da sostituire", "danger", m.nome, st.scadenza, cid, false);
+        else if (st.stato === "in-scadenza") aggiungi(l, ch, t.etichetta, "in scadenza", "warn", m.nome, st.scadenza, cid, false);
         if (st.addestramentoMancante && st.stato !== "mancante")
-          aggiungi(l, ch, t.etichetta, "addestramento non registrato", "warn", m.nome, null);
+          aggiungi(l, ch, t.etichetta, "addestramento non registrato", "warn", m.nome, null, cid, true);
       }
     }
   }
@@ -1246,8 +1259,8 @@ export function allarmiDpi(mansioni, lavoratori, consegne, oggi = new Date()) {
     if (!l || l.attivo === false) continue;
     const t = tipoDpiSicuro(c.tipo);
     const st = statoConsegnaDpi(c, oggi);
-    if (st.addestramentoMancante) aggiungi(l, c.tipo, t.etichetta, "addestramento non registrato", "warn", "", null);
-    else if (st.stato === "scaduta") aggiungi(l, c.tipo, t.etichetta, "da sostituire", "danger", "", st.scadenza);
+    if (st.stato === "scaduta") aggiungi(l, c.tipo, t.etichetta, "da sostituire", "danger", "", st.scadenza, c.id, false);
+    if (st.addestramentoMancante) aggiungi(l, c.tipo, t.etichetta, "addestramento non registrato", "warn", "", null, c.id, true);
   }
   const peso = { danger: 0, warn: 1 };
   return out.sort((a, b) => (peso[a.gravita] - peso[b.gravita])
@@ -1260,9 +1273,9 @@ export function riepilogoDpi(consegne, allarmi) {
     consegne: list.length,
     persone: new Set(list.map(c => c.lavoratoreId)).size,
     daSistemare: al.length,
-    mancanti: al.filter(a => a.motivo === "mai consegnato").length,
-    daSostituire: al.filter(a => a.motivo === "da sostituire").length,
-    addestramenti: al.filter(a => a.motivo === "addestramento non registrato").length,
+    mancanti: al.filter(a => a.motivo.includes("mai consegnato")).length,
+    daSostituire: al.filter(a => a.motivo.includes("da sostituire")).length,
+    addestramenti: al.filter(a => a.motivo.includes("addestramento non registrato")).length,
   };
 }
 

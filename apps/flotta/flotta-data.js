@@ -1251,6 +1251,131 @@ export function riepilogoOrdini(manutenzioni) {
   return c;
 }
 
+// Un giorno ISO valido, oppure null. Serve sia alle scorte sia ai fermi.
+const isoGiorno = (v) => {
+  const s = String(v || "").slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+};
+// Giorni interi fra due giorni ISO (b − a). Non usa il fuso: le date sono
+// giorni di calendario, non istanti.
+const giorniFra = (a, b) =>
+  Math.round((Date.parse(b + "T12:00:00Z") - Date.parse(a + "T12:00:00Z")) / 86400000);
+
+// ============================================================
+// L7 — QUANTO TENERNE A SCORTA (punto di riordino)
+// La soglia minima, finora, era un numero che qualcuno aveva scritto una
+// volta. Il punto di riordino vero è un conto:
+//     soglia = pezzi consumati al giorno × giorni di consegna del fornitore
+//              + i giorni di margine che vuoi tenerti.
+// Adesso si può fare, perché l'ordine di lavoro scrive DAVVERO quali pezzi
+// sono andati dentro e in che quantità. Due regole di onestà:
+//  · il consumo si legge dagli interventi chiusi, non si stima. Un ricambio
+//    che non è mai stato usato non ha un consumo, e la soglia non si propone;
+//  · con un solo consumo registrato il «pezzi al giorno» è un numero fragile:
+//    si dice, ma si dichiara che è fragile. Servono almeno due volte perché
+//    una media abbia senso.
+// ============================================================
+
+// I pezzi consumati negli interventi chiusi, ricambio per ricambio, dentro
+// una finestra di giorni. Gli interventi vecchi (prima dell'ordine di
+// lavoro) portano un solo `ricambio` scritto per nome: valgono 1 pezzo,
+// perché è esattamente quello che l'app scaricava dal magazzino allora.
+// Pura e testabile.
+export function consumoRicambi(interventi, giorni = 180, oggi = new Date()) {
+  const finestra = Math.max(1, Math.round(+giorni || 180));
+  const a = oggiIso(oggi);
+  const da = oggiIso(new Date(Date.parse(a + "T12:00:00Z") - (finestra - 1) * 86400000));
+  const per = new Map();
+  let considerati = 0, stimati = 0;
+  const conta = (chiave, nome, id, qta, data) => {
+    const v = per.get(chiave) || { id: id || null, nome, pezzi: 0, episodi: 0, primo: data, ultimo: data };
+    v.pezzi += qta; v.episodi++;
+    if (!v.id && id) v.id = id;
+    if (data < v.primo) v.primo = data;
+    if (data > v.ultimo) v.ultimo = data;
+    per.set(chiave, v);
+  };
+  for (const w of interventi || []) {
+    const d = isoGiorno(w.data);
+    if (!d || d < da || d > a) continue;
+    considerati++;
+    if (Array.isArray(w.ricambiUsati) && w.ricambiUsati.length) {
+      for (const r of w.ricambiUsati) {
+        const nome = String((r && r.nome) || "").trim();
+        if (!nome) continue;
+        conta((r && r.id) || nome.toLowerCase(), nome, r && r.id, Math.max(0, due(r && r.qta)) || 0, d);
+      }
+    } else if (String(w.ricambio || "").trim()) {
+      // intervento vecchio: un pezzo, quello che l'app scaricava allora
+      const nome = String(w.ricambio).trim();
+      conta(nome.toLowerCase(), nome, null, 1, d);
+      stimati++;
+    }
+  }
+  const righe = [...per.values()].map(v => ({
+    ...v, pezzi: Math.round(v.pezzi * 100) / 100,
+    alGiorno: Math.round(10000 * v.pezzi / finestra) / 10000,
+    affidabile: v.episodi >= 2,
+  })).sort((x, y) => y.alGiorno - x.alGiorno || x.nome.localeCompare(y.nome, "it"));
+  return { finestra, da, a, righe, interventi: considerati, daInterventiVecchi: stimati };
+}
+
+// Il punto di riordino, dal consumo al giorno. Ritorna null se non si può
+// calcolare (nessun consumo, o tempi non sensati). Pura.
+export function puntoDiRiordino(alGiorno, consegnaGiorni, sicurezzaGiorni) {
+  const c = Math.round(+consegnaGiorni || 0);
+  const s = Math.max(0, Math.round(+sicurezzaGiorni || 0));
+  const r = +alGiorno || 0;
+  if (!(c > 0) || !(r > 0)) return null;
+  const copertura = c + s;
+  const esatto = r * copertura;
+  return {
+    soglia: Math.max(1, Math.ceil(esatto)),
+    esatto: Math.round(esatto * 100) / 100,
+    copertura, consegna: c, sicurezza: s,
+  };
+}
+
+// La proposta per tutto il magazzino: per ogni ricambio la soglia che ha
+// adesso, quella che verrebbe fuori dai consumi, e quanti pezzi mancano per
+// arrivarci. Chi non ha consumi registrati resta a parte: non si propone
+// niente per un pezzo che non si sa quanto si usi. Pura e testabile.
+export function propostaScorte(ricambi, interventi, opzioni) {
+  const o = opzioni || {};
+  const cons = consumoRicambi(interventi, o.finestraGiorni || 180, o.oggi || new Date());
+  const perId = new Map(), perNome = new Map();
+  for (const r of cons.righe) {
+    if (r.id) perId.set(r.id, r);
+    perNome.set(r.nome.toLowerCase(), r);
+  }
+  const righe = [], senzaConsumo = [];
+  for (const r of ricambi || []) {
+    const uso = perId.get(r.id) || perNome.get(String(r.nome || "").trim().toLowerCase()) || null;
+    const pr = uso ? puntoDiRiordino(uso.alGiorno, o.consegnaGiorni, o.sicurezzaGiorni) : null;
+    const base = {
+      id: r.id, nome: r.nome, giacenza: +r.giacenza || 0, sogliaAttuale: +r.sogliaMin || 0,
+      prezzo: +r.prezzo > 0 ? +r.prezzo : null,
+      pezzi: uso ? uso.pezzi : 0, episodi: uso ? uso.episodi : 0,
+      alGiorno: uso ? uso.alGiorno : 0, affidabile: uso ? uso.affidabile : false,
+    };
+    if (!pr) { senzaConsumo.push(base); continue; }
+    const daOrdinare = Math.max(0, pr.soglia - base.giacenza);
+    righe.push({ ...base, sogliaProposta: pr.soglia, esatto: pr.esatto, copertura: pr.copertura,
+      differenza: pr.soglia - base.sogliaAttuale, daOrdinare,
+      spesa: base.prezzo != null ? Math.round(daOrdinare * base.prezzo * 100) / 100 : null,
+      sotto: base.giacenza <= pr.soglia });
+  }
+  righe.sort((a, b) => (b.daOrdinare - a.daOrdinare) || (b.alGiorno - a.alGiorno) || a.nome.localeCompare(b.nome, "it"));
+  senzaConsumo.sort((a, b) => a.nome.localeCompare(b.nome, "it"));
+  return {
+    righe, senzaConsumo, finestra: cons.finestra, da: cons.da, a: cons.a,
+    interventi: cons.interventi, daInterventiVecchi: cons.daInterventiVecchi,
+    consegna: Math.round(+o.consegnaGiorni || 0), sicurezza: Math.max(0, Math.round(+o.sicurezzaGiorni || 0)),
+    daOrdinare: righe.filter(r => r.daOrdinare > 0).length,
+    spesaTotale: Math.round(righe.reduce((t, r) => t + (r.spesa || 0), 0) * 100) / 100,
+  };
+}
+
 // ============================================================
 // L6 — FERMI MACCHINA E AFFIDABILITÀ
 // «Quanto è stata ferma questa macchina, e perché». Finora Flotta sapeva
@@ -1282,15 +1407,6 @@ export function etichettaCausale(chiave) {
   const c = causaleFermo(chiave);
   return c ? c.etichetta : (String(chiave || "").trim() || "Motivo non indicato");
 }
-
-const isoGiorno = (v) => {
-  const s = String(v || "").slice(0, 10);
-  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
-};
-// Giorni interi fra due giorni ISO (b − a). Non usa il fuso: le date sono
-// giorni di calendario, non istanti.
-const giorniFra = (a, b) =>
-  Math.round((Date.parse(b + "T12:00:00Z") - Date.parse(a + "T12:00:00Z")) / 86400000);
 
 // GIORNI DI FERMO di un episodio dentro la finestra [da, a] (estremi
 // compresi). Conteggio a giornate INTERE e INCLUSIVE: una macchina ferma il
