@@ -5,11 +5,10 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-07-29 00:44 UTC
-**Cosa sta per fare:** riprendere il Blocco 1 della roadmap (i difetti reali
-trovati dalla ricerca) mentre il cantiere del motore grafici lavora in
-`shared/`.
-**Commit di partenza:** `87e220f`
+**Ultimo ciclo riuscito:** 2026-07-29 03:46 UTC
+**Cosa sta per fare:** verificare il collaudo del motore grafici e calare i
+primi grafici sulle app secondo `docs/PIANO_GRAFICI.md`.
+**Commit di partenza:** `3a41a17`
 
 ---
 
