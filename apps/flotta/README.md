@@ -29,7 +29,10 @@ Sei schermate: **Quadro · Giro · Mezzi · Officina · Scadenze · Costi**.
   **manodopera** (chi, quante ore, a quanto l'ora — una riga per persona),
   **ricambi** consumati con quantità e prezzo, altre spese. Il costo non si
   scrive: si somma dalle righe, e alla chiusura scarica il magazzino, entra
-  nel registro interventi e nei costi della flotta.
+  nel registro interventi e nei costi della flotta. Da quei consumi veri esce
+  anche **quanto tenerne a scorta**: pezzi usati al giorno × (giorni di
+  consegna del fornitore + margine), con la lista della spesa esportabile.
+  Un ricambio mai usato non ha nessuna proposta, e l'app lo dice.
 - **Scadenze** — scadenzario di legge del mezzo, con le voci già pronte e
   il riferimento normativo.
 - **Costi** — voci di spesa, ripartizione e andamento mensile, più il
