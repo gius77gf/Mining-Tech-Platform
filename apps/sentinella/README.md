@@ -63,6 +63,52 @@ Giorno, ora, tipo, ricettore, chi ha segnalato, cosa è stato fatto,
 aperto/chiuso. I reclami del periodo compaiono nel report accanto alle
 misure di quei giorni.
 
+## Programma di monitoraggio (scheda Programma)
+
+Il piano: **che cosa si misura, dove e ogni quanto**. Una riga = un punto di
+misura + ogni quanti giorni va misurato, con una **tolleranza** (il ritardo che
+l'azienda considera accettabile), una data «in vigore dal» e una nota.
+
+Lo stato **non si salva**: si calcola dall'ultima lettura del punto
+(`statoRigaProgramma`), come già succede per le scadenze. Così una riga non può
+restare «in regola» mentre nessuno misura più.
+
+- oltre la tolleranza → **in ritardo** (rosso)
+- scaduta ma dentro la tolleranza → **da fare** (giallo)
+- non ancora scaduta → **in regola** (verde)
+- nessuna lettura e nessuna data di inizio → **mai misurato** (giallo)
+- riga **sospesa** (si tocca la riga): resta scritta, smette di risultare in ritardo
+
+Le righe in ritardo o da fare entrano anche nelle **allerte del quadro**,
+insieme a superamenti e adempimenti, ordinate per gravità.
+
+Le periodicità del menù (`PERIODICITA`) sono solo scorciatoie in **giorni**:
+«ogni mese» vale 30 giorni e «ogni sei mesi» 182 — giorni contati, non mesi di
+calendario, così la scadenza è prevedibile. **Nessuna frequenza di legge è
+scritta nel codice**: le frequenze le impone l'autorizzazione o il piano di
+monitoraggio e le scrive l'utente.
+
+Collezione `programma`: se non esiste (nessuna riga) tutte le schermate
+funzionano come prima — provato con la collezione assente e con i dati vuoti.
+
+## Andamento per ricettore (scheda Programma)
+
+Scelto un ricettore, per ogni punto di misura collegato: la **soglia
+applicata** (quella del ricettore se ce l'ha), il grafico delle letture degli
+ultimi 6 mesi con la soglia disegnata sopra, e il confronto fra il **mese in
+corso** e quello **precedente** (letture, media, massimo, superamenti).
+
+Due regole di onestà, scritte a schermo quando scattano:
+
+- sotto **3 letture** nella finestra il grafico **non si disegna**: una linea
+  fra due misure non è un andamento;
+- se uno dei due mesi non ha letture il confronto non si fa; se una media
+  poggia su **una sola lettura** il confronto è mostrato ma marcato come
+  debole.
+
+Il grafico è quello del motore condiviso `dwGrafici.linea` (nessuna libreria,
+nessun CDN, `shared/` non toccata).
+
 ## Regole rispettate
 
 - **Soglie di sicurezza**: i preset normativi (`SOGLIE_PRESET`, DIN 4150-3 /
@@ -79,7 +125,8 @@ misure di quei giorni.
   `shared/`: un solo asse verticale, punti fuori soglia a rombo, etichette
   dei tempi corte (`GG/MM`) perché il motore non le dirada per larghezza.
 - Ogni accesso dati passa dallo SDK (`orgCollection`): collezioni
-  `monitoraggi`, `adempimenti`, `registri`, `volate`, `ricettori`, `reclami`.
+  `monitoraggi`, `adempimenti`, `registri`, `volate`, `ricettori`, `reclami`,
+  `programma`.
 
 ## Verifiche
 

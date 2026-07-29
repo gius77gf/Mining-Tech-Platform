@@ -2180,6 +2180,64 @@
   }
 
   // ══════════════════════════════════════════════════════════════════════
+  // L7 — QUANTO TENERNE A SCORTA
+  // Il numero non lo decide l'app: l'app fa il conto e lo mostra scritto per
+  // esteso, con dentro i pezzi che sono stati davvero consumati. La soglia
+  // si cambia solo se lo dici tu, un pezzo alla volta.
+  // ══════════════════════════════════════════════════════════════════════
+  const pz = (n) => (+n || 0).toLocaleString("it-IT", { maximumFractionDigits: 2 })
+    + (Math.abs(+n || 0) === 1 ? " pezzo" : " pezzi");
+
+  function disegnaScorte() {
+    const consegna = Math.round(+$("sco-consegna").value || 0);
+    const sicurezza = Math.max(0, Math.round(+$("sco-sicurezza").value || 0));
+    const p = propostaScorte(RIC, INT, { consegnaGiorni: consegna, sicurezzaGiorni: sicurezza, finestraGiorni: 180 });
+    const consumati = consumoRicambi(INT, 180);
+    if (!RIC.length) {
+      $("sco-riep").innerHTML = "";
+      $("sco-list").innerHTML = vuoto(I.bullone, "Magazzino vuoto",
+        "Il punto di riordino si calcola sui pezzi che tieni a scorta: aggiungine almeno uno qui sopra.");
+      return;
+    }
+    if (!consegna) {
+      $("sco-riep").innerHTML = "Manca il dato che serve: <b>quanti giorni ci mette il fornitore</b> a consegnare. "
+        + "Scrivilo qui sopra e per ogni ricambio comparirà quanti pezzi tenere, calcolati sui consumi veri."
+        + (consumati.righe.length
+            ? ` Intanto i consumi ci sono già: <b>${consumati.righe.length}</b> ${consumati.righe.length === 1 ? "ricambio è stato usato" : "ricambi sono stati usati"} negli ultimi ${consumati.finestra} giorni.`
+            : " Per ora nessun ricambio risulta consumato negli interventi chiusi: la prima proposta arriverà dopo i primi lavori.");
+      $("sco-list").innerHTML = "";
+      return;
+    }
+    $("sco-riep").innerHTML = p.righe.length
+      ? `Con <b>${consegna}</b> giorni di consegna e <b>${sicurezza}</b> di margine, la scorta deve coprire <b>${consegna + sicurezza} giorni</b> di consumo. `
+        + `Il conto si può fare su <b>${p.righe.length}</b> ${p.righe.length === 1 ? "ricambio" : "ricambi"} (quelli davvero usati negli ultimi ${p.finestra} giorni, su ${p.interventi} ${p.interventi === 1 ? "intervento chiuso" : "interventi chiusi"})`
+        + (p.senzaConsumo.length ? `; sugli altri <b>${p.senzaConsumo.length}</b> no, perché non risultano mai usati` : "")
+        + ". "
+        + (p.daOrdinare
+            ? `<span class="rosso">${p.daOrdinare} ${p.daOrdinare === 1 ? "ricambio è sotto quello che servirebbe" : "ricambi sono sotto quello che servirebbe"}</span>`
+              + (p.spesaTotale ? `: rimetterli a posto costa circa <b>${eur(p.spesaTotale)}</b>.` : ".")
+            : "Nessun ricambio è sotto la soglia che verrebbe fuori dai consumi.")
+      : `Nessun ricambio del magazzino risulta consumato negli ultimi ${p.finestra} giorni: senza consumi non si può dire quanti pezzi tenere, e l'app non se lo inventa. `
+        + "Le soglie restano quelle che hai scritto tu.";
+
+    $("sco-list").innerHTML = p.righe.map(r => {
+      const cls = r.daOrdinare > 0 ? "danger" : r.differenza > 0 ? "warn" : "ok";
+      return `<div class="item statico ${striscia[cls] || "st-mute"}">
+        <div class="avatar sup">${I.bullone}</div>
+        <div class="info"><div class="name">${esc(r.nome)}</div>
+          <div class="meta">usati <b>${pz(r.pezzi)}</b> in ${r.episodi} ${r.episodi === 1 ? "intervento" : "interventi"} = ${r.alGiorno.toLocaleString("it-IT", { maximumFractionDigits: 3 })} al giorno · × ${r.copertura} giorni = <b>${r.sogliaProposta}</b> da tenere${r.giacenza != null ? " · adesso ne hai " + r.giacenza : ""}</div>
+          <div class="meta norma">${r.affidabile
+            ? "Soglia scritta oggi: " + r.sogliaAttuale + (r.differenza === 0 ? " — già quella giusta." : r.differenza > 0 ? " — ne servirebbero " + r.differenza + " in più." : " — " + (-r.differenza) + " in più del necessario.")
+            : "Un solo consumo registrato: la media è fragile, prendila come un ordine di grandezza."}${r.daOrdinare ? " Da ordinare: <b>" + r.daOrdinare + "</b>" + (r.spesa != null ? " (" + eur(r.spesa) + ")" : "") + "." : ""}</div></div>
+        <div class="acts"><span class="badge ${cls}">${r.daOrdinare ? "ne mancano " + r.daOrdinare : r.differenza > 0 ? "alza a " + r.sogliaProposta : "a posto"}</span>
+        ${r.differenza !== 0 ? `<span class="arr ok" role="button" tabindex="0" title="Usa ${r.sogliaProposta} come soglia minima di questo ricambio" aria-label="Porta la soglia di ${esc(r.nome)} a ${r.sogliaProposta}" data-sco-usa="${r.id}">${I.spunta}</span>` : ""}</div></div>`;
+    }).join("")
+      + (p.senzaConsumo.length
+        ? `<div class="count">${p.senzaConsumo.length === 1 ? "1 ricambio non risulta mai usato" : p.senzaConsumo.length + " ricambi non risultano mai usati"} negli ultimi ${p.finestra} giorni: ${p.senzaConsumo.slice(0, 6).map(r => esc(r.nome)).join(", ")}${p.senzaConsumo.length > 6 ? " e altri " + (p.senzaConsumo.length - 6) : ""}. Per loro non c'è una proposta.</div>`
+        : "");
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
   // L5 — ORDINE DI LAVORO
   // ══════════════════════════════════════════════════════════════════════
   function apriOrdine(id) {
@@ -2531,6 +2589,18 @@
       const s = STATI_ORDINE.find(x => x.chiave === odlStato); if (!s) return;
       await salvaOrdine(n, { stato: odlStato }, "Ora questo lavoro è « " + s.etichetta.toLowerCase() + " ».");
       return; }
+    // L7: «usa questa soglia» porta la soglia minima del ricambio al punto di
+    // riordino calcolato. È l'utente a decidere, un pezzo alla volta: l'app
+    // non riscrive da sola i numeri che qualcuno ha messo a mano.
+    const scoUsa = attr(e, "data-sco-usa");
+    if (scoUsa) { const r = RIC.find(x => x.id === scoUsa); if (!r) return;
+      const p = propostaScorte(RIC, INT, { consegnaGiorni: Math.round(+$("sco-consegna").value || 0),
+        sicurezzaGiorni: Math.max(0, Math.round(+$("sco-sicurezza").value || 0)), finestraGiorni: 180 });
+      const riga = p.righe.find(x => x.id === scoUsa); if (!riga) return;
+      await db.aggiorna("ricambi", r.id, { sogliaMin: riga.sogliaProposta });
+      esito("ric-esito", "Soglia di " + r.nome + ": da " + riga.sogliaAttuale + " a " + riga.sogliaProposta
+        + " (" + riga.alGiorno.toLocaleString("it-IT", { maximumFractionDigits: 3 }) + " pezzi al giorno × " + riga.copertura + " giorni).", "success");
+      await refresh(); return; }
     // FERMI MACCHINA (L6): «è ripartito» chiude il fermo di oggi e propone di
     // rimettere la macchina operativa; la croce lo toglie del tutto.
     const ferFine = attr(e, "data-fer-fine");
@@ -3239,6 +3309,44 @@
     const vivo = MAN.find(x => x.id === odlId) || n;
     const fatto = await chiudiOrdineLavoro(vivo);
     if (fatto) { go("man"); await refresh(); }
+  };
+
+  // ══════════════════════════════════════════════════════════════════════
+  // L7 — i comandi delle scorte
+  // ══════════════════════════════════════════════════════════════════════
+  try {
+    const c = localStorage.getItem("dwFlottaConsegna"); if (c) $("sco-consegna").value = c;
+    const s = localStorage.getItem("dwFlottaSicurezza"); if (s !== null) $("sco-sicurezza").value = s;
+  } catch (e) {}
+  const ricordaScorte = () => {
+    try {
+      localStorage.setItem("dwFlottaConsegna", $("sco-consegna").value);
+      localStorage.setItem("dwFlottaSicurezza", $("sco-sicurezza").value);
+    } catch (e) {}
+    disegnaScorte();
+  };
+  $("sco-consegna").addEventListener("input", ricordaScorte);
+  $("sco-sicurezza").addEventListener("input", ricordaScorte);
+  // La lista della spesa: quella che si manda al fornitore, o si stampa e si
+  // porta in magazzino. Ci finiscono solo i pezzi che mancano davvero.
+  $("btn-sco-csv").onclick = () => {
+    const p = propostaScorte(RIC, INT, { consegnaGiorni: Math.round(+$("sco-consegna").value || 0),
+      sicurezzaGiorni: Math.max(0, Math.round(+$("sco-sicurezza").value || 0)), finestraGiorni: 180 });
+    const da = p.righe.filter(r => r.daOrdinare > 0);
+    if (!da.length) {
+      esito("ric-esito", p.consegna
+        ? "Niente da ordinare: nessun ricambio è sotto la scorta che serve."
+        : "Prima scrivi in quanti giorni consegna il fornitore: senza quel numero la lista della spesa non si può fare.", "err");
+      return;
+    }
+    const righe = [["ricambio", "giacenza", "da_ordinare", "prezzo_unitario", "spesa", "consumo_al_giorno", "copertura_giorni"].join(";")]
+      .concat(da.map(r => [r.nome, r.giacenza, r.daOrdinare, r.prezzo == null ? "" : r.prezzo,
+                           r.spesa == null ? "" : r.spesa, r.alGiorno, r.copertura].map(csvCell).join(";")));
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    a.download = "flotta-lista-della-spesa.csv"; a.click();
+    esito("ric-esito", "Lista della spesa esportata: " + da.length + (da.length === 1 ? " ricambio" : " ricambi")
+      + (p.spesaTotale ? " per circa " + eur(p.spesaTotale) : "") + " (CSV).", "success");
   };
 
   // ══════════════════════════════════════════════════════════════════════

@@ -104,7 +104,10 @@ export const DEMO = {
   ],
   // canone di escavazione: l'aliquota NON è cablata, cambia da regione a regione.
   impostazioni: [
-    { id: "s1", canoneUnita: "m3", canoneAliquota: 0.55, canoneNota: "Valore di esempio: metti la tariffa della tua concessione." },
+    { id: "s1", canoneUnita: "m3", canoneAliquota: 0.55, canoneNota: "Valore di esempio: metti la tariffa della tua concessione.",
+      // intestazione dei documenti stampati (DDT e fatture): dati d'esempio
+      aziendaNome: "Cava di esempio S.r.l.", aziendaPiva: "00000000000",
+      aziendaIndirizzo: "Contrada Esempio 1, Ragusa", aziendaContatti: "0932 000000 · amministrazione@esempio.it" },
   ],
 };
 
