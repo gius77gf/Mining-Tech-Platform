@@ -109,6 +109,44 @@ Due regole di onestà, scritte a schermo quando scattano:
 Il grafico è quello del motore condiviso `dwGrafici.linea` (nessuna libreria,
 nessun CDN, `shared/` non toccata).
 
+## Dal superamento (o dal reclamo) all'azione correttiva — T7
+
+Un valore fuori soglia, o la telefonata di un residente, non si chiude da
+solo: chiede che **qualcuno faccia qualcosa entro una data**. Quel
+meccanismo esiste già e sta in **Scudo** — le azioni correttive
+(aperta → in corso → chiusa) dentro lo scadenzario della sicurezza. Sentinella
+**non ne costruisce un secondo**: apre l'azione là, già collegata al fatto che
+l'ha generata, e ne mostra lo stato.
+
+- Nel Quadro c'è la sezione **«Cosa abbiamo fatto»**: per ogni superamento
+  aperto e per ogni reclamo si vede se un'azione è stata aperta, a che punto è
+  e se è stata chiusa. È la risposta pronta quando l'ente chiede «e voi cosa
+  avete fatto?».
+- Un tocco su **Apri azione correttiva** propone testo, data (30 giorni) e
+  responsabile (l'anagrafica di Scudo), mostra l'**origine già scritta** e
+  crea l'azione con `origineTipo: "superamento"|"reclamo"`, `origineId`,
+  `origineVoce` — lo stesso schema che Scudo usa già per eventi e ispezioni.
+- **Niente doppioni**: l'identità di un superamento è il punto di misura *più*
+  il giorno della lettura che l'ha causato (`origineVoce`). Tornando sullo
+  stesso superamento l'azione è già lì e il pulsante non c'è più; un
+  superamento di un giorno diverso è un fatto nuovo e merita un'azione nuova.
+- L'azione porta con sé il **testo dell'origine** (`origineNota`,
+  `origineData`): Scudo non può leggere le collezioni di Sentinella
+  (l'isolamento dello SDK è per organizzazione **e** per app), e un'azione che
+  dicesse solo «origine: xyz» sarebbe illeggibile per l'RSPP.
+- **Coincidenza con la volata**: se quel giorno c'è stata una volata, la voce
+  lo segnala come cosa *da guardare*, dicendo a chiare lettere che
+  «**coincidenza di data, non una causa dimostrata**: per collegare i due fatti
+  servono la misura strumentale dell'evento, l'ora e una valutazione tecnica».
+  Nessun nesso suggerito che non sia dimostrato.
+- **Trasporto**: da autenticati, SDK Deepwork ID inizializzato sull'app di
+  destinazione (`appId: "scudo"`), stessa organizzazione, sempre
+  `orgCollection("azioni")`. In demo/tour non esiste alcun backend e le due app
+  sono due pagine: il finto backend condiviso è una riga di `localStorage`
+  (`deepwork.demo.azioni-ponte`) — serve solo a far vedere la catena completa,
+  non esiste in live. Se Scudo non è raggiungibile la pagina resta com'era:
+  elenco vuoto e una riga che lo spiega.
+
 ## Regole rispettate
 
 - **Soglie di sicurezza**: i preset normativi (`SOGLIE_PRESET`, DIN 4150-3 /

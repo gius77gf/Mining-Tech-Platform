@@ -28,3 +28,17 @@ Lo scadenzario include i preset degli adempimenti tipici delle attività
 estrattive (D.Lgs 624/96: relazione annuale sulla stabilità dei fronti,
 certificazione e aggiornamento del DSS…), con periodicità solo proposta e
 sempre modificabile dall'utente.
+
+**Azioni che arrivano dall'ambiente (ponte con Sentinella)**: un superamento di
+soglia ambientale o il reclamo di un residente, registrati in **Sentinella**,
+aprono da lì un'azione correttiva che nasce **qui**, nella stessa collezione
+`azioni` e nello stesso scadenzario — con `origineTipo: "superamento"` o
+`"reclamo"` e `origineApp: "sentinella"`. Si riconoscono dal marcatore
+**Superamento** / **Reclamo** in testa alla riga e si filtrano con il chip
+**Dall'ambiente**; il riepilogo dice quante ne nascono così e quante sono
+ancora da chiudere. Poiché l'isolamento dello SDK è per organizzazione **e**
+per app, Scudo non può leggere le collezioni di Sentinella: l'azione si porta
+dietro il **testo dell'origine** (`origineNota`, `origineData`), che è anche
+ciò che si mostra all'ente. Modificarla dal form **non rompe il
+collegamento** — vale anche per le azioni nate da un'ispezione, che prima
+perdevano l'origine.
