@@ -14,7 +14,9 @@
 <link rel="stylesheet" href="../../shared/deepwork-style.css">
 <link rel="stylesheet" href="../../shared/dw-app-shell.css">
 <link rel="stylesheet" href="../../shared/dw-app-ui.css">
+<link rel="stylesheet" href="../../shared/dw-grafici.css">
 <script src="../../shared/dw-tema.js" defer></script>
+<script src="../../shared/dw-grafici.js" defer></script>
 <style>
 /* ══════════════════════════════════════════════════════════════════════
    SENTINELLA — ambiente e monitoraggi
@@ -160,6 +162,83 @@
 .safety-sub{font-size:11.5px; color:var(--muted2); margin-top:4px}
 .safety-txt{font-size:13px; color:var(--muted2); line-height:1.5}
 .safety-txt b{color:var(--text)}
+
+/* ══════════════════════════════════════════════════════════════════════
+   IL PUNTO MESSO PEGGIO — miniatura nel Quadro (T2).
+   Stessa cassa del cartellone .safety (luce, bordo che cattura la luce,
+   alone d'ambiente nella tinta dell'app), ma in versione compatta: qui
+   non c'è nessun asse, solo il valore di adesso, la SOGLIA impostata
+   dall'utente e la sagoma dell'andamento. Il grafico grande della serie
+   storica resta dov'era, nei Monitoraggi: questa è un'anteprima.
+   ══════════════════════════════════════════════════════════════════════ */
+.peggio{
+  position:relative; overflow:hidden;
+  background:linear-gradient(135deg,var(--card2),var(--card));
+  border:1px solid var(--border); border-left:3px solid var(--success);
+  border-radius:var(--r); padding:12px 15px 13px; margin:0 0 4px;
+  box-shadow:var(--sh2),var(--edge);
+  cursor:pointer; transition:transform .16s var(--ease),border-color .16s var(--ease),box-shadow .16s var(--ease);
+}
+.peggio::before{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(280px 160px at var(--mx,10%) var(--my,0%),rgba(106,187,110,.10),transparent 70%);
+  transition:background .2s var(--ease);
+}
+.peggio.warn{border-left-color:var(--warn)}
+.peggio.warn::before{background:radial-gradient(280px 160px at var(--mx,10%) var(--my,0%),rgba(248,172,61,.10),transparent 70%)}
+.peggio.danger{border-left-color:var(--danger)}
+.peggio.danger::before{background:radial-gradient(280px 160px at var(--mx,10%) var(--my,0%),rgba(240,95,90,.12),transparent 70%)}
+.peggio:hover{border-color:var(--border-hi); box-shadow:var(--sh3),var(--edge-hi)}
+.peggio:active{transform:scale(.99)}
+.peggio>*{position:relative}
+.peggio-head{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+.peggio-nome{
+  font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:700;
+  letter-spacing:.4px; color:var(--text); flex:1 1 auto; min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.peggio-body{display:flex; align-items:flex-end; gap:14px; margin-top:9px; flex-wrap:wrap}
+.peggio-cifre{flex:1 1 130px; min-width:0}
+.peggio-num{
+  font-family:'Barlow Condensed',sans-serif; font-size:34px; font-weight:800;
+  line-height:.95; font-variant-numeric:tabular-nums; background:var(--grad-ok);
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+}
+.peggio.warn .peggio-num{background:var(--grad-wr); -webkit-background-clip:text; background-clip:text}
+.peggio.danger .peggio-num{background:var(--grad-dg); -webkit-background-clip:text; background-clip:text}
+.peggio-num small{font-size:14px; font-weight:600; letter-spacing:.5px}
+.peggio-lab{
+  font-size:10px; font-weight:600; letter-spacing:1.8px; text-transform:uppercase;
+  color:var(--muted); margin-top:3px;
+}
+.peggio-sog{
+  font-size:12px; color:var(--muted2); margin-top:5px; font-variant-numeric:tabular-nums;
+  display:flex; align-items:center; gap:6px;
+}
+/* trattino tratteggiato uguale alla riga della soglia: la parola «soglia»
+   non è sola, porta accanto il segno che si vede nel disegno */
+.peggio-sog i{
+  display:inline-block; width:18px; height:0; flex-shrink:0;
+  border-top:2px dashed var(--danger);
+}
+.peggio-sog b{color:var(--text); font-weight:600}
+/* la miniatura vive dentro un quadrantino incassato, come il display di
+   uno strumento: è lo stesso trattamento di .graf-stats, così il Quadro e
+   i Monitoraggi sembrano lo stesso apparecchio */
+.peggio-spark{
+  flex:0 0 auto; padding:7px 8px 5px; background:var(--dark);
+  border:1px solid var(--border); border-radius:var(--r-sm); box-shadow:var(--edge);
+}
+.peggio-spark>div{line-height:0}
+.peggio-spark-cap{
+  font-size:8.5px; font-weight:600; letter-spacing:1.2px; text-transform:uppercase;
+  color:var(--disabled); text-align:right; margin-top:9px; line-height:1.2;
+}
+.peggio-note{
+  font-size:11.5px; line-height:1.5; color:var(--muted); margin-top:10px;
+  padding-top:9px; border-top:1px solid var(--border);
+}
+.peggio-note b{color:var(--muted2); font-weight:600}
 
 /* ─────────────── voci di lista (copia di .sitem) ─────────────── */
 .item:active{transform:translateX(1px) scale(.995)}
@@ -377,6 +456,8 @@
   </div>
 
   <div id="conf-banner"></div>
+  <div class="sec">Il punto messo peggio</div>
+  <div id="dash-peggio"></div>
   <div class="sec">Allerte</div>
   <div id="all-list"></div>
 </div>
@@ -593,7 +674,7 @@
   // KPI raggiungibili da tastiera (Invio/Spazio = tocco)
   document.addEventListener("keydown", e => {
     if (e.key !== "Enter" && e.key !== " ") return;
-    const k = e.target.closest && e.target.closest(".kpi[data-goto]");
+    const k = e.target.closest && e.target.closest('.kpi[data-goto], .peggio[role="button"]');
     if (k) { e.preventDefault(); k.click(); }
   });
 
@@ -601,7 +682,7 @@
   (function () {
     if (matchMedia("(prefers-reduced-motion:reduce)").matches) return;
     if (!matchMedia("(hover:hover) and (pointer:fine)").matches) return;
-    const sel = ".item,.kpi";
+    const sel = ".item,.kpi,.peggio";
     let cur = null, px = 50, py = 50, pend = false;
     const apply = () => { pend = false; if (cur) { cur.style.setProperty("--mx", px + "%"); cur.style.setProperty("--my", py + "%"); } };
     window.addEventListener("pointermove", e => {
@@ -804,6 +885,107 @@
         <path class="graf-linea" d="${g.path}"/>${punti}${sogChip}${etY}${etX}${etUnita}</svg>
       <div class="graf-leg">${legenda}</div>${notaScala}`;
   }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // T2 · IL PUNTO MESSO PEGGIO, IN MINIATURA (Quadro)
+  // Risponde a «c'è qualcosa fuori norma proprio adesso, e sta peggiorando?»
+  // senza entrare nei Monitoraggi. NON è il grafico grande della serie
+  // storica — quello resta dov'è, sotto la voce di lista, con assi,
+  // targhetta e rombi: qui c'è solo la sagoma dell'andamento (sparkline,
+  // nessun asse), il valore di adesso e la SOGLIA. La soglia è sempre e
+  // solo quella impostata dall'utente sul punto: non se ne inventano e non
+  // se ne cambiano, è un valore di sicurezza.
+  // I dati arrivano da serieStorica(), la stessa funzione del grafico
+  // grande: un solo posto dove le letture vengono ordinate e filtrate.
+  // ══════════════════════════════════════════════════════════════════════
+  const SPARK_LARGO = matchMedia("(min-width:560px)");
+  const sparkGeom = () => SPARK_LARGO.matches
+    ? { larghezza: 240, altezza: 54 }
+    : { larghezza: 138, altezza: 46 };
+  SPARK_LARGO.addEventListener("change", () => renderPeggio());
+  // quante letture entrano nella miniatura: oltre una dozzina, in 240 px,
+  // la sagoma diventa un pettine illeggibile. Il grafico grande le ha tutte.
+  const SPARK_MAX = 14;
+
+  // Il punto messo peggio è quello col rapporto valore/soglia più alto: la
+  // stessa misura del semaforo di conformità, così Quadro e Monitoraggi non
+  // possono mai dire due cose diverse. A parità di rapporto vince chi ha
+  // più letture registrate: ha più da raccontare.
+  function puntoPeggiore(monitoraggi) {
+    let scelto = null;
+    for (const m of monitoraggi || []) {
+      const st = statoMisura(m), nl = ((m && m.letture) || []).length;
+      if (!scelto || st.ratio > scelto.st.ratio || (st.ratio === scelto.st.ratio && nl > scelto.nl))
+        scelto = { m, st, nl };
+    }
+    return scelto;
+  }
+
+  function renderPeggio() {
+    const box = $("dash-peggio"); if (!box) return;
+    const p = puntoPeggiore(MON);
+    if (!p) {
+      box.innerHTML = vuoto(I.sensore, "Nessun punto in ascolto",
+        "Appena aggiungi la prima centralina dai <b>Monitoraggi</b> — nome, unità e soglia — qui compare sempre il punto messo peggio, con il suo andamento in miniatura.");
+      return;
+    }
+    const m = p.m, cls = p.st.cls === "ok" ? "" : p.st.cls;
+    const g = serieStorica(m);
+    const unita = unitaMisura(m);
+    const u = unita ? ` <small>${esc(unita)}</small>` : "";
+    const valori = g.punti.map(x => x.valore).slice(-SPARK_MAX);
+    const sogliaOk = Number.isFinite(+m.soglia) && +m.soglia > 0;
+
+    // La riga di spiegazione dice tre cose e basta: da quando a quando,
+    // quante volte si è andati oltre, e da che parte sta andando adesso.
+    let nota;
+    if (valori.length >= 2) {
+      const ult = valori[valori.length - 1], pen = valori[valori.length - 2];
+      const verso = ult > pen ? "in salita" : ult < pen ? "in discesa" : "stabile";
+      nota = `<b>${g.n}</b> ${g.n === 1 ? "lettura" : "letture"} dal <b>${esc(g.dal)}</b> al <b>${esc(g.al)}</b>`
+        + (g.superamenti ? ` · <b>${g.superamenti}</b> ${g.superamenti === 1 ? "volta oltre soglia" : "volte oltre soglia"}` : " · mai oltre soglia")
+        + ` · rispetto alla lettura prima è <b>${verso}</b>. Tocca per aprire la serie storica completa.`;
+    } else if (valori.length === 1) {
+      nota = `C'è <b>una sola lettura</b> registrata (${esc(g.al)}): la miniatura mostra l'andamento dalla seconda in poi. Registra le misure dai <b>Monitoraggi</b>.`;
+    } else {
+      nota = `Su questo punto <b>non è ancora stata registrata nessuna misura</b>: il valore qui accanto è quello inserito a mano sulla scheda. Usa <b>Registra misura</b> nei Monitoraggi e qui compare l'andamento.`;
+    }
+
+    box.innerHTML = `<div class="peggio ${cls}" role="button" tabindex="0" data-peggio="${esc(m.id)}"
+        title="Apri la serie storica di ${esc(m.nome)}">
+        <div class="peggio-head">
+          <div class="peggio-nome">${esc(m.nome)}</div>
+          <span class="badge ${p.st.cls}">${p.st.label}</span>
+        </div>
+        <div class="peggio-body">
+          <div class="peggio-cifre">
+            <div class="peggio-num">${esc(numeroIt(m.valore))}${u}</div>
+            <div class="peggio-lab">valore di adesso</div>
+            ${sogliaOk ? `<div class="peggio-sog"><i aria-hidden="true"></i>soglia <b>${esc(numeroIt(m.soglia))}${unita ? " " + esc(unita) : ""}</b></div>` : ""}
+          </div>
+          ${valori.length >= 2 ? `<div class="peggio-spark">
+            <div id="peggio-spark"></div>
+            <div class="peggio-spark-cap">${valori.length < g.n ? `ultime ${valori.length} letture` : "andamento"}</div>
+          </div>` : ""}
+        </div>
+        <div class="peggio-note">${nota}</div>
+      </div>`;
+
+    // La sagoma la disegna il motore condiviso: nessuna libreria, nessun
+    // SVG scritto a mano. Con meno di due letture non si disegna niente —
+    // una linea fatta di un punto solo sarebbe un andamento inventato.
+    if (valori.length >= 2 && window.dwGrafici) {
+      const geo = sparkGeom();
+      dwGrafici.sparkline("#peggio-spark", {
+        valori,
+        soglia: sogliaOk ? +m.soglia : null,
+        larghezza: geo.larghezza, altezza: geo.altezza,
+        aria: `Andamento di ${m.nome}: ${valori.length} letture, da ${numeroIt(valori[0])} a ${numeroIt(valori[valori.length - 1])} ${unita}`
+          + (sogliaOk ? `, soglia ${numeroIt(m.soglia)} ${unita}` : "") + ".",
+      });
+    }
+  }
+
   // scorciatoia: toccare un KPI del quadro porta alla lista pertinente
   document.querySelector(".kpis").addEventListener("click", (e) => {
     const card = e.target.closest("[data-goto]"); if (!card) return;
@@ -848,6 +1030,10 @@
       <div class="safety-ico">${ico}</div>
       <div><div class="safety-num">${num}</div><div class="safety-lab">${lab}</div>
         <div class="safety-sub">${esc(sub)}</div></div></div>`;
+
+    // Il punto messo peggio, in miniatura (T2): sta subito sotto il
+    // cartellone perché è la stessa domanda, un gradino più in dettaglio.
+    renderPeggio();
 
     // Priorità di conformità: superamenti/attenzione + adempimenti (scaduti =
     // danger, in scadenza = warn), ordinati danger-first, senza cap silenzioso.
@@ -1002,6 +1188,14 @@
         "", "Modifica di «" + m.nome.split(" — ")[0] + "» in corso.");
       $("sen-nome").scrollIntoView({ behavior: "smooth", block: "center" });
       setTimeout(() => { try { $("sen-nome").focus({ preventScroll: true }); } catch (er) {} }, 300); return; }
+    // dalla miniatura del Quadro al grafico grande: stessa serie, aperta
+    // sul punto giusto, senza far cercare la voce nell'elenco
+    const peggioId = attr(e, "data-peggio");
+    if (peggioId) {
+      filtroMon = "tutti"; grafMon = peggioId; go("mon"); await refresh();
+      const el = $("graf-" + peggioId);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      return; }
     const all = attr(e, "data-allerta");
     if (all) { if (all === "mon") filtroMon = "tutti"; go(all); await refresh(); return; }
     const it = e.target.closest && e.target.closest("[data-reg]");

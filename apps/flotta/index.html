@@ -194,18 +194,20 @@
    La cassa la disegna shared/dw-grafici.css: qui si accordano solo i pochi
    dettagli che la scheda di Flotta ha e il motore non può sapere — l'alone
    d'ambiente nella tinta dell'app e il rientro dello stato vuoto, che deve
-   respirare come quelli delle liste.                                      */
-#graf-costi .dwg, #graf-officina .dwg{
+   respirare come quelli delle liste.
+   Tutti i contenitori dei grafici portano la classe .graf: le regole valgono
+   una volta sola per tutti, e un grafico nuovo non ne ha bisogno di altre.  */
+.graf .dwg{
   position:relative; overflow:hidden;
 }
-#graf-costi .dwg::before, #graf-officina .dwg::before{
+.graf .dwg::before{
   content:""; position:absolute; inset:-40% -10% auto -10%; height:150%;
   background:radial-gradient(60% 70% at 18% 0%,
     color-mix(in srgb,var(--app-accent) 12%,transparent), transparent 70%);
   pointer-events:none;
 }
-#graf-costi .dwg > *, #graf-officina .dwg > *{position:relative}
-#graf-costi .empty-state, #graf-officina .empty-state{margin-top:0}
+.graf .dwg > *{position:relative}
+.graf .empty-state{margin-top:0}
 /* Il motore ascolta il puntatore su rettangoli invisibili (.dwg-hit) larghi
    quanto la riga, ma le barre e le etichette sono disegnate SOPRA di essi:
    passando col dito proprio sulla barra il bersaglio è la barra, non il
@@ -213,8 +215,21 @@
    trasparente al puntatore tutto ciò che non è area sensibile, così il
    riquadro resta aperto ovunque sulla riga. (Correzione locale: il motore
    è in shared/ e lo tiene un altro cantiere.) */
-#graf-costi .dwg-svg > *:not(.dwg-hit),
-#graf-officina .dwg-svg > *:not(.dwg-hit){pointer-events:none}
+.graf .dwg-svg > *:not(.dwg-hit){pointer-events:none}
+
+/* «senza data»: le voci di costo registrate prima che il campo data
+   esistesse restano valide e si vedono, marcate in modo esplicito. Non è un
+   errore, è un'informazione mancante: tinta calma, contorno tratteggiato —
+   il tratteggio dice «manca qualcosa» anche a chi non distingue i colori. */
+.nodata{
+  display:inline-flex; align-items:center; gap:5px;
+  padding:1px 7px; border-radius:999px;
+  border:1px dashed var(--border-hi); color:var(--muted2);
+  font-size:11.5px; letter-spacing:.02em; white-space:nowrap;
+  background:color-mix(in srgb,var(--app-support) 10%,transparent);
+}
+.nodata svg{width:11px; height:11px; stroke:currentColor; fill:none; stroke-width:1.9;
+  stroke-linecap:round; stroke-linejoin:round}
 
 /* ─────────────── voci di lista (copia di .sitem) ─────────────── */
 .item{cursor:pointer}
@@ -331,7 +346,7 @@
     <div class="kpi ok" role="button" tabindex="0" style="cursor:pointer" data-goto="mez" data-filtro="operativo" title="Vedi i mezzi operativi"><div class="l">Mezzi operativi</div><div class="n">—</div></div>
     <div class="kpi warn" role="button" tabindex="0" style="cursor:pointer" data-goto="mez" data-filtro="tutti" title="Vedi tutti i mezzi"><div class="l">In manutenzione</div><div class="n">—</div></div>
     <div class="kpi warn" role="button" tabindex="0" style="cursor:pointer" data-goto="man" title="Vedi le manutenzioni"><div class="l">Tagliandi 30gg</div><div class="n">—</div></div>
-    <div class="kpi accent" role="button" tabindex="0" style="cursor:pointer" data-goto="cos" title="Vedi i costi"><div class="l">Carburante mese</div><div class="n">—</div></div>
+    <div class="kpi accent" id="kpi-carb" role="button" tabindex="0" style="cursor:pointer" data-goto="cos" title="Vedi i costi"><div class="l" id="kpi-carb-l">Carburante mese</div><div class="n">—</div></div>
   </div>
 
   <div id="dash-gauge"></div>
@@ -367,10 +382,17 @@
   <div id="mez-count" class="count"></div>
   <div id="mez-list"></div>
 
+  <!-- «Come è andata la disponibilità»: si legge dalle fotografie giornaliere
+       del parco (una riga al giorno, scritta dall'app quando la si apre o
+       quando cambia lo stato di un mezzo). I giorni non registrati restano
+       buchi: non si inventano e non si interpolano. -->
+  <div class="sec">Disponibilità nel tempo</div>
+  <div id="graf-disp" class="graf"></div>
+
   <!-- F2 — «Costo di officina per mezzo»: dagli interventi chiusi (ordini di
        lavoro), che l'app raccoglieva senza mostrarli da nessuna parte. -->
   <div class="sec">Officina</div>
-  <div id="graf-officina"></div>
+  <div id="graf-officina" class="graf"></div>
 
   <div class="sec">Nuovo mezzo</div>
   <div class="form">
@@ -508,17 +530,23 @@
   <div id="cos-riep" class="note recap"></div>
   <!-- F1 — «Dove va la spesa»: barre orizzontali ordinate dalla voce più
        costosa alla meno costosa. Prima era solo una riga di percentuali. -->
-  <div id="graf-costi" style="margin-top:12px;"></div>
+  <div id="graf-costi" class="graf" style="margin-top:12px;"></div>
+  <!-- F3 — «La spesa mese per mese»: possibile solo da quando la voce di
+       costo porta la sua data. Le voci senza data non entrano e vengono
+       dichiarate, mai attribuite a un mese a caso. -->
+  <div id="graf-costi-mese" class="graf" style="margin-top:12px;"></div>
   <div id="cos-list" style="margin-top:12px;"></div>
   <div class="sec">Nuovo costo</div>
   <div class="form">
     <input class="dw-input" id="cos-voce" placeholder="Voce (es. Carburante settimana 30)" style="flex:2 1 190px;">
     <input class="dw-input" id="cos-importo" type="number" min="0" placeholder="Importo €" style="flex:1 1 120px;">
+    <input class="dw-input" id="cos-data" type="date" title="Giorno a cui si riferisce la spesa" style="flex:1 1 150px;">
     <input class="dw-input" id="cos-nota" placeholder="Nota (facoltativa)" style="flex:1 1 140px;">
     <button class="dw-btn" id="btn-cos">Registra</button>
-    <div class="form-hint">Raggruppa le voci con lo stesso nome (es. «Carburante») e l'app ti dice da sola quanta parte della spesa se ne va lì.</div>
+    <div class="form-hint">Raggruppa le voci con lo stesso nome (es. «Carburante») e l'app ti dice da sola quanta parte della spesa se ne va lì. La <b>data</b> è già impostata a oggi: è quella che permette di vedere come cambia la spesa mese per mese.</div>
   </div>
   <div class="note esito" id="cos-esito"></div>
+  <div class="tools"><button class="dw-btn secondary" id="btn-cos-csv">Esporta costi (CSV)</button></div>
   <div class="note" id="mode-note"></div>
 </div>
 
@@ -666,6 +694,7 @@
 
 <script type="module">
   import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, scaricoGiacenza, parseTelemetriaCsv, parseMezziCsv, ripartizioneCosti, costoOfficinaPerMezzo, prioritaOperative,
+           costiPerMese, disponibilitaStorico, fotografiaDaRegistrare,
            SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi } from "./flotta-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
@@ -748,7 +777,7 @@
     go(card.getAttribute("data-goto")); refresh();
   });
 
-  let MEZ=[], MAN=[], COS=[], RIC=[], INT=[], SCA=[];
+  let MEZ=[], MAN=[], COS=[], RIC=[], INT=[], SCA=[], DISP=[];
   let filtroMez = "tutti";
   // Scadenze di legge (F6): filtro del semaforo e soglia di preavviso, che
   // l'utente sceglie e che restano ricordate sul suo dispositivo.
@@ -811,14 +840,53 @@
     if (editMez) { editMez = null; $("btn-mez").textContent = "Aggiungi"; $("ore-esito").textContent = "";
       ["mez-nome","mez-area","mez-ore"].forEach(i => { $(i).value = ""; err(i, false); }); }
   });
+  // FOTOGRAFIA GIORNALIERA DEL PARCO. `mezzi.stato` dice com'è messo il parco
+  // ADESSO e non conserva niente: senza una traccia scritta, «com'era la
+  // disponibilità il mese scorso» non è una domanda a cui si possa rispondere.
+  // Da qui in poi l'app segna UNA riga al giorno (data, operativi, totale)
+  // quando la si apre e quando si cambia lo stato di un mezzo. Nei giorni in
+  // cui nessuno apre Flotta non c'è nessuna riga, e resta un buco: il valore
+  // di quel giorno non lo sa nessuno e non va inventato.
+  async function registraFotografia() {
+    if (!db.disponibilita) return;
+    const f = fotografiaDaRegistrare(DISP, MEZ, oggiISO());
+    if (!f) return;
+    try {
+      if (f.azione === "aggiungi") {
+        const r = await db.aggiungi("disponibilita", f.dati);
+        DISP = DISP.concat([{ id: (r && r.id) || "oggi", ...f.dati }]);
+      } else {
+        await db.aggiorna("disponibilita", f.id, f.dati);
+        DISP = DISP.map(x => x.id === f.id ? { ...x, ...f.dati } : x);
+      }
+    } catch (e) { /* se la scrittura non riesce si continua: il grafico mostra
+                     quello che c'è, senza mai riempire il giorno mancante */ }
+  }
+
   async function refresh(){
-    [MEZ,MAN,COS,RIC,INT,SCA] = await Promise.all([db.mezzi(), db.manutenzioni(), db.costi(), db.ricambi ? db.ricambi() : [], db.interventi ? db.interventi() : [], db.scadenze ? db.scadenze() : []]);
+    [MEZ,MAN,COS,RIC,INT,SCA,DISP] = await Promise.all([db.mezzi(), db.manutenzioni(), db.costi(), db.ricambi ? db.ricambi() : [], db.interventi ? db.interventi() : [], db.scadenze ? db.scadenze() : [], db.disponibilita ? db.disponibilita() : []]);
+    await registraFotografia();
     const k = kpiFrom(MEZ,MAN,COS);
     const kn = document.querySelectorAll(".kpis .kpi .n");
     if (kn[0]) kn[0].textContent = k.operativi;
     if (kn[1]) kn[1].textContent = k.inManutenzione;
     if (kn[2]) kn[2].textContent = k.tagliandi30;
-    if (kn[3]) kn[3].textContent = "€" + (k.carburante/1000).toFixed(1) + "k";
+    // Carburante: da quando la voce di costo ha la data, il KPI può dire
+    // davvero «questo mese» invece di sommare tutto quello che c'è. Se però
+    // nessuna voce di carburante ha una data (organizzazione che lavorava
+    // prima del campo) il numero del mese sarebbe uno zero bugiardo: in quel
+    // caso si mostra il totale e l'etichetta lo dichiara.
+    const meseOra = oggiISO().slice(0, 7);
+    const carb = COS.filter(c => /carburante/i.test(c.voce || ""));
+    const carbConData = carb.filter(c => /^\d{4}-\d{2}-\d{2}$/.test(String(c.data || "").slice(0,10)));
+    const carbMese = carbConData.filter(c => String(c.data).slice(0,7) === meseOra)
+                                .reduce((t, c) => t + (+c.importo || 0), 0);
+    const carbValore = carbConData.length ? carbMese : k.carburante;
+    if (kn[3]) kn[3].textContent = "€" + (carbValore/1000).toFixed(1) + "k";
+    if ($("kpi-carb-l")) $("kpi-carb-l").textContent = carbConData.length ? "Carburante mese" : "Carburante";
+    { const card = $("kpi-carb"); if (card) card.title = carbConData.length
+        ? "Carburante registrato in questo mese. Le voci senza data non sono conteggiate."
+        : "Nessuna voce di carburante ha una data: qui c'è il totale registrato, non il mese."; }
 
     // Urgenza per riga di manutenzione (badge nella lista Manutenzioni): a ore
     // motore usa il contatore del mezzo, altrimenti la data prevista.
@@ -867,8 +935,8 @@
           <div class="gauge-bar-graf" id="dash-gauge-bar"></div></div></div>`;
       // F4 — la fotografia di ADESSO, con la tacca del riferimento di settore
       // disegnata sulla barra: così il 90% non è più solo una frase da leggere,
-      // si vede se si è sopra o sotto. Nessun andamento nel tempo: la
-      // disponibilità è salvata solo come stato di oggi, non c'è storico.
+      // si vede se si è sopra o sotto. L'andamento nel tempo è un'altra cosa e
+      // sta in Mezzi (#graf-disp), dove si leggono le fotografie giornaliere.
       grafico("dash-gauge-bar", "avanzamento", {
         valore: disp.pct, massimo: 100, formato: "percentuale", spessore: 12,
         riferimento: { valore: 90, etichetta: "riferimento di settore" },
@@ -877,6 +945,54 @@
       });
       $("mez-disp").innerHTML = `Disponibilità: <b>${disp.pct}%</b> — ${disp.operativi} mezzi operativi su ${disp.totale}.`;
     }
+
+    // ANDAMENTO DELLA DISPONIBILITÀ. Si legge dalle fotografie giornaliere, e
+    // solo da quelle. Tre scelte che lo tengono onesto:
+    //  · una colonna per giorno REGISTRATO, mai una colonna per un giorno che
+    //    nessuno ha registrato: i buchi restano buchi e si vedono nelle date;
+    //  · barre e non linea, perché una linea unirebbe due giorni lontani con
+    //    un tratto continuo — cioè disegnerebbe i giorni mancanti;
+    //  · sotto i tre giorni registrati non si disegna nessuna tendenza: si
+    //    dicono i valori che ci sono e quanto manca perché abbia senso.
+    const stDisp = disponibilitaStorico(DISP, 14, new Date());
+    const maxPunti = (($("graf-disp") && $("graf-disp").clientWidth) || 360) >= 520 ? 14 : 8;
+    const puntiDisp = stDisp.punti.slice(-maxPunti);
+    const statoDisp = (pct) => pct >= 90 ? "ok" : pct >= 75 ? "warn" : "danger";
+    const gg = (iso) => String(iso).slice(8, 10) + "/" + String(iso).slice(5, 7);
+    if (puntiDisp.length >= 3) {
+      const primo = puntiDisp[0].data, ultimo = puntiDisp[puntiDisp.length - 1].data;
+      const arco = Math.round((Date.parse(ultimo + "T12:00:00") - Date.parse(primo + "T12:00:00")) / 86400000) + 1;
+      const buchi = Math.max(0, arco - puntiDisp.length);
+      const media = Math.round(puntiDisp.reduce((t, p) => t + p.pct, 0) / puntiDisp.length);
+      grafico("graf-disp", "barre", {
+        titolo: "Disponibilità giorno per giorno",
+        meta: "dal " + dataIt(primo) + " al " + dataIt(ultimo),
+        formato: "percentuale",
+        valori: puntiDisp.map(p => ({ etichetta: gg(p.data), valore: p.pct, stato: statoDisp(p.pct) })),
+        aria: `Disponibilità del parco in ${puntiDisp.length} giorni registrati, media ${media}%.`,
+        nota: "Ogni colonna è la fotografia di un giorno — mezzi operativi sul totale — e Flotta la scrive da sola quando apri l'app o cambi lo stato di un mezzo. Media dei giorni mostrati: <b>"
+          + media + "%</b>."
+          + (buchi > 0
+              ? " In questo periodo " + (buchi === 1 ? "manca <b>1 giorno</b>" : "mancano <b>" + buchi + " giorni</b>")
+                + ": in quei giorni l'app non è stata aperta, quindi non c'è nessuna colonna. Non sono zeri e non sono stati indovinati."
+              : " Tutti i giorni del periodo hanno la loro fotografia."),
+      });
+    } else if (puntiDisp.length) {
+      const elenco = puntiDisp.map(p => dataIt(p.data) + " (" + p.pct + "%, " + p.operativi + " mezzi su " + p.totale + ")").join(" e ");
+      grafVuoto("graf-disp", I.tachi,
+        puntiDisp.length === 1 ? "Una sola giornata registrata" : "Due giornate registrate",
+        "Finora c'è la fotografia di " + esc(elenco) + ". Con meno di <b>tre giorni</b> registrati non c'è nessuna tendenza da leggere — due punti fanno una riga, non un andamento. "
+        + "Servono ancora <b>" + (3 - puntiDisp.length) + (puntiDisp.length === 2 ? " giorno</b>" : " giorni</b>")
+        + ": Flotta ne segna uno ogni volta che apri l'app, non devi fare niente.");
+    } else if (MEZ.length) {
+      grafVuoto("graf-disp", I.tachi, "Nessuna giornata registrata negli ultimi 14 giorni",
+        "Qui comparirà la disponibilità del parco <b>giorno per giorno</b>: una colonna per ogni giornata in cui apri Flotta. "
+        + "I giorni in cui non la apri restano vuoti, perché nessuno sa com'era messo il parco quel giorno e l'app non lo inventa.");
+    } else {
+      grafVuoto("graf-disp", I.mezzo, "Nessun mezzo da seguire",
+        "L'andamento della disponibilità si costruisce sul parco mezzi: aggiungi il primo mezzo qui sotto e da quel giorno Flotta comincia a segnare <b>quanti mezzi sono operativi</b>, uno scatto al giorno.");
+    }
+
     $("mez-tot").textContent = MEZ.length;
     const qMez = ($("mez-cerca") && $("mez-cerca").value || "").trim().toLowerCase();
     const mezOrd = MEZ.slice().sort(mezCmp)
@@ -1030,10 +1146,91 @@
       puliscoGrafico("graf-costi");   // lo stato vuoto è quello della lista qui sotto
     }
 
-    $("cos-list").innerHTML = COS.map(c => `<div class="item statico st-accent">
+    // F3 — LA SPESA MESE PER MESE. Ora è possibile perché la voce di costo
+    // porta la sua data. Regole, le stesse dell'altro andamento:
+    //  · un mese in cui non è stata registrata NESSUNA voce non compare: non
+    //    è un mese a zero euro, è un mese di cui non si sa niente;
+    //  · le voci senza data non finiscono in nessun mese e vengono dichiarate;
+    //  · sotto i tre mesi non si disegna nessuna tendenza.
+    const perMese = costiPerMese(COS);
+    const mesiCosti = perMese.mesi.slice(-12);
+    const unaSola = perMese.senzaData.voci === 1;
+    const codaSenzaData = perMese.senzaData.voci
+      ? (unaSola ? " Resta fuori <b>1 voce senza data</b>" : " Restano fuori <b>" + perMese.senzaData.voci + " voci senza data</b>")
+        + (perMese.senzaData.importo ? " (" + eur(perMese.senzaData.importo) + ")" : "")
+        + ": " + (unaSola ? "non appartiene" : "non appartengono")
+        + " a nessun mese finché non gliela dai — la matita accanto alla voce."
+      : "";
+    if (mesiCosti.length >= 3) {
+      // Il confronto si fa fra mesi CHIUSI: il mese in corso è ancora a metà e
+      // metterlo sulla stessa riga degli altri farebbe leggere un crollo dove
+      // c'è solo un mese che deve ancora finire. Resta nel grafico, ma con la
+      // sua avvertenza.
+      const meseOra2 = oggiISO().slice(0, 7);
+      const inCorso = mesiCosti[mesiCosti.length - 1].ym === meseOra2 ? mesiCosti[mesiCosti.length - 1] : null;
+      const chiusi = mesiCosti.filter(m => m.ym < meseOra2);
+      let confronto;
+      if (chiusi.length >= 2) {
+        const ultC = chiusi[chiusi.length - 1], precC = chiusi.slice(0, -1);
+        const mediaPrec = Math.round(precC.reduce((t, m) => t + m.importo, 0) / precC.length);
+        const scarto = mediaPrec ? Math.round(100 * (ultC.importo - mediaPrec) / mediaPrec) : 0;
+        confronto = "L'ultimo mese chiuso è <b>" + ultC.etichetta + "</b> con " + eur(ultC.importo) + ": "
+          + (Math.abs(scarto) < 5 ? "in linea con la media dei mesi precedenti"
+             : scarto > 0 ? "il <b>" + scarto + "% in più</b> della media dei mesi precedenti"
+                          : "il <b>" + (-scarto) + "% in meno</b> della media dei mesi precedenti")
+          + " (" + eur(mediaPrec) + ").";
+      } else {
+        confronto = "Per dire se la spesa sta salendo o scendendo servono almeno <b>due mesi chiusi</b>: per ora il grafico mostra quello che c'è, senza trarre conclusioni.";
+      }
+      grafico("graf-costi-mese", "barre", {
+        titolo: "La spesa mese per mese",
+        meta: mesiCosti.length + " mesi registrati",
+        formato: "euro",
+        valori: mesiCosti.map(m => ({ etichetta: m.etichetta, valore: m.importo })),
+        aria: `Spesa registrata in ${mesiCosti.length} mesi, l'ultimo è ${mesiCosti[mesiCosti.length - 1].etichetta} con ${eur(mesiCosti[mesiCosti.length - 1].importo)}.`,
+        nota: confronto
+          + (inCorso
+              ? " <b>" + inCorso.etichetta + " è il mese in corso</b>: la sua colonna cresce fino a fine mese, non è ancora un confronto alla pari."
+              : "")
+          + (perMese.mancanti > 0
+              ? " " + (perMese.mancanti === 1 ? "Un mese non compare" : perMese.mancanti + " mesi non compaiono")
+                + " perché non ci sono voci registrate: sono buchi, non mesi a zero euro."
+              : "")
+          + codaSenzaData,
+      });
+    } else if (mesiCosti.length) {
+      const elenco = mesiCosti.map(m => m.etichetta + " " + eur(m.importo)).join(" e ");
+      grafVuoto("graf-costi-mese", I.tempo,
+        mesiCosti.length === 1 ? "Un solo mese con data" : "Due mesi con data",
+        "Per ora la spesa datata è: " + esc(elenco) + ". Con meno di <b>tre mesi</b> non c'è nessuna tendenza da leggere: "
+        + "due colonne dicono solo che un mese è più alto dell'altro. Continua a registrare le spese con la loro data e "
+        + "qui comparirà <b>come cambia la spesa nel tempo</b>." + codaSenzaData);
+    } else if (COS.length) {
+      grafVuoto("graf-costi-mese", I.tempo, "Nessuna voce di costo ha una data",
+        "L'andamento nel tempo si può disegnare solo se ogni spesa sa a quando si riferisce. Le voci che hai registrato sono "
+        + "tutte <b>senza data</b>: tocca la matita accanto a una voce per dargliela. Quando ci saranno tre mesi diversi, "
+        + "qui comparirà la spesa <b>mese per mese</b>.");
+    } else {
+      puliscoGrafico("graf-costi-mese");   // lo stato vuoto è quello della lista qui sotto
+    }
+
+    // Nella lista ogni voce dice il giorno a cui si riferisce. Quelle vecchie,
+    // registrate quando il campo non esisteva, restano al loro posto marcate
+    // «senza data»: si vedono, si contano, e con la matita si sistemano.
+    const dataCos = (c) => {
+      const iso = String(c.data || "").slice(0, 10);
+      return /^\d{4}-\d{2}-\d{2}$/.test(iso)
+        ? dataIt(iso)
+        : `<span class="nodata">${I.tempo}senza data</span>`;
+    };
+    $("cos-list").innerHTML = COS.slice().sort((a, b) =>
+        String(b.data || "").slice(0,10).localeCompare(String(a.data || "").slice(0,10))
+        || String(a.voce || "").localeCompare(String(b.voce || ""), "it"))
+      .map(c => `<div class="item statico st-accent">
       <div class="avatar">${I.euro}</div>
-      <div class="info"><div class="name">${esc(c.voce)}</div><div class="meta">${esc(c.nota || "nessuna nota")}</div></div>
+      <div class="info"><div class="name">${esc(c.voce)}</div><div class="meta">${dataCos(c)} · ${esc(c.nota || "nessuna nota")}</div></div>
       <div class="acts"><span class="badge accent euro">${eur(c.importo)}</span>
+      <span class="arr" role="button" tabindex="0" title="Cambia la data di questa spesa" aria-label="Cambia la data di ${esc(c.voce)}" data-data-cos="${c.id}">${I.matita}</span>
       <span class="arr dan" role="button" tabindex="0" title="Rimuovi questa voce di costo" aria-label="Rimuovi ${esc(c.voce)}" data-del-cos="${c.id}">${I.croce}</span></div></div>`).join("")
       || vuoto(I.euro, "Nessun costo registrato",
           "Qui si tiene la spesa della flotta: carburante, olio, gomme, officina esterna. Registra la prima voce qui sotto e l'app ti mostrerà subito <b>dove se ne va il denaro</b>.");
@@ -1125,7 +1322,9 @@
       const note = (dati.note || "").trim();
       if (ric) await db.aggiorna("ricambi", ric.id, { giacenza: scaricoGiacenza(ric.giacenza, 1) });
       await db.aggiungi("interventi", { data: oggiISO(), titolo: n.titolo, mezzo: n.mezzo, ricambio: ric ? ric.nome : null, costo, note });
-      if (costo > 0) await db.aggiungi("costi", { voce: "Manutenzione: " + n.titolo + " (" + n.mezzo + ")", importo: costo, nota: note });
+      // la spesa nasce con la data dell'intervento: è il giorno in cui è stata
+      // fatta, e da subito entra al posto giusto nell'andamento mensile
+      if (costo > 0) await db.aggiungi("costi", { voce: "Manutenzione: " + n.titolo + " (" + n.mezzo + ")", importo: costo, nota: note, data: oggiISO() });
       await db.rimuovi("manutenzioni", done);
       toast("Intervento registrato: " + n.titolo + " su " + n.mezzo + ".", "success");
       await refresh(); return; }
@@ -1139,6 +1338,25 @@
       if (!ok) return;
       await db.rimuovi("mezzi", delMez);
       toast(m.nome + " dismesso dal parco.");
+      await refresh(); return; }
+    // Data di una spesa già registrata: serve soprattutto alle voci vecchie,
+    // rimaste «senza data». Si può anche svuotare il campo — e la voce torna
+    // senza data, che è la verità, invece di prendersi una data inventata.
+    const dataCosId = attr(e, "data-data-cos");
+    if (dataCosId) { const c = COS.find(x => x.id === dataCosId); if (!c) return;
+      const iso0 = String(c.data || "").slice(0, 10);
+      const r = await chiediDati("Data della spesa",
+        `<b>${esc(c.voce)}</b> — ${eur(c.importo)}.`,
+        [{ id: "data", label: "Giorno a cui si riferisce", tipo: "date",
+           valore: /^\d{4}-\d{2}-\d{2}$/.test(iso0) ? iso0 : "",
+           aiuto: "Se lo lasci vuoto la voce resta <b>senza data</b>: continuerà a contare nel totale e in «dove va la spesa», ma non nell'andamento mese per mese." }],
+        "Salva");
+      if (r === null) return;
+      const iso = String(r.data || "").slice(0, 10);
+      if (iso && !/^\d{4}-\d{2}-\d{2}$/.test(iso)) { esito("cos-esito", "La data non è valida: riprova.", "err"); return; }
+      if (iso === iso0 || (!iso && !iso0)) return;      // niente da salvare
+      await db.aggiorna("costi", c.id, { data: iso || null });
+      esito("cos-esito", iso ? "Data aggiornata: " + c.voce + " → " + dataIt(iso) + "." : "Data tolta: " + c.voce + " torna senza data.", "success");
       await refresh(); return; }
     const delCos = attr(e, "data-del-cos");
     if (delCos) { const c = COS.find(x => x.id === delCos); if (!c) return;
@@ -1313,21 +1531,47 @@
     a.download = "flotta-scadenze-di-legge.csv"; a.click();
     esito("sca-esito", "Esportate " + SCA.length + " scadenze (CSV).", "success");
   };
+  // La data della spesa parte da OGGI: è quasi sempre giusta e non fa perdere
+  // un secondo a chi registra. Si può cambiare, e si può anche svuotare — in
+  // quel caso la voce nasce «senza data», dichiarata, mai con una inventata.
+  $("cos-data").value = oggiISO();
   $("btn-cos").onclick = async () => {
     const voce = $("cos-voce").value.trim(), importo = +$("cos-importo").value;
-    if (!voce || !(importo > 0)) {
-      err("cos-voce", !voce); err("cos-importo", !(importo > 0));
+    const iso = String($("cos-data").value || "").slice(0, 10);
+    const gg = /^\d{4}-\d{2}-\d{2}$/.test(iso)
+      ? Math.round((Date.parse(iso + "T12:00:00") - Date.parse(oggiISO() + "T12:00:00")) / 86400000) : NaN;
+    const dataOk = !iso || (Number.isFinite(gg) && gg >= -3650 && gg <= 365);
+    if (!voce || !(importo > 0) || !dataOk) {
+      err("cos-voce", !voce); err("cos-importo", !(importo > 0)); err("cos-data", !dataOk);
       esito("cos-esito", !voce
         ? "Manca la voce di costo: scrivi di cosa si tratta (es. «Carburante settimana 30»)."
-        : "L'importo deve essere un numero maggiore di zero.", "err");
-      fuoco(!voce ? "cos-voce" : "cos-importo"); return;
+        : !(importo > 0) ? "L'importo deve essere un numero maggiore di zero."
+        : "La data non è valida: al massimo dieci anni indietro e un anno avanti (controlla l'anno).", "err");
+      fuoco(!voce ? "cos-voce" : !(importo > 0) ? "cos-importo" : "cos-data"); return;
     }
-    ["cos-voce","cos-importo"].forEach(i => err(i, false));
-    await db.aggiungi("costi", { voce, importo, nota: $("cos-nota").value.trim() });
+    ["cos-voce","cos-importo","cos-data"].forEach(i => err(i, false));
+    await db.aggiungi("costi", { voce, importo, nota: $("cos-nota").value.trim(), data: iso || null });
     $("cos-voce").value = ""; $("cos-importo").value = ""; $("cos-nota").value = "";
-    esito("cos-esito", "Costo registrato: " + voce + " (" + eur(importo) + ").", "success");
+    $("cos-data").value = oggiISO();   // la prossima spesa è quasi sempre di oggi
+    esito("cos-esito", "Costo registrato: " + voce + " (" + eur(importo) + ")"
+      + (iso ? " del " + dataIt(iso) : ", senza data") + ".", "success");
     fuoco("cos-voce");   // pronto per la prossima voce di costo
     await refresh();
+  };
+  // Esporta i costi con la loro data: è il file che si porta al
+  // commercialista o si apre nel foglio di calcolo. Le voci senza data
+  // escono con la cella vuota — non con una data messa lì per riempire.
+  $("btn-cos-csv").onclick = () => {
+    const righe = ["data;voce;importo;nota"].concat(
+      COS.slice().sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")))
+        .map(c => [/^\d{4}-\d{2}-\d{2}$/.test(String(c.data || "").slice(0,10)) ? String(c.data).slice(0,10) : "",
+                   c.voce || "", (+c.importo) || 0, c.nota || ""].map(csvCell).join(";")));
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    a.download = "flotta-costi.csv"; a.click();
+    const senza = COS.filter(c => !/^\d{4}-\d{2}-\d{2}$/.test(String(c.data || "").slice(0,10))).length;
+    esito("cos-esito", "Esportate " + COS.length + " voci di costo (CSV)"
+      + (senza ? ", di cui " + senza + " senza data." : "."), "success");
   };
   $("btn-ric").onclick = async () => {
     const nome = $("ric-nome").value.trim(), giac = +$("ric-giac").value, soglia = +$("ric-soglia").value;

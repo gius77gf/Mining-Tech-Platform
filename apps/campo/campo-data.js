@@ -124,6 +124,43 @@ export function paretoFermi(attivita) {
   return { voci, totaleMin };
 }
 
+// Minuti di fermo giorno per giorno, negli ultimi `giorni` giorni di
+// calendario. Risponde a «sto peggiorando o migliorando?»: un fermo brutto
+// capita a tutti, tre settimane di fermi sono un problema di manutenzione.
+// Regole di onestà del dato:
+//  · i giorni PRIMA della prima registrazione restano FUORI dalla finestra —
+//    disegnarli a zero direbbe «quel giorno non ci siamo fermati», mentre la
+//    verità è che non c'era ancora nessuno a registrare;
+//  · i giorni dentro la finestra senza registrazioni valgono zero, e quello
+//    invece è un dato vero;
+//  · le attività senza data non entrano: non si sa a che giorno appartengono.
+// Ritorna [{ data (ISO), minuti, fermi }] in ordine cronologico.
+// Pura e testabile.
+export function fermiPerGiorno(attivita, giorni = 14, oggi = new Date()) {
+  const fine = oggiISO(oggi);
+  const acc = {};
+  let primo = null;
+  for (const a of attivita || []) {
+    const d = String((a && a.data) || "").trim();
+    if (!d || d > fine) continue;
+    if (!primo || d < primo) primo = d;
+    if (!acc[d]) acc[d] = { data: d, minuti: 0, fermi: 0 };
+    if (a.stato === "anomalia") {
+      acc[d].minuti += Math.max(0, +a.fermoMin || 0);
+      acc[d].fermi++;
+    }
+  }
+  if (!primo) return [];
+  const quanti = Math.max(1, Math.round(+giorni) || 14);
+  const meta = (iso) => new Date(iso + "T12:00:00");
+  const inizio = oggiISO(new Date(meta(fine).getTime() - (quanti - 1) * 86400000));
+  const da = primo > inizio ? primo : inizio;
+  const out = [];
+  for (let t = meta(da); oggiISO(t) <= fine; t = new Date(t.getTime() + 86400000))
+    out.push(acc[oggiISO(t)] || { data: oggiISO(t), minuti: 0, fermi: 0 });
+  return out;
+}
+
 // Riassunto testuale di un rapportino di turno STRUTTURATO (turno, squadra,
 // produzione, consegne per il turno successivo = handover). Serve alla lista
 // e all'eventuale export/consegna. Stringa vuota se non c'è nulla. Pura e

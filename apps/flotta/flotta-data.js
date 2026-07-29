@@ -4,7 +4,20 @@
 // altrimenti. Collezioni (sotto organizations/{org}/apps/flotta/):
 //   mezzi/{id}:        { nome, ore, area, stato: operativo|fermo|verifica }
 //   manutenzioni/{id}: { titolo, mezzo, dataPrevista (ISO) }
-//   costi/{id}:        { voce, importo (EUR), nota }
+//   costi/{id}:        { voce, importo (EUR), nota, data (ISO)|null }
+//                      `data` = giorno a cui la spesa si riferisce (29/07).
+//                      È FACOLTATIVO e può mancare: le voci registrate prima
+//                      che il campo esistesse restano valide e si mostrano
+//                      come «senza data» — mai una data inventata al posto
+//                      loro, mai nascoste.
+//   disponibilita/{id}:{ data (ISO), operativi, totale } — FOTOGRAFIA
+//                      GIORNALIERA del parco (29/07): una riga al giorno,
+//                      scritta dall'app quando la si apre o quando si cambia
+//                      lo stato di un mezzo. Serve a dare uno STORICO alla
+//                      disponibilità, che in `mezzi.stato` è solo la
+//                      fotografia di adesso. I giorni in cui nessuno apre
+//                      l'app NON hanno riga e restano buchi: non si inventa
+//                      né si interpola il valore mancante.
 //   ricambi/{id}:      { nome, giacenza, sogliaMin }
 //   interventi/{id}:   { data (ISO), titolo, mezzo, ricambio|null,
 //                        costo|0, note } — ORDINE DI LAVORO chiuso:
@@ -17,6 +30,25 @@
 // ============================================================
 
 import { parseCsvLine, numIt, giorniTra, isIntestazione } from "../../shared/deepwork-id-client/dw-shell.js";
+
+// Data di oggi in formato ISO (aaaa-mm-gg) nel fuso dell'utente: la stessa
+// che scrive l'app quando registra la fotografia del giorno.
+export function oggiIso(oggi = new Date()) {
+  const d = new Date(oggi);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+const isoIndietro = (giorni) => oggiIso(new Date(Date.now() - giorni * 86400000));
+
+// Storico DEMO della disponibilità: giorni RELATIVI a oggi, così l'esempio
+// resta leggibile in qualunque momento lo si guardi. Tre giorni sono saltati
+// di proposito (8, 9 e 4 giorni fa): sono i giorni in cui nessuno ha aperto
+// l'app, e nell'andamento devono restare BUCHI, non zeri e non valori
+// interpolati. `totale` è coerente con i 6 mezzi del parco d'esempio.
+const DEMO_DISPONIBILITA = [
+  { g: 12, op: 6 }, { g: 11, op: 6 }, { g: 10, op: 5 },
+  { g: 7, op: 5 }, { g: 6, op: 4 }, { g: 5, op: 4 },
+  { g: 3, op: 5 }, { g: 2, op: 6 }, { g: 1, op: 6 },
+].map((r, i) => ({ id: "dp" + (i + 1), data: isoIndietro(r.g), operativi: r.op, totale: 6 }));
 
 export const DEMO = {
   mezzi: [
@@ -32,10 +64,18 @@ export const DEMO = {
     { id: "n2", titolo: "Rotazione gomme", mezzo: "Dumper D1", dataPrevista: "2026-08-05" },
     { id: "n3", titolo: "Revisione annuale", mezzo: "Pala P1", dataPrevista: "2026-08-20" },
   ],
+  // Le voci di costo hanno la data del giorno a cui la spesa si riferisce.
+  // `c3` è di proposito SENZA data: è una voce come quelle registrate prima
+  // che il campo esistesse, e serve a far vedere come l'app la tratta —
+  // resta in lista, marcata «senza data», e non entra nell'andamento mensile.
   costi: [
-    { id: "c1", voce: "Carburante", importo: 8400, nota: "+6% sul mese scorso" },
-    { id: "c2", voce: "Ricambi e officina", importo: 3150, nota: "" },
+    { id: "c1", voce: "Carburante", importo: 8400, nota: "+6% sul mese scorso", data: "2026-07-06" },
+    { id: "c2", voce: "Ricambi e officina", importo: 3150, nota: "", data: "2026-07-02" },
     { id: "c3", voce: "Noleggi esterni", importo: 1200, nota: "gru mobile 2gg" },
+    { id: "c4", voce: "Ricambi e officina", importo: 2480, nota: "", data: "2026-06-11" },
+    { id: "c5", voce: "Noleggi esterni", importo: 2100, nota: "escavatore a nolo", data: "2026-06-03" },
+    { id: "c6", voce: "Gomme", importo: 3400, nota: "4 gomme dumper", data: "2026-05-22" },
+    { id: "c7", voce: "Ricambi e officina", importo: 1760, nota: "", data: "2026-05-07" },
   ],
   interventi: [
     { id: "w1", data: "2026-07-10", titolo: "Tagliando 500h", mezzo: "Escavatore E1", ricambio: "Filtro olio motore CAT", costo: 420, note: "olio + filtri" },
@@ -61,6 +101,7 @@ export const DEMO = {
     { id: "sc3", mezzo: "Dumper D1", tipo: "Revisione", chiave: "revisione",
       dataScadenza: "2029-03-01", mesi: 60, documento: "libretto di circolazione", note: "mezzo targato" },
   ],
+  disponibilita: DEMO_DISPONIBILITA,
 };
 
 // ============================================================
@@ -394,6 +435,96 @@ export function ripartizioneCosti(costi) {
   };
 }
 
+// Etichetta breve di un mese «aaaa-mm» → «lug 2026». Pura e testabile.
+const MESI_IT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
+export function etichettaMese(ym) {
+  const m = /^(\d{4})-(\d{2})$/.exec(String(ym || ""));
+  if (!m) return "—";
+  const i = +m[2] - 1;
+  return (MESI_IT[i] || "?") + " " + m[1];
+}
+
+// COSTI MESE PER MESE: raggruppa le voci di costo per mese di competenza
+// (campo `data`). Regole di onestà, non di gusto:
+//  · le voci SENZA data non vengono attribuite a nessun mese — restano
+//    contate a parte (`senzaData`), così l'utente sa che esistono e che non
+//    entrano nell'andamento. Attribuirle a «oggi» sarebbe inventare;
+//  · i mesi senza NESSUNA voce registrata NON compaiono nell'elenco: un mese
+//    senza registrazioni non è un mese a zero euro, è un mese di cui non si
+//    sa niente. Quanti sono lo dice `mancanti`, per poterlo scrivere;
+//  · le voci a importo ≤ 0 non entrano nei totali (come ripartizioneCosti).
+// Ritorna { mesi:[{ ym, etichetta, importo, voci }], totale, senzaData:{voci,
+// importo}, mancanti }. Pura e testabile.
+export function costiPerMese(costi) {
+  const per = new Map();
+  let totale = 0, sdVoci = 0, sdImporto = 0;
+  for (const c of costi || []) {
+    const imp = +c.importo || 0;
+    const iso = String(c.data || "").slice(0, 10);
+    const valida = /^\d{4}-\d{2}-\d{2}$/.test(iso) && !Number.isNaN(Date.parse(iso + "T00:00:00"));
+    if (!valida) { sdVoci++; if (imp > 0) sdImporto += imp; continue; }
+    if (imp <= 0) continue;
+    const ym = iso.slice(0, 7);
+    const r = per.get(ym) || { ym, etichetta: etichettaMese(ym), importo: 0, voci: 0 };
+    r.importo += imp; r.voci++;
+    per.set(ym, r);
+    totale += imp;
+  }
+  const mesi = [...per.values()].sort((a, b) => a.ym.localeCompare(b.ym));
+  let mancanti = 0;
+  if (mesi.length >= 2) {
+    const [a1, m1] = mesi[0].ym.split("-").map(Number);
+    const [a2, m2] = mesi[mesi.length - 1].ym.split("-").map(Number);
+    mancanti = (a2 * 12 + m2) - (a1 * 12 + m1) + 1 - mesi.length;
+  }
+  return { mesi, totale, senzaData: { voci: sdVoci, importo: sdImporto }, mancanti };
+}
+
+// FOTOGRAFIA DEL PARCO DA REGISTRARE OGGI, se serve. L'app la chiama a ogni
+// apertura e dopo ogni cambio di stato di un mezzo; questa funzione decide da
+// sola se scrivere, così la riga resta UNA SOLA al giorno:
+//  · parco vuoto → niente (non c'è niente da fotografare);
+//  · nessuna riga di oggi → si aggiunge;
+//  · riga di oggi già uguale → non si tocca niente;
+//  · riga di oggi diversa (un mezzo è stato fermato) → si aggiorna: la
+//    fotografia del giorno è l'ultima situazione nota di quel giorno.
+// Ritorna null oppure { azione:"aggiungi"|"aggiorna", id?, dati }. Pura.
+export function fotografiaDaRegistrare(registrazioni, mezzi, iso) {
+  const giorno = String(iso || "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(giorno)) return null;
+  const d = disponibilitaFlotta(mezzi);
+  if (!d.totale) return null;
+  const dati = { data: giorno, operativi: d.operativi, totale: d.totale };
+  const gia = (registrazioni || []).filter(r => String(r.data || "").slice(0, 10) === giorno).pop();
+  if (!gia) return { azione: "aggiungi", dati };
+  if ((+gia.operativi || 0) === dati.operativi && (+gia.totale || 0) === dati.totale) return null;
+  return { azione: "aggiorna", id: gia.id, dati };
+}
+
+// STORICO DELLA DISPONIBILITÀ negli ultimi `giorni` giorni: una riga per ogni
+// giorno REGISTRATO, in ordine di tempo. Niente riempimenti: i giorni senza
+// registrazione semplicemente non ci sono, e `giorniSenza` dice quanti sono
+// perché lo si possa scrivere accanto al grafico. Se dello stesso giorno ci
+// fossero più righe (dati vecchi o due dispositivi) vale l'ultima.
+// Ritorna { punti:[{ data, operativi, totale, pct }], finestra, giorniSenza }.
+// Pura e testabile: `oggi` iniettabile.
+export function disponibilitaStorico(registrazioni, giorni = 30, oggi = new Date()) {
+  const finestra = Math.max(1, Math.round(+giorni || 30));
+  const fine = oggiIso(oggi);
+  const inizio = oggiIso(new Date(new Date(fine + "T12:00:00").getTime() - (finestra - 1) * 86400000));
+  const per = new Map();
+  for (const r of registrazioni || []) {
+    const g = String(r.data || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(g) || g < inizio || g > fine) continue;
+    const totale = Math.round(+r.totale || 0);
+    const operativi = Math.round(+r.operativi || 0);
+    if (totale <= 0 || operativi < 0 || operativi > totale) continue;   // riga incoerente: si scarta, non si aggiusta
+    per.set(g, { data: g, operativi, totale, pct: Math.round(100 * operativi / totale) });
+  }
+  const punti = [...per.values()].sort((a, b) => a.data.localeCompare(b.data));
+  return { punti, finestra, giorniSenza: Math.max(0, finestra - punti.length) };
+}
+
 // COSTO DI OFFICINA PER MEZZO: somma il costo degli interventi chiusi (ordini
 // di lavoro) mezzo per mezzo, dal più caro al meno caro. Risponde alla domanda
 // che porta alla decisione più cara che un titolare prenda — «quale macchina mi
@@ -442,7 +573,7 @@ export async function flottaData() {
       mode = "live";
       const read = async (n) => (await getDocs(id.orgCollection(n))).docs.map(d => ({ id: d.id, ...d.data() }));
       api = {
-        mezzi: () => read("mezzi"), manutenzioni: () => read("manutenzioni"), costi: () => read("costi"), ricambi: () => read("ricambi"), interventi: () => read("interventi"), scadenze: () => read("scadenze"),
+        mezzi: () => read("mezzi"), manutenzioni: () => read("manutenzioni"), costi: () => read("costi"), ricambi: () => read("ricambi"), interventi: () => read("interventi"), scadenze: () => read("scadenze"), disponibilita: () => read("disponibilita"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
         logout: () => id.logout(),
         aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n), i), d),
@@ -453,7 +584,7 @@ export async function flottaData() {
   if (mode !== "live") {
     const mem = JSON.parse(JSON.stringify(DEMO));
     api = {
-      mezzi: async () => mem.mezzi, manutenzioni: async () => mem.manutenzioni, costi: async () => mem.costi, ricambi: async () => mem.ricambi, interventi: async () => mem.interventi, scadenze: async () => mem.scadenze,
+      mezzi: async () => mem.mezzi, manutenzioni: async () => mem.manutenzioni, costi: async () => mem.costi, ricambi: async () => mem.ricambi, interventi: async () => mem.interventi, scadenze: async () => mem.scadenze, disponibilita: async () => mem.disponibilita,
       logout: async () => {},
       aggiungi: async (n, d) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[n] = mem[n] || []).push({ id, ...d }); return { id }; },
       aggiorna: async (n, i, d) => { const x = (mem[n] || (mem[n] = [])).find(v => v.id === i); if (x) Object.assign(x, d); },

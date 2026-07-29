@@ -14,7 +14,9 @@
 <link rel="stylesheet" href="../../shared/deepwork-style.css">
 <link rel="stylesheet" href="../../shared/dw-app-shell.css">
 <link rel="stylesheet" href="../../shared/dw-app-ui.css">
+<link rel="stylesheet" href="../../shared/dw-grafici.css">
 <script src="../../shared/dw-tema.js" defer></script>
+<script src="../../shared/dw-grafici.js" defer></script>
 <style>
 /* ══════════════════════════════════════════════════════════════════════
    CAMPO — operatività di giornata
@@ -263,40 +265,17 @@ button.arr.del:hover{
 .note.recap{border-left-color:var(--app-accent)}
 .note.recap b{font-variant-numeric:tabular-nums}
 
-/* ─────────────── Pareto dei fermi (barre in cotto/petrolio) ─────────────── */
-.pareto{
+/* ─────────────── fermi senza minuti: non c'è niente da misurare ───────────────
+   Quando le anomalie sono state registrate ma nessuno ha scritto i minuti,
+   un grafico disegnerebbe barre tutte a zero: al suo posto va un riquadro
+   che dice cosa manca e dove scriverlo. */
+.senza-minuti{
   background:linear-gradient(180deg,var(--card2),var(--card));
   border:1px solid var(--border); border-left:3px solid var(--warn);
   border-radius:var(--r); padding:12px 14px; box-shadow:var(--sh2),var(--edge);
+  font-size:12.5px; color:var(--muted2); line-height:1.55;
 }
-.pareto.vuota{border-left-color:var(--border2)}
-.pareto.vuota .pt{display:none}
-
-/* senza minuti non c'è niente da misurare */
-.pareto.vuota .pl{flex:1 1 auto}
-.pareto-head{font-size:12px; color:var(--muted2); line-height:1.5; margin-bottom:9px}
-.pareto-head b{color:var(--text); font-variant-numeric:tabular-nums}
-.pareto-head b.bad{color:var(--danger)}
-.pbar{display:flex; align-items:center; gap:9px; margin:6px 0; font-size:12px}
-.pbar .pl{
-  flex:0 0 128px; color:var(--muted2); overflow:hidden; text-overflow:ellipsis;
-  white-space:nowrap;
-}
-.pbar .pt{
-  flex:1 1 auto; background:var(--dark); border:1px solid var(--border);
-  border-radius:5px; overflow:hidden; height:12px;
-  box-shadow:inset 0 1px 3px rgba(0,0,0,.45);
-}
-.pbar .pt i{
-  display:block; height:100%; border-radius:4px;
-  background:linear-gradient(90deg,var(--app-accent-deep),var(--app-accent));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.22);
-}
-.pbar.top .pt i{background:linear-gradient(90deg,#a2333a,var(--danger))}
-.pbar .pv{
-  flex:0 0 88px; text-align:right; color:var(--text); font-weight:600;
-  font-variant-numeric:tabular-nums; font-size:11.5px;
-}
+.senza-minuti b{color:var(--text)}
 
 /* ─────────────── minuti/causale del fermo dentro la voce ─────────────── */
 .fermo{
@@ -333,11 +312,6 @@ button.arr.del:hover{
 }
 
 /* ─────────────── desktop ─────────────── */
-
-@media(max-width:360px){
-  .pbar .pl{flex-basis:96px}
-  .pbar .pv{flex-basis:76px}
-}
 
 /* ─────────────── touch: come il core, niente effetti "incollati" ─────────────── */
 
@@ -405,6 +379,8 @@ button.arr.del:hover{
   <div class="sec">Dove si perde tempo (fermi)</div>
   <div id="fermi-riep" class="note recap" style="margin-top:0;margin-bottom:10px;"></div>
   <div id="fermi-pareto"></div>
+  <div class="sec">Fermi giorno per giorno</div>
+  <div id="fermi-storico"></div>
   <div class="tools">
     <button class="dw-btn secondary" id="btn-att-export"><svg viewBox="0 0 24 24"><path d="M12 3.6v11.2"/><path d="M7.8 10.6L12 14.8l4.2-4.2"/><path d="M4.5 18.4v1.1A1.4 1.4 0 0 0 5.9 21h12.2a1.4 1.4 0 0 0 1.4-1.5v-1.1"/></svg>Esporta attività (CSV)</button>
   </div>
@@ -494,6 +470,7 @@ button.arr.del:hover{
   </div>
   <div class="form-hint" style="margin-top:8px;">Il file è quello esportato dalla <b>Scheda volata di Genesi</b>: colonne <b>foro; x; fila; prof; prog; borr; rit</b>.</div>
   <div id="piano-riep" class="note recap"></div>
+  <div id="piano-graf"></div>
   <div id="piano-list"></div>
 </div>
 
@@ -629,7 +606,7 @@ button.arr.del:hover{
 </script>
 
 <script type="module">
-  import { campoData, kpiFrom, parsePianoCsv, parseSquadreCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
+  import { campoData, kpiFrom, parsePianoCsv, parseSquadreCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, fermiPerGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
            oggiISO, TURNI, turnoCorrente, diGiorno, senzaData, UNITA_PRODUZIONE, totaliProduzione, formattaProduzione, normalizzaPiano } from "./campo-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
@@ -677,6 +654,112 @@ button.arr.del:hover{
     if (el) { try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); }
       el.scrollIntoView({ behavior: "smooth", block: "center" }); }
   };
+
+  // ══════════════════════════════════════════════════════════════════════
+  // GRAFICI — motore condiviso dwGrafici (shared/dw-grafici.js): SVG puro,
+  // nessuna libreria, niente disegnato a mano dentro l'app.
+  // Regole di casa rispettate qui sotto: la forma segue il compito, UNA
+  // sola tinta per le scale di grandezza (il cotto di Campo), i colori di
+  // stato solo dove significano qualcosa, mai due assi verticali, il colore
+  // mai da solo (c'è sempre una parola o una forma in più), e MAI un
+  // grafico vuoto: quando il dato non c'è si dice cosa fare perché arrivi.
+  // ══════════════════════════════════════════════════════════════════════
+  const svuotaGraf = (id) => {
+    const el = $(id); if (!el) return null;
+    if (el.__dwg) { try { el.__dwg.distruggi(); } catch (e) {} el.__dwg = null; }
+    el.innerHTML = "";
+    return el;
+  };
+
+  // C1 · Dove si perde tempo: minuti di fermo per causale.
+  // Barre ORIZZONTALI ordinate col taglio all'80%: le causali sono nomi
+  // lunghi (ci stanno solo di fianco) e la domanda è «quali poche mi
+  // mangiano la giornata». I minuti sono l'unica grandezza sull'asse: il
+  // numero di fermi resta un'etichetta nella riga di spiegazione, mai una
+  // seconda scala.
+  function grafFermi(pf, tuttiIGiorni) {
+    const el = svuotaGraf("fermi-pareto"); if (!el) return;
+    const quando = tuttiIGiorni ? "in tutti i giorni" : "oggi";
+    if (!pf.voci.length) {
+      el.innerHTML = vuoto(I.orologio, "Nessun fermo registrato",
+        "Quando un'attività va in <b>anomalia</b>, indica causale e minuti: qui compare subito dove la giornata perde tempo.");
+      return;
+    }
+    if (!pf.totaleMin) {
+      // fermi sì, minuti no: un grafico di barre tutte a zero direbbe il
+      // falso, cioè che non si è perso tempo. Si dice invece cosa manca.
+      el.innerHTML = `<div class="senza-minuti">Ci sono <b>${pf.voci.length}</b>
+        ${pf.voci.length === 1 ? "causale di fermo registrata" : "causali di fermo registrate"}
+        ma <b>nessun minuto</b>: senza i minuti non si può misurare quanto è costato il fermo.
+        Scrivi i minuti nel campo accanto alla causale, sulla voce in anomalia, e qui compare il grafico.</div>`;
+      return;
+    }
+    const top = pf.voci[0];
+    if (!window.dwGrafici) return;
+    dwGrafici.barre(el, {
+      titolo: "Dove si perde tempo",
+      meta: pf.totaleMin + " min persi " + quando,
+      orientamento: "orizzontale",
+      ordina: true, taglio: 80,
+      unita: "min",
+      valori: pf.voci.map(v => ({ etichetta: v.causale, valore: v.minuti })),
+      // la nota del motore non è HTML: la scrive con createTextNode e accetta
+      // solo <b>…</b>, quindi qui NON si passa da esc() (raddoppierebbe gli
+      // escape) e un'etichetta non può comunque iniettare niente
+      nota: `La causale che pesa di più è <b>${top.causale}</b>: `
+        + `${top.conto} ${top.conto === 1 ? "fermo" : "fermi"} per <b>${top.minuti} min</b>. `
+        + "Le causali sopra la riga di taglio fanno insieme l'80% del tempo perso: "
+        + "sono quelle su cui conviene intervenire per prime.",
+      aria: "Minuti di fermo per causale " + quando + ": "
+        + pf.voci.map(v => v.causale + " " + v.minuti + " minuti").join(", ") + ".",
+    });
+  }
+
+  // C2 · Minuti di fermo giorno per giorno, ultimi 14 giorni.
+  // Domanda diversa da quella del Pareto qui sopra: non «cosa mi ferma»
+  // ma «sto migliorando o peggiorando». Il tempo va in orizzontale, quindi
+  // BARRE VERTICALI dallo zero, una per giornata — mai una linea: fra un
+  // giorno e l'altro non c'è niente da interpolare, sono giorni distinti.
+  // Questo grafico guarda SEMPRE tutte le giornate, non segue il selettore
+  // «Giorno» delle liste: il suo senso è proprio il confronto fra i giorni.
+  const FERMI_GIORNI = 14;
+  function grafFermiStorico(righe) {
+    const el = svuotaGraf("fermi-storico"); if (!el) return;
+    if (righe.length < 3) {
+      el.innerHTML = vuoto(I.calend, "Servono più giornate",
+        `Per capire se i fermi stanno aumentando o calando serve almeno qualche giornata registrata: `
+        + `finora ce ${righe.length === 1 ? "n'è <b>una</b>" : `ne sono <b>${righe.length}</b>`}. `
+        + `Registra le attività con il loro <b>giorno di lavoro</b> e il confronto compare da solo.`);
+      return;
+    }
+    const totale = righe.reduce((t, r) => t + r.minuti, 0);
+    if (!totale) {
+      el.innerHTML = vuoto(I.orologio, "Nessun fermo in questi giorni",
+        `In <b>${righe.length}</b> giornate registrate non c'è nemmeno un minuto di fermo: non c'è niente da mettere in colonna. `
+        + `Se invece qualche fermo c'è stato, scrivi i <b>minuti</b> sulla voce in anomalia.`);
+      return;
+    }
+    const media = Math.round(totale / righe.length);
+    const peggiore = righe.reduce((a, b) => b.minuti > a.minuti ? b : a);
+    if (!window.dwGrafici) return;
+    dwGrafici.barre(el, {
+      titolo: "Minuti di fermo per giornata",
+      meta: "dal " + dmy(righe[0].data).slice(0, 5) + " al " + dmy(righe[righe.length - 1].data).slice(0, 5),
+      unita: "min",
+      // il giorno del mese basta a distinguere le colonne: il periodo per
+      // esteso è scritto in intestazione, e un'etichetta più lunga in 14
+      // colonne verrebbe troncata coi puntini
+      valori: righe.map(r => ({ etichetta: r.data.slice(8, 10), valore: r.minuti })),
+      nota: `Ogni colonna è una giornata di lavoro: i minuti persi per fermi. `
+        + `In media <b>${media} min</b> al giorno; la giornata peggiore è il <b>${dmy(peggiore.data)}</b> `
+        + `con <b>${peggiore.minuti} min</b>. Un giorno storto capita a tutti; se le colonne restano alte `
+        + `per settimane il problema è la manutenzione, non la sfortuna.`
+        + (righe.length < FERMI_GIORNI
+            ? ` Il conto parte dalla prima giornata registrata: prima non c'era ancora niente da contare.` : ""),
+      aria: "Minuti di fermo per giornata, " + righe.length + " giornate: "
+        + righe.map(r => dmy(r.data) + " " + r.minuti + " minuti").join(", ") + ".",
+    });
+  }
 
   const db = await campoData();
   mountExit(db);
@@ -802,22 +885,10 @@ button.arr.del:hover{
     document.querySelectorAll("#att-filtri [data-filtro]").forEach(b => {
       const on = b.getAttribute("data-filtro") === filtroAtt;
       b.classList.toggle("active", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
-    // Pareto dei fermi con i MINUTI persi (base disponibilità di giornata)
-    { const pf = paretoFermi(ATT_G);
-      const box = $("fermi-pareto");
-      if (box) box.innerHTML = !pf.voci.length
-        ? vuoto(I.orologio, "Nessun fermo registrato",
-            "Quando un'attività va in anomalia, indica <b>causale e minuti</b>: qui compare subito dove la giornata perde tempo.")
-        : `<div class="pareto${pf.totaleMin ? "" : " vuota"}"><div class="pareto-head">${pf.totaleMin
-             ? `Tempo perso ${tuttiAtt ? "in tutti i giorni" : "oggi"}: <b class="bad">${pf.totaleMin} min</b>`
-               + (pf.voci[0] && pf.voci[0].minuti ? ` — la causale peggiore è <b>${esc(pf.voci[0].causale)}</b> (${pf.voci[0].minuti} min)` : "")
-             : `Ci sono fermi registrati ma <b>nessun minuto</b>: scrivi i minuti accanto alla causale,
-                sulla voce in anomalia, e qui si vede quanto è costato ogni fermo.`}</div>`
-          + pf.voci.map((v, i) => { const w = pf.totaleMin ? Math.round(v.minuti / pf.totaleMin * 100) : 0;
-            return `<div class="pbar${i === 0 && pf.totaleMin ? " top" : ""}"><span class="pl" title="${esc(v.causale)}">${esc(v.causale)}</span>
-              <span class="pt"><i style="width:${pf.totaleMin ? Math.max(3, w) : 0}%"></i></span>
-              <b class="pv">${pf.totaleMin ? v.minuti + " min · " : ""}×${v.conto}</b></div>`; }).join("")
-          + `</div>`; }
+    // C1 · Dove si perde tempo: minuti di fermo per causale (Pareto).
+    grafFermi(paretoFermi(ATT_G), tuttiAtt);
+    // C2 · Gli stessi fermi visti nel tempo: una colonna per giornata.
+    grafFermiStorico(fermiPerGiorno(ATT, FERMI_GIORNI));
     // Riepilogo dei fermi (base per OEE/disponibilità). Il dettaglio per
     // causale sta già nelle barre qui sotto: qui va la sintesi, non la
     // stessa lista scritta due volte.
@@ -1138,12 +1209,87 @@ ${cop.mancanti.length?`<div class="muted" style="margin-top:6px">Squadre senza r
     if (liv === "da-registrare") return ["warn", "da registrare"];
     if (liv === "ok") return ["ok", p.reale + " kg"];
     return [liv, p.reale + " kg (" + Math.round(scarto(p)*100) + "%)"]; };
+
+  // C4 · Scostamento della carica per foro.
+  // È il controllo che il fochino fa a mano a fine carico: dove la carica
+  // davvero messa si è allontanata dal progetto, e da che parte.
+  // NOTA TECNICA (per chi lavora sul codice, non per l'utente): il motore
+  // condiviso non disegna barre con lo ZERO AL CENTRO — un valore negativo
+  // gli si riduce a un trattino di 2 px, che sarebbe una bugia disegnata.
+  // Invece di ridisegnare un SVG a mano (vietato: si perderebbero tooltip,
+  // tabella dei dati, temi e accessibilità del motore) si usa la forma più
+  // onesta che offre: barre orizzontali ordinate per QUANTO si è sbagliato,
+  // col verso — «in più» / «in meno» — scritto accanto al numero del foro.
+  // Così il verso è una PAROLA, non un colore: si legge lo stesso a chi i
+  // colori non li distingue. Se un giorno il motore imparerà le barre
+  // divergenti, qui cambia solo la chiamata.
+  const PIANO_GRAF_MAX = 12;   // oltre non ci si sta a leggere: l'elenco completo è la lista qui sotto
+  function pianoGraf(){
+    const el = svuotaGraf("piano-graf"); if (!el) return;
+    if (!PIANO.length) return;   // il piano assente lo dice già la lista sotto
+    const reg = PIANO.filter(p => p.reale != null);
+    if (!reg.length) {
+      el.innerHTML = vuoto(I.foro, "Nessuna carica reale registrata",
+        "Il progetto c'è, il consuntivo no. Tocca un foro qui sotto e scrivi i <b>chili davvero caricati</b>: da due o tre fori in poi qui si vede subito dove il carico è andato diverso dal progetto.");
+      return;
+    }
+    const fuori = reg.map(p => ({ p, diff: p.reale - p.prog }))
+      .filter(x => x.diff !== 0)
+      .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+    if (!fuori.length) {
+      el.innerHTML = vuoto(I.foro, "Caricato come da progetto",
+        `Tutti i <b>${reg.length}</b> fori registrati hanno la carica reale <b>identica a quella prevista</b>: non c'è nessuno scostamento da disegnare.`);
+      return;
+    }
+    const mostrati = fuori.slice(0, PIANO_GRAF_MAX);
+    const oltre = fuori.length - mostrati.length;
+    const peggio = mostrati[0];
+    const kg = (v) => (Math.round(v * 10) / 10).toLocaleString("it-IT");
+    const pctDi = (x) => Math.round(Math.abs(x.diff) / (x.p.prog || 1) * 100);
+    if (!window.dwGrafici) return;
+    dwGrafici.barre(el, {
+      titolo: "Scostamento della carica per foro",
+      meta: oltre
+        ? `i ${mostrati.length} più lontani dal progetto · su ${reg.length} fori registrati`
+        : `${mostrati.length} ${mostrati.length === 1 ? "foro fuori progetto" : "fori fuori progetto"} · su ${reg.length} registrati`,
+      orientamento: "orizzontale",
+      unita: "kg",
+      // il colore di stato si accende solo dove vuol dire qualcosa: fino al
+      // 10% lo scostamento è normale e la barra resta nel cotto dell'app;
+      // oltre il 10% giallo, oltre il 25% rosso — le stesse soglie del
+      // badge nella lista, così le due letture non si contraddicono mai
+      valori: mostrati.map(x => {
+        const liv = scartoLivello(x.p.reale, x.p.prog);
+        return {
+          etichetta: "Foro " + x.p.foro + " · " + (x.diff > 0 ? "in più" : "in meno"),
+          valore: Math.abs(x.diff),
+          stato: liv === "warn" || liv === "danger" ? liv : null,
+        };
+      }),
+      nota: `Ogni barra è la <b>differenza in chili</b> fra quanto è stato caricato e quanto era previsto; `
+        + `la parola accanto al foro dice da che parte: <b>in più</b> o <b>in meno</b>. `
+        + `Il più lontano dal progetto è il <b>foro ${peggio.p.foro}</b>: ${kg(Math.abs(peggio.diff))} kg `
+        + `${peggio.diff > 0 ? "in più" : "in meno"} sui ${kg(peggio.p.prog)} kg previsti, cioè il ${pctDi(peggio)}%. `
+        // le tinte cambiano con il tema (scuro, chiaro, sole): la nota si
+        // aggancia alle PAROLE della legenda, che non cambiano mai
+        + `Le barre senza segnalazione stanno <b>dentro il 10%</b>, la tolleranza normale del carico`
+        + (mostrati.some(x => scartoLivello(x.p.reale, x.p.prog) === "warn") ? "; quelle «da tenere d'occhio» sono oltre il 10%" : "")
+        + (mostrati.some(x => scartoLivello(x.p.reale, x.p.prog) === "danger") ? "; quelle «critico» oltre il 25%" : "")
+        + (oltre ? `. Gli altri ${oltre} fori fuori progetto sono nell'elenco qui sotto.` : "."),
+      aria: "Scostamento della carica per foro: "
+        + mostrati.map(x => "foro " + x.p.foro + " " + kg(Math.abs(x.diff)) + " chili "
+            + (x.diff > 0 ? "in più" : "in meno")).join(", ") + ".",
+    });
+  }
+
   function pianoRender(){
     $("btn-piano-export").style.display = PIANO.length ? "inline-flex" : "none";
     if (!PIANO.length) { $("piano-riep").textContent = "";
+      svuotaGraf("piano-graf");
       $("piano-list").innerHTML = vuoto(I.foro, "Nessun piano importato",
         "Esporta la <b>Scheda volata da Genesi</b> e importa qui il file: per ogni foro potrai registrare la carica davvero usata e vedere subito lo scostamento dal progetto.");
       return; }
+    pianoGraf();
     const r = pianoRiepilogo(PIANO);
     const quandoPiano = PIANO[0] && (PIANO[0].data || PIANO[0].turno)
       ? "Piano del " + dmy(PIANO[0].data) + (PIANO[0].turno ? " · turno " + esc(PIANO[0].turno) : "") + " — " : "";
