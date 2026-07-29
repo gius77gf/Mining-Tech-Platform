@@ -311,6 +311,7 @@ body.scr-sim #tl{bottom:80px}
 .dl-tog.on i{opacity:1}
 #dlIso i{background:#7ec9e8;box-shadow:0 0 8px rgba(126,201,232,.75)}
 #dlRel i{width:22px;height:8px;border-radius:999px;background:linear-gradient(90deg,#ef5350,#ffb300 34%,#66bb6a 68%,#86b0d8);box-shadow:0 0 8px rgba(255,255,255,.18)}
+#dlEne i{width:22px;height:8px;border-radius:3px;background:linear-gradient(90deg,#5c8dd6,#86b0d8 25%,#66bb6a 50%,#ffb300 75%,#ef5350);box-shadow:0 0 8px rgba(255,255,255,.18)}
 .dl-f{display:none;align-items:center;gap:6px;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:11px;padding:4px 9px;min-height:38px}
 .dl-f.on{display:flex}
 .dl-f>span{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);white-space:nowrap}
@@ -518,6 +519,7 @@ body.scr-sim #tl{bottom:80px}
   <div id="d2-layers">
     <button type="button" id="dlIso" class="dl-tog" title="Isolinee dei tempi di sparo: uniscono i punti che detonano nello stesso istante"><i></i>Isocrone</button>
     <button type="button" id="dlRel" class="dl-tog" title="Millisecondi disponibili a ogni foro per metro di roccia da liberare (ms/m)"><i></i>Relief</button>
+    <button type="button" id="dlEne" class="dl-tog" title="Consumo specifico foro per foro: quanta energia tocca al blocco di roccia che ciascun foro serve davvero"><i></i>Energia</button>
     <label class="dl-f" id="dlIsoStepF"><span>passo</span><select id="dlIsoStep">
       <option value="0" selected>auto</option><option value="5">5 ms</option><option value="10">10 ms</option>
       <option value="20">20 ms</option><option value="25">25 ms</option><option value="50">50 ms</option>
@@ -915,7 +917,7 @@ const P = { fori:12, ritardo:42, dir:'sx', prof:10, kg:60, diam:102, vento:0.8, 
 /* modello di progettazione 2D (Fase 1) — editor multi-fila disaccoppiato dal 3D single-row */
 const D2 = { B:3.0, S:3.5, file:1, perRow:12, bf:3.0, diam:102, prof:10, kg:60, ritardo:42, ritardoFila:84, stem:2.2, sub:0.9, dir:'sx', stagger:true, incl:0, kgAuto:true, esplosivo:'anfo-standard', innesco:'nonel', roccia:'calcare', ucs:100, eMod:55, frat:'media', bagnato:false, acquaCol:0, presplit:false, psSpacing:0.9, psCharge:0.4, sequenza:'diagonale', recDist:300, recNorma:'din-res', recFreq:25, cPerf:8, cExpl:1.5, cInnesco:12, valMat:0, decks:1, deckStem:1.0, tool:'fori', profilo:[], piede:[], selPt:-1, holes:[], sel:-1, lastDet:0, _m:null,
   /* livelli di lettura della pianta: isocrone dei tempi + mappa del burden relief (ms/m per foro) */
-  iso:false, isoStep:0, rel:false, relLo:5, relHi:15 };
+  iso:false, isoStep:0, rel:false, relLo:5, relHi:15, ene:false };
 
 /* ============ three: scena base ============ */
 const view = document.getElementById('view');
@@ -3046,9 +3048,11 @@ $('d2-cta').onclick=simulaVolata2D;
 /* piano di carico per foro → CSV per il registro reale in Campo (ponte tra le app) */
 $('btn-piano-csv').onclick=()=>{
   if(!D2.holes.length) genMaglia2D();
-  let csv='foro;x_m;fila_m;prof_m;carica_prog_kg;borraggio_prog_m;ritardo_ms;relief_ms_per_m\n';
+  let csv='foro;x_m;fila_m;prof_m;carica_prog_kg;borraggio_prog_m;ritardo_ms;relief_ms_per_m;burden_locale_m;interasse_locale_m;volume_servito_m3;pf_locale_kg_m3\n';
   D2.holes.slice().sort((a,b)=>a.tDet-b.tDet).forEach((h,i)=>{
-    csv+=(i+1)+';'+h.mx.toFixed(2)+';'+h.my.toFixed(2)+';'+D2.prof+';'+D2.kg+';'+D2.stem+';'+(h.tDet!=null?h.tDet:'')+';'+(h.relief!=null?h.relief.toFixed(2):'')+'\n';
+    csv+=(i+1)+';'+h.mx.toFixed(2)+';'+h.my.toFixed(2)+';'+D2.prof+';'+D2.kg+';'+D2.stem+';'+(h.tDet!=null?h.tDet:'')+';'+(h.relief!=null?h.relief.toFixed(2):'')
+      +';'+(h.burdenLoc!=null?h.burdenLoc.toFixed(2):'')+';'+(h.spazLoc!=null?h.spazLoc.toFixed(2):'')
+      +';'+(h.volLoc!=null?h.volLoc.toFixed(1):'')+';'+(h.pfLoc!=null?h.pfLoc.toFixed(3):'')+'\n';
   });
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
@@ -3184,6 +3188,7 @@ function computeSeq2D(){
   H.map((h,i)=>i).sort((a,b)=>H[a].tDet-H[b].tDet).forEach((i,k)=>{ H[i].seq=k; });
   D2.lastDet = Math.max(...H.map(h=>h.tDet));
   computeRelief2D();                                         // il relief dipende solo dai tDet appena calcolati
+  computeEnergia2D();                                        // il consumo specifico dipende solo dalle posizioni: nessun tempo in gioco
 }
 /* ===== G2 — burden relief FORO PER FORO (il ms/m dei badge e una media di progetto:
    qui diventa un valore del singolo foro, che e dove nascono blocchi, picchi di
@@ -3229,7 +3234,98 @@ function reliefCls(r){
   if(r<=hi) return 'ok';                                     // in finestra
   return 'hi';                                               // relief eccessivo
 }
+
+/* ═══════════ G5 — MAPPA DELL'ENERGIA: il consumo specifico FORO PER FORO ═══
+   Il powder factor di progetto (kg/m³) è una media: dice quanta energia
+   entra nella volata, non DOVE. Ogni foro però serve un blocco di roccia
+   suo — il burden vero verso la fila davanti (per la prima fila: verso la
+   faccia libera, che se è irregolare non è mai alla stessa distanza) e la
+   porzione di interasse che gli tocca fra i due vicini. Dove il blocco è
+   più grande della media la carica è diluita e arrivano i blocchi; dove è
+   più piccolo l'energia è concentrata: fini inutili, proiezioni, sovraccarico.
+   Il blocco servito è  burden × mezza distanza dai vicini di fila × altezza
+   del banco. Nessuna stima: sono le posizioni reali dei fori sulla pianta. */
+function _fileDiFori(H){
+  /* i fori si raggruppano in file per distanza dalla faccia; la tolleranza
+     serve perché una fila trascinata a mano non è mai perfettamente dritta */
+  const idx=H.map((h,i)=>i).sort((a,b)=>H[a].my-H[b].my);
+  const file=[]; let cur=null;
+  for(const i of idx){
+    const my=H[i].my;
+    if(!cur || my-cur.myMax>0.45){ cur={ myMax:my, holes:[i] }; file.push(cur); }
+    else { cur.holes.push(i); cur.myMax=Math.max(cur.myMax,my); }
+  }
+  file.forEach(f=>{ f.my=f.holes.reduce((s,i)=>s+H[i].my,0)/f.holes.length; });
+  return file;                                               // già ordinate dalla faccia verso l'interno
+}
+/* Distanza minima da un punto a una spezzata. Serve per il BURDEN VERO, che è
+   una cosa diversa dal volume servito e non va confusa con esso:
+   · il volume che un foro deve rompere è la striscia di roccia fra la fila
+     davanti e la sua, per la porzione di interasse che gli tocca — ed è quella
+     che decide il consumo specifico;
+   · il burden vero è invece la distanza PERPENDICOLARE alla faccia libera, che
+     su un fronte storto si accorcia dove la roccia sporge (è lì che nascono le
+     proiezioni) anche se il foro è stato messo alla distanza di progetto. */
+function _distSpezzata(px,py,pts){
+  let best=Infinity;
+  for(let i=0;i<pts.length-1;i++){
+    const ax=pts[i][0], ay=pts[i][1], bx=pts[i+1][0], by=pts[i+1][1];
+    const vx=bx-ax, vy=by-ay, L2=vx*vx+vy*vy;
+    let t = L2>1e-9 ? ((px-ax)*vx+(py-ay)*vy)/L2 : 0;
+    t=Math.max(0,Math.min(1,t));
+    const dx=px-(ax+t*vx), dy=py-(ay+t*vy), d=Math.hypot(dx,dy);
+    if(d<best) best=d;
+  }
+  return isFinite(best)?best:null;
+}
+function computeEnergia2D(){
+  const H=D2.holes; if(!H||!H.length) return;
+  const file=_fileDiFori(H), Hb=Math.max(0.5,D2.prof||10), Snom=Math.max(0.5,D2.S||3.5);
+  /* la faccia libera campionata: la spezzata su cui misurare il burden della
+     prima fila, estesa mezzo interasse oltre i fori di bordo */
+  const xs=H.map(h=>h.mx), x0=Math.min(...xs)-Snom, x1=Math.max(...xs)+Snom;
+  const passo=Math.max(.15,(x1-x0)/240), faccia=[];
+  for(let x=x0;x<=x1+1e-9;x+=passo) faccia.push([x, interpFronte(x)]);
+  for(let r=0;r<file.length;r++){
+    const f=file[r];
+    const ord=f.holes.slice().sort((a,b)=>H[a].mx-H[b].mx);
+    /* la fila davanti: per la prima è la faccia libera, per le altre la
+       spezzata che passa per i fori della fila precedente */
+    const davanti = r>0
+      ? file[r-1].holes.slice().sort((a,b)=>H[a].mx-H[b].mx).map(i=>[H[i].mx, H[i].my+interpFronte(H[i].mx)])
+      : faccia;
+    for(let k=0;k<ord.length;k++){
+      const h=H[ord[k]];
+      const sx = k>0 ? (h.mx-H[ord[k-1]].mx)/2 : Snom/2;     // ai bordi non c'è un vicino: gli tocca mezzo interasse nominale
+      const dx = k<ord.length-1 ? (H[ord[k+1]].mx-h.mx)/2 : Snom/2;
+      const py=h.my+interpFronte(h.mx);
+      const yPrec = r>0 ? file[r-1].my : 0;
+      const b=Math.max(.2, h.my-yPrec);                      // la striscia di roccia che gli tocca: questo fa il volume
+      const dPerp = (davanti.length>1) ? _distSpezzata(h.mx,py,davanti) : null;
+      h.burdenVero = dPerp!=null ? +dPerp.toFixed(2) : null; // quanto ha davvero davanti, misurato in perpendicolare
+      const s=Math.max(.2, sx+dx), vol=b*s*Hb;
+      h.burdenLoc=+b.toFixed(2); h.spazLoc=+s.toFixed(2);
+      h.volLoc=+vol.toFixed(1); h.pfLoc=+(D2.kg/Math.max(.1,vol)).toFixed(3);
+      h.enX0=h.mx-sx; h.enX1=h.mx+dx; h.enY0=yPrec; h.enY1=h.my; h.enFila=r;
+    }
+  }
+}
+function pfNominale(){ return D2.kg/Math.max(.1,(D2.B||3)*(D2.S||3.5)*(D2.prof||10)); }
+/* Le classi sono RAPPORTI sul consumo specifico di progetto, non valori
+   assoluti: una cava a 0,25 kg/m³ e una a 0,7 hanno entrambe diritto alla
+   loro media, quello che conta è quanto un foro se ne discosta. */
+function pfCls(r){
+  if(r==null||!isFinite(r)) return 'ok';
+  if(r<0.75) return 'moltoBassa';
+  if(r<0.90) return 'bassa';
+  if(r<=1.15) return 'ok';
+  if(r<=1.40) return 'alta';
+  return 'moltoAlta';
+}
+const ENECOL={ moltoBassa:'#5c8dd6', bassa:'#86b0d8', ok:'#66bb6a', alta:'#ffb300', moltoAlta:'#ef5350' };
+const ENELAB={ moltoBassa:'carica molto diluita', bassa:'carica diluita', ok:'in linea col progetto', alta:'energia concentrata', moltoAlta:'energia molto concentrata' };
 function fmtMs(v){ return (Math.round(v*10)/10).toFixed(1).replace('.',','); }
+function fmtKg(v){ return (Math.round(v*1000)/1000).toFixed(v<0.1?3:2).replace('.',','); }   /* i consumi specifici stanno sotto l'unità: due decimali non bastano sempre */
 /* ===== G1 — isocrone dei tempi di sparo sulla pianta =====
    Il campo dei tempi e ricostruito DAI tDet DEI FORI REALI (nessun dato inventato):
    in ogni punto si adatta un piano t = a + b·dx + c·dy sui fori vicini, pesati per
@@ -3355,6 +3451,51 @@ function drawIsocrone2D(ctx,g){
   ctx.restore();
   return {passo:passo, n:nEtich};
 }
+/* ===== G5 — la mappa dell'energia disegnata sulla pianta =====
+   Ogni foro colora il blocco di roccia che serve davvero. I bordi seguono il
+   profilo del fronte, come i fori: su una faccia irregolare i blocchi della
+   prima fila hanno profondità diverse, ed è proprio quello che si deve vedere. */
+function drawEnergia2D(ctx,g){
+  const H=D2.holes; if(!H||!H.length) return null;
+  const pfNom=pfNominale();
+  const conta={moltoBassa:0,bassa:0,ok:0,alta:0,moltoAlta:0};
+  let pmin=Infinity, pmax=-Infinity;
+  ctx.save();
+  for(const h of H){
+    if(h.enX0==null||h.pfLoc==null) continue;
+    const cls=pfCls(h.pfLoc/pfNom); conta[cls]++;
+    if(h.pfLoc<pmin) pmin=h.pfLoc; if(h.pfLoc>pmax) pmax=h.pfLoc;
+    /* il blocco come poligono: bordo alto e bordo basso campionati in x, così
+       seguono la curva del fronte invece di tagliarla di netto */
+    const N=8, pts=[];
+    for(let k=0;k<=N;k++){ const mx=h.enX0+(h.enX1-h.enX0)*k/N;
+      pts.push([g.startX+mx*g.scale, g.faceY+(h.enY0+interpFronte(mx))*g.scale]); }
+    for(let k=N;k>=0;k--){ const mx=h.enX0+(h.enX1-h.enX0)*k/N;
+      pts.push([g.startX+mx*g.scale, g.faceY+(h.enY1+interpFronte(mx))*g.scale]); }
+    ctx.beginPath(); pts.forEach((p,k)=>{ if(k===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); }); ctx.closePath();
+    ctx.fillStyle=ENECOL[cls]; ctx.globalAlpha=(cls==='ok')?0.13:0.26; ctx.fill();
+    ctx.globalAlpha=(cls==='ok')?0.28:0.6; ctx.strokeStyle=ENECOL[cls]; ctx.lineWidth=1; ctx.stroke();
+  }
+  ctx.restore();
+  if(!isFinite(pmin)) return null;
+  return { pfNom:+pfNom.toFixed(3), pmin:+pmin.toFixed(3), pmax:+pmax.toFixed(3),
+           fuori:H.length-conta.ok, n:H.length, conta };
+}
+function drawEnergiaLegenda(ctx,g,info){
+  if(!info) return;
+  const voci=[['moltoBassa','< 75%'],['bassa','75–90%'],['ok','90–115% in linea'],['alta','115–140%'],['moltoAlta','> 140%']];
+  const y=g.Hc-32;
+  ctx.save(); ctx.textBaseline='middle'; ctx.textAlign='left';
+  ctx.font="600 10px 'Barlow Condensed',sans-serif"; ctx.fillStyle='#b8a574';
+  const tit='ENERGIA sul progetto ('+fmtKg(info.pfNom)+' kg/m³)';
+  let x=g.padX-18; ctx.fillText(tit, x, y); x+=ctx.measureText(tit).width+12;
+  ctx.font="10px 'Barlow',sans-serif";
+  voci.forEach(v=>{
+    ctx.beginPath(); ctx.rect(x,y-4,9,8); ctx.fillStyle=ENECOL[v[0]]; ctx.shadowColor=ENECOL[v[0]]; ctx.shadowBlur=6; ctx.fill(); ctx.shadowBlur=0;
+    ctx.fillStyle='#9b8a60'; ctx.fillText(v[1], x+14, y); x+=ctx.measureText(v[1]).width+28;
+  });
+  ctx.restore();
+}
 /* legenda della mappa del relief, disegnata sulla pianta (resta anche negli screenshot) */
 function drawReliefLegenda(ctx,g){
   const lo=D2.relLo||5, hi=Math.max(lo+0.5,D2.relHi||15);
@@ -3455,12 +3596,17 @@ function drawDesign2D(){
     ctx.save(); ctx.translate(fx-6,(faceY+my2(D2.B))/2); ctx.rotate(-Math.PI/2); ctx.fillStyle=dimC; ctx.textAlign='center'; ctx.font="11px 'Barlow',sans-serif"; ctx.fillText('B '+D2.B.toFixed(1)+' m',0,0); ctx.restore(); }
   /* livelli di lettura (G1/G2): isocrone sotto i fori, cosi i fori restano sempre in primo piano */
   const gGeo={W:W, Hc:Hc, padX:padX, padTop:padTop, bottomY:bottomY, scale:scale, startX:startX, faceY:faceY};
-  let isoInfo=null;
+  let isoInfo=null, eneInfo=null;
+  if(D2.ene) eneInfo=drawEnergia2D(ctx,gGeo);                // il campo pieno sta sotto a tutto: è uno sfondo di lettura
   if(D2.iso) isoInfo=drawIsocrone2D(ctx,gGeo);
-  const tMax=Math.max(1,D2.lastDet||1);
+  const tMax=Math.max(1,D2.lastDet||1), pfRif=pfNominale();
   H.forEach((h,i)=>{ const cx=mx2(h.mx), cy=my2(h.my+interpFronte(h.mx)), u=(h.tDet||0)/tMax;
     const rcl=reliefCls(h.relief);
-    const col=D2.rel ? RELCOL[rcl] : 'hsl('+(42-u*16)+','+(90-u*26)+'%,'+(60-u*20)+'%)';
+    /* il pallino del foro prende il colore del livello attivo: il relief ha la
+       precedenza perché è quello che segnala un rischio, l'energia viene dopo */
+    const col=D2.rel ? RELCOL[rcl]
+            : (D2.ene && h.pfLoc!=null) ? ENECOL[pfCls(h.pfLoc/pfRif)]
+            : 'hsl('+(42-u*16)+','+(90-u*26)+'%,'+(60-u*20)+'%)';
     if(D2.rel && rcl!=='ok' && rcl!=='none'){                // fuori finestra: anello di segnalazione (pieno se molto sotto)
       ctx.save(); ctx.strokeStyle=RELCOL[rcl];
       if(rcl==='bad'){ ctx.lineWidth=1.8; ctx.globalAlpha=.95; ctx.shadowColor=RELCOL.bad; ctx.shadowBlur=8; }
@@ -3481,6 +3627,7 @@ function drawDesign2D(){
   if(isoInfo){ ctx.fillStyle=isoColore(.35); ctx.textAlign='right'; ctx.font="600 11px 'Barlow Condensed',sans-serif";
     ctx.fillText('isocrone ogni '+isoInfo.passo+' ms · ultimo foro a '+Math.round(D2.lastDet||0)+' ms', W-padX, 48); }
   if(D2.rel) drawReliefLegenda(ctx,gGeo);
+  else if(D2.ene) drawEnergiaLegenda(ctx,gGeo,eneInfo);      // una legenda per volta in fondo alla pianta: due si sovrapporrebbero
   if(D2.tool==='fronte'||D2.tool==='piede'){ const arr=activeProf(); arr.forEach((p,k)=>{ const X=mx2(p.x), Y=my2(p.y); ctx.beginPath(); ctx.arc(X,Y,7,0,7); ctx.fillStyle=(k===D2.selPt)?'#fff':(D2.tool==='piede'?'#ffe27a':'#ffd54f'); ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#ff6d00'; ctx.stroke(); }); }
   ctx.fillStyle='#7a6a44'; ctx.textAlign='center'; ctx.font="10px 'Barlow',sans-serif";
   ctx.fillText(D2.tool==='fori'?'trascina un foro · clic sul vuoto per aggiungerne':('tocca per aggiungere un punto · trascina per modellare il '+(D2.tool==='piede'?'piede':'fronte')), W/2, Hc-12);
@@ -3514,8 +3661,19 @@ function renderInspector(){
     ? '<span style="color:'+RELCOL.none+'">relief — primo della sua zona: spara sulla faccia gia libera</span>'
     : '<b style="color:'+RELCOL[rcl]+';margin-right:6px">'+fmtMs(h.relief)+' ms/m</b><span>relief'+(from?' dal foro '+from:'')+' · '+fmtMs(h.relDt)+' ms su '+fmtMs(h.relD)+' m'
       +(rcl==='ok'?' · in finestra':(rcl==='hi'?' · sopra finestra':' · sotto finestra'))+'</span>';
+  /* G5 — il consumo specifico del singolo foro: quanta roccia gli tocca davvero */
+  let eneTx='';
+  if(h.pfLoc!=null){
+    const pfRif=pfNominale(), rap=h.pfLoc/pfRif, ecl=pfCls(rap);
+    eneTx='<div style="margin-top:3px;display:flex;align-items:baseline;flex-wrap:wrap;gap:2px">'
+      +'<b style="color:'+ENECOL[ecl]+';margin-right:6px">'+fmtKg(h.pfLoc)+' kg/m³</b>'
+      +'<span>'+ENELAB[ecl]+' ('+Math.round(rap*100)+'% del progetto) · blocco '+fmtMs(h.burdenLoc)+'×'+fmtMs(h.spazLoc)+' m · '+Math.round(h.volLoc)+' m³</span>'
+      +(h.burdenVero!=null&&Math.abs(h.burdenVero-h.burdenLoc)>0.15
+        ? '<span style="color:'+(h.burdenVero<h.burdenLoc*0.85?'#ef5350':'#9b8a60')+'"> · davanti ha '+fmtMs(h.burdenVero)+' m in perpendicolare</span>' : '')
+      +'</div>';
+  }
   el.innerHTML='<div class="di-info"><b>Foro '+((h.seq!=null?h.seq:D2.sel)+1)+'</b><span>spalla '+h.my.toFixed(1)+' m · vicino '+(isFinite(nn)?nn.toFixed(1):'-')+' m · t '+(h.tDet||0)+' ms</span>'
-    +'<div style="margin-top:4px;display:flex;align-items:baseline;flex-wrap:wrap;gap:2px">'+relTx+'</div></div><button class="di-del" id="diDel">✕ Elimina</button>';
+    +'<div style="margin-top:4px;display:flex;align-items:baseline;flex-wrap:wrap;gap:2px">'+relTx+'</div>'+eneTx+'</div><button class="di-del" id="diDel">✕ Elimina</button>';
   const db=$('diDel'); if(db) db.onclick=()=>{ if(D2.sel<0) return; D2.holes.splice(D2.sel,1); D2.sel=-1; computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); };
 }
 (function(){ const cv=$('d2-canvas'); if(cv){ cv.addEventListener('pointerdown',d2Down); cv.addEventListener('pointermove',d2Move); window.addEventListener('pointerup',d2Up); } })();
@@ -3657,6 +3815,35 @@ function renderScheda2D(){
                    :'Tutti i fori sono dentro la finestra impostata. ')
         +'I fori che partono entro la dispersione dell\'innesco ('+fmtMs(scatterMs())+' ms) contano come un istante solo: sparando insieme non si liberano a vicenda. I badge Timing inter-foro/inter-fila restano la media di progetto. '
         +'Letteratura: ≈8–14 ms/m tra prima e seconda fila, ≈5 tra le ultime. È una <b>diagnosi</b>, non un\'istruzione: i ritardi restano decisione del responsabile del tiro.'});
+  })();
+  /* G5 — energia foro per foro: il powder factor medio non dice DOVE la carica
+     è diluita e dove è concentrata. Qui la sintesi della mappa. */
+  (function(){
+    const HH=(D2.holes||[]).filter(h=>h.pfLoc!=null);
+    if(HH.length<2){ rows.push({lab:'Energia per foro',valStr:'—',cls:'sv-info',
+      why:'con un foro solo non c\'è un confronto: il consumo specifico locale coincide con quello di progetto.'}); return; }
+    const pfRif=pfNominale(), rr=HH.map(h=>h.pfLoc), mn=Math.min(...rr), mx=Math.max(...rr);
+    const gi=HH.filter(h=>pfCls(h.pfLoc/pfRif)==='moltoBassa').length + HH.filter(h=>pfCls(h.pfLoc/pfRif)==='bassa').length;
+    const su=HH.filter(h=>{const c=pfCls(h.pfLoc/pfRif); return c==='alta'||c==='moltoAlta';}).length;
+    const estremi=HH.filter(h=>{const c=pfCls(h.pfLoc/pfRif); return c==='moltoBassa'||c==='moltoAlta';}).length;
+    const disp=mx/Math.max(0.001,mn);
+    /* il burden VERO è un'altra cosa dal volume servito: su un fronte storto un
+       foro può stare alla distanza di progetto e avere comunque poca roccia
+       davanti, in perpendicolare. Vale la pena dirlo qui. */
+    const bv=HH.map(h=>h.burdenVero).filter(v=>v!=null);
+    const bvMin=bv.length?Math.min(...bv):null;
+    const bVero = (bvMin!=null && bvMin<(D2.B||3)*0.85)
+      ? '<b>Attenzione al fronte</b>: il foro più esposto ha solo '+fmtMs(bvMin)+' m di roccia davanti misurati in perpendicolare, contro un burden di progetto di '+fmtMs(D2.B||3)+' m — succede dove la faccia sporge, ed è la situazione classica delle proiezioni. Il volume che gli tocca resta quello, ma la resistenza no. '
+      : '';
+    const cls=(estremi>0||(bvMin!=null&&bvMin<(D2.B||3)*0.85))?'sv-bad':((gi+su)>0?'sv-warn':'sv-ok');
+    rows.push({lab:'Energia per foro',valStr:fmtKg(mn)+'–'+fmtKg(mx)+' <span>kg/m³ · '+gi+' diluiti / '+su+' concentrati</span>',cls:cls,
+      why:'consumo specifico calcolato sul blocco che ogni foro serve <b>davvero</b> — burden verso la fila davanti (la prima fila verso la faccia libera) per la porzione di interasse fra i due vicini, per l\'altezza del banco — invece della media di volata ('+fmtKg(pfRif)+' kg/m³). Qui va da '+fmtKg(mn)+' a '+fmtKg(mx)+' kg/m³, un rapporto di '+disp.toFixed(1)+'×. '
+        +'<b>Diluito</b> (sotto il 90% del progetto): il foro ha troppa roccia per la carica che porta → blocchi, piede sporco, ripasso. '
+        +'<b>Concentrato</b> (sopra il 115%): energia sprecata sul poco materiale che gli tocca → fini invenduti, proiezioni, sovrappressione. '
+        +((gi+su)>0?'Qui '+(gi+su)+' fori fuori dalla fascia: accendi il livello <b>Energia</b> sulla pianta e guarda dove — di solito sono i fori di bordo e quelli della prima fila dove la faccia rientra. Si corregge spostando il foro, non alzando la carica di tutta la volata. '
+                   :'Tutti i fori stanno entro il ±15% del progetto: la carica è distribuita in modo uniforme. ')
+        +bVero
+        +'L\'altezza del banco è considerata costante: se il fronte ha altezze molto diverse, il dato locale va letto come indicativo.'});
   })();
   rows.push(badge(subB,'Sottoperforazione',sub.toFixed(1)+' m ('+subB.toFixed(2)+'·B)',0.2,0.4,0.1,0.55,
     'sottoperf. nel range 0,2–0,4·B (~'+subRec.toFixed(1)+' m, 8–12·Ø): piede pulito.',
@@ -3881,11 +4068,14 @@ function syncLayerUI(){
   if($('dlRel')) $('dlRel').classList.toggle('on', !!D2.rel);
   if($('dlIsoStepF')) $('dlIsoStepF').classList.toggle('on', !!D2.iso);
   if($('dlRelWinF')) $('dlRelWinF').classList.toggle('on', !!D2.rel);
+  if($('dlEne')) $('dlEne').classList.toggle('on', !!D2.ene);
 }
 if($('dlIso')) $('dlIso').addEventListener('click', ()=>{ D2.iso=!D2.iso; syncLayerUI(); drawDesign2D();
   if(typeof toast==='function') toast(D2.iso?('Isocrone attive — passo '+isoPasso()+' ms: ogni curva unisce i punti che sparano nello stesso istante'):'Isocrone disattivate'); });
 if($('dlRel')) $('dlRel').addEventListener('click', ()=>{ D2.rel=!D2.rel; syncLayerUI(); drawDesign2D(); renderInspector();
   if(typeof toast==='function') toast(D2.rel?('Relief per foro attivo — finestra '+fmtMs(D2.relLo)+'–'+fmtMs(D2.relHi)+' ms/m'):'Mappa del relief disattivata'); });
+if($('dlEne')) $('dlEne').addEventListener('click', ()=>{ D2.ene=!D2.ene; syncLayerUI(); drawDesign2D(); renderInspector();
+  if(typeof toast==='function') toast(D2.ene?('Mappa dell’energia attiva — riferimento '+fmtKg(pfNominale())+' kg/m³ di progetto'):'Mappa dell’energia disattivata'); });
 if($('dlIsoStep')) $('dlIsoStep').addEventListener('change', ()=>{ D2.isoStep=Math.max(0,+$('dlIsoStep').value||0); drawDesign2D(); });
 ['dlRelLo','dlRelHi'].forEach(id=>{ const el=$(id); if(!el) return; el.addEventListener('change', ()=>{
   D2.relLo=Math.max(0.5, Math.min(60, +$('dlRelLo').value||5));
