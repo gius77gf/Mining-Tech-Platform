@@ -319,6 +319,68 @@ button.arr.del:hover{
   stroke-linecap:round; stroke-linejoin:round;
 }
 
+/* ─────────────── turno chiuso: la riga è un documento firmato ───────────────
+   Stessa forma della pillola «chi lo fa» (è un'informazione dello stesso
+   ordine), ma spenta: non è uno stato allegro né un allarme, è un lucchetto.
+   Colore E parola E icona insieme, mai il solo colore. */
+.chi.chiuso{
+  background:var(--card2); color:var(--muted2); border:1px solid var(--border-hi);
+  box-shadow:var(--edge); margin-left:6px;
+}
+
+/* ─────────────── traccia delle riaperture ───────────────
+   Una riga per riapertura, sotto al cartellone della chiusura: chi ha
+   riaperto un turno firmato, quando e perché. Non si riassume mai in un
+   numero — il senso è proprio che ogni correzione abbia un nome. */
+.riap{
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--border); border-left:3px solid var(--warn);
+  border-radius:var(--r); padding:11px 14px; margin:8px 0 4px;
+  box-shadow:var(--sh2),var(--edge);
+}
+.riap-tit{
+  display:flex; align-items:center; gap:7px; font-family:'Barlow Condensed',sans-serif;
+  font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase;
+  color:var(--muted); margin-bottom:6px;
+}
+.riap-tit svg{
+  width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:1.9;
+  stroke-linecap:round; stroke-linejoin:round; flex-shrink:0;
+}
+.riap-riga{
+  font-size:12.5px; color:var(--muted2); line-height:1.55; padding:3px 0 3px 11px;
+  border-left:1px dashed var(--border2); font-variant-numeric:tabular-nums;
+}
+
+/* ─────────────── foto dell'anomalia ───────────────
+   La miniatura sta dentro il riquadro del fermo, dove sta già tutto il resto
+   di quell'anomalia. Bersagli grandi: in cava si tocca coi guanti. */
+.foto-riga{margin-top:6px; padding-top:8px}
+.foto-mini{
+  width:var(--tap); height:var(--tap); min-width:var(--tap); padding:0; flex-shrink:0;
+  border-radius:11px; overflow:hidden; cursor:pointer; line-height:0;
+  background:var(--card2); border:1px solid var(--border2);
+  box-shadow:var(--edge); transition:border-color .15s var(--ease),box-shadow .15s var(--ease);
+}
+.foto-mini img{width:100%; height:100%; object-fit:cover; display:block}
+.foto-mini:hover{
+  border-color:color-mix(in srgb,var(--app-accent) 55%,transparent);
+  box-shadow:0 0 0 3px var(--tint-app),var(--edge);
+}
+.foto-ora{font-size:11.5px; color:var(--muted); font-variant-numeric:tabular-nums}
+.foto-grande{
+  border-radius:var(--r); overflow:hidden; border:1px solid var(--border2);
+  background:var(--dark); box-shadow:var(--sh2),var(--edge); line-height:0;
+}
+.foto-grande img{width:100%; height:auto; display:block; max-height:56vh; object-fit:contain}
+
+/* ─────────────── meteo e condizioni del sito ─────────────── */
+.met-g{margin-bottom:10px}
+.met-tit{
+  font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin-bottom:6px;
+}
+
 /* ─────────────── checklist di inizio turno ───────────────
    Tre risposte per voce, grandi come il resto dei bersagli: si tocca coi
    guanti. La risposta scelta si accende — colore E parola, mai il solo
@@ -572,6 +634,18 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   <div class="note esito" id="pre-esito"></div>
   <div class="note">L'appello serve a sapere <b>chi è in cava adesso</b>: se suona l'allarme, al punto di raccolta si conta su questa lista. Chi non è ancora stato spuntato resta <b>da spuntare</b>: «non lo so» non è «non c'è».</div>
 
+  <div class="sec">Meteo e condizioni del sito</div>
+  <div id="met-board"></div>
+  <div id="met-scelte"></div>
+  <div class="form col">
+    <div class="frow">
+      <input class="dw-input" id="met-note" placeholder="Note sul sito (es. pista del piazzale 2 allagata)" style="flex:2 1 200px;">
+      <button class="dw-btn" id="btn-met">Salva le note</button>
+    </div>
+    <div class="form-hint">Tre tocchi: <b>cielo</b>, <b>piste</b>, <b>visibilità</b>. Si salvano da soli. Serve a spiegare i fermi e la produzione di una giornata storta — ed è la voce che, in caso di contestazione, dice com'era la cava quel giorno.</div>
+  </div>
+  <div class="note esito" id="met-esito"></div>
+
   <div class="sec">Obiettivo del turno</div>
   <div id="ob-stato"></div>
   <div id="ob-graf"></div>
@@ -694,6 +768,9 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   </div>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<!-- foto dell'anomalia: il file resta sul telefono finché non viene
+     rimpicciolito dal canvas; nessun servizio esterno, nessun caricamento -->
+<input type="file" id="foto-file" accept="image/*" style="display:none;">
 
 <script>
   function go(id) {
@@ -816,7 +893,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            UNITA_ATTIVITA, obiettivoDi, statoObiettivo,
            storicoSettimana, totaliSettimana, unitaPrevalente,
            CHECKLIST_INIZIO, ESITI_CHECK, statoChecklist, checklistDi,
-           STATI_PRESENZA, presenzaDi, appelloTurno, chiusuraDi, riassuntoChiusura } from "./campo-data.js";
+           STATI_PRESENZA, presenzaDi, appelloTurno, chiusuraDi, riassuntoChiusura,
+           turnoChiuso, riaperture, riassuntoRiapertura, ultimaRiapertura,
+           FOTO_MAX_BYTE, FOTO_TENTATIVI, eImmagine, byteFoto, eFotoValida, misuraRidotta, formattaByte,
+           METEO_CIELO, METEO_PISTE, METEO_VISIBILITA, meteoDi, riassuntoMeteo, meteoAvverso } from "./campo-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const dmy = (iso) => iso ? iso.slice(8,10)+"/"+iso.slice(5,7)+"/"+iso.slice(0,4) : "senza data";
@@ -847,6 +927,9 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     foglio:  '<svg viewBox="0 0 24 24"><path d="M14 3H7.5A2.5 2.5 0 0 0 5 5.5v13A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V8z"/><path d="M14 3v5h5"/><path d="M8.8 13h6.4M8.8 16.6h4.4"/></svg>',
     foro:    '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="3"/></svg>',
     avanti:  '<svg viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0-9-9"/><path d="M3 12l2.6 2.8L8.4 12"/><path d="M12 7.6V12l3 1.9"/></svg>',
+    lucchetto:'<svg viewBox="0 0 24 24"><rect x="4.6" y="10.4" width="14.8" height="10.2" rx="2.2"/><path d="M8.2 10.4V7.8a3.8 3.8 0 0 1 7.6 0v2.6"/></svg>',
+    macchina:'<svg viewBox="0 0 24 24"><path d="M4 15.4h16"/><rect x="3" y="15.4" width="18" height="4.2" rx="1.6"/><path d="M5.6 15.4l1.9-5.2a2 2 0 0 1 1.9-1.3h5.2a2 2 0 0 1 1.9 1.3l1.9 5.2"/><path d="M7 19.6v1.2M17 19.6v1.2"/></svg>',
+    nuvola:  '<svg viewBox="0 0 24 24"><path d="M7.2 18.4a4.2 4.2 0 0 1-.5-8.4 5.4 5.4 0 0 1 10.3-1.2 3.9 3.9 0 0 1 .3 7.7z"/></svg>',
   };
   // stato vuoto in stile core: icona, titolo, spiegazione di cosa fare
   const vuoto = (icona, titolo, sotto) =>
@@ -981,12 +1064,44 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
-  let ATT=[], SQU=[], RAP=[], OPER=[], OBIE=[], CHK=[], PRE=[], CHI=[];
+  let ATT=[], SQU=[], RAP=[], OPER=[], OBIE=[], CHK=[], PRE=[], CHI=[], MET=[];
   // ATT/RAP restano SEMPRE la lista completa (serve per ritrovare per id anche
   // ciò che non è a schermo); ATT_G/RAP_G sono la fetta del giorno mostrata e
   // conteggiata. Una registrazione senza data resta dentro (dato vecchio).
   let ATT_G=[], RAP_G=[], ATT_OGGI=[], RAP_OGGI=[];
   const OGGI = oggiISO();
+
+  // ══════════════════════════════════════════════════════════════════════
+  // IL TURNO CHIUSO NON SI TOCCA PIÙ — blocco unico delle scritture
+  // ══════════════════════════════════════════════════════════════════════
+  // La firma di chiusura vale qualcosa solo se, dopo la firma, il turno non
+  // cambia più: altrimenti si può correggere a posteriori un turno già
+  // consegnato e la firma non dimostra niente.
+  // Da QUESTE due funzioni passa OGNI punto di salvataggio che riguarda un
+  // turno: attività (stato, causale, minuti, foto, modifica, nuova),
+  // rapportini e produzione, checklist, presenze, meteo, obiettivo di turno e
+  // piano di carico. Se un punto non passa di qui, il blocco non serve a
+  // niente: è per questo che sono UNA sola funzione e non un controllo
+  // copiato dieci volte.
+  // Non è il divieto di correggere: è il divieto di correggere DI NASCOSTO.
+  // Si riapre il turno — con nome, ora e motivo — e si corregge.
+  const chiusuraSu = (data, turno) => turnoChiuso(CHI, data, turno);
+  const eChiuso = (data, turno) => !!chiusuraSu(data, turno);
+  // true = scrittura BLOCCATA (e spiegata a chi la sta tentando).
+  function bloccato(data, turno, cosa, esitoId) {
+    const c = chiusuraSu(data, turno);
+    if (!c) return false;
+    const msg = "Turno " + turno + " del " + dmy(data) + " già chiuso alle " + c.ora
+      + (c.consegna ? " da " + c.consegna : "") + ": " + cosa + " non si può più cambiare. "
+      + "Per correggere riapri il turno da Turno → Chiusura del turno; resta scritto chi lo riapre e quando.";
+    if (esitoId) esito(esitoId, msg, "err"); else toast(msg, "err");
+    return true;
+  }
+  // La pillola «turno chiuso» dentro la voce di lista: chi guarda deve
+  // vedere PRIMA di toccare che quella riga è ormai un documento firmato.
+  const pillolaChiuso = (data, turno) => eChiuso(data, turno)
+    ? `<span class="chi chiuso" title="Turno chiuso e firmato: questa registrazione non si può più cambiare">${I.lucchetto}turno chiuso</span>`
+    : "";
 
   // ── Chi sono io: serve a rispondere a «cosa tocca a me» ────────────────
   // Resta sul telefono di chi lo usa (è una preferenza del dispositivo, non
@@ -1064,8 +1179,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     go(card.getAttribute("data-goto")); refresh();
   });
   async function refresh(){
-    [ATT,SQU,RAP,OPER,OBIE,CHK,PRE,CHI] = await Promise.all([db.attivita(), db.squadre(), db.rapportini(),
-      db.operatori(), db.obiettivi(), db.checklist(), db.presenze(), db.chiusure()]);
+    [ATT,SQU,RAP,OPER,OBIE,CHK,PRE,CHI,MET] = await Promise.all([db.attivita(), db.squadre(), db.rapportini(),
+      db.operatori(), db.obiettivi(), db.checklist(), db.presenze(), db.chiusure(), db.meteo()]);
     // Il giorno di lavoro è la chiave di tutto: i KPI del quadro contano SEMPRE
     // e solo le registrazioni di oggi (prima "Rapportini oggi" sommava tutti i
     // rapportini mai inviati), mentre le liste seguono il selettore "Giorno".
@@ -1120,16 +1235,27 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
                       .filter(a => !qAtt || ((a.titolo || "") + " " + (a.dettaglio || "")).toLowerCase().includes(qAtt))
                       .sort(attCmp);
     const optCausali = (sel) => CAUSALI_FERMO.map(c => `<option value="${esc(c)}"${c===sel?" selected":""}>${esc(c)}</option>`).join("");
-    $("att-list").innerHTML = attVis.map(a => `<div class="item ${AS[a.stato]||""}" data-att="${a.id}" role="button" tabindex="0" style="cursor:pointer" title="Tocca per far avanzare lo stato">
+    $("att-list").innerHTML = attVis.map(a => { const bloc = eChiuso(a.data, a.turno);
+      return `<div class="item ${AS[a.stato]||""}" data-att="${a.id}" role="button" tabindex="0" style="cursor:pointer" title="${bloc ? "Turno chiuso: questa attività non si può più cambiare" : "Tocca per far avanzare lo stato"}">
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc([a.dettaglio, a.turno, etData(a)].filter(Boolean).join(" · "))}</div>
-        <div class="chi-riga">${pillolaChi(a)}</div></div>
+        <div class="chi-riga">${pillolaChi(a)}${pillolaChiuso(a.data, a.turno)}</div></div>
       <span class="badge ${AB[a.stato][0]}">${a.stato==="anomalia"?I.allarme:""}${AB[a.stato][1]}</span>
-      <button type="button" class="arr" title="Modifica questa attività" aria-label="Modifica ${esc(a.titolo)}" data-edit-att="${a.id}">${I.matita}</button>
+      ${bloc ? "" : `<button type="button" class="arr" title="Modifica questa attività" aria-label="Modifica ${esc(a.titolo)}" data-edit-att="${a.id}">${I.matita}</button>`}
       ${a.stato==="anomalia" ? `<div class="fermo">
         <span class="fl">Fermo</span>
-        <select class="dw-input" data-causale="${a.id}" title="Causale del fermo" aria-label="Causale del fermo"><option value="">Causale…</option>${optCausali(a.causale)}</select>
-        <input class="dw-input min" data-fermomin="${a.id}" type="number" min="0" step="5" inputmode="numeric" value="${(+a.fermoMin)||""}" placeholder="minuti" title="Minuti di fermo" aria-label="Minuti di fermo">
-      </div>` : ""}</div>`).join("")
+        <select class="dw-input" data-causale="${a.id}" title="Causale del fermo" aria-label="Causale del fermo"${bloc ? " disabled" : ""}><option value="">Causale…</option>${optCausali(a.causale)}</select>
+        <input class="dw-input min" data-fermomin="${a.id}" type="number" min="0" step="5" inputmode="numeric" value="${(+a.fermoMin)||""}" placeholder="minuti" title="Minuti di fermo" aria-label="Minuti di fermo"${bloc ? " disabled" : ""}>
+      </div>
+      <div class="fermo foto-riga">
+        <span class="fl">Foto</span>
+        ${eFotoValida(a.foto)
+          ? `<button type="button" class="foto-mini" data-foto-vedi="${a.id}" title="Guarda la foto in grande" aria-label="Guarda la foto di ${esc(a.titolo)}"><img src="${a.foto}" alt=""></button>
+             ${a.fotoOra ? `<span class="foto-ora">scattata alle ${esc(a.fotoOra)}</span>` : ""}
+             ${bloc ? "" : `<button type="button" class="dw-btn secondary mini" data-foto-togli="${a.id}">${I.croce}Togli la foto</button>`}`
+          : (bloc
+              ? `<span class="foto-ora">nessuna foto</span>`
+              : `<button type="button" class="dw-btn secondary mini" data-foto-add="${a.id}">${I.macchina}Aggiungi una foto</button>`)}
+      </div>` : ""}</div>`; }).join("")
       || vuoto(filtroAtt === "senza-squadra" && !qAtt ? I.spunta : I.picco,
           qAtt ? "Nessuna corrispondenza"
                : filtroAtt === "tutte" ? "Nessuna attività"
@@ -1205,10 +1331,12 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
         : ""; }
     $("rap-count").textContent = RAP_G.length;
     $("rap-list").innerHTML = RAP_G.map(r => { const rias = riassuntoRapportino(r), quando = etData(r);
-      return `<div class="item ${r.stato==="bozza"?"st-warn":"st-ok"}" data-rap="${r.id}" role="button" tabindex="0" style="cursor:pointer" title="${r.stato==="bozza" ? "Tocca per inviare il rapportino" : "Tocca per richiamarlo in bozza"}">
+      const bloc = eChiuso(r.data, r.turno);
+      return `<div class="item ${r.stato==="bozza"?"st-warn":"st-ok"}" data-rap="${r.id}" role="button" tabindex="0" style="cursor:pointer" title="${bloc ? "Turno chiuso: il rapportino non si può più cambiare" : (r.stato==="bozza" ? "Tocca per inviare il rapportino" : "Tocca per richiamarlo in bozza")}">
       <div class="avatar sup">${I.foglio}</div>
-      <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${quando?esc(quando)+" · ":""}${rias ? esc(rias) : esc(r.squadra||"—")}${r.ora?" · "+esc(r.ora):""}</div></div>
-      <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${r.stato==="bozza"?`<button type="button" class="arr del" title="Elimina questa bozza" aria-label="Elimina la bozza ${esc(r.titolo)}" data-del-rap="${r.id}">${I.croce}</button>`:""}</div>`; }).join("")
+      <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${quando?esc(quando)+" · ":""}${rias ? esc(rias) : esc(r.squadra||"—")}${r.ora?" · "+esc(r.ora):""}</div>
+        ${bloc ? `<div class="chi-riga">${pillolaChiuso(r.data, r.turno)}</div>` : ""}</div>
+      <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${r.stato==="bozza"&&!bloc?`<button type="button" class="arr del" title="Elimina questa bozza" aria-label="Elimina la bozza ${esc(r.titolo)}" data-del-rap="${r.id}">${I.croce}</button>`:""}</div>`; }).join("")
       || vuoto(I.foglio, tuttiRap ? "Nessun rapportino" : "Nessun rapportino oggi",
           "Crea la bozza qui sotto: titolo, squadra, giorno e turno. Poi tocca la voce per <b>inviarla</b> quando il turno è chiuso.");
 
@@ -1216,6 +1344,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // C3 · Checklist di inizio turno, appello e storico della settimana.
     renderChecklist();
     renderPresenze();
+    renderMeteo();
     renderChiusura();
     renderSettimana();
   }
@@ -1292,7 +1421,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       : (mie.slice().sort((a, b) => (ordMie[a.stato] ?? 3) - (ordMie[b.stato] ?? 3))
           .map(a => `<div class="item ${AS[a.stato]||""}" data-att="${a.id}" role="button" tabindex="0" style="cursor:pointer" title="Tocca per far avanzare lo stato">
         <div class="avatar">${esc(sig(a.titolo))}</div>
-        <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc([etichettaAssegnazione(a), a.dettaglio, a.turno].filter(Boolean).join(" · "))}</div></div>
+        <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc([etichettaAssegnazione(a), a.dettaglio, a.turno].filter(Boolean).join(" · "))}</div>
+          ${eChiuso(a.data, a.turno) ? `<div class="chi-riga">${pillolaChiuso(a.data, a.turno)}</div>` : ""}</div>
         <span class="badge ${AB[a.stato][0]}">${a.stato==="anomalia"?I.allarme:""}${AB[a.stato][1]}</span></div>`).join("")
         || vuoto(I.spunta, fatte ? "Tutto fatto" : "Niente in carico",
             fatte ? `Le <b>${fatte}</b> attività di oggi assegnate a te o alla tua squadra sono <b>tutte concluse</b>.`
@@ -1390,6 +1520,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     err("ob-valore", false);
     const data = $("ob-data").value || OGGI, turno = $("ob-turno").value || turnoCorrente();
     const unita = $("ob-unita").value || UNITA_PRODUZIONE[0];
+    // punto di scrittura 17 — obiettivo del turno
+    if (bloccato(data, turno, "l'obiettivo del turno", "ob-esito")) return;
     const gia = obiettivoDi(OBIE, data, turno);
     if (gia) await db.aggiorna("obiettivi", gia.id, { valore, unita });
     else await db.aggiungi("obiettivi", { data, turno, unita, valore });
@@ -1426,14 +1558,16 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const esiti = (doc && doc.esiti) || {};
     const st = statoChecklist(esiti);
     const chiusa = !!(doc && doc.ora);
-    const cls = st.no ? "warn" : (chiusa ? "ok" : "");
+    const bloc = eChiuso(OGGI, turno);
+    const cls = bloc ? "ok" : (st.no ? "warn" : (chiusa ? "ok" : ""));
     board.innerHTML = `<div class="board ${cls}">
-        <div class="board-ico">${st.no ? I.allarme : I.spunta}</div>
+        <div class="board-ico">${bloc ? I.lucchetto : (st.no ? I.allarme : I.spunta)}</div>
         <div><div class="board-num">${st.risposte}/${st.totale}</div>
           <div class="board-lab">Controlli del turno ${esc(turno)}</div></div>
         <div class="board-txt">${esc(squ)} · ${dmy(OGGI)}<br>
           ${chiusa ? `chiusa alle <b>${esc(doc.ora)}</b>` : (st.mancanti ? `${st.mancanti === 1 ? "manca" : "mancano"} <b>${st.mancanti}</b> ${st.mancanti === 1 ? "risposta" : "risposte"}` : "tutte le risposte ci sono: puoi chiuderla")}
-          ${st.no ? ` · <b class="bad">${st.no} ${st.no === 1 ? "voce non a posto" : "voci non a posto"}</b>` : ""}</div>
+          ${st.no ? ` · <b class="bad">${st.no} ${st.no === 1 ? "voce non a posto" : "voci non a posto"}</b>` : ""}
+          ${bloc ? `<br><b>Turno chiuso e firmato</b>: la checklist non si può più cambiare.` : ""}</div>
       </div>`;
     lista.innerHTML = CHECKLIST_INIZIO.map((v, i) => {
       const val = esiti[String(i)] || "";
@@ -1442,15 +1576,15 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
         <div class="info"><div class="name">${esc(v.testo)}</div><div class="meta chk-area">${esc(v.area)}</div></div>
         <div class="chk-row">${ESITI_CHECK.map(e => {
           const [c, lab] = ET_ESITO[e];
-          return `<button type="button" class="chg ${c}${val === e ? " active" : ""}" data-chk="${i}" data-esito="${e}"
-            aria-pressed="${val === e ? "true" : "false"}" title="${esc(v.testo)}: ${lab}">${lab}</button>`;
+          return `<button type="button" class="chg ${c}${val === e ? " active" : ""}" data-chk="${i}" data-esito="${e}"${bloc ? " disabled" : ""}
+            aria-pressed="${val === e ? "true" : "false"}" title="${bloc ? "Turno chiuso: non si può più cambiare" : esc(v.testo) + ": " + lab}">${lab}</button>`;
         }).join("")}</div>
       </div>`;
     }).join("");
     tools.style.display = "flex";
-    $("btn-chk-salva").textContent = chiusa ? "Checklist chiusa" : "Chiudi la checklist";
-    $("btn-chk-salva").disabled = chiusa;
-    $("btn-chk-ok").style.display = st.mancanti ? "inline-flex" : "none";
+    $("btn-chk-salva").textContent = bloc ? "Turno chiuso" : (chiusa ? "Checklist chiusa" : "Chiudi la checklist");
+    $("btn-chk-salva").disabled = chiusa || bloc;
+    $("btn-chk-ok").style.display = st.mancanti && !bloc ? "inline-flex" : "none";
   }
 
   // Scrive una o più risposte sulla checklist del turno, creandola se non
@@ -1459,6 +1593,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   async function salvaEsiti(nuovi) {
     const { squ, turno, doc } = chkCorrente();
     if (!squ || salvataggioChk) return;
+    // punti di scrittura 12 e 13 — risposte della checklist e «tutto a posto»
+    if (bloccato(OGGI, turno, "la checklist di inizio turno", "chk-esito")) return;
     salvataggioChk = true;
     try {
       if (!doc) {
@@ -1479,7 +1615,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   });
   // squadra e turno in cima alla pagina comandano checklist E appello
   $("chk-squadra").onchange = () => { renderChecklist(); renderPresenze(); };
-  $("chk-turno").onchange = () => { renderChecklist(); renderPresenze(); renderChiusura(); };
+  $("chk-turno").onchange = () => { renderChecklist(); renderPresenze(); renderMeteo(); renderChiusura(); };
   $("btn-chk-ok").onclick = async () => {
     const { doc } = chkCorrente();
     const esiti = (doc && doc.esiti) || {}, nuovi = {};
@@ -1494,6 +1630,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   };
   $("btn-chk-salva").onclick = async () => {
     const { squ, turno, doc } = chkCorrente();
+    // punto di scrittura 14 — chiusura della checklist
+    if (bloccato(OGGI, turno, "la checklist di inizio turno", "chk-esito")) return;
     if (!doc) { esito("chk-esito", "Non hai ancora risposto a niente: tocca una risposta su ogni voce.", "err"); return; }
     const st = statoChecklist(doc.esiti || {});
     if (!st.completa) {
@@ -1532,14 +1670,16 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       $("pre-tools").style.display = "none";
       return;
     }
-    const cls = app.daFare ? "warn" : (app.assenti ? "" : "ok");
+    const bloc = eChiuso(OGGI, turno);
+    const cls = bloc ? "ok" : (app.daFare ? "warn" : (app.assenti ? "" : "ok"));
     $("pre-board").innerHTML = `<div class="board ${cls}">
-        <div class="board-ico">${app.daFare ? I.allarme : I.persone}</div>
+        <div class="board-ico">${bloc ? I.lucchetto : (app.daFare ? I.allarme : I.persone)}</div>
         <div><div class="board-num">${app.presenti}/${app.totale}</div>
           <div class="board-lab">Presenti · turno ${esc(turno)}</div></div>
         <div class="board-txt">${esc(squ || "tutte le squadre")} · ${dmy(OGGI)}<br>
           ${app.assenti ? `<b>${app.assenti}</b> ${app.assenti === 1 ? "assente" : "assenti"}` : "nessun assente"}
-          ${app.daFare ? ` · <b class="bad">${app.daFare} ancora da spuntare</b>` : " · appello completo"}</div>
+          ${app.daFare ? ` · <b class="bad">${app.daFare} ancora da spuntare</b>` : " · appello completo"}
+          ${bloc ? `<br><b>Turno chiuso e firmato</b>: l'appello non si può più cambiare.` : ""}</div>
       </div>`;
     $("pre-list").innerHTML = app.righe.map(r => {
       const o = r.operatore;
@@ -1550,17 +1690,19 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
           <div class="meta">${esc(o.ruolo || "ruolo non indicato")} · ${esc(squadraBase(o.squadra) || "senza squadra")}${r.ora ? " · spuntato alle " + esc(r.ora) : ""}</div></div>
         <div class="chk-row">${STATI_PRESENZA.map(s => {
           const [c, lab] = ET_PRESENZA[s];
-          return `<button type="button" class="chg ${c}${r.stato === s ? " active" : ""}" data-pre="${esc(o.id)}" data-stato="${s}"
-            aria-pressed="${r.stato === s ? "true" : "false"}" title="${esc(o.nome)}: ${lab}">${lab}</button>`;
+          return `<button type="button" class="chg ${c}${r.stato === s ? " active" : ""}" data-pre="${esc(o.id)}" data-stato="${s}"${bloc ? " disabled" : ""}
+            aria-pressed="${r.stato === s ? "true" : "false"}" title="${bloc ? "Turno chiuso: non si può più cambiare" : esc(o.nome) + ": " + lab}">${lab}</button>`;
         }).join("")}</div>
       </div>`;
     }).join("");
     $("pre-tools").style.display = "flex";
-    $("btn-pre-tutti").style.display = app.daFare ? "inline-flex" : "none";
+    $("btn-pre-tutti").style.display = app.daFare && !bloc ? "inline-flex" : "none";
   }
 
   async function salvaPresenza(operatoreId, stato) {
     if (salvataggioPre) return;
+    // punti di scrittura 15 e 16 — spunta dell'appello e «ci sono tutti»
+    if (bloccato(OGGI, $("chk-turno").value || turnoCorrente(), "l'appello del turno", "pre-esito")) return;
     salvataggioPre = true;
     try {
       const turno = $("chk-turno").value || turnoCorrente();
@@ -1606,25 +1748,159 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   };
 
   // ══════════════════════════════════════════════════════════════════════
+  // C4 · METEO E CONDIZIONI DEL SITO
+  // ══════════════════════════════════════════════════════════════════════
+  // Voce fissa di ogni rapporto di turno professionale (docs/RICERCA_CAMPO_
+  // 202607.md §2.1 e proposta 12). Non serve a fare il meteorologo: serve a
+  // spiegare perché quel turno si è fermato o ha prodotto poco, e a dire, se
+  // qualcuno lo chiederà fra sei mesi, com'era la cava quel giorno.
+  // Si registra a mano — nessun servizio meteo esterno, nessun abbonamento —
+  // e segue il turno scelto in cima alla pagina, come checklist e appello.
+  const MET_GRUPPI = [
+    { campo: "cielo",      titolo: "Cielo",      voci: METEO_CIELO },
+    { campo: "piste",      titolo: "Piste",      voci: METEO_PISTE },
+    { campo: "visibilita", titolo: "Visibilità", voci: METEO_VISIBILITA },
+  ];
+  let salvataggioMet = null;
+
+  function renderMeteo() {
+    const turno = $("chk-turno").value || turnoCorrente();
+    const m = meteoDi(MET, OGGI, turno);
+    const bloc = eChiuso(OGGI, turno);
+    const riass = riassuntoMeteo(m);
+    const brutto = meteoAvverso(m);
+    $("met-board").innerHTML = riass
+      ? `<div class="board ${bloc ? "ok" : (brutto ? "warn" : "")}">
+           <div class="board-ico">${bloc ? I.lucchetto : I.nuvola}</div>
+           <div><div class="board-num" style="font-size:22px">${esc(String(m.cielo || "—"))}</div>
+             <div class="board-lab">Turno ${esc(turno)} · ${dmy(OGGI)}</div></div>
+           <div class="board-txt"><b>${esc(riass)}</b>${m.note ? "<br>" + esc(m.note) : ""}
+             ${brutto ? "<br>Condizioni difficili: <b>vanno scritte sul rapporto</b>, spiegano i fermi." : ""}
+             ${bloc ? "<br><b>Turno chiuso e firmato</b>: le condizioni non si possono più cambiare." : ""}</div>
+         </div>`
+      : "";
+    $("met-scelte").innerHTML = MET_GRUPPI.map(g => `<div class="met-g">
+        <div class="met-tit">${esc(g.titolo)}</div>
+        <div class="chgs">${g.voci.map(v => {
+          const on = m && String(m[g.campo] || "") === v;
+          return `<button type="button" class="chg${on ? " active" : ""}" data-met="${esc(g.campo)}" data-val="${esc(v)}"${bloc ? " disabled" : ""}
+            aria-pressed="${on ? "true" : "false"}" title="${bloc ? "Turno chiuso: non si può più cambiare" : esc(g.titolo) + ": " + esc(v)}">${esc(v)}</button>`;
+        }).join("")}</div>
+      </div>`).join("");
+    $("met-note").value = (m && m.note) || "";
+    $("met-note").disabled = bloc;
+    $("btn-met").disabled = bloc;
+    if (!riass && !bloc) $("met-scelte").insertAdjacentHTML("afterbegin",
+      `<div class="form-hint" style="margin-bottom:8px">Niente registrato per il turno <b>${esc(turno)}</b>: bastano tre tocchi.</div>`);
+  }
+
+  // punto di scrittura 20 — meteo e condizioni del sito
+  async function salvaMeteo(campi, messaggio) {
+    const turno = $("chk-turno").value || turnoCorrente();
+    if (bloccato(OGGI, turno, "il meteo del turno", "met-esito")) return;
+    if (salvataggioMet) return;
+    salvataggioMet = true;
+    try {
+      const gia = meteoDi(MET, OGGI, turno);
+      const ora = new Date().toTimeString().slice(0, 5);
+      if (gia) await db.aggiorna("meteo", gia.id, Object.assign({ ora }, campi));
+      else await db.aggiungi("meteo", Object.assign(
+        { data: OGGI, turno, cielo: "", piste: "", visibilita: "", note: "", ora }, campi));
+      await refresh();
+      if (messaggio) esito("met-esito", messaggio, "success");
+    } finally { salvataggioMet = null; }
+  }
+
+  document.addEventListener("click", async (e) => {
+    const b = e.target.closest && e.target.closest("[data-met]");
+    if (!b) return;
+    const campo = b.getAttribute("data-met"), val = b.getAttribute("data-val");
+    const turno = $("chk-turno").value || turnoCorrente();
+    const gia = meteoDi(MET, OGGI, turno);
+    // ri-toccare la scelta già attiva la toglie: sbagliare un tocco coi
+    // guanti capita, e non deve restare scritto per sempre
+    const nuovo = (gia && String(gia[campo] || "") === val) ? "" : val;
+    await salvaMeteo({ [campo]: nuovo });
+  });
+  $("btn-met").onclick = async () => {
+    await salvaMeteo({ note: $("met-note").value.trim() },
+      "Condizioni del sito salvate per il turno " + ($("chk-turno").value || turnoCorrente()) + ".");
+  };
+
+  // ══════════════════════════════════════════════════════════════════════
   // C3 · CHIUSURA DEL TURNO — la firma della consegna
   // ══════════════════════════════════════════════════════════════════════
   // Riapre chi deve correggere, ma la riapertura è un gesto dichiarato: il
   // turno non torna aperto da solo e chi guarda il rapporto vede sempre se
   // è chiuso e da chi.
+  // Le riaperture scritte sotto al cartellone: una riga per volta, mai
+  // riassunte in un numero. «Riaperto 3 volte» non dice niente; «riaperto da
+  // Anna Conti il 29/07 alle 15:10 perché mancavano i minuti del frantoio»
+  // dice tutto.
+  const traccia = (c) => {
+    const r = riaperture(c);
+    if (!r.length) return "";
+    return `<div class="riap"><div class="riap-tit">${I.orologio}${r.length === 1 ? "Riaperto una volta" : "Riaperto " + r.length + " volte"}</div>`
+      + r.slice().reverse().map(x => `<div class="riap-riga">${esc(riassuntoRiapertura(x, dmy))}</div>`).join("")
+      + `</div>`;
+  };
+
   function renderChiusura() {
     const turno = $("chk-turno").value || turnoCorrente();
     const c = chiusuraDi(CHI, OGGI, turno);
     const chiuso = !!(c && c.ora);
+    const ult = ultimaRiapertura(c);
     $("fir-board").innerHTML = chiuso
       ? `<div class="board ok">
-           <div class="board-ico">${I.spunta}</div>
+           <div class="board-ico">${I.lucchetto}</div>
            <div><div class="board-num">${esc(c.ora)}</div>
              <div class="board-lab">Turno ${esc(turno)} chiuso</div></div>
-           <div class="board-txt"><b>${esc(riassuntoChiusura(c))}</b>${c.note ? "<br>" + esc(c.note) : ""}</div>
-         </div>`
-      : "";
+           <div class="board-txt"><b>${esc(riassuntoChiusura(c))}</b>${c.note ? "<br>" + esc(c.note) : ""}
+             <br>Il turno è <b>in sola lettura</b>: attività, produzione, rapportini, checklist,
+             presenze e meteo di questo turno non si possono più cambiare. Per correggere,
+             riaprilo qui sotto.</div>
+         </div>${traccia(c)}`
+      : (ult
+          ? `<div class="board warn">
+               <div class="board-ico">${I.allarme}</div>
+               <div><div class="board-num">${esc(ult.ora || "—")}</div>
+                 <div class="board-lab">Turno ${esc(turno)} riaperto</div></div>
+               <div class="board-txt">Il turno era stato chiuso ed è stato <b>riaperto</b>: adesso si può
+                 di nuovo scrivere. Quando è a posto, <b>rifirmalo</b> qui sotto.</div>
+             </div>${traccia(c)}`
+          : "");
     $("fir-form").style.display = chiuso ? "none" : "flex";
     $("fir-tools").style.display = chiuso ? "flex" : "none";
+  }
+
+  // La riapertura chiede NOME e MOTIVO: senza nome non è una riapertura
+  // tracciata, è di nuovo una modifica di nascosto.
+  function chiediRiapertura(turno, c) {
+    return new Promise(res => {
+      apriModale("Riaprire il turno " + turno,
+        `Il turno <b>${esc(turno)}</b> risulta chiuso alle <b>${esc(c.ora)}</b>${c.consegna ? " da <b>" + esc(c.consegna) + "</b>" : ""}.<br><br>
+         Riaprendolo <b>la firma viene tolta</b> e il turno torna scrivibile. Chi riapre, quando e
+         perché <b>resta scritto</b> qui e sul rapporto di fine turno: è la differenza fra correggere
+         e correggere di nascosto.
+         <label class="fl" for="modal-campo" style="margin-top:12px">Chi riapre il turno</label>
+         <input class="dw-input" id="modal-campo" placeholder="Nome e cognome" autocomplete="off">
+         <label class="fl" for="modal-motivo" style="margin-top:10px">Perché lo riapre</label>
+         <input class="dw-input" id="modal-motivo" placeholder="Es. mancano i minuti di fermo del frantoio" autocomplete="off">`,
+        [
+          { label: "Annulla", azione: () => { chiudiModale(); res(null); } },
+          { label: "Riapri il turno", cls: "danger", azione: () => {
+              const campo = $("modal-campo"), da = (campo.value || "").trim();
+              if (!da) {
+                campo.classList.add("err");
+                try { campo.focus({ preventScroll: true }); } catch (e) { campo.focus(); }
+                toast("Serve il nome di chi riapre il turno: la riapertura resta scritta sul rapporto.", "err");
+                return;
+              }
+              const motivo = (($("modal-motivo") || {}).value || "").trim();
+              chiudiModale(); res({ da, motivo });
+            } },
+        ]);
+    });
   }
 
   $("btn-fir").onclick = async () => {
@@ -1646,13 +1922,18 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   $("btn-fir-riapri").onclick = async () => {
     const turno = $("chk-turno").value || turnoCorrente();
     const c = chiusuraDi(CHI, OGGI, turno);
-    if (!c) return;
-    if (!await chiedi("Riaprire il turno",
-          `Il turno <b>${esc(turno)}</b> risulta chiuso alle <b>${esc(c.ora)}</b>${c.consegna ? " da <b>" + esc(c.consegna) + "</b>" : ""}.<br><br>
-           Riaprendolo <b>la firma viene tolta</b> e il rapporto di fine turno torna a dire che il turno
-           non è stato consegnato. Si rifirma quando è a posto.`, "Riapri il turno", true)) return;
-    await db.aggiorna("chiusure", c.id, { ora: "" });
-    esito("fir-esito", "Turno " + turno + " riaperto: la firma è stata tolta.", "");
+    if (!c || !c.ora) return;
+    const chi = await chiediRiapertura(turno, c);
+    if (!chi) return;
+    const ora = new Date().toTimeString().slice(0, 5);
+    // la traccia si AGGIUNGE: le riaperture precedenti non si toccano
+    const storia = riaperture(c).concat([{ da: chi.da, motivo: chi.motivo, il: OGGI, ora, eraChiusoAlle: c.ora }]);
+    await db.aggiorna("chiusure", c.id, { ora: "", riaperture: storia });
+    // chi aveva consegnato torna nel form: si rifirma senza riscrivere tutto
+    $("fir-consegna").value = c.consegna || ""; $("fir-ricevuta").value = c.ricevuta || "";
+    $("fir-note").value = c.note || "";
+    esito("fir-esito", "Turno " + turno + " riaperto da " + chi.da + " alle " + ora
+      + ": si può di nuovo scrivere, e la riapertura resta scritta sul rapporto.", "");
     await refresh();
   };
   // (clearErr/enterSubmit per questi campi stanno più in basso, insieme a
@@ -1794,6 +2075,9 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const btnEdit = e.target.closest && e.target.closest("[data-edit-att]");
     const editAttId = btnEdit && btnEdit.getAttribute("data-edit-att");
     if (editAttId) { const a = ATT.find(x => x.id === editAttId); if (!a) return;
+      // punto di scrittura 6 — modifica dell'attività: si blocca già alla
+      // matita, invece di far riempire un form che poi rifiuta di salvare
+      if (bloccato(a.data, a.turno, "l'attività «" + a.titolo + "»", "att-esito")) return;
       if (editAtt === a.id) {   // ri-tocco la matita della stessa attività = annulla
         editAtt = null; $("btn-att").textContent = "Pianifica";
         esito("att-esito", "Modifica annullata: il form torna vuoto.");
@@ -1812,6 +2096,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const it = e.target.closest && e.target.closest("[data-att]");
     if (it) { const a = ATT.find(x => x.id === it.getAttribute("data-att"));
       if (!a) return;
+      // punto di scrittura 1 — avanzamento di stato dell'attività
+      if (bloccato(a.data, a.turno, "lo stato di «" + a.titolo + "»")) return;
       const nuovo = ATT_NEXT[a.stato] || "in-corso";
       await db.aggiorna("attivita", a.id, { stato: nuovo }); await refresh();
       toast("«" + a.titolo + "» → " + (STATO_LAB[nuovo] || nuovo), nuovo === "conclusa" ? "success" : "");
@@ -1831,6 +2117,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const delRap = btnDel && btnDel.getAttribute("data-del-rap");
     if (delRap) { const r = RAP.find(x => x.id === delRap);
       if (!r) return;
+      // punto di scrittura 11 — eliminazione di una bozza di rapportino
+      if (bloccato(r.data, r.turno, "il rapportino «" + r.titolo + "»")) return;
       if (await chiedi("Eliminare la bozza",
             `Stai per eliminare la bozza <b>${esc(r.titolo)}</b>${r.squadra ? " (" + esc(r.squadra) + ")" : ""}.<br><br>
              Sparisce dall'elenco dei rapportini e dai totali di produzione del giorno.
@@ -1840,6 +2128,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const rp = e.target.closest && e.target.closest("[data-rap]");
     if (rp) { const r = RAP.find(x => x.id === rp.getAttribute("data-rap"));
       if (!r) return;
+      // punti di scrittura 9 e 10 — invio del rapportino e richiamo in bozza
+      if (bloccato(r.data, r.turno, "il rapportino «" + r.titolo + "»")) return;
       if (r.stato === "bozza") {
         const ora = new Date().toTimeString().slice(0,5);
         await db.aggiorna("rapportini", r.id, { stato: "inviato", ora }); await refresh();
@@ -1858,6 +2148,9 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   document.addEventListener("change", async (e) => {
     const fid = e.target.getAttribute && e.target.getAttribute("data-fermomin");
     if (!fid) return;
+    const a = ATT.find(x => x.id === fid); if (!a) return;
+    // punto di scrittura 3 — minuti di fermo
+    if (bloccato(a.data, a.turno, "i minuti di fermo di «" + a.titolo + "»")) { await refresh(); return; }
     const v = Math.max(0, Math.round(+e.target.value || 0));
     await db.aggiorna("attivita", fid, { fermoMin: v }); await refresh();
   });
@@ -1865,8 +2158,121 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   document.addEventListener("change", async (e) => {
     const cid = e.target.getAttribute && e.target.getAttribute("data-causale");
     if (cid != null && e.target.hasAttribute("data-causale")) {
+      const a = ATT.find(x => x.id === cid); if (!a) return;
+      // punto di scrittura 2 — causale del fermo
+      if (bloccato(a.data, a.turno, "la causale del fermo di «" + a.titolo + "»")) { await refresh(); return; }
       await db.aggiorna("attivita", cid, { causale: e.target.value }); await refresh();
     }
+  });
+
+  // ══════════════════════════════════════════════════════════════════════
+  // C4 · FOTO SULL'ANOMALIA
+  // ══════════════════════════════════════════════════════════════════════
+  // In cava la foto spiega in due secondi quello che il testo non spiega:
+  // «il nastro è strappato qui» si guarda, non si racconta.
+  // Come funziona, in breve: si sceglie una foto dal telefono, il browser la
+  // RIMPICCIOLISCE da solo con il canvas (una foto di telefono pesa 3-8 MB e
+  // così com'è non si carica con la rete della cava, né ci sta in un
+  // documento) e solo la versione piccola viene salvata. Niente servizi
+  // esterni, niente librerie: tutto in locale, dentro la pagina.
+  let fotoPerAtt = null;   // su quale attività si sta caricando
+
+  const caricaImmagine = (file) => new Promise((res, rej) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); res(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error("immagine illeggibile")); };
+    img.src = url;
+  });
+
+  // Rimpicciolisce finché la foto non sta nel tetto: prima si abbassa il lato
+  // lungo, poi la qualità. Torna { dataUrl, byte, w, h }.
+  async function ridimensionaFoto(file) {
+    const img = await caricaImmagine(file);
+    const cv = document.createElement("canvas");
+    const ctx = cv.getContext("2d");
+    let ultimo = null;
+    for (const t of FOTO_TENTATIVI) {
+      const m = misuraRidotta(img.naturalWidth || img.width, img.naturalHeight || img.height, t.lato);
+      cv.width = m.w; cv.height = m.h;
+      ctx.clearRect(0, 0, m.w, m.h);
+      ctx.drawImage(img, 0, 0, m.w, m.h);
+      const dataUrl = cv.toDataURL("image/jpeg", t.qualita);
+      ultimo = { dataUrl, byte: byteFoto(dataUrl), w: m.w, h: m.h };
+      if (ultimo.byte <= FOTO_MAX_BYTE) return ultimo;
+    }
+    throw new Error("troppo grande");
+  }
+
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest && e.target.closest("[data-foto-add]");
+    if (!b) return;
+    const a = ATT.find(x => x.id === b.getAttribute("data-foto-add")); if (!a) return;
+    // punto di scrittura 4 — foto dell'anomalia (aggiunta)
+    if (bloccato(a.data, a.turno, "la foto dell'anomalia «" + a.titolo + "»")) return;
+    fotoPerAtt = a.id;
+    $("foto-file").value = "";
+    $("foto-file").click();
+  });
+
+  $("foto-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    const id = fotoPerAtt; fotoPerAtt = null;
+    if (!file || !id) return;
+    const a = ATT.find(x => x.id === id); if (!a) return;
+    if (bloccato(a.data, a.turno, "la foto dell'anomalia «" + a.titolo + "»")) return;
+    if (!eImmagine(file)) { toast("Questo file non è una foto: scegli un'immagine (JPG, PNG, WEBP).", "err"); return; }
+    toast("Sto rimpicciolendo la foto…", "");
+    try {
+      const r = await ridimensionaFoto(file);
+      const ora = new Date().toTimeString().slice(0, 5);
+      await db.aggiorna("attivita", id, { foto: r.dataUrl, fotoOra: ora, fotoW: r.w, fotoH: r.h });
+      await refresh();
+      toast("Foto aggiunta a «" + a.titolo + "»: da " + formattaByte(file.size) + " a "
+            + formattaByte(r.byte) + " (" + r.w + "×" + r.h + " punti).", "success");
+    } catch (err) {
+      toast(String(err && err.message) === "troppo grande"
+        ? "La foto resta troppo pesante anche rimpicciolita: scattane una nuova, senza zoom."
+        : "Non sono riuscito a leggere questa foto: riprova o scegline un'altra.", "err");
+    }
+  };
+
+  async function togliFoto(id) {
+    const a = ATT.find(x => x.id === id); if (!a) return;
+    // punto di scrittura 5 — foto dell'anomalia (rimozione)
+    if (bloccato(a.data, a.turno, "la foto dell'anomalia «" + a.titolo + "»")) return;
+    if (!await chiedi("Togliere la foto",
+          `Stai per togliere la foto da <b>${esc(a.titolo)}</b>.<br><br>
+           La foto sparisce dall'anomalia e dal rapporto di fine turno. <b>Non si può annullare</b>:
+           se ti serve ancora, scattala di nuovo.`, "Togli la foto", true)) return;
+    await db.aggiorna("attivita", id, { foto: "", fotoOra: "", fotoW: null, fotoH: null });
+    await refresh();
+    toast("Foto tolta da «" + a.titolo + "».", "");
+  }
+
+  document.addEventListener("click", async (e) => {
+    const b = e.target.closest && e.target.closest("[data-foto-togli]");
+    if (!b) return;
+    await togliFoto(b.getAttribute("data-foto-togli"));
+  });
+
+  // La foto in grande dentro la modale del core (niente finestre del browser).
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest && e.target.closest("[data-foto-vedi]");
+    if (!b) return;
+    const a = ATT.find(x => x.id === b.getAttribute("data-foto-vedi"));
+    if (!a || !eFotoValida(a.foto)) return;
+    const bottoni = [{ label: "Chiudi", azione: () => chiudiModale() }];
+    if (!eChiuso(a.data, a.turno))
+      bottoni.push({ label: "Togli la foto", cls: "danger",
+        azione: async () => { chiudiModale(); await togliFoto(a.id); } });
+    apriModale("Foto — " + a.titolo,
+      `<div class="foto-grande"><img src="${a.foto}" alt="Foto dell'anomalia ${esc(a.titolo)}"></div>
+       <div class="form-hint" style="margin-top:10px">${a.fotoOra ? "Scattata alle <b>" + esc(a.fotoOra) + "</b> · " : ""}
+        ${a.fotoW && a.fotoH ? esc(a.fotoW + "×" + a.fotoH) + " punti · " : ""}peso <b>${esc(formattaByte(byteFoto(a.foto)))}</b>.
+        La foto è stata rimpicciolita dal telefono prima di essere salvata: entra anche con poca rete.</div>`,
+      bottoni);
   });
   $("btn-att").onclick = async () => {
     const titolo = $("att-titolo").value.trim();
@@ -1883,6 +2289,13 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // a chi in particolare. Senza squadra l'attività non è di nessuno, e
     // l'app lo scrive invece di far finta di niente.
     const squadra = $("att-squadra").value, operatore = squadra ? $("att-operatore").value : "";
+    // punti di scrittura 6 e 7 — nuova attività e salvataggio della modifica.
+    // Si controllano DUE turni: quello dove l'attività sta adesso (non si
+    // svuota un turno firmato) e quello dove la si vuole mettere (non si
+    // aggiunge lavoro dentro un turno già consegnato).
+    const vecchia = editAtt ? ATT.find(x => x.id === editAtt) : null;
+    if (vecchia && bloccato(vecchia.data, vecchia.turno, "l'attività «" + vecchia.titolo + "»", "att-esito")) return;
+    if (bloccato(data, turno, "l'attività «" + titolo + "»", "att-esito")) return;
     if (editAtt) {
       await db.aggiorna("attivita", editAtt, { titolo, dettaglio: $("att-dett").value.trim(), data, turno, squadra, operatore });   // stato/causale restano
       editAtt = null; $("btn-att").textContent = "Pianifica";
@@ -1929,6 +2342,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     }
     err("new-rap-prod", false);
     const turno = $("new-rap-turno").value || turnoCorrente(), unita = $("new-rap-unita").value || UNITA_PRODUZIONE[0];
+    // punto di scrittura 8 — nuovo rapportino (e con lui la produzione del turno)
+    if (bloccato(data, turno, "il rapportino «" + titolo + "»", "mode-note")) return;
     await db.aggiungi("rapportini", { titolo, squadra: $("new-rap-squadra").value, data, turno,
       prodQta: qta, prodUnita: unita, note: $("new-rap-note").value.trim(),
       ora: "", stato: "bozza" });
@@ -2045,11 +2460,25 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
         + (s.no ? ", NON A POSTO: " + s.problemi.join("; ") : "")
         + (c.ora ? " — chiusa alle " + c.ora : " — non chiusa"); }).join("\n")
       : "- nessuna checklist compilata") + "\n\n";
+    const metT = TURNI.map(t => meteoDi(MET, OGGI, t)).filter(m => m && riassuntoMeteo(m));
+    txt += "METEO E CONDIZIONI DEL SITO\n";
+    txt += (metT.length ? metT.map(m => "- turno " + m.turno + ": " + riassuntoMeteo(m)
+      + (m.note ? " — " + m.note : "")).join("\n")
+      : "- non registrato") + "\n\n";
     const chiuT = CHI.filter(c => String(c.data || "") === OGGI && c.ora);
     txt += "CHIUSURA DEL TURNO\n";
     txt += (chiuT.length ? chiuT.map(c => "- turno " + c.turno + ": " + riassuntoChiusura(c)
       + (c.note ? " — " + c.note : "")).join("\n")
-      : "- nessun turno chiuso: consegna non firmata") + "\n\n";
+      : "- nessun turno chiuso: consegna non firmata") + "\n";
+    // le riaperture non si nascondono nemmeno qui: se un turno firmato è
+    // stato riaperto, chi legge la consegna deve saperlo
+    const riapT = CHI.filter(c => String(c.data || "") === OGGI && riaperture(c).length);
+    if (riapT.length) {
+      txt += "RIAPERTURE DEL TURNO\n";
+      txt += riapT.map(c => riaperture(c).map(r => "- turno " + c.turno + ": "
+        + riassuntoRiapertura(r, dmy)).join("\n")).join("\n") + "\n";
+    }
+    txt += "\n";
     const fermi = riepilogoFermi(ATT_OGGI);
     txt += "ANOMALIE / FERMI\n";
     txt += (fermi.length ? fermi.map(f => "- " + f.causale + ": " + f.conto).join("\n") : "- nessuna anomalia aperta") + "\n";
@@ -2084,10 +2513,18 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // Firme di chiusura: se non ce ne sono, il rapporto porta le righe vuote
     // da compilare a penna — un documento senza firma resta un appunto.
     const chiuOggi = CHI.filter(c => String(c.data||"") === OGGI && c.ora);
+    // Riaperture: un turno firmato e poi riaperto va detto sul documento,
+    // altrimenti la firma torna a non voler dire niente.
+    const riapOggi = CHI.filter(c => String(c.data||"") === OGGI && riaperture(c).length);
+    // Meteo e condizioni del sito, turno per turno.
+    const metOggi = TURNI.map(t => meteoDi(MET, OGGI, t)).filter(m => m && riassuntoMeteo(m));
+    // Foto delle anomalie: la prova visiva di cosa è successo.
+    const fotoOggi = ATT_OGGI.filter(a => eFotoValida(a.foto));
     const html = `<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><title>Rapporto di fine turno — ${oggi}</title>
 <style>body{font:13px/1.45 sans-serif;color:#222;margin:28px;max-width:800px}h1{font-size:19px;margin:0 0 2px}h2{font-size:14px;margin:18px 0 6px;border-bottom:1px solid #999;padding-bottom:2px}
 table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px 8px;text-align:left;font-size:12px}th{background:#f2f2f2}
-.muted{color:#666;font-size:11px}.kpi{display:inline-block;margin-right:18px}.kpi b{font-size:17px}</style></head><body>
+.muted{color:#666;font-size:11px}.kpi{display:inline-block;margin-right:18px}.kpi b{font-size:17px}
+.foto{margin:10px 0;page-break-inside:avoid}.foto img{max-width:340px;width:100%;border:1px solid #ccc;margin-top:4px}</style></head><body>
 <h1>Rapporto di fine turno</h1><div class="muted">Deepwork Campo · ${oggi}</div>
 <h2>Quadro</h2>
 <div><span class="kpi"><b>${av.concluse}/${av.totale}</b> attività concluse</span>
@@ -2096,6 +2533,8 @@ table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4p
 <span class="kpi"><b>${unitaProd.length?esc(somma(tp.perUnita)):"—"}</b> prodotti</span></div>
 <h2>Checklist di inizio turno</h2>
 ${chkOggi.length?`<table><tr><th>Squadra</th><th>Turno</th><th>Risposte</th><th>Voci non a posto</th><th>Chiusa alle</th></tr>${chkOggi.map(x=>`<tr><td>${esc(x.c.squadra||"—")}</td><td>${esc(x.c.turno||"—")}</td><td>${x.st.ok} a posto · ${x.st.na} n.a. · ${x.st.mancanti} senza risposta</td><td>${x.st.problemi.length?x.st.problemi.map(esc).join("; "):"nessuna"}</td><td>${esc(x.c.ora||"non chiusa")}</td></tr>`).join("")}</table>`:"<div>Nessuna checklist di inizio turno compilata oggi.</div>"}
+<h2>Meteo e condizioni del sito</h2>
+${metOggi.length?`<table><tr><th>Turno</th><th>Condizioni</th><th>Note sul sito</th></tr>${metOggi.map(m=>`<tr><td>${esc(m.turno)}</td><td>${esc(riassuntoMeteo(m))}</td><td>${esc(m.note||"—")}</td></tr>`).join("")}</table>`:"<div>Meteo e condizioni del sito non registrati oggi.</div>"}
 <h2>Personale presente</h2>
 ${preOggi.length?preOggi.map(x=>`<div><b>Turno ${esc(x.turno)}</b>: ${x.app.presenti} ${x.app.presenti===1?"presente":"presenti"} su ${x.app.totale}${x.app.daFare?`, ${x.app.daFare} ${x.app.daFare===1?"non spuntato":"non spuntati"}`:""}.</div>
 <table><tr><th>Nome</th><th>Ruolo</th><th>Squadra</th><th>Stato</th><th>Ora</th></tr>${x.app.righe.map(r=>`<tr><td>${esc(r.operatore.nome)}</td><td>${esc(r.operatore.ruolo||"—")}</td><td>${esc(squadraBase(r.operatore.squadra)||"—")}</td><td>${r.stato==="presente"?"presente":r.stato==="assente"?"ASSENTE":"non spuntato"}</td><td>${esc(r.ora||"")}</td></tr>`).join("")}</table>`).join(""):"<div>Nessun appello registrato oggi.</div>"}
@@ -2105,6 +2544,7 @@ ${obOggi.length?`<table><tr><th>Turno</th><th>Obiettivo</th><th>Fatto</th><th>Sc
 <table><tr><th>Turno</th><th>Attività</th><th>Dettaglio</th><th>Assegnata a</th><th>Stato</th></tr>${ATT_OGGI.slice().sort((a,b)=>(ordR[a.stato]??4)-(ordR[b.stato]??4)).map(riga).join("")||"<tr><td colspan=5>Nessuna attività registrata.</td></tr>"}</table>
 <h2>Fermi per causale</h2>
 ${fermi.length?`<table><tr><th>Causale</th><th>Anomalie</th></tr>${fermi.map(f=>`<tr><td>${esc(f.causale)}</td><td>${f.conto}</td></tr>`).join("")}</table>`:"<div>Nessuna anomalia aperta.</div>"}
+${fotoOggi.length?`<h2>Foto delle anomalie</h2>${fotoOggi.map(a=>`<div class="foto"><div><b>${esc(a.titolo)}</b> — turno ${esc(a.turno||"—")}${a.causale?" · "+esc(a.causale):""}${a.fotoOra?" · scattata alle "+esc(a.fotoOra):""}</div><img src="${a.foto}" alt=""></div>`).join("")}`:""}
 <h2>Produzione</h2>
 ${unitaProd.length?`<table><tr><th>Turno</th><th>Produzione</th></tr>${tp.perTurno.map(t=>`<tr><td>${esc(t.turno)}</td><td>${esc(somma(t.perUnita))}</td></tr>`).join("")}<tr><th>Totale</th><th>${esc(somma(tp.perUnita))}</th></tr></table>`:"<div>Nessuna produzione registrata.</div>"}
 <h2>Rapportini</h2>
@@ -2114,6 +2554,9 @@ ${cop.mancanti.length?`<div class="muted" style="margin-top:6px">Squadre senza r
 ${chiuOggi.length?`<table><tr><th>Turno</th><th>Consegnato da</th><th>Ricevuto da</th><th>Ora</th><th>Note</th></tr>${chiuOggi.map(c=>`<tr><td>${esc(c.turno)}</td><td>${esc(c.consegna||"—")}</td><td>${esc(c.ricevuta||"—")}</td><td>${esc(c.ora)}</td><td>${esc(c.note||"")}</td></tr>`).join("")}</table>`
  :`<div>Nessun turno chiuso oggi: questo rapporto <b>non è stato consegnato</b> da nessuno.</div>
    <div style="margin-top:14px">Consegnato da ______________________ &nbsp; Ricevuto da ______________________ &nbsp; Ora ____________</div>`}
+${riapOggi.length?`<h2>Riaperture del turno</h2>
+<div class="muted">Un turno firmato è stato riaperto per correggerlo: qui è scritto da chi, quando e perché.</div>
+<table><tr><th>Turno</th><th>Riaperto da</th><th>Quando</th><th>Motivo</th></tr>${riapOggi.map(c=>riaperture(c).map(r=>`<tr><td>${esc(c.turno)}</td><td>${esc(r.da||"—")}</td><td>${esc(dmy(r.il||"")+(r.ora?" "+r.ora:""))}</td><td>${esc(r.motivo||"—")}</td></tr>`).join("")).join("")}</table>`:""}
 <div class="muted" style="margin-top:20px">Generato da Deepwork Campo — registro operativo di giornata; non sostituisce i registri obbligatori.</div>
 <script>window.print()</` + `script></body></html>`;
     const w = window.open("", "_blank"); if(!w){ esito("mode-note", "Il browser ha bloccato la finestra: sblocca i popup per questo sito e riprova.", "err"); return; }
@@ -2267,6 +2710,12 @@ ${chiuOggi.length?`<table><tr><th>Turno</th><th>Consegnato da</th><th>Ricevuto d
     e.target.value = "";
     if (!righe.length) { $("piano-riep").textContent = "Nessuna riga valida nel file: le colonne devono essere foro; x; fila; prof; prog; borr; rit.";
       toast("File non riconosciuto: controlla le colonne.", "err"); return; }
+    // punto di scrittura 18 — import del piano di carico (il piano nasce nel
+    // giorno e turno scelti per il rapportino: se quel turno è chiuso non si
+    // importa, e non si cancella nemmeno il piano di un turno già firmato)
+    const dataPiano = $("new-rap-data").value || OGGI, turnoPiano = $("new-rap-turno").value || turnoCorrente();
+    if (bloccato(dataPiano, turnoPiano, "il piano di carico")) return;
+    if (PIANO.length && PIANO[0] && bloccato(PIANO[0].data, PIANO[0].turno, "il piano di carico già salvato")) return;
     if (PIANO.length && !await chiedi("Sostituire il piano salvato",
           `C'è già un piano salvato di <b>${PIANO.length} fori</b> e stai per caricarne uno di <b>${righe.length}</b>.<br><br>
            Campo tiene <b>una volata alla volta</b>: il piano vecchio viene cancellato e con lui
@@ -2274,7 +2723,7 @@ ${chiuOggi.length?`<table><tr><th>Turno</th><th>Consegnato da</th><th>Ricevuto d
           "Sostituisci il piano", true)) return;
     $("piano-riep").textContent = "Salvataggio del piano in corso…";
     for (const vecchio of await db.pianocarico()) await db.rimuovi("pianocarico", vecchio.id);
-    const data = $("new-rap-data").value || OGGI, turno = $("new-rap-turno").value || turnoCorrente();
+    const data = dataPiano, turno = turnoPiano;
     for (const p of righe)
       await db.aggiungi("pianocarico", { data, turno, foro: p.foro, x: p.x, fila: p.fila,
         prof: p.prof, prog: p.prog, borr: p.borr, rit: p.rit, reale: null });
@@ -2285,6 +2734,8 @@ ${chiuOggi.length?`<table><tr><th>Turno</th><th>Consegnato da</th><th>Ricevuto d
     const it = e.target.closest && e.target.closest("[data-foro-id]");
     if (!it) return;
     const p = PIANO.find(x => x.id === it.getAttribute("data-foro-id")); if (!p) return;
+    // punto di scrittura 19 — carica reale del foro
+    if (bloccato(p.data, p.turno, "la carica reale del foro " + p.foro)) return;
     // niente prompt() del browser: campo etichettato dentro la modale del core
     const v = await chiediValore("Carica reale del foro " + p.foro,
       `Progettati <b>${esc(p.prog)} kg</b>. Scrivi quanti chili di esplosivo sono stati

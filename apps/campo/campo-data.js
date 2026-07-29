@@ -16,8 +16,15 @@
 //                     (controlli di inizio turno, uno per giorno+turno+squadra)
 //   presenze/{id}:   { data, turno, operatoreId, nome, stato: presente|assente, ora }
 //                     (appello del turno: chi c'è in cava adesso)
-//   chiusure/{id}:   { data, turno, consegna, ricevuta, note, ora }
-//                     (firma di chiusura del turno: chi consegna, chi riceve)
+//   chiusure/{id}:   { data, turno, consegna, ricevuta, note, ora,
+//                      riaperture: [{ da, motivo, il, ora }] }
+//                     (firma di chiusura del turno: chi consegna, chi riceve;
+//                      finché "ora" è valorizzata il turno è CHIUSO e nessuno
+//                      può più scriverci sopra. Le riaperture restano scritte
+//                      una per una: chi ha riaperto, quando e perché)
+//   meteo/{id}:      { data, turno, cielo, piste, visibilita, note, ora }
+//                     (meteo e condizioni del sito del turno: uno per
+//                      giorno+turno, l'ultimo salvato vince)
 //   pianocarico/{id}: { data, turno, foro, x, fila, prof, prog, borr, rit, reale }
 //                     (piano di carico volata importato da CSV, ponte Genesi;
 //                      una riga per foro, salvata come il resto dei dati)
@@ -97,6 +104,7 @@ export const DEMO = {
   checklist: [],
   presenze: [],
   chiusure: [],
+  meteo: [],
   pianocarico: [],
 };
 
@@ -426,6 +434,167 @@ export function riassuntoChiusura(c) {
   return "Consegnato" + (da ? " da " + da : "") + (a ? " a " + a : "") + " alle " + c.ora;
 }
 
+// ── IL TURNO CHIUSO NON SI TOCCA PIÙ ──────────────────────────────────
+// Una firma vale qualcosa solo se dopo la firma il documento non cambia più.
+// Questa è la funzione che tutti i punti di salvataggio devono chiedere prima
+// di scrivere: torna la chiusura che copre quella registrazione, oppure null
+// se il turno è aperto e si può lavorare.
+// COMPATIBILITÀ (regola ferrea): una registrazione senza giorno o senza turno
+// NON appartiene a nessun turno chiuso — i dati vecchi, salvati prima che
+// esistessero data, turno e chiusura, restano modificabili esattamente come
+// oggi. Nessuna organizzazione si ritrova dati bloccati dall'oggi al domani.
+// Pura e testabile.
+export function turnoChiuso(chiusure, data, turno) {
+  const d = String(data || "").trim(), t = String(turno || "").trim();
+  if (!d || !t) return null;
+  const c = chiusuraDi(chiusure, d, t);
+  return c && String(c.ora || "").trim() ? c : null;
+}
+
+// Le riaperture registrate su una chiusura, dalla più vecchia alla più
+// recente. Non si cancellano mai: sono la traccia che rende la correzione
+// alla luce del sole invece che di nascosto. Pura e testabile.
+export function riaperture(c) {
+  const r = (c && c.riaperture) || [];
+  return Array.isArray(r) ? r.filter(x => x && (x.da || x.ora || x.il)) : [];
+}
+
+// Riga leggibile di una riapertura ("Riaperto da Mario Bianchi il 29/07/2026
+// alle 15:10 — dimenticati i minuti di fermo"). `fmtData` serve a scrivere il
+// giorno come lo scrive l'interfaccia; di suo resta com'è. Pura e testabile.
+export function riassuntoRiapertura(r, fmtData) {
+  if (!r) return "";
+  const f = typeof fmtData === "function" ? fmtData : (d) => d;
+  const parti = ["Riaperto"];
+  const chi = String(r.da || "").trim();
+  if (chi) parti.push("da " + chi);
+  if (r.il) parti.push("il " + f(r.il));
+  if (r.ora) parti.push("alle " + r.ora);
+  const motivo = String(r.motivo || "").trim();
+  return parti.join(" ") + (motivo ? " — " + motivo : "");
+}
+
+// L'ultima riapertura registrata (null se non ce n'è nessuna). Pura.
+export function ultimaRiapertura(c) {
+  const r = riaperture(c);
+  return r.length ? r[r.length - 1] : null;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// FOTO DELL'ANOMALIA — misure e controlli (C4)
+// ══════════════════════════════════════════════════════════════════════
+// In cava la foto spiega in due secondi quello che il testo non spiega. Ma
+// una foto di telefono pesa 3-8 MB: va rimpicciolita NEL BROWSER prima di
+// salvarla, altrimenti riempie il database e non si carica più con la rete
+// della cava. Qui stanno le misure e i controlli (funzioni pure); il taglio
+// vero e proprio lo fa il canvas dentro l'app.
+
+// Tetto della foto salvata. Un documento Firestore non può superare 1 MB in
+// tutto: si sta molto sotto, così restano larghi anche gli altri campi.
+export const FOTO_MAX_BYTE = 280 * 1024;
+
+// Tentativi in scaletta: si parte dal lato lungo più grande e si scende
+// finché la foto non sta nel tetto. Il primo tentativo basta quasi sempre.
+export const FOTO_TENTATIVI = [
+  { lato: 1280, qualita: 0.72 },
+  { lato: 1024, qualita: 0.66 },
+  { lato: 800,  qualita: 0.58 },
+  { lato: 640,  qualita: 0.50 },
+];
+
+// Formati che accettiamo da chi carica. Tutto viene comunque riscritto in
+// JPEG dal canvas: qui si scartano subito i file che non sono immagini.
+export function eImmagine(file) {
+  return !!file && /^image\/(jpeg|jpg|png|webp|heic|heif|gif|bmp)$/i.test(String(file.type || ""));
+}
+
+// Quanto pesa DAVVERO una foto salvata come data URL (i byte del file, non i
+// caratteri del testo base64, che sono un terzo in più). Pura e testabile.
+export function byteFoto(dataUrl) {
+  const s = String(dataUrl || "");
+  const i = s.indexOf(",");
+  if (i < 0) return 0;
+  const b64 = s.slice(i + 1);
+  const pad = b64.endsWith("==") ? 2 : b64.endsWith("=") ? 1 : 0;
+  return Math.max(0, Math.floor(b64.length * 3 / 4) - pad);
+}
+
+// Una foto salvata è valida solo se è un data URL di immagine in base64:
+// tutto il resto (in particolare un "javascript:" o un SVG con dentro del
+// codice) non deve mai finire dentro un tag <img> dell'app.
+// Vedi docs/AUDIT_SICUREZZA.md. Pura e testabile.
+export function eFotoValida(dataUrl) {
+  return /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(String(dataUrl || ""));
+}
+
+// Misure dopo il ridimensionamento: si rimpicciolisce solo se serve, mai si
+// ingrandisce (una foto piccola stirata perde e basta). Pura e testabile.
+export function misuraRidotta(larghezza, altezza, lato) {
+  const w = Math.max(0, +larghezza || 0), h = Math.max(0, +altezza || 0);
+  const max = Math.max(w, h);
+  if (!max) return { w: 1, h: 1 };
+  if (max <= lato) return { w: Math.max(1, Math.round(w)), h: Math.max(1, Math.round(h)) };
+  const k = lato / max;
+  return { w: Math.max(1, Math.round(w * k)), h: Math.max(1, Math.round(h * k)) };
+}
+
+// "240 kB" / "3,2 MB": il peso scritto come lo legge una persona. Pura.
+export function formattaByte(n) {
+  const b = Math.max(0, +n || 0);
+  return b >= 1048576
+    ? (Math.round(b / 1048576 * 10) / 10).toLocaleString("it-IT") + " MB"
+    : Math.max(1, Math.round(b / 1024)).toLocaleString("it-IT") + " kB";
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// METEO E CONDIZIONI DEL SITO (C4)
+// ══════════════════════════════════════════════════════════════════════
+// È una voce fissa di ogni rapporto di turno professionale: spiega i fermi
+// («ci siamo fermati perché pioveva»), spiega la produzione bassa e, in caso
+// di contestazione, dice com'era la cava quel giorno. Si registra a mano, a
+// scelte rapide: niente servizi meteo esterni, niente abbonamenti.
+
+export const METEO_CIELO = ["Sereno", "Nuvoloso", "Pioggia", "Vento forte", "Nebbia", "Neve o gelo", "Caldo estremo"];
+export const METEO_PISTE = ["Asciutte", "Bagnate", "Fangose", "Ghiacciate", "Polverose"];
+export const METEO_VISIBILITA = ["Buona", "Ridotta", "Scarsa"];
+
+// Condizioni che, da sole, spiegano un fermo o impongono prudenza: l'app le
+// segnala invece di lasciarle scritte e basta.
+const METEO_AVVERSO = ["Pioggia", "Vento forte", "Nebbia", "Neve o gelo", "Caldo estremo"];
+const PISTE_AVVERSE = ["Fangose", "Ghiacciate"];
+
+// Il meteo registrato per quel giorno e turno (l'ultimo salvato vince).
+// Pura e testabile.
+export function meteoDi(lista, data, turno) {
+  const trovati = (lista || []).filter(m => m
+    && String(m.data || "") === String(data || "")
+    && String(m.turno || "") === String(turno || ""));
+  return trovati.length ? trovati[trovati.length - 1] : null;
+}
+
+// Le condizioni del turno in una riga ("Pioggia · piste fangose · visibilità
+// ridotta"). Stringa vuota se non è stato registrato niente. Pura e testabile.
+export function riassuntoMeteo(m) {
+  if (!m) return "";
+  const parti = [];
+  const cielo = String(m.cielo || "").trim();
+  const piste = String(m.piste || "").trim();
+  const vis = String(m.visibilita || "").trim();
+  if (cielo) parti.push(cielo);
+  if (piste) parti.push("piste " + piste.toLowerCase());
+  if (vis) parti.push("visibilità " + vis.toLowerCase());
+  return parti.join(" · ");
+}
+
+// Il turno ha condizioni difficili? (serve a colorare il cartellone e a
+// scriverlo nel rapporto, mai a "decidere" al posto di chi c'è). Pura.
+export function meteoAvverso(m) {
+  if (!m) return false;
+  return METEO_AVVERSO.includes(String(m.cielo || "").trim())
+      || PISTE_AVVERSE.includes(String(m.piste || "").trim())
+      || String(m.visibilita || "").trim() === "Scarsa";
+}
+
 // La checklist di quel giorno, turno e squadra (l'ultima salvata vince).
 // Pura e testabile.
 export function checklistDi(lista, data, turno, squadra) {
@@ -734,6 +903,7 @@ export async function campoData() {
         checklist: () => read("checklist"),
         presenze: () => read("presenze"),
         chiusure: () => read("chiusure"),
+        meteo: () => read("meteo"),
         pianocarico: () => read("pianocarico"),
         aggiungi: (name, data) => addDoc(id.orgCollection(name), data),
         logout: () => id.logout(),
@@ -754,6 +924,7 @@ export async function campoData() {
       checklist: async () => mem.checklist || (mem.checklist = []),
       presenze: async () => mem.presenze || (mem.presenze = []),
       chiusure: async () => mem.chiusure || (mem.chiusure = []),
+      meteo: async () => mem.meteo || (mem.meteo = []),
       pianocarico: async () => mem.pianocarico || (mem.pianocarico = []),
       logout: async () => {},
       aggiungi: async (name, data) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[name] = mem[name] || []).push({ id, ...data }); return { id }; },

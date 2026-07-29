@@ -556,6 +556,40 @@
   <div class="sec">Disponibilità nel tempo</div>
   <div id="graf-disp" class="graf"></div>
 
+  <!-- L6 — FERMI MACCHINA E AFFIDABILITÀ. La disponibilità qui sopra è la
+       fotografia di com'è messo il parco; questa è la MISURA di quanto ha
+       lavorato davvero, giorni-macchina persi su giorni-macchina disponibili.
+       Il conto si scrive per esteso: dev'essere rifacibile a mano. -->
+  <div class="sec">Fermi macchina<span class="cnt" id="fer-tot">0</span></div>
+  <div id="fer-finestra" class="chgs">
+    <button class="chg" data-fer-giorni="7">7 giorni</button>
+    <button class="chg active" data-fer-giorni="30">30 giorni</button>
+    <button class="chg" data-fer-giorni="90">90 giorni</button>
+    <button class="chg" data-fer-giorni="365">1 anno</button>
+  </div>
+  <div id="fer-riep" class="note recap" style="margin-top:12px;"></div>
+  <div id="graf-fermi" class="graf" style="margin-top:12px;"></div>
+  <div id="graf-fermi-causali" class="graf" style="margin-top:12px;"></div>
+  <div id="fer-list" style="margin-top:12px;"></div>
+  <div class="sec">Registra un fermo</div>
+  <div class="form col">
+    <div class="frow">
+      <select class="dw-input" id="fer-mezzo" title="Mezzo che si è fermato" style="flex:1 1 160px;"></select>
+      <select class="dw-input" id="fer-causale" title="Perché si è fermato" style="flex:2 1 200px;"></select>
+    </div>
+    <div class="note norma" id="fer-nota-causale"></div>
+    <div class="frow">
+      <input class="dw-input" id="fer-inizio" type="date" title="Giorno in cui si è fermato" style="flex:1 1 150px;">
+      <input class="dw-input" id="fer-fine" type="date" title="Giorno in cui è ripartito (vuoto = ancora fermo)" style="flex:1 1 150px;">
+      <input class="dw-input" id="fer-note" placeholder="Note (facoltative)" style="flex:2 1 170px;">
+      <button class="dw-btn" id="btn-fer">Registra</button>
+    </div>
+    <div class="form-hint">Lascia vuoto il <b>giorno di ripartenza</b> finché la macchina è ferma: il fermo resta aperto e i giorni continuano a contare. Quando riparte, tocca <b>«è ripartito»</b> sulla riga.</div>
+    <div class="form-hint">I giorni si contano <b>interi e compresi</b>: una macchina ferma il 3 e ripartita il 3 ha perso una giornata, non zero. In cava una giornata persa è persa tutta.</div>
+  </div>
+  <div class="note esito" id="fer-esito"></div>
+  <div class="tools"><button class="dw-btn secondary" id="btn-fer-csv">Esporta i fermi (CSV)</button></div>
+
   <!-- F2 — «Costo di officina per mezzo»: dagli interventi chiusi (ordini di
        lavoro), che l'app raccoglieva senza mostrarli da nessuna parte. -->
   <div class="sec">Officina</div>
@@ -599,6 +633,17 @@
       <span class="form-hint">Serve a stimare fra quanti giorni cadranno i tagliandi contati «a ore motore». Cambia il numero se in cava si lavora di più o di meno.</span>
     </div>
   </div>
+
+  <!-- ORDINI DI LAVORO (L5): il filtro per stato della lavorazione. «In
+       attesa ricambi» ha un filtro suo perché è la ragione più frequente di
+       macchina ferma a lungo: va vista, non cercata. -->
+  <div id="man-stati" class="chgs" style="margin-top:12px;">
+    <button class="chg active" data-man-stato="tutti">Tutti</button>
+    <button class="chg" data-man-stato="da-fare">Da fare</button>
+    <button class="chg" data-man-stato="in-corso">In lavorazione</button>
+    <button class="chg" data-man-stato="attesa-ricambi">Attesa pezzi</button>
+  </div>
+  <div id="man-riep" class="note recap"></div>
   <div id="man-list" style="margin-top:12px;"></div>
 
   <div class="sec">Nuova manutenzione</div>
@@ -638,7 +683,9 @@
     <input class="dw-input" id="ric-nome" placeholder="Ricambio (es. Filtro olio)" style="flex:2 1 170px;">
     <input class="dw-input" id="ric-giac" type="number" min="0" step="1" placeholder="Giacenza" style="flex:1 1 110px;">
     <input class="dw-input" id="ric-soglia" type="number" min="0" step="1" placeholder="Soglia min" style="flex:1 1 110px;">
+    <input class="dw-input" id="ric-prezzo" type="number" min="0" step="0.01" placeholder="€ al pezzo" title="Prezzo unitario (facoltativo)" style="flex:1 1 110px;">
     <button class="dw-btn" id="btn-ric">Aggiungi</button>
+    <div class="form-hint">Il <b>prezzo al pezzo</b> è facoltativo, ma se lo scrivi il costo dei ricambi negli ordini di lavoro esce da solo, senza doverlo ricordare ogni volta.</div>
   </div>
   <div class="note esito" id="ric-esito"></div>
 </div>
@@ -789,6 +836,59 @@
   <div class="note">Il giro macchina è un <b>promemoria di sicurezza</b> e un archivio ordinato, non un documento ufficiale. Quello che segni «non va» non resta una crocetta: diventa subito una <b>manutenzione sul mezzo</b>, che l'officina trova nel Quadro insieme a tutto il resto.</div>
 </div>
 
+<!-- ORDINE DI LAVORO (L5) — il documento dell'officina. Ci si arriva
+     toccando una manutenzione: da lì si dice a che punto è il lavoro, chi ci
+     ha messo le mani e per quante ore, quali pezzi sono andati dentro. Il
+     costo non si scrive: si somma da quello che c'è scritto. -->
+<div class="page" id="page-odl">
+  <div class="tools no-print" style="margin:0 0 12px;">
+    <button class="dw-btn secondary" id="btn-odl-back">Torna all'officina</button>
+  </div>
+  <div id="odl-testa"></div>
+
+  <div class="sec">A che punto è</div>
+  <div id="odl-stati" class="chgs"></div>
+  <div id="odl-stato-nota" class="note norma"></div>
+
+  <div class="sec">Chi ci ha lavorato<span class="cnt" id="odl-mano-cnt">0</span></div>
+  <div id="odl-mano"></div>
+  <div class="form">
+    <input class="dw-input" id="odl-chi" placeholder="Chi (es. Marco, officina esterna)" style="flex:2 1 180px;">
+    <input class="dw-input" id="odl-ore" type="number" min="0" step="0.25" placeholder="Ore" style="flex:1 1 100px;">
+    <input class="dw-input" id="odl-tariffa" type="number" min="0" step="0.5" placeholder="€ all'ora" style="flex:1 1 110px;">
+    <button class="dw-btn" id="btn-odl-mano">Aggiungi</button>
+    <div class="form-hint">Una riga per persona: le ore di ognuno sono diverse, e un meccanico interno non costa come un'officina chiamata da fuori. Il <b>costo orario</b> si può lasciare vuoto: le ore restano registrate e l'app scrive che non entrano nel costo, invece di farle passare per gratis.</div>
+  </div>
+
+  <div class="sec">Ricambi usati<span class="cnt" id="odl-ric-cnt">0</span></div>
+  <div id="odl-ric"></div>
+  <div class="form">
+    <select class="dw-input" id="odl-ric-sel" title="Ricambio preso dal magazzino" style="flex:2 1 200px;"></select>
+    <input class="dw-input" id="odl-ric-nome" placeholder="oppure un pezzo non a magazzino" style="flex:2 1 190px;">
+    <input class="dw-input" id="odl-ric-qta" type="number" min="0" step="1" placeholder="Quantità" style="flex:1 1 110px;">
+    <input class="dw-input" id="odl-ric-prezzo" type="number" min="0" step="0.01" placeholder="€ al pezzo" style="flex:1 1 110px;">
+    <button class="dw-btn" id="btn-odl-ric">Aggiungi</button>
+    <div class="form-hint">I pezzi presi dal <b>magazzino</b> vengono scaricati alla chiusura dell'ordine, nella quantità che scrivi qui: la giacenza resta quella vera senza doverla correggere a mano. Se il prezzo del pezzo è già in magazzino, arriva da solo.</div>
+  </div>
+
+  <div class="sec">Altre spese e note</div>
+  <div class="form">
+    <input class="dw-input" id="odl-altre" type="number" min="0" step="0.01" placeholder="Altre spese €" style="flex:1 1 150px;">
+    <input class="dw-input" id="odl-note" placeholder="Cosa è stato fatto (nota di lavorazione)" style="flex:3 1 220px;">
+    <div class="form-hint">Le <b>altre spese</b> sono quelle che non stanno né nelle ore né nei pezzi: officina esterna a forfait, traino, noleggio del mezzo sostitutivo. Si salvano da sole appena esci dal campo.</div>
+  </div>
+
+  <div class="sec">Quanto costa</div>
+  <div class="kpis" id="odl-kpi"></div>
+  <div id="odl-conto" class="note recap"></div>
+  <div class="tools">
+    <button class="dw-btn" id="btn-odl-chiudi">Chiudi l'ordine</button>
+    <button class="dw-btn secondary" id="btn-odl-back2">Torna all'officina</button>
+  </div>
+  <div class="note esito" id="odl-esito"></div>
+  <div class="note">Chiudendo l'ordine, questo lavoro esce dal programma ed entra nel <b>registro interventi</b> del mezzo con tutto quello che c'è scritto qui: ore, persone, pezzi e costo. I ricambi presi dal magazzino vengono scaricati e la spesa entra una volta sola nei <b>costi della flotta</b>. Il costo non viene mai salvato a parte: si ricalcola dalle righe, così non può dire una cosa diversa da quello che leggi.</div>
+</div>
+
 <!-- FASCICOLO DEL MEZZO (L1) — una pagina sola per macchina: chi è, cosa
      deve fare, cosa le è stato fatto, quanto costa. Si stampa e si porta. -->
 <div class="page" id="page-sch">
@@ -840,9 +940,11 @@
     document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
     const pag = document.getElementById("page-" + id);
     if (pag) pag.classList.add("active");
-    // La scheda del mezzo non ha una voce sua nella pillola di navigazione:
-    // ci si arriva dal parco mezzi, ed è lì che resta acceso il segnalibro.
-    const nav = document.getElementById("nav-" + (id === "sch" ? "mez" : id));
+    // La scheda del mezzo e l'ordine di lavoro non hanno una voce loro nella
+    // pillola di navigazione (che resta di sei voci, come dev'essere): ci si
+    // arriva dal parco mezzi e dall'officina, ed è lì che resta acceso il
+    // segnalibro.
+    const nav = document.getElementById("nav-" + (id === "sch" ? "mez" : id === "odl" ? "man" : id));
     if (nav) nav.classList.add("active");
     window.scrollTo(0, 0);
   }
@@ -969,12 +1071,19 @@
            nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
            manutenzioniDaControllo, coperturaControlli, controlliDelMezzo,
            PIANI_TAGLIANDO, pianoTagliando, prossimoTagliando,
-           validaRifornimento, consumoPerMezzo, fascicoloMezzo } from "./flotta-data.js";
+           validaRifornimento, consumoPerMezzo, fascicoloMezzo,
+           STATI_ORDINE, statoOrdine, costoOrdine, ordineDaManutenzione,
+           validaRigaManodopera, validaRigaRicambio, riepilogoOrdini,
+           CAUSALI_FERMO, causaleFermo, etichettaCausale, validaFermo,
+           fermiOrdinati, durataFermo, affidabilitaFlotta } from "./flotta-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const MB = { operativo: ["ok","Operativo"], fermo: ["danger","Fermo"], verifica: ["warn","Verifica"] };
   const sig = (n) => (n||"?").split(" ")[0].slice(0,2).toUpperCase();
   const eur = (v) => "€" + (+v||0).toLocaleString("it-IT");
+  // ore di lavoro: mezz'ora è mezz'ora, ma «4,00 h» è precisione finta
+  const oreTx = (v) => (+v||0).toLocaleString("it-IT", { maximumFractionDigits: 2 }) + " h";
+  const ggTx = (n) => (+n||0).toLocaleString("it-IT", { maximumFractionDigits: 1 }) + (Math.abs(+n||0) === 1 ? " giorno" : " giorni");
 
   // ── Icone disegnate (stessa famiglia di quelle del menu): niente emoji ──
   const I = {
@@ -997,6 +1106,9 @@
     giro:    '<svg viewBox="0 0 24 24"><path d="M9 4.4h6V3.3A1.4 1.4 0 0 0 13.6 2h-3.2A1.4 1.4 0 0 0 9 3.3z"/><path d="M15 4.4h2.3A1.7 1.7 0 0 1 19 6.1V20a1.7 1.7 0 0 1-1.7 1.6H6.7A1.7 1.7 0 0 1 5 20V6.1a1.7 1.7 0 0 1 1.7-1.7H9"/><path d="M8.7 13.1l2.2 2.2 4.4-4.8"/></svg>',
     goccia:  '<svg viewBox="0 0 24 24"><path d="M12 3.2s5.6 6 5.6 9.8A5.6 5.6 0 0 1 12 18.6a5.6 5.6 0 0 1-5.6-5.6C6.4 9.2 12 3.2 12 3.2z"/><path d="M9.4 13.2a2.6 2.6 0 0 0 2.6 2.6"/></svg>',
     scheda:  '<svg viewBox="0 0 24 24"><rect x="3.4" y="4.4" width="17.2" height="15.2" rx="2.2"/><path d="M3.4 9.2h17.2M8.4 4.4v15.2"/></svg>',
+    persona: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8.2" r="3.6"/><path d="M4.8 20.4a7.2 7.2 0 0 1 14.4 0"/></svg>',
+    fermo:   '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M10 9.2v5.6M14 9.2v5.6"/></svg>',
+    riparte: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M10.2 8.8l5.6 3.2-5.6 3.2z"/></svg>',
   };
 
   // stato vuoto in stile core: icona, titolo, spiegazione di cosa fare
@@ -1054,13 +1166,20 @@
     go(card.getAttribute("data-goto")); refresh();
   });
 
-  let MEZ=[], MAN=[], COS=[], RIC=[], INT=[], SCA=[], DISP=[], CTR=[], RIF=[];
+  let MEZ=[], MAN=[], COS=[], RIC=[], INT=[], SCA=[], DISP=[], CTR=[], RIF=[], FER=[];
   // GIRO MACCHINA (L2): il giro in corso vive SOLO qui, in memoria, finché
   // non lo salvi. Un controllo a metà non è un documento: o è finito o non
   // esiste. { mezzoId, tipo, voci:[{chiave,etichetta,aiuto,critica,esito,nota}] }
   let giro = null;
   // FASCICOLO (L1): id del mezzo di cui è aperta la scheda.
   let schedaId = null;
+  // ORDINE DI LAVORO (L5): id della manutenzione aperta come ordine, e il
+  // filtro per stato della lavorazione nell'Officina.
+  let odlId = null;
+  let filtroMan = "tutti";
+  // FERMI (L6): la finestra di giorni su cui si misura l'affidabilità. La
+  // scelta resta ricordata sul dispositivo, come le altre di Flotta.
+  let finestraFer = 30;
   let filtroMez = "tutti";
   // Scadenze di legge (F6): filtro del semaforo e soglia di preavviso, che
   // l'utente sceglie e che restano ricordate sul suo dispositivo.
@@ -1155,6 +1274,7 @@
     if (editMez) { editMez = null; $("btn-mez").textContent = "Aggiungi"; $("ore-esito").textContent = "";
       ["mez-nome","mez-area","mez-ore"].forEach(i => { $(i).value = ""; err(i, false); }); }
     schedaId = null;   // uscendo dalla pillola si esce anche dal fascicolo
+    odlId = null;      // e dall'ordine di lavoro aperto
   });
   // FOTOGRAFIA GIORNALIERA DEL PARCO. `mezzi.stato` dice com'è messo il parco
   // ADESSO e non conserva niente: senza una traccia scritta, «com'era la
@@ -1183,7 +1303,7 @@
     // Il `|| []` non è una cintura di sicurezza di troppo: un'organizzazione
     // che usava Flotta ieri non ha nessuna collezione «controlli» né
     // «rifornimenti», e la schermata deve aprirsi lo stesso, vuota.
-    [MEZ,MAN,COS,RIC,INT,SCA,DISP,CTR,RIF] = (await Promise.all([db.mezzi(), db.manutenzioni(), db.costi(), db.ricambi ? db.ricambi() : [], db.interventi ? db.interventi() : [], db.scadenze ? db.scadenze() : [], db.disponibilita ? db.disponibilita() : [], db.controlli ? db.controlli() : [], db.rifornimenti ? db.rifornimenti() : []])).map(v => v || []);
+    [MEZ,MAN,COS,RIC,INT,SCA,DISP,CTR,RIF,FER] = (await Promise.all([db.mezzi(), db.manutenzioni(), db.costi(), db.ricambi ? db.ricambi() : [], db.interventi ? db.interventi() : [], db.scadenze ? db.scadenze() : [], db.disponibilita ? db.disponibilita() : [], db.controlli ? db.controlli() : [], db.rifornimenti ? db.rifornimenti() : [], db.fermi ? db.fermi() : []])).map(v => v || []);
     await registraFotografia();
     const k = kpiFrom(MEZ,MAN,COS);
     const kn = document.querySelectorAll(".kpis .kpi .n");
@@ -1222,7 +1342,7 @@
     // ogni priorità porta l'icona del suo mestiere: si riconosce a colpo
     // d'occhio se è una scadenza di legge, un tagliando, un ricambio o un mezzo
     const PRIO_ICO = { scadenza: I.bilancia, manutenzione: I.chiave, ricambio: I.bullone, mezzo: I.mezzo };
-    const prio = prioritaOperative(MEZ, MAN, RIC, new Date(), SCA, preavvisoSca);
+    const prio = prioritaOperative(MEZ, MAN, RIC, new Date(), SCA, preavvisoSca, FER);
     $("alert-list").innerHTML = prio.map(a => `<div class="item statico ${striscia[a.gravita] || "st-accent"}">
       <div class="avatar${a.categoria === "ricambio" || a.categoria === "mezzo" ? " sup" : ""}">${a.origine === "controllo" ? I.giro : (PRIO_ICO[a.categoria] || I.avviso)}</div>
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc(a.dettaglio)}</div></div>
@@ -1246,11 +1366,16 @@
       $("mez-disp").innerHTML = "";
     } else {
       const cls = disp.pct >= 90 ? "" : disp.pct >= 75 ? "warn" : "danger";
+      // Due numeri diversi che non vanno confusi: questo è ADESSO (quanti
+      // mezzi sono operativi in questo momento); la disponibilità REALE è la
+      // misura sul periodo, e viene dai fermi registrati. Se ci sono fermi si
+      // scrive anche quella, dicendo chiaramente che sono due cose diverse.
+      const affQ = affidabilitaFlotta(FER, MEZ, finestraFer, new Date());
       $("dash-gauge").innerHTML = `<div class="gauge ${cls}">
         <div class="gauge-ico">${I.tachi}</div>
         <div class="gauge-body"><div class="gauge-num">${disp.pct}%</div>
           <div class="gauge-lab">Disponibilità flotta</div>
-          <div class="gauge-sub"><b>${disp.operativi}</b> mezzi operativi su <b>${disp.totale}</b>. Una flotta tenuta bene sta stabilmente sopra il 90%.</div>
+          <div class="gauge-sub"><b>${disp.operativi}</b> mezzi operativi su <b>${disp.totale}</b>, adesso. Una flotta tenuta bene sta stabilmente sopra il 90%.${affQ.episodi ? ` Sui <b>${affQ.finestra}</b> giorni appena passati la disponibilità <i>reale</i>, contando i fermi registrati, è stata <b>${affQ.pct.toLocaleString("it-IT", { maximumFractionDigits: 1 })}%</b>.` : ""}</div>
           <div class="gauge-bar-graf" id="dash-gauge-bar"></div></div></div>`;
       // F4 — la fotografia di ADESSO, con la tacca del riferimento di settore
       // disegnata sulla barra: così il 90% non è più solo una frase da leggere,
@@ -1382,17 +1507,45 @@
       const data = new Date(Date.now() + g * 86400000).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" });
       return " · ≈ " + g + " gg (~" + data + ")";
     };
-    $("man-list").innerHTML = MAN.slice().sort((a,b)=>(a.dataPrevista||"9999")<(b.dataPrevista||"9999")?-1:1).map(n => {
+    // ORDINI DI LAVORO (L5). La riga della manutenzione dice tre cose, e in
+    // quest'ordine: quanto stringe (l'urgenza, come sempre), a che punto è il
+    // lavoro, e quanto è già costato. Una manutenzione senza lavorazione —
+    // cioè tutte quelle scritte prima d'oggi — resta identica a com'era: il
+    // badge dello stato compare solo quando c'è qualcosa da dire.
+    const manFiltrate = MAN.slice()
+      .sort((a,b)=>(a.dataPrevista||"9999")<(b.dataPrevista||"9999")?-1:1)
+      .filter(n => filtroMan === "tutti" || statoOrdine(n).chiave === filtroMan);
+    $("man-list").innerHTML = manFiltrate.map(n => {
       const u = urgDi(n);
       const ricN = n.ricambioId ? (RIC.find(r => r.id === n.ricambioId) || null) : null;
       const ritmo = n.ogniOre ? " · piano: ogni " + n.ogniOre + " h" : n.ogniMesi ? " · piano: ogni " + n.ogniMesi + " mesi" : "";
-      return `<div class="item ${striscia[u.cls] || "st-accent"}"><div class="avatar">${n.origine === "controllo" ? I.giro : I.chiave}</div>
-      <div class="info"><div class="name">${esc(n.titolo)} — ${esc(n.mezzo)}</div><div class="meta">${n.orePreviste ? "A " + n.orePreviste + " ore motore" + stimaGiorni(n) : "Previsto " + (n.dataPrevista ? n.dataPrevista.split("-").reverse().join("/") : "—")}${ritmo}${ricN ? " · usa " + esc(ricN.nome) : ""}</div>${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}</div>
-      <div class="acts"><span class="badge ${u.cls}">${u.label}</span>
-      <span class="arr ok" role="button" tabindex="0" title="Segna come eseguita e registra l'intervento" aria-label="Chiudi ${esc(n.titolo)}" data-man-done="${n.id}">${I.spunta}</span></div></div>`; }).join("")
-      || vuoto(I.chiave, "Nessuna manutenzione in programma",
-          "Qui si pianificano tagliandi e revisioni, <b>a data</b> oppure <b>a ore motore</b>. L'app calcola da sola quanto manca e ti avvisa in tempo. Pianifica la prima con il modulo qui sotto.");
+      const so = statoOrdine(n);
+      const q = costoOrdine(ordineDaManutenzione(n, RIC));
+      const lav = [
+        q.manodopera.ore ? oreTx(q.manodopera.ore) + " di lavoro" + (q.persone > 1 ? " · " + q.persone + " persone" : "") : "",
+        q.ricambi.righe.length ? q.ricambi.righe.length + (q.ricambi.righe.length === 1 ? " ricambio" : " ricambi") : "",
+        q.totale > 0 ? eur(q.totale) + " finora" : "",
+      ].filter(Boolean).join(" · ");
+      return `<div class="item ${striscia[u.cls] || "st-accent"}" role="button" tabindex="0" data-odl-man="${n.id}" title="Apri l'ordine di lavoro: stato, ore, ricambi, costo">
+      <div class="avatar">${n.origine === "controllo" ? I.giro : I.chiave}</div>
+      <div class="info"><div class="name">${esc(n.titolo)} — ${esc(n.mezzo)}</div><div class="meta">${n.orePreviste ? "A " + n.orePreviste + " ore motore" + stimaGiorni(n) : "Previsto " + (n.dataPrevista ? n.dataPrevista.split("-").reverse().join("/") : "—")}${ritmo}${ricN ? " · usa " + esc(ricN.nome) : ""}</div>${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}${lav ? `<div class="meta norma">${I.persona}${lav}</div>` : ""}</div>
+      <div class="acts">${so.chiave !== "da-fare" ? `<span class="badge ${so.cls}">${so.breve}</span>` : ""}<span class="badge ${u.cls}">${u.label}</span>
+      <span class="arr ok" role="button" tabindex="0" title="Chiudi l'ordine e registra l'intervento" aria-label="Chiudi ${esc(n.titolo)}" data-man-done="${n.id}">${I.spunta}</span></div></div>`; }).join("")
+      || (filtroMan !== "tutti"
+        ? vuoto(I.chiave, "Nessun ordine in questo stato", "Nessuna manutenzione è in questa fase di lavorazione. Tocca <b>Tutti</b> per rivedere l'intero programma.")
+        : vuoto(I.chiave, "Nessuna manutenzione in programma",
+          "Qui si pianificano tagliandi e revisioni, <b>a data</b> oppure <b>a ore motore</b>. L'app calcola da sola quanto manca e ti avvisa in tempo. Pianifica la prima con il modulo qui sotto."));
     $("man-count").textContent = MAN.length;
+    document.querySelectorAll("#man-stati .chg").forEach(b =>
+      b.classList.toggle("active", b.getAttribute("data-man-stato") === filtroMan));
+    { const ro = riepilogoOrdini(MAN);
+      $("man-riep").innerHTML = !ro.totale ? ""
+        : `<b>${ro.totale}</b> ${ro.totale === 1 ? "lavoro in programma" : "lavori in programma"}: `
+          + `${ro["da-fare"]} da fare · <span class="giallo">${ro["in-corso"]} in lavorazione</span>`
+          + (ro["attesa-ricambi"] ? ` · <span class="rosso">${ro["attesa-ricambi"]} ${ro["attesa-ricambi"] === 1 ? "fermo in attesa di un pezzo" : "fermi in attesa di pezzi"}</span>` : " · nessuno fermo in attesa di pezzi")
+          + (ro.oreAperte ? `. Ore già segnate sui lavori aperti: <b>${oreTx(ro.oreAperte)}</b>.` : ". Nessuna ora ancora segnata.");
+      // se il filtro nasconde delle righe, si dice quante se ne vedono
+      $("man-riep").className = "note recap"; }
 
     // Magazzino ricambi: giacenza, soglia, carico/scarico, sotto-scorta.
     const scorta = sottoScorta(RIC);
@@ -1418,7 +1571,7 @@
       .map(r => { const sotto = (+r.giacenza||0) <= (+r.sogliaMin||0);
       return `<div class="item statico ${sotto ? "st-danger" : "st-ok"}">
         <div class="avatar sup">${I.bullone}</div>
-        <div class="info"><div class="name">${esc(r.nome)}</div><div class="meta">giacenza ${+r.giacenza||0} · soglia minima ${+r.sogliaMin||0}</div></div>
+        <div class="info"><div class="name">${esc(r.nome)}</div><div class="meta">giacenza ${+r.giacenza||0} · soglia minima ${+r.sogliaMin||0}${+r.prezzo > 0 ? " · " + eur(r.prezzo) + " al pezzo" : ""}</div></div>
         <div class="acts"><span class="arr" role="button" tabindex="0" title="Scarico: togli 1 pezzo" aria-label="Scarica un ${esc(r.nome)}" data-ric-meno="${r.id}">${I.meno}</span>
         <span class="badge ${sotto ? "danger" : "ok"}">${sotto ? "sotto scorta" : "ok"}</span>
         <span class="arr" role="button" tabindex="0" title="Carico: aggiungi 1 pezzo" aria-label="Carica un ${esc(r.nome)}" data-ric-piu="${r.id}">${I.piu}</span>
@@ -1625,10 +1778,13 @@
     document.querySelectorAll("#sca-filtri .chg").forEach(b =>
       b.classList.toggle("active", b.getAttribute("data-sca-filtro") === filtroSca));
 
-    // ── L2 · giro macchina, L4 · carburante, L1 · fascicolo ──────────────
+    // ── L2 · giro macchina, L4 · carburante, L1 · fascicolo, L6 · fermi,
+    //    L5 · ordine di lavoro ────────────────────────────────────────────
     disegnaGiro();
     disegnaRifornimenti();
+    disegnaFermi();
     if (schedaId) disegnaScheda();
+    if (odlId) disegnaOrdine();
 
     const opts = MEZ.map(m => `<option value="${m.id}">${esc(m.nome.split(" — ")[0])}</option>`).join("");
     $("ore-mezzo").innerHTML = opts;
@@ -1642,6 +1798,11 @@
     { const scaSel = $("sca-mezzo").value;
       $("sca-mezzo").innerHTML = MEZ.map(m => { const n = m.nome.split(" — ")[0];
         return `<option${n === scaSel ? " selected" : ""}>${esc(n)}</option>`; }).join("")
+        || '<option value="">— nessun mezzo nel parco —</option>'; }
+    // elenco mezzi per i fermi macchina (conserva la scelta in corso)
+    { const ferSel = $("fer-mezzo").value;
+      $("fer-mezzo").innerHTML = MEZ.map(m => { const n = nomeBreve(m.nome);
+        return `<option${n === ferSel ? " selected" : ""}>${esc(n)}</option>`; }).join("")
         || '<option value="">— nessun mezzo nel parco —</option>'; }
     // opzioni ricambio (conserva la scelta corrente durante il refresh)
     const ricSel = $("man-ricambio").value;
@@ -1871,6 +2032,322 @@
   }
 
   // ══════════════════════════════════════════════════════════════════════
+  // L6 — FERMI MACCHINA E AFFIDABILITÀ
+  // La riga che conta è una sola, ed è un conto che chiunque può rifare a
+  // mano: mezzi × giorni = giorni-macchina; meno i giorni persi per fermo;
+  // il resto, diviso il totale, è la disponibilità vera. Per questo il conto
+  // si scrive per esteso invece di mostrare solo la percentuale: un numero
+  // che non si può controllare non lo crede nessuno, e fa bene.
+  // ══════════════════════════════════════════════════════════════════════
+  function disegnaFermi() {
+    const aff = affidabilitaFlotta(FER, MEZ, finestraFer, new Date());
+    $("fer-tot").textContent = FER.length;
+    document.querySelectorAll("#fer-finestra .chg").forEach(b =>
+      b.classList.toggle("active", +b.getAttribute("data-fer-giorni") === finestraFer));
+    const periodo = "dal " + dataIt(aff.da) + " a oggi";
+    const codaFuori = aff.fuoriParco
+      ? ` Restano fuori dal conto <b>${aff.fuoriParco}</b> ${aff.fuoriParco === 1 ? "fermo di una macchina non più nel parco" : "fermi di macchine non più nel parco"} (${ggTx(aff.fuoriParcoGiorni)}): non hanno più un parco su cui fare media, ma la loro storia resta scritta qui sotto.`
+      : "";
+    $("fer-riep").innerHTML = !aff.parco
+      ? "Il conto dell'affidabilità parte dal parco mezzi: aggiungi il primo mezzo e ogni fermo che registri comincerà a pesare sulla disponibilità."
+      : !aff.episodi
+        ? `Nessun fermo registrato negli ultimi ${aff.finestra} giorni (${periodo}): <b>${aff.parco}</b> ${aff.parco === 1 ? "mezzo" : "mezzi"} × ${aff.finestra} giorni = <b>${aff.giorniMacchina}</b> giorni-macchina, tutti disponibili. Quando una macchina si ferma registrala qui sotto: è l'unico modo perché questo numero voglia dire qualcosa.${codaFuori}`
+        : `Disponibilità reale <b>${aff.pct.toLocaleString("it-IT", { maximumFractionDigits: 1 })}%</b> negli ultimi ${aff.finestra} giorni (${periodo}): `
+          + `${aff.parco} ${aff.parco === 1 ? "mezzo" : "mezzi"} × ${aff.finestra} giorni = <b>${aff.giorniMacchina}</b> giorni-macchina, `
+          + `<span class="rosso">${aff.persi} persi</span> per fermo. `
+          + `${aff.episodi} ${aff.episodi === 1 ? "fermo" : "fermi"}${aff.aperti ? `, di cui <span class="rosso">${aff.aperti} ${aff.aperti === 1 ? "ancora aperto" : "ancora aperti"}</span>` : ", tutti chiusi"}`
+          + `, durata media <b>${ggTx(aff.durataMedia)}</b>.`
+          + (aff.fraUnFermoELaltro != null ? ` In media una macchina lavora <b>${ggTx(aff.fraUnFermoELaltro)}</b> fra un fermo e l'altro.` : "")
+          + codaFuori;
+
+    // Giorni di fermo per mezzo: la classifica di chi ferma di più. Non è un
+    // andamento — di quello non abbiamo la storia giorno per giorno — ma un
+    // confronto, ed è la forma giusta per un confronto.
+    if (aff.mezzi.length >= 2) {
+      const peggiore = aff.mezzi[0];
+      grafico("graf-fermi", "barre", {
+        titolo: "Giorni di fermo per mezzo",
+        meta: "ultimi " + aff.finestra + " giorni",
+        orientamento: "orizzontale", ordina: true, rampa: true,
+        formato: (v) => (+v || 0).toLocaleString("it-IT", { maximumFractionDigits: 1 }), unita: "gg",
+        valori: aff.mezzi.map(m => ({ etichetta: m.mezzo, valore: m.giorni,
+          stato: m.aperti ? "danger" : undefined })),
+        nota: "In cima c'è la macchina che è stata ferma di più: <b>" + esc(peggiore.mezzo) + "</b>, "
+          + ggTx(peggiore.giorni) + " in " + peggiore.episodi + (peggiore.episodi === 1 ? " fermo" : " fermi")
+          + " (" + esc(peggiore.causali.join(", ")) + "), cioè una disponibilità sua del <b>"
+          + peggiore.pct.toLocaleString("it-IT", { maximumFractionDigits: 1 }) + "%</b>. "
+          + (aff.senzaFermi ? aff.senzaFermi === 1 ? "Un mezzo del parco non si è mai fermato e non compare." : aff.senzaFermi + " mezzi del parco non si sono mai fermati e non compaiono." : "Tutti i mezzi del parco si sono fermati almeno una volta."),
+      });
+    } else if (aff.mezzi.length === 1) {
+      const m = aff.mezzi[0];
+      grafVuoto("graf-fermi", I.fermo, esc(m.mezzo) + ": " + ggTx(m.giorni) + " di fermo",
+        "In questi " + aff.finestra + " giorni si è fermata una macchina sola — <b>" + esc(m.mezzo) + "</b>, "
+        + m.episodi + (m.episodi === 1 ? " fermo" : " fermi") + " per " + esc(m.causali.join(", "))
+        + " — e con una sola non c'è <b>niente da confrontare</b>. Quando anche un secondo mezzo avrà un fermo, "
+        + "qui comparirà la classifica di chi ferma di più.");
+    } else if (aff.parco) {
+      grafVuoto("graf-fermi", I.fermo, "Nessun fermo in questi " + aff.finestra + " giorni",
+        "Qui comparirà, mezzo per mezzo, <b>quanti giorni</b> ogni macchina non ha potuto lavorare. "
+        + "Si riempie da solo: ogni fermo che registri qui sotto entra nel conto e abbassa la disponibilità reale.");
+    } else {
+      grafVuoto("graf-fermi", I.mezzo, "Nessun mezzo nel parco",
+        "I fermi si registrano su una macchina: aggiungi il primo mezzo qui sopra e da lì l'app comincia a misurare <b>quanto lavora davvero</b> la flotta.");
+    }
+
+    // Le cause, ordinate: è la lista da cui si decide dove intervenire.
+    if (aff.causali.length >= 2) {
+      const prima = aff.causali[0];
+      grafico("graf-fermi-causali", "barre", {
+        titolo: "Perché si fermano",
+        meta: "giorni persi per causa",
+        orientamento: "orizzontale", ordina: true, rampa: true, taglio: 80,
+        formato: (v) => (+v || 0).toLocaleString("it-IT", { maximumFractionDigits: 1 }), unita: "gg",
+        valori: aff.causali.map(c => ({ etichetta: c.causale, valore: c.giorni })),
+        nota: "La causa che pesa di più è <b>" + esc(prima.causale) + "</b>: " + ggTx(prima.giorni)
+          + " in " + prima.episodi + (prima.episodi === 1 ? " episodio" : " episodi")
+          + ", il " + Math.round(100 * prima.giorni / aff.persi) + "% dei giorni persi. "
+          + "La tacca segna dove si arriva all'<b>80%</b> dei giorni persi: le cause a sinistra sono quelle su cui conviene lavorare per prime.",
+      });
+    } else if (aff.causali.length === 1) {
+      const c = aff.causali[0];
+      grafVuoto("graf-fermi-causali", I.avviso, "Una sola causa finora: " + esc(c.causale),
+        "Tutti i giorni persi in questo periodo vengono da <b>" + esc(c.causale) + "</b> ("
+        + ggTx(c.giorni) + " in " + c.episodi + (c.episodi === 1 ? " episodio" : " episodi")
+        + "). Con una causa sola non c'è una classifica: quando ne registrerai un'altra, qui vedrai <b>dove si perdono davvero le giornate</b>.");
+    } else {
+      puliscoGrafico("graf-fermi-causali");
+    }
+
+    const lista = fermiOrdinati(FER, new Date());
+    $("fer-list").innerHTML = lista.slice(0, 12).map(f => {
+      const cls = f.aperto ? "danger" : "mute";
+      const quando = "dal " + dataIt(f.inizio) + (f.fine ? " al " + dataIt(f.fine) : " — ancora fermo");
+      return `<div class="item statico ${striscia[cls] || "st-mute"}">
+        <div class="avatar${f.aperto ? "" : " sup"}">${I.fermo}</div>
+        <div class="info"><div class="name">${esc(nomeBreve(f.mezzo) || "Mezzo")} · ${esc(f.causaleTx)}</div>
+          <div class="meta">${esc(quando)}${f.giorni != null ? " · " + ggTx(f.giorni) : ""}</div>
+          ${f.note ? `<div class="meta norma">${esc(f.note)}</div>` : ""}</div>
+        <div class="acts"><span class="badge ${f.aperto ? "danger" : "tag"}">${f.giorni != null ? (f.aperto ? "fermo da " + ggTx(f.giorni) : ggTx(f.giorni)) : "data non valida"}</span>
+        ${f.aperto ? `<span class="arr ok" role="button" tabindex="0" title="Segna che la macchina è ripartita" aria-label="${esc(nomeBreve(f.mezzo))} è ripartito" data-fer-fine="${f.id}">${I.riparte}</span>` : ""}
+        <span class="arr dan" role="button" tabindex="0" title="Rimuovi questo fermo" aria-label="Rimuovi il fermo di ${esc(nomeBreve(f.mezzo))}" data-fer-del="${f.id}">${I.croce}</span></div></div>`;
+    }).join("")
+      + (lista.length > 12 ? `<div class="count">ne vedi 12 · su ${lista.length}</div>` : "")
+      || vuoto(I.fermo, "Nessun fermo registrato",
+          "Un fermo è una macchina che non ha potuto lavorare: guasto, attesa di un pezzo, verifica. "
+          + "Registrando <b>quando</b> si è fermata e <b>perché</b>, Flotta ti dice quanto ti costa in giornate "
+          + "e quale macchina ti ferma più spesso — con i numeri, non a sensazione.");
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // L5 — ORDINE DI LAVORO
+  // ══════════════════════════════════════════════════════════════════════
+  function apriOrdine(id) {
+    const n = MAN.find(x => x.id === id); if (!n) return;
+    odlId = id;
+    $("odl-esito").textContent = "";
+    ["odl-chi","odl-ore","odl-ric-nome","odl-ric-qta","odl-ric-prezzo"].forEach(i => { $(i).value = ""; err(i, false); });
+    // il costo orario usato l'ultima volta: su un dispositivo è quasi sempre
+    // lo stesso, e riscriverlo ogni volta è tempo perso
+    try { const t = localStorage.getItem("dwFlottaTariffa"); if (t) $("odl-tariffa").value = t; } catch (e) {}
+    disegnaOrdine();
+    go("odl");
+  }
+  // aggiorna un campo solo se non ci sta scrivendo dentro qualcuno
+  const valSeLibero = (id, v) => { const el = $(id); if (el && document.activeElement !== el) el.value = v; };
+
+  function disegnaOrdine() {
+    const n = MAN.find(x => x.id === odlId);
+    if (!n) {   // l'ordine è stato chiuso o rimosso mentre era aperto
+      odlId = null;
+      if ($("page-odl").classList.contains("active")) go("man");
+      return;
+    }
+    const o = ordineDaManutenzione(n, RIC);
+    const q = costoOrdine(o);
+    const so = statoOrdine(n);
+    const u = urgDiOrdine(n);
+    const m = MEZ.find(x => nomeBreve(x.nome) === nomeBreve(n.mezzo)) || null;
+    $("odl-testa").innerHTML = `<div class="sch-testa">
+      <div class="sch-av">${n.origine === "controllo" ? I.giro : I.chiave}</div>
+      <div class="sch-b"><div class="sch-nome">${esc(n.titolo)}</div>
+        <div class="sch-sotto"><span class="badge ${so.cls}">${so.etichetta}</span>
+          <span class="badge ${u.cls}">${esc(u.label)}</span>
+          ${esc(nomeBreve(n.mezzo) || "senza mezzo")}${m ? " · <b>" + (+m.ore || 0).toLocaleString("it-IT") + "</b> ore motore" : " · mezzo non più nel parco"}</div>
+        <div class="sch-sotto">${n.orePreviste ? "Tagliando a <b>" + n.orePreviste.toLocaleString("it-IT") + "</b> ore motore" : "Previsto per il <b>" + dataIt(n.dataPrevista) + "</b>"}${n.ogniOre ? " · si ripete ogni " + n.ogniOre + " h" : n.ogniMesi ? " · si ripete ogni " + n.ogniMesi + " mesi" : ""}${n.nota ? " · " + esc(n.nota) : ""}</div>
+      </div></div>`;
+    $("odl-stati").innerHTML = STATI_ORDINE.map(s =>
+      `<button class="chg${s.chiave === so.chiave ? " active" : ""}" data-odl-stato="${s.chiave}">${s.etichetta}</button>`).join("");
+    $("odl-stato-nota").innerHTML = esc(so.nota)
+      + (so.chiave === "attesa-ricambi" ? " I pezzi che mancano si ordinano dal <b>magazzino ricambi</b>, in Officina." : "");
+
+    $("odl-mano-cnt").textContent = o.manodopera.length;
+    $("odl-mano").innerHTML = q.manodopera.righe.map((r, i) =>
+      `<div class="item statico ${r.tariffa > 0 ? "st-ok" : "st-mute"}">
+        <div class="avatar sup">${I.persona}</div>
+        <div class="info"><div class="name">${esc(r.chi || "Senza nome")}</div>
+          <div class="meta">${oreTx(r.ore)}${r.tariffa > 0 ? " × " + eur(r.tariffa) + " l'ora" : " · costo orario non indicato"}</div></div>
+        <div class="acts">${r.tariffa > 0 ? `<span class="badge tag euro">${eur(r.costo)}</span>` : `<span class="badge tag">solo ore</span>`}
+        <span class="arr dan" role="button" tabindex="0" title="Togli questa riga" aria-label="Togli ${esc(r.chi)}" data-odl-mano-del="${i}">${I.croce}</span></div></div>`).join("")
+      || vuoto(I.persona, "Nessuna ora segnata",
+          "Segna qui <b>chi</b> ci ha lavorato e per <b>quante ore</b>: una riga per persona. È la metà del costo di un intervento, ed è quella che di solito non si conta.");
+
+    $("odl-ric-cnt").textContent = o.ricambi.length;
+    $("odl-ric").innerHTML = q.ricambi.righe.map((r, i) => {
+      const inMag = r.id ? RIC.find(x => x.id === r.id) : null;
+      return `<div class="item statico ${r.prezzo > 0 ? "st-ok" : "st-mute"}">
+        <div class="avatar sup">${I.bullone}</div>
+        <div class="info"><div class="name">${esc(r.nome || "Pezzo senza nome")}</div>
+          <div class="meta">${r.qta.toLocaleString("it-IT")} × ${r.prezzo > 0 ? eur(r.prezzo) : "prezzo non indicato"}${inMag ? " · dal magazzino (giacenza " + (+inMag.giacenza || 0) + ")" : r.id ? " · non più in magazzino" : " · pezzo non a magazzino"}</div></div>
+        <div class="acts">${r.prezzo > 0 ? `<span class="badge tag euro">${eur(r.costo)}</span>` : `<span class="badge tag">senza prezzo</span>`}
+        <span class="arr dan" role="button" tabindex="0" title="Togli questo ricambio" aria-label="Togli ${esc(r.nome)}" data-odl-ric-del="${i}">${I.croce}</span></div></div>`;
+    }).join("")
+      || vuoto(I.bullone, "Nessun ricambio usato",
+          "I pezzi montati su questo lavoro. Quelli presi dal <b>magazzino</b> vengono scaricati alla chiusura, nella quantità che scrivi: la giacenza resta vera senza correzioni a mano.");
+
+    { const sel = $("odl-ric-sel").value;
+      $("odl-ric-sel").innerHTML = '<option value="">— scegli dal magazzino —</option>'
+        + RIC.map(r => `<option value="${r.id}"${r.id === sel ? " selected" : ""}>${esc(r.nome)} (giac. ${+r.giacenza || 0}${+r.prezzo > 0 ? " · " + eur(r.prezzo) : ""})</option>`).join(""); }
+    valSeLibero("odl-altre", o.altreSpese > 0 ? o.altreSpese : "");
+    valSeLibero("odl-note", o.noteLavoro);
+
+    $("odl-kpi").innerHTML = [
+      ["accent", "Ore di lavoro", q.manodopera.ore ? oreTx(q.manodopera.ore) : "—"],
+      [q.manodopera.costo ? "warn" : "accent", "Manodopera", eur(q.manodopera.costo)],
+      [q.ricambi.costo ? "warn" : "accent", "Ricambi", eur(q.ricambi.costo)],
+      [q.totale ? "danger" : "ok", "Totale", eur(q.totale)],
+    ].map(([cls, l, v]) => `<div class="kpi ${cls}"><div class="l">${l}</div><div class="n">${v}</div></div>`).join("");
+
+    const pezzi = [
+      q.manodopera.ore ? oreTx(q.manodopera.ore) + " di lavoro" + (q.persone > 1 ? " di " + q.persone + " persone" : "") + (q.manodopera.costo ? " per " + eur(q.manodopera.costo) : "") : "",
+      q.ricambi.righe.length ? q.ricambi.righe.length + (q.ricambi.righe.length === 1 ? " ricambio" : " ricambi") + (q.ricambi.costo ? " per " + eur(q.ricambi.costo) : "") : "",
+      q.altre ? "altre spese per " + eur(q.altre) : "",
+    ].filter(Boolean);
+    $("odl-conto").innerHTML = pezzi.length
+      ? "Finora questo lavoro vale <b>" + eur(q.totale) + "</b>: " + pezzi.join(" + ") + "."
+        + (q.manodopera.senzaTariffa ? ` <span class="giallo">${q.manodopera.senzaTariffa === 1 ? "Una riga di ore non ha il costo orario" : q.manodopera.senzaTariffa + " righe di ore non hanno il costo orario"}</span>: quelle ore sono registrate ma non entrano nel totale.` : "")
+        + (q.ricambi.senzaPrezzo ? ` <span class="giallo">${q.ricambi.senzaPrezzo === 1 ? "Un ricambio non ha il prezzo" : q.ricambi.senzaPrezzo + " ricambi non hanno il prezzo"}</span>: il pezzo verrà scaricato lo stesso dal magazzino, ma a costo zero.` : "")
+      : "Ancora niente scritto su questo lavoro: nessuna ora, nessun ricambio, nessuna spesa. Puoi chiudere lo stesso l'ordine — ti verrà chiesto il costo — ma con le ore e i pezzi scritti qui il costo lo fa l'app, e resta la memoria di cosa è stato fatto.";
+  }
+
+  // urgenza di un ordine (a ore motore oppure a data): la stessa della lista
+  const urgDiOrdine = (n) => {
+    if (n.orePreviste) {
+      const m = MEZ.find(x => nomeBreve(x.nome) === nomeBreve(n.mezzo));
+      return m ? urgenzaOre(n.orePreviste, +m.ore || 0) : { cls: "ok", label: "a " + n.orePreviste + " h" };
+    }
+    return urgenza(n.dataPrevista);
+  };
+
+  // Salvataggio di una parte dell'ordine: una riga sola, perché ogni comando
+  // dell'ordine fa la stessa cosa — scrive sulla manutenzione e ridisegna.
+  async function salvaOrdine(n, patch, messaggio) {
+    await db.aggiorna("manutenzioni", n.id, patch);
+    if (messaggio) esito("odl-esito", messaggio, "success");
+    await refresh();
+  }
+
+  // CHIUSURA DELL'ORDINE. Il costo non viene chiesto: è già scritto nelle
+  // righe. Si chiedono solo le spese esterne (già proposte, così chi vuole
+  // chiudere in fretta scrive lì il totale e va) e la nota dell'intervento.
+  async function chiudiOrdineLavoro(n) {
+    const o = ordineDaManutenzione(n, RIC);
+    const q = costoOrdine(o);
+    const detta = [
+      q.manodopera.ore ? oreTx(q.manodopera.ore) + " di lavoro (" + eur(q.manodopera.costo) + ")" : "",
+      q.ricambi.righe.length ? q.ricambi.righe.length + (q.ricambi.righe.length === 1 ? " ricambio" : " ricambi") + " (" + eur(q.ricambi.costo) + ")" : "",
+    ].filter(Boolean).join(" + ");
+    const dati = await chiediDati("Chiudere l'ordine di lavoro",
+      `<b>${esc(n.titolo)} — ${esc(n.mezzo)}</b><br>
+       ${detta ? "Su questo lavoro risultano " + detta + "." : "Su questo lavoro non è ancora scritto niente: nessuna ora, nessun ricambio."}<br>
+       Chiudendo, esce dal programma ed entra nel <b>registro interventi</b> del mezzo${q.ricambi.righe.filter(r => r.id).length ? ", e i ricambi presi dal magazzino vengono scaricati" : ""}.`,
+      [{ id: "altre", label: "Altre spese (€)", tipo: "number", min: 0, step: "0.01",
+         valore: q.altre > 0 ? q.altre : "", placeholder: "0",
+         aiuto: "Quello che non sta né nelle ore né nei pezzi: officina esterna, traino, noleggio. Se il lavoro non ha righe, scrivi qui il costo totale." },
+       { id: "note", label: "Note sull'intervento", valore: o.noteLavoro,
+         placeholder: "es. sostituiti filtri e olio motore",
+         aiuto: "Facoltative: è la memoria che ritrovi fra due anni." }],
+      "Chiudi l'ordine");
+    if (dati === null) return false;
+    const altre = Math.max(0, Math.round(+String(dati.altre || "0").replace(",", ".") * 100) / 100) || 0;
+    const note = (dati.note || "").trim();
+    const finale = costoOrdine({ ...o, altreSpese: altre });
+    const costo = finale.totale;
+    // 1) i ricambi presi dal magazzino escono davvero dal magazzino
+    for (const r of finale.ricambi.righe) {
+      if (!r.id) continue;
+      const mag = RIC.find(x => x.id === r.id);
+      if (mag) await db.aggiorna("ricambi", mag.id, { giacenza: scaricoGiacenza(mag.giacenza, r.qta) });
+    }
+    // 2) l'intervento nello storico del mezzo: con la lavorazione dentro, ma
+    //    con `ricambio` e `costo` ancora al loro posto — registro, export e
+    //    costi per mezzo continuano a leggerli come hanno sempre fatto
+    await db.aggiungi("interventi", {
+      data: oggiISO(), titolo: n.titolo, mezzo: n.mezzo,
+      ricambio: finale.ricambi.righe.length ? finale.ricambi.righe.map(r => r.nome + (r.qta !== 1 ? " ×" + r.qta.toLocaleString("it-IT") : "")).join(", ") : null,
+      costo, note,
+      manodopera: finale.manodopera.righe, oreManodopera: finale.manodopera.ore,
+      costoManodopera: finale.manodopera.costo, costoRicambi: finale.ricambi.costo,
+      altreSpese: altre, ricambiUsati: finale.ricambi.righe,
+    });
+    // 3) la spesa, una volta sola, con la data di oggi
+    if (costo > 0) await db.aggiungi("costi", { voce: "Manutenzione: " + n.titolo + " (" + n.mezzo + ")", importo: costo, nota: note, data: oggiISO() });
+    await db.rimuovi("manutenzioni", n.id);
+    if (odlId === n.id) odlId = null;
+    toast("Ordine chiuso: " + n.titolo + " su " + n.mezzo + " — " + eur(costo) + ".", "success");
+    await ripianificaTagliando(n);
+    return true;
+  }
+
+  // ── L3 · IL TAGLIANDO RICORRENTE NON FINISCE QUI ──────────────────────
+  // Se la manutenzione porta un piano, il prossimo giro esiste già: a ore si
+  // conta dalle ore che il mezzo ha ADESSO (non da quelle previste, che quasi
+  // mai coincidono col contatore vero), a calendario dal giorno della
+  // chiusura. L'app lo propone, l'utente conferma o corregge — e svuotando il
+  // campo chiude il piano, senza dover cercare dove si fa.
+  async function ripianificaTagliando(n) {
+    const mezzoDi = MEZ.find(x => nomeBreve(x.nome) === nomeBreve(n.mezzo));
+    const px = prossimoTagliando(n, mezzoDi ? (+mezzoDi.ore || 0) : NaN, oggiISO());
+    if (px && px.da === "ore") {
+      const nx = await chiediDati("Il prossimo tagliando",
+        `<b>${esc(n.titolo)} — ${esc(n.mezzo)}</b> si ripete <b>ogni ${px.ogniOre} ore</b>.<br>
+         Il contatore segna adesso <b>${px.oreBase.toLocaleString("it-IT")} ore</b>: il prossimo cade a
+         <b>${px.orePreviste.toLocaleString("it-IT")} ore</b>. Confermalo, correggilo,
+         oppure <b>svuota il campo</b> per chiudere qui il piano.`,
+        [{ id: "ore", label: "A quante ore motore", tipo: "number", min: 0, valore: px.orePreviste,
+           aiuto: "Vuoto = il tagliando non si ripete più: lo potrai sempre ripianificare a mano." }],
+        "Pianifica");
+      if (nx && String(nx.ore).trim() !== "") {
+        const ore = Math.round(+nx.ore);
+        if (ore > 0) {
+          await db.aggiungi("manutenzioni", { titolo: px.titolo, mezzo: px.mezzo, dataPrevista: null,
+            orePreviste: ore, ricambioId: px.ricambioId, ogniOre: px.ogniOre, ogniMesi: null,
+            piano: px.piano, origine: "piano", nota: null, stato: "da-fare",
+            manodopera: [], ricambiUsati: [], altreSpese: 0, noteLavoro: "" });
+          toast("Prossimo « " + px.titolo + " » pianificato a " + ore.toLocaleString("it-IT") + " ore.", "success");
+        }
+      } else if (nx) toast("Piano chiuso: « " + px.titolo + " » non si ripete più.");
+    } else if (px && px.da === "mesi") {
+      const nx = await chiediDati("Il prossimo tagliando",
+        `<b>${esc(n.titolo)} — ${esc(n.mezzo)}</b> si ripete <b>ogni ${px.ogniMesi} ${px.ogniMesi === 1 ? "mese" : "mesi"}</b>.<br>
+         Fatto oggi, il prossimo cade il <b>${dataIt(px.dataPrevista)}</b>. Confermalo, correggilo,
+         oppure <b>svuota il campo</b> per chiudere qui il piano.`,
+        [{ id: "data", label: "Data del prossimo", tipo: "date", valore: px.dataPrevista,
+           aiuto: "Vuoto = il tagliando non si ripete più." }],
+        "Pianifica");
+      if (nx && String(nx.data || "").trim() !== "") {
+        const iso = String(nx.data).slice(0, 10);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+          await db.aggiungi("manutenzioni", { titolo: px.titolo, mezzo: px.mezzo, dataPrevista: iso,
+            orePreviste: null, ricambioId: px.ricambioId, ogniOre: null, ogniMesi: px.ogniMesi,
+            piano: px.piano, origine: "piano", nota: null, stato: "da-fare",
+            manodopera: [], ricambiUsati: [], altreSpese: 0, noteLavoro: "" });
+          toast("Prossimo « " + px.titolo + " » pianificato per il " + dataIt(iso) + ".", "success");
+        } else toast("La data non è valida: il piano non è stato ripianificato.", "err");
+      } else if (nx) toast("Piano chiuso: « " + px.titolo + " » non si ripete più.");
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
   // L1 — FASCICOLO DEL MEZZO (libretto macchina)
   // ══════════════════════════════════════════════════════════════════════
   function apriScheda(id) {
@@ -1960,75 +2437,80 @@
   const attr = (e, nome) => { const el = e.target.closest && e.target.closest("[" + nome + "]"); return el ? el.getAttribute(nome) : null; };
 
   document.addEventListener("click", async (e) => {
+    // ORDINE DI LAVORO (L5): la riga della manutenzione si apre come ordine,
+    // la spunta lo chiude direttamente (per chi ha solo bisogno di segnarlo
+    // fatto e non ha ore né pezzi da scrivere).
     const done = attr(e, "data-man-done");
     if (done) { const n = MAN.find(x => x.id === done);
       if (!n) return;
-      const ric = n.ricambioId ? RIC.find(r => r.id === n.ricambioId) : null;
-      // ordine di lavoro: la chiusura REGISTRA l'intervento invece di cancellare e basta
-      const dati = await chiediDati("Manutenzione eseguita",
-        `<b>${esc(n.titolo)} — ${esc(n.mezzo)}</b><br>
-         Confermando, questa manutenzione esce dal programma ed entra nel <b>registro interventi</b>
-         del mezzo${ric ? `, e dal magazzino viene scaricato <b>1 ${esc(ric.nome)}</b>` : ""}.`,
-        [{ id: "costo", label: "Costo dell'intervento (€)", tipo: "number", min: 0, step: "0.01",
-           placeholder: "0", aiuto: "Lascia vuoto se non c'è un costo. Se lo scrivi, finisce anche fra i costi della flotta." },
-         { id: "note", label: "Note sull'intervento", placeholder: "es. sostituiti filtri e olio motore",
-           aiuto: "Facoltative: è la memoria che ritrovi fra due anni." }],
-        "Registra l'intervento");
-      if (dati === null) return;
-      const costo = Math.max(0, Math.round(+String(dati.costo || "0").replace(",", ".") * 100) / 100) || 0;
-      const note = (dati.note || "").trim();
-      if (ric) await db.aggiorna("ricambi", ric.id, { giacenza: scaricoGiacenza(ric.giacenza, 1) });
-      await db.aggiungi("interventi", { data: oggiISO(), titolo: n.titolo, mezzo: n.mezzo, ricambio: ric ? ric.nome : null, costo, note });
-      // la spesa nasce con la data dell'intervento: è il giorno in cui è stata
-      // fatta, e da subito entra al posto giusto nell'andamento mensile
-      if (costo > 0) await db.aggiungi("costi", { voce: "Manutenzione: " + n.titolo + " (" + n.mezzo + ")", importo: costo, nota: note, data: oggiISO() });
-      await db.rimuovi("manutenzioni", done);
-      toast("Intervento registrato: " + n.titolo + " su " + n.mezzo + ".", "success");
-
-      // ── L3 · IL TAGLIANDO RICORRENTE NON FINISCE QUI ──────────────────
-      // Se la manutenzione porta un piano, il prossimo giro esiste già: a ore
-      // si conta dalle ore che il mezzo ha ADESSO (non da quelle previste,
-      // che quasi mai coincidono col contatore vero), a calendario dal giorno
-      // della chiusura. L'app lo propone, l'utente conferma o corregge — e
-      // svuotando il campo chiude il piano, senza dover cercare dove si fa.
-      const mezzoDi = MEZ.find(x => nomeBreve(x.nome) === nomeBreve(n.mezzo));
-      const px = prossimoTagliando(n, mezzoDi ? (+mezzoDi.ore || 0) : NaN, oggiISO());
-      if (px && px.da === "ore") {
-        const nx = await chiediDati("Il prossimo tagliando",
-          `<b>${esc(n.titolo)} — ${esc(n.mezzo)}</b> si ripete <b>ogni ${px.ogniOre} ore</b>.<br>
-           Il contatore segna adesso <b>${px.oreBase.toLocaleString("it-IT")} ore</b>: il prossimo cade a
-           <b>${px.orePreviste.toLocaleString("it-IT")} ore</b>. Confermalo, correggilo,
-           oppure <b>svuota il campo</b> per chiudere qui il piano.`,
-          [{ id: "ore", label: "A quante ore motore", tipo: "number", min: 0, valore: px.orePreviste,
-             aiuto: "Vuoto = il tagliando non si ripete più: lo potrai sempre ripianificare a mano." }],
-          "Pianifica");
-        if (nx && String(nx.ore).trim() !== "") {
-          const ore = Math.round(+nx.ore);
-          if (ore > 0) {
-            await db.aggiungi("manutenzioni", { titolo: px.titolo, mezzo: px.mezzo, dataPrevista: null,
-              orePreviste: ore, ricambioId: px.ricambioId, ogniOre: px.ogniOre, ogniMesi: null,
-              piano: px.piano, origine: "piano", nota: null });
-            toast("Prossimo « " + px.titolo + " » pianificato a " + ore.toLocaleString("it-IT") + " ore.", "success");
-          }
-        } else if (nx) toast("Piano chiuso: « " + px.titolo + " » non si ripete più.");
-      } else if (px && px.da === "mesi") {
-        const nx = await chiediDati("Il prossimo tagliando",
-          `<b>${esc(n.titolo)} — ${esc(n.mezzo)}</b> si ripete <b>ogni ${px.ogniMesi} ${px.ogniMesi === 1 ? "mese" : "mesi"}</b>.<br>
-           Fatto oggi, il prossimo cade il <b>${dataIt(px.dataPrevista)}</b>. Confermalo, correggilo,
-           oppure <b>svuota il campo</b> per chiudere qui il piano.`,
-          [{ id: "data", label: "Data del prossimo", tipo: "date", valore: px.dataPrevista,
-             aiuto: "Vuoto = il tagliando non si ripete più." }],
-          "Pianifica");
-        if (nx && String(nx.data || "").trim() !== "") {
-          const iso = String(nx.data).slice(0, 10);
-          if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
-            await db.aggiungi("manutenzioni", { titolo: px.titolo, mezzo: px.mezzo, dataPrevista: iso,
-              orePreviste: null, ricambioId: px.ricambioId, ogniOre: null, ogniMesi: px.ogniMesi,
-              piano: px.piano, origine: "piano", nota: null });
-            toast("Prossimo « " + px.titolo + " » pianificato per il " + dataIt(iso) + ".", "success");
-          } else toast("La data non è valida: il piano non è stato ripianificato.", "err");
-        } else if (nx) toast("Piano chiuso: « " + px.titolo + " » non si ripete più.");
+      e.stopPropagation();
+      const fatto = await chiudiOrdineLavoro(n);
+      if (fatto) { if ($("page-odl").classList.contains("active")) go("man"); await refresh(); }
+      return; }
+    const odlMan = attr(e, "data-odl-man");
+    if (odlMan) { apriOrdine(odlMan); return; }
+    // righe della lavorazione: si tolgono per posizione, perché due righe
+    // possono essere identiche (due volte la stessa persona in due giorni)
+    const manoDel = attr(e, "data-odl-mano-del");
+    if (manoDel != null) { const n = MAN.find(x => x.id === odlId); if (!n) return;
+      const o = ordineDaManutenzione(n, RIC);
+      const i = +manoDel; const via = o.manodopera[i]; if (!via) return;
+      await salvaOrdine(n, { manodopera: o.manodopera.filter((_, k) => k !== i) },
+        "Riga tolta: " + (via.chi || "senza nome") + ", " + oreTx(via.ore) + ".");
+      return; }
+    const ricDelOdl = attr(e, "data-odl-ric-del");
+    if (ricDelOdl != null) { const n = MAN.find(x => x.id === odlId); if (!n) return;
+      const o = ordineDaManutenzione(n, RIC);
+      const i = +ricDelOdl; const via = o.ricambi[i]; if (!via) return;
+      await salvaOrdine(n, { ricambiUsati: o.ricambi.filter((_, k) => k !== i) },
+        "Ricambio tolto dall'ordine: " + (via.nome || "senza nome") + ".");
+      return; }
+    const odlStato = attr(e, "data-odl-stato");
+    if (odlStato) { const n = MAN.find(x => x.id === odlId); if (!n) return;
+      if (statoOrdine(n).chiave === odlStato) return;
+      const s = STATI_ORDINE.find(x => x.chiave === odlStato); if (!s) return;
+      await salvaOrdine(n, { stato: odlStato }, "Ora questo lavoro è « " + s.etichetta.toLowerCase() + " ».");
+      return; }
+    // FERMI MACCHINA (L6): «è ripartito» chiude il fermo di oggi e propone di
+    // rimettere la macchina operativa; la croce lo toglie del tutto.
+    const ferFine = attr(e, "data-fer-fine");
+    if (ferFine) { const f = FER.find(x => x.id === ferFine); if (!f) return;
+      const d = durataFermo(f, new Date());
+      const r = await chiediDati("La macchina è ripartita",
+        `<b>${esc(nomeBreve(f.mezzo))}</b> è ferma dal <b>${dataIt(f.inizio)}</b> (${esc(etichettaCausale(f.causale))}):
+         sono ${ggTx(d.giorni)} contando oggi.<br>
+         In che giorno è ripartita? Da quel giorno i suoi giorni smettono di contare.`,
+        [{ id: "fine", label: "Giorno in cui è ripartita", tipo: "date", valore: oggiISO(),
+           aiuto: "Se è ripartita ieri metti ieri: i giorni persi devono essere quelli veri." }],
+        "Registra");
+      if (r === null) return;
+      const v = validaFermo({ mezzo: f.mezzo, causale: f.causale, inizio: f.inizio, fine: r.fine });
+      if (!v.ok) { await avvisa("Data non valida", Object.values(v.errori).map(esc).join(" ")); return; }
+      await db.aggiorna("fermi", f.id, { fine: v.fine });
+      const gio = durataFermo({ ...f, fine: v.fine }, new Date()).giorni;
+      esito("fer-esito", "Fermo chiuso: " + nomeBreve(f.mezzo) + " è ripartito il " + dataIt(v.fine) + " dopo " + ggTx(gio) + ".", "success");
+      // se non ha altri fermi aperti e nel parco risulta ancora fermo, si
+      // propone di rimetterla operativa: sono due cose diverse, e la seconda
+      // la decide l'utente
+      const m = MEZ.find(x => nomeBreve(x.nome) === nomeBreve(f.mezzo));
+      const altri = FER.some(x => x.id !== f.id && nomeBreve(x.mezzo) === nomeBreve(f.mezzo) && !x.fine);
+      if (m && m.stato !== "operativo" && !altri) {
+        const ok = await chiedi("Rimettere il mezzo operativo?",
+          `<b>${esc(nomeBreve(f.mezzo))}</b> non ha più fermi aperti, ma nel parco risulta ancora
+           « ${esc((MB[m.stato] || MB.operativo)[1].toLowerCase())} ». Lo segno <b>operativo</b>?`, "Sì, è operativo");
+        if (ok) await db.aggiorna("mezzi", m.id, { stato: "operativo" });
       }
+      await refresh(); return; }
+    const ferDel = attr(e, "data-fer-del");
+    if (ferDel) { const f = FER.find(x => x.id === ferDel); if (!f) return;
+      const d = durataFermo(f, new Date());
+      const ok = await chiedi("Rimuovere il fermo",
+        `Stai per togliere il fermo di <b>${esc(nomeBreve(f.mezzo))}</b> del ${dataIt(f.inizio)}
+         (${esc(etichettaCausale(f.causale))}${d.giorni != null ? ", " + ggTx(d.giorni) : ""}).<br>
+         La disponibilità reale si ricalcola subito. <b>Non si può annullare.</b>`, "Rimuovi", true);
+      if (!ok) return;
+      await db.rimuovi("fermi", ferDel);
+      toast("Fermo rimosso: " + nomeBreve(f.mezzo) + ".");
       await refresh(); return; }
     // Scheda del mezzo (fascicolo): si apre dal parco mezzi.
     const schedaMez = attr(e, "data-scheda-mezzo");
@@ -2305,9 +2787,13 @@
       fuoco(!nome ? "ric-nome" : !giacOk ? "ric-giac" : "ric-soglia"); return;
     }
     ["ric-nome","ric-giac","ric-soglia"].forEach(i => err(i, false));
-    await db.aggiungi("ricambi", { nome, giacenza: giac, sogliaMin: soglia });
-    $("ric-nome").value = ""; $("ric-giac").value = ""; $("ric-soglia").value = "";
-    esito("ric-esito", "Ricambio aggiunto: " + nome + " (giacenza " + giac + ", soglia " + soglia + ").", "success");
+    // il prezzo è facoltativo: se non c'è resta assente, non diventa zero
+    const prezzoTx = String($("ric-prezzo").value || "").trim();
+    const prezzo = prezzoTx === "" ? null : Math.max(0, Math.round(+prezzoTx.replace(",", ".") * 100) / 100) || 0;
+    await db.aggiungi("ricambi", { nome, giacenza: giac, sogliaMin: soglia, prezzo });
+    $("ric-nome").value = ""; $("ric-giac").value = ""; $("ric-soglia").value = ""; $("ric-prezzo").value = "";
+    esito("ric-esito", "Ricambio aggiunto: " + nome + " (giacenza " + giac + ", soglia " + soglia
+      + (prezzo ? ", " + eur(prezzo) + " al pezzo" : "") + ").", "success");
     fuoco("ric-nome");
     await refresh();
   };
@@ -2602,6 +3088,158 @@
     a.download = "libretto-" + nomeBreve(m.nome).toLowerCase().replace(/[^a-z0-9]+/g, "-") + ".csv"; a.click();
     toast("Libretto macchina esportato (CSV).", "success");
   };
+  // ══════════════════════════════════════════════════════════════════════
+  // L5 — i comandi dell'ordine di lavoro
+  // ══════════════════════════════════════════════════════════════════════
+  $("man-stati").addEventListener("click", (e) => {
+    const f = e.target.getAttribute && e.target.getAttribute("data-man-stato");
+    if (f) { filtroMan = f; refresh(); }
+  });
+  $("btn-odl-back").onclick = () => { odlId = null; go("man"); };
+  $("btn-odl-back2").onclick = () => { odlId = null; go("man"); };
+  $("btn-odl-mano").onclick = async () => {
+    const n = MAN.find(x => x.id === odlId); if (!n) return;
+    const v = validaRigaManodopera({ chi: $("odl-chi").value, ore: $("odl-ore").value, tariffa: $("odl-tariffa").value });
+    err("odl-chi", v.errori.chi); err("odl-ore", v.errori.ore); err("odl-tariffa", v.errori.tariffa);
+    if (!v.ok) {
+      esito("odl-esito", Object.values(v.errori).join(" "), "err");
+      fuoco(v.errori.chi ? "odl-chi" : v.errori.ore ? "odl-ore" : "odl-tariffa"); return;
+    }
+    const o = ordineDaManutenzione(n, RIC);
+    const patch = { manodopera: o.manodopera.concat([{ chi: v.chi, ore: v.ore, tariffa: v.tariffa }]) };
+    // chi segna delle ore ci sta lavorando: lo stato si aggiorna da solo,
+    // invece di restare «da fare» mentre qualcuno ha le mani dentro
+    const avanza = statoOrdine(n).chiave === "da-fare";
+    if (avanza) patch.stato = "in-corso";
+    try { localStorage.setItem("dwFlottaTariffa", String(v.tariffa || "")); } catch (e) {}
+    $("odl-chi").value = ""; $("odl-ore").value = "";
+    await salvaOrdine(n, patch, v.chi + ": " + oreTx(v.ore)
+      + (v.tariffa ? " a " + eur(v.tariffa) + " l'ora = " + eur(Math.round(v.ore * v.tariffa * 100) / 100) : " (senza costo orario)")
+      + (avanza ? ". Il lavoro passa « in lavorazione »." : "."));
+    fuoco("odl-chi");
+  };
+  // scegliendo un pezzo dal magazzino, il prezzo che c'è arriva da solo
+  $("odl-ric-sel").onchange = () => {
+    const r = RIC.find(x => x.id === $("odl-ric-sel").value);
+    if (!r) return;
+    $("odl-ric-nome").value = "";
+    if (+r.prezzo > 0 && !$("odl-ric-prezzo").value) $("odl-ric-prezzo").value = r.prezzo;
+    if (!$("odl-ric-qta").value) $("odl-ric-qta").value = 1;
+    fuoco("odl-ric-qta");
+  };
+  $("btn-odl-ric").onclick = async () => {
+    const n = MAN.find(x => x.id === odlId); if (!n) return;
+    const dalMag = RIC.find(x => x.id === $("odl-ric-sel").value) || null;
+    const libero = $("odl-ric-nome").value.trim();
+    const v = validaRigaRicambio({ id: dalMag && !libero ? dalMag.id : null,
+      nome: libero || (dalMag ? dalMag.nome : ""), qta: $("odl-ric-qta").value, prezzo: $("odl-ric-prezzo").value });
+    err("odl-ric-nome", v.errori.nome); err("odl-ric-qta", v.errori.qta); err("odl-ric-prezzo", v.errori.prezzo);
+    if (!v.ok) {
+      esito("odl-esito", Object.values(v.errori).join(" "), "err");
+      fuoco(v.errori.nome ? "odl-ric-sel" : v.errori.qta ? "odl-ric-qta" : "odl-ric-prezzo"); return;
+    }
+    const o = ordineDaManutenzione(n, RIC);
+    await salvaOrdine(n, { ricambiUsati: o.ricambi.concat([{ id: v.id, nome: v.nome, qta: v.qta, prezzo: v.prezzo }]) },
+      "Ricambio aggiunto all'ordine: " + v.qta.toLocaleString("it-IT") + " × " + v.nome
+      + (v.prezzo ? " a " + eur(v.prezzo) + " = " + eur(Math.round(v.qta * v.prezzo * 100) / 100) : " (senza prezzo)")
+      + (v.id ? ". Verrà scaricato dal magazzino alla chiusura." : "."));
+    $("odl-ric-sel").value = ""; $("odl-ric-nome").value = ""; $("odl-ric-qta").value = ""; $("odl-ric-prezzo").value = "";
+  };
+  // altre spese e nota di lavorazione: si salvano da sole appena si esce dal
+  // campo, perché un pulsante «salva» accanto a due caselle è un pulsante che
+  // qualcuno dimenticherà di premere
+  const salvaCampoOrdine = async () => {
+    const n = MAN.find(x => x.id === odlId); if (!n) return;
+    const o = ordineDaManutenzione(n, RIC);
+    const altre = Math.max(0, Math.round(+String($("odl-altre").value || "0").replace(",", ".") * 100) / 100) || 0;
+    const note = $("odl-note").value.trim();
+    if (altre === o.altreSpese && note === o.noteLavoro) return;   // niente da salvare
+    await salvaOrdine(n, { altreSpese: altre, noteLavoro: note });
+  };
+  $("odl-altre").addEventListener("change", salvaCampoOrdine);
+  $("odl-note").addEventListener("change", salvaCampoOrdine);
+  $("btn-odl-chiudi").onclick = async () => {
+    const n = MAN.find(x => x.id === odlId); if (!n) return;
+    await salvaCampoOrdine();
+    const vivo = MAN.find(x => x.id === odlId) || n;
+    const fatto = await chiudiOrdineLavoro(vivo);
+    if (fatto) { go("man"); await refresh(); }
+  };
+
+  // ══════════════════════════════════════════════════════════════════════
+  // L6 — i comandi dei fermi macchina
+  // ══════════════════════════════════════════════════════════════════════
+  try { const _f = +localStorage.getItem("dwFlottaFinestraFermi"); if ([7, 30, 90, 365].includes(_f)) finestraFer = _f; } catch (e) {}
+  $("fer-finestra").addEventListener("click", (e) => {
+    const g = e.target.getAttribute && e.target.getAttribute("data-fer-giorni");
+    if (!g) return;
+    finestraFer = +g;
+    try { localStorage.setItem("dwFlottaFinestraFermi", String(finestraFer)); } catch (e) {}
+    refresh();
+  });
+  $("fer-causale").innerHTML = CAUSALI_FERMO.map(c => `<option value="${c.chiave}">${esc(c.etichetta)}</option>`).join("");
+  const notaCausale = () => {
+    const c = causaleFermo($("fer-causale").value);
+    $("fer-nota-causale").innerHTML = c && c.nota ? esc(c.nota) : "";
+  };
+  $("fer-causale").onchange = notaCausale;
+  notaCausale();
+  $("fer-inizio").value = oggiISO();
+  $("btn-fer").onclick = async () => {
+    if (!MEZ.length) { esito("fer-esito", "Prima aggiungi almeno un mezzo nel parco: apri la schermata Mezzi e inseriscilo.", "err"); return; }
+    const dati = { mezzo: ($("fer-mezzo").value || "").trim(), causale: $("fer-causale").value,
+                   inizio: $("fer-inizio").value, fine: $("fer-fine").value, note: $("fer-note").value.trim() };
+    const v = validaFermo(dati);
+    err("fer-mezzo", v.errori.mezzo); err("fer-causale", v.errori.causale);
+    err("fer-inizio", v.errori.inizio); err("fer-fine", v.errori.fine);
+    if (!v.ok) {
+      esito("fer-esito", Object.values(v.errori).join(" "), "err");
+      fuoco(v.errori.mezzo ? "fer-mezzo" : v.errori.causale ? "fer-causale" : v.errori.inizio ? "fer-inizio" : "fer-fine"); return;
+    }
+    // un fermo aperto per lo stesso mezzo c'è già: due fermi aperti sulla
+    // stessa macchina conterebbero due volte gli stessi giorni
+    const aperto = FER.find(f => nomeBreve(f.mezzo) === nomeBreve(dati.mezzo) && !f.fine);
+    if (aperto && !v.fine) {
+      await avvisa("C'è già un fermo aperto",
+        `<b>${esc(nomeBreve(dati.mezzo))}</b> risulta ferma dal <b>${dataIt(aperto.inizio)}</b>
+         (${esc(etichettaCausale(aperto.causale))}) e il fermo non è ancora stato chiuso.<br>
+         Chiudi prima quello — tocca <b>«è ripartito»</b> sulla sua riga — e poi registra il nuovo:
+         due fermi aperti sulla stessa macchina conterebbero due volte gli stessi giorni.`);
+      return;
+    }
+    await db.aggiungi("fermi", { mezzo: dati.mezzo, causale: dati.causale, inizio: v.inizio, fine: v.fine, note: dati.note });
+    const giorni = durataFermo({ inizio: v.inizio, fine: v.fine }, new Date()).giorni;
+    esito("fer-esito", "Fermo registrato: " + dati.mezzo + " — " + etichettaCausale(dati.causale)
+      + (v.fine ? ", dal " + dataIt(v.inizio) + " al " + dataIt(v.fine) + " (" + ggTx(giorni) + ")"
+                : ", dal " + dataIt(v.inizio) + " e ancora fermo (" + ggTx(giorni) + " a oggi)") + ".", "success");
+    $("fer-fine").value = ""; $("fer-note").value = ""; $("fer-inizio").value = oggiISO();
+    // un fermo aperto è una macchina che non lavora: si propone di segnarlo
+    // anche nel parco, dove lo cerca chi deve assegnare i lavori
+    if (!v.fine) {
+      const m = MEZ.find(x => nomeBreve(x.nome) === nomeBreve(dati.mezzo));
+      if (m && m.stato !== "fermo") {
+        const ok = await chiedi("Segnare il mezzo fermo?",
+          `Hai registrato un fermo ancora aperto su <b>${esc(nomeBreve(dati.mezzo))}</b>, che nel parco risulta
+           « ${esc((MB[m.stato] || MB.operativo)[1].toLowerCase())} ».<br>
+           Lo segno <b>fermo</b>, così chi assegna i lavori lo vede subito?`, "Segnalo fermo", true);
+        if (ok) await db.aggiorna("mezzi", m.id, { stato: "fermo" });
+      }
+    }
+    await refresh();
+  };
+  // Il registro dei fermi: è quello che si guarda quando si decide se una
+  // macchina va tenuta o sostituita, e quello che si porta al noleggiatore.
+  $("btn-fer-csv").onclick = () => {
+    const righe = [["mezzo", "causale", "inizio", "fine", "giorni", "stato", "note"].join(";")]
+      .concat(fermiOrdinati(FER, new Date()).map(f =>
+        [nomeBreve(f.mezzo), f.causaleTx, f.inizio || "", f.fine || "", f.giorni == null ? "" : f.giorni,
+         f.aperto ? "ancora fermo" : "chiuso", f.note || ""].map(csvCell).join(";")));
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    a.download = "flotta-fermi-macchina.csv"; a.click();
+    esito("fer-esito", "Esportati " + FER.length + " fermi (CSV).", "success");
+  };
+
   // Recupero errore: appena l'utente corregge un campo, togli il bordo
   // rosso e il messaggio di esito, così l'avviso non resta appeso.
   const clearErr = (inputId, esitoId) => $(inputId).addEventListener("input", () => {
@@ -2626,6 +3264,15 @@
   clearErr("rif-ore", "rif-esito");
   clearErr("rif-data", "rif-esito");
   clearErr("giro-ore", "giro-esito");
+  clearErr("odl-chi", "odl-esito");
+  clearErr("odl-ore", "odl-esito");
+  clearErr("odl-tariffa", "odl-esito");
+  clearErr("odl-ric-nome", "odl-esito");
+  clearErr("odl-ric-qta", "odl-esito");
+  clearErr("odl-ric-prezzo", "odl-esito");
+  clearErr("fer-inizio", "fer-esito");
+  clearErr("fer-fine", "fer-esito");
+  clearErr("fer-note", "fer-esito");
   // Invio da tastiera: premere Invio in un campo del form equivale a
   // toccare il pulsante — data entry più rapida senza spostare il dito.
   const enterSubmit = (inputIds, btnId) => inputIds.forEach(id =>
@@ -2637,6 +3284,9 @@
   enterSubmit(["ric-nome", "ric-giac", "ric-soglia"], "btn-ric");
   enterSubmit(["sca-data", "sca-mesi", "sca-doc", "sca-note"], "btn-sca");
   enterSubmit(["rif-litri", "rif-euro", "rif-ore", "rif-data"], "btn-rif");
+  enterSubmit(["odl-chi", "odl-ore", "odl-tariffa"], "btn-odl-mano");
+  enterSubmit(["odl-ric-nome", "odl-ric-qta", "odl-ric-prezzo"], "btn-odl-ric");
+  enterSubmit(["fer-inizio", "fer-fine", "fer-note"], "btn-fer");
   await refresh();
 </script>
 </body>

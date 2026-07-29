@@ -7,7 +7,8 @@
 //                   avanzamento (0-100), stato: attivo|sospeso }
 //   rilievi/{id}: { titolo, data (ISO yyyy-mm-dd), tipo,
 //                   volumeM3|null, stato: elaborato|pianificato,
-//                   provenienza: scavo|cumulo (assente = scavo) }
+//                   provenienza: scavo|cumulo (assente = scavo),
+//                   rilevatore?: chi ha eseguito il rilievo (per il verbale) }
 //   piano/{id}:   { titolo, dettaglio, stato: vigente|in-esame,
 //                   pianificatoAnnuoM3?, riserveM3? }
 //   autorizzazioni/{id}: { numeroAtto, ente, dataRilascio (ISO),
@@ -279,6 +280,81 @@ export function volumiPerMese(rilievi, mesi = 12, oggi = new Date()) {
   }
   const primo = out.findIndex(m => m.rilievi > 0);
   return primo < 0 ? [] : out.slice(primo);
+}
+
+// ============================================================
+// CONFRONTO FRA DUE RILIEVI DELLO STESSO FRONTE
+// La domanda vera del direttore di cava è «quanto abbiamo cavato da lì fra
+// marzo e luglio». In Terra ogni rilievo elaborato porta il volume tolto
+// dal fronte DA QUANDO c'era il rilievo prima (è così che funziona la somma
+// per fronte, `volumeFronte`): quindi il materiale scavato fra due date è la
+// SOMMA dei rilievi successivi al primo fino al secondo compreso, non la
+// sottrazione fra i due numeri. Sottrarli darebbe un risultato senza senso
+// (verrebbe addirittura negativo se il secondo rilievo copre un periodo più
+// tranquillo), ed è l'errore che si vede fare più spesso sui fogli di calcolo.
+// La differenza fra i due volumi si mostra lo stesso, ma per quello che è:
+// un confronto di RITMO fra due misure, non materiale.
+// Tutte funzioni PURE e testabili.
+// ============================================================
+
+// I rilievi di SCAVO elaborati di un fronte, dal più recente: sono le voci
+// che si possono confrontare. `fronteId` null = i rilievi senza fronte.
+export function rilieviScavoFronte(rilievi, fronteId) {
+  const f = fronteId || null;
+  return soloScavo(rilievi || [])
+    .filter(r => r.stato === "elaborato" && r.volumeM3 != null && /^\d{4}-\d{2}-\d{2}$/.test(String(r.data || "")))
+    .filter(r => (r.fronteId || null) === f)
+    .sort((a, b) => String(b.data).localeCompare(String(a.data)));
+}
+
+// Il rilievo di scavo dello stesso fronte immediatamente PRECEDENTE a `r`
+// (null se `r` è il primo). Serve al verbale: un volume senza il rilievo di
+// partenza non dice da dove è stato misurato.
+export function rilievoPrecedente(rilievi, r) {
+  if (!r || !/^\d{4}-\d{2}-\d{2}$/.test(String(r.data || ""))) return null;
+  const stessi = rilieviScavoFronte(rilievi, r.fronteId)
+    .filter(x => x.id !== r.id && String(x.data) < String(r.data));
+  return stessi[0] || null;   // già ordinati dal più recente
+}
+
+// Confronto fra due rilievi (per id). Ritorna null se non si trovano, se
+// sono lo stesso, o se stanno su fronti diversi (confrontarli sarebbe una
+// somma di cose diverse). L'ordine lo mette la data: `primo` è il più
+// vecchio, qualunque sia l'ordine con cui arrivano.
+//  · `scavato`  = materiale tolto FRA le due date (somma dei rilievi dopo il
+//                 primo, fino al secondo compreso) — la risposta alla domanda;
+//  · `banda`    = incertezza sommata di quei rilievi (scelta prudente);
+//  · `giorni`   = giorni fra le due date;
+//  · `alGiorno`/`alMese` = ritmo implicito nel periodo;
+//  · `delta`/`pct` = differenza fra i due volumi misurati (confronto di
+//                 ritmo fra le due misure, NON materiale scavato).
+export function confrontoRilievi(rilievi, idPrimo, idSecondo) {
+  const el = soloScavo(rilievi || [])
+    .filter(r => r.stato === "elaborato" && r.volumeM3 != null && /^\d{4}-\d{2}-\d{2}$/.test(String(r.data || "")));
+  let a = el.find(r => r.id === idPrimo), b = el.find(r => r.id === idSecondo);
+  if (!a || !b || a.id === b.id) return null;
+  if ((a.fronteId || null) !== (b.fronteId || null)) return null;
+  if (String(a.data) > String(b.data)) { const t = a; a = b; b = t; }
+  const giorni = Math.round((new Date(b.data + "T00:00:00") - new Date(a.data + "T00:00:00")) / 86400000);
+  const dentro = el.filter(r => (r.fronteId || null) === (b.fronteId || null)
+    && String(r.data) > String(a.data) && String(r.data) <= String(b.data));
+  const scavato = dentro.reduce((s, r) => s + (+r.volumeM3 || 0), 0);
+  let banda = 0;
+  for (const r of dentro) {
+    const ca = classeAccuratezza(r);
+    const bv = ca.tolleranzaPct != null ? bandaVolume(r.volumeM3, ca.tolleranzaPct) : null;
+    if (bv) banda += bv.banda;
+  }
+  const va = +a.volumeM3 || 0, vb = +b.volumeM3 || 0;
+  const delta = vb - va;
+  const alGiorno = giorni > 0 ? scavato / giorni : null;
+  return {
+    primo: a, secondo: b, giorni, scavato, banda,
+    rilieviInMezzo: dentro.length,
+    delta, pct: va > 0 ? Math.round(100 * delta / va) : null,
+    alGiorno, alMese: alGiorno != null ? alGiorno * 30.44 : null,
+    fronteId: b.fronteId || null,
+  };
 }
 
 // ============================================================

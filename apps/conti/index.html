@@ -489,6 +489,7 @@ label.item:has(.dw-chk:checked){
     <button class="chg active" data-filtro="tutte">Tutte<span class="qt" data-qt="tutte"></span></button>
     <button class="chg" data-filtro="aperte">Da incassare<span class="qt" data-qt="aperte"></span></button>
     <button class="chg" data-filtro="insolute">Insolute<span class="qt" data-qt="insolute"></span></button>
+    <button class="chg" data-filtro="parziali">Con acconto<span class="qt" data-qt="parziali"></span></button>
     <button class="chg" data-filtro="incassate">Incassate<span class="qt" data-qt="incassate"></span></button>
   </div>
   <div class="ord">
@@ -551,7 +552,9 @@ label.item:has(.dw-chk:checked){
     <span class="hint">colonne: numero;cliente;importo;emessa;scadenza[;incassata]</span>
   </div>
   <div class="note esito" id="ft-esito"></div>
-  <div class="note">Tocca una fattura per <b>segnarla incassata</b>. Il numero è
+  <div class="note">Tocca una fattura per <b>registrare un incasso</b>: si scrive <b>quando</b> i soldi
+    sono arrivati e <b>quanto</b>, così gli <b>acconti</b> sono possibili (in cava un acconto e un saldo
+    sono la norma) e i giorni di pagamento diventano quelli veri. Il numero è
     <b>progressivo per anno</b> e te lo propone Conti: così non si salta e non si duplica.
     Scrivi l'<b>imponibile</b> (l'importo senza IVA): imposta e totale li calcola l'app.
     Il cliente si sceglie dall'anagrafica (scheda Clienti): scegli «Nuovo cliente…» per crearlo al volo.</div>
@@ -863,6 +866,11 @@ label.item:has(.dw-chk:checked){
 <div class="page" id="page-rep">
   <div class="sec">Report rapidi</div>
   <div id="rep-list"></div>
+  <div class="sec">Emesso contro incassato</div>
+  <div id="graf-flusso"></div>
+  <div id="flusso-list"></div>
+  <div class="sec">Tempi reali di pagamento per cliente</div>
+  <div id="tempi-list"></div>
   <div class="sec">Aging incassi — crediti aperti per ritardo</div>
   <div id="graf-aging"></div>
   <div id="aging-list"></div>
@@ -876,6 +884,7 @@ label.item:has(.dw-chk:checked){
   <div id="espo-list"></div>
   <div class="tools">
     <button class="dw-btn secondary" id="btn-rep-export">Esporta situazione (CSV)</button>
+    <button class="dw-btn secondary" id="btn-inc-export">Esporta incassi (CSV)</button>
   </div>
   <div class="note" id="mode-note"></div>
 </div>
@@ -1011,7 +1020,9 @@ label.item:has(.dw-chk:checked){
   import { contiData, giorni, kpiFrom, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, parseFattureCsv, parseGareCsv, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita,
     importiFattura, totaliDaRighe, prossimoNumero, nettoPesata, rigaPesata, valorePesata,
-    quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, venditePerProdotto } from "./conti-data.js";
+    quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, venditePerProdotto,
+    applicaIncassi, apertoDi, statoIncasso, movimentiDiFattura, incassatoPeriodo,
+    tempiPagamentoClienti, tempoMedioPagamento, emessoIncassato } from "./conti-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   // ── CIFRE: formato italiano, sempre due decimali, spazio unificatore
@@ -1106,7 +1117,7 @@ label.item:has(.dw-chk:checked){
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
-  let FAT=[], GAR=[], CLI=[], PRO=[], PES=[], IMP=null;
+  let FAT=[], GAR=[], CLI=[], PRO=[], PES=[], INC=[], IMP=null;
   let filtroFat = "tutte";
   let filtroPes = "tutte";
   let editPro = null;    // id del prodotto in modifica (riusa il form del listino)
@@ -1117,6 +1128,7 @@ label.item:has(.dw-chk:checked){
   const fatMatch = (f) => filtroFat === "tutte"
     || (filtroFat === "aperte" && !f.incassata)
     || (filtroFat === "insolute" && !f.incassata && giorni(f.scadenza) < 0)
+    || (filtroFat === "parziali" && !!f.parziale)
     || (filtroFat === "incassate" && !!f.incassata);
   let ordFat = "scadenza";
   const fatCmp = (a, b) => ordFat === "importo" ? (+b.importo || 0) - (+a.importo || 0)
@@ -1203,20 +1215,28 @@ label.item:has(.dw-chk:checked){
   });
   function fatBadge(f){
     if (f.incassata) return ["ok","Incassata"];
+    // una fattura con un acconto già arrivato NON è come una insoluta secca:
+    // il badge lo dice, e la percentuale dice quanta strada è stata fatta
+    if (f.parziale) return ["accent", "Acconto " + perc(Math.round(100 * (+f.incassato || 0) / Math.max(1, +f.importo || 0)))];
     const g = giorni(f.scadenza);
     if (g < 0) return ["danger","Insoluta"];
     if (g <= 10) return ["warn", g + " gg"];
     return ["ok","Regolare"];
   }
   async function refresh(){
-    let IMPL;
-    [FAT,GAR,CLI,PRO,PES,IMPL] = await Promise.all([db.fatture(), db.gare(), db.clienti(),
-      db.prodotti(), db.pesate(), db.impostazioni()]);
+    let IMPL, FATG;
+    [FATG,GAR,CLI,PRO,PES,INC,IMPL] = await Promise.all([db.fatture(), db.gare(), db.clienti(),
+      db.prodotti(), db.pesate(), db.incassi(), db.impostazioni()]);
+    INC = INC || [];
+    // ogni fattura porta con sé il suo stato di incasso (incassato, residuo,
+    // giorni reali di pagamento). Senza movimenti registrati residuo = importo:
+    // tutti i conti restano quelli di prima, al centesimo.
+    FAT = applicaIncassi(FATG, INC);
     IMP = (IMPL || [])[0] || null;
     const k = kpiFrom(FAT,GAR);
     const aperte  = FAT.filter(f => !f.incassata);
     const scadute = aperte.filter(f => giorni(f.scadenza) < 0);
-    const scadutoTot = scadute.reduce((t,f) => t + (+f.importo || 0), 0);
+    const scadutoTot = scadute.reduce((t,f) => t + apertoDi(f), 0);   // il residuo, non il totale
     const baseAperta = GAR.filter(g => g.stato === "aperta").reduce((t,g) => t + (+g.base || 0), 0);
     $("k-daincassare").innerHTML = eurK(k.daIncassare);
     $("k-daincassare-s").textContent = plur(aperte.length, "fattura aperta", "fatture aperte");
@@ -1235,15 +1255,19 @@ label.item:has(.dw-chk:checked){
 
     // Cartellone di cassa: l'incassato del mese in corso, la cifra che il
     // fondatore guarda per prima quando apre l'app.
+    // Ora la cifra viene dai MOVIMENTI veri (data in cui i soldi sono arrivati),
+    // più le fatture vecchie marcate incassate con la loro data: chi non ha mai
+    // registrato un incasso vede esattamente il numero di prima.
     { const ym = new Date().toISOString().slice(0,7);
-      const incMese = FAT.filter(f => f.incassata && (f.dataIncasso||"").slice(0,7) === ym);
-      const totMese = incMese.reduce((t,f) => t + (+f.importo || 0), 0);
+      const meseIn = incassatoPeriodo(FAT, INC, ym + "-01", ym + "-31");
+      const totMese = meseIn.importo;
+      const quanti = meseIn.movimenti + meseIn.fattureVecchie;
       $("cassa-banner").innerHTML = `<div class="cassa${totMese > 0 ? "" : " vuota"}">
         <span class="cassa-ico">${IC.euro}</span>
         <div><div class="cassa-num">${eur(totMese)}</div>
         <div class="cassa-lab">Incassato questo mese</div></div>
         <div class="cassa-txt" style="margin-left:auto;text-align:right;">
-        ${totMese > 0 ? plur(incMese.length, "fattura saldata", "fatture saldate") + "<br>"
+        ${totMese > 0 ? plur(quanti, "incasso registrato", "incassi registrati") + "<br>"
                       : "Nessun incasso registrato questo mese.<br>"}
         Restano <b>${eur(k.daIncassare)}</b> da incassare.</div></div>`; }
 
@@ -1251,8 +1275,9 @@ label.item:has(.dw-chk:checked){
       // fatture ordinate per priorità di incasso (più in ritardo / più grosse)
       ...prioritaIncasso(FAT).slice(0, 3)
             .map(({ f, ritardo }) => ({ ico: IC.fattura, t: "Fattura " + f.numero + " — " + nomeCliente(f, CLI),
-              d: ritardo > 0 ? "scaduta da " + plur(ritardo, "giorno", "giorni") : "scade il " + fmtD(f.scadenza),
-              v: eur(f.importo), s: "", b: fatBadge(f),
+              d: (ritardo > 0 ? "scaduta da " + plur(ritardo, "giorno", "giorni") : "scade il " + fmtD(f.scadenza))
+                 + (f.parziale ? " · acconto " + eur(f.incassato) + " già arrivato" : ""),
+              v: eur(apertoDi(f)), s: f.parziale ? "residuo" : "", b: fatBadge(f),
               st: ritardo > 0 ? "st-danger" : "st-warn" })),
       ...GAR.filter(g => g.stato === "aperta" && giorni(g.scadenza) <= 15)
             .map(g => ({ ico: IC.gara, t: g.titolo, d: "gara in scadenza il " + fmtD(g.scadenza),
@@ -1273,35 +1298,49 @@ label.item:has(.dw-chk:checked){
     $("fat-list").innerHTML = fatViste.map(f => { const b = fatBadge(f);
       const ritardo = !f.incassata ? Math.max(0, -giorni(f.scadenza)) : 0;
       const sol = !f.incassata ? livelloSollecito(ritardo) : null;
-      const mora = ritardo > 0 ? interessiMora(f.importo, ritardo) : null;   // interessi 231/2002
-      const st = f.incassata ? "st-ok" : ritardo > 0 ? "st-danger" : giorni(f.scadenza) <= 10 ? "st-warn" : "st-accent";
+      const mora = ritardo > 0 ? interessiMora(apertoDi(f), ritardo) : null;   // mora sul RESIDUO (231/2002)
+      const st = f.incassata ? "st-ok" : f.parziale ? "st-accent" : ritardo > 0 ? "st-danger" : giorni(f.scadenza) <= 10 ? "st-warn" : "st-accent";
       // IVA: le fatture nuove portano imponibile e imposta, quelle vecchie
       // (importo secco) valgono come imponibile con IVA 0 — e lo diciamo.
       const im = importiFattura(f);
       const nDdt = (f.ddtIds || []).length;
+      // la riga dice sempre DUE cose sull'incasso: quando i soldi sono arrivati
+      // davvero (o che la data non c'è) e quanto ne è arrivato
+      const dataInc = f.dataSaldo || f.dataIncasso || null;
       const meta = [
         "emessa " + fmtD(f.emessa),
-        f.incassata ? "incassata " + (f.dataIncasso ? fmtD(f.dataIncasso) : "") : "scade " + fmtD(f.scadenza),
+        f.incassata
+          ? (dataInc ? "incassata il " + fmtD(dataInc)
+                       + (f.giorniPagamento != null ? " (" + plur(f.giorniPagamento, "giorno", "giorni") + ")" : "")
+                     : "incassata, data non registrata")
+          : "scade " + fmtD(f.scadenza),
+        f.parziale ? "acconti " + eur(f.incassato) + " · residuo " + eur(f.residuo) : "",
         im.conIva ? "imponibile " + eur(im.imponibile) + " + IVA " + eur(im.ivaImporto)
                   : "senza dettaglio IVA",
         nDdt ? "da " + plur(nDdt, "DDT", "DDT") : "",
         sol && sol.livello ? sol.label : "",
       ].filter(Boolean).join(" · ");
-      return `<div class="item tap ${st}" data-fat="${f.id}" title="${f.incassata ? "Tocca per annullare l'incasso" : "Tocca per segnare incassata"}">
+      return `<div class="item tap ${st}" data-fat="${f.id}" title="${f.incassata ? "Tocca per vedere gli incassi registrati" : "Tocca per registrare un incasso (anche un acconto)"}">
       <span class="avatar">${IC.fattura}</span>
       <div class="info"><div class="name"><span class="num-doc">${esc(f.numero)}</span> · ${esc(nomeCliente(f, CLI))}${clienteDiFattura(f, CLI) ? "" : ' <span class="badge tag" title="Cliente non ancora collegato all\'anagrafica: collegalo dalla scheda Clienti">da collegare</span>'}</div>
       <div class="meta">${esc(meta)}${mora && mora.interessi > 0 ? ` · <span title="Interessi di mora D.Lgs 231/2002 al ${TASSO_MORA_DEFAULT}% (tipico, da confermare) + € 40,00 di spese art. 6">mora ~${eur(mora.interessi)}</span>` : ""}</div></div>
-      <div class="amt"><div class="amt-n${f.incassata ? " mute" : ritardo > 0 ? " neg" : ""}">${eur(f.importo)}</div>
-        <div class="amt-s">${f.incassata ? "saldata" : ritardo > 0 ? "in ritardo di " + ritardo + " gg" : "da incassare"}</div></div>
+      <div class="amt"><div class="amt-n${f.incassata ? " mute" : f.parziale ? "" : ritardo > 0 ? " neg" : ""}">${eur(f.importo)}</div>
+        <div class="amt-s">${f.incassata ? "saldata" : f.parziale ? "residuo " + eur(f.residuo)
+          : ritardo > 0 ? "in ritardo di " + ritardo + " gg" : "da incassare"}</div></div>
       <span class="badge ${b[0]}">${b[1]}</span>
       <div class="acts">${ritardo>0?`<button class="dw-btn secondary mini" data-sollecito="${f.id}" title="Copia il testo del sollecito (con mora 231/2002) da inviare al cliente">${IC.busta}Sollecito</button>`:""}${!f.incassata?`<button class="arr" type="button" title="Modifica fattura" aria-label="Modifica fattura ${esc(f.numero)}" data-edit-fat="${f.id}">${IC.matita}</button>`:""}${!f.incassata?`<button class="arr del" type="button" title="Elimina fattura errata" aria-label="Elimina fattura ${esc(f.numero)}" data-del-fat="${f.id}">${IC.croce}</button>`:""}</div></div>`; }).join("")
       || (qFat ? vuoto("fattura", "Nessun risultato", "Nessuna fattura trovata per «<b>" + esc(qFat) + "</b>». Prova con il numero o con una parte del nome del cliente.")
          : filtroFat === "tutte" ? vuoto("fattura", "Nessuna fattura", "Emetti la prima fattura dal riquadro <b>Nuova fattura</b> qui sotto, oppure importa un CSV dal tuo gestionale.")
          : vuoto("fattura", "Categoria vuota", "Nessuna fattura in questa categoria. Tocca <b>Tutte</b> per vedere l'elenco completo."));
     // Totale della vista: la colonna di importi si chiude con la sua somma
-    { const somma = fatViste.reduce((t,f) => t + (+f.importo || 0), 0);
+    { // sulle viste del credito la somma è il RESIDUO (quello che manca davvero);
+      // su "tutte" e "incassate" resta il valore dei documenti emessi
+      const suResiduo = filtroFat === "aperte" || filtroFat === "insolute" || filtroFat === "parziali";
+      const somma = fatViste.reduce((t,f) => t + (suResiduo ? apertoDi(f) : (+f.importo || 0)), 0);
+      const acconti = fatViste.reduce((t,f) => t + (f.parziale ? (+f.incassato || 0) : 0), 0);
       const etichetta = { tutte:"Totale fatturato", aperte:"Totale da incassare",
-        insolute:"Totale insoluto", incassate:"Totale incassato" }[filtroFat] || "Totale";
+        insolute:"Totale insoluto (residuo)", parziali:"Residuo da incassare",
+        incassate:"Totale incassato" }[filtroFat] || "Totale";
       // Scomposizione imponibile / imposta: è quello che serve al registro IVA.
       // Compare solo se almeno una fattura della vista ha l'IVA indicata.
       const imp = fatViste.map(importiFattura);
@@ -1311,6 +1350,7 @@ label.item:has(.dw-chk:checked){
       $("fat-tot").innerHTML = fatViste.length
         ? `<div class="tot${filtroFat === "insolute" ? " warn" : ""}"><span class="tot-l">${etichetta}</span>
            <span class="tot-n">${eur(somma)}</span></div>`
+          + (acconti > 0 ? `<div class="note">In queste fatture sono già arrivati <b>${eur(acconti)}</b> di acconti: il totale qui sopra è ciò che <b>resta</b> da incassare.</div>` : "")
           + (sIva > 0 ? `<div class="riep">
              <div class="mrec"><span class="k">Imponibile</span><span class="v">${eur(sBase)}</span></div>
              <div class="mrec"><span class="k">IVA</span><span class="v">${eur(sIva)}</span></div>
@@ -1324,7 +1364,7 @@ label.item:has(.dw-chk:checked){
       b.classList.toggle("active", b.getAttribute("data-filtro") === filtroFat));
     // quantità dentro il filtro: si vede quanto pesa una categoria prima di aprirla
     { const q = { tutte: FAT.length, aperte: aperte.length, insolute: scadute.length,
-        incassate: FAT.length - aperte.length };
+        parziali: FAT.filter(f => f.parziale).length, incassate: FAT.length - aperte.length };
       document.querySelectorAll("#fat-filtri .qt").forEach(s => {
         const v = q[s.getAttribute("data-qt")]; s.textContent = v ? v : ""; }); }
 
@@ -1417,13 +1457,24 @@ label.item:has(.dw-chk:checked){
       $("gar-count").innerHTML = n === 0 ? "" : "<b>" + n + "</b>" + (n === 1 ? " gara" : " gare") + (filtrata ? " su " + GAR.length : ""); }
     $("gar-cnt").textContent = GAR.length;
 
-    const inc = FAT.filter(f => f.incassata).reduce((t,f)=>t+(+f.importo||0),0);
+    // Incassato: dai MOVIMENTI veri. Le fatture vecchie marcate incassate
+    // contano com'è sempre stato (col loro totale), così nessun numero cambia
+    // finché non si registra un incasso nuovo.
     const ym = new Date().toISOString().slice(0,7);
-    const incMese = FAT.filter(f => f.incassata && (f.dataIncasso||"").slice(0,7) === ym).reduce((t,f)=>t+(+f.importo||0),0);
+    const incTot = incassatoPeriodo(FAT, INC, "", "");
+    const incMeseR = incassatoPeriodo(FAT, INC, ym + "-01", ym + "-31");
+    const inc = incTot.importo, incMese = incMeseR.importo;
+    const tmp = tempoMedioPagamento(FAT, INC);         // giorni reali di pagamento
     const ia30 = incassoAtteso(FAT, 30);
     $("rep-list").innerHTML = [
-      ["Incassato questo mese", eur(incMese), "entrate registrate", incMese > 0 ? "ok" : "warn"],
-      ["Incassato (totale registrato)", eur(inc), "da inizio archivio", "ok"],
+      ["Incassato questo mese", eur(incMese), incMese > 0 ? plur(incMeseR.movimenti + incMeseR.fattureVecchie, "incasso registrato", "incassi registrati") : "nessun incasso registrato", incMese > 0 ? "ok" : "warn"],
+      ["Incassato (totale registrato)", eur(inc), incTot.senzaData ? plur(incTot.senzaData, "fattura incassata senza data", "fatture incassate senza data") : "da inizio archivio", "ok"],
+      ["Giorni reali di pagamento", tmp.giorni == null ? "—" : tmp.giorni + " gg",
+        tmp.giorni == null
+          ? (tmp.senzaData ? "nessuna data d'incasso registrata: tocca una fattura incassata per metterla" : "si calcola dal primo incasso registrato")
+          : "media su " + plur(tmp.conto, "fattura saldata", "fatture saldate")
+            + (tmp.ritardo != null ? (tmp.ritardo > 0 ? " · " + tmp.ritardo + " gg oltre la scadenza" : " · " + Math.abs(tmp.ritardo) + " gg in anticipo") : ""),
+        tmp.giorni == null ? "warn" : tmp.ritardo != null && tmp.ritardo > 0 ? "warn" : "ok"],
       ["Da incassare", eur(k.daIncassare), plur(aperte.length, "fattura aperta", "fatture aperte"), k.inScadenza ? "warn" : "ok"],
       ["Incasso atteso (prossimi 30 gg)", eur(ia30.importo), plur(ia30.conto, "fattura in scadenza", "fatture in scadenza"), "ok"],
       ["Età media del credito aperto", k.etaCredito + " gg", k.etaCredito > 45 ? "sopra i 45 giorni" : "sotto controllo", k.etaCredito > 45 ? "warn" : "ok"],
@@ -1431,6 +1482,90 @@ label.item:has(.dw-chk:checked){
     ].map(r => `<div class="item st-${r[3] === "ok" ? "accent" : r[3]}">
       <div class="info"><div class="name">${r[0]}</div><div class="meta">${r[2]}</div></div>
       <div class="amt"><div class="amt-n${r[3] === "warn" ? "" : " pos"}">${r[1]}</div></div></div>`).join("");
+
+    // ══════════════════════════════════════════════════════════════════
+    // EMESSO CONTRO INCASSATO NEL TEMPO (N6)
+    // ------------------------------------------------------------------
+    // Questo confronto prima non si poteva fare ONESTAMENTE: senza la data
+    // vera dell'incasso la seconda linea sarebbe stata la copia della prima
+    // spostata di nulla. Regola di casa: con pochi mesi di dati NON si
+    // disegna una linea che sembra un andamento — si scrivono i numeri.
+    const MESI_N = ["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"];
+    const nomeMeseK = (k) => { const [y, m] = String(k).split("-"); return MESI_N[(+m) - 1] + " " + y; };
+    const flu = emessoIncassato(FAT, INC, 6);
+    const fluMax = Math.max(1, ...flu.mesi.map(m => Math.max(m.emesso, m.incassato)));
+    const fluScarto = round2(flu.emesso - flu.incassato);
+    $("flusso-list").innerHTML = (flu.conDato
+      ? flu.mesi.map(m => `<div class="item st-${m.emesso || m.incassato ? "accent" : "mute"}">
+        <div class="info"><div class="name">${nomeMeseK(m.mese)}</div>
+        <div class="meta">${m.emesse ? plur(m.emesse, "fattura emessa", "fatture emesse") : "nessuna fattura emessa"}${
+          m.movimenti || m.vecchie ? " · " + plur(m.movimenti + m.vecchie, "incasso", "incassi") : ""}</div></div>
+        <div class="amt"><div class="amt-n${m.emesso ? "" : " mute"}">${eur(m.emesso)}</div>
+          <div class="amt-s">emesso</div></div>
+        <div class="amt" style="min-width:118px;"><div class="amt-n${m.incassato ? " pos" : " mute"}">${eur(m.incassato)}</div>
+          <div class="amt-s">incassato</div></div>
+        <span class="bar" style="width:${Math.round(Math.max(m.emesso, m.incassato) / fluMax * 100)}%"></span></div>`).join("")
+        + `<div class="tot${fluScarto > 0 ? " warn" : ""}"><span class="tot-l">${
+            fluScarto > 0 ? "Emesso e non ancora incassato (6 mesi)" : "Incassato più di quanto emesso (6 mesi)"}</span>
+           <span class="tot-n">${eur(Math.abs(fluScarto))}</span></div>`
+      : "")
+      + (flu.senzaData ? `<div class="note">Fuori da questo conto ${plur(flu.senzaData, "fattura risulta incassata", "fatture risultano incassate")} <b>senza la data</b> in cui i soldi sono arrivati (${eur(flu.importoSenzaData)}): tocca quelle fatture e registra la data vera per farle entrare.</div>` : "");
+
+    // Tre mesi è il minimo per parlare di andamento: sotto quella soglia una
+    // linea disegnata sarebbe una finzione, e i numeri sono più onesti.
+    if (!flu.conDato) {
+      grafVuoto("graf-flusso", "grafico", "Ancora nessun movimento",
+        "Qui si confronta quanto <b>emetti</b> con quanto <b>incassi</b> davvero, mese per mese. Si riempie da solo appena emetti una fattura e registri il primo incasso.");
+    } else if (flu.conDato < 3) {
+      const el = svuotaGraf("graf-flusso");
+      if (el) el.innerHTML = `<div class="note"><b>Non disegno una linea con ${plur(flu.conDato, "un mese solo", "due mesi")} di dati</b>:
+        sarebbe un andamento inventato. Ecco i numeri veri del periodo, e la linea comparirà da sola dal <b>terzo mese</b>.</div>
+        <div class="riep">
+          <div class="mrec"><span class="k">Emesso</span><span class="v">${eur(flu.emesso)}</span></div>
+          <div class="mrec"><span class="k">Incassato</span><span class="v accent">${eur(flu.incassato)}</span></div>
+          <div class="mrec"><span class="k">${fluScarto >= 0 ? "Ancora da incassare" : "Incassato in più"}</span><span class="v">${eur(Math.abs(fluScarto))}</span></div>
+        </div>`;
+    } else if (G()) {
+      svuotaGraf("graf-flusso");
+      G().linea("#graf-flusso", {
+        titolo: "Emesso contro incassato",
+        meta: "ultimi 6 mesi · per data vera dell'incasso",
+        formato: eur0,
+        tabella: false,          // la tabella è l'elenco qui sotto, al centesimo
+        x: flu.mesi.map(m => nomeMeseK(m.mese)),
+        serie: [
+          { nome: "Emesso", valori: flu.mesi.map(m => Math.round(m.emesso)), area: true },
+          { nome: "Incassato", valori: flu.mesi.map(m => Math.round(m.incassato)) },
+        ],
+        aria: "Emesso contro incassato mese per mese: " + flu.mesi
+          .map(m => nomeMeseK(m.mese) + " emesso " + eur0(m.emesso) + ", incassato " + eur0(m.incassato)).join("; ") + ".",
+        nota: (fluScarto > 0
+          ? "Nel periodo hai emesso <b>" + eur0(flu.emesso) + "</b> e incassato <b>" + eur0(flu.incassato) + "</b>: la distanza fra le due linee è il credito che si accumula."
+          : "Nel periodo hai incassato <b>" + eur0(flu.incassato) + "</b> a fronte di <b>" + eur0(flu.emesso) + "</b> emessi: stai rientrando anche di fatture vecchie.")
+          + " L'incassato è messo nel mese in cui i <b>soldi sono arrivati</b>, non in quello della fattura.",
+      });
+    }
+
+    // ── Tempi reali di pagamento per cliente: quanti giorni ci mette
+    //    davvero ognuno. Prima si poteva solo indovinare. ──
+    const tempi = tempiPagamentoClienti(FAT, INC, CLI);
+    const conMedia = tempi.filter(t => t.giorniMedi != null);
+    $("tempi-list").innerHTML = conMedia.length
+      ? conMedia.map(t => {
+          const rit = t.ritardoMedio;
+          const st = rit == null ? "accent" : rit > 30 ? "danger" : rit > 0 ? "warn" : "ok";
+          return `<div class="item st-${st}">
+          <span class="avatar">${iniziali(t.cliente)}</span>
+          <div class="info"><div class="name">${esc(t.cliente)}</div>
+          <div class="meta">${plur(t.conGiorni, "fattura saldata", "fatture saldate")} · ${eur0(t.importo)}${
+            rit == null ? "" : rit > 0 ? " · " + plur(rit, "giorno", "giorni") + " oltre la scadenza"
+                                       : rit < 0 ? " · " + plur(-rit, "giorno", "giorni") + " in anticipo" : " · puntuale"}${
+            t.senzaData ? " · " + t.senzaData + " senza data" : ""}</div></div>
+          <div class="amt"><div class="amt-n${st === "danger" ? " neg" : st === "ok" ? " pos" : ""}">${t.giorniMedi}<span class="u"> gg</span></div>
+            <div class="amt-s">dall'emissione</div></div></div>`; }).join("")
+        + (tempi.some(t => t.senzaData) ? `<div class="note">I clienti con fatture <b>senza data d'incasso</b> hanno una media calcolata solo sulle fatture datate: apri quelle fatture e registra quando sono arrivati i soldi per completare il quadro.</div>` : "")
+      : vuoto("euro", "Nessun tempo di pagamento ancora misurabile",
+          "Qui compare <b>in quanti giorni paga ogni cliente</b>, misurato sulle date vere degli incassi. Tocca una fattura incassata e registra <b>quando</b> i soldi sono arrivati: dalla prima si comincia a misurare.");
 
     // Aging incassi: crediti aperti per fascia di ritardo. Le fasce
     // scadute usano il badge d'attenzione/allarme così l'occhio va subito
@@ -1884,6 +2019,135 @@ label.item:has(.dw-chk:checked){
     if ($("btn-dif")) $("btn-dif").disabled = !ant;
     return ant;
   }
+  // ══════════════════════════════════════════════════════════════════
+  // INCASSI (N6) — LA DATA VERA IN CUI I SOLDI SONO ARRIVATI
+  // ------------------------------------------------------------------
+  // Toccare una fattura non è più un interruttore "incassata sì/no": apre il
+  // registro dei suoi incassi. Ogni versamento ha la SUA data e il SUO importo,
+  // quindi un acconto e un saldo si registrano come sono andati davvero.
+  // Il conto deve tornare AL CENTESIMO: si può registrare al massimo il
+  // residuo, e chi prova a superarlo riceve un messaggio che spiega perché.
+  // ══════════════════════════════════════════════════════════════════
+  const METODI = [["bonifico","Bonifico"],["assegno","Assegno"],["contanti","Contanti"],
+                  ["riba","RiBa / SDD"],["altro","Altro"]];
+  const nomeMetodo = (m) => (METODI.find(x => x[0] === m) || ["","—"])[1];
+  const incErr = (testo) => { const n = $("inc-err"); if (n) n.innerHTML = testo || "";
+    if (testo) toast("Incasso non registrato: controlla il messaggio nella finestra.", "err"); };
+
+  function modaleIncassi(idFattura) {
+    const f = FAT.find(x => x.id === idFattura); if (!f) return;
+    const st = statoIncasso(f, INC);
+    // fattura "vecchio stile": marcata incassata, nessun movimento. Vale
+    // incassata per intero — e qui si può finalmente dire QUANDO è arrivata.
+    const compat = !st.conMovimenti && !!f.incassata;
+    const massimo = round2(compat ? st.totale : st.residuo);
+    const ritardo = Math.max(0, -giorni(f.scadenza));
+    const im = importiFattura(f);
+    const oggi = oggiISO();
+    const movimenti = st.movimenti.map(m => `<div class="mrec">
+        <span class="k">${fmtD(m.data)} · ${esc(nomeMetodo(m.metodo))}</span>
+        <span class="v accent">${eur(m.importo)}</span>
+        <button class="arr del" type="button" style="margin-left:8px;" data-del-inc="${esc(m.id)}"
+          title="Elimina questo incasso" aria-label="Elimina l'incasso del ${fmtD(m.data)} di ${eur(m.importo)}">${IC.croce}</button>
+      </div>`).join("");
+
+    const corpo =
+      `<div class="mrec"><span class="k">Cliente</span><span class="v">${esc(nomeCliente(f, CLI))}</span></div>
+       <div class="mrec"><span class="k">Totale della fattura</span><span class="v">${eur(st.totale)}</span></div>
+       ${im.conIva ? `<div class="mrec"><span class="k">di cui IVA${im.aliquota != null ? " " + perc(im.aliquota) : ""}</span><span class="v">${eur(im.ivaImporto)}</span></div>` : ""}
+       <div class="mrec"><span class="k">Scadenza</span><span class="v">${fmtD(f.scadenza)}${ritardo ? " (+" + ritardo + " gg)" : ""}</span></div>
+       ${st.conMovimenti ? `<div class="mrec"><span class="k">Già incassato</span><span class="v accent">${eur(st.incassato)}</span></div>
+         <div class="mrec"><span class="k">Residuo da incassare</span><span class="v${st.residuo > 0 ? "" : " accent"}">${eur(st.residuo)}</span></div>` : ""}
+       ${st.eccedenza > 0 ? `<p style="margin-top:10px;">Attenzione: gli incassi registrati superano il totale della fattura di <b>${eur(st.eccedenza)}</b>. Correggi eliminando o rifacendo il movimento sbagliato.</p>` : ""}
+       ${movimenti ? `<span class="fl">Incassi registrati (${st.movimenti.length})</span>${movimenti}` : ""}
+       ${compat ? `<p style="margin-top:10px;">Questa fattura risulta <b>incassata</b>${f.dataIncasso ? " il " + fmtD(f.dataIncasso) : " ma <b>senza la data</b> in cui i soldi sono arrivati"}.
+            Registrandola qui sotto il totale <b>non cambia</b>: guadagni solo la data vera, che serve a calcolare in quanti giorni paga questo cliente.</p>` : ""}
+       ${st.saldata && !compat ? `<p style="margin-top:10px;">La fattura è <b>saldata</b>${st.dataSaldo ? " il " + fmtD(st.dataSaldo) : ""}${st.giorniPagamento != null ? `, ${plur(st.giorniPagamento, "giorno", "giorni")} dopo l'emissione` : ""}. Per correggere, elimina un incasso qui sopra.</p>` : ""}
+       ${massimo > 0 ? `
+         <span class="fl">Quando sono arrivati i soldi</span>
+         <input class="dw-input" id="inc-data" type="date" value="${oggi}" max="${oggi}">
+         <span class="fl">Quanto è arrivato (€)</span>
+         <input class="dw-input" id="inc-imp" type="number" min="0.01" step="0.01" inputmode="decimal"
+                value="${massimo.toFixed(2)}" style="text-align:right;">
+         <span class="fl">Come</span>
+         <select class="dw-input" id="inc-metodo">${METODI.map(m => `<option value="${m[0]}">${m[1]}</option>`).join("")}</select>
+         <p style="margin-top:10px;">${compat
+            ? "Lascia l'importo pieno se il cliente ha saldato tutto in una volta. Se invece aveva versato solo una parte, scrivi quella: la differenza torna fra i crediti aperti."
+            : "Per un <b>acconto</b> scrivi solo la parte versata: il resto continua a comparire fra i crediti aperti, e la fattura si segna incassata da sola quando arriva il saldo."}
+           Si può registrare al massimo <b>${eur(massimo)}</b>.</p>
+         <div class="note" id="inc-err" style="border-left-color:var(--danger);color:var(--text);"></div>` : ""}`;
+
+    const bottoni = [{ label: "Chiudi", azione: chiudiModale }];
+    if (compat) bottoni.push({ label: "Annulla incasso", cls: "danger", azione: async () => {
+      chiudiModale();
+      await db.aggiorna("fatture", f.id, { incassata: false, dataIncasso: null });
+      esito("ft-esito", "Incasso della fattura " + f.numero + " annullato.");
+      await refresh();
+    } });
+    if (massimo > 0) bottoni.push({ label: compat ? "Registra la data" : "Registra incasso",
+      cls: "primary", azione: () => registraIncasso(f, st, compat, massimo) });
+
+    apriModale("Incassi — fattura " + f.numero, corpo, bottoni);
+    // eliminazione di un singolo movimento (l'unico modo per correggere: gli
+    // incassi non si modificano, si rifanno — così la storia resta leggibile)
+    document.querySelectorAll("#modal-body [data-del-inc]").forEach(b => b.onclick = async () => {
+      const m = st.movimenti.find(x => String(x.id) === b.getAttribute("data-del-inc"));
+      if (!m) return;
+      const ok = await chiedi("Elimina l'incasso",
+        `<p>Stai per togliere un incasso registrato sulla fattura <b>${esc(f.numero)}</b>.</p>
+         <div class="mrec"><span class="k">Data</span><span class="v">${fmtD(m.data)}</span></div>
+         <div class="mrec"><span class="k">Importo</span><span class="v accent">${eur(m.importo)}</span></div>
+         <p style="margin-top:10px;">L'importo torna nel credito aperto e la fattura, se era saldata,
+           torna fra quelle <b>da incassare</b>. Fallo solo se l'incasso era stato registrato per sbaglio.</p>`,
+        "Elimina", true);
+      if (!ok) { modaleIncassi(f.id); return; }
+      await db.rimuovi("incassi", m.id);
+      await allineaFattura(f, st.movimenti.filter(x => x.id !== m.id), st.totale);
+      esito("ft-esito", "Incasso del " + fmtD(m.data) + " (" + eur(m.importo) + ") eliminato dalla fattura " + f.numero + ".", "err");
+      await refresh();
+      modaleIncassi(f.id);
+    });
+  }
+
+  // La fattura tiene `incassata` e `dataIncasso` allineate ai movimenti: così
+  // aging, esposizione, solleciti ed export — che leggono quei due campi —
+  // restano veri senza sapere niente degli incassi.
+  async function allineaFattura(f, movimenti, totale) {
+    const somma = round2((movimenti || []).reduce((t, m) => t + round2(+m.importo || 0), 0));
+    const saldata = round2(totale - somma) <= 0 && (movimenti || []).length > 0;
+    const ultima = (movimenti || []).map(m => String(m.data || "")).sort().pop() || null;
+    await db.aggiorna("fatture", f.id, saldata
+      ? { incassata: true, dataIncasso: ultima }
+      : { incassata: false, dataIncasso: null });
+  }
+
+  async function registraIncasso(f, st, compat, massimo) {
+    const data = ($("inc-data") && $("inc-data").value) || "";
+    const imp = round2(+($("inc-imp") && $("inc-imp").value));
+    const metodo = ($("inc-metodo") && $("inc-metodo").value) || "";
+    if (!data) { incErr("Metti la <b>data in cui i soldi sono arrivati</b>: è tutto il senso di questa schermata. Se non la ricordi con precisione, usa il giorno dell'accredito sull'estratto conto."); return; }
+    if (data > oggiISO()) { incErr("La data è nel futuro: un incasso si registra quando i soldi sono <b>arrivati</b>, non quando sono attesi."); return; }
+    if (!(imp > 0)) { incErr("Scrivi quanto è arrivato, in euro: deve essere un importo maggiore di zero."); return; }
+    if (imp > massimo) {
+      const oltre = round2(imp - massimo);
+      incErr(`Questo incasso supera di <b>${eur(oltre)}</b> quello che resta da pagare.<br>
+        Fattura <b>${eur(st.totale)}</b>${st.conMovimenti ? ` · già incassati <b>${eur(st.incassato)}</b>` : ""} · si può registrare al massimo <b>${eur(massimo)}</b>.<br>
+        Se il cliente ha versato di più, registra qui il residuo e tratta la differenza come acconto sulla prossima fattura: una fattura non può risultare incassata più del suo totale.`);
+      if ($("inc-imp")) { $("inc-imp").classList.add("err"); $("inc-imp").focus(); $("inc-imp").select(); }
+      return;
+    }
+    chiudiModale();
+    await db.aggiungi("incassi", { fatturaId: f.id, data, importo: imp, metodo });
+    const movimenti = [...st.movimenti.map(m => ({ ...m })), { data, importo: imp }];
+    await allineaFattura(f, movimenti, st.totale);
+    const somma = round2(movimenti.reduce((t, m) => t + round2(+m.importo || 0), 0));
+    const residuo = round2(Math.max(0, st.totale - somma));
+    esito("ft-esito", residuo > 0
+      ? "Acconto di " + eur(imp) + " registrato sulla fattura " + f.numero + " il " + fmtD(data) + ": restano " + eur(residuo) + "."
+      : "Fattura " + f.numero + " saldata il " + fmtD(data) + ": " + eur(somma) + " incassati in tutto.", "success");
+    await refresh();
+  }
+
   // ── Canone di escavazione sul periodo scelto ──
   function renderCanone() {
     const cfg = { canoneUnita: $("can-unita").value, canoneAliquota: +$("can-ali").value || 0 };
@@ -1997,12 +2261,15 @@ label.item:has(.dw-chk:checked){
          <p style="margin-top:10px;">Sparisce da elenchi, totali, aging ed esposizione del cliente.
            <b>Usa questa opzione solo per correggere un inserimento sbagliato</b>: una fattura
            realmente emessa non va cancellata, va gestita con una nota di credito.</p>
-         ${(PES.filter(p => p.fatturaId === f.id).length) ? `<p>I <b>${PES.filter(p => p.fatturaId === f.id).length} DDT</b> collegati tornano fra quelli <b>da fatturare</b>: le consegne non si perdono, si rimettono in coda.</p>` : ""}`,
+         ${(PES.filter(p => p.fatturaId === f.id).length) ? `<p>I <b>${PES.filter(p => p.fatturaId === f.id).length} DDT</b> collegati tornano fra quelli <b>da fatturare</b>: le consegne non si perdono, si rimettono in coda.</p>` : ""}
+         ${movimentiDiFattura(f.id, INC).length ? `<p>Vengono eliminati anche i <b>${plur(movimentiDiFattura(f.id, INC).length, "incasso registrato", "incassi registrati")}</b> su questa fattura (${eur(movimentiDiFattura(f.id, INC).reduce((t, m) => t + m.importo, 0))}): senza la fattura non avrebbero più un documento a cui riferirsi.</p>` : ""}`,
         "Elimina", true);
       if (ok) {
         // i DDT della fattura tornano liberi: nessuna consegna resta appesa a
         // un documento che non esiste più
         for (const p of PES.filter(x => x.fatturaId === f.id)) await db.aggiorna("pesate", p.id, { fatturaId: null });
+        // e con la fattura se ne vanno i suoi incassi: niente movimenti orfani
+        for (const m of movimentiDiFattura(f.id, INC)) await db.rimuovi("incassi", m.id);
         await db.rimuovi("fatture", f.id);
         esito("ft-esito", "Fattura " + f.numero + " eliminata.", "err"); await refresh(); }
       return; }
@@ -2124,60 +2391,47 @@ label.item:has(.dw-chk:checked){
       esito("ft-esito", "Stai modificando la fattura " + f.numero + (importiFattura(f).conIva ? "" : " (importo senza IVA: scegli l'aliquota per completarla)") + ": cambia i campi e premi «Salva modifica».");
       $("ft-num").scrollIntoView({ behavior: "smooth", block: "center" });
       return; }
+    // toccare una fattura apre il registro dei suoi incassi (acconti compresi)
     const it = e.target.closest && e.target.closest("[data-fat]");
-    if (it) { const f = FAT.find(x => x.id === it.getAttribute("data-fat"));
-      if (!f) return;
-      const oggi = new Date().toISOString().slice(0,10);
-      const ritardo = Math.max(0, -giorni(f.scadenza));
-      if (!f.incassata) {
-        const ok = await chiedi("Registra l'incasso",
-          `<p>Stai per segnare questa fattura come <b>incassata oggi</b> (${fmtD(oggi)}).</p>
-           <div class="mrec"><span class="k">Numero</span><span class="v">${esc(f.numero)}</span></div>
-           <div class="mrec"><span class="k">Cliente</span><span class="v">${esc(nomeCliente(f, CLI))}</span></div>
-           ${(() => { const im = importiFattura(f); return im.conIva
-             ? `<div class="mrec"><span class="k">Imponibile</span><span class="v">${eur(im.imponibile)}</span></div>
-                <div class="mrec"><span class="k">IVA${im.aliquota != null ? " " + perc(im.aliquota) : ""}</span><span class="v">${eur(im.ivaImporto)}</span></div>
-                <div class="mrec"><span class="k">Totale</span><span class="v accent">${eur(im.totale)}</span></div>`
-             : `<div class="mrec"><span class="k">Importo</span><span class="v accent">${eur(im.totale)}</span></div>`; })()}
-           ${(f.ddtIds || []).length ? `<div class="mrec"><span class="k">Da DDT</span><span class="v">${(f.ddtIds || []).length}</span></div>` : ""}
-           <div class="mrec"><span class="k">Scadenza</span><span class="v">${fmtD(f.scadenza)}${ritardo ? " (+" + ritardo + " gg)" : ""}</span></div>
-           <p style="margin-top:10px;">L'importo esce dal credito aperto ed entra
-             nell'incassato del mese; l'esposizione del cliente cala di conseguenza.
-             Se sbagli puoi annullare l'incasso ritoccando la stessa riga.</p>`,
-          "Segna incassata");
-        if (ok) { await db.aggiorna("fatture", f.id, { incassata: true, dataIncasso: oggi });
-          esito("ft-esito", "Fattura " + f.numero + " incassata: " + eur(f.importo) + ".", "success");
-          await refresh(); }
-      } else {
-        const ok = await chiedi("Annulla l'incasso",
-          `<p>Stai per rimettere questa fattura tra quelle <b>da incassare</b>.</p>
-           <div class="mrec"><span class="k">Numero</span><span class="v">${esc(f.numero)}</span></div>
-           <div class="mrec"><span class="k">Importo</span><span class="v accent">${eur(f.importo)}</span></div>
-           <div class="mrec"><span class="k">Incassata il</span><span class="v">${fmtD(f.dataIncasso)}</span></div>
-           <p style="margin-top:10px;">L'importo torna nel credito aperto e la data
-             d'incasso viene cancellata. Serve quando l'incasso era stato segnato per sbaglio.</p>`,
-          "Annulla incasso", true);
-        if (ok) { await db.aggiorna("fatture", f.id, { incassata: false, dataIncasso: null });
-          esito("ft-esito", "Incasso della fattura " + f.numero + " annullato.");
-          await refresh(); }
-      }
-    }
+    if (it) { modaleIncassi(it.getAttribute("data-fat")); return; }
   });
   $("btn-rep-export").onclick = () => {
     // situazione fatture per il commercialista: numero, cliente, importo,
     // scadenza, stato calcolato, data incasso
     // registro-IVA-ready: imponibile, imposta e totale separati (le fatture
     // vecchie, senza dettaglio, escono con imponibile = importo e IVA 0)
-    let csv = "numero;cliente;emessa;imponibile;aliquota;iva;totale;scadenza;stato;data_incasso;ddt\n";
+    let csv = "numero;cliente;emessa;imponibile;aliquota;iva;totale;scadenza;stato;incassato;residuo;data_incasso;giorni_pagamento;ddt\n";
     for (const f of FAT.slice().sort((a,b) => (a.scadenza||"").localeCompare(b.scadenza||""))) {
-      const st = f.incassata ? "incassata" : (giorni(f.scadenza) < 0 ? "insoluta" : "aperta");
+      const st = f.incassata ? "incassata" : f.parziale ? "acconto" : (giorni(f.scadenza) < 0 ? "insoluta" : "aperta");
       const im = importiFattura(f);
-      csv += `${csvCell(f.numero)};${csvCell(nomeCliente(f, CLI))};${f.emessa||""};${im.imponibile};${im.aliquota == null ? "" : im.aliquota};${im.ivaImporto};${im.totale};${f.scadenza};${st};${f.dataIncasso||""};${(f.ddtIds||[]).length}\n`;
+      const s = statoIncasso(f, INC);
+      csv += `${csvCell(f.numero)};${csvCell(nomeCliente(f, CLI))};${f.emessa||""};${im.imponibile};${im.aliquota == null ? "" : im.aliquota};${im.ivaImporto};${im.totale};${f.scadenza};${st};${s.incassato};${s.residuo};${s.dataSaldo||f.dataIncasso||""};${s.giorniPagamento == null ? "" : s.giorniPagamento};${(f.ddtIds||[]).length}\n`;
     }
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "conti_situazione_fatture.csv"; a.click();
     esito("mode-note", "Esportate " + plur(FAT.length, "fattura", "fatture") + " in CSV.", "success");
+  };
+  // Prima nota degli incassi: ogni versamento con la sua data vera. È il file
+  // che il commercialista incrocia con l'estratto conto della banca.
+  $("btn-inc-export").onclick = () => {
+    const righe = INC.map(m => ({ m, f: FAT.find(x => x.id === m.fatturaId) }))
+      .filter(r => r.f)
+      .sort((a, b) => String(a.m.data || "").localeCompare(String(b.m.data || "")));
+    let csv = "data;fattura;cliente;importo;metodo;totale_fattura;residuo_dopo\n";
+    for (const r of righe) {
+      const fino = movimentiDiFattura(r.f.id, INC)
+        .filter(x => String(x.data || "") < String(r.m.data || "") || (String(x.data || "") === String(r.m.data || "") && String(x.id) <= String(r.m.id)))
+        .reduce((t, x) => t + x.importo, 0);
+      const tot = round2(importiFattura(r.f).totale);
+      csv += `${r.m.data || ""};${csvCell(r.f.numero)};${csvCell(nomeCliente(r.f, CLI))};${round2(+r.m.importo || 0)};${csvCell(nomeMetodo(r.m.metodo))};${tot};${round2(Math.max(0, tot - round2(fino)))}\n`;
+    }
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.download = "conti_incassi.csv"; a.click();
+    esito("mode-note", righe.length
+      ? "Esportati " + plur(righe.length, "incasso", "incassi") + " in CSV."
+      : "Nessun incasso registrato: il file esce con la sola intestazione.", righe.length ? "success" : "err");
   };
   // Anagrafica clienti: aggiunta e modifica in-place (stesso form, come le
   // fatture). La ragione sociale è l'unico campo obbligatorio e non può
@@ -2497,9 +2751,12 @@ label.item:has(.dw-chk:checked){
       // se il nome importato corrisponde a un cliente in anagrafica, la fattura
       // nasce già collegata; altrimenti resta il testo e si collega dopo
       const c = clienteDiFattura(f, CLI);
+      // la data d'incasso NON si inventa più con quella di emissione: se il CSV
+      // non la porta, la fattura resta "incassata, data non registrata" e la si
+      // completa toccandola. Meglio un buco dichiarato di un dato falso.
       await db.aggiungi("fatture", { numero: f.numero, cliente: f.cliente, clienteId: c ? c.id : null,
         importo: f.importo, emessa: f.emessa, scadenza: f.scadenza, incassata: f.incassata,
-        dataIncasso: f.incassata ? (f.emessa || null) : null });
+        dataIncasso: null });
       add++;
     }
     $("fat-file").value = "";

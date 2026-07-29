@@ -92,7 +92,10 @@
   --arr-ico:15px;
   --arr-stroke:1.8;
   --nav-cols:6;
-  --kpi-cols:3;
+  /* otto tessere (sono arrivate «fuori mansione» e «DPI da sistemare» con
+     S4/S5): quattro per riga sullo schermo largo, due sul telefono — file
+     piene, nessun buco in fondo. È la stessa misura del core. */
+  --kpi-cols:4;
   --form-gap:9px;
   --form-pad:13px;
   --frow-align:center;
@@ -267,6 +270,33 @@
 .voce .name{-webkit-line-clamp:3}
 .isp-nota{font-style:italic}
 
+/* ─── S4/S5 · tastierini a griglia FUORI dalla modale ───────────────────
+   Stessa materia dei pulsanti della segnalazione rapida (bersagli larghi,
+   sempre nello stesso posto, parola che va a capo invece di abbreviarsi):
+   qui servono per scegliere i corsi richiesti da una mansione, i DPI
+   previsti e chi la svolge. Le regole della modale restano dove sono.     */
+.chgs.griglia2{display:grid; grid-template-columns:repeat(2,1fr)}
+.chgs.griglia3{display:grid; grid-template-columns:repeat(3,1fr)}
+.chgs.griglia2>.chg,.chgs.griglia3>.chg{
+  white-space:normal; line-height:1.2; letter-spacing:.5px; padding:8px 7px; text-align:center;
+}
+@media(min-width:768px){
+  .form .chgs.griglia2{grid-template-columns:repeat(3,1fr)}
+}
+/* la riga di pillole della matrice: uno stato per requisito, sotto il nome.
+   Non sta dentro .meta perché lì il testo si taglia a due righe: qui invece
+   devono restare visibili TUTTE, è il senso della matrice. */
+.reqs{display:flex; flex-wrap:wrap; gap:4px; margin-top:6px}
+.reqs .badge{font-size:9.5px; padding:2px 7px; cursor:default}
+.reqs .badge.tocca{cursor:pointer}
+.reqs .badge.mute{background:var(--card2); color:var(--muted); border:1px solid var(--border2); box-shadow:none}
+/* la scheda di una mansione nella matrice: il titolo della sotto-sezione */
+.sub-sec{
+  font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700;
+  letter-spacing:2px; text-transform:uppercase; color:var(--muted);
+  margin:16px 0 8px;
+}
+
 /* ─────────────── voci di lista (copia di .sitem) ─────────────── */
 .item{cursor:pointer}
 .item:active{transform:translateX(1px) scale(.995)}
@@ -362,6 +392,53 @@
   .segnala:active{transform:scale(.99)}
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   S5 · IL VERBALE DI CONSEGNA DEI DPI SU CARTA
+   In ispezione il verbale di consegna firmato viene chiesto per primo
+   (art. 77 D.Lgs 81/08). Sullo schermo non serve: è un foglio, e si vede
+   solo quando si stampa. Su carta il tema scuro non si legge e divora
+   inchiostro, così il documento riprende gli stessi ruoli di colore in
+   chiaro — senza toccare il foglio condiviso.
+   ══════════════════════════════════════════════════════════════════════ */
+#verbale{display:none}
+@media print{
+  @page{size:A4; margin:16mm 14mm}
+  body.dw{
+    color-scheme:light;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+    background:#fff !important; background-image:none !important;
+    color:#14121c;
+  }
+  body.dw::before,body.dw::after{display:none !important}
+  /* fuori dal foglio tutto ciò che è comando, non documento */
+  .top,.nav,.tour-banner,.toast,.modal-ov,.dw-home,.dw-exit,.page{display:none !important}
+  #verbale{display:block !important; font-family:'Barlow',sans-serif; color:#14121c}
+  .vb-testa{border-bottom:2px solid #5e499d; padding-bottom:8px; margin-bottom:14px}
+  .vb-tit{
+    font-family:'Barlow Condensed',sans-serif; font-size:22px; font-weight:800;
+    letter-spacing:1px; text-transform:uppercase; color:#3b2f66; margin:0;
+  }
+  .vb-sub{font-size:11px; color:#4a4560; margin-top:3px}
+  .vb-dati{width:100%; border-collapse:collapse; margin-bottom:14px}
+  .vb-dati td{padding:4px 0; font-size:12.5px; vertical-align:top}
+  .vb-dati td:first-child{width:38mm; color:#4a4560}
+  .vb-dati b{font-weight:600}
+  .vb-tab{width:100%; border-collapse:collapse; font-size:11.5px; margin-bottom:14px}
+  .vb-tab th{
+    text-align:left; background:#efecf9; border:1px solid #b9b2d4; padding:5px 6px;
+    font-family:'Barlow Condensed',sans-serif; font-size:11px; letter-spacing:.8px;
+    text-transform:uppercase; color:#3b2f66;
+  }
+  .vb-tab td{border:1px solid #c9c4dc; padding:5px 6px; vertical-align:top}
+  .vb-tab tr{break-inside:avoid; page-break-inside:avoid}
+  .vb-tab .vb-firma{width:38mm}
+  .vb-nota{font-size:10.5px; line-height:1.55; color:#3a3550; margin-bottom:12px}
+  .vb-nota b{color:#14121c}
+  .vb-firme{display:flex; gap:14mm; margin-top:16mm; break-inside:avoid}
+  .vb-firme div{flex:1 1 0; border-top:1px solid #14121c; padding-top:4px; font-size:10.5px; color:#4a4560}
+  .vb-pie{margin-top:10mm; font-size:9.5px; color:#6a6480; border-top:1px solid #d5d0e4; padding-top:5px}
+}
+
 </style>
 </head>
 <body class="dw">
@@ -398,6 +475,10 @@
     <div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-goto="scad" data-filtro="tutte" title="Vedi tutte le scadenze"><div class="l">Corsi pianificati</div><div class="n" id="k-corsi">—</div></div>
     <div class="kpi danger" role="button" tabindex="0" style="cursor:pointer" data-goto="azio" data-filtro-azi="scaduta" title="Vedi le azioni correttive fuori tempo"><div class="l">Azioni fuori tempo</div><div class="n" id="k-azi-scadute">—</div></div>
     <div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-goto="azio" data-filtro-azi="da-fare" title="Vedi le azioni correttive ancora da chiudere"><div class="l">Azioni da chiudere</div><div class="n" id="k-azi-aperte">—</div></div>
+    <!-- S4/S5 — le due domande che fermano il lavoro domani mattina: chi non
+         può fare la sua mansione, e quali DPI mancano o sono da sostituire. -->
+    <div class="kpi danger" role="button" tabindex="0" style="cursor:pointer" data-goto="pers" data-tab="mans" title="Vedi chi non può fare la mansione che gli è assegnata"><div class="l">Fuori mansione</div><div class="n" id="k-scoperti">—</div></div>
+    <div class="kpi warn" role="button" tabindex="0" style="cursor:pointer" data-goto="pers" data-tab="dpi" title="Vedi i DPI mancanti, da sostituire o senza addestramento"><div class="l">DPI da sistemare</div><div class="n" id="k-dpi">—</div></div>
   </div>
 
   <div id="safety-banner"></div>
@@ -405,24 +486,132 @@
   <div id="urg-list"></div>
 </div>
 
-<!-- PERSONALE -->
+<!-- PERSONALE — quattro schede: le persone, cosa possono fare (S4), chi è
+     nominato (S4) e i DPI che hanno in mano (S5). Una cosa sola davanti agli
+     occhi per volta, come nella compilazione delle ispezioni: sul telefono
+     una pagina lunga il doppio non si legge. -->
 <div class="page" id="page-pers">
-  <div class="sec">Lavoratori<span class="cnt" id="pers-count">0</span></div>
-  <input class="dw-input" id="pers-cerca" type="search" placeholder="Cerca per nome o ruolo…" style="margin-bottom:10px;">
-  <div id="pers-list"></div>
-  <div class="sec">Aggiungi lavoratore</div>
-  <div class="form">
-    <input class="dw-input" id="new-nome" placeholder="Nome e cognome" style="flex:2 1 180px;">
-    <input class="dw-input" id="new-ruolo" placeholder="Ruolo (es. escavatorista)" style="flex:1 1 140px;">
-    <button class="dw-btn" id="btn-add-pers">Aggiungi</button>
+  <div class="chgs" id="pers-tabs" style="margin-bottom:12px;">
+    <button class="chg active" data-tab="lav">Lavoratori</button>
+    <button class="chg" data-tab="mans">Chi può fare cosa</button>
+    <button class="chg" data-tab="nom">Nomine</button>
+    <button class="chg" data-tab="dpi">DPI</button>
   </div>
-  <div class="tools">
-    <button class="dw-btn secondary" id="btn-import-csv">Importa da CSV</button>
-    <button class="dw-btn secondary" id="btn-export-csv">Esporta CSV</button>
-    <input type="file" id="csv-file" accept=".csv,text/csv" style="display:none;">
+
+  <div id="tab-lav">
+    <div class="sec">Lavoratori<span class="cnt" id="pers-count">0</span></div>
+    <input class="dw-input" id="pers-cerca" type="search" placeholder="Cerca per nome o ruolo…" style="margin-bottom:10px;">
+    <div id="pers-list"></div>
+    <div class="sec">Aggiungi lavoratore</div>
+    <div class="form">
+      <input class="dw-input" id="new-nome" placeholder="Nome e cognome" style="flex:2 1 180px;">
+      <input class="dw-input" id="new-ruolo" placeholder="Ruolo (es. escavatorista)" style="flex:1 1 140px;">
+      <button class="dw-btn" id="btn-add-pers">Aggiungi</button>
+    </div>
+    <div class="tools">
+      <button class="dw-btn secondary" id="btn-import-csv">Importa da CSV</button>
+      <button class="dw-btn secondary" id="btn-export-csv">Esporta CSV</button>
+      <input type="file" id="csv-file" accept=".csv,text/csv" style="display:none;">
+    </div>
+    <div class="form-hint" style="margin-top:8px;">Colonne del file: <b>nome; ruolo; telefono</b> — una riga per persona.</div>
+    <div id="import-esito" class="note esito"></div>
   </div>
-  <div class="form-hint" style="margin-top:8px;">Colonne del file: <b>nome; ruolo; telefono</b> — una riga per persona.</div>
-  <div id="import-esito" class="note esito"></div>
+
+  <!-- S4 · LA MATRICE: chi posso mandare a fare quel lavoro domani mattina -->
+  <div id="tab-mans" style="display:none;">
+    <div class="sec">Chi posso mandare<span class="cnt" id="mat-count">0</span></div>
+    <div id="mat-riep" class="note recap" style="margin-top:0;"></div>
+    <div id="mat-mansioni" class="chgs" style="margin-top:10px;"></div>
+    <div id="graf-mansioni"></div>
+    <div id="mat-list" style="margin-top:12px;"></div>
+    <div class="note">Verde: <b>può andare</b>. Giallo: può andare, ma c'è qualcosa da sistemare. Rosso: <b>non può</b>, e sotto c'è scritto perché. Bloccano la persona non in forza, l'idoneità sanitaria negativa e un <b>corso mancante o scaduto</b>; i DPI non bloccano ma restano in evidenza, perché Scudo sa se la <b>consegna è registrata</b>, non se l'elmetto è davvero in testa. Tocca la pillola rossa di un corso mancante per metterlo nello <b>scadenzario</b>: da lì in poi vive con tutte le altre scadenze.</div>
+
+    <div class="sec">Mansioni e requisiti<span class="cnt" id="mans-count">0</span></div>
+    <div id="mans-list"></div>
+    <div class="sec" id="mans-form-tit">Aggiungi mansione</div>
+    <div class="form col">
+      <div class="frow">
+        <select class="dw-input" id="mans-preset" style="flex:1 1 210px;">
+          <option value="">Mansione tipica di cava… (facoltativo)</option>
+        </select>
+        <input class="dw-input" id="mans-nome" placeholder="Nome della mansione (es. escavatorista)" style="flex:2 1 200px;">
+      </div>
+      <div class="nm-lab">Corsi e abilitazioni richiesti</div>
+      <div class="chgs griglia2" id="mans-req"></div>
+      <div class="nm-lab">DPI previsti</div>
+      <div class="chgs griglia2" id="mans-dpi"></div>
+      <div class="nm-lab">Chi la svolge</div>
+      <div class="chgs griglia2" id="mans-lav"></div>
+      <div class="frow">
+        <button class="dw-btn" id="btn-mans">Aggiungi</button>
+        <button class="dw-btn secondary" id="btn-mans-annulla" style="display:none;">Annulla</button>
+      </div>
+    </div>
+    <div class="note esito" id="mans-esito"></div>
+    <div class="note">I requisiti sono gli stessi <b>adempimenti tipici</b> dello scadenzario: quando un corso manca e lo aggiungi da qui, nasce una scadenza normale, con la sua data e il suo semaforo. <b>Nota informativa, non un parere legale</b>: quali corsi servono davvero per una mansione lo dicono il DVR e il DSS della tua cava, insieme all'RSPP.</div>
+  </div>
+
+  <!-- S4 · NOMINE E ORGANIGRAMMA DELLA SICUREZZA -->
+  <div id="tab-nom" style="display:none;">
+    <div class="sec">Nomine della sicurezza</div>
+    <div id="nom-riep" class="note recap" style="margin-top:0;"></div>
+    <div id="nom-list" style="margin-top:10px;"></div>
+    <div class="sec">Nomina una persona</div>
+    <div class="form col">
+      <div class="frow">
+        <select class="dw-input" id="nom-ruolo" style="flex:1 1 210px;"></select>
+        <select class="dw-input" id="nom-lav" style="flex:1 1 180px;"></select>
+      </div>
+      <div class="note" id="nom-ruolo-nota" style="display:none;margin-top:0;"></div>
+      <div class="frow">
+        <input class="dw-input" id="nom-dal" type="date" title="Nominato dal" style="flex:1 1 150px;">
+        <input class="dw-input" id="nom-note" placeholder="Nota (es. turno o area)" style="flex:2 1 190px;">
+        <button class="dw-btn" id="btn-nom">Nomina</button>
+      </div>
+    </div>
+    <div class="note esito" id="nom-esito"></div>
+    <div class="note">In cava il <b>sorvegliante</b> è obbligatorio (D.Lgs 624/96) e il <b>preposto</b> va individuato formalmente (D.Lgs 81/08, D.L. 146/2021): non basta che qualcuno faccia da capo. Qui si vede chi c'è, da quando, e se la <b>formazione collegata</b> è in regola — letta dallo scadenzario, non da un elenco a parte. <b>Nota informativa, non un parere legale</b>: figure e obblighi vanno confermati con l'RSPP.</div>
+  </div>
+
+  <!-- S5 · REGISTRO DPI PER LAVORATORE -->
+  <div id="tab-dpi" style="display:none;">
+    <div class="sec">DPI da sistemare<span class="cnt" id="dpi-al-count">0</span></div>
+    <div id="dpi-riep" class="note recap" style="margin-top:0;"></div>
+    <div id="dpi-allarmi" style="margin-top:10px;"></div>
+
+    <div class="sec">Consegne registrate<span class="cnt" id="dpi-count">0</span></div>
+    <select class="dw-input" id="dpi-filtro-lav" style="margin-bottom:8px;"></select>
+    <div id="dpi-list"></div>
+
+    <div class="sec">Registra una consegna</div>
+    <div class="form col">
+      <div class="frow">
+        <select class="dw-input" id="dpi-lav" style="flex:1 1 180px;"></select>
+        <select class="dw-input" id="dpi-tipo" style="flex:1 1 200px;"></select>
+      </div>
+      <div class="note" id="dpi-tipo-nota" style="display:none;margin-top:0;"></div>
+      <div class="frow">
+        <input class="dw-input" id="dpi-modello" placeholder="Modello (facoltativo)" style="flex:2 1 180px;">
+        <input class="dw-input" id="dpi-taglia" placeholder="Taglia" style="flex:1 1 110px;">
+      </div>
+      <div class="frow">
+        <input class="dw-input" id="dpi-data" type="date" title="Data di consegna" style="flex:1 1 150px;">
+        <input class="dw-input" id="dpi-scad" type="date" title="Da sostituire entro" style="flex:1 1 150px;">
+      </div>
+      <div class="frow">
+        <button type="button" class="chg" id="dpi-addestr" aria-pressed="false">Addestramento fatto</button>
+        <button class="dw-btn" id="btn-dpi">Registra</button>
+      </div>
+    </div>
+    <div class="note esito" id="dpi-esito"></div>
+
+    <div class="sec">Verbale di consegna</div>
+    <div class="form">
+      <select class="dw-input" id="dpi-verb-lav" style="flex:2 1 200px;"></select>
+      <button class="dw-btn" id="btn-dpi-verb">Stampa / Salva PDF</button>
+    </div>
+    <div class="note">Il verbale è il foglio che in ispezione viene chiesto per primo (<b>art. 77 D.Lgs 81/08</b>): elenca cosa è stato consegnato, quando, in che taglia, e dove serve segna l'<b>addestramento</b> — obbligatorio per i DPI di <b>III categoria</b> e per i <b>protettori dell'udito</b>. Si stampa, si fa firmare e la foto del foglio firmato si allega ai <b>Documenti</b> come «Verbale DPI».</div>
+  </div>
 </div>
 
 <!-- SCADENZE -->
@@ -692,6 +881,10 @@
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<!-- S5 · il verbale di consegna DPI: invisibile sullo schermo, è il foglio
+     che esce dalla stampante (regole in @media print). -->
+<div id="verbale" aria-hidden="true"></div>
+
 <script>
   function go(id) {
     document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
@@ -808,7 +1001,11 @@
 <script type="module">
   import { scudoData, statoScadenza, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, parseScadenzeCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
     NEARMISS_CATEGORIE, NEARMISS_LUOGHI, categoriaNearMiss, luogoNearMiss, descrizioneNearMiss, riepilogoNearMiss,
-    MODELLI_ISPEZIONE, modelloIspezione, nuovaIspezioneDaModello, riepilogoIspezione, riepilogoIspezioni, vociNonConformi, statoIspezione, azioniDiIspezione, esitoLabel, ESITI_ISPEZIONE, dataPiuGiorni } from "./scudo-data.js";
+    MODELLI_ISPEZIONE, modelloIspezione, nuovaIspezioneDaModello, riepilogoIspezione, riepilogoIspezioni, vociNonConformi, statoIspezione, azioniDiIspezione, esitoLabel, ESITI_ISPEZIONE, dataPiuGiorni,
+    REQUISITI_FORMAZIONE, requisitoFormazione, requisitoSicuro, statoRequisito, MANSIONI_PRESET, mansionePreset,
+    matriceMansione, riepilogoMansioni, lavoratoriScoperti, abilitazioneLavoratore,
+    NOMINE_RUOLI, ruoloNomina, nominaAttiva, organigrammaSicurezza, nomineDaSistemare,
+    TIPI_DPI, tipoDpi, tipoDpiSicuro, ultimaConsegnaDpi, statoConsegnaDpi, allarmiDpi, riepilogoDpi, verbaleDpi } from "./scudo-data.js";
   import { mountExit, esc, csvCell, parseCsvLine, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
 
   const $ = (id) => document.getElementById(id);
@@ -895,6 +1092,17 @@
     : "Stai guardando <b>dati di esempio</b> (" + db.mode + "): le modifiche non vengono salvate.";
 
   let LAV = [], SCA = [], DOC = [], INF = [], CANT = [], AZI = [], ISP = [];
+  // S4/S5: mansioni, nomine e consegne DPI. Le organizzazioni già attive non
+  // hanno queste collezioni: restano array vuoti e le schede si aprono vuote.
+  let MANS = [], NOM = [], DPI = [];
+  let tabPers = "lav";      // scheda aperta dentro Personale
+  let matSel = null;        // mansione scelta nella matrice (null = tutte)
+  let editMans = null;      // mansione in modifica (il form fa doppio servizio)
+  let dpiFiltro = "";       // lavoratore scelto nel registro DPI ("" = tutti)
+  let dpiAddestr = false;   // interruttore «addestramento fatto» del form DPI
+  // Scelte in corso nel form della mansione: stanno qui e non nel DOM, così
+  // un aggiornamento dei dati non cancella quello che si sta spuntando.
+  const MANSF = { req: new Set(), dpi: new Set(), lav: new Set() };
   let docFileSel = null;   // allegato scelto per il prossimo documento {nome, dataURL}
   let editLav = null;   // id del lavoratore in modifica (riusa il form "Aggiungi"; idoneità/scadenze restano)
   let editAzi = null;   // id dell'azione correttiva in modifica (stesso schema: il form fa doppio servizio)
@@ -952,17 +1160,28 @@
   });
 
   async function refresh() {
-    [LAV, SCA, DOC, INF, CANT, AZI, ISP] = await Promise.all([db.lavoratori(), db.scadenze(), db.documenti(), db.infortuni ? db.infortuni() : [], db.cantieri ? db.cantieri() : [], db.azioni ? db.azioni() : [], db.ispezioni ? db.ispezioni() : []]);
+    [LAV, SCA, DOC, INF, CANT, AZI, ISP, MANS, NOM, DPI] = await Promise.all([db.lavoratori(), db.scadenze(), db.documenti(), db.infortuni ? db.infortuni() : [], db.cantieri ? db.cantieri() : [], db.azioni ? db.azioni() : [], db.ispezioni ? db.ispezioni() : [],
+      db.mansioni ? db.mansioni() : [], db.nomine ? db.nomine() : [], db.dpi ? db.dpi() : []]);
     const byId = Object.fromEntries(LAV.map(l => [l.id, l]));
     const infById = Object.fromEntries(INF.map(x => [x.id, x]));
     const k = kpiFrom(LAV, SCA);
     const ra = riepilogoAzioni(AZI);
+    // S4/S5 — si calcola una volta sola: servono ai KPI, alle urgenze del
+    // Quadro, alla matrice, alle nomine e al registro DPI.
+    const rMans = riepilogoMansioni(MANS, LAV, SCA, DPI);
+    const scoperti = lavoratoriScoperti(MANS, LAV, SCA, DPI);
+    const alDpi = allarmiDpi(MANS, LAV, DPI);
+    const rDpi = riepilogoDpi(DPI, alDpi);
+    const org = organigrammaSicurezza(NOM, LAV, SCA);
+    const nomKO = nomineDaSistemare(org);
     $("k-scadute").textContent = k.scadute;
     $("k-30gg").textContent = k.trenta;
     $("k-regolari").textContent = k.regolari;
     $("k-corsi").textContent = SCA.filter(s => s.tipo === "Corso" || s.tipo === "Formazione").length;
     $("k-azi-scadute").textContent = ra.scadute;
     $("k-azi-aperte").textContent = ra.daChiudere;
+    $("k-scoperti").textContent = scoperti.length;
+    $("k-dpi").textContent = alDpi.length;
 
     // Urgenze: prima l'idoneità sanitaria critica (non idoneo / con
     // prescrizioni), poi le scadenze non regolari.
@@ -981,16 +1200,34 @@
         <div class="info"><div class="name">${esc(a.descrizione)}</div>
         <div class="meta">Azione correttiva · ${esc(r ? r.nome : "responsabile da assegnare")} · ${fmtData(a.scadenza)} · ${esc(lv.label)}</div></div>
         <span class="acts"><span class="badge ${B[st][0]}">${B[st][1]}</span><span class="arr">›</span></span></div>`; });
+    // S4 — chi oggi NON può fare la mansione che gli è assegnata: è la cosa
+    // che ferma il lavoro domani mattina, e va vista prima di tutto il resto.
+    const manUrg = scoperti.slice(0, 4).map(s =>
+      `<div class="item st-danger" data-vai-pers="mans" style="cursor:pointer" title="Vai alla matrice delle mansioni">
+        <div class="avatar">${esc(initials(s.lavoratore.nome))}</div>
+        <div class="info"><div class="name">${esc(s.lavoratore.nome)}</div>
+        <div class="meta">Non può fare ${esc(s.mansioni.join(", "))} · ${esc(s.motivi.join(" · "))}</div></div>
+        <span class="acts"><span class="badge danger">Fuori mansione</span><span class="arr">›</span></span></div>`);
+    // S4 — nomine obbligatorie scoperte o con la formazione non in regola.
+    const nomUrg = nomKO.slice(0, 3).map(o => {
+      const chi = o.persone.map(p => p.lavoratore ? p.lavoratore.nome : "persona non più in anagrafica").join(", ");
+      const perche = o.mancante ? "nessuno è nominato" : "formazione non in regola";
+      return `<div class="item st-danger" data-vai-pers="nom" style="cursor:pointer" title="Vai alle nomine">
+        <div class="avatar sup">${I.scudo}</div>
+        <div class="info"><div class="name">${esc(o.ruolo.etichetta)}</div>
+        <div class="meta">${esc(chi || "—")} · ${esc(perche)}</div></div>
+        <span class="acts"><span class="badge danger">${o.mancante ? "Da nominare" : "Formazione"}</span><span class="arr">›</span></span></div>`;
+    });
     const urg = SCA.filter(s => statoScadenza(s.dataScadenza) !== "regolare")
                    .sort((a, b) => a.dataScadenza < b.dataScadenza ? -1 : 1).slice(0, 5);
-    $("urg-list").innerHTML = (idonUrg.join("") + aziUrg.join("") + urg.map(sc => {
+    $("urg-list").innerHTML = (idonUrg.join("") + manUrg.join("") + nomUrg.join("") + aziUrg.join("") + urg.map(sc => {
       const st = statoScadenza(sc.dataScadenza), l = byId[sc.lavoratoreId];
       return `<div class="item ${striscia[B[st][0]]}" onclick="go('scad')" title="Vai allo scadenzario">
         <div class="avatar">${esc(initials(l && l.nome))}</div>
         <div class="info"><div class="name">${esc(l ? l.nome : "Scadenza aziendale")}</div><div class="meta">${esc(sc.descrizione)} · ${fmtData(sc.dataScadenza)}</div></div>
         <span class="acts"><span class="badge ${B[st][0]}">${B[st][1]}</span><span class="arr">›</span></span></div>`;
     }).join("")) || vuoto(I.ok, "Nessuna urgenza",
-        "Idoneità, scadenze e azioni correttive sono tutte in regola. Il quadro resta pulito finché una data non si avvicina.");
+        "Idoneità, mansioni, nomine, scadenze e azioni correttive sono tutte in regola. Il quadro resta pulito finché una data non si avvicina.");
 
     const q = ($("pers-cerca").value || "").trim().toLowerCase();
     const lavVis = LAV.filter(l => !q || (l.nome + " " + (l.ruolo || "")).toLowerCase().includes(q))
@@ -1138,8 +1375,17 @@
     const scadAzioni = AZI.filter(a => a.stato !== "chiusa" && a.scadenza).map(a => ({
       id: a.id, azione: true, lavoratoreId: a.responsabileId || null,
       tipo: "Azione correttiva", descrizione: a.descrizione, dataScadenza: a.scadenza }));
-    const scadTutte = SCA.concat(scadAzioni);
-    const nomeScad = (s) => { const l = byId[s.lavoratoreId]; return l ? l.nome : (s.azione ? "da assegnare" : "azienda"); };
+    // S5 — i DPI da sostituire entrano nello stesso scadenzario, non in un
+    // mondo a parte. Ma solo quelli che chiedono di fare qualcosa (scaduti o
+    // entro 30 giorni): la data di sostituzione è una vita utile indicativa e
+    // metterle tutte in lista annegherebbe gli adempimenti veri. Il registro
+    // completo delle consegne sta in Personale → DPI.
+    const scadDpi = DPI.filter(c => c.scadenza && statoScadenza(c.scadenza) !== "regolare").map(c => ({
+      id: c.id, dpiRiga: true, lavoratoreId: c.lavoratoreId || null, tipo: "DPI",
+      descrizione: tipoDpiSicuro(c.tipo).etichetta + " — da sostituire", dataScadenza: c.scadenza }));
+    const scadTutte = SCA.concat(scadAzioni, scadDpi);
+    const nomeScad = (s) => { const l = byId[s.lavoratoreId];
+      return l ? l.nome : (s.azione ? "da assegnare" : s.dpiRiga ? "lavoratore non più in anagrafica" : "azienda"); };
     const qScad = ($("scad-cerca") && $("scad-cerca").value || "").trim().toLowerCase();
     const scaVis = scadTutte.filter(s => filtroScad === "tutte" || statoScadenza(s.dataScadenza) === filtroScad)
                       .filter(s => !qScad || ((s.descrizione || "") + " " + (s.tipo || "") + " " + nomeScad(s)).toLowerCase().includes(qScad));
@@ -1153,6 +1399,11 @@
         <div class="meta">Azione correttiva · ${esc(nomeScad(sc))} · ${fmtData(sc.dataScadenza)} · ${esc(lv.label)}</div></div>
         <span class="acts"><span class="badge ${B[st][0]}">${B[st][1]}</span>
         <span class="arr" style="cursor:pointer" title="Vai all'azione correttiva" data-vai-azi="${sc.id}">↗</span></span></div>`;
+      if (sc.dpiRiga) return `<div class="item ${striscia[B[st][0]]}">
+        <div class="info"><div class="name"><span class="badge accent" style="margin-right:6px;">DPI</span>${esc(sc.descrizione)}</div>
+        <div class="meta">Dispositivo di protezione · ${esc(nomeScad(sc))} · ${fmtData(sc.dataScadenza)} · ${esc(lv.label)}</div></div>
+        <span class="acts"><span class="badge ${B[st][0]}">${B[st][1]}</span>
+        <span class="arr" style="cursor:pointer" title="Vai al registro DPI" data-vai-pers="dpi">↗</span></span></div>`;
       return `<div class="item ${striscia[B[st][0]]}">
         <div class="info"><div class="name">${esc(sc.descrizione)}</div><div class="meta">${esc(l ? l.nome : "azienda")} · ${fmtData(sc.dataScadenza)} · ${esc(lv.label)}</div></div>
         <span class="acts"><span class="badge ${B[st][0]}">${B[st][1]}</span>

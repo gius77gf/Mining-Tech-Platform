@@ -29,6 +29,17 @@
 //                      riferimento?, voci: [{ id, testo }],
 //                      esiti: { voceId: { esito: conforme|non-conforme|na, nota } },
 //                      stato: programmata|in-corso|completata, dataChiusura?|null }
+//   mansioni/{id}:   { nome, note?, requisiti: [chiave], dpi: [chiave],
+//                      lavoratoriIds: [id] }
+//                    → il lavoro che una persona fa in cava e ciò che SERVE per
+//                      farlo: corsi/abilitazioni richiesti e DPI previsti.
+//   nomine/{id}:     { ruolo (chiave), lavoratoreId, dal (ISO), al?|null, note? }
+//                    → chi ricopre le figure della sicurezza (sorvegliante,
+//                      preposto, RSPP, RLS, addetti emergenza…).
+//   dpi/{id}:        { lavoratoreId, tipo (chiave), modello?, taglia?,
+//                      dataConsegna (ISO), scadenza?|null, addestramento (bool),
+//                      dataAddestramento?|null, note? }
+//                    → registro delle consegne DPI (art. 77 D.Lgs 81/08).
 // Lo "stato" delle scadenze non si salva: si CALCOLA dalla data
 // (scaduta / entro 30gg / regolare) — niente dati derivati nel DB.
 // ============================================================
@@ -51,6 +62,23 @@ export const DEMO = {
     { id: "s3", lavoratoreId: "d3", tipo: "Formazione", descrizione: "Formazione preposto", dataScadenza: "2026-08-09" },
     { id: "s4", lavoratoreId: "d6", tipo: "DPI", descrizione: "Consegna DPI", dataScadenza: "2026-08-15" },
     { id: "s5", lavoratoreId: "d5", tipo: "Patente", descrizione: "CQC rinnovo", dataScadenza: "2026-09-02" },
+    { id: "s6", lavoratoreId: "d5", tipo: "Visita medica", descrizione: "Sorveglianza sanitaria — visita periodica (art. 41)", dataScadenza: "2027-05-20" },
+    { id: "s7", lavoratoreId: "d5", tipo: "Formazione", descrizione: "Formazione generale + specifica (art. 37)", dataScadenza: "2029-04-18" },
+    { id: "s8", lavoratoreId: "d5", tipo: "Formazione", descrizione: "Aggiornamento formazione lavoratori", dataScadenza: "2029-04-18" },
+    { id: "s9", lavoratoreId: "d3", tipo: "Visita medica", descrizione: "Sorveglianza sanitaria — visita periodica (art. 41)", dataScadenza: "2027-02-11" },
+    { id: "s10", lavoratoreId: "d3", tipo: "Formazione", descrizione: "Formazione generale + specifica (art. 37)", dataScadenza: "2030-02-11" },
+    { id: "s11", lavoratoreId: "d1", tipo: "Formazione", descrizione: "Formazione generale + specifica (art. 37)", dataScadenza: "2029-05-30" },
+    { id: "s12", lavoratoreId: "d1", tipo: "Formazione", descrizione: "Aggiornamento formazione lavoratori", dataScadenza: "2029-05-30" },
+    { id: "s13", lavoratoreId: "d1", tipo: "Patente", descrizione: "Fochino — abilitazione brillamento mine", dataScadenza: "2028-05-30" },
+    { id: "s14", lavoratoreId: "d6", tipo: "Visita medica", descrizione: "Sorveglianza sanitaria — visita periodica (art. 41)", dataScadenza: "2027-01-20" },
+    { id: "s15", lavoratoreId: "d6", tipo: "Formazione", descrizione: "Formazione generale + specifica (art. 37)", dataScadenza: "2029-03-05" },
+    { id: "s16", lavoratoreId: "d6", tipo: "Formazione", descrizione: "Aggiornamento formazione lavoratori", dataScadenza: "2029-03-05" },
+    { id: "s17", lavoratoreId: "d6", tipo: "Patente", descrizione: "Fochino — abilitazione brillamento mine", dataScadenza: "2029-11-14" },
+    { id: "s18", lavoratoreId: "d2", tipo: "Visita medica", descrizione: "Sorveglianza sanitaria — visita periodica (art. 41)", dataScadenza: "2027-04-08" },
+    { id: "s19", lavoratoreId: "d2", tipo: "Formazione", descrizione: "Formazione generale + specifica (art. 37)", dataScadenza: "2028-09-30" },
+    { id: "s20", lavoratoreId: "d2", tipo: "Formazione", descrizione: "Aggiornamento formazione lavoratori", dataScadenza: "2028-09-30" },
+    { id: "s21", lavoratoreId: "d5", tipo: "Corso", descrizione: "Primo soccorso — aggiornamento addetti", dataScadenza: "2028-04-14" },
+    { id: "s22", lavoratoreId: "d5", tipo: "Formazione", descrizione: "RLS — aggiornamento periodico", dataScadenza: "2027-06-15" },
   ],
   documenti: [
     { id: "c1", titolo: "DVR — Documento Valutazione Rischi", meta: "Aggiornato 03/2026", tipo: "DVR", stato: "valido" },
@@ -114,6 +142,58 @@ export const DEMO = {
       ],
       esiti: { v1: { esito: "conforme", nota: "" }, v2: { esito: "conforme", nota: "" } },
       stato: "in-corso", dataChiusura: null },
+  ],
+  mansioni: [
+    { id: "n1", nome: "Escavatorista / palista",
+      requisiti: ["sorv-sanitaria", "form-generale", "form-aggiorn", "patentino-attr"],
+      dpi: ["elmetto", "scarpe", "gilet", "otoprotettori", "guanti"],
+      lavoratoriIds: ["d2"] },
+    { id: "n2", nome: "Fochino",
+      requisiti: ["sorv-sanitaria", "form-generale", "form-aggiorn", "fochino"],
+      dpi: ["elmetto", "scarpe", "gilet", "otoprotettori", "occhiali", "guanti"],
+      lavoratoriIds: ["d1", "d6"] },
+    { id: "n3", nome: "Preposto di cava",
+      requisiti: ["sorv-sanitaria", "form-generale", "form-preposto"],
+      dpi: ["elmetto", "scarpe", "gilet"],
+      lavoratoriIds: ["d3"] },
+    { id: "n4", nome: "Autista dumper / camion",
+      requisiti: ["sorv-sanitaria", "form-generale", "form-aggiorn"],
+      dpi: ["elmetto", "scarpe", "gilet", "guanti"],
+      lavoratoriIds: ["d5"] },
+  ],
+  nomine: [
+    { id: "o1", ruolo: "sorvegliante", lavoratoreId: "d3", dal: "2025-02-03", al: null, note: "Turno unico, tutta la cava" },
+    { id: "o2", ruolo: "preposto", lavoratoreId: "d3", dal: "2025-02-03", al: null, note: "" },
+    { id: "o3", ruolo: "rspp", lavoratoreId: "d7", dal: "2024-09-16", al: null, note: "Incarico esterno" },
+    { id: "o4", ruolo: "primo-soccorso", lavoratoreId: "d5", dal: "2025-04-14", al: null, note: "" },
+    { id: "o5", ruolo: "antincendio", lavoratoreId: "d2", dal: "2025-04-14", al: null, note: "" },
+    { id: "o6", ruolo: "rls", lavoratoreId: "d5", dal: "2024-11-08", al: null, note: "Eletto dai lavoratori" },
+  ],
+  dpi: [
+    { id: "e1", lavoratoreId: "d1", tipo: "elmetto", modello: "", taglia: "unica", dataConsegna: "2026-01-12", scadenza: "2031-01-12", addestramento: false, dataAddestramento: null, note: "" },
+    { id: "e2", lavoratoreId: "d1", tipo: "scarpe", modello: "", taglia: "43", dataConsegna: "2026-01-12", scadenza: "2028-01-12", addestramento: false, dataAddestramento: null, note: "" },
+    { id: "e3", lavoratoreId: "d1", tipo: "otoprotettori", modello: "cuffie", taglia: "unica", dataConsegna: "2026-01-12", scadenza: "2027-01-12", addestramento: true, dataAddestramento: "2026-01-12", note: "" },
+    { id: "e4", lavoratoreId: "d2", tipo: "elmetto", modello: "", taglia: "unica", dataConsegna: "2025-06-02", scadenza: "2030-06-02", addestramento: false, dataAddestramento: null, note: "" },
+    { id: "e5", lavoratoreId: "d2", tipo: "otoprotettori", modello: "inserti", taglia: "unica", dataConsegna: "2025-06-02", scadenza: "2026-06-02", addestramento: false, dataAddestramento: null, note: "" },
+    { id: "e6", lavoratoreId: "d3", tipo: "elmetto", modello: "", taglia: "unica", dataConsegna: "2026-03-09", scadenza: "2031-03-09", addestramento: false, dataAddestramento: null, note: "" },
+    { id: "e7", lavoratoreId: "d5", tipo: "elmetto", modello: "", taglia: "unica", dataConsegna: "2026-04-20", scadenza: "2031-04-20", addestramento: false, dataAddestramento: null, note: "" },
+    { id: "e8", lavoratoreId: "d5", tipo: "scarpe", modello: "", taglia: "44", dataConsegna: "2026-04-20", scadenza: "2028-04-20", addestramento: false, dataAddestramento: null, note: "" },
+    { id: "e9", lavoratoreId: "d5", tipo: "gilet", modello: "", taglia: "L", dataConsegna: "2026-04-20", scadenza: "2028-04-20", addestramento: false, dataAddestramento: null, note: "" },
+    { id: "e10", lavoratoreId: "d5", tipo: "guanti", modello: "", taglia: "9", dataConsegna: "2026-04-20", scadenza: "2027-04-20", addestramento: false, dataAddestramento: null, note: "" },
+    { id: "e11", lavoratoreId: "d1", tipo: "gilet", modello: "", taglia: "L", dataConsegna: "2026-01-12", scadenza: "2028-01-12", addestramento: false, dataAddestramento: null, note: "" },
+    { id: "e12", lavoratoreId: "d1", tipo: "occhiali", modello: "", taglia: "unica", dataConsegna: "2026-01-12", scadenza: "2028-01-12", addestramento: false, dataAddestramento: null, note: "" },
+    { id: "e13", lavoratoreId: "d1", tipo: "guanti", modello: "", taglia: "10", dataConsegna: "2026-01-12", scadenza: "2027-01-12", addestramento: false, dataAddestramento: null, note: "" },
+    { id: "e14", lavoratoreId: "d6", tipo: "elmetto", modello: "", taglia: "unica", dataConsegna: "2026-02-24", scadenza: "2031-02-24", addestramento: false, dataAddestramento: null, note: "" },
+    { id: "e15", lavoratoreId: "d6", tipo: "scarpe", modello: "", taglia: "45", dataConsegna: "2026-02-24", scadenza: "2028-02-24", addestramento: false, dataAddestramento: null, note: "" },
+    { id: "e16", lavoratoreId: "d6", tipo: "gilet", modello: "", taglia: "XL", dataConsegna: "2026-02-24", scadenza: "2028-02-24", addestramento: false, dataAddestramento: null, note: "" },
+    { id: "e17", lavoratoreId: "d6", tipo: "otoprotettori", modello: "cuffie", taglia: "unica", dataConsegna: "2026-02-24", scadenza: "2027-02-24", addestramento: true, dataAddestramento: "2026-02-24", note: "" },
+    { id: "e18", lavoratoreId: "d6", tipo: "occhiali", modello: "", taglia: "unica", dataConsegna: "2026-02-24", scadenza: "2028-02-24", addestramento: false, dataAddestramento: null, note: "" },
+    { id: "e19", lavoratoreId: "d6", tipo: "guanti", modello: "", taglia: "10", dataConsegna: "2026-02-24", scadenza: "2027-02-24", addestramento: false, dataAddestramento: null, note: "" },
+    { id: "e20", lavoratoreId: "d2", tipo: "scarpe", modello: "", taglia: "43", dataConsegna: "2025-06-02", scadenza: "2027-06-02", addestramento: false, dataAddestramento: null, note: "" },
+    { id: "e21", lavoratoreId: "d2", tipo: "gilet", modello: "", taglia: "L", dataConsegna: "2025-06-02", scadenza: "2027-06-02", addestramento: false, dataAddestramento: null, note: "" },
+    { id: "e22", lavoratoreId: "d2", tipo: "guanti", modello: "", taglia: "9", dataConsegna: "2026-05-11", scadenza: "2027-05-11", addestramento: false, dataAddestramento: null, note: "" },
+    { id: "e23", lavoratoreId: "d3", tipo: "scarpe", modello: "", taglia: "38", dataConsegna: "2026-03-09", scadenza: "2028-03-09", addestramento: false, dataAddestramento: null, note: "" },
+    { id: "e24", lavoratoreId: "d3", tipo: "gilet", modello: "", taglia: "M", dataConsegna: "2026-03-09", scadenza: "2028-03-09", addestramento: false, dataAddestramento: null, note: "" },
   ],
 };
 
@@ -751,6 +831,461 @@ export function parseScadenzeCsv(text) {
     .filter(p => /^\d{4}-\d{2}-\d{2}$/.test(p.dataScadenza));
 }
 
+// ============================================================
+// S4 · MANSIONI, REQUISITI DI FORMAZIONE E NOMINE
+// La domanda vera del titolare non è «quanti corsi scadono», è: «CHI POSSO
+// MANDARE A FARE QUEL LAVORO DOMANI MATTINA?». Per rispondere servono tre
+// cose: che lavoro è (la mansione), che cosa serve per farlo (corsi,
+// abilitazioni, DPI) e chi ce l'ha davvero.
+// Le scadenze NON vivono in un mondo a parte: la formazione richiesta da una
+// mansione è una riga dello SCADENZARIO che già esiste, con lo stesso
+// semaforo (statoScadenza) usato in tutta l'app. Qui si legge quello, non si
+// duplica niente.
+// ============================================================
+
+// Confronto "morbido" dei testi: minuscole, senza accenti né punteggiatura.
+// Serve a riconoscere che «Corso antincendio» e «Antincendio — aggiornamento
+// addetti» parlano della stessa cosa.
+export function normalizzaTesto(s) {
+  return String(s || "").toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+// Etichetta corta (per le pillole della matrice: nello spazio di un badge non
+// ci sta «Sorveglianza sanitaria — visita periodica (art. 41)»).
+const BREVE_REQUISITO = {
+  "sorv-sanitaria": "Visita medica",
+  "form-generale":  "Formazione base",
+  "form-aggiorn":   "Aggiornamento",
+  "form-preposto":  "Preposto",
+  "form-dirigente": "Dirigente",
+  "primo-soccorso": "Primo soccorso",
+  "antincendio":    "Antincendio",
+  "rls":            "RLS",
+  "patentino-attr": "Abilitazione attrezzature",
+  "fochino":        "Fochino",
+  "sorvegliante":   "Sorvegliante",
+};
+// Parole che identificano l'adempimento dentro una descrizione scritta a mano.
+// Servono a NON far risultare "mancante" un corso che l'azienda ha già in
+// scadenzario solo perché l'ha chiamato con parole sue.
+const PAROLE_REQUISITO = {
+  "sorv-sanitaria": ["visita medica", "sorveglianza sanitaria", "medico competente", "idoneita"],
+  "form-generale":  ["formazione generale", "formazione specifica", "formazione lavoratori", "formazione base"],
+  "form-aggiorn":   ["aggiornamento formazione", "aggiornamento lavoratori", "aggiornamento quinquennale"],
+  "form-preposto":  ["preposto"],
+  "form-dirigente": ["dirigente"],
+  "primo-soccorso": ["primo soccorso"],
+  "antincendio":    ["antincendio", "antincendi"],
+  "rls":            ["rls", "rappresentante dei lavoratori"],
+  "patentino-attr": ["abilitazione attrezzature", "patentino", "escavatore", "pale caricatrici", "carrello elevatore", "ple"],
+  "fochino":        ["fochino", "brillamento"],
+  "sorvegliante":   ["sorvegliante"],
+};
+
+// I requisiti che una mansione può richiedere sono gli stessi adempimenti già
+// presenti nello scadenzario (SCADENZE_PRESET): stessa etichetta, stessa
+// periodicità proposta, stesso riferimento. Così, quando dalla matrice si
+// aggiunge un corso mancante, nasce una scadenza IDENTICA a quelle che
+// l'utente crea a mano dal menu degli adempimenti tipici.
+export const REQUISITI_FORMAZIONE = SCADENZE_PRESET
+  .filter(p => p.categoria === "persona" || p.chiave === "sorvegliante")
+  .map(p => ({
+    chiave: p.chiave, etichetta: p.etichetta, tipo: p.tipo, mesi: p.mesi,
+    riferimento: p.riferimento,
+    breve: BREVE_REQUISITO[p.chiave] || p.etichetta,
+    parole: PAROLE_REQUISITO[p.chiave] || [],
+  }));
+
+export function requisitoFormazione(chiave) {
+  return REQUISITI_FORMAZIONE.find(r => r.chiave === chiave) || null;
+}
+// Requisito "sicuro" anche per una chiave sconosciuta (dati vecchi o scritti a
+// mano): meglio una riga con l'etichetta grezza che una schermata rotta.
+export function requisitoSicuro(chiave) {
+  return requisitoFormazione(chiave)
+    || { chiave, etichetta: String(chiave || "requisito"), breve: String(chiave || "requisito"),
+         tipo: "Formazione", mesi: null, riferimento: "", parole: [] };
+}
+
+// Una scadenza dello scadenzario "copre" un requisito?
+// Tre modi, dal più sicuro al più tollerante:
+//   1. la scadenza è nata da quell'adempimento (campo `preset`/`requisito`);
+//   2. la descrizione è la stessa (a meno di maiuscole e accenti);
+//   3. la descrizione contiene una delle parole che identificano l'adempimento.
+export function scadenzaCopreRequisito(scadenza, req) {
+  if (!scadenza || !req) return false;
+  const ch = req.chiave;
+  if (ch && (scadenza.preset === ch || scadenza.requisito === ch)) return true;
+  const a = normalizzaTesto(scadenza.descrizione), b = normalizzaTesto(req.etichetta);
+  if (!a) return false;
+  if (b && (a === b || a.includes(b) || b.includes(a))) return true;
+  return (req.parole || []).some(p => a.includes(normalizzaTesto(p)));
+}
+
+// Stato di UN requisito per UNA persona, letto dalle sue scadenze.
+// "mancante" = non c'è nessuna riga in scadenzario; altrimenti lo stesso
+// semaforo delle scadenze (scaduta / in-scadenza / regolare). Se ci sono più
+// righe (rinnovi successivi) vale la più lontana nel tempo: è l'ultimo rinnovo.
+export function statoRequisito(req, scadenzeLavoratore, oggi = new Date()) {
+  const trovate = (scadenzeLavoratore || []).filter(s => scadenzaCopreRequisito(s, req));
+  if (!trovate.length) return { stato: "mancante", scadenza: null, scadenzaId: null, giorni: null };
+  const migliore = trovate.slice().sort((a, b) =>
+    String(b.dataScadenza || "").localeCompare(String(a.dataScadenza || "")))[0];
+  const g = giorniTra(migliore.dataScadenza, oggi);
+  return {
+    stato: statoScadenza(migliore.dataScadenza, oggi),
+    scadenza: migliore.dataScadenza || null,
+    scadenzaId: migliore.id || null,
+    giorni: Number.isFinite(g) ? g : null,
+  };
+}
+
+// Mansioni tipiche di una cava, già pronte con i loro requisiti e i loro DPI:
+// si sceglie dall'elenco invece di scrivere tutto da zero, e poi si corregge.
+// Come per i preset dello scadenzario: è una BASE DI PARTENZA da adattare al
+// DVR e al DSS della propria cava, non un elenco di verità di legge.
+export const MANSIONI_PRESET = [
+  { chiave: "escavatorista", nome: "Escavatorista / palista",
+    requisiti: ["sorv-sanitaria", "form-generale", "form-aggiorn", "patentino-attr"],
+    dpi: ["elmetto", "scarpe", "gilet", "otoprotettori", "guanti"] },
+  { chiave: "autista", nome: "Autista dumper / camion",
+    requisiti: ["sorv-sanitaria", "form-generale", "form-aggiorn"],
+    dpi: ["elmetto", "scarpe", "gilet", "guanti"] },
+  { chiave: "perforatore", nome: "Perforatore",
+    requisiti: ["sorv-sanitaria", "form-generale", "form-aggiorn", "patentino-attr"],
+    dpi: ["elmetto", "scarpe", "gilet", "otoprotettori", "maschera", "antivibranti"] },
+  { chiave: "fochino", nome: "Fochino",
+    requisiti: ["sorv-sanitaria", "form-generale", "form-aggiorn", "fochino"],
+    dpi: ["elmetto", "scarpe", "gilet", "otoprotettori", "occhiali", "guanti"] },
+  { chiave: "impianto", nome: "Addetto impianto / frantoio",
+    requisiti: ["sorv-sanitaria", "form-generale", "form-aggiorn"],
+    dpi: ["elmetto", "scarpe", "gilet", "otoprotettori", "maschera", "guanti"] },
+  { chiave: "manutentore", nome: "Manutentore / officina",
+    requisiti: ["sorv-sanitaria", "form-generale", "form-aggiorn"],
+    dpi: ["elmetto", "scarpe", "occhiali", "guanti", "otoprotettori"] },
+  { chiave: "preposto", nome: "Preposto di cava",
+    requisiti: ["sorv-sanitaria", "form-generale", "form-preposto"],
+    dpi: ["elmetto", "scarpe", "gilet"] },
+  { chiave: "sorvegliante", nome: "Sorvegliante",
+    requisiti: ["sorv-sanitaria", "form-generale", "sorvegliante"],
+    dpi: ["elmetto", "scarpe", "gilet"] },
+  { chiave: "uffici", nome: "Ufficio e pesa",
+    requisiti: ["sorv-sanitaria", "form-generale"],
+    dpi: ["gilet", "scarpe"] },
+];
+export function mansionePreset(chiave) {
+  return MANSIONI_PRESET.find(m => m.chiave === chiave) || null;
+}
+
+// ============================================================
+// S5 · DPI — CATALOGO E CONSEGNE
+// Art. 77 D.Lgs 81/08: i DPI si consegnano in modo documentato, e per i DPI
+// di III categoria e per i protettori dell'udito l'ADDESTRAMENTO è
+// obbligatorio (in cava sono entrambi la norma, non l'eccezione).
+// La "durata" è la vita utile indicativa dichiarata dal costruttore: qui è
+// solo una PROPOSTA per calcolare la data di sostituzione, non una regola.
+// ============================================================
+export const TIPI_DPI = [
+  { chiave: "elmetto",       etichetta: "Elmetto",                          cat: "II",  addestramento: false, mesi: 60 },
+  { chiave: "scarpe",        etichetta: "Scarpe antinfortunistiche",        cat: "II",  addestramento: false, mesi: 24 },
+  { chiave: "gilet",         etichetta: "Indumenti ad alta visibilità",     cat: "II",  addestramento: false, mesi: 24 },
+  { chiave: "guanti",        etichetta: "Guanti da lavoro / antitaglio",    cat: "II",  addestramento: false, mesi: 12 },
+  { chiave: "occhiali",      etichetta: "Occhiali o visiera",               cat: "II",  addestramento: false, mesi: 24 },
+  { chiave: "otoprotettori", etichetta: "Otoprotettori (cuffie o inserti)", cat: "II",  addestramento: true,  mesi: 12,
+    nota: "Protettori dell'udito: l'addestramento è obbligatorio anche se non sono di III categoria." },
+  { chiave: "maschera",      etichetta: "Facciale filtrante / respiratore", cat: "III", addestramento: true,  mesi: 12,
+    nota: "Contro le polveri (silice cristallina respirabile): III categoria, addestramento obbligatorio." },
+  { chiave: "imbracatura",   etichetta: "Imbracatura anticaduta",           cat: "III", addestramento: true,  mesi: 12,
+    nota: "III categoria: addestramento obbligatorio e controllo periodico del dispositivo." },
+  { chiave: "dielettrici",   etichetta: "Guanti e attrezzi dielettrici",    cat: "III", addestramento: true,  mesi: 12,
+    nota: "III categoria (rischio elettrico): addestramento obbligatorio." },
+  { chiave: "antivibranti",  etichetta: "Guanti antivibranti",              cat: "II",  addestramento: false, mesi: 12 },
+  { chiave: "indumenti",     etichetta: "Indumenti da lavoro",              cat: "I",   addestramento: false, mesi: null },
+  { chiave: "altro",         etichetta: "Altro DPI",                        cat: "II",  addestramento: false, mesi: null },
+];
+export function tipoDpi(chiave) {
+  return TIPI_DPI.find(t => t.chiave === chiave) || null;
+}
+export function tipoDpiSicuro(chiave) {
+  return tipoDpi(chiave)
+    || { chiave, etichetta: String(chiave || "DPI"), cat: "II", addestramento: false, mesi: null };
+}
+
+// Ultima consegna di quel tipo di DPI a quella persona (la più recente).
+export function ultimaConsegnaDpi(consegne, lavoratoreId, tipo) {
+  const list = (consegne || []).filter(c => c.lavoratoreId === lavoratoreId && c.tipo === tipo);
+  if (!list.length) return null;
+  return list.slice().sort((a, b) =>
+    String(b.dataConsegna || "").localeCompare(String(a.dataConsegna || "")))[0];
+}
+// Stato di una consegna: "mancante" (mai consegnato) oppure lo stesso semaforo
+// delle scadenze sulla data di sostituzione. `addestramentoMancante` è vero
+// quando il tipo lo richiede e non risulta fatto.
+export function statoConsegnaDpi(consegna, oggi = new Date()) {
+  if (!consegna) return { stato: "mancante", scadenza: null, addestramentoMancante: false };
+  const t = tipoDpi(consegna.tipo);
+  return {
+    stato: consegna.scadenza ? statoScadenza(consegna.scadenza, oggi) : "regolare",
+    scadenza: consegna.scadenza || null,
+    addestramentoMancante: !!(t && t.addestramento) && !consegna.addestramento,
+  };
+}
+
+// ============================================================
+// LA MATRICE: chi può fare quel lavoro domani mattina
+// Tre risposte sole, perché di mattina non c'è tempo di leggere una tabella:
+//   · "puo"      → può andare;
+//   · "attenzione" → può andare, ma c'è qualcosa da sistemare (un corso che
+//                    scade, un DPI da consegnare o un addestramento da fare);
+//   · "no"       → non può: manca o è scaduto qualcosa di bloccante.
+// Bloccano: persona non in forza, idoneità sanitaria negativa, un corso
+// richiesto mancante o scaduto. I DPI NON bloccano ma pesano: l'app sa se la
+// consegna è REGISTRATA, non se il lavoratore ha l'elmetto in mano — dirlo
+// come certezza sarebbe una bugia. Restano in evidenza, non nascosti.
+// ============================================================
+export function abilitazioneLavoratore(lav, mansione, scadenze, consegneDpi, oggi = new Date()) {
+  const l = lav || {};
+  const scLav = (scadenze || []).filter(s => s.lavoratoreId === l.id);
+  const requisiti = ((mansione && mansione.requisiti) || []).map(ch => {
+    const req = requisitoSicuro(ch);
+    const st = statoRequisito(req, scLav, oggi);
+    return { chiave: req.chiave, etichetta: req.etichetta, breve: req.breve, mesi: req.mesi, ...st };
+  });
+  const dpi = ((mansione && mansione.dpi) || []).map(ch => {
+    const t = tipoDpiSicuro(ch);
+    const c = ultimaConsegnaDpi(consegneDpi, l.id, ch);
+    const st = statoConsegnaDpi(c, oggi);
+    return { chiave: t.chiave, etichetta: t.etichetta, cat: t.cat, consegna: c, ...st };
+  });
+  const bloccanti = [], attenzioni = [];
+  if (l.attivo === false) bloccanti.push("non è in forza");
+  if (l.idoneita === "non-idoneo") bloccanti.push("giudicato non idoneo alla visita medica");
+  if (l.idoneita === "prescrizioni") attenzioni.push("idoneo con prescrizioni");
+  for (const r of requisiti) {
+    if (r.stato === "mancante") bloccanti.push("manca " + r.breve.toLowerCase());
+    else if (r.stato === "scaduta") bloccanti.push(r.breve.toLowerCase() + " scaduta il " + (r.scadenza || "—"));
+    else if (r.stato === "in-scadenza") attenzioni.push(r.breve.toLowerCase() + " in scadenza");
+  }
+  for (const d of dpi) {
+    if (d.stato === "mancante") attenzioni.push(d.etichetta.toLowerCase() + ": consegna mai registrata");
+    else if (d.stato === "scaduta") attenzioni.push(d.etichetta.toLowerCase() + " da sostituire");
+    else if (d.stato === "in-scadenza") attenzioni.push(d.etichetta.toLowerCase() + " in scadenza");
+    if (d.addestramentoMancante && d.stato !== "mancante") attenzioni.push("addestramento " + d.etichetta.toLowerCase() + " da registrare");
+  }
+  const esito = bloccanti.length ? "no" : (attenzioni.length ? "attenzione" : "puo");
+  return { lavoratore: l, mansione: mansione || null, requisiti, dpi, bloccanti, attenzioni, esito };
+}
+
+// La matrice di UNA mansione: una riga per persona, prima chi può andare.
+export function matriceMansione(mansione, lavoratori, scadenze, consegneDpi, oggi = new Date()) {
+  const ids = (mansione && mansione.lavoratoriIds) || [];
+  const ordine = { puo: 0, attenzione: 1, no: 2 };
+  return ids
+    .map(id => (lavoratori || []).find(l => l.id === id))
+    .filter(Boolean)
+    .map(l => abilitazioneLavoratore(l, mansione, scadenze, consegneDpi, oggi))
+    .sort((a, b) => (ordine[a.esito] - ordine[b.esito])
+      || String(a.lavoratore.nome || "").localeCompare(String(b.lavoratore.nome || ""), "it"));
+}
+
+// Riepilogo di tutte le mansioni (per il quadro d'insieme e per il grafico):
+// quante persone possono andare, quante con riserva, quante no.
+export function riepilogoMansioni(mansioni, lavoratori, scadenze, consegneDpi, oggi = new Date()) {
+  return (mansioni || []).map(m => {
+    const righe = matriceMansione(m, lavoratori, scadenze, consegneDpi, oggi);
+    return {
+      mansione: m, totale: righe.length,
+      puo: righe.filter(r => r.esito === "puo").length,
+      attenzione: righe.filter(r => r.esito === "attenzione").length,
+      no: righe.filter(r => r.esito === "no").length,
+      righe,
+    };
+  }).sort((a, b) => (b.no - a.no) || (b.attenzione - a.attenzione)
+    || String(a.mansione.nome || "").localeCompare(String(b.mansione.nome || ""), "it"));
+}
+
+// Le persone che oggi NON possono fare almeno una delle mansioni assegnate:
+// è il numero che va in cima al Quadro, perché è quello che ferma il lavoro.
+export function lavoratoriScoperti(mansioni, lavoratori, scadenze, consegneDpi, oggi = new Date()) {
+  const per = new Map();
+  for (const m of mansioni || []) {
+    for (const r of matriceMansione(m, lavoratori, scadenze, consegneDpi, oggi)) {
+      if (r.esito !== "no") continue;
+      const id = r.lavoratore.id;
+      const v = per.get(id) || { lavoratore: r.lavoratore, mansioni: [], motivi: [] };
+      v.mansioni.push(m.nome);
+      for (const b of r.bloccanti) if (!v.motivi.includes(b)) v.motivi.push(b);
+      per.set(id, v);
+    }
+  }
+  return [...per.values()].sort((a, b) =>
+    String(a.lavoratore.nome || "").localeCompare(String(b.lavoratore.nome || ""), "it"));
+}
+
+// ============================================================
+// NOMINE DELLA SICUREZZA
+// In cava il SORVEGLIANTE è obbligatorio (D.Lgs 624/96) e il PREPOSTO va
+// individuato formalmente (D.Lgs 81/08, modificato dal D.L. 146/2021): non
+// basta che qualcuno "faccia da capo". Qui si tiene chi è nominato, da
+// quando, e se la formazione collegata è in regola — sempre leggendo lo
+// scadenzario, mai un elenco parallelo.
+// Nota informativa, non un parere legale: obblighi e figure vanno confermati
+// con l'RSPP e il consulente dell'azienda.
+// ============================================================
+export const NOMINE_RUOLI = [
+  { chiave: "sorvegliante", etichetta: "Sorvegliante", obbligatoria: true, multiplo: true,
+    requisito: "sorvegliante",
+    riferimento: "D.Lgs 624/96 — figura obbligatoria nelle attività estrattive.",
+    spiega: "È chi controlla ogni giorno i luoghi di lavoro della cava e ferma ciò che non va." },
+  { chiave: "direttore", etichetta: "Direttore responsabile", obbligatoria: true, multiplo: false,
+    requisito: null,
+    riferimento: "D.Lgs 624/96 — responsabile della conduzione dell'attività estrattiva.",
+    spiega: "È la persona che risponde della conduzione tecnica della cava." },
+  { chiave: "preposto", etichetta: "Preposto", obbligatoria: true, multiplo: true,
+    requisito: "form-preposto",
+    riferimento: "D.Lgs 81/08 e D.L. 146/2021 — individuazione obbligatoria e aggiornamento almeno biennale.",
+    spiega: "Sovrintende al lavoro degli altri e interviene subito se qualcuno lavora male." },
+  { chiave: "rspp", etichetta: "RSPP", obbligatoria: true, multiplo: false, requisito: null,
+    riferimento: "D.Lgs 81/08 art. 17 — designazione obbligatoria, non delegabile dal datore di lavoro.",
+    spiega: "Responsabile del servizio di prevenzione e protezione: interno o consulente esterno." },
+  { chiave: "medico", etichetta: "Medico competente", obbligatoria: true, multiplo: false, requisito: null,
+    riferimento: "D.Lgs 81/08 art. 18 — obbligatorio quando è prevista la sorveglianza sanitaria (in cava, di norma, sì).",
+    spiega: "Fa le visite mediche e decide l'idoneità alla mansione." },
+  { chiave: "rls", etichetta: "RLS", obbligatoria: true, multiplo: true, requisito: "rls",
+    riferimento: "D.Lgs 81/08 artt. 47-50 — rappresentante dei lavoratori per la sicurezza.",
+    spiega: "Eletto dai lavoratori: va formato e aggiornato ogni anno." },
+  { chiave: "primo-soccorso", etichetta: "Addetto primo soccorso", obbligatoria: true, multiplo: true,
+    requisito: "primo-soccorso",
+    riferimento: "D.Lgs 81/08 art. 45 e D.M. 388/2003 — addetti designati e formati.",
+    spiega: "Deve essercene almeno uno presente quando si lavora." },
+  { chiave: "antincendio", etichetta: "Addetto antincendio ed evacuazione", obbligatoria: true, multiplo: true,
+    requisito: "antincendio",
+    riferimento: "D.Lgs 81/08 art. 43 e D.M. 2 settembre 2021 — addetti designati e formati.",
+    spiega: "Deve essercene almeno uno presente quando si lavora." },
+  { chiave: "dirigente", etichetta: "Dirigente", obbligatoria: false, multiplo: true,
+    requisito: "form-dirigente",
+    riferimento: "D.Lgs 81/08 — chi organizza il lavoro con poteri di spesa e decisione.",
+    spiega: "Serve solo se in azienda c'è davvero questa figura." },
+];
+export function ruoloNomina(chiave) {
+  return NOMINE_RUOLI.find(r => r.chiave === chiave) || null;
+}
+// Una nomina è ATTIVA oggi se è già decorsa e non è ancora finita.
+export function nominaAttiva(n, oggi = new Date()) {
+  if (!n) return false;
+  if (n.dal) { const g = giorniTra(n.dal, oggi); if (Number.isFinite(g) && g > 0) return false; }
+  if (n.al)  { const g = giorniTra(n.al, oggi);  if (Number.isFinite(g) && g < 0) return false; }
+  return true;
+}
+// L'organigramma della sicurezza: un blocco per ruolo, con chi c'è e com'è
+// messa la sua formazione. `mancante` = ruolo obbligatorio senza nessuno.
+export function organigrammaSicurezza(nomine, lavoratori, scadenze, oggi = new Date()) {
+  return NOMINE_RUOLI.map(r => {
+    const attive = (nomine || []).filter(n => n.ruolo === r.chiave && nominaAttiva(n, oggi));
+    const req = r.requisito ? requisitoFormazione(r.requisito) : null;
+    const persone = attive.map(n => {
+      const l = (lavoratori || []).find(x => x.id === n.lavoratoreId) || null;
+      const form = (req && l)
+        ? statoRequisito(req, (scadenze || []).filter(s => s.lavoratoreId === l.id), oggi)
+        : null;
+      return { nomina: n, lavoratore: l, requisito: req, formazione: form };
+    });
+    const senzaFormazione = persone.filter(p => p.formazione &&
+      (p.formazione.stato === "mancante" || p.formazione.stato === "scaduta")).length;
+    const inScadenza = persone.filter(p => p.formazione && p.formazione.stato === "in-scadenza").length;
+    const mancante = !!r.obbligatoria && persone.length === 0;
+    const stato = (mancante || senzaFormazione) ? "danger"
+      : inScadenza ? "warn" : (persone.length ? "ok" : "mute");
+    return { ruolo: r, persone, mancante, senzaFormazione, inScadenza, stato, requisito: req };
+  });
+}
+// Quello che va sistemato subito: ruoli obbligatori scoperti e nominati senza
+// la formazione in regola. Alimenta le urgenze del Quadro.
+export function nomineDaSistemare(organigramma) {
+  return (organigramma || []).filter(x => x.stato === "danger");
+}
+
+// ============================================================
+// DPI: quello che deve EMERGERE
+// Un elenco di consegne non serve a niente se non dice chi è scoperto. Qui si
+// incrociano le mansioni (che dicono quali DPI servono) con le consegne
+// registrate: mai consegnato, da sostituire, addestramento non registrato.
+// ============================================================
+export function allarmiDpi(mansioni, lavoratori, consegne, oggi = new Date()) {
+  const out = [], visti = new Set();
+  const lavById = Object.fromEntries((lavoratori || []).map(l => [l.id, l]));
+  const aggiungi = (lav, tipo, etichetta, motivo, gravita, mansione, scadenza) => {
+    const k = lav.id + "|" + tipo + "|" + motivo;
+    if (visti.has(k)) return;
+    visti.add(k);
+    out.push({ lavoratoreId: lav.id, lavoratore: lav.nome, tipo, etichetta, motivo, gravita,
+      mansione: mansione || "", scadenza: scadenza || null });
+  };
+  for (const m of mansioni || []) {
+    for (const id of m.lavoratoriIds || []) {
+      const l = lavById[id];
+      if (!l || l.attivo === false) continue;
+      for (const ch of m.dpi || []) {
+        const t = tipoDpiSicuro(ch);
+        const c = ultimaConsegnaDpi(consegne, id, ch);
+        const st = statoConsegnaDpi(c, oggi);
+        if (st.stato === "mancante") aggiungi(l, ch, t.etichetta, "mai consegnato", "danger", m.nome, null);
+        else if (st.stato === "scaduta") aggiungi(l, ch, t.etichetta, "da sostituire", "danger", m.nome, st.scadenza);
+        else if (st.stato === "in-scadenza") aggiungi(l, ch, t.etichetta, "in scadenza", "warn", m.nome, st.scadenza);
+        if (st.addestramentoMancante && st.stato !== "mancante")
+          aggiungi(l, ch, t.etichetta, "addestramento non registrato", "warn", m.nome, null);
+      }
+    }
+  }
+  // Addestramento mancante anche fuori dalle mansioni: un DPI di III categoria
+  // consegnato senza addestramento è comunque una cosa fuori posto (art. 77).
+  for (const c of consegne || []) {
+    const l = lavById[c.lavoratoreId];
+    if (!l || l.attivo === false) continue;
+    const t = tipoDpiSicuro(c.tipo);
+    const st = statoConsegnaDpi(c, oggi);
+    if (st.addestramentoMancante) aggiungi(l, c.tipo, t.etichetta, "addestramento non registrato", "warn", "", null);
+    else if (st.stato === "scaduta") aggiungi(l, c.tipo, t.etichetta, "da sostituire", "danger", "", st.scadenza);
+  }
+  const peso = { danger: 0, warn: 1 };
+  return out.sort((a, b) => (peso[a.gravita] - peso[b.gravita])
+    || String(a.lavoratore || "").localeCompare(String(b.lavoratore || ""), "it"));
+}
+
+export function riepilogoDpi(consegne, allarmi) {
+  const list = consegne || [], al = allarmi || [];
+  return {
+    consegne: list.length,
+    persone: new Set(list.map(c => c.lavoratoreId)).size,
+    daSistemare: al.length,
+    mancanti: al.filter(a => a.motivo === "mai consegnato").length,
+    daSostituire: al.filter(a => a.motivo === "da sostituire").length,
+    addestramenti: al.filter(a => a.motivo === "addestramento non registrato").length,
+  };
+}
+
+// Righe del VERBALE DI CONSEGNA di una persona: tutte le consegne, dalla più
+// recente. È il foglio che in ispezione viene chiesto per primo (art. 77).
+export function verbaleDpi(lavoratore, consegne, oggi = new Date()) {
+  const id = lavoratore && lavoratore.id;
+  const righe = (consegne || []).filter(c => c.lavoratoreId === id)
+    .slice().sort((a, b) => String(b.dataConsegna || "").localeCompare(String(a.dataConsegna || "")))
+    .map(c => {
+      const t = tipoDpiSicuro(c.tipo);
+      const st = statoConsegnaDpi(c, oggi);
+      return { consegna: c, tipo: t, stato: st.stato,
+        addestramentoRichiesto: !!t.addestramento, addestramentoFatto: !!c.addestramento };
+    });
+  return {
+    lavoratore: lavoratore || null,
+    righe,
+    conAddestramento: righe.filter(r => r.addestramentoRichiesto).length,
+    addestramentiMancanti: righe.filter(r => r.addestramentoRichiesto && !r.addestramentoFatto).length,
+  };
+}
+
 export function kpiFrom(lavoratori, scadenze) {
   const st = scadenze.map(s => statoScadenza(s.dataScadenza));
   const scadute = st.filter(x => x === "scaduta").length;
@@ -782,6 +1317,12 @@ export async function scudoData() {
         cantieri:   () => read("cantieri"),
         azioni:     () => read("azioni"),
         ispezioni:  () => read("ispezioni"),
+        // Collezioni di S4/S5: le organizzazioni già attive non le hanno
+        // ancora. Firestore, su una collezione che non esiste, risponde con
+        // un elenco vuoto: le schermate si aprono vuote, non si rompono.
+        mansioni:   () => read("mansioni"),
+        nomine:     () => read("nomine"),
+        dpi:        () => read("dpi"),
         aggiungi: (name, data) => addDoc(id.orgCollection(name), data),
         logout: () => id.logout(),
         aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), data),
@@ -803,6 +1344,9 @@ export async function scudoData() {
       cantieri:   async () => mem.cantieri,
       azioni:     async () => mem.azioni,
       ispezioni:  async () => mem.ispezioni,
+      mansioni:   async () => mem.mansioni || [],
+      nomine:     async () => mem.nomine || [],
+      dpi:        async () => mem.dpi || [],
       logout: async () => {},
       aggiungi: async (name, data) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[name] = mem[name] || []).push({ id, ...data }); return { id }; },
       aggiorna: async (name, docId, data) => { const x = (mem[name] || (mem[name] = [])).find(v => v.id === docId); if (x) Object.assign(x, data); },

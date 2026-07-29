@@ -39,6 +39,14 @@
 //                        `costoId` è la voce di costo gemella, così il
 //                        rifornimento entra una sola volta nella spesa
 //                        della flotta e sparisce da entrambe se lo togli.
+//   fermi/{id}:        { mezzo, causale (chiave), inizio (ISO), fine (ISO)|
+//                        null, note } — FERMO MACCHINA (L6, 29/07): da
+//                        quando a quando una macchina non ha potuto
+//                        lavorare, e perché. `fine` null = fermo ANCORA
+//                        APERTO, che conta fino a oggi. È la collezione da
+//                        cui nasce la disponibilità REALE (giorni-macchina
+//                        persi sui giorni-macchina disponibili): `mezzi.stato`
+//                        dice solo com'è messo il parco adesso.
 // Campi FACOLTATIVI aggiunti il 29/07, tutti retro-compatibili (chi non li
 // ha si comporta esattamente come prima):
 //   mezzi.tipo         chiave del tipo di mezzo (escavatore, pala, …). Se
@@ -51,6 +59,26 @@
 //   manutenzioni.origine / .nota       da dove nasce la manutenzione
 //                      ("controllo" = giro macchina, "piano" = tagliando
 //                      ricorrente) e la riga scritta da chi l'ha aperta.
+//   manutenzioni.stato / .manodopera / .ricambiUsati / .altreSpese /
+//   manutenzioni.noteLavoro            ORDINE DI LAVORO (L5, 29/07): lo
+//                      stato della lavorazione ("da-fare" | "in-corso" |
+//                      "attesa-ricambi"; se manca vale "da-fare", che è
+//                      esattamente com'erano prima tutte le manutenzioni),
+//                      chi ci ha lavorato e per quante ore
+//                      ([{chi, ore, tariffa}]), i ricambi consumati
+//                      ([{id, nome, qta, prezzo}]) e le spese esterne.
+//                      Il costo NON si salva: si ricalcola sempre da queste
+//                      righe (costoOrdine), così non può divergere da ciò
+//                      che c'è scritto.
+//   ricambi.prezzo     prezzo unitario del pezzo (facoltativo): serve a far
+//                      uscire da solo il costo dei ricambi di un ordine di
+//                      lavoro. Chi non ce l'ha lo scrive nell'ordine.
+//   interventi.manodopera / .oreManodopera / .costoManodopera /
+//   interventi.costoRicambi / .ricambiUsati   la lavorazione conservata
+//                      nello storico. `ricambio` (nome del primo pezzo) e
+//                      `costo` (TOTALE) restano quelli di prima: i registri,
+//                      gli export e i costi per mezzo non cambiano di una
+//                      virgola.
 // L'urgenza delle manutenzioni si CALCOLA dalla data (mai salvata).
 // ============================================================
 
@@ -87,13 +115,39 @@ export const DEMO = {
     // giro macchina funziona lo stesso, senza scrivere niente di finto.
     { id: "m6", nome: "Pala P1 — CAT 980", ore: 6540, area: "frantoio", stato: "operativo" },
   ],
+  // Le manutenzioni sono ORDINI DI LAVORO (L5). n1 è di proposito senza
+  // `stato`, senza manodopera e senza ricambiUsati: è una manutenzione come
+  // quelle scritte prima che l'ordine di lavoro esistesse, e deve comportarsi
+  // esattamente come prima («da fare», nessuna ora, il suo `ricambioId`
+  // ritrovato come riga di ricambio). n2 è in lavorazione con due persone e
+  // ore diverse, n4 è ferma in attesa di un pezzo.
   manutenzioni: [
-    { id: "n1", titolo: "Tagliando 500h", mezzo: "Escavatore E1", dataPrevista: null, orePreviste: 6000, ogniOre: 500, piano: "500" },
-    { id: "n2", titolo: "Rotazione gomme", mezzo: "Dumper D1", dataPrevista: "2026-08-05" },
+    { id: "n1", titolo: "Tagliando 500h", mezzo: "Escavatore E1", dataPrevista: null, orePreviste: 6000, ogniOre: 500, piano: "500", ricambioId: "p1" },
+    { id: "n2", titolo: "Rotazione gomme", mezzo: "Dumper D1", dataPrevista: "2026-08-05",
+      stato: "in-corso",
+      manodopera: [{ chi: "Marco", ore: 3, tariffa: 32 }, { chi: "Officina esterna", ore: 1.5, tariffa: 55 }],
+      ricambiUsati: [], altreSpese: 0, noteLavoro: "smontate le due gomme posteriori" },
     { id: "n3", titolo: "Revisione annuale", mezzo: "Pala P1", dataPrevista: "2026-08-20", ogniMesi: 12 },
     { id: "n4", titolo: "Giro macchina: Perdite sotto la macchina", mezzo: "Dumper D1",
       dataPrevista: isoIndietro(1), origine: "controllo",
+      stato: "attesa-ricambi",
+      manodopera: [{ chi: "Marco", ore: 1, tariffa: 32 }],
+      ricambiUsati: [{ id: "p3", nome: "Olio idraulico (fusto 200L)", qta: 1, prezzo: 420 }],
+      altreSpese: 0, noteLavoro: "in attesa della guarnizione del distributore",
       nota: "macchia fresca di olio sotto la trasmissione" },
+  ],
+  // FERMI MACCHINA (L6). Due chiusi e uno ancora aperto — il Dumper D3, che
+  // nel parco è infatti «fermo»: è la macchina che sta perdendo giornate
+  // adesso. Le date sono relative a oggi, così l'esempio resta leggibile.
+  fermi: [
+    { id: "f1", mezzo: "Dumper D3", causale: "guasto-idraulico", inizio: isoIndietro(6), fine: null,
+      note: "pompa idraulica da sostituire, macchina in officina" },
+    { id: "f2", mezzo: "Dumper D3", causale: "attesa-ricambi", inizio: isoIndietro(20), fine: isoIndietro(17),
+      note: "guarnizioni arrivate il terzo giorno" },
+    { id: "f3", mezzo: "Perforatrice P2", causale: "guasto-meccanico", inizio: isoIndietro(11), fine: isoIndietro(10),
+      note: "manicotto dell'asta" },
+    { id: "f4", mezzo: "Pala P1", causale: "manutenzione", inizio: isoIndietro(4), fine: isoIndietro(4),
+      note: "tagliando 1000 h" },
   ],
   // GIRO MACCHINA (L2): il controllo pre-uso che l'operatore fa a inizio
   // turno. Il secondo esempio ha una voce «non va» ed è quello che ha fatto
@@ -159,7 +213,13 @@ export const DEMO = {
     { id: "c7", voce: "Ricambi e officina", importo: 1760, nota: "", data: "2026-05-07" },
   ],
   interventi: [
-    { id: "w1", data: "2026-07-10", titolo: "Tagliando 500h", mezzo: "Escavatore E1", ricambio: "Filtro olio motore CAT", costo: 420, note: "olio + filtri" },
+    // w1 porta la LAVORAZIONE (L5): due persone, ore e costo orario, il pezzo
+    // consumato. `ricambio` e `costo` restano quelli di sempre, così registro,
+    // export e costi per mezzo non cambiano.
+    { id: "w1", data: "2026-07-10", titolo: "Tagliando 500h", mezzo: "Escavatore E1", ricambio: "Filtro olio motore CAT", costo: 420, note: "olio + filtri",
+      manodopera: [{ chi: "Marco", ore: 4, tariffa: 32, costo: 128 }, { chi: "Luca", ore: 2, tariffa: 32, costo: 64 }],
+      oreManodopera: 6, costoManodopera: 192, costoRicambi: 48, altreSpese: 180,
+      ricambiUsati: [{ id: "p1", nome: "Filtro olio motore CAT", qta: 1, prezzo: 48, costo: 48 }] },
     { id: "w2", data: "2026-06-28", titolo: "Sostituzione pompa idraulica", mezzo: "Dumper D3", ricambio: null, costo: 3850, note: "officina esterna" },
     { id: "w3", data: "2026-06-14", titolo: "Riparazione impianto frenante", mezzo: "Dumper D3", ricambio: null, costo: 1240, note: "" },
     { id: "w4", data: "2026-05-30", titolo: "Rotazione e sostituzione gomme", mezzo: "Dumper D1", ricambio: null, costo: 2100, note: "4 gomme posteriori" },
@@ -167,10 +227,13 @@ export const DEMO = {
     { id: "w6", data: "2026-04-22", titolo: "Tagliando 1000h", mezzo: "Escavatore E2", ricambio: "Filtro gasolio", costo: 540, note: "" },
     { id: "w7", data: "2026-04-08", titolo: "Revisione martello perforatore", mezzo: "Perforatrice P2", ricambio: null, costo: 1180, note: "" },
   ],
+  // `p4` è di proposito SENZA `prezzo`: è un ricambio registrato prima che il
+  // campo esistesse. Nell'ordine di lavoro la sua riga nasce a prezzo vuoto e
+  // l'app lo dice, invece di far passare per gratis un pezzo che costa.
   ricambi: [
-    { id: "p1", nome: "Filtro olio motore CAT", giacenza: 6, sogliaMin: 4 },
-    { id: "p2", nome: "Filtro gasolio", giacenza: 2, sogliaMin: 4 },
-    { id: "p3", nome: "Olio idraulico (fusto 200L)", giacenza: 1, sogliaMin: 1 },
+    { id: "p1", nome: "Filtro olio motore CAT", giacenza: 6, sogliaMin: 4, prezzo: 48 },
+    { id: "p2", nome: "Filtro gasolio", giacenza: 2, sogliaMin: 4, prezzo: 31.5 },
+    { id: "p3", nome: "Olio idraulico (fusto 200L)", giacenza: 1, sogliaMin: 1, prezzo: 420 },
     { id: "p4", nome: "Denti benna escavatore", giacenza: 0, sogliaMin: 3 },
   ],
   scadenze: [
@@ -443,7 +506,11 @@ export function disponibilitaFlotta(mezzi) {
 // che vengono prima di tutto il resto: un mezzo non verificato va fermato.
 // I parametri `scadenze` e `preavvisoGiorni` sono facoltativi (chi non li
 // passa ha esattamente il comportamento di prima).
-export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(), scadenze = [], preavvisoGiorni = 30) {
+// Dal 29/07 accetta anche i FERMI (L6): a un mezzo fermo si può finalmente
+// attaccare il perché e da quanto, che è la prima cosa che chiede chi guarda
+// il Quadro. Anche questo parametro è facoltativo: senza, il comportamento è
+// quello di prima, parola per parola.
+export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(), scadenze = [], preavvisoGiorni = 30, fermi = []) {
   const items = [];
   for (const s of scadenze || []) {
     const sem = statoScadenzaMezzo(s.dataScadenza, oggi, preavvisoGiorni);
@@ -485,8 +552,16 @@ export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(
   }
   for (const m of mezzi || []) {
     if ((m.stato || "operativo") === "operativo") continue;
+    // se c'è un fermo aperto su questo mezzo, il dettaglio dice il perché e
+    // da quanti giorni: «Fermo» da solo non fa fare niente a nessuno
+    const aperto = (fermi || []).find(f => nomeBreve(f.mezzo) === nomeBreve(m.nome) && !f.fine);
+    const d = aperto ? durataFermo(aperto, oggi) : null;
+    const perche = aperto
+      ? etichettaCausale(aperto.causale) + (d && d.giorni != null ? " · fermo da " + d.giorni + (d.giorni === 1 ? " giorno" : " giorni") : "")
+        + (m.area ? " · " + m.area : "")
+      : (m.area || "—");
     items.push({ gravita: m.stato === "fermo" ? "danger" : "warn", categoria: "mezzo",
-      titolo: m.nome || "Mezzo", dettaglio: m.area || "—",
+      titolo: m.nome || "Mezzo", dettaglio: perche,
       badge: m.stato === "fermo" ? "Fermo" : "In verifica" });
   }
   const rank = { danger: 0, warn: 1 };
@@ -1003,6 +1078,335 @@ export function fascicoloMezzo(mezzo, dati, oggi = new Date(), preavvisoGiorni =
   };
 }
 
+// ============================================================
+// L5 — ORDINE DI LAVORO (stati, manodopera, ricambi, costo)
+// Fino a ieri una manutenzione era un evento: c'era, poi la segnavi fatta e
+// scrivevi a mano quanto era costata. Il numero lo doveva fare l'utente, e
+// un numero fatto a mente non è il costo di un intervento: è una stima.
+// Da qui in poi la manutenzione ha una LAVORAZIONE:
+//  · uno STATO — da fare → in lavorazione → in attesa ricambi → chiuso. Lo
+//    stato «in attesa ricambi» non è un vezzo da software: è la causa più
+//    frequente di macchina ferma a lungo, e finché non ha un nome nessuno
+//    la conta;
+//  · la MANODOPERA — chi ci ha lavorato e per quante ore. Più persone, ore
+//    diverse, costo orario diverso (l'interno e l'officina esterna non
+//    costano uguale);
+//  · i RICAMBI consumati, più d'uno, ognuno con la sua quantità;
+//  · il COSTO, che non si scrive: si somma. E siccome non viene salvato ma
+//    ricalcolato, non può mai smentire le righe che hai davanti.
+// ============================================================
+export const STATI_ORDINE = [
+  { chiave: "da-fare", etichetta: "Da fare", breve: "da fare", cls: "warn",
+    nota: "Pianificato, ma nessuno ci ha ancora messo le mani." },
+  { chiave: "in-corso", etichetta: "In lavorazione", breve: "in corso", cls: "info",
+    nota: "Qualcuno ci sta lavorando adesso: le ore si segnano man mano." },
+  { chiave: "attesa-ricambi", etichetta: "In attesa ricambi", breve: "attesa pezzi", cls: "danger",
+    nota: "Il lavoro è fermo perché manca un pezzo. È la ragione più frequente di una macchina ferma a lungo: qui si vede, e si può ordinare." },
+];
+
+// Lo stato di un ordine di lavoro. Una manutenzione senza stato — cioè ogni
+// manutenzione scritta prima di oggi — è «da fare»: è esattamente quello che
+// era, e la riga non cambia aspetto. Pura.
+export function statoOrdine(man) {
+  const c = String((man && man.stato) || "").trim();
+  return STATI_ORDINE.find(s => s.chiave === c) || STATI_ORDINE[0];
+}
+
+const due = (v) => Math.round((+v || 0) * 100) / 100;
+
+// IL COSTO DI UN ORDINE DI LAVORO, riga per riga: manodopera (ore × costo
+// orario, persona per persona), ricambi (quantità × prezzo) e le spese
+// esterne (officina, traino, noleggio del mezzo sostitutivo). Ritorna anche
+// quante righe NON hanno un prezzo, perché l'app possa dirlo invece di far
+// passare per «gratis» ciò che semplicemente non è stato scritto. Pura.
+export function costoOrdine(ordine) {
+  const o = ordine || {};
+  const manodopera = (o.manodopera || []).map(r => {
+    const ore = Math.max(0, due(r && r.ore));
+    const tariffa = Math.max(0, due(r && r.tariffa));
+    return { chi: String((r && r.chi) || "").trim(), ore, tariffa, costo: due(ore * tariffa) };
+  }).filter(r => r.ore > 0 || r.chi);
+  const ricambi = (o.ricambi || []).map(r => {
+    const qta = Math.max(0, due(r && r.qta));
+    const prezzo = Math.max(0, due(r && r.prezzo));
+    return { id: (r && r.id) || null, nome: String((r && r.nome) || "").trim(), qta, prezzo, costo: due(qta * prezzo) };
+  }).filter(r => r.nome || r.id);
+  const altre = Math.max(0, due(o.altreSpese));
+  const oreTot = due(manodopera.reduce((t, r) => t + r.ore, 0));
+  const costoMano = due(manodopera.reduce((t, r) => t + r.costo, 0));
+  const pezzi = due(ricambi.reduce((t, r) => t + r.qta, 0));
+  const costoRic = due(ricambi.reduce((t, r) => t + r.costo, 0));
+  return {
+    manodopera: { righe: manodopera, ore: oreTot, costo: costoMano,
+      senzaTariffa: manodopera.filter(r => r.ore > 0 && r.tariffa <= 0).length },
+    ricambi: { righe: ricambi, pezzi, costo: costoRic,
+      senzaPrezzo: ricambi.filter(r => r.qta > 0 && r.prezzo <= 0).length },
+    altre,
+    totale: due(costoMano + costoRic + altre),
+    persone: manodopera.filter(r => r.ore > 0).length,
+  };
+}
+
+// L'ordine di lavoro «lavorabile» a partire dalla manutenzione salvata: mette
+// insieme i campi nuovi con quelli vecchi. Una manutenzione registrata prima
+// (un solo `ricambioId`, nessuna manodopera) diventa un ordine con una riga
+// di ricambio già pronta, quantità 1 e il prezzo del magazzino se c'è: chi
+// aveva collegato un pezzo lo ritrova, non deve riscriverlo. Pura.
+export function ordineDaManutenzione(man, ricambi) {
+  const m = man || {};
+  const cat = ricambi || [];
+  const daCat = (id) => cat.find(r => r.id === id) || null;
+  let righe = Array.isArray(m.ricambiUsati)
+    ? m.ricambiUsati.map(r => {
+        const c = daCat(r && r.id);
+        return { id: (r && r.id) || null, nome: String((r && r.nome) || (c ? c.nome : "")).trim(),
+                 qta: Math.max(0, due(r && r.qta)) || 1,
+                 prezzo: Math.max(0, due(r && r.prezzo != null ? r.prezzo : (c ? c.prezzo : 0))) };
+      })
+    : [];
+  if (!righe.length && m.ricambioId) {
+    const c = daCat(m.ricambioId);
+    righe = [{ id: m.ricambioId, nome: c ? c.nome : "", qta: 1, prezzo: Math.max(0, due(c && c.prezzo)) }];
+  }
+  return {
+    stato: statoOrdine(m).chiave,
+    manodopera: (m.manodopera || []).map(r => ({
+      chi: String((r && r.chi) || "").trim(),
+      ore: Math.max(0, due(r && r.ore)),
+      tariffa: Math.max(0, due(r && r.tariffa)),
+    })),
+    ricambi: righe,
+    altreSpese: Math.max(0, due(m.altreSpese)),
+    noteLavoro: String(m.noteLavoro || "").trim(),
+  };
+}
+
+// Controlli su una riga di manodopera prima di aggiungerla. Il nome è
+// obbligatorio (una riga senza nome non serve a nessuno), le ore devono
+// essere un numero > 0 e ≤ 24 in un colpo solo — oltre è quasi sempre un
+// errore di dito. Il costo orario può mancare: le ore restano registrate e
+// l'app lo dichiara, invece di far finta che siano gratis. Pura.
+export function validaRigaManodopera(riga) {
+  const r = riga || {}, errori = {};
+  const chi = String(r.chi || "").trim();
+  if (!chi) errori.chi = "Scrivi chi ci ha lavorato (nome o squadra).";
+  else if (chi.length > 60) errori.chi = "Il nome è troppo lungo: bastano poche lettere.";
+  const ore = +String(r.ore == null ? "" : r.ore).replace(",", ".");
+  if (!(ore > 0)) errori.ore = "Scrivi quante ore ci ha messo (un numero maggiore di zero).";
+  else if (ore > 24) errori.ore = "Più di 24 ore in una riga sola: aggiungine una per ogni giornata.";
+  const tx = String(r.tariffa == null ? "" : r.tariffa).trim();
+  let tariffa = 0;
+  if (tx !== "") {
+    tariffa = +tx.replace(",", ".");
+    if (!(tariffa >= 0)) errori.tariffa = "Il costo orario è un numero da zero in su (lascialo vuoto se non lo sai).";
+    else if (tariffa > 1000) errori.tariffa = "Più di 1.000 € l'ora: controlla il numero.";
+  }
+  return { ok: Object.keys(errori).length === 0, errori, chi, ore: due(ore), tariffa: due(tariffa) };
+}
+
+// Controlli su una riga di ricambio consumato. Pura.
+export function validaRigaRicambio(riga) {
+  const r = riga || {}, errori = {};
+  const nome = String(r.nome || "").trim();
+  if (!nome) errori.nome = "Scegli il ricambio dal magazzino, oppure scrivi il nome del pezzo.";
+  const qta = +String(r.qta == null ? "" : r.qta).replace(",", ".");
+  if (!(qta > 0)) errori.qta = "Scrivi quanti pezzi hai usato (un numero maggiore di zero).";
+  else if (qta > 9999) errori.qta = "Quantità troppo alta: controlla il numero.";
+  const tx = String(r.prezzo == null ? "" : r.prezzo).trim();
+  let prezzo = 0;
+  if (tx !== "") {
+    prezzo = +tx.replace(",", ".");
+    if (!(prezzo >= 0)) errori.prezzo = "Il prezzo è un numero da zero in su (lascialo vuoto se non lo sai).";
+    else if (prezzo > 1000000) errori.prezzo = "Prezzo troppo alto: controlla il numero.";
+  }
+  return { ok: Object.keys(errori).length === 0, errori, nome, id: r.id || null, qta: due(qta), prezzo: due(prezzo) };
+}
+
+// Quanti ordini in ciascuno stato: è la riga di testa dell'Officina, quella
+// che dice se il lavoro sta girando o è impantanato ad aspettare i pezzi.
+// Pura.
+export function riepilogoOrdini(manutenzioni) {
+  const c = { totale: 0, "da-fare": 0, "in-corso": 0, "attesa-ricambi": 0, oreAperte: 0, personeAperte: 0 };
+  const persone = new Set();
+  for (const m of manutenzioni || []) {
+    c.totale++;
+    c[statoOrdine(m).chiave]++;
+    const q = costoOrdine(ordineDaManutenzione(m, []));
+    c.oreAperte = due(c.oreAperte + q.manodopera.ore);
+    q.manodopera.righe.forEach(r => { if (r.chi) persone.add(r.chi.toLowerCase()); });
+  }
+  c.personeAperte = persone.size;
+  return c;
+}
+
+// ============================================================
+// L6 — FERMI MACCHINA E AFFIDABILITÀ
+// «Quanto è stata ferma questa macchina, e perché». Finora Flotta sapeva
+// dire solo com'è messo il parco ADESSO (mezzi.stato) e quanti mezzi erano
+// operativi nei giorni in cui qualcuno ha aperto l'app: due fotografie, non
+// una misura. Il fermo è un fatto con un inizio, una fine e una causa, e da
+// quello — solo da quello — si ricava la disponibilità vera:
+//     giorni-macchina persi / giorni-macchina disponibili.
+// Niente medie di comodo: un fermo ancora aperto conta fino a oggi, un fermo
+// più vecchio della finestra guardata conta solo per la parte che ci sta
+// dentro, e un mezzo uscito dal parco non fa media con quelli che ci sono.
+// ============================================================
+export const CAUSALI_FERMO = [
+  { chiave: "guasto-meccanico", etichetta: "Guasto meccanico", nota: "Motore, trasmissione, organi meccanici." },
+  { chiave: "guasto-idraulico", etichetta: "Guasto idraulico", nota: "Pompe, cilindri, tubi, distributori." },
+  { chiave: "guasto-elettrico", etichetta: "Guasto elettrico o elettronico", nota: "Impianto, centralina, sensori." },
+  { chiave: "gomme-cingoli", etichetta: "Gomme o cingoli", nota: "Foratura, tagli, sottocarro." },
+  { chiave: "attesa-ricambi", etichetta: "Attesa ricambi", nota: "La macchina è pronta a essere riparata, manca il pezzo." },
+  { chiave: "manutenzione", etichetta: "Manutenzione programmata", nota: "Tagliando o intervento previsto: è un fermo, ma è un fermo scelto." },
+  { chiave: "verifica", etichetta: "Verifica o revisione", nota: "Verifica periodica, revisione, controllo dell'ente." },
+  { chiave: "operatore", etichetta: "Manca l'operatore", nota: "La macchina è a posto: non c'è chi la usa." },
+  { chiave: "altro", etichetta: "Altro motivo", nota: "Scrivi nelle note di cosa si è trattato." },
+];
+
+export function causaleFermo(chiave) {
+  return CAUSALI_FERMO.find(c => c.chiave === chiave) || null;
+}
+export function etichettaCausale(chiave) {
+  const c = causaleFermo(chiave);
+  return c ? c.etichetta : (String(chiave || "").trim() || "Motivo non indicato");
+}
+
+const isoGiorno = (v) => {
+  const s = String(v || "").slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+};
+// Giorni interi fra due giorni ISO (b − a). Non usa il fuso: le date sono
+// giorni di calendario, non istanti.
+const giorniFra = (a, b) =>
+  Math.round((Date.parse(b + "T12:00:00Z") - Date.parse(a + "T12:00:00Z")) / 86400000);
+
+// GIORNI DI FERMO di un episodio dentro la finestra [da, a] (estremi
+// compresi). Conteggio a giornate INTERE e INCLUSIVE: una macchina ferma il
+// 3 e ripartita il 3 è stata ferma un giorno, non zero — in cava una
+// giornata persa è persa tutta. Un fermo ancora aperto conta fino alla fine
+// della finestra (cioè fino a oggi). Ritorna 0 se non si sovrappone. Pura.
+export function giorniFermo(fermo, da, a) {
+  const f = fermo || {};
+  const i = isoGiorno(f.inizio), fin = isoGiorno(f.fine);
+  const d0 = isoGiorno(da), d1 = isoGiorno(a);
+  if (!i || !d0 || !d1) return 0;
+  const inizio = i > d0 ? i : d0;
+  const fine = (fin && fin < d1) ? fin : d1;
+  if (fine < inizio) return 0;
+  return giorniFra(inizio, fine) + 1;
+}
+
+// Durata di un fermo così com'è, senza finestre: quello che si scrive sulla
+// riga. Un fermo aperto conta fino a oggi e lo dichiara. Pura.
+export function durataFermo(fermo, oggi = new Date()) {
+  const f = fermo || {};
+  const i = isoGiorno(f.inizio);
+  if (!i) return { giorni: null, aperto: !f.fine, fine: null };
+  const oggiI = oggiIso(oggi);
+  const fin = isoGiorno(f.fine);
+  const fine = fin || oggiI;
+  if (fine < i) return { giorni: null, aperto: !fin, fine: fin };
+  return { giorni: giorniFra(i, fine) + 1, aperto: !fin, fine: fin };
+}
+
+// Controlli su un fermo prima di salvarlo. Pura e testabile: `oggi` iniettabile.
+export function validaFermo(dati, oggi = new Date()) {
+  const d = dati || {}, errori = {};
+  const oggiI = oggiIso(oggi);
+  if (!String(d.mezzo || "").trim()) errori.mezzo = "Scegli il mezzo che si è fermato.";
+  if (!String(d.causale || "").trim()) errori.causale = "Scegli il motivo del fermo.";
+  const inizio = isoGiorno(d.inizio);
+  if (!inizio) errori.inizio = "Serve il giorno in cui la macchina si è fermata.";
+  else if (giorniFra(oggiI, inizio) > 0) errori.inizio = "Il fermo non può cominciare domani: metti oggi o un giorno passato.";
+  else if (giorniFra(inizio, oggiI) > 3650) errori.inizio = "Data troppo indietro nel tempo (oltre 10 anni fa): controlla l'anno.";
+  let fine = null;
+  const finTx = String(d.fine == null ? "" : d.fine).trim();
+  if (finTx !== "") {
+    fine = isoGiorno(finTx);
+    if (!fine) errori.fine = "La data di ripartenza non è valida.";
+    else if (inizio && fine < inizio) errori.fine = "La macchina non può essere ripartita prima di essersi fermata.";
+    else if (giorniFra(oggiI, fine) > 0) errori.fine = "La ripartenza non può essere nel futuro: lascia vuoto finché la macchina è ferma.";
+  }
+  return { ok: Object.keys(errori).length === 0, errori, inizio: inizio || null, fine: errori.fine ? null : fine };
+}
+
+// I fermi ORDINATI come servono a chi guarda: prima quelli ancora aperti (dal
+// più lungo), poi i chiusi dal più recente. Ognuno arricchito con durata,
+// stato e etichetta della causale. Pura.
+export function fermiOrdinati(fermi, oggi = new Date()) {
+  return (fermi || []).map(f => {
+    const d = durataFermo(f, oggi);
+    return { ...f, giorni: d.giorni, aperto: d.aperto, causaleTx: etichettaCausale(f.causale) };
+  }).sort((a, b) =>
+    (a.aperto === b.aperto ? 0 : a.aperto ? -1 : 1)
+    || (a.aperto ? (b.giorni || 0) - (a.giorni || 0)
+                 : String(b.inizio || "").localeCompare(String(a.inizio || "")))
+    || String(a.mezzo || "").localeCompare(String(b.mezzo || ""), "it"));
+}
+
+// AFFIDABILITÀ DEL PARCO su una finestra di giorni (di norma 30).
+// Come si calcola la disponibilità REALE, in una riga: si contano i
+// giorni-macchina disponibili (mezzi del parco × giorni della finestra) e si
+// tolgono i giorni-macchina persi per fermo. È un conto che chiunque può
+// rifare a mano, ed è per questo che l'app lo scrive per esteso.
+// Regole di onestà:
+//  · i fermi dei mezzi che NON sono più nel parco non entrano nella media —
+//    non hanno un denominatore — ma vengono contati a parte e dichiarati;
+//  · i giorni persi si tagliano alla finestra: un fermo di due mesi pesa,
+//    su trenta giorni, per i trenta giorni che ci stanno dentro;
+//  · il tempo medio fra un fermo e l'altro si scrive solo da due episodi in
+//    su: con un fermo solo non esiste un «fra».
+// Pura e testabile: `oggi` iniettabile.
+export function affidabilitaFlotta(fermi, mezzi, giorni = 30, oggi = new Date()) {
+  const finestra = Math.max(1, Math.round(+giorni || 30));
+  const a = oggiIso(oggi);
+  const da = oggiIso(new Date(Date.parse(a + "T12:00:00Z") - (finestra - 1) * 86400000));
+  const inParco = new Map();
+  for (const m of mezzi || []) {
+    const n = nomeBreve(m.nome);
+    if (n) inParco.set(n, m);
+  }
+  const perMezzo = new Map();
+  const perCausale = new Map();
+  let persi = 0, episodi = 0, aperti = 0, fuoriParco = 0, fuoriParcoGiorni = 0;
+  for (const f of fermi || []) {
+    const nome = nomeBreve(f.mezzo);
+    const g = giorniFermo(f, da, a);
+    if (!nome || g <= 0) continue;
+    const aperto = !isoGiorno(f.fine);
+    if (!inParco.has(nome)) { fuoriParco++; fuoriParcoGiorni += g; continue; }
+    persi += g; episodi++; if (aperto) aperti++;
+    const v = perMezzo.get(nome) || { mezzo: nome, giorni: 0, episodi: 0, aperti: 0, causali: new Set() };
+    v.giorni += g; v.episodi++; if (aperto) v.aperti++;
+    v.causali.add(etichettaCausale(f.causale));
+    perMezzo.set(nome, v);
+    const c = etichettaCausale(f.causale);
+    const cv = perCausale.get(c) || { causale: c, giorni: 0, episodi: 0 };
+    cv.giorni += g; cv.episodi++;
+    perCausale.set(c, cv);
+  }
+  const parco = inParco.size;
+  const giorniMacchina = parco * finestra;
+  const disponibili = Math.max(0, giorniMacchina - persi);
+  const pct = giorniMacchina ? Math.round(1000 * disponibili / giorniMacchina) / 10 : null;
+  const mezziLista = [...perMezzo.values()]
+    .map(v => ({ ...v, causali: [...v.causali],
+      pct: finestra ? Math.round(1000 * Math.max(0, finestra - v.giorni) / finestra) / 10 : null,
+      durataMedia: v.episodi ? Math.round(10 * v.giorni / v.episodi) / 10 : null }))
+    .sort((x, y) => y.giorni - x.giorni || y.episodi - x.episodi || x.mezzo.localeCompare(y.mezzo, "it"));
+  return {
+    finestra, da, a, parco, giorniMacchina, persi, disponibili, pct,
+    episodi, aperti, mezzi: mezziLista,
+    senzaFermi: Math.max(0, parco - mezziLista.length),
+    causali: [...perCausale.values()].sort((x, y) => y.giorni - x.giorni || x.causale.localeCompare(y.causale, "it")),
+    // durata media di un fermo (MTTR in giorni) e giorni di lavoro fra un
+    // fermo e l'altro (MTBF semplificato). Null quando non hanno senso.
+    durataMedia: episodi ? Math.round(10 * persi / episodi) / 10 : null,
+    fraUnFermoELaltro: episodi >= 2 ? Math.round(10 * disponibili / episodi) / 10 : null,
+    fuoriParco, fuoriParcoGiorni,
+  };
+}
+
 export function kpiFrom(mezzi, manutenzioni, costi) {
   return {
     operativi: mezzi.filter(m => m.stato === "operativo").length,
@@ -1023,7 +1427,7 @@ export async function flottaData() {
       mode = "live";
       const read = async (n) => (await getDocs(id.orgCollection(n))).docs.map(d => ({ id: d.id, ...d.data() }));
       api = {
-        mezzi: () => read("mezzi"), manutenzioni: () => read("manutenzioni"), costi: () => read("costi"), ricambi: () => read("ricambi"), interventi: () => read("interventi"), scadenze: () => read("scadenze"), disponibilita: () => read("disponibilita"), controlli: () => read("controlli"), rifornimenti: () => read("rifornimenti"),
+        mezzi: () => read("mezzi"), manutenzioni: () => read("manutenzioni"), costi: () => read("costi"), ricambi: () => read("ricambi"), interventi: () => read("interventi"), scadenze: () => read("scadenze"), disponibilita: () => read("disponibilita"), controlli: () => read("controlli"), rifornimenti: () => read("rifornimenti"), fermi: () => read("fermi"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
         logout: () => id.logout(),
         aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n), i), d),
@@ -1034,7 +1438,7 @@ export async function flottaData() {
   if (mode !== "live") {
     const mem = JSON.parse(JSON.stringify(DEMO));
     api = {
-      mezzi: async () => mem.mezzi, manutenzioni: async () => mem.manutenzioni, costi: async () => mem.costi, ricambi: async () => mem.ricambi, interventi: async () => mem.interventi, scadenze: async () => mem.scadenze, disponibilita: async () => mem.disponibilita || [], controlli: async () => mem.controlli || [], rifornimenti: async () => mem.rifornimenti || [],
+      mezzi: async () => mem.mezzi, manutenzioni: async () => mem.manutenzioni, costi: async () => mem.costi, ricambi: async () => mem.ricambi, interventi: async () => mem.interventi, scadenze: async () => mem.scadenze, disponibilita: async () => mem.disponibilita || [], controlli: async () => mem.controlli || [], rifornimenti: async () => mem.rifornimenti || [], fermi: async () => mem.fermi || [],
       logout: async () => {},
       aggiungi: async (n, d) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[n] = mem[n] || []).push({ id, ...d }); return { id }; },
       aggiorna: async (n, i, d) => { const x = (mem[n] || (mem[n] = [])).find(v => v.id === i); if (x) Object.assign(x, d); },

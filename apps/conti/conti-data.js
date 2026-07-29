@@ -13,6 +13,8 @@
 //                   unitaVendita "t"|"m3", quantita (nell'unità di vendita), densita,
 //                   prezzoUnitario (€/unità di vendita), aliquotaIva (%),
 //                   mezzo (targa), destinatario, fatturaId|null }
+//   incassi/{id}:  { fatturaId, data (ISO: il giorno in cui i soldi sono ARRIVATI),
+//                    importo (€), metodo ("bonifico"|"assegno"|"contanti"|"riba"|"") }
 //   impostazioni/{id}: { canoneUnita: "t"|"m3", canoneAliquota (€/unità), canoneNota }
 // IMPORTI DELLA FATTURA (compatibilità all'indietro, regola ferma): le fatture
 // vecchie hanno solo `importo` (importo secco) → valgono come IMPONIBILE con IVA 0
@@ -22,6 +24,12 @@
 // CLIENTE DI UNA FATTURA: `clienteId` è il collegamento all'anagrafica; `cliente`
 // resta salvato come TESTO di ripiego (fatture vecchie o cliente cancellato), così
 // niente si rompe né sparisce. Vedi clienteDiFattura/nomeCliente più sotto.
+// INCASSI (compatibilità, regola ferma): l'incasso è un MOVIMENTO a sé (data +
+// importo), così esistono acconti e saldo. Una fattura marcata `incassata` che
+// NON ha movimenti vale INCASSATA PER INTERO, con la sua vecchia `dataIncasso`
+// se c'era: nessun numero già mostrato cambia finché non si registra un incasso
+// nuovo. Le organizzazioni senza la collezione `incassi` leggono una lista
+// vuota e l'app funziona esattamente come prima. Vedi statoIncasso/apertoDi.
 // KPI CALCOLATI: da incassare, in scadenza, gare aperte, età media del credito.
 // ============================================================
 
@@ -36,7 +44,21 @@ export const DEMO = {
     { id: "f2", numero: "2026/034", cliente: "Stradesud", clienteId: "c2", importo: 9750, emessa: "2026-06-25", scadenza: "2026-07-25", incassata: false },
     { id: "f3", numero: "2026/035", cliente: "Comune di Modica", importo: 8100, emessa: "2026-07-10", scadenza: "2026-08-10", incassata: false },
     { id: "f4", numero: "2026/036", cliente: "Calcestruzzi RG", importo: 5900, emessa: "2026-07-18", scadenza: "2026-08-18", incassata: false },
+    // f5: fattura VECCHIA, marcata incassata e senza data d'incasso. Serve a
+    // tenere sotto gli occhi il caso di compatibilità: vale incassata per
+    // intero, e nei tempi di pagamento resta contata a parte come "senza data".
     { id: "f5", numero: "2026/028", cliente: "edilcave s.r.l.", importo: 12000, emessa: "2026-05-12", scadenza: "2026-06-12", incassata: true },
+    // f6: saldata con DUE movimenti (acconto + saldo): è il caso normale in
+    // cava, ed è quello che rende veri i giorni di pagamento.
+    { id: "f6", numero: "2026/030", cliente: "Stradesud", clienteId: "c2", importo: 7320, emessa: "2026-06-02", scadenza: "2026-07-02", incassata: true, dataIncasso: "2026-06-28" },
+  ],
+  // Movimenti di incasso: il giorno in cui i soldi sono ARRIVATI davvero.
+  incassi: [
+    { id: "i1", fatturaId: "f6", data: "2026-06-15", importo: 3000, metodo: "bonifico" },
+    { id: "i2", fatturaId: "f6", data: "2026-06-28", importo: 4320, metodo: "bonifico" },
+    // acconto su una fattura già scaduta: "scaduta" e "scaduta ma in parte
+    // incassata" sono due cose diverse, e ora si vedono diverse.
+    { id: "i3", fatturaId: "f1", data: "2026-07-02", importo: 6000, metodo: "bonifico" },
   ],
   clienti: [
     { id: "c1", ragioneSociale: "Edilcave Srl", piva: "01234567890", sdi: "ABC1234", indirizzo: "Zona industriale, Ragusa", sconto: 5, fido: 25000, note: "" },
@@ -92,7 +114,10 @@ export function giorni(dataISO, oggi = new Date()) {
 
 export function kpiFrom(fatture, gare, oggi = new Date()) {
   const aperte = fatture.filter(f => !f.incassata);
-  const daIncassare = aperte.reduce((t, f) => t + (+f.importo || 0), 0);
+  // apertoDi: con un acconto registrato conta il RESIDUO, non il totale della
+  // fattura. Senza incassi registrati residuo = importo, quindi il numero è
+  // identico a quello di prima.
+  const daIncassare = aperte.reduce((t, f) => t + apertoDi(f), 0);
   const inScadenza = aperte.filter(f => giorni(f.scadenza, oggi) <= 10).length;
   const gareAperte = gare.filter(g => g.stato === "aperta").length;
   // Età media del credito aperto: media dei giorni dall'emissione sulle fatture NON
@@ -122,8 +147,10 @@ export function agingIncassi(fatture, oggi = new Date()) {
     const g = giorni(f.scadenza, oggi);
     // fattura senza data (o data non valida): non è classificabile come
     // scaduta → la contiamo come "non scaduto", non gonfiamo lo scaduto.
-    if (isNaN(g)) { b.nonScaduto.conto++; b.nonScaduto.importo += (+f.importo || 0); continue; }
-    const imp = +f.importo || 0;
+    if (isNaN(g)) { b.nonScaduto.conto++; b.nonScaduto.importo += apertoDi(f); continue; }
+    // quello che pesa nell'aging è ciò che RESTA da incassare: un acconto già
+    // arrivato non è più credito scaduto
+    const imp = apertoDi(f);
     let k;
     if (g >= 0) k = "nonScaduto";
     else { const r = -g; k = r <= 30 ? "g1_30" : r <= 60 ? "g31_60" : r <= 90 ? "g61_90" : "oltre90"; }
@@ -229,9 +256,13 @@ function dataIt(iso) {
 // cliente. Pura e testabile: nessun DOM, `oggi` e `tasso` iniettabili.
 export function testoSollecito(fattura, oggi = new Date(), tassoAnnuo = TASSO_MORA_DEFAULT) {
   const f = fattura || {};
-  const imp = +f.importo || 0;
+  // si sollecita ciò che RESTA da avere: se il cliente ha già versato un
+  // acconto, chiedergli di nuovo l'intero sarebbe una lettera sbagliata.
+  const totDoc = round2(+f.importo || 0);
+  const imp = apertoDi(f);
+  const acconti = round2(Math.max(0, totDoc - imp));
   const g = giorni(f.scadenza, oggi);
-  if (imp <= 0 || !Number.isFinite(g) || g >= 0) return null;   // non scaduta o dati non validi
+  if (imp <= 0 || !Number.isFinite(g) || g >= 0) return null;   // non scaduta, saldata o dati non validi
   const ritardo = -g;
   const m = interessiMora(imp, ritardo, tassoAnnuo);
   const totale = Math.round((imp + m.interessi + SPESE_RECUPERO_231) * 100) / 100;
@@ -243,12 +274,16 @@ export function testoSollecito(fattura, oggi = new Date(), tassoAnnuo = TASSO_MO
     `Oggetto: sollecito di pagamento — fattura ${numero}`,
     ``,
     `Spett.le ${cliente},`,
-    `risulta non ancora saldata la fattura n. ${numero} di ${e(imp)}, scaduta il ${dataIt(f.scadenza)} (${ritardo} giorni di ritardo).`,
+    acconti > 0
+      ? `risulta ancora da saldare la fattura n. ${numero} di ${e(totDoc)}, scaduta il ${dataIt(f.scadenza)} (${ritardo} giorni di ritardo): a fronte di acconti per ${e(acconti)} resta scoperto ${e(imp)}.`
+      : `risulta non ancora saldata la fattura n. ${numero} di ${e(imp)}, scaduta il ${dataIt(f.scadenza)} (${ritardo} giorni di ritardo).`,
     ``,
     `La preghiamo di provvedere al pagamento nel più breve tempo possibile. Ai sensi del D.Lgs 231/2002 sulle transazioni commerciali, dalla scadenza maturano interessi di mora al tasso del ${tassoTxt}% annuo, oltre a ${e(SPESE_RECUPERO_231)} di spese forfettarie di recupero (art. 6).`,
     ``,
     `Riepilogo alla data odierna:`,
-    `- Importo fattura: ${e(imp)}`,
+    ...(acconti > 0
+      ? [`- Importo fattura: ${e(totDoc)}`, `- Acconti già ricevuti: ${e(acconti)}`, `- Residuo scoperto: ${e(imp)}`]
+      : [`- Importo fattura: ${e(imp)}`]),
     `- Interessi di mora (stima, ${ritardo} gg): ${e(m.interessi)}`,
     `- Spese forfettarie art. 6: ${e(SPESE_RECUPERO_231)}`,
     `- Totale dovuto: ${e(totale)}`,
@@ -266,7 +301,7 @@ export function incassoAtteso(fatture, giorniAvanti = 30, oggi = new Date()) {
   for (const f of fatture || []) {
     if (f.incassata) continue;
     const g = giorni(f.scadenza, oggi);
-    if (Number.isFinite(g) && g >= 0 && g <= giorniAvanti) { importo += (+f.importo || 0); conto++; }
+    if (Number.isFinite(g) && g >= 0 && g <= giorniAvanti) { importo += apertoDi(f); conto++; }
   }
   return { conto, importo };
 }
@@ -338,7 +373,7 @@ export function esposizioneClienti(fatture, oggi = new Date(), clienti = []) {
   const per = {};
   for (const f of fatture || []) {
     if (f.incassata) continue;
-    const imp = +f.importo || 0;
+    const imp = apertoDi(f);            // residuo: l'acconto già arrivato non è esposizione
     if (imp <= 0) continue;
     const k = chiaveCliente(f, clienti);
     const c = clienteDiFattura(f, clienti);
@@ -371,7 +406,7 @@ export function estrattoContoCliente(cliente, fatture, oggi = new Date(), tassoA
   if (!nome && !chiave) return null;
   const kNome = chiaveNome(nome);
   const aperte = (fatture || []).filter(f =>
-    !f.incassata && (+f.importo || 0) > 0 && (chiave
+    !f.incassata && apertoDi(f) > 0 && (chiave
       ? chiaveCliente(f, clienti) === chiave
       : chiaveNome(nomeCliente(f, clienti)) === kNome));
   if (!aperte.length) return null;
@@ -379,7 +414,8 @@ export function estrattoContoCliente(cliente, fatture, oggi = new Date(), tassoA
   const e = (v) => "€ " + euroIt(v);
   let totale = 0, scaduto = 0, moraTot = 0, scaduteN = 0;
   const righe = aperte.map(f => {
-    const imp = +f.importo || 0;
+    const imp = apertoDi(f);                              // residuo dovuto
+    const acconti = round2(Math.max(0, round2(+f.importo || 0) - imp));
     totale += imp;
     const g = giorni(f.scadenza, oggi);
     const ritardo = Number.isFinite(g) && g < 0 ? -g : 0;
@@ -392,7 +428,7 @@ export function estrattoContoCliente(cliente, fatture, oggi = new Date(), tassoA
     } else {
       coda = Number.isFinite(g) ? "non ancora scaduta" : "senza scadenza";
     }
-    return `- n. ${(f.numero || "—")} · ${e(imp)} · scad. ${dataIt(f.scadenza)} · ${coda}`;
+    return `- n. ${(f.numero || "—")} · ${e(imp)}${acconti > 0 ? ` (residuo, acconti ${e(acconti)})` : ""} · scad. ${dataIt(f.scadenza)} · ${coda}`;
   });
   const spese = scaduteN * SPESE_RECUPERO_231;
   const totaleDovuto = Math.round((totale + moraTot + spese) * 100) / 100;
@@ -432,7 +468,7 @@ export function incassoPerMese(fatture, mesi = 6, oggi = new Date()) {
     if (f.incassata) continue;
     const g = giorni(f.scadenza, oggi);
     if (!Number.isFinite(g)) continue;                 // senza data valida: non pianificabile
-    const imp = +f.importo || 0;
+    const imp = apertoDi(f);                           // solo ciò che resta da incassare
     if (g < 0) { scadute.conto++; scadute.importo += imp; continue; }
     const k = (f.scadenza || "").slice(0, 7);          // yyyy-mm della scadenza
     if (perMese[k]) { perMese[k].conto++; perMese[k].importo += imp; }  // oltre l'orizzonte: ignorata
@@ -451,7 +487,7 @@ export function prioritaIncasso(fatture, oggi = new Date()) {
       const g = giorni(f.scadenza, oggi);
       return { f, ritardo: Number.isFinite(g) ? Math.max(0, -g) : 0 };
     })
-    .sort((a, b) => b.ritardo - a.ritardo || (+b.f.importo || 0) - (+a.f.importo || 0));
+    .sort((a, b) => b.ritardo - a.ritardo || apertoDi(b.f) - apertoDi(a.f));
 }
 
 // Riepilogo delle gare d'appalto: quante aperte/vinte/perse, valore a
@@ -579,6 +615,220 @@ export function prossimoNumero(numeri, anno = new Date().getFullYear(), cifre = 
     if (m && m[2] === y) max = Math.max(max, +m[1]);
   }
   return y + "/" + String(max + 1).padStart(cifre, "0");
+}
+
+// ============================================================
+// INCASSI — LA DATA VERA IN CUI I SOLDI SONO ARRIVATI (N6)
+// ------------------------------------------------------------
+// Fino a ieri l'incasso era un sì/no e la data ripiegava su quella di
+// emissione: qualunque conto sui TEMPI DI PAGAMENTO era finto. Adesso ogni
+// versamento è un movimento con la sua data e il suo importo, quindi esistono
+// gli ACCONTI (in cava un acconto e un saldo sono la norma).
+//
+// LE DUE REGOLE CHE NON SI TOCCANO
+// 1. COMPATIBILITÀ. Una fattura marcata `incassata` SENZA movimenti vale
+//    incassata per intero, con la sua vecchia `dataIncasso` se c'era. Chi non
+//    ha mai registrato un incasso vede esattamente i numeri di prima.
+// 2. I SOLDI NON SI ARROTONDANO. Tutto passa da round2 (centesimi): la somma
+//    degli acconti deve tornare col totale della fattura AL CENTESIMO, non
+//    "quasi". Il residuo è totale − incassato, sempre a due decimali.
+// ============================================================
+
+// Movimenti di UNA fattura, in ordine di data (importi normalizzati a centesimi).
+export function movimentiDiFattura(fatturaId, incassi) {
+  const id = String(fatturaId == null ? "" : fatturaId);
+  if (!id) return [];
+  return (incassi || [])
+    .filter(m => m && String(m.fatturaId) === id)
+    .map(m => ({ ...m, importo: round2(+m.importo || 0), data: String(m.data || "").slice(0, 10) }))
+    .sort((a, b) => a.data.localeCompare(b.data) || a.importo - b.importo);
+}
+
+// Giorni fra due date ISO (b − a), in UTC e senza fuso: deterministica, così
+// "quanti giorni ci ha messo a pagare" dà lo stesso numero ovunque giri l'app.
+// null se una delle due date manca o non è una data.
+export function giorniFraDate(daISO, aISO) {
+  const ok = /^\d{4}-\d{2}-\d{2}$/;
+  const a = String(daISO || "").slice(0, 10), b = String(aISO || "").slice(0, 10);
+  if (!ok.test(a) || !ok.test(b)) return null;
+  return Math.round((Date.parse(b + "T00:00:00Z") - Date.parse(a + "T00:00:00Z")) / 86400000);
+}
+
+// STATO DI INCASSO di una fattura: quanto è entrato davvero, quanto resta, se
+// è saldata, quando, e in quanti giorni. È il cuore dell'unità: tutto il resto
+// (aging, esposizione, grafici, solleciti) si appoggia qui. Pura e testabile.
+export function statoIncasso(fattura, incassi) {
+  const f = fattura || {};
+  const totale = round2(importiFattura(f).totale);
+  const movimenti = movimentiDiFattura(f.id, incassi);
+
+  if (!movimenti.length) {
+    if (f.incassata) {                      // ── compatibilità: incassata "vecchio stile"
+      const d = /^\d{4}-\d{2}-\d{2}/.test(String(f.dataIncasso || "")) ? String(f.dataIncasso).slice(0, 10) : null;
+      return { totale, incassato: totale, residuo: 0, eccedenza: 0,
+               saldata: true, parziale: false, movimenti: [], conMovimenti: false,
+               dataSaldo: d, senzaData: !d,
+               giorniPagamento: d ? giorniFraDate(f.emessa, d) : null,
+               ritardoPagamento: d ? giorniFraDate(f.scadenza, d) : null };
+    }
+    return { totale, incassato: 0, residuo: totale, eccedenza: 0,
+             saldata: false, parziale: false, movimenti: [], conMovimenti: false,
+             dataSaldo: null, senzaData: false, giorniPagamento: null, ritardoPagamento: null };
+  }
+
+  const incassato = round2(movimenti.reduce((t, m) => t + m.importo, 0));
+  const residuo = round2(Math.max(0, totale - incassato));
+  const eccedenza = round2(Math.max(0, incassato - totale));
+  const saldata = residuo === 0;
+  const dataSaldo = saldata ? movimenti[movimenti.length - 1].data || null : null;
+  return { totale, incassato, residuo, eccedenza,
+           saldata, parziale: !saldata && incassato > 0,
+           movimenti, conMovimenti: true, dataSaldo, senzaData: false,
+           giorniPagamento: saldata ? giorniFraDate(f.emessa, dataSaldo) : null,
+           ritardoPagamento: saldata ? giorniFraDate(f.scadenza, dataSaldo) : null };
+}
+
+// Fatture "decorate" con il loro stato di incasso: è la lista che usa tutta
+// l'app. `importo` NON viene toccato (resta il totale del documento, come sta
+// scritto sulla fattura); si aggiunge `residuo`, che è ciò che manca ancora.
+// `incassata` viene ricalcolata SOLO quando ci sono movimenti: senza movimenti
+// resta quella salvata, e i numeri di prima restano identici.
+export function applicaIncassi(fatture, incassi) {
+  return (fatture || []).map(f => {
+    const s = statoIncasso(f, incassi);
+    return { ...f,
+      incassata: s.conMovimenti ? s.saldata : !!f.incassata,
+      incassato: s.incassato, residuo: s.residuo, eccedenza: s.eccedenza,
+      parziale: s.parziale, conMovimenti: s.conMovimenti, nMovimenti: s.movimenti.length,
+      dataSaldo: s.dataSaldo, senzaDataIncasso: s.senzaData,
+      giorniPagamento: s.giorniPagamento, ritardoPagamento: s.ritardoPagamento };
+  });
+}
+
+// Importo ancora APERTO di una fattura: il residuo se lo stato di incasso è
+// stato calcolato, altrimenti l'importo pieno. Senza incassi registrati il
+// residuo È l'importo: ecco perché nessun totale cambia da solo.
+export function apertoDi(fattura) {
+  const f = fattura || {};
+  return Number.isFinite(+f.residuo) ? round2(Math.max(0, +f.residuo)) : round2(+f.importo || 0);
+}
+
+// INCASSATO in un periodo (estremi inclusi; date vuote = tutto l'archivio):
+// somma dei movimenti veri, più — per compatibilità — le fatture marcate
+// incassate senza movimenti, contate alla loro data d'incasso. Quelle senza
+// data entrano solo nel totale d'archivio (non sono databili) e vengono
+// riportate a parte: è un numero che va detto, non nascosto.
+export function incassatoPeriodo(fatture, incassi, dal, al) {
+  const d1 = String(dal || ""), d2 = String(al || ""), tutto = !d1 && !d2;
+  const dentro = (d) => !!d && (!d1 || d >= d1) && (!d2 || d <= d2);
+  const validi = new Set((fatture || []).map(f => String(f.id)));
+  let daMovimenti = 0, movimenti = 0;
+  for (const m of incassi || []) {
+    if (!validi.has(String(m.fatturaId))) continue;      // movimento orfano: non conta
+    if (!dentro(String(m.data || "").slice(0, 10))) continue;
+    daMovimenti = round2(daMovimenti + round2(+m.importo || 0)); movimenti++;
+  }
+  let vecchie = 0, fattureVecchie = 0, senzaData = 0, importoSenzaData = 0;
+  for (const f of fatture || []) {
+    const s = statoIncasso(f, incassi);
+    if (s.conMovimenti || !s.saldata) continue;
+    if (!s.dataSaldo) {                                   // incassata senza data
+      senzaData++; importoSenzaData = round2(importoSenzaData + s.totale);
+      if (tutto) { vecchie = round2(vecchie + s.totale); fattureVecchie++; }
+      continue;
+    }
+    if (!dentro(s.dataSaldo)) continue;
+    vecchie = round2(vecchie + s.totale); fattureVecchie++;
+  }
+  return { importo: round2(daMovimenti + vecchie), daMovimenti, movimenti,
+           senzaMovimenti: vecchie, fattureVecchie, senzaData, importoSenzaData };
+}
+
+// TEMPI REALI DI PAGAMENTO per cliente: giorni medi fra emissione e saldo, e
+// giorni medi oltre la scadenza. Contano solo le fatture SALDATE con una data
+// vera; quelle marcate incassate senza data restano fuori dalla media e
+// vengono contate a parte (senzaData), perché una media su date inventate
+// sarebbe peggio di nessuna media. Pura e testabile.
+export function tempiPagamentoClienti(fatture, incassi, clienti = []) {
+  const per = {};
+  for (const f of fatture || []) {
+    const s = statoIncasso(f, incassi);
+    if (!s.saldata) continue;
+    const k = chiaveCliente(f, clienti);
+    const p = per[k] || (per[k] = { chiave: k, cliente: nomeCliente(f, clienti),
+      conto: 0, importo: 0, conGiorni: 0, giorniTot: 0, conRitardo: 0, ritardoTot: 0,
+      senzaData: 0, ultimo: null });
+    p.conto++; p.importo = round2(p.importo + s.totale);
+    if (s.giorniPagamento == null) { p.senzaData++; continue; }
+    p.conGiorni++; p.giorniTot += s.giorniPagamento;
+    if (s.ritardoPagamento != null) { p.conRitardo++; p.ritardoTot += s.ritardoPagamento; }
+    if (!p.ultimo || s.dataSaldo > p.ultimo) p.ultimo = s.dataSaldo;
+  }
+  return Object.values(per)
+    .map(p => ({ ...p,
+      giorniMedi: p.conGiorni ? Math.round(p.giorniTot / p.conGiorni) : null,
+      ritardoMedio: p.conRitardo ? Math.round(p.ritardoTot / p.conRitardo) : null }))
+    .sort((a, b) => (b.giorniMedi == null ? -1 : b.giorniMedi) - (a.giorniMedi == null ? -1 : a.giorniMedi)
+      || b.importo - a.importo);
+}
+
+// Tempo medio di pagamento su TUTTE le fatture saldate (media per fattura).
+export function tempoMedioPagamento(fatture, incassi) {
+  let giorniTot = 0, n = 0, ritTot = 0, nRit = 0, senzaData = 0;
+  for (const f of fatture || []) {
+    const s = statoIncasso(f, incassi);
+    if (!s.saldata) continue;
+    if (s.giorniPagamento == null) { senzaData++; continue; }
+    giorniTot += s.giorniPagamento; n++;
+    if (s.ritardoPagamento != null) { ritTot += s.ritardoPagamento; nRit++; }
+  }
+  return { giorni: n ? Math.round(giorniTot / n) : null, conto: n, senzaData,
+           ritardo: nRit ? Math.round(ritTot / nRit) : null };
+}
+
+// EMESSO CONTRO INCASSATO, mese per mese (finestra che finisce col mese in
+// corso). Prima della data vera dell'incasso questo confronto non si poteva
+// fare onestamente: l'incassato sarebbe stato appiccicato al mese di
+// emissione, cioè avrebbe copiato l'altra serie. `conDato` dice quanti mesi
+// hanno davvero qualcosa dentro: con troppo pochi mesi una linea sarebbe una
+// finzione, e l'interfaccia mostra i numeri invece del disegno.
+export function emessoIncassato(fatture, incassi, mesi = 6, oggi = new Date()) {
+  const o = new Date(oggi);
+  const km = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  const ordine = [], per = {};
+  for (let i = mesi - 1; i >= 0; i--) {
+    const k = km(new Date(o.getFullYear(), o.getMonth() - i, 1));
+    ordine.push(k); per[k] = { mese: k, emesso: 0, incassato: 0, emesse: 0, movimenti: 0, vecchie: 0 };
+  }
+  for (const f of fatture || []) {
+    const k = String(f.emessa || "").slice(0, 7);
+    if (!per[k]) continue;
+    per[k].emesso = round2(per[k].emesso + round2(importiFattura(f).totale));
+    per[k].emesse++;
+  }
+  const validi = new Set((fatture || []).map(f => String(f.id)));
+  for (const m of incassi || []) {
+    if (!validi.has(String(m.fatturaId))) continue;
+    const k = String(m.data || "").slice(0, 7);
+    if (!per[k]) continue;
+    per[k].incassato = round2(per[k].incassato + round2(+m.importo || 0));
+    per[k].movimenti++;
+  }
+  let senzaData = 0, importoSenzaData = 0;
+  for (const f of fatture || []) {                       // compatibilità
+    const s = statoIncasso(f, incassi);
+    if (s.conMovimenti || !s.saldata) continue;
+    if (!s.dataSaldo) { senzaData++; importoSenzaData = round2(importoSenzaData + s.totale); continue; }
+    const k = s.dataSaldo.slice(0, 7);
+    if (!per[k]) continue;
+    per[k].incassato = round2(per[k].incassato + s.totale); per[k].vecchie++;
+  }
+  const lista = ordine.map(k => per[k]);
+  return { mesi: lista,
+    conDato: lista.filter(m => m.emesso > 0 || m.incassato > 0).length,
+    emesso: round2(lista.reduce((t, m) => t + m.emesso, 0)),
+    incassato: round2(lista.reduce((t, m) => t + m.incassato, 0)),
+    senzaData, importoSenzaData };
 }
 
 // ============================================================
@@ -747,6 +997,9 @@ export async function contiData() {
       api = {
         fatture: () => read("fatture"), gare: () => read("gare"), clienti: () => read("clienti"),
         prodotti: () => read("prodotti"), pesate: () => read("pesate"),
+        // le organizzazioni di prima non hanno la collezione degli incassi:
+        // Firestore restituisce semplicemente una lista vuota, niente errori
+        incassi: () => read("incassi"),
         impostazioni: () => read("impostazioni"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
         logout: () => id.logout(),
@@ -760,6 +1013,7 @@ export async function contiData() {
     api = {
       fatture: async () => mem.fatture, gare: async () => mem.gare, clienti: async () => mem.clienti,
       prodotti: async () => mem.prodotti, pesate: async () => mem.pesate,
+      incassi: async () => mem.incassi || (mem.incassi = []),
       impostazioni: async () => mem.impostazioni,
       logout: async () => {},
       aggiungi: async (n, d) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[n] = mem[n] || []).push({ id, ...d }); return { id }; },

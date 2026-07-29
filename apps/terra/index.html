@@ -374,6 +374,9 @@ textarea.dw-input{line-height:1.5}
 }
 
 /* ─────────────── bottoni (copia di .btn-sv / .btn-sec) ─────────────── */
+/* un bottone che porta a un'altra app resta un link: stessa forma dei
+   bottoni, senza la sottolineatura del collegamento */
+a.dw-btn{text-decoration:none}
 .dw-btn svg{
   width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2;
   stroke-linecap:round; stroke-linejoin:round;
@@ -591,6 +594,21 @@ textarea.dw-input{line-height:1.5}
   <div id="ril-count" class="count"></div>
   <div id="ril-list"></div>
 
+  <!-- CONFRONTO FRA DUE RILIEVI: «quanto abbiamo cavato da lì fra marzo e luglio» -->
+  <div class="sec">Confronto fra due rilievi</div>
+  <div class="form col">
+    <div class="frow">
+      <div class="fld" style="flex:2 1 180px;"><label class="fl" for="cf-fronte">Fronte</label>
+        <select class="dw-input" id="cf-fronte" title="I due rilievi devono stare sullo stesso fronte"></select></div>
+      <div class="fld" style="flex:2 1 165px;"><label class="fl" for="cf-a">Dal rilievo del</label>
+        <select class="dw-input" id="cf-a"></select></div>
+      <div class="fld" style="flex:2 1 165px;"><label class="fl" for="cf-b">Al rilievo del</label>
+        <select class="dw-input" id="cf-b"></select></div>
+    </div>
+    <div class="form-hint">Si confrontano solo rilievi <b>elaborati di scavo</b> dello stesso fronte: le riprese dai cumuli non escono dal fronte e non entrano in questo conto.</div>
+  </div>
+  <div id="cf-out"></div>
+
   <div class="sec">Valore del materiale estratto</div>
   <div class="form col">
     <div class="frow">
@@ -629,9 +647,14 @@ textarea.dw-input{line-height:1.5}
         </select></div>
       <div class="fld" style="flex:1 1 120px;"><label class="fl" for="new-ril-gsd">GSD (cm)</label>
         <input class="dw-input" id="new-ril-gsd" type="number" min="0" step="0.1" placeholder="es. 2,5"></div>
+    </div>
+    <div class="frow">
+      <div class="fld" style="flex:3 1 220px;"><label class="fl" for="new-ril-rilevatore">Eseguito da</label>
+        <input class="dw-input" id="new-ril-rilevatore" placeholder="Nome e qualifica di chi ha eseguito il rilievo"></div>
       <button class="dw-btn" id="btn-add-ril">Registra</button>
     </div>
     <div class="form-hint">Con una data <b>futura</b> il volume non serve: il rilievo viene messo in calendario come pianificato.</div>
+    <div class="form-hint"><b>Eseguito da</b> è facoltativo ma finisce nel <b>verbale di rilievo</b>, il foglio che accompagna il rilievo quando lo mostri a un ente: se lo lasci vuoto, sul foglio resta una riga da compilare a penna.</div>
     <div class="form-hint" id="prov-nota"></div>
   </div>
   <div class="tools">
@@ -677,6 +700,11 @@ textarea.dw-input{line-height:1.5}
 
   <div class="sec">Anno per anno</div>
   <div id="den-storico"></div>
+
+  <!-- ONERI DI ESCAVAZIONE: qui sta la BASE (i m³ scavati), il conto in euro
+       resta in Conti, dove l'aliquota si scrive una volta sola. -->
+  <div class="sec">Oneri di escavazione</div>
+  <div id="den-oneri"></div>
 
   <div class="sec">Come lo consegni</div>
   <div class="tools">
@@ -819,7 +847,8 @@ textarea.dw-input{line-height:1.5}
   import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, parseFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita,
            autorizzazioneVigente, vitaCava, statoScadenzaTerra, livelloScadenzaTerra, prossimaData, riepilogoScadenze, TIPI_SCADENZA_TERRA, presetScadenzaTerra, etichettaTipoScadenza,
            provenienzaRilievo, soloScavo, soloCumulo, PROVENIENZE, etichettaProvenienza,
-           anniConVolumi, riepilogoAnnuale, serieAnnuale } from "./terra-data.js";
+           anniConVolumi, riepilogoAnnuale, serieAnnuale,
+           rilieviScavoFronte, rilievoPrecedente, confrontoRilievi } from "./terra-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const FB = { attivo: ["ok","Attivo"], sospeso: ["warn","Sospeso"] };
@@ -847,6 +876,7 @@ textarea.dw-input{line-height:1.5}
     mod:    '<svg viewBox="0 0 24 24"><path d="M4 20h4.2L19.4 8.8a2.1 2.1 0 0 0-3-3L5.2 17z"/><path d="M14.6 5.6l3.8 3.8"/></svg>',
     del:    '<svg viewBox="0 0 24 24"><path d="M6.6 6.6l10.8 10.8M17.4 6.6L6.6 17.4"/></svg>',
     fatto:  '<svg viewBox="0 0 24 24"><path d="M5.2 12.6l4.4 4.4L18.8 7"/></svg>',
+    verb:   '<svg viewBox="0 0 24 24"><path d="M7 8.6V4.2h6.8L17 7.4v1.2"/><path d="M5.2 8.6h13.6a1.8 1.8 0 0 1 1.8 1.8v5.2h-3.4v4.2H6.8v-4.2H3.4v-5.2a1.8 1.8 0 0 1 1.8-1.8z"/><path d="M9.4 15.6h5.2M9.4 18h3.4"/></svg>',
   };
   // stato vuoto in stile core: icona, titolo, spiegazione di cosa fare
   const vuoto = (icona, titolo, sotto) =>
@@ -951,7 +981,7 @@ textarea.dw-input{line-height:1.5}
       <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${dmy(r.data)} · ${esc(r.tipo||"")}${volTxt}${qualitaRilievo(r)?" · "+esc(qualitaRilievo(r)):""}</div></div>
       <div class="acts">${cum ? '<span class="badge tag" title="Materiale già estratto, ripreso da un cumulo: non consuma il volume concesso">Da cumulo</span>' : ""}
       ${ca.cls ? `<span class="badge ${ca.cls}" title="Accuratezza tipica del metodo — da confermare coi checkpoint del rilevatore">${ca.label}</span>` : ""}
-      <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${r.stato==="pianificato"?`<button class="arr del" type="button" title="Annulla il rilievo pianificato" aria-label="Annulla il rilievo pianificato del ${dmy(r.data)}" data-del-ril="${r.id}">${A.del}</button>`:""}</div></div>`;
+      <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${r.stato==="elaborato"&&r.volumeM3!=null?`<button class="arr" type="button" title="Verbale di rilievo da stampare o salvare in PDF" aria-label="Verbale del rilievo del ${dmy(r.data)}" data-verb-ril="${r.id}">${A.verb}</button>`:""}${r.stato==="pianificato"?`<button class="arr del" type="button" title="Annulla il rilievo pianificato" aria-label="Annulla il rilievo pianificato del ${dmy(r.data)}" data-del-ril="${r.id}">${A.del}</button>`:""}</div></div>`;
     }).join("")
       || (qRil
           ? vuoto(I.cerca, "Nessun risultato", "Nessun rilievo corrisponde a <b>«" + esc(qRil) + "»</b>. Prova con una parte del titolo o del tipo di rilievo.")
@@ -1006,6 +1036,7 @@ textarea.dw-input{line-height:1.5}
     renderTitolo();
     renderDenuncia();
     renderValore();
+    renderConfronto();
     grafici();
   }
 
@@ -1459,6 +1490,18 @@ textarea.dw-input{line-height:1.5}
       || vuoto(I.riga, "Ancora nessun anno da confrontare",
           "Appena registri i rilievi di più anni, qui compare la riga di controllo: quanto per anno e a che punto era il titolo alla fine di ognuno.");
 
+    // 7 · oneri di escavazione: qui la BASE, il conto in euro sta in Conti.
+    // Molte regioni fanno pagare un contributo a metro cubo estratto. Terra
+    // ha i metri cubi; l'aliquota e il calcolo vivono in Conti, dove si
+    // scrivono una volta sola: due posti diversi vorrebbero dire due numeri
+    // diversi, e uno dei due sbagliato.
+    $("den-oneri").innerHTML = `<div class="note recap">Base di calcolo per il <b>${R.anno}</b>: <b>${n0(R.scavo)} m³</b> di scavo misurato`
+      + (R.cumulo ? `. I <b>${n0(R.cumulo)} m³</b> ripresi dai cumuli restano fuori: non sono nuovo scavo` : "")
+      + `.${R.inCorso ? " L'anno è ancora in corso: il numero cresce fino al 31 dicembre." : ""}</div>`
+      + `<div class="note">Il conto in euro <b>non lo fa Terra</b>: l'aliquota della tua concessione (€/m³ oppure €/t) si imposta in <b>Conti</b>, nella sezione <b>«Canoni e diritti di escavazione»</b>, ed è lì che viene applicata al materiale del periodo. Tenerla in un posto solo evita di ritrovarsi due importi diversi per la stessa cava.</div>`
+      + `<div class="tools"><a class="dw-btn secondary" href="../conti/index.html">Apri Conti</a></div>`
+      + `<div class="note avviso">Attenzione a <b>quali</b> metri cubi si pagano: diverse regioni applicano la tariffa al volume <b>al netto</b> del materiale usato per il recupero ambientale della cava stessa, e per la pietra ornamentale alla sola quantità <b>commercializzata</b>. Le tariffe cambiano da regione a regione e vengono aggiornate nel tempo: prendi il numero qui sopra come <b>base di partenza</b>, non come importo dovuto.</div>`;
+
     grafDen();
   }
 
@@ -1550,18 +1593,22 @@ textarea.dw-input{line-height:1.5}
         + (R.rilieviCumulo ? " e " + R.rilieviCumulo + (R.rilieviCumulo === 1 ? " ripresa da cumulo" : " riprese da cumuli") : "");
     const doc = "<!DOCTYPE html><html lang='it'><head><meta charset='utf-8'>"
       + "<title>Riepilogo volumi " + R.anno + "</title><style>"
-      + "*{box-sizing:border-box}body{margin:26px;font:12px/1.5 Arial,Helvetica,sans-serif;color:#111}"
-      + "h1{font-size:19px;margin:0 0 2px}h2{font-size:13px;margin:20px 0 6px;padding-bottom:3px;border-bottom:1px solid #bbb;text-transform:uppercase;letter-spacing:1px}"
+      + "*{box-sizing:border-box}body{margin:26px auto;max-width:200mm;padding:0 20px;font:12px/1.5 Arial,Helvetica,sans-serif;color:#111}"
+      + "h1{font-size:19px;margin:0 0 2px}h2{font-size:13px;margin:20px 0 6px;padding-bottom:3px;border-bottom:1px solid #bbb;letter-spacing:.5px}"
       + ".sub{color:#555;margin-bottom:14px}"
       + "table{width:100%;border-collapse:collapse;margin-bottom:6px}"
       + "th,td{border:1px solid #bbb;padding:5px 7px;text-align:left;vertical-align:top}"
-      + "th{background:#eee;font-size:11px;text-transform:uppercase;letter-spacing:.5px}"
+      /* niente maiuscolo automatico: trasformerebbe m³ in M³ (e in altre app
+         µg/m³ in MG/M³), cioè un'unità di misura diversa da quella misurata */
+      + "th{background:#eee;font-size:11px;letter-spacing:.3px}"
       + "td.n,th.n,.n{text-align:right;white-space:nowrap}span.n{display:block}"
       + "tr.tot td{font-weight:bold;background:#f3f3f3}"
       + ".mini{color:#555;font-size:11px;margin:4px 0 0}"
       + ".firma{margin-top:26px;display:flex;gap:30px}.firma div{flex:1;border-top:1px solid #777;padding-top:5px;font-size:11px;color:#555}"
       + ".foot{margin-top:22px;padding-top:8px;border-top:1px solid #ddd;color:#666;font-size:10.5px}"
-      + "@media print{body{margin:14mm}h2{page-break-after:avoid}tr{page-break-inside:avoid}}"
+      /* su telefono le tre firme in fila diventano illeggibili: si incolonnano */
+      + "@media screen and (max-width:520px){.firma{display:block}.firma div{margin-top:20px}}"
+      + "@media print{body{margin:14mm;padding:0;max-width:none}h2{page-break-after:avoid}tr{page-break-inside:avoid}}"
       + "</style></head><body>"
       + "<h1>Riepilogo annuale dei volumi — anno " + R.anno + "</h1>"
       + "<div class='sub'>Documento preparato con Deepwork Terra il " + dataOggi
@@ -1847,8 +1894,210 @@ textarea.dw-input{line-height:1.5}
   // se l'utente modifica la densità a mano, il menù torna neutro
   $("val-densita").addEventListener("input", () => { $("val-materiale").value = ""; $("val-dens-nota").textContent = ""; });
 
+  // ══════════════════════════════════════════════════════════════════════
+  // CONFRONTO FRA DUE RILIEVI DELLO STESSO FRONTE
+  // Risponde alla domanda che il direttore di cava fa davvero: «quanto
+  // abbiamo cavato da lì fra marzo e luglio». Il conto SOMMA i rilievi del
+  // periodo (ogni rilievo porta il materiale tolto da quando c'era quello
+  // prima): sottrarre i due volumi darebbe un numero che non è materiale,
+  // ed è l'errore classico dei fogli di calcolo. La differenza fra le due
+  // misure si mostra lo stesso, ma detta per quello che è: un confronto di
+  // ritmo. Solo scavo, solo stesso fronte: sommare cose diverse è peggio
+  // che non sommare niente.
+  // ══════════════════════════════════════════════════════════════════════
+  let cfFronte = null, cfA = null, cfB = null;
+  // gruppi confrontabili: un fronte serve solo se ha almeno due rilievi di
+  // scavo elaborati (con uno solo non c'è nessun intervallo)
+  const gruppiConfronto = () => [...FRO.map(f => ({ id: f.id, nome: f.nome })),
+      { id: "", nome: "Rilievi senza fronte indicato" }]
+    .filter(g => rilieviScavoFronte(RIL, g.id || null).length >= 2);
+
+  function renderConfronto() {
+    const selF = $("cf-fronte"), selA = $("cf-a"), selB = $("cf-b"), out = $("cf-out");
+    if (!selF) return;
+    const gruppi = gruppiConfronto();
+    if (!gruppi.length) {
+      selF.innerHTML = '<option value="">— niente da confrontare —</option>';
+      selA.innerHTML = selB.innerHTML = '<option value="">—</option>';
+      selF.disabled = selA.disabled = selB.disabled = true;
+      out.innerHTML = vuoto(I.riga, "Ancora niente da confrontare",
+        "Qui si risponde a «quanto abbiamo cavato da lì fra due date». Servono <b>almeno due rilievi elaborati di scavo sullo stesso fronte</b>: registra il secondo e questa sezione si accende da sola.");
+      return;
+    }
+    selF.disabled = selA.disabled = selB.disabled = false;
+    if (cfFronte == null || !gruppi.some(g => g.id === cfFronte)) { cfFronte = gruppi[0].id; cfA = cfB = null; }
+    selF.innerHTML = gruppi.map(g =>
+      `<option value="${esc(g.id)}"${g.id === cfFronte ? " selected" : ""}>${esc(g.nome)}</option>`).join("");
+    const lista = rilieviScavoFronte(RIL, cfFronte || null);   // dal più recente
+    if (!lista.some(r => r.id === cfA) || !lista.some(r => r.id === cfB) || cfA === cfB) {
+      cfB = lista[0].id; cfA = lista[1].id;                    // di serie gli ultimi due
+    }
+    const et = (r) => fmtData(r.data) + " · " + n0(r.volumeM3) + " m³";
+    const opz = (sceltoId) => lista.map(r =>
+      `<option value="${esc(r.id)}"${r.id === sceltoId ? " selected" : ""}>${esc(et(r))}</option>`).join("");
+    selA.innerHTML = opz(cfA); selB.innerHTML = opz(cfB);
+
+    const c = confrontoRilievi(RIL, cfA, cfB);
+    if (!c) {
+      out.innerHTML = `<div class="note avviso">Scegli <b>due rilievi diversi</b> dello stesso fronte: il confronto misura quello che sta <b>fra</b> le due date.</div>`;
+      return;
+    }
+    out.innerHTML = cardConfronto(c);
+  }
+
+  // La scheda del confronto: tre numeri in evidenza e sotto la spiegazione
+  // di come sono nati. Stesse tessere del resto dell'app.
+  function cardConfronto(c) {
+    const nome = c.fronteId ? (nomeFronte(c.fronteId) || "fronte non più in elenco") : "rilievi senza fronte";
+    const band = c.banda > 0 ? " ± " + n0(c.banda) : "";
+    const rit = c.alGiorno != null
+      ? `In quei <b>${c.giorni} giorni</b> fanno circa <b>${n0(c.alGiorno)} m³ al giorno</b>, cioè <b>${n0(c.alMese)} m³ al mese</b> se il ritmo resta questo.`
+      : `Le due date coincidono, quindi non c'è nessun ritmo da calcolare.`;
+    const conf = c.delta === 0
+      ? `I due rilievi hanno misurato lo stesso volume (<b>${n0(c.primo.volumeM3)} m³</b>).`
+      : `Preso da solo, il rilievo del <b>${fmtData(c.secondo.data)}</b> vale <b>${n0(c.secondo.volumeM3)} m³</b> contro i <b>${n0(c.primo.volumeM3)} m³</b> del ${fmtData(c.primo.data)}: <b>${c.delta > 0 ? "+" : "−"}${n0(Math.abs(c.delta))} m³</b>${c.pct != null ? ` (${c.delta > 0 ? "+" : "−"}${Math.abs(c.pct)}%)` : ""}. È un confronto di <b>ritmo fra due misure</b>, non materiale in più o in meno.`;
+    return `<div class="kpis" style="--kpi-cols:3;">
+      <div class="kpi"><div class="l">m³ scavati fra le due date</div><div class="n">${fmtM3(c.scavato)}</div></div>
+      <div class="kpi"><div class="l">Giorni fra i due rilievi</div><div class="n">${c.giorni}</div></div>
+      <div class="kpi"><div class="l">Ritmo m³ al mese</div><div class="n">${c.alMese != null ? fmtM3(Math.round(c.alMese)) : "—"}</div></div>
+    </div>
+    <div class="note recap">Fra il <b>${fmtData(c.primo.data)}</b> e il <b>${fmtData(c.secondo.data)}</b> su <b>${esc(nome)}</b> risultano misurati <b>${n0(c.scavato)}${band} m³</b> di scavo. ${rit}</div>
+    <div class="note">Il conto somma i <b>${c.rilieviInMezzo}</b> ${c.rilieviInMezzo === 1 ? "rilievo successivo" : "rilievi successivi"} al primo, fino al secondo compreso: ogni rilievo porta il materiale tolto <b>da quando c'era quello prima</b>, quindi i volumi si sommano e non si sottraggono.${c.banda > 0 ? ` Il <b>± ${n0(c.banda)} m³</b> è l'incertezza dei rilievi del periodo sommata (stima prudente).` : ""} ${conf}</div>`;
+  }
+  ["cf-fronte","cf-a","cf-b"].forEach(id => { const el = $(id); if (el) el.addEventListener("change", () => {
+    if (id === "cf-fronte") { cfFronte = el.value; cfA = cfB = null; }
+    else if (id === "cf-a") cfA = el.value; else cfB = el.value;
+    renderConfronto();
+  }); });
+
+  // ══════════════════════════════════════════════════════════════════════
+  // VERBALE DI RILIEVO — il foglio che accompagna un rilievo
+  // È quello che rende il numero opponibile a un ente: dice CHI ha
+  // misurato, QUANDO, CON CHE METODO, con quale tolleranza tipica, su quale
+  // fronte, sotto quale titolo autorizzativo, e da quale rilievo precedente
+  // parte la misura. Nessun colore d'interfaccia: pagina bianca da firmare.
+  // ══════════════════════════════════════════════════════════════════════
+  function fogliaVerbale(r) {
+    const f = r.fronteId ? FRO.find(x => x.id === r.fronteId) : null;
+    const aut = autorizzazioneVigente(AUT);
+    const ca = classeAccuratezza(r);
+    const bv = ca.tolleranzaPct != null ? bandaVolume(r.volumeM3, ca.tolleranzaPct) : null;
+    const prec = rilievoPrecedente(RIL, r);
+    const c = prec ? confrontoRilievi(RIL, prec.id, r.id) : null;
+    const oggi = new Date();
+    const dataOggi = fmtData(new Date(oggi.getTime() - oggi.getTimezoneOffset() * 60000).toISOString().slice(0, 10));
+    const riga = (c1, c2) => "<tr><td><b>" + c1 + "</b></td><td>" + c2 + "</td></tr>";
+    const cum = provenienzaRilievo(r) === "cumulo";
+    const dati = [
+      ["Data del rilievo", fmtData(r.data)],
+      ["Fronte", f ? esc(f.nome) + (f.banco ? " — " + esc(f.banco) : "") + (f.quota != null ? " · quota " + esc(String(f.quota)) + " m" : "")
+        : (r.fronteId ? "fronte non più in elenco" : "non indicato")],
+      ["Che cosa è stato misurato", cum
+        ? "Ripresa da un cumulo — materiale già estratto in passato, non nuovo scavo"
+        : "Scavo dal fronte — materiale nuovo tolto dalla cava"],
+      ["Tipo di elaborato", r.tipo ? esc(r.tipo) : "non indicato"],
+      ["Metodo di rilievo", r.metodo ? esc(r.metodo) : "non dichiarato"],
+      ["GSD (dimensione del pixel a terra)", r.gsd != null && String(r.gsd).trim() !== "" ? esc(String(r.gsd)) + " cm" : "non dichiarato"],
+      ["Classe di accuratezza", ca.classe === "n.d." ? "non determinabile (metodo e GSD non dichiarati)"
+        : ca.label + " — tolleranza tipica ± " + ca.tolleranzaPct + "%"],
+      ["Volume misurato", "<b>" + n0(r.volumeM3) + " m³</b>"
+        + (bv ? " (± " + n0(bv.banda) + " m³ · fra " + n0(bv.min) + " e " + n0(bv.max) + " m³)" : "")],
+      ["Eseguito da", r.rilevatore ? esc(r.rilevatore) : "&nbsp;"],
+    ];
+    const titolo = aut ? [
+      ["Numero dell'atto", aut.numeroAtto ? esc(aut.numeroAtto) : "—"],
+      ["Ente che l'ha rilasciato", aut.ente ? esc(aut.ente) : "—"],
+      ["Scadenza del titolo", fmtData(aut.dataScadenza)],
+      ["Volume totale concesso", aut.volumeAutorizzatoM3 ? n0(aut.volumeAutorizzatoM3) + " m³" : "—"],
+    ] : null;
+    const comeNato = ca.classe === "survey-grade"
+      ? "Il metodo dichiarato e il GSD collocano il rilievo nella classe di qualità topografica: la tolleranza tipica è ± " + ca.tolleranzaPct
+        + "%, cioè circa ± " + (bv ? n0(bv.banda) : "—") + " m³ su questo volume."
+      : ca.classe === "indicativo"
+        ? "Il metodo dichiarato o il GSD non permettono la classe topografica: il volume vale come misura indicativa, con tolleranza tipica ± "
+          + ca.tolleranzaPct + "%, cioè circa ± " + (bv ? n0(bv.banda) : "—") + " m³ su questo volume."
+        : "Non essendo dichiarati né il metodo né il GSD, non è possibile attribuire una classe di accuratezza a questa misura.";
+    const doc = "<!DOCTYPE html><html lang='it'><head><meta charset='utf-8'>"
+      + "<title>Verbale di rilievo " + fmtData(r.data) + "</title><style>"
+      + "*{box-sizing:border-box}body{margin:26px auto;max-width:200mm;padding:0 20px;font:12px/1.5 Arial,Helvetica,sans-serif;color:#111}"
+      + "h1{font-size:19px;margin:0 0 2px}h2{font-size:13px;margin:20px 0 6px;padding-bottom:3px;border-bottom:1px solid #bbb;letter-spacing:.5px}"
+      + ".sub{color:#555;margin-bottom:14px}"
+      + "table{width:100%;border-collapse:collapse;margin-bottom:6px}"
+      + "th,td{border:1px solid #bbb;padding:5px 7px;text-align:left;vertical-align:top}"
+      + "td:first-child{width:38%}"
+      + "th{background:#eee;font-size:11px;letter-spacing:.3px}"
+      + ".n{text-align:right;white-space:nowrap}"
+      + ".mini{color:#555;font-size:11px;margin:4px 0 0}"
+      + ".firma{margin-top:26px;display:flex;gap:26px}.firma div{flex:1;border-top:1px solid #777;padding-top:5px;font-size:11px;color:#555}"
+      + ".foot{margin-top:22px;padding-top:8px;border-top:1px solid #ddd;color:#666;font-size:10.5px}"
+      /* su telefono le tre firme in fila diventano illeggibili: si incolonnano */
+      + "@media screen and (max-width:520px){.firma{display:block}.firma div{margin-top:20px}}"
+      + "@media print{body{margin:14mm;padding:0;max-width:none}h2{page-break-after:avoid}tr{page-break-inside:avoid}}"
+      + "</style></head><body>"
+      + "<h1>Verbale di rilievo — " + esc(r.titolo || "rilievo del " + fmtData(r.data)) + "</h1>"
+      + "<div class='sub'>Documento preparato con Deepwork Terra il " + dataOggi + "</div>"
+      + "<h2>Il rilievo</h2><table>" + dati.map(d => riga(d[0], d[1])).join("") + "</table>"
+      + "<p class='mini'>Ditta titolare, sede e denominazione della cava vanno indicate secondo il modello richiesto dall'ente.</p>"
+      + (titolo ? "<h2>Titolo autorizzativo di riferimento</h2><table>" + titolo.map(d => riga(d[0], d[1])).join("") + "</table>" : "")
+      + (cum
+          ? "<h2>Da dove parte la misura</h2>"
+            + "<p class='mini'>Il rilievo misura un <b>deposito di materiale già estratto</b>, non l'avanzamento di un fronte fra due date: non esiste quindi un rilievo di partenza da citare.</p>"
+        : c
+          ? "<h2>Da dove parte la misura</h2><table>"
+            + riga("Rilievo precedente sullo stesso fronte", fmtData(c.primo.data)
+                + (c.primo.metodo ? " · " + esc(c.primo.metodo) : ""))
+            + riga("Giorni fra i due rilievi", c.giorni)
+            + riga("Volume scavato fra le due date", "<b>" + n0(c.scavato) + " m³</b>"
+                + (c.banda > 0 ? " (± " + n0(c.banda) + " m³)" : ""))
+            + riga("Ritmo medio nel periodo", c.alGiorno != null
+                ? n0(c.alGiorno) + " m³ al giorno · " + n0(c.alMese) + " m³ al mese" : "non calcolabile")
+            + "</table>"
+            + "<p class='mini'>Il volume scavato fra le due date è la somma dei rilievi eseguiti dopo il "
+            + fmtData(c.primo.data) + " fino a questo compreso (" + c.rilieviInMezzo
+            + (c.rilieviInMezzo === 1 ? " rilievo" : " rilievi") + "): ogni rilievo misura il materiale tolto dal rilievo precedente.</p>"
+          : "<h2>Da dove parte la misura</h2>"
+            + "<p class='mini'>Sullo stesso fronte non risulta registrato in Terra alcun rilievo precedente a questo: il volume indicato non ha quindi un termine di confronto interno.</p>")
+      + "<h2>Come è stato ottenuto il numero</h2>"
+      + "<p class='mini'>" + comeNato
+      + " Le tolleranze sono valori tipici del metodo di rilievo e vanno confermate con i punti di controllo del rilevatore."
+      + (cum ? " Trattandosi della ripresa di un cumulo, il volume non costituisce nuovo scavo e non consuma il volume concesso dal titolo." : "")
+      + "</p>"
+      + "<div class='firma'><div>Luogo e data</div><div>Il rilevatore</div><div>Il direttore dei lavori</div></div>"
+      + "<div class='foot'>Verbale generato da Deepwork Terra a partire dai dati registrati dall'utente. "
+      + "Le attività estrattive sono materia regionale: contenuto, forma e destinatari della documentazione di rilievo "
+      + "vanno verificati presso l'ente competente. Questo verbale non sostituisce gli elaborati firmati dal tecnico incaricato.</div>"
+      + "</body></html>";
+    return doc;
+  }
+
+  // Prima di stampare si chiede CHI ha eseguito il rilievo: senza un nome il
+  // verbale è solo un foglio di numeri. Il nome resta salvato sul rilievo.
+  async function verbaleDi(rid) {
+    const r = RIL.find(x => x.id === rid);
+    if (!r) return;
+    const chi = await chiediValore("Verbale del rilievo del " + fmtData(r.data),
+      "Il verbale è il foglio che accompagna il rilievo: dice chi ha misurato, quando, con che metodo e con quale tolleranza.<br><br>"
+      + "Scrivi <b>chi ha eseguito il rilievo</b> (nome e qualifica): è quello che rende il documento opponibile a un ente. "
+      + "Se lasci vuoto, sul foglio resta la riga da compilare a penna.",
+      '<label class="fl" for="modal-campo">Eseguito da</label><input class="dw-input" id="modal-campo" placeholder="Nome e qualifica del rilevatore" value="' + esc(r.rilevatore || "") + '">',
+      "Prepara il verbale");
+    if (chi == null) return;
+    const nome = String(chi).trim();
+    const cambiato = nome !== String(r.rilevatore || "");
+    if (cambiato) { await db.aggiorna("rilievi", r.id, { rilevatore: nome || null }); r.rilevatore = nome || null; }
+    const w = window.open("", "_blank");
+    if (!w) { esito("ril-esito", "Il browser ha bloccato la finestra della stampa: consenti le finestre pop-up per questo sito e riprova.", "err"); return; }
+    w.document.write(fogliaVerbale(r));
+    w.document.close(); w.focus();
+    setTimeout(() => { try { w.print(); } catch (e) {} }, 350);
+    esito("ril-esito", "Verbale del rilievo del " + fmtData(r.data) + " aperto in una pagina bianca: dal riquadro di stampa puoi anche scegliere «Salva come PDF».");
+    if (cambiato) await refresh();
+  }
+
   // interazioni: fronte alterna attivo/sospeso; form registra rilievo elaborato
   document.addEventListener("click", async (e) => {
+    const bVerb = e.target.closest && e.target.closest("[data-verb-ril]");
+    if (bVerb) { e.stopPropagation(); await verbaleDi(bVerb.getAttribute("data-verb-ril")); return; }
     const bDelR = e.target.closest && e.target.closest("[data-del-ril]");
     if (bDelR) { e.stopPropagation();
       const delRil = bDelR.getAttribute("data-del-ril");
@@ -1961,12 +2210,13 @@ textarea.dw-input{line-height:1.5}
     const fr = FRO.find(f => f.id === fronteId);
     const metodo = $("new-ril-metodo").value || null;
     const gsd = $("new-ril-gsd").value.trim() || null;
+    const rilevatore = $("new-ril-rilevatore").value.trim() || null;
     const prov = provenienzaRilievo({ provenienza: $("new-ril-prov").value });
     if (futuro) {
       await db.aggiungi("rilievi", { titolo: "Prossimo rilievo" + (fr ? " — " + fr.nome : ""), data, tipo: "Drone pianificato", volumeM3: null, fronteId, stato: "pianificato", provenienza: prov });
       esito("ril-esito", "Rilievo pianificato per il " + fmtData(data) + (fr ? " su " + fr.nome : "") + ".");
     } else {
-      await db.aggiungi("rilievi", { titolo: (prov === "cumulo" ? "Ripresa da cumulo " : "Rilievo drone ") + dmy(data) + (fr ? " — " + fr.nome : ""), data, tipo: "Ortofoto + DEM", volumeM3: vol, fronteId, stato: "elaborato", metodo, gsd, provenienza: prov });
+      await db.aggiungi("rilievi", { titolo: (prov === "cumulo" ? "Ripresa da cumulo " : "Rilievo drone ") + dmy(data) + (fr ? " — " + fr.nome : ""), data, tipo: "Ortofoto + DEM", volumeM3: vol, fronteId, stato: "elaborato", metodo, gsd, rilevatore, provenienza: prov });
       esito("ril-esito", "Rilievo del " + fmtData(data) + " registrato: " + vol.toLocaleString("it-IT") + " m³"
         + (fr ? " su " + fr.nome : "")
         + (prov === "cumulo" ? " — ripresa da cumulo: non scala il volume concesso." : "."));
