@@ -46,4 +46,34 @@ si rifiuta e spiega cosa fare, senza toccare quello che c'era. Se il consuntivo
 ha un numero di fori diverso dal progetto aperto, Genesi avvisa che **potrebbe
 essere un'altra volata** e non calcola il confronto col previsto.
 
+## Il ponte con Sentinella (legge di sito K e β dai referti)
+
+La modale **Legge di sito** ricava K e β della propria roccia dai referti del
+sismografo (distanza, carica massima per ritardo, PPV misurata) con una
+regressione sui logaritmi, e usa la **riga al 95° percentile** per il progetto.
+I referti si digitano a mano, oppure arrivano da un file — e **Sentinella li
+produce da sé** dal registro volate, dove la PPV misurata è agganciata alla
+volata e alla lettura del sismografo di quel giorno.
+
+- In Sentinella: *Registri → Referti per la legge di sito → Esporta referti per
+  Genesi (CSV)*. Il file esce con le colonne `distanza_m;
+  carica_per_ritardo_kg; ppv_mms; riferimento; data; origine`.
+- Qui: *Legge di sito → Importa referti (CSV)*. L'**intestazione viene
+  riconosciuta** (`_sitoMappaColonne`) e le colonne sono già proposte giuste,
+  compreso il **riferimento** (facoltativo) e la **data** del referto; l'utente
+  resta l'ultima parola e le conferma guardando l'anteprima. Un file senza
+  intestazione si comporta come prima: prima, seconda e terza colonna.
+- **Provenienza sempre scritta**: ogni referto porta un campo `fonte` e in
+  elenco una pillola — *Sentinella* (dal registro volate), *sismografo* (file
+  di uno strumento), *a mano* (digitato qui), *origine non registrata* (referti
+  salvati prima che il campo esistesse: non si riscrive il passato). Sopra
+  l'elenco c'è il conteggio per provenienza, e la colonna `origine` esce anche
+  nell'export, così il round-trip non la perde. Un dato di cui non si sa da
+  dove viene non è un dato — e da K e β dipendono le distanze di sicurezza.
+- **Resta opt-in**: finché la casella «Usa questa legge nei calcoli» non è
+  spuntata, PPV, MIC e carica massima ammissibile continuano a usare la stima
+  dalla litologia. Quando è attiva, la Scheda validatori lo dichiara nel badge
+  *PPV al recettore* («ricavati dai tuoi N referti») e avvisa quando la
+  distanza scalata del progetto è **fuori dall'intervallo calibrato**.
+
 © 2026 Deepwork · Mining-Tech Platform

@@ -216,7 +216,30 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
    diventano quattro campi larghi un dito, quindi si spezzano su due righe */
 .sito-form{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:12.5px;align-items:end}
 .sito-form-3{grid-template-columns:repeat(3,1fr)}
+/* le colonne devono poter STRINGERE: un <select> con opzioni lunghe ha una
+   larghezza minima grande e, senza questo, la griglia sfonda il modale e
+   l'ultimo campo finisce fuori dallo schermo */
+.sito-form>label{min-width:0}
+/* i campi hanno la stessa cassa dei campi di progetto (.row input/select):
+   dentro un modale ambra un campo grigio di sistema stona e sembra di
+   un'altra applicazione */
+.sito-form input,.sito-form select{width:100%;min-width:0;max-width:100%;box-sizing:border-box;
+  background:var(--panel2);border:1px solid var(--line);border-radius:7px;color:var(--tx);
+  padding:5px 7px;font-family:'Barlow',sans-serif;font-size:13px;
+  transition:border-color .16s var(--ease),box-shadow .16s var(--ease)}
+.sito-form input:focus,.sito-form select:focus{outline:none;border-color:var(--cu);
+  box-shadow:0 0 0 3px rgba(255,171,0,.14)}
 @media (max-width:640px){ .sito-form,.sito-form-3{grid-template-columns:1fr 1fr} }
+/* PROVENIENZA di un referto: pillola piccola con la sua micro-profondità,
+   come i badge del core. Un dato di cui non si sa da dove viene non è un
+   dato: quindi ogni referto la porta scritta, sempre. L'ambra è di Genesi
+   (dato inserito qui), l'azzurro dice «arrivato da un'altra app». */
+.sito-fonte{display:inline-block;font-family:'Barlow Condensed',sans-serif;font-weight:700;
+  font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;padding:2px 7px;border-radius:999px;
+  white-space:nowrap;vertical-align:1px;border:1px solid rgba(255,171,0,.26);
+  background:rgba(255,171,0,.1);color:#ffd54f;box-shadow:0 1px 0 rgba(255,240,210,.1) inset}
+.sito-fonte.sent{border-color:rgba(134,176,216,.34);background:rgba(134,176,216,.12);color:#a9cdea}
+.sito-fonte.ign{border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.045);color:var(--mut)}
 #collapse{display:none}
 /* ===== APP SHELL (Genesi come app multi-schermata) ===== */
 #bottomnav{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:70;width:calc(100% - 28px);max-width:412px;display:flex;justify-content:space-around;align-items:center;gap:4px;padding:9px 8px;border-radius:20px;
@@ -2977,6 +3000,56 @@ let _sitoCsv=null;                                    // righe del CSV in attesa
 
 function _sitoNum(v){ return (Math.abs(v)>=100?Math.round(v):(Math.abs(v)>=10?+v.toFixed(1):+v.toFixed(2))).toLocaleString('it-IT'); }
 
+/* ── LA PROVENIENZA DI UN REFERTO ────────────────────────────────────────
+   K e β decidono le distanze di sicurezza: chi li guarda deve poter sapere
+   da dove vengono i numeri che li hanno prodotti. Quindi ogni referto porta
+   scritto se è stato digitato qui, se arriva dal file di uno strumento o se
+   arriva dal registro volate di Sentinella (dove la PPV è agganciata alla
+   volata e alla lettura del sismografo di quel giorno).
+   I referti salvati prima che questo campo esistesse restano validi e
+   dichiarano «origine non registrata»: onesto, non riscritto a posteriori. */
+const _SITO_FONTI = {
+  mano:       { et:'a mano',      cls:'',     lungo:'inseriti a mano in questa modale' },
+  csv:        { et:'sismografo',  cls:'',     lungo:'importati dal file di uno strumento' },
+  sentinella: { et:'Sentinella',  cls:'sent', lungo:'arrivati dal registro volate di Sentinella' },
+};
+function _sitoFonte(p){
+  return _SITO_FONTI[String((p&&p.fonte)||'')]
+    || { et:'origine non registrata', cls:'ign', lungo:'senza provenienza registrata' };
+}
+/* la parola scritta nella colonna «origine» del file → la nostra chiave */
+function _sitoFonteDaTesto(v){
+  const s=String(v==null?'':v).toLowerCase().trim();
+  if(/sentinella/.test(s)) return 'sentinella';
+  if(/mano|manual/.test(s)) return 'mano';
+  return 'csv';
+}
+/* intestazione normalizzata: "Distanza_m" e "DISTANZA (m)" devono valere
+   uguale, altrimenti il riconoscimento delle colonne è una lotteria */
+function _sitoNormH(s){
+  return String(s==null?'':s).toLowerCase().replace(/["']/g,'')
+    .replace(/[_\-.()\[\]]+/g,' ').replace(/\s+/g,' ').trim();
+}
+/* RICONOSCIMENTO DELLE COLONNE dall'intestazione. I sismografi esportano
+   formati diversi e l'utente resta l'ultima parola: qui si prepara solo la
+   proposta, così un file che dichiara le colonne (il nostro export, o quello
+   dei referti di Sentinella) entra senza rimappare niente a mano. Senza
+   intestazione, o se non si riconoscono tutte e tre le colonne che contano,
+   si torna all'ordine di prima (prima, seconda, terza colonna). */
+function _sitoMappaColonne(intest){
+  const out={ d:0, w:1, p:2, rif:-1, data:-1, org:-1 };
+  if(!intest||!intest.length) return out;
+  const H=intest.map(_sitoNormH);
+  const trova=(re,no)=>H.findIndex(h=>re.test(h)&&!(no&&no.test(h)));
+  const d=trova(/distanz|dist\b/,/scalat|\bsd\b/), w=trova(/caric|\bkg\b/,/total/),
+        p=trova(/ppv|vibraz|velocit|mm ?\/? ?s/,null);
+  if(d>=0&&w>=0&&p>=0&&d!==w&&w!==p&&d!==p){ out.d=d; out.w=w; out.p=p; }
+  out.rif=trova(/riferiment|volata|descriz|nota|evento|nome/,null);
+  out.data=trova(/^data|giorno/,null);
+  out.org=trova(/origine|fonte|provenienz|sorgente/,null);
+  return out;
+}
+
 /* Tacche per scala logaritmica: 1-2-5 per decade quando l'intervallo è ampio,
    passo più fitto quando è stretto — altrimenti su un intervallo come 14–39
    uscirebbe una sola tacca e l'asse resterebbe muto. */
@@ -3055,13 +3128,33 @@ function sitoRender(){
 
   /* fase di importazione: prima si dice quale colonna è cosa, poi si importa */
   if(_sitoCsv){
+    const map=_sitoCsv.map||{ d:0,w:1,p:2,rif:-1,data:-1,org:-1 };
     const col=_sitoCsv.righe[0].map((_,i)=>i);
-    const sel=(id,pre)=>'<select id="'+id+'">'+col.map(i=>'<option value="'+i+'"'+(i===pre?' selected':'')+'>colonna '+(i+1)+(_sitoCsv.intest?' — '+_rEsc(_sitoCsv.intest[i]||''):'')+'</option>').join('')+'</select>';
-    body.innerHTML='<div style="color:var(--mut);font-size:12px;margin-bottom:10px;">Il file ha <b>'+_sitoCsv.righe.length+'</b> righe. I sismografi esportano formati diversi: dimmi tu quale colonna è quale, poi guarda l’anteprima e conferma.</div>'
-      +'<div class="sito-form sito-form-3">'
-      +'<label>Distanza (m)<br>'+sel('sito-c-d',0)+'</label>'
-      +'<label>Carica per ritardo (kg)<br>'+sel('sito-c-w',1)+'</label>'
-      +'<label>PPV misurata (mm/s)<br>'+sel('sito-c-p',2)+'</label></div>'
+    const opz=(pre)=>col.map(i=>'<option value="'+i+'"'+(i===pre?' selected':'')+'>colonna '+(i+1)+(_sitoCsv.intest?' — '+_rEsc(_sitoCsv.intest[i]||''):'')+'</option>').join('');
+    const sel=(id,pre)=>'<select id="'+id+'">'+opz(pre)+'</select>';
+    /* il riferimento è facoltativo: senza, il referto resta senza etichetta
+       (funziona, ma poi non si sa più a quale volata appartiene) */
+    const selRif='<select id="sito-c-rif"><option value="-1"'+(map.rif<0?' selected':'')+'>— nessuna —</option>'+opz(map.rif)+'</select>';
+    /* la provenienza: se il file la dichiara (colonna «origine») si legge da
+       lì, riga per riga; altrimenti la dice l'utente una volta per tutto il
+       file. Mai dedotta in silenzio. */
+    const decl = map.org>=0;
+    const conteggi = decl ? _sitoCsv.righe.reduce((a,r)=>{ const k=_sitoFonteDaTesto(r[map.org]); a[k]=(a[k]||0)+1; return a; },{}) : null;
+    const rico = _sitoCsv.intest && (map.d!==0||map.w!==1||map.p!==2||map.rif>=0);
+    body.innerHTML='<div style="color:var(--mut);font-size:12px;margin-bottom:10px;">Il file ha <b>'+_sitoCsv.righe.length+'</b> righe. I sismografi esportano formati diversi: dimmi tu quale colonna è quale, poi guarda l’anteprima e conferma.'
+      +(rico?' L’intestazione è stata riconosciuta e le colonne sono già proposte giuste: controllale comunque.':'')+'</div>'
+      +'<div class="sito-form">'
+      +'<label>Distanza (m)<br>'+sel('sito-c-d',map.d)+'</label>'
+      +'<label>Carica per ritardo (kg)<br>'+sel('sito-c-w',map.w)+'</label>'
+      +'<label>PPV misurata (mm/s)<br>'+sel('sito-c-p',map.p)+'</label>'
+      +'<label>Riferimento (facoltativo)<br>'+selRif+'</label></div>'
+      +(decl
+        ? '<div style="margin-top:10px;color:var(--mut);font-size:12px;">Il file <b>dichiara la provenienza</b> dei referti: '
+          +Object.keys(conteggi).map(k=>'<b>'+conteggi[k]+'</b> '+_SITO_FONTI[k].lungo).join(' · ')+'.</div>'
+        : '<div class="sito-form sito-form-3" style="margin-top:10px"><label style="grid-column:span 2">Da dove vengono questi referti<br>'
+          +'<select id="sito-c-org" style="width:100%"><option value="csv" selected>Referto/file di uno strumento (sismografo)</option>'
+          +'<option value="sentinella">Registro volate di Sentinella</option>'
+          +'<option value="mano">Trascritti a mano</option></select></label></div>')
       +'<div style="margin-top:10px;color:var(--mut);font-size:11px;letter-spacing:.08em;text-transform:uppercase">Anteprima (prime righe)</div>'
       +'<div style="max-height:130px;overflow:auto;font-size:12px;margin-top:4px;font-variant-numeric:tabular-nums">'
       +_sitoCsv.righe.slice(0,6).map(r=>'<div style="border-top:1px solid rgba(255,255,255,.08);padding:3px 0;color:var(--mut)">'+r.map(c=>_rEsc(c)).join(' &nbsp;·&nbsp; ')+'</div>').join('')
@@ -3096,7 +3189,10 @@ function sitoRender(){
       +'<div style="color:var(--mut)">Referti usati</div><div>'+f.n+'</div>'
       +'<div style="color:var(--mut)">Legge di progetto (95°)</div><div style="color:#ffab00;font-weight:700">PPV = '+f.K95+' · SD<sup>−'+_sitoNum(f.beta)+'</sup></div>'
       +'<div style="color:var(--mut)">Riga media (50°)</div><div>K = '+f.K+'</div>'
-      +'<div style="color:var(--mut)">Aderenza R²</div><div style="color:'+qual[0]+'">'+_sitoNum(f.r2)+' — '+qual[1]+'</div>'
+      /* R² con le sue tre cifre: qui _sitoNum lo arrotonderebbe a 0,9 mentre
+         la scheda validatori scrive 0,896 — due numeri diversi per lo stesso
+         dato, nella stessa app, sono un errore nostro */
+      +'<div style="color:var(--mut)">Aderenza R²</div><div style="color:'+qual[0]+'">'+f.r2.toLocaleString('it-IT')+' — '+qual[1]+'</div>'
       +'<div style="color:var(--mut)">Intervallo calibrato SD</div><div>'+_sitoNum(f.sdMin)+' – '+_sitoNum(f.sdMax)+' m/kg^½</div>'
       +'</div>';
     if(f.avviso==='pochi') h+='<div style="margin-top:8px;color:#ffca28;font-size:12px;">Legge <b>provvisoria</b>: con meno di 8 referti la pendenza si muove ancora parecchio a ogni misura nuova. Continua ad aggiungerli.</div>';
@@ -3105,14 +3201,28 @@ function sitoRender(){
 
   h+=sitoGrafico(P,f);
 
-  /* elenco dei referti */
-  if(P.length) h+='<div style="margin-top:12px;color:var(--mut);font-size:11px;letter-spacing:.08em;text-transform:uppercase">Referti ('+P.length+')</div>'
-    +'<div style="max-height:150px;overflow:auto;font-size:12px;margin-top:4px;font-variant-numeric:tabular-nums">'
-    +(s.punti||[]).map((p,i)=>(p&&p.d>0&&p.w>0&&p.ppv>0)?('<div style="border-top:1px solid rgba(255,255,255,.08);padding:4px 0;display:flex;gap:8px;align-items:center">'
-      +'<span style="flex:1"><b style="color:#ffd54f">'+_rEsc(p.nome||('referto '+(i+1)))+'</b> — '+_sitoNum(p.d)+' m · '+_sitoNum(p.w)+' kg/ritardo · '+_sitoNum(p.ppv)+' mm/s <span style="color:var(--mut2)">(SD '+_sitoNum(p.d/Math.sqrt(p.w))+')</span></span>'
-      +'<button class="btn sm" data-sito-del="'+i+'" title="Elimina questo referto" style="padding:2px 8px">✕</button></div>'):'').join('')
-    +'</div>';
-  else h+='<div style="margin-top:12px;color:var(--mut);font-size:12px;">Nessun referto: aggiungine uno a mano qui sopra, oppure importa il CSV del sismografo col pulsante in basso.</div>';
+  /* elenco dei referti, ognuno con la sua PROVENIENZA scritta: la legge di
+     sito decide le distanze di sicurezza, e chi la guarda deve poter sapere
+     quali numeri l'hanno prodotta e da dove arrivano. */
+  if(P.length){
+    const perFonte={};
+    for(const p of P){ const k=_SITO_FONTI[String(p.fonte||'')]?String(p.fonte):'ign'; perFonte[k]=(perFonte[k]||0)+1; }
+    const ordine=['sentinella','csv','mano','ign'];
+    const riassunto=ordine.filter(k=>perFonte[k]).map(k=>'<b>'+perFonte[k]+'</b> '
+      +(k==='ign'?'senza provenienza registrata':_SITO_FONTI[k].lungo)).join(' · ');
+    h+='<div style="margin-top:12px;color:var(--mut);font-size:11px;letter-spacing:.08em;text-transform:uppercase">Referti ('+P.length+')</div>'
+      +'<div style="color:var(--mut);font-size:12px;margin-top:4px">Provenienza: '+riassunto+'.</div>'
+      +'<div style="max-height:150px;overflow:auto;font-size:12px;margin-top:6px;font-variant-numeric:tabular-nums">'
+      +(s.punti||[]).map((p,i)=>{ if(!(p&&p.d>0&&p.w>0&&p.ppv>0)) return '';
+        const f=_sitoFonte(p);
+        return '<div style="border-top:1px solid rgba(255,255,255,.08);padding:4px 0;display:flex;gap:8px;align-items:center">'
+          +'<span style="flex:1"><b style="color:#ffd54f">'+_rEsc(p.nome||('referto '+(i+1)))+'</b> '
+          +'<span class="sito-fonte '+f.cls+'" title="'+_rEsc('Referto '+f.lungo)+'">'+_rEsc(f.et)+'</span><br>'
+          +_sitoNum(p.d)+' m · '+_sitoNum(p.w)+' kg/ritardo · '+_sitoNum(p.ppv)+' mm/s <span style="color:var(--mut2)">(SD '+_sitoNum(p.d/Math.sqrt(p.w))+')</span></span>'
+          +'<button class="btn sm" data-sito-del="'+i+'" title="Elimina questo referto" style="padding:2px 8px">✕</button></div>'; }).join('')
+      +'</div>';
+  }
+  else h+='<div style="margin-top:12px;color:var(--mut);font-size:12px;">Nessun referto: aggiungine uno a mano qui sopra, oppure importa un CSV col pulsante in basso — il file dei referti di <b>Sentinella</b> (che li ricava dalle volate registrate, con la PPV del sismografo già agganciata) entra così com’è.</div>';
 
   h+='<div style="margin-top:10px;color:var(--mut);font-size:12px;">La <b>carica per ritardo</b> è quella che conta, non il totale della volata: è la quantità che detona nella stessa finestra di 8 ms. Il progetto usa la <b>riga al 95° percentile</b> (quella piena): sulla media metà delle volate finirebbe sopra. Fuori dall’intervallo calibrato la legge è un’estrapolazione, non una misura.</div>';
 
@@ -3129,7 +3239,7 @@ function sitoAggiungi(){
   const d=num('sito-d'), w=num('sito-w'), p=num('sito-p');
   if(!(d>0)||!(w>0)||!(p>0)){ toast('Servono distanza, carica per ritardo e PPV, tutte maggiori di zero'); return; }
   const st=sitoStore();
-  st.punti.push({ d, w, ppv:p, nome:($('sito-n')&&$('sito-n').value.trim())||'', ts:new Date().toISOString().slice(0,10) });
+  st.punti.push({ d, w, ppv:p, nome:($('sito-n')&&$('sito-n').value.trim())||'', ts:new Date().toISOString().slice(0,10), fonte:'mano' });
   sitoSalva(st); toast('Referto aggiunto'); sitoRender();
 }
 
@@ -3146,9 +3256,13 @@ function _sitoParseCsv(testo){
   return righe.length?{ righe, intest }:null;
 }
 function sitoImportaConferma(){
-  const ci=id=>+($(id)?$(id).value:0);
-  const cd=ci('sito-c-d'), cw=ci('sito-c-w'), cp=ci('sito-c-p');
+  const ci=id=>{ const el=$(id); return el?+el.value:-1; };
+  const cd=ci('sito-c-d'), cw=ci('sito-c-w'), cp=ci('sito-c-p'), cr=ci('sito-c-rif');
+  const map=_sitoCsv.map||{ data:-1, org:-1 };
+  const fonteFile=$('sito-c-org')?$('sito-c-org').value:'csv';
   const val=(r,i)=>parseFloat(String(r[i]==null?'':r[i]).replace(',','.'));
+  const txt=(r,i)=>i>=0?String(r[i]==null?'':r[i]).trim().slice(0,90):'';
+  const oggi=new Date().toISOString().slice(0,10);
   const st=sitoStore(); let ok=0, scartate=0, doppie=0;
   const gia=new Set((st.punti||[]).map(p=>p.d+'|'+p.w+'|'+p.ppv));
   for(const r of _sitoCsv.righe){
@@ -3156,7 +3270,13 @@ function sitoImportaConferma(){
     if(!(d>0)||!(w>0)||!(p>0)){ scartate++; continue; }
     const chiave=d+'|'+w+'|'+p;
     if(gia.has(chiave)){ doppie++; continue; }
-    gia.add(chiave); st.punti.push({ d, w, ppv:p, nome:'', ts:new Date().toISOString().slice(0,10) }); ok++;
+    /* la data del referto: quella scritta nel file se c'è (è il giorno della
+       volata, non quello dell'import), altrimenti oggi */
+    const dt=txt(r,map.data);
+    gia.add(chiave);
+    st.punti.push({ d, w, ppv:p, nome:txt(r,cr),
+      ts: /^\d{4}-\d{2}-\d{2}$/.test(dt)?dt:oggi,
+      fonte: map.org>=0 ? _sitoFonteDaTesto(r[map.org]) : fonteFile }); ok++;
   }
   sitoSalva(st); _sitoCsv=null;
   toast((ok===1?'1 referto importato':ok+' referti importati')
@@ -3173,14 +3293,17 @@ if($('sitoFile')) $('sitoFile').onchange=async(e)=>{
   const file=e.target.files&&e.target.files[0]; if(!file) return;
   const parsed=_sitoParseCsv(await file.text()); e.target.value='';
   if(!parsed){ toast('CSV non leggibile: servono almeno tre colonne (distanza, carica, PPV)'); return; }
+  parsed.map=_sitoMappaColonne(parsed.intest);   // proposta di colonne: l'utente resta l'ultima parola
   _sitoCsv=parsed; sitoRender();
 };
 if($('sitoExport')) $('sitoExport').onclick=()=>{
   const P=(sitoStore().punti||[]).filter(p=>p&&p.d>0&&p.w>0&&p.ppv>0);
   if(!P.length){ toast('Nessun referto da esportare'); return; }
   const cell=v=>{ const s=String(v==null?'':v); return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
-  const csv='data;riferimento;distanza_m;carica_per_ritardo_kg;ppv_mms;distanza_scalata\n'
-    +P.map(p=>[p.ts||'',p.nome||'',p.d,p.w,p.ppv,(p.d/Math.sqrt(p.w)).toFixed(2)].map(cell).join(';')).join('\n')+'\n';
+  /* la colonna «origine» esce insieme ai numeri: così un file riletto (qui o
+     altrove) non perde la provenienza dei referti */
+  const csv='data;riferimento;distanza_m;carica_per_ritardo_kg;ppv_mms;distanza_scalata;origine\n'
+    +P.map(p=>[p.ts||'',p.nome||'',p.d,p.w,p.ppv,(p.d/Math.sqrt(p.w)).toFixed(2),p.fonte||''].map(cell).join(';')).join('\n')+'\n';
   const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download='genesi_legge_di_sito.csv'; a.click();
 };

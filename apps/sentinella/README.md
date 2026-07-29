@@ -14,7 +14,7 @@ scelto dall'utente, mai «un limite di legge».
 | **Quadro** | KPI, cartellone di conformità, il punto messo peggio in miniatura, allerte |
 | **Monitoraggi** | punti di misura + serie storica, registrazione misure, **import letture da CSV**, **anagrafica ricettori**, distanza scalata |
 | **Adempimenti** | scadenze ambientali con ente e giorni mancanti, import CSV |
-| **Registri** | registri, registro volate, **registro reclami ed esposti**, export CSV |
+| **Registri** | registri, registro volate (con la **PPV misurata** collegabile alla volata), **referti per la legge di sito** verso Genesi, **registro reclami ed esposti**, export CSV |
 | **Report** | **report di conformità stampabile** (periodo, ricettore, esito) |
 
 ## I quattro pezzi del blocco 2
@@ -146,6 +146,55 @@ l'ha generata, e ne mostra lo stato.
   (`deepwork.demo.azioni-ponte`) — serve solo a far vedere la catena completa,
   non esiste in live. Se Scudo non è raggiungibile la pagina resta com'era:
   elenco vuoto e una riga che lo spiega.
+
+## Dalla volata al referto: il ponte verso Genesi — T8
+
+Genesi prevede le vibrazioni con la legge di Devine `PPV = K · SD^−β`
+(`SD = distanza / √(carica per ritardo)`). K e β non sono universali, sono di
+**quella** cava: finché nessuno li misura Genesi li stima dalla litologia,
+valori da manuale. Per ricavarli davvero servono dei **referti**, e un referto
+è fatto di tre numeri: distanza del punto di misura, carica massima per
+ritardo, PPV registrata.
+
+Due di quei tre numeri il registro volate li ha già. Il terzo lo porta il
+sismografo. Il ponte è solo il collegamento fra la volata e la misura di quel
+giorno — **nessuna formula nuova**: la regressione la fa Genesi, che ce l'ha.
+
+- **Collegare la PPV** (pulsante 〰 su ogni riga del registro volate): la
+  modale propone le **letture di vibrazione in mm/s** registrate quel giorno
+  fra i punti di misura (`lettureVibrazioniDelGiorno`), oppure permette di
+  **trascrivere** il valore dal referto di uno strumento non censito. La
+  provenienza resta scritta sulla volata (`ppvFonte`, `ppvPuntoId`,
+  `ppvPuntoNome`, `ppvData`, `ppvOra`) e compare accanto al numero, sempre.
+- **Distanze coerenti**: la modale mette a confronto la distanza scritta sulla
+  volata con quella dichiarata sul ricettore del punto scelto; se non
+  combaciano lo dice, perché distanza e PPV devono venire dallo **stesso**
+  punto o la coppia è sbagliata.
+- **Unità**: una lettura di vibrazione in un'unità diversa da mm/s **non è
+  selezionabile**: non è una PPV in mm/s e usarla come tale falserebbe la
+  legge. Non si converte niente.
+- **Vista «Referti per la legge di sito»** (scheda Registri): quante volate
+  sono già utilizzabili e quante no, **con il motivo** (manca la PPV misurata,
+  la distanza del ricettore, la carica per ritardo) e con il rimedio scritto
+  una volta sola. Dice anche quanti referti servono (**3** minimo, sotto **8**
+  la legge resta provvisoria — le stesse soglie che usa Genesi) e
+  l'**escursione di distanza scalata** coperta: senza escursione la pendenza β
+  non è ricavabile e Genesi rifiuta la legge.
+- **Export dei referti**: `distanza_m; carica_per_ritardo_kg; ppv_mms;
+  riferimento; data; origine` — le prime tre colonne nell'ordine che la modale
+  «Legge di sito» di Genesi si aspetta di default, così il file entra senza
+  rimappare niente. `origine = sentinella` su ogni riga: in Genesi ogni referto
+  mostra da dove viene.
+- **⛔ La PPV non si inventa**: entrano solo le volate con una misura. Senza
+  PPV la volata resta fuori (e il motivo è scritto); una PPV a zero o non
+  numerica viene rifiutata. Un referto inventato falserebbe K e β, e da K e β
+  dipendono le distanze di sicurezza.
+- **Registro volate**: export e import portano in coda quattro colonne
+  facoltative (`ppvMisurata; ppvFonte; ppvPunto; ppvOra`), così la misura non
+  si perde nel giro export → import. Un file vecchio a otto colonne si importa
+  come prima: la volata resta senza PPV, non con una finta.
+- **Volate vecchie**: registrate prima che questi campi esistessero, compaiono
+  come «da completare» con il motivo. Nessun crash, nessun valore dedotto.
 
 ## Regole rispettate
 

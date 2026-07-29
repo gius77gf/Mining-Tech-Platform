@@ -1066,9 +1066,41 @@ textarea.dw-input{
     <button class="dw-btn secondary" id="btn-vol-export">Esporta CSV</button>
     <input type="file" id="vol-file" accept=".csv,text/csv" style="display:none;">
   </div>
-  <div class="form-hint" style="margin-top:8px;">Colonne del file: <b>data; fronte; nFori; kgTotali; kgMaxRitardo; distanzaRicettore; esito; note</b>.</div>
+  <div class="form-hint" style="margin-top:8px;">Colonne del file: <b>data; fronte; nFori; kgTotali; kgMaxRitardo; distanzaRicettore; esito; note</b>,
+    e in coda, facoltative, <b>ppvMisurata; ppvFonte; ppvPunto; ppvOra</b>: sono quelle che l'export
+    di Sentinella riempie da sé, così la PPV misurata non si perde nel giro export → import.</div>
   <div class="note esito" id="vol-esito-msg"></div>
   <div class="note"><b>SD</b> = distanza scalata (R/√W con W = kg max per ritardo): più è alta, minore è il rischio di superare le soglie di vibrazione al ricettore. Il brogliaccio è un documento verso gli enti: tienilo completo.</div>
+
+  <!-- T8 · IL PONTE VERSO GENESI ────────────────────────────────────────
+       Una volata con la distanza del ricettore, i kg massimi per ritardo e
+       la PPV misurata è già un REFERTO: sono gli stessi tre numeri che la
+       modale «Legge di sito» di Genesi si fa digitare a mano. Qui si vede
+       quante volate lo sono già e quante no — con il motivo — e da qui esce
+       il file che Genesi importa. La PPV non si inventa mai: senza misura la
+       volata resta fuori. -->
+  <div class="sec">Referti per la legge di sito<span class="cnt" id="ref-tot">0</span></div>
+  <div class="note">Una volata con <b>distanza del ricettore</b>, <b>kg massimi per ritardo</b> e
+    <b>PPV misurata</b> è già un referto: sono i tre numeri con cui Genesi ricava <b>K</b> e <b>β</b>
+    della tua roccia, al posto dei valori da manuale. La PPV la collega il pulsante
+    <b>〰</b> su ogni riga del registro qui sopra.</div>
+  <div class="kpis" id="ref-kpi" style="margin-top:12px;"></div>
+  <div id="ref-riep" class="note recap" style="margin-top:0;"></div>
+  <div id="ref-filtri" class="chgs" style="margin-top:10px;">
+    <button class="chg active" data-fref="tutte">Tutte</button>
+    <button class="chg" data-fref="mancanti">Da completare</button>
+    <button class="chg" data-fref="pronte">Pronte</button>
+  </div>
+  <div id="ref-come" class="note" style="display:none;"></div>
+  <div id="ref-list" style="margin-top:10px;"></div>
+  <div class="tools">
+    <button class="dw-btn" id="btn-ref-export">Esporta referti per Genesi (CSV)</button>
+  </div>
+  <div class="note esito" id="ref-esito"></div>
+  <div class="note">Il file esce con le colonne <b>distanza_m; carica_per_ritardo_kg; ppv_mms;
+    riferimento; data; origine</b>, nell'ordine che la modale <b>Legge di sito</b> di Genesi già
+    riconosce. La legge di sito in Genesi resta una <b>scelta</b>: finché non la attivi, i calcoli
+    continuano a usare la stima dalla litologia.</div>
 
   <!-- T4 · REGISTRO RECLAMI ED ESPOSTI ──────────────────────────────────
        Il reclamo è il momento in cui l'azienda rischia: averlo scritto,
@@ -1248,7 +1280,10 @@ textarea.dw-input{
            PERIODICITA, etichettaFrequenza, ultimaLettura, statoRigaProgramma, programmaEsteso,
            riepilogoProgramma, allerteProgramma, andamentoRicettore,
            ponteScudo, superamentiAperti, azioniDiOrigine, statoPonte, bozzaAzioneSuperamento,
-           bozzaAzioneReclamo, coincidenzaVolata, dataPiuGiorni, AVVISO_COINCIDENZA } from "./sentinella-data.js";
+           bozzaAzioneReclamo, coincidenzaVolata, dataPiuGiorni, AVVISO_COINCIDENZA,
+           ppvDiVolata, testoFontePpv, lettureVibrazioniDelGiorno, campiPpvVolata, CAMPI_PPV_VUOTI,
+           refertiDaVolate, motivoReferto, MOTIVI_REFERTO, csvRefertiGenesi, riferimentoReferto,
+           PPV_STRUMENTO, PPV_MANUALE } from "./sentinella-data.js";
   import { mountExit, esc, csvCell, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
@@ -1347,6 +1382,7 @@ textarea.dw-input{
   let andRic = null;         // ricettore scelto per l'andamento nel tempo
   let andGrafici = [];       // grafici dell'andamento, da distruggere al ridisegno
   let filtroMon = "tutti";
+  let filtroRef = "tutte";   // filtro della vista dei referti per la legge di sito
   let editMon = null;   // id del sensore in modifica (riusa il form "Nuovo sensore"; lo storico misure resta)
   let ordMon = "criticita";
   let grafMon = null;   // id del punto con la serie storica aperta (📈)
@@ -1869,6 +1905,252 @@ textarea.dw-input{
     await apriAzione(b.getAttribute("data-pon-nuova"));
   });
 
+  // ══════════════════════════════════════════════════════════════════
+  // T8 · DALLA VOLATA AL REFERTO — il ponte verso Genesi
+  // Il registro volate porta già due dei tre numeri di un referto del
+  // sismografo (distanza del ricettore, kg massimi per ritardo). Il terzo,
+  // la PPV, lo porta lo strumento: qui si collega alla volata, e da lì
+  // esce il file che la modale «Legge di sito» di Genesi importa.
+  // ⛔ La PPV non si stima e non si deduce: se non c'è una misura, la
+  // volata resta fuori dai referti e il motivo è scritto.
+  // ══════════════════════════════════════════════════════════════════
+
+  // La distanza dichiarata sul ricettore di un punto di misura, quando c'è:
+  // serve a far vedere se combacia con la distanza scritta sulla volata.
+  const distanzaDelPunto = (puntoId) => {
+    const m = MON.find(x => x.id === puntoId);
+    const r = m ? trovaRicettore(RIC, m.ricettoreId) : null;
+    const d = r ? +r.distanza : NaN;
+    return Number.isFinite(d) && d > 0 ? d : null;
+  };
+
+  async function collegaPpv(id) {
+    const v = VOL.find(x => x.id === id); if (!v) return;
+    const gia = ppvDiVolata(v);
+    const cand = lettureVibrazioniDelGiorno(MON, v.data);
+    const usabili = cand.filter(c => c.unitaOk);
+    const altraUnita = cand.filter(c => !c.unitaOk);
+    const dist = +v.distanzaRicettore;
+    // preselezione: la misura già collegata se c'è, altrimenti la più alta
+    // del giorno (è quella che conta per la conformità). Resta comunque una
+    // proposta: si conferma a mano.
+    let pre = 0;
+    if (gia) {
+      const i = usabili.findIndex(c => gia.fonte === PPV_STRUMENTO && c.puntoId === gia.puntoId
+        && Math.abs(c.valore - gia.valore) < 1e-6);
+      pre = i >= 0 ? i : -1;
+    }
+    // etichette corte: dentro un <select> di una modale da 440 px una riga
+    // lunga viene tagliata, e un dato tagliato non si legge. Il dettaglio del
+    // punto scelto (e il confronto delle distanze) va nella riga sotto.
+    const opz = usabili.map((c, i) =>
+      `<option value="${i}"${i === pre ? " selected" : ""}>${esc(numeroIt(c.valore))} mm/s · ${esc(c.punto)}</option>`
+    ).join("") + `<option value="mano"${pre === -1 || !usabili.length ? " selected" : ""}>— nessuna: trascrivo il valore dal referto —</option>`;
+
+    const corpo = `<div class="note" style="margin-top:0;">Volata del <b>${fmtD(v.data)}</b>${v.fronte ? " sul fronte <b>" + esc(v.fronte) + "</b>" : ""}${(+v.kgMaxRitardo) ? " · carica massima per ritardo <b>" + esc(numeroIt(+v.kgMaxRitardo)) + " kg</b>" : ""}${dist > 0 ? " · distanza del ricettore <b>" + esc(numeroIt(dist)) + " m</b>" : ""}.</div>`
+      + (usabili.length
+        ? '<label class="fl" for="ppv-scelta">La misura del sismografo di quel giorno</label>'
+          + `<select class="dw-input" id="ppv-scelta">${opz}</select><div id="ppv-info" class="note" style="margin-top:8px;"></div>`
+        : `<div class="note avviso">Nessuna lettura di vibrazione in mm/s registrata il <b>${fmtD(v.data)}</b> fra i punti di misura${altraUnita.length ? " (ce ne sono " + altraUnita.length + " con un'altra unità: non sono PPV in mm/s e non si possono usare come tali)" : ""}. Se hai il referto dello strumento, trascrivi qui sotto il valore.</div>`
+          + `<input type="hidden" id="ppv-scelta" value="mano">`)
+      + '<label class="fl" for="ppv-val" id="ppv-lab">PPV misurata (mm/s)</label>'
+      + `<input class="dw-input" id="ppv-val" type="number" min="0" step="0.01" placeholder="es. 2,4" value="${gia && gia.fonte !== PPV_STRUMENTO ? esc(String(gia.valore)) : ""}">`
+      + (dist > 0 ? "" : `<div class="note avviso">Sulla volata <b>manca la distanza del ricettore</b>: senza quella il referto non è completo, perché la distanza scalata non si calcola. Scrivila sulla riga del registro.</div>`)
+      + '<div class="note" style="margin-bottom:0;">Se una misura non c\'è, <b>lascia stare</b>: la volata resta fuori dai referti e il motivo resta scritto. Una PPV stimata falserebbe <b>K</b> e <b>β</b> della cava, e da quei due numeri dipendono le distanze di sicurezza.</div>';
+
+    const scelta = await new Promise(resolve => {
+      const btn = [
+        { label: "Annulla", azione: () => { chiudiModale(); resolve(null); } },
+      ];
+      if (gia) btn.push({ label: "Togli la PPV", cls: "danger", azione: () => { chiudiModale(); resolve({ togli: true }); } });
+      btn.push({ label: gia ? "Salva la misura" : "Collega la misura", cls: "primary", azione: () => {
+        const s = $("ppv-scelta"), n = $("ppv-val");
+        chiudiModale();
+        resolve({ scelta: s ? s.value : "mano", valore: n ? n.value : "" });
+      } });
+      apriModale(gia ? "La PPV misurata di questa volata" : "Collega la PPV misurata", corpo, btn);
+      // il campo a mano si accende solo quando non si sta usando una misura
+      // dello strumento: due valori contemporanei non si possono confermare
+      const s = $("ppv-scelta"), n = $("ppv-val"), info = $("ppv-info"), lab = $("ppv-lab");
+      const sincro = () => {
+        if (!s || !n) return;
+        const i = +s.value;
+        const c = Number.isFinite(i) ? usabili[i] : null;
+        if (c) {
+          // il valore è quello dello strumento: il campo lo mostra ma non lo
+          // fa cambiare, e l'etichetta dice perché (un campo che sembra
+          // modificabile e non lo è è una bugia piccola, ma è una bugia)
+          n.value = String(c.valore); n.readOnly = true; n.classList.remove("err");
+          n.style.opacity = ".85"; n.style.cursor = "not-allowed";
+          n.title = "Valore preso dalla lettura del sismografo: per scriverne uno a mano scegli «nessuna» qui sopra.";
+          if (lab) lab.textContent = "PPV misurata (mm/s) · dalla lettura scelta";
+        } else {
+          if (n.readOnly) { n.value = ""; n.readOnly = false; }
+          n.style.opacity = ""; n.style.cursor = ""; n.title = "";
+          if (lab) lab.textContent = "PPV misurata (mm/s) · la scrivi tu";
+        }
+        if (!info) return;
+        if (!c) {
+          info.className = "note";
+          info.innerHTML = "Stai per trascrivere un valore a mano: mettilo <b>come sta sul referto</b> dello strumento, in mm/s. "
+            + (dist > 0 ? "Il referto lo abbinerà alla distanza scritta sulla volata (<b>" + esc(numeroIt(dist)) + " m</b>): deve essere la distanza del punto dove lo strumento era piazzato." : "");
+          return;
+        }
+        // il confronto delle distanze: la coppia distanza/PPV deve venire
+        // dallo STESSO punto, altrimenti il referto è una coppia sbagliata
+        const dp = distanzaDelPunto(c.puntoId);
+        const scarto = (dist > 0 && dp) ? Math.abs(dp - dist) / dist : null;
+        const dettaglio = "Misura di <b>" + esc(c.punto) + "</b>" + (c.ora ? " alle <b>" + esc(c.ora) + "</b>" : "")
+          + " del <b>" + fmtD(c.data) + "</b>" + (dp ? " · il suo ricettore è dichiarato a <b>" + esc(numeroIt(dp)) + " m</b>" : " · nessuna distanza dichiarata sul suo ricettore") + ".";
+        if (scarto != null && scarto > 0.05) {
+          info.className = "note avviso";
+          info.innerHTML = dettaglio + " <b>Non combacia</b> con la distanza scritta sulla volata ("
+            + esc(numeroIt(dist)) + " m): il referto userebbe quella della volata. Correggi la distanza della volata, oppure scegli la misura del punto giusto — distanza e PPV devono essere dello stesso punto.";
+        } else {
+          info.className = "note";
+          info.innerHTML = dettaglio + (scarto != null ? " Combacia con la distanza scritta sulla volata." : "");
+        }
+      };
+      if (s && s.tagName === "SELECT") s.onchange = sincro;
+      sincro();
+    });
+    if (!scelta) return;
+
+    if (scelta.togli) {
+      if (!await chiedi("Togliere la PPV misurata",
+        `Stai per togliere la PPV <b>${esc(numeroIt(gia.valore))} mm/s</b> dalla volata del <b>${fmtD(v.data)}</b>.<br><br>
+         Da quel momento questa volata non è più un referto e non entra più nel file per Genesi. Fallo per correggere un valore sbagliato, non per far tornare i conti.`,
+        "Togli", true)) return;
+      await db.aggiorna("volate", id, { ...CAMPI_PPV_VUOTI });
+      await refresh();
+      esito("ref-esito", "PPV rimossa dalla volata del " + fmtD(v.data) + ": non è più fra i referti.", "",
+        "PPV rimossa dalla volata.");
+      return;
+    }
+
+    const i = +scelta.scelta;
+    const c = Number.isFinite(i) ? usabili[i] : null;
+    const campi = c
+      ? campiPpvVolata(c.valore, { fonte: PPV_STRUMENTO, puntoId: c.puntoId, punto: c.punto, data: c.data, ora: c.ora })
+      : campiPpvVolata(String(scelta.valore || "").replace(",", "."), { fonte: PPV_MANUALE, data: v.data });
+    if (!campi) {
+      esito("ref-esito", "Serve una PPV misurata maggiore di zero: scegli la lettura del sismografo di quel giorno oppure trascrivi il valore dal referto dello strumento. Un valore inventato qui falserebbe la legge di sito.", "err",
+        "Serve la PPV misurata (maggiore di zero).");
+      return;
+    }
+    await db.aggiorna("volate", id, campi);
+    await refresh();
+    const r = refertoDaVolata_ui(id);
+    esito("ref-esito", "PPV " + numeroIt(campi.ppvMisurata) + " mm/s collegata alla volata del " + fmtD(v.data)
+      + " (" + (c ? "lettura del sismografo · " + c.punto : "trascritta a mano dal referto") + ")."
+      + (r && r.pronto ? " Questa volata è ora utilizzabile come referto." : " Manca ancora qualcosa: lo trovi scritto qui sotto."),
+      "success", "PPV collegata alla volata del " + fmtD(v.data) + ".");
+  }
+  // il referto di UNA volata, riletto dopo il salvataggio (per il messaggio)
+  const refertoDaVolata_ui = (id) => refertiDaVolate(VOL).tutti.find(r => r.id === id) || null;
+
+  // LA VISTA: quante volate sono già referti e quante no, col motivo. Serve
+  // a far capire cosa manca per avere la legge del proprio sito, invece di
+  // lasciare l'utente davanti a un numero che non arriva.
+  function renderReferti() {
+    const R = refertiDaVolate(VOL);
+    $("ref-tot").textContent = R.nPronti;
+    $("ref-kpi").innerHTML =
+      `<div class="kpi ${R.nPronti ? "ok" : ""}"><div class="l">Pronte come referto</div><div class="n">${R.nPronti}</div></div>`
+      + `<div class="kpi ${R.nMancanti ? "warn" : ""}"><div class="l">Da completare</div><div class="n">${R.nMancanti}</div></div>`;
+
+    // nel riquadro «recap» il grassetto è riservato ai NUMERI (è lo stile del
+    // core: b = cifra grande), le parole restano testo normale
+    const motivi = [];
+    if (R.motivi.ppv) motivi.push(`PPV misurata su <b>${R.motivi.ppv}</b>`);
+    if (R.motivi.distanza) motivi.push(`distanza del ricettore su <b>${R.motivi.distanza}</b>`);
+    if (R.motivi.carica) motivi.push(`carica per ritardo su <b>${R.motivi.carica}</b>`);
+    let quanto;
+    if (!R.totale) quanto = "Il registro volate è vuoto: i referti nascono dalle volate registrate qui sopra.";
+    else if (!R.nPronti) quanto = `Nessuna volata è ancora utilizzabile come referto. Ne servono almeno <b>${R.minimo}</b>: da due punti passa qualunque retta, e una legge di sito ricavata da due misure non è una legge.`;
+    else if (R.nPronti < R.minimo) quanto = `Referti pronti: <b>${R.nPronti}</b> · minimo perché Genesi ricavi la legge: <b>${R.minimo}</b> · ne ${R.mancanoAlMinimo === 1 ? "manca <b>1</b>" : "mancano <b>" + R.mancanoAlMinimo + "</b>"}.`;
+    else if (R.nPronti < R.solidi) quanto = `Referti pronti: <b>${R.nPronti}</b>. Genesi ricava già K e β, ma la legge resta provvisoria: sotto <b>${R.solidi}</b> referti la pendenza si muove ancora a ogni misura nuova.`;
+    else quanto = `Referti pronti: <b>${R.nPronti}</b>. Abbastanza perché la legge del tuo sito abbia una base solida: continua ad aggiungerne a ogni volata misurata.`;
+
+    $("ref-riep").innerHTML = quanto
+      + (motivi.length ? `<br>Restano fuori <b>${R.nMancanti}</b> volate: manca la ` + motivi.join(", la ") + "." : "")
+      + (R.nPronti >= R.minimo && R.sdTutteUguali
+        ? `<br>Attenzione: i referti pronti hanno tutti la stessa distanza scalata (<b>${numeroIt(R.sdMin)}</b> m/√kg). Senza misure a distanze o cariche diverse la pendenza β non si ricava, e Genesi rifiuterà la legge.`
+        : (R.nPronti >= 2 && R.sdMin != null ? `<br>Distanza scalata coperta dai referti: da <b>${numeroIt(R.sdMin)}</b> a <b>${numeroIt(R.sdMax)}</b> m/√kg. Fuori da questo intervallo la legge sarebbe un'estrapolazione.` : ""));
+
+    document.querySelectorAll("#ref-filtri [data-fref]").forEach(b =>
+      b.classList.toggle("active", b.getAttribute("data-fref") === filtroRef));
+    const vis = filtroRef === "pronte" ? R.pronti : (filtroRef === "mancanti" ? R.mancanti : R.tutti);
+
+    // COME si rimedia: una volta sola, non ripetuto su ogni riga. Sulle righe
+    // resta scritto CHE COSA manca; qui c'è come si riempie ciascuno dei tre.
+    const come = $("ref-come");
+    const daDire = MOTIVI_REFERTO.filter(m => R.motivi[m.chiave]);
+    come.style.display = daDire.length ? "" : "none";
+    come.innerHTML = daDire.map(m => `<b>${esc(m.breve.replace(/^l[ae] /, ""))}</b>: ${esc(m.come)}`).join("<br>");
+
+    $("ref-list").innerHTML = vis.map(r => {
+      const v = VOL.find(x => x.id === r.id) || {};
+      const cls = r.pronto ? "ok" : "warn";
+      const pezzi = [
+        r.d != null ? `<b>${esc(numeroIt(r.d))} m</b>` : "distanza —",
+        r.w != null ? `<b>${esc(numeroIt(r.w))} kg</b>/ritardo` : "carica/ritardo —",
+        r.ppv != null ? `<b>${esc(numeroIt(r.ppv))} mm/s</b>` : "PPV —",
+      ];
+      if (r.pronto && r.sd != null) pezzi.push(`SD <b>${esc(numeroIt(r.sd))}</b>`);
+      if (r.misura) pezzi.push(esc(testoFontePpv(r.misura)));
+      const testa = `<div class="item ${r.pronto ? "" : "pon-voce "}${striscia[cls]}">
+        <div class="avatar ${r.pronto ? "ok" : "warn"}">${r.pronto ? I.fatto : I.onda}</div>
+        <div class="info"><div class="name">${esc(v.fronte || "Volata")} · ${fmtD(r.data)}</div>
+        <div class="riga"><span class="badge ${cls}">${r.pronto ? "Pronta come referto" : "Da completare"}</span>
+        <span class="meta">${pezzi.join(" · ")}</span></div></div></div>`;
+      if (r.pronto) return testa;
+      // il motivo, riga per riga, senza ripetere otto volte come si rimedia:
+      // il come sta una volta sola nella legenda sotto i filtri
+      return testa + `<div class="pon-det ${striscia[cls]}">`
+        + `<div class="pon-riga">Manca ${r.motivi.map(ch => "<b>" + esc(motivoReferto(ch).breve) + "</b>").join(", ")}.</div>`
+        + (r.motivi.includes("ppv")
+          ? `<div class="pon-cmd"><button type="button" class="dw-btn secondary mini" data-ppv-vol="${esc(r.id)}">Collega la PPV</button></div>`
+          : "")
+        + "</div>";
+    }).join("")
+      || (R.totale && filtroRef !== "tutte"
+        ? vuoto(I.onda, filtroRef === "pronte" ? "Nessuna volata pronta" : "Niente da completare",
+            filtroRef === "pronte"
+              ? "Nessuna volata ha ancora tutti e tre i numeri di un referto. Guarda le volate <b>da completare</b>: lì c'è scritto cosa manca a ognuna."
+              : "Tutte le volate del registro hanno distanza, carica per ritardo e PPV misurata: sono già tutte referti.")
+        : vuoto(I.onda, "Nessun referto, ancora",
+            "I referti nascono dal registro volate: appena una volata ha la distanza del ricettore, i kg massimi per ritardo e la PPV misurata dal sismografo, compare qui — e da qui esce il file che Genesi importa per ricavare <b>K</b> e <b>β</b> della tua roccia."));
+  }
+
+  document.addEventListener("click", async (e) => {
+    const b = e.target.closest && e.target.closest("[data-ppv-vol]");
+    if (!b) return;
+    e.preventDefault();
+    await collegaPpv(b.getAttribute("data-ppv-vol"));
+  });
+  $("ref-filtri").addEventListener("click", (e) => {
+    const b = e.target.closest && e.target.closest("[data-fref]"); if (!b) return;
+    filtroRef = b.getAttribute("data-fref"); renderReferti();
+  });
+
+  $("btn-ref-export").onclick = () => {
+    const R = refertiDaVolate(VOL);
+    if (!R.nPronti) {
+      esito("ref-esito", "Nessuna volata è utilizzabile come referto: il file uscirebbe vuoto. Qui sopra c'è scritto, volata per volata, cosa manca — e la PPV misurata si collega col pulsante su ogni riga del registro.", "err",
+        "Nessun referto da esportare: guarda cosa manca.");
+      return;
+    }
+    const csv = csvRefertiGenesi(R.tutti);
+    const el = document.createElement("a");
+    el.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    el.download = "sentinella_referti_legge_di_sito.csv"; el.click();
+    esito("ref-esito", `Esportati ${R.nPronti} referti` + (R.nMancanti ? ` (le ${R.nMancanti} volate incomplete sono rimaste fuori: senza PPV misurata non sono referti)` : "")
+      + ". In Genesi: «Legge di sito» → «Importa referti (CSV)» → conferma le colonne."
+      + (R.nPronti < R.minimo ? ` Attenzione: sono meno di ${R.minimo}, Genesi non ricaverà ancora nessuna legge.` : ""),
+      "success", `Esportati ${R.nPronti} referti per Genesi.`);
+  };
+
   // Riempie le tendine che dipendono dai dati (punti e ricettori),
   // conservando la scelta che l'utente aveva già fatto.
   function popolaTendine() {
@@ -2321,14 +2603,20 @@ textarea.dw-input{
     $("vol-list").innerHTML = VOL.slice().sort((a,b)=>(a.data||"")<(b.data||"")?1:-1).map(v => {
       const sd = scaledDistance(v.distanzaRicettore, v.kgMaxRitardo);
       const vb = VB[v.esito] || ["ok","—"];
+      // la PPV misurata si mostra SEMPRE con la sua provenienza attaccata:
+      // un numero di cui non si sa da dove viene non è un dato
+      const ppv = ppvDiVolata(v);
       return `<div class="item ${striscia[vb[0]]}">
         <div class="avatar ${vb[0] === "danger" ? "danger" : "sup"}">${I.volata}</div>
         <div class="info"><div class="name">${esc(v.fronte || "Volata")} · ${fmtD(v.data)}</div>
-        <div class="meta">${+v.nFori||0} fori · ${(+v.kgTotali||0).toLocaleString("it-IT")} kg${(+v.kgMaxRitardo) ? " · max/ritardo " + (+v.kgMaxRitardo) + " kg" : ""}${sd!=null ? " · <b>SD " + sd.toFixed(1) + "</b>" : ""}${v.note ? " · " + esc(v.note) : ""}</div></div>
+        <div class="meta">${+v.nFori||0} fori · ${(+v.kgTotali||0).toLocaleString("it-IT")} kg${(+v.kgMaxRitardo) ? " · max/ritardo " + (+v.kgMaxRitardo) + " kg" : ""}${sd!=null ? " · <b>SD " + sd.toFixed(1) + "</b>" : ""}${ppv ? " · <b>PPV " + esc(numeroIt(ppv.valore)) + " mm/s</b> (" + esc(testoFontePpv(ppv)) + ")" : ""}${v.note ? " · " + esc(v.note) : ""}</div></div>
         <span class="acts"><span class="badge ${vb[0]}">${vb[1]}</span>
+        <button type="button" class="arr${ppv ? " on" : ""}" title="${ppv ? "Cambia o togli la PPV misurata" : "Collega la PPV misurata del sismografo"}" aria-label="${ppv ? "Cambia la PPV misurata della volata del " + fmtD(v.data) : "Collega la PPV misurata alla volata del " + fmtD(v.data)}" data-ppv-vol="${v.id}">${I.onda}</button>
         <button type="button" class="arr rimuovi" title="Rimuovi dal registro" aria-label="Rimuovi la volata del ${fmtD(v.data)}" data-del-vol="${v.id}">${I.cestino}</button></span></div>`;
     }).join("") || vuoto(I.volata, "Nessuna volata registrata",
         "Registra qui sotto data, fronte, fori e carica di ogni volata: il brogliaccio di brillamento resta pronto da mostrare agli enti, con la distanza scalata già calcolata.");
+
+    renderReferti();
 
     // Ricettori, reclami e tendine dipendono dagli stessi dati appena letti:
     // si ridisegnano insieme, così non esistono due schermate disallineate.
@@ -2493,9 +2781,16 @@ textarea.dw-input{
     await refresh();
   };
   $("btn-vol-export").onclick = () => {
-    let csv = "data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note\n";
-    for (const v of VOL.slice().sort((a,b)=>(a.data||"")<(b.data||"")?-1:1))
-      csv += `${v.data||""};${csvCell(v.fronte||"")};${+v.nFori||0};${+v.kgTotali||0};${+v.kgMaxRitardo||0};${+v.distanzaRicettore||0};${v.esito||"regolare"};${csvCell(v.note||"")}\n`;
+    // le quattro colonne della PPV misurata stanno in CODA e sono vuote
+    // quando la volata non ha misura: così il file resta leggibile da chi
+    // aspettava le vecchie otto colonne, e la PPV non si perde nel giro
+    // export → import (mai un valore riempito per far quadrare una colonna).
+    let csv = "data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note;ppvMisurata;ppvFonte;ppvPunto;ppvOra\n";
+    for (const v of VOL.slice().sort((a,b)=>(a.data||"")<(b.data||"")?-1:1)) {
+      const p = ppvDiVolata(v);
+      csv += `${v.data||""};${csvCell(v.fronte||"")};${+v.nFori||0};${+v.kgTotali||0};${+v.kgMaxRitardo||0};${+v.distanzaRicettore||0};${v.esito||"regolare"};${csvCell(v.note||"")};`
+        + `${p ? p.valore : ""};${p ? p.fonte : ""};${csvCell(p ? p.punto : "")};${p ? p.ora : ""}\n`;
+    }
     const el = document.createElement("a");
     el.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     el.download = "sentinella_registro_volate.csv"; el.click();

@@ -334,17 +334,21 @@ export function riepilogoVolate(volate, oggi = new Date()) {
 }
 
 // Import registro volate da CSV. Colonne: data;fronte;nFori;kgTotali;
-// kgMaxRitardo;distanzaRicettore;esito[;note] (header opzionale). Tiene solo le
-// righe con data valida (AAAA-MM-GG). esito: "contestazione" o "regolare"
-// (default regolare). I numerici via numIt. fronte/note grezzi → escapare dove
-// mostrati. Pura e testabile.
+// kgMaxRitardo;distanzaRicettore;esito[;note][;ppvMisurata;ppvFonte;ppvPunto;ppvOra]
+// (header opzionale). Tiene solo le righe con data valida (AAAA-MM-GG).
+// esito: "contestazione" o "regolare" (default regolare). I numerici via numIt.
+// fronte/note grezzi → escapare dove mostrati. Pura e testabile.
+// Le quattro colonne della PPV misurata (T8) sono FACOLTATIVE e stanno in
+// coda: un file esportato prima che esistessero si importa esattamente come
+// prima, e la volata resta semplicemente senza PPV — mai con una inventata.
 export function parseVolateCsv(text) {
   const num = (v) => { const n = numIt(v); return Number.isFinite(n) ? Math.max(0, n) : 0; };
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
     .filter(r => !isIntestazione(r, "data"))
     .map(r => {
-      const [data, fronte, nFori, kgTotali, kgMaxRitardo, distanzaRicettore, esito, note] = parseCsvLine(r);
-      return {
+      const [data, fronte, nFori, kgTotali, kgMaxRitardo, distanzaRicettore, esito, note,
+             ppvMisurata, ppvFonte, ppvPunto, ppvOra] = parseCsvLine(r);
+      const v = {
         data: (data || "").trim(),
         fronte: (fronte || "").trim(),
         nFori: num(nFori), kgTotali: num(kgTotali), kgMaxRitardo: num(kgMaxRitardo),
@@ -352,6 +356,11 @@ export function parseVolateCsv(text) {
         esito: (esito || "").trim().toLowerCase() === "contestazione" ? "contestazione" : "regolare",
         note: (note || "").trim(),
       };
+      const ppv = campiPpvVolata(numIt(ppvMisurata), {
+        fonte: (ppvFonte || "").trim().toLowerCase() === PPV_STRUMENTO ? PPV_STRUMENTO : PPV_MANUALE,
+        punto: (ppvPunto || "").trim(), data: v.data, ora: (ppvOra || "").trim(),
+      });
+      return ppv ? { ...v, ...ppv } : v;
     })
     .filter(v => /^\d{4}-\d{2}-\d{2}$/.test(v.data));
 }
@@ -1250,6 +1259,226 @@ export async function ponteScudo() {
       return nuova;
     },
   };
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// T8 · IL PONTE VERSO GENESI — dalla volata misurata alla LEGGE DI SITO
+//
+// Genesi prevede le vibrazioni con la legge di Devine  PPV = K · SD^−β,
+// dove SD = distanza / √(carica per ritardo). K e β però non sono
+// universali: sono di QUELLA cava. Finché nessuno li misura, Genesi li
+// stima dalla litologia — valori da manuale, cautelativi, ma non "la tua
+// roccia". Per ricavarli davvero servono dei REFERTI, e un referto è fatto
+// di tre numeri: distanza del punto di misura, carica massima per ritardo,
+// PPV registrata.
+//
+// Quei tre numeri Sentinella li ha già quasi tutti: il registro volate
+// porta la distanza del ricettore e i kg massimi per ritardo, il sismografo
+// porta la PPV. Manca solo il collegamento fra la volata e la misura di
+// quel giorno — ed è tutto quello che si fa qui. Nessuna formula nuova:
+// la regressione la fa Genesi, che ce l'ha già.
+//
+// ⛔ LA PPV NON SI INVENTA. Se per una volata non c'è una misura, quella
+// volata NON diventa un referto: resta in elenco col motivo scritto. Un
+// referto inventato falserebbe K e β, e da K e β dipendono le distanze di
+// sicurezza: è il posto dove un numero finto fa più danno di tutti.
+//
+// Stile: come il ponte verso Scudo, il referto si porta dietro la
+// FOTOGRAFIA di dove viene la misura (`ppvFonte`, `ppvPuntoNome`,
+// `ppvData`), perché Genesi non può leggere le collezioni di Sentinella e
+// un numero di cui non si sa la provenienza non è un dato.
+// ══════════════════════════════════════════════════════════════════════
+
+export const PPV_STRUMENTO = "strumento";   // letta dal sismografo fra i punti di misura
+export const PPV_MANUALE = "manuale";       // trascritta dal referto di uno strumento non censito
+
+// Quanti referti servono. Sono le stesse due soglie che usa Genesi nella
+// modale «Legge di sito»: sotto 3 la retta non esiste (da due punti passa
+// qualunque retta), sotto 8 la pendenza si muove ancora a ogni misura
+// nuova. Ripetute qui per poterlo DIRE all'utente prima che esporti.
+export const MIN_REFERTI = 3;
+export const REFERTI_SOLIDI = 8;
+
+// Perché una volata non è ancora un referto. Ogni motivo dice anche COME si
+// rimedia: un elenco di mancanze senza il rimedio lascia l'utente fermo.
+export const MOTIVI_REFERTO = [
+  { chiave: "ppv", breve: "la PPV misurata", etichetta: "Manca la PPV misurata",
+    come: "Collega la lettura del sismografo di quel giorno, oppure trascrivi il valore dal referto dello strumento." },
+  { chiave: "distanza", breve: "la distanza del ricettore", etichetta: "Manca la distanza del ricettore",
+    come: "Sono i metri fra la volata e il punto dove era piazzato il sismografo: si scrivono sulla riga del registro." },
+  { chiave: "carica", breve: "la carica massima per ritardo", etichetta: "Manca la carica massima per ritardo",
+    come: "Sono i kg che detonano nella stessa finestra di ritardo — quella che fa vibrare, non il totale della volata." },
+];
+export function motivoReferto(chiave) {
+  return MOTIVI_REFERTO.find(m => m.chiave === chiave)
+    || { chiave: String(chiave || ""), breve: "un dato", etichetta: "Dato mancante", come: "" };
+}
+
+// La PPV collegata a una volata, o null. Non deduce NIENTE: legge soltanto
+// quello che è stato scritto sulla volata. Una volata vecchia, registrata
+// prima che questi campi esistessero, torna null — non un valore finto.
+export function ppvDiVolata(v) {
+  const val = +((v || {}).ppvMisurata);
+  if (!Number.isFinite(val) || val <= 0) return null;
+  const strumento = String((v || {}).ppvFonte || "") === PPV_STRUMENTO;
+  return {
+    valore: val,
+    fonte: strumento ? PPV_STRUMENTO : PPV_MANUALE,
+    puntoId: String((v || {}).ppvPuntoId || ""),
+    punto: String((v || {}).ppvPuntoNome || "").trim(),
+    data: String((v || {}).ppvData || "").slice(0, 10),
+    ora: String((v || {}).ppvOra || "").trim(),
+  };
+}
+
+// Come si dice a parole da dove viene una PPV. Usata sia nell'elenco sia
+// nel CSV: deve dire sempre la stessa cosa.
+export function testoFontePpv(ppv) {
+  if (!ppv) return "";
+  if (ppv.fonte === PPV_STRUMENTO)
+    return "sismografo" + (ppv.punto ? " · " + ppv.punto : "") + (ppv.ora ? " · " + ppv.ora : "");
+  return "trascritta a mano dal referto";
+}
+
+// Le letture di VIBRAZIONE registrate nel giorno di una volata: sono le
+// candidate a diventare la PPV di quella volata. Ordinate dalla più alta,
+// che è quella che conta per la conformità e per la legge di sito.
+// `unitaOk` dice se il punto misura in mm/s: se misura in un'altra unità il
+// numero NON è una PPV in mm/s e non va usato come tale — l'interfaccia lo
+// mostra ma non lo fa scegliere.
+export function lettureVibrazioniDelGiorno(monitoraggi, dataISO) {
+  const d = String(dataISO || "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return [];
+  const out = [];
+  for (const m of monitoraggi || []) {
+    if (String((m || {}).tipo || "").trim().toLowerCase() !== "vibrazioni") continue;
+    const unita = unitaMisura(m) || "";
+    const unitaOk = /^mm\s*\/\s*s$/i.test(unita.trim());
+    for (const l of (m.letture || [])) {
+      const val = +((l || {}).valore);
+      if (String((l || {}).data || "").slice(0, 10) !== d) continue;
+      if (!Number.isFinite(val) || val <= 0) continue;
+      out.push({ puntoId: m.id, punto: String(m.nome || "Punto di misura"),
+        unita, unitaOk, data: d, ora: String((l || {}).ora || "").trim(), valore: val });
+    }
+  }
+  return out.sort((a, b) => b.valore - a.valore);
+}
+
+// I campi da scrivere sulla volata per collegarle una PPV. Funzione pura:
+// prepara il record, non lo salva. `null` se il valore non è una misura.
+export function campiPpvVolata(valore, opts = {}) {
+  const v = +valore;
+  if (!Number.isFinite(v) || v <= 0) return null;
+  const strumento = opts.fonte === PPV_STRUMENTO;
+  return {
+    ppvMisurata: Math.round(v * 1e4) / 1e4,
+    ppvFonte: strumento ? PPV_STRUMENTO : PPV_MANUALE,
+    ppvPuntoId: strumento ? String(opts.puntoId || "") : "",
+    ppvPuntoNome: strumento ? String(opts.punto || "").trim() : "",
+    ppvData: String(opts.data || "").slice(0, 10),
+    ppvOra: strumento ? String(opts.ora || "").trim() : "",
+  };
+}
+// I campi che TOLGONO la PPV da una volata (correzione di un errore): si
+// azzerano tutti insieme, mai il valore senza la sua provenienza.
+export const CAMPI_PPV_VUOTI = { ppvMisurata: 0, ppvFonte: "", ppvPuntoId: "", ppvPuntoNome: "", ppvData: "", ppvOra: "" };
+
+// UNA volata letta come referto: i tre numeri che servono a Genesi, più
+// l'elenco di quelli che mancano. `pronto` è vero solo se ci sono tutti e
+// tre — e la PPV deve essere una misura, non una stima.
+export function refertoDaVolata(volata) {
+  const v = volata || {};
+  const d = +v.distanzaRicettore, w = +v.kgMaxRitardo;
+  const ppv = ppvDiVolata(v);
+  const motivi = [];
+  if (!ppv) motivi.push("ppv");
+  if (!(d > 0)) motivi.push("distanza");
+  if (!(w > 0)) motivi.push("carica");
+  return {
+    id: String(v.id || ""), data: String(v.data || "").slice(0, 10),
+    fronte: String(v.fronte || "").trim(),
+    d: d > 0 ? d : null, w: w > 0 ? w : null,
+    ppv: ppv ? ppv.valore : null, misura: ppv,
+    sd: scaledDistance(d, w),
+    pronto: motivi.length === 0, motivi,
+  };
+}
+
+// Il riferimento scritto accanto al referto in Genesi: serve a poter
+// risalire dalla riga della regressione alla volata che l'ha prodotta.
+export function riferimentoReferto(r) {
+  const parti = ["Volata " + dataIt(r && r.data)];
+  if (r && r.fronte) parti.push(r.fronte);
+  if (r && r.misura) parti.push(r.misura.fonte === PPV_STRUMENTO
+    ? (r.misura.punto || "sismografo") : "PPV a mano");
+  return parti.join(" · ");
+}
+
+// TUTTO il registro letto come referti: quante volate sono già utilizzabili
+// e quante no, con il motivo. È la vista che serve a capire cosa manca per
+// avere la legge del proprio sito, invece di restare davanti a un numero
+// che non arriva. Pura e testabile.
+export function refertiDaVolate(volate) {
+  const tutti = (volate || []).map(refertoDaVolata)
+    // prima ciò su cui c'è da lavorare, poi dal fatto più recente
+    .sort((a, b) => (a.pronto ? 1 : 0) - (b.pronto ? 1 : 0)
+      || String(b.data || "").localeCompare(String(a.data || "")));
+  const pronti = tutti.filter(r => r.pronto);
+  const mancanti = tutti.filter(r => !r.pronto);
+  const motivi = { ppv: 0, distanza: 0, carica: 0 };
+  for (const r of mancanti) for (const m of r.motivi) if (motivi[m] != null) motivi[m]++;
+  const sd = pronti.map(r => r.sd).filter(x => Number.isFinite(x));
+  const sdMin = sd.length ? Math.min.apply(null, sd) : null;
+  const sdMax = sd.length ? Math.max.apply(null, sd) : null;
+  // Senza escursione di distanza scalata la pendenza β non è ricavabile:
+  // è lo stesso limite che Genesi segnala come "stessaSD". Meglio dirlo
+  // qui, prima che l'utente esporti e si trovi la legge rifiutata.
+  const escursione = (sdMin && sdMax && sdMin > 0) ? sdMax / sdMin : null;
+  return {
+    tutti, pronti, mancanti,
+    totale: tutti.length, nPronti: pronti.length, nMancanti: mancanti.length,
+    motivi, minimo: MIN_REFERTI, solidi: REFERTI_SOLIDI,
+    abbastanza: pronti.length >= MIN_REFERTI,
+    mancanoAlMinimo: Math.max(0, MIN_REFERTI - pronti.length),
+    sdMin, sdMax, escursione,
+    sdTutteUguali: escursione != null && escursione < 1.02,
+    conPpv: tutti.filter(r => r.misura).length,
+  };
+}
+
+// Numero per il CSV: punto decimale (è un file per un'altra macchina, non
+// per un foglio italiano) e nessuno zero inutile in coda.
+function numeroCsvReferto(n) {
+  const v = +n;
+  if (!Number.isFinite(v)) return "";
+  return String(Math.round(v * 1e4) / 1e4);
+}
+// Cella di testo del CSV dei referti. Il lettore di Genesi spezza le righe
+// su ; e su TAB (e su una virgola seguita da testo) e NON interpreta le
+// virgolette: quindi una cella non può contenere quei caratteri, e
+// virgolettarla la spezzerebbe in due invece di proteggerla. Si sostituiscono
+// con uno spazio: si perde un carattere di un'etichetta, non una riga.
+function cellaCsvReferto(s) {
+  return String(s == null ? "" : s).replace(/[;,"\r\n\t]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+// L'intestazione del file dei referti. L'ordine delle prime tre colonne è
+// quello che la modale «Legge di sito» di Genesi si aspetta di default
+// (distanza, carica per ritardo, PPV): così il file entra senza che nessuno
+// debba rimappare le colonne a mano. Le altre tre sono la tracciabilità.
+export const CSV_REFERTI_INTESTAZIONE = "distanza_m;carica_per_ritardo_kg;ppv_mms;riferimento;data;origine";
+
+// Il file dei referti per Genesi. Entrano SOLO le volate pronte: una volata
+// senza PPV misurata non compare, e non compare nemmeno con la PPV a zero.
+export function csvRefertiGenesi(referti) {
+  const pronti = (referti || []).filter(r => r && r.pronto && r.d > 0 && r.w > 0 && r.ppv > 0)
+    .slice().sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")));
+  const righe = pronti.map(r => [
+    numeroCsvReferto(r.d), numeroCsvReferto(r.w), numeroCsvReferto(r.ppv),
+    cellaCsvReferto(riferimentoReferto(r)), r.data || "", "sentinella",
+  ].join(";"));
+  return CSV_REFERTI_INTESTAZIONE + "\n" + (righe.length ? righe.join("\n") + "\n" : "");
 }
 
 export async function sentinellaData() {
