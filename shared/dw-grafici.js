@@ -650,7 +650,12 @@
 
     var oriz = s.orientamento === 'orizzontale';
     var largo = g._larg;
-    var totale = dati.reduce(function (a, b) { return a + b.valore; }, 0);
+    /* La "quota sul totale" ha senso solo se i valori si possono sommare.
+       Su una serie di percentuali (es. disponibilità giorno per giorno) la
+       somma non significa niente: 67% + 83% non fa 150% di qualcosa. In quel
+       caso il totale resta zero e la quota non viene mostrata. */
+    var sommabile = (s.unita || '').trim() !== '%' && s.quota !== false;
+    var totale = sommabile ? dati.reduce(function (a, b) { return a + b.valore; }, 0) : 0;
     var vmax = Math.max.apply(null, dati.map(function (d) { return d.valore; }));
     var sc = scala(Math.min(0, Math.min.apply(null, dati.map(function (d) { return d.valore; }))), vmax, oriz ? 4 : 4);
 
@@ -850,7 +855,12 @@
       dati = dati.slice(0, maxVoci - 1).concat([{ etichetta: 'Altro', valore: resto, altro: true }]);
     }
 
-    var totale = dati.reduce(function (a, b) { return a + b.valore; }, 0);
+    /* La "quota sul totale" ha senso solo se i valori si possono sommare.
+       Su una serie di percentuali (es. disponibilità giorno per giorno) la
+       somma non significa niente: 67% + 83% non fa 150% di qualcosa. In quel
+       caso il totale resta zero e la quota non viene mostrata. */
+    var sommabile = (s.unita || '').trim() !== '%' && s.quota !== false;
+    var totale = sommabile ? dati.reduce(function (a, b) { return a + b.valore; }, 0) : 0;
     var largo = g._larg;
     var lato = Math.min(largo, s.altezza || 230);
     var alto = lato;

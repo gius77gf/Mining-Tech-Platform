@@ -510,3 +510,29 @@ nell'ordine in cui conviene farle.
 *Documento di progettazione. Non contiene codice: la realizzazione avviene
 nelle unità di lavoro, un grafico alla volta, con verifica affiancata al
 riferimento e almeno tre iterazioni prima di considerarlo finito.*
+
+---
+
+## ⚠️ Aggiornamento del 29/07 — due grafici non sono più impossibili
+
+Questo piano dichiarava impossibili, per mancanza di dati, l'**andamento
+dei costi** e l'**andamento della disponibilità dei mezzi** in Flotta.
+**Quei dati ora esistono**: alla voce di costo è stato aggiunto il campo
+data, ed è stata introdotta una fotografia giornaliera del parco mezzi
+(una riga al giorno con operativi e totali). I due grafici sono stati
+fatti.
+
+Restano valide, e vanno rispettate, le regole con cui sono stati fatti:
+- **niente linea**, solo barre: una linea unirebbe due periodi lontani con
+  un tratto continuo, cioè disegnerebbe i giorni in cui nessuno ha aperto
+  l'app;
+- i **periodi senza registrazioni non compaiono** e vengono contati a
+  parole («mancano 3 giorni: in quei giorni l'app non è stata aperta, non
+  sono zeri»);
+- **nessuna tendenza sotto i tre periodi**;
+- il confronto fra mesi si fa **solo fra mesi chiusi**.
+
+Resta invece impossibile, e non va fatto, l'**emesso-contro-incassato** in
+Conti: sulle fatture vecchie la data di incasso è ripiegata sulla data di
+emissione, quindi il grafico mostrerebbe numeri inventati. Si sblocca solo
+registrando la data di incasso vera.

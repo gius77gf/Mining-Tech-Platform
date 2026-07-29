@@ -138,13 +138,17 @@ Piano e motivazioni in `docs/PIANO_GRAFICI.md`. Motore in
       la tacca del fido, invecchiamento del credito in barre vere.
 - [x] **Terra** ✅ — avanzamento anno con la tacca del pro-quota, volumi per
       mese, volumi per fronte. Vita cava tenuta a mano: è migliore.
-- [ ] **Scudo** — copertura formazione per tipo.
-- [ ] **Sentinella** — punto peggiore in miniatura nel Quadro.
-- [ ] **Campo** — scostamento della carica per foro.
-- [ ] **Sbloccare gli andamenti**: manca il campo data ai costi di Flotta,
-      la fotografia giornaliera del parco mezzi, e la data di incasso vera
-      in Conti. Finché mancano, quei grafici NON si fanno: mostrerebbero
-      numeri inventati.
+- [x] **Scudo** ✅ — copertura formazione per tipo + muro delle scadenze.
+- [x] **Sentinella** ✅ — tessera del punto messo peggio con sparkline.
+- [x] **Campo** ✅ — scostamento carica per foro, cause di fermo col taglio all'80%, minuti di fermo per giornata.
+- [x] **Sbloccati gli andamenti di Flotta** ✅ *(29/07)* — aggiunti il campo
+      data sulle voci di costo (le vecchie restano valide, marcate «senza
+      data») e la fotografia giornaliera del parco mezzi. Fatti spesa mese
+      per mese e disponibilità giorno per giorno, **solo a barre**: una
+      linea disegnerebbe i giorni in cui l'app non è stata aperta.
+- [ ] **Resta da sbloccare**: la `dataIncasso` vera sulle fatture di Conti,
+      oggi ripiegata sulla data di emissione. Finché manca, il grafico
+      emesso-contro-incassato NON si fa.
 
 ## BLOCCO 2 — LE SEI APP, PROPOSTE DALLA RICERCA *(in parallelo)*
 Dettaglio e fonti in `docs/RICERCA_<APP>_202607.md`.
