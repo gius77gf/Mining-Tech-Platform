@@ -223,13 +223,19 @@ danno mappe per foro.
 - [x] **A1. Editor del fronte nel 3D** ✅ *(26/07, `af9d6aa`)*
 - [x] **A2. Colonne di carica segmentate** ✅ *(26/07, `c966d45`)*
 - [x] **A3. Mappa delle quote** ✅ *(26/07, `64c08cf`)*
-- [ ] **G1. Contorni isocroni sulla pianta** *(P0)*: i tempi sono già
-      calcolati, manca solo il disegno. Miglior rapporto valore/lavoro.
-- [ ] **G2. Burden relief foro per foro** *(P0)*: ms/m disponibili a ciascun
-      foro invece della media globale. Scopre i fori che sparano senza spazio
-      libero (blocchi, picchi di vibrazione, flyrock).
-- [ ] **G3. Legge di sito K/β dai referti del sismografo** *(P0)*: da "valori
-      da manuale" a "la tua roccia", con i dati che le cave già possiedono.
+- [x] **G1. Contorni isocroni sulla pianta** ✅ *(28/07, `c5e178f`)* — livello
+      «Isocrone» sulla pianta, passo dei ms scelto o automatico, legenda che
+      resta anche negli screenshot.
+- [x] **G2. Burden relief foro per foro** ✅ *(28/07, `c5e178f`)* — ms/m a
+      ciascun foro invece della media globale, badge colorati sulla pianta,
+      finestra ms/m impostabile, il dato finisce anche nell'export CSV.
+- [x] **G3. Legge di sito K/β dai referti del sismografo** ✅ *(29/07,
+      `f388a3f`)* — regressione sui referti reali, riga di progetto al 95°
+      percentile, R² e intervallo calibrato, avviso quando la volata estrapola
+      fuori da quell'intervallo, import CSV con scelta delle colonne. Rifiuta
+      i dati che non fanno una legge onesta (meno di 3 referti, stessa
+      distanza scalata, pendenza fuori da 0,5–3). Opt-in: senza attivazione
+      restano i valori da litologia.
 - [ ] **G4. Editor visuale della sequenza di sparo** (ritardi a mano sui
       fori, linee di innesco).
 - [ ] **G5. Mappa dell'energia** (powder factor locale per foro).
