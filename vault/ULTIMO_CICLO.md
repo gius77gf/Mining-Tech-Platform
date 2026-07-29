@@ -5,10 +5,10 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-07-29 03:46 UTC
-**Cosa sta per fare:** verificare il collaudo del motore grafici e calare i
-primi grafici sulle app secondo `docs/PIANO_GRAFICI.md`.
-**Commit di partenza:** `3a41a17`
+**Ultimo ciclo riuscito:** 2026-07-29 06:44 UTC
+**Cosa sta per fare:** calare i primi grafici sulle app (Flotta, Conti,
+Terra) secondo `docs/PIANO_GRAFICI.md`, usando il motore condiviso.
+**Commit di partenza:** `3173458`
 
 ---
 
