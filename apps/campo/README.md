@@ -55,7 +55,44 @@ una volta in cima alla pagina e valgono per checklist, appello e chiusura.
    l'ora, le note. Senza firma il rapporto stampato porta le righe vuote da
    compilare a penna.
 7. **Piano di carico** importato da Genesi, con la carica reale per foro e lo
-   scostamento dal progetto.
+   scostamento dal progetto — visibile **già durante il carico**, non solo a
+   volata finita — e il **consuntivo che torna a Genesi**.
+
+### Il ponte con Genesi, nei due sensi
+
+Il giro è chiuso: Genesi progetta, Campo registra, Genesi impara.
+
+1. **Genesi → Campo.** Da Genesi, *Esporta piano di carico (CSV per il
+   fochino)*. Colonne lette da Campo: `foro; x; fila; prof; prog; borr; rit`.
+2. **In Campo.** Si tocca un foro e si scrive la **carica reale** in chili.
+   L'app calcola lo scostamento dal progetto e lo colora (≤10% verde, ≤25%
+   giallo, oltre rosso). In cima al registro ci sono **due** numeri diversi e
+   servono a due cose diverse: la *proiezione a fine volata* (i fori non ancora
+   caricati contati a progetto) e lo scostamento **sui soli fori già caricati**,
+   che è quello che permette di accorgersi dell'errore **mentre** c'è ancora
+   tempo per correggerlo. Se con un foro il carico esce di tolleranza, l'app
+   lo dice subito e ricorda quanti fori restano per rientrare.
+3. **Campo → Genesi.** *Esporta consuntivo (CSV)*. Stessa forma del file
+   arrivato — punto e virgola, una riga di intestazione, una riga per foro:
+
+   ```
+   data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct;scarto_kg;squadra;operatore
+   ```
+
+   Le prime sei colonne sono quelle che Campo esportava già e non sono
+   cambiate: un file vecchio resta leggibile. Le tre in fondo sono quelle che
+   mancavano perché il giro servisse a qualcosa — lo scarto in **chili e col
+   segno** (`scarto_pct` è arrotondato all'unità e senza verso: nato per il
+   badge in lista, non basta a calibrare) e **chi** ha registrato la carica,
+   foro per foro. `carica_reale_kg` è scritta grezza, senza arrotondamenti.
+4. **In Genesi.** *Riconciliazione → Importa consuntivo da Campo (CSV)*: chili
+   reali, fori effettivi e scostamento medio si riempiono da soli. Pezzatura,
+   PPV e gittata **no**: in Campo nessuno li misura, e restano da compilare a
+   mano.
+
+Chi registra la carica reale finisce nel documento del foro (`da`, `squadra`,
+presi da *Cosa tocca a me*): se lì non c'è nessun nome il campo resta **vuoto**,
+non si inventa un nome.
 
 ### Il turno chiuso non si tocca più
 

@@ -2748,7 +2748,7 @@ const _ricColore=(pct)=>{ const a=Math.abs(pct); return a<10?'#66bb6a':(a<25?'#f
 function _riconCampoHtml(){
   if(!_ricCampo) return '<div class="ricamp">'
     +'<div class="ricamp-h">Consuntivo di carico — da Campo</div>'
-    +'<div class="ricamp-sub">Qui sotto i valori li stai scrivendo a mano. I chili davvero caricati, però, il fochino li ha già registrati foro per foro in <b>Campo</b>: da lì premi <b>«Esporta consuntivo (CSV)»</b> e rileggi il file con il pulsante <b>«Importa consuntivo da Campo»</b> qui in fondo. Carica reale, fori effettivi e scostamento si riempiono da soli.</div>'
+    +'<div class="ricamp-sub">I chili davvero caricati il fochino li ha già registrati foro per foro in <b>Campo</b>: non c’è bisogno di ricopiarli qui. In Campo premi <b>«Esporta consuntivo (CSV)»</b>, poi rileggi il file con <b>«Importa consuntivo da Campo»</b> qui in fondo: carica reale, fori effettivi e scostamento si riempiono da soli.<br>Pezzatura, PPV e gittata no: quelle si misurano in cava e restano da scrivere a mano.</div>'
     +'</div>';
   const c=_ricCampo, k=computeKPI();
   const riga=(l,v,f,col)=>'<div class="l">'+l+'</div><div class="v"'+(col?' style="color:'+col+'"':'')+'>'+v+'</div><div class="f">'+f+'</div>';
