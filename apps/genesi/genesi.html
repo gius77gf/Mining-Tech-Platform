@@ -312,6 +312,7 @@ body.scr-sim #tl{bottom:80px}
 #dlIso i{background:#7ec9e8;box-shadow:0 0 8px rgba(126,201,232,.75)}
 #dlRel i{width:22px;height:8px;border-radius:999px;background:linear-gradient(90deg,#ef5350,#ffb300 34%,#66bb6a 68%,#86b0d8);box-shadow:0 0 8px rgba(255,255,255,.18)}
 #dlEne i{width:22px;height:8px;border-radius:3px;background:linear-gradient(90deg,#5c8dd6,#86b0d8 25%,#66bb6a 50%,#ffb300 75%,#ef5350);box-shadow:0 0 8px rgba(255,255,255,.18)}
+#dlInn i{width:22px;height:2px;border-radius:2px;background:#ffd54f;box-shadow:0 0 8px rgba(255,213,79,.8)}
 .dl-f{display:none;align-items:center;gap:6px;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:11px;padding:4px 9px;min-height:38px}
 .dl-f.on{display:flex}
 .dl-f>span{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);white-space:nowrap}
@@ -520,6 +521,7 @@ body.scr-sim #tl{bottom:80px}
     <button type="button" id="dlIso" class="dl-tog" title="Isolinee dei tempi di sparo: uniscono i punti che detonano nello stesso istante"><i></i>Isocrone</button>
     <button type="button" id="dlRel" class="dl-tog" title="Millisecondi disponibili a ogni foro per metro di roccia da liberare (ms/m)"><i></i>Relief</button>
     <button type="button" id="dlEne" class="dl-tog" title="Consumo specifico foro per foro: quanta energia tocca al blocco di roccia che ciascun foro serve davvero"><i></i>Energia</button>
+    <button type="button" id="dlInn" class="dl-tog" title="Rete di innesco: quale foro accende quale, e con che ritardo di raccordo"><i></i>Innesco</button>
     <label class="dl-f" id="dlIsoStepF"><span>passo</span><select id="dlIsoStep">
       <option value="0" selected>auto</option><option value="5">5 ms</option><option value="10">10 ms</option>
       <option value="20">20 ms</option><option value="25">25 ms</option><option value="50">50 ms</option>
@@ -917,7 +919,7 @@ const P = { fori:12, ritardo:42, dir:'sx', prof:10, kg:60, diam:102, vento:0.8, 
 /* modello di progettazione 2D (Fase 1) — editor multi-fila disaccoppiato dal 3D single-row */
 const D2 = { B:3.0, S:3.5, file:1, perRow:12, bf:3.0, diam:102, prof:10, kg:60, ritardo:42, ritardoFila:84, stem:2.2, sub:0.9, dir:'sx', stagger:true, incl:0, kgAuto:true, esplosivo:'anfo-standard', innesco:'nonel', roccia:'calcare', ucs:100, eMod:55, frat:'media', bagnato:false, acquaCol:0, presplit:false, psSpacing:0.9, psCharge:0.4, sequenza:'diagonale', recDist:300, recNorma:'din-res', recFreq:25, cPerf:8, cExpl:1.5, cInnesco:12, valMat:0, decks:1, deckStem:1.0, tool:'fori', profilo:[], piede:[], selPt:-1, holes:[], sel:-1, lastDet:0, _m:null,
   /* livelli di lettura della pianta: isocrone dei tempi + mappa del burden relief (ms/m per foro) */
-  iso:false, isoStep:0, rel:false, relLo:5, relHi:15, ene:false };
+  iso:false, isoStep:0, rel:false, relLo:5, relHi:15, ene:false, inn:false };
 
 /* ============ three: scena base ============ */
 const view = document.getElementById('view');
@@ -3166,7 +3168,11 @@ function genMaglia2D(){
     const off = (D2.stagger && r%2===1) ? D2.S/2 : 0;
     for(let c=0;c<D2.perRow;c++) holes.push({ mx:+(c*D2.S+off).toFixed(3), my:+my.toFixed(3) });
   }
+  /* rigenerare la maglia butta via i ritardi messi a mano, ed è giusto: i fori
+     non sono più quelli. Ma va detto, altrimenti spariscono in silenzio. */
+  const aMano=(D2.holes||[]).filter(h=>h.tMano!=null).length;
   D2.holes=holes; D2.sel=-1; computeSeq2D();
+  if(aMano && typeof toast==='function') toast('Maglia rigenerata: '+(aMano===1?'il ritardo messo a mano non vale più':'i '+aMano+' ritardi messi a mano non valgono più'));
 }
 function computeSeq2D(){
   const H=D2.holes; if(!H.length){ D2.lastDet=0; return; }
@@ -3183,12 +3189,18 @@ function computeSeq2D(){
     else if(seq==='box') t=Math.abs(rowI-centerRow)*tRow + cc*tHole;  // radiale dal centro
     else if(seq==='riga') t=rowI*tRow + cd*1.5;              // fila quasi simultanea (~1,5 ms/foro): isocrona parallela al fronte, MIC alta
     else t=rowI*tRow + cd*tHole;                             // diagonale: dal lato di partenza
-    h.tDet=+t.toFixed(1);
+    h.tCalc=+t.toFixed(1);                                   // il tempo che esce dallo schema scelto
+    /* G4 — ritardo messo a mano su un singolo foro. In cava capita: un foro
+       va spostato nella sequenza per una frattura, un vuoto, un edificio da
+       proteggere. Il valore a mano vince sullo schema, ma resta riconoscibile
+       e si può togliere: non si perde traccia di qual era il tempo calcolato. */
+    h.tDet = (h.tMano!=null && isFinite(h.tMano)) ? +(+h.tMano).toFixed(1) : h.tCalc;
   });
   H.map((h,i)=>i).sort((a,b)=>H[a].tDet-H[b].tDet).forEach((i,k)=>{ H[i].seq=k; });
   D2.lastDet = Math.max(...H.map(h=>h.tDet));
   computeRelief2D();                                         // il relief dipende solo dai tDet appena calcolati
   computeEnergia2D();                                        // il consumo specifico dipende solo dalle posizioni: nessun tempo in gioco
+  computeInnesco2D();                                        // la rete di collegamento si ricostruisce dai tempi appena calcolati
 }
 /* ===== G2 — burden relief FORO PER FORO (il ms/m dei badge e una media di progetto:
    qui diventa un valore del singolo foro, che e dove nascono blocchi, picchi di
@@ -3311,6 +3323,46 @@ function computeEnergia2D(){
   }
 }
 function pfNominale(){ return D2.kg/Math.max(.1,(D2.B||3)*(D2.S||3.5)*(D2.prof||10)); }
+
+/* ═══════════ G4 — LE LINEE DI INNESCO ═══════════
+   La sequenza dice a che millisecondo spara ogni foro. Sul campo però nessuno
+   programma i millisecondi: si collegano i fori uno all'altro con i raccordi
+   di superficie, e il ritardo è la DIFFERENZA fra due fori collegati. Qui la
+   rete di collegamento viene ricostruita dai tempi già calcolati: ogni foro è
+   acceso dal vicino più prossimo fra quelli che sparano prima di lui, e sulla
+   linea si legge il ritardo che quel raccordo deve avere.
+   Il controllo che serve davvero: col Nonel i raccordi esistono solo in certi
+   tagli (li si compra così), quindi un ritardo che non corrisponde a nessuno
+   di quelli non è realizzabile — va detto prima di andare in cava, non dopo.
+   Coi detonatori elettronici il vincolo non c'è: si programma il valore esatto. */
+const INN_TAGLI=[9,17,25,42,65,100,109,176,200];           // raccordi di superficie di uso comune
+function computeInnesco2D(){
+  const H=D2.holes; if(!H||!H.length) return;
+  const dMax=2.2*Math.max(D2.S||3.5, D2.B||3.0, _spazTipico(H));
+  for(let i=0;i<H.length;i++){
+    const h=H[i]; h.innFrom=-1; h.innDt=null;
+    let best=null;
+    for(let j=0;j<H.length;j++){
+      if(j===i) continue;
+      const dt=+(h.tDet-H[j].tDet).toFixed(1);
+      if(dt<=0) continue;                                  // solo fori che sparano PRIMA: da lì può arrivare l'accensione
+      const d=Math.hypot(H[j].mx-h.mx, H[j].my-h.my);
+      if(d<0.05 || d>dMax) continue;                       // troppo lontano: nessuno tira un raccordo così
+      /* il fuoco arriva da chi ha sparato POCO PRIMA, non da chi sta più
+         vicino: si sceglie il ritardo più piccolo, e a parità il foro più
+         vicino. È anche il collegamento più economico — meno raccordi lunghi
+         — ed è quello che si vede tirare in cava. */
+      if(!best || dt<best.dt-0.05 || (Math.abs(dt-best.dt)<=0.05 && d<best.d)) best={j:j,d:d,dt:dt};
+    }
+    if(best){ h.innFrom=best.j; h.innDt=best.dt; }
+  }
+}
+/* un ritardo è realizzabile se esiste il raccordo (o se si usa l'elettronico) */
+function innTaglioOk(dt){
+  if(dt==null) return true;
+  if((D2.innesco||'')==='elettronico') return true;
+  return INN_TAGLI.some(v=>Math.abs(v-dt)<=1.0);
+}
 /* Le classi sono RAPPORTI sul consumo specifico di progetto, non valori
    assoluti: una cava a 0,25 kg/m³ e una a 0,7 hanno entrambe diritto alla
    loro media, quello che conta è quanto un foro se ne discosta. */
@@ -3496,6 +3548,53 @@ function drawEnergiaLegenda(ctx,g,info){
   });
   ctx.restore();
 }
+/* G4 — la rete di innesco disegnata sulla pianta: una linea da chi accende a
+   chi viene acceso, col ritardo del raccordo scritto sopra. Le linee stanno
+   SOTTO i fori, come le isocrone: i fori restano sempre in primo piano. */
+function drawInnesco2D(ctx,g){
+  const H=D2.holes; if(!H||H.length<2) return null;
+  let nFuori=0, nColl=0; const tagli=new Set();
+  ctx.save(); ctx.lineCap='round';
+  for(const h of H){
+    if(h.innFrom==null || h.innFrom<0) continue;
+    const o=H[h.innFrom]; if(!o) continue;
+    nColl++; tagli.add(fmtMs(h.innDt));
+    const ok=innTaglioOk(h.innDt); if(!ok) nFuori++;
+    const x1=g.startX+o.mx*g.scale, y1=g.faceY+(o.my+interpFronte(o.mx))*g.scale;
+    const x2=g.startX+h.mx*g.scale, y2=g.faceY+(h.my+interpFronte(h.mx))*g.scale;
+    /* la linea si ferma prima del pallino del foro: se ci entra sotto,
+       il numero della sequenza diventa illeggibile */
+    const dx=x2-x1, dy=y2-y1, L=Math.hypot(dx,dy)||1, r=11;
+    const ax=x1+dx/L*r, ay=y1+dy/L*r, bx=x2-dx/L*r, by=y2-dy/L*r;
+    ctx.strokeStyle='rgba(8,6,3,.55)'; ctx.lineWidth=3.2;
+    ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by); ctx.stroke();
+    ctx.strokeStyle = ok ? 'rgba(255,213,79,.85)' : '#ef5350';
+    ctx.lineWidth = ok ? 1.4 : 2;
+    if(!ok) ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by); ctx.stroke();
+    ctx.setLineDash([]);
+    /* freccia verso il foro acceso: il verso conta, dice da dove arriva il fuoco */
+    const a=Math.atan2(dy,dx);
+    ctx.beginPath(); ctx.moveTo(bx,by);
+    ctx.lineTo(bx-6*Math.cos(a-0.42), by-6*Math.sin(a-0.42));
+    ctx.lineTo(bx-6*Math.cos(a+0.42), by-6*Math.sin(a+0.42));
+    ctx.closePath(); ctx.fillStyle = ok ? 'rgba(255,213,79,.85)' : '#ef5350'; ctx.fill();
+    /* etichetta solo se il tratto è abbastanza lungo: su linee corte
+       coprirebbe i due fori che collega */
+    if(L>46){
+      const mx0=(ax+bx)/2, my0=(ay+by)/2, txt=fmtMs(h.innDt);
+      ctx.font="700 9px 'Barlow',sans-serif"; ctx.textAlign='center'; ctx.textBaseline='middle';
+      const w=ctx.measureText(txt).width+8;
+      ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(mx0-w/2,my0-7,w,14,6); else ctx.rect(mx0-w/2,my0-7,w,14);
+      ctx.fillStyle='rgba(13,10,6,.88)'; ctx.fill();
+      ctx.strokeStyle = ok ? 'rgba(255,213,79,.55)' : '#ef5350'; ctx.lineWidth=1; ctx.stroke();
+      ctx.fillStyle = ok ? '#ffd54f' : '#ef5350'; ctx.fillText(txt, mx0, my0+0.5);
+      ctx.textBaseline='alphabetic';
+    }
+  }
+  ctx.restore();
+  return { nColl, nFuori, tagli:[...tagli] };
+}
 /* legenda della mappa del relief, disegnata sulla pianta (resta anche negli screenshot) */
 function drawReliefLegenda(ctx,g){
   const lo=D2.relLo||5, hi=Math.max(lo+0.5,D2.relHi||15);
@@ -3596,9 +3695,10 @@ function drawDesign2D(){
     ctx.save(); ctx.translate(fx-6,(faceY+my2(D2.B))/2); ctx.rotate(-Math.PI/2); ctx.fillStyle=dimC; ctx.textAlign='center'; ctx.font="11px 'Barlow',sans-serif"; ctx.fillText('B '+D2.B.toFixed(1)+' m',0,0); ctx.restore(); }
   /* livelli di lettura (G1/G2): isocrone sotto i fori, cosi i fori restano sempre in primo piano */
   const gGeo={W:W, Hc:Hc, padX:padX, padTop:padTop, bottomY:bottomY, scale:scale, startX:startX, faceY:faceY};
-  let isoInfo=null, eneInfo=null;
+  let isoInfo=null, eneInfo=null, innInfo=null;
   if(D2.ene) eneInfo=drawEnergia2D(ctx,gGeo);                // il campo pieno sta sotto a tutto: è uno sfondo di lettura
   if(D2.iso) isoInfo=drawIsocrone2D(ctx,gGeo);
+  if(D2.inn) innInfo=drawInnesco2D(ctx,gGeo);                // la rete sopra i campi, sotto i fori
   const tMax=Math.max(1,D2.lastDet||1), pfRif=pfNominale();
   H.forEach((h,i)=>{ const cx=mx2(h.mx), cy=my2(h.my+interpFronte(h.mx)), u=(h.tDet||0)/tMax;
     const rcl=reliefCls(h.relief);
@@ -3617,6 +3717,15 @@ function drawDesign2D(){
     ctx.save(); ctx.shadowColor='rgba(255,150,30,.5)'; ctx.shadowBlur=9; ctx.beginPath(); ctx.arc(cx,cy,9,0,7); ctx.fillStyle=col; ctx.fill(); ctx.restore();
     ctx.lineWidth=1.5; ctx.strokeStyle=(i===D2.sel)?'#fff':'rgba(20,12,4,.9)'; ctx.beginPath(); ctx.arc(cx,cy,9,0,7); ctx.stroke();
     ctx.fillStyle='#1a140b'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font="700 9px 'Barlow',sans-serif"; ctx.fillText(((h.seq!=null?h.seq:i)+1), cx, cy); ctx.textBaseline='alphabetic';
+    /* G4 — un foro col ritardo messo a mano si deve riconoscere sulla pianta
+       senza doverlo aprire: chi guarda il disegno deve sapere dove lo schema
+       è stato scavalcato. */
+    if(h.tMano!=null){
+      ctx.save(); ctx.strokeStyle='#fff'; ctx.lineWidth=1.4; ctx.globalAlpha=.9;
+      ctx.beginPath(); ctx.arc(cx,cy,12.5,-0.9,0.9); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx,cy,12.5,Math.PI-0.9,Math.PI+0.9); ctx.stroke();
+      ctx.restore();
+    }
   });
   const sign=D2.dir==='sx'?1:-1, ax0=sign>0?padX:W-padX, ax1=sign>0?padX+110:W-padX-110;
   ctx.strokeStyle='#66bb6a'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(ax0,34); ctx.lineTo(ax1,34); ctx.stroke();
@@ -3672,9 +3781,35 @@ function renderInspector(){
         ? '<span style="color:'+(h.burdenVero<h.burdenLoc*0.85?'#ef5350':'#9b8a60')+'"> · davanti ha '+fmtMs(h.burdenVero)+' m in perpendicolare</span>' : '')
       +'</div>';
   }
-  el.innerHTML='<div class="di-info"><b>Foro '+((h.seq!=null?h.seq:D2.sel)+1)+'</b><span>spalla '+h.my.toFixed(1)+' m · vicino '+(isFinite(nn)?nn.toFixed(1):'-')+' m · t '+(h.tDet||0)+' ms</span>'
+  /* G4 — il ritardo di questo foro si può mettere a mano: capita di doverlo
+     spostare nella sequenza per una frattura, un vuoto, un edificio vicino. */
+  const aMano = h.tMano!=null;
+  const ritTx='<div style="margin-top:5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
+    +'<span style="color:var(--mut2);font-size:12px">ritardo</span>'
+    +'<input id="diRit" type="number" step="1" min="0" max="20000" value="'+(h.tDet||0)+'" style="width:78px" title="Millisecondi dall\'innesco del primo foro">'
+    +'<span style="color:var(--mut2);font-size:12px">ms</span>'
+    +(aMano
+      ? '<span style="color:#ffd54f;font-size:11.5px">a mano · calcolato '+fmtMs(h.tCalc||0)+' ms</span><button class="btn sm" id="diRitAuto" style="padding:2px 8px">↺ calcolato</button>'
+      : '<span style="color:var(--mut2);font-size:11.5px">dallo schema «'+(D2.sequenza||'diagonale')+'»</span>')
+    +'</div>';
+  el.innerHTML='<div class="di-info"><b>Foro '+((h.seq!=null?h.seq:D2.sel)+1)+'</b><span>spalla '+h.my.toFixed(1)+' m · vicino '+(isFinite(nn)?nn.toFixed(1):'-')+' m · t '+(h.tDet||0)+' ms'+(aMano?' (a mano)':'')+'</span>'
+    +ritTx
     +'<div style="margin-top:4px;display:flex;align-items:baseline;flex-wrap:wrap;gap:2px">'+relTx+'</div>'+eneTx+'</div><button class="di-del" id="diDel">✕ Elimina</button>';
   const db=$('diDel'); if(db) db.onclick=()=>{ if(D2.sel<0) return; D2.holes.splice(D2.sel,1); D2.sel=-1; computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); };
+  /* Il ritardo si applica quando si conferma, non a ogni tasto premuto:
+     digitando «120» si passerebbe da 1 a 12 a 120, e a ogni passaggio la
+     sequenza si riordinerebbe sotto le dita. */
+  const ri=$('diRit');
+  if(ri) ri.onchange=()=>{
+    const v=+String(ri.value).replace(',','.');
+    if(!isFinite(v)||v<0){ toast('Il ritardo è un numero di millisecondi, da zero in su'); ri.value=h.tDet||0; return; }
+    h.tMano=+v.toFixed(1);
+    computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
+    toast('Foro a '+fmtMs(h.tMano)+' ms — messo a mano');
+  };
+  const ra=$('diRitAuto');
+  if(ra) ra.onclick=()=>{ h.tMano=null; computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
+    toast('Foro tornato al ritardo calcolato dallo schema'); };
 }
 (function(){ const cv=$('d2-canvas'); if(cv){ cv.addEventListener('pointerdown',d2Down); cv.addEventListener('pointermove',d2Move); window.addEventListener('pointerup',d2Up); } })();
 
@@ -3844,6 +3979,33 @@ function renderScheda2D(){
                    :'Tutti i fori stanno entro il ±15% del progetto: la carica è distribuita in modo uniforme. ')
         +bVero
         +'L\'altezza del banco è considerata costante: se il fronte ha altezze molto diverse, il dato locale va letto come indicativo.'});
+  })();
+  /* G4 — la rete di innesco: si può davvero collegare così in cava? */
+  (function(){
+    const HH=(D2.holes||[]).filter(h=>h.innFrom!=null && h.innFrom>=0 && h.innDt!=null);
+    if(HH.length<1){ rows.push({lab:'Rete di innesco',valStr:'—',cls:'sv-info',
+      why:'con un foro solo, o con tutti i fori sullo stesso istante, non c\'è una rete da collegare.'}); return; }
+    const elettr=(D2.innesco||'')==='elettronico';
+    const fuori=HH.filter(h=>!innTaglioOk(h.innDt));
+    const tagli=[...new Set(HH.map(h=>fmtMs(h.innDt)))].sort((a,b)=>parseFloat(a.replace(',','.'))-parseFloat(b.replace(',','.')));
+    const aMano=(D2.holes||[]).filter(h=>h.tMano!=null).length;
+    /* per ogni ritardo non disponibile, qual è il taglio più vicino che
+       esiste: dire «non si può» senza dire «con cosa allora» non serve */
+    const vicino=(dt)=>INN_TAGLI.reduce((a,v)=>Math.abs(v-dt)<Math.abs(a-dt)?v:a, INN_TAGLI[0]);
+    const dtFuori=[...new Set(fuori.map(h=>h.innDt))].sort((a,b)=>a-b);
+    const suggerimenti=dtFuori.map(dt=>fmtMs(dt)+' → '+vicino(dt)).join(', ');
+    rows.push({lab:'Rete di innesco',valStr:HH.length+' <span>collegamenti · '+tagli.length+(tagli.length===1?' taglio':' tagli')+'</span>',
+      cls: (elettr||!fuori.length)? 'sv-ok' : 'sv-warn',
+      why:'la sequenza dice a che millisecondo spara ogni foro, ma in cava si collegano i fori uno all\'altro: il ritardo è la differenza fra due fori collegati. Qui servono raccordi da '+tagli.join(', ')+' ms. '
+        +(elettr
+          ? 'Coi detonatori elettronici qualunque valore si programma esattamente: nessun vincolo di magazzino.'
+          : (fuori.length
+             ? 'Col <b>Nonel</b> i raccordi di superficie esistono solo in certi tagli ('+INN_TAGLI.join(', ')+' ms): '+(dtFuori.length===1?'un valore qui non c\'è':dtFuori.length+' valori qui non ci sono')+'. Il più vicino disponibile: <b>'+suggerimenti+'</b> ms. Sulla pianta il livello <b>Innesco</b> li disegna in rosso tratteggiato. '
+               +(D2.stagger?'Il valore dimezzato viene dalle <b>file sfalsate</b>: con lo sfalsamento i fori della fila dietro cadono a mezzo interasse, e la diagonale li tempa a metà del ritardo inter-foro. ':'')
+               +'Non è un errore di progetto: è che il tempo va scelto fra quelli che si comprano. Si sistema portando il ritardo inter-foro o inter-fila su un valore disponibile, oppure passando ai detonatori elettronici, che li programmano esatti.'
+             : 'Tutti i ritardi corrispondono a raccordi di superficie esistenti: la rete è collegabile con quello che si compra.'))
+        +(aMano?' Attenzione: '+aMano+(aMano===1?' foro ha':' fori hanno')+' il ritardo messo a mano, quindi la rete non segue più solo lo schema.':'')
+        +' Il verso della freccia dice da dove arriva il fuoco. È una <b>ricostruzione</b> dai tempi: il collegamento vero resta decisione del responsabile del tiro.'});
   })();
   rows.push(badge(subB,'Sottoperforazione',sub.toFixed(1)+' m ('+subB.toFixed(2)+'·B)',0.2,0.4,0.1,0.55,
     'sottoperf. nel range 0,2–0,4·B (~'+subRec.toFixed(1)+' m, 8–12·Ø): piede pulito.',
@@ -4069,6 +4231,7 @@ function syncLayerUI(){
   if($('dlIsoStepF')) $('dlIsoStepF').classList.toggle('on', !!D2.iso);
   if($('dlRelWinF')) $('dlRelWinF').classList.toggle('on', !!D2.rel);
   if($('dlEne')) $('dlEne').classList.toggle('on', !!D2.ene);
+  if($('dlInn')) $('dlInn').classList.toggle('on', !!D2.inn);
 }
 if($('dlIso')) $('dlIso').addEventListener('click', ()=>{ D2.iso=!D2.iso; syncLayerUI(); drawDesign2D();
   if(typeof toast==='function') toast(D2.iso?('Isocrone attive — passo '+isoPasso()+' ms: ogni curva unisce i punti che sparano nello stesso istante'):'Isocrone disattivate'); });
@@ -4076,6 +4239,8 @@ if($('dlRel')) $('dlRel').addEventListener('click', ()=>{ D2.rel=!D2.rel; syncLa
   if(typeof toast==='function') toast(D2.rel?('Relief per foro attivo — finestra '+fmtMs(D2.relLo)+'–'+fmtMs(D2.relHi)+' ms/m'):'Mappa del relief disattivata'); });
 if($('dlEne')) $('dlEne').addEventListener('click', ()=>{ D2.ene=!D2.ene; syncLayerUI(); drawDesign2D(); renderInspector();
   if(typeof toast==='function') toast(D2.ene?('Mappa dell’energia attiva — riferimento '+fmtKg(pfNominale())+' kg/m³ di progetto'):'Mappa dell’energia disattivata'); });
+if($('dlInn')) $('dlInn').addEventListener('click', ()=>{ D2.inn=!D2.inn; syncLayerUI(); drawDesign2D();
+  if(typeof toast==='function') toast(D2.inn?'Rete di innesco attiva — sulle linee il ritardo che deve avere il raccordo':'Rete di innesco disattivata'); });
 if($('dlIsoStep')) $('dlIsoStep').addEventListener('change', ()=>{ D2.isoStep=Math.max(0,+$('dlIsoStep').value||0); drawDesign2D(); });
 ['dlRelLo','dlRelHi'].forEach(id=>{ const el=$(id); if(!el) return; el.addEventListener('change', ()=>{
   D2.relLo=Math.max(0.5, Math.min(60, +$('dlRelLo').value||5));
