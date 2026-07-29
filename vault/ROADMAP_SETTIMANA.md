@@ -123,6 +123,29 @@ Vengono prima di ogni funzione nuova: senza queste basi il resto non regge.
 - [x] **F6. Flotta — scadenze di legge dei mezzi** ✅ *(28/07)* — con
       semaforo, preset normativi modificabili e proposta della ricorrenza.
 
+## BLOCCO 1-bis — I GRAFICI *(dal motore condiviso)*
+Piano e motivazioni in `docs/PIANO_GRAFICI.md`. Motore in
+`shared/dw-grafici.js` (SVG puro, nessuna libreria).
+
+- [x] **Motore grafici + fluidità** ✅ *(29/07)* — linee/aree con soglia,
+      barre, barre ordinate col taglio all'80%, ciambella, sparkline,
+      avanzamento con tacca; tooltip, animazione d'ingresso, tre temi,
+      tabella «Dati» su ogni grafico. Corretto un difetto che chiudeva il
+      tooltip sopra le barre in **tutte e sei** le app.
+- [x] **Flotta** ✅ — dove va la spesa, costo di officina per mezzo,
+      disponibilità con la tacca del riferimento di settore.
+- [x] **Conti** ✅ — previsione incassi 6 mesi, esposizione per cliente con
+      la tacca del fido, invecchiamento del credito in barre vere.
+- [x] **Terra** ✅ — avanzamento anno con la tacca del pro-quota, volumi per
+      mese, volumi per fronte. Vita cava tenuta a mano: è migliore.
+- [ ] **Scudo** — copertura formazione per tipo.
+- [ ] **Sentinella** — punto peggiore in miniatura nel Quadro.
+- [ ] **Campo** — scostamento della carica per foro.
+- [ ] **Sbloccare gli andamenti**: manca il campo data ai costi di Flotta,
+      la fotografia giornaliera del parco mezzi, e la data di incasso vera
+      in Conti. Finché mancano, quei grafici NON si fanno: mostrerebbero
+      numeri inventati.
+
 ## BLOCCO 2 — LE SEI APP, PROPOSTE DALLA RICERCA *(in parallelo)*
 Dettaglio e fonti in `docs/RICERCA_<APP>_202607.md`.
 
