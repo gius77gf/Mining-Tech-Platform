@@ -13,6 +13,10 @@
 //       vince su quella del punto di misura collegato.
 //   reclami/{id}:     { data, ora, tipo, ricettoreId, chi, descrizione,
 //                       azione, stato: aperto|chiuso }
+//   programma/{id}:   { monitoraggioId, ogniGiorni, tolleranzaGiorni,
+//                       dal, nota, attivo } → il piano di monitoraggio:
+//       che cosa va misurato, dove e ogni quanto. Lo stato (in regola /
+//       da fare / in ritardo) si CALCOLA dall'ultima lettura del punto.
 // ============================================================
 
 import { parseCsvLine, numIt, giorniTra, isIntestazione } from "../../shared/deepwork-id-client/dw-shell.js";
@@ -51,6 +55,16 @@ export const DEMO = {
     { id: "g1", titolo: "Registro rifiuti", nota: "ultimo carico 16/07", stato: "aggiornato" },
     { id: "g2", titolo: "Registro acque meteoriche", nota: "aggiornato 07/2026", stato: "aggiornato" },
     { id: "g3", titolo: "Formulari trasporto", nota: "3 in attesa di quarta copia", stato: "in-attesa" },
+  ],
+  programma: [
+    // il piano: ogni riga dice ogni quanti giorni va misurato un punto.
+    // La tolleranza è il ritardo che l'azienda considera accettabile
+    // prima di parlare di ritardo vero.
+    { id: "pr1", monitoraggioId: "p1", ogniGiorni: 7,   tolleranzaGiorni: 2, dal: "2026-06-14", nota: "Centralina PM10 al confine: scarico settimanale dei dati.", attivo: true },
+    { id: "pr2", monitoraggioId: "v1", ogniGiorni: 15,  tolleranzaGiorni: 3, dal: "2026-06-08", nota: "Sismografo abitato Sud.", attivo: true },
+    { id: "pr3", monitoraggioId: "v2", ogniGiorni: 15,  tolleranzaGiorni: 3, dal: "2026-06-05", nota: "Sismografo confine Nord.", attivo: true },
+    { id: "pr4", monitoraggioId: "r1", ogniGiorni: 90,  tolleranzaGiorni: 7, dal: "2026-06-10", nota: "Campagna fonometrica trimestrale del tecnico acustico.", attivo: true },
+    { id: "pr5", monitoraggioId: "a1", ogniGiorni: 182, tolleranzaGiorni: 10, dal: "", nota: "Campionamento acque della vasca.", attivo: true },
   ],
   volate: [
     { id: "b1", data: "2026-07-17", fronte: "Fronte Nord", nFori: 42, kgTotali: 480, kgMaxRitardo: 18, distanzaRicettore: 320, esito: "regolare", note: "" },
@@ -757,6 +771,239 @@ export function riepilogoReclami(reclami) {
   return { totale: l.length, aperti: l.filter(x => (x || {}).stato !== "chiuso").length, ultimo };
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// T5 · PROGRAMMA DI MONITORAGGIO
+// Le letture entrano, ma finora nessuno diceva se il PIANO è stato
+// rispettato — ed è la prima cosa che un ente chiede: che cosa misuri,
+// dove, ogni quanto, e se sei in pari. Una riga di programma dice
+// «questo punto va misurato ogni N giorni»; lo stato NON si salva, si
+// calcola dall'ultima lettura di quel punto, esattamente come lo stato
+// delle scadenze. Così non esiste il caso di una riga «in regola»
+// salvata mesi fa e mai più aggiornata.
+// NIENTE periodicità di legge cablate: frequenze e tolleranze cambiano
+// da autorizzazione a autorizzazione e le imposta l'utente.
+// Collezione:
+//   programma/{id}: { monitoraggioId, ogniGiorni, tolleranzaGiorni,
+//                     dal (ISO, facoltativa), nota, attivo }
+// COMPATIBILITÀ: la collezione può non esistere (nessuna riga) — tutte
+// le funzioni ritornano liste e conteggi vuoti, niente si rompe.
+// ══════════════════════════════════════════════════════════════════════
+
+// Periodicità tipiche, come voci del menù: sono solo scorciatoie per
+// scrivere il numero di giorni, non regole. «Mensile» qui vale 30 giorni
+// (e lo scriviamo nell'interfaccia): un mese di calendario non ha una
+// durata fissa, e far finta di sì renderebbe il conto meno prevedibile.
+export const PERIODICITA = [
+  { chiave: "giornaliera",  etichetta: "Ogni giorno",       giorni: 1 },
+  { chiave: "settimanale",  etichetta: "Ogni settimana",    giorni: 7 },
+  { chiave: "quindicinale", etichetta: "Ogni due settimane", giorni: 15 },
+  { chiave: "mensile",      etichetta: "Ogni mese",         giorni: 30 },
+  { chiave: "bimestrale",   etichetta: "Ogni due mesi",     giorni: 60 },
+  { chiave: "trimestrale",  etichetta: "Ogni tre mesi",     giorni: 90 },
+  { chiave: "semestrale",   etichetta: "Ogni sei mesi",     giorni: 182 },
+  { chiave: "annuale",      etichetta: "Ogni anno",         giorni: 365 },
+];
+// Etichetta parlante della frequenza: se i giorni coincidono con una
+// periodicità tipica si usa il suo nome, altrimenti «ogni N giorni».
+export function etichettaFrequenza(ogniGiorni) {
+  const n = Math.round(+ogniGiorni || 0);
+  if (!(n > 0)) return "frequenza non impostata";
+  const p = PERIODICITA.find(x => x.giorni === n);
+  return p ? p.etichetta.toLowerCase() : "ogni " + n + " giorni";
+}
+
+// Data ISO spostata di n giorni (calcolo in UTC per non inciampare
+// nell'ora legale). Ritorna "" se la data non è valida.
+export function piuGiorni(dataISO, n) {
+  const s = String(dataISO || "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return "";
+  const d = new Date(s + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + Math.round(+n || 0));
+  return d.toISOString().slice(0, 10);
+}
+
+// L'ultima lettura registrata su un punto di misura (per data e ora),
+// oppure null. Pura.
+export function ultimaLettura(m) {
+  const l = (((m || {}).letture) || [])
+    .map(x => ({ data: String((x || {}).data || "").slice(0, 10), ora: String((x || {}).ora || ""), valore: +((x || {}).valore) }))
+    .filter(x => /^\d{4}-\d{2}-\d{2}$/.test(x.data) && Number.isFinite(x.valore))
+    .sort((a, b) => { const ka = chiaveOrdine(a), kb = chiaveOrdine(b); return ka < kb ? -1 : ka > kb ? 1 : 0; });
+  return l.length ? l[l.length - 1] : null;
+}
+
+// Stato di UNA riga di programma. Si calcola dall'ultima lettura del punto
+// collegato: prossima = ultima + ogni quanti giorni; poi
+//   · oltre la tolleranza  → in ritardo (rosso)
+//   · scaduta ma dentro la tolleranza → da fare (giallo)
+//   · non ancora scaduta   → in regola (verde)
+// Senza nessuna lettura si guarda la data di inizio, se c'è; senza
+// nemmeno quella lo stato è «mai misurato», che è un avviso e non un
+// allarme: magari il punto è stato appena creato.
+export function statoRigaProgramma(riga, monitoraggio, oggi = new Date()) {
+  const r = riga || {};
+  const ogni = Math.round(+r.ogniGiorni || 0);
+  const toll = Math.max(0, Math.round(+r.tolleranzaGiorni || 0));
+  const ul = ultimaLettura(monitoraggio);
+  const dal = /^\d{4}-\d{2}-\d{2}$/.test(String(r.dal || "")) ? String(r.dal) : null;
+  const base = { ogniGiorni: ogni, tolleranzaGiorni: toll, ultima: ul ? ul.data : null,
+    ultimoValore: ul ? ul.valore : null, maiMisurato: !ul, dal, prossima: null, giorni: null, ritardo: 0 };
+  if (r.attivo === false) return { ...base, stato: "sospesa", cls: "", label: "Sospesa" };
+  if (!(ogni > 0)) return { ...base, stato: "senza-frequenza", cls: "warn", label: "Senza frequenza" };
+  const partenza = ul ? ul.data : dal;
+  if (!partenza) return { ...base, stato: "mai", cls: "warn", label: "Mai misurato" };
+  const prossima = piuGiorni(partenza, ogni);
+  const g = giorniTra(prossima, oggi);              // > 0 = ancora nel futuro
+  const ritardo = g < 0 ? -g : 0;
+  const stato = g < -toll ? "in-ritardo" : g <= 0 ? "da-fare" : "in-regola";
+  const cls = stato === "in-ritardo" ? "danger" : stato === "da-fare" ? "warn" : "ok";
+  const label = stato === "in-ritardo" ? "In ritardo di " + ritardo + (ritardo === 1 ? " giorno" : " giorni")
+    : stato === "da-fare" ? (ritardo ? "Da fare da " + ritardo + (ritardo === 1 ? " giorno" : " giorni") : "Da fare oggi")
+    : "Fra " + g + (g === 1 ? " giorno" : " giorni");
+  return { ...base, prossima, giorni: g, ritardo, stato, cls, label };
+}
+
+// Il programma con dentro il punto di misura e il suo stato, ordinato
+// per urgenza: prima i ritardi (dal più lungo), poi i mai misurati, poi
+// quello che sta per scadere, in fondo ciò che è in regola e le righe
+// sospese. Le righe che puntano a un punto sparito restano visibili con
+// `monitoraggio: null`: sparire in silenzio sarebbe peggio.
+export function programmaEsteso(programma, monitoraggi, oggi = new Date()) {
+  const rank = { "in-ritardo": 0, "senza-frequenza": 1, mai: 2, "da-fare": 3, "in-regola": 4, sospesa: 5 };
+  return (programma || []).map(r => {
+    const m = (monitoraggi || []).find(x => x && x.id === r.monitoraggioId) || null;
+    return { riga: r, monitoraggio: m, nome: m ? (m.nome || "Punto di misura") : "Punto non più in elenco",
+      stato: statoRigaProgramma(r, m, oggi) };
+  }).sort((a, z) =>
+    (rank[a.stato.stato] - rank[z.stato.stato]) ||
+    (z.stato.ritardo - a.stato.ritardo) ||
+    String(a.nome).localeCompare(String(z.nome), "it"));
+}
+
+// Conteggi per le tessere: quante righe in regola, da fare, in ritardo,
+// mai misurate, sospese.
+export function riepilogoProgramma(programma, monitoraggi, oggi = new Date()) {
+  const out = { totale: 0, inRegola: 0, daFare: 0, inRitardo: 0, mai: 0, sospese: 0, senzaFrequenza: 0 };
+  for (const v of programmaEsteso(programma, monitoraggi, oggi)) {
+    out.totale++;
+    const s = v.stato.stato;
+    if (s === "in-ritardo") out.inRitardo++;
+    else if (s === "da-fare") out.daFare++;
+    else if (s === "mai") out.mai++;
+    else if (s === "sospesa") out.sospese++;
+    else if (s === "senza-frequenza") out.senzaFrequenza++;
+    else out.inRegola++;
+  }
+  return out;
+}
+
+// Le righe che chiedono attenzione, nella stessa forma delle allerte del
+// quadro ({ gravita, categoria, titolo, dettaglio, badge }) così si
+// mescolano con misure e adempimenti senza casi particolari.
+export function allerteProgramma(programma, monitoraggi, oggi = new Date()) {
+  return programmaEsteso(programma, monitoraggi, oggi)
+    .filter(v => ["in-ritardo", "da-fare", "mai", "senza-frequenza"].includes(v.stato.stato))
+    .map(v => ({
+      gravita: v.stato.cls === "danger" ? "danger" : "warn",
+      categoria: "programma",
+      titolo: v.nome,
+      dettaglio: (v.stato.ogniGiorni > 0 ? etichettaFrequenza(v.stato.ogniGiorni) : "frequenza non impostata")
+        + (v.stato.ultima ? " · ultima misura " + dataIt(v.stato.ultima) : " · nessuna misura registrata"),
+      badge: v.stato.label,
+    }));
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// T6 · ANDAMENTO PER RICETTORE, CON CONFRONTO FRA PERIODI
+// La domanda è «come sta andando dove abita la gente, rispetto al mese
+// scorso». Le funzioni qui sotto preparano i numeri; il disegno lo fa il
+// motore condiviso dei grafici. Regola di onestà: se le letture non
+// bastano NON si inventa una linea — si dice quante ce ne sono.
+// ══════════════════════════════════════════════════════════════════════
+
+// Primo e ultimo giorno di un mese (anno, mese 1-12), in ISO.
+export function limitiMese(anno, mese) {
+  const a = Math.round(+anno), m = Math.round(+mese);
+  const p = (n) => String(n).padStart(2, "0");
+  const ultimo = new Date(Date.UTC(a, m, 0)).getUTCDate();
+  return { dal: `${a}-${p(m)}-01`, al: `${a}-${p(m)}-${p(ultimo)}`, anno: a, mese: m };
+}
+
+// Letture di un punto dentro un intervallo (estremi compresi), ordinate.
+export function lettureNelPeriodo(m, dal, al) {
+  const d = String(dal || "").slice(0, 10), a = String(al || "").slice(0, 10);
+  return (((m || {}).letture) || [])
+    .map(l => ({ data: String((l || {}).data || "").slice(0, 10), ora: String((l || {}).ora || ""), valore: +((l || {}).valore) }))
+    .filter(l => /^\d{4}-\d{2}-\d{2}$/.test(l.data) && Number.isFinite(l.valore))
+    .filter(l => (!d || l.data >= d) && (!a || l.data <= a))
+    .sort((x, z) => { const kx = chiaveOrdine(x), kz = chiaveOrdine(z); return kx < kz ? -1 : kx > kz ? 1 : 0; });
+}
+
+// Statistiche di un punto in un periodo: quante letture, media, massimo,
+// minimo e quanti superamenti della soglia applicata (>= soglia, come in
+// tutto il resto dell'app). Senza letture torna n = 0 e valori null.
+export function statPeriodo(m, dal, al, soglia) {
+  const l = lettureNelPeriodo(m, dal, al);
+  const v = l.map(x => x.valore);
+  const s = Number.isFinite(+soglia) && +soglia > 0 ? +soglia : null;
+  return {
+    dal, al, n: l.length, letture: l,
+    media: v.length ? v.reduce((a, b) => a + b, 0) / v.length : null,
+    max: v.length ? Math.max(...v) : null,
+    min: v.length ? Math.min(...v) : null,
+    superamenti: s == null ? 0 : v.filter(x => x >= s).length,
+  };
+}
+
+// Confronto fra il mese in corso e quello prima, per un punto di misura.
+// `confrontabile` è vero solo se in ENTRAMBI i mesi c'è almeno una
+// lettura; `debole` avvisa quando una media poggia su una lettura sola.
+export function confrontoMesi(m, soglia, oggi = new Date()) {
+  const o = new Date(oggi);
+  const cur = limitiMese(o.getFullYear(), o.getMonth() + 1);
+  const p = new Date(o.getFullYear(), o.getMonth() - 1, 1);
+  const pre = limitiMese(p.getFullYear(), p.getMonth() + 1);
+  const corrente = { ...statPeriodo(m, cur.dal, cur.al, soglia), anno: cur.anno, mese: cur.mese };
+  const precedente = { ...statPeriodo(m, pre.dal, pre.al, soglia), anno: pre.anno, mese: pre.mese };
+  const confrontabile = corrente.n > 0 && precedente.n > 0;
+  const deltaMedia = confrontabile ? corrente.media - precedente.media : null;
+  const deltaPct = confrontabile && precedente.media > 0
+    ? Math.round(1000 * deltaMedia / precedente.media) / 10 : null;
+  return {
+    corrente, precedente, confrontabile,
+    debole: confrontabile && (corrente.n < 2 || precedente.n < 2),
+    deltaMedia, deltaPct,
+    deltaSuperamenti: corrente.superamenti - precedente.superamenti,
+  };
+}
+
+// Tutto quello che serve alla schermata «andamento per ricettore»: per
+// ogni punto di misura collegato a quel ricettore, la soglia applicata,
+// le letture della finestra scelta (di serie 6 mesi, mese in corso
+// compreso), il confronto coi due mesi e il numero minimo di letture per
+// disegnare una linea onesta (`abbastanza`, di serie 3).
+export function andamentoRicettore(monitoraggi, ricettori, ricettoreId, opts = {}) {
+  const oggi = opts.oggi ? new Date(opts.oggi) : new Date();
+  const mesi = Math.max(1, Math.round(+opts.mesi || 6));
+  const minLetture = Math.max(2, Math.round(+opts.minLetture || 3));
+  const inizio = limitiMese(new Date(oggi.getFullYear(), oggi.getMonth() - (mesi - 1), 1).getFullYear(),
+    new Date(oggi.getFullYear(), oggi.getMonth() - (mesi - 1), 1).getMonth() + 1);
+  const fine = limitiMese(oggi.getFullYear(), oggi.getMonth() + 1);
+  const punti = (monitoraggi || [])
+    .filter(m => m && m.ricettoreId === ricettoreId)
+    .map(m => {
+      const eff = sogliaEfficace(m, ricettori);
+      const letture = lettureNelPeriodo(m, inizio.dal, fine.al);
+      return {
+        m, nome: m.nome || "Punto di misura", unita: unitaMisura(m), soglia: eff,
+        letture, n: letture.length, abbastanza: letture.length >= minLetture,
+        confronto: confrontoMesi(m, eff.valore, oggi),
+      };
+    });
+  return { ricettore: trovaRicettore(ricettori, ricettoreId), punti, mesi, minLetture,
+    dal: inizio.dal, al: fine.al };
+}
+
 export async function sentinellaData() {
   let mode = "demo", api = null;
   try {
@@ -769,7 +1016,7 @@ export async function sentinellaData() {
       const read = async (n) => (await getDocs(id.orgCollection(n))).docs.map(d => ({ id: d.id, ...d.data() }));
       api = {
         monitoraggi: () => read("monitoraggi"), adempimenti: () => read("adempimenti"), registri: () => read("registri"), volate: () => read("volate"),
-        ricettori: () => read("ricettori"), reclami: () => read("reclami"),
+        ricettori: () => read("ricettori"), reclami: () => read("reclami"), programma: () => read("programma"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
         logout: () => id.logout(),
         aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n), i), d),
@@ -781,7 +1028,7 @@ export async function sentinellaData() {
     const mem = JSON.parse(JSON.stringify(DEMO));
     api = {
       monitoraggi: async () => mem.monitoraggi, adempimenti: async () => mem.adempimenti, registri: async () => mem.registri, volate: async () => mem.volate,
-      ricettori: async () => mem.ricettori, reclami: async () => mem.reclami,
+      ricettori: async () => mem.ricettori, reclami: async () => mem.reclami, programma: async () => mem.programma || [],
       logout: async () => {},
       aggiungi: async (n, d) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[n] = mem[n] || []).push({ id, ...d }); return { id }; },
       aggiorna: async (n, i, d) => { const x = (mem[n] || (mem[n] = [])).find(v => v.id === i); if (x) Object.assign(x, d); },

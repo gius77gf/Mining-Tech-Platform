@@ -1792,7 +1792,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            <div class="board-ico">${bloc ? I.lucchetto : I.nuvola}</div>
            <div><div class="board-num" style="font-size:24px">${esc(String(m.cielo || "—"))}</div>
              <div class="board-lab">Turno ${esc(turno)} · ${dmy(OGGI)}</div></div>
-           <div class="board-txt">${dettagli ? "<b>" + esc(dettagli) + "</b>" : ""}${dettagli && mancano.length ? " · " : ""}${mancano.length ? "manca ancora " + esc(mancano.join(" e ")) : ""}
+           <div class="board-txt">${dettagli ? "<b>" + esc(dettagli) + "</b>" : ""}${dettagli && mancano.length ? " · " : ""}${mancano.length ? (mancano.length === 1 ? "manca ancora " : "mancano ancora ") + esc(mancano.join(" e ")) : ""}
              ${m.note ? "<br>" + esc(m.note) : ""}
              ${brutto ? "<br>Condizioni difficili: <b>spiegano i fermi</b> e vanno scritte sul rapporto." : ""}
              ${bloc ? "<br><b>Turno chiuso e firmato</b>: le condizioni non si possono più cambiare." : ""}</div>

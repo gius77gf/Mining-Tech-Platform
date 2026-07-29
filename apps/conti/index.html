@@ -1318,8 +1318,9 @@ label.item:has(.dw-chk:checked){
                        + (f.giorniPagamento != null ? " (" + plur(f.giorniPagamento, "giorno", "giorni") + ")" : "")
                      : "incassata, data non registrata")
           : "scade " + fmtD(f.scadenza),
-        f.parziale ? plur(f.nMovimenti, "acconto", "acconti") + " " + eur(f.incassato)
-                     + (f.ultimoIncasso ? ", l'ultimo il " + fmtD(f.ultimoIncasso) : "") : "",
+        f.parziale ? (f.nMovimenti === 1
+                       ? "acconto " + eur(f.incassato) + (f.ultimoIncasso ? " il " + fmtD(f.ultimoIncasso) : "")
+                       : f.nMovimenti + " acconti " + eur(f.incassato) + (f.ultimoIncasso ? ", l'ultimo il " + fmtD(f.ultimoIncasso) : "")) : "",
         im.conIva ? "imponibile " + eur(im.imponibile) + " + IVA " + eur(im.ivaImporto)
                   : "senza dettaglio IVA",
         nDdt ? "da " + plur(nDdt, "DDT", "DDT") : "",
