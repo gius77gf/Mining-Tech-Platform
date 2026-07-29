@@ -5,11 +5,12 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-07-29 12:45 UTC
-**Cosa sta per fare:** proseguire col Blocco 2 (proposte delle schede di
-ricerca ancora aperte), lavorando in parallelo sulle app. La PR #322 e
-aperta e verde: i suoi controlli sono seguiti a parte.
-**Commit di partenza:** `eac9e78`
+**Ultimo ciclo riuscito:** 2026-07-29 18:45 UTC
+**Cosa sta per fare:** rimettere in sicurezza le quattro app lasciate a metà
+quando i cantieri si sono fermati per il limite di sessione della
+piattaforma (Scudo, Conti, Sentinella, Flotta): prima verificare che nessuna
+sia rotta, poi portare a termine le unità aperte. Il limite si è riaperto.
+**Commit di partenza:** `184a2a6`
 
 ---
 
