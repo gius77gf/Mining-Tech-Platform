@@ -49,17 +49,40 @@ una volta in cima alla pagina e valgono per checklist, appello e chiusura.
 4. **Obiettivo del turno**: si punta solo a ciò che l'app misura davvero —
    produzione dei rapportini (t, m³, viaggi) o attività concluse. Un obiettivo
    per turno; barra di avanzamento e scostamento a colpo d'occhio.
-4. **Rapportini di turno**, copertura per squadra, totali di produzione,
+5. **Rapportini di turno**, copertura per squadra, totali di produzione,
    consegna di turno in testo e **rapporto di fine turno stampabile**.
-5. **Chiusura del turno**: la firma della consegna — chi consegna, chi riceve,
-   l'ora, le note. Si può riaprire, ma è un gesto dichiarato. Senza firma il
-   rapporto stampato porta le righe vuote da compilare a penna.
-6. **Piano di carico** importato da Genesi, con la carica reale per foro e lo
+6. **Chiusura del turno**: la firma della consegna — chi consegna, chi riceve,
+   l'ora, le note. Senza firma il rapporto stampato porta le righe vuote da
+   compilare a penna.
+7. **Piano di carico** importato da Genesi, con la carica reale per foro e lo
    scostamento dal progetto.
 
+### Il turno chiuso non si tocca più
+
+Una firma vale qualcosa solo se, dopo la firma, il turno non cambia più.
+Quando un turno (giorno + turno) è chiuso, **tutti** i punti di salvataggio
+che lo riguardano rifiutano la scrittura e dicono perché: stato, causale,
+minuti e foto delle attività, modifica e creazione di attività, rapportini
+(creazione, invio, richiamo in bozza, eliminazione) e con essi la produzione,
+checklist, appello, meteo, obiettivo del turno, import del piano di carico e
+carica reale dei fori. I comandi si vedono spenti, le righe portano la
+pillola **turno chiuso**.
+
+Non è il divieto di correggere: è il divieto di correggere **di nascosto**.
+Il turno si **riapre**, ma la riapertura chiede **chi** e **perché**, e resta
+scritta per sempre — sotto la chiusura e dentro il rapporto di fine turno,
+anche dopo che il turno è stato rifirmato.
+
+**Compatibilità**: le registrazioni salvate prima che esistessero giorno e
+turno (senza `data` o senza `turno`) non appartengono a nessun turno chiuso e
+restano modificabili come sempre. Anagrafica di squadre e persone: sempre
+modificabile, non è un dato di turno.
+
 Il **rapporto di fine turno stampabile** raccoglie tutto: quadro, checklist,
-personale presente, obiettivo e scostamento, attività con chi era assegnato a
-cosa, fermi per causale, produzione, rapportini e firme di chiusura.
+meteo e condizioni del sito, personale presente, obiettivo e scostamento,
+attività con chi era assegnato a cosa, fermi per causale, **foto delle
+anomalie**, produzione, rapportini, firme di chiusura ed eventuali
+**riaperture** (chi, quando, perché).
 
 **Storico** — la settimana in cava: 7, 14 o 30 giorni, giornata per giornata
 (prodotto, minuti di fermo, attività concluse, rapportini), grafico della
@@ -80,7 +103,10 @@ attività e rapportini si spostano su quel giorno.
 
 Collezioni (sotto `organizations/{org}/apps/campo/`): `attivita`, `squadre`,
 `operatori`, `rapportini`, `obiettivi`, `checklist`, `presenze`, `chiusure`,
-`pianocarico`.
+`meteo`, `pianocarico`.
+Il blocco delle scritture passa da **una sola** funzione pura
+(`turnoChiuso(chiusure, data, turno)`): se un punto di salvataggio non passa
+di lì, il blocco non serve a niente.
 Il **giorno di lavoro** (`data`, formato aaaa-mm-gg) è la chiave di tutto:
 senza di esso non esistono storico né conteggi veri.
 
@@ -90,3 +116,9 @@ senza di esso non esistono storico né conteggi veri.
   `node --input-type=module --check`.
 - Vista: server statico locale + Chromium headless, schermate a **1280px e
   390px** (in cava si guarda dal telefono), tema scuro, chiaro e sole.
+- Blocco del turno chiuso: chiudere un turno e poi provare **uno per uno**
+  tutti i punti di salvataggio, forzando anche i comandi disabilitati (il
+  blocco deve stare nel salvataggio, non solo nell'interfaccia); poi riaprire
+  e verificare che tornino modificabili e che la riapertura resti scritta.
+- Compatibilità: servire alla pagina dati vecchi **senza data e senza turno**
+  e verificare che restino modificabili anche a turno di oggi chiuso.

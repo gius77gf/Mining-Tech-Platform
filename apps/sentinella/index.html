@@ -93,7 +93,7 @@
   --info-basis:110px;
   --arr-ico:17px;
   --arr-stroke:1.7;
-  --nav-cols:5;
+  --nav-cols:6;
   --kpi-cols:4;
   --form-gap:9px;
   --form-pad:13px;
@@ -879,6 +879,65 @@ textarea.dw-input{
   <div id="sd-max" class="note recap"></div>
 </div>
 
+<!-- T5 · PROGRAMMA DI MONITORAGGIO ────────────────────────────────────
+     Che cosa si misura, dove, ogni quanto — e che cosa è in ritardo. Lo
+     stato non si salva: si calcola dall'ultima lettura del punto. -->
+<div class="page" id="page-prog">
+  <div class="sec">Programma di monitoraggio<span class="cnt" id="prg-tot">0</span></div>
+  <div class="note">Il programma dice <b>che cosa si misura, dove e ogni quanto</b>. Lo stato
+    non lo scrivi tu: Sentinella lo calcola dall'<b>ultima lettura</b> del punto, così una riga
+    non può restare «in regola» mentre nessuno misura più.</div>
+  <div class="kpis" id="prg-kpi"></div>
+  <div id="prg-filtri" class="chgs">
+    <button class="chg active" data-filtro="tutte">Tutte</button>
+    <button class="chg" data-filtro="in-ritardo">In ritardo</button>
+    <button class="chg" data-filtro="da-fare">Da fare</button>
+    <button class="chg" data-filtro="in-regola">In regola</button>
+  </div>
+  <div id="prg-list"></div>
+
+  <div class="sec" id="prg-form-sec">Aggiungi una riga di programma</div>
+  <div class="form col">
+    <div class="frow">
+      <label class="flab" for="prg-punto" style="flex:2 1 220px;">Punto di misura
+        <select class="dw-input" id="prg-punto"></select></label>
+      <label class="flab" for="prg-freq" style="flex:1 1 190px;">Ogni quanto
+        <select class="dw-input" id="prg-freq"></select></label>
+    </div>
+    <div class="frow">
+      <label class="flab" for="prg-giorni" style="flex:1 1 120px;">Giorni
+        <input class="dw-input" id="prg-giorni" type="number" min="1" max="3650" placeholder="es. 7"></label>
+      <label class="flab" for="prg-toll" style="flex:1 1 150px;">Tolleranza (giorni)
+        <input class="dw-input" id="prg-toll" type="number" min="0" max="365" placeholder="0"></label>
+      <label class="flab" for="prg-dal" style="flex:1 1 165px;">In vigore dal
+        <input class="dw-input" id="prg-dal" type="date"></label>
+    </div>
+    <div class="frow">
+      <input class="dw-input" id="prg-nota" placeholder="Nota (es. chi esegue la misura)" style="flex:2 1 220px;">
+      <button class="dw-btn" id="btn-prg">Aggiungi</button>
+    </div>
+    <div class="form-hint">La <b>tolleranza</b> è il ritardo che consideri accettabile: dentro la
+      tolleranza la riga è gialla (<b>da fare</b>), oltre diventa rossa (<b>in ritardo</b>).
+      «Ogni mese» qui vale <b>30 giorni</b> e «ogni sei mesi» 182: sono giorni contati, non mesi
+      di calendario, così la scadenza è sempre prevedibile.</div>
+    <div class="form-hint">La data <b>in vigore dal</b> serve finché il punto non ha nessuna
+      lettura: da lì Sentinella conta la prima scadenza. Le frequenze non sono regole di legge:
+      le scrivi tu, leggendole nella tua autorizzazione o nel piano di monitoraggio.</div>
+  </div>
+  <div class="note esito" id="prg-esito"></div>
+
+  <!-- T6 · ANDAMENTO PER RICETTORE ───────────────────────────────────── -->
+  <div class="sec">Andamento per ricettore</div>
+  <div class="form col">
+    <label class="flab" for="and-ric">Ricettore
+      <select class="dw-input" id="and-ric"></select></label>
+    <div class="form-hint">Si vedono i punti di misura collegati a quel ricettore, con la
+      <b>soglia applicata</b> e il confronto fra il <b>mese in corso</b> e quello prima. Se le
+      letture sono poche il grafico non si disegna: una linea fra due misure non è un andamento.</div>
+  </div>
+  <div id="and-out"></div>
+</div>
+
 <div class="page" id="page-ade">
   <div class="sec">Scadenze ambientali<span class="cnt" id="ade-tot">0</span></div>
   <input class="dw-input" id="ade-cerca" type="search" placeholder="Cerca per titolo o ente…" style="margin-bottom:8px;">
@@ -1002,6 +1061,7 @@ textarea.dw-input{
 <nav class="nav" aria-label="Sezioni di Sentinella">
   <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg></span>Quadro</button>
   <button id="nav-mon" onclick="go('mon')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M12 21v-6.2"/><path d="M4.6 15.2A9.4 9.4 0 0 1 3.2 10 8.8 8.8 0 0 1 12 2.6 8.8 8.8 0 0 1 20.8 10a9.4 9.4 0 0 1-1.4 5.2"/><path d="M7.9 13.6A5.6 5.6 0 0 1 7 10.4 5 5 0 0 1 12 6a5 5 0 0 1 5 4.4 5.6 5.6 0 0 1-.9 3.2"/><circle cx="12" cy="10.4" r="1.5"/><path d="M8.8 21h6.4"/></svg></span>Monitoraggi</button>
+  <button id="nav-prog" onclick="go('prog')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M8.4 4.2H6.6a2 2 0 0 0-2 2v12.6a2 2 0 0 0 2 2h10.8a2 2 0 0 0 2-2V6.2a2 2 0 0 0-2-2h-1.8"/><rect x="8.4" y="2.6" width="7.2" height="3.2" rx="1.1"/><path d="M8.6 11.2l1.8 1.8 3.4-3.6"/><path d="M8.6 16.6h6.8"/></svg></span>Programma</button>
   <button id="nav-ade" onclick="go('ade')"><span class="ico"><svg viewBox="0 0 24 24"><rect x="4" y="4.5" width="16" height="16.5" rx="2.4"/><path d="M4 9.4h16"/><path d="M8.4 2.6v3.6M15.6 2.6v3.6"/><path d="M8.6 13.6l2.2 2.2 4.4-4.4"/></svg></span>Adempimenti</button>
   <button id="nav-reg" onclick="go('reg')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M4 5a2.4 2.4 0 0 1 2.4-2.4H19V18H6.4A2.4 2.4 0 0 0 4 20.4z"/><path d="M4 20.4A2.4 2.4 0 0 1 6.4 18H19v3.4H6.4A2.4 2.4 0 0 1 4 20.4z"/><path d="M8.4 7.4h6.2M8.4 11h4.2"/></svg></span>Registri</button>
   <button id="nav-rep" onclick="go('rep')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M6 2.6h7.6L19 8v13.4H6z"/><path d="M13.4 2.6V8H19"/><path d="M9 12.6h6M9 16.2h4"/></svg></span>Report</button>
@@ -1112,7 +1172,9 @@ textarea.dw-input{
   import { sentinellaData, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, prioritaConformita, riepilogoVolate, parseVolateCsv, parseAdempimentiCsv, parseMonitoraggiCsv, serieStorica, numeroIt, unitaMisura,
            leggiCsv, paresIntestazione, proponiMappa, preparaLetture, unisciLetture, MAX_LETTURE,
            TIPI_RICETTORE, CLASSI_ACUSTICHE, etichettaTipo, trovaRicettore, sogliaEfficace,
-           reportConformita, ESITI, TIPI_RECLAMO, etichettaReclamo, riepilogoReclami, firmaLettura } from "./sentinella-data.js";
+           reportConformita, ESITI, TIPI_RECLAMO, etichettaReclamo, riepilogoReclami, firmaLettura,
+           PERIODICITA, etichettaFrequenza, ultimaLettura, statoRigaProgramma, programmaEsteso,
+           riepilogoProgramma, allerteProgramma, andamentoRicettore } from "./sentinella-data.js";
   import { mountExit, esc, csvCell, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
@@ -1158,6 +1220,8 @@ textarea.dw-input{
     casa:    '<svg viewBox="0 0 24 24"><path d="M3.4 10.6L12 3.6l8.6 7"/><path d="M5.4 9.2V20a1.4 1.4 0 0 0 1.4 1.4h10.4A1.4 1.4 0 0 0 18.6 20V9.2"/><path d="M9.8 21.4v-5.6h4.4v5.6"/></svg>',
     // il reclamo: una voce che arriva da fuori
     voce:    '<svg viewBox="0 0 24 24"><path d="M3.6 14.4V9.6a1.6 1.6 0 0 1 1.6-1.6h2.6L14 3.8v16.4l-6.2-4.2H5.2a1.6 1.6 0 0 1-1.6-1.6z"/><path d="M17.4 9a4.4 4.4 0 0 1 0 6"/><path d="M20 6.4a8 8 0 0 1 0 11.2"/></svg>',
+    // il programma: la lista di quello che va misurato, con le spunte
+    programma: '<svg viewBox="0 0 24 24"><path d="M8.4 4.2H6.6a2 2 0 0 0-2 2v12.6a2 2 0 0 0 2 2h10.8a2 2 0 0 0 2-2V6.2a2 2 0 0 0-2-2h-1.8"/><rect x="8.4" y="2.6" width="7.2" height="3.2" rx="1.1"/><path d="M8.6 11.2l1.8 1.8 3.4-3.6"/><path d="M8.6 16.6h6.8"/></svg>',
     // il report: il foglio che si consegna all'ente
     doc:     '<svg viewBox="0 0 24 24"><path d="M6 2.6h7.6L19 8v13.4H6z"/><path d="M13.4 2.6V8H19"/><path d="M9 12.6h6M9 16.2h4"/></svg>',
   };
@@ -1169,7 +1233,11 @@ textarea.dw-input{
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
-  let MON=[], ADE=[], REG=[], VOL=[], RIC=[], REC=[];
+  let MON=[], ADE=[], REG=[], VOL=[], RIC=[], REC=[], PRG=[];
+  let filtroPrg = "tutte";   // filtro dell'elenco del programma
+  let editPrg = null;        // id della riga di programma in modifica
+  let andRic = null;         // ricettore scelto per l'andamento nel tempo
+  let andGrafici = [];       // grafici dell'andamento, da distruggere al ridisegno
   let filtroMon = "tutti";
   let editMon = null;   // id del sensore in modifica (riusa il form "Nuovo sensore"; lo storico misure resta)
   let ordMon = "criticita";
@@ -1828,9 +1896,13 @@ textarea.dw-input{
       }).join("")}</tbody></table></div>`;
 
   async function refresh(){
-    [MON,ADE,REG,VOL,RIC,REC] = await Promise.all([
+    [MON,ADE,REG,VOL,RIC,REC,PRG] = await Promise.all([
       db.monitoraggi(), db.adempimenti(), db.registri(),
-      db.volate ? db.volate() : [], db.ricettori ? db.ricettori() : [], db.reclami ? db.reclami() : []]);
+      db.volate ? db.volate() : [], db.ricettori ? db.ricettori() : [], db.reclami ? db.reclami() : [],
+      // la collezione del programma può non esistere ancora: senza di lei
+      // la pagina deve funzionare esattamente come prima
+      db.programma ? db.programma() : []]);
+    PRG = PRG || [];
     // MONE = i punti con la SOGLIA CHE VALE (quella del ricettore se c'è).
     // Da qui in giù si conta sempre su MONE: KPI, semafori, grafici e
     // report leggono tutti lo stesso numero.
@@ -1865,15 +1937,22 @@ textarea.dw-input{
 
     // Priorità di conformità: superamenti/attenzione + adempimenti (scaduti =
     // danger, in scadenza = warn), ordinati danger-first, senza cap silenzioso.
-    const allerte = prioritaConformita(MONE, ADE);
+    // Alle allerte si aggiunge il PROGRAMMA: una misura che doveva essere
+    // fatta e non è stata fatta è una non conformità come le altre, e su
+    // quella un ente ci mette il dito subito. L'ordine resta danger-first;
+    // dentro lo stesso livello resta l'ordine di ciascuna sorgente.
+    const rankAll = { danger: 0, warn: 1 };
+    const allerte = [...prioritaConformita(MONE, ADE), ...allerteProgramma(PRG, MON)]
+      .sort((x, y) => (rankAll[x.gravita] || 0) - (rankAll[y.gravita] || 0));
     $("all-list").innerHTML = allerte.map(a => { const ade = a.categoria === "adempimento";
-      return `<div class="item cliccabile ${striscia[a.gravita] || "st-mute"}" data-allerta="${ade ? "ade" : "mon"}"
-        title="${ade ? "Vai agli adempimenti" : "Vai al punto di misura"}">
-      <div class="avatar ${a.gravita === "danger" ? "danger" : a.gravita === "warn" ? "warn" : "sup"}">${ade ? I.calendario : I.sensore}</div>
+      const prg = a.categoria === "programma";
+      return `<div class="item cliccabile ${striscia[a.gravita] || "st-mute"}" data-allerta="${prg ? "prog" : ade ? "ade" : "mon"}"
+        title="${prg ? "Vai al programma di monitoraggio" : ade ? "Vai agli adempimenti" : "Vai al punto di misura"}">
+      <div class="avatar ${a.gravita === "danger" ? "danger" : a.gravita === "warn" ? "warn" : "sup"}">${prg ? I.programma : ade ? I.calendario : I.sensore}</div>
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc(a.dettaglio)}</div></div>
       <span class="acts"><span class="badge ${a.gravita}">${esc(a.badge)}</span><span class="arr">${I.avanti}</span></span></div>`; }).join("")
       || vuoto(I.fatto, "Nessuna allerta",
-          "Tutti i punti di misura sono entro soglia e nessun adempimento è vicino alla scadenza. Il quadro resta pulito finché un valore non si avvicina al limite.");
+          "Tutti i punti di misura sono entro soglia, il programma di monitoraggio è in pari e nessun adempimento è vicino alla scadenza. Il quadro resta pulito finché un valore non si avvicina al limite.");
 
     $("mon-tot").textContent = MON.length;
     $("mon-conf").innerHTML = conf.totale

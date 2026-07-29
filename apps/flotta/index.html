@@ -904,6 +904,8 @@
   <div id="sch-man"></div>
   <div class="sec">Storico interventi</div>
   <div id="sch-int"></div>
+  <div class="sec">Fermi macchina</div>
+  <div id="sch-fer"></div>
   <div class="sec">Ultimi giri macchina</div>
   <div id="sch-giri"></div>
   <div class="sec">Carburante</div>
@@ -1154,6 +1156,18 @@
   // ── Errori di campo: bordo rosso + fuoco sul campo sbagliato ──────────
   const err = (id, on) => { const el = $(id); if (el) el.classList.toggle("err", !!on); };
   const fuoco = (id) => { const el = $(id); if (el) { try { el.focus({ preventScroll: false }); } catch (e) { el.focus(); } } };
+  // La lavorazione di un intervento CHIUSO, in una riga: chi c'è stato e per
+  // quanto. Gli interventi registrati prima dell'ordine di lavoro non hanno
+  // questi campi e non mostrano niente — restano come sono sempre stati.
+  const lavorazioneTx = (w) => {
+    const ore = +w.oreManodopera || 0;
+    const chi = (w.manodopera || []).filter(r => r && (+r.ore || 0) > 0);
+    if (!ore && !chi.length) return "";
+    const nomi = chi.map(r => r.chi).filter(Boolean);
+    return [ore ? oreTx(ore) + " di lavoro" : "",
+            nomi.length ? nomi.map(esc).join(", ") : "",
+            (+w.costoManodopera || 0) ? "manodopera " + eur(w.costoManodopera) : ""].filter(Boolean).join(" · ");
+  };
   // classe della striscia laterale: lo stato si legge anche senza colore
   const striscia = { danger: "st-danger", warn: "st-warn", ok: "st-ok", info: "st-sup", accent: "st-accent" };
 
@@ -1558,7 +1572,8 @@
     $("int-list").innerHTML = INT.slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1).map(w =>
       `<div class="item statico st-ok"><div class="avatar sup">${I.registro}</div>
         <div class="info"><div class="name">${esc(w.titolo)} — ${esc(w.mezzo)}</div>
-        <div class="meta">${esc(dataIt(w.data))}${w.ricambio ? " · " + esc(w.ricambio) : ""}${w.note ? " · " + esc(w.note) : ""}</div></div>
+        <div class="meta">${esc(dataIt(w.data))}${w.ricambio ? " · " + esc(w.ricambio) : ""}${w.note ? " · " + esc(w.note) : ""}</div>
+        ${lavorazioneTx(w) ? `<div class="meta norma">${I.persona}${lavorazioneTx(w)}</div>` : ""}</div>
         ${(+w.costo) ? `<span class="badge tag euro">${eur(+w.costo)}</span>` : ""}</div>`).join("")
       || vuoto(I.registro, "Libretto ancora bianco",
           "Nessun intervento registrato. Quando segni <b>eseguita</b> una manutenzione programmata, finisce qui con data, ricambio usato e costo: è lo storico che vale in garanzia e alla rivendita del mezzo.");
@@ -2372,7 +2387,7 @@
       if ($("page-sch").classList.contains("active")) go("mez");
       return;
     }
-    const f = fascicoloMezzo(m, { manutenzioni: MAN, interventi: INT, scadenze: SCA, controlli: CTR, rifornimenti: RIF },
+    const f = fascicoloMezzo(m, { manutenzioni: MAN, interventi: INT, scadenze: SCA, controlli: CTR, rifornimenti: RIF, fermi: FER },
                              new Date(), preavvisoSca);
     const st = MB[m.stato] || MB.operativo;
     $("sch-stampa").innerHTML = `<div class="sch-nome">Libretto macchina — ${esc(f.nome)}</div>
@@ -2410,9 +2425,25 @@
     $("sch-int").innerHTML = f.interventi.map(w => `<div class="item statico st-ok">
         <div class="avatar sup">${I.registro}</div>
         <div class="info"><div class="name">${esc(w.titolo)}</div>
-          <div class="meta">${esc(dataIt(w.data))}${w.ricambio ? " · " + esc(w.ricambio) : ""}${w.note ? " · " + esc(w.note) : ""}</div></div>
+          <div class="meta">${esc(dataIt(w.data))}${w.ricambio ? " · " + esc(w.ricambio) : ""}${w.note ? " · " + esc(w.note) : ""}</div>
+          ${lavorazioneTx(w) ? `<div class="meta norma">${I.persona}${lavorazioneTx(w)}</div>` : ""}</div>
         ${(+w.costo) ? `<span class="badge tag euro">${eur(+w.costo)}</span>` : ""}</div>`).join("")
       || vuoto(I.registro, "Storico vuoto", "Nessun intervento chiuso su questa macchina. Ogni manutenzione che segni <b>eseguita</b> finisce qui, con data, ricambio e costo.");
+
+    // I fermi di QUESTA macchina: è la pagina che guarda per prima chi la
+    // compra, ed è anche quella da cui si decide se tenerla.
+    $("sch-fer").innerHTML = (f.fermo.episodi
+        ? `<div class="note recap">${f.fermo.episodi === 1 ? "<b>1</b> fermo registrato" : "<b>" + f.fermo.episodi + "</b> fermi registrati"} `
+          + `per <b>${ggTx(f.fermo.giorni)}</b> in tutto${f.fermo.aperti ? `, e <span class="rosso">${f.fermo.aperti === 1 ? "uno è ancora aperto" : f.fermo.aperti + " sono ancora aperti"}</span>` : ""}. `
+          + "Sono i giorni in cui questa macchina non ha potuto lavorare.</div>"
+        : "")
+      + (f.fermi.slice(0, 8).map(x => `<div class="item statico ${x.aperto ? "st-danger" : "st-mute"}">
+          <div class="avatar${x.aperto ? "" : " sup"}">${I.fermo}</div>
+          <div class="info"><div class="name">${esc(x.causaleTx)}</div>
+            <div class="meta">dal ${esc(dataIt(x.inizio))}${x.fine ? " al " + esc(dataIt(x.fine)) : " — ancora fermo"}</div>
+            ${x.note ? `<div class="meta norma">${esc(x.note)}</div>` : ""}</div>
+          <span class="badge ${x.aperto ? "danger" : "tag"}">${x.giorni != null ? ggTx(x.giorni) : "—"}</span></div>`).join("")
+        || vuoto(I.fermo, "Mai ferma", "Su questa macchina non risulta nessun fermo registrato: nessuna giornata persa per guasto, attesa di un pezzo o verifica. I fermi si registrano dalla schermata <b>Mezzi</b>."));
 
     $("sch-giri").innerHTML = f.controlli.slice(0, 8).map(c => {
       const cls = gravitaControllo(c);
@@ -2687,9 +2718,17 @@
     if (a) { e.preventDefault(); a.click(); }
   });
   $("btn-int-csv").onclick = () => {
-    const righe = [["data", "titolo", "mezzo", "ricambio", "costo", "note"].join(";")]
+    // Le colonne della lavorazione sono IN FONDO: chi apriva questo file
+    // prima ritrova le sue nelle stesse posizioni, e le righe vecchie hanno
+    // semplicemente le celle nuove vuote.
+    const righe = [["data", "titolo", "mezzo", "ricambio", "costo", "note",
+                    "ore_manodopera", "costo_manodopera", "costo_ricambi", "chi_ha_lavorato"].join(";")]
       .concat(INT.slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1)
-        .map(w => [w.data || "", w.titolo || "", w.mezzo || "", w.ricambio || "", (+w.costo) || 0, w.note || ""].map(csvCell).join(";")));
+        .map(w => [w.data || "", w.titolo || "", w.mezzo || "", w.ricambio || "", (+w.costo) || 0, w.note || "",
+                   w.oreManodopera == null ? "" : w.oreManodopera,
+                   w.costoManodopera == null ? "" : w.costoManodopera,
+                   w.costoRicambi == null ? "" : w.costoRicambi,
+                   (w.manodopera || []).map(r => r.chi + " " + r.ore + " h").join(" | ")].map(csvCell).join(";")));
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-registro-interventi.csv"; a.click();

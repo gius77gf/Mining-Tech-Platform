@@ -988,29 +988,29 @@ export function mansionePreset(chiave) {
 // solo una PROPOSTA per calcolare la data di sostituzione, non una regola.
 // ============================================================
 export const TIPI_DPI = [
-  { chiave: "elmetto",       etichetta: "Elmetto",                          cat: "II",  addestramento: false, mesi: 60 },
-  { chiave: "scarpe",        etichetta: "Scarpe antinfortunistiche",        cat: "II",  addestramento: false, mesi: 24 },
-  { chiave: "gilet",         etichetta: "Indumenti ad alta visibilità",     cat: "II",  addestramento: false, mesi: 24 },
-  { chiave: "guanti",        etichetta: "Guanti da lavoro / antitaglio",    cat: "II",  addestramento: false, mesi: 12 },
-  { chiave: "occhiali",      etichetta: "Occhiali o visiera",               cat: "II",  addestramento: false, mesi: 24 },
-  { chiave: "otoprotettori", etichetta: "Otoprotettori (cuffie o inserti)", cat: "II",  addestramento: true,  mesi: 12,
+  { chiave: "elmetto",       etichetta: "Elmetto",                          breve: "Elmetto",        cat: "II",  addestramento: false, mesi: 60 },
+  { chiave: "scarpe",        etichetta: "Scarpe antinfortunistiche",        breve: "Scarpe",         cat: "II",  addestramento: false, mesi: 24 },
+  { chiave: "gilet",         etichetta: "Indumenti ad alta visibilità",     breve: "Alta visibilità",cat: "II",  addestramento: false, mesi: 24 },
+  { chiave: "guanti",        etichetta: "Guanti da lavoro / antitaglio",    breve: "Guanti",         cat: "II",  addestramento: false, mesi: 12 },
+  { chiave: "occhiali",      etichetta: "Occhiali o visiera",               breve: "Occhiali",       cat: "II",  addestramento: false, mesi: 24 },
+  { chiave: "otoprotettori", etichetta: "Otoprotettori (cuffie o inserti)", breve: "Otoprotettori",  cat: "II",  addestramento: true,  mesi: 12,
     nota: "Protettori dell'udito: l'addestramento è obbligatorio anche se non sono di III categoria." },
-  { chiave: "maschera",      etichetta: "Facciale filtrante / respiratore", cat: "III", addestramento: true,  mesi: 12,
+  { chiave: "maschera",      etichetta: "Facciale filtrante / respiratore", breve: "Maschera",       cat: "III", addestramento: true,  mesi: 12,
     nota: "Contro le polveri (silice cristallina respirabile): III categoria, addestramento obbligatorio." },
-  { chiave: "imbracatura",   etichetta: "Imbracatura anticaduta",           cat: "III", addestramento: true,  mesi: 12,
+  { chiave: "imbracatura",   etichetta: "Imbracatura anticaduta",           breve: "Imbracatura",    cat: "III", addestramento: true,  mesi: 12,
     nota: "III categoria: addestramento obbligatorio e controllo periodico del dispositivo." },
-  { chiave: "dielettrici",   etichetta: "Guanti e attrezzi dielettrici",    cat: "III", addestramento: true,  mesi: 12,
+  { chiave: "dielettrici",   etichetta: "Guanti e attrezzi dielettrici",    breve: "Dielettrici",    cat: "III", addestramento: true,  mesi: 12,
     nota: "III categoria (rischio elettrico): addestramento obbligatorio." },
-  { chiave: "antivibranti",  etichetta: "Guanti antivibranti",              cat: "II",  addestramento: false, mesi: 12 },
-  { chiave: "indumenti",     etichetta: "Indumenti da lavoro",              cat: "I",   addestramento: false, mesi: null },
-  { chiave: "altro",         etichetta: "Altro DPI",                        cat: "II",  addestramento: false, mesi: null },
+  { chiave: "antivibranti",  etichetta: "Guanti antivibranti",              breve: "Antivibranti",   cat: "II",  addestramento: false, mesi: 12 },
+  { chiave: "indumenti",     etichetta: "Indumenti da lavoro",              breve: "Indumenti",      cat: "I",   addestramento: false, mesi: null },
+  { chiave: "altro",         etichetta: "Altro DPI",                        breve: "Altro DPI",      cat: "II",  addestramento: false, mesi: null },
 ];
 export function tipoDpi(chiave) {
   return TIPI_DPI.find(t => t.chiave === chiave) || null;
 }
 export function tipoDpiSicuro(chiave) {
   return tipoDpi(chiave)
-    || { chiave, etichetta: String(chiave || "DPI"), cat: "II", addestramento: false, mesi: null };
+    || { chiave, etichetta: String(chiave || "DPI"), breve: String(chiave || "DPI"), cat: "II", addestramento: false, mesi: null };
 }
 
 // Ultima consegna di quel tipo di DPI a quella persona (la più recente).
@@ -1057,7 +1057,7 @@ export function abilitazioneLavoratore(lav, mansione, scadenze, consegneDpi, ogg
     const t = tipoDpiSicuro(ch);
     const c = ultimaConsegnaDpi(consegneDpi, l.id, ch);
     const st = statoConsegnaDpi(c, oggi);
-    return { chiave: t.chiave, etichetta: t.etichetta, cat: t.cat, consegna: c, ...st };
+    return { chiave: t.chiave, etichetta: t.etichetta, breve: t.breve || t.etichetta, cat: t.cat, consegna: c, ...st };
   });
   const bloccanti = [], attenzioni = [];
   if (l.attivo === false) bloccanti.push("non è in forza");
@@ -1065,7 +1065,7 @@ export function abilitazioneLavoratore(lav, mansione, scadenze, consegneDpi, ogg
   if (l.idoneita === "prescrizioni") attenzioni.push("idoneo con prescrizioni");
   for (const r of requisiti) {
     if (r.stato === "mancante") bloccanti.push("manca " + r.breve.toLowerCase());
-    else if (r.stato === "scaduta") bloccanti.push(r.breve.toLowerCase() + " scaduta il " + (r.scadenza || "—"));
+    else if (r.stato === "scaduta") bloccanti.push(r.breve.toLowerCase() + " scaduta il " + dataIt(r.scadenza));
     else if (r.stato === "in-scadenza") attenzioni.push(r.breve.toLowerCase() + " in scadenza");
   }
   for (const d of dpi) {
@@ -1135,36 +1135,36 @@ export function lavoratoriScoperti(mansioni, lavoratori, scadenze, consegneDpi, 
 // con l'RSPP e il consulente dell'azienda.
 // ============================================================
 export const NOMINE_RUOLI = [
-  { chiave: "sorvegliante", etichetta: "Sorvegliante", obbligatoria: true, multiplo: true,
+  { chiave: "sorvegliante", etichetta: "Sorvegliante", breve: "Sorvegliante", obbligatoria: true, multiplo: true,
     requisito: "sorvegliante",
     riferimento: "D.Lgs 624/96 — figura obbligatoria nelle attività estrattive.",
     spiega: "È chi controlla ogni giorno i luoghi di lavoro della cava e ferma ciò che non va." },
-  { chiave: "direttore", etichetta: "Direttore responsabile", obbligatoria: true, multiplo: false,
+  { chiave: "direttore", etichetta: "Direttore responsabile", breve: "Direttore", obbligatoria: true, multiplo: false,
     requisito: null,
     riferimento: "D.Lgs 624/96 — responsabile della conduzione dell'attività estrattiva.",
     spiega: "È la persona che risponde della conduzione tecnica della cava." },
-  { chiave: "preposto", etichetta: "Preposto", obbligatoria: true, multiplo: true,
+  { chiave: "preposto", etichetta: "Preposto", breve: "Preposto", obbligatoria: true, multiplo: true,
     requisito: "form-preposto",
     riferimento: "D.Lgs 81/08 e D.L. 146/2021 — individuazione obbligatoria e aggiornamento almeno biennale.",
     spiega: "Sovrintende al lavoro degli altri e interviene subito se qualcuno lavora male." },
-  { chiave: "rspp", etichetta: "RSPP", obbligatoria: true, multiplo: false, requisito: null,
+  { chiave: "rspp", etichetta: "RSPP", breve: "RSPP", obbligatoria: true, multiplo: false, requisito: null,
     riferimento: "D.Lgs 81/08 art. 17 — designazione obbligatoria, non delegabile dal datore di lavoro.",
     spiega: "Responsabile del servizio di prevenzione e protezione: interno o consulente esterno." },
-  { chiave: "medico", etichetta: "Medico competente", obbligatoria: true, multiplo: false, requisito: null,
+  { chiave: "medico", etichetta: "Medico competente", breve: "Medico", obbligatoria: true, multiplo: false, requisito: null,
     riferimento: "D.Lgs 81/08 art. 18 — obbligatorio quando è prevista la sorveglianza sanitaria (in cava, di norma, sì).",
     spiega: "Fa le visite mediche e decide l'idoneità alla mansione." },
-  { chiave: "rls", etichetta: "RLS", obbligatoria: true, multiplo: true, requisito: "rls",
+  { chiave: "rls", etichetta: "RLS", breve: "RLS", obbligatoria: true, multiplo: true, requisito: "rls",
     riferimento: "D.Lgs 81/08 artt. 47-50 — rappresentante dei lavoratori per la sicurezza.",
     spiega: "Eletto dai lavoratori: va formato e aggiornato ogni anno." },
-  { chiave: "primo-soccorso", etichetta: "Addetto primo soccorso", obbligatoria: true, multiplo: true,
+  { chiave: "primo-soccorso", etichetta: "Addetto primo soccorso", breve: "Primo soccorso", obbligatoria: true, multiplo: true,
     requisito: "primo-soccorso",
     riferimento: "D.Lgs 81/08 art. 45 e D.M. 388/2003 — addetti designati e formati.",
     spiega: "Deve essercene almeno uno presente quando si lavora." },
-  { chiave: "antincendio", etichetta: "Addetto antincendio ed evacuazione", obbligatoria: true, multiplo: true,
+  { chiave: "antincendio", etichetta: "Addetto antincendio ed evacuazione", breve: "Antincendio", obbligatoria: true, multiplo: true,
     requisito: "antincendio",
     riferimento: "D.Lgs 81/08 art. 43 e D.M. 2 settembre 2021 — addetti designati e formati.",
     spiega: "Deve essercene almeno uno presente quando si lavora." },
-  { chiave: "dirigente", etichetta: "Dirigente", obbligatoria: false, multiplo: true,
+  { chiave: "dirigente", etichetta: "Dirigente", breve: "Dirigente", obbligatoria: false, multiplo: true,
     requisito: "form-dirigente",
     riferimento: "D.Lgs 81/08 — chi organizza il lavoro con poteri di spesa e decisione.",
     spiega: "Serve solo se in azienda c'è davvero questa figura." },

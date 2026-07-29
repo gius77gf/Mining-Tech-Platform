@@ -2043,8 +2043,13 @@ label.item:has(.dw-chk:checked){
   const METODI = [["bonifico","Bonifico"],["assegno","Assegno"],["contanti","Contanti"],
                   ["riba","RiBa / SDD"],["altro","Altro"]];
   const nomeMetodo = (m) => (METODI.find(x => x[0] === m) || ["","—"])[1];
-  const incErr = (testo) => { const n = $("inc-err"); if (n) n.innerHTML = testo || "";
-    if (testo) toast("Incasso non registrato: controlla il messaggio nella finestra.", "err"); };
+  // il messaggio d'errore non deve restare sotto la piega della finestra: su
+  // telefono lo si porta sotto gli occhi, altrimenti resta solo un bordo rosso
+  const incErr = (testo) => { const n = $("inc-err"); if (!n) return;
+    n.innerHTML = testo || "";
+    if (!testo) return;
+    try { n.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch (e) {}
+    toast("Incasso non registrato: leggi il messaggio nella finestra.", "err"); };
 
   function modaleIncassi(idFattura) {
     const f = FAT.find(x => x.id === idFattura); if (!f) return;
@@ -2067,7 +2072,7 @@ label.item:has(.dw-chk:checked){
       `<div class="mrec"><span class="k">Cliente</span><span class="v">${esc(nomeCliente(f, CLI))}</span></div>
        <div class="mrec"><span class="k">Totale della fattura</span><span class="v">${eur(st.totale)}</span></div>
        ${im.conIva ? `<div class="mrec"><span class="k">di cui IVA${im.aliquota != null ? " " + perc(im.aliquota) : ""}</span><span class="v">${eur(im.ivaImporto)}</span></div>` : ""}
-       <div class="mrec"><span class="k">Scadenza</span><span class="v">${fmtD(f.scadenza)}${ritardo ? " (+" + ritardo + " gg)" : ""}</span></div>
+       <div class="mrec"><span class="k">Scadenza</span><span class="v">${fmtD(f.scadenza)}${ritardo ? " · " + ritardo + " gg di ritardo" : ""}</span></div>
        ${st.conMovimenti ? `<div class="mrec"><span class="k">Già incassato</span><span class="v accent">${eur(st.incassato)}</span></div>
          <div class="mrec"><span class="k">Residuo da incassare</span><span class="v${st.residuo > 0 ? "" : " accent"}">${eur(st.residuo)}</span></div>` : ""}
        ${st.eccedenza > 0 ? `<p style="margin-top:10px;">Attenzione: gli incassi registrati superano il totale della fattura di <b>${eur(st.eccedenza)}</b>. Correggi eliminando o rifacendo il movimento sbagliato.</p>` : ""}
@@ -2100,6 +2105,9 @@ label.item:has(.dw-chk:checked){
       cls: "primary", azione: () => registraIncasso(f, st, compat, massimo) });
 
     apriModale("Incassi — fattura " + f.numero, corpo, bottoni);
+    // appena si corregge l'importo, il bordo rosso e il messaggio spariscono
+    if ($("inc-imp")) $("inc-imp").addEventListener("input", () => {
+      $("inc-imp").classList.remove("err"); incErr(""); });
     // eliminazione di un singolo movimento (l'unico modo per correggere: gli
     // incassi non si modificano, si rifanno — così la storia resta leggibile)
     document.querySelectorAll("#modal-body [data-del-inc]").forEach(b => b.onclick = async () => {
@@ -2145,7 +2153,8 @@ label.item:has(.dw-chk:checked){
       incErr(`Questo incasso supera di <b>${eur(oltre)}</b> quello che resta da pagare.<br>
         Fattura <b>${eur(st.totale)}</b>${st.conMovimenti ? ` · già incassati <b>${eur(st.incassato)}</b>` : ""} · si può registrare al massimo <b>${eur(massimo)}</b>.<br>
         Se il cliente ha versato di più, registra qui il residuo e tratta la differenza come acconto sulla prossima fattura: una fattura non può risultare incassata più del suo totale.`);
-      if ($("inc-imp")) { $("inc-imp").classList.add("err"); $("inc-imp").focus(); $("inc-imp").select(); }
+      if ($("inc-imp")) { $("inc-imp").classList.add("err");
+        try { $("inc-imp").focus({ preventScroll: true }); $("inc-imp").select(); } catch (e) {} }
       return;
     }
     chiudiModale();

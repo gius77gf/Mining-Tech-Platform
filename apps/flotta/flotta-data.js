@@ -1067,10 +1067,19 @@ export function fascicoloMezzo(mezzo, dati, oggi = new Date(), preavvisoGiorni =
     .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
   const consumo = consumoPerMezzo(rifornimenti).mezzi[0] || null;
   const officina = interventi.reduce((t, w) => t + (+w.costo || 0), 0);
+  // FERMI della macchina (L6): quanti, quanto sono durati, se ne ha uno
+  // aperto adesso. Nel libretto è la pagina che un compratore guarda per
+  // prima, e l'unica onesta: senza, «tenuta bene» è una parola.
+  const fermi = fermiOrdinati((d.fermi || []).filter(mio), oggi);
+  const giorniFermoTot = fermi.reduce((t, f) => t + (f.giorni || 0), 0);
+  const oreLavorate = interventi.reduce((t, w) => t + (+w.oreManodopera || 0), 0);
   return {
     mezzo: m, nome, tipo: tipoMezzoDi(m),
-    manutenzioni, interventi, scadenze, controlli, rifornimenti, consumo,
-    officina: { totale: Math.round(officina * 100) / 100, interventi: interventi.length },
+    manutenzioni, interventi, scadenze, controlli, rifornimenti, consumo, fermi,
+    officina: { totale: Math.round(officina * 100) / 100, interventi: interventi.length,
+      ore: Math.round(oreLavorate * 100) / 100 },
+    fermo: { episodi: fermi.length, giorni: giorniFermoTot,
+      aperti: fermi.filter(f => f.aperto).length, ultimo: fermi[0] || null },
     carburante: { totale: consumo ? consumo.euro : 0, litri: consumo ? consumo.litri : 0 },
     speso: Math.round((officina + (consumo ? consumo.euro : 0)) * 100) / 100,
     ultimoControllo: controlli[0] || null,
