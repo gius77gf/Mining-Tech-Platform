@@ -1299,7 +1299,11 @@ label.item:has(.dw-chk:checked){
       const ritardo = !f.incassata ? Math.max(0, -giorni(f.scadenza)) : 0;
       const sol = !f.incassata ? livelloSollecito(ritardo) : null;
       const mora = ritardo > 0 ? interessiMora(apertoDi(f), ritardo) : null;   // mora sul RESIDUO (231/2002)
-      const st = f.incassata ? "st-ok" : f.parziale ? "st-accent" : ritardo > 0 ? "st-danger" : giorni(f.scadenza) <= 10 ? "st-warn" : "st-accent";
+      // scaduta secca = allarme; scaduta ma con un acconto già arrivato =
+      // attenzione, non allarme: sono due situazioni diverse e si vedono diverse
+      const st = f.incassata ? "st-ok"
+        : ritardo > 0 ? (f.parziale ? "st-warn" : "st-danger")
+        : f.parziale ? "st-accent" : giorni(f.scadenza) <= 10 ? "st-warn" : "st-accent";
       // IVA: le fatture nuove portano imponibile e imposta, quelle vecchie
       // (importo secco) valgono come imponibile con IVA 0 — e lo diciamo.
       const im = importiFattura(f);
@@ -1314,7 +1318,8 @@ label.item:has(.dw-chk:checked){
                        + (f.giorniPagamento != null ? " (" + plur(f.giorniPagamento, "giorno", "giorni") + ")" : "")
                      : "incassata, data non registrata")
           : "scade " + fmtD(f.scadenza),
-        f.parziale ? "acconti " + eur(f.incassato) + " · residuo " + eur(f.residuo) : "",
+        f.parziale ? plur(f.nMovimenti, "acconto", "acconti") + " " + eur(f.incassato)
+                     + (f.ultimoIncasso ? ", l'ultimo il " + fmtD(f.ultimoIncasso) : "") : "",
         im.conIva ? "imponibile " + eur(im.imponibile) + " + IVA " + eur(im.ivaImporto)
                   : "senza dettaglio IVA",
         nDdt ? "da " + plur(nDdt, "DDT", "DDT") : "",
@@ -1532,6 +1537,9 @@ label.item:has(.dw-chk:checked){
         meta: "ultimi 6 mesi · per data vera dell'incasso",
         formato: eur0,
         tabella: false,          // la tabella è l'elenco qui sotto, al centesimo
+        // segmenti dritti, non curva: con i mesi a zero una curva morbida
+        // scenderebbe SOTTO lo zero, e un incasso negativo non esiste
+        curva: false,
         x: flu.mesi.map(m => nomeMeseK(m.mese)),
         serie: [
           { nome: "Emesso", valori: flu.mesi.map(m => Math.round(m.emesso)), area: true },

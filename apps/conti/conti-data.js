@@ -667,13 +667,13 @@ export function statoIncasso(fattura, incassi) {
       const d = /^\d{4}-\d{2}-\d{2}/.test(String(f.dataIncasso || "")) ? String(f.dataIncasso).slice(0, 10) : null;
       return { totale, incassato: totale, residuo: 0, eccedenza: 0,
                saldata: true, parziale: false, movimenti: [], conMovimenti: false,
-               dataSaldo: d, senzaData: !d,
+               dataSaldo: d, ultimo: null, senzaData: !d,
                giorniPagamento: d ? giorniFraDate(f.emessa, d) : null,
                ritardoPagamento: d ? giorniFraDate(f.scadenza, d) : null };
     }
     return { totale, incassato: 0, residuo: totale, eccedenza: 0,
              saldata: false, parziale: false, movimenti: [], conMovimenti: false,
-             dataSaldo: null, senzaData: false, giorniPagamento: null, ritardoPagamento: null };
+             dataSaldo: null, ultimo: null, senzaData: false, giorniPagamento: null, ritardoPagamento: null };
   }
 
   const incassato = round2(movimenti.reduce((t, m) => t + m.importo, 0));
@@ -683,7 +683,8 @@ export function statoIncasso(fattura, incassi) {
   const dataSaldo = saldata ? movimenti[movimenti.length - 1].data || null : null;
   return { totale, incassato, residuo, eccedenza,
            saldata, parziale: !saldata && incassato > 0,
-           movimenti, conMovimenti: true, dataSaldo, senzaData: false,
+           movimenti, conMovimenti: true, dataSaldo,
+           ultimo: movimenti[movimenti.length - 1].data || null, senzaData: false,
            giorniPagamento: saldata ? giorniFraDate(f.emessa, dataSaldo) : null,
            ritardoPagamento: saldata ? giorniFraDate(f.scadenza, dataSaldo) : null };
 }
@@ -700,7 +701,7 @@ export function applicaIncassi(fatture, incassi) {
       incassata: s.conMovimenti ? s.saldata : !!f.incassata,
       incassato: s.incassato, residuo: s.residuo, eccedenza: s.eccedenza,
       parziale: s.parziale, conMovimenti: s.conMovimenti, nMovimenti: s.movimenti.length,
-      dataSaldo: s.dataSaldo, senzaDataIncasso: s.senzaData,
+      dataSaldo: s.dataSaldo, ultimoIncasso: s.ultimo, senzaDataIncasso: s.senzaData,
       giorniPagamento: s.giorniPagamento, ritardoPagamento: s.ritardoPagamento };
   });
 }

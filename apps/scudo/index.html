@@ -403,16 +403,18 @@
 #verbale{display:none}
 @media print{
   @page{size:A4; margin:16mm 14mm}
-  body.dw{
+  body.dw.stampa-verbale{
     color-scheme:light;
     -webkit-print-color-adjust:exact; print-color-adjust:exact;
     background:#fff !important; background-image:none !important;
     color:#14121c;
   }
-  body.dw::before,body.dw::after{display:none !important}
+  body.dw.stampa-verbale::before,body.dw.stampa-verbale::after{display:none !important}
   /* fuori dal foglio tutto ciò che è comando, non documento */
-  .top,.nav,.tour-banner,.toast,.modal-ov,.dw-home,.dw-exit,.page{display:none !important}
-  #verbale{display:block !important; font-family:'Barlow',sans-serif; color:#14121c}
+  body.stampa-verbale .top,body.stampa-verbale .nav,body.stampa-verbale .tour-banner,
+  body.stampa-verbale .toast,body.stampa-verbale .modal-ov,body.stampa-verbale .dw-home,
+  body.stampa-verbale .dw-exit,body.stampa-verbale .page{display:none !important}
+  body.stampa-verbale #verbale{display:block !important; font-family:'Barlow',sans-serif; color:#14121c}
   .vb-testa{border-bottom:2px solid #5e499d; padding-bottom:8px; margin-bottom:14px}
   .vb-tit{
     font-family:'Barlow Condensed',sans-serif; font-size:22px; font-weight:800;
@@ -1155,6 +1157,8 @@
     if (filtro) filtroScad = filtro;
     const filtroA = card.getAttribute("data-filtro-azi");
     if (filtroA) filtroAzi = filtroA;
+    const tab = card.getAttribute("data-tab");
+    if (tab) apriTab(tab);
     go(card.getAttribute("data-goto"));
     refresh();
   });
@@ -1728,6 +1732,246 @@
       $("isp-c-nota").innerHTML = (i.riferimento ? "Riferimento: " + esc(i.riferimento) + "<br>" : "")
         + "Le voci e le periodicità sono una <b>base di partenza</b>, non un obbligo di legge riga per riga: vanno adattate al DSS e al DVR della tua cava con l'RSPP. <b>Nota informativa, non un parere legale.</b>";
     }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // S4 · LA MATRICE: CHI POSSO MANDARE A FARE QUEL LAVORO DOMANI MATTINA
+    // Non «quanti corsi scadono», ma «chi oggi non può salire su quella
+    // macchina». Tre risposte sole e il motivo scritto sotto il nome.
+    // ══════════════════════════════════════════════════════════════════════
+    const ESITO_MAT = { puo: ["ok", "Può andare", "st-ok"],
+      attenzione: ["warn", "Da sistemare", "st-warn"], no: ["danger", "Non può", "st-danger"] };
+    if (matSel && !MANS.some(m => m.id === matSel)) matSel = null;
+    const matTot = rMans.reduce((s, r) => s + r.totale, 0);
+    const matPuo = rMans.reduce((s, r) => s + r.puo, 0);
+    const matNo = rMans.reduce((s, r) => s + r.no, 0);
+    $("mat-count").textContent = MANS.length;
+    $("mat-riep").innerHTML = !MANS.length
+      ? "Nessuna mansione ancora descritta. Una mansione è il lavoro che una persona fa in cava — escavatorista, fochino, autista — con i corsi e i DPI che servono per farlo. Creane una qui sotto: puoi partire da quelle tipiche di cava."
+      : !matTot
+        ? "Le mansioni ci sono, ma non è ancora assegnata nessuna persona. Tocca la ✎ di una mansione e scegli <b>chi la svolge</b>: da lì in poi Scudo sa dirti chi può andare."
+        : `Oggi possono andare <b>${matPuo}</b> persone su ${matTot}`
+          + (matNo ? ` · <b>${matNo}</b> non ${matNo === 1 ? "può" : "possono"} per un corso mancante o scaduto` : "")
+          + ` · mansioni descritte: <b>${MANS.length}</b>.`;
+    $("mat-mansioni").innerHTML = MANS.length
+      ? `<button class="chg${matSel ? "" : " active"}" data-mat="">Tutte</button>`
+        + rMans.map(r => `<button class="chg${matSel === r.mansione.id ? " active" : ""}" data-mat="${r.mansione.id}">${esc(r.mansione.nome)} · ${r.puo}/${r.totale}</button>`).join("")
+      : "";
+    // Pillole di stato: una per requisito (sempre), più i DPI SOLO quando c'è
+    // qualcosa che non va — così la riga resta leggibile e i problemi saltano
+    // all'occhio invece di nascondersi in mezzo alle cose in ordine.
+    const pillReq = (a, r) => {
+      const testo = r.stato === "mancante" ? r.breve + " — manca"
+        : r.stato === "scaduta" ? r.breve + " — scaduta"
+        : r.stato === "in-scadenza" ? r.breve + " · " + (r.giorni === 0 ? "oggi" : r.giorni + " gg")
+        : r.breve;
+      const cls = r.stato === "mancante" || r.stato === "scaduta" ? "danger"
+        : r.stato === "in-scadenza" ? "warn" : "ok";
+      const fix = (r.stato === "mancante" || r.stato === "scaduta");
+      return `<span class="badge ${cls}${fix ? " tocca" : ""}"${fix
+        ? ` data-req-fix="${a.lavoratore.id}|${r.chiave}|${r.scadenzaId || ""}" title="Tocca per mettere questo corso nello scadenzario"`
+        : ` title="${esc(r.etichetta)}${r.scadenza ? " — scade il " + fmtData(r.scadenza) : ""}"`}>${esc(testo)}</span>`;
+    };
+    const pillDpi = (a, d) => {
+      if (d.stato === "regolare" && !d.addestramentoMancante) return "";
+      const testo = d.stato === "mancante" ? d.etichetta + " — mai consegnato"
+        : d.stato === "scaduta" ? d.etichetta + " — da sostituire"
+        : d.stato === "in-scadenza" ? d.etichetta + " — in scadenza"
+        : d.etichetta + " — addestramento";
+      const cls = d.stato === "mancante" || d.stato === "scaduta" ? "danger" : "warn";
+      return `<span class="badge ${cls} tocca" data-dpi-fix="${a.lavoratore.id}|${d.chiave}" title="Tocca per registrare la consegna">${esc(testo)}</span>`;
+    };
+    const rigaMat = (a) => {
+      const e = ESITO_MAT[a.esito];
+      const motivi = a.bloccanti.length ? a.bloccanti.join(" · ")
+        : a.attenzioni.length ? a.attenzioni.join(" · ")
+        : "corsi e DPI in ordine";
+      return `<div class="item ${e[2]}">
+        <div class="avatar">${esc(initials(a.lavoratore.nome))}</div>
+        <div class="info"><div class="name">${esc(a.lavoratore.nome)}</div>
+        <div class="meta">${esc(motivi)}</div>
+        <div class="reqs">${a.requisiti.map(r => pillReq(a, r)).join("")}${a.dpi.map(d => pillDpi(a, d)).join("")}</div></div>
+        <span class="acts"><span class="badge ${e[0]}">${e[1]}</span></span></div>`;
+    };
+    const bloccoMat = (r) => `<div class="sub-sec">${esc(r.mansione.nome)} — ${r.puo} su ${r.totale} ${r.totale === 1 ? "può" : "possono"} andare</div>`
+      + (r.righe.length ? r.righe.map(rigaMat).join("")
+        : `<div class="item st-mute"><div class="info"><div class="name">Nessuno assegnato</div>
+           <div class="meta">Tocca la ✎ di «${esc(r.mansione.nome)}» qui sotto e scegli chi la svolge.</div></div></div>`);
+    $("mat-list").innerHTML = !MANS.length
+      ? vuoto(I.persone, "Nessuna mansione",
+          "La matrice risponde a una domanda sola: <b>chi posso mandare a fare quel lavoro domani mattina?</b> Per rispondere le serve sapere che lavori si fanno in cava e cosa serve per farli. Aggiungi la prima mansione qui sotto.")
+      : (matSel ? bloccoMat(rMans.find(r => r.mansione.id === matSel) || rMans[0])
+                : rMans.map(bloccoMat).join(""));
+    // Il grafico si disegna solo se c'è un confronto da leggere: due mansioni
+    // con almeno una persona assegnata. Con una sola, il numero dice di più.
+    const manConGente = rMans.filter(r => r.totale > 0);
+    if (manConGente.length >= 2) {
+      const peggio = manConGente.slice().sort((a, b) => (b.no + b.attenzione) - (a.no + a.attenzione))[0];
+      grafico("graf-mansioni", "barre", {
+        titolo: "Persone pronte per mansione",
+        meta: matPuo + " pronte su " + matTot,
+        orientamento: "orizzontale", formato: soloInteri,
+        valori: manConGente.map(r => ({
+          etichetta: r.mansione.nome, valore: r.puo,
+          stato: r.no ? "danger" : (r.attenzione ? "warn" : "ok"),
+        })),
+        aria: "Persone pronte per mansione: " + manConGente.map(r => r.mansione.nome + " " + r.puo + " su " + r.totale).join(", ") + ".",
+        nota: "Ogni barra è il numero di persone che <b>oggi possono andare</b> per quella mansione. "
+          + "Rosso: c'è chi non può (corso mancante o scaduto). Giallo: possono andare ma c'è da sistemare qualcosa. "
+          + (peggio && (peggio.no || peggio.attenzione)
+            ? "Il punto più scoperto è <b>" + esc(peggio.mansione.nome) + "</b>."
+            : "Nessuna mansione è scoperta."),
+      });
+    } else {
+      puliscoGrafico("graf-mansioni");
+    }
+
+    // --- Elenco delle mansioni e form (requisiti, DPI, chi la svolge) -----
+    $("mans-count").textContent = MANS.length;
+    $("mans-list").innerHTML = rMans.map(r => {
+      const m = r.mansione;
+      const cls = r.no ? "st-danger" : (r.attenzione ? "st-warn" : (r.totale ? "st-ok" : "st-mute"));
+      const nreq = (m.requisiti || []).length, ndpi = (m.dpi || []).length;
+      return `<div class="item ${cls}${editMans === m.id ? " evidenzia" : ""}">
+        <div class="avatar sup">${I.persone}</div>
+        <div class="info"><div class="name">${esc(m.nome)}</div>
+        <div class="meta">${nreq} ${nreq === 1 ? "corso richiesto" : "corsi richiesti"} · ${ndpi} ${ndpi === 1 ? "DPI previsto" : "DPI previsti"} · ${r.totale} ${r.totale === 1 ? "persona" : "persone"}</div></div>
+        <span class="acts">
+        <span class="badge ${r.totale ? (r.no ? "danger" : (r.attenzione ? "warn" : "ok")) : "tag"}">${r.totale ? r.puo + "/" + r.totale : "nessuno"}</span>
+        <span class="arr" style="cursor:pointer" title="Modifica la mansione" data-edit-mans="${m.id}">✎</span>
+        <span class="arr" style="cursor:pointer" title="Rimuovi la mansione" data-del-mans="${m.id}">✕</span></span></div>`;
+    }).join("") || vuoto(I.attrezzo, "Nessuna mansione descritta",
+        "Una mansione tiene insieme <b>il lavoro</b>, <b>i corsi</b> che servono per farlo e <b>i DPI</b> da consegnare. Parti da una di quelle tipiche di cava e correggila come serve a te.");
+    if (!$("mans-preset").dataset.pronto) {
+      $("mans-preset").innerHTML = '<option value="">Mansione tipica di cava… (facoltativo)</option>'
+        + MANSIONI_PRESET.map(m => `<option value="${m.chiave}">${esc(m.nome)}</option>`).join("");
+      $("mans-preset").dataset.pronto = "1";
+    }
+    disegnaChipsMansione();
+
+    // ══════════════════════════════════════════════════════════════════════
+    // S4 · NOMINE DELLA SICUREZZA
+    // Una riga per persona nominata, più una riga per ogni ruolo scoperto:
+    // il sorvegliante è obbligatorio in cava e il preposto va individuato
+    // formalmente — se manca deve vedersi, non restare implicito.
+    // ══════════════════════════════════════════════════════════════════════
+    const nomOk = org.filter(o => o.stato === "ok").length;
+    $("nom-riep").innerHTML = NOM.length || nomKO.length
+      ? `Ruoli in regola: <b>${nomOk}</b> su ${org.length}`
+        + (nomKO.length ? ` · da sistemare: <b>${nomKO.length}</b> (${esc(nomKO.map(o => o.ruolo.etichetta).join(", "))})` : "")
+        + "."
+      : "Nessuna nomina registrata. In cava il <b>sorvegliante</b> è obbligatorio per legge e il <b>preposto</b> va individuato formalmente: comincia da questi due.";
+    $("nom-list").innerHTML = org.map(o => {
+      const righe = o.persone.map(p => {
+        const f = p.formazione;
+        const fb = !p.requisito ? ["tag", "Nomina attiva"]
+          : !f ? ["tag", "—"]
+          : f.stato === "mancante" ? ["danger", "Formazione non registrata"]
+          : f.stato === "scaduta" ? ["danger", "Formazione scaduta"]
+          : f.stato === "in-scadenza" ? ["warn", "Formazione in scadenza"]
+          : ["ok", "In regola"];
+        const cls = fb[0] === "danger" ? "st-danger" : fb[0] === "warn" ? "st-warn" : "st-ok";
+        const sistema = (p.requisito && f && (f.stato === "mancante" || f.stato === "scaduta"))
+          ? `<button class="dw-btn secondary mini" data-req-fix="${p.lavoratore ? p.lavoratore.id : ""}|${p.requisito.chiave}|${f.scadenzaId || ""}" title="Metti la formazione nello scadenzario">Sistema</button>` : "";
+        return `<div class="item ${cls}">
+          <div class="avatar">${esc(initials(p.lavoratore ? p.lavoratore.nome : "?"))}</div>
+          <div class="info"><div class="name"><span class="badge accent" style="margin-right:6px;">${esc(o.ruolo.etichetta)}</span>${esc(p.lavoratore ? p.lavoratore.nome : "persona non più in anagrafica")}</div>
+          <div class="meta">${p.nomina.dal ? "dal " + fmtData(p.nomina.dal) : "senza data di nomina"}${p.nomina.al ? " al " + fmtData(p.nomina.al) : ""}${p.nomina.note ? " · " + esc(p.nomina.note) : ""}${f && f.scadenza ? " · formazione fino al " + fmtData(f.scadenza) : ""}</div></div>
+          <span class="acts"><span class="badge ${fb[0]}">${fb[1]}</span>${sistema}
+          <span class="arr" style="cursor:pointer" title="Rimuovi la nomina" data-del-nom="${p.nomina.id}">✕</span></span></div>`;
+      }).join("");
+      if (o.persone.length) return righe;
+      const vuota = o.mancante
+        ? ["st-danger", "danger", "Da nominare"]
+        : ["st-mute", "tag", "Non nominato"];
+      return `<div class="item ${vuota[0]}">
+        <div class="avatar sup">${I.scudo}</div>
+        <div class="info"><div class="name">${esc(o.ruolo.etichetta)}</div>
+        <div class="meta">${esc(o.ruolo.spiega)} · ${esc(o.ruolo.riferimento)}</div></div>
+        <span class="acts"><span class="badge ${vuota[1]}">${vuota[2]}</span></span></div>`;
+    }).join("");
+    if (!$("nom-ruolo").dataset.pronto) {
+      $("nom-ruolo").innerHTML = NOMINE_RUOLI.map(r =>
+        `<option value="${r.chiave}">${esc(r.etichetta)}${r.obbligatoria ? " (obbligatoria)" : ""}</option>`).join("");
+      $("nom-ruolo").dataset.pronto = "1";
+      aggiornaNotaRuolo();
+    }
+    { const sel = $("nom-lav"), v = sel.value;
+      const o = '<option value="">— scegli la persona —</option>' + LAV.map(l => `<option value="${l.id}">${esc(l.nome)}</option>`).join("");
+      if (sel.innerHTML !== o) { sel.innerHTML = o; sel.value = [...sel.options].some(x => x.value === v) ? v : ""; } }
+    if (!$("nom-dal").value) $("nom-dal").value = oggiISO();
+
+    // ══════════════════════════════════════════════════════════════════════
+    // S5 · REGISTRO DPI PER LAVORATORE
+    // Prima quello che manca (è il senso del registro), poi le consegne.
+    // ══════════════════════════════════════════════════════════════════════
+    $("dpi-al-count").textContent = alDpi.length;
+    $("dpi-riep").innerHTML = DPI.length || alDpi.length
+      ? `Consegne registrate: <b>${rDpi.consegne}</b> a ${rDpi.persone} ${rDpi.persone === 1 ? "persona" : "persone"}`
+        + (rDpi.mancanti ? ` · mai consegnati: <b>${rDpi.mancanti}</b>` : "")
+        + (rDpi.daSostituire ? ` · da sostituire: <b>${rDpi.daSostituire}</b>` : "")
+        + (rDpi.addestramenti ? ` · addestramenti da registrare: <b>${rDpi.addestramenti}</b>` : "")
+        + (rDpi.daSistemare ? "." : " · niente da sistemare.")
+      : "Nessuna consegna registrata. Il verbale di consegna firmato è la prima cosa che viene chiesta in ispezione (art. 77 D.Lgs 81/08): registra qui sotto cosa hai dato, a chi e quando.";
+    $("dpi-allarmi").innerHTML = alDpi.map(a =>
+      `<div class="item ${a.gravita === "danger" ? "st-danger" : "st-warn"}">
+        <div class="avatar">${esc(initials(a.lavoratore))}</div>
+        <div class="info"><div class="name">${esc(a.lavoratore)} — ${esc(a.etichetta)}</div>
+        <div class="meta">${esc(a.motivo)}${a.scadenza ? " · " + fmtData(a.scadenza) : ""}${a.mansione ? " · previsto dalla mansione " + esc(a.mansione) : ""}</div></div>
+        <span class="acts"><span class="badge ${a.gravita}">${a.motivo === "mai consegnato" ? "Mai consegnato" : a.motivo === "da sostituire" ? "Da sostituire" : a.motivo === "in scadenza" ? "In scadenza" : "Addestramento"}</span>
+        <button class="dw-btn secondary mini" data-dpi-fix="${a.lavoratoreId}|${a.tipo}" title="Registra la consegna">Registra</button></span></div>`).join("")
+      || (MANS.length
+        ? vuoto(I.ok, "Nessun DPI da sistemare",
+            "Per ogni persona assegnata a una mansione, i DPI previsti risultano consegnati, in corso di validità e con l'addestramento registrato dove serve.")
+        : vuoto(I.attrezzo, "Prima le mansioni",
+            "Scudo sa dire chi è scoperto solo se sa <b>quali DPI servono a chi</b>: descrivi le mansioni nella scheda <b>Chi può fare cosa</b> e indica i DPI previsti. Le consegne, intanto, si registrano lo stesso."));
+    { const sel = $("dpi-filtro-lav"), v = dpiFiltro;
+      const o = '<option value="">Tutti i lavoratori</option>' + LAV.map(l => `<option value="${l.id}">${esc(l.nome)}</option>`).join("");
+      if (sel.innerHTML !== o) sel.innerHTML = o;
+      sel.value = [...sel.options].some(x => x.value === v) ? v : ""; }
+    const dpiVis = DPI.filter(c => !dpiFiltro || c.lavoratoreId === dpiFiltro);
+    $("dpi-count").textContent = dpiFiltro ? dpiVis.length + " su " + DPI.length : DPI.length;
+    $("dpi-list").innerHTML = dpiVis.slice().sort((a, b) => {
+        const na = (byId[a.lavoratoreId] || {}).nome || "", nb = (byId[b.lavoratoreId] || {}).nome || "";
+        return na.localeCompare(nb, "it") || String(b.dataConsegna || "").localeCompare(String(a.dataConsegna || ""));
+      }).map(c => {
+      const t = tipoDpiSicuro(c.tipo), st = statoConsegnaDpi(c), l = byId[c.lavoratoreId];
+      const cls = st.stato === "scaduta" ? "st-danger" : st.stato === "in-scadenza" ? "st-warn"
+        : st.addestramentoMancante ? "st-warn" : "st-ok";
+      const ab = t.addestramento
+        ? (c.addestramento ? ["ok", "Addestrato"] : ["warn", "Addestramento da fare"])
+        : null;
+      const meta = [
+        l ? l.nome : "lavoratore non più in anagrafica",
+        "consegnato il " + fmtData(c.dataConsegna),
+        c.scadenza ? "da sostituire entro il " + fmtData(c.scadenza) + " · " + livelloScadenza(c.scadenza).label : "senza data di sostituzione",
+        [c.modello, c.taglia ? "taglia " + c.taglia : ""].filter(Boolean).join(" · "),
+        c.note || "",
+      ].filter(Boolean).join(" · ");
+      return `<div class="item ${cls}">
+        <div class="avatar">${esc(initials(l ? l.nome : "?"))}</div>
+        <div class="info"><div class="name"><span class="badge tag" style="margin-right:6px;">cat. ${esc(t.cat)}</span>${esc(t.etichetta)}</div>
+        <div class="meta">${esc(meta)}</div></div>
+        <span class="acts">
+        ${ab ? `<span class="badge ${ab[0]}" style="cursor:pointer" title="Tocca per registrare (o togliere) l'addestramento" data-dpi-addestr="${c.id}">${ab[1]}</span>` : ""}
+        ${st.stato !== "regolare" ? `<span class="badge ${B[st.stato][0]}">${st.stato === "scaduta" ? "Scaduto" : "In scadenza"}</span>` : ""}
+        <span class="arr" style="cursor:pointer" title="Rimuovi la consegna" data-del-dpi="${c.id}">✕</span></span></div>`;
+    }).join("") || (dpiFiltro
+      ? vuoto(I.cerca, "Nessuna consegna per questa persona", "Scegli <b>Tutti i lavoratori</b> per vedere l'elenco completo, oppure registra la prima consegna qui sotto.")
+      : vuoto(I.scudo, "Registro DPI vuoto",
+          "Registra cosa consegni: dispositivo, taglia, data e — dove serve — l'<b>addestramento</b>. Poi stampi il <b>verbale</b>, lo fai firmare e sei a posto per l'ispezione."));
+    { const sel = $("dpi-lav"), v = sel.value;
+      const o = '<option value="">— a chi —</option>' + LAV.map(l => `<option value="${l.id}">${esc(l.nome)}</option>`).join("");
+      if (sel.innerHTML !== o) { sel.innerHTML = o; sel.value = [...sel.options].some(x => x.value === v) ? v : ""; }
+      const selV = $("dpi-verb-lav"), vv = selV.value;
+      const ov = '<option value="">— di chi è il verbale —</option>' + LAV.map(l => `<option value="${l.id}">${esc(l.nome)}</option>`).join("");
+      if (selV.innerHTML !== ov) { selV.innerHTML = ov; selV.value = [...selV.options].some(x => x.value === vv) ? vv : ""; } }
+    if (!$("dpi-tipo").dataset.pronto) {
+      $("dpi-tipo").innerHTML = '<option value="">— quale DPI —</option>'
+        + TIPI_DPI.map(t => `<option value="${t.chiave}">${esc(t.etichetta)} (cat. ${t.cat})</option>`).join("");
+      $("dpi-tipo").dataset.pronto = "1";
+    }
+    if (!$("dpi-data").value) $("dpi-data").value = oggiISO();
+    mostraTabPers();
   }
 
   const DOC_NEXT = { valido: "da-rivedere", "da-rivedere": "scaduto", scaduto: "valido" };
@@ -2178,6 +2422,365 @@
   }
 
   // ══════════════════════════════════════════════════════════════════════
+  // S4 · MANSIONI E NOMINE — S5 · REGISTRO DPI
+  // Le quattro schede di Personale: una cosa sola davanti agli occhi, come
+  // nella compilazione delle ispezioni.
+  // ══════════════════════════════════════════════════════════════════════
+  const TAB_PERS = ["lav", "mans", "nom", "dpi"];
+  function mostraTabPers() {
+    TAB_PERS.forEach(t => { const el = $("tab-" + t); if (el) el.style.display = (t === tabPers ? "block" : "none"); });
+    document.querySelectorAll("#pers-tabs [data-tab]").forEach(b =>
+      b.classList.toggle("active", b.getAttribute("data-tab") === tabPers));
+  }
+  function apriTab(t) { if (TAB_PERS.includes(t)) { tabPers = t; mostraTabPers(); } }
+  $("pers-tabs").addEventListener("click", (e) => {
+    const t = e.target.getAttribute && e.target.getAttribute("data-tab");
+    if (t) { apriTab(t); window.scrollTo(0, 0); }
+  });
+
+  // --- form della mansione: i tastierini a griglia ----------------------
+  function disegnaChipsMansione() {
+    $("mans-req").innerHTML = REQUISITI_FORMAZIONE.map(r =>
+      `<button type="button" class="chg${MANSF.req.has(r.chiave) ? " active" : ""}" data-mreq="${r.chiave}" aria-pressed="${MANSF.req.has(r.chiave)}" title="${esc(r.etichetta)}">${esc(r.breve)}</button>`).join("");
+    $("mans-dpi").innerHTML = TIPI_DPI.map(t =>
+      `<button type="button" class="chg${MANSF.dpi.has(t.chiave) ? " active" : ""}" data-mdpi="${t.chiave}" aria-pressed="${MANSF.dpi.has(t.chiave)}" title="Categoria ${esc(t.cat)}${t.addestramento ? " — addestramento obbligatorio" : ""}">${esc(t.etichetta)}</button>`).join("");
+    $("mans-lav").innerHTML = LAV.length
+      ? LAV.slice().sort((a, b) => a.nome.localeCompare(b.nome, "it")).map(l =>
+          `<button type="button" class="chg${MANSF.lav.has(l.id) ? " active" : ""}" data-mlav="${l.id}" aria-pressed="${MANSF.lav.has(l.id)}">${esc(l.nome)}</button>`).join("")
+      : '<span class="form-hint">Nessun lavoratore in anagrafica: aggiungili nella scheda <b>Lavoratori</b> e poi torna qui.</span>';
+  }
+  function annullaEditMans() {
+    editMans = null;
+    MANSF.req.clear(); MANSF.dpi.clear(); MANSF.lav.clear();
+    $("mans-nome").value = ""; $("mans-preset").value = "";
+    $("btn-mans").textContent = "Aggiungi";
+    $("btn-mans-annulla").style.display = "none";
+    $("mans-form-tit").textContent = "Aggiungi mansione";
+    err("mans-nome", false);
+    disegnaChipsMansione();
+  }
+  $("mans-preset").addEventListener("change", () => {
+    const p = mansionePreset($("mans-preset").value);
+    if (!p) return;
+    if (!$("mans-nome").value.trim() || !editMans) $("mans-nome").value = p.nome;
+    MANSF.req.clear(); p.requisiti.forEach(x => MANSF.req.add(x));
+    MANSF.dpi.clear(); p.dpi.forEach(x => MANSF.dpi.add(x));
+    err("mans-nome", false);
+    disegnaChipsMansione();
+    esito("mans-esito", "Mansione tipica caricata: corsi e DPI sono una proposta, togli e aggiungi quello che serve alla tua cava.");
+  });
+  $("btn-mans-annulla").onclick = () => { annullaEditMans(); esito("mans-esito", "Modifica annullata."); };
+  $("btn-mans").onclick = async () => {
+    const nome = $("mans-nome").value.trim();
+    if (!nome) { err("mans-nome", true); $("mans-nome").focus();
+      esito("mans-esito", "Serve il nome della mansione (es. «escavatorista»).", "err"); return; }
+    err("mans-nome", false);
+    const rec = { nome, requisiti: [...MANSF.req], dpi: [...MANSF.dpi], lavoratoriIds: [...MANSF.lav] };
+    if (editMans) { await db.aggiorna("mansioni", editMans, rec); annullaEditMans();
+      esito("mans-esito", "Mansione aggiornata: " + nome + ".", "success"); }
+    else { await db.aggiungi("mansioni", rec); annullaEditMans();
+      esito("mans-esito", "Mansione aggiunta: " + nome + " (" + rec.requisiti.length + " corsi, " + rec.dpi.length + " DPI, " + rec.lavoratoriIds.length + " persone).", "success"); }
+    await refresh();
+  };
+
+  // --- nomine ----------------------------------------------------------
+  function aggiornaNotaRuolo() {
+    const r = ruoloNomina($("nom-ruolo").value), nota = $("nom-ruolo-nota");
+    if (!r) { nota.style.display = "none"; nota.innerHTML = ""; return; }
+    const req = r.requisito ? requisitoFormazione(r.requisito) : null;
+    nota.style.display = "block";
+    nota.innerHTML = "<b>" + esc(r.etichetta) + "</b> — " + esc(r.spiega)
+      + '<br><span style="opacity:.9;">Riferimento: ' + esc(r.riferimento) + "</span>"
+      + (req ? "<br>Formazione collegata: <b>" + esc(req.etichetta) + "</b> — Scudo la controlla nello scadenzario." : "");
+  }
+  $("nom-ruolo").addEventListener("change", aggiornaNotaRuolo);
+  $("btn-nom").onclick = async () => {
+    const ruolo = $("nom-ruolo").value, lavoratoreId = $("nom-lav").value, dal = $("nom-dal").value;
+    if (!lavoratoreId) { err("nom-lav", true); $("nom-lav").focus();
+      esito("nom-esito", "Scegli chi stai nominando.", "err"); return; }
+    err("nom-lav", false);
+    const r = ruoloNomina(ruolo);
+    const gia = NOM.filter(n => n.ruolo === ruolo && nominaAttiva(n));
+    if (r && !r.multiplo && gia.length) {
+      const chi = LAV.find(l => l.id === gia[0].lavoratoreId);
+      const ok = await chiedi("C'è già una nomina attiva",
+        "<b>" + esc(r.etichetta) + "</b> risulta già ricoperto da <b>" + esc(chi ? chi.nome : "un'altra persona")
+        + "</b>. Di norma è un incarico unico: se stai facendo un <b>passaggio di consegne</b>, chiudi prima la nomina precedente con la ✕.<br><br>Vuoi comunque aggiungere questa nomina?",
+        "Aggiungi lo stesso");
+      if (!ok) return;
+    }
+    const lav = LAV.find(l => l.id === lavoratoreId);
+    await db.aggiungi("nomine", { ruolo, lavoratoreId, dal: dal || oggiISO(), al: null, note: $("nom-note").value.trim() });
+    $("nom-note").value = ""; $("nom-lav").value = "";
+    esito("nom-esito", (lav ? lav.nome : "Persona") + " nominata: " + (r ? r.etichetta : ruolo) + ".", "success");
+    await refresh();
+  };
+
+  // --- DPI: consegne, addestramento, verbale ---------------------------
+  $("dpi-tipo").addEventListener("change", () => {
+    const t = tipoDpi($("dpi-tipo").value), nota = $("dpi-tipo-nota");
+    err("dpi-tipo", false);
+    if (!t) { nota.style.display = "none"; nota.innerHTML = ""; return; }
+    nota.style.display = "block";
+    nota.innerHTML = "<b>Categoria " + esc(t.cat) + "</b>"
+      + (t.addestramento
+        ? " — l'<b>addestramento è obbligatorio</b> (art. 77 D.Lgs 81/08): senza, la consegna non è completa."
+        : " — per questo dispositivo l'addestramento non è obbligatorio; resta obbligatoria l'informazione sull'uso.")
+      + (t.nota ? "<br>" + esc(t.nota) : "")
+      + (t.mesi ? "<br>Sostituzione proposta dopo <b>" + t.mesi + " mesi</b>: è una durata indicativa, quella vera la dice il libretto del costruttore." : "");
+    const base = $("dpi-data").value || oggiISO();
+    if (t.mesi && !$("dpi-scad").value) {
+      const d = dataDaPeriodicita(t.mesi, new Date(base + "T00:00:00"));
+      if (d) $("dpi-scad").value = d;
+    }
+  });
+  $("dpi-addestr").onclick = () => {
+    dpiAddestr = !dpiAddestr;
+    $("dpi-addestr").classList.toggle("active", dpiAddestr);
+    $("dpi-addestr").setAttribute("aria-pressed", dpiAddestr ? "true" : "false");
+  };
+  $("dpi-filtro-lav").addEventListener("change", async () => { dpiFiltro = $("dpi-filtro-lav").value; await refresh(); });
+  $("btn-dpi").onclick = async () => {
+    const lavoratoreId = $("dpi-lav").value, tipo = $("dpi-tipo").value, dataConsegna = $("dpi-data").value;
+    if (!lavoratoreId || !tipo || !dataConsegna) {
+      err("dpi-lav", !lavoratoreId); err("dpi-tipo", !tipo); err("dpi-data", !dataConsegna);
+      (!lavoratoreId ? $("dpi-lav") : !tipo ? $("dpi-tipo") : $("dpi-data")).focus();
+      esito("dpi-esito", "Servono la persona, il dispositivo e la data di consegna: è quello che va scritto sul verbale.", "err"); return;
+    }
+    err("dpi-lav", false); err("dpi-tipo", false); err("dpi-data", false);
+    const t = tipoDpiSicuro(tipo), lav = LAV.find(l => l.id === lavoratoreId);
+    const addestrato = !!dpiAddestr;
+    await db.aggiungi("dpi", {
+      lavoratoreId, tipo, modello: $("dpi-modello").value.trim(), taglia: $("dpi-taglia").value.trim(),
+      dataConsegna, scadenza: $("dpi-scad").value || null,
+      addestramento: !!dpiAddestr, dataAddestramento: dpiAddestr ? dataConsegna : null, note: "",
+    });
+    $("dpi-modello").value = ""; $("dpi-taglia").value = ""; $("dpi-scad").value = "";
+    dpiAddestr = false; $("dpi-addestr").classList.remove("active"); $("dpi-addestr").setAttribute("aria-pressed", "false");
+    esito("dpi-esito", "Consegna registrata: " + t.etichetta + " a " + (lav ? lav.nome : "lavoratore") + "."
+      + (t.addestramento && !addestrato ? " Manca l'addestramento: per questo dispositivo è obbligatorio (art. 77). Tocca il badge nell'elenco quando l'hai fatto." : ""),
+      "success", "Consegna registrata.");
+    await refresh();
+  };
+  // Da un allarme («mai consegnato») al form già compilato: un tocco.
+  function prefillDpi(lavId, tipo) {
+    apriTab("dpi");
+    $("dpi-lav").value = lavId || "";
+    $("dpi-tipo").value = tipo || "";
+    $("dpi-scad").value = "";
+    $("dpi-tipo").dispatchEvent(new Event("change"));
+    const l = LAV.find(x => x.id === lavId), t = tipoDpiSicuro(tipo);
+    esito("dpi-esito", "Consegna da registrare: " + t.etichetta + " per " + (l ? l.nome : "il lavoratore")
+      + ". Aggiungi modello e taglia, poi tocca Registra.");
+    $("dpi-modello").focus();
+    $("dpi-modello").scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  // Mettere un corso mancante (o scaduto) NELLO SCADENZARIO che già esiste:
+  // non nasce un elenco parallelo, nasce una scadenza normale con la sua data
+  // e il suo semaforo. È il punto in cui la matrice si chiude sul resto
+  // dell'app.
+  async function sistemaRequisito(lavId, chiave, scadenzaId, esitoId) {
+    const lav = LAV.find(l => l.id === lavId);
+    if (!lav) { toast("Lavoratore non trovato in anagrafica.", "err"); return; }
+    const req = requisitoSicuro(chiave);
+    const sc = scadenzaId ? SCA.find(s => s.id === scadenzaId) : null;
+    const proposta = (req.mesi ? dataDaPeriodicita(req.mesi) : "") || "";
+    const v = await chiediValore(sc ? "Rinnova il corso" : "Metti il corso nello scadenzario",
+      "<b>" + esc(req.etichetta) + "</b> — " + esc(lav.nome) + ".<br>"
+      + (sc
+        ? "Risulta scaduto il " + fmtData(sc.dataScadenza) + ": la riga è già nello scadenzario, cambia solo la data. Metti quella del rinnovo appena fatto."
+        : "Per questa persona non c'è nessuna riga nello scadenzario. Indica <b>fino a quando</b> il corso è valido: nasce una scadenza come tutte le altre, con lo stesso semaforo.")
+      + (req.mesi ? "<br>Periodicità proposta: ogni <b>" + req.mesi + " mesi</b> — è una proposta, la data la decidi tu." : "")
+      + (req.riferimento ? '<br><span style="opacity:.9;">Riferimento: ' + esc(req.riferimento) + "</span>" : ""),
+      '<label class="fl" for="modal-campo">Valido fino al</label><input class="dw-input" id="modal-campo" type="date" value="' + esc(sc ? (sc.dataScadenza || "") : proposta) + '">',
+      sc ? "Rinnova" : "Aggiungi allo scadenzario");
+    if (v === null) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test((v || "").trim())) {
+      esito(esitoId || "mans-esito", "Serve una data valida (giorno, mese e anno).", "err"); return; }
+    if (sc) await db.aggiorna("scadenze", sc.id, { dataScadenza: v.trim(), preset: chiave });
+    else await db.aggiungi("scadenze", { lavoratoreId: lavId, tipo: req.tipo || "Formazione",
+      descrizione: req.etichetta, dataScadenza: v.trim(), preset: chiave });
+    await refresh();
+    esito(esitoId || "mans-esito", (sc ? "Rinnovato" : "Aggiunto allo scadenzario") + ": "
+      + req.etichetta + " — " + lav.nome + ", fino al " + fmtData(v.trim()) + ".", "success",
+      sc ? "Corso rinnovato." : "Corso messo in scadenzario.");
+  }
+
+  // ── S5 · IL VERBALE DI CONSEGNA SU CARTA ─────────────────────────────
+  // Quello che in ispezione viene chiesto per primo. Sullo schermo non c'è:
+  // si costruisce al momento e vive solo dentro la stampa.
+  function costruisciVerbale(lav) {
+    const v = verbaleDpi(lav, DPI);
+    const mans = MANS.filter(m => (m.lavoratoriIds || []).includes(lav.id)).map(m => m.nome).join(", ");
+    const puntini = '<span style="letter-spacing:1px;">........................................</span>';
+    const righe = v.righe.map(r => {
+      const c = r.consegna;
+      const add = !r.addestramentoRichiesto ? "non previsto"
+        : (r.addestramentoFatto
+            ? "fatto" + (c.dataAddestramento ? " il " + fmtData(c.dataAddestramento) : "")
+            : "DA FARE");
+      return `<tr><td>${esc(r.tipo.etichetta)}</td><td>${esc(r.tipo.cat)}</td>
+        <td>${esc(c.modello || "—")}</td><td>${esc(c.taglia || "—")}</td>
+        <td>${fmtData(c.dataConsegna)}</td><td>${c.scadenza ? fmtData(c.scadenza) : "—"}</td>
+        <td>${esc(add)}</td><td class="vb-firma"></td></tr>`;
+    }).join("");
+    $("verbale").innerHTML = `
+      <div class="vb-testa">
+        <div class="vb-tit">Verbale di consegna dei DPI</div>
+        <div class="vb-sub">Dispositivi di protezione individuale — art. 77 D.Lgs 81/2008</div>
+      </div>
+      <table class="vb-dati">
+        <tr><td>Azienda / cava</td><td>${puntini}</td></tr>
+        <tr><td>Lavoratore</td><td><b>${esc(lav.nome)}</b></td></tr>
+        <tr><td>Mansione</td><td>${esc(mans || lav.ruolo || "—")}</td></tr>
+        <tr><td>Data del verbale</td><td>${fmtData(oggiISO())}</td></tr>
+      </table>
+      ${v.righe.length ? `<table class="vb-tab">
+        <thead><tr><th>Dispositivo</th><th>Cat.</th><th>Modello</th><th>Taglia</th>
+        <th>Consegnato il</th><th>Sostituire entro</th><th>Addestramento</th><th>Firma</th></tr></thead>
+        <tbody>${righe}</tbody></table>`
+        : '<div class="vb-nota">Per questa persona non risulta registrata nessuna consegna.</div>'}
+      <div class="vb-nota">
+        Il lavoratore dichiara di aver ricevuto i dispositivi elencati, di essere stato informato
+        sui rischi da cui proteggono e di aver ricevuto l'<b>addestramento</b> dove indicato come fatto.
+        Si impegna a <b>usarli</b> quando previsto, ad <b>averne cura</b>, a <b>non modificarli</b> e a
+        <b>segnalare subito</b> difetti, danni o smarrimenti al preposto o al datore di lavoro
+        (artt. 20 e 78 D.Lgs 81/2008).
+      </div>
+      <div class="vb-firme">
+        <div>Firma del lavoratore</div>
+        <div>Firma di chi consegna (datore di lavoro o preposto)</div>
+      </div>
+      <div class="vb-pie">Documento preparato con Scudo · Deepwork — ${v.righe.length} ${v.righe.length === 1 ? "dispositivo" : "dispositivi"}${v.addestramentiMancanti ? " · addestramenti ancora da fare: " + v.addestramentiMancanti : ""}. Nota informativa, non un parere legale: il contenuto va verificato con l'RSPP dell'azienda.</div>`;
+  }
+  function stampaVerbale(lav) {
+    costruisciVerbale(lav);
+    document.body.classList.add("stampa-verbale");
+    const fine = () => { document.body.classList.remove("stampa-verbale"); window.removeEventListener("afterprint", fine); };
+    window.addEventListener("afterprint", fine);
+    try { window.print(); } finally { setTimeout(fine, 500); }
+  }
+  $("btn-dpi-verb").onclick = async () => {
+    const lav = LAV.find(l => l.id === $("dpi-verb-lav").value);
+    if (!lav) { err("dpi-verb-lav", true); $("dpi-verb-lav").focus();
+      esito("dpi-esito", "Scegli di chi è il verbale.", "err"); return; }
+    err("dpi-verb-lav", false);
+    const v = verbaleDpi(lav, DPI);
+    const ok = await chiedi("Verbale di consegna — " + lav.nome,
+      (v.righe.length
+        ? "Il foglio elenca <b>" + v.righe.length + (v.righe.length === 1 ? " dispositivo</b> consegnato" : " dispositivi</b> consegnati")
+          + " con data, taglia e addestramento"
+          + (v.addestramentiMancanti ? ", e segna <b>" + v.addestramentiMancanti + "</b> addestramenti ancora da fare" : "")
+          + ". Si apre la finestra di stampa del browser: da lì puoi anche scegliere «Salva come PDF»."
+        : "Per <b>" + esc(lav.nome) + "</b> non risulta ancora nessuna consegna: il verbale uscirebbe vuoto. Registra prima le consegne qui sopra.")
+      + "<br><br>Stampa il foglio, fallo <b>firmare</b> e allega la foto del firmato ai <b>Documenti</b> come «Verbale DPI»: è quella che vale in ispezione.",
+      "Stampa");
+    if (!ok) return;
+    stampaVerbale(lav);
+  };
+
+  // ── Tocchi delle schede S4/S5 (elenco a parte: non tocca quello di S1-S3) ──
+  document.addEventListener("click", async (e) => {
+    const at = (n) => e.target.getAttribute && e.target.getAttribute(n);
+    // scorciatoie verso una scheda di Personale (dal Quadro e dallo scadenzario)
+    const vaiPers = e.target.closest && e.target.closest("[data-vai-pers]");
+    if (vaiPers) { apriTab(vaiPers.getAttribute("data-vai-pers")); go("pers"); window.scrollTo(0, 0); return; }
+    // filtro della matrice per mansione
+    const mat = at("data-mat");
+    if (mat !== null && mat !== undefined) { matSel = mat || null; await refresh(); return; }
+    // tastierini del form mansione
+    const mreq = at("data-mreq");
+    if (mreq) { MANSF.req.has(mreq) ? MANSF.req.delete(mreq) : MANSF.req.add(mreq); disegnaChipsMansione(); return; }
+    const mdpi = at("data-mdpi");
+    if (mdpi) { MANSF.dpi.has(mdpi) ? MANSF.dpi.delete(mdpi) : MANSF.dpi.add(mdpi); disegnaChipsMansione(); return; }
+    const mlav = at("data-mlav");
+    if (mlav) { MANSF.lav.has(mlav) ? MANSF.lav.delete(mlav) : MANSF.lav.add(mlav); disegnaChipsMansione(); return; }
+    // modifica / rimozione di una mansione
+    const edMans = at("data-edit-mans");
+    if (edMans) {
+      const m = MANS.find(x => x.id === edMans); if (!m) return;
+      if (editMans === m.id) { annullaEditMans(); esito("mans-esito", "Modifica annullata."); await refresh(); return; }
+      editMans = m.id;
+      $("mans-nome").value = m.nome || ""; $("mans-preset").value = "";
+      MANSF.req.clear(); (m.requisiti || []).forEach(x => MANSF.req.add(x));
+      MANSF.dpi.clear(); (m.dpi || []).forEach(x => MANSF.dpi.add(x));
+      MANSF.lav.clear(); (m.lavoratoriIds || []).forEach(x => MANSF.lav.add(x));
+      $("btn-mans").textContent = "Salva modifica";
+      $("btn-mans-annulla").style.display = "inline-flex";
+      $("mans-form-tit").textContent = "Modifica mansione";
+      disegnaChipsMansione();
+      esito("mans-esito", "Stai modificando «" + m.nome + "»: cambia i corsi richiesti, i DPI e chi la svolge, poi salva.");
+      await refresh();
+      $("mans-nome").scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    const delMans = at("data-del-mans");
+    if (delMans) {
+      const m = MANS.find(x => x.id === delMans);
+      const n = (m && (m.lavoratoriIds || []).length) || 0;
+      const ok = await chiedi("Rimuovere la mansione?",
+        "Stai per togliere <b>" + esc(m ? m.nome : "la mansione") + "</b>."
+        + (n ? "<br><br>Le <b>" + n + (n === 1 ? " persona</b> assegnata resta" : " persone</b> assegnate restano") + " in anagrafica con le loro scadenze: si perde solo il collegamento al lavoro che fanno." : "")
+        + "<br><br>Corsi e DPI registrati non vengono toccati.",
+        "Rimuovi", true);
+      if (!ok) return;
+      if (editMans === delMans) annullaEditMans();
+      if (matSel === delMans) matSel = null;
+      await db.rimuovi("mansioni", delMans); await refresh();
+      esito("mans-esito", "Mansione rimossa.", "err");
+      return;
+    }
+    // «Sistema»: il corso mancante o scaduto va nello scadenzario
+    const fix = at("data-req-fix");
+    if (fix) { const [lavId, chiave, scadId] = fix.split("|");
+      await sistemaRequisito(lavId, chiave, scadId || null, tabPers === "nom" ? "nom-esito" : "mans-esito"); return; }
+    // «Registra»: dalla mancanza del DPI al form già compilato
+    const dfix = at("data-dpi-fix");
+    if (dfix) { const [lavId, tipo] = dfix.split("|"); prefillDpi(lavId, tipo); return; }
+    // rimozione di una nomina
+    const delNom = at("data-del-nom");
+    if (delNom) {
+      const n = NOM.find(x => x.id === delNom);
+      const r = n && ruoloNomina(n.ruolo), l = n && LAV.find(x => x.id === n.lavoratoreId);
+      const ok = await chiedi("Rimuovere la nomina?",
+        "Stai per togliere la nomina di <b>" + esc(l ? l.nome : "questa persona") + "</b> come <b>"
+        + esc(r ? r.etichetta : (n ? n.ruolo : "figura della sicurezza")) + "</b>."
+        + (r && r.obbligatoria ? "<br><br>È una figura <b>obbligatoria</b>: se resta scoperta, comparirà tra le urgenze del Quadro finché non nomini qualcun altro." : ""),
+        "Rimuovi", true);
+      if (!ok) return;
+      await db.rimuovi("nomine", delNom); await refresh();
+      esito("nom-esito", "Nomina rimossa.", "err");
+      return;
+    }
+    // addestramento DPI: si tocca il badge, come l'idoneità sanitaria
+    const addr = at("data-dpi-addestr");
+    if (addr && db.aggiorna) {
+      const c = DPI.find(x => x.id === addr); if (!c) return;
+      const fatto = !c.addestramento;
+      await db.aggiorna("dpi", c.id, { addestramento: fatto, dataAddestramento: fatto ? oggiISO() : null });
+      await refresh();
+      esito("dpi-esito", fatto
+        ? "Addestramento registrato: resta scritto sul verbale come prova."
+        : "Addestramento tolto: risulta di nuovo da fare.", fatto ? "success" : "");
+      return;
+    }
+    const delDpi = at("data-del-dpi");
+    if (delDpi) {
+      const c = DPI.find(x => x.id === delDpi), t = c && tipoDpiSicuro(c.tipo), l = c && LAV.find(x => x.id === c.lavoratoreId);
+      const ok = await chiedi("Rimuovere la consegna?",
+        "Stai per togliere dal registro <b>" + esc(t ? t.etichetta : "il dispositivo") + "</b> consegnato a <b>"
+        + esc(l ? l.nome : "questa persona") + "</b>" + (c && c.dataConsegna ? " il " + fmtData(c.dataConsegna) : "") + ".<br><br>"
+        + "Una consegna registrata è la prova di ciò che è stato dato: rimuovila solo se è stata inserita per sbaglio.",
+        "Rimuovi", true);
+      if (!ok) return;
+      await db.rimuovi("dpi", delDpi); await refresh();
+      esito("dpi-esito", "Consegna rimossa dal registro.", "err");
+      return;
+    }
+  });
+
+  // ══════════════════════════════════════════════════════════════════════
   // S2 · SEGNALAZIONE RAPIDA DI UN NEAR-MISS
   // Il percorso più corto possibile: si TOCCA che cosa è successo, si TOCCA
   // dove, si tocca Invia. Tre tocchi dentro la modale, uno per aprirla: data
@@ -2478,6 +3081,9 @@
   clearErr("new-scad-data", "scad-esito");
   clearErr("azi-desc", "azi-esito-msg");
   clearErr("azi-data", "azi-esito-msg");
+  clearErr("mans-nome", "mans-esito");
+  clearErr("dpi-taglia", "dpi-esito");
+  clearErr("dpi-modello", "dpi-esito");
 
   // Invio da tastiera: premere Invio in un campo del form equivale a
   // toccare il pulsante — data entry più rapida senza spostare il dito.
@@ -2487,6 +3093,9 @@
   enterSubmit(["new-scad-desc", "new-scad-data"], "btn-add-scad");
   enterSubmit(["doc-titolo", "doc-meta"], "btn-doc");
   enterSubmit(["azi-desc", "azi-data", "azi-nota"], "btn-azi");
+  enterSubmit(["mans-nome"], "btn-mans");
+  enterSubmit(["dpi-modello", "dpi-taglia"], "btn-dpi");
+  enterSubmit(["nom-note"], "btn-nom");
 
   await refresh();
 </script>
