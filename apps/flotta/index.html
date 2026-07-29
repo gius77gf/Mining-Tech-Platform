@@ -3111,7 +3111,7 @@
   };
   $("btn-sch-csv").onclick = () => {
     const m = MEZ.find(x => x.id === schedaId); if (!m) return;
-    const f = fascicoloMezzo(m, { manutenzioni: MAN, interventi: INT, scadenze: SCA, controlli: CTR, rifornimenti: RIF },
+    const f = fascicoloMezzo(m, { manutenzioni: MAN, interventi: INT, scadenze: SCA, controlli: CTR, rifornimenti: RIF, fermi: FER },
                              new Date(), preavvisoSca);
     const righe = [["sezione", "voce", "data", "dettaglio", "importo"].join(";")];
     const R = (s, v, d, det, imp) => righe.push([s, v, d, det, imp == null ? "" : imp].map(csvCell).join(";"));
@@ -3122,14 +3122,21 @@
     f.manutenzioni.forEach(n => R("manutenzione in programma", n.titolo || "", n.dataPrevista ? dataIt(n.dataPrevista) : "",
       (n.orePreviste ? "a " + n.orePreviste + " ore motore" : "a data") + (n.ogniOre ? " · ogni " + n.ogniOre + " h" : n.ogniMesi ? " · ogni " + n.ogniMesi + " mesi" : ""), ""));
     f.interventi.forEach(w => R("intervento", w.titolo || "", dataIt(w.data),
-      [w.ricambio || "", w.note || ""].filter(Boolean).join(" · "), (+w.costo) || 0));
+      [w.ricambio || "", lavorazioneTx(w).replace(/<[^>]*>/g, ""), w.note || ""].filter(Boolean).join(" · "), (+w.costo) || 0));
+    f.fermi.forEach(x => R("fermo macchina", x.causaleTx, dataIt(x.inizio),
+      (x.fine ? "ripartito il " + dataIt(x.fine) : "ancora fermo") + (x.giorni != null ? " · " + x.giorni + (x.giorni === 1 ? " giorno" : " giorni") : "")
+      + (x.note ? " · " + x.note : ""), ""));
     f.controlli.forEach(c => R("giro macchina", "controllo pre-uso", dataIt(c.data),
       (c.operatore ? c.operatore + " · " : "") + ((c.voci || []).filter(v => v.esito === "no").map(v => v.etichetta).join(" | ") || "nessuna anomalia"), ""));
     f.rifornimenti.forEach(r => R("rifornimento", "gasolio", dataIt(r.data),
       r.litri + " l" + (r.ore ? " · contatore " + r.ore + " h" : ""), (+r.euro) || 0));
     if (f.consumo && f.consumo.litriOra != null)
       R("consumo", "litri per ora", "", f.consumo.litriOra + " l/h su " + f.consumo.oreCoperte + " ore" + (f.consumo.euroOra ? " · " + f.consumo.euroOra + " €/h" : ""), "");
-    R("totale officina", "interventi chiusi", "", f.officina.interventi + " interventi", f.officina.totale);
+    R("totale officina", "interventi chiusi", "", f.officina.interventi + " interventi"
+      + (f.officina.ore ? " · " + f.officina.ore + " ore di manodopera" : ""), f.officina.totale);
+    if (f.fermo.episodi) R("totale fermi", "giorni non lavorati", "",
+      f.fermo.episodi + (f.fermo.episodi === 1 ? " fermo" : " fermi") + " · " + f.fermo.giorni + (f.fermo.giorni === 1 ? " giorno" : " giorni")
+      + (f.fermo.aperti ? " · " + f.fermo.aperti + " ancora aperto" : ""), "");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
     a.download = "libretto-" + nomeBreve(m.nome).toLowerCase().replace(/[^a-z0-9]+/g, "-") + ".csv"; a.click();

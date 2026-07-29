@@ -376,6 +376,23 @@
 .dwg-axlab{text-transform:none}
 .graf-area{stroke:none}
 
+/* ─────────────── andamento per ricettore: una cassa per punto ───────────────
+   Stessa cassa delle altre schede dell'app (gradiente card2→card, riflesso
+   sul bordo alto, ombra propria): il grafico ci sta dentro «nudo». */
+.and-card{
+  position:relative; background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--border); border-left:3px solid var(--app-accent);
+  border-radius:var(--r); padding:13px 14px 14px; margin-bottom:10px;
+  box-shadow:var(--sh3),var(--edge);
+}
+.and-tit{
+  font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:800;
+  letter-spacing:.6px; color:var(--text); margin-bottom:8px;
+}
+.and-card .note{margin-top:0}
+.and-card .note+.note,.and-card .tab-wrap+.note{margin-top:9px}
+.and-graf{margin:10px 0 2px}
+
 /* il gradiente dell'area si tinge con l'accento dell'app: stop-color è
    una proprietà CSS, così var() funziona anche dentro l'SVG */
 .graf-a0{stop-color:var(--app-accent); stop-opacity:.34}
@@ -1934,6 +1951,8 @@ textarea.dw-input{
     // Il punto messo peggio, in miniatura (T2): sta subito sotto il
     // cartellone perché è la stessa domanda, un gradino più in dettaglio.
     renderPeggio();
+    renderProgramma();
+    renderAndamento();
 
     // Priorità di conformità: superamenti/attenzione + adempimenti (scaduti =
     // danger, in scadenza = warn), ordinati danger-first, senza cap silenzioso.
@@ -2549,6 +2568,316 @@ textarea.dw-input{
     toast("Si apre la stampa: scegli «Salva come PDF» per allegarlo.");
     setTimeout(() => { try { window.print(); } catch (e) {} }, 260);
   };
+
+  // ══════════════════════════════════════════════════════════════════════
+  // T5 · PROGRAMMA DI MONITORAGGIO
+  // «Che cosa misuri, dove, ogni quanto — e cosa è in ritardo». Lo stato
+  // di ogni riga si CALCOLA dall'ultima lettura del punto (statoRigaProgramma
+  // in sentinella-data.js): non esiste un campo "fatto" da spuntare, quindi
+  // non esiste il caso di un programma che si dichiara in regola mentre
+  // nessuno misura da mesi. Nessuna periodicità di legge è scritta nel
+  // codice: le frequenze le imposta l'utente leggendole nella sua
+  // autorizzazione.
+  // ══════════════════════════════════════════════════════════════════════
+  const MESI_IT = ["gennaio","febbraio","marzo","aprile","maggio","giugno",
+                   "luglio","agosto","settembre","ottobre","novembre","dicembre"];
+  const maiusc = (t) => String(t || "").charAt(0).toUpperCase() + String(t || "").slice(1);
+
+  // menù dei punti di misura e delle periodicità (si riempiono a ogni giro:
+  // i punti cambiano quando se ne aggiunge uno)
+  function riempiMenuProgramma() {
+    const sel = $("prg-punto");
+    const scelto = sel.value;
+    sel.innerHTML = '<option value="">— scegli il punto di misura —</option>'
+      + MON.map(m => `<option value="${esc(m.id)}">${esc(m.nome || "Punto di misura")}</option>`).join("");
+    if (scelto && MON.some(m => m.id === scelto)) sel.value = scelto;
+    if (!$("prg-freq").options.length) {
+      $("prg-freq").innerHTML = PERIODICITA.map(p =>
+        `<option value="${p.giorni}">${esc(p.etichetta)} (${p.giorni} ${p.giorni === 1 ? "giorno" : "giorni"})</option>`).join("")
+        + '<option value="">Ogni tot giorni (lo scrivo io)</option>';
+      $("prg-freq").value = "7";
+      $("prg-giorni").value = "7";
+    }
+  }
+
+  function renderProgramma() {
+    riempiMenuProgramma();
+    const vis = programmaEsteso(PRG, MON);
+    const rp = riepilogoProgramma(PRG, MON);
+    $("prg-tot").textContent = rp.totale;
+
+    $("prg-kpi").innerHTML = [
+      ["In ritardo", rp.inRitardo, rp.inRitardo ? "danger" : ""],
+      ["Da fare", rp.daFare + rp.mai + rp.senzaFrequenza, (rp.daFare + rp.mai + rp.senzaFrequenza) ? "warn" : ""],
+      ["In regola", rp.inRegola, rp.inRegola ? "ok" : ""],
+      ["Righe del piano", rp.totale, ""],
+    ].map(([l, n, c]) => `<div class="kpi ${c}"><div class="l">${l}</div><div class="n">${n}</div></div>`).join("");
+
+    // il filtro «da fare» tiene dentro anche «mai misurato» e «senza
+    // frequenza»: sono cose da fare anche loro, e nasconderle sarebbe il
+    // modo migliore per dimenticarsene
+    const tieni = (st) => filtroPrg === "tutte" ? true
+      : filtroPrg === "da-fare" ? ["da-fare", "mai", "senza-frequenza"].includes(st)
+      : st === filtroPrg;
+    const righe = vis.filter(v => tieni(v.stato.stato));
+
+    $("prg-list").innerHTML = righe.map(v => {
+      const s = v.stato, sosp = s.stato === "sospesa";
+      const cls = sosp ? "st-mute" : (striscia[s.cls] || "st-accent");
+      const dett = [
+        s.ogniGiorni > 0 ? etichettaFrequenza(s.ogniGiorni) : "frequenza non impostata",
+        s.ultima ? "ultima misura " + fmtD(s.ultima) : "nessuna misura registrata",
+        s.prossima ? "prossima entro il " + fmtD(s.prossima) : null,
+        s.tolleranzaGiorni ? "tolleranza " + s.tolleranzaGiorni + " gg" : null,
+        v.riga.nota || null,
+      ].filter(Boolean).join(" · ");
+      return `<div class="item cliccabile ${cls}" data-prg="${esc(v.riga.id)}"
+        title="${sosp ? "Tocca per riattivare questa riga" : "Tocca per sospendere questa riga"}">
+        <div class="avatar ${s.cls === "danger" ? "danger" : s.cls === "warn" ? "warn" : sosp ? "sup" : ""}">${I.programma}</div>
+        <div class="info"><div class="name">${esc(v.nome)}</div>
+        <div class="riga"><span class="badge ${sosp ? "sup" : s.cls}">${esc(s.label)}</span>
+        <span class="meta">${esc(dett)}</span></div></div>
+        <span class="acts">
+        <button type="button" class="arr" title="Modifica la riga" aria-label="Modifica la riga di programma di ${esc(v.nome)}" data-edit-prg="${esc(v.riga.id)}">${I.modifica}</button>
+        <button type="button" class="arr rimuovi" title="Rimuovi la riga" aria-label="Rimuovi la riga di programma di ${esc(v.nome)}" data-del-prg="${esc(v.riga.id)}">${I.cestino}</button></span></div>`;
+    }).join("")
+      || (PRG.length
+          ? vuoto(I.fatto, "Niente in questa categoria",
+              "Nessuna riga del programma rientra nel filtro scelto. Tocca <b>Tutte</b> per vedere il piano completo.")
+          : vuoto(I.programma, "Il programma è vuoto",
+              "Aggiungi la prima riga qui sotto: scegli un <b>punto di misura</b> e ogni quanti giorni va misurato. Da quel momento Sentinella sa dirti se il piano è rispettato — ed è la prima cosa che chiede un ente."));
+
+    $("prg-form-sec").textContent = editPrg ? "Riga di programma in modifica" : "Aggiungi una riga di programma";
+    $("btn-prg").textContent = editPrg ? "Salva modifica" : "Aggiungi";
+    document.querySelectorAll("#prg-filtri [data-filtro]").forEach(b =>
+      b.classList.toggle("active", b.getAttribute("data-filtro") === filtroPrg));
+  }
+
+  // form → dati e dati → form
+  function riempiFormPrg(r) {
+    $("prg-punto").value = r ? (r.monitoraggioId || "") : "";
+    const g = r && +r.ogniGiorni > 0 ? String(Math.round(+r.ogniGiorni)) : "";
+    $("prg-giorni").value = g;
+    $("prg-freq").value = PERIODICITA.some(p => String(p.giorni) === g) ? g : "";
+    $("prg-toll").value = r && r.tolleranzaGiorni != null ? r.tolleranzaGiorni : "";
+    $("prg-dal").value = r && /^\d{4}-\d{2}-\d{2}$/.test(String(r.dal || "")) ? r.dal : "";
+    $("prg-nota").value = r ? (r.nota || "") : "";
+  }
+  function annullaEditPrg() { editPrg = null; riempiFormPrg(null); $("prg-giorni").value = "7"; $("prg-freq").value = "7"; }
+
+  $("prg-freq").addEventListener("change", () => {
+    const v = $("prg-freq").value;
+    if (v) { $("prg-giorni").value = v; err("prg-giorni", false); }
+    else { $("prg-giorni").focus(); }
+  });
+  $("prg-giorni").addEventListener("input", () => {
+    const v = String(Math.round(+$("prg-giorni").value || 0));
+    $("prg-freq").value = PERIODICITA.some(p => String(p.giorni) === v) ? v : "";
+    err("prg-giorni", false);
+  });
+  $("prg-filtri").addEventListener("click", (e) => {
+    const b = e.target.closest && e.target.closest("[data-filtro]"); if (!b) return;
+    filtroPrg = b.getAttribute("data-filtro"); renderProgramma();
+  });
+
+  $("btn-prg").onclick = async () => {
+    const punto = $("prg-punto").value;
+    const giorni = Math.round(+$("prg-giorni").value || 0);
+    err("prg-punto", !punto); err("prg-giorni", !(giorni > 0));
+    if (!punto) {
+      esito("prg-esito", "Scegli il punto di misura: una riga di programma dice ogni quanto va misurato UN punto preciso.", "err");
+      fuocoErr(["prg-punto"]); return;
+    }
+    if (!(giorni > 0)) {
+      esito("prg-esito", "Manca ogni quanti giorni va fatta la misura: è il numero da cui nasce la prossima scadenza.", "err");
+      fuocoErr(["prg-giorni"]); return;
+    }
+    const gia = PRG.find(r => r.monitoraggioId === punto && r.id !== editPrg);
+    if (gia) {
+      err("prg-punto", true); fuocoErr(["prg-punto"]);
+      esito("prg-esito", "Questo punto ha già una riga nel programma: modifica quella invece di crearne una seconda, altrimenti la stessa misura risulterebbe due volte in ritardo.", "err",
+        "Questo punto ha già una riga nel programma.");
+      return;
+    }
+    const dati = {
+      monitoraggioId: punto, ogniGiorni: giorni,
+      tolleranzaGiorni: Math.max(0, Math.round(+$("prg-toll").value || 0)),
+      dal: $("prg-dal").value || "",
+      nota: $("prg-nota").value.trim(),
+      attivo: true,
+    };
+    const nome = (MON.find(m => m.id === punto) || {}).nome || "punto di misura";
+    if (editPrg) {
+      const prec = PRG.find(r => r.id === editPrg) || {};
+      await db.aggiorna("programma", editPrg, { ...dati, attivo: prec.attivo !== false });
+      esito("prg-esito", "Programma di «" + nome + "» aggiornato: " + etichettaFrequenza(giorni) + ".");
+      editPrg = null;
+    } else {
+      await db.aggiungi("programma", dati);
+      esito("prg-esito", "«" + nome + "» entra nel programma: " + etichettaFrequenza(giorni)
+        + (dati.tolleranzaGiorni ? ", con " + dati.tolleranzaGiorni + " giorni di tolleranza" : "") + ".");
+    }
+    riempiFormPrg(null); $("prg-giorni").value = String(giorni); $("prg-freq").value = PERIODICITA.some(p => p.giorni === giorni) ? String(giorni) : "";
+    await refresh();
+  };
+
+  // ══════════════════════════════════════════════════════════════════════
+  // T6 · ANDAMENTO PER RICETTORE, CON CONFRONTO FRA PERIODI
+  // Il grafico lo disegna il motore condiviso (dwGrafici): niente librerie,
+  // niente CDN. Regola di onestà: sotto tre letture NON si disegna niente e
+  // si dice quante ce ne sono — una linea fra due misure racconterebbe un
+  // andamento che nessuno ha misurato.
+  // ══════════════════════════════════════════════════════════════════════
+  function renderAndamento() {
+    const sel = $("and-ric"), out = $("and-out");
+    if (!sel) return;
+    const conPunti = RIC.filter(r => MON.some(m => m.ricettoreId === r.id));
+    if (!conPunti.length) {
+      sel.innerHTML = '<option value="">— nessun ricettore con punti collegati —</option>';
+      sel.disabled = true;
+      out.innerHTML = vuoto(I.casa, "Nessun ricettore da seguire",
+        "L'andamento si legge <b>per ricettore</b>: la casa, la scuola, il confine. Registra un ricettore nei <b>Monitoraggi</b> e collega almeno un punto di misura, e qui comparirà come stanno andando le sue misure nel tempo.");
+      return;
+    }
+    sel.disabled = false;
+    if (!andRic || !conPunti.some(r => r.id === andRic)) andRic = conPunti[0].id;
+    sel.innerHTML = conPunti.map(r =>
+      `<option value="${esc(r.id)}"${r.id === andRic ? " selected" : ""}>${esc(r.nome)}</option>`).join("");
+
+    const A = andamentoRicettore(MON, RIC, andRic, { mesi: 6, minLetture: 3 });
+    const R = A.ricettore;
+    const testa = `<div class="note recap">Ricettore <b>${esc(R ? R.nome : "")}</b>`
+      + (R && R.tipo ? " · " + esc(etichettaTipo(R.tipo)) : "")
+      + (R && +R.distanza > 0 ? " · a <b>" + esc(numeroIt(R.distanza)) + " m</b> dalla cava" : "")
+      + (R && R.classe ? " · classe acustica " + esc(R.classe) : "")
+      + ` · <b>${A.punti.length}</b> ${A.punti.length === 1 ? "punto collegato" : "punti collegati"}`
+      + ` · finestra dal <b>${fmtD(A.dal)}</b> a oggi.</div>`;
+
+    out.innerHTML = testa + A.punti.map((p, i) => schedaAndamento(p, i)).join("");
+    disegnaAndamento(A);
+  }
+
+  // La scheda di un punto: soglia applicata, spazio per il grafico, il
+  // confronto fra il mese in corso e quello prima in una tabellina.
+  function schedaAndamento(p, i) {
+    const u = p.unita ? '<span class="u">' + esc(p.unita) + "</span>" : "";
+    const c = p.confronto, cur = c.corrente, pre = c.precedente;
+    const sogliaTxt = p.soglia.valore == null
+      ? "Nessuna soglia impostata su questo punto: i superamenti non si possono contare."
+      : "Soglia applicata <b>" + esc(numeroIt(p.soglia.valore)) + " " + esc(p.unita) + "</b>, "
+        + (p.soglia.fonte === "ricettore" ? "presa dal ricettore" : "impostata sul punto di misura") + ".";
+    const riga = (st, nome) => `<tr${st.n ? "" : ' class="ko"'}><td>${nome}</td>
+      <td class="n">${st.n}</td>
+      <td class="n">${st.media != null ? esc(numeroIt(st.media)) : "—"}</td>
+      <td class="n">${st.max != null ? esc(numeroIt(st.max)) : "—"}</td>
+      <td class="n">${p.soglia.valore == null ? "—" : st.superamenti}</td></tr>`;
+    const tab = `<div class="tab-wrap" style="margin-top:10px;"><table class="tab">
+      <thead><tr><th>Mese</th><th>Letture</th><th>Media ${u}</th><th>Massimo ${u}</th><th>Superamenti</th></tr></thead>
+      <tbody>${riga(pre, maiusc(MESI_IT[pre.mese - 1]) + " " + pre.anno)}
+      ${riga(cur, maiusc(MESI_IT[cur.mese - 1]) + " " + cur.anno + " (in corso)")}</tbody></table></div>`;
+    let verdetto;
+    if (!c.confrontabile) {
+      verdetto = `<div class="note avviso">Confronto non possibile: `
+        + (cur.n === 0 && pre.n === 0 ? "in nessuno dei due mesi ci sono letture."
+          : cur.n === 0 ? "nel mese in corso non c'è ancora nessuna lettura."
+          : "nel mese scorso non c'è nessuna lettura.")
+        + ` Registra le misure o importale dallo strumento e il confronto compare da solo.</div>`;
+    } else {
+      const su = c.deltaMedia > 0, uguale = Math.abs(c.deltaMedia) < 0.0005;
+      verdetto = `<div class="note recap">Rispetto a ${esc(MESI_IT[pre.mese - 1])}, la media di ${esc(MESI_IT[cur.mese - 1])} `
+        + (uguale ? "è <b>la stessa</b>"
+          : `è <b>${su ? "salita" : "scesa"}</b> di <b>${esc(numeroIt(Math.abs(c.deltaMedia)))} ${esc(p.unita)}</b>`
+            + (c.deltaPct != null ? ` (${su ? "+" : "−"}${esc(numeroIt(Math.abs(c.deltaPct)))}%)` : ""))
+        + `. Superamenti: <b>${pre.superamenti}</b> → <b>${cur.superamenti}</b>.`
+        + (c.debole ? " <b>Attenzione</b>: una delle due medie poggia su una sola lettura, quindi il confronto vale poco." : "")
+        + " Il mese in corso non è finito: il confronto si assesta a fine mese.</div>";
+    }
+    const graf = p.abbastanza
+      ? `<div id="and-graf-${i}" class="and-graf"></div>`
+      : `<div class="note avviso">Nella finestra ci sono <b>${p.n}</b> ${p.n === 1 ? "lettura" : "letture"}: troppo poche per disegnare un andamento. Servono almeno <b>3</b> misure — una linea fra due punti non è una tendenza, e disegnarla sarebbe una bugia.</div>`;
+    return `<div class="and-card">
+      <div class="and-tit">${esc(p.nome)}</div>
+      <div class="note">${sogliaTxt}</div>
+      ${graf}${tab}${verdetto}</div>`;
+  }
+
+  // I grafici si disegnano SOLO a pagina visibile: dentro una pagina
+  // nascosta il browser non sa dare le misure e il disegno nasce storto.
+  function disegnaAndamento(A) {
+    andGrafici.forEach(g => { try { g.distruggi(); } catch (e) {} });
+    andGrafici = [];
+    if (!window.dwGrafici) return;
+    const att = document.querySelector(".page.active");
+    if (!att || att.id !== "page-prog") return;
+    const dati = A || andamentoRicettore(MON, RIC, andRic, { mesi: 6, minLetture: 3 });
+    dati.punti.forEach((p, i) => {
+      const el = $("and-graf-" + i);
+      if (!el || !p.abbastanza) return;
+      el.innerHTML = "";
+      const sup = p.soglia.valore != null ? p.letture.filter(l => l.valore >= p.soglia.valore).length : 0;
+      andGrafici.push(dwGrafici.linea(el, {
+        titolo: "Andamento nel tempo", meta: p.n + " letture · " + fmtD(dati.dal) + " → oggi",
+        unita: p.unita, altezza: 200, nudo: true,
+        x: p.letture.map(l => fmtD(l.data).slice(0, 5)),
+        serie: [{ nome: "Misurato", valori: p.letture.map(l => l.valore), area: true }],
+        // inclusiva: in Sentinella una lettura ESATTAMENTE pari alla soglia
+        // è già un superamento, e il grafico deve contare come la tabella
+        soglia: p.soglia.valore != null
+          ? { valore: p.soglia.valore, etichetta: "soglia applicata", inclusiva: true } : null,
+        nota: "Ogni punto è una lettura registrata: le distanze sulla riga del tempo sono uguali fra una misura e l'altra, anche quando i giorni non lo sono. Le date esatte stanno nella tabella «Dati»."
+          + (p.soglia.valore == null ? " Senza soglia impostata non si può dire se una lettura è un superamento." : ""),
+        aria: "Andamento di " + p.nome + ": " + p.n + " letture"
+          + (p.soglia.valore != null ? ", soglia " + numeroIt(p.soglia.valore) + " " + p.unita + ", " + sup + " superamenti" : "") + ".",
+      }));
+    });
+  }
+  // Azioni sulle righe del programma: matita = modifica, cestino = rimuovi,
+  // tocco sulla riga = sospendi/riattiva (una misura sospesa resta scritta,
+  // ma smette di risultare in ritardo).
+  document.addEventListener("click", async (e) => {
+    const bEd = e.target.closest && e.target.closest("[data-edit-prg]");
+    if (bEd) { e.stopPropagation();
+      const r = PRG.find(x => x.id === bEd.getAttribute("data-edit-prg")); if (!r) return;
+      if (editPrg === r.id) { annullaEditPrg(); renderProgramma(); esito("prg-esito", "Modifica annullata."); return; }
+      editPrg = r.id; riempiFormPrg(r); renderProgramma();
+      const nome = (MON.find(m => m.id === r.monitoraggioId) || {}).nome || "punto non più in elenco";
+      esito("prg-esito", "Stai modificando il programma di «" + nome + "»: correggi i campi e tocca Salva modifica.");
+      $("prg-punto").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+    const bDel = e.target.closest && e.target.closest("[data-del-prg]");
+    if (bDel) { e.stopPropagation();
+      const id = bDel.getAttribute("data-del-prg");
+      const r = PRG.find(x => x.id === id); if (!r) return;
+      const nome = (MON.find(m => m.id === r.monitoraggioId) || {}).nome || "punto non più in elenco";
+      const ok = await chiedi("Togliere la riga dal programma",
+        "<b>«" + esc(nome) + "»</b> esce dal programma di monitoraggio: Sentinella smetterà di dirti quando la misura è in ritardo.<br><br>"
+        + "Le <b>letture già registrate non si toccano</b>. Se la misura serve ancora ma per ora è ferma, conviene <b>sospenderla</b> toccando la riga invece di toglierla.",
+        "Togli dal programma", true);
+      if (!ok) return;
+      if (editPrg === id) annullaEditPrg();
+      await db.rimuovi("programma", id);
+      esito("prg-esito", "«" + nome + "» tolto dal programma di monitoraggio.");
+      await refresh(); return; }
+    const riga = e.target.closest && e.target.closest("[data-prg]");
+    if (riga) {
+      const r = PRG.find(x => x.id === riga.getAttribute("data-prg")); if (!r) return;
+      const nome = (MON.find(m => m.id === r.monitoraggioId) || {}).nome || "punto non più in elenco";
+      const attivo = r.attivo !== false;
+      if (attivo) {
+        const ok = await chiedi("Sospendere questa misura",
+          "<b>«" + esc(nome) + "»</b> resta scritta nel programma ma <b>smette di risultare in ritardo</b>.<br><br>"
+          + "Serve quando la misura è ferma per un motivo che sai tu (impianto fermo, strumento in taratura). Puoi riattivarla toccando di nuovo la riga.",
+          "Sospendi");
+        if (!ok) return;
+      }
+      await db.aggiorna("programma", r.id, { attivo: !attivo });
+      esito("prg-esito", "Misura di «" + nome + "» " + (attivo ? "sospesa: non conta più nei ritardi." : "riattivata: torna a contare nel programma."));
+      await refresh(); return; }
+  });
+
+  $("and-ric").addEventListener("change", () => { andRic = $("and-ric").value; renderAndamento(); });
+  // cambiare pagina ridisegna quello che si vede (il motore ridisegna, non ricorda)
+  { const goPrec = window.go;
+    window.go = function (id) { goPrec(id); if (id === "prog") renderAndamento(); }; }
 
   await refresh();
 </script>

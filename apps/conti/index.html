@@ -2078,7 +2078,9 @@ label.item:has(.dw-chk:checked){
        ${st.eccedenza > 0 ? `<p style="margin-top:10px;">Attenzione: gli incassi registrati superano il totale della fattura di <b>${eur(st.eccedenza)}</b>. Correggi eliminando o rifacendo il movimento sbagliato.</p>` : ""}
        ${movimenti ? `<span class="fl">Incassi registrati (${st.movimenti.length})</span>${movimenti}` : ""}
        ${compat ? `<p style="margin-top:10px;">Questa fattura risulta <b>incassata</b>${f.dataIncasso ? " il " + fmtD(f.dataIncasso) : " ma <b>senza la data</b> in cui i soldi sono arrivati"}.
-            Registrandola qui sotto il totale <b>non cambia</b>: guadagni solo la data vera, che serve a calcolare in quanti giorni paga questo cliente.</p>` : ""}
+            Registrandola qui sotto il totale <b>non cambia</b>: guadagni solo la data vera, che serve a calcolare in quanti giorni paga questo cliente.</p>
+          <div class="tools"><button class="dw-btn secondary mini no" type="button" id="inc-annulla"
+            title="Rimetti questa fattura fra quelle da incassare">${IC.croce}Annulla l'incasso</button></div>` : ""}
        ${st.saldata && !compat ? `<p style="margin-top:10px;">La fattura è <b>saldata</b>${st.dataSaldo ? " il " + fmtD(st.dataSaldo) : ""}${st.giorniPagamento != null ? `, ${plur(st.giorniPagamento, "giorno", "giorni")} dopo l'emissione` : ""}. Per correggere, elimina un incasso qui sopra.</p>` : ""}
        ${massimo > 0 ? `
          <span class="fl">Quando sono arrivati i soldi</span>
@@ -2094,13 +2096,9 @@ label.item:has(.dw-chk:checked){
            Si può registrare al massimo <b>${eur(massimo)}</b>.</p>
          <div class="note" id="inc-err" style="border-left-color:var(--danger);color:var(--text);"></div>` : ""}`;
 
+    // due bottoni in fondo, mai tre: a 390 px la terza etichetta uscirebbe
+    // dalla finestra. L'azione distruttiva sta nel corpo, dove si legge.
     const bottoni = [{ label: "Chiudi", azione: chiudiModale }];
-    if (compat) bottoni.push({ label: "Annulla incasso", cls: "danger", azione: async () => {
-      chiudiModale();
-      await db.aggiorna("fatture", f.id, { incassata: false, dataIncasso: null });
-      esito("ft-esito", "Incasso della fattura " + f.numero + " annullato.");
-      await refresh();
-    } });
     if (massimo > 0) bottoni.push({ label: compat ? "Registra la data" : "Registra incasso",
       cls: "primary", azione: () => registraIncasso(f, st, compat, massimo) });
 
@@ -2108,6 +2106,21 @@ label.item:has(.dw-chk:checked){
     // appena si corregge l'importo, il bordo rosso e il messaggio spariscono
     if ($("inc-imp")) $("inc-imp").addEventListener("input", () => {
       $("inc-imp").classList.remove("err"); incErr(""); });
+    // fattura incassata "vecchio stile": si può ancora rimettere fra le aperte
+    if ($("inc-annulla")) $("inc-annulla").onclick = async () => {
+      const ok = await chiedi("Annulla l'incasso",
+        `<p>Stai per rimettere la fattura <b>${esc(f.numero)}</b> fra quelle <b>da incassare</b>.</p>
+         <div class="mrec"><span class="k">Importo</span><span class="v accent">${eur(st.totale)}</span></div>
+         ${f.dataIncasso ? `<div class="mrec"><span class="k">Risultava incassata il</span><span class="v">${fmtD(f.dataIncasso)}</span></div>` : ""}
+         <p style="margin-top:10px;">L'importo torna nel credito aperto. Serve quando l'incasso
+           era stato segnato per sbaglio: se invece i soldi sono arrivati davvero, chiudi qui e
+           registra la <b>data vera</b>.</p>`,
+        "Annulla incasso", true);
+      if (!ok) { modaleIncassi(f.id); return; }
+      await db.aggiorna("fatture", f.id, { incassata: false, dataIncasso: null });
+      esito("ft-esito", "Incasso della fattura " + f.numero + " annullato.");
+      await refresh();
+    };
     // eliminazione di un singolo movimento (l'unico modo per correggere: gli
     // incassi non si modificano, si rifanno — così la storia resta leggibile)
     document.querySelectorAll("#modal-body [data-del-inc]").forEach(b => b.onclick = async () => {

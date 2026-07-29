@@ -287,7 +287,11 @@
    Non sta dentro .meta perché lì il testo si taglia a due righe: qui invece
    devono restare visibili TUTTE, è il senso della matrice. */
 .reqs{display:flex; flex-wrap:wrap; gap:4px; margin-top:6px}
-.reqs .badge{font-size:9.5px; padding:2px 7px; cursor:default}
+.reqs .badge{
+  font-size:9.5px; padding:2px 7px; cursor:default;
+  /* una pillola non esce mai dalla scheda: se la parola è lunga va a capo */
+  white-space:normal; text-align:left; overflow-wrap:anywhere; max-width:100%;
+}
 .reqs .badge.tocca{cursor:pointer}
 .reqs .badge.mute{background:var(--card2); color:var(--muted); border:1px solid var(--border2); box-shadow:none}
 /* la scheda di una mansione nella matrice: il titolo della sotto-sezione */
@@ -1206,14 +1210,14 @@
         <span class="acts"><span class="badge ${B[st][0]}">${B[st][1]}</span><span class="arr">›</span></span></div>`; });
     // S4 — chi oggi NON può fare la mansione che gli è assegnata: è la cosa
     // che ferma il lavoro domani mattina, e va vista prima di tutto il resto.
-    const manUrg = scoperti.slice(0, 4).map(s =>
+    const manUrg = scoperti.slice(0, 3).map(s =>
       `<div class="item st-danger" data-vai-pers="mans" style="cursor:pointer" title="Vai alla matrice delle mansioni">
         <div class="avatar">${esc(initials(s.lavoratore.nome))}</div>
         <div class="info"><div class="name">${esc(s.lavoratore.nome)}</div>
         <div class="meta">Non può fare ${esc(s.mansioni.join(", "))} · ${esc(s.motivi.join(" · "))}</div></div>
         <span class="acts"><span class="badge danger">Fuori mansione</span><span class="arr">›</span></span></div>`);
     // S4 — nomine obbligatorie scoperte o con la formazione non in regola.
-    const nomUrg = nomKO.slice(0, 3).map(o => {
+    const nomUrg = nomKO.slice(0, 2).map(o => {
       const chi = o.persone.map(p => p.lavoratore ? p.lavoratore.nome : "persona non più in anagrafica").join(", ");
       const perche = o.mancante ? "nessuno è nominato" : "formazione non in regola";
       return `<div class="item st-danger" data-vai-pers="nom" style="cursor:pointer" title="Vai alle nomine">
@@ -1773,12 +1777,12 @@
     };
     const pillDpi = (a, d) => {
       if (d.stato === "regolare" && !d.addestramentoMancante) return "";
-      const testo = d.stato === "mancante" ? d.etichetta + " — mai consegnato"
-        : d.stato === "scaduta" ? d.etichetta + " — da sostituire"
-        : d.stato === "in-scadenza" ? d.etichetta + " — in scadenza"
-        : d.etichetta + " — addestramento";
+      const testo = d.stato === "mancante" ? d.breve + " — mai consegnato"
+        : d.stato === "scaduta" ? d.breve + " — da sostituire"
+        : d.stato === "in-scadenza" ? d.breve + " — in scadenza"
+        : d.breve + " — addestramento";
       const cls = d.stato === "mancante" || d.stato === "scaduta" ? "danger" : "warn";
-      return `<span class="badge ${cls} tocca" data-dpi-fix="${a.lavoratore.id}|${d.chiave}" title="Tocca per registrare la consegna">${esc(testo)}</span>`;
+      return `<span class="badge ${cls} tocca" data-dpi-fix="${a.lavoratore.id}|${d.chiave}" title="${esc(d.etichetta)} — tocca per registrare la consegna">${esc(testo)}</span>`;
     };
     const rigaMat = (a) => {
       const e = ESITO_MAT[a.esito];
@@ -1803,26 +1807,39 @@
                 : rMans.map(bloccoMat).join(""));
     // Il grafico si disegna solo se c'è un confronto da leggere: due mansioni
     // con almeno una persona assegnata. Con una sola, il numero dice di più.
+    // Come tutti i grafici di Scudo, la barra conta i PROBLEMI, non le cose in
+    // ordine: una barra lunga vuol dire «qui sono scoperto», e si legge nello
+    // stesso modo del grafico della copertura formazione. Si disegna solo se
+    // c'è un confronto da leggere (due mansioni con persone e almeno un buco):
+    // con un dato solo la forma onesta è una frase, non una barra sola.
     const manConGente = rMans.filter(r => r.totale > 0);
-    if (manConGente.length >= 2) {
-      const peggio = manConGente.slice().sort((a, b) => (b.no + b.attenzione) - (a.no + a.attenzione))[0];
+    const buchi = (r) => r.no + r.attenzione;
+    const buchiTot = manConGente.reduce((s, r) => s + buchi(r), 0);
+    const peggio = manConGente.slice().sort((a, b) => buchi(b) - buchi(a))[0];
+    if (manConGente.length >= 2 && buchiTot > 0) {
       grafico("graf-mansioni", "barre", {
-        titolo: "Persone pronte per mansione",
+        titolo: "Persone da sistemare per mansione",
         meta: matPuo + " pronte su " + matTot,
-        orientamento: "orizzontale", formato: soloInteri,
+        orientamento: "orizzontale", ordina: true, formato: soloInteri,
         valori: manConGente.map(r => ({
-          etichetta: r.mansione.nome, valore: r.puo,
+          etichetta: r.mansione.nome, valore: buchi(r),
           stato: r.no ? "danger" : (r.attenzione ? "warn" : "ok"),
         })),
-        aria: "Persone pronte per mansione: " + manConGente.map(r => r.mansione.nome + " " + r.puo + " su " + r.totale).join(", ") + ".",
-        nota: "Ogni barra è il numero di persone che <b>oggi possono andare</b> per quella mansione. "
-          + "Rosso: c'è chi non può (corso mancante o scaduto). Giallo: possono andare ma c'è da sistemare qualcosa. "
-          + (peggio && (peggio.no || peggio.attenzione)
-            ? "Il punto più scoperto è <b>" + esc(peggio.mansione.nome) + "</b>."
-            : "Nessuna mansione è scoperta."),
+        aria: "Persone da sistemare per mansione: " + manConGente.map(r => r.mansione.nome + " " + buchi(r) + " su " + r.totale).join(", ") + ".",
+        nota: "Ogni barra è il numero di persone che per quella mansione <b>non sono a posto</b>: "
+          + "<b>critico</b> vuol dire che qualcuno non può proprio andare (corso mancante o scaduto), "
+          + "<b>da tenere d'occhio</b> che può andare ma c'è qualcosa da sistemare. "
+          + (peggio ? "Il buco più grosso è su <b>" + esc(peggio.mansione.nome) + "</b>: "
+              + buchi(peggio) + (buchi(peggio) === 1 ? " persona" : " persone") + " su " + peggio.totale + ". " : "")
+          + "Passa sopra una barra per il dettaglio.",
       });
+    } else if (manConGente.length && !buchiTot) {
+      grafVuoto("graf-mansioni", I.ok, "Tutti pronti",
+        "Su tutte le mansioni con persone assegnate (<b>" + manConGente.length + "</b>) corsi e DPI sono in ordine: "
+        + "chiunque può essere mandato al lavoro che gli compete. Il confronto fra le mansioni comparirà qui "
+        + "appena una data si avvicina.");
     } else {
-      puliscoGrafico("graf-mansioni");
+      puliscoGrafico("graf-mansioni");   // lo stato vuoto è quello dell'elenco
     }
 
     // --- Elenco delle mansioni e form (requisiti, DPI, chi la svolge) -----
@@ -1836,7 +1853,7 @@
         <div class="info"><div class="name">${esc(m.nome)}</div>
         <div class="meta">${nreq} ${nreq === 1 ? "corso richiesto" : "corsi richiesti"} · ${ndpi} ${ndpi === 1 ? "DPI previsto" : "DPI previsti"} · ${r.totale} ${r.totale === 1 ? "persona" : "persone"}</div></div>
         <span class="acts">
-        <span class="badge ${r.totale ? (r.no ? "danger" : (r.attenzione ? "warn" : "ok")) : "tag"}">${r.totale ? r.puo + "/" + r.totale : "nessuno"}</span>
+        <span class="badge ${r.totale ? (r.no ? "danger" : (r.attenzione ? "warn" : "ok")) : "tag"}" title="${r.totale ? r.puo + " su " + r.totale + " possono andare oggi" : "nessuna persona assegnata"}">${r.totale ? r.puo + "/" + r.totale : "nessuno"}</span>
         <span class="arr" style="cursor:pointer" title="Modifica la mansione" data-edit-mans="${m.id}">✎</span>
         <span class="arr" style="cursor:pointer" title="Rimuovi la mansione" data-del-mans="${m.id}">✕</span></span></div>`;
     }).join("") || vuoto(I.attrezzo, "Nessuna mansione descritta",
@@ -1874,7 +1891,7 @@
           ? `<button class="dw-btn secondary mini" data-req-fix="${p.lavoratore ? p.lavoratore.id : ""}|${p.requisito.chiave}|${f.scadenzaId || ""}" title="Metti la formazione nello scadenzario">Sistema</button>` : "";
         return `<div class="item ${cls}">
           <div class="avatar">${esc(initials(p.lavoratore ? p.lavoratore.nome : "?"))}</div>
-          <div class="info"><div class="name"><span class="badge accent" style="margin-right:6px;">${esc(o.ruolo.etichetta)}</span>${esc(p.lavoratore ? p.lavoratore.nome : "persona non più in anagrafica")}</div>
+          <div class="info"><div class="name"><span class="badge accent" style="margin-right:6px;" title="${esc(o.ruolo.etichetta)}">${esc(o.ruolo.breve || o.ruolo.etichetta)}</span>${esc(p.lavoratore ? p.lavoratore.nome : "persona non più in anagrafica")}</div>
           <div class="meta">${p.nomina.dal ? "dal " + fmtData(p.nomina.dal) : "senza data di nomina"}${p.nomina.al ? " al " + fmtData(p.nomina.al) : ""}${p.nomina.note ? " · " + esc(p.nomina.note) : ""}${f && f.scadenza ? " · formazione fino al " + fmtData(f.scadenza) : ""}</div></div>
           <span class="acts"><span class="badge ${fb[0]}">${fb[1]}</span>${sistema}
           <span class="arr" style="cursor:pointer" title="Rimuovi la nomina" data-del-nom="${p.nomina.id}">✕</span></span></div>`;
@@ -1886,7 +1903,7 @@
       return `<div class="item ${vuota[0]}">
         <div class="avatar sup">${I.scudo}</div>
         <div class="info"><div class="name">${esc(o.ruolo.etichetta)}</div>
-        <div class="meta">${esc(o.ruolo.spiega)} · ${esc(o.ruolo.riferimento)}</div></div>
+        <div class="meta" title="${esc(o.ruolo.riferimento)}">${esc(o.ruolo.spiega)}</div></div>
         <span class="acts"><span class="badge ${vuota[1]}">${vuota[2]}</span></span></div>`;
     }).join("");
     if (!$("nom-ruolo").dataset.pronto) {
@@ -1928,33 +1945,50 @@
       const o = '<option value="">Tutti i lavoratori</option>' + LAV.map(l => `<option value="${l.id}">${esc(l.nome)}</option>`).join("");
       if (sel.innerHTML !== o) sel.innerHTML = o;
       sel.value = [...sel.options].some(x => x.value === v) ? v : ""; }
+    // Il registro si legge PER PERSONA: è così che viene chiesto in ispezione
+    // («fammi vedere cosa ha in mano Rossi»), ed è così che si stampa il
+    // verbale. Il nome sta nel titolo del gruppo, non ripetuto in ogni riga.
     const dpiVis = DPI.filter(c => !dpiFiltro || c.lavoratoreId === dpiFiltro);
     $("dpi-count").textContent = dpiFiltro ? dpiVis.length + " su " + DPI.length : DPI.length;
-    $("dpi-list").innerHTML = dpiVis.slice().sort((a, b) => {
-        const na = (byId[a.lavoratoreId] || {}).nome || "", nb = (byId[b.lavoratoreId] || {}).nome || "";
-        return na.localeCompare(nb, "it") || String(b.dataConsegna || "").localeCompare(String(a.dataConsegna || ""));
-      }).map(c => {
-      const t = tipoDpiSicuro(c.tipo), st = statoConsegnaDpi(c), l = byId[c.lavoratoreId];
-      const cls = st.stato === "scaduta" ? "st-danger" : st.stato === "in-scadenza" ? "st-warn"
-        : st.addestramentoMancante ? "st-warn" : "st-ok";
-      const ab = t.addestramento
-        ? (c.addestramento ? ["ok", "Addestrato"] : ["warn", "Addestramento da fare"])
-        : null;
-      const meta = [
-        l ? l.nome : "lavoratore non più in anagrafica",
-        "consegnato il " + fmtData(c.dataConsegna),
-        c.scadenza ? "da sostituire entro il " + fmtData(c.scadenza) + " · " + livelloScadenza(c.scadenza).label : "senza data di sostituzione",
-        [c.modello, c.taglia ? "taglia " + c.taglia : ""].filter(Boolean).join(" · "),
-        c.note || "",
-      ].filter(Boolean).join(" · ");
-      return `<div class="item ${cls}">
-        <div class="avatar">${esc(initials(l ? l.nome : "?"))}</div>
-        <div class="info"><div class="name"><span class="badge tag" style="margin-right:6px;">cat. ${esc(t.cat)}</span>${esc(t.etichetta)}</div>
-        <div class="meta">${esc(meta)}</div></div>
-        <span class="acts">
-        ${ab ? `<span class="badge ${ab[0]}" style="cursor:pointer" title="Tocca per registrare (o togliere) l'addestramento" data-dpi-addestr="${c.id}">${ab[1]}</span>` : ""}
-        ${st.stato !== "regolare" ? `<span class="badge ${B[st.stato][0]}">${st.stato === "scaduta" ? "Scaduto" : "In scadenza"}</span>` : ""}
-        <span class="arr" style="cursor:pointer" title="Rimuovi la consegna" data-del-dpi="${c.id}">✕</span></span></div>`;
+    const perPersona = new Map();
+    for (const c of dpiVis.slice().sort((a, b) => String(b.dataConsegna || "").localeCompare(String(a.dataConsegna || "")))) {
+      const k = c.lavoratoreId || "";
+      if (!perPersona.has(k)) perPersona.set(k, []);
+      perPersona.get(k).push(c);
+    }
+    const gruppi = [...perPersona.entries()].sort((a, b) =>
+      ((byId[a[0]] || {}).nome || "zz").localeCompare((byId[b[0]] || {}).nome || "zz", "it"));
+    $("dpi-list").innerHTML = gruppi.map(([lavId, lista]) => {
+      const l = byId[lavId];
+      const daFare = lista.filter(c => { const st = statoConsegnaDpi(c);
+        return st.stato !== "regolare" || st.addestramentoMancante; }).length;
+      return `<div class="sub-sec">${esc(l ? l.nome : "Lavoratore non più in anagrafica")} — ${lista.length} ${lista.length === 1 ? "dispositivo" : "dispositivi"}${daFare ? " · " + daFare + " da sistemare" : ""}</div>`
+        + lista.map(c => {
+        const t = tipoDpiSicuro(c.tipo), st = statoConsegnaDpi(c);
+        const cls = st.stato === "scaduta" ? "st-danger" : st.stato === "in-scadenza" ? "st-warn"
+          : st.addestramentoMancante ? "st-warn" : "st-ok";
+        const ab = t.addestramento
+          ? (c.addestramento ? ["ok", "Addestrato"] : ["warn", "Addestramento da fare"])
+          : null;
+        // «tra 1671 giorni» non dice niente: il conto alla rovescia serve solo
+        // quando c'è davvero qualcosa da fare.
+        const meta = [
+          "consegnato il " + fmtData(c.dataConsegna),
+          c.scadenza
+            ? "da sostituire entro il " + fmtData(c.scadenza) + (st.stato !== "regolare" ? " · " + livelloScadenza(c.scadenza).label : "")
+            : "senza data di sostituzione",
+          [c.modello, c.taglia ? "taglia " + c.taglia : ""].filter(Boolean).join(" · "),
+          c.note || "",
+        ].filter(Boolean).join(" · ");
+        return `<div class="item ${cls}">
+          <div class="avatar">${esc(initials(l ? l.nome : "?"))}</div>
+          <div class="info"><div class="name"><span class="badge tag" style="margin-right:6px;">cat. ${esc(t.cat)}</span>${esc(t.etichetta)}</div>
+          <div class="meta">${esc(meta)}</div></div>
+          <span class="acts">
+          ${ab ? `<span class="badge ${ab[0]}" style="cursor:pointer" title="Tocca per registrare (o togliere) l'addestramento" data-dpi-addestr="${c.id}">${ab[1]}</span>` : ""}
+          ${st.stato !== "regolare" ? `<span class="badge ${B[st.stato][0]}">${st.stato === "scaduta" ? "Scaduto" : "In scadenza"}</span>` : ""}
+          <span class="arr" style="cursor:pointer" title="Rimuovi la consegna" data-del-dpi="${c.id}">✕</span></span></div>`;
+      }).join("");
     }).join("") || (dpiFiltro
       ? vuoto(I.cerca, "Nessuna consegna per questa persona", "Scegli <b>Tutti i lavoratori</b> per vedere l'elenco completo, oppure registra la prima consegna qui sotto.")
       : vuoto(I.scudo, "Registro DPI vuoto",
