@@ -197,12 +197,20 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
 .ricamp-g .v{font-weight:700;color:var(--tx);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 .ricamp-g .f{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut2);white-space:nowrap}
 .ricamp-note{margin-top:10px;font-size:11.5px;color:var(--mut);line-height:1.55;padding-top:9px;border-top:1px solid rgba(255,171,0,.14)}
+/* due note di fila sono UN discorso, non due: una riga sola fra loro */
+.ricamp-note+.ricamp-note{border-top:0;padding-top:0;margin-top:7px}
 .ricamp-warn{margin-top:10px;font-size:12px;line-height:1.55;color:#ffb27a;background:rgba(255,120,60,.10);
   border:1px solid rgba(255,120,60,.34);border-radius:9px;padding:8px 10px}
 .ricamp-warn b{color:#ffcaa4}
+/* Sul telefono le tre colonne non ci stanno. La provenienza NON può finire da
+   sola su una riga a destra: si incolla visivamente all'etichetta SOTTO e
+   sembra riferita al numero sbagliato. Va messa a sinistra, sotto la sua
+   etichetta, dove non può essere confusa con la riga seguente. */
 @media (max-width:600px){
-  .ricamp-g{grid-template-columns:1fr auto}
-  .ricamp-g .f{grid-column:1/-1;text-align:right;margin-top:-4px}
+  .ricamp-g{grid-template-columns:1fr auto;gap:2px 10px}
+  .ricamp-g .l{grid-column:1}
+  .ricamp-g .v{grid-column:2}
+  .ricamp-g .f{grid-column:1;text-align:left;padding-bottom:7px}
 }
 /* moduli dentro i modali (legge di sito): sul telefono quattro colonne
    diventano quattro campi larghi un dito, quindi si spezzano su due righe */
@@ -2730,6 +2738,10 @@ const _ricKg=(v)=>(Math.round(v*10)/10).toLocaleString('it-IT');
 const _ricSegno=(v)=>(v>=0?'+':'')+_ricKg(v);
 const _ricPct=(v)=>(v>=0?'+':'')+(Math.round(v*10)/10).toLocaleString('it-IT')+'%';
 const _ricPlur=(n,uno,tanti)=>n+' '+(n===1?uno:tanti);
+// le date arrivano dal file in ISO (2026-07-29): in cava si legge 29/07/2026.
+// Se non è una data ISO si lascia com'è: è testo di un file, non lo si indovina.
+const _ricData=(s)=>{ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s||'').trim());
+  return m?m[3]+'/'+m[2]+'/'+m[1]:String(s||''); };
 const _ricColore=(pct)=>{ const a=Math.abs(pct); return a<10?'#66bb6a':(a<25?'#ffca28':'#ef5350'); };
 // Il blocco disegnato in cima alla riconciliazione. Con o senza file, dice
 // sempre cosa manca e come si ottiene.
@@ -2742,7 +2754,7 @@ function _riconCampoHtml(){
   const riga=(l,v,f,col)=>'<div class="l">'+l+'</div><div class="v"'+(col?' style="color:'+col+'"':'')+'>'+v+'</div><div class="f">'+f+'</div>';
   const chi=c.chi.length?c.chi.slice(0,3).map(_rEsc).join(', ')+(c.chi.length>3?' +'+(c.chi.length-3):''):'';
   const sq=c.squadre.length?c.squadre.slice(0,2).map(_rEsc).join(', '):'';
-  const quando=(c.date.length?c.date.map(_rEsc).join(', '):'data non indicata nel file')
+  const quando=(c.date.length?c.date.map(d=>_rEsc(_ricData(d))).join(', '):'data non indicata nel file')
     +(c.turni.length?' · turno '+c.turni.map(_rEsc).join('/'):'');
   let h='<div class="ricamp">'
     +'<div class="ricamp-h">Consuntivo di carico — da Campo</div>'
@@ -2799,7 +2811,7 @@ function riconRender(){
   $('riconModal').dataset.prev=JSON.stringify(prev);
   const st=riconStorico();
   const nomeSug=_ricCampo&&_ricCampo.date.length
-    ? 'Volata '+_ricCampo.date[0]+(_ricCampo.turni.length?' · turno '+_ricCampo.turni[0]:'') : '';
+    ? 'Volata '+_ricData(_ricCampo.date[0])+(_ricCampo.turni.length?' · turno '+_ricCampo.turni[0]:'') : '';
   body.innerHTML=
     _riconCampoHtml()
     +'<div style="color:var(--mut);font-size:12px;margin-bottom:10px;">Dopo lo sparo inserisci i valori <b>misurati</b> per confrontarli con la previsione della volata corrente (dalla Scheda validatori). Verde = scostamento &lt;15%, giallo &lt;35%, rosso oltre.</div>'
