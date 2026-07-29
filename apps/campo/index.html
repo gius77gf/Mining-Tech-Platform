@@ -2716,7 +2716,10 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
         + "<span class=\"badge " + par.livello + "\">" + (par.pct >= 0 ? "+" : "") + par.pct + "%</span>"
         + (par.registrati < par.totale
             ? (par.livello === "ok"
-                ? " — finora sei in linea col progetto."
+                // «il totale»: il singolo foro può essere fuori anche quando la
+                // somma torna, e le barre qui sotto lo mostrano. Non si dice
+                // «sei in linea» e basta, o si contraddice il grafico.
+                ? " — finora il <b>totale</b> è in linea col progetto; foro per foro guarda le barre qui sotto."
                 : " — <b>te ne accorgi adesso</b>: "
                   + (par.totale - par.registrati === 1 ? "manca ancora 1 foro" : "mancano ancora " + (par.totale - par.registrati) + " fori")
                   + " da caricare.")
