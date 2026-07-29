@@ -5,11 +5,11 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-07-28 21:45 UTC
-**Cosa sta per fare:** riprendere dalla roadmap v5.0 dopo il consolidamento
-dello stile in `shared/`, proseguendo con le proposte delle schede di
-ricerca (Blocco 1 e Blocco 2).
-**Commit di partenza:** `ad0b18c`
+**Ultimo ciclo riuscito:** 2026-07-29 00:44 UTC
+**Cosa sta per fare:** riprendere il Blocco 1 della roadmap (i difetti reali
+trovati dalla ricerca) mentre il cantiere del motore grafici lavora in
+`shared/`.
+**Commit di partenza:** `87e220f`
 
 ---
 
