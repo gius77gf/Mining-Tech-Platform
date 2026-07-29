@@ -178,6 +178,11 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
 .gmodal-title{font-family:'Barlow Condensed';font-weight:800;font-size:19px;letter-spacing:.08em;text-transform:uppercase;
   background:linear-gradient(180deg,#ffe08a,#ffab00 55%,#ff6d00);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;margin-bottom:12px}
 .gmodal-foot{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;padding-top:14px;border-top:1px solid rgba(255,171,0,.12)}
+/* moduli dentro i modali (legge di sito): sul telefono quattro colonne
+   diventano quattro campi larghi un dito, quindi si spezzano su due righe */
+.sito-form{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:12.5px;align-items:end}
+.sito-form-3{grid-template-columns:repeat(3,1fr)}
+@media (max-width:640px){ .sito-form,.sito-form-3{grid-template-columns:1fr 1fr} }
 #collapse{display:none}
 /* ===== APP SHELL (Genesi come app multi-schermata) ===== */
 #bottomnav{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:70;width:calc(100% - 28px);max-width:412px;display:flex;justify-content:space-around;align-items:center;gap:4px;padding:9px 8px;border-radius:20px;
@@ -540,6 +545,8 @@ body.scr-sim #tl{bottom:80px}
   <button class="btn sm" id="riconOpen" style="width:100%;margin-top:8px;border-color:rgba(255,171,0,.4)">🎯 Riconciliazione (previsto vs reale)</button>
   <button class="btn sm" id="sigOpen" style="width:100%;margin-top:8px;border-color:rgba(255,171,0,.4)">〰️ Signature-hole (vibrazioni da onda reale)</button>
   <input type="file" id="sigFile" accept=".csv,text/csv,.txt" style="display:none;">
+  <button class="btn sm" id="sitoOpen" style="width:100%;margin-top:8px;border-color:rgba(255,171,0,.4)">📐 Legge di sito (K/β dai tuoi referti)</button>
+  <input type="file" id="sitoFile" accept=".csv,text/csv,.txt" style="display:none;">
 </div>
 
 <div id="cmpModal" style="display:none;position:fixed;inset:0;z-index:220;background:rgba(10,8,4,.82);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:18px;">
@@ -573,6 +580,18 @@ body.scr-sim #tl{bottom:80px}
       <button class="btn sm cu" id="sigImport">Importa onda foro singolo (CSV)</button>
       <button class="btn sm" id="sigExport">Esporta composito (CSV)</button>
       <button class="btn sm" id="sigClose">Chiudi</button>
+    </div>
+  </div>
+</div>
+
+<div id="sitoModal" class="gmodal" style="display:none;">
+  <div class="gmodal-card">
+    <div class="gmodal-title">Legge di sito — dai referti del sismografo</div>
+    <div id="sitoBody" style="font-size:13.5px;"></div>
+    <div class="gmodal-foot">
+      <button class="btn sm cu" id="sitoImport">Importa referti (CSV)</button>
+      <button class="btn sm" id="sitoExport">Esporta referti (CSV)</button>
+      <button class="btn sm" id="sitoClose">Chiudi</button>
     </div>
   </div>
 </div>
@@ -798,8 +817,79 @@ function rockFactorA(){
   const A=Math.max(1,Math.min(16, 0.06*((r.rmd||20)+JF+RDI+HF)));
   return { A:+A.toFixed(1), BI:Math.round(A/0.06), RDI:Math.round(RDI), HF:Math.round(HF), JF:Math.round(JF) };
 }
-/* costanti di sito PPV stimate dalla litologia (K conservativo/upper-bound, non media 50%): roccia dura attenua meno (K basso, β basso). STIMA — da calibrare con monitoraggio reale */
-function ppvSite(){ const vp=(selRoccia()||{}).vp||4500, t=Math.max(0,Math.min(1,(vp-2600)/(6000-2600))); return { K:Math.round(2800-1600*t), beta:+(1.75-0.35*t).toFixed(2) }; }
+/* ══════════════════════════════════════════════════════════════════════════
+   G3 — LA LEGGE DI SITO K/β DAI REFERTI DEL SISMOGRAFO
+   ══════════════════════════════════════════════════════════════════════════
+   La vibrazione si stima con la legge di Devine  PPV = K · SD^−β , dove
+   SD = distanza / √(carica per ritardo). K e β però NON sono universali:
+   dipendono dal sito. La stessa carica, alla stessa distanza, fa vibrare in
+   modo diverso in una cava e in quella accanto. Finché non si misura, Genesi
+   li STIMA dalla litologia (fondo di questo blocco): valori da manuale,
+   cautelativi, ma non "la tua roccia".
+   Chi ha un sismografo ha invece i referti, e in ognuno c'è tutto il
+   necessario: distanza del punto di misura, carica massima per ritardo, PPV
+   registrata. Con tre o più referti si ricava la legge del proprio sito.
+
+   Come: in scala logaritmica la legge diventa una retta
+        ln(PPV) = ln K − β · ln(SD)
+   quindi bastano i minimi quadrati. Il progetto però non si fa sulla media:
+   sulla retta media metà delle volate finirebbe sopra. Si usa la riga al
+   95° percentile (media + 1,645 × scarto dei residui), che è la prassi nella
+   progettazione di conformità — ed è coerente con la stima da litologia, che
+   è anch'essa un valore cautelativo e non una media.
+   ══════════════════════════════════════════════════════════════════════════ */
+function sitoStore(){
+  try{ const s=JSON.parse(localStorage.getItem('genesiSito')||'null'); if(s&&Array.isArray(s.punti)) return s; }catch(e){}
+  return { punti:[], usa:false };
+}
+function sitoSalva(s){ try{ localStorage.setItem('genesiSito', JSON.stringify(s)); }catch(e){} }
+
+/* Minimi quadrati su ln(PPV) = lnK − β·ln(SD).
+   Torna sempre un oggetto: il campo `errore` dice perché la legge non è
+   utilizzabile, così l'interfaccia può spiegarlo invece di tacere.
+    · 'pochi'    meno di 3 referti: da due punti passa qualunque retta
+    · 'stessaSD' tutti i referti alla stessa distanza scalata: senza escursione
+                 di SD la pendenza non è determinabile (divisione per ~0)
+    · 'pendenza' β fuori da 0,5–3: i dati non descrivono un'attenuazione
+                 fisica (referti di siti diversi mescolati, carica sbagliata…) */
+function sitoFit(punti){
+  const P=(punti||[]).filter(p=>p&&p.d>0&&p.w>0&&p.ppv>0);
+  const n=P.length;
+  if(n<3) return { n, errore:'pochi' };
+  const x=P.map(p=>Math.log(p.d/Math.sqrt(p.w))), y=P.map(p=>Math.log(p.ppv));
+  const mx=x.reduce((a,b)=>a+b,0)/n, my=y.reduce((a,b)=>a+b,0)/n;
+  let sxx=0, sxy=0;
+  for(let i=0;i<n;i++){ sxx+=(x[i]-mx)*(x[i]-mx); sxy+=(x[i]-mx)*(y[i]-my); }
+  if(sxx<1e-6) return { n, errore:'stessaSD' };
+  const b=sxy/sxx, a=my-b*mx, beta=-b;
+  let ssr=0, sst=0;
+  for(let i=0;i<n;i++){ const f=a+b*x[i]; ssr+=(y[i]-f)*(y[i]-f); sst+=(y[i]-my)*(y[i]-my); }
+  const s = Math.sqrt(ssr/(n-2));                     // scarto dei residui in scala log
+  const sd = P.map(p=>p.d/Math.sqrt(p.w));
+  const out = { n, lnK:a, pend:b, s,
+    K:  Math.round(Math.exp(a)),                      // riga media (50%)
+    K95:Math.round(Math.exp(a+1.645*s)),              // riga di progetto (95%)
+    beta:+beta.toFixed(2),
+    r2: sst>1e-12 ? +(1-ssr/sst).toFixed(3) : 0,
+    sdMin:+Math.min.apply(null,sd).toFixed(1),
+    sdMax:+Math.max.apply(null,sd).toFixed(1) };
+  if(!(beta>0.5 && beta<3)) out.errore='pendenza';
+  else if(n<8) out.avviso='pochi';                    // sotto gli 8 referti la legge resta provvisoria
+  return out;
+}
+/* La legge effettivamente usata nei calcoli: solo se l'utente l'ha attivata
+   ed è valida. In ogni altro caso si torna alla stima da litologia. */
+function sitoLegge(){ const s=sitoStore(); if(!s.usa) return null; const f=sitoFit(s.punti); return (f && !f.errore) ? f : null; }
+
+/* costanti di sito PPV: dai referti se c'è una legge di sito attiva, altrimenti
+   stimate dalla litologia (K conservativo/upper-bound, non media 50%): roccia
+   dura attenua meno (K basso, β basso). STIMA — da calibrare con monitoraggio reale */
+function ppvSite(){
+  const f=sitoLegge();
+  if(f) return { K:f.K95, beta:f.beta, fonte:'sito', fit:f };
+  const vp=(selRoccia()||{}).vp||4500, t=Math.max(0,Math.min(1,(vp-2600)/(6000-2600)));
+  return { K:Math.round(2800-1600*t), beta:+(1.75-0.35*t).toFixed(2), fonte:'litologia' };
+}
 /* soglia PPV [mm/s] per normativa/edificio e frequenza dominante (soglie verificate USBM RI8507 e DIN 4150-3) */
 function ppvLimit(norma,f){ switch(norma){
   case 'usbm-old': return f<40?12.7:50.8;
@@ -2608,6 +2698,223 @@ if($('sigExport')) $('sigExport').onclick=()=>{
   a.download='genesi_signature_composito.csv'; a.click();
 };
 
+/* ═══════════ G3 — interfaccia della legge di sito ═══════════
+   Il modello (raccolta referti, regressione, riga al 95°) sta più in alto,
+   accanto a ppvSite(). Qui c'è solo ciò che si vede: la tabella dei referti,
+   il diagramma bilogaritmico con la retta, e l'interruttore che decide se i
+   calcoli usano la legge misurata o la stima da litologia. */
+let _sitoCsv=null;                                    // righe del CSV in attesa che l'utente dica quale colonna è cosa
+
+function _sitoNum(v){ return (Math.abs(v)>=100?Math.round(v):(Math.abs(v)>=10?+v.toFixed(1):+v.toFixed(2))).toLocaleString('it-IT'); }
+
+/* Tacche per scala logaritmica: 1-2-5 per decade quando l'intervallo è ampio,
+   passo più fitto quando è stretto — altrimenti su un intervallo come 14–39
+   uscirebbe una sola tacca e l'asse resterebbe muto. */
+function _sitoTicks(lo,hi){
+  const mant = (hi-lo) > 1.1 ? [1,2,5] : ((hi-lo) > .55 ? [1,1.5,2,3,5,7] : [1,1.2,1.5,2,2.5,3,4,5,6,7,8,9]);
+  const out=[];
+  for(let e=Math.floor(lo); e<=Math.ceil(hi); e++) for(const m of mant){
+    const v=m*Math.pow(10,e), l=Math.log10(v);
+    if(l>=lo-1e-9 && l<=hi+1e-9) out.push(v);
+  }
+  return out;
+}
+
+/* Il diagramma classico della vibrazione: distanza scalata contro PPV, con
+   entrambi gli assi logaritmici — è l'unica scala in cui la legge di Devine
+   diventa una retta e si vede a occhio se i referti la seguono davvero. */
+function sitoGrafico(P,f){
+  if(!P.length) return '';
+  /* sul telefono il disegno viene ridotto alla larghezza dello schermo: se il
+     riquadro restasse largo 580 le scritte finirebbero a 5 px e sarebbero
+     illeggibili. Su schermo stretto si usa un riquadro più piccolo e più alto,
+     così il testo resta della stessa dimensione apparente. */
+  const stretto = (typeof window!=='undefined' && window.innerWidth<640);
+  const W=stretto?360:580, H=stretto?300:252, ml=stretto?44:56, mr=stretto?10:14, mt=stretto?14:14, mb=stretto?34:36;
+  const fsT=stretto?11:9.5, fsL=stretto?11.5:10;
+  const sdv=P.map(p=>p.d/Math.sqrt(p.w)), pv=P.map(p=>p.ppv);
+  const lim=ppvLimit(D2.recNorma,D2.recFreq);
+  const sdOra=D2.recDist/Math.sqrt(Math.max(1,computeMIC()));
+  const allX=sdv.concat([sdOra]), allY=pv.concat([lim]);
+  let xlo=Math.log10(Math.min.apply(null,allX)), xhi=Math.log10(Math.max.apply(null,allX));
+  let ylo=Math.log10(Math.min.apply(null,allY)), yhi=Math.log10(Math.max.apply(null,allY));
+  const px=Math.max(.10,(xhi-xlo)*.14), py=Math.max(.10,(yhi-ylo)*.14);
+  xlo-=px; xhi+=px; ylo-=py; yhi+=py;
+  const X=l=>ml+(l-xlo)/(xhi-xlo)*(W-ml-mr), Y=l=>H-mb-(l-ylo)/(yhi-ylo)*(H-mt-mb);
+  let g='';
+  /* griglia e tacche */
+  for(const v of _sitoTicks(xlo,xhi)){ const x=X(Math.log10(v));
+    g+='<line x1="'+x.toFixed(1)+'" y1="'+mt+'" x2="'+x.toFixed(1)+'" y2="'+(H-mb)+'" stroke="rgba(255,255,255,.07)"/>'
+      +'<text x="'+x.toFixed(1)+'" y="'+(H-mb+15)+'" fill="rgba(255,255,255,.45)" font-size="'+fsT+'" text-anchor="middle">'+_sitoNum(v)+'</text>'; }
+  for(const v of _sitoTicks(ylo,yhi)){ const y=Y(Math.log10(v));
+    g+='<line x1="'+ml+'" y1="'+y.toFixed(1)+'" x2="'+(W-mr)+'" y2="'+y.toFixed(1)+'" stroke="rgba(255,255,255,.07)"/>'
+      +'<text x="'+(ml-6)+'" y="'+(y+3.2).toFixed(1)+'" fill="rgba(255,255,255,.45)" font-size="'+fsT+'" text-anchor="end">'+_sitoNum(v)+'</text>'; }
+  /* limite di norma e distanza scalata del progetto in corso */
+  /* le due etichette stanno su angoli opposti: il limite in alto a sinistra,
+     la volata in corso in basso accanto alla sua linea — così non si toccano
+     mai, qualunque sia la scala */
+  const yLim=Y(Math.log10(lim)), xOra=X(Math.log10(sdOra)), oraDx = xOra > W*.72 ? -6 : 5;
+  g+='<line x1="'+ml+'" y1="'+yLim.toFixed(1)+'" x2="'+(W-mr)+'" y2="'+yLim.toFixed(1)+'" stroke="#ef5350" stroke-width="1.2" stroke-dasharray="6 4"/>'
+    +'<text x="'+(ml+4)+'" y="'+(yLim>mt+16?yLim-5:yLim+12).toFixed(1)+'" fill="#ef5350" font-size="'+fsL+'">limite '+_sitoNum(lim)+' mm/s</text>'
+    +'<line x1="'+xOra.toFixed(1)+'" y1="'+mt+'" x2="'+xOra.toFixed(1)+'" y2="'+(H-mb)+'" stroke="rgba(134,176,216,.7)" stroke-width="1.1" stroke-dasharray="3 4"/>'
+    +'<text x="'+(xOra+oraDx).toFixed(1)+'" y="'+(mt+11)+'" fill="#86b0d8" font-size="'+fsL+'" text-anchor="'+(oraDx<0?'end':'start')+'">questa volata</text>';
+  /* le due rette: media (tratteggiata) e progetto al 95° (piena). Ritagliate
+     sul riquadro, altrimenti su pendenze forti finiscono sopra le etichette
+     degli assi. */
+  let clip='';
+  if(f && !f.errore){
+    const L=(int)=>{ const y1=int/Math.LN10+f.pend*xlo, y2=int/Math.LN10+f.pend*xhi;
+      return 'M'+X(xlo).toFixed(1)+' '+Y(y1).toFixed(1)+'L'+X(xhi).toFixed(1)+' '+Y(y2).toFixed(1); };
+    clip='<clipPath id="sitoClip"><rect x="'+ml+'" y="'+mt+'" width="'+(W-ml-mr)+'" height="'+(H-mt-mb)+'"/></clipPath>';
+    g+='<g clip-path="url(#sitoClip)"><path d="'+L(f.lnK)+'" fill="none" stroke="rgba(255,213,79,.55)" stroke-width="1.3" stroke-dasharray="5 4"/>'
+      +'<path d="'+L(f.lnK+1.645*f.s)+'" fill="none" stroke="#ffab00" stroke-width="2"/></g>';
+  }
+  /* i referti */
+  for(const p of P){ const x=X(Math.log10(p.d/Math.sqrt(p.w))), y=Y(Math.log10(p.ppv));
+    g+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="4" fill="rgba(255,213,79,.9)" stroke="rgba(20,15,6,.9)" stroke-width="1"><title>'
+      +_rEsc((p.nome?p.nome+' — ':'')+'SD '+_sitoNum(p.d/Math.sqrt(p.w))+' m/kg^½ · '+_sitoNum(p.ppv)+' mm/s')+'</title></circle>'; }
+  return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;background:rgba(0,0,0,.25);border-radius:10px;margin-top:10px" role="img" aria-label="Diagramma bilogaritmico distanza scalata contro PPV con la retta della legge di sito">'
+    +clip+g+'<text x="'+(ml+(W-ml-mr)/2)+'" y="'+(H-3)+'" fill="rgba(255,255,255,.5)" font-size="'+fsL+'" text-anchor="middle">distanza scalata SD (m/kg^½)</text>'
+    +'<text x="12" y="'+(mt+(H-mt-mb)/2)+'" fill="rgba(255,255,255,.5)" font-size="'+fsL+'" text-anchor="middle" transform="rotate(-90 12 '+(mt+(H-mt-mb)/2)+')">PPV (mm/s)</text></svg>';
+}
+
+function sitoRender(){
+  const body=$('sitoBody'), s=sitoStore();
+  const P=(s.punti||[]).filter(p=>p&&p.d>0&&p.w>0&&p.ppv>0);
+  const f=sitoFit(s.punti);
+
+  /* fase di importazione: prima si dice quale colonna è cosa, poi si importa */
+  if(_sitoCsv){
+    const col=_sitoCsv.righe[0].map((_,i)=>i);
+    const sel=(id,pre)=>'<select id="'+id+'">'+col.map(i=>'<option value="'+i+'"'+(i===pre?' selected':'')+'>colonna '+(i+1)+(_sitoCsv.intest?' — '+_rEsc(_sitoCsv.intest[i]||''):'')+'</option>').join('')+'</select>';
+    body.innerHTML='<div style="color:var(--mut);font-size:12px;margin-bottom:10px;">Il file ha <b>'+_sitoCsv.righe.length+'</b> righe. I sismografi esportano formati diversi: dimmi tu quale colonna è quale, poi guarda l’anteprima e conferma.</div>'
+      +'<div class="sito-form sito-form-3">'
+      +'<label>Distanza (m)<br>'+sel('sito-c-d',0)+'</label>'
+      +'<label>Carica per ritardo (kg)<br>'+sel('sito-c-w',1)+'</label>'
+      +'<label>PPV misurata (mm/s)<br>'+sel('sito-c-p',2)+'</label></div>'
+      +'<div style="margin-top:10px;color:var(--mut);font-size:11px;letter-spacing:.08em;text-transform:uppercase">Anteprima (prime righe)</div>'
+      +'<div style="max-height:130px;overflow:auto;font-size:12px;margin-top:4px;font-variant-numeric:tabular-nums">'
+      +_sitoCsv.righe.slice(0,6).map(r=>'<div style="border-top:1px solid rgba(255,255,255,.08);padding:3px 0;color:var(--mut)">'+r.map(c=>_rEsc(c)).join(' &nbsp;·&nbsp; ')+'</div>').join('')
+      +'</div>'
+      +'<div style="display:flex;gap:8px;margin-top:12px"><button class="btn sm cu" id="sito-imp-ok">Importa le righe</button><button class="btn sm" id="sito-imp-no">Annulla</button></div>';
+    $('sito-imp-ok').onclick=sitoImportaConferma; $('sito-imp-no').onclick=()=>{ _sitoCsv=null; sitoRender(); };
+    return;
+  }
+
+  let h='<div style="color:var(--mut);font-size:12px;margin-bottom:10px;">Ogni referto del sismografo contiene già tutto: <b>distanza</b> del punto di misura, <b>carica massima per ritardo</b> e <b>PPV registrata</b>. Con tre o più referti Genesi ricava la legge della <b>tua</b> roccia e smette di usare i valori da manuale.</div>';
+
+  /* inserimento a mano di un referto */
+  h+='<div style="border:1px solid rgba(255,171,0,.18);border-radius:11px;padding:10px;background:rgba(255,255,255,.015)">'
+    +'<div style="color:#ffd54f;font-family:\'Barlow Condensed\',sans-serif;font-weight:800;font-size:12px;letter-spacing:.09em;text-transform:uppercase;margin-bottom:8px">Aggiungi un referto</div>'
+    +'<div class="sito-form">'
+    +'<label>Distanza (m)<br><input id="sito-d" type="number" min="1" step="1" style="width:100%"></label>'
+    +'<label>Carica/ritardo (kg)<br><input id="sito-w" type="number" min="0.1" step="0.1" style="width:100%"></label>'
+    +'<label>PPV (mm/s)<br><input id="sito-p" type="number" min="0.01" step="0.01" style="width:100%"></label>'
+    +'<label>Riferimento<br><input id="sito-n" type="text" placeholder="Volata 12/07" style="width:100%"></label>'
+    +'</div><button class="btn sm cu" id="sito-add" style="margin-top:9px">Aggiungi</button></div>';
+
+  /* esito della regressione */
+  if(f.errore==='pochi'){
+    h+='<div style="margin-top:12px;color:var(--mut);font-size:12.5px;">Referti inseriti: <b>'+P.length+'</b>. Ne servono almeno <b>3</b>: da due punti passa qualunque retta, e una legge di sito ricavata da due misure non è una legge.</div>';
+  } else if(f.errore==='stessaSD'){
+    h+='<div style="margin-top:12px;color:#ffca28;font-size:12.5px;">I referti hanno tutti la <b>stessa distanza scalata</b>: la pendenza β non si può ricavare. Servono misure a distanze (o cariche) diverse.</div>';
+  } else if(f.errore==='pendenza'){
+    h+='<div style="margin-top:12px;color:#ef5350;font-size:12.5px;">La retta che esce dai dati ha pendenza β = '+_sitoNum(f.beta)+', fuori dall’intervallo fisico 0,5–3: <b>non è utilizzabile</b>. Di solito significa referti di punti/siti diversi mescolati, oppure una carica inserita per volata invece che per ritardo.</div>';
+  } else {
+    const qual = f.r2>=.8 ? ['#66bb6a','i referti seguono bene la legge'] : (f.r2>=.5 ? ['#ffca28','dispersione media: la legge orienta, non decide'] : ['#ef5350','dispersione alta: i referti non descrivono un’unica legge']);
+    h+='<div style="margin-top:12px;display:grid;grid-template-columns:1.35fr 1fr;gap:6px 10px;font-size:13.5px;align-items:center">'
+      +'<div style="color:var(--mut)">Referti usati</div><div>'+f.n+'</div>'
+      +'<div style="color:var(--mut)">Legge di progetto (95°)</div><div style="color:#ffab00;font-weight:700">PPV = '+f.K95+' · SD<sup>−'+_sitoNum(f.beta)+'</sup></div>'
+      +'<div style="color:var(--mut)">Riga media (50°)</div><div>K = '+f.K+'</div>'
+      +'<div style="color:var(--mut)">Aderenza R²</div><div style="color:'+qual[0]+'">'+_sitoNum(f.r2)+' — '+qual[1]+'</div>'
+      +'<div style="color:var(--mut)">Intervallo calibrato SD</div><div>'+_sitoNum(f.sdMin)+' – '+_sitoNum(f.sdMax)+' m/kg^½</div>'
+      +'</div>';
+    if(f.avviso==='pochi') h+='<div style="margin-top:8px;color:#ffca28;font-size:12px;">Legge <b>provvisoria</b>: con meno di 8 referti la pendenza si muove ancora parecchio a ogni misura nuova. Continua ad aggiungerli.</div>';
+    h+='<label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="sito-usa"'+(s.usa?' checked':'')+'> Usa questa legge nei calcoli (al posto della stima da litologia)</label>';
+  }
+
+  h+=sitoGrafico(P,f);
+
+  /* elenco dei referti */
+  if(P.length) h+='<div style="margin-top:12px;color:var(--mut);font-size:11px;letter-spacing:.08em;text-transform:uppercase">Referti ('+P.length+')</div>'
+    +'<div style="max-height:150px;overflow:auto;font-size:12px;margin-top:4px;font-variant-numeric:tabular-nums">'
+    +(s.punti||[]).map((p,i)=>(p&&p.d>0&&p.w>0&&p.ppv>0)?('<div style="border-top:1px solid rgba(255,255,255,.08);padding:4px 0;display:flex;gap:8px;align-items:center">'
+      +'<span style="flex:1"><b style="color:#ffd54f">'+_rEsc(p.nome||('referto '+(i+1)))+'</b> — '+_sitoNum(p.d)+' m · '+_sitoNum(p.w)+' kg/ritardo · '+_sitoNum(p.ppv)+' mm/s <span style="color:var(--mut2)">(SD '+_sitoNum(p.d/Math.sqrt(p.w))+')</span></span>'
+      +'<button class="btn sm" data-sito-del="'+i+'" title="Elimina questo referto" style="padding:2px 8px">✕</button></div>'):'').join('')
+    +'</div>';
+  else h+='<div style="margin-top:12px;color:var(--mut);font-size:12px;">Nessun referto: aggiungine uno a mano qui sopra, oppure importa il CSV del sismografo col pulsante in basso.</div>';
+
+  h+='<div style="margin-top:10px;color:var(--mut);font-size:12px;">La <b>carica per ritardo</b> è quella che conta, non il totale della volata: è la quantità che detona nella stessa finestra di 8 ms. Il progetto usa la <b>riga al 95° percentile</b> (quella piena): sulla media metà delle volate finirebbe sopra. Fuori dall’intervallo calibrato la legge è un’estrapolazione, non una misura.</div>';
+
+  body.innerHTML=h;
+  if($('sito-add')) $('sito-add').onclick=sitoAggiungi;
+  if($('sito-usa')) $('sito-usa').onchange=(e)=>{ const st=sitoStore(); st.usa=!!e.target.checked; sitoSalva(st);
+    toast(st.usa?'I calcoli usano la legge del tuo sito':'Torno alla stima da litologia'); if(typeof draw2D==="function") draw2D(); sitoRender(); };
+  body.querySelectorAll('[data-sito-del]').forEach(b=>b.onclick=()=>{
+    const st=sitoStore(); st.punti.splice(+b.dataset.sitoDel,1); sitoSalva(st); if(typeof draw2D==="function") draw2D(); sitoRender(); });
+}
+
+function sitoAggiungi(){
+  const num=id=>{ const v=$(id)?$(id).value:''; return v===''?NaN:+String(v).replace(',','.'); };
+  const d=num('sito-d'), w=num('sito-w'), p=num('sito-p');
+  if(!(d>0)||!(w>0)||!(p>0)){ toast('Servono distanza, carica per ritardo e PPV, tutte maggiori di zero'); return; }
+  const st=sitoStore();
+  st.punti.push({ d, w, ppv:p, nome:($('sito-n')&&$('sito-n').value.trim())||'', ts:new Date().toISOString().slice(0,10) });
+  sitoSalva(st); toast('Referto aggiunto'); sitoRender();
+}
+
+/* Il CSV del sismografo: separatore ; , o tabulazione, decimali con la virgola,
+   intestazione riconosciuta se la prima riga non è fatta di numeri. */
+function _sitoParseCsv(testo){
+  const righe=String(testo||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean)
+    .map(s=>s.split(/[;\t]|,(?=\s*[^\d\s])/).map(c=>c.trim().replace(/^"|"$/g,'')))
+    .filter(r=>r.length>=3);
+  if(!righe.length) return null;
+  const numerica=r=>r.filter(c=>isFinite(parseFloat(String(c).replace(',','.')))).length>=3;
+  let intest=null;
+  if(!numerica(righe[0])){ intest=righe[0]; righe.shift(); }
+  return righe.length?{ righe, intest }:null;
+}
+function sitoImportaConferma(){
+  const ci=id=>+($(id)?$(id).value:0);
+  const cd=ci('sito-c-d'), cw=ci('sito-c-w'), cp=ci('sito-c-p');
+  const val=(r,i)=>parseFloat(String(r[i]==null?'':r[i]).replace(',','.'));
+  const st=sitoStore(); let ok=0, scartate=0, doppie=0;
+  const gia=new Set((st.punti||[]).map(p=>p.d+'|'+p.w+'|'+p.ppv));
+  for(const r of _sitoCsv.righe){
+    const d=val(r,cd), w=val(r,cw), p=val(r,cp);
+    if(!(d>0)||!(w>0)||!(p>0)){ scartate++; continue; }
+    const chiave=d+'|'+w+'|'+p;
+    if(gia.has(chiave)){ doppie++; continue; }
+    gia.add(chiave); st.punti.push({ d, w, ppv:p, nome:'', ts:new Date().toISOString().slice(0,10) }); ok++;
+  }
+  sitoSalva(st); _sitoCsv=null;
+  toast((ok===1?'1 referto importato':ok+' referti importati')
+    +(doppie?' · '+(doppie===1?'1 doppione scartato':doppie+' doppioni scartati'):'')
+    +(scartate?' · '+(scartate===1?'1 riga non valida':scartate+' righe non valide'):''));
+  if(typeof draw2D==="function") draw2D();
+  sitoRender();
+}
+
+if($('sitoOpen')) $('sitoOpen').onclick=()=>{ _sitoCsv=null; sitoRender(); $('sitoModal').style.display='flex'; };
+if($('sitoClose')) $('sitoClose').onclick=()=>{ $('sitoModal').style.display='none'; };
+if($('sitoImport')) $('sitoImport').onclick=()=>$('sitoFile').click();
+if($('sitoFile')) $('sitoFile').onchange=async(e)=>{
+  const file=e.target.files&&e.target.files[0]; if(!file) return;
+  const parsed=_sitoParseCsv(await file.text()); e.target.value='';
+  if(!parsed){ toast('CSV non leggibile: servono almeno tre colonne (distanza, carica, PPV)'); return; }
+  _sitoCsv=parsed; sitoRender();
+};
+if($('sitoExport')) $('sitoExport').onclick=()=>{
+  const P=(sitoStore().punti||[]).filter(p=>p&&p.d>0&&p.w>0&&p.ppv>0);
+  if(!P.length){ toast('Nessun referto da esportare'); return; }
+  const cell=v=>{ const s=String(v==null?'':v); return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
+  const csv='data;riferimento;distanza_m;carica_per_ritardo_kg;ppv_mms;distanza_scalata\n'
+    +P.map(p=>[p.ts||'',p.nome||'',p.d,p.w,p.ppv,(p.d/Math.sqrt(p.w)).toFixed(2)].map(cell).join(';')).join('\n')+'\n';
+  const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='genesi_legge_di_sito.csv'; a.click();
+};
+
 function maybeConsent(){ if(!localStorage.getItem('genesiDisclaimerV1')){ $('modal').style.display='flex'; } }
 $('disclaimerChk').onchange = e=>{ $('modalOk').classList.toggle('disabled', !e.target.checked); };
 $('modalOk').onclick = ()=>{ localStorage.setItem('genesiDisclaimerV1','1'); $('modal').style.display='none'; };
@@ -3408,8 +3715,18 @@ function renderScheda2D(){
   const _lim=ppvLimit(D2.recNorma,D2.recFreq), _rat=_ppv/_lim;
   const _wmax=Math.pow(D2.recDist,2)*Math.pow(_lim/_st.K,2/_st.beta);
   const _normaLab={'usbm-old':'USBM intonaco vecchio','usbm-modern':'USBM cartongesso','din-ind':'DIN industriale','din-sens':'DIN sensibile','din-res':'DIN residenziale'}[D2.recNorma]||'DIN residenziale';
+  /* G3 — da dove vengono K e β: dai referti del sismografo se c'è una legge di
+     sito attiva, altrimenti dalla litologia. Va detto in chiaro: cambia il peso
+     del numero, e fuori dall'intervallo calibrato la legge è un'estrapolazione. */
+  const _fonte = (_st.fonte==='sito')
+    ? ('K≈'+_st.K+'/β≈'+_st.beta+' ricavati dai <b>tuoi '+_st.fit.n+' referti</b> (riga al 95° percentile, R²='+_st.fit.r2.toString().replace('.',',')+')'
+       + ((_sd2<_st.fit.sdMin||_sd2>_st.fit.sdMax) ? '. <b>Attenzione</b>: SD '+_sd2.toFixed(1)+' è fuori dall\'intervallo calibrato ('+_st.fit.sdMin+'–'+_st.fit.sdMax+'): qui la legge estrapola' : ''))
+    : ('K≈'+_st.K+'/β≈'+_st.beta+' stimati da '+_rk.nome+' (valori da manuale, cautelativi)');
+  const _coda = (_st.fonte==='sito')
+    ? ' Legge calibrata sul tuo sito: resta una previsione, va riverificata col sismografo a ogni cambio di zona o di fronte.'
+    : ' STIMA predittiva site-specific: con i referti del sismografo (pulsante «Legge di sito») Genesi ricava K e β della tua roccia.';
   rows.push({lab:'PPV al recettore',valStr:_ppv.toFixed(1)+' <span>mm/s</span>',cls:(_rat<0.6?'sv-ok':(_rat<1?'sv-warn':'sv-bad')),
-    why:'a '+D2.recDist+' m (SD '+_sd2.toFixed(1)+' m/kg^½, MIC '+_mic+' kg), legge di Devine PPV=K·SD^−β con K≈'+_st.K+'/β≈'+_st.beta+' stimati da '+_rk.nome+'. Soglia '+_normaLab+' '+_lim+' mm/s @ '+D2.recFreq+' Hz → '+(_rat>=1?'<b>SUPERA</b>: riduci la MIC (meno kg/foro o frazionamento ritardi) o allontana il recettore.':(_rat>=0.6?'sotto soglia ma vicino: monitora.':'ampiamente sotto soglia.'))+' STIMA predittiva site-specific: calibra con un sismografo reale.'});
+    why:'a '+D2.recDist+' m (SD '+_sd2.toFixed(1)+' m/kg^½, MIC '+_mic+' kg), legge di Devine PPV=K·SD^−β con '+_fonte+'. Soglia '+_normaLab+' '+_lim+' mm/s @ '+D2.recFreq+' Hz → '+(_rat>=1?'<b>SUPERA</b>: riduci la MIC (meno kg/foro o frazionamento ritardi) o allontana il recettore.':(_rat>=0.6?'sotto soglia ma vicino: monitora.':'ampiamente sotto soglia.'))+_coda});
   rows.push({lab:'MIC (carica/ritardo)',valStr:_mic+' <span>kg</span>',cls:'sv-info',
     why:'massima carica entro la finestra di 8 ms (fori sullo stesso ritardo). W max ammissibile alla soglia scelta ≈ '+Math.round(_wmax)+' kg a '+D2.recDist+' m: oltre, il PPV supera il limite.'});
   const _sd3=D2.recDist/Math.cbrt(Math.max(0.1,_mic)), _db=172-24*Math.log10(Math.max(1,_sd3));
