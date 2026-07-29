@@ -268,10 +268,26 @@
     return this;
   };
 
+  /* Tutto ciò che NASCE dal disegno e finisce in fondo alla figura — la nota
+     automatica sulla soglia fuori scala, la spiegazione della ciambella, la
+     tabella dei dati — va marcato, perché al ridisegno vada tolto. Senza
+     questo, a ogni rotazione dello schermo o anteprima di stampa la stessa
+     frase si ripeteva una volta in più, e finiva ripetuta anche nel documento
+     stampato. La nota scritta da chi usa il grafico (spec.nota) è invece
+     messa una volta sola in costruzione e non si tocca. */
+  Grafico.prototype.alPiede = function (nodo, prima) {
+    nodo.setAttribute('data-dwg-disegno', '1');
+    if (prima && prima.parentNode === this.piede) this.piede.insertBefore(nodo, prima);
+    else this.piede.appendChild(nodo);
+    return nodo;
+  };
+
   Grafico.prototype.ridisegna = function () {
     while (this.wrap.firstChild) this.wrap.removeChild(this.wrap.firstChild);
     while (this.legenda.firstChild) this.legenda.removeChild(this.legenda.firstChild);
     if (this._tab && this._tab.parentNode) this._tab.parentNode.removeChild(this._tab);
+    var nati = this.piede.querySelectorAll('[data-dwg-disegno]');
+    for (var i = 0; i < nati.length; i++) if (nati[i].parentNode) nati[i].parentNode.removeChild(nati[i]);
     this.disegna();
   };
 
@@ -374,7 +390,7 @@
       bd.appendChild(t);
     });
     tb.appendChild(bd); d.appendChild(tb);
-    this.piede.appendChild(d);
+    this.alPiede(d);
     this._tab = d;
   };
 
@@ -591,7 +607,7 @@
         [nodo('path', { 'class': 'dwg-oltre', d: 'M11 .6L16 5.5L11 10.4L6 5.5Z' })], 'oltre soglia: ', String(quanti), 'dg'));
     }
     if (sogliaFuori) {
-      g.piede.appendChild(div('dwg-nota', 'La soglia (' + conUnita(fmt(soglia), s.unita) + ') è molto più alta dei valori misurati: resta fuori dalla scala, che si adatta alle letture per farne vedere l\'andamento.'));
+      g.alPiede(div('dwg-nota', 'La soglia (' + conUnita(fmt(soglia), s.unita) + ') è molto più alta dei valori misurati: resta fuori dalla scala, che si adatta alle letture per farne vedere l\'andamento.'));
     }
 
     /* ── tabella ── */
@@ -853,7 +869,7 @@
       g.spec = s2;
       disegnaBarre(g);
       var spieg = divRicco('dwg-nota', 'Le voci sono <b>' + dati.length + '</b>: una ciambella con così tanti spicchi non si legge più, quindi le stesse quote sono disegnate in <b>barre ordinate</b>.');
-      if (g._tab) g.piede.insertBefore(spieg, g._tab); else g.piede.appendChild(spieg);
+      g.alPiede(spieg, g._tab);
       return;
     }
     /* le voci oltre il limite si accorpano in "Altro" (tinta neutra: non è
