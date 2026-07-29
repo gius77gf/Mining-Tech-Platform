@@ -1529,5 +1529,46 @@ test("Scudo riconosce l'origine ambientale e non la confonde con un'ispezione", 
   ok(JSON.stringify(scudo.riepilogoAmbiente([])).indexOf("NaN") < 0, "archivio vuoto senza NaN");
 });
 
+console.log("\n— Ponte Sentinella → Genesi: i referti per la legge di sito —");
+// Il vincolo che conta più di tutti: la legge di sito decide le distanze di
+// sicurezza, quindi una PPV inventata farebbe più danno di qualunque altro
+// numero finto in tutta la piattaforma. Questi test esistono per quello.
+test("una volata senza PPV misurata NON diventa un referto", () => {
+  const r = sentinella.refertoDaVolata({ id: "v2", data: "2026-07-07", distanzaRicettore: 150, kgMaxRitardo: 25 });
+  ok(r.pronto === false, "senza misura non può essere pronto");
+  ok(r.motivi.includes("ppv"), `e il motivo va detto: ${JSON.stringify(r.motivi)}`);
+});
+test("PPV a zero, negativa, testuale o vuota vengono tutte rifiutate", () => {
+  for (const brutta of [0, -1, "boh", "", null, undefined]) {
+    const r = sentinella.refertoDaVolata({ id: "x", data: "2026-07-07", distanzaRicettore: 150, kgMaxRitardo: 25, ppvMisurata: brutta });
+    ok(r.pronto === false, `PPV ${JSON.stringify(brutta)} accettata: falserebbe la legge di sito`);
+  }
+});
+test("mancano distanza o carica per ritardo: niente referto, col motivo", () => {
+  ok(sentinella.refertoDaVolata({ id: "a", data: "2026-07-08", kgMaxRitardo: 25, ppvMisurata: 4 }).pronto === false, "senza distanza");
+  ok(sentinella.refertoDaVolata({ id: "b", data: "2026-07-08", distanzaRicettore: 150, ppvMisurata: 4 }).pronto === false, "senza carica");
+  ok(sentinella.refertoDaVolata({}).motivi.length > 0, "volata vuota: motivi, non crash");
+});
+test("nel file per Genesi entrano SOLO le volate con la misura", () => {
+  const V = [{ id: "v1", data: "2026-07-06", distanzaRicettore: 90, kgMaxRitardo: 5.2, ppvMisurata: 3.9, ppvFonte: "strumento" },
+             { id: "v2", data: "2026-07-07", distanzaRicettore: 150, kgMaxRitardo: 25 },
+             { id: "v3", data: "2026-07-08", distanzaRicettore: 420, kgMaxRitardo: 40, ppvMisurata: 1.35, ppvFonte: "manuale" }];
+  const csv = sentinella.csvRefertiGenesi(V.map(v => sentinella.refertoDaVolata(v)));
+  const righe = csv.trim().split("\n");
+  ok(righe.length === 3, `${righe.length - 1} righe invece di 2: la volata senza misura non deve entrare`);
+  ok(!/;150;/.test(csv), "la volata senza PPV è finita nel file");
+  ok(righe[1].includes("2026-07-06") && righe[2].includes("2026-07-08"), "le righe vanno ordinate per data");
+  ok(righe.every(r => r.split(";").length === righe[0].split(";").length), "una cella con ; spezzerebbe il file");
+});
+test("zero referti pronti: solo l'intestazione, nessuna riga inventata", () => {
+  const solo = sentinella.csvRefertiGenesi([sentinella.refertoDaVolata({ id: "v", data: "2026-07-07", distanzaRicettore: 150, kgMaxRitardo: 25 })]);
+  ok(solo.trim().split("\n").length === 1, "un file con righe finte è peggio di un file vuoto");
+  ok(typeof sentinella.csvRefertiGenesi(undefined) === "string", "lista assente: stringa, non crash");
+});
+test("le soglie dichiarate della legge di sito: 3 referti per esistere, 8 per essere solida", () => {
+  ok(sentinella.MIN_REFERTI === 3, `MIN_REFERTI ${sentinella.MIN_REFERTI}`);
+  ok(sentinella.REFERTI_SOLIDI === 8, `REFERTI_SOLIDI ${sentinella.REFERTI_SOLIDI}`);
+});
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
