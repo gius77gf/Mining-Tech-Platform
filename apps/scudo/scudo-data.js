@@ -15,9 +15,20 @@
 //   cantieri/{id}:   { nome, comune, tipo: cava|cantiere, stato: attivo|chiuso }
 //   azioni/{id}:     { descrizione, responsabileId|null, scadenza (ISO),
 //                      stato: aperta|in-corso|chiusa, esito?, dataChiusura?,
-//                      origineTipo: evento|nc|"", origineId?|null, origineNota? }
+//                      origineTipo: evento|ispezione|nc|"", origineId?|null,
+//                      origineVoce?|null, origineNota? }
 //                    → azione correttiva (CAPA) nata da un evento del registro
-//                      infortuni/near-miss o da una non conformità rilevata.
+//                      infortuni/near-miss, da una voce non conforme di
+//                      un'ispezione, o da una non conformità rilevata.
+//   infortuni/{id}:  { data (ISO), tipo: infortunio|near-miss, gravita,
+//                      giorniAssenza, descrizione, luogo,
+//                      categoria? (near-miss: tipo di rischio),
+//                      anonimo? (bool), segnalatoDaId?|null, rapida? (bool) }
+//   ispezioni/{id}:  { modello (chiave), nome, ambito, cantiereId|null,
+//                      responsabileId|null, data (ISO), periodicitaGiorni|null,
+//                      riferimento?, voci: [{ id, testo }],
+//                      esiti: { voceId: { esito: conforme|non-conforme|na, nota } },
+//                      stato: programmata|in-corso|completata, dataChiusura?|null }
 // Lo "stato" delle scadenze non si salva: si CALCOLA dalla data
 // (scaduta / entro 30gg / regolare) — niente dati derivati nel DB.
 // ============================================================
@@ -53,13 +64,56 @@ export const DEMO = {
     { id: "k2", nome: "Cantiere cliente Edilcave", comune: "Comune di esempio", tipo: "cantiere", stato: "attivo" },
   ],
   infortuni: [
-    { id: "i1", data: "2026-05-18", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "fronte Est", descrizione: "Caduta massi vicino al perforatore, nessun ferito" },
-    { id: "i2", data: "2026-02-03", tipo: "infortunio", gravita: "lieve", giorniAssenza: 4, luogo: "officina", descrizione: "Taglio alla mano durante una manutenzione" },
+    { id: "i1", data: "2026-05-18", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "fronte Est", luogoTipo: "fronte", categoria: "caduta-massi", descrizione: "Caduta massi vicino al perforatore, nessun ferito" },
+    { id: "i2", data: "2026-02-03", tipo: "infortunio", gravita: "lieve", giorniAssenza: 4, luogo: "officina", luogoTipo: "officina", descrizione: "Taglio alla mano durante una manutenzione" },
+    { id: "i3", data: "2026-06-24", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "pista principale", luogoTipo: "pista", categoria: "mezzi", anonimo: true, rapida: true, descrizione: "Dumper e pick-up incrociati in curva con poca visibilità" },
+    { id: "i4", data: "2026-07-06", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "fronte Nord", luogoTipo: "fronte", categoria: "caduta-massi", rapida: true, descrizione: "Blocco staccato dal ciglio durante il disgaggio" },
+    { id: "i5", data: "2026-07-15", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "impianto", luogoTipo: "impianto", categoria: "impianto", rapida: true, descrizione: "Riparo del nastro 3 trovato aperto a macchina ferma" },
+    { id: "i6", data: "2026-07-21", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "pista di risalita", luogoTipo: "pista", categoria: "mezzi", anonimo: true, rapida: true, descrizione: "Pietra caduta dal cassone su tratto di pista con arginello basso" },
   ],
   azioni: [
     { id: "a1", descrizione: "Disgaggio del fronte Est e ripristino della fascia di rispetto a valle", responsabileId: "d3", scadenza: "2026-07-31", stato: "in-corso", origineTipo: "evento", origineId: "i1" },
     { id: "a2", descrizione: "Consegna guanti antitaglio e addestramento agli addetti officina", responsabileId: "d7", scadenza: "2026-03-15", stato: "chiusa", esito: "Guanti consegnati e addestramento registrato", dataChiusura: "2026-03-12", origineTipo: "evento", origineId: "i2" },
     { id: "a3", descrizione: "Ripristinare la segnaletica di viabilità sulla pista principale", responsabileId: null, scadenza: "2026-06-30", stato: "aperta", origineTipo: "nc", origineNota: "Non conformità rilevata durante il giro di sorveglianza" },
+    { id: "a4", descrizione: "Delimitare la fascia di rispetto al ciglio del fronte Nord", responsabileId: "d3", scadenza: "2026-08-09", stato: "aperta", origineTipo: "ispezione", origineId: "q1", origineVoce: "v2", origineNota: "Fascia di rispetto al ciglio delimitata e rispettata dai mezzi" },
+  ],
+  ispezioni: [
+    { id: "q1", modello: "fronte", nome: "Fronte di cava — stabilità e disgaggio", ambito: "Fronti",
+      riferimento: "D.Lgs 624/96 — coltivazioni a cielo aperto: stabilità dei fronti, caduta massi e franamento; alimenta la relazione annuale di stabilità.",
+      periodicitaGiorni: 30, data: "2026-07-10", cantiereId: "k1", responsabileId: "d3",
+      voci: [
+        { id: "v1", testo: "Ciglio superiore libero da massi instabili e materiale sciolto" },
+        { id: "v2", testo: "Fascia di rispetto al ciglio delimitata e rispettata dai mezzi" },
+        { id: "v3", testo: "Nessun blocco in equilibrio precario sulla parete" },
+        { id: "v4", testo: "Altezza e pendenza dei gradoni come previsto nel DSS" },
+        { id: "v5", testo: "Unghia del fronte libera da accumuli che ostacolano il lavoro" },
+        { id: "v6", testo: "Nessuna fessura di trazione, venuta d'acqua o segno di movimento" },
+        { id: "v7", testo: "Disgaggio eseguito dopo l'ultima volata e dopo le piogge forti" },
+        { id: "v8", testo: "Accessi al fronte sbarrati e segnalati quando l'area non è operativa" },
+      ],
+      esiti: {
+        v1: { esito: "conforme", nota: "" },
+        v2: { esito: "non-conforme", nota: "Delimitazione rimossa durante l'ultimo sbancamento" },
+        v3: { esito: "conforme", nota: "" }, v4: { esito: "conforme", nota: "" },
+        v5: { esito: "conforme", nota: "" }, v6: { esito: "conforme", nota: "" },
+        v7: { esito: "conforme", nota: "" }, v8: { esito: "na", nota: "Area operativa in continuo" },
+      },
+      stato: "completata", dataChiusura: "2026-07-10" },
+    { id: "q2", modello: "piste", nome: "Piste e viabilità interna", ambito: "Piste",
+      riferimento: "D.Lgs 81/08 titolo I e D.Lgs 624/96 — circolazione dei mezzi in sicurezza nei luoghi di lavoro.",
+      periodicitaGiorni: 15, data: "2026-07-28", cantiereId: "k1", responsabileId: "d3",
+      voci: [
+        { id: "v1", testo: "Larghezza della pista adeguata al mezzo più grande in uso" },
+        { id: "v2", testo: "Arginelli sui lati esposti presenti e integri" },
+        { id: "v3", testo: "Fondo e pendenza in ordine, senza solchi o cedimenti" },
+        { id: "v4", testo: "Segnaletica, limiti di velocità e precedenze visibili" },
+        { id: "v5", testo: "Abbattimento delle polveri (bagnatura) eseguito" },
+        { id: "v6", testo: "Incroci e punti ciechi con visibilità garantita" },
+        { id: "v7", testo: "Aree di manovra, carico e scarico delimitate" },
+        { id: "v8", testo: "Illuminazione sufficiente nei tratti usati con poca luce" },
+      ],
+      esiti: { v1: { esito: "conforme", nota: "" }, v2: { esito: "conforme", nota: "" } },
+      stato: "in-corso", dataChiusura: null },
   ],
 };
 
@@ -240,6 +294,288 @@ export function riepilogoAzioni(azioni, oggi = new Date()) {
 export function azioniDiEvento(azioni, eventoId) {
   if (!eventoId) return [];
   return (azioni || []).filter(a => a.origineTipo === "evento" && a.origineId === eventoId);
+}
+// Azioni nate dalle voci non conformi di un'ispezione (ispezione → azioni).
+export function azioniDiIspezione(azioni, ispezioneId) {
+  if (!ispezioneId) return [];
+  return (azioni || []).filter(a => a.origineTipo === "ispezione" && a.origineId === ispezioneId);
+}
+
+// ============================================================
+// S2 · SEGNALAZIONE RAPIDA DEI NEAR-MISS
+// Un mancato infortunio si segnala in piedi sul piazzale, con i guanti,
+// in pochi secondi — o non lo segnala nessuno. Le due liste qui sotto
+// servono proprio a questo: si TOCCA una categoria e un luogo invece di
+// scrivere, e la segnalazione è già completa. Restano modificabili con il
+// campo libero, perché nessun elenco copre tutte le cave.
+// Le categorie vengono dai rischi tipici delle attività estrattive
+// (caduta massi e instabilità dei fronti, viabilità delle piste, organi in
+// movimento dell'impianto, volata); il riferimento normativo del
+// tracciamento è la L. 198/2025 (ex D.L. 159/2025).
+// ============================================================
+export const NEARMISS_CATEGORIE = [
+  { chiave: "caduta-massi",  etichetta: "Caduta massi" },
+  { chiave: "instabilita",   etichetta: "Fronte instabile" },
+  { chiave: "mezzi",         etichetta: "Mezzi e investimento" },
+  { chiave: "ribaltamento",  etichetta: "Ribaltamento" },
+  { chiave: "caduta",        etichetta: "Caduta o scivolamento" },
+  { chiave: "impianto",      etichetta: "Impianto e nastri" },
+  { chiave: "volata",        etichetta: "Volata e proiezioni" },
+  { chiave: "elettrico",     etichetta: "Elettrico o incendio" },
+  { chiave: "sostanze",      etichetta: "Polveri e sostanze" },
+  { chiave: "altro",         etichetta: "Altro" },
+];
+export const NEARMISS_LUOGHI = [
+  { chiave: "fronte",   etichetta: "Fronte" },
+  { chiave: "pista",    etichetta: "Piste" },
+  { chiave: "piazzale", etichetta: "Piazzale" },
+  { chiave: "impianto", etichetta: "Impianto" },
+  { chiave: "officina", etichetta: "Officina" },
+  { chiave: "deposito", etichetta: "Deposito" },
+  { chiave: "uffici",   etichetta: "Uffici" },
+  { chiave: "altro",    etichetta: "Altro" },
+];
+export function categoriaNearMiss(chiave) {
+  const c = NEARMISS_CATEGORIE.find(x => x.chiave === chiave);
+  return c ? c.etichetta : "";
+}
+export function luogoNearMiss(chiave) {
+  const l = NEARMISS_LUOGHI.find(x => x.chiave === chiave);
+  return l ? l.etichetta : "";
+}
+// Descrizione già scritta quando chi segnala non aggiunge niente: la
+// segnalazione resta leggibile nel registro anche se è costata tre tocchi.
+export function descrizioneNearMiss({ categoria, luogoTipo, luogo, dettaglio } = {}) {
+  const d = (dettaglio || "").trim();
+  if (d) return d;
+  const cat = categoriaNearMiss(categoria);
+  const dove = (luogo || "").trim() || luogoNearMiss(luogoTipo);
+  if (cat && dove) return cat + " — " + dove;
+  return cat || dove || "Near-miss segnalato";
+}
+
+// Riepilogo AGGREGATO dei near-miss del periodo (L. 198/2025: dati aggregati
+// sugli eventi *e* sulle azioni correttive adottate). Conta il periodo scelto
+// in giorni (null = tutto lo storico), raggruppa per categoria e per luogo e
+// dice quante segnalazioni hanno prodotto un'azione correttiva.
+// `pochi` è vero quando i numeri sono troppo bassi per leggerci una tendenza:
+// in quel caso l'interfaccia lo dice invece di disegnare grafici che
+// suggeriscono andamenti inesistenti. Pura e testabile; `oggi` iniettabile.
+export function riepilogoNearMiss(infortuni, azioni, giorni = 90, oggi = new Date()) {
+  const tutti = (infortuni || []).filter(x => x.tipo === "near-miss");
+  const dentro = (x) => {
+    if (giorni == null) return true;
+    const g = giorniTra(x.data, oggi);      // negativo = nel passato
+    return Number.isFinite(g) && g <= 0 && -g <= giorni;
+  };
+  const list = tutti.filter(dentro);
+  const conta = (etichettaDi) => {
+    const per = {};
+    for (const x of list) {
+      const lab = etichettaDi(x);
+      per[lab] = (per[lab] || 0) + 1;
+    }
+    return Object.entries(per).map(([etichetta, valore]) => ({ etichetta, valore }))
+      .sort((a, b) => b.valore - a.valore || a.etichetta.localeCompare(b.etichetta, "it"));
+  };
+  const perTipo = conta(x => categoriaNearMiss(x.categoria) || "Non classificato");
+  // Il luogo può arrivare da un tocco (luogoTipo) o essere scritto a mano nel
+  // registro di sempre (luogo): il conteggio tiene buoni tutti e due.
+  const perLuogo = conta(x => luogoNearMiss(x.luogoTipo) || (x.luogo || "").trim() || "Luogo non indicato");
+  const ids = new Set(list.map(x => x.id));
+  const azi = (azioni || []).filter(a => a.origineTipo === "evento" && ids.has(a.origineId));
+  const conAzione = new Set(azi.map(a => a.origineId)).size;
+  const anonime = list.filter(x => x.anonimo).length;
+  return {
+    giorni, totale: list.length, totaleStorico: tutti.length,
+    perTipo, perLuogo, anonime,
+    conAzione, senzaAzione: list.length - conAzione,
+    azioni: azi.length, azioniChiuse: azi.filter(a => a.stato === "chiusa").length,
+    pochi: list.length < 5,
+  };
+}
+
+// ============================================================
+// S3 · ISPEZIONI E CHECKLIST PERIODICHE
+// Modelli riutilizzabili con le voci tipiche dell'attività estrattiva.
+// Ogni voce ha un esito (conforme / non conforme / non applicabile) e una
+// nota; le voci NON CONFORMI generano le azioni correttive di S1, già
+// collegate all'ispezione. Le periodicità sono PROPOSTE (giorni), non
+// verità di legge: le conferma l'RSPP con il DSS della cava.
+// ============================================================
+export const ESITI_ISPEZIONE = [
+  { chiave: "conforme",     etichetta: "Conforme",       breve: "OK",  cls: "ok" },
+  { chiave: "non-conforme", etichetta: "Non conforme",   breve: "NO",  cls: "danger" },
+  { chiave: "na",           etichetta: "Non applicabile", breve: "N/A", cls: "tag" },
+];
+export function esitoLabel(chiave) {
+  return ESITI_ISPEZIONE.find(e => e.chiave === chiave) || null;
+}
+
+export const MODELLI_ISPEZIONE = [
+  {
+    chiave: "sorveglianza", nome: "Giro di sorveglianza", ambito: "Tutta la cava",
+    giorni: 1,
+    riferimento: "D.Lgs 624/96 — il sorvegliante controlla i luoghi di lavoro dove si svolge l'attività.",
+    voci: [
+      "Fronti e piste percorribili, nessun pericolo evidente in vista",
+      "Tutti indossano i DPI previsti (elmetto, gilet, scarpe, protettori udito)",
+      "Nessun mezzo lasciato in posizione pericolosa o senza freno",
+      "Segnaletica, sbarramenti e delimitazioni al loro posto",
+      "Near-miss e anomalie del turno precedente presi in carico",
+      "Presenza in cava di almeno un addetto a primo soccorso e antincendio",
+    ],
+  },
+  {
+    chiave: "fronte", nome: "Fronte di cava — stabilità e disgaggio", ambito: "Fronti",
+    giorni: 30,
+    riferimento: "D.Lgs 624/96 — coltivazioni a cielo aperto: stabilità dei fronti, caduta massi e franamento; alimenta la relazione annuale di stabilità.",
+    voci: [
+      "Ciglio superiore libero da massi instabili e materiale sciolto",
+      "Fascia di rispetto al ciglio delimitata e rispettata dai mezzi",
+      "Nessun blocco in equilibrio precario sulla parete",
+      "Altezza e pendenza dei gradoni come previsto nel DSS",
+      "Unghia del fronte libera da accumuli che ostacolano il lavoro",
+      "Nessuna fessura di trazione, venuta d'acqua o segno di movimento",
+      "Disgaggio eseguito dopo l'ultima volata e dopo le piogge forti",
+      "Accessi al fronte sbarrati e segnalati quando l'area non è operativa",
+    ],
+  },
+  {
+    chiave: "piste", nome: "Piste e viabilità interna", ambito: "Piste",
+    giorni: 15,
+    riferimento: "D.Lgs 81/08 titolo I e D.Lgs 624/96 — circolazione dei mezzi in sicurezza nei luoghi di lavoro.",
+    voci: [
+      "Larghezza della pista adeguata al mezzo più grande in uso",
+      "Arginelli sui lati esposti presenti e integri",
+      "Fondo e pendenza in ordine, senza solchi o cedimenti",
+      "Segnaletica, limiti di velocità e precedenze visibili",
+      "Abbattimento delle polveri (bagnatura) eseguito",
+      "Incroci e punti ciechi con visibilità garantita",
+      "Aree di manovra, carico e scarico delimitate",
+      "Illuminazione sufficiente nei tratti usati con poca luce",
+    ],
+  },
+  {
+    chiave: "impianto", nome: "Impianto di lavorazione", ambito: "Frantoio e nastri",
+    giorni: 30,
+    riferimento: "D.Lgs 81/08 titolo III — protezione degli organi in movimento e uso in sicurezza delle attrezzature.",
+    voci: [
+      "Ripari fissi e mobili su pulegge, nastri e organi in movimento",
+      "Funi e pulsanti di emergenza dei nastri funzionanti e raggiungibili",
+      "Blocco della macchina in manutenzione (procedura di messa fuori servizio)",
+      "Passerelle, scale e parapetti integri e sgombri",
+      "Aspirazione e abbattimento polveri in funzione",
+      "Quadri elettrici chiusi, accessibili e senza cavi volanti",
+      "Nessun accumulo di materiale sotto nastri e tramogge",
+      "Accesso a tramogge e spazi confinati regolato da permesso di lavoro",
+    ],
+  },
+  {
+    chiave: "mezzi", nome: "Mezzi e officina", ambito: "Mezzi",
+    giorni: 30,
+    riferimento: "D.Lgs 81/08 art. 71 e D.M. 11/04/2011 — controlli, manutenzione e verifiche periodiche delle attrezzature.",
+    voci: [
+      "Controllo giornaliero dei mezzi eseguito e registrato dagli operatori",
+      "Cinture, cicalino e luci di retromarcia funzionanti",
+      "Estintori a bordo controllati e in corso di validità",
+      "Verifiche periodiche delle attrezzature di sollevamento in regola",
+      "Nessuna perdita di olio o gasolio; area di rifornimento in ordine",
+      "Attrezzature di officina con ripari e in buono stato",
+      "Rifiuti, oli esausti e stracci raccolti nei contenitori dedicati",
+      "DPI degli addetti disponibili, integri e della taglia giusta",
+    ],
+  },
+  {
+    chiave: "dpi-emergenza", nome: "DPI, emergenza e presidi", ambito: "Sito",
+    giorni: 90,
+    riferimento: "D.Lgs 81/08 artt. 43-46 e 77 — gestione dell'emergenza, primo soccorso e uso dei DPI.",
+    voci: [
+      "Cassetta di primo soccorso completa e nei termini di scadenza",
+      "Estintori e idranti controllati, segnalati e raggiungibili",
+      "Vie di fuga e punto di raccolta liberi e segnalati",
+      "Numeri di emergenza e planimetrie esposti e leggibili",
+      "Verbali di consegna DPI firmati e aggiornati",
+      "Addestramento fatto per i DPI di III categoria e i protettori dell'udito",
+      "Prova di emergenza dell'anno eseguita e verbalizzata",
+    ],
+  },
+];
+
+export function modelloIspezione(chiave) {
+  return MODELLI_ISPEZIONE.find(m => m.chiave === chiave) || null;
+}
+
+// Record di una nuova ispezione a partire da un modello: le voci vengono
+// COPIATE dentro l'ispezione, così un modello che cambia domani non riscrive
+// le ispezioni già fatte (un controllo firmato non si modifica a posteriori).
+export function nuovaIspezioneDaModello(chiave, { data, cantiereId, responsabileId, stato } = {}) {
+  const m = modelloIspezione(chiave);
+  if (!m) return null;
+  return {
+    modello: m.chiave, nome: m.nome, ambito: m.ambito,
+    riferimento: m.riferimento || "", periodicitaGiorni: m.giorni || null,
+    data: data || "", cantiereId: cantiereId || null, responsabileId: responsabileId || null,
+    voci: m.voci.map((testo, i) => ({ id: "v" + (i + 1), testo })),
+    esiti: {}, stato: stato || "in-corso", dataChiusura: null,
+  };
+}
+
+// Conteggio degli esiti di un'ispezione (compresa la parte ancora da fare).
+export function riepilogoIspezione(isp) {
+  const voci = (isp && isp.voci) || [], esiti = (isp && isp.esiti) || {};
+  let conformi = 0, nonConformi = 0, na = 0;
+  for (const v of voci) {
+    const e = esiti[v.id] && esiti[v.id].esito;
+    if (e === "conforme") conformi++;
+    else if (e === "non-conforme") nonConformi++;
+    else if (e === "na") na++;
+  }
+  const totale = voci.length, fatte = conformi + nonConformi + na;
+  return { totale, fatte, daFare: totale - fatte, conformi, nonConformi, na,
+    completa: totale > 0 && fatte === totale,
+    percento: totale ? Math.round(fatte / totale * 100) : 0 };
+}
+
+// Voci non conformi di un'ispezione, con la loro nota: sono quelle che
+// diventano azioni correttive.
+export function vociNonConformi(isp) {
+  const esiti = (isp && isp.esiti) || {};
+  return ((isp && isp.voci) || [])
+    .filter(v => esiti[v.id] && esiti[v.id].esito === "non-conforme")
+    .map(v => ({ id: v.id, testo: v.testo, nota: (esiti[v.id].nota || "").trim() }));
+}
+
+// Semaforo di un'ispezione: completata = regolare; programmata o in corso
+// seguono la data con lo stesso schema dello scadenzario.
+export function statoIspezione(isp, oggi = new Date()) {
+  const i = isp || {};
+  if (i.stato === "completata") return "regolare";
+  if (!i.data) return "regolare";
+  return statoScadenza(i.data, oggi);
+}
+
+// Riepilogo per la testata della pagina Ispezioni.
+export function riepilogoIspezioni(ispezioni, oggi = new Date()) {
+  const list = ispezioni || [];
+  const aperte = list.filter(i => i.stato !== "completata");
+  return {
+    totale: list.length,
+    completate: list.filter(i => i.stato === "completata").length,
+    daFare: aperte.length,
+    scadute: aperte.filter(i => statoIspezione(i, oggi) === "scaduta").length,
+    nonConformi: list.reduce((s, i) => s + riepilogoIspezione(i).nonConformi, 0),
+  };
+}
+
+// Data di oggi + N giorni in ISO (per la prossima ispezione ricorrente e per
+// la scadenza proposta alle azioni correttive). Pura; `oggi` iniettabile.
+export function dataPiuGiorni(giorni, oggi = new Date()) {
+  const n = Number(giorni);
+  if (!Number.isFinite(n)) return null;
+  const d = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate() + Math.round(n));
+  const p = (x) => String(x).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
 // Import registro infortuni da CSV (onboarding: caricare lo storico eventi di
@@ -445,6 +781,7 @@ export async function scudoData() {
         infortuni:  () => read("infortuni"),
         cantieri:   () => read("cantieri"),
         azioni:     () => read("azioni"),
+        ispezioni:  () => read("ispezioni"),
         aggiungi: (name, data) => addDoc(id.orgCollection(name), data),
         logout: () => id.logout(),
         aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), data),
@@ -465,6 +802,7 @@ export async function scudoData() {
       infortuni:  async () => mem.infortuni,
       cantieri:   async () => mem.cantieri,
       azioni:     async () => mem.azioni,
+      ispezioni:  async () => mem.ispezioni,
       logout: async () => {},
       aggiungi: async (name, data) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[name] = mem[name] || []).push({ id, ...data }); return { id }; },
       aggiorna: async (name, docId, data) => { const x = (mem[name] || (mem[name] = [])).find(v => v.id === docId); if (x) Object.assign(x, data); },

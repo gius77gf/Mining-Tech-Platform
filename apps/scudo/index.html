@@ -91,7 +91,7 @@
   --info-basis:120px;
   --arr-ico:15px;
   --arr-stroke:1.8;
-  --nav-cols:5;
+  --nav-cols:6;
   --kpi-cols:3;
   --form-gap:9px;
   --form-pad:13px;
@@ -160,15 +160,19 @@
    scheda di Scudo ha e che il motore non può sapere — l'alone d'ambiente
    nella tinta viola dell'app e il rientro dello stato vuoto, che deve
    respirare come quelli delle liste.                                     */
-#graf-copertura .dwg, #graf-muro .dwg{position:relative; overflow:hidden}
-#graf-copertura .dwg::before, #graf-muro .dwg::before{
+#graf-copertura .dwg, #graf-muro .dwg,
+#graf-nm-tipo .dwg, #graf-nm-luogo .dwg{position:relative; overflow:hidden}
+#graf-copertura .dwg::before, #graf-muro .dwg::before,
+#graf-nm-tipo .dwg::before, #graf-nm-luogo .dwg::before{
   content:""; position:absolute; inset:-40% -10% auto -10%; height:150%;
   background:radial-gradient(60% 70% at 18% 0%,
     color-mix(in srgb,var(--app-accent) 12%,transparent), transparent 70%);
   pointer-events:none;
 }
-#graf-copertura .dwg > *, #graf-muro .dwg > *{position:relative}
-#graf-copertura .empty-state, #graf-muro .empty-state{margin-top:0}
+#graf-copertura .dwg > *, #graf-muro .dwg > *,
+#graf-nm-tipo .dwg > *, #graf-nm-luogo .dwg > *{position:relative}
+#graf-copertura .empty-state, #graf-muro .empty-state,
+#graf-nm-tipo .empty-state, #graf-nm-luogo .empty-state{margin-top:0}
 /* Il motore ascolta il puntatore su rettangoli invisibili (.dwg-hit) larghi
    quanto la riga, ma barre ed etichette sono disegnate SOPRA di essi:
    passando col dito proprio sulla barra il bersaglio sarebbe la barra e il
@@ -177,7 +181,91 @@
    aperto ovunque sulla riga. (Correzione locale: il motore sta in shared/
    e lo tiene un altro cantiere.) */
 #graf-copertura .dwg-svg > *:not(.dwg-hit),
-#graf-muro .dwg-svg > *:not(.dwg-hit){pointer-events:none}
+#graf-muro .dwg-svg > *:not(.dwg-hit),
+#graf-nm-tipo .dwg-svg > *:not(.dwg-hit),
+#graf-nm-luogo .dwg-svg > *:not(.dwg-hit){pointer-events:none}
+
+/* ─── S2 · IL PULSANTE DELLA SEGNALAZIONE RAPIDA ────────────────────────
+   Un near-miss si segnala in piedi sul piazzale, con i guanti: se il
+   pulsante non è la prima cosa che si vede aprendo l'app, non lo tocca
+   nessuno. Stessa materia delle schede del core (fondo a due tinte, bordo
+   che prende luce, alone d'ambiente, ombra propria), ma nella misura di un
+   bersaglio grosso — e con l'accento pieno, perché è l'unica azione della
+   pagina che deve gridare.                                                */
+.segnala{
+  position:relative; overflow:hidden; display:flex; align-items:center; gap:13px;
+  width:100%; text-align:left; margin:0 0 14px; padding:14px 16px;
+  min-height:calc(var(--tap) + 24px); cursor:pointer;
+  background:linear-gradient(135deg,var(--card2),var(--card));
+  border:1px solid var(--border2); border-left:3px solid var(--app-accent);
+  border-radius:var(--r); box-shadow:var(--sh2),var(--edge);
+  transition:transform .15s var(--ease),box-shadow .15s var(--ease),border-color .2s,background .2s;
+}
+.segnala::before{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(300px 170px at 10% 0%,var(--tint-app),transparent 72%);
+}
+.segnala::after{
+  content:""; position:absolute; inset:0; pointer-events:none; border-radius:inherit;
+  background:radial-gradient(240px 150px at var(--mx,50%) var(--my,50%),var(--glow-app),transparent 62%);
+  opacity:0; transition:opacity .25s var(--ease);
+}
+.segnala:hover::after{opacity:1}
+.segnala>*{position:relative; z-index:1}
+.segnala:hover{
+  background:var(--card2); border-color:var(--app-accent);
+  transform:translateY(-2px); box-shadow:var(--sh4),var(--edge);
+}
+.segnala:active{transform:translateY(0) scale(.995); box-shadow:var(--sh1),var(--edge)}
+.segnala-ico{
+  display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
+  width:44px; height:44px; border-radius:13px; line-height:0; color:var(--grad-on);
+  background:var(--grad); box-shadow:var(--sh-btn),var(--edge-hi);
+}
+.segnala-ico svg{
+  width:24px; height:24px; stroke:currentColor; fill:none; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round;
+}
+.segnala-txt{flex:1 1 120px; min-width:0}
+.segnala-tit{
+  display:block; font-family:'Barlow Condensed',sans-serif; font-size:17px;
+  font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:var(--text);
+  line-height:1.1;
+}
+.segnala-sub{display:block; font-size:11.5px; color:var(--muted2); margin-top:4px; line-height:1.45}
+.segnala-arr{color:var(--app-accent2); font-size:20px; line-height:1; flex-shrink:0}
+
+/* ─── S2 · la modale della segnalazione: si tocca, non si scrive ──────── */
+.nm-lab{
+  font-family:'Barlow',sans-serif; font-size:11px; font-weight:600; letter-spacing:2px;
+  text-transform:uppercase; color:var(--muted); margin:14px 0 7px;
+}
+.nm-lab:first-child{margin-top:2px}
+.modal-body .chgs{margin-bottom:0}
+/* Tastierino: due colonne per «che cosa», tre per «dove». Bersagli larghi e
+   sempre nello stesso posto — con i guanti si colpisce a memoria, senza
+   leggere ogni volta. La parola può andare a capo: meglio due righe corte di
+   un'abbreviazione da indovinare. */
+.modal-body .chgs.griglia2{display:grid; grid-template-columns:repeat(2,1fr)}
+.modal-body .chgs.griglia3{display:grid; grid-template-columns:repeat(3,1fr)}
+.modal-body .chgs.griglia2 .chg,.modal-body .chgs.griglia3 .chg{
+  white-space:normal; line-height:1.2; letter-spacing:.5px; padding:8px 7px; text-align:center;
+}
+.chg.anon{flex:1 1 auto}
+.chg.anon.active{background:var(--app-support); border-color:var(--app-support); color:#fff}
+
+/* ─── S3 · le voci dell'ispezione: esito a portata di pollice ─────────── */
+/* I tre esiti stanno su una riga tutta loro, larghi uguali: col guanto si
+   colpisce al centro, non si sbaglia bersaglio. Il colore non è mai solo:
+   ogni pulsante porta la sua parola.                                      */
+.voce .acts{flex:1 1 100%; justify-content:flex-start; gap:6px; margin-top:2px}
+.voce .acts .chg{flex:1 1 0; min-width:0; padding:7px 6px}
+.voce .acts .arr{flex:0 0 auto; min-width:34px; min-height:34px}
+.chg.e-ok.active{background:var(--success); border-color:var(--success); color:var(--on-ok)}
+.chg.e-no.active{background:var(--danger); border-color:var(--danger); color:var(--on-dg)}
+.chg.e-na.active{background:var(--border2); border-color:var(--border-hi); color:var(--text)}
+.voce .name{-webkit-line-clamp:3}
+.isp-nota{font-style:italic}
 
 /* ─────────────── voci di lista (copia di .sitem) ─────────────── */
 .item{cursor:pointer}
@@ -194,19 +282,29 @@
   color:var(--muted); font-size:15px; line-height:1; min-width:30px; min-height:30px;
   border-radius:7px; transition:color .15s var(--ease),background .15s var(--ease);
 }
-.arr[data-edit-lav],.arr[data-edit-azi],.arr[data-ren-scad], .arr[data-vai-azi],.arr[data-vai-evt],.arr[data-open-doc]{
+.arr[data-edit-lav],.arr[data-edit-azi],.arr[data-ren-scad], .arr[data-vai-azi],.arr[data-vai-evt],.arr[data-open-doc],
+.arr[data-isp-apri],.arr[data-nota-voce],.arr[data-vai-isp]{
   border:1px solid transparent;
 }
 .arr:hover{
   color:var(--app-accent2);
   background:color-mix(in srgb,var(--app-accent) 16%,transparent);
 }
-.arr[data-del-lav]:hover,.arr[data-del-scad]:hover,.arr[data-del-inf]:hover, .arr[data-del-cant]:hover,.arr[data-del-azi]:hover{
+.arr[data-del-lav]:hover,.arr[data-del-scad]:hover,.arr[data-del-inf]:hover, .arr[data-del-cant]:hover,.arr[data-del-azi]:hover,.arr[data-del-isp]:hover{
   color:var(--danger); background:rgba(240,95,90,.14);
 }
 
 /* badge dentro una riga di testo (idoneità, azioni dell'evento) */
 .badge.inline{vertical-align:middle; margin:0 0 0 2px; font-size:9.5px; padding:2px 7px}
+/* I badge che PORTANO DA QUALCHE PARTE (le azioni di un evento, le azioni di
+   un'ispezione) restano piccoli come nel core, ma l'area che ascolta il dito
+   è alta quanto un bersaglio vero: si allarga l'ombra del tocco, non il
+   disegno. Sono scorciatoie di sola navigazione: sbagliare mira non combina
+   guai, porta solo in un'altra pagina. */
+.badge[data-azi-evt],.badge[data-azi-isp]{position:relative}
+.badge[data-azi-evt]::after,.badge[data-azi-isp]::after{
+  content:""; position:absolute; inset:-13px -3px;
+}
 
 /* ─────────────── bottoni (copia di .btn-sv / .btn-sec) ─────────────── */
 .dw-btn.mini{min-height:var(--tap); padding:6px 12px; font-size:11px; letter-spacing:1px}
@@ -229,6 +327,25 @@
 
 /* ─────────────── navigazione: pillola flottante (copia di #global-nav.bnav) ─────────────── */
 .nav{border-top:1px solid var(--border2); padding-bottom:0}
+/* Scudo ha SEI sezioni (le ispezioni sono arrivate con S3) e sul telefono la
+   pillola sta stretta: le parole finirebbero attaccate ai bordi e fra loro.
+   Un filo di lettera in meno restituisce l'aria che ha il core con cinque
+   voci — nessuna etichetta tagliata, nessuna abbreviazione da indovinare. */
+@media(max-width:470px){
+  .nav button{font-size:8.5px; letter-spacing:.5px; padding-left:1px; padding-right:1px}
+}
+@media(max-width:370px){
+  .nav button{font-size:8px; letter-spacing:.2px}
+}
+/* Sotto il sole le scritte della pillola sono più grandi (si legge in piedi,
+   con la luce di traverso): con sei voci, sul telefono, vanno riportate
+   dentro la larghezza — grandi quanto basta, mai tagliate. */
+@media(max-width:470px){
+  body.dw.outdoor-mode .nav button{font-size:9.5px; letter-spacing:.2px}
+}
+@media(max-width:370px){
+  body.dw.outdoor-mode .nav button{font-size:8.5px; letter-spacing:.1px}
+}
 
 /* ─────────────── modale (copia di .modal-* del core) ─────────────── */
 .modal-body .fl{
@@ -240,6 +357,9 @@
 
 @media(hover:none),(pointer:coarse){
   .item:active,.kpi:active{transform:scale(.985)}
+  .segnala::after{display:none}
+  .segnala:hover{transform:none; background:linear-gradient(135deg,var(--card2),var(--card))}
+  .segnala:active{transform:scale(.99)}
 }
 
 </style>
@@ -261,6 +381,16 @@
 <!-- DASHBOARD -->
 <div class="page active" id="page-dash">
   <div class="sec">Quadro della sicurezza</div>
+  <!-- S2 — la segnalazione di un mancato infortunio è a UN TOCCO dalla
+       schermata principale: se è sepolta in un menu non la usa nessuno. -->
+  <button class="segnala" id="btn-nm" type="button">
+    <span class="segnala-ico"><svg viewBox="0 0 24 24"><path d="M12 3.2l9.2 16a1 1 0 0 1-.87 1.5H3.67a1 1 0 0 1-.87-1.5z"/><path d="M12 9.4v4.4"/><path d="M12 17.1h.01"/></svg></span>
+    <span class="segnala-txt">
+      <span class="segnala-tit">Segnala un near-miss</span>
+      <span class="segnala-sub">Mancato infortunio: pochi tocchi, anche in forma anonima. Serve a correggere prima che qualcuno si faccia male.</span>
+    </span>
+    <span class="segnala-arr">›</span>
+  </button>
   <div class="kpis">
     <div class="kpi danger" role="button" tabindex="0" style="cursor:pointer" data-goto="scad" data-filtro="scaduta" title="Vedi le scadenze superate"><div class="l">Scadenze superate</div><div class="n" id="k-scadute">—</div></div>
     <div class="kpi warn" role="button" tabindex="0" style="cursor:pointer" data-goto="scad" data-filtro="in-scadenza" title="Vedi le scadenze entro 30 giorni"><div class="l">In scadenza 30gg</div><div class="n" id="k-30gg">—</div></div>
@@ -402,6 +532,55 @@
   <div class="note">Ogni infortunio o near-miss dovrebbe portare a <b>un'azione correttiva</b>: cosa si fa, chi la fa, entro quando, e com'è finita. Tocca il badge dello stato per farla avanzare (aperta → in corso → chiusa); l'icona ✎ apre la modifica qui sopra e ↗ riporta all'evento che l'ha generata. Le azioni non chiuse con una data entrano nel <b>semaforo del Quadro e nello scadenzario</b> come tutte le altre scadenze.</div>
 </div>
 
+<!-- ISPEZIONI E CHECKLIST (S3) -->
+<div class="page" id="page-isp">
+  <!-- Elenco + avvio: è la vista di partenza. Quando si apre un'ispezione
+       questo blocco si nasconde e compare la compilazione, così sul telefono
+       si ha una cosa sola davanti agli occhi. -->
+  <div id="isp-elenco">
+    <div class="sec">Ispezioni e checklist<span class="cnt" id="isp-count">0</span></div>
+    <div id="isp-riep" class="note recap" style="margin-top:0;"></div>
+    <div id="isp-filtri" class="chgs" style="margin-top:10px;">
+      <button class="chg active" data-filtro-isp="tutte">Tutte</button>
+      <button class="chg" data-filtro-isp="da-fare">Da fare</button>
+      <button class="chg" data-filtro-isp="completata">Completate</button>
+    </div>
+    <div id="isp-list"></div>
+
+    <div class="sec">Nuova ispezione</div>
+    <div class="form col">
+      <select class="dw-input" id="isp-modello" style="flex:1 1 100%;">
+        <option value="">Scegli il modello di checklist…</option>
+      </select>
+      <div class="note" id="isp-modello-nota" style="display:none;margin-top:0;"></div>
+      <div class="frow">
+        <select class="dw-input" id="isp-cant" style="flex:1 1 170px;"><option value="">— nessun cantiere —</option></select>
+        <select class="dw-input" id="isp-resp" style="flex:1 1 170px;"><option value="">— chi la esegue —</option></select>
+      </div>
+      <div class="frow">
+        <input class="dw-input" id="isp-data" type="date" title="Data dell'ispezione" style="flex:1 1 160px;">
+        <button class="dw-btn" id="btn-isp">Avvia ispezione</button>
+      </div>
+    </div>
+    <div class="note esito" id="isp-esito"></div>
+    <div class="note">Ogni voce si chiude con <b>conforme</b>, <b>non conforme</b> o <b>non applicabile</b>, con una nota se serve. Le voci <b>non conformi</b> diventano <b>azioni correttive</b> collegate all'ispezione: un controllo che non genera azioni non serve a niente. Le checklist ricorrenti propongono da sole la data della successiva. <b>Nota informativa, non un parere legale</b>: voci e periodicità sono una base di partenza da adattare al DSS e al DVR della tua cava, insieme all'RSPP.</div>
+  </div>
+
+  <!-- Compilazione di una singola ispezione -->
+  <div id="isp-compila" style="display:none;">
+    <div class="sec">Compilazione<span class="cnt" id="isp-c-cnt">0/0</span></div>
+    <div id="isp-c-testa" class="note recap" style="margin-top:0;"></div>
+    <div id="isp-c-avanz" style="margin-top:12px;"></div>
+    <div id="isp-c-voci" style="margin-top:12px;"></div>
+    <div class="tools">
+      <button class="dw-btn secondary" id="btn-isp-indietro">Torna all'elenco</button>
+      <button class="dw-btn" id="btn-isp-chiudi">Chiudi l'ispezione</button>
+    </div>
+    <div class="note esito" id="isp-c-esito"></div>
+    <div class="note" id="isp-c-nota"></div>
+  </div>
+</div>
+
 <!-- DOCUMENTI -->
 <div class="page" id="page-doc">
   <div class="sec">Cantieri e siti<span class="cnt" id="cant-count">0</span></div>
@@ -439,6 +618,28 @@
 
   <div class="sec">Infortuni e near-miss</div>
   <div id="inf-riep" class="note recap"></div>
+
+  <!-- S2 — RIEPILOGO AGGREGATO DEI NEAR-MISS.
+       Quanti nel periodo, per tipo e per luogo: serve a vedere DOVE il
+       rischio si concentra, ed è la forma in cui la L. 198/2025 chiede di
+       comunicare i dati (eventi + azioni correttive adottate). Con pochi
+       numeri non si disegnano tendenze: si scrive che sono pochi. -->
+  <div class="sec">Riepilogo near-miss</div>
+  <div id="nm-periodo" class="chgs">
+    <button class="chg active" data-nm-periodo="90">Ultimi 90 giorni</button>
+    <button class="chg" data-nm-periodo="365">Ultimi 12 mesi</button>
+    <button class="chg" data-nm-periodo="0">Tutto lo storico</button>
+  </div>
+  <div id="nm-riep" class="note recap" style="margin-top:0;"></div>
+  <div id="graf-nm-tipo" style="margin-top:12px;"></div>
+  <div id="graf-nm-luogo" style="margin-top:12px;"></div>
+  <div class="tools">
+    <button class="dw-btn" id="btn-nm2">Segnala un near-miss</button>
+    <button class="dw-btn secondary" id="btn-nm-export">Esporta riepilogo (CSV)</button>
+  </div>
+  <div class="note">Dal 2026 le aziende <b>oltre i 15 addetti</b> devono tracciare i mancati infortuni e comunicare i <b>dati aggregati</b> sugli eventi e sulle azioni correttive adottate (L. 198/2025, ex D.L. 159/2025; linee guida MLPS/INAIL e decreto attuativo attesi). Questo riepilogo tiene i numeri già in ordine. <b>Nota informativa, non un parere legale</b>: modalità e obblighi vanno confermati con l'RSPP e il consulente dell'azienda.</div>
+
+  <div class="sec">Registro degli eventi</div>
   <div id="inf-filtri" class="chgs" style="margin-top:10px;">
     <button class="chg active" data-filtro="tutti">Tutti</button>
     <button class="chg" data-filtro="infortunio">Infortuni</button>
@@ -477,6 +678,7 @@
   <button id="nav-pers" onclick="go('pers')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M20 21v-1.8a4.2 4.2 0 0 0-4.2-4.2H8.2A4.2 4.2 0 0 0 4 19.2V21"/><circle cx="12" cy="7.2" r="4.2"/></svg></span>Personale</button>
   <button id="nav-scad" onclick="go('scad')"><span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12.5" r="8.5"/><path d="M12 7.5v5.2l3.2 2"/></svg></span>Scadenze</button>
   <button id="nav-azio" onclick="go('azio')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M20.8 11.2V12a8.8 8.8 0 1 1-5.2-8"/><path d="M8.6 11.4l3.2 3.2 9-9"/></svg></span>Azioni</button>
+  <button id="nav-isp" onclick="go('isp')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M9 4.2H7.5A2.3 2.3 0 0 0 5.2 6.5v12.2A2.3 2.3 0 0 0 7.5 21h9a2.3 2.3 0 0 0 2.3-2.3V6.5A2.3 2.3 0 0 0 16.5 4.2H15"/><rect x="9" y="2.6" width="6" height="3.4" rx="1.1"/><path d="M8.9 11.4l1.7 1.7 3.4-3.6"/><path d="M8.9 16.8h6.2"/></svg></span>Ispezioni</button>
   <button id="nav-doc" onclick="go('doc')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M14 3H7.5A2.5 2.5 0 0 0 5 5.5v13A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V8z"/><path d="M14 3v5h5"/><path d="M8.8 13h6.4M8.8 16.6h4.4"/></svg></span>Documenti</button>
 </nav>
 
@@ -513,7 +715,10 @@
 
   /* ── Modale del core: sostituisce confirm() e prompt() ─────────────── */
   let modalPrec = null;
-  function apriModale(titolo, corpo, bottoni) {
+  // opzioni.autofocus === false: la modale NON porta il fuoco nel primo campo.
+  // Serve alla segnalazione rapida del near-miss, che si compila a TOCCHI: far
+  // salire la tastiera del telefono davanti ai pulsanti sarebbe un dispetto.
+  function apriModale(titolo, corpo, bottoni, opzioni) {
     modalPrec = document.activeElement;
     document.getElementById("modal-title").textContent = titolo;
     document.getElementById("modal-body").innerHTML = corpo;
@@ -528,8 +733,10 @@
     });
     document.getElementById("modal").classList.add("show");
     document.body.classList.add("modal-open");
-    const primo = document.getElementById("modal-body").querySelector("input,select,textarea")
-               || foot.querySelector(".mbtn.primary,.mbtn.danger") || foot.querySelector(".mbtn");
+    const primo = (opzioni && opzioni.autofocus === false)
+      ? null
+      : (document.getElementById("modal-body").querySelector("input,select,textarea")
+         || foot.querySelector(".mbtn.primary,.mbtn.danger") || foot.querySelector(".mbtn"));
     if (primo) setTimeout(() => { try { primo.focus({ preventScroll: true }); primo.select && primo.select(); } catch (e) {} }, 80);
   }
   function chiudiModale() {
@@ -584,7 +791,7 @@
   (function () {
     if (matchMedia("(prefers-reduced-motion:reduce)").matches) return;
     if (!matchMedia("(hover:hover) and (pointer:fine)").matches) return;
-    const sel = ".item,.kpi";
+    const sel = ".item,.kpi,.segnala";
     let cur = null, px = 50, py = 50, pend = false;
     const apply = () => { pend = false; if (cur) { cur.style.setProperty("--mx", px + "%"); cur.style.setProperty("--my", py + "%"); } };
     window.addEventListener("pointermove", e => {
@@ -599,7 +806,9 @@
 </script>
 
 <script type="module">
-  import { scudoData, statoScadenza, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, parseScadenzeCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, azioniUrgenti, riepilogoAzioni, azioniDiEvento } from "./scudo-data.js";
+  import { scudoData, statoScadenza, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, parseScadenzeCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
+    NEARMISS_CATEGORIE, NEARMISS_LUOGHI, categoriaNearMiss, luogoNearMiss, descrizioneNearMiss, riepilogoNearMiss,
+    MODELLI_ISPEZIONE, modelloIspezione, nuovaIspezioneDaModello, riepilogoIspezione, riepilogoIspezioni, vociNonConformi, statoIspezione, azioniDiIspezione, esitoLabel, ESITI_ISPEZIONE, dataPiuGiorni } from "./scudo-data.js";
   import { mountExit, esc, csvCell, parseCsvLine, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
 
   const $ = (id) => document.getElementById(id);
@@ -609,9 +818,12 @@
 
   // ── Messaggi: toast del core + traccia scritta accanto al form ────────
   // (l'esito resta visibile per chi torna a guardare, il toast lo annuncia)
-  const esito = (id, testo, tipo) => {
+  // `breve`: quando la spiegazione scritta è lunga, il toast dice la stessa
+  // cosa in poche parole (il toast è una striscia: una frase lunga ci sta
+  // stretta, e chi lavora legge solo la prima riga).
+  const esito = (id, testo, tipo, breve) => {
     const el = $(id); if (el) { el.textContent = testo; el.className = "note esito" + (tipo === "err" ? " err" : ""); }
-    if (testo) toast(testo, tipo);
+    if (testo) toast(breve || testo, tipo);
   };
   const pulisci = (id) => { const el = $(id); if (el) el.textContent = ""; };
   // ── Errori di campo: bordo rosso + messaggio utile, mai un alert ──────
@@ -666,6 +878,8 @@
     attrezzo:'<svg viewBox="0 0 24 24"><path d="M20.8 11.2V12a8.8 8.8 0 1 1-5.2-8"/><path d="M8.6 11.4l3.2 3.2 9-9"/></svg>',
     ok:     '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.2 12.3l2.7 2.7 5-5.4"/></svg>',
     clip:   '<svg viewBox="0 0 24 24"><path d="M20.5 11.5l-8.6 8.6a5 5 0 0 1-7.1-7.1l9-9a3.4 3.4 0 0 1 4.8 4.8l-8.9 9a1.8 1.8 0 0 1-2.5-2.5l8.2-8.2"/></svg>',
+    allerta:'<svg viewBox="0 0 24 24"><path d="M12 3.2l9.2 16a1 1 0 0 1-.87 1.5H3.67a1 1 0 0 1-.87-1.5z"/><path d="M12 9.4v4.4"/><path d="M12 17.1h.01"/></svg>',
+    lista:  '<svg viewBox="0 0 24 24"><path d="M9 4.2H7.5A2.3 2.3 0 0 0 5.2 6.5v12.2A2.3 2.3 0 0 0 7.5 21h9a2.3 2.3 0 0 0 2.3-2.3V6.5A2.3 2.3 0 0 0 16.5 4.2H15"/><rect x="9" y="2.6" width="6" height="3.4" rx="1.1"/><path d="M8.9 11.4l1.7 1.7 3.4-3.6"/><path d="M8.9 16.8h6.2"/></svg>',
   };
 
   const SVG_AZIONE = I.attrezzo;
@@ -680,14 +894,20 @@
     ? "Stai lavorando sui <b>dati reali</b> della tua organizzazione."
     : "Stai guardando <b>dati di esempio</b> (" + db.mode + "): le modifiche non vengono salvate.";
 
-  let LAV = [], SCA = [], DOC = [], INF = [], CANT = [], AZI = [];
+  let LAV = [], SCA = [], DOC = [], INF = [], CANT = [], AZI = [], ISP = [];
   let docFileSel = null;   // allegato scelto per il prossimo documento {nome, dataURL}
   let editLav = null;   // id del lavoratore in modifica (riusa il form "Aggiungi"; idoneità/scadenze restano)
   let editAzi = null;   // id dell'azione correttiva in modifica (stesso schema: il form fa doppio servizio)
   let filtroScad = "tutte";
   let filtroInf = "tutti";
   let filtroAzi = "tutte";
-  let filtroEvt = null;   // se valorizzato, mostra solo le azioni di quell'evento
+  // Se valorizzato ({tipo:"evento"|"ispezione", id}) la pagina Azioni mostra
+  // SOLO le azioni nate da quell'evento o da quell'ispezione: è il legame che
+  // va poter essere mostrato in entrambi i sensi (origine ↔ azioni).
+  let filtroOrig = null;
+  let filtroIsp = "tutte";
+  let ispAperta = null;   // id dell'ispezione aperta in compilazione
+  let nmPeriodo = 90;     // finestra del riepilogo near-miss, in giorni (0 = tutto)
   let ordScad = "scadenza";
   $("pers-cerca").oninput = () => refresh();
   $("azi-filtri").addEventListener("click", (e) => {
@@ -702,6 +922,14 @@
   $("inf-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
     if (f) { filtroInf = f; refresh(); }
+  });
+  $("isp-filtri").addEventListener("click", (e) => {
+    const f = e.target.getAttribute && e.target.getAttribute("data-filtro-isp");
+    if (f) { filtroIsp = f; refresh(); }
+  });
+  $("nm-periodo").addEventListener("click", (e) => {
+    const p = e.target.getAttribute && e.target.getAttribute("data-nm-periodo");
+    if (p !== null && p !== undefined) { nmPeriodo = +p; refresh(); }
   });
   try { const _s = localStorage.getItem("dwSort_scad"); if (_s) { ordScad = _s; if ($("scad-ord")) $("scad-ord").value = _s; } } catch (e) {}
   if ($("scad-ord")) $("scad-ord").onchange = () => { ordScad = $("scad-ord").value; try { localStorage.setItem("dwSort_scad", ordScad); } catch (e) {} refresh(); };
@@ -724,7 +952,7 @@
   });
 
   async function refresh() {
-    [LAV, SCA, DOC, INF, CANT, AZI] = await Promise.all([db.lavoratori(), db.scadenze(), db.documenti(), db.infortuni ? db.infortuni() : [], db.cantieri ? db.cantieri() : [], db.azioni ? db.azioni() : []]);
+    [LAV, SCA, DOC, INF, CANT, AZI, ISP] = await Promise.all([db.lavoratori(), db.scadenze(), db.documenti(), db.infortuni ? db.infortuni() : [], db.cantieri ? db.cantieri() : [], db.azioni ? db.azioni() : [], db.ispezioni ? db.ispezioni() : []]);
     const byId = Object.fromEntries(LAV.map(l => [l.id, l]));
     const infById = Object.fromEntries(INF.map(x => [x.id, x]));
     const k = kpiFrom(LAV, SCA);
@@ -983,6 +1211,61 @@
           ${ri.nearMiss ? `<div class="safety-sub">${ri.nearMiss} near-miss registrati — non azzerano il conteggio, ma vanno guardati.</div>` : ""}</div></div>`;
     $("inf-riep").innerHTML =
       `Infortuni: <b>${ri.infortuni}</b>${ri.gravi ? ` (di cui <b>${ri.gravi}</b> gravi)` : ""} · near-miss: <b>${ri.nearMiss}</b> · giorni di assenza totali: <b>${ri.giorniAssenzaTot}</b>`;
+
+    // ── S2 · RIEPILOGO AGGREGATO DEI NEAR-MISS (L. 198/2025) ─────────────
+    // Quanti nel periodo, per tipo e per luogo: è così che si vede DOVE il
+    // rischio si concentra, ed è la forma in cui andranno comunicati i dati.
+    // Regola di onestà: con pochi eventi NON si disegnano barre. Tre puntini
+    // non sono una tendenza, e un grafico li farebbe sembrare tali: si scrive
+    // il numero e si dice che sono pochi.
+    const rnm = riepilogoNearMiss(INF, AZI, nmPeriodo || null);
+    document.querySelectorAll("#nm-periodo [data-nm-periodo]").forEach(b =>
+      b.classList.toggle("active", +b.getAttribute("data-nm-periodo") === nmPeriodo));
+    const nmPer = nmPeriodo === 0 ? "in tutto lo storico"
+      : nmPeriodo === 365 ? "negli ultimi 12 mesi" : "negli ultimi 90 giorni";
+    $("nm-riep").innerHTML = rnm.totale === 0
+      ? (rnm.totaleStorico
+          ? `Nessun near-miss segnalato ${nmPer}. Nello storico ce ne sono <b>${rnm.totaleStorico}</b>: allarga il periodo per vederli.`
+          : "Nessun near-miss ancora segnalato. Un registro vuoto non vuol dire che non succeda niente: vuol dire che non si segnala.")
+      : `<b>${rnm.totale}</b> near-miss ${nmPer}`
+        + (rnm.anonime ? ` (di cui <b>${rnm.anonime}</b> in forma anonima)` : "")
+        + ` · con azione correttiva: <b>${rnm.conAzione}</b>`
+        + (rnm.senzaAzione ? ` · ancora senza: <b>${rnm.senzaAzione}</b>` : "")
+        + ` · azioni chiuse: <b>${rnm.azioniChiuse}</b> su ${rnm.azioni}.`;
+    // Le due classifiche: per tipo e per luogo. Stessa forma (barre
+    // orizzontali ordinate), perché rispondono alla stessa domanda.
+    const nmBarre = (idBox, dati, titolo, cosa, vuotoTit, primo0) => {
+      if (rnm.totale === 0) {
+        grafVuoto(idBox, I.allerta, "Ancora nessuna segnalazione",
+          "Appena arrivano le prime segnalazioni, qui vedrai <b>" + cosa + "</b> in ordine, dal più frequente. "
+          + "Il pulsante <b>Segnala un near-miss</b> è in cima al Quadro e qui sotto.");
+        return;
+      }
+      if (rnm.pochi || dati.length < 2) {
+        const elenco = dati.map(d => esc(d.etichetta) + " <b>" + d.valore + "</b>").join(" · ");
+        grafVuoto(idBox, I.grafico, vuotoTit,
+          (primo0
+            ? "Con <b>" + rnm.totale + (rnm.totale === 1 ? " segnalazione</b> " : " segnalazioni</b> ") + nmPer
+              + " non c'è una tendenza da leggere, e disegnarla sarebbe una bugia. Il conto vero è questo: "
+            : "Anche qui i numeri sono troppo pochi perché un confronto voglia dire qualcosa. Il conto vero è questo: ")
+          + elenco + ".");
+        return;
+      }
+      const primo = dati[0];
+      grafico(idBox, "barre", {
+        titolo, meta: rnm.totale + " near-miss · " + nmPer,
+        orientamento: "orizzontale", ordina: true, formato: soloInteri,
+        valori: dati.map(d => ({ etichetta: d.etichetta, valore: d.valore })),
+        aria: titolo + ": " + dati.map(d => d.etichetta + " " + d.valore).join(", ") + ".",
+        nota: "Ogni barra è il numero di near-miss segnalati " + nmPer + " per " + cosa
+          + ". In testa c'è <b>" + esc(primo.etichetta) + "</b> con " + primo.valore
+          + (primo.valore === 1 ? " segnalazione" : " segnalazioni")
+          + ": è lì che conviene guardare per prima cosa. Passa sopra una barra per il dettaglio.",
+      });
+    };
+    nmBarre("graf-nm-tipo", rnm.perTipo, "Near-miss per tipo", "tipo di rischio", "Pochi dati per tipo", true);
+    nmBarre("graf-nm-luogo", rnm.perLuogo, "Near-miss per luogo", "luogo della cava", "Pochi dati per luogo", false);
+
     const TB = { infortunio: ["danger", "Infortunio"], "near-miss": ["warn", "Near-miss"] };
     const infVis = INF.filter(x => filtroInf === "tutti" || x.tipo === filtroInf);
     $("inf-list").innerHTML = infVis.slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1).map(x => {
@@ -993,8 +1276,12 @@
       const ab = !az.length ? ["warn", "0 azioni"]
         : (azChiuse === az.length ? ["ok", az.length + (az.length === 1 ? " azione chiusa" : " azioni chiuse")]
                                   : ["warn", (az.length - azChiuse) + " da chiudere"]);
+      // Chi ha segnalato: nome se c'è, «segnalazione anonima» se è stata
+      // scelta la forma anonima (che è ciò che tiene vivo un registro vero).
+      const chi = x.anonimo ? "segnalazione anonima"
+        : (byId[x.segnalatoDaId] ? "segnalata da " + esc(byId[x.segnalatoDaId].nome) : "");
       return `<div class="item ${striscia[tb[0]]}" data-evt="${x.id}"><div class="info"><div class="name">${esc(x.descrizione || x.tipo || "Evento")}</div>
-        <div class="meta">${fmtData(x.data)}${x.luogo ? " · " + esc(x.luogo) : ""}${x.gravita ? " · " + esc(x.gravita) : ""}${(+x.giorniAssenza) ? " · " + (+x.giorniAssenza) + " gg assenza" : ""} <span class="badge inline ${ab[0]}" style="cursor:pointer" title="Vedi le azioni correttive di questo evento" data-azi-evt="${x.id}">${ab[1]}</span></div></div>
+        <div class="meta">${fmtData(x.data)}${x.luogo ? " · " + esc(x.luogo) : ""}${x.categoria ? " · " + esc(categoriaNearMiss(x.categoria)) : ""}${x.gravita && x.tipo !== "near-miss" ? " · " + esc(x.gravita) : ""}${(+x.giorniAssenza) ? " · " + (+x.giorniAssenza) + " gg assenza" : ""}${chi ? " · " + chi : ""} <span class="badge inline ${ab[0]}" style="cursor:pointer" title="Vedi le azioni correttive di questo evento" data-azi-evt="${x.id}">${ab[1]}</span></div></div>
         <span class="acts"><span class="badge ${tb[0]}">${tb[1]}</span>
         <button class="dw-btn secondary mini" data-azi-da="${x.id}" title="Apri un'azione correttiva da questo evento">+ Azione</button>
         <span class="arr" style="cursor:pointer" title="Rimuovi evento" data-del-inf="${x.id}">✕</span></span></div>`;
@@ -1005,17 +1292,23 @@
       b.classList.toggle("active", b.getAttribute("data-filtro") === filtroInf));
 
     // --- AZIONI CORRETTIVE (CAPA) ---------------------------------------
+    const ispById = Object.fromEntries(ISP.map(x => [x.id, x]));
     const origineTesto = (a) => a.origineTipo === "evento"
       ? (infById[a.origineId]
           ? "da " + (infById[a.origineId].tipo === "infortunio" ? "infortunio" : "near-miss") + " del " + fmtData(infById[a.origineId].data)
           : "da un evento rimosso dal registro")
-      : (a.origineNota ? "non conformità: " + a.origineNota : "");
+      : a.origineTipo === "ispezione"
+        ? (ispById[a.origineId]
+            ? "da ispezione «" + ispById[a.origineId].nome + "» del " + fmtData(ispById[a.origineId].data)
+              + (a.origineNota ? " — " + a.origineNota : "")
+            : "da un'ispezione rimossa")
+        : (a.origineNota ? "non conformità: " + a.origineNota : "");
     $("azi-count-tot").textContent = AZI.length;
     $("azi-riep").innerHTML = AZI.length
       ? `Da chiudere: <b>${ra.daChiudere}</b> (di cui <b>${ra.scadute}</b> fuori tempo e ${ra.inScadenza} in scadenza entro 30 giorni) · in corso: <b>${ra.inCorso}</b> · chiuse: <b>${ra.chiuse}</b> su ${ra.totale}.`
       : "Nessuna azione correttiva registrata. Da ogni infortunio o near-miss dovrebbe nascerne almeno una.";
     const qAzi = ($("azi-cerca").value || "").trim().toLowerCase();
-    const passaFiltroAzi = (a) => (filtroEvt && !(a.origineTipo === "evento" && a.origineId === filtroEvt)) ? false
+    const passaFiltroAzi = (a) => (filtroOrig && !(a.origineTipo === filtroOrig.tipo && a.origineId === filtroOrig.id)) ? false
       : filtroAzi === "tutte" ? true
       : filtroAzi === "da-fare" ? a.stato !== "chiusa"
       : filtroAzi === "scaduta" ? (a.stato !== "chiusa" && statoAzione(a) === "scaduta")
@@ -1045,17 +1338,22 @@
         <span class="badge ${al.cls}" style="cursor:pointer" title="Tocca per far avanzare lo stato (aperta → in corso → chiusa)" data-azi-stato="${a.id}">${al.label}</span>
         ${(a.stato !== "chiusa" && a.scadenza && st !== "regolare") ? `<span class="badge ${B[st][0]}">${B[st][1]}</span>` : ""}
         ${(a.origineTipo === "evento" && infById[a.origineId]) ? `<span class="arr" style="cursor:pointer" title="Vai all'evento che l'ha generata" data-vai-evt="${a.origineId}">↗</span>` : ""}
+        ${(a.origineTipo === "ispezione" && ispById[a.origineId]) ? `<span class="arr" style="cursor:pointer" title="Vai all'ispezione che l'ha generata" data-vai-isp="${a.origineId}">↗</span>` : ""}
         <span class="arr" style="cursor:pointer" title="Modifica azione" data-edit-azi="${a.id}">✎</span>
         <span class="arr" style="cursor:pointer" title="Rimuovi azione" data-del-azi="${a.id}">✕</span></span></div>`;
     }).join("") || (qAzi
       ? vuoto(I.cerca, "Nessun risultato", "Nessuna azione trovata per <b>«" + esc(qAzi) + "»</b>. Prova con il testo dell'azione o il nome del responsabile.")
-      : (filtroAzi === "tutte" && !filtroEvt
+      : (filtroAzi === "tutte" && !filtroOrig
         ? vuoto(I.attrezzo, "Nessuna azione correttiva", "Da ogni infortunio o near-miss dovrebbe nascerne almeno una. Aggiungila qui sotto, oppure aprila direttamente dall'evento con il pulsante <b>+ Azione</b>.")
         : vuoto(I.ok, "Niente in questa categoria", "Nessuna azione rientra nel filtro scelto. Tocca <b>Tutte</b> per vedere l'elenco completo.")));
-    { const n = aziVis.length, filtrata = qAzi || filtroAzi !== "tutte" || filtroEvt;
-      const evt = filtroEvt && infById[filtroEvt];
+    { const n = aziVis.length, filtrata = qAzi || filtroAzi !== "tutte" || filtroOrig;
+      let daDove = "";
+      if (filtroOrig && filtroOrig.tipo === "evento") { const evt = infById[filtroOrig.id];
+        daDove = "solo le azioni dell'evento del " + fmtData(evt ? evt.data : ""); }
+      if (filtroOrig && filtroOrig.tipo === "ispezione") { const isp = ispById[filtroOrig.id];
+        daDove = "solo le azioni dell'ispezione " + (isp ? "«" + esc(isp.nome) + "» del " + fmtData(isp.data) : "selezionata"); }
       $("azi-count").innerHTML = (n === 0 ? "" : "<b>" + n + "</b> " + (n === 1 ? "azione" : "azioni") + (filtrata ? " · su " + AZI.length : ""))
-        + (filtroEvt ? (n ? " · " : "") + "solo le azioni dell'evento del " + fmtData(evt ? evt.data : "")
+        + (filtroOrig ? (n ? " · " : "") + daDove
             + ' · <span class="link" data-azi-evt-clear="1">mostra tutte</span>' : ""); }
     document.querySelectorAll("#azi-filtri [data-filtro-azi]").forEach(b =>
       b.classList.toggle("active", b.getAttribute("data-filtro-azi") === filtroAzi));
@@ -1068,6 +1366,116 @@
       const selR = $("azi-resp"), valR = selR.value;
       const opzR = '<option value="">— responsabile da assegnare —</option>' + LAV.map(l => `<option value="${l.id}">${esc(l.nome)}</option>`).join("");
       if (selR.innerHTML !== opzR) { selR.innerHTML = opzR; selR.value = [...selR.options].some(o => o.value === valR) ? valR : ""; }
+    }
+
+    // --- S3 · ISPEZIONI E CHECKLIST --------------------------------------
+    // Elenco delle ispezioni con lo stesso semaforo di scadenze e azioni: una
+    // checklist programmata e non fatta è, a tutti gli effetti, in ritardo.
+    const rIsp = riepilogoIspezioni(ISP);
+    $("isp-count").textContent = ISP.length;
+    $("isp-riep").innerHTML = ISP.length
+      ? `Da fare: <b>${rIsp.daFare}</b>${rIsp.scadute ? ` (di cui <b>${rIsp.scadute}</b> in ritardo)` : ""} · completate: <b>${rIsp.completate}</b> su ${rIsp.totale} · voci non conformi trovate finora: <b>${rIsp.nonConformi}</b>.`
+      : "Nessuna ispezione ancora avviata. Scegli un modello qui sotto: le voci sono già scritte, tu metti solo gli esiti.";
+    const ispVis = ISP.filter(i => filtroIsp === "tutte" ? true
+      : filtroIsp === "completata" ? i.stato === "completata" : i.stato !== "completata");
+    // prima quelle da fare (dalla più vecchia, cioè la più in ritardo), poi le
+    // completate dalla più recente
+    const ispCmp = (a, b) => ((a.stato === "completata") - (b.stato === "completata"))
+      || (a.stato === "completata" ? String(b.data || "").localeCompare(String(a.data || ""))
+                                   : String(a.data || "").localeCompare(String(b.data || "")));
+    $("isp-list").innerHTML = ispVis.slice().sort(ispCmp).map(i => {
+      const r = riepilogoIspezione(i), st = statoIspezione(i), lv = livelloScadenza(i.data);
+      const cant = cById[i.cantiereId], resp = byId[i.responsabileId];
+      const naz = azioniDiIspezione(AZI, i.id), nazChiuse = naz.filter(a => a.stato === "chiusa").length;
+      const cls = i.stato === "completata" ? "st-ok" : (striscia[B[st][0]] || "st-accent");
+      const sb = i.stato === "completata" ? ["ok", "Completata"]
+        : i.stato === "programmata" ? ["tag", "Programmata"] : ["warn", "In corso"];
+      const meta = [
+        fmtData(i.data) + (i.stato === "completata" ? "" : " · " + lv.label),
+        cant ? cant.nome : "sito non indicato",
+        resp ? resp.nome : "chi la esegue: da assegnare",
+        i.stato === "completata"
+          ? `${r.conformi} conformi · ${r.nonConformi} non conformi · ${r.na} non applicabili`
+          : `${r.fatte} voci compilate su ${r.totale}`,
+      ].join(" · ");
+      const ab = naz.length
+        ? (nazChiuse === naz.length ? ["ok", naz.length + (naz.length === 1 ? " azione chiusa" : " azioni chiuse")]
+                                    : ["warn", (naz.length - nazChiuse) + " da chiudere"])
+        : null;
+      return `<div class="item ${cls}" data-isp-apri="${i.id}" title="Apri la checklist">
+        <div class="avatar sup">${I.lista}</div>
+        <div class="info"><div class="name">${esc(i.nome)}</div><div class="meta">${esc(meta)}</div></div>
+        <span class="acts">
+        ${ab ? `<span class="badge ${ab[0]}" style="cursor:pointer" title="Vedi le azioni correttive nate da questa ispezione" data-azi-isp="${i.id}">${ab[1]}</span>` : ""}
+        <span class="badge ${sb[0]}">${sb[1]}</span>
+        <span class="arr" style="cursor:pointer" title="Apri la checklist" data-isp-apri="${i.id}">›</span>
+        <span class="arr" style="cursor:pointer" title="Rimuovi l'ispezione" data-del-isp="${i.id}">✕</span></span></div>`;
+    }).join("") || (filtroIsp === "tutte"
+      ? vuoto(I.lista, "Nessuna ispezione",
+          "Le condizioni in cava cambiano ogni giorno: il fronte dopo una volata, le piste dopo la pioggia. Avvia la prima checklist qui sotto — le voci tipiche ci sono già.")
+      : vuoto(I.ok, "Niente in questa categoria",
+          "Nessuna ispezione rientra nel filtro scelto. Tocca <b>Tutte</b> per vedere l'elenco completo."));
+    document.querySelectorAll("#isp-filtri [data-filtro-isp]").forEach(b =>
+      b.classList.toggle("active", b.getAttribute("data-filtro-isp") === filtroIsp));
+    // selettori del form "Nuova ispezione"
+    if (!$("isp-modello").dataset.pronto) {
+      $("isp-modello").innerHTML = '<option value="">Scegli il modello di checklist…</option>'
+        + MODELLI_ISPEZIONE.map(m => `<option value="${m.chiave}">${esc(m.nome)}</option>`).join("");
+      $("isp-modello").dataset.pronto = "1";
+    }
+    { const selC2 = $("isp-cant"), v1 = selC2.value;
+      const o1 = '<option value="">— nessun cantiere —</option>' + CANT.map(c => `<option value="${c.id}">${esc(c.nome)}</option>`).join("");
+      if (selC2.innerHTML !== o1) { selC2.innerHTML = o1; selC2.value = [...selC2.options].some(o => o.value === v1) ? v1 : ""; }
+      const selR2 = $("isp-resp"), v2 = selR2.value;
+      const o2 = '<option value="">— chi la esegue —</option>' + LAV.map(l => `<option value="${l.id}">${esc(l.nome)}</option>`).join("");
+      if (selR2.innerHTML !== o2) { selR2.innerHTML = o2; selR2.value = [...selR2.options].some(o => o.value === v2) ? v2 : ""; }
+    }
+    if (!$("isp-data").value) $("isp-data").value = oggiISO();
+
+    // Compilazione: se un'ispezione è aperta prende il posto dell'elenco.
+    if (ispAperta && !ISP.some(i => i.id === ispAperta)) ispAperta = null;
+    $("isp-elenco").style.display = ispAperta ? "none" : "block";
+    $("isp-compila").style.display = ispAperta ? "block" : "none";
+    if (!ispAperta) puliscoGrafico("isp-c-avanz");
+    else {
+      const i = ISP.find(x => x.id === ispAperta), r = riepilogoIspezione(i);
+      const cant = cById[i.cantiereId], resp = byId[i.responsabileId];
+      $("isp-c-cnt").textContent = r.fatte + "/" + r.totale;
+      $("isp-c-testa").innerHTML = `<b>${esc(i.nome)}</b> · ${fmtData(i.data)}`
+        + (cant ? " · " + esc(cant.nome) : "") + (resp ? " · esegue " + esc(resp.nome) : "")
+        + (i.stato === "completata"
+            ? ` — <b>completata</b> il ${fmtData(i.dataChiusura || i.data)}: <b>${r.nonConformi}</b> voci non conformi.`
+            : ` — restano <b>${r.daFare}</b> voci su ${r.totale}.`);
+      grafico("isp-c-avanz", "avanzamento", {
+        titolo: "Avanzamento della checklist",
+        meta: r.fatte + " voci su " + r.totale,
+        valore: r.percento, massimo: 100, unita: "%", tabella: false,
+        stato: r.nonConformi ? "warn" : (r.completa ? "ok" : null),
+        nota: r.completa
+          ? "Tutte le voci hanno un esito." + (r.nonConformi
+              ? " Le <b>" + r.nonConformi + "</b> non conformi diventano azioni correttive quando chiudi l'ispezione."
+              : " Nessuna non conformità: alla chiusura non nascerà nessuna azione.")
+          : "Mancano <b>" + r.daFare + "</b> voci. Una voce che non c'entra con la tua cava si segna <b>non applicabile</b>: è un esito anche quello, e resta scritto.",
+      });
+      const bloccata = i.stato === "completata";
+      $("isp-c-voci").innerHTML = (i.voci || []).map(v => {
+        const e = (i.esiti || {})[v.id] || {}, el = esitoLabel(e.esito);
+        const cls = e.esito === "conforme" ? "st-ok" : e.esito === "non-conforme" ? "st-danger" : e.esito === "na" ? "st-mute" : "st-accent";
+        const bottoni = ESITI_ISPEZIONE.map(x => {
+          const k = x.chiave === "conforme" ? "e-ok" : x.chiave === "non-conforme" ? "e-no" : "e-na";
+          return `<button type="button" class="chg ${k}${e.esito === x.chiave ? " active" : ""}"${bloccata ? " disabled" : ""}
+            data-esito="${x.chiave}" data-voce="${v.id}" aria-pressed="${e.esito === x.chiave}"
+            title="${x.etichetta}">${x.chiave === "na" ? "Non applicabile" : x.etichetta}</button>`;
+        }).join("");
+        return `<div class="item voce ${cls}">
+          <div class="info"><div class="name">${esc(v.testo)}</div>
+          <div class="meta">${e.nota ? '<span class="isp-nota">' + esc(e.nota) + "</span>" : (el ? el.etichetta : "esito da mettere")}</div></div>
+          <span class="acts">${bottoni}
+          <span class="arr" style="cursor:pointer" title="Scrivi una nota su questa voce" data-nota-voce="${v.id}">✎</span></span></div>`;
+      }).join("");
+      $("btn-isp-chiudi").textContent = bloccata ? "Riapri l'ispezione" : "Chiudi l'ispezione";
+      $("isp-c-nota").innerHTML = (i.riferimento ? "Riferimento: " + esc(i.riferimento) + "<br>" : "")
+        + "Le voci e le periodicità sono una <b>base di partenza</b>, non un obbligo di legge riga per riga: vanno adattate al DSS e al DVR della tua cava con l'RSPP. <b>Nota informativa, non un parere legale.</b>";
     }
   }
 
@@ -1085,26 +1493,23 @@
     // --- azioni correttive: navigazione nei due sensi evento ↔ azione ---
     const at = (n) => e.target.getAttribute && e.target.getAttribute(n);
     const vaiAzi = at("data-vai-azi");
-    if (vaiAzi) { filtroAzi = "tutte"; filtroEvt = null; go("azio"); await refresh(); return; }
+    if (vaiAzi) { filtroAzi = "tutte"; filtroOrig = null; go("azio"); await refresh(); return; }
     const vaiEvt = at("data-vai-evt");
     if (vaiEvt) { filtroInf = "tutti"; go("doc"); await refresh();
       const el = document.querySelector('[data-evt="' + vaiEvt + '"]');
       if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("evidenzia"); setTimeout(() => el.classList.remove("evidenzia"), 2500); }
       return; }
+    // dall'azione all'ispezione che l'ha generata (e viceversa col badge)
+    const vaiIsp = at("data-vai-isp");
+    if (vaiIsp) { ispAperta = vaiIsp; filtroIsp = "tutte"; go("isp"); await refresh(); return; }
     const aziEvt = at("data-azi-evt");
-    if (aziEvt) { filtroEvt = aziEvt; filtroAzi = "tutte"; $("azi-cerca").value = ""; go("azio"); await refresh(); return; }
-    if (at("data-azi-evt-clear")) { filtroEvt = null; await refresh(); return; }
+    if (aziEvt) { filtroOrig = { tipo: "evento", id: aziEvt }; filtroAzi = "tutte"; $("azi-cerca").value = ""; go("azio"); await refresh(); return; }
+    const aziIsp = at("data-azi-isp");
+    if (aziIsp) { filtroOrig = { tipo: "ispezione", id: aziIsp }; filtroAzi = "tutte"; $("azi-cerca").value = ""; go("azio"); await refresh(); return; }
+    if (at("data-azi-evt-clear")) { filtroOrig = null; await refresh(); return; }
     // "+ Azione" da un evento: apre il form con l'origine già impostata
     const aziDa = at("data-azi-da");
-    if (aziDa) { const ev = INF.find(x => x.id === aziDa);
-      annullaEditAzi();
-      go("azio"); filtroEvt = null; await refresh();
-      $("azi-origine").value = "evt:" + aziDa; $("azi-nota").value = "";
-      esito("azi-esito-msg", ev
-        ? "Nuova azione correttiva per l'" + (ev.tipo === "infortunio" ? "infortunio" : "evento near-miss") + " del " + fmtData(ev.data) + ": scrivi cosa si deve fare, chi lo fa ed entro quando."
-        : "Nuova azione correttiva.");
-      $("azi-desc").focus(); $("azi-desc").scrollIntoView({ behavior: "smooth", block: "center" });
-      return; }
+    if (aziDa) { await apriAzioneDaEvento(aziDa); return; }
     // badge dello stato: aperta → in corso → chiusa (chiudendo si chiede l'esito)
     const aziStato = at("data-azi-stato");
     if (aziStato && db.aggiorna) { const a = AZI.find(x => x.id === aziStato); if (!a) return;
@@ -1139,6 +1544,58 @@
       $("btn-azi").textContent = "Salva modifica";
       esito("azi-esito-msg", "Stai modificando l'azione «" + a.descrizione + "». Tocca di nuovo ✎ per annullare.");
       $("azi-desc").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+    // --- S3 · ispezioni: esiti, note, apertura, rimozione ----------------
+    const delIsp = at("data-del-isp");
+    if (delIsp) { const i = ISP.find(x => x.id === delIsp);
+      const naz = azioniDiIspezione(AZI, delIsp).length;
+      const ok = await chiedi("Rimuovere l'ispezione?",
+        "Stai per togliere <b>" + esc(i ? i.nome : "l'ispezione selezionata") + "</b>"
+        + (i && i.data ? " del " + fmtData(i.data) : "") + ".<br><br>"
+        + (naz ? "Le <b>" + naz + (naz === 1 ? " azione correttiva</b> nata da qui resterà" : " azioni correttive</b> nate da qui resteranno") + " aperte, senza l'ispezione di origine.<br><br>" : "")
+        + "Un'ispezione compilata è la prova di un controllo fatto: rimuovila solo se è stata inserita per sbaglio.",
+        "Rimuovi", true);
+      if (ok) { if (ispAperta === delIsp) ispAperta = null;
+        await db.rimuovi("ispezioni", delIsp); await refresh();
+        esito("isp-esito", "Ispezione rimossa.", "err"); }
+      return; }
+    // esito di una voce: un tocco. Ri-toccando lo stesso esito lo si toglie.
+    const vEsito = at("data-esito"), vVoce = at("data-voce");
+    if (vEsito && vVoce && ispAperta && db.aggiorna) {
+      const i = ISP.find(x => x.id === ispAperta);
+      if (!i || i.stato === "completata") return;
+      const esiti = Object.assign({}, i.esiti || {});
+      const prec = esiti[vVoce] && esiti[vVoce].esito;
+      if (prec === vEsito) {
+        if (esiti[vVoce] && esiti[vVoce].nota) esiti[vVoce] = { esito: "", nota: esiti[vVoce].nota };
+        else delete esiti[vVoce];
+      } else esiti[vVoce] = { esito: vEsito, nota: (esiti[vVoce] && esiti[vVoce].nota) || "" };
+      const patch = { esiti };
+      if (i.stato === "programmata") patch.stato = "in-corso";
+      await db.aggiorna("ispezioni", i.id, patch);
+      await refresh();
+      if (vEsito === "non-conforme" && prec !== vEsito)
+        esito("isp-c-esito", "Voce segnata non conforme: alla chiusura dell'ispezione diventerà un'azione correttiva.", "", "Non conforme: diventerà un'azione.");
+      return; }
+    const notaV = at("data-nota-voce");
+    if (notaV && ispAperta && db.aggiorna) {
+      const i = ISP.find(x => x.id === ispAperta); if (!i) return;
+      const voce = (i.voci || []).find(v => v.id === notaV), e = (i.esiti || {})[notaV] || {};
+      const v = await chiediValore("Nota sulla voce",
+        "<b>" + esc(voce ? voce.testo : "") + "</b><br>Scrivi cosa hai visto: la nota resta scritta accanto all'esito e finisce nell'azione correttiva se la voce è non conforme.",
+        '<label class="fl" for="modal-campo">Nota</label><textarea class="dw-input" id="modal-campo" rows="3" placeholder="Es. arginello mancante per una quarantina di metri">' + esc(e.nota || "") + "</textarea>",
+        "Salva la nota");
+      if (v === null) return;
+      const esiti = Object.assign({}, i.esiti || {});
+      const nota = v.trim();
+      if (!nota && !(e.esito)) delete esiti[notaV];
+      else esiti[notaV] = { esito: e.esito || "", nota };
+      await db.aggiorna("ispezioni", i.id, { esiti });
+      await refresh();
+      esito("isp-c-esito", nota ? "Nota salvata." : "Nota rimossa.", "");
+      return; }
+    const apriIsp = e.target.closest && e.target.closest("[data-isp-apri]");
+    if (apriIsp) { ispAperta = apriIsp.getAttribute("data-isp-apri");
+      go("isp"); await refresh(); window.scrollTo(0, 0); return; }
     const delAzi = at("data-del-azi");
     if (delAzi) { const a = AZI.find(x => x.id === delAzi);
       const ok = await chiedi("Rimuovere l'azione?",
@@ -1452,6 +1909,238 @@
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "scudo_azioni_correttive.csv"; a.click();
     esito("azi-esito-msg", "Esportate " + AZI.length + " azioni correttive (CSV).", "success");
+  };
+
+  // "+ Azione" da un evento del registro: porta alla pagina Azioni con
+  // l'origine già impostata. Usata sia dal registro sia — subito dopo aver
+  // segnalato un near-miss — dalla conferma della segnalazione: dall'evento
+  // all'azione correttiva deve bastare UN tocco.
+  async function apriAzioneDaEvento(idEvento) {
+    const ev = INF.find(x => x.id === idEvento);
+    annullaEditAzi();
+    go("azio"); filtroOrig = null; await refresh();
+    $("azi-origine").value = "evt:" + idEvento; $("azi-nota").value = "";
+    esito("azi-esito-msg", ev
+      ? "Nuova azione correttiva per l'" + (ev.tipo === "infortunio" ? "infortunio" : "evento near-miss") + " del " + fmtData(ev.data) + ": scrivi cosa si deve fare, chi lo fa ed entro quando."
+      : "Nuova azione correttiva.");
+    $("azi-desc").focus(); $("azi-desc").scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // S2 · SEGNALAZIONE RAPIDA DI UN NEAR-MISS
+  // Il percorso più corto possibile: si TOCCA che cosa è successo, si TOCCA
+  // dove, si tocca Invia. Tre tocchi dentro la modale, uno per aprirla: data
+  // (oggi) e tutto il resto sono già pronti e restano facoltativi. Nessun
+  // campo obbligatorio da scrivere: con i guanti, in piedi sul piazzale, la
+  // tastiera è il nemico. La forma anonima è un tocco in più ed è ciò che
+  // separa un registro vero da un registro vuoto.
+  // ══════════════════════════════════════════════════════════════════════
+  const NM = { categoria: "", luogo: "", anonimo: false };
+  function apriSegnalazione() {
+    NM.categoria = ""; NM.luogo = ""; NM.anonimo = false;
+    const oggi = oggiISO();
+    const chips = (attr, lista) => lista.map(x =>
+      `<button type="button" class="chg" data-${attr}="${x.chiave}">${esc(x.etichetta)}</button>`).join("");
+    apriModale("Segnala un near-miss",
+      '<div class="nm-lab">1 · Che cosa è successo</div>'
+      + '<div class="chgs griglia2" id="nm-cat">' + chips("nm-cat", NEARMISS_CATEGORIE) + "</div>"
+      + '<div class="nm-lab">2 · Dove</div>'
+      + '<div class="chgs griglia3" id="nm-luo">' + chips("nm-luo", NEARMISS_LUOGHI) + "</div>"
+      + '<div class="nm-lab">Quando e chi segnala — già pronti</div>'
+      + '<div class="frow">'
+      + '<input class="dw-input" id="nm-data" type="date" value="' + oggi + '" max="' + oggi + '" title="Quando è successo" style="flex:1 1 140px;">'
+      + '<select class="dw-input" id="nm-chi" title="Chi segnala" style="flex:1 1 160px;"><option value="">— chi segnala (facoltativo) —</option>'
+      + LAV.map(l => `<option value="${l.id}">${esc(l.nome)}</option>`).join("") + "</select>"
+      + '<button type="button" class="chg anon" id="nm-anon" aria-pressed="false">Segnalazione anonima</button></div>'
+      + '<input class="dw-input" id="nm-dett" placeholder="Dettaglio o punto preciso (facoltativo)" style="margin-top:9px;">'
+      + '<div class="form-hint" style="margin-top:10px;">Bastano i primi due tocchi. Un near-miss <b>non azzera i giorni senza infortuni</b>: entra nel registro degli eventi e da lì nasce l\'azione correttiva. In forma anonima <b>non viene salvato chi ha segnalato</b>.</div>',
+      [{ label: "Annulla", azione: chiudiModale },
+       { label: "Invia", cls: "primary", azione: inviaSegnalazione }],
+      { autofocus: false });
+    const scelta = (boxId, attr, campo) => {
+      const box = $(boxId); if (!box) return;
+      box.querySelectorAll(".chg").forEach(b => b.onclick = () => {
+        const gia = b.classList.contains("active");
+        box.querySelectorAll(".chg").forEach(x => { x.classList.remove("active"); x.setAttribute("aria-pressed", "false"); });
+        if (gia) { NM[campo] = ""; return; }                 // ri-tocco = tolgo la scelta
+        b.classList.add("active"); b.setAttribute("aria-pressed", "true");
+        NM[campo] = b.getAttribute(attr);
+        // scelto il «cosa», il «dove» si porta sotto gli occhi da solo:
+        // un dito in meno da far viaggiare mentre si è in piedi sul piazzale
+        if (campo === "categoria" && !NM.luogo) {
+          const luo = $("nm-luo");
+          if (luo) luo.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      });
+    };
+    scelta("nm-cat", "data-nm-cat", "categoria");
+    scelta("nm-luo", "data-nm-luo", "luogo");
+    const anon = $("nm-anon");
+    if (anon) anon.onclick = () => {
+      NM.anonimo = !NM.anonimo;
+      anon.classList.toggle("active", NM.anonimo);
+      anon.setAttribute("aria-pressed", NM.anonimo ? "true" : "false");
+      const chi = $("nm-chi");
+      if (chi) { chi.disabled = NM.anonimo; if (NM.anonimo) chi.value = ""; }
+      toast(NM.anonimo ? "Segnalazione anonima: il nome non viene salvato." : "Segnalazione con nome.");
+    };
+  }
+  async function inviaSegnalazione() {
+    if (!NM.categoria) { toast("Tocca prima che cosa è successo (la prima fila di pulsanti).", "err"); return; }
+    if (!NM.luogo) { toast("Tocca dove è successo: serve a capire dove intervenire.", "err"); return; }
+    const data = ($("nm-data") && $("nm-data").value) || oggiISO();
+    if (giorniTra(data) > 0) { toast("La data della segnalazione non può essere nel futuro.", "err"); return; }
+    const dett = (($("nm-dett") && $("nm-dett").value) || "").trim();
+    const chi = NM.anonimo ? "" : (($("nm-chi") && $("nm-chi").value) || "");
+    const rec = {
+      data, tipo: "near-miss", gravita: "lieve", giorniAssenza: 0,
+      categoria: NM.categoria, luogoTipo: NM.luogo, luogo: luogoNearMiss(NM.luogo),
+      descrizione: descrizioneNearMiss({ categoria: NM.categoria, luogoTipo: NM.luogo, dettaglio: dett }),
+      anonimo: !!NM.anonimo, segnalatoDaId: chi || null, rapida: true,
+    };
+    const ref = await db.aggiungi("infortuni", rec);
+    const nuovoId = ref && ref.id;
+    chiudiModale();
+    await refresh();
+    esito("inf-esito", "Near-miss registrato: " + rec.descrizione + ".", "success");
+    // Dalla segnalazione all'azione correttiva: un tocco, finché il fatto è fresco.
+    apriModale("Segnalazione registrata",
+      "<b>" + esc(rec.descrizione) + "</b><br>" + fmtData(data) + " · " + esc(luogoNearMiss(NM.luogo))
+      + (rec.anonimo ? " · in forma anonima" : "") + ".<br><br>"
+      + "Registrarlo serve a poco se non si corregge quello che l'ha causato. Vuoi aprire subito <b>un'azione correttiva</b> collegata a questa segnalazione?",
+      [{ label: "Non adesso", azione: chiudiModale },
+       { label: "Apri un'azione correttiva", cls: "primary",
+         azione: () => { chiudiModale(); apriAzioneDaEvento(nuovoId); } }]);
+  }
+  $("btn-nm").onclick = () => apriSegnalazione();
+  $("btn-nm2").onclick = () => apriSegnalazione();
+  $("btn-nm-export").onclick = () => {
+    // Riepilogo AGGREGATO, nella forma che serve alla comunicazione prevista
+    // dalla L. 198/2025: eventi per tipo e per luogo + azioni correttive.
+    const r = riepilogoNearMiss(INF, AZI, nmPeriodo || null);
+    const per = nmPeriodo === 0 ? "tutto lo storico" : nmPeriodo === 365 ? "ultimi 12 mesi" : "ultimi 90 giorni";
+    let csv = "sezione;voce;numero\n";
+    csv += `periodo;${csvCell(per)};\n`;
+    csv += `totale;near-miss segnalati;${r.totale}\n`;
+    csv += `totale;di cui in forma anonima;${r.anonime}\n`;
+    for (const t of r.perTipo) csv += `tipo;${csvCell(t.etichetta)};${t.valore}\n`;
+    for (const l of r.perLuogo) csv += `luogo;${csvCell(l.etichetta)};${l.valore}\n`;
+    csv += `azioni;near-miss con almeno un'azione correttiva;${r.conAzione}\n`;
+    csv += `azioni;near-miss ancora senza azione;${r.senzaAzione}\n`;
+    csv += `azioni;azioni correttive aperte da near-miss;${r.azioni}\n`;
+    csv += `azioni;di cui chiuse;${r.azioniChiuse}\n`;
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.download = "scudo_riepilogo_near_miss.csv"; a.click();
+    esito("inf-esito", "Riepilogo near-miss esportato (" + per + ").", "success");
+  };
+
+  // ══════════════════════════════════════════════════════════════════════
+  // S3 · ISPEZIONI E CHECKLIST PERIODICHE
+  // Un'ispezione che non genera azioni non serve a niente: alla chiusura, le
+  // voci NON CONFORMI diventano azioni correttive già collegate. E, come fa
+  // lo scadenzario, la checklist ricorrente propone da sola la successiva.
+  // ══════════════════════════════════════════════════════════════════════
+  $("isp-modello").onchange = () => {
+    const m = modelloIspezione($("isp-modello").value), nota = $("isp-modello-nota");
+    err("isp-modello", false); pulisci("isp-esito");
+    if (!m) { nota.style.display = "none"; nota.innerHTML = ""; return; }
+    nota.style.display = "block";
+    nota.innerHTML = "<b>" + esc(m.nome) + "</b> — " + m.voci.length + " voci · ambito: " + esc(m.ambito)
+      + (m.giorni ? " · si ripete <b>ogni " + (m.giorni === 1 ? "giorno" : m.giorni + " giorni") + "</b> (proposta, la cambi tu)" : "")
+      + (m.riferimento ? '<br><span style="opacity:.9;">Riferimento: ' + esc(m.riferimento) + "</span>" : "")
+      + "<br>Le voci vengono copiate dentro l'ispezione: se domani cambi il modello, i controlli già fatti restano com'erano.";
+  };
+  $("btn-isp").onclick = async () => {
+    const chiave = $("isp-modello").value, data = $("isp-data").value || oggiISO();
+    if (!chiave) { err("isp-modello", true); $("isp-modello").focus();
+      esito("isp-esito", "Scegli il modello di checklist: le voci da controllare arrivano da lì.", "err"); return; }
+    err("isp-modello", false);
+    const rec = nuovaIspezioneDaModello(chiave, {
+      data, cantiereId: $("isp-cant").value || null,
+      responsabileId: $("isp-resp").value || null, stato: "in-corso" });
+    if (!rec) { esito("isp-esito", "Modello non trovato: riprova a sceglierlo dall'elenco.", "err"); return; }
+    const ref = await db.aggiungi("ispezioni", rec);
+    ispAperta = ref && ref.id;
+    $("isp-modello").value = ""; $("isp-modello-nota").style.display = "none";
+    await refresh();
+    window.scrollTo(0, 0);
+    esito("isp-c-esito", "Ispezione avviata: " + rec.nome + ". Metti l'esito voce per voce — conforme, non conforme o non applicabile.", "success", "Ispezione avviata.");
+  };
+  $("btn-isp-indietro").onclick = async () => { ispAperta = null; pulisci("isp-c-esito"); await refresh(); window.scrollTo(0, 0); };
+  $("btn-isp-chiudi").onclick = async () => {
+    const i = ISP.find(x => x.id === ispAperta); if (!i) return;
+    if (i.stato === "completata") {
+      const ok = await chiedi("Riaprire l'ispezione?",
+        "Potrai correggere gli esiti. Le <b>azioni correttive già aperte restano dove sono</b>: alla nuova chiusura non verranno duplicate.",
+        "Riapri");
+      if (!ok) return;
+      await db.aggiorna("ispezioni", i.id, { stato: "in-corso", dataChiusura: null });
+      await refresh();
+      esito("isp-c-esito", "Ispezione riaperta: correggi gli esiti e richiudila quando hai finito.", "", "Ispezione riaperta.");
+      return;
+    }
+    const r = riepilogoIspezione(i);
+    if (r.fatte === 0) { esito("isp-c-esito", "Metti almeno un esito prima di chiudere: un'ispezione vuota non dimostra niente.", "err"); return; }
+    const nc = vociNonConformi(i);
+    const gia = new Set(azioniDiIspezione(AZI, i.id).map(a => a.origineVoce));
+    const daCreare = nc.filter(v => !gia.has(v.id));
+    const scadProposta = dataPiuGiorni(30) || "";
+    const prossProposta = i.periodicitaGiorni ? (dataPiuGiorni(i.periodicitaGiorni) || "") : "";
+    const elenco = daCreare.length
+      ? '<ul style="margin:8px 0 0 18px;padding:0;">' + daCreare.map(v =>
+          "<li>" + esc(v.testo) + (v.nota ? " — <i>" + esc(v.nota) + "</i>" : "") + "</li>").join("") + "</ul>"
+      : "";
+    const corpo = "<b>" + esc(i.nome) + "</b> del " + fmtData(i.data) + ".<br>"
+      + r.conformi + (r.conformi === 1 ? " conforme · <b>" : " conformi · <b>") + r.nonConformi + "</b>"
+      + (r.nonConformi === 1 ? " non conforme · " : " non conformi · ") + r.na
+      + (r.na === 1 ? " non applicabile" : " non applicabili")
+      + (r.daFare ? " · <b>" + r.daFare + "</b> ancora senza esito (resteranno così)" : "") + ".<br><br>"
+      + (daCreare.length
+          ? (daCreare.length === 1 ? "Si apre <b>1 azione correttiva</b> collegata" : "Si aprono <b>" + daCreare.length + " azioni correttive</b> collegate") + " a questa ispezione:" + elenco
+          : (nc.length ? "Le non conformità hanno già la loro azione correttiva: non ne verranno create altre."
+                       : "Nessuna voce non conforme: non nasce nessuna azione correttiva."))
+      + (daCreare.length ? '<label class="fl" for="isp-mod-scad">Entro quando vanno risolte</label><input class="dw-input" id="isp-mod-scad" type="date" value="' + scadProposta + '">' : "")
+      + (i.periodicitaGiorni
+          ? '<label class="fl" for="isp-mod-pross">Prossima ispezione (lascia vuoto per non programmarla)</label><input class="dw-input" id="isp-mod-pross" type="date" value="' + prossProposta + '">'
+          : "");
+    const scelta = await new Promise(res => {
+      apriModale("Chiudi l'ispezione", corpo, [
+        { label: "Annulla", azione: () => { chiudiModale(); res(null); } },
+        { label: daCreare.length ? "Chiudi e apri le azioni" : "Chiudi l'ispezione", cls: "primary",
+          azione: () => {
+            const s = $("isp-mod-scad"), p = $("isp-mod-pross");
+            const v = { scadenza: (s && s.value) || "", prossima: (p && p.value) || "" };
+            chiudiModale(); res(v);
+          } },
+      ], { autofocus: false });
+    });
+    if (!scelta) return;
+    const scad = /^\d{4}-\d{2}-\d{2}$/.test(scelta.scadenza) ? scelta.scadenza : scadProposta;
+    for (const v of daCreare) {
+      await db.aggiungi("azioni", {
+        descrizione: "Risolvere: " + v.testo,
+        responsabileId: i.responsabileId || null,
+        scadenza: scad, stato: "aperta", esito: "", dataChiusura: null,
+        origineTipo: "ispezione", origineId: i.id, origineVoce: v.id,
+        origineNota: v.nota || v.testo,
+      });
+    }
+    await db.aggiorna("ispezioni", i.id, { stato: "completata", dataChiusura: oggiISO() });
+    let programmata = "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(scelta.prossima)) {
+      const nuova = nuovaIspezioneDaModello(i.modello, {
+        data: scelta.prossima, cantiereId: i.cantiereId || null,
+        responsabileId: i.responsabileId || null, stato: "programmata" });
+      if (nuova) { await db.aggiungi("ispezioni", nuova); programmata = scelta.prossima; }
+    }
+    ispAperta = null;
+    await refresh();
+    window.scrollTo(0, 0);
+    esito("isp-esito", "Ispezione chiusa"
+      + (daCreare.length ? ": " + daCreare.length + (daCreare.length === 1 ? " azione correttiva aperta" : " azioni correttive aperte") + " entro il " + fmtData(scad) : " senza non conformità")
+      + (programmata ? " · prossima ispezione programmata per il " + fmtData(programmata) : "") + ".", "success",
+      daCreare.length ? "Ispezione chiusa: " + daCreare.length + (daCreare.length === 1 ? " azione aperta." : " azioni aperte.") : "Ispezione chiusa.");
   };
 
   // Adempimenti tipici di cava: popola il menu (raggruppato persona/azienda)
