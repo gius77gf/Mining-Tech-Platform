@@ -27,7 +27,15 @@
      all'etichetta (pallino, trattino), non l'etichetta colorata.
    ══════════════════════════════════════════════════════════════════════════ */
 
-:root {
+/* ATTENZIONE — perché questo blocco sta su `body` e non su `:root`.
+   Una variabile che ne usa un'altra viene RISOLTA dove è dichiarata, non
+   dove viene usata. Se questi token stessero in :root, `var(--app-accent)`
+   verrebbe letto sull'elemento <html> — dove la tinta dell'app non c'è
+   ancora — e tutti i grafici uscirebbero color ambra (la tinta di Deepwork
+   core) qualunque app li ospiti. Dichiarandoli su <body> vengono risolti
+   lì, cioè dove la palette dell'app è già in vigore, sia che l'app la metta
+   in :root sia che la metta sul body. */
+body {
   /* ---- inchiostri e superfici del grafico ---- */
   --dwg-surf: var(--card);
   --dwg-grid: color-mix(in srgb, var(--app-accent) 15%, transparent);
@@ -55,8 +63,8 @@
   --dwg-dg: var(--danger);
 
   /* ---- toni di appoggio ---- */
-  --dwg-fade: color-mix(in srgb, var(--app-accent) 34%, var(--card2));
-  --dwg-track: color-mix(in srgb, var(--app-accent) 12%, var(--dark));
+  --dwg-fade: color-mix(in srgb, var(--app-accent) 58%, var(--card2));
+  --dwg-track: color-mix(in srgb, var(--app-accent) 26%, var(--card2));
   --dwg-rif: var(--muted2);
   --dwg-tip-bg: color-mix(in srgb, var(--panel) 92%, #000);
 }
@@ -83,8 +91,8 @@ body.dw.light-mode, body.dw.outdoor-mode {
   --dwg-wr: color-mix(in srgb, var(--warn) 62%, #000000);
   --dwg-dg: color-mix(in srgb, var(--danger) 78%, #000000);
 
-  --dwg-fade: color-mix(in srgb, var(--app-accent-deep) 30%, #ffffff);
-  --dwg-track: color-mix(in srgb, var(--app-accent) 12%, #ffffff);
+  --dwg-fade: color-mix(in srgb, var(--app-accent-deep) 52%, #ffffff);
+  --dwg-track: color-mix(in srgb, var(--app-accent-deep) 22%, #ffffff);
   --dwg-rif: color-mix(in srgb, var(--muted) 70%, #000000);
   --dwg-tip-bg: #ffffff;
 }
@@ -215,7 +223,8 @@ body.dw.light-mode, body.dw.outdoor-mode {
 .dwg-fill.st-ok { fill: var(--dwg-ok); }
 .dwg-fill.st-warn { fill: var(--dwg-wr); }
 .dwg-fill.st-danger { fill: var(--dwg-dg); }
-.dwg-tacca { stroke: var(--dwg-rif); stroke-width: 2; stroke-linecap: round; }
+.dwg-tacca { stroke: var(--dwg-rif); stroke-width: 2.4; stroke-linecap: round; }
+.dwg-tacca-cap { fill: var(--dwg-rif); }
 .dwg-tacca-orlo { stroke: var(--card); stroke-width: 4.4; stroke-linecap: round; }
 .dwg-riflesso { fill: #fff; opacity: .10; }
 

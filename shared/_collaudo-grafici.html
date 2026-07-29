@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Collaudo · grafici e fluidità Deepwork</title>
+<meta name="theme-color" content="#288ee0">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="deepwork-style.css">
+<link rel="stylesheet" href="dw-app-shell.css">
+<link rel="stylesheet" href="dw-app-ui.css">
+<link rel="stylesheet" href="dw-grafici.css">
+<link rel="stylesheet" href="dw-fluido.css">
+<style>
+/* ── le sei palette, copiate da docs/PALETTE_APP.md (parte 3) ──────────── */
+body.p-scudo{
+  --app-h:292; --app-accent-deep:#5e499d; --app-accent:#8c75dc; --app-accent2:#b7a8f9;
+  --app-accent-soft:#d9d4f8; --app-support:#4467a9; --app-support2:#86a5de;
+  --bg:#0d0c13; --dark:#111017; --panel:#14131d; --card:#1d1b28; --card2:#232032;
+  --border:#2b283c; --border2:#343049; --border-hi:#686481;
+  --text:#e9e7f4; --muted2:#b1adca; --muted:#928ead; --disabled:#706d82;
+  --success:#6abb6e; --warn:#f8ac3d; --danger:#f05f5a; --info:#34aede;
+  --grad:linear-gradient(135deg,#a68cff,#8a6fe0); --grad-on:#0d0c13;
+  --glow-app:rgba(140,117,220,.30); --tint-app:rgba(140,117,220,.14);
+  --focus-ring:rgba(183,168,249,.30); --sel:rgba(140,117,220,.30);
+  --halo-1:rgba(140,117,220,.05); --halo-2:rgba(134,165,222,.045);
+}
+body.p-campo{
+  --app-h:40; --app-accent-deep:#953b17; --app-accent:#d3633a; --app-accent2:#f49c7d;
+  --app-accent-soft:#f7cfc1; --app-support:#00787d; --app-support2:#56b6bb;
+  --bg:#130b09; --dark:#170f0c; --panel:#1c110e; --card:#281913; --card2:#311e17;
+  --border:#3b251d; --border2:#482c23; --border-hi:#806055;
+  --text:#f4e5e0; --muted2:#caa99d; --muted:#ac897d; --disabled:#826a62;
+  --success:#6abb6e; --warn:#d4bf3e; --danger:#ef5d66; --info:#55a6ec;
+  --grad:linear-gradient(135deg,#f77a4d,#d65c2d); --grad-on:#130b09;
+  --glow-app:rgba(211,99,58,.30); --tint-app:rgba(211,99,58,.14);
+  --focus-ring:rgba(244,156,125,.30); --sel:rgba(211,99,58,.30);
+  --halo-1:rgba(211,99,58,.05); --halo-2:rgba(86,182,187,.045);
+}
+body.p-flotta{
+  --app-h:340; --app-accent-deep:#883871; --app-accent:#c360a6; --app-accent2:#e798cd;
+  --app-accent-soft:#f1cde4; --app-support:#4d6b91; --app-support2:#91a7c3;
+  --bg:#110b0f; --dark:#150e13; --panel:#1b1117; --card:#251821; --card2:#2e1d28;
+  --border:#382431; --border2:#432b3b; --border-hi:#7b5f71;
+  --text:#f2e4ed; --muted2:#c4a7ba; --muted:#a6889b; --disabled:#7e6976;
+  --success:#6abb6e; --warn:#f8ac3d; --danger:#f05e5c; --info:#55a6ec;
+  --grad:linear-gradient(135deg,#e677c5,#c65aa7); --grad-on:#110b0f;
+  --glow-app:rgba(195,96,166,.30); --tint-app:rgba(195,96,166,.14);
+  --focus-ring:rgba(231,152,205,.30); --sel:rgba(195,96,166,.30);
+  --halo-1:rgba(195,96,166,.05); --halo-2:rgba(145,167,195,.045);
+}
+body.p-conti{
+  --app-h:183; --app-accent-deep:#006a5f; --app-accent:#009f8f; --app-accent2:#4dcebd;
+  --app-accent-soft:#b5e4dc; --app-support:#896100; --app-support2:#c49e5d;
+  --bg:#070f0e; --dark:#091311; --panel:#0a1715; --card:#0d211e; --card2:#0f2824;
+  --border:#12312d; --border2:#153b36; --border-hi:#496f69;
+  --text:#ddedea; --muted2:#94bab3; --muted:#739c95; --disabled:#5b7772;
+  --success:#79b862; --warn:#ffa566; --danger:#f05f5a; --info:#55a6ec;
+  --grad:linear-gradient(135deg,#00b1a1,#009284); --grad-on:#070f0e;
+  --glow-app:rgba(0,159,143,.30); --tint-app:rgba(0,159,143,.14);
+  --focus-ring:rgba(77,206,189,.30); --sel:rgba(0,159,143,.30);
+  --halo-1:rgba(0,159,143,.05); --halo-2:rgba(196,158,93,.045);
+}
+body.p-sentinella{
+  --app-h:248; --app-accent-deep:#005e9d; --app-accent:#288ee0; --app-accent2:#78bcfc;
+  --app-accent-soft:#c0ddf9; --app-support:#007781; --app-support2:#59b5bf;
+  --bg:#090e13; --dark:#0b1117; --panel:#0d151d; --card:#131e29; --card2:#162432;
+  --border:#1c2d3d; --border2:#21364a; --border-hi:#536a80;
+  --text:#e0eaf5; --muted2:#9db4cb; --muted:#7c95ae; --disabled:#617283;
+  --success:#6abb6e; --warn:#f8ac3d; --danger:#f05f5a; --info:#78bcfc;
+  --grad:linear-gradient(135deg,#34a3fe,#0086dd); --grad-on:#090e13;
+  --glow-app:rgba(40,142,224,.30); --tint-app:rgba(40,142,224,.14);
+  --focus-ring:rgba(120,188,252,.30); --sel:rgba(40,142,224,.30);
+  --halo-1:rgba(40,142,224,.05); --halo-2:rgba(89,181,191,.045);
+}
+body.p-terra{
+  --app-h:132; --app-accent-deep:#3e6901; --app-accent:#659b2c; --app-accent2:#9ac577;
+  --app-accent-soft:#cde1bf; --app-support:#7a6643; --app-support2:#b0a38d;
+  --bg:#0b0f09; --dark:#0e120b; --panel:#11160d; --card:#181f12; --card2:#1d2616;
+  --border:#242f1b; --border2:#2c3921; --border-hi:#5d6c52;
+  --text:#e4ecdf; --muted2:#a7b79c; --muted:#88997c; --disabled:#697461;
+  --success:#27bea5; --warn:#ffa752; --danger:#f05f5a; --info:#55a6ec;
+  --grad:linear-gradient(135deg,#73af34,#579100); --grad-on:#0b0f09;
+  --glow-app:rgba(101,155,44,.30); --tint-app:rgba(101,155,44,.14);
+  --focus-ring:rgba(154,197,119,.30); --sel:rgba(101,155,44,.30);
+  --halo-1:rgba(101,155,44,.05); --halo-2:rgba(176,163,141,.045);
+}
+
+/* I token "derivati" che ogni app dichiara nel proprio :root (barra alta,
+   navigazione, aloni di stato…). Qui si ricavano dalla palette in vigore.
+   Vanno dichiarati sul BODY, non su :root: una variabile che ne usa
+   un'altra viene risolta dove è scritta, e su :root la tinta dell'app non
+   c'è ancora. */
+body.dw{
+  --top-bg:color-mix(in srgb, var(--panel) 97%, transparent);
+  --nav-bg:color-mix(in srgb, var(--panel) 97%, transparent);
+  --solid:var(--panel);
+  --ov-bg:color-mix(in srgb, var(--bg) 86%, transparent);
+  --glow-logo:color-mix(in srgb, var(--app-accent) 45%, transparent);
+  --glow-ok:color-mix(in srgb, var(--success) 24%, transparent);
+  --glow-wr:color-mix(in srgb, var(--warn) 24%, transparent);
+  --glow-dg:color-mix(in srgb, var(--danger) 24%, transparent);
+  --grad-ok:linear-gradient(135deg, var(--success), color-mix(in srgb,var(--success) 52%,#000));
+  --grad-wr:linear-gradient(135deg, var(--warn), color-mix(in srgb,var(--warn) 52%,#000));
+  --grad-dg:linear-gradient(135deg, var(--danger), color-mix(in srgb,var(--danger) 52%,#000));
+  --grad-sup:linear-gradient(135deg, var(--app-support2), var(--app-support));
+  --grad-num:var(--grad);
+  --on-ok:#08160a; --on-wr:#231402; --on-dg:#2b0705; --on-info:#04161e;
+  --danger-pulse:color-mix(in srgb, var(--danger) 55%, #000);
+  --err-bg:color-mix(in srgb, var(--danger) 8%, transparent);
+  --note-bar:var(--info);
+  --sh-btn:0 5px 16px color-mix(in srgb, var(--app-accent) 42%, transparent);
+  --sh-btn-hi:0 8px 22px color-mix(in srgb, var(--app-accent) 55%, transparent);
+  --sh-btn-act:0 2px 8px color-mix(in srgb, var(--app-accent) 30%, transparent);
+  --sh-chg:0 2px 10px color-mix(in srgb, var(--app-accent) 35%, transparent);
+  --nav-cols:3;
+}
+
+/* ── comandi del collaudo ── */
+.barra-coll{display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:14px}
+.barra-coll .et{font-family:'Barlow Condensed',sans-serif; font-size:10.5px; font-weight:700;
+  letter-spacing:1.6px; text-transform:uppercase; color:var(--muted); margin-right:2px}
+.page{display:none}
+.page.active{display:block}
+.griglia{display:grid; gap:10px; grid-template-columns:1fr}
+@media(min-width:820px){ .griglia.due{grid-template-columns:1fr 1fr} }
+.tessera{display:flex; align-items:center; gap:12px; background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--border); border-left:3px solid var(--app-accent); border-radius:var(--r-sm);
+  padding:11px 13px; box-shadow:var(--sh1),var(--edge)}
+.tessera .col{flex:1; min-width:0}
+.tessera .l{font-size:10px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--muted)}
+.tessera .n{font-family:'Barlow Condensed',sans-serif; font-size:29px; font-weight:800; line-height:1.05;
+  color:var(--text); font-variant-numeric:tabular-nums}
+.tessera .n small{font-size:13px; color:var(--muted); font-weight:600}
+/* sonde: servono solo alla misura dei contrasti, non si vedono */
+#sonde{position:absolute; left:-9999px; top:0; width:1px; height:1px; overflow:hidden}
+</style>
+</head>
+<body class="dw p-sentinella">
+
+<div class="top">
+  <div class="top-brand">
+    <div class="logo-sm" id="marca">Sentinella</div>
+    <div class="role-sm">collaudo grafici e fluidità</div>
+  </div>
+  <button class="dw-exit" onclick="giraTema()" id="btn-tema">Tema: scuro</button>
+</div>
+
+<div class="page active" id="pag-graf">
+
+  <div class="barra-coll">
+    <span class="et">Palette</span>
+    <button class="chg active" data-p="sentinella">Sentinella</button>
+    <button class="chg" data-p="scudo">Scudo</button>
+    <button class="chg" data-p="campo">Campo</button>
+    <button class="chg" data-p="flotta">Flotta</button>
+    <button class="chg" data-p="conti">Conti</button>
+    <button class="chg" data-p="terra">Terra</button>
+  </div>
+  <div class="barra-coll">
+    <span class="et">Tema</span>
+    <button class="chg active" data-t="scuro">Scuro</button>
+    <button class="chg" data-t="chiaro">Chiaro</button>
+    <button class="chg" data-t="sole">Sole</button>
+    <span class="et" style="margin-left:10px">Movimento</span>
+    <button class="chg" id="btn-rigioca">Rigioca le animazioni</button>
+  </div>
+
+  <div class="sec">Un numero solo: tessera, non grafico <span class="cnt">regola 1</span></div>
+  <div class="griglia due">
+    <div class="tessera">
+      <div class="col"><div class="l">Ore lavorate oggi</div><div class="n">184 <small>h</small></div></div>
+      <div id="sp1"></div>
+    </div>
+    <div class="tessera">
+      <div class="col"><div class="l">Polveri, ultima lettura</div><div class="n">52 <small>µg/m³</small></div></div>
+      <div id="sp2"></div>
+    </div>
+  </div>
+
+  <div class="sec">Andamento nel tempo <span class="cnt">linea + area + soglia</span></div>
+  <div id="g-linea"></div>
+
+  <div class="sec">Due serie: la legenda c'è sempre <span class="cnt">tratteggio = seconda serie</span></div>
+  <div id="g-due"></div>
+
+  <div class="sec">Grandezze a confronto <span class="cnt">barre verticali</span></div>
+  <div id="g-barre"></div>
+
+  <div class="sec">I pochi che contano <span class="cnt">barre ordinate, taglio all'80%</span></div>
+  <div id="g-pareto"></div>
+
+  <div class="sec">Composizione <span class="cnt">ciambella: poche voci</span></div>
+  <div class="griglia due">
+    <div id="g-ciambella"></div>
+    <div id="g-troppe"></div>
+  </div>
+
+  <div class="sec">Avanzamento con tacca di riferimento <span class="cnt">vita cava, budget</span></div>
+  <div id="g-avanz"></div>
+  <div id="g-avanz2"></div>
+
+  <div class="sec">Serie lunga, etichette selettive <span class="cnt">90 letture</span></div>
+  <div id="g-lunga"></div>
+</div>
+
+<div class="page" id="pag-liste">
+  <div class="sec">Comparsa scaglionata <span class="cnt">26 ms di sfasamento</span></div>
+  <div id="lista" data-dw-scagliona></div>
+  <button class="dw-btn" id="btn-ricarica" style="margin-top:10px">Ricarica la lista</button>
+</div>
+
+<div class="page" id="pag-note">
+  <div class="sec">Che cosa si sta collaudando</div>
+  <div class="note">
+    <b>Grafici.</b> Cinque forme (linea/area, barre, ciambella, sparkline, avanzamento)
+    disegnate in SVG puro da <b>shared/dw-grafici.js</b>. Il colore lo prende dall'app che
+    li ospita: cambiando palette qui sopra cambia tutto il grafico, non un accento sparso.<br><br>
+    <b>Fluidità.</b> Il passaggio fra queste tre schermate, la pillola che scivola sotto la
+    navigazione e la cascata delle liste vengono da <b>shared/dw-fluido.js</b>.
+  </div>
+</div>
+
+<div class="nav">
+  <button class="active" data-pag="pag-graf"><span class="ico"><svg viewBox="0 0 24 24"><path d="M3 3.5v17h18"/><path d="M6.5 15.5l4-4.5 3 2.6 4.4-6"/></svg></span>Grafici</button>
+  <button data-pag="pag-liste"><span class="ico"><svg viewBox="0 0 24 24"><path d="M4 6.5h16M4 12h16M4 17.5h16"/></svg></span>Liste</button>
+  <button data-pag="pag-note"><span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6h.01"/></svg></span>Note</button>
+</div>
+
+<div id="sonde"></div>
+
+<script src="dw-tema.js"></script>
+<script src="dw-grafici.js"></script>
+<script src="dw-fluido.js"></script>
+<script>
+/* ── dati finti, generati qui: nessun dato reale, nessun riferimento privato ── */
+function serie(n, base, amp, semino){
+  var v=[], s=semino||7;
+  for(var i=0;i<n;i++){ s=(s*9301+49297)%233280; v.push(Math.round((base+Math.sin(i/2.1)*amp+(s/233280-0.5)*amp*1.3)*10)/10); }
+  return v;
+}
+var giorni=['1 lug','2 lug','3 lug','4 lug','5 lug','6 lug','7 lug','8 lug','9 lug','10 lug','11 lug','12 lug'];
+
+function disegnaTutto(){
+  dwGrafici.sparkline('#sp1', { valori:[142,156,149,171,163,180,184], larghezza:104, altezza:34 });
+  dwGrafici.sparkline('#sp2', { valori:[22,31,28,46,41,49,52], soglia:50, larghezza:104, altezza:34 });
+
+  dwGrafici.linea('#g-linea', {
+    titolo:'Polveri al confine', meta:'1 → 12 luglio', unita:'µg/m³',
+    x:giorni, serie:[{nome:'Misurato', valori:[22,31,28,46,41,55,52,38,44,61,49,43], area:true}],
+    soglia:{valore:50, etichetta:'limite'},
+    nota:'Il punto oltre soglia è un <b>rombo</b>, non solo rosso: si riconosce anche senza distinguere i colori.'
+  });
+
+  dwGrafici.linea('#g-due', {
+    titolo:'Ore squadra', meta:'settimana corrente', unita:'h',
+    x:['lun','mar','mer','gio','ven','sab'],
+    serie:[{nome:'Fatto', valori:[64,71,58,80,77,42], area:true},
+           {nome:'Previsto', valori:[70,70,70,70,70,40]}]
+  });
+
+  dwGrafici.barre('#g-barre', {
+    titolo:'Ore mezzo nel mese', unita:'h',
+    valori:[{etichetta:'Pala 1', valore:128},{etichetta:'Dumper 3', valore:96, stato:'warn'},
+            {etichetta:'Escav. 2', valore:61},{etichetta:'Pala 2', valore:114},
+            {etichetta:'Dumper 1', valore:88},{etichetta:'Frantoio', valore:143}]
+  });
+
+  dwGrafici.barre('#g-pareto', {
+    titolo:'Cause di fermo', orientamento:'orizzontale', ordina:true, taglio:80, unita:'h',
+    valori:[{etichetta:'Guasti idraulici', valore:44},{etichetta:'Attesa ricambi', valore:31},
+            {etichetta:'Manutenzione programmata', valore:22},{etichetta:'Meteo', valore:9},
+            {etichetta:'Cambio turno', valore:6},{etichetta:'Altro', valore:4}],
+    nota:'Le prime barre in pieno colore sono quelle che portano all’<b>80% delle ore perse</b>: la coda resta, ma spenta.'
+  });
+
+  dwGrafici.ciambella('#g-ciambella', {
+    titolo:'Ripartizione costi', formato:'euro', centro:'Totale mese',
+    valori:[{etichetta:'Gasolio', valore:48200},{etichetta:'Personale', valore:39100},
+            {etichetta:'Ricambi', valore:17400},{etichetta:'Esplosivo', valore:12800},
+            {etichetta:'Trasporti', valore:8600}]
+  });
+
+  dwGrafici.ciambella('#g-troppe', {
+    titolo:'Troppe voci: diventa barre', formato:'euro', centro:'Totale',
+    valori:[{etichetta:'Gasolio',valore:48200},{etichetta:'Personale',valore:39100},
+            {etichetta:'Ricambi',valore:17400},{etichetta:'Esplosivo',valore:12800},
+            {etichetta:'Trasporti',valore:8600},{etichetta:'Assicurazioni',valore:6100},
+            {etichetta:'Utenze',valore:4400},{etichetta:'Consulenze',valore:3900},
+            {etichetta:'Formazione',valore:2100}]
+  });
+
+  dwGrafici.avanzamento('#g-avanz', {
+    titolo:'Volume estratto sul concesso', valore:61.4, massimo:100, unita:'%', stato:'warn',
+    riferimento:{valore:80, etichetta:'soglia di guardia'},
+    nota:'La tacca è il riferimento; il colore del riempimento dice lo stato, ma il numero c’è comunque.'
+  });
+  dwGrafici.avanzamento('#g-avanz2', {
+    titolo:'Budget manutenzione', valore:34200, massimo:120000, formato:'euro',
+    riferimento:{valore:90000, etichetta:'tetto annuo'}
+  });
+
+  dwGrafici.linea('#g-lunga', {
+    titolo:'Vibrazioni, 90 letture', unita:'mm/s', formato:'decimale',
+    x:serie(90,0,0,3).map(function(_,i){ return (i+1)+'/6'; }),
+    serie:[{nome:'PPV', valori:serie(90, 3.1, 1.5, 11), area:true}],
+    soglia:{valore:5, etichetta:'limite DIN'}
+  });
+}
+
+/* ── comandi ── */
+document.querySelectorAll('[data-p]').forEach(function(b){
+  b.addEventListener('click', function(){
+    document.querySelectorAll('[data-p]').forEach(function(x){ x.classList.remove('active'); });
+    b.classList.add('active');
+    var p = b.getAttribute('data-p');
+    document.body.className = document.body.className.replace(/\bp-\w+/, 'p-'+p);
+    document.getElementById('marca').textContent = b.textContent;
+    disegnaTutto();
+  });
+});
+document.querySelectorAll('[data-t]').forEach(function(b){
+  b.addEventListener('click', function(){
+    document.querySelectorAll('[data-t]').forEach(function(x){ x.classList.remove('active'); });
+    b.classList.add('active');
+    dwTema(b.getAttribute('data-t'));
+    document.getElementById('btn-tema').textContent = 'Tema: '+b.getAttribute('data-t');
+  });
+});
+window.giraTema = function(){
+  var t = dwTema();
+  document.getElementById('btn-tema').textContent = 'Tema: '+t;
+  document.querySelectorAll('[data-t]').forEach(function(x){ x.classList.toggle('active', x.getAttribute('data-t')===t); });
+};
+document.getElementById('btn-rigioca').addEventListener('click', disegnaTutto);
+
+document.querySelector('.nav').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if(!b) return;
+  document.querySelectorAll('.nav button').forEach(function(x){ x.classList.remove('active'); });
+  b.classList.add('active');
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+  document.getElementById(b.getAttribute('data-pag')).classList.add('active');
+});
+
+function riempiLista(){
+  var l = document.getElementById('lista');
+  l.innerHTML = '';
+  var voci = ['Pala gommata 1','Dumper 3','Escavatore 2','Frantoio primario','Perforatrice A',
+              'Dumper 1','Pala gommata 2','Compressore','Gruppo elettrogeno','Cisterna gasolio'];
+  voci.forEach(function(v,i){
+    var d = document.createElement('div');
+    d.className = 'item ' + (i%4===0?'st-warn':i%5===0?'st-danger':'st-accent');
+    var a = document.createElement('div'); a.className='avatar'; a.textContent = v.slice(0,2).toUpperCase();
+    var info = document.createElement('div'); info.className='info';
+    var nm = document.createElement('div'); nm.className='name'; nm.textContent = v;
+    var mt = document.createElement('div'); mt.className='meta'; mt.textContent = 'ultimo controllo · '+(i+3)+' giorni fa';
+    info.appendChild(nm); info.appendChild(mt);
+    var bg = document.createElement('span'); bg.className='badge '+(i%4===0?'warn':i%5===0?'danger':'ok');
+    bg.textContent = i%4===0?'in scadenza':i%5===0?'scaduto':'in regola';
+    d.appendChild(a); d.appendChild(info); d.appendChild(bg);
+    l.appendChild(d);
+  });
+}
+document.getElementById('btn-ricarica').addEventListener('click', riempiLista);
+
+/* ── sonde per la misura dei contrasti (non si vedono) ── */
+var TOKEN = ['--dwg-s1','--dwg-s2','--dwg-s3','--dwg-s4','--dwg-s5','--dwg-c1','--dwg-c2','--dwg-c3',
+             '--dwg-altro','--dwg-ok','--dwg-wr','--dwg-dg','--dwg-fade','--dwg-grid','--dwg-axis',
+             '--dwg-rif','--dwg-track','--card','--card2','--bg','--text','--muted','--muted2','--app-accent2'];
+(function(){
+  var s = document.getElementById('sonde');
+  TOKEN.forEach(function(t){
+    var d = document.createElement('i');
+    d.id = 'sonda' + t.replace(/-/g,'_');
+    d.style.color = 'var('+t+')';
+    s.appendChild(d);
+  });
+})();
+window.leggiSonde = function(){
+  var out = {};
+  TOKEN.forEach(function(t){
+    out[t] = getComputedStyle(document.getElementById('sonda'+t.replace(/-/g,'_'))).color;
+  });
+  return out;
+};
+
+riempiLista();
+disegnaTutto();
+</script>
+</body>
+</html>

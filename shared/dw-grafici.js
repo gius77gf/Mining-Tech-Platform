@@ -129,6 +129,20 @@
     if (testo != null) d.textContent = String(testo);
     return d;
   }
+  /* Titoli e note le scrive chi programma, non i dati: qui è comodo poter
+     mettere in grassetto una parola. Si accetta SOLO <b>…</b> e lo si
+     costruisce a mano con createElement: nessun innerHTML, quindi neanche
+     un'etichetta che arrivasse dai dati potrebbe iniettare HTML. */
+  function divRicco(cls, testo) {
+    var d = document.createElement('div');
+    if (cls) d.className = cls;
+    String(testo).split(/<b>|<\/b>/).forEach(function (pezzo, i) {
+      if (!pezzo) return;
+      if (i % 2) { var b = document.createElement('b'); b.textContent = pezzo; d.appendChild(b); }
+      else d.appendChild(document.createTextNode(pezzo));
+    });
+    return d;
+  }
   function bersaglio(rif) {
     if (!rif) return null;
     return typeof rif === 'string' ? document.querySelector(rif) : rif;
@@ -153,7 +167,7 @@
     if (f === 'percentuale') return function (v) { return fmtDec.format(v).replace(',0', '') + '%'; };
     if (f === 'decimale') return function (v) { return fmtDec.format(v); };
     if (f === 'compatto') return compatto;
-    return function (v) { return Math.abs(v) < 10 && v % 1 !== 0 ? fmtDec.format(v) : fmtInt.format(v); };
+    return function (v) { return (v % 1 !== 0 && Math.abs(v) < 1000) ? fmtDec.format(v) : fmtInt.format(v); };
   }
   function conUnita(testo, unita) { return unita ? testo + ' ' + unita : testo; }
 
@@ -233,7 +247,7 @@
 
     this.legenda = div('dwg-leg');
     fig.appendChild(this.legenda);
-    if (s.nota) fig.appendChild(div('dwg-nota', s.nota));
+    if (s.nota) fig.appendChild(divRicco('dwg-nota', s.nota));
     this.piede = fig;
 
     this.el.appendChild(fig);
@@ -394,7 +408,9 @@
 
     var etY = sc.tacche.map(function (v) { return fmt(v); });
     var mSx = Math.max(30, Math.round(Math.max.apply(null, etY.map(function (t) { return testoLargo(t, 10); }))) + 12);
-    var box = { x0: mSx, x1: largo - 12, y0: 10, y1: alto - 26 };
+    /* l'unità sta SOPRA la scala, non in fondo a sinistra: là finirebbe
+       addosso alla prima etichetta dei tempi */
+    var box = { x0: mSx, x1: largo - 12, y0: s.unita ? 22 : 12, y1: alto - 26 };
     var px = function (i) { return n === 1 ? (box.x0 + box.x1) / 2 : box.x0 + (box.x1 - box.x0) * i / (n - 1); };
     var py = function (v) { return box.y1 - (box.y1 - box.y0) * (v - sc.min) / (sc.max - sc.min); };
 
@@ -465,15 +481,21 @@
       });
     });
 
-    /* etichette selettive: l'ultimo valore della prima serie, e basta */
+    /* etichette selettive: l'ultimo valore della prima serie, e basta.
+       Se cadrebbe sopra la linea della soglia scende sotto il punto: due
+       segni sovrapposti non si leggono né l'uno né l'altro. */
     var ultI = ultimoIndice(serie[0].valori);
     if (ultI >= 0 && s.etichetteValore !== false) {
       var uv = serie[0].valori[ultI];
-      var tx = px(ultI), ty = py(uv) - 11;
-      var anc = tx > box.x1 - 44 ? 'end' : 'middle';
+      var testoU = conUnita(fmt(uv), s.unita);
+      var largU = testoLargo(testoU, 11.5);
+      var tx = Math.min(px(ultI), box.x1 - largU / 2);
+      var ty = py(uv) - 11;
+      if (soglia != null && !sogliaFuori && Math.abs(ty - py(soglia)) < 13) ty = py(uv) + 18;
+      ty = Math.max(box.y0 + 9, Math.min(box.y1 - 3, ty));
       svg.appendChild(nodo('text', {
-        'class': 'dwg-vallab', x: tx.toFixed(1), y: Math.max(box.y0 + 9, ty).toFixed(1), 'text-anchor': anc
-      }, conUnita(fmt(uv), s.unita)));
+        'class': 'dwg-vallab', x: tx.toFixed(1), y: ty.toFixed(1), 'text-anchor': 'middle'
+      }, testoU));
     }
 
     /* tacche: numeri arrotondati a sinistra, tempi sotto (mai tutti) */
@@ -483,7 +505,7 @@
     var passoX = Math.max(1, Math.ceil(n / (largo >= 620 ? 8 : 5)));
     for (var i = 0; i < n; i += passoX) etichettaX(svg, x[i], px(i), box, n, i);
     if (n > 1 && (n - 1) % passoX !== 0) etichettaX(svg, x[n - 1], px(n - 1), box, n, n - 1);
-    if (s.unita) svg.appendChild(nodo('text', { 'class': 'dwg-axlab', x: 0, y: box.y1 + 15, 'text-anchor': 'start' }, s.unita));
+    if (s.unita) svg.appendChild(nodo('text', { 'class': 'dwg-axlab', x: 0, y: box.y0 - 8, 'text-anchor': 'start' }, s.unita));
 
     /* ── crosshair + tooltip: il puntatore mira a una data, non a una linea ── */
     var mira = nodo('g', { opacity: '0' });
@@ -674,7 +696,7 @@
       alto = s.altezza || (largo >= 620 ? 240 : 200);
       var etY2 = sc.tacche.map(function (v) { return fmt(v); });
       var mSx2 = Math.max(28, Math.round(Math.max.apply(null, etY2.map(function (t) { return testoLargo(t, 10); }))) + 12);
-      box = { x0: mSx2, x1: largo - 10, y0: 22, y1: alto - 30 };
+      box = { x0: mSx2, x1: largo - 10, y0: s.unita ? 30 : 22, y1: alto - 30 };
       svg = g.tela(largo, alto, s.aria || ariaBarre(s, dati, fmt));
       var banda = (box.x1 - box.x0) / dati.length;
       var spess = Math.min(24, banda * 0.6);
@@ -703,7 +725,7 @@
         var xTag = box.x0 + banda * (taglio + 1);
         svg.appendChild(nodo('line', { 'class': 'dwg-taglio', x1: xTag.toFixed(1), y1: box.y0 - 6, x2: xTag.toFixed(1), y2: box.y1 }));
       }
-      if (s.unita) svg.appendChild(nodo('text', { 'class': 'dwg-axlab', x: 0, y: box.y1 + 15, 'text-anchor': 'start' }, s.unita));
+      if (s.unita) svg.appendChild(nodo('text', { 'class': 'dwg-axlab', x: 0, y: box.y0 - 12, 'text-anchor': 'start' }, s.unita));
       collegaBarre(g, svg, dati, fmt, s, taglio, totale);
     }
 
@@ -814,9 +836,11 @@
       var s2 = {};
       for (var k in s) s2[k] = s[k];
       s2.tipo = 'barre'; s2.orientamento = 'orizzontale'; s2.ordina = true; s2.valori = dati;
-      s2.nota = (s.nota ? s.nota + ' ' : '') + 'Le voci sono ' + dati.length + ': una ciambella con così tanti spicchi non si legge, quindi le stesse quote sono in barre ordinate.';
+      s2.nota = null;
       g.spec = s2;
       disegnaBarre(g);
+      var spieg = divRicco('dwg-nota', 'Le voci sono <b>' + dati.length + '</b>: una ciambella con così tanti spicchi non si legge più, quindi le stesse quote sono disegnate in <b>barre ordinate</b>.');
+      if (g._tab) g.piede.insertBefore(spieg, g._tab); else g.piede.appendChild(spieg);
       return;
     }
     /* le voci oltre il limite si accorpano in "Altro" (tinta neutra: non è
@@ -1009,8 +1033,10 @@
 
     if (conTacca) {
       var xr = largo * Math.max(0, Math.min(1, s.riferimento.valore / massimo));
-      svg.appendChild(nodo('line', { 'class': 'dwg-tacca-orlo', x1: xr.toFixed(1), y1: y - 4, x2: xr.toFixed(1), y2: y + hBarra + 4 }));
-      svg.appendChild(nodo('line', { 'class': 'dwg-tacca', x1: xr.toFixed(1), y1: y - 4, x2: xr.toFixed(1), y2: y + hBarra + 4 }));
+      svg.appendChild(nodo('line', { 'class': 'dwg-tacca-orlo', x1: xr.toFixed(1), y1: y - 5, x2: xr.toFixed(1), y2: y + hBarra + 5 }));
+      svg.appendChild(nodo('line', { 'class': 'dwg-tacca', x1: xr.toFixed(1), y1: y - 5, x2: xr.toFixed(1), y2: y + hBarra + 5 }));
+      svg.appendChild(nodo('path', { 'class': 'dwg-tacca-cap',
+        d: 'M' + (xr - 4.5).toFixed(1) + ' ' + (y - 9) + 'L' + (xr + 4.5).toFixed(1) + ' ' + (y - 9) + 'L' + xr.toFixed(1) + ' ' + (y - 3) + 'Z' }));
       var et = (s.riferimento.etichetta || 'riferimento') + ' ' + conUnita(fmt(s.riferimento.valore), s.unita);
       var anc = xr > largo - testoLargo(et, 10) ? 'end' : xr < testoLargo(et, 10) / 2 ? 'start' : 'middle';
       svg.appendChild(nodo('text', { 'class': 'dwg-tick', x: xr.toFixed(1), y: y + hBarra + 18, 'text-anchor': anc }, et));
