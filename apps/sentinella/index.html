@@ -1251,6 +1251,35 @@ textarea.dw-input{
   // classe della striscia laterale: lo stato si legge anche senza colore
   const striscia = { danger: "st-danger", warn: "st-warn", ok: "st-ok", accent: "st-accent" };
 
+  // ── Note doppie nei grafici: guardia locale ───────────────────────────
+  // Quando il motore condiviso RIDISEGNA un grafico a linea (rotazione del
+  // telefono, cambio di larghezza, passaggio all'anteprima di stampa)
+  // rimette in fondo l'avviso «la soglia è fuori scala» senza togliere
+  // quello di prima: dopo due ridisegni la stessa frase compare due volte,
+  // e su un report che va all'ente sembra un errore nostro. Qui il piede
+  // del grafico si tiene pulito osservando le aggiunte, senza toccare
+  // shared/ (che è di tutte le app).
+  (function () {
+    const ripulisci = (fig) => {
+      const viste = new Set();
+      fig.querySelectorAll(":scope > .dwg-nota").forEach(n => {
+        const t = (n.textContent || "").trim();
+        if (viste.has(t)) n.remove(); else viste.add(t);
+      });
+    };
+    const osservatore = new MutationObserver(muts => {
+      const figure = new Set();
+      for (const m of muts) {
+        const t = m.target;
+        if (!t || t.nodeType !== 1 || !t.classList || !t.classList.contains("dwg")) continue;
+        for (const n of m.addedNodes)
+          if (n.nodeType === 1 && n.classList && n.classList.contains("dwg-nota")) figure.add(t);
+      }
+      figure.forEach(ripulisci);
+    });
+    osservatore.observe(document.body, { childList: true, subtree: true });
+  })();
+
   const db = await sentinellaData();
   mountExit(db);
   if (db.mode !== "live") $("tour-banner").style.display = "block";

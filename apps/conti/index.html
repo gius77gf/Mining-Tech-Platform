@@ -444,6 +444,18 @@ label.item:has(.dw-chk:checked){
   .nav .ico svg{width:18px; height:18px}
 }
 
+/* ─────────────── azioni di riga su schermo stretto ───────────────
+   Con tre azioni (stampa, modifica, elimina) il nome del cliente verrebbe
+   strizzato in due righe con i puntini: su telefono le azioni prendono una
+   riga tutta loro — come già succede alle voci col bottone del sollecito —
+   e il nome torna leggibile per intero. Chi deve chiamare un cliente deve
+   poterne leggere il nome. */
+@media(max-width:440px){
+  .item>.info{flex:1 1 100%}                     /* nome e dettaglio a tutta riga */
+  .item>.acts{order:5; flex:0 0 auto; margin-top:3px}   /* poi stato, azioni, importo */
+  .item>.badge{margin-top:3px}
+}
+
 /* ══════════════════════════════════════════════════════════════════════
    STAMPA DI CORTESIA — DDT E FATTURA (N7)
    Il camionista vuole un foglio in mano e il cliente vuole la fattura da
@@ -1634,7 +1646,11 @@ label.item:has(.dw-chk:checked){
         // segmenti dritti, non curva: con i mesi a zero una curva morbida
         // scenderebbe SOTTO lo zero, e un incasso negativo non esiste
         curva: false,
-        x: flu.mesi.map(m => nomeMeseK(m.mese)),
+        // etichette corte sull'asse: a 390 px "giu 2026" e "lug 2026" si
+        // toccherebbero. L'anno resta dove serve davvero — sul primo mese e a
+        // ogni gennaio — e per esteso è scritto nell'elenco qui sotto.
+        x: flu.mesi.map((m, i) => { const [y, mm] = m.mese.split("-");
+          return MESI_N[(+mm) - 1] + (i === 0 || +mm === 1 ? " " + y : ""); }),
         serie: [
           { nome: "Emesso", valori: flu.mesi.map(m => Math.round(m.emesso)), area: true },
           { nome: "Incassato", valori: flu.mesi.map(m => Math.round(m.incassato)) },

@@ -2211,7 +2211,7 @@
     $("sco-riep").innerHTML = p.righe.length
       ? `Con <b>${consegna}</b> giorni di consegna e <b>${sicurezza}</b> di margine, la scorta deve coprire <b>${consegna + sicurezza} giorni</b> di consumo. `
         + `Il conto si può fare su <b>${p.righe.length}</b> ${p.righe.length === 1 ? "ricambio" : "ricambi"} (quelli davvero usati negli ultimi ${p.finestra} giorni, su ${p.interventi} ${p.interventi === 1 ? "intervento chiuso" : "interventi chiusi"})`
-        + (p.senzaConsumo.length ? `; sugli altri <b>${p.senzaConsumo.length}</b> no, perché non risultano mai usati` : "")
+        + (p.senzaConsumo.length ? (p.senzaConsumo.length === 1 ? "; sull'<b>altro</b> no" : `; sugli altri <b>${p.senzaConsumo.length}</b> no`) + ", perché non risultano mai usati" : "")
         + ". "
         + (p.daOrdinare
             ? `<span class="rosso">${p.daOrdinare} ${p.daOrdinare === 1 ? "ricambio è sotto quello che servirebbe" : "ricambi sono sotto quello che servirebbe"}</span>`
@@ -2222,18 +2222,29 @@
 
     $("sco-list").innerHTML = p.righe.map(r => {
       const cls = r.daOrdinare > 0 ? "danger" : r.differenza > 0 ? "warn" : "ok";
+      // Il ✓ propone di CAMBIARE la soglia, e si mostra solo quando ha senso:
+      //  · se ne servirebbero di più, sempre — restare sotto è un rischio;
+      //  · se ne servirebbero di meno, solo con almeno due consumi registrati.
+      //    Abbassare una scorta su un consumo solo è il modo migliore per
+      //    ritrovarsi la macchina ferma ad aspettare il pezzo.
+      const offri = r.differenza > 0 || (r.differenza < 0 && r.affidabile);
+      const conto = pz(r.pezzi) + " in " + r.episodi + (r.episodi === 1 ? " intervento" : " interventi")
+        + " = " + r.alGiorno.toLocaleString("it-IT", { maximumFractionDigits: 3 }) + " pezzi al giorno";
+      const terza = [
+        r.affidabile ? "" : "Un solo consumo registrato: è un ordine di grandezza, non una media.",
+        r.daOrdinare ? "Da ordinare: <b>" + r.daOrdinare + "</b>" + (r.spesa != null ? " (" + eur(r.spesa) + ")" : "") + "." : "",
+      ].filter(Boolean).join(" ");
       return `<div class="item statico ${striscia[cls] || "st-mute"}">
         <div class="avatar sup">${I.bullone}</div>
         <div class="info"><div class="name">${esc(r.nome)}</div>
-          <div class="meta">usati <b>${pz(r.pezzi)}</b> in ${r.episodi} ${r.episodi === 1 ? "intervento" : "interventi"} = ${r.alGiorno.toLocaleString("it-IT", { maximumFractionDigits: 3 })} al giorno · × ${r.copertura} giorni = <b>${r.sogliaProposta}</b> da tenere${r.giacenza != null ? " · adesso ne hai " + r.giacenza : ""}</div>
-          <div class="meta norma">${r.affidabile
-            ? "Soglia scritta oggi: " + r.sogliaAttuale + (r.differenza === 0 ? " — già quella giusta." : r.differenza > 0 ? " — ne servirebbero " + r.differenza + " in più." : " — " + (-r.differenza) + " in più del necessario.")
-            : "Un solo consumo registrato: la media è fragile, prendila come un ordine di grandezza."}${r.daOrdinare ? " Da ordinare: <b>" + r.daOrdinare + "</b>" + (r.spesa != null ? " (" + eur(r.spesa) + ")" : "") + "." : ""}</div></div>
-        <div class="acts"><span class="badge ${cls}">${r.daOrdinare ? "ne mancano " + r.daOrdinare : r.differenza > 0 ? "alza a " + r.sogliaProposta : "a posto"}</span>
-        ${r.differenza !== 0 ? `<span class="arr ok" role="button" tabindex="0" title="Usa ${r.sogliaProposta} come soglia minima di questo ricambio" aria-label="Porta la soglia di ${esc(r.nome)} a ${r.sogliaProposta}" data-sco-usa="${r.id}">${I.spunta}</span>` : ""}</div></div>`;
+          <div class="meta">${conto}</div>
+          <div class="meta">× ${r.copertura} giorni = <b>${r.sogliaProposta}</b> da tenere · soglia oggi ${r.sogliaAttuale} · in magazzino ${r.giacenza}</div>
+          ${terza ? `<div class="meta norma">${terza}</div>` : ""}</div>
+        <div class="acts"><span class="badge ${cls}">${r.daOrdinare ? (r.daOrdinare === 1 ? "ne manca 1" : "ne mancano " + r.daOrdinare) : r.differenza > 0 ? "alza a " + r.sogliaProposta : "a posto"}</span>
+        ${offri ? `<span class="arr ok" role="button" tabindex="0" title="Usa ${r.sogliaProposta} come soglia minima di questo ricambio" aria-label="Porta la soglia di ${esc(r.nome)} a ${r.sogliaProposta}" data-sco-usa="${r.id}">${I.spunta}</span>` : ""}</div></div>`;
     }).join("")
       + (p.senzaConsumo.length
-        ? `<div class="count">${p.senzaConsumo.length === 1 ? "1 ricambio non risulta mai usato" : p.senzaConsumo.length + " ricambi non risultano mai usati"} negli ultimi ${p.finestra} giorni: ${p.senzaConsumo.slice(0, 6).map(r => esc(r.nome)).join(", ")}${p.senzaConsumo.length > 6 ? " e altri " + (p.senzaConsumo.length - 6) : ""}. Per loro non c'è una proposta.</div>`
+        ? `<div class="note">${p.senzaConsumo.length === 1 ? "<b>1 ricambio</b> non risulta mai usato" : "<b>" + p.senzaConsumo.length + " ricambi</b> non risultano mai usati"} negli ultimi ${p.finestra} giorni: ${p.senzaConsumo.slice(0, 6).map(r => esc(r.nome)).join(", ")}${p.senzaConsumo.length > 6 ? " e altri " + (p.senzaConsumo.length - 6) : ""}. Per ${p.senzaConsumo.length === 1 ? "lui" : "loro"} non c'è nessuna proposta: la soglia resta quella che hai scritto tu.</div>`
         : "");
   }
 

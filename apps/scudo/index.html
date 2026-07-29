@@ -244,6 +244,13 @@
   text-transform:uppercase; color:var(--muted); margin:14px 0 7px;
 }
 .nm-lab:first-child{margin-top:2px}
+/* Campo con la sua etichetta sopra. Un <input type="date"> vuoto è una
+   casella muta: il title si vede solo passandoci sopra il mouse, e sul
+   telefono il mouse non c'è. Due date affiancate senza etichetta sono un
+   indovinello — qui c'è scritto quale è quale. */
+.fcamp{display:flex; flex-direction:column; gap:5px}
+.fcamp>.nm-lab{margin:0}
+.fcamp>.dw-input{width:100%}
 .modal-body .chgs{margin-bottom:0}
 /* Tastierino: due colonne per «che cosa», tre per «dove». Bersagli larghi e
    sempre nello stesso posto — con i guanti si colpisce a memoria, senza
@@ -293,6 +300,18 @@
   white-space:normal; text-align:left; overflow-wrap:anywhere; max-width:100%;
 }
 .reqs .badge.tocca{cursor:pointer}
+/* La pillola rossa è un BOTTONE, non un'etichetta: è il gesto con cui un
+   corso mancante entra nello scadenzario. Alta 17px è un bersaglio da mouse,
+   non da dito — men che meno da dito guantato. Dove si tocca (telefono,
+   tablet) la si porta all'altezza di un bersaglio vero, senza cambiare né
+   colore né testo: cresce solo lo spazio intorno alle parole. */
+@media(hover:none),(pointer:coarse){
+  .reqs{gap:6px}
+  .reqs .badge.tocca{
+    display:inline-flex; align-items:center; min-height:34px; padding:6px 11px;
+  }
+  .reqs .badge.tocca:active{transform:scale(.97)}
+}
 .reqs .badge.mute{background:var(--card2); color:var(--muted); border:1px solid var(--border2); box-shadow:none}
 /* la scheda di una mansione nella matrice: il titolo della sotto-sezione */
 .sub-sec{
@@ -569,6 +588,7 @@
         <select class="dw-input" id="nom-lav" style="flex:1 1 180px;"></select>
       </div>
       <div class="note" id="nom-ruolo-nota" style="display:none;margin-top:0;"></div>
+      <div class="nm-lab">Da quando è in carica</div>
       <div class="frow">
         <input class="dw-input" id="nom-dal" type="date" title="Nominato dal" style="flex:1 1 150px;">
         <input class="dw-input" id="nom-note" placeholder="Nota (es. turno o area)" style="flex:2 1 190px;">
@@ -600,9 +620,15 @@
         <input class="dw-input" id="dpi-modello" placeholder="Modello (facoltativo)" style="flex:2 1 180px;">
         <input class="dw-input" id="dpi-taglia" placeholder="Taglia" style="flex:1 1 110px;">
       </div>
-      <div class="frow">
-        <input class="dw-input" id="dpi-data" type="date" title="Data di consegna" style="flex:1 1 150px;">
-        <input class="dw-input" id="dpi-scad" type="date" title="Da sostituire entro" style="flex:1 1 150px;">
+      <div class="frow" style="--frow-align:end;">
+        <label class="fcamp" style="flex:1 1 150px;">
+          <span class="nm-lab">Consegnato il</span>
+          <input class="dw-input" id="dpi-data" type="date" title="Data di consegna">
+        </label>
+        <label class="fcamp" style="flex:1 1 150px;">
+          <span class="nm-lab">Da sostituire entro</span>
+          <input class="dw-input" id="dpi-scad" type="date" title="Da sostituire entro">
+        </label>
       </div>
       <div class="frow">
         <button type="button" class="chg" id="dpi-addestr" aria-pressed="false">Addestramento fatto</button>
@@ -2661,7 +2687,11 @@
     const puntini = '<span style="letter-spacing:1px;">........................................</span>';
     const righe = v.righe.map(r => {
       const c = r.consegna;
-      const add = !r.addestramentoRichiesto ? "non previsto"
+      // Se l'addestramento non è obbligatorio ma è stato fatto lo stesso, il
+      // foglio lo dice: è lavoro fatto e registrato, buttarlo via scrivendo
+      // «non previsto» sarebbe far sparire una cosa vera.
+      const add = !r.addestramentoRichiesto
+        ? (r.addestramentoFatto ? "fatto (non obbligatorio)" : "non previsto")
         : (r.addestramentoFatto
             ? "fatto" + (c.dataAddestramento ? " il " + fmtData(c.dataAddestramento) : "")
             : "DA FARE");
