@@ -300,13 +300,32 @@ danno mappe per foro.
 - [ ] G7–G9: ottimizzatore di volata, report professionale, rifiniture scena.
 
 ## BLOCCO 4 — I PONTI TRA LE APP *(il valore d'insieme)*
+Qui sta la ragione per cui sei app valgono più di sei programmi: **un dato
+inserito una volta serve in cinque posti**.
+
+- [x] **P0. Campo → Genesi: la carica reale torna alla riconciliazione**
+      ✅ *(29/07, `061d2e9`)* — il consuntivo esce nello stesso formato del
+      piano (file vecchi ancora leggibili), con lo scarto in chili **col
+      segno** e la misura non arrotondata; Genesi lo rilegge per nome di
+      colonna e precompila solo ciò che il file sa, lasciando vuote con la
+      ragione scritta le misure che solo l'uomo può fare. Ogni numero dichiara
+      da dove viene. Emerso dalla prova, e ora detto dall'app: il totale può
+      essere in linea mentre ogni singolo foro è fuori del 20%.
+- [x] **P5. Sentinella → Scudo: dal superamento all'azione correttiva**
+      ✅ *(29/07, `f71b19a`)* — un superamento o un reclamo genera in un tocco
+      l'azione dentro lo scadenzario esistente di Scudo, collegata alla sua
+      origine e senza doppioni; lo stato si rivede dal lato ambientale. Il
+      collegamento con la volata è dichiarato **coincidenza, non causa**.
 - [ ] P1. **Genesi → Sentinella**: la volata progettata entra nel registro di
       monitoraggio; Sentinella aggiunge il misurato e calcola lo scarto. Con
       abbastanza volate si tara la legge di sito e il dato **torna in Genesi**
-      (chiude il cerchio con G3).
+      (chiude il cerchio con G3, che ora esiste).
 - [ ] P2. **Campo → Terra**: produzione del turno → volumi per fronte.
-- [ ] P3. **Terra → Conti**: m³ → tonnellate → valore (usando la densità di N1).
-- [ ] P4. **Riconciliazione**: m³ estratti vs tonnellate vendute.
+- [ ] P3/P4. **Terra ↔ Conti — cavato contro venduto** *(in corso)*: m³ contro
+      tonnellate, con la densità del listino; il divario che resta (sfrido,
+      materiale a piazzale) mostrato come tale. La sostanza è in albero
+      (`cavatoPeriodo`, `vendutoPeriodo`, `valoreCavato` e la schermata in
+      Conti): mancano le rifiniture visive.
 
 ## BLOCCO 5 — FONDAZIONE E QUALITÀ
 - [ ] Q1. Proposte di `docs/RICERCA_DEEPWORKID_202607.md` (ruoli reali di
