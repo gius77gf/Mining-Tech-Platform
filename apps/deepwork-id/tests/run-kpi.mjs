@@ -122,7 +122,10 @@ test("SCADENZE_PRESET: lista non vuota, chiavi uniche, categorie/tipo validi", (
   const P = scudo.SCADENZE_PRESET;
   eq(P.length > 0, true, "non vuota");
   eq(P.length, new Set(P.map(x => x.chiave)).size, "chiavi uniche");
-  eq(P.every(x => x.categoria === "persona" || x.categoria === "azienda"), true, "categorie valide");
+  // "cava" è la terza categoria, aggiunta col blocco di preset del D.Lgs 624/96
+  // (relazione annuale sulla stabilità dei fronti, DSS, sorvegliante…): sono
+  // adempimenti dell'attività estrattiva, né della persona né dell'azienda.
+  eq(P.every(x => ["persona", "azienda", "cava"].includes(x.categoria)), true, "categorie valide");
   eq(P.every(x => x.tipo && x.etichetta), true, "tipo + etichetta presenti");
 });
 test("presetScadenza: chiave valida → daVerificare true; inesistente → null", () => {
@@ -346,8 +349,17 @@ test("esposizioneClienti: totale non incassato per cliente, con scaduto, dal pi�
   ];
   const e = conti.esposizioneClienti(fatture, oggi);
   eq(e.length, 2, "2 clienti esposti");
-  eq(e[0], { cliente: "Edil Srl", totale: 8000, scaduto: 5000, conto: 2 }, "Edil in cima: 8000, scaduto 5000");
-  eq(e[1], { cliente: "Strade Spa", totale: 2000, scaduto: 0, conto: 1 }, "Strade: 2000, niente scaduto");
+  // Con l'anagrafica clienti la riga porta anche chiave, clienteId, fido e
+  // oltreFido. Si verificano i campi che contano invece dell'uguaglianza
+  // esatta: aggiungere un campo non deve far fallire un test che non lo usa.
+  eq(e[0].cliente, "Edil Srl", "Edil in cima");
+  eq(e[0].totale, 8000, "totale esposto 8000");
+  eq(e[0].scaduto, 5000, "di cui scaduto 5000");
+  eq(e[0].conto, 2, "su 2 fatture");
+  eq(e[1].cliente, "Strade Spa", "Strade seconda");
+  eq(e[1].totale, 2000, "totale esposto 2000");
+  eq(e[1].scaduto, 0, "niente scaduto");
+  eq(e[1].conto, 1, "su 1 fattura");
 });
 test("esposizioneClienti: nessuna fattura aperta = lista vuota (niente crash)", () =>
   eq(conti.esposizioneClienti([{ cliente: "X", importo: 100, incassata: true, scadenza: "2026-07-01" }]), [], "tutte incassate"));
