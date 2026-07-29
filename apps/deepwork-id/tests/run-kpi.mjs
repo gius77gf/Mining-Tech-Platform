@@ -1570,5 +1570,47 @@ test("le soglie dichiarate della legge di sito: 3 referti per esistere, 8 per es
   ok(sentinella.REFERTI_SOLIDI === 8, `REFERTI_SOLIDI ${sentinella.REFERTI_SOLIDI}`);
 });
 
+console.log("\n— Ponte Genesi → Sentinella: la volata prevista —");
+// Una volata PROGETTATA non è una volata SPARATA. Tenerle distinte non è
+// pedanteria: se una previsione entrasse fra i referti, falserebbe la legge
+// di sito, cioè il calcolo da cui dipendono le distanze di sicurezza.
+test("una volata senza il campo stato vale ESEGUITA (è ciò che è)", () => {
+  ok(sentinella.statoVolata({}) === "eseguita", "le volate storiche non devono cambiare natura");
+  ok(sentinella.statoVolata({ stato: "PREVISTA" }) === "prevista", "maiuscole e spazi non contano");
+  ok(sentinella.statoVolata({ stato: "boh" }) === "eseguita", "uno stato illeggibile non deve far sparire una volata");
+});
+test("VINCOLO: una volata prevista non diventa mai un referto", () => {
+  const prevista = { id: "p1", data: "2026-07-27", stato: "prevista", distanzaRicettore: 300, kgMaxRitardo: 58, ppvPrevista: 6.4 };
+  const r = sentinella.refertoDaVolata(prevista);
+  ok(r.pronto === false, "una previsione non è una misura");
+  ok(r.motivi.includes("prevista"), `il motivo va detto: ${JSON.stringify(r.motivi)}`);
+  ok(r.ppv === null, `la PPV del referto non deve prendere la prevista: ${r.ppv}`);
+  const forzata = sentinella.refertoDaVolata({ ...prevista, ppvMisurata: 6.1 });
+  ok(forzata.pronto === false, "nemmeno con una misura addosso, finché è prevista");
+});
+test("la guardia ridondante del CSV scarta comunque una prevista", () =>
+  ok(sentinella.csvRefertiGenesi([{ pronto: true, prevista: true, d: 300, w: 58, ppv: 6.4, data: "2026-07-27" }])
+       .trim().split("\n").length === 1, "due guardie indipendenti valgono più di una"));
+test("una eseguita con misura entra, e porta la MISURA non la previsione", () => {
+  const r = sentinella.refertoDaVolata({ id: "e1", data: "2026-07-17", distanzaRicettore: 320, kgMaxRitardo: 18,
+                                         ppvMisurata: 5.6, ppvPrevista: 4.6 });
+  ok(r.pronto === true, "questa è una misura vera");
+  ok(r.ppv === 5.6, `deve valere 5,6 (misurato), non 4,6 (previsto): ${r.ppv}`);
+  const csv = sentinella.csvRefertiGenesi([r]);
+  ok(/5\.6/.test(csv) && !/4\.6/.test(csv), "nel file per Genesi la previsione non deve comparire");
+});
+test("una volata prevista non è un fatto avvenuto", () => {
+  const prevista = { id: "p1", data: "2026-07-27", stato: "prevista" };
+  ok(sentinella.volateDelGiorno([prevista], "2026-07-27").length === 0, "non è successo niente quel giorno");
+  ok(sentinella.volateDelGiorno([{ data: "2026-07-27" }], "2026-07-27").length === 1, "una volata senza stato sì");
+});
+test("lo scarto fra previsto e misurato: è il confronto che dà valore al registro", () => {
+  const sc = sentinella.scartoPpvVolata({ ppvPrevista: 4.6, ppvMisurata: 5.6 });
+  ok(Math.abs(sc.delta - 1) < 0.005, `delta ${sc.delta} invece di 1`);
+  ok(Math.abs(sc.pct - 21.7) < 0.05, `${sc.pct}% invece di 21,7`);
+  ok(sc.verso === "sopra", `verso ${sc.verso}`);
+  ok(sentinella.scartoPpvVolata({ ppvPrevista: 4.6 }) === null, "senza misura è null, non «scarto zero»");
+});
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
