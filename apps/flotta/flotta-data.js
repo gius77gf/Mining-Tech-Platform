@@ -38,7 +38,13 @@ export const DEMO = {
     { id: "c3", voce: "Noleggi esterni", importo: 1200, nota: "gru mobile 2gg" },
   ],
   interventi: [
-    { id: "w1", data: "2026-07-10", titolo: "Tagliando 500h", mezzo: "Escavatore PC210", ricambio: "Filtro olio", costo: 420, note: "olio + filtri" },
+    { id: "w1", data: "2026-07-10", titolo: "Tagliando 500h", mezzo: "Escavatore E1", ricambio: "Filtro olio motore CAT", costo: 420, note: "olio + filtri" },
+    { id: "w2", data: "2026-06-28", titolo: "Sostituzione pompa idraulica", mezzo: "Dumper D3", ricambio: null, costo: 3850, note: "officina esterna" },
+    { id: "w3", data: "2026-06-14", titolo: "Riparazione impianto frenante", mezzo: "Dumper D3", ricambio: null, costo: 1240, note: "" },
+    { id: "w4", data: "2026-05-30", titolo: "Rotazione e sostituzione gomme", mezzo: "Dumper D1", ricambio: null, costo: 2100, note: "4 gomme posteriori" },
+    { id: "w5", data: "2026-05-12", titolo: "Denti benna e usure", mezzo: "Pala P1", ricambio: "Denti benna escavatore", costo: 760, note: "" },
+    { id: "w6", data: "2026-04-22", titolo: "Tagliando 1000h", mezzo: "Escavatore E2", ricambio: "Filtro gasolio", costo: 540, note: "" },
+    { id: "w7", data: "2026-04-08", titolo: "Revisione martello perforatore", mezzo: "Perforatrice P2", ricambio: null, costo: 1180, note: "" },
   ],
   ricambi: [
     { id: "p1", nome: "Filtro olio motore CAT", giacenza: 6, sogliaMin: 4 },
@@ -385,6 +391,34 @@ export function ripartizioneCosti(costi) {
     voci: Object.entries(per)
       .map(([voce, importo]) => ({ voce, importo, pct: totale ? Math.round(100 * importo / totale) : 0 }))
       .sort((a, b) => b.importo - a.importo || a.voce.localeCompare(b.voce, "it")),
+  };
+}
+
+// COSTO DI OFFICINA PER MEZZO: somma il costo degli interventi chiusi (ordini
+// di lavoro) mezzo per mezzo, dal più caro al meno caro. Risponde alla domanda
+// che porta alla decisione più cara che un titolare prenda — «quale macchina mi
+// sta mangiando i soldi, la riparo ancora o la sostituisco?». Gli interventi a
+// costo ≤ 0 (o senza costo) non entrano: la manodopera interna non è una spesa
+// di officina. Ritorna anche il numero di interventi per mezzo, perché
+// «3.000 € in un colpo» e «3.000 € in dieci volte» sono due storie diverse.
+// Funzione pura e testabile.
+export function costoOfficinaPerMezzo(interventi) {
+  const per = {};
+  let totale = 0;
+  for (const w of interventi || []) {
+    const c = +w.costo || 0;
+    if (c <= 0) continue;
+    const m = ((w.mezzo || "").trim()) || "Senza mezzo";
+    if (!per[m]) per[m] = { mezzo: m, costo: 0, interventi: 0 };
+    per[m].costo += c;
+    per[m].interventi++;
+    totale += c;
+  }
+  return {
+    totale,
+    mezzi: Object.values(per)
+      .map(v => ({ ...v, pct: totale ? Math.round(100 * v.costo / totale) : 0 }))
+      .sort((a, b) => b.costo - a.costo || a.mezzo.localeCompare(b.mezzo, "it")),
   };
 }
 

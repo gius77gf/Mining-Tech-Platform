@@ -209,6 +209,34 @@ export function trendVolumi(rilievi) {
   return { ultimo, precedente, delta, pct: precedente > 0 ? Math.round(100 * delta / precedente) : null };
 }
 
+// VOLUMI AGGREGATI PER MESE (finestra mobile che finisce col mese corrente).
+// I rilievi si fanno una volta al mese o meno: il volume ha senso per MESE,
+// mai per giorno. Ritorna un elemento per ogni mese della finestra a partire
+// dal PRIMO mese che ha almeno un rilievo elaborato — i mesi vuoti prima di
+// quello non si disegnano, perché una cava aperta da poco non ha uno storico
+// e fingerlo sarebbe una bugia. I mesi vuoti IN MEZZO restano a zero (con
+// `rilievi: 0`): lì il rilievo non c'è stato, e va detto.
+// Pura e testabile; `oggi` iniettabile.
+export function volumiPerMese(rilievi, mesi = 12, oggi = new Date()) {
+  const n = Math.max(1, Math.round(+mesi || 12));
+  const el = (rilievi || []).filter(r => r.stato === "elaborato" && r.volumeM3 != null
+    && /^\d{4}-\d{2}-\d{2}$/.test(String(r.data || "")));
+  const o = new Date(oggi);
+  const out = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(o.getFullYear(), o.getMonth() - i, 1);
+    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const dentro = el.filter(r => String(r.data).slice(0, 7) === ym);
+    out.push({
+      ym, anno: d.getFullYear(), mese: d.getMonth() + 1,
+      volume: dentro.reduce((s, r) => s + (+r.volumeM3 || 0), 0),
+      rilievi: dentro.length,
+    });
+  }
+  const primo = out.findIndex(m => m.rilievi > 0);
+  return primo < 0 ? [] : out.slice(primo);
+}
+
 // ============================================================
 // TITOLO AUTORIZZATIVO — scheda, vita cava, scadenzario
 // Tutte funzioni PURE (nessun DOM, `oggi` iniettabile) e senza alcuna

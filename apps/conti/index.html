@@ -14,7 +14,9 @@
 <link rel="stylesheet" href="../../shared/deepwork-style.css">
 <link rel="stylesheet" href="../../shared/dw-app-shell.css">
 <link rel="stylesheet" href="../../shared/dw-app-ui.css">
+<link rel="stylesheet" href="../../shared/dw-grafici.css">
 <script src="../../shared/dw-tema.js" defer></script>
+<script src="../../shared/dw-grafici.js" defer></script>
 <style>
 /* ══════════════════════════════════════════════════════════════════════
    CONTI — amministrazione (fatture, incassi, clienti, gare)
@@ -311,6 +313,42 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
   background:linear-gradient(90deg,var(--app-support2),color-mix(in srgb,var(--app-support2) 20%,transparent));
 }
 
+/* ─────────────── grafici: esposizione per cliente (barre + tacca del fido)
+   Una riga per cliente: intestazione (nome + esposizione incolonnata a
+   destra come nelle liste) e sotto la barra del motore dei grafici, tutte
+   sulla STESSA scala. La tacca verticale è il fido di quel cliente. ── */
+.gcli{margin-top:11px}
+.gcli:first-of-type{margin-top:4px}
+.gcli-t{display:flex; align-items:baseline; gap:8px; line-height:1.3}
+.gcli-n{
+  flex:0 1 auto; min-width:52px;
+  font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700;
+  letter-spacing:.3px; color:var(--text); overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap;
+}
+.gcli-s{
+  flex:0 1 auto; font-size:10.5px; color:var(--muted); white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis; font-variant-numeric:tabular-nums;
+}
+.gcli-v{
+  margin-left:auto; text-align:right; white-space:nowrap; color:var(--text);
+  font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:800;
+  letter-spacing:.3px; font-variant-numeric:tabular-nums; min-width:112px;
+}
+.gcli-v.neg{color:var(--danger)}
+.gcli-b .dwg{margin:0}
+.gcli-b .dwg-head{display:none}      /* il nome è già nell'intestazione di riga */
+.gcli-b .dwg-plot{margin-top:0}
+.gcli-b.senza-fido{padding-top:12px} /* senza tacca la barra sta più in alto:
+                                        così le righe restano allineate */
+/* schermo stretto: il nome non si accorcia, la riga di dettaglio va a capo
+   sotto — un nome tagliato a metà non dice a chi telefonare */
+@media(max-width:560px){
+  .gcli-t{flex-wrap:wrap}
+  .gcli-n{flex:1 1 auto}
+  .gcli-s{flex:1 0 100%; order:3; margin-top:-1px}
+}
+
 /* ─────────────── modale (copia di .modal-* del core) ─────────────── */
 .modal-body .fl{
   display:block; font-family:'Barlow',sans-serif; font-size:11px; font-weight:600;
@@ -440,6 +478,8 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
 </div>
 
 <div class="page" id="page-cli">
+  <div class="sec">Chi chiamare per primo</div>
+  <div id="graf-espo"></div>
   <div class="sec">Anagrafica clienti<span class="cnt" id="cli-cnt">0</span></div>
   <input class="dw-input" id="cli-cerca" type="search" placeholder="Cerca per ragione sociale, P.IVA o indirizzo…" style="margin-bottom:10px;">
   <div id="cli-count" class="count"></div>
@@ -540,8 +580,10 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
   <div class="sec">Report rapidi</div>
   <div id="rep-list"></div>
   <div class="sec">Aging incassi — crediti aperti per ritardo</div>
+  <div id="graf-aging"></div>
   <div id="aging-list"></div>
   <div class="sec">Previsione incassi (prossimi mesi)</div>
+  <div id="graf-prev"></div>
   <div id="prev-list"></div>
   <div class="sec">Esposizione per cliente (chi chiamare per primo)</div>
   <div id="espo-list"></div>
@@ -717,6 +759,23 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
     `<div class="empty-state"><div class="empty-icon">${IC[icona] || IC.vuoto}</div>
       <div class="empty-title">${titolo}</div>
       <div class="empty-sub">${istruzione}</div></div>`;
+
+  // ── GRAFICI (motore condiviso: shared/dw-grafici.js) ──────────────────
+  // Regola di casa: MAI un grafico vuoto, che sembra un'app rotta. Quando
+  // il dato non c'è ancora si mette lo stato vuoto del core, che dice cosa
+  // fare perché il grafico compaia. Prima di ridisegnare si svuota il
+  // contenitore: il motore tiene il suo grafico su el.__dwg.
+  const G = () => window.dwGrafici || null;
+  const svuotaGraf = (id) => {
+    const el = $(id); if (!el) return null;
+    if (el.__dwg) { try { el.__dwg.distruggi(); } catch (e) {} el.__dwg = null; }
+    el.innerHTML = "";
+    return el;
+  };
+  const grafVuoto = (id, icona, titolo, istruzione) => {
+    const el = svuotaGraf(id);
+    if (el) el.innerHTML = vuoto(icona, titolo, istruzione);
+  };
 
   // ── Errori di campo: bordo rosso + messaggio che spiega + fuoco ─────
   const segnaErr = (campo, messaggio) => {
@@ -1015,7 +1074,10 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
     // la barra sotto la riga dà il peso relativo: si vede a colpo d'occhio
     // dove è fermo il grosso del credito, senza leggere le cifre
     const agMax = Math.max(1, ...righe.map(r => r[1].importo || 0));
-    $("aging-list").innerHTML = righe.map(([et, v, cls]) =>
+    // Senza credito aperto la lista sarebbe cinque righe di zeri: parla solo
+    // lo stato vuoto del grafico qui sopra, che dice come si riempirà.
+    const agVuoto = righe.every(r => !r[1].conto);
+    $("aging-list").innerHTML = agVuoto ? "" : righe.map(([et, v, cls]) =>
       `<div class="item st-${!v.conto ? "mute" : cls === "ok" ? "accent" : cls}">
       <div class="info"><div class="name">${et}</div>
       <div class="meta">${v.conto ? plur(v.conto, "fattura", "fatture") : "nessuna fattura"}</div></div>
@@ -1023,6 +1085,38 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
       <span class="bar" style="width:${Math.round((v.importo || 0) / agMax * 100)}%"></span></div>`).join("")
       + `<div class="tot${ag.scadutoTot > 0 ? " warn" : ""}"><span class="tot-l">Totale scaduto da sollecitare</span>
          <span class="tot-n">${eur(ag.scadutoTot)}</span></div>`;
+
+    // ── Grafico dell'invecchiamento del credito (barre vere, non più solo
+    //    testo): le fasce restano nell'ordine del tempo, identico a quello
+    //    della lista qui sotto, così le due si leggono insieme. UNA SOLA
+    //    tinta: qui la scala è di grandezza, non di categoria — il semaforo
+    //    di attenzione/allarme resta sui badge della lista, dove è un vero
+    //    stato e non un colore in più sul grafico.
+    const agFasce = [["Non scaduto", ag.nonScaduto], ["1–30 gg", ag.g1_30],
+      ["31–60 gg", ag.g31_60], ["61–90 gg", ag.g61_90], ["Oltre 90 gg", ag.oltre90]];
+    const agTot = agFasce.reduce((t, f) => t + (+f[1].importo || 0), 0);
+    if (agVuoto) {
+      grafVuoto("graf-aging", "spunta", "Nessuna fattura aperta",
+        "Non c'è credito da incassare: il grafico dell'invecchiamento compare appena emetti una fattura che resta da pagare.");
+    } else if (G()) {
+      {
+        svuotaGraf("graf-aging");
+        G().barre("#graf-aging", {
+          titolo: "Invecchiamento del credito",
+          meta: "giorni di ritardo sulla scadenza",
+          orientamento: "orizzontale",
+          formato: eur0,
+          tabella: false,          // la tabella è la lista qui sotto, al centesimo
+          valori: agFasce.map(([et, v]) => ({ etichetta: et, valore: Math.round(+v.importo || 0) })),
+          aria: "Credito aperto per fascia di ritardo: " + agFasce
+            .map(([et, v]) => et + " " + eur0(v.importo)).join(", ") + ".",
+          nota: ag.scadutoTot > 0
+            ? "Scaduto in tutto <b>" + eur0(ag.scadutoTot) + "</b> su " + eur0(agTot) +
+              " di credito aperto. Sotto i 60 giorni di solito basta una telefonata; oltre i <b>90 giorni</b> il credito raramente rientra da solo."
+            : "Nessuna fattura oltre la scadenza: tutto il credito aperto è ancora nei termini.",
+        });
+      }
+    }
 
     // Previsione incassi per mese: liquidità attesa dalle fatture non ancora
     // scadute, mese per mese (nomi dei mesi in italiano).
@@ -1037,8 +1131,36 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
       <div class="meta">${m.conto ? plur(m.conto, "fattura in scadenza", "fatture in scadenza") : "nessuna scadenza"}</div></div>
       <div class="amt"><div class="amt-n${m.importo > 0 ? " pos" : " mute"}">${eur(m.importo)}</div></div>
       <span class="bar" style="width:${Math.round((m.importo || 0) / prevMax * 100)}%"></span></div>`).join("")
-      : vuoto("grafico", "Niente in arrivo", "Nessuna fattura in scadenza nei prossimi mesi: la previsione si riempie man mano che emetti."))
+      : "")   // lo stato vuoto lo dà il grafico qui sopra: non si ripete due volte
       + (prev.scadute.conto ? `<div class="note">Escluse <b>${prev.scadute.conto}</b> già scadute (<b>${eur(prev.scadute.importo)}</b>): quelle vanno sollecitate, le trovi nell'aging qui sopra.</div>` : "");
+
+    // ── Grafico della previsione incassi (N2): il tempo si legge in
+    //    orizzontale, un mese per colonna. È la domanda «il mese prossimo
+    //    ci sono i soldi per gli stipendi?». Le fatture GIÀ SCADUTE restano
+    //    fuori (le calcola a parte incassoPerMese): sono un sollecito, non
+    //    un'entrata prevista — e metterle dentro gonfierebbe la previsione.
+    if (!prev.mesi.some(m => m.conto)) {
+      grafVuoto("graf-prev", "grafico", "Niente in arrivo",
+        "Nessuna fattura in scadenza nei prossimi 6 mesi: la previsione si riempie da sola man mano che emetti fatture con la loro scadenza."
+        + (prev.scadute.conto ? " Le <b>" + prev.scadute.conto + "</b> già scadute (" + eur0(prev.scadute.importo) + ") non entrano nella previsione: vanno sollecitate." : ""));
+    } else if (G()) {
+      {
+        svuotaGraf("graf-prev");
+        G().barre("#graf-prev", {
+          titolo: "Previsione incassi — prossimi 6 mesi",
+          meta: "solo fatture non ancora scadute",
+          formato: eur0,
+          tabella: false,          // la tabella è la lista qui sotto, al centesimo
+          valori: prev.mesi.map(m => ({ etichetta: nomeMese(m.mese), valore: Math.round(+m.importo || 0) })),
+          aria: "Liquidità attesa mese per mese: " + prev.mesi
+            .map(m => nomeMese(m.mese) + " " + eur0(m.importo)).join(", ") + ".",
+          nota: (prev.scadute.conto
+            ? "Fuori dalla previsione <b>" + plur(prev.scadute.conto, "fattura già scaduta", "fatture già scadute") +
+              "</b> per " + eur0(prev.scadute.importo) + ": quelle si sollecitano, non si mettono in cassa. "
+            : "") + "Le colonne a zero sono mesi senza scadenze: è lì che va guardato il fabbisogno.",
+        });
+      }
+    }
 
     // Esposizione per cliente: chi ci deve di più (e quanto è già scaduto).
     // Raggruppa per anagrafica: le varianti dello stesso nome non fanno più righe
@@ -1057,6 +1179,63 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
         + `<div class="tot"><span class="tot-l">Credito aperto totale</span>
            <span class="tot-n">${eur(espo.reduce((t,c) => t + (+c.totale || 0), 0))}</span></div>`
       : vuoto("spunta", "Nessun credito aperto", "Tutte le fatture emesse risultano incassate: non c'è nessuno da chiamare.");
+
+    // ── Grafico dell'esposizione per cliente CON LA TACCA DEL FIDO (N3),
+    //    nella scheda Clienti. Una barra per cliente, dal più esposto:
+    //    tutte sulla STESSA scala (il credito aperto totale), così la
+    //    lunghezza si confronta da riga a riga e dice anche quanto pesa
+    //    ogni cliente sul totale. La tacca verticale è il fido di QUEL
+    //    cliente: chi la supera ha la barra in allarme e il cartellino
+    //    scritto accanto al nome — mai il colore da solo.
+    const espoEl = svuotaGraf("graf-espo");
+    if (espoEl && !espo.length) {
+      espoEl.innerHTML = vuoto("spunta", "Nessun credito aperto",
+        "Qui compaiono i clienti che devono ancora pagare, dal più esposto, con la <b>tacca del loro fido</b>. Emetti una fattura o registra il fido di un cliente per vederlo comparire.");
+    } else if (espoEl && G()) {
+      {
+        const top = espo.slice(0, 8);
+        const espoTot = espo.reduce((t, c) => t + (+c.totale || 0), 0);
+        const fidoMax = Math.max(0, ...top.map(c => +c.fido || 0));
+        // La scala è il credito aperto totale; se un fido lo supera, si allarga
+        // fino a quel fido, altrimenti la sua tacca uscirebbe dal disegno.
+        const scalaEspo = Math.max(1, espoTot, fidoMax * 1.02);
+        const conFido = top.filter(c => c.fido > 0).length;
+        espoEl.innerHTML =
+          `<div class="dwg"><div class="dwg-head">
+             <div class="dwg-title">Esposizione per cliente</div>
+             <div class="dwg-meta">${top.length < espo.length ? "primi " + top.length + " su " + espo.length : plur(top.length, "cliente", "clienti")} · la tacca è il fido</div>
+           </div>` +
+          top.map((c, i) => `<div class="gcli">
+             <div class="gcli-t"><span class="gcli-n">${esc(c.cliente)}</span>${
+               c.oltreFido ? '<span class="badge danger">Fido superato</span>' : ""
+             }<span class="gcli-s">${plur(c.conto, "fattura", "fatture")}${c.scaduto > 0 ? " · scaduto " + eur0(c.scaduto) : ""}${c.fido > 0 ? "" : " · fido non impostato"}</span>
+               <span class="gcli-v${c.oltreFido ? " neg" : ""}">${eur(c.totale)}</span></div>
+             <div class="gcli-b${c.fido > 0 ? "" : " senza-fido"}" id="graf-espo-${i}"></div>
+           </div>`).join("") +
+          `<div class="dwg-nota">Le barre sono tutte in scala su <b>${
+             scalaEspo === espoTot ? eur0(espoTot) + "</b> di credito aperto totale: la lunghezza dice anche quanto pesa ogni cliente sul totale."
+             : eur0(scalaEspo) + "</b>, il fido più alto in gioco: la lunghezza si confronta da una riga all'altra."
+           }${conFido < top.length ? " Per i clienti senza fido non c'è tacca: lo imposti nella loro scheda, qui sotto." : ""}</div>
+           </div>`;
+        top.forEach((c, i) => G().avanzamento("#graf-espo-" + i, {
+          // il titolo serve al tooltip (chiave della scheda): l'intestazione
+          // disegnata dal motore resta nascosta, il nome è già scritto sopra
+          // insieme all'importo, incolonnato come nelle liste
+          titolo: c.cliente,
+          valore: +c.totale || 0, massimo: scalaEspo,
+          formato: eur0, nudo: true, spessore: 14,
+          etichettaValore: false,
+          altezza: c.fido > 0 ? 52 : 26,
+          // il rosso è riservato all'unico fatto che chiede una decisione:
+          // il fido superato. Lo scaduto è scritto sotto il nome, non
+          // colorato: se si accendesse mezza pagina il rosso non varrebbe più
+          stato: c.oltreFido ? "danger" : null,
+          riferimento: c.fido > 0 ? { valore: c.fido, etichetta: "fido" } : null,
+          aria: c.cliente + ": esposizione " + eur0(c.totale) +
+            (c.fido > 0 ? ", fido " + eur0(c.fido) + (c.oltreFido ? ", superato" : ", non superato") : ", fido non impostato") + ".",
+        }));
+      }
+    }
   }
 
   document.addEventListener("click", async (e) => {

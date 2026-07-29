@@ -14,7 +14,9 @@
 <link rel="stylesheet" href="../../shared/deepwork-style.css">
 <link rel="stylesheet" href="../../shared/dw-app-shell.css">
 <link rel="stylesheet" href="../../shared/dw-app-ui.css">
+<link rel="stylesheet" href="../../shared/dw-grafici.css">
 <script src="../../shared/dw-tema.js" defer></script>
+<script src="../../shared/dw-grafici.js" defer></script>
 <style>
 /* ══════════════════════════════════════════════════════════════════════
    FLOTTA — mezzi e manutenzione
@@ -182,6 +184,37 @@
 .gauge.danger .gauge-bar i{
   background:var(--grad-dg); box-shadow:0 0 10px rgba(240,94,92,.45);
 }
+/* la stessa lancetta, disegnata dal motore dei grafici perché possa portare
+   la TACCA del riferimento di settore: senza tacca il 90% resta una frase */
+.gauge-bar-graf{margin-top:10px}
+.gauge-bar-graf .dwg{margin:0}
+.gauge-bar-graf .dwg-plot{padding:0}
+
+/* ─── I GRAFICI DENTRO FLOTTA ───────────────────────────────────────────
+   La cassa la disegna shared/dw-grafici.css: qui si accordano solo i pochi
+   dettagli che la scheda di Flotta ha e il motore non può sapere — l'alone
+   d'ambiente nella tinta dell'app e il rientro dello stato vuoto, che deve
+   respirare come quelli delle liste.                                      */
+#graf-costi .dwg, #graf-officina .dwg{
+  position:relative; overflow:hidden;
+}
+#graf-costi .dwg::before, #graf-officina .dwg::before{
+  content:""; position:absolute; inset:-40% -10% auto -10%; height:150%;
+  background:radial-gradient(60% 70% at 18% 0%,
+    color-mix(in srgb,var(--app-accent) 12%,transparent), transparent 70%);
+  pointer-events:none;
+}
+#graf-costi .dwg > *, #graf-officina .dwg > *{position:relative}
+#graf-costi .empty-state, #graf-officina .empty-state{margin-top:0}
+/* Il motore ascolta il puntatore su rettangoli invisibili (.dwg-hit) larghi
+   quanto la riga, ma le barre e le etichette sono disegnate SOPRA di essi:
+   passando col dito proprio sulla barra il bersaglio è la barra, non il
+   rettangolo, e il riquadro si chiude appena aperto. Qui si rende
+   trasparente al puntatore tutto ciò che non è area sensibile, così il
+   riquadro resta aperto ovunque sulla riga. (Correzione locale: il motore
+   è in shared/ e lo tiene un altro cantiere.) */
+#graf-costi .dwg-svg > *:not(.dwg-hit),
+#graf-officina .dwg-svg > *:not(.dwg-hit){pointer-events:none}
 
 /* ─────────────── voci di lista (copia di .sitem) ─────────────── */
 .item{cursor:pointer}
@@ -334,6 +367,11 @@
   <div id="mez-count" class="count"></div>
   <div id="mez-list"></div>
 
+  <!-- F2 — «Costo di officina per mezzo»: dagli interventi chiusi (ordini di
+       lavoro), che l'app raccoglieva senza mostrarli da nessuna parte. -->
+  <div class="sec">Officina</div>
+  <div id="graf-officina"></div>
+
   <div class="sec">Nuovo mezzo</div>
   <div class="form">
     <input class="dw-input" id="mez-nome" placeholder="Nome (es. Dumper D4)" style="flex:2 1 170px;">
@@ -468,6 +506,9 @@
 <div class="page" id="page-cos">
   <div class="sec">Costi della flotta<span class="cnt" id="cos-count">0</span></div>
   <div id="cos-riep" class="note recap"></div>
+  <!-- F1 — «Dove va la spesa»: barre orizzontali ordinate dalla voce più
+       costosa alla meno costosa. Prima era solo una riga di percentuali. -->
+  <div id="graf-costi" style="margin-top:12px;"></div>
   <div id="cos-list" style="margin-top:12px;"></div>
   <div class="sec">Nuovo costo</div>
   <div class="form">
@@ -624,7 +665,7 @@
 </script>
 
 <script type="module">
-  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, scaricoGiacenza, parseTelemetriaCsv, parseMezziCsv, ripartizioneCosti, prioritaOperative,
+  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, scaricoGiacenza, parseTelemetriaCsv, parseMezziCsv, ripartizioneCosti, costoOfficinaPerMezzo, prioritaOperative,
            SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi } from "./flotta-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
@@ -656,6 +697,32 @@
   const vuoto = (icona, titolo, sotto) =>
     `<div class="empty-state"><div class="empty-icon">${icona}</div>
       <div class="empty-title">${titolo}</div><div class="empty-sub">${sotto}</div></div>`;
+
+  // ── GRAFICI (motore condiviso shared/dw-grafici.js) ───────────────────
+  // Regole che qui non si discutono, e che il motore da solo non può sapere:
+  // · un grafico si disegna SOLO se c'è qualcosa da confrontare. Con un dato
+  //   solo la forma giusta è una frase con il numero grande, non una barra
+  //   sola persa in mezzo alla scheda;
+  // · quando non c'è ancora niente si mostra lo STATO VUOTO del core, che
+  //   dice cosa fare — mai un grafico vuoto, che sembra rotto;
+  // · si tiene l'istanza per poterla distruggere prima di ridisegnare, così
+  //   a ogni refresh non restano ascoltatori appesi.
+  const grafici = {};
+  const puliscoGrafico = (id) => {
+    if (grafici[id]) { try { grafici[id].distruggi(); } catch (e) {} grafici[id] = null; }
+    const box = $(id); if (box) box.innerHTML = "";
+    return box;
+  };
+  const grafico = (id, tipo, spec) => {
+    const box = puliscoGrafico(id);
+    if (!box || !window.dwGrafici) return null;
+    grafici[id] = window.dwGrafici[tipo](box, spec);
+    return grafici[id];
+  };
+  const grafVuoto = (id, icona, titolo, sotto) => {
+    const box = puliscoGrafico(id);
+    if (box) box.innerHTML = vuoto(icona, titolo, sotto);
+  };
 
   // ── Messaggi: toast del core + traccia scritta accanto al form ────────
   const esito = (id, testo, tipo) => {
@@ -797,7 +864,17 @@
         <div class="gauge-body"><div class="gauge-num">${disp.pct}%</div>
           <div class="gauge-lab">Disponibilità flotta</div>
           <div class="gauge-sub"><b>${disp.operativi}</b> mezzi operativi su <b>${disp.totale}</b>. Una flotta tenuta bene sta stabilmente sopra il 90%.</div>
-          <div class="gauge-bar"><i style="width:${Math.max(2, Math.min(100, disp.pct))}%"></i></div></div></div>`;
+          <div class="gauge-bar-graf" id="dash-gauge-bar"></div></div></div>`;
+      // F4 — la fotografia di ADESSO, con la tacca del riferimento di settore
+      // disegnata sulla barra: così il 90% non è più solo una frase da leggere,
+      // si vede se si è sopra o sotto. Nessun andamento nel tempo: la
+      // disponibilità è salvata solo come stato di oggi, non c'è storico.
+      grafico("dash-gauge-bar", "avanzamento", {
+        valore: disp.pct, massimo: 100, formato: "percentuale", spessore: 12,
+        riferimento: { valore: 90, etichetta: "riferimento di settore" },
+        stato: cls || null, etichettaValore: false, nudo: true,
+        aria: `Disponibilità della flotta ${disp.pct}%, riferimento di settore 90%.`,
+      });
       $("mez-disp").innerHTML = `Disponibilità: <b>${disp.pct}%</b> — ${disp.operativi} mezzi operativi su ${disp.totale}.`;
     }
     $("mez-tot").textContent = MEZ.length;
@@ -819,6 +896,41 @@
       $("mez-count").textContent = n === 0 ? "" : n + (n === 1 ? " mezzo" : " mezzi") + (filtrata ? " · su " + MEZ.length : ""); }
     document.querySelectorAll("#mez-filtri .chg").forEach(b =>
       b.classList.toggle("active", b.getAttribute("data-filtro") === filtroMez));
+
+    // F2 — COSTO DI OFFICINA PER MEZZO. Viene dagli interventi chiusi, che
+    // l'app raccoglieva da sempre senza mostrarli in nessuna schermata. Barre
+    // ordinate dal mezzo più caro: si vede subito quale macchina sta mangiando
+    // il budget, che è la domanda da cui nasce la decisione «la riparo ancora
+    // o la sostituisco». Il filtro e la ricerca del parco NON toccano questo
+    // grafico: qui si guardano i soldi spesi, su tutto il parco.
+    const off = costoOfficinaPerMezzo(INT);
+    const peggiore = off.mezzi[0];
+    if (off.mezzi.length >= 2) {
+      grafico("graf-officina", "barre", {
+        titolo: "Costo di officina per mezzo",
+        meta: "totale " + eur(off.totale),
+        orientamento: "orizzontale",
+        ordina: true,
+        rampa: true,
+        formato: "euro",
+        valori: off.mezzi.map(m => ({ etichetta: m.mezzo, valore: m.costo })),
+        nota: "In cima c'è la macchina che ti sta costando di più: <b>"
+          + peggiore.mezzo + "</b>, " + eur(peggiore.costo) + " in "
+          + peggiore.interventi + (peggiore.interventi === 1 ? " intervento" : " interventi")
+          + ", il " + peggiore.pct + "% di tutta l'officina. Passa sopra una barra per il dettaglio.",
+      });
+    } else if (peggiore) {
+      grafVuoto("graf-officina", I.chiave, eur(peggiore.costo) + " su un mezzo solo",
+        "Finora l'officina è costata solo su <b>" + esc(peggiore.mezzo) + "</b> ("
+        + peggiore.interventi + (peggiore.interventi === 1 ? " intervento" : " interventi")
+        + "): con una macchina sola non c'è una classifica da leggere. Man mano che chiudi altri "
+        + "interventi, qui comparirà il <b>confronto fra i mezzi</b>, dal più caro.");
+    } else {
+      grafVuoto("graf-officina", I.chiave, "Nessuna spesa di officina",
+        "Si riempie da solo: ogni volta che segni <b>eseguita</b> una manutenzione e ne indichi il "
+        + "costo, la spesa finisce sul mezzo. Dopo qualche intervento vedrai qui, in ordine, "
+        + "<b>quale macchina ti sta costando di più</b>.");
+    }
 
     const oreGiorno = $("man-oregiorno").value;
     const stimaGiorni = (n) => {  // previsione data per i tagliandi a ore
@@ -876,12 +988,47 @@
     { const n = $("ric-list").querySelectorAll(".item").length;
       $("ric-count").textContent = n === 0 ? "" : n + (n === 1 ? " ricambio" : " ricambi") + (qRic ? " · su " + RIC.length : ""); }
 
-    // Ripartizione costi per voce: dove va la spesa della flotta.
+    // F1 — DOVE VA LA SPESA. Le percentuali non stanno più in una riga di
+    // testo: diventano barre orizzontali ordinate dalla voce più costosa alla
+    // meno costosa, così la risposta («su cosa conviene trattare col
+    // fornitore») si legge in un secondo, senza confrontare numeri a mente.
+    // Niente ciambella: l'occhio confronta bene le lunghezze e male gli
+    // angoli, e le fette avrebbero bisogno di una legenda.
+    // Ogni pezzo dice UNA cosa sola e non la ripete: la riga sopra il totale,
+    // il grafico la ripartizione, la nota la voce su cui conviene agire.
     const rip = ripartizioneCosti(COS);
-    $("cos-riep").innerHTML = rip.voci.length
-      ? "Totale speso <b>" + eur(rip.totale) + "</b> — " + rip.voci.map(v => esc(v.voce) + " " + v.pct + "%").join(" · ")
+    const primaVoce = rip.voci[0];
+    $("cos-riep").innerHTML = primaVoce
+      ? "Totale speso <b>" + eur(rip.totale) + "</b> su " + rip.voci.length
+        + (rip.voci.length === 1 ? " voce" : " voci") + "."
       : "";
     $("cos-count").textContent = COS.length;
+    if (rip.voci.length >= 2) {
+      grafico("graf-costi", "barre", {
+        titolo: "Dove va la spesa",
+        meta: "dalla voce più costosa",
+        orientamento: "orizzontale",
+        ordina: true,
+        rampa: true,                       // una sola tinta, dal pieno al chiaro
+        formato: "euro",
+        valori: rip.voci.map(v => ({ etichetta: v.voce, valore: v.importo })),
+        nota: "<b>" + primaVoce.voce + "</b> vale da solo il " + primaVoce.pct
+          + "% della spesa: è lì che trattare col fornitore pesa davvero. "
+          + "Passa sopra una barra per la quota esatta.",
+      });
+    } else if (primaVoce) {
+      // una voce sola non è un confronto: il numero grande dice di più
+      grafVuoto("graf-costi", I.euro, eur(primaVoce.importo) + " su una voce sola",
+        "Tutta la spesa registrata è su <b>" + esc(primaVoce.voce) + "</b>: non c'è ancora niente da "
+        + "confrontare. Registra almeno una seconda voce (gasolio, ricambi, noleggi, gomme) e qui "
+        + "comparirà il confronto <b>ordinato dalla più costosa</b>.");
+    } else if (COS.length) {
+      grafVuoto("graf-costi", I.euro, "Nessun importo da ripartire",
+        "Le voci registrate hanno importo zero: non c'è spesa da dividere. Correggi gli importi e "
+        + "qui vedrai subito <b>dove se ne va il denaro</b>.");
+    } else {
+      puliscoGrafico("graf-costi");   // lo stato vuoto è quello della lista qui sotto
+    }
 
     $("cos-list").innerHTML = COS.map(c => `<div class="item statico st-accent">
       <div class="avatar">${I.euro}</div>

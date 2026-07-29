@@ -239,6 +239,14 @@ body.dw.light-mode, body.dw.outdoor-mode {
 .dwg-hit { fill: transparent; stroke: none; cursor: pointer; }
 .dwg-evid { fill: var(--app-accent); opacity: .10; }
 
+/* Le aree sensibili al tocco sono rettangoli invisibili disegnati PRIMA delle
+   barre e delle linee. Senza questa regola il segno disegnato copre la propria
+   area sensibile: appoggiando il dito esattamente sulla barra il tooltip si
+   apriva e si richiudeva subito. Tutto ciò che è puramente disegno non
+   intercetta il puntatore; lo fanno solo le aree sensibili. */
+.dwg svg * { pointer-events: none; }
+.dwg svg .dwg-hit { pointer-events: all; }
+
 .dwg-tip {
   position: absolute; z-index: 40; min-width: 96px; max-width: 240px;
   padding: 8px 10px; pointer-events: none; opacity: 0;

@@ -14,7 +14,9 @@
 <link rel="stylesheet" href="../../shared/deepwork-style.css">
 <link rel="stylesheet" href="../../shared/dw-app-shell.css">
 <link rel="stylesheet" href="../../shared/dw-app-ui.css">
+<link rel="stylesheet" href="../../shared/dw-grafici.css">
 <script src="../../shared/dw-tema.js" defer></script>
+<script src="../../shared/dw-grafici.js" defer></script>
 <style>
 /* ══════════════════════════════════════════════════════════════════════
    TERRA — estrattivo e rilievo
@@ -442,6 +444,7 @@ textarea.dw-input{line-height:1.5}
     <div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-goto="ril" data-filtro="tutti" title="Vedi tutti i rilievi"><div class="l">Rilievi drone mese</div><div class="n">—</div></div>
     <div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-goto="pia" title="Vedi le riserve stimate"><div class="l">m³ riserve stimate</div><div class="n">—</div></div>
   </div>
+  <div id="dash-anno"></div>
 
   <div class="sec">Scadenze da tenere d'occhio</div>
   <div id="dash-scad"></div>
@@ -544,6 +547,8 @@ textarea.dw-input{line-height:1.5}
 <div class="page" id="page-fro">
   <div class="sec">Stato dei fronti</div>
   <div id="fro-list"></div>
+  <div class="sec">Da dove esce il materiale</div>
+  <div id="fro-volumi"></div>
   <div class="sec" id="fro-form-sec">Nuovo fronte</div>
   <div class="form col">
     <div class="frow">
@@ -567,6 +572,7 @@ textarea.dw-input{line-height:1.5}
 
 <div class="page" id="page-ril">
   <div class="sec">Rilievi e volumi</div>
+  <div id="ril-mese"></div>
   <div id="ril-trend" class="note recap"></div>
   <div id="ril-filtri" class="chgs">
     <button class="chg active" data-filtro="tutti">Tutti</button>
@@ -774,7 +780,7 @@ textarea.dw-input{line-height:1.5}
 </script>
 
 <script type="module">
-  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, parseFrontiCsv, trendVolumi, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita,
+  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, parseFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita,
            autorizzazioneVigente, vitaCava, statoScadenzaTerra, livelloScadenzaTerra, prossimaData, riepilogoScadenze, TIPI_SCADENZA_TERRA, presetScadenzaTerra, etichettaTipoScadenza } from "./terra-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
@@ -954,6 +960,218 @@ textarea.dw-input{line-height:1.5}
 
     renderTitolo();
     renderValore();
+    grafici();
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // GRAFICI — motore condiviso dwGrafici (SVG puro, nessuna libreria)
+  // Regole rispettate: la forma segue il compito (un numero solo resta una
+  // tessera), una sola tinta per la scala di grandezza, mai due assi
+  // verticali, il colore mai da solo (tacca, tratteggio, etichetta), e se i
+  // mesi con dati sono pochi lo si DICE invece di disegnare una tendenza
+  // che non esiste.
+  // ══════════════════════════════════════════════════════════════════════
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const MESI3 = ["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"];
+  // dodici mesi, un mese ciascuno: il nome corto basta a distinguerli tutti,
+  // e l'anno lo dice il periodo scritto in intestazione (sotto i 60 px di
+  // banda un'etichetta più lunga verrebbe troncata con i puntini)
+  const etMese = (m) => MESI3[m.mese - 1];
+  const etMeseLungo = (m) => MESI3[m.mese - 1] + " " + m.anno;
+  const pianoAnnuo = () => { const p = PIA.find(x => +x.pianificatoAnnuoM3 > 0); return p ? +p.pianificatoAnnuoM3 : null; };
+
+  // Si disegna SOLO sulla pagina visibile: dentro una pagina nascosta il
+  // browser non sa dare le misure, e un grafico misurato male nasce storto.
+  // Perciò ogni cambio di pagina ridisegna quello che si vede.
+  function grafici() {
+    if (!window.dwGrafici) return;
+    const attiva = document.querySelector(".page.active");
+    const id = attiva ? attiva.id : "";
+    if (id === "page-dash") grafAnno();
+    else if (id === "page-ril") grafMesi();
+    else if (id === "page-fro") grafFronti();
+  }
+  { const goPrec = window.go;
+    window.go = function (id) { goPrec(id); grafici(); }; }
+
+  // R2 — «siamo avanti o indietro rispetto al piano?». Il numero da solo
+  // starebbe in una tessera: qui il valore aggiunto è il confronto con il
+  // pro-quota atteso a oggi, ed è esattamente quello che disegna la tacca.
+  function grafAnno() {
+    const el = $("dash-anno"); if (!el) return;
+    const piano = pianoAnnuo();
+    const pr = piano ? proiezioneAnnua(RIL, piano) : null;
+    if (!pr) {
+      el.innerHTML = vuoto(I.mappa, "Avanzamento dell'anno spento",
+        "Serve un <b>volume annuo pianificato</b> nel <b>Piano estrattivo</b>: da lì Terra ricava il pro-quota atteso a oggi e ti dice se sei avanti o indietro.");
+      return;
+    }
+    el.innerHTML = "";
+    const atteso = Math.round(pr.pianificato * pr.frazione);
+    const scarto = pr.estrattoAnno - atteso;
+    const pctAnno = Math.round(pr.frazione * 100);
+    const note = [];
+    // 1 · la risposta alla domanda: avanti o indietro rispetto alla tacca
+    if (pr.estrattoAnno > pr.pianificato)
+      note.push("Con il " + pctAnno + "% dell'anno alle spalle hai <b>già superato il piano annuo</b> di "
+        + n0(pr.estrattoAnno - pr.pianificato) + " m³: la barra è piena e non può dire altro.");
+    else
+      note.push("Con il " + pctAnno + "% dell'anno alle spalle sei <b>"
+        + (scarto >= 0 ? "avanti di " + n0(scarto) : "indietro di " + n0(-scarto))
+        + " m³</b> rispetto al pro-quota atteso a oggi, dove sta la tacca.");
+    // 2 · dove si va a finire, e perché la barra ha quel colore
+    note.push(pr.estrattoAnno <= 0
+      ? "Quest'anno non è ancora stato registrato nessun volume: la proiezione di fine anno arriva col primo rilievo elaborato."
+      : pr.proiezione == null
+        ? "Per la proiezione di fine anno è ancora presto: serve almeno un mese di anno trascorso."
+          : pr.stato === "danger"
+            ? "Al ritmo attuale l'anno chiude verso <b>" + n0(pr.proiezione) + " m³</b>, oltre il piano annuo di "
+              + n0(pr.pianificato) + " m³: la barra è rossa per questo."
+            : pr.stato === "warn"
+              ? "Al ritmo attuale l'anno chiude verso <b>" + n0(pr.proiezione) + " m³</b>, vicino al limite del piano annuo di "
+                + n0(pr.pianificato) + " m³."
+              : "Al ritmo attuale l'anno chiude verso <b>" + n0(pr.proiezione) + " m³</b>, dentro il piano annuo di "
+                + n0(pr.pianificato) + " m³.");
+    dwGrafici.avanzamento(el, {
+      titolo: "Avanzamento dell'anno sul piano",
+      meta: n0(pr.estrattoAnno) + " di " + n0(pr.pianificato) + " m³",
+      valore: pr.estrattoAnno, massimo: pr.pianificato, unita: "m³",
+      riferimento: { valore: atteso, etichetta: "atteso a oggi" },
+      // il numero estratto sta già nell'intestazione: sulla barra finirebbe
+      // addosso alla tacca proprio quando si è in pari col piano, cioè
+      // nell'unico caso in cui i due numeri contano davvero entrambi
+      etichettaValore: false,
+      // il colore di stato si accende solo quando ha qualcosa da dire:
+      // «in pari» resta nella tinta dell'app, non nel verde-acqua degli stati
+      stato: pr.stato === "ok" ? null : pr.stato,
+      nota: note.join(" "),
+      aria: "Estratti " + n0(pr.estrattoAnno) + " metri cubi sul piano annuo di " + n0(pr.pianificato)
+        + " metri cubi; atteso a oggi " + n0(atteso) + " metri cubi.",
+    });
+  }
+
+  // R1 — volumi mese per mese con la riga del pro-quota. Barre e non linea:
+  // i rilievi sono sporadici, e unire due misure lontane un mese farebbe
+  // credere a una progressione regolare che nessuno ha misurato.
+  function grafMesi() {
+    const el = $("ril-mese"); if (!el) return;
+    const mesi = volumiPerMese(RIL, 12);
+    const conDati = mesi.filter(m => m.rilievi > 0).length;
+    if (conDati < 4) {
+      el.innerHTML = vuoto(I.riga, "Il ritmo mese per mese arriva più avanti",
+        conDati === 0
+          ? "Non c'è ancora nessun rilievo elaborato: registra il primo qui sotto, con data, fronte e volume. Il grafico dei volumi mensili compare con <b>4 mesi</b> di rilievi."
+          : "Per vedere un ritmo vero servono almeno <b>4 mesi</b> con rilievi elaborati: al momento ne hai <b>" + conDati + "</b>. Fino ad allora la misura onesta è il confronto con l'autorizzato, nella <b>Vita della cava</b>.");
+      return;
+    }
+    el.innerHTML = "";
+    const piano = pianoAnnuo();
+    const proq = piano ? Math.round(piano / 12) : null;
+    const vmax = Math.max.apply(null, mesi.map(m => m.volume));
+    // stessa regola del motore per le soglie: un riferimento molto più alto
+    // di tutte le letture resta FUORI dalla scala, che deve restare al
+    // servizio dei dati misurati
+    const fuoriScala = proq != null && vmax > 0 && proq > vmax * 2.6;
+    const note = [];
+    if (proq == null)
+      note.push("Senza un <b>volume annuo pianificato</b> non c'è pro-quota da confrontare: impostalo nel Piano estrattivo e comparirà la riga del ritmo da tenere.");
+    else if (fuoriScala)
+      note.push("Il pro-quota mensile (<b>" + n0(proq) + " m³</b>) è molto più alto dei volumi rilevati: resta fuori dalla scala, che si adatta alle letture. Al ritmo di questi mesi il piano annuo non si raggiunge.");
+    else
+      note.push("La riga tratteggiata è il <b>pro-quota mensile</b>, " + n0(proq) + " m³: è il piano annuo diviso dodici, cioè quanto servirebbe ogni mese per stare nel piano.");
+    const vuotiN = mesi.length - conDati;
+    if (vuotiN > 0)
+      note.push("<b>" + vuotiN + (vuotiN === 1 ? " mese</b> è" : " mesi</b> sono") + " a zero perché in quel periodo non c'è nessun rilievo elaborato: vuol dire che non è stato misurato niente, non per forza che la cava fosse ferma.");
+    note.push("L'ultimo mese è ancora in corso: la sua barra crescerà fino alla fine del mese.");
+    const g = dwGrafici.barre(el, {
+      titolo: "Volumi rilevati mese per mese",
+      meta: etMeseLungo(mesi[0]) + " → " + etMeseLungo(mesi[mesi.length - 1]),
+      unita: "m³",
+      valori: mesi.map(m => ({ etichetta: etMese(m), valore: m.volume })),
+      nota: note.join(" "),
+    });
+    if (g && proq != null && !fuoriScala) rigaRiferimento(g, proq, vmax, "pro-quota mensile");
+  }
+
+  // La riga orizzontale del pro-quota. Il motore disegna la soglia sui
+  // grafici a linea, sulle barre no: la si aggiunge al disegno appena fatto
+  // usando le SUE classi (`dwg-taglio`: tratteggio neutro, mai un colore di
+  // stato) e leggendo la scala DAL disegno stesso — così qui non si duplica
+  // nessun calcolo del motore. Si riaggancia a ogni ridisegno (rotazione,
+  // cambio di larghezza), perché il motore ridisegna e non ricorda.
+  function rigaRiferimento(g, valore, vmax, etichetta) {
+    const dis = g.disegna.bind(g);
+    g.disegna = function () { dis(); posaRiga(g, valore, vmax, etichetta); };
+    posaRiga(g, valore, vmax, etichetta);
+    return g;
+  }
+  function posaRiga(g, valore, vmax, etichetta) {
+    const svg = g.svg; if (!svg || !(valore > 0) || !(vmax > 0)) return;
+    const ax = svg.querySelector(".dwg-ax"); if (!ax) return;
+    // la barra più alta vale vmax: da lei si ricavano la linea dello zero e
+    // quanti pixel vale un metro cubo
+    let alta = null;
+    svg.querySelectorAll(".dwg-barra").forEach(b => {
+      let bb; try { bb = b.getBBox(); } catch (e) { return; }
+      if (!alta || bb.height > alta.height) alta = bb;
+    });
+    if (!alta || !(alta.height > 1)) return;
+    const y = (alta.y + alta.height) - (alta.height / vmax) * valore;
+    let cima = Infinity;
+    svg.querySelectorAll(".dwg-grid").forEach(l => { cima = Math.min(cima, +l.getAttribute("y1")); });
+    if (!(y >= cima - 0.5)) return;     // sopra la cima della scala: meglio nessuna riga che una riga che mente
+    const l = document.createElementNS(SVGNS, "line");
+    l.setAttribute("class", "dwg-taglio");
+    l.setAttribute("x1", ax.getAttribute("x1"));
+    l.setAttribute("x2", ax.getAttribute("x2"));
+    l.setAttribute("y1", y.toFixed(1));
+    l.setAttribute("y2", y.toFixed(1));
+    l.style.pointerEvents = "none";     // il tooltip delle barre resta raggiungibile anche sotto la riga
+    svg.appendChild(l);
+    // il colore non basta mai da solo: la riga si presenta nella legenda
+    const lg = document.createElement("span");
+    lg.className = "lg";
+    const mini = document.createElementNS(SVGNS, "svg");
+    mini.setAttribute("viewBox", "0 0 22 11");
+    mini.setAttribute("aria-hidden", "true");
+    const seg = document.createElementNS(SVGNS, "line");
+    seg.setAttribute("class", "dwg-taglio");
+    seg.setAttribute("x1", "1"); seg.setAttribute("y1", "5.5");
+    seg.setAttribute("x2", "21"); seg.setAttribute("y2", "5.5");
+    mini.appendChild(seg);
+    lg.appendChild(mini);
+    lg.appendChild(document.createTextNode(etichetta + " "));
+    const b = document.createElement("b");
+    b.textContent = n0(valore) + " m³";
+    lg.appendChild(b);
+    g.legenda.appendChild(lg);
+  }
+
+  // R4 — «da dove esce davvero il materiale». Barre orizzontali ordinate e
+  // non una ciambella: l'occhio confronta bene le lunghezze e male gli
+  // angoli, e qui l'etichetta sta attaccata alla sua barra.
+  function grafFronti() {
+    const el = $("fro-volumi"); if (!el) return;
+    const noti = new Set(FRO.map(f => f.id));
+    const voci = FRO.map(f => ({ etichetta: f.nome, valore: volumeFronte(RIL, f.id) }));
+    const nonAss = RIL.filter(r => r.stato === "elaborato" && r.volumeM3 != null && !noti.has(r.fronteId))
+      .reduce((s, r) => s + (+r.volumeM3 || 0), 0);
+    if (nonAss > 0) voci.push({ etichetta: "Non assegnato", valore: nonAss });
+    if (!(voci.reduce((s, v) => s + v.valore, 0) > 0)) {
+      el.innerHTML = vuoto(I.riga, "Nessun volume da ripartire",
+        "I volumi per fronte arrivano dai <b>rilievi elaborati</b> collegati a un fronte. Registra un rilievo scegliendo il fronte e qui comparirà da dove esce il materiale.");
+      return;
+    }
+    el.innerHTML = "";
+    dwGrafici.barre(el, {
+      titolo: "Volumi per fronte",
+      meta: "somma dei rilievi elaborati",
+      orientamento: "orizzontale", ordina: true, unita: "m³", formato: "compatto",
+      valori: voci,
+      nota: nonAss > 0
+        ? "«Non assegnato» sono i rilievi elaborati senza fronte: restano in vista, altrimenti la somma non tornerebbe. Per farli sparire basta indicare il fronte quando registri il rilievo."
+        : "Somma dei rilievi elaborati di ogni fronte, dal più al meno produttivo.",
+    });
   }
 
   // ---------------- TITOLO: autorizzazione, vita cava, scadenzario ----------
