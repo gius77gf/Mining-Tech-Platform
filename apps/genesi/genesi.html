@@ -356,9 +356,17 @@ body.scr-sim #tl{bottom:80px}
 #d2-cta:hover{filter:brightness(1.06)}
 @media (max-width:760px){
   #brand h1{font-size:17px} #brand .tag{display:none} #brand .mark svg{width:32px}
-  #topright{gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:60vw} #topright .btn{padding:6px 8px;font-size:11px}
+  /* Su schermo stretto la barra va a capo: le sta larga solo il 60% e finiva
+     sopra il titolo dell'app. Le si lascia più spazio e i bottoni non si
+     accavallano più col nome. */
+  #topright{gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:74vw} #topright .btn{padding:6px 8px;font-size:11px}
   #params{display:none;left:8px;right:8px;top:auto;bottom:154px;width:auto;max-height:44vh;overflow-y:auto}
   body.show-params #params{display:block}
+  /* Sul telefono la parola accanto all'ingranaggio: da chiuso il pannello non
+     si vede, e un'icona da sola non dice cosa apre. Su schermo largo resta
+     solo l'icona, perché lì il pannello è già visibile. */
+  .lbl-par{display:none}
+  @media (max-width:899px){ .lbl-par{display:inline} }
   #cams{display:none}
   #scr-home .cards{max-width:100%}
   #bottomnav button{padding:7px 12px;min-width:64px}
@@ -615,7 +623,7 @@ body.scr-sim #tl{bottom:80px}
 
 <div class="hud" id="topright">
   <button class="btn sm" id="btnHelp" title="Guida rapida ai controlli">?</button>
-  <button class="btn sm" id="btnParams" title="Parametri">⚙</button>
+  <button class="btn sm" id="btnParams" title="Mostra o nascondi i parametri della volata" aria-label="Parametri della volata">⚙<span class="lbl-par"> Parametri</span></button>
   <span class="chip" id="qchip" title="Qualità grafica"><b id="qlab">Piena</b></span>
   <button class="btn sm" id="btnFronte3D" title="Importa il fronte 3D reale (mesh GLB/OBJ dalla ricostruzione fotogrammetrica)">Fronte 3D</button>
   <button class="btn sm" id="btnImport" title="Importa file .volata.json">Importa</button>
@@ -2616,7 +2624,12 @@ function setScreen(name){
   document.querySelectorAll('#bottomnav button').forEach(b=>b.classList.toggle('on', b.dataset.scr===name));
   if(name==='design'){ deriveCharge(); syncDesignInputs(); draw2D(); }
   if(name==='home' && typeof renderHome==='function') renderHome();
-  if(name==='sim' && typeof simSource!=='undefined' && simSource==='nuova') document.body.classList.add('show-params');
+  /* I parametri si aprono da soli solo dove sono un pannello LATERALE: su
+     schermo stretto occupano tutta la larghezza e coprirebbero il fronte,
+     che è la cosa che si è venuti a vedere. Sul telefono si aprono col
+     pulsante ⚙ della barra in alto. */
+  if(name==='sim' && typeof simSource!=='undefined' && simSource==='nuova'
+     && window.matchMedia('(min-width: 900px)').matches) document.body.classList.add('show-params');
 }
 document.querySelectorAll('#bottomnav button').forEach(b=> b.onclick=()=>setScreen(b.dataset.scr));
 /* ============ esplosivo & innesco DENTRO la progettazione (fondatore 25/07):
