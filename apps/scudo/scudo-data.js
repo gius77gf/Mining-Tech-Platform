@@ -286,6 +286,49 @@ export function coperturaFormazione(scadenze) {
     (b.scadute - a.scadute) || (b.inScadenza - a.inScadenza) || a.tipo.localeCompare(b.tipo, "it"));
 }
 
+// IL MURO DELLE SCADENZE: quante scadenze cadono in ciascuno dei prossimi N
+// mesi (di serie 12), più l'ARRETRATO già scaduto tenuto a parte. Serve a
+// vedere in che mese si accumula il lavoro — cinque visite mediche nello
+// stesso mese si prenotano in una mattina sola invece di rincorrerle una per
+// una. Conta le scadenze dello scadenzario: le azioni correttive hanno una
+// loro pagina e un loro semaforo, e non entrano qui.
+// Ritorna { scadute, totale, da: "AAAA-MM", a: "AAAA-MM",
+//           mesi: [{ chiave:"2026-07", mese:6, anno:2026, etichetta:"lug", totale }] }.
+// Le scadenze oltre l'orizzonte non si contano (non sono un problema di
+// quest'anno) ma restano nel `fuori`. Pura e testabile; `oggi` iniettabile.
+const MESI_BREVI = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
+
+export function muroScadenze(scadenze, oggi = new Date(), quantiMesi = 12) {
+  const n = Math.max(1, Math.round(quantiMesi));
+  const mesi = [];
+  const indice = {};
+  for (let i = 0; i < n; i++) {
+    const d = new Date(oggi.getFullYear(), oggi.getMonth() + i, 1);
+    const chiave = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const voce = { chiave, mese: d.getMonth(), anno: d.getFullYear(), etichetta: MESI_BREVI[d.getMonth()], totale: 0 };
+    indice[chiave] = voce;
+    mesi.push(voce);
+  }
+  let scadute = 0, fuori = 0, totale = 0;
+  for (const s of scadenze || []) {
+    const iso = String(s.dataScadenza || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) continue;
+    totale++;
+    if (statoScadenza(iso, oggi) === "scaduta") { scadute++; continue; }
+    const voce = indice[iso.slice(0, 7)];
+    if (voce) voce.totale++; else fuori++;
+  }
+  return {
+    scadute, fuori, totale, mesi,
+    da: mesi[0].chiave, a: mesi[mesi.length - 1].chiave,
+    nelPeriodo: mesi.reduce((s, m) => s + m.totale, 0),
+  };
+}
+
+// Nome esteso del mese (per i testi: «il mese più carico è ottobre 2026»).
+export const MESI_NOMI = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno",
+  "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"];
+
 // Adempimenti HSE TIPICI di una cava, come voci preimpostate dello
 // scadenzario (stessa idea di SOGLIE_PRESET in Sentinella): l'utente sceglie
 // l'adempimento invece di digitarlo, e Scudo prepara descrizione e tipo. Fonti

@@ -14,7 +14,9 @@
 <link rel="stylesheet" href="../../shared/deepwork-style.css">
 <link rel="stylesheet" href="../../shared/dw-app-shell.css">
 <link rel="stylesheet" href="../../shared/dw-app-ui.css">
+<link rel="stylesheet" href="../../shared/dw-grafici.css">
 <script src="../../shared/dw-tema.js" defer></script>
+<script src="../../shared/dw-grafici.js" defer></script>
 <style>
 /* ══════════════════════════════════════════════════════════════════════
    SCUDO — sicurezza e personale
@@ -152,6 +154,31 @@
 .safety-txt{font-size:13px; color:var(--muted2); line-height:1.5}
 .safety-txt b{color:var(--text)}
 
+/* ─── I GRAFICI DENTRO SCUDO ────────────────────────────────────────────
+   La cassa (bordo, fondo, ombra, tipografia) la disegna
+   shared/dw-grafici.css: qui si accordano soltanto i due dettagli che la
+   scheda di Scudo ha e che il motore non può sapere — l'alone d'ambiente
+   nella tinta viola dell'app e il rientro dello stato vuoto, che deve
+   respirare come quelli delle liste.                                     */
+#graf-copertura .dwg, #graf-muro .dwg{position:relative; overflow:hidden}
+#graf-copertura .dwg::before, #graf-muro .dwg::before{
+  content:""; position:absolute; inset:-40% -10% auto -10%; height:150%;
+  background:radial-gradient(60% 70% at 18% 0%,
+    color-mix(in srgb,var(--app-accent) 12%,transparent), transparent 70%);
+  pointer-events:none;
+}
+#graf-copertura .dwg > *, #graf-muro .dwg > *{position:relative}
+#graf-copertura .empty-state, #graf-muro .empty-state{margin-top:0}
+/* Il motore ascolta il puntatore su rettangoli invisibili (.dwg-hit) larghi
+   quanto la riga, ma barre ed etichette sono disegnate SOPRA di essi:
+   passando col dito proprio sulla barra il bersaglio sarebbe la barra e il
+   riquadro si chiuderebbe appena aperto. Qui si rende trasparente al
+   puntatore tutto ciò che non è area sensibile, così il riquadro resta
+   aperto ovunque sulla riga. (Correzione locale: il motore sta in shared/
+   e lo tiene un altro cantiere.) */
+#graf-copertura .dwg-svg > *:not(.dwg-hit),
+#graf-muro .dwg-svg > *:not(.dwg-hit){pointer-events:none}
+
 /* ─────────────── voci di lista (copia di .sitem) ─────────────── */
 .item{cursor:pointer}
 .item:active{transform:translateX(1px) scale(.995)}
@@ -271,8 +298,15 @@
 <!-- SCADENZE -->
 <div class="page" id="page-scad">
   <div class="sec">Copertura formazione (per tipo)</div>
-  <div id="cop-list"></div>
+  <!-- S1 — «Su quale adempimento sono scoperto?»: barre ordinate dal tipo
+       più scoperto. Il dettaglio riga per riga resta nell'elenco qui sotto. -->
+  <div id="graf-copertura"></div>
+  <div id="cop-list" style="margin-top:12px;"></div>
   <div class="sec">Scadenze</div>
+  <!-- S2 — «Il muro delle scadenze»: quante scadono in ciascuno dei prossimi
+       12 mesi, con l'arretrato già scaduto staccato a sinistra. Filtri,
+       ricerca e ordinamento della lista NON toccano questo grafico. -->
+  <div id="graf-muro"></div>
   <div id="scad-filtri" class="chgs">
     <button class="chg active" data-filtro="tutte">Tutte</button>
     <button class="chg" data-filtro="scaduta">Scadute</button>
@@ -565,7 +599,7 @@
 </script>
 
 <script type="module">
-  import { scudoData, statoScadenza, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, parseScadenzeCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, azioniUrgenti, riepilogoAzioni, azioniDiEvento } from "./scudo-data.js";
+  import { scudoData, statoScadenza, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, parseScadenzeCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, azioniUrgenti, riepilogoAzioni, azioniDiEvento } from "./scudo-data.js";
   import { mountExit, esc, csvCell, parseCsvLine, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
 
   const $ = (id) => document.getElementById(id);
@@ -587,6 +621,38 @@
   const vuoto = (icona, titolo, sotto) =>
     `<div class="empty-state"><div class="empty-icon">${icona}</div>
       <div class="empty-title">${titolo}</div><div class="empty-sub">${sotto}</div></div>`;
+
+  // ── GRAFICI (motore condiviso: shared/dw-grafici.js) ───────────────────
+  // Regole che il motore da solo non può sapere, e che qui non si discutono:
+  // · un grafico si disegna SOLO se c'è qualcosa da confrontare: con un dato
+  //   solo la forma onesta è una frase con il numero, non una barra sola
+  //   persa in mezzo alla scheda;
+  // · quando non c'è ancora niente si mostra lo STATO VUOTO del core, che
+  //   dice cosa fare — mai un grafico vuoto, che sembra rotto;
+  // · si tiene l'istanza per distruggerla prima di ridisegnare, così a ogni
+  //   refresh non restano ascoltatori appesi.
+  const grafici = {};
+  const puliscoGrafico = (id) => {
+    if (grafici[id]) { try { grafici[id].distruggi(); } catch (e) {} grafici[id] = null; }
+    const box = $(id); if (box) box.innerHTML = "";
+    return box;
+  };
+  const grafico = (id, tipo, spec) => {
+    const box = puliscoGrafico(id);
+    if (!box || !window.dwGrafici) return null;
+    grafici[id] = window.dwGrafici[tipo](box, spec);
+    return grafici[id];
+  };
+  const grafVuoto = (id, icona, titolo, sotto) => {
+    const box = puliscoGrafico(id);
+    if (box) box.innerHTML = vuoto(icona, titolo, sotto);
+  };
+  // Qui si contano PERSONE e SCADENZE: mezza scadenza non esiste. Quando il
+  // massimo è basso la scala del motore userebbe mezzi gradini (0 · 0,5 · 1)
+  // e sull'asse comparirebbero numeri che nella realtà non esistono. Con
+  // questo formato i gradini interi restano scritti e gli altri restano muti:
+  // la riga della griglia si vede, il numero finto no.
+  const soloInteri = (v) => (Number.isInteger(v) ? String(v) : "");
 
   // ── Icone disegnate (stessa famiglia di quelle del menu): niente emoji ──
   const I = {
@@ -717,8 +783,62 @@
       ? vuoto(I.cerca, "Nessun risultato", "Nessun lavoratore corrisponde a <b>«" + esc(q) + "»</b>. Prova con una parte del nome o del ruolo.")
       : vuoto(I.persone, "Nessun lavoratore", "Aggiungi la prima persona con il modulo qui sotto, oppure importa l'elenco da un file CSV in un colpo solo."));
 
+    // ── S1 · COPERTURA DELLA FORMAZIONE PER TIPO ────────────────────────
+    // La domanda che toglie il sonno prima di un'ispezione è una sola: «per
+    // quale corso siamo scoperti?». Il motore non fa barre impilate e qui
+    // nessuno disegna SVG a mano: si mostra allora la parte che conta
+    // davvero, cioè QUANTI adempimenti non sono in regola per ciascun tipo,
+    // in ordine dal peggiore. Il colore è quello degli STATI (già usato in
+    // tutta l'app: rosso scaduto, giallo entro 30 giorni, verde a posto) e
+    // accanto a ogni barra c'è il numero, così lo stato si legge anche senza
+    // distinguere i colori. Il conto completo (in regola · in scadenza ·
+    // scadute · totale) resta nell'elenco qui sotto, riga per riga.
+    const cop = coperturaFormazione(SCA);
+    const daRinnovare = (c) => c.scadute + c.inScadenza;
+    const copTot = cop.reduce((s, c) => s + daRinnovare(c), 0);
+    const copPeggio = cop.slice().sort((a, b) => daRinnovare(b) - daRinnovare(a))[0];
+    const copParole = (c) => c.scadute
+      ? c.scadute + (c.scadute === 1 ? " già scaduta" : " già scadute")
+        + (c.inScadenza ? " e " + c.inScadenza + " in scadenza" : "")
+      : c.inScadenza + " in scadenza entro 30 giorni";
+    if (cop.length >= 2 && copTot > 0) {
+      grafico("graf-copertura", "barre", {
+        titolo: "Copertura della formazione per tipo",
+        meta: copTot + (copTot === 1 ? " adempimento da rinnovare" : " adempimenti da rinnovare"),
+        orientamento: "orizzontale",
+        ordina: true,
+        formato: soloInteri,
+        valori: cop.map(c => ({
+          etichetta: c.tipo,
+          valore: daRinnovare(c),
+          stato: c.scadute ? "danger" : (c.inScadenza ? "warn" : "ok"),
+        })),
+        aria: "Copertura della formazione per tipo: " + cop.length + " tipi di adempimento, "
+          + copTot + " adempimenti da rinnovare in tutto. Il tipo più scoperto è "
+          + copPeggio.tipo + " con " + daRinnovare(copPeggio) + ".",
+        nota: "Ogni barra è il numero di adempimenti <b>da rinnovare</b> per quel tipo: "
+          + "<b>critico</b> vuol dire che almeno uno è già scaduto, <b>da tenere d'occhio</b> "
+          + "che scadono entro 30 giorni, <b>a posto</b> che non c'è niente da fare. Oggi il "
+          + "buco più grosso è su <b>" + copPeggio.tipo + "</b>: " + copParole(copPeggio)
+          + ". Passa sopra una barra per il dettaglio.",
+      });
+    } else if (copTot > 0 && copPeggio) {
+      // un tipo solo scoperto: non c'è un confronto da leggere, il numero dice di più
+      grafVuoto("graf-copertura", I.sveglia, "Scoperti solo su " + esc(copPeggio.tipo),
+        "Tutto quello che c'è da rinnovare è di un tipo solo (<b>" + esc(copParole(copPeggio))
+        + "</b>): con una voce sola non c'è una classifica da leggere. Quando lo scadenzario "
+        + "coprirà più tipi di adempimento, qui vedrai il confronto <b>dal più scoperto</b>.");
+    } else if (cop.length) {
+      grafVuoto("graf-copertura", I.ok, "Nessun buco di copertura",
+        "Su tutti i tipi di adempimento registrati (<b>" + cop.length + "</b>) le persone sono in "
+        + "regola: niente di scaduto e niente in scadenza nei prossimi 30 giorni. Il confronto fra "
+        + "i tipi comparirà qui appena una data si avvicina.");
+    } else {
+      puliscoGrafico("graf-copertura");   // lo stato vuoto è quello dell'elenco qui sotto
+    }
+
     // Copertura formazione per tipo: badge dominante per gravità.
-    $("cop-list").innerHTML = coperturaFormazione(SCA).map(c => {
+    $("cop-list").innerHTML = cop.map(c => {
       const cls = c.scadute ? "danger" : (c.inScadenza ? "warn" : "ok");
       const lbl = c.scadute ? c.scadute + (c.scadute === 1 ? " scaduta" : " scadute")
                 : (c.inScadenza ? c.inScadenza + " in scadenza" : "tutte regolari");
@@ -727,6 +847,62 @@
         <span class="acts"><span class="badge ${cls}">${lbl}</span></span></div>`; }).join("")
       || vuoto(I.grafico, "Copertura da costruire",
           "La copertura per tipo di formazione si calcola da sola: appena registri le prime scadenze, qui vedi chi è in regola e chi no.");
+    // ── S2 · IL MURO DELLE SCADENZE ─────────────────────────────────────
+    // Una colonna per mese, i mesi che vengono, più l'arretrato già scaduto
+    // in testa a sinistra (l'unica colonna che porta il colore dello stato:
+    // è un problema di oggi, non un mese come gli altri, e lo dice anche la
+    // sua etichetta). Serve a vedere DOVE si accumula il lavoro: cinque
+    // visite mediche nello stesso mese si prenotano in una mattina sola.
+    // Conta le scadenze dello scadenzario; le azioni correttive hanno la
+    // loro pagina e il loro semaforo, e non entrano in questo conto.
+    // Quanti mesi ci stanno DAVVERO: su un telefono dodici colonne
+    // costringerebbero a tagliare le etichette («scad…»), e un'etichetta
+    // tagliata è un difetto, non un dettaglio. Si guarda avanti fin dove si
+    // legge: sei mesi sul telefono, dodici sullo schermo largo. Il periodo
+    // disegnato è scritto in chiaro accanto al titolo, così non si promette
+    // mai più di quello che si mostra.
+    const largoMuro = ($("graf-muro") && $("graf-muro").clientWidth) || Math.min(720, innerWidth - 32);
+    const quantiMesi = largoMuro >= 600 ? 12 : largoMuro >= 360 ? 6 : 4;
+    const muro = muroScadenze(SCA, new Date(), quantiMesi);
+    const mesePieno = muro.mesi.reduce((a, b) => (b.totale > a.totale ? b : a), muro.mesi[0]);
+    const orizzonte = quantiMesi === 12 ? "12 mesi" : quantiMesi + " mesi";
+    if (muro.scadute + muro.nelPeriodo > 0) {
+      const primo = muro.mesi[0], ultimo = muro.mesi[muro.mesi.length - 1];
+      grafico("graf-muro", "barre", {
+        titolo: "Il muro delle scadenze",
+        meta: "da " + primo.etichetta + " " + primo.anno + " a " + ultimo.etichetta + " " + ultimo.anno,
+        formato: soloInteri,
+        valori: (muro.scadute ? [{ etichetta: "scadute", valore: muro.scadute, stato: "danger" }] : [])
+          .concat(muro.mesi.map(m => ({ etichetta: m.etichetta, valore: m.totale }))),
+        aria: "Muro delle scadenze: " + muro.nelPeriodo + " scadenze nei prossimi " + orizzonte
+          + (muro.scadute ? ", più " + muro.scadute + " già scadute" : "")
+          + (mesePieno.totale ? ". Il mese più carico è " + MESI_NOMI[mesePieno.mese] + " " + mesePieno.anno
+             + " con " + mesePieno.totale + "." : "."),
+        nota: (muro.scadute
+            ? "La colonna rossa <b>scadute</b>, la prima a sinistra, è l'arretrato di oggi: "
+              + muro.scadute + (muro.scadute === 1 ? " scadenza già superata" : " scadenze già superate")
+              + ". Poi c'è un mese per colonna. "
+            : "Una colonna per mese: quante scadenze cadono in ciascuno dei prossimi " + orizzonte + ". ")
+          + (mesePieno.totale
+            ? "Il mese più carico è <b>" + MESI_NOMI[mesePieno.mese] + " " + mesePieno.anno + "</b> con "
+              + mesePieno.totale + (mesePieno.totale === 1 ? " scadenza" : " scadenze")
+              + ": conviene prenotare visite e corsi insieme, invece di rincorrerli uno per uno."
+            : "Nei prossimi " + orizzonte + " non cade nessuna scadenza.")
+          + (muro.fuori
+            ? (muro.fuori === 1
+                ? " Un'altra scadenza cade più in là e non è disegnata qui: la trovi nell'elenco."
+                : " Altre " + muro.fuori + " scadenze cadono più in là e non sono disegnate qui: le trovi nell'elenco.")
+            : ""),
+      });
+    } else if (muro.totale) {
+      grafVuoto("graf-muro", I.ok, "Nessuna scadenza nei prossimi " + orizzonte,
+        "Le " + muro.totale + (muro.totale === 1 ? " scadenza registrata cade" : " scadenze registrate cadono")
+        + " più in là: per adesso il calendario è libero. Il <b>muro dei mesi</b> compare qui appena "
+        + "una data rientra nel periodo.");
+    } else {
+      puliscoGrafico("graf-muro");   // lo stato vuoto è quello della lista qui sotto
+    }
+
     // Scadenzario = scadenze + azioni correttive non ancora chiuse: stessa
     // lista, stesso semaforo, stessi filtri (l'azione è a tutti gli effetti
     // una cosa da fare entro una data). Le azioni restano di sola lettura
