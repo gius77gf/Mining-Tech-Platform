@@ -93,7 +93,7 @@
   --info-basis:110px;
   --arr-ico:17px;
   --arr-stroke:1.7;
-  --nav-cols:4;
+  --nav-cols:5;
   --kpi-cols:4;
   --form-gap:9px;
   --form-pad:13px;
@@ -363,10 +363,17 @@
   fill:var(--muted); font-size:10px; font-family:'Barlow',sans-serif;
   font-variant-numeric:tabular-nums;
 }
+/* etichetta dell'unità sull'asse: NIENTE maiuscolo, per la stessa ragione
+   della tabella — «µg/m³» in maiuscolo diventerebbe «MG/M³» (milligrammi).
+   Stessa correzione applicata all'etichetta d'asse del motore condiviso
+   (.dwg-axlab), sovrascritta qui senza toccare shared/. */
 .graf-axlab{
   fill:var(--disabled); font-size:8.5px; font-family:'Barlow',sans-serif;
-  letter-spacing:1.4px; text-transform:uppercase;
+  letter-spacing:1.4px; text-transform:none;
 }
+/* del motore condiviso si corregge SOLO il maiuscolo (l'etichetta d'asse
+   contiene l'unità): misure, colore e peso restano quelli di shared/. */
+.dwg-axlab{text-transform:none}
 .graf-area{stroke:none}
 
 /* il gradiente dell'area si tinge con l'accento dell'app: stop-color è
@@ -422,11 +429,280 @@
   .graf-stat .v{font-size:16px}
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   TABELLA — anteprima dell'import e righe del report.
+   Stessa cassa incassata di .graf-stats (il "display dello strumento"):
+   fondo scuro, bordo che cattura la luce, cifre allineate. Scorre da sola
+   in orizzontale sui telefoni: la pagina non si muove mai di lato.
+   ══════════════════════════════════════════════════════════════════════ */
+.tab-wrap{
+  overflow-x:auto; -webkit-overflow-scrolling:touch; background:var(--dark);
+  border:1px solid var(--border); border-radius:var(--r-sm); box-shadow:var(--edge);
+}
+.tab{width:100%; border-collapse:collapse; font-size:12px}
+.tab th{
+  font-family:'Barlow',sans-serif; font-size:8.5px; font-weight:600; letter-spacing:1.1px;
+  text-transform:uppercase; color:var(--muted); text-align:left; line-height:1.35;
+  padding:8px 10px; border-bottom:1px solid var(--border2); background:var(--panel);
+}
+/* LE UNITÀ NON SI SCRIVONO MAI IN MAIUSCOLO. In maiuscolo «µg/m³» diventa
+   «MG/M³», cioè MILLIgrammi: mille volte tanto. Su un documento che va
+   all'ente sarebbe un errore grave, quindi l'unità esce dal maiuscolo. */
+.tab th .u{text-transform:none; letter-spacing:.2px}
+.tab td{
+  padding:7px 10px; border-bottom:1px solid var(--border); color:var(--muted2);
+  font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+/* la colonna dell'esito è quella che conta: non deve mai finire fuori
+   schermo, quindi va a capo invece di allargare la tabella */
+.tab td.stato{white-space:normal; min-width:74px}
+.tab tr:last-child td{border-bottom:none}
+.tab td.n{color:var(--text); font-weight:600}
+.tab td.grezzo{color:var(--disabled); font-size:11px; max-width:190px; overflow:hidden; text-overflow:ellipsis}
+.tab tr.ko td{color:var(--disabled)}
+.tab tr.ko td.n{color:var(--disabled); text-decoration:line-through}
+.tab tr.oltre td.n{color:var(--danger)}
+.tab tr.dup td.n{color:var(--warn)}
+/* pillola di stato dentro la tabella: piccola, con micro-profondità */
+.tag{
+  display:inline-block; font-family:'Barlow Condensed',sans-serif; font-size:9.5px;
+  font-weight:700; letter-spacing:1px; text-transform:uppercase; padding:2px 7px;
+  border-radius:3px; border:1px solid var(--border2); color:var(--muted); line-height:1.3;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+}
+.tag.ok{background:var(--success); color:var(--on-ok); border-color:transparent}
+.tag.warn{background:var(--warn); color:var(--on-wr); border-color:transparent}
+.tag.danger{background:var(--danger); color:var(--on-dg); border-color:transparent}
+
+/* ══════════════════════════════════════════════════════════════════════
+   IMPORT DELLE LETTURE (T1) — la mappatura delle colonne.
+   Gli strumenti esportano tutti in modo diverso: qui l'utente vede il suo
+   file com'è e dice lui quale colonna è cosa. Il pannello compare solo
+   dopo la lettura, per non riempire la pagina di comandi spenti.
+   ══════════════════════════════════════════════════════════════════════ */
+.imp-mappa{
+  position:relative; overflow:hidden;
+  background:linear-gradient(135deg,var(--card2),var(--card));
+  border:1px solid var(--border); border-left:3px solid var(--app-accent);
+  border-radius:var(--r); padding:13px 15px 14px; margin:10px 0 0;
+  box-shadow:var(--sh2),var(--edge);
+}
+.imp-mappa::before{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(280px 160px at 6% 0%,var(--tint-app),transparent 70%);
+}
+.imp-mappa>*{position:relative}
+.imp-tit{
+  font-family:'Barlow Condensed',sans-serif; font-size:11.5px; font-weight:800;
+  letter-spacing:2.5px; text-transform:uppercase; color:var(--app-accent2); margin-bottom:10px;
+}
+.imp-griglia{display:flex; gap:var(--form-gap); flex-wrap:wrap}
+.imp-griglia .flab{flex:1 1 128px}
+.imp-spunta{
+  display:flex; align-items:center; gap:9px; margin:11px 0 2px; font-size:12.5px;
+  color:var(--muted2); cursor:pointer; line-height:1.45;
+}
+.imp-spunta input{
+  width:18px; height:18px; flex-shrink:0; accent-color:var(--app-accent); cursor:pointer;
+}
+.imp-riepilogo{
+  display:flex; gap:7px; flex-wrap:wrap; margin:11px 0 0;
+}
+.imp-cifra{
+  flex:1 1 78px; padding:7px 10px 8px; background:var(--dark);
+  border:1px solid var(--border); border-radius:var(--r-sm); box-shadow:var(--edge);
+}
+.imp-cifra .k{
+  font-family:'Barlow',sans-serif; font-size:8px; font-weight:600; letter-spacing:1.1px;
+  text-transform:uppercase; color:var(--muted); white-space:nowrap;
+}
+.imp-cifra .v{
+  font-family:'Barlow Condensed',sans-serif; font-size:19px; font-weight:800; line-height:1.15;
+  color:var(--text); font-variant-numeric:tabular-nums;
+}
+.imp-cifra.ok .v{color:var(--success)}
+.imp-cifra.warn .v{color:var(--warn)}
+.imp-cifra.danger .v{color:var(--danger)}
+.imp-cifra.spento .v{color:var(--disabled)}
+textarea.dw-input{
+  min-height:96px; resize:vertical; line-height:1.5; font-family:ui-monospace,'SFMono-Regular',Menlo,monospace;
+  font-size:12px; width:100%;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   REPORT DI CONFORMITÀ (T3) — il documento che si consegna all'ente.
+   Sullo schermo è una scheda Deepwork come le altre; in STAMPA diventa un
+   A4 su carta bianca (vedi @media print in fondo): stesso contenuto, due
+   vestiti. Nessun colore nuovo: solo la palette di Sentinella.
+   ══════════════════════════════════════════════════════════════════════ */
+.rep{
+  position:relative; overflow:hidden;
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--border); border-radius:var(--r);
+  padding:16px 16px 15px; margin:10px 0 0; box-shadow:var(--sh3),var(--edge);
+}
+.rep::before{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(340px 190px at 4% 0%,var(--tint-app),transparent 72%);
+}
+.rep>*{position:relative}
+.rep-testa{padding-bottom:12px; border-bottom:1px solid var(--border2)}
+.rep-marchio{
+  font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:700;
+  letter-spacing:3px; text-transform:uppercase; color:var(--app-accent2);
+}
+.rep-tit{
+  font-family:'Barlow Condensed',sans-serif; font-size:23px; font-weight:800;
+  letter-spacing:.4px; color:var(--text); line-height:1.15; margin-top:3px;
+}
+.rep-sub{font-size:12px; color:var(--muted); margin-top:6px; line-height:1.55}
+.rep-sub b{color:var(--muted2); font-weight:600}
+
+/* il verdetto: è la prima cosa che legge chi riceve il documento */
+.rep-esito{
+  display:flex; align-items:center; gap:13px; margin:13px 0 0; padding:12px 14px;
+  border:1px solid var(--border); border-left:3px solid var(--success);
+  border-radius:var(--r-sm); background:var(--dark); box-shadow:var(--edge);
+}
+.rep-esito.warn{border-left-color:var(--warn)}
+.rep-esito.danger{border-left-color:var(--danger)}
+.rep-esito-ico{
+  display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
+  width:40px; height:40px; border-radius:12px; line-height:0; color:var(--success);
+  background:rgba(106,187,110,.14);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10);
+}
+.rep-esito.warn .rep-esito-ico{color:var(--warn); background:rgba(248,172,61,.14)}
+.rep-esito.danger .rep-esito-ico{color:var(--danger); background:rgba(240,95,90,.14)}
+.rep-esito-ico svg{
+  width:22px; height:22px; stroke:currentColor; fill:none; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round;
+}
+.rep-esito-lab{
+  font-family:'Barlow Condensed',sans-serif; font-size:20px; font-weight:800;
+  letter-spacing:.6px; color:var(--success); line-height:1.1;
+}
+.rep-esito.warn .rep-esito-lab{color:var(--warn)}
+.rep-esito.danger .rep-esito-lab{color:var(--danger)}
+.rep-esito-txt{font-size:12px; color:var(--muted2); margin-top:3px; line-height:1.5}
+
+.rep-cifre{display:flex; gap:7px; flex-wrap:wrap; margin:12px 0 0}
+.rep-cifra{
+  flex:1 1 84px; padding:8px 11px 9px; background:var(--dark);
+  border:1px solid var(--border); border-radius:var(--r-sm); box-shadow:var(--edge);
+}
+.rep-cifra .k{
+  font-family:'Barlow',sans-serif; font-size:8px; font-weight:600; letter-spacing:1.1px;
+  text-transform:uppercase; color:var(--muted); white-space:nowrap;
+}
+.rep-cifra .v{
+  font-family:'Barlow Condensed',sans-serif; font-size:21px; font-weight:800; line-height:1.15;
+  color:var(--text); font-variant-numeric:tabular-nums;
+}
+.rep-cifra.danger .v{color:var(--danger)}
+
+.rep-sez{
+  font-family:'Barlow Condensed',sans-serif; font-size:11.5px; font-weight:800;
+  letter-spacing:2.5px; text-transform:uppercase; color:var(--app-accent2);
+  margin:20px 0 9px; padding-bottom:6px; border-bottom:1px solid var(--border);
+}
+.rep-punto{margin:0 0 16px}
+.rep-punto-tit{
+  font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:700;
+  letter-spacing:.3px; color:var(--text); line-height:1.25;
+}
+.rep-punto-meta{font-size:11.5px; color:var(--muted); line-height:1.6; margin:5px 0 9px}
+.rep-punto-meta b{color:var(--muted2); font-weight:600}
+.rep-graf{margin:0 0 9px}
+.rep-vuoto{
+  font-size:12px; color:var(--muted); line-height:1.55; padding:10px 12px;
+  background:var(--dark); border:1px solid var(--border); border-radius:var(--r-sm);
+}
+.rep-foot{
+  margin-top:18px; padding-top:11px; border-top:1px solid var(--border2);
+  font-size:10.5px; line-height:1.6; color:var(--muted);
+}
+.rep-foot b{color:var(--muted2); font-weight:600}
+
+/* ─────────────── desktop ─────────────── */
+
+/* sui telefoni la tabella si stringe invece di scappare di lato: celle più
+   compatte e testi che vanno a capo, così l'esito resta sempre in vista */
+@media(max-width:430px){
+  .tab{font-size:11px}
+  .tab th,.tab td{padding:6px 7px}
+  .tab td.grezzo{max-width:104px}
+}
+
+@media(max-width:360px){
+  .graf-stat{padding:6px 7px 7px}
+  .graf-stat .v{font-size:16px}
+  .rep-tit{font-size:20px}
+}
+
 /* ─────────────── touch: come il core, niente effetti "incollati" ─────────────── */
 
 @media(hover:none),(pointer:coarse){
   .item.aperto:hover{background:var(--card2)}
   .item:active,.kpi:active{transform:scale(.985)}
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   STAMPA — il report su carta (T3).
+   Su carta il tema scuro non si legge e divora inchiostro: in stampa
+   l'app riprende gli stessi ruoli di colore della "modalità chiara" già
+   prevista dal foglio condiviso, ma senza toccarlo. Restano solo il
+   documento e il suo contenuto: barra, menu, comandi e toast spariscono.
+   ══════════════════════════════════════════════════════════════════════ */
+@media print{
+  @page{size:A4; margin:14mm 12mm}
+  body.dw{
+    color-scheme:light;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+    background:#fff !important; background-image:none !important;
+
+    --bg:#ffffff; --dark:#ffffff; --panel:#f3f6fa; --card:#ffffff; --card2:#f7f9fc;
+    --border:#c6ced7; --border2:#a9b4c0; --border-hi:#8d99a6;
+    --text:#0f151b; --muted2:#333f4b; --muted:#4c5865; --disabled:#7b8590;
+    --app-accent2:var(--app-accent-deep);
+    --success:#1d7a33; --warn:#8a5a00; --danger:#ad211c;
+    --tint-app:rgba(0,94,157,.06);
+    --shadow-app:none; --glow-app:transparent; --halo-1:transparent; --halo-2:transparent;
+    --sh-btn:none; --sh-btn-hi:none; --sh2:none; --sh3:none; --edge:none; --edge-hi:none;
+
+    /* i grafici seguono la carta: stessi ruoli, inchiostri leggibili */
+    --dwg-grid:#dae1e9; --dwg-axis:#8d99a6; --dwg-tick:#4c5865;
+    --dwg-lab:#333f4b; --dwg-val:#0f151b;
+    --dwg-c1:var(--app-accent-deep); --dwg-c2:#00636c; --dwg-c3:#2f7fb8;
+    --dwg-ok:#1d7a33; --dwg-wr:#8a5a00; --dwg-dg:#ad211c;
+    --dwg-tip-bg:#ffffff; --dwg-track:#dde4ec; --dwg-fade:#9aa8b6; --dwg-rif:#4c5865;
+  }
+  body.dw::before,body.dw::after{display:none !important}
+  /* fuori dal foglio tutto ciò che è comando, non documento */
+  .top,.nav,.tour-banner,.toast,.modal-ov,.dw-home,.dw-exit,
+  .page:not(#page-rep),#rep-comandi,.no-print{display:none !important}
+  #page-rep{display:block !important; padding:0 !important; animation:none !important}
+  #page-rep>.sec{display:none !important}
+  .rep{
+    border:none !important; border-radius:0 !important; box-shadow:none !important;
+    padding:0 !important; margin:0 !important; background:#fff !important;
+  }
+  .rep::before{display:none !important}
+  .rep-esito,.rep-cifra,.imp-cifra,.tab-wrap{box-shadow:none !important}
+  /* niente righe spezzate a metà fra due pagine */
+  .rep-punto-tit,.rep-sez{break-after:avoid; page-break-after:avoid}
+  .rep-esito,.rep-cifre,.rep-graf{break-inside:avoid; page-break-inside:avoid}
+  .tab tr{break-inside:avoid; page-break-inside:avoid}
+  /* su carta non esiste lo scorrimento laterale: le colonne si stringono
+     e i testi vanno a capo, così nessuna colonna resta fuori dal foglio */
+  .tab-wrap{overflow:visible !important}
+  /* larghezze decise dal contenuto (mai a colonne uguali) e a capo SOLO fra
+     una parola e l'altra: una data o la parola «regolare» non si spezzano mai */
+  .tab{width:100%; font-size:9px}
+  .tab th,.tab td{padding:5px 6px; white-space:normal; overflow-wrap:normal; word-break:normal}
+  .tab td.grezzo{max-width:none; font-size:8.5px}
+  .tag{font-size:8px; padding:1px 5px; white-space:nowrap}
+  a[href]::after{content:"" !important}
 }
 
 </style>
@@ -492,6 +768,82 @@
   </div>
   <div class="note esito" id="mis-esito"></div>
 
+  <!-- T1 · IMPORT DELLE LETTURE DALLO STRUMENTO ─────────────────────────
+       Sismografi, fonometri e centraline esportano CSV tutti diversi:
+       qui il file si legge com'è e le colonne le sceglie l'utente. Tutto
+       nel browser, nessun servizio esterno, niente esce dal telefono. -->
+  <div class="sec">Importa le letture dello strumento</div>
+  <div class="form col">
+    <label class="flab" for="imp-punto">Punto di misura che riceve le letture
+      <select class="dw-input" id="imp-punto"></select></label>
+    <textarea class="dw-input" id="imp-testo" rows="4" spellcheck="false"
+      placeholder="Incolla qui il contenuto del file esportato dallo strumento…&#10;Data;Ora;Valore&#10;12/07/2026;10:30;4,8"></textarea>
+    <div class="frow">
+      <button class="dw-btn secondary" id="btn-imp-file">Carica un file CSV</button>
+      <button class="dw-btn" id="btn-imp-leggi">Leggi il file</button>
+      <input type="file" id="imp-file" accept=".csv,.txt,text/csv,text/plain" style="display:none;">
+    </div>
+    <div class="form-hint">Va bene qualunque separatore (<b>;</b> <b>,</b> o tabulazione) e la
+      <b>virgola decimale</b> (4,8). Le date con due numeri di due cifre si leggono
+      <b>giorno/mese</b>: 07/12/2026 è il 7 dicembre.</div>
+  </div>
+
+  <div class="imp-mappa" id="imp-mappa" style="display:none;">
+    <div class="imp-tit">Quali colonne sono</div>
+    <div class="imp-griglia">
+      <label class="flab" for="imp-col-data">Data
+        <select class="dw-input" id="imp-col-data"></select></label>
+      <label class="flab" for="imp-col-ora">Ora (facoltativa)
+        <select class="dw-input" id="imp-col-ora"></select></label>
+      <label class="flab" for="imp-col-valore">Valore letto
+        <select class="dw-input" id="imp-col-valore"></select></label>
+    </div>
+    <label class="imp-spunta" for="imp-header">
+      <input type="checkbox" id="imp-header">
+      <span>La prima riga del file è un'<b>intestazione</b> (nomi delle colonne), non una misura.</span>
+    </label>
+    <div class="imp-riepilogo" id="imp-riepilogo"></div>
+    <div class="form-hint" style="margin-top:11px;">Anteprima delle prime righe: controlla che
+      data e valore siano finiti nella colonna giusta <b>prima</b> di confermare.</div>
+    <div class="tab-wrap" style="margin-top:8px;"><table class="tab" id="imp-tab"></table></div>
+    <div class="tools">
+      <button class="dw-btn" id="btn-imp-conferma">Importa le letture</button>
+      <button class="dw-btn secondary" id="btn-imp-annulla">Annulla</button>
+    </div>
+  </div>
+  <div class="note esito" id="imp-esito"></div>
+
+  <!-- T2 · ANAGRAFICA RICETTORI ─────────────────────────────────────────
+       Le norme ragionano sul punto sensibile che subisce l'effetto, non
+       "sulla cava in generale": la casa, la scuola, il confine. -->
+  <div class="sec">Ricettori: case, scuole, confini<span class="cnt" id="ric-tot">0</span></div>
+  <div class="note">Il <b>ricettore</b> è il punto sensibile da proteggere. Se gli scrivi una
+    <b>soglia propria</b> (quella dell'autorizzazione per quella casa) e ha la stessa unità di
+    misura, i punti collegati usano quella invece della loro.</div>
+  <div id="ric-list" style="margin-top:10px;"></div>
+  <div class="form col">
+    <div class="frow">
+      <input class="dw-input" id="ric-nome" placeholder="Nome (es. Casa Bianchi — via Cava 12)" style="flex:2 1 200px;">
+      <select class="dw-input" id="ric-tipo" style="flex:1 1 150px;"></select>
+    </div>
+    <div class="frow">
+      <input class="dw-input" id="ric-dist" type="number" min="0" step="1" placeholder="Distanza dalla cava (m)" style="flex:1 1 170px;">
+      <select class="dw-input" id="ric-classe" style="flex:1 1 200px;"></select>
+    </div>
+    <div class="frow">
+      <input class="dw-input" id="ric-soglia" type="number" min="0" step="0.1" placeholder="Soglia propria (facoltativa)" style="flex:1 1 170px;">
+      <input class="dw-input" id="ric-unita" placeholder="Unità (es. mm/s)" style="flex:1 1 120px;">
+    </div>
+    <div class="frow">
+      <input class="dw-input" id="ric-nota" placeholder="Nota (es. orario scolastico 08–16)" style="flex:2 1 200px;">
+      <button class="dw-btn" id="btn-ric">Aggiungi</button>
+    </div>
+    <div class="form-hint">La <b>classe acustica</b> è quella che il Comune ha assegnato alla zona:
+      serve a descrivere il ricettore, non a dedurne un limite. Il limite lo scrive
+      l'autorizzazione e lo imposti tu.</div>
+  </div>
+  <div class="note esito" id="ric-esito"></div>
+
   <div class="sec">Nuovo punto di misura</div>
   <div class="form col">
     <select class="dw-input" id="sen-preset">
@@ -504,6 +856,7 @@
     </div>
     <div class="frow">
       <input class="dw-input" id="sen-soglia" type="number" step="0.1" min="0" placeholder="Soglia" style="flex:1 1 120px;">
+      <select class="dw-input" id="sen-ricettore" style="flex:2 1 190px;"></select>
       <button class="dw-btn" id="btn-sen">Aggiungi</button>
     </div>
   </div>
@@ -585,7 +938,65 @@
   <div class="form-hint" style="margin-top:8px;">Colonne del file: <b>data; fronte; nFori; kgTotali; kgMaxRitardo; distanzaRicettore; esito; note</b>.</div>
   <div class="note esito" id="vol-esito-msg"></div>
   <div class="note"><b>SD</b> = distanza scalata (R/√W con W = kg max per ritardo): più è alta, minore è il rischio di superare le soglie di vibrazione al ricettore. Il brogliaccio è un documento verso gli enti: tienilo completo.</div>
+
+  <!-- T4 · REGISTRO RECLAMI ED ESPOSTI ──────────────────────────────────
+       Il reclamo è il momento in cui l'azienda rischia: averlo scritto,
+       con la data, l'ora, il ricettore e cosa si è fatto, è la risposta
+       pronta quando arriva l'ente. -->
+  <div class="sec">Reclami ed esposti<span class="cnt" id="rec-tot">0</span></div>
+  <div id="rec-riep" class="note recap" style="margin-top:0;"></div>
+  <div id="rec-list" style="margin-top:10px;"></div>
+  <div class="sec">Registra un reclamo</div>
+  <div class="form col">
+    <div class="frow">
+      <input class="dw-input" id="rec-data" type="date" title="Giorno del reclamo" style="flex:1 1 150px;">
+      <input class="dw-input" id="rec-ora" type="time" title="Ora del reclamo" style="flex:1 1 110px;">
+      <select class="dw-input" id="rec-tipo" style="flex:1 1 140px;"></select>
+    </div>
+    <div class="frow">
+      <select class="dw-input" id="rec-ricettore" style="flex:2 1 190px;"></select>
+      <input class="dw-input" id="rec-chi" placeholder="Chi ha reclamato" style="flex:1 1 150px;">
+    </div>
+    <input class="dw-input" id="rec-desc" placeholder="Cosa è stato segnalato (con parole sue)">
+    <div class="frow">
+      <input class="dw-input" id="rec-azione" placeholder="Cosa abbiamo fatto" style="flex:2 1 200px;">
+      <button class="dw-btn" id="btn-rec">Registra</button>
+    </div>
+    <div class="form-hint">Collega il reclamo al <b>ricettore</b>: nel report di conformità di
+      quel periodo comparirà accanto alle misure di quei giorni, e la risposta all'ente è già pronta.</div>
+  </div>
+  <div class="note esito" id="rec-esito"></div>
   <div class="note" id="mode-note"></div>
+</div>
+
+<!-- T3 · REPORT DI CONFORMITÀ ────────────────────────────────────────────
+     È l'unica cosa che il cliente consegna davvero all'ente. Sullo schermo
+     è una scheda come le altre; con «Stampa» diventa un A4 su carta bianca
+     (le regole stanno in @media print). -->
+<div class="page" id="page-rep">
+  <div class="sec">Report di conformità</div>
+  <div id="rep-comandi">
+    <div class="note">Scegli il <b>periodo</b> e, se serve, un <b>ricettore</b>: il documento
+      raccoglie letture, soglie applicate, superamenti, reclami e volate di quei giorni, e si
+      chiude con l'esito. Poi <b>Stampa</b> → «Salva come PDF».</div>
+    <div class="form col" style="margin-top:10px;">
+      <div class="frow">
+        <label class="flab" for="rep-dal">Dal
+          <input class="dw-input" id="rep-dal" type="date"></label>
+        <label class="flab" for="rep-al">Al
+          <input class="dw-input" id="rep-al" type="date"></label>
+      </div>
+      <label class="flab" for="rep-ricettore">Ricettore
+        <select class="dw-input" id="rep-ricettore"></select></label>
+      <div class="frow">
+        <button class="dw-btn secondary" id="btn-rep-mese">Mese scorso</button>
+        <button class="dw-btn secondary" id="btn-rep-anno">Ultimi 12 mesi</button>
+        <button class="dw-btn" id="btn-rep-stampa">Stampa / Salva PDF</button>
+      </div>
+    </div>
+    <div class="note esito" id="rep-esito"></div>
+  </div>
+  <div id="rep-doc"></div>
 </div>
 
 <nav class="nav" aria-label="Sezioni di Sentinella">
@@ -593,6 +1004,7 @@
   <button id="nav-mon" onclick="go('mon')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M12 21v-6.2"/><path d="M4.6 15.2A9.4 9.4 0 0 1 3.2 10 8.8 8.8 0 0 1 12 2.6 8.8 8.8 0 0 1 20.8 10a9.4 9.4 0 0 1-1.4 5.2"/><path d="M7.9 13.6A5.6 5.6 0 0 1 7 10.4 5 5 0 0 1 12 6a5 5 0 0 1 5 4.4 5.6 5.6 0 0 1-.9 3.2"/><circle cx="12" cy="10.4" r="1.5"/><path d="M8.8 21h6.4"/></svg></span>Monitoraggi</button>
   <button id="nav-ade" onclick="go('ade')"><span class="ico"><svg viewBox="0 0 24 24"><rect x="4" y="4.5" width="16" height="16.5" rx="2.4"/><path d="M4 9.4h16"/><path d="M8.4 2.6v3.6M15.6 2.6v3.6"/><path d="M8.6 13.6l2.2 2.2 4.4-4.4"/></svg></span>Adempimenti</button>
   <button id="nav-reg" onclick="go('reg')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M4 5a2.4 2.4 0 0 1 2.4-2.4H19V18H6.4A2.4 2.4 0 0 0 4 20.4z"/><path d="M4 20.4A2.4 2.4 0 0 1 6.4 18H19v3.4H6.4A2.4 2.4 0 0 1 4 20.4z"/><path d="M8.4 7.4h6.2M8.4 11h4.2"/></svg></span>Registri</button>
+  <button id="nav-rep" onclick="go('rep')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M6 2.6h7.6L19 8v13.4H6z"/><path d="M13.4 2.6V8H19"/><path d="M9 12.6h6M9 16.2h4"/></svg></span>Report</button>
 </nav>
 
 <!-- modale in stile core: sostituisce alert()/confirm()/prompt() del browser -->
@@ -697,7 +1109,10 @@
 </script>
 
 <script type="module">
-  import { sentinellaData, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, prioritaConformita, riepilogoVolate, parseVolateCsv, parseAdempimentiCsv, parseMonitoraggiCsv, serieStorica, numeroIt, unitaMisura } from "./sentinella-data.js";
+  import { sentinellaData, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, prioritaConformita, riepilogoVolate, parseVolateCsv, parseAdempimentiCsv, parseMonitoraggiCsv, serieStorica, numeroIt, unitaMisura,
+           leggiCsv, paresIntestazione, proponiMappa, preparaLetture, unisciLetture, MAX_LETTURE,
+           TIPI_RICETTORE, CLASSI_ACUSTICHE, etichettaTipo, trovaRicettore, sogliaEfficace,
+           reportConformita, ESITI, TIPI_RECLAMO, etichettaReclamo, riepilogoReclami, firmaLettura } from "./sentinella-data.js";
   import { mountExit, esc, csvCell, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
@@ -739,6 +1154,12 @@
     volata:  '<svg viewBox="0 0 24 24"><path d="M12 2.6v5M12 16.4v5M2.6 12h5M16.4 12h5"/><path d="M5.6 5.6l3.1 3.1M18.4 5.6l-3.1 3.1M5.6 18.4l3.1-3.1M18.4 18.4l-3.1-3.1"/><circle cx="12" cy="12" r="3"/></svg>',
     cerca:   '<svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.8"/><path d="M15.5 15.5L21 21"/></svg>',
     avanti:  '<svg viewBox="0 0 24 24"><path d="M9.5 5.5l7 6.5-7 6.5"/></svg>',
+    // il ricettore: la casa che si protegge (stessa famiglia di tratti del menu)
+    casa:    '<svg viewBox="0 0 24 24"><path d="M3.4 10.6L12 3.6l8.6 7"/><path d="M5.4 9.2V20a1.4 1.4 0 0 0 1.4 1.4h10.4A1.4 1.4 0 0 0 18.6 20V9.2"/><path d="M9.8 21.4v-5.6h4.4v5.6"/></svg>',
+    // il reclamo: una voce che arriva da fuori
+    voce:    '<svg viewBox="0 0 24 24"><path d="M3.6 14.4V9.6a1.6 1.6 0 0 1 1.6-1.6h2.6L14 3.8v16.4l-6.2-4.2H5.2a1.6 1.6 0 0 1-1.6-1.6z"/><path d="M17.4 9a4.4 4.4 0 0 1 0 6"/><path d="M20 6.4a8 8 0 0 1 0 11.2"/></svg>',
+    // il report: il foglio che si consegna all'ente
+    doc:     '<svg viewBox="0 0 24 24"><path d="M6 2.6h7.6L19 8v13.4H6z"/><path d="M13.4 2.6V8H19"/><path d="M9 12.6h6M9 16.2h4"/></svg>',
   };
   // classe della striscia laterale: lo stato si legge anche senza colore
   const striscia = { danger: "st-danger", warn: "st-warn", ok: "st-ok", accent: "st-accent" };
@@ -748,11 +1169,23 @@
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
-  let MON=[], ADE=[], REG=[], VOL=[];
+  let MON=[], ADE=[], REG=[], VOL=[], RIC=[], REC=[];
   let filtroMon = "tutti";
   let editMon = null;   // id del sensore in modifica (riusa il form "Nuovo sensore"; lo storico misure resta)
   let ordMon = "criticita";
   let grafMon = null;   // id del punto con la serie storica aperta (📈)
+
+  // ── LA SOGLIA CHE VALE DAVVERO (T2) ─────────────────────────────────
+  // Un punto di misura collegato a un ricettore che ha una soglia propria
+  // (quella scritta nell'autorizzazione per QUELLA casa) usa quella. Tutto
+  // ciò che nell'app calcola uno stato — semaforo, KPI, grafico, allerte,
+  // report — deve passare da qui, altrimenti due schermate dello stesso
+  // dato direbbero due cose diverse. `m` non viene modificato: si lavora
+  // su una copia, così la soglia scritta sulla scheda del punto resta.
+  const conSoglia = (m) => {
+    const e = sogliaEfficace(m, RIC);
+    return e.valore != null ? { ...m, soglia: e.valore } : m;
+  };
 
   // SERIE STORICA (F5): grafico SVG puro di un punto di misura. La
   // geometria arriva da serieStorica() in sentinella-data.js; qui si
@@ -923,7 +1356,7 @@
 
   function renderPeggio() {
     const box = $("dash-peggio"); if (!box) return;
-    const p = puntoPeggiore(MON);
+    const p = puntoPeggiore(MON.map(conSoglia));
     if (!p) {
       box.innerHTML = vuoto(I.sensore, "Nessun punto in ascolto",
         "Appena aggiungi la prima centralina dai <b>Monitoraggi</b> — nome, unità e soglia — qui compare sempre il punto messo peggio, con il suo andamento in miniatura.");
@@ -1006,12 +1439,401 @@
   // cambiare pagina annulla una modifica sensore in corso (torna su "Aggiungi")
   document.querySelector(".nav") && document.querySelector(".nav").addEventListener("click", () => {
     if (editMon) { editMon = null; $("btn-sen").textContent = "Aggiungi"; pulisci("mis-esito");
-      ["sen-nome","sen-unita","sen-soglia"].forEach(i => { $(i).value = ""; err(i, false); }); }
+      ["sen-nome","sen-unita","sen-soglia"].forEach(i => { $(i).value = ""; err(i, false); });
+      $("sen-ricettore").value = ""; }
+    if (editRic) { svuotaFormRic(); pulisci("ric-esito"); }
   });
+  // ══════════════════════════════════════════════════════════════════
+  // T2 · RICETTORI — anagrafica dei punti sensibili
+  // ══════════════════════════════════════════════════════════════════
+
+  // Nota in coda alla riga di un punto: dice da DOVE arriva la soglia con
+  // cui è stato acceso il semaforo. Un numero di sicurezza senza la sua
+  // provenienza è un numero di cui non ci si può fidare.
+  const sogliaDaRicettore = (m) => {
+    const e = sogliaEfficace(m, RIC);
+    if (e.conflitto) return " · <b>soglia del ricettore non applicata</b> (unità diverse)";
+    return e.fonte === "ricettore" ? " · dal ricettore <b>" + esc(e.ricettore) + "</b>" : "";
+  };
+
+  let editRic = null;   // id del ricettore in modifica (riusa lo stesso form)
+  const CAMPI_RIC = ["ric-nome","ric-dist","ric-soglia","ric-unita","ric-nota"];
+  const svuotaFormRic = () => {
+    CAMPI_RIC.forEach(i => { $(i).value = ""; err(i, false); });
+    $("ric-tipo").value = "abitazione"; $("ric-classe").value = "";
+    editRic = null; $("btn-ric").textContent = "Aggiungi";
+  };
+
+  function renderRicettori() {
+    $("ric-tot").textContent = RIC.length;
+    const collegati = (id) => MON.filter(m => m.ricettoreId === id).length;
+    $("ric-list").innerHTML = RIC.slice()
+      .sort((a, b) => (+a.distanza || 1e9) - (+b.distanza || 1e9)
+        || String(a.nome || "").localeCompare(String(b.nome || ""), "it"))
+      .map(r => {
+        const n = collegati(r.id);
+        const dist = Number.isFinite(+r.distanza) && +r.distanza > 0 ? numeroIt(r.distanza) + " m dalla cava" : "distanza non indicata";
+        const cls = r.classe ? " · classe acustica <b>" + esc(r.classe) + "</b>" : "";
+        const sog = Number.isFinite(+r.soglia) && +r.soglia > 0
+          ? " · soglia propria <b>" + esc(numeroIt(r.soglia)) + (r.unita ? " " + esc(r.unita) : "") + "</b>"
+          : " · nessuna soglia propria";
+        return `<div class="item st-accent">
+        <div class="avatar sup">${I.casa}</div>
+        <div class="info"><div class="name">${esc(r.nome)}</div>
+        <div class="riga"><span class="badge accent">${esc(etichettaTipo(r.tipo))}</span>
+        <span class="meta">${esc(dist)}${cls}${sog} · ${n ? n + (n === 1 ? " punto collegato" : " punti collegati") : "nessun punto collegato"}${r.nota ? " · " + esc(r.nota) : ""}</span></div></div>
+        <span class="acts">
+        <button type="button" class="arr" title="Modifica il ricettore" aria-label="Modifica ${esc(r.nome)}" data-edit-ric="${r.id}">${I.modifica}</button>
+        <button type="button" class="arr rimuovi" title="Rimuovi il ricettore" aria-label="Rimuovi ${esc(r.nome)}" data-del-ric="${r.id}">${I.cestino}</button></span></div>`;
+      }).join("")
+      || vuoto(I.casa, "Nessun ricettore",
+          "Aggiungi qui sotto le case, la scuola o il confine da proteggere, con la loro distanza. Le norme ragionano <b>per ricettore</b>: da qui in poi ogni punto di misura può essere collegato al suo, e il report parla di quel ricettore.");
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // T4 · RECLAMI ED ESPOSTI
+  // ══════════════════════════════════════════════════════════════════
+  function renderReclami() {
+    const r = riepilogoReclami(REC);
+    $("rec-tot").textContent = r.totale;
+    $("rec-riep").innerHTML = r.totale
+      ? `Reclami registrati: <b>${r.totale}</b>${r.aperti ? ` · <span class="badge warn" style="font-size:11px;">${r.aperti} ancora ${r.aperti === 1 ? "aperto" : "aperti"}</span>` : " · tutti chiusi"}${r.ultimo ? ` · l'ultimo il <b>${fmtD(r.ultimo)}</b>` : ""}`
+      : "";
+    $("rec-list").innerHTML = REC.slice()
+      .sort((a, b) => (String(a.data || "") + (a.ora || "")) < (String(b.data || "") + (b.ora || "")) ? 1 : -1)
+      .map(x => {
+        const aperto = x.stato !== "chiuso";
+        const ric = trovaRicettore(RIC, x.ricettoreId);
+        return `<div class="item ${aperto ? "st-warn" : "st-ok"}">
+        <div class="avatar ${aperto ? "warn" : "ok"}">${I.voce}</div>
+        <div class="info"><div class="name">${esc(etichettaReclamo(x.tipo))}${ric ? " · " + esc(ric.nome) : ""}</div>
+        <div class="riga"><span class="badge ${aperto ? "warn" : "ok"}">${aperto ? "Aperto" : "Chiuso"}</span>
+        <span class="meta">${fmtD(x.data)}${x.ora ? " " + esc(x.ora) : ""}${x.chi ? " · " + esc(x.chi) : ""}${x.descrizione ? " · " + esc(x.descrizione) : ""}${x.azione ? " · <b>fatto:</b> " + esc(x.azione) : ""}</span></div></div>
+        <span class="acts">
+        <button type="button" class="arr" title="${aperto ? "Segna come chiuso" : "Riapri il reclamo"}" aria-label="${aperto ? "Segna come chiuso" : "Riapri"} il reclamo del ${fmtD(x.data)}" data-rec-stato="${x.id}">${I.fatto}</button>
+        <button type="button" class="arr rimuovi" title="Rimuovi dal registro" aria-label="Rimuovi il reclamo del ${fmtD(x.data)}" data-del-rec="${x.id}">${I.cestino}</button></span></div>`;
+      }).join("")
+      || vuoto(I.voce, "Nessun reclamo registrato",
+          "Qui si scrivono le segnalazioni dei residenti: giorno, ora, chi ha chiamato e cosa abbiamo fatto. Quando arriva l'ente, la risposta è già scritta — con accanto le misure di quel giorno.");
+  }
+
+  // Riempie le tendine che dipendono dai dati (punti e ricettori),
+  // conservando la scelta che l'utente aveva già fatto.
+  function popolaTendine() {
+    const opzRic = (vuotoLab) => `<option value="">${vuotoLab}</option>` +
+      RIC.slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it"))
+        .map(r => `<option value="${esc(r.id)}">${esc(r.nome)}</option>`).join("");
+    const tieni = (id, html) => { const el = $(id); if (!el) return; const v = el.value; el.innerHTML = html;
+      if (v && el.querySelector(`option[value="${CSS.escape(v)}"]`)) el.value = v; };
+
+    tieni("sen-ricettore", opzRic("Ricettore… (facoltativo)"));
+    tieni("rec-ricettore", opzRic("Ricettore… (facoltativo)"));
+    tieni("rep-ricettore", opzRic("Tutti i ricettori della cava"));
+    tieni("imp-punto", MON.length
+      ? MON.map(m => `<option value="${esc(m.id)}">${esc(m.nome)}</option>`).join("")
+      : '<option value="">— nessun punto di misura configurato —</option>');
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // T1 · IMPORT DELLE LETTURE — la procedura guidata
+  // Tre passi: leggo il file → dici tu quali sono le colonne → guardi
+  // l'anteprima e confermi. Niente entra prima della conferma.
+  // ══════════════════════════════════════════════════════════════════
+  let impRighe = [];        // il file letto, in tabella grezza
+  let impDelim = ";";
+  let impFonte = "";        // nome del file (o "testo incollato")
+  let impPronte = [];       // le letture che entrerebbero, dopo l'ultimo calcolo
+
+  const impChiudi = () => {
+    impRighe = []; impPronte = [];
+    $("imp-mappa").style.display = "none";
+  };
+
+  function impLeggi(testo, fonte) {
+    const r = leggiCsv(testo);
+    if (!r.righe.length) {
+      impChiudi();
+      esito("imp-esito", "Il file è vuoto oppure non contiene nessuna riga leggibile. Controlla di aver copiato anche le righe delle misure.", "err", "File vuoto: nessuna riga da leggere.");
+      return;
+    }
+    if (r.righe.length === 1) {
+      impChiudi();
+      esito("imp-esito", "Nel file c'è una riga sola: se è l'intestazione mancano le misure, se è una misura aggiungi le altre righe.", "err", "Una riga sola: mancano le misure.");
+      return;
+    }
+    impRighe = r.righe; impDelim = r.delim; impFonte = fonte || "testo incollato";
+
+    // le tendine delle colonne mostrano il NOME della colonna (se c'è
+    // l'intestazione) e comunque un esempio del contenuto: così si sceglie
+    // guardando il proprio file, non indovinando un numero.
+    const nCol = Math.max(...impRighe.map(x => x.length));
+    const testa = impRighe[0] || [];
+    const conInt = paresIntestazione(impRighe);
+    const esempio = impRighe[conInt ? 1 : 0] || [];
+    const opz = (conVuoto) => (conVuoto ? '<option value="-1">— nessuna —</option>' : "") +
+      Array.from({ length: nCol }, (_, i) => {
+        const nome = conInt && String(testa[i] || "").trim() ? String(testa[i]).trim() : "colonna " + (i + 1);
+        const es = String(esempio[i] || "").trim();
+        return `<option value="${i}">${esc(nome)}${es ? " — es. " + esc(es.slice(0, 18)) : ""}</option>`;
+      }).join("");
+    $("imp-col-data").innerHTML = opz(false);
+    $("imp-col-ora").innerHTML = opz(true);
+    $("imp-col-valore").innerHTML = opz(false);
+    $("imp-header").checked = conInt;
+
+    const mp = proponiMappa(impRighe, conInt);
+    $("imp-col-data").value = String(Math.max(0, mp.colData));
+    $("imp-col-ora").value = String(mp.colOra >= 0 ? mp.colOra : -1);
+    $("imp-col-valore").value = String(Math.max(0, mp.colValore));
+
+    $("imp-mappa").style.display = "block";
+    esito("imp-esito", `Letto «${impFonte}»: ${impRighe.length} righe, separatore «${impDelim === "\t" ? "tabulazione" : impDelim}». Controlla le colonne qui sotto, poi conferma.`,
+      "success", `Letto «${impFonte}»: ${impRighe.length} righe.`);
+    impAnteprima();
+    $("imp-mappa").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  // Anteprima: mostra cosa succederebbe, riga per riga, PRIMA di scrivere
+  // qualcosa. Le righe scartate non spariscono in silenzio: portano scritto
+  // il motivo. I doppioni vengono riconosciuti sia rispetto alle letture già
+  // registrate sia dentro lo stesso file.
+  const MAX_ANTEPRIMA = 10;
+  function impAnteprima() {
+    if (!impRighe.length) return;
+    const mappa = {
+      colData: +$("imp-col-data").value,
+      colOra: +$("imp-col-ora").value,
+      colValore: +$("imp-col-valore").value,
+      conIntestazione: $("imp-header").checked,
+    };
+    const righe = preparaLetture(impRighe, mappa);
+    const punto = MON.find(x => x.id === $("imp-punto").value) || null;
+    const eff = punto ? sogliaEfficace(punto, RIC) : { valore: null };
+    const unita = punto ? unitaMisura(punto) : "";
+
+    // doppioni: prima verso lo storico già presente, poi dentro il file
+    const gia = new Set(((punto && punto.letture) || []).map(firmaLettura));
+    const viste = new Set();
+    for (const r of righe) {
+      r.dup = false; r.oltre = false;
+      if (!r.ok) continue;
+      const f = firmaLettura(r);
+      if (gia.has(f) || viste.has(f)) { r.dup = true; continue; }
+      viste.add(f);
+      r.oltre = eff.valore != null && r.valore >= eff.valore;
+    }
+    impPronte = righe.filter(r => r.ok && !r.dup);
+
+    const nEntrano = impPronte.length;
+    const nDup = righe.filter(r => r.ok && r.dup).length;
+    const nScarti = righe.filter(r => !r.ok).length;
+    const nOltre = impPronte.filter(r => r.oltre).length;
+    $("imp-riepilogo").innerHTML = `
+      <div class="imp-cifra"><div class="k">Righe lette</div><div class="v">${righe.length}</div></div>
+      <div class="imp-cifra ${nEntrano ? "ok" : "spento"}"><div class="k">Entrano</div><div class="v">${nEntrano}</div></div>
+      <div class="imp-cifra ${nDup ? "warn" : "spento"}"><div class="k">Doppioni</div><div class="v">${nDup}</div></div>
+      <div class="imp-cifra ${nScarti ? "warn" : "spento"}"><div class="k">Scartate</div><div class="v">${nScarti}</div></div>
+      <div class="imp-cifra ${nOltre ? "danger" : "spento"}"><div class="k">Oltre soglia</div><div class="v">${nOltre}</div></div>`;
+
+    const stato = (r) => !r.ok ? `<span class="tag">${esc(r.motivo)}</span>`
+      : r.dup ? '<span class="tag warn">già presente</span>'
+      : r.oltre ? '<span class="tag danger">oltre soglia</span>'
+      : '<span class="tag ok">entra</span>';
+    const mostra = righe.slice(0, MAX_ANTEPRIMA);
+    $("imp-tab").innerHTML =
+      `<thead><tr><th>Riga</th><th>Data</th><th>Ora</th><th>Valore${unita ? ' <span class="u">(' + esc(unita) + ')</span>' : ""}</th><th>Cosa succede</th></tr></thead><tbody>` +
+      mostra.map(r => `<tr class="${!r.ok ? "ko" : r.dup ? "dup" : r.oltre ? "oltre" : ""}">
+        <td>${r.riga}</td>
+        <td>${r.data ? fmtD(r.data) : `<span class="grezzo">${esc(r.dataRaw || "—")}</span>`}</td>
+        <td>${esc(r.ora || "—")}</td>
+        <td class="n">${r.ok ? esc(numeroIt(r.valore)) : `<span class="grezzo">${esc(r.valRaw || "—")}</span>`}</td>
+        <td class="stato">${stato(r)}</td></tr>`).join("") +
+      `</tbody>`;
+
+    const resto = righe.length - mostra.length;
+    const avvisi = [];
+    if (resto > 0) avvisi.push(`Nell'anteprima si vedono le prime ${mostra.length} righe: le altre ${resto} seguono le stesse regole.`);
+    if (!punto) avvisi.push("Scegli prima il punto di misura che riceve le letture.");
+    else if (eff.valore == null) avvisi.push("Questo punto non ha una soglia: le letture entrano lo stesso, ma nessuna può essere segnata come superamento.");
+    $("btn-imp-conferma").textContent = nEntrano
+      ? `Importa ${nEntrano} ${nEntrano === 1 ? "lettura" : "letture"}`
+      : "Nessuna lettura da importare";
+    $("btn-imp-conferma").disabled = !nEntrano || !punto;
+    if (avvisi.length) esito("imp-esito", avvisi.join(" "), nEntrano && punto ? "" : "err", avvisi[avvisi.length - 1]);
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // T3 · REPORT DI CONFORMITÀ — il documento per l'ente
+  // ══════════════════════════════════════════════════════════════════
+  const oggiIso = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+  let repGrafici = [];   // grafici montati: si smontano prima di ridisegnare
+
+  function renderReport() {
+    const box = $("rep-doc"); if (!box) return;
+    repGrafici.forEach(g => { try { g.distruggi(); } catch (e) {} });
+    repGrafici = [];
+
+    const dal = $("rep-dal").value, al = $("rep-al").value;
+    if (dal && al && dal > al) {
+      err("rep-dal", true); err("rep-al", true);
+      box.innerHTML = "";
+      esito("rep-esito", "Il periodo è al contrario: la data di inizio viene dopo quella di fine. Correggile e il report si rifà da solo.", "err", "Periodo al contrario: controlla le date.");
+      return;
+    }
+    err("rep-dal", false); err("rep-al", false); pulisci("rep-esito");
+
+    const R = reportConformita({ monitoraggi: MON, ricettori: RIC, reclami: REC, volate: VOL,
+      dal, al, ricettoreId: $("rep-ricettore").value });
+    const E = ESITI[R.esito] || ESITI["senza-dati"];
+    const periodo = dal && al ? `dal ${fmtD(dal)} al ${fmtD(al)}`
+      : dal ? `dal ${fmtD(dal)} a oggi` : al ? `fino al ${fmtD(al)}` : "tutto lo storico";
+    const gen = R.generato;
+    const genTxt = `${String(gen.getDate()).padStart(2,"0")}/${String(gen.getMonth()+1).padStart(2,"0")}/${gen.getFullYear()}`;
+
+    if (R.vuoto) {
+      box.innerHTML = `<div class="rep">${testaReport(periodo, R, genTxt)}
+        <div class="rep-vuoto" style="margin-top:13px;">Per questa scelta non c'è nessun punto di misura:
+        ${R.ricettore ? `al ricettore <b>${esc(R.ricettore.nome)}</b> non è collegato nessun punto.
+        Collegane uno dalla scheda del punto (Monitoraggi → Nuovo punto di misura → Ricettore).`
+        : "non è ancora stato configurato nessun punto di misura."}</div></div>`;
+      return;
+    }
+
+    const ico = R.esito === "conforme" ? I.scudo : R.esito === "non-conforme" ? I.allerta : I.serie;
+    const sezPunti = R.punti.map((p, i) => schedaPunto(p, i)).join("");
+
+    box.innerHTML = `<div class="rep">
+      ${testaReport(periodo, R, genTxt)}
+      <div class="rep-esito ${E.cls === "ok" ? "" : E.cls}">
+        <div class="rep-esito-ico">${ico}</div>
+        <div><div class="rep-esito-lab">${esc(E.label)}</div>
+        <div class="rep-esito-txt">${esc(E.testo)}</div></div>
+      </div>
+      <div class="rep-cifre">
+        <div class="rep-cifra"><div class="k">Punti di misura</div><div class="v">${R.nPunti}</div></div>
+        <div class="rep-cifra"><div class="k">Letture</div><div class="v">${R.nLetture}</div></div>
+        <div class="rep-cifra ${R.nSuperamenti ? "danger" : ""}"><div class="k">Superamenti</div><div class="v">${R.nSuperamenti}</div></div>
+        <div class="rep-cifra"><div class="k">Reclami</div><div class="v">${R.nReclami}</div></div>
+        <div class="rep-cifra"><div class="k">Volate</div><div class="v">${R.nVolate}</div></div>
+      </div>
+      <div class="rep-sez">Punti di misura e letture</div>
+      ${sezPunti}
+      ${sezReclami(R)}
+      ${sezVolate(R)}
+      <div class="rep-foot">
+        <b>Come leggere questo documento.</b> Sentinella non misura: <b>registra</b> i valori che
+        arrivano dagli strumenti o che vengono inseriti a mano, li confronta con la soglia
+        impostata e li mette in ordine. I valori riportati sono quelli caricati dall'azienda e
+        vanno letti insieme ai certificati di taratura e ai rapporti di prova degli strumenti.
+        <b>Le soglie non sono un limite di legge</b>: il limite di un sito lo scrivono
+        l'autorizzazione (AUA/VIA/prescrizioni) e la classificazione acustica comunale. Le soglie
+        usate qui sono quelle impostate dall'azienda sul punto di misura o sul ricettore, e sono
+        indicate una per una accanto a ogni punto. Documento generato il ${esc(genTxt)} con
+        Deepwork Sentinella.
+      </div>
+    </div>`;
+
+    // I grafici li disegna il motore condiviso (nessuna libreria esterna):
+    // una linea per punto, con la soglia applicata disegnata sopra e i
+    // superamenti a rombo. Sotto le due letture non si disegna niente:
+    // una linea fra due soli punti non è un andamento.
+    if (window.dwGrafici) R.punti.forEach((p, i) => {
+      const el = document.getElementById("rep-graf-" + i);
+      if (!el || p.n < 2) return;
+      repGrafici.push(dwGrafici.linea(el, {
+        unita: p.unita, nudo: true, tabella: false, animazione: false, altezza: 190,
+        // etichette dei tempi CORTE (GG/MM): il motore ne disegna una ogni
+        // tot, e con la data per esteso finirebbero una sopra l'altra. Il
+        // giorno e l'ora precisi di ogni lettura stanno nella tabella qui
+        // sotto, che è la parte del documento che fa fede.
+        x: p.letture.map(l => fmtD(l.data).slice(0, 5)),
+        serie: [{ nome: "Misurato", valori: p.letture.map(l => l.valore), area: true }],
+        soglia: p.soglia.valore != null ? { valore: p.soglia.valore, etichetta: "soglia applicata" } : null,
+        aria: `Andamento di ${p.nome} nel periodo: ${p.n} letture, massimo ${numeroIt(p.max)} ${p.unita}`
+          + (p.soglia.valore != null ? `, soglia ${numeroIt(p.soglia.valore)} ${p.unita}, ${p.nSuperamenti} superamenti` : "") + ".",
+      }));
+    });
+  }
+
+  const testaReport = (periodo, R, genTxt) => `<div class="rep-testa">
+      <div class="rep-marchio">Deepwork Sentinella · ambiente</div>
+      <div class="rep-tit">Report di conformità ambientale</div>
+      <div class="rep-sub">Periodo: <b>${esc(periodo)}</b><br>
+        Ricettore: <b>${R.ricettore ? esc(R.ricettore.nome) : "tutti i ricettori della cava"}</b>${
+          R.ricettore ? ` · ${esc(etichettaTipo(R.ricettore.tipo))}${Number.isFinite(+R.ricettore.distanza) && +R.ricettore.distanza > 0 ? " a " + esc(numeroIt(R.ricettore.distanza)) + " m dalla cava" : ""}${R.ricettore.classe ? " · classe acustica " + esc(R.ricettore.classe) : ""}` : ""}<br>
+        Documento generato il <b>${esc(genTxt)}</b></div>
+    </div>`;
+
+  function schedaPunto(p, i) {
+    const s = p.soglia;
+    const fonte = s.valore == null ? "nessuna soglia impostata su questo punto"
+      : s.fonte === "ricettore" ? `soglia applicata <b>${esc(numeroIt(s.valore))} ${esc(p.unita)}</b>, presa dal ricettore <b>${esc(s.ricettore)}</b>`
+      : `soglia applicata <b>${esc(numeroIt(s.valore))} ${esc(p.unita)}</b>, impostata sul punto di misura`;
+    const conflitto = s.conflitto
+      ? `<br><b>Attenzione:</b> il ricettore <b>${esc(s.ricettore)}</b> ha una soglia in ${esc(s.unitaRicettore || "un'altra unità")}, diversa dall'unità di questo punto (${esc(p.unita)}): non è stata applicata e non è stata convertita.`
+      : "";
+    const ric = p.ricettore
+      ? `Ricettore: <b>${esc(p.ricettore.nome)}</b> · ${esc(etichettaTipo(p.ricettore.tipo))}${Number.isFinite(+p.ricettore.distanza) && +p.ricettore.distanza > 0 ? " a <b>" + esc(numeroIt(p.ricettore.distanza)) + " m</b>" : ""}${p.ricettore.classe ? " · classe acustica <b>" + esc(p.ricettore.classe) + "</b>" : ""}`
+      : "Ricettore: <b>non collegato</b>";
+    const E = ESITI[p.esito] || ESITI["senza-dati"];
+
+    if (!p.n) return `<div class="rep-punto">
+      <div class="rep-punto-tit">${esc(p.nome)}</div>
+      <div class="rep-punto-meta">${ric}<br>${fonte}${conflitto}</div>
+      <div class="rep-vuoto">Nel periodo considerato <b>non ci sono letture</b> per questo punto:
+        non è possibile dire se il limite è stato rispettato.</div></div>`;
+
+    const righe = p.letture.map(l => `<tr class="${l.oltre ? "oltre" : ""}">
+      <td>${fmtD(l.data)}</td><td>${esc(l.ora || "—")}</td>
+      <td class="n">${esc(numeroIt(l.valore))}</td>
+      <td class="stato">${l.oltre ? '<span class="tag danger">oltre soglia</span>' : '<span class="tag ok">entro soglia</span>'}</td></tr>`).join("");
+
+    return `<div class="rep-punto">
+      <div class="rep-punto-tit">${esc(p.nome)}</div>
+      <div class="rep-punto-meta">${ric}<br>${fonte}${conflitto}<br>
+        Letture nel periodo: <b>${p.n}</b> · massimo <b>${esc(numeroIt(p.max))} ${esc(p.unita)}</b> ·
+        media <b>${esc(numeroIt(p.media))} ${esc(p.unita)}</b> ·
+        superamenti: <b>${p.nSuperamenti}</b> · esito: <b>${esc(E.label)}</b></div>
+      <div class="rep-graf" id="rep-graf-${i}"></div>
+      <div class="tab-wrap"><table class="tab">
+        <thead><tr><th>Data</th><th>Ora</th><th>Valore <span class="u">(${esc(p.unita)})</span></th><th>Esito</th></tr></thead>
+        <tbody>${righe}</tbody></table></div></div>`;
+  }
+
+  const sezReclami = (R) => !R.nReclami ? "" : `<div class="rep-sez">Reclami ed esposti del periodo</div>
+    <div class="tab-wrap"><table class="tab">
+      <thead><tr><th>Data</th><th>Ora</th><th>Tipo</th><th>Ricettore</th><th>Segnalazione</th><th>Cosa abbiamo fatto</th><th>Stato</th></tr></thead>
+      <tbody>${R.reclami.map(x => { const ric = trovaRicettore(RIC, x.ricettoreId);
+        return `<tr><td>${fmtD(x.data)}</td><td>${esc(x.ora || "—")}</td>
+        <td class="n">${esc(etichettaReclamo(x.tipo))}</td><td>${esc(ric ? ric.nome : "—")}</td>
+        <td class="grezzo" style="white-space:normal;">${esc(x.descrizione || "—")}</td>
+        <td class="grezzo" style="white-space:normal;">${esc(x.azione || "—")}</td>
+        <td class="stato">${x.stato === "chiuso" ? '<span class="tag ok">chiuso</span>' : '<span class="tag warn">aperto</span>'}</td></tr>`;
+      }).join("")}</tbody></table></div>`;
+
+  const sezVolate = (R) => !R.nVolate ? "" : `<div class="rep-sez">Volate del periodo</div>
+    <div class="rep-punto-meta">Le volate sono riportate come <b>contesto</b>: servono a spiegare i
+      picchi delle vibrazioni e della sovrappressione d'aria nei giorni in cui si è sparato.</div>
+    <div class="tab-wrap"><table class="tab">
+      <thead><tr><th>Data</th><th>Fronte</th><th>Fori</th><th>kg totali</th><th>kg max/ritardo</th><th>Distanza (m)</th><th>SD</th><th>Esito</th></tr></thead>
+      <tbody>${R.volate.map(v => { const sd = scaledDistance(v.distanzaRicettore, v.kgMaxRitardo);
+        return `<tr><td>${fmtD(v.data)}</td><td class="n">${esc(v.fronte || "—")}</td>
+        <td>${+v.nFori || 0}</td><td>${esc(numeroIt(v.kgTotali || 0))}</td>
+        <td>${esc(numeroIt(v.kgMaxRitardo || 0))}</td><td>${esc(numeroIt(v.distanzaRicettore || 0))}</td>
+        <td>${sd != null ? esc(numeroIt(sd)) : "—"}</td>
+        <td class="stato">${v.esito === "contestazione" ? '<span class="tag danger">contestazione</span>' : '<span class="tag ok">regolare</span>'}</td></tr>`;
+      }).join("")}</tbody></table></div>`;
+
   async function refresh(){
-    [MON,ADE,REG,VOL] = await Promise.all([db.monitoraggi(), db.adempimenti(), db.registri(), db.volate ? db.volate() : []]);
-    const k = kpiFrom(MON,ADE);
-    const conf = riepilogoConformita(MON);
+    [MON,ADE,REG,VOL,RIC,REC] = await Promise.all([
+      db.monitoraggi(), db.adempimenti(), db.registri(),
+      db.volate ? db.volate() : [], db.ricettori ? db.ricettori() : [], db.reclami ? db.reclami() : []]);
+    // MONE = i punti con la SOGLIA CHE VALE (quella del ricettore se c'è).
+    // Da qui in giù si conta sempre su MONE: KPI, semafori, grafici e
+    // report leggono tutti lo stesso numero.
+    const MONE = MON.map(conSoglia);
+    const k = kpiFrom(MONE,ADE);
+    const conf = riepilogoConformita(MONE);
     $("k-attivi").textContent = k.attivi;
     $("k-super").textContent  = k.superamenti;
     $("k-ade").textContent    = k.adempimenti30;
@@ -1040,7 +1862,7 @@
 
     // Priorità di conformità: superamenti/attenzione + adempimenti (scaduti =
     // danger, in scadenza = warn), ordinati danger-first, senza cap silenzioso.
-    const allerte = prioritaConformita(MON, ADE);
+    const allerte = prioritaConformita(MONE, ADE);
     $("all-list").innerHTML = allerte.map(a => { const ade = a.categoria === "adempimento";
       return `<div class="item cliccabile ${striscia[a.gravita] || "st-mute"}" data-allerta="${ade ? "ade" : "mon"}"
         title="${ade ? "Vai agli adempimenti" : "Vai al punto di misura"}">
@@ -1058,7 +1880,7 @@
       : ordMon === "nome" ? String(a.m.nome || "").localeCompare(String(b.m.nome || ""), "it")
       : b.st.ratio - a.st.ratio;
     const qMon = ($("mon-cerca") && $("mon-cerca").value || "").trim().toLowerCase();
-    const monVis = MON.map(m => ({ m, st: statoMisura(m) }))
+    const monVis = MONE.map(m => ({ m, st: statoMisura(m) }))
       .filter(x => filtroMon === "tutti" || x.st.cls === filtroMon)
       .filter(x => !qMon || ((x.m.nome || "") + " " + (x.m.nota || "")).toLowerCase().includes(qMon))
       .sort(monCmp);
@@ -1067,7 +1889,7 @@
       <div class="avatar ${st.cls === "danger" ? "danger" : st.cls === "warn" ? "warn" : ""}">${I.sensore}</div>
       <div class="info"><div class="name">${esc(m.nome)}</div>
       <div class="riga"><span class="badge ${st.cls}">${st.label}</span>
-      <span class="meta"><b>${esc(numeroIt(m.valore))} ${esc(m.unita)}</b> / soglia ${esc(numeroIt(m.soglia))} · ${Math.round(st.ratio*100)}%${nl ? " · " + nl + (nl === 1 ? " lettura" : " letture") : " · nessuna lettura"}${m.nota ? " · " + esc(m.nota) : ""}</span></div></div>
+      <span class="meta"><b>${esc(numeroIt(m.valore))} ${esc(m.unita)}</b> / soglia ${esc(numeroIt(m.soglia))}${sogliaDaRicettore(m)} · ${Math.round(st.ratio*100)}%${nl ? " · " + nl + (nl === 1 ? " lettura" : " letture") : " · nessuna lettura"}${m.nota ? " · " + esc(m.nota) : ""}</span></div></div>
       <span class="acts">
       <button type="button" class="arr${aperto ? " on" : ""}" title="${aperto ? "Chiudi la serie storica" : "Apri la serie storica nel tempo"}" aria-label="${aperto ? "Chiudi la serie storica" : "Apri la serie storica"} di ${esc(m.nome)}" aria-expanded="${aperto}" data-graf-mon="${m.id}">${aperto ? I.chiudi : I.serie}</button>
       <button type="button" class="arr" title="Modifica il punto di misura" aria-label="Modifica ${esc(m.nome)}" data-edit-mon="${m.id}">${I.modifica}</button>
@@ -1132,6 +1954,14 @@
         <button type="button" class="arr rimuovi" title="Rimuovi dal registro" aria-label="Rimuovi la volata del ${fmtD(v.data)}" data-del-vol="${v.id}">${I.cestino}</button></span></div>`;
     }).join("") || vuoto(I.volata, "Nessuna volata registrata",
         "Registra qui sotto data, fronte, fori e carica di ogni volata: il brogliaccio di brillamento resta pronto da mostrare agli enti, con la distanza scalata già calcolata.");
+
+    // Ricettori, reclami e tendine dipendono dagli stessi dati appena letti:
+    // si ridisegnano insieme, così non esistono due schermate disallineate.
+    renderRicettori();
+    renderReclami();
+    popolaTendine();
+    if (impRighe.length) impAnteprima();   // l'anteprima segue il punto scelto
+    renderReport();
   }
 
   // Le azioni di riga sono <button> con dentro un'icona SVG: il bersaglio del
@@ -1183,6 +2013,7 @@
         ["sen-nome","sen-unita","sen-soglia"].forEach(i => { $(i).value = ""; err(i, false); }); return; }
       editMon = m.id;
       $("sen-nome").value = m.nome || ""; $("sen-unita").value = m.unita || ""; $("sen-soglia").value = m.soglia != null ? m.soglia : "";
+      $("sen-ricettore").value = m.ricettoreId || "";
       if ($("sen-preset")) $("sen-preset").value = "";
       if ($("sen-preset-nota")) { $("sen-preset-nota").style.display = "none"; $("sen-preset-nota").textContent = ""; }
       ["sen-nome","sen-unita","sen-soglia"].forEach(i => err(i, false));
@@ -1201,6 +2032,51 @@
       return; }
     const all = attr(e, "data-allerta");
     if (all) { if (all === "mon") filtroMon = "tutti"; go(all); await refresh(); return; }
+    // ── ricettori ──────────────────────────────────────────────────────
+    const delRic = attr(e, "data-del-ric");
+    if (delRic) { const r = trovaRicettore(RIC, delRic); if (!r) return;
+      const usati = MON.filter(m => m.ricettoreId === delRic);
+      if (await chiedi("Rimuovere il ricettore",
+        `Stai per rimuovere <b>${esc(r.nome)}</b>.<br><br>
+         ${usati.length
+           ? `Ci ${usati.length === 1 ? "è" : "sono"} <b>${usati.length} ${usati.length === 1 ? "punto di misura collegato" : "punti di misura collegati"}</b>: ${usati.map(m => "«" + esc(m.nome) + "»").join(", ")}. Il collegamento viene tolto e quei punti tornano a usare la <b>soglia scritta sulla loro scheda</b>. Le letture non si perdono.`
+           : "Nessun punto di misura è collegato a questo ricettore."}
+         <br><br>I reclami già registrati restano nel registro, ma senza il nome del ricettore.`,
+        "Rimuovi", true)) {
+        for (const m of usati) await db.aggiorna("monitoraggi", m.id, { ricettoreId: "" });
+        await db.rimuovi("ricettori", delRic);
+        if (editRic === delRic) svuotaFormRic();
+        await refresh();
+        toast("Ricettore «" + r.nome + "» rimosso."); } return; }
+    const editRicId = attr(e, "data-edit-ric");
+    if (editRicId) { const r = trovaRicettore(RIC, editRicId); if (!r) return;
+      if (editRic === r.id) { svuotaFormRic(); esito("ric-esito", "Modifica annullata: il ricettore resta com'era."); return; }
+      editRic = r.id;
+      $("ric-nome").value = r.nome || ""; $("ric-tipo").value = r.tipo || "abitazione";
+      $("ric-dist").value = r.distanza != null ? r.distanza : ""; $("ric-classe").value = r.classe || "";
+      $("ric-soglia").value = r.soglia != null ? r.soglia : ""; $("ric-unita").value = r.unita || "";
+      $("ric-nota").value = r.nota || "";
+      CAMPI_RIC.forEach(i => err(i, false));
+      $("btn-ric").textContent = "Salva modifica";
+      esito("ric-esito", "Stai modificando «" + r.nome + "»: i punti collegati restano collegati.",
+        "", "Modifica di «" + r.nome + "» in corso.");
+      $("ric-nome").scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => { try { $("ric-nome").focus({ preventScroll: true }); } catch (er) {} }, 300); return; }
+    // ── reclami ────────────────────────────────────────────────────────
+    const recStato = attr(e, "data-rec-stato");
+    if (recStato) { const x = REC.find(v => v.id === recStato); if (!x) return;
+      const chiuso = x.stato === "chiuso";
+      await db.aggiorna("reclami", recStato, { stato: chiuso ? "aperto" : "chiuso" });
+      await refresh();
+      toast(chiuso ? "Reclamo riaperto." : "Reclamo segnato come chiuso.", chiuso ? "" : "success"); return; }
+    const delRec = attr(e, "data-del-rec");
+    if (delRec) { const x = REC.find(v => v.id === delRec);
+      if (await chiedi("Rimuovere il reclamo",
+        `Stai per togliere dal registro il reclamo${x ? ` del <b>${fmtD(x.data)}</b>${x.chi ? " di <b>" + esc(x.chi) + "</b>" : ""}` : ""}.<br><br>
+         Il registro dei reclami è la <b>prova di come l'azienda ha risposto</b>: togli una riga solo per correggere un inserimento sbagliato.`,
+        "Rimuovi", true)) {
+        await db.rimuovi("reclami", delRec); await refresh();
+        toast("Reclamo rimosso dal registro."); } return; }
     const it = e.target.closest && e.target.closest("[data-reg]");
     if (it) { const r = REG.find(x => x.id === it.getAttribute("data-reg"));
       // toggle bidirezionale, SENZA sovrascrivere la nota originale del registro
@@ -1315,15 +2191,26 @@
         !nome ? "Serve il nome del punto." : !unita ? "Serve l'unità di misura." : "Serve una soglia maggiore di zero."); return;
     }
     ["sen-nome","sen-unita","sen-soglia"].forEach(i => err(i, false));
+    const ricettoreId = $("sen-ricettore").value || "";
     if (editMon) {
-      await db.aggiorna("monitoraggi", editMon, { nome, unita, soglia });   // valore/letture restano
+      await db.aggiorna("monitoraggi", editMon, { nome, unita, soglia, ricettoreId });   // valore/letture restano
       editMon = null; $("btn-sen").textContent = "Aggiungi";
     } else {
-      await db.aggiungi("monitoraggi", { nome, unita, soglia, valore: 0, letture: [] });
+      await db.aggiungi("monitoraggi", { nome, unita, soglia, ricettoreId, valore: 0, letture: [] });
     }
-    $("sen-nome").value = ""; $("sen-unita").value = ""; $("sen-soglia").value = "";
+    $("sen-nome").value = ""; $("sen-unita").value = ""; $("sen-soglia").value = ""; $("sen-ricettore").value = "";
     $("sen-preset").value = ""; $("sen-preset-nota").style.display = "none"; $("sen-preset-nota").textContent = "";
-    esito("mis-esito", "Punto di misura «" + nome + "» salvato, soglia " + numeroIt(soglia) + " " + unita + ".", "success",
+    // se il punto è collegato a un ricettore con soglia propria, la soglia
+    // che conta cambia: dirlo subito evita che l'utente creda a un numero
+    // che l'app non sta usando
+    const rSel = trovaRicettore(RIC, ricettoreId);
+    const sr = rSel ? +rSel.soglia : NaN;
+    const uR = rSel ? String(rSel.unita || "").trim().toLowerCase() : "";
+    const notaRic = !(rSel && Number.isFinite(sr) && sr > 0) ? ""
+      : (!uR || uR === unita.trim().toLowerCase())
+        ? " Collegato a «" + rSel.nome + "»: vale la soglia del ricettore, " + numeroIt(sr) + " " + (rSel.unita || unita) + "."
+        : " Attenzione: «" + rSel.nome + "» ha una soglia in " + rSel.unita + ", unità diversa da " + unita + ": non viene applicata.";
+    esito("mis-esito", "Punto di misura «" + nome + "» salvato, soglia " + numeroIt(soglia) + " " + unita + "." + notaRic, "success",
       "«" + nome.split(" — ")[0] + "» salvato.");
     $("sen-nome").focus();   // torna al primo campo per aggiungere subito il prossimo
     await refresh();
@@ -1424,6 +2311,163 @@
       : "Per restare sopra SD " + $("sd-target").value + ": <b>max " + Math.floor(wmax) + " kg</b> per ritardo a " + $("sd-dist").value + " m.";
   };
   ["sd-carica","sd-dist","sd-target"].forEach(id => $(id).addEventListener("input", renderSD));
+
+  // ══════════════════════════════════════════════════════════════════
+  // Tendine fisse (tipi e classi): si riempiono una volta sola all'avvio.
+  // ══════════════════════════════════════════════════════════════════
+  $("ric-tipo").innerHTML = TIPI_RICETTORE.map(t => `<option value="${t.chiave}">${esc(t.etichetta)}</option>`).join("");
+  $("ric-classe").innerHTML = '<option value="">Classe acustica… (facoltativa)</option>' +
+    CLASSI_ACUSTICHE.map(c => `<option value="${c.chiave}">${esc(c.etichetta)}</option>`).join("");
+  $("rec-tipo").innerHTML = TIPI_RECLAMO.map(t => `<option value="${t.chiave}">${esc(t.etichetta)}</option>`).join("");
+
+  // ── T2 · salvataggio di un ricettore ────────────────────────────────
+  $("btn-ric").onclick = async () => {
+    const nome = $("ric-nome").value.trim();
+    if (!nome) { err("ric-nome", true); fuocoErr(["ric-nome"]);
+      esito("ric-esito", "Serve il nome del ricettore: scrivi come lo chiamate voi (es. Casa Bianchi — via Cava 12), così lo riconosci nel report.", "err", "Serve il nome del ricettore."); return; }
+    const distRaw = $("ric-dist").value.trim(), dist = +distRaw;
+    if (distRaw !== "" && (!Number.isFinite(dist) || dist < 0)) {
+      err("ric-dist", true); fuocoErr(["ric-dist"]);
+      esito("ric-esito", "La distanza dev'essere un numero di metri non negativo (o lasciala vuota se non la sai ancora).", "err", "Distanza non valida."); return; }
+    const sogRaw = $("ric-soglia").value.trim(), sog = +sogRaw;
+    if (sogRaw !== "" && (!Number.isFinite(sog) || sog <= 0)) {
+      err("ric-soglia", true); fuocoErr(["ric-soglia"]);
+      esito("ric-esito", "La soglia propria dev'essere un numero maggiore di zero, oppure vuota: se è vuota valgono le soglie dei singoli punti di misura.", "err", "Soglia del ricettore non valida."); return; }
+    const unita = $("ric-unita").value.trim();
+    if (sogRaw !== "" && !unita) {
+      err("ric-unita", true); fuocoErr(["ric-unita"]);
+      esito("ric-esito", "Se scrivi una soglia serve anche la sua unità (es. mm/s, dB(A), µg/m³): senza, l'app non sa a quali punti applicarla.", "err", "Serve l'unità della soglia."); return; }
+    CAMPI_RIC.forEach(i => err(i, false));
+
+    const dati = { nome, tipo: $("ric-tipo").value, classe: $("ric-classe").value,
+      distanza: distRaw === "" ? null : dist, soglia: sogRaw === "" ? null : sog,
+      unita, nota: $("ric-nota").value.trim() };
+    if (editRic) await db.aggiorna("ricettori", editRic, dati);
+    else await db.aggiungi("ricettori", dati);
+    const modificato = !!editRic;
+    svuotaFormRic();
+    esito("ric-esito", `Ricettore «${nome}» ${modificato ? "aggiornato" : "aggiunto"}.` +
+      (sogRaw !== "" ? ` I punti collegati con unità ${unita} useranno la soglia ${numeroIt(sog)} ${unita}.` : " Non ha una soglia propria: i punti collegati usano la loro."),
+      "success", `Ricettore «${nome}» ${modificato ? "aggiornato" : "aggiunto"}.`);
+    $("ric-nome").focus();
+    await refresh();
+  };
+  CAMPI_RIC.forEach(i => clearErr(i, "ric-esito"));
+  enterSubmit(["ric-nome","ric-dist","ric-soglia","ric-unita","ric-nota"], "btn-ric");
+
+  // ── T4 · salvataggio di un reclamo ──────────────────────────────────
+  { const d = new Date(); $("rec-data").max = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
+  $("btn-rec").onclick = async () => {
+    const data = $("rec-data").value;
+    if (!data) { err("rec-data", true); fuocoErr(["rec-data"]);
+      esito("rec-esito", "Serve il giorno del reclamo: è il riferimento con cui si ritrovano le misure di quelle ore.", "err", "Serve la data del reclamo."); return; }
+    if (giorniTra(data) > 0) { err("rec-data", true); fuocoErr(["rec-data"]);
+      esito("rec-esito", "La data del reclamo non può essere nel futuro: metti il giorno in cui è arrivata la segnalazione.", "err", "La data non può essere nel futuro."); return; }
+    const desc = $("rec-desc").value.trim();
+    if (!desc) { err("rec-desc", true); fuocoErr(["rec-desc"]);
+      esito("rec-esito", "Scrivi cosa è stato segnalato, con le parole di chi ha chiamato: è la parte che conta davanti all'ente.", "err", "Scrivi cosa è stato segnalato."); return; }
+    err("rec-data", false); err("rec-desc", false);
+    await db.aggiungi("reclami", {
+      data, ora: $("rec-ora").value || "", tipo: $("rec-tipo").value,
+      ricettoreId: $("rec-ricettore").value || "", chi: $("rec-chi").value.trim(),
+      descrizione: desc, azione: $("rec-azione").value.trim(), stato: "aperto",
+    });
+    ["rec-ora","rec-chi","rec-desc","rec-azione"].forEach(i => $(i).value = "");
+    esito("rec-esito", "Reclamo del " + fmtD(data) + " registrato. Resta APERTO finché non lo segni chiuso, e comparirà nel report di conformità di quel periodo.",
+      "success", "Reclamo del " + fmtD(data) + " registrato.");
+    await refresh();
+  };
+  ["rec-data","rec-desc"].forEach(i => clearErr(i, "rec-esito"));
+  enterSubmit(["rec-chi","rec-desc","rec-azione"], "btn-rec");
+
+  // ══════════════════════════════════════════════════════════════════
+  // T1 · IMPORT DELLE LETTURE — i comandi della procedura guidata
+  // ══════════════════════════════════════════════════════════════════
+  $("btn-imp-file").onclick = () => $("imp-file").click();
+  $("imp-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const testo = await file.text();
+    $("imp-testo").value = testo.length > 20000 ? testo.slice(0, 20000) : testo;
+    impLeggi(testo, file.name);
+    $("imp-file").value = "";
+  };
+  $("btn-imp-leggi").onclick = () => {
+    const t = $("imp-testo").value;
+    if (!t.trim()) { err("imp-testo", true); fuocoErr(["imp-testo"]);
+      esito("imp-esito", "Prima incolla il contenuto del file (o caricalo con «Carica un file CSV»): senza righe non c'è niente da leggere.", "err", "Incolla o carica prima il file."); return; }
+    err("imp-testo", false);
+    impLeggi(t, "testo incollato");
+  };
+  $("btn-imp-annulla").onclick = () => {
+    impChiudi();
+    esito("imp-esito", "Import annullato: non è stata scritta nessuna lettura.");
+  };
+  ["imp-col-data","imp-col-ora","imp-col-valore","imp-header","imp-punto"].forEach(id =>
+    $(id).addEventListener("change", () => { pulisci("imp-esito"); impAnteprima(); }));
+  $("btn-imp-conferma").onclick = async () => {
+    const punto = MON.find(x => x.id === $("imp-punto").value);
+    if (!punto) { esito("imp-esito", "Scegli il punto di misura che riceve le letture: senza, le misure non hanno dove andare.", "err", "Scegli prima il punto di misura."); return; }
+    if (!impPronte.length) { esito("imp-esito", "Non c'è nessuna lettura nuova da importare: sono tutte già presenti o tutte scartate.", "err", "Nessuna lettura nuova da importare."); return; }
+    const u = unisciLetture(punto.letture || [], impPronte);
+    const eff = sogliaEfficace(punto, RIC);
+    const nOltre = impPronte.filter(r => eff.valore != null && r.valore >= eff.valore).length;
+    const ultima = u.letture[u.letture.length - 1];
+    // l'ultimo valore della scheda segue la lettura più recente dello storico:
+    // il semaforo del punto deve raccontare la stessa cosa della serie storica
+    await db.aggiorna("monitoraggi", punto.id, { letture: u.letture, valore: ultima ? ultima.valore : punto.valore });
+    impChiudi(); $("imp-testo").value = "";
+    grafMon = punto.id;   // si vede subito l'andamento appena importato
+    esito("imp-esito",
+      `Importate ${u.aggiunte} ${u.aggiunte === 1 ? "lettura" : "letture"} su «${punto.nome}»` +
+      (u.duplicati ? `, ${u.duplicati} già presenti (saltate)` : "") +
+      (u.tagliate ? `. Lo storico tiene le ultime ${MAX_LETTURE} letture: le ${u.tagliate} più vecchie sono uscite` : "") +
+      (nOltre ? `. ATTENZIONE: ${nOltre} ${nOltre === 1 ? "lettura è" : "letture sono"} oltre la soglia di ${numeroIt(eff.valore)} ${unitaMisura(punto)}` : "") + ".",
+      nOltre ? "err" : "success",
+      `Importate ${u.aggiunte} letture${nOltre ? ", " + nOltre + " oltre soglia" : ""}.`);
+    await refresh();
+    const el = $("graf-" + punto.id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  // T3 · REPORT — periodo, ricettore, stampa
+  // ══════════════════════════════════════════════════════════════════
+  { // di partenza: gli ultimi 30 giorni, il periodo che si guarda più spesso
+    const oggi = oggiIso();
+    const d = new Date(oggi + "T00:00:00"); d.setDate(d.getDate() - 30);
+    $("rep-al").value = oggi;
+    $("rep-dal").value = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    $("rep-al").max = oggi;
+  }
+  ["rep-dal","rep-al","rep-ricettore"].forEach(id => $(id).addEventListener("change", renderReport));
+  $("btn-rep-mese").onclick = () => {
+    const d = new Date(oggiIso() + "T00:00:00");
+    const primo = new Date(d.getFullYear(), d.getMonth() - 1, 1);
+    const ultimo = new Date(d.getFullYear(), d.getMonth(), 0);
+    const iso = (x) => new Date(x.getTime() - x.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    $("rep-dal").value = iso(primo); $("rep-al").value = iso(ultimo);
+    renderReport();
+    toast("Periodo: mese scorso, dal " + fmtD(iso(primo)) + " al " + fmtD(iso(ultimo)) + ".");
+  };
+  $("btn-rep-anno").onclick = () => {
+    const oggi = oggiIso(); const d = new Date(oggi + "T00:00:00");
+    d.setFullYear(d.getFullYear() - 1); d.setDate(d.getDate() + 1);
+    $("rep-dal").value = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    $("rep-al").value = oggi;
+    renderReport();
+    toast("Periodo: ultimi 12 mesi.");
+  };
+  $("btn-rep-stampa").onclick = () => {
+    if (!$("rep-doc").innerHTML.trim()) {
+      esito("rep-esito", "Non c'è ancora niente da stampare: scegli un periodo che contenga delle letture.", "err", "Niente da stampare in questo periodo.");
+      return;
+    }
+    // la finestra di stampa del browser diventa il PDF da allegare: nessuna
+    // libreria, nessun servizio esterno, il documento non esce dal computer
+    toast("Si apre la stampa: scegli «Salva come PDF» per allegarlo.");
+    setTimeout(() => { try { window.print(); } catch (e) {} }, 260);
+  };
+
   await refresh();
 </script>
 </body>
