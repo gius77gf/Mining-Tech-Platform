@@ -389,6 +389,10 @@
   font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:800;
   letter-spacing:.6px; color:var(--text); margin-bottom:8px;
 }
+/* la soglia applicata è una riga di contesto, non un avviso: resta testo,
+   senza la cassa del riquadro — un riquadro dentro un riquadro pesa e basta */
+.and-sub{font-size:12px; line-height:1.55; color:var(--muted2); margin-bottom:2px}
+.and-sub b{color:var(--text)}
 .and-card .note{margin-top:0}
 .and-card .note+.note,.and-card .tab-wrap+.note{margin-top:9px}
 .and-graf{margin:10px 0 2px}
@@ -2797,7 +2801,7 @@ textarea.dw-input{
       : `<div class="note avviso">Nella finestra ci sono <b>${p.n}</b> ${p.n === 1 ? "lettura" : "letture"}: troppo poche per disegnare un andamento. Servono almeno <b>3</b> misure — una linea fra due punti non è una tendenza, e disegnarla sarebbe una bugia.</div>`;
     return `<div class="and-card">
       <div class="and-tit">${esc(p.nome)}</div>
-      <div class="note">${sogliaTxt}</div>
+      <div class="and-sub">${sogliaTxt}</div>
       ${graf}${tab}${verdetto}</div>`;
   }
 

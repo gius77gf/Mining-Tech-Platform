@@ -907,7 +907,8 @@ export function allerteProgramma(programma, monitoraggi, oggi = new Date()) {
       gravita: v.stato.cls === "danger" ? "danger" : "warn",
       categoria: "programma",
       titolo: v.nome,
-      dettaglio: (v.stato.ogniGiorni > 0 ? etichettaFrequenza(v.stato.ogniGiorni) : "frequenza non impostata")
+      dettaglio: "misura in programma · "
+        + (v.stato.ogniGiorni > 0 ? etichettaFrequenza(v.stato.ogniGiorni) : "frequenza non impostata")
         + (v.stato.ultima ? " · ultima misura " + dataIt(v.stato.ultima) : " · nessuna misura registrata"),
       badge: v.stato.label,
     }));
