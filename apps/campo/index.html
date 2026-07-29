@@ -726,9 +726,12 @@ button.arr.del:hover{
   function grafFermiStorico(righe) {
     const el = svuotaGraf("fermi-storico"); if (!el) return;
     if (righe.length < 3) {
-      el.innerHTML = vuoto(I.calend, "Servono più giornate",
-        `Per capire se i fermi stanno aumentando o calando serve almeno qualche giornata registrata: `
-        + `finora ce ${righe.length === 1 ? "n'è <b>una</b>" : `ne sono <b>${righe.length}</b>`}. `
+      const quante = righe.length === 0 ? "non ce n'è ancora <b>nessuna</b>"
+        : righe.length === 1 ? "finora ce n'è <b>una sola</b>"
+        : "finora ce ne sono <b>due</b>";
+      el.innerHTML = vuoto(I.calend,
+        righe.length === 0 ? "Nessuna giornata registrata" : "Servono più giornate",
+        `Per capire se i fermi stanno aumentando o calando servono almeno tre giornate di lavoro registrate: ${quante}. `
         + `Registra le attività con il loro <b>giorno di lavoro</b> e il confronto compare da solo.`);
       return;
     }

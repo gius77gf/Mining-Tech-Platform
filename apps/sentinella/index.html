@@ -943,7 +943,10 @@
       const ult = valori[valori.length - 1], pen = valori[valori.length - 2];
       const verso = ult > pen ? "in salita" : ult < pen ? "in discesa" : "stabile";
       nota = `<b>${g.n}</b> ${g.n === 1 ? "lettura" : "letture"} dal <b>${esc(g.dal)}</b> al <b>${esc(g.al)}</b>`
-        + (g.superamenti ? ` · <b>${g.superamenti}</b> ${g.superamenti === 1 ? "volta oltre soglia" : "volte oltre soglia"}` : " · mai oltre soglia")
+        // «mai oltre soglia» si può dire solo se una soglia c'è: su un punto
+        // senza soglia impostata non esiste nessun oltre da contare
+        + (g.superamenti ? ` · <b>${g.superamenti}</b> ${g.superamenti === 1 ? "volta oltre soglia" : "volte oltre soglia"}`
+           : sogliaOk ? " · mai oltre soglia" : " · nessuna soglia impostata su questo punto")
         + ` · rispetto alla lettura prima è <b>${verso}</b>. Tocca per aprire la serie storica completa.`;
     } else if (valori.length === 1) {
       nota = `C'è <b>una sola lettura</b> registrata (${esc(g.al)}): la miniatura mostra l'andamento dalla seconda in poi. Registra le misure dai <b>Monitoraggi</b>.`;
