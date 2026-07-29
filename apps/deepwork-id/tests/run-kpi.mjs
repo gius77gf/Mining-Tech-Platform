@@ -1466,5 +1466,68 @@ test("collezioni di formazione e DPI assenti: nessun crash e nessun NaN", () => 
 });
 
 
+console.log("\n— I ponti fra le app (Blocco 4) —");
+// Campo → Genesi: il consuntivo che chiude il cerchio della calibrazione.
+// Il cantiere lo aveva lasciato senza test perché credeva che Campo non
+// avesse una suite: ce l'ha, ed è questa.
+test("il consuntivo tiene la carica reale GREZZA, non arrotondata", () => {
+  const D = "2026-07-29", T = "Pomeriggio";
+  const csv = campo.pianoConsuntivoCsv([{ data: D, turno: T, foro: 2, prog: 58, reale: 71.25 }]);
+  ok(/;71\.25;/.test(csv), `la misura va persa: ${csv.split("\n")[1]}`);
+});
+test("lo scarto in chili porta il SEGNO: senza verso non calibra niente", () => {
+  const csv = campo.pianoConsuntivoCsv([{ data: "2026-07-29", turno: "M", foro: 1, prog: 58, reale: 44.7 }]);
+  ok(/;-13\.3;/.test(csv), `manca il segno: ${csv.split("\n")[1]}`);
+});
+test("un foro non registrato lascia le celle vuote, non uno zero", () => {
+  const csv = campo.pianoConsuntivoCsv([{ data: "2026-07-29", turno: "M", foro: 6, prog: 58 }]);
+  ok(/;6;58;;;;/.test(csv), `uno zero qui vorrebbe dire «caricato con nulla»: ${csv.split("\n")[1]}`);
+});
+test("un nome con punto e virgola non spezza la riga del CSV", () =>
+  ok(campo.pianoConsuntivoCsv([{ data: "2026-07-29", turno: "M", foro: 1, prog: 58, reale: 50, da: "Rossi;Mario" }])
+       .trim().split("\n").length === 2, "il nome quotato deve restare in una riga sola"));
+test("il parziale confronta i soli fori già caricati", () => {
+  const D = "2026-07-29", T = "P";
+  const piano = [44.7, 71.25, 58, 66.9, 33.4].map((r, i) => ({ data: D, turno: T, foro: i + 1, prog: 58, reale: r }))
+    .concat([{ data: D, turno: T, foro: 6, prog: 58 }]);
+  const p = campo.pianoParziale(piano);
+  ok(p.registrati === 5 && p.totale === 6, `${p.registrati}/${p.totale} invece di 5/6`);
+  ok(Math.abs(p.realeKg - 274.25) < 0.005, `reali ${p.realeKg} invece di 274,25`);
+  ok(p.progettatoKg === 290, `progetto ${p.progettatoKg}: va contato sui soli fori caricati, non su tutti`);
+});
+test("senza fori caricati il parziale è null, non zeri finti", () => {
+  ok(campo.pianoParziale([{ foro: 1, prog: 58 }]) === null, "nessuna misura non è «scostamento zero»");
+  ok(campo.pianoParziale([]) === null && campo.pianoParziale(undefined) === null, "vuoto e assente = null");
+});
+
+// Sentinella → Scudo: l'azione correttiva che nasce dal superamento.
+test("l'azione si ritrova dalla sua origine, e non pesca origini di altro tipo", () => {
+  const az = [{ id: "a1", origineTipo: "superamento", origineId: "m1", origineVoce: "2026-07-29", stato: "aperta" },
+              { id: "a2", origineTipo: "ispezione", origineId: "i9", origineVoce: "x", stato: "aperta" }];
+  ok(sentinella.azioniDiOrigine(az, "superamento", "m1", "2026-07-29").length === 1, "deve trovarne una");
+  ok(sentinella.azioniDiOrigine(az, "superamento", "i9", "x").length === 0, "non deve pescare l'ispezione");
+  ok(sentinella.azioniDiOrigine(undefined, "superamento", "m1", "2026-07-29").length === 0, "senza azioni: lista vuota");
+});
+test("lo stato del ponte distingue «nessuna azione» da «da chiudere»", () => {
+  const az = [{ origineTipo: "superamento", origineId: "m1", origineVoce: "2026-07-29", stato: "aperta" }];
+  ok(sentinella.statoPonte([], "superamento", "m1", "2026-07-29").n === 0, "senza azioni n = 0");
+  ok(sentinella.statoPonte(az, "superamento", "m1", "2026-07-29").daChiudere === 1, "con un'azione aperta: 1 da chiudere");
+});
+// Il testo NON deve suggerire un nesso causale che nessuno ha dimostrato
+test("l'avviso sulla volata nega esplicitamente il rapporto di causa", () =>
+  ok(/non .*(caus|dimostrat)/i.test(String(sentinella.AVVISO_COINCIDENZA || "")),
+     `un documento che va all'ente non può insinuare: «${sentinella.AVVISO_COINCIDENZA}»`));
+test("la scadenza proposta scavalca mese e anno, e non produce NaN", () => {
+  ok(sentinella.dataPiuGiorni(30, new Date(2026, 6, 29)) === "2026-08-28", "30 giorni da 29/07");
+  ok(sentinella.dataPiuGiorni(1, new Date(2026, 11, 31)) === "2027-01-01", "capodanno");
+  ok(sentinella.dataPiuGiorni("boh", new Date(2026, 6, 29)) === "", "ingresso non numerico = vuoto, non NaN");
+});
+test("Scudo riconosce l'origine ambientale e non la confonde con un'ispezione", () => {
+  ok(scudo.daAmbiente({ origineTipo: "superamento" }) === true, "un superamento è ambientale");
+  ok(scudo.daAmbiente({ origineTipo: "ispezione" }) === false, "un'ispezione no");
+  ok(scudo.daAmbiente({}) === false, "senza origine no");
+  ok(JSON.stringify(scudo.riepilogoAmbiente([])).indexOf("NaN") < 0, "archivio vuoto senza NaN");
+});
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
