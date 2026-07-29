@@ -864,7 +864,7 @@
   <div id="odl-ric"></div>
   <div class="form">
     <select class="dw-input" id="odl-ric-sel" title="Ricambio preso dal magazzino" style="flex:2 1 200px;"></select>
-    <input class="dw-input" id="odl-ric-nome" placeholder="oppure un pezzo non a magazzino" style="flex:2 1 190px;">
+    <input class="dw-input" id="odl-ric-nome" placeholder="o un pezzo fuori magazzino" title="Pezzo non registrato in magazzino: scrivi qui il nome" style="flex:2 1 190px;">
     <input class="dw-input" id="odl-ric-qta" type="number" min="0" step="1" placeholder="Quantità" style="flex:1 1 110px;">
     <input class="dw-input" id="odl-ric-prezzo" type="number" min="0" step="0.01" placeholder="€ al pezzo" style="flex:1 1 110px;">
     <button class="dw-btn" id="btn-odl-ric">Aggiungi</button>
@@ -1080,7 +1080,11 @@
   const $ = (id) => document.getElementById(id);
   const MB = { operativo: ["ok","Operativo"], fermo: ["danger","Fermo"], verifica: ["warn","Verifica"] };
   const sig = (n) => (n||"?").split(" ")[0].slice(0,2).toUpperCase();
-  const eur = (v) => "€" + (+v||0).toLocaleString("it-IT");
+  // I soldi hanno i centesimi solo quando ci sono: «€178,50» è giusto,
+  // «€8.400,00» è rumore. Mai «€178,5», che non è come si scrive una cifra.
+  const eur = (v) => { const n = +v || 0;
+    const cent = Math.round(Math.abs(n) * 100) % 100;
+    return "€" + n.toLocaleString("it-IT", { minimumFractionDigits: cent ? 2 : 0, maximumFractionDigits: 2 }); };
   // ore di lavoro: mezz'ora è mezz'ora, ma «4,00 h» è precisione finta
   const oreTx = (v) => (+v||0).toLocaleString("it-IT", { maximumFractionDigits: 2 }) + " h";
   const ggTx = (n) => (+n||0).toLocaleString("it-IT", { maximumFractionDigits: 1 }) + (Math.abs(+n||0) === 1 ? " giorno" : " giorni");
@@ -2052,12 +2056,12 @@
       ? "Il conto dell'affidabilità parte dal parco mezzi: aggiungi il primo mezzo e ogni fermo che registri comincerà a pesare sulla disponibilità."
       : !aff.episodi
         ? `Nessun fermo registrato negli ultimi ${aff.finestra} giorni (${periodo}): <b>${aff.parco}</b> ${aff.parco === 1 ? "mezzo" : "mezzi"} × ${aff.finestra} giorni = <b>${aff.giorniMacchina}</b> giorni-macchina, tutti disponibili. Quando una macchina si ferma registrala qui sotto: è l'unico modo perché questo numero voglia dire qualcosa.${codaFuori}`
-        : `Disponibilità reale <b>${aff.pct.toLocaleString("it-IT", { maximumFractionDigits: 1 })}%</b> negli ultimi ${aff.finestra} giorni (${periodo}): `
-          + `${aff.parco} ${aff.parco === 1 ? "mezzo" : "mezzi"} × ${aff.finestra} giorni = <b>${aff.giorniMacchina}</b> giorni-macchina, `
-          + `<span class="rosso">${aff.persi} persi</span> per fermo. `
-          + `${aff.episodi} ${aff.episodi === 1 ? "fermo" : "fermi"}${aff.aperti ? `, di cui <span class="rosso">${aff.aperti} ${aff.aperti === 1 ? "ancora aperto" : "ancora aperti"}</span>` : ", tutti chiusi"}`
-          + `, durata media <b>${ggTx(aff.durataMedia)}</b>.`
-          + (aff.fraUnFermoELaltro != null ? ` In media una macchina lavora <b>${ggTx(aff.fraUnFermoELaltro)}</b> fra un fermo e l'altro.` : "")
+        : `Disponibilità reale <b>${aff.pct.toLocaleString("it-IT", { maximumFractionDigits: 1 })}%</b> negli ultimi ${aff.finestra} giorni (${periodo}). `
+          + `Il conto: ${aff.parco} ${aff.parco === 1 ? "mezzo" : "mezzi"} × ${aff.finestra} giorni = <b>${aff.giorniMacchina}</b> giorni-macchina, `
+          + `meno <span class="rosso">${aff.persi}</span> ${aff.persi === 1 ? "perso" : "persi"} per fermo = <b>${aff.disponibili}</b> giorni-macchina lavorabili. `
+          + `Ci sono stati <b>${aff.episodi}</b> ${aff.episodi === 1 ? "fermo" : "fermi"}${aff.aperti ? `, di cui <span class="rosso">${aff.aperti} ${aff.aperti === 1 ? "ancora aperto" : "ancora aperti"}</span>` : ", tutti già chiusi"}`
+          + `, lunghi in media <b>${ggTx(aff.durataMedia)}</b>.`
+          + (aff.fraUnFermoELaltro != null ? ` Fra un fermo e l'altro il parco ha lavorato <b>${ggTx(aff.fraUnFermoELaltro)}</b>-macchina.` : "")
           + codaFuori;
 
     // Giorni di fermo per mezzo: la classifica di chi ferma di più. Non è un
@@ -2076,7 +2080,8 @@
           + ggTx(peggiore.giorni) + " in " + peggiore.episodi + (peggiore.episodi === 1 ? " fermo" : " fermi")
           + " (" + esc(peggiore.causali.join(", ")) + "), cioè una disponibilità sua del <b>"
           + peggiore.pct.toLocaleString("it-IT", { maximumFractionDigits: 1 }) + "%</b>. "
-          + (aff.senzaFermi ? aff.senzaFermi === 1 ? "Un mezzo del parco non si è mai fermato e non compare." : aff.senzaFermi + " mezzi del parco non si sono mai fermati e non compaiono." : "Tutti i mezzi del parco si sono fermati almeno una volta."),
+          + (aff.senzaFermi ? aff.senzaFermi === 1 ? "Un mezzo del parco non si è mai fermato e non compare." : aff.senzaFermi + " mezzi del parco non si sono mai fermati e non compaiono." : "Tutti i mezzi del parco si sono fermati almeno una volta.")
+          + (aff.mezzi.some(m => m.aperti) ? " Le barre <b>rosse</b> sono le macchine che sono ferme <b>adesso</b>." : ""),
       });
     } else if (aff.mezzi.length === 1) {
       const m = aff.mezzi[0];
@@ -2210,12 +2215,15 @@
     valSeLibero("odl-altre", o.altreSpese > 0 ? o.altreSpese : "");
     valSeLibero("odl-note", o.noteLavoro);
 
+    // Quattro numeri, un colore solo: sono fatti, non allarmi. Colorarli di
+    // rosso perché un lavoro costa vorrebbe dire dare un giudizio al posto di
+    // chi legge.
     $("odl-kpi").innerHTML = [
-      ["accent", "Ore di lavoro", q.manodopera.ore ? oreTx(q.manodopera.ore) : "—"],
-      [q.manodopera.costo ? "warn" : "accent", "Manodopera", eur(q.manodopera.costo)],
-      [q.ricambi.costo ? "warn" : "accent", "Ricambi", eur(q.ricambi.costo)],
-      [q.totale ? "danger" : "ok", "Totale", eur(q.totale)],
-    ].map(([cls, l, v]) => `<div class="kpi ${cls}"><div class="l">${l}</div><div class="n">${v}</div></div>`).join("");
+      ["Ore di lavoro", q.manodopera.ore ? oreTx(q.manodopera.ore) : "—"],
+      ["Manodopera", eur(q.manodopera.costo)],
+      ["Ricambi", eur(q.ricambi.costo)],
+      ["Totale", eur(q.totale)],
+    ].map(([l, v]) => `<div class="kpi accent"><div class="l">${l}</div><div class="n">${v}</div></div>`).join("");
 
     const pezzi = [
       q.manodopera.ore ? oreTx(q.manodopera.ore) + " di lavoro" + (q.persone > 1 ? " di " + q.persone + " persone" : "") + (q.manodopera.costo ? " per " + eur(q.manodopera.costo) : "") : "",

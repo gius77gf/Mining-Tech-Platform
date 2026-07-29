@@ -1478,7 +1478,10 @@ label.item:has(.dw-chk:checked){
         tmp.giorni == null
           ? (tmp.senzaData ? "nessuna data d'incasso registrata: tocca una fattura incassata per metterla" : "si calcola dal primo incasso registrato")
           : "media su " + plur(tmp.conto, "fattura saldata", "fatture saldate")
-            + (tmp.ritardo != null ? (tmp.ritardo > 0 ? " · " + tmp.ritardo + " gg oltre la scadenza" : " · " + Math.abs(tmp.ritardo) + " gg in anticipo") : ""),
+            + (tmp.ritardo == null ? ""
+               : tmp.ritardo > 0 ? " · " + plur(tmp.ritardo, "giorno", "giorni") + " oltre la scadenza"
+               : tmp.ritardo < 0 ? " · " + plur(-tmp.ritardo, "giorno", "giorni") + " in anticipo"
+               : " · in media entro la scadenza"),
         tmp.giorni == null ? "warn" : tmp.ritardo != null && tmp.ritardo > 0 ? "warn" : "ok"],
       ["Da incassare", eur(k.daIncassare), plur(aperte.length, "fattura aperta", "fatture aperte"), k.inScadenza ? "warn" : "ok"],
       ["Incasso atteso (prossimi 30 gg)", eur(ia30.importo), plur(ia30.conto, "fattura in scadenza", "fatture in scadenza"), "ok"],

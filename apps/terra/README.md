@@ -32,3 +32,38 @@ PDF) ed **export CSV**.
 
 Terra non conosce nessuna regola regionale: modello, termini e modalità di
 invio cambiano da regione a regione e restano da verificare presso l'ente.
+
+## Verbale di rilievo (scheda Rilievi)
+
+Ogni rilievo elaborato ha il tasto **verbale**: prepara una pagina bianca da
+stampare o salvare in PDF con data, fronte, che cosa è stato misurato (scavo o
+cumulo), metodo, GSD, classe di accuratezza con la sua tolleranza, volume con
+la banda, il titolo autorizzativo di riferimento, il rilievo precedente da cui
+parte la misura e le righe di firma (luogo e data, rilevatore, direttore dei
+lavori). È il documento che rende il numero difendibile davanti a un ente.
+
+Prima di prepararlo Terra chiede **chi ha eseguito il rilievo**: il nome resta
+salvato sul rilievo (campo `rilevatore`, facoltativo). I rilievi salvati prima
+non ce l'hanno: nel verbale resta la riga da compilare a penna, niente si
+rompe.
+
+## Confronto fra due rilievi (scheda Rilievi)
+
+Risponde a «quanto abbiamo cavato da lì fra marzo e luglio». Si scelgono un
+fronte e due rilievi **di scavo elaborati** di quel fronte; Terra mostra i m³
+scavati fra le due date, i giorni e il ritmo implicito (al giorno e al mese).
+
+Il conto **somma** i rilievi successivi al primo fino al secondo compreso: in
+Terra ogni rilievo porta il materiale tolto da quando c'era quello prima,
+quindi sottrarre i due volumi darebbe un numero che non è materiale. La
+differenza fra le due misure si mostra lo stesso, ma dichiarata per quello che
+è: un confronto di ritmo.
+
+## Oneri di escavazione (scheda Denuncia)
+
+Terra mostra solo la **base**: i m³ di scavo dell'anno (le riprese dai cumuli
+restano fuori). Il calcolo in euro **non si duplica**: l'aliquota €/m³ o €/t si
+imposta in **Conti**, sezione «Canoni e diritti di escavazione», ed è lì che
+viene applicata. Diverse regioni applicano la tariffa al volume al netto del
+materiale usato per il recupero ambientale, e per la pietra ornamentale alla
+sola quantità commercializzata: la regola è dell'utente, non del codice.

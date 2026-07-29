@@ -1098,7 +1098,10 @@ export function fascicoloMezzo(mezzo, dati, oggi = new Date(), preavvisoGiorni =
 export const STATI_ORDINE = [
   { chiave: "da-fare", etichetta: "Da fare", breve: "da fare", cls: "warn",
     nota: "Pianificato, ma nessuno ci ha ancora messo le mani." },
-  { chiave: "in-corso", etichetta: "In lavorazione", breve: "in corso", cls: "info",
+  // «in corso» porta il colore dell'app (lampone): è il lavoro che stiamo
+  // facendo noi. Il rosso resta a chi è fermo ad aspettare un pezzo — un
+  // colore, un significato, e nessuna tinta estranea alla palette.
+  { chiave: "in-corso", etichetta: "In lavorazione", breve: "in corso", cls: "accent",
     nota: "Qualcuno ci sta lavorando adesso: le ore si segnano man mano." },
   { chiave: "attesa-ricambi", etichetta: "In attesa ricambi", breve: "attesa pezzi", cls: "danger",
     nota: "Il lavoro è fermo perché manca un pezzo. È la ragione più frequente di una macchina ferma a lungo: qui si vede, e si può ordinare." },
