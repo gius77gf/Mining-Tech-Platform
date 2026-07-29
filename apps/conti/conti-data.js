@@ -16,6 +16,11 @@
 //   incassi/{id}:  { fatturaId, data (ISO: il giorno in cui i soldi sono ARRIVATI),
 //                    importo (€), metodo ("bonifico"|"assegno"|"contanti"|"riba"|"") }
 //   impostazioni/{id}: { canoneUnita: "t"|"m3", canoneAliquota (€/unità), canoneNota }
+// LETTURA DAI RILIEVI DI TERRA (sola lettura, ponte cavato↔venduto): i rilievi
+// NON sono di Conti, stanno sotto l'app Terra della STESSA organizzazione
+// (organizations/{org}/apps/terra/rilievi). Si leggono con una seconda istanza
+// dell'SDK (appId "terra"), quindi sempre da orgCollection: nessun percorso
+// scritto a mano, nessuna scrittura. Vedi rilieviTerra() in fondo al file.
 // IMPORTI DELLA FATTURA (compatibilità all'indietro, regola ferma): le fatture
 // vecchie hanno solo `importo` (importo secco) → valgono come IMPONIBILE con IVA 0
 // (vedi importiFattura). Le fatture nuove salvano imponibile + ivaImporto + totale
@@ -77,30 +82,83 @@ export const DEMO = {
     { id: "p2", nome: "Pietrisco 8/12",    unitaPrezzo: "t",  prezzo: 12,   densita: 1.5, iva: 22 },
     { id: "p3", nome: "Sabbia lavata 0/4", unitaPrezzo: "m3", prezzo: 22,   densita: 1.6, iva: 22 },
     { id: "p4", nome: "Massi da scogliera",unitaPrezzo: "t",  prezzo: 15.5, densita: 2.4, iva: 22 },
+    // p5: prodotto VECCHIO senza densità dichiarata (il form oggi la pretende,
+    // ma un listino nato prima può averne). Sta qui apposta: fa vedere cosa
+    // succede quando la densità manca — Conti non converte e lo dice.
+    { id: "p5", nome: "Misto di cava (non classificato)", unitaPrezzo: "t", prezzo: 6.5, densita: null, iva: 22 },
   ],
-  // pesate/DDT d'esempio, tutte ancora da fatturare: servono a far vedere la
-  // fattura differita (più DDT dello stesso cliente → una fattura sola).
+  // pesate/DDT d'esempio. Le prime sei sono di mesi passati e GIÀ fatturate
+  // (servono a far quadrare l'anno nel confronto cavato/venduto); le ultime
+  // sono ancora da fatturare e fanno vedere la fattura differita (più DDT
+  // dello stesso cliente → una fattura sola). Numerazione progressiva per
+  // data, senza salti, come vuole il DPR 472/1996.
   pesate: [
-    { id: "d1", numero: "2026/001", data: "2026-07-06", clienteId: "c1", cliente: "Edilcave Srl",
+    { id: "s1", numero: "2026/001", data: "2026-02-11", clienteId: "c1", cliente: "Edilcave Srl",
+      prodottoId: "p1", prodotto: "Stabilizzato 0/30", lordo: 42.6, tara: 14.2, netto: 28.4,
+      unitaVendita: "t", quantita: 28.4, densita: 1.9, prezzoUnitario: 8.5, aliquotaIva: 22,
+      mezzo: "FT 421 KP", destinatario: "Cantiere SS115 km 12", fatturaId: "storico" },
+    { id: "s2", numero: "2026/002", data: "2026-03-09", clienteId: "c2", cliente: "Stradesud",
+      prodottoId: "p2", prodotto: "Pietrisco 8/12", lordo: 40, tara: 13.8, netto: 26.2,
+      unitaVendita: "t", quantita: 26.2, densita: 1.5, prezzoUnitario: 12, aliquotaIva: 22,
+      mezzo: "DR 118 XS", destinatario: "Piazzale Modica", fatturaId: "storico" },
+    { id: "s3", numero: "2026/003", data: "2026-04-14", clienteId: "c1", cliente: "Edilcave Srl",
+      prodottoId: "p1", prodotto: "Stabilizzato 0/30", lordo: 43.3, tara: 14.2, netto: 29.1,
+      unitaVendita: "t", quantita: 29.1, densita: 1.9, prezzoUnitario: 8.5, aliquotaIva: 22,
+      mezzo: "GA 907 TR", destinatario: "Cantiere SS115 km 12", fatturaId: "storico" },
+    { id: "s4", numero: "2026/004", data: "2026-05-08", clienteId: "c2", cliente: "Stradesud",
+      prodottoId: "p3", prodotto: "Sabbia lavata 0/4", lordo: 36, tara: 13.6, netto: 22.4,
+      unitaVendita: "m3", quantita: 14, densita: 1.6, prezzoUnitario: 22, aliquotaIva: 22,
+      mezzo: "DR 118 XS", destinatario: "Piazzale Modica", fatturaId: "storico" },
+    { id: "s5", numero: "2026/005", data: "2026-06-05", clienteId: "c1", cliente: "Edilcave Srl",
+      prodottoId: "p4", prodotto: "Massi da scogliera", lordo: 45.3, tara: 15.1, netto: 30.2,
+      unitaVendita: "t", quantita: 30.2, densita: 2.4, prezzoUnitario: 15.5, aliquotaIva: 22,
+      mezzo: "GA 907 TR", destinatario: "Molo di Pozzallo", fatturaId: "storico" },
+    { id: "s6", numero: "2026/006", data: "2026-06-22", clienteId: "c1", cliente: "Edilcave Srl",
+      prodottoId: "p1", prodotto: "Stabilizzato 0/30", lordo: 42, tara: 14.2, netto: 27.8,
+      unitaVendita: "t", quantita: 27.8, densita: 1.9, prezzoUnitario: 8.5, aliquotaIva: 22,
+      mezzo: "FT 421 KP", destinatario: "Cantiere SS115 km 12", fatturaId: "storico" },
+    { id: "d1", numero: "2026/007", data: "2026-07-06", clienteId: "c1", cliente: "Edilcave Srl",
       prodottoId: "p1", prodotto: "Stabilizzato 0/30", lordo: 42.16, tara: 14.2, netto: 27.96,
       unitaVendita: "t", quantita: 27.96, densita: 1.9, prezzoUnitario: 8.5, aliquotaIva: 22,
       mezzo: "FT 421 KP", destinatario: "Cantiere SS115 km 12", fatturaId: null },
-    { id: "d2", numero: "2026/002", data: "2026-07-13", clienteId: "c1", cliente: "Edilcave Srl",
+    { id: "d2", numero: "2026/008", data: "2026-07-13", clienteId: "c1", cliente: "Edilcave Srl",
       prodottoId: "p2", prodotto: "Pietrisco 8/12", lordo: 39.4, tara: 13.8, netto: 25.6,
       unitaVendita: "t", quantita: 25.6, densita: 1.5, prezzoUnitario: 12, aliquotaIva: 22,
       mezzo: "FT 421 KP", destinatario: "Cantiere SS115 km 12", fatturaId: null },
-    { id: "d3", numero: "2026/003", data: "2026-07-17", clienteId: "c1", cliente: "Edilcave Srl",
+    { id: "d3", numero: "2026/009", data: "2026-07-17", clienteId: "c1", cliente: "Edilcave Srl",
       prodottoId: "p1", prodotto: "Stabilizzato 0/30", lordo: 43.9, tara: 14.2, netto: 29.7,
       unitaVendita: "t", quantita: 29.7, densita: 1.9, prezzoUnitario: 8.5, aliquotaIva: 22,
       mezzo: "GA 907 TR", destinatario: "Cantiere SS115 km 12", fatturaId: null },
-    { id: "d4", numero: "2026/004", data: "2026-07-20", clienteId: "c2", cliente: "Stradesud",
+    { id: "d4", numero: "2026/010", data: "2026-07-20", clienteId: "c2", cliente: "Stradesud",
       prodottoId: "p3", prodotto: "Sabbia lavata 0/4", lordo: 35.2, tara: 13.6, netto: 21.6,
       unitaVendita: "m3", quantita: 13.5, densita: 1.6, prezzoUnitario: 22, aliquotaIva: 22,
       mezzo: "DR 118 XS", destinatario: "Piazzale Modica", fatturaId: null },
-    { id: "d5", numero: "2026/005", data: "2026-07-24", clienteId: "c1", cliente: "Edilcave Srl",
+    { id: "d5", numero: "2026/011", data: "2026-07-24", clienteId: "c1", cliente: "Edilcave Srl",
       prodottoId: "p4", prodotto: "Massi da scogliera", lordo: 44.8, tara: 15.1, netto: 29.7,
       unitaVendita: "t", quantita: 29.7, densita: 2.4, prezzoUnitario: 15.5, aliquotaIva: 22,
       mezzo: "GA 907 TR", destinatario: "Molo di Pozzallo", fatturaId: null },
+    // d6: DDT del prodotto SENZA densità. Le tonnellate ci sono (le ha pesate
+    // la bilancia), i metri cubi no: non si inventano. Serve a far vedere che
+    // il confronto col cavato si ferma e spiega, invece di stimare.
+    { id: "d6", numero: "2026/012", data: "2026-07-27", clienteId: "c2", cliente: "Stradesud",
+      prodottoId: "p5", prodotto: "Misto di cava (non classificato)", lordo: 40.7, tara: 14.3, netto: 26.4,
+      unitaVendita: "t", quantita: 26.4, densita: null, prezzoUnitario: 6.5, aliquotaIva: 22,
+      mezzo: "DR 118 XS", destinatario: "Piazzale Modica", fatturaId: null },
+  ],
+  // RILIEVI DI TERRA (solo per la modalità dimostrativa): in un'organizzazione
+  // vera arrivano dall'app Terra, qui sono finti ma COERENTI con le pesate
+  // qui sopra, così il confronto cavato/venduto mostra numeri che quadrano.
+  rilieviTerra: [
+    { id: "t1", titolo: "Rilievo di fine febbraio", data: "2026-02-28", volumeM3: 31, stato: "elaborato", metodo: "RTK+GCP", gsd: "2" },
+    { id: "t2", titolo: "Rilievo di fine aprile",   data: "2026-04-30", volumeM3: 46, stato: "elaborato", metodo: "RTK+GCP", gsd: "2" },
+    { id: "t3", titolo: "Rilievo di fine giugno",   data: "2026-06-30", volumeM3: 47, stato: "elaborato", metodo: "RTK", gsd: "2.5" },
+    { id: "t4", titolo: "Rilievo di fine luglio",   data: "2026-07-28", volumeM3: 54, stato: "elaborato", metodo: "RTK+GCP", gsd: "2" },
+    // ripresa da un cumulo: materiale GIÀ cavato prima, non è nuovo scavo
+    { id: "t5", titolo: "Ripresa dal cumulo di piazzale", data: "2026-05-20", volumeM3: 22, stato: "elaborato", metodo: "RTK", gsd: "2", provenienza: "cumulo" },
+    // rilievo pianificato (senza volume) e rilievo dell'anno prima: nel
+    // confronto non devono entrare, ed è giusto che si veda
+    { id: "t6", titolo: "Prossimo rilievo", data: "2026-08-31", volumeM3: null, stato: "pianificato" },
+    { id: "t0", titolo: "Rilievo di fine 2025", data: "2025-11-20", volumeM3: 40, stato: "elaborato", metodo: "RTK", gsd: "2" },
   ],
   // canone di escavazione: l'aliquota NON è cablata, cambia da regione a regione.
   impostazioni: [
@@ -972,6 +1030,9 @@ export function canonePeriodo(pesate, impostazioni, dal, al) {
 
 // Venduto per prodotto in un periodo (tonnellate, metri cubi e valore): è la
 // statistica che ogni gestionale di settore ha e che dice cosa tira davvero.
+// Tiene conto a parte del materiale SENZA densità: le sue tonnellate sono
+// vere (le ha pesate la bilancia), i suoi metri cubi no — e quindi né i m³
+// né il valore per metro cubo possono comprenderlo.
 export function venditePerProdotto(pesate, dal, al) {
   const d1 = String(dal || ""), d2 = String(al || "");
   const per = {};
@@ -980,12 +1041,148 @@ export function venditePerProdotto(pesate, dal, al) {
     if ((d1 && d < d1) || (d2 && d > d2)) continue;
     const nome = String(p.prodotto || "Prodotto");
     const q = quantitaPesata(p);
-    const r = per[nome] || (per[nome] = { prodotto: nome, t: 0, m3: 0, valore: 0, viaggi: 0 });
+    const r = per[nome] || (per[nome] = { prodotto: nome, t: 0, m3: 0, valore: 0, viaggi: 0,
+      senzaDensita: 0, tSenzaDensita: 0, valoreConvertibile: 0 });
     r.viaggi++; r.t = round2(r.t + q.t);
-    if (q.m3 != null) r.m3 = round3(r.m3 + q.m3);
-    r.valore = round2(r.valore + valorePesata(p));
+    const v = valorePesata(p);
+    if (q.m3 == null) { r.senzaDensita++; r.tSenzaDensita = round2(r.tSenzaDensita + q.t); }
+    else { r.m3 = round3(r.m3 + q.m3); r.valoreConvertibile = round2(r.valoreConvertibile + v); }
+    r.valore = round2(r.valore + v);
   }
   return Object.values(per).sort((a, b) => b.valore - a.valore || b.t - a.t);
+}
+
+// ============================================================
+// CAVATO CONTRO VENDUTO (N6) — il ponte fra Terra e Conti
+// ------------------------------------------------------------
+// La domanda del titolare: «ho cavato tot, e quanto ne ho venduto? dove sta
+// la differenza?». Terra misura in METRI CUBI (rilievi), Conti pesa in
+// TONNELLATE (DDT). Per confrontarli serve la DENSITÀ, e l'unica densità
+// dichiarata dall'azienda sta nel listino di Conti — per questo il conto vive
+// qui e non in Terra: dove sta la densità, sta il confronto.
+//
+// VERSO DELLA CONVERSIONE — è la scelta che decide se il numero è onesto.
+// Si convertono le TONNELLATE VENDUTE IN METRI CUBI, prodotto per prodotto,
+// con la densità che ogni DDT si porta dietro (fotografata il giorno della
+// consegna). NON si fa il contrario: convertire i m³ cavati in tonnellate
+// vorrebbe dire scegliere UNA densità per tutta la cava, cioè inventarla,
+// perché il rilievo non sa quale prodotto uscirà da quel volume.
+// Un DDT senza densità resta fuori dal confronto in m³ e viene contato a
+// parte: le sue tonnellate esistono, i suoi metri cubi no.
+//
+// AVVERTENZA che l'app deve dire, non nascondere: il rilievo misura il volume
+// IN BANCO (il vuoto lasciato dallo scavo), mentre la densità del listino è
+// quella con cui si vende. Se è stata misurata sul materiale sciolto e non in
+// banco, il confronto porta uno scarto sistematico. Qui non si corregge con
+// nessun coefficiente inventato: si scrive.
+// ============================================================
+
+// COMPATIBILITÀ: un rilievo senza il campo `provenienza` vale SCAVO. È la
+// stessa regola di Terra (provenienzaRilievo in apps/terra/terra-data.js):
+// "cumulo" = materiale già cavato in passato e ripreso da un mucchio, quindi
+// NON è nuovo scavo e non va sommato al cavato del periodo.
+const eCumulo = (r) => String((r && r.provenienza) || "").trim().toLowerCase() === "cumulo";
+const dataBuona = (d) => /^\d{4}-\d{2}-\d{2}$/.test(String(d || ""));
+
+// Quanto è stato cavato nel periodo secondo i rilievi di Terra. Contano solo
+// i rilievi ELABORATI con un volume: i pianificati sono un'intenzione, non
+// una misura. Ritorna null se i rilievi non sono disponibili (Terra non
+// raggiungibile): «non lo so» e «zero» sono due risposte diverse.
+export function cavatoPeriodo(rilievi, dal, al) {
+  if (!Array.isArray(rilievi)) return null;
+  const d1 = String(dal || ""), d2 = String(al || "");
+  let scavo = 0, cumulo = 0, nScavo = 0, nCumulo = 0, senzaMetodo = 0;
+  let primo = null, ultimo = null, pianificati = 0, fuoriPeriodo = 0;
+  for (const r of rilievi) {
+    const v = +((r || {}).volumeM3);
+    const d = String((r || {}).data || "");
+    if ((r || {}).stato !== "elaborato" || !Number.isFinite(v) || !dataBuona(d)) {
+      if ((r || {}).stato === "pianificato") pianificati++;
+      continue;
+    }
+    if ((d1 && d < d1) || (d2 && d > d2)) { fuoriPeriodo++; continue; }
+    if (eCumulo(r)) { cumulo = round3(cumulo + v); nCumulo++; }
+    else {
+      scavo = round3(scavo + v); nScavo++;
+      if (!String(r.metodo || "").trim()) senzaMetodo++;
+    }
+    if (!primo || d < primo) primo = d;
+    if (!ultimo || d > ultimo) ultimo = d;
+  }
+  return { m3: scavo, cumuloM3: cumulo, rilievi: nScavo, rilieviCumulo: nCumulo,
+           senzaMetodo, primo, ultimo, pianificati, fuoriPeriodo };
+}
+
+// Quanto è stato venduto nel periodo secondo i DDT: tonnellate (sempre),
+// metri cubi (solo dove la densità c'era) e valore.
+export function vendutoPeriodo(pesate, dal, al) {
+  const prodotti = venditePerProdotto(pesate, dal, al);
+  let t = 0, m3 = 0, valore = 0, valoreConvertibile = 0, viaggi = 0,
+      tSenzaDensita = 0, viaggiSenzaDensita = 0;
+  for (const p of prodotti) {
+    t = round2(t + p.t); m3 = round3(m3 + p.m3);
+    valore = round2(valore + p.valore);
+    valoreConvertibile = round2(valoreConvertibile + p.valoreConvertibile);
+    viaggi += p.viaggi;
+    tSenzaDensita = round2(tSenzaDensita + p.tSenzaDensita);
+    viaggiSenzaDensita += p.senzaDensita;
+  }
+  const tConvertite = round2(t - tSenzaDensita);
+  return {
+    t, m3, valore, valoreConvertibile, viaggi, tSenzaDensita, tConvertite,
+    viaggiSenzaDensita, prodotti,
+    // quota di tonnellate che è stato possibile convertire in m³ (0–100)
+    copertura: t > 0 ? round2(100 * tConvertite / t) : null,
+    // densità media di quello che è uscito davvero dal cancello (t/m³).
+    // È una VERIFICA del listino, non si usa per convertire il cavato.
+    densitaMedia: m3 > 0 ? round3(tConvertite / m3) : null,
+    // prezzo medio realizzato al metro cubo, sul solo venduto convertibile
+    prezzoMedioM3: m3 > 0 ? round2(valoreConvertibile / m3) : null,
+  };
+}
+
+// Soglie del giudizio sul divario, in % del cavato. Non sono legge: sono la
+// distanza oltre la quale la differenza non si spiega più con lo sfrido e le
+// tolleranze di misura, e conviene andare a guardare.
+export const SOGLIA_DIVARIO = { coerente: 10, attenzione: 35 };
+
+// IL CONFRONTO. Ritorna sempre uno `stato` che dice come va letto il numero:
+//   no-terra     · i rilievi non arrivano: senza cavato non c'è confronto
+//   no-cavato    · nel periodo non c'è nessun rilievo elaborato con volume
+//   no-venduto   · nel periodo non c'è nessun DDT
+//   no-densita   · ci sono DDT ma nessuno convertibile: manca la densità
+//   coerente     · divario dentro il ±10% del cavato
+//   attenzione   · divario fra il 10% e il 35%
+//   implausibile · divario oltre il 35%: non è sfrido, è un errore da cercare
+//   disavanzo    · venduto MAGGIORE del cavato: non sono scorte, è un buco
+// `divario` è cavato − venduto in m³: quando è positivo è la stima di quanto
+// è rimasto a piazzale, mai un dato misurato.
+export function riconciliazione(rilievi, pesate, dal, al) {
+  const cav = cavatoPeriodo(rilievi, dal, al);
+  const ven = vendutoPeriodo(pesate, dal, al);
+  const base = { cav, ven, divario: null, pct: null,
+                 parziale: ven.viaggiSenzaDensita > 0, copertura: ven.copertura };
+  if (cav === null) return { ...base, stato: "no-terra" };
+  if (!cav.rilievi || !(cav.m3 > 0)) return { ...base, stato: "no-cavato" };
+  if (!ven.viaggi) return { ...base, stato: "no-venduto" };
+  if (!(ven.m3 > 0)) return { ...base, stato: "no-densita" };
+  const divario = round3(cav.m3 - ven.m3);
+  const pct = round2(100 * divario / cav.m3);
+  const stato = divario < 0 ? "disavanzo"
+    : pct <= SOGLIA_DIVARIO.coerente ? "coerente"
+    : pct <= SOGLIA_DIVARIO.attenzione ? "attenzione"
+    : "implausibile";
+  return { ...base, stato, divario, pct };
+}
+
+// Valore del cavato a un prezzo di riferimento (€/m³): quanto varrebbe il
+// materiale tolto dal fronte se venduto tutto a quel prezzo. NON è un ricavo
+// e non va confrontato col fatturato: è un ordine di grandezza. null se il
+// prezzo non c'è (per esempio un prodotto a €/t senza densità).
+export function valoreCavato(m3, prezzoM3) {
+  const v = +m3, p = +prezzoM3;
+  if (!Number.isFinite(v) || v < 0 || !Number.isFinite(p) || p <= 0) return null;
+  return round2(v * p);
 }
 
 export async function contiData() {
@@ -1010,6 +1207,25 @@ export async function contiData() {
         aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n), i), d),
         rimuovi: (n, i) => deleteDoc(doc(id.orgCollection(n), i)),
       };
+      // ── PONTE CON TERRA — SOLA LETTURA ────────────────────────────────
+      // Seconda istanza dell'SDK sull'app "terra", stessa organizzazione:
+      // il percorso lo costruisce orgCollection, come per i dati di Conti.
+      // Si apre solo quando serve (la prima volta che si guarda il
+      // confronto), così l'avvio di Conti non rallenta. Se Terra non c'è, o
+      // se la lettura non è permessa, si torna null: l'app dirà che il
+      // cavato non è disponibile, senza inventare uno zero.
+      let idTerra;                       // undefined = mai provato, null = non c'è
+      api.rilieviTerra = async () => {
+        if (idTerra === undefined) {
+          try { idTerra = await DeepworkID.init({ appId: "terra" }); }
+          catch (e) { idTerra = null; }
+        }
+        if (!idTerra) return null;
+        try {
+          return (await getDocs(idTerra.orgCollection("rilievi")))
+            .docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e) { return null; }
+      };
     } else if (id.authState() === "tour") mode = "tour";
   } catch (e) {}
   if (mode !== "live") {
@@ -1019,6 +1235,9 @@ export async function contiData() {
       prodotti: async () => mem.prodotti, pesate: async () => mem.pesate,
       incassi: async () => mem.incassi || (mem.incassi = []),
       impostazioni: async () => mem.impostazioni,
+      // in dimostrazione i rilievi non arrivano da Terra: sono finti, ma
+      // coerenti con le pesate d'esempio (vedi DEMO.rilieviTerra)
+      rilieviTerra: async () => mem.rilieviTerra || [],
       logout: async () => {},
       aggiungi: async (n, d) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[n] = mem[n] || []).push({ id, ...d }); return { id }; },
       aggiorna: async (n, i, d) => { const x = (mem[n] || (mem[n] = [])).find(v => v.id === i); if (x) Object.assign(x, d); },

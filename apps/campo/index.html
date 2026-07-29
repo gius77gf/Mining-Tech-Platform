@@ -734,7 +734,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     <input type="file" id="piano-file" accept=".csv,text/csv" style="display:none;">
     <button class="dw-btn secondary" id="btn-piano-export" style="display:none;"><svg viewBox="0 0 24 24"><path d="M12 3.6v11.2"/><path d="M7.8 10.6L12 14.8l4.2-4.2"/><path d="M4.5 18.4v1.1A1.4 1.4 0 0 0 5.9 21h12.2a1.4 1.4 0 0 0 1.4-1.5v-1.1"/></svg>Esporta consuntivo (CSV)</button>
   </div>
-  <div class="form-hint" style="margin-top:8px;">Il file è quello esportato dalla <b>Scheda volata di Genesi</b>: colonne <b>foro; x; fila; prof; prog; borr; rit</b>.</div>
+  <div class="form-hint" style="margin-top:8px;">Il file da importare è quello esportato dalla <b>Scheda volata di Genesi</b>: colonne <b>foro; x; fila; prof; prog; borr; rit</b>.<br>
+    Quando hai finito di caricare, <b>Esporta consuntivo</b> e rileggilo in <b>Genesi → Riconciliazione</b>: la carica reale foro per foro torna da dove è partito il progetto.</div>
   <div id="piano-riep" class="note recap"></div>
   <div id="piano-graf"></div>
   <div id="piano-list"></div>
@@ -906,7 +907,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            STATI_PRESENZA, presenzaDi, appelloTurno, chiusuraDi, riassuntoChiusura,
            turnoChiuso, riaperture, riassuntoRiapertura, ultimaRiapertura,
            FOTO_MAX_BYTE, FOTO_TENTATIVI, eImmagine, byteFoto, eFotoValida, misuraRidotta, formattaByte,
-           METEO_CIELO, METEO_PISTE, METEO_VISIBILITA, meteoDi, riassuntoMeteo, meteoAvverso } from "./campo-data.js";
+           METEO_CIELO, METEO_PISTE, METEO_VISIBILITA, meteoDi, riassuntoMeteo, meteoAvverso,
+           pianoParziale, pianoConsuntivoCsv } from "./campo-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const dmy = (iso) => iso ? iso.slice(8,10)+"/"+iso.slice(5,7)+"/"+iso.slice(0,4) : "senza data";
@@ -2702,7 +2704,24 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
     const r = pianoRiepilogo(PIANO);
     const quandoPiano = PIANO[0] && (PIANO[0].data || PIANO[0].turno)
       ? "Piano del " + dmy(PIANO[0].data) + (PIANO[0].turno ? " · turno " + esc(PIANO[0].turno) : "") + " — " : "";
-    $("piano-riep").innerHTML = quandoPiano + "Fori <b>" + r.registrati + "/" + r.totale + "</b> registrati · progettato <b>" + r.progettatoKg + "</b> kg · stimato reale <b>" + Math.round(r.stimatoKg) + "</b> kg <span class=\"badge " + r.livello + "\">" + (r.pct>=0?"+":"") + r.pct + "%</span><br>Tocca un foro per registrare la carica davvero caricata: viene salvata.";
+    // Lo scostamento «finora»: si legge MENTRE si carica, non a volata finita.
+    // Il totale stimato conta a progetto i fori non ancora fatti e quindi
+    // smorza l'errore proprio quando c'è ancora tempo per correggerlo; questa
+    // riga confronta solo i fori davvero caricati con il progetto DI QUEI fori.
+    const par = pianoParziale(PIANO);
+    const kg1 = (v) => (Math.round(v * 10) / 10).toLocaleString("it-IT");
+    const rigaFinora = !par ? ""
+      : "<br>Sui <b>" + par.registrati + "</b> fori già caricati: <b>" + kg1(par.realeKg)
+        + "</b> kg contro <b>" + kg1(par.progettatoKg) + "</b> kg previsti "
+        + "<span class=\"badge " + par.livello + "\">" + (par.pct >= 0 ? "+" : "") + par.pct + "%</span>"
+        + (par.registrati < par.totale
+            ? (par.livello === "ok"
+                ? " — finora sei in linea col progetto."
+                : " — <b>te ne accorgi adesso</b>: "
+                  + (par.totale - par.registrati === 1 ? "manca ancora 1 foro" : "mancano ancora " + (par.totale - par.registrati) + " fori")
+                  + " da caricare.")
+            : "");
+    $("piano-riep").innerHTML = quandoPiano + "Fori <b>" + r.registrati + "/" + r.totale + "</b> registrati · progettato <b>" + r.progettatoKg + "</b> kg · stimato reale <b>" + Math.round(r.stimatoKg) + "</b> kg <span class=\"badge " + r.livello + "\">" + (r.pct>=0?"+":"") + r.pct + "%</span>" + rigaFinora + "<br>Tocca un foro per registrare la carica davvero caricata: viene salvata.";
     $("piano-list").innerHTML = PIANO.map(p => { const b = scartoBadge(p);
       const liv = scartoLivello(p.reale, p.prog);
       return `<div class="item ${liv==="da-registrare"?"st-warn":(liv==="ok"?"st-ok":(liv==="warn"?"st-warn":"st-danger"))}" data-foro-id="${esc(p.id)}" role="button" tabindex="0" style="cursor:pointer" title="Registra la carica reale di questo foro">
@@ -2711,14 +2730,19 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
       <span class="badge ${b[0]}">${b[0]==="danger"?I.allarme:""}${b[1]}</span></div>`; }).join("");
   }
   $("btn-piano").onclick = () => $("piano-file").click();
+  // Il consuntivo che TORNA a Genesi (chiusura del giro Genesi→Campo→Genesi).
+  // Il file ha la stessa forma del piano che è arrivato — punto e virgola,
+  // intestazione, una riga per foro — con in più la carica reale, lo scarto
+  // col segno e chi l'ha registrata. Genesi lo rilegge nella Riconciliazione.
   $("btn-piano-export").onclick = () => {
-    let csv = "data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct\n";
-    PIANO.forEach(p => { const s = scarto(p);
-      csv += `${p.data || ""};${csvCell(p.turno || "")};${p.foro};${p.prog};${p.reale != null ? p.reale : ""};${s != null ? Math.round(s*100) : ""}\n`; });
+    const reg = PIANO.filter(p => p.reale != null).length;
     const a = document.createElement("a");
-    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(pianoConsuntivoCsv(PIANO));
     a.download = "campo_consuntivo_carico.csv"; a.click();
-    toast("Consuntivo di carico esportato: " + PIANO.length + " fori.", "success");
+    toast(reg
+      ? "Consuntivo esportato: " + reg + " fori su " + PIANO.length + " con la carica reale. Rileggilo in Genesi → Riconciliazione."
+      : "Consuntivo esportato, ma nessuna carica reale è ancora registrata: a Genesi arriverebbe solo il progetto.",
+      reg ? "success" : "");
   };
   // Rilettura del piano salvato: si tiene una sola volata alla volta, quindi
   // l'import SOSTITUISCE quella precedente (previa conferma).
@@ -2766,9 +2790,25 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
     if (v == null) return;
     const kg = parseFloat(String(v).replace(",", "."));
     if (!(kg >= 0)) { toast("Serve un numero di chili valido (zero o più).", "err"); return; }
-    await db.aggiorna("pianocarico", p.id, { reale: kg });   // salvata: non si perde più al refresh
-    p.reale = kg; pianoRender();
+    // CHI ha registrato la carica di QUESTO foro: è il dato che manca al
+    // consuntivo quando torna a Genesi ("chi l'ha fatta"). Viene da «Cosa
+    // tocca a me» in cima al Quadro; se lì non c'è nessun nome resta vuoto —
+    // meglio un campo vuoto che un nome inventato.
+    const prima = pianoParziale(PIANO), primaLiv = prima ? prima.livello : "ok";
+    await db.aggiorna("pianocarico", p.id,          // salvata: non si perde più al refresh
+      { reale: kg, da: IO.operatore || "", squadra: IO.squadra || "" });
+    p.reale = kg; p.da = IO.operatore || ""; p.squadra = IO.squadra || "";
+    pianoRender();
     toast("Foro " + p.foro + ": registrati " + kg + " kg.", "success");
+    // Se proprio con questo foro il carico complessivo è uscito di tolleranza,
+    // lo si dice SUBITO: il senso di vederlo durante il carico è poter ancora
+    // correggere sui fori che restano, non scoprirlo a volata sparata.
+    const dopo = pianoParziale(PIANO);
+    if (dopo && dopo.livello !== primaLiv && dopo.livello !== "ok" && dopo.registrati < dopo.totale)
+      setTimeout(() => toast("Attenzione: sui " + dopo.registrati + " fori caricati sei al "
+        + (dopo.pct >= 0 ? "+" : "") + dopo.pct + "% rispetto al progetto. "
+        + (dopo.totale - dopo.registrati === 1 ? "Resta 1 foro" : "Restano " + (dopo.totale - dopo.registrati) + " fori")
+        + " per rientrare.", "err"), 2900);
   });
   await pianoRicarica();
 </script>

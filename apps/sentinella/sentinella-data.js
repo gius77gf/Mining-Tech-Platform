@@ -1005,6 +1005,253 @@ export function andamentoRicettore(monitoraggi, ricettori, ricettoreId, opts = {
     dal: inizio.dal, al: fine.al };
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// T7 · IL PONTE VERSO SCUDO — dall'evento ambientale all'azione correttiva
+//
+// Un superamento di soglia o un reclamo di un residente non finisce quando
+// è stato registrato: quasi sempre richiede che QUALCUNO faccia QUALCOSA
+// ENTRO una data. Quel meccanismo esiste già, e sta in Scudo: le azioni
+// correttive (aperta → in corso → chiusa) collegate alla loro origine con
+// `origineTipo` / `origineId` / `origineVoce`. Qui NON se ne costruisce un
+// secondo: Sentinella scrive nella stessa collezione `azioni` di Scudo,
+// usando due nuovi valori di `origineTipo` — "superamento" e "reclamo" —
+// e marcando `origineApp: "sentinella"`.
+//
+// Perché l'azione porta con sé anche il TESTO dell'origine (`origineNota`,
+// `origineData`, `origineEtichetta`): Scudo non può leggere le collezioni
+// di Sentinella (l'isolamento dello SDK è per organizzazione E per app), e
+// un'azione che dicesse solo «origine: superamento xyz» sarebbe illeggibile
+// per l'RSPP. Quindi l'azione si porta dietro la fotografia del fatto che
+// l'ha generata, scritta in italiano.
+//
+// NIENTE DOPPIONI: l'identità di un superamento è il punto di misura PIÙ il
+// giorno della lettura che l'ha causato (`origineVoce`). Se il giorno dopo
+// il punto supera di nuovo, quello è un fatto nuovo e merita un'azione
+// nuova; se si torna sullo stesso superamento, l'azione è già lì.
+// ══════════════════════════════════════════════════════════════════════
+
+export const PONTE_APP = "sentinella";
+export const ORIGINE_SUPERAMENTO = "superamento";
+export const ORIGINE_RECLAMO = "reclamo";
+
+// Data di oggi + N giorni, in ISO. Serve solo a PROPORRE una scadenza
+// all'azione correttiva: la decide comunque chi la apre.
+export function dataPiuGiorni(giorniAvanti, oggi = new Date()) {
+  const n = Number(giorniAvanti);
+  if (!Number.isFinite(n)) return "";
+  const d = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate() + Math.round(n));
+  const p = (x) => String(x).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+// L'ultima lettura che ha raggiunto o superato una soglia (>= soglia, la
+// stessa regola del semaforo in tutto il resto dell'app). Senza soglia
+// valida, o senza letture oltre, torna null.
+export function ultimaLetturaOltre(m, soglia) {
+  const s = +soglia;
+  if (!Number.isFinite(s) || s <= 0) return null;
+  const l = (((m || {}).letture) || [])
+    .map(x => ({ data: String((x || {}).data || "").slice(0, 10), ora: String((x || {}).ora || ""), valore: +((x || {}).valore) }))
+    .filter(x => /^\d{4}-\d{2}-\d{2}$/.test(x.data) && Number.isFinite(x.valore) && x.valore >= s)
+    .sort((a, b) => { const ka = chiaveOrdine(a), kb = chiaveOrdine(b); return ka < kb ? -1 : ka > kb ? 1 : 0; });
+  return l.length ? l[l.length - 1] : null;
+}
+
+// I SUPERAMENTI APERTI: i punti che ADESSO sono oltre la soglia applicata
+// (esattamente i punti "danger" del semaforo e del KPI del Quadro). Per
+// ognuno si dice anche QUANDO: la lettura che l'ha causato. Se il punto non
+// ha letture (valore digitato a mano sulla scheda) la voce esiste comunque,
+// con `data: ""` e chiave "valore-corrente": è un superamento vero, solo
+// senza una data da citare.
+// Ritorna una lista ordinata dal più grave (rapporto valore/soglia).
+export function superamentiAperti(monitoraggi, ricettori) {
+  return (monitoraggi || [])
+    .map(m => {
+      const eff = sogliaEfficace(m, ricettori);
+      if (eff.valore == null) return null;                 // senza soglia non esiste superamento
+      const st = statoMisura({ ...m, soglia: eff.valore });
+      if (st.cls !== "danger") return null;
+      const l = ultimaLetturaOltre(m, eff.valore);
+      const data = l ? l.data : "";
+      return {
+        m, id: m.id, nome: m.nome || "Punto di misura",
+        unita: eff.unita || unitaMisura(m),
+        valore: +m.valore, soglia: eff, st,
+        lettura: l, data,
+        voce: data || "valore-corrente",
+        ricettore: trovaRicettore(ricettori, m.ricettoreId),
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.st.ratio - a.st.ratio);
+}
+
+// Le azioni nate da una certa origine. `voce` facoltativa: senza, tornano
+// tutte le azioni di quell'origine (utile per il reclamo, che è un fatto
+// solo); con, solo quelle di quel preciso superamento.
+export function azioniDiOrigine(azioni, tipo, id, voce) {
+  if (!id) return [];
+  return (azioni || []).filter(a => a && a.origineTipo === tipo && a.origineId === id
+    && (voce == null || voce === "" || a.origineVoce === voce));
+}
+
+// Il semaforo di un gruppo di azioni, per il badge che si vede accanto al
+// superamento o al reclamo: nessuna / da chiudere / tutte chiuse. È la
+// risposta alla domanda dell'ente «e voi cosa avete fatto?».
+export function statoPonte(azioni) {
+  const l = azioni || [];
+  const chiuse = l.filter(a => (a || {}).stato === "chiusa").length;
+  const inCorso = l.filter(a => (a || {}).stato === "in-corso").length;
+  if (!l.length) return { n: 0, chiuse: 0, inCorso: 0, daChiudere: 0, cls: "danger", label: "Nessuna azione" };
+  if (chiuse === l.length) return { n: l.length, chiuse, inCorso: 0, daChiudere: 0, cls: "ok",
+    label: l.length === 1 ? "Azione chiusa" : l.length + " azioni chiuse" };
+  const daChiudere = l.length - chiuse;
+  return { n: l.length, chiuse, inCorso, daChiudere, cls: "warn",
+    label: inCorso && daChiudere === inCorso
+      ? (inCorso === 1 ? "Azione in corso" : inCorso + " azioni in corso")
+      : daChiudere + (daChiudere === 1 ? " azione da chiudere" : " azioni da chiudere") };
+}
+
+// Testo della soglia applicata, con l'unità: si ripete in più punti e deve
+// dire sempre la stessa cosa.
+function testoSoglia(sup) {
+  const u = sup.unita ? " " + sup.unita : "";
+  return numeroIt(sup.soglia.valore) + u
+    + (sup.soglia.fonte === "ricettore" && sup.soglia.ricettore ? " (soglia del ricettore " + sup.soglia.ricettore + ")" : "");
+}
+
+// LA BOZZA DELL'AZIONE nata da un superamento. Funzione PURA: prepara il
+// record che verrà scritto nella collezione `azioni` di Scudo. Chi la apre
+// può cambiare testo, responsabile e data prima di confermare.
+export function bozzaAzioneSuperamento(sup, opts = {}) {
+  if (!sup || !sup.id) return null;
+  const u = sup.unita ? " " + sup.unita : "";
+  const quando = sup.data ? " del " + dataIt(sup.data) : "";
+  const nota = "Superamento ambientale (Sentinella) — " + sup.nome + quando + ": misurato "
+    + numeroIt(sup.valore) + u + " con soglia applicata " + testoSoglia(sup)
+    + (sup.ricettore ? " · ricettore: " + sup.ricettore.nome : "");
+  return {
+    descrizione: String(opts.descrizione || ("Riportare «" + sup.nome + "» entro la soglia ambientale")).trim(),
+    responsabileId: opts.responsabileId || null,
+    scadenza: String(opts.scadenza || "").slice(0, 10),
+    stato: "aperta", esito: "", dataChiusura: null,
+    origineTipo: ORIGINE_SUPERAMENTO, origineApp: PONTE_APP,
+    origineId: sup.id, origineVoce: sup.voce,
+    origineData: sup.data || "",
+    origineEtichetta: sup.nome,
+    origineNota: nota,
+  };
+}
+
+// LA BOZZA DELL'AZIONE nata da un reclamo. Stesso schema: un reclamo è un
+// fatto unico, quindi `origineVoce` resta la sua data (o "reclamo" se non
+// c'è) e il doppione si controlla sull'id.
+export function bozzaAzioneReclamo(rec, ricettore, opts = {}) {
+  if (!rec || !rec.id) return null;
+  const tipo = etichettaReclamo(rec.tipo).toLowerCase();
+  const nota = "Reclamo di un residente (Sentinella) — " + etichettaReclamo(rec.tipo)
+    + (rec.data ? " del " + dataIt(rec.data) : "") + (rec.ora ? " alle " + rec.ora : "")
+    + (ricettore ? " · ricettore: " + ricettore.nome : "")
+    + (rec.chi ? " · segnalato da " + rec.chi : "")
+    + (rec.descrizione ? " · «" + rec.descrizione + "»" : "");
+  return {
+    descrizione: String(opts.descrizione || ("Dare seguito al reclamo per " + tipo
+      + (ricettore ? " a " + ricettore.nome : "") + (rec.data ? " del " + dataIt(rec.data) : ""))).trim(),
+    responsabileId: opts.responsabileId || null,
+    scadenza: String(opts.scadenza || "").slice(0, 10),
+    stato: "aperta", esito: "", dataChiusura: null,
+    origineTipo: ORIGINE_RECLAMO, origineApp: PONTE_APP,
+    origineId: rec.id, origineVoce: String(rec.data || "reclamo").slice(0, 10),
+    origineData: String(rec.data || "").slice(0, 10),
+    origineEtichetta: etichettaReclamo(rec.tipo) + (ricettore ? " · " + ricettore.nome : ""),
+    origineNota: nota,
+  };
+}
+
+// ── COINCIDENZA CON LA VOLATA ────────────────────────────────────────
+// Un superamento nello stesso giorno di una volata va GUARDATO. Non va
+// spiegato: due fatti nello stesso giorno sono due fatti nello stesso
+// giorno, e basta. Il testo qui sotto è volutamente prudente e viene
+// mostrato tale e quale, perché scrivere «causato dalla volata» dentro un
+// documento che finisce all'ente è un autogol — e spesso è anche falso.
+export const AVVISO_COINCIDENZA =
+  "Coincidenza di data, non una causa dimostrata: per collegare i due fatti "
+  + "servono la misura strumentale dell'evento, l'ora e una valutazione tecnica.";
+
+export function volateDelGiorno(volate, dataISO) {
+  const d = String(dataISO || "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return [];
+  return (volate || []).filter(v => String((v || {}).data || "").slice(0, 10) === d);
+}
+
+// Riga di contesto pronta da mostrare accanto a un superamento (o a un
+// reclamo) quando quel giorno c'è stata una volata. Torna null se non ce
+// n'è nessuna: nessuna riga inventata.
+export function coincidenzaVolata(volate, dataISO) {
+  const v = volateDelGiorno(volate, dataISO);
+  if (!v.length) return null;
+  const fronti = [...new Set(v.map(x => String((x || {}).fronte || "").trim()).filter(Boolean))];
+  return {
+    n: v.length, volate: v, fronti,
+    testo: (v.length === 1 ? "Quel giorno è stata registrata una volata" : "Quel giorno sono state registrate " + v.length + " volate")
+      + (fronti.length ? " (" + fronti.join(", ") + ")" : "") + ".",
+    avviso: AVVISO_COINCIDENZA,
+  };
+}
+
+// ── IL TRASPORTO ─────────────────────────────────────────────────────
+// Da autenticati: SDK Deepwork ID inizializzato sull'app di destinazione
+// ("scudo"), stessa organizzazione, e SEMPRE orgCollection — mai un
+// percorso Firestore scritto a mano.
+// In demo/tour non esiste nessun backend: come il resto dell'app si lavora
+// su dati finti, ma qui i due schermi sono due pagine diverse, quindi il
+// "finto backend" è una riga di localStorage condivisa fra le due app dello
+// stesso browser. Serve solo a far vedere la catena completa; non è un
+// canale dati e non esiste in live. La copia gemella di queste tre funzioni
+// sta in apps/scudo/scudo-data.js (stessa chiave), che le legge.
+export const PONTE_DEMO_KEY = "deepwork.demo.azioni-ponte";
+
+export function ponteDemoLeggi() {
+  try {
+    const v = JSON.parse(globalThis.localStorage.getItem(PONTE_DEMO_KEY) || "[]");
+    return Array.isArray(v) ? v.filter(x => x && x.id) : [];
+  } catch (e) { return []; }
+}
+export function ponteDemoScrivi(lista) {
+  try {
+    globalThis.localStorage.setItem(PONTE_DEMO_KEY, JSON.stringify((lista || []).slice(-200)));
+    return true;
+  } catch (e) { return false; }   // navigazione privata, quota piena: si prosegue senza
+}
+
+export async function ponteScudo() {
+  try {
+    const { DeepworkID } = await import("../../shared/deepwork-id-client/index.js");
+    const id = await DeepworkID.init({ appId: "scudo" });
+    if (id.user && id.authState() === "member") {
+      const { getDocs, addDoc } =
+        await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const read = async (n) => (await getDocs(id.orgCollection(n))).docs.map(d => ({ id: d.id, ...d.data() }));
+      return {
+        mode: "live",
+        azioni: () => read("azioni"),
+        lavoratori: () => read("lavoratori").catch(() => []),
+        aggiungi: (rec) => addDoc(id.orgCollection("azioni"), rec),
+      };
+    }
+  } catch (e) { /* SDK assente o non autenticati: si prosegue in demo */ }
+  return {
+    mode: "demo",
+    azioni: async () => ponteDemoLeggi(),
+    lavoratori: async () => [],
+    aggiungi: async (rec) => {
+      const nuova = { id: "pn" + Math.random().toString(36).slice(2, 8), ...rec };
+      ponteDemoScrivi([...ponteDemoLeggi(), nuova]);
+      return nuova;
+    },
+  };
+}
+
 export async function sentinellaData() {
   let mode = "demo", api = null;
   try {

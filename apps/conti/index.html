@@ -164,6 +164,62 @@
 }
 .cassa-txt{font-size:12.5px; color:var(--muted2); line-height:1.5}
 .cassa-txt b{color:var(--text); font-variant-numeric:tabular-nums}
+/* due stati in più del cartellone, stessa costruzione di .vuota: cambia il
+   bordo che prende la luce, l'alone d'ambiente, l'icona e la cifra. Servono
+   al confronto cavato/venduto, dove il numero va letto col suo giudizio. */
+.cassa.attenta{border-left-color:var(--warn)}
+.cassa.attenta::before{
+  background:radial-gradient(260px 150px at 8% 0%,var(--glow-wr),transparent 70%);
+}
+.cassa.attenta .cassa-ico{
+  color:var(--warn); background:var(--glow-wr);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 0 14px var(--glow-wr);
+}
+.cassa.attenta .cassa-num{
+  background:var(--grad-wr); -webkit-background-clip:text; background-clip:text;
+}
+.cassa.grave{border-left-color:var(--danger)}
+.cassa.grave::before{
+  background:radial-gradient(260px 150px at 8% 0%,var(--glow-dg),transparent 70%);
+}
+.cassa.grave .cassa-ico{
+  color:var(--danger); background:var(--glow-dg);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 0 14px var(--glow-dg);
+}
+.cassa.grave .cassa-num{
+  background:var(--grad3); -webkit-background-clip:text; background-clip:text;
+}
+/* le due misure a confronto, affiancate: stessa cassa delle liste, ma la
+   cifra è grande perché è quella che si legge per prima */
+.conf{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:8px 0 4px}
+.conf-c{
+  position:relative; overflow:hidden;
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--border); border-radius:var(--r-sm); padding:11px 13px;
+  box-shadow:var(--sh2),var(--edge);
+}
+.conf-c::before{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(180px 110px at 12% 0%,var(--halo-1),transparent 72%);
+}
+.conf-c>*{position:relative}
+.conf-l{
+  font-family:'Barlow Condensed',sans-serif; font-size:10.5px; font-weight:700;
+  letter-spacing:1.8px; text-transform:uppercase; color:var(--muted);
+}
+.conf-n{
+  font-family:'Barlow Condensed',sans-serif; font-size:26px; font-weight:800;
+  line-height:1.05; margin-top:3px; font-variant-numeric:tabular-nums;
+  background:var(--grad-num); -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+.conf-n .u{font-size:13px; font-weight:700; letter-spacing:.5px;
+  -webkit-text-fill-color:var(--muted2); color:var(--muted2)}
+.conf-s{font-size:11.5px; color:var(--muted2); margin-top:4px; line-height:1.4}
+.conf-s b{color:var(--text); font-variant-numeric:tabular-nums}
+.conf-c.sup::before{background:radial-gradient(180px 110px at 12% 0%,var(--halo-2),transparent 72%)}
+.conf-c.sup .conf-n{background:var(--grad-sup); -webkit-background-clip:text; background-clip:text}
+@media (max-width:430px){ .conf{grid-template-columns:1fr} }
 
 /* ─────────────── voci di lista (copia di .sitem) ─────────────── */
 .item.tap{cursor:pointer}
@@ -965,6 +1021,49 @@ label.item:has(.dw-chk:checked){
 <div class="page" id="page-rep">
   <div class="sec">Report rapidi</div>
   <div id="rep-list"></div>
+
+  <!-- ══ CAVATO CONTRO VENDUTO — il ponte con Terra ══════════════════
+       Sta in Conti, e in Conti soltanto: il confronto ha bisogno della
+       DENSITÀ per passare dai metri cubi alle tonnellate, e la densità
+       dichiarata dall'azienda vive nel listino di Conti. In Terra c'è un
+       rimando a questa schermata, non un secondo conto. -->
+  <div class="sec">Cavato contro venduto</div>
+  <div class="note">Terra misura in <b>metri cubi</b> quello che esce dal fronte, Conti pesa in
+    <b>tonnellate</b> quello che esce dal cancello. Sono lo stesso materiale visto da due parti:
+    per confrontarli servono i metri cubi del venduto, e per averli serve la <b>densità</b> —
+    quella del tuo listino, presa DDT per DDT. Dove la densità manca Conti <b>non converte e
+    non stima</b>: te lo scrive e tiene quelle tonnellate fuori dal conto.</div>
+  <div class="form" id="ric-per">
+    <div class="fld" id="fld-ric-dal" style="flex:1 1 150px;">
+      <label for="ric-dal">Periodo dal</label>
+      <input class="dw-input" id="ric-dal" type="date">
+      <span class="err-msg" id="err-ric-dal"></span>
+    </div>
+    <div class="fld" id="fld-ric-al" style="flex:1 1 150px;">
+      <label for="ric-al">Al</label>
+      <input class="dw-input" id="ric-al" type="date">
+      <span class="err-msg" id="err-ric-al"></span>
+    </div>
+    <button class="dw-btn secondary" id="btn-ric-anno">Quest'anno</button>
+    <button class="dw-btn secondary" id="btn-ric-prec">Anno scorso</button>
+  </div>
+  <div id="ric-riep"></div>
+  <div id="ric-conf"></div>
+  <div id="graf-ric"></div>
+  <div id="ric-list"></div>
+  <div class="sec">Valore del cavato (ai prezzi del listino)</div>
+  <div class="note">Quanto <b>varrebbe</b> il materiale tolto dal fronte se venisse venduto tutto
+    al prezzo scelto qui sotto. <b>Non è un ricavo</b> e non si confronta col fatturato: è un
+    ordine di grandezza per capire cosa hai in mano.</div>
+  <div class="form" id="ric-val-form">
+    <div class="fld w2" id="fld-ric-prezzo">
+      <label for="ric-prezzo">Prezzo di riferimento</label>
+      <select class="dw-input" id="ric-prezzo"></select>
+      <span class="err-msg" id="err-ric-prezzo"></span>
+    </div>
+  </div>
+  <div id="ric-val"></div>
+
   <div class="sec">Emesso contro incassato</div>
   <div id="graf-flusso"></div>
   <div id="flusso-list"></div>
@@ -1122,6 +1221,7 @@ label.item:has(.dw-chk:checked){
     round2, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita,
     importiFattura, totaliDaRighe, prossimoNumero, nettoPesata, rigaPesata, valorePesata,
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, venditePerProdotto,
+    cavatoPeriodo, vendutoPeriodo, riconciliazione, valoreCavato, SOGLIA_DIVARIO,
     applicaIncassi, apertoDi, statoIncasso, movimentiDiFattura, incassatoPeriodo,
     tempiPagamentoClienti, tempoMedioPagamento, emessoIncassato } from "./conti-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
@@ -1143,6 +1243,14 @@ label.item:has(.dw-chk:checked){
   const uni  = (u) => (u === "m3" ? "m³" : "t");
   const qtu  = (v, u) => qt(v) + " " + uni(u);
   const perc = (v) => NUM0.format(+v || 0) + "%";
+  // ── VOLUMI del confronto cavato/venduto: fino a due decimali, e gli zeri
+  //    finali non si scrivono (178 m³, non 178,00 m³). Le percentuali del
+  //    divario con un decimale: fra l'8% e il 9% c'è di mezzo un camion.
+  const NUMV = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 2 });
+  const NUM1 = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const perc1 = (v) => NUM1.format(+v || 0) + "%";
+  // «l'8%» e non «il 8%»: davanti a otto e undici l'articolo si elide
+  const ilPerc = (v) => (/^(8|11)([,.]|$)/.test(NUM1.format(+v || 0)) ? "l'" : "il ") + perc1(v);
   const oggiISO = () => new Date().toISOString().slice(0, 10);
   const piuGiorni = (iso, n) => { const d = new Date(iso + "T00:00:00");
     d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
@@ -1170,6 +1278,10 @@ label.item:has(.dw-chk:checked){
     camion:  '<svg viewBox="0 0 24 24"><path d="M2.6 6.6h11v9.4h-11z"/><path d="M13.6 10.2h3.5l3.3 3.1V16h-6.8z"/><circle cx="7" cy="18.4" r="2"/><circle cx="17" cy="18.4" r="2"/></svg>',
     bilancia:'<svg viewBox="0 0 24 24"><path d="M12 3.4v17.2M5 20.6h14"/><path d="M4 8.6h16M7.4 8.6L4.6 14.4a3 3 0 0 0 5.6 0zM16.6 8.6l-2.8 5.8a3 3 0 0 0 5.6 0z"/></svg>',
     stampa:  '<svg viewBox="0 0 24 24"><path d="M7 8.6V3.5h10v5.1"/><path d="M7 17.4H5.2A2.2 2.2 0 0 1 3 15.2v-4.4a2.2 2.2 0 0 1 2.2-2.2h13.6A2.2 2.2 0 0 1 21 10.8v4.4a2.2 2.2 0 0 1-2.2 2.2H17"/><rect x="7" y="13.6" width="10" height="6.9" rx="1"/></svg>',
+    // il fronte di cava (gradoni): il cavato, cioè quello che misura Terra
+    fronte:  '<svg viewBox="0 0 24 24"><path d="M2.6 20.4h18.8"/><path d="M2.6 20.4v-4.1h4.6v-4.1h4.6V8.1h4.6V4h4v16.4"/></svg>',
+    // il cumulo sul piazzale: la scorta stimata
+    cumulo:  '<svg viewBox="0 0 24 24"><path d="M2.4 19.6h19.2"/><path d="M2.4 19.6L9.1 7.4l4 6.6 2.5-3.7 6 9.3"/><circle cx="9.1" cy="4.3" r="1.3"/></svg>',
   };
   // Stato vuoto in stile core: icona, titolo, istruzione su cosa fare
   const vuoto = (icona, titolo, istruzione) =>
@@ -1220,6 +1332,11 @@ label.item:has(.dw-chk:checked){
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
   let FAT=[], GAR=[], CLI=[], PRO=[], PES=[], INC=[], IMP=null;
+  // Rilievi di TERRA, in sola lettura (confronto cavato/venduto). null = non
+  // disponibili: «non lo so» e «zero» sono due risposte diverse, e l'app deve
+  // saperle distinguere invece di mostrare un cavato di zero che non esiste.
+  let RIL = null, rilLetti = false;
+  let ricPrezzo = "";        // "" = mix del venduto nel periodo, altrimenti id prodotto
   let filtroFat = "tutte";
   let filtroPes = "tutte";
   let editPro = null;    // id del prodotto in modifica (riusa il form del listino)
@@ -1267,6 +1384,13 @@ label.item:has(.dw-chk:checked){
   ["dif-cli","dif-dal","dif-al"].forEach(i => $(i).addEventListener("change", () => {
     difSel = new Set(); renderDifferita(); }));
   ["can-unita","can-ali","can-dal","can-al"].forEach(i => $(i).addEventListener("input", renderCanone));
+  // ── confronto cavato/venduto: periodo e prezzo di riferimento ──────
+  ["ric-dal","ric-al"].forEach(i => $(i).addEventListener("change", renderRiconciliazione));
+  $("ric-prezzo").addEventListener("change", () => { ricPrezzo = $("ric-prezzo").value; renderRiconciliazione(); });
+  const ricAnno = (a) => { $("ric-dal").value = a + "-01-01"; $("ric-al").value = a + "-12-31";
+    renderRiconciliazione(); };
+  $("btn-ric-anno").onclick = () => ricAnno(new Date().getFullYear());
+  $("btn-ric-prec").onclick = () => ricAnno(new Date().getFullYear() - 1);
   $("pes-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-pfiltro");
     if (f) { filtroPes = f; refresh(); }
@@ -1993,8 +2117,12 @@ label.item:has(.dw-chk:checked){
       $("az-con").value  = (IMP && IMP.aziendaContatti) || "";
       const a = new Date().getFullYear();
       $("can-dal").value = a + "-01-01"; $("can-al").value = a + "-12-31";
+      // stesso periodo di partenza per il confronto cavato/venduto: l'anno
+      // in corso è la domanda che il titolare fa più spesso
+      $("ric-dal").value = a + "-01-01"; $("ric-al").value = a + "-12-31";
     }
     renderCanone();
+    renderRiconciliazione();
 
     // ══════════════════════════════════════════════════════════════════
     // QUADRO — consegne consegnate ma non ancora fatturate (per cliente)
@@ -2445,6 +2573,250 @@ label.item:has(.dw-chk:checked){
         <div class="amt-s">${qt(c.unita === "t" ? r.t : r.m3)} ${u}</div></div></div>`).join("")
       + (senzaAli ? "" : `<div class="tot"><span class="tot-l">Canone stimato del periodo</span>
          <span class="tot-n">${eur(c.dovuto)}</span></div>`);
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // CAVATO CONTRO VENDUTO — la domanda del titolare
+  // ----------------------------------------------------------------------
+  // Regole di condotta di questa schermata, in ordine di importanza:
+  //  1. non si converte MAI senza densità dichiarata, e nemmeno si stima;
+  //  2. il divario che resta si mostra per quello che è (sfrido, materiale a
+  //     piazzale, differenze di misura), non si arrotonda via;
+  //  3. se il divario è negativo o enorme rispetto al cavato, l'app lo dice
+  //     invece di spacciarlo per una scorta.
+  // ══════════════════════════════════════════════════════════════════════
+
+  // I rilievi si leggono una volta sola, e solo quando servono: aprire Conti
+  // non deve aspettare Terra.
+  async function caricaRilievi() {
+    if (rilLetti) return RIL;
+    rilLetti = true;
+    try { RIL = db.rilieviTerra ? await db.rilieviTerra() : null; } catch (e) { RIL = null; }
+    return RIL;
+  }
+
+  // periodo di lavoro del confronto: di serie l'anno in corso
+  const ricPeriodo = () => {
+    const a = new Date().getFullYear();
+    return [$("ric-dal").value || (a + "-01-01"), $("ric-al").value || (a + "-12-31")];
+  };
+  const ricEtichettaPeriodo = () => { const [d1, d2] = ricPeriodo();
+    return fmtD(d1) + " – " + fmtD(d2); };
+
+  // Prezzi di riferimento per valutare il cavato: il mix di quello che è
+  // uscito davvero nel periodo, oppure un prodotto preciso del listino.
+  // Un prodotto a €/t senza densità NON ha un €/m³: resta in elenco, ma
+  // spento e con scritto perché.
+  function opzioniPrezzo(ven) {
+    const opz = [];
+    if (ven.prezzoMedioM3 != null)
+      opz.push({ v: "", t: "Mix del venduto nel periodo — " + eur(ven.prezzoMedioM3) + "/m³", off: false });
+    else
+      opz.push({ v: "", t: "Mix del venduto nel periodo — non calcolabile", off: true });
+    for (const p of PRO) {
+      const pm = prezzoPerMetroCubo(p);
+      opz.push({ v: p.id, off: pm == null,
+        t: p.nome + " — " + (pm == null ? "senza densità, niente €/m³" : eur(pm) + "/m³") });
+    }
+    return opz;
+  }
+
+  function renderRiconciliazione() {
+    const [d1, d2] = ricPeriodo();
+    const per = ricEtichettaPeriodo();
+    // finché i rilievi non sono stati nemmeno cercati non si dice niente di
+    // definitivo: si dice che si sta guardando.
+    if (!rilLetti) {
+      $("ric-riep").innerHTML = vuoto("fronte", "Sto leggendo i rilievi di Terra",
+        "Il cavato arriva dall'app <b>Terra</b> della stessa organizzazione. Un istante.");
+      $("ric-conf").innerHTML = ""; $("ric-list").innerHTML = ""; $("ric-val").innerHTML = "";
+      svuotaGraf("graf-ric");
+      return;
+    }
+    const r = riconciliazione(RIL, PES, d1, d2);
+    const cav = r.cav, ven = r.ven;
+
+    // ── una sola regola di precisione per tutta la schermata, decisa dalla
+    //    grandezza in gioco. E una regola più importante: si arrotonda PRIMA
+    //    e si sottrae DOPO, così i numeri che si leggono sullo schermo
+    //    tornano fra loro. Un divario che non quadra con le due colonne che
+    //    ha sopra è peggio di un divario impreciso: sembra un errore. ──
+    const grande = Math.max(cav ? cav.m3 : 0, ven.m3, ven.t) >= 1000;
+    const arr = (v) => grande ? Math.round(v) : Math.round(v * 100) / 100;
+    const m3f = (v) => (v == null ? "—" : NUMV.format(arr(v)));
+    const m3u = (v) => m3f(v) + ' <span class="u">m³</span>';
+
+    // ── stati in cui il confronto non si può fare: si spiega, non si stima ──
+    const fermo = (icona, titolo, testo) => {
+      $("ric-riep").innerHTML = vuoto(icona, titolo, testo);
+      $("ric-conf").innerHTML = ""; $("ric-list").innerHTML = "";
+      $("ric-val").innerHTML = ""; svuotaGraf("graf-ric");
+    };
+    if (r.stato === "no-terra") {
+      return fermo("fronte", "Il cavato non arriva",
+        "Il confronto ha bisogno dei <b>rilievi di Terra</b> della stessa organizzazione. " +
+        "Se Terra non è attiva, o se i rilievi non sono ancora stati registrati, Conti " +
+        "non ha con cosa confrontare il venduto — e <b>non se lo inventa</b>.");
+    }
+    if (r.stato === "no-cavato") {
+      const extra = cav.fuoriPeriodo
+        ? ` In archivio ci sono <b>${plur(cav.fuoriPeriodo, "rilievo", "rilievi")}</b> fuori da queste date: prova ad allargare il periodo.`
+        : cav.pianificati
+        ? ` Ci sono <b>${plur(cav.pianificati, "rilievo pianificato", "rilievi pianificati")}</b>: un rilievo in calendario è un'intenzione, non una misura.`
+        : "";
+      return fermo("fronte", "Nel periodo non c'è nessun rilievo",
+        "Senza un rilievo elaborato il cavato del periodo <b>non è misurato</b>: non è zero, " +
+        "è sconosciuto. Registra il rilievo in Terra e qui compare il confronto." + extra);
+    }
+    if (r.stato === "no-venduto") {
+      return fermo("camion", "Nessuna consegna nel periodo",
+        `Nel periodo Terra ha misurato <b>${m3f(cav.m3)} m³</b> cavati, ma in Conti non c'è
+         nessun DDT: senza pesate non c'è un venduto da mettere a confronto. Registra le
+         consegne nella scheda <b>Pesate</b>.`);
+    }
+    if (r.stato === "no-densita") {
+      return fermo("bilancia", "Le tonnellate ci sono, i metri cubi no",
+        `Nel periodo hai consegnato <b>${qt(ven.t)} t</b> in ${plur(ven.viaggi, "viaggio", "viaggi")},
+         ma <b>nessun prodotto ha la densità dichiarata</b>: senza densità le tonnellate non
+         diventano metri cubi, e Conti non le converte a occhio. Aggiungi la densità nel
+         <b>Listino</b> e il confronto si fa da solo.`);
+    }
+
+    // ── il confronto vero ──────────────────────────────────────────────
+    const negativo = r.stato === "disavanzo";
+    const grave = negativo || r.stato === "implausibile";
+    const cls = r.stato === "coerente" ? "" : r.stato === "attenzione" ? "attenta" : "grave";
+    const pctAbs = Math.abs(r.pct);
+    const etichetta = negativo ? "Venduto più di quanto cavato"
+      : r.stato === "implausibile" ? "Divario da verificare"
+      : "Scorte a piazzale stimate";
+    const spiega = negativo
+      ? `Nel periodo è uscito dal cancello <b>più materiale di quanto ne sia stato cavato</b>
+         (${m3f(-r.divario)} m³ in più, il ${perc(pctAbs)} del cavato). Non è una scorta
+         negativa: <b>non esiste</b>. Le spiegazioni possibili sono tre, e vanno guardate in
+         quest'ordine — hai venduto materiale già a piazzale da prima${cav.cumuloM3 > 0 ? " (e infatti Terra registra riprese dai cumuli, qui sotto)" : ""},
+         manca un rilievo nel periodo, oppure una densità del listino è sbagliata.`
+      : r.stato === "implausibile"
+      ? `Il divario è il <b>${perc(pctAbs)}</b> del cavato: <b>troppo per essere solo sfrido</b>.
+         Prima di prenderlo per una scorta conviene controllare che non manchi un rilievo, che
+         il periodo comprenda tutte le consegne e che le densità del listino siano quelle giuste.`
+      : r.stato === "attenzione"
+      ? `Il divario è il <b>${perc(pctAbs)}</b> del cavato. Può starci — sfrido di lavorazione,
+         materiale fermo a piazzale, tolleranza dei rilievi — ma è abbastanza da meritare
+         un'occhiata al piazzale.`
+      : `Il divario è il <b>${perc(pctAbs)}</b> del cavato: sta dentro quello che spiegano
+         normalmente lo sfrido di lavorazione, il materiale fermo a piazzale e la tolleranza
+         dei rilievi.`;
+
+    $("ric-riep").innerHTML = `<div class="cassa${cls ? " " + cls : ""}">
+      <span class="cassa-ico">${grave ? IC.allarme : IC.cumulo}</span>
+      <div><div class="cassa-num">${m3f(Math.abs(r.divario))}<span class="u"> m³</span></div>
+      <div class="cassa-lab">${etichetta}</div></div>
+      <div class="cassa-txt" style="margin-left:auto;text-align:right;">${spiega}</div></div>`;
+
+    $("ric-conf").innerHTML = `<div class="conf">
+      <div class="conf-c"><div class="conf-l">Cavato dal fronte</div>
+        <div class="conf-n">${m3u(cav.m3)}</div>
+        <div class="conf-s">${plur(cav.rilievi, "rilievo elaborato", "rilievi elaborati")} in Terra${cav.ultimo ? ", l'ultimo del <b>" + fmtD(cav.ultimo) + "</b>" : ""}.</div></div>
+      <div class="conf-c sup"><div class="conf-l">Venduto, convertito in volume</div>
+        <div class="conf-n">${m3u(ven.m3)}</div>
+        <div class="conf-s"><b>${qt(ven.tConvertite)} t</b> su ${qt(ven.t)} t consegnate, in ${plur(ven.viaggi, "viaggio", "viaggi")}.</div></div>
+    </div>`;
+
+    // ── il grafico: due grandezze da guardare una accanto all'altra. Non si
+    //    sommano (sono lo stesso materiale contato da due parti), quindi
+    //    niente "quota sul totale". ──
+    if (G()) {
+      const barre = [
+        { etichetta: "Cavato", valore: +cav.m3 },
+        { etichetta: "Venduto", valore: +ven.m3, stato: grave ? "danger" : null },
+      ];
+      if (cav.cumuloM3 > 0) barre.push({ etichetta: "Ripreso dai cumuli", valore: +cav.cumuloM3, stato: "warn" });
+      svuotaGraf("graf-ric");
+      G().barre("#graf-ric", {
+        titolo: "Cavato e venduto — " + per, meta: "metri cubi", unita: "m³",
+        quota: false, tabella: false, formato: (v) => m3f(v),
+        valori: barre,
+        aria: "Cavato " + m3f(cav.m3) + " metri cubi, venduto convertito " + m3f(ven.m3) +
+              " metri cubi" + (cav.cumuloM3 > 0 ? ", ripreso dai cumuli " + m3f(cav.cumuloM3) + " metri cubi" : "") + ".",
+        nota: "Le due colonne <b>non si sommano</b>: sono lo stesso materiale contato da due parti diverse. La differenza fra loro è il divario qui sopra.",
+      });
+    }
+
+    // ── il dettaglio per prodotto: dove il venduto si converte e dove no ──
+    $("ric-list").innerHTML = ven.prodotti.map(p => `<div class="item${p.senzaDensita ? " st-warn" : " st-accent"}">
+      <span class="avatar${p.senzaDensita ? " warn" : ""}">${IC.listino}</span>
+      <div class="info"><div class="name">${esc(p.prodotto)}</div>
+      <div class="meta">${qt(p.t)} t · ${plur(p.viaggi, "viaggio", "viaggi")}${p.senzaDensita
+        ? " · <b>" + qt(p.tSenzaDensita) + " t senza densità</b>" : ""}</div></div>
+      <div class="amt"><div class="amt-n${p.m3 ? "" : " mute"}">${p.m3 ? m3f(p.m3) : "—"}</div>
+        <div class="amt-s">${p.m3 ? "m³ venduti" : "niente m³"}</div></div></div>`).join("")
+      + `<div class="tot"><span class="tot-l">Venduto convertito in volume</span>
+         <span class="tot-n">${m3u(ven.m3)}</span></div>`;
+
+    // ── le avvertenze: quelle che valgono sempre e quelle di questo caso ──
+    const avvisi = [];
+    if (r.parziale) avvisi.push(`<div class="note recap"><b>${qt(ven.tSenzaDensita)} t</b> del
+      venduto (il ${perc(Math.round(100 - ven.copertura))} delle tonnellate del periodo) non
+      entrano nel confronto: il prodotto non ha una densità dichiarata, e senza densità le
+      tonnellate non diventano metri cubi. Il divario qui sopra è quindi <b>più largo del
+      vero</b>: si stringe da solo quando aggiungi quelle densità nel <b>Listino</b>.</div>`);
+    if (cav.cumuloM3 > 0) avvisi.push(`<div class="note">Nel periodo Terra ha registrato
+      <b>${m3f(cav.cumuloM3)} m³</b> ripresi dai <b>cumuli</b>: è materiale cavato in passato e
+      rimesso in circolo, quindi <b>non è nuovo scavo</b> e non si somma al cavato. Ma spiega
+      come si possa vendere più di quanto si è cavato in questi mesi.</div>`);
+    if (cav.senzaMetodo) avvisi.push(`<div class="note">${plur(cav.senzaMetodo, "rilievo non dichiara", "rilievi non dichiarano")}
+      il metodo di misura su ${cav.rilievi}: senza metodo e GSD il volume non ha una tolleranza
+      dichiarabile, e il divario ne risente. Il metodo si scrive in <b>Terra</b>, sulla scheda del rilievo.</div>`);
+    avvisi.push(`<div class="note">Il divario <b>non è una misura</b>: è la differenza fra due
+      misure fatte con strumenti diversi (il rilievo del fronte e la pesa a ponte), e si porta
+      dentro la tolleranza di tutte e due. Un'avvertenza tecnica che conta: il rilievo misura il
+      volume <b>in banco</b>, mentre la densità del listino è quella con cui vendi — se è stata
+      presa sul materiale sciolto e non in banco, il confronto ha uno scarto sistematico. Conti
+      <b>non lo corregge con nessun coefficiente inventato</b>: te lo scrive.</div>`);
+    if (ven.densitaMedia != null) avvisi.push(`<div class="note">Controllo di coerenza: nel
+      periodo è uscito materiale a una densità media di <b>${qt(ven.densitaMedia)} t/m³</b>
+      (${qt(ven.tConvertite)} t su ${m3f(ven.m3)} m³). È la media di quello che hai davvero
+      consegnato: se è lontana dal materiale della tua cava, il numero da correggere è una
+      densità del listino. <b>Non viene usata per convertire il cavato</b>: quella sarebbe una
+      stima, e qui non se ne fanno.</div>`);
+    $("ric-list").insertAdjacentHTML("beforeend", avvisi.join(""));
+
+    renderValoreCavato(cav, ven, m3f);
+  }
+
+  // ── Valore del cavato ai prezzi del listino (vista del titolare) ──────
+  function renderValoreCavato(cav, ven, m3f) {
+    const sel = $("ric-prezzo");
+    const opz = opzioniPrezzo(ven);
+    if (!opz.some(o => o.v === ricPrezzo && !o.off)) ricPrezzo = "";
+    sel.innerHTML = opz.map(o => `<option value="${esc(o.v)}"${o.off ? " disabled" : ""}${o.v === ricPrezzo ? " selected" : ""}>${esc(o.t)}</option>`).join("");
+    const prod = ricPrezzo ? PRO.find(p => p.id === ricPrezzo) : null;
+    const prezzo = prod ? prezzoPerMetroCubo(prod) : ven.prezzoMedioM3;
+    const val = valoreCavato(cav.m3, prezzo);
+    if (val == null) {
+      $("ric-val").innerHTML = vuoto("euro", "Nessun prezzo al metro cubo",
+        "Per valutare il cavato serve un prezzo in <b>€/m³</b>. I prodotti venduti a tonnellata " +
+        "ce l'hanno solo se hanno la <b>densità</b>: aggiungila nel <b>Listino</b> e il valore compare.");
+      return;
+    }
+    const fonte = prod
+      ? `al prezzo di listino di <b>${esc(prod.nome)}</b>`
+      : `al prezzo medio realizzato nel periodo (<b>${eur(prezzo)}/m³</b>, ricavato dai DDT convertibili)`;
+    $("ric-val").innerHTML = `<div class="cassa vuota">
+      <span class="cassa-ico">${IC.fronte}</span>
+      <div><div class="cassa-num">${eurK(val)}</div>
+      <div class="cassa-lab">Valore del cavato nel periodo</div></div>
+      <div class="cassa-txt" style="margin-left:auto;text-align:right;">
+      <b>${m3f(cav.m3)} m³</b> × <b>${eur(prezzo)}/m³</b><br>${fonte}.</div></div>
+      <div class="riep">
+      <div class="mrec"><span class="k">Valore del cavato (teorico)</span><span class="v">${eur(val)}</span></div>
+      <div class="mrec"><span class="k">Venduto davvero nel periodo</span><span class="v">${eur(ven.valore)}</span></div>
+      </div>
+      <div class="note">I due numeri <b>non si sottraggono</b>: il primo è quanto varrebbe tutto
+      il materiale cavato, il secondo è quello che hai davvero fatturato con le consegne del
+      periodo. La differenza non è un mancato guadagno: è materiale che, se è a piazzale, è
+      ancora tuo e si venderà.</div>`;
   }
 
   document.addEventListener("click", async (e) => {
@@ -3084,6 +3456,10 @@ label.item:has(.dw-chk:checked){
   // la pesata nasce con la data di oggi: nove volte su dieci è quella giusta
   $("pes-data").value = oggiISO();
   await refresh();
+  // I rilievi di Terra si leggono DOPO che Conti è già in piedi e usabile:
+  // il confronto cavato/venduto si riempie da solo un attimo più tardi,
+  // senza far aspettare nessuno all'apertura.
+  caricaRilievi().then(renderRiconciliazione).catch(() => renderRiconciliazione());
 </script>
 </body>
 </html>

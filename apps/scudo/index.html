@@ -722,6 +722,7 @@
     <button class="chg" data-filtro-azi="aperta">Aperte</button>
     <button class="chg" data-filtro-azi="in-corso">In corso</button>
     <button class="chg" data-filtro-azi="chiusa">Chiuse</button>
+    <button class="chg" data-filtro-azi="ambiente" title="Le azioni nate da un superamento di soglia o da un reclamo, registrati in Sentinella">Dall'ambiente</button>
   </div>
   <input class="dw-input" id="azi-cerca" type="search" placeholder="Cerca per azione, responsabile o luogo…" style="margin-bottom:8px;">
   <div id="azi-count" class="count"></div>
@@ -1035,6 +1036,7 @@
 
 <script type="module">
   import { scudoData, statoScadenza, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, parseScadenzeCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
+    daAmbiente, etichettaAmbiente, riepilogoAmbiente,
     NEARMISS_CATEGORIE, NEARMISS_LUOGHI, categoriaNearMiss, luogoNearMiss, descrizioneNearMiss, riepilogoNearMiss,
     MODELLI_ISPEZIONE, modelloIspezione, nuovaIspezioneDaModello, riepilogoIspezione, riepilogoIspezioni, vociNonConformi, statoIspezione, azioniDiIspezione, esitoLabel, ESITI_ISPEZIONE, dataPiuGiorni,
     REQUISITI_FORMAZIONE, requisitoFormazione, requisitoSicuro, statoRequisito, MANSIONI_PRESET, mansionePreset,
@@ -1202,7 +1204,7 @@
     const byId = Object.fromEntries(LAV.map(l => [l.id, l]));
     const infById = Object.fromEntries(INF.map(x => [x.id, x]));
     const k = kpiFrom(LAV, SCA);
-    const ra = riepilogoAzioni(AZI);
+    const ra = riepilogoAzioni(AZI), rAmb = riepilogoAmbiente(AZI);
     // S4/S5 — si calcola una volta sola: servono ai KPI, alle urgenze del
     // Quadro, alla matrice, alle nomine e al registro DPI.
     const rMans = riepilogoMansioni(MANS, LAV, SCA, DPI);
@@ -1581,7 +1583,15 @@
 
     // --- AZIONI CORRETTIVE (CAPA) ---------------------------------------
     const ispById = Object.fromEntries(ISP.map(x => [x.id, x]));
-    const origineTesto = (a) => a.origineTipo === "evento"
+    // Da dove nasce l'azione, in una riga leggibile. Le origini AMBIENTALI
+    // (superamento di soglia, reclamo di un residente) arrivano da
+    // Sentinella e si portano dietro il testo del fatto: Scudo non può
+    // leggere le collezioni dell'altra app, quindi legge la fotografia che
+    // l'azione ha con sé — ed è anche ciò che si mostra all'ente.
+    const origineTesto = (a) => daAmbiente(a)
+      ? (a.origineNota || ((a.origineTipo === "reclamo" ? "da un reclamo" : "da un superamento di soglia")
+          + " registrato in Sentinella" + (a.origineData ? " il " + fmtData(a.origineData) : "")))
+      : a.origineTipo === "evento"
       ? (infById[a.origineId]
           ? "da " + (infById[a.origineId].tipo === "infortunio" ? "infortunio" : "near-miss") + " del " + fmtData(infById[a.origineId].data)
           : "da un evento rimosso dal registro")
@@ -1594,12 +1604,14 @@
     $("azi-count-tot").textContent = AZI.length;
     $("azi-riep").innerHTML = AZI.length
       ? `Da chiudere: <b>${ra.daChiudere}</b> (di cui <b>${ra.scadute}</b> fuori tempo e ${ra.inScadenza} in scadenza entro 30 giorni) · in corso: <b>${ra.inCorso}</b> · chiuse: <b>${ra.chiuse}</b> su ${ra.totale}.`
+        + (rAmb.totale ? ` Di queste, <b>${rAmb.totale}</b> ${rAmb.totale === 1 ? "nasce" : "nascono"} dall'ambiente (${rAmb.superamenti} da superamenti di soglia, ${rAmb.reclami} da reclami registrati in Sentinella)${rAmb.daChiudere ? `, <b>${rAmb.daChiudere}</b> ancora da chiudere` : ", tutte chiuse"}.` : "")
       : "Nessuna azione correttiva registrata. Da ogni infortunio o near-miss dovrebbe nascerne almeno una.";
     const qAzi = ($("azi-cerca").value || "").trim().toLowerCase();
     const passaFiltroAzi = (a) => (filtroOrig && !(a.origineTipo === filtroOrig.tipo && a.origineId === filtroOrig.id)) ? false
       : filtroAzi === "tutte" ? true
       : filtroAzi === "da-fare" ? a.stato !== "chiusa"
       : filtroAzi === "scaduta" ? (a.stato !== "chiusa" && statoAzione(a) === "scaduta")
+      : filtroAzi === "ambiente" ? daAmbiente(a)
       : (a.stato || "aperta") === filtroAzi;
     const aziVis = AZI.filter(passaFiltroAzi).filter(a => {
       if (!qAzi) return true;
@@ -1623,6 +1635,7 @@
         <div class="avatar sup">${SVG_AZIONE}</div>
         <div class="info"><div class="name">${esc(a.descrizione)}</div><div class="meta">${meta}</div></div>
         <span class="acts">
+        ${daAmbiente(a) ? `<span class="badge tag" title="Nata da un fatto ambientale registrato in Sentinella">${etichettaAmbiente(a)}</span>` : ""}
         <span class="badge ${al.cls}" style="cursor:pointer" title="Tocca per far avanzare lo stato (aperta → in corso → chiusa)" data-azi-stato="${a.id}">${al.label}</span>
         ${(a.stato !== "chiusa" && a.scadenza && st !== "regolare") ? `<span class="badge ${B[st][0]}">${B[st][1]}</span>` : ""}
         ${(a.origineTipo === "evento" && infById[a.origineId]) ? `<span class="arr" style="cursor:pointer" title="Vai all'evento che l'ha generata" data-vai-evt="${a.origineId}">↗</span>` : ""}
@@ -1633,7 +1646,9 @@
       ? vuoto(I.cerca, "Nessun risultato", "Nessuna azione trovata per <b>«" + esc(qAzi) + "»</b>. Prova con il testo dell'azione o il nome del responsabile.")
       : (filtroAzi === "tutte" && !filtroOrig
         ? vuoto(I.attrezzo, "Nessuna azione correttiva", "Da ogni infortunio o near-miss dovrebbe nascerne almeno una. Aggiungila qui sotto, oppure aprila direttamente dall'evento con il pulsante <b>+ Azione</b>.")
-        : vuoto(I.ok, "Niente in questa categoria", "Nessuna azione rientra nel filtro scelto. Tocca <b>Tutte</b> per vedere l'elenco completo.")));
+        : filtroAzi === "ambiente"
+          ? vuoto(I.ok, "Nessuna azione dall'ambiente", "Qui finiscono le azioni aperte da <b>Sentinella</b> quando un punto di misura supera la soglia o un residente presenta un reclamo. Si aprono da lì, dal <b>Quadro ambientale</b>, e arrivano qui già collegate al fatto che le ha generate.")
+          : vuoto(I.ok, "Niente in questa categoria", "Nessuna azione rientra nel filtro scelto. Tocca <b>Tutte</b> per vedere l'elenco completo.")));
     { const n = aziVis.length, filtrata = qAzi || filtroAzi !== "tutte" || filtroOrig;
       let daDove = "";
       if (filtroOrig && filtroOrig.tipo === "evento") { const evt = infById[filtroOrig.id];
@@ -2111,7 +2126,8 @@
       $("azi-dchius").value = a.dataChiusura || "";
       $("azi-chiusura").style.display = "flex";
       $("btn-azi").textContent = "Salva modifica";
-      esito("azi-esito-msg", "Stai modificando l'azione «" + a.descrizione + "». Tocca di nuovo ✎ per annullare.");
+      esito("azi-esito-msg", "Stai modificando l'azione «" + a.descrizione + "». Tocca di nuovo ✎ per annullare."
+        + (daAmbiente(a) ? " Il collegamento con il fatto ambientale che l'ha generata resta com'è: qui cambi solo cosa fare, chi lo fa ed entro quando." : ""));
       $("azi-desc").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
     // --- S3 · ispezioni: esiti, note, apertura, rimozione ----------------
     const delIsp = at("data-del-isp");
@@ -2447,6 +2463,22 @@
       origineId: daEvento ? orig.slice(4) : null,
       origineNota: daEvento ? "" : nota,
     };
+    // Un'azione nata da un'ISPEZIONE o dall'AMBIENTE (superamento, reclamo)
+    // ha un'origine che questo form non sa rappresentare: se la si modifica
+    // qui, il collegamento NON va perso. Si toccano solo testo, responsabile,
+    // data e avanzamento — l'origine resta quella che è.
+    if (editAzi) {
+      const pre = AZI.find(x => x.id === editAzi);
+      if (pre && (daAmbiente(pre) || pre.origineTipo === "ispezione")) {
+        rec.origineTipo = pre.origineTipo;
+        rec.origineId = pre.origineId || null;
+        rec.origineVoce = pre.origineVoce || null;
+        rec.origineNota = pre.origineNota || "";
+        if (pre.origineApp) rec.origineApp = pre.origineApp;
+        if (pre.origineData) rec.origineData = pre.origineData;
+        if (pre.origineEtichetta) rec.origineEtichetta = pre.origineEtichetta;
+      }
+    }
     if (editAzi) {
       const stato = $("azi-stato").value;
       rec.stato = stato;
@@ -2469,8 +2501,11 @@
     // L. 198/2025) la comunicazione dei dati aggregati sugli eventi
     let csv = "descrizione;responsabile;scadenza;stato;esito;dataChiusura;origine\n";
     const nome = (id) => { const l = LAV.find(x => x.id === id); return l ? l.nome : ""; };
-    const orig = (a) => { if (a.origineTipo === "evento") { const e = INF.find(x => x.id === a.origineId);
+    const orig = (a) => { if (daAmbiente(a)) return a.origineNota || (etichettaAmbiente(a) + " (Sentinella)" + (a.origineData ? " del " + a.origineData : ""));
+      if (a.origineTipo === "evento") { const e = INF.find(x => x.id === a.origineId);
         return e ? (e.tipo || "evento") + " del " + (e.data || "") + (e.descrizione ? " — " + e.descrizione : "") : "evento non più in archivio"; }
+      if (a.origineTipo === "ispezione") { const i = ISP.find(x => x.id === a.origineId);
+        return (i ? "ispezione " + i.nome + " del " + (i.data || "") : "ispezione non più in archivio") + (a.origineNota ? " — " + a.origineNota : ""); }
       return a.origineNota ? "non conformità: " + a.origineNota : ""; };
     for (const a of AZI.slice().sort((x, y) => String(x.scadenza || "").localeCompare(String(y.scadenza || ""))))
       csv += `${csvCell(a.descrizione || "")};${csvCell(nome(a.responsabileId))};${a.scadenza || ""};${a.stato || "aperta"};${csvCell(a.esito || "")};${a.dataChiusura || ""};${csvCell(orig(a))}\n`;

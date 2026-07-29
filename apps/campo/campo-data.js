@@ -25,15 +25,19 @@
 //   meteo/{id}:      { data, turno, cielo, piste, visibilita, note, ora }
 //                     (meteo e condizioni del sito del turno: uno per
 //                      giorno+turno, l'ultimo salvato vince)
-//   pianocarico/{id}: { data, turno, foro, x, fila, prof, prog, borr, rit, reale }
+//   pianocarico/{id}: { data, turno, foro, x, fila, prof, prog, borr, rit,
+//                       reale, da, squadra }
 //                     (piano di carico volata importato da CSV, ponte Genesi;
-//                      una riga per foro, salvata come il resto dei dati)
+//                      una riga per foro, salvata come il resto dei dati.
+//                      "da" e "squadra" sono CHI ha registrato la carica reale
+//                      di QUEL foro: servono al consuntivo che torna a Genesi
+//                      e restano vuoti sui piani salvati prima che esistessero)
 // La "data" è il giorno di lavoro in formato ISO aaaa-mm-gg: senza di essa
 // non esistono storico né conteggi veri (i vecchi record che ne sono privi
 // restano visibili come "senza data", vedi eDelGiorno).
 // ============================================================
 
-import { parseCsvLine, numIt, isIntestazione } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, numIt, isIntestazione, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
 
 // Giorno di lavoro corrente in ISO (aaaa-mm-gg) e in ora LOCALE: usare
 // toISOString() sulla data grezza darebbe il giorno UTC e in Italia, la sera
@@ -881,6 +885,70 @@ export function pianoRiepilogo(piano) {
     pct,
     livello: scartoLivello(stimatoKg, progettatoKg),
   };
+}
+
+// Scostamento sui SOLI fori già registrati — il numero che serve MENTRE si
+// carica, non dopo. pianoRiepilogo() stima il totale finale contando a
+// progetto i fori non ancora registrati: è la proiezione giusta per il
+// consuntivo, ma "annacqua" lo scostamento appena il carico è a metà (dieci
+// fori su venti caricati con il 20% in più danno un +10% sul totale, e chi
+// legge pensa di essere dentro tolleranza). Qui invece si confronta solo
+// quello che è stato davvero fatto con quello che era previsto PER QUEI
+// FORI: se il fochino sta caricando sistematicamente più del progetto, lo
+// vede al terzo foro e non a volata finita. Pura e testabile; null finché
+// non c'è nemmeno un foro registrato.
+export function pianoParziale(piano) {
+  const reg = (piano || []).filter(p => p.reale != null);
+  if (!reg.length) return null;
+  const progettatoKg = reg.reduce((t, p) => t + p.prog, 0);
+  const realeKg = reg.reduce((t, p) => t + p.reale, 0);
+  const pct = progettatoKg ? Math.round((realeKg - progettatoKg) / progettatoKg * 100) : 0;
+  return {
+    registrati: reg.length,
+    totale: (piano || []).length,
+    progettatoKg,
+    realeKg,
+    pct,
+    livello: scartoLivello(realeKg, progettatoKg),
+  };
+}
+
+// ── Il consuntivo che torna a Genesi ──────────────────────────────────────
+// Genesi manda a Campo il piano di carico in CSV; Campo gli rimanda indietro,
+// nella STESSA forma (punto e virgola, una riga di intestazione, una riga per
+// foro), quello che è successo davvero. Non è un formato nuovo: sono le sei
+// colonne che Campo esportava già, più tre che mancavano perché il giro si
+// chiudesse davvero:
+//   · scarto_kg   — lo scarto in CHILI e COL SEGNO. scarto_pct è arrotondato
+//                   all'unità e senza verso (è nato per il badge in lista):
+//                   da solo non basta a Genesi, che deve sapere se si è
+//                   caricato in più o in meno e di quanto esattamente.
+//   · squadra     — quale squadra ha caricato.
+//   · operatore   — CHI ha registrato la carica, foro per foro.
+// Le prime sei colonne restano identiche e nello stesso ordine: un file
+// esportato prima di oggi resta leggibile, e chi leggeva solo le prime sei
+// continua a funzionare.
+// carica_reale_kg è scritta GREZZA, senza arrotondamenti: è il dato misurato
+// e nessuno deve toccarlo per strada.
+export const CONSUNTIVO_COLONNE = ["data", "turno", "foro", "carica_prog_kg",
+  "carica_reale_kg", "scarto_pct", "scarto_kg", "squadra", "operatore"];
+
+export function pianoConsuntivoCsv(piano) {
+  const righe = (piano || []).map(p => {
+    const s = scartoPct(p.reale, p.prog);
+    // toFixed(3) toglie SOLO il rumore binario (12,3 − 10 = 2,3000000000000007),
+    // non la precisione della misura: al grammo si è già ben oltre il vero.
+    const dkg = p.reale != null ? +(p.reale - p.prog).toFixed(3) : "";
+    // csvCell SOLO sui campi di testo (turno, squadra, nome): è lì che possono
+    // esserci punti e virgola o virgolette da proteggere. Sui NUMERI non va
+    // usato, perché mette un apostrofo davanti a tutto ciò che comincia per
+    // meno — e uno scarto negativo diventerebbe «'-13,3», cioè testo.
+    return [p.data || "", csvCell(p.turno || ""), p.foro, p.prog,
+            p.reale != null ? p.reale : "",
+            s != null ? Math.round(s * 100) : "",
+            dkg, csvCell(p.squadra || ""), csvCell(p.da || "")].join(";");
+  });
+  return CONSUNTIVO_COLONNE.join(";") + "\n" + righe.join("\n") + (righe.length ? "\n" : "");
 }
 
 export async function campoData() {

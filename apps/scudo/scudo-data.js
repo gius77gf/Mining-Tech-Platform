@@ -15,11 +15,20 @@
 //   cantieri/{id}:   { nome, comune, tipo: cava|cantiere, stato: attivo|chiuso }
 //   azioni/{id}:     { descrizione, responsabileId|null, scadenza (ISO),
 //                      stato: aperta|in-corso|chiusa, esito?, dataChiusura?,
-//                      origineTipo: evento|ispezione|nc|"", origineId?|null,
-//                      origineVoce?|null, origineNota? }
+//                      origineTipo: evento|ispezione|nc|superamento|reclamo|"",
+//                      origineId?|null, origineVoce?|null, origineNota?,
+//                      origineApp?, origineData?, origineEtichetta? }
 //                    → azione correttiva (CAPA) nata da un evento del registro
 //                      infortuni/near-miss, da una voce non conforme di
 //                      un'ispezione, o da una non conformità rilevata.
+//                      "superamento" e "reclamo" arrivano da SENTINELLA
+//                      (origineApp: "sentinella"): un superamento di soglia
+//                      ambientale o il reclamo di un residente chiedono
+//                      un'azione correttiva esattamente come un near-miss.
+//                      Quelle azioni portano con sé il TESTO dell'origine
+//                      (origineNota/origineData/origineEtichetta) perché
+//                      Scudo non può leggere le collezioni di Sentinella:
+//                      l'isolamento dello SDK è per organizzazione E per app.
 //   infortuni/{id}:  { data (ISO), tipo: infortunio|near-miss, gravita,
 //                      giorniAssenza, descrizione, luogo,
 //                      categoria? (near-miss: tipo di rischio),
@@ -379,6 +388,32 @@ export function azioniDiEvento(azioni, eventoId) {
 export function azioniDiIspezione(azioni, ispezioneId) {
   if (!ispezioneId) return [];
   return (azioni || []).filter(a => a.origineTipo === "ispezione" && a.origineId === ispezioneId);
+}
+
+// ── Azioni che arrivano dall'AMBIENTE (Sentinella) ────────────────────
+// Un superamento di soglia o il reclamo di un residente non sono un
+// problema "di un'altra app": chiedono un responsabile e una data come
+// ogni altra azione correttiva, e vivono nello stesso scadenzario. Queste
+// due funzioni servono solo a RICONOSCERLE, per scrivere l'origine giusta
+// e per non farla cancellare da una modifica fatta dal form.
+export const ORIGINI_AMBIENTE = ["superamento", "reclamo"];
+export function daAmbiente(a) {
+  return ORIGINI_AMBIENTE.includes(String((a || {}).origineTipo || ""));
+}
+// Etichetta breve dell'origine ambientale, per il badge nell'elenco.
+export function etichettaAmbiente(a) {
+  return (a || {}).origineTipo === "reclamo" ? "Reclamo" : "Superamento";
+}
+// Quante azioni ambientali ci sono e come stanno: serve alla riga di
+// riepilogo della pagina Azioni. Compatibilità: senza nessuna, tutti zero.
+export function riepilogoAmbiente(azioni) {
+  const l = (azioni || []).filter(daAmbiente);
+  return {
+    totale: l.length,
+    superamenti: l.filter(a => a.origineTipo === "superamento").length,
+    reclami: l.filter(a => a.origineTipo === "reclamo").length,
+    daChiudere: l.filter(a => a.stato !== "chiusa").length,
+  };
 }
 
 // ============================================================
@@ -1310,6 +1345,28 @@ export function kpiFrom(lavoratori, scadenze) {
   return { scadute, trenta, regolari };
 }
 
+// ── PONTE CON SENTINELLA, LATO DEMO ──────────────────────────────────
+// In LIVE non serve niente di tutto questo: Sentinella scrive le sue
+// azioni nella collezione `azioni` di Scudo passando dallo SDK
+// (orgCollection sull'appId "scudo"), e Scudo se le ritrova insieme alle
+// altre. In demo/tour, invece, non esiste nessun backend e le due app sono
+// due pagine diverse: il "finto backend" condiviso è una riga di
+// localStorage. Copia gemella (stessa chiave) in
+// apps/sentinella/sentinella-data.js, che le scrive.
+// Se localStorage non è disponibile (navigazione privata, quota piena) si
+// prosegue senza: la pagina non si rompe, semplicemente non vede il ponte.
+const PONTE_DEMO_KEY = "deepwork.demo.azioni-ponte";
+function ponteDemoLeggi() {
+  try {
+    const v = JSON.parse(globalThis.localStorage.getItem(PONTE_DEMO_KEY) || "[]");
+    return Array.isArray(v) ? v.filter(x => x && x.id) : [];
+  } catch (e) { return []; }
+}
+function ponteDemoScrivi(lista) {
+  try { globalThis.localStorage.setItem(PONTE_DEMO_KEY, JSON.stringify((lista || []).slice(-200))); return true; }
+  catch (e) { return false; }
+}
+
 export async function scudoData() {
   // tenta il backend reale; qualunque problema → demo (tour/mockup)
   let mode = "demo", api = null;
@@ -1355,15 +1412,29 @@ export async function scudoData() {
       documenti:  async () => mem.documenti,
       infortuni:  async () => mem.infortuni,
       cantieri:   async () => mem.cantieri,
-      azioni:     async () => mem.azioni,
+      // le azioni di esempio PIÙ quelle arrivate da Sentinella (ponte demo):
+      // in demo le due app comunicano solo così, in live è la stessa
+      // collezione e questa riga non esiste nemmeno.
+      azioni:     async () => [...mem.azioni, ...ponteDemoLeggi().filter(a => !mem.azioni.some(x => x.id === a.id))],
       ispezioni:  async () => mem.ispezioni,
       mansioni:   async () => mem.mansioni || [],
       nomine:     async () => mem.nomine || [],
       dpi:        async () => mem.dpi || [],
       logout: async () => {},
       aggiungi: async (name, data) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[name] = mem[name] || []).push({ id, ...data }); return { id }; },
-      aggiorna: async (name, docId, data) => { const x = (mem[name] || (mem[name] = [])).find(v => v.id === docId); if (x) Object.assign(x, data); },
-      rimuovi: async (name, docId) => { mem[name] = (mem[name] || []).filter(x => x.id !== docId); },
+      aggiorna: async (name, docId, data) => {
+        const x = (mem[name] || (mem[name] = [])).find(v => v.id === docId);
+        if (x) { Object.assign(x, data); return; }
+        // azione arrivata da Sentinella: l'avanzamento si scrive dove sta,
+        // così tornando sul superamento se ne vede lo stato aggiornato.
+        if (name !== "azioni") return;
+        const p = ponteDemoLeggi(), y = p.find(v => v.id === docId);
+        if (y) { Object.assign(y, data); ponteDemoScrivi(p); }
+      },
+      rimuovi: async (name, docId) => {
+        mem[name] = (mem[name] || []).filter(x => x.id !== docId);
+        if (name === "azioni") ponteDemoScrivi(ponteDemoLeggi().filter(x => x.id !== docId));
+      },
     };
   }
   return { mode, ...api };

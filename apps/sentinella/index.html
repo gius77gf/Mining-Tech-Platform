@@ -312,7 +312,10 @@
    discreta, assi etichettati, soglia inequivocabile. La soglia è quella
    impostata dall'utente sul punto: qui si disegna soltanto.
    ══════════════════════════════════════════════════════════════════════ */
-.graf{
+/* T7 · il pannello «cosa abbiamo fatto» sta attaccato SOTTO la voce del
+   superamento, esattamente come il grafico sotto il punto di misura:
+   stessa cassa, stesso bordo continuo, nessun bordo alto. */
+.graf,.pon-det{
   position:relative; overflow:hidden;
   background:linear-gradient(180deg,var(--card2),var(--card));
   border:1px solid var(--app-accent); border-top:none;
@@ -331,6 +334,39 @@
   font-size:11px; color:var(--muted); margin-left:auto;
   font-variant-numeric:tabular-nums;
 }
+
+/* T7 · la voce agganciata al suo pannello. Come .item.aperto (angoli bassi
+   squadrati, niente stacco), ma la STRISCIA DI STATO resta quella del
+   fatto: un superamento deve restare rosso anche mentre è aperto, il
+   colore è l'informazione. */
+.item.pon-voce{
+  background:var(--card2);
+  border-bottom-left-radius:0; border-bottom-right-radius:0; margin-bottom:0;
+}
+/* il pannello continua la voce: stesso bordo, stessa striscia di stato */
+.pon-det{border-color:var(--border2); border-top:none}
+.pon-det.st-danger{border-left:3px solid var(--danger)}
+.pon-det.st-warn{border-left:3px solid var(--warn)}
+.pon-det.st-ok{border-left:3px solid var(--success)}
+
+/* T7 · contenuto del pannello: righe di testo, l'avviso di coincidenza e
+   l'elenco delle azioni correttive aperte in Scudo. Micro-profondità come
+   sul resto: le pillole di stato hanno il loro bordo e la loro ombra. */
+.pon-det{padding:11px 13px 12px}
+.pon-riga{font-size:12px; line-height:1.6; color:var(--muted2); margin-top:7px}
+.pon-riga:first-child{margin-top:0}
+.pon-riga b{color:var(--text); font-variant-numeric:tabular-nums}
+.pon-az{
+  display:flex; align-items:flex-start; gap:9px; margin-top:8px; padding:9px 11px;
+  background:var(--dark); border:1px solid var(--border);
+  border-left:3px solid var(--app-support2); border-radius:var(--r-sm);
+  box-shadow:var(--edge);
+}
+.pon-az.ok{border-left-color:var(--success)}
+.pon-az.warn{border-left-color:var(--warn)}
+.pon-az-txt{flex:1 1 auto; min-width:0; font-size:12px; line-height:1.55; color:var(--muted2)}
+.pon-az-txt b{color:var(--text)}
+.pon-cmd{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
 
 /* quadrante di lettura: ultimo valore, massimo, superamenti */
 .graf-stats{
@@ -757,6 +793,18 @@ textarea.dw-input{
   <div id="dash-peggio"></div>
   <div class="sec">Allerte</div>
   <div id="all-list"></div>
+
+  <!-- T7 · DAL SUPERAMENTO (O DAL RECLAMO) ALL'AZIONE CORRETTIVA ───────
+       Quando l'ente chiede «e voi cosa avete fatto?», la risposta deve
+       esistere e non stare nella testa di qualcuno. Qui, per ogni
+       superamento aperto e per ogni reclamo, si vede se un'azione è stata
+       aperta, a che punto è, e se è stata chiusa. L'azione NON vive qui:
+       vive in Scudo, dentro lo scadenzario della sicurezza, perché è lì che
+       si assegna un responsabile e si controllano le scadenze. -->
+  <div class="sec">Cosa abbiamo fatto<span class="cnt" id="pon-tot">0</span></div>
+  <div id="pon-riep" class="note recap" style="margin-top:0;"></div>
+  <div id="pon-list" style="margin-top:10px;"></div>
+  <div class="note esito" id="pon-esito"></div>
 </div>
 
 <div class="page" id="page-mon">
@@ -1197,7 +1245,9 @@ textarea.dw-input{
            TIPI_RICETTORE, CLASSI_ACUSTICHE, etichettaTipo, trovaRicettore, sogliaEfficace,
            reportConformita, ESITI, TIPI_RECLAMO, etichettaReclamo, riepilogoReclami, firmaLettura,
            PERIODICITA, etichettaFrequenza, ultimaLettura, statoRigaProgramma, programmaEsteso,
-           riepilogoProgramma, allerteProgramma, andamentoRicettore } from "./sentinella-data.js";
+           riepilogoProgramma, allerteProgramma, andamentoRicettore,
+           ponteScudo, superamentiAperti, azioniDiOrigine, statoPonte, bozzaAzioneSuperamento,
+           bozzaAzioneReclamo, coincidenzaVolata, dataPiuGiorni, AVVISO_COINCIDENZA } from "./sentinella-data.js";
   import { mountExit, esc, csvCell, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
@@ -1286,6 +1336,11 @@ textarea.dw-input{
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
   let MON=[], ADE=[], REG=[], VOL=[], RIC=[], REC=[], PRG=[];
+  // T7 · il ponte con Scudo: le azioni correttive NON sono dati di
+  // Sentinella, si leggono da Scudo (stessa organizzazione, app diversa) e
+  // qui si tengono solo in memoria per mostrare a che punto sono.
+  const ponte = await ponteScudo();
+  let AZI = [], LAV = [], ponteKO = "";
   let filtroPrg = "tutte";   // filtro dell'elenco del programma
   let editPrg = null;        // id della riga di programma in modifica
   let andRic = null;         // ricettore scelto per l'andamento nel tempo
@@ -1637,6 +1692,182 @@ textarea.dw-input{
           "Qui si scrivono le segnalazioni dei residenti: giorno, ora, chi ha chiamato e cosa abbiamo fatto. Quando arriva l'ente, la risposta è già scritta — con accanto le misure di quel giorno.");
   }
 
+  // ══════════════════════════════════════════════════════════════════
+  // T7 · DAL SUPERAMENTO (E DAL RECLAMO) ALL'AZIONE CORRETTIVA
+  // Un valore fuori soglia, o la telefonata di un residente, non si
+  // chiudono da soli: chiedono che QUALCUNO faccia QUALCOSA ENTRO una
+  // data. Quel meccanismo esiste già e sta in Scudo — le azioni
+  // correttive (aperta → in corso → chiusa) dentro lo scadenzario della
+  // sicurezza. Qui non se ne costruisce un secondo: l'azione si apre LÀ,
+  // già collegata al fatto che l'ha generata, e qui se ne vede lo stato.
+  // Così, quando l'ente chiede «cosa avete fatto», la risposta esiste.
+  // ══════════════════════════════════════════════════════════════════
+  const STATO_AZ = { aperta: ["danger", "aperta"], "in-corso": ["warn", "in corso"], chiusa: ["ok", "chiusa"] };
+
+  // Le voci che chiedono una risposta: tutti i superamenti aperti, più i
+  // reclami ancora aperti, più i reclami già chiusi che hanno comunque
+  // un'azione correttiva da chiudere (il reclamo si chiude quando hai
+  // risposto al residente; l'azione quando il problema è risolto).
+  function vociPonte() {
+    const voci = superamentiAperti(MON, RIC).map(s => ({
+      genere: "superamento", chiave: "sup|" + s.id + "|" + s.voce, sup: s,
+      data: s.data, nome: s.nome,
+      azioni: azioniDiOrigine(AZI, "superamento", s.id, s.voce),
+    }));
+    for (const r of REC || []) {
+      const az = azioniDiOrigine(AZI, "reclamo", r.id);
+      if (r.stato === "chiuso" && !az.length) continue;
+      voci.push({ genere: "reclamo", chiave: "rec|" + r.id, rec: r,
+        data: String(r.data || "").slice(0, 10),
+        nome: etichettaReclamo(r.tipo), azioni: az,
+        ricettore: trovaRicettore(RIC, r.ricettoreId) });
+    }
+    // prima ciò che è ancora senza risposta, poi dal fatto più recente
+    return voci.sort((a, b) => (a.azioni.length ? 1 : 0) - (b.azioni.length ? 1 : 0)
+      || String(b.data || "").localeCompare(String(a.data || "")));
+  }
+
+  // L'elenco delle azioni già aperte su una voce, in parole: cosa si è
+  // deciso di fare, entro quando, e a che punto è.
+  function elencoAzioni(az) {
+    return az.slice()
+      .sort((a, b) => String(a.scadenza || "9999").localeCompare(String(b.scadenza || "9999")))
+      .map(a => {
+        const s = STATO_AZ[a.stato] || STATO_AZ.aperta;
+        const resp = (LAV.find(l => l.id === a.responsabileId) || {}).nome;
+        return `<div class="pon-az ${s[0]}">
+          <span class="badge ${s[0]}">${s[1]}</span>
+          <span class="pon-az-txt"><b>${esc(a.descrizione || "Azione correttiva")}</b><br>
+          ${a.scadenza ? "entro il <b>" + fmtD(a.scadenza) + "</b>" : "senza data"}
+          · ${resp ? "responsabile <b>" + esc(resp) + "</b>" : "responsabile da assegnare"}
+          ${a.stato === "chiusa" ? " · chiusa il <b>" + fmtD(a.dataChiusura) + "</b>" + (a.esito ? " · esito: " + esc(a.esito) : "") : ""}</span>
+        </div>`;
+      }).join("");
+  }
+
+  function renderPonte() {
+    const voci = vociPonte();
+    const conAz = voci.filter(v => v.azioni.length).length;
+    const daChiudere = voci.reduce((n, v) => n + v.azioni.filter(a => a.stato !== "chiusa").length, 0);
+    $("pon-tot").textContent = voci.length;
+    // nel riquadro «recap» il grassetto è riservato ai NUMERI (è lo stile
+    // del core: b = cifra grande): le parole restano testo normale.
+    $("pon-riep").innerHTML = (ponteKO ? esc(ponteKO) + "<br>" : "") + (!voci.length
+      ? ""
+      : `Fatti che chiedono una risposta: <b>${voci.length}</b> · con un'azione correttiva già aperta: <b>${conAz}</b> · ancora senza: <b>${voci.length - conAz}</b>`
+        + (daChiudere ? ` · azioni <b>${daChiudere}</b> da chiudere.` : ".")
+        + " Le azioni correttive vivono in Scudo, nello stesso scadenzario della sicurezza: lì hanno un responsabile e una data.");
+
+    $("pon-list").innerHTML = voci.map(v => {
+      const sup = v.genere === "superamento";
+      const st = statoPonte(v.azioni);
+      const coinc = coincidenzaVolata(VOL, v.data);
+      const u = sup && v.sup.unita ? " " + v.sup.unita : "";
+      const meta = sup
+        ? `<b>${esc(numeroIt(v.sup.valore))}${esc(u)}</b> / soglia ${esc(numeroIt(v.sup.soglia.valore))}${esc(u)}`
+          + (v.sup.soglia.fonte === "ricettore" && v.sup.soglia.ricettore ? " (del ricettore " + esc(v.sup.soglia.ricettore) + ")" : "")
+          + (v.data ? " · lettura del " + fmtD(v.data) : " · valore inserito a mano, senza data")
+          + (v.sup.ricettore ? " · " + esc(v.sup.ricettore.nome) : "")
+        : fmtD(v.data) + (v.rec.ora ? " " + esc(v.rec.ora) : "")
+          + (v.ricettore ? " · " + esc(v.ricettore.nome) : "")
+          + (v.rec.chi ? " · " + esc(v.rec.chi) : "")
+          + (v.rec.descrizione ? " · " + esc(v.rec.descrizione) : "");
+      // la striscia dice che FATTO è (superamento = rosso, reclamo aperto =
+      // ambra, reclamo chiuso = verde); il badge colorato dice a che punto è
+      // la RISPOSTA — che è la domanda di questa sezione.
+      const cls = sup ? "st-danger" : (v.rec.stato === "chiuso" ? "st-ok" : "st-warn");
+      const av = sup ? "danger" : (v.rec.stato === "chiuso" ? "ok" : "warn");
+      return `<div class="item pon-voce ${cls}">
+        <div class="avatar ${av}">${sup ? I.sensore : I.voce}</div>
+        <div class="info"><div class="name">${esc(v.nome)}</div>
+        <div class="riga"><span class="badge accent">${sup ? "Superamento" : (v.rec.stato === "chiuso" ? "Reclamo chiuso" : "Reclamo aperto")}</span>
+        <span class="badge ${st.cls}">${esc(st.label)}</span>
+        <span class="meta">${meta}</span></div></div></div>
+      <div class="pon-det ${cls}">
+        ${coinc ? `<div class="note avviso" style="margin-top:0;"><b>Da guardare:</b> ${esc(coinc.testo)}
+          ${esc(coinc.avviso)}</div>` : ""}
+        ${v.azioni.length
+          ? elencoAzioni(v.azioni)
+          : `<div class="pon-riga">Nessuna azione correttiva aperta su questo ${sup ? "superamento" : "reclamo"}.
+             Se l'ente chiedesse oggi cosa avete fatto, non ci sarebbe niente da mostrare.</div>
+             <div class="pon-cmd"><button type="button" class="dw-btn mini" data-pon-nuova="${esc(v.chiave)}">Apri azione correttiva</button></div>`}
+      </div>`;
+    }).join("")
+      || vuoto(I.fatto, "Niente da rincorrere",
+          "Nessun punto di misura è oltre soglia e non ci sono reclami aperti. Quando ne comparirà uno, da qui si apre in un tocco l'<b>azione correttiva</b> in Scudo — con un responsabile e una data — e qui resta scritto a che punto è.");
+  }
+
+  // APRE L'AZIONE CORRETTIVA in Scudo, già collegata alla sua origine.
+  // Il testo, la data e il responsabile si possono correggere prima di
+  // confermare: la proposta serve a non far partire da un foglio bianco.
+  async function apriAzione(chiave) {
+    const v = vociPonte().find(x => x.chiave === chiave);
+    if (!v) { esito("pon-esito", "Questo fatto non è più in elenco: ricarica il quadro.", "err"); return; }
+    if (v.azioni.length) {   // secondo controllo, al momento del tocco: mai un doppione
+      esito("pon-esito", "Su questo " + (v.genere === "superamento" ? "superamento" : "reclamo")
+        + " un'azione correttiva c'è già: la trovi qui sotto e si gestisce da Scudo.", "err",
+        "C'è già un'azione correttiva.");
+      renderPonte(); return;
+    }
+    const bozza = v.genere === "superamento"
+      ? bozzaAzioneSuperamento(v.sup, { scadenza: dataPiuGiorni(30) })
+      : bozzaAzioneReclamo(v.rec, v.ricettore, { scadenza: dataPiuGiorni(30) });
+    if (!bozza) return;
+    const opzResp = '<option value="">— responsabile da assegnare —</option>'
+      + LAV.slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it"))
+        .map(l => `<option value="${esc(l.id)}">${esc(l.nome)}</option>`).join("");
+    const coinc = coincidenzaVolata(VOL, v.data);
+    const corpo = `<div class="note" style="margin-top:0;"><b>Origine, già scritta nell'azione:</b><br>${esc(bozza.origineNota)}</div>`
+      + (coinc ? `<div class="note avviso"><b>Da guardare:</b> ${esc(coinc.testo)} ${esc(coinc.avviso)}</div>` : "")
+      + '<label class="fl" for="pon-desc">Cosa si deve fare</label>'
+      + `<textarea class="dw-input" id="pon-desc" rows="3">${esc(bozza.descrizione)}</textarea>`
+      + '<label class="fl" for="pon-scad">Entro quando</label>'
+      + `<input class="dw-input" id="pon-scad" type="date" value="${esc(bozza.scadenza)}">`
+      + (LAV.length ? '<label class="fl" for="pon-resp">Chi la fa</label>'
+          + `<select class="dw-input" id="pon-resp">${opzResp}</select>` : "")
+      + '<div class="note" style="margin-bottom:0;">L\'azione nasce in <b>Scudo</b>, nell\'elenco delle azioni correttive: '
+      + 'da lì entra nello scadenzario e nel semaforo, e si chiude quando il problema è risolto.</div>';
+    const scelta = await new Promise(res => {
+      apriModale("Apri l'azione correttiva", corpo, [
+        { label: "Annulla", azione: () => { chiudiModale(); res(null); } },
+        { label: "Apri in Scudo", cls: "primary", azione: () => {
+            const d = $("pon-desc"), s = $("pon-scad"), r = $("pon-resp");
+            const val = { descrizione: (d && d.value || "").trim(), scadenza: (s && s.value) || "",
+              responsabileId: (r && r.value) || null };
+            chiudiModale(); res(val);
+          } },
+      ]);
+    });
+    if (!scelta) return;
+    if (!scelta.descrizione || !/^\d{4}-\d{2}-\d{2}$/.test(scelta.scadenza)) {
+      esito("pon-esito", "Servono cosa fare e la data entro cui farlo: senza una data l'azione non entra in nessuno scadenzario.", "err",
+        "Manca il testo o la data.");
+      return;
+    }
+    const rec = v.genere === "superamento"
+      ? bozzaAzioneSuperamento(v.sup, scelta)
+      : bozzaAzioneReclamo(v.rec, v.ricettore, scelta);
+    try {
+      await ponte.aggiungi(rec);
+    } catch (e) {
+      esito("pon-esito", "L'azione non è stata aperta: Scudo non ha accettato la scrittura. "
+        + "Di solito succede quando la tua organizzazione non ha Scudo attivo, oppure quando manca il collegamento. Riprova più tardi.", "err",
+        "Azione non aperta: Scudo non raggiungibile.");
+      return;
+    }
+    await refresh();
+    esito("pon-esito", "Azione correttiva aperta in Scudo: «" + scelta.descrizione + "», entro il " + fmtD(scelta.scadenza)
+      + ". È collegata a questo " + (v.genere === "superamento" ? "superamento" : "reclamo") + " e da adesso compare nello scadenzario di Scudo.",
+      "success", "Azione correttiva aperta in Scudo.");
+  }
+
+  document.addEventListener("click", async (e) => {
+    const b = e.target.closest && e.target.closest("[data-pon-nuova]");
+    if (!b) return;
+    e.preventDefault();
+    await apriAzione(b.getAttribute("data-pon-nuova"));
+  });
+
   // Riempie le tendine che dipendono dai dati (punti e ricettori),
   // conservando la scelta che l'utente aveva già fatto.
   function popolaTendine() {
@@ -1955,6 +2186,13 @@ textarea.dw-input{
       // la pagina deve funzionare esattamente come prima
       db.programma ? db.programma() : []]);
     PRG = PRG || [];
+    // T7 · le azioni correttive stanno in SCUDO, non qui: si leggono di là
+    // (stessa organizzazione, app diversa) e servono solo a mostrare a che
+    // punto è la risposta. Se Scudo non è raggiungibile la pagina resta
+    // esattamente com'era prima: elenco vuoto e una riga che lo spiega.
+    try { AZI = await ponte.azioni(); ponteKO = ""; }
+    catch (e) { AZI = []; ponteKO = "Le azioni correttive non si riescono a leggere da Scudo: qui sotto vedi i fatti, non il loro stato."; }
+    try { LAV = await ponte.lavoratori(); } catch (e) { LAV = []; }
     // MONE = i punti con la SOGLIA CHE VALE (quella del ricettore se c'è).
     // Da qui in giù si conta sempre su MONE: KPI, semafori, grafici e
     // report leggono tutti lo stesso numero.
@@ -2095,6 +2333,7 @@ textarea.dw-input{
     // si ridisegnano insieme, così non esistono due schermate disallineate.
     renderRicettori();
     renderReclami();
+    renderPonte();
     popolaTendine();
     if (impRighe.length) impAnteprima();   // l'anteprima segue il punto scelto
     renderReport();

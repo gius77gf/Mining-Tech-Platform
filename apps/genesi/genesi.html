@@ -178,6 +178,32 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
 .gmodal-title{font-family:'Barlow Condensed';font-weight:800;font-size:19px;letter-spacing:.08em;text-transform:uppercase;
   background:linear-gradient(180deg,#ffe08a,#ffab00 55%,#ff6d00);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;margin-bottom:12px}
 .gmodal-foot{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;padding-top:14px;border-top:1px solid rgba(255,171,0,.12)}
+/* i campi dentro i modali devono essere gli stessi del pannello parametri:
+   senza questa regola restavano input bianchi di sistema in mezzo al cotto */
+.gmodal-card input[type=number],.gmodal-card input[type=text]{background:var(--panel2);border:1px solid var(--line);
+  border-radius:7px;color:var(--tx);padding:5px 7px;font-family:'Barlow';font-size:13px;
+  transition:border-color .16s var(--ease),box-shadow .16s var(--ease)}
+.gmodal-card input[type=number]:focus,.gmodal-card input[type=text]:focus{outline:none;border-color:var(--cu);box-shadow:0 0 0 3px rgba(255,171,0,.14)}
+/* ---- riconciliazione: il consuntivo di carico che torna da Campo ----
+   Ogni numero porta scritto DA DOVE VIENE (dal file, calcolato, misurato):
+   è la differenza fra un dato e un numero che compare e basta. */
+.ricamp{margin:0 0 14px;border:1px solid rgba(255,171,0,.22);border-radius:12px;padding:12px 13px;
+  background:linear-gradient(180deg,rgba(255,171,0,.075),rgba(255,171,0,.015));
+  box-shadow:inset 0 1px 0 rgba(255,224,138,.10),0 6px 18px rgba(0,0,0,.18)}
+.ricamp-h{font-family:'Barlow Condensed';font-weight:800;font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--cu);margin-bottom:3px}
+.ricamp-sub{font-size:11.5px;color:var(--mut);line-height:1.55;margin-bottom:10px}
+.ricamp-g{display:grid;grid-template-columns:1fr auto auto;gap:6px 12px;align-items:baseline;font-size:13px}
+.ricamp-g .l{color:var(--mut)}
+.ricamp-g .v{font-weight:700;color:var(--tx);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.ricamp-g .f{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut2);white-space:nowrap}
+.ricamp-note{margin-top:10px;font-size:11.5px;color:var(--mut);line-height:1.55;padding-top:9px;border-top:1px solid rgba(255,171,0,.14)}
+.ricamp-warn{margin-top:10px;font-size:12px;line-height:1.55;color:#ffb27a;background:rgba(255,120,60,.10);
+  border:1px solid rgba(255,120,60,.34);border-radius:9px;padding:8px 10px}
+.ricamp-warn b{color:#ffcaa4}
+@media (max-width:600px){
+  .ricamp-g{grid-template-columns:1fr auto}
+  .ricamp-g .f{grid-column:1/-1;text-align:right;margin-top:-4px}
+}
 /* moduli dentro i modali (legge di sito): sul telefono quattro colonne
    diventano quattro campi larghi un dito, quindi si spezzano su due righe */
 .sito-form{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:12.5px;align-items:end}
@@ -572,6 +598,8 @@ body.scr-sim #tl{bottom:80px}
     <div id="riconBody" style="font-size:13.5px;"></div>
     <div class="gmodal-foot">
       <button class="btn sm cu" id="riconSave">Salva riconciliazione</button>
+      <button class="btn sm" id="riconCampo" title="Rileggi il consuntivo di carico esportato da Campo: la carica reale foro per foro torna qui da sola">📥 Importa consuntivo da Campo (CSV)</button>
+      <input type="file" id="riconCampoFile" accept=".csv,text/csv,.txt" style="display:none;">
       <button class="btn sm" id="riconExport">Esporta storico (CSV)</button>
       <button class="btn sm" id="riconClose">Chiudi</button>
     </div>
@@ -2583,6 +2611,182 @@ if($('cmpExport')) $('cmpExport').onclick=()=>{
    il REALE lo inserisce il fochino dopo lo sparo. Storico in localStorage. ===== */
 function _rEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function riconStorico(){ try{ return JSON.parse(localStorage.getItem('genesiRicon')||'[]'); }catch(e){ return []; } }
+
+/* ═══ Il consuntivo di carico che TORNA da Campo ═══════════════════════════
+   Il giro è: Genesi esporta il piano di carico in CSV → il fochino lo importa
+   in Campo e registra foro per foro i chili DAVVERO caricati → Campo riesporta
+   lo stesso file con la carica reale dentro → qui lo si rilegge.
+   Prima questa schermata si riempiva a mano, e infatti restava vuota.
+
+   Formato: NON è un formato nuovo, è il consuntivo che Campo già esportava —
+     data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct[;scarto_kg;squadra;operatore]
+   La lettura va per NOME di colonna e non per posizione, così un file di una
+   versione precedente di Campo (solo le prime sei colonne) si legge lo stesso.
+
+   Regola di onestà: entra SOLO quello che è scritto nel file (chili reali,
+   fori, chi e quando). Pezzatura, PPV e gittata non ci sono e restano vuoti:
+   sono misure che solo chi era in cava può fare, e Genesi non le inventa. */
+
+// numero scritto all'italiana o all'inglese → Number (NaN se non è un numero).
+// Regola: l'ULTIMO separatore presente è quello decimale. Stessa convenzione
+// di Campo, altrimenti "12,5" e "12.5" farebbero due numeri diversi ai due
+// capi dello stesso ponte.
+function _ricNum(v){
+  let s=String(v==null?'':v).trim(); if(s==='') return NaN;
+  const c=(s.match(/,/g)||[]).length, d=(s.match(/\./g)||[]).length;
+  if(c&&d) s = s.lastIndexOf(',')>s.lastIndexOf('.') ? s.replace(/\./g,'').replace(',','.') : s.replace(/,/g,'');
+  else if(c>1) s=s.replace(/,/g,'');
+  else if(c===1) s=s.replace(',','.');
+  else if(d>1) s=s.replace(/\./g,'');
+  const n=parseFloat(s); return isFinite(n)?n:NaN;
+}
+// Una riga CSV rispettando le virgolette (un nome come "Rossi;Mario" è UN
+// campo). Toglie anche l'apostrofo che Campo mette davanti a = + - @ per
+// impedire che Excel legga la cella come formula: così il giro si chiude
+// identico a com'è partito.
+function _ricSplit(line, delim){
+  const out=[]; let cur='', q=false;
+  for(let i=0;i<line.length;i++){ const ch=line[i];
+    if(q){ if(ch==='"'){ if(line[i+1]==='"'){ cur+='"'; i++; } else q=false; } else cur+=ch; }
+    else if(ch==='"') q=true;
+    else if(ch===delim){ out.push(cur); cur=''; }
+    else cur+=ch; }
+  out.push(cur);
+  return out.map(s=>s.trim().replace(/^'(?=[\s=+\-@])/,''));
+}
+// Legge il file e restituisce { righe, ... } oppure { errore } con una frase
+// che dice COSA non va e cosa fare: un file sbagliato non deve mai rompere
+// la pagina, deve spiegarsi.
+function _riconParseCampo(testo){
+  const linee=String(testo||'').replace(/^﻿/,'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  if(!linee.length) return { errore:'Il file è vuoto: non c’è nessuna riga da leggere.' };
+  const primo=linee[0];
+  const delim=(primo.match(/;/g)||[]).length ? ';' : ((primo.match(/\t/g)||[]).length ? '\t' : ',');
+  const testa=_ricSplit(primo, delim).map(s=>s.toLowerCase());
+  const haIntestazione = testa.indexOf('foro')>=0 || testa.some(c=>c.indexOf('carica')>=0);
+  const dati = haIntestazione ? linee.slice(1) : linee;
+  const col=(...nomi)=>{ for(const n of nomi){ const i=testa.indexOf(n); if(i>=0) return i; } return -1; };
+  // con l'intestazione si va per nome; senza, si torna all'ordine fisso del
+  // consuntivo di Campo (chi cancella la riga dei titoli non resta a piedi)
+  const iData   = haIntestazione ? col('data') : 0;
+  const iTurno  = haIntestazione ? col('turno') : 1;
+  const iForo   = haIntestazione ? col('foro') : 2;
+  const iProg   = haIntestazione ? col('carica_prog_kg','prog','carica_prog','progetto_kg') : 3;
+  const iReale  = haIntestazione ? col('carica_reale_kg','reale','carica_reale') : 4;
+  const iSquadra= haIntestazione ? col('squadra') : -1;
+  const iOper   = haIntestazione ? col('operatore','fochino','chi') : -1;
+  if(haIntestazione && iForo<0)
+    return { errore:'Non trovo la colonna «foro»: questo non sembra il consuntivo di carico di Campo.' };
+  if(haIntestazione && iReale<0)
+    return { errore: iProg>=0
+      ? 'Nel file c’è la carica di progetto ma non la colonna «carica_reale_kg»: questo è il PIANO di carico, non il consuntivo. In Campo, dopo aver registrato le cariche, premi «Esporta consuntivo (CSV)».'
+      : 'Non trovo la colonna «carica_reale_kg»: questo non sembra il consuntivo di carico di Campo.' };
+  if(!dati.length) return { errore:'Il file ha solo l’intestazione: dentro non c’è nessun foro.' };
+  const righe=[]; let scartate=0;
+  for(const r of dati){
+    const c=_ricSplit(r, delim);
+    const foro=_ricNum(c[iForo]), prog=_ricNum(c[iProg]);
+    if(!(foro>0)||!(prog>0)){ scartate++; continue; }
+    const grezzo = iReale>=0 ? String(c[iReale]==null?'':c[iReale]).trim() : '';
+    const reale = grezzo==='' ? null : _ricNum(grezzo);
+    righe.push({ foro, prog, reale: (reale!=null&&isFinite(reale)&&reale>=0)?reale:null,
+      data: (iData>=0?c[iData]:'')||'', turno:(iTurno>=0?c[iTurno]:'')||'',
+      squadra:(iSquadra>=0?c[iSquadra]:'')||'', operatore:(iOper>=0?c[iOper]:'')||'' });
+  }
+  if(!righe.length) return { errore:'Nessuna riga leggibile: servono almeno il numero del foro e la carica di progetto in chili'
+    +(scartate?' (ho scartato '+scartate+(scartate===1?' riga':' righe')+').':'.') };
+  return { righe, scartate, colonneDaNome:haIntestazione };
+}
+// Dai fori del file ai numeri della riconciliazione. Tutto qui è SOMMA o
+// MEDIA di quello che c'è nel file: niente stime, niente riempimenti.
+function _riconRiassuntoCampo(p, nomeFile){
+  const reg=p.righe.filter(r=>r.reale!=null);
+  const somma=(a,f)=>a.reduce((t,x)=>t+f(x),0);
+  const uniche=(f)=>[...new Set(p.righe.map(f).map(s=>String(s||'').trim()).filter(Boolean))];
+  const kgProgTot=somma(p.righe,r=>r.prog);
+  const kgProgReg=somma(reg,r=>r.prog);
+  const kgReale=somma(reg,r=>r.reale);
+  const scostKg=+(kgReale-kgProgReg).toFixed(3);
+  const scostPct=kgProgReg?scostKg/kgProgReg*100:0;
+  const medioKg=reg.length?somma(reg,r=>Math.abs(r.reale-r.prog))/reg.length:0;
+  const medioPct=reg.length?somma(reg,r=>Math.abs(r.reale-r.prog)/(r.prog||1))/reg.length*100:0;
+  const peggio=reg.slice().sort((a,b)=>Math.abs(b.reale-b.prog)-Math.abs(a.reale-a.prog))[0]||null;
+  return { file:nomeFile||'', scartate:p.scartate||0,
+    date:uniche(r=>r.data), turni:uniche(r=>r.turno),
+    chi:uniche(r=>r.operatore), squadre:uniche(r=>r.squadra),
+    foriTot:p.righe.length, foriReg:reg.length,
+    kgProgTot:+kgProgTot.toFixed(3), kgProgReg:+kgProgReg.toFixed(3), kgReale:+kgReale.toFixed(3),
+    scostKg, scostPct:+scostPct.toFixed(2),
+    medioKg:+medioKg.toFixed(3), medioPct:+medioPct.toFixed(2),
+    peggio: peggio?{ foro:peggio.foro, prog:peggio.prog, reale:peggio.reale,
+                     diff:+(peggio.reale-peggio.prog).toFixed(3) }:null };
+}
+let _ricCampo=null;      // consuntivo importato in questa sessione (null = nessuno)
+let _ricNome='';         // nome della volata scritto a mano, per non perderlo al ridisegno
+// numeri scritti come si scrivono in Italia (virgola decimale) ovunque, anche
+// nelle percentuali: dentro la stessa riga «-81,7 kg (-28.2%)» si leggerebbe
+// come due unità di misura diverse
+const _ricKg=(v)=>(Math.round(v*10)/10).toLocaleString('it-IT');
+const _ricSegno=(v)=>(v>=0?'+':'')+_ricKg(v);
+const _ricPct=(v)=>(v>=0?'+':'')+(Math.round(v*10)/10).toLocaleString('it-IT')+'%';
+const _ricPlur=(n,uno,tanti)=>n+' '+(n===1?uno:tanti);
+const _ricColore=(pct)=>{ const a=Math.abs(pct); return a<10?'#66bb6a':(a<25?'#ffca28':'#ef5350'); };
+// Il blocco disegnato in cima alla riconciliazione. Con o senza file, dice
+// sempre cosa manca e come si ottiene.
+function _riconCampoHtml(){
+  if(!_ricCampo) return '<div class="ricamp">'
+    +'<div class="ricamp-h">Consuntivo di carico — da Campo</div>'
+    +'<div class="ricamp-sub">Qui sotto i valori li stai scrivendo a mano. I chili davvero caricati, però, il fochino li ha già registrati foro per foro in <b>Campo</b>: da lì premi <b>«Esporta consuntivo (CSV)»</b> e rileggi il file con il pulsante <b>«Importa consuntivo da Campo»</b> qui in fondo. Carica reale, fori effettivi e scostamento si riempiono da soli.</div>'
+    +'</div>';
+  const c=_ricCampo, k=computeKPI();
+  const riga=(l,v,f,col)=>'<div class="l">'+l+'</div><div class="v"'+(col?' style="color:'+col+'"':'')+'>'+v+'</div><div class="f">'+f+'</div>';
+  const chi=c.chi.length?c.chi.slice(0,3).map(_rEsc).join(', ')+(c.chi.length>3?' +'+(c.chi.length-3):''):'';
+  const sq=c.squadre.length?c.squadre.slice(0,2).map(_rEsc).join(', '):'';
+  const quando=(c.date.length?c.date.map(_rEsc).join(', '):'data non indicata nel file')
+    +(c.turni.length?' · turno '+c.turni.map(_rEsc).join('/'):'');
+  let h='<div class="ricamp">'
+    +'<div class="ricamp-h">Consuntivo di carico — da Campo</div>'
+    +'<div class="ricamp-sub">'+(c.file?'File <b>'+_rEsc(c.file)+'</b> · ':'')+'volata del <b>'+quando+'</b>'
+      +(chi?' · registrata da <b>'+chi+'</b>':'')+(sq?' ('+sq+')':'')
+      +(chi?'':' · <i>il file non dice chi ha registrato le cariche</i>')+'</div>'
+    +'<div class="ricamp-g">'
+    + riga('Fori con la carica registrata','<b>'+c.foriReg+'</b> / '+c.foriTot,'dal file')
+    + riga('Carica reale totale',_ricKg(c.kgReale)+' kg','dal file')
+    + riga('Carica di progetto (stessi fori)',_ricKg(c.kgProgReg)+' kg','dal file')
+    + riga('Scostamento complessivo',_ricSegno(c.scostKg)+' kg ('+_ricPct(c.scostPct)+')','calcolato qui',_ricColore(c.scostPct))
+    + riga('Scostamento medio per foro',_ricKg(c.medioKg)+' kg ('+_ricPct(c.medioPct).replace('+','')+')','calcolato qui',_ricColore(c.medioPct));
+  // Il confronto con il progetto APERTO ADESSO in Genesi si fa solo quando è
+  // lecito farlo: stesso numero di fori e volata caricata per intero. Se il
+  // file è di un'altra volata o è a metà, un delta qui sarebbe una bugia.
+  if(k&&k.nf){
+    const confrontabile = c.foriTot===k.nf && c.foriReg===c.foriTot;
+    h+=riga('Carica prevista da Genesi (progetto aperto)',_ricKg(k.qtot)+' kg su '+k.nf+' fori','previsto qui');
+    h+= confrontabile
+      ? riga('Reale contro il previsto di Genesi',
+             _ricSegno(+(c.kgReale-k.qtot).toFixed(1))+' kg ('+_ricPct(k.qtot?(c.kgReale-k.qtot)/k.qtot*100:0)+')',
+             'calcolato qui', _ricColore(k.qtot?(c.kgReale-k.qtot)/k.qtot*100:0))
+      : riga('Reale contro il previsto di Genesi','—',
+             c.foriTot!==k.nf?'altra volata?':'volata a metà');
+  }
+  h+='</div>';
+  // Il caso che inganna di più: il totale torna perché un foro caricato in più
+  // compensa uno caricato in meno. In chili la volata è a posto, ma l'energia
+  // è distribuita male — ed è la distribuzione che fa la pezzatura.
+  if(c.foriReg>1 && c.medioPct >= 2*Math.abs(c.scostPct) && c.medioPct>=5)
+    h+='<div class="ricamp-note">Il totale è vicino al progetto (<b>'+_ricPct(c.scostPct)+'</b>) ma i singoli fori no: in media ogni foro è fuori di <b>'+_ricKg(c.medioKg)+' kg</b>. Vuol dire che i fori caricati in più e quelli caricati in meno <b>si compensano nel totale</b>: i chili tornano, la loro distribuzione lungo il fronte no.</div>';
+  if(c.peggio&&c.peggio.diff!==0)
+    h+='<div class="ricamp-note">Il foro più lontano dal progetto è il <b>'+c.peggio.foro+'</b>: '
+      +_ricKg(c.peggio.reale)+' kg caricati sui '+_ricKg(c.peggio.prog)+' previsti, '
+      +_ricKg(Math.abs(c.peggio.diff))+' kg '+(c.peggio.diff>0?'in più':'in meno')+'.</div>';
+  const avvisi=[];
+  if(!c.foriReg) avvisi.push('Nel file <b>nessun foro ha la carica reale</b>: è il piano appena importato in Campo, non ancora caricato. I chili reali qui restano a zero finché il fochino non li registra.');
+  if(c.foriReg&&c.foriReg<c.foriTot) avvisi.push('Attenzione: '+_ricPlur(c.foriTot-c.foriReg,'foro','fori')+' su '+c.foriTot+' non '+(c.foriTot-c.foriReg===1?'ha':'hanno')+' la carica reale. I totali qui sopra contano <b>solo i fori registrati</b>, non l’intera volata.');
+  if(c.scartate) avvisi.push('Ho saltato <b>'+_ricPlur(c.scartate,'riga illeggibile','righe illeggibili')+'</b> (numero del foro o carica di progetto mancanti).');
+  if(k&&k.nf&&c.foriTot!==k.nf) avvisi.push('Il consuntivo ha <b>'+_ricPlur(c.foriTot,'foro','fori')+'</b>, il progetto aperto adesso in Genesi ne ha <b>'+k.nf+'</b>: potrebbe essere <b>un’altra volata</b>. Il confronto con il previsto qui sotto ha senso solo se è la stessa.');
+  if(avvisi.length) h+='<div class="ricamp-warn">'+avvisi.join('<br>')+'</div>';
+  h+='<div class="ricamp-note">Dal file arrivano <b>solo</b> i chili caricati. <b>Pezzatura, PPV e gittata non ci sono</b> — nessuno strumento in Campo li misura — e restano da compilare qui sotto a mano.</div>';
+  return h+'</div>';
+}
 function riconDelta(prev, real, unit){
   if(real===''||real==null||isNaN(+real)) return '<span style="color:var(--mut)">—</span>';
   const d=+real-prev, pct=prev?Math.round(100*d/prev):0, ad=Math.abs(pct);
@@ -2594,8 +2798,11 @@ function riconRender(){
   const prev={x50:k.x50, ppv:k.ppv, fly:k.fly};
   $('riconModal').dataset.prev=JSON.stringify(prev);
   const st=riconStorico();
+  const nomeSug=_ricCampo&&_ricCampo.date.length
+    ? 'Volata '+_ricCampo.date[0]+(_ricCampo.turni.length?' · turno '+_ricCampo.turni[0]:'') : '';
   body.innerHTML=
-    '<div style="color:var(--mut);font-size:12px;margin-bottom:10px;">Dopo lo sparo inserisci i valori <b>misurati</b> per confrontarli con la previsione della volata corrente (dalla Scheda validatori). Verde = scostamento &lt;15%, giallo &lt;35%, rosso oltre.</div>'
+    _riconCampoHtml()
+    +'<div style="color:var(--mut);font-size:12px;margin-bottom:10px;">Dopo lo sparo inserisci i valori <b>misurati</b> per confrontarli con la previsione della volata corrente (dalla Scheda validatori). Verde = scostamento &lt;15%, giallo &lt;35%, rosso oltre.</div>'
     +'<div style="display:grid;grid-template-columns:1.1fr .8fr 1fr 1.2fr;gap:6px 8px;align-items:center;font-size:13px;">'
     +'<div style="color:var(--mut);font-size:11px;letter-spacing:.08em;text-transform:uppercase">Metrica</div><div style="color:#ffd54f;font-weight:700">Previsto</div><div style="color:#ffd54f;font-weight:700">Reale</div><div style="color:#ffd54f;font-weight:700">Scostamento</div>'
     +'<div style="color:var(--mut)">X50 pezzatura</div><div>'+prev.x50+' cm</div><div><input id="ric-x50" type="number" min="0" style="width:70px"> cm</div><div id="ric-d-x50">—</div>'
@@ -2604,15 +2811,20 @@ function riconRender(){
     +'</div>'
     +'<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;align-items:center;font-size:13px;color:var(--mut)">'
     +'<label>Oversize reale <input id="ric-ovs" type="number" min="0" max="100" style="width:58px"> %</label>'
-    +'<label>Nome/data <input id="ric-nome" type="text" style="width:160px" placeholder="Volata 12/07 fronte Est"></label>'
+    +'<label>Nome/data <input id="ric-nome" type="text" style="width:160px" placeholder="Volata 12/07 fronte Est" value="'+_rEsc(_ricNome||nomeSug)+'"></label>'
     +'</div>'
     +'<label style="display:block;margin-top:8px;color:var(--mut);font-size:13px;">Note <input id="ric-note" type="text" style="width:100%" placeholder="oversize sul lato destro; PPV oltre soglia al recettore B..."></label>'
     +(st.length?('<div style="margin-top:14px;color:var(--mut);font-size:11px;letter-spacing:.08em;text-transform:uppercase">Storico ('+st.length+')</div>'
       +'<div style="max-height:150px;overflow:auto;font-size:12px;margin-top:4px;">'
-      +st.slice().reverse().map(r=>'<div style="border-top:1px solid rgba(255,255,255,.08);padding:4px 0"><b style="color:#ffd54f">'+_rEsc(r.nome||r.ts)+'</b> — X50 '+r.prev.x50+'→'+(r.real.x50==null?'—':r.real.x50)+' cm · PPV '+r.prev.ppv+'→'+(r.real.ppv==null?'—':r.real.ppv)+' mm/s · fly '+r.prev.fly+'→'+(r.real.fly==null?'—':r.real.fly)+' m'+(r.real.ovs!=null&&r.real.ovs!==''?' · oversize '+r.real.ovs+'%':'')+(r.real.note?' · '+_rEsc(r.real.note):'')+'</div>').join('')
+      +st.slice().reverse().map(r=>'<div style="border-top:1px solid rgba(255,255,255,.08);padding:4px 0"><b style="color:#ffd54f">'+_rEsc(r.nome||r.ts)+'</b> — X50 '+r.prev.x50+'→'+(r.real.x50==null?'—':r.real.x50)+' cm · PPV '+r.prev.ppv+'→'+(r.real.ppv==null?'—':r.real.ppv)+' mm/s · fly '+r.prev.fly+'→'+(r.real.fly==null?'—':r.real.fly)+' m'+(r.real.ovs!=null&&r.real.ovs!==''?' · oversize '+r.real.ovs+'%':'')
+        // le riconciliazioni salvate prima del ponte con Campo non hanno r.campo: restano come prima
+        +(r.campo?'<br><span style="color:var(--mut2)">da Campo: '+_ricKg(r.campo.kgReale)+' kg caricati su '+r.campo.foriReg+'/'+r.campo.foriTot+' fori ('+_ricPct(+r.campo.scostPct||0)+' sul progetto)'+(r.campo.chi&&r.campo.chi.length?' · '+_rEsc(r.campo.chi.join(', ')):'')+'</span>':'')
+        +(r.real.note?' · '+_rEsc(r.real.note):'')+'</div>').join('')
       +'</div>'):'<div style="margin-top:12px;color:var(--mut);font-size:12px;">Nessuna riconciliazione salvata: inserisci i valori reali e premi “Salva”.</div>');
   const upd=()=>{ $('ric-d-x50').innerHTML=riconDelta(prev.x50,$('ric-x50').value,'cm'); $('ric-d-ppv').innerHTML=riconDelta(prev.ppv,$('ric-ppv').value,'mm/s'); $('ric-d-fly').innerHTML=riconDelta(prev.fly,$('ric-fly').value,'m'); };
   ['ric-x50','ric-ppv','ric-fly'].forEach(id=>{ if($(id)) $(id).addEventListener('input',upd); });
+  // il nome scritto a mano non deve sparire al ridisegno (import, salvataggio)
+  if($('ric-nome')) $('ric-nome').addEventListener('input',()=>{ _ricNome=$('ric-nome').value; });
 }
 function riconSave(){
   const k=computeKPI();
@@ -2620,7 +2832,13 @@ function riconSave(){
   const rec={ ts:new Date().toISOString().slice(0,16).replace('T',' '), nome:($('ric-nome')&&$('ric-nome').value.trim())||'',
     prev:{x50:k.x50, ppv:k.ppv, fly:k.fly},
     real:{x50:val('ric-x50'), ppv:val('ric-ppv'), fly:val('ric-fly'), ovs:val('ric-ovs'), note:($('ric-note')&&$('ric-note').value.trim())||''} };
-  if(rec.real.x50==null&&rec.real.ppv==null&&rec.real.fly==null){ toast('Inserisci almeno un valore reale'); return; }
+  // il consuntivo di Campo, se c'è, viaggia insieme al resto: senza di lui la
+  // riga di storico non direbbe quanti chili sono davvero finiti nei fori
+  if(_ricCampo) rec.campo={ file:_ricCampo.file, date:_ricCampo.date, turni:_ricCampo.turni,
+    chi:_ricCampo.chi, squadre:_ricCampo.squadre, foriTot:_ricCampo.foriTot, foriReg:_ricCampo.foriReg,
+    kgReale:_ricCampo.kgReale, kgProgReg:_ricCampo.kgProgReg, scostKg:_ricCampo.scostKg,
+    scostPct:_ricCampo.scostPct, medioKg:_ricCampo.medioKg, medioPct:_ricCampo.medioPct };
+  if(rec.real.x50==null&&rec.real.ppv==null&&rec.real.fly==null&&!rec.campo){ toast('Inserisci almeno un valore reale, o importa il consuntivo di carico da Campo'); return; }
   const st=riconStorico(); st.push(rec); localStorage.setItem('genesiRicon', JSON.stringify(st));
   toast('Riconciliazione salvata'); riconRender();
 }
@@ -2630,11 +2848,44 @@ if($('riconSave')) $('riconSave').onclick=riconSave;
 if($('riconExport')) $('riconExport').onclick=()=>{
   const st=riconStorico();
   if(!st.length){ toast('Nessuna riconciliazione da esportare'); return; }
-  const H=['data','nome','x50_prev_cm','x50_reale_cm','ppv_prev_mms','ppv_reale_mms','flyrock_prev_m','flyrock_reale_m','oversize_reale_pct','note'];
+  // le colonne del carico reale si AGGIUNGONO in fondo: chi rilegge un export
+  // vecchio (dieci colonne) continua a trovarle nello stesso ordine
+  const H=['data','nome','x50_prev_cm','x50_reale_cm','ppv_prev_mms','ppv_reale_mms','flyrock_prev_m','flyrock_reale_m','oversize_reale_pct','note',
+           'campo_data','campo_turno','campo_chi','campo_fori_registrati','campo_fori_totali','campo_kg_reali','campo_kg_progetto','campo_scostamento_pct'];
   const cell=v=>{ const s=String(v==null?'':v); return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
-  const csv=H.join(';')+'\n'+st.map(r=>[r.ts,r.nome,r.prev.x50,r.real.x50,r.prev.ppv,r.real.ppv,r.prev.fly,r.real.fly,r.real.ovs,r.real.note].map(cell).join(';')).join('\n')+'\n';
+  const csv=H.join(';')+'\n'+st.map(r=>{ const c=r.campo||null;
+    return [r.ts,r.nome,r.prev.x50,r.real.x50,r.prev.ppv,r.real.ppv,r.prev.fly,r.real.fly,r.real.ovs,r.real.note,
+      c?(c.date||[]).join(' '):'', c?(c.turni||[]).join(' '):'', c?(c.chi||[]).join(' '):'',
+      c?c.foriReg:'', c?c.foriTot:'', c?c.kgReale:'', c?c.kgProgReg:'', c?c.scostPct:''].map(cell).join(';');
+  }).join('\n')+'\n';
   const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download='genesi_riconciliazione.csv'; a.click();
+};
+/* Il pulsante che chiude il giro: il file esportato da Campo torna qui. Un
+   file sbagliato NON deve rompere la pagina: si spiega e si resta com'era. */
+if($('riconCampo')) $('riconCampo').onclick=()=>$('riconCampoFile').click();
+if($('riconCampoFile')) $('riconCampoFile').onchange=async(e)=>{
+  const file=e.target.files&&e.target.files[0]; e.target.value=''; if(!file) return;
+  let testo='';
+  try{ testo=await file.text(); }
+  catch(err){ toast('Non riesco a leggere il file: riprova a esportarlo da Campo'); return; }
+  let p;
+  try{ p=_riconParseCampo(testo); }
+  catch(err){ p={ errore:'Il file non è un CSV leggibile: riesportalo da Campo con «Esporta consuntivo (CSV)».' }; }
+  if(!p||p.errore){
+    // il messaggio resta anche DOPO che il toast è sparito: chi ha sbagliato
+    // file deve poterlo rileggere con calma dentro la schermata
+    const body=$('riconBody');
+    if(body) body.insertAdjacentHTML('afterbegin','<div class="ricamp-warn" style="margin:0 0 12px">'
+      +'<b>Consuntivo non importato.</b><br>'+_rEsc((p&&p.errore)||'File non leggibile.')+'</div>');
+    toast('Consuntivo non importato: '+((p&&p.errore)||'file non leggibile').replace(/<[^>]*>/g,'').slice(0,90));
+    return;
+  }
+  _ricCampo=_riconRiassuntoCampo(p, file.name);
+  riconRender();
+  toast(_ricCampo.foriReg
+    ? 'Consuntivo importato: '+_ricCampo.foriReg+' fori, '+_ricKg(_ricCampo.kgReale)+' kg reali'
+    : 'File letto ('+_ricCampo.foriTot+' fori), ma nessuna carica reale è registrata dentro');
 };
 
 /* ===== Signature-hole (P0.2): PPV COMPOSITO sommando la registrazione di un
