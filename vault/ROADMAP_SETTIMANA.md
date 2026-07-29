@@ -175,9 +175,17 @@ Dettaglio e fonti in `docs/RICERCA_<APP>_202607.md`.
 - [x] C2. **Obiettivo di turno e scostamento** ✅ *(29/07, `b5ea8fe`)* — su
       t, m³, viaggi o attività concluse, leggibile durante il turno.
 - [x] C3. Storico settimana, checklist inizio turno, presenze, firma di
-      chiusura ✅ *(29/07, `b5ea8fe`)*. **Restano**: foto sull'anomalia e
-      blocco delle scritture a turno chiuso (unità a sé: tocca ogni punto
-      di salvataggio).
+      chiusura ✅ *(29/07, `b5ea8fe`)*.
+- [x] C4. **Turno chiuso = turno non scrivibile** ✅ *(29/07)* — tutti i **20**
+      punti di scrittura passano da un solo guardiano, quindi il blocco non
+      può essere dimenticato in un angolo. Riapertura tracciata: chiede chi e
+      perché, non cancella mai le precedenti, e compare nel rapporto
+      stampabile. Le registrazioni vecchie senza data e turno restano
+      modificabili: nessuno si ritrova i dati bloccati dall'oggi al domani.
+- [x] C5. **Foto sull'anomalia** ✅ *(29/07)* — ridimensionata nel browser
+      prima di essere salvata (2,5 MB → 233 kB), nessun servizio esterno.
+- [x] C6. **Meteo e condizioni del sito** ✅ *(29/07)* — voce fissa di ogni
+      rapporto di turno serio, e spiega i fermi che Campo già misura.
 
 **Flotta** (mezzi) — `docs/RICERCA_FLOTTA_202607.md`
 - [x] L1–L4 **tutte e quattro** ✅ *(29/07, `1d3df21`)* — giro macchina in
