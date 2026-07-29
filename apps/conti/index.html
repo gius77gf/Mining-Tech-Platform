@@ -1526,7 +1526,7 @@ label.item:has(.dw-chk:checked){
         "Qui si confronta quanto <b>emetti</b> con quanto <b>incassi</b> davvero, mese per mese. Si riempie da solo appena emetti una fattura e registri il primo incasso.");
     } else if (flu.conDato < 3) {
       const el = svuotaGraf("graf-flusso");
-      if (el) el.innerHTML = `<div class="note"><b>Non disegno una linea con ${plur(flu.conDato, "un mese solo", "due mesi")} di dati</b>:
+      if (el) el.innerHTML = `<div class="note"><b>Non disegno una linea con ${flu.conDato === 1 ? "un mese solo" : "due mesi"} di dati</b>:
         sarebbe un andamento inventato. Ecco i numeri veri del periodo, e la linea comparirà da sola dal <b>terzo mese</b>.</div>
         <div class="riep">
           <div class="mrec"><span class="k">Emesso</span><span class="v">${eur(flu.emesso)}</span></div>

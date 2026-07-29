@@ -1532,7 +1532,7 @@
       ].filter(Boolean).join(" · ");
       return `<div class="item ${striscia[u.cls] || "st-accent"}" role="button" tabindex="0" data-odl-man="${n.id}" title="Apri l'ordine di lavoro: stato, ore, ricambi, costo">
       <div class="avatar">${n.origine === "controllo" ? I.giro : I.chiave}</div>
-      <div class="info"><div class="name">${esc(n.titolo)} — ${esc(n.mezzo)}</div><div class="meta">${n.orePreviste ? "A " + n.orePreviste + " ore motore" + stimaGiorni(n) : "Previsto " + (n.dataPrevista ? n.dataPrevista.split("-").reverse().join("/") : "—")}${ritmo}${ricN ? " · usa " + esc(ricN.nome) : ""}</div>${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}${lav ? `<div class="meta norma">${I.persona}${lav}</div>` : ""}</div>
+      <div class="info"><div class="name">${esc(n.titolo)} — ${esc(n.mezzo)}</div><div class="meta">${n.orePreviste ? "A " + (+n.orePreviste).toLocaleString("it-IT") + " ore motore" + stimaGiorni(n) : "Previsto " + (n.dataPrevista ? n.dataPrevista.split("-").reverse().join("/") : "—")}${ritmo}${ricN ? " · usa " + esc(ricN.nome) : ""}</div>${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}${lav ? `<div class="meta norma">${I.persona}${lav}</div>` : ""}</div>
       <div class="acts">${so.chiave !== "da-fare" ? `<span class="badge ${so.cls}">${so.breve}</span>` : ""}<span class="badge ${u.cls}">${u.label}</span>
       <span class="arr ok" role="button" tabindex="0" title="Chiudi l'ordine e registra l'intervento" aria-label="Chiudi ${esc(n.titolo)}" data-man-done="${n.id}">${I.spunta}</span></div></div>`; }).join("")
       || (filtroMan !== "tutti"
@@ -2402,7 +2402,7 @@
       return `<div class="item statico ${striscia[u.cls] || "st-accent"}">
         <div class="avatar">${n.origine === "controllo" ? I.giro : I.chiave}</div>
         <div class="info"><div class="name">${esc(n.titolo)}</div>
-          <div class="meta">${n.orePreviste ? "a " + n.orePreviste + " ore motore" : "previsto " + esc(dataIt(n.dataPrevista))}${n.ogniOre ? " · piano: ogni " + n.ogniOre + " h" : n.ogniMesi ? " · piano: ogni " + n.ogniMesi + " mesi" : ""}</div>${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}</div>
+          <div class="meta">${n.orePreviste ? "a " + (+n.orePreviste).toLocaleString("it-IT") + " ore motore" : "previsto " + esc(dataIt(n.dataPrevista))}${n.ogniOre ? " · piano: ogni " + n.ogniOre + " h" : n.ogniMesi ? " · piano: ogni " + n.ogniMesi + " mesi" : ""}</div>${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}</div>
         <span class="badge ${u.cls}">${esc(u.label)}</span></div>`;
     }).join("")
       || vuoto(I.chiave, "Niente in programma", "Nessun tagliando pianificato su questa macchina. Si pianifica dalla schermata <b>Officina</b>, a data oppure a ore motore.");
