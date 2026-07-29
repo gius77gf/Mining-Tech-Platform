@@ -5,11 +5,11 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-07-29 09:45 UTC
-**Cosa sta per fare:** aggiungere i campi data che oggi rendono impossibili
-i grafici di andamento (costi Flotta, parco mezzi, incassi Conti), e i
-grafici restanti su Scudo, Sentinella e Campo.
-**Commit di partenza:** `cd87551`
+**Ultimo ciclo riuscito:** 2026-07-29 12:45 UTC
+**Cosa sta per fare:** proseguire col Blocco 2 (proposte delle schede di
+ricerca ancora aperte), lavorando in parallelo sulle app. La PR #322 e
+aperta e verde: i suoi controlli sono seguiti a parte.
+**Commit di partenza:** `eac9e78`
 
 ---
 
