@@ -2,10 +2,23 @@
 // Conti — accesso dati (C4). Schema condiviso (orgCollection da
 // autenticati, demo in memoria altrimenti).
 // Collezioni (sotto organizations/{org}/apps/conti/):
-//   fatture/{id}: { numero, cliente, clienteId?, importo, emessa (ISO), scadenza (ISO), incassata (bool) }
+//   fatture/{id}: { numero, cliente, clienteId?, importo, emessa (ISO), scadenza (ISO), incassata (bool),
+//                   imponibile?, ivaImporto?, totale?, righe? [], ddtIds? [], tipo? }
 //   clienti/{id}: { ragioneSociale, piva, sdi (codice destinatario o PEC), indirizzo,
 //                   sconto (%), fido (€), note }
 //   gare/{id}:    { titolo, base, scadenza (ISO), stato: aperta|vinta|persa }
+//   prodotti/{id}:{ nome, unitaPrezzo: "t"|"m3", prezzo (€/unità), densita (t/m³), iva (%) }
+//   pesate/{id}:  { numero (progressivo per anno), data (ISO), clienteId, cliente,
+//                   prodottoId, prodotto, lordo (t), tara (t), netto (t),
+//                   unitaVendita "t"|"m3", quantita (nell'unità di vendita), densita,
+//                   prezzoUnitario (€/unità di vendita), aliquotaIva (%),
+//                   mezzo (targa), destinatario, fatturaId|null }
+//   impostazioni/{id}: { canoneUnita: "t"|"m3", canoneAliquota (€/unità), canoneNota }
+// IMPORTI DELLA FATTURA (compatibilità all'indietro, regola ferma): le fatture
+// vecchie hanno solo `importo` (importo secco) → valgono come IMPONIBILE con IVA 0
+// (vedi importiFattura). Le fatture nuove salvano imponibile + ivaImporto + totale
+// e tengono `importo` = TOTALE, così aging, esposizione, incassi e solleciti — che
+// leggono `importo` — continuano a funzionare senza toccare una riga.
 // CLIENTE DI UNA FATTURA: `clienteId` è il collegamento all'anagrafica; `cliente`
 // resta salvato come TESTO di ripiego (fatture vecchie o cliente cancellato), così
 // niente si rompe né sparisce. Vedi clienteDiFattura/nomeCliente più sotto.
@@ -34,6 +47,42 @@ export const DEMO = {
     { id: "g2", titolo: "ANAS — manutenzione SS115", base: 340000, scadenza: "2026-08-12", stato: "aperta" },
     { id: "g3", titolo: "Consorzio bonifica — massi scogliera", base: 85000, scadenza: "2026-06-30", stato: "vinta" },
     { id: "g4", titolo: "Provincia — pietrisco lotto 3", base: 60000, scadenza: "2026-05-15", stato: "persa" },
+  ],
+  // listino d'esempio: un prodotto venduto a metro cubo (sabbia) accanto a
+  // quelli venduti a tonnellata, così si vede subito a cosa serve la densità.
+  prodotti: [
+    { id: "p1", nome: "Stabilizzato 0/30", unitaPrezzo: "t",  prezzo: 8.5,  densita: 1.9, iva: 22 },
+    { id: "p2", nome: "Pietrisco 8/12",    unitaPrezzo: "t",  prezzo: 12,   densita: 1.5, iva: 22 },
+    { id: "p3", nome: "Sabbia lavata 0/4", unitaPrezzo: "m3", prezzo: 22,   densita: 1.6, iva: 22 },
+    { id: "p4", nome: "Massi da scogliera",unitaPrezzo: "t",  prezzo: 15.5, densita: 2.4, iva: 22 },
+  ],
+  // pesate/DDT d'esempio, tutte ancora da fatturare: servono a far vedere la
+  // fattura differita (più DDT dello stesso cliente → una fattura sola).
+  pesate: [
+    { id: "d1", numero: "2026/001", data: "2026-07-06", clienteId: "c1", cliente: "Edilcave Srl",
+      prodottoId: "p1", prodotto: "Stabilizzato 0/30", lordo: 42.16, tara: 14.2, netto: 27.96,
+      unitaVendita: "t", quantita: 27.96, densita: 1.9, prezzoUnitario: 8.5, aliquotaIva: 22,
+      mezzo: "FT 421 KP", destinatario: "Cantiere SS115 km 12", fatturaId: null },
+    { id: "d2", numero: "2026/002", data: "2026-07-13", clienteId: "c1", cliente: "Edilcave Srl",
+      prodottoId: "p2", prodotto: "Pietrisco 8/12", lordo: 39.4, tara: 13.8, netto: 25.6,
+      unitaVendita: "t", quantita: 25.6, densita: 1.5, prezzoUnitario: 12, aliquotaIva: 22,
+      mezzo: "FT 421 KP", destinatario: "Cantiere SS115 km 12", fatturaId: null },
+    { id: "d3", numero: "2026/003", data: "2026-07-17", clienteId: "c1", cliente: "Edilcave Srl",
+      prodottoId: "p1", prodotto: "Stabilizzato 0/30", lordo: 43.9, tara: 14.2, netto: 29.7,
+      unitaVendita: "t", quantita: 29.7, densita: 1.9, prezzoUnitario: 8.5, aliquotaIva: 22,
+      mezzo: "GA 907 TR", destinatario: "Cantiere SS115 km 12", fatturaId: null },
+    { id: "d4", numero: "2026/004", data: "2026-07-20", clienteId: "c2", cliente: "Stradesud",
+      prodottoId: "p3", prodotto: "Sabbia lavata 0/4", lordo: 35.2, tara: 13.6, netto: 21.6,
+      unitaVendita: "m3", quantita: 13.5, densita: 1.6, prezzoUnitario: 22, aliquotaIva: 22,
+      mezzo: "DR 118 XS", destinatario: "Piazzale Modica", fatturaId: null },
+    { id: "d5", numero: "2026/005", data: "2026-07-24", clienteId: "c1", cliente: "Edilcave Srl",
+      prodottoId: "p4", prodotto: "Massi da scogliera", lordo: 44.8, tara: 15.1, netto: 29.7,
+      unitaVendita: "t", quantita: 29.7, densita: 2.4, prezzoUnitario: 15.5, aliquotaIva: 22,
+      mezzo: "GA 907 TR", destinatario: "Molo di Pozzallo", fatturaId: null },
+  ],
+  // canone di escavazione: l'aliquota NON è cablata, cambia da regione a regione.
+  impostazioni: [
+    { id: "s1", canoneUnita: "m3", canoneAliquota: 0.55, canoneNota: "Valore di esempio: metti la tariffa della tua concessione." },
   ],
 };
 
@@ -421,6 +470,270 @@ export function gareRiepilogo(gare) {
   };
 }
 
+// ============================================================
+// LISTINO PRODOTTI (N1) — €/t e €/m³ NON sono interscambiabili
+// ------------------------------------------------------------
+// Un prodotto si vende a TONNELLATA oppure a METRO CUBO: il prezzo è scritto
+// in una sola delle due unità. Per passare da una all'altra serve la DENSITÀ
+// del materiale (tonnellate per metro cubo): 1 m³ di prodotto pesa `densita`
+// tonnellate. Senza densità la conversione NON si può fare, e infatti qui
+// ritorna null invece di inventare un numero.
+//   €/m³ = €/t × densità        €/t = €/m³ ÷ densità
+//   m³   = t ÷ densità          t   = m³ × densità
+// ============================================================
+
+export const round2 = (v) => Math.round((+v || 0) * 100) / 100;
+const round3 = (v) => Math.round((+v || 0) * 1000) / 1000;
+
+// Densità utilizzabile: deve essere un numero > 0, altrimenti niente conversione.
+export function densitaValida(prodotto) {
+  const d = +((prodotto || {}).densita);
+  return Number.isFinite(d) && d > 0 ? d : null;
+}
+
+// Prezzo del prodotto in €/tonnellata (null se andrebbe convertito e manca la densità).
+export function prezzoPerTonnellata(prodotto) {
+  const p = prodotto || {}, v = +p.prezzo || 0;
+  if (p.unitaPrezzo === "m3") { const d = densitaValida(p); return d ? round2(v / d) : null; }
+  return round2(v);
+}
+
+// Prezzo del prodotto in €/metro cubo (null se manca la densità per convertire).
+export function prezzoPerMetroCubo(prodotto) {
+  const p = prodotto || {}, v = +p.prezzo || 0;
+  if (p.unitaPrezzo === "m3") return round2(v);
+  const d = densitaValida(p);
+  return d ? round2(v * d) : null;
+}
+
+// Conversione di una quantità fra tonnellate e metri cubi con la densità del
+// prodotto. null se la densità manca: meglio nessun numero che un numero falso.
+export function convertiQuantita(valore, da, a, densita) {
+  const v = +valore || 0;
+  if (da === a) return round3(v);
+  const d = +densita;
+  if (!Number.isFinite(d) || d <= 0) return null;
+  return da === "t" && a === "m3" ? round3(v / d)
+       : da === "m3" && a === "t" ? round3(v * d)
+       : null;
+}
+
+export const UNITA_LABEL = { t: "t", m3: "m³" };
+
+// ============================================================
+// FATTURA CON IVA (N2)
+// ------------------------------------------------------------
+// COMPATIBILITÀ: le fatture salvate prima avevano solo `importo`. Quelle
+// valgono come imponibile con IVA 0 e totale = importo: nessun dato si perde
+// e nessuna riga di archivio cambia significato.
+// ============================================================
+
+// Importi normalizzati di una fattura, vecchia o nuova che sia.
+export function importiFattura(fattura) {
+  const f = fattura || {};
+  const haIva = f.imponibile != null || f.ivaImporto != null || f.totale != null;
+  if (!haIva) {
+    const imp = +f.importo || 0;
+    return { imponibile: round2(imp), ivaImporto: 0, totale: round2(imp),
+             aliquota: null, conIva: false };
+  }
+  const imponibile = round2(f.imponibile != null ? +f.imponibile : (+f.importo || 0));
+  const ivaImporto = round2(+f.ivaImporto || 0);
+  const totale = round2(f.totale != null ? +f.totale : imponibile + ivaImporto);
+  const aliquota = f.aliquotaIva != null ? +f.aliquotaIva
+    : (imponibile > 0 ? Math.round(ivaImporto / imponibile * 100) : null);
+  return { imponibile, ivaImporto, totale, aliquota, conIva: true };
+}
+
+// Totali di una fattura a partire dalle sue righe, con il riepilogo per
+// aliquota (è quello che serve al registro IVA: ogni aliquota fa storia a sé).
+// Riga: { descrizione, quantita, unita, prezzoUnitario, imponibile, aliquota }.
+export function totaliDaRighe(righe) {
+  const per = {};
+  let imponibile = 0;
+  for (const r of righe || []) {
+    const base = round2(r.imponibile != null ? +r.imponibile : (+r.quantita || 0) * (+r.prezzoUnitario || 0));
+    const al = Math.max(0, +r.aliquota || 0);
+    imponibile = round2(imponibile + base);
+    const p = per[al] || (per[al] = { aliquota: al, imponibile: 0, imposta: 0 });
+    p.imponibile = round2(p.imponibile + base);
+  }
+  let ivaImporto = 0;
+  const perAliquota = Object.values(per).sort((a, b) => a.aliquota - b.aliquota);
+  for (const p of perAliquota) { p.imposta = round2(p.imponibile * p.aliquota / 100); ivaImporto = round2(ivaImporto + p.imposta); }
+  return { imponibile, ivaImporto, totale: round2(imponibile + ivaImporto), perAliquota };
+}
+
+// NUMERAZIONE PROGRESSIVA PER ANNO (fatture e DDT hanno registri separati).
+// Legge i numeri già usati nell'anno — sia "2026/037" sia "37/2026" — e
+// propone il primo libero, in formato AAAA/NNN. Così non si salta e non si
+// duplica: il numero non si digita più a mano.
+export function prossimoNumero(numeri, anno = new Date().getFullYear(), cifre = 3) {
+  const y = String(anno);
+  let max = 0;
+  for (const n of numeri || []) {
+    const s = String(n == null ? "" : n).trim();
+    let m = /^(\d{4})\s*[\/\-.]\s*(\d+)$/.exec(s);
+    if (m && m[1] === y) { max = Math.max(max, +m[2]); continue; }
+    m = /^(\d+)\s*[\/\-.]\s*(\d{4})$/.exec(s);
+    if (m && m[2] === y) max = Math.max(max, +m[1]);
+  }
+  return y + "/" + String(max + 1).padStart(cifre, "0");
+}
+
+// ============================================================
+// PESATE / DDT (N3) — DPR 472/1996
+// ------------------------------------------------------------
+// Il netto NON si digita: è sempre lordo − tara. È il numero che va in
+// fattura, quindi deve venire dal calcolo, non dalla mano di chi scrive.
+// ============================================================
+
+export function nettoPesata(lordo, tara) {
+  return round2(Math.max(0, (+lordo || 0) - (+tara || 0)));
+}
+
+// Riga di pesata completa a partire da pesi, prodotto e anagrafica: quantità
+// nell'unità in cui il prodotto si VENDE (t o m³), prezzo unitario e valore.
+// La densità e il prezzo vengono FOTOGRAFATI qui: se domani il listino cambia,
+// il DDT già emesso resta quello che è stato consegnato e fatturato.
+export function rigaPesata(prodotto, lordo, tara) {
+  const p = prodotto || {};
+  const netto = nettoPesata(lordo, tara);
+  const unitaVendita = p.unitaPrezzo === "m3" ? "m3" : "t";
+  const densita = densitaValida(p);
+  const quantita = unitaVendita === "t" ? netto : convertiQuantita(netto, "t", "m3", densita);
+  const prezzoUnitario = round2(+p.prezzo || 0);
+  const valore = quantita == null ? null : round2(quantita * prezzoUnitario);
+  return { netto, unitaVendita, densita: densita || null, quantita,
+           prezzoUnitario, aliquotaIva: +p.iva || 0, valore };
+}
+
+// Valore di una pesata già salvata (usa i dati fotografati sul documento).
+export function valorePesata(pesata) {
+  const d = pesata || {};
+  const q = +d.quantita;
+  if (!Number.isFinite(q)) return 0;
+  return round2(q * (+d.prezzoUnitario || 0));
+}
+
+// Tonnellate e metri cubi di una pesata (i m³ solo se la densità c'era).
+export function quantitaPesata(pesata) {
+  const d = pesata || {};
+  const t = +d.netto || 0;
+  const m3 = d.unitaVendita === "m3" && Number.isFinite(+d.quantita)
+    ? +d.quantita : convertiQuantita(t, "t", "m3", d.densita);
+  return { t: round2(t), m3: m3 == null ? null : round3(m3) };
+}
+
+// ============================================================
+// FATTURA DIFFERITA DAI DDT (N4)
+// ------------------------------------------------------------
+// È il flusso vero della cava: tanti viaggi documentati da DDT nel mese, UNA
+// fattura riepilogativa (entro il 15 del mese successivo alla consegna).
+// ============================================================
+
+// DDT ancora da fatturare di un cliente in un periodo (estremi inclusi).
+export function pesateDaFatturare(pesate, clienteId, dal, al) {
+  const d1 = String(dal || ""), d2 = String(al || "");
+  return (pesate || [])
+    .filter(p => !p.fatturaId)
+    .filter(p => !clienteId || p.clienteId === clienteId)
+    .filter(p => { const d = String(p.data || "");
+      return (!d1 || d >= d1) && (!d2 || d <= d2); })
+    .sort((a, b) => String(a.data || "").localeCompare(String(b.data || ""))
+      || String(a.numero || "").localeCompare(String(b.numero || ""), "it", { numeric: true }));
+}
+
+// Righe di fattura raggruppate PER PRODOTTO (a parità di prezzo, unità e
+// aliquota: prezzi diversi dello stesso prodotto restano righe diverse, come
+// deve essere). Ogni riga porta i numeri dei DDT che la compongono.
+export function righeDaPesate(pesate) {
+  const per = {};
+  for (const p of pesate || []) {
+    const unita = p.unitaVendita === "m3" ? "m3" : "t";
+    const prezzo = round2(+p.prezzoUnitario || 0);
+    const aliquota = Math.max(0, +p.aliquotaIva || 0);
+    const k = [p.prodottoId || p.prodotto || "—", unita, prezzo, aliquota].join("|");
+    const r = per[k] || (per[k] = { prodottoId: p.prodottoId || null,
+      descrizione: String(p.prodotto || "Prodotto"), unita, prezzoUnitario: prezzo,
+      aliquota, quantita: 0, imponibile: 0, ddt: [], ddtIds: [] });
+    const q = Number.isFinite(+p.quantita) ? +p.quantita : (+p.netto || 0);
+    r.quantita = round3(r.quantita + q);
+    r.ddt.push(p.numero || "—");
+    r.ddtIds.push(p.id);
+  }
+  const righe = Object.values(per).sort((a, b) => a.descrizione.localeCompare(b.descrizione, "it"));
+  for (const r of righe) r.imponibile = round2(r.quantita * r.prezzoUnitario);
+  return righe;
+}
+
+// Anteprima completa della fattura differita: righe raggruppate + totali +
+// riepilogo per aliquota. Ritorna null se non c'è nessun DDT selezionato.
+export function fatturaDaPesate(pesate) {
+  const lista = (pesate || []).filter(Boolean);
+  if (!lista.length) return null;
+  const righe = righeDaPesate(lista);
+  const t = totaliDaRighe(righe);
+  const date = lista.map(p => String(p.data || "")).filter(Boolean).sort();
+  return { righe, ...t, ddtIds: lista.map(p => p.id),
+           ddtNumeri: lista.map(p => p.numero || "—"),
+           dal: date[0] || null, al: date[date.length - 1] || null, conto: lista.length };
+}
+
+// ============================================================
+// CANONE / DIRITTI DI ESCAVAZIONE (N5)
+// ------------------------------------------------------------
+// L'aliquota la imposta l'organizzazione (€/t o €/m³): cambia da regione a
+// regione e da concessione a concessione, quindi NON è cablata da nessuna
+// parte. Qui si calcola solo il dovuto sul materiale del periodo.
+// ============================================================
+
+export function canonePeriodo(pesate, impostazioni, dal, al) {
+  const cfg = impostazioni || {};
+  const unita = cfg.canoneUnita === "t" ? "t" : "m3";
+  const aliquota = +cfg.canoneAliquota || 0;
+  const d1 = String(dal || ""), d2 = String(al || "");
+  const per = {};
+  let tot = { t: 0, m3: 0, senzaDensita: 0 };
+  for (const p of pesate || []) {
+    const d = String(p.data || "");
+    if ((d1 && d < d1) || (d2 && d > d2)) continue;
+    const q = quantitaPesata(p);
+    const nome = String(p.prodotto || "Prodotto");
+    const r = per[nome] || (per[nome] = { prodotto: nome, t: 0, m3: 0, viaggi: 0, senzaDensita: 0 });
+    r.viaggi++; r.t = round2(r.t + q.t);
+    if (q.m3 == null) { r.senzaDensita++; tot.senzaDensita++; }
+    else r.m3 = round3(r.m3 + q.m3);
+    tot.t = round2(tot.t + q.t);
+    if (q.m3 != null) tot.m3 = round3(tot.m3 + q.m3);
+  }
+  const base = unita === "t" ? tot.t : tot.m3;
+  const perProdotto = Object.values(per).sort((a, b) => b.t - a.t);
+  for (const r of perProdotto) r.dovuto = round2((unita === "t" ? r.t : r.m3) * aliquota);
+  return { unita, aliquota, tonnellate: round2(tot.t), metriCubi: round3(tot.m3),
+           base: round3(base), dovuto: round2(base * aliquota),
+           senzaDensita: tot.senzaDensita, perProdotto,
+           viaggi: perProdotto.reduce((s, r) => s + r.viaggi, 0) };
+}
+
+// Venduto per prodotto in un periodo (tonnellate, metri cubi e valore): è la
+// statistica che ogni gestionale di settore ha e che dice cosa tira davvero.
+export function venditePerProdotto(pesate, dal, al) {
+  const d1 = String(dal || ""), d2 = String(al || "");
+  const per = {};
+  for (const p of pesate || []) {
+    const d = String(p.data || "");
+    if ((d1 && d < d1) || (d2 && d > d2)) continue;
+    const nome = String(p.prodotto || "Prodotto");
+    const q = quantitaPesata(p);
+    const r = per[nome] || (per[nome] = { prodotto: nome, t: 0, m3: 0, valore: 0, viaggi: 0 });
+    r.viaggi++; r.t = round2(r.t + q.t);
+    if (q.m3 != null) r.m3 = round3(r.m3 + q.m3);
+    r.valore = round2(r.valore + valorePesata(p));
+  }
+  return Object.values(per).sort((a, b) => b.valore - a.valore || b.t - a.t);
+}
+
 export async function contiData() {
   let mode = "demo", api = null;
   try {
@@ -433,6 +746,8 @@ export async function contiData() {
       const read = async (n) => (await getDocs(id.orgCollection(n))).docs.map(d => ({ id: d.id, ...d.data() }));
       api = {
         fatture: () => read("fatture"), gare: () => read("gare"), clienti: () => read("clienti"),
+        prodotti: () => read("prodotti"), pesate: () => read("pesate"),
+        impostazioni: () => read("impostazioni"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
         logout: () => id.logout(),
         aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n), i), d),
@@ -444,6 +759,8 @@ export async function contiData() {
     const mem = JSON.parse(JSON.stringify(DEMO));
     api = {
       fatture: async () => mem.fatture, gare: async () => mem.gare, clienti: async () => mem.clienti,
+      prodotti: async () => mem.prodotti, pesate: async () => mem.pesate,
+      impostazioni: async () => mem.impostazioni,
       logout: async () => {},
       aggiungi: async (n, d) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[n] = mem[n] || []).push({ id, ...d }); return { id }; },
       aggiorna: async (n, i, d) => { const x = (mem[n] || (mem[n] = [])).find(v => v.id === i); if (x) Object.assign(x, d); },

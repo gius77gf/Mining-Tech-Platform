@@ -94,7 +94,7 @@
   --info-basis:130px;
   --arr-ico:15px;
   --arr-stroke:1.8;
-  --nav-cols:5;
+  --nav-cols:7;
   --kpi-cols:4;
   --form-gap:11px;
   --form-pad:14px 13px 13px;
@@ -369,6 +369,54 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
 }
 .mrec .v.accent{color:var(--app-accent2)}
 
+/* ─────────────── casella di spunta (scelta dei DDT da fatturare) ───────────────
+   Stessa tinta dell'app, nessun colore nuovo: accent-color prende l'accento
+   di Conti. La riga intera è un'etichetta, così si spunta toccando ovunque. */
+.dw-chk{
+  appearance:auto; -webkit-appearance:auto; accent-color:var(--app-accent);
+  width:19px; height:19px; flex:0 0 auto; margin:0; cursor:pointer;
+}
+label.item{cursor:pointer}
+label.item:has(.dw-chk:checked){
+  border-left-color:var(--app-accent);
+  background:linear-gradient(135deg,var(--card2),var(--card));
+}
+.dw-chk:focus-visible{outline:2px solid var(--app-accent2); outline-offset:2px}
+
+/* ─────────────── riga della pesa: lordo − tara = netto ───────────────
+   Sta su una riga sua, a tutta larghezza, sotto il resto della voce: è
+   il conto che il camionista rilegge, e non deve mai finire con «…». */
+.meta.pesa{
+  flex:1 1 100%; margin-top:0; -webkit-line-clamp:2;
+  font-variant-numeric:tabular-nums; color:var(--muted2);
+  padding-top:6px; border-top:1px dashed var(--border2);
+}
+.meta.pesa b{color:var(--app-accent2)}
+
+/* ─────────────── campo calcolato: si legge, non si scrive ───────────────
+   Il netto della pesata è lordo − tara: bordo tratteggiato e cifra
+   nell'accento dicono a colpo d'occhio «questo lo calcola l'app». */
+.dw-input.calc{
+  border-style:dashed; color:var(--app-accent2); font-weight:700;
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  text-align:right; font-variant-numeric:tabular-nums;
+}
+
+/* ─────────────── prezzi del listino: le due unità incolonnate ───────────────
+   Un prodotto ha SEMPRE un prezzo di listino (in €/t o in €/m³) e uno
+   convertito: la conversione è scritta più in piccolo, sotto, perché è un
+   calcolo — non un prezzo deciso da chi vende. */
+.amt-s .conv{color:var(--muted2)}
+.amt-n .u,.tot-n .u{font-size:11px; font-weight:700; letter-spacing:.6px; color:var(--muted2)}
+
+/* riepilogo IVA nella modale e sotto i form: etichetta + cifra, come .mrec */
+.riep{
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--border2); border-radius:var(--r-sm);
+  padding:9px 12px; margin-top:8px; box-shadow:var(--sh2),var(--edge);
+}
+.riep .mrec:last-child .v{color:var(--app-accent2); font-size:18px}
+
 /* ─────────────── desktop ─────────────── */
 
 @media(min-width:768px){
@@ -378,6 +426,22 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
 
 @media(max-width:360px){
   .amt{min-width:96px}
+}
+
+/* ─────────────── sette voci di navigazione ───────────────
+   Con il listino e le pesate le sezioni diventano sette: su schermo stretto
+   l'etichetta si stringe invece di andare a capo o tagliarsi a metà. */
+@media(max-width:440px){
+  .nav button{font-size:8px; letter-spacing:.3px; padding:9px 1px 8px; overflow:hidden}
+  .nav .ico{height:20px}
+  .nav .ico svg{width:19px; height:19px}
+  .nav button.active::before{width:34px; height:28px}
+}
+/* telefoni piccoli (e caso in cui il Condensed non si carica): l'etichetta
+   si stringe ancora, perché due voci non si devono mai toccare */
+@media(max-width:380px){
+  .nav button{font-size:7.5px; letter-spacing:0; padding:9px 0 8px}
+  .nav .ico svg{width:18px; height:18px}
 }
 
 /* ─────────────── touch: come il core, niente effetti "incollati" ─────────────── */
@@ -415,6 +479,8 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
   <div id="cassa-banner"></div>
   <div class="sec">Priorità: chi sollecitare per primo</div>
   <div id="prio-list"></div>
+  <div class="sec">Consegne da fatturare</div>
+  <div id="dash-ddt"></div>
 </div>
 
 <div class="page" id="page-fat">
@@ -456,9 +522,20 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
       <span class="err-msg" id="err-ft-cli-nuovo"></span>
     </div>
     <div class="fld" id="fld-ft-imp" style="flex:1 1 130px;">
-      <label for="ft-imp">Importo €</label>
+      <label for="ft-imp">Imponibile €</label>
       <input class="dw-input" id="ft-imp" type="number" min="0" step="0.01" placeholder="0,00" inputmode="decimal">
       <span class="err-msg" id="err-ft-imp"></span>
+    </div>
+    <div class="fld" id="fld-ft-iva" style="flex:1 1 150px;">
+      <label for="ft-iva">Aliquota IVA</label>
+      <select class="dw-input" id="ft-iva">
+        <option value="22">22% — ordinaria (inerti)</option>
+        <option value="10">10%</option>
+        <option value="5">5%</option>
+        <option value="4">4%</option>
+        <option value="0">0% — esente o non imponibile</option>
+      </select>
+      <span class="err-msg" id="err-ft-iva"></span>
     </div>
     <div class="fld" id="fld-ft-scad" style="flex:1 1 150px;">
       <label for="ft-scad">Scadenza</label>
@@ -467,14 +544,221 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
     </div>
     <button class="dw-btn" id="btn-ft">Emetti</button>
   </div>
+  <div id="ft-riep"></div>
   <div class="tools">
     <button class="dw-btn secondary" id="btn-imp-fat">Importa fatture (CSV)</button>
     <input type="file" id="fat-file" accept=".csv,text/csv" style="display:none;">
     <span class="hint">colonne: numero;cliente;importo;emessa;scadenza[;incassata]</span>
   </div>
   <div class="note esito" id="ft-esito"></div>
-  <div class="note">Tocca una fattura per <b>segnarla incassata</b>. Il cliente si sceglie
-    dall'anagrafica (scheda Clienti): scegli «Nuovo cliente…» per crearlo al volo.</div>
+  <div class="note">Tocca una fattura per <b>segnarla incassata</b>. Il numero è
+    <b>progressivo per anno</b> e te lo propone Conti: così non si salta e non si duplica.
+    Scrivi l'<b>imponibile</b> (l'importo senza IVA): imposta e totale li calcola l'app.
+    Il cliente si sceglie dall'anagrafica (scheda Clienti): scegli «Nuovo cliente…» per crearlo al volo.</div>
+
+  <div class="sec">Fattura differita dai DDT</div>
+  <div class="note">Il flusso vero della cava: tanti viaggi in un mese, <b>una fattura sola</b>.
+    Scegli il cliente, spunta i DDT e Conti prepara la fattura riepilogativa con le righe
+    <b>raggruppate per prodotto</b>. Se i movimenti sono documentati da DDT, la fattura
+    riepilogativa si emette entro il <b>15 del mese successivo</b> alla consegna.</div>
+  <div class="form" id="dif-form">
+    <div class="fld w2" id="fld-dif-cli">
+      <label for="dif-cli">Cliente</label>
+      <select class="dw-input" id="dif-cli"></select>
+      <span class="err-msg" id="err-dif-cli"></span>
+    </div>
+    <div class="fld" id="fld-dif-dal" style="flex:1 1 150px;">
+      <label for="dif-dal">Consegne dal</label>
+      <input class="dw-input" id="dif-dal" type="date">
+      <span class="err-msg" id="err-dif-dal"></span>
+    </div>
+    <div class="fld" id="fld-dif-al" style="flex:1 1 150px;">
+      <label for="dif-al">Al</label>
+      <input class="dw-input" id="dif-al" type="date">
+      <span class="err-msg" id="err-dif-al"></span>
+    </div>
+    <button class="dw-btn secondary" id="btn-dif-tutti">Spunta tutti</button>
+  </div>
+  <div id="dif-list"></div>
+  <div id="dif-tot"></div>
+  <div class="tools">
+    <button class="dw-btn" id="btn-dif">Prepara la fattura riepilogativa</button>
+    <span class="hint">lascia le date vuote per vedere tutti i DDT non ancora fatturati</span>
+  </div>
+  <div class="note esito" id="dif-esito"></div>
+</div>
+
+<div class="page" id="page-pes">
+  <div class="sec">Registro pesate / DDT<span class="cnt" id="pes-cnt">0</span></div>
+  <div id="pes-filtri" class="chgs">
+    <button class="chg active" data-pfiltro="tutte">Tutti<span class="qt" data-pqt="tutte"></span></button>
+    <button class="chg" data-pfiltro="aperti">Da fatturare<span class="qt" data-pqt="aperti"></span></button>
+    <button class="chg" data-pfiltro="fatturati">Fatturati<span class="qt" data-pqt="fatturati"></span></button>
+  </div>
+  <input class="dw-input" id="pes-cerca" type="search" placeholder="Cerca per cliente, prodotto, targa o numero…" style="margin-bottom:10px;">
+  <div id="pes-count" class="count"></div>
+  <div id="pes-list"></div>
+  <div id="pes-tot"></div>
+
+  <div class="sec">Nuova pesata</div>
+  <div class="form" id="pes-form">
+    <div class="fld" id="fld-pes-num" style="flex:1 1 130px;">
+      <label for="pes-num">Numero DDT</label>
+      <input class="dw-input calc" id="pes-num" readonly tabindex="-1" aria-readonly="true" value="—">
+      <span class="err-msg" id="err-pes-num"></span>
+    </div>
+    <div class="fld" id="fld-pes-data" style="flex:1 1 150px;">
+      <label for="pes-data">Data</label>
+      <input class="dw-input" id="pes-data" type="date">
+      <span class="err-msg" id="err-pes-data"></span>
+    </div>
+    <div class="fld w2" id="fld-pes-cli">
+      <label for="pes-cli">Cliente</label>
+      <select class="dw-input" id="pes-cli"></select>
+      <span class="err-msg" id="err-pes-cli"></span>
+    </div>
+    <div class="fld w2" id="fld-pes-prod">
+      <label for="pes-prod">Prodotto</label>
+      <select class="dw-input" id="pes-prod"></select>
+      <span class="err-msg" id="err-pes-prod"></span>
+    </div>
+    <div class="fld" id="fld-pes-lordo" style="flex:1 1 120px;">
+      <label for="pes-lordo">Lordo (t)</label>
+      <input class="dw-input" id="pes-lordo" type="number" min="0" step="0.01" placeholder="0,00" inputmode="decimal">
+      <span class="err-msg" id="err-pes-lordo"></span>
+    </div>
+    <div class="fld" id="fld-pes-tara" style="flex:1 1 120px;">
+      <label for="pes-tara">Tara (t)</label>
+      <input class="dw-input" id="pes-tara" type="number" min="0" step="0.01" placeholder="0,00" inputmode="decimal">
+      <span class="err-msg" id="err-pes-tara"></span>
+    </div>
+    <div class="fld" id="fld-pes-netto" style="flex:1 1 120px;">
+      <label for="pes-netto">Netto (t)</label>
+      <input class="dw-input calc" id="pes-netto" readonly tabindex="-1" aria-readonly="true" value="0,00"
+             title="Lo calcola Conti: lordo − tara. Non si scrive a mano.">
+      <span class="err-msg" id="err-pes-netto"></span>
+    </div>
+    <div class="fld" id="fld-pes-mezzo" style="flex:1 1 150px;">
+      <label for="pes-mezzo">Mezzo / targa</label>
+      <input class="dw-input" id="pes-mezzo" placeholder="es. FT 421 KP" autocomplete="off">
+      <span class="err-msg" id="err-pes-mezzo"></span>
+    </div>
+    <div class="fld w2" id="fld-pes-dest">
+      <label for="pes-dest">Destinatario o cantiere</label>
+      <input class="dw-input" id="pes-dest" placeholder="es. Cantiere SS115 km 12" autocomplete="off">
+      <span class="err-msg" id="err-pes-dest"></span>
+    </div>
+    <button class="dw-btn" id="btn-pes">Registra pesata</button>
+  </div>
+  <div id="pes-riep"></div>
+  <div class="tools">
+    <button class="dw-btn secondary" id="btn-pes-export">Esporta pesate (CSV)</button>
+  </div>
+  <div class="note esito" id="pes-esito"></div>
+  <div class="note"><b>Il netto non si scrive: è lordo − tara</b>, lo calcola Conti mentre
+    digiti. Il documento di trasporto (DPR 472/1996) non ha un modello obbligatorio, ma deve
+    portare data, cedente e cessionario, natura e quantità della merce, e va emesso
+    <b>prima che il camion parta</b>; la numerazione è progressiva, senza salti né doppioni.
+    Per correggere una pesata sbagliata eliminala e rifalla, finché non è fatturata.</div>
+</div>
+
+<div class="page" id="page-lis">
+  <div class="sec">Listino prodotti<span class="cnt" id="lis-cnt">0</span></div>
+  <div class="note">Un prodotto si vende <b>a tonnellata</b> oppure <b>a metro cubo</b>:
+    scegli in quale unità è scritto il prezzo. <b>€/t e €/m³ non sono la stessa cosa</b> e
+    non si convertono a occhio: serve la <b>densità</b> del materiale (quante tonnellate pesa
+    un metro cubo). Con la densità Conti mostra tutt'e due i prezzi e sa passare dai metri
+    cubi alle tonnellate nelle pesate e nei canoni.</div>
+  <input class="dw-input" id="lis-cerca" type="search" placeholder="Cerca prodotto…" style="margin-bottom:10px;">
+  <div id="lis-count" class="count"></div>
+  <div id="lis-list"></div>
+
+  <div class="sec">Nuovo prodotto</div>
+  <div class="form" id="lis-form">
+    <div class="fld w2" id="fld-pr-nome">
+      <label for="pr-nome">Nome e pezzatura</label>
+      <input class="dw-input" id="pr-nome" placeholder="es. Pietrisco 8/12" autocomplete="off">
+      <span class="err-msg" id="err-pr-nome"></span>
+    </div>
+    <div class="fld" id="fld-pr-unita" style="flex:1 1 160px;">
+      <label for="pr-unita">Prezzo espresso in</label>
+      <select class="dw-input" id="pr-unita">
+        <option value="t">€ a tonnellata (€/t)</option>
+        <option value="m3">€ a metro cubo (€/m³)</option>
+      </select>
+      <span class="err-msg" id="err-pr-unita"></span>
+    </div>
+    <div class="fld" id="fld-pr-prezzo" style="flex:1 1 130px;">
+      <label for="pr-prezzo">Prezzo €</label>
+      <input class="dw-input" id="pr-prezzo" type="number" min="0" step="0.01" placeholder="0,00" inputmode="decimal">
+      <span class="err-msg" id="err-pr-prezzo"></span>
+    </div>
+    <div class="fld" id="fld-pr-dens" style="flex:1 1 150px;">
+      <label for="pr-dens">Densità (t/m³)</label>
+      <input class="dw-input" id="pr-dens" type="number" min="0" step="0.01" placeholder="es. 1,60" inputmode="decimal">
+      <span class="err-msg" id="err-pr-dens"></span>
+    </div>
+    <div class="fld" id="fld-pr-iva" style="flex:1 1 150px;">
+      <label for="pr-iva">Aliquota IVA</label>
+      <select class="dw-input" id="pr-iva">
+        <option value="22">22% — ordinaria (inerti)</option>
+        <option value="10">10%</option>
+        <option value="5">5%</option>
+        <option value="4">4%</option>
+        <option value="0">0% — esente o non imponibile</option>
+      </select>
+      <span class="err-msg" id="err-pr-iva"></span>
+    </div>
+    <button class="dw-btn" id="btn-pr">Aggiungi</button>
+  </div>
+  <div id="pr-conv"></div>
+  <div class="tools">
+    <button class="dw-btn secondary" id="btn-lis-export">Esporta listino (CSV)</button>
+  </div>
+  <div class="note esito" id="pr-esito"></div>
+
+  <div class="sec">Canoni e diritti di escavazione</div>
+  <div class="note">Chi coltiva una cava versa alla Regione (e spesso al Comune) un canone
+    sul materiale cavato, in <b>€/m³</b> o in <b>€/t</b>. Le tariffe cambiano da regione a
+    regione e da concessione a concessione: <b>Conti non ne dà per scontata nessuna</b>,
+    l'aliquota la scrivi tu qui sotto e il conto lo fa l'app sul materiale delle pesate.</div>
+  <div class="form" id="can-form">
+    <div class="fld" id="fld-can-unita" style="flex:1 1 170px;">
+      <label for="can-unita">Canone calcolato su</label>
+      <select class="dw-input" id="can-unita">
+        <option value="m3">metri cubi (€/m³)</option>
+        <option value="t">tonnellate (€/t)</option>
+      </select>
+      <span class="err-msg" id="err-can-unita"></span>
+    </div>
+    <div class="fld" id="fld-can-ali" style="flex:1 1 150px;">
+      <label for="can-ali">Aliquota €</label>
+      <input class="dw-input" id="can-ali" type="number" min="0" step="0.01" placeholder="0,00" inputmode="decimal">
+      <span class="err-msg" id="err-can-ali"></span>
+    </div>
+    <div class="fld w2" id="fld-can-nota">
+      <label for="can-nota">Nota (regione, ente, delibera)</label>
+      <input class="dw-input" id="can-nota" placeholder="es. tariffa della concessione 2026" autocomplete="off">
+      <span class="err-msg" id="err-can-nota"></span>
+    </div>
+    <button class="dw-btn" id="btn-can">Salva aliquota</button>
+  </div>
+  <div class="form" id="can-per">
+    <div class="fld" id="fld-can-dal" style="flex:1 1 150px;">
+      <label for="can-dal">Periodo dal</label>
+      <input class="dw-input" id="can-dal" type="date">
+      <span class="err-msg" id="err-can-dal"></span>
+    </div>
+    <div class="fld" id="fld-can-al" style="flex:1 1 150px;">
+      <label for="can-al">Al</label>
+      <input class="dw-input" id="can-al" type="date">
+      <span class="err-msg" id="err-can-al"></span>
+    </div>
+    <button class="dw-btn secondary" id="btn-can-anno">Tutto l'anno</button>
+  </div>
+  <div id="can-riep"></div>
+  <div id="can-list"></div>
+  <div class="note esito" id="can-esito"></div>
 </div>
 
 <div class="page" id="page-cli">
@@ -585,6 +869,9 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
   <div class="sec">Previsione incassi (prossimi mesi)</div>
   <div id="graf-prev"></div>
   <div id="prev-list"></div>
+  <div class="sec">Venduto per prodotto (dalle pesate)</div>
+  <div id="graf-vend"></div>
+  <div id="vend-list"></div>
   <div class="sec">Esposizione per cliente (chi chiamare per primo)</div>
   <div id="espo-list"></div>
   <div class="tools">
@@ -596,6 +883,8 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
 <nav class="nav" aria-label="Sezioni di Conti">
   <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg></span>Quadro</button>
   <button id="nav-fat" onclick="go('fat')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M5.5 3.2h13v17.6l-2.6-1.5-2.6 1.5-2.6-1.5-2.6 1.5L5.5 20.8z"/><path d="M9 8.2h6M9 12h6M9 15.4h3.6"/></svg></span>Fatture</button>
+  <button id="nav-pes" onclick="go('pes')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M2.6 6.6h11v9.4h-11z"/><path d="M13.6 10.2h3.5l3.3 3.1V16h-6.8z"/><circle cx="7" cy="18.4" r="2"/><circle cx="17" cy="18.4" r="2"/></svg></span>Pesate</button>
+  <button id="nav-lis" onclick="go('lis')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M12.4 3.1h7.1a1.4 1.4 0 0 1 1.4 1.4v7.1a1.4 1.4 0 0 1-.4 1l-8.2 8.2a1.4 1.4 0 0 1-2 0l-7.1-7.1a1.4 1.4 0 0 1 0-2l8.2-8.2a1.4 1.4 0 0 1 1-.4z"/><path d="M16.6 7.4v.02"/></svg></span>Listino</button>
   <button id="nav-cli" onclick="go('cli')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M16.6 20.5v-1.6a3.9 3.9 0 0 0-3.9-3.9H6.9A3.9 3.9 0 0 0 3 18.9v1.6"/><circle cx="9.8" cy="7.6" r="3.9"/><path d="M21 20.5v-1.6a3.9 3.9 0 0 0-2.9-3.8M15.6 4a3.9 3.9 0 0 1 0 7.2"/></svg></span>Clienti</button>
   <button id="nav-gar" onclick="go('gar')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M9 4.2H6.5A2 2 0 0 0 4.5 6.2v13a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-13a2 2 0 0 0-2-2H15"/><rect x="9" y="2.5" width="6" height="3.6" rx="1.2"/><path d="M8.6 12.4l2.2 2.2 4.6-4.6"/></svg></span>Gare</button>
   <button id="nav-rep" onclick="go('rep')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M3.5 20.5h17"/><rect x="5" y="11" width="3.6" height="7" rx="1"/><rect x="10.2" y="6.5" width="3.6" height="11.5" rx="1"/><rect x="15.4" y="9" width="3.6" height="9" rx="1"/></svg></span>Report</button>
@@ -719,7 +1008,10 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
 </script>
 
 <script type="module">
-  import { contiData, giorni, kpiFrom, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, parseFattureCsv, parseGareCsv, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare } from "./conti-data.js";
+  import { contiData, giorni, kpiFrom, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, parseFattureCsv, parseGareCsv, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
+    round2, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita,
+    importiFattura, totaliDaRighe, prossimoNumero, nettoPesata, rigaPesata, valorePesata,
+    quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, venditePerProdotto } from "./conti-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   // ── CIFRE: formato italiano, sempre due decimali, spazio unificatore
@@ -733,6 +1025,15 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
     return n >= 10000 ? "€ " + NUM0.format(Math.round(n / 1000)) + '<span class="u">k</span>'
                       : "€ " + NUM0.format(Math.round(n)); };
   const plur = (n, s, p) => n + " " + (n === 1 ? s : p);
+  // ── QUANTITÀ: pesi e volumi in formato italiano. Due decimali come gli
+  //    importi (10 kg di precisione sulla pesata: più che sufficiente).
+  const qt   = (v) => NUM2.format(+v || 0);
+  const uni  = (u) => (u === "m3" ? "m³" : "t");
+  const qtu  = (v, u) => qt(v) + " " + uni(u);
+  const perc = (v) => NUM0.format(+v || 0) + "%";
+  const oggiISO = () => new Date().toISOString().slice(0, 10);
+  const piuGiorni = (iso, n) => { const d = new Date(iso + "T00:00:00");
+    d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
   // iniziali per l'avatar del cliente (massimo due lettere, come nel core)
   const iniziali = (nome) => String(nome || "?").replace(/[^\p{L}\s]/gu, " ").trim()
     .split(/\s+/).slice(0, 2).map(w => w[0] || "").join("").toUpperCase() || "?";
@@ -753,6 +1054,9 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
     ok:      '<svg viewBox="0 0 24 24"><path d="M4.5 12.4l5 5 10-10"/></svg>',
     allarme: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.4v5.2M12 16.2v.2"/></svg>',
     vuoto:   '<svg viewBox="0 0 24 24"><path d="M3.5 8.5h17v11a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M3.5 8.5L6 3.4h12l2.5 5.1M9.4 12.6h5.2"/></svg>',
+    listino: '<svg viewBox="0 0 24 24"><path d="M12.4 3.1h7.1a1.4 1.4 0 0 1 1.4 1.4v7.1a1.4 1.4 0 0 1-.4 1l-8.2 8.2a1.4 1.4 0 0 1-2 0l-7.1-7.1a1.4 1.4 0 0 1 0-2l8.2-8.2a1.4 1.4 0 0 1 1-.4z"/><path d="M16.6 7.4v.02"/></svg>',
+    camion:  '<svg viewBox="0 0 24 24"><path d="M2.6 6.6h11v9.4h-11z"/><path d="M13.6 10.2h3.5l3.3 3.1V16h-6.8z"/><circle cx="7" cy="18.4" r="2"/><circle cx="17" cy="18.4" r="2"/></svg>',
+    bilancia:'<svg viewBox="0 0 24 24"><path d="M12 3.4v17.2M5 20.6h14"/><path d="M4 8.6h16M7.4 8.6L4.6 14.4a3 3 0 0 0 5.6 0zM16.6 8.6l-2.8 5.8a3 3 0 0 0 5.6 0z"/></svg>',
   };
   // Stato vuoto in stile core: icona, titolo, istruzione su cosa fare
   const vuoto = (icona, titolo, istruzione) =>
@@ -802,8 +1106,12 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
-  let FAT=[], GAR=[], CLI=[];
+  let FAT=[], GAR=[], CLI=[], PRO=[], PES=[], IMP=null;
   let filtroFat = "tutte";
+  let filtroPes = "tutte";
+  let editPro = null;    // id del prodotto in modifica (riusa il form del listino)
+  let difSel = new Set();   // DDT spuntati per la fattura differita
+  let canoneInit = false;   // i campi dell'aliquota si riempiono una volta sola
   let editFat = null;   // id della fattura in modifica (riusa il form "Nuova fattura")
   let editCli = null;   // id del cliente in modifica (riusa il form "Nuovo cliente")
   const fatMatch = (f) => filtroFat === "tutte"
@@ -816,10 +1124,17 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
     : String(a.scadenza || "9999").localeCompare(String(b.scadenza || "9999"));
   // Campi del form fattura: il cliente si sceglie dall'anagrafica (select) e
   // "ft-cli-nuovo" compare solo quando si crea un cliente al volo.
-  const FT_CAMPI = ["ft-num","ft-cli","ft-cli-nuovo","ft-imp","ft-scad"];
+  const FT_CAMPI = ["ft-num","ft-cli","ft-cli-nuovo","ft-imp","ft-iva","ft-scad"];
   const CL_CAMPI = ["cl-nome","cl-piva","cl-sdi","cl-ind","cl-sconto","cl-fido","cl-note"];
+  const PR_CAMPI = ["pr-nome","pr-unita","pr-prezzo","pr-dens","pr-iva"];
+  const PES_CAMPI = ["pes-data","pes-cli","pes-prod","pes-lordo","pes-tara","pes-mezzo","pes-dest"];
+  let ftNumAuto = true;   // finché è vero, il numero lo propone Conti
   const syncCliNuovo = () => { $("fld-ft-cli-nuovo").style.display = $("ft-cli").value === "__nuovo" ? "" : "none"; };
-  const pulisciFat = () => { FT_CAMPI.forEach(i => { $(i).value = ""; puliscoErr(i); }); syncCliNuovo(); };
+  const pulisciFat = () => { FT_CAMPI.forEach(i => { $(i).value = ""; puliscoErr(i); });
+    ftNumAuto = true; $("ft-iva").value = "22"; $("ft-num").value = numeroProssimaFattura();
+    aggiornaRiepFat(); syncCliNuovo(); };
+  const pulisciPro = () => { PR_CAMPI.forEach(i => { $(i).value = ""; puliscoErr(i); });
+    $("pr-unita").value = "t"; $("pr-iva").value = "22"; aggiornaConvPro(); };
   const pulisciCli = () => CL_CAMPI.forEach(i => { $(i).value = ""; puliscoErr(i); });
   $("ft-cli").onchange = () => { syncCliNuovo(); if ($("ft-cli").value === "__nuovo") $("ft-cli-nuovo").focus(); };
   try { const _s = localStorage.getItem("dwSort_fat"); if (_s) { ordFat = _s; if ($("fat-ord")) $("fat-ord").value = _s; } } catch (e) {}
@@ -827,11 +1142,46 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
   if ($("fat-cerca")) $("fat-cerca").oninput = () => refresh();
   if ($("gar-cerca")) $("gar-cerca").oninput = () => refresh();
   if ($("cli-cerca")) $("cli-cerca").oninput = () => refresh();
+  if ($("lis-cerca")) $("lis-cerca").oninput = () => refresh();
+  if ($("pes-cerca")) $("pes-cerca").oninput = () => refresh();
+  // il numero di fattura resta automatico finché non lo si scrive a mano
+  $("ft-num").addEventListener("input", () => { ftNumAuto = false; });
+  ["ft-imp","ft-iva"].forEach(i => $(i).addEventListener("input", aggiornaRiepFat));
+  ["pr-prezzo","pr-dens","pr-unita"].forEach(i => $(i).addEventListener("input", aggiornaConvPro));
+  ["pes-lordo","pes-tara","pes-prod"].forEach(i => $(i).addEventListener("input", aggiornaNetto));
+  $("pes-data").addEventListener("change", () => { $("pes-num").value = numeroProssimoDdt(); });
+  ["dif-cli","dif-dal","dif-al"].forEach(i => $(i).addEventListener("change", () => {
+    difSel = new Set(); renderDifferita(); }));
+  ["can-unita","can-ali","can-dal","can-al"].forEach(i => $(i).addEventListener("input", renderCanone));
+  $("pes-filtri").addEventListener("click", (e) => {
+    const f = e.target.getAttribute && e.target.getAttribute("data-pfiltro");
+    if (f) { filtroPes = f; refresh(); }
+  });
+  // spunta/toglie un DDT dalla fattura differita: si aggiornano solo i totali,
+  // così la lista non si ricostruisce sotto il dito
+  $("dif-list").addEventListener("change", (e) => {
+    const c = e.target.closest && e.target.closest("[data-ddt]");
+    if (!c) return;
+    const id = c.getAttribute("data-ddt");
+    if (c.checked) difSel.add(id); else difSel.delete(id);
+    aggiornaDifTot();
+  });
+  $("btn-dif-tutti").onclick = () => {
+    const lista = difVisibili();
+    const tutti = lista.length && lista.every(p => difSel.has(p.id));
+    // con la selezione vuota renderDifferita ri-spunterebbe tutto: qui il vuoto
+    // è una scelta dell'utente, quindi si tocca solo lo stato delle caselle
+    difSel = tutti ? new Set() : new Set(lista.map(p => p.id));
+    document.querySelectorAll("#dif-list [data-ddt]").forEach(c =>
+      c.checked = difSel.has(c.getAttribute("data-ddt")));
+    aggiornaDifTot();
+  };
   // cambiare pagina annulla una modifica in corso (evita di sovrascrivere
   // per sbaglio credendo di aggiungere): il form torna pulito su "Emetti".
   document.querySelector(".nav") && document.querySelector(".nav").addEventListener("click", () => {
     if (editFat) { editFat = null; $("btn-ft").textContent = "Emetti"; $("ft-esito").textContent = ""; pulisciFat(); }
     if (editCli) { editCli = null; $("btn-cl").textContent = "Aggiungi"; $("cl-esito").textContent = ""; pulisciCli(); }
+    if (editPro) { editPro = null; $("btn-pr").textContent = "Aggiungi"; $("pr-esito").textContent = ""; pulisciPro(); }
   });
   $("fat-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-filtro");
@@ -859,7 +1209,10 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
     return ["ok","Regolare"];
   }
   async function refresh(){
-    [FAT,GAR,CLI] = await Promise.all([db.fatture(), db.gare(), db.clienti()]);
+    let IMPL;
+    [FAT,GAR,CLI,PRO,PES,IMPL] = await Promise.all([db.fatture(), db.gare(), db.clienti(),
+      db.prodotti(), db.pesate(), db.impostazioni()]);
+    IMP = (IMPL || [])[0] || null;
     const k = kpiFrom(FAT,GAR);
     const aperte  = FAT.filter(f => !f.incassata);
     const scadute = aperte.filter(f => giorni(f.scadenza) < 0);
@@ -922,9 +1275,16 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
       const sol = !f.incassata ? livelloSollecito(ritardo) : null;
       const mora = ritardo > 0 ? interessiMora(f.importo, ritardo) : null;   // interessi 231/2002
       const st = f.incassata ? "st-ok" : ritardo > 0 ? "st-danger" : giorni(f.scadenza) <= 10 ? "st-warn" : "st-accent";
+      // IVA: le fatture nuove portano imponibile e imposta, quelle vecchie
+      // (importo secco) valgono come imponibile con IVA 0 — e lo diciamo.
+      const im = importiFattura(f);
+      const nDdt = (f.ddtIds || []).length;
       const meta = [
         "emessa " + fmtD(f.emessa),
         f.incassata ? "incassata " + (f.dataIncasso ? fmtD(f.dataIncasso) : "") : "scade " + fmtD(f.scadenza),
+        im.conIva ? "imponibile " + eur(im.imponibile) + " + IVA " + eur(im.ivaImporto)
+                  : "senza dettaglio IVA",
+        nDdt ? "da " + plur(nDdt, "DDT", "DDT") : "",
         sol && sol.livello ? sol.label : "",
       ].filter(Boolean).join(" · ");
       return `<div class="item tap ${st}" data-fat="${f.id}" title="${f.incassata ? "Tocca per annullare l'incasso" : "Tocca per segnare incassata"}">
@@ -942,9 +1302,21 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
     { const somma = fatViste.reduce((t,f) => t + (+f.importo || 0), 0);
       const etichetta = { tutte:"Totale fatturato", aperte:"Totale da incassare",
         insolute:"Totale insoluto", incassate:"Totale incassato" }[filtroFat] || "Totale";
+      // Scomposizione imponibile / imposta: è quello che serve al registro IVA.
+      // Compare solo se almeno una fattura della vista ha l'IVA indicata.
+      const imp = fatViste.map(importiFattura);
+      const sIva = imp.reduce((t, i) => t + i.ivaImporto, 0);
+      const sBase = imp.reduce((t, i) => t + i.imponibile, 0);
+      const senzaIva = imp.filter(i => !i.conIva).length;
       $("fat-tot").innerHTML = fatViste.length
         ? `<div class="tot${filtroFat === "insolute" ? " warn" : ""}"><span class="tot-l">${etichetta}</span>
-           <span class="tot-n">${eur(somma)}</span></div>` : ""; }
+           <span class="tot-n">${eur(somma)}</span></div>`
+          + (sIva > 0 ? `<div class="riep">
+             <div class="mrec"><span class="k">Imponibile</span><span class="v">${eur(sBase)}</span></div>
+             <div class="mrec"><span class="k">IVA</span><span class="v">${eur(sIva)}</span></div>
+             <div class="mrec"><span class="k">Totale documenti</span><span class="v">${eur(round2(sBase + sIva))}</span></div>
+             </div>${senzaIva ? `<div class="note">${plur(senzaIva, "fattura non ha", "fatture non hanno")} il dettaglio IVA (importo secco, inserito prima): ${senzaIva === 1 ? "vale" : "valgono"} come imponibile con IVA 0. Per correggerla apri la matita e scegli l'aliquota.</div>` : ""}` : "")
+        : ""; }
     { const n = fatViste.length, filtrata = qFat || filtroFat !== "tutte";
       $("fat-count").innerHTML = n === 0 ? "" : "<b>" + n + "</b>" + (n === 1 ? " fattura" : " fatture") + (filtrata ? " su " + FAT.length : ""); }
     $("fat-cnt").textContent = FAT.length;
@@ -1236,9 +1608,370 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
         }));
       }
     }
+
+    // ══════════════════════════════════════════════════════════════════
+    // LISTINO PRODOTTI (N1) — il prezzo è scritto in UNA unità (€/t o
+    // €/m³); l'altra è una CONVERSIONE, e senza densità non esiste.
+    // ══════════════════════════════════════════════════════════════════
+    const proOrd = PRO.slice().sort((a, b) =>
+      String(a.nome || "").localeCompare(String(b.nome || ""), "it", { numeric: true }));
+    const qLis = ($("lis-cerca") && $("lis-cerca").value || "").trim().toLowerCase();
+    const lisVisti = proOrd.filter(p => !qLis || String(p.nome || "").toLowerCase().includes(qLis));
+    $("lis-list").innerHTML = lisVisti.map(p => {
+      const d = densitaValida(p), suT = p.unitaPrezzo !== "m3";
+      const pt = prezzoPerTonnellata(p), pm = prezzoPerMetroCubo(p);
+      const usato = PES.filter(x => x.prodottoId === p.id).length;
+      const meta = [
+        d ? "densità " + qt(d) + " t/m³" : "densità mancante",
+        "IVA " + perc(p.iva),
+        usato ? plur(usato, "pesata registrata", "pesate registrate") : "mai pesato",
+      ].join(" · ");
+      const conv = d
+        ? (suT ? "= " + eur(pm) + "/m³" : "= " + eur(pt) + "/t")
+        : "conversione impossibile";
+      return `<div class="item ${d ? "st-accent" : "st-warn"}">
+      <span class="avatar">${IC.listino}</span>
+      <div class="info"><div class="name">${esc(p.nome)} <span class="badge tag">${suT ? "a tonnellata" : "a metro cubo"}</span></div>
+      <div class="meta">${esc(meta)}</div></div>
+      <div class="amt" title="${suT ? "Prezzo di listino a tonnellata" : "Prezzo di listino a metro cubo"}">
+        <div class="amt-n">${eur(p.prezzo)}<span class="u">/${uni(p.unitaPrezzo)}</span></div>
+        <div class="amt-s"><span class="conv">${conv}</span></div></div>
+      <div class="acts">
+        <button class="arr" type="button" title="Modifica prodotto" aria-label="Modifica ${esc(p.nome)}" data-edit-pro="${p.id}">${IC.matita}</button>
+        <button class="arr del" type="button" title="Elimina prodotto" aria-label="Elimina ${esc(p.nome)}" data-del-pro="${p.id}">${IC.croce}</button></div></div>`;
+    }).join("")
+      || (qLis ? vuoto("listino", "Nessun risultato", "Nessun prodotto trovato per «<b>" + esc(qLis) + "</b>». Prova con una parte del nome o della pezzatura.")
+               : vuoto("listino", "Listino vuoto", "Aggiungi il primo prodotto qui sotto: senza listino le pesate non hanno un prezzo e la fattura differita non può nascere."));
+    $("lis-count").innerHTML = lisVisti.length === 0 ? ""
+      : "<b>" + lisVisti.length + "</b>" + (lisVisti.length === 1 ? " prodotto" : " prodotti") + (qLis ? " su " + PRO.length : "");
+    $("lis-cnt").textContent = PRO.length;
+
+    // ══════════════════════════════════════════════════════════════════
+    // REGISTRO PESATE / DDT (N3) — netto = lordo − tara, sempre calcolato
+    // ══════════════════════════════════════════════════════════════════
+    { // tendine del form pesata: clienti dall'anagrafica, prodotti dal listino
+      const selC = $("pes-cli"), primaC = selC.value;
+      selC.innerHTML = CLI.length
+        ? '<option value="">— scegli il cliente —</option>' + cliOrd.map(c => `<option value="${esc(c.id)}">${esc(c.ragioneSociale)}</option>`).join("")
+        : '<option value="">— nessun cliente in anagrafica —</option>';
+      selC.value = primaC; if (selC.value !== primaC) selC.value = "";
+      const selP = $("pes-prod"), primaP = selP.value;
+      selP.innerHTML = PRO.length
+        ? '<option value="">— scegli il prodotto —</option>' + proOrd.map(p =>
+            `<option value="${esc(p.id)}">${esc(p.nome)} — ${eur(p.prezzo)}/${uni(p.unitaPrezzo)}</option>`).join("")
+        : '<option value="">— listino vuoto —</option>';
+      selP.value = primaP; if (selP.value !== primaP) selP.value = "";
+      const selD = $("dif-cli"), primaD = selD.value;
+      selD.innerHTML = '<option value="">— scegli il cliente —</option>'
+        + cliOrd.map(c => `<option value="${esc(c.id)}">${esc(c.ragioneSociale)}</option>`).join("");
+      selD.value = primaD; if (selD.value !== primaD) selD.value = "";
+      $("pes-num").value = numeroProssimoDdt();
+      // il numero della prossima fattura lo propone Conti finché non lo si
+      // scrive a mano (e mai mentre si sta modificando una fattura esistente)
+      if (!editFat && ftNumAuto) $("ft-num").value = numeroProssimaFattura();
+      aggiornaNetto(); }
+
+    const qPes = ($("pes-cerca") && $("pes-cerca").value || "").trim().toLowerCase();
+    const pesMatch = (p) => filtroPes === "tutte" || (filtroPes === "aperti" && !p.fatturaId)
+      || (filtroPes === "fatturati" && !!p.fatturaId);
+    const pesCerca = (p) => !qPes || [p.numero, p.cliente, p.prodotto, p.mezzo, p.destinatario]
+      .map(v => String(v || "")).join(" ").toLowerCase().includes(qPes);
+    const pesViste = PES.filter(pesMatch).filter(pesCerca)
+      .sort((a, b) => String(b.data || "").localeCompare(String(a.data || ""))
+        || String(b.numero || "").localeCompare(String(a.numero || ""), "it", { numeric: true }));
+    $("pes-list").innerHTML = pesViste.map(p => {
+      const fatt = p.fatturaId ? FAT.find(f => f.id === p.fatturaId) : null;
+      const q = quantitaPesata(p);
+      // riga stretta: sopra chi e cosa, sotto — a tutta larghezza — la pesa e
+      // il viaggio. Meglio due righe intere che una riga sola tagliata a metà.
+      const meta = [fmtD(p.data), esc(p.prodotto || "—"),
+        fatt ? "fattura " + esc(fatt.numero) : ""].filter(Boolean).join(" · ");
+      const dettaglio = ["lordo " + qt(p.lordo) + " − tara " + qt(p.tara) + " = netto <b>" + qt(p.netto) + " t</b>",
+        p.mezzo ? esc(p.mezzo) : "", p.destinatario ? esc(p.destinatario) : ""]
+        .filter(Boolean).join(" · ");
+      return `<div class="item ${p.fatturaId ? "st-ok" : "st-accent"}" style="flex-wrap:wrap;">
+      <span class="avatar">${IC.camion}</span>
+      <div class="info"><div class="name"><span class="num-doc">DDT ${esc(p.numero || "—")}</span> · ${esc(p.cliente || "—")}</div>
+      <div class="meta">${meta}</div></div>
+      <div class="amt" title="${p.unitaVendita === "m3" ? "Venduto a metro cubo: i m³ vengono dal netto diviso la densità" : "Venduto a tonnellata"}">
+        <div class="amt-n${p.fatturaId ? " mute" : ""}">${eur(valorePesata(p))}</div>
+        <div class="amt-s">${p.quantita == null ? "quantità non calcolabile" : qtu(p.quantita, p.unitaVendita) + " × " + eur(p.prezzoUnitario)}</div></div>
+      <span class="badge ${p.fatturaId ? "ok" : "warn"}">${p.fatturaId ? "Fatturato" : "Da fatturare"}</span>
+      ${p.fatturaId ? "" : `<div class="acts"><button class="arr del" type="button" title="Elimina pesata" aria-label="Elimina il DDT ${esc(p.numero || "")}" data-del-pes="${p.id}">${IC.croce}</button></div>`}
+      <div class="frow"><div class="meta pesa">${dettaglio}</div></div>
+      </div>`; }).join("")
+      || (qPes ? vuoto("camion", "Nessun risultato", "Nessuna pesata trovata per «<b>" + esc(qPes) + "</b>». Prova con la targa, il prodotto o il numero del DDT.")
+         : filtroPes === "tutte" ? vuoto("camion", "Nessuna pesata", "Registra la prima pesata qui sotto: lordo e tara li scrivi tu, il <b>netto</b> lo calcola Conti. Da questi DDT nasce poi la fattura differita.")
+         : vuoto("camion", "Categoria vuota", "Nessun DDT in questa categoria. Tocca <b>Tutti</b> per vedere l'elenco completo."));
+    { const nT = pesViste.reduce((t, p) => t + (+p.netto || 0), 0);
+      const val = pesViste.reduce((t, p) => t + valorePesata(p), 0);
+      $("pes-tot").innerHTML = pesViste.length
+        ? `<div class="tot"><span class="tot-l">Netto trasportato</span>
+           <span class="tot-n">${qt(nT)}<span class="u"> t</span></span></div>
+           <div class="tot"><span class="tot-l">Valore delle consegne</span>
+           <span class="tot-n">${eur(val)}</span></div>` : ""; }
+    { const n = pesViste.length, filtrata = qPes || filtroPes !== "tutte";
+      $("pes-count").innerHTML = n === 0 ? "" : "<b>" + n + "</b>" + (n === 1 ? " pesata" : " pesate") + (filtrata ? " su " + PES.length : ""); }
+    $("pes-cnt").textContent = PES.length;
+    document.querySelectorAll("#pes-filtri [data-pfiltro]").forEach(b =>
+      b.classList.toggle("active", b.getAttribute("data-pfiltro") === filtroPes));
+    { const q = { tutte: PES.length, aperti: PES.filter(p => !p.fatturaId).length,
+        fatturati: PES.filter(p => !!p.fatturaId).length };
+      document.querySelectorAll("#pes-filtri .qt").forEach(s => {
+        const v = q[s.getAttribute("data-pqt")]; s.textContent = v ? v : ""; }); }
+
+    // ══════════════════════════════════════════════════════════════════
+    // FATTURA DIFFERITA DAI DDT (N4) — più consegne, una fattura sola
+    // ══════════════════════════════════════════════════════════════════
+    renderDifferita();
+
+    // ══════════════════════════════════════════════════════════════════
+    // CANONI E DIRITTI DI ESCAVAZIONE (N5) — aliquota impostata dall'utente
+    // ══════════════════════════════════════════════════════════════════
+    if (!canoneInit) {
+      canoneInit = true;
+      $("can-unita").value = (IMP && IMP.canoneUnita === "t") ? "t" : "m3";
+      $("can-ali").value = IMP && +IMP.canoneAliquota > 0 ? IMP.canoneAliquota : "";
+      $("can-nota").value = (IMP && IMP.canoneNota) || "";
+      const a = new Date().getFullYear();
+      $("can-dal").value = a + "-01-01"; $("can-al").value = a + "-12-31";
+    }
+    renderCanone();
+
+    // ══════════════════════════════════════════════════════════════════
+    // QUADRO — consegne consegnate ma non ancora fatturate (per cliente)
+    // ══════════════════════════════════════════════════════════════════
+    { const per = {};
+      for (const p of PES.filter(x => !x.fatturaId)) {
+        const k = p.clienteId || "nome:" + String(p.cliente || "—");
+        const r = per[k] || (per[k] = { clienteId: p.clienteId || "", cliente: p.cliente || "—",
+          conto: 0, valore: 0, netto: 0, ultima: "" });
+        r.conto++; r.valore = round2(r.valore + valorePesata(p)); r.netto = round2(r.netto + (+p.netto || 0));
+        if (String(p.data || "") > r.ultima) r.ultima = String(p.data || "");
+      }
+      const gruppi = Object.values(per).sort((a, b) => b.valore - a.valore);
+      $("dash-ddt").innerHTML = gruppi.length
+        ? gruppi.map(g => `<div class="item st-sup">
+          <span class="avatar sup">${IC.camion}</span>
+          <div class="info"><div class="name">${esc(g.cliente)}</div>
+          <div class="meta">${plur(g.conto, "DDT da fatturare", "DDT da fatturare")} · ${qt(g.netto)} t · ultima consegna ${fmtD(g.ultima)}</div></div>
+          <div class="amt"><div class="amt-n">${eur(g.valore)}</div><div class="amt-s">da fatturare</div></div>
+          ${g.clienteId ? `<div class="acts"><button class="dw-btn secondary mini" data-vai-dif="${esc(g.clienteId)}" title="Prepara la fattura differita per questo cliente">${IC.fattura}Fattura</button></div>` : ""}
+          </div>`).join("")
+          + `<div class="tot"><span class="tot-l">Consegnato da fatturare</span>
+             <span class="tot-n">${eur(gruppi.reduce((t, g) => t + g.valore, 0))}</span></div>`
+        : vuoto("spunta", "Niente in sospeso", "Tutte le pesate registrate sono già state fatturate. Le nuove consegne le registri nella scheda <b>Pesate</b>."); }
+
+    // ── Venduto per prodotto (Report): tonnellate, metri cubi e valore ──
+    { const anno = new Date().getFullYear();
+      const vend = venditePerProdotto(PES, anno + "-01-01", anno + "-12-31");
+      $("vend-list").innerHTML = vend.length
+        ? vend.map(v => `<div class="item st-accent">
+          <span class="avatar">${IC.listino}</span>
+          <div class="info"><div class="name">${esc(v.prodotto)}</div>
+          <div class="meta">${qt(v.t)} t${v.m3 ? " · " + qt(v.m3) + " m³" : ""} · ${plur(v.viaggi, "viaggio", "viaggi")}</div></div>
+          <div class="amt"><div class="amt-n pos">${eur(v.valore)}</div><div class="amt-s">venduto ${anno}</div></div></div>`).join("")
+          + `<div class="tot"><span class="tot-l">Venduto ${anno}</span>
+             <span class="tot-n">${eur(vend.reduce((t, v) => t + v.valore, 0))}</span></div>`
+        : "";
+      if (!vend.length) {
+        grafVuoto("graf-vend", "camion", "Nessuna consegna quest'anno",
+          "Il venduto per prodotto si riempie dalle <b>pesate</b>: registra il primo DDT e qui compare quanto pesa ogni pezzatura sul fatturato.");
+      } else if (G()) {
+        svuotaGraf("graf-vend");
+        G().barre("#graf-vend", {
+          titolo: "Venduto per prodotto — " + anno,
+          meta: "valore delle consegne registrate",
+          orientamento: "orizzontale",
+          formato: eur0,
+          tabella: false,
+          valori: vend.map(v => ({ etichetta: v.prodotto, valore: Math.round(v.valore) })),
+          aria: "Venduto per prodotto: " + vend.map(v => v.prodotto + " " + eur0(v.valore)).join(", ") + ".",
+          nota: "Le tonnellate e i metri cubi di ogni prodotto sono nell'elenco qui sotto: la barra è il <b>valore</b>, che è quello che decide dove conviene spingere.",
+        });
+      } }
+  }
+
+  // ── Numeri progressivi: registri separati per fatture e DDT, uno per anno ──
+  function numeroProssimaFattura(anno) {
+    return prossimoNumero(FAT.map(f => f.numero), anno || new Date().getFullYear());
+  }
+  function numeroProssimoDdt(dataISO) {
+    const anno = (dataISO || $("pes-data").value || oggiISO()).slice(0, 4) || new Date().getFullYear();
+    return prossimoNumero(PES.map(p => p.numero), anno);
+  }
+  // ── Fattura: imponibile → IVA → totale, calcolati mentre si digita ──
+  function aggiornaRiepFat() {
+    const base = +$("ft-imp").value || 0, al = +$("ft-iva").value || 0;
+    if (!(base > 0)) { $("ft-riep").innerHTML = ""; return; }
+    const t = totaliDaRighe([{ imponibile: base, aliquota: al }]);
+    $("ft-riep").innerHTML = `<div class="riep">
+      <div class="mrec"><span class="k">Imponibile</span><span class="v">${eur(t.imponibile)}</span></div>
+      <div class="mrec"><span class="k">IVA ${perc(al)}</span><span class="v">${eur(t.ivaImporto)}</span></div>
+      <div class="mrec"><span class="k">Totale fattura</span><span class="v">${eur(t.totale)}</span></div>
+      </div>`;
+  }
+  // ── Listino: l'altro prezzo, quello convertito con la densità ──
+  function aggiornaConvPro() {
+    const p = { unitaPrezzo: $("pr-unita").value, prezzo: +$("pr-prezzo").value || 0, densita: +$("pr-dens").value || 0 };
+    const d = densitaValida(p);
+    if (!(p.prezzo > 0)) { $("pr-conv").innerHTML = ""; return; }
+    const suT = p.unitaPrezzo !== "m3";
+    $("pr-conv").innerHTML = d
+      ? `<div class="riep">
+         <div class="mrec"><span class="k">Prezzo di listino</span><span class="v">${eur(p.prezzo)}/${uni(p.unitaPrezzo)}</span></div>
+         <div class="mrec"><span class="k">Densità</span><span class="v">${qt(d)} t/m³</span></div>
+         <div class="mrec"><span class="k">${suT ? "Cioè a metro cubo" : "Cioè a tonnellata"}</span><span class="v">${suT ? eur(prezzoPerMetroCubo(p)) + "/m³" : eur(prezzoPerTonnellata(p)) + "/t"}</span></div>
+         </div>`
+      : `<div class="note">Senza densità Conti non può dire quanto fa ${suT ? "al metro cubo" : "alla tonnellata"}: <b>€/t e €/m³ non si convertono a occhio</b>. Gli inerti stanno in genere fra 1,2 e 2,8 t/m³ — il valore giusto è quello del tuo materiale.</div>`;
+  }
+  // ── Netto della pesata: lordo − tara, aggiornato mentre si digita ──
+  function aggiornaNetto() {
+    const n = nettoPesata($("pes-lordo").value, $("pes-tara").value);
+    $("pes-netto").value = qt(n);
+    const p = PRO.find(x => x.id === $("pes-prod").value);
+    const r = p ? rigaPesata(p, $("pes-lordo").value, $("pes-tara").value) : null;
+    $("pes-riep").innerHTML = (r && n > 0)
+      ? `<div class="riep">
+         <div class="mrec"><span class="k">Netto</span><span class="v">${qt(r.netto)} t</span></div>
+         ${r.unitaVendita === "m3"
+           ? `<div class="mrec"><span class="k">Volume (netto ÷ densità ${qt(r.densita)})</span><span class="v">${qt(r.quantita)} m³</span></div>` : ""}
+         <div class="mrec"><span class="k">Prezzo</span><span class="v">${eur(r.prezzoUnitario)}/${uni(r.unitaVendita)}</span></div>
+         <div class="mrec"><span class="k">Valore della consegna</span><span class="v">${r.valore == null ? "—" : eur(r.valore)}</span></div>
+         </div>`
+      : "";
+  }
+  // ── Elenco dei DDT da fatturare secondo i filtri della fattura differita ──
+  function difVisibili() {
+    return pesateDaFatturare(PES, $("dif-cli").value, $("dif-dal").value, $("dif-al").value);
+  }
+  function renderDifferita() {
+    const lista = difVisibili();
+    const ids = lista.map(p => p.id);
+    // la spunta segue i filtri: cambiando cliente o periodo si riparte da tutti
+    difSel = new Set([...difSel].filter(id => ids.includes(id)));
+    if (!difSel.size && ids.length) ids.forEach(id => difSel.add(id));
+    const scelti = lista.filter(p => difSel.has(p.id));
+    $("dif-list").innerHTML = lista.length
+      ? lista.map(p => `<label class="item tap st-accent">
+        <input type="checkbox" class="dw-chk" data-ddt="${p.id}"${difSel.has(p.id) ? " checked" : ""}
+               aria-label="Includi il DDT ${esc(p.numero || "")} nella fattura">
+        <div class="info"><div class="name"><span class="num-doc">DDT ${esc(p.numero || "—")}</span> · ${esc(p.prodotto || "—")}</div>
+        <div class="meta">${fmtD(p.data)} · ${qt(p.netto)} t netti${p.mezzo ? " · " + esc(p.mezzo) : ""}${p.destinatario ? " · " + esc(p.destinatario) : ""}</div></div>
+        <div class="amt"><div class="amt-n">${eur(valorePesata(p))}</div>
+          <div class="amt-s">${p.quantita == null ? "—" : qtu(p.quantita, p.unitaVendita)}</div></div></label>`).join("")
+      : ($("dif-cli").value
+          ? vuoto("spunta", "Nessun DDT da fatturare", "Per questo cliente non ci sono consegne in attesa nel periodo scelto. Prova ad allargare le date o svuotale per vederle tutte.")
+          : vuoto("camion", "Scegli il cliente", "La fattura differita mette insieme i DDT di <b>un solo cliente</b>: scegli chi fatturare qui sopra e compariranno le sue consegne ancora da fatturare."));
+    aggiornaDifTot();
+  }
+  // Totali della fattura differita in anteprima: imponibile, IVA e totale dei
+  // soli DDT spuntati. Aggiorna anche i due bottoni, così non mentono mai.
+  function aggiornaDifTot() {
+    const lista = difVisibili(), scelti = lista.filter(p => difSel.has(p.id));
+    const ant = fatturaDaPesate(scelti);
+    $("dif-tot").innerHTML = ant
+      ? `<div class="riep">
+         <div class="mrec"><span class="k">DDT scelti</span><span class="v">${ant.conto}</span></div>
+         <div class="mrec"><span class="k">Righe raggruppate per prodotto</span><span class="v">${ant.righe.length}</span></div>
+         <div class="mrec"><span class="k">Imponibile</span><span class="v">${eur(ant.imponibile)}</span></div>
+         <div class="mrec"><span class="k">IVA</span><span class="v">${eur(ant.ivaImporto)}</span></div>
+         <div class="mrec"><span class="k">Totale fattura</span><span class="v">${eur(ant.totale)}</span></div>
+         </div>` : "";
+    const btn = $("btn-dif-tutti");
+    if (btn) { btn.textContent = (lista.length && scelti.length === lista.length) ? "Togli tutti" : "Spunta tutti";
+      btn.disabled = !lista.length; }
+    if ($("btn-dif")) $("btn-dif").disabled = !ant;
+    return ant;
+  }
+  // ── Canone di escavazione sul periodo scelto ──
+  function renderCanone() {
+    const cfg = { canoneUnita: $("can-unita").value, canoneAliquota: +$("can-ali").value || 0 };
+    const c = canonePeriodo(PES, cfg, $("can-dal").value, $("can-al").value);
+    const u = uni(c.unita);
+    if (!c.viaggi) {
+      $("can-riep").innerHTML = vuoto("bilancia", "Nessun materiale nel periodo",
+        "Il canone si calcola sul materiale delle <b>pesate</b>: registra i DDT del periodo, oppure allarga le date qui sopra.");
+      $("can-list").innerHTML = ""; return;
+    }
+    const senzaAli = !(c.aliquota > 0);
+    $("can-riep").innerHTML = `<div class="cassa${senzaAli ? " vuota" : ""}">
+      <span class="cassa-ico">${IC.bilancia}</span>
+      <div><div class="cassa-num">${senzaAli ? "—" : eur(c.dovuto)}</div>
+      <div class="cassa-lab">Canone dovuto sul periodo</div></div>
+      <div class="cassa-txt" style="margin-left:auto;text-align:right;">
+      ${senzaAli ? "Scrivi l'aliquota della tua concessione qui sopra.<br>"
+                 : "Aliquota <b>" + eur(c.aliquota) + "/" + u + "</b> × <b>" + qt(c.base) + " " + u + "</b><br>"}
+      Materiale del periodo: <b>${qt(c.tonnellate)} t</b>${c.metriCubi ? " · <b>" + qt(c.metriCubi) + " m³</b>" : ""} in ${plur(c.viaggi, "viaggio", "viaggi")}.</div></div>`
+      + (c.senzaDensita ? `<div class="note">${plur(c.senzaDensita, "pesata è", "pesate sono")} senza densità del prodotto: ${c.senzaDensita === 1 ? "il suo volume non entra" : "i loro volumi non entrano"} nel conto in m³. Aggiungi la densità nel <b>Listino</b> e il calcolo si completa.</div>` : "")
+      + `<div class="note">Il canone si versa agli enti indicati dalla tua concessione (in genere Comune, Provincia e Regione, con quote diverse da regione a regione) e molte regioni chiedono anche una <b>dichiarazione annuale dei quantitativi estratti</b>. Questo è il numero da cui partire: <b>confermalo con il tuo ente e col commercialista</b>.</div>`;
+    $("can-list").innerHTML = c.perProdotto.map(r => `<div class="item st-accent">
+      <span class="avatar">${IC.listino}</span>
+      <div class="info"><div class="name">${esc(r.prodotto)}</div>
+      <div class="meta">${qt(r.t)} t${r.m3 ? " · " + qt(r.m3) + " m³" : ""} · ${plur(r.viaggi, "viaggio", "viaggi")}${r.senzaDensita ? " · " + r.senzaDensita + " senza densità" : ""}</div></div>
+      <div class="amt"><div class="amt-n${senzaAli ? " mute" : ""}">${senzaAli ? "—" : eur(r.dovuto)}</div>
+        <div class="amt-s">${qt(c.unita === "t" ? r.t : r.m3)} ${u}</div></div></div>`).join("")
+      + (senzaAli ? "" : `<div class="tot"><span class="tot-l">Canone stimato del periodo</span>
+         <span class="tot-n">${eur(c.dovuto)}</span></div>`);
   }
 
   document.addEventListener("click", async (e) => {
+    // ── Listino: modifica di un prodotto (stesso form, come per i clienti) ──
+    const btnEditPro = e.target.closest && e.target.closest("[data-edit-pro]");
+    const editProId = btnEditPro && btnEditPro.getAttribute("data-edit-pro");
+    if (editProId) { const p = PRO.find(x => x.id === editProId); if (!p) return;
+      if (editPro === p.id) {   // ri-tocco la matita dello stesso prodotto = annulla
+        editPro = null; $("btn-pr").textContent = "Aggiungi"; esito("pr-esito", "Modifica annullata.");
+        pulisciPro(); return; }
+      editPro = p.id;
+      $("pr-nome").value = p.nome || ""; $("pr-unita").value = p.unitaPrezzo === "m3" ? "m3" : "t";
+      $("pr-prezzo").value = p.prezzo != null ? p.prezzo : "";
+      $("pr-dens").value = p.densita != null ? p.densita : "";
+      $("pr-iva").value = String(+p.iva || 0);
+      PR_CAMPI.forEach(puliscoErr); aggiornaConvPro();
+      $("btn-pr").textContent = "Salva modifica";
+      esito("pr-esito", "Stai modificando " + p.nome + ": i DDT già registrati non cambiano, tengono il prezzo del giorno della consegna.");
+      $("pr-nome").scrollIntoView({ behavior: "smooth", block: "center" });
+      return; }
+    const btnDelPro = e.target.closest && e.target.closest("[data-del-pro]");
+    if (btnDelPro) { const p = PRO.find(x => x.id === btnDelPro.getAttribute("data-del-pro")); if (!p) return;
+      const usato = PES.filter(x => x.prodottoId === p.id).length;
+      const ok = await chiedi("Elimina prodotto",
+        `<p>Stai per togliere <b>${esc(p.nome)}</b> dal listino.</p>
+         <div class="mrec"><span class="k">Prezzo</span><span class="v accent">${eur(p.prezzo)}/${uni(p.unitaPrezzo)}</span></div>
+         ${densitaValida(p) ? `<div class="mrec"><span class="k">Densità</span><span class="v">${qt(p.densita)} t/m³</span></div>` : ""}
+         <p style="margin-top:10px;">${usato
+           ? `Compare in <b>${plur(usato, "pesata", "pesate")}</b>: quelle <b>non cambiano</b>, perché nome, prezzo e densità sono fotografati sul DDT il giorno della consegna. Sparisce solo dalla tendina delle nuove pesate.`
+           : "Non è mai stato usato in una pesata: non si perde nessun documento."}</p>`,
+        "Elimina", true);
+      if (ok) {
+        if (editPro === p.id) { editPro = null; $("btn-pr").textContent = "Aggiungi"; pulisciPro(); }
+        await db.rimuovi("prodotti", p.id);
+        esito("pr-esito", "Prodotto " + p.nome + " eliminato dal listino.", "err"); await refresh(); }
+      return; }
+    const btnDelPes = e.target.closest && e.target.closest("[data-del-pes]");
+    if (btnDelPes) { const p = PES.find(x => x.id === btnDelPes.getAttribute("data-del-pes")); if (!p) return;
+      const ok = await chiedi("Elimina pesata",
+        `<p>Stai per eliminare il documento di trasporto <b>DDT ${esc(p.numero || "—")}</b>.</p>
+         <div class="mrec"><span class="k">Cliente</span><span class="v">${esc(p.cliente || "—")}</span></div>
+         <div class="mrec"><span class="k">Prodotto</span><span class="v">${esc(p.prodotto || "—")}</span></div>
+         <div class="mrec"><span class="k">Netto</span><span class="v">${qt(p.netto)} t</span></div>
+         <div class="mrec"><span class="k">Valore</span><span class="v accent">${eur(valorePesata(p))}</span></div>
+         <p style="margin-top:10px;">Esce dal registro, dal venduto e dal conto del canone.
+           <b>Fallo solo per correggere una pesata sbagliata</b> e non ancora consegnata: il numero
+           che si libera verrà riusato dalla prossima, così la numerazione resta senza salti.</p>`,
+        "Elimina", true);
+      if (ok) { await db.rimuovi("pesate", p.id); difSel.delete(p.id);
+        esito("pes-esito", "DDT " + (p.numero || "") + " eliminato.", "err"); await refresh(); }
+      return; }
+    // dal Quadro alla fattura differita, col cliente già scelto
+    const btnVaiDif = e.target.closest && e.target.closest("[data-vai-dif]");
+    if (btnVaiDif) {
+      $("dif-cli").value = btnVaiDif.getAttribute("data-vai-dif");
+      $("dif-dal").value = ""; $("dif-al").value = "";
+      difSel = new Set(); go("fat"); renderDifferita();
+      $("dif-form").scrollIntoView({ behavior: "smooth", block: "center" });
+      return; }
     const btnGara = e.target.closest && e.target.closest("[data-gara-esito]");
     if (btnGara) { const g = GAR.find(x => x.id === btnGara.getAttribute("data-gara"));
       const es = btnGara.getAttribute("data-gara-esito"); if (!g) return;
@@ -1263,9 +1996,14 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
          <div class="mrec"><span class="k">Importo</span><span class="v accent">${eur(f.importo)}</span></div>
          <p style="margin-top:10px;">Sparisce da elenchi, totali, aging ed esposizione del cliente.
            <b>Usa questa opzione solo per correggere un inserimento sbagliato</b>: una fattura
-           realmente emessa non va cancellata, va gestita con una nota di credito.</p>`,
+           realmente emessa non va cancellata, va gestita con una nota di credito.</p>
+         ${(PES.filter(p => p.fatturaId === f.id).length) ? `<p>I <b>${PES.filter(p => p.fatturaId === f.id).length} DDT</b> collegati tornano fra quelli <b>da fatturare</b>: le consegne non si perdono, si rimettono in coda.</p>` : ""}`,
         "Elimina", true);
-      if (ok) { await db.rimuovi("fatture", f.id);
+      if (ok) {
+        // i DDT della fattura tornano liberi: nessuna consegna resta appesa a
+        // un documento che non esiste più
+        for (const p of PES.filter(x => x.fatturaId === f.id)) await db.aggiorna("pesate", p.id, { fatturaId: null });
+        await db.rimuovi("fatture", f.id);
         esito("ft-esito", "Fattura " + f.numero + " eliminata.", "err"); await refresh(); }
       return; }
     // Migrazione: collega TUTTE le fatture di un nome scritto a mano al cliente
@@ -1365,7 +2103,7 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
       if (editFat === f.id) {   // ri-tocco la ✎ della stessa fattura = annulla modifica
         editFat = null; $("btn-ft").textContent = "Emetti"; $("ft-esito").textContent = "Modifica annullata.";
         pulisciFat(); return; }
-      editFat = f.id;
+      editFat = f.id; ftNumAuto = false;
       $("ft-num").value = f.numero || "";
       // cliente: se è già in anagrafica lo preseleziono, altrimenti apro
       // "nuovo cliente" col testo vecchio già scritto, pronto da confermare
@@ -1373,10 +2111,17 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
         $("ft-cli").value = c ? c.id : "__nuovo";
         $("ft-cli-nuovo").value = c ? "" : (f.cliente || "");
         syncCliNuovo(); }
-      $("ft-imp").value = f.importo != null ? f.importo : ""; $("ft-scad").value = f.scadenza || "";
+      // la fattura vecchia (importo secco) si apre come imponibile con IVA 0:
+      // finché non si sceglie un'aliquota il totale resta identico a prima
+      { const im = importiFattura(f);
+        $("ft-imp").value = im.imponibile;
+        $("ft-iva").value = String(im.aliquota != null ? im.aliquota : 0);
+        if (!$("ft-iva").value) $("ft-iva").value = "0";
+        aggiornaRiepFat(); }
+      $("ft-scad").value = f.scadenza || "";
       FT_CAMPI.forEach(puliscoErr);
       $("btn-ft").textContent = "Salva modifica";
-      esito("ft-esito", "Stai modificando la fattura " + f.numero + ": cambia i campi e premi «Salva modifica».");
+      esito("ft-esito", "Stai modificando la fattura " + f.numero + (importiFattura(f).conIva ? "" : " (importo senza IVA: scegli l'aliquota per completarla)") + ": cambia i campi e premi «Salva modifica».");
       $("ft-num").scrollIntoView({ behavior: "smooth", block: "center" });
       return; }
     const it = e.target.closest && e.target.closest("[data-fat]");
@@ -1389,7 +2134,12 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
           `<p>Stai per segnare questa fattura come <b>incassata oggi</b> (${fmtD(oggi)}).</p>
            <div class="mrec"><span class="k">Numero</span><span class="v">${esc(f.numero)}</span></div>
            <div class="mrec"><span class="k">Cliente</span><span class="v">${esc(nomeCliente(f, CLI))}</span></div>
-           <div class="mrec"><span class="k">Importo</span><span class="v accent">${eur(f.importo)}</span></div>
+           ${(() => { const im = importiFattura(f); return im.conIva
+             ? `<div class="mrec"><span class="k">Imponibile</span><span class="v">${eur(im.imponibile)}</span></div>
+                <div class="mrec"><span class="k">IVA${im.aliquota != null ? " " + perc(im.aliquota) : ""}</span><span class="v">${eur(im.ivaImporto)}</span></div>
+                <div class="mrec"><span class="k">Totale</span><span class="v accent">${eur(im.totale)}</span></div>`
+             : `<div class="mrec"><span class="k">Importo</span><span class="v accent">${eur(im.totale)}</span></div>`; })()}
+           ${(f.ddtIds || []).length ? `<div class="mrec"><span class="k">Da DDT</span><span class="v">${(f.ddtIds || []).length}</span></div>` : ""}
            <div class="mrec"><span class="k">Scadenza</span><span class="v">${fmtD(f.scadenza)}${ritardo ? " (+" + ritardo + " gg)" : ""}</span></div>
            <p style="margin-top:10px;">L'importo esce dal credito aperto ed entra
              nell'incassato del mese; l'esposizione del cliente cala di conseguenza.
@@ -1416,10 +2166,13 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
   $("btn-rep-export").onclick = () => {
     // situazione fatture per il commercialista: numero, cliente, importo,
     // scadenza, stato calcolato, data incasso
-    let csv = "numero;cliente;importo;scadenza;stato;data_incasso\n";
+    // registro-IVA-ready: imponibile, imposta e totale separati (le fatture
+    // vecchie, senza dettaglio, escono con imponibile = importo e IVA 0)
+    let csv = "numero;cliente;emessa;imponibile;aliquota;iva;totale;scadenza;stato;data_incasso;ddt\n";
     for (const f of FAT.slice().sort((a,b) => (a.scadenza||"").localeCompare(b.scadenza||""))) {
       const st = f.incassata ? "incassata" : (giorni(f.scadenza) < 0 ? "insoluta" : "aperta");
-      csv += `${csvCell(f.numero)};${csvCell(nomeCliente(f, CLI))};${f.importo};${f.scadenza};${st};${f.dataIncasso||""}\n`;
+      const im = importiFattura(f);
+      csv += `${csvCell(f.numero)};${csvCell(nomeCliente(f, CLI))};${f.emessa||""};${im.imponibile};${im.aliquota == null ? "" : im.aliquota};${im.ivaImporto};${im.totale};${f.scadenza};${st};${f.dataIncasso||""};${(f.ddtIds||[]).length}\n`;
     }
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
@@ -1464,6 +2217,172 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
     a.download = "conti_clienti.csv"; a.click();
     esito("cl-esito", "Esportati " + plur(CLI.length, "cliente", "clienti") + " in CSV.", "success");
   };
+  // ══════════════════════════════════════════════════════════════════
+  // LISTINO (N1): aggiunta e modifica di un prodotto. Densità obbligatoria:
+  // è quella che rende possibile passare da €/t a €/m³ e dai metri cubi alle
+  // tonnellate. Senza, mezza app non potrebbe fare i conti.
+  // ══════════════════════════════════════════════════════════════════
+  $("btn-pr").onclick = async () => {
+    const nome = $("pr-nome").value.trim();
+    const unitaPrezzo = $("pr-unita").value === "m3" ? "m3" : "t";
+    const prezzo = +$("pr-prezzo").value, densita = +$("pr-dens").value, iva = +$("pr-iva").value || 0;
+    PR_CAMPI.forEach(puliscoErr);
+    const err = [];
+    if (!nome) err.push(["pr-nome", "Scrivi nome e pezzatura del prodotto, come lo chiami in cava (es. Pietrisco 8/12)."]);
+    else if (PRO.some(p => p.id !== editPro && chiaveNome(p.nome) === chiaveNome(nome)))
+      err.push(["pr-nome", "C'è già un prodotto con questo nome: modifica quello invece di crearne un doppione."]);
+    if (!(prezzo > 0)) err.push(["pr-prezzo", "Scrivi il prezzo di listino in euro: deve essere maggiore di zero."]);
+    if (!(densita > 0)) err.push(["pr-dens", "Serve la densità del materiale (quante tonnellate pesa un metro cubo): senza, €/t e €/m³ non si possono convertire."]);
+    else if (densita < 0.3 || densita > 5) err.push(["pr-dens", "Controlla la densità: gli inerti stanno in genere fra 1,2 e 2,8 tonnellate per metro cubo."]);
+    if (err.length) { err.forEach(x => segnaErr(x[0], x[1]));
+      esito("pr-esito", "Compila i campi evidenziati per " + (editPro ? "salvare la modifica" : "aggiungere il prodotto") + ".", "err");
+      primoErrore(PR_CAMPI); return; }
+    const dati = { nome, unitaPrezzo, prezzo: round2(prezzo), densita, iva };
+    if (editPro) {
+      await db.aggiorna("prodotti", editPro, dati);
+      editPro = null; $("btn-pr").textContent = "Aggiungi";
+      esito("pr-esito", "Listino aggiornato: " + nome + " a " + eur(prezzo) + "/" + uni(unitaPrezzo) + ".", "success");
+    } else {
+      await db.aggiungi("prodotti", dati);
+      esito("pr-esito", "Prodotto aggiunto: " + nome + " a " + eur(prezzo) + "/" + uni(unitaPrezzo) + ".", "success");
+    }
+    pulisciPro(); $("pr-nome").focus(); await refresh();
+  };
+  $("btn-lis-export").onclick = () => {
+    let csv = "prodotto;prezzo;unita_prezzo;densita_t_m3;prezzo_t;prezzo_m3;iva\n";
+    for (const p of PRO.slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it")))
+      csv += `${csvCell(p.nome)};${+p.prezzo || 0};${p.unitaPrezzo === "m3" ? "m3" : "t"};${+p.densita || 0};${prezzoPerTonnellata(p) ?? ""};${prezzoPerMetroCubo(p) ?? ""};${+p.iva || 0}\n`;
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.download = "conti_listino.csv"; a.click();
+    esito("pr-esito", "Esportati " + plur(PRO.length, "prodotto", "prodotti") + " in CSV.", "success");
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  // PESATE / DDT (N3): il netto lo calcola l'app, prezzo, densità e IVA
+  // vengono FOTOGRAFATI dal listino al momento della consegna.
+  // ══════════════════════════════════════════════════════════════════
+  $("btn-pes").onclick = async () => {
+    const data = $("pes-data").value, clienteId = $("pes-cli").value, prodottoId = $("pes-prod").value;
+    const lordoTxt = $("pes-lordo").value.trim(), taraTxt = $("pes-tara").value.trim();
+    const lordo = +lordoTxt, tara = +taraTxt;
+    const mezzo = $("pes-mezzo").value.trim(), destinatario = $("pes-dest").value.trim();
+    PES_CAMPI.forEach(puliscoErr);
+    const p = PRO.find(x => x.id === prodottoId), c = CLI.find(x => x.id === clienteId);
+    const err = [];
+    if (!data) err.push(["pes-data", "Metti la data della consegna: il DDT si emette prima che il camion parta."]);
+    if (!c) err.push(["pes-cli", CLI.length ? "Scegli il cliente a cui va la merce." : "Non c'è ancora nessun cliente: aggiungilo dalla scheda Clienti."]);
+    if (!p) err.push(["pes-prod", PRO.length ? "Scegli il prodotto consegnato: prezzo, densità e IVA arrivano dal listino." : "Il listino è vuoto: aggiungi prima il prodotto nella scheda Listino, poi torna qui."]);
+    if (!lordoTxt || !(lordo > 0)) err.push(["pes-lordo", "Scrivi il peso lordo del camion carico, in tonnellate."]);
+    else if (lordo > 500) err.push(["pes-lordo", "Sembra un peso in chilogrammi: qui si scrive in tonnellate (32.500 kg = 32,5)."]);
+    if (!taraTxt || !(tara >= 0)) err.push(["pes-tara", "Scrivi la tara, cioè quanto pesa il camion vuoto."]);
+    else if (lordo > 0 && tara >= lordo) err.push(["pes-tara", "La tara deve essere minore del lordo, altrimenti il netto sarebbe zero o negativo."]);
+    if (err.length) { err.forEach(x => segnaErr(x[0], x[1]));
+      esito("pes-esito", "Compila i campi evidenziati per registrare la pesata.", "err");
+      primoErrore(PES_CAMPI); return; }
+    const r = rigaPesata(p, lordo, tara);
+    if (r.quantita == null) {
+      segnaErr("pes-prod", "Questo prodotto si vende a metro cubo ma non ha la densità: aggiungila nel listino, altrimenti non si sa quanti m³ sono queste tonnellate.");
+      esito("pes-esito", "Manca la densità di " + p.nome + ": aggiungila nel listino.", "err"); return; }
+    const numero = numeroProssimoDdt(data);
+    await db.aggiungi("pesate", { numero, data, clienteId, cliente: c.ragioneSociale,
+      prodottoId, prodotto: p.nome, lordo: round2(lordo), tara: round2(tara), netto: r.netto,
+      unitaVendita: r.unitaVendita, quantita: r.quantita, densita: r.densita,
+      prezzoUnitario: r.prezzoUnitario, aliquotaIva: r.aliquotaIva,
+      mezzo, destinatario, fatturaId: null });
+    esito("pes-esito", "DDT " + numero + " registrato: " + qt(r.netto) + " t nette di " + p.nome + " per " + eur(r.valore) + ".", "success");
+    // si svuotano solo i pesi: stesso camion, stesso prodotto, viaggio dopo viaggio
+    ["pes-lordo", "pes-tara"].forEach(i => { $(i).value = ""; puliscoErr(i); });
+    aggiornaNetto(); $("pes-lordo").focus(); await refresh();
+  };
+  $("btn-pes-export").onclick = () => {
+    let csv = "ddt;data;cliente;prodotto;lordo_t;tara_t;netto_t;quantita;unita;prezzo_unitario;valore;iva;mezzo;destinatario;fattura\n";
+    for (const p of PES.slice().sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")))) {
+      const f = p.fatturaId ? FAT.find(x => x.id === p.fatturaId) : null;
+      csv += `${csvCell(p.numero)};${p.data || ""};${csvCell(p.cliente)};${csvCell(p.prodotto)};${+p.lordo || 0};${+p.tara || 0};${+p.netto || 0};${p.quantita == null ? "" : p.quantita};${p.unitaVendita === "m3" ? "m3" : "t"};${+p.prezzoUnitario || 0};${valorePesata(p)};${+p.aliquotaIva || 0};${csvCell(p.mezzo)};${csvCell(p.destinatario)};${csvCell(f ? f.numero : "")}\n`;
+    }
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.download = "conti_pesate_ddt.csv"; a.click();
+    esito("pes-esito", "Esportate " + plur(PES.length, "pesata", "pesate") + " in CSV.", "success");
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  // FATTURA DIFFERITA (N4): i DDT spuntati diventano UNA fattura, con le
+  // righe raggruppate per prodotto e i numeri dei DDT scritti dentro.
+  // ══════════════════════════════════════════════════════════════════
+  $("btn-dif").onclick = async () => {
+    const clienteId = $("dif-cli").value;
+    puliscoErr("dif-cli");
+    if (!clienteId) { segnaErr("dif-cli", "Scegli il cliente da fatturare: la fattura differita raccoglie i DDT di un cliente solo.");
+      esito("dif-esito", "Scegli prima il cliente.", "err"); return; }
+    const scelti = difVisibili().filter(x => difSel.has(x.id));
+    const ant = fatturaDaPesate(scelti);
+    if (!ant) { esito("dif-esito", "Spunta almeno un DDT da mettere in fattura.", "err"); return; }
+    const c = CLI.find(x => x.id === clienteId);
+    const numero = numeroProssimaFattura();
+    const scadDefault = piuGiorni(oggiISO(), 30);
+    apriModale("Fattura differita — anteprima",
+      `<p>Da <b>${plur(ant.conto, "DDT", "DDT")}</b> di <b>${esc((c && c.ragioneSociale) || "—")}</b>
+         (consegne dal ${fmtD(ant.dal)} al ${fmtD(ant.al)}) nasce <b>una fattura sola</b>,
+         con le righe raggruppate per prodotto.</p>
+       <div class="mrec"><span class="k">Numero</span><span class="v">${esc(numero)}</span></div>
+       ${ant.righe.map(r => `<div class="mrec"><span class="k">${esc(r.descrizione)} — ${qtu(r.quantita, r.unita)} × ${eur(r.prezzoUnitario)} · IVA ${perc(r.aliquota)}</span><span class="v">${eur(r.imponibile)}</span></div>`).join("")}
+       <div class="mrec"><span class="k">Imponibile</span><span class="v">${eur(ant.imponibile)}</span></div>
+       ${ant.perAliquota.map(a => `<div class="mrec"><span class="k">IVA ${perc(a.aliquota)} su ${eur(a.imponibile)}</span><span class="v">${eur(a.imposta)}</span></div>`).join("")}
+       <div class="mrec"><span class="k">Totale fattura</span><span class="v accent">${eur(ant.totale)}</span></div>
+       <span class="fl">Scadenza del pagamento</span>
+       <input class="dw-input" id="modal-scad" type="date" value="${scadDefault}">
+       <p style="margin-top:10px;">I DDT scelti restano nel registro e vengono
+         <b>marcati come fatturati</b> con questo numero: non potranno finire per sbaglio
+         in una seconda fattura. Se i movimenti sono documentati da DDT, la fattura
+         riepilogativa va emessa entro il <b>15 del mese successivo</b> alla consegna.</p>`,
+      [{ label: "Annulla", azione: chiudiModale },
+       { label: "Emetti la fattura", cls: "primary", azione: async () => {
+          const scadenza = ($("modal-scad") && $("modal-scad").value) || scadDefault;
+          chiudiModale();
+          const righe = ant.righe.map(r => ({ descrizione: r.descrizione, quantita: r.quantita,
+            unita: r.unita, prezzoUnitario: r.prezzoUnitario, imponibile: r.imponibile,
+            aliquota: r.aliquota, ddt: r.ddt }));
+          const res = await db.aggiungi("fatture", {
+            numero, cliente: (c && c.ragioneSociale) || "", clienteId,
+            imponibile: ant.imponibile, ivaImporto: ant.ivaImporto, totale: ant.totale,
+            importo: ant.totale,   // resta il totale: aging, incassi e solleciti leggono questo
+            aliquotaIva: ant.perAliquota.length === 1 ? ant.perAliquota[0].aliquota : null,
+            righe, ddtIds: ant.ddtIds, tipo: "differita",
+            emessa: oggiISO(), scadenza, incassata: false });
+          const idFat = res && res.id;
+          for (const id of ant.ddtIds) await db.aggiorna("pesate", id, { fatturaId: idFat || true });
+          difSel = new Set();
+          esito("dif-esito", "Fattura " + numero + " emessa da " + plur(ant.conto, "DDT", "DDT") + ": " + eur(ant.totale) + " (IVA compresa).", "success");
+          await refresh();
+          $("fat-list").scrollIntoView({ behavior: "smooth", block: "start" });
+        } }]);
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  // CANONE DI ESCAVAZIONE (N5): l'aliquota la decide l'organizzazione.
+  // ══════════════════════════════════════════════════════════════════
+  $("btn-can").onclick = async () => {
+    const canoneUnita = $("can-unita").value === "t" ? "t" : "m3";
+    const canoneAliquota = +$("can-ali").value || 0;
+    const canoneNota = $("can-nota").value.trim();
+    puliscoErr("can-ali");
+    if (!(canoneAliquota > 0)) {
+      segnaErr("can-ali", "Scrivi l'aliquota della tua concessione, in euro per " + (canoneUnita === "t" ? "tonnellata" : "metro cubo") + ".");
+      esito("can-esito", "Senza aliquota il canone non si può calcolare.", "err"); return; }
+    if (IMP && IMP.id) await db.aggiorna("impostazioni", IMP.id, { canoneUnita, canoneAliquota, canoneNota });
+    else await db.aggiungi("impostazioni", { canoneUnita, canoneAliquota, canoneNota });
+    esito("can-esito", "Aliquota salvata: " + eur(canoneAliquota) + " per " + (canoneUnita === "t" ? "tonnellata" : "metro cubo") + ".", "success");
+    await refresh();
+  };
+  $("btn-can-anno").onclick = () => {
+    const a = new Date().getFullYear();
+    $("can-dal").value = a + "-01-01"; $("can-al").value = a + "-12-31";
+    renderCanone();
+    esito("can-esito", "Periodo impostato su tutto il " + a + ".");
+  };
+
   $("btn-gar").onclick = async () => {
     const titolo = $("gar-titolo").value.trim(), base = +$("gar-base").value, scadenza = $("gar-data").value;
     const GAR_CAMPI = ["gar-titolo","gar-base","gar-data"];
@@ -1510,7 +2429,8 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
   $("btn-ft").onclick = async () => {
     const numero = $("ft-num").value.trim(), scelta = $("ft-cli").value,
           nuovoCli = $("ft-cli-nuovo").value.trim(),
-          importo = +$("ft-imp").value, scadenza = $("ft-scad").value;
+          importo = +$("ft-imp").value, scadenza = $("ft-scad").value,
+          aliquota = +$("ft-iva").value || 0;
     // cliente valido = uno scelto dall'anagrafica, oppure un nome per il nuovo
     const campoCli = scelta === "__nuovo" ? "ft-cli-nuovo" : "ft-cli";
     const clienteOk = scelta === "__nuovo" ? !!nuovoCli : !!scelta;
@@ -1521,7 +2441,7 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
         "ft-num": "Scrivi il numero della fattura, quello che compare sul documento (es. 2026/037).",
         "ft-cli": "Scegli il cliente dall'anagrafica, oppure «Nuovo cliente…» per crearlo adesso.",
         "ft-cli-nuovo": "Scrivi la ragione sociale del nuovo cliente: verrà creato in anagrafica.",
-        "ft-imp": "Scrivi l'importo in euro: deve essere maggiore di zero.",
+        "ft-imp": "Scrivi l'imponibile in euro (l'importo senza IVA): deve essere maggiore di zero.",
         "ft-scad": "Indica entro quando il cliente deve pagare: serve per aging e solleciti.",
       };
       manca.forEach(x => segnaErr(x[0], SPIEGA[x[0]]));
@@ -1546,15 +2466,23 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
     }
     // `cliente` resta salvato come testo di ripiego accanto al collegamento
     const cliente = (CLI.find(c => c.id === clienteId) || {}).ragioneSociale || nuovoCli;
+    // IVA: si digita l'IMPONIBILE, imposta e totale li calcola Conti. `importo`
+    // resta il TOTALE del documento, così tutto il resto dell'app non cambia.
+    const t = totaliDaRighe([{ imponibile: importo, aliquota }]);
+    const dati = { numero, cliente, clienteId, scadenza,
+      imponibile: t.imponibile, aliquotaIva: aliquota, ivaImporto: t.ivaImporto,
+      totale: t.totale, importo: t.totale };
     if (editFat) {
-      await db.aggiorna("fatture", editFat, { numero, cliente, clienteId, importo, scadenza });
+      await db.aggiorna("fatture", editFat, dati);
       editFat = null; $("btn-ft").textContent = "Emetti";
+      esito("ft-esito", "Fattura " + numero + " aggiornata: " + eur(t.totale) + " (imponibile " + eur(t.imponibile) + " + IVA " + eur(t.ivaImporto) + ").", "success");
     } else {
-      await db.aggiungi("fatture", { numero, cliente, clienteId, importo, scadenza,
-        emessa: new Date().toISOString().slice(0,10), incassata: false });
+      await db.aggiungi("fatture", { ...dati, righe: [], ddtIds: [], tipo: "immediata",
+        emessa: oggiISO(), incassata: false });
+      esito("ft-esito", "Fattura " + numero + " emessa: " + eur(t.totale) + " (imponibile " + eur(t.imponibile) + " + IVA " + eur(t.ivaImporto) + ").", "success");
     }
     pulisciFat();
-    $("ft-num").focus();   // torna al primo campo per emettere subito la prossima
+    $("ft-imp").focus();   // il numero è già pronto: si riparte dall'imponibile
     await refresh();
   };
   // Import fatture da CSV (avvio/onboarding). Salta i numeri già presenti.
@@ -1587,6 +2515,10 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
   ["gar-titolo","gar-base","gar-data"].forEach(i => clearErr(i, "gar-esito"));
   FT_CAMPI.forEach(i => clearErr(i, "ft-esito"));
   CL_CAMPI.forEach(i => clearErr(i, "cl-esito"));
+  PR_CAMPI.forEach(i => clearErr(i, "pr-esito"));
+  PES_CAMPI.forEach(i => clearErr(i, "pes-esito"));
+  clearErr("can-ali", "can-esito");
+  clearErr("dif-cli", "dif-esito");
   // Invio da tastiera: premere Invio in un campo del form equivale a
   // toccare il pulsante — data entry più rapida senza spostare il dito.
   const enterSubmit = (inputIds, btnId) => inputIds.forEach(id =>
@@ -1594,6 +2526,10 @@ input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
   enterSubmit(["gar-titolo", "gar-base", "gar-data"], "btn-gar");
   enterSubmit(FT_CAMPI, "btn-ft");
   enterSubmit(CL_CAMPI, "btn-cl");
+  enterSubmit(PR_CAMPI, "btn-pr");
+  enterSubmit(PES_CAMPI, "btn-pes");
+  // la pesata nasce con la data di oggi: nove volte su dieci è quella giusta
+  $("pes-data").value = oggiISO();
   await refresh();
 </script>
 </body>
