@@ -20,6 +20,11 @@ che avanza toccando la riga (pianificata → in corso → conclusa), causale e
 minuti di fermo sull'anomalia, Pareto dei fermi e fermi giorno per giorno.
 Ogni attività si **assegna a una squadra** e, se serve, a una **persona**; il
 filtro *Senza squadra* mostra ciò che non sta facendo nessuno.
+Su un'anomalia si può allegare una **foto**: si sceglie dal telefono, il
+browser la **rimpicciolisce da solo** con il canvas (lato lungo max 1280 px,
+sotto i 280 kB) e salva solo la versione piccola — così entra anche con la
+rete della cava. Si guarda in grande con un tocco e si può togliere. Nessun
+servizio esterno: tutto in locale.
 
 **Squadre** — le squadre (con il carico di lavoro di oggi: aperte e concluse)
 e l'anagrafica minima delle persone: nome, ruolo, squadra, disponibilità.
@@ -36,7 +41,12 @@ una volta in cima alla pagina e valgono per checklist, appello e chiusura.
    l'ora. Chi non è ancora spuntato resta *da spuntare*: «non lo so» non è
    «non c'è», e su un appello di emergenza la differenza è tutto. Elenco
    esportabile in CSV per il punto di raccolta.
-3. **Obiettivo del turno**: si punta solo a ciò che l'app misura davvero —
+3. **Meteo e condizioni del sito**: cielo, piste, visibilità a scelte rapide
+   (un tocco per voce, si salva da sé) più le note sul sito. Spiega i fermi e
+   la produzione di una giornata storta, e in caso di contestazione dice
+   com'era la cava quel giorno. Registrato a mano: nessun servizio meteo,
+   nessun abbonamento.
+4. **Obiettivo del turno**: si punta solo a ciò che l'app misura davvero —
    produzione dei rapportini (t, m³, viaggi) o attività concluse. Un obiettivo
    per turno; barra di avanzamento e scostamento a colpo d'occhio.
 4. **Rapportini di turno**, copertura per squadra, totali di produzione,
