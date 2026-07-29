@@ -232,6 +232,19 @@ Dettaglio e fonti in `docs/RICERCA_<APP>_202607.md`.
       salvati senza il campo valgono scavo e i numeri di prima non cambiano.
       Coperto da due test nella suite KPI.
 
+**Aggiunte del 29/07 sera** *(oltre alle proposte delle schede)*
+- [x] **Conti — data di incasso vera con acconti** ✅ *(`3b00a52`)* — ultimo
+      buco dati dell'ecosistema chiuso: giorni reali di pagamento, incassi
+      parziali, e il grafico emesso-contro-incassato che con pochi mesi non
+      disegna una linea finta. Fatture vecchie incassate senza data intatte.
+- [x] **Flotta — ordine di lavoro e fermi macchina** ✅ *(`4c70110`)* — la
+      manutenzione diventa il documento dell'officina (manodopera, ricambi,
+      costo che va in magazzino, costi e fascicolo) e la disponibilità reale
+      esce dai fermi con le causali. Scelto il riordino ricambi al posto del
+      QR, perché ora i consumi veri esistono.
+- [x] **Campo — turno chiuso non riscrivibile** ✅ *(`5f9ca5a`)* — venti
+      punti di scrittura dietro un solo guardiano, riapertura tracciata.
+
 ## BLOCCO 3 — GENESI: DAL "QUANTO" AL "DOVE"
 `docs/RICERCA_GENESI_202607.md`. Gap centrale emerso: **Genesi dice quanto,
 non dice dove** — dà un numero medio per l'intera volata, i professionali
