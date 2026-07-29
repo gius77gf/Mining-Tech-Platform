@@ -94,7 +94,7 @@
   --info-basis:120px;
   --arr-ico:15px;
   --arr-stroke:1.9;
-  --nav-cols:5;
+  --nav-cols:6;
   --kpi-cols:4;
   --form-gap:9px;
   --form-pad:13px;
@@ -315,12 +315,176 @@
 }
 .modal-body .dw-input{margin-bottom:2px}
 
+/* ═══════════════ GIRO MACCHINA (controllo pre-uso) ═══════════════
+   Questa è l'unica schermata di Flotta pensata per essere usata IN PIEDI,
+   davanti alla macchina, col guanto addosso e il sole in faccia. Da lì
+   vengono le tre scelte che la fanno diversa dalle altre liste:
+   · i due bersagli «A posto / Non va» sono alti 48px e larghi mezza riga —
+     più del minimo di 44, perché col guanto il dito è più grosso;
+   · la riga cambia colore E bordo (verde a sinistra / rosso pieno), così
+     lo stato si legge anche con lo schermo storto o in bianco e nero;
+   · la voce di sicurezza porta scritto «sicurezza»: non è una spunta come
+     le altre, e se non va la macchina non lavora.
+   La forma resta quella del core: stessa cassa delle .item, stessi raggi,
+   stesse ombre, stessa curva di transizione.                              */
+.chk{
+  display:flex; flex-wrap:wrap; align-items:center; gap:9px 12px;
+  background:var(--card); border:1px solid var(--border);
+  border-left:3px solid var(--border2); border-radius:var(--r-sm);
+  padding:11px 13px; margin-bottom:8px; box-shadow:var(--sh1),var(--edge);
+  transition:border-color .18s var(--ease),background .18s var(--ease),box-shadow .18s;
+}
+.chk.ok{border-left-color:var(--success)}
+.chk.no{
+  border-left-color:var(--danger); background:var(--err-bg);
+  box-shadow:var(--sh2),var(--edge),0 0 0 1px rgba(240,94,92,.18);
+}
+.chk.manca{border-left-color:var(--warn)}
+.chk-t{flex:1 1 190px; min-width:0}
+.chk-n{font-weight:600; font-size:14.5px; line-height:1.35}
+.chk-a{display:block; font-size:11.5px; color:var(--muted); margin-top:3px; line-height:1.45}
+.chk-cr{
+  display:inline-block; vertical-align:1px; margin-left:6px; padding:1px 6px;
+  border-radius:999px; background:color-mix(in srgb,var(--danger) 16%,transparent);
+  border:1px solid color-mix(in srgb,var(--danger) 42%,transparent); color:var(--danger);
+  font-family:'Barlow Condensed',sans-serif; font-size:9.5px; font-weight:700;
+  letter-spacing:1.2px; text-transform:uppercase;
+}
+.chk-b{display:flex; gap:8px; flex:1 1 100%}
+.chk-b button{
+  flex:1; min-height:48px; padding:0 8px; border-radius:9px;
+  border:1px solid var(--border2); background:var(--card2); color:var(--muted2);
+  font-family:'Barlow Condensed',sans-serif; font-size:13.5px; font-weight:700;
+  letter-spacing:1.4px; text-transform:uppercase; cursor:pointer;
+  box-shadow:var(--edge); transition:all .16s var(--ease);
+}
+.chk-b button:hover{border-color:var(--border-hi); color:var(--text)}
+.chk-b button:active{transform:translateY(1px)}
+.chk-b .si.on{
+  background:var(--grad-ok); color:var(--on-ok); border-color:transparent;
+  box-shadow:0 4px 14px var(--glow-ok),var(--edge-hi);
+}
+.chk-b .nogo.on{
+  background:var(--grad-dg); color:var(--on-dg); border-color:transparent;
+  box-shadow:0 4px 14px var(--glow-dg),var(--edge-hi);
+}
+.chk-nota{flex:1 1 100%; margin-top:1px}
+/* su schermo largo i due bersagli tornano a destra, come le azioni di una
+   riga di lista: la mano non c'entra più, conta la scansione dell'occhio */
+@media(min-width:760px){
+  .chk-b{flex:0 0 250px}
+  .chk-nota{order:9}
+}
+/* barra di salvataggio: resta sotto il pollice mentre si scorre la lista */
+.giro-salva{
+  position:sticky; bottom:calc(94px + env(safe-area-inset-bottom)); z-index:5;
+  display:flex; align-items:center; gap:10px;
+  margin:14px 0 4px; padding:8px 9px; border-radius:var(--r);
+  background:var(--nav-bg); border:1px solid var(--border2);
+  -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+  box-shadow:var(--sh4,0 10px 30px rgba(0,0,0,.4)),var(--edge);
+}
+.giro-salva .dw-btn{flex:1 1 auto; min-height:48px; font-size:14px}
+.giro-salva .count{margin:0; flex:0 1 108px; text-align:right; line-height:1.35}
+.giro-testa{
+  display:flex; align-items:center; gap:8px 10px; flex-wrap:wrap;
+  background:linear-gradient(135deg,var(--card2),var(--card));
+  border:1px solid var(--border); border-left:3px solid var(--app-accent);
+  border-radius:var(--r); padding:11px 13px; margin-bottom:10px;
+  box-shadow:var(--sh2),var(--edge);
+}
+.giro-testa .info{flex:1 1 100%}
+.giro-testa .name{font-size:17px}
+.giro-testa .dw-btn{flex:1 1 auto; font-size:11.5px}
+@media(min-width:560px){
+  .giro-testa .info{flex:1 1 200px}
+  .giro-testa .dw-btn{flex:0 0 auto}
+}
+/* l'acceleratore del giro: sul telefono prende tutta la riga (è il bersaglio
+   più importante della schermata), su schermo largo torna un bottone */
+.giro-tutto{width:100%; min-height:48px}
+@media(min-width:760px){ .giro-tutto{width:auto; min-width:250px} }
+
+/* ═══════════════ FASCICOLO DEL MEZZO (libretto macchina) ═══════════════ */
+.sch-testa{
+  position:relative; overflow:hidden; display:flex; align-items:flex-start; gap:14px;
+  flex-wrap:wrap;
+  background:linear-gradient(135deg,var(--card2),var(--card));
+  border:1px solid var(--border); border-left:3px solid var(--app-accent);
+  border-radius:var(--r); padding:14px 16px; box-shadow:var(--sh2),var(--edge);
+}
+.sch-testa::before{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(280px 160px at 6% 0%,var(--tint-app),transparent 70%);
+}
+.sch-testa>*{position:relative}
+.sch-av{
+  display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
+  width:52px; height:52px; border-radius:15px; line-height:0; color:var(--app-accent2);
+  background:var(--tint-app);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 0 16px var(--tint-app);
+}
+.sch-av svg{width:28px; height:28px; stroke:currentColor; fill:none; stroke-width:1.7;
+  stroke-linecap:round; stroke-linejoin:round}
+.sch-b{flex:1 1 190px; min-width:0}
+.sch-nome{
+  font-family:'Barlow Condensed',sans-serif; font-size:25px; font-weight:800;
+  line-height:1.05; letter-spacing:.4px;
+}
+.sch-sotto{font-size:12px; color:var(--muted2); margin-top:6px; line-height:1.65}
+.sch-sotto b{color:var(--text); font-variant-numeric:tabular-nums}
+.sch-sotto .badge{margin-right:4px; vertical-align:1px}
+.solo-stampa{display:none}
+
+/* ═══════════════ STAMPA DEL LIBRETTO ═══════════════
+   Il libretto si porta al controllo o si consegna a chi compra la macchina:
+   su carta serve inchiostro nero su bianco, niente aloni, niente bottoni.
+   Si stampa SOLO la scheda del mezzo, e ogni blocco resta intero.            */
+@media print{
+  @page{margin:14mm}
+  html,body.dw{background:#fff !important; color:#000 !important}
+  body.dw{padding:0 !important}
+  body.dw::before,.top,.nav,.tour-banner,.toast,.modal-ov,.no-print,.dw-btn,.tools{display:none !important}
+  .page{display:none !important; padding:0 !important; max-width:none !important}
+  .page#page-sch.active{display:block !important}
+  .solo-stampa{display:block !important; margin-bottom:10px}
+  .sch-testa,.item,.note,.kpi,.chk{
+    background:#fff !important; color:#000 !important; box-shadow:none !important;
+    border:1px solid #999 !important; break-inside:avoid; page-break-inside:avoid;
+  }
+  .sch-testa::before,.item::after,.kpi::after{display:none !important}
+  .sec{color:#000 !important; margin:14px 0 6px; break-after:avoid; page-break-after:avoid}
+  .sec::before{background:#000 !important}
+  .name,.sch-nome,.kpi .n,.empty-title{color:#000 !important}
+  .note b,.meta b,.sch-sotto b,.empty-sub b,.name b{color:#000 !important}
+  .meta,.sch-sotto,.kpi .l,.empty-sub,.note{color:#333 !important}
+  /* uno stato vuoto, su carta, è una RIGA: «nessun giro macchina». Il
+     disegno grande e l'alone servono a chi guarda uno schermo. */
+  .empty-state{
+    padding:8px 0; text-align:left; background:none !important;
+    display:block; border:none !important;
+  }
+  .empty-icon{display:none !important}
+  .empty-title{font-size:13px; letter-spacing:1px; margin-bottom:2px}
+  .empty-sub{max-width:none}
+  .kpi .n{-webkit-text-fill-color:#000 !important; background:none !important}
+  .badge{border:1px solid #666 !important; background:#fff !important; color:#000 !important}
+  .avatar,.sch-av{background:#eee !important; color:#000 !important; border-color:#999 !important; box-shadow:none !important}
+  .kpis{grid-template-columns:repeat(4,1fr) !important}
+}
+
 /* ─────────────── touch: come il core, niente effetti "incollati" ─────────────── */
 
 @media(hover:none),(pointer:coarse){
   .item:active,.kpi:active{transform:scale(.985)}
   /* col dito serve il bersaglio pieno: le icone d'azione salgono a 44px */
   .arr{min-width:var(--tap); min-height:var(--tap)}
+}
+
+/* sei voci nella pillola di navigazione: le etichette restano su una riga
+   sola anche sul telefono stretto, e nessuna viene tagliata */
+@media(max-width:430px){
+  .nav button{font-size:9px; letter-spacing:.6px; padding-left:2px; padding-right:2px}
 }
 
 </style>
@@ -353,6 +517,9 @@
 
   <div class="sec">Scadenze di legge</div>
   <div id="dash-sca" class="note link" role="button" tabindex="0" title="Vai alle scadenze di legge"></div>
+
+  <div class="sec">Giro macchina di oggi</div>
+  <div id="dash-giro" class="note link" role="button" tabindex="0" title="Vai al controllo pre-uso"></div>
 
   <div class="sec">Priorità di oggi</div>
   <div id="alert-list"></div>
@@ -397,9 +564,11 @@
   <div class="sec">Nuovo mezzo</div>
   <div class="form">
     <input class="dw-input" id="mez-nome" placeholder="Nome (es. Dumper D4)" style="flex:2 1 170px;">
+    <select class="dw-input" id="mez-tipo" title="Tipo di mezzo: decide la checklist del giro macchina" style="flex:1 1 150px;"></select>
     <input class="dw-input" id="mez-area" placeholder="Area (es. piazzale 2)" style="flex:1 1 140px;">
     <input class="dw-input" id="mez-ore" type="number" min="0" placeholder="Ore attuali" style="flex:1 1 120px;">
     <button class="dw-btn" id="btn-mez">Aggiungi</button>
+    <div class="form-hint">Il <b>tipo</b> serve al <b>giro macchina</b>: decide quali controlli compaiono all'operatore (un dumper non ha i cingoli, una perforatrice sì l'abbattimento polveri). Per i mezzi registrati prima, il tipo viene indovinato dal nome finché non lo confermi qui.</div>
   </div>
 
   <div class="sec">Registro ore</div>
@@ -443,10 +612,12 @@
       <input class="dw-input" id="man-ore" type="number" placeholder="oppure a ore (es. 6000)" style="flex:1 1 160px;">
     </div>
     <div class="frow">
+      <select class="dw-input" id="man-piano" title="Piano ricorrente: alla chiusura l'app pianifica da sola il prossimo" style="flex:2 1 190px;"></select>
       <select class="dw-input" id="man-ricambio" title="Ricambio consumato (facoltativo)" style="flex:2 1 190px;"><option value="">— nessun ricambio —</option></select>
       <button class="dw-btn" id="btn-man">Pianifica</button>
     </div>
     <div class="form-hint">Metti la <b>data</b> oppure le <b>ore motore</b>: per i tagliandi a ore scrivi il contatore a cui va fatto, l'urgenza la calcola l'app. Se scegli un ricambio, alla chiusura viene scaricato dal magazzino.</div>
+    <div class="form-hint">Con un <b>piano ricorrente</b> il tagliando non finisce quando lo chiudi: l'app pianifica subito il successivo — a ore, contando dalle ore che il mezzo ha in quel momento (chiudi il 500 h a 6.040 ore → il prossimo è a 6.540); a mesi, contando dal giorno in cui l'hai chiuso. Scegliendo un piano a ore, titolo e ore vengono già proposti.</div>
   </div>
   <div class="note esito" id="man-esito"></div>
 
@@ -547,13 +718,108 @@
   </div>
   <div class="note esito" id="cos-esito"></div>
   <div class="tools"><button class="dw-btn secondary" id="btn-cos-csv">Esporta costi (CSV)</button></div>
+
+  <!-- L4 — CARBURANTE PER MEZZO. Il gasolio è la voce più grossa della
+       flotta: qui smette di essere un totale anonimo e diventa il consumo
+       della singola macchina, in litri/ora e euro/ora. -->
+  <div class="sec">Carburante per mezzo<span class="cnt" id="rif-tot">0</span></div>
+  <div id="rif-riep" class="note recap"></div>
+  <div id="graf-consumo" class="graf" style="margin-top:12px;"></div>
+  <div id="rif-list" style="margin-top:12px;"></div>
+  <div class="sec">Nuovo rifornimento</div>
+  <div class="form col">
+    <div class="frow">
+      <select class="dw-input" id="rif-mezzo" title="Mezzo rifornito" style="flex:2 1 170px;"></select>
+      <input class="dw-input" id="rif-data" type="date" title="Giorno del rifornimento" style="flex:1 1 150px;">
+    </div>
+    <div class="frow">
+      <input class="dw-input" id="rif-litri" type="number" min="0" step="0.1" placeholder="Litri" style="flex:1 1 110px;">
+      <input class="dw-input" id="rif-euro" type="number" min="0" step="0.01" placeholder="Spesa €" style="flex:1 1 110px;">
+      <input class="dw-input" id="rif-ore" type="number" min="0" step="1" placeholder="Ore contatore" style="flex:1 1 140px;">
+      <button class="dw-btn" id="btn-rif">Registra</button>
+    </div>
+    <div class="form-hint">Le <b>ore del contatore</b> al momento del pieno sono quelle che trasformano i litri in <b>litri/ora</b>: senza di loro restano litri e basta. Ne servono almeno due per mezzo, perché il primo pieno serve solo a fissare il punto di partenza.</div>
+    <div class="form-hint">Se scrivi anche la <b>spesa</b>, il rifornimento entra da solo nei costi della flotta come voce «Carburante» con la sua data: <b>non registrarlo una seconda volta</b> a mano. Se togli il rifornimento, sparisce anche la sua voce di costo.</div>
+  </div>
+  <div class="note esito" id="rif-esito"></div>
   <div class="note" id="mode-note"></div>
+</div>
+
+<!-- GIRO MACCHINA (L2) — il controllo pre-uso, fatto dal telefono davanti
+     alla macchina. Due passi: scegli il mezzo, rispondi alla checklist del
+     suo tipo. Le voci «non va» diventano manutenzioni collegate al mezzo. -->
+<div class="page" id="page-giro">
+  <div id="giro-passo1">
+    <div class="sec">Giro macchina di oggi</div>
+    <div id="giro-riep" class="note recap"></div>
+    <div class="sec" id="giro-sec-scelta">Su quale mezzo?</div>
+    <div id="giro-mezzi"></div>
+  </div>
+
+  <!-- Passo 2: qui la schermata si svuota di tutto il resto. Chi sta in
+       piedi davanti alla macchina deve vedere la checklist, non i riepiloghi
+       di chi sta in ufficio. -->
+  <div id="giro-passo2" style="display:none;">
+    <div class="giro-testa">
+      <div class="info"><div class="name" id="giro-nome">—</div><div class="meta" id="giro-sotto"></div></div>
+      <button class="dw-btn secondary" id="btn-giro-cambia">Cambia mezzo</button>
+      <button class="dw-btn secondary" id="btn-giro-azzera">Ricomincia</button>
+    </div>
+    <button class="dw-btn giro-tutto" id="btn-giro-tutto">Segna tutto a posto</button>
+    <div class="form-hint" style="margin:8px 0 12px;">Poi apri solo le voci che non vanno: nessuna può restare senza risposta.</div>
+    <div id="giro-voci"></div>
+    <div class="form col">
+      <div class="frow">
+        <input class="dw-input" id="giro-operatore" placeholder="Chi ha fatto il giro (facoltativo)" style="flex:2 1 180px;">
+        <input class="dw-input" id="giro-ore" type="number" min="0" step="1" placeholder="Ore contatore (facoltativo)" style="flex:1 1 160px;">
+      </div>
+      <input class="dw-input" id="giro-note" placeholder="Note del giro (facoltative)">
+      <div class="form-hint">Se scrivi le <b>ore del contatore</b> e sono più alte di quelle registrate, l'app aggiorna il mezzo: un giro al giorno tiene aggiornate le ore senza fare altro.</div>
+    </div>
+    <div class="giro-salva">
+      <button class="dw-btn" id="btn-giro-salva">Salva il giro</button>
+      <span class="count" id="giro-conta"></span>
+    </div>
+    <div class="note esito" id="giro-esito"></div>
+  </div>
+
+  <div class="sec">Ultimi giri<span class="cnt" id="giro-tot">0</span></div>
+  <div id="giro-storico"></div>
+  <div class="tools"><button class="dw-btn secondary" id="btn-giro-csv">Esporta i giri (CSV)</button></div>
+  <div class="note">Il giro macchina è un <b>promemoria di sicurezza</b> e un archivio ordinato, non un documento ufficiale. Quello che segni «non va» non resta una crocetta: diventa subito una <b>manutenzione sul mezzo</b>, che l'officina trova nel Quadro insieme a tutto il resto.</div>
+</div>
+
+<!-- FASCICOLO DEL MEZZO (L1) — una pagina sola per macchina: chi è, cosa
+     deve fare, cosa le è stato fatto, quanto costa. Si stampa e si porta. -->
+<div class="page" id="page-sch">
+  <div class="tools no-print" style="margin:0 0 12px;">
+    <button class="dw-btn secondary" id="btn-sch-back">Torna ai mezzi</button>
+  </div>
+  <div class="solo-stampa" id="sch-stampa"></div>
+  <div id="sch-testa"></div>
+  <div class="kpis" id="sch-kpi" style="margin-top:14px;"></div>
+  <div class="sec">Scadenze di legge</div>
+  <div id="sch-sca"></div>
+  <div class="sec">Manutenzioni in programma</div>
+  <div id="sch-man"></div>
+  <div class="sec">Storico interventi</div>
+  <div id="sch-int"></div>
+  <div class="sec">Ultimi giri macchina</div>
+  <div id="sch-giri"></div>
+  <div class="sec">Carburante</div>
+  <div id="sch-carb"></div>
+  <div class="tools no-print">
+    <button class="dw-btn" id="btn-sch-stampa">Stampa il libretto</button>
+    <button class="dw-btn secondary" id="btn-sch-csv">Esporta libretto (CSV)</button>
+  </div>
+  <div class="note no-print">Il <b>libretto macchina</b> raccoglie in un foglio solo quello che l'app sa di questa macchina: dati, scadenze, tagliandi, interventi fatti, giri macchina e consumi. È quello che si mostra a un controllo e quello che si consegna a chi compra la macchina: una storia documentata vale, sull'usato, più di una parola data. Non sostituisce il libretto ufficiale del costruttore né i verbali dell'ente verificatore.</div>
 </div>
 
 <nav class="nav" aria-label="Sezioni di Flotta">
   <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg></span>Quadro</button>
+  <button id="nav-giro" onclick="go('giro')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M9 4.4h6V3.3A1.4 1.4 0 0 0 13.6 2h-3.2A1.4 1.4 0 0 0 9 3.3z"/><path d="M15 4.4h2.3A1.7 1.7 0 0 1 19 6.1V20a1.7 1.7 0 0 1-1.7 1.6H6.7A1.7 1.7 0 0 1 5 20V6.1a1.7 1.7 0 0 1 1.7-1.7H9"/><path d="M8.7 13.1l2.2 2.2 4.4-4.8"/></svg></span>Giro</button>
   <button id="nav-mez" onclick="go('mez')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M2.5 16.5V7.2A1.2 1.2 0 0 1 3.7 6h9.1v10.5"/><path d="M12.8 9.4h3.6l3.1 3.3v3.8"/><circle cx="7" cy="17.6" r="2.1"/><circle cx="16.6" cy="17.6" r="2.1"/><path d="M9.1 17.6h5.4M2.5 17.6h2.4M18.7 17.6h2.8"/></svg></span>Mezzi</button>
-  <button id="nav-man" onclick="go('man')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M15.4 3.4a5.4 5.4 0 0 0-6.3 7.1L3.2 16.4a2.1 2.1 0 0 0 3 3l5.9-5.9a5.4 5.4 0 0 0 7.1-6.3l-3.1 3.1-3-.8-.8-3z"/></svg></span>Manutenzioni</button>
+  <button id="nav-man" onclick="go('man')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M15.4 3.4a5.4 5.4 0 0 0-6.3 7.1L3.2 16.4a2.1 2.1 0 0 0 3 3l5.9-5.9a5.4 5.4 0 0 0 7.1-6.3l-3.1 3.1-3-.8-.8-3z"/></svg></span>Officina</button>
   <button id="nav-sca" onclick="go('sca')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M12 3.2v17M5.4 5.6h13.2M4 20.4h16"/><path d="M6.6 5.9L3.4 12.2h6.4zM17.4 5.9l-3.2 6.3h6.4z"/></svg></span>Scadenze</button>
   <button id="nav-cos" onclick="go('cos')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M17.4 6.2A6.4 6.4 0 0 0 7.6 8.4a7.4 7.4 0 0 0 0 7.2 6.4 6.4 0 0 0 9.8 2.2"/><path d="M4.4 10.6h7.2M4.4 13.6h7.2"/></svg></span>Costi</button>
 </nav>
@@ -572,8 +838,12 @@
   function go(id) {
     document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
     document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
-    document.getElementById("page-" + id).classList.add("active");
-    document.getElementById("nav-" + id).classList.add("active");
+    const pag = document.getElementById("page-" + id);
+    if (pag) pag.classList.add("active");
+    // La scheda del mezzo non ha una voce sua nella pillola di navigazione:
+    // ci si arriva dal parco mezzi, ed è lì che resta acceso il segnalibro.
+    const nav = document.getElementById("nav-" + (id === "sch" ? "mez" : id));
+    if (nav) nav.classList.add("active");
     window.scrollTo(0, 0);
   }
 
@@ -695,7 +965,11 @@
 <script type="module">
   import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, scaricoGiacenza, parseTelemetriaCsv, parseMezziCsv, ripartizioneCosti, costoOfficinaPerMezzo, prioritaOperative,
            costiPerMese, disponibilitaStorico, fotografiaDaRegistrare,
-           SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi } from "./flotta-data.js";
+           SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi,
+           nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
+           manutenzioniDaControllo, coperturaControlli, controlliDelMezzo,
+           PIANI_TAGLIANDO, pianoTagliando, prossimoTagliando,
+           validaRifornimento, consumoPerMezzo, fascicoloMezzo } from "./flotta-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const MB = { operativo: ["ok","Operativo"], fermo: ["danger","Fermo"], verifica: ["warn","Verifica"] };
@@ -720,6 +994,9 @@
     tachi:   '<svg viewBox="0 0 24 24"><path d="M3.4 17.6a9 9 0 1 1 17.2 0"/><path d="M12 17.2l4.4-5.6"/><circle cx="12" cy="17.6" r="1.5"/></svg>',
     registro:'<svg viewBox="0 0 24 24"><path d="M14 2.5H7.5A2.5 2.5 0 0 0 5 5v14a2.5 2.5 0 0 0 2.5 2.5h9A2.5 2.5 0 0 0 19 19V7.5z"/><path d="M14 2.5v5h5"/><path d="M8.8 12.5h6.4M8.8 16h4.4"/></svg>',
     avviso:  '<svg viewBox="0 0 24 24"><path d="M12 3.4l9 15.6H3z"/><path d="M12 9.4v4.4M12 16.6v.1"/></svg>',
+    giro:    '<svg viewBox="0 0 24 24"><path d="M9 4.4h6V3.3A1.4 1.4 0 0 0 13.6 2h-3.2A1.4 1.4 0 0 0 9 3.3z"/><path d="M15 4.4h2.3A1.7 1.7 0 0 1 19 6.1V20a1.7 1.7 0 0 1-1.7 1.6H6.7A1.7 1.7 0 0 1 5 20V6.1a1.7 1.7 0 0 1 1.7-1.7H9"/><path d="M8.7 13.1l2.2 2.2 4.4-4.8"/></svg>',
+    goccia:  '<svg viewBox="0 0 24 24"><path d="M12 3.2s5.6 6 5.6 9.8A5.6 5.6 0 0 1 12 18.6a5.6 5.6 0 0 1-5.6-5.6C6.4 9.2 12 3.2 12 3.2z"/><path d="M9.4 13.2a2.6 2.6 0 0 0 2.6 2.6"/></svg>',
+    scheda:  '<svg viewBox="0 0 24 24"><rect x="3.4" y="4.4" width="17.2" height="15.2" rx="2.2"/><path d="M3.4 9.2h17.2M8.4 4.4v15.2"/></svg>',
   };
 
   // stato vuoto in stile core: icona, titolo, spiegazione di cosa fare
@@ -777,7 +1054,13 @@
     go(card.getAttribute("data-goto")); refresh();
   });
 
-  let MEZ=[], MAN=[], COS=[], RIC=[], INT=[], SCA=[], DISP=[];
+  let MEZ=[], MAN=[], COS=[], RIC=[], INT=[], SCA=[], DISP=[], CTR=[], RIF=[];
+  // GIRO MACCHINA (L2): il giro in corso vive SOLO qui, in memoria, finché
+  // non lo salvi. Un controllo a metà non è un documento: o è finito o non
+  // esiste. { mezzoId, tipo, voci:[{chiave,etichetta,aiuto,critica,esito,nota}] }
+  let giro = null;
+  // FASCICOLO (L1): id del mezzo di cui è aperta la scheda.
+  let schedaId = null;
   let filtroMez = "tutti";
   // Scadenze di legge (F6): filtro del semaforo e soglia di preavviso, che
   // l'utente sceglie e che restano ricordate sul suo dispositivo.
@@ -823,6 +1106,38 @@
   };
   mostraNorma();
   $("sca-mesi").value = (SCADENZE_MEZZO_PRESET[0] && SCADENZE_MEZZO_PRESET[0].mesi) || "";
+  // Tipo del mezzo: è quello che decide la checklist del giro macchina.
+  $("mez-tipo").innerHTML = TIPI_MEZZO
+    .map(t => `<option value="${t.chiave}">${esc(t.etichetta)}</option>`).join("");
+  // PIANI RICORRENTI (L3): i quattro tagliandi a ore delle macchine da
+  // movimento terra, più i ritmi a calendario più comuni.
+  $("man-piano").innerHTML = '<option value="">— non si ripete —</option>'
+    + PIANI_TAGLIANDO.map(p => `<option value="o${p.chiave}">Ogni ${p.ogniOre} ore — ${esc(p.etichetta)}</option>`).join("")
+    + [6, 12, 24].map(m => `<option value="m${m}">Ogni ${m} mesi (a calendario)</option>`).join("");
+  // Scegliendo un piano a ore, titolo e ore motore vengono già proposti: chi
+  // pianifica non deve fare i conti a mente col contatore del mezzo.
+  $("man-piano").onchange = () => {
+    const v = $("man-piano").value;
+    const box = $("man-esito");
+    if (!v) { box.textContent = ""; return; }
+    if (v.startsWith("m")) {
+      box.className = "note esito";
+      box.textContent = "Piano a calendario: alla chiusura, il prossimo viene proposto a " + v.slice(1) + " mesi dal giorno in cui l'hai chiuso.";
+      return;
+    }
+    const p = pianoTagliando(v.slice(1)); if (!p) return;
+    if (!$("man-titolo").value.trim()) $("man-titolo").value = p.etichetta;
+    const m = MEZ.find(x => nomeBreve(x.nome) === $("man-mezzo").value);
+    if (!$("man-ore").value && !$("man-data").value && m) {
+      $("man-ore").value = Math.round(+m.ore || 0) + p.ogniOre;
+    }
+    box.className = "note esito";
+    box.textContent = p.etichetta + ": " + p.nota
+      + (m ? " " + nomeBreve(m.nome) + " ha " + (+m.ore || 0).toLocaleString("it-IT") + " ore: il tagliando è proposto a " + ($("man-ore").value || "—") + "." : "")
+      + " Alla chiusura, il prossimo nascerà da solo a +" + p.ogniOre + " ore sulle ore di quel momento.";
+  };
+  // Rifornimenti (L4): il giorno parte da oggi, come per le voci di costo.
+  $("rif-data").value = oggiISO();
   let editMez = null;   // id del mezzo in modifica (riusa il form "Nuovo mezzo"; stato/manutenzioni restano)
   let ordMez = "stato";
   const MEZ_NEXT = { operativo: "verifica", verifica: "fermo", fermo: "operativo" };
@@ -839,6 +1154,7 @@
   document.querySelector(".nav") && document.querySelector(".nav").addEventListener("click", () => {
     if (editMez) { editMez = null; $("btn-mez").textContent = "Aggiungi"; $("ore-esito").textContent = "";
       ["mez-nome","mez-area","mez-ore"].forEach(i => { $(i).value = ""; err(i, false); }); }
+    schedaId = null;   // uscendo dalla pillola si esce anche dal fascicolo
   });
   // FOTOGRAFIA GIORNALIERA DEL PARCO. `mezzi.stato` dice com'è messo il parco
   // ADESSO e non conserva niente: senza una traccia scritta, «com'era la
@@ -864,7 +1180,10 @@
   }
 
   async function refresh(){
-    [MEZ,MAN,COS,RIC,INT,SCA,DISP] = await Promise.all([db.mezzi(), db.manutenzioni(), db.costi(), db.ricambi ? db.ricambi() : [], db.interventi ? db.interventi() : [], db.scadenze ? db.scadenze() : [], db.disponibilita ? db.disponibilita() : []]);
+    // Il `|| []` non è una cintura di sicurezza di troppo: un'organizzazione
+    // che usava Flotta ieri non ha nessuna collezione «controlli» né
+    // «rifornimenti», e la schermata deve aprirsi lo stesso, vuota.
+    [MEZ,MAN,COS,RIC,INT,SCA,DISP,CTR,RIF] = (await Promise.all([db.mezzi(), db.manutenzioni(), db.costi(), db.ricambi ? db.ricambi() : [], db.interventi ? db.interventi() : [], db.scadenze ? db.scadenze() : [], db.disponibilita ? db.disponibilita() : [], db.controlli ? db.controlli() : [], db.rifornimenti ? db.rifornimenti() : []])).map(v => v || []);
     await registraFotografia();
     const k = kpiFrom(MEZ,MAN,COS);
     const kn = document.querySelectorAll(".kpis .kpi .n");
@@ -905,7 +1224,7 @@
     const PRIO_ICO = { scadenza: I.bilancia, manutenzione: I.chiave, ricambio: I.bullone, mezzo: I.mezzo };
     const prio = prioritaOperative(MEZ, MAN, RIC, new Date(), SCA, preavvisoSca);
     $("alert-list").innerHTML = prio.map(a => `<div class="item statico ${striscia[a.gravita] || "st-accent"}">
-      <div class="avatar${a.categoria === "ricambio" || a.categoria === "mezzo" ? " sup" : ""}">${PRIO_ICO[a.categoria] || I.avviso}</div>
+      <div class="avatar${a.categoria === "ricambio" || a.categoria === "mezzo" ? " sup" : ""}">${a.origine === "controllo" ? I.giro : (PRIO_ICO[a.categoria] || I.avviso)}</div>
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc(a.dettaglio)}</div></div>
       <span class="badge ${a.gravita}">${esc(a.badge)}</span></div>`).join("")
       || vuoto(I.ok, "Tutto in ordine",
@@ -1004,9 +1323,10 @@
                        .filter(m => !qMez || ((m.nome || "") + " " + (m.area || "")).toLowerCase().includes(qMez));
     $("mez-list").innerHTML = mezOrd.map(m => `<div class="item ${striscia[MB[m.stato][0]]}" data-mezzo="${m.id}" title="Tocca per cambiare stato: operativo → in verifica → fermo">
       <div class="avatar">${esc(sig(m.nome))}</div>
-      <div class="info"><div class="name">${esc(m.nome)}</div><div class="meta">${(m.ore||0).toLocaleString("it-IT")} ore motore${m.area ? " · " + esc(m.area) : ""}</div></div>
+      <div class="info"><div class="name">${esc(m.nome)}</div><div class="meta">${esc(tipoMezzoDi(m).etichetta)} · ${(m.ore||0).toLocaleString("it-IT")} ore motore${m.area ? " · " + esc(m.area) : ""}</div></div>
       <div class="acts"><span class="badge ${MB[m.stato][0]}">${MB[m.stato][1]}</span>
-      <span class="arr" role="button" tabindex="0" title="Modifica nome, area od ore" aria-label="Modifica ${esc(m.nome)}" data-edit-mezzo="${m.id}">${I.matita}</span>${m.stato==="fermo"?`<span class="arr dan" role="button" tabindex="0" title="Dismetti dal parco" aria-label="Dismetti ${esc(m.nome)}" data-del-mezzo="${m.id}">${I.croce}</span>`:""}</div></div>`).join("")
+      <span class="arr" role="button" tabindex="0" title="Apri la scheda del mezzo (il libretto macchina)" aria-label="Scheda di ${esc(m.nome)}" data-scheda-mezzo="${m.id}">${I.scheda}</span>
+      <span class="arr" role="button" tabindex="0" title="Modifica nome, tipo, area od ore" aria-label="Modifica ${esc(m.nome)}" data-edit-mezzo="${m.id}">${I.matita}</span>${m.stato==="fermo"?`<span class="arr dan" role="button" tabindex="0" title="Dismetti dal parco" aria-label="Dismetti ${esc(m.nome)}" data-del-mezzo="${m.id}">${I.croce}</span>`:""}</div></div>`).join("")
       || (qMez
         ? vuoto(I.cerca, "Nessun mezzo trovato", "Non c'è nessun mezzo che contenga «<b>" + esc(qMez) + "</b>» nel nome o nell'area. Prova a scrivere meno lettere, o svuota la casella di ricerca.")
         : filtroMez !== "tutti"
@@ -1065,8 +1385,9 @@
     $("man-list").innerHTML = MAN.slice().sort((a,b)=>(a.dataPrevista||"9999")<(b.dataPrevista||"9999")?-1:1).map(n => {
       const u = urgDi(n);
       const ricN = n.ricambioId ? (RIC.find(r => r.id === n.ricambioId) || null) : null;
-      return `<div class="item ${striscia[u.cls] || "st-accent"}"><div class="avatar">${I.chiave}</div>
-      <div class="info"><div class="name">${esc(n.titolo)} — ${esc(n.mezzo)}</div><div class="meta">${n.orePreviste ? "A " + n.orePreviste + " ore motore" + stimaGiorni(n) : "Previsto " + (n.dataPrevista ? n.dataPrevista.split("-").reverse().join("/") : "—")}${ricN ? " · usa " + esc(ricN.nome) : ""}</div></div>
+      const ritmo = n.ogniOre ? " · piano: ogni " + n.ogniOre + " h" : n.ogniMesi ? " · piano: ogni " + n.ogniMesi + " mesi" : "";
+      return `<div class="item ${striscia[u.cls] || "st-accent"}"><div class="avatar">${n.origine === "controllo" ? I.giro : I.chiave}</div>
+      <div class="info"><div class="name">${esc(n.titolo)} — ${esc(n.mezzo)}</div><div class="meta">${n.orePreviste ? "A " + n.orePreviste + " ore motore" + stimaGiorni(n) : "Previsto " + (n.dataPrevista ? n.dataPrevista.split("-").reverse().join("/") : "—")}${ritmo}${ricN ? " · usa " + esc(ricN.nome) : ""}</div>${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}</div>
       <div class="acts"><span class="badge ${u.cls}">${u.label}</span>
       <span class="arr ok" role="button" tabindex="0" title="Segna come eseguita e registra l'intervento" aria-label="Chiudi ${esc(n.titolo)}" data-man-done="${n.id}">${I.spunta}</span></div></div>`; }).join("")
       || vuoto(I.chiave, "Nessuna manutenzione in programma",
@@ -1257,6 +1578,19 @@
       : (conta.scadute + conta.inScadenza) === 0
         ? `Tutte a posto: <b>${conta.totale}</b> scadenze su ${conta.mezzi} ${conta.mezzi === 1 ? "mezzo" : "mezzi"}, nessuna entro ${preavvisoSca} giorni. <span class="go">Vedi →</span>`
         : `<span class="rosso">${conta.scadute} ${conta.scadute === 1 ? "scaduta" : "scadute"}</span> · <span class="giallo">${conta.inScadenza} in scadenza entro ${preavvisoSca} gg</span> · ${conta.aPosto} a posto. <span class="go">Vedi →</span>`;
+    // GIRO MACCHINA sul Quadro: una riga sola, che dice quanti mezzi hanno
+    // già il controllo di oggi. È la spinta a farlo: un elenco di chi manca
+    // vale più di qualunque promemoria.
+    const cop = coperturaControlli(CTR, MEZ, oggiISO());
+    $("dash-giro").className = "note link" + (cop.totale && cop.fatti < cop.totale ? " recap" : "");
+    $("dash-giro").innerHTML = !cop.totale
+      ? 'Nessun mezzo nel parco: il giro macchina comincia da lì. <span class="go">Aggiungi un mezzo →</span>'
+      : cop.fatti === 0
+        ? `<span class="giallo">Nessun giro fatto oggi</span> su ${cop.totale} ${cop.totale === 1 ? "mezzo" : "mezzi"}. Bastano tre tocchi per macchina. <span class="go">Fai il primo →</span>`
+        : cop.fatti === cop.totale
+          ? `Tutti i <b>${cop.totale}</b> mezzi hanno il giro di oggi${cop.conAnomalie ? `, <span class="giallo">${cop.conAnomalie} con qualcosa da vedere</span>` : ", nessuna anomalia"}. <span class="go">Vedi →</span>`
+          : `<b>${cop.fatti}</b> su ${cop.totale} hanno il giro di oggi${cop.conAnomalie ? ` · <span class="giallo">${cop.conAnomalie} con anomalie</span>` : ""}. Manca: ${cop.mancanti.slice(0, 3).map(esc).join(", ")}${cop.mancanti.length > 3 ? " e altri " + (cop.mancanti.length - 3) : ""}. <span class="go">Vai →</span>`;
+
     const qSca = ($("sca-cerca") && $("sca-cerca").value || "").trim().toLowerCase();
     const scaOrd = scadenzeOrdinate(SCA, new Date(), preavvisoSca)
       .filter(s => filtroSca === "tutte" || s.sem.stato === filtroSca
@@ -1291,8 +1625,18 @@
     document.querySelectorAll("#sca-filtri .chg").forEach(b =>
       b.classList.toggle("active", b.getAttribute("data-sca-filtro") === filtroSca));
 
+    // ── L2 · giro macchina, L4 · carburante, L1 · fascicolo ──────────────
+    disegnaGiro();
+    disegnaRifornimenti();
+    if (schedaId) disegnaScheda();
+
     const opts = MEZ.map(m => `<option value="${m.id}">${esc(m.nome.split(" — ")[0])}</option>`).join("");
     $("ore-mezzo").innerHTML = opts;
+    // elenco mezzi per i rifornimenti (conserva la scelta in corso)
+    { const rifSel = $("rif-mezzo").value;
+      $("rif-mezzo").innerHTML = MEZ.map(m => { const n = nomeBreve(m.nome);
+        return `<option${n === rifSel ? " selected" : ""}>${esc(n)}</option>`; }).join("")
+        || '<option value="">— nessun mezzo nel parco —</option>'; }
     $("man-mezzo").innerHTML = MEZ.map(m => `<option>${esc(m.nome.split(" — ")[0])}</option>`).join("");
     // elenco mezzi per le scadenze di legge (conserva la scelta in corso)
     { const scaSel = $("sca-mezzo").value;
@@ -1303,6 +1647,312 @@
     const ricSel = $("man-ricambio").value;
     $("man-ricambio").innerHTML = '<option value="">— nessun ricambio —</option>' +
       RIC.map(r => `<option value="${r.id}"${r.id === ricSel ? " selected" : ""}>${esc(r.nome)} (giac. ${+r.giacenza||0})</option>`).join("");
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // L2 — GIRO MACCHINA (controllo pre-uso)
+  // Il ritmo è quello di chi è in piedi davanti alla macchina: si sceglie il
+  // mezzo (un tocco), si segna «tutto a posto» (un tocco), si aprono solo le
+  // voci che non vanno, si salva (un tocco). Tre tocchi quando va tutto bene.
+  // ══════════════════════════════════════════════════════════════════════
+  const gravitaControllo = (c) => (+c.anomalie || 0) === 0 ? "ok"
+    : (c.voci || []).some(v => v.esito === "no" && v.critica) ? "danger" : "warn";
+  const etichettaControllo = (c) => {
+    const n = +c.anomalie || 0;
+    return n === 0 ? "tutto a posto" : n === 1 ? "1 da vedere" : n + " da vedere";
+  };
+
+  function disegnaGiro() {
+    const oggi = oggiISO();
+    const fattoDi = {};
+    for (const c of CTR) {
+      if (String(c.data || "").slice(0, 10) !== oggi) continue;
+      const n = nomeBreve(c.mezzo); if (n) fattoDi[n] = c;
+    }
+    const cop = coperturaControlli(CTR, MEZ, oggi);
+    // senza mezzi non c'è niente da scegliere: resta un titolo solo e lo
+    // stato vuoto, che spiega da dove si comincia
+    $("giro-sec-scelta").style.display = cop.totale ? "" : "none";
+    $("giro-riep").innerHTML = !cop.totale ? ""
+      : cop.fatti === cop.totale
+        ? `Tutti i <b>${cop.totale}</b> mezzi hanno il controllo di oggi${cop.conAnomalie ? `, <span class="giallo">${cop.conAnomalie} con qualcosa da vedere</span>.` : ", nessuna anomalia."}`
+        : cop.fatti === 0
+          ? `Nessuno dei <b>${cop.totale}</b> mezzi ha ancora il giro di oggi. Scegli qui sotto la macchina su cui stai per salire: ci vuole meno di un minuto.`
+          : `<b>${cop.fatti}</b> su ${cop.totale} ${cop.totale === 1 ? "mezzo controllato" : "mezzi controllati"} oggi${cop.conAnomalie ? ` · <span class="giallo">${cop.conAnomalie} con anomalie</span>` : ""}. Scegli qui sotto la macchina su cui stai per salire.`;
+
+    // I mezzi senza giro vengono prima: è l'ordine in cui servono.
+    const ordinati = MEZ.slice().sort((a, b) => {
+      const fa = fattoDi[nomeBreve(a.nome)] ? 1 : 0, fb = fattoDi[nomeBreve(b.nome)] ? 1 : 0;
+      return fa - fb || nomeBreve(a.nome).localeCompare(nomeBreve(b.nome), "it");
+    });
+    $("giro-mezzi").innerHTML = ordinati.map(m => {
+      const nome = nomeBreve(m.nome), f = fattoDi[nome], t = tipoMezzoDi(m);
+      const cls = f ? gravitaControllo(f) : "accent";
+      return `<div class="item ${striscia[cls] || "st-accent"}" role="button" tabindex="0" data-giro-mezzo="${m.id}" title="Fai il giro di ${esc(nome)}">
+        <div class="avatar">${esc(sig(m.nome))}</div>
+        <div class="info"><div class="name">${esc(nome)}</div>
+          <div class="meta">${esc(t.etichetta)} · ${checklistPreUso(t.chiave).length} controlli${m.area ? " · " + esc(m.area) : ""}</div></div>
+        <span class="badge ${f ? cls : "accent"}">${f ? etichettaControllo(f) : "da fare"}</span></div>`;
+    }).join("")
+      || vuoto(I.mezzo, "Nessun mezzo da controllare",
+          "Il giro macchina si fa su una macchina: aggiungi il primo mezzo dalla schermata <b>Mezzi</b> e qui comparirà l'elenco di quelle da controllare a inizio turno.");
+
+    $("giro-tot").textContent = CTR.length;
+    $("giro-storico").innerHTML = CTR.slice()
+      .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")))
+      .slice(0, 12)
+      .map(c => {
+        const cls = gravitaControllo(c);
+        const male = (c.voci || []).filter(v => v.esito === "no");
+        const capo = [dataIt(c.data), c.operatore ? esc(c.operatore) : "", c.ore ? (+c.ore).toLocaleString("it-IT") + " h" : ""]
+                     .filter(Boolean).join(" · ");
+        const coda = [male.length ? male.map(v => esc(v.etichetta)).join(", ") : "nessuna anomalia", c.note ? esc(c.note) : ""]
+                     .filter(Boolean).join(" · ");
+        return `<div class="item statico ${striscia[cls] || "st-ok"}">
+          <div class="avatar${cls === "ok" ? " sup" : ""}">${I.giro}</div>
+          <div class="info"><div class="name">${esc(nomeBreve(c.mezzo) || "Mezzo")}</div>
+            <div class="meta">${capo}</div><div class="meta norma">${coda}</div></div>
+          <span class="badge ${cls}">${etichettaControllo(c)}</span></div>`;
+      }).join("")
+      || vuoto(I.giro, "Nessun giro registrato",
+          "Il <b>giro macchina</b> è il controllo che si fa prima di salire: livelli, perdite, freni, luci, protezioni. Fatto dal telefono richiede meno di un minuto, e quello che non va diventa subito una manutenzione sul mezzo, senza passare da una telefonata.");
+  }
+
+  function apriGiro(mezzoId) {
+    const m = MEZ.find(x => x.id === mezzoId); if (!m) return;
+    const t = tipoMezzoDi(m);
+    giro = { mezzoId, tipo: t.chiave, voci: checklistPreUso(t.chiave).map(v => ({ ...v, esito: null, nota: "" })) };
+    $("giro-nome").textContent = nomeBreve(m.nome);
+    $("giro-sotto").textContent = t.etichetta + " · " + giro.voci.length + " controlli · "
+      + (+m.ore || 0).toLocaleString("it-IT") + " ore motore" + (m.area ? " · " + m.area : "");
+    let chi = ""; try { chi = localStorage.getItem("dwFlottaOperatore") || ""; } catch (e) {}
+    $("giro-operatore").value = chi;
+    $("giro-ore").value = ""; $("giro-note").value = ""; $("giro-esito").textContent = "";
+    $("giro-voci").innerHTML = giro.voci.map(v => `
+      <div class="chk" data-chk-riga="${v.chiave}">
+        <div class="chk-t">
+          <div class="chk-n">${esc(v.etichetta)}${v.critica ? '<span class="chk-cr">sicurezza</span>' : ""}</div>
+          ${v.aiuto ? `<span class="chk-a">${esc(v.aiuto)}</span>` : ""}
+        </div>
+        <div class="chk-b">
+          <button type="button" class="si" data-chk="${v.chiave}" data-esito="ok" aria-pressed="false" aria-label="${esc(v.etichetta)}: a posto">A posto</button>
+          <button type="button" class="nogo" data-chk="${v.chiave}" data-esito="no" aria-pressed="false" aria-label="${esc(v.etichetta)}: non va">Non va</button>
+        </div>
+        <input class="dw-input chk-nota" data-chk-nota="${v.chiave}" placeholder="Cosa hai visto? (facoltativo)" style="display:none;">
+      </div>`).join("");
+    aggiornaContaGiro();
+    $("giro-passo1").style.display = "none";
+    $("giro-passo2").style.display = "block";
+    window.scrollTo(0, 0);
+  }
+
+  function chiudiGiro() {
+    giro = null;
+    $("giro-passo2").style.display = "none";
+    $("giro-passo1").style.display = "block";
+    $("giro-voci").innerHTML = "";
+    window.scrollTo(0, 0);
+  }
+
+  function segnaVoce(chiave, esito) {
+    if (!giro) return;
+    const v = giro.voci.find(x => x.chiave === chiave); if (!v) return;
+    v.esito = esito;
+    if (esito === "ok") v.nota = "";
+    const riga = $("giro-voci").querySelector('[data-chk-riga="' + chiave + '"]');
+    if (riga) {
+      riga.classList.remove("manca");
+      riga.classList.toggle("ok", esito === "ok");
+      riga.classList.toggle("no", esito === "no");
+      riga.querySelectorAll("[data-chk]").forEach(b => {
+        const on = b.getAttribute("data-esito") === esito;
+        b.classList.toggle("on", on);
+        b.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+      const nota = riga.querySelector("[data-chk-nota]");
+      if (nota) { nota.style.display = esito === "no" ? "block" : "none"; if (esito === "ok") nota.value = ""; }
+    }
+    aggiornaContaGiro();
+  }
+
+  function aggiornaContaGiro() {
+    if (!giro) return;
+    const r = riepilogoControllo(giro.voci);
+    // Poche parole: la barra è larga un pollice, non una frase.
+    $("giro-conta").innerHTML = r.mancanti
+      ? `<b>${r.totali - r.mancanti}/${r.totali}</b><br>${r.mancanti === 1 ? "ne manca 1" : "ne mancano " + r.mancanti}`
+      : r.no
+        ? `<b>${r.no}</b><br>da sistemare`
+        : `<b>${r.totali}/${r.totali}</b><br>tutto a posto`;
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // L4 — CARBURANTE PER MEZZO
+  // ══════════════════════════════════════════════════════════════════════
+  const lt = (v) => (Math.round((+v || 0) * 10) / 10).toLocaleString("it-IT") + " l";
+  const lh = (v) => (+v || 0).toLocaleString("it-IT", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " l/h";
+  const eh = (v) => "€" + (Math.round((+v || 0) * 100) / 100).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "/h";
+
+  function disegnaRifornimenti() {
+    const cons = consumoPerMezzo(RIF);
+    $("rif-tot").textContent = RIF.length;
+    $("rif-riep").innerHTML = !RIF.length ? ""
+      : `Registrati <b>${lt(cons.totaleLitri)}</b>${cons.totaleEuro ? " per <b>" + eur(cons.totaleEuro) + "</b>" : ""} su ${cons.mezzi.length} ${cons.mezzi.length === 1 ? "mezzo" : "mezzi"}. `
+        + (cons.calcolabili
+            ? `Il consumo è calcolabile su <b>${cons.calcolabili}</b> ${cons.calcolabili === 1 ? "mezzo" : "mezzi"}: sugli altri manca ancora un secondo pieno col contatore.`
+            : "Per il consumo in litri/ora servono almeno <b>due rifornimenti</b> dello stesso mezzo con le ore del contatore.");
+
+    // Il grafico si disegna solo se c'è un CONFRONTO: due macchine con il
+    // consumo calcolato. Non è un andamento nel tempo — di quello non
+    // abbiamo ancora la storia — ma la classifica di chi beve di più.
+    const calcolabili = cons.mezzi.filter(m => m.litriOra != null);
+    if (calcolabili.length >= 2) {
+      const peggiore = calcolabili[0];
+      grafico("graf-consumo", "barre", {
+        titolo: "Quanto beve ogni macchina",
+        meta: "litri per ora di lavoro",
+        orientamento: "orizzontale", ordina: true, rampa: true,
+        // un decimale sulle barre, numeri tondi sull'asse: «0,0 5,0 10,0» è
+        // precisione finta, e sporca la scala senza dire niente di più
+        formato: (v) => (+v || 0).toLocaleString("it-IT", { maximumFractionDigits: 1 }), unita: "l/h",
+        valori: calcolabili.map(m => ({ etichetta: m.mezzo, valore: m.litriOra })),
+        nota: "In cima c'è chi consuma di più: <b>" + peggiore.mezzo + "</b>, " + lh(peggiore.litriOra)
+          + (peggiore.euroOra ? " (" + eh(peggiore.euroOra) + ")" : "")
+          + ". Un consumo che sale rispetto al solito è spesso il primo segnale di un guasto: iniettori, filtri, freni che strisciano. "
+          + "Il conto salta il primo pieno di ogni macchina, che serve solo a fissare il punto di partenza.",
+      });
+    } else if (calcolabili.length === 1) {
+      const u = calcolabili[0];
+      grafVuoto("graf-consumo", I.goccia, u.mezzo + ": " + lh(u.litriOra),
+        "Su " + esc(u.mezzo) + " il consumo si può già calcolare (" + lh(u.litriOra)
+        + (u.euroOra ? ", " + eh(u.euroOra) : "") + " su " + u.oreCoperte + " ore di lavoro), ma con una macchina sola non c'è "
+        + "<b>niente da confrontare</b>. Registra i rifornimenti di un secondo mezzo e qui comparirà la classifica di chi beve di più.");
+    } else if (RIF.length) {
+      grafVuoto("graf-consumo", I.goccia, "Consumo non ancora calcolabile",
+        "Per sapere quanto beve una macchina servono <b>due rifornimenti</b> dello stesso mezzo con le <b>ore del contatore</b>: "
+        + "il primo fissa il punto di partenza, il secondo dice quanto gasolio è servito per le ore passate in mezzo. "
+        + "Scrivi le ore quando fai il pieno e il numero arriva da solo.");
+    } else {
+      // niente rifornimenti: lo stato vuoto è UNO SOLO, quello della lista
+      // qui sotto. Due riquadri vuoti di fila sono una schermata povera.
+      puliscoGrafico("graf-consumo");
+    }
+
+    const perMezzo = cons.mezzi.map(m => {
+      const cls = m.litriOra != null ? "ok" : "mute";
+      return `<div class="item statico ${striscia[cls] || "st-mute"}">
+        <div class="avatar sup">${I.goccia}</div>
+        <div class="info"><div class="name">${esc(m.mezzo)}</div>
+          <div class="meta">${lt(m.litri)}${m.euro ? " · " + eur(m.euro) : ""} · ${m.pieni} ${m.pieni === 1 ? "pieno" : "pieni"}${m.euroLitro ? " · " + m.euroLitro.toLocaleString("it-IT", { minimumFractionDigits: 3, maximumFractionDigits: 3 }) + " €/l" : ""}</div>
+          <div class="meta norma">${m.litriOra != null
+            ? "misurato su " + m.oreCoperte + " ore di lavoro"
+            : esc(m.perche.charAt(0).toUpperCase() + m.perche.slice(1)) + "."}</div></div>
+        ${m.litriOra != null
+          ? `<span class="badge ok">${lh(m.litriOra)}</span>${m.euroOra ? `<span class="badge tag euro">${eh(m.euroOra)}</span>` : ""}`
+          : `<span class="badge tag">consumo n.d.</span>`}</div>`;
+    }).join("");
+
+    const ultimi = RIF.slice()
+      .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")))
+      .slice(0, 10).map(r => `<div class="item statico st-accent">
+        <div class="avatar">${I.goccia}</div>
+        <div class="info"><div class="name">${esc(nomeBreve(r.mezzo) || "Mezzo")} · ${lt(r.litri)}</div>
+          <div class="meta">${esc(dataIt(r.data))}${r.ore ? " · contatore " + (+r.ore).toLocaleString("it-IT") + " h" : " · senza contatore"}${r.nota ? " · " + esc(r.nota) : ""}</div></div>
+        <div class="acts">${(+r.euro) ? `<span class="badge accent euro">${eur(r.euro)}</span>` : ""}
+        <span class="arr dan" role="button" tabindex="0" title="Rimuovi questo rifornimento" aria-label="Rimuovi il rifornimento di ${esc(nomeBreve(r.mezzo))}" data-del-rif="${r.id}">${I.croce}</span></div></div>`).join("");
+
+    $("rif-list").innerHTML = RIF.length
+      ? perMezzo + '<div class="sec">Ultimi rifornimenti</div>' + ultimi
+        + (RIF.length > 10 ? `<div class="count">ne vedi 10 · su ${RIF.length}</div>` : "")
+      : vuoto(I.goccia, "Nessun rifornimento registrato",
+          "Il gasolio è la voce più grossa di una flotta, e finora qui era un totale anonimo. Segna ogni pieno "
+          + "<b>macchina per macchina</b> — quanti <b>litri</b>, quanto hai <b>speso</b>, le <b>ore del contatore</b> — "
+          + "e dal secondo pieno Flotta sa dirti quanto beve all'ora e quanto ti costa un'ora di lavoro.");
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // L1 — FASCICOLO DEL MEZZO (libretto macchina)
+  // ══════════════════════════════════════════════════════════════════════
+  function apriScheda(id) {
+    const m = MEZ.find(x => x.id === id); if (!m) return;
+    schedaId = id;
+    disegnaScheda();
+    go("sch");
+  }
+
+  function disegnaScheda() {
+    const m = MEZ.find(x => x.id === schedaId);
+    if (!m) {   // mezzo dismesso mentre la sua scheda era aperta
+      schedaId = null;
+      if ($("page-sch").classList.contains("active")) go("mez");
+      return;
+    }
+    const f = fascicoloMezzo(m, { manutenzioni: MAN, interventi: INT, scadenze: SCA, controlli: CTR, rifornimenti: RIF },
+                             new Date(), preavvisoSca);
+    const st = MB[m.stato] || MB.operativo;
+    $("sch-stampa").innerHTML = `<div class="sch-nome">Libretto macchina — ${esc(f.nome)}</div>
+      <div class="sch-sotto">Stampato il ${dataIt(oggiISO())} · Deepwork Flotta · ${esc(f.tipo.etichetta)}</div>`;
+    $("sch-testa").innerHTML = `<div class="sch-testa">
+      <div class="sch-av">${I.mezzo}</div>
+      <div class="sch-b"><div class="sch-nome">${esc(m.nome)}</div>
+        <div class="sch-sotto"><span class="badge ${st[0]}">${st[1]}</span> ${esc(f.tipo.etichetta)}${m.area ? " · " + esc(m.area) : ""} · <b>${(+m.ore || 0).toLocaleString("it-IT")}</b> ore motore${m.oreDaTelemetria ? " (da telemetria)" : ""}</div>
+        <div class="sch-sotto">${f.ultimoIntervento ? "Ultimo intervento: <b>" + esc(f.ultimoIntervento.titolo) + "</b> del " + dataIt(f.ultimoIntervento.data) : "Nessun intervento registrato"}${f.ultimoControllo ? " · ultimo giro macchina: " + dataIt(f.ultimoControllo.data) : " · nessun giro macchina"}</div>
+      </div></div>`;
+    $("sch-kpi").innerHTML = [
+      ["accent", "Ore motore", (+m.ore || 0).toLocaleString("it-IT")],
+      [f.officina.totale ? "warn" : "ok", "Officina", eur(f.officina.totale)],
+      ["accent", "Consumo", f.consumo && f.consumo.litriOra != null ? lh(f.consumo.litriOra) : "—"],
+      ["accent", "Gasolio", f.consumo && f.consumo.euroOra != null ? eh(f.consumo.euroOra) : "—"],
+    ].map(([cls, l, n]) => `<div class="kpi ${cls}"><div class="l">${l}</div><div class="n">${n}</div></div>`).join("");
+
+    $("sch-sca").innerHTML = f.scadenze.map(s => `<div class="item statico ${striscia[s.sem.cls] || "st-accent"}">
+        <div class="avatar">${I.bilancia}</div>
+        <div class="info"><div class="name">${esc(s.tipo || "Scadenza")}</div>
+          <div class="meta">scade il ${esc(dataIt(s.dataScadenza))}${s.mesi ? " · ogni " + s.mesi + (s.mesi === 1 ? " mese" : " mesi") : ""}${s.documento ? " · doc. " + esc(s.documento) : ""}${s.ultimaData ? " · ultima: " + esc(dataIt(s.ultimaData)) : ""}</div></div>
+        <span class="badge ${s.sem.cls}">${esc(s.sem.label)}</span></div>`).join("")
+      || vuoto(I.bilancia, "Nessuna scadenza di legge", "Questa macchina non ha scadenze registrate: verifica periodica, funi e catene, revisione, assicurazione si aggiungono dalla schermata <b>Scadenze</b>.");
+
+    $("sch-man").innerHTML = f.manutenzioni.map(n => {
+      const u = n.orePreviste ? urgenzaOre(n.orePreviste, +m.ore || 0) : urgenza(n.dataPrevista);
+      return `<div class="item statico ${striscia[u.cls] || "st-accent"}">
+        <div class="avatar">${n.origine === "controllo" ? I.giro : I.chiave}</div>
+        <div class="info"><div class="name">${esc(n.titolo)}</div>
+          <div class="meta">${n.orePreviste ? "a " + n.orePreviste + " ore motore" : "previsto " + esc(dataIt(n.dataPrevista))}${n.ogniOre ? " · piano: ogni " + n.ogniOre + " h" : n.ogniMesi ? " · piano: ogni " + n.ogniMesi + " mesi" : ""}</div>${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}</div>
+        <span class="badge ${u.cls}">${esc(u.label)}</span></div>`;
+    }).join("")
+      || vuoto(I.chiave, "Niente in programma", "Nessun tagliando pianificato su questa macchina. Si pianifica dalla schermata <b>Officina</b>, a data oppure a ore motore.");
+
+    $("sch-int").innerHTML = f.interventi.map(w => `<div class="item statico st-ok">
+        <div class="avatar sup">${I.registro}</div>
+        <div class="info"><div class="name">${esc(w.titolo)}</div>
+          <div class="meta">${esc(dataIt(w.data))}${w.ricambio ? " · " + esc(w.ricambio) : ""}${w.note ? " · " + esc(w.note) : ""}</div></div>
+        ${(+w.costo) ? `<span class="badge tag euro">${eur(+w.costo)}</span>` : ""}</div>`).join("")
+      || vuoto(I.registro, "Storico vuoto", "Nessun intervento chiuso su questa macchina. Ogni manutenzione che segni <b>eseguita</b> finisce qui, con data, ricambio e costo.");
+
+    $("sch-giri").innerHTML = f.controlli.slice(0, 8).map(c => {
+      const cls = gravitaControllo(c);
+      const male = (c.voci || []).filter(v => v.esito === "no");
+      return `<div class="item statico ${striscia[cls] || "st-ok"}">
+        <div class="avatar${cls === "ok" ? " sup" : ""}">${I.giro}</div>
+        <div class="info"><div class="name">${esc(dataIt(c.data))}${c.operatore ? " · " + esc(c.operatore) : ""}</div>
+          <div class="meta">${c.ore ? "contatore " + (+c.ore).toLocaleString("it-IT") + " h" : "senza contatore"}</div>
+          <div class="meta norma">${male.length ? male.map(v => esc(v.etichetta)).join(", ") : "nessuna anomalia"}</div></div>
+        <span class="badge ${cls}">${etichettaControllo(c)}</span></div>`;
+    }).join("")
+      || vuoto(I.giro, "Nessun giro macchina", "Nessun controllo pre-uso registrato su questa macchina. Si fa dal telefono, dalla schermata <b>Giro</b>: meno di un minuto a inizio turno.");
+
+    const cons = f.consumo;
+    $("sch-carb").innerHTML = (cons
+        ? `<div class="note recap">${cons.litriOra != null
+            ? `Consuma <b>${lh(cons.litriOra)}</b>${cons.euroOra ? ` — <b>${eh(cons.euroOra)}</b>` : ""}, misurati su <b>${cons.oreCoperte} ore</b> di lavoro e ${cons.pieni} rifornimenti (${lt(cons.litri)}${cons.euro ? ", " + eur(cons.euro) : ""}).`
+            : `${cons.pieni} ${cons.pieni === 1 ? "rifornimento" : "rifornimenti"} per ${lt(cons.litri)}${cons.euro ? " (" + eur(cons.euro) + ")" : ""}: il consumo all'ora non si può ancora calcolare — ${esc(cons.perche)}.`}</div>`
+        : "")
+      + (f.rifornimenti.slice(0, 8).map(r => `<div class="item statico st-accent">
+          <div class="avatar">${I.goccia}</div>
+          <div class="info"><div class="name">${esc(dataIt(r.data))} · ${lt(r.litri)}</div>
+            <div class="meta">${r.ore ? "contatore " + (+r.ore).toLocaleString("it-IT") + " h" : "senza contatore"}${r.nota ? " · " + esc(r.nota) : ""}</div></div>
+          ${(+r.euro) ? `<span class="badge tag euro">${eur(r.euro)}</span>` : ""}</div>`).join("")
+        || vuoto(I.goccia, "Nessun rifornimento", "Nessun pieno registrato su questa macchina: si registrano dalla schermata <b>Costi</b>, e bastano due pieni con le ore del contatore per sapere quanto beve all'ora."));
   }
 
   // il bersaglio del tocco può essere l'icona SVG dentro il bottone: si
@@ -1334,6 +1984,68 @@
       if (costo > 0) await db.aggiungi("costi", { voce: "Manutenzione: " + n.titolo + " (" + n.mezzo + ")", importo: costo, nota: note, data: oggiISO() });
       await db.rimuovi("manutenzioni", done);
       toast("Intervento registrato: " + n.titolo + " su " + n.mezzo + ".", "success");
+
+      // ── L3 · IL TAGLIANDO RICORRENTE NON FINISCE QUI ──────────────────
+      // Se la manutenzione porta un piano, il prossimo giro esiste già: a ore
+      // si conta dalle ore che il mezzo ha ADESSO (non da quelle previste,
+      // che quasi mai coincidono col contatore vero), a calendario dal giorno
+      // della chiusura. L'app lo propone, l'utente conferma o corregge — e
+      // svuotando il campo chiude il piano, senza dover cercare dove si fa.
+      const mezzoDi = MEZ.find(x => nomeBreve(x.nome) === nomeBreve(n.mezzo));
+      const px = prossimoTagliando(n, mezzoDi ? (+mezzoDi.ore || 0) : NaN, oggiISO());
+      if (px && px.da === "ore") {
+        const nx = await chiediDati("Il prossimo tagliando",
+          `<b>${esc(n.titolo)} — ${esc(n.mezzo)}</b> si ripete <b>ogni ${px.ogniOre} ore</b>.<br>
+           Il contatore segna adesso <b>${px.oreBase.toLocaleString("it-IT")} ore</b>: il prossimo cade a
+           <b>${px.orePreviste.toLocaleString("it-IT")} ore</b>. Confermalo, correggilo,
+           oppure <b>svuota il campo</b> per chiudere qui il piano.`,
+          [{ id: "ore", label: "A quante ore motore", tipo: "number", min: 0, valore: px.orePreviste,
+             aiuto: "Vuoto = il tagliando non si ripete più: lo potrai sempre ripianificare a mano." }],
+          "Pianifica");
+        if (nx && String(nx.ore).trim() !== "") {
+          const ore = Math.round(+nx.ore);
+          if (ore > 0) {
+            await db.aggiungi("manutenzioni", { titolo: px.titolo, mezzo: px.mezzo, dataPrevista: null,
+              orePreviste: ore, ricambioId: px.ricambioId, ogniOre: px.ogniOre, ogniMesi: null,
+              piano: px.piano, origine: "piano", nota: null });
+            toast("Prossimo « " + px.titolo + " » pianificato a " + ore.toLocaleString("it-IT") + " ore.", "success");
+          }
+        } else if (nx) toast("Piano chiuso: « " + px.titolo + " » non si ripete più.");
+      } else if (px && px.da === "mesi") {
+        const nx = await chiediDati("Il prossimo tagliando",
+          `<b>${esc(n.titolo)} — ${esc(n.mezzo)}</b> si ripete <b>ogni ${px.ogniMesi} ${px.ogniMesi === 1 ? "mese" : "mesi"}</b>.<br>
+           Fatto oggi, il prossimo cade il <b>${dataIt(px.dataPrevista)}</b>. Confermalo, correggilo,
+           oppure <b>svuota il campo</b> per chiudere qui il piano.`,
+          [{ id: "data", label: "Data del prossimo", tipo: "date", valore: px.dataPrevista,
+             aiuto: "Vuoto = il tagliando non si ripete più." }],
+          "Pianifica");
+        if (nx && String(nx.data || "").trim() !== "") {
+          const iso = String(nx.data).slice(0, 10);
+          if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+            await db.aggiungi("manutenzioni", { titolo: px.titolo, mezzo: px.mezzo, dataPrevista: iso,
+              orePreviste: null, ricambioId: px.ricambioId, ogniOre: null, ogniMesi: px.ogniMesi,
+              piano: px.piano, origine: "piano", nota: null });
+            toast("Prossimo « " + px.titolo + " » pianificato per il " + dataIt(iso) + ".", "success");
+          } else toast("La data non è valida: il piano non è stato ripianificato.", "err");
+        } else if (nx) toast("Piano chiuso: « " + px.titolo + " » non si ripete più.");
+      }
+      await refresh(); return; }
+    // Scheda del mezzo (fascicolo): si apre dal parco mezzi.
+    const schedaMez = attr(e, "data-scheda-mezzo");
+    if (schedaMez) { apriScheda(schedaMez); return; }
+    // Rimozione di un rifornimento: se aveva una voce di costo gemella,
+    // sparisce anche quella — altrimenti resterebbe una spesa senza pieno.
+    const delRif = attr(e, "data-del-rif");
+    if (delRif) { const r = RIF.find(x => x.id === delRif); if (!r) return;
+      const gemella = r.costoId ? COS.find(c => c.id === r.costoId) : null;
+      const ok = await chiedi("Rimuovere il rifornimento",
+        `Stai per togliere il pieno di <b>${esc(nomeBreve(r.mezzo))}</b> del ${dataIt(r.data)} (${lt(r.litri)}${(+r.euro) ? ", " + eur(r.euro) : ""}).<br>
+         ${gemella ? "Sparisce anche la sua voce di costo <b>" + esc(gemella.voce) + "</b>, così la spesa resta giusta.<br>" : ""}
+         Il consumo in litri/ora viene ricalcolato. <b>Non si può annullare.</b>`, "Rimuovi", true);
+      if (!ok) return;
+      if (gemella) await db.rimuovi("costi", gemella.id);
+      await db.rimuovi("rifornimenti", delRif);
+      toast("Rifornimento rimosso.");
       await refresh(); return; }
     const delMez = attr(e, "data-del-mezzo");
     if (delMez) { const m = MEZ.find(x => x.id === delMez); if (!m) return;
@@ -1398,6 +2110,7 @@
         ["mez-nome","mez-area","mez-ore"].forEach(i => { $(i).value = ""; err(i, false); }); return; }
       editMez = m.id;
       $("mez-nome").value = m.nome || ""; $("mez-area").value = m.area || ""; $("mez-ore").value = m.ore != null ? m.ore : "";
+      $("mez-tipo").value = tipoMezzoDi(m).chiave;   // se non era salvato, è quello indovinato dal nome
       ["mez-nome","mez-area","mez-ore"].forEach(i => err(i, false));
       $("btn-mez").textContent = "Salva modifica";
       esito("ore-esito", "Stai modificando «" + m.nome + "»: cambi nome, area e ore. Lo stato e le manutenzioni restano come sono.");
@@ -1480,7 +2193,7 @@
   // le icone d'azione dentro le liste rispondono anche da tastiera
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Enter" && e.key !== " ") return;
-    const a = e.target.closest && e.target.closest(".arr[role='button']");
+    const a = e.target.closest && e.target.closest(".arr[role='button'],.item[role='button']");
     if (a) { e.preventDefault(); a.click(); }
   });
   $("btn-int-csv").onclick = () => {
@@ -1600,18 +2313,20 @@
   };
   $("btn-mez").onclick = async () => {
     const nome = $("mez-nome").value.trim(), area = $("mez-area").value.trim(), ore = +$("mez-ore").value || 0;
+    const tipo = $("mez-tipo").value || "altro";
     if (!nome) { err("mez-nome", true); esito("ore-esito", "Manca il nome del mezzo: è come lo chiamate in cava (es. «Dumper D4»).", "err"); fuoco("mez-nome"); return; }
     if (MEZ.some(m => m.id !== editMez && m.nome.split(" — ")[0].toLowerCase() === nome.split(" — ")[0].toLowerCase())) {
       err("mez-nome", true); esito("ore-esito", "C'è già un mezzo che si chiama «" + nome + "»: dagli un nome diverso, altrimenti in cantiere non si capisce di quale si parla.", "err"); fuoco("mez-nome"); return; }
     err("mez-nome", false);
     if (editMez) {
-      await db.aggiorna("mezzi", editMez, { nome, area, ore });   // stato/manutenzioni restano
+      await db.aggiorna("mezzi", editMez, { nome, area, ore, tipo });   // stato/manutenzioni restano
       editMez = null; $("btn-mez").textContent = "Aggiungi";
     } else {
-      await db.aggiungi("mezzi", { nome, area, ore, stato: "operativo" });
+      await db.aggiungi("mezzi", { nome, area, ore, stato: "operativo", tipo });
     }
-    $("mez-nome").value = ""; $("mez-area").value = ""; $("mez-ore").value = "";
-    esito("ore-esito", "Mezzo salvato: " + nome + " (" + ore.toLocaleString("it-IT") + " ore motore).", "success");
+    $("mez-nome").value = ""; $("mez-area").value = ""; $("mez-ore").value = ""; $("mez-tipo").value = "altro";
+    esito("ore-esito", "Mezzo salvato: " + nome + " · " + (tipoMezzo(tipo) || { etichetta: "mezzo" }).etichetta
+      + " (" + ore.toLocaleString("it-IT") + " ore motore).", "success");
     fuoco("mez-nome");   // torna al primo campo per inserire subito il prossimo
     await refresh();
   };
@@ -1689,11 +2404,203 @@
       fuoco(!titolo ? "man-titolo" : "man-data"); return;
     }
     ["man-titolo","man-data","man-ore"].forEach(i => err(i, false));
-    await db.aggiungi("manutenzioni", { titolo, mezzo: $("man-mezzo").value, dataPrevista: dataPrevista || null, orePreviste, ricambioId: $("man-ricambio").value || null });
+    // L3 — il piano ricorrente scelto nel form: «ogni tot ore» oppure
+    // «ogni tot mesi». Chi lascia «non si ripete» ha esattamente il
+    // comportamento di prima, e i due campi restano a null.
+    const pv = $("man-piano").value;
+    const pianoOre = pv.startsWith("o") ? pianoTagliando(pv.slice(1)) : null;
+    const ogniOre = pianoOre ? pianoOre.ogniOre : null;
+    const ogniMesi = pv.startsWith("m") ? (Math.round(+pv.slice(1)) || null) : null;
+    await db.aggiungi("manutenzioni", { titolo, mezzo: $("man-mezzo").value, dataPrevista: dataPrevista || null,
+      orePreviste, ricambioId: $("man-ricambio").value || null,
+      ogniOre, ogniMesi, piano: pianoOre ? pianoOre.chiave : null, origine: "manuale", nota: null });
     esito("man-esito", "Manutenzione pianificata: " + titolo + " su " + $("man-mezzo").value
-      + (dataPrevista ? " per il " + dataIt(dataPrevista) : " a " + orePreviste + " ore motore") + ".", "success");
-    $("man-titolo").value = ""; $("man-data").value = ""; $("man-ore").value = ""; $("man-ricambio").value = "";
+      + (dataPrevista ? " per il " + dataIt(dataPrevista) : " a " + orePreviste + " ore motore")
+      + (ogniOre ? ", e si ripete ogni " + ogniOre + " ore" : ogniMesi ? ", e si ripete ogni " + ogniMesi + " mesi" : "") + ".", "success");
+    $("man-titolo").value = ""; $("man-data").value = ""; $("man-ore").value = ""; $("man-ricambio").value = ""; $("man-piano").value = "";
     fuoco("man-titolo"); await refresh();
+  };
+
+  // ══════════════════════════════════════════════════════════════════════
+  // L2 — i comandi del giro macchina
+  // ══════════════════════════════════════════════════════════════════════
+  $("dash-giro").addEventListener("click", () => { go("giro"); refresh(); });
+  $("giro-mezzi").addEventListener("click", (e) => {
+    const el = e.target.closest && e.target.closest("[data-giro-mezzo]");
+    if (el) apriGiro(el.getAttribute("data-giro-mezzo"));
+  });
+  $("giro-voci").addEventListener("click", (e) => {
+    const b = e.target.closest && e.target.closest("[data-chk]");
+    if (b) segnaVoce(b.getAttribute("data-chk"), b.getAttribute("data-esito"));
+  });
+  $("giro-voci").addEventListener("input", (e) => {
+    const n = e.target.closest && e.target.closest("[data-chk-nota]");
+    if (!n || !giro) return;
+    const v = giro.voci.find(x => x.chiave === n.getAttribute("data-chk-nota"));
+    if (v) v.nota = n.value;
+  });
+  $("btn-giro-cambia").onclick = () => chiudiGiro();
+  $("btn-giro-tutto").onclick = () => {
+    if (!giro) return;
+    giro.voci.forEach(v => segnaVoce(v.chiave, "ok"));
+    $("giro-esito").textContent = "";
+    toast("Tutto a posto: ora apri solo ciò che non va.");
+  };
+  $("btn-giro-azzera").onclick = () => {
+    if (!giro) return;
+    apriGiro(giro.mezzoId);
+    toast("Giro azzerato: si ricomincia da capo.");
+  };
+  $("btn-giro-salva").onclick = async () => {
+    if (!giro) return;
+    const m = MEZ.find(x => x.id === giro.mezzoId);
+    if (!m) { esito("giro-esito", "Questo mezzo non è più nel parco: torna indietro e scegline un altro.", "err"); return; }
+    const r = riepilogoControllo(giro.voci);
+    if (!r.completo) {
+      esito("giro-esito", r.mancanti === 1
+        ? "Manca ancora una risposta: rispondi anche a quella e poi salva. Se la voce non ti riguarda, segnala «a posto»."
+        : "Mancano ancora " + r.mancanti + " risposte su " + r.totali + ": un controllo in cui non hai guardato non è un controllo.", "err");
+      const riga = $("giro-voci").querySelector('[data-chk-riga="' + r.primaMancante + '"]');
+      if (riga) { riga.classList.add("manca"); riga.scrollIntoView({ behavior: "smooth", block: "center" }); }
+      return;
+    }
+    // Ore del contatore: se le scrivi e sono più alte, il mezzo si aggiorna.
+    // Il contatore non scende mai: un numero più basso è un errore di dito e
+    // viene detto, non salvato.
+    const oreTx = String($("giro-ore").value || "").trim();
+    let ore = null;
+    if (oreTx !== "") {
+      const n = Math.round(+oreTx);
+      if (!Number.isFinite(n) || n < 0) { err("giro-ore", true); esito("giro-esito", "Le ore del contatore vanno scritte come numero, da zero in su.", "err"); fuoco("giro-ore"); return; }
+      if (n < (+m.ore || 0)) { err("giro-ore", true);
+        esito("giro-esito", "Hai scritto " + n.toLocaleString("it-IT") + " ore, ma il mezzo ne ha già " + (+m.ore || 0).toLocaleString("it-IT") + ": il contatore non può scendere.", "err");
+        fuoco("giro-ore"); return; }
+      ore = n;
+    }
+    err("giro-ore", false);
+    const operatore = $("giro-operatore").value.trim();
+    try { localStorage.setItem("dwFlottaOperatore", operatore); } catch (e) {}
+    const dati = {
+      data: oggiISO(), mezzo: nomeBreve(m.nome), tipo: giro.tipo, operatore,
+      ore, anomalie: r.no, note: $("giro-note").value.trim(),
+      voci: giro.voci.map(v => ({ chiave: v.chiave, etichetta: v.etichetta, esito: v.esito,
+                                  nota: (v.nota || "").trim(), critica: !!v.critica })),
+    };
+    await db.aggiungi("controlli", dati);
+    if (ore != null && ore > (+m.ore || 0)) await db.aggiorna("mezzi", m.id, { ore });
+    // Il cuore della funzione: ogni «non va» diventa una manutenzione aperta
+    // sul mezzo, con la data di oggi. Da lì in poi vive come tutte le altre:
+    // compare nelle priorità del Quadro, si chiude come ordine di lavoro.
+    const nuove = manutenzioniDaControllo(dati);
+    for (const n of nuove) await db.aggiungi("manutenzioni", n);
+
+    if (r.critiche.length && m.stato !== "fermo") {
+      const quali = r.critiche.map(v => v.etichetta).join(", ");
+      const ok = await chiedi("Fermare il mezzo?",
+        `Su <b>${esc(nomeBreve(m.nome))}</b> ${r.critiche.length === 1 ? "non va una voce di sicurezza" : "non vanno " + r.critiche.length + " voci di sicurezza"}:
+         <b>${esc(quali)}</b>.<br>
+         Finché non è sistemata, questa macchina non dovrebbe lavorare. La segno <b>ferma</b>?`, "Ferma il mezzo", true);
+      if (ok) await db.aggiorna("mezzi", m.id, { stato: "fermo" });
+    } else if (r.no && m.stato === "operativo") {
+      const ok = await chiedi("Mettere il mezzo in verifica?",
+        `Su <b>${esc(nomeBreve(m.nome))}</b> ${r.no === 1 ? "c'è una voce" : "ci sono " + r.no + " voci"} da sistemare, nessuna di sicurezza.<br>
+         Vuoi segnare il mezzo <b>in verifica</b>, così chi lo cerca sa che c'è qualcosa in sospeso? Può continuare a lavorare.`, "Metti in verifica");
+      if (ok) await db.aggiorna("mezzi", m.id, { stato: "verifica" });
+    }
+    toast(r.no
+      ? "Giro salvato: " + r.no + (r.no === 1 ? " manutenzione aperta" : " manutenzioni aperte") + " su " + nomeBreve(m.nome) + "."
+      : "Giro salvato: " + nomeBreve(m.nome) + " è tutto a posto.", r.no ? "" : "success");
+    chiudiGiro();
+    await refresh();
+  };
+  // I giri esportati: è il registro che si mostra quando qualcuno chiede
+  // «dimostratemi che le macchine le controllate prima di usarle».
+  $("btn-giro-csv").onclick = () => {
+    const righe = [["data", "mezzo", "tipo", "operatore", "ore", "esito", "anomalie", "voci_non_ok", "note"].join(";")]
+      .concat(CTR.slice().sort((a, b) => String(b.data || "").localeCompare(String(a.data || ""))).map(c => {
+        const male = (c.voci || []).filter(v => v.esito === "no");
+        return [c.data || "", nomeBreve(c.mezzo), (tipoMezzo(c.tipo) || {}).etichetta || "", c.operatore || "",
+                c.ore || "", male.length ? "con anomalie" : "tutto a posto", male.length,
+                male.map(v => v.etichetta + (v.nota ? " (" + v.nota + ")" : "")).join(" | "), c.note || ""].map(csvCell).join(";");
+      }));
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    a.download = "flotta-giri-macchina.csv"; a.click();
+    toast("Esportati " + CTR.length + " giri macchina (CSV).", "success");
+  };
+
+  // ══════════════════════════════════════════════════════════════════════
+  // L4 — registrazione di un rifornimento
+  // ══════════════════════════════════════════════════════════════════════
+  $("btn-rif").onclick = async () => {
+    if (!MEZ.length) { esito("rif-esito", "Prima aggiungi almeno un mezzo nel parco: apri la schermata Mezzi e inseriscilo.", "err"); return; }
+    const nome = ($("rif-mezzo").value || "").trim();
+    const m = MEZ.find(x => nomeBreve(x.nome) === nome);
+    const v = validaRifornimento({ mezzo: nome, litri: $("rif-litri").value, euro: $("rif-euro").value,
+                                   ore: $("rif-ore").value, data: $("rif-data").value }, m ? +m.ore || 0 : null);
+    err("rif-mezzo", v.errori.mezzo); err("rif-litri", v.errori.litri);
+    err("rif-euro", v.errori.euro); err("rif-ore", v.errori.ore); err("rif-data", v.errori.data);
+    if (!v.ok) {
+      esito("rif-esito", Object.values(v.errori).join(" "), "err");
+      fuoco(v.errori.mezzo ? "rif-mezzo" : v.errori.litri ? "rif-litri" : v.errori.ore ? "rif-ore" : v.errori.euro ? "rif-euro" : "rif-data");
+      return;
+    }
+    const data = String($("rif-data").value).slice(0, 10);
+    // La spesa del gasolio è una spesa della flotta: nasce subito anche come
+    // voce di costo «Carburante», con la sua data, e le due restano legate.
+    let costoId = null;
+    if (v.euro > 0) {
+      const rc = await db.aggiungi("costi", { voce: "Carburante", importo: v.euro,
+        nota: nome + " · " + lt(v.litri) + (v.ore != null ? " · contatore " + v.ore + " h" : ""), data });
+      costoId = (rc && rc.id) || null;
+    }
+    await db.aggiungi("rifornimenti", { data, mezzo: nome, litri: v.litri, euro: v.euro,
+      ore: v.ore, nota: "", costoId });
+    // Il pieno racconta anche le ore: se il contatore è più avanti, si aggiorna.
+    if (m && v.ore != null && v.ore > (+m.ore || 0)) await db.aggiorna("mezzi", m.id, { ore: v.ore });
+    $("rif-litri").value = ""; $("rif-euro").value = ""; $("rif-ore").value = "";
+    $("rif-data").value = oggiISO();
+    esito("rif-esito", "Rifornimento registrato: " + nome + ", " + lt(v.litri)
+      + (v.euro ? " per " + eur(v.euro) : "") + (v.ore != null ? " a " + v.ore.toLocaleString("it-IT") + " ore" : "")
+      + (v.euro ? " — è entrato anche nei costi come voce «Carburante»." : "."), "success");
+    fuoco("rif-litri");
+    await refresh();
+  };
+
+  // ══════════════════════════════════════════════════════════════════════
+  // L1 — libretto macchina: torna indietro, stampa, esporta
+  // ══════════════════════════════════════════════════════════════════════
+  $("btn-sch-back").onclick = () => { schedaId = null; go("mez"); };
+  $("btn-sch-stampa").onclick = () => {
+    if (!schedaId) return;
+    toast("Preparo il libretto per la stampa…");
+    setTimeout(() => window.print(), 120);
+  };
+  $("btn-sch-csv").onclick = () => {
+    const m = MEZ.find(x => x.id === schedaId); if (!m) return;
+    const f = fascicoloMezzo(m, { manutenzioni: MAN, interventi: INT, scadenze: SCA, controlli: CTR, rifornimenti: RIF },
+                             new Date(), preavvisoSca);
+    const righe = [["sezione", "voce", "data", "dettaglio", "importo"].join(";")];
+    const R = (s, v, d, det, imp) => righe.push([s, v, d, det, imp == null ? "" : imp].map(csvCell).join(";"));
+    R("mezzo", m.nome, dataIt(oggiISO()),
+      f.tipo.etichetta + " · " + (m.area || "senza area") + " · " + (+m.ore || 0) + " ore motore · " + (MB[m.stato] || MB.operativo)[1], "");
+    f.scadenze.forEach(s => R("scadenza di legge", s.tipo || "", dataIt(s.dataScadenza),
+      s.sem.label + (s.mesi ? " · ogni " + s.mesi + " mesi" : "") + (s.documento ? " · doc. " + s.documento : ""), ""));
+    f.manutenzioni.forEach(n => R("manutenzione in programma", n.titolo || "", n.dataPrevista ? dataIt(n.dataPrevista) : "",
+      (n.orePreviste ? "a " + n.orePreviste + " ore motore" : "a data") + (n.ogniOre ? " · ogni " + n.ogniOre + " h" : n.ogniMesi ? " · ogni " + n.ogniMesi + " mesi" : ""), ""));
+    f.interventi.forEach(w => R("intervento", w.titolo || "", dataIt(w.data),
+      [w.ricambio || "", w.note || ""].filter(Boolean).join(" · "), (+w.costo) || 0));
+    f.controlli.forEach(c => R("giro macchina", "controllo pre-uso", dataIt(c.data),
+      (c.operatore ? c.operatore + " · " : "") + ((c.voci || []).filter(v => v.esito === "no").map(v => v.etichetta).join(" | ") || "nessuna anomalia"), ""));
+    f.rifornimenti.forEach(r => R("rifornimento", "gasolio", dataIt(r.data),
+      r.litri + " l" + (r.ore ? " · contatore " + r.ore + " h" : ""), (+r.euro) || 0));
+    if (f.consumo && f.consumo.litriOra != null)
+      R("consumo", "litri per ora", "", f.consumo.litriOra + " l/h su " + f.consumo.oreCoperte + " ore" + (f.consumo.euroOra ? " · " + f.consumo.euroOra + " €/h" : ""), "");
+    R("totale officina", "interventi chiusi", "", f.officina.interventi + " interventi", f.officina.totale);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    a.download = "libretto-" + nomeBreve(m.nome).toLowerCase().replace(/[^a-z0-9]+/g, "-") + ".csv"; a.click();
+    toast("Libretto macchina esportato (CSV).", "success");
   };
   // Recupero errore: appena l'utente corregge un campo, togli il bordo
   // rosso e il messaggio di esito, così l'avviso non resta appeso.
@@ -1714,6 +2621,11 @@
   clearErr("sca-mezzo", "sca-esito");
   clearErr("sca-data", "sca-esito");
   clearErr("sca-mesi", "sca-esito");
+  clearErr("rif-litri", "rif-esito");
+  clearErr("rif-euro", "rif-esito");
+  clearErr("rif-ore", "rif-esito");
+  clearErr("rif-data", "rif-esito");
+  clearErr("giro-ore", "giro-esito");
   // Invio da tastiera: premere Invio in un campo del form equivale a
   // toccare il pulsante — data entry più rapida senza spostare il dito.
   const enterSubmit = (inputIds, btnId) => inputIds.forEach(id =>
@@ -1724,6 +2636,7 @@
   enterSubmit(["man-titolo", "man-ore"], "btn-man");
   enterSubmit(["ric-nome", "ric-giac", "ric-soglia"], "btn-ric");
   enterSubmit(["sca-data", "sca-mesi", "sca-doc", "sca-note"], "btn-sca");
+  enterSubmit(["rif-litri", "rif-euro", "rif-ore", "rif-data"], "btn-rif");
   await refresh();
 </script>
 </body>

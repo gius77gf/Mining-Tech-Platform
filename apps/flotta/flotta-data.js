@@ -26,6 +26,31 @@
 //                        mesi|null (periodicità), documento, note,
 //                        ultimaData|null, ultimoEsito|null } — SCADENZE
 //                        DI LEGGE del mezzo (F6, 27/07)
+//   controlli/{id}:    { data (ISO), mezzo, tipo (chiave del tipo di mezzo),
+//                        operatore, ore|null, voci: [{chiave, etichetta,
+//                        esito: "ok"|"no", nota, critica}], anomalie,
+//                        note } — GIRO MACCHINA, il controllo pre-uso che
+//                        l'operatore fa dal telefono a inizio turno (L2,
+//                        29/07). Ogni voce «non va» diventa una
+//                        manutenzione collegata al mezzo.
+//   rifornimenti/{id}: { data (ISO), mezzo, litri, euro, ore|null
+//                        (contatore al rifornimento), nota, costoId|null }
+//                        — RIFORNIMENTI di gasolio per mezzo (L4, 29/07).
+//                        `costoId` è la voce di costo gemella, così il
+//                        rifornimento entra una sola volta nella spesa
+//                        della flotta e sparisce da entrambe se lo togli.
+// Campi FACOLTATIVI aggiunti il 29/07, tutti retro-compatibili (chi non li
+// ha si comporta esattamente come prima):
+//   mezzi.tipo         chiave del tipo di mezzo (escavatore, pala, …). Se
+//                      manca si INDOVINA dal nome, non si inventa un dato
+//                      salvato.
+//   manutenzioni.ogniOre / .ogniMesi   PIANO RICORRENTE (L3): alla chiusura
+//                      del tagliando l'app ne pianifica da sola il
+//                      successivo (+ogniOre sulle ore attuali del mezzo,
+//                      oppure +ogniMesi sulla data di chiusura).
+//   manutenzioni.origine / .nota       da dove nasce la manutenzione
+//                      ("controllo" = giro macchina, "piano" = tagliando
+//                      ricorrente) e la riga scritta da chi l'ha aperta.
 // L'urgenza delle manutenzioni si CALCOLA dalla data (mai salvata).
 // ============================================================
 
@@ -52,24 +77,80 @@ const DEMO_DISPONIBILITA = [
 
 export const DEMO = {
   mezzi: [
-    { id: "m1", nome: "Escavatore E1 — CAT 352", ore: 5870, area: "fronte Est", stato: "operativo" },
-    { id: "m2", nome: "Escavatore E2 — Volvo EC480", ore: 3210, area: "piazzale", stato: "operativo" },
-    { id: "m3", nome: "Dumper D1 — CAT 745", ore: 8420, area: "", stato: "operativo" },
-    { id: "m4", nome: "Dumper D3 — CAT 745", ore: 9105, area: "officina", stato: "fermo" },
-    { id: "m5", nome: "Perforatrice P2 — Epiroc", ore: 2980, area: "fronte Est", stato: "verifica" },
+    { id: "m1", nome: "Escavatore E1 — CAT 352", ore: 5870, area: "fronte Est", stato: "operativo", tipo: "escavatore" },
+    { id: "m2", nome: "Escavatore E2 — Volvo EC480", ore: 3210, area: "piazzale", stato: "operativo", tipo: "escavatore" },
+    { id: "m3", nome: "Dumper D1 — CAT 745", ore: 8420, area: "", stato: "operativo", tipo: "dumper" },
+    { id: "m4", nome: "Dumper D3 — CAT 745", ore: 9105, area: "officina", stato: "fermo", tipo: "dumper" },
+    { id: "m5", nome: "Perforatrice P2 — Epiroc", ore: 2980, area: "fronte Est", stato: "verifica", tipo: "perforatrice" },
+    // m6 di proposito SENZA `tipo`: è un mezzo registrato prima che il campo
+    // esistesse. Il tipo si indovina dal nome («Pala») e la checklist del
+    // giro macchina funziona lo stesso, senza scrivere niente di finto.
     { id: "m6", nome: "Pala P1 — CAT 980", ore: 6540, area: "frantoio", stato: "operativo" },
   ],
   manutenzioni: [
-    { id: "n1", titolo: "Tagliando 500h", mezzo: "Escavatore E1", dataPrevista: "2026-07-31" },
+    { id: "n1", titolo: "Tagliando 500h", mezzo: "Escavatore E1", dataPrevista: null, orePreviste: 6000, ogniOre: 500, piano: "500" },
     { id: "n2", titolo: "Rotazione gomme", mezzo: "Dumper D1", dataPrevista: "2026-08-05" },
-    { id: "n3", titolo: "Revisione annuale", mezzo: "Pala P1", dataPrevista: "2026-08-20" },
+    { id: "n3", titolo: "Revisione annuale", mezzo: "Pala P1", dataPrevista: "2026-08-20", ogniMesi: 12 },
+    { id: "n4", titolo: "Giro macchina: Perdite sotto la macchina", mezzo: "Dumper D1",
+      dataPrevista: isoIndietro(1), origine: "controllo",
+      nota: "macchia fresca di olio sotto la trasmissione" },
+  ],
+  // GIRO MACCHINA (L2): il controllo pre-uso che l'operatore fa a inizio
+  // turno. Il secondo esempio ha una voce «non va» ed è quello che ha fatto
+  // nascere la manutenzione n4: è la catena che si vuole far vedere.
+  controlli: [
+    { id: "g1", data: isoIndietro(0), mezzo: "Escavatore E2", tipo: "escavatore",
+      operatore: "Marco", ore: 3210, anomalie: 0, note: "",
+      voci: [
+        { chiave: "livelli", etichetta: "Livelli: olio motore, refrigerante, gasolio", esito: "ok", nota: "", critica: false },
+        { chiave: "perdite", etichetta: "Perdite sotto la macchina", esito: "ok", nota: "", critica: false },
+        { chiave: "freni", etichetta: "Freni, sterzo e comandi", esito: "ok", nota: "", critica: true },
+        { chiave: "luci", etichetta: "Luci, faro rotante e avvisatore acustico", esito: "ok", nota: "", critica: false },
+        { chiave: "cabina", etichetta: "Cabina: cintura, sedile, specchi, vetri", esito: "ok", nota: "", critica: false },
+        { chiave: "sicurezza", etichetta: "Estintore, primo soccorso, cunei", esito: "ok", nota: "", critica: true },
+        { chiave: "protezioni", etichetta: "Carter e protezioni al loro posto", esito: "ok", nota: "", critica: true },
+        { chiave: "sottocarro", etichetta: "Cingoli e sottocarro: tensione e usura", esito: "ok", nota: "", critica: false },
+        { chiave: "idraulico", etichetta: "Tubi e cilindri idraulici: trafilamenti", esito: "ok", nota: "", critica: false },
+        { chiave: "benna", etichetta: "Denti benna e attacco rapido", esito: "ok", nota: "", critica: true },
+        { chiave: "rotazione", etichetta: "Rotazione torretta: gioco e rumori", esito: "ok", nota: "", critica: false },
+      ] },
+    { id: "g2", data: isoIndietro(1), mezzo: "Dumper D1", tipo: "dumper",
+      operatore: "Luca", ore: 8420, anomalie: 1, note: "",
+      voci: [
+        { chiave: "livelli", etichetta: "Livelli: olio motore, refrigerante, gasolio", esito: "ok", nota: "", critica: false },
+        { chiave: "perdite", etichetta: "Perdite sotto la macchina", esito: "no", nota: "macchia fresca di olio sotto la trasmissione", critica: false },
+        { chiave: "freni", etichetta: "Freni, sterzo e comandi", esito: "ok", nota: "", critica: true },
+        { chiave: "luci", etichetta: "Luci, faro rotante e avvisatore acustico", esito: "ok", nota: "", critica: false },
+        { chiave: "cabina", etichetta: "Cabina: cintura, sedile, specchi, vetri", esito: "ok", nota: "", critica: false },
+        { chiave: "sicurezza", etichetta: "Estintore, primo soccorso, cunei", esito: "ok", nota: "", critica: true },
+        { chiave: "protezioni", etichetta: "Carter e protezioni al loro posto", esito: "ok", nota: "", critica: true },
+        { chiave: "gomme", etichetta: "Pneumatici: pressione, tagli, serraggio ruote", esito: "ok", nota: "", critica: true },
+        { chiave: "cassone", etichetta: "Cassone, perni e sicura di ribaltamento", esito: "ok", nota: "", critica: true },
+        { chiave: "aria", etichetta: "Impianto aria: pressione e scarico condensa", esito: "ok", nota: "", critica: false },
+      ] },
+  ],
+  // RIFORNIMENTI (L4). Per calcolare i litri/ora servono ALMENO DUE
+  // rifornimenti con il contatore delle ore: il primo fissa solo il punto di
+  // partenza. L'Escavatore E2 ne ha uno solo, di proposito: è il caso in cui
+  // il consumo non si può ancora dire, e l'app lo dichiara invece di
+  // inventare un numero.
+  rifornimenti: [
+    { id: "r1", data: "2026-07-12", mezzo: "Escavatore E1", litri: 480, euro: 720, ore: 5812, nota: "cisterna cava", costoId: null },
+    { id: "r2", data: "2026-07-20", mezzo: "Escavatore E1", litri: 505, euro: 762, ore: 5841, nota: "", costoId: null },
+    { id: "r3", data: "2026-07-27", mezzo: "Escavatore E1", litri: 470, euro: 700, ore: 5868, nota: "", costoId: null },
+    { id: "r4", data: "2026-07-10", mezzo: "Dumper D1", litri: 390, euro: 585, ore: 8355, nota: "", costoId: null },
+    { id: "r5", data: "2026-07-21", mezzo: "Dumper D1", litri: 415, euro: 620, ore: 8390, nota: "", costoId: null },
+    { id: "r6", data: "2026-07-28", mezzo: "Dumper D1", litri: 360, euro: 540, ore: 8416, nota: "", costoId: null },
+    { id: "r7", data: "2026-07-14", mezzo: "Pala P1", litri: 300, euro: 450, ore: 6498, nota: "", costoId: null },
+    { id: "r8", data: "2026-07-26", mezzo: "Pala P1", litri: 320, euro: 480, ore: 6531, nota: "", costoId: null },
+    { id: "r9", data: "2026-07-24", mezzo: "Escavatore E2", litri: 300, euro: 450, ore: 3195, nota: "primo pieno registrato", costoId: null },
   ],
   // Le voci di costo hanno la data del giorno a cui la spesa si riferisce.
   // `c3` è di proposito SENZA data: è una voce come quelle registrate prima
   // che il campo esistesse, e serve a far vedere come l'app la tratta —
   // resta in lista, marcata «senza data», e non entra nell'andamento mensile.
   costi: [
-    { id: "c1", voce: "Carburante", importo: 8400, nota: "+6% sul mese scorso", data: "2026-07-06" },
+    { id: "c1", voce: "Carburante", importo: 8400, nota: "registrato a mano, prima dei rifornimenti per mezzo", data: "2026-07-06" },
     { id: "c2", voce: "Ricambi e officina", importo: 3150, nota: "", data: "2026-07-02" },
     { id: "c3", voce: "Noleggi esterni", importo: 1200, nota: "gru mobile 2gg" },
     { id: "c4", voce: "Ricambi e officina", importo: 2480, nota: "", data: "2026-06-11" },
@@ -389,6 +470,9 @@ export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(
     } else continue;
     if (u.cls !== "danger" && u.cls !== "warn") continue;
     items.push({ gravita: u.cls, categoria: "manutenzione",
+      // da dove nasce: una segnalazione del giro macchina non è un tagliando
+      // programmato, e chi guarda il Quadro deve poterlo vedere subito
+      origine: n.origine || null,
       titolo: (n.titolo || "Manutenzione") + " — " + (n.mezzo || "?"),
       dettaglio, badge: u.label });
   }
@@ -553,6 +637,372 @@ export function costoOfficinaPerMezzo(interventi) {
   };
 }
 
+// ============================================================
+// L2 — GIRO MACCHINA (controllo pre-uso)
+// Il controllo che l'operatore fa PRIMA di salire in macchina, a inizio
+// turno. È la funzione che porta in Flotta chi guida, non solo chi sta in
+// ufficio, e serve a intercettare il guasto finché è ancora una goccia
+// d'olio per terra e non una macchina ferma in mezzo al fronte.
+// Due regole che decidono tutto il disegno:
+//  · dev'essere VELOCE e usabile coi guanti: la strada corta è «tutto a
+//    posto» + le poche voci che non vanno, non venti tocchi in fila;
+//  · una voce «non va» NON resta una spunta rossa in un archivio: diventa
+//    una manutenzione collegata al mezzo, che compare nelle priorità del
+//    Quadro. Altrimenti il giro macchina è carta digitale.
+// ============================================================
+
+// Il nome corto del mezzo («Escavatore E1»), che è la chiave con cui tutta
+// l'app collega manutenzioni, scadenze, interventi e controlli. Il nome
+// lungo («Escavatore E1 — CAT 352») serve solo a leggere.
+export function nomeBreve(nome) {
+  return String(nome || "").split(" — ")[0].trim();
+}
+
+// TIPI DI MEZZO: servono a proporre la checklist giusta. `indizi` sono le
+// parole con cui si INDOVINA il tipo dal nome quando il mezzo è stato
+// registrato prima che il campo esistesse: indovinare la checklist è
+// innocuo (l'operatore vede le voci e le riconosce), scrivere un dato
+// indovinato nell'anagrafica non lo sarebbe.
+export const TIPI_MEZZO = [
+  { chiave: "escavatore",   etichetta: "Escavatore",          indizi: ["escavat", "miniescav", "ragno"] },
+  { chiave: "pala",         etichetta: "Pala caricatrice",    indizi: ["pala", "caricat", "terna"] },
+  { chiave: "dumper",       etichetta: "Dumper / camion",     indizi: ["dumper", "camion", "autocarr", "ribaltab"] },
+  { chiave: "perforatrice", etichetta: "Perforatrice",        indizi: ["perforat", "sonda", "fioretto"] },
+  { chiave: "impianto",     etichetta: "Frantoio / impianto", indizi: ["frantoi", "vaglio", "impiant", "nastro", "mulino"] },
+  { chiave: "sollevamento", etichetta: "Gru / sollevamento",  indizi: ["gru", "autogru", "piattaform", "sollevat", "muletto", "carrell"] },
+  { chiave: "altro",        etichetta: "Altro mezzo",         indizi: [] },
+];
+
+export function tipoMezzo(chiave) {
+  return TIPI_MEZZO.find(t => t.chiave === chiave) || null;
+}
+
+// Tipo di un mezzo: quello salvato se c'è, altrimenti indovinato dal nome,
+// altrimenti «altro». Ritorna sempre una voce di TIPI_MEZZO. Pura.
+export function tipoMezzoDi(mezzo) {
+  const salvato = tipoMezzo((mezzo && mezzo.tipo) || "");
+  if (salvato) return salvato;
+  const n = String((mezzo && mezzo.nome) || "").toLowerCase();
+  for (const t of TIPI_MEZZO) if (t.indizi.some(i => n.includes(i))) return t;
+  return tipoMezzo("altro");
+}
+
+// Le voci del giro macchina. Le prime sette valgono per qualunque mezzo, le
+// altre cambiano col tipo. `critica: true` = voce di sicurezza: se non va,
+// la macchina non deve lavorare finché non è sistemata, e l'app lo propone
+// invece di limitarsi a segnarlo.
+const VOCI_COMUNI = [
+  { chiave: "livelli",    etichetta: "Livelli: olio motore, refrigerante, gasolio", aiuto: "Guarda le astine e le spie: niente sotto il minimo." },
+  { chiave: "perdite",    etichetta: "Perdite sotto la macchina", aiuto: "Macchie fresche a terra: olio, gasolio, refrigerante." },
+  { chiave: "freni",      etichetta: "Freni, sterzo e comandi", aiuto: "Prova freno di servizio e di stazionamento prima di muoverti.", critica: true },
+  { chiave: "luci",       etichetta: "Luci, faro rotante e avvisatore acustico", aiuto: "Compreso l'avvisatore di retromarcia." },
+  { chiave: "cabina",     etichetta: "Cabina: cintura, sedile, specchi, vetri", aiuto: "Se non vedi e non sei allacciato, il resto non conta." },
+  { chiave: "sicurezza",  etichetta: "Estintore, primo soccorso, cunei", aiuto: "A bordo, carichi e a portata di mano.", critica: true },
+  { chiave: "protezioni", etichetta: "Carter e protezioni al loro posto", aiuto: "Nessun riparo smontato o lasciato aperto.", critica: true },
+];
+
+const VOCI_PER_TIPO = {
+  escavatore: [
+    { chiave: "sottocarro", etichetta: "Cingoli e sottocarro: tensione e usura", aiuto: "Rulli, catena, pattini: niente giochi anomali." },
+    { chiave: "idraulico",  etichetta: "Tubi e cilindri idraulici: trafilamenti", aiuto: "Un tubo che suda oggi è un tubo che scoppia domani." },
+    { chiave: "benna",      etichetta: "Denti benna e attacco rapido", aiuto: "Attacco rapido agganciato e sicura inserita.", critica: true },
+    { chiave: "rotazione",  etichetta: "Rotazione torretta: gioco e rumori", aiuto: "Fai un giro lento e ascolta." },
+  ],
+  pala: [
+    { chiave: "gomme",        etichetta: "Pneumatici: pressione, tagli, serraggio ruote", aiuto: "Controlla anche i bulloni ruota.", critica: true },
+    { chiave: "taglienti",    etichetta: "Benna, taglienti e perni", aiuto: "Perni ingrassati e spine al loro posto." },
+    { chiave: "articolazione", etichetta: "Articolazione centrale e blocco di sicurezza", aiuto: "Il blocco va inserito quando lavori vicino allo snodo.", critica: true },
+  ],
+  dumper: [
+    { chiave: "gomme",   etichetta: "Pneumatici: pressione, tagli, serraggio ruote", aiuto: "Controlla anche i bulloni ruota.", critica: true },
+    { chiave: "cassone", etichetta: "Cassone, perni e sicura di ribaltamento", aiuto: "Sicura del cassone alzato: si usa sempre, anche per due minuti.", critica: true },
+    { chiave: "aria",    etichetta: "Impianto aria: pressione e scarico condensa", aiuto: "Aspetta la pressione di esercizio prima di partire." },
+  ],
+  perforatrice: [
+    { chiave: "martello",     etichetta: "Martello, aste e manicotti", aiuto: "Filetti puliti e ingrassati, niente aste piegate." },
+    { chiave: "aria",         etichetta: "Tubi aria: fascette e cavetti di sicurezza", aiuto: "Ogni giunto va assicurato: un tubo che si stacca frusta.", critica: true },
+    { chiave: "polveri",      etichetta: "Abbattimento polveri: acqua o aspirazione", aiuto: "Senza abbattimento non si perfora: è silice.", critica: true },
+    { chiave: "stabilizzatori", etichetta: "Stabilizzatori e livella", aiuto: "Appoggio pieno su terreno stabile.", critica: true },
+  ],
+  impianto: [
+    { chiave: "nastri",     etichetta: "Nastri, rulli e raschiatori", aiuto: "Niente strisciamenti né materiale incastrato." },
+    { chiave: "emergenze",  etichetta: "Funghi di emergenza e cavo a strappo", aiuto: "Provali: sono l'unica cosa che ferma il nastro con te sopra.", critica: true },
+    { chiave: "ripari",     etichetta: "Griglie, ripari e passerelle", aiuto: "Nessun riparo tolto per «fare prima».", critica: true },
+    { chiave: "bulloneria", etichetta: "Bulloneria e ancoraggi", aiuto: "Vibrazione continua: i bulloni si allentano." },
+  ],
+  sollevamento: [
+    { chiave: "funi",         etichetta: "Funi, catene e ganci: usura e sicura", aiuto: "Fili rotti, deformazioni, sicura del gancio funzionante.", critica: true },
+    { chiave: "stabilizzatori", etichetta: "Stabilizzatori e piani d'appoggio", aiuto: "Piastre sotto i piedi, terreno che regge.", critica: true },
+    { chiave: "finecorsa",    etichetta: "Fine corsa e limitatore di carico", aiuto: "Provali a vuoto prima di iniziare.", critica: true },
+    { chiave: "targhe",       etichetta: "Targa di portata e libretto a bordo", aiuto: "Il diagramma di carico deve essere leggibile." },
+  ],
+  altro: [],
+};
+
+// La checklist di un tipo di mezzo: voci comuni + voci del tipo. Ritorna
+// sempre un elenco nuovo (chi lo riceve lo può modificare). Pura.
+export function checklistPreUso(chiaveTipo) {
+  const extra = VOCI_PER_TIPO[chiaveTipo] || VOCI_PER_TIPO.altro;
+  return [...VOCI_COMUNI, ...extra].map(v => ({
+    chiave: v.chiave, etichetta: v.etichetta, aiuto: v.aiuto || "", critica: !!v.critica,
+  }));
+}
+
+// Come sta andando il giro: quante voci sono a posto, quante no, quante
+// non hanno ancora risposta. Un giro con voci senza risposta NON si salva:
+// un controllo in cui non hai guardato non è un controllo. Pura.
+export function riepilogoControllo(voci) {
+  const lista = voci || [];
+  const ok = lista.filter(v => v.esito === "ok");
+  const no = lista.filter(v => v.esito === "no");
+  const mancanti = lista.filter(v => v.esito !== "ok" && v.esito !== "no");
+  const critiche = no.filter(v => v.critica);
+  return {
+    totali: lista.length, ok: ok.length, no: no.length, mancanti: mancanti.length,
+    anomalie: no, critiche, primaMancante: mancanti.length ? mancanti[0].chiave : null,
+    completo: lista.length > 0 && mancanti.length === 0,
+    gravita: critiche.length ? "danger" : no.length ? "warn" : "ok",
+  };
+}
+
+// Da un giro macchina alle MANUTENZIONI da aprire: una per ogni voce «non
+// va». Nascono con la data di oggi (vanno guardate subito) e portano scritto
+// da dove vengono, così nel registro si capisce che è stato l'operatore a
+// trovarle. Stesso schema delle manutenzioni scritte a mano: nessun campo
+// nuovo obbligatorio. Pura e testabile.
+export function manutenzioniDaControllo(controllo, oggi = new Date()) {
+  const c = controllo || {};
+  const data = oggiIso(oggi);
+  return (c.voci || []).filter(v => v.esito === "no").map(v => ({
+    titolo: "Giro macchina: " + v.etichetta,
+    mezzo: c.mezzo || "",
+    dataPrevista: c.data || data,
+    orePreviste: null,
+    ricambioId: null,
+    origine: "controllo",
+    nota: (v.nota || "").trim() || (v.critica ? "voce di sicurezza segnata «non va» al controllo pre-uso" : "segnalata al controllo pre-uso"),
+  }));
+}
+
+// COPERTURA DEI GIRI DI OGGI: quanti mezzi hanno già il loro controllo
+// pre-uso oggi e quali no. Serve alla riga del Quadro, che è quello che
+// spinge a farlo. Pura e testabile.
+export function coperturaControlli(controlli, mezzi, iso) {
+  const giorno = String(iso || "").slice(0, 10);
+  const fatti = new Set();
+  let conAnomalie = 0;
+  for (const c of controlli || []) {
+    if (String(c.data || "").slice(0, 10) !== giorno) continue;
+    const nome = nomeBreve(c.mezzo);
+    if (!nome) continue;
+    if (!fatti.has(nome) && (+c.anomalie || 0) > 0) conAnomalie++;
+    fatti.add(nome);
+  }
+  const tutti = (mezzi || []).map(m => nomeBreve(m.nome)).filter(Boolean);
+  const mancanti = tutti.filter(n => !fatti.has(n));
+  return { totale: tutti.length, fatti: tutti.length - mancanti.length, mancanti, conAnomalie };
+}
+
+// I giri di un mezzo, dal più recente. Pura.
+export function controlliDelMezzo(controlli, nome) {
+  const n = nomeBreve(nome);
+  return (controlli || []).filter(c => nomeBreve(c.mezzo) === n)
+    .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
+}
+
+// ============================================================
+// L3 — PIANI DI MANUTENZIONE RICORRENTI
+// Un tagliando non è un appuntamento singolo: è un ritmo. Chiuso il 500 h,
+// il prossimo 500 h esiste già — e finora andava riscritto a mano, che è
+// esattamente il modo in cui si dimentica. Da qui in poi la manutenzione
+// può portare con sé il suo passo (`ogniOre` per i tagliandi a ore motore,
+// `ogniMesi` per quelli a calendario) e alla chiusura l'app pianifica da
+// sola il successivo. Chi non mette il passo ha il comportamento di prima.
+// ============================================================
+export const PIANI_TAGLIANDO = [
+  { chiave: "250",  etichetta: "Tagliando 250 h",  ogniOre: 250,
+    nota: "Olio motore e filtri: il tagliando che torna più spesso." },
+  { chiave: "500",  etichetta: "Tagliando 500 h",  ogniOre: 500,
+    nota: "Filtro aria, gioco valvole, controlli generali." },
+  { chiave: "1000", etichetta: "Tagliando 1000 h", ogniOre: 1000,
+    nota: "Olio trasmissione e impianto idraulico." },
+  { chiave: "2000", etichetta: "Tagliando 2000 h", ogniOre: 2000,
+    nota: "Revisione di pompe e organi principali." },
+];
+
+export function pianoTagliando(chiave) {
+  return PIANI_TAGLIANDO.find(p => p.chiave === String(chiave)) || null;
+}
+
+// IL PROSSIMO TAGLIANDO, calcolato alla chiusura di quello appena fatto.
+// Due modi, mai insieme:
+//  · a ORE: si riparte dalle ore che il mezzo ha ADESSO (non da quelle
+//    previste): se il tagliando dei 6000 h è stato fatto a 6040, il
+//    prossimo cade a 6040+500, che è la verità del contatore;
+//  · a CALENDARIO: dalla data in cui è stato fatto, più i mesi del passo.
+// Ritorna null se la manutenzione non ha un passo (comportamento di prima)
+// o se manca il dato per calcolare. Pura e testabile.
+export function prossimoTagliando(man, oreAttuali, dataChiusura) {
+  const m = man || {};
+  const ogniOre = Math.round(+m.ogniOre || 0);
+  const ogniMesi = Math.round(+m.ogniMesi || 0);
+  const base = {
+    titolo: m.titolo || "Tagliando",
+    mezzo: m.mezzo || "",
+    ricambioId: m.ricambioId || null,
+    ogniOre: ogniOre > 0 ? ogniOre : null,
+    ogniMesi: ogniMesi > 0 ? ogniMesi : null,
+    piano: m.piano || null,
+    origine: "piano",
+    nota: m.nota || null,
+  };
+  if (ogniOre > 0) {
+    const ore = Math.round(+oreAttuali);
+    if (!Number.isFinite(ore) || ore < 0) return null;
+    return { ...base, orePreviste: ore + ogniOre, dataPrevista: null, da: "ore", oreBase: ore };
+  }
+  if (ogniMesi > 0) {
+    const data = aggiungiMesi(dataChiusura, ogniMesi);
+    if (!data) return null;
+    return { ...base, orePreviste: null, dataPrevista: data, da: "mesi" };
+  }
+  return null;
+}
+
+// ============================================================
+// L4 — CARBURANTE PER MEZZO
+// Il gasolio è la voce di spesa più grossa di una flotta, e un consumo che
+// sale è spesso il primo sintomo di un guasto. Fin qui in Flotta era un
+// costo unico e anonimo: adesso ogni pieno sa a quale macchina è andato.
+// Come si calcolano davvero i litri/ora (e perché non si può fare in altro
+// modo): il primo pieno registrato serve SOLO a fissare il punto di
+// partenza — il gasolio che c'era dentro è stato bruciato prima, in ore che
+// non abbiamo. Si sommano quindi i pieni DAL SECONDO IN POI e si dividono
+// per le ore passate fra il primo e l'ultimo. Con un solo rifornimento il
+// consumo non esiste, e l'app lo dice invece di stampare un numero.
+// ============================================================
+
+// Controlli su un rifornimento prima di salvarlo. `oreMezzo` (facoltativo) è
+// il contatore attuale del mezzo: il contatore non torna indietro, quindi un
+// valore più basso è quasi sempre un errore di battitura.
+// Ritorna { ok, errori:{campo:messaggio}, litri, euro, ore }. Pura.
+export function validaRifornimento(dati, oreMezzo) {
+  const d = dati || {}, errori = {};
+  if (!String(d.mezzo || "").trim()) errori.mezzo = "Scegli il mezzo che hai rifornito.";
+  const litri = +String(d.litri == null ? "" : d.litri).replace(",", ".");
+  if (!(litri > 0)) errori.litri = "Scrivi quanti litri hai messo (un numero maggiore di zero).";
+  else if (litri > 20000) errori.litri = "Più di 20.000 litri in un rifornimento: controlla il numero.";
+  const euroTx = String(d.euro == null ? "" : d.euro).trim();
+  let euro = 0;
+  if (euroTx !== "") {
+    euro = +euroTx.replace(",", ".");
+    if (!(euro >= 0)) errori.euro = "La spesa dev'essere un numero da zero in su (lascia vuoto se non la sai).";
+  }
+  const oreTx = String(d.ore == null ? "" : d.ore).trim();
+  let ore = null;
+  if (oreTx !== "") {
+    const n = Math.round(+oreTx);
+    if (!Number.isFinite(n) || n < 0) errori.ore = "Il contatore va scritto in ore, un numero da zero in su.";
+    else if (Number.isFinite(+oreMezzo) && n + 0.5 < +oreMezzo) errori.ore = "Il contatore segna meno delle " + Math.round(+oreMezzo) + " ore già registrate sul mezzo: controlla il numero.";
+    else ore = n;
+  }
+  const iso = String(d.data || "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) errori.data = "Serve il giorno del rifornimento.";
+  return {
+    ok: Object.keys(errori).length === 0, errori,
+    litri: Number.isFinite(litri) ? Math.round(litri * 100) / 100 : 0,
+    euro: Number.isFinite(euro) ? Math.round(euro * 100) / 100 : 0,
+    ore,
+  };
+}
+
+// CONSUMO PER MEZZO: litri/ora ed euro/ora, più i totali di gasolio. Il
+// metodo è quello descritto sopra (si scarta il primo pieno). Ritorna anche
+// perché un mezzo non ha il consumo (`perche`), così l'app può dirlo invece
+// di lasciare una riga vuota. Pura e testabile.
+export function consumoPerMezzo(rifornimenti) {
+  const per = new Map();
+  let totaleLitri = 0, totaleEuro = 0;
+  for (const r of rifornimenti || []) {
+    const mezzo = nomeBreve(r.mezzo);
+    const litri = +r.litri || 0;
+    if (!mezzo || litri <= 0) continue;
+    const euro = +r.euro || 0;
+    const oreN = Math.round(+r.ore);
+    const v = per.get(mezzo) || { mezzo, pieni: [], litri: 0, euro: 0 };
+    v.pieni.push({ data: String(r.data || "").slice(0, 10), litri, euro, ore: Number.isFinite(oreN) && oreN > 0 ? oreN : null });
+    v.litri += litri; v.euro += euro;
+    per.set(mezzo, v);
+    totaleLitri += litri; totaleEuro += euro;
+  }
+  const mezzi = [...per.values()].map(v => {
+    const conOre = v.pieni.filter(p => p.ore != null).sort((a, b) => a.ore - b.ore);
+    let litriOra = null, euroOra = null, oreCoperte = null, perche = "";
+    if (conOre.length < 2) {
+      perche = conOre.length === 1
+        ? "serve almeno un secondo rifornimento con il contatore delle ore"
+        : "nessun rifornimento porta il contatore delle ore";
+    } else {
+      oreCoperte = conOre[conOre.length - 1].ore - conOre[0].ore;
+      if (oreCoperte > 0) {
+        const dopoIlPrimo = conOre.slice(1);
+        const l = dopoIlPrimo.reduce((t, p) => t + p.litri, 0);
+        const e = dopoIlPrimo.reduce((t, p) => t + p.euro, 0);
+        litriOra = Math.round(100 * l / oreCoperte) / 100;
+        euroOra = e > 0 ? Math.round(100 * e / oreCoperte) / 100 : null;
+      } else {
+        oreCoperte = null;
+        perche = "fra i rifornimenti il contatore non è cambiato";
+      }
+    }
+    return {
+      mezzo: v.mezzo, pieni: v.pieni.length, litri: Math.round(v.litri * 10) / 10,
+      euro: Math.round(v.euro * 100) / 100,
+      euroLitro: v.litri > 0 && v.euro > 0 ? Math.round(1000 * v.euro / v.litri) / 1000 : null,
+      oreCoperte, litriOra, euroOra, perche,
+    };
+  }).sort((a, b) => (b.litriOra == null ? -1 : b.litriOra) - (a.litriOra == null ? -1 : a.litriOra)
+    || a.mezzo.localeCompare(b.mezzo, "it"));
+  return {
+    mezzi, totaleLitri: Math.round(totaleLitri * 10) / 10,
+    totaleEuro: Math.round(totaleEuro * 100) / 100,
+    calcolabili: mezzi.filter(m => m.litriOra != null).length,
+  };
+}
+
+// ============================================================
+// L1 — FASCICOLO DEL MEZZO
+// Tutto quello che l'app sa di UNA macchina, raccolto in un posto solo:
+// finora era sparso su quattro schermate e per rispondere a un ispettore o
+// a un compratore bisognava girare l'app. Non aggiunge nessun dato: mette
+// insieme quelli che ci sono già. Pura e testabile.
+// ============================================================
+export function fascicoloMezzo(mezzo, dati, oggi = new Date(), preavvisoGiorni = 30) {
+  const m = mezzo || {};
+  const nome = nomeBreve(m.nome);
+  const d = dati || {};
+  const mio = (v) => nomeBreve(v && v.mezzo) === nome;
+  const manutenzioni = (d.manutenzioni || []).filter(mio)
+    .sort((a, b) => String(a.dataPrevista || "9999").localeCompare(String(b.dataPrevista || "9999")));
+  const interventi = (d.interventi || []).filter(mio)
+    .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
+  const scadenze = scadenzeOrdinate((d.scadenze || []).filter(mio), oggi, preavvisoGiorni);
+  const controlli = controlliDelMezzo(d.controlli || [], nome);
+  const rifornimenti = (d.rifornimenti || []).filter(mio)
+    .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
+  const consumo = consumoPerMezzo(rifornimenti).mezzi[0] || null;
+  const officina = interventi.reduce((t, w) => t + (+w.costo || 0), 0);
+  return {
+    mezzo: m, nome, tipo: tipoMezzoDi(m),
+    manutenzioni, interventi, scadenze, controlli, rifornimenti, consumo,
+    officina: { totale: Math.round(officina * 100) / 100, interventi: interventi.length },
+    carburante: { totale: consumo ? consumo.euro : 0, litri: consumo ? consumo.litri : 0 },
+    speso: Math.round((officina + (consumo ? consumo.euro : 0)) * 100) / 100,
+    ultimoControllo: controlli[0] || null,
+    ultimoIntervento: interventi[0] || null,
+  };
+}
+
 export function kpiFrom(mezzi, manutenzioni, costi) {
   return {
     operativi: mezzi.filter(m => m.stato === "operativo").length,
@@ -573,7 +1023,7 @@ export async function flottaData() {
       mode = "live";
       const read = async (n) => (await getDocs(id.orgCollection(n))).docs.map(d => ({ id: d.id, ...d.data() }));
       api = {
-        mezzi: () => read("mezzi"), manutenzioni: () => read("manutenzioni"), costi: () => read("costi"), ricambi: () => read("ricambi"), interventi: () => read("interventi"), scadenze: () => read("scadenze"), disponibilita: () => read("disponibilita"),
+        mezzi: () => read("mezzi"), manutenzioni: () => read("manutenzioni"), costi: () => read("costi"), ricambi: () => read("ricambi"), interventi: () => read("interventi"), scadenze: () => read("scadenze"), disponibilita: () => read("disponibilita"), controlli: () => read("controlli"), rifornimenti: () => read("rifornimenti"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
         logout: () => id.logout(),
         aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n), i), d),
@@ -584,7 +1034,7 @@ export async function flottaData() {
   if (mode !== "live") {
     const mem = JSON.parse(JSON.stringify(DEMO));
     api = {
-      mezzi: async () => mem.mezzi, manutenzioni: async () => mem.manutenzioni, costi: async () => mem.costi, ricambi: async () => mem.ricambi, interventi: async () => mem.interventi, scadenze: async () => mem.scadenze, disponibilita: async () => mem.disponibilita,
+      mezzi: async () => mem.mezzi, manutenzioni: async () => mem.manutenzioni, costi: async () => mem.costi, ricambi: async () => mem.ricambi, interventi: async () => mem.interventi, scadenze: async () => mem.scadenze, disponibilita: async () => mem.disponibilita || [], controlli: async () => mem.controlli || [], rifornimenti: async () => mem.rifornimenti || [],
       logout: async () => {},
       aggiungi: async (n, d) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[n] = mem[n] || []).push({ id, ...d }); return { id }; },
       aggiorna: async (n, i, d) => { const x = (mem[n] || (mem[n] = [])).find(v => v.id === i); if (x) Object.assign(x, d); },
