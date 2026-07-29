@@ -5,12 +5,12 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-07-29 18:45 UTC
-**Cosa sta per fare:** rimettere in sicurezza le quattro app lasciate a metà
-quando i cantieri si sono fermati per il limite di sessione della
-piattaforma (Scudo, Conti, Sentinella, Flotta): prima verificare che nessuna
-sia rotta, poi portare a termine le unità aperte. Il limite si è riaperto.
-**Commit di partenza:** `184a2a6`
+**Ultimo ciclo riuscito:** 2026-07-29 18:54 UTC
+**Cosa sta per fare:** i quattro cantieri ripresi (Scudo, Conti,
+Terra+Sentinella, Flotta) stanno completando la loro verifica finale; nel
+frattempo si lavora a Genesi G6, la banda d'incertezza dalla precisione di
+perforazione.
+**Commit di partenza:** `1c9bab1`
 
 ---
 
