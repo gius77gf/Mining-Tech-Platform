@@ -261,8 +261,12 @@ danno mappe per foro.
 - [x] **G5. Mappa dell'energia** ✅ *(29/07, `8ddd8d8`)* — consumo specifico
       sul blocco che ogni foro serve davvero, più il burden vero in
       perpendicolare alla faccia, che è cosa diversa dal volume servito.
-- [ ] **G6. Banda d'incertezza da precisione di perforazione** (Monte-Carlo,
-      tutto sintetico).
+- [x] **G6. Banda d'incertezza da precisione di perforazione** ✅ *(29/07,
+      `695c4f9`)* — errore al colletto e deviazione impostabili, geometria
+      perturbata 300 volte ricostruendo anche le file davanti, banda del
+      burden minimo al piede e della pezzatura, e probabilità che almeno un
+      foro finisca sotto il 70% del burden di progetto. Seme dalla
+      geometria: la banda non balla a ogni ridisegno.
 - [ ] G7–G9: ottimizzatore di volata, report professionale, rifiniture scena.
 
 ## BLOCCO 4 — I PONTI TRA LE APP *(il valore d'insieme)*
