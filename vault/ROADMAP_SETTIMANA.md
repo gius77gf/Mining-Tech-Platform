@@ -110,22 +110,18 @@ rende il prodotto prezioso per chi lo compra**.
 La ricerca ha trovato **difetti concreti**, non solo funzioni mancanti.
 Vengono prima di ogni funzione nuova: senza queste basi il resto non regge.
 
-- [ ] **F1. Campo — data e turno su ogni registrazione** *(P1)*. Oggi
-      attività e rapportini **non salvano data né turno**: "rapportini oggi"
-      conta tutti quelli mai inviati e non esiste storico. È la fondazione di
-      ogni confronto e indicatore.
-- [ ] **F2. Campo — il piano di carico si perde al refresh** *(P1)*: le
-      cariche reali vivono solo in memoria. Salvataggio su Firestore.
-- [ ] **F3. Campo — produzione in numeri + unità di misura** *(P1)*: oggi è
-      testo libero e non è sommabile. Sblocca i ponti verso Terra e Conti.
-- [ ] **F4. Conti — anagrafica clienti** *(P1)*: oggi il cliente è testo
-      libero, quindi si creano **duplicati che falsano esposizione ed
-      estratto conto**. Con P.IVA, codice destinatario/PEC, sconto, fido.
-- [ ] **F5. Sentinella — la serie storica esiste nei dati ma non si vede**
-      *(P1)*: grafico in SVG puro con la soglia disegnata sopra.
-- [ ] **F6. Flotta — scadenze di legge dei mezzi** *(P1)*: verifica periodica
-      (D.Lgs. 81/2008 all. VII), funi e catene, revisione, assicurazione.
-      Oggi **del tutto assenti**: è l'unico blocco obbligatorio scoperto.
+- [x] **F1. Campo — data e turno su ogni registrazione** ✅ *(28/07)* — la
+      fondazione di ogni confronto e indicatore.
+- [x] **F2. Campo — piano di carico salvato** ✅ *(28/07)* — collezione
+      `pianocarico` via SDK: non si perde più al refresh.
+- [x] **F3. Campo — produzione in numeri + unità** ✅ *(28/07)* — quantità e
+      unità separate: ora è sommabile e sblocca i ponti verso Terra e Conti.
+- [x] **F4. Conti — anagrafica clienti** ✅ *(28/07)* — con P.IVA e codice
+      destinatario: chiuso il bug dei duplicati che falsavano l'esposizione.
+- [x] **F5. Sentinella — serie storica visibile** ✅ *(28/07)* — grafico SVG
+      poi portato a livello di strumento di misura (soglia, rombi, fasce).
+- [x] **F6. Flotta — scadenze di legge dei mezzi** ✅ *(28/07)* — con
+      semaforo, preset normativi modificabili e proposta della ricorrenza.
 
 ## BLOCCO 2 — LE SEI APP, PROPOSTE DALLA RICERCA *(in parallelo)*
 Dettaglio e fonti in `docs/RICERCA_<APP>_202607.md`.
