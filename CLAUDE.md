@@ -116,11 +116,36 @@ in italiano, senza dare conoscenze per scontate).
   senza conferma esplicita del fondatore in conversazione.
 
 ## Test
+- ⚠️ **LA SUITE ESISTE E COPRE TUTTE LE APP.** Tre cantieri di fila hanno
+  scritto «la mia app non ha una suite in cui mettere i test» e non è vero:
+  `apps/deepwork-id/tests/run-kpi.mjs` importa **tutti** i moduli
+  `apps/<nome>/<nome>-data.js`, quindi qualunque funzione pura di qualunque
+  app si testa lì. Si lancia con `node apps/deepwork-id/tests/run-kpi.mjs`,
+  senza emulatori e senza rete. Due avvertenze imparate a spese nostre:
+  1. i test vanno inseriti **prima** del blocco di riepilogo finale, che
+     chiude con `process.exit`: appesi in coda non vengono mai eseguiti, e il
+     totale resta invariato senza che nulla segnali l'errore;
+  2. si controlla sempre che il **totale sia salito**, non solo che i falliti
+     siano zero: un file di test inerte dice «0 falliti» come uno che passa.
+- Le altre suite locali (`run-demo.mjs`, `run-helpers.mjs`,
+  `run-pointcloud.mjs`, `run-manifest.mjs`) girano anch'esse con `node`.
+- Quando un test fallisce dopo un lavoro nuovo, prima di dire che c'è un
+  difetto va letto **come il codice si aspetta i dati**: succede spesso che
+  sia la prova a indovinare male i nomi dei campi, e una prova sbagliata che
+  accusa il codice fa perdere più tempo di nessuna prova. Se invece il test è
+  invecchiato perché il prodotto è migliorato, si corregge rendendo
+  l'asserzione **più giusta, non più permissiva** (vedi `contiene`).
 - Regole di sicurezza Firestore: `cd apps/deepwork-id && firebase
   emulators:exec --project demo-deepwork "cd tests && npm test"`
   (richiede firebase-tools + Java; 19 test, devono passare tutti).
 - Verifica visiva pagine: server statico locale + screenshot
-  (Playwright/Chromium preinstallato).
+  (Playwright/Chromium preinstallato). Gli screenshot vanno **guardati**, non
+  solo prodotti: nella giornata del 29/07 un campo scomparso, una miniatura
+  illeggibile e un'unità di misura stravolta dal maiuscolo sono stati trovati
+  così, e nessuno di quei difetti si vedeva leggendo il codice.
+- ⚠️ La cartella scratchpad è **condivisa** fra i cantieri paralleli: ogni
+  agente deve creare una propria sottocartella, altrimenti si sovrascrivono i
+  file di prova a vicenda (è già successo più volte).
 
 ## Contesto di progetto
 - Vault Obsidian di visione/ricerca: repo gius77gf/ecosistema-vault

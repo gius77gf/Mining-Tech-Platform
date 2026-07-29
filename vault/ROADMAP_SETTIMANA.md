@@ -316,10 +316,16 @@ inserito una volta serve in cinque posti**.
       l'azione dentro lo scadenzario esistente di Scudo, collegata alla sua
       origine e senza doppioni; lo stato si rivede dal lato ambientale. Il
       collegamento con la volata è dichiarato **coincidenza, non causa**.
-- [ ] P1. **Genesi → Sentinella**: la volata progettata entra nel registro di
-      monitoraggio; Sentinella aggiunge il misurato e calcola lo scarto. Con
-      abbastanza volate si tara la legge di sito e il dato **torna in Genesi**
-      (chiude il cerchio con G3, che ora esiste).
+- [x] **P1. Sentinella → Genesi: le volate misurate tarano la legge di sito**
+      ✅ *(29/07, `ecec323`)* — il cerchio si chiude: la PPV misurata si
+      aggancia alla volata (dallo strumento o a mano), i referti escono nel
+      formato che la «Legge di sito» sa già leggere, e Genesi mostra la
+      provenienza di ognuno. **Nessuna PPV inventata**: una volata senza
+      misura non diventa referto, e il motivo è scritto. La regressione è
+      stata riverificata ricalcolandola con una formulazione diversa da quella
+      del codice — K95=1493, β=1,53, R²=0,896, identici.
+      **Resta da fare il verso opposto**: la volata progettata in Genesi che
+      nasce «prevista» nel registro di Sentinella.
 - [ ] P2. **Campo → Terra**: produzione del turno → volumi per fronte.
 - [ ] P3/P4. **Terra ↔ Conti — cavato contro venduto** *(in corso)*: m³ contro
       tonnellate, con la densità del listino; il divario che resta (sfrido,
