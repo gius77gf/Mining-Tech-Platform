@@ -255,6 +255,12 @@ Dettaglio e fonti in `docs/RICERCA_<APP>_202607.md`.
       ✅ *(29/07, `ea5d4c9`)* — la frase «soglia fuori scala» si ripeteva a
       ogni rotazione o anteprima di stampa, anche nel documento consegnato
       all'ente. Corretto alla radice in `shared/`, non nella singola app.
+- [x] **Test: blindate le funzioni nuove della giornata** ✅ *(29/07,
+      `8a680f4`)* — 179 → 201. Le asserzioni scritte a mano per verificare i
+      cantieri diventano permanenti: incassi parziali e compatibilità delle
+      fatture vecchie, costo dell'ordine di lavoro e disponibilità dei mezzi,
+      turno firmato non riscrivibile, e la distinzione di Scudo fra il corso
+      che blocca e il DPI che avvisa.
 
 ## BLOCCO 3 — GENESI: DAL "QUANTO" AL "DOVE"
 `docs/RICERCA_GENESI_202607.md`. Gap centrale emerso: **Genesi dice quanto,
