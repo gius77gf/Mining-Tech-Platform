@@ -5,12 +5,13 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-07-29 18:54 UTC
-**Cosa sta per fare:** i quattro cantieri ripresi (Scudo, Conti,
-Terra+Sentinella, Flotta) stanno completando la loro verifica finale; nel
-frattempo si lavora a Genesi G6, la banda d'incertezza dalla precisione di
-perforazione.
-**Commit di partenza:** `1c9bab1`
+**Ultimo ciclo riuscito:** 2026-07-29 21:47 UTC
+**Cosa sta per fare:** Blocco 4, i ponti fra le app. Tre cantieri in corso
+(Genesi↔Campo per la carica reale che torna alla riconciliazione,
+Terra↔Conti per il cavato contro il venduto, Sentinella↔Scudo per l'azione
+correttiva dal superamento). Tutti e tre erano caduti su errori 500 del
+server e sono stati ripresi dal punto esatto.
+**Commit di partenza:** `85a0fd0`
 
 ---
 
