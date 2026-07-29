@@ -157,9 +157,12 @@ Dettaglio e fonti in `docs/RICERCA_<APP>_202607.md`.
 - [x] S1. **Azioni correttive (CAPA)** ✅ *(27/07)* — legame nei due sensi
       con l'evento, stati aperta→in corso→chiusa con esito, dentro il
       semaforo e lo scadenzario esistenti.
-- [ ] S2. **Near-miss dal telefono** + riepilogo aggregato.
-- [ ] S3. **Ispezioni e checklist periodiche** (fronte, piste, impianto):
-      le voci non conformi generano automaticamente le azioni di S1.
+- [x] S2. **Near-miss dal telefono** ✅ *(29/07, `7747f2c`)* — quattro tocchi
+      senza digitare, opzione anonima vera, azione correttiva in un tocco,
+      riepilogo aggregato che sotto le 5 segnalazioni non finge statistiche.
+- [x] S3. **Ispezioni e checklist periodiche** ✅ *(29/07, `7747f2c`)* — sei
+      modelli riutilizzabili; le voci non conformi generano le azioni di S1
+      già collegate, senza doppioni se l'ispezione si riapre.
 - [ ] S4. **Matrice formazione per mansione** + nomine (incluso il
       **sorvegliante**, obbligatorio in cava, e il preposto).
 - [ ] S5. **Registro DPI per lavoratore** (consegna, addestramento, verbale).
@@ -167,40 +170,43 @@ Dettaglio e fonti in `docs/RICERCA_<APP>_202607.md`.
       industrie estrattive, periodicità solo proposta e modificabile.
 
 **Campo** (operazioni) — `docs/RICERCA_CAMPO_202607.md`
-- [ ] C1. **Assegnazione attività a squadra/mezzo** (oggi sono anonime).
-- [ ] C2. **Obiettivo di turno e scostamento**.
-- [ ] C3. Archivio/storico della settimana; checklist inizio turno;
-      presenze; foto sull'anomalia; firma di chiusura turno.
+- [x] C1. **Assegnazione attività a squadra/mezzo** ✅ *(29/07, `b5ea8fe`)* —
+      anagrafica operatori, filtro «senza squadra», vista «cosa tocca a me».
+- [x] C2. **Obiettivo di turno e scostamento** ✅ *(29/07, `b5ea8fe`)* — su
+      t, m³, viaggi o attività concluse, leggibile durante il turno.
+- [x] C3. Storico settimana, checklist inizio turno, presenze, firma di
+      chiusura ✅ *(29/07, `b5ea8fe`)*. **Restano**: foto sull'anomalia e
+      blocco delle scritture a turno chiuso (unità a sé: tocca ogni punto
+      di salvataggio).
 
 **Flotta** (mezzi) — `docs/RICERCA_FLOTTA_202607.md`
-- [ ] L1. **Scheda del mezzo / fascicolo unico** (dati, scadenze, storico,
-      costi, export "libretto macchina").
-- [ ] L2. **Controllo pre-uso (giro macchina)** da telefono: le voci non ok
-      diventano manutenzioni. È ciò che porta gli operatori dentro l'app.
-- [ ] L3. **Piani di manutenzione ricorrenti** (250/500/1000/2000 h) che si
-      ripianificano da soli alla chiusura del tagliando.
-- [ ] L4. **Carburante per mezzo + costo orario** (l/h, €/h).
+- [x] L1–L4 **tutte e quattro** ✅ *(29/07, `1d3df21`)* — giro macchina in
+      tre tocchi con checklist per tipo di mezzo, le voci «non va» che
+      diventano manutenzioni collegate e le voci di sicurezza che propongono
+      di fermare il mezzo; fascicolo unico con stampa del libretto; piani a
+      ore e a calendario che si ripianificano dalle ore vere del contatore;
+      carburante tank-to-tank in l/h e €/h, che quando non è calcolabile dice
+      perché invece di mostrare un numero. Corretta nel passaggio una
+      regressione che avrebbe rotto la pagina alle organizzazioni esistenti.
 
 **Conti** (economia) — `docs/RICERCA_CONTI_202607.md`
-- [ ] N1. **Listino prodotti** per pezzatura, €/t o €/m³ **con densità**
-      (non sono interscambiabili), IVA.
-- [ ] N2. **Fattura con imponibile + IVA e numerazione automatica** (oggi è
-      un importo secco, inutilizzabile per il registro IVA).
-- [ ] N3. **Registro pesate/DDT** (lordo/tara/netto — DPR 472/1996).
-- [ ] N4. **Fattura differita dai DDT**: tanti viaggi → una fattura. È il
-      flusso reale della cava, il valore più alto in assoluto.
-- [ ] N5. **Canoni/diritti di escavazione regionali** con aliquota
-      impostabile (mai cablata: cambia da regione a regione).
+- [x] N1–N5 **tutte e cinque** ✅ *(29/07, `0194fbc`)* — listino con densità
+      e conversione €/t↔€/m³ che senza densità non inventa numeri; fattura
+      con imponibile+IVA e numerazione progressiva per anno, retrocompatibile
+      al centesimo con le fatture a importo secco; registro pesate/DDT col
+      netto calcolato; **fattura differita dai DDT** raggruppata per prodotto,
+      con i DDT che non possono rientrare in una seconda fattura e tornano
+      liberi se la fattura viene eliminata; canone di escavazione con
+      aliquota impostata dall'utente, mai cablata.
 
 **Sentinella** (ambiente) — `docs/RICERCA_SENTINELLA_202607.md`
-- [ ] T1. **Import CSV delle letture** (data;ora;valore, colonne scelte
-      dall'utente): unico modo realistico di far entrare i dati degli
-      strumenti senza integrazioni a pagamento.
-- [ ] T2. **Anagrafica ricettori** (case, scuola, confine: distanza, tipo,
-      classe acustica, soglia). Le norme ragionano per ricettore.
-- [ ] T3. **Report di conformità stampabile** — è l'unica cosa che il
-      cliente consegna all'ente.
-- [ ] T4. **Registro reclami/esposti dei residenti**.
+- [x] T1–T4 **tutte e quattro** ✅ *(29/07, `947a934`)* — import CSV con
+      parser scritto in casa e colonne scelte dall'utente, anteprima riga per
+      riga col motivo di ogni scarto; anagrafica ricettori la cui soglia
+      vince su quella del punto, e se le unità non coincidono non converte
+      niente ma segnala il conflitto; report di conformità stampabile in A4;
+      registro reclami. Corretto un difetto grave trovato guardando la
+      stampa: «µg/m³» diventava «MG/M³» per un maiuscolo di stile.
 
 **Terra** (rilievi e autorizzazioni) — `docs/RICERCA_TERRA_202607.md`
 - [x] R1. **Scheda autorizzazione** ✅ *(27/07)* — con storico delle
@@ -210,10 +216,13 @@ Dettaglio e fonti in `docs/RICERCA_<APP>_202607.md`.
       confronto 'scade prima il titolo o il volume'.
 - [x] R3. **Scadenzario Terra** ✅ *(27/07)* — semaforo, ricorrenze e
       proposta automatica della scadenza successiva.
-- [ ] R4. **Riepilogo annuale volumi per la denuncia agli enti** (i dati ci
-      sono già, manca la vista).
-- [ ] R5. **Provenienza del volume dal visore**: distinguere **scavo da
-      cumulo** (oggi si sommano: difetto concettuale).
+- [x] R4. **Riepilogo annuale per la denuncia** ✅ *(29/07, `43dcc53`)* —
+      scheda dedicata, stampabile ed esportabile, con i mesi a zero tenuti
+      apposta e la ripartizione per fronte.
+- [x] R5. **Scavo contro cumulo** ✅ *(29/07, `43dcc53`)* — la ripresa da
+      cumulo non consuma più il volume concesso, in tutti i conti; i rilievi
+      salvati senza il campo valgono scavo e i numeri di prima non cambiano.
+      Coperto da due test nella suite KPI.
 
 ## BLOCCO 3 — GENESI: DAL "QUANTO" AL "DOVE"
 `docs/RICERCA_GENESI_202607.md`. Gap centrale emerso: **Genesi dice quanto,
