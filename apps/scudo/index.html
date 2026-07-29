@@ -1631,11 +1631,16 @@
         org ? esc(org) : "",
       ].filter(Boolean).join(" · ");
       const cls = a.stato === "chiusa" ? "st-ok" : (striscia[B[st][0]] || "st-accent");
+      // La provenienza AMBIENTALE sta in testa alla riga di dettaglio, non
+      // fra i comandi: i bersagli da toccare restano tre come prima (stato,
+      // semaforo, comandi) e su telefono la voce non si sfilaccia.
+      const amb = daAmbiente(a)
+        ? `<span class="badge tag inline" title="Nata da un fatto ambientale registrato in Sentinella">${etichettaAmbiente(a)}</span> `
+        : "";
       return `<div class="item ${cls}">
         <div class="avatar sup">${SVG_AZIONE}</div>
-        <div class="info"><div class="name">${esc(a.descrizione)}</div><div class="meta">${meta}</div></div>
+        <div class="info"><div class="name">${esc(a.descrizione)}</div><div class="meta">${amb}${meta}</div></div>
         <span class="acts">
-        ${daAmbiente(a) ? `<span class="badge tag" title="Nata da un fatto ambientale registrato in Sentinella">${etichettaAmbiente(a)}</span>` : ""}
         <span class="badge ${al.cls}" style="cursor:pointer" title="Tocca per far avanzare lo stato (aperta → in corso → chiusa)" data-azi-stato="${a.id}">${al.label}</span>
         ${(a.stato !== "chiusa" && a.scadenza && st !== "regolare") ? `<span class="badge ${B[st][0]}">${B[st][1]}</span>` : ""}
         ${(a.origineTipo === "evento" && infById[a.origineId]) ? `<span class="arr" style="cursor:pointer" title="Vai all'evento che l'ha generata" data-vai-evt="${a.origineId}">↗</span>` : ""}

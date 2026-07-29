@@ -2808,8 +2808,9 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
     // correggere sui fori che restano, non scoprirlo a volata sparata.
     const dopo = pianoParziale(PIANO);
     if (dopo && dopo.livello !== primaLiv && dopo.livello !== "ok" && dopo.registrati < dopo.totale)
-      setTimeout(() => toast("Attenzione: sui " + dopo.registrati + " fori caricati sei al "
-        + (dopo.pct >= 0 ? "+" : "") + dopo.pct + "% rispetto al progetto. "
+      setTimeout(() => toast("Attenzione: "
+        + (dopo.registrati === 1 ? "sul primo foro caricato" : "sui " + dopo.registrati + " fori caricati")
+        + " sei al " + (dopo.pct >= 0 ? "+" : "") + dopo.pct + "% rispetto al progetto. "
         + (dopo.totale - dopo.registrati === 1 ? "Resta 1 foro" : "Restano " + (dopo.totale - dopo.registrati) + " fori")
         + " per rientrare.", "err"), 2900);
   });
