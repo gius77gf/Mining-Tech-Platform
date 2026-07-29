@@ -163,9 +163,13 @@ Dettaglio e fonti in `docs/RICERCA_<APP>_202607.md`.
 - [x] S3. **Ispezioni e checklist periodiche** ✅ *(29/07, `7747f2c`)* — sei
       modelli riutilizzabili; le voci non conformi generano le azioni di S1
       già collegate, senza doppioni se l'ispezione si riapre.
-- [ ] S4. **Matrice formazione per mansione** + nomine (incluso il
-      **sorvegliante**, obbligatorio in cava, e il preposto).
-- [ ] S5. **Registro DPI per lavoratore** (consegna, addestramento, verbale).
+- [x] S4. **Matrice formazione per mansione + nomine** ✅ *(29/07, `2e4691b`)*
+      — risponde a «chi posso mandare domani mattina», col motivo scritto.
+      Un corso mancante o scaduto blocca, un DPI mai consegnato avvisa: sono
+      cose diverse e restano distinte. Sorvegliante e preposto compresi.
+- [x] S5. **Registro DPI per lavoratore** ✅ *(29/07, `2e4691b`)* — consegna,
+      addestramento, verbale stampabile; un DPI mai consegnato a chi fa una
+      mansione che lo richiede emerge in cima e nomina la mansione.
 - [x] S6. **Preset D.Lgs. 624/96** ✅ *(27/07)* — 7 voci specifiche delle
       industrie estrattive, periodicità solo proposta e modificabile.
 
@@ -244,6 +248,13 @@ Dettaglio e fonti in `docs/RICERCA_<APP>_202607.md`.
       QR, perché ora i consumi veri esistono.
 - [x] **Campo — turno chiuso non riscrivibile** ✅ *(`5f9ca5a`)* — venti
       punti di scrittura dietro un solo guardiano, riapertura tracciata.
+- [x] **Terra e Sentinella — verbale di rilievo, confronto rilievi,
+      programma di monitoraggio** ✅ *(29/07, `048aaee`)* — più cinque unità
+      di misura che il maiuscolo di stile stravolgeva in Terra.
+- [x] **Motore grafici — note che si moltiplicavano al ridisegno**
+      ✅ *(29/07, `ea5d4c9`)* — la frase «soglia fuori scala» si ripeteva a
+      ogni rotazione o anteprima di stampa, anche nel documento consegnato
+      all'ente. Corretto alla radice in `shared/`, non nella singola app.
 
 ## BLOCCO 3 — GENESI: DAL "QUANTO" AL "DOVE"
 `docs/RICERCA_GENESI_202607.md`. Gap centrale emerso: **Genesi dice quanto,
