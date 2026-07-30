@@ -154,6 +154,14 @@
   line-height:.98; font-variant-numeric:tabular-nums; background:var(--grad-num);
   -webkit-background-clip:text; background-clip:text;
   -webkit-text-fill-color:transparent;
+  /* Il numero e la sua unità sono UNA cosa sola: sul telefono, dove lo spazio
+     è poco, andavano a capo separati («15,77» sopra e «m³» sotto) e per un
+     istante il numero sembrava senza unità di misura. */
+  white-space:nowrap;
+}
+@media (max-width:420px){
+  /* piuttosto che spezzare numero e unità, si rimpicciolisce il numero */
+  .cassa-num{ font-size:30px; }
 }
 .cassa.vuota .cassa-num{
   background:var(--grad-sup); -webkit-background-clip:text; background-clip:text;
