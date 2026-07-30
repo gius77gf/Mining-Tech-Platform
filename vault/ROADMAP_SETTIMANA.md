@@ -589,6 +589,19 @@ bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
       **tace** invece di rassicurare. 313 KPI, sei prove nuove fra cui i due omonimi
       perfetti che NON si accoppiano e la coerenza fra le due dimostrazioni.
 
+- [x] **S24. Ponte P3, l'altra metà: lo scadenzario sa chi lavora adesso** ✅ *(31/07,
+      `7debecf`)* — il ponte è ora simmetrico come quello con Terra. La definizione di
+      «sta lavorando adesso» è **decisa e scritta**: in forza in una squadra
+      operativa, non «nominato su un'attività» — quella scambierebbe un dato mancante
+      per un fatto. Il nome della squadra porta la specialità dopo un trattino, e
+      senza riconoscerlo **nessuno** sarebbe mai risultato in turno: il ponte avrebbe
+      detto «niente da fermare» sempre, con la faccia di chi ha guardato. Due difetti
+      visti nell'output: la nota contava 3 e i contrassegni erano 2, e il contrassegno
+      in fondo alla riga veniva mangiato dai puntini. **318 KPI.**
+      Corretta anche una regressione della sera prima (`a6e15cc`): rinominando gli
+      operatori avevo lasciato indietro le attività, e il conto «in carico oggi» era
+      diventato zero **in silenzio**.
+
 **La convenzione sui numeri è chiusa.** Sei app, core, campi scritti a mano,
 campi interi, file delle macchine.
 
