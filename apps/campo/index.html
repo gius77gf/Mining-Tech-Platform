@@ -622,6 +622,9 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     </div>
     <div class="frow">
       <select class="dw-input" id="ope-squadra" title="Squadra" aria-label="Squadra" style="flex:2 1 170px;"></select>
+      <select class="dw-input" id="ope-lav" title="Persona in Scudo" aria-label="Collega alla persona registrata in Scudo" style="flex:2 1 190px;"></select>
+    </div>
+    <div class="frow">
       <button class="dw-btn" id="btn-ope">Aggiungi</button>
     </div>
     <div class="form-hint">Servono solo nome, ruolo e squadra: bastano per assegnare il lavoro e per sapere chi lo sta facendo.</div>
@@ -1598,7 +1601,44 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     if (r.stato === "non-collegato") return " · non collegato al personale di Scudo";
     return "";
   }
-  const CLASSE_HSE = { scaduta: "st-danger", "in-scadenza": "st-warn" };
+  // IL COLORE NON DEVE DIRE QUELLO CHE IL TESTO NON DICE. Le prime versioni
+  // coloravano di verde («st-ok», il valore di ripiego della riga) anche chi non è
+  // collegato a Scudo: verde vuol dire «a posto», e su una persona di cui non
+  // sappiamo niente è la stessa bugia che il conto separato dei «non lo so» serve
+  // a evitare — detta col colore invece che con le parole. Neutro, quindi.
+  const CLASSE_HSE = {
+    scaduta: "st-danger", "in-scadenza": "st-warn",
+    "non-collegato": "st-mute", "collegamento-rotto": "st-mute",
+  };
+
+  // LA TENDINA DELLE PERSONE DI SCUDO. «— non collegato —» sta in CIMA e non in
+  // fondo perché è il valore di partenza di ogni nuovo operatore: la voce
+  // predefinita si cerca dove si guarda per prima.
+  // Se Scudo non è leggibile la tendina non resta vuota e muta: si disabilita e
+  // dice perché, perché un comando che non fa niente senza spiegare è peggio di un
+  // comando che non c'è.
+  function opzioniLavoratori(selezionato) {
+    if (!LAV_HSE) return '<option value="">Personale di Scudo non disponibile</option>';
+    const usati = new Set(OPER.map(o => o.lavoratoreId).filter(Boolean).map(String));
+    return '<option value="">— non collegato a Scudo —</option>'
+      + LAV_HSE.filter(l => l.attivo !== false)
+        .slice().sort((a, b) => String(a.nome).localeCompare(String(b.nome), "it"))
+        .map(l => {
+          const preso = usati.has(String(l.id)) && String(l.id) !== String(selezionato || "");
+          return `<option value="${esc(l.id)}"${String(l.id) === String(selezionato || "") ? " selected" : ""}${preso ? " disabled" : ""}>`
+            + esc(l.nome) + (l.ruolo ? " · " + esc(l.ruolo) : "")
+            + (preso ? " (già collegato)" : "") + "</option>";
+        }).join("");
+  }
+  function aggiornaTendinaLavoratori() {
+    const sel = $("ope-lav");
+    if (!sel) return;
+    sel.innerHTML = opzioniLavoratori("");
+    sel.disabled = !LAV_HSE;
+    sel.title = LAV_HSE
+      ? "Collega questa persona alla sua scheda in Scudo: da lì Campo legge i documenti"
+      : "Il personale di Scudo non è raggiungibile: il collegamento si può aggiungere più tardi";
+  }
 
   // Elenco delle persone, filtrabile per squadra.
   // L'ORDINE RESTA ALFABETICO, e non per urgenza dei documenti: questa è la
@@ -1633,6 +1673,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
         : hse.nonCollegati
           ? `<div class="note">Nessun documento scaduto fra le persone collegate a <b>Scudo</b>. Di ${hse.nonCollegati === 1 ? "una" : hse.nonCollegati} non lo sappiamo: ${hse.nonCollegati === 1 ? "non è collegata" : "non sono collegate"} al personale di Scudo.</div>`
           : `<div class="note recap">Documenti in corso di validità per <b>tutte</b> le persone in elenco, secondo Scudo.</div>`;
+    aggiornaTendinaLavoratori();
     $("ope-list").innerHTML = righe.map(o => { const giu = o.stato === "non-disponibile";
       const carico = ATT_OGGI.filter(a => String(a.operatore || "").trim() === o.nome && a.stato !== "conclusa").length;
       const r = perId[o.id];
@@ -1640,7 +1681,9 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       return `<div class="item ${cls}" data-ope="${esc(o.id)}" role="button" tabindex="0" style="cursor:pointer" title="Tocca per cambiare la disponibilità">
       <div class="avatar${giu ? " mute" : ""}">${esc((o.nome || "?").split(/\s+/).map(p => p[0] || "").join("").slice(0, 2).toUpperCase())}</div>
       <div class="info"><div class="name">${esc(o.nome)}</div><div class="meta">${esc(o.ruolo || "ruolo non indicato")} · ${esc(squadraBase(o.squadra) || "senza squadra")}${carico ? " · " + carico + " in carico oggi" : ""}${r ? notaHSE(r) : ""}</div></div>
-      <span class="badge ${giu ? "tag" : "ok"}">${giu ? "Non disponibile" : "In forza"}</span></div>`; }).join("")
+      <span class="acts"><span class="badge ${giu ? "tag" : "ok"}">${giu ? "Non disponibile" : "In forza"}</span>${LAV_HSE
+        ? `<span class="arr" style="cursor:pointer" title="${o.lavoratoreId ? "Cambia la persona collegata in Scudo" : "Collega alla persona registrata in Scudo"}" data-lav-ope="${esc(o.id)}">${o.lavoratoreId ? "↻" : "＋"}</span>`
+        : ""}</span></div>`; }).join("")
       || vuoto(I.persona, filtro ? "Nessuno in questa squadra" : "Nessun operatore in anagrafica",
           filtro ? "In questa squadra non è registrata ancora nessuna persona: aggiungila qui sotto e potrai assegnarle il lavoro."
                  : "Aggiungi le persone qui sotto: nome, ruolo e squadra. Da lì in poi ogni attività può avere un nome sopra, e chi lavora sa cosa gli tocca.");
@@ -2588,8 +2631,13 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       sbaglia("ope-nome", "ope-esito", "C'è già una persona con questo nome: se sono due persone diverse, aggiungi l'iniziale del cognome per distinguerle."); return; }
     err("ope-nome", false);
     const squadra = $("ope-squadra").value, ruolo = $("ope-ruolo").value || RUOLI[0];
-    await db.aggiungi("operatori", { nome, ruolo, squadra, stato: "in-forza" });
+    // il collegamento a Scudo si scrive SOLO se scelto: un campo vuoto resta
+    // assente, non diventa una stringa vuota che poi somiglia a un id
+    const lav = $("ope-lav") && $("ope-lav").value ? $("ope-lav").value : null;
+    await db.aggiungi("operatori", Object.assign({ nome, ruolo, squadra, stato: "in-forza" },
+      lav ? { lavoratoreId: lav } : {}));
     $("ope-nome").value = "";
+    if ($("ope-lav")) $("ope-lav").value = "";
     esito("ope-esito", "Aggiunto: " + nome + " — " + ruolo + (squadra ? " · " + squadra : " · senza squadra") + ".", "success");
     $("ope-nome").focus();
     await refresh();
@@ -2602,9 +2650,48 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     salvaIo(); aggiornaSceltaSquadre(); renderIo();
   };
   $("io-operatore").onchange = () => { IO.operatore = $("io-operatore").value; salvaIo(); renderIo(); };
+  // IL COLLEGAMENTO HA UN COMANDO SUO. Il tocco sulla riga cambia già la
+  // disponibilità: dargli un secondo significato renderebbe imprevedibili
+  // entrambi. Si usa il modale del core, mai un dialogo del browser.
+  document.addEventListener("click", async (e) => {
+    const b = e.target.closest && e.target.closest("[data-lav-ope]");
+    if (!b) return;
+    e.stopPropagation();
+    const o = OPER.find(x => x.id === b.getAttribute("data-lav-ope"));
+    if (!o || !LAV_HSE) return;
+    const attuale = LAV_HSE.find(l => String(l.id) === String(o.lavoratoreId || ""));
+    // NESSUNO DA SCEGLIERE è uno stato, non un elenco vuoto: succede quando ogni
+    // persona di Scudo è già collegata a qualcun altro. Mostrare una tendina di
+    // sole voci disabilitate fa cliccare a vuoto senza dire perché — visto in
+    // prova, dove tutte e quattro le persone della dimostrazione erano prese.
+    const libere = LAV_HSE.filter(l => l.attivo !== false
+      && !OPER.some(x => x.id !== o.id && String(x.lavoratoreId || "") === String(l.id)));
+    if (!libere.length && !o.lavoratoreId) {
+      await chiedi("Nessuna persona da collegare",
+        `In <b>Scudo</b> tutte le persone registrate risultano già collegate a un altro operatore di Campo.<br><br>`
+        + `Se <b>${esc(o.nome)}</b> è una persona nuova, va prima aggiunta all'anagrafica del personale in Scudo: `
+        + `è là che si tengono visita medica, formazione e DPI, ed è l'unico posto dove si scrivono.`,
+        "Ho capito");
+      return;
+    }
+    const scelto = await chiediValore("Collega a Scudo",
+      `<b>${esc(o.nome)}</b> è la stessa persona registrata in Scudo? Scegliendola, Campo mostra qui i suoi documenti — visita medica, formazione, DPI — e lo scadenzario di Scudo sa che sta lavorando.<br><br>`
+      + `Il collegamento si fa <b>per scheda, non per nome</b>: due persone possono chiamarsi allo stesso modo, e sui documenti di sicurezza sbagliare persona è peggio che non sapere.`
+      + (attuale ? `<br><br>Adesso è collegata a <b>${esc(attuale.nome)}</b>.` : ""),
+      `<select class="dw-input" id="modal-campo" style="margin-top:10px;">${opzioniLavoratori(o.lavoratoreId)}</select>`,
+      "Salva collegamento");
+    if (scelto === null) return;
+    if (String(scelto) === String(o.lavoratoreId || "")) { toast("Nessuna modifica al collegamento.", "info"); return; }
+    await db.aggiorna("operatori", o.id, { lavoratoreId: scelto || null });
+    const nuovo = LAV_HSE.find(l => String(l.id) === String(scelto));
+    toast(nuovo ? o.nome + " è collegato a " + nuovo.nome + " in Scudo." : o.nome + " non è più collegato a Scudo.",
+          nuovo ? "success" : "info");
+    await refresh();
+  });
   document.addEventListener("click", async (e) => {
     const el = e.target.closest && e.target.closest("[data-ope]");
     if (!el) return;
+    if (e.target.closest("[data-lav-ope]")) return;   // il comando del collegamento ha già risposto
     const o = OPER.find(x => x.id === el.getAttribute("data-ope"));
     if (!o) return;
     const nuovo = o.stato === "non-disponibile" ? "in-forza" : "non-disponibile";

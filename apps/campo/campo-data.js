@@ -199,11 +199,19 @@ export const DEMO = {
   // dimostrazione dell'ecosistema smentirebbe sé stessa. Le date sono quelle di
   // Scudo: d1 ha la visita medica scaduta il 02/07, d2 un corso scaduto l'11/07,
   // d3 la formazione in scadenza il 09/08, d5 è in regola.
+  // TUTTI i lavoratori di Scudo, non solo quelli già collegati: la prima versione
+  // ne copiava quattro su sette, e in dimostrazione risultavano tutti presi —
+  // chi apriva «collega» trovava un elenco di voci disabilitate senza nessuno da
+  // scegliere. In un'azienda vera l'anagrafica del personale è più larga della
+  // squadra in turno, ed è proprio da lì che si pesca.
   lavoratoriScudo: [
     { id: "d1", nome: "Mario Rossi", ruolo: "Fochino", attivo: true },
     { id: "d2", nome: "Luca Bianchi", ruolo: "Escavatorista", attivo: true },
     { id: "d3", nome: "Giulia Verdi", ruolo: "Preposto", attivo: true },
+    { id: "d4", nome: "Anna Neri", ruolo: "Impiegata", attivo: true },
     { id: "d5", nome: "Paolo Gallo", ruolo: "Autista", attivo: true },
+    { id: "d6", nome: "Franco Riva", ruolo: "Fochino", attivo: true },
+    { id: "d7", nome: "Sara Conti", ruolo: "RSPP esterno", attivo: true },
   ],
   scadenzeScudo: [
     { id: "s1", lavoratoreId: "d1", tipo: "Visita medica", descrizione: "Visita medica periodica", dataScadenza: "2026-07-02" },
@@ -212,6 +220,7 @@ export const DEMO = {
     { id: "s4", lavoratoreId: "d2", tipo: "Visita medica", descrizione: "Visita medica periodica", dataScadenza: "2027-04-08" },
     { id: "s5", lavoratoreId: "d3", tipo: "Formazione", descrizione: "Formazione specifica", dataScadenza: "2026-08-09" },
     { id: "s6", lavoratoreId: "d3", tipo: "Visita medica", descrizione: "Visita medica periodica", dataScadenza: "2027-02-11" },
+    { id: "s9", lavoratoreId: "d6", tipo: "DPI", descrizione: "Otoprotettori", dataScadenza: "2026-08-15" },
     { id: "s7", lavoratoreId: "d5", tipo: "Patente", descrizione: "Patente di guida", dataScadenza: "2026-09-02" },
     { id: "s8", lavoratoreId: "d5", tipo: "Visita medica", descrizione: "Visita medica periodica", dataScadenza: "2027-05-20" },
   ],
