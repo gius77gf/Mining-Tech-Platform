@@ -2,7 +2,7 @@
 
 - **Tipo**: richiesta urgente del fondatore (presentazione di domani)
 - **Branch**: `claude/scheduled-tasks-remote-control-bk4ap6`
-- **Commit**: (aggiunto sotto dopo il commit)
+- **Commit**: `529a4a3`
 
 ## Cosa ha chiesto il fondatore
 
