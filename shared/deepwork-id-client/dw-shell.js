@@ -468,6 +468,18 @@ export function avvolgiUnita(testo) {
      e le cifre non si incolonnano più.
    Le app la RI-ESPORTANO col nome che hanno sempre usato (`const eur = euro`):
    un alias non è una seconda implementazione. */
+/* ⚖️ DUE CONVENZIONI, E NESSUNA DELLE DUE È UN REFUSO — deciso il 30/07 e
+   scritto qui perché è qui che uno viene a cercare.
+   Nel TESTO l'importo si scrive «€ 48.200,00», col simbolo davanti: è come si
+   legge una cifra dentro una frase o dentro una colonna di importi.
+   Su un ASSE DI GRAFICO si scrive «2.000 €», col simbolo dopo: là il simbolo
+   non è parte dell'importo, è l'unità di misura dell'asse, e sta dove stanno
+   tutte le altre — «17,4 l/h», «61,4 %», «18 mm/s». Lo mette `conUnita` del
+   motore dei grafici, con la stessa riga per tutte.
+   Non si uniformano: uniformarle vorrebbe dire scrivere «€ 2.000» su un asse,
+   dove nessun grafico al mondo lo scrive, oppure «48.200,00 €» in mezzo a una
+   frase. Chi trova questa differenza e la crede un difetto, legga qui prima di
+   correggerla. */
 const EURO2 = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const EURO0 = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0 });
 /* ⚠️ IL SEGNO MENO STA DAVANTI AL SIMBOLO, non in mezzo. Attaccando il simbolo

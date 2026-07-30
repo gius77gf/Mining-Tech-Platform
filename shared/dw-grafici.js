@@ -169,6 +169,12 @@
     if (f === 'compatto') return compatto;
     return function (v) { return (v % 1 !== 0 && Math.abs(v) < 1000) ? fmtDec.format(v) : fmtInt.format(v); };
   }
+  /* L'unità va DOPO il valore, sempre, anche quando è «€»: su un asse il
+     simbolo non è parte dell'importo, è l'unità di misura dell'asse, e sta dove
+     stanno «l/h», «%» e «mm/s». Nel testo delle app invece l'importo si scrive
+     «€ 48.200,00», col simbolo davanti — sono due convenzioni diverse ed è
+     giusto così: la ragione per esteso sta accanto a `euro` in
+     `shared/deepwork-id-client/dw-shell.js`. */
   function conUnita(testo, unita) { return unita ? testo + ' ' + unita : testo; }
 
   /* ⛔ Le unità di misura non vanno MAI in maiuscolo: `µg/m³` diventerebbe
