@@ -1635,7 +1635,15 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     sistemaOrdineQuadro();
     const mie = IO.squadra ? ATT_OGGI.filter(a => eMia(a, IO) && a.stato !== "conclusa") : [];
     const fatte = IO.squadra ? ATT_OGGI.filter(a => eMia(a, IO) && a.stato === "conclusa").length : 0;
-    $("mie-count").textContent = mie.length;
+    /* ⚠️ FINCHÉ NON SO CHI SEI, IL CONTATORE NON DICE «0». Zero è una risposta:
+       vuol dire «non ti tocca niente». Ma prima che uno scelga la squadra la
+       risposta vera è «non lo so ancora», e le due cose non si somigliano
+       nemmeno — un capoturno che apre l'app e legge 0 accanto a «cosa tocca a
+       me» pensa di essere libero. Il riquadro sotto lo dice già giusto («Dimmi
+       chi sei»); era il numero accanto al titolo a contraddirlo.
+       Gli altri sei contatori di Campo contano cose che esistono comunque, e lì
+       lo zero è una risposta buona: questa regola riguarda solo questo. */
+    $("mie-count").textContent = IO.squadra ? mie.length : "";
     const ordMie = { anomalia: 0, "in-corso": 1, pianificata: 2 };
     $("mie-list").innerHTML = !IO.squadra
       ? vuoto(I.persona, "Dimmi chi sei",
