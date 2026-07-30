@@ -1441,7 +1441,13 @@
         <span class="arr" style="cursor:pointer" title="Rimuovi lavoratore" data-del-lav="${l.id}">✕</span></span></div>`;
     }).join("") || (q
       ? vuoto(I.cerca, "Nessun risultato", "Nessun lavoratore corrisponde a <b>«" + esc(q) + "»</b>. Prova con una parte del nome o del ruolo.")
-      : vuoto(I.persone, "Nessun lavoratore", "Aggiungi la prima persona con il modulo qui sotto, oppure importa l'elenco da un file CSV in un colpo solo."));
+      : vuoto(I.persone, "Nessun lavoratore",
+          "Qui sta l'elenco delle persone che entrano in cava: da questo nascono le scadenze, i DPI e le nomine. Senza, il resto di Scudo non ha a chi riferirsi.",
+          /* La ricerca sul valore lo chiama «il terzo pezzo»: non basta dire cosa
+             manca e a cosa serve, ci vuole COME SI COMINCIA. Prima la frase
+             nominava il modulo e l'import, e chi leggeva doveva cercarseli. */
+          `<button class="dw-btn secondary mini" data-vuoto-fai="lav-form">Aggiungi la prima persona</button>
+           <button class="dw-btn secondary mini" data-vuoto-fai="lav-csv">Importa l'elenco da CSV</button>`));
 
     // ── S1 · COPERTURA DELLA FORMAZIONE PER TIPO ────────────────────────
     // La domanda che toglie il sonno prima di un'ispezione è una sola: «per
@@ -1640,7 +1646,10 @@
     }).join("") || (qScad
       ? vuoto(I.cerca, "Nessun risultato", "Nessuna scadenza trovata per <b>«" + esc(qScad) + "»</b>. Prova con il tipo di corso o il nome del lavoratore.")
       : (filtroScad === "tutte"
-        ? vuoto(I.sveglia, "Scadenzario vuoto", "Aggiungi la prima scadenza qui sotto: puoi partire da un adempimento tipico di cava e correggere la data come serve a te.")
+        ? vuoto(I.sveglia, "Scadenzario vuoto",
+          "Le scadenze ti avvisano <b>prima</b> che una visita medica o un corso scada, così non ti trovi scoperto durante un'ispezione.",
+          `<button class="dw-btn secondary mini" data-vuoto-fai="scad-form">Aggiungi la prima scadenza</button>
+           <button class="dw-btn secondary mini" data-vuoto-fai="scad-csv">Importa lo scadenzario da CSV</button>`)
         : vuoto(I.ok, "Niente in questa categoria", "Nessuna scadenza rientra nel filtro scelto. Tocca <b>Tutte</b> per vedere l'elenco completo.")));
     { const n = $("scad-list").querySelectorAll(".item").length, filtrata = qScad || filtroScad !== "tutte";
       $("scad-count").innerHTML = n === 0 ? "" : "<b>" + n + "</b> " + (n === 1 ? "scadenza" : "scadenze") + (filtrata ? " · su " + scadTutte.length : ""); }
@@ -2258,6 +2267,25 @@
   }
 
   const DOC_NEXT = { valido: "da-rivedere", "da-rivedere": "scaduto", scaduto: "valido" };
+  /* I bottoni degli stati vuoti PORTANO, non fanno: cliccano il comando che
+     esiste già o mettono il fuoco sul primo campo del form. Così non nasce una
+     seconda strada per fare la stessa cosa — che è il modo in cui due strade
+     cominciano a comportarsi diversamente. */
+  document.addEventListener("click", (e) => {
+    const fai = e.target.closest && e.target.closest("[data-vuoto-fai]");
+    if (!fai) return;
+    const dove = fai.getAttribute("data-vuoto-fai");
+    if (dove === "lav-csv") { $("btn-import-csv").click(); return; }
+    if (dove === "scad-csv") { $("btn-import-scad").click(); return; }
+    /* ⚠️ Gli id sono stati CERCATI nel markup, non indovinati: alla prima
+       scrittura avevo messo «new-lav-nome» e «btn-scad-import», che non
+       esistono. È la trappola scritta in CLAUDE.md, e costa due minuti
+       controllare. */
+    const campo = dove === "lav-form" ? "new-nome" : "new-scad-desc";
+    const el = $(campo);
+    if (el) { el.scrollIntoView({ block: "center", behavior: "smooth" }); setTimeout(() => el.focus(), 250); }
+  });
+
   document.addEventListener("click", async (e) => {
     // 📎 apre l'allegato (foto/scansione) senza toccare lo stato del documento
     const op = e.target.getAttribute && e.target.getAttribute("data-open-doc");
