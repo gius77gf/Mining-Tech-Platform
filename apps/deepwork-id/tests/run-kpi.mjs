@@ -417,6 +417,44 @@ test("parseGareCsv: legge titolo/base/scadenza/stato; stato ignoto → aperta; s
    un dato SBAGLIATO, che nessuno andrà più a controllare perché ha l'aria di
    essere stato inserito. Finisce in una fattura e poi nella denuncia annuale.
    Se manca deve restare `null`, e Conti dice che non può convertire. */
+/* ⚠️ TRE CAMPI, TRE DECISIONI DIVERSE — ed è il punto della funzione. Non
+   esiste una regola sola «il dato che manca resta mancante»: dipende da cosa
+   fa quel dato.
+   - la GIACENZA che manca vale ZERO, ed è l'unico posto di tutta la giornata in
+     cui il valore di comodo è quello giusto: un ricambio in magazzino senza
+     quantità è un ricambio che non c'è, e zero è ciò che fa scattare il
+     sotto-scorta — cioè l'avviso che serve. Lasciarla vuota nasconderebbe
+     proprio i pezzi finiti, che sono quelli da ordinare.
+   - la SOGLIA MINIMA che manca resta null: una soglia inventata fa suonare un
+     allarme che nessuno ha chiesto, oppure lo tace.
+   - il PREZZO che manca resta null: entra nel conto dei costi, e uno zero
+     farebbe sembrare gratis un pezzo che gratis non è. */
+test("parseRicambiCsv: la giacenza che manca vale zero, la soglia e il prezzo no", () => {
+  const csv = "nome;giacenza;sogliaMin;prezzo\n"
+    + "Denti benna;;3;\n"              // niente giacenza, niente prezzo
+    + "Olio idraulico;1;;420,50\n"     // niente soglia
+    + "Bulloni;abc;0;0\n";             // giacenza illeggibile, soglia e prezzo zero
+  const r = flotta.parseRicambiCsv(csv);
+  eq(r.length, 3, "nessun ricambio scartato");
+  eq(r[0].giacenza, 0, "giacenza assente → 0: il pezzo finito DEVE risultare finito");
+  eq(r[2].giacenza, 0, "e illeggibile → 0, per la stessa ragione");
+  eq(r[0].prezzo, null, "prezzo assente → null, non gratis");
+  eq(r[2].prezzo, null, "prezzo zero → null: un ricambio non costa zero");
+  eq(r[1].sogliaMin, null, "soglia assente → null: nessun allarme inventato");
+  eq(r[2].sogliaMin, null, "soglia zero → null");
+  eq(r[0].sogliaMin, 3, "e quella scritta si rispetta");
+});
+test("parseRicambiCsv: intestazione, righe vuote, prezzi all'italiana", () => {
+  const csv = "nome;giacenza;sogliaMin;prezzo\r\nFiltro olio motore CAT;6;4;48\r\n\r\n;9;1;10\r\nCingolo;2;1;1.250,75\r\n";
+  const r = flotta.parseRicambiCsv(csv);
+  eq(r.length, 2, "intestazione, riga vuota e riga senza nome fuori");
+  eq(r[0], { nome: "Filtro olio motore CAT", giacenza: 6, sogliaMin: 4, prezzo: 48 }, "riga completa");
+  eq(r[1].prezzo, 1250.75, "migliaia e decimali all'italiana");
+});
+test("parseRicambiCsv: niente testo, niente errori", () => {
+  eq(flotta.parseRicambiCsv("").length, 0, "vuoto");
+  eq(flotta.parseRicambiCsv(null).length, 0, "null");
+});
 /* ⛔ LA SOGLIA DI UN RICETTORE È UN NUMERO DI SICUREZZA. Inventarne uno
    "ragionevole" quando il file non ce l'ha vorrebbe dire dichiarare conforme o
    non conforme una misura sulla base di un valore che nessuno ha scelto — e la

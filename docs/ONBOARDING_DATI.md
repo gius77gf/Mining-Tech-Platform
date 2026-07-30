@@ -246,7 +246,7 @@ schermate, una voce alla volta:
 | App | Si carica da CSV | Va inserito a mano |
 |---|---|---|
 | **Scudo** | lavoratori, scadenzario, infortuni | documenti aziendali, DPI, ispezioni, cantieri, azioni correttive |
-| **Flotta** | parco mezzi, ore motore | ricambi, costi, rifornimenti, manutenzioni programmate |
+| **Flotta** | parco mezzi, ore motore, **ricambi** *(dal 30/07)* | costi, rifornimenti, manutenzioni programmate |
 | **Conti** | fatture, gare, **listino prodotti** *(dal 30/07)* | anagrafica clienti, registro pesate/DDT, canoni |
 | **Terra** | fronti, rilievi | autorizzazioni, piano estrattivo |
 | **Campo** | squadre, piano di carico | operatori, attività, rapportini |
@@ -266,10 +266,19 @@ una cava ha già in un foglio di calcolo:
    e la classe ne decide una. Se il file non le ha restano vuote — un campo
    vuoto si vede e si corregge, una soglia inventata dichiara conforme o non
    conforme una misura sulla base di un valore che nessuno ha scelto.
-3. **I ricambi di Flotta** — un magazzino si conta in centinaia di righe.
+3. ~~I ricambi di Flotta~~ — ✅ **fatto il 30/07**: si caricano da CSV
+   (`nome;giacenza;sogliaMin;prezzo`) e si riesportano. Qui le regole sono
+   **tre diverse**, perché dipendono da cosa fa il dato: la **giacenza** che
+   manca vale **zero** (un pezzo senza quantità è un pezzo finito, e zero è ciò
+   che fa scattare il sotto-scorta); la **soglia minima** resta vuota (una
+   soglia inventata fa suonare un allarme che nessuno ha chiesto); il
+   **prezzo** resta vuoto (uno zero farebbe sembrare gratis un pezzo che non lo
+   è).
 
-Non è un difetto del prodotto: è il confine di quello che sa fare oggi, e
-scriverlo serve a **non prometterlo in vendita** e a sapere da dove ripartire.
+**Tutti e tre chiusi il 30/07**, nell'ordine in cui erano stati messi. Restano
+fuori le cose della colonna di destra: non è un difetto del prodotto, è il
+confine di quello che sa fare oggi, e scriverlo serve a **non prometterlo in
+vendita** e a sapere da dove ripartire.
 
 ---
 

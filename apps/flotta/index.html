@@ -699,6 +699,19 @@
   </div>
   <div id="ric-count" class="count"></div>
   <div id="ric-list"></div>
+
+  <!-- Un magazzino vero sono centinaia di righe. Fino al 30/07 erano centinaia
+       di righe da battere a mano il primo giorno, davanti al cliente — e il
+       piano go-live consigliava Flotta come app pilota proprio «per i
+       ricambi»: il consiglio giusto sulla funzione sbagliata. -->
+  <div class="ord" style="margin-top:12px;">
+    <button class="dw-btn secondary mini" id="btn-ric-import"
+      title="Carica il magazzino da un file CSV: nome;giacenza;sogliaMin;prezzo">Importa ricambi CSV</button>
+    <button class="dw-btn secondary mini" id="btn-ric-export"
+      title="Scarica il magazzino in CSV, per l'inventario o per un backup">Esporta CSV</button>
+    <input type="file" id="ric-file" accept=".csv,text/csv" style="display:none;">
+  </div>
+  <div id="ric-esito" class="esito"></div>
   <div class="form" style="margin-top:12px;">
     <input class="dw-input" id="ric-nome" placeholder="Ricambio (es. Filtro olio)" style="flex:2 1 170px;">
     <input class="dw-input" id="ric-giac" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Giacenza" title="Quanto ne hai adesso. Per l'olio e il grasso la virgola va benissimo (12,5)." style="flex:1 1 110px;font-variant-numeric:tabular-nums;">
@@ -1119,7 +1132,7 @@
 </script>
 
 <script type="module">
-  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, scaricoGiacenza, parseTelemetriaCsv, parseMezziCsv, ripartizioneCosti, costoOfficinaPerMezzo, prioritaOperative,
+  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, scaricoGiacenza, parseTelemetriaCsv, parseMezziCsv, parseRicambiCsv, ripartizioneCosti, costoOfficinaPerMezzo, prioritaOperative,
            costiPerMese, disponibilitaStorico, fotografiaDaRegistrare,
            SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi,
            nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
@@ -3164,6 +3177,37 @@
   // Import telemetria da CSV (mezzo;ore[;carburante]): aggiorna le ore dei
   // mezzi corrispondenti per nome, senza mai far scendere il contatore.
   $("btn-mez-import").onclick = () => $("mez-file").click();
+  $("btn-ric-import").onclick = () => $("ric-file").click();
+  $("ric-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const righe = parseRicambiCsv(await file.text());
+    if (!righe.length) { esito("ric-esito", "Nessuna riga valida: le colonne devono essere nome;giacenza;sogliaMin;prezzo.", "err"); e.target.value = ""; return; }
+    let agg = 0, dup = 0, senzaSoglia = 0;
+    for (const r of righe) {
+      if (RIC.some(x => (x.nome || "").trim().toLowerCase() === r.nome.toLowerCase())) { dup++; continue; }
+      await db.aggiungi("ricambi", r);
+      if (r.sogliaMin == null) senzaSoglia++;
+      agg++;
+    }
+    $("ric-file").value = "";
+    /* ⚠️ Chi non ha la soglia minima non entra nel sotto-scorta: si conta e
+       basta. Va detto adesso — altrimenti il primo pezzo che finisce non
+       avvisa nessuno, e l'app sembra rotta quando invece non le è mai stato
+       detto sotto quale quantità suonare. */
+    esito("ric-esito",
+      `Import ricambi: ${agg} aggiunti${dup ? `, ${dup} già presenti (saltati)` : ""}.`
+      + (senzaSoglia ? ` ${senzaSoglia} ${senzaSoglia === 1 ? "è senza soglia minima e non entrerà" : "sono senza soglia minima e non entreranno"} nell'avviso di sotto-scorta finché non gliela scrivi.` : ""),
+      agg ? "success" : "err");
+    await refresh();
+  };
+  $("btn-ric-export").onclick = () => {
+    let csv = "nome;giacenza;sogliaMin;prezzo\n";
+    for (const r of RIC) csv += `${csvCell(r.nome)};${r.giacenza ?? 0};${r.sogliaMin ?? ""};${r.prezzo ?? ""}\n`;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    a.download = "flotta_ricambi.csv"; a.click();
+    esito("ric-esito", `Esportati ${RIC.length} ricambi (CSV).`, "success");
+  };
   $("mez-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseMezziCsv(await file.text());

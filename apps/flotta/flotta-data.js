@@ -557,6 +557,45 @@ export function parseTelemetriaCsv(text) {
 // operativo|fermo|verifica (default operativo, così un valore sbagliato non
 // rompe il badge). nome/area sono testo grezzo → escapare dove mostrati. Pura
 // e testabile.
+// IMPORT DEL MAGAZZINO RICAMBI DA CSV.
+// Perché esiste: un magazzino vero sono centinaia di righe, e fino al 30/07
+// erano centinaia di righe da battere a mano il primo giorno, davanti al
+// cliente. Il piano go-live consigliava Flotta come app pilota proprio per «i
+// ricambi»: era il consiglio giusto sulla funzione sbagliata.
+//
+// Colonne: nome;giacenza;sogliaMin;prezzo
+//
+// Le tre decisioni, e nessuna è ovvia:
+// 1. LA GIACENZA CHE MANCA VALE ZERO, non «non lo so». È l'unico campo di
+//    questa funzione dove il valore di comodo è quello GIUSTO: un ricambio che
+//    sta in magazzino senza una quantità scritta accanto è un ricambio che non
+//    c'è, e zero è esattamente ciò che fa scattare il sotto-scorta — cioè
+//    l'avviso che serve. Il contrario (lasciarla vuota) nasconderebbe proprio i
+//    pezzi finiti, che sono quelli da ordinare.
+// 2. LA SOGLIA MINIMA che manca resta `null`, e lì il valore di comodo sarebbe
+//    sbagliato: una soglia inventata fa suonare un allarme che nessuno ha
+//    chiesto, oppure lo tace. Senza soglia il ricambio si conta e basta.
+// 3. IL PREZZO che manca resta `null`: entra nel conto dei costi, e uno zero
+//    farebbe sembrare gratis un pezzo che gratis non è.
+export function parseRicambiCsv(text) {
+  return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !isIntestazione(r, "nome"))
+    .map(r => {
+      const [nome, giacenza, sogliaMin, prezzo] = parseCsvLine(r);
+      const g = numIt(giacenza);
+      const s = numIt(sogliaMin);
+      const p = numIt(prezzo);
+      return {
+        nome: (nome || "").trim(),
+        // vedi decisione 1: qui lo zero è la risposta giusta, non una scorciatoia
+        giacenza: Number.isFinite(g) && g > 0 ? g : 0,
+        sogliaMin: Number.isFinite(s) && s > 0 ? s : null,
+        prezzo: Number.isFinite(p) && p > 0 ? p : null,
+      };
+    })
+    .filter(r => r.nome);
+}
+
 export function parseMezziCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
     .filter(r => !isIntestazione(r, "nome"))
