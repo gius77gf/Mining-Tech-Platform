@@ -3728,6 +3728,34 @@ test("il piano NON perde righe: parsePianoCsv le tiene tutte e due", () => {
     eq(r.nota, "vicina", "e la nota non si prende il pezzo dell'unità");
   });
 
+
+  /* ⛔ IL FILE SBAGLIATO NON DEVE ENTRARE. È il difetto più grosso trovato il
+     31/07, e non faceva nessun rumore: ri-caricando nel listino il PROSPETTO
+     dei prezzi — che è un altro file, con le colonne in un altro ordine —
+     entravano tutti i prodotti con prezzo ZERO e con l'IVA presa dalla colonna
+     del prezzo («Stabilizzato 0/30» con IVA 8,5%). Un listino intero
+     sbagliato, pronto per finire in una fattura, senza un solo avviso.
+     La difesa è semplice e non tocca i file buoni: senza un prezzo leggibile
+     nella sua colonna la riga non entra. */
+  test("giro completo: il prospetto dei prezzi NON entra nel listino", () => {
+    const testa = intestazioneExport(pagina("conti"), "conti_listino_prezzi.csv");
+    ok(testa, "l'export dei prezzi convertiti esiste");
+    const letto = conti.parseListinoCsv(
+      testa + "\nStabilizzato 0/30;8,5;t;1,9;8,5;16,15;22\nSabbia lavata;22;m3;1,6;13,75;22;22");
+    eq(letto.length, 0, "nessuna riga: le colonne non sono quelle del listino");
+  });
+  test("il listino non inventa più uno zero al posto del prezzo", () => {
+    /* stessa regola già scritta per i ricambi di Flotta: uno zero fa sembrare
+       gratis una cosa che non lo è, e da lì passa in un DDT e in una fattura. */
+    eq(conti.parseListinoCsv("Misto di cava;t;;1,9;22").length, 0,
+       "una riga senza prezzo non entra");
+    eq(conti.parseListinoCsv("Misto di cava;t;abc;1,9;22").length, 0,
+       "e nemmeno una col prezzo illeggibile");
+    const zero = conti.parseListinoCsv("Omaggio;t;0;1,9;22");
+    eq(zero.length, 1, "lo zero SCRITTO APPOSTA entra: è una decisione di chi compila");
+    eq(zero[0].prezzo, 0, "e vale zero");
+  });
+
   /* Il caso trovato per strada, tenuto fermo perché non torni di nascosto:
      l'export delle fatture NON è un backup, e il documento non deve dire che
      lo sia. Se un giorno lo diventasse, questo controllo lo dice. */

@@ -374,13 +374,29 @@ export function parseListinoCsv(text) {
       return {
         nome: (nome || "").trim(),
         unitaPrezzo: ["mc", "m3", "m³", "metrocubo", "metricubi"].includes(u) ? "m3" : "t",
-        prezzo: Number.isFinite(pr) ? Math.max(0, pr) : 0,
+        /* ⚠️ NIENTE ZERO DI COMODO SUL PREZZO (corretto il 31/07). Prima una
+           riga col prezzo illeggibile entrava a ZERO: un prodotto che sembra
+           gratis, e lo zero finisce in un DDT e poi in una fattura. È la stessa
+           regola già scritta per il prezzo dei ricambi di Flotta — «uno zero
+           farebbe sembrare gratis un pezzo che non lo è» — e qui non valeva. */
+        prezzo: Number.isFinite(pr) ? Math.max(0, pr) : null,
         // niente valore di comodo: se non c'è, non c'è
         densita: Number.isFinite(de) && de > 0 ? de : null,
         iva: Number.isFinite(iv) && iv >= 0 ? iv : 22,
       };
     })
-    .filter(p => p.nome);
+    /* ⛔ SENZA UN PREZZO LEGGIBILE LA RIGA NON ENTRA, e non è pignoleria: è
+       quello che impedisce di caricare per sbaglio il FILE SBAGLIATO.
+       Misurato il 31/07: ri-caricando nel listino il prospetto dei prezzi
+       (`conti_listino_prezzi.csv`, che ha le colonne in un altro ordine)
+       entravano tutti i prodotti con prezzo ZERO e con l'IVA presa dalla
+       colonna del prezzo — «Stabilizzato 0/30» con IVA 8,5%. Nessun errore,
+       nessun avviso: un listino intero sbagliato, pronto per finire in
+       fattura. Adesso in quel file nessuna riga ha un prezzo leggibile nella
+       sua colonna, quindi non entra niente e l'app dice quali colonne servono.
+       Un prodotto senza prezzo non è vendibile: se serve caricarlo lo stesso,
+       si scrive 0 apposta — che è una decisione di chi compila, non nostra. */
+    .filter(p => p.nome && p.prezzo != null);
 }
 
 // Interessi di mora di legge (D.Lgs 231/2002, transazioni commerciali) su una
