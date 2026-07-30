@@ -735,6 +735,10 @@ campi interi, file delle macchine.
       «€19,02/H»: trovati un'ora dopo che Conti è entrata nell'elenco delle
       superfici. Con loro un difetto di parole: una gara chiusa mostrava
       «-2 gg» invece di «chiusa da 2 gg».
+- [x] **`docs/STATO_PRODOTTO.md` rimesso in pari**: era del 23/07 ed è il
+      primo documento che l'indice fa aprire al fondatore. Sette schede su
+      sette rilette **con l'app aperta davanti**, mai a memoria — in ognuna
+      mancava molto, e in tre mancavano dei ponti.
 - [x] **Due schede su nove facevano la stessa promessa** (Deepwork e Campo
       dicevano tutte e due «il rapportino non arriva più la sera tardi»).
       Trovato leggendo le nove schede di fila come le legge chi arriva.
