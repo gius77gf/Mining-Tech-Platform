@@ -379,20 +379,33 @@ bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
 - [x] **S9. Le regole vincolanti diventano controlli** ✅ *(30/07, `78e59ec`)* —
       `run-stile.mjs`, 39 controlli in CI: niente dialoghi del browser, unità
       mai in maiuscolo, nessun campo decimale `type=number`.
-- [ ] **S10. IL CORE: 32 campi decimali ancora `type="number"`** ← *il prossimo,
-      e il più importante*. È il prodotto che va in produzione a ogni merge.
-      Fra quei campi ci sono le **coordinate GPS della cava**
-      (`cf-lat`/`cf-lon`, step 0,0001: «37,0625» diventa 370625) e i
-      **parametri di volata** (`a-b` spalla, `a-s` interasse, `a-mh` carica
-      massima per ritardo, `a-pm` consumo specifico). La buona notizia: la
-      lettura è già tollerante — 12 dei 15 campi con id passano da `parseNum`,
-      che accetta la virgola — quindi manca **solo il tipo del campo**. Tre
-      (`a-mh`, `ef-x`/`ef-y`, `umc-k`) vanno guardati a mano perché non si
-      leggono con `$(id).value`, e 17 sono costruiti dinamicamente. ⚠️ Il core
-      **non si può provare col browser in questo ambiente**: importa Firebase e
-      tre librerie da CDN, e la rete verso gstatic/jsdelivr è chiusa, quindi le
-      funzioni vere restano stub. Si verifica estraendo la logica, come in
-      `14aadf3`.
+- [x] **S10. IL CORE: i campi decimali e chi li legge** ✅ *(30/07, `e7a6bcd`
+      + `30e2b2e` + `71fc0a7`)* — è il prodotto che va in produzione a ogni
+      merge, e ci è voluto in **tre passaggi**, perché ogni passaggio ha fatto
+      vedere quanto il precedente non guardava:
+      1. `e7a6bcd` — i **32 campi con lo step frazionario**, fra cui le
+         coordinate GPS della cava (`cf-lat`/`cf-lon`: «37,0625» diventava
+         370625) e i parametri di volata. Cercando `a-mh` è venuto fuori un
+         difetto vero: quel campo si poteva scrivere e non veniva **mai letto**.
+      2. `30e2b2e` — altri **34 campi** che si dichiaravano decimali col solo
+         `inputmode`, nella stessa schermata: diametro del foro, spalla e
+         interasse del calcolatore di carica, i quattro parametri di Kuz-Ram,
+         le percentuali di frammentazione (dove `step="1"` vietava 12,5 su una
+         percentuale «decimale»). La regola di `run-stile.mjs` non li vedeva:
+         guardava una firma sola su due.
+      3. `71fc0a7` — **chi li legge**: 17 passavano da `parseNum0`, che di ciò
+         che non capisce fa **zero**. Un costo di riparazione a zero, ore di
+         lavoro a zero, litri a zero — e `dep-new` azzerava una giacenza.
+      Il core adesso importa `numeroScritto` da `shared/` come le sei app, con
+      una guardia sola sul documento che parla quando si lascia il campo, e
+      `perCampo` dove l'app scrive un numero **dentro** un campo (la
+      calibrazione della scala della foto lo scriveva col punto inglese).
+      Regola 4 in CI: nessun campo decimale si legge con `parseNum0`.
+      ⚠️ Il core **non si può provare col browser in questo ambiente** (importa
+      Firebase e tre librerie da CDN, la rete verso gstatic/jsdelivr è chiusa):
+      si estraggono le funzioni e si eseguono contro il **markup vero** preso
+      dal file, che per il tipo di un campo e per la ricerca dell'etichetta
+      basta e prova esattamente la cosa giusta.
 - [ ] **S7. Ponte P2 Campo → Terra**: la produzione del turno alimenta i
       volumi per fronte senza reinserimento. È l'ultimo ponte.
 
