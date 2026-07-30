@@ -2,7 +2,7 @@
 
 - **Tipo**: correzione trovata guardando + regola 10
 - **Branch**: `claude/scheduled-tasks-remote-control-bk4ap6`
-- **Commit**: (aggiunto sotto dopo il commit)
+- **Commit**: `0c23bdf`
 
 ## Come è saltato fuori
 
