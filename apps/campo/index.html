@@ -697,6 +697,11 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   </div>
   <div id="rap-cop" class="note recap"></div>
   <div id="rap-prod" class="note recap"></div>
+  <!-- PONTE P2, dal lato di CAMPO: chi compila il rapportino vede se la
+       produzione dichiarata dai turni si è poi parlata col rilievo del drone.
+       Sta qui, sotto il totale della produzione, perché è lo stesso numero
+       guardato da un'altra parte. -->
+  <div id="rap-terra"></div>
   <div id="rap-list"></div>
   <div class="sec">Nuovo rapportino di turno</div>
   <div class="form col">
@@ -924,6 +929,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            METEO_CIELO, METEO_PISTE, METEO_VISIBILITA, meteoDi, riassuntoMeteo, meteoAvverso,
            pianoParziale, pianoConsuntivoCsv,
            numeroIt, segnoIt, numeroItDa, numeroDaCampo } from "./campo-data.js";
+  import { misuratoPeriodo, produzioneDichiarata, riconciliazioneTurni,
+           periodoFraUltimiRilievi, densitaDelMateriale } from "../../shared/dw-ponti.js";
   import { mountExit, esc, csvCell, messaggioNumero, montaGuardiaInteri } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
@@ -1208,6 +1215,67 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const filtro = card.getAttribute("data-filtro"); if (filtro) filtroAtt = filtro;
     go(card.getAttribute("data-goto")); refresh();
   });
+  // ══════════════════════════════════════════════════════════════════════
+  // PONTE P2, DAL LATO DI CAMPO — «il numero che hai scritto si è parlato col
+  // rilievo?»
+  // ══════════════════════════════════════════════════════════════════════
+  // Chi compila il rapportino scrive una produzione e non ha mai saputo che fine
+  // fa. Terra la confronta col rilievo del drone; qui si chiude il giro, così chi
+  // stima vede l'esito della propria stima.
+  //
+  // ⚠️ IL MODO DI SBAGLIARE, deciso prima di scrivere una riga: questo NON deve
+  // diventare un rimprovero. Se Campo dicesse «le tue stime erano gonfie del
+  // 22%», la conseguenza prevedibile è che i turni comincino a scrivere numeri
+  // PRUDENTI invece di numeri veri — e il dato peggiora proprio dove serve.
+  // Quindi: nessun «tu», nessuna colpa, nessuna percentuale come titolo. Si
+  // dicono i due numeri e si lascia che parlino. Quando non tornano, la frase
+  // elenca ENTRAMBE le spiegazioni possibili, compresa quella che non riguarda i
+  // turni (il volo che non copre tutto lo scavo).
+  let RILT;                          // undefined = mai cercati, null = Terra non c'è
+  let AUTT = null;
+  let riltCercati = false;
+  async function caricaTerra() {
+    if (riltCercati) return;
+    riltCercati = true;
+    try { RILT = db.rilieviTerra ? await db.rilieviTerra() : null; } catch (e) { RILT = null; }
+    try { AUTT = db.autorizzazioniTerra ? await db.autorizzazioniTerra() : null; } catch (e) { AUTT = null; }
+    renderTerra();
+  }
+  function renderTerra() {
+    const out = $("rap-terra");
+    if (!out) return;
+    if (!riltCercati) { out.innerHTML = ""; caricaTerra(); return; }
+    // Terra non raggiungibile: non si dice niente. Una nota che spiega un
+    // confronto che non c'è, in una schermata di lavoro, è solo rumore.
+    if (RILT === null) { out.innerHTML = ""; return; }
+    const per = periodoFraUltimiRilievi(RILT);
+    if (!per) { out.innerHTML = ""; return; }
+    // la densità viene dal materiale scritto nell'autorizzazione di Terra: a chi
+    // compila un rapportino non si chiede un numero che è già registrato
+    const vig = (AUTT || []).find(a => a && a.stato === "vigente") || (AUTT || [])[0];
+    const dens = densitaDelMateriale(vig && vig.materiale);
+    const r = riconciliazioneTurni(RILT, RAP, per.dal, per.al, dens ? dens.densita : null);
+    if (r.stato === "no-campo" || r.stato === "no-misura" || r.stato === "no-dichiarato") { out.innerHTML = ""; return; }
+    if (r.stato === "no-densita") {
+      out.innerHTML = `<div class="note">L'ultimo rilievo del drone (<b>${dmy(per.al)}</b>) ha misurato <b>${numeroIt(r.mis.m3, 0)} m³</b> fra il ${dmy(per.dal)} e il ${dmy(per.al)}. Per metterlo accanto alla produzione dei turni servirebbe la <b>densità del materiale</b>, che si imposta in <b>Terra</b>: senza, tonnellate e metri cubi non si parlano.</div>`;
+      return;
+    }
+    const tornano = r.stato === "coerente";
+    const parole = r.verso === "sopra"
+      ? `<b>${numeroIt(Math.abs(r.scostamento), 0)} m³ in più</b> nei rapportini`
+      : `<b>${numeroIt(Math.abs(r.scostamento), 0)} m³ in meno</b> nei rapportini`;
+    out.innerHTML = `<div class="note ${tornano ? "recap" : "avviso"}">`
+      + `Il rilievo del drone del <b>${dmy(per.al)}</b> ha misurato <b>${numeroIt(r.mis.m3, 0)} m³</b> tolti dal fronte fra il ${dmy(per.dal)} e il ${dmy(per.al)}. `
+      + `I turni di quei giorni ne avevano dichiarati circa <b>${numeroIt(r.dich.m3, 0)} m³</b>`
+      + (r.dich.turni ? ` (${r.dich.turni} ${r.dich.turni === 1 ? "rapportino" : "rapportini"})` : "")
+      + `: ${tornano ? "i due numeri si parlano" : parole}.`
+      + (tornano
+        ? ` Le stime di fine turno stanno reggendo il confronto con la misura.`
+        : ` Non è detto da che parte stia lo scarto: può essere la stima di turno, oppure il volo che non ha coperto tutto quello che è stato scavato. Vale la pena guardarlo insieme a chi fa i rilievi.`)
+      + (r.parziale ? ` Nel conto non entrano i viaggi, che senza la portata del mezzo non si possono portare in metri cubi.` : "")
+      + `</div>`;
+  }
+
   async function refresh(){
     [ATT,SQU,RAP,OPER,OBIE,CHK,PRE,CHI,MET] = await Promise.all([db.attivita(), db.squadre(), db.rapportini(),
       db.operatori(), db.obiettivi(), db.checklist(), db.presenze(), db.chiusure(), db.meteo()]);
@@ -1359,6 +1427,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
         ? `Produzione ${tuttiRap ? "registrata" : "di oggi"}: <b>${esc(somma(tp.perUnita))}</b>`
           + (tp.perTurno.length ? ` — ${tp.perTurno.map(t => `turno ${esc(t.turno)}: <b>${esc(somma(t.perUnita))}</b>`).join(" · ")}` : "")
         : ""; }
+    renderTerra();
     $("rap-count").textContent = RAP_G.length;
     $("rap-list").innerHTML = RAP_G.map(r => { const rias = riassuntoRapportino(r), quando = etData(r);
       const bloc = eChiuso(r.data, r.turno);

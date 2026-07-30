@@ -128,6 +128,43 @@ function mascheraCodice(t) {
   return vivo;
 }
 
+// Il complemento di `mascheraCodice`: quello maschera il CONTENUTO delle
+// stringhe, giusto per i dialoghi (un `prompt(` dentro una stringa non è una
+// chiamata). Ma il testo che l'utente LEGGE vive proprio nelle stringhe, quindi
+// per le regole sui testi serve l'opposto: via i commenti, resta tutto il resto.
+// Scritto con la stessa scansione carattere per carattere, per la stessa ragione:
+// un'espressione regolare sui commenti taglierebbe 400.000 caratteri di codice
+// vivo, come è già successo.
+function senzaCommenti(t) {
+  let out = "", i = 0;
+  const prevSignificativo = (k) => { for (let j = k - 1; j >= 0; j--) { const c = t[j]; if (c !== " " && c !== "\t" && c !== "\n" && c !== "\r") return c; } return ""; };
+  while (i < t.length) {
+    const c = t[i], d = t[i + 1];
+    if (c === "/" && d === "/") { while (i < t.length && t[i] !== "\n") i++; continue; }
+    if (c === "/" && d === "*") { i += 2; while (i < t.length && !(t[i] === "*" && t[i + 1] === "/")) i++; i += 2; continue; }
+    if (c === "<" && t.startsWith("<!--", i)) { i += 4; while (i < t.length && !t.startsWith("-->", i)) i++; i += 3; continue; }
+    if (c === "'" || c === '"' || c === "`") {
+      out += c; i++;
+      while (i < t.length) { if (t[i] === "\\") { out += t[i] + (t[i + 1] || ""); i += 2; continue; } out += t[i]; if (t[i] === c) { i++; break; } i++; }
+      continue;
+    }
+    if (c === "/" && "(,=:[!&|?{};\n".includes(prevSignificativo(i))) {
+      out += c; i++;
+      let inClasse = false;
+      while (i < t.length) {
+        if (t[i] === "\\") { out += t[i] + (t[i + 1] || ""); i += 2; continue; }
+        if (t[i] === "[") inClasse = true; else if (t[i] === "]") inClasse = false;
+        else if (t[i] === "/" && !inClasse) { out += t[i]; i++; break; }
+        else if (t[i] === "\n") break;
+        out += t[i]; i++;
+      }
+      continue;
+    }
+    out += c; i++;
+  }
+  return out;
+}
+
 // `deferredPrompt.prompt()` è l'API di installazione della PWA, non un dialogo:
 // si riconosce perché ha un oggetto davanti. Cerchiamo la chiamata NUDA.
 //
@@ -408,6 +445,36 @@ test("il controllo si accorge di una lettura rimessa a parseNum0", () => {
     const rotto = core.replace("</body>", "<script>x=parseNum0($('co-gas').value);</script></body>");
     ok(decimaliLettiConZero(rotto).length === 1, "il difetto iniettato nel core viene trovato");
   }
+});
+
+console.log("\n── Regola 6: il ponte con Terra non dà la colpa a chi compila ──");
+// Decisione presa PRIMA di scrivere il codice, e messa qui perché è il tipo di
+// cosa che si perde riscrivendo un testo: quando la produzione dichiarata dai
+// turni non torna col rilievo del drone, Campo NON deve dare la colpa a chi ha
+// stimato. Se dicesse «le tue stime erano gonfie», la conseguenza prevedibile è
+// che i turni comincino a scrivere numeri prudenti invece di numeri veri, e il
+// dato peggiora proprio dove serve. Il testo deve nominare ENTRAMBE le
+// spiegazioni possibili, compresa quella che non riguarda i turni.
+test("Campo: quando i numeri non tornano, il testo nomina entrambe le spiegazioni", () => {
+  const src = leggi("apps/campo/index.html") || "";
+  ok(/rap-terra/.test(src), "la sezione del ponte con Terra c'è");
+  ok(/stima di turno/.test(src), "il testo nomina la stima di turno come possibile causa");
+  ok(/volo che non ha coperto/.test(src),
+    "e nomina anche il volo che non copre tutto lo scavo: senza, lo scarto ricade tutto sui turni");
+  // ⚠️ Le frasi vietate compaiono di PROPOSITO nei commenti, che spiegano perché
+  // sono vietate — la stessa situazione della regola sui dialoghi del browser, e
+  // la prima versione di questo controllo è caduta proprio lì, segnalando il
+  // commento che documentava la decisione. Si guarda solo il codice VIVO, con lo
+  // stesso tokenizzatore.
+  // il testo mostrato vive nelle stringhe, quindi si tolgono solo i commenti:
+  // `mascheraCodice` maschererebbe proprio il contenuto che qui va guardato
+  const testo = senzaCommenti(src);
+  const nelVivo = (frase) => new RegExp(frase, "i").test(testo);
+  for (const accusa of ["le tue stime", "hai stimato", "gonfiat", "per colpa"]) {
+    ok(!nelVivo(accusa), `il testo mostrato non usa «${accusa}»: un rimprovero fa scrivere numeri prudenti, non veri`);
+  }
+  // il controllo del controllo: la frase iniettata nel codice vivo deve essere vista
+  ok(nelVivo("stima di turno"), "e il controllo sa vedere una frase che sta davvero nel testo");
 });
 
 console.log("\n── Regola 5: dove ci sono campi interi, la guardia è montata ──");

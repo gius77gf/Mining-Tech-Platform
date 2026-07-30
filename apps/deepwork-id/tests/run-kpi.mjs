@@ -2283,6 +2283,21 @@ test("P2 · LA GUARDIA: il dichiarato non può diventare un rilievo", () => {
   ok(!JSON.stringify(rie).includes("dichiarat"),
     "il riepilogo annuale per gli enti non porta nessun numero dichiarato");
 });
+test("P2 · lato CAMPO: la dimostrazione di Campo è coerente coi rilievi finti", () => {
+  /* Chi compila il rapportino deve vedere l'esito della propria stima. Se i
+     numeri d'esempio non si parlano, la prima cosa che si vede è un avviso che
+     non significa niente. */
+  const per = ponti.periodoFraUltimiRilievi(campo.DEMO.rilieviTerra);
+  ok(per != null, "la dimostrazione di Campo ha due rilievi di Terra");
+  const vig = campo.DEMO.autorizzazioniTerra.find((a) => a.stato === "vigente");
+  const d = ponti.densitaDelMateriale(vig && vig.materiale);
+  ok(d && d.densita === 1.9, `la densità si ricava dal materiale dell'atto (${d && d.densita})`);
+  const r = ponti.riconciliazioneTurni(campo.DEMO.rilieviTerra, campo.DEMO.rapportini, per.dal, per.al, d.densita);
+  eq(r.stato, "coerente", "coi numeri d'esempio i due mondi si parlano");
+  ok(Math.abs(r.pct) > 0.5 && Math.abs(r.pct) < 10,
+    `e lo scostamento non è ZERO — uno scarto nullo in dimostrazione sembra costruito (${r.pct}%)`);
+  ok(r.dich.turni >= 5, `e ci sono abbastanza turni nel periodo (${r.dich.turni})`);
+});
 test("P2 · UNA SOLA implementazione: Terra ri-esporta, non riscrive", () => {
   /* La logica del ponte serve a Terra e a Campo, e non appartiene a nessuna delle
      due: vive in `shared/dw-ponti.js`. `terra-data.js` la ri-esporta col nome con

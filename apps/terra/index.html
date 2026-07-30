@@ -880,7 +880,7 @@ a.dw-btn{text-decoration:none}
 </script>
 
 <script type="module">
-  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, parseFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita,
+  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, parseFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita, densitaDelMateriale,
            autorizzazioneVigente, vitaCava, statoScadenzaTerra, livelloScadenzaTerra, prossimaData, riepilogoScadenze, TIPI_SCADENZA_TERRA, presetScadenzaTerra, etichettaTipoScadenza,
            provenienzaRilievo, soloScavo, soloCumulo, PROVENIENZE, etichettaProvenienza,
            anniConVolumi, riepilogoAnnuale, serieAnnuale,
@@ -2203,14 +2203,9 @@ a.dw-btn{text-decoration:none}
   function densitaDaAutorizzazione() {
     if (densitaToccata) return;
     const a = autorizzazioneVigente(AUT);
-    const nome = String((a && a.materiale) || "").trim().toLowerCase();
-    if (!nome) return;
-    // si cerca il preset il cui nome compare nel materiale dell'atto, o
-    // viceversa: «Sabbia e ghiaia» ↔ «Sabbia e ghiaia (deposito)»
-    const p = DENSITA_PRESET.find(x => {
-      const e = x.etichetta.toLowerCase().replace(/\s*\([^)]*\)\s*/g, "").trim();
-      return e === nome || nome.includes(e) || e.includes(nome);
-    });
+    // il riconoscimento del materiale sta in `shared/dw-ponti.js`, perché lo usa
+    // anche Campo dall'altro capo del ponte: una regola, un posto
+    const p = densitaDelMateriale(a && a.materiale);
     if (!p) return;
     $("val-densita").value = itDec(p.densita);
     const sel = $("val-materiale"); if (sel) sel.value = p.chiave;

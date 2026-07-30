@@ -162,6 +162,7 @@ export function senzaData(righe) {
 }
 
 const OGGI_DEMO = oggiISO();
+const GIORNI_FA = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
 
 export const DEMO = {
   attivita: [
@@ -184,6 +185,13 @@ export const DEMO = {
     { id: "o5", nome: "Paolo Greco", ruolo: "Manutentore", squadra: "Squadra C", stato: "non-disponibile" },
   ],
   rapportini: [
+    // i turni dei giorni fra i due voli del drone: servono al ponte con Terra
+    { id: "rs1", data: GIORNI_FA(19), turno: "Mattina",    titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2400, prodUnita: "t", ora: "13:00", stato: "inviato" },
+    { id: "rs2", data: GIORNI_FA(17), turno: "Mattina",    titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2550, prodUnita: "t", ora: "13:10", stato: "inviato" },
+    { id: "rs3", data: GIORNI_FA(14), turno: "Pomeriggio", titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2400, prodUnita: "t", ora: "20:00", stato: "inviato" },
+    { id: "rs4", data: GIORNI_FA(12), turno: "Mattina",    titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2200, prodUnita: "t", ora: "12:50", stato: "inviato" },
+    { id: "rs5", data: GIORNI_FA(9),  turno: "Mattina",    titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2450, prodUnita: "t", ora: "13:05", stato: "inviato" },
+    { id: "rs6", data: GIORNI_FA(8),  turno: "Pomeriggio", titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 1860, prodUnita: "t", ora: "19:55", stato: "inviato" },
     { id: "r1", data: OGGI_DEMO, turno: "Mattina", titolo: "Rapportino perforazione", squadra: "Squadra A", prodQta: 120, prodUnita: "t", ora: "11:20", stato: "inviato" },
     { id: "r2", data: OGGI_DEMO, turno: "Mattina", titolo: "Rapportino impianto", squadra: "Squadra C", prodQta: null, prodUnita: "t", ora: "", stato: "bozza" },
     { id: "r3", data: OGGI_DEMO, turno: "Mattina", titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 90, prodUnita: "t", ora: "10:05", stato: "inviato" },
@@ -196,6 +204,18 @@ export const DEMO = {
   chiusure: [],
   meteo: [],
   pianocarico: [],
+  // I RILIEVI che in esercizio arrivano da Terra (ponte P2, sola lettura). Qui
+  // sono finti ma coerenti coi rapportini qui sotto: due voli a 21 e 7 giorni
+  // fa, e fra i due i turni hanno dichiarato una produzione che ci si avvicina.
+  rilieviTerra: [
+    { id: "rt1", data: GIORNI_FA(21), stato: "elaborato", volumeM3: 8200, provenienza: "scavo", fronteId: "f1" },
+    { id: "rt2", data: GIORNI_FA(7),  stato: "elaborato", volumeM3: 7600, provenienza: "scavo", fronteId: "f1" },
+  ],
+  // l'autorizzazione di Terra serve solo per il MATERIALE, da cui si ricava la
+  // densità: senza, tonnellate e metri cubi non si parlano
+  autorizzazioniTerra: [
+    { id: "at1", stato: "vigente", materiale: "Sabbia e ghiaia" },
+  ],
 };
 
 // ══════════════════════════════════════════════════════════════════════
@@ -1121,6 +1141,40 @@ export async function campoData() {
         aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), data),
         rimuovi: (name, docId) => deleteDoc(doc(id.orgCollection(name), docId)),
       };
+      // ── PONTE P2 CON TERRA — SOLA LETTURA ─────────────────────────────
+      // Il gemello di `rapportiniCampo()` in apps/terra/terra-data.js: seconda
+      // istanza dell'SDK sull'app "terra", stessa organizzazione, percorso
+      // costruito da `orgCollection` — nessun percorso Firestore a mano, quindi
+      // l'isolamento fra organizzazioni vale anche qui. Nessuna scrittura: Campo
+      // legge i rilievi, non li tocca.
+      // Si apre solo quando serve, così l'avvio di Campo non rallenta. Se Terra
+      // non c'è, o se la lettura non è permessa, torna null: la pagina dirà che
+      // il confronto non è disponibile, senza inventare uno zero.
+      let idTerra;                     // undefined = mai provato, null = non c'è
+      api.rilieviTerra = async () => {
+        if (idTerra === undefined) {
+          try { idTerra = await DeepworkID.init({ appId: "terra" }); }
+          catch (e) { idTerra = null; }
+        }
+        if (!idTerra) return null;
+        try {
+          return (await getDocs(idTerra.orgCollection("rilievi")))
+            .docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e) { return null; }
+      };
+      // e l'autorizzazione, da cui si ricava la densità del materiale: a chi
+      // compila un rapportino non si chiede un numero che è già registrato
+      api.autorizzazioniTerra = async () => {
+        if (idTerra === undefined) {
+          try { idTerra = await DeepworkID.init({ appId: "terra" }); }
+          catch (e) { idTerra = null; }
+        }
+        if (!idTerra) return null;
+        try {
+          return (await getDocs(idTerra.orgCollection("autorizzazioni")))
+            .docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e) { return null; }
+      };
     } else if (id.authState() === "tour") mode = "tour";
   } catch (e) { /* backend assente: demo */ }
 
@@ -1131,6 +1185,10 @@ export async function campoData() {
       squadre: async () => mem.squadre,
       operatori: async () => mem.operatori || (mem.operatori = []),
       rapportini: async () => mem.rapportini,
+      // in dimostrazione i rilievi non arrivano da Terra: sono finti, ma
+      // coerenti coi rapportini d'esempio (vedi DEMO.rilieviTerra)
+      rilieviTerra: async () => mem.rilieviTerra || [],
+      autorizzazioniTerra: async () => mem.autorizzazioniTerra || [],
       obiettivi: async () => mem.obiettivi || (mem.obiettivi = []),
       checklist: async () => mem.checklist || (mem.checklist = []),
       presenze: async () => mem.presenze || (mem.presenze = []),

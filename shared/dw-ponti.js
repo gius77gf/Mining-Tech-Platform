@@ -286,3 +286,48 @@ export function avanzamentoDaUltimoRilievo(rilievi, rapportini, densita, oggi = 
   return { dal, al, giorni, dallUltimoRilievo: mis.ultimo, dich };
 }
 
+// Libreria di DENSITÀ di riferimento (peso di volume "in banco", t/m³) per
+// litotipo: aiuta chi non è tecnico a impostare la densità nel calcolo del
+// valore (m³ → tonnellate → euro) invece di indovinarla. Valori TIPICI da
+// fonti secondarie concordanti (vedi vault/RICERCA_DENSITA_MATERIALI.md): NON
+// sono una misura del materiale specifico, quindi ognuno porta l'avviso
+// `daVerificare` (via presetDensita). La densità reale dipende da porosità,
+// fratturazione e umidità: va confermata col laboratorio prima di usarla per
+// numeri contrattuali. Serve la densità IN SITU (il rilievo misura il vuoto di
+// scavo), non quella del materiale sciolto in mucchio.
+export const DENSITA_PRESET = [
+  { chiave: "calcare-compatto", etichetta: "Calcare compatto",              densita: 2.6, fonte: "Geostru / Testo Unico Sicurezza (2,5–2,7)" },
+  { chiave: "calcare-tenero",   etichetta: "Calcare tenero",                densita: 2.2, fonte: "Geostru / Testo Unico Sicurezza" },
+  { chiave: "dolomia",          etichetta: "Dolomia",                       densita: 2.8, fonte: "Geostru" },
+  { chiave: "basalto",          etichetta: "Basalto",                       densita: 2.9, fonte: "Geostru / Testo Unico Sicurezza" },
+  { chiave: "granito",          etichetta: "Granito",                       densita: 2.7, fonte: "Geostru / Testo Unico Sicurezza" },
+  { chiave: "arenaria",         etichetta: "Arenaria",                      densita: 2.3, fonte: "Geostru (2,2–2,6)" },
+  { chiave: "marmo",            etichetta: "Marmo",                         densita: 2.7, fonte: "Geostru" },
+  { chiave: "gesso",            etichetta: "Gesso",                         densita: 2.3, fonte: "Geostru" },
+  { chiave: "argilla",          etichetta: "Argilla compatta",              densita: 2.1, fonte: "Testo Unico Sicurezza" },
+  { chiave: "sabbia-ghiaia",    etichetta: "Sabbia e ghiaia (deposito)",    densita: 1.9, fonte: "riferimento deposito naturale in banco" },
+];
+
+// Ritorna il preset di densità con quella chiave (o null). daVerificare è
+// SEMPRE true: nessun valore tipico va usato senza conferma di laboratorio.
+export function presetDensita(chiave) {
+  const p = DENSITA_PRESET.find(x => x.chiave === chiave);
+  return p ? { ...p, daVerificare: true } : null;
+}
+
+// LA DENSITÀ DAL MATERIALE SCRITTO NELL'AUTORIZZAZIONE. Il materiale della cava
+// è già nell'atto («Sabbia e ghiaia»), quindi chiedere la densità una seconda
+// volta significa avere due risposte possibili per la stessa cava. Si cerca il
+// preset il cui nome compare nel materiale dell'atto, o viceversa — «Sabbia e
+// ghiaia» ↔ «Sabbia e ghiaia (deposito)». null se non si riconosce: meglio
+// nessuna densità che una sbagliata, perché su questo confronto la densità
+// sposta i metri cubi quanto il confronto dovrebbe misurare.
+export function densitaDelMateriale(materiale) {
+  const nome = String(materiale || "").trim().toLowerCase();
+  if (!nome) return null;
+  const p = DENSITA_PRESET.find((x) => {
+    const e = x.etichetta.toLowerCase().replace(/\s*\([^)]*\)\s*/g, " ").trim();
+    return e === nome || nome.includes(e) || e.includes(nome);
+  });
+  return p ? { ...p, daVerificare: true } : null;
+}
