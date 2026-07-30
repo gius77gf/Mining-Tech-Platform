@@ -55,20 +55,65 @@ ognuno. È la pagina da aprire per prima davanti a qualcuno.
   e per i soldi, valida in tutte le app — con i controlli automatici che
   impediscono a un'app di riscriversene una propria.
 
-**Quanto è controllato, oggi** *(contato il 31/07, non a memoria)*: **662**
-prove automatiche che girano senza rete, **106** che girano con l'emulatore
-Firestore — 58 sulle **regole di sicurezza** (`run.mjs`), 19 sull'SDK, 21 sulle
-funzioni e 8 sul primo avvio — e **13** banchi che aprono davvero le pagine in
-un browser
-(contrasto, unità di misura, campi numerici, niente fuori dallo schermo di un
-telefono, e da oggi due elementi con lo stesso identificativo). Ognuno ha la sua
-**controprova**: si rimette il difetto e si pretende che il controllo fallisca —
-e quando una controprova non arriva su tutte le superfici, come è successo oggi
-su tre di nove, vale meno di quanto sembra e va sistemata.
+**Quanto è controllato, oggi** *(contato il 01/08, non a memoria)*: **692**
+prove automatiche che girano senza rete (433 sulle funzioni delle app, 177 sulle
+regole di stile, 43 sugli aiuti condivisi, 23 sulla nuvola di punti, 9 sul
+manifesto, 7 sulla demo), **106** che girano con l'emulatore Firestore — 58
+sulle **regole di sicurezza** (`run.mjs`), 19 sull'SDK, 21 sulle funzioni e 8
+sul primo avvio — e **17 esecuzioni** che aprono davvero le pagine in un
+browser, su 8 banchi distinti (contrasto, unità di misura, campi numerici,
+niente fuori dallo schermo di un telefono, identificativi ripetuti, bersagli
+degli stati vuoti, collegamenti della vetrina, strisce di stato).
+
+Ognuno ha la sua **controprova**: si rimette il difetto e si pretende che il
+controllo fallisca.
+
+⚠️ **E il 01/08 si è scoperto che non basta.** La regola che vieta i dialoghi
+del browser aveva la sua controprova, e passava — ma quella controprova
+guardava **tre superfici a un punto ciascuna**. Rimettendo il difetto in tutti
+i punti difficili, **764 iniezioni su 1030 non venivano viste**: la regola era
+cieca su gran parte del codice, core compreso, mentre diceva «a posto». La
+lezione è entrata nelle regole di lavoro: *una controprova va misurata anche
+nella sua **copertura**, non solo nel suo esito.* Sapere fallire in un punto
+non dimostra niente sugli altri mille. Tutte le regole sono state rifatte così,
+e adesso ognuna **stampa quante superfici e quanti punti ha davvero toccato**.
 *(Le 106 con l'emulatore il 31/07 non hanno potuto girare in questo ambiente:
 la rete di lavoro blocca una chiamata che l'emulatore fa all'avvio. Il numero
 qui sopra è contato sui file, non su un'esecuzione di oggi — e questa
 distinzione va tenuta, perché «contate» e «passate» non sono la stessa cosa.)*
+
+### Il 1º agosto, in quattro righe: i controlli che non guardavano
+
+Una giornata sui **controlli**, non sulle funzioni. Serve saperlo, perché sullo
+schermo non si vede niente di nuovo — e proprio per questo va raccontata.
+
+- **Una regola era cieca, e diceva di stare bene.** Quella che vieta le
+  finestrelle grigie del browser (`alert`, `conferma`) — vietate perché su
+  Android compaiono incollate in cima e il bottone che cancella è
+  indistinguibile da quello che annulla. Aveva la sua verifica, e passava. Ma
+  la verifica guardava **tre pagine in un punto ciascuna**: rimettendo il
+  difetto in tutti i punti difficili, **764 volte su 1030 non veniva visto**.
+  Adesso la verifica è a tappeto, e ogni controllo **dice quanti punti ha
+  guardato davvero**. Un «nessun problema» ottenuto senza guardare niente è la
+  bugia più costosa che ci sia in un programma.
+- **«La pagina si apre» non voleva dire «l'app funziona».** Spegnendo il
+  programma di ogni app, la verifica passava lo stesso su nove pagine su nove:
+  guardava quanta roba c'è in pagina, e la struttura delle app è scritta a
+  mano nel file, quindi c'è comunque. Adesso si controlla un segno che
+  **solo il programma acceso** può lasciare.
+- **Un messaggio ne cancellava un altro.** In tre app l'esito delle
+  esportazioni veniva scritto sopra la riga che dice se stai lavorando sui
+  **dati veri** o su dati di prova: dopo il primo export quella conferma non
+  tornava più. Ora ogni comando ha il suo posto dove parlare.
+- **I documenti: l'indice ne citava 26 su 46.** Fuori c'erano tutte e dodici le
+  ricerche e i due documenti sull'estetica. Sistemato, e verificato anche il
+  contrario — nessun nome citato punta a un file che non esiste.
+
+Una cosa **non** fatta, e volutamente: si è misurato se i messaggi d'errore
+delle app dicono «e adesso cosa faccio», su 127 messaggi letti uno per uno. La
+risposta è che **vanno già bene**, quindi non è stato riscritto niente.
+Riscrivere messaggi che funzionano per far vedere del lavoro fatto è il
+contrario di quello che serve.
 
 ### Il 31 luglio, in quattro righe: caricare e ri-caricare i dati
 
