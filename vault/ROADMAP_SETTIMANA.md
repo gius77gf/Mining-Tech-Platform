@@ -636,6 +636,16 @@ bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
       dell'emulatore — stesso commit verde al rilancio, e quel commit toccava solo
       due file markdown. Diagnosi scritta nel checkpoint.)*
 
+- [x] **S28. La CI intermittente: corsa nella prova, trigger che moriva** ✅ *(31/07,
+      `41ea725`)* — diagnosi e non tentativo: la pulizia iniziale cancella utenti e
+      documenti, i trigger delle cancellazioni arrivano **in ritardo** e riscrivono i
+      claims dopo che il setup li ha impostati, azzerando l'`owner`. Due correzioni
+      separate: la prova aspetta il claim (rimedio già usato due volte nello stesso
+      file) e `rebuildClaims` smette di **morire** su un utente inesistente —
+      assorbendo solo `auth/user-not-found`, perché ogni altro errore su un claim è
+      un problema di sicurezza da vedere. **Nessuna delle due l'ho vista passare**:
+      l'emulatore non parte in questo ambiente, la verifica è la CI.
+
 **La convenzione sui numeri è chiusa.** Sei app, core, campi scritti a mano,
 campi interi, file delle macchine.
 
