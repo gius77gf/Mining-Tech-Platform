@@ -782,7 +782,11 @@ test("il controllo delle note sa fallire", () => {
     "in un elenco di selettori conta anche una classe che non è la prima");
   /* e una classe scritta SOLO nel markup, mai nel foglio, resta orfana anche se
      la parola compare altrove nel documento: si guarda dentro <style>, non nel testo */
-  ok(noteSenzaStile('<style>.altro{color:red}</style><p>avviso</p><div class="note avviso">x</div>').length === 1,
+  /* la parola dev'essere INVENTATA: qui c'era «avviso», che il 30/07 è diventata
+     una regola di stato vera in `shared/dw-app-ui.css` — e la controprova, che
+     legge anche i fogli condivisi, ha smesso di fallire. Una controprova che
+     dipende da una parola del prodotto scade quando il prodotto cresce. */
+  ok(noteSenzaStile('<style>.altro{color:red}</style><p>fandonia</p><div class="note fandonia">x</div>').length === 1,
     "la parola nel testo non vale come definizione: conta solo il foglio di stile");
 });
 

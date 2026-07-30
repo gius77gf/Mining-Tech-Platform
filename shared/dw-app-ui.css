@@ -363,12 +363,35 @@ input[type=date].dw-input::-webkit-calendar-picker-indicator:hover{
   color:var(--muted2); box-shadow:var(--edge);
 }
 .note:empty{display:none}
-.note b{color:var(--text)}
-.note.esito{border-left-color:var(--app-accent); color:var(--text); font-size:12.5px}
-.note.recap b{
+/* ⚠️ `:not(.badge)` NON È UN DETTAGLIO. Una pastiglia dentro una nota resta un
+   <b>, e queste due regole la ridipingevano: in Terra un badge marcato «danger»
+   veniva scritto in verde (--app-accent2) dentro la nota d'errore, a 1,64:1 —
+   illeggibile E con il colore che diceva il contrario dello stato. Il conto
+   della specificità: `.note.recap b` è (0,2,1) e batte `.badge.danger` (0,2,0),
+   quindi vinceva la nota. La pastiglia porta il colore del suo stato: la nota
+   non ha voce in capitolo su di lei. */
+.note b:not(.badge){color:var(--text)}
+.note.esito{--note-bar:var(--app-accent); color:var(--text); font-size:12.5px}
+.note.recap b:not(.badge){
   color:var(--app-accent2); font-family:'Barlow Condensed',sans-serif; font-size:15px;
   font-weight:800; padding:0 1px;
 }
+
+/* ⛔ LA STRISCIA DICE LO STATO, E LO STATO NON SI LASCIA COPRIRE DALLA
+   DECORAZIONE. Le due metà passano di proposito da due strade diverse:
+   - la DECORAZIONE (`recap`, `esito`, e le varianti di tinta delle app) tinge la
+     VARIABILE `--note-bar`, che il riquadro base legge;
+   - lo STATO dipinge il bordo DIRETTAMENTE, e così vince sempre — non perché sta
+     più in basso nel foglio, ma perché è una regola più specifica del base.
+   Serviva: err e avviso vivevano in quattro app con tre grafie diverse
+   (`.note.err`, `.note.esito.err`, e in due app niente), e in Terra il riquadro
+   di una proiezione «fuori piano» usciva con la striscia VERDE — il colore che
+   dice l'opposto dello stato — solo perché `.note.recap` era scritta due righe
+   più sotto di `.note.err`. Le regole di stato stanno qui, una volta sola: le
+   app non le riscrivono. */
+.note.err{border-left-color:var(--danger)}
+.note.avviso{border-left-color:var(--warn)}
+.note.ok{border-left-color:var(--success)}
 
 /* ─────────────── stato vuoto (copia di .empty-state) ─────────────── */
 .empty-state{
