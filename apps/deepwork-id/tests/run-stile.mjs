@@ -1222,5 +1222,68 @@ test("la regola 14 sa vedere il difetto che è stato tolto", () => {
     "una superficie senza avviso non ha niente da cancellare");
 });
 
+/* ══ CONTROPROVE SUI FILE VERI, PER LE REGOLE CHE NE AVEVANO SOLO DI FINTE ══
+   ────────────────────────────────────────────────────────────────────────
+   La lezione del 01/08, pagata con la regola 1: **una controprova va misurata
+   anche nella sua COPERTURA, non solo nel suo esito.** Le regole 11, 13 e 14
+   dimostravano di saper fallire su tre righe inventate — non su una superficie
+   da mezzo milione di caratteri, con template annidati, espressioni regolari e
+   commenti dentro le stringhe. È precisamente la differenza che ha tenuto
+   nascosto per settimane il buco della regola 1: la funzione, sul suo esempio,
+   funzionava benissimo.
+
+   Il difetto si rimette dove la scansione è più in difficoltà — cioè dove un
+   template di primo livello si chiude, gli stessi punti che alla regola 1
+   erano fatali. Non in fondo al file, che è il posto più facile. */
+function puntiDifficili(src, quanti = 8) {
+  const spie = [];
+  classifica(src, spie);
+  if (spie.length === 0) return [];
+  const passo = Math.max(1, Math.floor(spie.length / quanti));
+  const scelti = [];
+  for (let i = 0; i < spie.length && scelti.length < quanti; i += passo) scelti.push(spie[i]);
+  return scelti;
+}
+function controprovaSuiVeri(etichetta, regola, veleno, ammessa = () => true) {
+  let superfici = 0, punti = 0, cieche = 0;
+  const dove = [];
+  for (const [, rel] of SUPERFICI) {
+    const src = leggi(rel);
+    if (src === null || !ammessa(src)) continue;
+    const posti = puntiDifficili(src);
+    if (posti.length === 0) continue;
+    const v = typeof veleno === "function" ? veleno(src) : veleno;
+    if (v === null) continue;
+    superfici++;
+    const base = regola(src).length;
+    for (const p of posti) {
+      punti++;
+      const rotto = src.slice(0, p) + v + src.slice(p);
+      if (regola(rotto).length <= base) { cieche++; if (!dove.includes(rel)) dove.push(rel); }
+    }
+  }
+  test(`${etichetta}: il difetto rimesso nei file veri viene visto (${superfici} superfici, ${punti} punti)`, () => {
+    ok(superfici >= 3, `solo ${superfici} superfici hanno ricevuto l'iniezione: la controprova non sta coprendo niente`);
+    ok(cieche === 0, `${cieche} iniezioni su ${punti} non viste, in ${dove.join(", ")}`);
+  });
+}
+
+/* regola 11: una forma dell'euro scritta in casa, come le tre vere del 30/07 */
+controprovaSuiVeri("regola 11 (euro in casa)", euroInCasa,
+  ';const eur = (v) => "€ " + v;');
+
+/* regola 13: un secondo scarico con un nome di file che nella superficie
+   esiste già — è esattamente il caso di Conti, due bottoni e un nome solo */
+controprovaSuiVeri("regola 13 (due export, stesso nome)", nomiScaricatiRipetuti,
+  (src) => {
+    const m = src.match(/\.download = "([^"]+)"/);
+    return m ? `;a.download = "${m[1]}";` : null;   // niente export: niente da duplicare
+  });
+
+/* regola 14: un esito scritto sulla nota del modo */
+controprovaSuiVeri("regola 14 (nota del modo come lavagna)", avvisoUsatoComeLavagna,
+  ';esito("mode-note", "Esportate 3 fatture.", "success");',
+  (src) => /id="mode-note"/.test(src));
+
 console.log(`\nRisultato Stile: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
