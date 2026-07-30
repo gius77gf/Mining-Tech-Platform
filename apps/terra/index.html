@@ -896,7 +896,7 @@ a.dw-btn{text-decoration:none}
            periodoFraUltimiRilievi, intervalliFraRilievi, avanzamentoDaUltimoRilievo, SOGLIA_TURNI,
            produzionePerFronte,
            numeroDaCampo, AVVISO_DECIMALE } from "./terra-data.js";
-  import { mountExit, esc, csvCell, senzaDoppioni, montaGuardiaInteri, euro0 } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, montaGuardiaInteri, euro0 } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   // Oltre al toast, Terra segna in rosso il campo e scrive nel riquadro
@@ -970,9 +970,10 @@ a.dw-btn{text-decoration:none}
     verb:   '<svg viewBox="0 0 24 24"><path d="M7 8.6V4.2h6.8L17 7.4v1.2"/><path d="M5.2 8.6h13.6a1.8 1.8 0 0 1 1.8 1.8v5.2h-3.4v4.2H6.8v-4.2H3.4v-5.2a1.8 1.8 0 0 1 1.8-1.8z"/><path d="M9.4 15.6h5.2M9.4 18h3.4"/></svg>',
   };
   // stato vuoto in stile core: icona, titolo, spiegazione di cosa fare
-  const vuoto = (icona, titolo, sotto) =>
-    `<div class="empty-state"><div class="empty-icon">${icona}</div>
-      <div class="empty-title">${titolo}</div><div class="empty-sub">${sotto}</div></div>`;
+  /* La regola sta in shared/ (era scritta sei volte, una per app, e non tutte
+     uguali): qui resta solo l'ALIAS col nome che le pagine hanno sempre usato.
+     Il quarto argomento, facoltativo, è il modo di cominciare. */
+  const vuoto = (icona, titolo, sotto, azione) => statoVuoto(icona, titolo, sotto, azione);
   // ── Messaggi: toast del core + traccia scritta accanto al form ────────
   const esito = (id, testo, tipo) => {
     const el = $(id); if (el) { el.textContent = testo; el.className = "note esito" + (tipo === "err" ? " err" : ""); }

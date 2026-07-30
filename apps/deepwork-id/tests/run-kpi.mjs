@@ -3589,6 +3589,31 @@ test("parseSquadreCsv: «persone» non scritte restano vuote, non diventano zero
   eq(campo.parseSquadreCsv("Squadra C;4;Fronte Sud;operativa")[0].persone, 4, "e un numero vero passa");
 });
 
+
+/* LO STATO VUOTO È UNA REGOLA SOLA (31/07). Era scritta SEI volte, una per app,
+   e non erano uguali: cinque prendevano il disegno dell'icona, Conti il suo
+   NOME. È il difetto che la regola del fondatore vieta — la stessa cosa
+   riscritta, che oggi si somiglia e domani no.
+   Aggiunto il terzo pezzo che mancava a tutte e sei: COME SI COMINCIA. Misurato
+   prima di scriverlo: 99 stati vuoti nelle sei app, ZERO con un modo di
+   cominciare. È facoltativo di proposito — «Giornata tranquilla» non ha bisogno
+   di un bottone. */
+test("statoVuoto: i tre pezzi ci sono, e l'azione è facoltativa", () => {
+  const senza = shell.statoVuoto("<svg/>", "Non hai ancora scadenze", "Ti avvisano prima che scadano.");
+  ok(senza.includes("Non hai ancora scadenze"), "il titolo");
+  ok(senza.includes("Ti avvisano prima che scadano."), "la spiegazione");
+  ok(!senza.includes("empty-do"), "senza azione non c'è nemmeno il contenitore: niente spazio vuoto");
+  const con = shell.statoVuoto("<svg/>", "Titolo", "Spiegazione", "<button>Aggiungi</button>");
+  ok(con.includes('class="empty-do"'), "con l'azione compare il posto dove sta");
+  ok(con.includes("<button>Aggiungi</button>"), "e l'azione dentro");
+  ok(con.indexOf("empty-sub") < con.indexOf("empty-do"), "l'azione viene DOPO la spiegazione");
+});
+test("statoVuoto: la struttura è quella del core, invariata", () => {
+  const v = shell.statoVuoto("ICONA", "T", "S");
+  for (const classe of ["empty-state", "empty-icon", "empty-title", "empty-sub"])
+    ok(v.includes(classe), `manca .${classe}: le sei app disegnavano questo`);
+});
+
 // ============================================================
 // I MODELLI DI CSV DEL DOCUMENTO CARICANO DAVVERO
 //

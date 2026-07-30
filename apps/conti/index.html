@@ -1265,7 +1265,7 @@ label.item:has(.dw-chk:checked){
     applicaIncassi, apertoDi, statoIncasso, movimentiDiFattura, incassatoPeriodo,
     tempiPagamentoClienti, tempoMedioPagamento, emessoIncassato,
     numeroDaCampo, AVVISO_DECIMALE } from "./conti-data.js";
-  import { mountExit, esc, csvCell, senzaDoppioni, avvolgiUnita, euro, euro0, conEuro } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, euro, euro0, conEuro } from "../../shared/deepwork-id-client/dw-shell.js";
   const ggU = avvolgiUnita;   // la regola vive in shared/: qui solo il nome di sempre
   const $ = (id) => document.getElementById(id);
   // ── CIFRE: formato italiano, sempre due decimali, spazio unificatore
@@ -1364,10 +1364,11 @@ label.item:has(.dw-chk:checked){
     cumulo:  '<svg viewBox="0 0 24 24"><path d="M2.4 19.6h19.2"/><path d="M2.4 19.6L9.1 7.4l4 6.6 2.5-3.7 6 9.3"/><circle cx="9.1" cy="4.3" r="1.3"/></svg>',
   };
   // Stato vuoto in stile core: icona, titolo, istruzione su cosa fare
-  const vuoto = (icona, titolo, istruzione) =>
-    `<div class="empty-state"><div class="empty-icon">${IC[icona] || IC.vuoto}</div>
-      <div class="empty-title">${titolo}</div>
-      <div class="empty-sub">${istruzione}</div></div>`;
+  /* Come le altre cinque, ma Conti passa il NOME dell'icona invece del suo
+     disegno: la comodità resta, la regola no — quella è una sola, in shared/.
+     Era proprio questa la differenza fra le sei copie. */
+  const vuoto = (icona, titolo, istruzione, azione) =>
+    statoVuoto(IC[icona] || IC.vuoto, titolo, istruzione, azione);
 
   // ── GRAFICI (motore condiviso: shared/dw-grafici.js) ──────────────────
   // Regola di casa: MAI un grafico vuoto, che sembra un'app rotta. Quando

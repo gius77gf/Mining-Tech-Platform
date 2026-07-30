@@ -427,6 +427,13 @@ input[type=date].dw-input::-webkit-calendar-picker-indicator:hover{
   letter-spacing:2px; text-transform:uppercase; color:var(--text); margin-bottom:6px;
 }
 .empty-sub{font-size:12px; color:var(--muted); max-width:var(--empty-w); line-height:1.55}
+/* Il terzo pezzo di uno stato vuoto fatto bene: COME SI COMINCIA. Sta sotto la
+   spiegazione, staccato, e i comandi vanno a capo sul telefono invece di
+   uscire dallo schermo. */
+.empty-do{
+  display:flex; flex-wrap:wrap; gap:8px; justify-content:center;
+  margin-top:14px;
+}
 .empty-sub b{color:var(--muted2)}
 
 /* ─────────────── navigazione: pillola flottante (copia di #global-nav.bnav) ─────────────── */

@@ -947,7 +947,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            numeroIt, segnoIt, numeroItDa, numeroDaCampo } from "./campo-data.js";
   import { misuratoPeriodo, produzioneDichiarata, riconciliazioneTurni,
            periodoFraUltimiRilievi, densitaDelMateriale } from "../../shared/dw-ponti.js";
-  import { mountExit, esc, csvCell, senzaDoppioni, messaggioNumero, montaGuardiaInteri } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, messaggioNumero, montaGuardiaInteri } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
@@ -985,9 +985,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     nuvola:  '<svg viewBox="0 0 24 24"><path d="M7.2 18.4a4.2 4.2 0 0 1-.5-8.4 5.4 5.4 0 0 1 10.3-1.2 3.9 3.9 0 0 1 .3 7.7z"/></svg>',
   };
   // stato vuoto in stile core: icona, titolo, spiegazione di cosa fare
-  const vuoto = (icona, titolo, sotto) =>
-    `<div class="empty-state"><div class="empty-icon">${icona}</div>
-      <div class="empty-title">${titolo}</div><div class="empty-sub">${sotto}</div></div>`;
+  /* La regola sta in shared/ (era scritta sei volte, una per app, e non tutte
+     uguali): qui resta solo l'ALIAS col nome che le pagine hanno sempre usato.
+     Il quarto argomento, facoltativo, è il modo di cominciare. */
+  const vuoto = (icona, titolo, sotto, azione) => statoVuoto(icona, titolo, sotto, azione);
   // ── Messaggi: toast del core + traccia scritta accanto al form ────────
   const esito = (id, testo, tipo) => {
     const el = $(id); if (el) { el.textContent = testo; el.className = "note esito" + (tipo === "err" ? " err" : ""); }

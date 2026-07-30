@@ -75,6 +75,30 @@ export function parseCsvLine(line) {
   });
 }
 
+// LO STATO VUOTO, IN UN POSTO SOLO.
+//
+// Perché sta qui dal 31/07: la stessa funzione era scritta **sei volte**, una
+// per app — e non erano uguali. Cinque prendono il **markup** dell'icona,
+// Conti prende il suo **nome** e lo cerca in una tabella. È esattamente il
+// difetto che la regola del fondatore vieta: una cosa che serve a sei app
+// riscritta sei volte, che oggi si somigliano e domani no.
+//
+// E c'è un terzo pezzo che mancava a tutte e sei. Uno stato vuoto fatto bene
+// dice tre cose: **cosa manca**, **a cosa serve** e **come si comincia**.
+// Misurato: 99 stati vuoti nelle sei app, **zero** con un modo di cominciare.
+// Chi apre l'app il primo giorno legge «Non hai ancora scadenze», capisce a
+// cosa servono, e poi deve andarsi a cercare da solo dove si aggiungono.
+//
+// L'azione è **facoltativa** di proposito: ci sono stati vuoti che sono una
+// buona notizia («Giornata tranquilla», «Nessun fermo registrato») e lì un
+// bottone sarebbe rumore. Si mette dove chi guarda è **fermo**, non dove è
+// contento.
+export function statoVuoto(icona, titolo, spiegazione, azione) {
+  return `<div class="empty-state"><div class="empty-icon">${icona}</div>
+      <div class="empty-title">${titolo}</div><div class="empty-sub">${spiegazione}</div>${
+    azione ? `<div class="empty-do">${azione}</div>` : ""}</div>`;
+}
+
 // TOGLIE I DOPPIONI DENTRO UN FILE APPENA LETTO.
 //
 // Perché sta qui e non in un'app (31/07). Tutte e sei le app controllavano il
