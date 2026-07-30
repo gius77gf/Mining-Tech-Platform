@@ -247,8 +247,17 @@ console.log("\n── Regola 3: un campo decimale non è mai type=number ──"
 // volte più grande — e in cava chi compila scrive la virgola. Su una carica di
 // esplosivo, su un imponibile o su una coordinata GPS è il difetto peggiore
 // della piattaforma, perché è silenzioso.
-// Un `step` frazionario è la firma di un campo decimale: se un campo si
-// dichiara decimale con lo step, non può essere `type=number`.
+// Un campo decimale si dichiara tale in DUE modi, e questa regola all'inizio
+// guardava solo il primo — per questo passava mentre nel core ne restavano 34
+// dello stesso difetto, nella stessa schermata dei 32 corretti:
+//   1. `step` frazionario (step="0.1"): la firma classica;
+//   2. `inputmode="decimal"`: il campo dichiara la tastiera decimale sul
+//      telefono, quindi si aspetta un numero con la virgola — e allora
+//      `type="number"` è un difetto anche senza step, perché lo step assente
+//      vale 1 e il browser rifiuta i decimali oltre a scartare la virgola.
+// Il caso 2 era il peggiore proprio perché sembrava già a posto: fra quei 34
+// c'erano il diametro del foro, la spalla del calcolatore di carica e i
+// parametri di Kuz-Ram, dove «3,5» diventava 35.
 const APP_SEI = SUPERFICI.filter(([n]) => !/core|Deepwork ID/.test(n));
 function numeriDecimali(src) {
   const fuori = [];
@@ -258,9 +267,11 @@ function numeriDecimali(src) {
     const t = m[0];
     if (!/type="number"/.test(t)) continue;
     const st = /step="([^"]*)"/.exec(t);
-    if (!st || !st[1].includes(".")) continue;      // step intero: campo intero, va bene
+    const perStep = st != null && st[1].includes(".");
+    const perInputmode = /inputmode="decimal"/.test(t);
+    if (!perStep && !perInputmode) continue;        // campo intero: va bene così
     const id = /id="([^"]*)"/.exec(t);
-    fuori.push({ id: id ? id[1] : "(senza id)", step: st[1] });
+    fuori.push({ id: id ? id[1] : "(senza id)", perche: perStep ? "step " + st[1] : 'inputmode="decimal"' });
   }
   return fuori;
 }
@@ -270,39 +281,68 @@ for (const [nome, rel] of APP_SEI) {
   test(`${nome}: nessun campo decimale è rimasto type=number`, () => {
     const v = numeriDecimali(src);
     ok(v.length === 0,
-      `${rel} — ${v.map((x) => `#${x.id} (step ${x.step})`).join(", ")}: con type=number «2,4» diventa 24`);
+      `${rel} — ${v.map((x) => `#${x.id} (${x.perche})`).join(", ")}: con type=number «2,4» diventa 24`);
   });
 }
 test("il controllo si accorge di un campo decimale rimesso a type=number", () => {
   ok(numeriDecimali('<input id="x" type="number" step="0.1">').length === 1, "step frazionario trovato");
+  // la seconda firma: dichiarato decimale dall'inputmode, senza step. È quella
+  // che la regola non guardava, e che nel core lasciava passare 34 campi.
+  ok(numeriDecimali('<input id="x" type="number" inputmode="decimal">').length === 1, "inputmode=decimal su type=number trovato");
+  ok(numeriDecimali('<input id="x" type="number" inputmode="decimal" step="1">').length === 1, 'step="1" non assolve: la percentuale 12,5 resta vietata');
   ok(numeriDecimali('<input id="x" type="number" step="1">').length === 0, "un campo intero non è un difetto");
+  ok(numeriDecimali('<input id="x" type="number" inputmode="numeric">').length === 0, "un intero che dichiara la tastiera intera va bene");
   ok(numeriDecimali('<input id="x" type="text" inputmode="decimal" step="0.1">').length === 0, "convertito: a posto");
   // controprova sui file veri: si rimette il difetto e il controllo deve vederlo
   for (const [nome, rel] of [["Campo", "apps/campo/index.html"], ["Genesi", "apps/genesi/genesi.html"]]) {
     const src = leggi(rel);
     if (!src) continue;
     ok(numeriDecimali(src).length === 0, `${nome} parte pulito`);
-    const rotto = src.replace('<input', '<input id="veleno" type="number" step="0.1"><input');
-    ok(numeriDecimali(rotto).length === 1, `${nome}: il difetto iniettato viene trovato`);
+    for (const veleno of ['<input id="veleno" type="number" step="0.1">',
+                         '<input id="veleno" type="number" inputmode="decimal">']) {
+      const rotto = src.replace('<input', veleno + '<input');
+      ok(numeriDecimali(rotto).length === 1, `${nome}: il difetto iniettato viene trovato (${veleno})`);
+    }
   }
 });
-// IL CORE è convertito anche lui: aveva 32 campi decimali `type="number"`, fra
-// cui le COORDINATE GPS della cava (`cf-lat`/`cf-lon`, step 0,0001, dove
-// «37,0625» diventava 370625) e i parametri di volata (`a-b` spalla, `a-s`
-// interasse, `a-mh` carica massima per ritardo, `a-pm` consumo specifico).
+// IL CORE è convertito anche lui, in due passaggi perché la regola all'inizio
+// vedeva metà del difetto: prima i 32 campi con lo step frazionario — fra cui le
+// COORDINATE GPS della cava (`cf-lat`/`cf-lon`, dove «37,0625» diventava
+// 370625) e i parametri di volata (`a-b` spalla, `a-s` interasse, `a-mh`
+// carica massima per ritardo, `a-pm` consumo specifico) — poi altri 34 che si
+// dichiaravano decimali col solo `inputmode`, fra cui il diametro del foro, la
+// spalla del calcolatore di carica e i parametri di Kuz-Ram.
 // Adesso la regola vale su TUTTA la piattaforma, core compreso: non c'è più
 // nessuna superficie esentata.
 test("core: nessun campo decimale è rimasto type=number", () => {
   const v = numeriDecimali(leggi("index.html") || "");
   ok(v.length === 0,
-    `index.html — ${v.map((x) => `#${x.id} (step ${x.step})`).join(", ")}: con type=number «2,4» diventa 24`);
+    `index.html — ${v.map((x) => `#${x.id} (${x.perche})`).join(", ")}: con type=number «2,4» diventa 24`);
 });
-test("e i campi INTERI del core non sono stati toccati", () => {
-  // la conversione doveva riguardare SOLO i decimali: se avesse preso anche gli
-  // interi (anno, km, numero di fori) avrebbe togliato lo spinner dove serve
+test("e i campi INTERI del core sono rimasti type=number", () => {
+  // La conversione deve riguardare SOLO i decimali: sugli interi (anno, km,
+  // numero di fori) lo spinner del browser serve, e mezzo foro non esiste.
+  //
+  // ⚠️ Qui prima c'era `ok(n === 53)`, il conteggio del giorno in cui l'ho
+  // scritto. Era una trappola: quando si è scoperto che 34 di quei 53 non erano
+  // interi ma decimali travestiti, il test ha accusato la correzione invece del
+  // difetto. Un conteggio inchiodato scambia il progresso per una regressione.
+  // Adesso il controllo guarda la NATURA dei campi, che è ciò che la regola
+  // dice davvero: ogni campo rimasto `type=number` deve essere un intero.
   const src = leggi("index.html") || "";
-  const n = (src.match(/<input\b[^>]*type="number"[^>]*>/g) || []).length;
-  ok(n === 53, `i campi interi del core sono ${n}, non 53: la conversione ha preso qualcosa che non doveva`);
+  const rimasti = (src.match(/<input\b[^>]*type="number"[^>]*>/g) || []);
+  ok(rimasti.length > 0, "nel core non c'è più nessun campo intero: la conversione ha preso troppo");
+  const sospetti = rimasti.filter((t) => {
+    if (/inputmode="decimal"/.test(t)) return true;             // si dichiara decimale
+    const st = /step="([^"]*)"/.exec(t);
+    return st != null && st[1].includes(".");                   // step frazionario
+  });
+  ok(sospetti.length === 0,
+    `campi ancora type=number ma dichiarati decimali: ${sospetti.map((t) => (/id="([^"]*)"/.exec(t) || [, "?"])[1]).join(", ")}`);
+  // e nessuno degli interi rimasti deve dichiarare la tastiera decimale
+  const tastiera = rimasti.filter((t) => /inputmode="(?!numeric)/.test(t));
+  ok(tastiera.length === 0,
+    `interi con la tastiera sbagliata: ${tastiera.map((t) => (/id="([^"]*)"/.exec(t) || [, "?"])[1]).join(", ")}`);
 });
 
 console.log(`\nRisultato Stile: ${passed} passati, ${failed} falliti`);

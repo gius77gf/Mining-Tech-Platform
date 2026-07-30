@@ -1404,7 +1404,7 @@ function addFori(n){
   for(let i=0;i<n;i++){
     const idx=state.rappFori.length+1;state.rappFori.push({prof:''});
     const row=document.createElement('div');row.className='trow2';
-    row.innerHTML=`<div class="tnum">${idx}</div><input type="text" inputmode="decimal" class="cinput" step="0.1" placeholder="--" oninput="setFori(${idx-1},'prof',this.value)">`;
+    row.innerHTML=`<div class="tnum">${idx}</div><input type="text" inputmode="decimal" class="cinput" placeholder="--" oninput="setFori(${idx-1},'prof',this.value)">`;
     tb.appendChild(row);
   }
   aggiornaTotali();markUnsaved();
@@ -1414,7 +1414,7 @@ function addFori2(n){
   for(let i=0;i<n;i++){
     const idx=state.rappFori2.length+1;state.rappFori2.push({prof:''});
     const row=document.createElement('div');row.className='trow2';
-    row.innerHTML=`<div class="tnum">${idx}</div><input type="text" inputmode="decimal" class="cinput" step="0.1" placeholder="--" oninput="setFori2(${idx-1},'prof',this.value)">`;
+    row.innerHTML=`<div class="tnum">${idx}</div><input type="text" inputmode="decimal" class="cinput" placeholder="--" oninput="setFori2(${idx-1},'prof',this.value)">`;
     tb.appendChild(row);
   }
   aggiornaTotali();markUnsaved();
@@ -1840,7 +1840,7 @@ function apriRappModifica(id){
         const idx=state.rappFori.length+1;
         state.rappFori.push({prof:f.prof||''});
         const row=document.createElement('div');row.className='trow2';
-        row.innerHTML=`<div class="tnum">${idx}</div><input type="text" inputmode="decimal" class="cinput" step="0.1" value="${f.prof||''}" oninput="setFori(${idx-1},'prof',this.value)">`;
+        row.innerHTML=`<div class="tnum">${idx}</div><input type="text" inputmode="decimal" class="cinput" value="${f.prof||''}" oninput="setFori(${idx-1},'prof',this.value)">`;
         $('tbody').appendChild(row);
       });
     } else {
@@ -1858,7 +1858,7 @@ function apriRappModifica(id){
         const idx=state.rappFori2.length+1;
         state.rappFori2.push({prof:f.prof||''});
         const row=document.createElement('div');row.className='trow2';
-        row.innerHTML=`<div class="tnum">${idx}</div><input type="text" inputmode="decimal" class="cinput" step="0.1" value="${f.prof||''}" oninput="setFori2(${idx-1},'prof',this.value)">`;
+        row.innerHTML=`<div class="tnum">${idx}</div><input type="text" inputmode="decimal" class="cinput" value="${f.prof||''}" oninput="setFori2(${idx-1},'prof',this.value)">`;
         $('tbody2').appendChild(row);
       });
     }
@@ -1962,7 +1962,7 @@ function openCavaForm(){
     <label class="fl">Nome *</label><input type="text" class="finput" id="cf-nome">
     <label class="fl">Indirizzo</label><input type="text" class="finput" id="cf-ind">
     <label class="fl">Cliente</label><select class="finput" id="cf-cli-id">${cliOpts}</select>
-    <div class="frow"><div><label class="fl">Lat GPS</label><input type="text" inputmode="decimal" step="0.0001" class="finput" id="cf-lat"></div><div><label class="fl">Lon GPS</label><input type="text" inputmode="decimal" step="0.0001" class="finput" id="cf-lon"></div></div>
+    <div class="frow"><div><label class="fl">Lat GPS</label><input type="text" inputmode="decimal" class="finput" id="cf-lat"></div><div><label class="fl">Lon GPS</label><input type="text" inputmode="decimal" class="finput" id="cf-lon"></div></div>
     <label class="fl">Telefono</label><input type="tel" class="finput" id="cf-tel">
     <label class="fl">Note</label><textarea class="finput" id="cf-note" rows="2"></textarea>
   `,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:(e)=>withLock('salvaCava',e.target,salvaCava)}]);
@@ -1974,7 +1974,7 @@ function openCavaEdit(){
     <label class="fl">Nome *</label><input type="text" class="finput" id="cf-nome" value="${escHtml(c.nome||'')}">
     <label class="fl">Indirizzo</label><input type="text" class="finput" id="cf-ind" value="${escHtml(c.indirizzo||'')}">
     <label class="fl">Cliente</label><select class="finput" id="cf-cli-id">${cliOpts}</select>
-    <div class="frow"><div><label class="fl">Lat GPS</label><input type="text" inputmode="decimal" step="0.0001" class="finput" id="cf-lat" value="${c.lat||''}"></div><div><label class="fl">Lon GPS</label><input type="text" inputmode="decimal" step="0.0001" class="finput" id="cf-lon" value="${c.lon||''}"></div></div>
+    <div class="frow"><div><label class="fl">Lat GPS</label><input type="text" inputmode="decimal" class="finput" id="cf-lat" value="${c.lat||''}"></div><div><label class="fl">Lon GPS</label><input type="text" inputmode="decimal" class="finput" id="cf-lon" value="${c.lon||''}"></div></div>
     <label class="fl">Telefono</label><input type="tel" class="finput" id="cf-tel" value="${escHtml(c.tel||'')}">
     <label class="fl">Note</label><textarea class="finput" id="cf-note" rows="2">${escHtml(c.note||'')}</textarea>
   `,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:(e)=>withLock('salvaCava',e.target,salvaCava)}]);
@@ -2339,7 +2339,7 @@ function openRipForm(mId){
   openModal('Nuova riparazione',`
     <label class="fl">Data</label><input type="date" class="finput" id="rip-data" value="${today()}">
     <label class="fl">Descrizione</label><textarea class="finput" id="rip-desc" rows="2"></textarea>
-    <div class="frow"><div><label class="fl">Costo €</label><input type="text" inputmode="decimal" step="0.01" class="finput" id="rip-costo"></div><div><label class="fl">Officina</label><input type="text" class="finput" id="rip-off"></div></div>
+    <div class="frow"><div><label class="fl">Costo €</label><input type="text" inputmode="decimal" class="finput" id="rip-costo"></div><div><label class="fl">Officina</label><input type="text" class="finput" id="rip-off"></div></div>
   `,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:async()=>{
     const m=DB.mezziStr.find(x=>x.id===mId);const rips=[...(m.riparazioni||[]),{id:genId(),data:$('rip-data').value,desc:$('rip-desc').value,costo:parseNum0($('rip-costo').value),officina:$('rip-off').value}];
     await fbUpdate('mezziStr',mId,{riparazioni:rips});closeModal();toast('Riparazione aggiunta','success');apriMezzoStr(mId);
@@ -2401,7 +2401,7 @@ function openLogForm(){
   openModal('Nuovo lavoro',`
     <label class="fl">Data</label><input type="date" class="finput" id="lg-data" value="${today()}">
     <label class="fl">Operazione svolta</label><input type="text" class="finput" id="lg-op" placeholder="es. Sostituzione punta">
-    <label class="fl">Ore lavoro</label><input type="text" inputmode="decimal" step="0.5" class="finput" id="lg-ore">
+    <label class="fl">Ore lavoro</label><input type="text" inputmode="decimal" class="finput" id="lg-ore">
     <label class="fl">Note</label><textarea class="finput" id="lg-note" rows="2"></textarea>
   `,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:()=>macSubSave('logLavori',{data:$('lg-data').value,operazione:$('lg-op').value,ore:parseNum0($('lg-ore').value),note:$('lg-note').value})}]);
 }
@@ -2469,7 +2469,7 @@ function renderMacConsumi(el){
 function openConsumoForm(){
   openModal('Consumo giornaliero',`
     <label class="fl">Data</label><input type="date" class="finput" id="co-data" value="${today()}">
-    <div class="frow"><div><label class="fl">Gasolio (L)</label><input type="text" inputmode="decimal" step="0.1" class="finput" id="co-gas"></div><div><label class="fl">Olio (L)</label><input type="text" inputmode="decimal" step="0.1" class="finput" id="co-olio"></div></div>
+    <div class="frow"><div><label class="fl">Gasolio (L)</label><input type="text" inputmode="decimal" class="finput" id="co-gas"></div><div><label class="fl">Olio (L)</label><input type="text" inputmode="decimal" class="finput" id="co-olio"></div></div>
     <label class="fl">Lubrificante</label><input type="text" class="finput" id="co-lubr" placeholder="tipo / quantità">
     <label class="fl">Note</label><textarea class="finput" id="co-note" rows="2"></textarea>
   `,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:()=>macSubSave('consumi',{data:$('co-data').value,gasolio:parseNum0($('co-gas').value),olio:parseNum0($('co-olio').value),lubr:$('co-lubr').value,note:$('co-note').value})}]);
@@ -2510,15 +2510,15 @@ function depInvio(cat,id){
 }
 function depEditTot(cat,id){
   const item=DB.deposito[cat].find(x=>x.id===id);const key=cat==='lubr'?'litri':'qta';const unit=cat==='lubr'?'L':'pz';const colName={punte:'deposito_punte',aste:'deposito_aste',lubr:'deposito_lubr'}[cat];
-  openModal('Modifica totale',`<label class="fl">Nuovo totale (${unit})</label><input type="number" inputmode="decimal" class="finput" id="dep-new" value="${item[key]}">`,[
+  openModal('Modifica totale',`<label class="fl">Nuovo totale (${unit})</label><input type="text" inputmode="decimal" class="finput" id="dep-new" value="${item[key]}">`,[
     {label:'Annulla',cls:'mbtn',action:closeModal},
     {label:'SALVA',cls:'mbtn primary',action:async()=>{const v=parseNum0($('dep-new').value);if(v<0){toast('Valore non valido','err');return;}await fbUpdate(colName,id,{[key]:v});closeModal();toast('Totale aggiornato','success');}}
   ]);
 }
 function depDel(cat,id){const colName={punte:'deposito_punte',aste:'deposito_aste',lubr:'deposito_lubr'}[cat];openModal('Elimina voce','<p>Confermi?</p>',[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'ELIMINA',cls:'mbtn danger',action:async()=>{await fbDelete(colName,id);closeModal();toast('Eliminato','success');}}]);}
-function openPuntaForm(){openModal('Nuovo tipo punta',`<label class="fl">Diametro (mm)</label><input type="number" inputmode="decimal" class="finput" id="np-d"><label class="fl">Quantità iniziale</label><input type="number" inputmode="numeric" class="finput" id="np-q" value="0">`,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:async()=>{const d=parseNum0($('np-d').value);if(!d){toast('Inserisci diametro','err');return;}const id='pt_'+genId();await fbSet('deposito_punte',id,{id,diametro:d,qta:parseNum0($('np-q').value),note:''});closeModal();toast('Aggiunto','success');}}]);}
-function openAstaForm(){openModal('Nuovo tipo asta',`<div class="frow"><div><label class="fl">Lunghezza (m)</label><input type="text" inputmode="decimal" step="0.01" class="finput" id="na-l"></div><div><label class="fl">Diametro (mm)</label><input type="number" inputmode="decimal" class="finput" id="na-d"></div></div><label class="fl">Quantità iniziale</label><input type="number" inputmode="numeric" class="finput" id="na-q" value="0">`,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:async()=>{const l=parseNum0($('na-l').value),d=parseNum0($('na-d').value);if(!l||!d){toast('Compila lunghezza e diametro','err');return;}const id='as_'+genId();await fbSet('deposito_aste',id,{id,lunghezza:l,diametro:d,qta:parseNum0($('na-q').value),note:''});closeModal();toast('Aggiunto','success');}}]);}
-function openLubrForm(){openModal('Nuovo lubrificante',`<label class="fl">Tipo</label><input type="text" class="finput" id="nl-t" placeholder="Olio motore 15W40"><label class="fl">Litri iniziali</label><input type="text" inputmode="decimal" step="0.1" class="finput" id="nl-l" value="0">`,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:async()=>{const t=$('nl-t').value.trim();if(!t){toast('Inserisci tipo','err');return;}const id='lb_'+genId();await fbSet('deposito_lubr',id,{id,tipo:t,litri:parseNum0($('nl-l').value),note:''});closeModal();toast('Aggiunto','success');}}]);}
+function openPuntaForm(){openModal('Nuovo tipo punta',`<label class="fl">Diametro (mm)</label><input type="text" inputmode="decimal" class="finput" id="np-d"><label class="fl">Quantità iniziale</label><input type="number" inputmode="numeric" class="finput" id="np-q" value="0">`,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:async()=>{const d=parseNum0($('np-d').value);if(!d){toast('Inserisci diametro','err');return;}const id='pt_'+genId();await fbSet('deposito_punte',id,{id,diametro:d,qta:parseNum0($('np-q').value),note:''});closeModal();toast('Aggiunto','success');}}]);}
+function openAstaForm(){openModal('Nuovo tipo asta',`<div class="frow"><div><label class="fl">Lunghezza (m)</label><input type="text" inputmode="decimal" class="finput" id="na-l"></div><div><label class="fl">Diametro (mm)</label><input type="text" inputmode="decimal" class="finput" id="na-d"></div></div><label class="fl">Quantità iniziale</label><input type="number" inputmode="numeric" class="finput" id="na-q" value="0">`,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:async()=>{const l=parseNum0($('na-l').value),d=parseNum0($('na-d').value);if(!l||!d){toast('Compila lunghezza e diametro','err');return;}const id='as_'+genId();await fbSet('deposito_aste',id,{id,lunghezza:l,diametro:d,qta:parseNum0($('na-q').value),note:''});closeModal();toast('Aggiunto','success');}}]);}
+function openLubrForm(){openModal('Nuovo lubrificante',`<label class="fl">Tipo</label><input type="text" class="finput" id="nl-t" placeholder="Olio motore 15W40"><label class="fl">Litri iniziali</label><input type="text" inputmode="decimal" class="finput" id="nl-l" value="0">`,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:async()=>{const t=$('nl-t').value.trim();if(!t){toast('Inserisci tipo','err');return;}const id='lb_'+genId();await fbSet('deposito_lubr',id,{id,tipo:t,litri:parseNum0($('nl-l').value),note:''});closeModal();toast('Aggiunto','success');}}]);}
 
 // ══════════ PERSONALE ══════════
 function renderPersonale(){
@@ -4727,8 +4727,8 @@ function renderEditorSide(){
       <!-- Posizione -->
       <div class="ec-side-title" style="margin-top:0;"><span class="dot"></span>Posizione</div>
       <div class="frow" style="margin-bottom:6px;">
-        <div><label class="fl">X — lungo fronte (m)</label><input type="text" inputmode="decimal" step="0.05" class="finput" id="ef-x" value="${f.x||0}" oninput="aggiornaForo(${idx},'x',this.value)"></div>
-        <div><label class="fl">Y — distanza fronte (m)</label><input type="text" inputmode="decimal" step="0.05" class="finput" id="ef-y" value="${f.y||0}" oninput="aggiornaForo(${idx},'y',this.value)"></div>
+        <div><label class="fl">X — lungo fronte (m)</label><input type="text" inputmode="decimal" class="finput" id="ef-x" value="${f.x||0}" oninput="aggiornaForo(${idx},'x',this.value)"></div>
+        <div><label class="fl">Y — distanza fronte (m)</label><input type="text" inputmode="decimal" class="finput" id="ef-y" value="${f.y||0}" oninput="aggiornaForo(${idx},'y',this.value)"></div>
       </div>
 
       <!-- Geometria foro -->
@@ -4737,7 +4737,7 @@ function renderEditorSide(){
         <div>
           <label class="fl">Profondità (m)</label>
           <div style="display:flex;gap:4px;">
-            <input type="text" inputmode="decimal" step="0.1" class="finput" style="flex:1;" placeholder="—" value="${f.prof||''}" oninput="aggiornaForo(${idx},'prof',this.value)">
+            <input type="text" inputmode="decimal" class="finput" style="flex:1;" placeholder="—" value="${f.prof||''}" oninput="aggiornaForo(${idx},'prof',this.value)">
             <button class="chg" onclick="applicaATutti('prof','${f.prof||''}')" title="Applica a tutti i fori" style="padding:0 8px;font-size:16px;min-height:var(--tap);">⟳</button>
           </div>
         </div>
@@ -4815,15 +4815,15 @@ function renderEditorSide(){
     $('ec-side').innerHTML=`
       <div class="ec-side-title"><span class="dot"></span>Imposta galleria</div>
       <div class="frow">
-        <div><label class="fl">Larghezza (m)</label><input type="text" inputmode="decimal" step="0.1" class="finput" value="${v.fronte.lunghezza_m}" oninput="aggiornaVolata('fronte.lunghezza_m',this.value)"></div>
-        <div><label class="fl">Altezza (m)</label><input type="text" inputmode="decimal" step="0.1" class="finput" value="${v.fronte.altezza_m}" oninput="aggiornaVolata('fronte.altezza_m',this.value)"></div>
+        <div><label class="fl">Larghezza (m)</label><input type="text" inputmode="decimal" class="finput" value="${v.fronte.lunghezza_m}" oninput="aggiornaVolata('fronte.lunghezza_m',this.value)"></div>
+        <div><label class="fl">Altezza (m)</label><input type="text" inputmode="decimal" class="finput" value="${v.fronte.altezza_m}" oninput="aggiornaVolata('fronte.altezza_m',this.value)"></div>
       </div>
       <div class="frow">
-        <div><label class="fl">Freccia calotta (m)</label><input type="text" inputmode="decimal" step="0.1" class="finput" value="${v.fronte.calotta_m}" oninput="aggiornaVolata('fronte.calotta_m',this.value)"></div>
-        <div><label class="fl">Interasse (m)</label><input type="text" inputmode="decimal" step="0.1" class="finput" value="${getSpaziatura(v)}" oninput="aggiornaVolata('maglia.spaziatura',this.value)"></div>
+        <div><label class="fl">Freccia calotta (m)</label><input type="text" inputmode="decimal" class="finput" value="${v.fronte.calotta_m}" oninput="aggiornaVolata('fronte.calotta_m',this.value)"></div>
+        <div><label class="fl">Interasse (m)</label><input type="text" inputmode="decimal" class="finput" value="${getSpaziatura(v)}" oninput="aggiornaVolata('maglia.spaziatura',this.value)"></div>
       </div>
       <label class="fl">Sfondo / avanzamento (m)</label>
-      <input type="text" inputmode="decimal" step="0.1" class="finput" value="${v.default.profondita_m||''}" oninput="aggiornaVolata('default.profondita_m',this.value)">
+      <input type="text" inputmode="decimal" class="finput" value="${v.default.profondita_m||''}" oninput="aggiornaVolata('default.profondita_m',this.value)">
       <button class="btn-sec" style="width:100%;margin:8px 0;" onclick="rigeneraMaglia()">↻ Rigenera schema (cut + contorno)</button>
       <label class="fl">Esplosivo default</label>
       <input type="text" class="finput" placeholder="es. dinamite, emulsione..." value="${escHtml(v.default.esplosivo||'')}" oninput="aggiornaVolata('default.esplosivo',this.value)">
@@ -4841,7 +4841,7 @@ function renderEditorSide(){
     <div class="ec-side-title"><span class="dot"></span>Imposta volata</div>
 
     <div class="frow">
-      <div><label class="fl">Lunghezza fronte (m)</label><input type="text" inputmode="decimal" step="0.5" class="finput" value="${v.fronte.lunghezza_m}" oninput="aggiornaVolata('fronte.lunghezza_m',this.value)"></div>
+      <div><label class="fl">Lunghezza fronte (m)</label><input type="text" inputmode="decimal" class="finput" value="${v.fronte.lunghezza_m}" oninput="aggiornaVolata('fronte.lunghezza_m',this.value)"></div>
       <div><label class="fl">N° file</label><input type="number" inputmode="numeric" min="1" max="6" class="finput" value="${v.maglia.file}" oninput="aggiornaVolata('maglia.file',this.value)"></div>
     </div>
 
@@ -4849,15 +4849,15 @@ function renderEditorSide(){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end;margin-bottom:8px;">
       <div>
         <label class="fl">Spalla (m) <span style="opacity:.6;">fronte–foro</span></label>
-        <input type="text" inputmode="decimal" step="0.1" class="finput" value="${Borr}" oninput="aggiornaVolata('maglia.borraggio',this.value)">
+        <input type="text" inputmode="decimal" class="finput" value="${Borr}" oninput="aggiornaVolata('maglia.borraggio',this.value)">
       </div>
       <div>
         <label class="fl">Interasse (m) <span style="opacity:.6;">foro–foro</span></label>
-        <input type="text" inputmode="decimal" step="0.1" class="finput" value="${Spaz}" oninput="aggiornaVolata('maglia.spaziatura',this.value)">
+        <input type="text" inputmode="decimal" class="finput" value="${Spaz}" oninput="aggiornaVolata('maglia.spaziatura',this.value)">
       </div>
     </div>
     <label class="fl">Borraggio (m) <span style="opacity:.6;">ultima carica → imbocco (solo dato)</span></label>
-    <input type="text" inputmode="decimal" step="0.1" class="finput" value="${v.maglia.borraggio_reale||''}" placeholder="es. 2.5" oninput="aggiornaVolata('maglia.borraggio_reale',this.value)" style="margin-bottom:10px;">
+    <input type="text" inputmode="decimal" class="finput" value="${v.maglia.borraggio_reale||''}" placeholder="es. 2.5" oninput="aggiornaVolata('maglia.borraggio_reale',this.value)" style="margin-bottom:10px;">
     <!-- Visualizzazione maglia grafica -->
     <div style="display:flex;justify-content:center;margin-bottom:10px;">
       <svg width="120" height="80" viewBox="0 0 120 80" style="background:var(--dark);border:1px solid var(--border);">
@@ -4878,7 +4878,7 @@ function renderEditorSide(){
 
     <div class="ec-side-title" style="margin-top:12px;"><span class="dot"></span>Default per nuovi fori</div>
     <div class="frow">
-      <div><label class="fl">Profondità (m)</label><input type="text" inputmode="decimal" step="0.1" class="finput" value="${v.default.profondita_m||''}" oninput="aggiornaVolata('default.profondita_m',this.value)"></div>
+      <div><label class="fl">Profondità (m)</label><input type="text" inputmode="decimal" class="finput" value="${v.default.profondita_m||''}" oninput="aggiornaVolata('default.profondita_m',this.value)"></div>
       <div><label class="fl">Diametro (mm)</label><input type="number" inputmode="numeric" class="finput" value="${v.default.diametro_mm||''}" oninput="aggiornaVolata('default.diametro_mm',this.value)"></div>
     </div>
     <label class="fl">Esplosivo default</label>
@@ -4886,7 +4886,7 @@ function renderEditorSide(){
     <label class="fl">Innesco default</label>
     <input type="text" class="finput" placeholder="es. NONEL, Detonante..." value="${escHtml(v.default.innesco||'')}" oninput="aggiornaVolata('default.innesco',this.value)">
     <label class="fl" style="margin-top:8px;">Inclinazione fori (°) <span style="opacity:.6;">0=verticale · applicata a tutti</span></label>
-    <input type="number" inputmode="decimal" class="finput" value="${v.default.incl||''}" placeholder="0" oninput="setInclTutti(this.value)">
+    <input type="text" inputmode="decimal" class="finput" value="${v.default.incl||''}" placeholder="0" oninput="setInclTutti(this.value)">
 
     <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
       <button class="btn-sec" onclick="salvaVolata()">💾 Salva</button>
@@ -5456,12 +5456,12 @@ function renderFrammentazioneModal(v){
     </div>
     <div class="sec-title" style="margin-top:14px;"><span class="dot"></span>Distribuzione granulometrica (%)</div>
     <div class="frow">
-      <div><label class="fl">Fine (0-10 cm)</label><input type="number" inputmode="decimal" min="0" max="100" step="1" class="finput" id="fr-fine" value="${f.fine||0}" oninput="aggiornaFrammentazione()"></div>
-      <div><label class="fl">Media (10-30 cm)</label><input type="number" inputmode="decimal" min="0" max="100" step="1" class="finput" id="fr-media" value="${f.media||0}" oninput="aggiornaFrammentazione()"></div>
+      <div><label class="fl">Fine (0-10 cm)</label><input type="text" inputmode="decimal" min="0" max="100" class="finput" id="fr-fine" value="${f.fine||0}" oninput="aggiornaFrammentazione()"></div>
+      <div><label class="fl">Media (10-30 cm)</label><input type="text" inputmode="decimal" min="0" max="100" class="finput" id="fr-media" value="${f.media||0}" oninput="aggiornaFrammentazione()"></div>
     </div>
     <div class="frow">
-      <div><label class="fl">Grossa (30-60 cm)</label><input type="number" inputmode="decimal" min="0" max="100" step="1" class="finput" id="fr-grossa" value="${f.grossa||0}" oninput="aggiornaFrammentazione()"></div>
-      <div><label class="fl">Oversize (>60 cm)</label><input type="number" inputmode="decimal" min="0" max="100" step="1" class="finput" id="fr-over" value="${f.oversize||0}" oninput="aggiornaFrammentazione()"></div>
+      <div><label class="fl">Grossa (30-60 cm)</label><input type="text" inputmode="decimal" min="0" max="100" class="finput" id="fr-grossa" value="${f.grossa||0}" oninput="aggiornaFrammentazione()"></div>
+      <div><label class="fl">Oversize (>60 cm)</label><input type="text" inputmode="decimal" min="0" max="100" class="finput" id="fr-over" value="${f.oversize||0}" oninput="aggiornaFrammentazione()"></div>
     </div>
     <div style="background:var(--card2);padding:10px 14px;margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
       <span style="font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Totale</span>
@@ -7631,8 +7631,8 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
       <label class="fl">Cava</label><select class="finput" id="vf-cava" onchange="applicaFiltriVolate()"></select>
       <label class="fl">Operatore</label><select class="finput" id="vf-user" onchange="applicaFiltriVolate()"></select>
       <div class="frow">
-        <div><label class="fl">Diametro min (mm)</label><input type="number" inputmode="decimal" class="finput" id="vf-dmin" oninput="applicaFiltriVolate()"></div>
-        <div><label class="fl">Diametro max (mm)</label><input type="number" inputmode="decimal" class="finput" id="vf-dmax" oninput="applicaFiltriVolate()"></div>
+        <div><label class="fl">Diametro min (mm)</label><input type="text" inputmode="decimal" class="finput" id="vf-dmin" oninput="applicaFiltriVolate()"></div>
+        <div><label class="fl">Diametro max (mm)</label><input type="text" inputmode="decimal" class="finput" id="vf-dmax" oninput="applicaFiltriVolate()"></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
         <button class="btn-sec" onclick="resetFiltriVolate()">Reset filtri</button>
@@ -7723,7 +7723,7 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
         <div><label class="fl">Ora fine giornata</label><input type="time" class="finput" id="r-of" oninput="markUnsaved()"></div>
       </div>
       <div class="frow">
-        <div><label class="fl">Diametro (mm)</label><input type="number" inputmode="decimal" class="finput" id="r-d" placeholder="89" oninput="markUnsaved();aggiornaTotali()"></div>
+        <div><label class="fl">Diametro (mm)</label><input type="text" inputmode="decimal" class="finput" id="r-d" placeholder="89" oninput="markUnsaved();aggiornaTotali()"></div>
         <div><label class="fl">Maglia (m)</label><input type="text" inputmode="decimal" class="finput" id="r-m" placeholder="3,5x4"></div>
       </div>
       <label class="fl">Mezzo utilizzato</label>
@@ -7755,7 +7755,7 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
       <div id="r-fila2-section" style="display:none;margin-top:8px;border-top:2px solid var(--border);padding-top:10px;">
         <div class="info-box" style="margin-bottom:8px;font-size:11px;">Seconda fila: ha una sua maglia e i suoi fori, esattamente come la prima.</div>
         <div class="frow">
-          <div><label class="fl">Diametro fila 2 (mm)</label><input type="number" inputmode="decimal" class="finput" id="r-d2" placeholder="89" oninput="markUnsaved()"></div>
+          <div><label class="fl">Diametro fila 2 (mm)</label><input type="text" inputmode="decimal" class="finput" id="r-d2" placeholder="89" oninput="markUnsaved()"></div>
           <div><label class="fl">Maglia fila 2 (m)</label><input type="text" inputmode="decimal" class="finput" id="r-m2" placeholder="3,5x4" oninput="markUnsaved()"></div>
         </div>
         <div style="margin:6px 0;display:flex;justify-content:space-between;align-items:center;">
@@ -8009,13 +8009,13 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
     <div class="sec-title" style="margin-top:18px;"><span class="dot"></span>Calcolo metri cubi</div>
     <div class="preview-sec" style="margin-bottom:10px;">
       <div class="frow3">
-        <div><label class="fl">Prof. media (m)</label><input type="number" inputmode="decimal" class="finput" id="umc-h" oninput="calcMcUfficio()"></div>
-        <div><label class="fl">Spalla (m)</label><input type="number" inputmode="decimal" class="finput" id="umc-b" oninput="calcMcUfficio()"></div>
-        <div><label class="fl">Interasse (m)</label><input type="number" inputmode="decimal" class="finput" id="umc-s" oninput="calcMcUfficio()"></div>
+        <div><label class="fl">Prof. media (m)</label><input type="text" inputmode="decimal" class="finput" id="umc-h" oninput="calcMcUfficio()"></div>
+        <div><label class="fl">Spalla (m)</label><input type="text" inputmode="decimal" class="finput" id="umc-b" oninput="calcMcUfficio()"></div>
+        <div><label class="fl">Interasse (m)</label><input type="text" inputmode="decimal" class="finput" id="umc-s" oninput="calcMcUfficio()"></div>
       </div>
       <div class="frow">
         <div><label class="fl">N° fori</label><input type="number" inputmode="numeric" class="finput" id="umc-n" oninput="calcMcUfficio()"></div>
-        <div><label class="fl">Fattore frangim.</label><input type="text" inputmode="decimal" step="0.05" class="finput" id="umc-k" value="0.9" oninput="calcMcUfficio()"></div>
+        <div><label class="fl">Fattore frangim.</label><input type="text" inputmode="decimal" class="finput" id="umc-k" value="0,9" oninput="calcMcUfficio()"></div>
       </div>
       <div class="stats" id="umc-out" style="margin-top:10px;display:none;">
         <div class="stat"><div class="sl">Mc totali</div><div class="sv" id="umc-tot">—</div></div>
@@ -8101,9 +8101,9 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
       <div class="sitem" onclick="nav('audit')"><div class="av av-su">🛡️</div><div class="sinfo"><div class="sname">Audit Log</div><div class="ssub">Tracciamento azioni sensibili</div></div><div class="sarr">›</div></div>
     </div>
     <div id="adm-calc-panel" style="display:none;">
-      <div class="frow"><div><label class="fl">Diametro (mm)</label><input type="number" inputmode="decimal" id="a-d" class="finput" placeholder="89" oninput="apriCalcAdmin()"></div><div><label class="fl">Prof media (m)</label><input type="text" inputmode="decimal" id="a-pm" class="finput" placeholder="12" step="0.1" oninput="apriCalcAdmin()"></div></div>
-      <div class="frow"><div><label class="fl">Burden B (m)</label><input type="text" inputmode="decimal" id="a-b" class="finput" placeholder="3" step="0.1" oninput="apriCalcAdmin()"></div><div><label class="fl">Spazio S (m)</label><input type="text" inputmode="decimal" id="a-s" class="finput" placeholder="4" step="0.1" oninput="apriCalcAdmin()"></div></div>
-      <div class="frow"><div><label class="fl">H banco (m)</label><input type="text" inputmode="decimal" id="a-mh" class="finput" step="0.1"></div><div><label class="fl">Fori</label><input type="number" inputmode="numeric" id="a-nf" class="finput" placeholder="20" oninput="apriCalcAdmin()"></div></div>
+      <div class="frow"><div><label class="fl">Diametro (mm)</label><input type="text" inputmode="decimal" id="a-d" class="finput" placeholder="89" oninput="apriCalcAdmin()"></div><div><label class="fl">Prof media (m)</label><input type="text" inputmode="decimal" id="a-pm" class="finput" placeholder="12" oninput="apriCalcAdmin()"></div></div>
+      <div class="frow"><div><label class="fl">Burden B (m)</label><input type="text" inputmode="decimal" id="a-b" class="finput" placeholder="3" oninput="apriCalcAdmin()"></div><div><label class="fl">Spazio S (m)</label><input type="text" inputmode="decimal" id="a-s" class="finput" placeholder="4" oninput="apriCalcAdmin()"></div></div>
+      <div class="frow"><div><label class="fl">H banco (m)</label><input type="text" inputmode="decimal" id="a-mh" class="finput"></div><div><label class="fl">Fori</label><input type="number" inputmode="numeric" id="a-nf" class="finput" placeholder="20" oninput="apriCalcAdmin()"></div></div>
       <div class="stats" style="margin-top:14px;"><div class="stat"><div class="sl">Mc totali</div><div class="sv" id="a-out-mc">—</div></div><div class="stat"><div class="sl">Mc/foro</div><div class="sv" id="a-out-mcf">—</div></div></div>
     </div>
     <div id="adm-sys-panel" style="display:none;">
@@ -8170,8 +8170,8 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
     <div id="rc-preview" style="margin:8px 0;position:relative;"></div>
     <button class="btn-sec" id="rc-cal" style="width:100%;margin-bottom:6px;" onclick="reconCalibra()">📏 Calibra scala (tocca 2 punti su un riferimento noto)</button>
     <div class="frow">
-      <div><label class="fl">Larghezza reale (m)</label><input type="number" inputmode="decimal" class="finput" id="rc-w" value="30"></div>
-      <div><label class="fl">Altezza reale (m)</label><input type="number" inputmode="decimal" class="finput" id="rc-h" value="12"></div>
+      <div><label class="fl">Larghezza reale (m)</label><input type="text" inputmode="decimal" class="finput" id="rc-w" value="30"></div>
+      <div><label class="fl">Altezza reale (m)</label><input type="text" inputmode="decimal" class="finput" id="rc-h" value="12"></div>
     </div>
     <label class="fl">Profondità rilievo</label>
     <input type="range" min="1" max="10" value="4" id="rc-relief" style="width:100%;" oninput="$('rc-relief-v').textContent=this.value">
@@ -8214,8 +8214,8 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
     <div class="preview-sec" style="margin-bottom:10px;">
       <div class="preview-head">Carica per foro</div>
       <div class="frow">
-        <div><label class="fl">Diametro (mm)</label><input type="number" inputmode="decimal" class="finput" id="foc-d" placeholder="89" oninput="focCalcEsp()"></div>
-        <div><label class="fl">Colonna (m)</label><input type="number" inputmode="decimal" class="finput" id="foc-col" placeholder="10" oninput="focCalcEsp()"></div>
+        <div><label class="fl">Diametro (mm)</label><input type="text" inputmode="decimal" class="finput" id="foc-d" placeholder="89" oninput="focCalcEsp()"></div>
+        <div><label class="fl">Colonna (m)</label><input type="text" inputmode="decimal" class="finput" id="foc-col" placeholder="10" oninput="focCalcEsp()"></div>
       </div>
       <label class="fl">Densità esplosivo (g/cm³)</label>
       <select class="finput" id="foc-rho" onchange="focCalcEsp()">
@@ -8233,9 +8233,9 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
     <div class="preview-sec" style="margin-bottom:10px;">
       <div class="preview-head">Mc abbattuti</div>
       <div class="frow3">
-        <div><label class="fl">Prof. media (m)</label><input type="number" inputmode="decimal" class="finput" id="foc-h" oninput="focCalcMc()"></div>
-        <div><label class="fl">Burden B (m)</label><input type="number" inputmode="decimal" class="finput" id="foc-b" oninput="focCalcMc()"></div>
-        <div><label class="fl">Spaz. S (m)</label><input type="number" inputmode="decimal" class="finput" id="foc-s" oninput="focCalcMc()"></div>
+        <div><label class="fl">Prof. media (m)</label><input type="text" inputmode="decimal" class="finput" id="foc-h" oninput="focCalcMc()"></div>
+        <div><label class="fl">Burden B (m)</label><input type="text" inputmode="decimal" class="finput" id="foc-b" oninput="focCalcMc()"></div>
+        <div><label class="fl">Spaz. S (m)</label><input type="text" inputmode="decimal" class="finput" id="foc-s" oninput="focCalcMc()"></div>
       </div>
       <label class="fl">N° fori</label>
       <input type="number" inputmode="numeric" class="finput" id="foc-nf" oninput="focCalcMc()">
@@ -8248,8 +8248,8 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
     <div class="preview-sec">
       <div class="preview-head">Incidenza esplosivo</div>
       <div class="frow">
-        <div><label class="fl">Kg esplosivo totale</label><input type="number" inputmode="decimal" class="finput" id="foc-kg-tot" oninput="focCalcInc()"></div>
-        <div><label class="fl">Mc abbattuti</label><input type="number" inputmode="decimal" class="finput" id="foc-mc-tot" oninput="focCalcInc()"></div>
+        <div><label class="fl">Kg esplosivo totale</label><input type="text" inputmode="decimal" class="finput" id="foc-kg-tot" oninput="focCalcInc()"></div>
+        <div><label class="fl">Mc abbattuti</label><input type="text" inputmode="decimal" class="finput" id="foc-mc-tot" oninput="focCalcInc()"></div>
       </div>
       <div class="stats" id="foc-inc-out" style="margin-top:10px;display:none;">
         <div class="stat"><div class="sl">Kg/mc</div><div class="sv" id="foc-inc-v">—</div></div>
@@ -8260,11 +8260,11 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
     <div class="preview-sec" style="margin-bottom:10px;">
       <div class="preview-head">Burden ottimale (Konya)</div>
       <div class="frow">
-        <div><label class="fl">Ø foro (mm)</label><input type="number" inputmode="decimal" class="finput" id="bk-d" placeholder="89" oninput="calcKonya()"></div>
-        <div><label class="fl">Densità esplosivo</label><input type="number" inputmode="decimal" class="finput" id="bk-re" placeholder="1.2" value="1.2" oninput="calcKonya()"></div>
+        <div><label class="fl">Ø foro (mm)</label><input type="text" inputmode="decimal" class="finput" id="bk-d" placeholder="89" oninput="calcKonya()"></div>
+        <div><label class="fl">Densità esplosivo</label><input type="text" inputmode="decimal" class="finput" id="bk-re" placeholder="1,2" value="1,2" oninput="calcKonya()"></div>
       </div>
       <label class="fl">Densità roccia (t/m³)</label>
-      <input type="number" inputmode="decimal" class="finput" id="bk-rr" placeholder="2.6" value="2.6" oninput="calcKonya()">
+      <input type="text" inputmode="decimal" class="finput" id="bk-rr" placeholder="2,6" value="2,6" oninput="calcKonya()">
       <div class="stats" id="bk-out" style="margin-top:10px;display:none;">
         <div class="stat"><div class="sl">Burden B</div><div class="sv" id="bk-b">—</div></div>
         <div class="stat"><div class="sl">Spaziatura S</div><div class="sv" id="bk-s">—</div></div>
@@ -8274,8 +8274,8 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
     <div class="preview-sec" style="margin-bottom:10px;">
       <div class="preview-head">PPV vibrazioni (UNI 9916)</div>
       <div class="frow3">
-        <div><label class="fl">Distanza (m)</label><input type="number" inputmode="decimal" class="finput" id="pv-d" oninput="calcPPV()"></div>
-        <div><label class="fl">Carica/ritardo (kg)</label><input type="number" inputmode="decimal" class="finput" id="pv-q" oninput="calcPPV()"></div>
+        <div><label class="fl">Distanza (m)</label><input type="text" inputmode="decimal" class="finput" id="pv-d" oninput="calcPPV()"></div>
+        <div><label class="fl">Carica/ritardo (kg)</label><input type="text" inputmode="decimal" class="finput" id="pv-q" oninput="calcPPV()"></div>
         <div><label class="fl">Tipo edificio</label><select class="finput" id="pv-t" onchange="calcPPV()"><option value="5">Civile (5)</option><option value="20">Industriale (20)</option></select></div>
       </div>
       <div class="stats" id="pv-out" style="margin-top:10px;display:none;">
@@ -8287,12 +8287,12 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
     <div class="preview-sec" style="margin-bottom:10px;">
       <div class="preview-head">Frammentazione (Kuz-Ram X50)</div>
       <div class="frow3">
-        <div><label class="fl">Fattore roccia A</label><input type="number" inputmode="decimal" class="finput" id="kr-a" placeholder="7" value="7" oninput="calcKuzRam()"></div>
-        <div><label class="fl">Vol/foro (m³)</label><input type="number" inputmode="decimal" class="finput" id="kr-v" oninput="calcKuzRam()"></div>
-        <div><label class="fl">Kg/foro</label><input type="number" inputmode="decimal" class="finput" id="kr-q" oninput="calcKuzRam()"></div>
+        <div><label class="fl">Fattore roccia A</label><input type="text" inputmode="decimal" class="finput" id="kr-a" placeholder="7" value="7" oninput="calcKuzRam()"></div>
+        <div><label class="fl">Vol/foro (m³)</label><input type="text" inputmode="decimal" class="finput" id="kr-v" oninput="calcKuzRam()"></div>
+        <div><label class="fl">Kg/foro</label><input type="text" inputmode="decimal" class="finput" id="kr-q" oninput="calcKuzRam()"></div>
       </div>
       <label class="fl">Potenza relativa esplosivo (ANFO=100)</label>
-      <input type="number" inputmode="decimal" class="finput" id="kr-e" placeholder="100" value="100" oninput="calcKuzRam()">
+      <input type="text" inputmode="decimal" class="finput" id="kr-e" placeholder="100" value="100" oninput="calcKuzRam()">
       <div class="stats" id="kr-out" style="margin-top:10px;display:none;">
         <div class="stat"><div class="sl">X50 (cm)</div><div class="sv" id="kr-x">—</div></div>
         <div class="stat"><div class="sl">Powder factor</div><div class="sv" id="kr-pf">—</div></div>
