@@ -464,6 +464,22 @@ bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
       **confini dei voli** invece di date libere: meglio togliere la possibilità
       di fare la domanda sbagliata che spiegare dopo perché la risposta non vale.
 
+- [x] **S14. Il ponte P2 nei due sensi + `shared/dw-ponti.js`** ✅ *(30/07,
+      `0bb30ca` + `d3345e7`)* — il ponte andava in un senso solo: chi compila il
+      rapportino non sapeva che fine faceva il numero che scriveva. Prima di
+      scriverne una seconda copia, la logica è passata in
+      **`shared/dw-ponti.js`**: serve a due app e non è di nessuna delle due, e
+      riscriverla era esattamente il difetto costato una giornata coi numeri.
+      Spostata anche la **regola del cumulo**, che era già scritta due volte
+      (Terra e Conti). Il test pretende l'**identità** delle funzioni, non il
+      comportamento: due copie uguali oggi divergono domani.
+      Lato Campo la decisione che conta è il **tono**: nessun rimprovero, perché
+      un rimprovero fa scrivere numeri prudenti invece di veri. Regola 6 in CI lo
+      tiene, e ha richiesto il complemento di `mascheraCodice` — il testo che
+      l'utente legge vive **dentro** le stringhe, che quella maschera nasconde.
+      E la densità non si chiede due volte: viene dal materiale già scritto
+      nell'autorizzazione di Terra.
+
 **La convenzione sui numeri è chiusa.** Sei app, core, campi scritti a mano,
 campi interi, file delle macchine.
 
