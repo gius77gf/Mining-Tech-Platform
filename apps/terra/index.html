@@ -895,7 +895,17 @@ a.dw-btn{text-decoration:none}
   import { mountExit, esc, csvCell, montaGuardiaInteri } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
-  montaGuardiaInteri((m) => toast(m, "err"));
+  // Oltre al toast, Terra segna in rosso il campo e scrive nel riquadro
+  // d'esito della sua sezione: la regola resta UNA SOLA, in shared/, e qui si
+  // aggiunge solo il modo di dirlo. (Vedi CAMPI_INTERI più sotto.)
+  montaGuardiaInteri((m, el) => {
+    const voce = el && SPIEGA_INTERI[el.id];
+    // `esito` mostra già il toast: chiamarlo e poi fare anche `toast(m)`
+    // significherebbe due messaggi per lo stesso fatto, uno sopra l'altro.
+    if (!voce) { toast(m, "err"); return; }
+    err(el.id, true);
+    esito(voce[1], voce[0] + ". " + m, "err");
+  });
   const $ = (id) => document.getElementById(id);
   // ── CAMPI DECIMALI SCRITTI A MANO ─────────────────────────────────────
   // Volumi, densità, quote e GSD si scrivono in campi
@@ -1854,33 +1864,32 @@ a.dw-btn{text-decoration:none}
   // ── CAMPI INTERI: la virgola si ferma sulla porta ────────────────────
   // Questi cinque campi restano <input type="number">, dove lo spinner è un
   // aiuto e i decimali non servono: giorni, mesi, anni e una soglia in
-  // percentuale non si scrivono con la virgola. Il problema è che il browser,
-  // se la virgola la si digita, non la rifiuta e non la segnala: la butta via
-  // e INCOLLA le cifre — «2,4» giorni di preavviso diventano «24», dieci volte
-  // tanto, con il campo che sembra a posto. Qui il carattere si intercetta
-  // PRIMA che entri e si dice perché, invece di lasciar passare un numero
-  // decuplicato. `beforeinput` vede anche l'incolla, non solo la tastiera.
-  const CAMPI_INTERI = [
-    ["aut-soglia",   "La soglia di guardia si scrive in percento intero",       "aut-esito"],
-    ["aut-anni",     "Gli anni su cui misurare il ritmo sono un numero intero", "aut-esito"],
-    ["aut-preavviso","Il preavviso si conta in giorni interi",                  "aut-esito"],
-    ["new-scad-pre", "Il preavviso si conta in giorni interi",                  "scad-esito"],
-    ["new-scad-ric", "La ricorrenza si conta in mesi interi",                   "scad-esito"],
-  ];
-  // Misurato: `beforeinput` VEDE la virgola (data = ","), ma fermarla non basta
-  // — il browser l'avrebbe scartata da sé, e le cifre intorno restano attaccate
-  // («2» + «4» = «24»). Perciò, oltre a dirlo, il campo si SVUOTA e si segna in
-  // rosso: così non resta lì un numero plausibile e sbagliato che sembra scelto.
-  for (const [id, spiega, box] of CAMPI_INTERI) {
+  // percentuale non si scrivono con la virgola.
+  //
+  // QUI C'ERA UNA SECONDA IMPLEMENTAZIONE della regola già viva in shared/, e
+  // le due si pestavano i piedi. Trovata digitando davvero: «1.500» in questi
+  // cinque campi diventava «500». La copia locale, oltre a rifiutare il
+  // separatore, SVUOTAVA il campo — e chi continua a scrivere si ritrova un
+  // numero plausibile e sbagliato, cioè esattamente la cosa che lo svuotamento
+  // voleva evitare. La guardia condivisa, in quello stesso caso, dà 1500: il
+  // numero giusto. Resta una regola sola, in shared/; qui restano solo i TESTI
+  // di Terra e il segno rosso sul campo, che la guardia non può conoscere.
+  const SPIEGA_INTERI = {
+    "aut-soglia":    ["La soglia di guardia si scrive in percento intero",       "aut-esito"],
+    "aut-anni":      ["Gli anni su cui misurare il ritmo sono un numero intero", "aut-esito"],
+    "aut-preavviso": ["Il preavviso si conta in giorni interi",                  "aut-esito"],
+    "new-scad-pre":  ["Il preavviso si conta in giorni interi",                  "scad-esito"],
+    "new-scad-ric":  ["La ricorrenza si conta in mesi interi",                   "scad-esito"],
+  };
+  // Quando il rosso se ne va. Misurato: toglierlo a ogni `input` lo rendeva
+  // invisibile — scrivendo «2,4» la sequenza è «2» (input, rosso via), «,»
+  // (rifiutata, rosso acceso), «4» (input, rosso via), e il campo resta con
+  // «24» dentro e l'aria di stare bene. Adesso resta finché il campo non viene
+  // SVUOTATO o non lo si lascia: due gesti voluti, non un tasto qualsiasi.
+  for (const id of Object.keys(SPIEGA_INTERI)) {
     const el = $(id); if (!el) continue;
-    el.addEventListener("beforeinput", (e) => {
-      if (!e.data || !/[.,]/.test(e.data)) return;
-      e.preventDefault();
-      el.value = "";
-      err(id, true);
-      esito(box, spiega + ": la virgola qui non si può usare, e il browser la scarta attaccando le cifre («2,4» diventerebbe «24»). Ho svuotato il campo: riscrivi il numero intero.", "err");
-    });
-    el.addEventListener("input", () => err(id, false));
+    el.addEventListener("input", () => { if (!el.value) err(id, false); });
+    el.addEventListener("blur", () => err(id, false));
   }
 
   $("btn-aut-salva").onclick = async () => {

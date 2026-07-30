@@ -354,7 +354,10 @@ export function montaGuardiaInteri(avvisa) {
       el.value = d.valore;
       el.dispatchEvent(new Event("input", { bubbles: true }));
     }
-    dillo(d.messaggio);
+    // l'elemento arriva a chi avvisa: serve alle app che, oltre al toast,
+    // vogliono segnare in rosso il campo e scrivere nel proprio riquadro
+    // d'esito. Senza, l'unico modo era riscriversi la regola in casa.
+    dillo(d.messaggio, el);
   });
 }
 

@@ -7,7 +7,7 @@
 // perché non falliscono i test, si vedono solo aprendo la pagina giusta.
 // Qui diventano controlli che girano in automatico.
 //
-// Otto regole, oggi:
+// Nove regole, oggi:
 //  1. NIENTE DIALOGHI DEL BROWSER. `alert()`, `confirm()`, `prompt()` sono
 //     vietati dalla direttiva sullo stile. La ragione non è estetica: la
 //     finestra ha il carattere e i bottoni del sistema operativo, su Android
@@ -47,6 +47,11 @@
 //     dove il codice diceva «attenzione». Trovato dal vero: `.note.avviso`
 //     esisteva in Terra e in Sentinella, in Campo e Scudo no, e tre note
 //     d'avviso rendevano come note qualunque.
+//  9. NESSUNA SUPERFICIE SI RISCRIVE IN CASA LA REGOLA DEGLI INTERI. Terra ne
+//     aveva una copia, scritta prima che la guardia vivesse in `shared/` e con
+//     un comportamento diverso: svuotava il campo. Montate tutte e due, «1.500»
+//     diventava «500» — un numero plausibile e sbagliato, cioè la cosa che lo
+//     svuotamento voleva evitare. Trovato digitando davvero, non leggendo.
 //
 // Come si aggiunge una regola: una funzione che restituisce l'elenco delle
 // violazioni con file e riga, e un `test(...)` che pretende zero.
@@ -592,6 +597,58 @@ test("la guardia condivisa esiste e distingue interi da decimali", () => {
   ok(campiInteri('<input type="number" step="0.1">') === 0, "un decimale non è un campo intero");
   ok(campiInteri('<input type="number" inputmode="decimal">') === 0, "e nemmeno uno dichiarato dall'inputmode");
   ok(campiInteri('<input type="text" inputmode="numeric">') === 0, "un campo di testo non ha bisogno della guardia");
+});
+
+console.log("\n── Regola 9: nessuna superficie si riscrive in casa la regola degli interi ──");
+// Trovata dal vero, digitando: in Terra «1.500» diventava «500». Terra aveva la
+// sua copia della stessa regola, scritta prima che la guardia vivesse in
+// `shared/`, e con un comportamento DIVERSO — oltre a rifiutare il separatore
+// svuotava il campo. Montate tutte e due, il «1» spariva e restava «500»: un
+// numero plausibile e sbagliato, cioè proprio quello che lo svuotamento voleva
+// evitare. La guardia condivisa, da sola, in quel caso dà 1500.
+// La regola vincolante del progetto dice che una regola che serve a due app vive
+// in `shared/` e non si riscrive; questa la rende verificabile.
+// Cosa si cerca: un ascoltatore `beforeinput` che, fuori da `shared/`, guarda i
+// separatori decimali. Il testo si prende senza commenti (i commenti PARLANO di
+// beforeinput, e non sono codice), non mascherato, perché qui interessa il
+// codice vero e le espressioni regolari ci vivono dentro.
+function guardieInCasa(src) {
+  const corpo = senzaCommenti(src);
+  const fuori = [];
+  // FINESTRA A LUNGHEZZA FISSA, non un'espressione regolare che «arriva fino
+  // alla parentesi»: la prima versione era `[\s\S]{0,400}?\)`, e il non greedy
+  // si fermava alla parentesi di `(e)`, tre caratteri dopo. Guardava un pezzo
+  // in cui la virgola non poteva esserci, quindi non trovava niente su nessuna
+  // superficie — e i controlli passavano a vuoto. L'ha detto la controprova.
+  const re = /addEventListener\(\s*["']beforeinput["']/g;
+  let m;
+  while ((m = re.exec(corpo))) {
+    const finestra = corpo.slice(m.index, m.index + 400);
+    if (/\[\.,\]|\[,\.\]|\bvirgola\b/.test(finestra)) fuori.push(finestra.slice(0, 90).replace(/\s+/g, " "));
+  }
+  return fuori;
+}
+for (const [nome, rel] of SUPERFICI) {
+  const src = leggi(rel);
+  if (src === null) continue;
+  const suoi = guardieInCasa(src);
+  test(`${nome}: la regola degli interi non è riscritta in casa`, () => {
+    ok(suoi.length === 0,
+      `${rel} intercetta beforeinput sui separatori per conto proprio (${suoi.length}): ` +
+      `la regola sta in shared/, e due copie con comportamenti diversi si pestano i piedi — ${suoi[0] || ""}`);
+  });
+}
+test("la regola 9 sa vedere il difetto che è stato tolto", () => {
+  // il codice VERO che stava in Terra, rimesso qui dentro: se il controllo non
+  // lo vede, non sta guardando dove crede
+  const difetto = `el.addEventListener("beforeinput", (e) => {
+      if (!e.data || !/[.,]/.test(e.data)) return;
+      e.preventDefault(); el.value = ""; });`;
+  ok(guardieInCasa(difetto).length === 1, "la copia locale che svuotava il campo viene vista");
+  ok(guardieInCasa('// qui una volta c\'era un addEventListener("beforeinput") con la virgola').length === 0,
+    "un commento che ne parla non è una violazione");
+  ok(guardieInCasa('document.addEventListener("beforeinput", (ev) => { registra(ev); });').length === 0,
+    "un beforeinput che non guarda i separatori non c'entra");
 });
 
 /* ══════════════════════════════════════════════════════════════════════

@@ -462,6 +462,22 @@ bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
       guardia togliesse gli **spazi** delle migliaia; misurato, Chromium li
       toglie già da solo e «1 500 000» vale 1500000 — asserzione corretta al
       contrario, con la misura scritta accanto.
+      **E poi le altre sei superfici** *(31/07)* — stesse tre domande, digitando:
+      Campo 2/2, Flotta 4/4, Scudo 2/2, Sentinella 3/3, Terra 5/5. **48
+      asserzioni**, e la controprova ne fa cadere **32** (esattamente le due per
+      campo che dipendono dalla guardia). Il core resta fuori: si apre sulla
+      schermata di accesso e i suoi tre campi interi stanno oltre il login, che
+      in locale non si può fare.
+      **Difetto vero trovato in Terra**: «1.500» diventava **«500»**. Terra
+      aveva una **seconda implementazione** della stessa regola, scritta prima
+      che la guardia vivesse in `shared/` e con un comportamento diverso —
+      svuotava il campo. Montate tutte e due, la prima cifra spariva e restava
+      un numero plausibile e sbagliato: proprio quello che lo svuotamento
+      voleva evitare. Tolta la copia; restano in Terra solo i suoi TESTI e il
+      segno rosso, che ora arrivano dalla guardia condivisa (che passa anche
+      l'elemento a chi avvisa). **Regola 9 di `run-stile.mjs`**: nessuna
+      superficie riscrive in casa la regola degli interi — e la controprova la
+      rimette nel file vero per pretendere che fallisca.
 
 - [x] **S13. Terza iterazione sulla sezione dei turni di Terra** ✅ *(30/07,
       `95e0abb`)* — renderizzati i sei stati che non avevo mai visto (Campo
