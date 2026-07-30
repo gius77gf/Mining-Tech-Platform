@@ -540,6 +540,18 @@ bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
       esposta in `dwGrafici.geometria`: 18 asserzioni nuove nella suite, e sette
       grafici di riferimento identici carattere per carattere a due larghezze.
 
+- [x] **S20. Le etichette delle barre: troncate misurando, con respiro** ✅ *(31/07,
+      `aac2ba9`)* — stessa classe di difetto della linea, in una funzione che nessuno
+      aveva guardato. Misurato con nomi veri a 390 px: nel **verticale** la troncatura
+      contava i caratteri e non lasciava respiro (due nomi di fronte attaccati di
+      4 px, «Bravo»+«Charl…» una parola sola); nell'**orizzontale** non c'era
+      troncatura affatto e un nome lungo **usciva dal disegno**. Ora la larghezza si
+      misura e il taglio sta in `tagliaA`, pura: niente spazi o trattini appesi ai
+      puntini. Respiro: **una** costante per tutto il motore. La rotazione delle
+      etichette è stata considerata e **scartata con la ragione scritta**.
+      `confronta-svg.mjs` esteso alle barre, con un caso dichiarato «deve cambiare»
+      perché il confronto dimostri di guardare.
+
 **La convenzione sui numeri è chiusa.** Sei app, core, campi scritti a mano,
 campi interi, file delle macchine.
 
