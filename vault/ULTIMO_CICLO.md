@@ -5,14 +5,15 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-07-30 13:02 UTC
-**Cosa sta per fare:** la vetrina dell'ecosistema (`apps/index.html`) è appena
-stata rifatta per la presentazione del fondatore: apertura, nove schede con
-l'anteprima vera di ogni app, raggruppamento per momento del lavoro, sezione
-sui ponti. Adesso si prosegue con le rifiniture della vetrina (lettura sul
-telefono, che è molto lunga) e poi con le seconde iterazioni delle app e i
-ponti fra loro.
-**Commit di partenza:** `3fabe22`
+**Ultimo ciclo riuscito:** 2026-07-30 15:38 UTC
+**Cosa sta per fare:** chiusi tre difetti «silenziosi» — quelli che non danno
+errore e perciò nessuno vede: un riquadro che diceva un colore diverso dal
+proprio stato, l'ora che diventava «H» dentro le pastiglie di Flotta (e con lei
+un difetto più vecchio, «km/h» che usciva «km/H»), e un'app intera — Conti —
+che nessun banco del browser aveva mai aperto. Scritta anche la risposta alla
+domanda che arriverà alla presentazione: perché esistono sia Deepwork sia
+Genesi. Adesso si prosegue con la **seconda iterazione della vetrina**.
+**Commit di partenza:** `7512411`
 
 ---
 

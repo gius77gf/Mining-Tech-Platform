@@ -707,7 +707,28 @@ campi interi, file delle macchine.
 - [ ] Q1. Proposte di `docs/RICERCA_DEEPWORKID_202607.md` (ruoli reali di
       cava, onboarding, GDPR) — *da leggere quando la ricerca è depositata*.
 - [ ] Q2. Suite test da 364 a **oltre 420** (nuove collezioni e helper).
+      *30/07: KPI 341 + stile 115 + demo 7 + helper 43 + manifest 9 = **515**
+      prove che girano con `node`, più i nove banchi del browser
+      (`tests/browser/tutti.mjs`). La soglia è passata; resta da tenerla utile,
+      non alta: le prove che contano sono quelle che hanno una controprova.*
 - [ ] Q3. Revisione di sicurezza del codice nuovo.
+
+### Difetti chiusi il 30/07 (tutti «silenziosi»: nessuno dava errore)
+- [x] La **striscia** e la **pastiglia** di un riquadro dicevano un colore
+      diverso dal loro stato (Terra: proiezione fuori piano, verde a 1,64:1).
+      Regole di stato ora in `shared/` una volta sola; banco `note-stato.mjs`
+      con controprova (14 combinazioni su 48 cadono col difetto rimesso).
+- [x] **«h»** (l'ora) non era fra le unità salvate dal maiuscolo: le pastiglie
+      di Flotta dicevano «TRA 24,5 H». E l'elenco delle unità aveva l'**ordine
+      scritto a mano**: «40 km/h» usciva «40 km/H», «2,6 kg/m³» usciva
+      «kg/M³». Ora l'ordine si calcola.
+- [x] **Conti non era in nessun elenco di banco**: un'app intera che nessuna
+      prova del browser aveva mai aperto. L'elenco delle superfici sta ora solo
+      in `giro.mjs`. Aggiunta la domanda che mancava: non «la guardia
+      funziona?» ma «c'è?».
+- [x] Scritta la risposta alla domanda della presentazione — perché esistono
+      sia Deepwork sia Genesi (`docs/PERCHE_DEEPWORK_E_GENESI.md`): tre
+      proposte sulle sovrapposizioni, **in attesa del fondatore**.
 
 ---
 
