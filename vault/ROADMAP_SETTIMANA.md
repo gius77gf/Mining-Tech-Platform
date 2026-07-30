@@ -518,6 +518,16 @@ bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
       «con-viaggi» era in realtà quello normale. Ora entrambe le prove sugli stati
       pretendono che la trasformazione abbia cambiato la sorgente.
 
+- [x] **S18. Terza iterazione lato Campo: le tre iterazioni sono fatte su
+      entrambi i capi del ponte** ✅ *(31/07, `9a2df65`)* — due note invece di una,
+      che è già la convenzione dell'app. Il costo è **misurato e dichiarato**: il
+      caso parziale cresce a 209 px (due padding), quello normale scende a 115 e
+      quello senza densità a 101. Trentun pixel comprano un testo che si legge
+      invece di un blocco che si salta. E la seconda differenza dal lato Terra —
+      nessuna tendina del periodo — è ora una **decisione scritta**: chi compila
+      guarda il periodo appena chiuso, lo storico è una domanda da quadro di
+      controllo e sta in Terra col grafico.
+
 **La convenzione sui numeri è chiusa.** Sei app, core, campi scritti a mano,
 campi interi, file delle macchine.
 
