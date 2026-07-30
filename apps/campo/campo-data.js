@@ -204,6 +204,15 @@ export const DEMO = {
   // chi apriva «collega» trovava un elenco di voci disabilitate senza nessuno da
   // scegliere. In un'azienda vera l'anagrafica del personale è più larga della
   // squadra in turno, ed è proprio da lì che si pesca.
+  // I FRONTI, letti da Terra. Nella dimostrazione sono gli stessi tre di
+  // `terra-data.js`, identificativi compresi: se qui ne inventassi altri il
+  // ponte funzionerebbe in demo e si romperebbe in produzione, che è il modo
+  // peggiore di sbagliare — la prova nella suite pretende che coincidano.
+  frontiTerra: [
+    { id: "f1", nome: "Fronte Nord", stato: "attivo" },
+    { id: "f2", nome: "Fronte Est", stato: "attivo" },
+    { id: "f3", nome: "Fronte Sud", stato: "sospeso" },
+  ],
   lavoratoriScudo: [
     { id: "d1", nome: "Mario Rossi", ruolo: "Fochino", attivo: true },
     { id: "d2", nome: "Luca Bianchi", ruolo: "Escavatorista", attivo: true },
@@ -226,11 +235,13 @@ export const DEMO = {
   ],
   rapportini: [
     // i turni dei giorni fra i due voli del drone: servono al ponte con Terra
-    { id: "rs1", data: GIORNI_FA(19), turno: "Mattina",    titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2400, prodUnita: "t", ora: "13:00", stato: "inviato" },
-    { id: "rs2", data: GIORNI_FA(17), turno: "Mattina",    titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2550, prodUnita: "t", ora: "13:10", stato: "inviato" },
-    { id: "rs3", data: GIORNI_FA(14), turno: "Pomeriggio", titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2400, prodUnita: "t", ora: "20:00", stato: "inviato" },
-    { id: "rs4", data: GIORNI_FA(12), turno: "Mattina",    titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2200, prodUnita: "t", ora: "12:50", stato: "inviato" },
-    { id: "rs5", data: GIORNI_FA(9),  turno: "Mattina",    titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2450, prodUnita: "t", ora: "13:05", stato: "inviato" },
+    { id: "rs1", data: GIORNI_FA(19), turno: "Mattina",    titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2400, prodUnita: "t", ora: "13:00", stato: "inviato", fronteId: "f1" },
+    { id: "rs2", data: GIORNI_FA(17), turno: "Mattina",    titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2550, prodUnita: "t", ora: "13:10", stato: "inviato", fronteId: "f1" },
+    { id: "rs3", data: GIORNI_FA(14), turno: "Pomeriggio", titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2400, prodUnita: "t", ora: "20:00", stato: "inviato", fronteId: "f2" },
+    { id: "rs4", data: GIORNI_FA(12), turno: "Mattina",    titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2200, prodUnita: "t", ora: "12:50", stato: "inviato", fronteId: "f1" },
+    { id: "rs5", data: GIORNI_FA(9),  turno: "Mattina",    titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2450, prodUnita: "t", ora: "13:05", stato: "inviato", fronteId: "f2" },
+    // rs6 resta di proposito SENZA fronte: la ripartizione deve saper dire
+    // «questa non si sa da dove viene» invece di spalmarla a intuito
     { id: "rs6", data: GIORNI_FA(8),  turno: "Pomeriggio", titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 1860, prodUnita: "t", ora: "19:55", stato: "inviato" },
     { id: "r1", data: OGGI_DEMO, turno: "Mattina", titolo: "Rapportino perforazione", squadra: "Squadra A", prodQta: 120, prodUnita: "t", ora: "11:20", stato: "inviato" },
     { id: "r2", data: OGGI_DEMO, turno: "Mattina", titolo: "Rapportino impianto", squadra: "Squadra C", prodQta: null, prodUnita: "t", ora: "", stato: "bozza" },
@@ -1215,6 +1226,23 @@ export async function campoData() {
             .docs.map(d => ({ id: d.id, ...d.data() }));
         } catch (e) { return null; }
       };
+      // i FRONTI di Terra: servono alla tendina del rapportino, perché il
+      // fronte si sceglie da un elenco e si registra col suo identificativo.
+      // ⛔ Mai per nome: basta che qualcuno rinomini un fronte e la produzione
+      // finisce su quello sbagliato, su un numero che va nella denuncia.
+      // Se Terra non c'è torna null, e la tendina lo dice invece di mostrarsi
+      // vuota come se non ci fossero fronti.
+      api.frontiTerra = async () => {
+        if (idTerra === undefined) {
+          try { idTerra = await DeepworkID.init({ appId: "terra" }); }
+          catch (e) { idTerra = null; }
+        }
+        if (!idTerra) return null;
+        try {
+          return (await getDocs(idTerra.orgCollection("fronti")))
+            .docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e) { return null; }
+      };
       // e l'autorizzazione, da cui si ricava la densità del materiale: a chi
       // compila un rapportino non si chiede un numero che è già registrato
       api.autorizzazioniTerra = async () => {
@@ -1271,6 +1299,9 @@ export async function campoData() {
       lavoratoriScudo: async () => mem.lavoratoriScudo || [],
       scadenzeScudo: async () => mem.scadenzeScudo || [],
       autorizzazioniTerra: async () => mem.autorizzazioniTerra || [],
+      // i fronti di Terra: in dimostrazione sono gli stessi tre di terra-data,
+      // identificativi compresi (la suite pretende che coincidano)
+      frontiTerra: async () => mem.frontiTerra || [],
       obiettivi: async () => mem.obiettivi || (mem.obiettivi = []),
       checklist: async () => mem.checklist || (mem.checklist = []),
       presenze: async () => mem.presenze || (mem.presenze = []),

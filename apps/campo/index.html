@@ -731,6 +731,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       <select class="dw-input" id="new-rap-unita" title="Unità di misura della produzione" aria-label="Unità di misura" style="flex:1 1 110px;"></select>
     </div>
     <div class="frow">
+      <select class="dw-input" id="new-rap-fronte" title="Da quale fronte viene la produzione" aria-label="Fronte di provenienza" style="flex:1 1 200px;"></select>
+      <span class="form-hint" style="flex:2 1 200px;" id="new-rap-fronte-nota"></span>
+    </div>
+    <div class="frow">
       <input class="dw-input" id="new-rap-note" placeholder="Consegne al turno dopo (handover)" style="flex:2 1 190px;">
       <button class="dw-btn" id="btn-add-rap">Crea bozza</button>
     </div>
@@ -1205,6 +1209,37 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   $("ob-turno").innerHTML = optTurni(turnoCorrente());
   $("chk-turno").innerHTML = optTurni(turnoCorrente());
   $("new-rap-unita").innerHTML = UNITA_PRODUZIONE.map(u => `<option>${u}</option>`).join("");
+
+  // ── I FRONTI, LETTI DA TERRA (ponte P2) ───────────────────────────────
+  // Terra è l'unico posto dove i fronti si creano e si rinominano: Campo li
+  // legge e basta. Tre stati, e nessuno dei tre è una tendina vuota che sembra
+  // «non ci sono fronti»:
+  //   · Terra risponde con dei fronti → si scelgono;
+  //   · Terra risponde ma non ne ha    → lo si dice, e si spiega dove crearli;
+  //   · Terra non c'è o non si legge   → lo si dice, e il campo si spegne.
+  // «Non indicato» resta sempre la prima voce: un turno che ha lavorato su due
+  // fronti non deve essere costretto a scegliere a caso, e il conto sa
+  // dichiarare quello che non è attribuito invece di spalmarlo a intuito.
+  async function montaFronti() {
+    const sel = $("new-rap-fronte"), nota = $("new-rap-fronte-nota");
+    if (!sel) return;
+    let fronti = null;
+    try { fronti = db.frontiTerra ? await db.frontiTerra() : null; } catch (e) { fronti = null; }
+    if (fronti === null) {
+      sel.innerHTML = `<option value="">Fronte non indicato</option>`;
+      sel.disabled = true;
+      nota.textContent = "I fronti arrivano da Terra: qui non è raggiungibile, quindi il turno resta senza fronte.";
+      return;
+    }
+    sel.disabled = false;
+    const vivi = fronti.filter(f => f && f.id);
+    sel.innerHTML = `<option value="">Fronte non indicato</option>`
+      + vivi.map(f => `<option value="${esc(f.id)}">${esc(f.nome || f.id)}</option>`).join("");
+    nota.textContent = vivi.length
+      ? "Da quale fronte viene la produzione. Serve a Terra per sapere dove si sta scavando fra un rilievo e l'altro."
+      : "In Terra non c'è ancora nessun fronte: creali lì e compariranno qui.";
+  }
+  await montaFronti();
   // L'obiettivo si può mettere solo su ciò che l'app misura: la produzione
   // registrata nei rapportini e le attività concluse. Niente altro.
   $("ob-unita").innerHTML = UNITA_PRODUZIONE.concat([UNITA_ATTIVITA]).map(u => `<option>${esc(u)}</option>`).join("");
@@ -2687,9 +2722,14 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const turno = $("new-rap-turno").value || turnoCorrente(), unita = $("new-rap-unita").value || UNITA_PRODUZIONE[0];
     // punto di scrittura 8 — nuovo rapportino (e con lui la produzione del turno)
     if (bloccato(data, turno, "il rapportino «" + titolo + "»", "mode-note")) return;
+    // il fronte si registra col suo IDENTIFICATIVO, mai col nome: se domani
+    // qualcuno rinomina un fronte in Terra, la produzione già registrata resta
+    // attaccata a quello giusto. Vuoto = «non indicato», ed è una risposta
+    // legittima che il conto sa dichiarare — non un ripiego silenzioso.
+    const fronteId = $("new-rap-fronte") ? $("new-rap-fronte").value : "";
     await db.aggiungi("rapportini", { titolo, squadra: $("new-rap-squadra").value, data, turno,
       prodQta: qta, prodUnita: unita, note: $("new-rap-note").value.trim(),
-      ora: "", stato: "bozza" });
+      fronteId, ora: "", stato: "bozza" });
     $("new-rap-titolo").value = ""; $("new-rap-prod").value = ""; $("new-rap-note").value = "";
     $("new-rap-data").value = OGGI; $("new-rap-turno").value = turnoCorrente();
     esito("mode-note", "Bozza creata: " + titolo + " (" + dmy(data) + " · turno " + turno + (qta != null ? " · " + formattaProduzione(qta, unita) : "") + "). Toccala nell'elenco per inviarla.", "success");

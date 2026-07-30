@@ -3118,6 +3118,29 @@ test("l'arrotondamento non può peggiorare il numero", () => {
     ok(vuoto.copertura === null, "e la copertura è «non pervenuta», non 0%");
   });
 
+  test("P2: i fronti della dimostrazione di Campo sono quelli di Terra", async () => {
+    /* Se qui inventassi altri identificativi il ponte funzionerebbe in
+       dimostrazione e si romperebbe in produzione, che è il modo peggiore di
+       sbagliare: nessuno se ne accorge finché non è davanti a un cliente. */
+    const dC = await campo.campoData(), dT = await terra.terraData();
+    const idC = (await dC.frontiTerra()).map((f) => f.id).sort();
+    const idT = (await dT.fronti()).map((f) => f.id).sort();
+    ok(idC.length > 0, "Campo ha dei fronti dimostrativi");
+    eq(idC.join(","), idT.join(","), "gli stessi identificativi di Terra");
+  });
+
+  test("P2: la dimostrazione di Campo esercita davvero la ripartizione", async () => {
+    /* dati d'esempio che non toccano il caso interessante sono dati che
+       mentono: qui si pretende che ci sia sia produzione attribuita sia
+       produzione senza fronte, altrimenti la nota «non attribuita» non si
+       vedrebbe mai e nessuno saprebbe se funziona */
+    const dC = await campo.campoData();
+    const r = produzionePerFronte(await dC.rapportini(), await dC.frontiTerra(), "", "", 2.4);
+    ok(r.righe.length >= 2, `almeno due fronti con produzione (${r.righe.length})`);
+    ok(r.senzaFronte.m3 > 0, "e qualcosa che dichiaratamente non è attribuito");
+    ok(r.copertura > 0 && r.copertura < 100, `copertura fra 0 e 100 (${r.copertura})`);
+  });
+
   test("P2: la funzione vive in shared/ e le app la ri-esportano identica", () => {
     /* non «si comporta uguale»: È la stessa. Due copie uguali oggi divergono
        domani senza che nessuno lo veda. */
