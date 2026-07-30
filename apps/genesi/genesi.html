@@ -526,6 +526,15 @@ body.scr-sim #tl{bottom:80px}
 #d2-cta:hover{filter:brightness(1.06)}
 @media (max-width:760px){
   #brand h1{font-size:17px} #brand .tag{display:none} #brand .mark svg{width:32px}
+  /* SOTTO I 420 px IL NOME SPARISCE E RESTA IL SEGNO. Misurato a 390: il
+     marchio arriva a 243 px e la barra dei comandi comincia a 85 — 158 px di
+     sovrapposizione, con i bottoni scritti sopra il nome dell'app. Il nome
+     però lo si è appena letto entrando: sulla schermata 3D lo spazio serve ai
+     comandi, e il segno da solo basta a dire dove si è. */
+  @media(max-width:420px){
+    #brand h1{display:none}
+    #brand{gap:0}
+  }
   /* Su schermo stretto la barra va a capo: le sta larga solo il 60% e finiva
      sopra il titolo dell'app. Le si lascia più spazio e i bottoni non si
      accavallano più col nome. */

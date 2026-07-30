@@ -6926,7 +6926,12 @@ body.outdoor-mode .login-glow{display:none;}
 .login-msg.success{background:rgba(102,187,106,.08);border-color:rgba(102,187,106,.3);color:var(--success);}
 .topbar{background:rgba(20,16,10,.9);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 14px;height:56px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;z-index:100;gap:8px;}
 body.outdoor-mode .topbar{height:60px;background:#000;}
-.logo-sm{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:3px;color:var(--amber);}
+.logo-sm{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:3px;color:var(--amber);
+  /* IL NOME NON VA A CAPO. Misurato a 390 px: «Giuseppe F.» prendeva due
+     righe e faceva crescere la barra in alto, che è l'unico elemento fermo
+     della pagina. Un nome lungo si tronca con i puntini — la persona sa già
+     come si chiama — invece di deformare l'impianto. */
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
 .role-sm{font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:2px;}
 .logout-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:7px 11px;font-size:11px;cursor:pointer;letter-spacing:1px;text-transform:uppercase;transition:all .2s;font-family:'Barlow',sans-serif;white-space:nowrap;min-height:var(--tap);}
 .logout-btn:hover{border-color:var(--danger);color:var(--danger);}
@@ -7064,6 +7069,11 @@ textarea.finput{resize:vertical;min-height:60px;}
 .tt{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:2px;text-transform:uppercase;}
 .td{font-size:10px;color:var(--muted);margin-top:2px;}
 .tile-feat{grid-column:1/-1;background:linear-gradient(135deg,#ffab00 0%,#ff6d00 100%);color:#100d07;padding:18px 20px;display:flex;align-items:center;gap:16px;border:none;box-shadow:0 6px 20px rgba(255,109,0,.35);position:relative;}
+/* LA FRECCIA STA SOPRA IL TESTO. Misurato a 390 px: il titolo arriva a 354 px
+   e la freccia comincia a 347. La freccia è fuori dal flusso (assoluta a
+   destra), quindi il testo non sa che c'è: bisogna dirglielo, ed è la stessa
+   ragione per cui `.top h1` ha già un `padding-right`. */
+.tile-feat > div:not([class]){min-width:0;padding-right:26px;}
 .tile-feat:hover{box-shadow:0 8px 28px rgba(255,109,0,.5);transform:translateY(-2px);border:none;}
 .tile-feat .ti-big{font-size:44px;line-height:1;}
 .tile-feat .tt-big{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:3px;text-transform:uppercase;line-height:1.1;}
@@ -7196,6 +7206,15 @@ body.light-mode .map-wrap iframe,body.outdoor-mode .map-wrap iframe{filter:none;
 .topbar-search-icon{position:absolute;left:8px;color:var(--muted);font-size:13px;pointer-events:none;z-index:1;}
 .topbar-search-input{background:var(--card);border:1px solid var(--border);color:var(--text);padding:7px 10px 7px 28px;font-family:'Barlow',sans-serif;font-size:13px;outline:none;width:130px;transition:width .3s,border-color .2s;min-height:36px;}
 .topbar-search-input:focus{border-color:var(--amber);width:200px;}
+/* SU SCHERMO STRETTO CEDE LA RICERCA, NON IL NOME. Misurato a 390 px: con la
+   ricerca a 130 px fissi, al nome ne restavano 44 e diventava «Gi…». La
+   ricerca si può riaprire toccandola — il proprio nome no: o si legge o non
+   c'è. Al fuoco torna larga, perché mentre si scrive serve vedere cosa si è
+   scritto. */
+@media(max-width:430px){
+  .topbar-search-input{width:74px;}
+  .topbar-search-input:focus{width:170px;}
+}
 body.outdoor-mode .topbar-search-input{background:#fff;border:2px solid #c8b98a;color:#1a1406;width:110px;}
 body.outdoor-mode .topbar-search-input:focus{border-color:#c77800;width:180px;}
 /* Risultati ricerca: posizionati sotto la topbar */
@@ -7733,8 +7752,13 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
 <!-- ══════════ HOME ══════════ -->
 <div class="screen" id="screen-home">
   <div class="topbar">
-    <div style="display:flex;align-items:center;gap:10px;">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 92" width="32" height="28">
+    <!-- `min-width:0` e `flex:0 1 auto`: senza, questo blocco pretende la sua
+         larghezza naturale e spinge fuori schermo quello che viene dopo. A
+         390 px il bottone di uscita finiva a 429, cioè NON si poteva uscire dal
+         proprio account su un telefono stretto. Il difetto c'era già prima del
+         nome su una riga sola; quello l'ha solo reso più evidente. -->
+    <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:0 1 auto;">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 92" width="32" height="28" style="flex:none;">
         <polygon points="60,72 16,17 104,17" fill="#14100a"/>
         <polygon points="60,70 18,19 102,19" fill="none" stroke="#2a2010" stroke-width="1"/>
         <polygon points="60,68 22,21 98,21" fill="#1c1608" stroke="#ffab00" stroke-width="2"/>
@@ -7758,12 +7782,12 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
         <circle cx="70" cy="83" r="1.8" fill="#ff6d00"/>
         <circle cx="60" cy="86" r="3" fill="#ffd54f"/>
       </svg>
-      <div>
+      <div style="min-width:0;">
         <div class="logo-sm" id="h-user">Utente</div>
         <div class="role-sm" id="h-role">ruolo</div>
       </div>
     </div>
-    <div style="display:flex;gap:6px;align-items:center;flex:1;justify-content:flex-end;">
+    <div style="display:flex;gap:6px;align-items:center;flex:1 0 auto;justify-content:flex-end;">
       <span id="sync-badge" class="sync-badge" style="display:none;"></span>
       <button id="btn-install-pwa" class="install-btn" onclick="installPWA()" style="display:none;" title="Installa app" aria-label="Installa app">⤓</button>
       <button class="outdoor-toggle" id="btn-outdoor" onclick="toggleOutdoor()" title="Cambia tema (chiaro/scuro)" aria-label="Cambia tema chiaro o scuro">☀️</button>
