@@ -1528,7 +1528,9 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       <div class="info"><div class="name">${esc(q.nome)}</div><div class="meta">${q.persone == null ? "persone non indicate" : esc(q.persone) + " persone"}${inForza?" · "+inForza+" in anagrafica":""} · ${esc(q.area||"area non indicata")}<br>oggi: <b>${c.aperte}</b> ${c.aperte===1?"attività aperta":"attività aperte"} · ${c.concluse} ${c.concluse===1?"conclusa":"concluse"}</div></div>
       <span class="badge ${QB[q.stato][0]}">${q.stato==="ferma"?I.allarme:""}${QB[q.stato][1]}</span></div>`; }).join("")
       || vuoto(I.persone, "Nessuna squadra in turno",
-          "Aggiungi le squadre qui sotto (nome, persone, area) oppure importale da un file CSV: sono la base dei rapportini e del Quadro.");
+          "Le squadre sono la base dei rapportini e del Quadro: ogni attività e ogni fermo si attaccano a una di queste. Senza, non c'è a chi assegnare il turno.",
+          `<button class="dw-btn secondary mini" data-vuoto-fai="squ-nome">Aggiungi la prima squadra</button>
+           <button class="dw-btn secondary mini" data-vuoto-fai="#btn-squ-import">Importa le squadre da CSV</button>`);
     // C1 · Anagrafica delle persone e assegnazione.
     renderOperatori();
     aggiornaSceltaSquadre();
@@ -1982,6 +1984,19 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       await refresh();
     } finally { salvataggioChk = null; }
   }
+
+  /* I bottoni degli stati vuoti PORTANO, non fanno: cliccano il comando che
+     esiste già o mettono il fuoco sul primo campo del form. Gli id sono stati
+     CERCATI nel markup, non indovinati (trappola di CLAUDE.md), e il banco
+     `vuoti-azione.mjs` verifica che esistano davvero nella pagina viva. */
+  document.addEventListener("click", (e) => {
+    const fai = e.target.closest && e.target.closest("[data-vuoto-fai]");
+    if (!fai) return;
+    const dove = fai.getAttribute("data-vuoto-fai");
+    if (dove.startsWith("#")) { const b = $(dove.slice(1)); if (b) b.click(); return; }
+    const el = $(dove);
+    if (el) { el.scrollIntoView({ block: "center", behavior: "smooth" }); setTimeout(() => el.focus(), 250); }
+  });
 
   document.addEventListener("click", async (e) => {
     const b = e.target.closest && e.target.closest("[data-chk]");

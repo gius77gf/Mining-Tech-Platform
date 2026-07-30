@@ -1644,7 +1644,9 @@ textarea.dw-input{
     const p = puntoPeggiore(MON.map(conSoglia));
     if (!p) {
       box.innerHTML = vuoto(I.sensore, "Nessun punto in ascolto",
-        "Appena aggiungi la prima centralina dai <b>Monitoraggi</b> — nome, unità e soglia — qui compare sempre il punto messo peggio, con il suo andamento in miniatura.");
+        "I punti di misura sono le centraline che ascoltano la cava: da loro nascono i superamenti, il report di conformità e la risposta a un reclamo. Qui compare sempre quello messo peggio.",
+        `<button class="dw-btn secondary mini" data-vuoto-fai="sen-nome">Aggiungi il primo punto</button>
+         <button class="dw-btn secondary mini" data-vuoto-fai="#btn-ric-import">Importa i ricettori da CSV</button>`);
       return;
     }
     const m = p.m, cls = p.st.cls === "ok" ? "" : p.st.cls;
@@ -1970,6 +1972,19 @@ textarea.dw-input{
       + ". È collegata a questo " + (v.genere === "superamento" ? "superamento" : "reclamo") + " e da adesso compare nello scadenzario di Scudo.",
       "success", "Azione correttiva aperta in Scudo.");
   }
+
+  /* I bottoni degli stati vuoti PORTANO, non fanno: cliccano il comando che
+     esiste già o mettono il fuoco sul primo campo del form. Gli id sono stati
+     CERCATI nel markup, non indovinati (trappola di CLAUDE.md), e il banco
+     `vuoti-azione.mjs` verifica che esistano davvero nella pagina viva. */
+  document.addEventListener("click", (e) => {
+    const fai = e.target.closest && e.target.closest("[data-vuoto-fai]");
+    if (!fai) return;
+    const dove = fai.getAttribute("data-vuoto-fai");
+    if (dove.startsWith("#")) { const b = $(dove.slice(1)); if (b) b.click(); return; }
+    const el = $(dove);
+    if (el) { el.scrollIntoView({ block: "center", behavior: "smooth" }); setTimeout(() => el.focus(), 250); }
+  });
 
   document.addEventListener("click", async (e) => {
     const b = e.target.closest && e.target.closest("[data-pon-nuova]");

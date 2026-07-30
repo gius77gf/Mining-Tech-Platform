@@ -36,6 +36,8 @@ const BERSAGLI = [
   ['flotta', '/apps/flotta/index.html', ['mez-nome', 'btn-mez-import']],
   ['conti',  '/apps/conti/index.html',  ['pr-nome', 'btn-lis-import']],
   ['terra',  '/apps/terra/index.html',  ['fro-nome', 'btn-fro-import']],
+  ['campo',  '/apps/campo/index.html',  ['squ-nome', 'btn-squ-import']],
+  ['sentinella', '/apps/sentinella/index.html', ['sen-nome', 'btn-ric-import']],
 ];
 
 const chromium = await prendiChromium();
