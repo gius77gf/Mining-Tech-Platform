@@ -421,6 +421,21 @@ bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
       e indovinarlo lo metterebbe sul concesso sbagliato: scritto in pagina
       invece che aggirato.
 
+- [x] **S11. `parseNum` del core: la convenzione arriva anche ai file delle
+      macchine** ✅ *(30/07)* — `parseFloat` teneva la testa e buttava la coda:
+      «2,4,5» dava 2,4 e «3x4» dava 3. La misura prima di irrigidire è servita:
+      cinque delle 145 letture sono celle del CSV di una perforatrice, che scrive
+      l'energia in **notazione scientifica** — irrigidire a occhio avrebbe rotto
+      l'import in silenzio. Ora `scientifica` è un interruttore **spento** di
+      serie (in un campo «2e5» battuto per sbaglio non diventa duecentomila) e lo
+      accende solo chi legge una macchina. Trovati strada facendo due difetti
+      latenti: l'arrotondamento condiviso che **peggiorava** il numero sopra 2^53
+      (una coordinata UTM a 10 decimali), e `isNaN(null)` che è **false**, per cui
+      sei guardie dell'import lasciavano passare un null nel foro.
+      L'import della perforatrice adesso **dice** quello che non riesce a leggere,
+      riga per riga, prima di importare: un «n/a» diventava zero e quel foro
+      entrava nella volata con profondità zero, invisibile.
+
 ## BLOCCO 5 — FONDAZIONE E QUALITÀ
 - [ ] Q1. Proposte di `docs/RICERCA_DEEPWORKID_202607.md` (ruoli reali di
       cava, onboarding, GDPR) — *da leggere quando la ricerca è depositata*.
