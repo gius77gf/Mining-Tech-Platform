@@ -16,7 +16,34 @@ sul serio, non abbozzi. I problemi veri sono quattro:
 4. i dati di esempio con nomi/IBAN dall'aspetto reale (già in agenda
    weekend — decisione del fondatore, vedi AUDIT_SICUREZZA).
 
-## Stato delle feature "note come incomplete"
+## ⚠️ Riverificato il 30/07 — tre problemi su quattro sono chiusi
+
+*Questo censimento è del 20 luglio e i numeri di riga non corrispondono più (il
+core è passato da ~8.270 a 8.599 righe). Più importante: **elencava quattro
+problemi e tre non ci sono più**. Un documento che dichiara guasto qualcosa che
+funziona fa danno esattamente quando serve — chi lo legge prima di una
+dimostrazione **evita di mostrare** una cosa che invece è a posto.*
+
+*Riverificato aprendo il core, non a memoria:*
+
+| Problema del 20/07 | Oggi | Come si controlla |
+|---|---|---|
+| Nome fuorviante: «3D fotorealistico» sembrava fotogrammetria | ✅ **chiuso** | La schermata si chiama «Visualizzatore 3D (Splat)» e scrive: *«Questa schermata **non crea** il modello: generalo con un'app di scansione… poi caricalo qui»* |
+| I fori segnati sulla ricostruzione 3D non si salvavano | ✅ **chiuso** | `reconToVolata()`: porta i fori segnati sul modello dentro la volata aperta, come prima fila |
+| Meteo: widget sempre «non disponibile» | ✅ **chiuso come difetto** | Senza proxy configurato il widget **si nasconde** invece di restare rotto (`fetchMeteo`). La funzione resta spenta finché non c'è il proxy: è un'altra cosa dall'essere rotta |
+| Notifiche push inerti (`FCM_VAPID_KEY` vuota) | ⏳ **ancora spenta, ed è giusto** | La chiave nasce col progetto Firebase nuovo: è una voce di `DECISIONI_WEEKEND.md`, non un difetto |
+| «Editor metodi v4.1» mai iniziato | ✅ **non è più una promessa** | La stringa non compare più né nel core né in nessun documento, tranne qui dentro |
+
+**Quindi**: in una dimostrazione oggi si può mostrare il visualizzatore 3D e la
+ricostruzione da foto senza girarci intorno. L'unica cosa davvero spenta sono le
+notifiche push, e dipende da una decisione del fondatore.
+
+**La tabella qui sotto resta com'era scritta il 20/07**, coi suoi numeri di riga:
+serve a ricostruire la storia, non a decidere cosa mostrare oggi.
+
+---
+
+## Stato delle feature "note come incomplete" *(fotografia del 20/07)*
 
 | Feature | Righe | Stato reale | Sforzo |
 |---|---|---|---|
