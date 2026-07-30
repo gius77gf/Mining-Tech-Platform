@@ -352,6 +352,14 @@
 
 /* badge dentro una riga di testo (idoneità, azioni dell'evento) */
 .badge.inline{vertical-align:middle; margin:0 0 0 2px; font-size:9.5px; padding:2px 7px}
+/* Un badge che si TOCCA non può stare in fondo a un testo tagliato a due
+   righe: quando il testo prima è lungo finisce sulla terza riga, che
+   `overflow:hidden` nasconde — e allora il comando diventa invisibile E
+   irraggiungibile (misurato: 2 lavoratori su 7 con i dati di prova).
+   L'idoneità sta quindi in coda al NOME, che è corto e non trabocca mai:
+   il comando resta sempre sulla prima riga, e la riga di dettaglio sotto
+   mantiene il suo allineamento a sinistra. */
+.name .badge.inline{white-space:nowrap}
 /* I badge che PORTANO DA QUALCHE PARTE (le azioni di un evento, le azioni di
    un'ispezione) restano piccoli come nel core, ma l'area che ascolta il dito
    è alta quanto un bersaglio vero: si allarga l'ombra del tocco, non il
@@ -416,6 +424,125 @@
   .segnala::after{display:none}
   .segnala:hover{transform:none; background:linear-gradient(135deg,var(--card2),var(--card))}
   .segnala:active{transform:scale(.99)}
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   BERSAGLI DEL DITO — la regola di tutta l'app
+   ══════════════════════════════════════════════════════════════════════
+   IL PROBLEMA. Le icone di riga (✎ ✕ ↗ ↻) erano disegnate 30×30 e l'area
+   che ascoltava il dito era grande esattamente quanto il disegno: 30×31
+   misurati. Peggio: i badge che FANNO qualcosa al tocco (idoneità, stato
+   di un'azione, addestramento DPI) erano alti 19–20 px. E fra la ✎ e la ✕
+   c'erano 5 px: due bersagli piccoli attaccati, cioè l'errore garantito
+   con il guanto.
+
+   COSA DICONO LE LINEE GUIDA, lette per bene. Apple (44 pt) e Material
+   (48 dp) NON parlano della dimensione del disegno: parlano dell'AREA DI
+   TOCCO. Material lo scrive esplicitamente: l'icona può restare 24 dp,
+   purché l'area arrivi a 48 dp con padding trasparente, e purché i
+   bersagli siano separati da almeno 8 dp. E la WCAG 2.2 (2.5.8) formalizza
+   proprio il legame fra le due cose: un bersaglio sotto misura è comunque
+   accettabile se intorno ha spazio libero, mentre due bersagli attaccati
+   non lo sono mai. Quindi: non si gonfia il disegno, si allarga l'area —
+   e la distanza conta quanto la dimensione.
+
+   COME È RISOLTO QUI, e perché così.
+   1. ALTEZZA — si prende con ::after, e non costa NIENTE. L'icona vive in
+      una colonna alta 77–215 px (l'altezza della riga) mentre occupa solo
+      30 px: lo spazio sopra e sotto è già lì, sprecato. Uno pseudo-elemento
+      alto 44 px, centrato, se lo prende senza toccare il layout. Misurato:
+      somma delle altezze di lista invariata al pixel su TUTTE le schermate.
+      Alzare invece la scatola (min-height:44px) costava fino a +70 px per
+      schermata, perché allungava le righe più corte.
+   2. LARGHEZZA — quella si paga, quindi si spende con criterio. In
+      orizzontale i comandi sono affiancati e la larghezza della riga è
+      finita: portare ogni icona a 44 px reali con 8 px di stacco chiede
+      96 px per una coppia contro i 65 di oggi, e misurato costa +847 px di
+      altezza complessiva, perché i nomi vanno a capo. Si tiene il disegno
+      a 30 px, l'area cresce di 4 px per lato (36–38 px), e la differenza si
+      mette dove serve davvero: nel MURO fra un comando e l'altro.
+   3. I MURI. 16 px fra due comandi qualsiasi (8 px di spazio morto fra le
+      due aree, il numero di Material). 24 px prima di una ✕ (16 px di
+      spazio morto): il centro della ✎ e quello della ✕ passano da 35 a
+      54 px, oltre i 48 dp che Material chiede fra due centri. Il muro più
+      largo va dove l'errore costa più caro, non dappertutto.
+   4. DOPO UN BOTTONE CON IL BORDO (.dw-btn) il muro non serve: il bordo
+      disegnato è già un confine per l'occhio, e allargare lì mandava il
+      gruppo comandi a capo. Là l'area dell'icona semplicemente non invade
+      lo stacco visibile, e l'icona di coda recupera 4 px dal margine
+      interno della riga — spazio morto che non usa nessuno.
+   Il muro NON si mette fra un comando e un badge che è solo un'etichetta:
+   sbagliare mira verso un'etichetta non fa danni, e pagarlo in larghezza
+   allungava le righe per niente.
+
+   COMPROMESSO DICHIARATO: sull'asse orizzontale le icone affiancate stanno
+   a 36–38 px, non a 44. In verticale sono a 44 px piene. Portarle a 44
+   anche in larghezza si può, ma costa densità (i numeri sono qui sopra):
+   fra «44 px attaccati» e «38 px separati» questa app scegle il secondo,
+   che è anche quello che le linee guida indicano quando lo spazio è finito.
+
+   Le misure prima/dopo si rifanno con getBoundingClientRect + document
+   .elementFromPoint su ogni comando di ogni schermata: l'area vera è quella
+   che risponde al browser, non quella che si deduce dal CSS.
+   ══════════════════════════════════════════════════════════════════════ */
+@media(hover:none),(pointer:coarse){
+
+  /* 1 · ALTEZZA: 44 px per ogni comando, senza toccare il disegno.
+     Vale per le icone di riga E per i badge che FANNO qualcosa al tocco
+     (quelli che stanno nel gruppo comandi: lì lo pseudo-elemento non viene
+     tagliato da nessuno). */
+  .arr,
+  .acts>.badge[data-azi-stato],.acts>.badge[data-dpi-addestr],.acts>.badge[data-azi-evt],
+  .acts>.badge[data-azi-isp],.name>.badge[data-idon]{position:relative}
+  .arr::after,
+  .acts>.badge[data-azi-stato]::after,.acts>.badge[data-dpi-addestr]::after,
+  .acts>.badge[data-azi-evt]::after,.acts>.badge[data-azi-isp]::after,
+  .name>.badge[data-idon]::after{
+    content:""; position:absolute; top:50%; height:var(--tap);
+    transform:translateY(-50%); left:0; right:0;
+  }
+
+  /* 1b · SE IL GRUPPO COMANDI VA A CAPO (schermi molto stretti, righe con
+     molti comandi) le due file finiscono a 24 px di distanza fra i centri:
+     le aree alte 44 px si sovrapporrebbero, ed è proprio ciò che si vuole
+     evitare. Lo stacco verticale fra due file di comandi va quindi portato
+     alla stessa misura dell'area. Non costa niente quando non si va a capo:
+     `row-gap` entra in gioco solo allora. */
+  .acts{row-gap:30px}
+
+  /* 2 · LARGHEZZA: 4 px per lato dentro il muro (36–38 px di area) */
+  .arr::after{left:-4px; right:-4px}
+  /* dopo un bottone con il bordo l'area si ferma sul proprio bordo: lo
+     stacco che si vede resta tutto, e non serve pagare larghezza */
+  .dw-btn+.arr::after{left:0}
+  .dw-btn+.arr{margin-left:4px}
+  /* l'icona di coda scivola di 4 px nel margine interno della riga (spazio
+     morto): lo stacco cresce, la riga non si allarga di un pixel */
+  .acts>.arr:last-child{margin-right:-4px}
+
+  /* 3 · MURO NORMALE (16 px → 8 px di spazio morto) fra due COMANDI.
+     La lista è quella dei comandi veri del gruppo: un badge che è solo
+     un'etichetta non entra, perché non è un bersaglio da sbagliare. */
+  .acts>:is(.arr,
+            .badge[data-idon],.badge[data-azi-stato],.badge[data-dpi-addestr],
+            .badge[data-azi-da],.badge[data-azi-evt],.badge[data-azi-isp],
+            .badge[data-req-fix],.badge[data-dpi-fix],.badge[data-prom-scad])
+       +:is(.arr,.dw-btn,
+            .badge[data-idon],.badge[data-azi-stato],.badge[data-dpi-addestr],
+            .badge[data-azi-da],.badge[data-azi-evt],.badge[data-azi-isp],
+            .badge[data-req-fix],.badge[data-dpi-fix],.badge[data-prom-scad]){
+    margin-left:11px;
+  }
+
+  /* 4 · MURO DAVANTI A UNA ✕ (24 px → 16 px di spazio morto).
+     Vale quando prima c'è un'altra icona nuda: è l'unica coppia in cui
+     entrambi i bersagli sono piccoli e senza bordo, cioè quella in cui il
+     dito guantato sbaglia bottone. */
+  .acts>.arr+.arr:is([data-del-lav],[data-del-scad],[data-del-inf],[data-del-cant],
+                     [data-del-azi],[data-del-isp],[data-del-mans],[data-del-nom],
+                     [data-del-dpi]){
+    margin-left:19px;
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1278,7 +1405,7 @@
       const idn = idoneitaLabel(l.idoneita);
       return `<div class="item ${striscia[B[st][0]]}">
         <div class="avatar">${esc(initials(l.nome))}</div>
-        <div class="info"><div class="name">${esc(l.nome)}</div><div class="meta">${esc(l.ruolo || "ruolo non indicato")}${prob.length ? " · " + esc(prob[0].descrizione) : ""} <span class="badge inline ${idn.cls}" style="cursor:pointer" title="Idoneità sanitaria (art. 41) — tocca per cambiare esito" data-idon="${l.id}">${idn.label}</span></div></div>
+        <div class="info"><div class="name">${esc(l.nome)} <span class="badge inline ${idn.cls}" style="cursor:pointer" title="Idoneità sanitaria (art. 41) — tocca per cambiare esito" data-idon="${l.id}">${idn.label}</span></div><div class="meta">${esc(l.ruolo || "ruolo non indicato")}${prob.length ? " · " + esc(prob[0].descrizione) : ""}</div></div>
         <span class="acts">
         <span class="badge ${B[st][0]}">${B[st][1]}</span>
         <span class="arr" style="cursor:pointer" title="Modifica lavoratore" data-edit-lav="${l.id}">✎</span>
@@ -1571,8 +1698,9 @@
       const chi = x.anonimo ? "segnalazione anonima"
         : (byId[x.segnalatoDaId] ? "segnalata da " + esc(byId[x.segnalatoDaId].nome) : "");
       return `<div class="item ${striscia[tb[0]]}" data-evt="${x.id}"><div class="info"><div class="name">${esc(x.descrizione || x.tipo || "Evento")}</div>
-        <div class="meta">${fmtData(x.data)}${x.luogo ? " · " + esc(x.luogo) : ""}${x.categoria ? " · " + esc(categoriaNearMiss(x.categoria)) : ""}${x.gravita && x.tipo !== "near-miss" ? " · " + esc(x.gravita) : ""}${(+x.giorniAssenza) ? " · " + (+x.giorniAssenza) + " gg assenza" : ""}${chi ? " · " + chi : ""} <span class="badge inline ${ab[0]}" style="cursor:pointer" title="Vedi le azioni correttive di questo evento" data-azi-evt="${x.id}">${ab[1]}</span></div></div>
+        <div class="meta">${fmtData(x.data)}${x.luogo ? " · " + esc(x.luogo) : ""}${x.categoria ? " · " + esc(categoriaNearMiss(x.categoria)) : ""}${x.gravita && x.tipo !== "near-miss" ? " · " + esc(x.gravita) : ""}${(+x.giorniAssenza) ? " · " + (+x.giorniAssenza) + " gg assenza" : ""}${chi ? " · " + chi : ""}</div></div>
         <span class="acts"><span class="badge ${tb[0]}">${tb[1]}</span>
+        <span class="badge ${ab[0]}" style="cursor:pointer" title="Vedi le azioni correttive di questo evento" data-azi-evt="${x.id}">${ab[1]}</span>
         <button class="dw-btn secondary mini" data-azi-da="${x.id}" title="Apri un'azione correttiva da questo evento">+ Azione</button>
         <span class="arr" style="cursor:pointer" title="Rimuovi evento" data-del-inf="${x.id}">✕</span></span></div>`;
     }).join("") || (filtroInf === "tutti"

@@ -29,6 +29,42 @@ estrattive (D.Lgs 624/96: relazione annuale sulla stabilità dei fronti,
 certificazione e aggiornamento del DSS…), con periodicità solo proposta e
 sempre modificabile dall'utente.
 
+## Bersagli del dito: la regola dell'app
+
+In cava si lavora con i guanti, quindi ogni comando ha una regola precisa. Le
+linee guida (Apple 44 px, Material 48 dp) parlano di **area di tocco**, non di
+dimensione del disegno: Material dice esplicitamente che l'icona può restare
+piccola purché l'area arrivi alla misura con padding trasparente e purché fra
+due bersagli ci siano almeno 8 dp. La WCAG 2.2 (2.5.8) formalizza il legame:
+un bersaglio sotto misura passa se intorno ha spazio, due bersagli attaccati
+mai. Quindi qui, sui puntatori grossolani (`@media (pointer:coarse)`):
+
+- **l'altezza dell'area è 44 px per ogni comando**, presa con uno `::after`
+  centrato: non tocca il disegno e non costa un pixel di layout, perché quello
+  spazio nella riga c'era già e non lo usava nessuno;
+- **la larghezza del disegno resta 30 px** e l'area cresce di 4 px per lato
+  (36–38 px). Portarla a 44 px reali costerebbe 96 px di riga per ogni coppia
+  di icone contro i 65 attuali, e misurato allunga le liste di 847 px perché i
+  nomi vanno a capo: fra «44 px attaccati» e «38 px separati» si sceglie il
+  secondo, che è anche ciò che le linee guida indicano quando lo spazio finisce;
+- **i muri**: 16 px fra due comandi (8 px di spazio morto fra le aree), **24 px
+  prima di una ✕** (16 px di spazio morto) — il centro della ✎ e quello della ✕
+  distano 54 px, oltre i 48 dp di Material. Il muro largo va dove l'errore
+  costa caro, non dappertutto: dopo un bottone con il bordo disegnato non serve
+  (il bordo è già un confine per l'occhio) e allargare lì mandava il gruppo
+  comandi a capo;
+- **un badge che si tocca non va in coda a un testo tagliato a due righe**:
+  finirebbe sulla terza riga, che `overflow:hidden` nasconde, e il comando
+  diventa invisibile e irraggiungibile. I badge-comando stanno nel gruppo
+  comandi (dove prendono i 44 px pieni) oppure in coda al **nome**, che è corto.
+
+Le misure si rifanno con `document.elementFromPoint` su ogni comando di ogni
+schermata: l'area vera è quella che risponde al browser, non quella che si
+deduce dal CSS. Resta aperto: i badge inline dentro un testo troncato
+(idoneità, azioni di un evento) stanno a 19–33 px d'altezza perché il ritaglio
+del troncamento taglia anche lo pseudo-elemento — è il caso che la WCAG esenta
+come «bersaglio in linea», e chiuderlo richiede spostarli fuori dal testo.
+
 **Azioni che arrivano dall'ambiente (ponte con Sentinella)**: un superamento di
 soglia ambientale o il reclamo di un residente, registrati in **Sentinella**,
 aprono da lì un'azione correttiva che nasce **qui**, nella stessa collezione
