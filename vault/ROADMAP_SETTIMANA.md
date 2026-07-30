@@ -436,6 +436,23 @@ bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
       riga per riga, prima di importare: un «n/a» diventava zero e quel foro
       entrava nella volata con profondità zero, invisibile.
 
+- [x] **S12. I campi INTERI: la virgola non entra più di nascosto** ✅ *(30/07)*
+      — 50 campi su sette superfici. Restano `type="number"` perché lì lo
+      **spinner serve**, ma la misura ha **smentito l'ipotesi** del checkpoint:
+      non basta leggere la validità, perché su «1,5» Chromium fa «15» e risponde
+      `checkValidity() === true` — il numero è già distrutto e dichiarato buono.
+      Si rifiuta il carattere su `beforeinput`, con la guardia in `shared/` una
+      volta sola. Detto senza girarci intorno: «1,5» resta «15», il valore non
+      migliora — migliora che chi scrive lo **sappia**. Dove migliora anche il
+      valore è «1.500», che l'app leggeva 1,5.
+      Limite del browser, misurato: su `type="number"` non c'è cursore
+      (`selectionStart` è null, `setSelectionRange` lancia), quindi un incolla
+      con separatori si ripulisce solo a campo vuoto e altrimenti si rifiuta.
+      Regola 5 in CI: se una superficie ha campi interi, monta la guardia.
+
+**La convenzione sui numeri è chiusa.** Sei app, core, campi scritti a mano,
+campi interi, file delle macchine.
+
 ## BLOCCO 5 — FONDAZIONE E QUALITÀ
 - [ ] Q1. Proposte di `docs/RICERCA_DEEPWORKID_202607.md` (ruoli reali di
       cava, onboarding, GDPR) — *da leggere quando la ricerca è depositata*.
