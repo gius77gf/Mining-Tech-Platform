@@ -2,7 +2,7 @@
 
 - **Tipo**: chiusura di un punto dichiarato aperto + estrazione in `shared/`
 - **Branch**: `claude/scheduled-tasks-remote-control-bk4ap6`
-- **Commit**: (vedi sotto, aggiunto dopo il commit)
+- **Commit**: `ae1ede8`
 
 ## Cosa era rimasto aperto
 
