@@ -181,7 +181,9 @@ export function numeroDaCampo(testo, opts = {}) {
 // avere decimali quel caso capita davvero.
 export function fmtM3(v) {
   if (v == null) return "—";
-  if (v >= 1e6) return (Math.round(v / 1e5) / 10) + "M";
+  // il decimale dei milioni va scritto con la VIRGOLA: la tessera delle riserve
+  // diceva «1.2M m³», col punto inglese, accanto a numeri all'italiana
+  if (v >= 1e6) return (Math.round(v / 1e5) / 10).toLocaleString("it-IT") + "M";
   if (v >= 1e3) return Math.round(v / 1e3) + "k";
   return (+v).toLocaleString("it-IT", { maximumFractionDigits: 2 });
 }

@@ -516,9 +516,13 @@ test("kpiFrom: un adempimento senza scadenza non viene conteggiato (né crash)",
 
 console.log("\n— Terra: volumi e avanzamento —");
 test("fmtM3 formatta k/M e gestisce il vuoto", () => {
-  eq(terra.fmtM3(1200000), "1.2M", "milioni");
+  // il decimale dei milioni con la VIRGOLA: questo test asseriva «1.2M» col
+  // punto inglese, quindi inchiodava il difetto invece di proteggere il
+  // prodotto. Corretto rendendolo più giusto, non più permissivo.
+  eq(terra.fmtM3(1200000), "1,2M", "milioni");
   eq(terra.fmtM3(38000), "38k", "migliaia");
   eq(terra.fmtM3(500), "500", "unità");
+  eq(terra.fmtM3(500.5), "500,5", "sotto i mille il decimale si vede, con la virgola");
   eq(terra.fmtM3(null), "—", "vuoto");
 });
 test("kpiFrom: volumi del mese, avanzamento annuo, fronti attivi", () => {
@@ -1907,6 +1911,101 @@ test("kpiFrom: col quarto argomento il conto è onesto e si scompone", () => {
   const senza = flotta.kpiFrom(_MEZZI_F, manut, [], { letture: [], oggi: _OGGI_F });
   ok(senza.tagliandi30 === 1 && senza.tagliandi.nonStimabili === 1,
     "senza letture il numero non cresce, ma il non stimabile è dichiarato");
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// IL PUNTO AMBIGUO — quando NON si indovina al posto dell'utente
+// ══════════════════════════════════════════════════════════════════════
+// `numIt` è l'aiutante condiviso e legge i file delle MACCHINE, dove il
+// decimale è il punto: «1.250» per lui è 1,25, ed è giusto per un CSV. Ma un
+// italiano che digita «1.250» in un campo intende milleduecentocinquanta, e le
+// due letture distano MILLE VOLTE. Su un imponibile di fattura è la differenza
+// fra 1.250 € e 1,25 €.
+// La regola che Flotta, Conti e Terra hanno adottato: se per quel campo una
+// sola lettura è possibile (una densità di 1500 t/m³ non esiste) si risolve; se
+// entrambe stanno nei limiti, l'app si FERMA e mostra le due letture invece di
+// scegliere. Questi test proteggono quella scelta.
+test("«1.250» non si indovina: le due letture vengono dichiarate", () => {
+  for (const [nome, mod] of [["flotta", flotta], ["conti", conti], ["terra", terra]]) {
+    const r = mod.numeroDaCampo("1.250");
+    ok(r.motivo === "ambiguo", `${nome}: motivo «ambiguo» — era «${r.motivo}»`);
+    ok(r.valore === null, `${nome}: nessun valore scelto a caso — era ${r.valore}`);
+    contiene({ l: r.letture }, { l: [1250, 1.25] }, `${nome}: le due letture`);
+  }
+});
+test("ma dove una sola lettura è possibile, si risolve senza chiedere", () => {
+  // una densità di 1500 t/m³ non esiste: «1.600» in quel campo è 1,6
+  ok(terra.numeroDaCampo("1.600", { min: 0.3, max: 5 }).valore === 1.6,
+    "densità «1.600» → 1,6 t/m³");
+  // 32.500 tonnellate su una pesata non esistono: è 32,5
+  ok(conti.numeroDaCampo("32.500", { max: 500 }).valore === 32.5, "lordo «32.500» → 32,5 t");
+  // due punti = migliaia, nessun dubbio possibile
+  ok(terra.numeroDaCampo("1.200.000").valore === 1200000, "«1.200.000» m³ concessi");
+  ok(flotta.numeroDaCampo("1.234.567").valore === 1234567, "«1.234.567»");
+  // e con le migliaia italiane più i decimali non c'è ambiguità
+  ok(conti.numeroDaCampo("1.250,75").valore === 1250.75, "«1.250,75» → 1250,75");
+});
+test("vuoto e incomprensibile non sono zero, in nessuna delle tre app", () => {
+  for (const [nome, mod] of [["flotta", flotta], ["conti", conti], ["terra", terra]]) {
+    contiene(mod.numeroDaCampo(""), { vuoto: true, ok: false, valore: null }, `${nome}: vuoto`);
+    ok(mod.numeroDaCampo("abc").valore === null, `${nome}: testo non è zero`);
+    ok(mod.numeroDaCampo("-5", { min: 0 }).motivo === "sotto-minimo", `${nome}: sotto il minimo`);
+  }
+  // «2,4,5» non è 245: due virgole non sono un numero, sono un errore di battitura
+  ok(flotta.numeroDaCampo("2,4,5").motivo === "non-numero", "«2,4,5» rifiutato");
+  ok(flotta.numeroDaCampo("1e3").motivo === "non-numero", "la notazione esponenziale non è un numero da cava");
+});
+test("quello che arriva dal foglio di calcolo si legge comunque", () => {
+  ok(flotta.numeroDaCampo("€ 12,50").valore === 12.5, "il simbolo dell'euro non è un errore");
+  ok(flotta.numeroDaCampo("1 250,75").valore === 1250.75, "lo spazio come separatore di migliaia");
+  ok(flotta.numeroDaCampo(",75").valore === 0.75, "«,75» → 0,75");
+  ok(conti.numeroDaCampo("€ 1.250,75").valore === 1250.75, "euro più migliaia italiane");
+});
+test("Flotta: interoDaCampo non accetta un decimale travestito", () =>
+  ok(flotta.interoDaCampo("2,4").motivo === "non-intero", "«2,4» giorni non è un numero di giorni"));
+
+// ── le catene: dal campo al numero che l'utente legge ──────────────────
+test("Conti: «1.250,75» imponibile → IVA 275,17 → totale 1.525,92", () => {
+  contiene(conti.totaliDaRighe([{ imponibile: conti.numeroDaCampo("1.250,75").valore, aliquota: 22 }]),
+    { imponibile: 1250.75, ivaImporto: 275.17, totale: 1525.92 }, "la fattura");
+});
+test("Conti: la pesata scritta con la virgola dà il netto giusto", () =>
+  ok(conti.nettoPesata(conti.numeroDaCampo("42,6").valore, conti.numeroDaCampo("14,2").valore) === 28.4,
+    "42,6 − 14,2 = 28,4 t"));
+test("Flotta: le ore e la tariffa con la virgola fanno il costo giusto", () => {
+  const ore = flotta.numeroDaCampo("2,5").valore, tar = flotta.numeroDaCampo("32,50").valore;
+  ok(ore === 2.5 && tar === 32.5, "letti 2,5 h e 32,50 €");
+  const c = flotta.costoOrdine({ manodopera: [{ chi: "Rossi", ore, tariffa: tar }] });
+  ok(c.manodopera.costo === 81.25, "2,5 × 32,50 = 81,25 € — era " + c.manodopera.costo);
+});
+test("Flotta: il mezzo decimo del contatore non si perde", () => {
+  // la firma è (manutenzione, oreAttuali, dataChiusura): il piano dice OGNI
+  // quante ore, il contatore dice dove siamo. Al primo giro avevo passato il
+  // mezzo al posto del piano e la funzione, giustamente, non ha inventato nulla.
+  ok(flotta.prossimoTagliando({ titolo: "Tagliando", mezzo: "E1", ogniOre: 250 }, 5875.5).orePreviste === 6125.5,
+    "contatore 5875,5 + ogni 250 h = 6125,5 h — era "
+    + JSON.stringify(flotta.prossimoTagliando({ titolo: "T", mezzo: "E1", ogniOre: 250 }, 5875.5)));
+  ok(flotta.urgenzaOre(6500, 5265.5).label === "tra 1234,5 h",
+    "l'etichetta scrive 1234,5 e non 1234.5 — era «" + flotta.urgenzaOre(6500, 5265.5).label + "»");
+  ok(flotta.urgenzaOre(6500, 6520).label === "SCADUTA (+20 h)", "l'etichetta storica non cambia");
+});
+test("Terra: il GSD si legge sia numero sia testo, e si scrive con la virgola", () => {
+  ok(terra.qualitaRilievo({ metodo: "RTK", gsd: 2.5 }) === "RTK · GSD 2,5 cm", "gsd numero");
+  ok(terra.qualitaRilievo({ metodo: "RTK", gsd: "2.5" }) === "RTK · GSD 2,5 cm", "gsd dal CSV col punto");
+  ok(terra.qualitaRilievo({ metodo: "RTK", gsd: "2" }) === "RTK · GSD 2 cm", "gsd intero invariato");
+  // 2,5 cm sta SOPRA la soglia dei 2 cm, quindi «indicativo» è la risposta giusta
+  ok(terra.classeAccuratezza({ metodo: "RTK+GCP", gsd: 2.5 }).classe === "indicativo", "2,5 cm → indicativo");
+  ok(terra.classeAccuratezza({ metodo: "RTK+GCP", gsd: 1.8 }).classe === "survey-grade", "1,8 cm → survey-grade");
+});
+test("il ponte Terra ↔ Conti non cambia di un decimale", () => {
+  const rilievi = [{ data: "2026-03-10", stato: "elaborato", volumeM3: 4200.5, provenienza: "scavo" }];
+  ok(conti.cavatoPeriodo(rilievi, "2026-01-01", "2026-12-31").m3 === 4200.5,
+    "un volume con la virgola arriva intero in cavatoPeriodo");
+  const senza = conti.vendutoPeriodo(
+    [{ data: "2026-03-11", netto: 28.4, quantita: 28.4, unitaVendita: "t", densita: null, prezzoUnitario: 8.5 }],
+    "2026-01-01", "2026-12-31");
+  contiene(senza, { tSenzaDensita: 28.4, m3: 0, copertura: 0 },
+    "e senza densità NON si converte: le tonnellate restano dichiarate a parte");
 });
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
