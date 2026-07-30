@@ -7,7 +7,7 @@
 // perché non falliscono i test, si vedono solo aprendo la pagina giusta.
 // Qui diventano controlli che girano in automatico.
 //
-// Undici regole, oggi:
+// Dodici regole, oggi:
 //  1. NIENTE DIALOGHI DEL BROWSER. `alert()`, `confirm()`, `prompt()` sono
 //     vietati dalla direttiva sullo stile. La ragione non è estetica: la
 //     finestra ha il carattere e i bottoni del sistema operativo, su Android
@@ -66,6 +66,15 @@
 //     accanto all'altra. La forma sta in `euro`/`euro0`/`conEuro` di `shared/`,
 //     e chi ha un numero formattato a modo suo mette il simbolo con `conEuro`
 //     invece di riscriverlo: è dalla scorciatoia che nascono le terze forme.
+// 12. CHI SALTA I DOPPIONI LI CERCA ANCHE DENTRO IL FILE. Il 31/07 dieci
+//     gestori d'importazione su dieci confrontavano ogni riga solo con
+//     l'elenco caricato all'apertura della pagina, che NON si aggiorna mentre
+//     il file scorre: due righe uguali nello stesso file entravano tutte e
+//     due, in tutte e sei le app. E non è un caso di scuola — l'export di
+//     Scudo scrive una riga per ogni scadenza, quindi ri-caricare il proprio
+//     file faceva comparire tre volte lo stesso lavoratore. La regola guarda
+//     solo i gestori che i doppioni li saltano davvero: dove ripetersi è
+//     lecito (più letture dello stesso sensore) non pretende niente.
 //
 // Come si aggiunge una regola: una funzione che restituisce l'elenco delle
 // violazioni con file e riga, e un `test(...)` che pretende zero.
@@ -847,6 +856,100 @@ test("il controllo delle note sa fallire", () => {
   ok(noteSenzaStile('<style>.altro{color:red}</style><p>fandonia</p><div class="note fandonia">x</div>').length === 1,
     "la parola nel testo non vale come definizione: conta solo il foglio di stile");
 });
+
+
+/* ── REGOLA 12: chi salta i doppioni li cerca anche DENTRO il file ─────────
+   Misurato il 31/07: dieci gestori d'importazione su dieci confrontavano ogni
+   riga solo con l'elenco caricato all'apertura della pagina — e quell'elenco
+   non si aggiorna mentre il file scorre. Due righe uguali nello stesso file
+   entravano tutte e due, in tutte e sei le app.
+
+   Non è un caso di scuola: l'export di Scudo scrive una riga per ogni
+   scadenza, quindi il file di un lavoratore con tre scadenze lo nomina tre
+   volte, e ri-caricarlo faceva comparire tre volte la stessa persona.
+
+   La regola guarda SOLO i gestori che il doppione lo saltano davvero (quelli
+   che contano `dup++` o `saltat*++` accanto a un `.some(`): dove i doppioni
+   sono leciti — più letture dello stesso sensore, più rapportini nello stesso
+   turno — non si pretende niente. E la difesa vale anche se sta nella funzione
+   di lettura invece che nel gestore: è il caso dell'anagrafica di Scudo, dove
+   `parseLavoratoriCsv` chiama la regola condivisa. Quello che non deve
+   succedere è che non ci sia da nessuna parte delle due. */
+function corpiImportazione(src) {
+  const righe = src.split("\n");
+  const fuori = [];
+  for (let i = 0; i < righe.length; i++) {
+    const m = /\$\("([\w-]*file)"\)\.onchange/.exec(righe[i]);
+    if (!m) continue;
+    const corpo = [];
+    for (let k = i; k < Math.min(i + 45, righe.length); k++) {
+      corpo.push(righe[k]);
+      if (righe[k] === "  };") break;
+    }
+    fuori.push({ id: m[1], riga: i + 1, testo: corpo.join("\n") });
+  }
+  return fuori;
+}
+function dedupSoloInArchivio(src, modulo) {
+  const fuori = [];
+  for (const h of corpiImportazione(src)) {
+    const salta = /\.some\(/.test(h.testo) && /(dup|saltat\w*)\+\+/.test(h.testo);
+    if (!salta) continue;                              // qui i doppioni sono leciti
+    if (/senzaDoppioni\(/.test(h.testo)) continue;     // difesa nel gestore
+    /* difesa nella funzione di lettura: si guarda IL CORPO di quella funzione,
+       non tutto il modulo — «da qualche parte nel file» lascerebbe passare un
+       lettore che non la chiama solo perché un altro la chiama. */
+    const usata = /(parse\w*Csv)\s*\(/.exec(h.testo);
+    if (usata && modulo) {
+      const inizio = modulo.indexOf(`export function ${usata[1]}(`);
+      if (inizio >= 0) {
+        const dopo = modulo.indexOf("\nexport ", inizio + 1);
+        const corpoFn = modulo.slice(inizio, dopo < 0 ? modulo.length : dopo);
+        if (/senzaDoppioni\(/.test(corpoFn)) continue;
+      }
+    }
+    fuori.push(`riga ${h.riga}: «${h.id}» salta i doppioni ma solo contro l'archivio — manca senzaDoppioni() di shared/`);
+  }
+  return fuori;
+}
+for (const [nome, rel] of SUPERFICI) {
+  if (!/^apps\/(campo|conti|flotta|scudo|sentinella|terra)\/index\.html$/.test(rel)) continue;
+  const src = leggi(rel);
+  if (src === null) continue;
+  const app = rel.split("/")[1];
+  const modulo = leggi(`apps/${app}/${app}-data.js`);
+  const casi = dedupSoloInArchivio(src, modulo);
+  test(`${nome}: chi salta i doppioni li cerca anche dentro il file`, () => {
+    ok(casi.length === 0, `${rel}: ${casi.join("; ")}`);
+  });
+}
+test("la regola 12 sa vedere il difetto che è stato tolto", () => {
+  /* Il gestore com'era davvero prima del 31/07, in tutte e sei le app. */
+  const difetto = [
+    '  $("squ-file").onchange = async (e) => {',
+    '    const righe = parseSquadreCsv(await file.text());',
+    '    let agg = 0, dup = 0;',
+    '    for (const r of righe) {',
+    '      if (SQU.some(q => q.nome === r.nome)) { dup++; continue; }',
+    '      agg++;',
+    '    }',
+    '  };',
+  ].join("\n");
+  ok(dedupSoloInArchivio(difetto, null).length === 1, "il gestore di prima è una violazione");
+  const corretto = difetto.replace(
+    "const righe = parseSquadreCsv(await file.text());",
+    "const righe = senzaDoppioni(parseSquadreCsv(await file.text()), x => x.nome);");
+  ok(dedupSoloInArchivio(corretto, null).length === 0, "con la difesa nel gestore, no");
+  const conModulo = "export function parseSquadreCsv(t) {\n  return senzaDoppioni(righe, x => x.nome);\n}\n";
+  ok(dedupSoloInArchivio(difetto, conModulo).length === 0, "e nemmeno con la difesa dentro il lettore");
+  /* la difesa dentro un ALTRO lettore non vale */
+  const altroLettore = "export function parseAltroCsv(t) {\n  return senzaDoppioni(r, x => x.n);\n}\nexport function parseSquadreCsv(t) {\n  return r;\n}\n";
+  ok(dedupSoloInArchivio(difetto, altroLettore).length === 1, "la difesa di un altro lettore non copre questo");
+  /* un gestore che i doppioni li accetta di proposito non viene toccato */
+  const lecito = '  $("mis-file").onchange = async (e) => {\n    const righe = parseLettureCsv(t);\n    for (const r of righe) await db.aggiungi("letture", r);\n  };';
+  ok(dedupSoloInArchivio(lecito, null).length === 0, "dove i doppioni sono leciti non si pretende niente");
+});
+
 
 console.log(`\nRisultato Stile: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
