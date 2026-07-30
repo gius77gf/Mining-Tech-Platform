@@ -24,6 +24,13 @@ serve**, così non devi ricordarti i nomi.
 ## Se devi caricare i dati di una cava (onboarding)
 - **`docs/ONBOARDING_DATI.md`** — per ogni app, quale file CSV preparare
   (colonne + esempio) per caricare lo storico senza riscriverlo a mano.
+  ⚠️ **Le due sezioni che contano davvero non sono i modelli**, e vanno lette
+  *prima* di scegliere la cava pilota: **«Cosa NON si carica da CSV»** (quello
+  che il cliente dovrà comunque scrivere a mano) e la voce **«Backup»**, che dal
+  31/07 dice la verità misurata — **sette** file si ri-caricano davvero, tutti
+  gli altri sono prospetti per il commercialista o per l'ente e **non** sono una
+  copia di sicurezza. Restano senza backup pesate/DDT, incassi e clienti di
+  Conti: è la **decisione 12** in `DECISIONI_WEEKEND.md`.
 
 ## Se un cliente (o il suo informatico) chiede "i miei dati sono al sicuro?"
 - **`docs/ISOLAMENTO_DATI.md`** — come teniamo separate le aziende concorrenti
