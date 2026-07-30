@@ -3252,7 +3252,13 @@ textarea.dw-input{
   };
   $("btn-ric-export").onclick = () => {
     let csv = "nome;tipo;distanza;classe;soglia;unita;nota\n";
-    for (const r of RIC) csv += `${csvCell(r.nome)};${r.tipo || ""};${r.distanza ?? ""};${r.classe || ""};${r.soglia ?? ""};${r.unita || ""};${csvCell(r.nota || "")}\n`;
+    /* ⚠️ Anche l'UNITÀ passa da csvCell, e non è pignoleria: è un campo libero
+       (uno può scriverci «mm/s; dB(A)») e senza la protezione il punto e
+       virgola spezza la riga — misurato il 31/07: il pezzo dopo il «;»
+       finiva dentro la NOTA del ricettore, in silenzio. Tipo e classe
+       vengono da un elenco chiuso, ma passano di lì per la stessa ragione
+       per cui si allaccia la cintura anche per un tratto corto. */
+    for (const r of RIC) csv += `${csvCell(r.nome)};${csvCell(r.tipo || "")};${r.distanza ?? ""};${csvCell(r.classe || "")};${r.soglia ?? ""};${csvCell(r.unita || "")};${csvCell(r.nota || "")}\n`;
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     a.download = "sentinella_ricettori.csv"; a.click();

@@ -3693,6 +3693,41 @@ test("il piano NON perde righe: parsePianoCsv le tiene tutte e due", () => {
     });
   }
 
+
+  /* IL VALORE CATTIVO DEVE TORNARE IDENTICO.
+     Un nome di cliente con un punto e virgola dentro, o un'unità scritta
+     «mm/s; dB(A)», sono cose che una persona scrive davvero. Se l'export non
+     le protegge con csvCell, il punto e virgola spezza la riga e il pezzo dopo
+     finisce nella colonna successiva — SILENZIOSAMENTE. Misurato il 31/07 su
+     Sentinella: «mm/s; dB(A)» tornava con unità «mm/s» e la nota del ricettore
+     diventava «dB(A)». Nessun errore, nessun avviso, un dato sbagliato.
+     E l'apostrofo di guardia davanti a «=» (che impedisce a Excel di eseguire
+     una formula) dev'essere tolto in lettura, altrimenti il nome cambia a ogni
+     giro di export e import.
+     Controprovato togliendo csvCell all'unità: la prova cade dicendo
+     «atteso "mm/s; dB(A)", ottenuto "mm/s"». */
+  const CATTIVI = [
+    ["nome con punto e virgola", "Cava Rossi; & Figli"],
+    ["nome che sembra una formula", "=SOMMA(A1:A9)"],
+    ["nome con virgolette", 'Fronte "Nord"'],
+  ];
+  for (const [che, valore] of CATTIVI) {
+    test(`giro completo: un ${che} torna identico`, () => {
+      const riga = shell.csvCell(valore) + ";4;Fronte Nord;operativa";
+      const letto = campo.parseSquadreCsv(riga);
+      eq(letto.length, 1, "la riga non si spezza");
+      eq(letto[0].nome, valore, "e il valore è quello di partenza, carattere per carattere");
+    });
+  }
+  test("giro completo: l'unità del ricettore sopravvive al punto e virgola", () => {
+    /* la riga esattamente come la scrive l'export di Sentinella */
+    const c = shell.csvCell;
+    const riga = [c("Casa Bianchi"), c("abitazione"), 320, c("III"), 5, c("mm/s; dB(A)"), c("vicina")].join(";");
+    const r = sentinella.parseRicettoriCsv(riga)[0];
+    eq(r.unita, "mm/s; dB(A)", "l'unità resta intera");
+    eq(r.nota, "vicina", "e la nota non si prende il pezzo dell'unità");
+  });
+
   /* Il caso trovato per strada, tenuto fermo perché non torni di nascosto:
      l'export delle fatture NON è un backup, e il documento non deve dire che
      lo sia. Se un giorno lo diventasse, questo controllo lo dice. */
