@@ -770,6 +770,21 @@ campi interi, file delle macchine.
 - [x] Scritta la risposta alla domanda della presentazione — perché esistono
       sia Deepwork sia Genesi (`docs/PERCHE_DEEPWORK_E_GENESI.md`): tre
       proposte sulle sovrapposizioni, **in attesa del fondatore**.
+- [x] **I modelli di CSV del documento e il codice non possono più
+      allontanarsi**: 17 controlli danno gli esempi veri di
+      `ONBOARDING_DATI.md` alle funzioni vere delle sei app e pretendono che
+      entrino TUTTE le righe. Nato da una misura sul BOM di Excel che ha
+      smentito la propria ipotesi (16 lettori, 16 risultati identici).
+- [x] **L'anagrafica lavoratori di Scudo esce dalla pagina** (`parseLavoratoriCsv`):
+      era l'unico dei diciassette import senza funzione pura, quindi l'unico
+      che nessuna prova poteva guardare.
+- [x] **Il doppione dentro il file, in tutte e sei le app.** Misurato: dieci
+      gestori d'importazione su dieci cercavano il doppione solo contro
+      l'elenco in archivio, che non si aggiorna mentre il file scorre —
+      e l'export di Scudo scrive una riga per ogni scadenza, quindi
+      ri-caricare il proprio file faceva comparire tre volte lo stesso
+      lavoratore. Ora `senzaDoppioni` sta in `shared/` e la **regola 12** di
+      `run-stile` impedisce che la difesa sparisca di nuovo.
 
 ---
 
