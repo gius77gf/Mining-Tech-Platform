@@ -449,6 +449,19 @@ bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
       (`selectionStart` è null, `setSelectionRange` lancia), quindi un incolla
       con separatori si ripulisce solo a campo vuoto e altrimenti si rifiuta.
       Regola 5 in CI: se una superficie ha campi interi, monta la guardia.
+      **Chiuso il punto aperto** *(31/07)* — la guardia era verificata solo per
+      **montaggio**: che il pezzo ci sia non dice che funzioni su quel campo.
+      Digitati davvero tutti e **10** i campi interi di Genesi navigando come
+      naviga una persona (le due schermate, le cinque sezioni a fisarmonica, il
+      pannello parametri del 3D): messaggio sulla virgola, «1.500» → 1500,
+      intero normale che passa. **Controprova**: la stessa pagina con la guardia
+      smontata fa cadere **20 asserzioni su 33**. La decisione è stata estratta
+      in `decisioneIntero` — funzione pura in `shared/` — e provata in
+      `run-kpi.mjs` (318 → **325**), perché un banco che vive nello scratchpad
+      alla sessione dopo non esiste. Una prova era sbagliata: pretendeva che la
+      guardia togliesse gli **spazi** delle migliaia; misurato, Chromium li
+      toglie già da solo e «1 500 000» vale 1500000 — asserzione corretta al
+      contrario, con la misura scritta accanto.
 
 - [x] **S13. Terza iterazione sulla sezione dei turni di Terra** ✅ *(30/07,
       `95e0abb`)* — renderizzati i sei stati che non avevo mai visto (Campo

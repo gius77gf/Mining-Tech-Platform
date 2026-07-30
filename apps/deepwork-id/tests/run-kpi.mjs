@@ -2955,5 +2955,83 @@ test("l'arrotondamento non può peggiorare il numero", () => {
   });
 }
 
+/* ── LA GUARDIA SUI CAMPI INTERI ───────────────────────────────────────────
+   Fin qui era verificata solo controllando che fosse MONTATA nelle pagine: un
+   controllo di montaggio dice che il pezzo c'è, non che funziona. La verifica
+   vera si è fatta col browser, digitando davvero in tutti e dieci i campi
+   interi di Genesi — e la controprova (stessa pagina con la guardia smontata)
+   ha fatto cadere 20 asserzioni su 33, quindi la prova sapeva fallire.
+   Quel banco però vive nello scratchpad, cioè alla sessione dopo non esiste:
+   la DECISIONE è stata estratta in `decisioneIntero`, funzione pura, e le sue
+   tre risposte si provano qui, dove girano sempre e senza browser.
+   Il caso che conta davvero è «1.500»: senza guardia il campo `type="number"`
+   lo legge all'inglese e vale 1,5 — millecinquecento diventa uno e mezzo, in
+   silenzio. Misurato nel browser, non dedotto. */
+{
+  const { decisioneIntero, eCampoIntero } = shell;
+  test("guardia interi: un separatore battuto a mano si rifiuta e si spiega", () => {
+    for (const c of [",", "."]) {
+      const d = decisioneIntero(c, "1");
+      ok(d && d.blocca === true, `«${c}» viene bloccato`);
+      ok(/intero/.test(d.messaggio), `«${c}»: il messaggio dice che qui va un intero`);
+      ok(d.valore === undefined, `«${c}»: il campo non viene riscritto`);
+    }
+  });
+  test("guardia interi: quello che non c'entra passa senza intralci", () => {
+    ok(decisioneIntero("4", "") === null, "una cifra passa");
+    ok(decisioneIntero("42", "") === null, "un incolla di sole cifre passa");
+    ok(decisioneIntero(null, "") === null, "niente dato (un tasto che non scrive): niente da decidere");
+    ok(decisioneIntero(undefined, "12") === null, "dato assente: niente da decidere");
+    ok(decisioneIntero("", "12") === null, "dato vuoto: niente da decidere");
+  });
+  test("guardia interi: un incolla con separatori, a campo vuoto, si ripulisce", () => {
+    const d = decisioneIntero("1.500", "");
+    ok(d && d.blocca === true, "l'incolla viene fermato");
+    eq(d.valore, "1500", "e il campo diventa millecinquecento, non uno e mezzo");
+    ok(/separatori/.test(d.messaggio), "dicendo che i separatori sono stati tolti");
+    eq(decisioneIntero("1 500.000", "").valore, "1500000", "punto e spazi insieme");
+  });
+  test("guardia interi: le migliaia separate da spazio le sistema già il browser", () => {
+    /* misurato in Chromium, battendo e incollando davvero: «1 500 000» in un
+       `type="number"` diventa 1500000, valido. Gli spazi li toglie da sé.
+       Una prima versione di questa prova pretendeva che li togliesse la
+       GUARDIA, e accusava il codice di non fare una cosa che non serve fare:
+       intercettare anche gli spazi vorrebbe dire bloccare tasti che oggi
+       funzionano già. Si lascia passare, e lo si scrive qui perché la
+       prossima volta non venga «aggiustato». */
+    ok(decisioneIntero("1 500 000", "") === null, "spazio normale: la guardia non interviene");
+    ok(decisioneIntero("1 500", "") === null, "spazio unificatore: idem");
+    ok(decisioneIntero("1 500", "") === null, "spazio stretto: idem");
+  });
+  test("guardia interi: a campo pieno si rifiuta invece di sovrascrivere", () => {
+    /* su type=number non c'è cursore (selectionStart è null, misurato): non si
+       può inserire nel punto giusto, e sovrascrivere quello che c'era sarebbe
+       peggio del rifiuto */
+    const d = decisioneIntero("1.500", "12");
+    ok(d && d.blocca === true, "si ferma");
+    ok(d.valore === undefined, "e NON tocca quello che c'era");
+    ok(/senza separatori/.test(d.messaggio), "spiegando cosa fare");
+  });
+  test("guardia interi: si applica ai campi giusti e solo a quelli", () => {
+    const finto = (attr, tipo) => ({
+      tagName: "INPUT", type: tipo === undefined ? "number" : tipo,
+      getAttribute: (n) => (n in attr ? attr[n] : null),
+    });
+    ok(eCampoIntero(finto({ step: "1" })) === true, "step intero: è un campo intero");
+    ok(eCampoIntero(finto({})) === true, "senza step: è un campo intero");
+    ok(eCampoIntero(finto({ step: "0.5" })) === false, "step decimale: non lo è");
+    ok(eCampoIntero(finto({ inputmode: "decimal" })) === false, "inputmode decimale: non lo è");
+    ok(eCampoIntero(finto({}, "text")) === false, "un campo di testo non lo è");
+    ok(eCampoIntero(null) === false, "niente elemento: non è un errore");
+  });
+  test("guardia interi: la controprova — senza la guardia «1.500» vale 1,5", () => {
+    /* quello che fa il browser da solo, misurato in Chromium: il punto è letto
+       come separatore decimale. Se questa prova smette di fallire senza la
+       guardia, la guardia non sta più servendo a niente. */
+    ok(Number("1.500") === 1.5, "il lettore del browser fa 1,5 di «1.500»");
+    eq(Number(decisioneIntero("1.500", "").valore), 1500, "con la guardia fa 1500");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);

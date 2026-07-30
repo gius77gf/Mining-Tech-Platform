@@ -319,28 +319,42 @@ export function eCampoIntero(el) {
   if (st && st.includes(".")) return false;                 // decimale dichiarato dallo step
   return el.getAttribute("inputmode") !== "decimal";        // ...o dall'inputmode
 }
+// La DECISIONE, separata dall'evento perché la decisione è la parte che si può
+// sbagliare, e finché stava dentro l'ascoltatore l'unico modo di provarla era
+// aprire un browser. Prende quello che è stato battuto o incollato (`dato`) e
+// quello che c'è già nel campo (`valore`); risponde `null` quando non c'è
+// niente da fare, altrimenti dice cosa fare e cosa dire:
+//   { blocca: true, messaggio, valore? }  — `valore` solo quando il campo si
+//   può riscrivere, cioè quando era vuoto.
+export function decisioneIntero(dato, valore) {
+  if (dato == null || !/[.,]/.test(dato)) return null;
+  // un solo separatore battuto a mano
+  if (dato === "," || dato === ".") {
+    return { blocca: true, messaggio: "Qui va un numero intero: né la virgola né il punto delle migliaia servono." };
+  }
+  // più caratteri (un incolla): si toglie ciò che non è cifra
+  const pulito = dato.replace(/[.,\s  ]/g, "");
+  if (pulito === dato) return null;
+  // su `type="number"` non c'è cursore (selectionStart è null): a campo pieno
+  // non si può inserire nel punto giusto, quindi si rifiuta e si spiega
+  if (valore) {
+    return { blocca: true, messaggio: "Incolla senza separatori: qui va un numero intero, e in questo campo non posso inserirlo a metà." };
+  }
+  return { blocca: true, valore: pulito, messaggio: "Ho tolto i separatori: qui va un numero intero." };
+}
 export function montaGuardiaInteri(avvisa) {
   const dillo = typeof avvisa === "function" ? avvisa : () => {};
   document.addEventListener("beforeinput", (ev) => {
     const el = ev.target;
-    if (!eCampoIntero(el) || ev.data == null || !/[.,]/.test(ev.data)) return;
-    // un solo separatore battuto a mano
-    if (ev.data === "," || ev.data === ".") {
-      ev.preventDefault();
-      dillo("Qui va un numero intero: né la virgola né il punto delle migliaia servono.");
-      return;
-    }
-    // più caratteri (un incolla): si toglie ciò che non è cifra
-    const pulito = ev.data.replace(/[.,\s  ]/g, "");
-    if (pulito === ev.data) return;
+    if (!eCampoIntero(el)) return;
+    const d = decisioneIntero(ev.data, el.value);
+    if (!d) return;
     ev.preventDefault();
-    if (!el.value) {
-      el.value = pulito;
+    if (d.valore !== undefined) {
+      el.value = d.valore;
       el.dispatchEvent(new Event("input", { bubbles: true }));
-      dillo("Ho tolto i separatori: qui va un numero intero.");
-    } else {
-      dillo("Incolla senza separatori: qui va un numero intero, e in questo campo non posso inserirlo a metà.");
     }
+    dillo(d.messaggio);
   });
 }
 
