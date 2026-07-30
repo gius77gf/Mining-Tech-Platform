@@ -247,7 +247,7 @@ schermate, una voce alla volta:
 |---|---|---|
 | **Scudo** | lavoratori, scadenzario, infortuni | documenti aziendali, DPI, ispezioni, cantieri, azioni correttive |
 | **Flotta** | parco mezzi, ore motore | ricambi, costi, rifornimenti, manutenzioni programmate |
-| **Conti** | fatture, gare | **listino prodotti**, anagrafica clienti, registro pesate/DDT, canoni |
+| **Conti** | fatture, gare, **listino prodotti** *(dal 30/07)* | anagrafica clienti, registro pesate/DDT, canoni |
 | **Terra** | fronti, rilievi | autorizzazioni, piano estrattivo |
 | **Campo** | squadre, piano di carico | operatori, attività, rapportini |
 | **Sentinella** | letture strumento, monitoraggi, scadenze, registro volate | **ricettori**, programma di monitoraggio, reclami |
@@ -255,7 +255,11 @@ schermate, una voce alla volta:
 **I tre che farebbero più male al primo cliente**, perché sono proprio quelli che
 una cava ha già in un foglio di calcolo:
 
-1. **Il listino prodotti di Conti** — senza, la prima fattura si fa a mano.
+1. ~~Il listino prodotti di Conti~~ — ✅ **fatto il 30/07**: si carica da CSV
+   (`nome;unita;prezzo;densita;iva`) e si riesporta. La densità che manca
+   **resta mancante** e l'app lo dice appena finito il caricamento: da m³ a
+   tonnellate si passa proprio con quel numero, e inventarlo trasformerebbe un
+   dato assente in un dato sbagliato che finisce in una fattura.
 2. **I ricettori di Sentinella** — case, scuole, confini: sono l'anagrafica su
    cui poggia tutto il monitoraggio.
 3. **I ricambi di Flotta** — un magazzino si conta in centinaia di righe.

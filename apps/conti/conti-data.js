@@ -341,6 +341,48 @@ export function parseGareCsv(text) {
     .filter(g => g.titolo);
 }
 
+// IMPORT DEL LISTINO DA CSV.
+// Perché esiste: fino al 30/07 il listino era l'unica cosa di Conti che si
+// poteva solo battere a mano, ed è quella che una cava ha GIÀ in un foglio di
+// calcolo. Senza, la prima fattura del primo cliente si fa a mano — cioè
+// esattamente la cosa che l'app promette di togliere.
+//
+// Colonne: nome;unita;prezzo;densita;iva
+//
+// ⚠️ LA DENSITÀ MANCANTE RESTA MANCANTE. È la decisione che conta di tutta la
+// funzione. Un listino vero, nato prima dell'app, spesso la densità non ce
+// l'ha; la tentazione è metterci un valore "ragionevole" per far funzionare le
+// conversioni. Non si fa: da m³ a tonnellate si passa proprio con quel numero,
+// e una densità inventata trasforma un dato mancante in un dato SBAGLIATO che
+// nessuno andrà più a controllare — finisce in una fattura e poi in una
+// denuncia annuale. Se manca resta `null`, e Conti dice che non può convertire
+// (è lo stesso comportamento che il prodotto dimostrativo `p5` fa vedere).
+//
+// L'unità di prezzo: si accettano le scritture che uno usa davvero — «t»,
+// «ton», «tonnellate», «mc», «m3», «m³» — perché un foglio di calcolo altrui
+// non conosce le nostre convenzioni. Quello che non si riconosce diventa «t»,
+// che è il caso di gran lunga più comune in cava, e resta correggibile a mano.
+export function parseListinoCsv(text) {
+  return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !isIntestazione(r, "nome"))
+    .map(r => {
+      const [nome, unita, prezzo, densita, iva] = parseCsvLine(r);
+      const u = (unita || "").trim().toLowerCase().replace(/[.\s]/g, "");
+      const pr = numIt(prezzo);
+      const de = numIt(densita);
+      const iv = numIt(iva);
+      return {
+        nome: (nome || "").trim(),
+        unitaPrezzo: ["mc", "m3", "m³", "metrocubo", "metricubi"].includes(u) ? "m3" : "t",
+        prezzo: Number.isFinite(pr) ? Math.max(0, pr) : 0,
+        // niente valore di comodo: se non c'è, non c'è
+        densita: Number.isFinite(de) && de > 0 ? de : null,
+        iva: Number.isFinite(iv) && iv >= 0 ? iv : 22,
+      };
+    })
+    .filter(p => p.nome);
+}
+
 // Interessi di mora di legge (D.Lgs 231/2002, transazioni commerciali) su una
 // fattura insoluta: danno un NUMERO vero al sollecito. Decorrono dal giorno
 // dopo la scadenza, senza messa in mora. Interessi = importo × tasso%/100 ×

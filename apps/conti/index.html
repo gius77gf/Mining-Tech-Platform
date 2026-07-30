@@ -819,6 +819,19 @@ label.item:has(.dw-chk:checked){
   <div id="lis-count" class="count"></div>
   <div id="lis-list"></div>
 
+  <!-- Il listino era l'unica cosa di Conti che si poteva solo battere a mano,
+       ed è quella che una cava ha GIÀ in un foglio di calcolo. Senza, la prima
+       fattura del primo cliente si fa a mano: cioè esattamente la cosa che
+       l'app promette di togliere. -->
+  <div class="ord" style="margin-top:12px;">
+    <button class="dw-btn secondary mini" id="btn-lis-import"
+      title="Carica il listino da un file CSV: nome;unita;prezzo;densita;iva">Importa listino CSV</button>
+    <button class="dw-btn secondary mini" id="btn-lis-export"
+      title="Scarica il listino in CSV, per il commercialista o per un backup">Esporta CSV</button>
+    <input type="file" id="lis-file" accept=".csv,text/csv" style="display:none;">
+  </div>
+  <div id="lis-esito" class="esito"></div>
+
   <div class="sec">Nuovo prodotto</div>
   <div class="form" id="lis-form">
     <div class="fld w2" id="fld-pr-nome">
@@ -1235,7 +1248,7 @@ label.item:has(.dw-chk:checked){
 </script>
 
 <script type="module">
-  import { contiData, giorni, kpiFrom, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, parseFattureCsv, parseGareCsv, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
+  import { contiData, giorni, kpiFrom, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, parseFattureCsv, parseGareCsv, parseListinoCsv, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita,
     importiFattura, totaliDaRighe, prossimoNumero, nettoPesata, rigaPesata, valorePesata,
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, venditePerProdotto,
@@ -3462,6 +3475,38 @@ label.item:has(.dw-chk:checked){
     esito("gar-esito", "Gara aggiunta: " + titolo + " (scade " + fmtD(scadenza) + ").", "success");
     $("gar-titolo").focus();   // pronto per la prossima gara
     await refresh();
+  };
+  $("btn-lis-import").onclick = () => $("lis-file").click();
+  $("lis-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const righe = parseListinoCsv(await file.text());
+    if (!righe.length) { esito("lis-esito", "Nessuna riga valida: controlla che le colonne siano nome;unita;prezzo;densita;iva.", "err"); e.target.value = ""; return; }
+    let agg = 0, dup = 0, senzaDensita = 0;
+    for (const r of righe) {
+      if (PRO.some(p => (p.nome || "").trim().toLowerCase() === r.nome.toLowerCase())) { dup++; continue; }
+      await db.aggiungi("prodotti", r);
+      if (r.densita == null) senzaDensita++;
+      agg++;
+    }
+    $("lis-file").value = "";
+    /* ⚠️ I PRODOTTI SENZA DENSITÀ SI DICONO, non si nascondono. Entrano lo
+       stesso — un listino vecchio spesso non ce l'ha e il prodotto è comunque
+       vendibile — ma senza densità Conti non sa passare da m³ a tonnellate, e
+       chi ha appena caricato il file deve saperlo ADESSO, non il giorno in cui
+       una conversione non esce. */
+    esito("lis-esito",
+      `Import listino: ${agg} prodotti aggiunti${dup ? `, ${dup} già presenti (saltati)` : ""}.`
+      + (senzaDensita ? ` ${senzaDensita} ${senzaDensita === 1 ? "prodotto \u00e8" : "prodotti sono"} senza densit\u00e0: per quelli non posso convertire fra metri cubi e tonnellate finch\u00e9 non la aggiungi.` : ""),
+      agg ? "success" : "err");
+    await refresh();
+  };
+  $("btn-lis-export").onclick = () => {
+    let csv = "nome;unita;prezzo;densita;iva\n";
+    for (const p of PRO) csv += `${csvCell(p.nome)};${p.unitaPrezzo === "m3" ? "mc" : "t"};${p.prezzo};${p.densita ?? ""};${p.iva ?? 22}\n`;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    a.download = "conti_listino.csv"; a.click();
+    esito("lis-esito", `Esportati ${PRO.length} prodotti (CSV).`, "success");
   };
   $("btn-gar-import").onclick = () => $("gar-file").click();
   $("gar-file").onchange = async (e) => {

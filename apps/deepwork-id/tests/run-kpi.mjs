@@ -410,6 +410,50 @@ test("parseGareCsv: legge titolo/base/scadenza/stato; stato ignoto → aperta; s
   eq(p[1].stato, "vinta", "stato valido mantenuto");
   eq(p[2].stato, "aperta", "stato ignoto → aperta");
 });
+/* ⛔ LA PROVA CHE CONTA È LA DENSITÀ MANCANTE. Un listino vero, nato prima
+   dell'app, spesso la densità non ce l'ha, e la tentazione è metterci un valore
+   "ragionevole" per far funzionare le conversioni. Da m³ a tonnellate si passa
+   proprio con quel numero: una densità inventata trasforma un dato MANCANTE in
+   un dato SBAGLIATO, che nessuno andrà più a controllare perché ha l'aria di
+   essere stato inserito. Finisce in una fattura e poi nella denuncia annuale.
+   Se manca deve restare `null`, e Conti dice che non può convertire. */
+test("parseListinoCsv: la densità che manca resta mancante, non diventa un numero", () => {
+  const csv = "nome;unita;prezzo;densita;iva\n"
+    + "Misto di cava;t;6,5;;22\n"          // densità assente
+    + "Detrito;t;4;0;22\n"                  // densità zero: non è una densità
+    + "Sabbia;mc;22;non so;22\n";           // densità illeggibile
+  const l = conti.parseListinoCsv(csv);
+  eq(l.length, 3, "tre prodotti, nessuno scartato per colpa della densità");
+  eq(l[0].densita, null, "assente → null");
+  eq(l[1].densita, null, "zero → null: una densità zero non esiste");
+  eq(l[2].densita, null, "illeggibile → null, non un valore di comodo");
+  eq(l[0].prezzo, 6.5, "e il prezzo si legge lo stesso: il prodotto è utilizzabile");
+});
+test("parseListinoCsv: unità di prezzo scritte come le scrive la gente", () => {
+  const csv = "nome;unita;prezzo;densita;iva\n"
+    + "A;mc;22;1,6;22\nB;m³;22;1,6;22\nC;M3;22;1,6;22\n"
+    + "D;TONNELLATE;12;1,5;22\nE;t;12;1,5;22\nF;;12;1,5;22\nG;pezzi;12;1,5;22\n";
+  const l = conti.parseListinoCsv(csv);
+  eq(l.map(x => x.unitaPrezzo).join(","), "m3,m3,m3,t,t,t,t",
+    "le tre scritture del metro cubo valgono m3; tutto il resto ricade su t, che in cava è il caso normale");
+});
+test("parseListinoCsv: intestazione, righe vuote, prezzi all'italiana, IVA propria", () => {
+  const csv = "nome;unita;prezzo;densita;iva\r\n"
+    + "Stabilizzato 0/30;t;8,50;1,9;22\r\n"
+    + "\r\n"
+    + ";t;10;1,5;22\r\n"                    // senza nome: si scarta
+    + "Pietrisco agevolato;t;1.250,75;1,5;10\r\n";
+  const l = conti.parseListinoCsv(csv);
+  eq(l.length, 2, "intestazione, riga vuota e riga senza nome fuori");
+  eq(l[0], { nome: "Stabilizzato 0/30", unitaPrezzo: "t", prezzo: 8.5, densita: 1.9, iva: 22 }, "riga completa");
+  eq(l[1].prezzo, 1250.75, "migliaia e decimali all'italiana");
+  eq(l[1].iva, 10, "un'aliquota diversa da 22 si rispetta");
+});
+test("parseListinoCsv: niente testo, niente errori", () => {
+  eq(conti.parseListinoCsv("").length, 0, "vuoto");
+  eq(conti.parseListinoCsv(null).length, 0, "null");
+  eq(conti.parseListinoCsv("nome;unita;prezzo;densita;iva").length, 0, "solo intestazione");
+});
 test("parseFattureCsv: gestisce CRLF (export Excel) e scarta importo ≤ 0", () => {
   const csv = "numero;cliente;importo;emessa;scadenza\r\n"
     + "A1;Alfa;100;2026-07-01;2026-08-01\r\n"
