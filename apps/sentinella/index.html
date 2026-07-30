@@ -1341,7 +1341,7 @@ textarea.dw-input{
            testoFontePrevisione, scartoPpvVolata, confermaVolataEseguita, riepilogoPreviste,
            volateOrdinate, firmaVolata, csvRegistroVolate, CSV_VOLATE_INTESTAZIONE,
            numeroDaCampo, AVVISO_DECIMALE } from "./sentinella-data.js";
-  import { mountExit, esc, csvCell, giorniTra, montaGuardiaInteri, avvolgiUnita } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, senzaDoppioni, giorniTra, montaGuardiaInteri, avvolgiUnita } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
@@ -3152,7 +3152,15 @@ textarea.dw-input{
   $("btn-ade-import").onclick = () => $("ade-file").click();
   $("ade-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const righe = parseAdempimentiCsv(await file.text());
+    const lette = parseAdempimentiCsv(await file.text());
+    /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
+       dentro il file appena letto (regola condivisa, shared/dw-shell.js), e
+       sotto contro quello che è GIÀ in archivio — che solo la pagina conosce.
+       Fino al 31/07 si guardava solo il secondo, e l'elenco non si aggiornava
+       mentre il file scorreva: la stessa pratica con la stessa scadenza due volte
+       entravano tutte. */
+    const righe = senzaDoppioni(lette, x => x.titolo + "|" + x.scadenza);
+    const ripetute = lette.length - righe.length;
     if (!righe.length) { esito("ade-esito", "Nessuna riga valida nel file: le colonne devono essere titolo; ente; scadenza.", "err", "Nessuna riga valida: controlla le colonne."); e.target.value = ""; return; }
     let agg = 0, dup = 0;
     for (const r of righe) {
@@ -3161,7 +3169,7 @@ textarea.dw-input{
       agg++;
     }
     $("ade-file").value = "";
-    esito("ade-esito", `Import scadenze: ${agg} aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}.`, agg ? "success" : "");
+    esito("ade-esito", `Import scadenze: ${agg} aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}${ripetute ? `, ${ripetute} ripetute nel file` : ""}.`, agg ? "success" : "");
     await refresh();
   };
   $("btn-sen").onclick = async () => {
@@ -3209,7 +3217,15 @@ textarea.dw-input{
   $("btn-ric-import").onclick = () => $("ric-file").click();
   $("ric-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const righe = parseRicettoriCsv(await file.text());
+    const lette = parseRicettoriCsv(await file.text());
+    /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
+       dentro il file appena letto (regola condivisa, shared/dw-shell.js), e
+       sotto contro quello che è GIÀ in archivio — che solo la pagina conosce.
+       Fino al 31/07 si guardava solo il secondo, e l'elenco non si aggiornava
+       mentre il file scorreva: ricettori già scritti due volte nello stesso file
+       entravano tutte. */
+    const righe = senzaDoppioni(lette, x => x.nome);
+    const ripetute = lette.length - righe.length;
     if (!righe.length) { esito("ric-esito", "Nessuna riga valida: le colonne devono essere nome; tipo; distanza; classe; soglia; unita; nota.", "err"); e.target.value = ""; return; }
     let agg = 0, saltati = 0, senzaSoglia = 0;
     for (const r of righe) {
@@ -3226,7 +3242,7 @@ textarea.dw-input{
        report di conformità. Non se ne inventa nessuna: è un numero di
        sicurezza e lo sceglie chi ha l'autorizzazione in mano. */
     esito("ric-esito",
-      "Import ricettori: " + agg + " aggiunti" + (saltati ? ", " + saltati + " già presenti (saltati)" : "") + "."
+      "Import ricettori: " + agg + " aggiunti" + (saltati ? ", " + saltati + " già presenti (saltati)" : "") + (ripetute ? ", " + ripetute + " ripetuti nel file" : "") + "."
       + (senzaSoglia ? " " + senzaSoglia + (senzaSoglia === 1 ? " è senza soglia propria" : " sono senza soglia propria") + ": i punti collegati useranno la propria finché non la scrivi tu." : ""),
       agg ? "success" : "err");
     await refresh();
@@ -3241,7 +3257,15 @@ textarea.dw-input{
   };
   $("mon-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const righe = parseMonitoraggiCsv(await file.text());
+    const lette = parseMonitoraggiCsv(await file.text());
+    /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
+       dentro il file appena letto (regola condivisa, shared/dw-shell.js), e
+       sotto contro quello che è GIÀ in archivio — che solo la pagina conosce.
+       Fino al 31/07 si guardava solo il secondo, e l'elenco non si aggiornava
+       mentre il file scorreva: sensori già scritti due volte nello stesso file
+       entravano tutte. */
+    const righe = senzaDoppioni(lette, x => x.nome);
+    const ripetute = lette.length - righe.length;
     if (!righe.length) { esito("mis-esito", "Nessuna riga valida nel file: le colonne devono essere nome; tipo; valore; soglia; unita; nota.", "err", "Nessuna riga valida: controlla le colonne."); e.target.value = ""; return; }
     let agg = 0, saltati = 0;
     for (const m of righe) {
@@ -3250,7 +3274,7 @@ textarea.dw-input{
       agg++;
     }
     $("mon-file").value = "";
-    esito("mis-esito", "Import sensori: " + agg + " aggiunti" + (saltati ? ", " + saltati + " già presenti (saltati)" : "") + ".", agg ? "success" : "");
+    esito("mis-esito", "Import sensori: " + agg + " aggiunti" + (saltati ? ", " + saltati + " già presenti (saltati)" : "") + (ripetute ? ", " + ripetute + " ripetuti nel file" : "") + ".", agg ? "success" : "");
     await refresh();
   };
   $("btn-mis").onclick = async () => {

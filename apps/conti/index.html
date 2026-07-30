@@ -1256,7 +1256,7 @@ label.item:has(.dw-chk:checked){
     applicaIncassi, apertoDi, statoIncasso, movimentiDiFattura, incassatoPeriodo,
     tempiPagamentoClienti, tempoMedioPagamento, emessoIncassato,
     numeroDaCampo, AVVISO_DECIMALE } from "./conti-data.js";
-  import { mountExit, esc, csvCell, avvolgiUnita, euro, euro0, conEuro } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, senzaDoppioni, avvolgiUnita, euro, euro0, conEuro } from "../../shared/deepwork-id-client/dw-shell.js";
   const ggU = avvolgiUnita;   // la regola vive in shared/: qui solo il nome di sempre
   const $ = (id) => document.getElementById(id);
   // ── CIFRE: formato italiano, sempre due decimali, spazio unificatore
@@ -3479,7 +3479,15 @@ label.item:has(.dw-chk:checked){
   $("btn-lis-import").onclick = () => $("lis-file").click();
   $("lis-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const righe = parseListinoCsv(await file.text());
+    const lette = parseListinoCsv(await file.text());
+    /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
+       dentro il file appena letto (regola condivisa, shared/dw-shell.js), e
+       sotto contro quello che è GIÀ in archivio — che solo la pagina conosce.
+       Fino al 31/07 si guardava solo il secondo, e l'elenco non si aggiornava
+       mentre il file scorreva: prodotti già scritti due volte nello stesso file
+       entravano tutte. */
+    const righe = senzaDoppioni(lette, x => x.nome);
+    const ripetute = lette.length - righe.length;
     if (!righe.length) { esito("lis-esito", "Nessuna riga valida: controlla che le colonne siano nome;unita;prezzo;densita;iva.", "err"); e.target.value = ""; return; }
     let agg = 0, dup = 0, senzaDensita = 0;
     for (const r of righe) {
@@ -3495,7 +3503,7 @@ label.item:has(.dw-chk:checked){
        chi ha appena caricato il file deve saperlo ADESSO, non il giorno in cui
        una conversione non esce. */
     esito("lis-esito",
-      `Import listino: ${agg} prodotti aggiunti${dup ? `, ${dup} già presenti (saltati)` : ""}.`
+      `Import listino: ${agg} prodotti aggiunti${dup ? `, ${dup} già presenti (saltati)` : ""}${ripetute ? `, ${ripetute} ripetuti nel file` : ""}.`
       + (senzaDensita ? ` ${senzaDensita} ${senzaDensita === 1 ? "prodotto \u00e8" : "prodotti sono"} senza densit\u00e0: per quelli non posso convertire fra metri cubi e tonnellate finch\u00e9 non la aggiungi.` : ""),
       agg ? "success" : "err");
     await refresh();
@@ -3511,7 +3519,15 @@ label.item:has(.dw-chk:checked){
   $("btn-gar-import").onclick = () => $("gar-file").click();
   $("gar-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const righe = parseGareCsv(await file.text());
+    const lette = parseGareCsv(await file.text());
+    /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
+       dentro il file appena letto (regola condivisa, shared/dw-shell.js), e
+       sotto contro quello che è GIÀ in archivio — che solo la pagina conosce.
+       Fino al 31/07 si guardava solo il secondo, e l'elenco non si aggiornava
+       mentre il file scorreva: gare già scritte due volte nello stesso file
+       entravano tutte. */
+    const righe = senzaDoppioni(lette, x => x.titolo);
+    const ripetute = lette.length - righe.length;
     if (!righe.length) { esito("gar-esito", "Nessuna riga valida: controlla che le colonne siano titolo;base;scadenza;stato.", "err"); e.target.value = ""; return; }
     let agg = 0, dup = 0;
     for (const r of righe) {
@@ -3520,7 +3536,7 @@ label.item:has(.dw-chk:checked){
       agg++;
     }
     $("gar-file").value = "";
-    esito("gar-esito", `Import gare: ${agg} aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}.`, agg ? "success" : "err");
+    esito("gar-esito", `Import gare: ${agg} aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}${ripetute ? `, ${ripetute} ripetute nel file` : ""}.`, agg ? "success" : "err");
     await refresh();
   };
   $("btn-gar-export").onclick = () => {
@@ -3609,7 +3625,15 @@ label.item:has(.dw-chk:checked){
   $("btn-imp-fat").onclick = () => $("fat-file").click();
   $("fat-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const righe = parseFattureCsv(await file.text());
+    const lette = parseFattureCsv(await file.text());
+    /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
+       dentro il file appena letto (regola condivisa, shared/dw-shell.js), e
+       sotto contro quello che è GIÀ in archivio — che solo la pagina conosce.
+       Fino al 31/07 si guardava solo il secondo, e l'elenco non si aggiornava
+       mentre il file scorreva: fatture con lo stesso numero due volte nel file
+       entravano tutte. */
+    const righe = senzaDoppioni(lette, x => x.numero);
+    const ripetute = lette.length - righe.length;
     if (!righe.length) { esito("ft-esito", "Nessuna riga valida: controlla che le colonne siano numero;cliente;importo;emessa;scadenza.", "err"); e.target.value = ""; return; }
     let add = 0, dup = 0;
     for (const f of righe) {
@@ -3626,7 +3650,7 @@ label.item:has(.dw-chk:checked){
       add++;
     }
     $("fat-file").value = "";
-    esito("ft-esito", "Import fatture: " + add + " aggiunte" + (dup ? ", " + dup + " già presenti (numero duplicato)" : "") + ".", add ? "success" : "err");
+    esito("ft-esito", "Import fatture: " + add + " aggiunte" + (dup ? ", " + dup + " già presenti (numero duplicato)" : "") + (ripetute ? ", " + ripetute + " con lo stesso numero ripetuto nel file" : "") + ".", add ? "success" : "err");
     await refresh();
   };
   // Recupero errore: appena l'utente corregge un campo, togli il bordo

@@ -947,7 +947,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            numeroIt, segnoIt, numeroItDa, numeroDaCampo } from "./campo-data.js";
   import { misuratoPeriodo, produzioneDichiarata, riconciliazioneTurni,
            periodoFraUltimiRilievi, densitaDelMateriale } from "../../shared/dw-ponti.js";
-  import { mountExit, esc, csvCell, messaggioNumero, montaGuardiaInteri } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, senzaDoppioni, messaggioNumero, montaGuardiaInteri } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
@@ -2843,7 +2843,15 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   $("btn-squ-import").onclick = () => $("squ-file").click();
   $("squ-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const righe = parseSquadreCsv(await file.text());
+    const lette = parseSquadreCsv(await file.text());
+    /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
+       dentro il file appena letto (regola condivisa, shared/dw-shell.js), e
+       sotto contro quello che è GIÀ in archivio — che solo la pagina conosce.
+       Fino al 31/07 si guardava solo il secondo, e l'elenco non si aggiornava
+       mentre il file scorreva: squadre già scritte due volte nello stesso file
+       entravano tutte. */
+    const righe = senzaDoppioni(lette, x => x.nome);
+    const ripetute = lette.length - righe.length;
     if (!righe.length) { esito("squ-esito", "Nessuna riga valida nel file: le colonne devono essere nome; persone; area; stato.", "err"); e.target.value = ""; return; }
     let agg = 0, dup = 0;
     for (const r of righe) {
@@ -2852,7 +2860,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       agg++;
     }
     $("squ-file").value = "";
-    esito("squ-esito", `Import squadre: ${agg} aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}.`, agg ? "success" : "err");
+    esito("squ-esito", `Import squadre: ${agg} aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}${ripetute ? `, ${ripetute} ripetute nel file` : ""}.`, agg ? "success" : "err");
     await refresh();
   };
   $("btn-squ-export").onclick = () => {

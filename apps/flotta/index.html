@@ -1147,7 +1147,7 @@
            ORIZZONTE_TAGLIANDI, ritmoOreMezzi, ritmoDelMezzo, tagliandiInScadenza,
            numeroDaCampo, interoDaCampo, perCampo, messaggioNumero,
            AVVISO_DECIMALE, AVVISO_MIGLIAIA } from "./flotta-data.js";
-  import { mountExit, esc, csvCell, numIt, montaGuardiaInteri, avvolgiUnita, euro, conEuro } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, senzaDoppioni, numIt, montaGuardiaInteri, avvolgiUnita, euro, conEuro } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
@@ -3180,7 +3180,15 @@
   $("btn-ric-import").onclick = () => $("ric-file").click();
   $("ric-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const righe = parseRicambiCsv(await file.text());
+    const lette = parseRicambiCsv(await file.text());
+    /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
+       dentro il file appena letto (regola condivisa, shared/dw-shell.js), e
+       sotto contro quello che è GIÀ in archivio — che solo la pagina conosce.
+       Fino al 31/07 si guardava solo il secondo, e l'elenco non si aggiornava
+       mentre il file scorreva: ricambi già scritti due volte nello stesso file
+       entravano tutte. */
+    const righe = senzaDoppioni(lette, x => x.nome);
+    const ripetute = lette.length - righe.length;
     if (!righe.length) { esito("ric-esito", "Nessuna riga valida: le colonne devono essere nome;giacenza;sogliaMin;prezzo.", "err"); e.target.value = ""; return; }
     let agg = 0, dup = 0, senzaSoglia = 0;
     for (const r of righe) {
@@ -3195,7 +3203,7 @@
        avvisa nessuno, e l'app sembra rotta quando invece non le è mai stato
        detto sotto quale quantità suonare. */
     esito("ric-esito",
-      `Import ricambi: ${agg} aggiunti${dup ? `, ${dup} già presenti (saltati)` : ""}.`
+      `Import ricambi: ${agg} aggiunti${dup ? `, ${dup} già presenti (saltati)` : ""}${ripetute ? `, ${ripetute} ripetuti nel file` : ""}.`
       + (senzaSoglia ? ` ${senzaSoglia} ${senzaSoglia === 1 ? "è senza soglia minima e non entrerà" : "sono senza soglia minima e non entreranno"} nell'avviso di sotto-scorta finché non gliela scrivi.` : ""),
       agg ? "success" : "err");
     await refresh();
@@ -3210,7 +3218,15 @@
   };
   $("mez-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const righe = parseMezziCsv(await file.text());
+    const lette = parseMezziCsv(await file.text());
+    /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
+       dentro il file appena letto (regola condivisa, shared/dw-shell.js), e
+       sotto contro quello che è GIÀ in archivio — che solo la pagina conosce.
+       Fino al 31/07 si guardava solo il secondo, e l'elenco non si aggiornava
+       mentre il file scorreva: mezzi già scritti due volte nello stesso file
+       entravano tutte. */
+    const righe = senzaDoppioni(lette, x => x.nome);
+    const ripetute = lette.length - righe.length;
     if (!righe.length) { esito("ore-esito", "Nessuna riga valida nel file: le colonne devono essere nome;area;ore;stato, una riga per mezzo.", "err"); e.target.value = ""; return; }
     let agg = 0, dup = 0;
     for (const r of righe) {
@@ -3219,7 +3235,7 @@
       agg++;
     }
     $("mez-file").value = "";
-    esito("ore-esito", `Import parco: ${agg} ${agg === 1 ? "mezzo aggiunto" : "mezzi aggiunti"}${dup ? `, ${dup} già presenti (saltati)` : ""}.`, agg ? "success" : "err");
+    esito("ore-esito", `Import parco: ${agg} ${agg === 1 ? "mezzo aggiunto" : "mezzi aggiunti"}${dup ? `, ${dup} già presenti (saltati)` : ""}${ripetute ? `, ${ripetute} ripetuti nel file` : ""}.`, agg ? "success" : "err");
     await refresh();
   };
   $("btn-tele").onclick = () => $("tele-file").click();

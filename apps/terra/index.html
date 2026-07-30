@@ -896,7 +896,7 @@ a.dw-btn{text-decoration:none}
            periodoFraUltimiRilievi, intervalliFraRilievi, avanzamentoDaUltimoRilievo, SOGLIA_TURNI,
            produzionePerFronte,
            numeroDaCampo, AVVISO_DECIMALE } from "./terra-data.js";
-  import { mountExit, esc, csvCell, montaGuardiaInteri, euro0 } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, senzaDoppioni, montaGuardiaInteri, euro0 } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   // Oltre al toast, Terra segna in rosso il campo e scrive nel riquadro
@@ -2682,7 +2682,15 @@ a.dw-btn{text-decoration:none}
   $("btn-fro-import").onclick = () => $("fro-file").click();
   $("fro-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const righe = parseFrontiCsv(await file.text());
+    const lette = parseFrontiCsv(await file.text());
+    /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
+       dentro il file appena letto (regola condivisa, shared/dw-shell.js), e
+       sotto contro quello che è GIÀ in archivio — che solo la pagina conosce.
+       Fino al 31/07 si guardava solo il secondo, e l'elenco non si aggiornava
+       mentre il file scorreva: fronti già scritti due volte nello stesso file
+       entravano tutte. */
+    const righe = senzaDoppioni(lette, x => x.nome);
+    const ripetute = lette.length - righe.length;
     if (!righe.length) { esito("fro-esito", "Nessuna riga valida nel file: controlla che le colonne siano nome; banco; quota; stato.", "err"); e.target.value = ""; return; }
     let agg = 0, dup = 0;
     for (const r of righe) {
@@ -2691,7 +2699,7 @@ a.dw-btn{text-decoration:none}
       agg++;
     }
     $("fro-file").value = "";
-    esito("fro-esito", `Import fronti: ${agg} aggiunti${dup ? `, ${dup} già presenti (saltati)` : ""}.`);
+    esito("fro-esito", `Import fronti: ${agg} aggiunti${dup ? `, ${dup} già presenti (saltati)` : ""}${ripetute ? `, ${ripetute} ripetuti nel file` : ""}.`);
     await refresh();
   };
   $("btn-add-ril").onclick = async () => {
