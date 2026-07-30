@@ -406,8 +406,20 @@ bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
       si estraggono le funzioni e si eseguono contro il **markup vero** preso
       dal file, che per il tipo di un campo e per la ricerca dell'etichetta
       basta e prova esattamente la cosa giusta.
-- [ ] **S7. Ponte P2 Campo → Terra**: la produzione del turno alimenta i
-      volumi per fronte senza reinserimento. È l'ultimo ponte.
+- [x] **S7. Ponte P2 Campo → Terra** ✅ *(30/07, `30a95fa`)* — **l'ultimo
+      ponte, e i cinque sono chiusi.** Non come era stato scritto qui («la
+      produzione del turno alimenta i volumi per fronte»): quella formulazione
+      era il difetto. La produzione di turno **non deve alimentare i volumi**,
+      perché i rilievi consumano il volume CONCESSO e finiscono nel riepilogo
+      che va agli ENTI, portano metodo e GSD che li rendono difendibili in
+      audit, e sommarli conterebbe **due volte** la stessa roccia — quella che
+      i camion portano via è quella che il volo poi misura come vuoto di scavo.
+      Quindi il dichiarato resta **dichiarato**: riempie il buco fra due voli
+      del drone (l'unica cosa che Terra può dire di quel periodo) e si
+      **confronta** col rilievo quando arriva. E il confronto vive a livello di
+      **cava**, non di fronte, perché i rapportini di Campo non hanno un fronte
+      e indovinarlo lo metterebbe sul concesso sbagliato: scritto in pagina
+      invece che aggirato.
 
 ## BLOCCO 5 — FONDAZIONE E QUALITÀ
 - [ ] Q1. Proposte di `docs/RICERCA_DEEPWORKID_202607.md` (ruoli reali di
