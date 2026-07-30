@@ -153,6 +153,86 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
   padding:10px 12px;font-size:13px;line-height:1.55;margin:14px 0}
 #modal .warn b{color:#ff9a70}
 #modal .foot{display:flex;justify-content:flex-end;margin-top:18px}
+
+/* ---- modale generica: STRUTTURA del core, COLORE di Genesi ----------------
+   Serviva perché Genesi usava `prompt()` e `confirm()` del browser, che la
+   direttiva vincolante sullo stile vieta: sono finestre di sistema, con il
+   carattere e i bottoni del sistema operativo, e su un telefono compaiono
+   incollate in cima allo schermo. In mezzo a un'app costruita pelo per pelo
+   erano l'unico punto che non era nostro.
+   `#modal` sopra è la modale del disclaimer, che ha un impianto suo: questa è
+   quella generica, con le stesse classi e la stessa struttura del core
+   (`shared/dw-app-ui.css`: overlay, box, head col filo di luce, body che
+   scorre, foot appiccicato in basso, `.mbtn` con primary e danger). Genesi non
+   carica il foglio condiviso — è il monolite 3D e importarlo rischierebbe di
+   scontrarsi col suo impianto — quindi la struttura è ricopiata qui, mentre i
+   colori sono i suoi: l'ambra `--cu`, non l'accento del core. */
+.modal-ov{
+  position:fixed; inset:0; z-index:300; display:none; padding:20px; align-items:center;
+  justify-content:center; background:rgba(8,6,3,.78);
+  -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
+}
+.modal-ov.show{display:flex; animation:ovFade .2s var(--ease)}
+@keyframes ovFade{from{opacity:0} to{opacity:1}}
+.modal-box{
+  position:relative; width:100%; max-width:440px; max-height:92dvh; display:flex;
+  flex-direction:column; overflow:hidden;
+  background:linear-gradient(180deg,var(--panel2),#1a1509);
+  border:1px solid var(--line); border-radius:16px;
+  box-shadow:0 20px 60px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,171,0,.09);
+  animation:mdUp .25s var(--ease);
+}
+@keyframes mdUp{from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)}}
+.modal-head{
+  position:relative; padding:15px 18px; border-bottom:1px solid var(--line);
+  font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:800;
+  letter-spacing:2px; text-transform:uppercase; color:var(--tx);
+}
+/* il filo di luce sotto il titolo, nella tinta dell'app */
+.modal-head::after{
+  content:""; position:absolute; left:0; right:0; bottom:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--cu),transparent); opacity:.55;
+}
+.modal-body{
+  padding:15px 18px; overflow-y:auto; overscroll-behavior:contain; flex:1;
+  max-height:55vh; font-size:13.5px; line-height:1.6; color:var(--mut2);
+  user-select:text;
+}
+.modal-body b{color:var(--tx)}
+.modal-body .fl{
+  display:block; margin:12px 0 6px; font-size:11px; font-weight:600;
+  letter-spacing:2px; text-transform:uppercase; color:var(--mut);
+}
+.modal-body input{
+  width:100%; background:#15110a; border:1px solid var(--line); border-radius:8px;
+  color:var(--tx); font-size:14px; padding:10px 12px; font-family:inherit;
+  transition:border-color .16s var(--ease),box-shadow .16s var(--ease);
+}
+.modal-body input:focus{outline:none; border-color:var(--cu); box-shadow:0 0 0 3px rgba(255,171,0,.14)}
+.modal-foot{
+  padding:12px 18px; border-top:1px solid var(--line); background:rgba(16,13,7,.9);
+  display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap;
+  position:sticky; bottom:0;
+}
+.mbtn{
+  background:none; border:1px solid var(--line); color:var(--tx);
+  padding:10px 16px; border-radius:8px; min-height:44px;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700;
+  letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+  transition:all .15s var(--ease);
+}
+.mbtn:hover{border-color:var(--cu); color:var(--cu)}
+.mbtn:active{transform:scale(.97)}
+.mbtn.primary{
+  background:linear-gradient(135deg,var(--cu),var(--cuD)); border-color:transparent;
+  color:#1a1200; font-weight:800;
+  box-shadow:0 6px 18px rgba(255,109,0,.28), inset 0 1px 0 rgba(255,255,255,.22);
+}
+.mbtn.primary:hover{filter:brightness(1.07); color:#1a1200}
+.mbtn.danger{background:#ef5350; border-color:#ef5350; color:#2a0906; font-weight:800}
+.mbtn.danger:hover{filter:brightness(1.08); color:#2a0906}
+
 /* ---- toast ---- */
 #toast{position:fixed;bottom:108px;left:50%;transform:translateX(-50%);z-index:40;background:var(--panel2);
   border:1px solid var(--cu);color:var(--tx);border-radius:10px;padding:9px 16px;font-size:13px;
@@ -850,6 +930,16 @@ body.scr-sim #tl{bottom:80px}
   </div>
 </div>
 
+<!-- modale generica in stile core: sostituisce prompt() e confirm() del
+     browser, vietati dalla direttiva sullo stile -->
+<div class="modal-ov" id="mdl" role="dialog" aria-modal="true" aria-labelledby="mdl-tit">
+  <div class="modal-box">
+    <div class="modal-head" id="mdl-tit">Conferma</div>
+    <div class="modal-body" id="mdl-body"></div>
+    <div class="modal-foot" id="mdl-foot"></div>
+  </div>
+</div>
+
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -906,6 +996,12 @@ function gseg(v, dec){
   const n = +v;
   if(!isFinite(n)) return '—';
   return (n<0?'−':'+') + gnum(Math.abs(n), dec);
+}
+/* Le volate sono salvate con la data in forma tecnica («2026-07-30 01:38»),
+   che è giusto per ordinarle e sbagliato da mostrare a un italiano. */
+function gdata(s){
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}:\d{2}))?/.exec(String(s || ''));
+  return m ? m[3] + '/' + m[2] + '/' + m[1] + (m[4] ? ' alle ' + m[4] : '') : String(s || '');
 }
 function gfix(v, dec){
   if(v===null || v==='' || v===undefined) return '—';
@@ -2583,6 +2679,83 @@ $('meshIn').onchange = e=>{ if(e.target.files[0]) loadFrontMeshFile(e.target.fil
 /* ============ toast / modal ============ */
 let toastTimer=null;
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2800); }
+
+/* ══════════════════════════════════════════════════════════════════════
+   MODALE DEL CORE — al posto di prompt() e confirm() del browser
+   ══════════════════════════════════════════════════════════════════════
+   Erano tre: due per il nome della volata da salvare, uno per la conferma di
+   eliminazione. La direttiva sullo stile li vieta, e la ragione non è
+   estetica: la finestra del browser ha il carattere e i bottoni del sistema
+   operativo, su Android compare incollata in cima allo schermo, e in
+   `confirm()` il bottone che distrugge è indistinguibile da quello che
+   annulla. Qui invece «Elimina» è rosso e «Annulla» è il primo bottone,
+   cioè quello che risponde a Esc e al tocco fuori dal riquadro.
+   Restituiscono una Promise, quindi chi chiama resta leggibile come prima. */
+let _mdlPrec = null;
+function mdlApri(titolo, corpo, bottoni){
+  _mdlPrec = document.activeElement;
+  $('mdl-tit').textContent = titolo;
+  $('mdl-body').innerHTML = corpo;
+  const foot = $('mdl-foot');
+  foot.innerHTML = '';
+  (bottoni||[]).forEach(b=>{
+    const el = document.createElement('button');
+    el.className = 'mbtn ' + (b.cls||'');
+    el.textContent = b.label;
+    el.onclick = b.azione;
+    foot.appendChild(el);
+  });
+  $('mdl').classList.add('show');
+  /* il fuoco va al campo se c'è, altrimenti al bottone che agisce: chi usa la
+     tastiera non deve cercarlo, e chi arriva col dito lo trova già pronto */
+  const primo = $('mdl-body').querySelector('input,select,textarea')
+             || foot.querySelector('.mbtn.primary,.mbtn.danger') || foot.querySelector('.mbtn');
+  if(primo) setTimeout(()=>{ try{ primo.focus({preventScroll:true}); primo.select&&primo.select(); }catch(e){} }, 80);
+}
+function mdlChiudi(){
+  $('mdl').classList.remove('show');
+  if(_mdlPrec && _mdlPrec.focus){ try{ _mdlPrec.focus({preventScroll:true}); }catch(e){} }
+  _mdlPrec = null;
+}
+/* conferma → Promise<boolean>. `pericolo` colora di rosso il bottone che agisce */
+function chiedi(titolo, corpo, etichettaOk, pericolo){
+  return new Promise(res=>{
+    mdlApri(titolo, corpo, [
+      { label:'Annulla', azione:()=>{ mdlChiudi(); res(false); } },
+      { label: etichettaOk||'Conferma', cls: pericolo?'danger':'primary',
+        azione:()=>{ mdlChiudi(); res(true); } },
+    ]);
+  });
+}
+/* richiesta di un valore → Promise<string|null>. null = ha annullato, che NON
+   è la stessa cosa di aver lasciato il campo vuoto */
+function chiediValore(titolo, corpo, valore, etichettaOk){
+  const campo = '<label class="fl" for="mdl-campo">Nome</label>'
+    + '<input id="mdl-campo" type="text" autocomplete="off" spellcheck="false" value="'+_rEsc(valore||'')+'">';
+  return new Promise(res=>{
+    mdlApri(titolo, corpo + campo, [
+      { label:'Annulla', azione:()=>{ mdlChiudi(); res(null); } },
+      { label: etichettaOk||'Salva', cls:'primary', azione:()=>{
+          const c = $('mdl-campo'); const v = c ? c.value : '';
+          mdlChiudi(); res(v);
+        } },
+    ]);
+    const c = $('mdl-campo');
+    if(c) c.addEventListener('keydown', e=>{
+      if(e.key==='Enter'){ e.preventDefault(); document.querySelector('#mdl-foot .mbtn.primary').click(); }
+    });
+  });
+}
+/* tocco fuori dal riquadro e Esc = il PRIMO bottone, che è sempre «Annulla»:
+   uscire per sbaglio non deve mai eseguire l'azione */
+$('mdl').addEventListener('click', e=>{
+  if(e.target.id==='mdl'){ const b=document.querySelector('#mdl-foot .mbtn'); if(b) b.click(); }
+});
+document.addEventListener('keydown', e=>{
+  if(e.key!=='Escape') return;
+  const m = $('mdl');
+  if(m && m.classList.contains('show')){ e.stopPropagation(); const b=m.querySelector('#mdl-foot .mbtn'); if(b) b.click(); }
+}, true);
 /* ===== Confronto A/B tra progetti (A10): snapshot KPI in localStorage ===== */
 function computeKPI(){
   const B=D2.B, S=D2.S, H=D2.prof, Q=D2.kg, Dm=D2.diam/1000;
@@ -3579,7 +3752,7 @@ function renderHome(){
   if($('hgVolN')) $('hgVolN').textContent=arr.length? (arr.length+' salvate'):'';
   const list=$('hgVolate');
   if(list) list.innerHTML = arr.length
-    ? arr.slice().reverse().map(v=>'<div class="hg-item" data-id="'+v.id+'"><div class="t"><b>'+_rEsc(v.nome)+'</b><small>'+v.data+' · '+_rEsc(v.sintesi||'')+'</small></div><button data-act="apri">Apri</button><button data-act="dup">Duplica</button><button data-act="del" title="Elimina">✕</button></div>').join('')
+    ? arr.slice().reverse().map(v=>'<div class="hg-item" data-id="'+v.id+'"><div class="t"><b>'+_rEsc(v.nome)+'</b><small>'+_rEsc(gdata(v.data))+' · '+_rEsc(v.sintesi||'')+'</small></div><button data-act="apri">Apri</button><button data-act="dup">Duplica</button><button data-act="del" title="Elimina">✕</button></div>').join('')
     : '<div class="hg-empty">Nessuna volata salvata. Progetta nel 2D e premi «Salva la volata attuale»: la ritroverai qui.</div>';
   const nv=_lsGet('genesiNuvole');
   if($('hgNuvN')) $('hgNuvN').textContent=nv.length? (nv.length+' lavorazioni'):'';
@@ -3588,18 +3761,50 @@ function renderHome(){
     ? nv.slice(-6).reverse().map(e=>'<div class="hg-item"><div class="t"><b>'+_rEsc(e.nome)+'</b><small>'+_rEsc(e.data||'')+(e.punti?(' · '+gnum(e.punti,0)+' punti'):'')+(e.volume?(' · volume ≈ '+gnum(e.volume,1)+' m³'):'')+'</small></div></div>').join('')
     : '<div class="hg-empty">Nessun rilievo ancora. Carica la nuvola del drone nel visore: le lavorazioni compaiono qui.</div>';
 }
-if($('hgSalva')) $('hgSalva').onclick=()=>{
-  const nome=(prompt('Nome della volata da salvare:','Volata '+new Date().toLocaleDateString('it-IT'))||'').trim();
-  if(!nome) return;
-  const arr=_lsGet('genesiVolate'); arr.push(volSnapshot(nome)); while(arr.length>50) arr.shift();
-  _lsSet('genesiVolate',arr); renderHome(); toast('✓ Volata salvata');
-};
+/* Un solo posto per «salva la volata»: i due bottoni facevano la stessa cosa
+   con due copie dello stesso codice, e una delle due scriveva un messaggio
+   diverso a parità di azione. */
+async function salvaVolata(codaMsg){
+  const arr=_lsGet('genesiVolate');
+  const proposta='Volata '+new Date().toLocaleDateString('it-IT');
+  const v=await chiediValore('Salva la volata',
+    'Il nome serve a ritrovarla in Home. Restano le ultime 50: '
+    + (arr.length ? 'adesso ce ne sono <b>'+gnum(arr.length,0)+'</b>.' : 'questa è la prima.'),
+    proposta, 'Salva');
+  if(v===null) return;                       // ha annullato: non è un errore
+  const nome=v.trim();
+  /* un nome vuoto non diventa «Volata senza nome»: si dice cosa manca e si
+     lascia l'utente dov'era, con quello che aveva già scritto */
+  if(!nome){ toast('Serve un nome per ritrovarla in Home.'); return; }
+  arr.push(volSnapshot(nome)); while(arr.length>50) arr.shift();
+  _lsSet('genesiVolate',arr); renderHome(); toast('✓ Volata salvata'+(codaMsg||''));
+}
+if($('hgSalva')) $('hgSalva').onclick=()=>salvaVolata();
 if($('hgVolate')) $('hgVolate').addEventListener('click',e=>{
   const btn=e.target.closest('button'); if(!btn) return;
   const item=e.target.closest('.hg-item'); const id=item&&item.getAttribute('data-id'); if(!id) return;
   const arr=_lsGet('genesiVolate'); const i=arr.findIndex(v=>v.id===id); if(i<0) return;
   const act=btn.getAttribute('data-act');
-  if(act==='del'){ if(confirm('Eliminare «'+arr[i].nome+'»?')){ arr.splice(i,1); _lsSet('genesiVolate',arr); renderHome(); } return; }
+  if(act==='del'){
+    /* la conferma dice cosa si perde — la data e la sintesi della volata — e
+       il bottone che distrugge è rosso, cosa che in `confirm()` non si può */
+    chiedi('Eliminare la volata?',
+      'Stai per eliminare <b>'+_rEsc(arr[i].nome)+'</b>'
+      + (arr[i].data ? ', salvata il '+_rEsc(gdata(arr[i].data)) : '')
+      + (arr[i].sintesi ? ' — '+_rEsc(arr[i].sintesi) : '')
+      + '. Non si può annullare.', 'Elimina', true)
+      .then(si=>{
+        if(!si) return;
+        const a=_lsGet('genesiVolate'); const j=a.findIndex(v=>v.id===id);
+        /* si rilegge l'indice: fra la domanda e la risposta l'elenco può
+           essere cambiato, e cancellare la riga sbagliata sarebbe peggio */
+        if(j<0){ toast('Quella volata non c\'è più.'); renderHome(); return; }
+        const nome=a[j].nome;
+        a.splice(j,1); _lsSet('genesiVolate',a); renderHome();
+        toast('✓ «'+nome+'» eliminata');
+      });
+    return;
+  }
   if(act==='dup'){ const c=JSON.parse(JSON.stringify(arr[i])); c.id='v'+Date.now(); c.nome=arr[i].nome+' (copia)'; c.data=new Date().toISOString().slice(0,16).replace('T',' '); arr.push(c); _lsSet('genesiVolate',arr); renderHome(); toast('✓ Duplicata'); return; }
   if(act==='apri'){
     Object.assign(D2, JSON.parse(JSON.stringify(arr[i].design)));
@@ -3608,12 +3813,7 @@ if($('hgVolate')) $('hgVolate').addEventListener('click',e=>{
     toast('✓ «'+arr[i].nome+'» aperta nel 2D');
   }
 });
-if($('btn-salva-volata')) $('btn-salva-volata').onclick=()=>{
-  const nome=(prompt('Nome della volata da salvare:','Volata '+new Date().toLocaleDateString('it-IT'))||'').trim();
-  if(!nome) return;
-  const arr=_lsGet('genesiVolate'); arr.push(volSnapshot(nome)); while(arr.length>50) arr.shift();
-  _lsSet('genesiVolate',arr); renderHome(); toast('\u2713 Volata salvata: la trovi in Home');
-};
+if($('btn-salva-volata')) $('btn-salva-volata').onclick=()=>salvaVolata(': la trovi in Home');
 if($('hgImporta')) $('hgImporta').onclick=()=>$('fileIn').click();
 if($('hgEsporta')) $('hgEsporta').onclick=()=>$('btnExport').click();
 renderHome();
