@@ -325,11 +325,63 @@ metà di questo elenco è arrivata dopo il 23 e mancava)*:
 ---
 
 ## Genesi — il simulatore di volata (a parte)
-È il gioiello tecnico (vista 3D, frammentazione, flyrock, confronto A/B…). Il
-**motore fisico non si tocca senza una tua indicazione** — è una regola tua.
-Per la prossima mossa serve che tu dica *quale* rifinitura vuoi per prima:
-vedi `DECISIONI_WEEKEND.md` punto 6 e `apps/genesi/PIANO_3D.md`. Nel vault c'è
-già la ricerca (formula Swebrec) pronta per quando deciderai di procedere.
+**A cosa serve**: provare la volata sullo schermo invece che sulla roccia, e
+uscirne col piano di carico per il fochino.
+
+*Questa scheda era rimasta una riga («il gioiello tecnico…») che non diceva
+cosa fa. Riscritta il 30/07 con l'app aperta davanti: è l'app che fa più
+impressione a chi guarda, e aveva la scheda più povera.*
+
+**Cosa fa già**:
+- **Progetto 2D**: si disegna la maglia dei fori e la **sequenza di sparo** in
+  pianta, coi ritardi decisi foro per foro e le linee di innesco.
+- **Simulazione 3D**: la volata sul fronte, fase per fase, col fronte
+  modificabile dentro la scena (maniglie su cresta e piede, quote, annulla) e
+  le **colonne di carica segmentate a colori** dentro ogni foro.
+- Sette gruppi di parametri, che sono le sette domande di una volata:
+  **geometria**, **carica e sequenza**, **roccia e geologia**, **fori
+  bagnati**, **presplit** (il taglio del profilo), **vibrazioni e recettore**,
+  **costi e resa**.
+- **La banda d'incertezza** che nasce dalla precisione di perforazione: un
+  risultato dichiarato senza il suo margine è un risultato che promette troppo.
+- **La mappa dell'energia** foro per foro: dove ce n'è troppa e dove troppo poca.
+- **Le tue volate** salvate, e il **caricamento della nuvola del drone** per
+  lavorare sul fronte vero invece che su un fronte inventato.
+- **Riconciliazione previsto contro reale**: il consuntivo di carico che torna
+  da Campo si mette accanto al previsto. È uno dei sei ponti, e con quello delle
+  vibrazioni da Sentinella è il motivo per cui il modello migliora invece di
+  restare quello del manuale.
+
+**Pronto**: da mostrare, sì — è la schermata che fa capire in dieci secondi che
+non è un foglio di calcolo. **Aspetta te**: il **motore fisico non si tocca
+senza una tua indicazione** — è una regola tua. Per la prossima mossa serve che
+tu dica *quale* rifinitura vuoi per prima: vedi `DECISIONI_WEEKEND.md` punto 6
+e `apps/genesi/PIANO_3D.md`. Nel vault c'è già la ricerca (formula Swebrec)
+pronta per quando deciderai di procedere, e in
+`docs/GENESI_FRAMMENTAZIONE_DA_FOTO.md` sta scritto **onestamente cosa quella
+strada non può dare**: serve a non promettere in vendita quello che non c'è.
+
+---
+
+## Deepwork ID — l'accesso comune (la "Fase 0")
+**A cosa serve**: una password sola per tutte le app, e i dati di ogni azienda
+chiusi in casa propria.
+
+**Cosa fa già**: registrazione e accesso, il **tour senza registrarsi** (che è
+come si fa vedere il prodotto senza configurare niente), l'organizzazione coi
+suoi membri e i suoi inviti, i ruoli, e la griglia degli abbonamenti per app.
+
+**Quello che va detto con precisione**, perché è la domanda numero uno di un
+cliente: **l'isolamento fra aziende concorrenti tiene, ed è provato** — 58 test
+automatici che provano a leggere, scrivere, cancellare ed elencare i dati del
+concorrente, e falliscono tutti come devono. Dentro la stessa azienda, invece,
+**oggi tutti possono tutto**: chi è stato invitato per compilare i rapportini
+può anche cancellare una fattura. Non è un difetto nascosto, è un lavoro non
+ancora fatto — e la scelta di dove passa la riga è tua:
+`docs/REVISIONE_SICUREZZA_202607.md`.
+
+**Aspetta te**: l'accensione del progetto Firebase (gratis, dieci minuti) —
+è il collo di bottiglia di tutto il resto.
 
 ---
 
