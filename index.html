@@ -3890,14 +3890,35 @@ function reconCalibra(){
     _cal.pts.push({nx,ny});
     if(_cal.pts.length===2){
       img.removeEventListener('click',handler);
+      img.style.cursor='';
       const dpx=Math.hypot(_cal.pts[1].nx-_cal.pts[0].nx,_cal.pts[1].ny-_cal.pts[0].ny);
-      const m=parseFloat(window.prompt('Distanza reale tra i 2 punti (m)?','1'));
-      if(m>0&&dpx>0){
-        const realW=img.naturalWidth*m/dpx, realH=realW*img.naturalHeight/img.naturalWidth;
-        $('rc-w').value=realW.toFixed(1);$('rc-h').value=realH.toFixed(1);
-        toast('Scala calibrata: '+realW.toFixed(1)+'×'+realH.toFixed(1)+' m','success');
-      }
       _cal.mode=false;
+      // Il prompt() del browser era l'unico punto dell'app con una finestra di
+      // sistema, e su un numero che conta: da questa distanza esce la SCALA di
+      // tutto il modello, quindi ogni misura presa dalla foto. Qui invece si
+      // può spiegare cosa serve, accettare la virgola italiana, e rifiutare
+      // un valore assurdo invece di calibrare in silenzio con una sciocchezza.
+      if(!(dpx>0)){ toast('I due punti sono troppo vicini: riprova toccandoli più distanti','err'); return; }
+      openModal('Distanza reale fra i due punti',
+        '<p>Hai toccato due punti su un riferimento di misura nota. Scrivi quanto '
+        +'distano <b>nella realtà</b>, in metri: da questo numero esce la scala di '
+        +'tutto il modello, e quindi ogni misura che prenderai dalla foto.</p>'
+        +'<div class="frow"><label class="fl" for="cal-m">Distanza reale in metri</label>'
+        +'<input class="finput" id="cal-m" type="text" inputmode="decimal" autocomplete="off" '
+        +'spellcheck="false" value="1" placeholder="es. 1,25" '
+        +'title="Va bene la virgola: 1,25 come 1.25"></div>',
+        [{label:'Annulla',cls:'mbtn',action:closeModal},
+         {label:'CALIBRA',cls:'mbtn primary',action:()=>{
+           // niente type=number: in Chromium digitando «1,25» il campo salva
+           // «125» e lo dichiara valido. Cento volte la scala, in silenzio.
+           const m=parseNum0(($('cal-m').value||'').trim());
+           if(!(m>0)){ toast('Serve una distanza maggiore di zero','err'); return; }
+           if(m>500){ toast('Cinquecento metri fra due punti della stessa foto non è plausibile: controlla il numero','err'); return; }
+           closeModal();
+           const realW=img.naturalWidth*m/dpx, realH=realW*img.naturalHeight/img.naturalWidth;
+           $('rc-w').value=realW.toFixed(1);$('rc-h').value=realH.toFixed(1);
+           toast('Scala calibrata: '+realW.toFixed(1)+'×'+realH.toFixed(1)+' m','success');
+         }}]);
     }
   };
   img.style.cursor='crosshair';img.addEventListener('click',handler);
@@ -3922,21 +3943,39 @@ async function reconToVolata(){
   if(!_recon||!_recon.markers||!_recon.markers.length){toast('Nessun foro segnato sul modello','err');return;}
   const v=DB.volate.find(x=>x.id===state.volataSel);
   if(!v){toast('Apri prima una volata (menu Progetti volata), poi torna qui','err');return;}
-  if(!confirm('Aggiungere '+_recon.markers.length+' fori alla volata #'+(v.numero||'?')+' come prima fila (x dal modello, resto dai default)?'))return;
-  const W=_recon.W;
-  _recon.markers.slice().sort((a,b)=>a.position.x-b.position.x).forEach(m=>{
-    const num=v.fori.length+1;
-    v.fori.push({id:'foro_'+genId(),num,x:Math.round((m.position.x+W/2)*100)/100,y:1,
-      prof:parseNum0(v.default.profondita_m)||0,diam:parseNum0(v.default.diametro_mm)||45,
-      kg:v.default.kg_per_foro||'',esplosivo:v.default.esplosivo||'',ritardo:'',innesco:v.default.innesco||'',
-      sequenza:num,note:'da ricostruzione 3D '+today()});
-  });
-  v.fori.forEach((f,i)=>{f.num=i+1;});
-  state.editorUnsaved=true;
-  ricalcolaTotaliVolata(v);
-  await fbSet('volate', v.id, v);
-  auditLog('volata.recon_import', {volataId:v.id, added:_recon.markers.length});
-  toast('Aggiunti '+_recon.markers.length+' fori alla volata #'+(v.numero||'?')+' (nota di provenienza inclusa)','success');
+  // Il confirm() del browser diceva tutto in una riga sola, con i bottoni del
+  // sistema operativo: qui invece si può dire con ordine cosa arriva dal
+  // modello e cosa NON arriva (profondità, diametro, chili, ritardo), che è
+  // esattamente la cosa che non va data per capita — quei fori entrano in un
+  // progetto di volata, e chi li rilegge deve sapere che sono da completare.
+  const n=_recon.markers.length;
+  const gia=(v.fori||[]).length;
+  openModal('Portare i fori nella volata',
+    '<p>Stai per aggiungere <b>'+n+(n===1?' foro':' fori')+'</b> alla volata '
+    +'<b>#'+escHtml(String(v.numero||'?'))+'</b> come <b>prima fila</b>'
+    +(gia?', che ne ha già <b>'+gia+'</b>':'')+'.</p>'
+    +'<p>Dal modello arriva <b>solo la posizione lungo il fronte</b>. '
+    +'Tutto il resto — distanza dal fronte, profondità, diametro, chili, '
+    +'ritardo, innesco — viene dai <b>valori di serie</b> della volata e va '
+    +'controllato foro per foro: ogni foro nasce con la nota di provenienza.</p>',
+    [{label:'Annulla',cls:'mbtn',action:closeModal},
+     {label:'AGGIUNGI ALLA VOLATA',cls:'mbtn primary',action:async(e)=>{
+       closeModal();
+       const W=_recon.W;
+       _recon.markers.slice().sort((a,b)=>a.position.x-b.position.x).forEach(m=>{
+         const num=v.fori.length+1;
+         v.fori.push({id:'foro_'+genId(),num,x:Math.round((m.position.x+W/2)*100)/100,y:1,
+           prof:parseNum0(v.default.profondita_m)||0,diam:parseNum0(v.default.diametro_mm)||45,
+           kg:v.default.kg_per_foro||'',esplosivo:v.default.esplosivo||'',ritardo:'',innesco:v.default.innesco||'',
+           sequenza:num,note:'da ricostruzione 3D '+today()});
+       });
+       v.fori.forEach((f,i)=>{f.num=i+1;});
+       state.editorUnsaved=true;
+       ricalcolaTotaliVolata(v);
+       await fbSet('volate', v.id, v);
+       auditLog('volata.recon_import', {volataId:v.id, added:n});
+       toast('Aggiunti '+n+' fori alla volata #'+(v.numero||'?')+' (nota di provenienza inclusa)','success');
+     }}]);
 }
 function reconExportHoles(){
   // i fori segnati sul modello non devono andare persi (censimento E1):
