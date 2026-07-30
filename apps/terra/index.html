@@ -1793,6 +1793,38 @@ a.dw-btn{text-decoration:none}
       sogliaGuardiaPct: numInt("aut-soglia"), anniRitmo: numInt("aut-anni"), preavvisoGiorni: numInt("aut-preavviso"),
     };
   }
+  // ── CAMPI INTERI: la virgola si ferma sulla porta ────────────────────
+  // Questi cinque campi restano <input type="number">, dove lo spinner è un
+  // aiuto e i decimali non servono: giorni, mesi, anni e una soglia in
+  // percentuale non si scrivono con la virgola. Il problema è che il browser,
+  // se la virgola la si digita, non la rifiuta e non la segnala: la butta via
+  // e INCOLLA le cifre — «2,4» giorni di preavviso diventano «24», dieci volte
+  // tanto, con il campo che sembra a posto. Qui il carattere si intercetta
+  // PRIMA che entri e si dice perché, invece di lasciar passare un numero
+  // decuplicato. `beforeinput` vede anche l'incolla, non solo la tastiera.
+  const CAMPI_INTERI = [
+    ["aut-soglia",   "La soglia di guardia si scrive in percento intero",       "aut-esito"],
+    ["aut-anni",     "Gli anni su cui misurare il ritmo sono un numero intero", "aut-esito"],
+    ["aut-preavviso","Il preavviso si conta in giorni interi",                  "aut-esito"],
+    ["new-scad-pre", "Il preavviso si conta in giorni interi",                  "scad-esito"],
+    ["new-scad-ric", "La ricorrenza si conta in mesi interi",                   "scad-esito"],
+  ];
+  // Misurato: `beforeinput` VEDE la virgola (data = ","), ma fermarla non basta
+  // — il browser l'avrebbe scartata da sé, e le cifre intorno restano attaccate
+  // («2» + «4» = «24»). Perciò, oltre a dirlo, il campo si SVUOTA e si segna in
+  // rosso: così non resta lì un numero plausibile e sbagliato che sembra scelto.
+  for (const [id, spiega, box] of CAMPI_INTERI) {
+    const el = $(id); if (!el) continue;
+    el.addEventListener("beforeinput", (e) => {
+      if (!e.data || !/[.,]/.test(e.data)) return;
+      e.preventDefault();
+      el.value = "";
+      err(id, true);
+      esito(box, spiega + ": la virgola qui non si può usare, e il browser la scarta attaccando le cifre («2,4» diventerebbe «24»). Ho svuotato il campo: riscrivi il numero intero.", "err");
+    });
+    el.addEventListener("input", () => err(id, false));
+  }
+
   $("btn-aut-salva").onclick = async () => {
     const d = leggiFormAut();
     if (!d.numeroAtto) { err("aut-numero", true); fuoco("aut-numero");

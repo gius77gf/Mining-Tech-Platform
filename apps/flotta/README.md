@@ -99,12 +99,69 @@ valore (i soli tagliandi a data): il conto onesto arriva passando anche
 `{ letture, oggi }`. Una tessera non cambia numero da sola — cambia quando le
 si danno i dati per farlo.
 
+## La virgola: come si scrive un numero in Flotta
+
+In cava chi compila è italiano e scrive «2,4». Un `<input type="number">`
+**non è neutro** rispetto alla virgola: la specifica HTML gli impone come
+valore un *valid floating-point number*, cioè col PUNTO, e il browser
+sanifica quello che si digita **prima** che il codice lo veda. Misurato in
+Chromium sui campi di Flotta, identico in locale en-US e it-IT:
+
+| digitato | `.value` che arriva al codice | cosa veniva salvato |
+|---|---|---|
+| `2,4` | `24` (e `checkValidity()` risponde **true**) | dieci volte tanto |
+| `1.250,75` | `1.25075` | **€1,25** invece di €1.250,75 |
+
+Non un campo vuoto: un numero falso, dichiarato valido dal browser. Un
+`replace(",", ".")` nel codice è codice morto, perché la virgola è già stata
+buttata via. Su Flotta questo colpiva i **soldi** e i **consumi**.
+
+**I campi decimali sono `type="text" inputmode="decimal"`** (sul telefono
+resta la tastiera numerica) e il numero lo legge `numeroDaCampo()` in
+`flotta-data.js`: accetta `2,4` · `2.4` · `1.250,75` · `1,250.75` · `1 250,75`
+· `€ 12,50`. `min`/`max`/`step` nativi non valgono più: la validazione è
+nostra, ed è lì. Per quello che **non** si capisce non si salva zero — si
+dice cosa non torna e si mostra come scriverlo (`messaggioNumero()`, toast del
+core; `alert()` e `confirm()` del browser sono vietati).
+
+Due cose vengono **rifiutate invece di indovinate**:
+
+- quello che non ha forma di numero: `2,4,5` non è 245;
+- l'**ambiguo** `1.250` — un separatore solo seguito da esattamente tre cifre
+  può voler dire milleduecentocinquanta oppure 1,25. Il parser generico
+  sceglierebbe 1,25: su un importo è un errore da mille volte, e l'unica
+  risposta onesta è chiederlo a chi scrive. `1.250,75` invece **non** è
+  ambiguo (ci sono entrambi i separatori: l'ultimo è il decimale) e passa.
+
+**Restano `type="number"` i quattro campi interi**, dove la virgola non serve
+e lo spinner è un vantaggio: giorni di consegna, margine di sicurezza, giorni
+di preavviso, periodicità in mesi. Anche lì però il numero viene controllato
+(`interoDaCampo()`): quando si esce dal campo, se quello che c'è scritto non
+si legge lo si dice e nel campo torna il valore che l'app sta **usando** — un
+campo non mostra mai un numero diverso da quello che vale.
+
+Le **letture del contatore** tengono un decimale: i contaore delle macchine
+contano i decimi, e arrotondare 1234,8 a 1235 farebbe poi rifiutare la
+lettura successiva come «più bassa di quella già registrata».
+
+Due formattatori con due mestieri diversi, e non sono interscambiabili:
+`perCampo()` scrive un numero **dentro un campo** (virgola decimale, **mai**
+il punto delle migliaia, che rientrerebbe come ambiguo); `numTx`/`eur`/`oreTx`
+scrivono un numero **a schermo** (col punto delle migliaia dove l'italiano lo
+vuole). I **CSV** non passano da nessuno dei due: là dentro i numeri restano
+col punto decimale e senza separatore delle migliaia — sono dati, non testo.
+
 ## Regole che l'app rispetta
 
 - Niente numeri inventati: il consumo si mostra solo quando esistono almeno
   due rifornimenti con il contatore (il primo fissa il punto di partenza);
   i giorni senza registrazione restano buchi, non zeri.
 - Un giro macchina con voci senza risposta **non si salva**.
+- Un numero che non si capisce **non diventa zero**, e non si perde in
+  silenzio: vuoto e `""` non sono zero. Le due finestre che chiedono un numero
+  (chiusura dell'ordine, prossimo tagliando) **ritornano** con scritto cosa non
+  torna e con dentro ancora quello che era stato scritto, invece di chiudersi
+  salvando un valore inventato.
 - Il contatore delle ore non scende mai.
 - Il **costo di un ordine di lavoro** non viene mai salvato a parte: si
   ricalcola dalle righe, così non può dire una cosa diversa da quella che

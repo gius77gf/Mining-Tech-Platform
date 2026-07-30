@@ -214,10 +214,11 @@ export function messaggioNumero(r, cosa, opts = {}) {
     case "vuoto":
       return "Senza " + cosa + " non posso salvare: scrivi il numero.";
     case "ambiguo":
-      // qui NON si raggruppa: «1.250 oppure 1,25» ripeterebbe la stringa
-      // ambigua invece di scioglierla
-      // tre decimali: la lettura decimale di «5.875» è 5,875 — con i due
-      // decimali di default diventava «5,88», un terzo numero che non c'entra
+      // Le due letture si scrivono con perCampo, non con mostra: raggruppate
+      // darebbero «1.250 oppure 1,25», cioè la frase ripeterebbe la stringa
+      // ambigua invece di scioglierla. E tre decimali, non due: la lettura
+      // decimale di «5.875» è 5,875 — con i due di default diventava «5,88»,
+      // un terzo numero che non c'entra niente con quello che era stato scritto.
       return q + " può voler dire " + perCampo(r.letture[0]) + u + " (punto delle migliaia) oppure "
         + perCampo(r.letture[1], 3) + u + " (punto decimale), e non voglio indovinare al posto tuo. " + AVVISO_MIGLIAIA;
     case "non-numero":
