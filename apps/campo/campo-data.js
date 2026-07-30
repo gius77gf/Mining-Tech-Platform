@@ -166,11 +166,11 @@ const GIORNI_FA = (n) => { const d = new Date(); d.setDate(d.getDate() - n); ret
 
 export const DEMO = {
   attivita: [
-    { id: "a1", data: OGGI_DEMO, turno: "Mattina", titolo: "Perforazione fronte Est", dettaglio: "14/22 fori", squadra: "Squadra A", operatore: "Luca Ferrari", stato: "in-corso" },
-    { id: "a2", data: OGGI_DEMO, turno: "Mattina", titolo: "Volata fronte Nord", dettaglio: "Ore 12:30", squadra: "Squadra A", operatore: "Marco Rossi", stato: "pianificata" },
+    { id: "a1", data: OGGI_DEMO, turno: "Mattina", titolo: "Perforazione fronte Est", dettaglio: "14/22 fori", squadra: "Squadra A", operatore: "Luca Bianchi", stato: "in-corso" },
+    { id: "a2", data: OGGI_DEMO, turno: "Mattina", titolo: "Volata fronte Nord", dettaglio: "Ore 12:30", squadra: "Squadra A", operatore: "Mario Rossi", stato: "pianificata" },
     { id: "a3", data: OGGI_DEMO, turno: "Mattina", titolo: "Carico e trasporto", dettaglio: "Piazzale 2 → frantoio", squadra: "Squadra B", operatore: "", stato: "in-corso" },
     { id: "a4", data: OGGI_DEMO, turno: "Mattina", titolo: "Frantoio primario", dettaglio: "Fermo per intasamento tramoggia", squadra: "Squadra C", operatore: "", stato: "anomalia" },
-    { id: "a5", data: OGGI_DEMO, turno: "Mattina", titolo: "Controllo pre-turno mezzi", dettaglio: "completato", squadra: "Squadra B", operatore: "Anna Conti", stato: "conclusa" },
+    { id: "a5", data: OGGI_DEMO, turno: "Mattina", titolo: "Controllo pre-turno mezzi", dettaglio: "completato", squadra: "Squadra B", operatore: "Giulia Verdi", stato: "conclusa" },
   ],
   squadre: [
     { id: "q1", nome: "Squadra A — Perforazione", persone: 4, area: "fronte Est", stato: "operativa" },
@@ -284,7 +284,7 @@ export function operatoriDi(operatori, squadra) {
     .sort((a, b) => String(a.nome).localeCompare(String(b.nome), "it"));
 }
 
-// Etichetta di assegnazione di un'attività: "Squadra A · Marco Rossi",
+// Etichetta di assegnazione di un'attività: "Squadra A · Mario Rossi",
 // oppure stringa vuota se non è assegnata a nessuno. Pura e testabile.
 export function etichettaAssegnazione(att) {
   const parti = [];

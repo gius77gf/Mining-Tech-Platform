@@ -2583,7 +2583,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   $("btn-ope").onclick = async () => {
     const nome = $("ope-nome").value.trim();
     if (!nome) { sbaglia("ope-nome", "ope-esito",
-      "Manca il nome: serve a sapere chi sta facendo il lavoro (per esempio «Marco Rossi»)."); return; }
+      "Manca il nome: serve a sapere chi sta facendo il lavoro (per esempio «Mario Rossi»)."); return; }
     if (OPER.some(o => (o.nome || "").trim().toLowerCase() === nome.toLowerCase())) {
       sbaglia("ope-nome", "ope-esito", "C'è già una persona con questo nome: se sono due persone diverse, aggiungi l'iniziale del cognome per distinguerle."); return; }
     err("ope-nome", false);

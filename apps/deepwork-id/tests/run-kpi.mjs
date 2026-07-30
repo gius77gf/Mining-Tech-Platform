@@ -2385,6 +2385,25 @@ test("P3 · le due dimostrazioni non si smentiscono a vicenda", () => {
       `e allo stesso nome: ${o.nome} / ${perId.get(o.lavoratoreId).nome}`);
   }
 });
+test("Campo · le attività citano operatori che esistono davvero", () => {
+  /* NASCE DA UN DIFETTO MIO, di un'ora prima: rinominando gli operatori della
+     dimostrazione per allinearli a Scudo ho lasciato indietro le attività, che
+     citavano ancora «Marco Rossi» e «Luca Ferrari». Campo lega l'attività alla
+     persona PER NOME (`a.operatore === o.nome`), quindi il conto «N in carico
+     oggi» era diventato zero per tutti — in silenzio, senza errori, e non l'ho
+     visto nello screenshot perché il conto semplicemente spariva.
+     Nota per il futuro: il legame interno per nome è fragile per la stessa ragione
+     per cui il ponte con Scudo non lo usa. Qui però la stringa la scrive l'utente
+     nel campo «operatore», e cambiarla in un id è un lavoro a parte: intanto la
+     dimostrazione resta coerente per forza. */
+  const nomi = new Set(campo.DEMO.operatori.map(o => String(o.nome).trim()));
+  const orfane = campo.DEMO.attivita.filter(a => a.operatore && !nomi.has(String(a.operatore).trim()));
+  ok(orfane.length === 0,
+    `nessuna attività cita una persona fuori anagrafica (${orfane.map(a => a.operatore).join(", ")})`);
+  /* e almeno una la cita, altrimenti la prova passerebbe su un elenco vuoto —
+     è la trappola del `[].every` già pestata due volte */
+  ok(campo.DEMO.attivita.some(a => a.operatore), "e almeno un'attività ha un operatore, se no non si prova niente");
+});
 test("P3 · la dimostrazione mostra TUTTI gli stati, altrimenti non dimostra", () => {
   const q = campo.idoneitaDiTurno(campo.DEMO.operatori, campo.DEMO.lavoratoriScudo,
     campo.DEMO.scadenzeScudo, new Date("2026-07-30T00:00:00"));
