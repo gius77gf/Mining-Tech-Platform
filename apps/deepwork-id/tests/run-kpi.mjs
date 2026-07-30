@@ -2497,5 +2497,99 @@ test("l'arrotondamento non può peggiorare il numero", () => {
   });
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   LE ETICHETTE DELL'ASSE X NON SI SOVRAPPONGONO
+   ══════════════════════════════════════════════════════════════════════
+   Il difetto stava in questo: il motore scampionava le etichette col solo CONTO
+   (una ogni `passo`) e poi aggiungeva l'ultima comunque, senza guardare se ci
+   stava. Ma lo spazio che serve dipende da quanto è LUNGO il testo, e tutte le
+   prove sui grafici usavano `A B C D`. Misurato a 390 px con quattro nomi di
+   fronte veri («Gradone Nord-Est», «Gradone Sud-Ovest»): 12 px di sovrapposizione.
+   Adesso il passo dà i candidati e la geometria decide chi resta. La decisione è
+   in `tenuteX`, che riceve riquadri e torna indici: nessun DOM, quindi la regola
+   si prova qui e non solo nel browser dello scratchpad — che alla sessione
+   successiva non c'è più. Le larghezze vere, quelle, si misurano nel browser
+   (`getBBox`): una stima le aveva sbagliate di un terzo. */
+{
+  const { tenuteX } = grafici.geometria;
+  /* riquadri da sinistra a destra, come li passa il disegno */
+  const sp = (sin, larg) => ({ sin, des: sin + larg });
+
+  test("grafici: l'ultima etichetta non si butta mai", () => {
+    eq(tenuteX([sp(0, 30)], 4), [0], "una sola etichetta resta");
+    /* due attaccate: cade la PRIMA, non l'ultima — il dato più recente è quello
+       che si guarda per primo, una tacca intermedia in meno si legge comunque */
+    eq(tenuteX([sp(0, 40), sp(35, 40)], 4), [1], "di due sovrapposte resta la seconda");
+    /* tre a catena NON si riducono a una: caduta la penultima, la prima non tocca
+       più niente e torna a starci. Scartare a catena getterebbe informazione che
+       c'è spazio per mostrare — la prima versione di questa prova si aspettava
+       proprio quello, e si aspettava male. */
+    eq(tenuteX([sp(0, 40), sp(38, 40), sp(76, 40)], 4), [0, 2],
+      "tre a catena: cade quella in mezzo, la prima ci sta di nuovo");
+  });
+  test("grafici: chi ci sta resta, e nell'ordine da sinistra a destra", () => {
+    eq(tenuteX([sp(0, 30), sp(50, 30), sp(100, 30)], 4), [0, 1, 2], "larghe abbastanza: tutte");
+    /* fra la PRIMA e un'intermedia che si toccano cade l'intermedia: la prima dice
+       da dove comincia l'asse, l'intermedia serve solo a leggere la scala */
+    eq(tenuteX([sp(0, 30), sp(31, 30), sp(100, 30)], 4), [0, 2],
+      "fra la prima e l'intermedia che si toccano cade l'intermedia");
+    /* il respiro è un minimo, e «almeno 4» include 4: con 4 px di stacco l'etichetta
+       resta, con 3 cade. Il confine va provato da entrambi i lati, altrimenti la
+       prova starebbe zitta se un giorno diventasse 3 o 5. */
+    eq(tenuteX([sp(0, 30), sp(34, 30)], 4), [0, 1], "4 px di stacco bastano: il respiro è un minimo");
+    eq(tenuteX([sp(0, 30), sp(33, 30)], 4), [1], "3 px non bastano");
+    eq(tenuteX([sp(0, 30), sp(34, 30)], 0), [0, 1], "senza respiro richiesto basta non toccarsi");
+  });
+  /* QUESTA PROVA NASCE DA UNO SCREENSHOT, non da un conto. La prima versione di
+     `tenuteX` teneva solo l'ultima e scorreva verso sinistra: con quattro nomi di
+     fronte a 390 px restavano la SECONDA e la QUARTA, e il lato sinistro dell'asse
+     era vuoto — un grafico che non dice da dove comincia. Le sovrapposizioni erano
+     zero, quindi nessuna misura automatica se ne sarebbe accorta: si è visto
+     guardando. */
+  test("grafici: l'asse dice sempre da dove comincia e dove finisce", () => {
+    /* quattro etichette larghe, dove solo le due estremità ci stanno */
+    const q = [sp(0, 100), sp(80, 100), sp(170, 100), sp(260, 100)];
+    eq(tenuteX(q, 4), [0, 3], "restano le due estremità, non due tacche in mezzo");
+    /* e se nemmeno le due estremità ci stanno, resta l'ultima: quella non cade mai */
+    eq(tenuteX([sp(0, 100), sp(60, 100)], 4), [1], "se le estremità si toccano resta l'ultima");
+    /* con tre, la prima e la terza prima della seconda */
+    eq(tenuteX([sp(0, 60), sp(50, 60), sp(120, 60)], 4), [0, 2],
+      "la tacca di mezzo cede il posto alle estremità");
+  });
+  test("grafici: niente etichette, niente da decidere", () => {
+    eq(tenuteX([], 4), [], "lista vuota");
+    eq(tenuteX(null, 4), [], "lista assente: non un errore");
+    /* un riquadro non misurabile si SALTA invece di far cadere tutto quello che
+       gli sta a sinistra: un'etichetta che non si sa dov'è non deve poter
+       cancellare quelle che si sanno */
+    eq(tenuteX([sp(0, 30), null, sp(100, 30)], 4), [0, 2], "un riquadro assente si salta");
+    eq(tenuteX([sp(0, 30), { sin: NaN, des: NaN }, sp(100, 30)], 4), [0, 2],
+      "un riquadro NaN si salta come uno assente");
+  });
+  test("grafici: la controprova — la vecchia scelta si sovrapponeva", () => {
+    /* la versione di prima: gli indici del passo, più l'ultimo, sempre.
+       I numeri non sono inventati — sono quelli misurati a 390 px: il disegno va da
+       38 a 378 unità di viewBox, e «Gradone Nord-Est» ne occupa circa 108 (86 px di
+       schermo, che il viewBox scala a 108). Con quattro nomi così l'ultima entrava
+       dentro la penultima. Una prima versione di questa prova usava 60 unità — la
+       larghezza dello SCHERMO invece di quella del viewBox — e non conteneva
+       nessuna sovrapposizione: la guardia qui sotto l'ha detto. */
+    const larg = 108, x0 = 38, x1 = 378;
+    const posti = [0, 1, 2, 3].map((i) => x0 + ((x1 - x0) * i) / 3);
+    const riquadri = posti.map((X, i) =>
+      i === 3 ? sp(X - larg, larg) : i === 0 ? sp(X, larg) : sp(X - larg / 2, larg));
+    let sovrapposte = 0;
+    for (let i = 1; i < riquadri.length; i++) if (riquadri[i].sin < riquadri[i - 1].des) sovrapposte++;
+    ok(sovrapposte > 0, "il caso di prova contiene davvero una sovrapposizione");
+    const tenute = tenuteX(riquadri, 4);
+    let ancora = 0;
+    for (let i = 1; i < tenute.length; i++) {
+      if (riquadri[tenute[i]].sin < riquadri[tenute[i - 1]].des) ancora++;
+    }
+    ok(ancora === 0, `dopo la scelta nessuna si sovrappone (tenute: ${tenute.join(",")})`);
+    ok(tenute[tenute.length - 1] === 3, "e l'ultima è fra quelle tenute");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);

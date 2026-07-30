@@ -575,9 +575,41 @@
     sc.tacche.forEach(function (v, i) {
       svg.appendChild(nodo('text', { 'class': 'dwg-tick', x: box.x0 - 7, y: (py(v) + 3.4).toFixed(1), 'text-anchor': 'end' }, etY[i]));
     });
+    /* LE ETICHETTE DELL'ASSE X NON SI SOVRAPPONGONO, e contarle non basta a
+       garantirlo: quanto spazio occupa un'etichetta dipende da quanto è LUNGO il
+       testo, e il passo di campionamento non lo sa. Misurato a 390 px con la
+       versione precedente, che sceglieva col solo passo e poi aggiungeva l'ultima
+       comunque: otto date brevi mostravano 0-2-4-6 più il 7 attaccato al 6
+       (sovrapposte di 5 px), e quattro nomi lunghi («Fronte Ovest», passo 1) si
+       sovrapponevano allo stesso modo — perché l'ultima è ancorata a destra e
+       cresce tutta verso sinistra, dentro lo spazio della precedente.
+       Quindi il passo dà i CANDIDATI e la geometria decide chi resta. Si sceglie
+       DA DESTRA perché il dato più recente è quello che si guarda per primo e non
+       si butta mai: ogni candidato più a sinistra resta solo se finisce almeno
+       4 px prima di quello già tenuto.
+       Le larghezze si MISURANO, non si stimano: l'<svg> è già nel documento quando
+       questo blocco gira, quindi `getBBox` dà il riquadro vero. Il primo tentativo
+       stimava 5,9 px per carattere — misurati sui riquadri di schermo — e non
+       toglieva niente, perché la geometria del grafico è in unità del **viewBox**
+       e lo schermo la rimpicciolisce (misurato: box fino a 378 unità dentro un
+       disegno largo 310 px). La stima era sbagliata di un terzo, nel verso che non
+       protegge. E anche corretta la scala resterebbe fragile: la larghezza dipende
+       dal carattere che il browser ha davvero e dalla dimensione, che in modalità
+       cantiere è più grande. Misurare non ha nessuna di queste ipotesi.
+       Si disegna tutto e si TOGLIE quello che non ci sta, invece di disegnare solo
+       i sopravvissuti: così le etichette restano nell'ordine da sinistra a destra
+       anche nel documento, e i grafici che non cambiano non cambiano di una virgola.
+       Se il grafico è nascosto `getBBox` dà zero: là si stima, ed è l'unico caso. */
     var passoX = Math.max(1, Math.ceil(n / (largo >= 620 ? 8 : 5)));
-    for (var i = 0; i < n; i += passoX) etichettaX(svg, x[i], px(i), box, n, i);
-    if (n > 1 && (n - 1) % passoX !== 0) etichettaX(svg, x[n - 1], px(n - 1), box, n, n - 1);
+    var cand = [];
+    for (var i = 0; i < n; i += passoX) cand.push(i);
+    if (n > 1 && cand[cand.length - 1] !== n - 1) cand.push(n - 1);
+    var messe = cand.map(function (iC) { return { i: iC, el: etichettaX(svg, x[iC], px(iC), box) }; });
+    var tieni = tenuteX(messe.map(function (m) { return spanX(m.el, px(m.i), box, x[m.i]); }), 4);
+    messe.forEach(function (m, k) {
+      if (tieni.indexOf(k) >= 0 || !m.el.parentNode) return;
+      m.el.parentNode.removeChild(m.el);
+    });
     /* l'etichetta d'asse È l'unità: va sempre sottratta al maiuscolo estetico */
     if (s.unita) svg.appendChild(nodo('text', { 'class': 'dwg-axlab dwg-u', x: 0, y: box.y0 - 8, 'text-anchor': 'start' }, s.unita));
 
@@ -671,9 +703,66 @@
     g.tabella(intest, righeTab);
   }
 
-  function etichettaX(svg, testo, X, box, n, i) {
-    var anc = X <= box.x0 + 16 ? 'start' : X >= box.x1 - 16 ? 'end' : 'middle';
-    svg.appendChild(nodo('text', { 'class': 'dwg-tick', x: X.toFixed(1), y: box.y1 + 15, 'text-anchor': anc }, String(testo)));
+  /* L'ANCORA È UNA COSA SOLA, in una funzione sola: chi decide se un'etichetta ci
+     sta deve sapere DA CHE PARTE cresce, e se lo indovinasse per conto suo
+     basterebbe cambiare qui perché il conto diventasse sbagliato di là. */
+  function ancoraX(X, box) {
+    return X <= box.x0 + 16 ? 'start' : X >= box.x1 - 16 ? 'end' : 'middle';
+  }
+
+  function etichettaX(svg, testo, X, box) {
+    var el = nodo('text', { 'class': 'dwg-tick', x: X.toFixed(1), y: box.y1 + 15, 'text-anchor': ancoraX(X, box) }, String(testo));
+    svg.appendChild(el);
+    return el;
+  }
+
+  /* CHI RESTA quando le etichette non ci stanno tutte. Sta in una funzione sua,
+     separata dal disegno, perché così la regola si prova senza un browser — e una
+     regola che si prova è una regola che non si perde. Riceve i riquadri
+     {sin, des} da sinistra a destra e torna gli INDICI di quelli da tenere.
+     LE DUE ESTREMITÀ VENGONO PRIMA DI TUTTO. Un asse dice DA QUANDO A QUANDO, e
+     quei due numeri non sono tacche fra le altre: sono la domanda a cui il grafico
+     risponde. La prima versione teneva solo l'ultima e scorreva da destra; a
+     schermo, con quattro nomi di fronte, restavano la seconda e la quarta e il lato
+     sinistro dell'asse era vuoto — un grafico che non dice dove comincia. Non si
+     vedeva da nessun numero: le sovrapposizioni erano zero.
+     Quindi l'ordine di precedenza è: l'ULTIMA, poi la PRIMA, poi le intermedie da
+     sinistra a destra. Ognuna entra se sta lontana almeno `respiro` da tutte quelle
+     già entrate; le intermedie servono a leggere la scala, e la scala si legge anche
+     con una tacca in meno. */
+  function tenuteX(spans, respiro) {
+    var g = respiro == null ? 4 : respiro, lista = spans || [], n = lista.length;
+    var ordine = [];
+    if (n > 0) ordine.push(n - 1);
+    if (n > 1) ordine.push(0);
+    for (var k = 1; k < n - 1; k++) ordine.push(k);
+    var tenute = [];
+    ordine.forEach(function (k) {
+      var sp = lista[k];
+      /* un riquadro che non si sa misurare si salta: non deve poter cancellare
+         quelli che si sanno */
+      if (!sp || !isFinite(sp.sin) || !isFinite(sp.des)) return;
+      for (var j = 0; j < tenute.length; j++) {
+        var q = lista[tenute[j]];
+        if (sp.sin < q.des + g && q.sin < sp.des + g) return;
+      }
+      tenute.push(k);
+    });
+    return tenute.sort(function (a, b) { return a - b; });
+  }
+
+  /* DA DOVE A DOVE arriva un'etichetta, in unità del viewBox. `getBBox` tiene già
+     conto dell'ancora, quindi non c'è niente da ricalcolare; la stima di scorta
+     serve solo al grafico dentro un contenitore nascosto, dove il riquadro è zero,
+     e allora l'ancora torna a servire. */
+
+  function spanX(el, X, box, testo) {
+    var bb = null;
+    try { bb = el.getBBox(); } catch (e) { bb = null; }
+    if (bb && bb.width > 0) return { sin: bb.x, des: bb.x + bb.width };
+    var w = String(testo == null ? '' : testo).length * 6.2, anc = ancoraX(X, box);
+    var sin = anc === 'start' ? X : anc === 'end' ? X - w : X - w / 2;
+    return { sin: sin, des: sin + w };
   }
 
   function primoIndice(v) { for (var i = 0; i < v.length; i++) if (num(v[i])) return i; return 0; }
@@ -1205,7 +1294,7 @@
        test che gira sempre. Il browser è servito per SCOPRIRE che il motore la
        violava; per tenerla basta node, visto che qui dentro entrano numeri ed esce
        una stringa. */
-    geometria: { tratti: tratti, percorso: percorso },
+    geometria: { tratti: tratti, percorso: percorso, tenuteX: tenuteX },
     versione: '1.0'
   };
 

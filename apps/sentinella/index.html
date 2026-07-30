@@ -2582,10 +2582,12 @@ textarea.dw-input{
       if (!el || p.n < 2) return;
       repGrafici.push(dwGrafici.linea(el, {
         unita: p.unita, nudo: true, tabella: false, animazione: false, altezza: 190,
-        // etichette dei tempi CORTE (GG/MM): il motore ne disegna una ogni
-        // tot, e con la data per esteso finirebbero una sopra l'altra. Il
-        // giorno e l'ora precisi di ogni lettura stanno nella tabella qui
-        // sotto, che è la parte del documento che fa fede.
+        // etichette dei tempi CORTE (GG/MM). La ragione NON è più che si
+        // sovrapporrebbero — il motore adesso misura le etichette e toglie
+        // quelle che non ci stanno — ma che con la data per esteso ne
+        // resterebbero visibili meno della metà: più corte, più tacche si
+        // leggono. Il giorno e l'ora precisi di ogni lettura stanno nella
+        // tabella qui sotto, che è la parte del documento che fa fede.
         x: p.letture.map(l => fmtD(l.data).slice(0, 5)),
         serie: [{ nome: "Misurato", valori: p.letture.map(l => l.valore), area: true }],
         // inclusiva: Sentinella conta superamento anche una lettura ESATTAMENTE
