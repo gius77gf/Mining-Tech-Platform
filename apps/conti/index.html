@@ -1543,14 +1543,23 @@ label.item:has(.dw-chk:checked){
     const aperte  = FAT.filter(f => !f.incassata);
     const scadute = aperte.filter(f => giorni(f.scadenza) < 0);
     const scadutoTot = scadute.reduce((t,f) => t + apertoDi(f), 0);   // il residuo, non il totale
-    const baseAperta = GAR.filter(g => g.stato === "aperta").reduce((t,g) => t + (+g.base || 0), 0);
+    /* ⚠️ Stessa regola del riepilogo: una base che MANCA non vale zero, non
+       entra proprio. Con `|| 0` la differenza non si vedeva, ma il totale era
+       lo stesso e non c'era modo di sapere che era parziale. */
+    const gareAperteLista = GAR.filter(g => g.stato === "aperta");
+    const baseAperta = gareAperteLista.reduce((t,g) => t + (g.base == null ? 0 : (+g.base || 0)), 0);
+    const gareSenzaBase = gareAperteLista.filter(g => g.base == null).length;
     $("k-daincassare").innerHTML = eurK(k.daIncassare);
     $("k-daincassare-s").textContent = plur(aperte.length, "fattura aperta", "fatture aperte");
     $("k-scaduto").innerHTML = eurK(scadutoTot);
     $("k-scaduto-s").textContent = scadute.length
       ? plur(scadute.length, "fattura scaduta", "fatture scadute") : "nessun ritardo";
     $("k-gare").textContent = k.gareAperte;
-    $("k-gare-s").textContent = baseAperta > 0 ? eur0(baseAperta) + " a base d'asta" : "nessuna gara aperta";
+    /* Un totale parziale che non dice di esserlo è un totale che inganna: se
+       qualche gara aperta non ha la base, il numero lo dichiara. */
+    $("k-gare-s").textContent = gareAperteLista.length === 0 ? "nessuna gara aperta"
+      : (baseAperta > 0 ? eur0(baseAperta) + " a base d'asta" : "base d'asta non indicata")
+        + (gareSenzaBase ? ` (${gareSenzaBase} senza base)` : "");
     $("k-eta").innerHTML = k.etaCredito + '<span class="u"> gg</span>';
     $("k-eta-s").textContent = k.etaCredito > 45 ? "sopra i 45 giorni" : "sotto controllo";
     // il KPI dello scaduto pulsa in rosso solo se c'è davvero uno scaduto
@@ -1758,7 +1767,7 @@ label.item:has(.dw-chk:checked){
         const v = q[s.getAttribute("data-gqt")]; s.textContent = v ? v : ""; }); }
     const gr = gareRiepilogo(GAR);
     $("gar-riep").innerHTML =
-      `Aperte <b>${gr.aperte}</b> (${eur0(gr.baseAperta)} a base d'asta) · Vinte <b>${gr.vinte}</b> (${eur0(gr.baseVinta)}) · Perse <b>${gr.perse}</b>`
+      `Aperte <b>${gr.aperte}</b> (${eur0(gr.baseAperta)} a base d'asta${gr.apertesenzaBase ? `, ${gr.apertesenzaBase} senza base` : ""}) · Vinte <b>${gr.vinte}</b> (${eur0(gr.baseVinta)}) · Perse <b>${gr.perse}</b>`
       + (gr.tassoVittoria == null ? " · nessuna gara ancora decisa" : ` · tasso di vittoria <b>${gr.tassoVittoria}%</b>`);
     $("gar-list").innerHTML = garOrd.map(g => { const gg = giorni(g.scadenza);
       const st = g.stato === "vinta" ? "st-ok" : g.stato === "persa" ? "st-mute" : gg <= 15 ? "st-warn" : "st-accent";
