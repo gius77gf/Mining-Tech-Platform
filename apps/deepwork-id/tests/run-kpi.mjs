@@ -1612,5 +1612,56 @@ test("lo scarto fra previsto e misurato: è il confronto che dà valore al regis
   ok(sentinella.scartoPpvVolata({ ppvPrevista: 4.6 }) === null, "senza misura è null, non «scarto zero»");
 });
 
+console.log("\n— Ponte Terra → Conti: cavato contro venduto —");
+// Il confronto ha senso solo se è onesto: metri cubi contro tonnellate senza
+// la densità dichiarata non è una stima prudente, è un numero inventato.
+const _RIL = [{ stato: "elaborato", volumeM3: 10000, data: "2026-07-10", metodo: "RTK" }];
+const _pes = (netto, densita) => [{ data: "2026-07-15", prodotto: "Misto", netto, densita }];
+test("i numeri tondi: 20.000 t a densità 2,5 fanno 8.000 m³, divario 2.000 (20%)", () => {
+  const r = conti.riconciliazione(_RIL, _pes(20000, 2.5), "2026-07-01", "2026-07-31");
+  ok(r.cav.m3 === 10000 && r.ven.t === 20000, `cavato ${r.cav.m3}, venduto ${r.ven.t} t`);
+  ok(r.ven.m3 === 8000, `conversione ${r.ven.m3} invece di 8000`);
+  ok(r.divario === 2000 && r.pct === 20, `divario ${r.divario} (${r.pct}%)`);
+  ok(r.stato === "attenzione", `stato ${r.stato}`);
+});
+test("un divario piccolo è coerente, uno enorme è un errore da cercare", () => {
+  ok(conti.riconciliazione(_RIL, _pes(24000, 2.5), "2026-07-01", "2026-07-31").stato === "coerente", "4% è sfrido");
+  ok(conti.riconciliazione(_RIL, _pes(5000, 2.5), "2026-07-01", "2026-07-31").stato === "implausibile",
+     "l'80% non è sfrido e non va chiamato «scorte»");
+});
+test("venduto più del cavato è un DISAVANZO, non una scorta", () => {
+  const r = conti.riconciliazione(_RIL, _pes(30000, 2.5), "2026-07-01", "2026-07-31");
+  ok(r.stato === "disavanzo", `stato ${r.stato}`);
+  ok(r.divario < 0, "un divario negativo non può essere presentato come materiale a piazzale");
+});
+test("senza densità non converte e non stima: lo dichiara", () => {
+  const r = conti.riconciliazione(_RIL, _pes(20000, undefined), "2026-07-01", "2026-07-31");
+  ok(r.stato === "no-densita", `stato ${r.stato}`);
+  ok(r.divario === null, "un divario calcolato senza densità sarebbe inventato");
+  ok(r.ven.viaggiSenzaDensita === 1, "va detto quanti viaggi restano fuori dal conto");
+});
+test("con solo metà dei viaggi convertibili il confronto si dichiara parziale", () => {
+  const r = conti.riconciliazione(_RIL, [{ data: "2026-07-15", prodotto: "A", netto: 10000, densita: 2.5 },
+                                         { data: "2026-07-16", prodotto: "B", netto: 10000 }],
+                                  "2026-07-01", "2026-07-31");
+  ok(r.parziale === true, "un confronto parziale spacciato per completo è peggio di nessun confronto");
+  ok(r.copertura === 50, `copertura ${r.copertura}%`);
+});
+test("la ripresa da cumulo non gonfia il cavato", () => {
+  const r = conti.riconciliazione(_RIL.concat([{ stato: "elaborato", volumeM3: 5000, data: "2026-07-11", provenienza: "cumulo" }]),
+                                  _pes(20000, 2.5), "2026-07-01", "2026-07-31");
+  ok(r.cav.m3 === 10000, `scavo ${r.cav.m3}: il cumulo non è nuovo scavo`);
+  ok(r.cav.cumuloM3 === 5000, `cumulo ${r.cav.cumuloM3}: va contato, ma a parte`);
+});
+test("archivi mancanti: stati che spiegano, non zeri", () => {
+  ok(conti.riconciliazione([], _pes(20000, 2.5), "2026-07-01", "2026-07-31").stato === "no-cavato", "nessun rilievo");
+  ok(conti.riconciliazione(_RIL, [], "2026-07-01", "2026-07-31").stato === "no-venduto", "nessun DDT");
+  ok(conti.riconciliazione(undefined, _pes(20000, 2.5), "2026-07-01", "2026-07-31").stato === "no-terra", "Terra non risponde");
+});
+test("il valore del cavato non si inventa senza prezzo", () => {
+  ok(conti.valoreCavato(10000, 12) === 120000, "10.000 m³ a 12 €/m³");
+  ok(conti.valoreCavato(10000, null) === null && conti.valoreCavato(10000, 0) === null, "senza prezzo: null, non zero");
+});
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
