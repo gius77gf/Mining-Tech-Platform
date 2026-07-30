@@ -5,12 +5,14 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-07-31 09:45 UTC
-**Cosa sta per fare:** chiudere la verifica dei campi interi di Genesi (8 su 10
-provati digitando davvero: la guardia avvisa e «1.500» vale 1500; restano due
-campi in un pannello non raggiungibile in automatico), poi proseguire con le
-seconde iterazioni e i ponti fra le app.
-**Commit di partenza:** `450c8a7`
+**Ultimo ciclo riuscito:** 2026-07-30 13:02 UTC
+**Cosa sta per fare:** la vetrina dell'ecosistema (`apps/index.html`) è appena
+stata rifatta per la presentazione del fondatore: apertura, nove schede con
+l'anteprima vera di ogni app, raggruppamento per momento del lavoro, sezione
+sui ponti. Adesso si prosegue con le rifiniture della vetrina (lettura sul
+telefono, che è molto lunga) e poi con le seconde iterazioni delle app e i
+ponti fra loro.
+**Commit di partenza:** `3fabe22`
 
 ---
 
