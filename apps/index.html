@@ -222,6 +222,14 @@
       var(--panel);
     border-bottom: 1px solid var(--border);
   }
+  /* ⛔ LE NOVE ANTEPRIME SI CARICANO SUBITO (`loading="eager"` nel markup), e non
+     è una svista. Misurato il 30/07 su un telefono da 390 px: con
+     `loading="lazy"` all'arrivo era caricata UNA anteprima su nove, e scendendo
+     di corsa fino a metà pagina se ne vedevano sette su nove — le altre restavano
+     la miniatura disegnata, che è la STESSA per tutte le schede. Su una pagina
+     il cui unico mestiere è far vedere nove prodotti diversi, quello che si vede
+     sono nove segnaposto uguali: il contrario di quello che la pagina deve dire.
+     Il risparmio rinunciato è 213 kB in tutto — meno di una fotografia. */
   .anteprima img {
     width: 100%; height: 100%; object-fit: cover; object-position: top center;
     display: block; transition: transform .5s var(--ease);
@@ -422,7 +430,7 @@
     <div class="griglia">
       <a class="scheda sale" href="./genesi/genesi.html" style="--acc:#ff8f2e; --acc-tx:#ffab5c;">
         <div class="anteprima">
-          <img src="./anteprime/genesi.jpg" alt="La home di Genesi: progetto in pianta e simulazione 3D" loading="lazy" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="punto" style="left:2.0%;top:24%"></i><i class="punto" style="left:17.5%;top:24%"></i><i class="punto" style="left:33.0%;top:24%"></i><i class="punto" style="left:48.5%;top:24%"></i><i class="punto" style="left:64.0%;top:24%"></i><i class="punto" style="left:79.5%;top:24%"></i><i class="punto" style="left:95.0%;top:24%"></i><i class="punto" style="left:2.0%;top:41%"></i><i class="punto" style="left:17.5%;top:41%"></i><i class="punto" style="left:33.0%;top:41%"></i><i class="punto" style="left:48.5%;top:41%"></i><i class="punto" style="left:64.0%;top:41%"></i><i class="punto" style="left:79.5%;top:41%"></i><i class="punto" style="left:95.0%;top:41%"></i><i class="punto" style="left:2.0%;top:58%"></i><i class="punto" style="left:17.5%;top:58%"></i><i class="punto" style="left:33.0%;top:58%"></i><i class="punto" style="left:48.5%;top:58%"></i><i class="punto" style="left:64.0%;top:58%"></i><i class="punto" style="left:79.5%;top:58%"></i><i class="punto" style="left:95.0%;top:58%"></i><i class="punto" style="left:2.0%;top:75%"></i><i class="punto" style="left:17.5%;top:75%"></i><i class="punto" style="left:33.0%;top:75%"></i><i class="punto" style="left:48.5%;top:75%"></i><i class="punto" style="left:64.0%;top:75%"></i><i class="punto" style="left:79.5%;top:75%"></i><i class="punto" style="left:95.0%;top:75%"></i><i class="tratto" style="left:2%;top:30%;width:96%;transform:rotate(3.6deg)"></i><i class="tratto" style="left:2%;top:74%;width:96%;transform:rotate(-2.4deg)"></i></span></div>
+          <img src="./anteprime/genesi.jpg" alt="La home di Genesi: progetto in pianta e simulazione 3D" loading="eager" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="punto" style="left:2.0%;top:24%"></i><i class="punto" style="left:17.5%;top:24%"></i><i class="punto" style="left:33.0%;top:24%"></i><i class="punto" style="left:48.5%;top:24%"></i><i class="punto" style="left:64.0%;top:24%"></i><i class="punto" style="left:79.5%;top:24%"></i><i class="punto" style="left:95.0%;top:24%"></i><i class="punto" style="left:2.0%;top:41%"></i><i class="punto" style="left:17.5%;top:41%"></i><i class="punto" style="left:33.0%;top:41%"></i><i class="punto" style="left:48.5%;top:41%"></i><i class="punto" style="left:64.0%;top:41%"></i><i class="punto" style="left:79.5%;top:41%"></i><i class="punto" style="left:95.0%;top:41%"></i><i class="punto" style="left:2.0%;top:58%"></i><i class="punto" style="left:17.5%;top:58%"></i><i class="punto" style="left:33.0%;top:58%"></i><i class="punto" style="left:48.5%;top:58%"></i><i class="punto" style="left:64.0%;top:58%"></i><i class="punto" style="left:79.5%;top:58%"></i><i class="punto" style="left:95.0%;top:58%"></i><i class="punto" style="left:2.0%;top:75%"></i><i class="punto" style="left:17.5%;top:75%"></i><i class="punto" style="left:33.0%;top:75%"></i><i class="punto" style="left:48.5%;top:75%"></i><i class="punto" style="left:64.0%;top:75%"></i><i class="punto" style="left:79.5%;top:75%"></i><i class="punto" style="left:95.0%;top:75%"></i><i class="tratto" style="left:2%;top:30%;width:96%;transform:rotate(3.6deg)"></i><i class="tratto" style="left:2%;top:74%;width:96%;transform:rotate(-2.4deg)"></i></span></div>
         <div class="corpo">
           <div class="riga-nome"><span class="nome">Genesi</span><span class="stato corso">Sviluppo attivo</span></div>
           <div class="cose">Si vede la volata prima di spararla.</div>
@@ -438,7 +446,7 @@
       </a>
       <a class="scheda sale" href="./terra/index.html" style="--acc:#659b2c; --acc-tx:#9ac577;">
         <div class="anteprima">
-          <img src="./anteprime/terra.jpg" alt="La vita della cava in Terra: volume residuo e ritmo" loading="lazy" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="punto" style="left:2.0%;top:24%"></i><i class="punto" style="left:17.5%;top:24%"></i><i class="punto" style="left:33.0%;top:24%"></i><i class="punto" style="left:48.5%;top:24%"></i><i class="punto" style="left:64.0%;top:24%"></i><i class="punto" style="left:79.5%;top:24%"></i><i class="punto" style="left:95.0%;top:24%"></i><i class="punto" style="left:2.0%;top:41%"></i><i class="punto" style="left:17.5%;top:41%"></i><i class="punto" style="left:33.0%;top:41%"></i><i class="punto" style="left:48.5%;top:41%"></i><i class="punto" style="left:64.0%;top:41%"></i><i class="punto" style="left:79.5%;top:41%"></i><i class="punto" style="left:95.0%;top:41%"></i><i class="punto" style="left:2.0%;top:58%"></i><i class="punto" style="left:17.5%;top:58%"></i><i class="punto" style="left:33.0%;top:58%"></i><i class="punto" style="left:48.5%;top:58%"></i><i class="punto" style="left:64.0%;top:58%"></i><i class="punto" style="left:79.5%;top:58%"></i><i class="punto" style="left:95.0%;top:58%"></i><i class="punto" style="left:2.0%;top:75%"></i><i class="punto" style="left:17.5%;top:75%"></i><i class="punto" style="left:33.0%;top:75%"></i><i class="punto" style="left:48.5%;top:75%"></i><i class="punto" style="left:64.0%;top:75%"></i><i class="punto" style="left:79.5%;top:75%"></i><i class="punto" style="left:95.0%;top:75%"></i><i class="tratto" style="left:2%;top:30%;width:96%;transform:rotate(3.6deg)"></i><i class="tratto" style="left:2%;top:74%;width:96%;transform:rotate(-2.4deg)"></i></span></div>
+          <img src="./anteprime/terra.jpg" alt="La vita della cava in Terra: volume residuo e ritmo" loading="eager" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="punto" style="left:2.0%;top:24%"></i><i class="punto" style="left:17.5%;top:24%"></i><i class="punto" style="left:33.0%;top:24%"></i><i class="punto" style="left:48.5%;top:24%"></i><i class="punto" style="left:64.0%;top:24%"></i><i class="punto" style="left:79.5%;top:24%"></i><i class="punto" style="left:95.0%;top:24%"></i><i class="punto" style="left:2.0%;top:41%"></i><i class="punto" style="left:17.5%;top:41%"></i><i class="punto" style="left:33.0%;top:41%"></i><i class="punto" style="left:48.5%;top:41%"></i><i class="punto" style="left:64.0%;top:41%"></i><i class="punto" style="left:79.5%;top:41%"></i><i class="punto" style="left:95.0%;top:41%"></i><i class="punto" style="left:2.0%;top:58%"></i><i class="punto" style="left:17.5%;top:58%"></i><i class="punto" style="left:33.0%;top:58%"></i><i class="punto" style="left:48.5%;top:58%"></i><i class="punto" style="left:64.0%;top:58%"></i><i class="punto" style="left:79.5%;top:58%"></i><i class="punto" style="left:95.0%;top:58%"></i><i class="punto" style="left:2.0%;top:75%"></i><i class="punto" style="left:17.5%;top:75%"></i><i class="punto" style="left:33.0%;top:75%"></i><i class="punto" style="left:48.5%;top:75%"></i><i class="punto" style="left:64.0%;top:75%"></i><i class="punto" style="left:79.5%;top:75%"></i><i class="punto" style="left:95.0%;top:75%"></i><i class="tratto" style="left:2%;top:30%;width:96%;transform:rotate(3.6deg)"></i><i class="tratto" style="left:2%;top:74%;width:96%;transform:rotate(-2.4deg)"></i></span></div>
         <div class="corpo">
           <div class="riga-nome"><span class="nome">Terra</span><span class="stato prova">Demo interattiva</span></div>
           <div class="cose">Quanto resta da cavare, e per quanto.</div>
@@ -462,7 +470,7 @@
     <div class="griglia">
       <a class="scheda sale" href="./campo/index.html" style="--acc:#d3633a; --acc-tx:#f49c7d;">
         <div class="anteprima">
-          <img src="./anteprime/campo.jpg" alt="Il quadro di giornata di Campo" loading="lazy" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="kpi a"></i><i class="kpi b"></i><i class="riga uno mar"></i><i class="riga due"></i><i class="riga tre"></i></span></div>
+          <img src="./anteprime/campo.jpg" alt="Il quadro di giornata di Campo" loading="eager" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="kpi a"></i><i class="kpi b"></i><i class="riga uno mar"></i><i class="riga due"></i><i class="riga tre"></i></span></div>
         <div class="corpo">
           <div class="riga-nome"><span class="nome">Campo</span><span class="stato prova">Demo interattiva</span></div>
           <div class="cose">Il turno chiuso in due minuti.</div>
@@ -478,7 +486,7 @@
       </a>
       <a class="scheda sale" href="./flotta/index.html" style="--acc:#c360a6; --acc-tx:#e798cd;">
         <div class="anteprima">
-          <img src="./anteprime/flotta.jpg" alt="Il quadro dei mezzi di Flotta" loading="lazy" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="kpi a"></i><i class="kpi b"></i><i class="riga uno mar"></i><i class="riga due"></i><i class="riga tre"></i></span></div>
+          <img src="./anteprime/flotta.jpg" alt="Il quadro dei mezzi di Flotta" loading="eager" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="kpi a"></i><i class="kpi b"></i><i class="riga uno mar"></i><i class="riga due"></i><i class="riga tre"></i></span></div>
         <div class="corpo">
           <div class="riga-nome"><span class="nome">Flotta</span><span class="stato prova">Demo interattiva</span></div>
           <div class="cose">I fermi macchina si vedono prima.</div>
@@ -494,7 +502,7 @@
       </a>
       <a class="scheda sale" href="./scudo/index.html" style="--acc:#8c75dc; --acc-tx:#b7a8f9;">
         <div class="anteprima">
-          <img src="./anteprime/scudo.jpg" alt="Il quadro della sicurezza di Scudo, con scadenze e urgenze" loading="lazy" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="pal" style="top:22%"></i><i class="riga" style="top:22%;left:9%"></i><i class="eti" style="top:22%"></i><i class="pal" style="top:39%"></i><i class="riga" style="top:39%;left:9%"></i><i class="eti" style="top:39%"></i><i class="pal" style="top:56%"></i><i class="riga" style="top:56%;left:9%"></i><i class="eti" style="top:56%"></i><i class="pal" style="top:73%"></i><i class="riga" style="top:73%;left:9%"></i><i class="eti" style="top:73%"></i></span></div>
+          <img src="./anteprime/scudo.jpg" alt="Il quadro della sicurezza di Scudo, con scadenze e urgenze" loading="eager" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="pal" style="top:22%"></i><i class="riga" style="top:22%;left:9%"></i><i class="eti" style="top:22%"></i><i class="pal" style="top:39%"></i><i class="riga" style="top:39%;left:9%"></i><i class="eti" style="top:39%"></i><i class="pal" style="top:56%"></i><i class="riga" style="top:56%;left:9%"></i><i class="eti" style="top:56%"></i><i class="pal" style="top:73%"></i><i class="riga" style="top:73%;left:9%"></i><i class="eti" style="top:73%"></i></span></div>
         <div class="corpo">
           <div class="riga-nome"><span class="nome">Scudo</span><span class="stato prova">Demo interattiva</span></div>
           <div class="cose">La sicurezza in ordine, senza rincorrerla.</div>
@@ -518,7 +526,7 @@
     <div class="griglia">
       <a class="scheda sale" href="./conti/index.html" style="--acc:#009f8f; --acc-tx:#4dcebd;">
         <div class="anteprima">
-          <img src="./anteprime/conti.jpg" alt="Il quadro di Conti: emesso, incassato e scaduto" loading="lazy" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="col" style="left:4%;height:26%"></i><i class="col" style="left:19%;height:38%"></i><i class="col" style="left:34%;height:32%"></i><i class="col" style="left:49%;height:52%"></i><i class="col" style="left:64%;height:44%"></i><i class="col" style="left:79%;height:64%"></i><i class="base"></i></span></div>
+          <img src="./anteprime/conti.jpg" alt="Il quadro di Conti: emesso, incassato e scaduto" loading="eager" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="col" style="left:4%;height:26%"></i><i class="col" style="left:19%;height:38%"></i><i class="col" style="left:34%;height:32%"></i><i class="col" style="left:49%;height:52%"></i><i class="col" style="left:64%;height:44%"></i><i class="col" style="left:79%;height:64%"></i><i class="base"></i></span></div>
         <div class="corpo">
           <div class="riga-nome"><span class="nome">Conti</span><span class="stato prova">Demo interattiva</span></div>
           <div class="cose">Dalla pesa alla fattura, senza ricopiare.</div>
@@ -534,7 +542,7 @@
       </a>
       <a class="scheda sale" href="./sentinella/index.html" style="--acc:#288ee0; --acc-tx:#78bcfc;">
         <div class="anteprima">
-          <img src="./anteprime/sentinella.jpg" alt="Il quadro ambientale di Sentinella" loading="lazy" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="pal" style="top:22%"></i><i class="riga" style="top:22%;left:9%"></i><i class="eti" style="top:22%"></i><i class="pal" style="top:39%"></i><i class="riga" style="top:39%;left:9%"></i><i class="eti" style="top:39%"></i><i class="pal" style="top:56%"></i><i class="riga" style="top:56%;left:9%"></i><i class="eti" style="top:56%"></i><i class="pal" style="top:73%"></i><i class="riga" style="top:73%;left:9%"></i><i class="eti" style="top:73%"></i></span></div>
+          <img src="./anteprime/sentinella.jpg" alt="Il quadro ambientale di Sentinella" loading="eager" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="pal" style="top:22%"></i><i class="riga" style="top:22%;left:9%"></i><i class="eti" style="top:22%"></i><i class="pal" style="top:39%"></i><i class="riga" style="top:39%;left:9%"></i><i class="eti" style="top:39%"></i><i class="pal" style="top:56%"></i><i class="riga" style="top:56%;left:9%"></i><i class="eti" style="top:56%"></i><i class="pal" style="top:73%"></i><i class="riga" style="top:73%;left:9%"></i><i class="eti" style="top:73%"></i></span></div>
         <div class="corpo">
           <div class="riga-nome"><span class="nome">Sentinella</span><span class="stato prova">Demo interattiva</span></div>
           <div class="cose">Polveri, rumore e vibrazioni sotto controllo.</div>
@@ -558,7 +566,7 @@
     <div class="griglia">
       <a class="scheda sale" href="../index.html" style="--acc:#ffab00; --acc-tx:#ffd54f;">
         <div class="anteprima">
-          <img src="./anteprime/core.jpg" alt="La home di Deepwork: azioni rapide e attività recenti" loading="lazy" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="kpi a"></i><i class="kpi b"></i><i class="riga uno mar"></i><i class="riga due"></i><i class="riga tre"></i></span></div>
+          <img src="./anteprime/core.jpg" alt="La home di Deepwork: azioni rapide e attività recenti" loading="eager" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="kpi a"></i><i class="kpi b"></i><i class="riga uno mar"></i><i class="riga due"></i><i class="riga tre"></i></span></div>
         <div class="corpo">
           <div class="riga-nome"><span class="nome">Deepwork</span><span class="stato viva">In uso</span></div>
           <div class="cose">Il quaderno di cantiere, sul telefono.</div>
@@ -574,7 +582,7 @@
       </a>
       <a class="scheda sale" href="./deepwork-id/index.html" style="--acc:#c7b794; --acc-tx:#e8dcc0;">
         <div class="anteprima">
-          <img src="./anteprime/deepwork-id.jpg" alt="La schermata d'accesso di Deepwork ID" loading="lazy" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="pal" style="top:22%"></i><i class="riga" style="top:22%;left:9%"></i><i class="eti" style="top:22%"></i><i class="pal" style="top:39%"></i><i class="riga" style="top:39%;left:9%"></i><i class="eti" style="top:39%"></i><i class="pal" style="top:56%"></i><i class="riga" style="top:56%;left:9%"></i><i class="eti" style="top:56%"></i><i class="pal" style="top:73%"></i><i class="riga" style="top:73%;left:9%"></i><i class="eti" style="top:73%"></i></span></div>
+          <img src="./anteprime/deepwork-id.jpg" alt="La schermata d'accesso di Deepwork ID" loading="eager" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="pal" style="top:22%"></i><i class="riga" style="top:22%;left:9%"></i><i class="eti" style="top:22%"></i><i class="pal" style="top:39%"></i><i class="riga" style="top:39%;left:9%"></i><i class="eti" style="top:39%"></i><i class="pal" style="top:56%"></i><i class="riga" style="top:56%;left:9%"></i><i class="eti" style="top:56%"></i><i class="pal" style="top:73%"></i><i class="riga" style="top:73%;left:9%"></i><i class="eti" style="top:73%"></i></span></div>
         <div class="corpo">
           <div class="riga-nome"><span class="nome">Deepwork ID</span><span class="stato corso">Pronto al collaudo</span></div>
           <div class="cose">Un accesso solo, per tutto.</div>

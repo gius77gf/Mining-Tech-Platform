@@ -54,6 +54,32 @@ const schede = await p.$$eval('.scheda', (as) => as.map((a) => ({
 console.log(`\n── ${schede.length} riquadri nella vetrina ──`);
 prova('la vetrina ha nove riquadri', schede.length === 9, schede.length);
 
+/* ⛔ LE NOVE ANTEPRIME SI VEDONO ALL'ARRIVO, senza scorrere. Misurato il 30/07
+   su un telefono da 390 px: con `loading="lazy"` all'arrivo ne era caricata UNA
+   su nove, e scendendo di corsa fino a metà pagina se ne vedevano sette — le
+   altre restavano la miniatura disegnata, che è la STESSA per tutte le schede.
+   Su una pagina il cui unico mestiere è far vedere nove prodotti diversi, quello
+   che si vede sono nove segnaposto uguali. Nessuna prova poteva accorgersene:
+   l'immagine c'è nel sorgente, il file esiste, la pagina risponde 200 — manca
+   solo il momento in cui arriva, e quello lo dice soltanto il browser.
+   La prova si fa su uno schermo da telefono: su un monitor largo entrano più
+   schede sopra la piega e la pigrizia si vede molto meno. */
+{
+  const tel = await b.newContext({ viewport: { width: 390, height: 844 }, locale: 'it-IT' });
+  const t = await tel.newPage();
+  await t.goto(`${BASE}/apps/index.html`);
+  await t.waitForTimeout(2500);
+  const img = await t.evaluate(() => [...document.querySelectorAll('.anteprima img')].map((i) => ({
+    file: i.src.split('/').pop(), caricata: i.complete && i.naturalWidth > 0, pigra: i.loading === 'lazy',
+  })));
+  const mancanti = img.filter((x) => !x.caricata);
+  prova(`le nove anteprime sono già caricate all'arrivo (telefono, senza scorrere)`,
+    img.length === 9 && mancanti.length === 0, { su: img.length, mancanti: mancanti.map((x) => x.file) });
+  prova('e nessuna è dichiarata pigra', img.every((x) => !x.pigra),
+    img.filter((x) => x.pigra).map((x) => x.file));
+  await tel.close();
+}
+
 for (const { href, nome } of schede) {
   const via = new URL(href, `${BASE}/apps/index.html`).pathname;
   console.log(`\n══ ${nome}  ->  ${via}`);
