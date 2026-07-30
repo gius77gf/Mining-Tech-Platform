@@ -263,6 +263,7 @@ button.arr.del:hover{
 /* ─────────────── riquadri informativi (copia di .info-box) ─────────────── */
 .note.esito.err{border-left-color:var(--danger)}
 .note.recap{border-left-color:var(--app-accent)}
+.note.avviso{border-left-color:var(--warn)}
 .note.recap b{font-variant-numeric:tabular-nums}
 
 /* ─────────────── fermi senza minuti: non c'è niente da misurare ───────────────
@@ -513,6 +514,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     <div class="kpi danger" role="button" tabindex="0" style="cursor:pointer" data-goto="att" data-filtro="anomalia" title="Vedi le anomalie aperte"><div class="l">Anomalie aperte</div><div class="n">—</div></div>
   </div>
 
+  <div id="dash-hse"></div>
   <div id="att-avanz"></div>
   <div id="ob-board"></div>
 
@@ -924,7 +926,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   import { campoData, kpiFrom, parsePianoCsv, mappaPianoCsv, parseSquadreCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, fermiPerGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
            oggiISO, TURNI, turnoCorrente, diGiorno, senzaData, UNITA_PRODUZIONE, totaliProduzione, formattaProduzione, normalizzaPiano,
            squadraBase, RUOLI, operatoriDi, etichettaAssegnazione, eMia, caricoSquadre,
-           idoneitaDiTurno, idoneitaOperatore,
+           idoneitaDiTurno, idoneitaOperatore, inTurnoOggi,
            UNITA_ATTIVITA, obiettivoDi, statoObiettivo,
            storicoSettimana, totaliSettimana, unitaPrevalente,
            CHECKLIST_INIZIO, ESITI_CHECK, statoChecklist, checklistDi,
@@ -1222,6 +1224,19 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const filtro = card.getAttribute("data-filtro"); if (filtro) filtroAtt = filtro;
     go(card.getAttribute("data-goto")); refresh();
   });
+  // La riga del ponte P3 sta FUORI dalla fila delle tessere, e il gestore del
+  // tocco era legato solo a quella: l'avviso si poteva toccare e non succedeva
+  // niente — un vicolo cieco con l'aspetto di un comando. Trovato provandolo.
+  // Anche da tastiera, perché una riga che risponde al dito deve rispondere a Invio.
+  const vaiDaAvviso = (e) => {
+    const card = e.target.closest && e.target.closest("[data-goto]");
+    if (!card) return;
+    if (e.type === "keydown" && e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    go(card.getAttribute("data-goto")); refresh();
+  };
+  $("dash-hse").addEventListener("click", vaiDaAvviso);
+  $("dash-hse").addEventListener("keydown", vaiDaAvviso);
   // ══════════════════════════════════════════════════════════════════════
   // PONTE P2, DAL LATO DI CAMPO — «il numero che hai scritto si è parlato col
   // rilievo?»
@@ -1338,6 +1353,28 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     if (kn[1]) kn[1].textContent = k.inCorso;
     if (kn[2]) kn[2].textContent = k.rapportiniOggi;
     if (kn[3]) kn[3].textContent = k.anomalie;
+
+    // ── PONTE P3 NEL QUADRO ───────────────────────────────────────────────
+    // La risposta «chi è in turno è in regola?» viveva solo dentro la sezione
+    // delle squadre, e chi apre l'app la mattina guarda il Quadro: una funzione
+    // buona in una stanza in cui nessuno entra è una funzione che non c'è.
+    // NON È UNA TESSERA. Le quattro tessere del Quadro portano numeri che ci sono
+    // sempre; questo è un numero che quasi sempre è zero, e una tessera «0» fissa
+    // insegna a non guardare quella zona. È una riga che COMPARE quando c'è
+    // qualcosa e sparisce quando non c'è — che è anche il solo modo di non
+    // trasformarla in un cartello rosso permanente, cioè in niente.
+    // E si parla SOLO di chi è schierato adesso, non di tutta l'anagrafica: il
+    // Quadro è la giornata, non la rubrica.
+    {
+      const el = $("dash-hse");
+      const schierati = LAV_HSE && SCAD_HSE ? inTurnoOggi(OPER, SQU) : null;
+      const q = schierati ? idoneitaDiTurno(schierati, LAV_HSE, SCAD_HSE) : null;
+      el.innerHTML = !q || !q.scadute ? "" :
+        `<div class="note avviso" data-goto="squ" role="button" tabindex="0" style="cursor:pointer" title="Vai a chi c'è in squadra">`
+        + `<b>${q.scadute === 1 ? "Una persona in turno oggi ha un documento scaduto" : q.scadute + " persone in turno oggi hanno un documento scaduto"}</b>`
+        + ` — ${q.righe.filter(r => r.stato === "scaduta").map(r => esc(r.operatore.nome)).join(", ")}.`
+        + ` I rinnovi si fanno in <b>Scudo</b>. Tocca per vedere chi c'è in squadra.</div>`;
+    }
 
     // Avanzamento giornata: cartellone con la percentuale e la ripartizione.
     const av = avanzamentoGiornata(ATT_OGGI);

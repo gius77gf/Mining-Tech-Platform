@@ -1159,7 +1159,7 @@ export function pianoConsuntivoCsv(piano) {
 // app, e Campo la ri-esporta col nome con cui la chiamano le sue pagine.
 // ══════════════════════════════════════════════════════════════════════
 export {
-  ESITI_TURNO, statoScadenzaHSE, idoneitaOperatore, idoneitaDiTurno,
+  ESITI_TURNO, statoScadenzaHSE, idoneitaOperatore, idoneitaDiTurno, inTurnoOggi,
 } from "../../shared/dw-ponti.js";
 
 export async function campoData() {

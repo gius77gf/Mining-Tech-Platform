@@ -7,7 +7,7 @@
 // perché non falliscono i test, si vedono solo aprendo la pagina giusta.
 // Qui diventano controlli che girano in automatico.
 //
-// Sette regole, oggi:
+// Otto regole, oggi:
 //  1. NIENTE DIALOGHI DEL BROWSER. `alert()`, `confirm()`, `prompt()` sono
 //     vietati dalla direttiva sullo stile. La ragione non è estetica: la
 //     finestra ha il carattere e i bottoni del sistema operativo, su Android
@@ -42,11 +42,16 @@
 //     estratto, NON consuma il concesso; scavo sì. La regola era scritta due
 //     volte: se una copia divergesse, il materiale tolto anni fa comincerebbe a
 //     consumare la concessione senza nessun errore e senza nessun test rosso.
+//  8. UNA CLASSE SCRITTA NEL MARKUP CHE NESSUN FOGLIO DEFINISCE non è un errore
+//     per nessuno: il browser tace, la pagina si apre, la nota si vede — neutra,
+//     dove il codice diceva «attenzione». Trovato dal vero: `.note.avviso`
+//     esisteva in Terra e in Sentinella, in Campo e Scudo no, e tre note
+//     d'avviso rendevano come note qualunque.
 //
 // Come si aggiunge una regola: una funzione che restituisce l'elenco delle
 // violazioni con file e riga, e un `test(...)` che pretende zero.
 // ============================================================
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -587,6 +592,92 @@ test("la guardia condivisa esiste e distingue interi da decimali", () => {
   ok(campiInteri('<input type="number" step="0.1">') === 0, "un decimale non è un campo intero");
   ok(campiInteri('<input type="number" inputmode="decimal">') === 0, "e nemmeno uno dichiarato dall'inputmode");
   ok(campiInteri('<input type="text" inputmode="numeric">') === 0, "un campo di testo non ha bisogno della guardia");
+});
+
+/* ══════════════════════════════════════════════════════════════════════
+   REGOLA 8 · UNA CLASSE SCRITTA NEL MARKUP CHE NESSUN FOGLIO DEFINISCE
+   ══════════════════════════════════════════════════════════════════════
+   `class="note avviso"` in un'app che non ha `.note.avviso` non è un errore per
+   nessuno: il browser non protesta, la pagina si apre, e la nota si vede — solo
+   che si vede NEUTRA dove il codice diceva «attenzione». Trovato dal vero: la
+   regola esisteva in Terra e in Sentinella, e in Campo e Scudo no, quindi tre
+   note d'avviso rendevano come note qualunque.
+   Si guardano i modificatori della famiglia `note`, che è quella che porta il
+   SIGNIFICATO (recap, avviso, esito, err): una classe che dice come leggere il
+   testo e non fa niente è peggio di nessuna classe, perché chi scrive crede di
+   averlo detto. */
+const MODIFICATORI_NOTA = /class="note ([a-z][a-z-]*)"/g;
+/* COSA CONTA COME «DEFINITA», imparato sbagliando due volte in una:
+   · `.note.esito.err{…}` definisce `esito` quanto `.note.esito{…}` — la prima
+     versione cercava solo la parentesi subito dopo e dichiarava orfane 54 note;
+   · `.prescr{…}` da sola vale: una classe può portare stile senza passare da
+     `.note`, e pretendere il prefisso sarebbe una regola inventata da me;
+   · i fogli di `shared/` si leggono TUTTI. Elencarne tre a mano ha nascosto
+     `dw-app-ui.css`, che è proprio quello che definisce `.note.esito`.
+   È la solita lezione: una prova sbagliata che accusa il codice costa più di
+   nessuna prova. */
+/* i fogli di shared/ si LEGGONO, non si elencano: scriverne cinque a mano è come
+   ho appena nascosto `dw-app-ui.css`, e la volta dopo si nasconderebbe quello nuovo */
+const CSS_CONDIVISI = readdirSync(join(root, "shared"))
+  .filter((f) => f.endsWith(".css")).map((f) => "shared/" + f);
+function classiDefinite(css, dentro) {
+  /* SI RACCOLGONO TUTTI I NOMI DI CLASSE che compaiono nel CSS, senza provare a
+     capire se sono in posizione di selettore. Ci ho provato tre volte con uno
+     sguardo all'indietro e ho sbagliato tre volte — l'ultima su `.note.vera`,
+     dove il carattere che precede è una lettera, non un delimitatore.
+     Raccogliere in più è il verso GIUSTO in cui sbagliare: al massimo questa
+     regola lascia passare un'orfana, mentre raccogliere in meno ACCUSA il codice
+     di un difetto che non ha — ed è già costato tre giri qui sopra.
+     Si guarda solo dentro il CSS: per un file HTML, i blocchi <style>. */
+  for (const m of css.matchAll(/\.(-?[a-z][a-z0-9-]*)/g)) dentro.add(m[1]);
+}
+function soloCss(src, rel) {
+  if (rel.endsWith(".css")) return src;
+  return [...src.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)].map((m) => m[1]).join("\n");
+}
+function noteSenzaStile(src, rel = "x.html") {
+  const definiti = new Set();
+  classiDefinite(soloCss(src, rel), definiti);
+  for (const f of CSS_CONDIVISI) {
+    const css = leggi(f);
+    if (css) classiDefinite(css, definiti);
+  }
+  const usati = new Map();
+  for (const m of src.matchAll(MODIFICATORI_NOTA)) {
+    if (!definiti.has(m[1])) usati.set(m[1], (usati.get(m[1]) || 0) + 1);
+  }
+  return [...usati.entries()].map(([cls, n]) => `«note ${cls}» usata ${n} volte e mai definita`);
+}
+for (const [nome, rel] of SUPERFICI) {
+  const src = leggi(rel);
+  if (src === null) continue;
+  const orfane = noteSenzaStile(src, rel);
+  test(`${nome}: ogni modificatore di nota ha uno stile`, () => {
+    ok(orfane.length === 0,
+      `${rel}: ${orfane.join("; ")} — la nota si vede neutra dove il codice diceva altro`);
+  });
+}
+test("il controllo delle note sa fallire", () => {
+  /* la controprova: una classe inventata dentro una sorgente che non la definisce
+     deve essere segnalata, e una definita no */
+  ok(noteSenzaStile('<style></style><div class="note inventata">x</div>').length === 1,
+    "una classe mai definita viene vista");
+  ok(noteSenzaStile('<style>.note.vera{color:red}</style><div class="note vera">x</div>').length === 0,
+    "una definita nello stesso file non viene segnalata");
+  ok(noteSenzaStile('<style>.note.vera.rossa{color:red}</style><div class="note vera">x</div>').length === 0,
+    "e una definita solo in una variante — `.note.vera.rossa` — conta come definita");
+  ok(noteSenzaStile('<style>.vera{white-space:pre-wrap}</style><div class="note vera">x</div>').length === 0,
+    "e una classe che porta stile per conto suo, senza il prefisso `.note`");
+  ok(noteSenzaStile('<style></style><div class="note">x</div>').length === 0,
+    "una nota senza modificatore non ha niente da definire");
+  /* la controprova del difetto appena tolto: dentro un elenco separato da virgole
+     ogni classe conta, anche quelle dopo la prima */
+  ok(noteSenzaStile('<style>.top,.nav,.vera,.altro{display:none}</style><div class="note vera">x</div>').length === 0,
+    "in un elenco di selettori conta anche una classe che non è la prima");
+  /* e una classe scritta SOLO nel markup, mai nel foglio, resta orfana anche se
+     la parola compare altrove nel documento: si guarda dentro <style>, non nel testo */
+  ok(noteSenzaStile('<style>.altro{color:red}</style><p>avviso</p><div class="note avviso">x</div>').length === 1,
+    "la parola nel testo non vale come definizione: conta solo il foglio di stile");
 });
 
 console.log(`\nRisultato Stile: ${passed} passati, ${failed} falliti`);
