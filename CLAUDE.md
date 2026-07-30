@@ -189,6 +189,24 @@ in italiano, senza dare conoscenze per scontate).
   2. La correzione delle unità nei grafici: le 11 asserzioni girate sulla
      versione precedente del motore ne facevano fallire 8. Senza quel passaggio
      non si sapeva se stessero misurando qualcosa.
+- ⚠️ **IL CONTROLLO CHE NON GUARDA DOVE CREDE.** Variante della regola qui
+  sopra, e più insidiosa: il controllo **sa** fallire, ma il suo filtro esclude
+  proprio i casi che contano, e allora risponde «pulito» senza aver guardato
+  niente. Il 31/07 è successo **tre volte in un giorno**:
+  1. il censimento dei doppioni cercava la forma `.some(` e non vedeva i
+     quattro gestori che usano un `Set` — quelli che facevano la cosa giusta;
+     poi lo stesso filtro è finito **dentro la regola** nata da quel censimento,
+     che quindi era cieca proprio dove il codice era sano;
+  2. la controprova del banco degli id iniettava il difetto sostituendo il
+     **primo** `</body>`, che in Terra, Genesi e Campo sta dentro le stringhe
+     dei modelli di stampa: su tre superfici su nove il difetto non arrivava mai
+     nella pagina e la controprova diceva «pulito»;
+  3. la sonda sulle tendine scartava gli elementi con **altezza zero** — cioè
+     tutte quelle delle sezioni non aperte — e rispondeva «nessuna tendina
+     taglia il testo» mentre uno screenshot mostrava il contrario.
+  La difesa: dopo aver scritto un controllo, chiedersi **quanti soggetti ha
+  guardato davvero** e stamparlo (`84 tendine misurate`, `20 gestori`,
+  `9 superfici`). Un numero che non torna si vede; un «zero violazioni» no.
 - Quando si misura qualcosa nel browser, due trappole già pestate:
   `document.elementFromPoint` vive nel **viewport** (un elemento sotto la piega
   risponde `null` e sembra irraggiungibile: va portato in vista), e «questo
