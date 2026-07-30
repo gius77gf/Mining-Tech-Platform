@@ -275,6 +275,26 @@
     return (pezzo || t.slice(0, 1)) + '…';
   }
 
+  /* QUANTO GRANDE PUÒ ESSERE un testo perché stia in `buco`. La misura arriva da
+     fuori (`misura(dim)` torna la larghezza a quella dimensione), così la regola —
+     che è la parte che si sbaglia — si prova senza un browser.
+     Si riduce in PROPORZIONE, non a tentativi: se a 30 px il testo è largo il doppio
+     del buco, a 15 ci sta, e un giro basta quasi sempre. Il limite di sei giri è
+     contro un carattere che non scala in modo lineare, non contro il caso normale.
+     `minimo` è un pavimento: sotto una certa dimensione il numero non si legge più, e
+     a quel punto il problema è che il grafico è troppo piccolo per quel dato — meglio
+     un numero al limite del leggibile che uno microscopico che finge di starci. */
+  function dimCheCiSta(dim, buco, misura, minimo) {
+    var m = minimo == null ? 11 : minimo;
+    if (!(buco > 0)) return dim;
+    for (var giri = 0; giri < 6; giri++) {
+      var lar = misura(dim);
+      if (!lar || lar <= buco || dim <= m) break;
+      dim = Math.max(m, dim * buco / lar);
+    }
+    return dim;
+  }
+
   function troncaTesto(el, testo, maxW, px) {
     var t = String(testo == null ? '' : testo);
     el.textContent = t;
@@ -1157,13 +1177,31 @@
       });
     }
 
-    /* al centro il totale: un solo numero grande, come un quadrante */
+    /* AL CENTRO IL TOTALE: un solo numero grande, come un quadrante. Deve stare nel
+       BUCO, e quanto è largo un numero non si sa contando i caratteri: la stima
+       `lunghezza × 0,56` è tarata sulle cifre, e su «1.111.110 m³/giorno» sbagliava
+       per difetto — misurato a 390 px, 127 px di testo in un buco da 120. Quindi si
+       parte dalla stima (che è quasi sempre giusta al primo colpo, e risparmia il
+       ridisegno) e poi si MISURA, riducendo in proporzione finché ci sta.
+       L'etichetta sotto era il difetto gemello e peggiore: `centro` accetta anche una
+       STRINGA, che veniva scritta a dimensione fissa e usciva dal buco senza che
+       niente la fermasse — «Cavato complessivo del 2026» misurava 181 px in 120. */
     var etCentro = typeof s.centro === 'string' ? s.centro : (s.centro && s.centro.etichetta) || 'Totale';
     var vCentro = s.centro && s.centro.valore != null ? s.centro.valore : totale;
     var testoC = conUnita(fmt(vCentro), s.unita);
-    var dim = Math.min(30, Math.max(15, (2 * r - spessore - 12) / (testoC.length * 0.56)));
-    svg.appendChild(nodo('text', { 'class': 'dwg-centro-n', x: cx, y: cy + dim * 0.16, style: 'font-size:' + dim.toFixed(1) + 'px' }, testoC));
-    svg.appendChild(nodo('text', { 'class': 'dwg-centro-l', x: cx, y: cy + dim * 0.16 + 15 }, etCentro));
+    var buco = 2 * r - spessore - 12;
+    var dim = Math.min(30, Math.max(15, buco / (testoC.length * 0.56)));
+    var elN = nodo('text', { 'class': 'dwg-centro-n', x: cx, y: cy, style: 'font-size:' + dim.toFixed(1) + 'px' }, testoC);
+    svg.appendChild(elN);
+    dim = dimCheCiSta(dim, buco, function (d) {
+      elN.setAttribute('style', 'font-size:' + d.toFixed(1) + 'px');
+      return largoTesto(elN);
+    });
+    elN.setAttribute('style', 'font-size:' + dim.toFixed(1) + 'px');
+    elN.setAttribute('y', (cy + dim * 0.16).toFixed(1));
+    var elL = nodo('text', { 'class': 'dwg-centro-l', x: cx, y: (cy + dim * 0.16 + 15).toFixed(1) }, '');
+    svg.appendChild(elL);
+    troncaTesto(elL, etCentro, buco, 11);
 
     /* aree di tocco: settori larghi quanto l'anello più il margine del dito */
     var off2 = 0;
@@ -1364,7 +1402,7 @@
        test che gira sempre. Il browser è servito per SCOPRIRE che il motore la
        violava; per tenerla basta node, visto che qui dentro entrano numeri ed esce
        una stringa. */
-    geometria: { tratti: tratti, percorso: percorso, tenuteX: tenuteX, tagliaA: tagliaA },
+    geometria: { tratti: tratti, percorso: percorso, tenuteX: tenuteX, tagliaA: tagliaA, dimCheCiSta: dimCheCiSta },
     versione: '1.0'
   };
 

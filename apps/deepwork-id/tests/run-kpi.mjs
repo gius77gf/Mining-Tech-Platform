@@ -2604,6 +2604,31 @@ test("l'arrotondamento non può peggiorare il numero", () => {
       "e poteva lasciare uno spazio appeso ai puntini");
     ok(tagliaA("Dumper Volvo A40", 13) === "Dumper Volvo…", "il nuovo no");
   });
+  /* ── il numero al centro della ciambella ──────────────────────────────────
+     Stessa famiglia: una DIMENSIONE del carattere decisa da una stima per conto di
+     caratteri. La stima è tarata sulle cifre, e su «1.111.110 m³/giorno» sbagliava
+     per difetto — misurato, 127 px di testo in un buco da 120. Ora si parte dalla
+     stima e si riduce in proporzione finché ci sta; la misura arriva da fuori,
+     quindi la regola si prova qui con un carattere finto di larghezza nota. */
+  test("grafici: il numero al centro si rimpicciolisce finché ci sta", () => {
+    const { dimCheCiSta } = grafici.geometria;
+    /* carattere finto: a dimensione d il testo è largo d · k */
+    const largo = (k) => (d) => d * k;
+    ok(dimCheCiSta(30, 120, largo(2)) === 30, "se ci sta già non si tocca");
+    /* a 30 il testo è largo 150 in un buco da 120 → 30 · 120/150 = 24 */
+    eq(Math.round(dimCheCiSta(30, 120, largo(5))), 24, "riduce in proporzione, in un giro");
+    ok(largo(5)(dimCheCiSta(30, 120, largo(5))) <= 120 + 1e-9, "e dopo ci sta davvero");
+    /* il pavimento vince sulla proporzione: meglio al limite del leggibile che
+       microscopico. Con k=40 la proporzione chiederebbe 3 px. */
+    ok(dimCheCiSta(30, 120, largo(40)) === 11, "sotto il minimo non si scende");
+    ok(dimCheCiSta(30, 120, largo(40), 15) === 15, "e il minimo è dichiarabile");
+    ok(dimCheCiSta(30, 0, largo(5)) === 30, "buco a zero: non si decide niente");
+    ok(dimCheCiSta(30, 120, () => 0) === 30, "misura non disponibile: si tiene la stima");
+    /* un carattere che NON scala in proporzione non deve far girare all'infinito:
+       qui la larghezza resta 300 qualunque sia la dimensione */
+    const fisso = dimCheCiSta(30, 120, () => 300);
+    ok(fisso === 11, `col carattere che non scala si finisce al minimo, non in un ciclo (${fisso})`);
+  });
   test("grafici: la controprova — la vecchia scelta si sovrapponeva", () => {
     /* la versione di prima: gli indici del passo, più l'ultimo, sempre.
        I numeri non sono inventati — sono quelli misurati a 390 px: il disegno va da
