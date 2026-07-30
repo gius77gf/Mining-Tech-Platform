@@ -950,6 +950,12 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+/* Come si legge un numero scritto a mano: la convenzione è UNA e vive in
+   shared/. Genesi era l'ultima delle sei a farsi la sua — è il monolite 3D e
+   non caricava niente da shared/ — e leggeva «1.250» come 1,25 in silenzio.
+   `dw-shell.js` è un modulo senza dipendenze: non porta dentro né Firebase né
+   l'SDK, quindi Genesi resta quello che è (localStorage, nessun account). */
+import { numeroScritto, messaggioNumero, perCampo } from '../../shared/deepwork-id-client/dw-shell.js';
 
 /* ══════════════════════════════════════════════════════════════════════════
    NUMERI COME SI SCRIVONO IN ITALIA — un solo posto per la convenzione
@@ -1016,29 +1022,37 @@ function gseg(v, dec){
    («1.250,5» e «1,250.5»). Su un valore che non si capisce ritorna NaN, MAI
    zero: chi chiama tiene il valore di prima invece di progettare su un numero
    inventato. */
-function gIn(v){
-  let s = String(v == null ? '' : v).trim();
-  if(s === '') return NaN;
-  const virgole = (s.match(/,/g)||[]).length, punti = (s.match(/\./g)||[]).length;
-  if(virgole && punti){
-    s = s.lastIndexOf(',') > s.lastIndexOf('.')
-      ? s.replace(/\./g,'').replace(',','.')     // italiano: punto = migliaia
-      : s.replace(/,/g,'');                       // inglese: virgola = migliaia
-  } else if(virgole > 1) s = s.replace(/,/g,'');
-  else if(virgole === 1) s = s.replace(',','.');
-  else if(punti > 1) s = s.replace(/\./g,'');
-  const n = +s;
-  return isFinite(n) ? n : NaN;
+/* `gEsito` è la lettura completa (con il motivo), `gIn` il solo numero per i
+   ~30 punti che vogliono un numero e basta. La logica è del lettore condiviso:
+   Genesi era l'ultima delle sei a farsi la sua, e leggeva «1.250» come 1,25 in
+   silenzio. Sei decimali perché qui i numeri vanno da 0,05 m di errore al
+   colletto a 4.680 kg di esplosivo totale, e non è il posto in cui arrotondare. */
+function gEsito(v, opts){ return numeroScritto(v, { decimali: 6, ...(opts||{}) }); }
+function gIn(v){ const r = gEsito(v); return r.ok ? r.valore : NaN; }
+/* Legge il campo `id`, passando al lettore i LIMITI scritti nel campo stesso.
+   È quello che fa funzionare la risoluzione dell'ambiguo senza chiedere niente:
+   «1.250» nella spalla (min 1,5 max 8) non è né 1250 né 1,25 — nessuna delle due
+   ci sta — mentre «1.600» in un campo 0,3–5 è 1,6 e non c'è nulla da chiedere. */
+function gLeggi(id, opts){
+  const e = $(id); if(!e) return { vuoto: true, ok: false, valore: null, grezzo: '', motivo: 'vuoto' };
+  const lim = {};
+  const mn = e.getAttribute('min'), mx = e.getAttribute('max');
+  if(mn !== null && mn !== '' && isFinite(+mn)) lim.min = +mn;
+  if(mx !== null && mx !== '' && isFinite(+mx)) lim.max = +mx;
+  return gEsito(e.value, { ...lim, ...(opts||{}) });
 }
 /* legge il campo `id` come numero; NaN se vuoto o incomprensibile */
-function gvv(id){ const e = $(id); return e ? gIn(e.value) : NaN; }
+function gvv(id){ const r = gLeggi(id); return r.ok ? r.valore : NaN; }
 /* scrive un numero nel campo `id` all'italiana. I campi decimali sono
    `type=text`, quindi la virgola ci sta: se restassero `type=number` il
-   browser scarterebbe il valore e il campo si svuoterebbe. */
+   browser scarterebbe il valore e il campo si svuoterebbe.
+   Nei campi si usa `perCampo`, che NON mette il punto delle migliaia: se lo
+   mettesse, l'esplosivo totale «4.680» rientrerebbe come ambiguo e l'app
+   rifiuterebbe un valore che ha scritto lei. */
 function gsv(id, v, dec){
   const e = $(id); if(!e) return;
-  e.value = (v == null || !isFinite(+v)) ? ''
-    : (e.type === 'number' ? String(+v) : gnum(v, dec == null ? 2 : dec));
+  if(v == null || !isFinite(+v)){ e.value = ''; return; }
+  e.value = e.type === 'number' ? String(+v) : perCampo(+v, dec == null ? 2 : dec);
 }
 
 /* Le volate sono salvate con la data in forma tecnica («2026-07-30 01:38»),
@@ -5156,14 +5170,17 @@ function simulaVolata2D(){
    scritta sbagliata e chi guarda crederebbe di aver cambiato la spalla.
    Quindi si dice cos'è successo col toast del core e si rimette nel campo il
    valore che il progetto ha davvero. */
-const D2_DECIMALI = ['dB','dS','dH','dKg','dStem','dSub','dAcquaCol','dPsSpacing',
+const D2_DECIMALI = ['dB','dS','dH','dKg','dKgTot','dStem','dSub','dAcquaCol','dPsSpacing',
   'dPsCharge','dRecDist','dCPerf','dCExpl','dCInn','dValMat','dDeckStem','dErrColl','dDev'];
 function guardiaDecimale(el){
-  const grezzo = String(el.value||'').trim();
-  if(grezzo === '' || isFinite(gIn(grezzo))) return true;
+  if(String(el.value||'').trim() === '') return true;
+  const r = gLeggi(el.id);
+  if(r.ok) return true;
+  /* il messaggio viene dal posto in cui vive la regola: così «1.250» dice che
+     può essere 1250 o 1,25 invece di «non è un numero», che sarebbe falso */
   const et = el.closest('label');
-  const nome = et ? (et.querySelector('span')||{textContent:''}).textContent.trim() : '';
-  toast('«'+grezzo+'» non è un numero'+(nome?' per «'+nome+'»':'')+': va bene la virgola, come 4,5.');
+  const nome = et ? (et.querySelector('span')||{textContent:''}).textContent.trim().toLowerCase() : 'questo valore';
+  toast(messaggioNumero(r, '«'+nome+'»', { min: r.min, max: r.max }));
   syncDesignInputs();          // rimette nel campo il valore vero del progetto
   return false;
 }
@@ -5203,6 +5220,10 @@ if($('dKg')) $('dKg').addEventListener('input', ()=>{ D2.kgAuto=false; });
 /* quantitativo TOTALE della volata (fondatore 25/07): l'app lo divide sui fori
    e genera gli altri dati; il campo si tiene allineato quando cambiano maglia o kg/foro */
 if($('dKgTot')) $('dKgTot').addEventListener('change', ()=>{
+  /* prima un valore illeggibile finiva in `gvv(...)||0` e diventava zero, e il
+     campo veniva ignorato SENZA dire niente: chi aveva scritto «4.680» credeva
+     di aver messo l'esplosivo di tutta la volata. */
+  if(!guardiaDecimale($('dKgTot'))) return;
   const tot=Math.max(0, gvv('dKgTot')||0);
   const n=(measureGeom2D().n || D2.perRow*D2.file || 1);
   if(tot>0 && n>0){
