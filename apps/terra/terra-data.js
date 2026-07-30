@@ -975,12 +975,24 @@ export const SOGLIA_TURNI = { coerente: 15, attenzione: 40 };
 //   coerente       · scostamento dentro il ±15% del misurato
 //   attenzione     · fra il 15% e il 40%: conviene andare a guardare
 //   implausibile   · oltre il 40%: non è imprecisione di stima, è un errore
-//   sopra-misura   · dichiarato MAGGIORE del misurato: i turni dicono di aver
-//                    tirato fuori più roccia di quanta ne manchi dal fronte.
-//                    Non è una sfumatura: o le stime di turno sono gonfie, o il
+//   sopra-misura   · dichiarato maggiore del misurato OLTRE la banda di
+//                    coerenza: i turni dicono di aver tirato fuori più roccia di
+//                    quanta ne manchi dal fronte. O le stime sono gonfie, o il
 //                    rilievo non copre tutto quello che è stato scavato.
 // `scostamento` è misurato − dichiarato in m³. Il segno conta e non si
-// arrotonda via: senza verso non si sa da che parte cercare.
+// arrotonda via: senza verso non si sa da che parte cercare, e `verso` lo dice
+// a parole ("sotto" o "sopra") perché il segno da solo si legge male.
+//
+// ⚠️ LA BANDA VALE NEI DUE SENSI, e la prima versione no. Guardando lo stato
+// «sopra-misura» renderizzato si è visto il difetto: qualunque eccesso, anche
+// dell'1%, diventava un allarme rosso. Ma se una stima a occhio può stare
+// quindici punti SOTTO la misura senza che sia un problema, può stare quindici
+// punti SOPRA per la stessa ragione — è la stessa imprecisione, nell'altro
+// verso. Un allarme che scatta su una differenza normale insegna a non
+// guardarlo più, che è esattamente ciò che queste soglie dovevano evitare.
+// Sopra la banda, però, il verso cambia il SIGNIFICATO: dichiarare più roccia di
+// quanta ne manchi dal fronte non è imprecisione, è una delle due cose scritte
+// sopra. Per questo lo stato resta distinto.
 export function riconciliazioneTurni(rilievi, rapportini, dal, al, densita) {
   const dich = produzioneDichiarata(rapportini, dal, al, densita);
   const mis = misuratoPeriodo(rilievi, dal, al);
@@ -992,11 +1004,13 @@ export function riconciliazioneTurni(rilievi, rapportini, dal, al, densita) {
   if (!(dich.m3 > 0)) return { ...base, stato: "no-densita" };
   const scostamento = r3(mis.m3 - dich.m3);
   const pct = r2(100 * scostamento / mis.m3);
-  const stato = scostamento < 0 ? "sopra-misura"
-    : pct <= SOGLIA_TURNI.coerente ? "coerente"
-    : pct <= SOGLIA_TURNI.attenzione ? "attenzione"
+  const verso = scostamento < 0 ? "sopra" : "sotto";
+  const fuori = Math.abs(pct);
+  const stato = fuori <= SOGLIA_TURNI.coerente ? "coerente"
+    : verso === "sopra" ? "sopra-misura"
+    : fuori <= SOGLIA_TURNI.attenzione ? "attenzione"
     : "implausibile";
-  return { ...base, stato, scostamento, pct };
+  return { ...base, stato, scostamento, pct, verso };
 }
 
 // Quanto hanno MISURATO i rilievi nel periodo: solo gli ELABORATI con un
@@ -1033,19 +1047,35 @@ export function misuratoPeriodo(rilievi, dal, al) {
 // (quel giorno è già dentro la misura precedente) e finisce col giorno
 // dell'ultimo. Serve la data di DUE rilievi: con uno solo non c'è un intervallo,
 // e allora null. Pura e testabile.
-export function periodoFraUltimiRilievi(rilievi) {
-  if (!Array.isArray(rilievi)) return null;
+// TUTTI gli intervalli fra due voli consecutivi, dal più recente. Serve perché
+// la sezione del confronto ha una tendina per scegliere il periodo — come la
+// sezione «Confronto fra due rilievi» che le sta sopra, per coerenza — ma le
+// scelte NON sono date libere: sono i confini dei voli. Una data libera
+// permetterebbe di chiedere un periodo che non corrisponde a nessuna misura, e
+// il numero che ne esce sarebbe uno scostamento nato solo dalle date. Meglio
+// togliere la possibilità di fare la domanda sbagliata che spiegare dopo perché
+// la risposta non vale.
+export function intervalliFraRilievi(rilievi) {
+  if (!Array.isArray(rilievi)) return [];
   const date = [...new Set(rilievi
-    .filter(r => r && r.stato === "elaborato" && +((r || {}).volumeM3) === +r.volumeM3
-      && r.volumeM3 != null && dataISOBuona(r.data) && provenienzaRilievo(r) === "scavo")
+    .filter(r => r && r.stato === "elaborato" && r.volumeM3 != null
+      && Number.isFinite(+r.volumeM3) && dataISOBuona(r.data) && provenienzaRilievo(r) === "scavo")
     .map(r => String(r.data)))].sort();
-  if (date.length < 2) return null;
-  const al = date[date.length - 1], penultimo = date[date.length - 2];
-  const g = new Date(penultimo + "T00:00:00Z");
-  g.setUTCDate(g.getUTCDate() + 1);
-  const dal = g.toISOString().slice(0, 10);
-  if (dal > al) return null;
-  return { dal, al, rilievoPrecedente: penultimo };
+  const out = [];
+  for (let i = 1; i < date.length; i++) {
+    const g = new Date(date[i - 1] + "T00:00:00Z");
+    g.setUTCDate(g.getUTCDate() + 1);
+    const dal = g.toISOString().slice(0, 10), al = date[i];
+    if (dal > al) continue;                       // due voli lo stesso giorno
+    out.push({ dal, al, rilievoPrecedente: date[i - 1] });
+  }
+  return out.reverse();                           // il più recente per primo
+}
+
+// Il periodo naturale: l'intervallo più recente. null se non ce n'è nessuno.
+export function periodoFraUltimiRilievi(rilievi) {
+  const l = intervalliFraRilievi(rilievi);
+  return l.length ? l[0] : null;
 }
 
 // LA STIMA CORRENTE: dal giorno dopo l'ultimo rilievo elaborato a oggi, quanto

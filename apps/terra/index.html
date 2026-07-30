@@ -650,6 +650,13 @@ a.dw-btn{text-decoration:none}
        leggere in metri cubi le tonnellate dichiarate dai turni: una sola in
        tutta l'app, non due che possono divergere. -->
   <div class="sec">Quello che dichiarano i turni <span class="badge tag inline">da Campo</span></div>
+  <div class="form col" id="tur-form" style="display:none;">
+    <div class="frow">
+      <div class="fld" style="flex:3 1 240px;"><label class="fl" for="tur-per">Periodo del confronto</label>
+        <select class="dw-input" id="tur-per" title="Gli intervalli fra due voli: il volume di un rilievo è l'accumulo dall'ultimo, quindi si confronta con quell'intervallo"></select></div>
+    </div>
+    <div class="form-hint">Le scelte sono i <b>confini dei voli</b>, non date libere: chiedere un periodo qualsiasi darebbe uno scostamento nato solo dalle date, non da quello che è uscito dalla cava.</div>
+  </div>
   <div id="tur-out"></div>
 
   <div class="sec">Nuovo rilievo</div>
@@ -879,7 +886,7 @@ a.dw-btn{text-decoration:none}
            anniConVolumi, riepilogoAnnuale, serieAnnuale,
            rilieviScavoFronte, rilievoPrecedente, confrontoRilievi,
            produzioneDichiarata, misuratoPeriodo, riconciliazioneTurni,
-           periodoFraUltimiRilievi, avanzamentoDaUltimoRilievo, SOGLIA_TURNI,
+           periodoFraUltimiRilievi, intervalliFraRilievi, avanzamentoDaUltimoRilievo, SOGLIA_TURNI,
            numeroDaCampo, AVVISO_DECIMALE } from "./terra-data.js";
   import { mountExit, esc, csvCell, montaGuardiaInteri } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
@@ -2029,6 +2036,9 @@ a.dw-btn{text-decoration:none}
   }
   ["val-densita","val-prezzo"].forEach(id => $(id).addEventListener("input", () => { renderValore(); renderTurni(); }));
 
+  // la scelta del periodo ridisegna solo questa sezione
+  if ($("tur-per")) $("tur-per").addEventListener("change", (e) => { turPeriodo = e.target.value; renderTurni(); });
+
   // ══════════════════════════════════════════════════════════════════════
   // PONTE P2 — quello che dichiarano i turni (da Campo)
   // ══════════════════════════════════════════════════════════════════════
@@ -2039,6 +2049,7 @@ a.dw-btn{text-decoration:none}
   // terra-data.js per le tre ragioni.
   let RAPP;                          // undefined = mai cercati, null = Campo non c'è
   let rappCercati = false;
+  let turPeriodo = null;             // «dal|al» dell'intervallo scelto, null = il più recente
   async function caricaRapportini() {
     if (rappCercati) return;
     rappCercati = true;
@@ -2073,7 +2084,20 @@ a.dw-btn{text-decoration:none}
     // la densità è quella scritta qui sopra: una sola in tutta l'app
     const rd = numCampo("val-densita", { min: 0.3, max: 5, decimali: 3 });
     const dens = rd.ok ? rd.valore : null;
-    const per = periodoFraUltimiRilievi(RIL);
+    // la tendina: gli intervalli fra due voli, dal più recente. Se ce n'è uno
+    // solo non si mostra — una scelta con una voce sola è un ingombro.
+    const intervalli = intervalliFraRilievi(RIL);
+    const formPer = $("tur-form"), selPer = $("tur-per");
+    if (formPer) formPer.style.display = intervalli.length > 1 ? "" : "none";
+    if (selPer && intervalli.length > 1) {
+      const chiave = (i) => i.dal + "|" + i.al;
+      if (!intervalli.some((i) => chiave(i) === turPeriodo)) turPeriodo = chiave(intervalli[0]);
+      selPer.innerHTML = intervalli.map((i) =>
+        `<option value="${esc(chiave(i))}"${chiave(i) === turPeriodo ? " selected" : ""}>dal ${fmtData(i.dal)} al ${fmtData(i.al)}</option>`).join("");
+    }
+    const per = intervalli.length > 1
+      ? (intervalli.find((i) => i.dal + "|" + i.al === turPeriodo) || intervalli[0])
+      : periodoFraUltimiRilievi(RIL);
     const av = avanzamentoDaUltimoRilievo(RIL, RAPP, dens, new Date());
     let html = "";
 
@@ -2084,11 +2108,11 @@ a.dw-btn{text-decoration:none}
       html += `<div class="kpis" style="--kpi-cols:3;">
         <div class="kpi"><div class="l">Dichiarati dai turni <span class="u">m³</span></div><div class="n">${d.m3 > 0 ? n0(d.m3) : "—"}</div></div>
         <div class="kpi"><div class="l">Giorni dall'ultimo rilievo</div><div class="n">${av.giorni}</div></div>
-        <div class="kpi"><div class="l">Turni che hanno dichiarato</div><div class="n">${d.turni}</div></div>
+        <div class="kpi largo"><div class="l">Turni che hanno dichiarato</div><div class="n">${d.turni}</div></div>
       </div>`;
       html += `<div class="note recap">Dal <b>${fmtData(av.dal)}</b> — il giorno dopo il rilievo del ${fmtData(av.dallUltimoRilievo)} — a oggi `
         + (nulla
-          ? `nessun turno ha registrato una produzione. Il volume che vedi nelle tessere è ancora quello dell'ultimo volo.`
+          ? `nessun turno ha registrato una produzione, quindi di questo periodo Terra non sa niente: l'ultimo numero misurato resta quello del rilievo del ${fmtData(av.dallUltimoRilievo)}.`
           : `i turni hanno dichiarato circa <b>${n0(d.m3)} m³</b>${d.t > 0 && d.densita ? ` (da <b>${n0(d.t)} t</b> alla densità di ${nD(d.densita)} t/m³)` : ""}. `
             + `È una <b>stima dichiarata</b>, non una misura: non consuma il volume concesso e non entra nella denuncia agli enti. Serve a sapere cosa è successo da quando il drone non vola.`)
         + `</div>`;
@@ -2097,7 +2121,24 @@ a.dw-btn{text-decoration:none}
       if (d.viaggi > 0) fuori.push(`<b>${d.viaggi} viaggi</b>, che non si convertono: servirebbe la portata del mezzo, e cambia da camion a camion`);
       if (fuori.length) html += `<div class="note avviso">Fuori da quel numero restano ${fuori.join(" e ")}. Il totale in metri cubi è quindi <b>per difetto</b>.</div>`;
     } else {
-      html += `<div class="note">Per la stima corrente serve <b>almeno un rilievo elaborato</b> da cui partire: senza un punto di partenza non è un avanzamento, è solo una somma.</div>`;
+      // senza rilievi non c'è un «da quando», ma i turni hanno comunque
+      // dichiarato qualcosa: si mostra l'ultimo mese, che è la sola cosa che
+      // Terra può dire di questa cava.
+      const oggi = new Date();
+      const primo = new Date(oggi.getTime() - 29 * 86400000);
+      const iso = (d) => d.toISOString().slice(0, 10);
+      const d = produzioneDichiarata(RAPP, iso(primo), iso(oggi), dens);
+      if (d && d.turni) {
+        html += `<div class="kpis" style="--kpi-cols:3;">
+          <div class="kpi"><div class="l">Dichiarati dai turni <span class="u">m³</span></div><div class="n">${d.m3 > 0 ? n0(d.m3) : "—"}</div></div>
+          <div class="kpi"><div class="l">Negli ultimi giorni</div><div class="n">30</div></div>
+          <div class="kpi largo"><div class="l">Turni che hanno dichiarato</div><div class="n">${d.turni}</div></div>
+        </div>`;
+        html += `<div class="note recap">Non c'è ancora nessun <b>rilievo elaborato</b>, quindi non c'è un «da quando» e nemmeno niente contro cui confrontare. Quello che c'è sono i turni: negli ultimi 30 giorni hanno dichiarato <b>${n0(d.m3)} m³</b>${d.t > 0 && d.densita ? ` (da <b>${n0(d.t)} t</b>)` : ""}. È una <b>stima dichiarata</b> — non consuma il volume concesso e non entra nella denuncia agli enti — ma finché il drone non vola è l'unica cosa che si sa di questa cava.</div>`;
+        if (d.viaggi > 0) html += `<div class="note avviso">Fuori da quel numero restano <b>${d.viaggi} viaggi</b>, che non si convertono senza la portata del mezzo: il totale è <b>per difetto</b>.</div>`;
+      } else {
+        html += `<div class="note">Per la stima corrente serve <b>almeno un rilievo elaborato</b> da cui partire, e nessun turno ha registrato una produzione: per adesso non c'è niente da dire.</div>`;
+      }
     }
 
     // ── 2. IL CONFRONTO, sul periodo naturale: fra gli ultimi due voli ──
@@ -2115,21 +2156,21 @@ a.dw-btn{text-decoration:none}
         html += cornice + `<div class="note">In quel periodo non risulta nessun <b>rilievo elaborato di scavo</b>: senza la misura il dichiarato resta da solo.</div>`;
       } else {
         const [cls, frase] = TUR_STATO[r.stato] || ["", ""];
-        const sopra = r.stato === "sopra-misura";
+        const sopra = r.verso === "sopra";
         const verso = sopra ? "più" : "meno";
         // il segno «+/−» su una tessera che si chiama «scostamento» non si
         // capisce: più di cosa? Lo dice l'etichetta, così il numero è nudo.
         html += `<div class="kpis" style="--kpi-cols:3;">
           <div class="kpi"><div class="l">Misurato dal rilievo <span class="u">m³</span></div><div class="n">${n0(r.mis.m3)}</div></div>
           <div class="kpi"><div class="l">Dichiarato dai turni <span class="u">m³</span></div><div class="n">${n0(r.dich.m3)}</div></div>
-          <div class="kpi"><div class="l">Dichiarato in ${verso}</div><div class="n">${nD(Math.abs(r.pct))}%</div></div>
+          <div class="kpi largo"><div class="l">Dichiarato in ${verso}</div><div class="n">${nD(Math.abs(r.pct))}%</div></div>
         </div>`;
         html += cornice;
         html += `<div class="note recap"><span class="badge ${cls} inline">${frase}</span> Il rilievo ha misurato <b>${nD(r.mis.m3)} m³</b>, i turni ne hanno dichiarati circa <b>${n0(r.dich.m3)}</b>: <b>${n0(Math.abs(r.scostamento))} m³</b> in ${verso} nel dichiarato, cioè il <b>${nD(Math.abs(r.pct))}%</b> del misurato.`
-          + (sopra
-            ? ` Dichiarare più roccia di quanta ne manchi dal fronte non è una sfumatura: <b>o le stime di turno sono gonfie, o il rilievo non copre tutto quello che è stato scavato</b>. Vale la pena guardare l'estensione del volo prima di dare la colpa ai turni.`
-            : r.stato === "coerente"
-              ? ` Su una stima fatta a occhio a fine turno, una differenza così è normale: i due mondi si parlano.`
+          + (r.stato === "coerente"
+            ? ` Su una stima fatta a occhio a fine turno una differenza così è normale, in un verso o nell'altro: i due mondi si parlano.`
+            : sopra
+              ? ` Dichiarare più roccia di quanta ne manchi dal fronte, oltre la normale imprecisione, non è una sfumatura: <b>o le stime di turno sono gonfie, o il rilievo non copre tutto quello che è stato scavato</b>. Vale la pena guardare l'estensione del volo prima di dare la colpa ai turni.`
               : ` La misura resta quella del rilievo — questo confronto non la corregge, dice solo che i due numeri non tornano.`)
           + `</div>`;
         if (r.mis.m3Cumulo > 0) {

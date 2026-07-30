@@ -2114,6 +2114,50 @@ test("P2: il confronto dice sempre COME va letto il numero", () => {
   const sopra = terra.riconciliazioneTurni(mis, dichiara(1200), "2026-03-01", "2026-03-31", 2.6);
   ok(sopra.scostamento === -200 && sopra.pct === -20, `il segno resta: ${sopra.scostamento} / ${sopra.pct}%`);
 });
+test("P2: la banda di coerenza vale nei DUE sensi", () => {
+  /* Trovato guardando lo stato renderizzato: qualunque eccesso, anche dell'1%,
+     diventava un allarme rosso. Ma se una stima a occhio può stare quindici punti
+     SOTTO la misura senza che sia un problema, può stare quindici punti SOPRA per
+     la stessa ragione — è la stessa imprecisione nell'altro verso. Un allarme che
+     scatta su una differenza normale insegna a non guardarlo più, che è
+     esattamente ciò che queste soglie dovevano evitare. */
+  const mis = [{ data: "2026-03-05", stato: "elaborato", volumeM3: 1000, provenienza: "scavo" }];
+  const r = (m3) => terra.riconciliazioneTurni(mis, [{ data: "2026-03-10", prodQta: m3, prodUnita: "m³" }],
+    "2026-03-01", "2026-03-31", 2.6);
+  for (const [m3, stato, verso] of [
+    [1000, "coerente", "sotto"],
+    [1050, "coerente", "sopra"],       // 5% in più: imprecisione normale
+    [1140, "coerente", "sopra"],       // 14%: ancora dentro la banda
+    [1160, "sopra-misura", "sopra"],   // 16%: oltre, e il verso cambia il significato
+    [1500, "sopra-misura", "sopra"],
+    [950,  "coerente", "sotto"],
+    [800,  "attenzione", "sotto"],
+    [500,  "implausibile", "sotto"],
+  ]) {
+    const x = r(m3);
+    eq([x.stato, x.verso], [stato, verso], `${m3} m³ dichiarati contro 1000 misurati`);
+  }
+  /* `verso` è una parola perché il segno da solo si legge male: «−16%» non dice
+     se è il dichiarato o il misurato a essere più alto. */
+  ok(r(1160).scostamento < 0 && r(1160).verso === "sopra", "il segno e la parola concordano");
+  ok(r(800).scostamento > 0 && r(800).verso === "sotto", "e anche nell'altro verso");
+});
+test("P2: senza rilievi il dichiarato NON si perde", () => {
+  /* Guardato a schermo: la sezione diventava due note grigie che dicono «non
+     posso», mentre in archivio c'erano quindici rapportini con la produzione.
+     È il caso in cui quel dato vale PIÙ di tutti — una cava che non ha ancora
+     fatto volare il drone non ha nessun'altra fonte. */
+  const rapp = [
+    { data: "2026-03-02", prodQta: 1900, prodUnita: "t" },
+    { data: "2026-03-05", prodQta: 1900, prodUnita: "t" },
+  ];
+  ok(terra.avanzamentoDaUltimoRilievo([], rapp, 1.9, new Date("2026-03-10T09:00:00Z")) === null,
+    "senza rilievi non c'è un «da quando»");
+  /* ...ma la produzione dichiarata del periodo si legge comunque, ed è quello
+     che la pagina mostra al posto della nota grigia */
+  const d = terra.produzioneDichiarata(rapp, "2026-02-09", "2026-03-10", 1.9);
+  ok(d && d.turni === 2 && d.m3 === 2000, `due turni, 2000 m³ (ottenuti ${d && d.m3})`);
+});
 test("P2: le soglie NON sono quelle del ponte Terra ↔ Conti, ed è voluto", () => {
   /* là si confrontano due misure (un rilievo e una pesa), qui una misura con una
      stima a occhio di fine turno: pretendere la stessa precisione farebbe
@@ -2144,6 +2188,30 @@ test("P2: la stima corrente riempie SOLO il buco fra due voli del drone", () => 
   ok(terra.avanzamentoDaUltimoRilievo([{ data: "2026-03-13", stato: "elaborato", volumeM3: 10 }],
     rapp, 2.6, new Date("2026-03-13T09:00:00Z")) === null,
     "rilievo di oggi: nessun buco da riempire");
+});
+test("P2: la tendina del periodo offre i confini dei voli, non date libere", () => {
+  /* Una data libera permetterebbe di chiedere un periodo che non corrisponde a
+     nessuna misura, e il numero che ne esce sarebbe uno scostamento nato solo
+     dalle date. Meglio togliere la possibilità di fare la domanda sbagliata che
+     spiegare dopo perché la risposta non vale. */
+  const R = [
+    { data: "2025-11-20", stato: "elaborato", volumeM3: 22000, provenienza: "scavo" },
+    { data: "2026-05-15", stato: "elaborato", volumeM3: 20100, provenienza: "scavo" },
+    { data: "2026-06-16", stato: "elaborato", volumeM3: 21300, provenienza: "scavo" },
+    { data: "2026-06-25", stato: "elaborato", volumeM3: 5200,  provenienza: "cumulo" },
+    { data: "2026-08-01", stato: "pianificato", volumeM3: null },
+  ];
+  const l = terra.intervalliFraRilievi(R);
+  eq(l.length, 2, "tre voli di scavo fanno due intervalli");
+  contiene(l[0], { dal: "2026-05-16", al: "2026-06-16", rilievoPrecedente: "2026-05-15" },
+    "il più recente per primo, e si parte dal giorno DOPO il volo precedente");
+  contiene(l[1], { dal: "2025-11-21", al: "2026-05-15" }, "poi quello prima");
+  ok(!l.some((i) => i.al === "2026-06-25"), "una ripresa da cumulo non è un confine");
+  ok(!l.some((i) => i.al === "2026-08-01"), "e un rilievo pianificato nemmeno");
+  eq(terra.intervalliFraRilievi([R[0]]), [], "con un volo solo non c'è nessun intervallo");
+  eq(terra.intervalliFraRilievi(null), [], "rilievi assenti → lista vuota, non un errore");
+  /* il periodo naturale è il primo della lista: una sola verità, due nomi */
+  contiene(terra.periodoFraUltimiRilievi(R), l[0], "il periodo naturale è l'intervallo più recente");
 });
 test("P2: il periodo del confronto è fra due voli, non un mese di calendario", () => {
   /* il volume di un rilievo è l'accumulo dall'ultimo volo: confrontarlo con un
