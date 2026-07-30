@@ -7,7 +7,7 @@
 // perché non falliscono i test, si vedono solo aprendo la pagina giusta.
 // Qui diventano controlli che girano in automatico.
 //
-// Dodici regole, oggi:
+// Tredici regole, oggi:
 //  1. NIENTE DIALOGHI DEL BROWSER. `alert()`, `confirm()`, `prompt()` sono
 //     vietati dalla direttiva sullo stile. La ragione non è estetica: la
 //     finestra ha il carattere e i bottoni del sistema operativo, su Android
@@ -79,6 +79,13 @@
 //     entrambe le forme in cui la difesa si scrive: `senzaDoppioni` di
 //     `shared/` e il `Set` con la firma aggiunta DENTRO il ciclo — quattro
 //     gestori usavano già la seconda, e facevano la cosa giusta da prima.
+// 13. DUE ESPORTAZIONI NON SCARICANO LO STESSO NOME DI FILE. In Conti due
+//     bottoni scaricavano tutti e due `conti_listino.csv`: uno era il listino
+//     ri-caricabile, l'altro un prospetto coi prezzi già convertiti. Nella
+//     cartella dei download uno copre l'altro, e nessuno dei due dice quale
+//     sia quale — chi poi ri-carica quello sbagliato si sente rispondere che
+//     non è valido e conclude che è l'app a non funzionare. Nessuna prova sul
+//     comportamento lo trova: ogni export, preso da solo, funziona.
 //
 // Come si aggiunge una regola: una funzione che restituisce l'elenco delle
 // violazioni con file e riga, e un `test(...)` che pretende zero.
@@ -990,6 +997,56 @@ test("la regola 12 vede anche la forma col Set, non solo quella con .some()", ()
   ok(dedupSoloInArchivio(senzaAdd, null).length === 1, "senza l'add dentro il ciclo, è una violazione");
 });
 
+
+
+/* ── REGOLA 13: due esportazioni non scaricano lo stesso nome di file ──────
+   Trovato per caso il 31/07 in Conti: due bottoni scaricavano tutti e due
+   `conti_listino.csv`, ma uno era il LISTINO ri-caricabile e l'altro un
+   prospetto coi prezzi già convertiti. Nella cartella dei download il
+   secondo copre il primo — o peggio lo affianca come «conti_listino (1).csv»
+   — e nessuno dei due dice quale sia quale. Chi poi prova a ri-caricare il
+   file sbagliato si sente rispondere che non è valido, e conclude che è
+   l'app a non funzionare.
+
+   Il difetto non fa rumore: il file si scarica benissimo. E non lo trova
+   nessuna prova sul comportamento, perché ogni export, preso da solo,
+   funziona.
+
+   ⚠️ Copre i nomi scritti come testo (`.download = "…"`). Un nome costruito a
+   pezzi — con una data dentro, per esempio — qui non si vede: quando ne
+   nascerà uno, la regola va allargata invece di essere aggirata. */
+function nomiScaricatiRipetuti(src) {
+  const conta = new Map();
+  const re = /\.download = "([^"]+)"/g;
+  let m;
+  while ((m = re.exec(src)) !== null) {
+    const riga = src.slice(0, m.index).split("\n").length;
+    const v = conta.get(m[1]) || [];
+    v.push(riga);
+    conta.set(m[1], v);
+  }
+  return [...conta].filter(([, righe]) => righe.length > 1)
+    .map(([nome, righe]) => `«${nome}» scaricato da ${righe.length} esportazioni diverse (righe ${righe.join(", ")})`);
+}
+for (const [nome, rel] of SUPERFICI) {
+  const src = leggi(rel);
+  if (src === null) continue;
+  const casi = nomiScaricatiRipetuti(src);
+  test(`${nome}: due esportazioni non scaricano lo stesso file`, () => {
+    ok(casi.length === 0, `${rel}: ${casi.join("; ")}`);
+  });
+}
+test("la regola 13 sa vedere il difetto che è stato tolto", () => {
+  /* il caso vero di Conti, com'era prima della correzione */
+  const difetto = 'a.download = "conti_listino.csv"; a.click();\n'
+    + 'let csv = "nome;unita";\n'
+    + 'a.download = "conti_listino.csv"; a.click();';
+  ok(nomiScaricatiRipetuti(difetto).length === 1, "due export con lo stesso nome sono una violazione");
+  ok(/righe 1, 3/.test(nomiScaricatiRipetuti(difetto)[0]), "e dice DOVE stanno tutte e due");
+  const corretto = difetto.replace(/conti_listino\.csv"; a\.click\(\);$/, 'conti_listino_prezzi.csv"; a.click();');
+  ok(nomiScaricatiRipetuti(corretto).length === 0, "con due nomi diversi, no");
+  ok(nomiScaricatiRipetuti('a.download = "uno.csv";').length === 0, "una sola esportazione non è mai un doppione");
+});
 
 console.log(`\nRisultato Stile: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);

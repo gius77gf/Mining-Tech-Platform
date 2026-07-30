@@ -31,6 +31,8 @@ const BANCHI = [
   ['striscia di stato · controprova', 'note-stato.mjs', ['--controprova'], true],
   ['niente fuori schermo', 'fuori-schermo.mjs', []],
   ['fuori schermo · controprova', 'fuori-schermo.mjs', ['--controprova', '--solo=sentinella'], true],
+  ['id unici nella pagina viva', 'id-unici.mjs', []],
+  ['id unici · controprova', 'id-unici.mjs', ['--controprova'], true],
 ];
 
 async function rispondePorta(porta) {

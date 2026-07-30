@@ -131,6 +131,33 @@ node apps/deepwork-id/tests/browser/fuori-schermo.mjs 8823 --controprova --solo=
 
 Nove superfici per due larghezze (390 e 360 px): 18 schermate.
 
+## `id-unici.mjs`
+
+**Due elementi con lo stesso `id`, nella pagina viva.** Il browser non protesta,
+la pagina si apre, sembra tutto a posto — ma `getElementById` restituisce **il
+primo**, e il secondo diventa irraggiungibile senza che niente lo dica.
+
+Trovato dal vero il 31/07, tre volte in un'ora: in **Conti** due bottoni erano
+`btn-lis-export`, e il secondo — «Esporta listino (CSV)» — **non faceva niente
+quando lo si cliccava**, portandosi dietro l'unico export coi prezzi convertiti;
+in **Flotta** e **Sentinella** due note erano `ric-esito`, e quella sotto il form
+non mostrava mai niente (la conferma di «Aggiungi» compariva 122 e 332 px più in
+su, lontano dal bottone premuto).
+
+⚠️ **Perché nel browser e non sul sorgente.** Cercandoli nel testo dei file se ne
+trovano **45**, e quasi tutti non sono difetti: stanno dentro i modelli delle
+modali, che il browser monta uno alla volta quando servono. Una regola sul
+sorgente avrebbe dato 45 falsi allarmi e sarebbe stata spenta in due giorni; la
+pagina viva, visitata sezione per sezione, ne dà 3 — e sono tutti e tre veri.
+
+```sh
+node apps/deepwork-id/tests/browser/id-unici.mjs 8823
+node apps/deepwork-id/tests/browser/id-unici.mjs 8823 --controprova
+```
+
+La controprova inietta due bottoni con lo stesso id nel corpo servito (il file su
+disco non si tocca): tutte e nove le superfici devono fallire.
+
 ## `contrasto-core.mjs`
 
 Misura il rapporto di contrasto del testo dei riquadri della home del core sul
