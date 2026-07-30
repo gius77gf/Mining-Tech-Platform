@@ -34,10 +34,16 @@ riscriverli a mano. È il manuale pratico del **Passo 6 del PIANO_GO_LIVE**.
     l'aspettavi, conviene guardare il foglio di calcolo prima del prossimo
     caricamento.
 
-  Non vale ovunque, e non è una svista: dove ripetersi è **normale** — la
-  telemetria di Flotta, che **aggiorna** le ore dei mezzi invece di aggiungerli,
-  e il piano di carico di Campo, che **sostituisce** il piano precedente — non
-  viene tolto niente.
+  Non vale ovunque, e non è una svista. Due eccezioni, per due ragioni diverse:
+  - la **telemetria** di Flotta **aggiorna** le ore dei mezzi invece di
+    aggiungerli: ripetere una riga riscrive lo stesso valore, non crea niente;
+  - il **piano di carico** di Campo *(dal 31/07)*: se lo stesso **numero di
+    foro** compare due volte, **non ne viene tolta nessuna** — e l'app te lo
+    dice, con l'elenco dei fori ripetuti, **prima** di salvare. Il motivo è che
+    lì il doppione non è un fastidio da ripulire ma un **errore nel progetto
+    della volata**: togliere una riga farebbe sparire una carica e abbassare il
+    totale dell'esplosivo senza che nessuno sappia perché. Se è un errore del
+    file, si corregge nel foglio di calcolo e si ricarica.
 - **Isolamento**: i dati caricati entrano SOLO nell'organizzazione del cliente.
   Nessun'altra azienda li vede mai.
 - **Backup**: accanto a ogni import c'è un **Esporta (CSV)** che scarica gli
