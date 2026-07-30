@@ -286,21 +286,23 @@ test("il controllo si accorge di un campo decimale rimesso a type=number", () =>
     ok(numeriDecimali(rotto).length === 1, `${nome}: il difetto iniettato viene trovato`);
   }
 });
-// ⚠️ IL CORE NON È ANCORA A POSTO, e va detto qui invece di lasciarlo fuori
-// dall'elenco in silenzio: `index.html` ha **32** campi decimali ancora
-// `type="number"`, fra cui le COORDINATE GPS della cava (`cf-lat`/`cf-lon`,
-// step 0,0001) e i parametri di volata (`a-b` spalla, `a-s` interasse, `a-mh`
-// carica massima per ritardo, `a-pm` consumo specifico). La lettura è già
-// tollerante — 12 dei 15 campi con id passano da `parseNum`, che accetta la
-// virgola — quindi manca solo il tipo del campo; tre (`a-mh`, `ef-x`/`ef-y`,
-// `umc-k`) vanno guardati a mano perché non si leggono con `$(id).value`.
-// È il prossimo passo, ed è sul prodotto che va in produzione a ogni merge.
-test("il core è dichiarato come non ancora convertito (32 campi)", () => {
-  const src = leggi("index.html");
-  ok(src, "index.html non trovato");
-  const v = numeriDecimali(src);
-  ok(v.length === 32,
-    `il core ha ${v.length} campi decimali type=number, non 32: se il numero è SCESO aggiorna questo test e l'elenco in CLAUDE.md; se è salito, qualcuno ne ha aggiunti`);
+// IL CORE è convertito anche lui: aveva 32 campi decimali `type="number"`, fra
+// cui le COORDINATE GPS della cava (`cf-lat`/`cf-lon`, step 0,0001, dove
+// «37,0625» diventava 370625) e i parametri di volata (`a-b` spalla, `a-s`
+// interasse, `a-mh` carica massima per ritardo, `a-pm` consumo specifico).
+// Adesso la regola vale su TUTTA la piattaforma, core compreso: non c'è più
+// nessuna superficie esentata.
+test("core: nessun campo decimale è rimasto type=number", () => {
+  const v = numeriDecimali(leggi("index.html") || "");
+  ok(v.length === 0,
+    `index.html — ${v.map((x) => `#${x.id} (step ${x.step})`).join(", ")}: con type=number «2,4» diventa 24`);
+});
+test("e i campi INTERI del core non sono stati toccati", () => {
+  // la conversione doveva riguardare SOLO i decimali: se avesse preso anche gli
+  // interi (anno, km, numero di fori) avrebbe togliato lo spinner dove serve
+  const src = leggi("index.html") || "";
+  const n = (src.match(/<input\b[^>]*type="number"[^>]*>/g) || []).length;
+  ok(n === 53, `i campi interi del core sono ${n}, non 53: la conversione ha preso qualcosa che non doveva`);
 });
 
 console.log(`\nRisultato Stile: ${passed} passati, ${failed} falliti`);
