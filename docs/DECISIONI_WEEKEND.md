@@ -221,6 +221,6 @@ sopra restano in attesa finché non le sblocchi in conversazione.
 ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi. Le prove automatiche sono passate
-a **633** *(ricontate il 31/07)*, più **106** che girano con l'emulatore
+a **662** *(ricontate il 31/07)*, più **106** che girano con l'emulatore
 Firestore (58 sulle regole di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul
 primo avvio) e **13** banchi che aprono davvero le pagine in un browser.

@@ -55,7 +55,7 @@ ognuno. È la pagina da aprire per prima davanti a qualcuno.
   e per i soldi, valida in tutte le app — con i controlli automatici che
   impediscono a un'app di riscriversene una propria.
 
-**Quanto è controllato, oggi** *(contato il 31/07, non a memoria)*: **633**
+**Quanto è controllato, oggi** *(contato il 31/07, non a memoria)*: **662**
 prove automatiche che girano senza rete, **106** che girano con l'emulatore
 Firestore — 58 sulle **regole di sicurezza** (`run.mjs`), 19 sull'SDK, 21 sulle
 funzioni e 8 sul primo avvio — e **13** banchi che aprono davvero le pagine in
