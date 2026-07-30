@@ -5,16 +5,23 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-07-30 17:28 UTC
-**Cosa sta per fare:** giornata di difetti che non fanno rumore — un colore che
-diceva il contrario dello stato, unità che in maiuscolo cambiano significato,
-un'app (Conti) che nessun banco del browser aveva mai aperto, i soldi scritti in
-tre modi diversi con tre spazi diversi, e il bottone «Prova il tour» che portava
-a un modulo d'accesso. Chiuse anche due decisioni rimaste a metà e depositata la
-revisione di sicurezza (Q3), misurata con l'emulatore invece che dedotta. Adesso
-si prosegue con la **terza iterazione della vetrina**, partendo dalla ricerca su
-come le migliori vetrine di prodotto fanno capire un prodotto in dieci secondi.
-**Commit di partenza:** `7512411`
+**Ultimo ciclo riuscito:** 2026-07-31 00:40 UTC
+**Cosa ha fatto:** una giornata sola su una cosa sola — **far entrare i dati del
+cliente e poterli riportare fuori**, perché è il primo giorno del pilota. Il
+doppione dentro lo stesso file (dieci gestori su dieci lo lasciavano passare, e
+l'export di Scudo scrive una riga per scadenza: ri-caricarlo faceva comparire
+tre volte lo stesso lavoratore); il giro di andata e ritorno provato per la
+prima volta, che ha detto che **solo sette** file si ri-caricano davvero e tutti
+gli altri sono prospetti, non backup; un bottone di Conti che **non faceva
+niente** (due elementi con lo stesso identificativo) e il file dei prezzi
+convertiti che, ri-caricato per sbaglio, riempiva il listino di prodotti a
+prezzo zero con l'IVA sbagliata. Poi il giro completo degli **zeri di comodo**
+nei lettori CSV: sei esaminati uno per uno su cosa fa quel numero, quattro tolti
+(prezzo, ore motore, base d'asta, persone di una squadra), due lasciati con la
+ragione scritta.
+**Prove:** 662 senza rete (erano 555), 13 banchi nel browser (erano 11), due
+regole di stile nuove (12 e 13) e un banco nuovo sugli identificativi ripetuti.
+**Commit di partenza:** `f8a4090`
 
 ---
 
