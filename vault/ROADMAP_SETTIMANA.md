@@ -450,6 +450,20 @@ bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
       con separatori si ripulisce solo a campo vuoto e altrimenti si rifiuta.
       Regola 5 in CI: se una superficie ha campi interi, monta la guardia.
 
+- [x] **S13. Terza iterazione sulla sezione dei turni di Terra** ✅ *(30/07,
+      `95e0abb`)* — renderizzati i sei stati che non avevo mai visto (Campo
+      assente, nessun turno, nessun rilievo, un rilievo solo, sopra la misura,
+      sopra di poco). Quattro difetti, **tre visibili solo a schermo**, e il
+      peggiore stava nel mio progetto: la banda di coerenza valeva in un senso
+      solo, quindi un eccesso dell'1% diventava un allarme rosso — la ragione
+      contro cui avevo scelto soglie larghe, violata tre righe sotto il commento
+      che la spiegava. Senza rilievi il dichiarato si **perdeva** (due note
+      grigie mentre in archivio c'erano quindici rapportini). La terza tessera a
+      390 px restava a metà larghezza, e la convenzione dell'app stava dieci
+      righe sopra. E la tendina del periodo, per coerenza col riferimento, ma coi
+      **confini dei voli** invece di date libere: meglio togliere la possibilità
+      di fare la domanda sbagliata che spiegare dopo perché la risposta non vale.
+
 **La convenzione sui numeri è chiusa.** Sei app, core, campi scritti a mano,
 campi interi, file delle macchine.
 
