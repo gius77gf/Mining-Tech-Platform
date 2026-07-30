@@ -169,6 +169,14 @@ const NUM_FORME = [
   /^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$/,         // 1,250,000.75 all'inglese
 ];
 const NUM_AMBIGUO = /^[+-]?\d{1,3}[.,]\d{3}$/;
+// La NOTAZIONE SCIENTIFICA, e perché è dietro un interruttore spento.
+// «1.5e3» non è un numero che una persona scrive in un modulo: accettarlo lì
+// vorrebbe dire prendere per buono un «2e5» battuto per sbaglio e salvare
+// duecentomila. Ma le MACCHINE la scrivono: l'esportazione di una perforatrice
+// mette l'energia specifica così, e un sismografo può dare la velocità come
+// «1.5E-2». Quindi chi legge un file di macchina passa `scientifica: true`, e
+// chi legge un campo scritto a mano non fa niente — resta rifiutata.
+const NUM_SCIENT = /^[+-]?\d+(?:[.,]\d+)?[eE][+-]?\d+$/;
 
 export function numeroScritto(testo, opts = {}) {
   const grezzo = String(testo == null ? "" : testo).trim();
@@ -176,10 +184,19 @@ export function numeroScritto(testo, opts = {}) {
   const esito = (motivo, valore, extra) =>
     Object.assign({ vuoto: motivo === "vuoto", ok: !motivo, valore, grezzo, motivo }, extra || {});
   if (s === "") return esito("vuoto", null);
-  if (!NUM_FORME.some((r) => r.test(s))) return esito("non-numero", null);
+  const scientifico = opts.scientifica === true && NUM_SCIENT.test(s);
+  if (!scientifico && !NUM_FORME.some((r) => r.test(s))) return esito("non-numero", null);
 
   const dec = opts.decimali == null ? 2 : Math.max(0, +opts.decimali || 0);
-  const arrotonda = (n) => { const p = Math.pow(10, dec); return Math.round(n * p) / p; };
+  // L'arrotondamento non deve poter PEGGIORARE il numero. `Math.round(n * p)`
+  // con molti decimali esce dall'intervallo degli interi esatti e restituisce
+  // spazzatura: una coordinata UTM come 4512345,67 chiesta a 10 decimali darebbe
+  // 4,51234567e16, oltre 2^53. Quando succede si tiene il numero così com'è —
+  // meglio un decimale in più del previsto che una cifra inventata.
+  const arrotonda = (n) => {
+    const p = Math.pow(10, dec), x = Math.round(n * p);
+    return Number.isSafeInteger(x) ? x / p : n;
+  };
   const min = opts.min == null ? null : +opts.min;
   const max = opts.max == null ? null : +opts.max;
   const staNeiLimiti = (n) => Number.isFinite(n)
@@ -187,7 +204,7 @@ export function numeroScritto(testo, opts = {}) {
     && !(opts.positivo && !(n > 0))
     && !(min != null && n < min) && !(max != null && n > max);
 
-  if (opts.migliaia !== false && NUM_AMBIGUO.test(s)) {
+  if (!scientifico && opts.migliaia !== false && NUM_AMBIGUO.test(s)) {
     const comeMigliaia = +s.replace(/[.,]/g, "");
     const comeDecimale = numIt(s);
     const possibili = [comeMigliaia, comeDecimale].filter(staNeiLimiti);

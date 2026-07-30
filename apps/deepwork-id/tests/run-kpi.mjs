@@ -2235,5 +2235,46 @@ test("P2 · IL CONTRATTO con Campo: le due letture dicono la stessa cosa", () =>
     "e le unità ammesse sono quelle su cui il ponte è costruito");
 });
 
+/* ══════════════════════════════════════════════════════════════════════
+   LA CONVENZIONE CONDIVISA: due aggiunte per i file delle MACCHINE
+   ══════════════════════════════════════════════════════════════════════ */
+test("la notazione scientifica è ammessa solo a chi la chiede", () => {
+  /* «1.5e3» non è un numero che una persona scrive in un modulo: accettarlo lì
+     vorrebbe dire prendere per buono un «2e5» battuto per sbaglio e salvare
+     duecentomila. Ma le macchine la scrivono — l'esportazione di una
+     perforatrice mette l'energia specifica così, un sismografo può dare la
+     velocità come «1.5E-2». Quindi è dietro un interruttore spento. */
+  ok(shell.numeroScritto("1.5e3", { decimali: 6 }).ok === false,
+    "in un campo scritto a mano resta rifiutata");
+  eq(shell.numeroScritto("1.5e3", { decimali: 6 }).motivo, "non-numero", "e il motivo è chiaro");
+  ok(shell.numeroScritto("1.5e3", { scientifica: true, decimali: 6 }).valore === 1500,
+    "col permesso esplicito si legge");
+  for (const [t, atteso] of [["1.5E-2", 0.015], ["2e5", 200000], ["1,5e3", 1500], ["-2.5e2", -250]]) {
+    const r = shell.numeroScritto(t, { scientifica: true, decimali: 6 });
+    ok(r.ok && r.valore === atteso, `${t} → ${atteso} (ottenuto ${r.valore})`);
+  }
+  /* il permesso NON apre la porta a tutto il resto */
+  for (const t of ["2,4,5", "3x4", "e3", "1.5e", "1.5e3.2", "abc"]) {
+    ok(shell.numeroScritto(t, { scientifica: true, decimali: 6 }).ok === false,
+      `«${t}» resta rifiutato anche col permesso`);
+  }
+  /* e un esponente NON è ambiguo come «1.250»: non si chiede niente */
+  ok(shell.numeroScritto("1.250e3", { scientifica: true, decimali: 6 }).valore === 1250,
+    "«1.250e3» è 1250, non una domanda sulle migliaia");
+});
+test("l'arrotondamento non può peggiorare il numero", () => {
+  /* `Math.round(n * 10^dec)` con molti decimali esce dagli interi esatti e
+     restituisce spazzatura: una coordinata UTM chiesta a 10 decimali darebbe
+     4,51234567e16, oltre 2^53. Quando succede si tiene il numero com'è. */
+  const r = shell.numeroScritto("4512345,67", { decimali: 10 });
+  ok(r.ok && r.valore === 4512345.67, `la coordinata resta se stessa (ottenuto ${r.valore})`);
+  ok(shell.numeroScritto("2,4449", { decimali: 2 }).valore === 2.44,
+    "e nel caso normale si arrotonda come prima");
+  ok(shell.numeroScritto("13,25", { decimali: 1 }).valore === 13.3, "13,25 a un decimale è 13,3");
+  /* la controprova: senza la guardia il conto andrebbe fuori */
+  ok(!Number.isSafeInteger(Math.round(4512345.67 * 1e10)),
+    "senza guardia Math.round(n·1e10) sarebbe fuori dagli interi esatti");
+});
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);

@@ -386,10 +386,25 @@ async function verifyPassword(stored, attempted){
 
 // ── PARSING NUMERICO ITALIANO (B8) ──
 // Accetta sia "3,5" che "3.5", restituisce Number o NaN
+// `parseNum` legge tutto ciò che NON arriva da un campo: documenti Firestore,
+// celle dei CSV delle MACCHINE (l'esportazione di una perforatrice), stringhe
+// interne. Sono 145 letture in questo file.
+//
+// Cosa cambia e cosa NON cambia. NON cambia la lettura delle migliaia: per un
+// file di macchina «1.250» è 1,25 ed è GIUSTO, quindi `migliaia:false` — chi
+// scrive a mano passa invece dal lettore dei campi, che l'ambiguità la chiede.
+// Cambia che non inventa più numeri da scritture che numeri non sono: con
+// `parseFloat` «2,4,5» diventava 2,4 e «3x4» diventava 3, perché teneva la
+// prima cifra e buttava il resto senza dire niente. Adesso la forma la valida
+// la convenzione condivisa, e ciò che non è un numero è NaN.
+// `scientifica:true` perché qui passano i file delle macchine, che l'energia
+// specifica la scrivono «1.5e3»: senza quel permesso l'import di una
+// perforatrice regredirebbe, e nessun test se ne accorgerebbe.
 function parseNum(v){
   if(v===null||v===undefined||v==='')return NaN;
   if(typeof v==='number')return v;
-  return parseFloat(String(v).replace(',','.').trim());
+  const r=numeroScritto(v,{decimali:6,migliaia:false,scientifica:true});
+  return r.ok?r.valore:NaN;
 }
 function parseNum0(v){ const n=parseNum(v); return isNaN(n)?0:n; }
 
@@ -5842,14 +5857,35 @@ function parseMWDCSV(text){
     const row={_rowIdx:idx+2,_raw:{}};
     headers.forEach((h,i)=>{row._raw[h]=cells[i]||'';});
     if(colMap.id!==undefined)row.id=cells[colMap.id]||'';
-    if(colMap.x!==undefined)row.x=parseNum0(cells[colMap.x]);
-    if(colMap.y!==undefined)row.y=parseNum0(cells[colMap.y]);
-    if(colMap.prof!==undefined)row.prof=parseNum0(cells[colMap.prof]);
-    if(colMap.tempo!==undefined)row.tempo=parseNum0(cells[colMap.tempo]);
-    if(colMap.energia!==undefined)row.energia=parseNum0(cells[colMap.energia]);
+    // le colonne numeriche: si legge col lettore vero, e ciò che non si capisce
+    // resta null e viene ELENCATO. Zero non è «non lo so»: è una misura.
+    row._illeggibili=[]; row._conUnita=[];
+    for(const[campo,etichetta]of[['x','X'],['y','Y'],['prof','profondità'],['tempo','tempo'],['energia','energia']]){
+      if(colMap[campo]===undefined)continue;
+      const grezzo=cells[colMap[campo]];
+      let n=parseNum(grezzo);
+      // L'UNITÀ DENTRO LA CELLA. Le esportazioni delle perforatrici a volte
+      // scrivono «13.2 m» o «45 s» invece del numero nudo, e quel valore è
+      // buono: si toglie la coda e si rilegge. Non è la vecchia permissività
+      // di `parseFloat`, che di «13.2-14.5» (un intervallo) prendeva 13,2 e di
+      // «1.250 m» faceva 1,25: qui si accetta solo una coda che SEMBRA
+      // un'unità di misura, cioè lettere, / o ³ — mai cifre, mai un secondo
+      // numero. Quello che resta fuori viene detto, non indovinato.
+      if(!Number.isFinite(n)){
+        const m=/^(.+?)\s*([A-Za-z°%][A-Za-z/³²°%]{0,5})$/.exec(String(grezzo==null?'':grezzo).trim());
+        if(m){ const n2=parseNum(m[1]); if(Number.isFinite(n2)){ n=n2; row._conUnita.push(etichetta+' «'+m[2]+'»'); } }
+      }
+      if(Number.isFinite(n)){row[campo]=n;continue;}
+      row[campo]=null;
+      // una cella VUOTA non è un errore da segnalare: la colonna può esserci e
+      // il valore mancare per quel foro. Una cella PIENA che non si legge sì.
+      if(String(grezzo==null?'':grezzo).trim()!=='')row._illeggibili.push(etichetta+' «'+grezzo+'»');
+    }
     return row;
   });
-  return {headers, colMap, rows, separator:sep};
+  const illeggibili=rows.filter(r=>r._illeggibili.length);
+  const conUnita=rows.filter(r=>r._conUnita.length);
+  return {headers, colMap, rows, separator:sep, illeggibili, conUnita};
 }
 
 function renderMWDPreview(parsed){
@@ -5861,6 +5897,14 @@ function renderMWDPreview(parsed){
       <div style="margin-bottom:6px;color:var(--success);"><b>✓ ${parsed.rows.length}</b> fori rilevati · separatore <b>"${sepLabel}"</b></div>
       <div style="color:var(--muted);margin-bottom:6px;">Colonne riconosciute:</div>
       <div style="margin-bottom:8px;">${colsFound.length>0?colsFound.map(c=>`<span class="scad-badge ok" style="margin-right:3px;">${c}</span>`).join(''):'<span style="color:var(--danger);">Nessuna riconosciuta!</span>'}</div>
+      ${parsed.conUnita && parsed.conUnita.length ? `<div style="margin-bottom:8px;padding:7px 9px;background:rgba(255,171,0,.06);border-left:3px solid var(--muted);color:var(--muted);line-height:1.5;">
+        In <b>${parsed.conUnita.length} ${parsed.conUnita.length===1?'riga':'righe'}</b> l'unità di misura era scritta dentro la cella (per esempio ${escHtml(parsed.conUnita[0]._conUnita[0])}): l'ho tolta e ho tenuto il numero.
+      </div>` : ''}
+      ${parsed.illeggibili && parsed.illeggibili.length ? `<div style="margin-bottom:8px;padding:7px 9px;background:rgba(255,171,0,.09);border-left:3px solid var(--warn);color:var(--text);line-height:1.5;">
+        <b>${parsed.illeggibili.length} ${parsed.illeggibili.length===1?'riga ha':'righe hanno'} un valore che non riesco a leggere</b>, e li lascio VUOTI invece di metterci zero: uno zero finto entrerebbe nel totale dei metri perforati senza farsi notare.
+        <div style="color:var(--muted);margin-top:4px;">${parsed.illeggibili.slice(0,4).map(r=>'riga '+r._rowIdx+': '+escHtml(r._illeggibili.join(', '))).join('<br>')}${parsed.illeggibili.length>4?'<br>… e altre '+(parsed.illeggibili.length-4):''}</div>
+        <div style="color:var(--muted);margin-top:4px;">Di solito è un «n/a», un intervallo («13.2-14.5»: quale dei due?) o un testo. L'unità scritta dentro la cella («13,2 m») invece la gestisco da sola. Va bene sia la virgola sia il punto.</div>
+      </div>` : ''}
       <div style="max-height:140px;overflow:auto;background:var(--dark);padding:6px;font-family:monospace;font-size:10px;border:1px solid var(--border);">
         <div style="color:var(--amber);font-weight:700;border-bottom:1px solid var(--border);padding-bottom:3px;margin-bottom:3px;">${escHtml(parsed.headers.join(' | '))}</div>
         ${sample.map(r=>`<div style="color:var(--muted2);">${escHtml(parsed.headers.map(h=>r._raw[h]||'').join(' | '))}</div>`).join('')}
@@ -5889,31 +5933,34 @@ async function eseguiImportMWD(volataId){
         foroIdx=v.fori.findIndex(f=>String(f.num)===String(row.id) || f.id===row.id);
       }
       // Fallback: match per coordinate (entro 0.5m)
-      if(foroIdx<0 && row.x!==undefined && row.x!==null && !isNaN(row.x)){
-        const yTarget=(row.y!==undefined && !isNaN(row.y))?row.y:0;
+      if(foroIdx<0 && Number.isFinite(row.x)){
+        const yTarget=Number.isFinite(row.y)?row.y:0;
         foroIdx=v.fori.findIndex(f=>Math.abs(f.x-row.x)<0.5 && Math.abs(f.y-yTarget)<0.5);
       }
     }
     if(foroIdx>=0 && mode==='merge'){
       // Aggiorna esistente
       const f=v.fori[foroIdx];
-      if(row.x!==undefined && !isNaN(row.x))f.x=row.x;
-      if(row.y!==undefined && !isNaN(row.y))f.y=row.y;
-      if(row.prof!==undefined && !isNaN(row.prof))f.prof=row.prof;
+      if(Number.isFinite(row.x))f.x=row.x;
+      if(Number.isFinite(row.y))f.y=row.y;
+      if(Number.isFinite(row.prof))f.prof=row.prof;
       f._mwdRaw=row._raw;
-      if(row.tempo!==undefined && !isNaN(row.tempo))f._mwdTempo=row.tempo;
-      if(row.energia!==undefined && !isNaN(row.energia))f._mwdEnergia=row.energia;
+      if(Number.isFinite(row.tempo))f._mwdTempo=row.tempo;
+      if(Number.isFinite(row.energia))f._mwdEnergia=row.energia;
       f._mwdImported=true;
       updated++;
-    } else if(row.x!==undefined && !isNaN(row.x)){
+    } else if(Number.isFinite(row.x)){
       // Aggiungi nuovo
       const num=v.fori.length+1;
       v.fori.push({
         id:'foro_'+genId(),
         num,
         x:row.x,
-        y:(row.y!==undefined && !isNaN(row.y))?row.y:0,
-        prof:(row.prof!==undefined && !isNaN(row.prof))?row.prof:v.default.profondita_m,
+        y:Number.isFinite(row.y)?row.y:0,
+        // profondità illeggibile → si usa quella di progetto, NON zero: un foro
+        // profondo zero non esiste, e nel totale dei metri perforati non si
+        // vedrebbe. Il file l'anteprima l'ha già segnalato prima di importare.
+        prof:Number.isFinite(row.prof)?row.prof:v.default.profondita_m,
         diam:v.default.diametro_mm,
         kg:v.default.kg_per_foro,
         esplosivo:v.default.esplosivo,
@@ -5922,8 +5969,8 @@ async function eseguiImportMWD(volataId){
         sequenza:num,
         note:'',
         _mwdRaw:row._raw,
-        _mwdTempo:row.tempo,
-        _mwdEnergia:row.energia,
+        _mwdTempo:Number.isFinite(row.tempo)?row.tempo:null,
+        _mwdEnergia:Number.isFinite(row.energia)?row.energia:null,
         _mwdImported:true
       });
       added++;
