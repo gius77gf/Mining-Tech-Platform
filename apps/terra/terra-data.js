@@ -100,12 +100,90 @@ export function etichettaProvenienza(chiave) {
   return p ? p.etichetta : "Scavo dal fronte";
 }
 
-// formattazione compatta dei volumi (38k, 1.2M) per i KPI
+// ══════════════════════════════════════════════════════════════════════
+// NUMERI SCRITTI A MANO — la virgola decimale, che in Italia è la norma
+// ------------------------------------------------------------------
+// Chi compila Terra è un direttore di cava italiano: scrive «1,6» e
+// «148,50», non «1.6». Fino a ieri i campi decimali erano
+// <input type="number">, e quel tipo di campo NON è neutro rispetto alla
+// virgola: la specifica HTML gli impone come valore un «valid
+// floating-point number», cioè col PUNTO, e il browser sanitizza il resto.
+// Misurato in Chromium (identico in locale en-US e it-IT, quindi `lang="it"`
+// non c'entra niente):
+//   digitato «2,4»   → .value diventa «24»    e checkValidity() dice TRUE
+//   digitato «4.200» → letto come 4,2 metri cubi invece di 4.200
+// Il primo caso su `#val-densita` moltiplica per dieci le tonnellate e il
+// valore del materiale; il secondo su `#new-ril-vol` cancella millesettecento
+// metri cubi di scavo dal contatore che dice quanto concessione resta. Sono i
+// due numeri da cui Terra risponde alla domanda «quanto posso ancora cavare».
+// Da qui in poi i campi decimali sono <input type="text" inputmode="decimal">
+// (sul telefono la tastiera resta numerica) e il numero lo legge questa
+// funzione. Il prezzo da pagare è che min/max/step del browser non valgono
+// più: la validazione è nostra, ed è qui.
+//
+// IL PUNTO AMBIGUO. «4.200» in Italia è quattromiladuecento; per la specifica
+// HTML (e per `numIt`, che di un solo punto non può sapere niente) è
+// quattro-virgola-due. Le due letture distano MILLE volte: su un volume è la
+// differenza fra un mese di scavo e una carriola. Quando entrambe stanno nei
+// limiti del campo la funzione NON scegli: ritorna `motivo: "ambiguo"` con le
+// due letture, e chi chiama chiede all'utente. Quando invece una sola delle
+// due sta nei limiti, l'altra è impossibile per quel campo e non c'è niente da
+// indovinare (una densità di 1600 t/m³ non esiste, «1.600» è 1,6). Un
+// separatore delle migliaia scritto per intero («1.234.567») non è ambiguo.
+//
+// Ritorna { vuoto, ok, valore, grezzo, letture, motivo }; il messaggio lo
+// scrive chi chiama, perché il messaggio giusto dipende dal campo.
+// Pura e testabile: nessun DOM.
+// ══════════════════════════════════════════════════════════════════════
+export const AVVISO_DECIMALE =
+  "Va bene sia la virgola sia il punto: «2,4» e «2.4» sono lo stesso numero.";
+
+// un solo punto, esattamente tre cifre dopo, nessuna virgola: le due letture
+// (migliaia / decimale) sono entrambe legittime e distano mille volte
+const PUNTO_AMBIGUO = /^[-+]?\d{1,3}\.\d{3}$/;
+
+function fuoriLimite(n, opts) {
+  if (opts.positivo && !(n > 0)) return "non-positivo";
+  if (opts.min != null && n < +opts.min) return "sotto-minimo";
+  if (opts.max != null && n > +opts.max) return "sopra-massimo";
+  return "";
+}
+
+export function numeroDaCampo(testo, opts = {}) {
+  const grezzo = String(testo == null ? "" : testo).trim();
+  // spazi di ogni specie (anche quelli che Intl usa come separatore delle
+  // migliaia) e le unità che si incollano insieme al numero
+  const pulito = grezzo.replace(/[\s\u00a0\u202f\u2009]/g, "").replace(/\u20ac/g, "");
+  if (pulito === "") return { vuoto: true, ok: false, valore: null, grezzo, letture: [], motivo: "vuoto" };
+  if (!/^[-+]?[\d.,]+$/.test(pulito))
+    return { vuoto: false, ok: false, valore: null, grezzo, letture: [], motivo: "non-numero" };
+  const dec = opts.decimali == null ? 2 : Math.max(0, Math.min(6, opts.decimali | 0));
+  const p = Math.pow(10, dec);
+  const arr = (n) => Math.round(n * p) / p;
+  const letture = (PUNTO_AMBIGUO.test(pulito)
+    ? [+pulito.replace(".", ""), numIt(pulito)]
+    : [numIt(pulito)]).filter(Number.isFinite).map(arr);
+  if (!letture.length)
+    return { vuoto: false, ok: false, valore: null, grezzo, letture: [], motivo: "non-numero" };
+  const cand = letture.map(n => ({ n, fuori: fuoriLimite(n, opts) }));
+  const dentro = cand.filter(c => !c.fuori);
+  if (letture.length === 2 && dentro.length === 2)
+    return { vuoto: false, ok: false, valore: null, grezzo, letture, motivo: "ambiguo" };
+  const scelto = dentro.length ? dentro[0] : cand[0];
+  return scelto.fuori
+    ? { vuoto: false, ok: false, valore: scelto.n, grezzo, letture, motivo: scelto.fuori }
+    : { vuoto: false, ok: true, valore: scelto.n, grezzo, letture, motivo: "" };
+}
+
+// formattazione compatta dei volumi (38k, 1.2M) per i KPI. Sotto i mille il
+// numero si scrive per intero, e all'ITALIANA: `String(500.5)` dava «500.5»,
+// col punto inglese, su una tessera del quadro — e da quando i volumi possono
+// avere decimali quel caso capita davvero.
 export function fmtM3(v) {
   if (v == null) return "—";
   if (v >= 1e6) return (Math.round(v / 1e5) / 10) + "M";
   if (v >= 1e3) return Math.round(v / 1e3) + "k";
-  return String(v);
+  return (+v).toLocaleString("it-IT", { maximumFractionDigits: 2 });
 }
 
 // Volume estratto da un fronte = somma dei m³ dei rilievi ELABORATI di
@@ -166,7 +244,10 @@ export function presetDensita(chiave) {
 export function qualitaRilievo(r) {
   const parti = [];
   if (r && r.metodo) parti.push(r.metodo);
-  if (r && r.gsd != null && String(r.gsd).trim() !== "") parti.push("GSD " + r.gsd + " cm");
+  // il GSD si scrive all'italiana: «GSD 2,5 cm». Incollato grezzo dava «2.5»
+  // col punto inglese accanto a volumi scritti con la virgola, e i rilievi
+  // importati da CSV arrivano col punto per forza (nei dati il punto è la regola).
+  if (r && r.gsd != null && String(r.gsd).trim() !== "") parti.push("GSD " + String(r.gsd).trim().replace(".", ",") + " cm");
   return parti.join(" · ");
 }
 

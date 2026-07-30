@@ -173,6 +173,81 @@ export function giorni(dataISO, oggi = new Date()) {
   return giorniTra(dataISO, oggi);
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// NUMERI SCRITTI A MANO — la virgola decimale, che in Italia è la norma
+// ------------------------------------------------------------------
+// Chi compila Conti scrive «1.250,75», non «1250.75». Fino a ieri i campi
+// decimali erano <input type="number">, e quel tipo di campo NON è neutro
+// rispetto alla virgola: la specifica HTML gli impone come valore un «valid
+// floating-point number», cioè col PUNTO, e il browser sanitizza quello che
+// non rientra nella forma. Misurato in Chromium (identico in locale en-US e
+// it-IT, quindi `lang="it"` non c'entra):
+//   digitato «2,4»      → .value diventa «24»       e checkValidity() dice TRUE
+//   digitato «1.250,75» → .value diventa «1.25075»
+// Il primo caso salva un numero DIECI volte più grande e lo dichiara valido;
+// il secondo, su `#ft-imp`, trasforma una fattura da milleduecentocinquanta
+// euro in una da un euro e venticinque. Nessun `replace(",", ".")` può
+// rimediare: la virgola è già stata buttata via prima che JS veda il valore.
+// Da qui in poi i campi decimali sono <input type="text" inputmode="decimal">
+// (sul telefono la tastiera resta numerica) e il numero lo legge questa
+// funzione. Il prezzo da pagare è che min/max/step del browser non valgono
+// più: la validazione è nostra, ed è qui.
+//
+// IL PUNTO AMBIGUO — perché su un'app di contabilità non si tira a indovinare.
+// «1.250» in Italia è milleduecentocinquanta; per la specifica HTML (e per
+// `numIt`, che di un solo punto non può sapere niente) è uno-virgola-due-cinque.
+// Le due letture differiscono di MILLE volte: su un importo è la differenza
+// fra una fattura e uno scontrino. Quando entrambe le letture stanno nei
+// limiti del campo la funzione NON scegli: ritorna `motivo: "ambiguo"` con le
+// due letture, e chi chiama chiede all'utente. Quando invece una sola delle
+// due sta nei limiti, l'altra è impossibile per quel campo e non c'è niente
+// da indovinare. Un separatore delle migliaia scritto per intero («1.250,75»)
+// non è ambiguo e non chiede niente a nessuno.
+//
+// Ritorna { vuoto, ok, valore, grezzo, letture, motivo }; il messaggio lo
+// scrive chi chiama, perché il messaggio giusto dipende dal campo.
+// Pura e testabile: nessun DOM.
+// ══════════════════════════════════════════════════════════════════════
+export const AVVISO_DECIMALE =
+  "Va bene sia la virgola sia il punto: «2,4» e «2.4» sono lo stesso numero.";
+
+// un solo punto, esattamente tre cifre dopo, nessuna virgola: le due letture
+// (migliaia / decimale) sono entrambe legittime e distano mille volte
+const PUNTO_AMBIGUO = /^[-+]?\d{1,3}\.\d{3}$/;
+
+function fuoriLimite(n, opts) {
+  if (opts.positivo && !(n > 0)) return "non-positivo";
+  if (opts.min != null && n < +opts.min) return "sotto-minimo";
+  if (opts.max != null && n > +opts.max) return "sopra-massimo";
+  return "";
+}
+
+export function numeroDaCampo(testo, opts = {}) {
+  const grezzo = String(testo == null ? "" : testo).trim();
+  // spazi di ogni specie (anche quelli che Intl usa come separatore) e il
+  // simbolo dell'euro, che chi incolla da un altro documento porta con sé
+  const pulito = grezzo.replace(/[\s\u00a0\u202f\u2009]/g, "").replace(/\u20ac/g, "");
+  if (pulito === "") return { vuoto: true, ok: false, valore: null, grezzo, letture: [], motivo: "vuoto" };
+  if (!/^[-+]?[\d.,]+$/.test(pulito))
+    return { vuoto: false, ok: false, valore: null, grezzo, letture: [], motivo: "non-numero" };
+  const dec = opts.decimali == null ? 2 : Math.max(0, Math.min(6, opts.decimali | 0));
+  const p = Math.pow(10, dec);
+  const arr = (n) => Math.round(n * p) / p;
+  const letture = (PUNTO_AMBIGUO.test(pulito)
+    ? [+pulito.replace(".", ""), numIt(pulito)]
+    : [numIt(pulito)]).filter(Number.isFinite).map(arr);
+  if (!letture.length)
+    return { vuoto: false, ok: false, valore: null, grezzo, letture: [], motivo: "non-numero" };
+  const cand = letture.map(n => ({ n, fuori: fuoriLimite(n, opts) }));
+  const dentro = cand.filter(c => !c.fuori);
+  if (letture.length === 2 && dentro.length === 2)
+    return { vuoto: false, ok: false, valore: null, grezzo, letture, motivo: "ambiguo" };
+  const scelto = dentro.length ? dentro[0] : cand[0];
+  return scelto.fuori
+    ? { vuoto: false, ok: false, valore: scelto.n, grezzo, letture, motivo: scelto.fuori }
+    : { vuoto: false, ok: true, valore: scelto.n, grezzo, letture, motivo: "" };
+}
+
 export function kpiFrom(fatture, gare, oggi = new Date()) {
   const aperte = fatture.filter(f => !f.incassata);
   // apertoDi: con un acconto registrato conta il RESIDUO, non il totale della

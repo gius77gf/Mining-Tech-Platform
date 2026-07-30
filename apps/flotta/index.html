@@ -612,7 +612,7 @@
     <input class="dw-input" id="mez-nome" placeholder="Nome (es. Dumper D4)" style="flex:2 1 170px;">
     <select class="dw-input" id="mez-tipo" title="Tipo di mezzo: decide la checklist del giro macchina" style="flex:1 1 150px;"></select>
     <input class="dw-input" id="mez-area" placeholder="Area (es. piazzale 2)" style="flex:1 1 140px;">
-    <input class="dw-input" id="mez-ore" type="number" min="0" placeholder="Ore attuali" style="flex:1 1 120px;">
+    <input class="dw-input" id="mez-ore" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Ore attuali" title="Ore del contatore, decimi compresi: la virgola va benissimo (1234,5)." style="flex:1 1 120px;font-variant-numeric:tabular-nums;">
     <button class="dw-btn" id="btn-mez">Aggiungi</button>
     <div class="form-hint">Il <b>tipo</b> serve al <b>giro macchina</b>: decide quali controlli compaiono all'operatore (un dumper non ha i cingoli, una perforatrice sì l'abbattimento polveri). Per i mezzi registrati prima, il tipo viene indovinato dal nome finché non lo confermi qui.</div>
   </div>
@@ -620,7 +620,7 @@
   <div class="sec">Registro ore</div>
   <div class="form">
     <select class="dw-input" id="ore-mezzo" style="flex:2 1 170px;"></select>
-    <input class="dw-input" id="ore-nuove" type="number" placeholder="Ore attuali" style="flex:1 1 130px;">
+    <input class="dw-input" id="ore-nuove" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Ore attuali" title="Ore che legge adesso il contatore: la virgola va benissimo (1234,5)." style="flex:1 1 130px;font-variant-numeric:tabular-nums;">
     <button class="dw-btn" id="btn-ore">Registra</button>
     <div class="form-hint">Il contatore delle ore non può mai scendere: se sbagli a digitare, l'app te lo dice invece di salvare un valore falso.</div>
   </div>
@@ -666,7 +666,7 @@
     </div>
     <div class="frow">
       <input class="dw-input" id="man-data" type="date" title="Data prevista" style="flex:1 1 150px;">
-      <input class="dw-input" id="man-ore" type="number" placeholder="oppure a ore (es. 6000)" style="flex:1 1 160px;">
+      <input class="dw-input" id="man-ore" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="oppure a ore (es. 6000)" title="Ore motore a cui scatta il tagliando. Scrivilo senza il punto delle migliaia: 6000, non 6.000." style="flex:1 1 160px;font-variant-numeric:tabular-nums;">
     </div>
     <div class="frow">
       <select class="dw-input" id="man-piano" title="Piano ricorrente: alla chiusura l'app pianifica da sola il prossimo" style="flex:2 1 190px;"></select>
@@ -693,9 +693,9 @@
   <div id="ric-list"></div>
   <div class="form" style="margin-top:12px;">
     <input class="dw-input" id="ric-nome" placeholder="Ricambio (es. Filtro olio)" style="flex:2 1 170px;">
-    <input class="dw-input" id="ric-giac" type="number" min="0" step="1" placeholder="Giacenza" style="flex:1 1 110px;">
-    <input class="dw-input" id="ric-soglia" type="number" min="0" step="1" placeholder="Soglia min" style="flex:1 1 110px;">
-    <input class="dw-input" id="ric-prezzo" type="number" min="0" step="0.01" placeholder="€ al pezzo" title="Prezzo unitario (facoltativo)" style="flex:1 1 110px;">
+    <input class="dw-input" id="ric-giac" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Giacenza" title="Quanto ne hai adesso. Per l'olio e il grasso la virgola va benissimo (12,5)." style="flex:1 1 110px;font-variant-numeric:tabular-nums;">
+    <input class="dw-input" id="ric-soglia" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Soglia min" title="Sotto questa quantità l'app avvisa che è ora di riordinare. La virgola va benissimo." style="flex:1 1 110px;font-variant-numeric:tabular-nums;">
+    <input class="dw-input" id="ric-prezzo" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="€ al pezzo" title="Prezzo unitario (facoltativo). La virgola va benissimo (12,50)." style="flex:1 1 110px;font-variant-numeric:tabular-nums;">
     <button class="dw-btn" id="btn-ric">Aggiungi</button>
     <div class="form-hint">Il <b>prezzo al pezzo</b> è facoltativo, ma se lo scrivi il costo dei ricambi negli ordini di lavoro esce da solo, senza doverlo ricordare ogni volta.</div>
   </div>
@@ -788,7 +788,7 @@
   <div class="sec">Nuovo costo</div>
   <div class="form">
     <input class="dw-input" id="cos-voce" placeholder="Voce (es. Carburante settimana 30)" style="flex:2 1 190px;">
-    <input class="dw-input" id="cos-importo" type="number" min="0" placeholder="Importo €" style="flex:1 1 120px;">
+    <input class="dw-input" id="cos-importo" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Importo €" title="Importo in euro: la virgola va benissimo (1250,75). Senza il punto delle migliaia." style="flex:1 1 120px;font-variant-numeric:tabular-nums;">
     <input class="dw-input" id="cos-data" type="date" title="Giorno a cui si riferisce la spesa" style="flex:1 1 150px;">
     <input class="dw-input" id="cos-nota" placeholder="Nota (facoltativa)" style="flex:1 1 140px;">
     <button class="dw-btn" id="btn-cos">Registra</button>
@@ -811,9 +811,9 @@
       <input class="dw-input" id="rif-data" type="date" title="Giorno del rifornimento" style="flex:1 1 150px;">
     </div>
     <div class="frow">
-      <input class="dw-input" id="rif-litri" type="number" min="0" step="0.1" placeholder="Litri" style="flex:1 1 110px;">
-      <input class="dw-input" id="rif-euro" type="number" min="0" step="0.01" placeholder="Spesa €" style="flex:1 1 110px;">
-      <input class="dw-input" id="rif-ore" type="number" min="0" step="1" placeholder="Ore contatore" style="flex:1 1 140px;">
+      <input class="dw-input" id="rif-litri" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Litri" title="Litri messi nel serbatoio: la virgola va benissimo (45,8)." style="flex:1 1 110px;font-variant-numeric:tabular-nums;">
+      <input class="dw-input" id="rif-euro" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Spesa €" title="Spesa in euro (facoltativa): la virgola va benissimo (1250,75)." style="flex:1 1 110px;font-variant-numeric:tabular-nums;">
+      <input class="dw-input" id="rif-ore" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Ore contatore" title="Ore del contatore al momento del pieno: la virgola va benissimo (1234,5)." style="flex:1 1 140px;font-variant-numeric:tabular-nums;">
       <button class="dw-btn" id="btn-rif">Registra</button>
     </div>
     <div class="form-hint">Le <b>ore del contatore</b> al momento del pieno sono quelle che trasformano i litri in <b>litri/ora</b>: senza di loro restano litri e basta. Ne servono almeno due per mezzo, perché il primo pieno serve solo a fissare il punto di partenza.</div>
@@ -849,7 +849,7 @@
     <div class="form col">
       <div class="frow">
         <input class="dw-input" id="giro-operatore" placeholder="Chi ha fatto il giro (facoltativo)" style="flex:2 1 180px;">
-        <input class="dw-input" id="giro-ore" type="number" min="0" step="1" placeholder="Ore contatore (facoltativo)" style="flex:1 1 160px;">
+        <input class="dw-input" id="giro-ore" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Ore contatore (facoltativo)" title="Ore del contatore (facoltative): la virgola va benissimo (1234,5)." style="flex:1 1 160px;font-variant-numeric:tabular-nums;">
       </div>
       <input class="dw-input" id="giro-note" placeholder="Note del giro (facoltative)">
       <div class="form-hint">Se scrivi le <b>ore del contatore</b> e sono più alte di quelle registrate, l'app aggiorna il mezzo: un giro al giorno tiene aggiornate le ore senza fare altro.</div>
@@ -885,8 +885,8 @@
   <div id="odl-mano"></div>
   <div class="form">
     <input class="dw-input" id="odl-chi" placeholder="Chi (es. Marco, officina esterna)" style="flex:2 1 180px;">
-    <input class="dw-input" id="odl-ore" type="number" min="0" step="0.25" placeholder="Ore" style="flex:1 1 100px;">
-    <input class="dw-input" id="odl-tariffa" type="number" min="0" step="0.5" placeholder="€ all'ora" style="flex:1 1 110px;">
+    <input class="dw-input" id="odl-ore" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Ore" title="Ore di lavoro: la virgola va benissimo (2,5 = due ore e mezza)." style="flex:1 1 100px;font-variant-numeric:tabular-nums;">
+    <input class="dw-input" id="odl-tariffa" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="€ all'ora" title="Costo orario in euro (facoltativo): la virgola va benissimo (32,50)." style="flex:1 1 110px;font-variant-numeric:tabular-nums;">
     <button class="dw-btn" id="btn-odl-mano">Aggiungi</button>
     <div class="form-hint">Una riga per persona: le ore di ognuno sono diverse, e un meccanico interno non costa come un'officina chiamata da fuori. Il <b>costo orario</b> si può lasciare vuoto: le ore restano registrate e l'app scrive che non entrano nel costo, invece di farle passare per gratis.</div>
   </div>
@@ -896,15 +896,15 @@
   <div class="form">
     <select class="dw-input" id="odl-ric-sel" title="Ricambio preso dal magazzino" style="flex:2 1 200px;"></select>
     <input class="dw-input" id="odl-ric-nome" placeholder="o un pezzo fuori magazzino" title="Pezzo non registrato in magazzino: scrivi qui il nome" style="flex:2 1 190px;">
-    <input class="dw-input" id="odl-ric-qta" type="number" min="0" step="1" placeholder="Quantità" style="flex:1 1 110px;">
-    <input class="dw-input" id="odl-ric-prezzo" type="number" min="0" step="0.01" placeholder="€ al pezzo" style="flex:1 1 110px;">
+    <input class="dw-input" id="odl-ric-qta" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Quantità" title="Quantità usata: per l'olio e il grasso la virgola va benissimo (12,5)." style="flex:1 1 110px;font-variant-numeric:tabular-nums;">
+    <input class="dw-input" id="odl-ric-prezzo" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="€ al pezzo" title="Prezzo del pezzo (facoltativo): la virgola va benissimo (12,50)." style="flex:1 1 110px;font-variant-numeric:tabular-nums;">
     <button class="dw-btn" id="btn-odl-ric">Aggiungi</button>
     <div class="form-hint">I pezzi presi dal <b>magazzino</b> vengono scaricati alla chiusura dell'ordine, nella quantità che scrivi qui: la giacenza resta quella vera senza doverla correggere a mano. Se il prezzo del pezzo è già in magazzino, arriva da solo.</div>
   </div>
 
   <div class="sec">Altre spese e note</div>
   <div class="form">
-    <input class="dw-input" id="odl-altre" type="number" min="0" step="0.01" placeholder="Altre spese €" style="flex:1 1 150px;">
+    <input class="dw-input" id="odl-altre" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Altre spese €" title="Officina esterna, traino, noleggio: la virgola va benissimo (1250,75)." style="flex:1 1 150px;font-variant-numeric:tabular-nums;">
     <input class="dw-input" id="odl-note" placeholder="Cosa è stato fatto (nota di lavorazione)" style="flex:3 1 220px;">
     <div class="form-hint">Le <b>altre spese</b> sono quelle che non stanno né nelle ore né nei pezzi: officina esterna a forfait, traino, noleggio del mezzo sostitutivo. Si salvano da sole appena esci dal campo.</div>
   </div>
@@ -1040,7 +1040,11 @@
     });
   }
   // Richiesta di uno o più valori in stile core: restituisce Promise<object|null>.
-  // campi = [{id, label, tipo, valore, placeholder, aiuto}]
+  // campi = [{id, label, tipo, modo, valore, placeholder, aiuto}]
+  // `modo` = inputmode: un campo decimale è `tipo: "text", modo: "decimal"`,
+  // perché type="number" butterebbe via la virgola prima che il codice la
+  // veda (vedi numeroDaCampo in flotta-data.js) mentre inputmode tiene la
+  // tastiera numerica sul telefono.
   function chiediDati(titolo, corpo, campi, etichettaOk) {
     return new Promise(res => {
       const html = (corpo || "") + campi.map(c =>
@@ -1048,6 +1052,7 @@
          <input class="dw-input" id="mc-${c.id}" type="${c.tipo || "text"}"
            value="${(c.valore == null ? "" : String(c.valore)).replace(/"/g, "&quot;")}"
            placeholder="${(c.placeholder || "").replace(/"/g, "&quot;")}"
+           ${c.modo ? `inputmode="${c.modo}" autocomplete="off" spellcheck="false"` : ""}
            ${c.min != null ? `min="${c.min}"` : ""} ${c.step ? `step="${c.step}"` : ""}>
          ${c.aiuto ? `<div class="form-hint" style="margin-top:5px;">${c.aiuto}</div>` : ""}`).join("");
       apriModale(titolo, html, [
@@ -1058,11 +1063,42 @@
             chiudiModale(); res(out);
           } },
       ]);
+      // Invio = premi il bottone principale. Il listener si aggiunge UNA volta
+      // sola: #modal-body è sempre lo stesso elemento, e ogni chiediDati ne
+      // appendeva un altro identico — dopo dieci finestre l'Invio scattava
+      // dieci volte. Non si vedeva perché la Promise, già risolta, ignora i
+      // colpi in più; ma è un accumulo, e adesso non c'è.
       const box = document.getElementById("modal-body");
-      box.addEventListener("keydown", e => {
-        if (e.key === "Enter") { e.preventDefault(); document.querySelector("#modal-foot .mbtn.primary").click(); }
-      });
+      if (!box.dataset.invio) {
+        box.dataset.invio = "1";
+        box.addEventListener("keydown", e => {
+          if (e.key === "Enter") { e.preventDefault(); document.querySelector("#modal-foot .mbtn.primary").click(); }
+        });
+      }
     });
+  }
+  // Come chiediDati, ma su UN campo numerico non si accontenta: un numero che
+  // non si capisce non diventa zero e non si perde in silenzio — la finestra
+  // torna con scritto cosa non torna e con dentro ancora quello che era stato
+  // scritto, così si corregge invece di ricominciare. `spec.seVuoto`, se c'è,
+  // è il valore che vale quando il campo resta vuoto (per esempio 0 per le
+  // spese, null per «il tagliando non si ripete più»); se non c'è, un campo
+  // vuoto è un errore come gli altri.
+  async function chiediNumero(titolo, corpo, campi, etichettaOk, spec) {
+    let valore = (campi.find(c => c.id === spec.id) || {}).valore;
+    let avviso = "";
+    for (;;) {
+      const dati = await chiediDati(titolo, (corpo || "") + avviso,
+        campi.map(c => (c.id === spec.id ? { ...c, valore } : c)), etichettaOk);
+      if (dati === null) return null;
+      const r = numeroDaCampo(dati[spec.id], spec.opts || {});
+      if (r.ok) return { ...dati, [spec.id]: r.valore };
+      if (r.vuoto && "seVuoto" in spec) return { ...dati, [spec.id]: spec.seVuoto };
+      valore = r.grezzo;
+      const msg = messaggioNumero(r, spec.cosa, spec.opts || {});
+      toast(msg, "err");
+      avviso = `<div class="note esito err" style="margin-top:10px;">${esc(msg)}</div>`;
+    }
   }
   document.getElementById("modal").addEventListener("click", e => {
     if (e.target.id === "modal") { const b = document.querySelector("#modal-foot .mbtn"); if (b) b.click(); }
@@ -1110,7 +1146,9 @@
            CAUSALI_FERMO, causaleFermo, etichettaCausale, validaFermo,
            fermiOrdinati, durataFermo, affidabilitaFlotta,
            consumoRicambi, puntoDiRiordino, propostaScorte,
-           ORIZZONTE_TAGLIANDI, ritmoOreMezzi, ritmoDelMezzo, tagliandiInScadenza } from "./flotta-data.js";
+           ORIZZONTE_TAGLIANDI, ritmoOreMezzi, ritmoDelMezzo, tagliandiInScadenza,
+           numeroDaCampo, interoDaCampo, perCampo, messaggioNumero,
+           AVVISO_DECIMALE, AVVISO_MIGLIAIA } from "./flotta-data.js";
   import { mountExit, esc, csvCell, numIt } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const MB = { operativo: ["ok","Operativo"], fermo: ["danger","Fermo"], verifica: ["warn","Verifica"] };
@@ -1191,6 +1229,23 @@
   // ── Errori di campo: bordo rosso + fuoco sul campo sbagliato ──────────
   const err = (id, on) => { const el = $(id); if (el) el.classList.toggle("err", !!on); };
   const fuoco = (id) => { const el = $(id); if (el) { try { el.focus({ preventScroll: false }); } catch (e) { el.focus(); } } };
+  // ── UN NUMERO SCRITTO A MANO ───────────────────────────────────────────
+  // Legge il campo con numeroDaCampo (virgola o punto, indifferentemente) e
+  // per quello che NON capisce non salva zero: lo dice, col toast del core e
+  // col bordo rosso sul campo giusto, e ci porta il fuoco. Ritorna il
+  // risultato tale e quale — chi chiama guarda `.ok` e `.vuoto`.
+  // `opts.facoltativo` = un campo vuoto è una risposta legittima (nessun
+  // errore, valore assente); senza quel flag, vuoto è un errore.
+  const leggiNumero = (id, cosa, opts = {}, idEsito = null) => {
+    const el = $(id);
+    const r = (opts.intero ? interoDaCampo : numeroDaCampo)(el ? el.value : "", opts);
+    if (r.ok || (r.vuoto && opts.facoltativo)) { err(id, false); return r; }
+    err(id, true);
+    const msg = (opts.messaggi && opts.messaggi[r.motivo]) || messaggioNumero(r, cosa, opts);
+    if (idEsito) esito(idEsito, msg, "err"); else toast(msg, "err");
+    fuoco(id);
+    return r;
+  };
   // La lavorazione di un intervento CHIUSO, in una riga: chi c'è stato e per
   // quanto. Gli interventi registrati prima dell'ordine di lavoro non hanno
   // questi campi e non mostrano niente — restano come sono sempre stati.
@@ -1284,7 +1339,7 @@
   // PIANI RICORRENTI (L3): i quattro tagliandi a ore delle macchine da
   // movimento terra, più i ritmi a calendario più comuni.
   $("man-piano").innerHTML = '<option value="">— non si ripete —</option>'
-    + PIANI_TAGLIANDO.map(p => `<option value="o${p.chiave}">Ogni ${p.ogniOre} ore — ${esc(p.etichetta)}</option>`).join("")
+    + PIANI_TAGLIANDO.map(p => `<option value="o${p.chiave}">Ogni ${numTx(p.ogniOre)} ore — ${esc(p.etichetta)}</option>`).join("")
     + [6, 12, 24].map(m => `<option value="m${m}">Ogni ${m} mesi (a calendario)</option>`).join("");
   // Scegliendo un piano a ore, titolo e ore motore vengono già proposti: chi
   // pianifica non deve fare i conti a mente col contatore del mezzo.
@@ -1301,12 +1356,12 @@
     if (!$("man-titolo").value.trim()) $("man-titolo").value = p.etichetta;
     const m = MEZ.find(x => nomeBreve(x.nome) === $("man-mezzo").value);
     if (!$("man-ore").value && !$("man-data").value && m) {
-      $("man-ore").value = Math.round(+m.ore || 0) + p.ogniOre;
+      $("man-ore").value = perCampo(Math.round(+m.ore || 0) + p.ogniOre, 1);
     }
     box.className = "note esito";
     box.textContent = p.etichetta + ": " + p.nota
       + (m ? " " + nomeBreve(m.nome) + " ha " + (+m.ore || 0).toLocaleString("it-IT") + " ore: il tagliando è proposto a " + ($("man-ore").value || "—") + "." : "")
-      + " Alla chiusura, il prossimo nascerà da solo a +" + p.ogniOre + " ore sulle ore di quel momento.";
+      + " Alla chiusura, il prossimo nascerà da solo a +" + numTx(p.ogniOre) + " ore sulle ore di quel momento.";
   };
   // Rifornimenti (L4): il giorno parte da oggi, come per le voci di costo.
   $("rif-data").value = oggiISO();
@@ -1417,7 +1472,7 @@
     const urgDi = (n) => {
       if (n.orePreviste) {
         const m = MEZ.find(x => x.nome.split(" — ")[0] === n.mezzo);
-        return m ? urgenzaOre(n.orePreviste, m.ore) : { cls: "ok", label: "a " + n.orePreviste + " h" };
+        return m ? urgenzaOre(n.orePreviste, m.ore) : { cls: "ok", label: "a " + numTx(n.orePreviste) + " h" };
       }
       return urgenza(n.dataPrevista);
     };
@@ -1624,7 +1679,7 @@
     $("man-list").innerHTML = manFiltrate.map(n => {
       const u = urgDi(n);
       const ricN = n.ricambioId ? (RIC.find(r => r.id === n.ricambioId) || null) : null;
-      const ritmo = n.ogniOre ? " · piano: ogni " + n.ogniOre + " h" : n.ogniMesi ? " · piano: ogni " + n.ogniMesi + " mesi" : "";
+      const ritmo = n.ogniOre ? " · piano: ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · piano: ogni " + n.ogniMesi + " mesi" : "";
       const so = statoOrdine(n);
       const q = costoOrdine(ordineDaManutenzione(n, RIC));
       const quando = stimaGiorni(n);
@@ -2327,7 +2382,11 @@
     ["odl-chi","odl-ore","odl-ric-nome","odl-ric-qta","odl-ric-prezzo"].forEach(i => { $(i).value = ""; err(i, false); });
     // il costo orario usato l'ultima volta: su un dispositivo è quasi sempre
     // lo stesso, e riscriverlo ogni volta è tempo perso
-    try { const t = localStorage.getItem("dwFlottaTariffa"); if (t) $("odl-tariffa").value = t; } catch (e) {}
+    // la tariffa ricordata rientra nel campo SCRITTA ALL'ITALIANA: il campo è
+    // di testo, quindi quel valore lo legge l'utente, e «32.5» accanto a una
+    // schermata di virgole è il punto inglese mostrato a schermo
+    try { const t = localStorage.getItem("dwFlottaTariffa");
+          if (t) { const rt = numeroDaCampo(t); $("odl-tariffa").value = rt.ok ? perCampo(rt.valore) : ""; } } catch (e) {}
     disegnaOrdine();
     go("odl");
   }
@@ -2386,7 +2445,7 @@
     { const sel = $("odl-ric-sel").value;
       $("odl-ric-sel").innerHTML = '<option value="">— scegli dal magazzino —</option>'
         + RIC.map(r => `<option value="${r.id}"${r.id === sel ? " selected" : ""}>${esc(r.nome)} (giac. ${+r.giacenza || 0}${+r.prezzo > 0 ? " · " + eur(r.prezzo) : ""})</option>`).join(""); }
-    valSeLibero("odl-altre", o.altreSpese > 0 ? o.altreSpese : "");
+    valSeLibero("odl-altre", o.altreSpese > 0 ? perCampo(o.altreSpese) : "");
     valSeLibero("odl-note", o.noteLavoro);
 
     // Quattro numeri, un colore solo: sono fatti, non allarmi. Colorarli di
@@ -2415,7 +2474,7 @@
   const urgDiOrdine = (n) => {
     if (n.orePreviste) {
       const m = MEZ.find(x => nomeBreve(x.nome) === nomeBreve(n.mezzo));
-      return m ? urgenzaOre(n.orePreviste, +m.ore || 0) : { cls: "ok", label: "a " + n.orePreviste + " h" };
+      return m ? urgenzaOre(n.orePreviste, +m.ore || 0) : { cls: "ok", label: "a " + numTx(n.orePreviste) + " h" };
     }
     return urgenza(n.dataPrevista);
   };
@@ -2438,19 +2497,24 @@
       q.manodopera.ore ? oreTx(q.manodopera.ore) + " di lavoro (" + eur(q.manodopera.costo) + ")" : "",
       q.ricambi.righe.length ? q.ricambi.righe.length + (q.ricambi.righe.length === 1 ? " ricambio" : " ricambi") + " (" + eur(q.ricambi.costo) + ")" : "",
     ].filter(Boolean).join(" + ");
-    const dati = await chiediDati("Chiudere l'ordine di lavoro",
+    // Le altre spese sono spesso l'INTERO costo del lavoro (officina esterna),
+    // e finivano in un `|| 0`: «1.250,75» digitato qui si salvava come 0 € e
+    // il mezzo risultava riparato gratis. Ora il numero si legge, e se non si
+    // capisce la finestra torna a chiederlo.
+    const dati = await chiediNumero("Chiudere l'ordine di lavoro",
       `<b>${esc(n.titolo)} — ${esc(n.mezzo)}</b><br>
        ${detta ? "Su questo lavoro risultano " + detta + "." : "Su questo lavoro non è ancora scritto niente: nessuna ora, nessun ricambio."}<br>
        Chiudendo, esce dal programma ed entra nel <b>registro interventi</b> del mezzo${q.ricambi.righe.filter(r => r.id).length ? ", e i ricambi presi dal magazzino vengono scaricati" : ""}.`,
-      [{ id: "altre", label: "Altre spese (€)", tipo: "number", min: 0, step: "0.01",
-         valore: q.altre > 0 ? q.altre : "", placeholder: "0",
-         aiuto: "Quello che non sta né nelle ore né nei pezzi: officina esterna, traino, noleggio. Se il lavoro non ha righe, scrivi qui il costo totale." },
+      [{ id: "altre", label: "Altre spese (€)", tipo: "text", modo: "decimal",
+         valore: q.altre > 0 ? perCampo(q.altre) : "", placeholder: "0",
+         aiuto: "Quello che non sta né nelle ore né nei pezzi: officina esterna, traino, noleggio. Se il lavoro non ha righe, scrivi qui il costo totale. La virgola va benissimo (1250,75)." },
        { id: "note", label: "Note sull'intervento", valore: o.noteLavoro,
          placeholder: "es. sostituiti filtri e olio motore",
          aiuto: "Facoltative: è la memoria che ritrovi fra due anni." }],
-      "Chiudi l'ordine");
+      "Chiudi l'ordine",
+      { id: "altre", cosa: "le altre spese", seVuoto: 0, opts: { min: 0, unita: "€" } });
     if (dati === null) return false;
-    const altre = Math.max(0, Math.round(+String(dati.altre || "0").replace(",", ".") * 100) / 100) || 0;
+    const altre = dati.altre || 0;
     const note = (dati.note || "").trim();
     const finale = costoOrdine({ ...o, altreSpese: altre });
     const costo = finale.totale;
@@ -2490,16 +2554,19 @@
     const mezzoDi = MEZ.find(x => nomeBreve(x.nome) === nomeBreve(n.mezzo));
     const px = prossimoTagliando(n, mezzoDi ? (+mezzoDi.ore || 0) : NaN, oggiISO());
     if (px && px.da === "ore") {
-      const nx = await chiediDati("Il prossimo tagliando",
-        `<b>${esc(n.titolo)} — ${esc(n.mezzo)}</b> si ripete <b>ogni ${px.ogniOre} ore</b>.<br>
-         Il contatore segna adesso <b>${px.oreBase.toLocaleString("it-IT")} ore</b>: il prossimo cade a
-         <b>${px.orePreviste.toLocaleString("it-IT")} ore</b>. Confermalo, correggilo,
+      const nx = await chiediNumero("Il prossimo tagliando",
+        `<b>${esc(n.titolo)} — ${esc(n.mezzo)}</b> si ripete <b>ogni ${numTx(px.ogniOre)} ore</b>.<br>
+         Il contatore segna adesso <b>${numTx(px.oreBase)} ore</b>: il prossimo cade a
+         <b>${numTx(px.orePreviste)} ore</b>. Confermalo, correggilo,
          oppure <b>svuota il campo</b> per chiudere qui il piano.`,
-        [{ id: "ore", label: "A quante ore motore", tipo: "number", min: 0, valore: px.orePreviste,
-           aiuto: "Vuoto = il tagliando non si ripete più: lo potrai sempre ripianificare a mano." }],
-        "Pianifica");
-      if (nx && String(nx.ore).trim() !== "") {
-        const ore = Math.round(+nx.ore);
+        [{ id: "ore", label: "A quante ore motore", tipo: "text", modo: "decimal", valore: perCampo(px.orePreviste, 1),
+           aiuto: "Vuoto = il tagliando non si ripete più: lo potrai sempre ripianificare a mano. Scrivilo senza il punto delle migliaia: 6500, non 6.500." }],
+        "Pianifica",
+        // vuoto = piano chiuso (è scritto nell'aiuto), ma «0 ore» non è un
+        // piano: prima non pianificava e non diceva niente, ora lo chiede
+        { id: "ore", cosa: "le ore del prossimo tagliando", seVuoto: null, opts: { positivo: true, decimali: 1, unita: "h" } });
+      if (nx && nx.ore != null) {
+        const ore = nx.ore;
         if (ore > 0) {
           await db.aggiungi("manutenzioni", { titolo: px.titolo, mezzo: px.mezzo, dataPrevista: null,
             orePreviste: ore, ricambioId: px.ricambioId, ogniOre: px.ogniOre, ogniMesi: null,
@@ -2801,7 +2868,7 @@
         esito("ore-esito", "Modifica annullata.");
         ["mez-nome","mez-area","mez-ore"].forEach(i => { $(i).value = ""; err(i, false); }); return; }
       editMez = m.id;
-      $("mez-nome").value = m.nome || ""; $("mez-area").value = m.area || ""; $("mez-ore").value = m.ore != null ? m.ore : "";
+      $("mez-nome").value = m.nome || ""; $("mez-area").value = m.area || ""; $("mez-ore").value = perCampo(m.ore, 1);
       $("mez-tipo").value = tipoMezzoDi(m).chiave;   // se non era salvato, è quello indovinato dal nome
       ["mez-nome","mez-area","mez-ore"].forEach(i => err(i, false));
       $("btn-mez").textContent = "Salva modifica";
@@ -2956,19 +3023,27 @@
   // quel caso la voce nasce «senza data», dichiarata, mai con una inventata.
   $("cos-data").value = oggiISO();
   $("btn-cos").onclick = async () => {
-    const voce = $("cos-voce").value.trim(), importo = +$("cos-importo").value;
+    const voce = $("cos-voce").value.trim();
     const iso = String($("cos-data").value || "").slice(0, 10);
     const gg = /^\d{4}-\d{2}-\d{2}$/.test(iso)
       ? Math.round((Date.parse(iso + "T12:00:00") - Date.parse(oggiISO() + "T12:00:00")) / 86400000) : NaN;
     const dataOk = !iso || (Number.isFinite(gg) && gg >= -3650 && gg <= 365);
-    if (!voce || !(importo > 0) || !dataOk) {
-      err("cos-voce", !voce); err("cos-importo", !(importo > 0)); err("cos-data", !dataOk);
+    if (!voce || !dataOk) {
+      err("cos-voce", !voce); err("cos-data", !dataOk);
       esito("cos-esito", !voce
         ? "Manca la voce di costo: scrivi di cosa si tratta (es. «Carburante settimana 30»)."
-        : !(importo > 0) ? "L'importo deve essere un numero maggiore di zero."
         : "La data non è valida: al massimo dieci anni indietro e un anno avanti (controlla l'anno).", "err");
-      fuoco(!voce ? "cos-voce" : !(importo > 0) ? "cos-importo" : "cos-data"); return;
+      fuoco(!voce ? "cos-voce" : "cos-data"); return;
     }
+    // L'IMPORTO è il numero che fa più danno se letto male: con il campo
+    // type=number «1.250,75» arrivava qui come 1.25075 e finiva nel registro
+    // costi come 1,25 €, senza un errore da leggere. Ora lo legge
+    // numeroDaCampo, e quello che non si capisce si dice.
+    const ri = leggiNumero("cos-importo", "l'importo", { positivo: true, unita: "€",
+      messaggi: { vuoto: "Scrivi l'importo della spesa: un numero maggiore di zero.",
+                  "non-positivo": "L'importo deve essere un numero maggiore di zero." } }, "cos-esito");
+    if (!ri.ok) return;
+    const importo = ri.valore;
     ["cos-voce","cos-importo","cos-data"].forEach(i => err(i, false));
     await db.aggiungi("costi", { voce, importo, nota: $("cos-nota").value.trim(), data: iso || null });
     $("cos-voce").value = ""; $("cos-importo").value = ""; $("cos-nota").value = "";
@@ -2994,34 +3069,47 @@
       + (senza ? ", di cui " + senza + " senza data." : "."), "success");
   };
   $("btn-ric").onclick = async () => {
-    const nome = $("ric-nome").value.trim(), giac = +$("ric-giac").value, soglia = +$("ric-soglia").value;
-    const giacOk = $("ric-giac").value !== "" && giac >= 0, sogliaOk = $("ric-soglia").value !== "" && soglia >= 0;
-    if (!nome || !giacOk || !sogliaOk) {
-      err("ric-nome", !nome); err("ric-giac", !giacOk); err("ric-soglia", !sogliaOk);
-      esito("ric-esito", !nome
-        ? "Manca il nome del ricambio (es. «Filtro olio»)."
-        : !giacOk ? "Scrivi quanti pezzi hai adesso in magazzino: un numero da 0 in su."
-                  : "Scrivi la soglia minima: sotto quel numero l'app ti avvisa che è ora di riordinare.", "err");
-      fuoco(!nome ? "ric-nome" : !giacOk ? "ric-giac" : "ric-soglia"); return;
+    const nome = $("ric-nome").value.trim();
+    if (!nome) {
+      err("ric-nome", true);
+      esito("ric-esito", "Manca il nome del ricambio (es. «Filtro olio»).", "err");
+      fuoco("ric-nome"); return;
     }
-    ["ric-nome","ric-giac","ric-soglia"].forEach(i => err(i, false));
-    // il prezzo è facoltativo: se non c'è resta assente, non diventa zero
-    const prezzoTx = String($("ric-prezzo").value || "").trim();
-    const prezzo = prezzoTx === "" ? null : Math.max(0, Math.round(+prezzoTx.replace(",", ".") * 100) / 100) || 0;
+    err("ric-nome", false);
+    // Giacenza e soglia NON sono per forza interi: in magazzino con i filtri
+    // ci stanno l'olio e il grasso, che si contano a litri e a chili.
+    const rg = leggiNumero("ric-giac", "la giacenza", { min: 0 }, "ric-esito");
+    if (!rg.ok) return;
+    const rs = leggiNumero("ric-soglia", "la soglia minima", { min: 0 }, "ric-esito");
+    if (!rs.ok) return;
+    const giac = rg.valore, soglia = rs.valore;
+    // il prezzo è facoltativo: se non c'è resta assente, non diventa zero —
+    // e se c'è ma non si capisce, si dice: uno zero al posto di 1.250,75 €
+    // sparisce dai costi e non lo ritrova più nessuno
+    const rp = leggiNumero("ric-prezzo", "il prezzo al pezzo", { min: 0, unita: "€", facoltativo: true }, "ric-esito");
+    if (!rp.ok && !rp.vuoto) return;
+    const prezzo = rp.vuoto ? null : rp.valore;
     await db.aggiungi("ricambi", { nome, giacenza: giac, sogliaMin: soglia, prezzo });
     $("ric-nome").value = ""; $("ric-giac").value = ""; $("ric-soglia").value = ""; $("ric-prezzo").value = "";
-    esito("ric-esito", "Ricambio aggiunto: " + nome + " (giacenza " + giac + ", soglia " + soglia
+    esito("ric-esito", "Ricambio aggiunto: " + nome + " (giacenza " + numTx(giac) + ", soglia " + numTx(soglia)
       + (prezzo ? ", " + eur(prezzo) + " al pezzo" : "") + ").", "success");
     fuoco("ric-nome");
     await refresh();
   };
   $("btn-mez").onclick = async () => {
-    const nome = $("mez-nome").value.trim(), area = $("mez-area").value.trim(), ore = +$("mez-ore").value || 0;
+    const nome = $("mez-nome").value.trim(), area = $("mez-area").value.trim();
     const tipo = $("mez-tipo").value || "altro";
     if (!nome) { err("mez-nome", true); esito("ore-esito", "Manca il nome del mezzo: è come lo chiamate in cava (es. «Dumper D4»).", "err"); fuoco("mez-nome"); return; }
     if (MEZ.some(m => m.id !== editMez && m.nome.split(" — ")[0].toLowerCase() === nome.split(" — ")[0].toLowerCase())) {
       err("mez-nome", true); esito("ore-esito", "C'è già un mezzo che si chiama «" + nome + "»: dagli un nome diverso, altrimenti in cantiere non si capisce di quale si parla.", "err"); fuoco("mez-nome"); return; }
     err("mez-nome", false);
+    // Le ore del contatore sono facoltative (un mezzo nuovo ne ha zero), ma
+    // se sono scritte devono essere lette per quello che sono: un contaore
+    // conta i DECIMI, e «1234,5» con un campo type=number diventava 12345 —
+    // dieci volte le ore vere, cioè tutti i tagliandi del mezzo fuori posto.
+    const rmo = leggiNumero("mez-ore", "le ore del contatore", { min: 0, decimali: 1, unita: "h", facoltativo: true }, "ore-esito");
+    if (!rmo.ok && !rmo.vuoto) return;
+    const ore = rmo.ok ? rmo.valore : 0;
     if (editMez) {
       await db.aggiorna("mezzi", editMez, { nome, area, ore, tipo });   // stato/manutenzioni restano
       editMez = null; $("btn-mez").textContent = "Aggiungi";
@@ -3035,16 +3123,19 @@
     await refresh();
   };
   $("btn-ore").onclick = async () => {
-    const id = $("ore-mezzo").value, ore = +$("ore-nuove").value;
+    const id = $("ore-mezzo").value;
     const m = MEZ.find(x => x.id === id);
     if (!m) { err("ore-mezzo", true); esito("ore-esito", "Scegli prima il mezzo su cui vuoi registrare le ore.", "err"); fuoco("ore-mezzo"); return; }
     err("ore-mezzo", false);
-    if (!ore) { err("ore-nuove", true); esito("ore-esito", "Scrivi le ore che legge adesso il contatore del mezzo.", "err"); fuoco("ore-nuove"); return; }
+    const rno = leggiNumero("ore-nuove", "le ore del contatore", { positivo: true, decimali: 1, unita: "h",
+      messaggi: { vuoto: "Scrivi le ore che legge adesso il contatore del mezzo." } }, "ore-esito");
+    if (!rno.ok) return;
+    const ore = rno.valore;
     if (ore < (m.ore||0)) { err("ore-nuove", true);
-      esito("ore-esito", "Hai scritto " + ore.toLocaleString("it-IT") + " ore, ma il mezzo ne ha già " + (m.ore||0).toLocaleString("it-IT") + ": il contatore non può scendere. Controlla il numero.", "err");
+      esito("ore-esito", "Hai scritto " + numTx(ore) + " ore, ma il mezzo ne ha già " + numTx(m.ore||0) + ": il contatore non può scendere. Controlla il numero.", "err");
       fuoco("ore-nuove"); return; }
     err("ore-nuove", false);
-    esito("ore-esito", "Registrate " + ore.toLocaleString("it-IT") + " ore su " + m.nome.split(" — ")[0] + ".", "success");
+    esito("ore-esito", "Registrate " + numTx(ore) + " ore su " + m.nome.split(" — ")[0] + ".", "success");
     await db.aggiorna("mezzi", id, { ore }); $("ore-nuove").value = ""; await refresh();
   };
   // Import telemetria da CSV (mezzo;ore[;carburante]): aggiorna le ore dei
@@ -3098,8 +3189,15 @@
     esito("ore-esito", "Esportati " + MEZ.length + " mezzi, " + MAN.length + " manutenzioni, " + RIC.length + " ricambi (CSV).", "success");
   };
   $("btn-man").onclick = async () => {
-    const titolo = $("man-titolo").value.trim(), dataPrevista = $("man-data").value, orePreviste = +$("man-ore").value || null;
+    const titolo = $("man-titolo").value.trim(), dataPrevista = $("man-data").value;
     if (!MEZ.length) { esito("man-esito", "Prima aggiungi almeno un mezzo nel parco: apri la schermata Mezzi e inseriscilo.", "err"); return; }
+    // Le ore del tagliando sono facoltative (si può programmare a data), ma
+    // se ci sono devono valere quello che dicono: «6.000» scritto col punto
+    // delle migliaia veniva letto 6 — un tagliando immediatamente scaduto —
+    // e nessuno se ne accorgeva. Ora si chiede di riscriverlo senza dubbi.
+    const rmh = leggiNumero("man-ore", "le ore del tagliando", { positivo: true, decimali: 1, unita: "h", facoltativo: true }, "man-esito");
+    if (!rmh.ok && !rmh.vuoto) return;
+    const orePreviste = rmh.ok ? rmh.valore : null;
     if (!titolo || (!dataPrevista && !orePreviste)) {
       err("man-titolo", !titolo); err("man-data", !titolo ? false : true); err("man-ore", !titolo ? false : true);
       esito("man-esito", !titolo
@@ -3119,8 +3217,8 @@
       orePreviste, ricambioId: $("man-ricambio").value || null,
       ogniOre, ogniMesi, piano: pianoOre ? pianoOre.chiave : null, origine: "manuale", nota: null });
     esito("man-esito", "Manutenzione pianificata: " + titolo + " su " + $("man-mezzo").value
-      + (dataPrevista ? " per il " + dataIt(dataPrevista) : " a " + orePreviste + " ore motore")
-      + (ogniOre ? ", e si ripete ogni " + ogniOre + " ore" : ogniMesi ? ", e si ripete ogni " + ogniMesi + " mesi" : "") + ".", "success");
+      + (dataPrevista ? " per il " + dataIt(dataPrevista) : " a " + numTx(orePreviste) + " ore motore")
+      + (ogniOre ? ", e si ripete ogni " + numTx(ogniOre) + " ore" : ogniMesi ? ", e si ripete ogni " + ogniMesi + " mesi" : "") + ".", "success");
     $("man-titolo").value = ""; $("man-data").value = ""; $("man-ore").value = ""; $("man-ricambio").value = ""; $("man-piano").value = "";
     fuoco("man-titolo"); await refresh();
   };
@@ -3171,15 +3269,15 @@
     // Ore del contatore: se le scrivi e sono più alte, il mezzo si aggiorna.
     // Il contatore non scende mai: un numero più basso è un errore di dito e
     // viene detto, non salvato.
-    const oreTx = String($("giro-ore").value || "").trim();
+    const rgo = leggiNumero("giro-ore", "le ore del contatore", { min: 0, decimali: 1, unita: "h", facoltativo: true,
+      messaggi: { "sotto-minimo": "Le ore del contatore vanno scritte come numero, da zero in su." } }, "giro-esito");
+    if (!rgo.ok && !rgo.vuoto) return;
     let ore = null;
-    if (oreTx !== "") {
-      const n = Math.round(+oreTx);
-      if (!Number.isFinite(n) || n < 0) { err("giro-ore", true); esito("giro-esito", "Le ore del contatore vanno scritte come numero, da zero in su.", "err"); fuoco("giro-ore"); return; }
-      if (n < (+m.ore || 0)) { err("giro-ore", true);
-        esito("giro-esito", "Hai scritto " + n.toLocaleString("it-IT") + " ore, ma il mezzo ne ha già " + (+m.ore || 0).toLocaleString("it-IT") + ": il contatore non può scendere.", "err");
+    if (rgo.ok) {
+      if (rgo.valore < (+m.ore || 0)) { err("giro-ore", true);
+        esito("giro-esito", "Hai scritto " + numTx(rgo.valore) + " ore, ma il mezzo ne ha già " + numTx(+m.ore || 0) + ": il contatore non può scendere.", "err");
         fuoco("giro-ore"); return; }
-      ore = n;
+      ore = rgo.valore;
     }
     err("giro-ore", false);
     const operatore = $("giro-operatore").value.trim();
@@ -3336,7 +3434,7 @@
     // invece di restare «da fare» mentre qualcuno ha le mani dentro
     const avanza = statoOrdine(n).chiave === "da-fare";
     if (avanza) patch.stato = "in-corso";
-    try { localStorage.setItem("dwFlottaTariffa", String(v.tariffa || "")); } catch (e) {}
+    try { localStorage.setItem("dwFlottaTariffa", perCampo(v.tariffa)); } catch (e) {}
     $("odl-chi").value = ""; $("odl-ore").value = "";
     await salvaOrdine(n, patch, v.chi + ": " + oreTx(v.ore)
       + (v.tariffa ? " a " + eur(v.tariffa) + " l'ora = " + eur(Math.round(v.ore * v.tariffa * 100) / 100) : " (senza costo orario)")
@@ -3348,7 +3446,7 @@
     const r = RIC.find(x => x.id === $("odl-ric-sel").value);
     if (!r) return;
     $("odl-ric-nome").value = "";
-    if (+r.prezzo > 0 && !$("odl-ric-prezzo").value) $("odl-ric-prezzo").value = r.prezzo;
+    if (+r.prezzo > 0 && !$("odl-ric-prezzo").value) $("odl-ric-prezzo").value = perCampo(r.prezzo);
     if (!$("odl-ric-qta").value) $("odl-ric-qta").value = 1;
     fuoco("odl-ric-qta");
   };
@@ -3373,19 +3471,29 @@
   // altre spese e nota di lavorazione: si salvano da sole appena si esce dal
   // campo, perché un pulsante «salva» accanto a due caselle è un pulsante che
   // qualcuno dimenticherà di premere
+  // Ritorna false quando c'è scritto un numero che non si capisce: in quel
+  // caso NON salva niente. Prima qui c'era un `|| 0` in coda al calcolo, e un
+  // «1.250,75» digitato nelle altre spese si salvava come 0 € senza dire
+  // niente: il costo di un'officina esterna sparito dal costo del mezzo.
   const salvaCampoOrdine = async () => {
-    const n = MAN.find(x => x.id === odlId); if (!n) return;
+    const n = MAN.find(x => x.id === odlId); if (!n) return false;
     const o = ordineDaManutenzione(n, RIC);
-    const altre = Math.max(0, Math.round(+String($("odl-altre").value || "0").replace(",", ".") * 100) / 100) || 0;
+    const ra = leggiNumero("odl-altre", "le altre spese", { min: 0, unita: "€", facoltativo: true }, "odl-esito");
+    if (!ra.ok && !ra.vuoto) return false;
+    const altre = ra.ok ? ra.valore : 0;
     const note = $("odl-note").value.trim();
-    if (altre === o.altreSpese && note === o.noteLavoro) return;   // niente da salvare
+    if (altre === o.altreSpese && note === o.noteLavoro) return true;   // niente da salvare
     await salvaOrdine(n, { altreSpese: altre, noteLavoro: note });
+    return true;
   };
   $("odl-altre").addEventListener("change", salvaCampoOrdine);
   $("odl-note").addEventListener("change", salvaCampoOrdine);
   $("btn-odl-chiudi").onclick = async () => {
     const n = MAN.find(x => x.id === odlId); if (!n) return;
-    await salvaCampoOrdine();
+    // se nelle altre spese c'è un numero che non si capisce non si va avanti:
+    // chiudere l'ordine scrive l'intervento nello storico e la spesa nei
+    // costi, e ci si va con i numeri giusti o non ci si va
+    if (!(await salvaCampoOrdine())) return;
     const vivo = MAN.find(x => x.id === odlId) || n;
     const fatto = await chiudiOrdineLavoro(vivo);
     if (fatto) { go("man"); await refresh(); }
@@ -3407,6 +3515,31 @@
   };
   $("sco-consegna").addEventListener("input", ricordaScorte);
   $("sco-sicurezza").addEventListener("input", ricordaScorte);
+  // I GIORNI restano campi type=number (interi, con lo spinner, e la virgola
+  // lì non serve), ma con type=number «1.250» digitato arriva al codice come
+  // 1.25 e `Math.round` lo fa diventare 1: un solo giorno di consegna, e la
+  // lista della spesa smette di dire il vero senza che nessuno lo sappia.
+  // Mentre si digita non si urla (sarebbe un toast a ogni tasto): quando si
+  // esce dal campo, se il numero non si legge lo si dice e nel campo torna il
+  // numero che l'app sta USANDO — così il campo non mostra mai un valore
+  // diverso da quello che vale.
+  const controllaGiorni = (id, cosa, opts, usato, dopo) => () => {
+    const r = interoDaCampo($(id).value, opts);
+    if (r.ok || (r.vuoto && opts.facoltativo)) { err(id, false); return; }
+    err(id, true);
+    // l'unità sta già dentro `cosa` («i giorni di consegna»): ripeterla darebbe
+    // «serve almeno 1 giorni»
+    toast(messaggioNumero(r, cosa, opts), "err");
+    $(id).value = usato();
+    err(id, false);
+    dopo();
+  };
+  $("sco-consegna").addEventListener("change",
+    controllaGiorni("sco-consegna", "i giorni di consegna", { min: 0, max: 365, facoltativo: true }, () => "", ricordaScorte));
+  $("sco-sicurezza").addEventListener("change",
+    controllaGiorni("sco-sicurezza", "i giorni di sicurezza", { min: 0, max: 365 }, () => "7", ricordaScorte));
+  $("sca-preavviso").addEventListener("change",
+    controllaGiorni("sca-preavviso", "i giorni di preavviso", { min: 1, max: 365 }, () => String(preavvisoSca), () => refresh()));
   // La lista della spesa: quella che si manda al fornitore, o si stampa e si
   // porta in magazzino. Ci finiscono solo i pezzi che mancano davvero.
   $("btn-sco-csv").onclick = () => {

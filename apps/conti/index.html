@@ -110,7 +110,7 @@
 /* ─────────────── cifre: la regola di casa ───────────────
    Conti è un'app di importi: ovunque compaia un numero le cifre hanno
    tutte la stessa larghezza, così le colonne si incolonnano davvero. */
-.kpi .n,.meta,.amt,.amt-n,.amt-s,.badge,.count,.note b,.recap b, .bar-val,.tot-n,input[type=number],input[type=date], .modal-body b,.sec .cnt{
+.kpi .n,.meta,.amt,.amt-n,.amt-s,.badge,.count,.note b,.recap b, .bar-val,.tot-n,input[type=number],input.dec,input[type=date], .modal-body b,.sec .cnt{
   font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1;
 }
 
@@ -290,8 +290,13 @@
   stroke-linecap:round; stroke-linejoin:round;
 }
 
-/* i campi che contengono cifre si comportano da colonna contabile */
-input[type=number].dw-input{text-align:right; font-variant-numeric:tabular-nums}
+/* i campi che contengono cifre si comportano da colonna contabile.
+   I campi DECIMALI sono <input type="text" inputmode="decimal"> perché la
+   virgola italiana deve poter entrare (vedi numeroDaCampo in conti-data.js):
+   `.dec` è la classe che li tiene identici a come erano — allineati a destra,
+   cifre a larghezza fissa — così l'aspetto del form non cambia di una virgola. */
+input[type=number].dw-input,
+.dw-input.dec{text-align:right; font-variant-numeric:tabular-nums}
 .fld{display:flex; flex-direction:column; gap:5px; min-width:0}
 .fld>label{
   font-family:'Barlow',sans-serif; font-size:10px; font-weight:600;
@@ -657,7 +662,7 @@ label.item:has(.dw-chk:checked){
     </div>
     <div class="fld" id="fld-ft-imp" style="flex:1 1 130px;">
       <label for="ft-imp">Imponibile €</label>
-      <input class="dw-input" id="ft-imp" type="number" min="0" step="0.01" placeholder="0,00" inputmode="decimal">
+      <input class="dw-input dec" id="ft-imp" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0,00" title="Imponibile in euro, senza IVA. La virgola va benissimo: 1.250,75.">
       <span class="err-msg" id="err-ft-imp"></span>
     </div>
     <div class="fld" id="fld-ft-iva" style="flex:1 1 150px;">
@@ -760,12 +765,12 @@ label.item:has(.dw-chk:checked){
     </div>
     <div class="fld" id="fld-pes-lordo" style="flex:1 1 120px;">
       <label for="pes-lordo">Lordo (t)</label>
-      <input class="dw-input" id="pes-lordo" type="number" min="0" step="0.01" placeholder="0,00" inputmode="decimal">
+      <input class="dw-input dec" id="pes-lordo" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0,00" title="Peso lordo in tonnellate, come sulla bilancia. La virgola va benissimo: 32,5.">
       <span class="err-msg" id="err-pes-lordo"></span>
     </div>
     <div class="fld" id="fld-pes-tara" style="flex:1 1 120px;">
       <label for="pes-tara">Tara (t)</label>
-      <input class="dw-input" id="pes-tara" type="number" min="0" step="0.01" placeholder="0,00" inputmode="decimal">
+      <input class="dw-input dec" id="pes-tara" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0,00" title="Tara in tonnellate, il camion vuoto. La virgola va benissimo: 14,2.">
       <span class="err-msg" id="err-pes-tara"></span>
     </div>
     <div class="fld" id="fld-pes-netto" style="flex:1 1 120px;">
@@ -826,12 +831,12 @@ label.item:has(.dw-chk:checked){
     </div>
     <div class="fld" id="fld-pr-prezzo" style="flex:1 1 130px;">
       <label for="pr-prezzo">Prezzo €</label>
-      <input class="dw-input" id="pr-prezzo" type="number" min="0" step="0.01" placeholder="0,00" inputmode="decimal">
+      <input class="dw-input dec" id="pr-prezzo" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0,00" title="Prezzo di listino in euro. La virgola va benissimo: 8,50.">
       <span class="err-msg" id="err-pr-prezzo"></span>
     </div>
     <div class="fld" id="fld-pr-dens" style="flex:1 1 150px;">
       <label for="pr-dens">Densità (t/m³)</label>
-      <input class="dw-input" id="pr-dens" type="number" min="0" step="0.01" placeholder="es. 1,60" inputmode="decimal">
+      <input class="dw-input dec" id="pr-dens" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 1,60" title="Quante tonnellate pesa un metro cubo di questo materiale. La virgola va benissimo: 1,60.">
       <span class="err-msg" id="err-pr-dens"></span>
     </div>
     <div class="fld" id="fld-pr-iva" style="flex:1 1 150px;">
@@ -869,7 +874,7 @@ label.item:has(.dw-chk:checked){
     </div>
     <div class="fld" id="fld-can-ali" style="flex:1 1 150px;">
       <label for="can-ali">Aliquota €</label>
-      <input class="dw-input" id="can-ali" type="number" min="0" step="0.01" placeholder="0,00" inputmode="decimal">
+      <input class="dw-input dec" id="can-ali" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0,00" title="Aliquota del canone in euro per unità. La virgola va benissimo: 0,55.">
       <span class="err-msg" id="err-can-ali"></span>
     </div>
     <div class="fld w2" id="fld-can-nota">
@@ -959,12 +964,12 @@ label.item:has(.dw-chk:checked){
     </div>
     <div class="fld" id="fld-cl-sconto" style="flex:1 1 110px;">
       <label for="cl-sconto">Sconto %</label>
-      <input class="dw-input" id="cl-sconto" type="number" min="0" max="100" step="0.5" placeholder="0" inputmode="decimal">
+      <input class="dw-input dec" id="cl-sconto" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0" title="Sconto in percentuale, da 0 a 100. La virgola va benissimo: 2,5.">
       <span class="err-msg" id="err-cl-sconto"></span>
     </div>
     <div class="fld" id="fld-cl-fido" style="flex:1 1 130px;">
       <label for="cl-fido">Fido €</label>
-      <input class="dw-input" id="cl-fido" type="number" min="0" step="100" placeholder="0,00" inputmode="decimal">
+      <input class="dw-input dec" id="cl-fido" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0,00" title="Fido concesso al cliente, in euro. La virgola va benissimo: 25.000,00.">
       <span class="err-msg" id="err-cl-fido"></span>
     </div>
     <div class="fld w2" id="fld-cl-note">
@@ -1007,7 +1012,7 @@ label.item:has(.dw-chk:checked){
     </div>
     <div class="fld" id="fld-gar-base" style="flex:1 1 140px;">
       <label for="gar-base">Base d'asta €</label>
-      <input class="dw-input" id="gar-base" type="number" min="0" step="0.01" placeholder="0,00" inputmode="decimal">
+      <input class="dw-input dec" id="gar-base" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0,00" title="Base d asta in euro. La virgola va benissimo: 120.000,00.">
       <span class="err-msg" id="err-gar-base"></span>
     </div>
     <div class="fld" id="fld-gar-data" style="flex:1 1 150px;">
@@ -1231,7 +1236,8 @@ label.item:has(.dw-chk:checked){
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, venditePerProdotto,
     cavatoPeriodo, vendutoPeriodo, riconciliazione, valoreCavato, SOGLIA_DIVARIO,
     applicaIncassi, apertoDi, statoIncasso, movimentiDiFattura, incassatoPeriodo,
-    tempiPagamentoClienti, tempoMedioPagamento, emessoIncassato } from "./conti-data.js";
+    tempiPagamentoClienti, tempoMedioPagamento, emessoIncassato,
+    numeroDaCampo, AVVISO_DECIMALE } from "./conti-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   // ── CIFRE: formato italiano, sempre due decimali, spazio unificatore
@@ -1259,6 +1265,39 @@ label.item:has(.dw-chk:checked){
   const perc1 = (v) => NUM1.format(+v || 0) + "%";
   // «l'8%» e non «il 8%»: davanti a otto e undici l'articolo si elide
   const ilPerc = (v) => (/^(8|11)([,.]|$)/.test(NUM1.format(+v || 0)) ? "l'" : "il ") + perc1(v);
+  // ── CAMPI DECIMALI SCRITTI A MANO ─────────────────────────────────────
+  // Gli importi, i pesi, la densità e le aliquote si scrivono in campi
+  // <input type="text" inputmode="decimal">, non type=number: in un
+  // type=number la virgola italiana non entra — «2,4» diventava «24» e
+  // «1.250,75» diventava «1.25075», dichiarati validi dal browser e falsi
+  // in cassa. Il numero lo legge numeroDaCampo (conti-data.js). Qui ci sono
+  // i tre attrezzi di chi usa quei campi: uno per leggerli, uno per
+  // riempirli, uno per spiegare all'utente cosa non ha funzionato.
+  //
+  // itDec: scrive un numero DENTRO un campo, all'italiana e senza perdere
+  // cifre. `eur`/`qt` sono per LEGGERE (arrotondano per stare in riga);
+  // arrotondare dentro un campo cancellerebbe decimali veri al primo salvataggio.
+  // Niente separatore delle migliaia: un campo che si rilegge non deve
+  // costringere nessuno a indovinare cosa significa il punto.
+  const itDec = (v) => { const s = String(v == null ? "" : v).trim(); return s === "" ? "" : s.replace(".", ","); };
+  const numCampo = (id, opts) => numeroDaCampo(($(id) ? $(id).value : ""), opts || {});
+  // Messaggio d'errore di un campo numerico: dice COSA non torna e come si
+  // scrive quel numero. Mai «valore non valido», che non insegna niente.
+  const spiegaNum = (che, r, unita) => {
+    const u = unita ? " " + unita : "";
+    if (r.motivo === "ambiguo")
+      return "Non riesco a capire " + che + ": «" + r.grezzo + "» può voler dire "
+        + NUM2.format(r.letture[0]) + u + " oppure " + NUM2.format(r.letture[1]) + u
+        + ", e fra i due c'è mille volte di differenza. In Italia il punto separa le migliaia, "
+        + "ma nei numeri lo usa anche il computer per i decimali: scrivi «" + itDec(r.letture[0])
+        + "» se intendevi il primo, «" + itDec(r.letture[1]) + "» se intendevi il secondo.";
+    if (r.motivo === "non-numero")
+      return "Non riesco a leggere un numero in «" + r.grezzo + "»: serve " + che + ". " + AVVISO_DECIMALE;
+    return "";
+  };
+  // vero quando il campo contiene qualcosa che NON si riesce a leggere come
+  // numero: è il caso in cui bisogna fermarsi e dirlo, mai salvare uno zero
+  const numIllegibile = (r) => !r.ok && !r.vuoto && (r.motivo === "ambiguo" || r.motivo === "non-numero");
   const oggiISO = () => new Date().toISOString().slice(0, 10);
   const piuGiorni = (iso, n) => { const d = new Date(iso + "T00:00:00");
     d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
@@ -2116,7 +2155,7 @@ label.item:has(.dw-chk:checked){
     if (!canoneInit) {
       canoneInit = true;
       $("can-unita").value = (IMP && IMP.canoneUnita === "t") ? "t" : "m3";
-      $("can-ali").value = IMP && +IMP.canoneAliquota > 0 ? IMP.canoneAliquota : "";
+      $("can-ali").value = IMP && +IMP.canoneAliquota > 0 ? itDec(IMP.canoneAliquota) : "";
       $("can-nota").value = (IMP && IMP.canoneNota) || "";
       // intestazione dei documenti stampati (stesso documento impostazioni)
       $("az-nome").value = (IMP && IMP.aziendaNome) || "";
@@ -2196,7 +2235,15 @@ label.item:has(.dw-chk:checked){
   }
   // ── Fattura: imponibile → IVA → totale, calcolati mentre si digita ──
   function aggiornaRiepFat() {
-    const base = +$("ft-imp").value || 0, al = +$("ft-iva").value || 0;
+    // il riepilogo è anche l'ECO del campo: mentre si digita dice quale
+    // imponibile Conti ha capito, e se non l'ha capito lo scrive invece di
+    // restare muto (un riquadro che spariva era l'unico segnale che c'era)
+    const r = numCampo("ft-imp", { positivo: true });
+    if (numIllegibile(r)) {
+      $("ft-riep").innerHTML = `<div class="note" style="border-left-color:var(--danger);margin-bottom:0;">${esc(spiegaNum("l'imponibile", r, "€"))}</div>`;
+      return;
+    }
+    const base = r.ok ? r.valore : 0, al = +$("ft-iva").value || 0;
     if (!(base > 0)) { $("ft-riep").innerHTML = ""; return; }
     const t = totaliDaRighe([{ imponibile: base, aliquota: al }]);
     $("ft-riep").innerHTML = `<div class="riep">
@@ -2207,7 +2254,14 @@ label.item:has(.dw-chk:checked){
   }
   // ── Listino: l'altro prezzo, quello convertito con la densità ──
   function aggiornaConvPro() {
-    const p = { unitaPrezzo: $("pr-unita").value, prezzo: +$("pr-prezzo").value || 0, densita: +$("pr-dens").value || 0 };
+    const rp = numCampo("pr-prezzo", { positivo: true });
+    const rd = numCampo("pr-dens", { min: 0.3, max: 5, decimali: 3 });
+    const rotto = numIllegibile(rp) ? ["il prezzo", rp, "€"] : numIllegibile(rd) ? ["la densità", rd, "t/m³"] : null;
+    if (rotto) {
+      $("pr-conv").innerHTML = `<div class="note" style="border-left-color:var(--danger);margin-bottom:0;">${esc(spiegaNum(rotto[0], rotto[1], rotto[2]))}</div>`;
+      return;
+    }
+    const p = { unitaPrezzo: $("pr-unita").value, prezzo: rp.ok ? rp.valore : 0, densita: rd.ok ? rd.valore : 0 };
     const d = densitaValida(p);
     if (!(p.prezzo > 0)) { $("pr-conv").innerHTML = ""; return; }
     const suT = p.unitaPrezzo !== "m3";
@@ -2221,10 +2275,22 @@ label.item:has(.dw-chk:checked){
   }
   // ── Netto della pesata: lordo − tara, aggiornato mentre si digita ──
   function aggiornaNetto() {
-    const n = nettoPesata($("pes-lordo").value, $("pes-tara").value);
+    // lordo e tara si leggono col nostro lettore: «32,5» è trentadue tonnellate
+    // e mezza, non trecentoventicinque. Un peso che non si legge NON diventa
+    // zero silenzioso: il netto resta un trattino e il riquadro dice perché.
+    const rl = numCampo("pes-lordo", { positivo: true, max: 500 });
+    const rt = numCampo("pes-tara", { min: 0, max: 500 });
+    const rottoP = numIllegibile(rl) ? ["il peso lordo", rl, "t"] : numIllegibile(rt) ? ["la tara", rt, "t"] : null;
+    if (rottoP) {
+      $("pes-netto").value = "—";
+      $("pes-riep").innerHTML = `<div class="note" style="border-left-color:var(--danger);margin-bottom:0;">${esc(spiegaNum(rottoP[0], rottoP[1], rottoP[2]))}</div>`;
+      return;
+    }
+    const lordoN = rl.ok ? rl.valore : 0, taraN = rt.ok ? rt.valore : 0;
+    const n = nettoPesata(lordoN, taraN);
     $("pes-netto").value = qt(n);
     const p = PRO.find(x => x.id === $("pes-prod").value);
-    const r = p ? rigaPesata(p, $("pes-lordo").value, $("pes-tara").value) : null;
+    const r = p ? rigaPesata(p, lordoN, taraN) : null;
     $("pes-riep").innerHTML = (r && n > 0)
       ? `<div class="riep">
          <div class="mrec"><span class="k">Netto</span><span class="v">${qt(r.netto)} t</span></div>
@@ -2333,8 +2399,9 @@ label.item:has(.dw-chk:checked){
          <span class="fl">Quando sono arrivati i soldi</span>
          <input class="dw-input" id="inc-data" type="date" value="${oggi}" max="${oggi}">
          <span class="fl">Quanto è arrivato (€)</span>
-         <input class="dw-input" id="inc-imp" type="number" min="0.01" step="0.01" inputmode="decimal"
-                value="${massimo.toFixed(2)}" style="text-align:right;">
+         <input class="dw-input dec" id="inc-imp" type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+                title="Importo incassato, in euro. La virgola va benissimo: 1.250,75."
+                value="${esc(itDec(massimo.toFixed(2)))}">
          <span class="fl">Come</span>
          <select class="dw-input" id="inc-metodo">${METODI.map(m => `<option value="${m[0]}">${m[1]}</option>`).join("")}</select>
          <p style="margin-top:10px;">${compat
@@ -2403,10 +2470,19 @@ label.item:has(.dw-chk:checked){
 
   async function registraIncasso(f, st, compat, massimo) {
     const data = ($("inc-data") && $("inc-data").value) || "";
-    const imp = round2(+($("inc-imp") && $("inc-imp").value));
+    // l'importo incassato si scrive a mano, con la virgola: «1.250,75». Se non
+    // si legge, l'incasso NON si registra a zero — un incasso finto sposta una
+    // fattura fra le saldate e cancella un credito vero.
+    const ri = numCampo("inc-imp", { positivo: true });
+    const imp = ri.ok ? round2(ri.valore) : NaN;
     const metodo = ($("inc-metodo") && $("inc-metodo").value) || "";
     if (!data) { incErr("Metti la <b>data in cui i soldi sono arrivati</b>: è tutto il senso di questa schermata. Se non la ricordi con precisione, usa il giorno dell'accredito sull'estratto conto."); return; }
     if (data > oggiISO()) { incErr("La data è nel futuro: un incasso si registra quando i soldi sono <b>arrivati</b>, non quando sono attesi."); return; }
+    if (numIllegibile(ri)) {
+      incErr(esc(spiegaNum("l'importo incassato", ri, "€")));
+      if ($("inc-imp")) { $("inc-imp").classList.add("err");
+        try { $("inc-imp").focus({ preventScroll: true }); $("inc-imp").select(); } catch (e) {} }
+      return; }
     if (!(imp > 0)) { incErr("Scrivi quanto è arrivato, in euro: deve essere un importo maggiore di zero."); return; }
     if (imp > massimo) {
       const oltre = round2(imp - massimo);
@@ -2554,7 +2630,8 @@ label.item:has(.dw-chk:checked){
 
   // ── Canone di escavazione sul periodo scelto ──
   function renderCanone() {
-    const cfg = { canoneUnita: $("can-unita").value, canoneAliquota: +$("can-ali").value || 0 };
+    const ra = numCampo("can-ali", { positivo: true, decimali: 4 });
+    const cfg = { canoneUnita: $("can-unita").value, canoneAliquota: ra.ok ? ra.valore : 0 };
     const c = canonePeriodo(PES, cfg, $("can-dal").value, $("can-al").value);
     const u = uni(c.unita);
     if (!c.viaggi) {
@@ -2848,8 +2925,8 @@ label.item:has(.dw-chk:checked){
         pulisciPro(); return; }
       editPro = p.id;
       $("pr-nome").value = p.nome || ""; $("pr-unita").value = p.unitaPrezzo === "m3" ? "m3" : "t";
-      $("pr-prezzo").value = p.prezzo != null ? p.prezzo : "";
-      $("pr-dens").value = p.densita != null ? p.densita : "";
+      $("pr-prezzo").value = itDec(p.prezzo);
+      $("pr-dens").value = itDec(p.densita);
       $("pr-iva").value = String(+p.iva || 0);
       PR_CAMPI.forEach(puliscoErr); aggiornaConvPro();
       $("btn-pr").textContent = "Salva modifica";
@@ -2957,7 +3034,7 @@ label.item:has(.dw-chk:checked){
       editCli = c.id;
       $("cl-nome").value = c.ragioneSociale || ""; $("cl-piva").value = c.piva || "";
       $("cl-sdi").value = c.sdi || ""; $("cl-ind").value = c.indirizzo || "";
-      $("cl-sconto").value = c.sconto != null ? c.sconto : ""; $("cl-fido").value = c.fido != null ? c.fido : "";
+      $("cl-sconto").value = itDec(c.sconto); $("cl-fido").value = itDec(c.fido);
       $("cl-note").value = c.note || "";
       CL_CAMPI.forEach(puliscoErr);
       $("btn-cl").textContent = "Salva modifica";
@@ -3040,7 +3117,7 @@ label.item:has(.dw-chk:checked){
       // la fattura vecchia (importo secco) si apre come imponibile con IVA 0:
       // finché non si sceglie un'aliquota il totale resta identico a prima
       { const im = importiFattura(f);
-        $("ft-imp").value = im.imponibile;
+        $("ft-imp").value = itDec(im.imponibile);
         $("ft-iva").value = String(im.aliquota != null ? im.aliquota : 0);
         if (!$("ft-iva").value) $("ft-iva").value = "0";
         aggiornaRiepFat(); }
@@ -3105,9 +3182,22 @@ label.item:has(.dw-chk:checked){
     if (CLI.some(c => c.id !== editCli && chiaveNome(c.ragioneSociale) === k)) {
       segnaErr("cl-nome", "C'è già un cliente con questo nome: modifica quello esistente invece di crearne un doppione.");
       esito("cl-esito", "C'è già un cliente con questa ragione sociale.", "err"); primoErrore(CL_CAMPI); return; }
+    // sconto e fido si scrivono con la virgola («2,5» %, «25.000,00» €): un
+    // fido letto male è un cliente bloccato o un credito fuori controllo, e
+    // uno sconto letto male è denaro regalato. Se non si leggono, si dice.
+    const rs = numCampo("cl-sconto", { min: 0, max: 100, decimali: 2 });
+    const rf = numCampo("cl-fido", { min: 0, decimali: 2 });
+    if (numIllegibile(rs) || rs.motivo === "sopra-massimo" || rs.motivo === "sotto-minimo") {
+      segnaErr("cl-sconto", numIllegibile(rs) ? spiegaNum("lo sconto", rs, "%")
+        : "Lo sconto è una percentuale: scrivi un numero fra 0 e 100 (es. 2,5).");
+      esito("cl-esito", "Controlla lo sconto: il cliente non è stato salvato.", "err"); primoErrore(CL_CAMPI); return; }
+    if (numIllegibile(rf) || rf.motivo === "sotto-minimo") {
+      segnaErr("cl-fido", numIllegibile(rf) ? spiegaNum("il fido", rf, "€")
+        : "Il fido è un importo in euro e non può essere negativo (es. 25.000,00).");
+      esito("cl-esito", "Controlla il fido: il cliente non è stato salvato.", "err"); primoErrore(CL_CAMPI); return; }
     const dati = { ragioneSociale, piva: $("cl-piva").value.trim(), sdi: $("cl-sdi").value.trim(),
-      indirizzo: $("cl-ind").value.trim(), sconto: Math.min(100, Math.max(0, +$("cl-sconto").value || 0)),
-      fido: Math.max(0, +$("cl-fido").value || 0), note: $("cl-note").value.trim() };
+      indirizzo: $("cl-ind").value.trim(), sconto: rs.ok ? rs.valore : 0,
+      fido: rf.ok ? rf.valore : 0, note: $("cl-note").value.trim() };
     if (editCli) {
       await db.aggiorna("clienti", editCli, dati);
       editCli = null; $("btn-cl").textContent = "Aggiungi";
@@ -3138,15 +3228,22 @@ label.item:has(.dw-chk:checked){
   $("btn-pr").onclick = async () => {
     const nome = $("pr-nome").value.trim();
     const unitaPrezzo = $("pr-unita").value === "m3" ? "m3" : "t";
-    const prezzo = +$("pr-prezzo").value, densita = +$("pr-dens").value, iva = +$("pr-iva").value || 0;
+    // prezzo e densità arrivano da campi di testo: «8,50» e «1,60» si scrivono
+    // con la virgola, come su qualunque listino italiano
+    const rp = numCampo("pr-prezzo", { positivo: true });
+    const rd = numCampo("pr-dens", { min: 0.3, max: 5, decimali: 3 });
+    const prezzo = rp.ok ? rp.valore : NaN, densita = rd.ok ? rd.valore : NaN;
+    const iva = +$("pr-iva").value || 0;
     PR_CAMPI.forEach(puliscoErr);
     const err = [];
     if (!nome) err.push(["pr-nome", "Scrivi nome e pezzatura del prodotto, come lo chiami in cava (es. Pietrisco 8/12)."]);
     else if (PRO.some(p => p.id !== editPro && chiaveNome(p.nome) === chiaveNome(nome)))
       err.push(["pr-nome", "C'è già un prodotto con questo nome: modifica quello invece di crearne un doppione."]);
-    if (!(prezzo > 0)) err.push(["pr-prezzo", "Scrivi il prezzo di listino in euro: deve essere maggiore di zero."]);
-    if (!(densita > 0)) err.push(["pr-dens", "Serve la densità del materiale (quante tonnellate pesa un metro cubo): senza, €/t e €/m³ non si possono convertire."]);
-    else if (densita < 0.3 || densita > 5) err.push(["pr-dens", "Controlla la densità: gli inerti stanno in genere fra 1,2 e 2,8 tonnellate per metro cubo."]);
+    if (numIllegibile(rp)) err.push(["pr-prezzo", spiegaNum("il prezzo di listino", rp, "€")]);
+    else if (!(prezzo > 0)) err.push(["pr-prezzo", "Scrivi il prezzo di listino in euro: deve essere maggiore di zero."]);
+    if (numIllegibile(rd)) err.push(["pr-dens", spiegaNum("la densità", rd, "t/m³")]);
+    else if (rd.vuoto) err.push(["pr-dens", "Serve la densità del materiale (quante tonnellate pesa un metro cubo): senza, €/t e €/m³ non si possono convertire."]);
+    else if (!(densita > 0)) err.push(["pr-dens", "Controlla la densità: gli inerti stanno in genere fra 1,2 e 2,8 tonnellate per metro cubo."]);
     if (err.length) { err.forEach(x => segnaErr(x[0], x[1]));
       esito("pr-esito", "Compila i campi evidenziati per " + (editPro ? "salvare la modifica" : "aggiungere il prodotto") + ".", "err");
       primoErrore(PR_CAMPI); return; }
@@ -3177,8 +3274,13 @@ label.item:has(.dw-chk:checked){
   // ══════════════════════════════════════════════════════════════════
   $("btn-pes").onclick = async () => {
     const data = $("pes-data").value, clienteId = $("pes-cli").value, prodottoId = $("pes-prod").value;
-    const lordoTxt = $("pes-lordo").value.trim(), taraTxt = $("pes-tara").value.trim();
-    const lordo = +lordoTxt, tara = +taraTxt;
+    // I pesi arrivano da campi di TESTO e si leggono con numeroDaCampo:
+    // «32,5» è trentadue tonnellate e mezza. Un peso che non si riesce a
+    // leggere ferma il DDT e lo dice: non diventa zero, perché un netto
+    // sbagliato finisce in fattura e nel canone alla Regione.
+    const rl = numCampo("pes-lordo", { positivo: true, max: 500 });
+    const rt = numCampo("pes-tara", { min: 0, max: 500 });
+    const lordo = rl.ok ? rl.valore : NaN, tara = rt.ok ? rt.valore : NaN;
     const mezzo = $("pes-mezzo").value.trim(), destinatario = $("pes-dest").value.trim();
     PES_CAMPI.forEach(puliscoErr);
     const p = PRO.find(x => x.id === prodottoId), c = CLI.find(x => x.id === clienteId);
@@ -3186,9 +3288,12 @@ label.item:has(.dw-chk:checked){
     if (!data) err.push(["pes-data", "Metti la data della consegna: il DDT si emette prima che il camion parta."]);
     if (!c) err.push(["pes-cli", CLI.length ? "Scegli il cliente a cui va la merce." : "Non c'è ancora nessun cliente: aggiungilo dalla scheda Clienti."]);
     if (!p) err.push(["pes-prod", PRO.length ? "Scegli il prodotto consegnato: prezzo, densità e IVA arrivano dal listino." : "Il listino è vuoto: aggiungi prima il prodotto nella scheda Listino, poi torna qui."]);
-    if (!lordoTxt || !(lordo > 0)) err.push(["pes-lordo", "Scrivi il peso lordo del camion carico, in tonnellate."]);
-    else if (lordo > 500) err.push(["pes-lordo", "Sembra un peso in chilogrammi: qui si scrive in tonnellate (32.500 kg = 32,5)."]);
-    if (!taraTxt || !(tara >= 0)) err.push(["pes-tara", "Scrivi la tara, cioè quanto pesa il camion vuoto."]);
+    if (numIllegibile(rl)) err.push(["pes-lordo", spiegaNum("il peso lordo", rl, "t")]);
+    else if (rl.motivo === "sopra-massimo") err.push(["pes-lordo", "Sembra un peso in chilogrammi: qui si scrive in tonnellate (32.500 kg = 32,5)."]);
+    else if (!(lordo > 0)) err.push(["pes-lordo", "Scrivi il peso lordo del camion carico, in tonnellate."]);
+    if (numIllegibile(rt)) err.push(["pes-tara", spiegaNum("la tara", rt, "t")]);
+    else if (rt.motivo === "sopra-massimo") err.push(["pes-tara", "Sembra una tara in chilogrammi: qui si scrive in tonnellate (14.200 kg = 14,2)."]);
+    else if (!(tara >= 0)) err.push(["pes-tara", "Scrivi la tara, cioè quanto pesa il camion vuoto."]);
     else if (lordo > 0 && tara >= lordo) err.push(["pes-tara", "La tara deve essere minore del lordo, altrimenti il netto sarebbe zero o negativo."]);
     if (err.length) { err.forEach(x => segnaErr(x[0], x[1]));
       esito("pes-esito", "Compila i campi evidenziati per registrare la pesata.", "err");
@@ -3278,9 +3383,15 @@ label.item:has(.dw-chk:checked){
   // ══════════════════════════════════════════════════════════════════
   $("btn-can").onclick = async () => {
     const canoneUnita = $("can-unita").value === "t" ? "t" : "m3";
-    const canoneAliquota = +$("can-ali").value || 0;
+    // l'aliquota del canone è di solito sotto l'euro («0,55 €/m³»): senza la
+    // virgola non si può nemmeno scrivere
+    const ra = numCampo("can-ali", { positivo: true, decimali: 4 });
+    const canoneAliquota = ra.ok ? ra.valore : 0;
     const canoneNota = $("can-nota").value.trim();
     puliscoErr("can-ali");
+    if (numIllegibile(ra)) {
+      segnaErr("can-ali", spiegaNum("l'aliquota del canone", ra, "€"));
+      esito("can-esito", "L'aliquota non è un numero leggibile: non è stata salvata.", "err"); return; }
     if (!(canoneAliquota > 0)) {
       segnaErr("can-ali", "Scrivi l'aliquota della tua concessione, in euro per " + (canoneUnita === "t" ? "tonnellata" : "metro cubo") + ".");
       esito("can-esito", "Senza aliquota il canone non si può calcolare.", "err"); return; }
@@ -3312,12 +3423,15 @@ label.item:has(.dw-chk:checked){
   };
 
   $("btn-gar").onclick = async () => {
-    const titolo = $("gar-titolo").value.trim(), base = +$("gar-base").value, scadenza = $("gar-data").value;
+    const titolo = $("gar-titolo").value.trim(), scadenza = $("gar-data").value;
+    const rb = numCampo("gar-base", { positivo: true });
+    const base = rb.ok ? rb.valore : NaN;
     const GAR_CAMPI = ["gar-titolo","gar-base","gar-data"];
     GAR_CAMPI.forEach(puliscoErr);
     if (!titolo || !(base > 0) || !scadenza) {
       if (!titolo) segnaErr("gar-titolo", "Dai un titolo alla gara: serve a riconoscerla nell'elenco.");
-      if (!(base > 0)) segnaErr("gar-base", "Scrivi la base d'asta in euro: deve essere maggiore di zero.");
+      if (numIllegibile(rb)) segnaErr("gar-base", spiegaNum("la base d'asta", rb, "€"));
+      else if (!(base > 0)) segnaErr("gar-base", "Scrivi la base d'asta in euro: deve essere maggiore di zero.");
       if (!scadenza) segnaErr("gar-data", "Indica entro quando va presentata l'offerta.");
       esito("gar-esito", "Compila i campi evidenziati per aggiungere la gara.", "err");
       primoErrore(GAR_CAMPI); return;
@@ -3357,8 +3471,20 @@ label.item:has(.dw-chk:checked){
   $("btn-ft").onclick = async () => {
     const numero = $("ft-num").value.trim(), scelta = $("ft-cli").value,
           nuovoCli = $("ft-cli-nuovo").value.trim(),
-          importo = +$("ft-imp").value, scadenza = $("ft-scad").value,
+          scadenza = $("ft-scad").value,
           aliquota = +$("ft-iva").value || 0;
+    // L'IMPONIBILE è il numero più delicato dell'app: da lui escono IVA e
+    // totale, e da quelli l'aging, i solleciti e l'estratto conto. Si legge
+    // con numeroDaCampo, quindi «1.250,75» sono milleduecentocinquanta euro e
+    // settantacinque, non uno e venticinque come diceva il campo type=number.
+    const ri = numCampo("ft-imp", { positivo: true });
+    const importo = ri.ok ? ri.valore : NaN;
+    if (numIllegibile(ri)) {
+      FT_CAMPI.forEach(puliscoErr);
+      segnaErr("ft-imp", spiegaNum("l'imponibile", ri, "€"));
+      esito("ft-esito", "L'imponibile non è un numero leggibile: la fattura non è stata "
+        + (editFat ? "modificata" : "emessa") + ".", "err");
+      primoErrore(FT_CAMPI); return; }
     // cliente valido = uno scelto dall'anagrafica, oppure un nome per il nuovo
     const campoCli = scelta === "__nuovo" ? "ft-cli-nuovo" : "ft-cli";
     const clienteOk = scelta === "__nuovo" ? !!nuovoCli : !!scelta;

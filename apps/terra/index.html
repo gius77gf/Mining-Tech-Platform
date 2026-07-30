@@ -375,6 +375,12 @@ span.arr svg{width:15px; height:15px}
 
 /* ─────────────── campi (copia di .finput) ─────────────── */
 textarea.dw-input{line-height:1.5}
+/* CAMPI DECIMALI: sono <input type="text" inputmode="decimal"> perché la
+   virgola italiana deve poter entrare (vedi numeroDaCampo in terra-data.js).
+   Restano identici agli altri campi — nessuna cornice propria, nessun
+   allineamento diverso — con la sola aggiunta delle cifre a larghezza fissa,
+   che serve davvero quando si confrontano volumi fra un campo e l'altro. */
+.dw-input.dec{font-variant-numeric:tabular-nums}
 
 /* etichetta di campo: stessa forma delle etichette di modale del core */
 .fl{
@@ -496,13 +502,13 @@ a.dw-btn{text-decoration:none}
     </div>
     <div class="frow">
       <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-superficie">Superficie autorizzata (<span class="u">m²</span>)</label>
-        <input class="dw-input" id="aut-superficie" type="number" min="0" placeholder="es. 78000"></div>
+        <input class="dw-input dec" id="aut-superficie" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 78000" title="Superficie autorizzata in metri quadri. La virgola va benissimo: 78412,50."></div>
       <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-volume">Volume totale autorizzato (<span class="u">m³</span>)</label>
-        <input class="dw-input" id="aut-volume" type="number" min="0" placeholder="es. 1200000"></div>
+        <input class="dw-input dec" id="aut-volume" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 1200000" title="Volume totale concesso dall atto, in metri cubi. La virgola va benissimo: 1200000,50."></div>
     </div>
     <div class="frow">
       <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-pregresso">Già estratto prima di Terra (<span class="u">m³</span>)</label>
-        <input class="dw-input" id="aut-pregresso" type="number" min="0" placeholder="0"></div>
+        <input class="dw-input dec" id="aut-pregresso" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0" title="Metri cubi gia estratti sotto questo atto prima di usare Terra. La virgola va benissimo."></div>
       <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-materiale">Materiale autorizzato</label>
         <input class="dw-input" id="aut-materiale" placeholder="es. Sabbia e ghiaia"></div>
     </div>
@@ -576,7 +582,7 @@ a.dw-btn{text-decoration:none}
       <div class="fld" style="flex:1 1 100px;"><label class="fl" for="fro-banco">Banco</label>
         <input class="dw-input" id="fro-banco" placeholder="es. B2"></div>
       <div class="fld" style="flex:1 1 110px;"><label class="fl" for="fro-quota">Quota (m)</label>
-        <input class="dw-input" id="fro-quota" type="number" placeholder="es. 148"></div>
+        <input class="dw-input dec" id="fro-quota" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 148" title="Quota del fronte in metri. La virgola va benissimo: 148,50."></div>
       <button class="dw-btn" id="btn-fro">Aggiungi</button>
     </div>
   </div>
@@ -631,9 +637,9 @@ a.dw-btn{text-decoration:none}
       <div class="fld" style="flex:2 1 190px;"><label class="fl" for="val-materiale">Materiale</label>
         <select class="dw-input" id="val-materiale" title="Riempie la densità con un valore tipico del litotipo"><option value="">— scegli —</option></select></div>
       <div class="fld" style="flex:1 1 120px;"><label class="fl" for="val-densita">Densità (<span class="u">t/m³</span>)</label>
-        <input class="dw-input" id="val-densita" type="number" step="0.1" min="0" value="1.6"></div>
+        <input class="dw-input dec" id="val-densita" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="1,6" title="Quante tonnellate pesa un metro cubo di questo materiale. La virgola va benissimo: 1,6."></div>
       <div class="fld" style="flex:1 1 120px;"><label class="fl" for="val-prezzo">Prezzo (<span class="u">€/t</span>)</label>
-        <input class="dw-input" id="val-prezzo" type="number" step="0.5" min="0" value="12"></div>
+        <input class="dw-input dec" id="val-prezzo" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="12" title="Prezzo in euro per tonnellata. La virgola va benissimo: 12,50."></div>
     </div>
     <div class="form-hint" id="val-dens-nota"></div>
   </div>
@@ -647,7 +653,7 @@ a.dw-btn{text-decoration:none}
       <div class="fld" style="flex:1 1 150px;"><label class="fl" for="new-ril-data">Data del rilievo</label>
         <input class="dw-input" id="new-ril-data" type="date"></div>
       <div class="fld" style="flex:1 1 130px;"><label class="fl" for="new-ril-vol">Volume (<span class="u">m³</span>)</label>
-        <input class="dw-input" id="new-ril-vol" type="number" min="0" placeholder="es. 4200"></div>
+        <input class="dw-input dec" id="new-ril-vol" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 4200" title="Volume misurato in metri cubi. La virgola va benissimo: 4200,5."></div>
     </div>
     <div class="frow">
       <div class="fld" style="flex:2 1 190px;"><label class="fl" for="new-ril-prov">Provenienza del volume</label>
@@ -662,7 +668,7 @@ a.dw-btn{text-decoration:none}
           <option value="senza GCP">senza GCP</option>
         </select></div>
       <div class="fld" style="flex:1 1 120px;"><label class="fl" for="new-ril-gsd">GSD (cm)</label>
-        <input class="dw-input" id="new-ril-gsd" type="number" min="0" step="0.1" placeholder="es. 2,5"></div>
+        <input class="dw-input dec" id="new-ril-gsd" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 2,5" title="Dimensione del pixel a terra, in centimetri. La virgola va benissimo: 2,5."></div>
     </div>
     <div class="frow">
       <div class="fld" style="flex:3 1 220px;"><label class="fl" for="new-ril-rilevatore">Eseguito da</label>
@@ -864,9 +870,41 @@ a.dw-btn{text-decoration:none}
            autorizzazioneVigente, vitaCava, statoScadenzaTerra, livelloScadenzaTerra, prossimaData, riepilogoScadenze, TIPI_SCADENZA_TERRA, presetScadenzaTerra, etichettaTipoScadenza,
            provenienzaRilievo, soloScavo, soloCumulo, PROVENIENZE, etichettaProvenienza,
            anniConVolumi, riepilogoAnnuale, serieAnnuale,
-           rilieviScavoFronte, rilievoPrecedente, confrontoRilievi } from "./terra-data.js";
+           rilieviScavoFronte, rilievoPrecedente, confrontoRilievi,
+           numeroDaCampo, AVVISO_DECIMALE } from "./terra-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
+  // ── CAMPI DECIMALI SCRITTI A MANO ─────────────────────────────────────
+  // Volumi, densità, quote e GSD si scrivono in campi
+  // <input type="text" inputmode="decimal">, non type=number: in un
+  // type=number la virgola italiana non entra — «2,4» diventava «24» e
+  // «4.200» valeva 4,2 metri cubi. Il numero lo legge numeroDaCampo
+  // (terra-data.js); qui ci sono gli attrezzi di chi usa quei campi.
+  //
+  // itDec scrive un numero DENTRO un campo, all'italiana e senza perdere
+  // cifre: `n0`/`un1` sono per LEGGERE (arrotondano per stare in riga), e
+  // arrotondare dentro un campo cancellerebbe decimali veri al salvataggio.
+  // Niente separatore delle migliaia: un campo che si rilegge non deve
+  // costringere nessuno a indovinare cosa significa il punto.
+  const itDec = (v) => { const s = String(v == null ? "" : v).trim(); return s === "" ? "" : s.replace(".", ","); };
+  const numCampo = (id, opts) => numeroDaCampo(($(id) ? $(id).value : ""), opts || {});
+  // vero quando il campo contiene qualcosa che NON si riesce a leggere come
+  // numero: lì bisogna fermarsi e dirlo, mai salvare uno zero al suo posto
+  const numIllegibile = (r) => !r.ok && !r.vuoto && (r.motivo === "ambiguo" || r.motivo === "non-numero");
+  // Messaggio d'errore di un campo numerico: dice COSA non torna e come si
+  // scrive quel numero. Mai «valore non valido», che non insegna niente.
+  const spiegaNum = (che, r, unita) => {
+    const u = unita ? " " + unita : "";
+    if (r.motivo === "ambiguo")
+      return "Non riesco a capire " + che + ": «" + r.grezzo + "» può voler dire "
+        + r.letture[0].toLocaleString("it-IT") + u + " oppure " + r.letture[1].toLocaleString("it-IT") + u
+        + ", e fra i due c'è mille volte di differenza. In Italia il punto separa le migliaia, "
+        + "ma nei numeri lo usa anche il computer per i decimali: scrivi «" + itDec(r.letture[0])
+        + "» se intendevi il primo, «" + itDec(r.letture[1]) + "» se intendevi il secondo.";
+    if (r.motivo === "non-numero")
+      return "Non riesco a leggere un numero in «" + r.grezzo + "»: serve " + che + ". " + AVVISO_DECIMALE;
+    return "";
+  };
   const FB = { attivo: ["ok","Attivo"], sospeso: ["warn","Sospeso"] };
   const RB = { elaborato: ["ok","Elaborato"], pianificato: ["warn","Pianificato"] };
   const PB = { vigente: ["ok","Vigente"], "in-esame": ["warn","In esame"] };
@@ -965,7 +1003,7 @@ a.dw-btn{text-decoration:none}
     $("fro-list").innerHTML = FRO.map(f => { const v = volFronte(f.id);
       return `<div class="item ${f.stato === "attivo" ? "st-accent" : "st-warn"}" data-fro="${f.id}" title="Tocca per sospendere o riattivare il fronte">
       <div class="avatar">${esc(sig(f.nome))}</div>
-      <div class="info"><div class="name">${esc(f.nome)}${f.banco ? " — " + esc(f.banco) : ""}</div><div class="meta">Quota ${f.quota} m · avanzamento ${f.avanzamento}%${v ? " · estratti " + fmtM3(v) + " m³ (rilievi)" : ""}${f.dettaglio ? " · " + esc(f.dettaglio) : ""}</div></div>
+      <div class="info"><div class="name">${esc(f.nome)}${f.banco ? " — " + esc(f.banco) : ""}</div><div class="meta">Quota ${nD(f.quota)} m · avanzamento ${f.avanzamento}%${v ? " · estratti " + fmtM3(v) + " m³ (rilievi)" : ""}${f.dettaglio ? " · " + esc(f.dettaglio) : ""}</div></div>
       <div class="acts"><span class="badge ${FB[f.stato][0]}">${FB[f.stato][1]}</span>
       <button class="arr" type="button" title="Modifica nome, banco e quota" aria-label="Modifica il fronte ${esc(f.nome)}" data-edit-fro="${f.id}">${A.mod}</button></div></div>`; }).join("")
       || vuoto(I.monte, "Nessun fronte registrato",
@@ -1277,6 +1315,10 @@ a.dw-btn{text-decoration:none}
   // ---------------- TITOLO: autorizzazione, vita cava, scadenzario ----------
   const SB = { scaduta: ["danger","Scaduta"], "in-scadenza": ["warn","In scadenza"], "a-posto": ["ok","A posto"] };
   const n0 = (v) => Math.round(+v || 0).toLocaleString("it-IT");
+  // numero all'italiana coi decimali che ha (fino a due): serve dove
+  // arrotondare cancellerebbe una misura — una quota di 148,5 m non è 149 m,
+  // e 148.5 col punto inglese non è nemmeno italiano
+  const nD = (v) => v == null || v === "" ? "—" : (+v).toLocaleString("it-IT", { maximumFractionDigits: 2 });
   const fmtData = (iso) => /^\d{4}-\d{2}-\d{2}$/.test(String(iso||"")) ? iso.slice(8,10)+"/"+iso.slice(5,7)+"/"+iso.slice(0,4) : "—";
   const un1 = (v) => (Math.round(v * 10) / 10).toLocaleString("it-IT");
 
@@ -1708,23 +1750,44 @@ a.dw-btn{text-decoration:none}
     const v = (id, val) => $(id).value = (val == null ? "" : val);
     v("aut-numero", a && a.numeroAtto); v("aut-ente", a && a.ente);
     v("aut-rilascio", a && a.dataRilascio); v("aut-scadenza", a && a.dataScadenza);
-    v("aut-superficie", a && a.superficieMq); v("aut-volume", a && a.volumeAutorizzatoM3);
-    v("aut-pregresso", a && a.estrattoPregressoM3); v("aut-materiale", a && a.materiale);
+    // i tre numeri dell'atto tornano nel campo scritti all'italiana: un campo
+    // che rimanda «1200000.5» a chi ha scritto «1200000,5» rimprovera l'utente
+    // per come scrive
+    $("aut-superficie").value = itDec(a && a.superficieMq);
+    $("aut-volume").value = itDec(a && a.volumeAutorizzatoM3);
+    $("aut-pregresso").value = itDec(a && a.estrattoPregressoM3);
+    v("aut-materiale", a && a.materiale);
     v("aut-prescrizioni", a && a.prescrizioni); v("aut-riferimenti", a && a.riferimenti);
     $("aut-soglia").value = a && a.sogliaGuardiaPct != null ? a.sogliaGuardiaPct : 80;
     $("aut-anni").value = a && a.anniRitmo != null ? a.anniRitmo : 3;
     $("aut-preavviso").value = a && a.preavvisoGiorni != null ? a.preavvisoGiorni : 60;
   }
+  // Campi decimali dell'atto e limiti con cui si leggono. Superficie e volumi
+  // non hanno un massimo: un atto può concedere qualunque cifra, e inventarne
+  // uno vorrebbe dire rifiutare l'atto vero di qualcuno.
+  const NUM_AUT = [
+    ["aut-superficie", "la superficie autorizzata", "m²"],
+    ["aut-volume", "il volume totale autorizzato", "m³"],
+    ["aut-pregresso", "il già estratto", "m³"],
+  ];
   function leggiFormAut() {
     const t = (id) => $(id).value.trim();
-    const num = (id) => { const n = parseFloat($(id).value); return Number.isFinite(n) && n >= 0 ? n : null; };
+    // i tre numeri dell'atto sono campi di TESTO: si leggono con numeroDaCampo,
+    // così «1.200.000» sono un milione e duecentomila metri cubi. Un numero che
+    // non si legge resta null — e null NON è zero: un volume concesso a zero
+    // spegnerebbe il contatore vita cava fingendo che l'atto non conceda niente.
+    const num = (id) => { const r = numCampo(id, { min: 0 }); return r.ok ? r.valore : null; };
+    // gli INTERI restano <input type="number">: giorni, anni e una soglia in
+    // percentuale non hanno decimali, e lì lo spinner del browser è un aiuto
+    const numInt = (id) => { const n = parseFloat($(id).value); return Number.isFinite(n) && n >= 0 ? n : null; };
+    const pregresso = num("aut-pregresso");
     return {
       numeroAtto: t("aut-numero"), ente: t("aut-ente") || null,
       dataRilascio: t("aut-rilascio") || null, dataScadenza: t("aut-scadenza") || null,
       superficieMq: num("aut-superficie"), volumeAutorizzatoM3: num("aut-volume"),
-      estrattoPregressoM3: num("aut-pregresso") || 0, materiale: t("aut-materiale") || null,
+      estrattoPregressoM3: pregresso == null ? 0 : pregresso, materiale: t("aut-materiale") || null,
       prescrizioni: t("aut-prescrizioni") || null, riferimenti: t("aut-riferimenti") || null,
-      sogliaGuardiaPct: num("aut-soglia"), anniRitmo: num("aut-anni"), preavvisoGiorni: num("aut-preavviso"),
+      sogliaGuardiaPct: numInt("aut-soglia"), anniRitmo: numInt("aut-anni"), preavvisoGiorni: numInt("aut-preavviso"),
     };
   }
   $("btn-aut-salva").onclick = async () => {
@@ -1732,6 +1795,19 @@ a.dw-btn{text-decoration:none}
     if (!d.numeroAtto) { err("aut-numero", true); fuoco("aut-numero");
       esito("aut-esito", "Serve almeno il numero dell'atto per identificare l'autorizzazione.", "err"); return; }
     err("aut-numero", false);
+    // Un numero dell'atto che non si riesce a leggere ferma il salvataggio: la
+    // scheda dell'autorizzazione è il documento da cui Terra ricava quanto
+    // volume resta, e un metro cubo sbagliato lì sbaglia tutto il contatore.
+    for (const [id, che, unita] of NUM_AUT) {
+      const r = numCampo(id, { min: 0 });
+      err(id, false);
+      if (numIllegibile(r)) {
+        err(id, true); fuoco(id);
+        esito("aut-esito", spiegaNum(che, r, unita) + " La scheda non è stata salvata.", "err"); return; }
+      if (r.motivo === "sotto-minimo") {
+        err(id, true); fuoco(id);
+        esito("aut-esito", "Un valore negativo non ha senso per " + che + ": la scheda non è stata salvata.", "err"); return; }
+    }
     const senzaVolume = d.volumeAutorizzatoM3 ? "" : " Senza il volume totale autorizzato il contatore vita cava resta spento.";
     if (editAut) {
       await db.aggiorna("autorizzazioni", editAut, d);
@@ -1885,7 +1961,14 @@ a.dw-btn{text-decoration:none}
     // stesso metro cubo
     const volAnno = soloScavo(dellAnno).reduce((s, r) => s + r.volumeM3, 0);
     const volCum = soloCumulo(dellAnno).reduce((s, r) => s + r.volumeM3, 0);
-    const dens = $("val-densita").value, prezzo = $("val-prezzo").value;
+    // densità e prezzo si scrivono a mano, con la virgola: «1,6» e «12,50».
+    // Se uno dei due non si legge il riquadro NON mostra un valore a zero (che
+    // sembrerebbe un materiale senza valore): dice cosa non ha capito.
+    const rd = numCampo("val-densita", { min: 0.3, max: 5, decimali: 3 });
+    const rp = numCampo("val-prezzo", { min: 0, decimali: 2 });
+    const rotto = numIllegibile(rd) ? ["la densità", rd, "t/m³"] : numIllegibile(rp) ? ["il prezzo", rp, "€/t"] : null;
+    if (rotto) { $("val-out").innerHTML = esc(spiegaNum(rotto[0], rotto[1], rotto[2])); return; }
+    const dens = rd.ok ? rd.valore : 0, prezzo = rp.ok ? rp.valore : 0;
     const { tonnellate, valore } = valoreMateriale(volAnno, dens, prezzo);
     const eur = (n) => "€ " + Math.round(n).toLocaleString("it-IT");
     const ton = (n) => Math.round(n).toLocaleString("it-IT");
@@ -1903,8 +1986,8 @@ a.dw-btn{text-decoration:none}
   $("val-materiale").addEventListener("change", (e) => {
     const p = presetDensita(e.target.value);
     if (p) {
-      $("val-densita").value = p.densita;
-      $("val-dens-nota").textContent = `Densità tipica (${p.densita} t/m³, fonte: ${p.fonte}) — valore da confermare col laboratorio.`;
+      $("val-densita").value = itDec(p.densita);
+      $("val-dens-nota").textContent = `Densità tipica (${itDec(p.densita)} t/m³, fonte: ${p.fonte}) — valore da confermare col laboratorio.`;
     } else $("val-dens-nota").textContent = "";
     renderValore();
   });
@@ -2022,7 +2105,9 @@ a.dw-btn{text-decoration:none}
         : "Scavo dal fronte — materiale nuovo tolto dalla cava"],
       ["Tipo di elaborato", r.tipo ? esc(r.tipo) : "non indicato"],
       ["Metodo di rilievo", r.metodo ? esc(r.metodo) : "non dichiarato"],
-      ["GSD (dimensione del pixel a terra)", r.gsd != null && String(r.gsd).trim() !== "" ? esc(String(r.gsd)) + " cm" : "non dichiarato"],
+      // il GSD sul verbale si scrive all'italiana: «2,5 cm». Il foglio va a un
+      // ente italiano, e i rilievi importati da CSV possono averlo col punto.
+      ["GSD (dimensione del pixel a terra)", r.gsd != null && String(r.gsd).trim() !== "" ? esc(itDec(r.gsd)) + " cm" : "non dichiarato"],
       ["Classe di accuratezza", ca.classe === "n.d." ? "non determinabile (metodo e GSD non dichiarati)"
         : ca.label + " — tolleranza tipica ± " + ca.tolleranzaPct + "%"],
       ["Volume misurato", "<b>" + n0(r.volumeM3) + " m³</b>"
@@ -2140,10 +2225,16 @@ a.dw-btn{text-decoration:none}
       const v = await chiediValore("Volume annuo pianificato",
         "Quanti m³ prevedi di estrarre in un anno su <b>«" + esc(p.titolo) + "»</b>?<br><br>"
         + "È il numero con cui Terra calcola l'<b>avanzamento del piano</b> e la <b>proiezione di fine anno</b>: mettici quello che hai scritto nel tuo programma di coltivazione.",
-        '<label class="fl" for="modal-campo">Volume annuo (m³)</label><input class="dw-input" id="modal-campo" type="number" min="1" value="' + (p.pianificatoAnnuoM3 || "") + '">',
+        '<label class="fl" for="modal-campo">Volume annuo (m³)</label><input class="dw-input dec" id="modal-campo" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" title="Metri cubi previsti in un anno. La virgola va benissimo." value="' + esc(itDec(p.pianificatoAnnuoM3)) + '">',
         "Salva");
       if (v == null) return;
-      const m3 = parseInt(String(v).replace(/\./g, ""), 10);
+      // il `parseInt(String(v).replace(/\./g, ""))` di prima trattava OGNI punto
+      // come separatore delle migliaia: «125.5» diventava 1255 metri cubi.
+      // Adesso il numero passa da numeroDaCampo come tutti gli altri.
+      const rm = numeroDaCampo(v, { positivo: true, decimali: 2 });
+      const m3 = rm.ok ? rm.valore : NaN;
+      if (numIllegibile(rm)) {
+        esito("terra-esito", spiegaNum("il volume annuo pianificato", rm, "m³") + " Il piano è rimasto com'era.", "err"); return; }
       if (!(m3 > 0)) { esito("terra-esito", "Serve un volume annuo maggiore di zero: il piano è rimasto com'era.", "err"); return; }
       await db.aggiorna("piano", p.id, { pianificatoAnnuoM3: m3 });
       esito("terra-esito", "Piano annuo di «" + p.titolo + "» portato a " + n0(m3) + " m³.");
@@ -2154,7 +2245,7 @@ a.dw-btn{text-decoration:none}
       if (editFro === f.id) {   // ri-tocco la matita dello stesso fronte = annulla
         annullaEditFronte(); esito("fro-esito", "Modifica annullata."); return; }
       editFro = f.id;
-      $("fro-nome").value = f.nome || ""; $("fro-banco").value = f.banco || ""; $("fro-quota").value = f.quota != null ? f.quota : "";
+      $("fro-nome").value = f.nome || ""; $("fro-banco").value = f.banco || ""; $("fro-quota").value = itDec(f.quota);
       ["fro-nome","fro-banco","fro-quota"].forEach(i => err(i, false));
       $("btn-fro").textContent = "Salva modifica";
       $("fro-form-sec").textContent = "Fronte in modifica";
@@ -2186,7 +2277,16 @@ a.dw-btn{text-decoration:none}
     esito("terra-esito", "Esportati " + FRO.length + " fronti e " + RIL.length + " rilievi (CSV).");
   };
   $("btn-fro").onclick = async () => {
-    const nome = $("fro-nome").value.trim(), banco = $("fro-banco").value.trim(), quota = +$("fro-quota").value || 0;
+    const nome = $("fro-nome").value.trim(), banco = $("fro-banco").value.trim();
+    // la quota è una misura topografica: 148,50 m s.l.m. è un numero normale su
+    // un profilo di cava, e si scrive con la virgola. Può essere negativa (una
+    // cava in fossa sta sotto il livello del mare), quindi nessun minimo.
+    const rq = numCampo("fro-quota", { decimali: 2 });
+    err("fro-quota", false);
+    if (numIllegibile(rq)) {
+      err("fro-quota", true); fuoco("fro-quota");
+      esito("fro-esito", spiegaNum("la quota del fronte", rq, "m") + " Il fronte non è stato salvato.", "err"); return; }
+    const quota = rq.ok ? rq.valore : 0;
     if (!nome) { err("fro-nome", true); fuoco("fro-nome");
       esito("fro-esito", "Serve il nome del fronte: è quello che leggerai nelle liste e nei rilievi.", "err"); return; }
     if (FRO.some(f => f.nome.toLowerCase() === nome.toLowerCase() && f.id !== editFro)) {
@@ -2220,21 +2320,43 @@ a.dw-btn{text-decoration:none}
     await refresh();
   };
   $("btn-add-ril").onclick = async () => {
-    const data = $("new-ril-data").value, vol = parseInt($("new-ril-vol").value, 10);
+    const data = $("new-ril-data").value;
+    // Il volume del rilievo è il numero che consuma il volume concesso: qui
+    // `parseInt` non basta più. Prima era `parseInt(value, 10)` su un
+    // type=number, e chi scriveva «4.200» (quattromiladuecento, come si scrive
+    // in Italia) si vedeva salvare 4 metri cubi. Ora si legge con
+    // numeroDaCampo, e un volume che non si capisce ferma la registrazione
+    // invece di finire a zero: un rilievo a zero metri cubi è un rilievo che
+    // dice «non è stato tolto niente», e all'ente è una dichiarazione falsa.
+    const rv = numCampo("new-ril-vol", { min: 0, decimali: 2 });
+    const vol = rv.ok ? rv.valore : NaN;
     const futuro = data && data > new Date().toISOString().slice(0,10);
     if (!data) {
       err("new-ril-data", true); fuoco("new-ril-data");
       esito("ril-esito", "Manca la data del rilievo: è lei a dire se il rilievo è già stato fatto o va messo in calendario.", "err"); return;
     }
+    if (!futuro && numIllegibile(rv)) {
+      err("new-ril-data", false); err("new-ril-vol", true); fuoco("new-ril-vol");
+      esito("ril-esito", spiegaNum("il volume del rilievo", rv, "m³") + " Il rilievo non è stato registrato.", "err"); return;
+    }
     if (!futuro && !(vol > 0)) {
       err("new-ril-data", false); err("new-ril-vol", true); fuoco("new-ril-vol");
       esito("ril-esito", "Per un rilievo già eseguito serve il volume in m³. Se invece il rilievo deve ancora avvenire, metti una data futura: il volume non serve.", "err"); return;
     }
-    err("new-ril-vol", false); err("new-ril-data", false);
+    // il GSD è la dimensione del pixel a terra: «2,5» cm si scrive con la
+    // virgola, e da quel numero passa la classe di accuratezza del rilievo
+    const rg = numCampo("new-ril-gsd", { positivo: true, decimali: 2 });
+    if (numIllegibile(rg)) {
+      err("new-ril-vol", false); err("new-ril-gsd", true); fuoco("new-ril-gsd");
+      esito("ril-esito", spiegaNum("il GSD", rg, "cm") + " Il rilievo non è stato registrato.", "err"); return;
+    }
+    err("new-ril-gsd", false); err("new-ril-vol", false); err("new-ril-data", false);
     const fronteId = $("new-ril-fronte").value || null;
     const fr = FRO.find(f => f.id === fronteId);
     const metodo = $("new-ril-metodo").value || null;
-    const gsd = $("new-ril-gsd").value.trim() || null;
+    // il GSD si salva come NUMERO: fin qui era la stringa grezza del campo, e
+    // una stringa «2.5» tornava a schermo col punto inglese sul verbale
+    const gsd = rg.ok ? rg.valore : null;
     const rilevatore = $("new-ril-rilevatore").value.trim() || null;
     const prov = provenienzaRilievo({ provenienza: $("new-ril-prov").value });
     if (futuro) {
@@ -2283,7 +2405,7 @@ a.dw-btn{text-decoration:none}
     const prov = provenienzaRilievo({ provenienza: scelta });
     const oggiISO = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
     $("new-ril-data").value = oggiISO;
-    $("new-ril-vol").value = vol;
+    $("new-ril-vol").value = itDec(vol);
     $("new-ril-metodo").value = "senza GCP";   // drone consumer: scala approssimata, onesto
     $("new-ril-prov").value = prov; notaProv();
     err("new-ril-data", false); err("new-ril-vol", false);

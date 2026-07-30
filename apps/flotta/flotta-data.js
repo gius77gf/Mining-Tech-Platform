@@ -92,6 +92,149 @@ export function oggiIso(oggi = new Date()) {
 }
 const isoIndietro = (giorni) => oggiIso(new Date(Date.now() - giorni * 86400000));
 
+// ══════════════════════════════════════════════════════════════════════
+// UN NUMERO SCRITTO A MANO IN CAVA (30/07)
+// In cava chi compila è italiano e scrive «2,4». Un <input type="number">
+// NON è neutro rispetto alla virgola: la specifica HTML gli impone come
+// valore un «valid floating-point number», cioè col PUNTO, e il browser
+// sanifica quello che si digita PRIMA che il codice lo veda. Misurato in
+// Chromium sui campi di Flotta, in locale en-US e it-IT allo stesso modo:
+//   digitato «2,4»       → .value «24»       e checkValidity() true
+//   digitato «1.250,75»  → .value «1.25075»
+// Non un campo vuoto: un numero dieci volte più grande dichiarato valido, e
+// un prezzo di 1.250,75 € che entra nel registro costi come 1,25 €. Il
+// `replace(",", ".")` che i validatori facevano era codice morto, perché la
+// virgola era già stata buttata via. In Flotta questo colpisce i SOLDI e i
+// CONSUMI: litri di gasolio, euro, ore di manodopera, tariffe orarie,
+// prezzi dei ricambi, letture del contatore.
+// Da qui in poi i campi decimali sono <input type="text" inputmode="decimal">
+// (sul telefono resta la tastiera numerica) e il numero lo legge questa
+// funzione. Il prezzo da pagare è che min/max/step del browser non valgono
+// più: la validazione è nostra, ed è qui.
+// Accetta «2,4» · «2.4» · «1.250,75» · «1,250.75» · «1 250,75» · «€ 12,50».
+// RIFIUTA invece di indovinare due cose:
+//  · quello che non ha forma di numero («2,4,5» non è 245);
+//  · l'AMBIGUO «1.250», dove un separatore solo seguito da esattamente tre
+//    cifre può voler dire milleduecentocinquanta o uno virgola due-cinque.
+//    numIt sceglierebbe 1,25; su un importo è un errore da mille volte, e
+//    l'unica risposta onesta è chiederlo a chi scrive.
+// Ritorna { vuoto, ok, valore, grezzo, motivo } — il messaggio lo scrive chi
+// chiama, perché il messaggio giusto dipende dal campo. Pura e testabile.
+// ══════════════════════════════════════════════════════════════════════
+export const AVVISO_DECIMALE =
+  "Va bene sia la virgola sia il punto: «2,4» e «2.4» sono lo stesso numero.";
+export const AVVISO_MIGLIAIA =
+  "Scrivilo senza il punto delle migliaia: «1250», non «1.250».";
+
+// spazi di ogni tipo (anche quelli “fini” che arrivano dal foglio di calcolo)
+// e il simbolo dell'euro: chi scrive «€ 12,50» ha scritto un numero
+const RIPULISCI = /[\s\u00a0\u2007\u2009\u202f\u20ac]/g;
+// le forme ammesse, in chiaro: intero · decimale con un separatore solo ·
+// solo decimali («,75») · migliaia raggruppate a tre a tre all'italiana o
+// all'inglese. Tutto il resto non è un numero e non si tira a indovinare.
+const FORME = [
+  /^[+-]?\d+$/,
+  /^[+-]?\d+[.,]\d+$/,
+  /^[+-]?[.,]\d+$/,
+  /^[+-]?\d{1,3}(\.\d{3})+(,\d+)?$/,
+  /^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$/,
+];
+// un separatore solo, esattamente tre cifre dopo e non più di tre prima:
+// «1.250» e «1,250» si leggono in due modi e nessuno dei due è più vero
+const AMBIGUO = /^[+-]?\d{1,3}[.,]\d{3}$/;
+
+export function numeroDaCampo(testo, opts = {}) {
+  const grezzo = String(testo == null ? "" : testo).trim();
+  const s = grezzo.replace(RIPULISCI, "").replace(/^\+/, "");
+  if (s === "") return { vuoto: true, ok: false, valore: null, grezzo, motivo: "vuoto" };
+  if (!FORME.some((r) => r.test(s)))
+    return { vuoto: false, ok: false, valore: null, grezzo, motivo: "non-numero" };
+  if (opts.migliaia !== false && AMBIGUO.test(s))
+    // le DUE letture possibili viaggiano col risultato: solo così il messaggio
+    // può mostrarle entrambe invece di dire un generico «numero non valido»
+    return { vuoto: false, ok: false, valore: null, grezzo, motivo: "ambiguo",
+             letture: [+s.replace(/[.,]/g, ""), numIt(s)] };
+  const n = numIt(s);
+  if (!Number.isFinite(n))
+    return { vuoto: false, ok: false, valore: null, grezzo, motivo: "non-numero" };
+  if (opts.intero && !Number.isInteger(n))
+    return { vuoto: false, ok: false, valore: n, grezzo, motivo: "non-intero" };
+  if (opts.positivo && !(n > 0))
+    return { vuoto: false, ok: false, valore: n, grezzo, motivo: "non-positivo" };
+  const min = opts.min == null ? null : +opts.min;
+  if (min != null && n < min)
+    return { vuoto: false, ok: false, valore: n, grezzo, motivo: "sotto-minimo" };
+  const max = opts.max == null ? null : +opts.max;
+  if (max != null && n > max)
+    return { vuoto: false, ok: false, valore: n, grezzo, motivo: "sopra-massimo" };
+  // arrotondamento all'ultima cifra che ha senso per il campo: due decimali
+  // di default, che è la precisione dei soldi e dei litri di Flotta
+  const dec = opts.decimali == null ? 2 : Math.max(0, +opts.decimali || 0);
+  const p = Math.pow(10, dec);
+  return { vuoto: false, ok: true, valore: Math.round(n * p) / p, grezzo, motivo: "" };
+}
+
+// Un numero INTERO scritto a mano: giorni, mesi. Stesse regole, più il
+// vincolo che non ci siano decimali (mezzo mese non esiste).
+export function interoDaCampo(testo, opts = {}) {
+  return numeroDaCampo(testo, { ...opts, intero: true, decimali: 0 });
+}
+
+// Come si SCRIVE un numero DENTRO un campo di testo (non a schermo): con la
+// virgola decimale, perché è quella che l'utente rileggerà e ribatterà, e
+// MAI col punto delle migliaia, che rientrerebbe da `numeroDaCampo` come
+// ambiguo e farebbe rifiutare un valore proposto dall'app stessa.
+export function perCampo(v, decimali = 2) {
+  if (v == null || v === "" || !Number.isFinite(+v)) return "";
+  return (+v).toLocaleString("it-IT", { useGrouping: false, maximumFractionDigits: Math.max(0, decimali) });
+}
+
+// Come si LEGGE un numero dentro un messaggio a schermo: all'italiana e CON
+// il punto delle migliaia, che è come si scrive un migliaio in Italia. È il
+// contrario di perCampo, e la differenza non è un vezzo: dentro un campo il
+// punto delle migliaia rientrerebbe come ambiguo, dentro una frase serve.
+const mostra = (v, dec = 2) =>
+  Number.isFinite(+v) ? (+v).toLocaleString("it-IT", { maximumFractionDigits: Math.max(0, dec) }) : "";
+
+// IL MESSAGGIO di un numero che non si è potuto leggere. Sta qui, in un posto
+// solo, perché i validatori di riga e le schermate dicono la stessa cosa: se
+// la frase la scrive ognuno per conto suo, una frase sbagliata diventa tre
+// difetti. `cosa` è il nome del dato come lo chiama l'utente («i litri
+// messi», «il prezzo del pezzo»): la frase deve nominare il campo, altrimenti
+// in un form con cinque caselle non si sa quale correggere.
+// Non dice MAI «valore non valido»: dice cosa c'è scritto e cosa fare.
+// Ogni frase è costruita perché `cosa` non ci vada mai in posizione di
+// soggetto: «le ore di lavoro deve essere…» è un errore di grammatica che
+// nasce da sé se si concatenano le parole senza pensarci, e un messaggio
+// scritto male fa sembrare rotto anche quello che funziona.
+export function messaggioNumero(r, cosa, opts = {}) {
+  const q = "«" + String((r && r.grezzo) || "") + "»";
+  const u = opts.unita ? " " + opts.unita : "";
+  switch (r && r.motivo) {
+    case "vuoto":
+      return "Senza " + cosa + " non posso salvare: scrivi il numero.";
+    case "ambiguo":
+      // qui NON si raggruppa: «1.250 oppure 1,25» ripeterebbe la stringa
+      // ambigua invece di scioglierla
+      return q + " può voler dire " + perCampo(r.letture[0]) + u + " (punto delle migliaia) oppure "
+        + perCampo(r.letture[1]) + u + " (punto decimale), e non voglio indovinare al posto tuo. " + AVVISO_MIGLIAIA;
+    case "non-numero":
+      return "Non riesco a leggere " + cosa + ": " + q + " non è un numero. " + AVVISO_DECIMALE;
+    case "non-intero":
+      return "Per " + cosa + " serve un numero intero: " + q + " non lo è.";
+    case "non-positivo":
+      return "Serve un numero maggiore di zero per " + cosa + ": hai scritto " + q + ".";
+    case "sotto-minimo":
+      return +opts.min === 0
+        ? "Un numero negativo non ha senso per " + cosa + ": hai scritto " + q + "."
+        : "Per " + cosa + " serve almeno " + mostra(opts.min) + u + ": hai scritto " + q + ".";
+    case "sopra-massimo":
+      return "Per " + cosa + " il massimo è " + mostra(opts.max) + u + ": " + q + " è troppo, controlla il numero.";
+    default:
+      return "Non riesco a leggere " + cosa + ": " + q + ". " + AVVISO_DECIMALE;
+  }
+}
+
 // Storico DEMO della disponibilità: giorni RELATIVI a oggi, così l'esempio
 // resta leggibile in qualunque momento lo si guardi. Tre giorni sono saltati
 // di proposito (8, 9 e 4 giorni fa): sono i giorni in cui nessuno ha aperto
@@ -403,11 +546,19 @@ export function validaScadenzaMezzo(dati, oggi = new Date()) {
     else if (g < -3650) errori.dataScadenza = "Data troppo indietro nel tempo (oltre 10 anni fa): controlla l'anno.";
     else if (g > 5475) errori.dataScadenza = "Data troppo lontana (oltre 15 anni): controlla l'anno.";
   }
+  // La periodicità è un numero INTERO di mesi (mezzo mese non esiste), ma va
+  // letta con le stesse regole degli altri campi: «1.000» scritto qui dava 1
+  // — un anno di anticipo su una revisione di legge — e nessuno se ne
+  // accorgeva perché 1 è un valore accettabile.
   let mesi = null;
-  if (d.mesi != null && String(d.mesi).trim() !== "") {
-    const n = Math.round(+d.mesi);
-    if (!Number.isFinite(n) || n < 0 || n > 600) errori.mesi = "La periodicità va da 1 a 600 mesi (lascia vuoto se non si ripete).";
-    else mesi = n > 0 ? n : null;
+  const rm = interoDaCampo(d.mesi, { min: 0, max: 600 });
+  if (!rm.vuoto) {
+    if (!rm.ok) errori.mesi = rm.motivo === "sotto-minimo" || rm.motivo === "sopra-massimo"
+      ? "La periodicità va da 1 a 600 mesi (lascia vuoto se non si ripete)."
+      // niente `unita` qui: la frase direbbe «1 mesi», e un messaggio scritto
+      // male fa sembrare rotto anche quello che funziona
+      : messaggioNumero(rm, "la periodicità in mesi", { min: 0, max: 600 });
+    else mesi = rm.valore > 0 ? rm.valore : null;
   }
   return { ok: Object.keys(errori).length === 0, errori, mesi };
 }
@@ -487,9 +638,14 @@ export function urgenza(dataISO, oggi = new Date()) {
 // segnalare al gestore del parco.
 export function urgenzaOre(orePreviste, oreAttuali) {
   const mancano = orePreviste - (oreAttuali || 0);
-  if (mancano <= 0) return { cls: "danger", label: "SCADUTA (+" + (-mancano) + " h)", mancano };
-  if (mancano <= 50) return { cls: "warn", label: "tra " + mancano + " h", mancano };
-  return { cls: "ok", label: "tra " + mancano + " h", mancano };
+  // il numero sul badge si scrive all'italiana: da quando il contatore può
+  // avere i decimi, «tra 24.5 h» avrebbe messo un punto inglese in mezzo a
+  // una schermata di virgole — e «tra 1000 h» resta «tra 1.000 h» come si
+  // scrive un migliaio in Italia
+  const h = (n) => n.toLocaleString("it-IT", { maximumFractionDigits: 1 });
+  if (mancano <= 0) return { cls: "danger", label: "SCADUTA (+" + h(-mancano) + " h)", mancano };
+  if (mancano <= 50) return { cls: "warn", label: "tra " + h(mancano) + " h", mancano };
+  return { cls: "ok", label: "tra " + h(mancano) + " h", mancano };
 }
 
 // Previsione "leggera": da quante ore mancano a un tagliando e dal ritmo
@@ -984,22 +1140,34 @@ export function prossimoTagliando(man, oreAttuali, dataChiusura) {
 export function validaRifornimento(dati, oreMezzo) {
   const d = dati || {}, errori = {};
   if (!String(d.mezzo || "").trim()) errori.mezzo = "Scegli il mezzo che hai rifornito.";
-  const litri = +String(d.litri == null ? "" : d.litri).replace(",", ".");
-  if (!(litri > 0)) errori.litri = "Scrivi quanti litri hai messo (un numero maggiore di zero).";
-  else if (litri > 20000) errori.litri = "Più di 20.000 litri in un rifornimento: controlla il numero.";
-  const euroTx = String(d.euro == null ? "" : d.euro).trim();
-  let euro = 0;
-  if (euroTx !== "") {
-    euro = +euroTx.replace(",", ".");
-    if (!(euro >= 0)) errori.euro = "La spesa dev'essere un numero da zero in su (lascia vuoto se non la sai).";
-  }
-  const oreTx = String(d.ore == null ? "" : d.ore).trim();
+  // I tre numeri passano da numeroDaCampo: «45,8» litri e «1.250,75» euro
+  // arrivano interi come li ha scritti chi riforniva, e quello che non si
+  // capisce viene DETTO — mai salvato come zero, che su una spesa di gasolio
+  // è un buco nei costi che nessuno ritrova più.
+  const rl = numeroDaCampo(d.litri, { positivo: true, max: 20000 });
+  if (!rl.ok) errori.litri = rl.vuoto
+    ? "Scrivi quanti litri hai messo (un numero maggiore di zero)."
+    : rl.motivo === "sopra-massimo"
+      ? "Più di 20.000 litri in un rifornimento: controlla il numero."
+      : messaggioNumero(rl, "i litri messi", { unita: "l" });
+  const litri = rl.ok ? rl.valore : 0;
+  const re = numeroDaCampo(d.euro, { min: 0 });
+  if (!re.vuoto && !re.ok) errori.euro = re.motivo === "sotto-minimo"
+    ? "La spesa dev'essere un numero da zero in su (lascia vuoto se non la sai)."
+    : messaggioNumero(re, "la spesa del gasolio", { unita: "€", min: 0 });
+  const euro = re.ok ? re.valore : 0;
+  // il contatore tiene UN decimale: i contaore delle macchine contano i
+  // decimi, e arrotondare 1234,8 a 1235 farebbe poi rifiutare la lettura
+  // successiva come «più bassa di quella già registrata»
+  const ro = numeroDaCampo(d.ore, { min: 0, decimali: 1 });
   let ore = null;
-  if (oreTx !== "") {
-    const n = Math.round(+oreTx);
-    if (!Number.isFinite(n) || n < 0) errori.ore = "Il contatore va scritto in ore, un numero da zero in su.";
-    else if (Number.isFinite(+oreMezzo) && n + 0.5 < +oreMezzo) errori.ore = "Il contatore segna meno delle " + Math.round(+oreMezzo) + " ore già registrate sul mezzo: controlla il numero.";
-    else ore = n;
+  if (!ro.vuoto) {
+    if (!ro.ok) errori.ore = ro.motivo === "sotto-minimo"
+      ? "Il contatore va scritto in ore, un numero da zero in su."
+      : messaggioNumero(ro, "le ore del contatore", { unita: "h", min: 0 });
+    else if (Number.isFinite(+oreMezzo) && ro.valore + 0.5 < +oreMezzo)
+      errori.ore = "Il contatore segna meno delle " + mostra(+oreMezzo, 1) + " ore già registrate sul mezzo: controlla il numero.";
+    else ore = ro.valore;
   }
   const iso = String(d.data || "").slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) errori.data = "Serve il giorno del rifornimento.";
@@ -1223,16 +1391,22 @@ export function validaRigaManodopera(riga) {
   const chi = String(r.chi || "").trim();
   if (!chi) errori.chi = "Scrivi chi ci ha lavorato (nome o squadra).";
   else if (chi.length > 60) errori.chi = "Il nome è troppo lungo: bastano poche lettere.";
-  const ore = +String(r.ore == null ? "" : r.ore).replace(",", ".");
-  if (!(ore > 0)) errori.ore = "Scrivi quante ore ci ha messo (un numero maggiore di zero).";
-  else if (ore > 24) errori.ore = "Più di 24 ore in una riga sola: aggiungine una per ogni giornata.";
-  const tx = String(r.tariffa == null ? "" : r.tariffa).trim();
-  let tariffa = 0;
-  if (tx !== "") {
-    tariffa = +tx.replace(",", ".");
-    if (!(tariffa >= 0)) errori.tariffa = "Il costo orario è un numero da zero in su (lascialo vuoto se non lo sai).";
-    else if (tariffa > 1000) errori.tariffa = "Più di 1.000 € l'ora: controlla il numero.";
-  }
+  // «2,5» ore di manodopera sono due ore e mezza, non venticinque: il numero
+  // lo legge numeroDaCampo, e la mezz'ora resta mezz'ora
+  const ro = numeroDaCampo(r.ore, { positivo: true, max: 24 });
+  if (!ro.ok) errori.ore = ro.vuoto
+    ? "Scrivi quante ore ci ha messo (un numero maggiore di zero)."
+    : ro.motivo === "sopra-massimo"
+      ? "Più di 24 ore in una riga sola: aggiungine una per ogni giornata."
+      : messaggioNumero(ro, "le ore di lavoro", { unita: "h" });
+  const ore = ro.ok ? ro.valore : 0;
+  const rt = numeroDaCampo(r.tariffa, { min: 0, max: 1000 });
+  if (!rt.vuoto && !rt.ok) errori.tariffa = rt.motivo === "sotto-minimo"
+    ? "Il costo orario è un numero da zero in su (lascialo vuoto se non lo sai)."
+    : rt.motivo === "sopra-massimo"
+      ? "Più di 1.000 € l'ora: controlla il numero."
+      : messaggioNumero(rt, "il costo orario", { unita: "€", min: 0 });
+  const tariffa = rt.ok ? rt.valore : 0;
   return { ok: Object.keys(errori).length === 0, errori, chi, ore: due(ore), tariffa: due(tariffa) };
 }
 
@@ -1241,16 +1415,23 @@ export function validaRigaRicambio(riga) {
   const r = riga || {}, errori = {};
   const nome = String(r.nome || "").trim();
   if (!nome) errori.nome = "Scegli il ricambio dal magazzino, oppure scrivi il nome del pezzo.";
-  const qta = +String(r.qta == null ? "" : r.qta).replace(",", ".");
-  if (!(qta > 0)) errori.qta = "Scrivi quanti pezzi hai usato (un numero maggiore di zero).";
-  else if (qta > 9999) errori.qta = "Quantità troppo alta: controlla il numero.";
-  const tx = String(r.prezzo == null ? "" : r.prezzo).trim();
-  let prezzo = 0;
-  if (tx !== "") {
-    prezzo = +tx.replace(",", ".");
-    if (!(prezzo >= 0)) errori.prezzo = "Il prezzo è un numero da zero in su (lascialo vuoto se non lo sai).";
-    else if (prezzo > 1000000) errori.prezzo = "Prezzo troppo alto: controlla il numero.";
-  }
+  // La quantità NON è per forza intera: in magazzino con i filtri ci stanno
+  // l'olio e il grasso, che si consumano a litri e a chili — «12,5» è una
+  // quantità vera, e con un campo type=number diventava 125.
+  const rq = numeroDaCampo(r.qta, { positivo: true, max: 9999 });
+  if (!rq.ok) errori.qta = rq.vuoto
+    ? "Scrivi quanti pezzi hai usato (un numero maggiore di zero)."
+    : rq.motivo === "sopra-massimo"
+      ? "Quantità troppo alta: controlla il numero."
+      : messaggioNumero(rq, "la quantità usata");
+  const qta = rq.ok ? rq.valore : 0;
+  const rp = numeroDaCampo(r.prezzo, { min: 0, max: 1000000 });
+  if (!rp.vuoto && !rp.ok) errori.prezzo = rp.motivo === "sotto-minimo"
+    ? "Il prezzo è un numero da zero in su (lascialo vuoto se non lo sai)."
+    : rp.motivo === "sopra-massimo"
+      ? "Prezzo troppo alto: controlla il numero."
+      : messaggioNumero(rp, "il prezzo del pezzo", { unita: "€", min: 0 });
+  const prezzo = rp.ok ? rp.valore : 0;
   return { ok: Object.keys(errori).length === 0, errori, nome, id: r.id || null, qta: due(qta), prezzo: due(prezzo) };
 }
 
