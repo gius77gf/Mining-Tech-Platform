@@ -144,6 +144,18 @@ body.dw.light-mode, body.dw.outdoor-mode {
   fill: var(--disabled); font-family: 'Barlow', sans-serif; font-size: 8.5px;
   letter-spacing: 1.4px; text-transform: uppercase;
 }
+/* ⛔ LE UNITÀ DI MISURA NON SI SCRIVONO MAI IN MAIUSCOLO.
+   Non è una questione di gusto: `m³` diventa `M³`, e soprattutto `µg/m³`
+   diventa `MG/M³`, cioè MILLIGRAMMI — mille volte tanto — su un documento che
+   il cliente consegna all'ente. È successo davvero, in Terra, ed era stato
+   corretto solo là; la causa però era qui, perché l'etichetta d'asse contiene
+   SOLO l'unità e le intestazioni di tabella la contengono spesso.
+   Il motore avvolge da sé le unità in `.dwg-u`, quindi le app non devono
+   ricordarsene: la regola vale in tutti i punti in cui il maiuscolo è
+   estetico e il contenuto può essere un'unità. */
+.dwg-u, .dwg-axlab.dwg-u, .dwg-title .dwg-u, .dwg-tab thead th .dwg-u {
+  text-transform: none; letter-spacing: normal;
+}
 .dwg-vallab {
   fill: var(--dwg-val); font-family: 'Barlow Condensed', sans-serif; font-size: 11.5px;
   font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: .3px;

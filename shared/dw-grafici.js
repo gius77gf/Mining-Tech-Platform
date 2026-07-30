@@ -171,6 +171,44 @@
   }
   function conUnita(testo, unita) { return unita ? testo + ' ' + unita : testo; }
 
+  /* ⛔ Le unità di misura non vanno MAI in maiuscolo: `µg/m³` diventerebbe
+     `MG/M³`, cioè milligrammi — mille volte tanto — su un documento che il
+     cliente consegna all'ente. Dove il maiuscolo è solo estetico (etichette
+     d'asse, intestazioni di tabella) la parte con l'unità va sottratta.
+     Riconosciamo la coda di un testo come unità in due modi: perché contiene
+     un simbolo che esiste solo nelle unità (barra, apice, mu, grado), oppure
+     perché è una delle sigle che usiamo davvero in cava. */
+  var UNITA_NOTE = ['kg', 'g', 't', 'm', 'cm', 'mm', 'km', 'h', 'min', 's', 'ms',
+    'l', 'kW', 'kWh', 'bar', 'pz', 'n', 'gg', 'ore', 'mc', 'mq', 'dB', 'dB(A)'];
+  function paiUnita(coda) {
+    if (!coda) return false;
+    /* `m3` e `m2` sono le sole unità che scriviamo con una cifra */
+    if (/^m3$|^m2$/i.test(coda)) return true;
+    for (var i = 0; i < UNITA_NOTE.length; i++) if (coda === UNITA_NOTE[i]) return true;
+    /* Due esclusioni imparate da titoli veri, non immaginate:
+       — «Cavato e venduto — 01/01/2026 – 31/12/2026» finisce con una DATA, che
+         la barra faceva sembrare un'unità;
+       — «Voce Utile/Perdita» finirebbe con una parola composta. Le unità sono
+         corte: oltre gli 8 caratteri non è più un'unità, è una parola. */
+    if (/[0-9]/.test(coda) || coda.length > 8) return false;
+    return /[\/³²µ°]/.test(coda);
+  }
+  /* Attacca `testo` a `nodoTh` tenendo la parola in maiuscolo e l'unità intatta. */
+  function testoConUnita(padre, testo) {
+    var t = String(testo == null ? '' : testo);
+    var i = t.lastIndexOf(' ');
+    var coda = i > 0 ? t.slice(i + 1) : '';
+    if (!paiUnita(coda)) { padre.textContent = t; return padre; }
+    padre.appendChild(document.createTextNode(t.slice(0, i)));
+    var u = document.createElement('span');
+    u.className = 'dwg-u';
+    /* lo spazio va DENTRO lo span: fuori prenderebbe la spaziatura larga del
+       maiuscolo (fino a 2,5 px per carattere) e il buco si vedrebbe. */
+    u.textContent = ' ' + coda;
+    padre.appendChild(u);
+    return padre;
+  }
+
   /* scala numerica "bella": estremi arrotondati, mai cifre a caso sull'asse */
   function passoBello(grezzo) {
     var p = Math.pow(10, Math.floor(Math.log10(grezzo)));
@@ -237,7 +275,7 @@
     this.radice = fig;
 
     var testa = div('dwg-head');
-    if (s.titolo) testa.appendChild(div('dwg-title', s.titolo));
+    if (s.titolo) testa.appendChild(testoConUnita(div('dwg-title'), s.titolo));
     if (s.meta) testa.appendChild(div('dwg-meta', s.meta));
     if (s.titolo || s.meta) fig.appendChild(testa);
 
@@ -381,7 +419,10 @@
     d.appendChild(sm);
     var tb = document.createElement('table');
     var th = document.createElement('thead'), tr = document.createElement('tr');
-    intestazioni.forEach(function (h) { var c = document.createElement('th'); c.textContent = h; tr.appendChild(c); });
+    /* Un'intestazione come «Valore µg/m³» diventerebbe «VALORE MG/M³». */
+    intestazioni.forEach(function (h) {
+      tr.appendChild(testoConUnita(document.createElement('th'), h));
+    });
     th.appendChild(tr); tb.appendChild(th);
     var bd = document.createElement('tbody');
     righe.forEach(function (r) {
@@ -529,7 +570,8 @@
     var passoX = Math.max(1, Math.ceil(n / (largo >= 620 ? 8 : 5)));
     for (var i = 0; i < n; i += passoX) etichettaX(svg, x[i], px(i), box, n, i);
     if (n > 1 && (n - 1) % passoX !== 0) etichettaX(svg, x[n - 1], px(n - 1), box, n, n - 1);
-    if (s.unita) svg.appendChild(nodo('text', { 'class': 'dwg-axlab', x: 0, y: box.y0 - 8, 'text-anchor': 'start' }, s.unita));
+    /* l'etichetta d'asse È l'unità: va sempre sottratta al maiuscolo estetico */
+    if (s.unita) svg.appendChild(nodo('text', { 'class': 'dwg-axlab dwg-u', x: 0, y: box.y0 - 8, 'text-anchor': 'start' }, s.unita));
 
     /* ── crosshair + tooltip: il puntatore mira a una data, non a una linea ── */
     var mira = nodo('g', { opacity: '0' });
@@ -754,7 +796,7 @@
         var xTag = box.x0 + banda * (taglio + 1);
         svg.appendChild(nodo('line', { 'class': 'dwg-taglio', x1: xTag.toFixed(1), y1: box.y0 - 6, x2: xTag.toFixed(1), y2: box.y1 }));
       }
-      if (s.unita) svg.appendChild(nodo('text', { 'class': 'dwg-axlab', x: 0, y: box.y0 - 12, 'text-anchor': 'start' }, s.unita));
+      if (s.unita) svg.appendChild(nodo('text', { 'class': 'dwg-axlab dwg-u', x: 0, y: box.y0 - 12, 'text-anchor': 'start' }, s.unita));
       collegaBarre(g, svg, dati, fmt, s, taglio, totale);
     }
 

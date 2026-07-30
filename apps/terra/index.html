@@ -133,12 +133,10 @@ body.dw.outdoor-mode{
    «M³», che si legge come un'altra grandezza (M = mega). Cambia solo il
    pezzo che porta l'unità: forma, peso e spaziatura del core restano. */
 .kpi .l .u,.badge .u,.fl .u{text-transform:none; letter-spacing:.2px}
-/* stessi motivi per l'unità grande della scheda «vita cava», per l'etichetta
-   d'asse e per l'intestazione della tabella dei grafici (del motore
-   condiviso si corregge SOLO il maiuscolo: misure, colore e peso restano
-   quelli di shared/, che è di tutte le app). */
-.dwg-axlab{text-transform:none}
-.dwg-tab thead th{text-transform:none; letter-spacing:.5px}
+/* stessi motivi per l'unità grande della scheda «vita cava». Per i grafici
+   invece la correzione è passata nel motore condiviso, che avvolge l'unità in
+   .dwg-u: la toppa che stava qui spegneva il maiuscolo anche a «Voce» e
+   «Quota», allontanando la tabella dal core. */
 
 /* ══════════════════════════════════════════════════════════════════════
    LA BARRA DELLA VITA CAVA — il numero che il titolare guarda per primo.
