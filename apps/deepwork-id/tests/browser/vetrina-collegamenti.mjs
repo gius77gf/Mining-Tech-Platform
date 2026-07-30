@@ -54,6 +54,32 @@ const schede = await p.$$eval('.scheda', (as) => as.map((a) => ({
 console.log(`\n── ${schede.length} riquadri nella vetrina ──`);
 prova('la vetrina ha nove riquadri', schede.length === 9, schede.length);
 
+/* ⛔ I NUMERI ANNUNCIATI DEVONO CORRISPONDERE A QUELLO CHE C'È IN PAGINA.
+   Il 30/07 l'apertura diceva «5 ponti fra le app», il sottotitolo della sezione
+   diceva «Quattro cose che nessuno di loro, da solo, saprebbe fare» e i riquadri
+   erano quattro — mentre i ponti scritti davvero nel codice erano SEI. Tre
+   numeri, tre valori diversi, tutti sbagliati, su una pagina fatta per essere
+   guardata da un cliente che conta.
+   È il difetto tipico di una pagina di presentazione: il numero si scrive una
+   volta e poi il prodotto cresce. Qui il numero si CONFRONTA con la pagina, e
+   il confronto si fa da sé ogni volta. */
+{
+  const dette = await p.evaluate(() => {
+    const n = (s) => { const e = [...document.querySelectorAll('.cifra')]
+      .find((x) => (x.querySelector('span') || {}).textContent.includes(s));
+      return e ? parseInt(e.querySelector('b').textContent, 10) : null; };
+    const sot = [...document.querySelectorAll('.sez-sot')].map((x) => x.textContent).join(' ');
+    const parola = { quattro: 4, cinque: 5, sei: 6, sette: 7, otto: 8, nove: 9 };
+    const dichiarataAParole = Object.entries(parola)
+      .filter(([w]) => new RegExp('\\b' + w + ' cose', 'i').test(sot)).map(([, v]) => v)[0] || null;
+    return { ponti: n('ponti'), dichiarataAParole, riquadriPonte: document.querySelectorAll('.ponte').length };
+  });
+  prova(`i ponti annunciati nell'apertura (${dette.ponti}) sono quelli mostrati (${dette.riquadriPonte})`,
+    dette.ponti === dette.riquadriPonte, dette);
+  prova(`e il sottotitolo dice lo stesso numero a parole (${dette.dichiarataAParole})`,
+    dette.dichiarataAParole === dette.riquadriPonte, dette);
+}
+
 /* ⛔ LE NOVE ANTEPRIME SI VEDONO ALL'ARRIVO, senza scorrere. Misurato il 30/07
    su un telefono da 390 px: con `loading="lazy"` all'arrivo ne era caricata UNA
    su nove, e scendendo di corsa fino a metà pagina se ne vedevano sette — le
