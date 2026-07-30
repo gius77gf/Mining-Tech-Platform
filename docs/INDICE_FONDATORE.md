@@ -30,7 +30,13 @@ serve**, così non devi ricordarti i nomi.
   e come lo dimostriamo con i test. *Da usare anche in vendita.*
 
 ## Se ti interessa la sicurezza e cosa è ancora da sistemare
-- **`docs/AUDIT_SICUREZZA.md`** — la revisione di sicurezza completa.
+*(i documenti sono due e guardano cose diverse: il primo le REGOLE DEL SERVER —
+chi può leggere e scrivere cosa — il secondo il CODICE del core.)*
+- **`docs/REVISIONE_SICUREZZA_202607.md`** (30/07) — le regole del server,
+  misurate con l'emulatore. È quello da aprire per la domanda «i dati di un
+  cliente li vede un altro cliente?».
+- **`docs/AUDIT_SICUREZZA.md`** (dal 19/07) — il registro vivo del core:
+  credenziali nei default, service worker, escape HTML, iniezione CSV.
 - **`docs/MITIGAZIONE_PASSWORD.md`** — la protezione password preparata ma
   **non attivata** (serve il tuo via libera).
 - **`docs/CENSIMENTO_FEATURE.md`** — cosa nel "core" (index.html) è completo,

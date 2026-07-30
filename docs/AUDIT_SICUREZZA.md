@@ -4,6 +4,30 @@ Censimento dei problemi di sicurezza del monolite `index.html` e dei
 file di servizio, con priorità e piano di mitigazione. Aggiornare ad
 ogni intervento (questo file è il registro vivo del task 4).
 
+## Come si legge questo file, e quale sia l'altro *(nota del 30/07)*
+
+Da oggi i documenti di sicurezza sono **due**, e non dicono la stessa cosa:
+
+- **questo** (`AUDIT_SICUREZZA.md`, dal 19/07) è il **registro vivo del core**:
+  credenziali nei default, service worker, escape HTML, iniezione CSV. Guarda
+  dentro `index.html` e i suoi file di servizio, e le voci si chiudono una a una
+  man mano che si sistemano;
+- **`REVISIONE_SICUREZZA_202607.md`** (dal 30/07) guarda un'altra cosa: le
+  **regole del server**, cioè chi può leggere e scrivere cosa. Non è una lettura
+  del codice — è una **misura fatta con l'emulatore**, con le risposte riportate
+  come sono arrivate.
+
+Se cerchi «i dati di un cliente li vede un altro cliente?», la risposta sta nel
+secondo. Se cerchi «cosa c'è ancora da sistemare dentro il core», sta qui.
+
+Le voci qui sotto marcate CHIUSO o CORRETTO lo sono davvero: hanno la data
+accanto. Quelle senza marcatura vanno **riverificate prima di citarle** — questo
+file è del 19 luglio, e il 30/07 è già successo, con `CENSIMENTO_FEATURE.md`, di
+trovare tre problemi su quattro chiusi da un pezzo. Un registro che dichiara
+aperto quello che è chiuso costa quanto il contrario.
+
+---
+
 ## 🔴 Critici
 
 ### 1. Credenziali in chiaro nel codice client (index.html ~r.277-285)
