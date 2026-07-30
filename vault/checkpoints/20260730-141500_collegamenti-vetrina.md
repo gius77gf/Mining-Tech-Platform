@@ -2,7 +2,7 @@
 
 - **Tipo**: correzione per la dimostrazione dal vivo + banco nuovo
 - **Branch**: `claude/scheduled-tasks-remote-control-bk4ap6`
-- **Commit**: (aggiunto sotto dopo il commit)
+- **Commit**: `a89f25d`
 
 ## Il difetto
 
