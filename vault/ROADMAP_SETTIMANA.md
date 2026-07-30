@@ -490,6 +490,21 @@ bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
       funzione condivisa è normale, quello che va vietato è **ricavare la
       provenienza dal record grezzo**.
 
+- [x] **S16. Il grafico dichiarato-contro-misurato, e i buchi nel motore
+      condiviso** ✅ *(30/07, `75c9483`)* — due linee sulla stessa unità, non lo
+      scostamento in %: una percentuale nasconde la scala, e un 10% su 500 m³ non
+      è un 10% su 20.000. Ma **il motore condiviso non sapeva fare i buchi**:
+      `percorso` univa tutti i valori numerici in un tratto continuo, quindi
+      `[95, null, 140]` diventava una linea intera — un segmento che nessuno ha
+      misurato, contro il commento della funzione stessa e contro la regola già
+      scritta per gli altri grafici. Corretto alla radice (tratti separati, area
+      chiusa tratto per tratto), con la verifica che i cinque grafici di
+      riferimento restino **identici carattere per carattere**.
+      Due difetti visti sullo screenshot: il grafico si disegnava anche con **un
+      punto solo** (legenda che promette una linea inesistente), e la
+      dimostrazione non raccontava niente — ora lo scarto passa dal 12% al 7% al
+      2,4%, che è la storia per cui il grafico esiste.
+
 **La convenzione sui numeri è chiusa.** Sei app, core, campi scritti a mano,
 campi interi, file delle macchine.
 
