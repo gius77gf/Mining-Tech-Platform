@@ -835,7 +835,13 @@ campi interi, file delle macchine.
 1. **Progetto Firebase** (10 minuti) → sblocca il go-live delle sei app.
 2. **Prova del drone** → sblocca il burden reale sul fronte vero.
 3. **Via libera alle curve di sicurezza** USBM + DIN (pronte, documentate).
-4. Nuova **PR verso main** per il lavoro di questa settimana.
+4. Nuova **PR verso main** per il lavoro di questa settimana. ⚠️ *Stato al
+   31/07: la **PR #322** è aperta e contiene già anche il lavoro di oggi (stesso
+   ramo), ma la sua **descrizione si ferma al 30/07** — chi la legge non trova la
+   giornata su import/export, gli zeri di comodo e le due regole nuove. La
+   descrizione è tua: dimmi se la aggiorno io o preferisci scriverla tu. La CI
+   della PR gira anche le **106 prove con l'emulatore**, che in questo ambiente
+   non partono.*
 
 ## RIFERIMENTI
 - Ricerche: `docs/RICERCA_{SCUDO,CAMPO,FLOTTA,CONTI,SENTINELLA,TERRA,GENESI}_202607.md`
