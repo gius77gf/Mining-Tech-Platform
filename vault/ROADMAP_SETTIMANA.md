@@ -815,6 +815,16 @@ campi interi, file delle macchine.
 - [x] **Le tendine tagliate**: 84 misurate, 19 tagliano un'opzione, **zero**
       diventano ambigue — misura che ha evitato diciannove correzioni inutili.
       Corretti i due casi che si vedevano.
+- [x] **Lo stato vuoto era scritto sei volte, e non uguali** (cinque prendono il
+      disegno dell'icona, Conti il suo nome): ora una regola sola in `shared/`
+      con l'alias per app. E il **terzo pezzo** che mancava a tutte e 99 gli
+      stati vuoti — **come si comincia** — è entrato nelle sette schermate dove
+      un cliente nuovo è davvero fermo, in tutte e sei le app. L'azione è
+      facoltativa: si mette dove chi guarda è fermo, non dove è contento
+      («Giornata tranquilla» non ha bisogno di un bottone).
+- [x] **Banco `vuoti-azione.mjs`**: i bottoni degli stati vuoti puntano a
+      qualcosa che **esiste**. Nato da un difetto mio — due id indovinati che
+      avrebbero lasciato i bottoni muti, senza nessun errore da nessuna parte.
 
 ---
 
