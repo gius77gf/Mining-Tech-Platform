@@ -103,6 +103,21 @@ in italiano, senza dare conoscenze per scontate).
   vera con cifre allineate, movimento con curve morbide, spaziature su una
   scala coerente. Riferimenti: `docs/SPECIFICA_ESTETICA_CORE.md`,
   `docs/PALETTE_APP.md`.
+- ⛔ **UNA REGOLA CHE SERVE A DUE APP VIVE IN `shared/`.** Non nel modulo di una
+  delle due (nessuna app importa il modulo dati di un'altra) e **mai riscritta**:
+  è il difetto che è costato una giornata intera con la convenzione sui numeri,
+  finita scritta quattro volte con tre comportamenti diversi. Il posto per la
+  logica che sta **fra** le app è `shared/dw-ponti.js`; il modulo dell'app la
+  **ri-esporta** col nome con cui l'ha sempre chiamata, così le pagine non
+  cambiano — un alias non è una seconda implementazione.
+  E il test pretende l'**identità** (`terra.X === ponti.X`), non il
+  comportamento: due copie uguali oggi divergono domani senza che nessuno lo veda.
+- **MISURARE PRIMA DI IRRIGIDIRE.** Due volte in un giorno l'ipotesi ragionevole
+  era falsa: sui campi interi «basta leggere `checkValidity()`» — no, su «1,5»
+  Chromium fa «15» e risponde **true**; e su `parseNum` «si può irrigidire» — no,
+  cinque letture sono celle di CSV di una perforatrice, che scrive in notazione
+  scientifica. Mezz'ora di misura prima, invece di una correzione che rompe in
+  silenzio.
 - MULTI-TENANT: isolamento totale dei dati tra organizzazioni. Ogni
   accesso dati delle app passa dallo SDK deepwork-id-client
   (orgCollection), mai percorsi Firestore costruiti a mano.
@@ -131,9 +146,23 @@ in italiano, senza dare conoscenze per scontate).
   `run-pointcloud.mjs`, `run-manifest.mjs`, `run-stile.mjs`) girano anch'esse
   con `node`.
 - **`run-stile.mjs` rende verificabili le regole vincolanti** che prima
-  vivevano solo qui: niente `alert()`/`confirm()`/`prompt()` in nessuna
-  superficie, e il meccanismo che sottrae le unità di misura al maiuscolo.
-  Quando nasce un'app va aggiunta all'elenco `SUPERFICI`.
+  vivevano solo qui — sette, al 31/07: niente dialoghi del browser, unità mai in
+  maiuscolo, nessun campo decimale `type="number"`, nessun campo decimale letto
+  col lettore che fa zero, la guardia sui campi interi montata dove servono, il
+  ponte con Terra che non dà la colpa a chi compila, e la provenienza di un
+  rilievo decisa in un posto solo. L'intestazione del file le elenca con la
+  ragione di ognuna. Quando nasce un'app va aggiunta all'elenco `SUPERFICI`.
+- **Due tokenizzatori, e vanno scelti**: `mascheraCodice` maschera il
+  **contenuto** delle stringhe (giusto per i dialoghi — un `prompt(` dentro una
+  stringa non è una chiamata), `senzaCommenti` toglie **solo i commenti** e tiene
+  il resto (giusto per le regole sui TESTI, che vivono dentro le stringhe).
+  Prendere quello sbagliato dà una regola che non guarda dove crede: la regola 6
+  è caduta segnalando il commento che documentava la decisione.
+- **Il browser serve per SCOPRIRE un difetto, non per tenerlo chiuso.** Le prove
+  sui buchi dei grafici sono nate con Playwright, ma `tratti`/`percorso` prendono
+  numeri e restituiscono una stringa: vivono in `run-kpi.mjs` e girano sempre. Il
+  motore le espone di proposito in `dwGrafici.geometria`. Una difesa che resta
+  nello scratchpad, alla sessione dopo non esiste.
 - ⚠️ **UNA PROVA CHE NON SA FALLIRE NON DIMOSTRA NIENTE.** Ogni controllo
   nuovo va provato **contro il difetto**: si rimette il difetto e si pretende
   che il controllo fallisca. Costa due minuti e ha già salvato due volte:
