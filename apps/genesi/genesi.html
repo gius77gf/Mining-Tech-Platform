@@ -587,30 +587,30 @@ body.scr-sim #tl{bottom:80px}
       <div class="dc-acc">
         <div class="dc-sec"><button type="button" class="dc-sec-h">Geometria volata<span class="dc-sec-x">▾</span></button>
           <div class="dc-grid">
-            <label class="dc-f"><span>Spalla <u class="uni">(m)</u></span><input type="number" id="dB" step="0.1" min="1.5" max="8" value="3.0"></label>
-            <label class="dc-f"><span>Interasse <u class="uni">(m)</u></span><input type="number" id="dS" step="0.1" min="1.5" max="8" value="3.5"></label>
+            <label class="dc-f"><span>Spalla <u class="uni">(m)</u></span><input type="text" inputmode="decimal" id="dB" step="0.1" min="1.5" max="8" value="3.0"></label>
+            <label class="dc-f"><span>Interasse <u class="uni">(m)</u></span><input type="text" inputmode="decimal" id="dS" step="0.1" min="1.5" max="8" value="3.5"></label>
             <label class="dc-f"><span>Ø foro <u class="uni">(mm)</u></span><input type="number" id="dD" step="1" min="50" max="160" value="102"></label>
             <label class="dc-f"><span>Fori per fila</span><input type="number" id="dN" step="1" min="3" max="30" value="12"></label>
             <label class="dc-f"><span>N° file</span><input type="number" id="dFile" step="1" min="1" max="6" value="1"></label>
-            <label class="dc-f"><span>Profondità H <u class="uni">(m)</u></span><input type="number" id="dH" step="0.5" min="6" max="18" value="10"></label>
+            <label class="dc-f"><span>Profondità H <u class="uni">(m)</u></span><input type="text" inputmode="decimal" id="dH" step="0.5" min="6" max="18" value="10"></label>
             <label class="dc-f"><span>Inclinazione <u class="uni">(°)</u></span><input type="number" id="dIncl" step="1" min="0" max="30" value="0"></label>
-            <label class="dc-f"><span>Borraggio <u class="uni">(m)</u></span><input type="number" id="dStem" step="0.1" min="0.5" max="6" value="2.2"></label>
-            <label class="dc-f"><span>Sottoperf. <u class="uni">(m)</u></span><input type="number" id="dSub" step="0.1" min="0" max="4" value="0.9"></label>
-            <label class="dc-f"><span>Errore al colletto <u class="uni">(m)</u></span><input type="number" id="dErrColl" step="0.05" min="0" max="1.5" value="0.15" title="Di quanto il foro parte spostato dal punto segnato: dipende da come si marca la maglia e da come si posiziona il carro"></label>
-            <label class="dc-f"><span>Deviazione <u class="uni">(% lungh.)</u></span><input type="number" id="dDev" step="0.5" min="0" max="15" value="2.5" title="Quanto il foro scappa dal suo asse scendendo: percentuale della lunghezza perforata. Dipende dal metodo e dallo stato dell'attrezzatura"></label>
+            <label class="dc-f"><span>Borraggio <u class="uni">(m)</u></span><input type="text" inputmode="decimal" id="dStem" step="0.1" min="0.5" max="6" value="2.2"></label>
+            <label class="dc-f"><span>Sottoperf. <u class="uni">(m)</u></span><input type="text" inputmode="decimal" id="dSub" step="0.1" min="0" max="4" value="0.9"></label>
+            <label class="dc-f"><span>Errore al colletto <u class="uni">(m)</u></span><input type="text" inputmode="decimal" id="dErrColl" step="0.05" min="0" max="1.5" value="0.15" title="Di quanto il foro parte spostato dal punto segnato: dipende da come si marca la maglia e da come si posiziona il carro"></label>
+            <label class="dc-f"><span>Deviazione <u class="uni">(% lungh.)</u></span><input type="text" inputmode="decimal" id="dDev" step="0.5" min="0" max="15" value="2.5" title="Quanto il foro scappa dal suo asse scendendo: percentuale della lunghezza perforata. Dipende dal metodo e dallo stato dell'attrezzatura"></label>
           </div>
         </div>
         <div class="dc-sec"><button type="button" class="dc-sec-h">Carica & sequenza<span class="dc-sec-x">▾</span></button>
           <div class="dc-grid">
             <label class="dc-f"><span>Esplosivo <button type="button" class="dc-info" id="dEsplInfo" title="Approfondimento esplosivo">ⓘ</button></span><select id="dEspl"></select></label>
             <label class="dc-f"><span>Innesco <button type="button" class="dc-info" id="dInnInfo" title="Approfondimento innesco">ⓘ</button></span><select id="dInnSel"></select></label>
-            <label class="dc-f"><span>Esplosivo totale <u class="uni">(kg)</u></span><input type="number" id="dKgTot" step="10" min="0" placeholder="tutta la volata"></label>
-            <label class="dc-f"><span>Carica <u class="uni">(kg/foro)</u></span><input type="number" id="dKg" step="5" min="10" max="120" value="60"></label>
+            <label class="dc-f"><span>Esplosivo totale <u class="uni">(kg)</u></span><input type="text" inputmode="decimal" id="dKgTot" step="10" min="0" placeholder="tutta la volata"></label>
+            <label class="dc-f"><span>Carica <u class="uni">(kg/foro)</u></span><input type="text" inputmode="decimal" id="dKg" step="5" min="10" max="120" value="60"></label>
             <label class="dc-f"><span>Ritardo foro <u class="uni">(ms)</u></span><select id="dRit"><option>17</option><option>25</option><option selected>42</option><option>65</option></select></label>
             <label class="dc-f"><span>Ritardo fila <u class="uni">(ms)</u></span><input type="number" id="dRitFila" step="1" min="8" max="200" value="84"></label>
             <label class="dc-f"><span>Sequenza di sparo</span><select id="dSeq"><option value="riga">Riga per riga</option><option value="diagonale" selected>Diagonale (echelon)</option><option value="vcut">V-cut</option><option value="box">Box cut</option></select></label>
             <label class="dc-f"><span>Decking <u class="uni">(cariche/foro)</u></span><select id="dDecks"><option value="1" selected>1 · colonna unica</option><option value="2">2 deck</option><option value="3">3 deck</option></select></label>
-            <label class="dc-f"><span>Borraggio tra deck <u class="uni">(m)</u></span><input type="number" id="dDeckStem" step="0.1" min="0.3" max="4" value="1.0"></label>
+            <label class="dc-f"><span>Borraggio tra deck <u class="uni">(m)</u></span><input type="text" inputmode="decimal" id="dDeckStem" step="0.1" min="0.3" max="4" value="1.0"></label>
           </div>
         </div>
         <div class="dc-sec closed"><button type="button" class="dc-sec-h">Roccia & geologia<span class="dc-sec-x">▾</span></button>
@@ -631,29 +631,29 @@ body.scr-sim #tl{bottom:80px}
         <div class="dc-sec closed"><button type="button" class="dc-sec-h">Fori bagnati<span class="dc-sec-x">▾</span></button>
           <div class="dc-grid">
             <label class="dc-f"><span>Condizione foro</span><select id="dBagnato"><option value="0" selected>Asciutto</option><option value="1">Bagnato (acqua)</option></select></label>
-            <label class="dc-f"><span>Colonna acqua <u class="uni">(m)</u></span><input type="number" id="dAcquaCol" step="0.5" min="0" max="40" value="0"></label>
+            <label class="dc-f"><span>Colonna acqua <u class="uni">(m)</u></span><input type="text" inputmode="decimal" id="dAcquaCol" step="0.5" min="0" max="40" value="0"></label>
           </div>
         </div>
         <div class="dc-sec closed"><button type="button" class="dc-sec-h">Presplit (taglio del profilo)<span class="dc-sec-x">▾</span></button>
           <div class="dc-grid">
             <label class="dc-f"><span>Presplit</span><select id="dPresplit"><option value="0" selected>No</option><option value="1">Sì — fila di taglio sul nuovo fronte</option></select></label>
-            <label class="dc-f"><span>Spaziatura fori <u class="uni">(m)</u></span><input type="number" id="dPsSpacing" step="0.1" min="0.3" max="2" value="0.9"></label>
-            <label class="dc-f"><span>Carica lineare <u class="uni">(kg/m)</u></span><input type="number" id="dPsCharge" step="0.05" min="0.1" max="2" value="0.4"></label>
+            <label class="dc-f"><span>Spaziatura fori <u class="uni">(m)</u></span><input type="text" inputmode="decimal" id="dPsSpacing" step="0.1" min="0.3" max="2" value="0.9"></label>
+            <label class="dc-f"><span>Carica lineare <u class="uni">(kg/m)</u></span><input type="text" inputmode="decimal" id="dPsCharge" step="0.05" min="0.1" max="2" value="0.4"></label>
           </div>
         </div>
         <div class="dc-sec closed"><button type="button" class="dc-sec-h">Vibrazioni & recettore<span class="dc-sec-x">▾</span></button>
           <div class="dc-grid">
-            <label class="dc-f"><span>Distanza recettore <u class="uni">(m)</u></span><input type="number" id="dRecDist" step="10" min="20" max="3000" value="300"></label>
+            <label class="dc-f"><span>Distanza recettore <u class="uni">(m)</u></span><input type="text" inputmode="decimal" id="dRecDist" step="10" min="20" max="3000" value="300"></label>
             <label class="dc-f"><span>Normativa / edificio</span><select id="dRecNorma"><option value="din-res" selected>DIN residenziale</option><option value="din-ind">DIN industriale</option><option value="din-sens">DIN sensibile/storico</option><option value="usbm-old">USBM intonaco vecchio</option><option value="usbm-modern">USBM cartongesso</option></select></label>
             <label class="dc-f"><span>Freq. dominante <u class="uni">(Hz)</u></span><input type="number" id="dRecFreq" step="1" min="2" max="120" value="25"></label>
           </div>
         </div>
         <div class="dc-sec closed"><button type="button" class="dc-sec-h">Costi &amp; resa (stima)<span class="dc-sec-x">▾</span></button>
           <div class="dc-grid">
-            <label class="dc-f"><span>Perforazione <u class="uni">(€/m)</u></span><input type="number" id="dCPerf" step="0.5" min="0" max="500" value="8"></label>
-            <label class="dc-f"><span>Esplosivo <u class="uni">(€/kg)</u></span><input type="number" id="dCExpl" step="0.1" min="0" max="50" value="1.5"></label>
-            <label class="dc-f"><span>Innesco <u class="uni">(€/foro)</u></span><input type="number" id="dCInn" step="0.5" min="0" max="500" value="12"></label>
-            <label class="dc-f"><span>Valore materiale <u class="uni">(€/t)</u></span><input type="number" id="dValMat" step="0.5" min="0" max="500" value="0"></label>
+            <label class="dc-f"><span>Perforazione <u class="uni">(€/m)</u></span><input type="text" inputmode="decimal" id="dCPerf" step="0.5" min="0" max="500" value="8"></label>
+            <label class="dc-f"><span>Esplosivo <u class="uni">(€/kg)</u></span><input type="text" inputmode="decimal" id="dCExpl" step="0.1" min="0" max="50" value="1.5"></label>
+            <label class="dc-f"><span>Innesco <u class="uni">(€/foro)</u></span><input type="text" inputmode="decimal" id="dCInn" step="0.5" min="0" max="500" value="12"></label>
+            <label class="dc-f"><span>Valore materiale <u class="uni">(€/t)</u></span><input type="text" inputmode="decimal" id="dValMat" step="0.5" min="0" max="500" value="0"></label>
           </div>
         </div>
       </div>
@@ -673,8 +673,8 @@ body.scr-sim #tl{bottom:80px}
       <option value="20">20 ms</option><option value="25">25 ms</option><option value="50">50 ms</option>
       <option value="100">100 ms</option><option value="200">200 ms</option></select></label>
     <label class="dl-f" id="dlRelWinF"><span>finestra <u class="uni">ms/m</u></span>
-      <input type="number" id="dlRelLo" step="0.5" min="0.5" max="60" value="5" title="Sotto questo valore il foro spara senza spazio libero sufficiente">
-      <input type="number" id="dlRelHi" step="0.5" min="1" max="99" value="15" title="Sopra questo valore il relief è eccessivo"></label>
+      <input type="text" inputmode="decimal" id="dlRelLo" step="0.5" min="0.5" max="60" value="5" title="Sotto questo valore il foro spara senza spazio libero sufficiente">
+      <input type="text" inputmode="decimal" id="dlRelHi" step="0.5" min="1" max="99" value="15" title="Sopra questo valore il relief è eccessivo"></label>
   </div>
   <div id="d2-wrap"><canvas id="d2-canvas" width="960" height="600"></canvas></div>
   <div id="d2-insp"></div>
@@ -858,7 +858,7 @@ body.scr-sim #tl{bottom:80px}
   <div id="fragchip"></div>
   <div id="invtool" style="margin:4px 0 8px;padding:8px 9px;border:1px solid rgba(255,171,0,.18);border-radius:9px;background:rgba(255,171,0,.04)">
     <div style="font-size:10.5px;color:var(--mut2);margin-bottom:5px">🎯 Maglia da pezzatura-obiettivo (inverso)</div>
-    <div class="row" style="margin-bottom:4px"><label>x50 obiettivo (cm)</label><input type="number" id="inv-x50" min="1" step="1" placeholder="es. 35" style="width:86px"></div>
+    <div class="row" style="margin-bottom:4px"><label>x50 obiettivo (cm)</label><input type="text" inputmode="decimal" id="inv-x50" min="1" step="1" placeholder="es. 35" style="width:86px"></div>
     <div id="inv-res" style="font-size:11px;color:var(--tx)"></div>
   </div>
   <div id="meastool" style="margin:4px 0 8px;padding:8px 9px;border:1px solid rgba(79,195,247,.18);border-radius:9px;background:rgba(79,195,247,.04)">
@@ -872,9 +872,9 @@ body.scr-sim #tl{bottom:80px}
   <div class="row"><label>Esplosivo <button type="button" class="dc-info" id="pEsplInfo" title="Approfondimento">ⓘ</button></label><select id="pEspl" style="max-width:150px"></select></div>
   <div class="row"><label>Direzione innesco</label>
     <select id="pDir"><option value="sx" selected>sx → dx</option><option value="dx">dx → sx</option></select></div>
-  <div class="row"><label>Profondità fori (m)</label><input type="number" id="pProf" min="6" max="18" step="0.5" value="10"></div>
-  <div class="row"><label>Carica per foro (kg)</label><input type="number" id="pKg" min="10" max="120" step="5" value="60"></div>
-  <div class="row"><label>Vento (m/s)</label><input type="number" id="pVento" min="-4" max="4" step="0.2" value="0.8"></div>
+  <div class="row"><label>Profondità fori (m)</label><input type="text" inputmode="decimal" id="pProf" min="6" max="18" step="0.5" value="10"></div>
+  <div class="row"><label>Carica per foro (kg)</label><input type="text" inputmode="decimal" id="pKg" min="10" max="120" step="5" value="60"></div>
+  <div class="row"><label>Vento (m/s)</label><input type="text" inputmode="decimal" id="pVento" min="-4" max="4" step="0.2" value="0.8"></div>
   <div class="row"><label>Inclinazione fori (°)</label><input type="number" id="pIncl" min="0" max="30" step="1" value="0"></div>
   <button class="btn cu" id="btnApply" style="width:100%;margin-top:4px">Genera volata</button>
   <div class="sep"></div>
@@ -997,6 +997,50 @@ function gseg(v, dec){
   if(!isFinite(n)) return '—';
   return (n<0?'−':'+') + gnum(Math.abs(n), dec);
 }
+/* ══════════════════════════════════════════════════════════════════════
+   LEGGERE UN NUMERO SCRITTO A MANO — la virgola, che in cava è la norma
+   ══════════════════════════════════════════════════════════════════════
+   Misurato in Chromium: in un `<input type="number">`, digitando «4,5» da
+   tastiera, `.value` diventa **«45»** e `checkValidity()` risponde true. Il
+   browser scarta la virgola, tiene le cifre e chiama valido il numero
+   sbagliato. In Genesi vuol dire una **spalla di 45 metri invece di 4,5**:
+   cambia la maglia, il consumo specifico, la frammentazione, e soprattutto le
+   vibrazioni e la gittata — cioè i numeri da cui dipendono le distanze di
+   sicurezza. Fra tutti i campi della piattaforma questi sono i peggiori in cui
+   perdere un fattore dieci.
+   Quindi i campi decimali diventano `type="text" inputmode="decimal"` (la
+   tastiera numerica sul telefono resta) e il numero lo leggiamo noi. I limiti
+   non si perdono: `applyDesign` già stringe ogni valore con Math.max/Math.min,
+   e quello continua a valere.
+   `gIn` accetta «4,5» e «4.5», e anche le migliaia in entrambe le convenzioni
+   («1.250,5» e «1,250.5»). Su un valore che non si capisce ritorna NaN, MAI
+   zero: chi chiama tiene il valore di prima invece di progettare su un numero
+   inventato. */
+function gIn(v){
+  let s = String(v == null ? '' : v).trim();
+  if(s === '') return NaN;
+  const virgole = (s.match(/,/g)||[]).length, punti = (s.match(/\./g)||[]).length;
+  if(virgole && punti){
+    s = s.lastIndexOf(',') > s.lastIndexOf('.')
+      ? s.replace(/\./g,'').replace(',','.')     // italiano: punto = migliaia
+      : s.replace(/,/g,'');                       // inglese: virgola = migliaia
+  } else if(virgole > 1) s = s.replace(/,/g,'');
+  else if(virgole === 1) s = s.replace(',','.');
+  else if(punti > 1) s = s.replace(/\./g,'');
+  const n = +s;
+  return isFinite(n) ? n : NaN;
+}
+/* legge il campo `id` come numero; NaN se vuoto o incomprensibile */
+function gvv(id){ const e = $(id); return e ? gIn(e.value) : NaN; }
+/* scrive un numero nel campo `id` all'italiana. I campi decimali sono
+   `type=text`, quindi la virgola ci sta: se restassero `type=number` il
+   browser scarterebbe il valore e il campo si svuoterebbe. */
+function gsv(id, v, dec){
+  const e = $(id); if(!e) return;
+  e.value = (v == null || !isFinite(+v)) ? ''
+    : (e.type === 'number' ? String(+v) : gnum(v, dec == null ? 2 : dec));
+}
+
 /* Le volate sono salvate con la data in forma tecnica («2026-07-30 01:38»),
    che è giusto per ordinarle e sbagliato da mostrare a un italiano. */
 function gdata(s){
@@ -2311,9 +2355,9 @@ let simSource='nuova';
 function liveApply(){ if(playing) return;
   if(simSource==='progetto'){
     P.ritardo=+$('pRit').value||P.ritardo; P.dir=$('pDir').value;
-    P.kg=Math.max(10,Math.min(120,+$('pKg').value||P.kg));
-    P.vento=Math.max(-4,Math.min(4,+$('pVento').value||0));
-    P.prof=Math.max(6,Math.min(18,+$('pProf').value||P.prof));
+    P.kg=Math.max(10,Math.min(120,gvv('pKg')||P.kg));
+    P.vento=Math.max(-4,Math.min(4,gvv('pVento')||0));
+    P.prof=Math.max(6,Math.min(18,gvv('pProf')||P.prof));
     const nf=Math.max(6,Math.min(24,+$('pFori').value||P.fori));
     if(nf!==P.fori){ P.fori=nf; P.foriH=null; P.holes=null; }
     rebuild();
@@ -2327,9 +2371,9 @@ function readParams(){
   P.fori = Math.max(6, Math.min(24, +$('pFori').value||12));
   P.ritardo = +$('pRit').value||42;
   P.dir = $('pDir').value;
-  P.prof = Math.max(6, Math.min(18, +$('pProf').value||10));
-  P.kg = Math.max(10, Math.min(120, +$('pKg').value||60));
-  P.vento = Math.max(-4, Math.min(4, +$('pVento').value||0));
+  P.prof = Math.max(6, Math.min(18, gvv('pProf')||10));
+  P.kg = Math.max(10, Math.min(120, gvv('pKg')||60));
+  P.vento = Math.max(-4, Math.min(4, gvv('pVento')||0));
   P.profilo = []; P.foriH = null; P.holes = null; // demo manuale = fronte dritto, una fila, griglia regolare
   clearFrontMesh();                               // rimuove l'eventuale fronte 3D reale caricato
 }
@@ -2610,7 +2654,7 @@ $('fileIn').onchange = async e=>{
       ? fr.profilo.filter(p=>p&&p.x!=null).map(p=>({ x:(+p.x)*xs, z:Math.max(-8,Math.min(12,+(p.y||0))) })).sort((a,b)=>a.x-b.x)
       : [];
     $('pFori').value=P.fori; $('pRit').value=P.ritardo; $('pDir').value=P.dir;
-    $('pProf').value=+P.prof.toFixed(1); $('pKg').value=Math.round(P.kg);
+    gsv('pProf',P.prof,1); gsv('pKg',Math.round(P.kg),0);
     clearFrontMesh();                               // una volata parametrica sostituisce l'eventuale fronte 3D
     rebuild();
     toast('✓ Volata importata: '+fori.length+' fori'+(P.profilo.length?' · fronte sagomato':'')+(j.schemaV?' (schema v'+j.schemaV+')':''));
@@ -3084,8 +3128,12 @@ function _riconCampoHtml(){
   return h+'</div>';
 }
 function riconDelta(prev, real, unit){
-  if(real===''||real==null||isNaN(+real)) return '<span style="color:var(--mut)">—</span>';
-  const d=+real-prev, pct=prev?Math.round(100*d/prev):0, ad=Math.abs(pct);
+  /* `real` arriva grezzo dal campo, scritto a mano da chi ha misurato: la
+     virgola vale quanto il punto. Con `+real` un «27,5» diventava NaN e la
+     riga mostrava un trattino come se la misura non ci fosse. */
+  const r = gIn(real);
+  if(!isFinite(r)) return '<span style="color:var(--mut)">—</span>';
+  const d=r-prev, pct=prev?Math.round(100*d/prev):0, ad=Math.abs(pct);
   const col=ad<15?'#66bb6a':(ad<35?'#ffca28':'#ef5350');
   return '<span style="color:'+col+';font-weight:600">'+gseg(d,1)+' '+unit+' ('+gseg(pct,0)+'%)</span>';
 }
@@ -3101,9 +3149,9 @@ function riconRender(){
     +'<div style="color:var(--mut);font-size:12px;margin-bottom:10px;">Dopo lo sparo inserisci i valori <b>misurati</b> per confrontarli con la previsione della volata corrente (dalla Scheda validatori). Verde = scostamento &lt;15%, giallo &lt;35%, rosso oltre.</div>'
     +'<div style="display:grid;grid-template-columns:1.1fr .8fr 1fr 1.2fr;gap:6px 8px;align-items:center;font-size:13px;font-variant-numeric:tabular-nums;">'
     +'<div style="color:var(--mut);font-size:11px;letter-spacing:.08em;text-transform:uppercase">Metrica</div><div style="color:#ffd54f;font-weight:700">Previsto</div><div style="color:#ffd54f;font-weight:700">Reale</div><div style="color:#ffd54f;font-weight:700">Scostamento</div>'
-    +'<div style="color:var(--mut)">X50 pezzatura</div><div>'+gnum(prev.x50,1)+' cm</div><div><input id="ric-x50" type="number" min="0" style="width:70px"> cm</div><div id="ric-d-x50">—</div>'
-    +'<div style="color:var(--mut)">PPV vibrazione</div><div>'+gnum(prev.ppv,1)+' mm/s</div><div><input id="ric-ppv" type="number" min="0" step="0.1" style="width:70px"> mm/s</div><div id="ric-d-ppv">—</div>'
-    +'<div style="color:var(--mut)">Gittata flyrock</div><div>'+gnum(prev.fly,0)+' m</div><div><input id="ric-fly" type="number" min="0" style="width:70px"> m</div><div id="ric-d-fly">—</div>'
+    +'<div style="color:var(--mut)">X50 pezzatura</div><div>'+gnum(prev.x50,1)+' cm</div><div><input id="ric-x50" type="text" inputmode="decimal" min="0" style="width:70px"> cm</div><div id="ric-d-x50">—</div>'
+    +'<div style="color:var(--mut)">PPV vibrazione</div><div>'+gnum(prev.ppv,1)+' mm/s</div><div><input id="ric-ppv" type="text" inputmode="decimal" min="0" step="0.1" style="width:70px"> mm/s</div><div id="ric-d-ppv">—</div>'
+    +'<div style="color:var(--mut)">Gittata flyrock</div><div>'+gnum(prev.fly,0)+' m</div><div><input id="ric-fly" type="text" inputmode="decimal" min="0" style="width:70px"> m</div><div id="ric-d-fly">—</div>'
     +'</div>'
     +'<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;align-items:center;font-size:13px;color:var(--mut)">'
     +'<label>Oversize reale <input id="ric-ovs" type="number" min="0" max="100" style="width:58px"> %</label>'
@@ -3431,9 +3479,9 @@ function sitoRender(){
   h+='<div style="border:1px solid rgba(255,171,0,.18);border-radius:11px;padding:10px;background:rgba(255,255,255,.015)">'
     +'<div style="color:#ffd54f;font-family:\'Barlow Condensed\',sans-serif;font-weight:800;font-size:12px;letter-spacing:.09em;text-transform:uppercase;margin-bottom:8px">Aggiungi un referto</div>'
     +'<div class="sito-form">'
-    +'<label>Distanza (m)<br><input id="sito-d" type="number" min="1" step="1" style="width:100%"></label>'
-    +'<label>Carica/ritardo (kg)<br><input id="sito-w" type="number" min="0.1" step="0.1" style="width:100%"></label>'
-    +'<label>PPV (mm/s)<br><input id="sito-p" type="number" min="0.01" step="0.01" style="width:100%"></label>'
+    +'<label>Distanza (m)<br><input id="sito-d" type="text" inputmode="decimal" min="1" step="1" style="width:100%"></label>'
+    +'<label>Carica/ritardo (kg)<br><input id="sito-w" type="text" inputmode="decimal" min="0.1" step="0.1" style="width:100%"></label>'
+    +'<label>PPV (mm/s)<br><input id="sito-p" type="text" inputmode="decimal" min="0.01" step="0.01" style="width:100%"></label>'
     +'<label>Riferimento<br><input id="sito-n" type="text" placeholder="Volata 12/07" style="width:100%"></label>'
     +'</div><button class="btn sm cu" id="sito-add" style="margin-top:9px">Aggiungi</button></div>';
 
@@ -4643,7 +4691,7 @@ function renderInspector(){
   const aMano = h.tMano!=null;
   const ritTx='<div style="margin-top:5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
     +'<span style="color:var(--mut2);font-size:12px">ritardo</span>'
-    +'<input id="diRit" type="number" step="1" min="0" max="20000" value="'+(h.tDet||0)+'" style="width:78px" title="Millisecondi dall\'innesco del primo foro">'
+    +'<input id="diRit" type="text" inputmode="decimal" step="1" min="0" max="20000" value="'+(h.tDet||0)+'" style="width:78px" title="Millisecondi dall\'innesco del primo foro">'
     +'<span style="color:var(--mut2);font-size:12px">ms</span>'
     +(aMano
       ? '<span style="color:#ffd54f;font-size:11.5px">a mano · calcolato '+fmtMs(h.tCalc||0)+' ms</span><button class="btn sm" id="diRitAuto" style="padding:2px 8px">↺ calcolato</button>'
@@ -4684,7 +4732,7 @@ const SVOPEN=new Set();
 function renderScheda2D(){
   const el=$('d2-scheda'); if(!el) return; const g=measureGeom2D();
   if($('d2-mat')) $('d2-mat').textContent='⛏ '+(selEsplosivo()?selEsplosivo().nome.split(' ')[0]:'—')+' · '+(selInnesco()?selInnesco().short:'—')+(D2.bagnato?' · 💧':'');
-  if($('dKgTot') && document.activeElement!==$('dKgTot')) $('dKgTot').value=Math.round(D2.kg*(g.n||0));
+  if($('dKgTot') && document.activeElement!==$('dKgTot')) gsv('dKgTot',Math.round(D2.kg*(g.n||0)),0);
   const B=g.B, S=g.S, H=D2.prof, Dmm=D2.diam, Dm=Dmm/1000, Q=D2.kg, rit=D2.ritardo;
   const pf=Q/(B*S*H), sb=S/B, hb=H/B, bd=B/Dm, stem=D2.stem, stemB=stem/B, msmHole=rit/S, msmRow=(D2.ritardoFila||rit)/B, sub=D2.sub, subB=sub/B, subRec=0.3*B;
   function badge(x,lab,valStr,lo,hi,wlo,whi,whyOk,whyLo,whyHi){
@@ -5015,68 +5063,68 @@ function renderScheda2D(){
 
 /* ===== Fase 1 — maglia editabile: pannello di progettazione live ===== */
 /* carica AUTO = densità esplosivo × volume colonna (ricerca blast 2026-06-22) */
-function deriveCharge(){ if(!D2.kgAuto) return; const eP=selEsplosivo()||{}, rhoE=eP.densita_gcc||0.82, De=D2.diam/1000, Lc=Math.max(0.5,D2.prof+(D2.sub||0)-D2.stem); D2.kg=Math.max(2, Math.round(rhoE*1000*Math.PI*De*De/4*Lc)); if($('dKg')) $('dKg').value=D2.kg; }
+function deriveCharge(){ if(!D2.kgAuto) return; const eP=selEsplosivo()||{}, rhoE=eP.densita_gcc||0.82, De=D2.diam/1000, Lc=Math.max(0.5,D2.prof+(D2.sub||0)-D2.stem); D2.kg=Math.max(2, Math.round(rhoE*1000*Math.PI*De*De/4*Lc)); gsv('dKg',D2.kg,0); }
 function applyDesign(){
-  D2.B = Math.max(1.5, Math.min(8, +$('dB').value||D2.B));
-  D2.S = Math.max(1.5, Math.min(8, +$('dS').value||D2.S));
+  D2.B = Math.max(1.5, Math.min(8, gvv('dB')||D2.B));
+  D2.S = Math.max(1.5, Math.min(8, gvv('dS')||D2.S));
   D2.diam = Math.max(50, Math.min(160, Math.round(+$('dD').value||D2.diam)));
   D2.perRow = Math.max(3, Math.min(30, Math.round(+$('dN').value||D2.perRow)));
   D2.file = Math.max(1, Math.min(6, Math.round(+($('dFile')?$('dFile').value:D2.file)||D2.file)));
-  D2.prof = Math.max(6, Math.min(18, +$('dH').value||D2.prof));
+  D2.prof = Math.max(6, Math.min(18, gvv('dH')||D2.prof));
   if($('dEspl') && $('dEspl').value) D2.esplosivo=$('dEspl').value;
   if($('dInnSel') && $('dInnSel').value) D2.innesco=$('dInnSel').value;
-  D2.kg = Math.max(5, Math.min(200, +$('dKg').value||D2.kg)); deriveCharge();
+  D2.kg = Math.max(5, Math.min(200, gvv('dKg')||D2.kg)); deriveCharge();
   D2.ritardo = +$('dRit').value||D2.ritardo;
   D2.incl = Math.max(0, Math.min(30, +($('dIncl')?$('dIncl').value:D2.incl)||0));
-  if($('dStem')) D2.stem = Math.max(0.5, Math.min(6, +$('dStem').value||D2.stem));
-  if($('dSub')) D2.sub = Math.max(0, Math.min(4, +$('dSub').value||D2.sub));
+  if($('dStem')) D2.stem = Math.max(0.5, Math.min(6, gvv('dStem')||D2.stem));
+  if($('dSub')) D2.sub = Math.max(0, Math.min(4, gvv('dSub')||D2.sub));
   /* G6 — precisione della perforazione: lo zero è ammesso (vuol dire «non
      considerarla»), quindi non si può usare il valore precedente come
      ripiego con ||, che scarterebbe proprio lo zero */
-  if($('dErrColl')){ const v=+$('dErrColl').value; D2.errColl = isFinite(v)? Math.max(0,Math.min(1.5,v)) : D2.errColl; }
-  if($('dDev')){ const v=+$('dDev').value; D2.dev = isFinite(v)? Math.max(0,Math.min(15,v)) : D2.dev; }
+  if($('dErrColl')){ const v=gvv('dErrColl'); D2.errColl = isFinite(v)? Math.max(0,Math.min(1.5,v)) : D2.errColl; }
+  if($('dDev')){ const v=gvv('dDev'); D2.dev = isFinite(v)? Math.max(0,Math.min(15,v)) : D2.dev; }
   if($('dRitFila')) D2.ritardoFila = Math.max(8, Math.min(300, +$('dRitFila').value||D2.ritardoFila));
   if($('dRoccia')){ const nr=$('dRoccia').value||D2.roccia; if(nr!==D2.roccia){ D2.roccia=nr; const pr=selRoccia(); D2.ucs=pr.ucs; D2.eMod=pr.eMod; if($('dUcs'))$('dUcs').value=pr.ucs; if($('dEmod'))$('dEmod').value=pr.eMod; } }
   if($('dUcs')) D2.ucs=Math.max(5, Math.min(400, +$('dUcs').value||D2.ucs));
   if($('dEmod')) D2.eMod=Math.max(2, Math.min(150, +$('dEmod').value||D2.eMod));
   if($('dFrat')) D2.frat=$('dFrat').value||D2.frat;
   if($('dBagnato')) D2.bagnato = $('dBagnato').value==='1';
-  if($('dAcquaCol')) D2.acquaCol = Math.max(0, Math.min(40, +$('dAcquaCol').value||0));
+  if($('dAcquaCol')) D2.acquaCol = Math.max(0, Math.min(40, gvv('dAcquaCol')||0));
   if($('dPresplit')) D2.presplit = $('dPresplit').value==='1';
-  if($('dPsSpacing')) D2.psSpacing = Math.max(0.3, Math.min(2, +$('dPsSpacing').value||D2.psSpacing));
-  if($('dPsCharge')) D2.psCharge = Math.max(0.1, Math.min(2, +$('dPsCharge').value||D2.psCharge));
+  if($('dPsSpacing')) D2.psSpacing = Math.max(0.3, Math.min(2, gvv('dPsSpacing')||D2.psSpacing));
+  if($('dPsCharge')) D2.psCharge = Math.max(0.1, Math.min(2, gvv('dPsCharge')||D2.psCharge));
   if($('dSeq')) D2.sequenza = $('dSeq').value||D2.sequenza;
-  if($('dRecDist')) D2.recDist = Math.max(20, Math.min(3000, +$('dRecDist').value||D2.recDist));
+  if($('dRecDist')) D2.recDist = Math.max(20, Math.min(3000, gvv('dRecDist')||D2.recDist));
   if($('dRecNorma')) D2.recNorma = $('dRecNorma').value||D2.recNorma;
   if($('dRecFreq')) D2.recFreq = Math.max(2, Math.min(120, +$('dRecFreq').value||D2.recFreq));
-  if($('dCPerf')) D2.cPerf = Math.max(0, Math.min(500, +$('dCPerf').value||0));
-  if($('dCExpl')) D2.cExpl = Math.max(0, Math.min(50, +$('dCExpl').value||0));
-  if($('dCInn')) D2.cInnesco = Math.max(0, Math.min(500, +$('dCInn').value||0));
-  if($('dValMat')) D2.valMat = Math.max(0, Math.min(500, +$('dValMat').value||0));
+  if($('dCPerf')) D2.cPerf = Math.max(0, Math.min(500, gvv('dCPerf')||0));
+  if($('dCExpl')) D2.cExpl = Math.max(0, Math.min(50, gvv('dCExpl')||0));
+  if($('dCInn')) D2.cInnesco = Math.max(0, Math.min(500, gvv('dCInn')||0));
+  if($('dValMat')) D2.valMat = Math.max(0, Math.min(500, gvv('dValMat')||0));
   if($('dDecks')) D2.decks = Math.max(1, Math.min(3, Math.round(+$('dDecks').value||1)));
-  if($('dDeckStem')) D2.deckStem = Math.max(0.3, Math.min(4, +$('dDeckStem').value||1));
+  if($('dDeckStem')) D2.deckStem = Math.max(0.3, Math.min(4, gvv('dDeckStem')||1));
   genMaglia2D(); drawDesign2D(); renderScheda2D(); renderInspector();   // editing 2D snello, il 3D si aggiorna su "Simula"
 }
 function syncDesignInputs(){
   if(!$('dB')) return;
-  $('dB').value=D2.B; $('dS').value=D2.S; $('dD').value=D2.diam; $('dN').value=D2.perRow;
-  if($('dFile')) $('dFile').value=D2.file; $('dH').value=+D2.prof.toFixed(1); $('dKg').value=Math.round(D2.kg);
+  gsv('dB',D2.B,2); gsv('dS',D2.S,2); $('dD').value=D2.diam; $('dN').value=D2.perRow;
+  if($('dFile')) $('dFile').value=D2.file; gsv('dH',D2.prof,1); gsv('dKg',Math.round(D2.kg),0);
   if($('dIncl')) $('dIncl').value=D2.incl; $('dRit').value=D2.ritardo;
-  if($('dErrColl')) $('dErrColl').value=D2.errColl; if($('dDev')) $('dDev').value=D2.dev;
-  if($('dStem')) $('dStem').value=D2.stem; if($('dSub')) $('dSub').value=D2.sub; if($('dRitFila')) $('dRitFila').value=D2.ritardoFila;
+  if($('dErrColl')) gsv('dErrColl',D2.errColl,2); if($('dDev')) gsv('dDev',D2.dev,2);
+  if($('dStem')) gsv('dStem',D2.stem,2); if($('dSub')) gsv('dSub',D2.sub,2); if($('dRitFila')) $('dRitFila').value=D2.ritardoFila;
   if($('dRoccia')) $('dRoccia').value=D2.roccia;
   if($('dEspl')) $('dEspl').value=D2.esplosivo; if($('dInnSel')) $('dInnSel').value=D2.innesco; if($('pEspl')) $('pEspl').value=D2.esplosivo;
   if($('dUcs')) $('dUcs').value=D2.ucs; if($('dEmod')) $('dEmod').value=D2.eMod; if($('dFrat')) $('dFrat').value=D2.frat;
-  if($('dBagnato')) $('dBagnato').value=D2.bagnato?'1':'0'; if($('dAcquaCol')) $('dAcquaCol').value=D2.acquaCol;
-  if($('dPresplit')) $('dPresplit').value=D2.presplit?'1':'0'; if($('dPsSpacing')) $('dPsSpacing').value=D2.psSpacing; if($('dPsCharge')) $('dPsCharge').value=D2.psCharge;
+  if($('dBagnato')) $('dBagnato').value=D2.bagnato?'1':'0'; if($('dAcquaCol')) gsv('dAcquaCol',D2.acquaCol,1);
+  if($('dPresplit')) $('dPresplit').value=D2.presplit?'1':'0'; if($('dPsSpacing')) gsv('dPsSpacing',D2.psSpacing,2); if($('dPsCharge')) gsv('dPsCharge',D2.psCharge,2);
   if($('dSeq')) $('dSeq').value=D2.sequenza;
-  if($('dRecDist')) $('dRecDist').value=D2.recDist; if($('dRecNorma')) $('dRecNorma').value=D2.recNorma; if($('dRecFreq')) $('dRecFreq').value=D2.recFreq;
-  if($('dCPerf')) $('dCPerf').value=D2.cPerf; if($('dCExpl')) $('dCExpl').value=D2.cExpl; if($('dCInn')) $('dCInn').value=D2.cInnesco; if($('dValMat')) $('dValMat').value=D2.valMat;
-  if($('dDecks')) $('dDecks').value=D2.decks; if($('dDeckStem')) $('dDeckStem').value=D2.deckStem;
+  if($('dRecDist')) gsv('dRecDist',D2.recDist,1); if($('dRecNorma')) $('dRecNorma').value=D2.recNorma; if($('dRecFreq')) $('dRecFreq').value=D2.recFreq;
+  if($('dCPerf')) gsv('dCPerf',D2.cPerf,2); if($('dCExpl')) gsv('dCExpl',D2.cExpl,2); if($('dCInn')) gsv('dCInn',D2.cInnesco,2); if($('dValMat')) gsv('dValMat',D2.valMat,2);
+  if($('dDecks')) $('dDecks').value=D2.decks; if($('dDeckStem')) gsv('dDeckStem',D2.deckStem,2);
 }
 function simulaVolata2D(){
   SPALLA=D2.B; INTERASSE=D2.S; P.diam=D2.diam; P.prof=D2.prof; P.kg=D2.kg; P.ritardo=D2.ritardo; P.dir=D2.dir; P.fori=D2.perRow;
-  if($('pFori')){ $('pFori').value=P.fori; $('pProf').value=P.prof; $('pKg').value=P.kg; $('pRit').value=P.ritardo; $('pDir').value=P.dir; }
+  if($('pFori')){ $('pFori').value=P.fori; gsv('pProf',P.prof,1); gsv('pKg',P.kg,0); $('pRit').value=P.ritardo; $('pDir').value=P.dir; }
   clearFrontMesh();                                   // usa il fronte PARAMETRICO ricostruito dal progetto 2D (non un GLB importato)
   /* --- il fronte 3D si adatta al progetto 2D: cresta dal fronte modellato, skyline dal piede --- */
   const Lm3 = P.fori*INTERASSE;
@@ -5102,7 +5150,30 @@ function simulaVolata2D(){
   simSource='progetto'; if($('pTitle')) $('pTitle').textContent='Volata dal progetto 2D';
   rebuild(); setScreen('sim');
 }
-['dB','dS','dD','dN','dFile','dH','dKg','dIncl','dStem','dSub','dRit','dRitFila','dEspl','dInnSel','dRoccia','dUcs','dEmod','dFrat','dBagnato','dAcquaCol','dPresplit','dPsSpacing','dPsCharge','dSeq','dRecDist','dRecNorma','dRecFreq','dCPerf','dCExpl','dCInn','dValMat','dDecks','dDeckStem','dErrColl','dDev'].forEach(id=>{ const el=$(id); if(el) el.addEventListener('change', applyDesign); });
+/* I campi decimali sono `type=text`, quindi il browser non rifiuta più niente:
+   se qualcuno scrive «quattroemezzo» il numero non si legge e il progetto tiene
+   il valore di prima — giusto, ma **muto**. Il campo resterebbe lì con la
+   scritta sbagliata e chi guarda crederebbe di aver cambiato la spalla.
+   Quindi si dice cos'è successo col toast del core e si rimette nel campo il
+   valore che il progetto ha davvero. */
+const D2_DECIMALI = ['dB','dS','dH','dKg','dStem','dSub','dAcquaCol','dPsSpacing',
+  'dPsCharge','dRecDist','dCPerf','dCExpl','dCInn','dValMat','dDeckStem','dErrColl','dDev'];
+function guardiaDecimale(el){
+  const grezzo = String(el.value||'').trim();
+  if(grezzo === '' || isFinite(gIn(grezzo))) return true;
+  const et = el.closest('label');
+  const nome = et ? (et.querySelector('span')||{textContent:''}).textContent.trim() : '';
+  toast('«'+grezzo+'» non è un numero'+(nome?' per «'+nome+'»':'')+': va bene la virgola, come 4,5.');
+  syncDesignInputs();          // rimette nel campo il valore vero del progetto
+  return false;
+}
+['dB','dS','dD','dN','dFile','dH','dKg','dIncl','dStem','dSub','dRit','dRitFila','dEspl','dInnSel','dRoccia','dUcs','dEmod','dFrat','dBagnato','dAcquaCol','dPresplit','dPsSpacing','dPsCharge','dSeq','dRecDist','dRecNorma','dRecFreq','dCPerf','dCExpl','dCInn','dValMat','dDecks','dDeckStem','dErrColl','dDev'].forEach(id=>{
+  const el=$(id); if(!el) return;
+  el.addEventListener('change', ()=>{
+    if(D2_DECIMALI.indexOf(id)>=0 && !guardiaDecimale(el)) return;
+    applyDesign();
+  });
+});
 /* livelli di lettura della pianta: isocrone dei tempi (G1) e mappa del relief (G2) */
 function syncLayerUI(){
   if($('dlIso')) $('dlIso').classList.toggle('on', !!D2.iso);
@@ -5122,9 +5193,9 @@ if($('dlInn')) $('dlInn').addEventListener('click', ()=>{ D2.inn=!D2.inn; syncLa
   if(typeof toast==='function') toast(D2.inn?'Rete di innesco attiva — sulle linee il ritardo che deve avere il raccordo':'Rete di innesco disattivata'); });
 if($('dlIsoStep')) $('dlIsoStep').addEventListener('change', ()=>{ D2.isoStep=Math.max(0,+$('dlIsoStep').value||0); drawDesign2D(); });
 ['dlRelLo','dlRelHi'].forEach(id=>{ const el=$(id); if(!el) return; el.addEventListener('change', ()=>{
-  D2.relLo=Math.max(0.5, Math.min(60, +$('dlRelLo').value||5));
-  D2.relHi=Math.max(D2.relLo+0.5, Math.min(99, +$('dlRelHi').value||15));
-  $('dlRelLo').value=D2.relLo; $('dlRelHi').value=D2.relHi;
+  D2.relLo=Math.max(0.5, Math.min(60, gvv('dlRelLo')||5));
+  D2.relHi=Math.max(D2.relLo+0.5, Math.min(99, gvv('dlRelHi')||15));
+  gsv('dlRelLo',D2.relLo,1); gsv('dlRelHi',D2.relHi,1);
   drawDesign2D(); renderScheda2D(); renderInspector(); }); });
 syncLayerUI();
 document.querySelectorAll('.dc-sec-h').forEach(b=>{ b.addEventListener('click', ()=>b.parentElement.classList.toggle('closed')); });
@@ -5132,12 +5203,12 @@ if($('dKg')) $('dKg').addEventListener('input', ()=>{ D2.kgAuto=false; });
 /* quantitativo TOTALE della volata (fondatore 25/07): l'app lo divide sui fori
    e genera gli altri dati; il campo si tiene allineato quando cambiano maglia o kg/foro */
 if($('dKgTot')) $('dKgTot').addEventListener('change', ()=>{
-  const tot=Math.max(0, +$('dKgTot').value||0);
+  const tot=Math.max(0, gvv('dKgTot')||0);
   const n=(measureGeom2D().n || D2.perRow*D2.file || 1);
   if(tot>0 && n>0){
     D2.kgAuto=false;
     D2.kg=Math.max(5, Math.min(200, +(tot/n).toFixed(1)));
-    if($('dKg')) $('dKg').value=D2.kg;
+    gsv('dKg',D2.kg,0);
     applyDesign();
   }
 });
