@@ -2,7 +2,7 @@
 
 - **Tipo**: verifica estesa a tutte le superfici + correzione + regola nuova
 - **Branch**: `claude/scheduled-tasks-remote-control-bk4ap6`
-- **Commit**: (aggiunto sotto dopo il commit)
+- **Commit**: `ca9ce2c`
 
 ## Cosa è stato fatto
 
