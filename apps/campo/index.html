@@ -924,7 +924,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            METEO_CIELO, METEO_PISTE, METEO_VISIBILITA, meteoDi, riassuntoMeteo, meteoAvverso,
            pianoParziale, pianoConsuntivoCsv,
            numeroIt, segnoIt, numeroItDa, numeroDaCampo } from "./campo-data.js";
-  import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, messaggioNumero } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const dmy = (iso) => iso ? iso.slice(8,10)+"/"+iso.slice(5,7)+"/"+iso.slice(0,4) : "senza data";
   // Badge di stato: colore + PAROLA + (per l'errore) icona e pulsazione, mai il
@@ -1542,9 +1542,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const let_ob = numeroDaCampo($("ob-valore").value, { positivo: true });
     const valore = let_ob.valore;
     if (!let_ob.ok) {
-      sbaglia("ob-valore", "ob-esito", let_ob.motivo === "non-numero"
-        ? "«" + let_ob.grezzo + "» non e un numero: quanto ci si aspetta da questo turno? (per esempio 900, oppure 12,5). La virgola va benissimo."
-        : "Serve un numero maggiore di zero: quanto ci si aspetta da questo turno (per esempio 900).");
+      // il messaggio viene dal posto in cui vive la regola: quando è arrivato
+      // il motivo «ambiguo», i rami scritti a mano dicevano cose false
+      sbaglia("ob-valore", "ob-esito",
+        messaggioNumero(let_ob, "l'obiettivo del turno", { min: 0 }));
       return;
     }
     err("ob-valore", false);
@@ -2375,9 +2376,9 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const let_pr = numeroDaCampo($("new-rap-prod").value, { min: 0 });
     const qta = let_pr.vuoto ? null : let_pr.valore;
     if (!let_pr.vuoto && !let_pr.ok) {
-      sbaglia("new-rap-prod", "mode-note", let_pr.motivo === "non-numero"
-        ? "«" + let_pr.grezzo + "» non e un numero. La produzione si scrive per esempio 90 oppure 90,5 — la virgola va benissimo. Se non la registri, lascia il campo vuoto."
-        : "La produzione dev'essere un numero, zero o più (per esempio 90 oppure 90,5). Se non la registri, lascia il campo vuoto.");
+      sbaglia("new-rap-prod", "mode-note",
+        messaggioNumero(let_pr, "la produzione del turno", { min: 0 })
+        + " Se non la registri, lascia il campo vuoto.");
       return;
     }
     err("new-rap-prod", false);
@@ -2854,11 +2855,7 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
     // ciò che non si capisce si dice cosa manca — non si salva zero.
     const let_kg = numeroDaCampo(v, { min: 0 });
     if (!let_kg.ok) {
-      toast(let_kg.vuoto
-        ? "Scrivi quanti chili sono stati caricati, oppure annulla."
-        : let_kg.motivo === "non-numero"
-          ? "«" + let_kg.grezzo + "» non è un numero di chili: si scrive per esempio 44,7 — la virgola va benissimo."
-          : "I chili non possono essere negativi.", "err");
+      toast(messaggioNumero(let_kg, "i chili caricati", { min: 0, unita: "kg" }), "err");
       return;
     }
     const kg = let_kg.valore;

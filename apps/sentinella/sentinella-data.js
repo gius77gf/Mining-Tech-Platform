@@ -19,7 +19,7 @@
 //       da fare / in ritardo) si CALCOLA dall'ultima lettura del punto.
 // ============================================================
 
-import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
   monitoraggi: [
@@ -221,20 +221,14 @@ export const AVVISO_DECIMALE =
   "Va bene sia la virgola sia il punto: «2,4» e «2.4» sono lo stesso numero.";
 
 export function numeroDaCampo(testo, opts = {}) {
-  const grezzo = String(testo == null ? "" : testo).trim();
-  if (grezzo === "") return { vuoto: true, ok: false, valore: null, grezzo, motivo: "vuoto" };
-  const n = numIt(grezzo);
-  if (!Number.isFinite(n)) return { vuoto: false, ok: false, valore: null, grezzo, motivo: "non-numero" };
-  if (opts.positivo && !(n > 0)) return { vuoto: false, ok: false, valore: n, grezzo, motivo: "non-positivo" };
-  const min = opts.min == null ? null : +opts.min;
-  if (min != null && n < min) return { vuoto: false, ok: false, valore: n, grezzo, motivo: "sotto-minimo" };
-  const max = opts.max == null ? null : +opts.max;
-  if (max != null && n > max) return { vuoto: false, ok: false, valore: n, grezzo, motivo: "sopra-massimo" };
-  // arrotondamento all'ultima cifra che ha senso per il campo: quattro
-  // decimali di default, gli stessi con cui la PPV viene salvata sulla volata
-  const dec = opts.decimali == null ? 4 : Math.max(0, +opts.decimali || 0);
-  const p = Math.pow(10, dec);
-  return { vuoto: false, ok: true, valore: Math.round(n * p) / p, grezzo, motivo: "" };
+  // Delega al lettore CONDIVISO (`shared/deepwork-id-client/dw-shell.js`).
+  // La convenzione era finita scritta quattro volte in modi diversi, e le sei
+  // app leggevano «1.250» in tre modi: Flotta chiedeva sempre, Conti e Terra
+  // risolvevano quando una sola lettura era possibile, e qui — come in Campo e
+  // Genesi — passava 1,25 in silenzio. Stesso difetto delle unità in maiuscolo:
+  // tre toppe locali per una causa sola. Qui resta solo ciò che è di
+  // Sentinella: i quattro decimali con cui la PPV viene salvata sulla volata.
+  return numeroScritto(testo, { decimali: 4, ...opts });
 }
 
 // Chiave di ordinamento di una lettura: data + ora. Le letture senza ora

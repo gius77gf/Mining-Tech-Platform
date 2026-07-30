@@ -132,6 +132,147 @@ export function giorniTra(dataISO, oggi = new Date()) {
   return Math.round((new Date(dataISO + "T00:00:00") - o) / 86400000);
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// UN NUMERO SCRITTO A MANO — una convenzione sola per tutte e sei le app
+// ══════════════════════════════════════════════════════════════════════
+// `numIt` qui sopra legge i file delle MACCHINE, dove il decimale è il punto:
+// per lui «1.250» è 1,25, e per un CSV è giusto. Ma un italiano che DIGITA
+// «1.250» in un campo intende milleduecentocinquanta, e le due letture distano
+// mille volte. Su un imponibile di fattura è 1.250 € contro 1,25 €.
+//
+// Perché sta qui e non in ogni app: la stessa convenzione era finita scritta
+// QUATTRO volte in modi diversi, e le sei app leggevano «1.250» in tre modi —
+// Flotta chiedeva sempre, Conti e Terra risolvevano quando una sola lettura era
+// possibile, Sentinella/Campo/Genesi prendevano 1,25 in silenzio. È lo stesso
+// difetto delle unità in maiuscolo di stamattina: tre toppe locali per una causa
+// sola. Una convenzione condivisa vive in `shared/`.
+//
+// La regola, in chiaro:
+//  1. si ripulisce ciò che arriva dai fogli di calcolo (€, spazi fini, nbsp);
+//  2. le FORME ammesse sono elencate: tutto il resto non è un numero e non si
+//     tira a indovinare — «2,4,5» non è 245, «1e3» non è un numero da cava;
+//  3. se la scrittura è AMBIGUA (un separatore solo, esattamente tre cifre
+//     dopo) si guardano le due letture possibili e si tengono quelle che stanno
+//     nei limiti del campo: se ne resta UNA si usa, senza disturbare
+//     («1.600» in una densità è 1,6 perché 1600 t/m³ non esiste); se restano
+//     ENTRAMBE non si indovina, si dichiara `ambiguo` con le due letture, così
+//     il messaggio può mostrarle invece di dire «numero non valido»;
+//  4. poi valgono intero/positivo/min/max, e infine l'arrotondamento del campo.
+// Su ciò che non si capisce il valore è `null`, MAI zero: vuoto e
+// incomprensibile non sono misure. Pura e testabile.
+const NUM_RIPULISCI = /[\s    €]/g;
+const NUM_FORME = [
+  /^[+-]?\d+$/,                              // 1250
+  /^[+-]?\d+[.,]\d+$/,                       // 1250,75 · 1250.75
+  /^[+-]?[.,]\d+$/,                          // ,75
+  /^[+-]?\d{1,3}(\.\d{3})+(,\d+)?$/,         // 1.250.000,75 all'italiana
+  /^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$/,         // 1,250,000.75 all'inglese
+];
+const NUM_AMBIGUO = /^[+-]?\d{1,3}[.,]\d{3}$/;
+
+export function numeroScritto(testo, opts = {}) {
+  const grezzo = String(testo == null ? "" : testo).trim();
+  const s = grezzo.replace(NUM_RIPULISCI, "").replace(/^\+/, "");
+  const esito = (motivo, valore, extra) =>
+    Object.assign({ vuoto: motivo === "vuoto", ok: !motivo, valore, grezzo, motivo }, extra || {});
+  if (s === "") return esito("vuoto", null);
+  if (!NUM_FORME.some((r) => r.test(s))) return esito("non-numero", null);
+
+  const dec = opts.decimali == null ? 2 : Math.max(0, +opts.decimali || 0);
+  const arrotonda = (n) => { const p = Math.pow(10, dec); return Math.round(n * p) / p; };
+  const min = opts.min == null ? null : +opts.min;
+  const max = opts.max == null ? null : +opts.max;
+  const staNeiLimiti = (n) => Number.isFinite(n)
+    && !(opts.intero && !Number.isInteger(n))
+    && !(opts.positivo && !(n > 0))
+    && !(min != null && n < min) && !(max != null && n > max);
+
+  if (opts.migliaia !== false && NUM_AMBIGUO.test(s)) {
+    const comeMigliaia = +s.replace(/[.,]/g, "");
+    const comeDecimale = numIt(s);
+    const possibili = [comeMigliaia, comeDecimale].filter(staNeiLimiti);
+    // una sola lettura possibile: non c'è niente da chiedere
+    if (possibili.length === 1) return esito("", arrotonda(possibili[0]));
+    // nessuna delle due sta nei limiti: si riferisce quella che l'utente
+    // intendeva quasi certamente, così il messaggio parla del numero suo
+    if (possibili.length === 0) {
+      const n = comeMigliaia;
+      if (opts.intero && !Number.isInteger(n)) return esito("non-intero", n);
+      if (opts.positivo && !(n > 0)) return esito("non-positivo", n);
+      if (min != null && n < min) return esito("sotto-minimo", n);
+      return esito("sopra-massimo", n);
+    }
+    return esito("ambiguo", null, { letture: [comeMigliaia, comeDecimale] });
+  }
+
+  const n = numIt(s);
+  if (!Number.isFinite(n)) return esito("non-numero", null);
+  if (opts.intero && !Number.isInteger(n)) return esito("non-intero", n);
+  if (opts.positivo && !(n > 0)) return esito("non-positivo", n);
+  if (min != null && n < min) return esito("sotto-minimo", n);
+  if (max != null && n > max) return esito("sopra-massimo", n);
+  return esito("", arrotonda(n));
+}
+
+// Un numero INTERO scritto a mano: giorni, mesi, numero di fori. Mezzo mese
+// non esiste.
+export function interoScritto(testo, opts = {}) {
+  return numeroScritto(testo, { ...opts, intero: true, decimali: 0 });
+}
+
+// Come si scrive un numero DENTRO un campo di testo: con la virgola decimale e
+// MAI col punto delle migliaia. Non è un vezzo — il punto delle migliaia
+// rientrerebbe da `numeroScritto` come ambiguo, e l'app finirebbe per rifiutare
+// un valore che ha proposto lei.
+export function perCampo(v, decimali = 2) {
+  if (v == null || v === "" || !Number.isFinite(+v)) return "";
+  return (+v).toLocaleString("it-IT", { useGrouping: false, maximumFractionDigits: Math.max(0, decimali) });
+}
+
+// IL MESSAGGIO di un numero che non si è potuto leggere. Sta accanto al lettore
+// perché la frase e la regola sono la stessa cosa: se ogni schermata se la
+// scrive per conto suo, una frase sbagliata diventa sei difetti. E soprattutto
+// perché i motivi sono cresciuti — quando `ambiguo` è arrivato, i punti che
+// gestivano solo «non-numero» dicevano cose false: in Campo un «1.250» nei
+// chili rispondeva «i chili non possono essere negativi».
+// `cosa` è il nome del dato come lo chiama l'utente («i chili caricati», «la
+// PPV misurata»): la frase deve nominarlo, altrimenti in un form con cinque
+// caselle non si sa quale correggere. Non dice MAI «valore non valido»: dice
+// cos'è scritto e cosa fare.
+const NUM_AVVISO_DEC = "Va bene sia la virgola sia il punto: «2,4» e «2.4» sono lo stesso numero.";
+const NUM_AVVISO_MIG = "Scrivilo senza il punto delle migliaia.";
+export function messaggioNumero(r, cosa, opts = {}) {
+  const q = "«" + String((r && r.grezzo) != null ? r.grezzo : "") + "»";
+  const u = opts.unita ? " " + opts.unita : "";
+  const mostra = (v, dec = 2) => Number.isFinite(+v)
+    ? (+v).toLocaleString("it-IT", { maximumFractionDigits: Math.max(0, dec) }) : "";
+  switch (r && r.motivo) {
+    case "vuoto":
+      return "Senza " + cosa + " non posso salvare: scrivi il numero.";
+    case "ambiguo":
+      // le due letture si scrivono con perCampo, non raggruppate: «1.250
+      // oppure 1,25» ripeterebbe la stringa ambigua invece di scioglierla. E
+      // tre decimali, perché la lettura decimale di «5.875» è 5,875 — con due
+      // diventerebbe «5,88», un terzo numero che nessuno ha scritto.
+      return q + " può voler dire " + perCampo(r.letture[0]) + u + " (punto delle migliaia) oppure "
+        + perCampo(r.letture[1], 3) + u + " (punto decimale), e non voglio indovinare al posto tuo. " + NUM_AVVISO_MIG;
+    case "non-numero":
+      return "Non riesco a leggere " + cosa + ": " + q + " non è un numero. " + NUM_AVVISO_DEC;
+    case "non-intero":
+      return "Per " + cosa + " serve un numero intero: " + q + " non lo è.";
+    case "non-positivo":
+      return "Serve un numero maggiore di zero per " + cosa + ": hai scritto " + q + ".";
+    case "sotto-minimo":
+      return +opts.min === 0
+        ? "Un numero negativo non ha senso per " + cosa + ": hai scritto " + q + "."
+        : "Per " + cosa + " serve almeno " + mostra(opts.min) + u + ": hai scritto " + q + ".";
+    case "sopra-massimo":
+      return "Per " + cosa + " il massimo è " + mostra(opts.max) + u + ": " + q + " è troppo, controlla il numero.";
+    default:
+      return "Non riesco a leggere " + cosa + ": " + q + ". " + NUM_AVVISO_DEC;
+  }
+}
+
 export function mountExit(db) {
   if (!db || db.mode !== "live" || typeof db.logout !== "function") return;
   const top = document.querySelector(".top");

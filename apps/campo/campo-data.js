@@ -37,7 +37,7 @@
 // restano visibili come "senza data", vedi eDelGiorno).
 // ============================================================
 
-import { parseCsvLine, numIt, isIntestazione, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, numIt, isIntestazione, csvCell, numeroScritto } from "../../shared/deepwork-id-client/dw-shell.js";
 
 // ══════════════════════════════════════════════════════════════════════
 // NUMERI COME SI SCRIVONO IN ITALIA — un solo posto per la convenzione
@@ -116,20 +116,13 @@ export function numeroItDa(v, dec = 2) {
 // è capito, MAI zero — vuoto e incomprensibile non sono la stessa cosa e
 // nessuno dei due è una misura. Pura e testabile.
 export function numeroDaCampo(testo, opts = {}) {
-  const grezzo = String(testo == null ? "" : testo).trim();
-  if (grezzo === "") return { vuoto: true, ok: false, valore: null, grezzo, motivo: "vuoto" };
-  const n = numIt(grezzo);
-  if (!Number.isFinite(n)) return { vuoto: false, ok: false, valore: null, grezzo, motivo: "non-numero" };
-  if (opts.positivo && !(n > 0)) return { vuoto: false, ok: false, valore: n, grezzo, motivo: "non-positivo" };
-  const min = opts.min == null ? null : +opts.min;
-  if (min != null && n < min) return { vuoto: false, ok: false, valore: n, grezzo, motivo: "sotto-minimo" };
-  const max = opts.max == null ? null : +opts.max;
-  if (max != null && n > max) return { vuoto: false, ok: false, valore: n, grezzo, motivo: "sopra-massimo" };
-  // tre decimali: al grammo si è già ben oltre la precisione con cui si pesa
-  // una carica in cava, ed è la stessa cifra con cui il consuntivo va nel CSV
-  const dec = opts.decimali == null ? 3 : Math.max(0, +opts.decimali || 0);
-  const p = Math.pow(10, dec);
-  return { vuoto: false, ok: true, valore: Math.round(n * p) / p, grezzo, motivo: "" };
+  // Delega al lettore CONDIVISO (`shared/deepwork-id-client/dw-shell.js`), che
+  // aggiunge la cosa che qui mancava: «1.250» non viene più letto 1,25 in
+  // silenzio. Se per il campo una sola lettura è possibile si risolve, se sono
+  // due si chiede. Qui resta solo ciò che è di Campo: tre decimali, cioè il
+  // grammo — ben oltre la precisione con cui si pesa una carica in cava, ed è
+  // la cifra con cui il consuntivo esce nel CSV per Genesi.
+  return numeroScritto(testo, { decimali: 3, ...opts });
 }
 
 // Giorno di lavoro corrente in ISO (aaaa-mm-gg) e in ora LOCALE: usare

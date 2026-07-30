@@ -1925,6 +1925,38 @@ test("kpiFrom: col quarto argomento il conto è onesto e si scompone", () => {
 // sola lettura è possibile (una densità di 1500 t/m³ non esiste) si risolve; se
 // entrambe stanno nei limiti, l'app si FERMA e mostra le due letture invece di
 // scegliere. Questi test proteggono quella scelta.
+test("la convenzione vive in UN posto: le sei app leggono «1.250» allo stesso modo", async () => {
+  const sh = await import("../../../shared/deepwork-id-client/dw-shell.js");
+  // il lettore condiviso è la sorgente: le app ci delegano e aggiungono solo i
+  // loro decimali. Se un domani una si riscrive la logica per conto suo, questo
+  // test se ne accorge perché le risposte divergono.
+  const base = sh.numeroScritto("1.250");
+  for (const [nome, mod] of [["campo", campo], ["conti", conti], ["flotta", flotta],
+                             ["sentinella", sentinella], ["terra", terra]]) {
+    const r = mod.numeroDaCampo("1.250");
+    ok(r.motivo === base.motivo, `${nome}: stesso motivo del condiviso («${base.motivo}») — era «${r.motivo}»`);
+    contiene({ l: r.letture }, { l: base.letture }, `${nome}: stesse letture`);
+  }
+  // e dove una sola lettura è possibile, TUTTE risolvono allo stesso modo
+  for (const [nome, mod] of [["campo", campo], ["conti", conti], ["flotta", flotta],
+                             ["sentinella", sentinella], ["terra", terra]])
+    ok(mod.numeroDaCampo("1.600", { min: 0.3, max: 5 }).valore === 1.6,
+      `${nome}: «1.600» in un campo 0,3–5 vale 1,6 — era ${mod.numeroDaCampo("1.600", { min: 0.3, max: 5 }).valore}`);
+});
+test("il messaggio dell'ambiguo mostra le due letture, non dice «non valido»", async () => {
+  const sh = await import("../../../shared/deepwork-id-client/dw-shell.js");
+  const m = sh.messaggioNumero(sh.numeroScritto("1.250"), "i chili caricati", { unita: "kg" });
+  ok(/1250 kg/.test(m) && /1,25 kg/.test(m), "entrambe le letture nel messaggio — era: " + m);
+  ok(/non voglio indovinare/.test(m), "e dice che non indovina");
+  // la lettura decimale di «5.875» è 5,875: con due decimali diventerebbe
+  // «5,88», un terzo numero che nessuno ha scritto
+  const m2 = sh.messaggioNumero(sh.numeroScritto("5.875"), "le ore", { unita: "h" });
+  ok(/5,875 h/.test(m2), "tre decimali sulla lettura decimale — era: " + m2);
+  // e i motivi che c'erano prima continuano a dire la cosa giusta
+  ok(/negativo/.test(sh.messaggioNumero(sh.numeroScritto("-3", { min: 0 }), "i chili", { min: 0 })), "negativo");
+  ok(/non è un numero/.test(sh.messaggioNumero(sh.numeroScritto("abc"), "la PPV")), "non-numero");
+  ok(/Senza/.test(sh.messaggioNumero(sh.numeroScritto(""), "l'imponibile")), "vuoto");
+});
 test("«1.250» non si indovina: le due letture vengono dichiarate", () => {
   for (const [nome, mod] of [["flotta", flotta], ["conti", conti], ["terra", terra]]) {
     const r = mod.numeroDaCampo("1.250");

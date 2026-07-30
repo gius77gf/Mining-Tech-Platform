@@ -82,7 +82,7 @@
 // L'urgenza delle manutenzioni si CALCOLA dalla data (mai salvata).
 // ============================================================
 
-import { parseCsvLine, numIt, giorniTra, isIntestazione } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, numIt, giorniTra, isIntestazione, numeroScritto } from "../../shared/deepwork-id-client/dw-shell.js";
 
 // Data di oggi in formato ISO (aaaa-mm-gg) nel fuso dell'utente: la stessa
 // che scrive l'app quando registra la fotografia del giorno.
@@ -128,50 +128,15 @@ export const AVVISO_MIGLIAIA =
 
 // spazi di ogni tipo (anche quelli “fini” che arrivano dal foglio di calcolo)
 // e il simbolo dell'euro: chi scrive «€ 12,50» ha scritto un numero
-const RIPULISCI = /[\s\u00a0\u2007\u2009\u202f\u20ac]/g;
-// le forme ammesse, in chiaro: intero · decimale con un separatore solo ·
-// solo decimali («,75») · migliaia raggruppate a tre a tre all'italiana o
-// all'inglese. Tutto il resto non è un numero e non si tira a indovinare.
-const FORME = [
-  /^[+-]?\d+$/,
-  /^[+-]?\d+[.,]\d+$/,
-  /^[+-]?[.,]\d+$/,
-  /^[+-]?\d{1,3}(\.\d{3})+(,\d+)?$/,
-  /^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$/,
-];
-// un separatore solo, esattamente tre cifre dopo e non più di tre prima:
-// «1.250» e «1,250» si leggono in due modi e nessuno dei due è più vero
-const AMBIGUO = /^[+-]?\d{1,3}[.,]\d{3}$/;
-
 export function numeroDaCampo(testo, opts = {}) {
-  const grezzo = String(testo == null ? "" : testo).trim();
-  const s = grezzo.replace(RIPULISCI, "").replace(/^\+/, "");
-  if (s === "") return { vuoto: true, ok: false, valore: null, grezzo, motivo: "vuoto" };
-  if (!FORME.some((r) => r.test(s)))
-    return { vuoto: false, ok: false, valore: null, grezzo, motivo: "non-numero" };
-  if (opts.migliaia !== false && AMBIGUO.test(s))
-    // le DUE letture possibili viaggiano col risultato: solo così il messaggio
-    // può mostrarle entrambe invece di dire un generico «numero non valido»
-    return { vuoto: false, ok: false, valore: null, grezzo, motivo: "ambiguo",
-             letture: [+s.replace(/[.,]/g, ""), numIt(s)] };
-  const n = numIt(s);
-  if (!Number.isFinite(n))
-    return { vuoto: false, ok: false, valore: null, grezzo, motivo: "non-numero" };
-  if (opts.intero && !Number.isInteger(n))
-    return { vuoto: false, ok: false, valore: n, grezzo, motivo: "non-intero" };
-  if (opts.positivo && !(n > 0))
-    return { vuoto: false, ok: false, valore: n, grezzo, motivo: "non-positivo" };
-  const min = opts.min == null ? null : +opts.min;
-  if (min != null && n < min)
-    return { vuoto: false, ok: false, valore: n, grezzo, motivo: "sotto-minimo" };
-  const max = opts.max == null ? null : +opts.max;
-  if (max != null && n > max)
-    return { vuoto: false, ok: false, valore: n, grezzo, motivo: "sopra-massimo" };
-  // arrotondamento all'ultima cifra che ha senso per il campo: due decimali
-  // di default, che è la precisione dei soldi e dei litri di Flotta
-  const dec = opts.decimali == null ? 2 : Math.max(0, +opts.decimali || 0);
-  const p = Math.pow(10, dec);
-  return { vuoto: false, ok: true, valore: Math.round(n * p) / p, grezzo, motivo: "" };
+  // Delega al lettore CONDIVISO (`shared/deepwork-id-client/dw-shell.js`), dove
+  // questa logica ora vive una volta sola. Il comportamento cambia in un punto,
+  // in meglio: prima si chiedeva SEMPRE su «1.250», anche quando per quel campo
+  // una sola lettura era possibile — «1.600» in una densità è 1,6, perché 1600
+  // t/m³ non esiste, e non c'era niente da chiedere. Ora si chiede solo quando
+  // entrambe le letture stanno nei limiti. Qui resta ciò che è di Flotta: due
+  // decimali, la precisione dei soldi e dei litri.
+  return numeroScritto(testo, { decimali: 2, ...opts });
 }
 
 // Un numero INTERO scritto a mano: giorni, mesi. Stesse regole, più il
