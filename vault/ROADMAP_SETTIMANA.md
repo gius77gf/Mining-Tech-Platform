@@ -480,6 +480,16 @@ bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
       E la densità non si chiede due volte: viene dal materiale già scritto
       nell'autorizzazione di Terra.
 
+- [x] **S15. L'ultima copia della regola del cumulo, e la regola 7 in CI** ✅
+      *(30/07, `401f3eb`)* — `conti-data.js` teneva `eCumulo`, copia privata con
+      un commento che dichiarava di essere «la stessa regola di Terra». Il verso è
+      stato guardato **prima**: invertirlo farebbe consumare la concessione a
+      roccia tolta anni fa, senza nessun errore e senza nessun test rosso. La
+      prima versione della regola 7 vietava la cosa sbagliata — segnalava tre usi
+      legittimi, fra cui `soloCumulo` di Terra: confrontare il *risultato* della
+      funzione condivisa è normale, quello che va vietato è **ricavare la
+      provenienza dal record grezzo**.
+
 **La convenzione sui numeri è chiusa.** Sei app, core, campi scritti a mano,
 campi interi, file delle macchine.
 
