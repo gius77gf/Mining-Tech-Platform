@@ -735,6 +735,11 @@ campi interi, file delle macchine.
       «€19,02/H»: trovati un'ora dopo che Conti è entrata nell'elenco delle
       superfici. Con loro un difetto di parole: una gara chiusa mostrava
       «-2 gg» invece di «chiusa da 2 gg».
+- [x] **Vetrina, terza iterazione** con la ricerca depositata
+      (`docs/RICERCA_VETRINA_202607.md`): cinque raccomandazioni su sette erano
+      già rispettate, i due difetti veri erano la mancanza di gerarchia e
+      l'assenza di prove esterne. Aggiunto «da dove comincio»: si smista per
+      problema, non per prodotto. Scartata di proposito la griglia a scomparti.
 - [x] **Niente fuori dallo schermo di un telefono**, e adesso lo dice un banco:
       nove superfici per due larghezze, 18 schermate pulite. Erano due i
       difetti trovati finora a occhio (Sentinella «REPORT», lo scorrimento
