@@ -1524,7 +1524,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       const inForza = operatoriDi(OPER, q.nome).filter(o => o.stato !== "non-disponibile").length;
       return `<div class="item ${q.stato==="ferma"?"st-danger":"st-ok"}" data-squ="${q.id}" role="button" tabindex="0" style="cursor:pointer" title="Tocca per fermare o rimettere in turno">
       <div class="avatar${q.stato==="ferma"?" mute":""}">${esc(sig(q.nome))}</div>
-      <div class="info"><div class="name">${esc(q.nome)}</div><div class="meta">${esc(q.persone)} persone${inForza?" · "+inForza+" in anagrafica":""} · ${esc(q.area||"area non indicata")}<br>oggi: <b>${c.aperte}</b> ${c.aperte===1?"attività aperta":"attività aperte"} · ${c.concluse} ${c.concluse===1?"conclusa":"concluse"}</div></div>
+      <div class="info"><div class="name">${esc(q.nome)}</div><div class="meta">${q.persone == null ? "persone non indicate" : esc(q.persone) + " persone"}${inForza?" · "+inForza+" in anagrafica":""} · ${esc(q.area||"area non indicata")}<br>oggi: <b>${c.aperte}</b> ${c.aperte===1?"attività aperta":"attività aperte"} · ${c.concluse} ${c.concluse===1?"conclusa":"concluse"}</div></div>
       <span class="badge ${QB[q.stato][0]}">${q.stato==="ferma"?I.allarme:""}${QB[q.stato][1]}</span></div>`; }).join("")
       || vuoto(I.persone, "Nessuna squadra in turno",
           "Aggiungi le squadre qui sotto (nome, persone, area) oppure importale da un file CSV: sono la base dei rapportini e del Quadro.");

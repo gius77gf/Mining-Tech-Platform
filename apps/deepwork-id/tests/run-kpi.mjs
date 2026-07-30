@@ -3572,6 +3572,23 @@ test("gareRiepilogo: il totale salta le gare senza base, e lo dichiara", () => {
   eq(r.apertesenzaBase, 1, "e dice che una non ce l'ha: senza questo il totale inganna");
 });
 
+
+/* Terzo e ultimo zero di comodo tolto il 31/07 — e i due che RESTANO, con la
+   ragione, perché la decisione va rifatta uguale la prossima volta:
+   · `giorniAssenza` di un infortunio **resta zero**: la colonna vuota vuol dire
+     davvero «nessuna assenza», che è il caso normale di un near-miss. Qui il
+     valore di comodo è quello giusto, come la giacenza di un ricambio.
+   · `quota` di un fronte **resta zero**: è un dato descrittivo, non entra in
+     nessun conto — cambiarlo sposterebbe solo del rumore. */
+test("parseSquadreCsv: «persone» non scritte restano vuote, non diventano zero", () => {
+  const q = campo.parseSquadreCsv("Squadra A;;Fronte Nord;operativa");
+  eq(q.length, 1, "la squadra entra: esiste e va assegnata");
+  eq(q[0].persone, null, "ma senza numero di persone");
+  eq(campo.parseSquadreCsv("Squadra B;0;Piazzale;operativa")[0].persone, 0,
+     "uno zero scritto apposta resta zero: una squadra si può svuotare");
+  eq(campo.parseSquadreCsv("Squadra C;4;Fronte Sud;operativa")[0].persone, 4, "e un numero vero passa");
+});
+
 // ============================================================
 // I MODELLI DI CSV DEL DOCUMENTO CARICANO DAVVERO
 //

@@ -973,7 +973,11 @@ export function parseSquadreCsv(text) {
       const n = numIt(persone);
       return {
         nome: (nome || "").trim(),
-        persone: Number.isFinite(n) ? Math.max(0, Math.round(n)) : 0,
+        /* ⚠️ Niente zero di comodo: «0 persone» è un'AFFERMAZIONE, e falsa —
+           il file semplicemente non lo diceva. La squadra entra lo stesso
+           (esiste e va assegnata), e la scheda scrive «persone non indicate».
+           Uno zero scritto apposta resta zero: una squadra si può svuotare. */
+        persone: Number.isFinite(n) ? Math.max(0, Math.round(n)) : null,
         area: (area || "").trim(),
         stato: (stato || "").trim().toLowerCase() === "ferma" ? "ferma" : "operativa",
       };
