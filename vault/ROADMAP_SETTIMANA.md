@@ -613,6 +613,16 @@ bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
       «non lo so» era colorato di **verde**, e «non collegato» stava in fondo invece che
       in cima. Dieci asserzioni che usano il comando davvero.
 
+- [x] **S26. Ponte P3, terza iterazione: cinque stati mai visti** ✅ *(31/07,
+      `5fb5f58`)* — un difetto, e sta nelle **parole**: il riepilogo diceva «non sono
+      collegate» anche di chi **è** collegato a una scheda sparita. Sono due problemi
+      con due azioni diverse — un lavoro non fatto contro un dato da riparare — e ora
+      si contano separati. Due domande implicite chiuse e scritte: col filtro attivo
+      la nota conta le persone **filtrate** (perché dice «fra chi è in elenco»), e la
+      sezione di Campo conta **tutti** anche se la squadra è ferma, perché è la
+      rubrica e non il turno. Gli altri quattro stati si comportano già bene e non è
+      stato inventato niente da correggere.
+
 **La convenzione sui numeri è chiusa.** Sei app, core, campi scritti a mano,
 campi interi, file delle macchine.
 
