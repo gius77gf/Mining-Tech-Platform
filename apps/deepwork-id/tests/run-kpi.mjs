@@ -3572,5 +3572,103 @@ test("l'arrotondamento non può peggiorare il numero", () => {
   }
 }
 
+// ============================================================
+// IL GIRO DI ANDATA E RITORNO: QUELLO CHE ESCE DEVE POTER RIENTRARE
+//
+// `ONBOARDING_DATI.md` promette a chi compra che **il file esportato si
+// re-importa**: è la copia di sicurezza, ed è il modo di spostare i dati da
+// una postazione all'altra. Una promessa del genere si rompe senza rumore —
+// basta aggiungere una colonna all'export, o cambiarne l'ordine, e il file
+// continua a scaricarsi benissimo. Ci si accorge il giorno in cui serve
+// davvero, cioè il giorno peggiore.
+//
+// Misurato il 31/07 e trovato un caso vero: l'export delle **fatture** di
+// Conti scrive `numero;cliente;emessa;imponibile;…`, mentre il lettore aspetta
+// `numero;cliente;importo;emessa;…`. In terza posizione l'export mette una
+// data e il lettore ci cerca un importo: `numIt("2026-07-15")` non è un
+// numero, la riga cade, e ri-caricando il proprio export si ottengono **zero
+// fatture**. Quell'export è un PROSPETTO (stato, incassato, residuo, giorni di
+// pagamento: roba da commercialista), non un backup — ed è giusto che lo sia:
+// quello che non va è la promessa scritta nel documento, corretta insieme a
+// questo controllo.
+//
+// Qui si guardano i sette che il ri-caricamento lo promettono davvero.
+// L'intestazione si legge dal SORGENTE della pagina, non da una copia: una
+// copia invecchia in silenzio ed è precisamente il difetto che si sta
+// cercando.
+// ============================================================
+{
+  const { readFileSync } = await import("node:fs");
+  const pagina = (app) => readFileSync(join(HERE, `../../${app}/index.html`), "utf8");
+
+  /* Per ogni esportazione: il file che scarica, le colonne che il LETTORE
+     legge in ordine, una riga d'esempio scritta come la scrive l'export, e
+     quante righe deve restituire. */
+  const GIRI = [
+    { app: "campo", file: "campo_squadre.csv", fn: campo.parseSquadreCsv,
+      colonne: ["nome", "persone", "area", "stato"],
+      riga: "Squadra A;4;Fronte Nord;operativa" },
+    { app: "conti", file: "conti_gare.csv", fn: conti.parseGareCsv,
+      colonne: ["titolo", "base", "scadenza", "stato"],
+      riga: "Fornitura inerti 2026;50000;2026-09-01;aperta" },
+    { app: "conti", file: "conti_listino.csv", fn: conti.parseListinoCsv,
+      colonne: ["nome", "unita", "prezzo", "densita", "iva"],
+      riga: "Stabilizzato 0/30;t;8,50;1,9;22" },
+    { app: "flotta", file: "flotta_ricambi.csv", fn: flotta.parseRicambiCsv,
+      colonne: ["nome", "giacenza", "sogliaMin", "prezzo"],
+      riga: "Filtro olio motore;6;4;48,00" },
+    { app: "scudo", file: "scudo_registro_infortuni.csv", fn: scudo.parseInfortuniCsv,
+      colonne: ["data", "tipo", "gravita", "giorniAssenza", "descrizione", "luogo"],
+      riga: "2026-07-30;infortunio;lieve;3;taglio alla mano;officina" },
+    { app: "scudo", file: "scudo_personale_scadenze.csv", fn: scudo.parseLavoratoriCsv,
+      colonne: ["nome", "ruolo", "telefono"],   // le colonne dopo la terza non le legge
+      riga: "Rossi Mario;operatore;333 1112222;idoneo;Visita medica;2026-12-01;ok" },
+    { app: "sentinella", file: "sentinella_ricettori.csv", fn: sentinella.parseRicettoriCsv,
+      colonne: ["nome", "tipo", "distanza", "classe", "soglia", "unita", "nota"],
+      riga: "Casa Bianchi;abitazione;320;III;5;mm/s;la più vicina" },
+  ];
+
+  /* Trova l'intestazione dell'export che scarica QUEL file: si cerca il nome
+     del file e si risale alla riga `csv = "…\n"` più vicina sopra di lui,
+     perché è lì che l'export dichiara le proprie colonne. */
+  function intestazioneExport(src, nomeFile) {
+    const righe = src.split("\n");
+    const giu = righe.findIndex(r => r.includes(`a.download = "${nomeFile}"`));
+    if (giu < 0) return null;
+    for (let k = giu; k >= 0 && k > giu - 40; k--) {
+      const m = /csv = "([^"]*?)\\n"/.exec(righe[k]);
+      if (m) return m[1];
+    }
+    return null;
+  }
+
+  for (const g of GIRI) {
+    test(`giro completo: ${g.file} si ri-carica`, () => {
+      const testa = intestazioneExport(pagina(g.app), g.file);
+      ok(testa, `nella pagina di ${g.app} non si trova l'export che scarica ${g.file}`);
+      const scritte = testa.split(";");
+      /* le colonne che il lettore legge devono stare all'INIZIO e in
+         quell'ordine: quelle dopo può ignorarle, quelle prima no. */
+      eq(scritte.slice(0, g.colonne.length), g.colonne,
+         `l'export scrive «${testa}», il lettore legge «${g.colonne.join(";")}»`);
+      /* e poi la prova vera: una riga come la scrive l'export, riletta. */
+      const righe = g.fn(testa + "\n" + g.riga);
+      eq(righe.length, 1, "la riga esportata deve rientrare");
+    });
+  }
+
+  /* Il caso trovato per strada, tenuto fermo perché non torni di nascosto:
+     l'export delle fatture NON è un backup, e il documento non deve dire che
+     lo sia. Se un giorno lo diventasse, questo controllo lo dice. */
+  test("giro completo: l'export delle fatture di Conti resta un prospetto, non un backup", () => {
+    const testa = intestazioneExport(pagina("conti"), "conti_situazione_fatture.csv");
+    ok(testa, "l'export della situazione fatture esiste");
+    const letto = conti.parseFattureCsv(
+      testa + "\n2026/001;Edil Rossi Srl;2026-07-15;1000;22;220;1220;2026-08-14;aperta;0;1220;;;0");
+    eq(letto.length, 0,
+       "oggi non rientra: se qualcuno lo rende ri-caricabile, va aggiornato anche ONBOARDING_DATI.md");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);

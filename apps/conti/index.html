@@ -872,7 +872,12 @@ label.item:has(.dw-chk:checked){
   </div>
   <div id="pr-conv"></div>
   <div class="tools">
-    <button class="dw-btn secondary" id="btn-lis-export">Esporta listino (CSV)</button>
+    <!-- ⚠️ Questo bottone aveva lo STESSO id dell'Esporta della scheda
+         Listino: due elementi con lo stesso id, e getElementById restituisce
+         il primo — quindi qui non arrivava nessun gestore e il bottone non
+         faceva NIENTE quando lo si cliccava. Con lui era irraggiungibile
+         l'unico export che calcola i prezzi convertiti. -->
+    <button class="dw-btn secondary" id="btn-lis-prezzi">Esporta prezzi convertiti (CSV)</button>
   </div>
   <div class="note esito" id="pr-esito"></div>
 
@@ -3292,14 +3297,20 @@ label.item:has(.dw-chk:checked){
     }
     pulisciPro(); $("pr-nome").focus(); await refresh();
   };
-  $("btn-lis-export").onclick = () => {
+  /* Il PROSPETTO dei prezzi: quello che il commercialista o il cliente
+     guardano, col prezzo già convertito a tonnellata e a metro cubo. Non è
+     un backup e non si ri-carica — per quello c'è l'Esporta della scheda
+     Listino, che scrive esattamente le colonne dell'import. Per questo i due
+     file hanno nomi DIVERSI: prima si chiamavano tutti e due
+     conti_listino.csv e nella cartella dei download uno copriva l'altro. */
+  $("btn-lis-prezzi").onclick = () => {
     let csv = "prodotto;prezzo;unita_prezzo;densita_t_m3;prezzo_t;prezzo_m3;iva\n";
     for (const p of PRO.slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it")))
       csv += `${csvCell(p.nome)};${+p.prezzo || 0};${p.unitaPrezzo === "m3" ? "m3" : "t"};${+p.densita || 0};${prezzoPerTonnellata(p) ?? ""};${prezzoPerMetroCubo(p) ?? ""};${+p.iva || 0}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-    a.download = "conti_listino.csv"; a.click();
-    esito("pr-esito", "Esportati " + plur(PRO.length, "prodotto", "prodotti") + " in CSV.", "success");
+    a.download = "conti_listino_prezzi.csv"; a.click();
+    esito("pr-esito", "Esportati " + plur(PRO.length, "prodotto", "prodotti") + " col prezzo convertito a tonnellata e a metro cubo. Per il file da ri-caricare usa Esporta CSV nella scheda Listino.", "success");
   };
 
   // ══════════════════════════════════════════════════════════════════
