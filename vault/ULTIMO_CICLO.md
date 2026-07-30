@@ -5,14 +5,15 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-07-30 15:38 UTC
-**Cosa sta per fare:** chiusi tre difetti «silenziosi» — quelli che non danno
-errore e perciò nessuno vede: un riquadro che diceva un colore diverso dal
-proprio stato, l'ora che diventava «H» dentro le pastiglie di Flotta (e con lei
-un difetto più vecchio, «km/h» che usciva «km/H»), e un'app intera — Conti —
-che nessun banco del browser aveva mai aperto. Scritta anche la risposta alla
-domanda che arriverà alla presentazione: perché esistono sia Deepwork sia
-Genesi. Adesso si prosegue con la **seconda iterazione della vetrina**.
+**Ultimo ciclo riuscito:** 2026-07-30 17:28 UTC
+**Cosa sta per fare:** giornata di difetti che non fanno rumore — un colore che
+diceva il contrario dello stato, unità che in maiuscolo cambiano significato,
+un'app (Conti) che nessun banco del browser aveva mai aperto, i soldi scritti in
+tre modi diversi con tre spazi diversi, e il bottone «Prova il tour» che portava
+a un modulo d'accesso. Chiuse anche due decisioni rimaste a metà e depositata la
+revisione di sicurezza (Q3), misurata con l'emulatore invece che dedotta. Adesso
+si prosegue con la **terza iterazione della vetrina**, partendo dalla ricerca su
+come le migliori vetrine di prodotto fanno capire un prodotto in dieci secondi.
 **Commit di partenza:** `7512411`
 
 ---

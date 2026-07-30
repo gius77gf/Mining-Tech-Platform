@@ -735,6 +735,15 @@ campi interi, file delle macchine.
       «€19,02/H»: trovati un'ora dopo che Conti è entrata nell'elenco delle
       superfici. Con loro un difetto di parole: una gara chiusa mostrava
       «-2 gg» invece di «chiusa da 2 gg».
+- [x] **Niente fuori dallo schermo di un telefono**, e adesso lo dice un banco:
+      nove superfici per due larghezze, 18 schermate pulite. Erano due i
+      difetti trovati finora a occhio (Sentinella «REPORT», lo scorrimento
+      laterale della vetrina).
+- [x] **In Campo il contatore diceva «0» prima di sapere chi sei**: zero è una
+      risposta, e la risposta vera era «non lo so ancora».
+- [x] **Chiuse due decisioni rimaste a metà**: i soldi sugli assi dei grafici
+      (due convenzioni, entrambe giuste, scritte dove uno le cerca) e i rischi
+      R2/R3, che da ipotesi sono diventati misura.
 - [x] **I soldi si scrivevano in tre modi**, uno per app, e tre erano anche
       gli spazi dopo il simbolo (unificatore, normale, nessuno). Ora una
       convenzione sola in `shared/`, con la regola 11 di `run-stile` che
