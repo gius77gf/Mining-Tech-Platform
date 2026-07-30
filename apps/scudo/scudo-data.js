@@ -215,12 +215,19 @@ export const TIPI_DOCUMENTO = [
   "Idoneità sanitaria", "Attestato formazione", "Altro",
 ];
 
-export function statoScadenza(dataISO, oggi = new Date()) {
-  const giorni = giorniTra(dataISO, oggi);
-  if (giorni < 0) return "scaduta";
-  if (giorni <= 30) return "in-scadenza";
-  return "regolare";
-}
+// LA SOGLIA DELLE SCADENZE ORA SERVE A DUE APP — Scudo per il suo scadenzario e
+// Campo per sapere se chi è in turno ha i documenti in corso — quindi vive in
+// `shared/dw-ponti.js` e qui si RI-ESPORTA col nome con cui l'ha sempre chiamata
+// questa app. Un alias non è una seconda implementazione: due copie uguali oggi
+// divergono domani senza che nessuno lo veda, ed è già costato una giornata con
+// la convenzione sui numeri.
+// Nota tecnica, imparata rompendo tutto: `export { x } from "..."` NON crea un
+// nome locale, quindi le trenta chiamate interne a `statoScadenza` di questo file
+// restavano scoperte — dieci prove rosse subito, che è il comportamento giusto
+// della suite. Serve importare e poi ri-esportare il nome.
+import { statoScadenzaHSE } from "../../shared/dw-ponti.js";
+const statoScadenza = statoScadenzaHSE;
+export { statoScadenza };
 
 // Giudizio di IDONEITÀ SANITARIA (D.Lgs 81/2008 art. 41): esito della
 // sorveglianza sanitaria per la mansione. La data della prossima visita

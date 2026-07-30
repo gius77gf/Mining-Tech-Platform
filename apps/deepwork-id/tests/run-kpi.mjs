@@ -2290,6 +2290,112 @@ test("P2 · LA GUARDIA: il dichiarato non può diventare un rilievo", () => {
     "il riepilogo annuale per gli enti non porta nessun numero dichiarato");
 });
 /* ══════════════════════════════════════════════════════════════════════
+   PONTE P3 · CAMPO ↔ SCUDO — «chi è in turno è in regola?»
+   ══════════════════════════════════════════════════════════════════════
+   La regola più delicata scritta finora, perché una risposta sbagliata qui è
+   peggio di nessuna risposta: chi non sa, controlla; chi crede di sapere, no. */
+test("P3 · NON si accoppia per nome, mai", () => {
+  /* la prova che conta più di tutte. Nei dati di esempio Campo aveva un «Marco
+     Rossi» e Scudo un «Mario Rossi», Campo un'«Anna Conti» e Scudo un'«Anna Neri»
+     e una «Sara Conti»: un accoppiamento per nome — anche «intelligente» —
+     avrebbe dichiarato in regola una persona guardando i documenti di un'altra. */
+  const lavoratori = [{ id: "d1", nome: "Mario Rossi", attivo: true }];
+  const scadenze = [{ id: "s1", lavoratoreId: "d1", tipo: "Visita medica", dataScadenza: "2020-01-01" }];
+  const omonimo = { id: "o1", nome: "Mario Rossi" };          // stesso nome, nessun id
+  const r = ponti.idoneitaOperatore(omonimo, lavoratori, scadenze, new Date("2026-07-30"));
+  ok(r.stato === "non-collegato",
+    `stesso nome identico ma nessun collegamento: la risposta è «non lo so», non «scaduta» (${r.stato})`);
+  ok(r.lavoratore === null, "e non si restituisce il lavoratore trovato per nome");
+  /* e il caso opposto: nomi diversi ma id giusto → si guarda l'id */
+  const r2 = ponti.idoneitaOperatore({ id: "o1", nome: "Tutt'altro Nome", lavoratoreId: "d1" },
+    lavoratori, scadenze, new Date("2026-07-30"));
+  ok(r2.stato === "scaduta", "col collegamento giusto si legge il documento, qualunque nome ci sia scritto");
+});
+test("P3 · i cinque stati, e nessuno che finge di sapere", () => {
+  const oggi = new Date("2026-07-30T00:00:00");
+  const lav = [{ id: "d1", nome: "A" }, { id: "d2", nome: "B" }, { id: "d3", nome: "C" }];
+  const sca = [
+    { lavoratoreId: "d1", tipo: "Visita medica", dataScadenza: "2026-07-02" },  // scaduta
+    { lavoratoreId: "d1", tipo: "Patente", dataScadenza: "2028-05-30" },
+    { lavoratoreId: "d2", tipo: "Formazione", dataScadenza: "2026-08-09" },     // entro 30 giorni
+    { lavoratoreId: "d3", tipo: "Patente", dataScadenza: "2027-01-01" },        // lontana
+  ];
+  const st = (o) => ponti.idoneitaOperatore(o, lav, sca, oggi).stato;
+  ok(st({ lavoratoreId: "d1" }) === "scaduta", "un documento scaduto vince su quelli validi");
+  ok(st({ lavoratoreId: "d2" }) === "in-scadenza", "entro trenta giorni: in scadenza");
+  ok(st({ lavoratoreId: "d3" }) === "regolare", "tutto valido: regolare");
+  ok(st({ lavoratoreId: "d9" }) === "collegamento-rotto", "id che non esiste più in Scudo");
+  ok(st({}) === "non-collegato", "senza id non si indovina");
+  /* collegato ma senza nessun documento registrato: NON è «regolare», è un'altra
+     cosa — in Scudo non c'è niente da controllare, e dirlo è diverso dal dire
+     che è tutto a posto */
+  const solo = ponti.idoneitaOperatore({ lavoratoreId: "d1" }, lav, [], oggi);
+  ok(solo.stato === "senza-scadenze", "collegato ma senza documenti: si dice, non si assume");
+});
+test("P3 · il riepilogo del turno non trasforma un «non lo so» in un «sì»", () => {
+  const oggi = new Date("2026-07-30T00:00:00");
+  const lav = [{ id: "d1", nome: "A" }];
+  const sca = [{ lavoratoreId: "d1", tipo: "Patente", dataScadenza: "2028-01-01" }];
+  const q = ponti.idoneitaDiTurno(
+    [{ id: "o1", lavoratoreId: "d1" }, { id: "o2" }], lav, sca, oggi);
+  ok(q.regolari === 1 && q.nonCollegati === 1, "i due conti restano separati");
+  ok(q.tuttoInRegola === false,
+    "con una persona di cui non si sa niente, «tutto in regola» è FALSO");
+  const tutti = ponti.idoneitaDiTurno([{ id: "o1", lavoratoreId: "d1" }], lav, sca, oggi);
+  ok(tutti.tuttoInRegola === true, "se si sa tutto e va tutto bene, allora sì");
+  ok(ponti.idoneitaDiTurno([], lav, sca, oggi).tuttoInRegola === false,
+    "nessuno in elenco non è «tutto in regola»: è niente da dire");
+  eq(ponti.idoneitaDiTurno(null, null, null, oggi).righe, [], "dati assenti: nessun errore");
+});
+test("P3 · UNA SOLA implementazione della soglia: Scudo ri-esporta, non riscrive", () => {
+  /* la regola di ieri, applicata: `terra.X === ponti.X`. Qui vale per Scudo e per
+     Campo, e si pretende l'IDENTITÀ, non il comportamento — due copie uguali oggi
+     divergono domani senza che nessuno lo veda. */
+  ok(scudo.statoScadenza === ponti.statoScadenzaHSE,
+    "scudo.statoScadenza è la funzione di shared/, non una copia");
+  ok(campo.idoneitaDiTurno === ponti.idoneitaDiTurno, "e Campo ri-esporta la stessa");
+  ok(campo.idoneitaOperatore === ponti.idoneitaOperatore, "idem per il singolo operatore");
+  ok(campo.statoScadenzaHSE === ponti.statoScadenzaHSE, "idem per la soglia");
+});
+test("P3 · le due dimostrazioni non si smentiscono a vicenda", () => {
+  /* Campo porta una copia dei lavoratori e delle scadenze di Scudo per far vedere
+     il ponte anche senza backend. Se quelle copie divergessero, la dimostrazione
+     dell'ecosistema direbbe due cose diverse sulla stessa persona — ed è proprio
+     ciò che il ponte serve a evitare. */
+  const perId = new Map(scudo.DEMO.lavoratori.map(l => [l.id, l]));
+  for (const l of campo.DEMO.lavoratoriScudo) {
+    const vero = perId.get(l.id);
+    ok(vero, `il lavoratore ${l.id} della copia di Campo esiste in Scudo`);
+    if (vero) ok(vero.nome === l.nome, `e si chiama allo stesso modo (${l.nome} / ${vero && vero.nome})`);
+  }
+  /* la chiave (lavoratore + tipo) NON è univoca: in Scudo d3 ha due «Formazione»,
+     e la prima versione di questa prova le confondeva accusando i dati di essere
+     divergenti quando l'errore era suo. Si verifica quindi l'APPARTENENZA: ogni
+     riga della copia di Campo deve esistere in Scudo con la stessa data. */
+  const scaScudo = new Set(scudo.DEMO.scadenze.map(s => s.lavoratoreId + "|" + s.tipo + "|" + s.dataScadenza));
+  for (const s of campo.DEMO.scadenzeScudo) {
+    ok(scaScudo.has(s.lavoratoreId + "|" + s.tipo + "|" + s.dataScadenza),
+      `la scadenza «${s.tipo} ${s.dataScadenza}» di ${s.lavoratoreId} esiste identica in Scudo`);
+  }
+  /* e gli operatori di Campo puntano a lavoratori che esistono */
+  for (const o of campo.DEMO.operatori) {
+    if (!o.lavoratoreId) continue;
+    ok(perId.has(o.lavoratoreId), `l'operatore ${o.nome} punta a un lavoratore vero (${o.lavoratoreId})`);
+    ok(perId.get(o.lavoratoreId).nome === o.nome,
+      `e allo stesso nome: ${o.nome} / ${perId.get(o.lavoratoreId).nome}`);
+  }
+});
+test("P3 · la dimostrazione mostra TUTTI gli stati, altrimenti non dimostra", () => {
+  const q = campo.idoneitaDiTurno(campo.DEMO.operatori, campo.DEMO.lavoratoriScudo,
+    campo.DEMO.scadenzeScudo, new Date("2026-07-30T00:00:00"));
+  ok(q.scadute > 0, "c'è almeno un documento scaduto da far vedere");
+  ok(q.inScadenza > 0, "e almeno uno in scadenza");
+  ok(q.regolari > 0, "e almeno una persona in regola");
+  ok(q.nonCollegati > 0, "e almeno una non collegata: è lo stato che si dimentica");
+  ok(q.tuttoInRegola === false, "quindi la dimostrazione non dice «tutto a posto»");
+});
+
+/* ══════════════════════════════════════════════════════════════════════
    TERRA · LA RIPARTIZIONE PER FRONTE, che è una REGOLA e non un disegno
    ══════════════════════════════════════════════════════════════════════
    Nata guardando la sezione renderizzata, non leggendo il codice. Due difetti

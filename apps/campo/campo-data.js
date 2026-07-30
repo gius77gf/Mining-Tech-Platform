@@ -177,12 +177,43 @@ export const DEMO = {
     { id: "q2", nome: "Squadra B — Carico", persone: 3, area: "piazzale 2", stato: "operativa" },
     { id: "q3", nome: "Squadra C — Impianto", persone: 2, area: "frantoio", stato: "ferma" },
   ],
+  // GLI OPERATORI SONO LE STESSE PERSONE CHE STANNO IN SCUDO, e ora lo dicono con
+  // un ID (`lavoratoreId`), non col nome. Prima le due dimostrazioni erano state
+  // inventate separatamente e contenevano un «Marco Rossi» qui e un «Mario Rossi»
+  // là: due persone diverse con lo stesso cognome, che qualunque accoppiamento per
+  // nome avrebbe scambiato — dichiarando in regola qualcuno guardando i documenti
+  // di un altro. Ora i nomi coincidono con quelli di Scudo perché è la stessa
+  // azienda, e il collegamento resta comunque l'ID.
+  // L'ultimo è SENZA collegamento apposta: è il caso di chi è appena entrato e in
+  // Scudo non è ancora registrato, e la schermata deve saperlo dire.
   operatori: [
-    { id: "o1", nome: "Marco Rossi", ruolo: "Fochino", squadra: "Squadra A", stato: "in-forza" },
-    { id: "o2", nome: "Luca Ferrari", ruolo: "Perforatore", squadra: "Squadra A", stato: "in-forza" },
-    { id: "o3", nome: "Anna Conti", ruolo: "Caposquadra", squadra: "Squadra B", stato: "in-forza" },
-    { id: "o4", nome: "Youssef Amrani", ruolo: "Autista", squadra: "Squadra B", stato: "in-forza" },
-    { id: "o5", nome: "Paolo Greco", ruolo: "Manutentore", squadra: "Squadra C", stato: "non-disponibile" },
+    { id: "o1", nome: "Mario Rossi", ruolo: "Fochino", squadra: "Squadra A", stato: "in-forza", lavoratoreId: "d1" },
+    { id: "o2", nome: "Luca Bianchi", ruolo: "Perforatore", squadra: "Squadra A", stato: "in-forza", lavoratoreId: "d2" },
+    { id: "o3", nome: "Giulia Verdi", ruolo: "Caposquadra", squadra: "Squadra B", stato: "in-forza", lavoratoreId: "d3" },
+    { id: "o4", nome: "Paolo Gallo", ruolo: "Autista", squadra: "Squadra B", stato: "in-forza", lavoratoreId: "d5" },
+    { id: "o5", nome: "Youssef Amrani", ruolo: "Manutentore", squadra: "Squadra C", stato: "non-disponibile" },
+  ],
+  // I LAVORATORI E LE SCADENZE CHE IN ESERCIZIO ARRIVANO DA SCUDO (ponte P3, sola
+  // lettura). Qui sono finti ma COPIATI dalla dimostrazione di Scudo, id per id:
+  // se le due dimostrazioni dicessero cose diverse sulla stessa persona, la
+  // dimostrazione dell'ecosistema smentirebbe sé stessa. Le date sono quelle di
+  // Scudo: d1 ha la visita medica scaduta il 02/07, d2 un corso scaduto l'11/07,
+  // d3 la formazione in scadenza il 09/08, d5 è in regola.
+  lavoratoriScudo: [
+    { id: "d1", nome: "Mario Rossi", ruolo: "Fochino", attivo: true },
+    { id: "d2", nome: "Luca Bianchi", ruolo: "Escavatorista", attivo: true },
+    { id: "d3", nome: "Giulia Verdi", ruolo: "Preposto", attivo: true },
+    { id: "d5", nome: "Paolo Gallo", ruolo: "Autista", attivo: true },
+  ],
+  scadenzeScudo: [
+    { id: "s1", lavoratoreId: "d1", tipo: "Visita medica", descrizione: "Visita medica periodica", dataScadenza: "2026-07-02" },
+    { id: "s2", lavoratoreId: "d1", tipo: "Patente", descrizione: "Patente di guida", dataScadenza: "2028-05-30" },
+    { id: "s3", lavoratoreId: "d2", tipo: "Corso", descrizione: "Corso di aggiornamento", dataScadenza: "2026-07-11" },
+    { id: "s4", lavoratoreId: "d2", tipo: "Visita medica", descrizione: "Visita medica periodica", dataScadenza: "2027-04-08" },
+    { id: "s5", lavoratoreId: "d3", tipo: "Formazione", descrizione: "Formazione specifica", dataScadenza: "2026-08-09" },
+    { id: "s6", lavoratoreId: "d3", tipo: "Visita medica", descrizione: "Visita medica periodica", dataScadenza: "2027-02-11" },
+    { id: "s7", lavoratoreId: "d5", tipo: "Patente", descrizione: "Patente di guida", dataScadenza: "2026-09-02" },
+    { id: "s8", lavoratoreId: "d5", tipo: "Visita medica", descrizione: "Visita medica periodica", dataScadenza: "2027-05-20" },
   ],
   rapportini: [
     // i turni dei giorni fra i due voli del drone: servono al ponte con Terra
@@ -1114,6 +1145,14 @@ export function pianoConsuntivoCsv(piano) {
   return CONSUNTIVO_COLONNE.join(";") + "\n" + righe.join("\n") + (righe.length ? "\n" : "");
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// PONTE P3 CON SCUDO — la regola sta in `shared/dw-ponti.js` perché serve a due
+// app, e Campo la ri-esporta col nome con cui la chiamano le sue pagine.
+// ══════════════════════════════════════════════════════════════════════
+export {
+  ESITI_TURNO, statoScadenzaHSE, idoneitaOperatore, idoneitaDiTurno,
+} from "../../shared/dw-ponti.js";
+
 export async function campoData() {
   let mode = "demo", api = null;
   try {
@@ -1175,6 +1214,31 @@ export async function campoData() {
             .docs.map(d => ({ id: d.id, ...d.data() }));
         } catch (e) { return null; }
       };
+      // ── PONTE P3 CON SCUDO — SOLA LETTURA ─────────────────────────────
+      // Stesso schema del ponte con Terra: seconda istanza dell'SDK sull'app
+      // "scudo", stessa organizzazione, percorso costruito da `orgCollection`.
+      // Campo LEGGE i documenti del personale e non li tocca mai: chi rinnova una
+      // visita medica lo fa in Scudo, che è l'unica strada per scrivere quel dato.
+      // Se Scudo non c'è, o la lettura non è permessa, torna null e la schermata
+      // dice che non lo sa — non inventa un «tutto a posto», che su un controllo
+      // di sicurezza è la bugia peggiore.
+      let idScudo;                     // undefined = mai provato, null = non c'è
+      const apriScudo = async () => {
+        if (idScudo === undefined) {
+          try { idScudo = await DeepworkID.init({ appId: "scudo" }); }
+          catch (e) { idScudo = null; }
+        }
+        return idScudo;
+      };
+      const leggiScudo = async (nome) => {
+        const s = await apriScudo();
+        if (!s) return null;
+        try {
+          return (await getDocs(s.orgCollection(nome))).docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e) { return null; }
+      };
+      api.lavoratoriScudo = () => leggiScudo("lavoratori");
+      api.scadenzeScudo = () => leggiScudo("scadenze");
     } else if (id.authState() === "tour") mode = "tour";
   } catch (e) { /* backend assente: demo */ }
 
@@ -1188,6 +1252,10 @@ export async function campoData() {
       // in dimostrazione i rilievi non arrivano da Terra: sono finti, ma
       // coerenti coi rapportini d'esempio (vedi DEMO.rilieviTerra)
       rilieviTerra: async () => mem.rilieviTerra || [],
+      // in dimostrazione i documenti del personale non arrivano da Scudo: sono
+      // finti, ma copiati dalla dimostrazione di Scudo id per id
+      lavoratoriScudo: async () => mem.lavoratoriScudo || [],
+      scadenzeScudo: async () => mem.scadenzeScudo || [],
       autorizzazioniTerra: async () => mem.autorizzazioniTerra || [],
       obiettivi: async () => mem.obiettivi || (mem.obiettivi = []),
       checklist: async () => mem.checklist || (mem.checklist = []),

@@ -612,6 +612,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     <span class="of"><label for="ope-filtro">Squadra</label>
       <select id="ope-filtro" class="dw-input" aria-label="Filtra gli operatori per squadra"></select></span>
   </div>
+  <div id="ope-hse"></div>
   <div id="ope-list"></div>
   <div class="sec">Nuovo operatore</div>
   <div class="form col">
@@ -920,6 +921,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   import { campoData, kpiFrom, parsePianoCsv, mappaPianoCsv, parseSquadreCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, fermiPerGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
            oggiISO, TURNI, turnoCorrente, diGiorno, senzaData, UNITA_PRODUZIONE, totaliProduzione, formattaProduzione, normalizzaPiano,
            squadraBase, RUOLI, operatoriDi, etichettaAssegnazione, eMia, caricoSquadre,
+           idoneitaDiTurno, idoneitaOperatore,
            UNITA_ATTIVITA, obiettivoDi, statoObiettivo,
            storicoSettimana, totaliSettimana, unitaPrevalente,
            CHECKLIST_INIZIO, ESITI_CHECK, statoChecklist, checklistDi,
@@ -1102,6 +1104,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
   let ATT=[], SQU=[], RAP=[], OPER=[], OBIE=[], CHK=[], PRE=[], CHI=[], MET=[];
+  // i documenti del personale letti da Scudo (ponte P3): `null` = non lo sappiamo
+  let LAV_HSE = null, SCAD_HSE = null;
   // ATT/RAP restano SEMPRE la lista completa (serve per ritrovare per id anche
   // ciò che non è a schermo); ATT_G/RAP_G sono la fetta del giorno mostrata e
   // conteggiata. Una registrazione senza data resta dentro (dato vecchio).
@@ -1310,6 +1314,13 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   async function refresh(){
     [ATT,SQU,RAP,OPER,OBIE,CHK,PRE,CHI,MET] = await Promise.all([db.attivita(), db.squadre(), db.rapportini(),
       db.operatori(), db.obiettivi(), db.checklist(), db.presenze(), db.chiusure(), db.meteo()]);
+    // PONTE P3 · i documenti del personale, in sola lettura da Scudo. `null` vuol
+    // dire «non lo so» — Scudo non c'è o non è leggibile — ed è diverso da «non
+    // c'è nessun documento scaduto». La schermata deve dire quale dei due.
+    [LAV_HSE, SCAD_HSE] = await Promise.all([
+      db.lavoratoriScudo ? db.lavoratoriScudo() : null,
+      db.scadenzeScudo ? db.scadenzeScudo() : null,
+    ]);
     // Il giorno di lavoro è la chiave di tutto: i KPI del quadro contano SEMPRE
     // e solo le registrazioni di oggi (prima "Rapportini oggi" sommava tutti i
     // rapportini mai inviati), mentre le liste seguono il selettore "Giorno".
@@ -1559,16 +1570,76 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
                   : "Oggi non c'è nessuna attività assegnata a te o alla tua squadra. Il capocantiere le assegna da <b>Attività → Nuova attività</b>."));
   }
 
+  // ── PONTE P3 · i documenti del personale, detti come FATTI AMMINISTRATIVI ──
+  // «La visita medica di Mario Rossi è scaduta il 02/07» è una cosa che si
+  // risolve prenotando una visita. «Mario Rossi non è a posto» è un giudizio, e
+  // uno strumento che sembra un cartellino di demerito smette di ricevere dati
+  // veri — è la stessa lezione del ponte con Terra, dove il rischio era che i
+  // turni scrivessero numeri prudenti invece di numeri veri.
+  const dmyBreve = (iso) => dmy(iso).slice(0, 5);
+  function notaHSE(r) {
+    // ⚠️ NIENTE PARTICIPI CONCORDATI col tipo di documento: il genere in italiano
+    // non si deduce dalla parola, e «Corso scaduta» è quello che usciva. I tipi
+    // sono liberi (li scrive l'utente in Scudo), quindi non si può nemmeno
+    // tenerne una tabella. Il verbo «scadeva/scade» non concorda con niente e
+    // vale per qualunque nome — è la stessa lezione dell'articolo inventato
+    // davanti al nome di un campo.
+    if (r.stato === "scaduta") {
+      const d = r.scadute[0];
+      return " · <b>" + esc(d.tipo || "Documento") + "</b>: scadeva il " + dmyBreve(d.dataScadenza)
+        + (r.scadute.length > 1 ? " (e altri " + (r.scadute.length - 1) + " documenti)" : "");
+    }
+    if (r.stato === "in-scadenza") {
+      const d = r.inScadenza[0];
+      return " · " + esc(d.tipo || "Documento") + ": scade il " + dmyBreve(d.dataScadenza);
+    }
+    if (r.stato === "senza-scadenze") return " · nessun documento registrato in Scudo";
+    if (r.stato === "collegamento-rotto") return " · non risulta più fra il personale di Scudo";
+    if (r.stato === "non-collegato") return " · non collegato al personale di Scudo";
+    return "";
+  }
+  const CLASSE_HSE = { scaduta: "st-danger", "in-scadenza": "st-warn" };
+
   // Elenco delle persone, filtrabile per squadra.
+  // L'ORDINE RESTA ALFABETICO, e non per urgenza dei documenti: questa è la
+  // rubrica di chi c'è in squadra, e chi la apre di solito cerca UNA persona.
+  // Riordinarla per stato la trasformerebbe in un elenco di conformità e
+  // renderebbe difficile trovare qualcuno. Ciò che è urgente lo dicono la nota
+  // qui sopra, che conta, e il colore del bordo di ogni riga.
   function renderOperatori() {
     const filtro = $("ope-filtro").value;
     const righe = operatoriDi(OPER, filtro);
     $("ope-count").textContent = righe.length;
+    // SE SCUDO NON È LEGGIBILE NON SI SCRIVE NIENTE — né un allarme né un «tutto a
+    // posto». Dal lato di Campo i due casi non si distinguono: l'azienda potrebbe
+    // non avere Scudo, oppure la lettura può essere fallita. Una nota d'errore fissa
+    // sarebbe rumore per chi quell'app non l'ha comprata; una nota rassicurante
+    // sarebbe una bugia. Restando in silenzio il modo di sbagliare è «nessuna
+    // informazione», mai «informazione sbagliata» — e su un controllo di sicurezza
+    // è l'unica differenza che conta. Da non «correggere» aggiungendo una frase.
+    const hse = LAV_HSE && SCAD_HSE ? idoneitaDiTurno(righe, LAV_HSE, SCAD_HSE) : null;
+    const perId = {};
+    if (hse) hse.righe.forEach(r => { perId[r.operatore.id] = r; });
+    $("ope-hse").innerHTML = !hse || !righe.length ? ""
+      : hse.scadute || hse.inScadenza
+        ? `<div class="note ${hse.scadute ? "avviso" : "recap"}">`
+          + (hse.scadute
+              ? `<b>${hse.scadute} ${hse.scadute === 1 ? "persona ha un documento scaduto" : "persone hanno un documento scaduto"}</b> fra chi è in elenco. `
+              : "")
+          + (hse.inScadenza ? `${hse.inScadenza} ${hse.inScadenza === 1 ? "ha un documento" : "hanno un documento"} in scadenza entro trenta giorni. ` : "")
+          + `I rinnovi si fanno in <b>Scudo</b>, che è l'unico posto dove quel dato si scrive.`
+          + (hse.nonCollegati ? ` Di ${hse.nonCollegati === 1 ? "una persona" : hse.nonCollegati + " persone"} non lo sappiamo: ${hse.nonCollegati === 1 ? "non è collegata" : "non sono collegate"} al personale di Scudo.` : "")
+          + `</div>`
+        : hse.nonCollegati
+          ? `<div class="note">Nessun documento scaduto fra le persone collegate a <b>Scudo</b>. Di ${hse.nonCollegati === 1 ? "una" : hse.nonCollegati} non lo sappiamo: ${hse.nonCollegati === 1 ? "non è collegata" : "non sono collegate"} al personale di Scudo.</div>`
+          : `<div class="note recap">Documenti in corso di validità per <b>tutte</b> le persone in elenco, secondo Scudo.</div>`;
     $("ope-list").innerHTML = righe.map(o => { const giu = o.stato === "non-disponibile";
       const carico = ATT_OGGI.filter(a => String(a.operatore || "").trim() === o.nome && a.stato !== "conclusa").length;
-      return `<div class="item ${giu ? "st-mute" : "st-ok"}" data-ope="${esc(o.id)}" role="button" tabindex="0" style="cursor:pointer" title="Tocca per cambiare la disponibilità">
+      const r = perId[o.id];
+      const cls = giu ? "st-mute" : (r && CLASSE_HSE[r.stato]) || "st-ok";
+      return `<div class="item ${cls}" data-ope="${esc(o.id)}" role="button" tabindex="0" style="cursor:pointer" title="Tocca per cambiare la disponibilità">
       <div class="avatar${giu ? " mute" : ""}">${esc((o.nome || "?").split(/\s+/).map(p => p[0] || "").join("").slice(0, 2).toUpperCase())}</div>
-      <div class="info"><div class="name">${esc(o.nome)}</div><div class="meta">${esc(o.ruolo || "ruolo non indicato")} · ${esc(squadraBase(o.squadra) || "senza squadra")}${carico ? " · " + carico + " in carico oggi" : ""}</div></div>
+      <div class="info"><div class="name">${esc(o.nome)}</div><div class="meta">${esc(o.ruolo || "ruolo non indicato")} · ${esc(squadraBase(o.squadra) || "senza squadra")}${carico ? " · " + carico + " in carico oggi" : ""}${r ? notaHSE(r) : ""}</div></div>
       <span class="badge ${giu ? "tag" : "ok"}">${giu ? "Non disponibile" : "In forza"}</span></div>`; }).join("")
       || vuoto(I.persona, filtro ? "Nessuno in questa squadra" : "Nessun operatore in anagrafica",
           filtro ? "In questa squadra non è registrata ancora nessuna persona: aggiungila qui sotto e potrai assegnarle il lavoro."

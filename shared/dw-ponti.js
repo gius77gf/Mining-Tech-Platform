@@ -331,3 +331,97 @@ export function densitaDelMateriale(materiale) {
   });
   return p ? { ...p, daVerificare: true } : null;
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// PONTE P3 · CAMPO ↔ SCUDO — «chi è in turno è in regola?»
+// ══════════════════════════════════════════════════════════════════════
+//
+// La domanda è la più importante che l'ecosistema sappia porre, e nessuna app
+// da sola può rispondere: Campo sa CHI sta lavorando adesso, Scudo sa chi ha la
+// visita medica valida e la formazione in corso. Finché i due mondi non si
+// toccano, un caposquadra manda al fronte una persona con l'idoneità scaduta
+// senza modo di saperlo.
+//
+// ⛔ NON SI ACCOPPIA PER NOME. MAI. È la decisione più importante di questo
+// ponte, e non è prudenza teorica: nei dati di esempio Campo ha un «Marco
+// Rossi» e Scudo un «Mario Rossi», Campo ha «Anna Conti» e Scudo ha «Anna Neri»
+// e «Sara Conti». Un accoppiamento per nome — anche «intelligente» — avrebbe
+// dichiarato in regola una persona guardando i documenti di un'altra. Su una
+// visita medica un falso positivo è peggio di nessuna risposta: chi non sa,
+// controlla; chi crede di sapere, no. Quindi il collegamento è un ID esplicito
+// (`lavoratoreId` sull'operatore di Campo) e senza ID la risposta è «non lo so»,
+// detta chiaramente.
+//
+// E NON È UN GIUDIZIO SULLA PERSONA. Vale la stessa lezione del ponte con
+// Terra: se lo strumento sembra un cartellino di demerito, chi lo usa smette di
+// scriverci dentro i dati veri. Qui si dice che un DOCUMENTO è scaduto — un
+// fatto amministrativo che si risolve prenotando una visita — non che qualcuno
+// «non è a posto».
+
+export const ESITI_TURNO = [
+  "scaduta",             // almeno un documento scaduto: va risolto prima del turno
+  "in-scadenza",         // scade entro 30 giorni: si prenota adesso, senza fermare nessuno
+  "regolare",            // tutto in corso di validità
+  "senza-scadenze",      // collegato, ma in Scudo non risulta nessun documento
+  "non-collegato",       // manca `lavoratoreId`: non lo sappiamo, e si dice
+  "collegamento-rotto",  // c'è un id, ma in Scudo non esiste più
+];
+
+// Le soglie sono quelle di Scudo, non nuove: 0 giorni = scaduta, entro 30 =
+// in scadenza. Stanno qui perché ora servono a DUE app, e Scudo le ri-esporta
+// col nome con cui le ha sempre chiamate.
+export function statoScadenzaHSE(dataISO, oggi = new Date()) {
+  const t = Date.parse(String(dataISO || "") + "T00:00:00");
+  if (Number.isNaN(t)) return "regolare";
+  const g = Math.floor((t - new Date(oggi).setHours(0, 0, 0, 0)) / 86400000);
+  if (g < 0) return "scaduta";
+  if (g <= 30) return "in-scadenza";
+  return "regolare";
+}
+
+// Lo stato di UN operatore di Campo rispetto ai documenti che Scudo tiene per
+// lui. Torna sempre un oggetto: non esistono risposte mancanti, esistono
+// risposte che dicono «non lo so» e perché.
+export function idoneitaOperatore(operatore, lavoratori, scadenze, oggi = new Date()) {
+  const vuoto = { stato: "non-collegato", lavoratore: null, scadute: [], inScadenza: [], documenti: 0 };
+  const rif = operatore && operatore.lavoratoreId != null ? String(operatore.lavoratoreId).trim() : "";
+  if (!rif) return vuoto;
+  const l = (lavoratori || []).find((x) => x && String(x.id) === rif) || null;
+  if (!l) return { ...vuoto, stato: "collegamento-rotto" };
+  const sue = (scadenze || []).filter((s) => s && String(s.lavoratoreId) === rif);
+  if (!sue.length) return { stato: "senza-scadenze", lavoratore: l, scadute: [], inScadenza: [], documenti: 0 };
+  const scadute = [], inScadenza = [];
+  for (const s of sue) {
+    const st = statoScadenzaHSE(s.dataScadenza, oggi);
+    if (st === "scaduta") scadute.push(s);
+    else if (st === "in-scadenza") inScadenza.push(s);
+  }
+  return {
+    stato: scadute.length ? "scaduta" : inScadenza.length ? "in-scadenza" : "regolare",
+    lavoratore: l, scadute, inScadenza, documenti: sue.length,
+  };
+}
+
+// Il quadro di un TURNO: gli operatori che stanno lavorando, ognuno col suo
+// stato, più il conto che serve a scrivere una frase sola invece di far contare
+// le righe a chi guarda.
+// `nonCollegati` è tenuto separato dai regolari di proposito: sommarlo ai
+// «tutto a posto» trasformerebbe un «non lo so» in un «sì», che è il modo più
+// facile per rendere inutile un controllo di sicurezza.
+export function idoneitaDiTurno(operatori, lavoratori, scadenze, oggi = new Date()) {
+  const righe = (operatori || []).map((o) => ({
+    operatore: o, ...idoneitaOperatore(o, lavoratori, scadenze, oggi),
+  }));
+  const conta = (s) => righe.filter((r) => r.stato === s).length;
+  return {
+    righe,
+    scadute: conta("scaduta"),
+    inScadenza: conta("in-scadenza"),
+    regolari: conta("regolare"),
+    senzaScadenze: conta("senza-scadenze"),
+    nonCollegati: conta("non-collegato") + conta("collegamento-rotto"),
+    // «sappiamo tutto e va tutto bene» è vero solo se non c'è nessun «non lo so»
+    tuttoInRegola: righe.length > 0
+      && righe.every((r) => r.stato === "regolare" || r.stato === "senza-scadenze"),
+  };
+}
