@@ -7,7 +7,7 @@
 // perché non falliscono i test, si vedono solo aprendo la pagina giusta.
 // Qui diventano controlli che girano in automatico.
 //
-// Nove regole, oggi:
+// Dieci regole, oggi:
 //  1. NIENTE DIALOGHI DEL BROWSER. `alert()`, `confirm()`, `prompt()` sono
 //     vietati dalla direttiva sullo stile. La ragione non è estetica: la
 //     finestra ha il carattere e i bottoni del sistema operativo, su Android
@@ -52,6 +52,12 @@
 //     un comportamento diverso: svuotava il campo. Montate tutte e due, «1.500»
 //     diventava «500» — un numero plausibile e sbagliato, cioè la cosa che lo
 //     svuotamento voleva evitare. Trovato digitando davvero, non leggendo.
+// 10. UNO STATO VUOTO CON UN TITOLO HA ANCHE UNA SPIEGAZIONE. «Nessun mezzo da
+//     lavoro» su uno schermo per il resto nero non dice a chi guarda che cosa
+//     deve fare, né se il vuoto dipende da lui. Nel core erano tredici, ed è la
+//     schermata che una cava nuova vede il primo giorno. Non riguarda i
+//     segnaposto brevi dentro le schede («Nessun file»), che hanno la sola riga
+//     di spiegazione di proposito: la regola guarda chi ha un TITOLO.
 //
 // Come si aggiunge una regola: una funzione che restituisce l'elenco delle
 // violazioni con file e riga, e un `test(...)` che pretende zero.
@@ -597,6 +603,48 @@ test("la guardia condivisa esiste e distingue interi da decimali", () => {
   ok(campiInteri('<input type="number" step="0.1">') === 0, "un decimale non è un campo intero");
   ok(campiInteri('<input type="number" inputmode="decimal">') === 0, "e nemmeno uno dichiarato dall'inputmode");
   ok(campiInteri('<input type="text" inputmode="numeric">') === 0, "un campo di testo non ha bisogno della guardia");
+});
+
+console.log("\n── Regola 10: uno stato vuoto con un titolo ha anche una spiegazione ──");
+// Trovato aprendo il core per la prima volta in locale: tredici stati vuoti
+// mostravano icona e titolo e basta — «Nessun mezzo da lavoro» su uno schermo
+// per il resto nero. È la schermata che una cava nuova vede il primo giorno, e
+// non diceva né che cosa fare né di chi fosse il compito. Le sei app, che dal
+// core hanno copiato tutto, su questo erano più ricche del loro riferimento.
+// Non riguarda i segnaposto brevi dentro le schede («Nessun file»), fatti
+// apposta di sola spiegazione: si guarda chi ha un TITOLO.
+function vuotiSenzaSpiegazione(src) {
+  const corpo = senzaCommenti(src);
+  const fuori = [];
+  const re = /empty-title/g;
+  let m;
+  while ((m = re.exec(corpo))) {
+    const finestra = corpo.slice(m.index, m.index + 500);
+    if (!/empty-sub/.test(finestra)) {
+      const t = /empty-title[^>]*>([^<]{0,60})/.exec(finestra);
+      fuori.push((t && t[1].trim()) || "(titolo dinamico)");
+    }
+  }
+  return fuori;
+}
+for (const [nome, rel] of SUPERFICI) {
+  const src = leggi(rel);
+  if (src === null) continue;
+  const muti = vuotiSenzaSpiegazione(src);
+  test(`${nome}: ogni stato vuoto con titolo dice anche cosa fare`, () => {
+    ok(muti.length === 0,
+      `${rel}: ${muti.length} stati vuoti mostrano solo il titolo (${muti.slice(0, 4).join(" · ")}): ` +
+      `chi apre l'app il primo giorno non capisce se il vuoto dipende da lui`);
+  });
+}
+test("la regola 10 sa vedere il difetto che è stato tolto", () => {
+  const difetto = '<div class="empty-state"><div class="empty-icon">🚜</div>' +
+    '<div class="empty-title">Nessun mezzo da lavoro</div></div>';
+  const messo = difetto.replace("</div></div>", '</div><div class="empty-sub">Aggiungilo col ＋.</div></div>');
+  ok(vuotiSenzaSpiegazione(difetto).length === 1, "lo stato vuoto muto viene visto");
+  ok(vuotiSenzaSpiegazione(messo).length === 0, "e quello che spiega no");
+  ok(vuotiSenzaSpiegazione('<div class="empty-state"><div class="empty-sub">Nessun file</div></div>').length === 0,
+    "il segnaposto breve dentro una scheda non è una violazione");
 });
 
 console.log("\n── Regola 9: nessuna superficie si riscrive in casa la regola degli interi ──");

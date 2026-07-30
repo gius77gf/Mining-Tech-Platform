@@ -2330,7 +2330,7 @@ function renderMacchine(){
 }
 function macTab(t,el){document.querySelectorAll('#screen-macchine .atab').forEach(x=>x.classList.remove('active'));el.classList.add('active');state.macTabAttivo=t;$('mac-lavoro-panel').style.display=t==='lavoro'?'block':'none';$('mac-strada-panel').style.display=t==='strada'?'block':'none';}
 function renderMacLavoro(){
-  if(DB.mezziLav.length===0){$('mac-lavoro-list').innerHTML='<div class="empty-state"><div class="empty-icon">🚜</div><div class="empty-title">Nessun mezzo da lavoro</div></div>';return;}
+  if(DB.mezziLav.length===0){$('mac-lavoro-list').innerHTML=`<div class="empty-state"><div class="empty-icon">🚜</div><div class="empty-title">Nessun mezzo da lavoro</div><div class="empty-sub">${can('addMac')?'Aggiungi il primo con il ＋ in alto a destra.':'I mezzi li registra l\'ufficio: appena inseriti compaiono qui.'}</div></div>`;return;}
   $('mac-lavoro-list').innerHTML=DB.mezziLav.map(m=>{
     const c=DB.cave.find(x=>x.id===m.cavaId);
     // Trova utente assegnatario (ultimo rapportino con questo mezzo)
@@ -2347,7 +2347,7 @@ function renderMacLavoro(){
   }).join('');
 }
 function renderMacStrada(){
-  if(DB.mezziStr.length===0){$('mac-strada-list').innerHTML='<div class="empty-state"><div class="empty-icon">🚛</div><div class="empty-title">Nessun mezzo da strada</div></div>';return;}
+  if(DB.mezziStr.length===0){$('mac-strada-list').innerHTML=`<div class="empty-state"><div class="empty-icon">🚛</div><div class="empty-title">Nessun mezzo da strada</div><div class="empty-sub">${can('addMac')?'Aggiungi il primo con il ＋ in alto a destra.':'I mezzi li registra l\'ufficio: appena inseriti compaiono qui.'}</div></div>`;return;}
   $('mac-strada-list').innerHTML=DB.mezziStr.map(m=>{const scad=Object.entries(m.scadenze||{}).filter(([k,v])=>v).map(([k,v])=>({k,v,d:daysBetween(today(),v)}));const prox=[...scad].sort((a,b)=>a.d-b.d)[0];let badge='',cls='';if(prox){if(prox.d<0){badge=`<span class="scad-badge danger">${prox.k} scaduta</span>`;cls='danger';}else if(prox.d<=30){badge=`<span class="scad-badge warn">${prox.k} in ${prox.d}g</span>`;cls='warn';}else badge=`<span class="scad-badge ok">OK</span>`;}return`<div class="sitem ${cls}" onclick="apriMezzoStr('${m.id}')"><div class="photo-avatar-sm">${m.foto?`<img src="${encodeURI(m.foto)}">`:'<span style="font-size:16px;">🚛</span>'}</div><div class="sinfo"><div class="sname">${escHtml(m.marca)} ${escHtml(m.modello)} ${badge}</div><div class="ssub">${escHtml(m.targa)} · ${m.km||0} km</div></div><div class="sarr">›</div></div>`;}).join('');
 }
 function apriMacLavoro(id){
@@ -2617,17 +2617,17 @@ function renderDeposito(){
 function depTab(t,el){document.querySelectorAll('#screen-deposito .atab').forEach(x=>x.classList.remove('active'));el.classList.add('active');state.depTabAttivo=t;$('dep-punte-panel').style.display=t==='punte'?'block':'none';$('dep-aste-panel').style.display=t==='aste'?'block':'none';$('dep-lubr-panel').style.display=t==='lubr'?'block':'none';}
 function renderDepPunte(){
   const canTot=can('depTot');
-  if(DB.deposito.punte.length===0){$('dep-punte-list').innerHTML='<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">Nessuna punta</div></div>';return;}
+  if(DB.deposito.punte.length===0){$('dep-punte-list').innerHTML=`<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">Nessuna punta</div><div class="empty-sub">${can('depAdd')?'Aggiungi un tipo di punta col bottone qui sotto.':'I tipi di punta li imposta l\'ufficio.'}</div></div>`;return;}
   $('dep-punte-list').innerHTML=DB.deposito.punte.map(p=>`<div class="dep-item"><div style="flex:1;"><div class="dep-title">Punta Ø ${p.diametro} mm</div><div class="dep-total">Totale: <b>${p.qta}</b> pz</div></div><div class="dep-counter"><button class="dep-btn" onclick="depAdj('punte','${p.id}',-1)">−</button><span class="dep-qty" id="pt-sel-${p.id}">0</span><button class="dep-btn" onclick="depAdj('punte','${p.id}',1)">+</button></div><div class="dep-actions"><button class="chg" onclick="depInvio('punte','${p.id}')">PRELEVA</button>${canTot?`<button class="chg" onclick="depEditTot('punte','${p.id}')">TOTALE</button><button class="chg" onclick="depDel('punte','${p.id}')">✕</button>`:''}</div></div>`).join('');
 }
 function renderDepAste(){
   const canTot=can('depTot');
-  if(DB.deposito.aste.length===0){$('dep-aste-list').innerHTML='<div class="empty-state"><div class="empty-icon">📏</div><div class="empty-title">Nessuna asta</div></div>';return;}
+  if(DB.deposito.aste.length===0){$('dep-aste-list').innerHTML=`<div class="empty-state"><div class="empty-icon">📏</div><div class="empty-title">Nessuna asta</div><div class="empty-sub">${can('depAdd')?'Aggiungi un tipo di asta col bottone qui sotto.':'I tipi di asta li imposta l\'ufficio.'}</div></div>`;return;}
   $('dep-aste-list').innerHTML=DB.deposito.aste.map(a=>`<div class="dep-item"><div style="flex:1;"><div class="dep-title">Asta ${a.lunghezza} m · Ø ${a.diametro} mm</div><div class="dep-total">Totale: <b>${a.qta}</b> pz</div></div><div class="dep-counter"><button class="dep-btn" onclick="depAdj('aste','${a.id}',-1)">−</button><span class="dep-qty" id="as-sel-${a.id}">0</span><button class="dep-btn" onclick="depAdj('aste','${a.id}',1)">+</button></div><div class="dep-actions"><button class="chg" onclick="depInvio('aste','${a.id}')">PRELEVA</button>${canTot?`<button class="chg" onclick="depEditTot('aste','${a.id}')">TOTALE</button><button class="chg" onclick="depDel('aste','${a.id}')">✕</button>`:''}</div></div>`).join('');
 }
 function renderDepLubr(){
   const canTot=can('depTot');
-  if(DB.deposito.lubr.length===0){$('dep-lubr-list').innerHTML='<div class="empty-state"><div class="empty-icon">🛢️</div><div class="empty-title">Nessun lubrificante</div></div>';return;}
+  if(DB.deposito.lubr.length===0){$('dep-lubr-list').innerHTML=`<div class="empty-state"><div class="empty-icon">🛢️</div><div class="empty-title">Nessun lubrificante</div><div class="empty-sub">${can('depAdd')?'Aggiungi un tipo di lubrificante col bottone qui sotto.':'I lubrificanti li imposta l\'ufficio.'}</div></div>`;return;}
   $('dep-lubr-list').innerHTML=DB.deposito.lubr.map(l=>`<div class="dep-item"><div style="flex:1;"><div class="dep-title">${escHtml(l.tipo)}</div><div class="dep-total">Totale: <b>${l.litri}</b> L</div></div><div class="dep-counter"><button class="dep-btn" onclick="depAdj('lubr','${l.id}',-1)">−</button><span class="dep-qty" id="lb-sel-${l.id}">0</span><button class="dep-btn" onclick="depAdj('lubr','${l.id}',1)">+</button></div><div class="dep-actions"><button class="chg" onclick="depInvio('lubr','${l.id}')">PRELEVA</button>${canTot?`<button class="chg" onclick="depEditTot('lubr','${l.id}')">TOTALE</button><button class="chg" onclick="depDel('lubr','${l.id}')">✕</button>`:''}</div></div>`).join('');
 }
 function depAdj(cat,id,delta){const prefix={punte:'pt',aste:'as',lubr:'lb'}[cat];const el=$(`${prefix}-sel-${id}`);let v=parseInt(el.textContent)||0;el.textContent=Math.max(0,v+delta);}
@@ -2656,7 +2656,7 @@ function openLubrForm(){openModal('Nuovo lubrificante',`<label class="fl">Tipo</
 // ══════════ PERSONALE ══════════
 function renderPersonale(){
   $('btn-add-pers').style.display=can('addPers')?'flex':'none';
-  if(DB.personale.length===0){$('pers-list').innerHTML='<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">Nessun personale</div></div>';return;}
+  if(DB.personale.length===0){$('pers-list').innerHTML=`<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">Nessun personale</div><div class="empty-sub">${can('addPers')?'Aggiungi la prima persona con il ＋ in alto a destra.':'Il personale di supporto lo registra l\'ufficio.'}</div></div>`;return;}
   $('pers-list').innerHTML=DB.personale.map(p=>`<div class="sitem" onclick="apriPersDet('${p.id}')"><div class="photo-avatar-sm">${p.foto?`<img src="${encodeURI(p.foto)}">`:`<span style="font-size:11px;font-weight:800;color:var(--amber);">${escHtml(initials(p.nome,p.cognome))}</span>`}</div><div class="sinfo"><div class="sname">${escHtml(p.nome)} ${escHtml(p.cognome)}</div><div class="ssub">${escHtml(p.ruolo||'—')}${p.tel?' · '+escHtml(p.tel):''}</div></div><div class="sarr">›</div></div>`).join('');
 }
 function apriPersDet(id){
@@ -2704,7 +2704,7 @@ async function salvaPers(){
 
 // ══════════ UTENTI ══════════
 function renderUtenti(){
-  if(!can('admin')){$('users-list').innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><div class="empty-title">Accesso riservato</div></div>';return;}
+  if(!can('admin')){$('users-list').innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><div class="empty-title">Accesso riservato</div><div class="empty-sub">La gestione degli utenti è riservata agli amministratori.</div></div>';return;}
   $('users-list').innerHTML=DB.users.map(u=>{const rc={admin:'av-am',ufficio:'av-uf',fochino:'av-fc',operatore:'av-op'}[u.ruolo]||'av-op';const av=u.foto?`<div class="photo-avatar-sm"><img src="${encodeURI(u.foto)}"></div>`:`<div class="av ${rc}">${escHtml(initials(u.nome,u.cognome))}</div>`;return`<div class="sitem ${!u.attivo?'inactive':''}" onclick="openUserEdit('${u.id}')">${av}<div class="sinfo"><div class="sname">${escHtml(u.nome)} ${escHtml(u.cognome)} ${!u.attivo?'<span style="background:var(--danger);color:#fff;padding:1px 5px;font-size:9px;margin-left:4px;">DISATTIVO</span>':''}</div><div class="ssub">${escHtml(u.user)} · ${escHtml(u.ruolo)}${u.tel?' · '+escHtml(u.tel):''}</div></div><div class="sarr">›</div></div>`;}).join('');
 }
 function uploadUserFoto(id){uploadPhoto('u','f',id,async data=>{await fbUpdate('users',id,{foto:data});if(state.user.id===id)state.user.foto=data;toast('Foto aggiornata','success');openUserEdit(id);renderUtenti();});}
@@ -3026,7 +3026,7 @@ function renderMessaggi(){
   }
   if(list.length)html+=list.map(p=>{const u=DB.users.find(x=>x.id===p.id);if(!u)return'';const last=p.msgs[p.msgs.length-1];return`<div class="sitem ${p.unread>0?'warn':''}" onclick="apriChat('${u.id}')"><div class="photo-avatar-sm">${u.foto?`<img src="${encodeURI(u.foto)}">`:`<span style="font-size:11px;font-weight:800;color:var(--amber);">${escHtml(initials(u.nome,u.cognome))}</span>`}</div><div class="sinfo"><div class="sname">${escHtml(u.nome)} ${escHtml(u.cognome)} ${p.unread>0?`<span class="scad-badge danger">${p.unread}</span>`:''}</div><div class="ssub">${escHtml((last.testo||'').substr(0,50))}</div></div><div class="sarr">›</div></div>`;}).join('');
   if(noChat.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Nuova conversazione</div>';html+=noChat.map(u=>`<div class="sitem" onclick="apriChat('${u.id}')"><div class="photo-avatar-sm">${u.foto?`<img src="${encodeURI(u.foto)}">`:`<span style="font-size:11px;font-weight:800;color:var(--amber);">${escHtml(initials(u.nome,u.cognome))}</span>`}</div><div class="sinfo"><div class="sname">${escHtml(u.nome)} ${escHtml(u.cognome)}</div><div class="ssub">${escHtml(u.ruolo)}</div></div><div class="sarr">›</div></div>`).join('');}
-  if(!html)html='<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">Nessun utente</div></div>';
+  if(!html)html='<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">Nessun utente</div><div class="empty-sub">Qui compaiono le persone con cui puoi scrivere: per ora non ce ne sono altre.</div></div>';
   $('msg-list').innerHTML=html;
 }
 function apriChat(otherId){state.chatWith=otherId;nav('chat');}
@@ -3103,7 +3103,7 @@ function renderContatti(){
   if(pTel.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Personale</div>';html+=pTel.map(p=>`<a class="contact-item" href="tel:${escHtml(p.tel.replace(/\s/g,''))}"><div class="photo-avatar-sm">${p.foto?`<img src="${encodeURI(p.foto)}">`:`<span style="font-size:11px;font-weight:800;color:var(--amber);">${escHtml(initials(p.nome,p.cognome))}</span>`}</div><div class="contact-info"><div class="contact-name">${escHtml(p.nome+' '+p.cognome)}</div><div class="contact-num">${escHtml(p.tel)}</div></div></a>`).join('');}
   const ex=DB.settings.contattiExtra||[];
   if(ex.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Altri contatti</div>';html+=ex.map(c=>`<a class="contact-item" href="tel:${escHtml((c.tel||'').replace(/\s/g,''))}"><div class="contact-icon">${escHtml(c.icona||'📞')}</div><div class="contact-info"><div class="contact-name">${escHtml(c.nome)}</div><div class="contact-num">${escHtml(c.tel)}</div></div></a>`).join('');}
-  if(!html)html='<div class="empty-state"><div class="empty-icon">📞</div><div class="empty-title">Nessun contatto</div></div>';
+  if(!html)html=`<div class="empty-state"><div class="empty-icon">📞</div><div class="empty-title">Nessun contatto</div><div class="empty-sub">${can('admin')||can('ufficio')?'Aggiungi un contatto con il ＋ in alto a destra.':'La rubrica la tiene l\'ufficio: i numeri utili compaiono qui.'}</div></div>`;
   $('contatti-list').innerHTML=html;
 }
 function openContactForm(){
@@ -3121,7 +3121,7 @@ function openContactForm(){
 // ══════════ CLIENTI (E6) ══════════
 function renderClienti(){
   $('btn-add-cliente').style.display=can('clienti')?'flex':'none';
-  if(DB.clienti.length===0){$('clienti-list').innerHTML='<div class="empty-state"><div class="empty-icon">🏢</div><div class="empty-title">Nessun cliente</div></div>';return;}
+  if(DB.clienti.length===0){$('clienti-list').innerHTML=`<div class="empty-state"><div class="empty-icon">🏢</div><div class="empty-title">Nessun cliente</div><div class="empty-sub">${can('clienti')?'Aggiungi il primo cliente con il ＋ in alto a destra.':'I clienti li registra l\'ufficio.'}</div></div>`;return;}
   $('clienti-list').innerHTML=DB.clienti.map(c=>{
     const nCave=DB.cave.filter(x=>x.clienteId===c.id).length;
     return`<div class="sitem" onclick="apriCliente('${c.id}')"><div class="av av-am">${escHtml((c.ragsoc||'?').substr(0,2).toUpperCase())}</div><div class="sinfo"><div class="sname">${escHtml(c.ragsoc)}</div><div class="ssub">${escHtml(c.piva||c.cf||'—')} · ${nCave} cav${nCave===1?'a':'e'}</div></div><div class="sarr">›</div></div>`;
@@ -3228,7 +3228,7 @@ let _dashFiltri={periodo:'6m', cavaId:'', userId:'', mezzoId:''};
 
 function renderDashboard(){
   if(!can('dashboard')){
-    $('dashboard-body').innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><div class="empty-title">Accesso riservato</div></div>';
+    $('dashboard-body').innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><div class="empty-title">Accesso riservato</div><div class="empty-sub">Il quadro di controllo è riservato ad amministratori e ufficio.</div></div>';
     return;
   }
   destroyCharts();
@@ -4473,7 +4473,7 @@ function apriEditorCava(volataId,readonly){
 function renderEditorCava(){
   const v=DB.volate.find(x=>x.id===state.volataSel);
   if(!v){
-    $('editor-body').innerHTML='<div class="empty-state"><div class="empty-icon">📐</div><div class="empty-title">Nessuna volata selezionata</div></div>';
+    $('editor-body').innerHTML='<div class="empty-state"><div class="empty-icon">📐</div><div class="empty-title">Nessuna volata selezionata</div><div class="empty-sub">Scegli una volata dall\'elenco per vederne la scheda.</div></div>';
     return;
   }
   const cava=DB.cave.find(c=>c.id===v.cavaId);
@@ -6598,8 +6598,8 @@ function openSelezionaCavaPerVolata(){
 // ══════════ AUDIT LOG VIEW (A5) ══════════
 async function renderAuditLog(){
   const wrap = $('audit-list');
-  if(!can('admin')){wrap.innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><div class="empty-title">Accesso riservato</div></div>';return;}
-  wrap.innerHTML='<div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-title">Caricamento...</div></div>';
+  if(!can('admin')){wrap.innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><div class="empty-title">Accesso riservato</div><div class="empty-sub">Il registro delle azioni è riservato agli amministratori.</div></div>';return;}
+  wrap.innerHTML='<div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-title">Caricamento...</div><div class="empty-sub">Sto leggendo il registro delle azioni.</div></div>';
   try {
     const snap = await getDocs(dcol('auditLog'));
     const logs = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,200);
