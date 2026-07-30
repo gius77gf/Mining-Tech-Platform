@@ -606,7 +606,14 @@ export function parseMezziCsv(text) {
       return {
         nome: (nome || "").trim(),
         area: (area || "").trim(),
-        ore: Number.isFinite(n) ? Math.max(0, n) : 0,
+        /* ⚠️ NIENTE ZERO DI COMODO SULLE ORE (31/07). Il contatore COMANDA la
+           manutenzione: `tagliandiInScadenza` calcola quanto manca come
+           «ore previste meno ore del contatore». Un mezzo importato con le ore
+           illeggibili, messo a zero, farebbe sembrare il tagliando lontanissimo
+           proprio quando magari è già scaduto — e nessuno vedrebbe un errore.
+           Il mezzo entra lo stesso (esiste), ma senza contatore: l'app dice che
+           non lo sa leggere invece di inventarselo. */
+        ore: Number.isFinite(n) ? Math.max(0, n) : null,
         stato: ["operativo", "fermo", "verifica"].includes(s) ? s : "operativo",
       };
     })
@@ -705,7 +712,11 @@ export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(
   }
   const oreDi = (nomeMezzo) => {
     const m = (mezzi || []).find(x => String(x.nome || "").split(" — ")[0] === nomeMezzo);
-    return m ? (+m.ore || 0) : null;
+    /* «zero ore» e «non lo so» sono due cose diverse: con `|| 0` un mezzo
+       senza contatore diventava un mezzo nuovo di fabbrica, e il tagliando
+       sembrava lontano. Ora chi non ha il contatore torna null, e chi chiama
+       lo manda fra quelli «da stimare» spiegando perché. */
+    return m && Number.isFinite(+m.ore) ? +m.ore : null;
   };
   for (const n of manutenzioni || []) {
     let u, dettaglio;
@@ -1846,7 +1857,11 @@ export function tagliandiInScadenza(manutenzioni, mezzi, letture, oggi = new Dat
   const ritmi = ritmoOreMezzi(letture, oggi, oriz);
   const contatoreDi = (nome) => {
     const m = (mezzi || []).find(x => nomeBreve(x.nome) === nome);
-    return m ? (+m.ore || 0) : null;
+    /* «zero ore» e «non lo so» sono due cose diverse: con `|| 0` un mezzo
+       senza contatore diventava un mezzo nuovo di fabbrica, e il tagliando
+       sembrava lontano. Ora chi non ha il contatore torna null, e chi chiama
+       lo manda fra quelli «da stimare» spiegando perché. */
+    return m && Number.isFinite(+m.ore) ? +m.ore : null;
   };
   const voci = [], daStimare = [];
   for (const n of manutenzioni || []) {

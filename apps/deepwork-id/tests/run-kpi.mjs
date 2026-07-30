@@ -3518,6 +3518,33 @@ test("il piano NON perde righe: parsePianoCsv le tiene tutte e due", () => {
   eq(campo.foriRipetuti(righe), [7], "ma il 7 viene segnalato");
 });
 
+
+/* ⛔ LE ORE DEL CONTATORE NON SI INVENTANO (31/07). Il contatore COMANDA la
+   manutenzione: `tagliandiInScadenza` calcola quanto manca come «ore previste
+   meno ore del mezzo». Un mezzo importato con le ore illeggibili, messo a zero,
+   farebbe sembrare il tagliando lontanissimo proprio quando magari è già
+   scaduto — e non comparirebbe nessun errore, solo una scadenza sbagliata.
+   «Zero ore» e «non lo so» sono due cose diverse, e adesso l'app le distingue:
+   il mezzo entra lo stesso, ma finisce fra quelli DA STIMARE, con il perché. */
+test("parseMezziCsv: le ore illeggibili restano vuote, non diventano zero", () => {
+  const p = flotta.parseMezziCsv("Escavatore 1;Fronte Nord;;operativo");
+  eq(p.length, 1, "il mezzo entra lo stesso: esiste");
+  eq(p[0].ore, null, "ma senza contatore");
+  const q = flotta.parseMezziCsv("Pala 2;Piazzale;abc;operativo");
+  eq(q[0].ore, null, "e nemmeno da un testo che non è un numero");
+  const r = flotta.parseMezziCsv("Dumper 3;Pista;0;operativo");
+  eq(r[0].ore, 0, "uno ZERO scritto apposta resta zero: è un mezzo nuovo");
+});
+test("un mezzo senza contatore non fa sembrare il tagliando lontano", () => {
+  /* La prova che conta: due mezzi identici, uno col contatore e uno senza. */
+  const manutenzioni = [{ id: "m1", titolo: "Tagliando 500 h", mezzo: "Pala 2", orePreviste: 500 }];
+  const senza = flotta.tagliandiInScadenza(manutenzioni, [{ nome: "Pala 2", ore: null }], [],
+    new Date(2026, 6, 31));
+  eq(senza.voci.length, 0, "senza contatore non si promette una data");
+  eq(senza.daStimare.length, 1, "va fra quelli da stimare");
+  ok(/contatore/.test(senza.daStimare[0].perche), "e il perché nomina il contatore");
+});
+
 // ============================================================
 // I MODELLI DI CSV DEL DOCUMENTO CARICANO DAVVERO
 //
