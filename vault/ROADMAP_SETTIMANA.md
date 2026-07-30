@@ -711,7 +711,12 @@ campi interi, file delle macchine.
       prove che girano con `node`, più i nove banchi del browser
       (`tests/browser/tutti.mjs`). La soglia è passata; resta da tenerla utile,
       non alta: le prove che contano sono quelle che hanno una controprova.*
-- [ ] Q3. Revisione di sicurezza del codice nuovo.
+- [x] Q3. Revisione di sicurezza del codice nuovo → `docs/REVISIONE_SICUREZZA_202607.md`.
+      *Misurata con l'emulatore, non letta. L'isolamento fra organizzazioni
+      concorrenti tiene (58 prove). Dentro l'azienda non c'è ancora niente:
+      l'abbonamento non fa da barriera e il ruolo non conta per i dati delle
+      app. Due proposte col loro costo, tre domande al fondatore, nessuna
+      regola toccata.*
 
 ### Difetti chiusi il 30/07 (tutti «silenziosi»: nessuno dava errore)
 - [x] La **striscia** e la **pastiglia** di un riquadro dicevano un colore
@@ -726,6 +731,13 @@ campi interi, file delle macchine.
       prova del browser aveva mai aperto. L'elenco delle superfici sta ora solo
       in `giro.mjs`. Aggiunta la domanda che mancava: non «la guardia
       funziona?» ma «c'è?».
+- [x] **Conti** aveva «13 GG», «-2 GG» e «DENSITÀ (T/M³)», e **Flotta**
+      «€19,02/H»: trovati un'ora dopo che Conti è entrata nell'elenco delle
+      superfici. Con loro un difetto di parole: una gara chiusa mostrava
+      «-2 gg» invece di «chiusa da 2 gg».
+- [x] **Vetrina, seconda iterazione**: le nove anteprime erano pigre (una su
+      nove caricata all'arrivo, su un telefono), e i ponti erano sei nel
+      codice, cinque nell'apertura, quattro in pagina.
 - [x] Scritta la risposta alla domanda della presentazione — perché esistono
       sia Deepwork sia Genesi (`docs/PERCHE_DEEPWORK_E_GENESI.md`): tre
       proposte sulle sovrapposizioni, **in attesa del fondatore**.
