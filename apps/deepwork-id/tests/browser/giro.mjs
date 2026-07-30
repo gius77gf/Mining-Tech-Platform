@@ -21,6 +21,7 @@ export const CHROMIUM = '/opt/pw-browsers/chromium';
 
 export const SUPERFICI = [
   ['core', '/index.html'],
+  ['vetrina', '/apps/index.html'],
   ['campo', '/apps/campo/index.html'],
   ['flotta', '/apps/flotta/index.html'],
   ['scudo', '/apps/scudo/index.html'],

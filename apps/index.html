@@ -104,10 +104,31 @@
   }
   .sez-sot { font-size: 14px; color: var(--muted2); margin: 0 0 18px; line-height: 1.55; max-width: 62ch; }
 
+  /* ── LE TRE FAMIGLIE + LA BASE ──────────────────────────────────────
+     Sette app in fila non raccontano niente: raggruppate per momento del
+     lavoro — prima di scavare, mentre si scava, dopo — diventano un percorso,
+     e chi guarda capisce dove si colloca il proprio problema. */
+  .famiglia { margin: 30px 0 12px; }
+  .famiglia:first-of-type { margin-top: 6px; }
+  .fam-tit {
+    margin: 0; display: flex; align-items: center; gap: 10px;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 19px;
+    letter-spacing: 3px; text-transform: uppercase; color: var(--text);
+  }
+  .fam-tit::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(90deg, var(--border2), transparent);
+  }
+  .fam-sot { margin: 5px 0 0; font-size: 13px; color: var(--muted2); line-height: 1.5; }
+
   /* ── LA GRIGLIA DELLE APP ───────────────────────────────────────── */
+  /* `auto-fit` e non `repeat(3, …)`: le famiglie hanno due o tre app, e con un
+     numero fisso di colonne quelle da due restavano schiacciate a sinistra con
+     un buco accanto. Così ogni famiglia riempie la riga, qualunque sia la sua
+     misura. */
   .griglia { display: grid; gap: 14px; grid-template-columns: 1fr; }
-  @media (min-width: 620px)  { .griglia { grid-template-columns: repeat(2, 1fr); } }
-  @media (min-width: 1000px) { .griglia { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 640px)  { .griglia { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); } }
+  @media (min-width: 1020px) { .griglia { grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); } }
 
   .scheda {
     position: relative; display: flex; flex-direction: column; overflow: hidden;
@@ -140,7 +161,10 @@
   /* l'anteprima. Il rapporto è fisso, così la griglia non balla mentre le
      immagini arrivano; il fondo tinto regge da solo se non arrivano affatto. */
   .anteprima {
-    position: relative; aspect-ratio: 16 / 10; overflow: hidden;
+    /* il tetto d'altezza serve alle famiglie da due app: lì la scheda è larga
+       il doppio e il solo rapporto d'aspetto faceva un'anteprima altissima,
+       che spingeva il testo sotto la piega */
+    position: relative; aspect-ratio: 16 / 10; max-height: 235px; overflow: hidden;
     background:
       radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--acc) 18%, transparent), transparent 70%),
       var(--panel);
@@ -292,27 +316,15 @@
 
   <section class="sez" id="app">
     <h2 class="sez-tit">Le app</h2>
-    <p class="sez-sot">Ognuna risolve un pezzo di giornata e funziona anche da sola.
-      Tocca un riquadro per aprirla con dati di esempio.</p>
+    <p class="sez-sot">Raggruppate per momento del lavoro. Ognuna funziona anche da sola:
+      tocca un riquadro per aprirla con dati di esempio.</p>
+
+    <div class="famiglia sale">
+      <h3 class="fam-tit">La roccia</h3>
+      <p class="fam-sot">Prima che si scavi: dove si progetta e dove si misura.</p>
+    </div>
 
     <div class="griglia">
-
-      <a class="scheda sale" href="../index.html" style="--acc:#ffab00; --acc-tx:#ffd54f;">
-        <div class="anteprima"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="kpi a"></i><i class="kpi b"></i><i class="riga uno mar"></i><i class="riga due"></i><i class="riga tre"></i></span></div>
-        <div class="corpo">
-          <div class="riga-nome"><span class="nome">Deepwork</span><span class="stato viva">In uso</span></div>
-          <div class="cose">Il quaderno di cantiere, sul telefono.</div>
-          <p class="desc">Il rapportino non passa più dalla carta né dal messaggio la sera tardi.
-            Si compila al fronte, anche dove non c'è campo, e arriva in ufficio già pronto.</p>
-          <ul class="punti">
-            <li>Rapportini di perforazione e brillamento</li>
-            <li>Funziona senza campo, sincronizza dopo</li>
-            <li>Rapportino in PDF, pronto da mandare</li>
-          </ul>
-          <div class="aChi">Chi è al fronte <span class="freccia" aria-hidden="true">›</span></div>
-        </div>
-      </a>
-
       <a class="scheda sale" href="./genesi/genesi.html" style="--acc:#ff8f2e; --acc-tx:#ffab5c;">
         <div class="anteprima"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="punto" style="left:2.0%;top:24%"></i><i class="punto" style="left:17.5%;top:24%"></i><i class="punto" style="left:33.0%;top:24%"></i><i class="punto" style="left:48.5%;top:24%"></i><i class="punto" style="left:64.0%;top:24%"></i><i class="punto" style="left:79.5%;top:24%"></i><i class="punto" style="left:95.0%;top:24%"></i><i class="punto" style="left:2.0%;top:41%"></i><i class="punto" style="left:17.5%;top:41%"></i><i class="punto" style="left:33.0%;top:41%"></i><i class="punto" style="left:48.5%;top:41%"></i><i class="punto" style="left:64.0%;top:41%"></i><i class="punto" style="left:79.5%;top:41%"></i><i class="punto" style="left:95.0%;top:41%"></i><i class="punto" style="left:2.0%;top:58%"></i><i class="punto" style="left:17.5%;top:58%"></i><i class="punto" style="left:33.0%;top:58%"></i><i class="punto" style="left:48.5%;top:58%"></i><i class="punto" style="left:64.0%;top:58%"></i><i class="punto" style="left:79.5%;top:58%"></i><i class="punto" style="left:95.0%;top:58%"></i><i class="punto" style="left:2.0%;top:75%"></i><i class="punto" style="left:17.5%;top:75%"></i><i class="punto" style="left:33.0%;top:75%"></i><i class="punto" style="left:48.5%;top:75%"></i><i class="punto" style="left:64.0%;top:75%"></i><i class="punto" style="left:79.5%;top:75%"></i><i class="punto" style="left:95.0%;top:75%"></i><i class="tratto" style="left:2%;top:30%;width:96%;transform:rotate(3.6deg)"></i><i class="tratto" style="left:2%;top:74%;width:96%;transform:rotate(-2.4deg)"></i></span></div>
         <div class="corpo">
@@ -328,87 +340,6 @@
           <div class="aChi">Chi progetta le volate <span class="freccia" aria-hidden="true">›</span></div>
         </div>
       </a>
-
-      <a class="scheda sale" href="./scudo/index.html" style="--acc:#8c75dc; --acc-tx:#b7a8f9;">
-        <div class="anteprima"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="pal" style="top:22%"></i><i class="riga" style="top:22%;left:9%"></i><i class="eti" style="top:22%"></i><i class="pal" style="top:39%"></i><i class="riga" style="top:39%;left:9%"></i><i class="eti" style="top:39%"></i><i class="pal" style="top:56%"></i><i class="riga" style="top:56%;left:9%"></i><i class="eti" style="top:56%"></i><i class="pal" style="top:73%"></i><i class="riga" style="top:73%;left:9%"></i><i class="eti" style="top:73%"></i></span></div>
-        <div class="corpo">
-          <div class="riga-nome"><span class="nome">Scudo</span><span class="stato prova">Demo interattiva</span></div>
-          <div class="cose">La sicurezza in ordine, senza rincorrerla.</div>
-          <p class="desc">Visite mediche, formazione, DPI e nomine smettono di vivere su fogli sparsi.
-            Si sa in anticipo cosa scade, e chi non può più fare quel lavoro.</p>
-          <ul class="punti">
-            <li>Chi posso mandare, mansione per mansione</li>
-            <li>Le scadenze dei prossimi dodici mesi</li>
-            <li>Verbale di consegna dei DPI</li>
-          </ul>
-          <div class="aChi">Chi tiene la sicurezza <span class="freccia" aria-hidden="true">›</span></div>
-        </div>
-      </a>
-
-      <a class="scheda sale" href="./campo/index.html" style="--acc:#d3633a; --acc-tx:#f49c7d;">
-        <div class="anteprima"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="kpi a"></i><i class="kpi b"></i><i class="riga uno mar"></i><i class="riga due"></i><i class="riga tre"></i></span></div>
-        <div class="corpo">
-          <div class="riga-nome"><span class="nome">Campo</span><span class="stato prova">Demo interattiva</span></div>
-          <div class="cose">Il turno chiuso in due minuti.</div>
-          <p class="desc">Il turno si chiude dove è successo, non a memoria la sera.
-            Chi c'era, quanto è uscito, e dove si è perso tempo.</p>
-          <ul class="punti">
-            <li>Appello e checklist di inizio turno</li>
-            <li>Dove si perde tempo, per causale</li>
-            <li>Chiusura con due nomi e un'ora</li>
-          </ul>
-          <div class="aChi">Il capocantiere <span class="freccia" aria-hidden="true">›</span></div>
-        </div>
-      </a>
-
-      <a class="scheda sale" href="./flotta/index.html" style="--acc:#c360a6; --acc-tx:#e798cd;">
-        <div class="anteprima"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="kpi a"></i><i class="kpi b"></i><i class="riga uno mar"></i><i class="riga due"></i><i class="riga tre"></i></span></div>
-        <div class="corpo">
-          <div class="riga-nome"><span class="nome">Flotta</span><span class="stato prova">Demo interattiva</span></div>
-          <div class="cose">I fermi macchina si vedono prima.</div>
-          <p class="desc">Tagliandi, revisioni e ricambi non si scoprono il giorno che il mezzo resta fermo.
-            Il controllo di inizio turno diventa la lista di lavoro dell'officina.</p>
-          <ul class="punti">
-            <li>Giro macchina prima di partire</li>
-            <li>Scadenze di legge col semaforo</li>
-            <li>Quanti ricambi tenere a scorta</li>
-          </ul>
-          <div class="aChi">L'officina <span class="freccia" aria-hidden="true">›</span></div>
-        </div>
-      </a>
-
-      <a class="scheda sale" href="./conti/index.html" style="--acc:#009f8f; --acc-tx:#4dcebd;">
-        <div class="anteprima"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="col" style="left:4%;height:26%"></i><i class="col" style="left:19%;height:38%"></i><i class="col" style="left:34%;height:32%"></i><i class="col" style="left:49%;height:52%"></i><i class="col" style="left:64%;height:44%"></i><i class="col" style="left:79%;height:64%"></i><i class="base"></i></span></div>
-        <div class="corpo">
-          <div class="riga-nome"><span class="nome">Conti</span><span class="stato prova">Demo interattiva</span></div>
-          <div class="cose">Dalla pesa alla fattura, senza ricopiare.</div>
-          <p class="desc">I documenti di trasporto della pesa diventano fatture senza ricopiare una riga.
-            E si sa chi chiamare per primo, e da quanto aspetta quel credito.</p>
-          <ul class="punti">
-            <li>Fattura differita dai documenti di trasporto</li>
-            <li>Chi sollecitare per primo</li>
-            <li>Canone di escavazione del periodo</li>
-          </ul>
-          <div class="aChi">L'ufficio <span class="freccia" aria-hidden="true">›</span></div>
-        </div>
-      </a>
-
-      <a class="scheda sale" href="./sentinella/index.html" style="--acc:#288ee0; --acc-tx:#78bcfc;">
-        <div class="anteprima"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="pal" style="top:22%"></i><i class="riga" style="top:22%;left:9%"></i><i class="eti" style="top:22%"></i><i class="pal" style="top:39%"></i><i class="riga" style="top:39%;left:9%"></i><i class="eti" style="top:39%"></i><i class="pal" style="top:56%"></i><i class="riga" style="top:56%;left:9%"></i><i class="eti" style="top:56%"></i><i class="pal" style="top:73%"></i><i class="riga" style="top:73%;left:9%"></i><i class="eti" style="top:73%"></i></span></div>
-        <div class="corpo">
-          <div class="riga-nome"><span class="nome">Sentinella</span><span class="stato prova">Demo interattiva</span></div>
-          <div class="cose">Polveri, rumore e vibrazioni sotto controllo.</div>
-          <p class="desc">Le misure ambientali smettono di essere file sparsi in un computer.
-            C'è il calendario di cosa va misurato e quando, e il report per l'ente esce già scritto.</p>
-          <ul class="punti">
-            <li>Le letture dello strumento si importano</li>
-            <li>La soglia della casa più vicina</li>
-            <li>Report di conformità per l'ente</li>
-          </ul>
-          <div class="aChi">Chi risponde all'ente <span class="freccia" aria-hidden="true">›</span></div>
-        </div>
-      </a>
-
       <a class="scheda sale" href="./terra/index.html" style="--acc:#659b2c; --acc-tx:#9ac577;">
         <div class="anteprima"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="punto" style="left:2.0%;top:24%"></i><i class="punto" style="left:17.5%;top:24%"></i><i class="punto" style="left:33.0%;top:24%"></i><i class="punto" style="left:48.5%;top:24%"></i><i class="punto" style="left:64.0%;top:24%"></i><i class="punto" style="left:79.5%;top:24%"></i><i class="punto" style="left:95.0%;top:24%"></i><i class="punto" style="left:2.0%;top:41%"></i><i class="punto" style="left:17.5%;top:41%"></i><i class="punto" style="left:33.0%;top:41%"></i><i class="punto" style="left:48.5%;top:41%"></i><i class="punto" style="left:64.0%;top:41%"></i><i class="punto" style="left:79.5%;top:41%"></i><i class="punto" style="left:95.0%;top:41%"></i><i class="punto" style="left:2.0%;top:58%"></i><i class="punto" style="left:17.5%;top:58%"></i><i class="punto" style="left:33.0%;top:58%"></i><i class="punto" style="left:48.5%;top:58%"></i><i class="punto" style="left:64.0%;top:58%"></i><i class="punto" style="left:79.5%;top:58%"></i><i class="punto" style="left:95.0%;top:58%"></i><i class="punto" style="left:2.0%;top:75%"></i><i class="punto" style="left:17.5%;top:75%"></i><i class="punto" style="left:33.0%;top:75%"></i><i class="punto" style="left:48.5%;top:75%"></i><i class="punto" style="left:64.0%;top:75%"></i><i class="punto" style="left:79.5%;top:75%"></i><i class="punto" style="left:95.0%;top:75%"></i><i class="tratto" style="left:2%;top:30%;width:96%;transform:rotate(3.6deg)"></i><i class="tratto" style="left:2%;top:74%;width:96%;transform:rotate(-2.4deg)"></i></span></div>
         <div class="corpo">
@@ -424,7 +355,120 @@
           <div class="aChi">La direzione <span class="freccia" aria-hidden="true">›</span></div>
         </div>
       </a>
+    </div>
 
+    <div class="famiglia sale">
+      <h3 class="fam-tit">Il cantiere</h3>
+      <p class="fam-sot">Mentre si scava: il turno, i mezzi, le persone.</p>
+    </div>
+
+    <div class="griglia">
+      <a class="scheda sale" href="./campo/index.html" style="--acc:#d3633a; --acc-tx:#f49c7d;">
+        <div class="anteprima"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="kpi a"></i><i class="kpi b"></i><i class="riga uno mar"></i><i class="riga due"></i><i class="riga tre"></i></span></div>
+        <div class="corpo">
+          <div class="riga-nome"><span class="nome">Campo</span><span class="stato prova">Demo interattiva</span></div>
+          <div class="cose">Il turno chiuso in due minuti.</div>
+          <p class="desc">Il turno si chiude dove è successo, non a memoria la sera.
+            Chi c'era, quanto è uscito, e dove si è perso tempo.</p>
+          <ul class="punti">
+            <li>Appello e checklist di inizio turno</li>
+            <li>Dove si perde tempo, per causale</li>
+            <li>Chiusura con due nomi e un'ora</li>
+          </ul>
+          <div class="aChi">Il capocantiere <span class="freccia" aria-hidden="true">›</span></div>
+        </div>
+      </a>
+      <a class="scheda sale" href="./flotta/index.html" style="--acc:#c360a6; --acc-tx:#e798cd;">
+        <div class="anteprima"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="kpi a"></i><i class="kpi b"></i><i class="riga uno mar"></i><i class="riga due"></i><i class="riga tre"></i></span></div>
+        <div class="corpo">
+          <div class="riga-nome"><span class="nome">Flotta</span><span class="stato prova">Demo interattiva</span></div>
+          <div class="cose">I fermi macchina si vedono prima.</div>
+          <p class="desc">Tagliandi, revisioni e ricambi non si scoprono il giorno che il mezzo resta fermo.
+            Il controllo di inizio turno diventa la lista di lavoro dell'officina.</p>
+          <ul class="punti">
+            <li>Giro macchina prima di partire</li>
+            <li>Scadenze di legge col semaforo</li>
+            <li>Quanti ricambi tenere a scorta</li>
+          </ul>
+          <div class="aChi">L'officina <span class="freccia" aria-hidden="true">›</span></div>
+        </div>
+      </a>
+      <a class="scheda sale" href="./scudo/index.html" style="--acc:#8c75dc; --acc-tx:#b7a8f9;">
+        <div class="anteprima"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="pal" style="top:22%"></i><i class="riga" style="top:22%;left:9%"></i><i class="eti" style="top:22%"></i><i class="pal" style="top:39%"></i><i class="riga" style="top:39%;left:9%"></i><i class="eti" style="top:39%"></i><i class="pal" style="top:56%"></i><i class="riga" style="top:56%;left:9%"></i><i class="eti" style="top:56%"></i><i class="pal" style="top:73%"></i><i class="riga" style="top:73%;left:9%"></i><i class="eti" style="top:73%"></i></span></div>
+        <div class="corpo">
+          <div class="riga-nome"><span class="nome">Scudo</span><span class="stato prova">Demo interattiva</span></div>
+          <div class="cose">La sicurezza in ordine, senza rincorrerla.</div>
+          <p class="desc">Visite mediche, formazione, DPI e nomine smettono di vivere su fogli sparsi.
+            Si sa in anticipo cosa scade, e chi non può più fare quel lavoro.</p>
+          <ul class="punti">
+            <li>Chi posso mandare, mansione per mansione</li>
+            <li>Le scadenze dei prossimi dodici mesi</li>
+            <li>Verbale di consegna dei DPI</li>
+          </ul>
+          <div class="aChi">Chi tiene la sicurezza <span class="freccia" aria-hidden="true">›</span></div>
+        </div>
+      </a>
+    </div>
+
+    <div class="famiglia sale">
+      <h3 class="fam-tit">L'azienda</h3>
+      <p class="fam-sot">Dopo che si è scavato: i conti e quello che si deve all'ente.</p>
+    </div>
+
+    <div class="griglia">
+      <a class="scheda sale" href="./conti/index.html" style="--acc:#009f8f; --acc-tx:#4dcebd;">
+        <div class="anteprima"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="col" style="left:4%;height:26%"></i><i class="col" style="left:19%;height:38%"></i><i class="col" style="left:34%;height:32%"></i><i class="col" style="left:49%;height:52%"></i><i class="col" style="left:64%;height:44%"></i><i class="col" style="left:79%;height:64%"></i><i class="base"></i></span></div>
+        <div class="corpo">
+          <div class="riga-nome"><span class="nome">Conti</span><span class="stato prova">Demo interattiva</span></div>
+          <div class="cose">Dalla pesa alla fattura, senza ricopiare.</div>
+          <p class="desc">I documenti di trasporto della pesa diventano fatture senza ricopiare una riga.
+            E si sa chi chiamare per primo, e da quanto aspetta quel credito.</p>
+          <ul class="punti">
+            <li>Fattura differita dai documenti di trasporto</li>
+            <li>Chi sollecitare per primo</li>
+            <li>Canone di escavazione del periodo</li>
+          </ul>
+          <div class="aChi">L'ufficio <span class="freccia" aria-hidden="true">›</span></div>
+        </div>
+      </a>
+      <a class="scheda sale" href="./sentinella/index.html" style="--acc:#288ee0; --acc-tx:#78bcfc;">
+        <div class="anteprima"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="pal" style="top:22%"></i><i class="riga" style="top:22%;left:9%"></i><i class="eti" style="top:22%"></i><i class="pal" style="top:39%"></i><i class="riga" style="top:39%;left:9%"></i><i class="eti" style="top:39%"></i><i class="pal" style="top:56%"></i><i class="riga" style="top:56%;left:9%"></i><i class="eti" style="top:56%"></i><i class="pal" style="top:73%"></i><i class="riga" style="top:73%;left:9%"></i><i class="eti" style="top:73%"></i></span></div>
+        <div class="corpo">
+          <div class="riga-nome"><span class="nome">Sentinella</span><span class="stato prova">Demo interattiva</span></div>
+          <div class="cose">Polveri, rumore e vibrazioni sotto controllo.</div>
+          <p class="desc">Le misure ambientali smettono di essere file sparsi in un computer.
+            C'è il calendario di cosa va misurato e quando, e il report per l'ente esce già scritto.</p>
+          <ul class="punti">
+            <li>Le letture dello strumento si importano</li>
+            <li>La soglia della casa più vicina</li>
+            <li>Report di conformità per l'ente</li>
+          </ul>
+          <div class="aChi">Chi risponde all'ente <span class="freccia" aria-hidden="true">›</span></div>
+        </div>
+      </a>
+    </div>
+
+    <div class="famiglia sale">
+      <h3 class="fam-tit">La base</h3>
+      <p class="fam-sot">Sotto tutte: il quaderno di cantiere e l'accesso unico.</p>
+    </div>
+
+    <div class="griglia">
+      <a class="scheda sale" href="../index.html" style="--acc:#ffab00; --acc-tx:#ffd54f;">
+        <div class="anteprima"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="kpi a"></i><i class="kpi b"></i><i class="riga uno mar"></i><i class="riga due"></i><i class="riga tre"></i></span></div>
+        <div class="corpo">
+          <div class="riga-nome"><span class="nome">Deepwork</span><span class="stato viva">In uso</span></div>
+          <div class="cose">Il quaderno di cantiere, sul telefono.</div>
+          <p class="desc">Il rapportino non passa più dalla carta né dal messaggio la sera tardi.
+            Si compila al fronte, anche dove non c'è campo, e arriva in ufficio già pronto.</p>
+          <ul class="punti">
+            <li>Rapportini di perforazione e brillamento</li>
+            <li>Funziona senza campo, sincronizza dopo</li>
+            <li>Rapportino in PDF, pronto da mandare</li>
+          </ul>
+          <div class="aChi">Chi è al fronte <span class="freccia" aria-hidden="true">›</span></div>
+        </div>
+      </a>
       <a class="scheda sale" href="./deepwork-id/index.html" style="--acc:#c7b794; --acc-tx:#e8dcc0;">
         <div class="anteprima"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="pal" style="top:22%"></i><i class="riga" style="top:22%;left:9%"></i><i class="eti" style="top:22%"></i><i class="pal" style="top:39%"></i><i class="riga" style="top:39%;left:9%"></i><i class="eti" style="top:39%"></i><i class="pal" style="top:56%"></i><i class="riga" style="top:56%;left:9%"></i><i class="eti" style="top:56%"></i><i class="pal" style="top:73%"></i><i class="riga" style="top:73%;left:9%"></i><i class="eti" style="top:73%"></i></span></div>
         <div class="corpo">
@@ -440,7 +484,6 @@
           <div class="aChi">Chi decide chi entra <span class="freccia" aria-hidden="true">›</span></div>
         </div>
       </a>
-
     </div>
   </section>
 
