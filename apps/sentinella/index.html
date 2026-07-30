@@ -524,8 +524,13 @@
 }
 /* LE UNITÀ NON SI SCRIVONO MAI IN MAIUSCOLO. In maiuscolo «µg/m³» diventa
    «MG/M³», cioè MILLIgrammi: mille volte tanto. Su un documento che va
-   all'ente sarebbe un errore grave, quindi l'unità esce dal maiuscolo. */
-.tab th .u{text-transform:none; letter-spacing:.2px}
+   all'ente sarebbe un errore grave, quindi l'unità esce dal maiuscolo.
+   Elenco UNICO per tutta l'app: una seconda regola altrove vorrebbe dire due
+   comportamenti che divergono senza che nessuno se ne accorga. `.kpi .l` e
+   `.badge` sono entrate qui il 30/07, perché il quadro scrive «Adempimenti
+   30gg» e le scadenze escono come pillole «11 gg»: la classe era in maiuscolo
+   da sempre, il difetto è nascere dall'incontro con l'unità. */
+.kpi .l .u,.badge .u,.tab th .u{text-transform:none; letter-spacing:.2px}
 .tab td{
   padding:7px 10px; border-bottom:1px solid var(--border); color:var(--muted2);
   font-variant-numeric:tabular-nums; white-space:nowrap;
@@ -806,7 +811,7 @@ textarea.dw-input{
   <div class="sec">Quadro ambientale</div>
   <div class="kpis">
     <div class="kpi danger" role="button" tabindex="0" style="cursor:pointer" data-goto="mon" data-filtro="danger" title="Vedi i punti in superamento"><div class="l">Superamenti soglia</div><div class="n" id="k-super">—</div></div>
-    <div class="kpi warn" role="button" tabindex="0" style="cursor:pointer" data-goto="ade" title="Vedi gli adempimenti in scadenza"><div class="l">Adempimenti 30gg</div><div class="n" id="k-ade">—</div></div>
+    <div class="kpi warn" role="button" tabindex="0" style="cursor:pointer" data-goto="ade" title="Vedi gli adempimenti in scadenza"><div class="l">Adempimenti 30<span class="u">gg</span></div><div class="n" id="k-ade">—</div></div>
     <div class="kpi ok" role="button" tabindex="0" style="cursor:pointer" data-goto="mon" data-filtro="ok" title="Vedi i punti conformi"><div class="l">Punti conformi</div><div class="n" id="k-conf">—</div></div>
     <div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-goto="mon" data-filtro="tutti" title="Vedi tutti i punti di misura"><div class="l">Punti in ascolto</div><div class="n" id="k-attivi">—</div></div>
   </div>
@@ -1323,7 +1328,7 @@ textarea.dw-input{
            testoFontePrevisione, scartoPpvVolata, confermaVolataEseguita, riepilogoPreviste,
            volateOrdinate, firmaVolata, csvRegistroVolate, CSV_VOLATE_INTESTAZIONE,
            numeroDaCampo, AVVISO_DECIMALE } from "./sentinella-data.js";
-  import { mountExit, esc, csvCell, giorniTra, montaGuardiaInteri } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, giorniTra, montaGuardiaInteri, avvolgiUnita } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
@@ -2665,7 +2670,7 @@ textarea.dw-input{
     <div class="rep-punto-meta">Le volate sono riportate come <b>contesto</b>: servono a spiegare i
       picchi delle vibrazioni e della sovrappressione d'aria nei giorni in cui si è sparato.</div>
     <div class="tab-wrap"><table class="tab">
-      <thead><tr><th>Data</th><th>Fronte</th><th>Fori</th><th>kg totali</th><th>kg max/ritardo</th><th>Distanza (m)</th><th>SD</th><th>Esito</th></tr></thead>
+      <thead><tr><th>Data</th><th>Fronte</th><th>Fori</th><th><span class="u">kg</span> totali</th><th><span class="u">kg</span> max/ritardo</th><th>Distanza (<span class="u">m</span>)</th><th>SD</th><th>Esito</th></tr></thead>
       <tbody>${R.volate.map(v => { const sd = scaledDistance(v.distanzaRicettore, v.kgMaxRitardo);
         return `<tr><td>${fmtD(v.data)}</td><td class="n">${esc(v.fronte || "—")}</td>
         <td>${+v.nFori || 0}</td><td>${esc(numeroIt(v.kgTotali || 0))}</td>
@@ -2729,6 +2734,12 @@ textarea.dw-input{
     // fatta e non è stata fatta è una non conformità come le altre, e su
     // quella un ente ci mette il dito subito. L'ordine resta danger-first;
     // dentro lo stesso livello resta l'ordine di ciascuna sorgente.
+    // Il badge dell'allerta arriva già scritto dal modulo dati («11 gg»,
+    // «scaduto da 3 gg»): lì è TESTO PURO — finisce anche nel CSV e nei test —
+    // quindi il markup dell'unità non può nascere in quel punto. Si aggiunge
+    // qui, DOPO esc(): dentro .badge, che è in maiuscolo, «gg» diventerebbe
+    // «GG». Aggiungerlo prima dell'escaping farebbe vedere il tag all'utente.
+    const badgeConUnita = (t) => avvolgiUnita(esc(t));   // la regola vive in shared/
     const rankAll = { danger: 0, warn: 1 };
     const allerte = [...prioritaConformita(MONE, ADE), ...allerteProgramma(PRG, MON)]
       .sort((x, y) => (rankAll[x.gravita] || 0) - (rankAll[y.gravita] || 0));
@@ -2738,7 +2749,7 @@ textarea.dw-input{
         title="${prg ? "Vai al programma di monitoraggio" : ade ? "Vai agli adempimenti" : "Vai al punto di misura"}">
       <div class="avatar ${a.gravita === "danger" ? "danger" : a.gravita === "warn" ? "warn" : "sup"}">${prg ? I.programma : ade ? I.calendario : I.sensore}</div>
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc(a.dettaglio)}</div></div>
-      <span class="acts"><span class="badge ${a.gravita}">${esc(a.badge)}</span><span class="arr">${I.avanti}</span></span></div>`; }).join("")
+      <span class="acts"><span class="badge ${a.gravita}">${badgeConUnita(a.badge)}</span><span class="arr">${I.avanti}</span></span></div>`; }).join("")
       || vuoto(I.fatto, "Nessuna allerta",
           "Tutti i punti di misura sono entro soglia, il programma di monitoraggio è in pari e nessun adempimento è vicino alla scadenza. Il quadro resta pulito finché un valore non si avvicina al limite.");
 
@@ -2781,7 +2792,11 @@ textarea.dw-input{
     const adeVis = ADE.slice().sort((a,b)=>a.scadenza<b.scadenza?-1:1)
       .filter(a => !qAde || ((a.titolo || "") + " " + (a.ente || "")).toLowerCase().includes(qAde));
     $("ade-list").innerHTML = adeVis.map(a => { const g = giorni(a.scadenza);
-      const b = g < 0 ? ["danger","Scaduto"] : (g <= 30 ? ["warn", g + " gg"] : ["ok", g + " gg"]);
+      // «gg» è un'unità: dentro .badge, che è in maiuscolo, diventerebbe «GG».
+      // b[1] finisce nel markup SENZA passare da esc(), quindi lo <span class="u">
+      // qui è markup vero e non un tag che l'utente si vede scritto.
+      const gu = ' <span class="u">gg</span>';
+      const b = g < 0 ? ["danger","Scaduto"] : (g <= 30 ? ["warn", g + gu] : ["ok", g + gu]);
       return `<div class="item ${striscia[b[0]]}">
       <div class="avatar ${b[0] === "danger" ? "danger" : b[0] === "warn" ? "warn" : "ok"}">${I.calendario}</div>
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${a.ente!=="—"?esc(a.ente)+" · ":""}entro ${fmtD(a.scadenza)}</div></div>

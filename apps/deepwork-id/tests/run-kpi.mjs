@@ -3151,5 +3151,36 @@ test("l'arrotondamento non può peggiorare il numero", () => {
   });
 }
 
+/* ── L'UNITÀ DENTRO UN TESTO MAIUSCOLO ──────────────────────────────────
+   Il 30/07 questa riga è nata in TRE app nello stesso pomeriggio, e nasceva
+   già diversa: due accettavano «30gg» attaccato, la terza pretendeva lo
+   spazio e su «30gg» non faceva niente. Tre copie che il primo giorno si
+   comportano in due modi — il difetto che qui è già costato una giornata.
+   Adesso è una sola, in shared/, e queste prove tengono ferma la differenza
+   che le divideva. */
+{
+  const { avvolgiUnita } = shell;
+  const U = (u) => `<span class="u">${u}</span>`;
+  test("unità nel maiuscolo: col separatore e senza", () => {
+    eq(avvolgiUnita("tra 13 gg"), `tra 13 ${U("gg")}`, "con lo spazio");
+    /* è ESATTAMENTE il caso su cui le tre copie divergevano */
+    eq(avvolgiUnita("Tagliandi 30gg"), `Tagliandi 30${U("gg")}`, "e attaccato, che una delle tre non vedeva");
+  });
+  test("unità nel maiuscolo: si avvolge solo quello che è un'unità", () => {
+    eq(avvolgiUnita("oggi"), "oggi", "«gg» dentro una parola non è un'unità");
+    eq(avvolgiUnita("leggi 3 righe"), "leggi 3 righe", "e nemmeno preceduto da una cifra lontana");
+    eq(avvolgiUnita("Squadra B"), "Squadra B", "un testo senza numeri non si tocca");
+  });
+  test("unità nel maiuscolo: più unità nella stessa frase", () => {
+    eq(avvolgiUnita("21 gg e 4 mm"), `21 ${U("gg")} e 4 ${U("mm")}`, "tutte e due");
+    eq(avvolgiUnita("1500 m³"), `1500 ${U("m³")}`, "anche il metro cubo, che è il caso peggiore");
+  });
+  test("unità nel maiuscolo: niente testo, niente errori", () => {
+    eq(avvolgiUnita(null), "", "null diventa vuoto, non «null»");
+    eq(avvolgiUnita(""), "", "vuoto resta vuoto");
+    eq(avvolgiUnita(42), "42", "un numero si accetta e si restituisce come testo");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);

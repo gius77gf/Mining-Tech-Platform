@@ -109,6 +109,16 @@
 /* ─────────────── KPI (copia di .kpi-card del core) ─────────────── */
 .kpi .n{font-variant-numeric:tabular-nums}
 
+/* LE UNITÀ DI MISURA NON VANNO MAI IN MAIUSCOLO. Etichette dei KPI, badge e
+   pillole di filtro sono maiuscoli per struttura (è il core); l'unità che in
+   Scudo ci passa dentro è «gg», e «GG» non è un giorno. Su un documento di
+   sicurezza i giorni che mancano a una scadenza sono il dato che dice se un
+   lavoratore può stare in cava: si spegne il maiuscolo SOLO sul pezzo che
+   porta l'unità, forma e spaziatura del core restano. `.chg` è nell'elenco
+   perché il filtro «Entro 30gg» è un bottone, non un'etichetta.
+   Un elenco solo, mai una seconda regola altrove. */
+.kpi .l .u,.badge .u,.chg .u,.fl .u{text-transform:none; letter-spacing:.2px}
+
 /* ─────────────── cartellone sicurezza ─────────────── */
 .safety{
   position:relative; overflow:hidden; display:flex; align-items:center; gap:14px;
@@ -626,7 +636,7 @@
   </button>
   <div class="kpis">
     <div class="kpi danger" role="button" tabindex="0" style="cursor:pointer" data-goto="scad" data-filtro="scaduta" title="Vedi le scadenze superate"><div class="l">Scadenze superate</div><div class="n" id="k-scadute">—</div></div>
-    <div class="kpi warn" role="button" tabindex="0" style="cursor:pointer" data-goto="scad" data-filtro="in-scadenza" title="Vedi le scadenze entro 30 giorni"><div class="l">In scadenza 30gg</div><div class="n" id="k-30gg">—</div></div>
+    <div class="kpi warn" role="button" tabindex="0" style="cursor:pointer" data-goto="scad" data-filtro="in-scadenza" title="Vedi le scadenze entro 30 giorni"><div class="l">In scadenza 30<span class="u">gg</span></div><div class="n" id="k-30gg">—</div></div>
     <div class="kpi ok" role="button" tabindex="0" style="cursor:pointer" data-goto="pers" title="Vedi i lavoratori"><div class="l">Lavoratori regolari</div><div class="n" id="k-regolari">—</div></div>
     <div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-goto="scad" data-filtro="tutte" title="Vedi tutte le scadenze"><div class="l">Corsi pianificati</div><div class="n" id="k-corsi">—</div></div>
     <div class="kpi danger" role="button" tabindex="0" style="cursor:pointer" data-goto="azio" data-filtro-azi="scaduta" title="Vedi le azioni correttive fuori tempo"><div class="l">Azioni fuori tempo</div><div class="n" id="k-azi-scadute">—</div></div>
@@ -792,7 +802,7 @@
   <div id="scad-filtri" class="chgs">
     <button class="chg active" data-filtro="tutte">Tutte</button>
     <button class="chg" data-filtro="scaduta">Scadute</button>
-    <button class="chg" data-filtro="in-scadenza">Entro 30gg</button>
+    <button class="chg" data-filtro="in-scadenza">Entro 30<span class="u">gg</span></button>
     <button class="chg" data-filtro="regolare">Regolari</button>
   </div>
   <div class="ord">
@@ -1172,7 +1182,7 @@
     matriceMansione, riepilogoMansioni, lavoratoriScoperti, abilitazioneLavoratore,
     NOMINE_RUOLI, ruoloNomina, nominaAttiva, organigrammaSicurezza, nomineDaSistemare,
     TIPI_DPI, tipoDpi, tipoDpiSicuro, ultimaConsegnaDpi, statoConsegnaDpi, allarmiDpi, riepilogoDpi, verbaleDpi } from "./scudo-data.js";
-  import { mountExit, esc, csvCell, parseCsvLine, giorniTra, montaGuardiaInteri } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, parseCsvLine, giorniTra, montaGuardiaInteri, avvolgiUnita } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
@@ -1181,6 +1191,13 @@
   const initials = (n) => (n || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
   const B = { scaduta: ["danger", "Scaduta"], "in-scadenza": ["warn", "In scadenza"], regolare: ["ok", "Regolare"] };
   const fmtData = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
+  // LE UNITÀ DI MISURA NON VANNO MAI IN MAIUSCOLO. Le pillole di stato dei
+  // requisiti scrivono i giorni che mancano («3 gg») dentro `.badge`, che è
+  // maiuscolo per struttura: «GG» non è un giorno. Qui l'unità si avvolge in
+  // `<span class="u">`, che il CSS di Scudo riporta in minuscolo.
+  // ⚠️ Il markup si aggiunge DOPO `esc()`, mai dentro la stringa che verrà
+  // escapata: lì l'utente si vedrebbe il tag scritto per intero.
+  const ggU = avvolgiUnita;   // la regola vive in shared/: qui solo il nome di sempre
 
   // ── Messaggi: toast del core + traccia scritta accanto al form ────────
   // (l'esito resta visibile per chi torna a guardare, il toast lo annuncia)
@@ -1994,7 +2011,7 @@
       const fix = (r.stato === "mancante" || r.stato === "scaduta");
       return `<span class="badge ${cls}${fix ? " tocca" : ""}"${fix
         ? ` data-req-fix="${a.lavoratore.id}|${r.chiave}|${r.scadenzaId || ""}" title="Tocca per mettere questo corso nello scadenzario"`
-        : ` title="${esc(r.etichetta)}${r.scadenza ? " — scade il " + fmtData(r.scadenza) : ""}"`}>${esc(testo)}</span>`;
+        : ` title="${esc(r.etichetta)}${r.scadenza ? " — scade il " + fmtData(r.scadenza) : ""}"`}>${ggU(esc(testo))}</span>`;
     };
     const pillDpi = (a, d) => {
       if (d.stato === "regolare" && !d.addestramentoMancante) return "";

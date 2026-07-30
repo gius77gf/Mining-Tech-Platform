@@ -361,6 +361,35 @@ export function montaGuardiaInteri(avvisa) {
   });
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// ⛔ L'UNITÀ DI MISURA DENTRO UN TESTO MAIUSCOLO
+// ══════════════════════════════════════════════════════════════════════
+// Etichette, badge e pillole sono maiuscoli per struttura — è la forma del
+// core — ma quando ci passa dentro un'unità il maiuscolo la corrompe: «gg»
+// diventa «GG», che non è un giorno, e «m³» diventa «M³», che si legge come
+// un'altra grandezza. Il rimedio del progetto è avvolgere l'unità in
+// `<span class="u">`, che ogni app riporta in minuscolo con una regola sola.
+//
+// PERCHÉ STA QUI E NON IN OGNI APP. Il 30/07 questa riga è nata in tre app
+// nello stesso pomeriggio, e nasceva già DIVERSA: due accettavano «30gg»
+// attaccato, la terza pretendeva lo spazio e quindi su «30gg» non faceva
+// niente. Tre copie di una regola che il primo giorno si comportano in due
+// modi: è il difetto che in questo progetto è già costato una giornata.
+//
+// ⚠️ SI CHIAMA SU TESTO GIÀ ESCAPATO. Il markup si aggiunge DOPO `esc()`, mai
+// dentro la stringa che verrà escapata: lì chi guarda si vedrebbe il tag
+// scritto per intero.
+const UNITA_DA_SALVARE = ["gg", "m³", "m²", "mm/s", "µg/m³", "mg/m³", "kg", "km", "cm", "mm", "m³/h"];
+export function avvolgiUnita(testo) {
+  let t = String(testo == null ? "" : testo);
+  for (const u of UNITA_DA_SALVARE) {
+    // dopo una cifra, con o senza spazio in mezzo, e non dentro una parola
+    const re = new RegExp("(\\d)(\\s*)" + u.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?![\\w³²])", "g");
+    t = t.replace(re, `$1$2<span class="u">${u}</span>`);
+  }
+  return t;
+}
+
 export function mountExit(db) {
   if (!db || db.mode !== "live" || typeof db.logout !== "function") return;
   const top = document.querySelector(".top");

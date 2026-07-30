@@ -108,6 +108,15 @@
 
 /* ─────────────── KPI (copia di .kpi-card del core) ─────────────── */
 .kpi .n{font-variant-numeric:tabular-nums}
+
+/* LE UNITÀ DI MISURA NON VANNO MAI IN MAIUSCOLO. Etichette dei KPI e badge
+   sono maiuscoli per struttura (è il core), ma in Flotta l'unità che ci passa
+   dentro è «gg»: in maiuscolo diventa «GG», che non è un giorno — e su un
+   parco mezzi il numero di giorni alla scadenza di legge è il dato che decide
+   se una macchina può lavorare. Si spegne il maiuscolo SOLO sul pezzo che
+   porta l'unità: forma, peso e spaziatura del core restano quelli.
+   Un elenco solo, mai una seconda regola altrove. */
+.kpi .l .u,.badge .u,.fl .u{text-transform:none; letter-spacing:.2px}
 .kpi.accent{border-top-color:var(--app-accent)}
 /* riga di dettaglio sotto il numero: è la .kpi-sub del core, stessa misura e
    stesso colore. Serve dove il numero da solo non basta a essere onesto —
@@ -521,7 +530,7 @@
   <div class="kpis">
     <div class="kpi ok" role="button" tabindex="0" style="cursor:pointer" data-goto="mez" data-filtro="operativo" title="Vedi i mezzi operativi"><div class="l">Mezzi operativi</div><div class="n">—</div></div>
     <div class="kpi warn" role="button" tabindex="0" style="cursor:pointer" data-goto="mez" data-filtro="tutti" title="Vedi tutti i mezzi"><div class="l">In manutenzione</div><div class="n">—</div></div>
-    <div class="kpi warn" id="kpi-tag" role="button" tabindex="0" style="cursor:pointer" data-goto="man" title="Vedi le manutenzioni"><div class="l">Tagliandi 30gg</div><div class="n">—</div><div class="s" id="kpi-tag-s"></div></div>
+    <div class="kpi warn" id="kpi-tag" role="button" tabindex="0" style="cursor:pointer" data-goto="man" title="Vedi le manutenzioni"><div class="l">Tagliandi 30<span class="u">gg</span></div><div class="n">—</div><div class="s" id="kpi-tag-s"></div></div>
     <div class="kpi accent" id="kpi-carb" role="button" tabindex="0" style="cursor:pointer" data-goto="cos" title="Vedi i costi"><div class="l" id="kpi-carb-l">Carburante mese</div><div class="n">—</div></div>
   </div>
 
@@ -1126,7 +1135,7 @@
            ORIZZONTE_TAGLIANDI, ritmoOreMezzi, ritmoDelMezzo, tagliandiInScadenza,
            numeroDaCampo, interoDaCampo, perCampo, messaggioNumero,
            AVVISO_DECIMALE, AVVISO_MIGLIAIA } from "./flotta-data.js";
-  import { mountExit, esc, csvCell, numIt, montaGuardiaInteri } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, numIt, montaGuardiaInteri, avvolgiUnita } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
@@ -1143,6 +1152,15 @@
   const ggTx = (n) => (+n||0).toLocaleString("it-IT", { maximumFractionDigits: 1 }) + (Math.abs(+n||0) === 1 ? " giorno" : " giorni");
   // un numero all'italiana, senza unità: per i ritmi d'uso (3,42 h/gg)
   const numTx = (v) => Number.isFinite(+v) ? (+v).toLocaleString("it-IT", { maximumFractionDigits: 2 }) : "—";
+  // LE UNITÀ DI MISURA NON VANNO MAI IN MAIUSCOLO. Le etichette del semaforo
+  // («tra 13 gg», «scaduta da 20 gg», «21 gg») nascono nel modulo dati come
+  // TESTO SEMPLICE — lì devono restare, perché finiscono anche nei conteggi e
+  // nei test — e sullo schermo entrano in `.badge`, che è maiuscolo per
+  // struttura: «GG» non è un giorno. Qui l'unità si avvolge in `<span class="u">`,
+  // che il CSS di Flotta riporta in minuscolo.
+  // ⚠️ Il markup si aggiunge DOPO `esc()`, mai dentro la stringa che verrà
+  // escapata: lì l'utente si vedrebbe il tag scritto per intero.
+  const ggU = avvolgiUnita;   // la regola vive in shared/: qui solo il nome di sempre
 
   // ── Icone disegnate (stessa famiglia di quelle del menu): niente emoji ──
   const I = {
@@ -1489,7 +1507,7 @@
     $("alert-list").innerHTML = prio.map(a => `<div class="item statico ${striscia[a.gravita] || "st-accent"}">
       <div class="avatar${a.categoria === "ricambio" || a.categoria === "mezzo" ? " sup" : ""}">${a.origine === "controllo" ? I.giro : (PRIO_ICO[a.categoria] || I.avviso)}</div>
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc(a.dettaglio)}</div></div>
-      <span class="badge ${a.gravita}">${esc(a.badge)}</span></div>`).join("")
+      <span class="badge ${a.gravita}">${ggU(esc(a.badge))}</span></div>`).join("")
       || vuoto(I.ok, "Tutto in ordine",
           "Nessuna criticità sul parco mezzi: nessun tagliando scaduto, nessun ricambio sotto scorta, nessun mezzo fermo. Quando qualcosa richiederà attenzione comparirà qui, in cima alla giornata.");
 
@@ -1694,7 +1712,7 @@
       return `<div class="item ${striscia[u.cls] || "st-accent"}" role="button" tabindex="0" data-odl-man="${n.id}" title="Apri l'ordine di lavoro: stato, ore, ricambi, costo">
       <div class="avatar">${n.origine === "controllo" ? I.giro : I.chiave}</div>
       <div class="info"><div class="name">${esc(n.titolo)} — ${esc(n.mezzo)}</div><div class="meta">${n.orePreviste ? "A " + (+n.orePreviste).toLocaleString("it-IT") + " ore motore" : "Previsto " + (n.dataPrevista ? n.dataPrevista.split("-").reverse().join("/") : "—")}${ritmo}${ricN ? " · usa " + esc(ricN.nome) : ""}</div>${quando ? `<div class="meta norma quando">${I.tachi}${quando}</div>` : ""}${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}${lav ? `<div class="meta norma">${I.persona}${lav}</div>` : ""}</div>
-      <div class="acts">${so.chiave !== "da-fare" ? `<span class="badge ${so.cls}">${so.breve}</span>` : ""}<span class="badge ${u.cls}">${u.label}</span>
+      <div class="acts">${so.chiave !== "da-fare" ? `<span class="badge ${so.cls}">${so.breve}</span>` : ""}<span class="badge ${u.cls}">${ggU(esc(u.label))}</span>
       <span class="arr ok" role="button" tabindex="0" title="Chiudi l'ordine e registra l'intervento" aria-label="Chiudi ${esc(n.titolo)}" data-man-done="${n.id}">${I.spunta}</span></div></div>`; }).join("")
       || (filtroMan !== "tutti"
         ? vuoto(I.chiave, "Nessun ordine in questo stato", "Nessuna manutenzione è in questa fase di lavorazione. Tocca <b>Tutti</b> per rivedere l'intero programma.")
@@ -1929,7 +1947,7 @@
         <div class="info"><div class="name">${esc(s.tipo || "Scadenza")} — ${esc(s.mezzo || "?")}</div>
           <div class="meta">${meta}</div>
           ${p && p.norma ? `<div class="meta norma">${I.bilancia}${esc(p.norma)}</div>` : ""}</div>
-        <div class="acts"><span class="badge ${s.sem.cls}">${esc(s.sem.label)}</span>
+        <div class="acts"><span class="badge ${s.sem.cls}">${ggU(esc(s.sem.label))}</span>
         <span class="arr ok" role="button" tabindex="0" title="Registra che la verifica è stata fatta" aria-label="Registra ${esc(s.tipo || "scadenza")} fatta" data-sca-done="${s.id}">${I.spunta}</span>
         <span class="arr dan" role="button" tabindex="0" title="Rimuovi la scadenza" aria-label="Rimuovi ${esc(s.tipo || "scadenza")}" data-sca-del="${s.id}">${I.croce}</span></div></div>`;
     }).join("")
@@ -2412,7 +2430,7 @@
       <div class="sch-av">${n.origine === "controllo" ? I.giro : I.chiave}</div>
       <div class="sch-b"><div class="sch-nome">${esc(n.titolo)}</div>
         <div class="sch-sotto"><span class="badge ${so.cls}">${so.etichetta}</span>
-          <span class="badge ${u.cls}">${esc(u.label)}</span>
+          <span class="badge ${u.cls}">${ggU(esc(u.label))}</span>
           ${esc(nomeBreve(n.mezzo) || "senza mezzo")}${m ? " · <b>" + (+m.ore || 0).toLocaleString("it-IT") + "</b> ore motore" : " · mezzo non più nel parco"}</div>
         <div class="sch-sotto">${n.orePreviste ? "Tagliando a <b>" + numTx(n.orePreviste) + "</b> ore motore" : "Previsto per il <b>" + dataIt(n.dataPrevista) + "</b>"}${n.ogniOre ? " · si ripete ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · si ripete ogni " + n.ogniMesi + " mesi" : ""}${n.nota ? " · " + esc(n.nota) : ""}</div>
       </div></div>`;
@@ -2638,7 +2656,7 @@
         <div class="avatar">${I.bilancia}</div>
         <div class="info"><div class="name">${esc(s.tipo || "Scadenza")}</div>
           <div class="meta">scade il ${esc(dataIt(s.dataScadenza))}${s.mesi ? " · ogni " + s.mesi + (s.mesi === 1 ? " mese" : " mesi") : ""}${s.documento ? " · doc. " + esc(s.documento) : ""}${s.ultimaData ? " · ultima: " + esc(dataIt(s.ultimaData)) : ""}</div></div>
-        <span class="badge ${s.sem.cls}">${esc(s.sem.label)}</span></div>`).join("")
+        <span class="badge ${s.sem.cls}">${ggU(esc(s.sem.label))}</span></div>`).join("")
       || vuoto(I.bilancia, "Nessuna scadenza di legge", "Questa macchina non ha scadenze registrate: verifica periodica, funi e catene, revisione, assicurazione si aggiungono dalla schermata <b>Scadenze</b>.");
 
     $("sch-man").innerHTML = f.manutenzioni.map(n => {
@@ -2647,7 +2665,7 @@
         <div class="avatar">${n.origine === "controllo" ? I.giro : I.chiave}</div>
         <div class="info"><div class="name">${esc(n.titolo)}</div>
           <div class="meta">${n.orePreviste ? "a " + numTx(n.orePreviste) + " ore motore" : "previsto " + esc(dataIt(n.dataPrevista))}${n.ogniOre ? " · piano: ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · piano: ogni " + n.ogniMesi + " mesi" : ""}</div>${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}</div>
-        <span class="badge ${u.cls}">${esc(u.label)}</span></div>`;
+        <span class="badge ${u.cls}">${ggU(esc(u.label))}</span></div>`;
     }).join("")
       || vuoto(I.chiave, "Niente in programma", "Nessun tagliando pianificato su questa macchina. Si pianifica dalla schermata <b>Officina</b>, a data oppure a ore motore.");
 
