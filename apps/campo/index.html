@@ -1256,6 +1256,12 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // Terra non raggiungibile: non si dice niente. Una nota che spiega un
     // confronto che non c'è, in una schermata di lavoro, è solo rumore.
     if (RILT === null) { out.innerHTML = ""; return; }
+    // NESSUNA TENDINA DEL PERIODO, al contrario di Terra, e non è una
+    // dimenticanza: si usa sempre l'intervallo fra gli ultimi due voli. Chi compila
+    // un rapportino guarda il periodo APPENA chiuso — è quello in cui ha lavorato —
+    // e lo storico degli intervalli precedenti è una domanda da quadro di
+    // controllo, che sta in Terra col suo grafico. Una tendina qui aggiungerebbe una
+    // scelta da fare in una schermata dove si è venuti a scrivere, non a indagare.
     const per = periodoFraUltimiRilievi(RILT);
     if (!per) { out.innerHTML = ""; return; }
     // la densità viene dal materiale scritto nell'autorizzazione di Terra: a chi
@@ -1265,7 +1271,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const r = riconciliazioneTurni(RILT, RAP, per.dal, per.al, dens ? dens.densita : null);
     if (r.stato === "no-campo" || r.stato === "no-misura" || r.stato === "no-dichiarato") { out.innerHTML = ""; return; }
     if (r.stato === "no-densita") {
-      out.innerHTML = `<div class="note">L'ultimo rilievo del drone (<b>${dmy(per.al)}</b>) ha misurato <b>${numeroIt(r.mis.m3, 0)} m³</b> fra il ${dmy(per.dal)} e il ${dmy(per.al)}. Per metterlo accanto alla produzione dei turni servirebbe la <b>densità del materiale</b>, che si imposta in <b>Terra</b>: senza, tonnellate e metri cubi non si parlano.</div>`;
+      out.innerHTML = `<div class="note">Il rilievo del drone del <b>${dmy(per.al)}</b> ha misurato <b>${numeroIt(r.mis.m3, 0)} m³</b> di scavo dal ${dmy(per.dal)}. Per metterlo accanto alla produzione dei turni serve la <b>densità del materiale</b>, che si imposta in <b>Terra</b>: senza, tonnellate e metri cubi non si parlano.</div>`;
       return;
     }
     // ⚠️ QUANDO IL CONFRONTO È INCOMPLETO NON SI DICE CHE I NUMERI TORNANO.
@@ -1281,17 +1287,24 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // e si contano i rapportini che hanno DAVVERO contribuito ai metri cubi: dire
     // «7 rapportini» quando uno è in viaggi e non entra nel totale è fuorviante
     const inConto = r.dich.turni - (r.dich.viaggi > 0 ? 1 : 0);
-    out.innerHTML = `<div class="note ${tornano ? "recap" : "avviso"}">`
-      + `Il rilievo del drone del <b>${dmy(per.al)}</b> ha misurato <b>${numeroIt(r.mis.m3, 0)} m³</b> tolti dal fronte fra il ${dmy(per.dal)} e il ${dmy(per.al)}. `
+    // DUE NOTE, NON UNA. Guardata a schermo, la versione unica era un paragrafo di
+    // sette righe alto 178 px in una schermata di lavoro: tutto allo stesso peso,
+    // nessun punto da cui cominciare a leggere. La convenzione dell'app è già
+    // un'altra — qui sopra «Rapportini consegnati» e «Produzione di oggi» sono due
+    // note separate, e Terra fa lo stesso. Quindi: i NUMERI nella prima, la
+    // SPIEGAZIONE nella seconda, che così può anche portare il colore
+    // dell'avvertenza senza tingere anche i numeri.
+    const numeri = `Il rilievo del drone del <b>${dmy(per.al)}</b> ha misurato <b>${numeroIt(r.mis.m3, 0)} m³</b> di scavo dal ${dmy(per.dal)}. `
       + `I turni di quei giorni ne avevano dichiarati circa <b>${numeroIt(r.dich.m3, 0)} m³</b>`
       + (r.dich.turni ? ` (${inConto} ${inConto === 1 ? "rapportino" : "rapportini"})` : "")
-      + `: ${r.stato === "coerente" && !r.parziale ? "i due numeri si parlano" : parole}.`
-      + (r.parziale
-        ? ` Ma il conto è <b>incompleto</b>: ${r.dich.viaggi > 0 ? `i <b>${r.dich.viaggi} viaggi</b> dichiarati non entrano nei metri cubi, perché servirebbe la portata del mezzo` : `una parte delle tonnellate non si può portare in metri cubi senza la densità`}. Il dichiarato vero è più alto di così, quindi da questo confronto non si può dire se i due numeri tornano.`
-        : tornano
-          ? ` Le stime di fine turno stanno reggendo il confronto con la misura.`
-          : ` Non è detto da che parte stia lo scarto: può essere la stima di turno, oppure il volo che non ha coperto tutto quello che è stato scavato. Vale la pena guardarlo insieme a chi fa i rilievi.`)
-      + `</div>`;
+      + `: ${tornano ? "<b>i due numeri si parlano</b>" : parole}.`;
+    const spiega = r.parziale
+      ? `<b>Conto incompleto</b>: ${r.dich.viaggi > 0 ? `i <b>${r.dich.viaggi} viaggi</b> non entrano nei metri cubi (servirebbe la portata del mezzo)` : `parte delle tonnellate non si converte senza la densità`}. Il dichiarato vero è più alto, quindi il confronto non conclude.`
+      : tornano
+        ? ""
+        : `Lo scarto può venire dalla stima di turno o da un volo che non ha coperto tutto lo scavo: vale la pena guardarlo insieme a chi fa i rilievi.`;
+    out.innerHTML = `<div class="note recap">${numeri}</div>`
+      + (spiega ? `<div class="note avviso">${spiega}</div>` : "");
   }
 
   async function refresh(){
