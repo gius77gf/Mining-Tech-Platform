@@ -338,6 +338,39 @@ inserito una volta serve in cinque posti**.
 - [ ] P2. **Campo → Terra**: produzione del turno → volumi per fronte.
       *(l'unico ponte che resta)*
 
+## BLOCCO 6 — SECONDE ITERAZIONI: I DIFETTI DICHIARATI, CHIUSI
+Non feature nuove: i difetti che i cantieri avevano trovato e scritto nero su
+bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
+- [x] **S1. Unità di misura mai in maiuscolo — alla radice** ✅ *(30/07,
+      `aab9d07`)* — la causa stava in `shared/dw-grafici`, non nelle app: tre
+      toppe locali (Terra, Sentinella, Campo) per un difetto solo. Chromium
+      trasforma `µ` nella mu greca maiuscola, quindi `µg/m³` diventava
+      `ΜG/M³`: milligrammi, mille volte tanto, sul rapporto che va all'ente.
+      Ora il motore avvolge da sé l'unità e le tre toppe sono via, così
+      «VOCE» e «QUOTA» tornano maiuscole come nel core.
+- [x] **S2. Campo e Genesi — numeri all'italiana** ✅ *(30/07, `ff362aa`)* —
+      il badge scriveva «44.7 KG», `riconDelta` «+3.0 cm». Tre formattatori
+      per app al posto di una decina di copie a mano, e la riga di confine
+      scritta: i numeri **mostrati** vanno all'italiana, quelli **scambiati**
+      nei CSV restano col punto.
+- [x] **S3. Sentinella — la virgola non decuplica più** ✅ *(30/07,
+      `2b661f7`)* — misurato: in `type=number` digitando «2,4» il browser
+      salva **24** e lo dichiara valido. Tutti e 14 i campi decimali
+      convertiti con validazione propria. Più la tessera «Tagliandi 30gg» di
+      Flotta, che contava solo i tagliandi a data.
+- [x] **S4. Scudo — i comandi si possono toccare** ✅ *(30/07, `7fd693b`)* —
+      da 30×30 a 44 px di altezza su tutti i comandi, stacco da 5 a 16 px, e
+      sei comandi che erano **invisibili e irraggiungibili** dentro testi
+      troncati. Misurato con `elementFromPoint` a cinque larghezze.
+- [ ] **S5. Genesi — via i tre dialoghi del browser**: `prompt()` e
+      `confirm()` violano la direttiva vincolante sullo stile. Si usano la
+      modale e il toast del core.
+- [ ] **S6. La virgola nelle altre quattro app**: Flotta (litri, euro, ore,
+      tariffe, prezzi ricambi), Conti, Terra, Scudo. Meccanico ma va
+      verificato campo per campo, come in Sentinella.
+- [ ] **S7. Ponte P2 Campo → Terra**: la produzione del turno alimenta i
+      volumi per fronte senza reinserimento. È l'ultimo ponte.
+
 ## BLOCCO 5 — FONDAZIONE E QUALITÀ
 - [ ] Q1. Proposte di `docs/RICERCA_DEEPWORKID_202607.md` (ruoli reali di
       cava, onboarding, GDPR) — *da leggere quando la ricerca è depositata*.
