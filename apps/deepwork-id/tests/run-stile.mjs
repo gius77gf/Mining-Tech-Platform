@@ -75,6 +75,7 @@ const ok = (cond, why) => { if (!cond) throw new Error(why); };
 // Tutte le superfici che l'utente apre. Se nasce un'app, va aggiunta qui.
 const SUPERFICI = [
   ["core (radice)", "index.html"],
+  ["vetrina dell'ecosistema", "apps/index.html"],
   ["Genesi", "apps/genesi/genesi.html"],
   ["Conti", "apps/conti/index.html"],
   ["Flotta", "apps/flotta/index.html"],
