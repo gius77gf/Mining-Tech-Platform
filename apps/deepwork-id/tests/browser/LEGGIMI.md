@@ -43,6 +43,27 @@ non sta misurando la guardia — ed è già capitato: la riga di montaggio del c
 «0 fallite» voleva dire soltanto «non ho tolto niente». Adesso una controprova
 inerte lo dice a voce alta.
 
+## `contrasto-core.mjs`
+
+Misura il rapporto di contrasto del testo dei riquadri della home del core sul
+**renderizzato**, non sul codice: 4,5:1 per il testo piccolo, 3:1 per quello
+grande. È così che è venuto fuori un sottotitolo a **1,08:1** — arancione scuro
+su arancione, invisibile — che nessun test vedeva e che non dava nessun errore.
+
+```sh
+node apps/deepwork-id/tests/browser/contrasto-core.mjs 8823
+node apps/deepwork-id/tests/browser/contrasto-core.mjs 8823 --controprova
+```
+
+La controprova rimette il difetto (lo stile in linea che coloriva il fondo senza
+portarsi dietro il testo) e **pretende che due misure falchino**.
+
+Tre trappole già pestate, tutte e tre nel senso che ASSOLVE — cioè il peggiore:
+gli sfondi a **gradiente** (il colore vero sta in `background-image`, e cercando
+un fondo opaco fra gli antenati si finisce contro il nero della pagina: bianco su
+arancione risultava 19:1), la **trasparenza** del colore del testo, e
+l'**`opacity`** ereditata dagli antenati.
+
 ## `finto-firebase.mjs`
 
 **Serve per aprire il core in locale, e non solo per questa prova.**

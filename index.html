@@ -1242,12 +1242,12 @@ function renderHome(){
     html+=`<div class="tile tile-feat" onclick="nav('rapp')"><div class="ti-big">📋</div><div><div class="tt-big">NUOVO RAPPORTINO</div><div class="td-big">Compila il rapportino di perforazione</div></div><div class="tile-arrow">›</div></div>`;
   } else if(isUfficio||isAdmin){
     // Ufficio/Admin: riquadro ufficio al posto del featured
-    html+=`<div class="tile tile-feat" style="background:linear-gradient(135deg,#26a69a,#00695c);" onclick="nav('ufficio')"><div class="ti-big">🧮</div><div><div class="tt-big">STRUMENTI UFFICIO</div><div class="td-big">Calcoli, report e gestione</div></div><div class="tile-arrow">›</div></div>`;
+    html+=`<div class="tile tile-feat tile-feat-ufficio" onclick="nav('ufficio')"><div class="ti-big">🧮</div><div><div class="tt-big">STRUMENTI UFFICIO</div><div class="td-big">Calcoli, report e gestione</div></div><div class="tile-arrow">›</div></div>`;
   }
 
   // ── Progetto volata (per tutti) — badge = progetti ricevuti in chat non letti ──
   const volateAssegnate=DB.messaggi.filter(m=>m.toId===state.user.id&&m.volataId&&!m.letto);
-  html+=`<div class="tile" style="background:linear-gradient(135deg,#ff8f00,#e65100);color:#fff;border:none;position:relative;" onclick="nav('volate-list')">
+  html+=`<div class="tile tile-volata" onclick="nav('volate-list')">
     <div class="ti"><svg width="30" height="26" viewBox="0 0 30 26"><path d="M3 24 V11 a12 9 0 0 1 24 0 V24" fill="none" stroke="#fff" stroke-width="2"/><circle cx="9" cy="17" r="1.8" fill="#fff"/><circle cx="15" cy="14" r="1.8" fill="#fff"/><circle cx="21" cy="17" r="1.8" fill="#fff"/><line x1="9" y1="17" x2="9" y2="24" stroke="#fff" stroke-width="1"/><line x1="15" y1="14" x2="15" y2="24" stroke="#fff" stroke-width="1"/><line x1="21" y1="17" x2="21" y2="24" stroke="#fff" stroke-width="1"/><path d="M13 4 l2 -3 l2 3" fill="none" stroke="#ffd54f" stroke-width="1.5"/></svg></div><div class="tt">PROGETTO VOLATA</div><div class="td">Progetta o visualizza schemi</div>
     ${volateAssegnate.length>0?`<span style="position:absolute;top:8px;right:8px;background:#fff;color:#e65100;font-size:10px;font-weight:800;padding:2px 7px;border-radius:3px;">${volateAssegnate.length} nuov${volateAssegnate.length===1?'o':'i'}</span>`:''}
   </div>`;
@@ -7072,6 +7072,23 @@ textarea.finput{resize:vertical;min-height:60px;}
 .tile-purple{background:linear-gradient(135deg,#ab47bc 0%,#6a1b9a 100%);}
 .tile-teal{background:linear-gradient(135deg,#26a69a 0%,#00695c 100%);}
 .tile-red .td,.tile-blue .td,.tile-green .td,.tile-grey .td,.tile-brown .td,.tile-purple .td,.tile-teal .td{color:rgba(255,255,255,.8);}
+/* I due riquadri a fondo pieno della home. Erano scritti con lo stile in linea e
+   il colore del testo non seguiva il fondo: misurato, il sottotitolo di
+   «Progetto volata» stava a 1,12:1 su arancione — praticamente invisibile — e il
+   riquadro dell'ufficio a 2,93:1. La soglia leggibile per un testo piccolo è
+   4,5:1. Sull'arancione vince l'inchiostro scuro (come già fa `.tile-feat`), sul
+   verdeacqua vince il bianco, ma solo scurendo la tinta: bianco sul verdeacqua
+   chiaro stava a 3,04:1. Stesse due famiglie di colore, solo rese leggibili. */
+.tile-volata{background:linear-gradient(135deg,#ff8f00 0%,#e65100 100%);color:#140f04;border:none;position:relative;}
+.tile-volata .td{color:#140f04;}   /* stessa tinta del titolo: la gerarchia la
+   fanno corpo e peso del carattere, non uno schiarimento che scende sotto la
+   soglia — misurato, #241a06 stava a 4,04:1 */
+.tile-feat-ufficio{background:linear-gradient(135deg,#00796b 0%,#004d40 100%);color:#fff;box-shadow:0 6px 20px rgba(0,77,64,.35);}
+.tile-feat-ufficio:hover{box-shadow:0 8px 28px rgba(0,77,64,.5);}
+/* `.tile-feat .td-big` ha `opacity:.85`, che sul verdeacqua scuro portava il
+   sottotitolo a 4,31:1. L'opacità va tolta e la sfumatura si fa col colore, che
+   si può misurare. */
+.tile-feat-ufficio .td-big{opacity:1;color:rgba(255,255,255,.92);}
 .meteo-card{background:var(--card);border:1px solid var(--border);padding:14px;margin-bottom:14px;display:flex;flex-direction:column;gap:4px;}
 .meteo-loc{font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
 .meteo-body{display:flex;align-items:baseline;gap:10px;}
