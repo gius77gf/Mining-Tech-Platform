@@ -40,10 +40,25 @@ riscriverli a mano. È il manuale pratico del **Passo 6 del PIANO_GO_LIVE**.
   viene tolto niente.
 - **Isolamento**: i dati caricati entrano SOLO nell'organizzazione del cliente.
   Nessun'altra azienda li vede mai.
-- **Backup**: ogni schermata di import ha accanto un bottone **Esporta (CSV)**
-  che scarica gli stessi dati nel formato ri-caricabile. Serve per fare una
-  copia di sicurezza o per spostare i dati: il file esportato si re-importa
-  senza duplicare.
+- **Backup**: accanto a ogni import c'è un **Esporta (CSV)** che scarica gli
+  stessi dati **nello stesso formato**: serve per la copia di sicurezza e per
+  spostare i dati da una postazione all'altra. Sono sette, verificati uno per
+  uno il 31/07 con una prova che rimanda il file dentro l'app:
+  **squadre** (Campo), **gare** e **listino** (Conti), **magazzino ricambi**
+  (Flotta), **anagrafica lavoratori** e **registro infortuni** (Scudo),
+  **ricettori** (Sentinella).
+  ⛔ **Gli altri file che le app scaricano NON sono backup, sono prospetti**, e
+  non vanno confusi: la *situazione fatture* di Conti, la *prima nota incassi*,
+  le *pesate/DDT*, i *prezzi convertiti* del listino, la *situazione* di Flotta,
+  i *riepiloghi* di Terra e Sentinella, le *azioni correttive* e il *riepilogo
+  near-miss* di Scudo. Servono al commercialista o all'ente, hanno colonne
+  calcolate (stato, residuo, giorni di pagamento) e **non si ri-caricano**: se
+  provi, l'app dice che il file non è valido. Non è un difetto — è che quei
+  file rispondono a un'altra domanda.
+  ⚠️ Quindi: **la copia di sicurezza di quello che il cliente ha scritto** si fa
+  con i sette qui sopra. Per tutto il resto — pesate, DDT, incassi, azioni
+  correttive — oggi **non esiste un file che si ri-carica**, e va saputo prima
+  di contarci.
   ⚠️ **Fino al 30/07 questa frase era vera solo a metà**, e vale la pena
   saperlo perché spiega cosa poteva succedere prima: le righe già in archivio
   venivano saltate, sì, ma un file che nominava la **stessa cosa più volte** le
@@ -331,7 +346,9 @@ il documento conclude — giustamente — «ecco cosa posso caricare»; nessuno 
 dice che **il resto va scritto a mano**, e lo scopre il primo giorno con
 l'azienda davanti.*
 
-Contati i punti d'importazione veri dentro le sei app: sono **quindici**, e sono
+Contati i punti d'importazione veri dentro le sei app: sono **diciotto**
+*(ricontati il 31/07: erano quindici il 30/07, prima che nascessero il listino
+di Conti, i ricettori di Sentinella e il magazzino di Flotta)*, e sono
 esattamente quelli descritti qui sopra. Tutto il resto oggi si inserisce dalle
 schermate, una voce alla volta:
 
