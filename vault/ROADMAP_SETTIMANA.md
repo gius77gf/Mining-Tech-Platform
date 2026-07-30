@@ -505,6 +505,19 @@ bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
       dimostrazione non raccontava niente — ora lo scarto passa dal 12% al 7% al
       2,4%, che è la storia per cui il grafico esiste.
 
+- [x] **S17. Prove permanenti + seconda iterazione lato Campo** ✅ *(31/07,
+      `5165097` + `4ccfa6a`)* — le prove sui buchi sono passate dallo scratchpad
+      alla suite (il browser serviva per **scoprire**, non per tenere chiuso: sono
+      funzioni pure, e il motore le espone in `dwGrafici.geometria`). Sul lato
+      Campo la seconda iterazione ha trovato il difetto peggiore possibile per
+      questo progetto: **un confronto incompleto che dichiarava un accordo**. Coi
+      viaggi fuori dal conto la frase diceva «i due numeri si parlano» — il calcolo
+      diceva `parziale: true`, era la frase a leggere metà del risultato.
+      E la sedicesima prova sbagliata, la prima **muta**: `String.replace` su un
+      bersaglio che non combacia non fa niente e non lo dice, quindi uno stato
+      «con-viaggi» era in realtà quello normale. Ora entrambe le prove sugli stati
+      pretendono che la trasformazione abbia cambiato la sorgente.
+
 **La convenzione sui numeri è chiusa.** Sei app, core, campi scritti a mano,
 campi interi, file delle macchine.
 
