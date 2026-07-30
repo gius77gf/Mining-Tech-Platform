@@ -1,8 +1,15 @@
 # Parti da qui — indice dei documenti per il fondatore
 
-Data: 2026-07-23 · Per Giuseppe. Sono stati scritti diversi documenti in
-parole semplici. Questo foglio ti dice **quale aprire in base a cosa ti
-serve**, così non devi ricordarti i nomi.
+Data: 2026-07-23 · **rivisto il 01/08** · Per Giuseppe. Sono stati scritti
+diversi documenti in parole semplici. Questo foglio ti dice **quale aprire in
+base a cosa ti serve**, così non devi ricordarti i nomi.
+
+⚠️ Perché è stato rivisto: al 01/08 questo indice ne citava **26 su 46**. Fuori
+c'erano fra gli altri **tutte e dodici le ricerche** e i due documenti
+sull'estetica, cioè proprio quelli che le regole di lavoro danno per vincolanti.
+Un indice che ne salta metà non è un indice: è un elenco di preferiti. Adesso ci
+sono tutti (e un controllo ha verificato che nessun nome citato punti a un file
+che non esiste).
 
 ## Se vuoi capire a che punto siamo
 - **`docs/STATO_PRODOTTO.md`** — cosa fa OGGI ciascuna app, cos'è pronto da
@@ -84,15 +91,65 @@ chi può leggere e scrivere cosa — il secondo il CODICE del core.)*
 ## Se vuoi le idee per le altre app (confronto concorrenza + prossimi passi)
 - **`docs/SCUDO_HSE_ROADMAP.md`** (sicurezza/HSE), **`docs/FLOTTA_MANUTENZIONE_ROADMAP.md`**
   (mezzi/manutenzione), **`docs/CONTI_FATTURAZIONE_ROADMAP.md`** (fatturazione),
-  **`docs/SENTINELLA_VIBRAZIONI_ROADMAP.md`** (vibrazioni/ambiente) — per ciascuna:
+  **`docs/SENTINELLA_VIBRAZIONI_ROADMAP.md`** (vibrazioni/ambiente),
+  **`docs/CAMPO_TURNI_ROADMAP.md`** (turni e rapportini) e
+  **`docs/TERRA_RILIEVI_ROADMAP.md`** (rilievi e volumi) — per ciascuna:
   cosa fa oggi, cosa fanno i concorrenti, e i passi fattibili nel browser ordinati
   per impatto (con le scelte che aspettano te).
+
+## Se vuoi leggere le ricerche su cui è costruito il lavoro
+Ogni app ha la sua ricerca, fatta prima di scrivere il codice: cosa fanno i
+prodotti migliori in circolazione, cosa serve davvero in una cava, e cosa
+conviene fare per primo. Sono la fonte da cui nascono le unità di lavoro.
+- Una per app: **`docs/RICERCA_SCUDO_202607.md`**, **`docs/RICERCA_CAMPO_202607.md`**,
+  **`docs/RICERCA_FLOTTA_202607.md`**, **`docs/RICERCA_CONTI_202607.md`**,
+  **`docs/RICERCA_SENTINELLA_202607.md`**, **`docs/RICERCA_TERRA_202607.md`**,
+  **`docs/RICERCA_GENESI_202607.md`**.
+- Trasversali: **`docs/RICERCA_VALORE_PRODOTTO_202607.md`** (i dettagli che fanno
+  sembrare curato un prodotto — è da qui che nascono gli stati vuoti e i messaggi
+  d'errore che spiegano), **`docs/RICERCA_VETRINA_202607.md`** (la pagina da
+  mostrare a un cliente), **`docs/RICERCA_DEEPWORKID_202607.md`** (ruoli di cava,
+  onboarding, GDPR), **`docs/RICERCA_CRUSCOTTO_TITOLARE_202607.md`** (il quadro
+  d'insieme per chi comanda) e **`docs/RICERCA_DOCUMENTI_ENTI_202607.md`** (cosa
+  chiedono davvero gli enti).
+
+## Se ti interessa l'aspetto — perché è fatto così e non altrimenti
+- **`docs/SPECIFICA_ESTETICA_CORE.md`** — che cosa produce davvero la qualità
+  visiva (la luce a strati, i bordi che prendono la luce, gli aloni, la
+  profondità dei bottoni). È il documento che le app devono rispettare.
+- **`docs/PALETTE_APP.md`** — il colore proprio di ogni app, scelto con la
+  verifica del contrasto, e la ragione di ogni scelta.
+- **`docs/GENESI_ESTETICA_3D.md`** — l'aspetto del 3D di Genesi.
+- **`docs/PIANO_GRAFICI.md`** — come sono fatti i grafici e perché sono tutti
+  uguali fra le app.
+
+## Se ti chiedono le norme (cave, ambiente, documenti verso gli enti)
+- **`docs/SCUDO_NORMATIVA_CAVE.md`** — gli obblighi di sicurezza in cava
+  tradotti in cose che l'app deve saper fare.
+- **`docs/GENESI_FONTI_SCIENTIFICHE.md`** — le fonti scientifiche dietro le
+  formule di Genesi, con le verifiche fatte sui numeri.
+
+## Se vuoi capire come lavorano i cicli automatici
+- **`docs/ROUTINE_AUTOMATICA.md`** — come funziona il lavoro automatico, cosa
+  fa da solo e cosa si ferma ad aspettare una tua decisione.
+
+## Dettaglio tecnico sull'isolamento (per te o per l'informatico del cliente)
+- **`docs/ISOLAMENTO_CORE.md`** — come è stato reso separabile per
+  organizzazione il "core", che era nato senza quella distinzione.
+- **`docs/AUDIT_ISOLAMENTO_APP.md`** — la verifica, app per app, che ogni
+  accesso ai dati passi dal percorso protetto.
 
 ## Se vuoi la visione e i piani a lungo termine
 - **`vault/ROADMAP_VISIONE.md`** — il potenziale di ogni app e la tesi del
   "ciclo chiuso" dei dati di cava.
 - **`vault/ROADMAP_SETTIMANA.md`** — il piano di lavoro corrente e lo storico
   di cosa è stato fatto.
+
+## Storico
+- **`docs/REVISIONE_FONDATORE_25-07.md`** — la tua revisione del 25/07 sul
+  lavoro 19-24/07. È storica, ma è da lì che nascono alcune regole tuttora
+  vincolanti: vale la pena riaprirla quando ci si chiede «perché questa cosa si
+  fa così».
 
 ## Per chi sviluppa (tecnico)
 - **`docs/DEVELOPMENT.md`** e **`CLAUDE.md`** (radice) — regole e procedure.
