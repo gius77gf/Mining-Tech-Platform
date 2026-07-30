@@ -22,6 +22,12 @@ const flotta = await app("flotta", "flotta-data.js");
 const campo = await app("campo", "campo-data.js");
 const shell = await import(join(HERE, "../../../shared/deepwork-id-client/dw-shell.js"));
 const ponti = await import(join(HERE, "../../../shared/dw-ponti.js"));
+/* Il motore dei grafici è uno script classico (IIFE), non un modulo ESM: si carica
+   con `require`, che fa scattare il suo `module.exports`. Serve la sua GEOMETRIA
+   pura — numeri dentro, stringa fuori — per difendere la regola dei buchi senza
+   browser. */
+const { createRequire } = await import("node:module");
+const grafici = createRequire(import.meta.url)(join(HERE, "../../../shared/dw-grafici.js"));
 
 let passed = 0, failed = 0;
 const test = (name, fn) => {
@@ -2409,6 +2415,61 @@ test("l'arrotondamento non può peggiorare il numero", () => {
   ok(!Number.isSafeInteger(Math.round(4512345.67 * 1e10)),
     "senza guardia Math.round(n·1e10) sarebbe fuori dagli interi esatti");
 });
+
+/* ══════════════════════════════════════════════════════════════════════
+   IL MOTORE DEI GRAFICI: un valore mancante non si scavalca
+   ══════════════════════════════════════════════════════════════════════
+   Queste prove sono nate nel browser, perché è lì che si è SCOPERTO il difetto:
+   `percorso` univa tutti i valori numerici in un tratto continuo, quindi
+   [95, null, 140] veniva disegnata come una linea intera — un segmento che
+   nessuno ha misurato, contro il commento della funzione stessa e contro la regola
+   già scritta per gli altri grafici. Per TENERE la regola il browser non serve:
+   dentro entrano numeri, fuori esce una stringa. Vivono qui perché una difesa che
+   sta nello scratchpad alla prossima sessione non c'è più. */
+{
+  const { tratti, percorso } = grafici.geometria;
+  const px = (i) => i * 100, py = (v) => 200 - v;
+  const conta = (d, c) => (d.match(new RegExp("\\" + c, "g")) || []).length;
+
+  test("grafici: i valori si spezzano in tratti di numeri consecutivi", () => {
+    eq(tratti([95, null, 140, 290]), [[0], [2, 3]], "un buco separa due tratti");
+    eq(tratti([10, 20, 15, 30]), [[0, 1, 2, 3]], "senza buchi un tratto solo");
+    eq(tratti([null, 42, null]), [[1]], "un dato isolato è un tratto di un punto");
+    eq(tratti([null, null]), [], "tutto mancante: nessun tratto");
+    eq(tratti([]), [], "serie vuota: nessun tratto");
+    eq(tratti(null), [], "serie assente: nessun tratto, non un errore");
+    eq(tratti([10, NaN, 15, undefined, 7]), [[0], [2], [4]], "NaN e undefined fanno buco come null");
+    eq(tratti([10, 0, 15]), [[0, 1, 2]],
+      "uno ZERO NON è un buco: è una misura, e la linea resta intera");
+  });
+  test("grafici: la linea non attraversa il buco", () => {
+    const d = percorso([95, null, 140, 290], px, py, false);
+    ok(conta(d, "M") === 2, `due sottopercorsi, non uno: ${d}`);
+    ok(conta(percorso([10, 20, 15, 30], px, py, false), "M") === 1, "senza buchi resta un percorso solo");
+    ok(percorso([null, null], px, py, false) === "", "niente da disegnare → stringa vuota");
+    /* un punto isolato resta VISIBILE: `l0 0` è un segmento di lunghezza zero, che
+       il browser disegna come un puntino. Sparire sarebbe perdere un dato vero. */
+    ok(/l0 0/.test(percorso([null, 42, null], px, py, false)), "un dato isolato resta un puntino");
+    /* e con la curva morbida il comportamento è lo stesso */
+    ok(conta(percorso([1, 2, 3, null, 5, 6, 7], px, py, true), "M") === 2,
+      "anche con la curva i tratti restano due");
+  });
+  test("grafici: la controprova — senza la correzione la linea scavalcherebbe", () => {
+    /* si rifà a mano quello che faceva la versione di prima: tutti i numeri in un
+       tratto unico. Se un giorno `percorso` tornasse a comportarsi così, la prova
+       qui sopra fallisce e questa spiega perché era sbagliato. */
+    const vecchio = (valori) => {
+      const pts = [];
+      valori.forEach((v, i) => { if (Number.isFinite(+v) && v !== null && v !== "") pts.push([px(i), py(v)]); });
+      let d = "M" + pts[0][0].toFixed(1) + " " + pts[0][1].toFixed(1);
+      for (let i = 1; i < pts.length; i++) d += "L" + pts[i][0].toFixed(1) + " " + pts[i][1].toFixed(1);
+      return d;
+    };
+    const v = [95, null, 140, 290];
+    ok(conta(vecchio(v), "M") === 1, "la vecchia logica faceva un percorso solo");
+    ok(conta(percorso(v, px, py, false), "M") === 2, "la nuova ne fa due");
+  });
+}
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);

@@ -1197,6 +1197,15 @@
     avanzamento: conTipo('avanzamento'),
     /* comodità per chi formatta a mano fuori dai grafici */
     formato: { numero: fmtInt, decimale: fmtDec, euro: fmtEur, compatto: compatto },
+    /* LA GEOMETRIA PURA, esposta di proposito perché sia PROVABILE senza browser.
+       Non è roba da usare nelle app — per disegnare ci sono `linea`, `barre` e le
+       altre — ma la regola dei BUCHI (un valore mancante non si scavalca con un
+       segmento, perché quel segmento sarebbe un valore che nessuno ha misurato) è
+       una decisione di prodotto, non un dettaglio di disegno, e va difesa da un
+       test che gira sempre. Il browser è servito per SCOPRIRE che il motore la
+       violava; per tenerla basta node, visto che qui dentro entrano numeri ed esce
+       una stringa. */
+    geometria: { tratti: tratti, percorso: percorso },
     versione: '1.0'
   };
 
