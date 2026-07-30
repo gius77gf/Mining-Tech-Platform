@@ -520,6 +520,21 @@ body.modal-open{overflow:hidden}
   .logo-sm{font-size:18px}
 }
 
+/* SOTTO I 400 px LA BARRA IN BASSO SI STRINGE. Misurato su un telefono da
+   390: in Sentinella i sei nomi delle sezioni fanno 395 px dentro una barra da
+   374, e «REPORT» finisce a 404 — cioè fuori dallo schermo, invisibile e non
+   toccabile. Le altre app ci stanno solo perché hanno nomi più corti: è
+   fortuna, non progetto. Si stringono spaziatura e corpo quel tanto che basta,
+   invece di tagliare un nome o mandarlo a capo: una voce di navigazione o si
+   legge intera o non serve.
+   ⚠️ Va misurata la BARRA, non i bottoni: i bottoni non traboccano, è la loro
+   somma a non entrare — chiedere al pezzo sbagliato assolve. E la regola va
+   messa in QUESTO foglio: `dw-app-shell.css` è caricato prima e la sua
+   `.nav button` perde, quindi una correzione scritta là non fa niente. */
+@media(max-width:400px){
+  .nav button{font-size:8.5px; letter-spacing:.7px; padding-left:1px; padding-right:1px}
+}
+
 @media(max-width:360px){
   .page{padding-left:10px; padding-right:10px}
   .top{padding-left:10px; padding-right:10px}
