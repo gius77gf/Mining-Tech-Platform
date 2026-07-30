@@ -3390,5 +3390,93 @@ test("l'arrotondamento non può peggiorare il numero", () => {
   });
 }
 
+// ============================================================
+// I MODELLI DI CSV DEL DOCUMENTO CARICANO DAVVERO
+//
+// `docs/ONBOARDING_DATI.md` è il documento che il primo cliente ha in mano
+// mentre prepara i suoi file: per ogni import c'è un ESEMPIO da copiare. Fin
+// qui nessuno legava quell'esempio al lettore che dovrà digerirlo — bastava
+// cambiare una colonna nel codice e il documento restava a insegnare un
+// formato che l'app rifiuta, senza che niente si lamentasse. Il difetto non
+// farebbe rumore da noi: farebbe rumore il primo giorno, a casa del cliente,
+// e sembrerebbe che l'app non funzioni.
+//
+// Il controllo prende gli esempi VERI dal documento (non copie: il file,
+// letto adesso) e li dà alla funzione VERA dell'app, pretendendo che entrino
+// TUTTE le righe di dati — non «almeno una»: una riga persa in silenzio è
+// esattamente la cosa che nessuno nota.
+//
+// Controprovato due volte, il 31/07, rimettendo il difetto:
+//  · cambiata l'intestazione delle gare nel documento → 3 righe invece di 2
+//    (l'intestazione entra come dato, e in lista comparirebbe una gara che si
+//    chiama «nome»);
+//  · rotta l'estrazione dei blocchi → 17 controlli falliti invece di passare
+//    a vuoto.
+// ============================================================
+{
+  const { readFileSync } = await import("node:fs");
+  const DOC = readFileSync(join(HERE, "../../../docs/ONBOARDING_DATI.md"), "utf8");
+
+  /* Titolo della sezione → lettore che quella pagina usa davvero. Scudo 1) non
+     c'è: i lavoratori si importano con un gestore scritto dentro index.html,
+     quindi non esiste una funzione pura da chiamare (annotato, non nascosto). */
+  const MAPPA = [
+    ["Scudo — 2) scadenzario", scudo.parseScadenzeCsv],
+    ["Scudo — 3) registro infortuni", scudo.parseInfortuniCsv],
+    ["Flotta — 1) parco mezzi", flotta.parseMezziCsv],
+    ["Flotta — 2) ore motore", flotta.parseTelemetriaCsv],
+    ["Flotta — 3) magazzino ricambi", flotta.parseRicambiCsv],
+    ["Conti — 1) fatture", conti.parseFattureCsv],
+    ["Conti — 2) gare", conti.parseGareCsv],
+    ["Conti — 3) listino", conti.parseListinoCsv],
+    ["Sentinella — sensori", sentinella.parseMonitoraggiCsv],
+    ["Sentinella — 2) scadenze ambientali", sentinella.parseAdempimentiCsv],
+    ["Sentinella — 3) registro volate", sentinella.parseVolateCsv],
+    ["Sentinella — 4) ricettori", sentinella.parseRicettoriCsv],
+    ["Terra — 1) fronti", terra.parseFrontiCsv],
+    ["Terra — 2) rilievi drone", terra.parseRilieviCsv],
+    ["Campo — 1) squadre", campo.parseSquadreCsv],
+    ["Campo — 2) piano di carico", campo.parsePianoCsv],
+  ];
+
+  /* Primo blocco recintato di ogni sezione «## ...». */
+  const esempi = new Map();
+  {
+    let sezione = null, dentro = false, buf = null;
+    for (const r of DOC.split("\n")) {
+      if (r.startsWith("## ")) { sezione = r.slice(3).trim(); dentro = false; buf = null; continue; }
+      if (r.trim().startsWith("```")) {
+        if (!dentro && sezione && !esempi.has(sezione)) { dentro = true; buf = []; }
+        else if (dentro) { esempi.set(sezione, buf.join("\n")); dentro = false; buf = null; }
+        continue;
+      }
+      if (dentro) buf.push(r);
+    }
+  }
+
+  /* ⚠️ La rete di sicurezza del controllo stesso: se l'estrazione si rompe
+     (il documento cambia forma, i blocchi non si chiudono più) la mappa resta
+     vuota e TUTTI i controlli sotto passerebbero senza guardare niente. Qui si
+     pretende che gli esempi si siano trovati, così un controllo inerte
+     fallisce invece di mentire. */
+  test("onboarding: gli esempi del documento si trovano tutti", () => {
+    ok(esempi.size >= MAPPA.length,
+       `esempi estratti ${esempi.size}, ne servono almeno ${MAPPA.length}`);
+  });
+
+  for (const [titolo, fn] of MAPPA) {
+    test(`onboarding: l'esempio «${titolo}» entra tutto`, () => {
+      const chiave = [...esempi.keys()].find(k => k.startsWith(titolo));
+      ok(chiave, `nel documento non c'è nessuna sezione che inizia con «${titolo}»`);
+      const testo = esempi.get(chiave);
+      const attese = testo.split("\n").filter(Boolean).length - 1;   // meno l'intestazione
+      ok(attese > 0, "l'esempio non ha nemmeno una riga di dati");
+      const righe = fn(testo);
+      ok(Array.isArray(righe), "il lettore non ha restituito un elenco");
+      eq(righe.length, attese, "righe caricate dall'esempio del documento");
+    });
+  }
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
