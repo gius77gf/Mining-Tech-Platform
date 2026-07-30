@@ -89,4 +89,25 @@ for (const [nome, via] of SUPERFICI) {
 
 await browser.close();
 console.log(`\n${ok} superfici pulite, ${ko} con id ripetuti`);
+
+/* ⚠️ IL CODICE D'USCITA DICE DUE COSE DIVERSE NEI DUE MODI, e la prima
+   scrittura le confondeva: in controprova uscivo 1 perché trovavo i doppioni,
+   cioè segnalavo come guasto il fatto che il banco funzionasse. Nel riepilogo
+   di `tutti.mjs` risultava «KO» accanto alle altre controprove che dicono «ok».
+
+   Il modo giusto:
+   · giro normale → si esce male se una superficie ha id ripetuti;
+   · controprova → si esce male se una superficie è rimasta PULITA, perché vuol
+     dire che il difetto iniettato non è arrivato e per quella superficie non è
+     stato dimostrato niente. È esattamente il difetto trovato il 31/07, quando
+     l'iniezione finiva dentro i modelli di stampa di tre superfici su nove. */
+if (CONTROPROVA) {
+  if (ok > 0) {
+    console.log(`\n⚠️ CONTROPROVA INCOMPLETA: su ${ok} superfici il difetto iniettato non è arrivato,`
+      + " quindi lì il banco non ha dimostrato di saper fallire.");
+    process.exit(1);
+  }
+  console.log("\nLa controprova ha trovato il difetto su tutte le superfici: il banco sa fallire.");
+  process.exit(0);
+}
 process.exit(ko > 0 ? 1 : 0);
