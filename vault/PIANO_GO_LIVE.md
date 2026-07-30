@@ -78,6 +78,15 @@ mitigazione password (già preparata, non attiva) e ruotate le password.
 - Tecnico: creo l'organizzazione del cliente, il primo utente owner, carico i
   suoi dati storici via **import CSV**.
 - Dipendenze: Passi 2, 3, e 4 fatti.
+- ⚠️ **Da sapere prima, non dopo** *(misurato il 31/07)*: i punti d'importazione
+  sono **diciotto** e coprono anagrafiche e storici principali, ma **non tutto**.
+  Le cose che restano da inserire a mano — e quelle per cui **non esiste ancora
+  un file che si ri-carica** — stanno elencate in `docs/ONBOARDING_DATI.md`
+  (sezioni «Cosa NON si carica» e «Backup»). Le più pesanti per una cava sono
+  **pesate e DDT**, **incassi** e **clienti** di Conti. Se il pilota è Conti,
+  questa è la prima cosa da dire al cliente, prima che se ne accorga lui.
+  La scelta se costruirli adesso è la **decisione 12** in
+  `docs/DECISIONI_WEEKEND.md`.
 
 > **⚠️ Correzione del 30/07 al consiglio su quali app scegliere.** Qui c'era
 > scritto «Scudo e Flotta: dati facili da caricare, entrambe con import CSV».
