@@ -749,7 +749,12 @@ campi interi, file delle macchine.
       (`classList.add(` bastava a soddisfarla). Buco **latente**: misurato
       prima di stringere, tutti e sette i gestori aggiungevano già sulla
       variabile giusta.
-- Regole **14**; stile **149 → 177** prove.
+- [x] **Il banco del contrasto sa fallire.** Misurava 3331 testi su nove
+      superfici e rispondeva «0 sotto soglia» — il banco che fa più misure di
+      tutta la suite — senza che niente dimostrasse che ne sapesse vedere uno.
+      `--controprova` avvelena ogni superficie con una riga a ~1,15:1: 9 su 9
+      la bocciano. E `contrasto.mjs` non era nemmeno documentato nel LEGGIMI.
+- Regole **14**; stile **149 → 177** prove; banchi del browser **15 → 16**.
 
 ### Difetti chiusi il 30/07 (tutti «silenziosi»: nessuno dava errore)
 - [x] La **striscia** e la **pastiglia** di un riquadro dicevano un colore
