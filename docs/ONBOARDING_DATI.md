@@ -156,6 +156,15 @@ Pagina **Mezzi → Importa parco (CSV)**.
   (niente doppioni). `stato` è `operativo`, `fermo` o `verifica` (default
   operativo). È il modo rapido per caricare una flotta intera all'avvio, invece
   di aggiungere i mezzi uno a uno.
+- ⛔ **`ore` vuota resta vuota** *(dal 31/07)*, e vale la pena capire perché.
+  Il contatore **comanda la manutenzione**: l'app calcola quanto manca a un
+  tagliando come *«ore previste meno ore del mezzo»*. Se le ore mancassero e
+  l'app ci mettesse **zero**, il tagliando sembrerebbe lontanissimo proprio su
+  una macchina che magari è già oltre — e non comparirebbe nessun errore, solo
+  una scadenza sbagliata. Il mezzo entra lo stesso, ma finisce fra quelli **«da
+  stimare»**, con scritto che il contatore non si può leggere. Appena scrivi le
+  ore (a mano o con l'import della telemetria) rientra nel conto.
+  Uno **0 scritto apposta** resta zero: un mezzo nuovo ha davvero zero ore.
 
 ## Flotta — 2) ore motore / telemetria
 Pagina **Mezzi → Importa telemetria (CSV)**.
