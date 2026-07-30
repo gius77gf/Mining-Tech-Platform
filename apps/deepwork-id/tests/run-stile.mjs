@@ -7,7 +7,7 @@
 // perché non falliscono i test, si vedono solo aprendo la pagina giusta.
 // Qui diventano controlli che girano in automatico.
 //
-// Cinque regole, oggi:
+// Sette regole, oggi:
 //  1. NIENTE DIALOGHI DEL BROWSER. `alert()`, `confirm()`, `prompt()` sono
 //     vietati dalla direttiva sullo stile. La ragione non è estetica: la
 //     finestra ha il carattere e i bottoni del sistema operativo, su Android
@@ -34,6 +34,14 @@
 //     `type="number"` perché lì lo spinner serve, ma allora la virgola la
 //     rifiuta `montaGuardiaInteri` di `shared/`: leggere `checkValidity()` non
 //     basterebbe, perché su «1,5» il browser risponde **true**.
+//  6. IL PONTE CON TERRA NON DÀ LA COLPA A CHI COMPILA. Se Campo dicesse «le
+//     tue stime erano gonfie», i turni comincerebbero a scrivere numeri prudenti
+//     invece di veri, e il dato peggiorerebbe dove serve. Il testo deve nominare
+//     ENTRAMBE le spiegazioni, compresa quella che non riguarda i turni.
+//  7. LA PROVENIENZA DI UN RILIEVO SI DECIDE IN UN POSTO SOLO. Cumulo = già
+//     estratto, NON consuma il concesso; scavo sì. La regola era scritta due
+//     volte: se una copia divergesse, il materiale tolto anni fa comincerebbe a
+//     consumare la concessione senza nessun errore e senza nessun test rosso.
 //
 // Come si aggiunge una regola: una funzione che restituisce l'elenco delle
 // violazioni con file e riga, e un `test(...)` che pretende zero.
@@ -445,6 +453,64 @@ test("il controllo si accorge di una lettura rimessa a parseNum0", () => {
     const rotto = core.replace("</body>", "<script>x=parseNum0($('co-gas').value);</script></body>");
     ok(decimaliLettiConZero(rotto).length === 1, "il difetto iniettato nel core viene trovato");
   }
+});
+
+console.log("\n── Regola 7: la provenienza di un rilievo si decide in un posto solo ──");
+// Un rilievo di CUMULO è materiale già estratto e NON consuma il volume
+// concesso; uno di SCAVO sì. La regola era scritta due volte — in Terra come
+// `provenienzaRilievo` e in Conti come `eCumulo`, con un commento che dichiarava
+// di essere «la stessa regola di Terra», cioè una divergenza in attesa. Adesso la
+// sorgente è `provenienzaDi` in `shared/dw-ponti.js`.
+// Perché vale un controllo automatico: se una copia divergesse, il materiale
+// tolto anni fa comincerebbe a consumare la concessione (o il contrario) e il
+// difetto non si vedrebbe da nessuna parte — nessun errore, nessun test rosso,
+// solo un numero sbagliato in un documento che va all'ente.
+//
+// ⚠️ COSA cerca questa regola, perché la prima versione cercava la cosa
+// sbagliata: NON è vietato confrontare con «cumulo» — `provenienzaDi(r) ===
+// "cumulo"` è l'uso normale e inevitabile, e la prima versione lo segnalava in
+// tre punti legittimi (fra cui `soloCumulo` di Terra). È vietato **ricavare la
+// provenienza dal record grezzo**: leggere `.provenienza` e deciderlo in casa,
+// che è esattamente com'erano nate le due copie.
+const RICAVA = /\.provenienza\b/;
+function ricavaProvenienza(src) {
+  const vivo = mascheraCodice(src);
+  const fuori = [];
+  const re = new RegExp(RICAVA.source, "g");
+  let m;
+  while ((m = re.exec(src)) !== null) {
+    if (!vivo[m.index]) continue;                 // in un commento non decide niente
+    // legittimo dove si SCRIVE il campo o lo si passa a `provenienzaDi`; sospetto
+    // dove nella stessa espressione compare la parola «cumulo»
+    const intorno = src.slice(Math.max(0, m.index - 120), m.index + 120);
+    if (!/cumulo/i.test(intorno)) continue;
+    if (/provenienzaDi\s*\(/.test(intorno)) continue;
+    fuori.push({ riga: src.slice(0, m.index).split("\n").length, testo: intorno.replace(/\s+/g, " ").slice(60, 170) });
+  }
+  return fuori;
+}
+for (const [nome, rel] of SUPERFICI.concat(MODULI)) {
+  if (rel === "shared/dw-ponti.js") continue;     // è la sorgente della regola
+  const src = leggi(rel);
+  if (src === null) continue;
+  const v = ricavaProvenienza(src);
+  if (!v.length && !/provenienza/.test(src)) continue;   // il file non c'entra
+  test(`${nome}: non ricava la provenienza dal record grezzo`, () => {
+    ok(v.length === 0,
+      `${rel} — riga ${v.map((x) => x.riga).join(", ")}: la regola vive in shared/dw-ponti.js (provenienzaDi)`);
+  });
+}
+test("il controllo distingue la copia dall'uso normale", () => {
+  const copia = 'const eCumulo = (r) => String((r && r.provenienza) || "").toLowerCase() === "cumulo";';
+  ok(ricavaProvenienza(copia).length === 1, "una copia che ricava dal record grezzo viene vista");
+  ok(ricavaProvenienza('const cum = provenienzaDi(r) === "cumulo";').length === 0,
+    "confrontare il risultato della funzione condivisa è l'uso NORMALE, non una violazione");
+  ok(ricavaProvenienza('provenienza: provenienzaDi({ provenienza }),').length === 0,
+    "e passarle il campo grezzo per farselo normalizzare va bene");
+  ok(ricavaProvenienza('// qui si leggeva r.provenienza e si confrontava con "cumulo"').length === 0,
+    "la stessa cosa raccontata in un commento non è una violazione");
+  ok(ricavaProvenienza('r.provenienza = "scavo";').length === 0,
+    "e scrivere il campo non è deciderne il significato");
 });
 
 console.log("\n── Regola 6: il ponte con Terra non dà la colpa a chi compila ──");

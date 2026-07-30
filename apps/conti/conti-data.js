@@ -39,6 +39,7 @@
 // ============================================================
 
 import { parseCsvLine, numIt, giorniTra, isIntestazione } from "../../shared/deepwork-id-client/dw-shell.js";
+import { provenienzaDi } from "../../shared/dw-ponti.js";
 
 export const DEMO = {
   // fatture d'esempio: alcune già collegate all'anagrafica (clienteId), altre
@@ -1156,7 +1157,16 @@ export function venditePerProdotto(pesate, dal, al) {
 // stessa regola di Terra (provenienzaRilievo in apps/terra/terra-data.js):
 // "cumulo" = materiale già cavato in passato e ripreso da un mucchio, quindi
 // NON è nuovo scavo e non va sommato al cavato del periodo.
-const eCumulo = (r) => String((r && r.provenienza) || "").trim().toLowerCase() === "cumulo";
+// La provenienza NON si ridefinisce qui. Fino a oggi questa riga era una copia
+// della regola di Terra, con un commento che lo dichiarava: due implementazioni
+// della stessa cosa, cioè una divergenza in attesa. Adesso la sorgente è
+// `provenienzaDi` in `shared/dw-ponti.js`, la stessa che usano Terra e il ponte
+// coi turni di Campo.
+// ⚠️ Attenzione al VERSO se si tocca questo punto: qui «vero» vuol dire CUMULO,
+// cioè materiale già estratto che NON consuma il volume concesso. Invertirlo per
+// sbaglio farebbe consumare la concessione a roccia tolta anni fa, e il difetto
+// non si vedrebbe da nessuna parte.
+const eCumulo = (r) => provenienzaDi(r) === "cumulo";
 const dataBuona = (d) => /^\d{4}-\d{2}-\d{2}$/.test(String(d || ""));
 
 // Quanto è stato cavato nel periodo secondo i rilievi di Terra. Contano solo
