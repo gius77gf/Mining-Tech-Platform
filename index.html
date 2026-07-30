@@ -104,6 +104,11 @@ import {
 import {
   getMessaging, getToken, onMessage, isSupported as fcmIsSupported
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js";
+// La convenzione sui numeri scritti a mano: sta in `shared/` perché è la stessa
+// per il core e per tutte e sei le app. Quando era scritta in ogni app, le sei
+// leggevano «1.250» in tre modi diversi senza che nessun test se ne accorgesse.
+// È un modulo di sole funzioni pure, senza effetti al caricamento.
+import { numeroScritto, messaggioNumero, perCampo } from "./shared/deepwork-id-client/dw-shell.js";
 
 // ── Config Firebase ──
 const firebaseConfig = {
@@ -387,6 +392,107 @@ function parseNum(v){
   return parseFloat(String(v).replace(',','.').trim());
 }
 function parseNum0(v){ const n=parseNum(v); return isNaN(n)?0:n; }
+
+// ── I NUMERI SCRITTI A MANO: LA CONVENZIONE CONDIVISA, ANCHE QUI ──
+// `parseNum` resta il lettore dei dati che NON arrivano da un campo (documenti
+// Firestore, celle di CSV delle macchine, stringhe interne): 145 letture in
+// questo file, la maggior parte su valori già numerici. Non si tocca da qui,
+// perché per un file di macchina «1.250» è 1,25 ed è giusto.
+// Ma un numero SCRITTO A MANO è un'altra cosa, e adesso che i campi decimali
+// sono di testo la virgola e il punto arrivano davvero al codice: «1.250» in un
+// campo può voler dire 1250 o 1,25, e il posto per accorgersene è il campo, non
+// il salvataggio. La regola sta scritta una volta sola in `shared/`.
+//
+// Il difetto che questo chiude: 17 campi decimali del core si leggevano con
+// `parseNum0`, che di ciò che non capisce fa ZERO. Un costo di riparazione a
+// zero, ore di lavoro a zero, consumi a zero — e sono numeri che poi si
+// sommano. Zero non è «non lo so»: è una misura, e sbagliata.
+function nomeCampo(el){
+  // Il nome del dato come lo chiama chi compila. Si cerca nel DOM invece di
+  // tenere un elenco a parte: se cambia l'etichetta cambia anche il messaggio,
+  // senza che nessuno debba ricordarsene.
+  if(!el) return 'questo numero';
+  if(el.dataset&&el.dataset.cosa) return el.dataset.cosa;
+  let n=el.previousElementSibling;
+  while(n){ if(n.tagName==='LABEL'&&n.textContent.trim()) return ripulisciNome(n.textContent); n=n.previousElementSibling; }
+  const p=el.parentElement;
+  if(p){ const l=p.querySelector('label'); if(l&&l.textContent.trim()) return ripulisciNome(l.textContent); }
+  return el.getAttribute('placeholder')?('«'+el.getAttribute('placeholder')+'»'):'questo numero';
+}
+function ripulisciNome(t){
+  // Dall'etichetta si toglie l'unità, che nel messaggio viene già detta a parte:
+  // «Lunghezza (m)» → «lunghezza», «Costo €» → «costo».
+  //
+  // E NON si mette l'articolo. La prima versione lo indovinava dalla lettera
+  // iniziale — vocale → «l'», altrimenti «il» — e su «Ore lavoro» diceva
+  // «l'ore lavoro». In italiano il genere di un nome non si ricava dalla prima
+  // lettera, e un plurale femminile («le ore») da uno maschile («i litri») non
+  // si distinguono affatto. Una frase sgrammaticata in un messaggio d'errore fa
+  // dubitare del programma proprio quando bisogna fidarsi di quello che dice,
+  // quindi si preferisce una frase asciutta a una sbagliata.
+  // Dove il messaggio conta davvero — i punti che BLOCCANO un salvataggio — il
+  // nome è scritto a mano nella chiamata («i litri di gasolio», «le ore di
+  // lavoro»), e allora l'articolo c'è ed è giusto.
+  const s=String(t).replace(/\s*\([^)]*\)\s*/g,' ').replace(/[:*€%]/g,'').replace(/\s+/g,' ').trim().toLowerCase();
+  return s||'questo numero';
+}
+function unitaCampo(el){
+  // l'unità sta fra parentesi nell'etichetta: serve al messaggio dei limiti
+  let n=el&&el.previousElementSibling;
+  while(n){ if(n.tagName==='LABEL'){ const m=/\(([^)]{1,8})\)/.exec(n.textContent); return m?m[1]:''; } n=n.previousElementSibling; }
+  return '';
+}
+function limitiCampo(el){
+  const o={};
+  const min=el&&el.getAttribute('min'), max=el&&el.getAttribute('max');
+  if(min!==null&&min!==''&&min!==undefined) o.min=+min;
+  if(max!==null&&max!==''&&max!==undefined) o.max=+max;
+  return o;
+}
+// Legge un campo col lettore condiviso. Restituisce l'esito completo, così chi
+// chiama può distinguere «vuoto» da «non si capisce» — che non sono la stessa
+// cosa e non meritano la stessa risposta.
+function leggiCampo(id,opts){
+  const el=typeof id==='string'?$(id):id;
+  const o=Object.assign({decimali:6},limitiCampo(el),opts||{});
+  return numeroScritto(el?el.value:'',o);
+}
+// Per i campi FACOLTATIVI: restituisce il numero, oppure null se il campo è
+// vuoto o se non si capisce. Non parla, perché a parlare ci pensa la guardia
+// quando si lascia il campo, e perché qui il salvataggio va avanti comunque: il
+// dato non è obbligatorio. Quello che NON fa più è trasformare una scrittura
+// strana in un numero sbagliato — il diametro di perforazione resta «non
+// indicato», che è la verità.
+function numDaCampo(id,opts){
+  const r=leggiCampo(id,opts);
+  return r.ok?r.valore:null;
+}
+// Come sopra, ma PARLA: se non riesce a leggere lo dice col toast, nominando il
+// dato, e restituisce null. Mai zero: chi chiama deve fermarsi.
+function numDetto(id,cosa,opts){
+  const el=typeof id==='string'?$(id):id;
+  const o=Object.assign({decimali:6},limitiCampo(el),opts||{});
+  const r=numeroScritto(el?el.value:'',o);
+  if(r.ok){ if(el)el.removeAttribute('aria-invalid'); return r.valore; }
+  if(el)el.setAttribute('aria-invalid','true');
+  toast(messaggioNumero(r,cosa||nomeCampo(el),Object.assign({unita:unitaCampo(el)},o)),'err');
+  return null;
+}
+// LA GUARDIA AL MOMENTO DI SCRIVERE. Vale per ogni campo che si dichiara
+// decimale, anche quelli creati dentro una modale: è un solo ascoltatore sul
+// documento. `change` scatta quando il campo si lascia, non a ogni tasto,
+// quindi non disturba mentre si digita. Il posto giusto per accorgersi di un
+// numero illeggibile è qui, dove chi compila può ancora correggerlo.
+function guardiaDecimale(ev){
+  const el=ev.target;
+  if(!el||el.tagName!=='INPUT'||el.getAttribute('inputmode')!=='decimal') return;
+  const o=Object.assign({decimali:6},limitiCampo(el));
+  const r=numeroScritto(el.value,o);
+  if(r.ok||r.vuoto){ el.removeAttribute('aria-invalid'); return; }
+  el.setAttribute('aria-invalid','true');
+  toast(messaggioNumero(r,nomeCampo(el),Object.assign({unita:unitaCampo(el)},o)),'err');
+}
+document.addEventListener('change',guardiaDecimale);
 // Escape HTML per i contenuti inseriti dagli utenti prima di finire in
 // innerHTML (chat, nomi progetto, note): evita XSS memorizzato.
 function escHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
@@ -1889,13 +1995,13 @@ async function inviaRapp(){
     await fbUpdate('rapportini',state.rappEditId,{
       data:$('r-data').value, cavaId:$('r-cava').value,
       oi:$('r-oi').value||'', of:$('r-of').value||'',
-      diametro:parseNum0($('r-d').value)||null,
+      diametro:numDaCampo('r-d',{positivo:true}),
       maglia:($('r-m').value||'').replace(/,/g,'.')||null,
       maglia_B:B||null, maglia_S:S||null,
       mezzoId:$('r-mezzo').value||null,
       personale:persSel,
       fori:allValid.length, fori_fila1:valid1.length, fori_fila2:valid2.length,
-      diametro_fila2:parseNum0($('r-d2')?.value)||null,
+      diametro_fila2:numDaCampo('r-d2',{positivo:true}),
       maglia_fila2:($('r-m2')?.value||'').replace(/,/g,'.')||null,
       metri:parseFloat(m.toFixed(2)),
       media_prof:parseFloat(mediaProf.toFixed(2)),
@@ -1926,7 +2032,7 @@ async function inviaRapp(){
   await fbSet('rapportini',id,{
     id, userId:state.user.id, data:$('r-data').value, cavaId,
     oi:$('r-oi').value||'', of:$('r-of').value||'',
-    diametro:parseNum0($('r-d').value)||null,
+    diametro:numDaCampo('r-d',{positivo:true}),
     maglia:($('r-m').value||'').replace(/,/g,'.')||null,
     maglia_B:B||null, maglia_S:S||null,
     mezzoId:$('r-mezzo').value||null,
@@ -1944,7 +2050,7 @@ async function inviaRapp(){
   if(allValid.length>0){
     await salvaPrefCava(cavaId,{
       fori:valid1.length,
-      diametro:parseNum0($('r-d').value)||undefined,
+      diametro:numDaCampo('r-d',{positivo:true})||undefined,
       maglia:$('r-m').value||undefined
     });
   }
@@ -2341,7 +2447,8 @@ function openRipForm(mId){
     <label class="fl">Descrizione</label><textarea class="finput" id="rip-desc" rows="2"></textarea>
     <div class="frow"><div><label class="fl">Costo €</label><input type="text" inputmode="decimal" class="finput" id="rip-costo"></div><div><label class="fl">Officina</label><input type="text" class="finput" id="rip-off"></div></div>
   `,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:async()=>{
-    const m=DB.mezziStr.find(x=>x.id===mId);const rips=[...(m.riparazioni||[]),{id:genId(),data:$('rip-data').value,desc:$('rip-desc').value,costo:parseNum0($('rip-costo').value),officina:$('rip-off').value}];
+    const costo=numDetto('rip-costo','il costo della riparazione',{min:0});if(costo===null)return;
+    const m=DB.mezziStr.find(x=>x.id===mId);const rips=[...(m.riparazioni||[]),{id:genId(),data:$('rip-data').value,desc:$('rip-desc').value,costo,officina:$('rip-off').value}];
     await fbUpdate('mezziStr',mId,{riparazioni:rips});closeModal();toast('Riparazione aggiunta','success');apriMezzoStr(mId);
   }}]);
 }
@@ -2403,7 +2510,10 @@ function openLogForm(){
     <label class="fl">Operazione svolta</label><input type="text" class="finput" id="lg-op" placeholder="es. Sostituzione punta">
     <label class="fl">Ore lavoro</label><input type="text" inputmode="decimal" class="finput" id="lg-ore">
     <label class="fl">Note</label><textarea class="finput" id="lg-note" rows="2"></textarea>
-  `,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:()=>macSubSave('logLavori',{data:$('lg-data').value,operazione:$('lg-op').value,ore:parseNum0($('lg-ore').value),note:$('lg-note').value})}]);
+  `,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:()=>{
+    const ore=numDetto('lg-ore','le ore di lavoro',{min:0});if(ore===null)return;
+    macSubSave('logLavori',{data:$('lg-data').value,operazione:$('lg-op').value,ore,note:$('lg-note').value});
+  }}]);
 }
 // — CHECK-LIST —
 window._ckItems=(tipo)=>(CHECK_ITEMS[tipo]||[]).map(d=>`<label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:6px 0;"><input type="checkbox" class="chk-item" data-desc="${d}" checked> ${d}</label>`).join('');
@@ -2472,7 +2582,11 @@ function openConsumoForm(){
     <div class="frow"><div><label class="fl">Gasolio (L)</label><input type="text" inputmode="decimal" class="finput" id="co-gas"></div><div><label class="fl">Olio (L)</label><input type="text" inputmode="decimal" class="finput" id="co-olio"></div></div>
     <label class="fl">Lubrificante</label><input type="text" class="finput" id="co-lubr" placeholder="tipo / quantità">
     <label class="fl">Note</label><textarea class="finput" id="co-note" rows="2"></textarea>
-  `,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:()=>macSubSave('consumi',{data:$('co-data').value,gasolio:parseNum0($('co-gas').value),olio:parseNum0($('co-olio').value),lubr:$('co-lubr').value,note:$('co-note').value})}]);
+  `,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:()=>{
+    const gasolio=numDetto('co-gas','i litri di gasolio',{min:0});if(gasolio===null)return;
+    const olio=numDetto('co-olio','i litri di olio',{min:0});if(olio===null)return;
+    macSubSave('consumi',{data:$('co-data').value,gasolio,olio,lubr:$('co-lubr').value,note:$('co-note').value});
+  }}]);
 }
 Object.assign(window,{macGestTab,openLogForm,openChecklistForm,openGuastoForm,apriGuastoDett,guastoAddUpdate,openConsumoForm,delMacSub});
 
@@ -2512,13 +2626,13 @@ function depEditTot(cat,id){
   const item=DB.deposito[cat].find(x=>x.id===id);const key=cat==='lubr'?'litri':'qta';const unit=cat==='lubr'?'L':'pz';const colName={punte:'deposito_punte',aste:'deposito_aste',lubr:'deposito_lubr'}[cat];
   openModal('Modifica totale',`<label class="fl">Nuovo totale (${unit})</label><input type="text" inputmode="decimal" class="finput" id="dep-new" value="${item[key]}">`,[
     {label:'Annulla',cls:'mbtn',action:closeModal},
-    {label:'SALVA',cls:'mbtn primary',action:async()=>{const v=parseNum0($('dep-new').value);if(v<0){toast('Valore non valido','err');return;}await fbUpdate(colName,id,{[key]:v});closeModal();toast('Totale aggiornato','success');}}
+    {label:'SALVA',cls:'mbtn primary',action:async()=>{const v=numDetto('dep-new','il nuovo totale',{min:0});if(v===null)return;await fbUpdate(colName,id,{[key]:v});closeModal();toast('Totale aggiornato','success');}}
   ]);
 }
 function depDel(cat,id){const colName={punte:'deposito_punte',aste:'deposito_aste',lubr:'deposito_lubr'}[cat];openModal('Elimina voce','<p>Confermi?</p>',[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'ELIMINA',cls:'mbtn danger',action:async()=>{await fbDelete(colName,id);closeModal();toast('Eliminato','success');}}]);}
-function openPuntaForm(){openModal('Nuovo tipo punta',`<label class="fl">Diametro (mm)</label><input type="text" inputmode="decimal" class="finput" id="np-d"><label class="fl">Quantità iniziale</label><input type="number" inputmode="numeric" class="finput" id="np-q" value="0">`,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:async()=>{const d=parseNum0($('np-d').value);if(!d){toast('Inserisci diametro','err');return;}const id='pt_'+genId();await fbSet('deposito_punte',id,{id,diametro:d,qta:parseNum0($('np-q').value),note:''});closeModal();toast('Aggiunto','success');}}]);}
-function openAstaForm(){openModal('Nuovo tipo asta',`<div class="frow"><div><label class="fl">Lunghezza (m)</label><input type="text" inputmode="decimal" class="finput" id="na-l"></div><div><label class="fl">Diametro (mm)</label><input type="text" inputmode="decimal" class="finput" id="na-d"></div></div><label class="fl">Quantità iniziale</label><input type="number" inputmode="numeric" class="finput" id="na-q" value="0">`,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:async()=>{const l=parseNum0($('na-l').value),d=parseNum0($('na-d').value);if(!l||!d){toast('Compila lunghezza e diametro','err');return;}const id='as_'+genId();await fbSet('deposito_aste',id,{id,lunghezza:l,diametro:d,qta:parseNum0($('na-q').value),note:''});closeModal();toast('Aggiunto','success');}}]);}
-function openLubrForm(){openModal('Nuovo lubrificante',`<label class="fl">Tipo</label><input type="text" class="finput" id="nl-t" placeholder="Olio motore 15W40"><label class="fl">Litri iniziali</label><input type="text" inputmode="decimal" class="finput" id="nl-l" value="0">`,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:async()=>{const t=$('nl-t').value.trim();if(!t){toast('Inserisci tipo','err');return;}const id='lb_'+genId();await fbSet('deposito_lubr',id,{id,tipo:t,litri:parseNum0($('nl-l').value),note:''});closeModal();toast('Aggiunto','success');}}]);}
+function openPuntaForm(){openModal('Nuovo tipo punta',`<label class="fl">Diametro (mm)</label><input type="text" inputmode="decimal" class="finput" id="np-d"><label class="fl">Quantità iniziale</label><input type="number" inputmode="numeric" class="finput" id="np-q" value="0">`,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:async()=>{const d=numDetto('np-d','il diametro della punta',{positivo:true});if(d===null)return;const id='pt_'+genId();await fbSet('deposito_punte',id,{id,diametro:d,qta:parseNum0($('np-q').value),note:''});closeModal();toast('Aggiunto','success');}}]);}
+function openAstaForm(){openModal('Nuovo tipo asta',`<div class="frow"><div><label class="fl">Lunghezza (m)</label><input type="text" inputmode="decimal" class="finput" id="na-l"></div><div><label class="fl">Diametro (mm)</label><input type="text" inputmode="decimal" class="finput" id="na-d"></div></div><label class="fl">Quantità iniziale</label><input type="number" inputmode="numeric" class="finput" id="na-q" value="0">`,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:async()=>{const l=numDetto('na-l','la lunghezza dell\'asta',{positivo:true});if(l===null)return;const d=numDetto('na-d','il diametro dell\'asta',{positivo:true});if(d===null)return;const id='as_'+genId();await fbSet('deposito_aste',id,{id,lunghezza:l,diametro:d,qta:parseNum0($('na-q').value),note:''});closeModal();toast('Aggiunto','success');}}]);}
+function openLubrForm(){openModal('Nuovo lubrificante',`<label class="fl">Tipo</label><input type="text" class="finput" id="nl-t" placeholder="Olio motore 15W40"><label class="fl">Litri iniziali</label><input type="text" inputmode="decimal" class="finput" id="nl-l" value="0">`,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:async()=>{const t=$('nl-t').value.trim();if(!t){toast('Inserisci tipo','err');return;}const litri=numDetto('nl-l','i litri iniziali',{min:0});if(litri===null)return;const id='lb_'+genId();await fbSet('deposito_lubr',id,{id,tipo:t,litri,note:''});closeModal();toast('Aggiunto','success');}}]);}
 
 // ══════════ PERSONALE ══════════
 function renderPersonale(){
@@ -2844,7 +2958,7 @@ function apriCalcAdmin(){
   const d=parseNum($('a-d').value),pm=parseNum($('a-pm').value),B=parseNum($('a-b').value),S=parseNum($('a-s').value),nf=parseNum($('a-nf').value);
   if(!d||!pm)return;
   const Hcalc=Math.max(1,pm-0.3*25*(d/1000)*1.0);
-  if(!$('a-mh').value)$('a-mh').value=Hcalc.toFixed(1);
+  if(!$('a-mh').value)$('a-mh').value=perCampo(Hcalc,1);
   // «H banco» è un campo in cui si SCRIVE, e non veniva letto: il conto usava
   // sempre l'altezza calcolata e buttava via quello che l'utente aveva
   // corretto. Un campo che accetta un numero e lo ignora è peggio di un campo
@@ -3923,8 +4037,8 @@ function reconCalibra(){
            if(m>500){ toast('Cinquecento metri fra due punti della stessa foto non è plausibile: controlla il numero','err'); return; }
            closeModal();
            const realW=img.naturalWidth*m/dpx, realH=realW*img.naturalHeight/img.naturalWidth;
-           $('rc-w').value=realW.toFixed(1);$('rc-h').value=realH.toFixed(1);
-           toast('Scala calibrata: '+realW.toFixed(1)+'×'+realH.toFixed(1)+' m','success');
+           $('rc-w').value=perCampo(realW,1);$('rc-h').value=perCampo(realH,1);
+           toast('Scala calibrata: '+perCampo(realW,1)+'×'+perCampo(realH,1)+' m','success');
          }}]);
     }
   };
@@ -4026,7 +4140,12 @@ async function reconBuild(){
   try{ dm=await getDepthAvg(_reconImgs.length?_reconImgs:[_reconImg]); }catch(e){ dm=null; console.warn('Depth AI non disponibile:',e.message); }
   const img=new Image();
   img.onload=()=>{
-    const W=parseNum0($('rc-w').value)||30, H=parseNum0($('rc-h').value)||12, relief=parseNum0($('rc-relief').value)||4;
+    const W=numDetto('rc-w','la larghezza del fronte',{positivo:true});
+    const H=numDetto('rc-h','l\'altezza del fronte',{positivo:true});
+    // `rc-relief` è un cursore: il suo valore lo scrive il browser fra 1 e 10,
+    // non una mano, quindi non passa dal lettore dei numeri scritti.
+    const relief=parseNum0($('rc-relief').value)||4;
+    if(W===null||H===null){ $('rc-note').textContent='Ricostruzione ferma: correggi le misure del fronte e riprova.'; return; }
     // griglia geometria
     const GW=dm?Math.min(dm.width,180):120;
     const GH=dm?Math.max(20,Math.round(GW*dm.height/dm.width)):Math.max(20,Math.round(120*img.height/img.width));
@@ -5508,10 +5627,12 @@ function renderFrammentazioneModal(v){
 
 function aggiornaFrammentazione(){
   if(!state._tempFrammentazione)return;
-  state._tempFrammentazione.fine=parseNum0($('fr-fine')?.value);
-  state._tempFrammentazione.media=parseNum0($('fr-media')?.value);
-  state._tempFrammentazione.grossa=parseNum0($('fr-grossa')?.value);
-  state._tempFrammentazione.oversize=parseNum0($('fr-over')?.value);
+  for(const[campo,chiave]of[['fr-fine','fine'],['fr-media','media'],['fr-grossa','grossa'],['fr-over','oversize']]){
+    const r=leggiCampo(campo,{min:0,max:100,decimali:2});
+    if(r.vuoto){ state._tempFrammentazione[chiave]=null; continue; }
+    if(!r.ok) continue;                       // illeggibile: si tiene il valore di prima
+    state._tempFrammentazione[chiave]=r.valore;
+  }
   // Re-rendering parziale della modale per aggiornare la visualizzazione
   const v=DB.volate.find(x=>x.id===state.volataSel);
   if(v)renderFrammentazioneModal(v);
@@ -6797,6 +6918,10 @@ body.outdoor-mode .bnav{background:#000;}
 .finput{width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);padding:11px 13px;font-family:'Barlow',sans-serif;font-size:16px;outline:none;transition:border-color .2s;margin-bottom:8px;min-height:var(--tap);}
 .finput:focus{border-color:var(--amber);}
 .finput.err{border-color:var(--danger);}
+/* Un numero che non si è potuto leggere resta segnato sul campo: il toast passa
+   in due secondi e mezzo, la casella da correggere no. Stesso bordo di `.err`,
+   perché è la stessa cosa detta dal browser invece che dall'app. */
+.finput[aria-invalid="true"]{border-color:var(--danger);}
 .finput[readonly],.finput[disabled]{color:var(--muted2);opacity:.7;}
 select.finput option{background:var(--card);}
 textarea.finput{resize:vertical;min-height:60px;}

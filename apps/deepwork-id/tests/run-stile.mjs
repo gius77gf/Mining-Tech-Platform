@@ -345,5 +345,56 @@ test("e i campi INTERI del core sono rimasti type=number", () => {
     `interi con la tastiera sbagliata: ${tastiera.map((t) => (/id="([^"]*)"/.exec(t) || [, "?"])[1]).join(", ")}`);
 });
 
+console.log("\n── Regola 4: un numero che non si capisce non diventa zero ──");
+// Cambiare il tipo del campo era metà del lavoro: l'altra metà è chi lo legge.
+// Nel core 17 campi decimali passavano da `parseNum0`, che di ciò che non
+// capisce fa ZERO — un costo di riparazione a zero, ore di lavoro a zero, litri
+// di gasolio a zero. Zero non è «non lo so»: è una misura, ed è sbagliata, e
+// finisce dentro somme e medie senza lasciare traccia.
+// Adesso quei campi passano da `numDetto` (che lo dice e blocca il salvataggio)
+// o da `numDaCampo` (che restituisce null, per i dati facoltativi).
+function decimaliLettiConZero(src) {
+  const ids = new Set();
+  for (const t of src.match(/<input\b[^>]*>/gi) || []) {
+    if (!/inputmode="decimal"/.test(t)) continue;
+    const id = /id="([^"]*)"/.exec(t);
+    // gli id costruiti dentro un template (`id="f-${i}"`) non si possono cercare
+    if (id && id[1] && !id[1].includes("$")) ids.add(id[1]);
+  }
+  const fuori = [];
+  for (const id of ids) {
+    // `parseNum0($('co-gas').value)` e `parseNum0($('r-d2')?.value)`
+    const re = new RegExp("parseNum0\\(\\s*\\$\\(\\s*['\"]" + id.replace(/[-[\]{}()*+?.,\\^$|#]/g, "\\$&") + "['\"]\\s*\\)\\??\\.value", "g");
+    const n = (src.match(re) || []).length;
+    if (n) fuori.push({ id, quante: n });
+  }
+  return fuori;
+}
+for (const [nome, rel] of SUPERFICI) {
+  const src = leggi(rel);
+  if (src === null) continue;
+  test(`${nome}: nessun campo decimale si legge con parseNum0`, () => {
+    const v = decimaliLettiConZero(src);
+    ok(v.length === 0,
+      `${rel} — ${v.map((x) => `#${x.id} (${x.quante}×)`).join(", ")}: di ciò che non capisce fa zero, e zero è una misura`);
+  });
+}
+test("il controllo si accorge di una lettura rimessa a parseNum0", () => {
+  const finto = `<input type="text" inputmode="decimal" id="costo">`;
+  ok(decimaliLettiConZero(finto).length === 0, "senza letture non c'è violazione");
+  ok(decimaliLettiConZero(finto + `x=parseNum0($('costo').value);`).length === 1, "la lettura con zero viene trovata");
+  ok(decimaliLettiConZero(finto + `x=parseNum0($('costo')?.value);`).length === 1, "anche con l'accesso prudente");
+  ok(decimaliLettiConZero(finto + `x=numDetto('costo','il costo');`).length === 0, "il lettore che parla va bene");
+  ok(decimaliLettiConZero(`<input type="number" id="anno">x=parseNum0($('anno').value);`).length === 0,
+    "su un campo INTERO parseNum0 non è un difetto: lì lo zero è un numero come un altro");
+  // controprova sul file vero: si rimette il difetto e il controllo deve vederlo
+  const core = leggi("index.html");
+  if (core) {
+    ok(decimaliLettiConZero(core).length === 0, "il core parte pulito");
+    const rotto = core.replace("</body>", "<script>x=parseNum0($('co-gas').value);</script></body>");
+    ok(decimaliLettiConZero(rotto).length === 1, "il difetto iniettato nel core viene trovato");
+  }
+});
+
 console.log(`\nRisultato Stile: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
