@@ -138,6 +138,13 @@
 
   /* ── INTESTAZIONI DI SEZIONE ────────────────────────────────────── */
   .sez { margin-top: 46px; }
+  /* sul telefono lo spazio morto si sente il doppio: fra i numeri
+     dell'apertura e la prima sezione ne restavano quasi duecento pixel di
+     niente, misurati a schermo */
+  @media (max-width: 620px) {
+    .hero { padding: 40px 0 18px; }
+    .sez { margin-top: 30px; }
+  }
   .sez-tit {
     display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px;
     font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 13px;
@@ -365,6 +372,43 @@
     </div>
   </header>
 
+  <section class="sez">
+    <h2 class="sez-tit">Le app si parlano</h2>
+    <p class="sez-sot">La differenza non è avere otto strumenti: è che si passano il lavoro.
+      Quattro cose che nessuno di loro, da solo, saprebbe fare.</p>
+    <div class="ponti">
+
+      <div class="ponte sale" style="border-left-color:#d3633a;">
+        <div class="fra"><span style="color:#f49c7d">Campo</span><i>→</i><span style="color:#b7a8f9">Scudo</span></div>
+        <h3>Prima che la squadra vada al fronte, si sa chi ha un documento scaduto.</h3>
+        <p>Campo sa chi è in turno oggi, Scudo sa chi ha la visita in regola: messi insieme,
+          il capoturno lo vede prima di mandare la gente al fronte.</p>
+      </div>
+
+      <div class="ponte sale" style="border-left-color:#659b2c;">
+        <div class="fra"><span style="color:#9ac577">Terra</span><i>→</i><span style="color:#4dcebd">Conti</span></div>
+        <h3>Il materiale misurato dal rilievo si mette accanto a quello uscito dal cancello.</h3>
+        <p>Se fra i metri cubi cavati e le tonnellate vendute c'è un divario che non si spiega
+          con lo sfrido, l'app lo dice invece di lasciarlo scoprire a fine anno.</p>
+      </div>
+
+      <div class="ponte sale" style="border-left-color:#288ee0;">
+        <div class="fra"><span style="color:#78bcfc">Sentinella</span><i>→</i><span style="color:#ffab5c">Genesi</span></div>
+        <h3>Le vibrazioni misurate correggono la previsione della volata dopo.</h3>
+        <p>I referti del sismografo tornano indietro nella progettazione: la previsione smette
+          di essere quella del manuale e diventa quella della propria cava.</p>
+      </div>
+
+      <div class="ponte sale" style="border-left-color:#d3633a;">
+        <div class="fra"><span style="color:#f49c7d">Campo</span><i>→</i><span style="color:#9ac577">Terra</span></div>
+        <h3>Fra un rilievo e l'altro il buco lo riempiono i turni.</h3>
+        <p>Il drone vola una volta ogni tanto; nel frattempo quello che dichiarano i turni dà
+          la stima del momento, tenuta ben separata dalla misura vera.</p>
+      </div>
+
+    </div>
+  </section>
+
   <section class="sez" id="app">
     <h2 class="sez-tit">Le app</h2>
     <p class="sez-sot">Raggruppate per momento del lavoro. Ognuna funziona anche da sola:
@@ -547,41 +591,6 @@
     </div>
   </section>
 
-  <section class="sez">
-    <h2 class="sez-tit">Le app si parlano</h2>
-    <p class="sez-sot">Cose che nessuno strumento, da solo, saprebbe fare.</p>
-    <div class="ponti">
-
-      <div class="ponte sale" style="border-left-color:#d3633a;">
-        <div class="fra"><span style="color:#f49c7d">Campo</span><i>→</i><span style="color:#b7a8f9">Scudo</span></div>
-        <h3>Prima che la squadra vada al fronte, si sa chi ha un documento scaduto.</h3>
-        <p>Campo sa chi è in turno oggi, Scudo sa chi ha la visita in regola: messi insieme,
-          il capoturno lo vede prima di mandare la gente al fronte.</p>
-      </div>
-
-      <div class="ponte sale" style="border-left-color:#659b2c;">
-        <div class="fra"><span style="color:#9ac577">Terra</span><i>→</i><span style="color:#4dcebd">Conti</span></div>
-        <h3>Il materiale misurato dal rilievo si mette accanto a quello uscito dal cancello.</h3>
-        <p>Se fra i metri cubi cavati e le tonnellate vendute c'è un divario che non si spiega
-          con lo sfrido, l'app lo dice invece di lasciarlo scoprire a fine anno.</p>
-      </div>
-
-      <div class="ponte sale" style="border-left-color:#288ee0;">
-        <div class="fra"><span style="color:#78bcfc">Sentinella</span><i>→</i><span style="color:#ffab5c">Genesi</span></div>
-        <h3>Le vibrazioni misurate correggono la previsione della volata dopo.</h3>
-        <p>I referti del sismografo tornano indietro nella progettazione: la previsione smette
-          di essere quella del manuale e diventa quella della propria cava.</p>
-      </div>
-
-      <div class="ponte sale" style="border-left-color:#d3633a;">
-        <div class="fra"><span style="color:#f49c7d">Campo</span><i>→</i><span style="color:#9ac577">Terra</span></div>
-        <h3>Fra un rilievo e l'altro il buco lo riempiono i turni.</h3>
-        <p>Il drone vola una volta ogni tanto; nel frattempo quello che dichiarano i turni dà
-          la stima del momento, tenuta ben separata dalla misura vera.</p>
-      </div>
-
-    </div>
-  </section>
 
   <footer class="piede">
     <p class="frase">Ogni strumento funziona anche da solo.<br>
