@@ -128,6 +128,68 @@ Pagina **Gare → Importa gare (CSV)**.
   formato dell'import, così il file si può ri-caricare (o conservare come
   copia).
 
+## Conti — 3) listino prodotti *(dal 30/07)*
+Pagina **Listino → Importa listino CSV**.
+- **Colonne**: `nome;unita;prezzo;densita;iva`
+- **Esempio**:
+  ```
+  nome;unita;prezzo;densita;iva
+  Stabilizzato 0/30;t;8,50;1,9;22
+  Sabbia lavata 0/4;mc;22,00;1,6;22
+  Misto di cava;t;6,50;;22
+  ```
+- **`unita`**: `t` (a tonnellata) oppure `mc` / `m3` / `m³` (a metro cubo). Si
+  accettano anche `ton` e `tonnellate`; quello che non si riconosce diventa `t`,
+  che in cava è il caso normale, e si corregge dalla scheda.
+- ⛔ **`densita` si può lasciare vuota, e resta vuota.** Serve a passare da metri
+  cubi a tonnellate: se il tuo listino non ce l'ha, il prodotto entra lo stesso
+  (è vendibile) ma per quello Conti **non converte** — e te lo dice subito, col
+  numero di quanti sono. Non ne viene inventata nessuna: una densità sbagliata
+  finisce in una fattura e poi nella denuncia annuale.
+- **`iva`**: se manca vale 22.
+- **Backup**: **Esporta CSV** scarica il listino nello stesso formato.
+
+## Sentinella — 4) ricettori (case, scuole, confini) *(dal 30/07)*
+Pagina **Monitoraggi → Importa ricettori CSV**.
+- **Colonne**: `nome;tipo;distanza;classe;soglia;unita;nota`
+- **Esempio**:
+  ```
+  nome;tipo;distanza;classe;soglia;unita;nota
+  Casa Bianchi — via Cava 12;abitazione;320;III;5;mm/s;la più vicina al fronte
+  Confine Nord — mappale 214;confine;90;;;;
+  Scuola primaria — via Roma 4;scuola;640;I;40;µg/m³;orario 08–16
+  ```
+- **`tipo`**: `abitazione`, `scuola`, `ospedale`, `confine`, `storico`, `altro`.
+  Quello che non si riconosce diventa `altro`.
+- ⛔ **`soglia` e `classe` si possono lasciare vuote, e restano vuote.** Sono
+  numeri di **sicurezza** — la classe acustica ne decide una — e non se ne
+  inventa nessuna: dichiarerebbero conforme o non conforme una misura sulla base
+  di un valore che nessuno ha scelto. Senza soglia propria, i punti collegati
+  usano la loro; l'app dice per quanti ricettori manca.
+- **Backup**: **Esporta CSV** scarica i ricettori nello stesso formato.
+
+## Flotta — 3) magazzino ricambi *(dal 30/07)*
+Pagina **Officina → Importa ricambi CSV**.
+- **Colonne**: `nome;giacenza;sogliaMin;prezzo`
+- **Esempio**:
+  ```
+  nome;giacenza;sogliaMin;prezzo
+  Filtro olio motore CAT;6;4;48,00
+  Denti benna escavatore;0;3;
+  Olio idraulico (fusto 200L);1;;420,00
+  ```
+- ⚠️ **Le tre colonne si comportano in modo diverso quando sono vuote**, ed è
+  voluto:
+  - **`giacenza` vuota vale ZERO.** Un pezzo in magazzino senza quantità è un
+    pezzo **finito**, e zero è ciò che fa scattare l'avviso di sotto-scorta:
+    lasciarla indefinita nasconderebbe proprio i pezzi da ordinare.
+  - **`sogliaMin` vuota resta vuota**: quel ricambio si conta ma **non entra nel
+    sotto-scorta** finché non gliela scrivi. L'app te lo dice appena finito il
+    caricamento, col numero.
+  - **`prezzo` vuoto resta vuoto**: uno zero farebbe sembrare gratis un pezzo
+    che non lo è, e il prezzo entra nel conto dei costi.
+- **Backup**: **Esporta CSV** scarica il magazzino nello stesso formato.
+
 ## Terra — 1) fronti di scavo
 Pagina **Fronti → Importa fronti (CSV)**.
 - **Colonne**: `nome;banco;quota;stato`
