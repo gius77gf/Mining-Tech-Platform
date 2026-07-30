@@ -733,6 +733,7 @@ a.dw-btn{text-decoration:none}
 
   <div class="sec">Da quale fronte</div>
   <div id="den-fronti"></div>
+  <div class="form-hint" id="den-fronti-nota" style="margin-top:8px;"></div>
 
   <div class="sec">Rispetto al volume concesso</div>
   <div id="den-concesso"></div>
@@ -886,7 +887,7 @@ a.dw-btn{text-decoration:none}
   import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, parseFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita, densitaDelMateriale,
            autorizzazioneVigente, vitaCava, statoScadenzaTerra, livelloScadenzaTerra, prossimaData, riepilogoScadenze, TIPI_SCADENZA_TERRA, presetScadenzaTerra, etichettaTipoScadenza,
            provenienzaRilievo, soloScavo, soloCumulo, PROVENIENZE, etichettaProvenienza,
-           anniConVolumi, riepilogoAnnuale, serieAnnuale,
+           anniConVolumi, riepilogoAnnuale, ripartizioneFronti, serieAnnuale,
            rilieviScavoFronte, rilievoPrecedente, confrontoRilievi,
            produzioneDichiarata, misuratoPeriodo, riconciliazioneTurni,
            periodoFraUltimiRilievi, intervalliFraRilievi, avanzamentoDaUltimoRilievo, SOGLIA_TURNI,
@@ -1539,13 +1540,41 @@ a.dw-btn{text-decoration:none}
       + " I metri cubi in etichetta sono <b>solo scavo</b>; le riprese dai cumuli sono scritte a parte nella riga.";
 
     // 4 · da quale fronte è uscito
-    $("den-fronti").innerHTML = R.fronti.map(f =>
-      `<div class="item ${f.scavo > 0 ? "st-accent" : "st-mute"}" style="cursor:default;">
+    // La QUOTA è il numero che un elenco di valori assoluti non sa dare: 40.700 e
+    // 38.700 dicono poco, «51%» e «49%» dicono che i due fronti pesano uguale. Si
+    // mostra solo quando c'è uno scavo dell'anno da ripartire: una percentuale su un
+    // totale zero non è zero, è una domanda senza senso.
+    // E la riga SENZA FRONTE vuol dire due cose diverse, che l'elenco confondeva:
+    // se ha scavo è una ripartizione che manca e che nel modulo dell'ente serve;
+    // se ha solo cumulo non manca niente — un materiale ripreso da un mucchio non
+    // esce da un fronte, per definizione. Prima entrambe apparivano uguali, con un
+    // badge «0 m³» che sembrava una riga rotta.
+    // la regola di chi entra nell'elenco e con quale quota sta in `terra-data.js`,
+    // dove si prova: qui resta il disegno
+    const RF = ripartizioneFronti(R);
+    $("den-fronti").innerHTML = RF.righe.map(f => {
+      const meta = f.rilievi + (f.rilievi === 1 ? " rilievo" : " rilievi")
+        + (f.quotaPct != null ? " · " + un1(f.quotaPct) + "% dello scavo dell'anno" : "")
+        + (f.cumulo ? " · ripresi da cumuli " + n0(f.cumulo) + " m³" : "")
+        + (f.senzaFronte ? " · scavo non attribuito a nessun fronte" : "");
+      return `<div class="item ${f.scavo > 0 ? "st-accent" : "st-mute"}" style="cursor:default;">
         <div class="info"><div class="name">${esc(etFronte(f))}</div>
-        <div class="meta">${f.rilievi} ${f.rilievi === 1 ? "rilievo" : "rilievi"}${f.cumulo ? " · ripresi da cumuli " + n0(f.cumulo) + " m³" : ""}</div></div>
-        <span class="badge ${f.scavo > 0 ? "accent" : "tag"}">${n0(f.scavo)} <span class="u">m³</span></span></div>`).join("")
+        <div class="meta">${meta}</div></div>
+        <span class="badge ${f.scavo > 0 ? "accent" : "tag"}">${n0(f.scavo)} <span class="u">m³</span></span></div>`;
+    }).join("")
       || vuoto(I.monte, "Nessun volume da ripartire nel " + R.anno,
           "Quando registri un rilievo scegliendo il <b>fronte</b>, qui compare la ripartizione che molti moduli chiedono: quanto è uscito da ciascun fronte.");
+    // la stessa avvertenza che sta sotto i mesi, dieci righe più su: il numero in
+    // etichetta è solo scavo. Là c'era, qui mancava, e il badge da solo non lo dice
+    $("den-fronti-nota").innerHTML = !RF.righe.length ? ""
+      : "I metri cubi in etichetta sono <b>solo scavo</b>, come nei mesi"
+        + (RF.conCumuliInRiga ? ": le riprese dai cumuli sono scritte nella riga e non si sommano al concesso." : ".")
+        + (RF.cumuliFuori > 0
+            ? " Nel " + R.anno + " risultano anche <b>" + n0(RF.cumuliFuori) + " m³</b> ripresi da cumuli senza un fronte indicato: non escono da un fronte, quindi restano fuori da questa ripartizione."
+            : "")
+        + (RF.senzaFronte
+            ? " C'è dello scavo <b>senza fronte</b>: se il modulo dell'ente chiede la ripartizione, apri quei rilievi e indica da quale fronte sono usciti."
+            : "");
 
     // 5 · dove arriva il titolo alla fine di quell'anno
     const cel = $("den-concesso");
@@ -1708,6 +1737,11 @@ a.dw-btn{text-decoration:none}
       + n0(R.cumulo) + "</td><td class='n'>" + (R.rilieviScavo + R.rilieviCumulo) + "</td></tr>"
       + "</table>"
       + "<p class='mini'>Lo <b>scavo</b> è materiale nuovo tolto dal fronte e consuma il volume concesso. La <b>ripresa da cumuli</b> è materiale già estratto in passato e rimosso da un deposito: è indicata a parte perché non costituisce nuovo scavo.</p>"
+      /* NOTA: qui si stampano TUTTE le voci di `R.fronti`, compresa quella senza
+         fronte fatta di sole riprese da cumuli — che invece l'elenco a schermo
+         esclude. Non è una svista: la tabella ha una colonna «Ripreso da cumuli»,
+         quindi quella riga porta un numero suo e non un badge «0 m³» che sembra un
+         errore. A schermo ogni riga ha un numero solo e quel posto non c'era. */
       + "<h2>Ripartizione per fronte</h2><table>"
       + riga(["Fronte", "<span class='n'>Scavo (m³)</span>", "<span class='n'>Ripreso da cumuli (m³)</span>", "<span class='n'>Rilievi</span>"], "th")
       + (R.fronti.length

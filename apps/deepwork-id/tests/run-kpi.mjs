@@ -2289,6 +2289,103 @@ test("P2 · LA GUARDIA: il dichiarato non può diventare un rilievo", () => {
   ok(!JSON.stringify(rie).includes("dichiarat"),
     "il riepilogo annuale per gli enti non porta nessun numero dichiarato");
 });
+/* ══════════════════════════════════════════════════════════════════════
+   TERRA · LA RIPARTIZIONE PER FRONTE, che è una REGOLA e non un disegno
+   ══════════════════════════════════════════════════════════════════════
+   Nata guardando la sezione renderizzata, non leggendo il codice. Due difetti
+   che i numeri non mostravano:
+    · una voce SENZA fronte e SENZA scavo prendeva una riga con badge «0 m³» e
+      sembrava rotta. Non è un fronte mancante: è una ripresa da cumulo, che per
+      definizione non esce da un fronte;
+    · mancava la QUOTA, l'unico numero che un elenco di valori assoluti non dà. */
+test("Terra · ripartizione per fronte: una ripresa da cumulo non è un fronte", () => {
+  const R = {
+    scavo: 79400,
+    fronti: [
+      { fronteId: "f1", scavo: 40700, cumulo: 0, rilievi: 2 },
+      { fronteId: "f2", scavo: 38700, cumulo: 0, rilievi: 2 },
+      { fronteId: null, scavo: 0, cumulo: 5200, rilievi: 1 },
+    ],
+  };
+  const RF = terra.ripartizioneFronti(R);
+  eq(RF.righe.map(r => r.fronteId), ["f1", "f2"], "la voce di solo cumulo esce dall'elenco");
+  ok(RF.cumuliFuori === 5200, "e il suo volume torna a parte, per dirlo a parole");
+  ok(RF.conCumuliInRiga === false, "nessuna riga porta cumuli: la nota non deve rimandarci");
+  ok(RF.senzaFronte === 0, "e non c'è scavo da attribuire");
+});
+test("Terra · ripartizione per fronte: uno scavo senza fronte invece RESTA", () => {
+  /* è il caso opposto e va distinto: qui manca davvero la ripartizione, ed è
+     quella che il modulo dell'ente chiede */
+  const R = {
+    scavo: 59300,
+    fronti: [
+      { fronteId: "f1", scavo: 40700, cumulo: 0, rilievi: 2 },
+      { fronteId: null, scavo: 18600, cumulo: 5200, rilievi: 2 },
+    ],
+  };
+  const RF = terra.ripartizioneFronti(R);
+  ok(RF.righe.length === 2, "la voce senza fronte ma con scavo resta in elenco");
+  ok(RF.righe[1].senzaFronte === true, "ed è marcata come tale");
+  ok(RF.cumuliFuori === 0, "i suoi cumuli non finiscono fuori: la riga c'è e li porta");
+  ok(RF.conCumuliInRiga === true, "e la nota può rimandare alla riga");
+  ok(RF.senzaFronte === 1, "c'è uno scavo da attribuire");
+});
+test("Terra · ripartizione per fronte: la quota, e quando non si può dare", () => {
+  const R = { scavo: 79400, fronti: [
+    { fronteId: "f1", scavo: 40700, cumulo: 0, rilievi: 2 },
+    { fronteId: "f2", scavo: 38700, cumulo: 0, rilievi: 2 }] };
+  const q = terra.ripartizioneFronti(R).righe.map(r => r.quotaPct);
+  eq(q, [51.3, 48.7], "una cifra decimale, come il resto della denuncia");
+  ok(Math.abs(q[0] + q[1] - 100) < 0.11, "e le quote fanno cento");
+  /* su un totale zero la quota NON è zero: è una domanda senza senso, e un «0%»
+     scritto accanto a un fronte direbbe una cosa falsa */
+  const zero = terra.ripartizioneFronti({ scavo: 0, fronti: [{ fronteId: "f1", scavo: 0, cumulo: 0, rilievi: 1 }] });
+  ok(zero.righe[0].quotaPct === null, "totale zero: nessuna quota, non «0%»");
+  /* un fronte a zero dentro un anno che ha scavato: stessa risposta, per la stessa
+     ragione — quel fronte non ha una quota, non ne ha una pari a zero */
+  const misto = terra.ripartizioneFronti({ scavo: 1000, fronti: [
+    { fronteId: "f1", scavo: 1000, cumulo: 0, rilievi: 1 },
+    { fronteId: "f2", scavo: 0, cumulo: 0, rilievi: 1 }] });
+  ok(misto.righe[1].quotaPct === null, "fronte senza scavo: nessuna quota");
+  ok(misto.righe[0].quotaPct === 100, "e chi ha scavato tutto ha il cento per cento");
+});
+test("Terra · ripartizione per fronte: niente dati, niente errori", () => {
+  eq(terra.ripartizioneFronti({ scavo: 0, fronti: [] }).righe, [], "elenco vuoto");
+  eq(terra.ripartizioneFronti(null).righe, [], "riepilogo assente: non un errore");
+  eq(terra.ripartizioneFronti({}).righe, [], "riepilogo senza fronti: non un errore");
+  ok(terra.ripartizioneFronti(null).cumuliFuori === 0, "e nessun cumulo da dichiarare");
+});
+test("Terra · ripartizione per fronte: la controprova — prima usciva la riga rotta", () => {
+  /* la versione di prima: tutte le voci in elenco, badge = scavo. Si rifà qui per
+     mostrare che il difetto c'era davvero, e che la correzione lo toglie. Senza
+     questo passaggio le prove qui sopra direbbero solo che la funzione fa quello
+     che ho scritto io. */
+  const fronti = [
+    { fronteId: "f1", scavo: 40700, cumulo: 0, rilievi: 2 },
+    { fronteId: null, scavo: 0, cumulo: 5200, rilievi: 1 },
+  ];
+  const vecchio = fronti.map(f => ({ nome: f.fronteId || "Senza fronte indicato", badge: f.scavo }));
+  ok(vecchio.length === 2 && vecchio[1].badge === 0,
+    "prima la ripresa da cumulo era una riga con badge «0 m³»");
+  const RF = terra.ripartizioneFronti({ scavo: 40700, fronti });
+  ok(RF.righe.length === 1, "adesso quella riga non c'è più");
+  ok(RF.cumuliFuori === 5200, "e il suo volume non è andato perso: è nella nota");
+});
+test("Terra · ripartizione per fronte: la dimostrazione la esercita davvero", () => {
+  /* una prova su dati inventati direbbe solo che la funzione fa quello che ho
+     scritto. Questa passa dal riepilogo VERO della dimostrazione, dove c'è una
+     ripresa da cumulo senza fronte: se un giorno sparisse dai dati finti, il caso
+     che ha originato la correzione smetterebbe di essere coperto e nessuno lo
+     saprebbe. */
+  const R = terra.riepilogoAnnuale(terra.DEMO.rilievi, 2026,
+    terra.DEMO.autorizzazioni[0], new Date("2026-07-30T00:00:00Z"));
+  const RF = terra.ripartizioneFronti(R);
+  ok(RF.cumuliFuori > 0,
+    `la dimostrazione contiene una ripresa da cumulo senza fronte (${RF.cumuliFuori} m³)`);
+  ok(RF.righe.length > 0 && RF.righe.every(r => r.fronteId),
+    "e in elenco restano solo fronti veri");
+  ok(RF.righe.every(r => r.quotaPct > 0), "tutti con la loro quota");
+});
 test("P2 · il grafico: la dimostrazione racconta una storia, e un buco", () => {
   /* Il grafico esiste per una domanda che il confronto di un periodo alla volta
      non poteva rispondere: «le stime dei turni stanno migliorando o

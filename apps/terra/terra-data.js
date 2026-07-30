@@ -666,6 +666,39 @@ export function riepilogoAnnuale(rilievi, anno, autorizzazione, oggi = new Date(
   };
 }
 
+// LA RIPARTIZIONE PER FRONTE, pronta da mostrare. Sta qui e non nella pagina
+// perché è una REGOLA, non un disegno, e una regola si prova.
+//
+// Due cose che l'elenco confondeva, viste renderizzando la sezione:
+//  1. una voce SENZA fronte e SENZA scavo non è un fronte mancante — è una
+//     ripresa da cumulo, che per definizione non esce da un fronte. In un elenco
+//     di fronti prendeva un badge «0 m³» e sembrava una riga rotta. Esce
+//     dall'elenco e il suo volume torna a parte, per essere detto a parole.
+//     Una voce senza fronte ma CON scavo resta invece, ed è tutt'altro: è una
+//     ripartizione che manca e che il modulo dell'ente chiede.
+//  2. mancava la QUOTA, l'unico numero che un elenco di valori assoluti non sa
+//     dare: 40.700 e 38.700 dicono poco, 51,3% e 48,7% dicono che i due fronti
+//     pesano uguale. Nulla su un totale zero: non è 0%, è una domanda senza senso.
+export function ripartizioneFronti(riepilogo) {
+  const fronti = riepilogo && Array.isArray(riepilogo.fronti) ? riepilogo.fronti : [];
+  const totale = riepilogo && +riepilogo.scavo > 0 ? +riepilogo.scavo : 0;
+  const righe = fronti
+    .filter(f => f.fronteId || +f.scavo > 0)
+    .map(f => ({ ...f,
+      senzaFronte: !f.fronteId,
+      quotaPct: totale > 0 && +f.scavo > 0 ? Math.round(1000 * f.scavo / totale) / 10 : null }));
+  return {
+    righe,
+    // i cumuli che restano FUORI dalla ripartizione, da dire nella nota
+    cumuliFuori: fronti.filter(f => !f.fronteId && !(+f.scavo > 0))
+      .reduce((a, f) => a + (+f.cumulo || 0), 0),
+    // c'è almeno una riga con dei cumuli? Serve alla nota: rimandare a «quanto
+    // scritto nella riga» quando nessuna riga lo riporta manda a cercare il nulla
+    conCumuliInRiga: righe.some(f => +f.cumulo > 0),
+    senzaFronte: righe.filter(f => f.senzaFronte).length,
+  };
+}
+
 // Storico anno per anno: quanto scavato, quanto ripreso dai cumuli e dove
 // era arrivato il cumulato del titolo alla fine di ogni anno. È la riga di
 // controllo che l'ente ricostruisce sommando le denunce degli anni passati.
