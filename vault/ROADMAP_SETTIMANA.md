@@ -735,6 +735,9 @@ campi interi, file delle macchine.
       «€19,02/H»: trovati un'ora dopo che Conti è entrata nell'elenco delle
       superfici. Con loro un difetto di parole: una gara chiusa mostrava
       «-2 gg» invece di «chiusa da 2 gg».
+- [x] **Due schede su nove facevano la stessa promessa** (Deepwork e Campo
+      dicevano tutte e due «il rapportino non arriva più la sera tardi»).
+      Trovato leggendo le nove schede di fila come le legge chi arriva.
 - [x] **Vetrina, terza iterazione** con la ricerca depositata
       (`docs/RICERCA_VETRINA_202607.md`): cinque raccomandazioni su sette erano
       già rispettate, i due difetti veri erano la mancanza di gerarchia e
