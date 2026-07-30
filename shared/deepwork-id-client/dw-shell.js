@@ -75,6 +75,45 @@ export function parseCsvLine(line) {
   });
 }
 
+// TOGLIE I DOPPIONI DENTRO UN FILE APPENA LETTO.
+//
+// Perché sta qui e non in un'app (31/07). Tutte e sei le app controllavano il
+// doppione allo stesso modo — confrontando ogni riga con l'elenco caricato
+// all'apertura della pagina — e in tutte e sei quell'elenco NON si aggiorna
+// mentre il file scorre. Risultato: due righe uguali dentro lo stesso file
+// entrano tutte e due. Misurato il 31/07 su **dieci gestori d'importazione su
+// dieci** che il doppione lo cercavano: nessuno guardava dentro il file.
+//
+// Non è un caso di scuola. L'esportazione di Scudo scrive una riga per ogni
+// scadenza, quindi il file di un lavoratore con tre scadenze lo nomina tre
+// volte: ri-caricarlo faceva comparire tre volte la stessa persona. E un
+// listino o un parco mezzi preparato a mano in un foglio di calcolo ha
+// benissimo la stessa riga due volte.
+//
+// Due decisioni, prese apposta:
+//  · vale la PRIMA scrittura, non l'ultima — chi rilegge il proprio file si
+//    aspetta l'ordine in cui l'ha scritto;
+//  · una chiave VUOTA passa. Senza chiave non si può decidere se sia un
+//    doppione, e schiacciare insieme tutte le righe senza chiave farebbe
+//    sparire dati veri: chi li scarta è il lettore dell'app, che sa quali
+//    campi sono obbligatori per quella cosa lì.
+// Il confronto ignora maiuscole e spazi di contorno: «Rossi Mario» e
+// « ROSSI MARIO » sono la stessa persona.
+//
+// Il confronto con quello che è GIÀ in archivio resta alla pagina: è l'unica
+// a conoscerlo, ed è un'altra domanda.
+export function senzaDoppioni(righe, chiave) {
+  const visti = new Set();
+  return (righe || []).filter(r => {
+    const k = chiave(r);
+    const c = (k == null ? "" : String(k)).trim().toLowerCase();
+    if (!c) return true;
+    if (visti.has(c)) return false;
+    visti.add(c);
+    return true;
+  });
+}
+
 // Riconosce la RIGA D'INTESTAZIONE di un CSV in modo indipendente dal
 // delimitatore. L'header è la prima riga quando inizia col nome della prima
 // colonna seguito da un separatore (; TAB o virgola). Serve perché

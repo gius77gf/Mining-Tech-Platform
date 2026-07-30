@@ -53,7 +53,7 @@
 // (scaduta / entro 30gg / regolare) — niente dati derivati nel DB.
 // ============================================================
 
-import { parseCsvLine, numIt, giorniTra, isIntestazione } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, numIt, giorniTra, isIntestazione, senzaDoppioni } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
   lavoratori: [
@@ -889,8 +889,7 @@ export function dataDaPeriodicita(mesi, oggi = new Date()) {
 // scadenze non intestate a nessuno. I nomi sono testo grezzo → escapare dove
 // mostrati. Pura e testabile.
 export function parseLavoratoriCsv(text) {
-  const visti = new Set();
-  return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+  const letti = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
     .map(r => {
       const [nome, ruolo, tel] = parseCsvLine(r);
       return {
@@ -900,13 +899,12 @@ export function parseLavoratoriCsv(text) {
         attivo: true,
       };
     })
-    .filter(l => l.nome && !/^(nome|azienda)$/i.test(l.nome))
-    .filter(l => {
-      const chiave = l.nome.toLowerCase();
-      if (visti.has(chiave)) return false;
-      visti.add(chiave);
-      return true;
-    });
+    .filter(l => l.nome && !/^(nome|azienda)$/i.test(l.nome));
+  /* Il doppione dentro il file lo toglie la regola CONDIVISA: era nata qui il
+     31/07, ma la misura ha detto che lo stesso buco stava in dieci gestori su
+     dieci in tutte e sei le app. Una regola che serve a sei app vive in
+     shared/ e si CHIAMA, non si ricopia. */
+  return senzaDoppioni(letti, l => l.nome);
 }
 
 // Import scadenze da CSV (onboarding: caricare lo scadenzario esistente —

@@ -143,6 +143,60 @@ test("parseScadenzeCsv: CRLF (Excel) e testo vuoto = niente crash", () => {
   eq(s.length, 1, "CRLF ok");
   eq(s[0].dataScadenza, "2026-12-01", "data letta");
 });
+/* LA REGOLA CONDIVISA SUI DOPPIONI DENTRO UN FILE.
+   Nata dentro Scudo il 31/07 e subito portata in shared/, perché la misura ha
+   detto che lo stesso buco stava in DIECI gestori d'importazione su dieci, in
+   tutte e sei le app: il doppione si cercava solo contro l'elenco caricato
+   all'apertura, che non si aggiorna mentre il file scorre. */
+test("senzaDoppioni: la stessa chiave due volte entra una volta sola", () => {
+  const r = shell.senzaDoppioni(
+    [{ n: "Rossi" }, { n: "Bianchi" }, { n: "Rossi" }], x => x.n);
+  eq(r.length, 2, "tre righe, due cose diverse");
+  eq(r.map(x => x.n), ["Rossi", "Bianchi"], "e resta l'ordine del file");
+});
+test("senzaDoppioni: maiuscole e spazi non fanno due cose diverse", () => {
+  const r = shell.senzaDoppioni([{ n: "Rossi Mario" }, { n: "  ROSSI MARIO " }], x => x.n);
+  eq(r.length, 1, "è la stessa persona scritta in due modi");
+  eq(r[0].n, "Rossi Mario", "vince la PRIMA scrittura: chi rilegge il proprio file si aspetta il suo ordine");
+});
+test("senzaDoppioni: una chiave VUOTA passa, non schiaccia le righe insieme", () => {
+  /* Decisione presa apposta: senza chiave non si può decidere se sia un
+     doppione, e schiacciare insieme tutte le righe senza chiave farebbe
+     sparire dati veri. Chi le scarta è il lettore dell'app, che sa quali
+     campi sono obbligatori per quella cosa lì. */
+  const r = shell.senzaDoppioni([{ n: "" }, { n: "" }, { n: null }, { n: "Rossi" }], x => x.n);
+  eq(r.length, 4, "tre righe senza chiave restano tre, più quella con la chiave");
+});
+test("senzaDoppioni: la chiave può essere composta (titolo + data)", () => {
+  /* Serve davvero: gli adempimenti di Sentinella considerano doppione la
+     stessa pratica con la stessa scadenza, non lo stesso titolo. */
+  const righe = [
+    { t: "Relazione", s: "2026-12-31" },
+    { t: "Relazione", s: "2027-12-31" },
+    { t: "Relazione", s: "2026-12-31" },
+  ];
+  eq(shell.senzaDoppioni(righe, x => x.t + "|" + x.s).length, 2, "due scadenze diverse restano due");
+});
+test("senzaDoppioni: elenco vuoto o assente = niente crash", () => {
+  eq(shell.senzaDoppioni([], x => x), [], "elenco vuoto");
+  eq(shell.senzaDoppioni(null, x => x), [], "elenco che manca");
+});
+/* ⚠️ Questo controlla il COMPORTAMENTO, non l'identità, e va detto: una copia
+   scritta a mano che si comportasse allo stesso modo passerebbe. L'identità —
+   che l'app CHIAMI la regola condivisa invece di riscriverla — non si vede da
+   qui, perché `senzaDoppioni` non viene ri-esportata: si usa e basta. È una
+   regola di stile sul codice sorgente, e sta in run-stile.mjs (regola 12).
+   Qui si prova la metà che si può provare: che Scudo scelga come la regola
+   condivisa, compreso «vince la prima scrittura». */
+test("parseLavoratoriCsv si comporta come la regola condivisa", () => {
+  eq(typeof shell.senzaDoppioni, "function", "la regola condivisa esiste ed è esportata");
+  const dentro = scudo.parseLavoratoriCsv("Rossi;operatore;333\nRossi;capocava;444");
+  const fuori = shell.senzaDoppioni(
+    [{ nome: "Rossi" }, { nome: "Rossi" }], x => x.nome);
+  eq(dentro.length, fuori.length, "stesso numero di righe in uscita");
+  eq(dentro[0].ruolo, "operatore", "e la stessa scelta: vince la prima");
+});
+
 /* L'ANAGRAFICA DEI LAVORATORI — il primo file che una cava carica, e fino al
    31/07 l'unico dei diciassette import che nessuna prova poteva guardare,
    perché stava scritto dentro la pagina. Portarlo fuori ha fatto emergere un
