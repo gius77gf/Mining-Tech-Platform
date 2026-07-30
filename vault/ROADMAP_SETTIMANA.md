@@ -735,6 +735,14 @@ campi interi, file delle macchine.
       «€19,02/H»: trovati un'ora dopo che Conti è entrata nell'elenco delle
       superfici. Con loro un difetto di parole: una gara chiusa mostrava
       «-2 gg» invece di «chiusa da 2 gg».
+- [x] **I soldi si scrivevano in tre modi**, uno per app, e tre erano anche
+      gli spazi dopo il simbolo (unificatore, normale, nessuno). Ora una
+      convenzione sola in `shared/`, con la regola 11 di `run-stile` che
+      impedisce a un'app di riscriversela. Trovati per strada il meno che
+      finiva in mezzo («€ -1234,50») e il `gap` della pastiglia che staccava
+      l'unità dal numero.
+- [x] **«Prova il tour» portava al modulo d'accesso**: il bottone principale
+      della vetrina non manteneva la propria promessa.
 - [x] **Vetrina, seconda iterazione**: le nove anteprime erano pigre (una su
       nove caricata all'arrivo, su un telefono), e i ponti erano sei nel
       codice, cinque nell'apertura, quattro in pagina.
