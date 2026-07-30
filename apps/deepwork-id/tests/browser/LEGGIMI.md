@@ -69,6 +69,28 @@ Due eccezioni dichiarate: il core si apre sulla sua schermata d'accesso ed è
 quello che deve fare, e Deepwork ID è la porta d'ingresso, non una stanza da cui
 uscire.
 
+## `unita-maiuscole.mjs`
+
+⛔ La regola vincolante numero due — **le unità di misura non vanno mai in
+maiuscolo** — controllata sul **renderizzato**. `run-stile.mjs` la controlla già
+leggendo il codice, ma il difetto vero nasce dall'**incontro** fra una classe
+con `text-transform: uppercase` e un contenuto che quella classe non aveva
+previsto: nessuna riga è sbagliata, sbagliato è l'incontro. Il 30/07 è passata
+inosservata «1.637 M³» in Terra proprio così.
+
+```sh
+node apps/deepwork-id/tests/browser/unita-maiuscole.mjs 8823
+node apps/deepwork-id/tests/browser/unita-maiuscole.mjs 8823 --solo=terra
+node apps/deepwork-id/tests/browser/unita-maiuscole.mjs 8823 --controprova
+```
+
+⚠️ **Si legge la trasformazione, non il testo**: `innerText` su una scheda
+nascosta ricade su `textContent` e il maiuscolo non si vede. Il maiuscolo va
+chiesto a `getComputedStyle`, che risponde comunque.
+
+Al primo giro: **21 violazioni su cinque superfici**. La controprova sporca una
+superficie pulita e pretende di essere scoperta.
+
 ## `contrasto-core.mjs`
 
 Misura il rapporto di contrasto del testo dei riquadri della home del core sul
