@@ -602,6 +602,17 @@ bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
       operatori avevo lasciato indietro le attività, e il conto «in carico oggi» era
       diventato zero **in silenzio**.
 
+- [x] **S25. Il collegamento a Scudo si può FARE dall'app** ✅ *(31/07, `c528267`)* —
+      `lavoratoreId` esisteva nel modello ma nessun cliente vero poteva impostarlo: il
+      ponte funzionava solo sui dati finti. **Misurato prima di costruire**: le regole
+      Firestore permettono già la lettura fra app della stessa organizzazione, quindi
+      nessuna regola nuova. Il collegamento ha un **comando suo** perché il tocco sulla
+      riga cambia già la disponibilità, e c'è una prova che verifica proprio che non si
+      confondano. Tre difetti trovati **provando** il comando, non guardandolo: in
+      dimostrazione erano tutti già collegati (elenco di sole voci disabilitate), un
+      «non lo so» era colorato di **verde**, e «non collegato» stava in fondo invece che
+      in cima. Dieci asserzioni che usano il comando davvero.
+
 **La convenzione sui numeri è chiusa.** Sei app, core, campi scritti a mano,
 campi interi, file delle macchine.
 
