@@ -2339,6 +2339,14 @@ test("P3 · il riepilogo del turno non trasforma un «non lo so» in un «sì»"
   const q = ponti.idoneitaDiTurno(
     [{ id: "o1", lavoratoreId: "d1" }, { id: "o2" }], lav, sca, oggi);
   ok(q.regolari === 1 && q.nonCollegati === 1, "i due conti restano separati");
+  /* e i DUE modi di non sapere restano distinti: «non collegato» è un lavoro non
+     fatto, «collegamento rotto» è un dato da riparare. Il riepilogo che li chiamava
+     entrambi «non collegate» diceva una cosa falsa della seconda. */
+  ok(q.senzaCollegamento === 1 && q.collegamentiRotti === 0, "qui manca il collegamento, non è rotto");
+  const rotto = ponti.idoneitaDiTurno([{ id: "o1", lavoratoreId: "d9" }], lav, sca, oggi);
+  ok(rotto.collegamentiRotti === 1 && rotto.senzaCollegamento === 0,
+    "un id che non esiste più è un collegamento ROTTO, non un collegamento assente");
+  ok(rotto.nonCollegati === 1, "e la somma dei due resta il conto complessivo dei «non lo so»");
   ok(q.tuttoInRegola === false,
     "con una persona di cui non si sa niente, «tutto in regola» è FALSO");
   const tutti = ponti.idoneitaDiTurno([{ id: "o1", lavoratoreId: "d1" }], lav, sca, oggi);

@@ -419,6 +419,13 @@ export function idoneitaDiTurno(operatori, lavoratori, scadenze, oggi = new Date
     inScadenza: conta("in-scadenza"),
     regolari: conta("regolare"),
     senzaScadenze: conta("senza-scadenze"),
+    // due modi diversi di non sapere, tenuti distinti perché portano a due azioni
+    // diverse: «non collegato» è un lavoro non ancora fatto, «collegamento rotto»
+    // è un dato da riparare — qualcuno ha tolto quella scheda da Scudo. Il
+    // riepilogo che li chiamava entrambi «non collegate» diceva una cosa falsa
+    // della seconda, che collegata lo è eccome.
+    senzaCollegamento: conta("non-collegato"),
+    collegamentiRotti: conta("collegamento-rotto"),
     nonCollegati: conta("non-collegato") + conta("collegamento-rotto"),
     // «sappiamo tutto e va tutto bene» è vero solo se non c'è nessun «non lo so»
     tuttoInRegola: righe.length > 0

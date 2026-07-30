@@ -1606,6 +1606,18 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   // collegato a Scudo: verde vuol dire «a posto», e su una persona di cui non
   // sappiamo niente è la stessa bugia che il conto separato dei «non lo so» serve
   // a evitare — detta col colore invece che con le parole. Neutro, quindi.
+  // LE DUE FORME DI «NON LO SO» NON SI CONFONDONO. «Non collegato» è un lavoro che
+  // non è stato ancora fatto; «collegamento rotto» vuol dire che la scheda esisteva
+  // e non c'è più — qualcuno l'ha tolta da Scudo, ed è un dato da riparare. Dire
+  // «non sono collegate» della seconda è falso: collegata lo è, al vuoto.
+  function codaIgnote(h) {
+    const pezzi = [];
+    if (h.senzaCollegamento) pezzi.push(`${h.senzaCollegamento === 1 ? "una non è collegata" : h.senzaCollegamento + " non sono collegate"} al personale di Scudo`);
+    if (h.collegamentiRotti) pezzi.push(`${h.collegamentiRotti === 1 ? "per una la scheda collegata non esiste più" : "per " + h.collegamentiRotti + " la scheda collegata non esiste più"}`);
+    if (!pezzi.length) return "";
+    const tot = h.nonCollegati;
+    return ` Di ${tot === 1 ? "una persona" : tot + " persone"} non lo sappiamo: ${pezzi.join(", e ")}.`;
+  }
   const CLASSE_HSE = {
     scaduta: "st-danger", "in-scadenza": "st-warn",
     "non-collegato": "st-mute", "collegamento-rotto": "st-mute",
@@ -1650,6 +1662,15 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const filtro = $("ope-filtro").value;
     const righe = operatoriDi(OPER, filtro);
     $("ope-count").textContent = righe.length;
+    // DUE DOMANDE CHIUSE ALLA TERZA ITERAZIONE, prima implicite:
+    //  · col FILTRO per squadra attivo la nota conta le persone FILTRATE, non
+    //    tutte. È giusto perché la frase dice «fra chi è in elenco»: il conto e
+    //    quello che si vede sono la stessa cosa, e un totale diverso da ciò che si
+    //    ha sotto gli occhi costringerebbe a chiedersi quale dei due è vero.
+    //  · questa sezione conta TUTTI, anche chi appartiene a una squadra ferma. È
+    //    la rubrica di chi c'è in squadra, non il turno di oggi: la domanda «chi sta
+    //    lavorando adesso» la risponde Scudo, dall'altro capo del ponte, dove le
+    //    scadenze si contrassegnano «in turno». Due domande diverse, due posti.
     // SE SCUDO NON È LEGGIBILE NON SI SCRIVE NIENTE — né un allarme né un «tutto a
     // posto». Dal lato di Campo i due casi non si distinguono: l'azienda potrebbe
     // non avere Scudo, oppure la lettura può essere fallita. Una nota d'errore fissa
@@ -1668,10 +1689,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
               : "")
           + (hse.inScadenza ? `${hse.inScadenza} ${hse.inScadenza === 1 ? "ha un documento" : "hanno un documento"} in scadenza entro trenta giorni. ` : "")
           + `I rinnovi si fanno in <b>Scudo</b>, che è l'unico posto dove quel dato si scrive.`
-          + (hse.nonCollegati ? ` Di ${hse.nonCollegati === 1 ? "una persona" : hse.nonCollegati + " persone"} non lo sappiamo: ${hse.nonCollegati === 1 ? "non è collegata" : "non sono collegate"} al personale di Scudo.` : "")
+          + codaIgnote(hse)
           + `</div>`
         : hse.nonCollegati
-          ? `<div class="note">Nessun documento scaduto fra le persone collegate a <b>Scudo</b>. Di ${hse.nonCollegati === 1 ? "una" : hse.nonCollegati} non lo sappiamo: ${hse.nonCollegati === 1 ? "non è collegata" : "non sono collegate"} al personale di Scudo.</div>`
+          ? `<div class="note">Nessun documento scaduto fra le persone collegate a <b>Scudo</b>.${codaIgnote(hse)}</div>`
           : `<div class="note recap">Documenti in corso di validità per <b>tutte</b> le persone in elenco, secondo Scudo.</div>`;
     aggiornaTendinaLavoratori();
     $("ope-list").innerHTML = righe.map(o => { const giu = o.stato === "non-disponibile";
