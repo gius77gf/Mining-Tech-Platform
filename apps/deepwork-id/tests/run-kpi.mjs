@@ -3780,6 +3780,38 @@ test("il piano NON perde righe: parsePianoCsv le tiene tutte e due", () => {
     eq(zero[0].prezzo, 0, "e vale zero");
   });
 
+
+  /* ⚠️ LE PROVE QUI SOPRA GUARDANO IL LETTORE, NON L'EXPORT — e il difetto di
+     Sentinella stava dall'altra parte. Costruendo la riga con `csvCell` si
+     prova che il lettore sa disfare quello che `csvCell` ha fatto; NON si prova
+     che l'export lo abbia usato. Per quello si guarda la riga vera nel
+     sorgente, e si contano le protezioni: ogni colonna di TESTO ne vuole una.
+     Sull'export dei ricettori ce n'erano 2 dove ne servivano 5, ed è così che
+     l'unità usciva senza protezione. */
+  const PROTEZIONI = [
+    ["campo_squadre.csv", "campo", 2, "nome e area"],
+    ["conti_gare.csv", "conti", 1, "titolo"],
+    ["conti_listino.csv", "conti", 1, "nome"],
+    ["flotta_ricambi.csv", "flotta", 1, "nome"],
+    ["scudo_registro_infortuni.csv", "scudo", 2, "descrizione e luogo"],
+    ["sentinella_ricettori.csv", "sentinella", 5, "nome, tipo, classe, unità, nota"],
+  ];
+  for (const [file, app, quante, quali] of PROTEZIONI) {
+    test(`giro completo: ${file} protegge i campi di testo`, () => {
+      const src = pagina(app).split("\n");
+      const giu = src.findIndex(r => r.includes(`.download = "${file}"`));
+      ok(giu >= 0, `non si trova l'export che scarica ${file}`);
+      /* le righe che compongono il CSV stanno fra l'intestazione e il download */
+      let inizio = -1;
+      for (let k = giu; k >= 0 && k > giu - 40; k--) if (/csv = "/.test(src[k])) { inizio = k; break; }
+      ok(inizio >= 0, "non si trova dove l'export dichiara le colonne");
+      const corpo = src.slice(inizio, giu).join("\n");
+      const trovate = (corpo.match(/csvCell\(/g) || []).length;
+      ok(trovate >= quante,
+         `${file}: ${trovate} protezioni csvCell, ne servono almeno ${quante} (${quali})`);
+    });
+  }
+
   /* Il caso trovato per strada, tenuto fermo perché non torni di nascosto:
      l'export delle fatture NON è un backup, e il documento non deve dire che
      lo sia. Se un giorno lo diventasse, questo controllo lo dice. */
