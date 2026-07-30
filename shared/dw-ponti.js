@@ -425,3 +425,81 @@ export function idoneitaDiTurno(operatori, lavoratori, scadenze, oggi = new Date
       && righe.every((r) => r.stato === "regolare" || r.stato === "senza-scadenze"),
   };
 }
+
+// ── L'ALTRA METÀ DEL PONTE P3: dal lato di SCUDO ──────────────────────
+//
+// Chi tiene lo scadenzario vede cinquanta scadenze e non sa quali riguardano
+// persone che stanno lavorando ADESSO. Non è una sfumatura: la visita medica
+// scaduta di chi è al fronte oggi e quella di chi è in ferie da un mese hanno la
+// stessa data e due urgenze diverse.
+//
+// COSA VUOL DIRE «STA LAVORANDO ADESSO», deciso e scritto. I dati di Campo
+// permettono due risposte, e sono domande diverse:
+//   · l'operatore è IN FORZA in una squadra OPERATIVA → è schierato oggi;
+//   · l'operatore è nominato su un'attività di oggi → è impegnato su un lavoro.
+// Si sceglie la PRIMA, e la ragione è che la seconda ha un buco: in Campo
+// l'attività può non avere nessun nome sopra (nei dati d'esempio due su cinque
+// non ce l'hanno), quindi «nessuna attività a suo nome» non vuol dire «non sta
+// lavorando». Una definizione che scambia un dato mancante per un fatto
+// produrrebbe esattamente il falso negativo che questo ponte esiste per evitare.
+// La squadra invece c'è sempre, e il suo stato lo decide chi comanda il turno.
+//
+// E NON È UNA CLASSIFICA. L'ordine serve a sapere da dove cominciare, non a dire
+// chi è più in ritardo: si ordina per urgenza del DOCUMENTO, e a parità vince chi
+// è in turno — non il contrario.
+
+export function inTurnoOggi(operatori, squadre) {
+  const operative = new Set(
+    (squadre || [])
+      .filter((q) => q && String(q.stato || "").toLowerCase() !== "ferma")
+      .map((q) => nomeBase(q.nome)),
+  );
+  return (operatori || []).filter(
+    (o) => o && o.stato !== "non-disponibile" && operative.has(nomeBase(o.squadra)),
+  );
+}
+
+// «Squadra A — Perforazione» e «Squadra A» sono la stessa squadra: in Campo il
+// nome della squadra porta anche la specialità dopo un trattino, mentre
+// l'operatore ne conserva solo la parte iniziale. Senza questo, nessun operatore
+// risulterebbe mai in una squadra operativa — e il ponte direbbe che non lavora
+// nessuno, che è il modo peggiore di sbagliare: silenzioso e rassicurante.
+function nomeBase(nome) {
+  return String(nome || "").split(/\s+[—–-]\s+/)[0].trim().toLowerCase();
+}
+
+// Le scadenze di Scudo con accanto la risposta alla domanda «questa persona sta
+// lavorando adesso?». Torna l'elenco ordinato per urgenza.
+export function scadenzeDiChiLavora(scadenze, lavoratori, operatori, squadre, oggi = new Date()) {
+  const schierati = inTurnoOggi(operatori, squadre);
+  const idInTurno = new Set(
+    schierati.map((o) => (o.lavoratoreId != null ? String(o.lavoratoreId).trim() : "")).filter(Boolean),
+  );
+  const perId = new Map((lavoratori || []).map((l) => [String(l.id), l]));
+  const peso = { scaduta: 0, "in-scadenza": 1, regolare: 2 };
+  const righe = (scadenze || [])
+    .filter((s) => s && s.lavoratoreId != null)
+    .map((s) => {
+      const rif = String(s.lavoratoreId).trim();
+      return {
+        scadenza: s,
+        lavoratore: perId.get(rif) || null,
+        stato: statoScadenzaHSE(s.dataScadenza, oggi),
+        inTurno: idInTurno.has(rif),
+      };
+    })
+    .sort((a, b) =>
+      peso[a.stato] - peso[b.stato]
+      || (b.inTurno ? 1 : 0) - (a.inTurno ? 1 : 0)
+      || String(a.scadenza.dataScadenza).localeCompare(String(b.scadenza.dataScadenza)));
+  return {
+    righe,
+    // il conto che serve a scrivere una frase invece di far contare le righe
+    daFermare: righe.filter((r) => r.inTurno && r.stato === "scaduta").length,
+    inTurnoDaPrenotare: righe.filter((r) => r.inTurno && r.stato === "in-scadenza").length,
+    schierati: schierati.length,
+    // quante persone schierate NON si riesce a collegare: senza questo il conto
+    // «nessuno da fermare» varrebbe anche quando non si è guardato niente
+    schieratiNonCollegati: schierati.filter((o) => !o.lavoratoreId).length,
+  };
+}

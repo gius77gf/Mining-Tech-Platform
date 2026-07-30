@@ -804,6 +804,7 @@
   </div>
   <input class="dw-input" id="scad-cerca" type="search" placeholder="Cerca per tipo o lavoratore…" style="margin-bottom:8px;">
   <div id="scad-count" class="count"></div>
+  <div id="scad-turno"></div>
   <div id="scad-list"></div>
   <div class="sec">Aggiungi scadenza</div>
   <div class="form col">
@@ -1162,7 +1163,7 @@
 </script>
 
 <script type="module">
-  import { scudoData, statoScadenza, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, parseScadenzeCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
+  import { scudoData, statoScadenza, inTurnoOggi, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, parseScadenzeCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
     daAmbiente, etichettaAmbiente, riepilogoAmbiente,
     NEARMISS_CATEGORIE, NEARMISS_LUOGHI, categoriaNearMiss, luogoNearMiss, descrizioneNearMiss, riepilogoNearMiss,
     MODELLI_ISPEZIONE, modelloIspezione, nuovaIspezioneDaModello, riepilogoIspezione, riepilogoIspezioni, vociNonConformi, statoIspezione, azioniDiIspezione, esitoLabel, ESITI_ISPEZIONE, dataPiuGiorni,
@@ -1259,6 +1260,9 @@
     : "Stai guardando <b>dati di esempio</b> (" + db.mode + "): le modifiche non vengono salvate.";
 
   let LAV = [], SCA = [], DOC = [], INF = [], CANT = [], AZI = [], ISP = [];
+  // PONTE P3 · chi è schierato, letto da Campo. `null` = non lo sappiamo (Campo
+  // non c'è o non è leggibile) ed è diverso da «non sta lavorando nessuno».
+  let OPER_CAMPO = null, SQU_CAMPO = null;
   // S4/S5: mansioni, nomine e consegne DPI. Le organizzazioni già attive non
   // hanno queste collezioni: restano array vuoti e le schede si aprono vuote.
   let MANS = [], NOM = [], DPI = [];
@@ -1329,6 +1333,10 @@
   });
 
   async function refresh() {
+    [OPER_CAMPO, SQU_CAMPO] = await Promise.all([
+      db.operatoriCampo ? db.operatoriCampo() : null,
+      db.squadreCampo ? db.squadreCampo() : null,
+    ]);
     [LAV, SCA, DOC, INF, CANT, AZI, ISP, MANS, NOM, DPI] = await Promise.all([db.lavoratori(), db.scadenze(), db.documenti(), db.infortuni ? db.infortuni() : [], db.cantieri ? db.cantieri() : [], db.azioni ? db.azioni() : [], db.ispezioni ? db.ispezioni() : [],
       db.mansioni ? db.mansioni() : [], db.nomine ? db.nomine() : [], db.dpi ? db.dpi() : []]);
     const byId = Object.fromEntries(LAV.map(l => [l.id, l]));
@@ -1561,20 +1569,52 @@
     const scadCmp = (a, b) => ordScad === "tipo" ? String(a.descrizione || "").localeCompare(String(b.descrizione || ""), "it")
       : ordScad === "persona" ? nomeScad(a).localeCompare(nomeScad(b), "it") || (a.dataScadenza < b.dataScadenza ? -1 : 1)
       : (a.dataScadenza < b.dataScadenza ? -1 : 1);
+    // ── PONTE P3 · QUALI DI QUESTE RIGUARDANO CHI STA LAVORANDO ADESSO ──
+    // Cinquanta scadenze si somigliano tutte; la visita medica scaduta di chi è
+    // al fronte oggi e quella di chi è in ferie hanno la stessa data e due
+    // urgenze diverse. Se Campo non è leggibile non si scrive niente: nessun
+    // «non c'è nessuno da fermare» che nessuno ha verificato.
+    // L'ORDINE dell'elenco NON si tocca: lo sceglie chi guarda, con la tendina
+    // qui sopra. Riordinare di nascosto sarebbe togliergli una scelta che ha
+    // fatto apposta. Chi è in turno lo dice un contrassegno sulla riga.
+    const schierati = OPER_CAMPO && SQU_CAMPO ? inTurnoOggi(OPER_CAMPO, SQU_CAMPO) : null;
+    const idInTurno = new Set((schierati || []).map(o => o.lavoratoreId).filter(Boolean).map(String));
+    const inTurno = (sc) => sc.lavoratoreId != null && idInTurno.has(String(sc.lavoratoreId));
+    if (!schierati) $("scad-turno").innerHTML = "";
+    else {
+      const daFermare = scadTutte.filter(sc => inTurno(sc) && statoScadenza(sc.dataScadenza) === "scaduta").length;
+      const daPrenotare = scadTutte.filter(sc => inTurno(sc) && statoScadenza(sc.dataScadenza) === "in-scadenza").length;
+      const senzaId = (schierati || []).filter(o => !o.lavoratoreId).length;
+      const coda = senzaId
+        ? ` Di ${senzaId === 1 ? "una persona schierata" : senzaId + " persone schierate"} non lo sappiamo: ${senzaId === 1 ? "non è collegata" : "non sono collegate"} all'anagrafica di Scudo.`
+        : "";
+      $("scad-turno").innerHTML = !schierati.length
+        ? `<div class="note">In questo momento <b>nessuna squadra</b> risulta in turno in Campo, quindi nessuna di queste scadenze è urgente per il lavoro di oggi.</div>`
+        : daFermare
+          ? `<div class="note avviso"><b>${daFermare} ${daFermare === 1 ? "documento scaduto riguarda una persona" : "documenti scaduti riguardano persone"}</b> schierate oggi (${schierati.length} in turno). Sono i contrassegnati <b>in turno</b> qui sotto.${coda}</div>`
+          : daPrenotare
+            ? `<div class="note recap">Nessun documento scaduto fra le <b>${schierati.length}</b> persone in turno oggi. ${daPrenotare === 1 ? "Una scadenza è" : daPrenotare + " scadenze sono"} entro trenta giorni: si prenota adesso senza fermare nessuno.${coda}</div>`
+            : `<div class="note recap">Le <b>${schierati.length}</b> persone in turno oggi hanno tutti i documenti in corso di validità.${coda}</div>`;
+    }
+    // il contrassegno sta subito DOPO IL NOME, non in fondo: la riga della meta si
+    // accorcia con i puntini quando è lunga, e in fondo spariva proprio lui —
+    // misurato sulla riga di un DPI. Così a cadere è semmai l'etichetta di urgenza,
+    // che il badge a destra ripete comunque.
+    const segnoTurno = (sc) => inTurno(sc) ? ' · <b>in turno oggi</b>' : "";
     $("scad-list").innerHTML = scaVis.slice().sort(scadCmp).map(sc => {
       const st = statoScadenza(sc.dataScadenza), l = byId[sc.lavoratoreId], lv = livelloScadenza(sc.dataScadenza);
       if (sc.azione) return `<div class="item ${striscia[B[st][0]]}">
         <div class="info"><div class="name"><span class="badge accent" style="margin-right:6px;">Azione</span>${esc(sc.descrizione)}</div>
-        <div class="meta">Azione correttiva · ${esc(nomeScad(sc))} · ${fmtData(sc.dataScadenza)} · ${esc(lv.label)}</div></div>
+        <div class="meta">Azione correttiva · ${esc(nomeScad(sc))}${segnoTurno(sc)} · ${fmtData(sc.dataScadenza)} · ${esc(lv.label)}</div></div>
         <span class="acts"><span class="badge ${B[st][0]}">${B[st][1]}</span>
         <span class="arr" style="cursor:pointer" title="Vai all'azione correttiva" data-vai-azi="${sc.id}">↗</span></span></div>`;
       if (sc.dpiRiga) return `<div class="item ${striscia[B[st][0]]}">
         <div class="info"><div class="name"><span class="badge accent" style="margin-right:6px;">DPI</span>${esc(sc.descrizione)}</div>
-        <div class="meta">Dispositivo di protezione · ${esc(nomeScad(sc))} · ${fmtData(sc.dataScadenza)} · ${esc(lv.label)}</div></div>
+        <div class="meta">Dispositivo di protezione · ${esc(nomeScad(sc))}${segnoTurno(sc)} · ${fmtData(sc.dataScadenza)} · ${esc(lv.label)}</div></div>
         <span class="acts"><span class="badge ${B[st][0]}">${B[st][1]}</span>
         <span class="arr" style="cursor:pointer" title="Vai al registro DPI" data-vai-pers="dpi">↗</span></span></div>`;
       return `<div class="item ${striscia[B[st][0]]}">
-        <div class="info"><div class="name">${esc(sc.descrizione)}</div><div class="meta">${esc(l ? l.nome : "azienda")} · ${fmtData(sc.dataScadenza)} · ${esc(lv.label)}</div></div>
+        <div class="info"><div class="name">${esc(sc.descrizione)}</div><div class="meta">${esc(l ? l.nome : "azienda")}${segnoTurno(sc)} · ${fmtData(sc.dataScadenza)} · ${esc(lv.label)}</div></div>
         <span class="acts"><span class="badge ${B[st][0]}">${B[st][1]}</span>
         ${(st !== "regolare" && l) ? `<button class="dw-btn secondary mini" data-prom-scad="${sc.id}" title="Copia il promemoria da inviare al lavoratore">Promemoria</button>` : ""}
         <span class="arr" style="cursor:pointer" title="Rinnova a una nuova data" data-ren-scad="${sc.id}">↻</span>

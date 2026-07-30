@@ -2385,6 +2385,77 @@ test("P3 · le due dimostrazioni non si smentiscono a vicenda", () => {
       `e allo stesso nome: ${o.nome} / ${perId.get(o.lavoratoreId).nome}`);
   }
 });
+/* ── P3, l'altra metà: dal lato di SCUDO ────────────────────────────────── */
+test("P3 · «sta lavorando adesso» = in forza IN UNA SQUADRA OPERATIVA", () => {
+  const squadre = [
+    { nome: "Squadra A — Perforazione", stato: "operativa" },
+    { nome: "Squadra C — Impianto", stato: "ferma" },
+  ];
+  const oper = [
+    { id: "o1", nome: "A", squadra: "Squadra A", stato: "in-forza" },
+    { id: "o2", nome: "B", squadra: "Squadra A", stato: "non-disponibile" },
+    { id: "o3", nome: "C", squadra: "Squadra C", stato: "in-forza" },
+    { id: "o4", nome: "D", squadra: "Squadra Z", stato: "in-forza" },
+  ];
+  eq(ponti.inTurnoOggi(oper, squadre).map(o => o.id), ["o1"],
+    "in forza in una squadra operativa: solo lui");
+  /* IL NOME DELLA SQUADRA PORTA LA SPECIALITÀ dopo un trattino («Squadra A —
+     Perforazione») mentre l'operatore ne tiene solo la prima parte. Senza
+     riconoscerlo NESSUNO risulterebbe mai in turno — e il ponte direbbe che non
+     lavora nessuno: l'errore silenzioso e rassicurante, il peggiore di tutti. */
+  ok(ponti.inTurnoOggi([{ id: "x", squadra: "Squadra A", stato: "in-forza" }],
+    [{ nome: "Squadra A — Perforazione", stato: "operativa" }]).length === 1,
+    "«Squadra A» e «Squadra A — Perforazione» sono la stessa squadra");
+  eq(ponti.inTurnoOggi(null, null), [], "dati assenti: nessuno, e nessun errore");
+  eq(ponti.inTurnoOggi(oper, []), [], "nessuna squadra registrata: nessuno in turno");
+});
+test("P3 · lo scadenzario ordina per urgenza, e a parità viene prima chi è in turno", () => {
+  const oggi = new Date("2026-07-30T00:00:00");
+  const lav = [{ id: "d1", nome: "In turno" }, { id: "d2", nome: "A casa" }];
+  const oper = [{ id: "o1", lavoratoreId: "d1", squadra: "Squadra A", stato: "in-forza" }];
+  const squ = [{ nome: "Squadra A", stato: "operativa" }];
+  const sca = [
+    { id: "s1", lavoratoreId: "d2", tipo: "Visita", dataScadenza: "2026-07-01" }, // scaduta, a casa
+    { id: "s2", lavoratoreId: "d1", tipo: "Visita", dataScadenza: "2026-07-01" }, // scaduta, in turno
+    { id: "s3", lavoratoreId: "d1", tipo: "Corso", dataScadenza: "2027-01-01" },  // regolare
+  ];
+  const q = ponti.scadenzeDiChiLavora(sca, lav, oper, squ, oggi);
+  eq(q.righe.map(r => r.scadenza.id), ["s2", "s1", "s3"],
+    "prima le scadute, e fra due scadute uguali prima quella di chi è in turno");
+  ok(q.daFermare === 1, "una sola riguarda chi sta lavorando adesso");
+  ok(q.schierati === 1 && q.schieratiNonCollegati === 0, "e si sa di chi si sta parlando");
+});
+test("P3 · «nessuno da fermare» non vale se non si è guardato", () => {
+  const oggi = new Date("2026-07-30T00:00:00");
+  /* una persona schierata SENZA collegamento: il conto delle scadute in turno è
+     zero, ma non perché sia tutto a posto — perché non si è potuto guardare.
+     Il numero che lo dice esiste apposta. */
+  const q = ponti.scadenzeDiChiLavora(
+    [{ lavoratoreId: "d1", tipo: "Visita", dataScadenza: "2026-01-01" }],
+    [{ id: "d1", nome: "X" }],
+    [{ id: "o1", squadra: "Squadra A", stato: "in-forza" }],   // senza lavoratoreId
+    [{ nome: "Squadra A", stato: "operativa" }], oggi);
+  ok(q.daFermare === 0, "nessuna scaduta risulta in turno…");
+  ok(q.schierati === 1 && q.schieratiNonCollegati === 1,
+    "…ma c'è una persona schierata di cui non si sa niente, e il conto lo dice");
+});
+test("P3 · lato Scudo: la dimostrazione dice la stessa cosa dell'altra metà", () => {
+  const oggi = new Date("2026-07-30T00:00:00");
+  const q = scudo.scadenzeDiChiLavora(scudo.DEMO.scadenze, scudo.DEMO.lavoratori,
+    scudo.DEMO.operatoriCampo, scudo.DEMO.squadreCampo, oggi);
+  ok(q.schierati === 4, `quattro persone in turno nella dimostrazione (${q.schierati})`);
+  ok(q.daFermare >= 1, "e almeno un documento scaduto le riguarda, se no non si vedrebbe niente");
+  /* la copia che Scudo tiene di Campo deve coincidere con l'originale, altrimenti
+     le due app raccontano due turni diversi */
+  eq(scudo.DEMO.operatoriCampo.map(o => o.id + "|" + o.nome + "|" + (o.lavoratoreId || "")),
+     campo.DEMO.operatori.map(o => o.id + "|" + o.nome + "|" + (o.lavoratoreId || "")),
+     "gli operatori copiati in Scudo sono identici a quelli di Campo");
+  eq(scudo.DEMO.squadreCampo.map(s => s.nome + "|" + s.stato),
+     campo.DEMO.squadre.map(s => s.nome + "|" + s.stato),
+     "e così le squadre, stato compreso");
+  ok(scudo.inTurnoOggi === ponti.inTurnoOggi && scudo.scadenzeDiChiLavora === ponti.scadenzeDiChiLavora,
+    "Scudo ri-esporta le funzioni di shared/, non ne tiene una copia");
+});
 test("Campo · le attività citano operatori che esistono davvero", () => {
   /* NASCE DA UN DIFETTO MIO, di un'ora prima: rinominando gli operatori della
      dimostrazione per allinearli a Scudo ho lasciato indietro le attività, che

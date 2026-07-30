@@ -65,6 +65,22 @@ export const DEMO = {
     { id: "d6", nome: "Franco Riva", ruolo: "Fochino", tel: "", attivo: true },
     { id: "d7", nome: "Sara Conti", ruolo: "RSPP esterno", tel: "", attivo: true },
   ],
+  // CHI È SCHIERATO, che in esercizio arriva da Campo (ponte P3, sola lettura).
+  // Copiati dalla dimostrazione di Campo id per id: se le due dimostrazioni
+  // dicessero cose diverse sulla stessa squadra, l'ecosistema smentirebbe sé
+  // stesso proprio nel punto che serve a mostrare che le app si parlano.
+  operatoriCampo: [
+    { id: "o1", nome: "Mario Rossi", ruolo: "Fochino", squadra: "Squadra A", stato: "in-forza", lavoratoreId: "d1" },
+    { id: "o2", nome: "Luca Bianchi", ruolo: "Perforatore", squadra: "Squadra A", stato: "in-forza", lavoratoreId: "d2" },
+    { id: "o3", nome: "Giulia Verdi", ruolo: "Caposquadra", squadra: "Squadra B", stato: "in-forza", lavoratoreId: "d3" },
+    { id: "o4", nome: "Paolo Gallo", ruolo: "Autista", squadra: "Squadra B", stato: "in-forza", lavoratoreId: "d5" },
+    { id: "o5", nome: "Youssef Amrani", ruolo: "Manutentore", squadra: "Squadra C", stato: "non-disponibile" },
+  ],
+  squadreCampo: [
+    { id: "q1", nome: "Squadra A — Perforazione", persone: 4, area: "fronte Est", stato: "operativa" },
+    { id: "q2", nome: "Squadra B — Carico", persone: 3, area: "piazzale 2", stato: "operativa" },
+    { id: "q3", nome: "Squadra C — Impianto", persone: 2, area: "frantoio", stato: "ferma" },
+  ],
   scadenze: [
     { id: "s1", lavoratoreId: "d1", tipo: "Visita medica", descrizione: "Visita medica periodica", dataScadenza: "2026-07-02" },
     { id: "s2", lavoratoreId: "d2", tipo: "Corso", descrizione: "Corso antincendio", dataScadenza: "2026-07-11" },
@@ -1374,6 +1390,12 @@ function ponteDemoScrivi(lista) {
   catch (e) { return false; }
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// PONTE P3 CON CAMPO — la regola sta in `shared/dw-ponti.js` perché serve a due
+// app, e Scudo la ri-esporta col nome con cui la chiamano le sue pagine.
+// ══════════════════════════════════════════════════════════════════════
+export { inTurnoOggi, scadenzeDiChiLavora } from "../../shared/dw-ponti.js";
+
 export async function scudoData() {
   // tenta il backend reale; qualunque problema → demo (tour/mockup)
   let mode = "demo", api = null;
@@ -1405,6 +1427,27 @@ export async function scudoData() {
         aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), data),
         rimuovi: (name, docId) => deleteDoc(doc(id.orgCollection(name), docId)),
       };
+      // ── PONTE P3 CON CAMPO — SOLA LETTURA ─────────────────────────────
+      // Il gemello di quello che Campo ha verso Scudo: seconda istanza dell'SDK
+      // sull'app "campo", stessa organizzazione, percorso da `orgCollection`.
+      // Scudo LEGGE chi è schierato e non tocca niente: le squadre si fermano e
+      // si rimettono in turno in Campo, che resta l'unica strada per quel dato.
+      // Se Campo non c'è torna null, e lo scadenzario resta quello di sempre —
+      // senza fingere che non stia lavorando nessuno, che darebbe «niente da
+      // fermare» proprio quando non si è guardato.
+      let idCampo;                     // undefined = mai provato, null = non c'è
+      const leggiCampo = async (nome) => {
+        if (idCampo === undefined) {
+          try { idCampo = await DeepworkID.init({ appId: "campo" }); }
+          catch (e) { idCampo = null; }
+        }
+        if (!idCampo) return null;
+        try {
+          return (await getDocs(idCampo.orgCollection(nome))).docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e) { return null; }
+      };
+      api.operatoriCampo = () => leggiCampo("operatori");
+      api.squadreCampo = () => leggiCampo("squadre");
     } else if (id.authState() === "tour") {
       mode = "tour";
     }
@@ -1416,6 +1459,10 @@ export async function scudoData() {
     api = {
       lavoratori: async () => mem.lavoratori,
       scadenze:   async () => mem.scadenze,
+      // in dimostrazione chi è schierato non arriva da Campo: è finto, ma
+      // copiato dalla dimostrazione di Campo id per id (vedi DEMO.operatoriCampo)
+      operatoriCampo: async () => mem.operatoriCampo || [],
+      squadreCampo:   async () => mem.squadreCampo || [],
       documenti:  async () => mem.documenti,
       infortuni:  async () => mem.infortuni,
       cantieri:   async () => mem.cantieri,
