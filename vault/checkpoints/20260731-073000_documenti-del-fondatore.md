@@ -3,7 +3,7 @@
 - **Tipo**: tre unità sui documenti che si usano davanti a qualcuno
 - **Branch**: `claude/scheduled-tasks-remote-control-bk4ap6`
 - **Commit**: `8ad1673` (Genesi + Deepwork ID), `292eb9e` (le decisioni),
-  `1a01c2d` (il documento di vendita)
+  `3b2b967` (il documento di vendita)
 
 ## 1. Genesi aveva la scheda più povera, ed è l'app che fa più impressione
 
