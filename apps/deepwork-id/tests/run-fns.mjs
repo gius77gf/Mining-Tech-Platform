@@ -105,6 +105,20 @@ await test("un ADMIN NON può toccare il ruolo di un owner", async () => {
   await expectCode(id.updateMemberRole("boss", "member"), "permission-denied", "admin ha declassato un owner");
 });
 await test("l'ULTIMO owner non può auto-declassarsi", async () => {
+  // PERCHÉ QUI SI ASPETTA IL CLAIM, anche se il setup l'ha già scritto a mano.
+  // Il file comincia cancellando TUTTI gli utenti Auth e TUTTI i documenti. La
+  // cancellazione dei documenti fa scattare `onMemberWrite` sulle membership che
+  // sta rimuovendo, e quel trigger — che arriva in RITARDO, dopo che `mk()` ha
+  // già ricreato utente, claim e membership — ricalcola i ruoli e riscrive i
+  // claims con quello che vede in quel momento. Se atterra nell'istante
+  // sbagliato, azzera l'`owner` di boss: il login successivo prende un token
+  // senza ruoli e la function risponde `permission-denied` invece del
+  // `failed-precondition` che questa prova sta misurando.
+  // Osservato in CI il 31/07 (due prove rosse, «no user record» nei log delle
+  // functions); lo stesso commit è tornato verde al rilancio, che è la firma di
+  // una corsa e non di una rottura. L'attesa qui la toglie di mezzo, ed è lo
+  // stesso rimedio già usato due volte più sotto in questo file.
+  await waitClaim("boss", "orgA", "owner");
   await id.loginWithEmail("boss@cava-alfa.it", "password-123");
   await expectCode(id.updateMemberRole("boss", "admin"), "failed-precondition", "ultimo owner declassato");
 });

@@ -36,7 +36,26 @@ async function rebuildClaims(uid) {
     const orgId = doc.ref.parent.parent.id;
     orgs[orgId] = doc.data().role || "member";
   }
-  await admin.auth().setCustomUserClaims(uid, { orgs });
+  try {
+    await admin.auth().setCustomUserClaims(uid, { orgs });
+  } catch (e) {
+    // UN UTENTE CHE NON ESISTE PIÙ NON È UN GUASTO DEL SISTEMA: è un fatto.
+    // Succede quando qualcuno cancella il proprio profilo e la membership resta,
+    // e succede negli emulatori quando la pulizia iniziale toglie gli account
+    // mentre i trigger delle cancellazioni sono ancora in volo. Finora
+    // l'eccezione non gestita UCCIDEVA il trigger («Your function was killed
+    // because it raised an unhandled error»): un fallimento rumoroso su un caso
+    // che non richiede nessuna azione, e che portava con sé le invocazioni
+    // legittime in corso.
+    // Si assorbe SOLO questo codice: qualunque altro errore deve continuare a
+    // far fallire il trigger, perché lì un claim non aggiornato è un problema di
+    // sicurezza vero e va visto.
+    if (e && e.code === "auth/user-not-found") {
+      console.warn(`rebuildClaims: nessun utente Auth per ${uid}, membership orfana — niente da aggiornare`);
+      return orgs;
+    }
+    throw e;
+  }
   return orgs;
 }
 
