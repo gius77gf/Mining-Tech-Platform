@@ -35,12 +35,20 @@ const SENZA_RITORNO = ['/index.html', '/apps/deepwork-id/index.html'];
 const CONTROPROVA = process.argv.includes('--senza-ritorno');
 const RITORNI = ['class="dw-home"', 'class="g-home"'];
 
+/* CONTROPROVA della sola prova d'avvio: «--senza-programma» uccide il modulo di
+   ogni pagina. Serve perché «la pagina monta davvero» NON sa accorgersene —
+   misurato il 01/08: col programma morto passa su nove superfici su nove,
+   perché il markup delle app è quasi tutto statico. Qui si pretende che almeno
+   le sei app che hanno la nota del modo diventino rosse. */
+const SENZA_PROGRAMMA = process.argv.includes('--senza-programma');
+
 let ok = 0, ko = 0;
 const prova = (n, c, e) => {
   if (c) { ok++; console.log('  ok  ' + n); }
   else { ko++; console.log('  KO  ' + n + (e !== undefined ? '\n        -> ' + JSON.stringify(e) : '')); }
 };
 
+let conNotaModo = 0, avvioRosso = 0;
 const b = await chromium.launch({ executablePath: CHROMIUM });
 const ctx = await b.newContext({ viewport: { width: 1280, height: 900 }, locale: 'it-IT' });
 const p = await ctx.newPage();
@@ -150,6 +158,18 @@ for (const { href, nome } of schede) {
   const errori = [];
   q.on('pageerror', (e) => errori.push(e.message));
   if (via === '/index.html') await montaFintoFirebase(q);
+  /* CONTROPROVA DELLA PROVA D'AVVIO: si uccide il modulo della pagina. Il
+     markup statico resta tutto — ed è il motivo per cui «monta davvero» non se
+     ne accorge — ma la nota del modo nessuno la scrive più. */
+  if (SENZA_PROGRAMMA) {
+    await q.route('**' + via, async (r) => {
+      const res = await r.fetch();
+      const prima = await res.text();
+      const dopo = prima.split('<script type="module">').join('<script type="module">throw new Error("programma ucciso dalla controprova");');
+      if (dopo === prima) { console.error(`  ✗ ${nome}: CONTROPROVA INERTE, nessun modulo trovato nel sorgente`); process.exitCode = 2; }
+      await r.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: dopo });
+    });
+  }
   if (CONTROPROVA && !SENZA_RITORNO.includes(via)) {
     await q.route('**' + via, async (r) => {
       const res = await r.fetch();
@@ -183,6 +203,42 @@ for (const { href, nome } of schede) {
     vivo.caratteri > 120 && (vivo.elementi > 40 || (vivo.campi >= 1 && vivo.comandi >= 2)), vivo);
   prova(`${nome}: nessun errore di pagina`, errori.length === 0, errori.slice(0, 2));
 
+  /* «IL PROGRAMMA È PARTITO» è una domanda DIVERSA da «la pagina monta».
+     ────────────────────────────────────────────────────────────────────
+     ⚠️ Misurato il 01/08, uccidendo il modulo di ogni superficie: «monta
+     davvero» passa su NOVE superfici su nove. Il markup delle app è in gran
+     parte statico, quindi caratteri, elementi, campi e comandi ci sono lo
+     stesso — Conti col programma morto fa 488 elementi e 54 campi. Quella
+     prova, da sola, non sa fallire per la ragione per cui esiste. La salva
+     solo «nessun errore di pagina», e soltanto se il modulo muore RUMOROSO:
+     un modulo che esce in silenzio passerebbe tutte e due.
+
+     La nota del modo la scrive il programma all'avvio, e solo lui. Misurata
+     viva e morta sulle stesse pagine: 57-72 caratteri contro 0, su tutte e
+     sette le superfici che ce l'hanno. Non è un indovinello, è la differenza
+     che si vede.
+
+     Core, vetrina e Genesi non hanno questo segno e restano scoperti: il
+     numero di superfici coperte si stampa, così non sembra che siano tutte. */
+  /* ⚠️ SI ASPETTA LA CONDIZIONE, NON L'OROLOGIO. Scritta con i 2200 ms fissi
+     del resto del banco, questa prova era FLAKY: la prima app visitata paga il
+     riscaldamento del browser e ogni tanto arrivava a 0 caratteri, per averne
+     57 al giro successivo sulla stessa pagina immobile. Una prova che fallisce
+     a caso è peggio di nessuna prova — insegna a ignorare il rosso, e il primo
+     rosso vero passa inosservato. */
+  const leggiNota = () => q.evaluate(() => {
+    const e = document.getElementById('mode-note');
+    return e ? (e.textContent || '').trim().length : -1;
+  });
+  let avvio = await leggiNota();
+  for (let i = 0; i < 20 && avvio === 0; i++) { await q.waitForTimeout(250); avvio = await leggiNota(); }
+  if (avvio >= 0) {
+    conNotaModo++;
+    if (avvio === 0) avvioRosso++;
+    prova(`${nome}: il programma è partito davvero (la nota del modo ha ${avvio} caratteri)`,
+      avvio > 0, { avvio, perche: 'con il modulo morto qui ci sono 0 caratteri' });
+  }
+
   if (!SENZA_RITORNO.includes(via)) {
     const ritorno = await q.evaluate(() => {
       const a = [...document.querySelectorAll('a[href]')].find((x) =>
@@ -202,4 +258,22 @@ await b.close();
 console.log(`\n${ok} passate, ${ko} fallite`);
 /* nella controprova il successo è il contrario: se NON cade niente, il banco
    non sta misurando il ritorno */
+console.log(`${conNotaModo} superfici hanno la nota del modo, e su quelle si è preteso che il programma fosse partito`);
+/* SEI, non sette: l'amministrazione di Deepwork ID la nota del modo ce l'ha,
+   ma non è un riquadro della vetrina e questo banco non ci passa. Il numero è
+   asserito perché se domani una app perdesse la nota, la prova sparirebbe in
+   silenzio e il totale resterebbe verde. */
+if (SENZA_PROGRAMMA) {
+  const attese = 6;   // le sei app: col programma morto la nota resta vuota
+  if (avvioRosso === attese) {
+    console.log(`La controprova ha spento il programma e tutte e ${attese} le app se ne sono accorte: la prova sa fallire.`);
+    process.exit(0);
+  }
+  console.error(`\n⚠️ CONTROPROVA INCOMPLETA: solo ${avvioRosso} app su ${attese} hanno visto il programma morto.`);
+  process.exit(1);
+}
+if (!CONTROPROVA && conNotaModo !== 6) {
+  console.error(`  ✗ le superfici con la nota del modo sono ${conNotaModo}, me ne aspettavo 6 (le sei app; l'amministrazione non è nella vetrina)`);
+  ko++;
+}
 process.exit(CONTROPROVA ? (ko ? 0 : 1) : (ko ? 1 : 0));

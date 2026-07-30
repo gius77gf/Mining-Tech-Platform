@@ -69,6 +69,29 @@ Due eccezioni dichiarate: il core si apre sulla sua schermata d'accesso ed è
 quello che deve fare, e Deepwork ID è la porta d'ingresso, non una stanza da cui
 uscire.
 
+### `--senza-programma`: «la pagina monta» non basta
+
+⚠️ **Misurato il 01/08, ed è il motivo per cui questa prova esiste.** La prova
+«la pagina monta davvero» guarda caratteri, elementi, campi e comandi. Uccidendo
+il modulo di ogni superficie, **passa su nove superfici su nove**: il markup
+delle app è quasi tutto statico, quindi Conti col programma morto fa comunque
+488 elementi e 54 campi. Quella prova, da sola, non sa fallire per la ragione
+per cui esiste. La salva solo «nessun errore di pagina», e soltanto se il
+modulo muore **rumoroso**: uno che esce in silenzio passerebbe tutte e due.
+
+La nota del modo (`mode-note`) la scrive il programma all'avvio, e solo lui:
+viva porta 57-72 caratteri, morta ne porta **0**. Con `--senza-programma` si
+uccide il modulo e si pretende che tutte e **sei** le app se ne accorgano.
+
+```sh
+node apps/deepwork-id/tests/browser/vetrina-collegamenti.mjs 8823 --senza-programma
+```
+
+Due dettagli: l'attesa è **a condizione, non a orologio** (coi 2200 ms fissi la
+prova era flaky — la prima app visitata paga il riscaldamento del browser), e il
+numero di superfici con la nota del modo è **asserito** a sei, così se una app
+la perdesse la prova non sparirebbe in silenzio lasciando il totale verde.
+
 ## `unita-maiuscole.mjs`
 
 ⛔ La regola vincolante numero due — **le unità di misura non vanno mai in

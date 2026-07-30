@@ -28,6 +28,7 @@ const BANCHI = [
   ['unità · controprova', 'unita-maiuscole.mjs', ['--controprova', '--solo=campo'], true],
   ['collegamenti della vetrina', 'vetrina-collegamenti.mjs', []],
   ['collegamenti · controprova', 'vetrina-collegamenti.mjs', ['--senza-ritorno'], true],
+  ['programma partito · controprova', 'vetrina-collegamenti.mjs', ['--senza-programma'], true],
   ['striscia di stato dei riquadri', 'note-stato.mjs', []],
   ['striscia di stato · controprova', 'note-stato.mjs', ['--controprova'], true],
   ['niente fuori schermo', 'fuori-schermo.mjs', []],
