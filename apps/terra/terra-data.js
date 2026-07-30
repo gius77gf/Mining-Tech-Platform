@@ -61,6 +61,32 @@ export const DEMO = {
       riferimenti: "Protocollo di esempio · progetto di coltivazione allegato all'atto",
       stato: "vigente", sogliaGuardiaPct: 80, preavvisoGiorni: 90, anniRitmo: 3 },
   ],
+  // I RAPPORTINI DI TURNO che in esercizio arrivano da Campo (ponte P2, sola
+  // lettura). Qui sono finti, ma coerenti coi rilievi qui sopra: nel periodo
+  // fra gli ultimi due rilievi di scavo (02–15/07) i turni dichiarano 35.960 t
+  // che, alla densità della sabbia e ghiaia in banco (1,9 t/m³), fanno 18.926
+  // m³ contro i 19.400 misurati dal volo del 15/07 — uno scostamento del 2,4%,
+  // cioè quello che si vede quando i due numeri si parlano.
+  // Gli ultimi tre stanno DOPO il rilievo: sono il buco che la stima corrente
+  // riempie. E uno è in VIAGGI di proposito, per far vedere che non si
+  // convertono: servirebbe la portata del mezzo, che Terra non ha.
+  rapportiniCampo: [
+    { id: "c1",  data: "2026-07-02", turno: "Mattina",   squadra: "Squadra B", prodQta: 3050, prodUnita: "t", stato: "inviato" },
+    { id: "c2",  data: "2026-07-03", turno: "Mattina",   squadra: "Squadra B", prodQta: 2880, prodUnita: "t", stato: "inviato" },
+    { id: "c3",  data: "2026-07-04", turno: "Pomeriggio", squadra: "Squadra B", prodQta: 3210, prodUnita: "t", stato: "inviato" },
+    { id: "c4",  data: "2026-07-06", turno: "Mattina",   squadra: "Squadra B", prodQta: 2740, prodUnita: "t", stato: "inviato" },
+    { id: "c5",  data: "2026-07-07", turno: "Mattina",   squadra: "Squadra B", prodQta: 3120, prodUnita: "t", stato: "inviato" },
+    { id: "c6",  data: "2026-07-08", turno: "Pomeriggio", squadra: "Squadra B", prodQta: 2960, prodUnita: "t", stato: "inviato" },
+    { id: "c7",  data: "2026-07-09", turno: "Mattina",   squadra: "Squadra B", prodQta: 3300, prodUnita: "t", stato: "inviato" },
+    { id: "c8",  data: "2026-07-10", turno: "Mattina",   squadra: "Squadra B", prodQta: 2810, prodUnita: "t", stato: "inviato" },
+    { id: "c9",  data: "2026-07-13", turno: "Mattina",   squadra: "Squadra B", prodQta: 3040, prodUnita: "t", stato: "inviato" },
+    { id: "c10", data: "2026-07-14", turno: "Pomeriggio", squadra: "Squadra B", prodQta: 3180, prodUnita: "t", stato: "inviato" },
+    { id: "c11", data: "2026-07-15", turno: "Mattina",   squadra: "Squadra B", prodQta: 2650, prodUnita: "t", stato: "inviato" },
+    { id: "c12", data: "2026-07-15", turno: "Pomeriggio", squadra: "Squadra B", prodQta: 3020, prodUnita: "t", stato: "inviato" },
+    { id: "c13", data: "2026-07-17", turno: "Mattina",   squadra: "Squadra B", prodQta: 2900, prodUnita: "t", stato: "inviato" },
+    { id: "c14", data: "2026-07-20", turno: "Mattina",   squadra: "Squadra B", prodQta: 3110, prodUnita: "t", stato: "inviato" },
+    { id: "c15", data: "2026-07-22", turno: "Notte",     squadra: "Squadra B", prodQta: 18,   prodUnita: "viaggi", stato: "inviato" },
+  ],
   scadenze: [
     { id: "t1", tipo: "autorizzazione", descrizione: "Scadenza del titolo autorizzativo", dataScadenza: "2031-03-14", preavvisoGiorni: 180, ricorrenzaMesi: null, note: "" },
     { id: "t2", tipo: "fideiussione", descrizione: "Polizza fideiussoria — rinnovo annuale", dataScadenza: "2026-09-30", preavvisoGiorni: 90, ricorrenzaMesi: 12, note: "Si svincola solo dopo il collaudo finale." },
@@ -821,6 +847,228 @@ export function kpiFrom(fronti, rilievi, piano, oggi = new Date()) {
   };
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// PONTE P2 — CAMPO → TERRA: quello che i turni dichiarano, fra due rilievi
+// ══════════════════════════════════════════════════════════════════════
+//
+// A COSA SERVE. Terra misura col drone, e un volo si fa una volta al mese o
+// meno. Fra due voli Terra non sa niente: la tessera dice il volume dell'ultimo
+// rilievo e resta ferma per settimane, mentre la cava continua a produrre. I
+// turni invece sanno ogni giorno quanto è uscito. Questo ponte porta in Terra
+// quel numero, e serve a due cose: una **stima corrente** fra due rilievi, e un
+// **confronto** quando il rilievo nuovo arriva.
+//
+// IL MODO DI SBAGLIARE PEGGIORE DEL PROBLEMA CHE RISOLVE, e come è stato
+// evitato. La tentazione è far entrare la produzione di turno fra i rilievi,
+// così le tessere di Terra si aggiornano da sole. Sarebbe il difetto peggiore
+// della piattaforma, per tre ragioni che non si vedono subito:
+//   1. i rilievi **consumano il volume concesso** e finiscono nel riepilogo
+//      annuale che il cliente **consegna agli enti**. Un conteggio di viaggi
+//      dichiarato da un preposto non è una misura, e in un documento
+//      autorizzativo prenderebbe l'aspetto di una misura;
+//   2. un rilievo porta con sé **metodo e GSD** — è difendibile in audit
+//      (`qualitaRilievo`). Un numero dichiarato non ha niente di tutto questo:
+//      dentro l'insieme dei rilievi sarebbe l'unico indifendibile, e nessuno
+//      saprebbe più quale;
+//   3. **si conterebbe due volte** la stessa roccia: quella che i camion hanno
+//      portato via è la stessa che il volo successivo misura come vuoto di
+//      scavo. Sommarle raddoppia.
+// Quindi qui NON si crea nessun rilievo, mai. Le funzioni sono pure e
+// restituiscono numeri **dichiarati**, tenuti separati e nominati come tali.
+//
+// COSA QUESTO PONTE NON PUÒ FARE, e va detto invece di aggirarlo: i rapportini
+// di Campo **non hanno un fronte**. Il fronte compare solo come testo dentro il
+// titolo di un'attività o nell'area di una squadra, e indovinarlo da lì
+// attribuirebbe metri cubi a un fronte sbagliato — cioè al volume concesso
+// sbagliato. Il confronto quindi vive a livello di **cava**, non di fronte, e
+// lo dichiara. Se un giorno Campo avrà il fronte sul rapportino, il confronto
+// per fronte si aggiunge senza toccare niente di questo.
+//
+// IL CONTRATTO CON CAMPO. Un rapportino porta la produzione in `prodQta` +
+// `prodUnita`, con le unità ammesse `t` / `m³` / `viaggi` (vedi
+// `produzioneDi` e `UNITA_PRODUZIONE` in apps/campo/campo-data.js). Questa è la
+// forma del dato che attraversa il confine; un test in
+// apps/deepwork-id/tests/run-kpi.mjs verifica che la lettura qui e quella di
+// Campo dicano la stessa cosa sugli stessi record, così se Campo cambia la
+// forma il disallineamento **fallisce** invece di restare in silenzio.
+
+const RAPP_UNITA = ["t", "m³", "viaggi"];
+const dataISOBuona = (d) => /^\d{4}-\d{2}-\d{2}$/.test(String(d || ""));
+const r2 = (n) => Math.round(n * 100) / 100;
+const r3 = (n) => Math.round(n * 1000) / 1000;
+
+// La produzione dichiarata da un rapportino: { qta, unita } oppure null.
+// Stessa regola di Campo: serve una quantità > 0, e l'unità sconosciuta ricade
+// sulle tonnellate. Un rapportino in BOZZA conta: la produzione è produzione,
+// ed è la stessa scelta che Campo fa nello stato dell'obiettivo di turno.
+export function produzioneRapportino(r) {
+  const q = +((r && r.prodQta) ?? NaN);
+  if (!Number.isFinite(q) || q <= 0) return null;
+  return { qta: q, unita: RAPP_UNITA.includes(r && r.prodUnita) ? r.prodUnita : RAPP_UNITA[0] };
+}
+
+// QUANTO HANNO DICHIARATO I TURNI in un periodo, riportato in metri cubi dove
+// si può. Le tre unità non si trattano allo stesso modo, e la differenza è il
+// punto della funzione:
+//   · m³   → si sommano così come sono, è già la grandezza di Terra;
+//   · t    → servono i metri cubi, quindi la DENSITÀ (t/m³). Senza densità non
+//            si converte e non si stima: quelle tonnellate restano fuori dal
+//            totale in m³ e vengono contate a parte (`tSenzaDensita`), come nel
+//            ponte Terra ↔ Conti. Una densità inventata sposta il confronto di
+//            quanto il confronto dovrebbe misurare;
+//   · viaggi → **non si convertono mai**. Per farlo servirebbe la portata del
+//            mezzo, che Terra non ha e che cambia da camion a camion e da
+//            carico a carico. Si contano e si dichiarano a parte.
+// Ritorna null se i rapportini non arrivano: «non lo so» e «zero» sono due
+// risposte diverse. Pura e testabile.
+export function produzioneDichiarata(rapportini, dal, al, densita) {
+  if (!Array.isArray(rapportini)) return null;
+  const d1 = String(dal || ""), d2 = String(al || "");
+  const dens = +densita;
+  const densOk = Number.isFinite(dens) && dens > 0;
+  let m3Diretti = 0, t = 0, viaggi = 0, turni = 0, senzaProduzione = 0, senzaData = 0;
+  let primo = null, ultimo = null;
+  for (const r of rapportini) {
+    const d = String((r || {}).data || "");
+    if (!dataISOBuona(d)) { senzaData++; continue; }
+    if (d1 && d < d1) continue;
+    if (d2 && d > d2) continue;
+    const p = produzioneRapportino(r);
+    if (!p) { senzaProduzione++; continue; }
+    turni++;
+    if (!primo || d < primo) primo = d;
+    if (!ultimo || d > ultimo) ultimo = d;
+    if (p.unita === "m³") m3Diretti = r3(m3Diretti + p.qta);
+    else if (p.unita === "t") t = r2(t + p.qta);
+    else viaggi += p.qta;
+  }
+  const m3DaTonnellate = densOk ? r3(t / dens) : 0;
+  const m3 = r3(m3Diretti + m3DaTonnellate);
+  return {
+    m3, m3Diretti, m3DaTonnellate,
+    t, tSenzaDensita: densOk ? 0 : t,
+    viaggi, turni, senzaProduzione, senzaData,
+    primo, ultimo,
+    densita: densOk ? dens : null,
+    // c'è qualcosa che NON è entrato nel totale in m³? Allora il confronto è
+    // per difetto, e chi legge deve saperlo prima di trarne conclusioni.
+    parziale: (!densOk && t > 0) || viaggi > 0,
+  };
+}
+
+// Le soglie del giudizio, in % di quanto ha misurato il rilievo.
+// NON sono quelle del ponte Terra ↔ Conti (10% / 35%), e la differenza è
+// voluta: là si confrontano due misure (un rilievo e una pesa), qui una misura
+// con una STIMA A OCCHIO fatta a fine turno da chi ha altro da fare. Pretendere
+// la stessa precisione farebbe suonare l'allarme su una differenza normale, e un
+// allarme che suona sempre insegna a non guardarlo più.
+export const SOGLIA_TURNI = { coerente: 15, attenzione: 40 };
+
+// IL CONFRONTO fra quello che il rilievo ha MISURATO e quello che i turni hanno
+// DICHIARATO, nello stesso periodo. Ritorna sempre uno `stato` che dice come va
+// letto il numero:
+//   no-campo       · i rapportini non arrivano: senza dichiarato non c'è confronto
+//   no-misura      · nel periodo non c'è nessun rilievo elaborato con volume
+//   no-dichiarato  · nel periodo nessun turno ha dichiarato una produzione
+//   no-densita     · i turni hanno dichiarato solo tonnellate (senza densità)
+//                    e/o viaggi: niente è convertibile in m³, non si confronta
+//   coerente       · scostamento dentro il ±15% del misurato
+//   attenzione     · fra il 15% e il 40%: conviene andare a guardare
+//   implausibile   · oltre il 40%: non è imprecisione di stima, è un errore
+//   sopra-misura   · dichiarato MAGGIORE del misurato: i turni dicono di aver
+//                    tirato fuori più roccia di quanta ne manchi dal fronte.
+//                    Non è una sfumatura: o le stime di turno sono gonfie, o il
+//                    rilievo non copre tutto quello che è stato scavato.
+// `scostamento` è misurato − dichiarato in m³. Il segno conta e non si
+// arrotonda via: senza verso non si sa da che parte cercare.
+export function riconciliazioneTurni(rilievi, rapportini, dal, al, densita) {
+  const dich = produzioneDichiarata(rapportini, dal, al, densita);
+  const mis = misuratoPeriodo(rilievi, dal, al);
+  const base = { mis, dich, scostamento: null, pct: null,
+                 parziale: !!(dich && dich.parziale) };
+  if (dich === null) return { ...base, stato: "no-campo" };
+  if (mis === null || !(mis.m3 > 0)) return { ...base, stato: "no-misura" };
+  if (!dich.turni) return { ...base, stato: "no-dichiarato" };
+  if (!(dich.m3 > 0)) return { ...base, stato: "no-densita" };
+  const scostamento = r3(mis.m3 - dich.m3);
+  const pct = r2(100 * scostamento / mis.m3);
+  const stato = scostamento < 0 ? "sopra-misura"
+    : pct <= SOGLIA_TURNI.coerente ? "coerente"
+    : pct <= SOGLIA_TURNI.attenzione ? "attenzione"
+    : "implausibile";
+  return { ...base, stato, scostamento, pct };
+}
+
+// Quanto hanno MISURATO i rilievi nel periodo: solo gli ELABORATI con un
+// volume, e solo lo SCAVO — un cumulo ripreso dal piazzale non è roccia uscita
+// dal fronte, mentre i turni che lo caricano la dichiarano come produzione. È
+// una delle ragioni per cui il dichiarato può risultare più alto, e la funzione
+// conta i cumuli a parte così il confronto può dirlo. null se i rilievi non
+// arrivano. Pura e testabile.
+export function misuratoPeriodo(rilievi, dal, al) {
+  if (!Array.isArray(rilievi)) return null;
+  const d1 = String(dal || ""), d2 = String(al || "");
+  let m3 = 0, n = 0, m3Cumulo = 0, nCumulo = 0, pianificati = 0;
+  let primo = null, ultimo = null;
+  for (const r of rilievi) {
+    const v = +((r || {}).volumeM3);
+    const d = String((r || {}).data || "");
+    if ((r || {}).stato === "pianificato") pianificati++;
+    if ((r || {}).stato !== "elaborato" || !Number.isFinite(v) || !dataISOBuona(d)) continue;
+    if (d1 && d < d1) continue;
+    if (d2 && d > d2) continue;
+    if (provenienzaRilievo(r) === "cumulo") { m3Cumulo = r3(m3Cumulo + v); nCumulo++; continue; }
+    m3 = r3(m3 + v); n++;
+    if (!primo || d < primo) primo = d;
+    if (!ultimo || d > ultimo) ultimo = d;
+  }
+  return { m3, rilievi: n, m3Cumulo, rilieviCumulo: nCumulo, pianificati, primo, ultimo };
+}
+
+// IL PERIODO NATURALE DEL CONFRONTO: fra i due ultimi rilievi elaborati.
+// Non è un mese di calendario, ed è meglio così: il volume di un rilievo è
+// l'accumulo dall'ultimo volo, quindi confrontarlo con un mese qualsiasi
+// significa mettere insieme intervalli diversi e leggere uno scostamento che
+// nasce solo dalle date. Il periodo parte dal giorno DOPO il penultimo rilievo
+// (quel giorno è già dentro la misura precedente) e finisce col giorno
+// dell'ultimo. Serve la data di DUE rilievi: con uno solo non c'è un intervallo,
+// e allora null. Pura e testabile.
+export function periodoFraUltimiRilievi(rilievi) {
+  if (!Array.isArray(rilievi)) return null;
+  const date = [...new Set(rilievi
+    .filter(r => r && r.stato === "elaborato" && +((r || {}).volumeM3) === +r.volumeM3
+      && r.volumeM3 != null && dataISOBuona(r.data) && provenienzaRilievo(r) === "scavo")
+    .map(r => String(r.data)))].sort();
+  if (date.length < 2) return null;
+  const al = date[date.length - 1], penultimo = date[date.length - 2];
+  const g = new Date(penultimo + "T00:00:00Z");
+  g.setUTCDate(g.getUTCDate() + 1);
+  const dal = g.toISOString().slice(0, 10);
+  if (dal > al) return null;
+  return { dal, al, rilievoPrecedente: penultimo };
+}
+
+// LA STIMA CORRENTE: dal giorno dopo l'ultimo rilievo elaborato a oggi, quanto
+// hanno dichiarato i turni. È il numero che riempie il buco fra due voli del
+// drone — l'unica cosa che Terra può dire di quel periodo, e va detta come
+// stima dichiarata, mai come volume misurato.
+// Ritorna null se non c'è nessun rilievo elaborato da cui partire (senza un
+// punto di partenza non è un avanzamento, è solo una somma) o se i rapportini
+// non arrivano. Pura e testabile: `oggi` si passa.
+export function avanzamentoDaUltimoRilievo(rilievi, rapportini, densita, oggi = new Date()) {
+  const mis = misuratoPeriodo(rilievi, "", "");
+  if (mis === null || !mis.ultimo) return null;
+  const giornoDopo = new Date(mis.ultimo + "T00:00:00Z");
+  giornoDopo.setUTCDate(giornoDopo.getUTCDate() + 1);
+  const dal = giornoDopo.toISOString().slice(0, 10);
+  const al = (oggi instanceof Date ? oggi : new Date(oggi)).toISOString().slice(0, 10);
+  if (dal > al) return null;                      // il rilievo è di oggi: niente buco da riempire
+  const dich = produzioneDichiarata(rapportini, dal, al, densita);
+  if (dich === null) return null;
+  const giorni = Math.round((new Date(al + "T00:00:00Z") - new Date(dal + "T00:00:00Z")) / 86400000) + 1;
+  return { dal, al, giorni, dallUltimoRilievo: mis.ultimo, dich };
+}
+
 export async function terraData() {
   let mode = "demo", api = null;
   try {
@@ -843,6 +1091,29 @@ export async function terraData() {
         aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), data),
         rimuovi: (name, docId) => deleteDoc(doc(id.orgCollection(name), docId)),
       };
+      // ── PONTE P2 CON CAMPO — SOLA LETTURA ─────────────────────────────
+      // Seconda istanza dell'SDK sull'app "campo", stessa organizzazione: il
+      // percorso lo costruisce `orgCollection`, come per i dati di Terra —
+      // nessun percorso Firestore scritto a mano, quindi l'isolamento fra
+      // organizzazioni vale anche qui. Nessuna scrittura: Terra legge i
+      // rapportini, non li tocca. È lo stesso impianto di `rilieviTerra()` in
+      // apps/conti/conti-data.js.
+      // Si apre solo quando serve — la prima volta che si guarda il confronto —
+      // così l'avvio di Terra non rallenta per una cosa che magari non si
+      // guarda. Se Campo non c'è, o se la lettura non è permessa, torna null:
+      // l'app dirà che il dichiarato non è disponibile, senza inventare zero.
+      let idCampo;                       // undefined = mai provato, null = non c'è
+      api.rapportiniCampo = async () => {
+        if (idCampo === undefined) {
+          try { idCampo = await DeepworkID.init({ appId: "campo" }); }
+          catch (e) { idCampo = null; }
+        }
+        if (!idCampo) return null;
+        try {
+          return (await getDocs(idCampo.orgCollection("rapportini")))
+            .docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e) { return null; }
+      };
     } else if (id.authState() === "tour") mode = "tour";
   } catch (e) { /* backend assente: demo */ }
 
@@ -854,6 +1125,9 @@ export async function terraData() {
       piano: async () => mem.piano,
       autorizzazioni: async () => mem.autorizzazioni,
       scadenze: async () => mem.scadenze,
+      // in dimostrazione i rapportini non arrivano da Campo: sono finti, ma
+      // coerenti coi rilievi d'esempio (vedi DEMO.rapportiniCampo)
+      rapportiniCampo: async () => mem.rapportiniCampo || [],
       logout: async () => {},
       aggiungi: async (name, data) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[name] = mem[name] || []).push({ id, ...data }); return { id }; },
       aggiorna: async (name, docId, data) => { const x = (mem[name] || (mem[name] = [])).find(v => v.id === docId); if (x) Object.assign(x, data); },

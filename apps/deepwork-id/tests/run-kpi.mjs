@@ -2040,5 +2040,200 @@ test("il ponte Terra ↔ Conti non cambia di un decimale", () => {
     "e senza densità NON si converte: le tonnellate restano dichiarate a parte");
 });
 
+/* ══════════════════════════════════════════════════════════════════════
+   PONTE P2 — CAMPO → TERRA: il dichiarato dei turni, e le tre cose che
+   non deve poter diventare.
+   ══════════════════════════════════════════════════════════════════════ */
+test("P2: le tre unità di Campo non si trattano allo stesso modo", () => {
+  const rapp = [
+    { data: "2026-03-02", turno: "Mattina", prodQta: 1300, prodUnita: "t" },
+    { data: "2026-03-03", turno: "Mattina", prodQta: 500,  prodUnita: "m³" },
+    { data: "2026-03-04", turno: "Notte",   prodQta: 12,   prodUnita: "viaggi" },
+  ];
+  const d = terra.produzioneDichiarata(rapp, "2026-03-01", "2026-03-31", 2.6);
+  /* 1300 t / 2,6 = 500 m³, più i 500 m³ dichiarati direttamente = 1000 */
+  contiene(d, { m3: 1000, m3Diretti: 500, m3DaTonnellate: 500, t: 1300, viaggi: 12, turni: 3 },
+    "tonnellate convertite con la densità, metri cubi sommati, viaggi contati a parte");
+  ok(d.parziale === true, "con dei viaggi dentro il totale in m³ è per difetto, e lo dichiara");
+  /* i VIAGGI non si convertono MAI: servirebbe la portata del mezzo, che
+     cambia da camion a camion. Nessuna densità li fa entrare nei m³. */
+  const soloViaggi = terra.produzioneDichiarata([rapp[2]], "2026-03-01", "2026-03-31", 2.6);
+  contiene(soloViaggi, { m3: 0, viaggi: 12, turni: 1 }, "dodici viaggi non diventano metri cubi");
+});
+test("P2: senza densità le tonnellate NON si convertono e non si stimano", () => {
+  const rapp = [{ data: "2026-03-02", prodQta: 1300, prodUnita: "t" }];
+  const d = terra.produzioneDichiarata(rapp, "2026-03-01", "2026-03-31", null);
+  contiene(d, { m3: 0, t: 1300, tSenzaDensita: 1300, densita: null, parziale: true },
+    "le tonnellate restano dichiarate a parte, come nel ponte Terra ↔ Conti");
+  /* e una densità impossibile non vale come densità */
+  for (const cattiva of [0, -2.6, NaN, "due virgola sei", null, undefined]) {
+    const x = terra.produzioneDichiarata(rapp, "2026-03-01", "2026-03-31", cattiva);
+    ok(x.m3 === 0 && x.tSenzaDensita === 1300, `densità ${JSON.stringify(cattiva)}: non si converte`);
+  }
+});
+test("P2: «non lo so» e «zero» restano due risposte diverse", () => {
+  ok(terra.produzioneDichiarata(null, "2026-03-01", "2026-03-31", 2.6) === null,
+    "rapportini assenti → null, non un totale di zero");
+  ok(terra.misuratoPeriodo(null, "", "") === null, "rilievi assenti → null");
+  const vuoto = terra.produzioneDichiarata([], "2026-03-01", "2026-03-31", 2.6);
+  contiene(vuoto, { m3: 0, turni: 0 }, "nessun rapportino nel periodo → zero turni, non null");
+  eq(terra.riconciliazioneTurni([], null, "2026-03-01", "2026-03-31", 2.6).stato, "no-campo",
+    "Campo non raggiungibile: si dice, non si confronta");
+  eq(terra.riconciliazioneTurni(null, [{ data: "2026-03-02", prodQta: 900, prodUnita: "m³" }],
+    "2026-03-01", "2026-03-31", 2.6).stato, "no-misura",
+    "se manca Terra il dichiarato da solo non è un confronto: si dice quale metà manca");
+});
+test("P2: il misurato conta solo i rilievi elaborati, e lo scavo separato dal cumulo", () => {
+  const rilievi = [
+    { data: "2026-03-05", stato: "elaborato",   volumeM3: 900, provenienza: "scavo" },
+    { data: "2026-03-06", stato: "pianificato", volumeM3: 500, provenienza: "scavo" },
+    { data: "2026-03-07", stato: "elaborato",   volumeM3: 200, provenienza: "cumulo" },
+    { data: "2026-02-01", stato: "elaborato",   volumeM3: 700, provenienza: "scavo" },
+  ];
+  const m = terra.misuratoPeriodo(rilievi, "2026-03-01", "2026-03-31");
+  contiene(m, { m3: 900, rilievi: 1, m3Cumulo: 200, rilieviCumulo: 1, pianificati: 1 },
+    "un pianificato è un'intenzione, un cumulo non è roccia uscita dal fronte, febbraio è fuori periodo");
+});
+test("P2: il confronto dice sempre COME va letto il numero", () => {
+  const mis = [{ data: "2026-03-05", stato: "elaborato", volumeM3: 1000, provenienza: "scavo" }];
+  const dichiara = (m3) => [{ data: "2026-03-10", prodQta: m3, prodUnita: "m³" }];
+  const stato = (m3) => terra.riconciliazioneTurni(mis, dichiara(m3), "2026-03-01", "2026-03-31", 2.6).stato;
+  eq(stato(950), "coerente", "5% sotto: dentro la tolleranza di una stima a occhio");
+  eq(stato(800), "attenzione", "20% sotto: conviene andare a guardare");
+  eq(stato(500), "implausibile", "metà: non è imprecisione di stima");
+  eq(stato(1200), "sopra-misura", "dichiarato più del misurato: o le stime sono gonfie o il rilievo non copre tutto");
+  eq(terra.riconciliazioneTurni([], dichiara(900), "2026-03-01", "2026-03-31", 2.6).stato, "no-misura",
+    "senza rilievo elaborato non c'è niente contro cui confrontare");
+  eq(terra.riconciliazioneTurni(mis, [], "2026-03-01", "2026-03-31", 2.6).stato, "no-dichiarato",
+    "nessun turno ha dichiarato: si dice");
+  eq(terra.riconciliazioneTurni(mis, [{ data: "2026-03-10", prodQta: 30, prodUnita: "viaggi" }],
+    "2026-03-01", "2026-03-31", 2.6).stato, "no-densita",
+    "solo viaggi: niente di convertibile, quindi non si confronta");
+  /* il SEGNO dello scostamento non si arrotonda via: senza verso non si sa da
+     che parte cercare. È la stessa scelta del ponte Campo → Genesi. */
+  const sopra = terra.riconciliazioneTurni(mis, dichiara(1200), "2026-03-01", "2026-03-31", 2.6);
+  ok(sopra.scostamento === -200 && sopra.pct === -20, `il segno resta: ${sopra.scostamento} / ${sopra.pct}%`);
+});
+test("P2: le soglie NON sono quelle del ponte Terra ↔ Conti, ed è voluto", () => {
+  /* là si confrontano due misure (un rilievo e una pesa), qui una misura con una
+     stima a occhio di fine turno: pretendere la stessa precisione farebbe
+     suonare l'allarme su una differenza normale. */
+  ok(terra.SOGLIA_TURNI.coerente > conti.SOGLIA_DIVARIO.coerente,
+    `la banda del dichiarato (${terra.SOGLIA_TURNI.coerente}%) deve essere più larga di quella fra due misure (${conti.SOGLIA_DIVARIO.coerente}%)`);
+  ok(terra.SOGLIA_TURNI.attenzione > conti.SOGLIA_DIVARIO.attenzione,
+    "e lo stesso vale per la soglia dell'implausibile");
+  /* la controprova: un 12% qui è coerente, là sarebbe già attenzione */
+  const mis = [{ data: "2026-03-05", stato: "elaborato", volumeM3: 1000, provenienza: "scavo" }];
+  eq(terra.riconciliazioneTurni(mis, [{ data: "2026-03-10", prodQta: 880, prodUnita: "m³" }],
+    "2026-03-01", "2026-03-31", 2.6).stato, "coerente", "12% di scostamento su una stima è normale");
+});
+test("P2: la stima corrente riempie SOLO il buco fra due voli del drone", () => {
+  const rilievi = [{ data: "2026-03-10", stato: "elaborato", volumeM3: 5000, provenienza: "scavo" }];
+  const rapp = [
+    { data: "2026-03-09", prodQta: 400, prodUnita: "m³" },   // PRIMA del rilievo: già misurato
+    { data: "2026-03-11", prodQta: 300, prodUnita: "m³" },
+    { data: "2026-03-12", prodQta: 250, prodUnita: "m³" },
+  ];
+  const a = terra.avanzamentoDaUltimoRilievo(rilievi, rapp, 2.6, new Date("2026-03-13T09:00:00Z"));
+  contiene(a, { dal: "2026-03-11", al: "2026-03-13", giorni: 3, dallUltimoRilievo: "2026-03-10" },
+    "si parte dal giorno DOPO l'ultimo rilievo");
+  ok(a.dich.m3 === 550, `solo i turni successivi al rilievo: 550, non 950 (ottenuti ${a.dich.m3})`);
+  /* senza un rilievo da cui partire non è un avanzamento, è solo una somma */
+  ok(terra.avanzamentoDaUltimoRilievo([], rapp, 2.6, new Date("2026-03-13T09:00:00Z")) === null,
+    "nessun rilievo elaborato → null");
+  ok(terra.avanzamentoDaUltimoRilievo([{ data: "2026-03-13", stato: "elaborato", volumeM3: 10 }],
+    rapp, 2.6, new Date("2026-03-13T09:00:00Z")) === null,
+    "rilievo di oggi: nessun buco da riempire");
+});
+test("P2: il periodo del confronto è fra due voli, non un mese di calendario", () => {
+  /* il volume di un rilievo è l'accumulo dall'ultimo volo: confrontarlo con un
+     mese qualsiasi legge uno scostamento che nasce solo dalle date. */
+  const R = [
+    { data: "2026-07-01", stato: "elaborato", volumeM3: 18600, provenienza: "scavo" },
+    { data: "2026-07-15", stato: "elaborato", volumeM3: 19400, provenienza: "scavo" },
+    { data: "2026-08-01", stato: "pianificato", volumeM3: null },
+  ];
+  contiene(terra.periodoFraUltimiRilievi(R),
+    { dal: "2026-07-02", al: "2026-07-15", rilievoPrecedente: "2026-07-01" },
+    "si parte dal giorno DOPO il penultimo: quel giorno è già dentro la misura precedente");
+  ok(terra.periodoFraUltimiRilievi([R[1]]) === null, "con un rilievo solo non c'è intervallo");
+  ok(terra.periodoFraUltimiRilievi(null) === null, "rilievi assenti → null");
+  /* un CUMULO non è un volo di scavo e non fa periodo */
+  ok(terra.periodoFraUltimiRilievi([R[1], { data: "2026-07-20", stato: "elaborato", volumeM3: 500, provenienza: "cumulo" }]) === null,
+    "una ripresa da cumulo non conta come rilievo di scavo");
+  /* due rilievi nello STESSO giorno non fanno un intervallo */
+  ok(terra.periodoFraUltimiRilievi([
+    { data: "2026-07-15", stato: "elaborato", volumeM3: 100, provenienza: "scavo" },
+    { data: "2026-07-15", stato: "elaborato", volumeM3: 200, provenienza: "scavo" }]) === null,
+    "due rilievi dello stesso giorno: nessun intervallo fra cui confrontare");
+});
+test("P2: la dimostrazione di Terra è coerente coi suoi rilievi", () => {
+  /* Se i numeri d'esempio non si parlano, la prima cosa che il fondatore vede è
+     un allarme rosso che non significa niente. La densità è quella del
+     materiale scritto nell'autorizzazione (sabbia e ghiaia, 1,9 t/m³). */
+  const per = terra.periodoFraUltimiRilievi(terra.DEMO.rilievi);
+  ok(per != null, "la dimostrazione ha almeno due rilievi di scavo");
+  const dens = terra.presetDensita("sabbia-ghiaia").densita;
+  const r = terra.riconciliazioneTurni(terra.DEMO.rilievi, terra.DEMO.rapportiniCampo, per.dal, per.al, dens);
+  eq(r.stato, "coerente", "coi numeri d'esempio i due mondi si parlano");
+  ok(Math.abs(r.pct) < 5, `e lo scostamento è piccolo (${r.pct}%)`);
+  /* e la stima corrente ha qualcosa da dire, viaggi compresi */
+  const a = terra.avanzamentoDaUltimoRilievo(terra.DEMO.rilievi, terra.DEMO.rapportiniCampo, dens,
+    new Date("2026-07-30T09:00:00Z"));
+  ok(a && a.dich.turni > 0 && a.dich.viaggi > 0,
+    "la dimostrazione mostra sia i metri cubi stimati sia i viaggi che non si convertono");
+});
+test("P2 · LA GUARDIA: il dichiarato non può diventare un rilievo", () => {
+  /* È il difetto peggiore che questo ponte poteva introdurre, per tre ragioni:
+     i rilievi consumano il volume CONCESSO, finiscono nel riepilogo annuale che
+     va agli ENTI, e portano metodo e GSD che li rendono difendibili in audit.
+     Un conteggio di viaggi dichiarato da un preposto non ha niente di tutto
+     questo. Qui si verifica che nessuna funzione del ponte produca un record
+     che i lettori dei rilievi possano prendere per una misura. */
+  const rapp = [{ data: "2026-03-11", prodQta: 900, prodUnita: "m³" }];
+  const rilievi = [{ id: "r1", fronteId: "f1", data: "2026-03-05", stato: "elaborato", volumeM3: 1000, provenienza: "scavo" }];
+  const esiti = [
+    terra.produzioneDichiarata(rapp, "2026-03-01", "2026-03-31", 2.6),
+    terra.riconciliazioneTurni(rilievi, rapp, "2026-03-01", "2026-03-31", 2.6),
+    terra.avanzamentoDaUltimoRilievo(rilievi, rapp, 2.6, new Date("2026-03-13T09:00:00Z")),
+  ];
+  const testo = JSON.stringify(esiti);
+  ok(!/"stato":"elaborato"/.test(testo.replace(/"stato":"(no-|coerente|attenzione|implausibile|sopra-misura)[^"]*"/g, "")),
+    "nessun esito del ponte porta lo stato che rende un rilievo una misura");
+  ok(!/"volumeM3"/.test(testo), "e nessuno porta il campo volumeM3: non somiglia a un rilievo");
+  /* e la prova che conta: i lettori dei rilievi NON vedono il dichiarato */
+  const prima = terra.volumeFronte(rilievi, "f1");
+  const conPonte = terra.volumeFronte(rilievi.concat([]), "f1");
+  ok(prima === 1000 && conPonte === 1000, "il volume del fronte resta quello misurato");
+  const est = terra.estrattoComplessivo(rilievi, { volumeAutorizzatoM3: 100000 });
+  ok(est.rilevato === 1000 && est.totale === 1000,
+    `il volume concesso lo consuma solo il misurato (rilevato ${est.rilevato}, totale ${est.totale})`);
+  /* e il riepilogo che va agli ENTI non conosce il dichiarato: si conta quante
+     volte compare nel documento, e deve essere zero. */
+  const rie = terra.riepilogoAnnuale(rilievi, 2026, { volumeAutorizzatoM3: 100000 }, new Date("2026-12-31T00:00:00Z"));
+  ok(!JSON.stringify(rie).includes("dichiarat"),
+    "il riepilogo annuale per gli enti non porta nessun numero dichiarato");
+});
+test("P2 · IL CONTRATTO con Campo: le due letture dicono la stessa cosa", () => {
+  /* La forma del dato che attraversa il confine è {prodQta, prodUnita}. Terra la
+     rilegge per conto suo, e questa è la stessa strada per cui la convenzione sui
+     numeri era finita scritta quattro volte: qui il disallineamento deve
+     FALLIRE, non restare in silenzio. */
+  const casi = [
+    { prodQta: 120, prodUnita: "t" }, { prodQta: 0.5, prodUnita: "m³" },
+    { prodQta: 12, prodUnita: "viaggi" }, { prodQta: 0, prodUnita: "t" },
+    { prodQta: -5, prodUnita: "t" }, { prodQta: null, prodUnita: "t" },
+    { prodQta: 7, prodUnita: "tonnellate" },   // unità sconosciuta: ricade sulle t
+    { prodQta: 7 },                            // unità assente
+    {},
+  ];
+  for (const c of casi) {
+    eq(terra.produzioneRapportino(c), campo.produzioneDi(c),
+      `la lettura di Terra e quella di Campo devono coincidere su ${JSON.stringify(c)}`);
+  }
+  eq(campo.UNITA_PRODUZIONE, ["t", "m³", "viaggi"],
+    "e le unità ammesse sono quelle su cui il ponte è costruito");
+});
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);

@@ -645,6 +645,13 @@ a.dw-btn{text-decoration:none}
   </div>
   <div id="val-out" class="note recap"></div>
 
+  <!-- PONTE P2 — CAMPO → TERRA: quello che i turni dichiarano, fra due voli.
+       Sta qui, subito sotto la densità, perché è la densità che permette di
+       leggere in metri cubi le tonnellate dichiarate dai turni: una sola in
+       tutta l'app, non due che possono divergere. -->
+  <div class="sec">Quello che dichiarano i turni <span class="badge tag inline">da Campo</span></div>
+  <div id="tur-out"></div>
+
   <div class="sec">Nuovo rilievo</div>
   <div class="form col">
     <div class="frow">
@@ -871,6 +878,8 @@ a.dw-btn{text-decoration:none}
            provenienzaRilievo, soloScavo, soloCumulo, PROVENIENZE, etichettaProvenienza,
            anniConVolumi, riepilogoAnnuale, serieAnnuale,
            rilieviScavoFronte, rilievoPrecedente, confrontoRilievi,
+           produzioneDichiarata, misuratoPeriodo, riconciliazioneTurni,
+           periodoFraUltimiRilievi, avanzamentoDaUltimoRilievo, SOGLIA_TURNI,
            numeroDaCampo, AVVISO_DECIMALE } from "./terra-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
@@ -1089,8 +1098,10 @@ a.dw-btn{text-decoration:none}
 
     renderTitolo();
     renderDenuncia();
+    densitaDaAutorizzazione();   // prima di renderValore: la densità la usano entrambi
     renderValore();
     renderConfronto();
+    renderTurni();
     grafici();
   }
 
@@ -2013,11 +2024,155 @@ a.dw-btn{text-decoration:none}
       : `Nessun volume di scavo elaborato per il ${anno}: registra un rilievo per stimare il valore.`
         + (volCum ? ` Nell'anno risultano solo <b>${volCum.toLocaleString("it-IT")} m³</b> ripresi da cumuli.` : "");
   }
-  ["val-densita","val-prezzo"].forEach(id => $(id).addEventListener("input", renderValore));
+  ["val-densita","val-prezzo"].forEach(id => $(id).addEventListener("input", () => { renderValore(); renderTurni(); }));
+
+  // ══════════════════════════════════════════════════════════════════════
+  // PONTE P2 — quello che dichiarano i turni (da Campo)
+  // ══════════════════════════════════════════════════════════════════════
+  // Il drone vola una volta al mese, i turni sanno ogni giorno. Fra due voli
+  // Terra non ha niente da dire, e questa è l'unica cosa che può dire: una
+  // stima DICHIARATA, e quando il volo nuovo arriva, di quanto i due numeri
+  // sono distanti. Non diventa mai un rilievo — vedi il commento del ponte in
+  // terra-data.js per le tre ragioni.
+  let RAPP;                          // undefined = mai cercati, null = Campo non c'è
+  let rappCercati = false;
+  async function caricaRapportini() {
+    if (rappCercati) return;
+    rappCercati = true;
+    try { RAPP = db.rapportiniCampo ? await db.rapportiniCampo() : null; } catch (e) { RAPP = null; }
+    renderTurni();
+  }
+
+  // Come si legge lo stato del confronto: una frase che dice cosa fare, non
+  // un'etichetta da interpretare. Il colore segue il significato.
+  const TUR_STATO = {
+    "coerente":     ["ok",     "I due numeri si parlano"],
+    "attenzione":   ["warn",   "Conviene andare a guardare"],
+    "implausibile": ["danger", "C'è un errore da cercare"],
+    "sopra-misura": ["danger", "Dichiarato oltre la misura"],
+  };
+
+  function renderTurni() {
+    const out = $("tur-out");
+    if (!out) return;
+    if (!rappCercati) {
+      out.innerHTML = vuoto(I.clessi, "Sto leggendo i rapportini di Campo",
+        "Un attimo: i turni li tiene Campo, e Terra li chiede solo quando serve.");
+      caricaRapportini();
+      return;
+    }
+    if (RAPP === null) {
+      out.innerHTML = vuoto(I.riga, "I rapportini di Campo non arrivano",
+        "Questo confronto ha bisogno dei <b>rapportini di turno di Campo</b> della stessa organizzazione. "
+        + "Se Campo non è attiva, o se nessun turno ha ancora registrato la produzione, Terra non prova a indovinare: preferisce non dire niente.");
+      return;
+    }
+    // la densità è quella scritta qui sopra: una sola in tutta l'app
+    const rd = numCampo("val-densita", { min: 0.3, max: 5, decimali: 3 });
+    const dens = rd.ok ? rd.valore : null;
+    const per = periodoFraUltimiRilievi(RIL);
+    const av = avanzamentoDaUltimoRilievo(RIL, RAPP, dens, new Date());
+    let html = "";
+
+    // ── 1. LA STIMA CORRENTE: il buco fra l'ultimo volo e oggi ──
+    if (av) {
+      const d = av.dich;
+      const nulla = !d.turni;
+      html += `<div class="kpis" style="--kpi-cols:3;">
+        <div class="kpi"><div class="l">Dichiarati dai turni <span class="u">m³</span></div><div class="n">${d.m3 > 0 ? n0(d.m3) : "—"}</div></div>
+        <div class="kpi"><div class="l">Giorni dall'ultimo rilievo</div><div class="n">${av.giorni}</div></div>
+        <div class="kpi"><div class="l">Turni che hanno dichiarato</div><div class="n">${d.turni}</div></div>
+      </div>`;
+      html += `<div class="note recap">Dal <b>${fmtData(av.dal)}</b> — il giorno dopo il rilievo del ${fmtData(av.dallUltimoRilievo)} — a oggi `
+        + (nulla
+          ? `nessun turno ha registrato una produzione. Il volume che vedi nelle tessere è ancora quello dell'ultimo volo.`
+          : `i turni hanno dichiarato circa <b>${n0(d.m3)} m³</b>${d.t > 0 && d.densita ? ` (da <b>${n0(d.t)} t</b> alla densità di ${nD(d.densita)} t/m³)` : ""}. `
+            + `È una <b>stima dichiarata</b>, non una misura: non consuma il volume concesso e non entra nella denuncia agli enti. Serve a sapere cosa è successo da quando il drone non vola.`)
+        + `</div>`;
+      const fuori = [];
+      if (d.tSenzaDensita > 0) fuori.push(`<b>${n0(d.tSenzaDensita)} t</b> che non si possono portare in metri cubi senza una densità valida`);
+      if (d.viaggi > 0) fuori.push(`<b>${d.viaggi} viaggi</b>, che non si convertono: servirebbe la portata del mezzo, e cambia da camion a camion`);
+      if (fuori.length) html += `<div class="note avviso">Fuori da quel numero restano ${fuori.join(" e ")}. Il totale in metri cubi è quindi <b>per difetto</b>.</div>`;
+    } else {
+      html += `<div class="note">Per la stima corrente serve <b>almeno un rilievo elaborato</b> da cui partire: senza un punto di partenza non è un avanzamento, è solo una somma.</div>`;
+    }
+
+    // ── 2. IL CONFRONTO, sul periodo naturale: fra gli ultimi due voli ──
+    html += `<div class="sec" style="margin-top:18px;">Il confronto col rilievo</div>`;
+    if (!per) {
+      html += `<div class="note">Il confronto ha bisogno di <b>due rilievi elaborati di scavo</b>: il volume di un rilievo è l'accumulo dall'ultimo volo, quindi si confronta con i turni di <b>quell'intervallo</b>, non con un mese qualsiasi. Registra il secondo e questa parte si accende da sola.</div>`;
+    } else {
+      const r = riconciliazioneTurni(RIL, RAPP, per.dal, per.al, dens);
+      const cornice = `<div class="note">Periodo: dal <b>${fmtData(per.dal)}</b> al <b>${fmtData(per.al)}</b>, cioè fra il rilievo del ${fmtData(per.rilievoPrecedente)} e quello del ${fmtData(per.al)}. Il confronto è di <b>cava</b>, non di fronte: i rapportini di Campo non dicono da quale fronte è uscito il materiale, e attribuirlo indovinando lo metterebbe sul volume concesso sbagliato.</div>`;
+      if (r.stato === "no-densita") {
+        html += cornice + `<div class="note avviso">In quel periodo i turni hanno dichiarato solo <b>tonnellate senza densità</b>${r.dich.viaggi ? " e/o <b>viaggi</b>" : ""}: niente di convertibile in metri cubi, quindi non c'è confronto. Scrivi la densità del materiale qui sopra e il confronto compare.</div>`;
+      } else if (r.stato === "no-dichiarato") {
+        html += cornice + `<div class="note">In quel periodo <b>nessun turno</b> ha registrato una produzione, quindi non c'è niente da confrontare col rilievo del ${fmtData(per.al)}.</div>`;
+      } else if (r.stato === "no-misura") {
+        html += cornice + `<div class="note">In quel periodo non risulta nessun <b>rilievo elaborato di scavo</b>: senza la misura il dichiarato resta da solo.</div>`;
+      } else {
+        const [cls, frase] = TUR_STATO[r.stato] || ["", ""];
+        const sopra = r.stato === "sopra-misura";
+        const verso = sopra ? "più" : "meno";
+        // il segno «+/−» su una tessera che si chiama «scostamento» non si
+        // capisce: più di cosa? Lo dice l'etichetta, così il numero è nudo.
+        html += `<div class="kpis" style="--kpi-cols:3;">
+          <div class="kpi"><div class="l">Misurato dal rilievo <span class="u">m³</span></div><div class="n">${n0(r.mis.m3)}</div></div>
+          <div class="kpi"><div class="l">Dichiarato dai turni <span class="u">m³</span></div><div class="n">${n0(r.dich.m3)}</div></div>
+          <div class="kpi"><div class="l">Dichiarato in ${verso}</div><div class="n">${nD(Math.abs(r.pct))}%</div></div>
+        </div>`;
+        html += cornice;
+        html += `<div class="note recap"><span class="badge ${cls} inline">${frase}</span> Il rilievo ha misurato <b>${nD(r.mis.m3)} m³</b>, i turni ne hanno dichiarati circa <b>${n0(r.dich.m3)}</b>: <b>${n0(Math.abs(r.scostamento))} m³</b> in ${verso} nel dichiarato, cioè il <b>${nD(Math.abs(r.pct))}%</b> del misurato.`
+          + (sopra
+            ? ` Dichiarare più roccia di quanta ne manchi dal fronte non è una sfumatura: <b>o le stime di turno sono gonfie, o il rilievo non copre tutto quello che è stato scavato</b>. Vale la pena guardare l'estensione del volo prima di dare la colpa ai turni.`
+            : r.stato === "coerente"
+              ? ` Su una stima fatta a occhio a fine turno, una differenza così è normale: i due mondi si parlano.`
+              : ` La misura resta quella del rilievo — questo confronto non la corregge, dice solo che i due numeri non tornano.`)
+          + `</div>`;
+        if (r.mis.m3Cumulo > 0) {
+          html += `<div class="note">Nel periodo risultano anche <b>${nD(r.mis.m3Cumulo)} m³</b> ripresi da <b>cumuli</b>, che qui non contano come misura di scavo. Ma i turni che li hanno caricati li hanno dichiarati come produzione: è una delle ragioni per cui il dichiarato può risultare più alto, e non è un errore di nessuno.</div>`;
+        }
+        if (r.parziale) {
+          const p = [];
+          if (r.dich.tSenzaDensita > 0) p.push(`<b>${n0(r.dich.tSenzaDensita)} t</b> senza densità`);
+          if (r.dich.viaggi > 0) p.push(`<b>${r.dich.viaggi} viaggi</b>`);
+          html += `<div class="note avviso">Attenzione: nel dichiarato ci sono ${p.join(" e ")} che non entrano nei metri cubi. Lo scostamento qui sopra è quindi <b>per difetto</b> — il dichiarato vero è più alto di così.</div>`;
+        }
+      }
+    }
+    out.innerHTML = html;
+  }
   // Menù materiali: scelto un litotipo, riempie la densità col valore tipico
   // (l'utente può poi correggerlo; la nota ricorda che va confermato).
   $("val-materiale").innerHTML = '<option value="">— scegli —</option>' +
     DENSITA_PRESET.map(p => `<option value="${p.chiave}">${esc(p.etichetta)}</option>`).join("");
+
+  // LA DENSITÀ DALL'AUTORIZZAZIONE. Il materiale della cava è già scritto
+  // nell'atto («Sabbia e ghiaia»), quindi far ridigitare la densità è chiedere
+  // due volte la stessa cosa — e con due risposte possibili: il campo partiva
+  // da 1,6 generico, che su sabbia e ghiaia (1,9) sposta i metri cubi del 19%.
+  // Su un confronto fra misurato e dichiarato quel 19% È il confronto.
+  // Si riempie SOLO se l'utente non ha ancora toccato il campo: quello che
+  // scrive lui comanda sempre.
+  let densitaToccata = false;
+  $("val-densita").addEventListener("input", () => { densitaToccata = true; });
+  function densitaDaAutorizzazione() {
+    if (densitaToccata) return;
+    const a = autorizzazioneVigente(AUT);
+    const nome = String((a && a.materiale) || "").trim().toLowerCase();
+    if (!nome) return;
+    // si cerca il preset il cui nome compare nel materiale dell'atto, o
+    // viceversa: «Sabbia e ghiaia» ↔ «Sabbia e ghiaia (deposito)»
+    const p = DENSITA_PRESET.find(x => {
+      const e = x.etichetta.toLowerCase().replace(/\s*\([^)]*\)\s*/g, "").trim();
+      return e === nome || nome.includes(e) || e.includes(nome);
+    });
+    if (!p) return;
+    $("val-densita").value = itDec(p.densita);
+    const sel = $("val-materiale"); if (sel) sel.value = p.chiave;
+    $("val-dens-nota").textContent =
+      `Densità tipica di «${p.etichetta}», il materiale scritto nell'autorizzazione (${itDec(p.densita)} t/m³, fonte: ${p.fonte}) — valore da confermare col laboratorio.`;
+  }
   $("val-materiale").addEventListener("change", (e) => {
     const p = presetDensita(e.target.value);
     if (p) {
