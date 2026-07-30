@@ -1019,9 +1019,19 @@ function dedupSoloInArchivio(src, modulo) {
        cui a uno di loro sparisse l'`add` dal ciclo non se ne accorgerebbe
        nessuno. Lo stesso filtro sbagliato aveva già fatto sbagliare il
        censimento, che li aveva contati fra quelli «senza controllo». */
-    const conSet = /\w+\.has\(/.test(h.testo) && /(dup|saltat\w*)\+\+/.test(h.testo);
+    /* ⚠️ L'`add` deve stare sulla STESSA variabile dell'`has`. La prima
+       stesura si accontentava di `\w+\.add\(`, che è soddisfatto anche da
+       `classList.add(` — cosa che in un gestore ci sta benissimo: la regola
+       avrebbe visto «c'è un add» e non avrebbe più controllato se la firma
+       finisce davvero nel Set. Misurato il 01/08: tutti e sette i gestori col
+       Set aggiungono sulla variabile giusta, quindi il buco era **latente**.
+       Si chiude lo stesso: è il filtro-che-non-guarda-dove-crede, e a questa
+       regola quel difetto è già costato una svista. */
+    const setUsati = [...new Set([...h.testo.matchAll(/(\w+)\.has\(/g)].map((m) => m[1]))];
+    const conSet = setUsati.length > 0 && /(dup|saltat\w*)\+\+/.test(h.testo);
     if (conSet) {
-      if (!/\w+\.add\(/.test(h.testo))
+      const aggiunge = setUsati.some((v) => new RegExp("\\b" + v + "\\.add\\(").test(h.testo));
+      if (!aggiunge)
         fuori.push(`riga ${h.riga}: «${h.id}» tiene la firma in un Set ma non la aggiunge dentro il ciclo — i doppioni dentro il file passano`);
       continue;
     }
@@ -1100,7 +1110,61 @@ test("la regola 12 vede anche la forma col Set, non solo quella con .some()", ()
      rompere quei quattro senza che nessuno se ne accorga — una riga tolta. */
   const senzaAdd = conSet.replace("      gia.add(firma(r));\n", "");
   ok(dedupSoloInArchivio(senzaAdd, null).length === 1, "senza l'add dentro il ciclo, è una violazione");
+  /* l'add su un'ALTRA variabile non è la difesa: `classList.add(` non mette
+     nessuna firma nel Set, ma ha la stessa forma */
+  const addEstraneo = conSet.replace("      gia.add(firma(r));", "      riga.classList.add('nuova');");
+  ok(dedupSoloInArchivio(addEstraneo, null).length === 1,
+    "un add su una variabile diversa da quella del has non conta come difesa");
 });
+
+/* LA CONTROPROVA SUI FILE VERI, PER LA REGOLA 12.
+   ────────────────────────────────────────────────────────────────────────
+   Qui il difetto non si AGGIUNGE, si TOGLIE: quello che la regola deve vedere
+   è l'assenza di una difesa. Si spegne la difesa nelle due forme in cui è
+   scritta — `senzaDoppioni` di `shared/` e il `Set` aggiornato dentro il
+   ciclo — e si pretende che le violazioni **aumentino** in ogni app.
+
+   Perché proprio questa regola merita la controprova vera: il suo filtro è
+   già caduto una volta, il 31/07. Cercava la forma `.some(` e non vedeva i
+   gestori scritti col `Set` — cioè proprio quelli che facevano la cosa
+   giusta. Una controprova sintetica non l'avrebbe mai detto: sull'esempio
+   inventato la funzione andava benissimo. */
+{
+  const APP12 = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
+  let superfici = 0, ciecheDoppioni = 0, ciecheSet = 0, conSetVere = 0;
+  const dove = [];
+  for (const app of APP12) {
+    const src = leggi(`apps/${app}/index.html`);
+    const modulo = leggi(`apps/${app}/${app}-data.js`) || "";
+    if (src === null) continue;
+    superfici++;
+    const base = dedupSoloInArchivio(src, modulo).length;
+    // forma 1: si spegne senzaDoppioni() ovunque, pagina e modulo
+    const spentaA = dedupSoloInArchivio(
+      src.replace(/senzaDoppioni\(/g, "passaTutto("), modulo.replace(/senzaDoppioni\(/g, "passaTutto("));
+    if (spentaA.length <= base) { ciecheDoppioni++; if (!dove.includes(app)) dove.push(app); }
+    /* forma 2: si toglie l'add al Set — ma solo dove un gestore d'importazione
+       la difesa col Set ce l'ha davvero. ⚠️ La prima stesura chiedeva
+       `.has(` in TUTTA la pagina: Campo, Conti e Flotta ce l'hanno altrove e
+       non hanno nessun importatore col Set, quindi la controprova pretendeva
+       una violazione che non poteva esistere e li accusava. Il riconoscimento
+       è quello della regola stessa, non un'approssimazione. */
+    const conSet = corpiImportazione(src).some((h) =>
+      /(\w+)\.has\(/.test(h.testo) && /(dup|saltat\w*)\+\+/.test(h.testo));
+    if (conSet) {
+      conSetVere++;
+      const spentaB = dedupSoloInArchivio(src.replace(/(\w+)\.add\(/g, "$1.nonAggiunge("), modulo);
+      if (spentaB.length <= base) { ciecheSet++; if (!dove.includes(app)) dove.push(app); }
+    }
+  }
+  test(`regola 12: spenta la difesa nei file veri, la regola se ne accorge (${superfici} app)`, () => {
+    ok(superfici === 6, `misurate ${superfici} app invece di 6`);
+    ok(ciecheDoppioni === 0, `in ${dove.join(", ")} togliere senzaDoppioni() non ha prodotto nessuna violazione nuova`);
+    ok(ciecheSet === 0, `in ${dove.join(", ")} togliere l'add al Set non ha prodotto nessuna violazione nuova`);
+    ok(conSetVere === 3, `le app con un importatore che si difende col Set sono ${conSetVere}, me ne aspettavo 3 (Scudo, Sentinella, Terra)`);
+    console.log(`     (6 app con senzaDoppioni spento, ${conSetVere} con la difesa col Set spenta)`);
+  });
+}
 
 
 
