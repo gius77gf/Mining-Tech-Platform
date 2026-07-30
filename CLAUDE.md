@@ -128,7 +128,33 @@ in italiano, senza dare conoscenze per scontate).
   2. si controlla sempre che il **totale sia salito**, non solo che i falliti
      siano zero: un file di test inerte dice «0 falliti» come uno che passa.
 - Le altre suite locali (`run-demo.mjs`, `run-helpers.mjs`,
-  `run-pointcloud.mjs`, `run-manifest.mjs`) girano anch'esse con `node`.
+  `run-pointcloud.mjs`, `run-manifest.mjs`, `run-stile.mjs`) girano anch'esse
+  con `node`.
+- **`run-stile.mjs` rende verificabili le regole vincolanti** che prima
+  vivevano solo qui: niente `alert()`/`confirm()`/`prompt()` in nessuna
+  superficie, e il meccanismo che sottrae le unità di misura al maiuscolo.
+  Quando nasce un'app va aggiunta all'elenco `SUPERFICI`.
+- ⚠️ **UNA PROVA CHE NON SA FALLIRE NON DIMOSTRA NIENTE.** Ogni controllo
+  nuovo va provato **contro il difetto**: si rimette il difetto e si pretende
+  che il controllo fallisca. Costa due minuti e ha già salvato due volte:
+  1. `run-stile.mjs` passava su tutte le superfici **e** passava anche con un
+     `window.prompt()` rimesso a mano nel core, perché tagliava i commenti con
+     `replace(/\/\*[\s\S]*?\*\//g,'')` e il core scendeva da 537.000 a 137.000
+     caratteri: `/*` e `*/` compaiono anche dentro stringhe ed espressioni
+     regolari, l'accoppiamento non greedy legava i delimitatori sbagliati e
+     cancellava 400.000 caratteri di codice **vivo**. Ora la controprova
+     inietta il dialogo nei file veri, dentro la suite.
+  2. La correzione delle unità nei grafici: le 11 asserzioni girate sulla
+     versione precedente del motore ne facevano fallire 8. Senza quel passaggio
+     non si sapeva se stessero misurando qualcosa.
+- Quando si misura qualcosa nel browser, due trappole già pestate:
+  `document.elementFromPoint` vive nel **viewport** (un elemento sotto la piega
+  risponde `null` e sembra irraggiungibile: va portato in vista), e «questo
+  punto è mio» significa l'elemento **o un suo discendente** — accettando anche
+  un antenato si misura la riga intera e vengono fuori aree di tocco da 80 px
+  che non esistono. E `innerText` su una scheda nascosta ricade su
+  `textContent`, quindi il maiuscolo non si vede: va letta la trasformazione
+  **effettiva** con `getComputedStyle`.
 - Quando un test fallisce dopo un lavoro nuovo, prima di dire che c'è un
   difetto va letto **come il codice si aspetta i dati**: succede spesso che
   sia la prova a indovinare male i nomi dei campi, e una prova sbagliata che
