@@ -739,7 +739,17 @@ campi interi, file delle macchine.
       scritture dirette al DOM sono diventate `esito()`. *Nota di onestà: la
       prima lettura del difetto era esagerata — l'avviso «dati di esempio» NON
       spariva, quello è `tour-banner` e sta in cima, fuori dalle pagine.*
-- Regola **14** verificabile; stile **149 → 171** prove.
+- [x] **Nessuna regola di stile ha più solo la controprova finta.** Le regole
+      9, 10, 11, 12, 13 e 14 dimostravano di saper fallire su tre righe
+      inventate — lo stesso identico livello di prova che aveva la regola 1
+      prima che si scoprisse il buco. Adesso il difetto si rimette **nei file
+      veri**, e proprio dove la scansione è più in difficoltà. Ognuna stampa
+      quante superfici e quanti punti ha toccato.
+- [x] **Regola 12**: l'`add` deve stare sullo stesso Set dell'`has`
+      (`classList.add(` bastava a soddisfarla). Buco **latente**: misurato
+      prima di stringere, tutti e sette i gestori aggiungevano già sulla
+      variabile giusta.
+- Regole **14**; stile **149 → 177** prove.
 
 ### Difetti chiusi il 30/07 (tutti «silenziosi»: nessuno dava errore)
 - [x] La **striscia** e la **pastiglia** di un riquadro dicevano un colore
