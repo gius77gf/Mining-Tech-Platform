@@ -132,7 +132,12 @@ body.dw.outdoor-mode{
    sono maiuscoli per struttura (è il core), ma «m³» in maiuscolo diventa
    «M³», che si legge come un'altra grandezza (M = mega). Cambia solo il
    pezzo che porta l'unità: forma, peso e spaziatura del core restano. */
-.kpi .l .u,.badge .u,.fl .u{text-transform:none; letter-spacing:.2px}
+/* `.vita-pct` è entrata in questo elenco il 30/07, e non per prudenza: la
+   ripartizione per fronte la usa per il volume, e sullo schermo si leggeva
+   «1.637 M³». Il difetto non era nel codice nuovo — era che una classe con
+   `text-transform:uppercase` incontra prima o poi un'unità di misura, e chi la
+   riusa non ha modo di saperlo. */
+.kpi .l .u,.badge .u,.fl .u,.vita-pct .u{text-transform:none; letter-spacing:.2px}
 /* stessi motivi per l'unità grande della scheda «vita cava». Per i grafici
    invece la correzione è passata nel motore condiviso, che avvolge l'unità in
    .dwg-u: la toppa che stava qui spegneva il maiuscolo anche a «Voce» e
@@ -891,6 +896,7 @@ a.dw-btn{text-decoration:none}
            rilieviScavoFronte, rilievoPrecedente, confrontoRilievi,
            produzioneDichiarata, misuratoPeriodo, riconciliazioneTurni,
            periodoFraUltimiRilievi, intervalliFraRilievi, avanzamentoDaUltimoRilievo, SOGLIA_TURNI,
+           produzionePerFronte,
            numeroDaCampo, AVVISO_DECIMALE } from "./terra-data.js";
   import { mountExit, esc, csvCell, montaGuardiaInteri } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
@@ -2166,6 +2172,43 @@ a.dw-btn{text-decoration:none}
       if (d.tSenzaDensita > 0) fuori.push(`<b>${n0(d.tSenzaDensita)} t</b> che non si possono portare in metri cubi senza una densità valida`);
       if (d.viaggi > 0) fuori.push(`<b>${d.viaggi} viaggi</b>, che non si convertono: servirebbe la portata del mezzo, e cambia da camion a camion`);
       if (fuori.length) html += `<div class="note avviso">Fuori da quel numero restano ${fuori.join(" e ")}. Il totale in metri cubi è quindi <b>per difetto</b>.</div>`;
+
+      // ── 1-bis. PONTE P2 — DA QUALE FRONTE, secondo i turni ──────────────
+      // Il numero sopra dice QUANTO; questo dice DA DOVE. Resta una stima
+      // dichiarata e si vede che lo è: sta dentro la stessa sezione, con le
+      // stesse parole, e non tocca né l'avanzamento del fronte né i volumi
+      // misurati dai rilievi, che stanno in un altro riquadro. Una stima
+      // messa accanto a una misura, nel giro di una settimana, diventa
+      // indistinguibile da essa: qui non si mescolano mai.
+      /* la data di oggi in ISO, presa dall'orologio LOCALE: `toISOString()` su
+         una data locale sposta il giorno di qualche ora, e a cavallo della
+         mezzanotte farebbe entrare o uscire un turno dal periodo */
+      const oggiLoc = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+      const pf = d.turni ? produzionePerFronte(RAPP, FRO, av.dal, oggiLoc, dens) : null;
+      if (pf && (pf.righe.length || pf.senzaFronte.m3 > 0 || pf.fronteSconosciuto.m3 > 0)) {
+        const righe = pf.righe.map((r) =>
+          `<div class="item st-accent"><div class="avatar">${esc(sig(r.nome))}</div>
+             <div class="info"><div class="name">${esc(r.nome)}</div>
+               <div class="meta">${r.turni} turn${r.turni === 1 ? "o" : "i"}${r.quotaPct != null ? " · " + nD(r.quotaPct) + "% di quello che si sa" : ""}</div></div>
+             <div class="acts"><span class="vita-pct">${n0(r.m3)} <span class="u">m³</span></span></div></div>`).join("");
+        html += `<div class="sec" style="margin-top:18px;">Da quale fronte, secondo i turni</div>` + righe;
+
+        const avanzi = [];
+        if (pf.senzaFronte.m3 > 0)
+          avanzi.push(`<b>${n0(pf.senzaFronte.m3)} m³</b> da turni che il fronte non l'hanno indicato`);
+        if (pf.fronteSconosciuto.m3 > 0)
+          avanzi.push(`<b>${n0(pf.fronteSconosciuto.m3)} m³</b> attaccati a un fronte che non esiste più`);
+        html += `<div class="note recap">`
+          + (pf.copertura != null
+            ? `Di quello che i turni hanno dichiarato, si sa da dove viene il <b>${nD(pf.copertura)}%</b>. `
+            : "")
+          + (avanzi.length
+            ? `Il resto è ${avanzi.join(" e ")}: non viene spalmato sugli altri fronti, perché una ripartizione inventata a fine anno non si distingue più da una misurata. Per farlo sparire basta scegliere il fronte quando si compila il rapportino in Campo.`
+            : `Tutti i turni hanno indicato il fronte.`)
+          + `</div>`;
+        if (pf.copertura != null && pf.copertura < 60)
+          html += `<div class="note avviso">Sotto il 60% la ripartizione non è una risposta: dice più su chi compila i rapportini che su dove si sta scavando.</div>`;
+      }
     } else {
       // senza rilievi non c'è un «da quando», ma i turni hanno comunque
       // dichiarato qualcosa: si mostra l'ultimo mese, che è la sola cosa che
@@ -2193,7 +2236,7 @@ a.dw-btn{text-decoration:none}
       html += `<div class="note">Il confronto ha bisogno di <b>due rilievi elaborati di scavo</b>: il volume di un rilievo è l'accumulo dall'ultimo volo, quindi si confronta con i turni di <b>quell'intervallo</b>, non con un mese qualsiasi. Registra il secondo e questa parte si accende da sola.</div>`;
     } else {
       const r = riconciliazioneTurni(RIL, RAPP, per.dal, per.al, dens);
-      const cornice = `<div class="note">Periodo: dal <b>${fmtData(per.dal)}</b> al <b>${fmtData(per.al)}</b>, cioè fra il rilievo del ${fmtData(per.rilievoPrecedente)} e quello del ${fmtData(per.al)}. Il confronto è di <b>cava</b>, non di fronte: i rapportini di Campo non dicono da quale fronte è uscito il materiale, e attribuirlo indovinando lo metterebbe sul volume concesso sbagliato.</div>`;
+      const cornice = `<div class="note">Periodo: dal <b>${fmtData(per.dal)}</b> al <b>${fmtData(per.al)}</b>, cioè fra il rilievo del ${fmtData(per.rilievoPrecedente)} e quello del ${fmtData(per.al)}. Il confronto è di <b>cava</b>, non di fronte: qui si mettono a confronto due totali, e attribuire un rilievo a un fronte indovinando lo metterebbe sul volume concesso sbagliato. La ripartizione per fronte, quando i turni la dichiarano, sta più sopra ed è una stima a parte.</div>`;
       if (r.stato === "no-densita") {
         html += cornice + `<div class="note avviso">In quel periodo i turni hanno dichiarato solo <b>tonnellate senza densità</b>${r.dich.viaggi ? " e/o <b>viaggi</b>" : ""}: niente di convertibile in metri cubi, quindi non c'è confronto. Scrivi la densità del materiale qui sopra e il confronto compare.</div>`;
       } else if (r.stato === "no-dichiarato") {

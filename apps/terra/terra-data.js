@@ -98,9 +98,13 @@ export const DEMO = {
     { id: "c10", data: "2026-07-14", turno: "Pomeriggio", squadra: "Squadra B", prodQta: 3180, prodUnita: "t", stato: "inviato" },
     { id: "c11", data: "2026-07-15", turno: "Mattina",   squadra: "Squadra B", prodQta: 2650, prodUnita: "t", stato: "inviato" },
     { id: "c12", data: "2026-07-15", turno: "Pomeriggio", squadra: "Squadra B", prodQta: 3020, prodUnita: "t", stato: "inviato" },
-    { id: "c13", data: "2026-07-17", turno: "Mattina",   squadra: "Squadra B", prodQta: 2900, prodUnita: "t", stato: "inviato" },
-    { id: "c14", data: "2026-07-20", turno: "Mattina",   squadra: "Squadra B", prodQta: 3110, prodUnita: "t", stato: "inviato" },
+    { id: "c13", data: "2026-07-17", turno: "Mattina",   squadra: "Squadra B", prodQta: 2900, prodUnita: "t", stato: "inviato", fronteId: "f1" },
+    { id: "c14", data: "2026-07-20", turno: "Mattina",   squadra: "Squadra B", prodQta: 3110, prodUnita: "t", stato: "inviato", fronteId: "f2" },
+    // c15 resta di proposito SENZA fronte, e per giunta in viaggi: fa vedere
+    // due rifiuti in una volta sola — i viaggi che non diventano metri cubi, e
+    // la produzione che non si sa da dove viene e non va spalmata
     { id: "c15", data: "2026-07-22", turno: "Notte",     squadra: "Squadra B", prodQta: 18,   prodUnita: "viaggi", stato: "inviato" },
+    { id: "c16", data: "2026-07-24", turno: "Mattina",   squadra: "Squadra B", prodQta: 1450, prodUnita: "t", stato: "inviato" },
   ],
   scadenze: [
     { id: "t1", tipo: "autorizzazione", descrizione: "Scadenza del titolo autorizzativo", dataScadenza: "2031-03-14", preavvisoGiorni: 180, ricorrenzaMesi: null, note: "" },
