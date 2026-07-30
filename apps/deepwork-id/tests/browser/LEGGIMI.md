@@ -91,6 +91,46 @@ chiesto a `getComputedStyle`, che risponde comunque.
 Al primo giro: **21 violazioni su cinque superfici**. La controprova sporca una
 superficie pulita e pretende di essere scoperta.
 
+## `note-stato.mjs`
+
+**La striscia di un riquadro dice il suo STATO, non la sua decorazione.** In
+Terra la proiezione «fuori piano» usciva con la striscia verde e la pastiglia
+«danger» scritta anch'essa in verde, a 1,64:1. Nessuna riga di codice era
+sbagliata: sbagliato era l'incontro fra due regole giuste, e l'incontro lo sa
+solo il motore che le applica. Il banco monta sulla pagina vera le otto
+combinazioni che il programma genera davvero e chiede al motore che colore ha la
+striscia — non legge il CSS, legge il risultato.
+
+```sh
+node apps/deepwork-id/tests/browser/note-stato.mjs 8823
+node apps/deepwork-id/tests/browser/note-stato.mjs 8823 --controprova
+```
+
+Con `--controprova` la decorazione torna a dipingere la proprietà invece della
+variabile: devono cadere 14 combinazioni su 48, in tutte e sei le app.
+
+## `fuori-schermo.mjs`
+
+**Niente deve finire fuori dallo schermo di un telefono.** È già successo due
+volte, e tutte e due se n'è accorto un essere umano guardando uno screenshot:
+in Sentinella la barra in basso tagliava «REPORT» — una sezione intera
+irraggiungibile — e nella vetrina l'alone d'apertura faceva comparire lo
+scorrimento laterale. Il difetto non fa rumore: la pagina si apre e quello che
+manca manca in silenzio.
+
+Si guardano **solo i comandi** (bottoni e collegamenti), non tutti gli elementi:
+aloni e sfumature escono di proposito e vengono ritagliati, e un banco rumoroso
+è un banco che nessuno legge. Il metro è «una persona riesce a toccarlo?». E si
+guarda la posizione nel **documento**, non nel viewport: un comando sotto la
+piega non è irraggiungibile, è solo più in basso.
+
+```sh
+node apps/deepwork-id/tests/browser/fuori-schermo.mjs 8823
+node apps/deepwork-id/tests/browser/fuori-schermo.mjs 8823 --controprova --solo=sentinella
+```
+
+Nove superfici per due larghezze (390 e 360 px): 18 schermate.
+
 ## `contrasto-core.mjs`
 
 Misura il rapporto di contrasto del testo dei riquadri della home del core sul

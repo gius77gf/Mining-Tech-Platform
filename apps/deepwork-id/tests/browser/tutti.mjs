@@ -29,6 +29,8 @@ const BANCHI = [
   ['collegamenti · controprova', 'vetrina-collegamenti.mjs', ['--senza-ritorno'], true],
   ['striscia di stato dei riquadri', 'note-stato.mjs', []],
   ['striscia di stato · controprova', 'note-stato.mjs', ['--controprova'], true],
+  ['niente fuori schermo', 'fuori-schermo.mjs', []],
+  ['fuori schermo · controprova', 'fuori-schermo.mjs', ['--controprova', '--solo=sentinella'], true],
 ];
 
 async function rispondePorta(porta) {
