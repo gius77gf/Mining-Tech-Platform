@@ -799,6 +799,22 @@ campi interi, file delle macchine.
       c'è il banco `id-unici.mjs` sulla pagina **viva** e la **regola 13** sui
       nomi dei file scaricati, che in Conti erano identici per due export
       diversi.
+- [x] **Il giro degli zeri di comodo**, tutti e sei i lettori CSV, deciso ognuno
+      su cosa fa quel numero: **quattro corretti** — il prezzo del listino (uno
+      zero lo fa sembrare gratis, e finisce in fattura), le **ore motore** (il
+      contatore comanda la manutenzione: uno zero fa sembrare il tagliando
+      lontano su una macchina già oltre), la **base d'asta** (viene sommata nel
+      valore delle gare aperte), le **persone di una squadra** («0 persone» è
+      una frase falsa) — e **due lasciati con la ragione scritta** (i giorni
+      d'assenza di un near-miss, la quota di un fronte).
+- [x] **Il valore cattivo su tutti e sette gli export ri-caricabili**, e il
+      controllo che conta le protezioni `csvCell` nella riga vera del sorgente:
+      sui ricettori ce n'erano 2 dove ne servono 5, ed è così che l'unità
+      «mm/s; dB(A)» finiva dentro la nota. La voce 9 dell'audit era «chiusa» dal
+      21/07 ma il codice del 30/07 non la conosceva.
+- [x] **Le tendine tagliate**: 84 misurate, 19 tagliano un'opzione, **zero**
+      diventano ambigue — misura che ha evitato diciannove correzioni inutili.
+      Corretti i due casi che si vedevano.
 
 ---
 
