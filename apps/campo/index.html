@@ -742,7 +742,11 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     <button class="dw-btn secondary" id="btn-consegna"><svg viewBox="0 0 24 24"><path d="M14 3H7.5A2.5 2.5 0 0 0 5 5.5v13A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V8z"/><path d="M14 3v5h5"/><path d="M8.8 13h6.4M8.8 16.6h4.4"/></svg>Consegna di turno (testo)</button>
     <button class="dw-btn secondary" id="btn-rapporto-turno"><svg viewBox="0 0 24 24"><path d="M7 9.2V3.8h10v5.4"/><rect x="4" y="9.2" width="16" height="7.2" rx="1.8"/><path d="M7 14.4h10v5.8H7z"/></svg>Rapporto di fine turno</button>
   </div>
-  <div class="note esito" id="mode-note"></div>
+  <!-- Due mestieri, due riquadri. Prima erano lo stesso: l'esito dei comandi
+       qui sopra veniva scritto sulla nota che dice se si sta lavorando sui
+       dati veri, e da lì in poi quella conferma non tornava più. -->
+  <div class="note esito" id="rap-esito"></div>
+  <div class="note" id="mode-note"></div>
 
   <div class="sec">Chiusura del turno</div>
   <div id="fir-board"></div>
@@ -2723,11 +2727,11 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   };
   $("btn-add-rap").onclick = async () => {
     const titolo = $("new-rap-titolo").value.trim();
-    if (!titolo) { sbaglia("new-rap-titolo", "mode-note",
+    if (!titolo) { sbaglia("new-rap-titolo", "rap-esito",
       "Manca il titolo del rapportino: scrivi di che turno parla (per esempio «Rapportino perforazione»)."); return; }
     err("new-rap-titolo", false);
     const data = $("new-rap-data").value;
-    if (!data) { sbaglia("new-rap-data", "mode-note",
+    if (!data) { sbaglia("new-rap-data", "rap-esito",
       "Manca il giorno di lavoro: senza data il rapportino non entra nei totali della giornata."); return; }
     err("new-rap-data", false);
     // Produzione: numero facoltativo ma, se c'è, dev'essere un numero valido e
@@ -2735,7 +2739,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const let_pr = numeroDaCampo($("new-rap-prod").value, { min: 0 });
     const qta = let_pr.vuoto ? null : let_pr.valore;
     if (!let_pr.vuoto && !let_pr.ok) {
-      sbaglia("new-rap-prod", "mode-note",
+      sbaglia("new-rap-prod", "rap-esito",
         messaggioNumero(let_pr, "la produzione del turno", { min: 0 })
         + " Se non la registri, lascia il campo vuoto.");
       return;
@@ -2743,7 +2747,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     err("new-rap-prod", false);
     const turno = $("new-rap-turno").value || turnoCorrente(), unita = $("new-rap-unita").value || UNITA_PRODUZIONE[0];
     // punto di scrittura 8 — nuovo rapportino (e con lui la produzione del turno)
-    if (bloccato(data, turno, "il rapportino «" + titolo + "»", "mode-note")) return;
+    if (bloccato(data, turno, "il rapportino «" + titolo + "»", "rap-esito")) return;
     // il fronte si registra col suo IDENTIFICATIVO, mai col nome: se domani
     // qualcuno rinomina un fronte in Terra, la produzione già registrata resta
     // attaccata a quello giusto. Vuoto = «non indicato», ed è una risposta
@@ -2754,7 +2758,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       fronteId, ora: "", stato: "bozza" });
     $("new-rap-titolo").value = ""; $("new-rap-prod").value = ""; $("new-rap-note").value = "";
     $("new-rap-data").value = OGGI; $("new-rap-turno").value = turnoCorrente();
-    esito("mode-note", "Bozza creata: " + titolo + " (" + dmy(data) + " · turno " + turno + (qta != null ? " · " + formattaProduzione(qta, unita) : "") + "). Toccala nell'elenco per inviarla.", "success");
+    esito("rap-esito", "Bozza creata: " + titolo + " (" + dmy(data) + " · turno " + turno + (qta != null ? " · " + formattaProduzione(qta, unita) : "") + "). Toccala nell'elenco per inviarla.", "success");
     $("new-rap-titolo").focus(); await refresh();
   };
   $("btn-squ").onclick = async () => {
@@ -2942,7 +2946,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const el = document.createElement("a");
     el.href = "data:text/plain;charset=utf-8," + encodeURIComponent(txt);
     el.download = "consegna_turno.txt"; el.click();
-    esito("mode-note", "Consegna di turno esportata: " + RAP_OGGI.length + " rapportini e " + fermi.length + " causali di fermo.", "success");
+    esito("rap-esito", "Consegna di turno esportata: " + RAP_OGGI.length + " rapportini e " + fermi.length + " causali di fermo.", "success");
   };
   // Rapporto di fine turno STAMPABILE (stesso pattern del report di Genesi):
   // il deliverable che i supervisori si aspettano — solo dati già presenti.
@@ -3019,9 +3023,9 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
 <table><tr><th>Turno</th><th>Riaperto da</th><th>Quando</th><th>Motivo</th></tr>${riapOggi.map(c=>riaperture(c).map(r=>`<tr><td>${esc(c.turno)}</td><td>${esc(r.da||"—")}</td><td>${esc(dmy(r.il||"")+(r.ora?" "+r.ora:""))}</td><td>${esc(r.motivo||"—")}</td></tr>`).join("")).join("")}</table>`:""}
 <div class="muted" style="margin-top:20px">Generato da Deepwork Campo — registro operativo di giornata; non sostituisce i registri obbligatori.</div>
 <script>window.print()</` + `script></body></html>`;
-    const w = window.open("", "_blank"); if(!w){ esito("mode-note", "Il browser ha bloccato la finestra: sblocca i popup per questo sito e riprova.", "err"); return; }
+    const w = window.open("", "_blank"); if(!w){ esito("rap-esito", "Il browser ha bloccato la finestra: sblocca i popup per questo sito e riprova.", "err"); return; }
     w.document.write(html); w.document.close();
-    esito("mode-note", "Rapporto di fine turno aperto in una nuova scheda, pronto da stampare.", "success");
+    esito("rap-esito", "Rapporto di fine turno aperto in una nuova scheda, pronto da stampare.", "success");
   };
   // Recupero errore: appena l'utente corregge un campo, togli la segnalazione
   // rossa (e il messaggio, dove c'è) così l'avviso non resta appeso.
@@ -3030,9 +3034,9 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
   });
   clearErr("att-titolo", "att-esito");
   clearErr("att-data", "att-esito");
-  clearErr("new-rap-titolo", "mode-note");
-  clearErr("new-rap-data", "mode-note");
-  clearErr("new-rap-prod", "mode-note");
+  clearErr("new-rap-titolo", "rap-esito");
+  clearErr("new-rap-data", "rap-esito");
+  clearErr("new-rap-prod", "rap-esito");
   clearErr("squ-nome", "squ-esito");
   clearErr("ope-nome", "ope-esito");
   clearErr("ob-valore", "ob-esito");

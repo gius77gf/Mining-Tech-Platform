@@ -1124,6 +1124,10 @@ label.item:has(.dw-chk:checked){
     <button class="dw-btn secondary" id="btn-rep-export">Esporta situazione (CSV)</button>
     <button class="dw-btn secondary" id="btn-inc-export">Esporta incassi (CSV)</button>
   </div>
+  <!-- Due mestieri, due riquadri: l'esito dei comandi qui sopra, e la nota che
+       dice se si sta lavorando sui dati veri. Erano lo stesso riquadro, e il
+       primo export cancellava la seconda per sempre. -->
+  <div class="note esito" id="rep-esito"></div>
   <div class="note" id="mode-note"></div>
 </div>
 
@@ -3155,13 +3159,16 @@ label.item:has(.dw-chk:checked){
     const btnEspo = e.target.closest && e.target.closest("[data-espo]");
     if (btnEspo) { const c = esposizioneClienti(FAT, new Date(), CLI)[+btnEspo.getAttribute("data-espo")];
       const testo = c && estrattoContoCliente(c, FAT, new Date(), TASSO_MORA_DEFAULT, CLI);
-      if (!testo) { esito("mode-note", "Nessuna fattura aperta per questo cliente.", "err"); return; }
+      if (!testo) { esito("rep-esito", "Nessuna fattura aperta per questo cliente.", "err"); return; }
       const fatto = await copia(testo, "Estratto conto di " + c.cliente,
         "Il browser non ha permesso la copia automatica: seleziona il testo qui sotto e copialo a mano.",
         "Estratto conto di " + c.cliente + " copiato.");
-      $("mode-note").textContent = fatto
+      /* scritto con esito() come tutti gli altri: la scrittura diretta saltava
+         la classe della nota, quindi questa riga non prendeva la barra
+         d'accento che hanno le altre. `copia` il suo toast lo fa già. */
+      esito("rep-esito", fatto
         ? "Estratto conto di " + c.cliente + " copiato: incollalo nell'email o nella PEC (interessi da confermare col commercialista)."
-        : "Estratto conto di " + c.cliente + " pronto nella finestra: copialo a mano.";
+        : "Estratto conto di " + c.cliente + " pronto nella finestra: copialo a mano.", "success");
       return; }
     const btnSol = e.target.closest && e.target.closest("[data-sollecito]");
     if (btnSol) { const f = FAT.find(x => x.id === btnSol.getAttribute("data-sollecito"));
@@ -3221,7 +3228,7 @@ label.item:has(.dw-chk:checked){
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "conti_situazione_fatture.csv"; a.click();
-    esito("mode-note", "Esportate " + plur(FAT.length, "fattura", "fatture") + " in CSV.", "success");
+    esito("rep-esito", "Esportate " + plur(FAT.length, "fattura", "fatture") + " in CSV.", "success");
   };
   // Prima nota degli incassi: ogni versamento con la sua data vera. È il file
   // che il commercialista incrocia con l'estratto conto della banca.
@@ -3240,7 +3247,7 @@ label.item:has(.dw-chk:checked){
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "conti_incassi.csv"; a.click();
-    esito("mode-note", righe.length
+    esito("rep-esito", righe.length
       ? "Esportati " + plur(righe.length, "incasso", "incassi") + " in CSV."
       : "Nessun incasso registrato: il file esce con la sola intestazione.", righe.length ? "success" : "err");
   };

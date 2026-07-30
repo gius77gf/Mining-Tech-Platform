@@ -1086,6 +1086,9 @@ textarea.dw-input{
   <div class="tools">
     <button class="dw-btn secondary" id="btn-export-amb">Esporta monitoraggi e adempimenti (CSV)</button>
   </div>
+  <!-- L'esito dell'esportazione sta accanto al comando che l'ha prodotta.
+       Prima finiva sulla nota del modo, in fondo alla pagina. -->
+  <div class="note esito" id="reg-esito"></div>
 
   <div class="sec">Registro volate<span class="cnt" id="vol-tot">0</span></div>
   <div id="vol-riep" class="note recap" style="margin-top:0;"></div>
@@ -3067,8 +3070,12 @@ textarea.dw-input{
     const el = document.createElement("a");
     el.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     el.download = "sentinella_ambiente.csv"; el.click();
-    $("mode-note").textContent = "Esportati " + MON.length + " monitoraggi e " + ADE.length + " adempimenti (CSV).";
-    toast("Esportati " + MON.length + " monitoraggi e " + ADE.length + " adempimenti.", "success");
+    /* scritto con esito() come tutti gli altri: la scrittura diretta finiva
+       sulla nota del modo (cancellando la conferma «dati reali») e il toast
+       era ricopiato a mano accanto. Il quarto argomento è proprio il toast
+       corto: la nota resta completa, la striscia annuncia. */
+    esito("reg-esito", "Esportati " + MON.length + " monitoraggi e " + ADE.length + " adempimenti (CSV).", "success",
+      "Esportati " + MON.length + " monitoraggi e " + ADE.length + " adempimenti.");
   };
   // niente volate datate nel futuro: il registro è un documento verso gli enti e
   // il conteggio "questo mese" si baserebbe su un dato impossibile
