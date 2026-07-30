@@ -142,6 +142,24 @@ solo davanti a `= + - @`): round-trip senza perdite. Core
 nessun campo libero, non toccati. 22 test di regressione
 (run-helpers.mjs) blindano esc/csvCell/parseCsvLine; suite a 77 (PR #95).
 
+⚠️ **RIAPERTO E RICHIUSO IL 31/07 — e la ragione vale per tutto questo
+documento.** L'helper c'era e funzionava; quello che mancava era **applicarlo
+al codice scritto dopo**. L'esportazione dei **ricettori** di Sentinella è nata
+il 30/07, cioè nove giorni dopo la chiusura di questa voce, e non passava da
+`csvCell` sul campo **unità** — che è testo libero. Due conseguenze, misurate:
+- un'unità scritta «mm/s; dB(A)» spezzava la riga, e il pezzo dopo il punto e
+  virgola finiva **dentro la nota** del ricettore, in silenzio;
+- un valore che inizia con `=` sarebbe uscito **senza apostrofo di guardia**,
+  cioè eseguibile come formula: esattamente ciò che questa voce doveva chiudere.
+Corretto (unità, tipo e classe passano da `csvCell`) e blindato con quattro
+prove nel giro di andata e ritorno.
+
+**La lezione, che è più importante della correzione**: una voce «CHIUSA» dice
+che il difetto di allora è stato tolto, **non** che non possa rinascere altrove.
+Ogni volta che nasce un'esportazione nuova, questa voce va riletta — e il modo
+di riverificarla in un minuto è cercare i campi di testo libero che **non**
+passano da `csvCell`.
+
 ### 11. Indici Firestore per le query delle Functions (21/07) — PREPARATO
 Le Cloud Functions usano query `collectionGroup`/composte
 (rebuildClaims: members per uid+status; acceptInvites: invites per
