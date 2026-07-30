@@ -232,7 +232,7 @@
 .peggio-spark>div{line-height:0}
 .peggio-spark-cap{
   font-size:8.5px; font-weight:600; letter-spacing:1.2px; text-transform:uppercase;
-  color:var(--disabled); text-align:right; margin-top:9px; line-height:1.2;
+  color:var(--muted); text-align:right; margin-top:9px; line-height:1.2;
 }
 .peggio-note{
   font-size:11.5px; line-height:1.5; color:var(--muted); margin-top:10px;
@@ -423,7 +423,9 @@
    Stessa correzione applicata all'etichetta d'asse del motore condiviso
    (.dwg-axlab), sovrascritta qui senza toccare shared/. */
 .graf-axlab{
-  fill:var(--disabled); font-size:8.5px; font-family:'Barlow',sans-serif;
+  /* non è testo disabilitato: contiene l'unità di misura. Misurato, col colore
+     del «disabilitato» stava a 3,18:1 contro una soglia di 4,5. */
+  fill:var(--muted); font-size:8.5px; font-family:'Barlow',sans-serif;
   letter-spacing:1.4px; text-transform:none;
 }
 /* del motore condiviso non c'è più niente da correggere qui: shared/ avvolge
@@ -533,7 +535,10 @@
 .tab td.stato{white-space:normal; min-width:74px}
 .tab tr:last-child td{border-bottom:none}
 .tab td.n{color:var(--text); font-weight:600}
-.tab td.grezzo{color:var(--disabled); font-size:11px; max-width:190px; overflow:hidden; text-overflow:ellipsis}
+/* il testo grezzo di una segnalazione è quello che ha scritto una persona:
+   dipingerlo col colore del «disabilitato» lo portava a 3,83:1, sotto soglia,
+   e per di più lo faceva sembrare spento. */
+.tab td.grezzo{color:var(--muted); font-size:11px; max-width:190px; overflow:hidden; text-overflow:ellipsis}
 .tab tr.ko td{color:var(--disabled)}
 .tab tr.ko td.n{color:var(--disabled); text-decoration:line-through}
 .tab tr.oltre td.n{color:var(--danger)}

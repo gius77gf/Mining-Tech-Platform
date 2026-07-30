@@ -25,7 +25,11 @@
 :root{
   /* palette allineata a Deepwork (dark, ambra) */
   --bg:#100d07; --panel:rgba(24,20,10,.94); --panel2:rgba(34,28,14,.96);
-  --line:#332a14; --tx:#f0e8d8; --mut:#9b8a60; --mut2:#b8a574;
+  /* `--mut` era #9b8a60 e portava il testo piccolo a 4,34:1 sulle schede: sotto
+     la soglia leggibile di 4,5. Schiarito quel tanto che basta — misurato,
+     4,81:1 su 34 elementi — senza avvicinarlo a `--mut2`, che resta il gradino
+     sopra: una gerarchia che si appiattisce è un altro modo di peggiorare. */
+  --line:#332a14; --tx:#f0e8d8; --mut:#a3926a; --mut2:#b8a574;
   --cu:#ffab00; --cuD:#ff6d00; --ok:#66bb6a; --warn:#ffa726;
 }
 *{box-sizing:border-box;margin:0;padding:0}

@@ -140,8 +140,14 @@ body.dw.light-mode, body.dw.outdoor-mode {
   fill: var(--dwg-tick); font-family: 'Barlow', sans-serif; font-size: 10px;
   font-variant-numeric: tabular-nums;
 }
+/* ⛔ L'ETICHETTA D'ASSE NON È TESTO DISABILITATO. Era dipinta con
+   `var(--disabled)`, il colore di ciò che non si può usare — e lì dentro c'è
+   l'UNITÀ DI MISURA, cioè informazione che si deve leggere. Misurato su tre
+   app: «t», «mm/s», «dB(A)», «m³» stavano a 3,15–3,19:1 contro una soglia di
+   4,5. Adesso usa il colore delle etichette, che è quello giusto anche di
+   nome. */
 .dwg-axlab {
-  fill: var(--disabled); font-family: 'Barlow', sans-serif; font-size: 8.5px;
+  fill: var(--dwg-lab); font-family: 'Barlow', sans-serif; font-size: 8.5px;
   letter-spacing: 1.4px; text-transform: uppercase;
 }
 /* ⛔ LE UNITÀ DI MISURA NON SI SCRIVONO MAI IN MAIUSCOLO.
