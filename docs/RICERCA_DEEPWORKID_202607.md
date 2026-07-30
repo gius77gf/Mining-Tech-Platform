@@ -140,6 +140,14 @@ che richiede l'intervento del fondatore per ogni singola persona.
 mano.** È il primo problema da risolvere (vedi proposta P1).
 
 ### 🟠 R2 — L'abbonamento non è applicato davvero
+> **✅ MISURATO il 30/07** — non è più un'ipotesi. Con un'organizzazione
+> abbonata solo a Scudo, l'emulatore risponde `PERMESSO` a: leggere i fronti di
+> Terra, scriverci, leggere una fattura di Conti. Il verbale sta in
+> `docs/REVISIONE_SICUREZZA_202607.md`, la sonda che lo rifà in un comando in
+> `apps/deepwork-id/tests/sonda-permessi.mjs`. Da allora il rischio è anche
+> **cresciuto di attualità**: i ponti fra le app hanno reso normale il gesto di
+> puntare l'SDK sull'`appId` di un'altra app, e da fuori un accesso legittimo e
+> uno abusivo sono identici.
 L'SDK ha `hasEntitlement()`, ma **nessuna app lo chiama**: entrano in modalità
 "live" solo verificando di essere membri di un'organizzazione. E le regole di
 sicurezza permettono a qualunque membro di leggere e scrivere in
@@ -151,6 +159,10 @@ niente che faccia rispettare il piano. Nota minore collegata: il commento
 dell'SDK cita un metodo `showLocked()` che **non esiste**.
 
 ### 🟠 R3 — Tutti i membri possono tutto
+> **✅ MISURATO il 30/07**: un membro semplice (né proprietario né
+> amministratore) modifica il totale di una fattura e la cancella. Non è una
+> deduzione dalle regole — è la risposta dell'emulatore. Vedi
+> `docs/REVISIONE_SICUREZZA_202607.md`.
 Con soli tre ruoli e nessun `appRoles`, un operatore che usa Campo per il
 rapportino può anche **aprire Conti e cancellare le fatture**, o modificare le
 scadenze di sicurezza in Scudo. Non serve malafede: bastano un dito sbagliato e

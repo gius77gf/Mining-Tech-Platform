@@ -34,6 +34,12 @@ tiene**, anche sulle collezioni nate dopo che le regole sono state scritte
 
 ## I due buchi, misurati
 
+*Non sono una scoperta: la ricerca di luglio li aveva già scritti come rischi
+**R2** e **R3** in `docs/RICERCA_DEEPWORKID_202607.md`. Quello che mancava era
+la prova. Un rischio scritto è un'opinione finché qualcuno non lo misura, e
+un'opinione non decide niente — per questo qui sotto ci sono le risposte
+dell'emulatore invece del ragionamento sulle regole.*
+
 Sono stati misurati con una sonda scritta apposta: un'organizzazione con
 l'abbonamento **solo a Scudo**, e un utente che è **membro semplice** (non
 proprietario, non amministratore). Ecco cosa ha risposto l'emulatore:
