@@ -38,8 +38,9 @@ const RITORNI = ['class="dw-home"', 'class="g-home"'];
 /* CONTROPROVA della sola prova d'avvio: «--senza-programma» uccide il modulo di
    ogni pagina. Serve perché «la pagina monta davvero» NON sa accorgersene —
    misurato il 01/08: col programma morto passa su nove superfici su nove,
-   perché il markup delle app è quasi tutto statico. Qui si pretende che almeno
-   le sei app che hanno la nota del modo diventino rosse. */
+   perché il markup delle app è quasi tutto statico. Qui si pretende che tutte e
+   otto le superfici con un programma (sei app + core + Genesi) diventino rosse;
+   la vetrina non ne ha uno ed è esclusa per dichiarazione, non per svista. */
 const SENZA_PROGRAMMA = process.argv.includes('--senza-programma');
 
 let ok = 0, ko = 0;
@@ -48,7 +49,7 @@ const prova = (n, c, e) => {
   else { ko++; console.log('  KO  ' + n + (e !== undefined ? '\n        -> ' + JSON.stringify(e) : '')); }
 };
 
-let conNotaModo = 0, avvioRosso = 0;
+let conSegnoAvvio = 0, avvioRosso = 0;
 const b = await chromium.launch({ executablePath: CHROMIUM });
 const ctx = await b.newContext({ viewport: { width: 1280, height: 900 }, locale: 'it-IT' });
 const p = await ctx.newPage();
@@ -226,17 +227,43 @@ for (const { href, nome } of schede) {
      57 al giro successivo sulla stessa pagina immobile. Una prova che fallisce
      a caso è peggio di nessuna prova — insegna a ignorare il rosso, e il primo
      rosso vero passa inosservato. */
-  const leggiNota = () => q.evaluate(() => {
-    const e = document.getElementById('mode-note');
-    return e ? (e.textContent || '').trim().length : -1;
-  });
-  let avvio = await leggiNota();
-  for (let i = 0; i < 20 && avvio === 0; i++) { await q.waitForTimeout(250); avvio = await leggiNota(); }
+  /* IL SEGNO È DIVERSO PER OGNI FAMIGLIA DI SUPERFICIE, e nessuno è inventato:
+     ognuno è stato scelto misurando la stessa pagina viva e morta e tenendo
+     ciò che cambia.
+     · le sei app → la nota del modo: 57-72 caratteri contro 0;
+     · il core → `window.nav`. Vivo è la funzione vera, morto è il SEGNAPOSTO
+       che il core installa apposta (`[Deepwork] Funzione ... non ancora
+       pronta`). Il testo visibile è IDENTICO nei due casi — 258 caratteri, la
+       schermata d'accesso — ed è esattamente per questo che «monta davvero»
+       non può accorgersene;
+     · Genesi → i comandi con un gestore attaccato dal programma: 64 contro 0.
+     La VETRINA non ha nessun modulo: è una pagina statica, e qui non c'è
+     niente da pretendere. Dichiarata, non dimenticata. */
+  const leggiSegno = () => {
+    if (via === '/index.html') return q.evaluate(() => {
+      try { return /\[Deepwork\] Funzione/.test(String(window.nav)) ? 0 : 1; } catch (e) { return 0; }
+    });
+    if (via === '/apps/genesi/genesi.html') return q.evaluate(() =>
+      [...document.querySelectorAll('button')].filter((b) => b.onclick).length);
+    return q.evaluate(() => {
+      const e = document.getElementById('mode-note');
+      return e ? (e.textContent || '').trim().length : -1;
+    });
+  };
+  let avvio = await leggiSegno();
+  for (let i = 0; i < 20 && avvio === 0; i++) { await q.waitForTimeout(250); avvio = await leggiSegno(); }
   if (avvio >= 0) {
-    conNotaModo++;
+    conSegnoAvvio++;
     if (avvio === 0) avvioRosso++;
-    prova(`${nome}: il programma è partito davvero (la nota del modo ha ${avvio} caratteri)`,
-      avvio > 0, { avvio, perche: 'con il modulo morto qui ci sono 0 caratteri' });
+    /* l'etichetta dice il valore MISURATO, non l'esito sperato: scritta come
+       «window.nav non è il segnaposto» anche quando lo era, la riga rossa
+       raccontava il contrario di quello che era successo. */
+    const comeSegno = via === '/index.html'
+      ? `window.nav è ${avvio ? 'la funzione vera' : 'ancora IL SEGNAPOSTO'}`
+      : via === '/apps/genesi/genesi.html' ? `${avvio} comandi hanno un gestore`
+      : `la nota del modo ha ${avvio} caratteri`;
+    prova(`${nome}: il programma è partito davvero (${comeSegno})`,
+      avvio > 0, { avvio, perche: 'col modulo morto questo segno vale 0' });
   }
 
   if (!SENZA_RITORNO.includes(via)) {
@@ -258,13 +285,13 @@ await b.close();
 console.log(`\n${ok} passate, ${ko} fallite`);
 /* nella controprova il successo è il contrario: se NON cade niente, il banco
    non sta misurando il ritorno */
-console.log(`${conNotaModo} superfici hanno la nota del modo, e su quelle si è preteso che il programma fosse partito`);
+console.log(`${conSegnoAvvio} superfici hanno un segno d'avvio, e su quelle si è preteso che il programma fosse partito`);
 /* SEI, non sette: l'amministrazione di Deepwork ID la nota del modo ce l'ha,
    ma non è un riquadro della vetrina e questo banco non ci passa. Il numero è
    asserito perché se domani una app perdesse la nota, la prova sparirebbe in
    silenzio e il totale resterebbe verde. */
 if (SENZA_PROGRAMMA) {
-  const attese = 6;   // le sei app: col programma morto la nota resta vuota
+  const attese = 8;   // sei app + core + Genesi (la vetrina non ha un programma)
   if (avvioRosso === attese) {
     console.log(`La controprova ha spento il programma e tutte e ${attese} le app se ne sono accorte: la prova sa fallire.`);
     process.exit(0);
@@ -272,8 +299,8 @@ if (SENZA_PROGRAMMA) {
   console.error(`\n⚠️ CONTROPROVA INCOMPLETA: solo ${avvioRosso} app su ${attese} hanno visto il programma morto.`);
   process.exit(1);
 }
-if (!CONTROPROVA && conNotaModo !== 6) {
-  console.error(`  ✗ le superfici con la nota del modo sono ${conNotaModo}, me ne aspettavo 6 (le sei app; l'amministrazione non è nella vetrina)`);
+if (!CONTROPROVA && conSegnoAvvio !== 8) {
+  console.error(`  ✗ le superfici con un segno d'avvio sono ${conSegnoAvvio}, me ne aspettavo 8 (sei app + core + Genesi; la vetrina non ha un programma)`);
   ko++;
 }
 process.exit(CONTROPROVA ? (ko ? 0 : 1) : (ko ? 1 : 0));

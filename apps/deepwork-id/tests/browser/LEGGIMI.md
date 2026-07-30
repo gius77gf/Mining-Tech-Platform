@@ -79,9 +79,21 @@ delle app è quasi tutto statico, quindi Conti col programma morto fa comunque
 per cui esiste. La salva solo «nessun errore di pagina», e soltanto se il
 modulo muore **rumoroso**: uno che esce in silenzio passerebbe tutte e due.
 
-La nota del modo (`mode-note`) la scrive il programma all'avvio, e solo lui:
-viva porta 57-72 caratteri, morta ne porta **0**. Con `--senza-programma` si
-uccide il modulo e si pretende che tutte e **sei** le app se ne accorgano.
+Il segno d'avvio è **diverso per famiglia**, e nessuno è inventato: ognuno è
+stato scelto misurando la stessa pagina viva e morta e tenendo ciò che cambia.
+
+| superficie | segno | vivo | morto |
+|---|---|---|---|
+| le sei app | la nota del modo (`mode-note`) | 57-72 caratteri | **0** |
+| il core | `window.nav` | la funzione vera | il **segnaposto** che il core installa apposta |
+| Genesi | i comandi con un gestore | 64 | **0** |
+| la vetrina | *nessuno: non ha moduli, è statica* | — | — |
+
+Il caso del core è il più istruttivo: vivo e morto hanno **lo stesso testo
+visibile** — 258 caratteri, la schermata d'accesso — quindi nessuna misura di
+«quanto c'è in pagina» potrà mai distinguerli. Con `--senza-programma` si uccide
+il modulo e si pretende che tutte e **otto** le superfici con un programma se ne
+accorgano. La vetrina è esclusa **per dichiarazione, non per svista**.
 
 ```sh
 node apps/deepwork-id/tests/browser/vetrina-collegamenti.mjs 8823 --senza-programma
