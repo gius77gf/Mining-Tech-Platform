@@ -240,5 +240,68 @@ test("paiUnita non prende una data per un'unità", async () => {
   ok(/coda\.length\s*>\s*8/.test(js), "manca il limite di lunghezza: oltre 8 caratteri è una parola, non un'unità");
 });
 
+console.log("\n── Regola 3: un campo decimale non è mai type=number ──");
+// Misurato in Chromium: in un `<input type="number">`, digitando «2,4» da
+// tastiera il `.value` diventa «24» e `checkValidity()` risponde true. Il
+// browser scarta la virgola, tiene le cifre e chiama valido un numero dieci
+// volte più grande — e in cava chi compila scrive la virgola. Su una carica di
+// esplosivo, su un imponibile o su una coordinata GPS è il difetto peggiore
+// della piattaforma, perché è silenzioso.
+// Un `step` frazionario è la firma di un campo decimale: se un campo si
+// dichiara decimale con lo step, non può essere `type=number`.
+const APP_SEI = SUPERFICI.filter(([n]) => !/core|Deepwork ID/.test(n));
+function numeriDecimali(src) {
+  const fuori = [];
+  const tag = /<input\b[^>]*>/gi;
+  let m;
+  while ((m = tag.exec(src)) !== null) {
+    const t = m[0];
+    if (!/type="number"/.test(t)) continue;
+    const st = /step="([^"]*)"/.exec(t);
+    if (!st || !st[1].includes(".")) continue;      // step intero: campo intero, va bene
+    const id = /id="([^"]*)"/.exec(t);
+    fuori.push({ id: id ? id[1] : "(senza id)", step: st[1] });
+  }
+  return fuori;
+}
+for (const [nome, rel] of APP_SEI) {
+  const src = leggi(rel);
+  if (src === null) continue;
+  test(`${nome}: nessun campo decimale è rimasto type=number`, () => {
+    const v = numeriDecimali(src);
+    ok(v.length === 0,
+      `${rel} — ${v.map((x) => `#${x.id} (step ${x.step})`).join(", ")}: con type=number «2,4» diventa 24`);
+  });
+}
+test("il controllo si accorge di un campo decimale rimesso a type=number", () => {
+  ok(numeriDecimali('<input id="x" type="number" step="0.1">').length === 1, "step frazionario trovato");
+  ok(numeriDecimali('<input id="x" type="number" step="1">').length === 0, "un campo intero non è un difetto");
+  ok(numeriDecimali('<input id="x" type="text" inputmode="decimal" step="0.1">').length === 0, "convertito: a posto");
+  // controprova sui file veri: si rimette il difetto e il controllo deve vederlo
+  for (const [nome, rel] of [["Campo", "apps/campo/index.html"], ["Genesi", "apps/genesi/genesi.html"]]) {
+    const src = leggi(rel);
+    if (!src) continue;
+    ok(numeriDecimali(src).length === 0, `${nome} parte pulito`);
+    const rotto = src.replace('<input', '<input id="veleno" type="number" step="0.1"><input');
+    ok(numeriDecimali(rotto).length === 1, `${nome}: il difetto iniettato viene trovato`);
+  }
+});
+// ⚠️ IL CORE NON È ANCORA A POSTO, e va detto qui invece di lasciarlo fuori
+// dall'elenco in silenzio: `index.html` ha **32** campi decimali ancora
+// `type="number"`, fra cui le COORDINATE GPS della cava (`cf-lat`/`cf-lon`,
+// step 0,0001) e i parametri di volata (`a-b` spalla, `a-s` interasse, `a-mh`
+// carica massima per ritardo, `a-pm` consumo specifico). La lettura è già
+// tollerante — 12 dei 15 campi con id passano da `parseNum`, che accetta la
+// virgola — quindi manca solo il tipo del campo; tre (`a-mh`, `ef-x`/`ef-y`,
+// `umc-k`) vanno guardati a mano perché non si leggono con `$(id).value`.
+// È il prossimo passo, ed è sul prodotto che va in produzione a ogni merge.
+test("il core è dichiarato come non ancora convertito (32 campi)", () => {
+  const src = leggi("index.html");
+  ok(src, "index.html non trovato");
+  const v = numeriDecimali(src);
+  ok(v.length === 32,
+    `il core ha ${v.length} campi decimali type=number, non 32: se il numero è SCESO aggiorna questo test e l'elenco in CLAUDE.md; se è salito, qualcuno ne ha aggiunti`);
+});
+
 console.log(`\nRisultato Stile: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);

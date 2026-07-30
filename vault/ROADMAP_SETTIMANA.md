@@ -362,12 +362,37 @@ bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
       da 30×30 a 44 px di altezza su tutti i comandi, stacco da 5 a 16 px, e
       sei comandi che erano **invisibili e irraggiungibili** dentro testi
       troncati. Misurato con `elementFromPoint` a cinque larghezze.
-- [ ] **S5. Genesi — via i tre dialoghi del browser**: `prompt()` e
-      `confirm()` violano la direttiva vincolante sullo stile. Si usano la
-      modale e il toast del core.
-- [ ] **S6. La virgola nelle altre quattro app**: Flotta (litri, euro, ore,
-      tariffe, prezzi ricambi), Conti, Terra, Scudo. Meccanico ma va
-      verificato campo per campo, come in Sentinella.
+- [x] **S5. Genesi — via i tre dialoghi del browser** ✅ *(30/07, `88ba5a1`)* —
+      e poi gli **ultimi tre della piattaforma**, due dei quali nel core
+      (`14aadf3`): la calibrazione della scala, che decide ogni misura presa
+      dalla foto, e la rimozione di un membro dall'organizzazione.
+- [x] **S6. La virgola in tutte le app** ✅ *(30/07)* — Sentinella `2b661f7`,
+      Campo `a1d8436`, Genesi `26e6f0e`, Flotta/Conti/Terra nei punti stabili.
+      Poi la scoperta che contava: le sei app leggevano «1.250» in **tre modi
+      diversi**, perché la convenzione era scritta quattro volte. Ora vive in
+      `shared/deepwork-id-client/dw-shell.js` (`1385928`) e tutte e sei
+      delegano (`4f4b4d3`).
+- [x] **S8. Piano di carico: colonne per nome, non per posizione** ✅ *(30/07,
+      `74e6712`)* — un file con le colonne in ordine diverso si caricava
+      **senza errori**, con la profondità nel borraggio. Trovato per caso
+      sbagliando un'intestazione in una prova.
+- [x] **S9. Le regole vincolanti diventano controlli** ✅ *(30/07, `78e59ec`)* —
+      `run-stile.mjs`, 39 controlli in CI: niente dialoghi del browser, unità
+      mai in maiuscolo, nessun campo decimale `type=number`.
+- [ ] **S10. IL CORE: 32 campi decimali ancora `type="number"`** ← *il prossimo,
+      e il più importante*. È il prodotto che va in produzione a ogni merge.
+      Fra quei campi ci sono le **coordinate GPS della cava**
+      (`cf-lat`/`cf-lon`, step 0,0001: «37,0625» diventa 370625) e i
+      **parametri di volata** (`a-b` spalla, `a-s` interasse, `a-mh` carica
+      massima per ritardo, `a-pm` consumo specifico). La buona notizia: la
+      lettura è già tollerante — 12 dei 15 campi con id passano da `parseNum`,
+      che accetta la virgola — quindi manca **solo il tipo del campo**. Tre
+      (`a-mh`, `ef-x`/`ef-y`, `umc-k`) vanno guardati a mano perché non si
+      leggono con `$(id).value`, e 17 sono costruiti dinamicamente. ⚠️ Il core
+      **non si può provare col browser in questo ambiente**: importa Firebase e
+      tre librerie da CDN, e la rete verso gstatic/jsdelivr è chiusa, quindi le
+      funzioni vere restano stub. Si verifica estraendo la logica, come in
+      `14aadf3`.
 - [ ] **S7. Ponte P2 Campo → Terra**: la produzione del turno alimenta i
       volumi per fronte senza reinserimento. È l'ultimo ponte.
 
