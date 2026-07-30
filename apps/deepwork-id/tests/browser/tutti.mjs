@@ -23,6 +23,7 @@ const BANCHI = [
   ['campi interi', 'interi-superfici.mjs', []],
   ['campi interi · controprova', 'interi-superfici.mjs', ['--senza-guardia'], true],
   ['contrasto', 'contrasto.mjs', []],
+  ['contrasto · controprova', 'contrasto.mjs', ['--controprova'], true],
   ['unità in maiuscolo', 'unita-maiuscole.mjs', []],
   ['unità · controprova', 'unita-maiuscole.mjs', ['--controprova', '--solo=campo'], true],
   ['collegamenti della vetrina', 'vetrina-collegamenti.mjs', []],

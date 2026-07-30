@@ -186,6 +186,35 @@ La controprova aggiunge un id inventato e pretende che il banco lo trovi in
 **tutte** le app: se lo trovasse solo in alcune, per le altre non avrebbe
 dimostrato niente.
 
+## `contrasto.mjs`
+
+La versione estesa del banco qui sotto: misura il contrasto di **tutto** il
+testo di **tutte e nove** le superfici — badge, pillole, note, tabelle — sul
+renderizzato. Oggi sono **3331 testi**, ed è il banco che fa il maggior numero
+di misure di tutta la suite.
+
+```sh
+node apps/deepwork-id/tests/browser/contrasto.mjs 8823
+node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --solo=terra
+node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --tutti        # elenca anche i promossi
+node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --controprova
+```
+
+⚠️ **La controprova è nata il 01/08, e prima non c'era.** Il banco misurava
+3322 testi e rispondeva «0 sotto soglia», ma **niente dimostrava che ne sapesse
+vedere uno**: è la stessa posizione in cui si trovava la regola dei dialoghi di
+`run-stile.mjs`, cieca su gran parte del codice mentre diceva ok. Adesso
+`--controprova` appende a ogni superficie una riga a **~1,15:1** e pretende che
+venga bocciata su **tutte e nove**: se una sola la promuovesse, lì la misura non
+sta guardando e il suo «0 sotto soglia» non varrebbe niente.
+
+Le trappole della misura — gradienti, trasparenze, `opacity` ereditata, testo
+ritagliato col gradiente (`background-clip:text`), testo dentro gli SVG — sono
+descritte nell'intestazione del file, ognuna con il caso vero che l'ha fatta
+scoprire. **Tutte e cinque erano nel verso che ASSOLVE il difetto o accusa il
+prodotto a torto**: una misura sbagliata che grida al lupo consuma la fiducia
+esattamente come una che tace.
+
 ## `contrasto-core.mjs`
 
 Misura il rapporto di contrasto del testo dei riquadri della home del core sul

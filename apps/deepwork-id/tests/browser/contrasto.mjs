@@ -31,6 +31,16 @@ const chromium = await prendiChromium();
 const PORTA = process.argv[2];
 const SOLO = (process.argv.find((a) => a.startsWith('--solo=')) || '').slice(7);
 const TUTTI = process.argv.includes('--tutti');
+/* ⚠️ PERCHÉ QUESTO BANCO HA UNA CONTROPROVA (01/08).
+   Misurava 3322 testi e rispondeva «0 sotto soglia» — ed è il banco che fa il
+   maggior numero di misure di tutti. Ma niente dimostrava che ne sapesse
+   vedere uno: esattamente la posizione in cui si trovava la regola dei dialoghi
+   stamattina, che era cieca su gran parte del codice mentre diceva ok.
+   Con `--controprova` si appende a ogni superficie una riga di testo a ~1,15:1
+   e si pretende che venga bocciata. Se una sola superficie la promuove, lì la
+   misura non sta guardando, e il suo «0 sotto soglia» non vale niente. */
+const CONTROPROVA = process.argv.includes('--controprova');
+const MARCA = 'controprova contrasto';
 
 /* La misura vive nella pagina: si passa una volta sola e si raccoglie tutto il
    testo visibile con il suo contrasto effettivo. */
@@ -156,14 +166,27 @@ const MISURA = () => {
 
 const b = await chromium.launch({ executablePath: CHROMIUM });
 let misurati = 0, bocciati = 0;
+let superficiProvate = 0;
+const superficiCieche = [];
 const visti = new Set();
 
 for (const [nome, via] of SUPERFICI) {
   if (SOLO && SOLO !== nome) continue;
   console.log(`\n══════ ${nome} ══════`);
   const { ctx, p, errori } = await apriSuperficie(b, { nome, via, porta: PORTA, montaFintoFirebase });
+  if (CONTROPROVA) {
+    await p.evaluate((marca) => {
+      const d = document.createElement('div');
+      d.textContent = marca;
+      d.className = 'controprova';
+      /* fondo opaco messo sull'elemento stesso, così la composizione degli
+         strati non deve indovinare niente: grigio su grigio, ~1,15:1 */
+      d.setAttribute('style', 'color:rgb(51,51,51); background-color:rgb(42,42,42); font-size:13px; padding:4px; position:relative; z-index:1');
+      document.body.appendChild(d);
+    }, MARCA);
+  }
   const sezioni = await sezioniDi(p, nome);
-  let bocciatiQui = 0, misuratiQui = 0;
+  let bocciatiQui = 0, misuratiQui = 0, presaQui = 0;
   for (const s of sezioni) {
     await vaiA(p, nome, s);
     const misure = await p.evaluate(MISURA);
@@ -176,18 +199,35 @@ for (const [nome, via] of SUPERFICI) {
       misurati++; misuratiQui++;
       const passa = m.rapporto >= m.soglia;
       if (!passa) {
+        if (m.testo.startsWith(MARCA)) { presaQui++; continue; }   // è il veleno: non è un difetto del prodotto
         bocciati++; bocciatiQui++;
         console.log(`  KO  ${String(m.rapporto).padStart(6)}:1  (serve ${m.soglia})  ${m.dim}px  «${m.testo}»  .${m.classe}`);
+      } else if (m.testo.startsWith(MARCA)) {
+        console.log(`  ⚠️  la riga della controprova è stata PROMOSSA a ${m.rapporto}:1 — qui la misura non guarda`);
       } else if (TUTTI) {
         console.log(`  ok  ${String(m.rapporto).padStart(6)}:1  «${m.testo}»`);
       }
     }
   }
-  console.log(`  ${misuratiQui} testi misurati, ${bocciatiQui} sotto soglia`);
+  console.log(`  ${misuratiQui} testi misurati, ${bocciatiQui} sotto soglia`
+    + (CONTROPROVA ? ` · controprova ${presaQui ? 'PRESA' : 'NON PRESA'}` : ''));
+  if (CONTROPROVA) { superficiProvate++; if (!presaQui) superficiCieche.push(nome); }
   if (errori.length) console.log('  ⚠ errori pagina:', errori.slice(0, 2));
   await ctx.close();
 }
 
 await b.close();
 console.log(`\n${misurati} testi misurati in tutto, ${bocciati} sotto soglia`);
+
+/* Come per gli altri banchi: in controprova si esce MALE se il difetto NON
+   viene trovato, perché vorrebbe dire che la misura non sa fallire. */
+if (CONTROPROVA) {
+  console.log(`${superficiProvate} superfici avvelenate, ${superficiProvate - superficiCieche.length} l'hanno bocciata`);
+  if (superficiCieche.length === 0) {
+    console.log('La controprova è stata bocciata su tutte le superfici: il banco sa fallire.');
+    process.exit(0);
+  }
+  console.log(`\n⚠️ CONTROPROVA INCOMPLETA: su ${superficiCieche.join(', ')} il testo a 1,15:1 è passato.`);
+  process.exit(1);
+}
 process.exit(bocciati ? 1 : 0);
