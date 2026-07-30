@@ -1045,7 +1045,9 @@ a.dw-btn{text-decoration:none}
       <div class="acts"><span class="badge ${FB[f.stato][0]}">${FB[f.stato][1]}</span>
       <button class="arr" type="button" title="Modifica nome, banco e quota" aria-label="Modifica il fronte ${esc(f.nome)}" data-edit-fro="${f.id}">${A.mod}</button></div></div>`; }).join("")
       || vuoto(I.monte, "Nessun fronte registrato",
-          "Aggiungi il primo fronte col modulo qui sotto (nome, banco e quota), oppure importa l'elenco completo da un file CSV.");
+          "I fronti sono i posti dove si scava: ogni rilievo del drone e ogni volume estratto si attacca a uno di questi. Senza, i metri cubi non sanno a quale parte della cava appartengono.",
+          `<button class="dw-btn secondary mini" data-vuoto-fai="fro-nome">Aggiungi il primo fronte</button>
+           <button class="dw-btn secondary mini" data-vuoto-fai="#btn-fro-import">Importa i fronti da CSV</button>`);
     $("new-ril-fronte").innerHTML = '<option value="">— fronte —</option>' +
       FRO.map(f => `<option value="${f.id}">${esc(f.nome)}</option>`).join("");
 
@@ -1681,6 +1683,20 @@ a.dw-btn{text-decoration:none}
   }
 
   // Cambio anno: sia dalle pillole in alto sia dalle righe «anno per anno».
+  /* I bottoni degli stati vuoti PORTANO, non fanno: cliccano il comando che
+     esiste già o mettono il fuoco sul primo campo del form. Così non nasce una
+     seconda strada per fare la stessa cosa — che è il modo in cui due strade
+     cominciano a comportarsi diversamente. Gli id sono stati CERCATI nel
+     markup, non indovinati: è la trappola scritta in CLAUDE.md. */
+  document.addEventListener("click", (e) => {
+    const fai = e.target.closest && e.target.closest("[data-vuoto-fai]");
+    if (!fai) return;
+    const dove = fai.getAttribute("data-vuoto-fai");
+    if (dove.startsWith("#")) { const b = $(dove.slice(1)); if (b) b.click(); return; }
+    const el = $(dove);
+    if (el) { el.scrollIntoView({ block: "center", behavior: "smooth" }); setTimeout(() => el.focus(), 250); }
+  });
+
   document.addEventListener("click", (e) => {
     const b = e.target.closest && e.target.closest("#den-anni [data-anno], #den-storico [data-anno]");
     if (!b) return;

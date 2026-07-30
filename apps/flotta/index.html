@@ -1637,7 +1637,10 @@
         ? vuoto(I.cerca, "Nessun mezzo trovato", "Non c'è nessun mezzo che contenga «<b>" + esc(qMez) + "</b>» nel nome o nell'area. Prova a scrivere meno lettere, o svuota la casella di ricerca.")
         : filtroMez !== "tutti"
           ? vuoto(I.mezzo, "Nessun mezzo qui", "Nessun mezzo in questa categoria. Tocca <b>Tutti</b> per rivedere l'intero parco.")
-          : vuoto(I.mezzo, "Parco mezzi vuoto", "Qui vive l'elenco delle macchine della cava: escavatori, pale, dumper, perforatrici. Aggiungi il primo mezzo con il modulo <b>Nuovo mezzo</b> qui sotto, oppure importa tutto il parco da un file CSV."));
+          : vuoto(I.mezzo, "Parco mezzi vuoto",
+              "Qui vive l'elenco delle macchine della cava: escavatori, pale, dumper, perforatrici. Da questo nascono le scadenze di legge, i tagliandi e il consumo di gasolio.",
+              `<button class="dw-btn secondary mini" data-vuoto-fai="mez-nome">Aggiungi il primo mezzo</button>
+               <button class="dw-btn secondary mini" data-vuoto-fai="#btn-mez-import">Importa il parco da CSV</button>`));
     { const n = mezOrd.length, filtrata = qMez || filtroMez !== "tutti";
       $("mez-count").textContent = n === 0 ? "" : n + (n === 1 ? " mezzo" : " mezzi") + (filtrata ? " · su " + MEZ.length : ""); }
     document.querySelectorAll("#mez-filtri .chg").forEach(b =>
@@ -2741,6 +2744,20 @@
   // il bersaglio del tocco può essere l'icona SVG dentro il bottone: si
   // risale sempre all'elemento che porta l'attributo.
   const attr = (e, nome) => { const el = e.target.closest && e.target.closest("[" + nome + "]"); return el ? el.getAttribute(nome) : null; };
+
+  /* I bottoni degli stati vuoti PORTANO, non fanno: cliccano il comando che
+     esiste già o mettono il fuoco sul primo campo del form. Così non nasce una
+     seconda strada per fare la stessa cosa — che è il modo in cui due strade
+     cominciano a comportarsi diversamente. Gli id sono stati CERCATI nel
+     markup, non indovinati: è la trappola scritta in CLAUDE.md. */
+  document.addEventListener("click", (e) => {
+    const fai = e.target.closest && e.target.closest("[data-vuoto-fai]");
+    if (!fai) return;
+    const dove = fai.getAttribute("data-vuoto-fai");
+    if (dove.startsWith("#")) { const b = $(dove.slice(1)); if (b) b.click(); return; }
+    const el = $(dove);
+    if (el) { el.scrollIntoView({ block: "center", behavior: "smooth" }); setTimeout(() => el.focus(), 250); }
+  });
 
   document.addEventListener("click", async (e) => {
     // ORDINE DI LAVORO (L5): la riga della manutenzione si apre come ordine,

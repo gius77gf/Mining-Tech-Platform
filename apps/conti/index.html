@@ -2118,7 +2118,10 @@ label.item:has(.dw-chk:checked){
         <button class="arr del" type="button" title="Elimina prodotto" aria-label="Elimina ${esc(p.nome)}" data-del-pro="${p.id}">${IC.croce}</button></div></div>`;
     }).join("")
       || (qLis ? vuoto("listino", "Nessun risultato", "Nessun prodotto trovato per «<b>" + esc(qLis) + "</b>». Prova con una parte del nome o della pezzatura.")
-               : vuoto("listino", "Listino vuoto", "Aggiungi il primo prodotto qui sotto: senza listino le pesate non hanno un prezzo e la fattura differita non può nascere."));
+               : vuoto("listino", "Listino vuoto",
+                 "Senza listino le pesate non hanno un prezzo e la fattura differita non può nascere: è il primo pezzo della catena che porta a una fattura.",
+                 `<button class="dw-btn secondary mini" data-vuoto-fai="pr-nome">Aggiungi il primo prodotto</button>
+                  <button class="dw-btn secondary mini" data-vuoto-fai="#btn-lis-import">Importa il listino da CSV</button>`));
     $("lis-count").innerHTML = lisVisti.length === 0 ? ""
       : "<b>" + lisVisti.length + "</b>" + (lisVisti.length === 1 ? " prodotto" : " prodotti") + (qLis ? " su " + PRO.length : "");
     $("lis-cnt").textContent = PRO.length;
@@ -2956,6 +2959,20 @@ label.item:has(.dw-chk:checked){
       periodo. La differenza non è un mancato guadagno: è materiale che, se è a piazzale, è
       ancora tuo e si venderà.</div>`;
   }
+
+  /* I bottoni degli stati vuoti PORTANO, non fanno: cliccano il comando che
+     esiste già o mettono il fuoco sul primo campo del form. Così non nasce una
+     seconda strada per fare la stessa cosa — che è il modo in cui due strade
+     cominciano a comportarsi diversamente. Gli id sono stati CERCATI nel
+     markup, non indovinati: è la trappola scritta in CLAUDE.md. */
+  document.addEventListener("click", (e) => {
+    const fai = e.target.closest && e.target.closest("[data-vuoto-fai]");
+    if (!fai) return;
+    const dove = fai.getAttribute("data-vuoto-fai");
+    if (dove.startsWith("#")) { const b = $(dove.slice(1)); if (b) b.click(); return; }
+    const el = $(dove);
+    if (el) { el.scrollIntoView({ block: "center", behavior: "smooth" }); setTimeout(() => el.focus(), 250); }
+  });
 
   document.addEventListener("click", async (e) => {
     // ── Stampa di cortesia: il DDT per il camionista, la fattura per il cliente ──
