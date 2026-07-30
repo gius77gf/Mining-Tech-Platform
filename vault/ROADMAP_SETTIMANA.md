@@ -326,12 +326,17 @@ inserito una volta serve in cinque posti**.
       del codice — K95=1493, β=1,53, R²=0,896, identici.
       **Resta da fare il verso opposto**: la volata progettata in Genesi che
       nasce «prevista» nel registro di Sentinella.
+- [x] **P1-bis. Genesi → Sentinella: la volata progettata nasce «prevista»**
+      ✅ *(29/07, `0847e0a`)* — chiude il doppio inserimento. Entra come
+      prevista e si conferma quando succede davvero, correggendo i dati. Tre
+      guardie indipendenti impediscono che una previsione diventi un referto.
+- [x] **P3/P4. Terra ↔ Conti — cavato contro venduto** ✅ *(30/07, `1d3a58e`)*
+      — vive in Conti perché è lì che la densità è dichiarata; senza densità
+      **non converte e non stima**. Otto stati, di cui tre che si rifiutano di
+      mentire: disavanzo (venduto più del cavato: è un buco, non scorte),
+      implausibile oltre il 35% (è un errore da cercare), no-densità.
 - [ ] P2. **Campo → Terra**: produzione del turno → volumi per fronte.
-- [ ] P3/P4. **Terra ↔ Conti — cavato contro venduto** *(in corso)*: m³ contro
-      tonnellate, con la densità del listino; il divario che resta (sfrido,
-      materiale a piazzale) mostrato come tale. La sostanza è in albero
-      (`cavatoPeriodo`, `vendutoPeriodo`, `valoreCavato` e la schermata in
-      Conti): mancano le rifiniture visive.
+      *(l'unico ponte che resta)*
 
 ## BLOCCO 5 — FONDAZIONE E QUALITÀ
 - [ ] Q1. Proposte di `docs/RICERCA_DEEPWORKID_202607.md` (ruoli reali di
