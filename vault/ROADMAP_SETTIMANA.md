@@ -785,6 +785,20 @@ campi interi, file delle macchine.
       ri-caricare il proprio file faceva comparire tre volte lo stesso
       lavoratore. Ora `senzaDoppioni` sta in `shared/` e la **regola 12** di
       `run-stile` impedisce che la difesa sparisca di nuovo.
+- [x] **Il piano di carico è l'eccezione, ed è voluta**: due righe per lo stesso
+      foro **non si tolgono**, si dicono. Toglierne una in silenzio farebbe
+      sparire una carica e scendere il totale dell'esplosivo — la cosa peggiore
+      per un'app in mano a un fochino.
+- [x] **Il giro di andata e ritorno degli export**: sette file si ri-caricano
+      davvero (provati), tutti gli altri sono prospetti. La promessa «ogni
+      import ha accanto un export ri-caricabile» era falsa per più della metà ed
+      è stata corretta in `ONBOARDING_DATI` e nel `PIANO_GO_LIVE`; la scelta se
+      costruire i sei mancanti è la **decisione 12** del fondatore.
+- [x] **Un bottone di Conti non faceva niente** (due elementi con lo stesso
+      `id`), e la stessa cosa nascondeva due note in Flotta e Sentinella. Ora
+      c'è il banco `id-unici.mjs` sulla pagina **viva** e la **regola 13** sui
+      nomi dei file scaricati, che in Conti erano identici per due export
+      diversi.
 
 ---
 
