@@ -917,6 +917,20 @@ textarea.dw-input{
     <b>soglia propria</b> (quella dell'autorizzazione per quella casa) e ha la stessa unità di
     misura, i punti collegati usano quella invece della loro.</div>
   <div id="ric-list" style="margin-top:10px;"></div>
+
+  <!-- Il ricettore è l'anagrafica su cui poggia tutto il monitoraggio: è quello
+       che trasforma «una misura» in «una misura IN UN PUNTO CHE HA UN NOME»,
+       che è ciò che chiede chi legge il report. Una cava che ha già l'elenco
+       delle case e dei confini in un foglio, fino al 30/07 lo riscriveva riga
+       per riga. -->
+  <div class="ord" style="margin-top:12px;">
+    <button class="dw-btn secondary mini" id="btn-ric-import"
+      title="Carica i ricettori da un file CSV: nome;tipo;distanza;classe;soglia;unita;nota">Importa ricettori CSV</button>
+    <button class="dw-btn secondary mini" id="btn-ric-export"
+      title="Scarica i ricettori in CSV, per l'ente o per un backup">Esporta CSV</button>
+    <input type="file" id="ric-file" accept=".csv,text/csv" style="display:none;">
+  </div>
+  <div id="ric-esito" class="esito"></div>
   <div class="form col">
     <div class="frow">
       <input class="dw-input" id="ric-nome" placeholder="Nome (es. Casa Bianchi — via Cava 12)" style="flex:2 1 200px;">
@@ -1312,7 +1326,7 @@ textarea.dw-input{
 </script>
 
 <script type="module">
-  import { sentinellaData, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, prioritaConformita, riepilogoVolate, parseVolateCsv, parseAdempimentiCsv, parseMonitoraggiCsv, serieStorica, numeroIt, unitaMisura,
+  import { sentinellaData, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, prioritaConformita, riepilogoVolate, parseVolateCsv, parseAdempimentiCsv, parseMonitoraggiCsv, parseRicettoriCsv, serieStorica, numeroIt, unitaMisura,
            leggiCsv, paresIntestazione, proponiMappa, preparaLetture, unisciLetture, MAX_LETTURE,
            TIPI_RICETTORE, CLASSI_ACUSTICHE, etichettaTipo, trovaRicettore, sogliaEfficace,
            reportConformita, ESITI, TIPI_RECLAMO, etichettaReclamo, riepilogoReclami, firmaLettura,
@@ -3192,6 +3206,39 @@ textarea.dw-input{
   // Import sensori da CSV (nome;tipo;valore;soglia;unita[;nota]): crea le
   // centraline con la soglia e l'ultimo valore; salta i nomi già presenti.
   $("btn-import-mon").onclick = () => $("mon-file").click();
+  $("btn-ric-import").onclick = () => $("ric-file").click();
+  $("ric-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const righe = parseRicettoriCsv(await file.text());
+    if (!righe.length) { esito("ric-esito", "Nessuna riga valida: le colonne devono essere nome; tipo; distanza; classe; soglia; unita; nota.", "err"); e.target.value = ""; return; }
+    let agg = 0, saltati = 0, senzaSoglia = 0;
+    for (const r of righe) {
+      if (RIC.some(x => (x.nome || "").trim().toLowerCase() === r.nome.toLowerCase())) { saltati++; continue; }
+      await db.aggiungi("ricettori", r);
+      if (r.soglia == null) senzaSoglia++;
+      agg++;
+    }
+    $("ric-file").value = "";
+    /* ⚠️ I RICETTORI SENZA SOGLIA PROPRIA SI DICONO. Entrano lo stesso — la
+       soglia propria è facoltativa e i punti collegati ricadono sulla loro —
+       ma chi ha appena caricato il file deve sapere ADESSO per quanti di essi
+       la soglia dell'autorizzazione non c'è, invece di scoprirlo davanti a un
+       report di conformità. Non se ne inventa nessuna: è un numero di
+       sicurezza e lo sceglie chi ha l'autorizzazione in mano. */
+    esito("ric-esito",
+      "Import ricettori: " + agg + " aggiunti" + (saltati ? ", " + saltati + " già presenti (saltati)" : "") + "."
+      + (senzaSoglia ? " " + senzaSoglia + (senzaSoglia === 1 ? " è senza soglia propria" : " sono senza soglia propria") + ": i punti collegati useranno la propria finché non la scrivi tu." : ""),
+      agg ? "success" : "err");
+    await refresh();
+  };
+  $("btn-ric-export").onclick = () => {
+    let csv = "nome;tipo;distanza;classe;soglia;unita;nota\n";
+    for (const r of RIC) csv += `${csvCell(r.nome)};${r.tipo || ""};${r.distanza ?? ""};${r.classe || ""};${r.soglia ?? ""};${r.unita || ""};${csvCell(r.nota || "")}\n`;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    a.download = "sentinella_ricettori.csv"; a.click();
+    esito("ric-esito", "Esportati " + RIC.length + " ricettori (CSV).", "success");
+  };
   $("mon-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseMonitoraggiCsv(await file.text());

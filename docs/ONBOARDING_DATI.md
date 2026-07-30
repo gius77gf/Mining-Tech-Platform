@@ -250,7 +250,7 @@ schermate, una voce alla volta:
 | **Conti** | fatture, gare, **listino prodotti** *(dal 30/07)* | anagrafica clienti, registro pesate/DDT, canoni |
 | **Terra** | fronti, rilievi | autorizzazioni, piano estrattivo |
 | **Campo** | squadre, piano di carico | operatori, attività, rapportini |
-| **Sentinella** | letture strumento, monitoraggi, scadenze, registro volate | **ricettori**, programma di monitoraggio, reclami |
+| **Sentinella** | letture strumento, monitoraggi, scadenze, registro volate, **ricettori** *(dal 30/07)* | programma di monitoraggio, reclami |
 
 **I tre che farebbero più male al primo cliente**, perché sono proprio quelli che
 una cava ha già in un foglio di calcolo:
@@ -260,8 +260,12 @@ una cava ha già in un foglio di calcolo:
    **resta mancante** e l'app lo dice appena finito il caricamento: da m³ a
    tonnellate si passa proprio con quel numero, e inventarlo trasformerebbe un
    dato assente in un dato sbagliato che finisce in una fattura.
-2. **I ricettori di Sentinella** — case, scuole, confini: sono l'anagrafica su
-   cui poggia tutto il monitoraggio.
+2. ~~I ricettori di Sentinella~~ — ✅ **fatto il 30/07**: si caricano da CSV
+   (`nome;tipo;distanza;classe;soglia;unita;nota`) e si riesportano. ⛔ **La
+   soglia e la classe acustica non si inventano mai**: sono numeri di sicurezza
+   e la classe ne decide una. Se il file non le ha restano vuote — un campo
+   vuoto si vede e si corregge, una soglia inventata dichiara conforme o non
+   conforme una misura sulla base di un valore che nessuno ha scelto.
 3. **I ricambi di Flotta** — un magazzino si conta in centinaia di righe.
 
 Non è un difetto del prodotto: è il confine di quello che sa fare oggi, e

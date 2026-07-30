@@ -352,6 +352,54 @@ export function parseMonitoraggiCsv(text) {
     .filter(m => m.nome && Number.isFinite(m.valore) && m.valore >= 0 && Number.isFinite(m.soglia) && m.soglia > 0);
 }
 
+// IMPORT DEI RICETTORI DA CSV.
+// Perché esiste: il ricettore è l'anagrafica su cui poggia tutto il
+// monitoraggio — è quello che trasforma «una misura» in «una misura IN UN PUNTO
+// CHE HA UN NOME», che è ciò che chiede chi legge il report. Fino al 30/07 era
+// l'unica cosa di Sentinella che si poteva solo battere a mano, e una cava che
+// ha già l'elenco delle case e dei confini in un foglio lo riscriveva riga per
+// riga.
+//
+// Colonne: nome;tipo;distanza;classe;soglia;unita;nota
+//
+// ⛔ LA SOGLIA CHE MANCA RESTA MANCANTE — e qui vale doppio rispetto a
+// qualunque altro campo. La soglia di un ricettore è un numero di SICUREZZA:
+// inventarne uno "ragionevole" vorrebbe dire dichiarare conforme o non conforme
+// una misura sulla base di un valore che nessuno ha scelto. La soglia propria
+// del ricettore è già facoltativa nel prodotto (`sogliaEfficace` gestisce il
+// caso), quindi qui basta non riempirla: se il file non ce l'ha, resta `null` e
+// il ricettore vale comunque come anagrafica.
+// ⚠️ Nessuna curva e nessun valore di riferimento vengono toccati da questa
+// funzione: legge quello che il cliente scrive nel suo file, e basta.
+//
+// Tipo e classe si confrontano coi vocabolari dell'app (`TIPI_RICETTORE`,
+// `CLASSI_ACUSTICHE`): quello che non si riconosce diventa «altro» per il tipo e
+// resta vuoto per la classe — meglio un campo vuoto, che si vede e si corregge,
+// di una classe acustica sbagliata, che decide una soglia.
+export function parseRicettoriCsv(text) {
+  const tipi = TIPI_RICETTORE.map(t => t.chiave);
+  const classi = CLASSI_ACUSTICHE.map(c => c.chiave);
+  return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !isIntestazione(r, "nome"))
+    .map(r => {
+      const [nome, tipo, distanza, classe, soglia, unita, nota] = parseCsvLine(r);
+      const ti = (tipo || "").trim().toLowerCase();
+      const cl = (classe || "").trim().toUpperCase();
+      const di = numIt(distanza);
+      const so = numIt(soglia);
+      return {
+        nome: (nome || "").trim(),
+        tipo: tipi.includes(ti) ? ti : "altro",
+        distanza: Number.isFinite(di) && di >= 0 ? di : null,
+        classe: classi.includes(cl) ? cl : "",
+        soglia: Number.isFinite(so) && so > 0 ? so : null,
+        unita: (unita || "").trim() || "",
+        nota: (nota || "").trim() || "",
+      };
+    })
+    .filter(r => r.nome);
+}
+
 export function kpiFrom(monitoraggi, adempimenti) {
   return {
     attivi: monitoraggi.length,

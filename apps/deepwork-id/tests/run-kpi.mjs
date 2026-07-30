@@ -417,6 +417,46 @@ test("parseGareCsv: legge titolo/base/scadenza/stato; stato ignoto → aperta; s
    un dato SBAGLIATO, che nessuno andrà più a controllare perché ha l'aria di
    essere stato inserito. Finisce in una fattura e poi nella denuncia annuale.
    Se manca deve restare `null`, e Conti dice che non può convertire. */
+/* ⛔ LA SOGLIA DI UN RICETTORE È UN NUMERO DI SICUREZZA. Inventarne uno
+   "ragionevole" quando il file non ce l'ha vorrebbe dire dichiarare conforme o
+   non conforme una misura sulla base di un valore che nessuno ha scelto — e la
+   conformità finisce in un report che il cliente consegna all'ente. La soglia
+   propria del ricettore è già facoltativa nel prodotto: se manca resta `null` e
+   il ricettore vale comunque come anagrafica.
+   Stessa logica sulla CLASSE ACUSTICA, per una ragione in più: la classe decide
+   una soglia. Una classe non riconosciuta resta VUOTA — un campo vuoto si vede
+   e si corregge, una classe sbagliata no. */
+test("parseRicettoriCsv: la soglia e la classe non si inventano mai", () => {
+  const csv = "nome;tipo;distanza;classe;soglia;unita;nota\n"
+    + "Confine Nord;confine;90;;;;\n"            // né classe né soglia
+    + "Scuola;scuola;640;I;non so;µg/m³;\n"      // soglia illeggibile
+    + "Capannone;magazzino;120;VII;3;mm/s;\n";   // tipo e classe fuori vocabolario
+  const r = sentinella.parseRicettoriCsv(csv);
+  eq(r.length, 3, "nessun ricettore scartato: l'anagrafica vale comunque");
+  eq(r[0].soglia, null, "soglia assente → null");
+  eq(r[1].soglia, null, "soglia illeggibile → null, non un valore di comodo");
+  eq(r[0].classe, "", "classe assente → vuota");
+  eq(r[2].classe, "", "classe fuori vocabolario → vuota, non la più vicina");
+  eq(r[2].tipo, "altro", "un tipo sconosciuto ricade su «altro», che è dichiarato");
+});
+test("parseRicettoriCsv: legge quello che il cliente scrive davvero", () => {
+  const csv = "nome;tipo;distanza;classe;soglia;unita;nota\r\n"
+    + "Casa Bianchi — via Cava 12;ABITAZIONE;320;iii;5;mm/s;la più vicina al fronte\r\n"
+    + "\r\n"
+    + ";confine;90;V;20;mm/s;senza nome\r\n"
+    + "Casa lontana;abitazione;1.250,5;II;2,5;mm/s;\r\n";
+  const r = sentinella.parseRicettoriCsv(csv);
+  eq(r.length, 2, "intestazione, riga vuota e riga senza nome fuori");
+  eq(r[0], { nome: "Casa Bianchi — via Cava 12", tipo: "abitazione", distanza: 320,
+             classe: "III", soglia: 5, unita: "mm/s", nota: "la più vicina al fronte" },
+     "maiuscole e minuscole non contano, il resto sì");
+  eq(r[1].distanza, 1250.5, "distanza all'italiana");
+  eq(r[1].soglia, 2.5, "e soglia con la virgola");
+});
+test("parseRicettoriCsv: niente testo, niente errori", () => {
+  eq(sentinella.parseRicettoriCsv("").length, 0, "vuoto");
+  eq(sentinella.parseRicettoriCsv(null).length, 0, "null");
+});
 test("parseListinoCsv: la densità che manca resta mancante, non diventa un numero", () => {
   const csv = "nome;unita;prezzo;densita;iva\n"
     + "Misto di cava;t;6,5;;22\n"          // densità assente
