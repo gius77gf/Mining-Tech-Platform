@@ -552,6 +552,19 @@ bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
       `confronta-svg.mjs` esteso alle barre, con un caso dichiarato «deve cambiare»
       perché il confronto dimostri di guardare.
 
+- [x] **S21. La ciambella: il numero al centro sta nel buco, misurando** ✅ *(31/07,
+      `9e0355c`)* — terzo e ultimo tipo con la stessa famiglia di difetto. La prima
+      misura diceva «0 problemi»: sono i **casi ostili scelti per far fallire il
+      controllo** ad aver trovato i due difetti — il numero dimensionato per conto di
+      caratteri («1.111.110 m³/giorno»: 127 px in un buco da 120) e il `centro` come
+      **stringa**, scritto a dimensione fissa senza che niente lo fermasse (181 px in
+      120). La regola del rimpicciolimento sta in `dimCheCiSta`, pura, con la misura
+      passata da fuori: provata con un carattere finto, compreso quello che **non**
+      scala. L'avanzamento è risultato pulito e non è stato toccato. Onestà: oggi
+      nessuna app disegna la ciambella — è fondazione, non prodotto visibile.
+      **Con questo il motore dei grafici è chiuso: tutti e quattro i tipi guardati
+      con dati veri, e `confronta-svg.mjs` li copre tutti (34 confronti).**
+
 **La convenzione sui numeri è chiusa.** Sei app, core, campi scritti a mano,
 campi interi, file delle macchine.
 
