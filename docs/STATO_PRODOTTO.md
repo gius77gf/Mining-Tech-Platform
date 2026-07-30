@@ -117,6 +117,21 @@ scadenze dei lavoratori, così non ti trovi un operaio non idoneo sul fronte.
 - **Import scadenzario** e anagrafica da CSV; **export** CSV per il consulente
   o il medico competente.
 
+**Aggiunto dopo il 23 luglio** *(riletto il 30/07 con l'app aperta davanti)*:
+- **Le azioni correttive**: un problema smette di essere segnalato e basta —
+  ha chi se ne occupa, entro quando, e uno stato che si chiude. È anche il
+  **ponte con Sentinella**: un superamento ambientale o il reclamo di un
+  residente arrivano qui come non conformità da chiudere.
+- **Ispezioni e checklist periodiche**: quello che va guardato ogni tanto,
+  con la sua ricorrenza, invece di ricordarselo.
+- **Cantieri e siti** e i **documenti aziendali**: i documenti fisici — DVR,
+  DSS, nomine — con la loro scadenza, non solo quelli delle persone.
+- **La matrice della formazione per mansione** e il **registro dei DPI** per
+  lavoratore: chi ha ricevuto cosa e quando va sostituito.
+- Il **ponte con Campo**: prima che la squadra vada al fronte si sa **chi ha
+  un documento scaduto**. È la cosa che questa app fa e che nessun foglio di
+  calcolo fa, perché richiede di sapere anche chi è in turno oggi.
+
 **Pronto**: sì, come vetrina. **Aspetta te**: solo l'accensione live comune.
 
 ---
@@ -134,6 +149,19 @@ scarti) senza carta.
 - **Copertura rapportini di turno**: quante squadre hanno già consegnato il
   rapportino e chi manca ancora, prima del cambio turno.
 - **Import piano da CSV** ed **export** consuntivo.
+
+**Aggiunto dopo il 23 luglio** *(riletto il 30/07 con l'app aperta davanti)*:
+- **«Cosa tocca a me»**: chi apre l'app dice chi è, e vede solo le attività
+  della sua squadra. Prima l'app rispondeva a «cosa sta succedendo», non a
+  «cosa devo fare io», che è la domanda vera di chi arriva alle sei.
+- **Il turno vero e proprio**: inizio turno con checklist, chi c'è oggi, meteo
+  e condizioni del sito, obiettivo del turno con lo scostamento, e la
+  **chiusura del turno** — dopo la quale il turno **non si riscrive più**.
+- **Squadre e operatori**: chi lavora dove, e l'assegnazione delle attività.
+- **Il piano di carico che arriva da Genesi**, e la **carica reale** che torna
+  indietro nella riconciliazione: è uno dei sei ponti.
+- **La settimana in cava**, giorno per giorno, e **dove si perde tempo**.
+- **La foto sull'anomalia**, ridimensionata nel telefono prima di partire.
 
 **Pronto**: sì. **Aspetta te**: solo l'accensione live comune.
 
@@ -154,6 +182,20 @@ tagliandi e se stai finendo i ricambi.
   fermi, con i più gravi in cima.
 - **Import telemetria da CSV** (ore-motore dai portali OEM) ed **export** della
   situazione del parco per la direzione/officina.
+
+**Aggiunto dopo il 23 luglio** *(riletto il 30/07 con l'app aperta davanti)*:
+- **Il giro macchina di inizio turno**: il controllo che l'operatore fa sul
+  mezzo prima di partire diventa la **lista di lavoro dell'officina**. È il
+  passaggio che trasforma un modulo in un flusso: prima il controllo finiva su
+  un foglio che nessuno rileggeva.
+- **La scheda del mezzo**: registro ore, storico dei fermi, interventi fatti.
+- **I piani ricorrenti di manutenzione** (ogni N ore motore o ogni N mesi) e
+  il **semaforo delle scadenze di legge**.
+- **Il carburante per mezzo**: rifornimenti, litri per ora di lavoro e costo
+  orario — che è il numero con cui ci si accorge di un guasto che sta
+  arrivando, prima che il mezzo si fermi.
+- **I costi della flotta** per voce, e **quanto tenere a scorta** di ogni
+  ricambio.
 
 **Pronto**: sì. **Aspetta te**: l'accensione live comune. Il collegamento
 **automatico in tempo reale** con i portali dei mezzi richiede un pezzo di
