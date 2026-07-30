@@ -917,17 +917,73 @@ export function parseSquadreCsv(text) {
     .filter(q => q.nome);
 }
 
-// Piano di carico importato da CSV (colonne: foro;x;fila;prof;prog;borr;rit).
-// Solo foro e prog vengono usati per calcoli/chiavi, quindi qui si coercono
-// a numero e le righe con valori non validi vengono scartate. Gli altri
-// campi restano testo grezzo del file: vanno SEMPRE escapati dove mostrati
-// (vedi docs/AUDIT_SICUREZZA.md punto 13). Funzione pura e testabile.
+// ══════════════════════════════════════════════════════════════════════
+// PIANO DI CARICO DA CSV — si legge per NOME di colonna, non per posizione
+// ══════════════════════════════════════════════════════════════════════
+// Prima si leggeva solo per posizione (foro;x;fila;prof;prog;borr;rit) e i nomi
+// scritti nell'intestazione non venivano guardati. Il file che esce da Genesi ha
+// l'ordine giusto, quindi il percorso normale funzionava; ma un file rifatto a
+// mano con le colonne in ordine diverso **si caricava comunque, senza un
+// errore**: trovato per caso sbagliando l'intestazione in una prova, la
+// profondità era finita nel borraggio e il ritardo nella carica progettata, e
+// la riga sembrava perfettamente normale. Un piano di carico sbagliato che ha
+// l'aria di essere giusto è peggio di un import rifiutato.
+//
+// Adesso: se c'è un'intestazione, comandano i NOMI; se non c'è, si legge per
+// posizione come prima — i file vecchi e quelli senza intestazione continuano a
+// funzionare identici.
+//
+// Solo `foro` e `prog` servono per calcoli e chiavi, quindi si coercono a
+// numero e le righe non valide si scartano. Gli altri campi restano testo
+// grezzo del file: vanno SEMPRE escapati dove mostrati (docs/AUDIT_SICUREZZA.md
+// punto 13). Pure e testabili.
+const PIANO_COLONNE = {
+  foro: ["foro", "n", "n_foro", "nforo", "numero", "num", "hole", "hole_id"],
+  x:    ["x", "x_m", "xm", "posizione", "pos", "distanza"],
+  fila: ["fila", "riga", "row", "serie"],
+  prof: ["prof", "prof_m", "profm", "profondita", "profondità", "h", "depth", "lunghezza"],
+  prog: ["prog", "prog_kg", "carica", "carica_kg", "carica_prog_kg", "kg", "kg_foro", "charge"],
+  borr: ["borr", "borr_m", "borrm", "borraggio", "stemming"],
+  rit:  ["rit", "rit_ms", "ritms", "ritardo", "delay", "ms"],
+};
+const _pulisciNome = (s) => String(s == null ? "" : s).trim().toLowerCase()
+  .replace(/\(.*?\)/g, "")                 // «carica (kg)» → «carica»
+  .replace(/[^a-z0-9àèéìòù_]+/g, "_")
+  .replace(/^_+|_+$/g, "");
+
+// mappaPianoCsv: dice COME è stato letto il file, così l'app può scriverlo
+// all'utente invece di lasciarlo indovinare. Ritorna
+// { conIntestazione, indici, riconosciute, ignorate, mancanti }.
+// Il contratto di parsePianoCsv NON cambia (ritorna sempre l'elenco delle
+// righe): chi la usava continua a funzionare valore per valore.
+export function mappaPianoCsv(text) {
+  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean);
+  const testa = righe.find(r => isIntestazione(r, "foro"));
+  if (!testa) return { conIntestazione: false, indici: null, riconosciute: [], ignorate: [], mancanti: [] };
+  const celle = parseCsvLine(testa).map(_pulisciNome);
+  const indici = {}, riconosciute = [], ignorate = [];
+  celle.forEach((nome, i) => {
+    const campo = Object.keys(PIANO_COLONNE).find(k => PIANO_COLONNE[k].includes(nome));
+    if (campo && indici[campo] === undefined) { indici[campo] = i; riconosciute.push({ campo, nome, i }); }
+    else if (nome) ignorate.push(nome);
+  });
+  const mancanti = Object.keys(PIANO_COLONNE).filter(k => indici[k] === undefined);
+  return { conIntestazione: true, indici, riconosciute, ignorate, mancanti };
+}
+
 export function parsePianoCsv(text) {
+  const m = mappaPianoCsv(text);
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
     .filter(r => !isIntestazione(r, "foro"))
     .map(r => {
-      const [foro, x, fila, prof, prog, borr, rit] = parseCsvLine(r);
-      return { foro: numIt(foro), x, fila, prof, prog: numIt(prog), borr, rit, reale: null };
+      const c = parseCsvLine(r);
+      // con l'intestazione comandano i nomi; senza, si legge per posizione
+      const g = (campo, pos) => {
+        const i = m.conIntestazione ? m.indici[campo] : pos;
+        return i === undefined ? "" : c[i];
+      };
+      return { foro: numIt(g("foro", 0)), x: g("x", 1), fila: g("fila", 2), prof: g("prof", 3),
+               prog: numIt(g("prog", 4)), borr: g("borr", 5), rit: g("rit", 6), reale: null };
     })
     .filter(p => p.foro > 0 && p.prog > 0);
 }

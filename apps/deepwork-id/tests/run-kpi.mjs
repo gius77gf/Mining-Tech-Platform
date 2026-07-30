@@ -1743,6 +1743,53 @@ test("la prima schermata non scrive i numeri col punto inglese", () => {
   ok(!/\d\.\d/.test(p[0].dettaglio), "e nessun punto decimale da nessuna parte nella riga");
 });
 
+// ══════════════════════════════════════════════════════════════════════
+// PIANO DI CARICO: le colonne si leggono per NOME, non per posizione
+// ══════════════════════════════════════════════════════════════════════
+// Il difetto è stato trovato per caso, sbagliando l'intestazione in una prova:
+// un file con le colonne in ordine diverso si caricava COMUNQUE, senza errori,
+// con la profondità nel borraggio e il ritardo nella carica progettata. La riga
+// sembrava normale. Questo è il test che non lo lascia tornare.
+test("piano CSV: le colonne in ordine diverso vengono lette per nome", () => {
+  // stesso contenuto, ordine sconvolto e nomi con unità fra parentesi
+  const csv = "foro;carica (kg);prof_m;borr_m;rit_ms;x_m;fila\n"
+            + "1;40;13,20;3,00;25;0,00;A\n2;44,7;13,20;3,00;25;4,50;A";
+  const out = campo.parsePianoCsv(csv);
+  ok(out.length === 2, "due righe lette — erano " + out.length);
+  contiene(out[0], { foro: 1, prog: 40 }, "prima riga");
+  ok(out[0].prof === "13,20", "la profondità è la profondità — era " + JSON.stringify(out[0].prof));
+  ok(out[0].borr === "3,00", "il borraggio è il borraggio — era " + JSON.stringify(out[0].borr));
+  ok(out[0].rit === "25", "il ritardo è il ritardo — era " + JSON.stringify(out[0].rit));
+  ok(out[0].x === "0,00", "la x è la x — era " + JSON.stringify(out[0].x));
+  ok(out[1].prog === 44.7, "e la carica con la virgola vale 44,7 — era " + out[1].prog);
+});
+test("piano CSV: senza intestazione si legge per posizione, come prima", () => {
+  // è il formato dei file vecchi: il contratto non cambia di una virgola
+  const out = campo.parsePianoCsv("1;3.5;A;12;100;2;20\n2;4;B;12;80;2;18");
+  ok(out.length === 2, "due righe");
+  contiene(out[0], { foro: 1, x: "3.5", fila: "A", prof: "12", prog: 100, borr: "2", rit: "20" },
+    "ordine posizionale storico");
+});
+test("piano CSV: l'app sa dire come ha letto il file", () => {
+  const m = campo.mappaPianoCsv("foro;carica_kg;prof;borr;rit;x;fila\n1;40;12;2;20;0;A");
+  ok(m.conIntestazione === true, "riconosce l'intestazione");
+  ok(m.indici.prog === 1, "«carica_kg» è la carica progettata — era " + m.indici.prog);
+  ok(m.indici.prof === 2 && m.indici.borr === 3, "profondità e borraggio al posto giusto");
+  ok(m.mancanti.length === 0, "niente colonne mancanti — mancavano " + JSON.stringify(m.mancanti));
+  const senza = campo.mappaPianoCsv("1;3.5;A;12;100;2;20");
+  ok(senza.conIntestazione === false, "senza intestazione lo dichiara");
+  // una colonna che non conosciamo va segnalata, non fatta sparire in silenzio
+  const strana = campo.mappaPianoCsv("foro;prog;pinco;prof\n1;40;xx;12");
+  ok(strana.ignorate.includes("pinco"), "la colonna sconosciuta è dichiarata — " + JSON.stringify(strana.ignorate));
+  ok(strana.mancanti.includes("rit") && strana.mancanti.includes("borr"),
+    "e quelle assenti pure — " + JSON.stringify(strana.mancanti));
+});
+test("piano CSV: senza la colonna della carica non si inventa niente", () => {
+  // prog manca → nessuna riga passa il filtro, invece di righe con carica zero
+  const out = campo.parsePianoCsv("foro;prof;borr\n1;12;2\n2;12;2");
+  ok(out.length === 0, "nessuna riga: meglio un import vuoto che cariche a zero — erano " + out.length);
+});
+
 // Campo ha lo stesso lettore, e il caso che conta è la CARICA per foro: quel
 // numero esce nel CSV del consuntivo e torna a Genesi a tarare la
 // riconciliazione, quindi un fattore dieci non resta in Campo — avvelena la

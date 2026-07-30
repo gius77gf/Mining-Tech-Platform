@@ -912,7 +912,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
 </script>
 
 <script type="module">
-  import { campoData, kpiFrom, parsePianoCsv, parseSquadreCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, fermiPerGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
+  import { campoData, kpiFrom, parsePianoCsv, mappaPianoCsv, parseSquadreCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, fermiPerGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
            oggiISO, TURNI, turnoCorrente, diGiorno, senzaData, UNITA_PRODUZIONE, totaliProduzione, formattaProduzione, normalizzaPiano,
            squadraBase, RUOLI, operatoriDi, etichettaAssegnazione, eMia, caricoSquadre,
            UNITA_ATTIVITA, obiettivoDi, statoObiettivo,
@@ -2783,10 +2783,34 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
   const pianoRicarica = async () => { PIANO = normalizzaPiano(await db.pianocarico()); pianoRender(); };
   $("piano-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const righe = parsePianoCsv(await file.text());
+    const testo = await file.text();
+    const mappa = mappaPianoCsv(testo);
+    const righe = parsePianoCsv(testo);
     e.target.value = "";
     if (!righe.length) { $("piano-riep").textContent = "Nessuna riga valida nel file: le colonne devono essere foro; x; fila; prof; prog; borr; rit.";
       toast("File non riconosciuto: controlla le colonne.", "err"); return; }
+    // Come è stato letto il file, detto prima di scrivere. Le colonne si leggono
+    // per NOME quando l'intestazione c'è: prima si leggevano per posizione e un
+    // file con le colonne in ordine diverso si caricava comunque, con la
+    // profondità nel borraggio e il ritardo nella carica. Sembrava normale.
+    const NOMI_COL = { foro: "foro", x: "posizione x", fila: "fila", prof: "profondità",
+                       prog: "carica progettata", borr: "borraggio", rit: "ritardo" };
+    const avvisi = [];
+    if (!mappa.conIntestazione)
+      avvisi.push("Il file non ha una riga di intestazione, quindi le colonne sono state lette <b>nell'ordine</b> foro; x; fila; prof; prog; borr; rit. Se il tuo file ha un ordine diverso, aggiungi l'intestazione.");
+    else {
+      if (mappa.mancanti.length)
+        avvisi.push("Non ho trovato la colonna di: <b>"
+          + mappa.mancanti.map(k => NOMI_COL[k] || k).join(", ")
+          + "</b>. Quei campi restano vuoti.");
+      if (mappa.ignorate.length)
+        avvisi.push("Colonne che non ho riconosciuto e ho lasciato fuori: <b>"
+          + mappa.ignorate.map(n => esc(n)).join(", ") + "</b>.");
+    }
+    if (avvisi.length && !await chiedi("Come ho letto il file",
+          "<p>Righe valide: <b>" + numeroIt(righe.length, 0) + "</b>.</p><p>"
+          + avvisi.join("</p><p>") + "</p>",
+          "Va bene, importa")) return;
     // punto di scrittura 18 — import del piano di carico (il piano nasce nel
     // giorno e turno scelti per il rapportino: se quel turno è chiuso non si
     // importa, e non si cancella nemmeno il piano di un turno già firmato)
