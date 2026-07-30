@@ -148,36 +148,96 @@ const leggi = (rel) => { try { return readFileSync(join(root, rel), "utf8"); } c
 //
 // Quindi si scorre il testo una volta e si segna, carattere per carattere, se
 // si è dentro un commento, una stringa o un'espressione regolare.
-function mascheraCodice(t) {
-  const vivo = new Uint8Array(t.length);   // 1 = codice vero
-  let i = 0;
+/* ⚠️ UNA SOLA SCANSIONE PER TUTTI E DUE I TOKENIZZATORI.
+   Prima erano due scansioni gemelle, scritte a distanza di poco e quasi
+   identiche — e infatti portavano lo STESSO difetto in due posti, che è
+   esattamente il motivo per cui una regola che serve a due usi vive in un
+   posto solo. Qui si classifica il testo una volta; `mascheraCodice` e
+   `senzaCommenti` leggono la stessa classificazione.
+
+   IL DIFETTO CHE HA FATTO NASCERE QUESTA VERSIONE (31/07). Entrambe, entrando
+   in un `backtick`, correvano fino al backtick SUCCESSIVO. Due conseguenze,
+   tutte e due silenziose:
+
+   1. Il contenuto di `${...}` finiva marcato come STRINGA. Ma dentro
+      un'interpolazione c'è CODICE VERO: `${prompt('quanti?')}` è una chiamata
+      a tutti gli effetti, e la regola 1 non la vedeva.
+   2. Con i template ANNIDATI — la forma che le app usano di continuo,
+      `${dup ? `, ${dup} già presenti` : ""}` — il backtick che APRE quello
+      interno veniva preso per quello che CHIUDE l'esterno. Da lì la scansione
+      andava fuori fase, e bastava un apostrofo (in italiano ce n'è uno ogni
+      due parole: «l'ora», «un'altra») per aprire una stringa che correva in
+      avanti masticando codice vivo.
+
+   Quanto era grande il buco: iniettando `window.prompt()` subito dopo ognuno
+   dei 67 template annidati delle sette superfici, **54 non venivano visti** —
+   31 nel core. La controprova che c'era guardava tre superfici a un punto
+   ciascuna, e nessuno di quei tre punti cadeva dopo un template annidato:
+   sapeva fallire, ma non dove serviva. È la stessa forma già raccolta in
+   CLAUDE.md — il controllo che non guarda dove crede. */
+const COMMENTO = 0, CODICE = 1, DENTRO = 2;   // DENTRO = contenuto di stringa o regex
+/* `spie`, se passato, raccoglie i punti in cui si CHIUDE un'interpolazione:
+   sono i punti di ri-sincronizzazione, cioè esattamente quelli dove la
+   versione vecchia andava fuori fase. La controprova li usa per sapere DOVE
+   iniettare il difetto — senza doverli ricavare con una terza scansione, che
+   è il modo in cui questo difetto è nato la prima volta. */
+function classifica(t, spie) {
+  const tipo = new Uint8Array(t.length).fill(CODICE);
   const prevSignificativo = (k) => { for (let j = k - 1; j >= 0; j--) { const c = t[j]; if (c !== " " && c !== "\t" && c !== "\n" && c !== "\r") return c; } return ""; };
+  const marca = (da, a, v) => { for (let k = da; k < a; k++) tipo[k] = v; };
+  const pila = [];        // template in attesa che finisca la loro interpolazione
+  let stringa = null;     // il delimitatore della stringa in cui ci troviamo
+  let graffe = 0;         // profondità di graffe nel codice corrente
+  let i = 0;
   while (i < t.length) {
     const c = t[i], d = t[i + 1];
-    if (c === "/" && d === "/") { while (i < t.length && t[i] !== "\n") i++; continue; }
-    if (c === "/" && d === "*") { i += 2; while (i < t.length && !(t[i] === "*" && t[i + 1] === "/")) i++; i += 2; continue; }
-    if (c === "<" && t.startsWith("<!--", i)) { i += 4; while (i < t.length && !t.startsWith("-->", i)) i++; i += 3; continue; }
-    if (c === "'" || c === '"' || c === "`") {
-      vivo[i] = 1; i++;
-      while (i < t.length) { if (t[i] === "\\") { i += 2; continue; } if (t[i] === c) { i++; break; } i++; }
-      continue;
+    if (stringa) {
+      if (c === "\\") { marca(i, i + 2, DENTRO); i += 2; continue; }
+      if (stringa === "`" && c === "$" && d === "{") {
+        // si esce dalla stringa: quello che segue è CODICE fino alla graffa pari
+        marca(i, i + 2, CODICE); pila.push(graffe); stringa = null; i += 2; continue;
+      }
+      tipo[i] = DENTRO;                    // anche il delimitatore di chiusura
+      if (c === stringa) {
+        // un template di PRIMO livello che si chiude: da qui riprende il
+        // codice vero, ed è lì che la controprova può iniettare il difetto
+        if (c === "`" && pila.length === 0 && spie) spie.push(i + 1);
+        stringa = null;
+      }
+      i++; continue;
+    }
+    if (c === "/" && d === "/") { const fine = t.indexOf("\n", i); const a = fine < 0 ? t.length : fine; marca(i, a, COMMENTO); i = a; continue; }
+    if (c === "/" && d === "*") { const fine = t.indexOf("*/", i + 2); const a = fine < 0 ? t.length : fine + 2; marca(i, a, COMMENTO); i = a; continue; }
+    if (c === "<" && t.startsWith("<!--", i)) { const fine = t.indexOf("-->", i + 4); const a = fine < 0 ? t.length : fine + 3; marca(i, a, COMMENTO); i = a; continue; }
+    if (c === "'" || c === '"' || c === "`") { tipo[i] = CODICE; stringa = c; i++; continue; }
+    if (c === "{") { graffe++; tipo[i] = CODICE; i++; continue; }
+    if (c === "}") {
+      if (pila.length && graffe === pila[pila.length - 1]) {   // chiude un `${...}`
+        pila.pop(); tipo[i] = CODICE; stringa = "`"; i++; continue;
+      }
+      graffe--; tipo[i] = CODICE; i++; continue;
     }
     // un'espressione regolare comincia con / solo dove non può stare una divisione
     if (c === "/" && "(,=:[!&|?{};\n".includes(prevSignificativo(i))) {
-      vivo[i] = 1; i++;
+      tipo[i] = CODICE; i++;
       let inClasse = false;
       while (i < t.length) {
-        if (t[i] === "\\") { i += 2; continue; }
-        if (t[i] === "[") inClasse = true;
-        else if (t[i] === "]") inClasse = false;
-        else if (t[i] === "/" && !inClasse) { i++; break; }
+        if (t[i] === "\\") { marca(i, i + 2, DENTRO); i += 2; continue; }
+        if (t[i] === "[") inClasse = true; else if (t[i] === "]") inClasse = false;
+        else if (t[i] === "/" && !inClasse) { tipo[i] = DENTRO; i++; break; }
         else if (t[i] === "\n") break;
-        i++;
+        tipo[i] = DENTRO; i++;
       }
       continue;
     }
-    vivo[i] = 1; i++;
+    tipo[i] = CODICE; i++;
   }
+  return tipo;
+}
+function mascheraCodice(t) {
+  const tipo = classifica(t);
+  const vivo = new Uint8Array(t.length);   // 1 = codice vero
+  for (let i = 0; i < t.length; i++) vivo[i] = tipo[i] === CODICE ? 1 : 0;
   return vivo;
 }
 
@@ -189,32 +249,9 @@ function mascheraCodice(t) {
 // un'espressione regolare sui commenti taglierebbe 400.000 caratteri di codice
 // vivo, come è già successo.
 function senzaCommenti(t) {
-  let out = "", i = 0;
-  const prevSignificativo = (k) => { for (let j = k - 1; j >= 0; j--) { const c = t[j]; if (c !== " " && c !== "\t" && c !== "\n" && c !== "\r") return c; } return ""; };
-  while (i < t.length) {
-    const c = t[i], d = t[i + 1];
-    if (c === "/" && d === "/") { while (i < t.length && t[i] !== "\n") i++; continue; }
-    if (c === "/" && d === "*") { i += 2; while (i < t.length && !(t[i] === "*" && t[i + 1] === "/")) i++; i += 2; continue; }
-    if (c === "<" && t.startsWith("<!--", i)) { i += 4; while (i < t.length && !t.startsWith("-->", i)) i++; i += 3; continue; }
-    if (c === "'" || c === '"' || c === "`") {
-      out += c; i++;
-      while (i < t.length) { if (t[i] === "\\") { out += t[i] + (t[i + 1] || ""); i += 2; continue; } out += t[i]; if (t[i] === c) { i++; break; } i++; }
-      continue;
-    }
-    if (c === "/" && "(,=:[!&|?{};\n".includes(prevSignificativo(i))) {
-      out += c; i++;
-      let inClasse = false;
-      while (i < t.length) {
-        if (t[i] === "\\") { out += t[i] + (t[i + 1] || ""); i += 2; continue; }
-        if (t[i] === "[") inClasse = true; else if (t[i] === "]") inClasse = false;
-        else if (t[i] === "/" && !inClasse) { out += t[i]; i++; break; }
-        else if (t[i] === "\n") break;
-        out += t[i]; i++;
-      }
-      continue;
-    }
-    out += c; i++;
-  }
+  const tipo = classifica(t);
+  let out = "";
+  for (let i = 0; i < t.length; i++) if (tipo[i] !== COMMENTO) out += t[i];
   return out;
 }
 
@@ -228,8 +265,8 @@ function senzaCommenti(t) {
 // controllo qui sotto, ed è la ragione per cui esiste.
 const DIALOGHI = /(alert|confirm|prompt)\s*\(/g;
 
-function dialoghiIn(testo) {
-  const vivo = mascheraCodice(testo);
+function dialoghiIn(testo, masc = mascheraCodice) {
+  const vivo = masc(testo);
   const fuori = [];
   let m;
   DIALOGHI.lastIndex = 0;
@@ -305,6 +342,74 @@ for (const [nome, rel, ancora] of [
 test("un `/*` dentro un'espressione regolare non apre un commento", () => {
   const insidia = "const re = /\\/\\*/; confirm('mi devi trovare');";
   ok(dialoghiIn(insidia).length === 1, "il confirm dopo la regex deve essere trovato");
+});
+test("un dialogo dentro un'interpolazione è una chiamata, non un testo", () => {
+  ok(dialoghiIn("const s = `quanti ${prompt('quanti?')} fori`;").length === 1,
+    "`${prompt(...)}` è codice vero: la versione vecchia lo mascherava come stringa");
+  ok(dialoghiIn("const s = `scrivi ${x} e poi prompt(qualcosa)`;").length === 0,
+    "ma il testo che PARLA di un prompt resta testo");
+});
+
+/* LA CONTROPROVA A TAPPETO: il difetto rimesso DOVE OGNI TEMPLATE SI CHIUDE.
+   ────────────────────────────────────────────────────────────────────────
+   Quella qui sopra inietta in tre superfici a un punto ciascuna, e nessuno di
+   quei punti cadeva dove la scansione andava fuori fase: sapeva fallire, ma
+   non dove serviva. Questa inietta in TUTTI i punti di ri-sincronizzazione di
+   TUTTE le superfici — e stampa quanti ne ha provati, perché uno «zero
+   violazioni» ottenuto su zero soggetti è il difetto raccolto in CLAUDE.md. */
+function iniezioniNonViste(src, masc) {
+  const spie = [];
+  classifica(src, spie);
+  const base = dialoghiIn(src, masc).length;
+  let ciechi = 0, provati = 0;
+  for (const p of spie) {
+    provati++;
+    // si inietta ESATTAMENTE dove il template si chiude: lì siamo in codice.
+    // (Prima iniettavo a fine riga, ma dopo un template chiuso la riga spesso
+    // prosegue dentro un'altra stringa: il dialogo finiva in un testo, dove
+    // NON deve essere trovato, e la controprova accusava la scansione giusta.)
+    const rotto = src.slice(0, p) + ";window.prompt('x');" + src.slice(p);
+    if (dialoghiIn(rotto, masc).length <= base) ciechi++;
+  }
+  return { provati, ciechi };
+}
+/* La scansione SBAGLIATA, tenuta apposta: serve a dimostrare che questa
+   controprova sa fallire. Senza, direbbe «tutto trovato» anche se non stesse
+   guardando niente. */
+function mascheraIngenua(t) {
+  const vivo = new Uint8Array(t.length);
+  let i = 0;
+  while (i < t.length) {
+    const c = t[i];
+    if (c === "'" || c === '"' || c === "`") {
+      vivo[i] = 1; i++;
+      while (i < t.length) { if (t[i] === "\\") { i += 2; continue; } if (t[i] === c) { i++; break; } i++; }
+      continue;
+    }
+    vivo[i] = 1; i++;
+  }
+  return vivo;
+}
+let provatiTot = 0, ciechiIngenua = 0;
+for (const [nome, rel] of SUPERFICI) {
+  const src = leggi(rel);
+  if (src === null) continue;
+  const { provati, ciechi } = iniezioniNonViste(src);
+  if (provati === 0) continue;
+  provatiTot += provati;
+  ciechiIngenua += iniezioniNonViste(src, mascheraIngenua).ciechi;
+  test(`controprova a tappeto su ${nome}: ${provati} dialoghi rimessi dove riprende il codice, tutti trovati`, () => {
+    ok(ciechi === 0, `${rel}: ${ciechi} iniezioni su ${provati} passano inosservate`);
+  });
+}
+test("la controprova a tappeto ha davvero iniettato qualcosa", () => {
+  ok(provatiTot >= 60, `solo ${provatiTot} iniezioni: i template annidati sono spariti, o le spie non funzionano più`);
+  console.log(`     (${provatiTot} iniezioni provate in tutto)`);
+});
+test("la controprova a tappeto sa fallire: con la scansione ingenua il difetto sfugge", () => {
+  ok(ciechiIngenua > 0,
+    "con la scansione che ignora i template annidati NESSUNA iniezione sfugge: allora questa prova non sta misurando niente");
+  console.log(`     (con la scansione ingenua ne sfuggirebbero ${ciechiIngenua} su ${provatiTot})`);
 });
 
 console.log("\n── Regola 2: le unità di misura non vanno in maiuscolo ──");
@@ -1046,6 +1151,75 @@ test("la regola 13 sa vedere il difetto che è stato tolto", () => {
   const corretto = difetto.replace(/conti_listino\.csv"; a\.click\(\);$/, 'conti_listino_prezzi.csv"; a.click();');
   ok(nomiScaricatiRipetuti(corretto).length === 0, "con due nomi diversi, no");
   ok(nomiScaricatiRipetuti('a.download = "uno.csv";').length === 0, "una sola esportazione non è mai un doppione");
+});
+
+/* REGOLA 14 — LA NOTA DEL MODO NON È UNA LAVAGNA.
+   ────────────────────────────────────────────────────────────────────────
+   `mode-note` dice, per tutto il tempo che la pagina resta aperta, se si sta
+   lavorando sui **dati veri dell'organizzazione**. Il 31/07 tre app ci
+   scrivevano sopra l'esito delle esportazioni — nove punti in tutto: dal
+   primo export in poi quella conferma non torna più. Un elemento solo con due
+   mestieri, e ogni scrittura cancella l'altra.
+
+   ⚠️ ONESTÀ SULLA GRAVITÀ, perché la prima lettura di questo difetto — la mia
+   — era sbagliata in peggio. Avevo scritto che spariva l'avviso «stai
+   guardando dati di esempio, nulla viene salvato». NON è così: quell'avviso è
+   `tour-banner`, sta in cima, vive FUORI dalle pagine (quindi si vede da
+   tutte) e nessuno lo tocca. Quello che sparisce è la conferma del modo
+   **live**, che vale meno. La regola resta — un messaggio che ne cancella un
+   altro è un difetto comunque — ma non va raccontata più grossa di quello che
+   è. Chi legge un test si fida della ragione scritta accanto.
+
+   La riga che INSTALLA la nota non è una violazione: è il suo scopo. Si
+   riconosce perché è l'unica che LEGGE il modo — `db.mode` nelle sei app,
+   `live()` nell'amministrazione, che un `db` non ce l'ha.
+
+   ⚠️ La prima stesura guardava solo `db.mode` e aspettava sei superfici:
+   l'amministrazione, che ne ha un settimo avviso installato in modo diverso,
+   veniva accusata della propria installazione. L'ha fatto vedere il conto
+   delle superfici guardate, non le violazioni — che infatti dicevano «una». */
+function avvisoUsatoComeLavagna(src) {
+  if (!/id="mode-note"/.test(src)) return [];   // superficie senza avviso: niente da dire
+  const fuori = [];
+  src.split("\n").forEach((riga, i) => {
+    /* ⚠️ La prima stesura cercava solo `esito("mode-note"` e la scrittura
+       diretta. In Campo l'id arrivava alla nota passando per `sbaglia(...)`,
+       `bloccato(...)` e `clearErr(...)`: SETTE scritture indirette che la
+       regola non vedeva, ed erano proprio quelle dei messaggi d'errore del
+       form. Adesso guarda l'id ovunque compaia nel codice — l'unico posto
+       dove `mode-note` ha diritto di stare è la riga che lo installa. */
+    if (!/["']mode-note["']/.test(riga)) return;
+    if (/<[^>]*\bid=["']mode-note["']/.test(riga)) return;   // è la dichiarazione del riquadro
+    if (/\bdb\.mode\b|\blive\(\)/.test(riga)) return;   // è l'installazione dell'avviso
+    fuori.push(`riga ${i + 1}: ${riga.trim().slice(0, 90)}`);
+  });
+  return fuori;
+}
+let conAvviso = 0;
+for (const [nome, rel] of SUPERFICI) {
+  const src = leggi(rel);
+  if (src === null || !/id="mode-note"/.test(src)) continue;
+  conAvviso++;
+  const casi = avvisoUsatoComeLavagna(src);
+  test(`${nome}: la nota del modo non viene usata come lavagna`, () => {
+    ok(casi.length === 0, `${rel}: ${casi.length} scritture lo cancellano → ${casi.join(" · ")}`);
+  });
+}
+/* Quante superfici ha guardato davvero: un «zero violazioni» ottenuto non
+   guardando nessuno è il difetto raccolto tre volte in CLAUDE.md. */
+test("la regola 14 ha davvero guardato le superfici con la nota del modo", () => {
+  ok(conAvviso === 7, `la nota del modo esiste in ${conAvviso} superfici, me ne aspettavo 7 (le sei app + l'amministrazione)`);
+});
+test("la regola 14 sa vedere il difetto che è stato tolto", () => {
+  const base = '<div class="note" id="mode-note"></div>\n'
+    + '$("mode-note").textContent = db.mode === "live" ? "Dati reali." : "Dati di esempio.";\n';
+  ok(avvisoUsatoComeLavagna(base).length === 0, "la sola installazione non è una violazione");
+  ok(avvisoUsatoComeLavagna(base + 'esito("mode-note", "Esportate 3 fatture.", "success");').length === 1,
+    "un esito scritto sull'avviso è una violazione");
+  ok(avvisoUsatoComeLavagna(base + '$("mode-note").textContent = "Esportati 3 incassi.";').length === 1,
+    "e anche la scrittura diretta, che è il modo in cui il difetto si ripresenta");
+  ok(avvisoUsatoComeLavagna('esito("mode-note", "x", "err");').length === 0,
+    "una superficie senza avviso non ha niente da cancellare");
 });
 
 console.log(`\nRisultato Stile: ${passed} passati, ${failed} falliti`);

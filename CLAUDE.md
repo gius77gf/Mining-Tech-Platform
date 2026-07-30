@@ -158,6 +158,26 @@ in italiano, senza dare conoscenze per scontate).
   il resto (giusto per le regole sui TESTI, che vivono dentro le stringhe).
   Prendere quello sbagliato dà una regola che non guarda dove crede: la regola 6
   è caduta segnalando il commento che documentava la decisione.
+  **Due viste, ma UNA scansione sola** (`classifica`), dal 31/07: erano due
+  scansioni gemelle scritte a poca distanza, e portavano lo stesso difetto in
+  due posti — la conferma che una regola usata due volte va scritta una volta.
+- ⚠️ **I TEMPLATE ANNIDATI, E IL BUCO CHE APRIVANO.** Un tokenizzatore che,
+  entrato in un `backtick`, corre fino al backtick **successivo** sbaglia due
+  volte: (1) il contenuto di `${...}` è **codice**, non testo — `${prompt('x')}`
+  è una chiamata vera; (2) con i template annidati, che le app usano di
+  continuo (`${dup ? \`, ${dup} già presenti\` : ""}`), il backtick che **apre**
+  quello interno viene preso per quello che **chiude** l'esterno, e da lì la
+  scansione va fuori fase: basta un apostrofo — in italiano ce n'è uno ogni due
+  parole — per aprire una stringa che corre in avanti masticando codice vivo.
+  Misurato: rimettendo un `window.prompt()` dove riprende il codice, **764
+  iniezioni su 1030 non venivano viste**. La regola 1 (niente dialoghi del
+  browser) era quindi cieca su gran parte di tutte le superfici, core compreso,
+  **e la sua controprova diceva ok**: guardava tre superfici a un punto
+  ciascuna, e nessuno di quei punti cadeva dove la scansione si perdeva. Adesso
+  la controprova è **a tappeto** e stampa quante iniezioni ha provato.
+  La lezione non è sui backtick: è che **una controprova va misurata anche nella
+  sua copertura**, non solo nel suo esito. Sapere fallire in un punto non
+  dimostra niente sugli altri mille.
 - **Il browser serve per SCOPRIRE un difetto, non per tenerlo chiuso.** Le prove
   sui buchi dei grafici sono nate con Playwright, ma `tratti`/`percorso` prendono
   numeri e restituiscono una stringa: vivono in `run-kpi.mjs` e girano sempre. Il
