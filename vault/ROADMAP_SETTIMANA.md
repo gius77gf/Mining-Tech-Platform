@@ -577,6 +577,18 @@ bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
       Regola in `ripartizioneFronti`, provata: 6 prove nuove, **307 KPI**, con la
       controprova e una che passa dalla dimostrazione vera.
 
+- [x] **S23. Ponte P3 · Campo ↔ Scudo: «chi è in turno è in regola?»** ✅ *(31/07,
+      `d1dfd94`)* — la funzione che la ricerca sul cruscotto chiama **la più forte
+      dell'intero ecosistema**. Scelta leggendo le schede, non inventata: verificando
+      §4.3 si è visto che **due voci su tredici erano già fatte** e una terza superata.
+      ⛔ **Non si accoppia per nome**: le due dimostrazioni contenevano un «Marco
+      Rossi» e un «Mario Rossi», un'«Anna Conti» e un'«Anna Neri» — un accoppiamento
+      per nome avrebbe dichiarato in regola una persona guardando i documenti di
+      un'altra. `lavoratoreId` esplicito, e senza id la risposta è «non lo so».
+      I «non lo so» non si sommano ai «sì»; se Scudo non è leggibile la sezione
+      **tace** invece di rassicurare. 313 KPI, sei prove nuove fra cui i due omonimi
+      perfetti che NON si accoppiano e la coerenza fra le due dimostrazioni.
+
 **La convenzione sui numeri è chiusa.** Sei app, core, campi scritti a mano,
 campi interi, file delle macchine.
 
