@@ -623,6 +623,19 @@ bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
       rubrica e non il turno. Gli altri quattro stati si comportano già bene e non è
       stato inventato niente da correggere.
 
+- [x] **S27. Il ponte P3 nel Quadro, e l'ottava regola di stile** ✅ *(31/07,
+      `4d69eca`)* — la risposta «chi è in turno è in regola?» arriva dove si guarda
+      per primo, come **riga che compare** e non come tessera: una tessera «0» fissa
+      insegna a non guardare quella zona. Due difetti: un avviso che si poteva toccare
+      **senza che succedesse niente**, e `class="note avviso"` mai definito in Campo e
+      Scudo — tre note rendevano **neutre** dove il codice diceva «attenzione». Da lì
+      la regola 8 di `run-stile`, scritta al terzo tentativo: le prime due accusavano
+      il codice invece del controllo. **84 stile** (erano 72), con la controprova sul
+      difetto vero.
+      *(Nota: una CI rossa in mezzo all'unità era un difetto intermittente
+      dell'emulatore — stesso commit verde al rilancio, e quel commit toccava solo
+      due file markdown. Diagnosi scritta nel checkpoint.)*
+
 **La convenzione sui numeri è chiusa.** Sei app, core, campi scritti a mano,
 campi interi, file delle macchine.
 
