@@ -41,6 +41,12 @@ serve**, così non devi ricordarti i nomi.
   dettaglio tecnico onesto sul visore point-cloud e sui limiti della
   frammentazione-da-foto.
 
+## Se ti chiedono «ma i dati di un cliente li vede un altro cliente?»
+- **`docs/REVISIONE_SICUREZZA_202607.md`** — la risposta è no, ed è **provata**
+  con 58 test automatici. Il documento dice anche le due cose che oggi NON sono
+  chiuse (l'abbonamento non fa da barriera; dentro l'azienda sono tutti
+  amministratori) e le tre domande su cui serve la tua decisione.
+
 ## Se qualcuno ti chiede «ma la volata non la fa già Deepwork?»
 - **`docs/PERCHE_DEEPWORK_E_GENESI.md`** — la frase da dire in dieci secondi
   (Deepwork è il **diario**, Genesi è il **tavolo da disegno**), le tre
