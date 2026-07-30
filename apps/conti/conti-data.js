@@ -333,7 +333,15 @@ export function parseGareCsv(text) {
       const s = (stato || "").trim().toLowerCase();
       return {
         titolo: (titolo || "").trim(),
-        base: Number.isFinite(b) ? Math.max(0, b) : 0,
+        /* ⚠️ NIENTE ZERO DI COMODO SULLA BASE D'ASTA (31/07). La base viene
+           SOMMATA: `gareRiepilogo` calcola il valore delle gare aperte, vinte
+           e perse. Una base illeggibile messa a zero abbassa quei totali in
+           silenzio — il titolare guarda «quanto vale quello per cui stiamo
+           correndo» e vede un numero più piccolo del vero, senza sapere
+           perché. A differenza del prezzo di un prodotto, però, una gara SENZA
+           base è legittima (a volte non è ancora pubblicata): la gara entra, la
+           base resta vuota, e chi somma la salta dicendolo. */
+        base: Number.isFinite(b) && b >= 0 ? b : null,
         scadenza: (scadenza || "").trim() || null,
         stato: stati.includes(s) ? s : "aperta",
       };
@@ -691,12 +699,22 @@ export function prioritaIncasso(fatture, oggi = new Date()) {
 // non c'è ancora nessuna gara decisa. Funzione pura e testabile.
 export function gareRiepilogo(gare) {
   const per = (s) => (gare || []).filter(g => g.stato === s);
-  const somma = (arr) => arr.reduce((t, g) => t + (+g.base || 0), 0);
+  /* Le gare senza base non si contano nel totale — sommarle come zero sarebbe
+     lo stesso — ma si CONTANO a parte: un totale che esclude qualcosa senza
+     dirlo è un totale che inganna chi lo legge. */
+  /* ⚠️ `Number.isFinite(+g.base)` DA SOLO NON BASTA: `+null` fa 0, che è
+     finito — quindi una base mancante passerebbe per un numero valido e
+     tornerebbe a valere zero, cioè esattamente il difetto che si sta togliendo.
+     Trovato da un test, non a mente. */
+  const conBase = (g) => g && g.base != null && g.base !== "" && Number.isFinite(+g.base);
+  const somma = (arr) => arr.reduce((t, g) => t + (conBase(g) ? +g.base : 0), 0);
+  const senzaBase = (arr) => arr.filter(g => !conBase(g)).length;
   const aperte = per("aperta"), vinte = per("vinta"), perse = per("persa");
   const decise = vinte.length + perse.length;
   return {
     aperte: aperte.length, vinte: vinte.length, perse: perse.length,
     baseAperta: somma(aperte), baseVinta: somma(vinte), basePersa: somma(perse),
+    apertesenzaBase: senzaBase(aperte),
     tassoVittoria: decise ? Math.round(100 * vinte.length / decise) : null,
   };
 }

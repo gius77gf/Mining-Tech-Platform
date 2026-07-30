@@ -1589,7 +1589,7 @@ label.item:has(.dw-chk:checked){
             .map(g => { const gg = giorni(g.scadenza); return {
               ico: IC.gara, t: g.titolo,
               d: gg < 0 ? "il termine era il " + fmtD(g.scadenza) : "gara in scadenza il " + fmtD(g.scadenza),
-              v: eur(g.base), s: "base d'asta", st: "st-sup",
+              v: g.base == null ? "non indicata" : eur(g.base), s: "base d'asta", st: "st-sup",
               /* ⚠️ MAI UN NUMERO DI GIORNI NEGATIVO SU UNA PASTIGLIA. Fino al
                  30/07 una gara chiusa da due giorni mostrava «-2 gg», che chi
                  legge deve interpretare; e una gara che scade oggi mostrava
@@ -1766,7 +1766,7 @@ label.item:has(.dw-chk:checked){
       <span class="avatar${g.stato === "aperta" ? "" : " sup"}">${IC.gara}</span>
       <div class="info"><div class="name">${esc(g.titolo)}</div>
       <div class="meta">${g.stato === "aperta" ? "scade il " + fmtD(g.scadenza) : "esito: " + GB[g.stato][1].toLowerCase() + " · scadeva il " + fmtD(g.scadenza)}</div></div>
-      <div class="amt"><div class="amt-n${g.stato === "persa" ? " mute" : ""}">${eur(g.base)}</div><div class="amt-s">base d'asta</div></div>
+      <div class="amt"><div class="amt-n${g.stato === "persa" || g.base == null ? " mute" : ""}">${g.base == null ? "non indicata" : eur(g.base)}</div><div class="amt-s">base d'asta</div></div>
       <span class="badge ${GB[g.stato][0]}">${ggU(esc(g.stato==="aperta" ? gg + " gg" : GB[g.stato][1]))}</span>
       ${g.stato==="aperta" ? `<div class="acts">
       <button class="dw-btn secondary mini" data-gara-esito="vinta" data-gara="${g.id}" title="Segna questa gara come vinta">${IC.spunta}Vinta</button>

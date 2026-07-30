@@ -3545,6 +3545,33 @@ test("un mezzo senza contatore non fa sembrare il tagliando lontano", () => {
   ok(/contatore/.test(senza.daStimare[0].perche), "e il perché nomina il contatore");
 });
 
+
+/* ⛔ LA BASE D'ASTA NON SI INVENTA (31/07). Viene SOMMATA: `gareRiepilogo`
+   calcola quanto valgono le gare aperte, vinte e perse, ed è il numero che il
+   titolare guarda per sapere «per quanto stiamo correndo». Una base illeggibile
+   messa a zero abbassa quel totale in silenzio.
+   A differenza del prezzo di un prodotto, però, una gara SENZA base è
+   legittima: a volte la base non è ancora pubblicata. Quindi la gara entra, la
+   base resta vuota, il totale la salta — e il riepilogo dice QUANTE sono, così
+   chi legge sa che il totale è parziale. */
+test("parseGareCsv: una base illeggibile resta vuota, non diventa zero", () => {
+  const g = conti.parseGareCsv("Fornitura inerti 2026;;2026-09-01;aperta");
+  eq(g.length, 1, "la gara entra: la scadenza serve comunque");
+  eq(g[0].base, null, "ma senza base");
+  eq(conti.parseGareCsv("Gara X;abc;2026-09-01;aperta")[0].base, null, "e nemmeno da un testo");
+  eq(conti.parseGareCsv("Gara Y;0;2026-09-01;aperta")[0].base, 0, "uno zero scritto apposta resta zero");
+});
+test("gareRiepilogo: il totale salta le gare senza base, e lo dichiara", () => {
+  const r = conti.gareRiepilogo([
+    { stato: "aperta", base: 50000 },
+    { stato: "aperta", base: null },
+    { stato: "aperta", base: 30000 },
+  ]);
+  eq(r.aperte, 3, "sono tre gare aperte");
+  eq(r.baseAperta, 80000, "il totale somma solo quelle con la base");
+  eq(r.apertesenzaBase, 1, "e dice che una non ce l'ha: senza questo il totale inganna");
+});
+
 // ============================================================
 // I MODELLI DI CSV DEL DOCUMENTO CARICANO DAVVERO
 //
