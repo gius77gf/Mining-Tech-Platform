@@ -79,6 +79,51 @@
   .cta.primaria:hover { box-shadow: 0 14px 38px rgba(80,40,0,.6); }
   .cta.secondaria:hover { border-color: var(--amber); }
 
+  /* ── IL VENTAGLIO DI TELEFONI ────────────────────────────────────────
+     L'apertura di solo testo dice cos'è l'ecosistema; questa lo fa VEDERE
+     nei primi due secondi, che è il tempo che uno concede. Tre schermate
+     vere, non un disegno: chi guarda riconosce subito che è un prodotto che
+     esiste. Il telefono di mezzo sta davanti e dritto, i due laterali
+     scendono e ruotano — la stessa curva morbida del core.
+     Se le immagini non arrivano restano le cornici, e l'apertura regge. */
+  .ventaglio {
+    position: relative; margin: 26px auto 0; width: min(560px, 96%); height: 292px;
+    perspective: 1100px;
+  }
+  /* L'ALTEZZA VA DICHIARATA, non lasciata all'immagine. Le schermate da
+     telefono sono lunghe: lasciate libere crescevano fino a 350 px dentro un
+     contenitore da 300, sbordavano IN SU e coprivano i due bottoni
+     dell'apertura. Ora la cornice ha la sua altezza e l'immagine ci si
+     affaccia dalla cima, che è la parte che racconta. */
+  .tel {
+    position: absolute; bottom: 0; left: 50%; width: 148px; height: 252px;
+    border-radius: 18px; overflow: hidden;
+    background: var(--dark);
+    border: 1px solid var(--border2);
+    box-shadow: 0 1px 0 rgba(255,255,255,.08) inset, 0 22px 46px rgba(0,0,0,.66);
+    transition: transform .5s var(--ease);
+  }
+  .tel img { display: block; width: 100%; height: auto; }
+  .tel.sx  { transform: translateX(-138%) translateY(16px) rotate(-8deg) scale(.94); z-index: 1; }
+  .tel.mid { transform: translateX(-50%)  translateY(-6px); z-index: 3; width: 166px; height: 272px; }
+  .tel.dx  { transform: translateX(38%)   translateY(16px) rotate(8deg)  scale(.94); z-index: 2; }
+  /* un velo caldo in basso lega il ventaglio allo sfondo invece di lasciarlo
+     appoggiato sul nero come un adesivo */
+  .ventaglio::after {
+    content: ''; position: absolute; left: -10%; right: -10%; bottom: -6px; height: 90px;
+    pointer-events: none;
+    background: linear-gradient(180deg, transparent, var(--bg) 78%);
+  }
+  @media (min-width: 700px) {
+    .ventaglio { height: 360px; }
+    .tel { width: 172px; height: 300px; } .tel.mid { width: 196px; height: 322px; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .ventaglio:hover .tel.sx  { transform: translateX(-152%) translateY(10px) rotate(-10deg) scale(.95); }
+    .ventaglio:hover .tel.mid { transform: translateX(-50%)  translateY(-14px); }
+    .ventaglio:hover .tel.dx  { transform: translateX(52%)   translateY(10px) rotate(10deg)  scale(.95); }
+  }
+
   /* la riga dei numeri: dice la misura dell'ecosistema in tre colpi d'occhio */
   .cifre { display: flex; gap: 26px; justify-content: center; flex-wrap: wrap; margin-top: 30px; }
   .cifra { text-align: center; }
@@ -307,6 +352,12 @@
       <a class="cta primaria" href="./deepwork-id/index.html">Prova il tour</a>
       <a class="cta secondaria" href="#app">Guarda le app</a>
     </div>
+    <div class="ventaglio" aria-hidden="true">
+      <div class="tel sx"><img src="./anteprime/tel-scudo.jpg" alt="" loading="eager" decoding="async" width="460" height="971"></div>
+      <div class="tel dx"><img src="./anteprime/tel-conti.jpg" alt="" loading="eager" decoding="async" width="460" height="971"></div>
+      <div class="tel mid"><img src="./anteprime/tel-terra.jpg" alt="" loading="eager" decoding="async" width="460" height="971"></div>
+    </div>
+
     <div class="cifre">
       <div class="cifra"><b>8</b><span>strumenti</span></div>
       <div class="cifra"><b>1</b><span>accesso</span></div>
