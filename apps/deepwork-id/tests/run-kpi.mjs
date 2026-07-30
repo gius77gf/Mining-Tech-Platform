@@ -3711,12 +3711,36 @@ test("il piano NON perde righe: parsePianoCsv le tiene tutte e due", () => {
     ["nome che sembra una formula", "=SOMMA(A1:A9)"],
     ["nome con virgolette", 'Fronte "Nord"'],
   ];
+  /* Il valore cattivo va provato su TUTTI e sette gli export che promettono di
+     ri-caricarsi, non su uno solo: il buco di Sentinella stava proprio in uno
+     che nessuno guardava. Per ognuno: il campo di testo che il cliente scrive
+     (nome, titolo, descrizione) e la coda della riga come la scrive l'export. */
+  const CODA = [
+    ["squadre (Campo)", campo.parseSquadreCsv, ";4;Fronte Nord;operativa", "nome"],
+    ["gare (Conti)", conti.parseGareCsv, ";50000;2026-09-01;aperta", "titolo"],
+    ["listino (Conti)", conti.parseListinoCsv, ";t;8,50;1,9;22", "nome"],
+    ["ricambi (Flotta)", flotta.parseRicambiCsv, ";6;4;48,00", "nome"],
+    ["anagrafica (Scudo)", scudo.parseLavoratoriCsv, ";operatore;333 1112222", "nome"],
+    ["ricettori (Sentinella)", sentinella.parseRicettoriCsv, ";abitazione;320;III;5;mm/s;", "nome"],
+  ];
   for (const [che, valore] of CATTIVI) {
-    test(`giro completo: un ${che} torna identico`, () => {
-      const riga = shell.csvCell(valore) + ";4;Fronte Nord;operativa";
-      const letto = campo.parseSquadreCsv(riga);
+    for (const [dove, fn, coda, campoTesto] of CODA) {
+      test(`giro completo: ${dove} — un ${che} torna identico`, () => {
+        const letto = fn(shell.csvCell(valore) + coda);
+        eq(letto.length, 1, "la riga non si spezza");
+        eq(letto[0][campoTesto], valore, "il valore è quello di partenza, carattere per carattere");
+      });
+    }
+  }
+  /* Il registro infortuni ha il testo libero in mezzo, non in testa: la
+     descrizione e il luogo sono le due colonne che il cliente scrive. */
+  for (const [che, valore] of CATTIVI) {
+    test(`giro completo: registro infortuni (Scudo) — un ${che} torna identico`, () => {
+      const letto = scudo.parseInfortuniCsv(
+        "2026-07-30;infortunio;lieve;3;" + shell.csvCell(valore) + ";" + shell.csvCell(valore));
       eq(letto.length, 1, "la riga non si spezza");
-      eq(letto[0].nome, valore, "e il valore è quello di partenza, carattere per carattere");
+      eq(letto[0].descrizione, valore, "la descrizione resta intera");
+      eq(letto[0].luogo, valore, "e anche il luogo");
     });
   }
   test("giro completo: l'unità del ricettore sopravvive al punto e virgola", () => {
