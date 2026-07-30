@@ -204,6 +204,12 @@ Pagina **Gare → Importa gare (CSV)**.
   ```
 - **Note**: serve solo il **titolo**; una gara con lo stesso titolo viene
   saltata. `stato` è `aperta`, `vinta` o `persa` (default aperta).
+- **`base` si può lasciare vuota, e resta vuota** *(dal 31/07)*: capita davvero
+  — a volte la base d'asta non è ancora pubblicata, e intanto la **scadenza**
+  serve comunque. La gara entra, ma **non entra nel totale «valore in gara»**, e
+  l'app te lo dice in tre posti: quando importi, nella pastiglia del quadro e
+  nel riepilogo delle gare. Prima una base illeggibile diventava **zero** e
+  abbassava quel totale in silenzio.
 - **Backup**: il bottone **Esporta gare (CSV)** scarica le gare nello stesso
   formato dell'import, così il file si può ri-caricare (o conservare come
   copia).
