@@ -718,6 +718,29 @@ campi interi, file delle macchine.
       app. Due proposte col loro costo, tre domande al fondatore, nessuna
       regola toccata.*
 
+### Difetti chiusi il 01/08 — i controlli che non guardavano dove credevano
+- [x] **La regola che vieta i dialoghi del browser era cieca.** I due
+      tokenizzatori di `run-stile.mjs`, entrati in un backtick, correvano fino
+      al backtick *successivo*: il contenuto di `${...}` finiva marcato come
+      testo (ma è **codice**: `${prompt('x')}` è una chiamata), e con i template
+      **annidati** il backtick che apre quello interno veniva preso per quello
+      che chiude l'esterno — da lì bastava un apostrofo per aprire una stringa
+      che correva in avanti masticando codice vivo. Misurato: **764 iniezioni
+      su 1030 non venivano viste**, 31 punti su 37 nel solo core.
+      La controprova esisteva e diceva ok: guardava **tre superfici a un punto
+      ciascuna**, e nessuno cadeva dove la scansione si perdeva. Adesso è a
+      tappeto (1030 iniezioni, numero stampato) e ha accanto la scansione
+      ingenua tenuta apposta, per dimostrare che sa ancora fallire.
+      *Lezione nuova in `CLAUDE.md`: una controprova va misurata anche nella
+      sua **copertura**, non solo nel suo esito.*
+- [x] **La nota del modo usata come lavagna** (`mode-note`): nove scritture in
+      tre app cancellavano la conferma «stai lavorando sui dati reali». Ogni
+      comando ha ora la sua nota (`rap-esito`, `rep-esito`, `reg-esito`), e due
+      scritture dirette al DOM sono diventate `esito()`. *Nota di onestà: la
+      prima lettura del difetto era esagerata — l'avviso «dati di esempio» NON
+      spariva, quello è `tour-banner` e sta in cima, fuori dalle pagine.*
+- Regola **14** verificabile; stile **149 → 171** prove.
+
 ### Difetti chiusi il 30/07 (tutti «silenziosi»: nessuno dava errore)
 - [x] La **striscia** e la **pastiglia** di un riquadro dicevano un colore
       diverso dal loro stato (Terra: proiezione fuori piano, verde a 1,64:1).
