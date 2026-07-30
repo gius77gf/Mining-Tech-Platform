@@ -247,6 +247,29 @@ await test("un invito 'member' NON declassa un membro già esistente (no zero-ow
   expect(inv.status === "accepted", `invito non consumato: ${inv.status}`);
 });
 
+console.log("\n— Membership orfana: il trigger non deve morire —");
+await test("una membership SENZA utente Auth non uccide onMemberWrite", async () => {
+  // IL RAMO CHE NESSUNO ESERCITAVA. `rebuildClaims` chiama `setCustomUserClaims`
+  // su un uid che in Auth può non esistere — succede quando qualcuno cancella il
+  // proprio profilo e la membership resta. Prima l'eccezione non gestita uccideva
+  // il trigger, portandosi dietro le invocazioni legittime in volo; ora
+  // `auth/user-not-found` si assorbe e si registra.
+  // Come si misura che «non è morto»: si scrive la membership orfana e SUBITO
+  // DOPO si cambia il ruolo di una persona vera. Se il trigger fosse ancora
+  // fragile, quella seconda scrittura troverebbe il runtime a terra e il claim
+  // non arriverebbe. È una prova indiretta perché non c'è modo diretto di
+  // chiedere a Firebase «sei ancora vivo?», ed è dichiarata tale.
+  await adb.doc("organizations/orgA/members/fantasma").set({
+    uid: "fantasma", role: "member", status: "active" });
+  await id.loginWithEmail("amm@cava-alfa.it", "password-123");
+  await id.updateMemberRole("tizio", "admin");
+  await waitClaim("tizio", "orgA", "admin");
+  expect(await roleOf("tizio") === "admin", "il ruolo non è arrivato: il trigger si è fermato");
+  // ripristino
+  await id.updateMemberRole("tizio", "member");
+  await adb.doc("organizations/orgA/members/fantasma").delete();
+});
+
 console.log("\n— Validazioni input (invito / nome org) —");
 await test("inviteMember rifiuta un'email non valida", async () => {
   await id.loginWithEmail("boss@cava-alfa.it", "password-123");
