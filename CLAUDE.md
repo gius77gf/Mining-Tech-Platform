@@ -163,6 +163,19 @@ in italiano, senza dare conoscenze per scontate).
   numeri e restituiscono una stringa: vivono in `run-kpi.mjs` e girano sempre. Il
   motore le espone di proposito in `dwGrafici.geometria`. Una difesa che resta
   nello scratchpad, alla sessione dopo non esiste.
+- **Quello che il browser scopre e basta vive in `apps/deepwork-id/tests/browser/`**
+  (vedi il suo LEGGIMI). Ci sta `interi-superfici.mjs`, che digita davvero nei
+  29 campi interi di tutte e sette le superfici — 87 asserzioni, e con
+  `--senza-guardia` ne devono cadere due su tre per campo. È così che è venuto
+  fuori che Terra aveva una **seconda copia** della regola degli interi e
+  «1.500» diventava «500».
+- ⚠️ **IL CORE NON SI APRE IN LOCALE, e non è colpa del login.** Tutto il suo
+  programma sta in un `<script type="module">` che importa Firebase da
+  `gstatic.com`: senza rete l'import fallisce, il modulo non parte e restano
+  solo i segnaposto che il core installa apposta («Funzione nav non ancora
+  pronta»). Chi non lo sa passa un'ora a chiedersi perché `nav('ufficio')` non
+  faccia niente: non è il `nav` del core. Si monta
+  `tests/browser/finto-firebase.mjs` PRIMA di `goto` e il core parte davvero.
 - ⚠️ **UNA PROVA CHE NON SA FALLIRE NON DIMOSTRA NIENTE.** Ogni controllo
   nuovo va provato **contro il difetto**: si rimette il difetto e si pretende
   che il controllo fallisca. Costa due minuti e ha già salvato due volte:
