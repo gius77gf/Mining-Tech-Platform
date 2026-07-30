@@ -342,6 +342,13 @@ body.scr-sim #tl{bottom:80px}
 .dc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:9px}
 .dc-f{display:flex;flex-direction:column;gap:4px}
 .dc-f>span{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}
+/* ---- unità di misura: MAI in maiuscolo ----
+   Il maiuscolo delle etichette è stile; sulle unità di misura non è più
+   stile, è un altro numero: «m³» diventa «M³» e «µg/m³» diventa «MG/M³»,
+   cioè milligrammi, mille volte tanto. Dove un'unità sta dentro un testo
+   messo in maiuscolo si avvolge in <u class="uni">…</u>: qui il maiuscolo si
+   spegne e la sottolineatura di <u> non si vede. */
+.uni{text-transform:none;text-decoration:none;letter-spacing:inherit}
 .dc-f input,.dc-f select{background:#241d12;border:1px solid #473a1f;color:var(--tx);font-family:'Barlow',sans-serif;font-size:15px;padding:8px 10px;border-radius:8px;outline:none;width:100%;min-height:40px;transition:border-color .15s,box-shadow .15s}
 .dc-f input:focus,.dc-f select:focus{border-color:var(--cu);box-shadow:0 0 0 3px rgba(255,171,0,.12)}
 .dc-acc{display:flex;flex-direction:column}
@@ -500,30 +507,30 @@ body.scr-sim #tl{bottom:80px}
       <div class="dc-acc">
         <div class="dc-sec"><button type="button" class="dc-sec-h">Geometria volata<span class="dc-sec-x">▾</span></button>
           <div class="dc-grid">
-            <label class="dc-f"><span>Spalla (m)</span><input type="number" id="dB" step="0.1" min="1.5" max="8" value="3.0"></label>
-            <label class="dc-f"><span>Interasse (m)</span><input type="number" id="dS" step="0.1" min="1.5" max="8" value="3.5"></label>
-            <label class="dc-f"><span>Ø foro (mm)</span><input type="number" id="dD" step="1" min="50" max="160" value="102"></label>
+            <label class="dc-f"><span>Spalla <u class="uni">(m)</u></span><input type="number" id="dB" step="0.1" min="1.5" max="8" value="3.0"></label>
+            <label class="dc-f"><span>Interasse <u class="uni">(m)</u></span><input type="number" id="dS" step="0.1" min="1.5" max="8" value="3.5"></label>
+            <label class="dc-f"><span>Ø foro <u class="uni">(mm)</u></span><input type="number" id="dD" step="1" min="50" max="160" value="102"></label>
             <label class="dc-f"><span>Fori per fila</span><input type="number" id="dN" step="1" min="3" max="30" value="12"></label>
             <label class="dc-f"><span>N° file</span><input type="number" id="dFile" step="1" min="1" max="6" value="1"></label>
-            <label class="dc-f"><span>Profondità H (m)</span><input type="number" id="dH" step="0.5" min="6" max="18" value="10"></label>
-            <label class="dc-f"><span>Inclinazione (°)</span><input type="number" id="dIncl" step="1" min="0" max="30" value="0"></label>
-            <label class="dc-f"><span>Borraggio (m)</span><input type="number" id="dStem" step="0.1" min="0.5" max="6" value="2.2"></label>
-            <label class="dc-f"><span>Sottoperf. (m)</span><input type="number" id="dSub" step="0.1" min="0" max="4" value="0.9"></label>
-            <label class="dc-f"><span>Errore al colletto (m)</span><input type="number" id="dErrColl" step="0.05" min="0" max="1.5" value="0.15" title="Di quanto il foro parte spostato dal punto segnato: dipende da come si marca la maglia e da come si posiziona il carro"></label>
-            <label class="dc-f"><span>Deviazione (% lungh.)</span><input type="number" id="dDev" step="0.5" min="0" max="15" value="2.5" title="Quanto il foro scappa dal suo asse scendendo: percentuale della lunghezza perforata. Dipende dal metodo e dallo stato dell'attrezzatura"></label>
+            <label class="dc-f"><span>Profondità H <u class="uni">(m)</u></span><input type="number" id="dH" step="0.5" min="6" max="18" value="10"></label>
+            <label class="dc-f"><span>Inclinazione <u class="uni">(°)</u></span><input type="number" id="dIncl" step="1" min="0" max="30" value="0"></label>
+            <label class="dc-f"><span>Borraggio <u class="uni">(m)</u></span><input type="number" id="dStem" step="0.1" min="0.5" max="6" value="2.2"></label>
+            <label class="dc-f"><span>Sottoperf. <u class="uni">(m)</u></span><input type="number" id="dSub" step="0.1" min="0" max="4" value="0.9"></label>
+            <label class="dc-f"><span>Errore al colletto <u class="uni">(m)</u></span><input type="number" id="dErrColl" step="0.05" min="0" max="1.5" value="0.15" title="Di quanto il foro parte spostato dal punto segnato: dipende da come si marca la maglia e da come si posiziona il carro"></label>
+            <label class="dc-f"><span>Deviazione <u class="uni">(% lungh.)</u></span><input type="number" id="dDev" step="0.5" min="0" max="15" value="2.5" title="Quanto il foro scappa dal suo asse scendendo: percentuale della lunghezza perforata. Dipende dal metodo e dallo stato dell'attrezzatura"></label>
           </div>
         </div>
         <div class="dc-sec"><button type="button" class="dc-sec-h">Carica & sequenza<span class="dc-sec-x">▾</span></button>
           <div class="dc-grid">
             <label class="dc-f"><span>Esplosivo <button type="button" class="dc-info" id="dEsplInfo" title="Approfondimento esplosivo">ⓘ</button></span><select id="dEspl"></select></label>
             <label class="dc-f"><span>Innesco <button type="button" class="dc-info" id="dInnInfo" title="Approfondimento innesco">ⓘ</button></span><select id="dInnSel"></select></label>
-            <label class="dc-f"><span>Esplosivo totale (kg)</span><input type="number" id="dKgTot" step="10" min="0" placeholder="tutta la volata"></label>
-            <label class="dc-f"><span>Carica (kg/foro)</span><input type="number" id="dKg" step="5" min="10" max="120" value="60"></label>
-            <label class="dc-f"><span>Ritardo foro (ms)</span><select id="dRit"><option>17</option><option>25</option><option selected>42</option><option>65</option></select></label>
-            <label class="dc-f"><span>Ritardo fila (ms)</span><input type="number" id="dRitFila" step="1" min="8" max="200" value="84"></label>
+            <label class="dc-f"><span>Esplosivo totale <u class="uni">(kg)</u></span><input type="number" id="dKgTot" step="10" min="0" placeholder="tutta la volata"></label>
+            <label class="dc-f"><span>Carica <u class="uni">(kg/foro)</u></span><input type="number" id="dKg" step="5" min="10" max="120" value="60"></label>
+            <label class="dc-f"><span>Ritardo foro <u class="uni">(ms)</u></span><select id="dRit"><option>17</option><option>25</option><option selected>42</option><option>65</option></select></label>
+            <label class="dc-f"><span>Ritardo fila <u class="uni">(ms)</u></span><input type="number" id="dRitFila" step="1" min="8" max="200" value="84"></label>
             <label class="dc-f"><span>Sequenza di sparo</span><select id="dSeq"><option value="riga">Riga per riga</option><option value="diagonale" selected>Diagonale (echelon)</option><option value="vcut">V-cut</option><option value="box">Box cut</option></select></label>
-            <label class="dc-f"><span>Decking (cariche/foro)</span><select id="dDecks"><option value="1" selected>1 · colonna unica</option><option value="2">2 deck</option><option value="3">3 deck</option></select></label>
-            <label class="dc-f"><span>Borraggio tra deck (m)</span><input type="number" id="dDeckStem" step="0.1" min="0.3" max="4" value="1.0"></label>
+            <label class="dc-f"><span>Decking <u class="uni">(cariche/foro)</u></span><select id="dDecks"><option value="1" selected>1 · colonna unica</option><option value="2">2 deck</option><option value="3">3 deck</option></select></label>
+            <label class="dc-f"><span>Borraggio tra deck <u class="uni">(m)</u></span><input type="number" id="dDeckStem" step="0.1" min="0.3" max="4" value="1.0"></label>
           </div>
         </div>
         <div class="dc-sec closed"><button type="button" class="dc-sec-h">Roccia & geologia<span class="dc-sec-x">▾</span></button>
@@ -536,37 +543,37 @@ body.scr-sim #tl{bottom:80px}
               <option value="granito">Granito (dura)</option>
               <option value="basalto">Basalto (molto dura)</option>
             </select></label>
-            <label class="dc-f"><span>UCS (MPa)</span><input type="number" id="dUcs" step="5" min="5" max="400" value="100"></label>
-            <label class="dc-f"><span>Modulo E (GPa)</span><input type="number" id="dEmod" step="1" min="2" max="150" value="55"></label>
+            <label class="dc-f"><span>UCS <u class="uni">(MPa)</u></span><input type="number" id="dUcs" step="5" min="5" max="400" value="100"></label>
+            <label class="dc-f"><span>Modulo E <u class="uni">(GPa)</u></span><input type="number" id="dEmod" step="1" min="2" max="150" value="55"></label>
             <label class="dc-f"><span>Fratturazione</span><select id="dFrat"><option value="fessurata">Fessurata</option><option value="media" selected>Media</option><option value="compatta">Compatta/massiccia</option></select></label>
           </div>
         </div>
         <div class="dc-sec closed"><button type="button" class="dc-sec-h">Fori bagnati<span class="dc-sec-x">▾</span></button>
           <div class="dc-grid">
             <label class="dc-f"><span>Condizione foro</span><select id="dBagnato"><option value="0" selected>Asciutto</option><option value="1">Bagnato (acqua)</option></select></label>
-            <label class="dc-f"><span>Colonna acqua (m)</span><input type="number" id="dAcquaCol" step="0.5" min="0" max="40" value="0"></label>
+            <label class="dc-f"><span>Colonna acqua <u class="uni">(m)</u></span><input type="number" id="dAcquaCol" step="0.5" min="0" max="40" value="0"></label>
           </div>
         </div>
         <div class="dc-sec closed"><button type="button" class="dc-sec-h">Presplit (taglio del profilo)<span class="dc-sec-x">▾</span></button>
           <div class="dc-grid">
             <label class="dc-f"><span>Presplit</span><select id="dPresplit"><option value="0" selected>No</option><option value="1">Sì — fila di taglio sul nuovo fronte</option></select></label>
-            <label class="dc-f"><span>Spaziatura fori (m)</span><input type="number" id="dPsSpacing" step="0.1" min="0.3" max="2" value="0.9"></label>
-            <label class="dc-f"><span>Carica lineare (kg/m)</span><input type="number" id="dPsCharge" step="0.05" min="0.1" max="2" value="0.4"></label>
+            <label class="dc-f"><span>Spaziatura fori <u class="uni">(m)</u></span><input type="number" id="dPsSpacing" step="0.1" min="0.3" max="2" value="0.9"></label>
+            <label class="dc-f"><span>Carica lineare <u class="uni">(kg/m)</u></span><input type="number" id="dPsCharge" step="0.05" min="0.1" max="2" value="0.4"></label>
           </div>
         </div>
         <div class="dc-sec closed"><button type="button" class="dc-sec-h">Vibrazioni & recettore<span class="dc-sec-x">▾</span></button>
           <div class="dc-grid">
-            <label class="dc-f"><span>Distanza recettore (m)</span><input type="number" id="dRecDist" step="10" min="20" max="3000" value="300"></label>
+            <label class="dc-f"><span>Distanza recettore <u class="uni">(m)</u></span><input type="number" id="dRecDist" step="10" min="20" max="3000" value="300"></label>
             <label class="dc-f"><span>Normativa / edificio</span><select id="dRecNorma"><option value="din-res" selected>DIN residenziale</option><option value="din-ind">DIN industriale</option><option value="din-sens">DIN sensibile/storico</option><option value="usbm-old">USBM intonaco vecchio</option><option value="usbm-modern">USBM cartongesso</option></select></label>
-            <label class="dc-f"><span>Freq. dominante (Hz)</span><input type="number" id="dRecFreq" step="1" min="2" max="120" value="25"></label>
+            <label class="dc-f"><span>Freq. dominante <u class="uni">(Hz)</u></span><input type="number" id="dRecFreq" step="1" min="2" max="120" value="25"></label>
           </div>
         </div>
         <div class="dc-sec closed"><button type="button" class="dc-sec-h">Costi &amp; resa (stima)<span class="dc-sec-x">▾</span></button>
           <div class="dc-grid">
-            <label class="dc-f"><span>Perforazione (€/m)</span><input type="number" id="dCPerf" step="0.5" min="0" max="500" value="8"></label>
-            <label class="dc-f"><span>Esplosivo (€/kg)</span><input type="number" id="dCExpl" step="0.1" min="0" max="50" value="1.5"></label>
-            <label class="dc-f"><span>Innesco (€/foro)</span><input type="number" id="dCInn" step="0.5" min="0" max="500" value="12"></label>
-            <label class="dc-f"><span>Valore materiale (€/t)</span><input type="number" id="dValMat" step="0.5" min="0" max="500" value="0"></label>
+            <label class="dc-f"><span>Perforazione <u class="uni">(€/m)</u></span><input type="number" id="dCPerf" step="0.5" min="0" max="500" value="8"></label>
+            <label class="dc-f"><span>Esplosivo <u class="uni">(€/kg)</u></span><input type="number" id="dCExpl" step="0.1" min="0" max="50" value="1.5"></label>
+            <label class="dc-f"><span>Innesco <u class="uni">(€/foro)</u></span><input type="number" id="dCInn" step="0.5" min="0" max="500" value="12"></label>
+            <label class="dc-f"><span>Valore materiale <u class="uni">(€/t)</u></span><input type="number" id="dValMat" step="0.5" min="0" max="500" value="0"></label>
           </div>
         </div>
       </div>
@@ -585,7 +592,7 @@ body.scr-sim #tl{bottom:80px}
       <option value="0" selected>auto</option><option value="5">5 ms</option><option value="10">10 ms</option>
       <option value="20">20 ms</option><option value="25">25 ms</option><option value="50">50 ms</option>
       <option value="100">100 ms</option><option value="200">200 ms</option></select></label>
-    <label class="dl-f" id="dlRelWinF"><span>finestra ms/m</span>
+    <label class="dl-f" id="dlRelWinF"><span>finestra <u class="uni">ms/m</u></span>
       <input type="number" id="dlRelLo" step="0.5" min="0.5" max="60" value="5" title="Sotto questo valore il foro spara senza spazio libero sufficiente">
       <input type="number" id="dlRelHi" step="0.5" min="1" max="99" value="15" title="Sopra questo valore il relief è eccessivo"></label>
   </div>
@@ -853,6 +860,60 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+
+/* ══════════════════════════════════════════════════════════════════════════
+   NUMERI COME SI SCRIVONO IN ITALIA — un solo posto per la convenzione
+   ══════════════════════════════════════════════════════════════════════════
+   In Italia il decimale è la VIRGOLA e le migliaia si separano col PUNTO:
+   «1.250,4 kg», non «1250.4 kg». Prima questa formattazione era ricopiata a
+   mano in una cinquantina di punti — a volte con toLocaleString, a volte con
+   toFixed().replace('.',','), quasi sempre con toFixed() e basta — ed è
+   esattamente per questo che i punti decimali inglesi sono sopravvissuti:
+   riconDelta scriveva «+3.0 cm» accanto a numeri con la virgola.
+   Da qui in poi ogni numero MOSTRATO passa da gnum/gseg.
+
+   ⚠️ SONO FUNZIONI PER I NUMERI **MOSTRATI**. NON vanno usate su:
+     · i file di SCAMBIO fra le app — genesi_piano_carico.csv (il ponte verso
+       Campo), i referti della legge di sito, l'onda composita, l'XML IREDES,
+       il JSON della volata, le schede CSV: là il decimale è il PUNTO e deve
+       restare il punto, altrimenti chi rilegge non capisce più i numeri;
+     · gli `input.value` dei campi numerici, che il browser vuole col punto;
+     · le coordinate SVG/canvas e i valori CSS, che non sono numeri da leggere.
+
+   gnum: il numero, al massimo `dec` decimali, senza zeri finali inutili
+   (60 resta «60», non «60,00»). Non è un numero → «—», così a schermo non
+   compare mai «NaN».
+   gseg: come gnum ma col verso davanti, e il meno è il segno meno
+   tipografico «−» e non il trattino: «+4,7» / «−15,3».
+   gfix: quando i decimali servono TUTTI anche se sono zeri (una tabella in
+   cui 3 e 3,05 devono avere la stessa lunghezza). */
+/* `useGrouping:true` è scritto a mano di proposito: lasciato al default, il
+   separatore delle migliaia dipende dalla versione di ICU del motore — 1286
+   esce «1.286» su Chromium e «1286» su Node (strategia «min2», che raggruppa
+   solo da cinque cifre). Lo stesso numero scritto in due modi a seconda di
+   dove gira è precisamente ciò che qui non si vuole.
+   null e '' NON sono zero: `+null` fa 0, e senza il controllo un dato che
+   manca comparirebbe come «0», cioè un fatto, e falso. */
+function gnum(v, dec){
+  if(v===null || v==='' || v===undefined) return '—';
+  const n = +v;
+  if(!isFinite(n)) return '—';
+  const d = Math.max(0, Math.min(6, dec==null?2:dec|0));
+  return n.toLocaleString('it-IT', { maximumFractionDigits:d, useGrouping:true });
+}
+function gseg(v, dec){
+  if(v===null || v==='' || v===undefined) return '—';
+  const n = +v;
+  if(!isFinite(n)) return '—';
+  return (n<0?'−':'+') + gnum(Math.abs(n), dec);
+}
+function gfix(v, dec){
+  if(v===null || v==='' || v===undefined) return '—';
+  const n = +v;
+  if(!isFinite(n)) return '—';
+  const d = Math.max(0, Math.min(6, dec==null?1:dec|0));
+  return n.toLocaleString('it-IT', { minimumFractionDigits:d, maximumFractionDigits:d, useGrouping:true });
+}
 
 /* ============ calibrazione (fallback inline = calibrazione.json) ============ */
 let CAL = {
@@ -1454,10 +1515,10 @@ function quotaLegSync(){
   const N=5; let barre='';
   for(let i=N;i>=0;i--){
     const u=i/N, c=quotaColore(u), q=quotaMin+(quotaMax-quotaMin)*u;
-    barre+='<div><i style="background:rgb('+Math.round(c[0]*255)+','+Math.round(c[1]*255)+','+Math.round(c[2]*255)+')"></i>'+q.toFixed(1)+' m</div>';
+    barre+='<div><i style="background:rgb('+Math.round(c[0]*255)+','+Math.round(c[1]*255)+','+Math.round(c[2]*255)+')"></i>'+gfix(q,1)+' m</div>';
   }
   el.innerHTML='<div class="lg-t">Quota sul piazzale</div>'+barre
-    +'<div class="lg-n">Colore = altezza dal piano di lavoro. Fronte alto ≈ '+quotaMax.toFixed(1)+' m.</div>';
+    +'<div class="lg-n">Colore = altezza dal piano di lavoro. Fronte alto ≈ '+gfix(quotaMax,1)+' m.</div>';
   el.style.display='block';
 }
 /* legenda della colonna di carica: compare con i raggi-X, spiega i colori dei segmenti */
@@ -1467,10 +1528,10 @@ function xrayLegSync(){
   const n=Math.max(1, Math.min(3, D2.decks||1));
   const wet=(D2.bagnato && (D2.acquaCol||0)>0);
   el.innerHTML='<div class="lg-t">Colonna di carica</div>'
-    +'<div><i style="background:#a8a49a"></i>borraggio '+(+D2.stem).toFixed(1)+' m</div>'
+    +'<div><i style="background:#a8a49a"></i>borraggio '+gfix(D2.stem,1)+' m</div>'
     +'<div><i style="background:linear-gradient(90deg,#ff6d00,#ffab00)"></i>esplosivo '+Math.round(D2.kg||P.kg)+' kg'+(n>1?' · '+n+' deck':'')+'</div>'
     +'<div><i style="background:#e53935"></i>innesco'+(n>1?' (uno per deck)':'')+'</div>'
-    +(wet?'<div><i style="background:#42a5f5"></i>acqua '+(+D2.acquaCol).toFixed(1)+' m</div>':'')
+    +(wet?'<div><i style="background:#42a5f5"></i>acqua '+gfix(D2.acquaCol,1)+' m</div>':'')
     +(n>1?'<div class="lg-n">Deck su ritardi separati: la carica per ritardo scende a ≈'+Math.round((D2.kg||P.kg)/n)+' kg.</div>':'');
   el.style.display='block';
 }
@@ -1959,7 +2020,7 @@ function updateInfochip(){
   const _sqL={riga:'riga per riga',diagonale:'diagonale',vcut:'V-cut',box:'box'}[D2.sequenza]||'diagonale';
   const _inL=(typeof selInnesco==='function'&&selInnesco())?selInnesco().short:'Nonel';
   const _rkL=(typeof selRoccia==='function'&&selRoccia())?selRoccia().nome.split(' ')[0]:'';
-  $('infochip').innerHTML = `<b>${P.fori} fori</b> · maglia ${SPALLA.toFixed(1)}×${INTERASSE.toFixed(1)} · ${_inL} <b>${P.ritardo} ms</b> · ${_sqL} · ${_rkL} · sequenza <b>${seq} ms</b> · PF ${pfVal.toFixed(2)} kg/m³`;
+  $('infochip').innerHTML = `<b>${gnum(P.fori,0)} fori</b> · maglia ${gfix(SPALLA,1)}×${gfix(INTERASSE,1)} · ${_inL} <b>${gnum(P.ritardo,1)} ms</b> · ${_sqL} · ${_rkL} · sequenza <b>${gnum(seq,0)} ms</b> · PF ${gfix(pfVal,2)} kg/m³`;
   if(fr){
     const mx = Math.max(fr.x80,1);
     const seg = (lab,val)=>`<div style="display:flex;align-items:center;gap:6px;margin-top:3px"><span style="width:26px;color:var(--mut2)">${lab}</span><div style="flex:1;height:6px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden"><div style="height:100%;width:${Math.min(100,val/mx*100)}%;background:var(--cu)"></div></div><b style="width:46px;text-align:right">${val} cm</b></div>`;
@@ -1998,7 +2059,7 @@ function _invUpdate(){
   const r=_inverseMesh(t);
   if(!r){ out.innerHTML='<span style="color:var(--mut2)">imposta prima una volata</span>'; return; }
   const irreale = (r.pf<0.15 || r.pf>2.2 || r.B<1 || r.B>9);   // fuori range pratico → obiettivo poco realistico con carica/altezza attuali
-  out.innerHTML=`<b style="color:${irreale?'#ffa726':'var(--cu)'}">B ${r.B.toFixed(2)} × S ${r.S.toFixed(2)} m</b> · PF ${r.pf.toFixed(2)} kg/m³`
+  out.innerHTML=`<b style="color:${irreale?'#ffa726':'var(--cu)'}">B ${gfix(r.B,2)} × S ${gfix(r.S,2)} m</b> · PF ${gfix(r.pf,2)} kg/m³`
     +(irreale?`<div style="font-size:9.5px;color:#ffa726;line-height:1.35;margin-top:3px">Obiettivo poco realistico con carica/altezza attuali: cambia kg carica o profondità, o rivedi l'obiettivo.</div>`:'')
     +`<div style="font-size:9.5px;color:var(--mut2);line-height:1.35;margin-top:3px">⚠ proposta di partenza (a carica/altezza attuali). Verifica sempre col fronte reale, il piede e le distanze di sicurezza: non sostituisce il giudizio del fochino.</div>`;
 }
@@ -2065,13 +2126,13 @@ function _measUpdate(){
   const fr=_fragLast;
   if(!fr){ out.innerHTML='<span style="color:var(--mut2)">imposta prima una volata</span>'; return; }
   const dev=(m.x50-fr.x50)/fr.x50*100;
-  out.innerHTML=`<div>x50 misurato <b style="color:#4fc3f7">${m.x50.toFixed(1)} cm</b> vs previsto <b style="color:#ffd54f">${fr.x50.toFixed(1)} cm</b> · scarto <b style="color:${Math.abs(dev)>25?'#ffa726':'var(--cu)'}">${dev>=0?'+':''}${dev.toFixed(0)}%</b> <span style="color:var(--mut2)">(${m.n} campioni)</span></div>`
+  out.innerHTML=`<div>x50 misurato <b style="color:#4fc3f7">${gfix(m.x50,1)} cm</b> vs previsto <b style="color:#ffd54f">${gfix(fr.x50,1)} cm</b> · scarto <b style="color:${Math.abs(dev)>25?'#ffa726':'var(--cu)'}">${gseg(dev,0)}%</b> <span style="color:var(--mut2)">(${gnum(m.n,0)} campioni)</span></div>`
     + _fragCurveSVG(fr, null, m)
     + `<div style="font-size:9.5px;color:var(--mut2);line-height:1.35;margin-top:3px">Confronto qualitativo: campione pesato per volume (d³). Serve un campione rappresentativo e ben misurato; non sostituisce un'analisi granulometrica strumentale.</div>`;
 }
 function fmtT(ms){
   if(ms<1000) return Math.round(ms)+' <small>ms</small>';
-  return (ms/1000).toFixed(2)+' <small>s</small>';
+  return gfix(ms/1000,2)+' <small>s</small>';
 }
 function setSimT(t, fromScrub){
   const prev = simT;
@@ -2197,8 +2258,8 @@ function holeInfoShow(g){
   const el=$('holeInfo'); if(!el) return;
   el.innerHTML='<b>Foro '+((f.i!=null?f.i:0)+1)+'</b> · fila '+fila
     +'<br>spara a <b>'+Math.round(f.tDet||0)+' ms</b>'
-    +'<br>profondità '+(+(f.h||P.prof)).toFixed(1)+' m · carica '+Math.round(P.kg)+' kg'
-    +'<br>borraggio '+(+D2.stem).toFixed(1)+' m · Ø'+P.diam+' mm'
+    +'<br>profondità '+gfix(f.h||P.prof,1)+' m · carica '+gnum(P.kg,0)+' kg'
+    +'<br>borraggio '+gfix(D2.stem,1)+' m · Ø'+gnum(P.diam,0)+' mm'
     +'<button id="holeInfoX" title="Chiudi">✕</button>';
   el.style.display='block';
   const x=$('holeInfoX'); if(x) x.onclick=holeInfoHide;
@@ -2279,7 +2340,7 @@ function mdlQuoteShow(i0, dz){
   const el=$('mdlQuote'); if(!el||!SIM) return;
   const set=mdlSet(), h=set[i0]; if(!h) return;
   const seg=Math.max(1, set.length-1);
-  const sposta=(dz>=0?'+':'')+dz.toFixed(2);
+  const sposta=gseg(dz,2);
   const dir=Math.abs(dz)<0.005 ? 'fermo' : (dz>0 ? 'indietro (dentro il fronte)' : 'avanti (verso il piazzale)');
   const raggio=(SIM.Lm*mdlRaggioPct/100);
   if(mdlTipo==='piede'){
@@ -2287,14 +2348,14 @@ function mdlQuoteShow(i0, dz){
     const dev=h.position.z-crestZ(h.position.x);
     const hFaccia=Math.max(5, Math.min(20, (D2.prof||P.prof) - dev));
     el.innerHTML='<b>Piede '+sposta+' m</b> · '+dir
-      +'<div class="q-sub">punto '+(i0+1)+'/'+(seg+1)+' a '+h.position.x.toFixed(1)+' m dall\'inizio'
-      +' · altezza faccia qui <b style="font-size:11px">'+hFaccia.toFixed(1)+' m</b>'
-      +' · raggio d\'influenza '+raggio.toFixed(1)+' m</div>';
+      +'<div class="q-sub">punto '+(i0+1)+'/'+(seg+1)+' a '+gfix(h.position.x,1)+' m dall\'inizio'
+      +' · altezza faccia qui <b style="font-size:11px">'+gfix(hFaccia,1)+' m</b>'
+      +' · raggio d\'influenza '+gfix(raggio,1)+' m</div>';
   } else {
     el.innerHTML='<b>Cresta '+sposta+' m</b> · '+dir
-      +'<div class="q-sub">punto '+(i0+1)+'/'+(seg+1)+' a '+h.position.x.toFixed(1)+' m dall\'inizio'
-      +' · quota faccia '+h.position.z.toFixed(2)+' m'
-      +' · raggio d\'influenza '+raggio.toFixed(1)+' m</div>';
+      +'<div class="q-sub">punto '+(i0+1)+'/'+(seg+1)+' a '+gfix(h.position.x,1)+' m dall\'inizio'
+      +' · quota faccia '+gfix(h.position.z,2)+' m'
+      +' · raggio d\'influenza '+gfix(raggio,1)+' m</div>';
   }
   el.style.display='block';
 }
@@ -2320,7 +2381,7 @@ function mdlBuild(){
     mdlGroup.add(b); mdlPie.push(b);
   }
   scene.add(mdlGroup);
-  const lab=$('mdlRLab'); if(lab) lab.textContent=(Lm*mdlRaggioPct/100).toFixed(1)+' m';   // il raggio è in metri veri
+  const lab=$('mdlRLab'); if(lab) lab.textContent=gfix(Lm*mdlRaggioPct/100,1)+' m';   // il raggio è in metri veri
 }
 function mdlNDC(e){ const r=renderer.domElement.getBoundingClientRect(); mdlV2.set(((e.clientX-r.left)/r.width)*2-1, -((e.clientY-r.top)/r.height)*2+1); }
 renderer.domElement.addEventListener('pointerdown', e=>{
@@ -2359,14 +2420,14 @@ addEventListener('pointerup', ()=>{
     mdlSyncAltezze();
     const t0=simT; rebuild(); setSimT(Math.min(t0, SIM.tEnd), true);
     mdlBuild();
-    toast('✓ Piede modellato '+(dzFin>=0?'+':'')+dzFin.toFixed(2)+' m · la faccia si '+(dzFin<0?'alza':'abbassa'));
+    toast('✓ Piede modellato '+gseg(dzFin,2)+' m · la faccia si '+(dzFin<0?'alza':'abbassa'));
     return;
   }
   const pts=set.map(h=>({ x:+h.position.x.toFixed(2), z:+h.position.z.toFixed(2) }));
   P.profilo=pts;                                                     // il 3D si ricostruisce sul nuovo fronte
   D2.profilo=pts.map(p=>({ x:p.x, y:p.z }));                         // sync verso il Progetto 2D
   const t0=simT; rebuild(); setSimT(Math.min(t0, SIM.tEnd), true);
-  mdlBuild(); toast('✓ Fronte modellato '+(dzFin>=0?'+':'')+dzFin.toFixed(2)+' m (sincronizzato col 2D)');
+  mdlBuild(); toast('✓ Fronte modellato '+gseg(dzFin,2)+' m (sincronizzato col 2D)');
 });
 if($('btnModella')) $('btnModella').onclick=()=>{ modella=!modella; $('btnModella').classList.toggle('on', modella); if(modella && playing) setPlaying(false);
   const tl=$('mdlTools'); if(tl) tl.style.display=modella?'block':'none';
@@ -2376,7 +2437,7 @@ if($('btnModella')) $('btnModella').onclick=()=>{ modella=!modella; $('btnModell
 if($('mdlR')) $('mdlR').oninput = e=>{
   mdlRaggioPct=Math.max(5, Math.min(100, +e.target.value||20));
   const lab=$('mdlRLab');
-  if(lab) lab.textContent = SIM ? (SIM.Lm*mdlRaggioPct/100).toFixed(1)+' m' : mdlRaggioPct+'%';
+  if(lab) lab.textContent = SIM ? gfix(SIM.Lm*mdlRaggioPct/100,1)+' m' : gnum(mdlRaggioPct,0)+'%';
 };
 if($('mdlUndo')) $('mdlUndo').onclick=mdlUndo;
 if($('mdlRedo')) $('mdlRedo').onclick=mdlRedo;
@@ -2561,16 +2622,16 @@ function cmpRender(){
   const rows=[
     ['Impostazione', A.kpi.maglia, B.kpi.maglia, null],
     ['Esplosivo', A.kpi.setup, B.kpi.setup, null],
-    ['Fori · kg totali', A.kpi.nf+' · '+A.kpi.qtot+' kg', B.kpi.nf+' · '+B.kpi.qtot+' kg', null],
-    ['Powder factor', A.kpi.pf+' kg/m³', B.kpi.pf+' kg/m³', null],
-    ['X50 previsto', A.kpi.x50+' cm', B.kpi.x50+' cm', A.kpi.x50<=B.kpi.x50?'A':'B'],
-    ['X80 (oversize)', A.kpi.x80+' cm', B.kpi.x80+' cm', A.kpi.x80<=B.kpi.x80?'A':'B'],
-    ['PPV al recettore', A.kpi.ppv+' / lim '+A.kpi.lim+' mm/s', B.kpi.ppv+' / lim '+B.kpi.lim+' mm/s', A.kpi.ppv<=B.kpi.ppv?'A':'B'],
-    ['Gittata flyrock', A.kpi.fly+' m', B.kpi.fly+' m', A.kpi.fly<=B.kpi.fly?'A':'B'],
-    ['Costo totale (stima)', '€'+(A.kpi.cost||0).toLocaleString('it-IT'), '€'+(B.kpi.cost||0).toLocaleString('it-IT'), (A.kpi.cost||0)<=(B.kpi.cost||0)?'A':'B'],
+    ['Fori · kg totali', gnum(A.kpi.nf,0)+' · '+gnum(A.kpi.qtot,0)+' kg', gnum(B.kpi.nf,0)+' · '+gnum(B.kpi.qtot,0)+' kg', null],
+    ['Powder factor', gfix(A.kpi.pf,2)+' kg/m³', gfix(B.kpi.pf,2)+' kg/m³', null],
+    ['X50 previsto', gnum(A.kpi.x50,1)+' cm', gnum(B.kpi.x50,1)+' cm', A.kpi.x50<=B.kpi.x50?'A':'B'],
+    ['X80 (oversize)', gnum(A.kpi.x80,1)+' cm', gnum(B.kpi.x80,1)+' cm', A.kpi.x80<=B.kpi.x80?'A':'B'],
+    ['PPV al recettore', gfix(A.kpi.ppv,1)+' / lim '+gfix(A.kpi.lim,1)+' mm/s', gfix(B.kpi.ppv,1)+' / lim '+gfix(B.kpi.lim,1)+' mm/s', A.kpi.ppv<=B.kpi.ppv?'A':'B'],
+    ['Gittata flyrock', gnum(A.kpi.fly,0)+' m', gnum(B.kpi.fly,0)+' m', A.kpi.fly<=B.kpi.fly?'A':'B'],
+    ['Costo totale (stima)', '€'+gnum(A.kpi.cost||0,0), '€'+gnum(B.kpi.cost||0,0), (A.kpi.cost||0)<=(B.kpi.cost||0)?'A':'B'],
     ['Presplit', A.kpi.presplit?'sì':'no', B.kpi.presplit?'sì':'no', null],
   ];
-  body.innerHTML='<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:6px 10px;align-items:center;">'
+  body.innerHTML='<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:6px 10px;align-items:center;font-variant-numeric:tabular-nums;">'
     +'<div style="color:var(--mut);font-size:11px;letter-spacing:.1em;text-transform:uppercase">KPI</div>'
     +'<div style="color:#ffd54f;font-weight:700">A <span style="color:var(--mut);font-weight:400;font-size:11px">'+A.ts+'</span></div>'
     +'<div style="color:#ffd54f;font-weight:700">B <span style="color:var(--mut);font-weight:400;font-size:11px">'+B.ts+'</span></div>'
@@ -2612,22 +2673,22 @@ if($('btn-report')) $('btn-report').onclick=()=>{
   const k=computeKPI(), F=flyrockEst(), g=measureGeom2D(), E=selEsplosivo()||{}, I=selInnesco()||{}, R=selRoccia()||{};
   const nf=g.n, mPerf=nf*(D2.prof+(D2.sub||0)), kgTot=nf*D2.kg, vol=nf*D2.B*D2.S*D2.prof, rho=R.rho||2.5, ton=vol*rho;
   const cP=mPerf*(D2.cPerf||0), cE=kgTot*(D2.cExpl||0), cI=nf*(D2.cInnesco||0), cTot=cP+cE+cI;
-  const eur=(x)=>'€'+Math.round(x).toLocaleString('it-IT'), esc=_rEsc;
+  const eur=(x)=>'€'+gnum(x,0), esc=_rEsc;                      // anche gli euro passano da gnum: una convenzione sola
   const now=new Date().toLocaleString('it-IT');
   const seqL={riga:'Riga per riga',diagonale:'Diagonale (echelon)',vcut:'V-cut',box:'Box cut'}[D2.sequenza]||D2.sequenza;
   const normL=normaPpvLab(D2.recNorma);
   const sec=(t,rows)=>'<h2>'+esc(t)+'</h2><table>'+rows.map(r=>'<tr><td>'+esc(r[0])+'</td><td>'+r[1]+'</td></tr>').join('')+'</table>';
   const body=
-    sec('Geometria',[['Maglia (spalla × interasse)',D2.B.toFixed(1)+' × '+D2.S.toFixed(1)+' m'],['Diametro foro',esc(D2.diam)+' mm'],['Fori × file',nf+' ('+D2.perRow+' × '+D2.file+')'],['Profondità / sottoperf.',D2.prof+' / '+(D2.sub||0)+' m'],['Borraggio',D2.stem+' m'],['Inclinazione',(D2.incl||0)+'°'],['Fronte',g.Lm+' m']])
-   +sec('Carica & sequenza',[['Esplosivo',esc(E.nome||D2.esplosivo)],['Carica per foro',D2.kg+' kg'],['Carica totale',kgTot.toFixed(0)+' kg'],['Powder factor',k.pf+' kg/m³'],['Innesco',esc(I.nome||D2.innesco)],['Sequenza',esc(seqL)],['Ritardo foro / fila',D2.ritardo+' / '+(D2.ritardoFila||0)+' ms']].concat((D2.decks||1)>1?[['Decking',D2.decks+' cariche/foro (~'+(D2.kg/D2.decks).toFixed(0)+' kg/deck, borraggio tra deck '+D2.deckStem+' m)']]:[]))
-   +sec('Roccia',[['Litologia',esc(R.nome||D2.roccia)],['UCS',D2.ucs+' MPa'],['Fratturazione',esc(D2.frat)],['Fori bagnati',D2.bagnato?'sì':'no']])
-   +sec('Previsioni (PREVISTO — non misura)',[['Frammentazione x20 / x50 / x80',k.x20+' / '+k.x50+' / '+k.x80+' cm'],['PPV al recettore ('+D2.recDist+' m)',k.ppv+' mm/s (limite '+k.lim+', '+esc(normL)+')'],['Gittata flyrock',k.fly+' m'],['Sgombero mezzi 2× / persone 4×',Math.round(F.Dmez)+' / '+Math.round(F.Dper)+' m'],['Presplit',k.presplit?'sì':'no']])
-   +sec('Stima economica (ordine di grandezza)',[['Metri perforati',mPerf.toFixed(0)+' m → '+eur(cP)],['Esplosivo',kgTot.toFixed(0)+' kg → '+eur(cE)],['Inneschi',nf+' → '+eur(cI)],['Costo totale volata','<b>'+eur(cTot)+'</b>'],['Volume / tonnellaggio',vol.toFixed(0)+' m³ / '+ton.toFixed(0)+' t'],['Costo unitario',cTot/vol?(cTot/vol).toFixed(2).replace('.',',')+' €/m³ · '+(cTot/ton).toFixed(2).replace('.',',')+' €/t':'—']].concat((D2.valMat||0)>0?[['Margine (materiale '+D2.valMat+' €/t)',eur(ton*D2.valMat-cTot)]]:[]));
+    sec('Geometria',[['Maglia (spalla × interasse)',gfix(D2.B,1)+' × '+gfix(D2.S,1)+' m'],['Diametro foro',gnum(D2.diam,0)+' mm'],['Fori × file',gnum(nf,0)+' ('+gnum(D2.perRow,0)+' × '+gnum(D2.file,0)+')'],['Profondità / sottoperf.',gnum(D2.prof,1)+' / '+gnum(D2.sub||0,1)+' m'],['Borraggio',gnum(D2.stem,1)+' m'],['Inclinazione',gnum(D2.incl||0,0)+'°'],['Fronte',gnum(g.Lm,1)+' m']])
+   +sec('Carica & sequenza',[['Esplosivo',esc(E.nome||D2.esplosivo)],['Carica per foro',gnum(D2.kg,1)+' kg'],['Carica totale',gnum(kgTot,0)+' kg'],['Powder factor',gfix(k.pf,2)+' kg/m³'],['Innesco',esc(I.nome||D2.innesco)],['Sequenza',esc(seqL)],['Ritardo foro / fila',gnum(D2.ritardo,1)+' / '+gnum(D2.ritardoFila||0,1)+' ms']].concat((D2.decks||1)>1?[['Decking',gnum(D2.decks,0)+' cariche/foro (~'+gnum(D2.kg/D2.decks,0)+' kg/deck, borraggio tra deck '+gnum(D2.deckStem,1)+' m)']]:[]))
+   +sec('Roccia',[['Litologia',esc(R.nome||D2.roccia)],['UCS',gnum(D2.ucs,0)+' MPa'],['Fratturazione',esc(D2.frat)],['Fori bagnati',D2.bagnato?'sì':'no']])
+   +sec('Previsioni (PREVISTO — non misura)',[['Frammentazione x20 / x50 / x80',gnum(k.x20,1)+' / '+gnum(k.x50,1)+' / '+gnum(k.x80,1)+' cm'],['PPV al recettore ('+gnum(D2.recDist,0)+' m)',gfix(k.ppv,1)+' mm/s (limite '+gfix(k.lim,1)+', '+esc(normL)+')'],['Gittata flyrock',gnum(k.fly,0)+' m'],['Sgombero mezzi 2× / persone 4×',gnum(F.Dmez,0)+' / '+gnum(F.Dper,0)+' m'],['Presplit',k.presplit?'sì':'no']])
+   +sec('Stima economica (ordine di grandezza)',[['Metri perforati',gnum(mPerf,0)+' m → '+eur(cP)],['Esplosivo',gnum(kgTot,0)+' kg → '+eur(cE)],['Inneschi',gnum(nf,0)+' → '+eur(cI)],['Costo totale volata','<b>'+eur(cTot)+'</b>'],['Volume / tonnellaggio',gnum(vol,0)+' m³ / '+gnum(ton,0)+' t'],['Costo unitario',cTot/vol?gfix(cTot/vol,2)+' €/m³ · '+gfix(cTot/ton,2)+' €/t':'—']].concat((D2.valMat||0)>0?[['Margine (materiale '+gnum(D2.valMat,2)+' €/t)',eur(ton*D2.valMat-cTot)]]:[]));
   const doc='<!doctype html><html lang="it"><head><meta charset="utf-8"><title>Report volata Genesi</title><style>'
     +'body{font-family:system-ui,Arial,sans-serif;color:#1a1a1a;max-width:720px;margin:24px auto;padding:0 16px;font-size:13px}'
     +'h1{font-size:20px;margin:0 0 2px;color:#a05a00}.sub{color:#666;font-size:12px;margin-bottom:16px}'
     +'h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:#a05a00;border-bottom:1px solid #e0c090;padding-bottom:3px;margin:16px 0 6px}'
-    +'table{width:100%;border-collapse:collapse}td{padding:3px 6px;border-bottom:1px solid #f0f0f0;vertical-align:top}td:first-child{color:#555;width:52%}'
+    +'table{width:100%;border-collapse:collapse}td{padding:3px 6px;border-bottom:1px solid #f0f0f0;vertical-align:top;font-variant-numeric:tabular-nums}td:first-child{color:#555;width:52%;font-variant-numeric:normal}'
     +'.foot{margin-top:20px;font-size:10.5px;color:#888;border-top:1px solid #ddd;padding-top:8px}@media print{body{margin:0}}</style></head><body>'
     +'<h1>Report volata — Genesi</h1><div class="sub">Generato il '+esc(now)+' · progetto/stima, non misura di campo</div>'
     +body
@@ -2784,9 +2845,9 @@ let _ricNome='';         // nome della volata scritto a mano, per non perderlo a
 // numeri scritti come si scrivono in Italia (virgola decimale) ovunque, anche
 // nelle percentuali: dentro la stessa riga «-81,7 kg (-28.2%)» si leggerebbe
 // come due unità di misura diverse
-const _ricKg=(v)=>(Math.round(v*10)/10).toLocaleString('it-IT');
-const _ricSegno=(v)=>(v>=0?'+':'')+_ricKg(v);
-const _ricPct=(v)=>(v>=0?'+':'')+(Math.round(v*10)/10).toLocaleString('it-IT')+'%';
+const _ricKg=(v)=>gnum(v,1);
+const _ricSegno=(v)=>gseg(v,1);
+const _ricPct=(v)=>gseg(v,1)+'%';
 const _ricPlur=(n,uno,tanti)=>n+' '+(n===1?uno:tanti);
 // le date arrivano dal file in ISO (2026-07-29): in cava si legge 29/07/2026.
 // Se non è una data ISO si lascia com'è: è testo di un file, non lo si indovina.
@@ -2822,10 +2883,10 @@ function _riconCampoHtml(){
   // file è di un'altra volata o è a metà, un delta qui sarebbe una bugia.
   if(k&&k.nf){
     const confrontabile = c.foriTot===k.nf && c.foriReg===c.foriTot;
-    h+=riga('Carica prevista da Genesi (progetto aperto)',_ricKg(k.qtot)+' kg su '+k.nf+' fori','previsto qui');
+    h+=riga('Carica prevista da Genesi (progetto aperto)',_ricKg(k.qtot)+' kg su '+gnum(k.nf,0)+' fori','previsto qui');
     h+= confrontabile
       ? riga('Reale contro il previsto di Genesi',
-             _ricSegno(+(c.kgReale-k.qtot).toFixed(1))+' kg ('+_ricPct(k.qtot?(c.kgReale-k.qtot)/k.qtot*100:0)+')',
+             _ricSegno(c.kgReale-k.qtot)+' kg ('+_ricPct(k.qtot?(c.kgReale-k.qtot)/k.qtot*100:0)+')',
              'calcolato qui', _ricColore(k.qtot?(c.kgReale-k.qtot)/k.qtot*100:0))
       : riga('Reale contro il previsto di Genesi','—',
              c.foriTot!==k.nf?'altra volata?':'volata a metà');
@@ -2853,7 +2914,7 @@ function riconDelta(prev, real, unit){
   if(real===''||real==null||isNaN(+real)) return '<span style="color:var(--mut)">—</span>';
   const d=+real-prev, pct=prev?Math.round(100*d/prev):0, ad=Math.abs(pct);
   const col=ad<15?'#66bb6a':(ad<35?'#ffca28':'#ef5350');
-  return '<span style="color:'+col+';font-weight:600">'+(d>=0?'+':'')+(+d).toFixed(1)+' '+unit+' ('+(pct>=0?'+':'')+pct+'%)</span>';
+  return '<span style="color:'+col+';font-weight:600">'+gseg(d,1)+' '+unit+' ('+gseg(pct,0)+'%)</span>';
 }
 function riconRender(){
   const k=computeKPI(), body=$('riconBody');
@@ -2865,11 +2926,11 @@ function riconRender(){
   body.innerHTML=
     _riconCampoHtml()
     +'<div style="color:var(--mut);font-size:12px;margin-bottom:10px;">Dopo lo sparo inserisci i valori <b>misurati</b> per confrontarli con la previsione della volata corrente (dalla Scheda validatori). Verde = scostamento &lt;15%, giallo &lt;35%, rosso oltre.</div>'
-    +'<div style="display:grid;grid-template-columns:1.1fr .8fr 1fr 1.2fr;gap:6px 8px;align-items:center;font-size:13px;">'
+    +'<div style="display:grid;grid-template-columns:1.1fr .8fr 1fr 1.2fr;gap:6px 8px;align-items:center;font-size:13px;font-variant-numeric:tabular-nums;">'
     +'<div style="color:var(--mut);font-size:11px;letter-spacing:.08em;text-transform:uppercase">Metrica</div><div style="color:#ffd54f;font-weight:700">Previsto</div><div style="color:#ffd54f;font-weight:700">Reale</div><div style="color:#ffd54f;font-weight:700">Scostamento</div>'
-    +'<div style="color:var(--mut)">X50 pezzatura</div><div>'+prev.x50+' cm</div><div><input id="ric-x50" type="number" min="0" style="width:70px"> cm</div><div id="ric-d-x50">—</div>'
-    +'<div style="color:var(--mut)">PPV vibrazione</div><div>'+prev.ppv+' mm/s</div><div><input id="ric-ppv" type="number" min="0" step="0.1" style="width:70px"> mm/s</div><div id="ric-d-ppv">—</div>'
-    +'<div style="color:var(--mut)">Gittata flyrock</div><div>'+prev.fly+' m</div><div><input id="ric-fly" type="number" min="0" style="width:70px"> m</div><div id="ric-d-fly">—</div>'
+    +'<div style="color:var(--mut)">X50 pezzatura</div><div>'+gnum(prev.x50,1)+' cm</div><div><input id="ric-x50" type="number" min="0" style="width:70px"> cm</div><div id="ric-d-x50">—</div>'
+    +'<div style="color:var(--mut)">PPV vibrazione</div><div>'+gnum(prev.ppv,1)+' mm/s</div><div><input id="ric-ppv" type="number" min="0" step="0.1" style="width:70px"> mm/s</div><div id="ric-d-ppv">—</div>'
+    +'<div style="color:var(--mut)">Gittata flyrock</div><div>'+gnum(prev.fly,0)+' m</div><div><input id="ric-fly" type="number" min="0" style="width:70px"> m</div><div id="ric-d-fly">—</div>'
     +'</div>'
     +'<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;align-items:center;font-size:13px;color:var(--mut)">'
     +'<label>Oversize reale <input id="ric-ovs" type="number" min="0" max="100" style="width:58px"> %</label>'
@@ -2878,7 +2939,7 @@ function riconRender(){
     +'<label style="display:block;margin-top:8px;color:var(--mut);font-size:13px;">Note <input id="ric-note" type="text" style="width:100%" placeholder="oversize sul lato destro; PPV oltre soglia al recettore B..."></label>'
     +(st.length?('<div style="margin-top:14px;color:var(--mut);font-size:11px;letter-spacing:.08em;text-transform:uppercase">Storico ('+st.length+')</div>'
       +'<div style="max-height:150px;overflow:auto;font-size:12px;margin-top:4px;">'
-      +st.slice().reverse().map(r=>'<div style="border-top:1px solid rgba(255,255,255,.08);padding:4px 0"><b style="color:#ffd54f">'+_rEsc(r.nome||r.ts)+'</b> — X50 '+r.prev.x50+'→'+(r.real.x50==null?'—':r.real.x50)+' cm · PPV '+r.prev.ppv+'→'+(r.real.ppv==null?'—':r.real.ppv)+' mm/s · fly '+r.prev.fly+'→'+(r.real.fly==null?'—':r.real.fly)+' m'+(r.real.ovs!=null&&r.real.ovs!==''?' · oversize '+r.real.ovs+'%':'')
+      +st.slice().reverse().map(r=>'<div style="border-top:1px solid rgba(255,255,255,.08);padding:4px 0"><b style="color:#ffd54f">'+_rEsc(r.nome||r.ts)+'</b> — X50 '+gnum(r.prev.x50,1)+'→'+(r.real.x50==null?'—':gnum(r.real.x50,1))+' cm · PPV '+gnum(r.prev.ppv,1)+'→'+(r.real.ppv==null?'—':gnum(r.real.ppv,1))+' mm/s · fly '+gnum(r.prev.fly,0)+'→'+(r.real.fly==null?'—':gnum(r.real.fly,0))+' m'+(r.real.ovs!=null&&r.real.ovs!==''?' · oversize '+gnum(r.real.ovs,1)+'%':'')
         // le riconciliazioni salvate prima del ponte con Campo non hanno r.campo: restano come prima
         +(r.campo?'<br><span style="color:var(--mut2)">da Campo: '+_ricKg(r.campo.kgReale)+' kg caricati su '+r.campo.foriReg+'/'+r.campo.foriTot+' fori ('+_ricPct(+r.campo.scostPct||0)+' sul progetto)'+(r.campo.chi&&r.campo.chi.length?' · '+_rEsc(r.campo.chi.join(', ')):'')+'</span>':'')
         +(r.real.note?' · '+_rEsc(r.real.note):'')+'</div>').join('')
@@ -2995,12 +3056,12 @@ function sigRender(){
   const k=computeKPI(), lim=k.lim, dev=k.ppv, rat=r.ppv/Math.max(0.1,lim);
   const col=rat<0.6?'#66bb6a':(rat<1?'#ffca28':'#ef5350');
   body.innerHTML=
-    '<div style="color:var(--mut);font-size:12px;margin-bottom:8px;">Onda importata: '+_sigData.a.length+' campioni · '+times.length+' fori · dt '+_sigData.dt.toFixed(2)+' ms</div>'
+    '<div style="color:var(--mut);font-size:12px;margin-bottom:8px;">Onda importata: '+gnum(_sigData.a.length,0)+' campioni · '+gnum(times.length,0)+' fori · dt '+gfix(_sigData.dt,2)+' ms</div>'
     +_sigSpark(r.comp,r.steps)
     +'<div style="display:grid;grid-template-columns:1.35fr 1fr;gap:6px 10px;margin-top:10px;font-size:13.5px;align-items:center">'
-    +'<div style="color:var(--mut)">PPV foro singolo (picco onda)</div><div>'+r.singolo.toFixed(2)+' mm/s</div>'
-    +'<div style="color:var(--mut)">PPV composito previsto</div><div style="color:'+col+';font-weight:700">'+r.ppv.toFixed(2)+' mm/s</div>'
-    +'<div style="color:var(--mut)">Amplificazione (composito/singolo)</div><div>×'+(r.ppv/Math.max(1e-9,r.singolo)).toFixed(2)+'</div>'
+    +'<div style="color:var(--mut)">PPV foro singolo (picco onda)</div><div>'+gfix(r.singolo,2)+' mm/s</div>'
+    +'<div style="color:var(--mut)">PPV composito previsto</div><div style="color:'+col+';font-weight:700">'+gfix(r.ppv,2)+' mm/s</div>'
+    +'<div style="color:var(--mut)">Amplificazione (composito/singolo)</div><div>×'+gfix(r.ppv/Math.max(1e-9,r.singolo),2)+'</div>'
     +'<div style="color:var(--mut)">Limite norma</div><div>'+lim+' mm/s '+(rat>=1?'<b style="color:#ef5350">SUPERATO</b>':'')+'</div>'
     +'<div style="color:var(--mut)">Confronto stima Devine</div><div>'+dev+' mm/s</div>'
     +'</div>'
@@ -3025,7 +3086,7 @@ if($('sigExport')) $('sigExport').onclick=()=>{
    calcoli usano la legge misurata o la stima da litologia. */
 let _sitoCsv=null;                                    // righe del CSV in attesa che l'utente dica quale colonna è cosa
 
-function _sitoNum(v){ return (Math.abs(v)>=100?Math.round(v):(Math.abs(v)>=10?+v.toFixed(1):+v.toFixed(2))).toLocaleString('it-IT'); }
+function _sitoNum(v){ return gnum(v, Math.abs(v)>=100?0:(Math.abs(v)>=10?1:2)); }
 
 /* ── LA PROVENIENZA DI UN REFERTO ────────────────────────────────────────
    K e β decidono le distanze di sicurezza: chi li guarda deve poter sapere
@@ -3205,21 +3266,21 @@ function sitoRender(){
 
   /* esito della regressione */
   if(f.errore==='pochi'){
-    h+='<div style="margin-top:12px;color:var(--mut);font-size:12.5px;">Referti inseriti: <b>'+P.length+'</b>. Ne servono almeno <b>3</b>: da due punti passa qualunque retta, e una legge di sito ricavata da due misure non è una legge.</div>';
+    h+='<div style="margin-top:12px;color:var(--mut);font-size:12.5px;">Referti inseriti: <b>'+gnum(P.length,0)+'</b>. Ne servono almeno <b>3</b>: da due punti passa qualunque retta, e una legge di sito ricavata da due misure non è una legge.</div>';
   } else if(f.errore==='stessaSD'){
     h+='<div style="margin-top:12px;color:#ffca28;font-size:12.5px;">I referti hanno tutti la <b>stessa distanza scalata</b>: la pendenza β non si può ricavare. Servono misure a distanze (o cariche) diverse.</div>';
   } else if(f.errore==='pendenza'){
     h+='<div style="margin-top:12px;color:#ef5350;font-size:12.5px;">La retta che esce dai dati ha pendenza β = '+_sitoNum(f.beta)+', fuori dall’intervallo fisico 0,5–3: <b>non è utilizzabile</b>. Di solito significa referti di punti/siti diversi mescolati, oppure una carica inserita per volata invece che per ritardo.</div>';
   } else {
     const qual = f.r2>=.8 ? ['#66bb6a','i referti seguono bene la legge'] : (f.r2>=.5 ? ['#ffca28','dispersione media: la legge orienta, non decide'] : ['#ef5350','dispersione alta: i referti non descrivono un’unica legge']);
-    h+='<div style="margin-top:12px;display:grid;grid-template-columns:1.35fr 1fr;gap:6px 10px;font-size:13.5px;align-items:center">'
-      +'<div style="color:var(--mut)">Referti usati</div><div>'+f.n+'</div>'
-      +'<div style="color:var(--mut)">Legge di progetto (95°)</div><div style="color:#ffab00;font-weight:700">PPV = '+f.K95+' · SD<sup>−'+_sitoNum(f.beta)+'</sup></div>'
-      +'<div style="color:var(--mut)">Riga media (50°)</div><div>K = '+f.K+'</div>'
+    h+='<div style="margin-top:12px;display:grid;grid-template-columns:1.35fr 1fr;gap:6px 10px;font-size:13.5px;align-items:center;font-variant-numeric:tabular-nums">'
+      +'<div style="color:var(--mut)">Referti usati</div><div>'+gnum(f.n,0)+'</div>'
+      +'<div style="color:var(--mut)">Legge di progetto (95°)</div><div style="color:#ffab00;font-weight:700">PPV = '+gnum(f.K95,0)+' · SD<sup>−'+_sitoNum(f.beta)+'</sup></div>'
+      +'<div style="color:var(--mut)">Riga media (50°)</div><div>K = '+gnum(f.K,0)+'</div>'
       /* R² con le sue tre cifre: qui _sitoNum lo arrotonderebbe a 0,9 mentre
          la scheda validatori scrive 0,896 — due numeri diversi per lo stesso
          dato, nella stessa app, sono un errore nostro */
-      +'<div style="color:var(--mut)">Aderenza R²</div><div style="color:'+qual[0]+'">'+f.r2.toLocaleString('it-IT')+' — '+qual[1]+'</div>'
+      +'<div style="color:var(--mut)">Aderenza R²</div><div style="color:'+qual[0]+'">'+gnum(f.r2,3)+' — '+qual[1]+'</div>'
       +'<div style="color:var(--mut)">Intervallo calibrato SD</div><div>'+_sitoNum(f.sdMin)+' – '+_sitoNum(f.sdMax)+' m/kg^½</div>'
       +'</div>';
     if(f.avviso==='pochi') h+='<div style="margin-top:8px;color:#ffca28;font-size:12px;">Legge <b>provvisoria</b>: con meno di 8 referti la pendenza si muove ancora parecchio a ogni misura nuova. Continua ad aggiungerli.</div>';
@@ -3391,7 +3452,7 @@ function _sentCodice(d,data,fronte){
 }
 function sentRender(){
   const body=$('sentBody'); if(!body) return;
-  const s=_sentStore(), d=_sentDati(), it=(n,dec)=>(+n).toLocaleString('it-IT',{maximumFractionDigits:dec==null?1:dec});
+  const s=_sentStore(), d=_sentDati(), it=(n,dec)=>gnum(n,dec==null?1:dec);
   const data=s.data&&/^\d{4}-\d{2}-\d{2}$/.test(s.data)?s.data:_sentOggi();
   const fronte=s.fronte||'';
   const riga=(l,v,n)=>'<div style="display:flex;justify-content:space-between;gap:10px;border-top:1px solid rgba(255,255,255,.07);padding:4px 0">'
@@ -3471,7 +3532,7 @@ document.querySelectorAll('#bottomnav button').forEach(b=> b.onclick=()=>setScre
    su richiesta col bottone ⓘ. La vecchia schermata «Indice» è stata eliminata. */
 function esplCardHtml(e){ const specs=[];
   if(e.densita_gcc!=null) specs.push(e.densita_gcc+' g/cc');
-  if(e.vod_ms!=null) specs.push((e.vod_ms/1000).toFixed(1)+'k m/s VOD');
+  if(e.vod_ms!=null) specs.push(gfix(e.vod_ms/1000,1)+'k m/s VOD');
   if(e.rws_pct!=null) specs.push('RWS '+e.rws_pct);
   if(e.rbs_pct!=null) specs.push('RBS '+e.rbs_pct);
   specs.push('Acqua: '+e.acqua);
@@ -3524,7 +3585,7 @@ function renderHome(){
   if($('hgNuvN')) $('hgNuvN').textContent=nv.length? (nv.length+' lavorazioni'):'';
   const ln=$('hgNuvole');
   if(ln) ln.innerHTML = nv.length
-    ? nv.slice(-6).reverse().map(e=>'<div class="hg-item"><div class="t"><b>'+_rEsc(e.nome)+'</b><small>'+_rEsc(e.data||'')+(e.punti?(' · '+(+e.punti).toLocaleString('it-IT')+' punti'):'')+(e.volume?(' · volume ≈ '+_rEsc(String(e.volume))+' m³'):'')+'</small></div></div>').join('')
+    ? nv.slice(-6).reverse().map(e=>'<div class="hg-item"><div class="t"><b>'+_rEsc(e.nome)+'</b><small>'+_rEsc(e.data||'')+(e.punti?(' · '+gnum(e.punti,0)+' punti'):'')+(e.volume?(' · volume ≈ '+gnum(e.volume,1)+' m³'):'')+'</small></div></div>').join('')
     : '<div class="hg-empty">Nessun rilievo ancora. Carica la nuvola del drone nel visore: le lavorazioni compaiono qui.</div>';
 }
 if($('hgSalva')) $('hgSalva').onclick=()=>{
@@ -3670,7 +3731,7 @@ if($('fileXmlIn')) $('fileXmlIn').onchange=async e=>{
     D2.dir = tMin<=tMax ? 'sx' : 'dx';
     syncDesignInputs();
     genMaglia2D(); drawDesign2D(); renderScheda2D(); renderInspector();
-    if(typeof toast==='function') toast('✓ Piano XML importato: '+holes.length+' fori · B '+D2.B.toFixed(2)+'×S '+D2.S.toFixed(2)+' · '+D2.sequenza);
+    if(typeof toast==='function') toast('✓ Piano XML importato: '+gnum(holes.length,0)+' fori · B '+gfix(D2.B,2)+'×S '+gfix(D2.S,2)+' · '+D2.sequenza);
   }catch(err){ if(typeof toast==='function') toast('Import XML fallito: '+err.message); }
   e.target.value='';
 };
@@ -3972,8 +4033,8 @@ function pfCls(r){
 }
 const ENECOL={ moltoBassa:'#5c8dd6', bassa:'#86b0d8', ok:'#66bb6a', alta:'#ffb300', moltoAlta:'#ef5350' };
 const ENELAB={ moltoBassa:'carica molto diluita', bassa:'carica diluita', ok:'in linea col progetto', alta:'energia concentrata', moltoAlta:'energia molto concentrata' };
-function fmtMs(v){ return (Math.round(v*10)/10).toFixed(1).replace('.',','); }
-function fmtKg(v){ return (Math.round(v*1000)/1000).toFixed(v<0.1?3:2).replace('.',','); }   /* i consumi specifici stanno sotto l'unità: due decimali non bastano sempre */
+function fmtMs(v){ return gfix(v,1); }
+function fmtKg(v){ return gfix(v, v<0.1?3:2); }   /* i consumi specifici stanno sotto l'unità: due decimali non bastano sempre */
 /* ===== G1 — isocrone dei tempi di sparo sulla pianta =====
    Il campo dei tempi e ricostruito DAI tDet DEI FORI REALI (nessun dato inventato):
    in ogni punto si adatta un piano t = a + b·dx + c·dy sui fori vicini, pesati per
@@ -4286,9 +4347,9 @@ function drawDesign2D(){
   const dimC='#86b0d8'; const fr=H.filter(h=>Math.abs(h.my-D2.B)<0.4).sort((a,b)=>a.mx-b.mx);
   if(fr.length>=2){ const a=mx2(fr[0].mx), b=mx2(fr[1].mx), yy=my2(D2.B)-15;
     ctx.strokeStyle=dimC; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(a,yy); ctx.lineTo(b,yy); ctx.stroke();
-    ctx.fillStyle=dimC; ctx.textAlign='center'; ctx.font="11px 'Barlow',sans-serif"; ctx.fillText('S '+D2.S.toFixed(1)+' m',(a+b)/2,yy-4); }
+    ctx.fillStyle=dimC; ctx.textAlign='center'; ctx.font="11px 'Barlow',sans-serif"; ctx.fillText('S '+gfix(D2.S,1)+' m',(a+b)/2,yy-4); }
   if(fr.length){ const fx=mx2(fr[0].mx)-20; ctx.strokeStyle=dimC; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(fx,faceY); ctx.lineTo(fx,my2(D2.B)); ctx.stroke();
-    ctx.save(); ctx.translate(fx-6,(faceY+my2(D2.B))/2); ctx.rotate(-Math.PI/2); ctx.fillStyle=dimC; ctx.textAlign='center'; ctx.font="11px 'Barlow',sans-serif"; ctx.fillText('B '+D2.B.toFixed(1)+' m',0,0); ctx.restore(); }
+    ctx.save(); ctx.translate(fx-6,(faceY+my2(D2.B))/2); ctx.rotate(-Math.PI/2); ctx.fillStyle=dimC; ctx.textAlign='center'; ctx.font="11px 'Barlow',sans-serif"; ctx.fillText('B '+gfix(D2.B,1)+' m',0,0); ctx.restore(); }
   /* livelli di lettura (G1/G2): isocrone sotto i fori, cosi i fori restano sempre in primo piano */
   const gGeo={W:W, Hc:Hc, padX:padX, padTop:padTop, bottomY:bottomY, scale:scale, startX:startX, faceY:faceY};
   let isoInfo=null, eneInfo=null, innInfo=null;
@@ -4372,7 +4433,7 @@ function renderInspector(){
     const pfRif=pfNominale(), rap=h.pfLoc/pfRif, ecl=pfCls(rap);
     eneTx='<div style="margin-top:3px;display:flex;align-items:baseline;flex-wrap:wrap;gap:2px">'
       +'<b style="color:'+ENECOL[ecl]+';margin-right:6px">'+fmtKg(h.pfLoc)+' kg/m³</b>'
-      +'<span>'+ENELAB[ecl]+' ('+Math.round(rap*100)+'% del progetto) · blocco '+fmtMs(h.burdenLoc)+'×'+fmtMs(h.spazLoc)+' m · '+Math.round(h.volLoc)+' m³</span>'
+      +'<span>'+ENELAB[ecl]+' ('+gnum(rap*100,0)+'% del progetto) · blocco '+fmtMs(h.burdenLoc)+'×'+fmtMs(h.spazLoc)+' m · '+gnum(h.volLoc,0)+' m³</span>'
       +(h.burdenVero!=null&&Math.abs(h.burdenVero-h.burdenLoc)>0.15
         ? '<span style="color:'+(h.burdenVero<h.burdenLoc*0.85?'#ef5350':'#9b8a60')+'"> · davanti ha '+fmtMs(h.burdenVero)+' m in perpendicolare</span>' : '')
       +'</div>';
@@ -4388,7 +4449,7 @@ function renderInspector(){
       ? '<span style="color:#ffd54f;font-size:11.5px">a mano · calcolato '+fmtMs(h.tCalc||0)+' ms</span><button class="btn sm" id="diRitAuto" style="padding:2px 8px">↺ calcolato</button>'
       : '<span style="color:var(--mut2);font-size:11.5px">dallo schema «'+(D2.sequenza||'diagonale')+'»</span>')
     +'</div>';
-  el.innerHTML='<div class="di-info"><b>Foro '+((h.seq!=null?h.seq:D2.sel)+1)+'</b><span>spalla '+h.my.toFixed(1)+' m · vicino '+(isFinite(nn)?nn.toFixed(1):'-')+' m · t '+(h.tDet||0)+' ms'+(aMano?' (a mano)':'')+'</span>'
+  el.innerHTML='<div class="di-info"><b>Foro '+((h.seq!=null?h.seq:D2.sel)+1)+'</b><span>spalla '+gfix(h.my,1)+' m · vicino '+(isFinite(nn)?gfix(nn,1):'—')+' m · t '+gnum(h.tDet||0,1)+' ms'+(aMano?' (a mano)':'')+'</span>'
     +ritTx
     +'<div style="margin-top:4px;display:flex;align-items:baseline;flex-wrap:wrap;gap:2px">'+relTx+'</div>'+eneTx+'</div><button class="di-del" id="diDel">✕ Elimina</button>';
   const db=$('diDel'); if(db) db.onclick=()=>{ if(D2.sel<0) return; D2.holes.splice(D2.sel,1); D2.sel=-1; computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); };
@@ -4433,21 +4494,21 @@ function renderScheda2D(){
     return {lab,valStr,cls,why};
   }
   const rows=[];
-  rows.push(badge(sb,'Rapporto S/B',sb.toFixed(2),1.0,1.4,0.85,1.6,
-    'spaziatura/spalla nel range tipico (1.0–1.4).',
-    'interasse &lt; spalla; tipico 1.0–1.4 (sfalsata ~1.15). Maglia stretta in larghezza.',
+  rows.push(badge(sb,'Rapporto S/B',gfix(sb,2),1.0,1.4,0.85,1.6,
+    'spaziatura/spalla nel range tipico (1,0–1,4).',
+    'interasse &lt; spalla; tipico 1,0–1,4 (sfalsata ~1,15). Maglia stretta in larghezza.',
     'interasse molto &gt; spalla: rischio irregolarità tra fori.'));
-  rows.push(badge(hb,'Rigidità H/B',hb.toFixed(2),3.0,99,2.0,0,
+  rows.push(badge(hb,'Rigidità H/B',gfix(hb,2),3.0,99,2.0,0,
     'banco snello: buona frammentazione.',
     'banco rigido: &lt;3 riduce la frammentazione (&lt;2 rischio cratere/blocchi al piede).',''));
   const _rho=(selEsplosivo()||{}).densita_gcc||0.82, _kbLo=_rho>1.0?27:23, _kbHi=_rho>1.0?33:28, _Bcons=((_kbLo+_kbHi)/2*Dm);
-  rows.push(badge(bd,'Spalla / Ø',bd.toFixed(0)+'·Ø',_kbLo,_kbHi,_kbLo-5,_kbHi+8,
-    'spalla coerente con Ø ed esplosivo ('+_kbLo+'–'+_kbHi+'·Ø ≈ '+(_kbLo*Dm).toFixed(1)+'–'+(_kbHi*Dm).toFixed(1)+' m).',
-    'spalla piccola per Ø'+Dmm+' mm con questo esplosivo; consigliata ~'+_Bcons.toFixed(1)+' m.',
-    'spalla elevata per Ø'+Dmm+' mm con questo esplosivo (consigliata ~'+_Bcons.toFixed(1)+' m, '+_kbLo+'–'+_kbHi+'·Ø). Riduci spalla o aumenta Ø.'));
-  rows.push(badge(pf,'Powder factor',pf.toFixed(2)+' <span>kg/m³</span>',0.30,0.55,0.22,0.7,
-    'carica specifica nel range calcare (0.30–0.55).',
-    'PF basso → rischio blocchi/oversize; calcare tipico 0.30–0.50.',
+  rows.push(badge(bd,'Spalla / Ø',gnum(bd,0)+'·Ø',_kbLo,_kbHi,_kbLo-5,_kbHi+8,
+    'spalla coerente con Ø ed esplosivo ('+_kbLo+'–'+_kbHi+'·Ø ≈ '+gfix(_kbLo*Dm,1)+'–'+gfix(_kbHi*Dm,1)+' m).',
+    'spalla piccola per Ø'+Dmm+' mm con questo esplosivo; consigliata ~'+gfix(_Bcons,1)+' m.',
+    'spalla elevata per Ø'+Dmm+' mm con questo esplosivo (consigliata ~'+gfix(_Bcons,1)+' m, '+_kbLo+'–'+_kbHi+'·Ø). Riduci spalla o aumenta Ø.'));
+  rows.push(badge(pf,'Powder factor',gfix(pf,2)+' <span>kg/m³</span>',0.30,0.55,0.22,0.7,
+    'carica specifica nel range consigliato (0,30–0,55 kg/m³).',
+    'PF basso → rischio blocchi/oversize; tipico 0,30–0,50 kg/m³.',
     'PF alto → rischio proiezioni/sovra-frammentazione.'));
   const _e=selEsplosivo()||{};
   /* === fori bagnati: penalità separate VOD (desensibilizzazione chimica) ed energia (RWS), no doppio conteggio su heaveFac === */
@@ -4455,7 +4516,7 @@ function renderScheda2D(){
   const _penV = D2.bagnato ? ({Nulla:0.80,Bassa:0.45,Media:0.20,Buona:0.05,Eccellente:0}[_eAcqua]||0) : 0;
   const _penE = D2.bagnato ? ({Nulla:0.70,Bassa:0.40,Media:0.18,Buona:0.05,Eccellente:0}[_eAcqua]||0) : 0;
   const _vodEff=(_e.vod_ms||3800)*(1-_penV), _Pd=(_e.densita_gcc||0.82)*1000*Math.pow(_vodEff,2)/4/1e8;
-  rows.push({lab:'Pressione det. (Pd)',valStr:_Pd.toFixed(0)+' <span>kbar</span>'+(_penV>0?' <span>↓bagnato</span>':''),cls:'sv-info',
+  rows.push({lab:'Pressione det. (Pd)',valStr:gnum(_Pd,0)+' <span>kbar</span>'+(_penV>0?' <span>↓bagnato</span>':''),cls:'sv-info',
     why:(_penV>0?'ridotta dai fori bagnati (VOD effettiva −'+Math.round(_penV*100)+'%). ':'')+(_Pd<40?'basso → energia di GAS/heave dominante: adatto a roccia tenera/carbone (spinge, muckpile disteso).':(_Pd>90?'alto → energia di SHOCK dominante: adatto a roccia dura (fini uniformi, muckpile compatto).':'medio → equilibrio shock/heave.'))});
   /* riga Resistenza all'acqua (categoriale) */
   (function(){
@@ -4475,26 +4536,26 @@ function renderScheda2D(){
     rows.push({lab:'Resistenza all\'acqua',valStr:_eAcqua+(_penE>0?' <span>−'+Math.round(_penE*100)+'%</span>':''),cls:cls,why:why});
     if(D2.acquaCol>=10){
       const _pw=1000*9.81*D2.acquaCol/1e6, _soglia=30;
-      rows.push({lab:'Desensib. idrostatica',valStr:_pw.toFixed(1)+' <span>MPa</span>',cls:(_pw<0.5*_soglia?'sv-ok':(_pw<_soglia?'sv-warn':'sv-bad')),
-        why:'pressione della colonna d\'acqua ('+D2.acquaCol+' m ≈ '+_pw.toFixed(1)+' MPa): oltre ~'+_soglia+' MPa può comprimere i microbolle sensibilizzanti dell\'emulsione e desensibilizzarla. Stima conservativa (soglia varia per sensibilizzante: perlite ~27, gas ~100, vetro ~135 MPa).'});
+      rows.push({lab:'Desensib. idrostatica',valStr:gfix(_pw,1)+' <span>MPa</span>',cls:(_pw<0.5*_soglia?'sv-ok':(_pw<_soglia?'sv-warn':'sv-bad')),
+        why:'pressione della colonna d\'acqua ('+gnum(D2.acquaCol,1)+' m ≈ '+gfix(_pw,1)+' MPa): oltre ~'+_soglia+' MPa può comprimere i microbolle sensibilizzanti dell\'emulsione e desensibilizzarla. Stima conservativa (soglia varia per sensibilizzante: perlite ~27, gas ~100, vetro ~135 MPa).'});
     }
   })();
-  rows.push(badge(stemB,'Borraggio / B',stem.toFixed(1)+' m ('+stemB.toFixed(2)+'·B)',0.7,1.0,0.5,1.2,
-    'borraggio adeguato (0.7–1.0·B).',
-    'borraggio corto → rischio proiezioni dal colletto; ~0.7·B ≈ '+(0.7*B).toFixed(1)+' m.',
+  rows.push(badge(stemB,'Borraggio / B',gfix(stem,1)+' m ('+gfix(stemB,2)+'·B)',0.7,1.0,0.5,1.2,
+    'borraggio adeguato (0,7–1,0·B).',
+    'borraggio corto → rischio proiezioni dal colletto; ~0,7·B ≈ '+gfix(0.7*B,1)+' m.',
     'borraggio lungo → rischio blocchi in testa.'));
   /* SDOB definizione Chiappetta/McKenzie: conta solo la carica nei 10 diametri superiori (W_top), non tutta la colonna */
   const _ql=(_e.densita_gcc||0.82)*1000*Math.PI*Dm*Dm/4;                 // carica lineare kg/m
   const _Wtop=Math.min(Q, _ql*10*Dm);
   const _sdob=(stem+5*Dm)/Math.pow(Math.max(0.1,_Wtop),1/3);
-  rows.push({lab:'Confin. colletto (SDOB)',valStr:_sdob.toFixed(2)+' <span>m/kg⅓</span>',cls:(_sdob>=1.4?'sv-ok':(_sdob>=0.9?'sv-warn':'sv-bad')),
+  rows.push({lab:'Confin. colletto (SDOB)',valStr:gfix(_sdob,2)+' <span>m/kg⅓</span>',cls:(_sdob>=1.4?'sv-ok':(_sdob>=0.9?'sv-warn':'sv-bad')),
     why:_sdob>=1.4?'colletto ben confinato (SDOB≥1,4, def. Chiappetta su carica dei 10Ø superiori): disturbo superficiale minimo.':(_sdob>=0.9?'confinamento intermedio (0,9–1,4): mounding/cratere parziale possibile; valuta più borraggio.':'sotto-confinamento (SDOB<0,9): eiezione da cratere probabile dal colletto. Aumenta il borraggio o riduci la carica.')});
   /* gittata flyrock: max dei meccanismi Richards&Moore (face burst / cratering / rifling) + McKenzie SDOB, tetto Lundborg (30,1·Ø^⅔). Fonti primarie, unità SI verificate */
   (function(){
     const F=flyrockEst(), Lpred=F.Lpred, Dmez=F.Dmez, Dper=F.Dper;      // stessa stima mostrata in 3D (layer "Zona flyrock")
-    rows.push({lab:'Gittata flyrock (stima)',valStr:Math.round(Lpred)+' <span>m → sgombero '+Math.round(Dmez)+' / '+Math.round(Dper)+' m</span>',
+    rows.push({lab:'Gittata flyrock (stima)',valStr:gnum(Lpred,0)+' <span>m → sgombero '+gnum(Dmez,0)+' / '+gnum(Dper,0)+' m</span>',
       cls:(D2.recDist>=Dper?'sv-ok':(D2.recDist>=Dmez?'sv-warn':'sv-bad')),
-      why:'meccanismo dominante: '+F.mech0[0]+' (k='+F.kf.toFixed(0)+'). Sgombero consigliato: mezzi 2× ('+Math.round(Dmez)+' m), persone 4× ('+Math.round(Dper)+' m) — recettore a '+D2.recDist+' m. STIMA INDICATIVA (Richards&Moore/McKenzie/Lundborg): NON sostituisce il calcolo normativo delle aree di sgombero né il giudizio del responsabile del tiro.'});
+      why:'meccanismo dominante: '+F.mech0[0]+' (k='+gnum(F.kf,0)+'). Sgombero consigliato: mezzi 2× ('+gnum(Dmez,0)+' m), persone 4× ('+gnum(Dper,0)+' m) — recettore a '+gnum(D2.recDist,0)+' m. STIMA INDICATIVA (Richards&Moore/McKenzie/Lundborg): NON sostituisce il calcolo normativo delle aree di sgombero né il giudizio del responsabile del tiro.'});
   })();
   /* flyrock INVERSO: dato il recettore, quali borraggio/burden servono perché
      lo sgombero persone (4x) resti entro quella distanza */
@@ -4502,9 +4563,9 @@ function renderScheda2D(){
     const Lmax=(D2.recDist||300)/4;
     const inv=flyrockInv(Lmax);
     const okS=(D2.stem||2.5)>=inv.minStem-0.01, okB=(D2.B||SPALLA)>=inv.minB-0.01;
-    rows.push({lab:'Flyrock inverso',valStr:'borr. ≥ '+inv.minStem.toFixed(1)+' <span>m</span> · burden ≥ '+inv.minB.toFixed(1)+' <span>m</span>',
+    rows.push({lab:'Flyrock inverso',valStr:'borr. ≥ '+gfix(inv.minStem,1)+' <span>m</span> · burden ≥ '+gfix(inv.minB,1)+' <span>m</span>',
       cls:(okS&&okB?'sv-ok':'sv-warn'),
-      why:'calcolo inverso: perché lo sgombero persone (4×) stia entro il recettore a '+D2.recDist+' m (gittata ammessa ~'+Math.round(Lmax)+' m) servono, a parità di diametro ed esplosivo, borraggio ≥ '+inv.minStem.toFixed(1)+' m e burden ≥ '+inv.minB.toFixed(1)+' m. '
+      why:'calcolo inverso: perché lo sgombero persone (4×) stia entro il recettore a '+gnum(D2.recDist,0)+' m (gittata ammessa ~'+gnum(Lmax,0)+' m) servono, a parità di diametro ed esplosivo, borraggio ≥ '+gfix(inv.minStem,1)+' m e burden ≥ '+gfix(inv.minB,1)+' m. '
         +(okS&&okB?'Il progetto attuale rispetta entrambi.':'Il progetto attuale NON li rispetta: alza '+(okS?'':'il borraggio')+(!okS&&!okB?' e ':'')+(okB?'':'il burden')+' oppure riduci il diametro.')
         +' STIMA INDICATIVA: non sostituisce il calcolo normativo.'});
   })();
@@ -4512,7 +4573,7 @@ function renderScheda2D(){
   if(D2.presplit){
     const _psD = D2.psSpacing/(D2.diam/1000);
     const _psOkS = _psD>=8 && _psD<=14, _psOkQ = D2.psCharge>=0.25 && D2.psCharge<=0.9;
-    rows.push({lab:'Presplit',valStr:D2.psSpacing.toFixed(1)+' m ('+_psD.toFixed(0)+'·Ø) · '+D2.psCharge.toFixed(2)+' <span>kg/m</span>',
+    rows.push({lab:'Presplit',valStr:gfix(D2.psSpacing,1)+' m ('+gnum(_psD,0)+'·Ø) · '+gfix(D2.psCharge,2)+' <span>kg/m</span>',
       cls:(_psOkS&&_psOkQ?'sv-ok':'sv-warn'),
       why:(_psOkS?'spaziatura nella finestra 8–14 diametri: taglio pulito atteso (halfcast visibili sul profilo).':'spaziatura fuori finestra 8–14·Ø: '+(_psD<8?'fori troppo fitti (costo alto senza beneficio).':'fori troppo radi: il taglio può non propagare tra i fori.'))
         +' '+(_psOkQ?'Carica lineare disaccoppiata corretta: la parete finale resta integra (meno backbreak).':'Carica lineare '+(D2.psCharge<0.25?'troppo bassa: taglio incompleto.':'alta per un presplit: rischio danno alla parete finale.'))
@@ -4521,11 +4582,11 @@ function renderScheda2D(){
     rows.push({lab:'Presplit',valStr:'non previsto',cls:'sv-info',
       why:'con roccia compatta e recettori vicini, una fila presplit sul profilo finale riduce backbreak e vibrazioni trasmesse dietro il taglio: valutala nella sezione Presplit del progetto.'});
   }
-  rows.push(badge(msmHole,'Timing inter-foro',msmHole.toFixed(1)+' <span>ms/m</span>',3,7,2,9,
+  rows.push(badge(msmHole,'Timing inter-foro',gfix(msmHole,1)+' <span>ms/m</span>',3,7,2,9,
     'ritardo/interasse nella finestra in-fila 3–7 ms/m: relief corretto tra fori.',
     'ritardo basso per metro: rischio sovrapposizione cariche (regola 8 ms) e PPV elevata.',
     'ritardo alto: relief eccessivo tra fori, frammentazione più grossa.'));
-  rows.push(badge(msmRow,'Timing inter-fila',msmRow.toFixed(1)+' <span>ms/m</span>',8,15,6,18,
+  rows.push(badge(msmRow,'Timing inter-fila',gfix(msmRow,1)+' <span>ms/m</span>',8,15,6,18,
     'ritardo/spalla tra file 8–15 ms/m: buono spostamento del cumulo.',
     'ritardo basso tra file: la fila dietro spara nel burden ancora fermo → confinamento/backbreak.',
     'ritardo alto tra file: relief eccessivo → blocchi e cumulo troppo disteso.'));
@@ -4568,7 +4629,7 @@ function renderScheda2D(){
       : '';
     const cls=(estremi>0||(bvMin!=null&&bvMin<(D2.B||3)*0.85))?'sv-bad':((gi+su)>0?'sv-warn':'sv-ok');
     rows.push({lab:'Energia per foro',valStr:fmtKg(mn)+'–'+fmtKg(mx)+' <span>kg/m³ · '+gi+' diluiti / '+su+' concentrati</span>',cls:cls,
-      why:'consumo specifico calcolato sul blocco che ogni foro serve <b>davvero</b> — burden verso la fila davanti (la prima fila verso la faccia libera) per la porzione di interasse fra i due vicini, per l\'altezza del banco — invece della media di volata ('+fmtKg(pfRif)+' kg/m³). Qui va da '+fmtKg(mn)+' a '+fmtKg(mx)+' kg/m³, un rapporto di '+disp.toFixed(1)+'×. '
+      why:'consumo specifico calcolato sul blocco che ogni foro serve <b>davvero</b> — burden verso la fila davanti (la prima fila verso la faccia libera) per la porzione di interasse fra i due vicini, per l\'altezza del banco — invece della media di volata ('+fmtKg(pfRif)+' kg/m³). Qui va da '+fmtKg(mn)+' a '+fmtKg(mx)+' kg/m³, un rapporto di '+gfix(disp,1)+'×. '
         +'<b>Diluito</b> (sotto il 90% del progetto): il foro ha troppa roccia per la carica che porta → blocchi, piede sporco, ripasso. '
         +'<b>Concentrato</b> (sopra il 115%): energia sprecata sul poco materiale che gli tocca → fini invenduti, proiezioni, sovrappressione. '
         +((gi+su)>0?'Qui '+(gi+su)+' fori fuori dalla fascia: accendi il livello <b>Energia</b> sulla pianta e guarda dove — di solito sono i fori di bordo e quelli della prima fila dove la faccia rientra. Si corregge spostando il foro, non alzando la carica di tutta la volata. '
@@ -4585,10 +4646,10 @@ function renderScheda2D(){
     const banda=S.bMin95-S.bMin5;
     const cls = S.rischio>=20 ? 'sv-bad' : (S.rischio>=5 ? 'sv-warn' : 'sv-ok');
     rows.push({lab:'Precisione di perforazione',
-      valStr:fmtMs(S.bMin5)+'–'+fmtMs(S.bMin95)+' <span>m di burden minimo · X50 '+S.x5+'–'+S.x95+' cm</span>', cls:cls,
-      why:'la maglia disegnata è perfetta, quella perforata no: il foro parte spostato dal punto segnato ('+fmtKg(D2.errColl)+' m) e scende scappando dal suo asse ('+fmtMs(D2.dev)+'% della lunghezza). Perturbando la geometria vera '+S.n+' volte, il <b>burden minimo al piede</b> sta fra '+fmtMs(S.bMin5)+' e '+fmtMs(S.bMin95)+' m (mediana '+fmtMs(S.bMin50)+'), contro '+fmtMs(S.Bnom)+' m di progetto; la pezzatura X50 fra '+S.x5+' e '+S.x95+' cm. La banda sulla pezzatura è <b>stretta</b>, e non è un errore: su tanti fori gli scarti si compensano e il burden <i>medio</i> resta quasi quello di progetto. Quello che peggiora è il <b>minimo</b>, cioè il singolo foro sfortunato — e i guai in cava li fa quello, non la media. '
+      valStr:fmtMs(S.bMin5)+'–'+fmtMs(S.bMin95)+' <span>m di burden minimo · X50 '+gnum(S.x5,0)+'–'+gnum(S.x95,0)+' cm</span>', cls:cls,
+      why:'la maglia disegnata è perfetta, quella perforata no: il foro parte spostato dal punto segnato ('+fmtKg(D2.errColl)+' m) e scende scappando dal suo asse ('+fmtMs(D2.dev)+'% della lunghezza). Perturbando la geometria vera '+gnum(S.n,0)+' volte, il <b>burden minimo al piede</b> sta fra '+fmtMs(S.bMin5)+' e '+fmtMs(S.bMin95)+' m (mediana '+fmtMs(S.bMin50)+'), contro '+fmtMs(S.Bnom)+' m di progetto; la pezzatura X50 fra '+gnum(S.x5,0)+' e '+gnum(S.x95,0)+' cm. La banda sulla pezzatura è <b>stretta</b>, e non è un errore: su tanti fori gli scarti si compensano e il burden <i>medio</i> resta quasi quello di progetto. Quello che peggiora è il <b>minimo</b>, cioè il singolo foro sfortunato — e i guai in cava li fa quello, non la media. '
         +(S.rischio>=5
-          ? '<b>Nel '+S.rischio+'% dei casi almeno un foro finisce con meno del 70% del burden di progetto</b>: è la condizione classica delle proiezioni, perché quel foro si scarica verso la faccia invece che nella roccia. Si riduce marcando meglio la maglia, curando il posizionamento del carro, o accorciando i fori — la deviazione cresce con la lunghezza.'
+          ? '<b>Nel '+gnum(S.rischio,0)+'% dei casi almeno un foro finisce con meno del 70% del burden di progetto</b>: è la condizione classica delle proiezioni, perché quel foro si scarica verso la faccia invece che nella roccia. Si riduce marcando meglio la maglia, curando il posizionamento del carro, o accorciando i fori — la deviazione cresce con la lunghezza.'
           : 'Il rischio che un foro scenda sotto il 70% del burden di progetto resta sotto il 5%: la maglia regge la precisione dichiarata.')
         +' Attenzione a cosa <b>non</b> c\'è dentro: qui si propaga solo la geometria della perforazione. La variabilità della roccia è di solito più grande, e per quella serve la riconciliazione col dato reale.'});
   })();
@@ -4606,7 +4667,7 @@ function renderScheda2D(){
     const vicino=(dt)=>INN_TAGLI.reduce((a,v)=>Math.abs(v-dt)<Math.abs(a-dt)?v:a, INN_TAGLI[0]);
     const dtFuori=[...new Set(fuori.map(h=>h.innDt))].sort((a,b)=>a-b);
     const suggerimenti=dtFuori.map(dt=>fmtMs(dt)+' → '+vicino(dt)).join(', ');
-    rows.push({lab:'Rete di innesco',valStr:HH.length+' <span>collegamenti · '+tagli.length+(tagli.length===1?' taglio':' tagli')+'</span>',
+    rows.push({lab:'Rete di innesco',valStr:gnum(HH.length,0)+' <span>collegamenti · '+gnum(tagli.length,0)+(tagli.length===1?' taglio':' tagli')+'</span>',
       cls: (elettr||!fuori.length)? 'sv-ok' : 'sv-warn',
       why:'la sequenza dice a che millisecondo spara ogni foro, ma in cava si collegano i fori uno all\'altro: il ritardo è la differenza fra due fori collegati. Qui servono raccordi da '+tagli.join(', ')+' ms. '
         +(elettr
@@ -4619,24 +4680,24 @@ function renderScheda2D(){
         +(aMano?' Attenzione: '+aMano+(aMano===1?' foro ha':' fori hanno')+' il ritardo messo a mano, quindi la rete non segue più solo lo schema.':'')
         +' Il verso della freccia dice da dove arriva il fuoco. È una <b>ricostruzione</b> dai tempi: il collegamento vero resta decisione del responsabile del tiro.'});
   })();
-  rows.push(badge(subB,'Sottoperforazione',sub.toFixed(1)+' m ('+subB.toFixed(2)+'·B)',0.2,0.4,0.1,0.55,
-    'sottoperf. nel range 0,2–0,4·B (~'+subRec.toFixed(1)+' m, 8–12·Ø): piede pulito.',
-    'sottoperf. scarsa → rischio toe/zoccoli e blocchi al piede; consigliata ~'+subRec.toFixed(1)+' m.',
+  rows.push(badge(subB,'Sottoperforazione',gfix(sub,1)+' m ('+gfix(subB,2)+'·B)',0.2,0.4,0.1,0.55,
+    'sottoperf. nel range 0,2–0,4·B (~'+gfix(subRec,1)+' m, 8–12·Ø): piede pulito.',
+    'sottoperf. scarsa → rischio toe/zoccoli e blocchi al piede; consigliata ~'+gfix(subRec,1)+' m.',
     'sottoperf. eccessiva → perforazione sprecata, vibrazioni e danno al banco sottostante.'));
   /* forma del cumulo in funzione della sequenza di sparo */
   const _seqLab={riga:'riga per riga',diagonale:'diagonale',vcut:'V-cut',box:'box cut'};
   const _mk=muckShape();
-  rows.push({lab:'Forma cumulo',valStr:_mk.msmRow.toFixed(1)+' <span>ms/m · '+_mk.formaTxt+'</span>',cls:_mk.cls,
-    why:'sequenza '+(_seqLab[_mk.seq]||_mk.seq)+', ritardo inter-fila '+_mk.msmRow.toFixed(1)+' ms/m → cumulo '+_mk.formaTxt+'. Spostamento ottimale a 8–14 ms/m: baricentro avanzato ~'+_mk.L.toFixed(0)+' m (v0 faccia ~'+_mk.v0.toFixed(0)+' m/s, α 42°, quota di partenza H/2), rigonfiamento ~'+_mk.SF+'×. <5 ms/m = serrato/backbreak, >16 = sovra-throw/proiezioni.'});
+  rows.push({lab:'Forma cumulo',valStr:gfix(_mk.msmRow,1)+' <span>ms/m · '+_mk.formaTxt+'</span>',cls:_mk.cls,
+    why:'sequenza '+(_seqLab[_mk.seq]||_mk.seq)+', ritardo inter-fila '+gfix(_mk.msmRow,1)+' ms/m → cumulo '+_mk.formaTxt+'. Spostamento ottimale a 8–14 ms/m: baricentro avanzato ~'+gnum(_mk.L,0)+' m (v0 faccia ~'+gnum(_mk.v0,0)+' m/s, α 42°, quota di partenza H/2), rigonfiamento ~'+gnum(_mk.SF,2)+'×. <5 ms/m = serrato/backbreak, >16 = sovra-throw/proiezioni.'});
   rows.push({lab:'Direzione cumulo',valStr:(_mk.phiDeg>0?'~'+_mk.phiDeg+'° ':'')+'<span>'+(_mk.seq==='diagonale'?'↗ asimmetrico':'↑ simmetrico')+'</span>',cls:'sv-info',
-    why:_mk.dirTxt+'. Burden effettivo Be '+_mk.Be.toFixed(1)+' m (angolo isocrono '+_mk.theta+'°); spread laterale '+_mk.spreadLat+'.'});
+    why:_mk.dirTxt+'. Burden effettivo Be '+gfix(_mk.Be,1)+' m (angolo isocrono '+gnum(_mk.theta,0)+'°); spread laterale '+_mk.spreadLat+'.'});
   const _rk=selRoccia(), _rf=rockFactorA(), _A=_rf.A, _RWS0=(selEsplosivo()||{}).rws_pct||100, _RWS=Math.max(8,_RWS0*(1-_penE));
   const _x50=_A*Math.pow(Math.max(0.05,pf),-0.8)*Math.pow(Math.max(1,Q),1/6)*Math.pow(115/_RWS,0.633);
   const _Th=rit, _sd=scatterMs(), _Rs=_sd/Math.max(1,_Th);   // scatter: unica formula, condivisa col relief per foro
-  rows.push({lab:'Brillabilità (BI/A)',valStr:_A.toFixed(1)+' <span>A · BI '+_rf.BI+'</span>',cls:(_A<=6?'sv-ok':(_A<=10?'sv-warn':'sv-bad')),
+  rows.push({lab:'Brillabilità (BI/A)',valStr:gfix(_A,1)+' <span>A · BI '+gnum(_rf.BI,0)+'</span>',cls:(_A<=6?'sv-ok':(_A<=10?'sv-warn':'sv-bad')),
     why:'rock factor A=0,06·(RMD+JF+RDI+HF) (Lilly/Cunningham): '+_rk.nome+', UCS '+(D2.ucs||_rk.ucs)+' MPa, E '+(D2.eMod||_rk.eMod)+' GPa, fratturazione '+D2.frat+'. RDI '+_rf.RDI+', HF '+_rf.HF+', JF '+_rf.JF+'. '+(_A<=6?'roccia facile: frammenta bene con PF moderato.':(_A<=10?'brillabilità media: cura PF e timing per evitare oversize.':'roccia dura/massiccia: serve PF alto, Ø piccolo o esplosivo ad alta VOD.'))});
   rows.push({lab:'X50 prevista',valStr:Math.round(_x50)+' <span>cm</span>'+(_penE>0?' <span>↑bagnato</span>':''),cls:'sv-info',
-    why:'frammentazione mediana (Kuz-Ram, '+_rk.nome+' A='+_A.toFixed(1)+' calcolato, RWS '+Math.round(_RWS)+(_penE>0?' effettiva, ridotta da fori bagnati':'')+'): roccia piu dura (A alto) o meno carica/RWS la rende piu grossolana.'});
+    why:'frammentazione mediana (Kuz-Ram, '+_rk.nome+' A='+gfix(_A,1)+' calcolato, RWS '+gnum(_RWS,0)+(_penE>0?' effettiva, ridotta da fori bagnati':'')+'): roccia piu dura (A alto) o meno carica/RWS la rende piu grossolana.'});
   /* === secondo modello: curva KCO/Swebrec (Ouchterlony 2005) — code più realistiche
      del Rosin-Rammler perché il massello è limitato dal blocco in situ e dalla maglia === */
   (function(){
@@ -4646,17 +4707,17 @@ function renderScheda2D(){
     const _at=(P)=>_xmax*Math.exp(-Math.log(_xmax/_x50)*Math.pow((1-P)/P,1/_b));
     const _x80k=_at(0.8), _x20k=_at(0.2);
     rows.push({lab:'Curva KCO (Swebrec)',valStr:Math.round(_x20k)+'/'+Math.round(_x80k)+' <span>cm x20/x80 · max '+Math.round(_xmax)+'</span>',cls:'sv-info',
-      why:'secondo modello di frammentazione (KCO/Swebrec, Ouchterlony 2005) con lo stesso X50 Kuz-Ram: il massello massimo è limitato dal blocco in situ ('+_blk.toFixed(1)+' m, roccia '+D2.frat+') e dalla maglia, quindi la coda grossolana è più realistica del Rosin-Rammler. Se x80 KCO e x80 Kuz-Ram divergono molto, fidati del più conservativo per il dimensionamento del frantoio.'});
+      why:'secondo modello di frammentazione (KCO/Swebrec, Ouchterlony 2005) con lo stesso X50 Kuz-Ram: il massello massimo è limitato dal blocco in situ ('+gfix(_blk,1)+' m, roccia '+D2.frat+') e dalla maglia, quindi la coda grossolana è più realistica del Rosin-Rammler. Se x80 KCO e x80 Kuz-Ram divergono molto, fidati del più conservativo per il dimensionamento del frantoio.'});
   })();
   /* === loading rule: PF obiettivo dal rock factor A (Lilly) → carica consigliata per foro === */
   (function(){
     const _t=_A<=6?[0.25,0.40]:(_A<=10?[0.40,0.55]:[0.55,0.80]);
     const _pfMid=(_t[0]+_t[1])/2, _Qsug=Math.round(_pfMid*B*S*H);
     const _ok=pf>=_t[0]&&pf<=_t[1];
-    rows.push({lab:'Carica consigliata (regola)',valStr:'~'+_Qsug+' <span>kg/foro (PF '+_t[0].toFixed(2)+'–'+_t[1].toFixed(2)+')</span>',
+    rows.push({lab:'Carica consigliata (regola)',valStr:'~'+gnum(_Qsug,0)+' <span>kg/foro (PF '+gfix(_t[0],2)+'–'+gfix(_t[1],2)+')</span>',
       cls:(_ok?'sv-ok':'sv-warn'),
-      why:'regola di caricamento dalla brillabilità: con A='+_A.toFixed(1)+' ('+(_A<=6?'roccia facile':(_A<=10?'brillabilità media':'roccia dura/massiccia'))+') il PF obiettivo è '+_t[0].toFixed(2)+'–'+_t[1].toFixed(2)+' kg/m³ → ~'+_Qsug+' kg/foro su questa maglia. '
-        +(_ok?'Il PF attuale ('+pf.toFixed(2)+') è nell\'intervallo.':'Il PF attuale ('+pf.toFixed(2)+') è '+(pf<_t[0]?'SOTTO: rischio massello grosso — più carica o maglia più stretta.':'SOPRA: energia in eccesso — meno carica o maglia più larga (costo e vibrazioni).'))
+      why:'regola di caricamento dalla brillabilità: con A='+gfix(_A,1)+' ('+(_A<=6?'roccia facile':(_A<=10?'brillabilità media':'roccia dura/massiccia'))+') il PF obiettivo è '+gfix(_t[0],2)+'–'+gfix(_t[1],2)+' kg/m³ → ~'+gnum(_Qsug,0)+' kg/foro su questa maglia. '
+        +(_ok?'Il PF attuale ('+gfix(pf,2)+') è nell\'intervallo.':'Il PF attuale ('+gfix(pf,2)+') è '+(pf<_t[0]?'SOTTO: rischio massello grosso — più carica o maglia più stretta.':'SOPRA: energia in eccesso — meno carica o maglia più larga (costo e vibrazioni).'))
         +' Regola indicativa: la carica resta decisa dal responsabile del tiro.'});
   })();
   /* === impedance matching roccia <-> esplosivo: frazione d'urto trasmessa all'interfaccia === */
@@ -4668,8 +4729,8 @@ function renderScheda2D(){
             :(_Ze<_Zr?'forte disadattamento: esplosivo &laquo;troppo debole&raquo; (Z bassa) per roccia '+_rk.cls+', gran parte dell&rsquo;urto si riflette. Passa a un esplosivo ad alta VOD/densita (emulsione).'
                      :'esplosivo molto piu &laquo;duro&raquo; della roccia: molto urto si riflette. Su roccia '+_rk.cls+' un esplosivo con piu heave (ANFO) rende meglio ed e piu economico.'));
   rows.push({lab:'Impedenza roccia/espl.',valStr:_trPct+' <span>% urto</span>',cls:_impCls,why:_impWhy});
-  rows.push({lab:'Scatter innesco',valStr:_sd.toFixed(1)+' <span>ms</span>',cls:(_Rs<0.1?'sv-ok':(_Rs<0.35?'sv-warn':'sv-bad')),
-    why:(D2.innesco==='elettronico')?'scatter minimo (~0,1 ms): uniformita maggiore (X50 piu fine), PPV ridotto fino a -50%.':'sull ultimo foro ~'+(_Rs*100).toFixed(0)+'% del ritardo inter-foro: meno uniforme; oltre ~35% rischio inversione d ordine. Per X50 piu fine valuta i detonatori elettronici.'});
+  rows.push({lab:'Scatter innesco',valStr:gfix(_sd,1)+' <span>ms</span>',cls:(_Rs<0.1?'sv-ok':(_Rs<0.35?'sv-warn':'sv-bad')),
+    why:(D2.innesco==='elettronico')?'scatter minimo (~0,1 ms): uniformita maggiore (X50 piu fine), PPV ridotto fino a −50%.':'sull ultimo foro ~'+gnum(_Rs*100,0)+'% del ritardo inter-foro: meno uniforme; oltre ~35% rischio inversione d ordine. Per X50 piu fine valuta i detonatori elettronici.'});
   /* === Vibrazioni & Airblast: PPV al recettore (Devine/USBM), MIC, sovrappressione === */
   const _mic=computeMIC(), _st=ppvSite(), _sd2=D2.recDist/Math.sqrt(Math.max(1,_mic));
   const _ppv=_st.K*Math.pow(Math.max(0.1,_sd2),-_st.beta);
@@ -4681,18 +4742,18 @@ function renderScheda2D(){
      del numero, e fuori dall'intervallo calibrato la legge è un'estrapolazione. */
   const _fonte = (_st.fonte==='sito')
     ? ('K≈'+_st.K+'/β≈'+_st.beta+' ricavati dai <b>tuoi '+_st.fit.n+' referti</b> (riga al 95° percentile, R²='+_st.fit.r2.toString().replace('.',',')+')'
-       + ((_sd2<_st.fit.sdMin||_sd2>_st.fit.sdMax) ? '. <b>Attenzione</b>: SD '+_sd2.toFixed(1)+' è fuori dall\'intervallo calibrato ('+_st.fit.sdMin+'–'+_st.fit.sdMax+'): qui la legge estrapola' : ''))
+       + ((_sd2<_st.fit.sdMin||_sd2>_st.fit.sdMax) ? '. <b>Attenzione</b>: SD '+gfix(_sd2,1)+' è fuori dall\'intervallo calibrato ('+gnum(_st.fit.sdMin,1)+'–'+gnum(_st.fit.sdMax,1)+'): qui la legge estrapola' : ''))
     : ('K≈'+_st.K+'/β≈'+_st.beta+' stimati da '+_rk.nome+' (valori da manuale, cautelativi)');
   const _coda = (_st.fonte==='sito')
     ? ' Legge calibrata sul tuo sito: resta una previsione, va riverificata col sismografo a ogni cambio di zona o di fronte.'
     : ' STIMA predittiva site-specific: con i referti del sismografo (pulsante «Legge di sito») Genesi ricava K e β della tua roccia.';
-  rows.push({lab:'PPV al recettore',valStr:_ppv.toFixed(1)+' <span>mm/s</span>',cls:(_rat<0.6?'sv-ok':(_rat<1?'sv-warn':'sv-bad')),
-    why:'a '+D2.recDist+' m (SD '+_sd2.toFixed(1)+' m/kg^½, MIC '+_mic+' kg), legge di Devine PPV=K·SD^−β con '+_fonte+'. Soglia '+_normaLab+' '+_lim+' mm/s @ '+D2.recFreq+' Hz → '+(_rat>=1?'<b>SUPERA</b>: riduci la MIC (meno kg/foro o frazionamento ritardi) o allontana il recettore.':(_rat>=0.6?'sotto soglia ma vicino: monitora.':'ampiamente sotto soglia.'))+_coda});
+  rows.push({lab:'PPV al recettore',valStr:gfix(_ppv,1)+' <span>mm/s</span>',cls:(_rat<0.6?'sv-ok':(_rat<1?'sv-warn':'sv-bad')),
+    why:'a '+gnum(D2.recDist,0)+' m (SD '+gfix(_sd2,1)+' m/kg^½, MIC '+gnum(_mic,1)+' kg), legge di Devine PPV=K·SD^−β con '+_fonte+'. Soglia '+_normaLab+' '+gnum(_lim,1)+' mm/s @ '+gnum(D2.recFreq,0)+' Hz → '+(_rat>=1?'<b>SUPERA</b>: riduci la MIC (meno kg/foro o frazionamento ritardi) o allontana il recettore.':(_rat>=0.6?'sotto soglia ma vicino: monitora.':'ampiamente sotto soglia.'))+_coda});
   rows.push({lab:'MIC (carica/ritardo)',valStr:_mic+' <span>kg</span>',cls:'sv-info',
     why:'massima carica entro la finestra di 8 ms (fori sullo stesso ritardo). W max ammissibile alla soglia scelta ≈ '+Math.round(_wmax)+' kg a '+D2.recDist+' m: oltre, il PPV supera il limite.'});
   const _sd3=D2.recDist/Math.cbrt(Math.max(0.1,_mic)), _db=airblastDb(D2.recDist,_mic);
   rows.push({lab:'Airblast (sovrappr.)',valStr:Math.round(_db)+' <span>dB(L)</span>',cls:(_db<128?'sv-ok':(_db<=133?'sv-warn':'sv-bad')),
-    why:'rumore d\'aria stimato a '+D2.recDist+' m (cube-root SD '+_sd3.toFixed(0)+'): '+(_db>133?'oltre il limite USBM/OSM di 133 dB(L): borraggio corto/colletto scoperto amplifica; allunga il borraggio.':'sotto il limite USBM/OSM di 133 dB(L).')+' Stima da calibrare.'});
+    why:'rumore d\'aria stimato a '+gnum(D2.recDist,0)+' m (cube-root SD '+gnum(_sd3,0)+'): '+(_db>133?'oltre il limite USBM/OSM di 133 dB(L): borraggio corto/colletto scoperto amplifica; allunga il borraggio.':'sotto il limite USBM/OSM di 133 dB(L).')+' Stima da calibrare.'});
   /* descrizioni compatte (richiesta fondatore 25/07): nome+valore sempre visibili,
      spiegazione solo al clic sulla voce (stato ricordato tra i ricalcoli) */
   const rowsHtml=rows.map(r=>'<div class="sv-row'+(SVOPEN.has(r.lab)?' open':'')+'" data-lab="'+r.lab.replace(/"/g,'&quot;')+'"><span class="sv-dot '+r.cls+'"></span><div class="sv-tx"><div class="sv-lab">'+r.lab+'</div><div class="sv-val">'+r.valStr+'</div><div class="sv-why">'+r.why+'</div></div><span class="sv-chev">▼</span></div>').join('');
@@ -4713,14 +4774,14 @@ function renderScheda2D(){
   // grandezza per confrontare progetti, NON un preventivo (no manodopera/ammortamenti/oneri)
   const _nf=g.n||0, _mPerf=_nf*(H+(D2.sub||0)), _kgTot=_nf*Q, _vol=_nf*B*S*H, _rhoRock=(selRoccia()||{}).rho||2.5, _ton=_vol*_rhoRock;
   const _cP=_mPerf*(D2.cPerf||0), _cE=_kgTot*(D2.cExpl||0), _cI=_nf*(D2.cInnesco||0), _cTot=_cP+_cE+_cI;
-  const _cM3=_vol>0?_cTot/_vol:0, _cT=_ton>0?_cTot/_ton:0, _eur=(x)=>'€'+Math.round(x).toLocaleString('it-IT');
+  const _cM3=_vol>0?_cTot/_vol:0, _cT=_ton>0?_cTot/_ton:0, _eur=(x)=>'€'+gnum(x,0);                                        // idem: euro all'italiana, dalla stessa funzione
   const _crow=(l,v,ex)=>'<div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;padding:2px 0;'+(ex||'')+'"><span style="color:var(--mut2)">'+l+'</span><b>'+v+'</b></div>';
-  let _costRows=_crow('Perforazione',_mPerf.toFixed(0)+' m · '+_eur(_cP))
-    +_crow('Esplosivo',_kgTot.toFixed(0)+' kg · '+_eur(_cE))
-    +_crow('Inneschi',_nf+' fori · '+_eur(_cI))
+  let _costRows=_crow('Perforazione',gnum(_mPerf,0)+' m · '+_eur(_cP))
+    +_crow('Esplosivo',gnum(_kgTot,0)+' kg · '+_eur(_cE))
+    +_crow('Inneschi',gnum(_nf,0)+' fori · '+_eur(_cI))
     +_crow('Totale volata',_eur(_cTot),'border-top:1px solid rgba(255,171,0,.2);margin-top:3px;padding-top:4px;color:var(--cu)')
-    +_crow('Costo unitario',_cM3.toFixed(2).replace('.',',')+' €/m³ · '+_cT.toFixed(2).replace('.',',')+' €/t');
-  if((D2.valMat||0)>0){ const _ric=_ton*D2.valMat, _marg=_ric-_cTot; _costRows+=_crow('Margine (materiale '+D2.valMat+' €/t)',_eur(_marg)+' <span style="color:var(--mut2);font-weight:400">('+_eur(_ric)+' ricavo)</span>','color:'+(_marg>=0?'#66bb6a':'#ef5350')); }
+    +_crow('Costo unitario',gfix(_cM3,2)+' €/m³ · '+gfix(_cT,2)+' €/t');
+  if((D2.valMat||0)>0){ const _ric=_ton*D2.valMat, _marg=_ric-_cTot; _costRows+=_crow('Margine (materiale '+gnum(D2.valMat,2)+' €/t)',_eur(_marg)+' <span style="color:var(--mut2);font-weight:400">('+_eur(_ric)+' ricavo)</span>','color:'+(_marg>=0?'#66bb6a':'#ef5350')); }
   const _costHtml='<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(255,171,0,.15);border-radius:8px;background:rgba(255,171,0,.03)"><div style="font-size:11px;font-weight:700;color:#ffd54f;margin-bottom:4px">💶 Stima economica <span style="font-weight:400;color:var(--mut2);font-size:9px">prezzi tuoi · ordine di grandezza</span></div>'+_costRows+'</div>';
   // Decking: colonna di carica divisa in più deck separati da borraggio intermedio.
   // Motivo tipico: ridurre la carica per ritardo (vibrazioni) sparando i deck su tempi diversi.
@@ -4729,7 +4790,7 @@ function renderScheda2D(){
   if(_N>1){
     const _Ltot=H+(D2.sub||0), _Lc=Math.max(0.4, _Ltot-D2.stem), _minNeed=_N*0.4+(_N-1)*0.3;
     if(_Lc < _minNeed){   // foro troppo corto per N deck sensati: avviso onesto invece di un diagramma fuorviante
-      _deckHtml='<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(255,167,38,.3);border-radius:8px;background:rgba(255,167,38,.06);font-size:11px;color:#ffa726">🧨 <b>Decking '+_N+' deck</b>: foro troppo corto (zona carica ≈ '+_Lc.toFixed(1)+' m). Riduci il numero di deck, la profondità del borraggio di testa, o aumenta la profondità.</div>';
+      _deckHtml='<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(255,167,38,.3);border-radius:8px;background:rgba(255,167,38,.06);font-size:11px;color:#ffa726">🧨 <b>Decking '+_N+' deck</b>: foro troppo corto (zona carica ≈ '+gfix(_Lc,1)+' m). Riduci il numero di deck, la profondità del borraggio di testa, o aumenta la profondità.</div>';
     } else {
     const _gap=Math.max(0.2, Math.min(D2.deckStem||1, (_Lc-0.4*_N)/(_N-1)));   // borraggio interm.: ≥0.2 m, lascia ≥0.4 m/deck
     const _deckLen=Math.max(0.4,(_Lc-(_N-1)*_gap)/_N), _kgDeck=Q/_N;
@@ -4740,11 +4801,11 @@ function renderScheda2D(){
     const _svg='<svg viewBox="0 0 '+_wpx+' '+_hpx+'" width="'+_wpx+'" height="'+_hpx+'" style="flex:none"><defs><linearGradient id="dkg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff6d00"/><stop offset="1" stop-color="#ffab00"/></linearGradient></defs>'+_segs+'<rect x="0.5" y="0.5" width="'+(_wpx-1)+'" height="'+(_hpx-1)+'" fill="none" stroke="rgba(255,255,255,.25)"/></svg>';
     _deckHtml='<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(255,171,0,.15);border-radius:8px;background:rgba(255,171,0,.03);display:flex;gap:10px;align-items:flex-start"><div style="text-align:center"><div style="font-size:8px;color:var(--mut2)">colletto</div>'+_svg+'<div style="font-size:8px;color:var(--mut2)">fondo</div></div>'
       +'<div style="font-size:11px"><b style="color:#ffd54f">🧨 Decking · '+_N+' cariche/foro</b>'
-      +'<div style="color:var(--mut2);margin-top:3px">Ogni deck ≈ '+_deckLen.toFixed(1)+' m · <b>'+_kgDeck.toFixed(0)+' kg</b> · borraggio tra deck '+_gap.toFixed(1)+' m. Totale carica '+Q+' kg (invariato), powder factor invariato.</div>'
-      +'<div style="color:var(--mut2);margin-top:3px">Se i deck sono innescati su <b>ritardi separati</b>, la carica per ritardo scende a ≈ '+_kgDeck.toFixed(0)+' kg (−'+Math.round((1-1/_N)*100)+'%): <b>vibrazioni minori</b> al recettore. La vista 3D (raggi-X) mostra i deck e gli inneschi come sono qui.</div></div></div>';
+      +'<div style="color:var(--mut2);margin-top:3px">Ogni deck ≈ '+gfix(_deckLen,1)+' m · <b>'+gnum(_kgDeck,0)+' kg</b> · borraggio tra deck '+gfix(_gap,1)+' m. Totale carica '+gnum(Q,1)+' kg (invariato), powder factor invariato.</div>'
+      +'<div style="color:var(--mut2);margin-top:3px">Se i deck sono innescati su <b>ritardi separati</b>, la carica per ritardo scende a ≈ '+gnum(_kgDeck,0)+' kg (−'+gnum((1-1/_N)*100,0)+'%): <b>vibrazioni minori</b> al recettore. La vista 3D (raggi-X) mostra i deck e gli inneschi come sono qui.</div></div></div>';
     }
   }
-  el.innerHTML='<div class="sv-card"><div class="sv-h"><b>Scheda volata</b><span class="sv-sub">'+g.n+' fori· '+g.Lm+' m fronte<br>Ø'+Dmm+' mm · '+Q+' kg/foro · H '+H+' m<br>'+(selEsplosivo()?'Esplosivo: '+selEsplosivo().nome:'')+(selInnesco()?' / innesco '+selInnesco().short:'')+(selRoccia()?'<br>Roccia: '+selRoccia().nome+' ('+selRoccia().cls+')':'')+'<br><i style="color:var(--mut2)">tocca una voce per i dettagli</i></span></div>'
+  el.innerHTML='<div class="sv-card"><div class="sv-h"><b>Scheda volata</b><span class="sv-sub">'+gnum(g.n,0)+' fori · '+gnum(g.Lm,1)+' m fronte<br>Ø'+gnum(Dmm,0)+' mm · '+gnum(Q,1)+' kg/foro · H '+gnum(H,1)+' m<br>'+(selEsplosivo()?'Esplosivo: '+selEsplosivo().nome:'')+(selInnesco()?' / innesco '+selInnesco().short:'')+(selRoccia()?'<br>Roccia: '+selRoccia().nome+' ('+selRoccia().cls+')':'')+'<br><i style="color:var(--mut2)">tocca una voce per i dettagli</i></span></div>'
     +bipHtml
     +'<div class="sv-grid">'+rowsHtml+'</div>'
     +'<div class="sv-scale"><div class="sv-lab">Rapporto di rigidità H/B — frammentazione attesa</div>'

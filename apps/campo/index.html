@@ -458,6 +458,20 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   letter-spacing:2px; text-transform:uppercase; color:var(--muted);
 }
 
+/* ─────────────── unità di misura: MAI in maiuscolo ───────────────
+   Il maiuscolo delle etichette è una scelta di stile; sulle unità di misura
+   non è più stile, è un altro numero. «m³» diventa «M³», «µg/m³» diventa
+   «MG/M³» — cioè milligrammi, mille volte tanto. Dove un'unità sta dentro
+   un testo messo in maiuscolo si avvolge in <u class="uni">…</u>: qui il
+   maiuscolo si spegne e la sottolineatura di <u> non si vede. */
+.uni{text-transform:none; text-decoration:none; letter-spacing:inherit}
+
+/* Il maiuscolo sulle unità dei grafici era una toppa locale: adesso è corretto
+   alla radice nel motore condiviso (shared/dw-grafici.js avvolge l'unità in
+   .dwg-u), che vale per tutte e sei le app. Qui non serve più nulla — e la
+   toppa andava togliendo il maiuscolo anche a «Voce» e «Quota», cioè si
+   allontanava dal core invece di avvicinarsi. */
+
 /* ─────────────── toast (copia del core) ─────────────── */
 .toast{
   /* width:max-content è indispensabile: un elemento fisso ancorato a left:50%
@@ -908,7 +922,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            turnoChiuso, riaperture, riassuntoRiapertura, ultimaRiapertura,
            FOTO_MAX_BYTE, FOTO_TENTATIVI, eImmagine, byteFoto, eFotoValida, misuraRidotta, formattaByte,
            METEO_CIELO, METEO_PISTE, METEO_VISIBILITA, meteoDi, riassuntoMeteo, meteoAvverso,
-           pianoParziale, pianoConsuntivoCsv } from "./campo-data.js";
+           pianoParziale, pianoConsuntivoCsv,
+           numeroIt, segnoIt, numeroItDa } from "./campo-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const dmy = (iso) => iso ? iso.slice(8,10)+"/"+iso.slice(5,7)+"/"+iso.slice(0,4) : "senza data";
@@ -1005,7 +1020,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     if (!window.dwGrafici) return;
     dwGrafici.barre(el, {
       titolo: "Dove si perde tempo",
-      meta: pf.totaleMin + " min persi " + quando,
+      meta: numeroIt(pf.totaleMin, 0) + " min persi " + quando,
       orientamento: "orizzontale",
       ordina: true, taglio: 80,
       unita: "min",
@@ -1014,11 +1029,11 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       // solo <b>…</b>, quindi qui NON si passa da esc() (raddoppierebbe gli
       // escape) e un'etichetta non può comunque iniettare niente
       nota: `La causale che pesa di più è <b>${top.causale}</b>: `
-        + `${top.conto} ${top.conto === 1 ? "fermo" : "fermi"} per <b>${top.minuti} min</b>. `
+        + `${top.conto} ${top.conto === 1 ? "fermo" : "fermi"} per <b>${numeroIt(top.minuti, 0)} min</b>. `
         + "Le causali sopra la riga di taglio fanno insieme l'80% del tempo perso: "
         + "sono quelle su cui conviene intervenire per prime.",
       aria: "Minuti di fermo per causale " + quando + ": "
-        + pf.voci.map(v => v.causale + " " + v.minuti + " minuti").join(", ") + ".",
+        + pf.voci.map(v => v.causale + " " + numeroIt(v.minuti, 0) + " minuti").join(", ") + ".",
     });
   }
 
@@ -1061,13 +1076,13 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       // colonne verrebbe troncata coi puntini
       valori: righe.map(r => ({ etichetta: r.data.slice(8, 10), valore: r.minuti })),
       nota: `Ogni colonna è una giornata di lavoro: i minuti persi per fermi. `
-        + `In media <b>${media} min</b> al giorno; la giornata peggiore è il <b>${dmy(peggiore.data)}</b> `
-        + `con <b>${peggiore.minuti} min</b>. Un giorno storto capita a tutti; se le colonne restano alte `
+        + `In media <b>${numeroIt(media, 0)} min</b> al giorno; la giornata peggiore è il <b>${dmy(peggiore.data)}</b> `
+        + `con <b>${numeroIt(peggiore.minuti, 0)} min</b>. Un giorno storto capita a tutti; se le colonne restano alte `
         + `per settimane il problema è la manutenzione, non la sfortuna.`
         + (righe.length < FERMI_GIORNI
             ? ` Il conto parte dalla prima giornata registrata: prima non c'era ancora niente da contare.` : ""),
       aria: "Minuti di fermo per giornata, " + righe.length + " giornate: "
-        + righe.map(r => dmy(r.data) + " " + r.minuti + " minuti").join(", ") + ".",
+        + righe.map(r => dmy(r.data) + " " + numeroIt(r.minuti, 0) + " minuti").join(", ") + ".",
     });
   }
 
@@ -1464,10 +1479,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   // il turno dell'ora corrente). Il Quadro mostra lo stesso obiettivo: una
   // sola scelta, due letture che non possono contraddirsi.
   const obUnita = (st) => st.unita === UNITA_ATTIVITA
-    ? st.fatto + " su " + st.obiettivo + " attività concluse"
+    ? numeroIt(st.fatto, 0) + " su " + numeroIt(st.obiettivo, 0) + " attività concluse"
     : formattaProduzione(st.fatto, st.unita) + " su " + formattaProduzione(st.obiettivo, st.unita);
   const obQuanto = (v, unita) => unita === UNITA_ATTIVITA
-    ? v + " attività" : formattaProduzione(v, unita);
+    ? numeroIt(v, 0) + " attività" : formattaProduzione(v, unita);
 
   function renderObiettivo() {
     const data = $("ob-data").value || OGGI, turno = $("ob-turno").value || turnoCorrente();
@@ -1986,7 +2001,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
           <div class="board-lab">${tot.giorniConDati === 1 ? "Giornata registrata" : "Giornate registrate"} su ${tot.giorni}</div></div>
         <div class="board-txt">
           Prodotto: <b>${prodTot ? esc(prodTot) : "niente registrato"}</b> ·
-          fermi: <b>${tot.minutiFermo} min</b><br>
+          fermi: <b>${numeroIt(tot.minutiFermo, 0)} min</b><br>
           Attività concluse: <b>${tot.attConcluse}/${tot.attTot}</b>${tot.pctConcluse != null ? " (" + tot.pctConcluse + "%)" : ""} ·
           rapportini inviati: <b>${tot.rapInviati}</b>
         </div>
@@ -2004,7 +2019,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
           <div class="meta gio-num">${vuota
             ? "nessuna registrazione"
             : `<span>prodotto <b>${p ? esc(p) : "—"}</b></span>
-               <span>fermi <b>${g.minutiFermo} min</b></span>
+               <span>fermi <b>${numeroIt(g.minutiFermo, 0)} min</b></span>
                <span>attività <b>${g.attConcluse}/${g.attTot}</b></span>
                <span>rapportini <b>${g.rapInviati}</b></span>`}</div>
         </div>
@@ -2052,11 +2067,11 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
         + (conProd
             ? `Si disegna la grandezza che pesa di più nel periodo, <b>${unita}</b>: le altre unità di misura non si sommano a questa e restano nell'elenco qui sotto. `
             : `Non c'è ancora produzione registrata, quindi si contano le <b>attività concluse</b>. `)
-        + `Nelle giornate con qualcosa registrato la media è <b>${media}${conProd ? " " + unita : ""}</b>; `
-        + `la migliore è il <b>${gMigliore ? dmy(gMigliore.data) : migliore.etichetta}</b> con <b>${migliore.valore}${conProd ? " " + unita : ""}</b>. `
+        + `Nelle giornate con qualcosa registrato la media è <b>${numeroIt(media, 1)}${conProd ? " " + unita : ""}</b>; `
+        + `la migliore è il <b>${gMigliore ? dmy(gMigliore.data) : migliore.etichetta}</b> con <b>${numeroIt(migliore.valore, 2)}${conProd ? " " + unita : ""}</b>. `
         + `Le colonne a zero sono giornate senza registrazioni: nel registro di una settimana anche quelle contano.`,
       aria: (conProd ? "Produzione" : "Attività concluse") + " per giornata: "
-        + righe.map((g, i) => dmy(g.data) + " " + valori[i].valore).join(", ") + ".",
+        + righe.map((g, i) => dmy(g.data) + " " + numeroIt(valori[i].valore, 2)).join(", ") + ".",
     });
   }
 
@@ -2470,9 +2485,9 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       .map(o => statoObiettivo(o, RAP_OGGI, ATT_OGGI)).filter(Boolean);
     txt += "OBIETTIVO DEL TURNO\n";
     txt += (obT.length ? obT.map(o => "- turno " + o.turno + ": "
-      + (o.unita === UNITA_ATTIVITA ? o.fatto + " su " + o.obiettivo + " attività concluse"
+      + (o.unita === UNITA_ATTIVITA ? numeroIt(o.fatto, 0) + " su " + numeroIt(o.obiettivo, 0) + " attività concluse"
                                     : formattaProduzione(o.fatto, o.unita) + " su " + formattaProduzione(o.obiettivo, o.unita))
-      + " (" + o.pct + "%, " + (o.scarto >= 0 ? "+" : "−") + Math.abs(o.scarto) + ")").join("\n")
+      + " (" + o.pct + "%, " + segnoIt(o.scarto, 2) + ")").join("\n")
       : "- nessun obiettivo impostato") + "\n\n";
     const chkT = CHK.filter(c => String(c.data || "") === OGGI);
     txt += "CHECKLIST DI INIZIO TURNO\n";
@@ -2523,7 +2538,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // Obiettivi del giorno (uno per turno) con lo scostamento a consuntivo.
     const obOggi = OBIE.filter(o => String(o.data||"") === OGGI)
       .map(o => statoObiettivo(o, RAP_OGGI, ATT_OGGI)).filter(Boolean);
-    const segno = (n) => (n >= 0 ? "+" : "−") + Math.abs(n);
+    const segno = (n) => segnoIt(n, 2);
     // Checklist di inizio turno chiuse o in corso oggi.
     const chkOggi = CHK.filter(c => String(c.data||"") === OGGI)
       .map(c => ({ c, st: statoChecklist(c.esiti || {}) }));
@@ -2543,7 +2558,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const fotoOggi = ATT_OGGI.filter(a => eFotoValida(a.foto));
     const html = `<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><title>Rapporto di fine turno — ${oggi}</title>
 <style>body{font:13px/1.45 sans-serif;color:#222;margin:28px;max-width:800px}h1{font-size:19px;margin:0 0 2px}h2{font-size:14px;margin:18px 0 6px;border-bottom:1px solid #999;padding-bottom:2px}
-table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px 8px;text-align:left;font-size:12px}th{background:#f2f2f2}
+table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px 8px;text-align:left;font-size:12px;font-variant-numeric:tabular-nums}th{background:#f2f2f2}
+/* le cifre incolonnate anche sulla carta: in un rapporto firmato due numeri
+   di lunghezza diversa che non stanno sotto si confrontano a occhio male */
+.kpi b{font-variant-numeric:tabular-nums}
 .muted{color:#666;font-size:11px}.kpi{display:inline-block;margin-right:18px}.kpi b{font-size:17px}
 .foto{margin:10px 0;page-break-inside:avoid}.foto img{max-width:340px;width:100%;border:1px solid #ccc;margin-top:4px}</style></head><body>
 <h1>Rapporto di fine turno</h1><div class="muted">Deepwork Campo · ${oggi}</div>
@@ -2560,7 +2578,7 @@ ${metOggi.length?`<table><tr><th>Turno</th><th>Condizioni</th><th>Note sul sito<
 ${preOggi.length?preOggi.map(x=>`<div><b>Turno ${esc(x.turno)}</b>: ${x.app.presenti} ${x.app.presenti===1?"presente":"presenti"} su ${x.app.totale}${x.app.daFare?`, ${x.app.daFare} ${x.app.daFare===1?"non spuntato":"non spuntati"}`:""}.</div>
 <table><tr><th>Nome</th><th>Ruolo</th><th>Squadra</th><th>Stato</th><th>Ora</th></tr>${x.app.righe.map(r=>`<tr><td>${esc(r.operatore.nome)}</td><td>${esc(r.operatore.ruolo||"—")}</td><td>${esc(squadraBase(r.operatore.squadra)||"—")}</td><td>${r.stato==="presente"?"presente":r.stato==="assente"?"ASSENTE":"non spuntato"}</td><td>${esc(r.ora||"")}</td></tr>`).join("")}</table>`).join(""):"<div>Nessun appello registrato oggi.</div>"}
 <h2>Obiettivo del turno</h2>
-${obOggi.length?`<table><tr><th>Turno</th><th>Obiettivo</th><th>Fatto</th><th>Scostamento</th></tr>${obOggi.map(o=>`<tr><td>${esc(o.turno)}</td><td>${esc(o.unita===UNITA_ATTIVITA?o.obiettivo+" attività":formattaProduzione(o.obiettivo,o.unita))}</td><td>${esc(o.unita===UNITA_ATTIVITA?o.fatto+" attività":formattaProduzione(o.fatto,o.unita))} (${o.pct}%)</td><td>${esc(segno(o.scarto))}${o.unita===UNITA_ATTIVITA?" attività":" "+o.unita}</td></tr>`).join("")}</table>`:"<div>Nessun obiettivo impostato per i turni di oggi.</div>"}
+${obOggi.length?`<table><tr><th>Turno</th><th>Obiettivo</th><th>Fatto</th><th>Scostamento</th></tr>${obOggi.map(o=>`<tr><td>${esc(o.turno)}</td><td>${esc(o.unita===UNITA_ATTIVITA?numeroIt(o.obiettivo,0)+" attività":formattaProduzione(o.obiettivo,o.unita))}</td><td>${esc(o.unita===UNITA_ATTIVITA?numeroIt(o.fatto,0)+" attività":formattaProduzione(o.fatto,o.unita))} (${o.pct}%)</td><td>${esc(segno(o.scarto))}${o.unita===UNITA_ATTIVITA?" attività":" "+o.unita}</td></tr>`).join("")}</table>`:"<div>Nessun obiettivo impostato per i turni di oggi.</div>"}
 <h2>Attività</h2>
 <table><tr><th>Turno</th><th>Attività</th><th>Dettaglio</th><th>Assegnata a</th><th>Stato</th></tr>${ATT_OGGI.slice().sort((a,b)=>(ordR[a.stato]??4)-(ordR[b.stato]??4)).map(riga).join("")||"<tr><td colspan=5>Nessuna attività registrata.</td></tr>"}</table>
 <h2>Fermi per causale</h2>
@@ -2616,10 +2634,16 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
   // SDK): prima viveva solo in memoria e un refresh cancellava il lavoro.
   let PIANO = [];
   const scarto = (p) => scartoPct(p.reale, p.prog);
+  // I chili si scrivono all'italiana (numeroIt): fino a tre decimali, perché
+  // la carica reale è una MISURA e arrotondarla per farla stare nel badge
+  // sarebbe cambiare il dato. Gli zeri finali non si stampano: 86 resta «86».
+  // Il .badge del core è in MAIUSCOLO di stile e trasformava «kg» in «KG»:
+  // l'unità va in <u class="uni">, dove il maiuscolo è spento (vedi .uni).
+  const KG = ' <u class="uni">kg</u>';
   const scartoBadge = (p) => { const liv = scartoLivello(p.reale, p.prog);
     if (liv === "da-registrare") return ["warn", "da registrare"];
-    if (liv === "ok") return ["ok", p.reale + " kg"];
-    return [liv, p.reale + " kg (" + Math.round(scarto(p)*100) + "%)"]; };
+    if (liv === "ok") return ["ok", numeroIt(p.reale, 3) + KG];
+    return [liv, numeroIt(p.reale, 3) + KG + " (" + Math.round(scarto(p)*100) + "%)"]; };
 
   // C4 · Scostamento della carica per foro.
   // È il controllo che il fochino fa a mano a fine carico: dove la carica
@@ -2655,7 +2679,7 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
     const mostrati = fuori.slice(0, PIANO_GRAF_MAX);
     const oltre = fuori.length - mostrati.length;
     const peggio = mostrati[0];
-    const kg = (v) => (Math.round(v * 10) / 10).toLocaleString("it-IT");
+    const kg = (v) => numeroIt(v, 1);
     const pctDi = (x) => Math.round(Math.abs(x.diff) / (x.p.prog || 1) * 100);
     if (!window.dwGrafici) return;
     dwGrafici.barre(el, {
@@ -2709,11 +2733,11 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
     // smorza l'errore proprio quando c'è ancora tempo per correggerlo; questa
     // riga confronta solo i fori davvero caricati con il progetto DI QUEI fori.
     const par = pianoParziale(PIANO);
-    const kg1 = (v) => (Math.round(v * 10) / 10).toLocaleString("it-IT");
+    const kg1 = (v) => numeroIt(v, 1);
     const rigaFinora = !par ? ""
       : "<br>Sui <b>" + par.registrati + "</b> fori già caricati: <b>" + kg1(par.realeKg)
         + "</b> kg contro <b>" + kg1(par.progettatoKg) + "</b> kg previsti "
-        + "<span class=\"badge " + par.livello + "\">" + (par.pct >= 0 ? "+" : "") + par.pct + "%</span>"
+        + "<span class=\"badge " + par.livello + "\">" + segnoIt(par.pct, 0) + "%</span>"
         + (par.registrati < par.totale
             ? (par.livello === "ok"
                 // «il totale»: il singolo foro può essere fuori anche quando la
@@ -2724,12 +2748,15 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
                   + (par.totale - par.registrati === 1 ? "manca ancora 1 foro" : "mancano ancora " + (par.totale - par.registrati) + " fori")
                   + " da caricare.")
             : "");
-    $("piano-riep").innerHTML = quandoPiano + "Fori <b>" + r.registrati + "/" + r.totale + "</b> registrati · progettato <b>" + r.progettatoKg + "</b> kg · stimato reale <b>" + Math.round(r.stimatoKg) + "</b> kg <span class=\"badge " + r.livello + "\">" + (r.pct>=0?"+":"") + r.pct + "%</span>" + rigaFinora + "<br>Tocca un foro per registrare la carica davvero caricata: viene salvata.";
+    $("piano-riep").innerHTML = quandoPiano + "Fori <b>" + r.registrati + "/" + r.totale + "</b> registrati · progettato <b>" + kg1(r.progettatoKg) + "</b> kg · stimato reale <b>" + numeroIt(r.stimatoKg, 0) + "</b> kg <span class=\"badge " + r.livello + "\">" + segnoIt(r.pct, 0) + "%</span>" + rigaFinora + "<br>Tocca un foro per registrare la carica davvero caricata: viene salvata.";
+    // x, prof, borr, rit restano TESTO GREZZO del file arrivato da Genesi (là
+    // dentro il decimale è il punto, ed è giusto che lo sia): a schermo
+    // passano da numeroItDa, che li riscrive all'italiana senza toccare il file.
     $("piano-list").innerHTML = PIANO.map(p => { const b = scartoBadge(p);
       const liv = scartoLivello(p.reale, p.prog);
       return `<div class="item ${liv==="da-registrare"?"st-warn":(liv==="ok"?"st-ok":(liv==="warn"?"st-warn":"st-danger"))}" data-foro-id="${esc(p.id)}" role="button" tabindex="0" style="cursor:pointer" title="Registra la carica reale di questo foro">
-      <div class="avatar">${esc(p.foro)}</div>
-      <div class="info"><div class="name">Foro ${esc(p.foro)} · progettati ${esc(p.prog)} kg</div><div class="meta">x ${esc(p.x)} m · prof. ${esc(p.prof)} m · borr. ${esc(p.borr)} m · rit. ${esc(p.rit)} ms</div></div>
+      <div class="avatar">${esc(numeroIt(p.foro, 0))}</div>
+      <div class="info"><div class="name">Foro ${esc(numeroIt(p.foro, 0))} · progettati ${esc(numeroIt(p.prog, 3))} kg</div><div class="meta">x ${esc(numeroItDa(p.x, 2))} m · prof. ${esc(numeroItDa(p.prof, 2))} m · borr. ${esc(numeroItDa(p.borr, 2))} m · rit. ${esc(numeroItDa(p.rit, 1))} ms</div></div>
       <span class="badge ${b[0]}">${b[0]==="danger"?I.allarme:""}${b[1]}</span></div>`; }).join("");
   }
   $("btn-piano").onclick = () => $("piano-file").click();
@@ -2781,12 +2808,14 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
     if (!it) return;
     const p = PIANO.find(x => x.id === it.getAttribute("data-foro-id")); if (!p) return;
     // punto di scrittura 19 — carica reale del foro
-    if (bloccato(p.data, p.turno, "la carica reale del foro " + p.foro)) return;
+    if (bloccato(p.data, p.turno, "la carica reale del foro " + numeroIt(p.foro, 0))) return;
     // niente prompt() del browser: campo etichettato dentro la modale del core
-    const v = await chiediValore("Carica reale del foro " + p.foro,
-      `Progettati <b>${esc(p.prog)} kg</b>. Scrivi quanti chili di esplosivo sono stati
+    const v = await chiediValore("Carica reale del foro " + numeroIt(p.foro, 0),
+      `Progettati <b>${esc(numeroIt(p.prog, 3))} kg</b>. Scrivi quanti chili di esplosivo sono stati
        <b>davvero caricati</b>: Campo calcola da solo lo scostamento dal progetto e lo salva.`,
-      `<label class="fl" for="modal-campo">Carica reale in kg</label>
+      // l'unità dentro l'etichetta va in un <u class="uni">: l'etichetta è in
+      // maiuscolo di stile e «kg» non si scrive «KG» (vedi la regola .uni)
+      `<label class="fl" for="modal-campo">Carica reale in <u class="uni">kg</u></label>
        <input class="dw-input" id="modal-campo" type="number" min="0" step="0.1" inputmode="decimal"
               value="${p.reale != null ? esc(String(p.reale)) : esc(String(p.prog))}">`,
       "Salva la carica");
@@ -2802,7 +2831,7 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
       { reale: kg, da: IO.operatore || "", squadra: IO.squadra || "" });
     p.reale = kg; p.da = IO.operatore || ""; p.squadra = IO.squadra || "";
     pianoRender();
-    toast("Foro " + p.foro + ": registrati " + kg + " kg.", "success");
+    toast("Foro " + numeroIt(p.foro, 0) + ": registrati " + numeroIt(kg, 3) + " kg.", "success");
     // Se proprio con questo foro il carico complessivo è uscito di tolleranza,
     // lo si dice SUBITO: il senso di vederlo durante il carico è poter ancora
     // correggere sui fori che restano, non scoprirlo a volata sparata.
@@ -2810,7 +2839,7 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
     if (dopo && dopo.livello !== primaLiv && dopo.livello !== "ok" && dopo.registrati < dopo.totale)
       setTimeout(() => toast("Attenzione: "
         + (dopo.registrati === 1 ? "sul primo foro caricato" : "sui " + dopo.registrati + " fori caricati")
-        + " sei al " + (dopo.pct >= 0 ? "+" : "") + dopo.pct + "% rispetto al progetto. "
+        + " sei al " + segnoIt(dopo.pct, 0) + "% rispetto al progetto. "
         + (dopo.totale - dopo.registrati === 1 ? "Resta 1 foro" : "Restano " + (dopo.totale - dopo.registrati) + " fori")
         + " per rientrare.", "err"), 2900);
   });

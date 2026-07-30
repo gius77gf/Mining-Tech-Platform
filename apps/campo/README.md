@@ -147,10 +147,42 @@ di lì, il blocco non serve a niente.
 Il **giorno di lavoro** (`data`, formato aaaa-mm-gg) è la chiave di tutto:
 senza di esso non esistono storico né conteggi veri.
 
+## Numeri: mostrati ≠ scambiati
+
+Due convenzioni, e non vanno mescolate.
+
+- **Mostrati** (schermo, toast, note dei grafici, `aria`, rapporto stampabile,
+  consegna `.txt`): all'italiana — **virgola** decimale, **punto** per le
+  migliaia. Passano tutti da `numeroIt(v, dec)` / `segnoIt(v, dec)` /
+  `numeroItDa(v, dec)` di `campo-data.js`. Sono **funzioni pure**: una sola
+  riga da correggere se la convenzione cambia. `numeroItDa` è per i valori che
+  arrivano come **testo grezzo** da un file (le colonne `x`, `prof`, `borr`,
+  `rit` del piano di carico): li interpreta con `numIt` e li riscrive
+  all'italiana senza toccare il file.
+- **Scambiati** (`campo_consuntivo_carico.csv` verso Genesi,
+  `campo_storico.csv`, `campo_squadre.csv`, e il `value` degli
+  `input[type=number]`): **punto** decimale, nessun separatore di migliaia.
+  Qui `numeroIt` **non si usa**: quei numeri sono dati, non testo, e chi li
+  rilegge conta su quel formato. `pianoConsuntivoCsv` scrive
+  `carica_reale_kg` **grezza**, senza arrotondamenti.
+
+Le **unità di misura non si scrivono mai in maiuscolo**: `m³` non è `M³` e
+`µg/m³` non è `MG/M³` (milligrammi, mille volte tanto). Dove un'unità sta
+dentro un testo messo in maiuscolo per stile si avvolge in
+`<u class="uni">…</u>`. Nei grafici **non serve ricordarsene**: il motore
+condiviso avvolge da sé l'unità in `.dwg-u` e le toglie il maiuscolo
+(`shared/dw-grafici.js`), quindi l'override locale che stava qui è stato
+rimosso — spegneva il maiuscolo anche a «Voce» e «Quota», allontanando la
+tabella dal core invece di avvicinarla.
+
 ## Verifiche
 
 - Sintassi: estrarre gli script inline e passarli a
   `node --input-type=module --check`.
+- **Giro dei ponti**: esportare il consuntivo da Campo, rileggerlo in Genesi
+  (Riconciliazione → *Importa consuntivo da Campo*) e controllare che i chili,
+  lo scostamento, chi ha registrato e la data arrivino **identici**. È la
+  prova che dice se una formattazione da schermo è finita in un file.
 - Vista: server statico locale + Chromium headless, schermate a **1280px e
   390px** (in cava si guarda dal telefono), tema scuro, chiaro e sole.
 - Blocco del turno chiuso: chiudere un turno e poi provare **uno per uno**

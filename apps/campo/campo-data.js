@@ -39,6 +39,68 @@
 
 import { parseCsvLine, numIt, isIntestazione, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
 
+// ══════════════════════════════════════════════════════════════════════
+// NUMERI COME SI SCRIVONO IN ITALIA — un solo posto per la convenzione
+// ══════════════════════════════════════════════════════════════════════
+// In Italia il decimale è la VIRGOLA e il separatore delle migliaia è il
+// PUNTO: «1.250,4 kg», non «1250.4 kg». Prima questa formattazione era
+// ricopiata a mano in una decina di punti diversi (a volte con
+// toLocaleString, a volte no) ed è proprio per questo che in metà dei punti
+// il punto decimale inglese era rimasto: il badge del foro scriveva
+// «44.7 kg». Da qui in poi passa tutto da queste tre funzioni, e correggere
+// la convenzione vuol dire correggere una riga.
+//
+// ⚠️ SONO FUNZIONI PER I NUMERI **MOSTRATI**. I numeri **SCAMBIATI** fra le
+// app — i CSV: pianoConsuntivoCsv verso Genesi, lo storico, le squadre —
+// restano col PUNTO decimale e senza separatore delle migliaia: sono dati,
+// non testo, e chi li rilegge conta su quel formato. Se un numero finisce in
+// un file, NON passa da qui.
+//
+// numeroIt: il numero, con al massimo `dec` decimali (gli zeri finali non si
+// scrivono: 60 resta «60», non «60,00»). Non è un numero → stringa vuota,
+// così chi lo mostra decide cosa metterci al posto. Pura e testabile.
+//
+// Due dettagli che NON sono pignoleria:
+//  · `useGrouping: true` è scritto a mano di proposito. Lasciato al valore di
+//    default, il separatore delle migliaia dipende dalla versione di ICU del
+//    motore: 1286 esce «1.286» su Chromium e «1286» su Node (strategia
+//    «min2», che raggruppa solo da cinque cifre). Lo stesso numero scritto in
+//    due modi a seconda di dove gira è precisamente ciò che qui non si vuole.
+//  · null e "" NON sono zero. `+null` fa 0, e senza questo controllo una
+//    carica non registrata comparirebbe come «0 kg» — cioè un fatto, e falso,
+//    invece di un dato mancante.
+export function numeroIt(v, dec = 2) {
+  if (v === null || v === "" || v === undefined) return "";
+  const n = +v;
+  if (!Number.isFinite(n)) return "";
+  return n.toLocaleString("it-IT", {
+    maximumFractionDigits: Math.max(0, dec | 0),
+    useGrouping: true,
+  });
+}
+
+// segnoIt: come numeroIt ma col VERSO davanti, e il meno è il segno meno
+// tipografico (−, U+2212) non il trattino: «+4,7» / «−15,3». Serve agli
+// scostamenti, dove il verso è metà dell'informazione. Pura e testabile.
+export function segnoIt(v, dec = 2) {
+  if (v === null || v === "" || v === undefined) return "";
+  const n = +v;
+  if (!Number.isFinite(n)) return "";
+  return (n < 0 ? "−" : "+") + numeroIt(Math.abs(n), dec);
+}
+
+// numeroItDa: per i numeri che arrivano come TESTO GREZZO da un file (le
+// colonne del piano di carico che Campo non converte: x, prof, borr, rit).
+// Li interpreta con numIt — che accetta sia «13.20» sia «13,20» — e li
+// riscrive all'italiana; se non è un numero restituisce il testo com'era,
+// perché è roba di un file e non la si indovina. Pura e testabile.
+export function numeroItDa(v, dec = 2) {
+  const s = String(v == null ? "" : v).trim();
+  if (s === "") return "";
+  const n = numIt(s);
+  return Number.isFinite(n) ? numeroIt(n, dec) : s;
+}
+
 // Giorno di lavoro corrente in ISO (aaaa-mm-gg) e in ora LOCALE: usare
 // toISOString() sulla data grezza darebbe il giorno UTC e in Italia, la sera
 // tardi, sbaglierebbe di un giorno intero. Pura e testabile.
@@ -546,8 +608,8 @@ export function misuraRidotta(larghezza, altezza, lato) {
 export function formattaByte(n) {
   const b = Math.max(0, +n || 0);
   return b >= 1048576
-    ? (Math.round(b / 1048576 * 10) / 10).toLocaleString("it-IT") + " MB"
-    : Math.max(1, Math.round(b / 1024)).toLocaleString("it-IT") + " kB";
+    ? numeroIt(b / 1048576, 1) + " MB"
+    : numeroIt(Math.max(1, Math.round(b / 1024)), 0) + " kB";
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -724,9 +786,10 @@ export function produzioneDi(r) {
   if (!Number.isFinite(q) || q <= 0) return null;
   return { qta: q, unita: UNITA_PRODUZIONE.includes(r.prodUnita) ? r.prodUnita : UNITA_PRODUZIONE[0] };
 }
-// "1.250 t" — numero all'italiana con l'unità accanto.
+// "1.250 t" — numero all'italiana con l'unità accanto. L'unità NON va mai
+// messa in maiuscolo dopo: «m³» e «M³» non sono la stessa cosa.
 export function formattaProduzione(qta, unita) {
-  return (Math.round((+qta || 0) * 100) / 100).toLocaleString("it-IT") + " " + (unita || UNITA_PRODUZIONE[0]);
+  return numeroIt(+qta || 0, 2) + " " + (unita || UNITA_PRODUZIONE[0]);
 }
 
 // Totali di produzione: per unità di misura sull'insieme passato e, dentro,

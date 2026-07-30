@@ -111,4 +111,38 @@ formato nuovo. In Sentinella: *Registri → Registro volate → Importa da CSV*.
   report: `computeKPI()`, `computeMIC()`, `airblastDb()`, `normaPpvLab()` — una
   formula sola per ogni cosa, altrimenti due schermate direbbero due numeri.
 
+## Numeri: mostrati ≠ scambiati
+
+Due convenzioni, e non vanno mescolate.
+
+- **Mostrati** (chip, scheda validatori e i suoi «perché», confronto A/B,
+  riconciliazione, legge di sito, legende 3D, tooltip, toast, report
+  stampabile): all'italiana — **virgola** decimale, **punto** per le migliaia.
+  Passano tutti da **tre funzioni sole**, in cima al modulo:
+  - `gnum(v, dec)` — al massimo `dec` decimali, senza zeri finali inutili
+    (60 resta «60»); non è un numero → «—», così a schermo non compare `NaN`;
+  - `gseg(v, dec)` — come `gnum` col verso davanti e il segno meno tipografico
+    («+4,7» / «−15,3»): serve agli scostamenti, dove il verso è metà del dato;
+  - `gfix(v, dec)` — decimali **tutti**, anche gli zeri, per le tabelle in cui
+    i numeri devono avere la stessa lunghezza.
+  `fmtMs`, `fmtKg`, `_ricKg`, `_ricSegno`, `_ricPct` e `_sitoNum` sono ora
+  scorciatoie sopra queste: prima erano sei copie della stessa formattazione,
+  ed è per questo che `riconDelta()` scriveva «+3.0 cm» col punto accanto a
+  numeri con la virgola.
+- **Scambiati** (`genesi_piano_carico.csv` verso Campo, referti della legge di
+  sito, onda composita, XML stile IREDES, JSON della volata,
+  `genesi_scheda_volata.csv`, export del confronto A/B) e i `value` dei campi
+  numerici: **punto** decimale. Qui `gnum`/`gfix` **non si usano**: quei numeri
+  sono dati, e Campo li rilegge con quel formato.
+- Coordinate SVG/canvas, valori CSS e arrotondamenti interni memorizzati negli
+  oggetti (`D2.holes`, `h.burdenLoc`, `P.profilo`): restano `toFixed()` — non
+  sono numeri che qualcuno legge.
+
+Le **unità di misura non si scrivono mai in maiuscolo**: `m³` non è `M³` e
+`µg/m³` non è `MG/M³` (milligrammi, mille volte tanto). Le etichette dei campi
+sono in maiuscolo per stile, quindi l'unità fra parentesi va in
+`<u class="uni">…</u>`: `(m)`, `(mm)`, `(MPa)`, `(GPa)`, `(Hz)`, `(kg/m)`,
+`(€/t)`, `ms/m` — 27 etichette. Gli `h2` del report stampabile sono in
+maiuscolo ma non contengono unità: là non serve.
+
 © 2026 Deepwork · Mining-Tech Platform
