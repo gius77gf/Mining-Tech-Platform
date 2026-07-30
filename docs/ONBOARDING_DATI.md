@@ -44,6 +44,26 @@ riscriverli a mano. È il manuale pratico del **Passo 6 del PIANO_GO_LIVE**.
     della volata**: togliere una riga farebbe sparire una carica e abbassare il
     totale dell'esplosivo senza che nessuno sappia perché. Se è un errore del
     file, si corregge nel foglio di calcolo e si ricarica.
+- ⚠️ **Il file giusto nel posto giusto** *(misurato il 31/07)*. Ogni schermata
+  d'importazione si aspetta **il suo** formato, e riconosce come intestazione
+  solo **la propria**. Provando tutte le combinazioni — 32 file che le app
+  scaricano × 17 lettori — in **109** casi la riga d'intestazione di un file
+  estraneo verrebbe letta come **un dato**, e comparirebbe in lista una voce che
+  si chiama «sezione» o «tipo».
+  Non è un difetto che scatta da solo: succede **solo se si carica un file nel
+  posto sbagliato**. Le due difese che ci sono:
+  1. ogni file scaricato ha un **nome diverso** dagli altri (controllato in
+     automatico), così nella cartella dei download non si confondono;
+  2. quando un file non ha le colonne giuste, l'app **dice quali servono**
+     invece di caricare a metà.
+  Il caso più facile da sbagliare era il **listino di Conti**, che ha due
+  esportazioni: quella ri-caricabile e il prospetto dei prezzi convertiti. Lì la
+  difesa è più forte — senza un prezzo leggibile nella sua colonna la riga non
+  entra — e caricando il file sbagliato **non entra niente**, con il messaggio
+  che dice quale dei due usare.
+  **La regola pratica**: si ri-carica solo ciò che si è scaricato **dallo stesso
+  bottone**. Se un import mostra righe che non riconosci, non correggerle a
+  mano: svuota e ricarica il file giusto.
 - **Isolamento**: i dati caricati entrano SOLO nell'organizzazione del cliente.
   Nessun'altra azienda li vede mai.
 - **Backup**: accanto a ogni import c'è un **Esporta (CSV)** che scarica gli
