@@ -335,8 +335,8 @@ inserito una volta serve in cinque posti**.
       **non converte e non stima**. Otto stati, di cui tre che si rifiutano di
       mentire: disavanzo (venduto più del cavato: è un buco, non scorte),
       implausibile oltre il 35% (è un errore da cercare), no-densità.
-- [ ] P2. **Campo → Terra**: produzione del turno → volumi per fronte.
-      *(l'unico ponte che resta)*
+- [x] **P2. Campo → Terra: produzione del turno → volumi per fronte** ✅
+      *(30/07, `6c854de` + `7a2da26` + `6e99e5b`)* — **l'ultimo ponte, chiuso.**
       **Primo pezzo fatto** *(30/07, `6c854de`)* — `produzionePerFronte` in
       `shared/`, ri-esportata da Campo e Terra con test d'identità. Divide per
       fronte, tiene separati «senza fronte» e «fronte che non esiste più», non
@@ -344,10 +344,15 @@ inserito una volta serve in cinque posti**.
       e calcola la quota sull'attribuito e non sul totale. ⛔ Accoppia per
       identificativo, mai per nome: controprova che rimette il difetto e fa
       cadere la guardia. Otto prove, totale 325 → 333.
-      **Resta da fare**: Campo non registra ancora il `fronteId` sul
-      rapportino — serve la tendina dei fronti letti da Terra (sola lettura,
-      stesso schema di `rilieviTerra`), i dati dimostrativi coerenti, e poi la
-      ripartizione mostrata in Terra tenuta separata dalla misura del drone.
+      **Secondo pezzo** *(`7a2da26`)* — la tendina dei fronti nel rapportino di
+      Campo, letti da Terra in sola lettura, con tre stati distinti e nessuno
+      muto. Si registra l'identificativo, mai il nome. «Fronte non indicato»
+      resta la prima voce.
+      **Terzo pezzo** *(`6e99e5b`)* — Terra mostra la ripartizione dentro la
+      stima corrente, con la copertura e un avviso sotto il 60%. Trovati
+      guardando: i rapportini dimostrativi dentro Terra erano una seconda copia
+      senza fronte (copertura zero: funzionava e sembrava rotto), l'unità in
+      maiuscolo «1.637 M³», e un testo diventato falso.
 
 ## BLOCCO 6 — SECONDE ITERAZIONI: I DIFETTI DICHIARATI, CHIUSI
 Non feature nuove: i difetti che i cantieri avevano trovato e scritto nero su
