@@ -55,11 +55,14 @@ ognuno. È la pagina da aprire per prima davanti a qualcuno.
   e per i soldi, valida in tutte le app — con i controlli automatici che
   impediscono a un'app di riscriversene una propria.
 
-**Quanto è controllato, oggi**: 555 prove automatiche che girano senza rete,
-58 sulle regole di sicurezza con l'emulatore, e 11 banchi che aprono davvero le
-pagine in un browser (contrasto, unità di misura, campi numerici, niente fuori
-dallo schermo di un telefono). Ognuno ha la sua **controprova**: si rimette il
-difetto e si pretende che il controllo fallisca.
+**Quanto è controllato, oggi** *(contato il 31/07, non a memoria)*: **627**
+prove automatiche che girano senza rete, **58** sulle regole di sicurezza con
+l'emulatore, e **13** banchi che aprono davvero le pagine in un browser
+(contrasto, unità di misura, campi numerici, niente fuori dallo schermo di un
+telefono, e da oggi due elementi con lo stesso identificativo). Ognuno ha la sua
+**controprova**: si rimette il difetto e si pretende che il controllo fallisca —
+e quando una controprova non arriva su tutte le superfici, come è successo oggi
+su tre di nove, vale meno di quanto sembra e va sistemata.
 
 **Due cose che aspettano una tua decisione**, nuove rispetto al 23:
 `docs/REVISIONE_SICUREZZA_202607.md` (l'isolamento fra aziende tiene ed è

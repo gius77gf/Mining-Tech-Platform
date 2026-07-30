@@ -221,5 +221,5 @@ sopra restano in attesa finché non le sblocchi in conversazione.
 ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi. Le prove automatiche sono passate
-a **555** (più 58 sulle regole di sicurezza e 11 banchi che aprono davvero le
-pagine in un browser).
+a **627** *(ricontate il 31/07)*, più 58 sulle regole di sicurezza e **13**
+banchi che aprono davvero le pagine in un browser.
