@@ -2,7 +2,7 @@
 
 - **Tipo**: infrastruttura di prova + chiusura del punto rimasto aperto
 - **Branch**: `claude/scheduled-tasks-remote-control-bk4ap6`
-- **Commit**: (aggiunto sotto dopo il commit)
+- **Commit**: `621f87c`
 
 ## Il punto che era rimasto aperto
 
