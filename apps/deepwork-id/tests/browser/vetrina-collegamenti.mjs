@@ -54,6 +54,43 @@ const schede = await p.$$eval('.scheda', (as) => as.map((a) => ({
 console.log(`\n── ${schede.length} riquadri nella vetrina ──`);
 prova('la vetrina ha nove riquadri', schede.length === 9, schede.length);
 
+/* ⛔ IL BOTTONE PRINCIPALE DEVE MANTENERE LA PROMESSA CHE FA.
+   Si chiama «Prova il tour» e fino al 30/07 portava al modulo di ACCESSO, con
+   l'ingresso al tour più sotto, dopo un «oppure». Il conto è semplice: la
+   promessa era «prova», la pagina rispondeva «accedi», e chi mostra la vetrina
+   dal vivo davanti a qualcuno deve spiegare perché. Adesso il bottone porta a
+   `#tour` e la pagina d'accesso, vedendo quel frammento, entra da sé.
+   Le due metà si provano tutte e due, perché la seconda è quella che potrebbe
+   rompersi in silenzio: senza frammento l'accesso normale deve restare intatto
+   — un tour che parte da solo a chi voleva accedere sarebbe peggio del difetto
+   che stiamo chiudendo. */
+{
+  const tour = await p.evaluate(() => {
+    const a = [...document.querySelectorAll('.cta.primaria')];
+    return { quanti: a.length, href: a.map((x) => x.getAttribute('href')) };
+  });
+  prova(`i bottoni «prova» puntano al tour, non al modulo d'accesso`,
+    tour.quanti > 0 && tour.href.every((h) => (h || '').endsWith('#tour')), tour);
+
+  for (const [frammento, atteso] of [['', 0], ['#tour', 1]]) {
+    const q = await ctx.newPage();
+    await montaFintoFirebase(q);
+    await q.addInitScript(() => {
+      window.__tourCliccato = 0;
+      document.addEventListener('click', (e) => {
+        if (e.target && e.target.id === 'btn-tour') window.__tourCliccato++;
+      }, true);
+    });
+    await q.goto(`${BASE}/apps/deepwork-id/index.html${frammento}`);
+    await q.waitForTimeout(2600);
+    const n = await q.evaluate(() => window.__tourCliccato);
+    prova(frammento ? 'con «#tour» il tour parte da solo, una volta sola'
+                    : `senza frammento l'accesso normale resta intatto`,
+      n === atteso, { atteso, avuto: n });
+    await q.close();
+  }
+}
+
 /* ⛔ I NUMERI ANNUNCIATI DEVONO CORRISPONDERE A QUELLO CHE C'È IN PAGINA.
    Il 30/07 l'apertura diceva «5 ponti fra le app», il sottotitolo della sezione
    diceva «Quattro cose che nessuno di loro, da solo, saprebbe fare» e i riquadri

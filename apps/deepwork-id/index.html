@@ -158,6 +158,17 @@
   $('btn-google').onclick   = guard(async () => { await id.loginWithGoogle(); afterAuth(); });
   $('btn-register').onclick = guard(async () => { await id.registerWithEmail($('reg-email').value.trim(), $('reg-pass').value); afterAuth(); });
   $('btn-tour').onclick     = guard(async () => { await id.loginTour(); afterAuth(); });
+
+  /* ⛔ CHI ARRIVA CON «#tour» HA GIÀ CHIESTO IL TOUR: non glielo si richiede.
+     Nella vetrina il bottone principale si chiama «Prova il tour», e fino al
+     30/07 portava qui — a un modulo di accesso, con l'ingresso al tour sotto,
+     dopo un «oppure». Il conto vero è questo: la promessa era «prova», la
+     pagina rispondeva «accedi», e chi la mostra dal vivo davanti a qualcuno
+     deve spiegare perché. Un solo passo, e la promessa è mantenuta.
+     Si guarda l'indirizzo, non si indovina: l'accesso normale (senza
+     frammento) resta esattamente com'era. */
+  if (location.hash === '#tour') $('btn-tour').click();
+
   // Invio da tastiera nei campi: accedere/registrarsi senza toccare il pulsante
   const onEnter = (inputId, btnId) => $(inputId).addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); $(btnId).click(); }
