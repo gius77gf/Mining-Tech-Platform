@@ -506,6 +506,21 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
 
 <!-- DASHBOARD -->
 <div class="page active" id="page-dash">
+  <!-- IL BLOCCO DI CHI LAVORA sta in un contenitore suo perché deve poter SALIRE
+       in cima: vedi `sistemaOrdineQuadro()`. Qui sotto è la posizione di quando
+       ancora nessuno ha detto chi è. -->
+  <div id="mio-blocco">
+    <div class="sec">Cosa tocca a me<span class="cnt" id="mie-count">0</span></div>
+    <div class="ord">
+      <span class="of"><label for="io-squadra">Squadra</label>
+        <select id="io-squadra" class="dw-input" aria-label="La mia squadra"></select></span>
+      <span class="of"><label for="io-operatore">Sono</label>
+        <select id="io-operatore" class="dw-input" aria-label="Chi sono"></select></span>
+    </div>
+    <div id="mie-list"></div>
+  </div>
+
+  <div id="quadro-sintesi">
   <div class="sec">Quadro della giornata</div>
   <div class="kpis">
     <div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-goto="squ" title="Vedi le squadre in turno"><div class="l">Squadre attive</div><div class="n">—</div></div>
@@ -517,15 +532,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   <div id="dash-hse"></div>
   <div id="att-avanz"></div>
   <div id="ob-board"></div>
-
-  <div class="sec">Cosa tocca a me<span class="cnt" id="mie-count">0</span></div>
-  <div class="ord">
-    <span class="of"><label for="io-squadra">Squadra</label>
-      <select id="io-squadra" class="dw-input" aria-label="La mia squadra"></select></span>
-    <span class="of"><label for="io-operatore">Sono</label>
-      <select id="io-operatore" class="dw-input" aria-label="Chi sono"></select></span>
   </div>
-  <div id="mie-list"></div>
 
   <div class="sec">Oggi in cava</div>
   <div id="oggi-list"></div>
@@ -1592,6 +1599,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
 
   // «Cosa tocca a me»: le attività di oggi assegnate a me o alla mia squadra.
   function renderIo() {
+    sistemaOrdineQuadro();
     const mie = IO.squadra ? ATT_OGGI.filter(a => eMia(a, IO) && a.stato !== "conclusa") : [];
     const fatte = IO.squadra ? ATT_OGGI.filter(a => eMia(a, IO) && a.stato === "conclusa").length : 0;
     $("mie-count").textContent = mie.length;
@@ -1608,6 +1616,25 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
         || vuoto(I.spunta, fatte ? "Tutto fatto" : "Niente in carico",
             fatte ? `Le <b>${fatte}</b> attività di oggi assegnate a te o alla tua squadra sono <b>tutte concluse</b>.`
                   : "Oggi non c'è nessuna attività assegnata a te o alla tua squadra. Il capocantiere le assegna da <b>Attività → Nuova attività</b>."));
+  }
+
+  // ── DOVE CADE L'OCCHIO QUANDO SI APRE L'APP ───────────────────────────────
+  // Misurato a 390 px: «Cosa tocca a me» cominciava a 850 px, cioè SOTTO LA PIEGA,
+  // e sopra di sé aveva 480 px di numeri di sintesi. Ma Campo è l'operativo di
+  // giornata: chi lo apre la mattina, nella maggior parte dei casi, lo apre per
+  // sapere cosa deve fare — non per sapere a che percentuale sta la cava.
+  // Quindi: appena una persona ha detto CHI È, il suo lavoro sale in cima. Finché
+  // non l'ha detto resta dov'è, perché lì il blocco è solo un invito a
+  // identificarsi e la sintesi è la cosa utile.
+  // Non è un contenuto che salta sotto gli occhi: si muove solo dopo una scelta
+  // esplicita, e la scelta resta salvata — alla riapertura è già in cima.
+  function sistemaOrdineQuadro() {
+    const pag = $("page-dash"), mio = $("mio-blocco"), sintesi = $("quadro-sintesi");
+    if (!pag || !mio || !sintesi) return;
+    const soIoChiSono = !!(IO && IO.squadra && IO.operatore);
+    const primo = pag.firstElementChild === mio;
+    if (soIoChiSono && !primo) pag.insertBefore(mio, sintesi);
+    else if (!soIoChiSono && primo) pag.insertBefore(mio, sintesi.nextElementSibling);
   }
 
   // ── PONTE P3 · i documenti del personale, detti come FATTI AMMINISTRATIVI ──
