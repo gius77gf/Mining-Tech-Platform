@@ -56,13 +56,19 @@ ognuno. È la pagina da aprire per prima davanti a qualcuno.
   impediscono a un'app di riscriversene una propria.
 
 **Quanto è controllato, oggi** *(contato il 31/07, non a memoria)*: **627**
-prove automatiche che girano senza rete, **58** sulle regole di sicurezza con
-l'emulatore, e **13** banchi che aprono davvero le pagine in un browser
+prove automatiche che girano senza rete, **106** che girano con l'emulatore
+Firestore — 58 sulle **regole di sicurezza** (`run.mjs`), 19 sull'SDK, 21 sulle
+funzioni e 8 sul primo avvio — e **13** banchi che aprono davvero le pagine in
+un browser
 (contrasto, unità di misura, campi numerici, niente fuori dallo schermo di un
 telefono, e da oggi due elementi con lo stesso identificativo). Ognuno ha la sua
 **controprova**: si rimette il difetto e si pretende che il controllo fallisca —
 e quando una controprova non arriva su tutte le superfici, come è successo oggi
 su tre di nove, vale meno di quanto sembra e va sistemata.
+*(Le 106 con l'emulatore il 31/07 non hanno potuto girare in questo ambiente:
+la rete di lavoro blocca una chiamata che l'emulatore fa all'avvio. Il numero
+qui sopra è contato sui file, non su un'esecuzione di oggi — e questa
+distinzione va tenuta, perché «contate» e «passate» non sono la stessa cosa.)*
 
 **Due cose che aspettano una tua decisione**, nuove rispetto al 23:
 `docs/REVISIONE_SICUREZZA_202607.md` (l'isolamento fra aziende tiene ed è
