@@ -417,10 +417,78 @@ export function avvolgiUnita(testo) {
   for (const u of IN_ORDINE) {
     // dopo una cifra, con o senza spazio in mezzo, e non dentro una parola
     const re = new RegExp("(\\d)(\\s*)" + u.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?![\\w³²])", "g");
-    t = t.replace(re, `$1$2<span class="u">${u}</span>`);
+    /* ⚠️ LO SPAZIO STA DENTRO LO SPAN, non prima. La pastiglia è un contenitore
+       flex con `gap: 4px`, e uno span che le sta dentro diventa un elemento
+       flex: il gap comparirebbe ANCHE dove il testo non aveva nessuno spazio, e
+       «€ 26,11/h» uscirebbe «€ 26,11 /h». Con lo spazio dentro, la pastiglia può
+       annullare il gap una volta sola (`.badge .u{margin-left:-4px}`) e le due
+       forme — quella staccata e quella attaccata — vengono giuste tutte e due.
+       ⚠️ E lo spazio dev'essere QUELLO UNIFICATORE (U+00A0), non uno normale:
+       dentro un contenitore flex lo span è un elemento a sé, il suo contenuto
+       comincia una riga nuova, e uno spazio normale a inizio riga il browser lo
+       toglie. Misurato: «17,4 l/h» usciva «17,4l/h». Del resto è anche giusto
+       nel merito — un'unità non deve mai andare a capo lontano dal suo numero,
+       è la stessa ragione per cui il simbolo dell'euro ha l'unificatore.
+       Misurato prima di decidere: su sei app le pastiglie visibili sono 302, e
+       di quelle con figli 35 contengono un'unità contro 3 che contengono
+       un'icona. Il gap serviva a tre casi e ne rovinava trentacinque. */
+    t = t.replace(re, (_, cifra, spazio) =>
+      `${cifra}<span class="u">${spazio ? "\u00A0" : ""}${u}</span>`);
   }
   return t;
 }
+
+/* ⛔ I SOLDI SI SCRIVONO IN UN MODO SOLO IN TUTTO L'ECOSISTEMA.
+   Il 30/07 erano tre modi in tre app, e ognuna aveva scritto accanto alla
+   propria la RAGIONE per cui era quella giusta:
+     Conti   «€\u00A048.200,00»  — «spazio dopo l'euro; le colonne devono
+                              incolonnarsi: mai formati misti»
+     Flotta  «€178,50» / «€8.400» — «i centesimi solo quando ci sono:
+                              €8.400,00 è rumore»
+     Terra   «€\u002048.200»     — arrotondato
+   Nessuna delle tre è sciatta; è che nessuna sapeva delle altre. E il cliente
+   che compra due app le vede una accanto all'altra.
+
+   Come si è deciso, invece di scegliere a caso fra tre:
+   - il SIMBOLO non ha varianti difendibili: «€» con lo spazio, sempre, davanti
+     alla cifra. E lo spazio è quello UNIFICATORE (U+00A0), non quello normale:
+     ⚠️ gli spazi erano TRE, non due, e me ne sono accorto solo guardando i byte.
+     Conti aveva l'unificatore, Terra lo spazio normale, Flotta niente. Con lo
+     spazio normale, su una colonna stretta, «€» resta a fine riga e la cifra va
+     a capo da sola: il simbolo si stacca dai soldi che descrive. Scritto con
+     l'escape, così nessuno lo «corregge» in uno spazio normale non vedendo la
+     differenza — che a occhio non c'è.
+   - i DECIMALI sì che sono una scelta vera, perché un totale in colonna e un
+     indicatore arrotondato sono due cose diverse. Perciò due funzioni con due
+     nomi, non un interruttore: `euro` (sempre due decimali) ed `euro0`
+     (arrotondato).
+   - la terza forma di Flotta — i centesimi solo quando ci sono — cade, ed è
+     l'unica cosa che cambia di aspetto. Il motivo è quello che Conti aveva già
+     scritto: dentro una colonna alcune righe avrebbero i decimali e altre no,
+     e le cifre non si incolonnano più.
+   Le app la RI-ESPORTANO col nome che hanno sempre usato (`const eur = euro`):
+   un alias non è una seconda implementazione. */
+const EURO2 = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const EURO0 = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0 });
+/* ⚠️ IL SEGNO MENO STA DAVANTI AL SIMBOLO, non in mezzo. Attaccando il simbolo
+   davanti a quello che sputa `Intl` veniva fuori «€ -1234,50», col meno
+   incastrato fra il simbolo e le cifre: è la forma peggiore delle due, perché a
+   colpo d'occhio il meno sembra un trattino di separazione e non un segno. In
+   una colonna di importi, dove il segno è l'unica cosa che distingue un credito
+   da un debito, non è un dettaglio tipografico. Si scrive «-€ 1.234,50». */
+/* `conEuro` è esportata perché il SIMBOLO e il FORMATO DEL NUMERO sono due cose
+   diverse, e una sola delle due è una convenzione dell'ecosistema. Quando un'app
+   ha un numero formattato a modo suo per una ragione sua — l'indicatore di
+   Flotta che scrive «8,4k» per far stare la cifra in una casella piccola — deve
+   poter mettere il simbolo GIUSTO senza riscriverne la regola: quella è la
+   strada da cui sono nate le tre forme diverse. Si passa il numero già scritto,
+   torna col simbolo e col meno al posto giusto. */
+export function conEuro(testo) {
+  const s = String(testo == null ? "" : testo);
+  return s.startsWith("-") ? "-\u20AC\u00A0" + s.slice(1) : "\u20AC\u00A0" + s;
+}
+export function euro(v) { return conEuro(EURO2.format(+v || 0)); }
+export function euro0(v) { return conEuro(EURO0.format(Math.round(+v || 0))); }
 
 export function mountExit(db) {
   if (!db || db.mode !== "live" || typeof db.logout !== "function") return;

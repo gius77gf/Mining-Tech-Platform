@@ -3160,9 +3160,14 @@ test("l'arrotondamento non può peggiorare il numero", () => {
    che le divideva. */
 {
   const { avvolgiUnita } = shell;
-  const U = (u) => `<span class="u">${u}</span>`;
+  /* lo spazio di separazione sta DENTRO lo span (il perché è accanto ad
+     `avvolgiUnita`): le prove lo scrivono come lo scrive la funzione */
+  /* lo spazio di separazione sta DENTRO lo span ed è quello unificatore: il
+     perché sta accanto ad `avvolgiUnita`. Le prove lo scrivono con l'escape,
+     perché a occhio è identico a uno spazio normale. */
+  const U = (u, sp = "") => `<span class="u">${sp ? "\u00A0" : ""}${u}</span>`;
   test("unità nel maiuscolo: col separatore e senza", () => {
-    eq(avvolgiUnita("tra 13 gg"), `tra 13 ${U("gg")}`, "con lo spazio");
+    eq(avvolgiUnita("tra 13 gg"), `tra 13${U("gg", " ")}`, "con lo spazio");
     /* è ESATTAMENTE il caso su cui le tre copie divergevano */
     eq(avvolgiUnita("Tagliandi 30gg"), `Tagliandi 30${U("gg")}`, "e attaccato, che una delle tre non vedeva");
   });
@@ -3172,8 +3177,8 @@ test("l'arrotondamento non può peggiorare il numero", () => {
     eq(avvolgiUnita("Squadra B"), "Squadra B", "un testo senza numeri non si tocca");
   });
   test("unità nel maiuscolo: più unità nella stessa frase", () => {
-    eq(avvolgiUnita("21 gg e 4 mm"), `21 ${U("gg")} e 4 ${U("mm")}`, "tutte e due");
-    eq(avvolgiUnita("1500 m³"), `1500 ${U("m³")}`, "anche il metro cubo, che è il caso peggiore");
+    eq(avvolgiUnita("21 gg e 4 mm"), `21${U("gg", " ")} e 4${U("mm", " ")}`, "tutte e due");
+    eq(avvolgiUnita("1500 m³"), `1500${U("m³", " ")}`, "anche il metro cubo, che è il caso peggiore");
   });
   test("unità nel maiuscolo: niente testo, niente errori", () => {
     eq(avvolgiUnita(null), "", "null diventa vuoto, non «null»");
@@ -3186,11 +3191,11 @@ test("l'arrotondamento non può peggiorare il numero", () => {
      la coda di «km/h» o di «m³/h», l'ora finirebbe dentro una velocità e dentro
      una portata — ed è per quello che sta in fondo all'elenco. */
   test("unità nel maiuscolo: l'ora", () => {
-    eq(avvolgiUnita("tra 24,5 h"), `tra 24,5 ${U("h")}`, "l'etichetta di un tagliando");
-    eq(avvolgiUnita("SCADUTA (+20 h)"), `SCADUTA (+20 ${U("h")})`, "e quella scaduta, dentro le parentesi");
-    eq(avvolgiUnita("contatore 1.240 h"), `contatore 1.240 ${U("h")}`, "col migliaio all'italiana");
-    eq(avvolgiUnita("40 km/h"), `40 ${U("km/h")}`, "«km/h» resta intera: l'ora non le stacca la coda");
-    eq(avvolgiUnita("120 m³/h"), `120 ${U("m³/h")}`, "e nemmeno a «m³/h», che è una portata");
+    eq(avvolgiUnita("tra 24,5 h"), `tra 24,5${U("h", " ")}`, "l'etichetta di un tagliando");
+    eq(avvolgiUnita("SCADUTA (+20 h)"), `SCADUTA (+20${U("h", " ")})`, "e quella scaduta, dentro le parentesi");
+    eq(avvolgiUnita("contatore 1.240 h"), `contatore 1.240${U("h", " ")}`, "col migliaio all'italiana");
+    eq(avvolgiUnita("40 km/h"), `40${U("km/h", " ")}`, "«km/h» resta intera: l'ora non le stacca la coda");
+    eq(avvolgiUnita("120 m³/h"), `120${U("m³/h", " ")}`, "e nemmeno a «m³/h», che è una portata");
     eq(avvolgiUnita("3 ha di piazzale"), "3 ha di piazzale", "«ha» non è un'ora");
   });
   /* ⚠️ QUESTE SONO LE PROVE DELL'ORDINE, e sono le uniche che cadono se qualcuno
@@ -3200,20 +3205,66 @@ test("l'arrotondamento non può peggiorare il numero", () => {
      giusto finché non finisce in una pastiglia e diventa «kg/M³» — il metro cubo
      maiuscolo, cioè l'errore che questa funzione esiste per impedire. */
   test("unità nel maiuscolo: la composta batte la semplice", () => {
-    eq(avvolgiUnita("2,6 kg/m³"), `2,6 ${U("kg/m³")}`, "«kg/m³» non si spezza in «kg» più «/m³»");
-    eq(avvolgiUnita("1,2 kg/foro"), `1,2 ${U("kg/foro")}`, "né «kg/foro»");
-    eq(avvolgiUnita("2,7 t/m³"), `2,7 ${U("t/m³")}`, "né la densità");
-    eq(avvolgiUnita("400 m³/giorno"), `400 ${U("m³/giorno")}`, "né «m³/giorno», che comincia come «m³»");
-    eq(avvolgiUnita("18 mm/s"), `18 ${U("mm/s")}`, "né «mm/s», che comincia come «mm»");
+    eq(avvolgiUnita("2,6 kg/m³"), `2,6${U("kg/m³", " ")}`, "«kg/m³» non si spezza in «kg» più «/m³»");
+    eq(avvolgiUnita("1,2 kg/foro"), `1,2${U("kg/foro", " ")}`, "né «kg/foro»");
+    eq(avvolgiUnita("2,7 t/m³"), `2,7${U("t/m³", " ")}`, "né la densità");
+    eq(avvolgiUnita("400 m³/giorno"), `400${U("m³/giorno", " ")}`, "né «m³/giorno», che comincia come «m³»");
+    eq(avvolgiUnita("18 mm/s"), `18${U("mm/s", " ")}`, "né «mm/s», che comincia come «mm»");
   });
   /* Il costo orario di Flotta ha la valuta PRIMA del numero: non c'è nessun
      «€/h» preceduto da una cifra: l'unico pezzo da salvare è la coda. */
+  /* ⛔ I SOLDI. Lo spazio dopo il simbolo è quello UNIFICATORE (U+00A0) e va
+     chiesto per CODICE, non a occhio: a occhio è identico a uno spazio normale,
+     e la differenza si vede solo il giorno in cui, su una colonna stretta, il
+     simbolo resta a fine riga e la cifra va a capo da sola. Prima del 30/07 gli
+     spazi erano tre: Conti l'unificatore, Terra quello normale, Flotta nessuno. */
+  const { euro, euro0, conEuro } = shell;
+  test("i soldi: una sola forma per tutto l'ecosistema", () => {
+    eq(euro(48200), "€ 48.200,00", "il totale in colonna ha sempre due decimali");
+    eq(euro0(48200), "€ 48.200", "l'indicatore arrotondato non ne ha nessuno");
+    eq(euro(178.5), "€ 178,50", "«178,5» non è come si scrive una cifra");
+    /* ⚠️ «8400,00» SENZA IL PUNTO NON È UN DIFETTO, ed è la prova che ha
+       corretto me e non il codice. In italiano il separatore delle migliaia
+       compare da cinque cifre in su (regola CLDR: `minimumGroupingDigits` vale
+       2), quindi 8.400 si scrive «8400» e 48.200 si scrive «48.200». Avevo
+       scritto l'asserzione col punto, dandolo per scontato, e la misura ha detto
+       di no. È il comportamento che Conti ha sempre avuto: qui si stava
+       unificando la convenzione, non cambiandola. Se un giorno si vorrà il punto
+       anche sotto i diecimila — le fatture spesso lo mettono — è una decisione
+       da prendere apposta, con `useGrouping: "always"`, e non da far scivolare
+       dentro un'unità che parlava d'altro. */
+    eq(euro(8400), "€ 8400,00", "sotto i diecimila l'italiano non mette il punto (CLDR)");
+    eq(euro(9999.994), "€ 9999,99", "e i centesimi si troncano al centesimo, non si inventano");
+    eq(euro(0), "€ 0,00", "zero è zero, non vuoto");
+    eq(euro(null), "€ 0,00", "e un dato che manca non diventa «NaN» davanti a un cliente");
+    eq(euro(-1234.5), "-€ 1234,50", "il meno sta DAVANTI al simbolo, non incastrato fra simbolo e cifre");
+    eq(euro(-48200), "-€ 48.200,00", "e anche quando il punto delle migliaia c'è");
+  });
+  /* `conEuro` esiste perché il simbolo e il formato del numero sono due cose
+     diverse: quando un'app formatta la cifra a modo suo per una ragione sua
+     (l'indicatore di Flotta scrive «8,4k» per farla stare in una casella
+     piccola) deve poter mettere il simbolo giusto SENZA riscriverne la regola —
+     è da quella strada che erano nate le tre forme diverse. */
+  test("i soldi: il simbolo si può mettere su un numero scritto a modo proprio", () => {
+    eq(conEuro("8,4") + "k", "\u20AC\u00A08,4k", "l'indicatore compatto di Flotta");
+    eq(conEuro("-8,4"), "-\u20AC\u00A08,4", "col meno davanti, come le altre due");
+    eq(conEuro(""), "\u20AC\u00A0", "una stringa vuota non fa esplodere niente");
+    eq(conEuro(null), "\u20AC\u00A0", "e nemmeno un valore che manca");
+  });
+  test("i soldi: lo spazio è quello unificatore, non quello normale", () => {
+    ok(euro(1)[1].charCodeAt(0) === 0xA0, "euro: dopo «€» c'è U+00A0");
+    ok(euro0(1)[1].charCodeAt(0) === 0xA0, "euro0: dopo «€» c'è U+00A0");
+    /* ⚠️ questa riga era stata riscritta per sbaglio in «non contiene
+       l'unificatore», che è l'opposto di quello che deve dire: qui lo spazio
+       cercato è quello NORMALE, e infatti si scrive con l'escape. */
+    ok(!euro(1).includes("\u20AC\u0020"), "e non c'è nessuno spazio normale dopo il simbolo");
+  });
   test("unità nel maiuscolo: il costo orario, con la valuta davanti", () => {
     eq(avvolgiUnita("€19,02/h"), `€19,02${U("/h")}`, "«/h» si salva anche da sola");
-    eq(avvolgiUnita("9,7 l/h"), `9,7 ${U("l/h")}`, "e i litri all'ora restano interi");
-    eq(avvolgiUnita("12,50 €/h"), `12,50 ${U("€/h")}`, "e la forma con lo spazio davanti");
-    eq(avvolgiUnita("40 km/h"), `40 ${U("km/h")}`, "«/h» non stacca la coda a «km/h»");
-    eq(avvolgiUnita("120 m³/h"), `120 ${U("m³/h")}`, "né a «m³/h»");
+    eq(avvolgiUnita("9,7 l/h"), `9,7${U("l/h", " ")}`, "e i litri all'ora restano interi");
+    eq(avvolgiUnita("12,50 €/h"), `12,50${U("€/h", " ")}`, "e la forma con lo spazio davanti");
+    eq(avvolgiUnita("40 km/h"), `40${U("km/h", " ")}`, "«/h» non stacca la coda a «km/h»");
+    eq(avvolgiUnita("120 m³/h"), `120${U("m³/h", " ")}`, "né a «m³/h»");
   });
 }
 

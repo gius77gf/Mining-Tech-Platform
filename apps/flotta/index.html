@@ -1134,18 +1134,18 @@
            ORIZZONTE_TAGLIANDI, ritmoOreMezzi, ritmoDelMezzo, tagliandiInScadenza,
            numeroDaCampo, interoDaCampo, perCampo, messaggioNumero,
            AVVISO_DECIMALE, AVVISO_MIGLIAIA } from "./flotta-data.js";
-  import { mountExit, esc, csvCell, numIt, montaGuardiaInteri, avvolgiUnita } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, numIt, montaGuardiaInteri, avvolgiUnita, euro, conEuro } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
   const $ = (id) => document.getElementById(id);
   const MB = { operativo: ["ok","Operativo"], fermo: ["danger","Fermo"], verifica: ["warn","Verifica"] };
   const sig = (n) => (n||"?").split(" ")[0].slice(0,2).toUpperCase();
-  // I soldi hanno i centesimi solo quando ci sono: «€178,50» è giusto,
-  // «€8.400,00» è rumore. Mai «€178,5», che non è come si scrive una cifra.
-  const eur = (v) => { const n = +v || 0;
-    const cent = Math.round(Math.abs(n) * 100) % 100;
-    return "€" + n.toLocaleString("it-IT", { minimumFractionDigits: cent ? 2 : 0, maximumFractionDigits: 2 }); };
+  /* la regola vive in shared/: qui solo il nome di sempre. Fino al 30/07 Flotta
+     scriveva «€178,50» e «€8.400» — attaccato al simbolo e coi centesimi solo
+     quando c'erano. È l'unica delle tre app che cambia aspetto: il perché sta
+     accanto a `euro` in dw-shell.js. */
+  const eur = euro;
   // ore di lavoro: mezz'ora è mezz'ora, ma «4,00 h» è precisione finta
   const oreTx = (v) => (+v||0).toLocaleString("it-IT", { maximumFractionDigits: 2 }) + " h";
   const ggTx = (n) => (+n||0).toLocaleString("it-IT", { maximumFractionDigits: 1 }) + (Math.abs(+n||0) === 1 ? " giorno" : " giorni");
@@ -1479,8 +1479,11 @@
     // toFixed dà il punto decimale inglese: la tessera scriveva «€8.4k» sulla
     // prima schermata, accanto a numeri con la virgola. Sotto i mille euro il
     // «k» non serve e nasconde il numero: si scrive l'importo per intero.
+    /* nella casella dell'indicatore la cifra per intero non ci sta: si scrive
+       «€ 8,4k». Il numero è formattato qui perché è una scelta di questa
+       casella; il SIMBOLO no, quello lo mette shared/ come dappertutto. */
     if (kn[3]) kn[3].textContent = carbValore >= 1000
-      ? "€" + (carbValore / 1000).toLocaleString("it-IT", { maximumFractionDigits: 1 }) + "k"
+      ? conEuro((carbValore / 1000).toLocaleString("it-IT", { maximumFractionDigits: 1 })) + "k"
       : eur(carbValore);
     if ($("kpi-carb-l")) $("kpi-carb-l").textContent = carbConData.length ? "Carburante mese" : "Carburante";
     { const card = $("kpi-carb"); if (card) card.title = carbConData.length
@@ -2136,7 +2139,7 @@
   // ══════════════════════════════════════════════════════════════════════
   const lt = (v) => (Math.round((+v || 0) * 10) / 10).toLocaleString("it-IT") + " l";
   const lh = (v) => (+v || 0).toLocaleString("it-IT", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " l/h";
-  const eh = (v) => "€" + (Math.round((+v || 0) * 100) / 100).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "/h";
+  const eh = (v) => eur(v) + "/h";   // «€ 19,02/h» — il simbolo lo mette shared/
 
   function disegnaRifornimenti() {
     const cons = consumoPerMezzo(RIF);

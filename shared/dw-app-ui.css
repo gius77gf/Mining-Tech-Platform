@@ -244,6 +244,11 @@ img{max-width:100%}
   background:var(--card2); color:var(--muted2); border:1px solid var(--border2);
   box-shadow:0 1px 3px rgba(0,0,0,.35),var(--edge-hi);
 }
+/* l'unità è incollata al suo numero: il `gap` della pastiglia serve fra l'icona
+   e il testo (misurate: 3 pastiglie su 302), non fra una cifra e la sua unità
+   (35). Lo spazio, quando il testo ce l'aveva, sta dentro lo span — lo mette
+   `avvolgiUnita` — quindi qui si toglie solo il gap. */
+.badge .u{margin-left:-4px}
 .badge.ok,.badge.warn,.badge.danger,.badge.info,.badge.accent{border-color:transparent}
 
 .badge.ok{background:var(--success); color:var(--on-ok)}

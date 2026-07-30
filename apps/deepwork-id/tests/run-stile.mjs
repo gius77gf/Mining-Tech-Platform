@@ -7,7 +7,7 @@
 // perché non falliscono i test, si vedono solo aprendo la pagina giusta.
 // Qui diventano controlli che girano in automatico.
 //
-// Dieci regole, oggi:
+// Undici regole, oggi:
 //  1. NIENTE DIALOGHI DEL BROWSER. `alert()`, `confirm()`, `prompt()` sono
 //     vietati dalla direttiva sullo stile. La ragione non è estetica: la
 //     finestra ha il carattere e i bottoni del sistema operativo, su Android
@@ -58,6 +58,14 @@
 //     schermata che una cava nuova vede il primo giorno. Non riguarda i
 //     segnaposto brevi dentro le schede («Nessun file»), che hanno la sola riga
 //     di spiegazione di proposito: la regola guarda chi ha un TITOLO.
+// 11. NESSUNA APP SI SCRIVE IN CASA IL SIMBOLO DELL'EURO. Il 30/07 erano tre
+//     forme in tre app, ognuna con accanto la ragione per cui era quella
+//     giusta: Conti «€\u00A048.200,00» (spazio unificatore), Terra
+//     «€\u002048.200» (spazio normale), Flotta «€178,50» (attaccato). Nessuna
+//     era sciatta: nessuna sapeva delle altre. E chi compra due app le vede una
+//     accanto all'altra. La forma sta in `euro`/`euro0`/`conEuro` di `shared/`,
+//     e chi ha un numero formattato a modo suo mette il simbolo con `conEuro`
+//     invece di riscriverlo: è dalla scorciatoia che nascono le terze forme.
 //
 // Come si aggiunge una regola: una funzione che restituisce l'elenco delle
 // violazioni con file e riga, e un `test(...)` che pretende zero.
@@ -763,6 +771,56 @@ for (const [nome, rel] of SUPERFICI) {
       `${rel}: ${orfane.join("; ")} — la nota si vede neutra dove il codice diceva altro`);
   });
 }
+/* ── REGOLA 11: il simbolo dell'euro non si riscrive in casa ─────────────── */
+function euroInCasa(src) {
+  const fuori = [];
+  /* si guarda il CODICE senza commenti: un «€» dentro una spiegazione è
+     legittimo, e anche un'etichetta come «Importo €» o l'unità «€/t». Quello
+     che si cerca è il simbolo INCOLLATO A UN'ESPRESSIONE — cioè un pezzo di
+     formattazione — che è il gesto da cui sono nate le tre forme diverse. */
+  const codice = senzaCommenti(src);
+  const re = /"\u20AC[\u0020\u00A0]?"\s*\+|\+\s*"\u20AC[\u0020\u00A0]?"/g;
+  let m;
+  while ((m = re.exec(codice)) !== null) {
+    /* ⚠️ LA RIGA SI CERCA NEL SORGENTE VERO, non in quello ripulito. `senzaCommenti`
+       toglie righe e quindi sposta la numerazione: la prima versione di questa
+       regola indicava la riga 1202 di Conti, dove non c'era niente, mentre il
+       difetto stava alla 1259. Un controllo che punta il dito nel posto sbagliato
+       fa perdere più tempo di uno che non c'è. */
+    const quantesime = codice.slice(0, m.index).split(m[0]).length;
+    let pos = -1;
+    for (let k = 0; k < quantesime; k++) pos = src.indexOf(m[0], pos + 1);
+    const riga = pos < 0 ? "?" : src.slice(0, pos).split("\n").length;
+    fuori.push(`riga ${riga}: ${m[0].trim()} — il simbolo si mette con conEuro() di shared/`);
+  }
+  return fuori;
+}
+for (const [nome, rel] of SUPERFICI) {
+  const src = leggi(rel);
+  if (src === null) continue;
+  /* dw-shell è il posto dove la regola VIVE: lì il simbolo ci deve stare */
+  if (rel.includes("dw-shell")) continue;
+  const casi = euroInCasa(src);
+  test(`${nome}: non si scrive in casa il simbolo dell'euro`, () => {
+    ok(casi.length === 0, `${rel}: ${casi.join("; ")}`);
+  });
+}
+test("la regola 11 sa vedere il difetto che è stato tolto", () => {
+  /* le tre forme vere, com'erano scritte nelle tre app prima del 30/07 */
+  ok(euroInCasa('const eur = (v) => "\u20AC\u00A0" + NUM2.format(v);').length === 1,
+    "la forma di Conti");
+  ok(euroInCasa('const eur = (n) => "\u20AC\u0020" + Math.round(n);').length === 1,
+    "quella di Terra");
+  ok(euroInCasa('return "\u20AC" + n.toLocaleString("it-IT");').length === 1,
+    "e quella di Flotta, attaccata");
+  ok(euroInCasa('const eur = euro; // \u20AC 48.200,00').length === 0,
+    "un commento che mostra il risultato non è una violazione");
+  ok(euroInCasa('<label>Importo \u20AC</label>').length === 0,
+    "e nemmeno un'etichetta che chiede un importo");
+  ok(euroInCasa('{ unita: "\u20AC/t" }').length === 0,
+    "né l'unità di misura di un prezzo");
+});
+
 test("il controllo delle note sa fallire", () => {
   /* la controprova: una classe inventata dentro una sorgente che non la definisce
      deve essere segnalata, e una definita no */

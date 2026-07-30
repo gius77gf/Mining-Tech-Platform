@@ -896,7 +896,7 @@ a.dw-btn{text-decoration:none}
            periodoFraUltimiRilievi, intervalliFraRilievi, avanzamentoDaUltimoRilievo, SOGLIA_TURNI,
            produzionePerFronte,
            numeroDaCampo, AVVISO_DECIMALE } from "./terra-data.js";
-  import { mountExit, esc, csvCell, montaGuardiaInteri } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, montaGuardiaInteri, euro0 } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   // Oltre al toast, Terra segna in rosso il campo e scrive nel riquadro
@@ -2076,7 +2076,7 @@ a.dw-btn{text-decoration:none}
     if (rotto) { $("val-out").innerHTML = esc(spiegaNum(rotto[0], rotto[1], rotto[2])); return; }
     const dens = rd.ok ? rd.valore : 0, prezzo = rp.ok ? rp.valore : 0;
     const { tonnellate, valore } = valoreMateriale(volAnno, dens, prezzo);
-    const eur = (n) => "€ " + Math.round(n).toLocaleString("it-IT");
+    const eur = euro0;   // la regola vive in shared/ (prima aveva lo spazio normale)
     const ton = (n) => Math.round(n).toLocaleString("it-IT");
     $("val-out").innerHTML = volAnno
       ? `Estratto ${anno}: <b>${volAnno.toLocaleString("it-IT")} m³</b> → <b>${ton(tonnellate)} t</b> → <b>${eur(valore)}</b> di materiale.`

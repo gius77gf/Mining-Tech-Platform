@@ -1243,19 +1243,24 @@ label.item:has(.dw-chk:checked){
     applicaIncassi, apertoDi, statoIncasso, movimentiDiFattura, incassatoPeriodo,
     tempiPagamentoClienti, tempoMedioPagamento, emessoIncassato,
     numeroDaCampo, AVVISO_DECIMALE } from "./conti-data.js";
-  import { mountExit, esc, csvCell, avvolgiUnita } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, avvolgiUnita, euro, euro0, conEuro } from "../../shared/deepwork-id-client/dw-shell.js";
   const ggU = avvolgiUnita;   // la regola vive in shared/: qui solo il nome di sempre
   const $ = (id) => document.getElementById(id);
   // ── CIFRE: formato italiano, sempre due decimali, spazio unificatore
   //    dopo l'euro. Le colonne devono incolonnarsi: mai formati misti.
   const NUM2 = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const NUM0 = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0 });
-  const eur  = (v) => "€ " + NUM2.format(+v || 0);                 // € 48.200,00
-  const eur0 = (v) => "€ " + NUM0.format(Math.round(+v || 0));     // € 48.200
+  /* la regola vive in shared/: qui solo i nomi di sempre — identiche a prima,
+     spazio unificatore compreso (era Conti ad averlo giusto per prima) */
+  const eur  = euro;    // € 48.200,00
+  const eur0 = euro0;   // € 48.200
   // KPI: cifre grosse e leggibili — sopra i 10.000 si passa ai "k"
   const eurK = (v) => { const n = Math.abs(+v || 0);
-    return n >= 10000 ? "€ " + NUM0.format(Math.round(n / 1000)) + '<span class="u">k</span>'
-                      : "€ " + NUM0.format(Math.round(n)); };
+    /* il simbolo lo mette shared/ anche qui, dove il numero è scritto a modo di
+       questa casella (i «k» sopra i diecimila): riattaccarlo a mano è il gesto
+       da cui erano nate le tre forme diverse */
+    return n >= 10000 ? conEuro(NUM0.format(Math.round(n / 1000))) + '<span class="u">k</span>'
+                      : conEuro(NUM0.format(Math.round(n))); };
   const plur = (n, s, p) => n + " " + (n === 1 ? s : p);
   // ── QUANTITÀ: pesi e volumi in formato italiano. Due decimali come gli
   //    importi (10 kg di precisione sulla pesata: più che sufficiente).
