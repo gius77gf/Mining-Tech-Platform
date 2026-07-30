@@ -2333,6 +2333,32 @@ test("P2 · lato CAMPO: la dimostrazione di Campo è coerente coi rilievi finti"
     `e lo scostamento non è ZERO — uno scarto nullo in dimostrazione sembra costruito (${r.pct}%)`);
   ok(r.dich.turni >= 5, `e ci sono abbastanza turni nel periodo (${r.dich.turni})`);
 });
+test("P2 · «coerente» e «parziale» insieme: la combinazione che inganna", () => {
+  /* Trovato guardando lo stato a schermo: con dei viaggi nel periodo il confronto
+     diceva «i due numeri si parlano» e in coda ammetteva che i viaggi non erano nel
+     conto. Ma se quei viaggi fossero contati il dichiarato salirebbe, e l'accordo
+     apparente potrebbe sparire — dichiarare un accordo basandosi su metà dei dati è
+     il numero comodo, che qui non si prende mai.
+     Questa prova esiste perché la combinazione sia DOCUMENTATA: `stato: "coerente"`
+     e `parziale: true` possono presentarsi insieme, e chi scrive un'interfaccia
+     sopra `riconciliazioneTurni` deve guardare entrambi. */
+  const mis = [{ data: "2026-03-05", stato: "elaborato", volumeM3: 1000, provenienza: "scavo" }];
+  const r = terra.riconciliazioneTurni(mis, [
+    { data: "2026-03-10", prodQta: 980, prodUnita: "m³" },
+    { data: "2026-03-11", prodQta: 14, prodUnita: "viaggi" },
+  ], "2026-03-01", "2026-03-31", 2.6);
+  eq(r.stato, "coerente", "sui soli metri cubi lo scarto è del 2%");
+  ok(r.parziale === true, "ma il conto è parziale: 14 viaggi restano fuori");
+  ok(r.dich.viaggi === 14, "e i viaggi sono contati a parte, non convertiti");
+  /* la stessa combinazione con delle tonnellate senza densità */
+  const r2 = terra.riconciliazioneTurni(mis, [
+    { data: "2026-03-10", prodQta: 980, prodUnita: "m³" },
+    { data: "2026-03-11", prodQta: 500, prodUnita: "t" },
+  ], "2026-03-01", "2026-03-31", null);
+  eq(r2.stato, "coerente", "i metri cubi diretti si sommano anche senza densità");
+  ok(r2.parziale === true && r2.dich.tSenzaDensita === 500,
+    "e le tonnellate non convertibili rendono il conto parziale");
+});
 test("P2 · UNA SOLA implementazione: Terra ri-esporta, non riscrive", () => {
   /* La logica del ponte serve a Terra e a Campo, e non appartiene a nessuna delle
      due: vive in `shared/dw-ponti.js`. `terra-data.js` la ri-esporta col nome con

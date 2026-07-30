@@ -1223,6 +1223,14 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   // fa. Terra la confronta col rilievo del drone; qui si chiude il giro, così chi
   // stima vede l'esito della propria stima.
   //
+  // PERCHÉ UNA NOTA E NON LE TESSERE, come sul lato Terra. Questa è la schermata
+  // in cui si COMPILA un rapportino: chi la apre è venuto per scrivere il suo
+  // turno, e l'informazione sul rilievo la vuole di passaggio. Le tessere sono un
+  // quadro di controllo, e qui competerebbero con la lista dei rapportini e col
+  // form che stanno sotto — cioè con le cose per cui la schermata esiste. In Terra
+  // il volume È il soggetto della pagina, quindi là le tessere sono al loro posto.
+  // Scritto perché è una decisione, non una dimenticanza.
+  //
   // ⚠️ IL MODO DI SBAGLIARE, deciso prima di scrivere una riga: questo NON deve
   // diventare un rimprovero. Se Campo dicesse «le tue stime erano gonfie del
   // 22%», la conseguenza prevedibile è che i turni comincino a scrivere numeri
@@ -1260,19 +1268,29 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       out.innerHTML = `<div class="note">L'ultimo rilievo del drone (<b>${dmy(per.al)}</b>) ha misurato <b>${numeroIt(r.mis.m3, 0)} m³</b> fra il ${dmy(per.dal)} e il ${dmy(per.al)}. Per metterlo accanto alla produzione dei turni servirebbe la <b>densità del materiale</b>, che si imposta in <b>Terra</b>: senza, tonnellate e metri cubi non si parlano.</div>`;
       return;
     }
-    const tornano = r.stato === "coerente";
+    // ⚠️ QUANDO IL CONFRONTO È INCOMPLETO NON SI DICE CHE I NUMERI TORNANO.
+    // Visto a schermo: coi viaggi dentro il periodo la frase diceva «i due numeri
+    // si parlano» e «le stime stanno reggendo», e in coda ammetteva che i viaggi
+    // non erano nel conto. Ma se quei viaggi fossero contati il dichiarato
+    // salirebbe, e l'accordo apparente potrebbe sparire: dichiarare un accordo
+    // basandosi su metà dei dati è il numero comodo, che qui non si prende mai.
+    const tornano = r.stato === "coerente" && !r.parziale;
     const parole = r.verso === "sopra"
       ? `<b>${numeroIt(Math.abs(r.scostamento), 0)} m³ in più</b> nei rapportini`
       : `<b>${numeroIt(Math.abs(r.scostamento), 0)} m³ in meno</b> nei rapportini`;
+    // e si contano i rapportini che hanno DAVVERO contribuito ai metri cubi: dire
+    // «7 rapportini» quando uno è in viaggi e non entra nel totale è fuorviante
+    const inConto = r.dich.turni - (r.dich.viaggi > 0 ? 1 : 0);
     out.innerHTML = `<div class="note ${tornano ? "recap" : "avviso"}">`
       + `Il rilievo del drone del <b>${dmy(per.al)}</b> ha misurato <b>${numeroIt(r.mis.m3, 0)} m³</b> tolti dal fronte fra il ${dmy(per.dal)} e il ${dmy(per.al)}. `
       + `I turni di quei giorni ne avevano dichiarati circa <b>${numeroIt(r.dich.m3, 0)} m³</b>`
-      + (r.dich.turni ? ` (${r.dich.turni} ${r.dich.turni === 1 ? "rapportino" : "rapportini"})` : "")
-      + `: ${tornano ? "i due numeri si parlano" : parole}.`
-      + (tornano
-        ? ` Le stime di fine turno stanno reggendo il confronto con la misura.`
-        : ` Non è detto da che parte stia lo scarto: può essere la stima di turno, oppure il volo che non ha coperto tutto quello che è stato scavato. Vale la pena guardarlo insieme a chi fa i rilievi.`)
-      + (r.parziale ? ` Nel conto non entrano i viaggi, che senza la portata del mezzo non si possono portare in metri cubi.` : "")
+      + (r.dich.turni ? ` (${inConto} ${inConto === 1 ? "rapportino" : "rapportini"})` : "")
+      + `: ${r.stato === "coerente" && !r.parziale ? "i due numeri si parlano" : parole}.`
+      + (r.parziale
+        ? ` Ma il conto è <b>incompleto</b>: ${r.dich.viaggi > 0 ? `i <b>${r.dich.viaggi} viaggi</b> dichiarati non entrano nei metri cubi, perché servirebbe la portata del mezzo` : `una parte delle tonnellate non si può portare in metri cubi senza la densità`}. Il dichiarato vero è più alto di così, quindi da questo confronto non si può dire se i due numeri tornano.`
+        : tornano
+          ? ` Le stime di fine turno stanno reggendo il confronto con la misura.`
+          : ` Non è detto da che parte stia lo scarto: può essere la stima di turno, oppure il volo che non ha coperto tutto quello che è stato scavato. Vale la pena guardarlo insieme a chi fa i rilievi.`)
       + `</div>`;
   }
 
