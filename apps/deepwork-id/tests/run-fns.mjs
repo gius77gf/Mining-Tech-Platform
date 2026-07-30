@@ -259,15 +259,21 @@ await test("una membership SENZA utente Auth non uccide onMemberWrite", async ()
   // fragile, quella seconda scrittura troverebbe il runtime a terra e il claim
   // non arriverebbe. È una prova indiretta perché non c'è modo diretto di
   // chiedere a Firebase «sei ancora vivo?», ed è dichiarata tale.
+  // la persona VIVA su cui si misura si crea qui: `tizio` a questo punto della
+  // suite è già stato rimosso da «un ADMIN rimuove un member», e la prima
+  // versione di questa prova lo dava per presente — «Membro non trovato», cioè
+  // una prova rossa per un motivo che non c'entrava niente col difetto.
+  await mk("vivo", "member");
+  await waitClaim("vivo", "orgA", "member");
   await adb.doc("organizations/orgA/members/fantasma").set({
     uid: "fantasma", role: "member", status: "active" });
   await id.loginWithEmail("amm@cava-alfa.it", "password-123");
-  await id.updateMemberRole("tizio", "admin");
-  await waitClaim("tizio", "orgA", "admin");
-  expect(await roleOf("tizio") === "admin", "il ruolo non è arrivato: il trigger si è fermato");
-  // ripristino
-  await id.updateMemberRole("tizio", "member");
+  await id.updateMemberRole("vivo", "admin");
+  await waitClaim("vivo", "orgA", "admin");
+  expect(await roleOf("vivo") === "admin", "il ruolo non è arrivato: il trigger si è fermato");
+  // pulizia: la membership orfana e la persona di prova escono di scena
   await adb.doc("organizations/orgA/members/fantasma").delete();
+  await adb.doc("organizations/orgA/members/vivo").delete();
 });
 
 console.log("\n— Validazioni input (invito / nome org) —");
