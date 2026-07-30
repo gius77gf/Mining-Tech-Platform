@@ -101,6 +101,37 @@ export function numeroItDa(v, dec = 2) {
   return Number.isFinite(n) ? numeroIt(n, dec) : s;
 }
 
+// numeroDaCampo: legge un numero SCRITTO A MANO in un campo, e dice cosa è
+// andato storto invece di rispondere zero. Serve perché i campi decimali non
+// possono più essere `type="number"`: misurato in Chromium, digitando «44,7» in
+// un `type=number` il `.value` diventa **«447»** e `checkValidity()` risponde
+// true — il browser scarta la virgola, tiene le cifre e chiama valido un numero
+// dieci volte più grande. Su una carica di esplosivo per foro sono 447 kg al
+// posto di 44,7, e quel numero esce nel CSV che torna a Genesi a tarare la
+// riconciliazione. Quindi i campi decimali diventano `type="text"
+// inputmode="decimal"` e il numero lo leggiamo noi.
+//
+// `numIt` accetta «44,7» e «44.7», e le migliaia in entrambe le convenzioni.
+// Ritorna { vuoto, ok, valore, grezzo, motivo }: `valore` è null quando non si
+// è capito, MAI zero — vuoto e incomprensibile non sono la stessa cosa e
+// nessuno dei due è una misura. Pura e testabile.
+export function numeroDaCampo(testo, opts = {}) {
+  const grezzo = String(testo == null ? "" : testo).trim();
+  if (grezzo === "") return { vuoto: true, ok: false, valore: null, grezzo, motivo: "vuoto" };
+  const n = numIt(grezzo);
+  if (!Number.isFinite(n)) return { vuoto: false, ok: false, valore: null, grezzo, motivo: "non-numero" };
+  if (opts.positivo && !(n > 0)) return { vuoto: false, ok: false, valore: n, grezzo, motivo: "non-positivo" };
+  const min = opts.min == null ? null : +opts.min;
+  if (min != null && n < min) return { vuoto: false, ok: false, valore: n, grezzo, motivo: "sotto-minimo" };
+  const max = opts.max == null ? null : +opts.max;
+  if (max != null && n > max) return { vuoto: false, ok: false, valore: n, grezzo, motivo: "sopra-massimo" };
+  // tre decimali: al grammo si è già ben oltre la precisione con cui si pesa
+  // una carica in cava, ed è la stessa cifra con cui il consuntivo va nel CSV
+  const dec = opts.decimali == null ? 3 : Math.max(0, +opts.decimali || 0);
+  const p = Math.pow(10, dec);
+  return { vuoto: false, ok: true, valore: Math.round(n * p) / p, grezzo, motivo: "" };
+}
+
 // Giorno di lavoro corrente in ISO (aaaa-mm-gg) e in ora LOCALE: usare
 // toISOString() sulla data grezza darebbe il giorno UTC e in Italia, la sera
 // tardi, sbaglierebbe di un giorno intero. Pura e testabile.

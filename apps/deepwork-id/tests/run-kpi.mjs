@@ -1743,6 +1743,36 @@ test("la prima schermata non scrive i numeri col punto inglese", () => {
   ok(!/\d\.\d/.test(p[0].dettaglio), "e nessun punto decimale da nessuna parte nella riga");
 });
 
+// Campo ha lo stesso lettore, e il caso che conta è la CARICA per foro: quel
+// numero esce nel CSV del consuntivo e torna a Genesi a tarare la
+// riconciliazione, quindi un fattore dieci non resta in Campo — avvelena la
+// calibrazione dell'altra app.
+test("Campo numeroDaCampo: la virgola sulla carica per foro", () => {
+  contiene(campo.numeroDaCampo("44,7"), { ok: true, valore: 44.7, vuoto: false }, "«44,7» kg");
+  ok(campo.numeroDaCampo("44.7").valore === 44.7, "il punto vale quanto la virgola");
+  ok(campo.numeroDaCampo("1.250,75").valore === 1250.75, "migliaia all'italiana");
+  ok(campo.numeroDaCampo("1,250.75").valore === 1250.75, "migliaia all'inglese");
+  ok(campo.numeroDaCampo("44,7449").valore === 44.745, "tre decimali: al grammo si è già oltre il vero");
+});
+test("Campo numeroDaCampo: vuoto e incomprensibile non sono zero", () => {
+  contiene(campo.numeroDaCampo(""), { vuoto: true, ok: false, valore: null, motivo: "vuoto" }, "vuoto");
+  contiene(campo.numeroDaCampo("abc"), { ok: false, valore: null, motivo: "non-numero" }, "testo");
+  ok(campo.numeroDaCampo(null).vuoto === true, "null è vuoto, non zero");
+  ok(campo.numeroDaCampo("-3", { min: 0 }).motivo === "sotto-minimo", "chili negativi");
+  ok(campo.numeroDaCampo("0", { min: 0 }).ok === true, "zero chili è una registrazione valida (foro non caricato)");
+  ok(campo.numeroDaCampo("0", { positivo: true }).motivo === "non-positivo", "ma non un obiettivo di turno valido");
+});
+test("Campo: la catena carica → CSV → Genesi non cambia di un grammo", () => {
+  // il consuntivo scrive il numero GREZZO col punto: è un dato, non testo
+  const kg = campo.numeroDaCampo("44,7").valore;
+  const csv = campo.pianoConsuntivoCsv([
+    { n: 1, foro: 1, data: "2026-07-30", turno: "mattina", prog: 40, reale: kg, squadra: "A" },
+  ]);
+  ok(/;44\.7;/.test(csv), "nel CSV esce 44.7 col punto — era «" + csv.split("\n")[1] + "»");
+  ok(!/;447;/.test(csv), "e NON 447: il fattore dieci non arriva a Genesi");
+  ok(/;4\.7;/.test(csv), "e lo scarto col segno è +4.7");
+});
+
 // ══════════════════════════════════════════════════════════════════════
 // FLOTTA: la tessera «Tagliandi 30gg» contava solo i tagliandi a data
 // ══════════════════════════════════════════════════════════════════════

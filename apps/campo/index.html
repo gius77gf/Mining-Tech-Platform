@@ -675,7 +675,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   <div id="ob-graf"></div>
   <div class="form col">
     <div class="frow">
-      <input class="dw-input" id="ob-valore" type="number" min="0" step="1" inputmode="decimal" placeholder="Obiettivo del turno (es. 900)" aria-label="Valore dell'obiettivo" style="flex:2 1 180px;">
+      <input class="dw-input" id="ob-valore" type="text" inputmode="decimal" placeholder="Obiettivo del turno (es. 900)" aria-label="Valore dell'obiettivo" style="flex:2 1 180px;">
       <select class="dw-input" id="ob-unita" title="Unità dell'obiettivo" aria-label="Unità dell'obiettivo" style="flex:1 1 150px;"></select>
     </div>
     <div class="frow">
@@ -709,7 +709,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       <select class="dw-input" id="new-rap-turno" title="Turno" aria-label="Turno" style="flex:1 1 130px;"></select>
     </div>
     <div class="frow">
-      <input class="dw-input" id="new-rap-prod" type="number" min="0" step="0.1" inputmode="decimal" placeholder="Produzione del turno (es. 90)" aria-label="Produzione del turno" style="flex:2 1 170px;">
+      <input class="dw-input" id="new-rap-prod" type="text" inputmode="decimal" placeholder="Produzione del turno (es. 90)" aria-label="Produzione del turno" style="flex:2 1 170px;">
       <select class="dw-input" id="new-rap-unita" title="Unità di misura della produzione" aria-label="Unità di misura" style="flex:1 1 110px;"></select>
     </div>
     <div class="frow">
@@ -923,7 +923,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            FOTO_MAX_BYTE, FOTO_TENTATIVI, eImmagine, byteFoto, eFotoValida, misuraRidotta, formattaByte,
            METEO_CIELO, METEO_PISTE, METEO_VISIBILITA, meteoDi, riassuntoMeteo, meteoAvverso,
            pianoParziale, pianoConsuntivoCsv,
-           numeroIt, segnoIt, numeroItDa } from "./campo-data.js";
+           numeroIt, segnoIt, numeroItDa, numeroDaCampo } from "./campo-data.js";
   import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const dmy = (iso) => iso ? iso.slice(8,10)+"/"+iso.slice(5,7)+"/"+iso.slice(0,4) : "senza data";
@@ -1537,11 +1537,14 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   }
 
   $("btn-ob").onclick = async () => {
-    const grezzo = $("ob-valore").value.trim().replace(",", ".");
-    const valore = parseFloat(grezzo);
-    if (!(Number.isFinite(valore) && valore > 0)) {
-      sbaglia("ob-valore", "ob-esito",
-        "Serve un numero maggiore di zero: quanto ci si aspetta da questo turno (per esempio 900).");
+    // il campo e `type=text`: il numero lo leggiamo noi, e la virgola vale
+    // quanto il punto (anche con le migliaia, «1.250,5»)
+    const let_ob = numeroDaCampo($("ob-valore").value, { positivo: true });
+    const valore = let_ob.valore;
+    if (!let_ob.ok) {
+      sbaglia("ob-valore", "ob-esito", let_ob.motivo === "non-numero"
+        ? "«" + let_ob.grezzo + "» non e un numero: quanto ci si aspetta da questo turno? (per esempio 900, oppure 12,5). La virgola va benissimo."
+        : "Serve un numero maggiore di zero: quanto ci si aspetta da questo turno (per esempio 900).");
       return;
     }
     err("ob-valore", false);
@@ -2369,11 +2372,12 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     err("new-rap-data", false);
     // Produzione: numero facoltativo ma, se c'è, dev'essere un numero valido e
     // non negativo — è ciò che rende la produzione sommabile (t o m³).
-    const grezzo = $("new-rap-prod").value.trim().replace(",", ".");
-    const qta = grezzo === "" ? null : parseFloat(grezzo);
-    if (grezzo !== "" && !(Number.isFinite(qta) && qta >= 0)) {
-      sbaglia("new-rap-prod", "mode-note",
-        "La produzione dev'essere un numero, zero o più (per esempio 90 oppure 90,5). Se non la registri, lascia il campo vuoto.");
+    const let_pr = numeroDaCampo($("new-rap-prod").value, { min: 0 });
+    const qta = let_pr.vuoto ? null : let_pr.valore;
+    if (!let_pr.vuoto && !let_pr.ok) {
+      sbaglia("new-rap-prod", "mode-note", let_pr.motivo === "non-numero"
+        ? "«" + let_pr.grezzo + "» non e un numero. La produzione si scrive per esempio 90 oppure 90,5 — la virgola va benissimo. Se non la registri, lascia il campo vuoto."
+        : "La produzione dev'essere un numero, zero o più (per esempio 90 oppure 90,5). Se non la registri, lascia il campo vuoto.");
       return;
     }
     err("new-rap-prod", false);
@@ -2816,12 +2820,24 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
       // l'unità dentro l'etichetta va in un <u class="uni">: l'etichetta è in
       // maiuscolo di stile e «kg» non si scrive «KG» (vedi la regola .uni)
       `<label class="fl" for="modal-campo">Carica reale in <u class="uni">kg</u></label>
-       <input class="dw-input" id="modal-campo" type="number" min="0" step="0.1" inputmode="decimal"
-              value="${p.reale != null ? esc(String(p.reale)) : esc(String(p.prog))}">`,
+       <input class="dw-input" id="modal-campo" type="text" inputmode="decimal"
+              value="${esc(numeroIt(p.reale != null ? p.reale : p.prog, 3))}">`,
       "Salva la carica");
-    if (v == null) return;
-    const kg = parseFloat(String(v).replace(",", "."));
-    if (!(kg >= 0)) { toast("Serve un numero di chili valido (zero o più).", "err"); return; }
+    if (v == null) return;                        // ha annullato: non è un errore
+    // Il campo è `type=text` perché in un `type=number` «44,7» diventa 447: dieci
+    // volte i chili, salvati in silenzio e poi esportati nel CSV che torna a
+    // Genesi a tarare la riconciliazione. Qui il numero lo leggiamo noi, e per
+    // ciò che non si capisce si dice cosa manca — non si salva zero.
+    const let_kg = numeroDaCampo(v, { min: 0 });
+    if (!let_kg.ok) {
+      toast(let_kg.vuoto
+        ? "Scrivi quanti chili sono stati caricati, oppure annulla."
+        : let_kg.motivo === "non-numero"
+          ? "«" + let_kg.grezzo + "» non è un numero di chili: si scrive per esempio 44,7 — la virgola va benissimo."
+          : "I chili non possono essere negativi.", "err");
+      return;
+    }
+    const kg = let_kg.valore;
     // CHI ha registrato la carica di QUESTO foro: è il dato che manca al
     // consuntivo quando torna a Genesi ("chi l'ha fatta"). Viene da «Cosa
     // tocca a me» in cima al Quadro; se lì non c'è nessun nome resta vuoto —
