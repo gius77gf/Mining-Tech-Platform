@@ -232,6 +232,39 @@ Pagina **Registri → Registro volate → Importa da CSV**.
 
 ---
 
+## ⚠️ Cosa NON si carica da CSV, oggi *(verificato il 30/07)*
+
+*Questo elenco non c'era, e la sua assenza si paga al momento peggiore. Chi legge
+il documento conclude — giustamente — «ecco cosa posso caricare»; nessuno gli
+dice che **il resto va scritto a mano**, e lo scopre il primo giorno con
+l'azienda davanti.*
+
+Contati i punti d'importazione veri dentro le sei app: sono **quindici**, e sono
+esattamente quelli descritti qui sopra. Tutto il resto oggi si inserisce dalle
+schermate, una voce alla volta:
+
+| App | Si carica da CSV | Va inserito a mano |
+|---|---|---|
+| **Scudo** | lavoratori, scadenzario, infortuni | documenti aziendali, DPI, ispezioni, cantieri, azioni correttive |
+| **Flotta** | parco mezzi, ore motore | ricambi, costi, rifornimenti, manutenzioni programmate |
+| **Conti** | fatture, gare | **listino prodotti**, anagrafica clienti, registro pesate/DDT, canoni |
+| **Terra** | fronti, rilievi | autorizzazioni, piano estrattivo |
+| **Campo** | squadre, piano di carico | operatori, attività, rapportini |
+| **Sentinella** | letture strumento, monitoraggi, scadenze, registro volate | **ricettori**, programma di monitoraggio, reclami |
+
+**I tre che farebbero più male al primo cliente**, perché sono proprio quelli che
+una cava ha già in un foglio di calcolo:
+
+1. **Il listino prodotti di Conti** — senza, la prima fattura si fa a mano.
+2. **I ricettori di Sentinella** — case, scuole, confini: sono l'anagrafica su
+   cui poggia tutto il monitoraggio.
+3. **I ricambi di Flotta** — un magazzino si conta in centinaia di righe.
+
+Non è un difetto del prodotto: è il confine di quello che sa fare oggi, e
+scriverlo serve a **non prometterlo in vendita** e a sapere da dove ripartire.
+
+---
+
 ## Riepilogo colonne (per copiare al volo)
 | App | Import | Colonne |
 |---|---|---|
