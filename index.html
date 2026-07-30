@@ -108,7 +108,7 @@ import {
 // per il core e per tutte e sei le app. Quando era scritta in ogni app, le sei
 // leggevano «1.250» in tre modi diversi senza che nessun test se ne accorgesse.
 // È un modulo di sole funzioni pure, senza effetti al caricamento.
-import { numeroScritto, messaggioNumero, perCampo } from "./shared/deepwork-id-client/dw-shell.js";
+import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri } from "./shared/deepwork-id-client/dw-shell.js";
 
 // ── Config Firebase ──
 const firebaseConfig = {
@@ -508,6 +508,10 @@ function guardiaDecimale(ev){
   toast(messaggioNumero(r,nomeCampo(el),Object.assign({unita:unitaCampo(el)},o)),'err');
 }
 document.addEventListener('change',guardiaDecimale);
+// e la gemella sugli INTERI, che restano `type=number` per lo spinner: lì la
+// virgola non serve e il browser la scarterebbe in silenzio dichiarando valido
+// un numero dieci volte più grande.
+montaGuardiaInteri((m)=>toast(m,'err'));
 // Escape HTML per i contenuti inseriti dagli utenti prima di finire in
 // innerHTML (chat, nomi progetto, note): evita XSS memorizzato.
 function escHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }

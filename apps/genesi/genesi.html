@@ -955,7 +955,10 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
    non caricava niente da shared/ — e leggeva «1.250» come 1,25 in silenzio.
    `dw-shell.js` è un modulo senza dipendenze: non porta dentro né Firebase né
    l'SDK, quindi Genesi resta quello che è (localStorage, nessun account). */
-import { numeroScritto, messaggioNumero, perCampo } from '../../shared/deepwork-id-client/dw-shell.js';
+import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri } from '../../shared/deepwork-id-client/dw-shell.js';
+  // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
+  // virgola, che lì non serve e che il browser scarterebbe in silenzio.
+  montaGuardiaInteri((m) => toast(m, "err"));
 
 /* ══════════════════════════════════════════════════════════════════════════
    NUMERI COME SI SCRIVONO IN ITALIA — un solo posto per la convenzione

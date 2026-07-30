@@ -290,6 +290,60 @@ export function messaggioNumero(r, cosa, opts = {}) {
   }
 }
 
+// ── LA GUARDIA SUI CAMPI INTERI ───────────────────────────────────────────
+// I campi decimali sono diventati campi di testo, perché `type="number"`
+// scartava la virgola. Sugli INTERI si è scelto di tenere `type="number"`: lì
+// lo spinner serve (un numero di fori si aggiusta a frecce) e mezzo foro non
+// esiste. Ma questo lasciava al browser l'ultima parola sulla virgola, e
+// misurato in Chromium fa due cose, entrambe dannose:
+//   «1,5»   → `.value` diventa «15» e `checkValidity()` risponde **true**;
+//   «1.500» → `.value` resta «1.500», valido false, e il lettore ne fa 1,5.
+// Leggere la validità quindi NON basta: nel primo caso il browser ha già
+// distrutto il numero e lo dichiara buono. Si interviene prima, su
+// `beforeinput`, dove il carattere si può ancora rifiutare.
+//
+// Onestà su cosa migliora: rifiutando la virgola, «1,5» resta «15» — lo stesso
+// valore che il browser produceva da solo. Il numero non cambia; cambia che chi
+// scrive lo SAPPIA nel momento in cui succede, invece di non saperlo mai. Dove
+// migliora anche il valore è «1.500», che valeva 1,5 e adesso vale 1500.
+//
+// Un limite del browser, misurato e non aggirabile: su `type="number"`
+// `selectionStart` è **null** e `setSelectionRange` lancia un'eccezione — non
+// c'è cursore. Quindi su un incolla che contiene separatori non si può inserire
+// nel punto giusto: se il campo è vuoto si scrive il numero ripulito (il caso
+// normale), altrimenti si rifiuta e si spiega. Meglio rifiutare che sovrascrivere
+// quello che c'era.
+export function eCampoIntero(el) {
+  if (!el || el.tagName !== "INPUT" || el.type !== "number") return false;
+  const st = el.getAttribute("step");
+  if (st && st.includes(".")) return false;                 // decimale dichiarato dallo step
+  return el.getAttribute("inputmode") !== "decimal";        // ...o dall'inputmode
+}
+export function montaGuardiaInteri(avvisa) {
+  const dillo = typeof avvisa === "function" ? avvisa : () => {};
+  document.addEventListener("beforeinput", (ev) => {
+    const el = ev.target;
+    if (!eCampoIntero(el) || ev.data == null || !/[.,]/.test(ev.data)) return;
+    // un solo separatore battuto a mano
+    if (ev.data === "," || ev.data === ".") {
+      ev.preventDefault();
+      dillo("Qui va un numero intero: né la virgola né il punto delle migliaia servono.");
+      return;
+    }
+    // più caratteri (un incolla): si toglie ciò che non è cifra
+    const pulito = ev.data.replace(/[.,\s  ]/g, "");
+    if (pulito === ev.data) return;
+    ev.preventDefault();
+    if (!el.value) {
+      el.value = pulito;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      dillo("Ho tolto i separatori: qui va un numero intero.");
+    } else {
+      dillo("Incolla senza separatori: qui va un numero intero, e in questo campo non posso inserirlo a metà.");
+    }
+  });
+}
+
 export function mountExit(db) {
   if (!db || db.mode !== "live" || typeof db.logout !== "function") return;
   const top = document.querySelector(".top");

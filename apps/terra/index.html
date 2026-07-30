@@ -881,7 +881,10 @@ a.dw-btn{text-decoration:none}
            produzioneDichiarata, misuratoPeriodo, riconciliazioneTurni,
            periodoFraUltimiRilievi, avanzamentoDaUltimoRilievo, SOGLIA_TURNI,
            numeroDaCampo, AVVISO_DECIMALE } from "./terra-data.js";
-  import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, montaGuardiaInteri } from "../../shared/deepwork-id-client/dw-shell.js";
+  // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
+  // virgola, che lì non serve e che il browser scarterebbe in silenzio.
+  montaGuardiaInteri((m) => toast(m, "err"));
   const $ = (id) => document.getElementById(id);
   // ── CAMPI DECIMALI SCRITTI A MANO ─────────────────────────────────────
   // Volumi, densità, quote e GSD si scrivono in campi

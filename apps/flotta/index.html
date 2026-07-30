@@ -1126,7 +1126,10 @@
            ORIZZONTE_TAGLIANDI, ritmoOreMezzi, ritmoDelMezzo, tagliandiInScadenza,
            numeroDaCampo, interoDaCampo, perCampo, messaggioNumero,
            AVVISO_DECIMALE, AVVISO_MIGLIAIA } from "./flotta-data.js";
-  import { mountExit, esc, csvCell, numIt } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, numIt, montaGuardiaInteri } from "../../shared/deepwork-id-client/dw-shell.js";
+  // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
+  // virgola, che lì non serve e che il browser scarterebbe in silenzio.
+  montaGuardiaInteri((m) => toast(m, "err"));
   const $ = (id) => document.getElementById(id);
   const MB = { operativo: ["ok","Operativo"], fermo: ["danger","Fermo"], verifica: ["warn","Verifica"] };
   const sig = (n) => (n||"?").split(" ")[0].slice(0,2).toUpperCase();

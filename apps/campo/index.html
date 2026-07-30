@@ -924,7 +924,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            METEO_CIELO, METEO_PISTE, METEO_VISIBILITA, meteoDi, riassuntoMeteo, meteoAvverso,
            pianoParziale, pianoConsuntivoCsv,
            numeroIt, segnoIt, numeroItDa, numeroDaCampo } from "./campo-data.js";
-  import { mountExit, esc, csvCell, messaggioNumero } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, messaggioNumero, montaGuardiaInteri } from "../../shared/deepwork-id-client/dw-shell.js";
+  // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
+  // virgola, che lì non serve e che il browser scarterebbe in silenzio.
+  montaGuardiaInteri((m) => toast(m, "err"));
   const $ = (id) => document.getElementById(id);
   const dmy = (iso) => iso ? iso.slice(8,10)+"/"+iso.slice(5,7)+"/"+iso.slice(0,4) : "senza data";
   // Badge di stato: colore + PAROLA + (per l'errore) icona e pulsazione, mai il

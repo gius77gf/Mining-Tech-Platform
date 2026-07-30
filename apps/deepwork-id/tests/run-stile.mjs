@@ -7,7 +7,7 @@
 // perché non falliscono i test, si vedono solo aprendo la pagina giusta.
 // Qui diventano controlli che girano in automatico.
 //
-// Due regole, per adesso:
+// Cinque regole, oggi:
 //  1. NIENTE DIALOGHI DEL BROWSER. `alert()`, `confirm()`, `prompt()` sono
 //     vietati dalla direttiva sullo stile. La ragione non è estetica: la
 //     finestra ha il carattere e i bottoni del sistema operativo, su Android
@@ -21,6 +21,19 @@
 //     le unità in `.dwg-u`: qui si controlla che quel meccanismo ci sia ancora
 //     e che nessuna app torni a metterci una toppa locale che spegne il
 //     maiuscolo a TUTTA l'intestazione (allontanandosi dal core).
+//  3. NESSUN CAMPO DECIMALE È `type="number"`. In Chromium digitando «2,4» il
+//     `.value` diventa «24» e `checkValidity()` risponde true: il browser
+//     scarta la virgola e dichiara valido un numero dieci volte più grande.
+//     Un campo si dichiara decimale in DUE modi — `step` frazionario oppure
+//     `inputmode="decimal"` — e la regola all'inizio guardava solo il primo,
+//     lasciandone passare 34 nel core.
+//  4. NESSUN CAMPO DECIMALE SI LEGGE CON `parseNum0`, il lettore che di ciò che
+//     non capisce fa ZERO. Zero non è «non lo so»: è una misura, ed è sbagliata,
+//     e finisce dentro somme e medie senza lasciare traccia.
+//  5. DOVE CI SONO CAMPI INTERI, LA GUARDIA È MONTATA. Gli interi restano
+//     `type="number"` perché lì lo spinner serve, ma allora la virgola la
+//     rifiuta `montaGuardiaInteri` di `shared/`: leggere `checkValidity()` non
+//     basterebbe, perché su «1,5» il browser risponde **true**.
 //
 // Come si aggiunge una regola: una funzione che restituisce l'elenco delle
 // violazioni con file e riga, e un `test(...)` che pretende zero.
@@ -394,6 +407,52 @@ test("il controllo si accorge di una lettura rimessa a parseNum0", () => {
     const rotto = core.replace("</body>", "<script>x=parseNum0($('co-gas').value);</script></body>");
     ok(decimaliLettiConZero(rotto).length === 1, "il difetto iniettato nel core viene trovato");
   }
+});
+
+console.log("\n── Regola 5: dove ci sono campi interi, la guardia è montata ──");
+// I campi decimali sono diventati campi di testo; gli INTERI restano
+// `type="number"` di proposito, perché lì lo spinner serve. Ma questo lascia al
+// browser l'ultima parola sulla virgola, e misurato in Chromium «1,5» diventa
+// «15» con `checkValidity()` che risponde **true**: leggere la validità non
+// basta, il numero è già stato distrutto e dichiarato buono. Serve la guardia
+// su `beforeinput`, e sta in `shared/` una volta sola.
+// Questa regola non prova il MECCANISMO (quello si prova col browser, con tasti
+// veri): prova che nessuna superficie con campi interi si dimentichi di
+// montarla, che è la cosa che si perde aggiungendo una pagina.
+function campiInteri(src) {
+  let n = 0;
+  for (const t of src.match(/<input\b[^>]*>/gi) || []) {
+    if (!/type="number"/.test(t)) continue;
+    const st = /step="([^"]*)"/.exec(t);
+    if (st && st[1].includes(".")) continue;
+    if (/inputmode="decimal"/.test(t)) continue;
+    n++;
+  }
+  return n;
+}
+const montaGuardia = (src) => /montaGuardiaInteri\s*\(/.test(src);
+for (const [nome, rel] of SUPERFICI) {
+  const src = leggi(rel);
+  if (src === null) continue;
+  const n = campiInteri(src);
+  if (!n) continue;
+  test(`${nome}: ${n} campi interi, e la guardia è montata`, () => {
+    ok(montaGuardia(src),
+      `${rel} ha ${n} campi interi ma non chiama montaGuardiaInteri: su quei campi «1,5» diventa 15 in silenzio`);
+  });
+}
+test("la guardia condivisa esiste e distingue interi da decimali", () => {
+  const shell = leggi("shared/deepwork-id-client/dw-shell.js") || "";
+  ok(/export function montaGuardiaInteri/.test(shell), "montaGuardiaInteri è esportata da shared/");
+  ok(/export function eCampoIntero/.test(shell), "e il riconoscimento del campo intero è a parte, provabile");
+  ok(/beforeinput/.test(shell), "si attacca a beforeinput, dove il carattere si può ancora rifiutare");
+  // il controllo del controllo: una superficie con campi interi e senza guardia
+  // deve fallire
+  const finto = '<input type="number" id="fori">';
+  ok(campiInteri(finto) === 1 && !montaGuardia(finto), "il difetto iniettato viene visto");
+  ok(campiInteri('<input type="number" step="0.1">') === 0, "un decimale non è un campo intero");
+  ok(campiInteri('<input type="number" inputmode="decimal">') === 0, "e nemmeno uno dichiarato dall'inputmode");
+  ok(campiInteri('<input type="text" inputmode="numeric">') === 0, "un campo di testo non ha bisogno della guardia");
 });
 
 console.log(`\nRisultato Stile: ${passed} passati, ${failed} falliti`);

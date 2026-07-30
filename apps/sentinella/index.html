@@ -1318,7 +1318,10 @@ textarea.dw-input{
            testoFontePrevisione, scartoPpvVolata, confermaVolataEseguita, riepilogoPreviste,
            volateOrdinate, firmaVolata, csvRegistroVolate, CSV_VOLATE_INTESTAZIONE,
            numeroDaCampo, AVVISO_DECIMALE } from "./sentinella-data.js";
-  import { mountExit, esc, csvCell, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, giorniTra, montaGuardiaInteri } from "../../shared/deepwork-id-client/dw-shell.js";
+  // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
+  // virgola, che lì non serve e che il browser scarterebbe in silenzio.
+  montaGuardiaInteri((m) => toast(m, "err"));
   const $ = (id) => document.getElementById(id);
   const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
   // Il numero scritto all'italiana SENZA perderne le cifre: serve a

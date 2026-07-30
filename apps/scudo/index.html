@@ -1170,7 +1170,10 @@
     matriceMansione, riepilogoMansioni, lavoratoriScoperti, abilitazioneLavoratore,
     NOMINE_RUOLI, ruoloNomina, nominaAttiva, organigrammaSicurezza, nomineDaSistemare,
     TIPI_DPI, tipoDpi, tipoDpiSicuro, ultimaConsegnaDpi, statoConsegnaDpi, allarmiDpi, riepilogoDpi, verbaleDpi } from "./scudo-data.js";
-  import { mountExit, esc, csvCell, parseCsvLine, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, parseCsvLine, giorniTra, montaGuardiaInteri } from "../../shared/deepwork-id-client/dw-shell.js";
+  // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
+  // virgola, che lì non serve e che il browser scarterebbe in silenzio.
+  montaGuardiaInteri((m) => toast(m, "err"));
 
   const $ = (id) => document.getElementById(id);
   const initials = (n) => (n || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
