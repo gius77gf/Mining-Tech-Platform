@@ -1,8 +1,16 @@
 # Onboarding dati — come preparare i CSV per caricare una cava
 
-Data: 2026-07-21 · Per Giuseppe e per il cliente pilota. Questo foglio dice,
-app per app, **quale file preparare** per caricare i dati storici senza
-riscriverli a mano. È il manuale pratico del **Passo 6 del PIANO_GO_LIVE**.
+Data: 2026-07-21, **rivisto a fondo il 31/07** · Per Giuseppe e per il cliente
+pilota. Questo foglio dice, app per app, **quale file preparare** per caricare i
+dati storici senza riscriverli a mano. È il manuale pratico del **Passo 6 del
+PIANO_GO_LIVE**.
+
+*Cosa è cambiato il 31/07, e perché conviene rileggere le «Regole valide per
+tutti i file» prima delle schede: la regola sulle **righe ripetute** (uniformata
+in tutte le app, con due eccezioni volute), la verità misurata sul **backup**
+(sette file si ri-caricano, tutti gli altri sono prospetti), e quali colonne
+sono diventate **obbligatorie** — il prezzo di un prodotto, e non per pignoleria:
+è quello che impedisce di caricare per sbaglio il file sbagliato.*
 
 ## Regole valide per tutti i file
 - **Formato**: un file **CSV** (da Excel: *File → Salva con nome → CSV*). In
