@@ -379,10 +379,36 @@ export function montaGuardiaInteri(avvisa) {
 // ⚠️ SI CHIAMA SU TESTO GIÀ ESCAPATO. Il markup si aggiunge DOPO `esc()`, mai
 // dentro la stringa che verrà escapata: lì chi guarda si vedrebbe il tag
 // scritto per intero.
-const UNITA_DA_SALVARE = ["gg", "m³", "m²", "mm/s", "µg/m³", "mg/m³", "kg", "km", "cm", "mm", "m³/h"];
+/* PERCHÉ «h» C'È E «l» NO — la domanda è rimasta aperta due giorni, e una regola
+   a metà è il posto peggiore in cui lasciarla:
+   - «h» è l'ORA, e le ore motore sono la grandezza principale di Flotta. In
+     maiuscolo diventa «H», che non è una scrittura ammessa per l'ora (H è
+     l'henry). Le etichette dei tagliandi finiscono in una pastiglia, e la
+     pastiglia è maiuscola: «tra 24,5 h» usciva «TRA 24,5 H».
+   - «l» è il LITRO, e «L» è una scrittura AMMESSA dallo stesso sistema di unità
+     (le due forme convivono proprio perché la elle minuscola si confonde con
+     l'uno). Non essendo un errore, non entra qui: l'elenco serve a fermare le
+     scritture SBAGLIATE, non a imporre un gusto. Se un giorno si vorrà anche
+     l'uniformità, quella è un'altra decisione e va presa per tutte le unità
+     insieme, non aggiungendo una lettera alla volta.
+
+   ⛔ L'ORDINE NON SI SCRIVE A MANO, SI CALCOLA (vedi `IN_ORDINE` qui sotto).
+   Aggiungendo «h» è saltato fuori che il difetto c'era già: «km/h» non era in
+   elenco, «km» sì, e «40 km/h» diventava `<span>km</span>/h` — cioè, dentro una
+   pastiglia, «40 km/H». Lo stesso valeva per «kg/m³», che usciva «kg/M³»: il
+   metro cubo maiuscolo, esattamente l'errore che questa funzione esiste per
+   impedire. Non è colpa di chi ha scritto l'elenco: è che un elenco il cui
+   ORDINE conta, ma il cui ordine è affidato alla memoria di chi lo modifica,
+   prima o poi si rompe in silenzio. Le composte vanno riconosciute prima delle
+   semplici, e per ottenerlo basta ordinare per lunghezza: così chi aggiunge
+   un'unità la scrive dove gli pare e la regola resta giusta. */
+const UNITA_DA_SALVARE = ["gg", "m³", "m²", "mm/s", "µg/m³", "mg/m³", "kg/m³",
+  "kg/foro", "kg/m", "kg", "km/h", "km", "cm", "mm", "m³/h", "m³/giorno",
+  "m³/anno", "t/m³", "h"];
+const IN_ORDINE = [...UNITA_DA_SALVARE].sort((a, b) => b.length - a.length);
 export function avvolgiUnita(testo) {
   let t = String(testo == null ? "" : testo);
-  for (const u of UNITA_DA_SALVARE) {
+  for (const u of IN_ORDINE) {
     // dopo una cifra, con o senza spazio in mezzo, e non dentro una parola
     const re = new RegExp("(\\d)(\\s*)" + u.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?![\\w³²])", "g");
     t = t.replace(re, `$1$2<span class="u">${u}</span>`);

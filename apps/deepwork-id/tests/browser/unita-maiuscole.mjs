@@ -34,10 +34,14 @@ const CERCA = (controprova) => {
   /* le unità che compaiono nell'ecosistema. Non un'espressione generica: una
      lista, perché «t» dentro una parola non è una tonnellata e la lista con i
      confini di parola è l'unico modo di non riempire il risultato di rumore */
+  /* «h» (l'ora) è entrata il 30/07 insieme a `UNITA_DA_SALVARE` in
+     `shared/deepwork-id-client/dw-shell.js`: là c'è scritto perché lei sì e il
+     litro no. Sta in fondo per la stessa ragione — «km/h» e «m³/h» vanno
+     riconosciute prima, o si segnalerebbe l'ora dentro una velocità. */
   const UNITA = ['m³', 'm²', 'µg/m³', 'mg/m³', 'mm/s', 'dB(A)', 'dB(L)', 'dB',
     'kg/m³', 'kg/foro', 'kg/m', 'kg', 'km/h', 'km', 'MPa', 'GPa', 'kbar', 'Hz',
     'ms/m', 'ms', 'm/kg', 't/m³', '€/m³', '€/kg', '€/foro', '€/t', '€/m',
-    'cm', 'mm', 'gg', 'm³/giorno', 'm³/anno'];
+    'cm', 'mm', 'gg', 'm³/giorno', 'm³/anno', 'h'];
   const out = [];
   if (controprova) {
     /* si sporca una superficie che è a posto, per vedere se il controllo se ne

@@ -3180,6 +3180,32 @@ test("l'arrotondamento non può peggiorare il numero", () => {
     eq(avvolgiUnita(""), "", "vuoto resta vuoto");
     eq(avvolgiUnita(42), "42", "un numero si accetta e si restituisce come testo");
   });
+  /* L'ORA. Le etichette dei tagliandi di Flotta finiscono in una pastiglia, e la
+     pastiglia è maiuscola: prima di oggi uscivano «TRA 24,5 H» e «SCADUTA (+20
+     H)». Le due prove che contano davvero sono le ultime due: se «h» mangiasse
+     la coda di «km/h» o di «m³/h», l'ora finirebbe dentro una velocità e dentro
+     una portata — ed è per quello che sta in fondo all'elenco. */
+  test("unità nel maiuscolo: l'ora", () => {
+    eq(avvolgiUnita("tra 24,5 h"), `tra 24,5 ${U("h")}`, "l'etichetta di un tagliando");
+    eq(avvolgiUnita("SCADUTA (+20 h)"), `SCADUTA (+20 ${U("h")})`, "e quella scaduta, dentro le parentesi");
+    eq(avvolgiUnita("contatore 1.240 h"), `contatore 1.240 ${U("h")}`, "col migliaio all'italiana");
+    eq(avvolgiUnita("40 km/h"), `40 ${U("km/h")}`, "«km/h» resta intera: l'ora non le stacca la coda");
+    eq(avvolgiUnita("120 m³/h"), `120 ${U("m³/h")}`, "e nemmeno a «m³/h», che è una portata");
+    eq(avvolgiUnita("3 ha di piazzale"), "3 ha di piazzale", "«ha» non è un'ora");
+  });
+  /* ⚠️ QUESTE SONO LE PROVE DELL'ORDINE, e sono le uniche che cadono se qualcuno
+     rimette l'elenco in ordine scritto a mano: ognuna è un'unità COMPOSTA che
+     comincia con un'unità SEMPLICE già in elenco. Con l'ordine sbagliato non
+     falliscono con un errore: restituiscono `<span>kg</span>/m³`, che sembra
+     giusto finché non finisce in una pastiglia e diventa «kg/M³» — il metro cubo
+     maiuscolo, cioè l'errore che questa funzione esiste per impedire. */
+  test("unità nel maiuscolo: la composta batte la semplice", () => {
+    eq(avvolgiUnita("2,6 kg/m³"), `2,6 ${U("kg/m³")}`, "«kg/m³» non si spezza in «kg» più «/m³»");
+    eq(avvolgiUnita("1,2 kg/foro"), `1,2 ${U("kg/foro")}`, "né «kg/foro»");
+    eq(avvolgiUnita("2,7 t/m³"), `2,7 ${U("t/m³")}`, "né la densità");
+    eq(avvolgiUnita("400 m³/giorno"), `400 ${U("m³/giorno")}`, "né «m³/giorno», che comincia come «m³»");
+    eq(avvolgiUnita("18 mm/s"), `18 ${U("mm/s")}`, "né «mm/s», che comincia come «mm»");
+  });
 }
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
