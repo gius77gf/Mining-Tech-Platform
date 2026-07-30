@@ -754,7 +754,13 @@ campi interi, file delle macchine.
       tutta la suite — senza che niente dimostrasse che ne sapesse vedere uno.
       `--controprova` avvelena ogni superficie con una riga a ~1,15:1: 9 su 9
       la bocciano. E `contrasto.mjs` non era nemmeno documentato nel LEGGIMI.
-- Regole **14**; stile **149 → 177** prove; banchi del browser **15 → 16**.
+- [x] **«La pagina monta davvero» passava anche col programma morto**, su nove
+      superfici su nove: il markup delle app è quasi tutto statico, quindi Conti
+      col modulo ucciso fa comunque 488 elementi e 54 campi. Aggiunta la prova
+      «il programma è partito davvero» (la nota del modo: 57-72 caratteri viva,
+      0 morta) con controprova `--senza-programma`, verde su 6 app su 6.
+      Era anche **flaky** coi 2200 ms fissi: adesso aspetta la condizione.
+- Regole **14**; stile **149 → 177** prove; banchi del browser **15 → 17**.
 
 ### Difetti chiusi il 30/07 (tutti «silenziosi»: nessuno dava errore)
 - [x] La **striscia** e la **pastiglia** di un riquadro dicevano un colore
