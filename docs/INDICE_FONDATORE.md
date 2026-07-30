@@ -41,6 +41,11 @@ serve**, così non devi ricordarti i nomi.
   dettaglio tecnico onesto sul visore point-cloud e sui limiti della
   frammentazione-da-foto.
 
+## Se qualcuno ti chiede «ma la volata non la fa già Deepwork?»
+- **`docs/PERCHE_DEEPWORK_E_GENESI.md`** — la frase da dire in dieci secondi
+  (Deepwork è il **diario**, Genesi è il **tavolo da disegno**), le tre
+  sovrapposizioni vere fra le due e le tre domande su cui serve la tua risposta.
+
 ## Se vuoi capire Genesi (il simulatore di volata) e le sue novità
 - **`docs/GENESI_NUOVE_FUNZIONI.md`** — le funzioni recenti (riconciliazione,
   vibrazioni dall'onda vera, export del piano di innesco) spiegate con onestà:
