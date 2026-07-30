@@ -158,6 +158,34 @@ node apps/deepwork-id/tests/browser/id-unici.mjs 8823 --controprova
 La controprova inietta due bottoni con lo stesso id nel corpo servito (il file su
 disco non si tocca): tutte e nove le superfici devono fallire.
 
+## `vuoti-azione.mjs`
+
+**I bottoni degli stati vuoti puntano a qualcosa che esiste.** Dal 31/07 gli
+stati vuoti del **primo giorno** — quelli dove un cliente nuovo è fermo perché
+una lista è ancora vuota — hanno il terzo pezzo che mancava: **come si
+comincia**. I bottoni non fanno il lavoro, **portano**: cliccano il comando che
+esiste già o mettono il fuoco sul primo campo del form.
+
+⚠️ Il banco nasce da un difetto mio: scrivendo quei bottoni avevo **indovinato**
+due identificativi che non esistevano, e sarebbero stati **muti** — nessun
+errore in console, nessun test rosso, solo un bottone che non fa niente proprio
+nella schermata che serve a chi comincia.
+
+Non prova che il bottone «funzioni»: prova la cosa che si rompe davvero, cioè
+che il **bersaglio esista nella pagina viva**, dopo aver visitato tutte le
+sezioni. Quando si aggiunge un'azione a uno stato vuoto, il suo bersaglio va
+messo nell'elenco `BERSAGLI` del file: è quello che rende il controllo capace di
+accorgersene.
+
+```sh
+node apps/deepwork-id/tests/browser/vuoti-azione.mjs 8823
+node apps/deepwork-id/tests/browser/vuoti-azione.mjs 8823 --controprova
+```
+
+La controprova aggiunge un id inventato e pretende che il banco lo trovi in
+**tutte** le app: se lo trovasse solo in alcune, per le altre non avrebbe
+dimostrato niente.
+
 ## `contrasto-core.mjs`
 
 Misura il rapporto di contrasto del testo dei riquadri della home del core sul
