@@ -5,13 +5,13 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-07-29 21:47 UTC
-**Cosa sta per fare:** Blocco 4, i ponti fra le app. Tre cantieri in corso
-(Genesi↔Campo per la carica reale che torna alla riconciliazione,
-Terra↔Conti per il cavato contro il venduto, Sentinella↔Scudo per l'azione
-correttiva dal superamento). Tutti e tre erano caduti su errori 500 del
-server e sono stati ripresi dal punto esatto.
-**Commit di partenza:** `85a0fd0`
+**Ultimo ciclo riuscito:** 2026-07-31 06:45 UTC
+**Cosa sta per fare:** motore dei grafici condiviso, terzo passo. Chiusi i
+difetti delle etichette sulla LINEA (misurate invece che contate, estremità
+sempre presenti) e sulle BARRE (troncatura misurata con respiro, in entrambi
+gli orientamenti). Ora tocca a `disegnaCiambella` e `disegnaAvanzamento`, gli
+ultimi due tipi che nessuno ha mai guardato con nomi di materiale veri.
+**Commit di partenza:** `aac2ba9`
 
 ---
 
