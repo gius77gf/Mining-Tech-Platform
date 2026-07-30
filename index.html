@@ -2598,7 +2598,7 @@ function renderMacConsumi(el){
 function openConsumoForm(){
   openModal('Consumo giornaliero',`
     <label class="fl">Data</label><input type="date" class="finput" id="co-data" value="${today()}">
-    <div class="frow"><div><label class="fl">Gasolio (L)</label><input type="text" inputmode="decimal" class="finput" id="co-gas"></div><div><label class="fl">Olio (L)</label><input type="text" inputmode="decimal" class="finput" id="co-olio"></div></div>
+    <div class="frow"><div><label class="fl">Gasolio (<span class="u">L</span>)</label><input type="text" inputmode="decimal" class="finput" id="co-gas"></div><div><label class="fl">Olio (<span class="u">L</span>)</label><input type="text" inputmode="decimal" class="finput" id="co-olio"></div></div>
     <label class="fl">Lubrificante</label><input type="text" class="finput" id="co-lubr" placeholder="tipo / quantità">
     <label class="fl">Note</label><textarea class="finput" id="co-note" rows="2"></textarea>
   `,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:()=>{
@@ -2649,8 +2649,8 @@ function depEditTot(cat,id){
   ]);
 }
 function depDel(cat,id){const colName={punte:'deposito_punte',aste:'deposito_aste',lubr:'deposito_lubr'}[cat];openModal('Elimina voce','<p>Confermi?</p>',[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'ELIMINA',cls:'mbtn danger',action:async()=>{await fbDelete(colName,id);closeModal();toast('Eliminato','success');}}]);}
-function openPuntaForm(){openModal('Nuovo tipo punta',`<label class="fl">Diametro (mm)</label><input type="text" inputmode="decimal" class="finput" id="np-d"><label class="fl">Quantità iniziale</label><input type="number" inputmode="numeric" class="finput" id="np-q" value="0">`,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:async()=>{const d=numDetto('np-d','il diametro della punta',{positivo:true});if(d===null)return;const id='pt_'+genId();await fbSet('deposito_punte',id,{id,diametro:d,qta:parseNum0($('np-q').value),note:''});closeModal();toast('Aggiunto','success');}}]);}
-function openAstaForm(){openModal('Nuovo tipo asta',`<div class="frow"><div><label class="fl">Lunghezza (m)</label><input type="text" inputmode="decimal" class="finput" id="na-l"></div><div><label class="fl">Diametro (mm)</label><input type="text" inputmode="decimal" class="finput" id="na-d"></div></div><label class="fl">Quantità iniziale</label><input type="number" inputmode="numeric" class="finput" id="na-q" value="0">`,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:async()=>{const l=numDetto('na-l','la lunghezza dell\'asta',{positivo:true});if(l===null)return;const d=numDetto('na-d','il diametro dell\'asta',{positivo:true});if(d===null)return;const id='as_'+genId();await fbSet('deposito_aste',id,{id,lunghezza:l,diametro:d,qta:parseNum0($('na-q').value),note:''});closeModal();toast('Aggiunto','success');}}]);}
+function openPuntaForm(){openModal('Nuovo tipo punta',`<label class="fl">Diametro (<span class="u">mm</span>)</label><input type="text" inputmode="decimal" class="finput" id="np-d"><label class="fl">Quantità iniziale</label><input type="number" inputmode="numeric" class="finput" id="np-q" value="0">`,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:async()=>{const d=numDetto('np-d','il diametro della punta',{positivo:true});if(d===null)return;const id='pt_'+genId();await fbSet('deposito_punte',id,{id,diametro:d,qta:parseNum0($('np-q').value),note:''});closeModal();toast('Aggiunto','success');}}]);}
+function openAstaForm(){openModal('Nuovo tipo asta',`<div class="frow"><div><label class="fl">Lunghezza (<span class="u">m</span>)</label><input type="text" inputmode="decimal" class="finput" id="na-l"></div><div><label class="fl">Diametro (<span class="u">mm</span>)</label><input type="text" inputmode="decimal" class="finput" id="na-d"></div></div><label class="fl">Quantità iniziale</label><input type="number" inputmode="numeric" class="finput" id="na-q" value="0">`,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:async()=>{const l=numDetto('na-l','la lunghezza dell\'asta',{positivo:true});if(l===null)return;const d=numDetto('na-d','il diametro dell\'asta',{positivo:true});if(d===null)return;const id='as_'+genId();await fbSet('deposito_aste',id,{id,lunghezza:l,diametro:d,qta:parseNum0($('na-q').value),note:''});closeModal();toast('Aggiunto','success');}}]);}
 function openLubrForm(){openModal('Nuovo lubrificante',`<label class="fl">Tipo</label><input type="text" class="finput" id="nl-t" placeholder="Olio motore 15W40"><label class="fl">Litri iniziali</label><input type="text" inputmode="decimal" class="finput" id="nl-l" value="0">`,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:async()=>{const t=$('nl-t').value.trim();if(!t){toast('Inserisci tipo','err');return;}const litri=numDetto('nl-l','i litri iniziali',{min:0});if(litri===null)return;const id='lb_'+genId();await fbSet('deposito_lubr',id,{id,tipo:t,litri,note:''});closeModal();toast('Aggiunto','success');}}]);}
 
 // ══════════ PERSONALE ══════════
@@ -4865,22 +4865,22 @@ function renderEditorSide(){
       <!-- Posizione -->
       <div class="ec-side-title" style="margin-top:0;"><span class="dot"></span>Posizione</div>
       <div class="frow" style="margin-bottom:6px;">
-        <div><label class="fl">X — lungo fronte (m)</label><input type="text" inputmode="decimal" class="finput" id="ef-x" value="${f.x||0}" oninput="aggiornaForo(${idx},'x',this.value)"></div>
-        <div><label class="fl">Y — distanza fronte (m)</label><input type="text" inputmode="decimal" class="finput" id="ef-y" value="${f.y||0}" oninput="aggiornaForo(${idx},'y',this.value)"></div>
+        <div><label class="fl">X — lungo fronte (<span class="u">m</span>)</label><input type="text" inputmode="decimal" class="finput" id="ef-x" value="${f.x||0}" oninput="aggiornaForo(${idx},'x',this.value)"></div>
+        <div><label class="fl">Y — distanza fronte (<span class="u">m</span>)</label><input type="text" inputmode="decimal" class="finput" id="ef-y" value="${f.y||0}" oninput="aggiornaForo(${idx},'y',this.value)"></div>
       </div>
 
       <!-- Geometria foro -->
       <div class="ec-side-title"><span class="dot"></span>Geometria</div>
       <div class="frow" style="margin-bottom:2px;">
         <div>
-          <label class="fl">Profondità (m)</label>
+          <label class="fl">Profondità (<span class="u">m</span>)</label>
           <div style="display:flex;gap:4px;">
             <input type="text" inputmode="decimal" class="finput" style="flex:1;" placeholder="—" value="${f.prof||''}" oninput="aggiornaForo(${idx},'prof',this.value)">
             <button class="chg" onclick="applicaATutti('prof','${f.prof||''}')" title="Applica a tutti i fori" style="padding:0 8px;font-size:16px;min-height:var(--tap);">⟳</button>
           </div>
         </div>
         <div>
-          <label class="fl">Diametro (mm)</label>
+          <label class="fl">Diametro (<span class="u">mm</span>)</label>
           <div style="display:flex;gap:4px;">
             <input type="number" inputmode="numeric" class="finput" style="flex:1;" placeholder="—" value="${f.diam||''}" oninput="aggiornaForo(${idx},'diam',this.value)">
             <button class="chg" onclick="applicaATutti('diam','${f.diam||''}')" title="Applica a tutti i fori" style="padding:0 8px;font-size:16px;min-height:var(--tap);">⟳</button>
@@ -4953,14 +4953,14 @@ function renderEditorSide(){
     $('ec-side').innerHTML=`
       <div class="ec-side-title"><span class="dot"></span>Imposta galleria</div>
       <div class="frow">
-        <div><label class="fl">Larghezza (m)</label><input type="text" inputmode="decimal" class="finput" value="${v.fronte.lunghezza_m}" oninput="aggiornaVolata('fronte.lunghezza_m',this.value)"></div>
-        <div><label class="fl">Altezza (m)</label><input type="text" inputmode="decimal" class="finput" value="${v.fronte.altezza_m}" oninput="aggiornaVolata('fronte.altezza_m',this.value)"></div>
+        <div><label class="fl">Larghezza (<span class="u">m</span>)</label><input type="text" inputmode="decimal" class="finput" value="${v.fronte.lunghezza_m}" oninput="aggiornaVolata('fronte.lunghezza_m',this.value)"></div>
+        <div><label class="fl">Altezza (<span class="u">m</span>)</label><input type="text" inputmode="decimal" class="finput" value="${v.fronte.altezza_m}" oninput="aggiornaVolata('fronte.altezza_m',this.value)"></div>
       </div>
       <div class="frow">
-        <div><label class="fl">Freccia calotta (m)</label><input type="text" inputmode="decimal" class="finput" value="${v.fronte.calotta_m}" oninput="aggiornaVolata('fronte.calotta_m',this.value)"></div>
-        <div><label class="fl">Interasse (m)</label><input type="text" inputmode="decimal" class="finput" value="${getSpaziatura(v)}" oninput="aggiornaVolata('maglia.spaziatura',this.value)"></div>
+        <div><label class="fl">Freccia calotta (<span class="u">m</span>)</label><input type="text" inputmode="decimal" class="finput" value="${v.fronte.calotta_m}" oninput="aggiornaVolata('fronte.calotta_m',this.value)"></div>
+        <div><label class="fl">Interasse (<span class="u">m</span>)</label><input type="text" inputmode="decimal" class="finput" value="${getSpaziatura(v)}" oninput="aggiornaVolata('maglia.spaziatura',this.value)"></div>
       </div>
-      <label class="fl">Sfondo / avanzamento (m)</label>
+      <label class="fl">Sfondo / avanzamento (<span class="u">m</span>)</label>
       <input type="text" inputmode="decimal" class="finput" value="${v.default.profondita_m||''}" oninput="aggiornaVolata('default.profondita_m',this.value)">
       <button class="btn-sec" style="width:100%;margin:8px 0;" onclick="rigeneraMaglia()">↻ Rigenera schema (cut + contorno)</button>
       <label class="fl">Esplosivo default</label>
@@ -4979,7 +4979,7 @@ function renderEditorSide(){
     <div class="ec-side-title"><span class="dot"></span>Imposta volata</div>
 
     <div class="frow">
-      <div><label class="fl">Lunghezza fronte (m)</label><input type="text" inputmode="decimal" class="finput" value="${v.fronte.lunghezza_m}" oninput="aggiornaVolata('fronte.lunghezza_m',this.value)"></div>
+      <div><label class="fl">Lunghezza fronte (<span class="u">m</span>)</label><input type="text" inputmode="decimal" class="finput" value="${v.fronte.lunghezza_m}" oninput="aggiornaVolata('fronte.lunghezza_m',this.value)"></div>
       <div><label class="fl">N° file</label><input type="number" inputmode="numeric" min="1" max="6" class="finput" value="${v.maglia.file}" oninput="aggiornaVolata('maglia.file',this.value)"></div>
     </div>
 
@@ -5016,8 +5016,8 @@ function renderEditorSide(){
 
     <div class="ec-side-title" style="margin-top:12px;"><span class="dot"></span>Default per nuovi fori</div>
     <div class="frow">
-      <div><label class="fl">Profondità (m)</label><input type="text" inputmode="decimal" class="finput" value="${v.default.profondita_m||''}" oninput="aggiornaVolata('default.profondita_m',this.value)"></div>
-      <div><label class="fl">Diametro (mm)</label><input type="number" inputmode="numeric" class="finput" value="${v.default.diametro_mm||''}" oninput="aggiornaVolata('default.diametro_mm',this.value)"></div>
+      <div><label class="fl">Profondità (<span class="u">m</span>)</label><input type="text" inputmode="decimal" class="finput" value="${v.default.profondita_m||''}" oninput="aggiornaVolata('default.profondita_m',this.value)"></div>
+      <div><label class="fl">Diametro (<span class="u">mm</span>)</label><input type="number" inputmode="numeric" class="finput" value="${v.default.diametro_mm||''}" oninput="aggiornaVolata('default.diametro_mm',this.value)"></div>
     </div>
     <label class="fl">Esplosivo default</label>
     <input type="text" class="finput" placeholder="es. ANFO, Emulsione..." value="${escHtml(v.default.esplosivo||'')}" oninput="aggiornaVolata('default.esplosivo',this.value)">
@@ -5594,12 +5594,12 @@ function renderFrammentazioneModal(v){
     </div>
     <div class="sec-title" style="margin-top:14px;"><span class="dot"></span>Distribuzione granulometrica (%)</div>
     <div class="frow">
-      <div><label class="fl">Fine (0-10 cm)</label><input type="text" inputmode="decimal" min="0" max="100" class="finput" id="fr-fine" value="${f.fine||0}" oninput="aggiornaFrammentazione()"></div>
-      <div><label class="fl">Media (10-30 cm)</label><input type="text" inputmode="decimal" min="0" max="100" class="finput" id="fr-media" value="${f.media||0}" oninput="aggiornaFrammentazione()"></div>
+      <div><label class="fl">Fine (<span class="u">0-10 cm</span>)</label><input type="text" inputmode="decimal" min="0" max="100" class="finput" id="fr-fine" value="${f.fine||0}" oninput="aggiornaFrammentazione()"></div>
+      <div><label class="fl">Media (<span class="u">10-30 cm</span>)</label><input type="text" inputmode="decimal" min="0" max="100" class="finput" id="fr-media" value="${f.media||0}" oninput="aggiornaFrammentazione()"></div>
     </div>
     <div class="frow">
-      <div><label class="fl">Grossa (30-60 cm)</label><input type="text" inputmode="decimal" min="0" max="100" class="finput" id="fr-grossa" value="${f.grossa||0}" oninput="aggiornaFrammentazione()"></div>
-      <div><label class="fl">Oversize (>60 cm)</label><input type="text" inputmode="decimal" min="0" max="100" class="finput" id="fr-over" value="${f.oversize||0}" oninput="aggiornaFrammentazione()"></div>
+      <div><label class="fl">Grossa (<span class="u">30-60 cm</span>)</label><input type="text" inputmode="decimal" min="0" max="100" class="finput" id="fr-grossa" value="${f.grossa||0}" oninput="aggiornaFrammentazione()"></div>
+      <div><label class="fl">Oversize (<span class="u">>60 cm</span>)</label><input type="text" inputmode="decimal" min="0" max="100" class="finput" id="fr-over" value="${f.oversize||0}" oninput="aggiornaFrammentazione()"></div>
     </div>
     <div style="background:var(--card2);padding:10px 14px;margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
       <span style="font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Totale</span>
@@ -6902,6 +6902,12 @@ body.outdoor-mode .login-glow{display:none;}
 .login-logo{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:800;letter-spacing:4px;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:2px;}
 .login-tag{font-size:10px;color:var(--muted);letter-spacing:4px;text-transform:uppercase;margin-bottom:30px;}
 .fl{font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:block;}
+/* ⛔ L'UNITÀ DI MISURA DENTRO UN'ETICHETTA NON VA IN MAIUSCOLO. L'etichetta sì,
+   è la forma del core; ma «m³» diventa «M³», che si legge come un'altra
+   grandezza (M = mega), e «g/cm³» diventa «G/CM³». Il difetto non sta nel testo
+   né nella classe: sta nel loro incontro, ed è per questo che si vede solo sul
+   renderizzato. L'unità si avvolge in `.u` e qui il maiuscolo si spegne. */
+.fl .u{text-transform:none; letter-spacing:.2px;}
 .fi{width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);padding:11px 14px;font-family:'Barlow',sans-serif;font-size:16px;outline:none;transition:border-color .2s;margin-bottom:12px;min-height:var(--tap);}
 .fi:focus{border-color:var(--amber);}
 .fi.err{border-color:var(--danger);}
@@ -7824,8 +7830,8 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
       <label class="fl">Cava</label><select class="finput" id="vf-cava" onchange="applicaFiltriVolate()"></select>
       <label class="fl">Operatore</label><select class="finput" id="vf-user" onchange="applicaFiltriVolate()"></select>
       <div class="frow">
-        <div><label class="fl">Diametro min (mm)</label><input type="text" inputmode="decimal" class="finput" id="vf-dmin" oninput="applicaFiltriVolate()"></div>
-        <div><label class="fl">Diametro max (mm)</label><input type="text" inputmode="decimal" class="finput" id="vf-dmax" oninput="applicaFiltriVolate()"></div>
+        <div><label class="fl">Diametro min (<span class="u">mm</span>)</label><input type="text" inputmode="decimal" class="finput" id="vf-dmin" oninput="applicaFiltriVolate()"></div>
+        <div><label class="fl">Diametro max (<span class="u">mm</span>)</label><input type="text" inputmode="decimal" class="finput" id="vf-dmax" oninput="applicaFiltriVolate()"></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
         <button class="btn-sec" onclick="resetFiltriVolate()">Reset filtri</button>
@@ -7916,8 +7922,8 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
         <div><label class="fl">Ora fine giornata</label><input type="time" class="finput" id="r-of" oninput="markUnsaved()"></div>
       </div>
       <div class="frow">
-        <div><label class="fl">Diametro (mm)</label><input type="text" inputmode="decimal" class="finput" id="r-d" placeholder="89" oninput="markUnsaved();aggiornaTotali()"></div>
-        <div><label class="fl">Maglia (m)</label><input type="text" inputmode="decimal" class="finput" id="r-m" placeholder="3,5x4"></div>
+        <div><label class="fl">Diametro (<span class="u">mm</span>)</label><input type="text" inputmode="decimal" class="finput" id="r-d" placeholder="89" oninput="markUnsaved();aggiornaTotali()"></div>
+        <div><label class="fl">Maglia (<span class="u">m</span>)</label><input type="text" inputmode="decimal" class="finput" id="r-m" placeholder="3,5x4"></div>
       </div>
       <label class="fl">Mezzo utilizzato</label>
       <select class="finput" id="r-mezzo" onchange="markUnsaved()"></select>
@@ -7948,8 +7954,8 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
       <div id="r-fila2-section" style="display:none;margin-top:8px;border-top:2px solid var(--border);padding-top:10px;">
         <div class="info-box" style="margin-bottom:8px;font-size:11px;">Seconda fila: ha una sua maglia e i suoi fori, esattamente come la prima.</div>
         <div class="frow">
-          <div><label class="fl">Diametro fila 2 (mm)</label><input type="text" inputmode="decimal" class="finput" id="r-d2" placeholder="89" oninput="markUnsaved()"></div>
-          <div><label class="fl">Maglia fila 2 (m)</label><input type="text" inputmode="decimal" class="finput" id="r-m2" placeholder="3,5x4" oninput="markUnsaved()"></div>
+          <div><label class="fl">Diametro fila 2 (<span class="u">mm</span>)</label><input type="text" inputmode="decimal" class="finput" id="r-d2" placeholder="89" oninput="markUnsaved()"></div>
+          <div><label class="fl">Maglia fila 2 (<span class="u">m</span>)</label><input type="text" inputmode="decimal" class="finput" id="r-m2" placeholder="3,5x4" oninput="markUnsaved()"></div>
         </div>
         <div style="margin:6px 0;display:flex;justify-content:space-between;align-items:center;">
           <div class="sec-title" style="margin:0;"><span class="dot"></span>Fori perforati — Fila 2</div>
@@ -8202,9 +8208,9 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
     <div class="sec-title" style="margin-top:18px;"><span class="dot"></span>Calcolo metri cubi</div>
     <div class="preview-sec" style="margin-bottom:10px;">
       <div class="frow3">
-        <div><label class="fl">Prof. media (m)</label><input type="text" inputmode="decimal" class="finput" id="umc-h" oninput="calcMcUfficio()"></div>
-        <div><label class="fl">Spalla (m)</label><input type="text" inputmode="decimal" class="finput" id="umc-b" oninput="calcMcUfficio()"></div>
-        <div><label class="fl">Interasse (m)</label><input type="text" inputmode="decimal" class="finput" id="umc-s" oninput="calcMcUfficio()"></div>
+        <div><label class="fl">Prof. media (<span class="u">m</span>)</label><input type="text" inputmode="decimal" class="finput" id="umc-h" oninput="calcMcUfficio()"></div>
+        <div><label class="fl">Spalla (<span class="u">m</span>)</label><input type="text" inputmode="decimal" class="finput" id="umc-b" oninput="calcMcUfficio()"></div>
+        <div><label class="fl">Interasse (<span class="u">m</span>)</label><input type="text" inputmode="decimal" class="finput" id="umc-s" oninput="calcMcUfficio()"></div>
       </div>
       <div class="frow">
         <div><label class="fl">N° fori</label><input type="number" inputmode="numeric" class="finput" id="umc-n" oninput="calcMcUfficio()"></div>
@@ -8294,9 +8300,9 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
       <div class="sitem" onclick="nav('audit')"><div class="av av-su">🛡️</div><div class="sinfo"><div class="sname">Audit Log</div><div class="ssub">Tracciamento azioni sensibili</div></div><div class="sarr">›</div></div>
     </div>
     <div id="adm-calc-panel" style="display:none;">
-      <div class="frow"><div><label class="fl">Diametro (mm)</label><input type="text" inputmode="decimal" id="a-d" class="finput" placeholder="89" oninput="apriCalcAdmin()"></div><div><label class="fl">Prof media (m)</label><input type="text" inputmode="decimal" id="a-pm" class="finput" placeholder="12" oninput="apriCalcAdmin()"></div></div>
-      <div class="frow"><div><label class="fl">Burden B (m)</label><input type="text" inputmode="decimal" id="a-b" class="finput" placeholder="3" oninput="apriCalcAdmin()"></div><div><label class="fl">Spazio S (m)</label><input type="text" inputmode="decimal" id="a-s" class="finput" placeholder="4" oninput="apriCalcAdmin()"></div></div>
-      <div class="frow"><div><label class="fl">H banco (m)</label><input type="text" inputmode="decimal" id="a-mh" class="finput"></div><div><label class="fl">Fori</label><input type="number" inputmode="numeric" id="a-nf" class="finput" placeholder="20" oninput="apriCalcAdmin()"></div></div>
+      <div class="frow"><div><label class="fl">Diametro (<span class="u">mm</span>)</label><input type="text" inputmode="decimal" id="a-d" class="finput" placeholder="89" oninput="apriCalcAdmin()"></div><div><label class="fl">Prof media (<span class="u">m</span>)</label><input type="text" inputmode="decimal" id="a-pm" class="finput" placeholder="12" oninput="apriCalcAdmin()"></div></div>
+      <div class="frow"><div><label class="fl">Burden B (<span class="u">m</span>)</label><input type="text" inputmode="decimal" id="a-b" class="finput" placeholder="3" oninput="apriCalcAdmin()"></div><div><label class="fl">Spazio S (<span class="u">m</span>)</label><input type="text" inputmode="decimal" id="a-s" class="finput" placeholder="4" oninput="apriCalcAdmin()"></div></div>
+      <div class="frow"><div><label class="fl">H banco (<span class="u">m</span>)</label><input type="text" inputmode="decimal" id="a-mh" class="finput"></div><div><label class="fl">Fori</label><input type="number" inputmode="numeric" id="a-nf" class="finput" placeholder="20" oninput="apriCalcAdmin()"></div></div>
       <div class="stats" style="margin-top:14px;"><div class="stat"><div class="sl">Mc totali</div><div class="sv" id="a-out-mc">—</div></div><div class="stat"><div class="sl">Mc/foro</div><div class="sv" id="a-out-mcf">—</div></div></div>
     </div>
     <div id="adm-sys-panel" style="display:none;">
@@ -8363,8 +8369,8 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
     <div id="rc-preview" style="margin:8px 0;position:relative;"></div>
     <button class="btn-sec" id="rc-cal" style="width:100%;margin-bottom:6px;" onclick="reconCalibra()">📏 Calibra scala (tocca 2 punti su un riferimento noto)</button>
     <div class="frow">
-      <div><label class="fl">Larghezza reale (m)</label><input type="text" inputmode="decimal" class="finput" id="rc-w" value="30"></div>
-      <div><label class="fl">Altezza reale (m)</label><input type="text" inputmode="decimal" class="finput" id="rc-h" value="12"></div>
+      <div><label class="fl">Larghezza reale (<span class="u">m</span>)</label><input type="text" inputmode="decimal" class="finput" id="rc-w" value="30"></div>
+      <div><label class="fl">Altezza reale (<span class="u">m</span>)</label><input type="text" inputmode="decimal" class="finput" id="rc-h" value="12"></div>
     </div>
     <label class="fl">Profondità rilievo</label>
     <input type="range" min="1" max="10" value="4" id="rc-relief" style="width:100%;" oninput="$('rc-relief-v').textContent=this.value">
@@ -8407,10 +8413,10 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
     <div class="preview-sec" style="margin-bottom:10px;">
       <div class="preview-head">Carica per foro</div>
       <div class="frow">
-        <div><label class="fl">Diametro (mm)</label><input type="text" inputmode="decimal" class="finput" id="foc-d" placeholder="89" oninput="focCalcEsp()"></div>
-        <div><label class="fl">Colonna (m)</label><input type="text" inputmode="decimal" class="finput" id="foc-col" placeholder="10" oninput="focCalcEsp()"></div>
+        <div><label class="fl">Diametro (<span class="u">mm</span>)</label><input type="text" inputmode="decimal" class="finput" id="foc-d" placeholder="89" oninput="focCalcEsp()"></div>
+        <div><label class="fl">Colonna (<span class="u">m</span>)</label><input type="text" inputmode="decimal" class="finput" id="foc-col" placeholder="10" oninput="focCalcEsp()"></div>
       </div>
-      <label class="fl">Densità esplosivo (g/cm³)</label>
+      <label class="fl">Densità esplosivo (<span class="u">g/cm³</span>)</label>
       <select class="finput" id="foc-rho" onchange="focCalcEsp()">
         <option value="0.85">ANFO (0.85)</option>
         <option value="1.2" selected>Emulsione (1.2)</option>
@@ -8426,9 +8432,9 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
     <div class="preview-sec" style="margin-bottom:10px;">
       <div class="preview-head">Mc abbattuti</div>
       <div class="frow3">
-        <div><label class="fl">Prof. media (m)</label><input type="text" inputmode="decimal" class="finput" id="foc-h" oninput="focCalcMc()"></div>
-        <div><label class="fl">Burden B (m)</label><input type="text" inputmode="decimal" class="finput" id="foc-b" oninput="focCalcMc()"></div>
-        <div><label class="fl">Spaz. S (m)</label><input type="text" inputmode="decimal" class="finput" id="foc-s" oninput="focCalcMc()"></div>
+        <div><label class="fl">Prof. media (<span class="u">m</span>)</label><input type="text" inputmode="decimal" class="finput" id="foc-h" oninput="focCalcMc()"></div>
+        <div><label class="fl">Burden B (<span class="u">m</span>)</label><input type="text" inputmode="decimal" class="finput" id="foc-b" oninput="focCalcMc()"></div>
+        <div><label class="fl">Spaz. S (<span class="u">m</span>)</label><input type="text" inputmode="decimal" class="finput" id="foc-s" oninput="focCalcMc()"></div>
       </div>
       <label class="fl">N° fori</label>
       <input type="number" inputmode="numeric" class="finput" id="foc-nf" oninput="focCalcMc()">
@@ -8453,10 +8459,10 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
     <div class="preview-sec" style="margin-bottom:10px;">
       <div class="preview-head">Burden ottimale (Konya)</div>
       <div class="frow">
-        <div><label class="fl">Ø foro (mm)</label><input type="text" inputmode="decimal" class="finput" id="bk-d" placeholder="89" oninput="calcKonya()"></div>
+        <div><label class="fl">Ø foro (<span class="u">mm</span>)</label><input type="text" inputmode="decimal" class="finput" id="bk-d" placeholder="89" oninput="calcKonya()"></div>
         <div><label class="fl">Densità esplosivo</label><input type="text" inputmode="decimal" class="finput" id="bk-re" placeholder="1,2" value="1,2" oninput="calcKonya()"></div>
       </div>
-      <label class="fl">Densità roccia (t/m³)</label>
+      <label class="fl">Densità roccia (<span class="u">t/m³</span>)</label>
       <input type="text" inputmode="decimal" class="finput" id="bk-rr" placeholder="2,6" value="2,6" oninput="calcKonya()">
       <div class="stats" id="bk-out" style="margin-top:10px;display:none;">
         <div class="stat"><div class="sl">Burden B</div><div class="sv" id="bk-b">—</div></div>
@@ -8467,8 +8473,8 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
     <div class="preview-sec" style="margin-bottom:10px;">
       <div class="preview-head">PPV vibrazioni (UNI 9916)</div>
       <div class="frow3">
-        <div><label class="fl">Distanza (m)</label><input type="text" inputmode="decimal" class="finput" id="pv-d" oninput="calcPPV()"></div>
-        <div><label class="fl">Carica/ritardo (kg)</label><input type="text" inputmode="decimal" class="finput" id="pv-q" oninput="calcPPV()"></div>
+        <div><label class="fl">Distanza (<span class="u">m</span>)</label><input type="text" inputmode="decimal" class="finput" id="pv-d" oninput="calcPPV()"></div>
+        <div><label class="fl">Carica/ritardo (<span class="u">kg</span>)</label><input type="text" inputmode="decimal" class="finput" id="pv-q" oninput="calcPPV()"></div>
         <div><label class="fl">Tipo edificio</label><select class="finput" id="pv-t" onchange="calcPPV()"><option value="5">Civile (5)</option><option value="20">Industriale (20)</option></select></div>
       </div>
       <div class="stats" id="pv-out" style="margin-top:10px;display:none;">
@@ -8481,7 +8487,7 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
       <div class="preview-head">Frammentazione (Kuz-Ram X50)</div>
       <div class="frow3">
         <div><label class="fl">Fattore roccia A</label><input type="text" inputmode="decimal" class="finput" id="kr-a" placeholder="7" value="7" oninput="calcKuzRam()"></div>
-        <div><label class="fl">Vol/foro (m³)</label><input type="text" inputmode="decimal" class="finput" id="kr-v" oninput="calcKuzRam()"></div>
+        <div><label class="fl">Vol/foro (<span class="u">m³</span>)</label><input type="text" inputmode="decimal" class="finput" id="kr-v" oninput="calcKuzRam()"></div>
         <div><label class="fl">Kg/foro</label><input type="text" inputmode="decimal" class="finput" id="kr-q" oninput="calcKuzRam()"></div>
       </div>
       <label class="fl">Potenza relativa esplosivo (ANFO=100)</label>
