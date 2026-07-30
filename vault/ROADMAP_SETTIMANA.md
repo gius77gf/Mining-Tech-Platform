@@ -337,6 +337,17 @@ inserito una volta serve in cinque posti**.
       implausibile oltre il 35% (è un errore da cercare), no-densità.
 - [ ] P2. **Campo → Terra**: produzione del turno → volumi per fronte.
       *(l'unico ponte che resta)*
+      **Primo pezzo fatto** *(30/07, `6c854de`)* — `produzionePerFronte` in
+      `shared/`, ri-esportata da Campo e Terra con test d'identità. Divide per
+      fronte, tiene separati «senza fronte» e «fronte che non esiste più», non
+      converte le tonnellate senza densità, non conta i viaggi come metri cubi,
+      e calcola la quota sull'attribuito e non sul totale. ⛔ Accoppia per
+      identificativo, mai per nome: controprova che rimette il difetto e fa
+      cadere la guardia. Otto prove, totale 325 → 333.
+      **Resta da fare**: Campo non registra ancora il `fronteId` sul
+      rapportino — serve la tendina dei fronti letti da Terra (sola lettura,
+      stesso schema di `rilieviTerra`), i dati dimostrativi coerenti, e poi la
+      ripartizione mostrata in Terra tenuta separata dalla misura del drone.
 
 ## BLOCCO 6 — SECONDE ITERAZIONI: I DIFETTI DICHIARATI, CHIUSI
 Non feature nuove: i difetti che i cantieri avevano trovato e scritto nero su
