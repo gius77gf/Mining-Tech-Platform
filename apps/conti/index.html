@@ -3490,7 +3490,14 @@ label.item:has(.dw-chk:checked){
   $("btn-lis-import").onclick = () => $("lis-file").click();
   $("lis-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const lette = parseListinoCsv(await file.text());
+    const testoLis = await file.text();
+    /* Quante righe di dati aveva il file, per poter dire quante ne sono
+       CADUTE: dal 31/07 una riga senza prezzo leggibile non entra (è la difesa
+       contro il file sbagliato), e chi carica deve sapere quante ne mancano —
+       altrimenti conta i prodotti in lista e non torna, senza capire perché. */
+    const grezze = testoLis.split(/\r?\n/).map(x => x.trim()).filter(Boolean)
+      .filter(x => !/^nome\s*[;,\t]/i.test(x)).length;
+    const lette = parseListinoCsv(testoLis);
     /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
        dentro il file appena letto (regola condivisa, shared/dw-shell.js), e
        sotto contro quello che è GIÀ in archivio — che solo la pagina conosce.
@@ -3499,7 +3506,8 @@ label.item:has(.dw-chk:checked){
        entravano tutte. */
     const righe = senzaDoppioni(lette, x => x.nome);
     const ripetute = lette.length - righe.length;
-    if (!righe.length) { esito("lis-esito", "Nessuna riga valida: controlla che le colonne siano nome;unita;prezzo;densita;iva.", "err"); e.target.value = ""; return; }
+    const senzaPrezzo = Math.max(0, grezze - lette.length);
+    if (!righe.length) { esito("lis-esito", "Nessuna riga valida: controlla che le colonne siano nome;unita;prezzo;densita;iva. Se stai caricando il file «prezzi convertiti», non è quello giusto: per ri-caricare il listino serve quello di Esporta CSV qui accanto.", "err"); e.target.value = ""; return; }
     let agg = 0, dup = 0, senzaDensita = 0;
     for (const r of righe) {
       if (PRO.some(p => (p.nome || "").trim().toLowerCase() === r.nome.toLowerCase())) { dup++; continue; }
@@ -3515,6 +3523,7 @@ label.item:has(.dw-chk:checked){
        una conversione non esce. */
     esito("lis-esito",
       `Import listino: ${agg} prodotti aggiunti${dup ? `, ${dup} già presenti (saltati)` : ""}${ripetute ? `, ${ripetute} ripetuti nel file` : ""}.`
+      + (senzaPrezzo ? ` ${senzaPrezzo} ${senzaPrezzo === 1 ? "riga non \u00e8 entrata perch\u00e9 non aveva" : "righe non sono entrate perch\u00e9 non avevano"} un prezzo leggibile nella sua colonna: un prodotto senza prezzo non si pu\u00f2 vendere, e uno zero messo da me lo farebbe sembrare gratis.` : "")
       + (senzaDensita ? ` ${senzaDensita} ${senzaDensita === 1 ? "prodotto \u00e8" : "prodotti sono"} senza densit\u00e0: per quelli non posso convertire fra metri cubi e tonnellate finch\u00e9 non la aggiungi.` : ""),
       agg ? "success" : "err");
     await refresh();

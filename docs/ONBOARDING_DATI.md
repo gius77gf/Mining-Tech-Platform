@@ -192,6 +192,14 @@ Pagina **Listino → Importa listino CSV**.
 - **`unita`**: `t` (a tonnellata) oppure `mc` / `m3` / `m³` (a metro cubo). Si
   accettano anche `ton` e `tonnellate`; quello che non si riconosce diventa `t`,
   che in cava è il caso normale, e si corregge dalla scheda.
+- ⛔ **`prezzo` è obbligatorio** *(dal 31/07)*: una riga senza un prezzo
+  leggibile **non entra**, e l'app ti dice quante ne sono cadute. Non è
+  pignoleria — è quello che impedisce di caricare per sbaglio il **file
+  sbagliato**: il bottone *Esporta prezzi convertiti* scarica un altro file,
+  con le colonne in un altro ordine, e prima del 31/07 ri-caricarlo riempiva il
+  listino di prodotti a **prezzo zero** con l'**IVA sbagliata**. Se un prodotto
+  davvero non ha prezzo, scrivi **0** apposta: è una tua decisione, e l'app la
+  rispetta.
 - ⛔ **`densita` si può lasciare vuota, e resta vuota.** Serve a passare da metri
   cubi a tonnellate: se il tuo listino non ce l'ha, il prodotto entra lo stesso
   (è vendibile) ma per quello Conti **non converte** — e te lo dice subito, col
