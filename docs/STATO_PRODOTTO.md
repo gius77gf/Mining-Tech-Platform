@@ -70,6 +70,32 @@ la rete di lavoro blocca una chiamata che l'emulatore fa all'avvio. Il numero
 qui sopra è contato sui file, non su un'esecuzione di oggi — e questa
 distinzione va tenuta, perché «contate» e «passate» non sono la stessa cosa.)*
 
+### Il 31 luglio, in quattro righe: caricare e ri-caricare i dati
+
+Una giornata sola su una cosa sola — **far entrare i dati del cliente e poterli
+riportare fuori** — perché è il primo giorno del pilota, ed è lì che un
+prodotto fa bella o brutta figura.
+
+- **Il doppione dentro il file.** Se lo stesso lavoratore, prodotto o mezzo
+  compare due volte nello **stesso** file, adesso entra **una volta sola**, in
+  tutte le app. Prima entrava due volte, e il caso non era teorico:
+  l'esportazione di Scudo scrive una riga per ogni scadenza, quindi
+  ri-caricare il proprio file faceva comparire **tre volte lo stesso
+  lavoratore**.
+- **Il file esportato si ri-carica davvero — ma solo sette.** Provati uno per
+  uno mandandoli dentro l'app: squadre, gare, listino, magazzino ricambi,
+  anagrafica, registro infortuni, ricettori. Tutti gli altri file che le app
+  scaricano sono **prospetti** per il commercialista o per l'ente e **non**
+  sono una copia di sicurezza: il documento lo diceva, ed era falso per più
+  della metà. Ora è corretto, ed è la **decisione 12**.
+- **Un bottone di Conti non faceva niente.** Due bottoni avevano lo stesso
+  identificativo, e cliccando «Esporta listino» non succedeva nulla. Trovato,
+  corretto, e chiuso con un controllo automatico che d'ora in poi lo vede.
+- **Il file sbagliato non entra più.** Ri-caricando nel listino il file dei
+  *prezzi convertiti* entravano tutti i prodotti a **prezzo zero** con l'IVA
+  sbagliata, senza un avviso. Adesso non entra niente e l'app dice quale file
+  serve.
+
 **Due cose che aspettano una tua decisione**, nuove rispetto al 23:
 `docs/REVISIONE_SICUREZZA_202607.md` (l'isolamento fra aziende tiene ed è
 provato; dentro l'azienda, invece, tutti possono tutto) e
