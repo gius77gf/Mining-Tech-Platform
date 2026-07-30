@@ -2193,7 +2193,7 @@
             ? "misurato su " + m.oreCoperte + " ore di lavoro"
             : esc(m.perche.charAt(0).toUpperCase() + m.perche.slice(1)) + "."}</div></div>
         ${m.litriOra != null
-          ? `<span class="badge ok">${lh(m.litriOra)}</span>${m.euroOra ? `<span class="badge tag euro">${eh(m.euroOra)}</span>` : ""}`
+          ? `<span class="badge ok">${ggU(lh(m.litriOra))}</span>${m.euroOra ? `<span class="badge tag euro">${ggU(eh(m.euroOra))}</span>` : ""}`
           : `<span class="badge tag">consumo n.d.</span>`}</div>`;
     }).join("");
 

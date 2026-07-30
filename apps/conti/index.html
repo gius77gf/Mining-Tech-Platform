@@ -115,6 +115,11 @@
 }
 
 /* ─────────────── KPI (copia di .kpi-card del core) ─────────────── */
+/* ⛔ LE UNITÀ NON VANNO IN MAIUSCOLO, e queste due superfici lo sono: la
+   pastiglia e l'etichetta di un campo. Il 30/07 Conti scriveva «13 GG»,
+   «-2 GG» e «DENSITÀ (T/M³)» — e nessuno se n'era accorto perché Conti non
+   era in nessun elenco di banco del browser. */
+.badge .u,.fld>label .u{text-transform:none; letter-spacing:.2px}
 .kpi .n .u{font-size:19px; font-weight:700; letter-spacing:.5px}
 .kpi .s{font-size:10.5px; color:var(--muted2); margin-top:3px; line-height:1.35}
 
@@ -835,7 +840,7 @@ label.item:has(.dw-chk:checked){
       <span class="err-msg" id="err-pr-prezzo"></span>
     </div>
     <div class="fld" id="fld-pr-dens" style="flex:1 1 150px;">
-      <label for="pr-dens">Densità (t/m³)</label>
+      <label for="pr-dens">Densità (<span class="u">t/m³</span>)</label>
       <input class="dw-input dec" id="pr-dens" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 1,60" title="Quante tonnellate pesa un metro cubo di questo materiale. La virgola va benissimo: 1,60.">
       <span class="err-msg" id="err-pr-dens"></span>
     </div>
@@ -1238,7 +1243,8 @@ label.item:has(.dw-chk:checked){
     applicaIncassi, apertoDi, statoIncasso, movimentiDiFattura, incassatoPeriodo,
     tempiPagamentoClienti, tempoMedioPagamento, emessoIncassato,
     numeroDaCampo, AVVISO_DECIMALE } from "./conti-data.js";
-  import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, avvolgiUnita } from "../../shared/deepwork-id-client/dw-shell.js";
+  const ggU = avvolgiUnita;   // la regola vive in shared/: qui solo il nome di sempre
   const $ = (id) => document.getElementById(id);
   // ── CIFRE: formato italiano, sempre due decimali, spazio unificatore
   //    dopo l'euro. Le colonne devono incolonnarsi: mai formati misti.
@@ -1553,14 +1559,24 @@ label.item:has(.dw-chk:checked){
               v: eur(apertoDi(f)), s: f.parziale ? "residuo" : "", b: fatBadge(f),
               st: ritardo > 0 ? "st-danger" : "st-warn" })),
       ...GAR.filter(g => g.stato === "aperta" && giorni(g.scadenza) <= 15)
-            .map(g => ({ ico: IC.gara, t: g.titolo, d: "gara in scadenza il " + fmtD(g.scadenza),
-              v: eur(g.base), s: "base d'asta", b: ["warn", plur(giorni(g.scadenza), "gg", "gg")], st: "st-sup" })),
+            .map(g => { const gg = giorni(g.scadenza); return {
+              ico: IC.gara, t: g.titolo,
+              d: gg < 0 ? "il termine era il " + fmtD(g.scadenza) : "gara in scadenza il " + fmtD(g.scadenza),
+              v: eur(g.base), s: "base d'asta", st: "st-sup",
+              /* ⚠️ MAI UN NUMERO DI GIORNI NEGATIVO SU UNA PASTIGLIA. Fino al
+                 30/07 una gara chiusa da due giorni mostrava «-2 gg», che chi
+                 legge deve interpretare; e una gara che scade oggi mostrava
+                 «0 gg», che sembra un dato mancante. Flotta lo diceva già
+                 giusto («scaduta da 20 gg»): qui era rimasto il conto crudo. */
+              b: gg < 0 ? ["danger", "chiusa da " + plur(-gg, "gg", "gg")]
+                 : gg === 0 ? ["danger", "scade oggi"]
+                 : ["warn", "tra " + plur(gg, "gg", "gg")] }; }),
     ].slice(0, 4);
     $("prio-list").innerHTML = prio.map(p => `<div class="item ${p.st}">
       <span class="avatar${p.st === "st-sup" ? " sup" : ""}">${p.ico}</span>
       <div class="info"><div class="name">${esc(p.t)}</div><div class="meta">${esc(p.d)}</div></div>
       <div class="amt"><div class="amt-n">${p.v}</div>${p.s ? `<div class="amt-s">${p.s}</div>` : ""}</div>
-      <span class="badge ${p.b[0]}">${p.b[1]}</span></div>`).join("")
+      <span class="badge ${p.b[0]}">${ggU(esc(p.b[1]))}</span></div>`).join("")
       || vuoto("ok", "Tutto in ordine", "Nessun credito in ritardo e nessuna gara in scadenza. Le fatture nuove le emetti dalla scheda <b>Fatture</b>.");
 
     const qFat = ($("fat-cerca") && $("fat-cerca").value || "").trim().toLowerCase();
@@ -1606,7 +1622,7 @@ label.item:has(.dw-chk:checked){
       <div class="amt"><div class="amt-n${f.incassata ? " mute" : f.parziale ? "" : ritardo > 0 ? " neg" : ""}">${eur(f.importo)}</div>
         <div class="amt-s">${f.incassata ? "saldata" : f.parziale ? "residuo " + eur(f.residuo)
           : ritardo > 0 ? "in ritardo di " + ritardo + " gg" : "da incassare"}</div></div>
-      <span class="badge ${b[0]}">${b[1]}</span>
+      <span class="badge ${b[0]}">${ggU(esc(b[1]))}</span>
       <div class="acts"><button class="arr" type="button" title="Stampa la fattura (o salvala in PDF)" aria-label="Stampa la fattura ${esc(f.numero)}" data-stampa-fat="${f.id}">${IC.stampa}</button>${ritardo>0?`<button class="dw-btn secondary mini" data-sollecito="${f.id}" title="Copia il testo del sollecito (con mora 231/2002) da inviare al cliente">${IC.busta}Sollecito</button>`:""}${!f.incassata?`<button class="arr" type="button" title="Modifica fattura" aria-label="Modifica fattura ${esc(f.numero)}" data-edit-fat="${f.id}">${IC.matita}</button>`:""}${!f.incassata?`<button class="arr del" type="button" title="Elimina fattura errata" aria-label="Elimina fattura ${esc(f.numero)}" data-del-fat="${f.id}">${IC.croce}</button>`:""}</div></div>`; }).join("")
       || (qFat ? vuoto("fattura", "Nessun risultato", "Nessuna fattura trovata per «<b>" + esc(qFat) + "</b>». Prova con il numero o con una parte del nome del cliente.")
          : filtroFat === "tutte" ? vuoto("fattura", "Nessuna fattura", "Emetti la prima fattura dal riquadro <b>Nuova fattura</b> qui sotto, oppure importa un CSV dal tuo gestionale.")
@@ -1724,7 +1740,7 @@ label.item:has(.dw-chk:checked){
       <div class="info"><div class="name">${esc(g.titolo)}</div>
       <div class="meta">${g.stato === "aperta" ? "scade il " + fmtD(g.scadenza) : "esito: " + GB[g.stato][1].toLowerCase() + " · scadeva il " + fmtD(g.scadenza)}</div></div>
       <div class="amt"><div class="amt-n${g.stato === "persa" ? " mute" : ""}">${eur(g.base)}</div><div class="amt-s">base d'asta</div></div>
-      <span class="badge ${GB[g.stato][0]}">${g.stato==="aperta" ? gg + " gg" : GB[g.stato][1]}</span>
+      <span class="badge ${GB[g.stato][0]}">${ggU(esc(g.stato==="aperta" ? gg + " gg" : GB[g.stato][1]))}</span>
       ${g.stato==="aperta" ? `<div class="acts">
       <button class="dw-btn secondary mini" data-gara-esito="vinta" data-gara="${g.id}" title="Segna questa gara come vinta">${IC.spunta}Vinta</button>
       <button class="dw-btn secondary mini no" data-gara-esito="persa" data-gara="${g.id}" title="Segna questa gara come persa">${IC.croce}Persa</button></div>` : ""}

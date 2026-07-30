@@ -402,9 +402,15 @@ export function montaGuardiaInteri(avvisa) {
    prima o poi si rompe in silenzio. Le composte vanno riconosciute prima delle
    semplici, e per ottenerlo basta ordinare per lunghezza: così chi aggiunge
    un'unità la scrive dove gli pare e la regola resta giusta. */
+/* ⚠️ «/h» DA SOLO NON È UN REFUSO. Flotta scrive il costo orario come
+   «€19,02/h»: la valuta sta PRIMA del numero, quindi non esiste nessun «€/h»
+   preceduto da una cifra da riconoscere — l'unico pezzo da salvare è la coda
+   «/h», che senza di questa riga diventava «€19,02/H». Il banco delle unità
+   l'ha trovato da sé il 30/07, un'ora dopo che «h» era entrata nell'elenco:
+   tre pastiglie in Flotta, «€19,02/H», «9,7 L/H», «€14,55/H». */
 const UNITA_DA_SALVARE = ["gg", "m³", "m²", "mm/s", "µg/m³", "mg/m³", "kg/m³",
   "kg/foro", "kg/m", "kg", "km/h", "km", "cm", "mm", "m³/h", "m³/giorno",
-  "m³/anno", "t/m³", "h"];
+  "m³/anno", "t/m³", "l/h", "€/h", "/h", "h"];
 const IN_ORDINE = [...UNITA_DA_SALVARE].sort((a, b) => b.length - a.length);
 export function avvolgiUnita(testo) {
   let t = String(testo == null ? "" : testo);

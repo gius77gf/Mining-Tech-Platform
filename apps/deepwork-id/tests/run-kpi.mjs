@@ -3206,6 +3206,15 @@ test("l'arrotondamento non può peggiorare il numero", () => {
     eq(avvolgiUnita("400 m³/giorno"), `400 ${U("m³/giorno")}`, "né «m³/giorno», che comincia come «m³»");
     eq(avvolgiUnita("18 mm/s"), `18 ${U("mm/s")}`, "né «mm/s», che comincia come «mm»");
   });
+  /* Il costo orario di Flotta ha la valuta PRIMA del numero: non c'è nessun
+     «€/h» preceduto da una cifra: l'unico pezzo da salvare è la coda. */
+  test("unità nel maiuscolo: il costo orario, con la valuta davanti", () => {
+    eq(avvolgiUnita("€19,02/h"), `€19,02${U("/h")}`, "«/h» si salva anche da sola");
+    eq(avvolgiUnita("9,7 l/h"), `9,7 ${U("l/h")}`, "e i litri all'ora restano interi");
+    eq(avvolgiUnita("12,50 €/h"), `12,50 ${U("€/h")}`, "e la forma con lo spazio davanti");
+    eq(avvolgiUnita("40 km/h"), `40 ${U("km/h")}`, "«/h» non stacca la coda a «km/h»");
+    eq(avvolgiUnita("120 m³/h"), `120 ${U("m³/h")}`, "né a «m³/h»");
+  });
 }
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
