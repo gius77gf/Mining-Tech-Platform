@@ -1,6 +1,7 @@
-# Stato del prodotto — le 6 app in parole semplici
+# Stato del prodotto — l'ecosistema in parole semplici
 
-Data: 2026-07-23 · Per Giuseppe (fondatore). Questo file risponde a una
+Data: 2026-07-23, **con un aggiornamento del 30/07 qui sotto** · Per Giuseppe
+(fondatore). Questo file risponde a una
 domanda sola: **oggi, cosa fa ciascuna app, cos'è pronto e cosa aspetta una
 tua decisione?** Niente gergo. Se una cosa serve una tua scelta, la trovi
 anche in `docs/DECISIONI_WEEKEND.md` (l'elenco delle decisioni).
@@ -16,6 +17,55 @@ Regola di fondo valida per TUTTE le app: ogni azienda cliente vede **solo i
 propri dati** (isolamento totale — è la promessa numero uno del prodotto).
 Le app girano nel browser; senza login mostrano una **demo** con dati finti
 così un commerciale può farle vedere senza configurare nulla.
+
+---
+
+## ⚠️ Aggiornamento del 30 luglio — leggi prima questo
+
+*Il resto del documento è del **23 luglio** e le schede app per app sono ancora
+valide: descrivono cose che ci sono e che sono solo cresciute. Quello che è
+cambiato in una settimana, però, non c'è — e sono le cose che si vedono per
+prime. Questa pagina è la prima che l'indice ti fa aprire: se la leggessi senza
+questo blocco, racconteresti il prodotto com'era e la dimostrazione ti
+smentirebbe.*
+
+**Quante sono le app.** Il documento dice «6 app + Genesi + Deepwork ID». Il
+conto non è cambiato — sono sempre otto strumenti più l'accesso — ma adesso c'è
+una **vetrina** (`/apps/`) che li presenta tutti e nove con la schermata vera di
+ognuno. È la pagina da aprire per prima davanti a qualcuno.
+
+**Le cose grosse arrivate dopo il 23:**
+
+- **La vetrina dell'ecosistema.** Apertura con tre schermate vere, i sei ponti
+  fra le app, nove schede raggruppate per momento del lavoro, e una riga «da
+  dove comincio» che smista per problema. Il bottone «Prova il tour» entra
+  davvero nel tour, in un colpo solo.
+- **I grafici**, in tutte le app. Un motore condiviso scritto in casa (nessuna
+  libreria): andamenti con soglia, barre ordinate, ciambelle, sparkline, e
+  sotto ogni grafico la tabella «Dati» per chi vuole i numeri.
+- **Le app si parlano davvero: sei ponti**, non più uno slogan. Chi va al
+  fronte con un documento scaduto, il cavato contro il venduto, le vibrazioni
+  misurate che correggono la volata dopo, il carico reale che torna nel
+  progetto, un superamento che diventa un'azione con una data, e i turni che
+  riempiono il buco fra un volo di drone e l'altro.
+- **L'estetica unificata**: le sei verticali hanno la struttura del core pelo
+  per pelo, ognuna con la propria tinta. Niente più finestre grigie del
+  browser: solo i riquadri del prodotto.
+- **Una convenzione sola** per i numeri scritti a mano, per le unità di misura
+  e per i soldi, valida in tutte le app — con i controlli automatici che
+  impediscono a un'app di riscriversene una propria.
+
+**Quanto è controllato, oggi**: 555 prove automatiche che girano senza rete,
+58 sulle regole di sicurezza con l'emulatore, e 11 banchi che aprono davvero le
+pagine in un browser (contrasto, unità di misura, campi numerici, niente fuori
+dallo schermo di un telefono). Ognuno ha la sua **controprova**: si rimette il
+difetto e si pretende che il controllo fallisca.
+
+**Due cose che aspettano una tua decisione**, nuove rispetto al 23:
+`docs/REVISIONE_SICUREZZA_202607.md` (l'isolamento fra aziende tiene ed è
+provato; dentro l'azienda, invece, tutti possono tutto) e
+`docs/PERCHE_DEEPWORK_E_GENESI.md` (la frase da dire quando ti chiedono perché
+esistono tutti e due).
 
 ---
 

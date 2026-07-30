@@ -5,8 +5,14 @@ parole semplici. Questo foglio ti dice **quale aprire in base a cosa ti
 serve**, così non devi ricordarti i nomi.
 
 ## Se vuoi capire a che punto siamo
-- **`docs/STATO_PRODOTTO.md`** — cosa fa OGGI ciascuna delle 6 app, cos'è
-  pronto da mostrare e cosa aspetta una tua decisione. *Il quadro d'insieme.*
+- **`docs/STATO_PRODOTTO.md`** — cosa fa OGGI ciascuna app, cos'è pronto da
+  mostrare e cosa aspetta una tua decisione. *Il quadro d'insieme.* Le schede
+  app per app sono del 23/07 e reggono; in cima c'è un **aggiornamento del
+  30/07** con quello che è arrivato dopo (la vetrina, i grafici, i sei ponti,
+  l'estetica unificata) — quello va letto per primo.
+- **`/apps/` — la vetrina** è la pagina da aprire davanti a qualcuno: nove
+  riquadri con la schermata vera di ogni strumento, i ponti fra le app e il
+  bottone che entra nel tour in un colpo solo.
 
 ## Se vuoi portare il prodotto dal "si mostra" al "primo cliente che paga"
 - **`vault/PIANO_GO_LIVE.md`** — il percorso ORDINATO, passo per passo, con il
