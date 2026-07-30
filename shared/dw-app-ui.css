@@ -277,7 +277,17 @@ img{max-width:100%}
 }
 .dw-input.err{border-color:var(--danger) !important; background:var(--err-bg)}
 .dw-input[readonly],.dw-input[disabled]{color:var(--muted2); opacity:.7}
-select.dw-input{font-size:16px; cursor:pointer}
+/* Un'opzione più lunga della tendina viene TAGLIATA di netto dal browser, e il
+   taglio netto sembra un difetto: «22% — ordinaria (inerti)» si legge
+   «22% — ordinari», come se qualcuno avesse sbagliato a scrivere. Misurato il
+   31/07 a 390 px: 19 tendine su 84 tagliano almeno un'opzione — e, verificato,
+   NESSUNA diventa ambigua (due opzioni tagliate non si confondono mai fra
+   loro), quindi non serve riscriverle né allargarle. Serve dire che il testo
+   continua: i puntini sono la differenza fra «è tagliato» e «è sbagliato». */
+select.dw-input{
+  font-size:16px; cursor:pointer;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
 select.dw-input option,select.dw-input optgroup{background:var(--card); color:var(--text)}
 textarea.dw-input{resize:vertical; min-height:60px}
 input[type=date].dw-input::-webkit-calendar-picker-indicator, input[type=search].dw-input::-webkit-search-cancel-button{

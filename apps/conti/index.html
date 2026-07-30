@@ -842,8 +842,12 @@ label.item:has(.dw-chk:checked){
     <div class="fld" id="fld-pr-unita" style="flex:1 1 160px;">
       <label for="pr-unita">Prezzo espresso in</label>
       <select class="dw-input" id="pr-unita">
-        <option value="t">€ a tonnellata (€/t)</option>
-        <option value="m3">€ a metro cubo (€/m³)</option>
+        <!-- L'unità sta DAVANTI, non fra parentesi in coda: su un telefono la
+             tendina è larga ~150 px e la coda si perde. Misurato il 31/07:
+             «€ a tonnellata (€/t)» chiedeva 154 px per 149 disponibili, e la
+             parte tagliata era proprio il simbolo — cioè l'unica che conta. -->
+        <option value="t">€/t — tonnellata</option>
+        <option value="m3">€/m³ — metro cubo</option>
       </select>
       <span class="err-msg" id="err-pr-unita"></span>
     </div>
