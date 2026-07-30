@@ -41,8 +41,16 @@ Pagina **Personale → Importa da CSV**.
   Mario Rossi;Fochino;333 1112222
   Luca Bianchi;Escavatorista;
   ```
-- **Note**: un nome già presente viene saltato (niente doppioni). Solo il nome
-  è obbligatorio.
+- **Note**: solo il nome è obbligatorio; ruolo e telefono possono restare vuoti
+  e restano vuoti (nessun numero inventato).
+- **Niente doppioni, in due sensi** *(corretto il 31/07)*: viene saltato sia un
+  nome **già in archivio**, sia lo stesso nome ripetuto **dentro il file** —
+  maiuscole e spazi non fanno due persone diverse, e vale la prima riga.
+  Serve davvero: l'**Esporta CSV** di Scudo scrive una riga per ogni
+  **scadenza**, quindi un lavoratore con tre scadenze compare tre volte nel
+  proprio file. Fino al 30/07 ri-caricare quel file — il modo più naturale di
+  spostare i dati da una postazione all'altra — faceva comparire tre volte la
+  stessa persona in anagrafica.
 
 ## Scudo — 2) scadenzario (visite, corsi, patentini)
 Pagina **Scadenze → Importa scadenze (CSV)**.
