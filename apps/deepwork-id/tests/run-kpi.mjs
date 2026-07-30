@@ -21,6 +21,7 @@ const terra = await app("terra", "terra-data.js");
 const flotta = await app("flotta", "flotta-data.js");
 const campo = await app("campo", "campo-data.js");
 const shell = await import(join(HERE, "../../../shared/deepwork-id-client/dw-shell.js"));
+const ponti = await import(join(HERE, "../../../shared/dw-ponti.js"));
 
 let passed = 0, failed = 0;
 const test = (name, fn) => {
@@ -2281,6 +2282,27 @@ test("P2 · LA GUARDIA: il dichiarato non può diventare un rilievo", () => {
   const rie = terra.riepilogoAnnuale(rilievi, 2026, { volumeAutorizzatoM3: 100000 }, new Date("2026-12-31T00:00:00Z"));
   ok(!JSON.stringify(rie).includes("dichiarat"),
     "il riepilogo annuale per gli enti non porta nessun numero dichiarato");
+});
+test("P2 · UNA SOLA implementazione: Terra ri-esporta, non riscrive", () => {
+  /* La logica del ponte serve a Terra e a Campo, e non appartiene a nessuna delle
+     due: vive in `shared/dw-ponti.js`. `terra-data.js` la ri-esporta col nome con
+     cui Terra l'ha sempre chiamata. Qui si pretende che siano LA STESSA funzione,
+     non due copie che si assomigliano — l'identità è l'unica prova che regge, il
+     comportamento uguale oggi può divergere domani. */
+  for (const nome of ["produzioneRapportino", "produzioneDichiarata", "riconciliazioneTurni",
+    "misuratoPeriodo", "intervalliFraRilievi", "periodoFraUltimiRilievi",
+    "avanzamentoDaUltimoRilievo"]) {
+    ok(typeof ponti[nome] === "function", `shared/dw-ponti esporta ${nome}`);
+    ok(terra[nome] === ponti[nome], `${nome}: Terra ri-esporta la funzione condivisa, non una copia`);
+  }
+  ok(terra.SOGLIA_TURNI === ponti.SOGLIA_TURNI, "e le soglie sono lo stesso oggetto");
+  /* la regola del cumulo: era scritta in Terra e in Conti, ora la sorgente è una */
+  ok(terra.provenienzaRilievo === ponti.provenienzaDi,
+    "provenienzaRilievo di Terra È provenienzaDi di shared/");
+  for (const [r, atteso] of [[{ provenienza: "cumulo" }, "cumulo"], [{ provenienza: "Cumulo " }, "cumulo"],
+    [{ provenienza: "scavo" }, "scavo"], [{}, "scavo"], [null, "scavo"]]) {
+    eq(ponti.provenienzaDi(r), atteso, `provenienzaDi(${JSON.stringify(r)})`);
+  }
 });
 test("P2 · IL CONTRATTO con Campo: le due letture dicono la stessa cosa", () => {
   /* La forma del dato che attraversa il confine è {prodQta, prodUnita}. Terra la

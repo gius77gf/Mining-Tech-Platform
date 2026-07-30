@@ -68,6 +68,7 @@ const MODULI = [
   ["motore grafici", "shared/dw-grafici.js"],
   ["motore grafici (stile)", "shared/dw-grafici.css"],
   ["guscio SDK", "shared/deepwork-id-client/dw-shell.js"],
+  ["ponti fra le app", "shared/dw-ponti.js"],
   ["Campo (dati)", "apps/campo/campo-data.js"],
   ["Conti (dati)", "apps/conti/conti-data.js"],
   ["Flotta (dati)", "apps/flotta/flotta-data.js"],
