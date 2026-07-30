@@ -646,6 +646,15 @@ bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
       un problema di sicurezza da vedere. **Nessuna delle due l'ho vista passare**:
       l'emulatore non parte in questo ambiente, la verifica è la CI.
 
+- [x] **S29. Campo: quando so chi sei, il tuo lavoro sta in cima** ✅ *(31/07,
+      `e3fb7ce`)* — difetto visibile solo guardando **l'insieme**: ogni pezzo del
+      Quadro era stato deciso da solo, e «Cosa tocca a me» cominciava a **850 px**,
+      sotto la piega, anche dopo aver detto chi si è. Campo è l'operativo di giornata:
+      chi lo apre lo apre per sapere cosa deve fare. Ora il blocco sale in cima appena
+      una persona si identifica — 174 px invece di 850 — e resta giù finché non lo fa,
+      perché lì è solo un invito. Si muove solo dopo una scelta esplicita, e la scelta
+      è salvata. Sei asserzioni sull'ordine, andata, ritorno e dopo un ricaricamento.
+
 **La convenzione sui numeri è chiusa.** Sei app, core, campi scritti a mano,
 campi interi, file delle macchine.
 
