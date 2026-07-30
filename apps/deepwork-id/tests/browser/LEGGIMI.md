@@ -43,6 +43,32 @@ non sta misurando la guardia — ed è già capitato: la riga di montaggio del c
 «0 fallite» voleva dire soltanto «non ho tolto niente». Adesso una controprova
 inerte lo dice a voce alta.
 
+## `vetrina-collegamenti.mjs`
+
+Apre la vetrina, segue **tutti e nove i riquadri** e pretende tre cose per
+ognuno: che la pagina risponda, che monti davvero qualcosa (non basta lo stato
+200 — una pagina che va in errore nel suo programma risponde 200 e resta vuota,
+come il core senza Firebase), e che da lì si torni all'ecosistema con un comando
+visibile.
+
+```sh
+node apps/deepwork-id/tests/browser/vetrina-collegamenti.mjs 8823
+node apps/deepwork-id/tests/browser/vetrina-collegamenti.mjs 8823 --senza-ritorno
+```
+
+Serve per le dimostrazioni dal vivo, dove un riquadro che porta a una pagina
+bianca vale più di dieci difetti nascosti. Nessun altro test lo vedeva: i
+collegamenti sono `href`, e un `href` sbagliato non fa fallire niente.
+È così che è venuto fuori che **Genesi era l'unica app senza il ritorno**.
+
+La controprova toglie il comando di ritorno da ogni app e pretende che il banco
+fallisca — sette bocciature su sette. Se non ne cade nessuna, grida invece di
+passare in silenzio.
+
+Due eccezioni dichiarate: il core si apre sulla sua schermata d'accesso ed è
+quello che deve fare, e Deepwork ID è la porta d'ingresso, non una stanza da cui
+uscire.
+
 ## `contrasto-core.mjs`
 
 Misura il rapporto di contrasto del testo dei riquadri della home del core sul
