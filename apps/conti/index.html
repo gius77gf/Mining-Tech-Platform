@@ -3553,14 +3553,21 @@ label.item:has(.dw-chk:checked){
     const righe = senzaDoppioni(lette, x => x.titolo);
     const ripetute = lette.length - righe.length;
     if (!righe.length) { esito("gar-esito", "Nessuna riga valida: controlla che le colonne siano titolo;base;scadenza;stato.", "err"); e.target.value = ""; return; }
-    let agg = 0, dup = 0;
+    let agg = 0, dup = 0, senzaBase = 0;
     for (const r of righe) {
       if (GAR.some(g => (g.titolo || "").trim().toLowerCase() === r.titolo.toLowerCase())) { dup++; continue; }
       await db.aggiungi("gare", { titolo: r.titolo, base: r.base, scadenza: r.scadenza, stato: r.stato });
+      if (r.base == null) senzaBase++;
       agg++;
     }
     $("gar-file").value = "";
-    esito("gar-esito", `Import gare: ${agg} aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}${ripetute ? `, ${ripetute} ripetute nel file` : ""}.`, agg ? "success" : "err");
+    /* ⚠️ LE GARE SENZA BASE SI DICONO. Entrano lo stesso — a volte la base non
+       è ancora pubblicata, e la scadenza serve comunque — ma il totale «per
+       quanto stiamo correndo» le salta, e un totale che esclude qualcosa senza
+       dirlo inganna chi lo legge. Meglio saperlo adesso che davanti al numero. */
+    esito("gar-esito", `Import gare: ${agg} aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}${ripetute ? `, ${ripetute} ripetute nel file` : ""}.`
+      + (senzaBase ? ` ${senzaBase} ${senzaBase === 1 ? "\u00e8 senza base d'asta e non entra" : "sono senza base d'asta e non entrano"} nel totale del valore in gara.` : ""),
+      agg ? "success" : "err");
     await refresh();
   };
   $("btn-gar-export").onclick = () => {
