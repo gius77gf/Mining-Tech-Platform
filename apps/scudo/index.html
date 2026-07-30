@@ -2363,7 +2363,12 @@
         "Rimuovi", true);
       if (ok) { if (ispAperta === delIsp) ispAperta = null;
         await db.rimuovi("ispezioni", delIsp); await refresh();
-        esito("isp-esito", "Ispezione rimossa.", "err"); }
+        /* ⚠️ Una cancellazione RIUSCITA non è un errore. Fino al 31/07 questi
+           messaggi uscivano con "err": nota rossa e toast d'errore per
+           un'azione che l'utente aveva chiesto e che è andata a buon fine —
+           cioè l'app che dà dell'incapace a chi ha fatto la cosa giusta. Il
+           core, che è il riferimento, usa "success" per ogni eliminazione. */
+        esito("isp-esito", "Ispezione rimossa.", "success"); }
       return; }
     // esito di una voce: un tocco. Ri-toccando lo stesso esito lo si toglie.
     const vEsito = at("data-esito"), vVoce = at("data-voce");
@@ -2412,7 +2417,7 @@
       if (ok) {
         if (editAzi === delAzi) annullaEditAzi();
         await db.rimuovi("azioni", delAzi); await refresh();
-        esito("azi-esito-msg", "Azione rimossa dal registro.", "err"); }
+        esito("azi-esito-msg", "Azione rimossa dal registro.", "success"); }
       return; }
     const dc = e.target.closest && e.target.closest("[data-doc]");
     if (dc && db.aggiorna) { const d = DOC.find(x => x.id === dc.getAttribute("data-doc"));
@@ -2427,7 +2432,7 @@
         + "Il registro infortuni è un documento HSE: rimuovi solo per correggere un inserimento sbagliato.",
         "Rimuovi", true);
       if (ok) { await db.rimuovi("infortuni", delInf); await refresh();
-        esito("inf-esito", "Evento rimosso dal registro.", "err"); } return; }
+        esito("inf-esito", "Evento rimosso dal registro.", "success"); } return; }
     const idon = e.target.getAttribute && e.target.getAttribute("data-idon");
     if (idon && db.aggiorna) { const l = LAV.find(x => x.id === idon);
       if (l) { await db.aggiorna("lavoratori", l.id, { idoneita: idoneitaSuccessivo(l.idoneita) }); await refresh(); } return; }
@@ -2483,14 +2488,14 @@
         + (nsc ? "<br><br>Le sue <b>" + nsc + (nsc === 1 ? " scadenza resterà</b> in elenco" : " scadenze resteranno</b> in elenco") + " come scadenze aziendali: non vanno perse." : ""),
         "Rimuovi", true);
       if (ok) { await db.rimuovi("lavoratori", dl); await refresh();
-        esito("import-esito", (l ? l.nome : "Lavoratore") + " rimosso dall'anagrafica.", "err"); } }
+        esito("import-esito", (l ? l.nome : "Lavoratore") + " rimosso dall'anagrafica.", "success"); } }
     if (ds) { const sc = SCA.find(x => x.id === ds);
       const ok = await chiedi("Rimuovere la scadenza?",
         "Stai per rimuovere <b>" + esc(sc ? sc.descrizione : "la scadenza selezionata") + "</b>"
         + (sc && sc.dataScadenza ? " del " + fmtData(sc.dataScadenza) : "") + " dallo scadenzario.",
         "Rimuovi", true);
       if (ok) { await db.rimuovi("scadenze", ds); await refresh();
-        esito("scad-esito", "Scadenza rimossa.", "err"); } }
+        esito("scad-esito", "Scadenza rimossa.", "success"); } }
   });
   $("btn-add-pers").onclick = async () => {
     const nome = $("new-nome").value.trim();
@@ -2555,7 +2560,7 @@
       "Rimuovi", true);
     if (!ok) return;
     await db.rimuovi("cantieri", del); await refresh();
-    esito("cant-esito", (c ? c.nome : "Cantiere") + " rimosso.", "err");
+    esito("cant-esito", (c ? c.nome : "Cantiere") + " rimosso.", "success");
   });
   // niente eventi datati nel futuro: il registro infortuni è un documento HSE e la
   // data più recente pilota il cartellone "giorni senza infortuni" (un refuso lo azzererebbe)
@@ -3074,7 +3079,7 @@
       if (editMans === delMans) annullaEditMans();
       if (matSel === delMans) matSel = null;
       await db.rimuovi("mansioni", delMans); await refresh();
-      esito("mans-esito", "Mansione rimossa.", "err");
+      esito("mans-esito", "Mansione rimossa.", "success");
       return;
     }
     // «Sistema»: il corso mancante o scaduto va nello scadenzario
@@ -3096,7 +3101,7 @@
         "Rimuovi", true);
       if (!ok) return;
       await db.rimuovi("nomine", delNom); await refresh();
-      esito("nom-esito", "Nomina rimossa.", "err");
+      esito("nom-esito", "Nomina rimossa.", "success");
       return;
     }
     // addestramento DPI: si tocca il badge, come l'idoneità sanitaria
@@ -3121,7 +3126,7 @@
         "Rimuovi", true);
       if (!ok) return;
       await db.rimuovi("dpi", delDpi); await refresh();
-      esito("dpi-esito", "Consegna rimossa dal registro.", "err");
+      esito("dpi-esito", "Consegna rimossa dal registro.", "success");
       return;
     }
   });

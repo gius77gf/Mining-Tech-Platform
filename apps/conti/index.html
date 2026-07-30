@@ -2506,7 +2506,7 @@ label.item:has(.dw-chk:checked){
       if (!ok) { modaleIncassi(f.id); return; }
       await db.rimuovi("incassi", m.id);
       await allineaFattura(f, st.movimenti.filter(x => x.id !== m.id), st.totale);
-      esito("ft-esito", "Incasso del " + fmtD(m.data) + " (" + eur(m.importo) + ") eliminato dalla fattura " + f.numero + ".", "err");
+      esito("ft-esito", "Incasso del " + fmtD(m.data) + " (" + eur(m.importo) + ") eliminato dalla fattura " + f.numero + ".", "success");
       await refresh();
       modaleIncassi(f.id);
     });
@@ -3017,7 +3017,12 @@ label.item:has(.dw-chk:checked){
       if (ok) {
         if (editPro === p.id) { editPro = null; $("btn-pr").textContent = "Aggiungi"; pulisciPro(); }
         await db.rimuovi("prodotti", p.id);
-        esito("pr-esito", "Prodotto " + p.nome + " eliminato dal listino.", "err"); await refresh(); }
+        /* ⚠️ Una cancellazione RIUSCITA non è un errore. Fino al 31/07 questi
+           messaggi uscivano con "err": nota rossa e toast d'errore per
+           un'azione che l'utente aveva chiesto e che è andata a buon fine —
+           cioè l'app che dà dell'incapace a chi ha fatto la cosa giusta. Il
+           core, che è il riferimento, usa "success" per ogni eliminazione. */
+        esito("pr-esito", "Prodotto " + p.nome + " eliminato dal listino.", "success"); await refresh(); }
       return; }
     const btnDelPes = e.target.closest && e.target.closest("[data-del-pes]");
     if (btnDelPes) { const p = PES.find(x => x.id === btnDelPes.getAttribute("data-del-pes")); if (!p) return;
@@ -3032,7 +3037,7 @@ label.item:has(.dw-chk:checked){
            che si libera verrà riusato dalla prossima, così la numerazione resta senza salti.</p>`,
         "Elimina", true);
       if (ok) { await db.rimuovi("pesate", p.id); difSel.delete(p.id);
-        esito("pes-esito", "DDT " + (p.numero || "") + " eliminato.", "err"); await refresh(); }
+        esito("pes-esito", "DDT " + (p.numero || "") + " eliminato.", "success"); await refresh(); }
       return; }
     // dal Quadro alla fattura differita, col cliente già scelto
     const btnVaiDif = e.target.closest && e.target.closest("[data-vai-dif]");
@@ -3077,7 +3082,7 @@ label.item:has(.dw-chk:checked){
         // e con la fattura se ne vanno i suoi incassi: niente movimenti orfani
         for (const m of movimentiDiFattura(f.id, INC)) await db.rimuovi("incassi", m.id);
         await db.rimuovi("fatture", f.id);
-        esito("ft-esito", "Fattura " + f.numero + " eliminata.", "err"); await refresh(); }
+        esito("ft-esito", "Fattura " + f.numero + " eliminata.", "success"); await refresh(); }
       return; }
     // Migrazione: collega TUTTE le fatture di un nome scritto a mano al cliente
     // scelto (o a uno nuovo creato con quel nome). Il testo resta nella fattura
@@ -3134,7 +3139,7 @@ label.item:has(.dw-chk:checked){
       if (ok) {
         if (editCli === c.id) { editCli = null; $("btn-cl").textContent = "Aggiungi"; pulisciCli(); }
         await db.rimuovi("clienti", c.id);
-        esito("cl-esito", "Cliente " + c.ragioneSociale + " eliminato.", "err"); await refresh(); }
+        esito("cl-esito", "Cliente " + c.ragioneSociale + " eliminato.", "success"); await refresh(); }
       return; }
     // Copia negli appunti: se il browser la nega, il testo si mostra nella
     // modale del core (mai il prompt() del browser, vietato dalla direttiva).
