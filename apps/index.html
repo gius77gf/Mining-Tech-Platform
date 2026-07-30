@@ -156,6 +156,39 @@
   }
   .sez-sot { font-size: 14px; color: var(--muted2); margin: 0 0 18px; line-height: 1.55; max-width: 62ch; }
 
+  /* ── «DA DOVE COMINCIO» ─────────────────────────────────────────────
+     Quattro problemi, non quattro prodotti: chi arriva riconosce il proprio e
+     ci va. Volutamente sobria — è una scorciatoia, non una sezione: se pesasse
+     quanto le schede toglierebbe attenzione a quello che deve introdurre. */
+  .daDove { margin: 4px 0 26px; }
+  .dd-eti {
+    display: inline-block; margin-bottom: 9px;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 11px;
+    letter-spacing: 2.2px; text-transform: uppercase; color: var(--muted);
+  }
+  .dd-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+  @media (min-width: 760px) { .dd-lista { grid-template-columns: 1fr 1fr; gap: 8px 14px; } }
+  .dd-lista a {
+    display: flex; align-items: center; gap: 10px; min-height: var(--tap);
+    padding: 9px 13px; border-radius: var(--r-sm); text-decoration: none;
+    background: var(--card); border: 1px solid var(--border);
+    color: var(--muted2); font-size: 13.5px; line-height: 1.45;
+    box-shadow: var(--edge); transition: border-color .18s var(--ease), transform .18s var(--ease);
+  }
+  /* ⚠️ LA FRASE È UN ELEMENTO SOLO. Dentro un contenitore flex ogni pezzo di
+     testo sciolto diventa un elemento a sé: la prima versione aveva il testo
+     nudo dentro l'<a>, e «Devo sapere | quanto materiale mi resta | e per
+     quanti anni» usciva spezzato in tre colonne con i vuoti in mezzo. Visto
+     solo guardando lo screenshot: leggendo il codice sembrava una riga. */
+  .dd-fr { flex: 1; min-width: 0; }
+  .dd-lista b { color: var(--text); font-weight: 600; }
+  .dd-app {
+    margin-left: auto; flex: none; color: var(--acc-tx);
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 12px;
+    letter-spacing: 1.6px; text-transform: uppercase;
+  }
+  .dd-lista a:hover { border-color: var(--acc-tx); transform: translateY(-1px); }
+
   /* ── LE TRE FAMIGLIE + LA BASE ──────────────────────────────────────
      Sette app in fila non raccontano niente: raggruppate per momento del
      lavoro — prima di scavare, mentre si scava, dopo — diventano un percorso,
@@ -442,6 +475,26 @@
     <p class="sez-sot">Raggruppate per momento del lavoro. Ognuna funziona anche da sola:
       tocca un riquadro per aprirla con dati di esempio. Sono nove: gli otto strumenti
       e l'accesso unico che li tiene insieme.</p>
+
+    <!-- ⛔ «E IO DA DOVE COMINCIO?» — la domanda che uno si fa davvero davanti a
+         nove prodotti, e a cui la pagina non rispondeva. Viene dalla ricerca in
+         `docs/RICERCA_VETRINA_202607.md`: nove schede tutte della stessa misura
+         non hanno nessuna gerarchia, e nove prodotti ugualmente importanti
+         diventano nove prodotti di cui nessuno è importante.
+         La gerarchia però va GUADAGNATA, non inventata: ingrandire una scheda
+         perché è la più bella sarebbe un capriccio, e direbbe il contrario della
+         nostra tesi (gli strumenti sono pari, il valore è che si parlano).
+         Perciò si smista per PROBLEMA, non per prodotto: quattro frasi che una
+         persona di cava riconosce come sue, ognuna che porta dove serve. -->
+    <div class="daDove">
+      <span class="dd-eti">Da dove comincio</span>
+      <ul class="dd-lista">
+        <li><a href="./terra/index.html"><span class="dd-fr">Devo sapere <b>quanto materiale mi resta</b> e per quanti anni</span><span class="dd-app" style="--acc-tx:#9ac577">Terra</span></a></li>
+        <li><a href="./scudo/index.html"><span class="dd-fr">Domani ho <b>un'ispezione</b> e devo trovare i documenti</span><span class="dd-app" style="--acc-tx:#b7a8f9">Scudo</span></a></li>
+        <li><a href="./campo/index.html"><span class="dd-fr">I <b>rapportini di turno</b> arrivano tardi e scritti a mano</span><span class="dd-app" style="--acc-tx:#f49c7d">Campo</span></a></li>
+        <li><a href="./sentinella/index.html"><span class="dd-fr">I vicini <b>si lamentano</b> di rumore o vibrazioni</span><span class="dd-app" style="--acc-tx:#78bcfc">Sentinella</span></a></li>
+      </ul>
+    </div>
 
     <div class="famiglia sale">
       <h3 class="fam-tit">La roccia</h3>
