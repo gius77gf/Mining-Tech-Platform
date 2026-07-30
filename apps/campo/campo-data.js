@@ -1162,6 +1162,11 @@ export {
   ESITI_TURNO, statoScadenzaHSE, idoneitaOperatore, idoneitaDiTurno, inTurnoOggi,
 } from "../../shared/dw-ponti.js";
 
+// PONTE P2 CON TERRA — la produzione del turno attribuita al fronte. Stessa
+// regola di sempre: sta in `shared/` perché serve a due app, e qui si
+// ri-esporta. Un alias non è una seconda implementazione.
+export { produzionePerFronte } from "../../shared/dw-ponti.js";
+
 export async function campoData() {
   let mode = "demo", api = null;
   try {

@@ -884,6 +884,8 @@ export {
   produzioneRapportino, produzioneDichiarata, SOGLIA_TURNI, riconciliazioneTurni,
   misuratoPeriodo, intervalliFraRilievi, periodoFraUltimiRilievi,
   avanzamentoDaUltimoRilievo,
+  // P2: la stessa produzione, ma fronte per fronte
+  produzionePerFronte,
 } from "../../shared/dw-ponti.js";
 
 export async function terraData() {

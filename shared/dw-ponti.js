@@ -510,3 +510,93 @@ export function scadenzeDiChiLavora(scadenze, lavoratori, operatori, squadre, og
     schieratiNonCollegati: schierati.filter((o) => !o.lavoratoreId).length,
   };
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// PONTE P2 — CAMPO → TERRA: LA PRODUZIONE DEL TURNO, FRONTE PER FRONTE
+// ══════════════════════════════════════════════════════════════════════
+// Terra sa quanto è stato cavato in tutto fra un rilievo e l'altro, ma non
+// **da dove**: l'avanzamento di ogni fronte resta fermo all'ultimo volo del
+// drone. Chi guarda il piano di coltivazione vuole sapere se il Nord sta
+// correndo e il Sud è fermo, non solo il totale.
+//
+// ⛔ NON SI ACCOPPIA PER NOME. MAI. La squadra ha un campo `area` che dice
+// «fronte Est», e sarebbe comodo confrontarlo col nome del fronte in Terra:
+// è la stessa scorciatoia che qui ha già fatto danni. Basta che qualcuno
+// rinomini un fronte, o scriva «Est» invece di «fronte Est», e la produzione
+// finisce sul fronte sbagliato senza che nessuno se ne accorga — un errore
+// muto su un numero che va nella denuncia annuale. Si accoppia per
+// `fronteId`, e chi non ce l'ha finisce dichiaratamente in «non attribuita».
+//
+// Quello che NON fa, e non deve fare: non ripartisce «a intuito» la
+// produzione senza fronte. Una stima inventata, messa accanto a una misura,
+// diventa indistinguibile da essa nel giro di una settimana.
+export function produzionePerFronte(rapportini, fronti, dal, al, densita) {
+  if (!Array.isArray(rapportini)) return null;
+  const elenco = Array.isArray(fronti) ? fronti : [];
+  const nomeDi = new Map(elenco.map((f) => [String(f && f.id), (f && f.nome) || "(senza nome)"]));
+  const d1 = String(dal || ""), d2 = String(al || "");
+  const dens = +densita;
+  const densOk = Number.isFinite(dens) && dens > 0;
+
+  const per = new Map();                 // fronteId → accumulo
+  const vuoto = () => ({ m3Diretti: 0, t: 0, viaggi: 0, turni: 0 });
+  let senzaFronte = vuoto();
+  let fronteSconosciuto = vuoto();       // ha un id, ma quel fronte non esiste
+  let scartati = 0;
+
+  for (const r of rapportini) {
+    const d = String((r || {}).data || "");
+    if (!dataISOBuona(d)) { scartati++; continue; }
+    if (d1 && d < d1) continue;
+    if (d2 && d > d2) continue;
+    const p = produzioneRapportino(r);
+    if (!p) { scartati++; continue; }
+    const idF = (r || {}).fronteId ? String(r.fronteId) : "";
+    let dove;
+    if (!idF) dove = senzaFronte;
+    else if (!nomeDi.has(idF)) dove = fronteSconosciuto;
+    else {
+      if (!per.has(idF)) per.set(idF, vuoto());
+      dove = per.get(idF);
+    }
+    dove.turni++;
+    if (p.unita === "m³") dove.m3Diretti = r3(dove.m3Diretti + p.qta);
+    else if (p.unita === "t") dove.t = r2(dove.t + p.qta);
+    else dove.viaggi += p.qta;
+  }
+
+  const chiudi = (a) => {
+    const m3DaTonnellate = densOk ? r3(a.t / dens) : 0;
+    return { ...a, m3DaTonnellate, m3: r3(a.m3Diretti + m3DaTonnellate),
+             tSenzaDensita: densOk ? 0 : a.t };
+  };
+  const righe = [...per.entries()]
+    .map(([id, a]) => ({ fronteId: id, nome: nomeDi.get(id), ...chiudi(a) }))
+    .sort((x, y) => y.m3 - x.m3 || String(x.nome).localeCompare(String(y.nome), "it"));
+
+  const senza = chiudi(senzaFronte);
+  const ignoto = chiudi(fronteSconosciuto);
+  const m3Attribuito = r3(righe.reduce((s, x) => s + x.m3, 0));
+  const m3Totale = r3(m3Attribuito + senza.m3 + ignoto.m3);
+
+  // la quota si calcola sull'ATTRIBUITO, non sul totale: dire «il Nord è il
+  // 40%» quando il 50% non si sa da dove viene è un modo elegante di mentire
+  const conQuota = righe.map((x) => ({ ...x,
+    quotaPct: m3Attribuito > 0 ? Math.round(1000 * x.m3 / m3Attribuito) / 10 : null }));
+
+  return {
+    righe: conQuota,
+    senzaFronte: senza,
+    fronteSconosciuto: ignoto,
+    m3Attribuito, m3Totale,
+    // quanto del totale si sa da dove viene: sotto una certa soglia la
+    // ripartizione non va mostrata come se fosse una risposta
+    copertura: m3Totale > 0 ? Math.round(1000 * m3Attribuito / m3Totale) / 10 : null,
+    densita: densOk ? dens : null,
+    // se resta qualcosa fuori dai m³ (tonnellate senza densità, o viaggi), il
+    // confronto è per difetto e chi legge deve saperlo
+    parziale: (!densOk && (senza.t > 0 || ignoto.t > 0 || righe.some((x) => x.t > 0)))
+              || senza.viaggi > 0 || ignoto.viaggi > 0 || righe.some((x) => x.viaggi > 0),
+    scartati,
+  };
+}

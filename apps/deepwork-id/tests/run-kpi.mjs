@@ -3033,5 +3033,100 @@ test("l'arrotondamento non può peggiorare il numero", () => {
   });
 }
 
+/* ── PONTE P2 — CAMPO → TERRA, FRONTE PER FRONTE ────────────────────────
+   Terra sapeva quanto è stato cavato fra un rilievo e l'altro, ma non da dove.
+   Il rischio grosso di questa funzione non è sbagliare una somma: è attribuire
+   la produzione al fronte SBAGLIATO, che è un errore muto su un numero che
+   finisce nella denuncia annuale. Per questo si accoppia per `fronteId` e mai
+   per nome — e la prova qui sotto lo pretende. */
+{
+  const { produzionePerFronte } = ponti;
+  const FRONTI = [{ id: "f1", nome: "Fronte Nord" }, { id: "f2", nome: "Fronte Est" }];
+  const rap = (data, qta, unita, fronteId) => ({ data, prodQta: qta, prodUnita: unita, fronteId });
+
+  test("P2: la produzione si divide per fronte, e la quota è sull'attribuito", () => {
+    const r = produzionePerFronte([
+      rap("2026-07-10", 1000, "t", "f1"),
+      rap("2026-07-11", 500, "t", "f2"),
+      rap("2026-07-12", 300, "t", undefined),
+    ], FRONTI, "2026-07-01", "2026-07-31", 2.5);
+    eq(r.righe.length, 2, "due fronti con produzione");
+    eq(r.righe[0].nome, "Fronte Nord", "in testa quello che ha prodotto di più");
+    eq(r.righe[0].m3, 400, "mille tonnellate a densità 2,5 fanno 400 m³");
+    eq(r.m3Attribuito, 600, "attribuito: solo quello che ha un fronte");
+    eq(r.m3Totale, 720, "totale: attribuito più quello che non ce l'ha");
+    /* la quota è sull'ATTRIBUITO: dire «il Nord è il 55%» quando un pezzo non
+       si sa da dove viene è un modo elegante di mentire */
+    eq(r.righe[0].quotaPct, 66.7, "la quota si calcola su quello che si sa");
+    eq(r.senzaFronte.m3, 120, "e quello che non si sa resta a parte, dichiarato");
+  });
+
+  test("P2: ⛔ NON si accoppia per nome, mai", () => {
+    /* il rapportino porta il NOME del fronte al posto dell'identificativo:
+       deve finire fra i non attribuiti, non su «Fronte Nord». Se un giorno
+       qualcuno «migliora» la funzione facendole leggere i nomi, questa prova
+       cade — ed è esattamente il suo mestiere. */
+    const r = produzionePerFronte([
+      { data: "2026-07-10", prodQta: 100, prodUnita: "m³", fronteId: "Fronte Nord" },
+    ], FRONTI, "", "", 2.5);
+    eq(r.righe.length, 0, "nessun fronte riconosciuto");
+    eq(r.fronteSconosciuto.m3, 100, "finisce fra quelli con un fronte che non esiste");
+    ok(r.senzaFronte.m3 === 0, "e non si confonde con chi il fronte non l'ha proprio indicato");
+  });
+
+  test("P2: «non indicato» e «fronte che non esiste» restano due cose diverse", () => {
+    const r = produzionePerFronte([
+      { data: "2026-07-10", prodQta: 50, prodUnita: "m³" },
+      { data: "2026-07-11", prodQta: 70, prodUnita: "m³", fronteId: "f-cancellato" },
+    ], FRONTI, "", "", 2.5);
+    eq(r.senzaFronte.m3, 50, "chi non l'ha indicato");
+    eq(r.fronteSconosciuto.m3, 70, "chi indica un fronte che non c'è più");
+    eq(r.copertura, 0, "e la copertura dice che non si sa niente di dove venga");
+  });
+
+  test("P2: senza densità le tonnellate non diventano metri cubi", () => {
+    const r = produzionePerFronte([rap("2026-07-10", 1000, "t", "f1")], FRONTI, "", "", 0);
+    eq(r.righe[0].m3, 0, "niente conversione inventata");
+    eq(r.righe[0].tSenzaDensita, 1000, "le tonnellate restano dichiarate come tali");
+    ok(r.parziale === true, "e il conto si dichiara parziale");
+    ok(r.densita === null, "la densità mancante è null, non zero");
+  });
+
+  test("P2: i viaggi si contano e non si convertono", () => {
+    const r = produzionePerFronte([rap("2026-07-10", 6, "viaggi", "f1")], FRONTI, "", "", 2.5);
+    eq(r.righe[0].viaggi, 6, "i viaggi si contano");
+    eq(r.righe[0].m3, 0, "ma non diventano metri cubi: manca la portata del mezzo");
+    ok(r.parziale === true, "e il conto è dichiaratamente per difetto");
+  });
+
+  test("P2: il periodo e i dati inutilizzabili", () => {
+    const r = produzionePerFronte([
+      rap("2026-06-30", 100, "m³", "f1"),          // prima
+      rap("2026-08-01", 100, "m³", "f1"),          // dopo
+      rap("2026-07-10", 100, "m³", "f1"),          // dentro
+      { data: "non una data", prodQta: 9, prodUnita: "m³", fronteId: "f1" },
+      { data: "2026-07-11", fronteId: "f1" },      // senza produzione
+    ], FRONTI, "2026-07-01", "2026-07-31", 2.5);
+    eq(r.m3Attribuito, 100, "solo quello dentro il periodo");
+    eq(r.scartati, 2, "data illeggibile e turno senza produzione: contati, non nascosti");
+  });
+
+  test("P2: senza rapportini è «non lo so», non zero", () => {
+    ok(produzionePerFronte(null, FRONTI, "", "", 2.5) === null, "null e non un oggetto a zero");
+    const vuoto = produzionePerFronte([], FRONTI, "", "", 2.5);
+    eq(vuoto.righe.length, 0, "elenco vuoto: nessuna riga");
+    ok(vuoto.copertura === null, "e la copertura è «non pervenuta», non 0%");
+  });
+
+  test("P2: la funzione vive in shared/ e le app la ri-esportano identica", () => {
+    /* non «si comporta uguale»: È la stessa. Due copie uguali oggi divergono
+       domani senza che nessuno lo veda. */
+    ok(campo.produzionePerFronte === ponti.produzionePerFronte,
+      "campo.produzionePerFronte è la stessa funzione di dw-ponti");
+    ok(terra.produzionePerFronte === ponti.produzionePerFronte,
+      "terra.produzionePerFronte è la stessa funzione di dw-ponti");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
