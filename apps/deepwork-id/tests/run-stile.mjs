@@ -74,7 +74,11 @@
 //     Scudo scrive una riga per ogni scadenza, quindi ri-caricare il proprio
 //     file faceva comparire tre volte lo stesso lavoratore. La regola guarda
 //     solo i gestori che i doppioni li saltano davvero: dove ripetersi è
-//     lecito (più letture dello stesso sensore) non pretende niente.
+//     lecito (la telemetria che AGGIORNA invece di aggiungere, il piano di
+//     carico che SOSTITUISCE quello vecchio) non pretende niente. Guarda
+//     entrambe le forme in cui la difesa si scrive: `senzaDoppioni` di
+//     `shared/` e il `Set` con la firma aggiunta DENTRO il ciclo — quattro
+//     gestori usavano già la seconda, e facevano la cosa giusta da prima.
 //
 // Come si aggiunge una regola: una funzione che restituisce l'elenco delle
 // violazioni con file e riga, e un `test(...)` che pretende zero.
@@ -893,6 +897,22 @@ function corpiImportazione(src) {
 function dedupSoloInArchivio(src, modulo) {
   const fuori = [];
   for (const h of corpiImportazione(src)) {
+    /* ⚠️ LE FORME SONO DUE, e la prima scrittura di questa regola ne guardava
+       una sola. Quattro gestori — il registro infortuni e lo scadenzario di
+       Scudo, il registro volate di Sentinella, i rilievi di Terra — il
+       doppione lo saltano con un `Set` e una firma composta, non con `.some(`,
+       e lo facevano BENE già prima del 31/07: la firma la aggiungono DENTRO il
+       ciclo, che è esattamente la protezione che mancava agli altri dieci.
+       Guardando solo `.some(` questa regola li avrebbe ignorati, e il giorno in
+       cui a uno di loro sparisse l'`add` dal ciclo non se ne accorgerebbe
+       nessuno. Lo stesso filtro sbagliato aveva già fatto sbagliare il
+       censimento, che li aveva contati fra quelli «senza controllo». */
+    const conSet = /\w+\.has\(/.test(h.testo) && /(dup|saltat\w*)\+\+/.test(h.testo);
+    if (conSet) {
+      if (!/\w+\.add\(/.test(h.testo))
+        fuori.push(`riga ${h.riga}: «${h.id}» tiene la firma in un Set ma non la aggiunge dentro il ciclo — i doppioni dentro il file passano`);
+      continue;
+    }
     const salta = /\.some\(/.test(h.testo) && /(dup|saltat\w*)\+\+/.test(h.testo);
     if (!salta) continue;                              // qui i doppioni sono leciti
     if (/senzaDoppioni\(/.test(h.testo)) continue;     // difesa nel gestore
@@ -948,6 +968,26 @@ test("la regola 12 sa vedere il difetto che è stato tolto", () => {
   /* un gestore che i doppioni li accetta di proposito non viene toccato */
   const lecito = '  $("mis-file").onchange = async (e) => {\n    const righe = parseLettureCsv(t);\n    for (const r of righe) await db.aggiungi("letture", r);\n  };';
   ok(dedupSoloInArchivio(lecito, null).length === 0, "dove i doppioni sono leciti non si pretende niente");
+});
+test("la regola 12 vede anche la forma col Set, non solo quella con .some()", () => {
+  /* La forma vera dei quattro gestori che facevano già la cosa giusta. */
+  const conSet = [
+    '  $("inf-file").onchange = async (e) => {',
+    '    const righe = parseInfortuniCsv(await file.text());',
+    '    const gia = new Set(INF.map(firma));',
+    '    let agg = 0, dup = 0;',
+    '    for (const r of righe) {',
+    '      if (gia.has(firma(r))) { dup++; continue; }',
+    '      gia.add(firma(r));',
+    '      agg++;',
+    '    }',
+    '  };',
+  ].join("\n");
+  ok(dedupSoloInArchivio(conSet, null).length === 0, "col Set aggiornato dentro il ciclo va bene");
+  /* e adesso il difetto: la stessa forma, senza l'add. È il modo più facile di
+     rompere quei quattro senza che nessuno se ne accorga — una riga tolta. */
+  const senzaAdd = conSet.replace("      gia.add(firma(r));\n", "");
+  ok(dedupSoloInArchivio(senzaAdd, null).length === 1, "senza l'add dentro il ciclo, è una violazione");
 });
 
 

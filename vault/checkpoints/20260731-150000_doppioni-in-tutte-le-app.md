@@ -10,14 +10,35 @@
 
 Il difetto trovato ieri in Scudo aveva una forma precisa: *si controlla il
 doppione contro l'elenco caricato all'apertura, che non si aggiorna mentre il
-file scorre*. La domanda era se fosse solo suo. Letti tutti e diciassette i
-gestori d'importazione delle sei app:
-
-- **sette** i doppioni non li saltano affatto, ed è giusto così (più letture
-  dello stesso sensore, più rapportini nello stesso turno: ripetersi è lecito);
-- **dieci** li saltano — e **dieci su dieci** guardavano solo l'archivio.
+file scorre*. La domanda era se fosse solo suo. Letti i gestori d'importazione
+delle sei app: **dieci** avevano quella forma, tutti e dieci col buco.
 
 Non era un difetto di Scudo. Era del prodotto.
+
+> ⚠️ **Correzione a quello che avevo scritto qui poco fa.** Avevo censito i
+> gestori cercando la forma `.some(`, e avevo concluso che «i sette rimanenti i
+> doppioni non li saltano affatto, ed è giusto così». **È falso**, e l'ho visto
+> rileggendoli uno per uno invece di fidarmi del mio filtro: **quattro di
+> quelli** — il registro infortuni e lo scadenzario di Scudo, il registro
+> volate di Sentinella, i rilievi di Terra — il doppione lo saltano **e lo
+> fanno bene**, con un `Set` e la firma composta, aggiungendo la firma
+> **dentro** il ciclo. Cioè avevano già, da prima, esattamente la protezione
+> che mancava agli altri dieci. Il mio censimento non li aveva visti perché
+> cercava la forma sbagliata.
+>
+> Il conto vero, rifatto: **venti** gestori di file, di cui **tre** non
+> importano righe (una foto, un allegato, un testo incollato). Dei diciassette
+> che restano: **dieci** corretti oggi, **quattro** già corretti da prima,
+> **uno** (l'anagrafica di Scudo) protetto dentro la sua funzione di lettura, e
+> **due** che davvero non deduplicano — e lì è motivato: la telemetria di
+> Flotta **aggiorna** i mezzi invece di aggiungerli (ripetere una riga riscrive
+> lo stesso valore), e il piano di carico di Campo **sostituisce** il piano
+> intero, cancellando quello vecchio.
+>
+> Questo è anche il motivo per cui la regola 12 è stata subito allargata: nella
+> prima scrittura guardava solo la forma `.some(`, e un `Set` a cui qualcuno
+> togliesse l'`add` dentro il ciclo le sarebbe passato sotto il naso. Il
+> filtro che ha sbagliato il censimento avrebbe sbagliato anche la difesa.
 
 ## Una regola sola, in `shared/`
 
