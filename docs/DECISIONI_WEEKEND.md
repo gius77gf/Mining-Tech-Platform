@@ -124,6 +124,48 @@ può procedere con l'attuazione.
 
 ---
 
+## 10. Sicurezza dentro l'azienda — l'abbonamento e chi può cancellare
+*(nuova, 30/07 · dettaglio in `docs/REVISIONE_SICUREZZA_202607.md`)*
+
+Misurato con l'emulatore, non dedotto. Il muro fra **aziende concorrenti tiene
+ed è provato** (58 test). Dentro la stessa azienda, invece, non c'è ancora
+nessuna separazione: chi è stato invitato per compilare i rapportini può anche
+**cancellare una fattura**, e un cliente abbonato solo a un'app può leggere e
+scrivere i dati di tutte le altre.
+
+- [ ] **10a.** L'abbonamento dev'essere una **barriera vera** (chi ha solo Campo
+      non tocca i dati di Terra nemmeno volendo), oppure basta che l'interfaccia
+      non mostri le app non comprate? La prima è più corretta e costa mezza
+      giornata di lavoro sui claims.
+- [ ] **10b.** **Chi può cancellare**, dentro l'azienda? La proposta minima:
+      cancellare e correggere un documento **già emesso** (una fattura, un
+      documento consegnato all'ente) solo a chi amministra; scrivere cose nuove
+      resta a tutti.
+- [ ] **10c.** Al primo cliente, **un utente solo o più utenti?** Se più utenti,
+      la 10b va chiusa **prima** del primo cliente, non dopo.
+
+Finché non rispondi, `firestore.rules` resta com'è e le 58 prove continuano a
+passare.
+
+## 11. Perché esistono sia Deepwork sia Genesi
+*(nuova, 30/07 · dettaglio in `docs/PERCHE_DEEPWORK_E_GENESI.md`)*
+
+Alla presentazione arriverà: «ma la volata non la fa già Deepwork?». La risposta
+proposta è che Deepwork è il **diario** (registra quello che è stato fatto) e
+Genesi il **tavolo da disegno** (progetta quello che si farà). Il documento
+elenca anche le tre sovrapposizioni vere.
+
+- [ ] **11a.** Confermi la divisione «diario / tavolo da disegno»? È la frase che
+      finisce nel materiale di presentazione e nei testi delle due app.
+- [ ] **11b.** Delle tre sovrapposizioni (due motori 3D, la maglia salvata in due
+      formati, la parola «volata» che significa due cose), **quali chiudiamo e in
+      che ordine?**
+- [ ] **11c.** Alla presentazione le mostriamo come **due app distinte** o come
+      **una app con due modi?** Cambia il racconto, non il codice.
+
+⚠️ Nella vetrina la divisione **non è stata data per presa**: la scheda del core
+descrive quello che il core contiene, senza pronunciarsi. Aspetta la tua parola.
+
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde
 iterazioni UX delle app, test aggiuntivi, revisioni di qualità/sicurezza,
@@ -132,3 +174,11 @@ verificato, niente di gated): ricerca+conteggio su TUTTE le liste delle 6 app,
 **modifica in-place** dei record (prima solo aggiungi/elimina), export CSV completo,
 e l'irrobustimento del visore drone (LAS, conteggio ritaglio). Le voci numerate qui
 sopra restano in attesa finché non le sblocchi in conversazione.
+
+**Fatto nella settimana del 27–30/07**, sempre senza toccare niente di gated: la
+**vetrina dell'ecosistema** (`/apps/`, nove riquadri con la schermata vera di
+ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
+**sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
+condivise su numeri, unità di misura e soldi. Le prove automatiche sono passate
+a **555** (più 58 sulle regole di sicurezza e 11 banchi che aprono davvero le
+pagine in un browser).
