@@ -3482,6 +3482,42 @@ test("l'arrotondamento non può peggiorare il numero", () => {
   });
 }
 
+
+/* IL FORO RIPETUTO NEL PIANO DI CARICO — la decisione OPPOSTA a tutte le altre.
+   Ovunque il doppione dentro il file si toglie; qui no. Due righe per lo stesso
+   foro non sono un fastidio da ripulire, sono un errore nel PROGETTO della
+   volata: toglierne una in silenzio farebbe sparire una carica e scendere il
+   totale dell'esplosivo senza che nessuno sappia perché. Entrano entrambe, e
+   l'app lo dichiara prima di scrivere. */
+test("foriRipetuti: trova i numeri di foro che compaiono più volte", () => {
+  const p = [{ foro: 1 }, { foro: 7 }, { foro: 2 }, { foro: 7 }, { foro: 3 }];
+  eq(campo.foriRipetuti(p), [7], "il 7 c'è due volte");
+});
+test("foriRipetuti: un foro nominato tre volte si segnala UNA volta sola", () => {
+  eq(campo.foriRipetuti([{ foro: 5 }, { foro: 5 }, { foro: 5 }]), [5],
+     "l'avviso non deve dire «5, 5»");
+});
+test("foriRipetuti: l'ordine è quello del file, non quello dei numeri", () => {
+  eq(campo.foriRipetuti([{ foro: 9 }, { foro: 2 }, { foro: 9 }, { foro: 2 }]), [9, 2],
+     "chi legge ritrova i fori nell'ordine in cui li ha scritti");
+});
+test("foriRipetuti: niente doppioni, elenco vuoto o assente = nessun avviso", () => {
+  eq(campo.foriRipetuti([{ foro: 1 }, { foro: 2 }]), [], "un piano pulito non avvisa");
+  eq(campo.foriRipetuti([]), [], "elenco vuoto");
+  eq(campo.foriRipetuti(null), [], "elenco che manca");
+  eq(campo.foriRipetuti([{ foro: NaN }, { foro: NaN }]), [],
+     "due righe senza numero di foro non sono «lo stesso foro»");
+});
+test("il piano NON perde righe: parsePianoCsv le tiene tutte e due", () => {
+  /* la controprova del comportamento: se un giorno qualcuno applicasse qui la
+     regola degli altri import, questo test cade — ed è quello che deve fare. */
+  const righe = campo.parsePianoCsv(
+    "foro;x;fila;prof;prog;borr;rit\n7;1,0;A;12;25;3;25\n7;1,5;A;12;30;3;42");
+  eq(righe.length, 2, "due righe per il foro 7 restano due");
+  eq(righe.map(r => r.prog), [25, 30], "e tutte e due le cariche restano nel totale");
+  eq(campo.foriRipetuti(righe), [7], "ma il 7 viene segnalato");
+});
+
 // ============================================================
 // I MODELLI DI CSV DEL DOCUMENTO CARICANO DAVVERO
 //

@@ -932,7 +932,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
 </script>
 
 <script type="module">
-  import { campoData, kpiFrom, parsePianoCsv, mappaPianoCsv, parseSquadreCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, fermiPerGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
+  import { campoData, kpiFrom, parsePianoCsv, mappaPianoCsv, foriRipetuti, parseSquadreCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, fermiPerGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
            oggiISO, TURNI, turnoCorrente, diGiorno, senzaData, UNITA_PRODUZIONE, totaliProduzione, formattaProduzione, normalizzaPiano,
            squadraBase, RUOLI, operatoriDi, etichettaAssegnazione, eMia, caricoSquadre,
            idoneitaDiTurno, idoneitaOperatore, inTurnoOggi,
@@ -3208,6 +3208,19 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
         avvisi.push("Colonne che non ho riconosciuto e ho lasciato fuori: <b>"
           + mappa.ignorate.map(n => esc(n)).join(", ") + "</b>.");
     }
+    /* ⛔ IL FORO RIPETUTO SI DICE, NON SI TOGLIE. In tutti gli altri import il
+       doppione dentro il file viene scartato; qui no, e la differenza è voluta:
+       due righe per lo stesso foro non sono un fastidio da ripulire, sono un
+       errore nel PROGETTO della volata. Toglierne una in silenzio farebbe
+       sparire una carica dal piano e scendere il totale dell'esplosivo senza
+       che nessuno sappia perché — cioè la cosa peggiore che possa fare un'app
+       che serve a un fochino. Entrano tutte e due, e glielo diciamo prima. */
+    const ripetuti = foriRipetuti(righe);
+    if (ripetuti.length)
+      avvisi.push("Questi numeri di foro compaiono <b>più di una volta</b> nel file: <b>"
+        + ripetuti.join(", ") + "</b>. Non ne ho tolta nessuna — nel piano ci "
+        + "finiscono tutte, e il totale dell'esplosivo le conta tutte. "
+        + "Se è un errore del file, correggilo e ricarica.");
     if (avvisi.length && !await chiedi("Come ho letto il file",
           "<p>Righe valide: <b>" + numeroIt(righe.length, 0) + "</b>.</p><p>"
           + avvisi.join("</p><p>") + "</p>",

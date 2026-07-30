@@ -38,9 +38,21 @@ const PORTA = Number(args.find((a) => /^\d+$/.test(a))) || 8899;
 
 /* La controprova rimette il difetto vero: due elementi con lo stesso id, come
    in Conti prima della correzione. Si inietta nel corpo servito, così il file
-   su disco non viene toccato. */
-const RIMETTI_IL_DIFETTO = (corpo) =>
-  corpo.replace('</body>', '<button id="dw-doppione">uno</button><button id="dw-doppione">due</button></body>');
+   su disco non viene toccato.
+
+   ⚠️ SI PRENDE L'ULTIMO `</body>`, NON IL PRIMO. Alla prima scrittura usavo
+   `replace('</body>', …)`, che sostituisce la PRIMA occorrenza — e in Terra ce
+   ne sono tre, in Genesi e Campo due: le prime stanno dentro le stringhe dei
+   modelli di stampa. Il difetto finiva lì, cioè dentro del testo che il browser
+   non monta, e la controprova diceva «pulito» su tre superfici su nove. Una
+   controprova che non arriva dappertutto non dimostra quello che sembra: per
+   quelle tre non era mai stato provato che il banco sapesse fallire. */
+const RIMETTI_IL_DIFETTO = (corpo) => {
+  const i = corpo.lastIndexOf('</body>');
+  const doppio = '<button id="dw-doppione">uno</button><button id="dw-doppione">due</button>';
+  if (i < 0) return corpo + doppio;          // nessun </body>: si appende in coda
+  return corpo.slice(0, i) + doppio + corpo.slice(i);
+};
 
 const chromium = await prendiChromium();
 const browser = await chromium.launch({ executablePath: CHROMIUM });

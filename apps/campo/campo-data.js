@@ -1052,6 +1052,34 @@ export function parsePianoCsv(text) {
     .filter(p => p.foro > 0 && p.prog > 0);
 }
 
+// I NUMERI DI FORO CHE COMPAIONO PIÙ DI UNA VOLTA nel piano appena letto.
+//
+// ⛔ QUI LA DECISIONE È L'OPPOSTA DI QUELLA PRESA NEGLI ALTRI IMPORT. Ovunque
+// il doppione dentro il file si TOGLIE (regola `senzaDoppioni` di `shared/`);
+// in un piano di carico **non si tocca niente**, si dice e basta. Il motivo è
+// che qui il doppione non è un fastidio da ripulire: è un **errore nel
+// progetto della volata**, e chi deve saperlo è il fochino.
+//
+// Toglierlo in silenzio sarebbe la cosa peggiore possibile — sparirebbe una
+// riga di carica dal piano, il totale dell'esplosivo scenderebbe, e nessuno
+// saprebbe perché. Tenerle tutte e due senza dirlo è quasi altrettanto brutto:
+// il foro 7 comparirebbe due volte nella lista e la seconda carica sembrerebbe
+// una svista dell'app. Quindi: **entrano entrambe, e l'app lo dichiara prima
+// di scrivere**, insieme agli altri avvisi sul file.
+//
+// Restituisce i numeri di foro ripetuti, in ordine, senza ripetersi a sua
+// volta. Pura e testabile.
+export function foriRipetuti(righe) {
+  const visti = new Set(), doppi = [];
+  for (const r of righe || []) {
+    const f = r && r.foro;
+    if (!Number.isFinite(f)) continue;
+    if (visti.has(f)) { if (!doppi.includes(f)) doppi.push(f); }
+    else visti.add(f);
+  }
+  return doppi;
+}
+
 // Righe del piano di carico rilette dal salvataggio: si tengono solo quelle
 // con foro e progetto validi (nella collezione possono esserci vecchi documenti
 // di riepilogo import, senza foro) e si riordinano per numero di foro. La
