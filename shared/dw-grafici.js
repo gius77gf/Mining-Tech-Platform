@@ -501,12 +501,20 @@
     /* aree, poi linee: l'area di una serie non deve coprire la linea di un'altra */
     serie.forEach(function (S, si) {
       if (!S.area || si > 0) return;
-      var d = percorso(S.valori, px, py, s.curva !== false);
-      if (!d) return;
-      var ultimo = ultimoIndice(S.valori), primo = primoIndice(S.valori);
+      /* l'area si chiude TRATTO PER TRATTO: chiudendo dal primo all'ultimo
+         indice, il riempimento coprirebbe anche i buchi — cioè mostrerebbe
+         materiale dove non c'è nessuna misura. */
+      var dd = '';
+      tratti(S.valori).forEach(function (idx) {
+        var pts = idx.map(function (i) { return [px(i), py(S.valori[i])]; });
+        if (pts.length < 2) return;                 // un punto solo non fa area
+        dd += (dd ? ' ' : '') + unTratto(pts, s.curva !== false)
+          + ' L' + px(idx[idx.length - 1]).toFixed(1) + ' ' + box.y1
+          + ' L' + px(idx[0]).toFixed(1) + ' ' + box.y1 + ' Z';
+      });
+      if (!dd) return;
       svg.appendChild(nodo('path', {
-        'class': 'dwg-area', fill: 'url(#' + g.id + 'a)',
-        d: d + ' L' + px(ultimo).toFixed(1) + ' ' + box.y1 + ' L' + px(primo).toFixed(1) + ' ' + box.y1 + ' Z'
+        'class': 'dwg-area', fill: 'url(#' + g.id + 'a)', d: dd
       }));
     });
 
@@ -671,11 +679,37 @@
   function primoIndice(v) { for (var i = 0; i < v.length; i++) if (num(v[i])) return i; return 0; }
   function ultimoIndice(v) { for (var i = v.length - 1; i >= 0; i--) if (num(v[i])) return i; return -1; }
 
+  /* I BUCHI NON SI SCAVALCANO. Un valore mancante (null, undefined, NaN) è
+     un'ASSENZA DI INFORMAZIONE, non un valore: il periodo senza registrazioni
+     non si disegna a zero — regola già scritta per gli altri grafici — e non si
+     attraversa con un segmento, perché quel segmento sarebbe un valore che
+     nessuno ha misurato. Misurato prima di correggere: la versione precedente
+     raccoglieva solo i numeri e li univa tutti in un tratto continuo, quindi una
+     serie [95, null, 140] veniva disegnata come una linea intera da 95 a 140 —
+     esattamente quello che il commento qui sotto dice di non fare.
+     Adesso i valori si spezzano in TRATTI di numeri consecutivi, e ogni tratto è
+     un sottopercorso a sé (`M` nuovo). Un tratto di un punto solo resta un
+     puntino, così un dato isolato si vede invece di sparire. */
+  function tratti(valori) {
+    var out = [], corrente = null;
+    (valori || []).forEach(function (v, i) {
+      if (num(v)) { if (!corrente) { corrente = []; out.push(corrente); } corrente.push(i); }
+      else corrente = null;
+    });
+    return out;
+  }
+
   /* percorso con curva morbida (Catmull-Rom addolcito): niente spigoli, ma
      nemmeno gobbe che inventano valori mai misurati */
   function percorso(valori, px, py, curva) {
-    var pts = [];
-    valori.forEach(function (v, i) { if (num(v)) pts.push([px(i), py(v)]); });
+    var d = '';
+    tratti(valori).forEach(function (idx) {
+      var pts = idx.map(function (i) { return [px(i), py(valori[i])]; });
+      d += (d ? ' ' : '') + unTratto(pts, curva);
+    });
+    return d;
+  }
+  function unTratto(pts, curva) {
     if (!pts.length) return '';
     if (pts.length === 1) return 'M' + pts[0][0].toFixed(1) + ' ' + pts[0][1].toFixed(1) + 'l0 0';
     var d = 'M' + pts[0][0].toFixed(1) + ' ' + pts[0][1].toFixed(1);

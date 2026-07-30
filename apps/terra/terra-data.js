@@ -71,6 +71,21 @@ export const DEMO = {
   // riempie. E uno è in VIAGGI di proposito, per far vedere che non si
   // convertono: servirebbe la portata del mezzo, che Terra non ha.
   rapportiniCampo: [
+    // gli intervalli PRECEDENTI, così il grafico ha una storia da raccontare: lo
+    // scarto fra dichiarato e misurato passa dal 12% al 7% al 2,4%, cioè le stime
+    // di turno stanno migliorando. È la domanda per cui il grafico esiste, e con
+    // un intervallo solo non avrebbe risposta.
+    { id: "b1",  data: "2026-05-20", turno: "Mattina",    squadra: "Squadra B", prodQta: 5940, prodUnita: "t", stato: "inviato" },
+    { id: "b2",  data: "2026-05-27", turno: "Mattina",    squadra: "Squadra B", prodQta: 5920, prodUnita: "t", stato: "inviato" },
+    { id: "b3",  data: "2026-06-03", turno: "Pomeriggio", squadra: "Squadra B", prodQta: 5940, prodUnita: "t", stato: "inviato" },
+    { id: "b4",  data: "2026-06-08", turno: "Mattina",    squadra: "Squadra B", prodQta: 5930, prodUnita: "t", stato: "inviato" },
+    { id: "b5",  data: "2026-06-12", turno: "Mattina",    squadra: "Squadra B", prodQta: 5940, prodUnita: "t", stato: "inviato" },
+    { id: "b6",  data: "2026-06-16", turno: "Pomeriggio", squadra: "Squadra B", prodQta: 5944, prodUnita: "t", stato: "inviato" },
+    { id: "g1",  data: "2026-06-19", turno: "Mattina",    squadra: "Squadra B", prodQta: 6570, prodUnita: "t", stato: "inviato" },
+    { id: "g2",  data: "2026-06-23", turno: "Mattina",    squadra: "Squadra B", prodQta: 6580, prodUnita: "t", stato: "inviato" },
+    { id: "g3",  data: "2026-06-26", turno: "Pomeriggio", squadra: "Squadra B", prodQta: 6570, prodUnita: "t", stato: "inviato" },
+    { id: "g4",  data: "2026-06-30", turno: "Mattina",    squadra: "Squadra B", prodQta: 6570, prodUnita: "t", stato: "inviato" },
+    { id: "g5",  data: "2026-07-01", turno: "Pomeriggio", squadra: "Squadra B", prodQta: 6576, prodUnita: "t", stato: "inviato" },
     { id: "c1",  data: "2026-07-02", turno: "Mattina",   squadra: "Squadra B", prodQta: 3050, prodUnita: "t", stato: "inviato" },
     { id: "c2",  data: "2026-07-03", turno: "Mattina",   squadra: "Squadra B", prodQta: 2880, prodUnita: "t", stato: "inviato" },
     { id: "c3",  data: "2026-07-04", turno: "Pomeriggio", squadra: "Squadra B", prodQta: 3210, prodUnita: "t", stato: "inviato" },

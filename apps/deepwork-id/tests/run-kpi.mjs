@@ -2283,6 +2283,35 @@ test("P2 · LA GUARDIA: il dichiarato non può diventare un rilievo", () => {
   ok(!JSON.stringify(rie).includes("dichiarat"),
     "il riepilogo annuale per gli enti non porta nessun numero dichiarato");
 });
+test("P2 · il grafico: la dimostrazione racconta una storia, e un buco", () => {
+  /* Il grafico esiste per una domanda che il confronto di un periodo alla volta
+     non poteva rispondere: «le stime dei turni stanno migliorando o
+     peggiorando?». Se nella dimostrazione lo scarto fosse uguale in tutti gli
+     intervalli, il grafico non mostrerebbe niente e la domanda resterebbe senza
+     risposta anche con lui. */
+  const iv = terra.intervalliFraRilievi(terra.DEMO.rilievi).slice().reverse();
+  const scarti = [];
+  let buchi = 0;
+  for (const i of iv) {
+    const m = terra.misuratoPeriodo(terra.DEMO.rilievi, i.dal, i.al);
+    const d = terra.produzioneDichiarata(terra.DEMO.rapportiniCampo, i.dal, i.al, 1.9);
+    if (!d || !d.turni || !(d.m3 > 0)) { buchi++; continue; }
+    scarti.push(Math.round(100 * (m.m3 - d.m3) / m.m3 * 100) / 100);
+  }
+  ok(scarti.length >= 3, `servono almeno tre punti per vedere un andamento (ce ne sono ${scarti.length})`);
+  /* e devono MIGLIORARE, cioè avvicinarsi a zero: è la storia che il grafico
+     racconta, e va vista nei numeri prima che a schermo */
+  for (let k = 1; k < scarti.length; k++) {
+    ok(Math.abs(scarti[k]) < Math.abs(scarti[k - 1]),
+      `lo scarto deve stringersi: ${scarti.join(" → ")}`);
+  }
+  ok(buchi >= 1, "e resta almeno un intervallo senza rapportini, per far vedere il BUCO");
+  /* il buco NON è uno zero: la produzione dichiarata di quell'intervallo è
+     assente, non nulla — la differenza è tutto il punto */
+  const vecchio = iv[0];
+  const d0 = terra.produzioneDichiarata(terra.DEMO.rapportiniCampo, vecchio.dal, vecchio.al, 1.9);
+  ok(d0 !== null && d0.turni === 0, "nell'intervallo più vecchio non ci sono turni, e il lettore lo dice");
+});
 test("P2 · lato CAMPO: la dimostrazione di Campo è coerente coi rilievi finti", () => {
   /* Chi compila il rapportino deve vedere l'esito della propria stima. Se i
      numeri d'esempio non si parlano, la prima cosa che si vede è un avviso che

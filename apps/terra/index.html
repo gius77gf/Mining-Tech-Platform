@@ -658,6 +658,9 @@ a.dw-btn{text-decoration:none}
     <div class="form-hint">Le scelte sono i <b>confini dei voli</b>, non date libere: chiedere un periodo qualsiasi darebbe uno scostamento nato solo dalle date, non da quello che è uscito dalla cava.</div>
   </div>
   <div id="tur-out"></div>
+  <!-- «le stime dei turni stanno migliorando o peggiorando?» — una domanda che
+       la tendina, un periodo alla volta, non poteva rispondere -->
+  <div id="tur-graf"></div>
 
   <div class="sec">Nuovo rilievo</div>
   <div class="form col">
@@ -2185,6 +2188,65 @@ a.dw-btn{text-decoration:none}
       }
     }
     out.innerHTML = html;
+    renderGrafTurni(intervalli, dens);
+  }
+
+  // IL GRAFICO: misurato e dichiarato, intervallo per intervallo. Serve a una
+  // domanda che il confronto di un periodo alla volta non poteva rispondere — «le
+  // stime stanno migliorando o peggiorando?» — e che con la tendina richiedeva di
+  // cambiare quattro volte e ricordare i numeri a memoria.
+  //
+  // Perché DUE LINEE e non lo scostamento in percentuale: una percentuale nasconde
+  // la scala, e un 10% su 500 m³ non è la stessa cosa di un 10% su 20.000. Con due
+  // linee sulla stessa unità la distanza fra loro È lo scostamento, e la scala si
+  // vede. La terza strada — due assi verticali — è vietata dalle regole già
+  // scritte, e a ragione: due scale diverse fanno sembrare vicine due cose
+  // lontane.
+  // I periodi in cui i turni non hanno dichiarato niente restano BUCHI, non zeri:
+  // uno zero disegnato sembra una produzione nulla invece di un'assenza di
+  // informazione. Il motore condiviso ora spezza la linea (non la scavalca) e i
+  // buchi si contano a parole sotto il grafico.
+  function renderGrafTurni(intervalli, dens) {
+    const el = $("tur-graf");
+    if (!el) return;
+    if (!window.dwGrafici || !Array.isArray(intervalli) || intervalli.length < 2 || RAPP === null) {
+      el.innerHTML = ""; return;
+    }
+    const cron = intervalli.slice().reverse();          // dal più vecchio al più recente
+    const mis = [], dich = [];
+    let senza = 0;
+    for (const i of cron) {
+      const m = misuratoPeriodo(RIL, i.dal, i.al);
+      const d = produzioneDichiarata(RAPP, i.dal, i.al, dens);
+      mis.push(m && m.m3 > 0 ? m.m3 : null);
+      if (d && d.turni && d.m3 > 0) dich.push(d.m3);
+      else { dich.push(null); senza++; }
+    }
+    // Un grafico di UN punto non è un grafico: la legenda promette una linea
+    // tratteggiata che non si vede, e il puntino finisce sopra quello del
+    // misurato. Visto guardando lo screenshot, non leggendo il codice. Sotto i
+    // due punti si mostra solo la nota dei buchi, che è l'informazione vera.
+    const quanti = dich.filter((v) => v != null).length;
+    if (quanti < 2) {
+      el.innerHTML = quanti === 1
+        ? `<div class="note">Per vedere se le stime dei turni stanno migliorando serve il confronto su <b>almeno due voli</b>: per adesso ce n'è uno solo con dei rapportini dentro.</div>`
+        : "";
+      return;
+    }
+    el.innerHTML = "";
+    dwGrafici.linea(el, {
+      titolo: "Misurato e dichiarato, volo per volo",
+      unita: "m³",
+      x: cron.map((i) => fmtData(i.al).slice(0, 5)),
+      serie: [{ nome: "Misurato dal rilievo", valori: mis, area: true },
+              { nome: "Dichiarato dai turni", valori: dich }],
+    });
+    if (senza) {
+      const nota = document.createElement("div");
+      nota.className = "note";
+      nota.innerHTML = `In ${senza === 1 ? "<b>un intervallo</b>" : `<b>${senza} intervalli</b>`} i turni non hanno dichiarato niente: nel grafico ${senza === 1 ? "resta un buco" : "restano buchi"}, non uno zero — non aver registrato non vuol dire aver prodotto zero.`;
+      el.appendChild(nota);
+    }
   }
   // Menù materiali: scelto un litotipo, riempie la densità col valore tipico
   // (l'utente può poi correggerlo; la nota ricorda che va confermato).
