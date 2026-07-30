@@ -953,7 +953,10 @@ textarea.dw-input{
       l'autorizzazione e lo imposti tu. Distanza e soglia si scrivono con la
       <b>virgola</b>: <b>312,5</b>.</div>
   </div>
-  <div class="note esito" id="ric-esito"></div>
+  <!-- ⚠️ Stesso id della nota sotto i bottoni d'import: getElementById
+       restituisce il primo, quindi qui non compariva MAI niente e la
+       conferma di «Aggiungi» spuntava 332 px più in su, sopra il form. -->
+  <div class="note esito" id="ric-esito-form"></div>
 
   <div class="sec">Nuovo punto di misura</div>
   <div class="form col">
@@ -3005,7 +3008,7 @@ textarea.dw-input{
         toast("Ricettore «" + r.nome + "» rimosso."); } return; }
     const editRicId = attr(e, "data-edit-ric");
     if (editRicId) { const r = trovaRicettore(RIC, editRicId); if (!r) return;
-      if (editRic === r.id) { svuotaFormRic(); esito("ric-esito", "Modifica annullata: il ricettore resta com'era."); return; }
+      if (editRic === r.id) { svuotaFormRic(); esito("ric-esito-form", "Modifica annullata: il ricettore resta com'era."); return; }
       editRic = r.id;
       $("ric-nome").value = r.nome || ""; $("ric-tipo").value = r.tipo || "abitazione";
       $("ric-dist").value = itDec(r.distanza); $("ric-classe").value = r.classe || "";
@@ -3013,7 +3016,7 @@ textarea.dw-input{
       $("ric-nota").value = r.nota || "";
       CAMPI_RIC.forEach(i => err(i, false));
       $("btn-ric").textContent = "Salva modifica";
-      esito("ric-esito", "Stai modificando «" + r.nome + "»: i punti collegati restano collegati.",
+      esito("ric-esito-form", "Stai modificando «" + r.nome + "»: i punti collegati restano collegati.",
         "", "Modifica di «" + r.nome + "» in corso.");
       $("ric-nome").scrollIntoView({ behavior: "smooth", block: "center" });
       setTimeout(() => { try { $("ric-nome").focus({ preventScroll: true }); } catch (er) {} }, 300); return; }
@@ -3388,19 +3391,19 @@ textarea.dw-input{
   $("btn-ric").onclick = async () => {
     const nome = $("ric-nome").value.trim();
     if (!nome) { err("ric-nome", true); fuocoErr(["ric-nome"]);
-      esito("ric-esito", "Serve il nome del ricettore: scrivi come lo chiamate voi (es. Casa Bianchi — via Cava 12), così lo riconosci nel report.", "err", "Serve il nome del ricettore."); return; }
+      esito("ric-esito-form", "Serve il nome del ricettore: scrivi come lo chiamate voi (es. Casa Bianchi — via Cava 12), così lo riconosci nel report.", "err", "Serve il nome del ricettore."); return; }
     // distanza e soglia sono facoltative: vuote restano vuote. Piene devono
     // essere numeri, scritti con la virgola o col punto indifferentemente.
     const rd = numeroDaCampo($("ric-dist").value, { min: 0 });
     if (!rd.vuoto && !rd.ok) {
       err("ric-dist", true); fuocoErr(["ric-dist"]);
-      esito("ric-esito", rd.motivo === "non-numero"
+      esito("ric-esito-form", rd.motivo === "non-numero"
         ? "«" + rd.grezzo + "» non è un numero che posso leggere come distanza. " + AVVISO_DECIMALE
         : "La distanza dev'essere un numero di metri non negativo (o lasciala vuota se non la sai ancora).", "err", "Distanza non valida."); return; }
     const rsg = numeroDaCampo($("ric-soglia").value, { positivo: true });
     if (!rsg.vuoto && !rsg.ok) {
       err("ric-soglia", true); fuocoErr(["ric-soglia"]);
-      esito("ric-esito", rsg.motivo === "non-numero"
+      esito("ric-esito-form", rsg.motivo === "non-numero"
         ? "«" + rsg.grezzo + "» non è un numero che posso leggere come soglia. " + AVVISO_DECIMALE
         : "La soglia propria dev'essere un numero maggiore di zero, oppure vuota: se è vuota valgono le soglie dei singoli punti di misura.", "err", "Soglia del ricettore non valida."); return; }
     const haDist = !rd.vuoto, dist = rd.valore;
@@ -3408,7 +3411,7 @@ textarea.dw-input{
     const unita = $("ric-unita").value.trim();
     if (haSog && !unita) {
       err("ric-unita", true); fuocoErr(["ric-unita"]);
-      esito("ric-esito", "Se scrivi una soglia serve anche la sua unità (es. mm/s, dB(A), µg/m³): senza, l'app non sa a quali punti applicarla.", "err", "Serve l'unità della soglia."); return; }
+      esito("ric-esito-form", "Se scrivi una soglia serve anche la sua unità (es. mm/s, dB(A), µg/m³): senza, l'app non sa a quali punti applicarla.", "err", "Serve l'unità della soglia."); return; }
     CAMPI_RIC.forEach(i => err(i, false));
 
     const dati = { nome, tipo: $("ric-tipo").value, classe: $("ric-classe").value,
@@ -3418,7 +3421,7 @@ textarea.dw-input{
     else await db.aggiungi("ricettori", dati);
     const modificato = !!editRic;
     svuotaFormRic();
-    esito("ric-esito", `Ricettore «${nome}» ${modificato ? "aggiornato" : "aggiunto"}.` +
+    esito("ric-esito-form", `Ricettore «${nome}» ${modificato ? "aggiornato" : "aggiunto"}.` +
       (haSog ? ` I punti collegati con unità ${unita} useranno la soglia ${numeroIt(sog)} ${unita}.` : " Non ha una soglia propria: i punti collegati usano la loro."),
       "success", `Ricettore «${nome}» ${modificato ? "aggiornato" : "aggiunto"}.`);
     $("ric-nome").focus();

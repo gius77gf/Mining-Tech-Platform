@@ -720,7 +720,11 @@
     <button class="dw-btn" id="btn-ric">Aggiungi</button>
     <div class="form-hint">Il <b>prezzo al pezzo</b> è facoltativo, ma se lo scrivi il costo dei ricambi negli ordini di lavoro esce da solo, senza doverlo ricordare ogni volta.</div>
   </div>
-  <div class="note esito" id="ric-esito"></div>
+  <!-- ⚠️ Questo aveva lo STESSO id della nota sotto i bottoni d'import:
+       due elementi con lo stesso id, e getElementById restituisce il primo,
+       quindi qui non compariva MAI niente e la conferma di «Aggiungi»
+       spuntava 122 px più in su, lontano dal bottone premuto. -->
+  <div class="note esito" id="ric-esito-form"></div>
 
   <!-- L7 — QUANTO TENERNE A SCORTA. La soglia minima smette di essere un
        numero scritto una volta e diventa un conto: quanto se ne consuma al
@@ -3108,7 +3112,7 @@
     const nome = $("ric-nome").value.trim();
     if (!nome) {
       err("ric-nome", true);
-      esito("ric-esito", "Manca il nome del ricambio (es. «Filtro olio»).", "err");
+      esito("ric-esito-form", "Manca il nome del ricambio (es. «Filtro olio»).", "err");
       fuoco("ric-nome"); return;
     }
     err("ric-nome", false);
@@ -3127,7 +3131,7 @@
     const prezzo = rp.vuoto ? null : rp.valore;
     await db.aggiungi("ricambi", { nome, giacenza: giac, sogliaMin: soglia, prezzo });
     $("ric-nome").value = ""; $("ric-giac").value = ""; $("ric-soglia").value = ""; $("ric-prezzo").value = "";
-    esito("ric-esito", "Ricambio aggiunto: " + nome + " (giacenza " + numTx(giac) + ", soglia " + numTx(soglia)
+    esito("ric-esito-form", "Ricambio aggiunto: " + nome + " (giacenza " + numTx(giac) + ", soglia " + numTx(soglia)
       + (prezzo ? ", " + eur(prezzo) + " al pezzo" : "") + ").", "success");
     fuoco("ric-nome");
     await refresh();
