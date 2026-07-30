@@ -179,6 +179,23 @@ si fa quando decidi di investirci.
   unico documento con tutte le fatture, la mora e il totale dovuto.
 - **Import fatture da CSV** ed **export** della situazione.
 
+**Aggiunto dopo il 23 luglio** *(riletto il 30/07 con l'app aperta davanti)*:
+- **Il registro delle pesate / DDT** e la **fattura differita**: i documenti di
+  trasporto diventano una fattura senza ricopiare una riga. È il pezzo che
+  cambia la giornata di chi fattura, e non c'era.
+- **Il listino prodotti** con la densità, e le **consegne da fatturare** —
+  l'elenco di quello che è uscito dal cancello e non è ancora stato fatturato.
+- **Canoni e diritti di escavazione**: quello che si paga al Comune o alla
+  Regione, che cambia da posto a posto e va tenuto per anno.
+- **I dati della tua azienda**, cioè l'intestazione dei documenti che escono.
+- **Il ponte con Terra — «cavato contro venduto»**: i metri cubi misurati dal
+  rilievo messi accanto alle tonnellate uscite dal cancello. Se c'è un divario
+  che non si spiega con lo sfrido, l'app lo dice invece di lasciarlo scoprire a
+  fine anno. C'è anche il **valore del cavato ai prezzi del listino**.
+- **I grafici che rispondono alle domande vere**: emesso contro incassato,
+  tempi reali di pagamento per cliente, crediti aperti per fascia di ritardo,
+  previsione incassi, venduto per prodotto.
+
 **Pronto**: sì. **Aspetta te**: l'accensione live comune. La **fattura
 elettronica** vera (invio allo SdI dell'Agenzia delle Entrate) **non si può
 fare solo nel browser**: serve un intermediario o la PEC. Studiato e scritto
@@ -201,6 +218,23 @@ su vibrazioni e rumore, così eviti contestazioni dei vicini/enti.
   (data, fronte, fori, kg, distanza), con la distanza scalata calcolata per
   ognuna e le eventuali contestazioni; import/export CSV per gli enti.
 - **Import sensori** da CSV ed **export** di monitoraggi e adempimenti.
+
+**Aggiunto dopo il 23 luglio** *(riletto il 30/07 con l'app aperta davanti)*:
+- **I ricettori — case, scuole, confini**: il monitoraggio smette di essere
+  «una misura» e diventa «una misura *in un punto che ha un nome*», che è
+  quello che chiede chi legge il report.
+- **Il programma di monitoraggio** e l'**andamento per ricettore**: cosa va
+  misurato, dove e quando, invece di ricordarselo.
+- **Il punto messo peggio**, in cima: si apre l'app e si sa dove guardare.
+- **Le allerte con «cosa abbiamo fatto»** — è il **ponte con Scudo**: un
+  superamento di soglia o il reclamo di un residente smettono di essere un
+  numero rosso e diventano una non conformità con chi se ne occupa ed entro
+  quando. Un grafico rosso non chiude niente.
+- **Reclami ed esposti** registrati, e il **report di conformità** che esce
+  già scritto per l'ente.
+- **I referti per la legge di sito**: è il **ponte con Genesi**, le vibrazioni
+  misurate che correggono la previsione della volata dopo.
+- **Importa le letture dello strumento** direttamente dal file del sismografo.
 
 **Pronto**: sì, ed è una delle app con più "personalità" (pochi competitor la
 raccontano in modo semplice). **Aspetta te**: l'accensione live comune. Le
