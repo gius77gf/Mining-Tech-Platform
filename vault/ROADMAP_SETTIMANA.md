@@ -565,6 +565,18 @@ bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
       **Con questo il motore dei grafici è chiuso: tutti e quattro i tipi guardati
       con dati veri, e `confronta-svg.mjs` li copre tutti (34 confronti).**
 
+- [x] **S22. Terra: la ripartizione per fronte dice anche la QUOTA** ✅ *(31/07,
+      `bb978db`)* — prima unità di prodotto dopo il motore dei grafici, e **l'unità è
+      cambiata dopo la prima verifica**: la ciambella dei materiali proposta dal
+      checkpoint non reggeva (il materiale è un campo dell'autorizzazione, e ce n'è
+      una sola: una fetta al 100%). La composizione che esiste davvero è per fronte,
+      ed era già a schermo come elenco — mancava nel **numero**, non nella forma. Due
+      difetti visti guardando, nessuno dei quali produceva un numero sbagliato: la
+      riga «Senza fronte indicato» con badge «0 m³» che sembrava rotta (è una ripresa
+      da cumulo, che per definizione non esce da un fronte) e la **quota** mancante.
+      Regola in `ripartizioneFronti`, provata: 6 prove nuove, **307 KPI**, con la
+      controprova e una che passa dalla dimostrazione vera.
+
 **La convenzione sui numeri è chiusa.** Sei app, core, campi scritti a mano,
 campi interi, file delle macchine.
 
