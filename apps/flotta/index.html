@@ -1077,29 +1077,6 @@
       }
     });
   }
-  // Come chiediDati, ma su UN campo numerico non si accontenta: un numero che
-  // non si capisce non diventa zero e non si perde in silenzio — la finestra
-  // torna con scritto cosa non torna e con dentro ancora quello che era stato
-  // scritto, così si corregge invece di ricominciare. `spec.seVuoto`, se c'è,
-  // è il valore che vale quando il campo resta vuoto (per esempio 0 per le
-  // spese, null per «il tagliando non si ripete più»); se non c'è, un campo
-  // vuoto è un errore come gli altri.
-  async function chiediNumero(titolo, corpo, campi, etichettaOk, spec) {
-    let valore = (campi.find(c => c.id === spec.id) || {}).valore;
-    let avviso = "";
-    for (;;) {
-      const dati = await chiediDati(titolo, (corpo || "") + avviso,
-        campi.map(c => (c.id === spec.id ? { ...c, valore } : c)), etichettaOk);
-      if (dati === null) return null;
-      const r = numeroDaCampo(dati[spec.id], spec.opts || {});
-      if (r.ok) return { ...dati, [spec.id]: r.valore };
-      if (r.vuoto && "seVuoto" in spec) return { ...dati, [spec.id]: spec.seVuoto };
-      valore = r.grezzo;
-      const msg = messaggioNumero(r, spec.cosa, spec.opts || {});
-      toast(msg, "err");
-      avviso = `<div class="note esito err" style="margin-top:10px;">${esc(msg)}</div>`;
-    }
-  }
   document.getElementById("modal").addEventListener("click", e => {
     if (e.target.id === "modal") { const b = document.querySelector("#modal-foot .mbtn"); if (b) b.click(); }
   });
@@ -1246,6 +1223,29 @@
     fuoco(id);
     return r;
   };
+  // Come chiediDati, ma su UN campo numerico non si accontenta: un numero che
+  // non si capisce non diventa zero e non si perde in silenzio — la finestra
+  // torna con scritto cosa non torna e con dentro ancora quello che era stato
+  // scritto, così si corregge invece di ricominciare. `spec.seVuoto`, se c'è,
+  // è il valore che vale quando il campo resta vuoto (per esempio 0 per le
+  // spese, null per «il tagliando non si ripete più»); se non c'è, un campo
+  // vuoto è un errore come gli altri.
+  async function chiediNumero(titolo, corpo, campi, etichettaOk, spec) {
+    let valore = (campi.find(c => c.id === spec.id) || {}).valore;
+    let avviso = "";
+    for (;;) {
+      const dati = await chiediDati(titolo, (corpo || "") + avviso,
+        campi.map(c => (c.id === spec.id ? { ...c, valore } : c)), etichettaOk);
+      if (dati === null) return null;
+      const r = numeroDaCampo(dati[spec.id], spec.opts || {});
+      if (r.ok) return { ...dati, [spec.id]: r.valore };
+      if (r.vuoto && "seVuoto" in spec) return { ...dati, [spec.id]: spec.seVuoto };
+      valore = r.grezzo;
+      const msg = messaggioNumero(r, spec.cosa, spec.opts || {});
+      toast(msg, "err");
+      avviso = `<div class="note esito err" style="margin-top:10px;">${esc(msg)}</div>`;
+    }
+  }
   // La lavorazione di un intervento CHIUSO, in una riga: chi c'è stato e per
   // quanto. Gli interventi registrati prima dell'ordine di lavoro non hanno
   // questi campi e non mostrano niente — restano come sono sempre stati.
@@ -1734,7 +1734,7 @@
       .map(r => { const sotto = (+r.giacenza||0) <= (+r.sogliaMin||0);
       return `<div class="item statico ${sotto ? "st-danger" : "st-ok"}">
         <div class="avatar sup">${I.bullone}</div>
-        <div class="info"><div class="name">${esc(r.nome)}</div><div class="meta">giacenza ${+r.giacenza||0} · soglia minima ${+r.sogliaMin||0}${+r.prezzo > 0 ? " · " + eur(r.prezzo) + " al pezzo" : ""}</div></div>
+        <div class="info"><div class="name">${esc(r.nome)}</div><div class="meta">giacenza ${numTx(r.giacenza||0)} · soglia minima ${numTx(r.sogliaMin||0)}${+r.prezzo > 0 ? " · " + eur(r.prezzo) + " al pezzo" : ""}</div></div>
         <div class="acts"><span class="arr" role="button" tabindex="0" title="Scarico: togli 1 pezzo" aria-label="Scarica un ${esc(r.nome)}" data-ric-meno="${r.id}">${I.meno}</span>
         <span class="badge ${sotto ? "danger" : "ok"}">${sotto ? "sotto scorta" : "ok"}</span>
         <span class="arr" role="button" tabindex="0" title="Carico: aggiungi 1 pezzo" aria-label="Carica un ${esc(r.nome)}" data-ric-piu="${r.id}">${I.piu}</span>
@@ -1971,7 +1971,7 @@
     // opzioni ricambio (conserva la scelta corrente durante il refresh)
     const ricSel = $("man-ricambio").value;
     $("man-ricambio").innerHTML = '<option value="">— nessun ricambio —</option>' +
-      RIC.map(r => `<option value="${r.id}"${r.id === ricSel ? " selected" : ""}>${esc(r.nome)} (giac. ${+r.giacenza||0})</option>`).join("");
+      RIC.map(r => `<option value="${r.id}"${r.id === ricSel ? " selected" : ""}>${esc(r.nome)} (giac. ${numTx(r.giacenza||0)})</option>`).join("");
   }
 
   // ══════════════════════════════════════════════════════════════════════
@@ -2356,16 +2356,16 @@
         + " = " + r.alGiorno.toLocaleString("it-IT", { maximumFractionDigits: 3 }) + " pezzi al giorno";
       const terza = [
         r.affidabile ? "" : "Un solo consumo registrato: è un ordine di grandezza, non una media.",
-        r.daOrdinare ? "Da ordinare: <b>" + r.daOrdinare + "</b>" + (r.spesa != null ? " (" + eur(r.spesa) + ")" : "") + "." : "",
+        r.daOrdinare ? "Da ordinare: <b>" + numTx(r.daOrdinare) + "</b>" + (r.spesa != null ? " (" + eur(r.spesa) + ")" : "") + "." : "",
       ].filter(Boolean).join(" ");
       return `<div class="item statico ${striscia[cls] || "st-mute"}">
         <div class="avatar sup">${I.bullone}</div>
         <div class="info"><div class="name">${esc(r.nome)}</div>
           <div class="meta">${conto}</div>
-          <div class="meta">× ${r.copertura} giorni = <b>${r.sogliaProposta}</b> da tenere · soglia oggi ${r.sogliaAttuale} · in magazzino ${r.giacenza}</div>
+          <div class="meta">× ${numTx(r.copertura)} giorni = <b>${numTx(r.sogliaProposta)}</b> da tenere · soglia oggi ${numTx(r.sogliaAttuale)} · in magazzino ${numTx(r.giacenza)}</div>
           ${terza ? `<div class="meta norma">${terza}</div>` : ""}</div>
-        <div class="acts"><span class="badge ${cls}">${r.daOrdinare ? (r.daOrdinare === 1 ? "ne manca 1" : "ne mancano " + r.daOrdinare) : r.differenza > 0 ? "alza a " + r.sogliaProposta : "a posto"}</span>
-        ${offri ? `<span class="arr ok" role="button" tabindex="0" title="Usa ${r.sogliaProposta} come soglia minima di questo ricambio" aria-label="Porta la soglia di ${esc(r.nome)} a ${r.sogliaProposta}" data-sco-usa="${r.id}">${I.spunta}</span>` : ""}</div></div>`;
+        <div class="acts"><span class="badge ${cls}">${r.daOrdinare ? (r.daOrdinare === 1 ? "ne manca 1" : "ne mancano " + numTx(r.daOrdinare)) : r.differenza > 0 ? "alza a " + numTx(r.sogliaProposta) : "a posto"}</span>
+        ${offri ? `<span class="arr ok" role="button" tabindex="0" title="Usa ${numTx(r.sogliaProposta)} come soglia minima di questo ricambio" aria-label="Porta la soglia di ${esc(r.nome)} a ${numTx(r.sogliaProposta)}" data-sco-usa="${r.id}">${I.spunta}</span>` : ""}</div></div>`;
     }).join("")
       + (p.senzaConsumo.length
         ? `<div class="note">${p.senzaConsumo.length === 1 ? "<b>1 ricambio</b> non risulta mai usato" : "<b>" + p.senzaConsumo.length + " ricambi</b> non risultano mai usati"} negli ultimi ${p.finestra} giorni: ${p.senzaConsumo.slice(0, 6).map(r => esc(r.nome)).join(", ")}${p.senzaConsumo.length > 6 ? " e altri " + (p.senzaConsumo.length - 6) : ""}. Per ${p.senzaConsumo.length === 1 ? "lui" : "loro"} non c'è nessuna proposta: la soglia resta quella che hai scritto tu.</div>`
@@ -2411,7 +2411,7 @@
         <div class="sch-sotto"><span class="badge ${so.cls}">${so.etichetta}</span>
           <span class="badge ${u.cls}">${esc(u.label)}</span>
           ${esc(nomeBreve(n.mezzo) || "senza mezzo")}${m ? " · <b>" + (+m.ore || 0).toLocaleString("it-IT") + "</b> ore motore" : " · mezzo non più nel parco"}</div>
-        <div class="sch-sotto">${n.orePreviste ? "Tagliando a <b>" + n.orePreviste.toLocaleString("it-IT") + "</b> ore motore" : "Previsto per il <b>" + dataIt(n.dataPrevista) + "</b>"}${n.ogniOre ? " · si ripete ogni " + n.ogniOre + " h" : n.ogniMesi ? " · si ripete ogni " + n.ogniMesi + " mesi" : ""}${n.nota ? " · " + esc(n.nota) : ""}</div>
+        <div class="sch-sotto">${n.orePreviste ? "Tagliando a <b>" + numTx(n.orePreviste) + "</b> ore motore" : "Previsto per il <b>" + dataIt(n.dataPrevista) + "</b>"}${n.ogniOre ? " · si ripete ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · si ripete ogni " + n.ogniMesi + " mesi" : ""}${n.nota ? " · " + esc(n.nota) : ""}</div>
       </div></div>`;
     $("odl-stati").innerHTML = STATI_ORDINE.map(s =>
       `<button class="chg${s.chiave === so.chiave ? " active" : ""}" data-odl-stato="${s.chiave}">${s.etichetta}</button>`).join("");
@@ -2435,7 +2435,7 @@
       return `<div class="item statico ${r.prezzo > 0 ? "st-ok" : "st-mute"}">
         <div class="avatar sup">${I.bullone}</div>
         <div class="info"><div class="name">${esc(r.nome || "Pezzo senza nome")}</div>
-          <div class="meta">${r.qta.toLocaleString("it-IT")} × ${r.prezzo > 0 ? eur(r.prezzo) : "prezzo non indicato"}${inMag ? " · dal magazzino (giacenza " + (+inMag.giacenza || 0) + ")" : r.id ? " · non più in magazzino" : " · pezzo non a magazzino"}</div></div>
+          <div class="meta">${r.qta.toLocaleString("it-IT")} × ${r.prezzo > 0 ? eur(r.prezzo) : "prezzo non indicato"}${inMag ? " · dal magazzino (giacenza " + numTx(inMag.giacenza || 0) + ")" : r.id ? " · non più in magazzino" : " · pezzo non a magazzino"}</div></div>
         <div class="acts">${r.prezzo > 0 ? `<span class="badge tag euro">${eur(r.costo)}</span>` : `<span class="badge tag">senza prezzo</span>`}
         <span class="arr dan" role="button" tabindex="0" title="Togli questo ricambio" aria-label="Togli ${esc(r.nome)}" data-odl-ric-del="${i}">${I.croce}</span></div></div>`;
     }).join("")
@@ -2444,7 +2444,7 @@
 
     { const sel = $("odl-ric-sel").value;
       $("odl-ric-sel").innerHTML = '<option value="">— scegli dal magazzino —</option>'
-        + RIC.map(r => `<option value="${r.id}"${r.id === sel ? " selected" : ""}>${esc(r.nome)} (giac. ${+r.giacenza || 0}${+r.prezzo > 0 ? " · " + eur(r.prezzo) : ""})</option>`).join(""); }
+        + RIC.map(r => `<option value="${r.id}"${r.id === sel ? " selected" : ""}>${esc(r.nome)} (giac. ${numTx(r.giacenza || 0)}${+r.prezzo > 0 ? " · " + eur(r.prezzo) : ""})</option>`).join(""); }
     valSeLibero("odl-altre", o.altreSpese > 0 ? perCampo(o.altreSpese) : "");
     valSeLibero("odl-note", o.noteLavoro);
 
@@ -2643,7 +2643,7 @@
       return `<div class="item statico ${striscia[u.cls] || "st-accent"}">
         <div class="avatar">${n.origine === "controllo" ? I.giro : I.chiave}</div>
         <div class="info"><div class="name">${esc(n.titolo)}</div>
-          <div class="meta">${n.orePreviste ? "a " + (+n.orePreviste).toLocaleString("it-IT") + " ore motore" : "previsto " + esc(dataIt(n.dataPrevista))}${n.ogniOre ? " · piano: ogni " + n.ogniOre + " h" : n.ogniMesi ? " · piano: ogni " + n.ogniMesi + " mesi" : ""}</div>${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}</div>
+          <div class="meta">${n.orePreviste ? "a " + numTx(n.orePreviste) + " ore motore" : "previsto " + esc(dataIt(n.dataPrevista))}${n.ogniOre ? " · piano: ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · piano: ogni " + n.ogniMesi + " mesi" : ""}</div>${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}</div>
         <span class="badge ${u.cls}">${esc(u.label)}</span></div>`;
     }).join("")
       || vuoto(I.chiave, "Niente in programma", "Nessun tagliando pianificato su questa macchina. Si pianifica dalla schermata <b>Officina</b>, a data oppure a ore motore.");
@@ -3353,7 +3353,7 @@
     let costoId = null;
     if (v.euro > 0) {
       const rc = await db.aggiungi("costi", { voce: "Carburante", importo: v.euro,
-        nota: nome + " · " + lt(v.litri) + (v.ore != null ? " · contatore " + v.ore + " h" : ""), data });
+        nota: nome + " · " + lt(v.litri) + (v.ore != null ? " · contatore " + numTx(v.ore) + " h" : ""), data });
       costoId = (rc && rc.id) || null;
     }
     await db.aggiungi("rifornimenti", { data, mezzo: nome, litri: v.litri, euro: v.euro,
@@ -3363,7 +3363,7 @@
     $("rif-litri").value = ""; $("rif-euro").value = ""; $("rif-ore").value = "";
     $("rif-data").value = oggiISO();
     esito("rif-esito", "Rifornimento registrato: " + nome + ", " + lt(v.litri)
-      + (v.euro ? " per " + eur(v.euro) : "") + (v.ore != null ? " a " + v.ore.toLocaleString("it-IT") + " ore" : "")
+      + (v.euro ? " per " + eur(v.euro) : "") + (v.ore != null ? " a " + numTx(v.ore) + " ore" : "")
       + (v.euro ? " — è entrato anche nei costi come voce «Carburante»." : "."), "success");
     fuoco("rif-litri");
     await refresh();

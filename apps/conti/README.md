@@ -61,3 +61,47 @@ Corrispettivi dell'Agenzia delle Entrate, o tramite il commercialista. Anche il
 canone di escavazione è una **stima da confermare** con l'ente concedente.
 
 Analisi e fonti: `docs/RICERCA_CONTI_202607.md`.
+
+## Numeri scritti a mano: la virgola decimale
+
+In cava chi compila scrive **«1.250,75»**, non «1250.75». Fino a ieri i campi
+degli importi erano `<input type="number">`, e quel tipo di campo **non è
+neutro rispetto alla virgola**: la specifica HTML gli impone come valore un
+numero col PUNTO, e il browser butta via il resto. Misurato in Chromium
+(identico in locale `en-US` e `it-IT`, quindi `lang="it"` non c'entra):
+
+| digitato da tastiera | `.value` che arrivava al codice | `checkValidity()` |
+|---|---|---|
+| `2,4` | `24` — dieci volte tanto | **true** |
+| `1.250,75` | `1.25075` — mille volte meno | false, ma nessuno lo chiedeva |
+
+Una fattura da milleduecentocinquanta euro diventava una da un euro e
+venticinque, in silenzio. Nessun `replace(",", ".")` può rimediare: la virgola
+è già stata scartata prima che JS veda il valore.
+
+**Adesso tutti i campi decimali sono `<input type="text" inputmode="decimal">`**
+(sul telefono la tastiera resta numerica) e il numero lo legge
+`numeroDaCampo()` in `conti-data.js`, che accetta `2,4` · `2.4` · `1.250,75` ·
+`1,250.75` · `€ 1.250,75`. `min`/`max`/`step` del browser non valgono più: la
+validazione è nostra. Campi convertiti: `ft-imp`, `pes-lordo`, `pes-tara`,
+`pr-prezzo`, `pr-dens`, `can-ali`, `cl-sconto`, `cl-fido`, `gar-base` e
+`inc-imp` (modale degli incassi). In Conti **non resta nessun campo intero**:
+le aliquote IVA sono menù a tendina.
+
+**Per un valore non capito non si salva zero.** Vuoto e `""` non sono zero: il
+salvataggio si ferma e il toast del core dice cosa non torna.
+
+### Il punto ambiguo, che non si tira a indovinare
+`1.250` in Italia è milleduecentocinquanta; per il computer è
+uno-virgola-due-cinque. Le due letture distano **mille volte**: su un importo è
+la differenza fra una fattura e uno scontrino. Quando entrambe le letture
+stanno nei limiti del campo, Conti **non scegli**: dice le due letture e chiede
+come si scrive. Quando invece una sola è possibile per quel campo (uno sconto
+di 1250% non esiste, quindi `1.250` in «Sconto %» è 1,25), l'altra è impossibile
+e non c'è niente da indovinare.
+
+### Quello che NON è cambiato
+I numeri **scambiati** restano col punto decimale e senza separatore delle
+migliaia: CSV di import/export e ponte Terra ↔ Conti (`cavatoPeriodo`,
+`vendutoPeriodo`, `riconciliazione`, `valoreCavato`) sono **dati**, non testo.
+E resta la regola d'onestà: **senza densità dichiarata non si converte**.

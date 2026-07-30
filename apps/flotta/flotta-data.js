@@ -216,8 +216,10 @@ export function messaggioNumero(r, cosa, opts = {}) {
     case "ambiguo":
       // qui NON si raggruppa: «1.250 oppure 1,25» ripeterebbe la stringa
       // ambigua invece di scioglierla
+      // tre decimali: la lettura decimale di «5.875» è 5,875 — con i due
+      // decimali di default diventava «5,88», un terzo numero che non c'entra
       return q + " può voler dire " + perCampo(r.letture[0]) + u + " (punto delle migliaia) oppure "
-        + perCampo(r.letture[1]) + u + " (punto decimale), e non voglio indovinare al posto tuo. " + AVVISO_MIGLIAIA;
+        + perCampo(r.letture[1], 3) + u + " (punto decimale), e non voglio indovinare al posto tuo. " + AVVISO_MIGLIAIA;
     case "non-numero":
       return "Non riesco a leggere " + cosa + ": " + q + " non è un numero. " + AVVISO_DECIMALE;
     case "non-intero":
@@ -706,7 +708,10 @@ export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(
       const ore = oreDi(n.mezzo);
       if (ore == null) continue;                 // mezzo non trovato: non calcolabile
       u = urgenzaOre(n.orePreviste, ore);
-      dettaglio = "a " + n.orePreviste + " h motore";
+      // la riga di priorità va sul Quadro: il numero si scrive all'italiana,
+      // altrimenti «a 6000.5 h motore» mette un punto inglese sulla prima
+      // schermata dell'app, accanto a numeri con la virgola
+      dettaglio = "a " + mostra(n.orePreviste, 1) + " h motore";
     } else if (n.dataPrevista) {
       u = urgenza(n.dataPrevista, oggi);
       dettaglio = "previsto " + String(n.dataPrevista).split("-").reverse().join("/");
@@ -1108,7 +1113,10 @@ export function prossimoTagliando(man, oreAttuali, dataChiusura) {
     nota: m.nota || null,
   };
   if (ogniOre > 0) {
-    const ore = Math.round(+oreAttuali);
+    // un decimo di ora, non un'ora intera: i contaore contano i decimi, e
+    // arrotondare 5875,5 a 5876 farebbe scrivere nella finestra «il contatore
+    // segna adesso 5.876 ore» — un numero che il contatore non ha mai detto
+    const ore = Math.round(+oreAttuali * 10) / 10;
     if (!Number.isFinite(ore) || ore < 0) return null;
     return { ...base, orePreviste: ore + ogniOre, dataPrevista: null, da: "ore", oreBase: ore };
   }

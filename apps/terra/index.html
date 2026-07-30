@@ -504,11 +504,11 @@ a.dw-btn{text-decoration:none}
       <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-superficie">Superficie autorizzata (<span class="u">m²</span>)</label>
         <input class="dw-input dec" id="aut-superficie" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 78000" title="Superficie autorizzata in metri quadri. La virgola va benissimo: 78412,50."></div>
       <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-volume">Volume totale autorizzato (<span class="u">m³</span>)</label>
-        <input class="dw-input dec" id="aut-volume" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 1200000" title="Volume totale concesso dall atto, in metri cubi. La virgola va benissimo: 1200000,50."></div>
+        <input class="dw-input dec" id="aut-volume" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 1200000" title="Volume totale concesso dall'atto, in metri cubi. La virgola va benissimo: 1200000,50."></div>
     </div>
     <div class="frow">
       <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-pregresso">Già estratto prima di Terra (<span class="u">m³</span>)</label>
-        <input class="dw-input dec" id="aut-pregresso" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0" title="Metri cubi gia estratti sotto questo atto prima di usare Terra. La virgola va benissimo."></div>
+        <input class="dw-input dec" id="aut-pregresso" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0" title="Metri cubi già estratti sotto questo atto prima di usare Terra. La virgola va benissimo."></div>
       <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-materiale">Materiale autorizzato</label>
         <input class="dw-input" id="aut-materiale" placeholder="es. Sabbia e ghiaia"></div>
     </div>
@@ -1412,7 +1412,7 @@ a.dw-btn{text-decoration:none}
     $("aut-list").innerHTML = AUT.map(a => {
       const lv = livelloScadenzaTerra(a.dataScadenza, a.preavvisoGiorni);
       const dett = [a.ente, "rilascio " + fmtData(a.dataRilascio), "scadenza " + fmtData(a.dataScadenza),
-        a.superficieMq ? n0(a.superficieMq) + " m²" : "", a.volumeAutorizzatoM3 ? n0(a.volumeAutorizzatoM3) + " m³ autorizzati" : ""]
+        a.superficieMq ? nD(a.superficieMq) + " m²" : "", a.volumeAutorizzatoM3 ? nD(a.volumeAutorizzatoM3) + " m³ autorizzati" : ""]
         .filter(Boolean).join(" · ");
       const nome = esc(a.numeroAtto || "Atto senza numero");
       return `<div class="item ${a.stato === "vigente" ? "st-accent" : "st-mute"}" data-aut="${a.id}" title="Tocca per rendere vigente questa scheda">
@@ -1531,7 +1531,7 @@ a.dw-btn{text-decoration:none}
     } else {
       const fine = R.inCorso ? "a oggi" : "al 31/12/" + R.anno;
       cel.innerHTML = '<div id="den-barra"></div>'
-        + `<div class="note recap">Volume concesso dall'atto: <b>${n0(R.concesso)} m³</b>.`
+        + `<div class="note recap">Volume concesso dall'atto: <b>${nD(R.concesso)} m³</b>.`
         + (R.pregresso ? ` Di questi, <b>${n0(R.pregresso)} m³</b> risultavano già estratti prima di usare Terra.` : "")
         + ` Sommando lo scavo misurato fino ${fine}, il cumulato sotto questo titolo arriva a <b>${n0(R.cumulatoFineAnno)} m³</b>`
         + ` — il <b>${un1(R.pctFineAnno)}%</b> del concesso — e restano <b>${n0(R.residuoFineAnno)} m³</b>.`
@@ -1639,8 +1639,8 @@ a.dw-btn{text-decoration:none}
       ["Data di rilascio", aut ? fmtData(aut.dataRilascio) : "—"],
       ["Scadenza del titolo", aut ? fmtData(aut.dataScadenza) : "—"],
       ["Materiale autorizzato", aut && aut.materiale ? esc(aut.materiale) : "—"],
-      ["Superficie autorizzata", aut && aut.superficieMq ? n0(aut.superficieMq) + " m²" : "—"],
-      ["Volume totale concesso", R.concesso ? n0(R.concesso) + " m³" : "—"],
+      ["Superficie autorizzata", aut && aut.superficieMq ? nD(aut.superficieMq) + " m²" : "—"],
+      ["Volume totale concesso", R.concesso ? nD(R.concesso) + " m³" : "—"],
     ];
     const qual = [];
     if (R.qualita.surveyGrade) qual.push(R.qualita.surveyGrade + " di qualità topografica");
@@ -1692,8 +1692,11 @@ a.dw-btn{text-decoration:none}
           : riga(["Nessun volume registrato nell'anno", "<span class='n'>0</span>", "<span class='n'>0</span>", "<span class='n'>0</span>"]))
       + "</table>"
       + "<h2>Posizione rispetto al volume concesso</h2><table>"
-      + riga(["<b>Volume concesso dall'atto</b>", "<span class='n'>" + (R.concesso ? n0(R.concesso) + " m³" : "non indicato") + "</span>"])
-      + riga(["<b>Estratto dichiarato prima dell'uso di Terra</b>", "<span class='n'>" + n0(R.pregresso) + " m³</span>"])
+      // i numeri copiati dall'atto si riportano come stanno sull'atto: qui il
+      // foglio va all'ente, e arrotondare all'unità un numero che l'utente ha
+      // trascritto dal titolo autorizzativo lo farebbe divergere dal documento
+      + riga(["<b>Volume concesso dall'atto</b>", "<span class='n'>" + (R.concesso ? nD(R.concesso) + " m³" : "non indicato") + "</span>"])
+      + riga(["<b>Estratto dichiarato prima dell'uso di Terra</b>", "<span class='n'>" + nD(R.pregresso) + " m³</span>"])
       + riga(["<b>Scavo misurato sotto questo titolo fino al 31/12/" + R.anno + "</b>", "<span class='n'>" + n0(Math.max(0, R.cumulatoFineAnno - R.pregresso)) + " m³</span>"])
       + "<tr class='tot'><td>Cumulato a fine " + R.anno + "</td><td class='n'>" + n0(R.cumulatoFineAnno) + " m³"
       + (R.pctFineAnno != null ? " (" + un1(R.pctFineAnno) + "% del concesso)" : "") + "</td></tr>"
@@ -2032,7 +2035,7 @@ a.dw-btn{text-decoration:none}
     if (!lista.some(r => r.id === cfA) || !lista.some(r => r.id === cfB) || cfA === cfB) {
       cfB = lista[0].id; cfA = lista[1].id;                    // di serie gli ultimi due
     }
-    const et = (r) => fmtData(r.data) + " · " + n0(r.volumeM3) + " m³";
+    const et = (r) => fmtData(r.data) + " · " + nD(r.volumeM3) + " m³";
     const opz = (sceltoId) => lista.map(r =>
       `<option value="${esc(r.id)}"${r.id === sceltoId ? " selected" : ""}>${esc(et(r))}</option>`).join("");
     selA.innerHTML = opz(cfA); selB.innerHTML = opz(cfB);
@@ -2054,8 +2057,8 @@ a.dw-btn{text-decoration:none}
       ? `In quei <b>${c.giorni} giorni</b> fanno circa <b>${n0(c.alGiorno)} m³ al giorno</b>, cioè <b>${n0(c.alMese)} m³ al mese</b> se il ritmo resta questo.`
       : `Le due date coincidono, quindi non c'è nessun ritmo da calcolare.`;
     const conf = c.delta === 0
-      ? `I due rilievi hanno misurato lo stesso volume (<b>${n0(c.primo.volumeM3)} m³</b>).`
-      : `Preso da solo, il rilievo del <b>${fmtData(c.secondo.data)}</b> vale <b>${n0(c.secondo.volumeM3)} m³</b> contro i <b>${n0(c.primo.volumeM3)} m³</b> del ${fmtData(c.primo.data)}: <b>${c.delta > 0 ? "+" : "−"}${n0(Math.abs(c.delta))} m³</b>${c.pct != null ? ` (${c.delta > 0 ? "+" : "−"}${Math.abs(c.pct)}%)` : ""}. È un confronto di <b>ritmo fra due misure</b>, non materiale in più o in meno.`;
+      ? `I due rilievi hanno misurato lo stesso volume (<b>${nD(c.primo.volumeM3)} m³</b>).`
+      : `Preso da solo, il rilievo del <b>${fmtData(c.secondo.data)}</b> vale <b>${nD(c.secondo.volumeM3)} m³</b> contro i <b>${nD(c.primo.volumeM3)} m³</b> del ${fmtData(c.primo.data)}: <b>${c.delta > 0 ? "+" : "−"}${n0(Math.abs(c.delta))} m³</b>${c.pct != null ? ` (${c.delta > 0 ? "+" : "−"}${Math.abs(c.pct)}%)` : ""}. È un confronto di <b>ritmo fra due misure</b>, non materiale in più o in meno.`;
     return `<div class="kpis" style="--kpi-cols:3;">
       <div class="kpi"><div class="l"><span class="u">m³</span> scavati fra le due date</div><div class="n">${fmtM3(c.scavato)}</div></div>
       <div class="kpi"><div class="l">Giorni fra i due rilievi</div><div class="n">${c.giorni}</div></div>
@@ -2110,7 +2113,7 @@ a.dw-btn{text-decoration:none}
       ["GSD (dimensione del pixel a terra)", r.gsd != null && String(r.gsd).trim() !== "" ? esc(itDec(r.gsd)) + " cm" : "non dichiarato"],
       ["Classe di accuratezza", ca.classe === "n.d." ? "non determinabile (metodo e GSD non dichiarati)"
         : ca.label + " — tolleranza tipica ± " + ca.tolleranzaPct + "%"],
-      ["Volume misurato", "<b>" + n0(r.volumeM3) + " m³</b>"
+      ["Volume misurato", "<b>" + nD(r.volumeM3) + " m³</b>"
         + (bv ? " (± " + n0(bv.banda) + " m³ · fra " + n0(bv.min) + " e " + n0(bv.max) + " m³)" : "")],
       ["Eseguito da", r.rilevatore ? esc(r.rilevatore) : "&nbsp;"],
     ];
@@ -2237,7 +2240,7 @@ a.dw-btn{text-decoration:none}
         esito("terra-esito", spiegaNum("il volume annuo pianificato", rm, "m³") + " Il piano è rimasto com'era.", "err"); return; }
       if (!(m3 > 0)) { esito("terra-esito", "Serve un volume annuo maggiore di zero: il piano è rimasto com'era.", "err"); return; }
       await db.aggiorna("piano", p.id, { pianificatoAnnuoM3: m3 });
-      esito("terra-esito", "Piano annuo di «" + p.titolo + "» portato a " + n0(m3) + " m³.");
+      esito("terra-esito", "Piano annuo di «" + p.titolo + "» portato a " + nD(m3) + " m³.");
       await refresh(); return; }
     const bEdF = e.target.closest && e.target.closest("[data-edit-fro]");
     if (bEdF) { e.stopPropagation();
