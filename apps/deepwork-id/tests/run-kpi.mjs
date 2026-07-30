@@ -143,6 +143,44 @@ test("parseScadenzeCsv: CRLF (Excel) e testo vuoto = niente crash", () => {
   eq(s.length, 1, "CRLF ok");
   eq(s[0].dataScadenza, "2026-12-01", "data letta");
 });
+/* L'ANAGRAFICA DEI LAVORATORI — il primo file che una cava carica, e fino al
+   31/07 l'unico dei diciassette import che nessuna prova poteva guardare,
+   perché stava scritto dentro la pagina. Portarlo fuori ha fatto emergere un
+   difetto vero: il doppione si cercava solo fra chi era GIÀ in archivio, e
+   quell'elenco non si aggiornava mentre il file scorreva. Non è un caso di
+   scuola — l'esportazione di Scudo scrive una riga per ogni SCADENZA, quindi
+   il file di un lavoratore con tre scadenze lo nomina tre volte. */
+test("parseLavoratoriCsv: nome/ruolo/telefono, intestazione e riga AZIENDA fuori", () => {
+  const p = scudo.parseLavoratoriCsv(
+    "nome;ruolo;telefono\nRossi Mario;operatore;333 1234567\nBianchi Luca;capocava;\nAZIENDA;;;");
+  eq(p.length, 2, "due persone: l'intestazione e la riga aziendale non sono persone");
+  eq(p[0], { nome: "Rossi Mario", ruolo: "operatore", tel: "333 1234567", attivo: true }, "prima riga");
+  eq(p[1].tel, "", "un telefono che manca resta vuoto, non diventa un finto numero");
+  eq(p[1].attivo, true, "chi si carica entra attivo");
+});
+test("parseLavoratoriCsv: lo stesso nome più volte NEL FILE entra una volta sola", () => {
+  /* Esattamente la forma dell'export di Scudo: una riga per scadenza. */
+  const esportato =
+    "nome;ruolo;telefono;idoneita;scadenza;data;stato\n" +
+    "Rossi Mario;operatore;333;idoneo;Visita medica;2026-01-01;ok\n" +
+    "Rossi Mario;operatore;333;idoneo;Corso antincendio;2026-02-01;ok\n" +
+    "Rossi Mario;operatore;333;idoneo;Patentino;2026-03-01;ok\n" +
+    "AZIENDA;;;;DVR;2026-04-01;ok";
+  const p = scudo.parseLavoratoriCsv(esportato);
+  eq(p.length, 1, "un lavoratore con tre scadenze resta UN lavoratore");
+  eq(p[0].nome, "Rossi Mario", "ed è lui");
+});
+test("parseLavoratoriCsv: il doppione si riconosce anche scritto diverso", () => {
+  const p = scudo.parseLavoratoriCsv("Rossi Mario;operatore;333\n  ROSSI MARIO ;capocava;444");
+  eq(p.length, 1, "maiuscole e spazi non fanno due persone diverse");
+  eq(p[0].ruolo, "operatore", "vince la prima scrittura, non l'ultima");
+});
+test("parseLavoratoriCsv: CRLF (Excel), righe vuote e testo assente = niente crash", () => {
+  eq(scudo.parseLavoratoriCsv(""), [], "testo vuoto");
+  eq(scudo.parseLavoratoriCsv(null), [], "testo che manca");
+  const p = scudo.parseLavoratoriCsv("Rossi Mario;operatore;333\r\n\r\nBianchi Luca;;\r\n");
+  eq(p.length, 2, "CRLF di Windows e righe vuote in mezzo");
+});
 test("SCADENZE_PRESET: lista non vuota, chiavi uniche, categorie/tipo validi", () => {
   const P = scudo.SCADENZE_PRESET;
   eq(P.length > 0, true, "non vuota");
@@ -3417,10 +3455,12 @@ test("l'arrotondamento non può peggiorare il numero", () => {
   const { readFileSync } = await import("node:fs");
   const DOC = readFileSync(join(HERE, "../../../docs/ONBOARDING_DATI.md"), "utf8");
 
-  /* Titolo della sezione → lettore che quella pagina usa davvero. Scudo 1) non
-     c'è: i lavoratori si importano con un gestore scritto dentro index.html,
-     quindi non esiste una funzione pura da chiamare (annotato, non nascosto). */
+  /* Titolo della sezione → lettore che quella pagina usa davvero. Dal 31/07
+     ci sono TUTTI: l'anagrafica dei lavoratori di Scudo era l'unico import
+     scritto dentro la pagina, ed è stata portata in `parseLavoratoriCsv`
+     proprio perché nessuna prova poteva guardarla. */
   const MAPPA = [
+    ["Scudo — 1) anagrafica lavoratori", scudo.parseLavoratoriCsv],
     ["Scudo — 2) scadenzario", scudo.parseScadenzeCsv],
     ["Scudo — 3) registro infortuni", scudo.parseInfortuniCsv],
     ["Flotta — 1) parco mezzi", flotta.parseMezziCsv],

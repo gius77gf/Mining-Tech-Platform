@@ -867,6 +867,48 @@ export function dataDaPeriodicita(mesi, oggi = new Date()) {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
+// IMPORT DELL'ANAGRAFICA LAVORATORI DA CSV.
+//
+// Perché è nata qui, il 31/07: era l'UNICO dei diciassette import del prodotto
+// scritto dentro la pagina invece che come funzione pura — quindi l'unico che
+// nessuna prova poteva guardare. Ed è l'anagrafica delle PERSONE, il primo
+// file che una cava carica.
+//
+// ⚠️ Portandola fuori è venuto a galla un difetto che nella pagina non si
+// vedeva: il controllo del doppione guardava solo l'elenco GIÀ in archivio, e
+// quell'elenco non si aggiornava mentre il file scorreva. Non è un caso di
+// scuola: l'esportazione di Scudo scrive **una riga per ogni scadenza**, così
+// un lavoratore con tre scadenze compare tre volte nel suo stesso file.
+// Ri-caricandolo — il modo più naturale di spostare i dati da una postazione a
+// un'altra — in anagrafica comparivano tre «Rossi». Qui il doppione si toglie
+// DENTRO il file, a parità di nome ignorando maiuscole e spazi; il confronto
+// con chi è già in archivio resta alla pagina, che è l'unica a conoscerlo.
+//
+// Colonne: nome;ruolo;telefono (intestazione facoltativa). Si saltano le righe
+// senza nome, l'intestazione e la riga «AZIENDA» che l'esportazione usa per le
+// scadenze non intestate a nessuno. I nomi sono testo grezzo → escapare dove
+// mostrati. Pura e testabile.
+export function parseLavoratoriCsv(text) {
+  const visti = new Set();
+  return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .map(r => {
+      const [nome, ruolo, tel] = parseCsvLine(r);
+      return {
+        nome: (nome || "").trim(),
+        ruolo: (ruolo || "").trim(),
+        tel: (tel || "").trim(),
+        attivo: true,
+      };
+    })
+    .filter(l => l.nome && !/^(nome|azienda)$/i.test(l.nome))
+    .filter(l => {
+      const chiave = l.nome.toLowerCase();
+      if (visti.has(chiave)) return false;
+      visti.add(chiave);
+      return true;
+    });
+}
+
 // Import scadenze da CSV (onboarding: caricare lo scadenzario esistente —
 // visite mediche, corsi, patentini con le date — invece di riscriverlo a
 // mano). Colonne: lavoratore;tipo;descrizione;scadenza (header opzionale).

@@ -1173,7 +1173,7 @@
 </script>
 
 <script type="module">
-  import { scudoData, statoScadenza, inTurnoOggi, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, parseScadenzeCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
+  import { scudoData, statoScadenza, inTurnoOggi, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, parseScadenzeCsv, parseLavoratoriCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
     daAmbiente, etichettaAmbiente, riepilogoAmbiente,
     NEARMISS_CATEGORIE, NEARMISS_LUOGHI, categoriaNearMiss, luogoNearMiss, descrizioneNearMiss, riepilogoNearMiss,
     MODELLI_ISPEZIONE, modelloIspezione, nuovaIspezioneDaModello, riepilogoIspezione, riepilogoIspezioni, vociNonConformi, statoIspezione, azioniDiIspezione, esitoLabel, ESITI_ISPEZIONE, dataPiuGiorni,
@@ -1181,7 +1181,7 @@
     matriceMansione, riepilogoMansioni, lavoratoriScoperti, abilitazioneLavoratore,
     NOMINE_RUOLI, ruoloNomina, nominaAttiva, organigrammaSicurezza, nomineDaSistemare,
     TIPI_DPI, tipoDpi, tipoDpiSicuro, ultimaConsegnaDpi, statoConsegnaDpi, allarmiDpi, riepilogoDpi, verbaleDpi } from "./scudo-data.js";
-  import { mountExit, esc, csvCell, parseCsvLine, giorniTra, montaGuardiaInteri, avvolgiUnita } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, giorniTra, montaGuardiaInteri, avvolgiUnita } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
@@ -2599,13 +2599,19 @@
   $("csv-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const testo = await file.text();
+    /* La lettura sta in scudo-data.js (funzione pura, sotto prova): toglie
+       l'intestazione, le righe senza nome, la riga «AZIENDA» dell'export e —
+       questo è il punto — i DOPPIONI dentro il file stesso. Serve davvero:
+       l'export scrive una riga per ogni scadenza, quindi un lavoratore con tre
+       scadenze compare tre volte nel proprio file, e ri-caricarlo faceva
+       comparire tre volte la stessa persona in anagrafica. Qui resta solo il
+       confronto con chi è GIÀ in archivio, che la pagina è l'unica a sapere. */
     const righe = testo.split(/\r?\n/).map(r => r.trim()).filter(Boolean);
-    let aggiunti = 0, saltate = 0;
-    for (const riga of righe) {
-      const [nome, ruolo, tel] = parseCsvLine(riga);
-      if (!nome || /^(nome|azienda)$/i.test(nome)) { saltate++; continue; }   // header, riga vuota o riga-azienda dell'export
-      if (LAV.some(l => l.nome.toLowerCase() === nome.toLowerCase())) { saltate++; continue; }  // duplicato
-      await db.aggiungi("lavoratori", { nome, ruolo: ruolo || "", tel: tel || "", attivo: true });
+    const letti = parseLavoratoriCsv(testo);
+    let aggiunti = 0, saltate = righe.length - letti.length;
+    for (const l of letti) {
+      if (LAV.some(x => x.nome.toLowerCase() === l.nome.toLowerCase())) { saltate++; continue; }  // già in archivio
+      await db.aggiungi("lavoratori", l);
       aggiunti++;
     }
     esito("import-esito", `Import completato: ${aggiunti} aggiunti, ${saltate} righe saltate (intestazioni o duplicati).`, aggiunti ? "success" : "");
