@@ -2566,6 +2566,44 @@ test("l'arrotondamento non può peggiorare il numero", () => {
     eq(tenuteX([sp(0, 30), { sin: NaN, des: NaN }, sp(100, 30)], 4), [0, 2],
       "un riquadro NaN si salta come uno assente");
   });
+  /* ── il taglio delle etichette delle BARRE ────────────────────────────────
+     Nelle barre i nomi lunghi sono la norma, non l'eccezione: mezzi, clienti,
+     fronti. Misurato a 390 px sulla versione che tagliava a conto di caratteri
+     (`banda / 6`), due difetti veri: nel verticale due nomi troncati si
+     **toccavano** ancora (4 px) e «Bravo»/«Charl…» si leggevano come una parola
+     sola; nell'orizzontale non c'era troncatura affatto e un nome lungo **usciva
+     dal disegno**. Ora la larghezza si misura (`getComputedTextLength`) e il taglio
+     — la parte che si può sbagliare senza accorgersene — sta in `tagliaA`, pura. */
+  test("grafici: il taglio di un'etichetta lascia qualcosa da leggere", () => {
+    const { tagliaA } = grafici.geometria;
+    ok(tagliaA("Escavatore", 20) === "Escavatore", "se ci sta tutto non si tocca");
+    ok(tagliaA("Escavatore", 10) === "Escavatore", "il caso al pelo non aggiunge i puntini");
+    ok(tagliaA("Escavatore Komatsu", 10) === "Escavatore…", "taglia e mette i puntini");
+    /* uno spazio appeso ai puntini legge male, e si vedeva a schermo */
+    ok(tagliaA("Dumper Volvo A40", 7) === "Dumper…", "lo spazio prima dei puntini si toglie");
+    ok(tagliaA("Cava di Monte Cerreto — settore", 24) === "Cava di Monte Cerreto…",
+      "e così il trattino: «Cerreto —…» era il caso vero visto nello screenshot");
+    ok(tagliaA("Fronte, Nord", 7) === "Fronte…", "anche la virgola");
+    /* sotto una lettera i puntini non dicono niente: a quel punto è la FORMA del
+       grafico che è sbagliata, non l'etichetta — ma non si restituisce «…» nudo */
+    ok(tagliaA("Escavatore", 0) === "E…", "almeno una lettera prima dei puntini");
+    ok(tagliaA("—Nord", 1) === "—…", "se la prima lettera è punteggiatura si tiene comunque");
+    ok(tagliaA("", 5) === "", "testo vuoto: niente da tagliare");
+    ok(tagliaA(null, 5) === "", "testo assente: non un errore");
+  });
+  test("grafici: la controprova — il vecchio taglio non bastava", () => {
+    const { tagliaA } = grafici.geometria;
+    /* la versione di prima: `et.slice(0, floor(banda/6)) + '…'`, senza respiro e
+       senza togliere lo spazio. Con banda 60 dà 10 caratteri di «Dumper Volvo A40»
+       cioè «Dumper Vol…» — e su «Gradone Nord-Est»/«Gradone Sud-Ovest» le due
+       troncature restavano attaccate perché nessuno sottraeva il respiro. */
+    const vecchio = (t, banda) => t.slice(0, Math.max(2, Math.floor(banda / 6))) + "…";
+    ok(vecchio("Dumper Volvo A40", 60) === "Dumper Vol…", "il vecchio taglio contava i caratteri");
+    /* banda 78 → 13 caratteri, e il tredicesimo di «Dumper Volvo A40» è lo SPAZIO */
+    ok(vecchio("Dumper Volvo A40", 78) === "Dumper Volvo …",
+      "e poteva lasciare uno spazio appeso ai puntini");
+    ok(tagliaA("Dumper Volvo A40", 13) === "Dumper Volvo…", "il nuovo no");
+  });
   test("grafici: la controprova — la vecchia scelta si sovrapponeva", () => {
     /* la versione di prima: gli indici del passo, più l'ultimo, sempre.
        I numeri non sono inventati — sono quelli misurati a 390 px: il disegno va da

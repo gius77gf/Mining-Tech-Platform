@@ -236,6 +236,66 @@
 
   function testoLargo(t, px) { return String(t).length * px * 0.52; }
 
+  /* IL RESPIRO FRA DUE ETICHETTE, uno per tutto il motore. Quattro unità di viewBox:
+     misurato, è il minimo a cui due nomi restano due nomi invece di leggersi come
+     uno. Sei sarebbe più prudente e costa una lettera in più a ogni troncatura — su
+     dieci colonne a 390 px «Bravo» diventava «Br…» per un'unità di larghezza. Un
+     valore solo, e lo stesso che usa il grafico a linea: due costanti che vogliono
+     dire la stessa cosa divergono al primo che ne cambia una. */
+  var RESPIRO_ET = 4;
+
+  /* TRONCARE MISURANDO, non contando i caratteri. Il nome di una voce che non ci
+     sta va accorciato, ma «quanti caratteri ci stanno» dipende da QUALI caratteri
+     sono — «Illi» e «Wowm» hanno lo stesso conto e larghezze diverse — e dal
+     carattere che il browser ha davvero. Misurato a 390 px con la versione che
+     contava (`banda / 6`): due nomi di fronte troncati si **toccavano** ancora, e
+     con dieci voci «Bravo» e «Charl…» si leggevano come una parola sola. Nelle
+     barre orizzontali non c'era troncatura affatto e un nome lungo **usciva dal
+     disegno**, dove non si legge per niente.
+     `getComputedTextLength` dà la larghezza vera in unità del viewBox; la ricerca
+     binaria trova il testo più lungo che ci sta, in un numero di misure pari al
+     logaritmo della lunghezza. Se la misura non è disponibile (grafico dentro un
+     contenitore nascosto: risponde 0) si ricade sulla stima, che è meglio di
+     niente ma non è la regola.
+     Troncare non perde informazione: il nome intero resta nel tooltip della barra
+     e nella tabella sotto il grafico, che è la parte che fa fede. */
+  function largoTesto(el) {
+    try { var w = el.getComputedTextLength(); return w > 0 ? w : 0; } catch (e) { return 0; }
+  }
+
+  /* IL TAGLIO, senza il browser: prende un testo e quante lettere tenere, e torna
+     l'etichetta accorciata. Sta in una funzione sua perché la parte che si può
+     sbagliare non è la misura — è come si taglia: uno spazio o un trattino appeso
+     ai puntini legge male («Cava di Monte Cerreto —…», visto a schermo), e sotto
+     una lettera i puntini non dicono più niente. Pura, quindi provabile. */
+  function tagliaA(testo, n) {
+    var t = String(testo == null ? '' : testo);
+    if (n >= t.length) return t;
+    var pezzo = t.slice(0, Math.max(1, n)).replace(/[\s —–\-,;:.·]+$/, '');
+    return (pezzo || t.slice(0, 1)) + '…';
+  }
+
+  function troncaTesto(el, testo, maxW, px) {
+    var t = String(testo == null ? '' : testo);
+    el.textContent = t;
+    if (!(maxW > 0)) return t;
+    var pieno = largoTesto(el);
+    if (!pieno) {                        /* niente da misurare: si stima e si esce */
+      if (testoLargo(t, px || 11) <= maxW) return t;
+      el.textContent = tagliaA(t, Math.max(1, Math.floor(maxW / ((px || 11) * 0.52)) - 1));
+      return el.textContent;
+    }
+    if (pieno <= maxW) return t;
+    var lo = 0, hi = t.length - 1;
+    while (lo < hi) {
+      var m = Math.ceil((lo + hi) / 2);
+      el.textContent = tagliaA(t, m);
+      if (largoTesto(el) <= maxW) lo = m; else hi = m - 1;
+    }
+    el.textContent = tagliaA(t, Math.max(1, lo));
+    return el.textContent;
+  }
+
   /* ═══════════════ la cassa comune ═══════════════ */
 
   function Grafico(el, spec) {
@@ -605,7 +665,7 @@
     for (var i = 0; i < n; i += passoX) cand.push(i);
     if (n > 1 && cand[cand.length - 1] !== n - 1) cand.push(n - 1);
     var messe = cand.map(function (iC) { return { i: iC, el: etichettaX(svg, x[iC], px(iC), box) }; });
-    var tieni = tenuteX(messe.map(function (m) { return spanX(m.el, px(m.i), box, x[m.i]); }), 4);
+    var tieni = tenuteX(messe.map(function (m) { return spanX(m.el, px(m.i), box, x[m.i]); }), RESPIRO_ET);
     messe.forEach(function (m, k) {
       if (tieni.indexOf(k) >= 0 || !m.el.parentNode) return;
       m.el.parentNode.removeChild(m.el);
@@ -878,7 +938,14 @@
         var y = cy - spessO / 2, w = Math.max(2, pxv(d.valore) - pxv(0));
         svg.appendChild(nodo('rect', { 'class': 'dwg-hit', x: box.x0 - etLargh - 8, y: cy - bandaO / 2, width: box.x1 - box.x0 + etLargh + 8, height: bandaO, 'data-i': i }));
         svg.appendChild(barraPath(pxv(0), y, w, spessO, 4, true, classeBarra(d, i, taglio, s)));
-        svg.appendChild(nodo('text', { 'class': 'dwg-catlab', x: box.x0 - 8, y: (cy + 3.8).toFixed(1), 'text-anchor': 'end' }, d.etichetta));
+        /* nell'orizzontale lo spazio riservato è `etLargh`, ma è TAGLIATO al 38%
+           della larghezza: se il nome è più lungo di così, senza troncarlo esce dal
+           disegno a sinistra (misurato a 390 px con «Cava di Monte Cerreto —
+           settore occidentale»: fuori, illeggibile). Lo spazio utile va da 0 a
+           box.x0 − 8, cioè `etLargh`. */
+        var elCatO = nodo('text', { 'class': 'dwg-catlab', x: box.x0 - 8, y: (cy + 3.8).toFixed(1), 'text-anchor': 'end' }, '');
+        svg.appendChild(elCatO);
+        troncaTesto(elCatO, d.etichetta, etLargh, 11);
         svg.appendChild(nodo('text', { 'class': 'dwg-vallab', x: (pxv(d.valore) + 7).toFixed(1), y: (cy + 4).toFixed(1), 'text-anchor': 'start' }, conUnita(fmt(d.valore), s.unita)));
       });
       if (taglio >= 0 && taglio < dati.length - 1) {
@@ -908,9 +975,12 @@
         var x = cx - spess / 2, y = pyv(d.valore), h = Math.max(2, pyv(0) - y);
         svg.appendChild(nodo('rect', { 'class': 'dwg-hit', x: (cx - banda / 2).toFixed(1), y: box.y0 - 14, width: banda.toFixed(1), height: box.y1 - box.y0 + 26, 'data-i': i }));
         svg.appendChild(barraPath(x, y, spess, h, 4, false, classeBarra(d, i, taglio, s)));
-        var et = String(d.etichetta);
-        if (testoLargo(et, 11) > banda) et = et.slice(0, Math.max(2, Math.floor(banda / 6))) + '…';
-        svg.appendChild(nodo('text', { 'class': 'dwg-catlab', x: cx.toFixed(1), y: box.y1 + 15, 'text-anchor': 'middle' }, et));
+        /* l'etichetta sta nella sua banda MENO il respiro: due nomi che si toccano
+           si leggono come una parola sola, e la troncatura di prima — a conto di
+           caratteri, senza respiro — li lasciava attaccati (misurato: 4 px) */
+        var elCat = nodo('text', { 'class': 'dwg-catlab', x: cx.toFixed(1), y: box.y1 + 15, 'text-anchor': 'middle' }, '');
+        svg.appendChild(elCat);
+        troncaTesto(elCat, d.etichetta, banda - RESPIRO_ET, 11);
         if (etichettaTutte || d.valore === vmax) {
           svg.appendChild(nodo('text', { 'class': 'dwg-vallab', x: cx.toFixed(1), y: (y - 7).toFixed(1), 'text-anchor': 'middle' }, fmt(d.valore)));
         }
@@ -1294,7 +1364,7 @@
        test che gira sempre. Il browser è servito per SCOPRIRE che il motore la
        violava; per tenerla basta node, visto che qui dentro entrano numeri ed esce
        una stringa. */
-    geometria: { tratti: tratti, percorso: percorso, tenuteX: tenuteX },
+    geometria: { tratti: tratti, percorso: percorso, tenuteX: tenuteX, tagliaA: tagliaA },
     versione: '1.0'
   };
 
