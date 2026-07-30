@@ -213,7 +213,8 @@ confermate col tuo tecnico prima di venderle come "a norma".
 **A cosa serve**: sapere quanto materiale hai estratto (dai rilievi drone) e
 quanto te ne resta in autorizzazione.
 
-**Cosa fa già**:
+**Cosa fa già** *(riletto il 30/07 con l'app aperta davanti, non a memoria:
+metà di questo elenco è arrivata dopo il 23 e mancava)*:
 - Volumi del mese e avanzamento sul piano annuo, **calcolati** dai rilievi
   (mai scritti a mano: sono difendibili in un controllo).
 - **Da m³ a valore**: metri cubi → tonnellate → euro (leghi il rilievo alla
@@ -226,6 +227,22 @@ quanto te ne resta in autorizzazione.
 - **Proiezione di fine anno**: al ritmo attuale, quanti m³ arriverai a estrarre
   entro dicembre, con avviso se rischi di **superare il volume autorizzato**.
 - **Import rilievi da CSV** ed **export** di fronti e rilievi.
+
+**Aggiunto dopo il 23 luglio** (le schermate ci sono: si controlla aprendo l'app):
+- **I fronti di cava**: stato di ognuno, e *«da dove esce il materiale»*.
+  Prima il volume era un numero solo per tutta la cava.
+- **Il riepilogo annuale dei volumi**, che è quello che l'ente chiede: mese per
+  mese, da quale fronte, rispetto al volume concesso, anno per anno, gli
+  **oneri di escavazione** e la voce *«come lo consegni»*.
+- **Confronto fra due rilievi**: quanto è cambiato fra un volo e l'altro.
+- **Lo scadenzario di Terra**, col semaforo e le ricorrenze: le scadenze
+  dell'autorizzazione smettono di vivere su un calendario a parte.
+- **Il ponte con Campo**: *«quello che dichiarano i turni»*, *«da quale fronte,
+  secondo i turni»* e *«il confronto col rilievo»*. Il drone vola ogni tanto;
+  nel frattempo i turni danno la stima del momento, **tenuta separata dalla
+  misura vera** — che è la parte importante: una stima messa accanto a una
+  misura, in una settimana, diventa indistinguibile da essa.
+- **Il piano estrattivo** e le **impostazioni del controllo**.
 
 **Pronto**: sì. **Aspetta te**: solo l'accensione live comune.
 
