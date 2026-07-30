@@ -19,35 +19,21 @@
    che monta la guardia sostituita da un commento. Se i controlli passano lo
    stesso, non stanno misurando la guardia. */
 import { montaFintoFirebase } from './finto-firebase.mjs';
+import { prendiChromium, CHROMIUM, SUPERFICI } from './giro.mjs';
 
-/* Playwright non è una dipendenza del repo (nessuno vuole un `npm install` per
-   aprire il progetto) ed è installato globalmente nella macchina di lavoro. La
-   risoluzione dei moduli ES non guarda NODE_PATH, quindi il semplice
-   `import 'playwright'` funziona solo se lo si lancia da una cartella che ce
-   l'ha accanto. Si prova il nome, e se non c'è si prova il posto. */
-async function prendiChromium() {
-  for (const dove of ['playwright', '/opt/node22/lib/node_modules/playwright/index.mjs',
-                      '/opt/node22/lib/node_modules/playwright/index.js']) {
-    try { return (await import(dove)).chromium; } catch (e) { /* si prova il prossimo */ }
-  }
-  console.error('Playwright non si trova. Installalo, o lancia questo file da una cartella che ce l\'ha accanto.');
-  process.exit(2);
-}
 const chromium = await prendiChromium();
 
 const PORTA = process.argv[2];
 const SENZA = process.argv.includes('--senza-guardia');
 const SOLO = (process.argv.find((a) => a.startsWith('--solo=')) || '').slice(7);
 
-const SUPERFICI = [
-  ['core', '/index.html'],
-  ['campo', '/apps/campo/index.html'],
-  ['flotta', '/apps/flotta/index.html'],
-  ['scudo', '/apps/scudo/index.html'],
-  ['sentinella', '/apps/sentinella/index.html'],
-  ['terra', '/apps/terra/index.html'],
-  ['genesi', '/apps/genesi/genesi.html'],
-];
+/* ⛔ L'ELENCO DELLE SUPERFICI ARRIVA DA `giro.mjs`, NON SI RISCRIVE QUI. Fino al
+   30/07 questo banco ne aveva una copia propria, e la copia non conteneva Conti:
+   il banco diceva «7 superfici, 87 passate» e sembrava completo, mentre un'app
+   intera non veniva aperta da nessuno. È lo stesso difetto della seconda copia
+   di una regola, applicato alla COPERTURA — ed è più insidioso, perché una
+   copertura incompleta non dà mai un errore: dà un numero più piccolo, e nessuno
+   sa quale numero aspettarsi. */
 const MONTA_RE = /montaGuardiaInteri\s*\(\s*\(m(?:\s*,\s*el)?\)\s*=>[\s\S]*?\n?\s*\);/;
 
 /* Qualche campo non si vede finché non si fa una scelta: in Scudo la riga
@@ -66,7 +52,7 @@ const prova = (n, c, e) => {
   else { ko++; console.log('    KO  ' + n + (e !== undefined ? '\n          -> ' + JSON.stringify(e) : '')); }
 };
 
-const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const b = await chromium.launch({ executablePath: CHROMIUM });
 
 for (const [nome, via] of SUPERFICI) {
   if (SOLO && SOLO !== nome) continue;
@@ -75,19 +61,18 @@ for (const [nome, via] of SUPERFICI) {
   const p = await ctx.newPage();
   const err = [];
   p.on('pageerror', (e) => err.push(e.message));
-  if (SENZA) {
-    await p.route('**' + via, async (r) => {
-      const res = await r.fetch();
-      const prima = await res.text();
-      const dopo = prima.replace(MONTA_RE, '/* guardia smontata per controprova */');
-      /* la sostituzione DEVE cambiare la sorgente: una controprova inerte passa
-         come una prova riuscita, e il core l'ha già dimostrato — la sua riga di
-         montaggio è scritta senza spazi e la prima versione non la trovava,
-         quindi «9 passate, 0 fallite» voleva dire soltanto «non ho tolto niente» */
-      if (dopo === prima) { console.error(`  ✗ ${nome}: CONTROPROVA INERTE, la riga della guardia non è stata trovata`); process.exitCode = 2; }
-      await r.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: dopo });
-    });
-  }
+  /* si annota com'è andata la sostituzione, ma il verdetto si dà DOPO: una
+     superficie senza campi interi non deve montare la guardia, e lì «non ho
+     trovato la riga» è la risposta giusta, non un allarme. Prima il giudizio era
+     immediato e avrebbe accusato Conti e la vetrina appena entrate nell'elenco. */
+  let montaLaGuardia = null;
+  await p.route('**' + via, async (r) => {
+    const res = await r.fetch();
+    const prima = await res.text();
+    montaLaGuardia = MONTA_RE.test(prima);
+    const dopo = SENZA ? prima.replace(MONTA_RE, '/* guardia smontata per controprova */') : prima;
+    await r.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: dopo });
+  });
   /* IL CORE NON SI FERMA AL LOGIN: tutto il suo programma sta in un
      `<script type="module">` che importa Firebase da gstatic, e qui la rete è
      chiusa. Senza quell'import il modulo non parte e restano i segnaposto che
@@ -100,7 +85,7 @@ for (const [nome, via] of SUPERFICI) {
 
   /* l'elenco completo dei campi interi del documento, con la stessa regola con
      cui la guardia decide se un campo è intero (eCampoIntero) */
-  const tutti = await p.evaluate(() => {
+  const censisci = () => p.evaluate(() => {
     const out = [];
     document.querySelectorAll('input[type=number]').forEach((el, i) => {
       if (el.getAttribute('inputmode') === 'decimal') return;
@@ -111,6 +96,7 @@ for (const [nome, via] of SUPERFICI) {
     });
     return out;
   });
+  const tutti = await censisci();
   console.log(`  campi interi nel documento: ${tutti.length} -> ${tutti.join(', ') || '(nessuno)'}`);
 
   const visibili = () => p.evaluate(() => [...document.querySelectorAll('input[type=number]')]
@@ -196,13 +182,44 @@ for (const [nome, via] of SUPERFICI) {
 
   const mancanti = tutti.filter((x) => !provati.has(x));
   console.log(`  digitati: ${provati.size}/${tutti.length}${mancanti.length ? ` · non raggiunti: ${mancanti.join(', ')}` : ''}`);
+
+  /* ⛔ LA DOMANDA CHE HA FATTO ENTRARE CONTI NELL'ELENCO. Non «la guardia
+     funziona?» — quella la battono i tre controlli qui sopra — ma «c'è?». Una
+     superficie con campi interi e senza guardia non fallisce nessuna prova:
+     semplicemente non ne fa nessuna, e il totale scende di tre senza che niente
+     lo dica. Qui si dichiara, in tutti e due i versi:
+       - se ha campi interi, la riga che monta la guardia dev'esserci;
+       - se non ne ha, si scrive che non c'è niente da sorvegliare, così la volta
+         dopo nessuno perde tempo a chiedersi se sia una dimenticanza.
+     ⚠️ SI CONTA DOPO IL GIRO, NON AL CARICAMENTO: mezzi campi di questo progetto
+     nascono quando si apre una sezione o si sceglie una voce da una tendina, e
+     al caricamento una superficie piena di campi interi risponderebbe «zero» —
+     cioè si assolverebbe da sola. */
+  const censimentoFinale = await censisci();
+  if (!SENZA) {
+    if (censimentoFinale.length) {
+      prova(`${nome}: monta la guardia sugli interi`, montaLaGuardia === true, { montaLaGuardia });
+    } else {
+      console.log(`  ·· ${nome}: nessun campo intero (neanche dopo il giro), non c'è niente da sorvegliare`);
+    }
+  } else if (censimentoFinale.length && montaLaGuardia === false) {
+    /* la controprova inerte: se non c'era niente da togliere, «0 fallite» vuol
+       dire soltanto «non ho tolto niente» — il core l'ha già dimostrato una volta */
+    console.error(`  ✗ ${nome}: CONTROPROVA INERTE, la riga della guardia non è stata trovata`);
+    process.exitCode = 2;
+  }
   if (err.length) console.log('  ⚠ errori pagina:', err.slice(0, 3));
   await ctx.close();
 }
 
 await b.close();
 console.log(`\n${ok} passate, ${ko} fallite`);
-process.exit(ko ? 1 : 0);
+/* NELLA CONTROPROVA IL VERDETTO SI GIRA: senza guardia il banco DEVE fallire,
+   quindi «fallito» è il successo. Prima usciva 1 come una prova andata male, e
+   il lanciatore `tutti.mjs` — che si aspetta zero da tutti — la segnava rossa
+   pur essendo andata come doveva. Gli altri due banchi già lo facevano: era
+   questo a essere fuori riga. */
+process.exit(SENZA ? (ko ? 0 : 1) : (ko ? 1 : 0));
 
 function CSS_ESC(id) { return id.replace(/([^\w-])/g, '\\$1'); }
 async function svuotaToast(p) {

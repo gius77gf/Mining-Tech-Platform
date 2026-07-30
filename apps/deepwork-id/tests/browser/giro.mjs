@@ -19,10 +19,16 @@ export async function prendiChromium() {
 
 export const CHROMIUM = '/opt/pw-browsers/chromium';
 
+/* ⚠️ QUESTO ELENCO È LA COPERTURA DI TUTTI I BANCHI DEL BROWSER: un'app che non
+   sta qui non viene guardata da nessuno, e nessuno se ne accorge — i banchi
+   dicono «ok» sulle sette che vedono. Conti è rimasta fuori fino al 30/07 e in
+   tre banchi diversi non è mai stata aperta. Quando nasce un'app si aggiunge
+   qui, subito. */
 export const SUPERFICI = [
   ['core', '/index.html'],
   ['vetrina', '/apps/index.html'],
   ['campo', '/apps/campo/index.html'],
+  ['conti', '/apps/conti/index.html'],
   ['flotta', '/apps/flotta/index.html'],
   ['scudo', '/apps/scudo/index.html'],
   ['sentinella', '/apps/sentinella/index.html'],
