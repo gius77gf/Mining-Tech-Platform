@@ -528,6 +528,18 @@ bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
       guarda il periodo appena chiuso, lo storico è una domanda da quadro di
       controllo e sta in Terra col grafico.
 
+- [x] **S19. Le etichette dell'asse X: misurate, non contate** ✅ *(31/07,
+      `7d335ff`)* — il motore condiviso scampionava col solo conto e poi aggiungeva
+      l'ultima comunque: con quattro nomi di fronte veri a 390 px si sovrapponevano
+      di 12 px, e tutte le prove sui grafici usavano `A B C D`. Ora le larghezze si
+      **misurano** con `getBBox` invece di stimarle — la prima versione stimava in
+      pixel di schermo una geometria che vive in unità del viewBox, e sbagliava di
+      un terzo nel verso che non protegge. Le due **estremità** hanno la precedenza:
+      quel difetto (asse senza inizio) non produceva nessuna sovrapposizione, si è
+      visto solo guardando lo screenshot. La regola sta in `tenuteX`, funzione pura
+      esposta in `dwGrafici.geometria`: 18 asserzioni nuove nella suite, e sette
+      grafici di riferimento identici carattere per carattere a due larghezze.
+
 **La convenzione sui numeri è chiusa.** Sei app, core, campi scritti a mano,
 campi interi, file delle macchine.
 
