@@ -1344,6 +1344,15 @@ controprovaSuiVeri("regola 13 (due export, stesso nome)", nomiScaricatiRipetuti,
     return m ? `;a.download = "${m[1]}";` : null;   // niente export: niente da duplicare
   });
 
+/* regola 9: la copia locale della guardia sugli interi, esattamente com'era
+   scritta in Terra prima del 31/07 — quella per cui «1.500» diventava «500» */
+controprovaSuiVeri("regola 9 (guardia degli interi riscritta in casa)", guardieInCasa,
+  ';el.addEventListener("beforeinput", (e) => { if (!e.data || !/[.,]/.test(e.data)) return; e.preventDefault(); el.value = ""; });');
+
+/* regola 10: uno stato vuoto col solo titolo, come i tredici del core */
+controprovaSuiVeri("regola 10 (stato vuoto muto)", vuotiSenzaSpiegazione,
+  '<div class="empty-state"><div class="empty-title">Nessun mezzo da lavoro</div></div>');
+
 /* regola 14: un esito scritto sulla nota del modo */
 controprovaSuiVeri("regola 14 (nota del modo come lavagna)", avvisoUsatoComeLavagna,
   ';esito("mode-note", "Esportate 3 fatture.", "success");',
