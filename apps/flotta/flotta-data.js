@@ -128,6 +128,16 @@ export const DEMO = {
       manodopera: [{ chi: "Marco", ore: 3, tariffa: 32 }, { chi: "Officina esterna", ore: 1.5, tariffa: 55 }],
       ricambiUsati: [], altreSpese: 0, noteLavoro: "smontate le due gomme posteriori" },
     { id: "n3", titolo: "Revisione annuale", mezzo: "Pala P1", dataPrevista: "2026-08-20", ogniMesi: 12 },
+    // n5 e n6 sono i due tagliandi A ORE che la tessera «Tagliandi 30gg»
+    // fino a ieri non contava affatto. Sono di proposito uno per caso:
+    //  · n5 è sul Dumper D1, che ha abbastanza letture del contatore perché
+    //    il ritmo si MISURI (≈3,4 h/gg): 80 h mancanti diventano ~24 giorni,
+    //    quindi entra nel conto della tessera;
+    //  · n6 è sulla Pala P1, le cui letture coprono una finestra troppo
+    //    corta: il ritmo non si può dire, e questo tagliando va contato A
+    //    PARTE — dichiarato, non nascosto e non stimato a caso.
+    { id: "n5", titolo: "Tagliando 250h", mezzo: "Dumper D1", dataPrevista: null, orePreviste: 8500, ogniOre: 250, piano: "250" },
+    { id: "n6", titolo: "Cambio olio idraulico", mezzo: "Pala P1", dataPrevista: null, orePreviste: 6600, ogniOre: 500, piano: "500" },
     { id: "n4", titolo: "Giro macchina: Perdite sotto la macchina", mezzo: "Dumper D1",
       dataPrevista: isoIndietro(1), origine: "controllo",
       stato: "attesa-ricambi",
@@ -188,16 +198,26 @@ export const DEMO = {
   // partenza. L'Escavatore E2 ne ha uno solo, di proposito: è il caso in cui
   // il consumo non si può ancora dire, e l'app lo dichiara invece di
   // inventare un numero.
+  // Le date sono RELATIVE a oggi (come lo storico della disponibilità), e non
+  // per comodità: il contatore delle ore serve anche a MISURARE il ritmo
+  // d'uso dei mezzi, che è quello che colloca nel tempo i tagliandi «a ore»
+  // (vedi ritmoOreMezzi). Con date fisse l'esempio, invecchiando, avrebbe
+  // fatto vedere solo il caso «ritmo non misurabile».
+  // Le distanze fra le letture sono scelte una per una:
+  //  · Escavatore E1 e Dumper D1 coprono 15 e 19 giorni → il ritmo si misura;
+  //  · Pala P1 ne copre 12 → è sotto la metà dell'orizzonte, e serve a far
+  //    vedere il caso in cui il ritmo NON si può dire;
+  //  · Escavatore E2 ha una lettura sola → non si può dire nemmeno il consumo.
   rifornimenti: [
-    { id: "r1", data: "2026-07-12", mezzo: "Escavatore E1", litri: 480, euro: 720, ore: 5812, nota: "cisterna cava", costoId: null },
-    { id: "r2", data: "2026-07-20", mezzo: "Escavatore E1", litri: 505, euro: 762, ore: 5841, nota: "", costoId: null },
-    { id: "r3", data: "2026-07-27", mezzo: "Escavatore E1", litri: 470, euro: 700, ore: 5868, nota: "", costoId: null },
-    { id: "r4", data: "2026-07-10", mezzo: "Dumper D1", litri: 390, euro: 585, ore: 8355, nota: "", costoId: null },
-    { id: "r5", data: "2026-07-21", mezzo: "Dumper D1", litri: 415, euro: 620, ore: 8390, nota: "", costoId: null },
-    { id: "r6", data: "2026-07-28", mezzo: "Dumper D1", litri: 360, euro: 540, ore: 8416, nota: "", costoId: null },
-    { id: "r7", data: "2026-07-14", mezzo: "Pala P1", litri: 300, euro: 450, ore: 6498, nota: "", costoId: null },
-    { id: "r8", data: "2026-07-26", mezzo: "Pala P1", litri: 320, euro: 480, ore: 6531, nota: "", costoId: null },
-    { id: "r9", data: "2026-07-24", mezzo: "Escavatore E2", litri: 300, euro: 450, ore: 3195, nota: "primo pieno registrato", costoId: null },
+    { id: "r1", data: isoIndietro(18), mezzo: "Escavatore E1", litri: 480, euro: 720, ore: 5812, nota: "cisterna cava", costoId: null },
+    { id: "r2", data: isoIndietro(10), mezzo: "Escavatore E1", litri: 505, euro: 762, ore: 5841, nota: "", costoId: null },
+    { id: "r3", data: isoIndietro(3), mezzo: "Escavatore E1", litri: 470, euro: 700, ore: 5868, nota: "", costoId: null },
+    { id: "r4", data: isoIndietro(20), mezzo: "Dumper D1", litri: 390, euro: 585, ore: 8355, nota: "", costoId: null },
+    { id: "r5", data: isoIndietro(9), mezzo: "Dumper D1", litri: 415, euro: 620, ore: 8390, nota: "", costoId: null },
+    { id: "r6", data: isoIndietro(2), mezzo: "Dumper D1", litri: 360, euro: 540, ore: 8416, nota: "", costoId: null },
+    { id: "r7", data: isoIndietro(16), mezzo: "Pala P1", litri: 300, euro: 450, ore: 6498, nota: "", costoId: null },
+    { id: "r8", data: isoIndietro(4), mezzo: "Pala P1", litri: 320, euro: 480, ore: 6531, nota: "", costoId: null },
+    { id: "r9", data: isoIndietro(6), mezzo: "Escavatore E2", litri: 300, euro: 450, ore: 3195, nota: "primo pieno registrato", costoId: null },
   ],
   // Le voci di costo hanno la data del giorno a cui la spesa si riferisce.
   // `c3` è di proposito SENZA data: è una voce come quelle registrate prima
@@ -1535,13 +1555,168 @@ export function affidabilitaFlotta(fermi, mezzi, giorni = 30, oggi = new Date())
   };
 }
 
-export function kpiFrom(mezzi, manutenzioni, costi) {
+// ══════════════════════════════════════════════════════════════════════
+// TAGLIANDI IN SCADENZA — la tessera in cima al Quadro, resa onesta
+// Da quando un tagliando si programma in DUE modi (a calendario e a ore
+// del contatore), contare solo quelli a data è una bugia per DIFETTO: chi
+// guarda la tessera crede di avere metà del lavoro che ha davvero, e non
+// ordina i pezzi.
+// Un tagliando a ore però NON ha una data: per sapere se cade nei
+// prossimi 30 giorni serve il RITMO d'uso di quel mezzo (ore motore al
+// giorno). E quel ritmo non si inventa: si MISURA sui contatori che
+// l'app ha già: i rifornimenti (L4) e i giri macchina (L2) portano
+// entrambi la lettura del contatore con la sua data.
+// Dove il ritmo non si può misurare la tessera NON tira a indovinare:
+// quei tagliandi vanno in un conto A PARTE, dichiarato accanto al numero.
+// Meglio «3, più 1 che non so collocare» che un 4 che nessuno può
+// verificare — e meglio ancora di un 3 che nasconde l'esistenza del quarto.
+// Regole del ritmo, e perché sono queste:
+//  · servono ALMENO DUE letture del contatore sullo stesso mezzo (una sola
+//    fissa il punto di partenza e basta);
+//  · devono coprire almeno METÀ dell'orizzonte da stimare (15 giorni per
+//    stimarne 30). Proiettare 30 giorni da una finestra di 3 non è una
+//    stima, è una moltiplicazione per dieci di quello che si è visto: in
+//    cava tre giorni possono essere di pioggia, di fermo o di doppio turno;
+//  · le ore devono essere AUMENTATE fra la prima e l'ultima lettura;
+//  · l'ultima lettura non può essere più vecchia dell'orizzonte: un ritmo
+//    tratto da letture di tre mesi fa racconta un altro periodo.
+// Un tagliando a ore GIÀ SCADUTO (mancano ≤ 0) entra nel conto senza
+// bisogno di nessuna stima: è da fare adesso, non «fra N giorni».
+// Tutto puro e testabile.
+// ══════════════════════════════════════════════════════════════════════
+export const ORIZZONTE_TAGLIANDI = 30;
+
+// Ritmo d'uso misurato, mezzo per mezzo, dalle letture del contatore
+// ({ mezzo, data, ore }: rifornimenti e giri macchina hanno già questa
+// forma). Ritorna una riga per mezzo con `oreGiorno` — oppure `oreGiorno:
+// null` e il `perche` scritto in italiano, da mostrare all'utente.
+export function ritmoOreMezzi(letture, oggi = new Date(), orizzonte = ORIZZONTE_TAGLIANDI) {
+  const minGiorni = Math.max(2, Math.ceil((+orizzonte || ORIZZONTE_TAGLIANDI) / 2));
+  const per = new Map();
+  for (const l of letture || []) {
+    const mezzo = nomeBreve(l && l.mezzo);
+    const g = isoGiorno(l && l.data);
+    const ore = +((l || {}).ore);
+    if (!mezzo || !g) continue;
+    if (!Number.isFinite(ore) || ore <= 0) continue;
+    if (giorniTra(g, oggi) > 0) continue;          // contatore datato nel futuro: non è un fatto
+    const v = per.get(mezzo) || { mezzo, punti: [] };
+    v.punti.push({ data: g, ore });
+    per.set(mezzo, v);
+  }
+  const out = [];
+  for (const v of per.values()) {
+    const p = v.punti.slice().sort((a, b) => a.data.localeCompare(b.data) || a.ore - b.ore);
+    const primo = p[0], ultimo = p[p.length - 1];
+    const r = { mezzo: v.mezzo, letture: p.length, oreGiorno: null, giorniCoperti: null,
+      dal: primo.data, al: ultimo.data, eta: -giorniTra(ultimo.data, oggi), perche: "" };
+    if (p.length < 2) {
+      r.perche = "c'è una sola lettura del contatore: per sapere quante ore fa al giorno ne serve una seconda";
+      out.push(r); continue;
+    }
+    const giorni = giorniFra(primo.data, ultimo.data);
+    const dOre = ultimo.ore - primo.ore;
+    r.giorniCoperti = giorni;
+    if (giorni < minGiorni) {
+      r.perche = "le letture del contatore coprono " + giorni + (giorni === 1 ? " giorno" : " giorni")
+        + ": per stimare " + orizzonte + " giorni servono almeno " + minGiorni;
+      out.push(r); continue;
+    }
+    if (dOre <= 0) {
+      r.perche = "fra la prima e l'ultima lettura il contatore non è salito";
+      out.push(r); continue;
+    }
+    if (r.eta > orizzonte) {
+      r.perche = "l'ultima lettura del contatore è di " + r.eta + " giorni fa: quel ritmo racconta un periodo passato, non questo";
+      out.push(r); continue;
+    }
+    r.oreGiorno = Math.round(100 * dOre / giorni) / 100;
+    r.oreCoperte = dOre;
+    out.push(r);
+  }
+  return out.sort((a, b) => a.mezzo.localeCompare(b.mezzo, "it"));
+}
+
+// Il ritmo di UN mezzo dentro l'elenco (o null se quel mezzo non c'è).
+export function ritmoDelMezzo(ritmi, nomeMezzo) {
+  const n = nomeBreve(nomeMezzo);
+  return (ritmi || []).find(r => r.mezzo === n) || null;
+}
+
+// I tagliandi che cadono entro l'orizzonte, contati su ENTRAMBI i modi di
+// programmarli. Ritorna { orizzonte, totale, aData, aOre, nonStimabili,
+// voci, daStimare, ritmi } — `totale` è quello che va sulla tessera,
+// `nonStimabili` è quello che la tessera deve dichiarare accanto.
+export function tagliandiInScadenza(manutenzioni, mezzi, letture, oggi = new Date(), orizzonte = ORIZZONTE_TAGLIANDI) {
+  const oriz = +orizzonte || ORIZZONTE_TAGLIANDI;
+  const ritmi = ritmoOreMezzi(letture, oggi, oriz);
+  const contatoreDi = (nome) => {
+    const m = (mezzi || []).find(x => nomeBreve(x.nome) === nome);
+    return m ? (+m.ore || 0) : null;
+  };
+  const voci = [], daStimare = [];
+  for (const n of manutenzioni || []) {
+    const mezzo = nomeBreve(n && n.mezzo);
+    const base = { id: (n && n.id) || "", titolo: (n && n.titolo) || "Manutenzione", mezzo };
+    // Come in prioritaOperative e nella lista Manutenzioni: se un tagliando
+    // ha le ore, sono le ore a comandare. Un solo criterio in tutta l'app.
+    if (+(n && n.orePreviste) > 0) {
+      const ore = contatoreDi(mezzo);
+      if (ore == null) {
+        daStimare.push({ ...base, via: "ore", orePreviste: +n.orePreviste, mancano: null,
+          perche: "il mezzo «" + mezzo + "» non è nel parco: il suo contatore non si può leggere" });
+        continue;
+      }
+      const u = urgenzaOre(+n.orePreviste, ore);
+      if (u.mancano <= 0) {                     // già oltre le ore: è da fare adesso
+        voci.push({ ...base, via: "ore", orePreviste: +n.orePreviste, mancano: u.mancano, giorni: 0, scaduto: true });
+        continue;
+      }
+      const r = ritmoDelMezzo(ritmi, mezzo);
+      const gg = previsioneGiorni(u.mancano, r ? r.oreGiorno : null);
+      if (gg == null) {
+        daStimare.push({ ...base, via: "ore", orePreviste: +n.orePreviste, mancano: u.mancano,
+          perche: r ? r.perche : "di questo mezzo non c'è nessuna lettura del contatore con la sua data" });
+        continue;
+      }
+      if (gg <= oriz) voci.push({ ...base, via: "ore", orePreviste: +n.orePreviste, mancano: u.mancano,
+        giorni: gg, scaduto: false, oreGiorno: r.oreGiorno });
+      continue;
+    }
+    const d = isoGiorno(n && n.dataPrevista);
+    if (!d) continue;                            // né data né ore: non è programmato
+    const g = giorniTra(d, oggi);
+    if (g <= oriz) voci.push({ ...base, via: "data", dataPrevista: d, giorni: g, scaduto: g < 0 });
+  }
+  const aData = voci.filter(v => v.via === "data").length;
+  const aOre = voci.filter(v => v.via === "ore").length;
   return {
+    orizzonte: oriz, totale: voci.length, aData, aOre,
+    nonStimabili: daStimare.length,
+    voci: voci.sort((a, b) => (a.giorni ?? 9999) - (b.giorni ?? 9999) || a.mezzo.localeCompare(b.mezzo, "it")),
+    daStimare, ritmi,
+  };
+}
+
+// KPI di testa del Quadro.
+// La firma a TRE argomenti è quella storica e resta identica, valore per
+// valore: `tagliandi30` conta i soli tagliandi a data. Chi passa anche
+// `opts` (con le letture del contatore) ottiene il conto ONESTO — i
+// tagliandi a data più quelli a ore che cadono nell'orizzonte — e in
+// `tagliandi` la scomposizione, compreso quello che non si è potuto
+// collocare. Due firme e non una perché la tessera vecchia non deve
+// cambiare numero da sola: cambia quando le si danno i dati per farlo.
+export function kpiFrom(mezzi, manutenzioni, costi, opts) {
+  const base = {
     operativi: mezzi.filter(m => m.stato === "operativo").length,
     inManutenzione: mezzi.filter(m => m.stato !== "operativo").length,
     tagliandi30: manutenzioni.filter(n => { const g = urgenza(n.dataPrevista).giorni; return g <= 30; }).length,
     carburante: costi.filter(c => /carburante/i.test(c.voce)).reduce((t, c) => t + (+c.importo || 0), 0),
   };
+  if (!opts) return base;
+  const t = tagliandiInScadenza(manutenzioni, mezzi, opts.letture || [],
+    opts.oggi || new Date(), opts.orizzonte || ORIZZONTE_TAGLIANDI);
+  return { ...base, tagliandi30: t.totale, tagliandi: t };
 }
 
 export async function flottaData() {

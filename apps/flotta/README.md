@@ -56,6 +56,49 @@ mezzo, costo di un ordine di lavoro, giorni di fermo e affidabilità): si
 provano senza browser. L'accesso ai dati passa sempre dallo SDK
 Deepwork ID (`orgCollection`), mai da percorsi Firestore scritti a mano.
 
+## «Tagliandi 30gg»: una tessera che conta tutto e non stima niente
+
+I tagliandi si programmano in **due** modi: a calendario (`dataPrevista`) e a
+**ore del contatore** (`orePreviste`). Fino al 29/07 la tessera in cima al
+Quadro contava solo i primi, e chi la guardava credeva di avere metà del
+lavoro che aveva davvero — quindi non ordinava i pezzi.
+
+Un tagliando a ore però non ha una data. Per sapere se cade nei prossimi 30
+giorni serve il **ritmo d'uso** di quel mezzo (ore motore al giorno), e quel
+ritmo **non si inventa: si misura** sui contatori che l'app ha già —
+rifornimenti (L4) e giri macchina (L2) portano entrambi la lettura del
+contatore con la sua data. Lo fa `ritmoOreMezzi()`, con quattro condizioni:
+
+1. almeno **due** letture del contatore sullo stesso mezzo (una sola fissa il
+   punto di partenza e basta);
+2. le letture devono coprire almeno **metà** dell'orizzonte da stimare — 15
+   giorni per stimarne 30. Proiettare 30 giorni da una finestra di 3 non è una
+   stima, è una moltiplicazione per dieci di quello che si è visto, e in cava
+   tre giorni possono essere di pioggia, di fermo o di doppio turno;
+3. il contatore deve essere **salito** fra la prima e l'ultima lettura;
+4. l'ultima lettura non può essere più vecchia dell'orizzonte: un ritmo tratto
+   da letture di tre mesi fa racconta un altro periodo.
+
+Dove il ritmo si misura, `tagliandiInScadenza()` converte le ore mancanti in
+giorni e il tagliando **entra nel numero**. Dove non si misura, il tagliando
+**non viene stimato e non viene nascosto**: va in un conto a parte, che la
+tessera scrive sotto il numero in giallo («+1 a ore: non si sa quando») e
+spiega per esteso nel suggerimento, mezzo per mezzo, col motivo. Un tagliando
+a ore **già oltre** le ore previste entra nel numero senza bisogno di nessuna
+stima: è da fare adesso.
+
+Sulla pagina Manutenzioni la stessa distinzione è scritta su ogni riga: «col
+ritmo **misurato** di 3,42 h al giorno» quando è una misura, «*solo se*
+facesse 8 h al giorno: è un'**ipotesi**, non una misura — fuori dal conto dei
+30 gg» quando è il numero medio scritto a mano nel campo *Ritmo d'uso medio*.
+Quel campo resta, ma per quello che è: un'ipotesi di riserva, che non entra
+nella tessera.
+
+`kpiFrom()` mantiene la **firma storica a tre argomenti** identica, valore per
+valore (i soli tagliandi a data): il conto onesto arriva passando anche
+`{ letture, oggi }`. Una tessera non cambia numero da sola — cambia quando le
+si danno i dati per farlo.
+
 ## Regole che l'app rispetta
 
 - Niente numeri inventati: il consumo si mostra solo quando esistono almeno

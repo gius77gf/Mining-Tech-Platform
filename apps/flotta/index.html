@@ -109,6 +109,16 @@
 /* ─────────────── KPI (copia di .kpi-card del core) ─────────────── */
 .kpi .n{font-variant-numeric:tabular-nums}
 .kpi.accent{border-top-color:var(--app-accent)}
+/* riga di dettaglio sotto il numero: è la .kpi-sub del core, stessa misura e
+   stesso colore. Serve dove il numero da solo non basta a essere onesto —
+   i tagliandi, che si contano in due modi diversi. */
+.kpi .s{
+  font-size:10px; line-height:1.35; color:var(--muted); margin-top:3px;
+  font-variant-numeric:tabular-nums;
+}
+.kpi .s:empty{display:none}
+.kpi .s b{color:var(--muted2); font-weight:700}
+.kpi .s .apar{color:var(--warn)}
 
 /* ─────────────── cartellone disponibilità flotta (quadro strumenti) ─────────────── */
 .gauge{
@@ -242,6 +252,8 @@
 /* come nel core le voci restano compatte: al massimo due righe, poi «…» */
 .meta{font-variant-numeric:tabular-nums}
 .meta.norma{color:var(--muted); display:block; -webkit-line-clamp:none}
+.meta.norma.quando b{color:var(--muted2)}
+.meta.norma.quando i{font-style:italic; opacity:.9}
 .meta.norma svg{
   width:12px; height:12px; margin-right:4px; vertical-align:-2px; stroke:currentColor;
   fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;
@@ -509,7 +521,7 @@
   <div class="kpis">
     <div class="kpi ok" role="button" tabindex="0" style="cursor:pointer" data-goto="mez" data-filtro="operativo" title="Vedi i mezzi operativi"><div class="l">Mezzi operativi</div><div class="n">—</div></div>
     <div class="kpi warn" role="button" tabindex="0" style="cursor:pointer" data-goto="mez" data-filtro="tutti" title="Vedi tutti i mezzi"><div class="l">In manutenzione</div><div class="n">—</div></div>
-    <div class="kpi warn" role="button" tabindex="0" style="cursor:pointer" data-goto="man" title="Vedi le manutenzioni"><div class="l">Tagliandi 30gg</div><div class="n">—</div></div>
+    <div class="kpi warn" id="kpi-tag" role="button" tabindex="0" style="cursor:pointer" data-goto="man" title="Vedi le manutenzioni"><div class="l">Tagliandi 30gg</div><div class="n">—</div><div class="s" id="kpi-tag-s"></div></div>
     <div class="kpi accent" id="kpi-carb" role="button" tabindex="0" style="cursor:pointer" data-goto="cos" title="Vedi i costi"><div class="l" id="kpi-carb-l">Carburante mese</div><div class="n">—</div></div>
   </div>
 
@@ -628,9 +640,9 @@
   <div class="form col">
     <div class="frow">
       <span class="form-hint" style="flex-basis:auto;">Ritmo d'uso medio</span>
-      <input class="dw-input" id="man-oregiorno" type="number" min="0" step="0.5" value="8" style="flex:0 0 92px;">
+      <input class="dw-input" id="man-oregiorno" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="8" title="Ore al giorno da IPOTIZZARE dove il contatore non racconta abbastanza. La virgola va benissimo (7,5)." style="flex:0 0 92px;font-variant-numeric:tabular-nums;">
       <span class="form-hint" style="flex-basis:auto;">ore al giorno</span>
-      <span class="form-hint">Serve a stimare fra quanti giorni cadranno i tagliandi contati «a ore motore». Cambia il numero se in cava si lavora di più o di meno.</span>
+      <span class="form-hint">È un'<b>ipotesi di riserva</b>. Dove le letture del contatore bastano, il ritmo di quel mezzo l'app lo <b>misura</b> e usa quello: solo i tagliandi con ritmo misurato entrano nel conto «Tagliandi 30gg» del Quadro.</span>
     </div>
   </div>
 
@@ -1097,8 +1109,9 @@
            validaRigaManodopera, validaRigaRicambio, riepilogoOrdini,
            CAUSALI_FERMO, causaleFermo, etichettaCausale, validaFermo,
            fermiOrdinati, durataFermo, affidabilitaFlotta,
-           consumoRicambi, puntoDiRiordino, propostaScorte } from "./flotta-data.js";
-  import { mountExit, esc, csvCell } from "../../shared/deepwork-id-client/dw-shell.js";
+           consumoRicambi, puntoDiRiordino, propostaScorte,
+           ORIZZONTE_TAGLIANDI, ritmoOreMezzi, ritmoDelMezzo, tagliandiInScadenza } from "./flotta-data.js";
+  import { mountExit, esc, csvCell, numIt } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const MB = { operativo: ["ok","Operativo"], fermo: ["danger","Fermo"], verifica: ["warn","Verifica"] };
   const sig = (n) => (n||"?").split(" ")[0].slice(0,2).toUpperCase();
@@ -1110,6 +1123,8 @@
   // ore di lavoro: mezz'ora è mezz'ora, ma «4,00 h» è precisione finta
   const oreTx = (v) => (+v||0).toLocaleString("it-IT", { maximumFractionDigits: 2 }) + " h";
   const ggTx = (n) => (+n||0).toLocaleString("it-IT", { maximumFractionDigits: 1 }) + (Math.abs(+n||0) === 1 ? " giorno" : " giorni");
+  // un numero all'italiana, senza unità: per i ritmi d'uso (3,42 h/gg)
+  const numTx = (v) => Number.isFinite(+v) ? (+v).toLocaleString("it-IT", { maximumFractionDigits: 2 }) : "—";
 
   // ── Icone disegnate (stessa famiglia di quelle del menu): niente emoji ──
   const I = {
@@ -1343,11 +1358,38 @@
     // «rifornimenti», e la schermata deve aprirsi lo stesso, vuota.
     [MEZ,MAN,COS,RIC,INT,SCA,DISP,CTR,RIF,FER] = (await Promise.all([db.mezzi(), db.manutenzioni(), db.costi(), db.ricambi ? db.ricambi() : [], db.interventi ? db.interventi() : [], db.scadenze ? db.scadenze() : [], db.disponibilita ? db.disponibilita() : [], db.controlli ? db.controlli() : [], db.rifornimenti ? db.rifornimenti() : [], db.fermi ? db.fermi() : []])).map(v => v || []);
     await registraFotografia();
-    const k = kpiFrom(MEZ,MAN,COS);
+    // Le LETTURE DEL CONTATORE che servono a collocare nel tempo i tagliandi
+    // «a ore»: le portano i rifornimenti (L4) e i giri macchina (L2), che
+    // hanno già la forma { mezzo, data, ore }. Da qui nasce il ritmo d'uso
+    // MISURATO, e con lui la tessera onesta dei tagliandi.
+    const letture = [...RIF, ...CTR];
+    const k = kpiFrom(MEZ, MAN, COS, { letture, oggi: new Date() });
+    const tag = k.tagliandi;
     const kn = document.querySelectorAll(".kpis .kpi .n");
     if (kn[0]) kn[0].textContent = k.operativi;
     if (kn[1]) kn[1].textContent = k.inManutenzione;
     if (kn[2]) kn[2].textContent = k.tagliandi30;
+    // La tessera dice ANCHE come è composta, perché i tagliandi si programmano
+    // in due modi e un numero solo non lo racconta. E quando ce n'è qualcuno
+    // che non si riesce a collocare nel tempo, quello NON si somma di nascosto
+    // e non si tace: si dichiara accanto, in giallo.
+    { const s = $("kpi-tag-s"), card = $("kpi-tag");
+      if (s) {
+        const pezzi = [];
+        if (tag.aData) pezzi.push(tag.aData + " a data");
+        if (tag.aOre) pezzi.push(tag.aOre + " a ore");
+        s.innerHTML = (pezzi.length ? pezzi.join(" · ") : (tag.nonStimabili ? "" : "nessuno in scadenza"))
+          + (tag.nonStimabili ? `${pezzi.length ? "<br>" : ""}<span class="apar">+${tag.nonStimabili} a ore: non si sa quando</span>` : "");
+      }
+      if (card) card.title = "Tagliandi che cadono entro 30 giorni: "
+        + tag.aData + (tag.aData === 1 ? " programmato a data" : " programmati a data")
+        + " e " + tag.aOre + (tag.aOre === 1 ? " a ore motore" : " a ore motore")
+        + (tag.aOre ? " (le ore che il mezzo farà sono misurate sulle letture del contatore, non ipotizzate)" : "")
+        + (tag.nonStimabili
+          ? ". Altri " + tag.nonStimabili + " sono a ore motore ma NON si possono collocare nel tempo, e non sono nel numero: "
+            + tag.daStimare.map(v => v.titolo + " — " + v.mezzo + " (" + v.perche + ")").join("; ") + "."
+          : ".")
+        + " Tocca per vedere le manutenzioni."; }
     // Carburante: da quando la voce di costo ha la data, il KPI può dire
     // davvero «questo mese» invece di sommare tutto quello che c'è. Se però
     // nessuna voce di carburante ha una data (organizzazione che lavorava
@@ -1359,7 +1401,12 @@
     const carbMese = carbConData.filter(c => String(c.data).slice(0,7) === meseOra)
                                 .reduce((t, c) => t + (+c.importo || 0), 0);
     const carbValore = carbConData.length ? carbMese : k.carburante;
-    if (kn[3]) kn[3].textContent = "€" + (carbValore/1000).toFixed(1) + "k";
+    // toFixed dà il punto decimale inglese: la tessera scriveva «€8.4k» sulla
+    // prima schermata, accanto a numeri con la virgola. Sotto i mille euro il
+    // «k» non serve e nasconde il numero: si scrive l'importo per intero.
+    if (kn[3]) kn[3].textContent = carbValore >= 1000
+      ? "€" + (carbValore / 1000).toLocaleString("it-IT", { maximumFractionDigits: 1 }) + "k"
+      : eur(carbValore);
     if ($("kpi-carb-l")) $("kpi-carb-l").textContent = carbConData.length ? "Carburante mese" : "Carburante";
     { const card = $("kpi-carb"); if (card) card.title = carbConData.length
         ? "Carburante registrato in questo mese. Le voci senza data non sono conteggiate."
@@ -1535,15 +1582,36 @@
         + "<b>quale macchina ti sta costando di più</b>.");
     }
 
-    const oreGiorno = $("man-oregiorno").value;
-    const stimaGiorni = (n) => {  // previsione data per i tagliandi a ore
+    // RITMO D'USO: quello MISURATO sulle letture del contatore vale sempre più
+    // di un numero medio scritto a mano, perché è quello di QUEL mezzo. Il
+    // campo «ritmo d'uso medio» resta, ma per quello che è: un'IPOTESI, usata
+    // solo dove il contatore non racconta ancora abbastanza — e detta come
+    // ipotesi, così la riga non fa passare per previsione una supposizione.
+    // Il ritmo misurato è lo stesso che decide la tessera in cima al Quadro:
+    // un solo criterio, altrimenti la riga e la tessera si contraddicono.
+    const oreGiornoIpotesi = numIt($("man-oregiorno").value);
+    // QUANDO cade un tagliando programmato a ore. La frase va su una riga
+    // PROPRIA (.meta.norma, non tagliata a due righe come la prima): la parte
+    // che dice se è una misura o un'ipotesi è proprio quella che a 390 px
+    // finiva sotto i puntini, cioè l'unica che non si poteva perdere.
+    const stimaGiorni = (n) => {
       if (!n.orePreviste) return "";
-      const m = MEZ.find(x => x.nome.split(" — ")[0] === n.mezzo); if (!m) return "";
-      const g = previsioneGiorni(n.orePreviste - (m.ore || 0), oreGiorno);
-      if (g == null) return "";
-      if (g === 0) return " · già da fare";
+      const m = MEZ.find(x => x.nome.split(" — ")[0] === n.mezzo);
+      if (!m) return "Il mezzo non è nel parco: il suo contatore non si può leggere.";
+      const mancano = n.orePreviste - (m.ore || 0);
+      if (mancano <= 0) return "Le ore ci sono già: da fare adesso.";
+      const r = ritmoDelMezzo(tag.ritmi, n.mezzo);
+      const misurato = r && r.oreGiorno != null;
+      const g = previsioneGiorni(mancano, misurato ? r.oreGiorno : oreGiornoIpotesi);
+      if (g == null) return "Quando cadrà non si sa: " + esc(r ? r.perche : "di questo mezzo non c'è nessuna lettura del contatore con la sua data") + ".";
       const data = new Date(Date.now() + g * 86400000).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" });
-      return " · ≈ " + g + " gg (~" + data + ")";
+      return misurato
+        ? "Fra <b>" + ggTx(g) + "</b> (~" + data + "), col ritmo <b>misurato</b> di " + numTx(r.oreGiorno) + " h al giorno."
+        // l'ipotesi va scritta come ipotesi, e va detto che per questo NON
+        // entra nella tessera dei 30 giorni: se non lo si dice, la riga e la
+        // tessera sembrano contarsi addosso
+        : "Fra " + ggTx(g) + " (~" + data + ") <i>solo se</i> facesse " + numTx(oreGiornoIpotesi)
+          + " h al giorno: è un'<b>ipotesi</b>, non una misura — fuori dal conto dei 30 gg.";
     };
     // ORDINI DI LAVORO (L5). La riga della manutenzione dice tre cose, e in
     // quest'ordine: quanto stringe (l'urgenza, come sempre), a che punto è il
@@ -1559,6 +1627,7 @@
       const ritmo = n.ogniOre ? " · piano: ogni " + n.ogniOre + " h" : n.ogniMesi ? " · piano: ogni " + n.ogniMesi + " mesi" : "";
       const so = statoOrdine(n);
       const q = costoOrdine(ordineDaManutenzione(n, RIC));
+      const quando = stimaGiorni(n);
       const lav = [
         q.manodopera.ore ? oreTx(q.manodopera.ore) + " di lavoro" + (q.persone > 1 ? " · " + q.persone + " persone" : "") : "",
         q.ricambi.righe.length ? q.ricambi.righe.length + (q.ricambi.righe.length === 1 ? " ricambio" : " ricambi") : "",
@@ -1566,7 +1635,7 @@
       ].filter(Boolean).join(" · ");
       return `<div class="item ${striscia[u.cls] || "st-accent"}" role="button" tabindex="0" data-odl-man="${n.id}" title="Apri l'ordine di lavoro: stato, ore, ricambi, costo">
       <div class="avatar">${n.origine === "controllo" ? I.giro : I.chiave}</div>
-      <div class="info"><div class="name">${esc(n.titolo)} — ${esc(n.mezzo)}</div><div class="meta">${n.orePreviste ? "A " + (+n.orePreviste).toLocaleString("it-IT") + " ore motore" + stimaGiorni(n) : "Previsto " + (n.dataPrevista ? n.dataPrevista.split("-").reverse().join("/") : "—")}${ritmo}${ricN ? " · usa " + esc(ricN.nome) : ""}</div>${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}${lav ? `<div class="meta norma">${I.persona}${lav}</div>` : ""}</div>
+      <div class="info"><div class="name">${esc(n.titolo)} — ${esc(n.mezzo)}</div><div class="meta">${n.orePreviste ? "A " + (+n.orePreviste).toLocaleString("it-IT") + " ore motore" : "Previsto " + (n.dataPrevista ? n.dataPrevista.split("-").reverse().join("/") : "—")}${ritmo}${ricN ? " · usa " + esc(ricN.nome) : ""}</div>${quando ? `<div class="meta norma quando">${I.tachi}${quando}</div>` : ""}${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}${lav ? `<div class="meta norma">${I.persona}${lav}</div>` : ""}</div>
       <div class="acts">${so.chiave !== "da-fare" ? `<span class="badge ${so.cls}">${so.breve}</span>` : ""}<span class="badge ${u.cls}">${u.label}</span>
       <span class="arr ok" role="button" tabindex="0" title="Chiudi l'ordine e registra l'intervento" aria-label="Chiudi ${esc(n.titolo)}" data-man-done="${n.id}">${I.spunta}</span></div></div>`; }).join("")
       || (filtroMan !== "tutti"

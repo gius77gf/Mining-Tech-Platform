@@ -297,12 +297,27 @@
 }
 .flab .dw-input{width:100%; flex:0 0 auto}
 .ord .dw-input{flex:1; max-width:280px}
+/* CAMPI DECIMALI: sono <input type="text" inputmode="decimal"> perché la
+   virgola italiana deve poter entrare (vedi numeroDaCampo). Restano identici
+   agli altri campi del core — nessun allineamento diverso, nessuna cornice
+   propria — con la sola aggiunta delle cifre a larghezza fissa, che è la cosa
+   che serve davvero quando si confrontano numeri fra un campo e l'altro. */
+.dw-input.dec{font-variant-numeric:tabular-nums}
 
 /* ─────────────── riquadri informativi (copia di .info-box) ─────────────── */
 .note.esito.err{border-left-color:var(--danger)}
 .note.recap{border-left-color:var(--app-accent)}
 .note.recap b{font-variant-numeric:tabular-nums}
 .note.avviso{border-left-color:var(--warn)}
+/* ECO del numero capito: piccola, sotto il campo, dice quale numero verrà
+   salvato mentre l'utente scrive. Sulla PPV misurata non è un vezzo — da
+   quel valore passa la legge di sito. */
+.note.eco{
+  margin-top:6px; padding:7px 10px; font-size:11.5px;
+  border-left-color:var(--app-accent);
+}
+.note.eco b{font-variant-numeric:tabular-nums}
+.note.eco.avviso{border-left-color:var(--warn)}
 
 /* ─────────────── stato vuoto (copia di .empty-state) ─────────────── */
 
@@ -411,9 +426,8 @@
   fill:var(--disabled); font-size:8.5px; font-family:'Barlow',sans-serif;
   letter-spacing:1.4px; text-transform:none;
 }
-/* del motore condiviso si corregge SOLO il maiuscolo (l'etichetta d'asse
-   contiene l'unità): misure, colore e peso restano quelli di shared/. */
-.dwg-axlab{text-transform:none}
+/* del motore condiviso non c'è più niente da correggere qui: shared/ avvolge
+   da sé l'unità in .dwg-u e le toglie il maiuscolo, per tutte le app. */
 .graf-area{stroke:none}
 
 /* ─────────────── andamento per ricettore: una cassa per punto ───────────────
@@ -835,7 +849,7 @@ textarea.dw-input{
   <div class="sec">Registra misura</div>
   <div class="form">
     <select class="dw-input" id="mis-sensore" style="flex:2 1 190px;"></select>
-    <input class="dw-input" id="mis-valore" type="number" step="0.1" placeholder="Valore letto" style="flex:1 1 120px;">
+    <input class="dw-input dec" id="mis-valore" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Valore letto (es. 4,8)" title="Scrivilo come sta sullo strumento: la virgola va benissimo (4,8)." style="flex:1 1 175px;">
     <button class="dw-btn" id="btn-mis">Registra</button>
     <div class="form-hint">Ogni lettura si <b>accoda allo storico</b> del punto: la serie storica qui sopra si aggiorna e mostra subito se il valore ha superato la soglia.</div>
   </div>
@@ -900,11 +914,11 @@ textarea.dw-input{
       <select class="dw-input" id="ric-tipo" style="flex:1 1 150px;"></select>
     </div>
     <div class="frow">
-      <input class="dw-input" id="ric-dist" type="number" min="0" step="1" placeholder="Distanza dalla cava (m)" style="flex:1 1 170px;">
+      <input class="dw-input dec" id="ric-dist" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Distanza dalla cava (m)" title="Metri fra la cava e il ricettore. I decimali si scrivono con la virgola (es. 312,5)." style="flex:1 1 170px;">
       <select class="dw-input" id="ric-classe" style="flex:1 1 200px;"></select>
     </div>
     <div class="frow">
-      <input class="dw-input" id="ric-soglia" type="number" min="0" step="0.1" placeholder="Soglia propria (facoltativa)" style="flex:1 1 170px;">
+      <input class="dw-input dec" id="ric-soglia" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Soglia propria (facoltativa)" title="Soglia del ricettore. La virgola va benissimo (2,5)." style="flex:1 1 170px;">
       <input class="dw-input" id="ric-unita" placeholder="Unità (es. mm/s)" style="flex:1 1 120px;">
     </div>
     <div class="frow">
@@ -913,7 +927,8 @@ textarea.dw-input{
     </div>
     <div class="form-hint">La <b>classe acustica</b> è quella che il Comune ha assegnato alla zona:
       serve a descrivere il ricettore, non a dedurne un limite. Il limite lo scrive
-      l'autorizzazione e lo imposti tu.</div>
+      l'autorizzazione e lo imposti tu. Distanza e soglia si scrivono con la
+      <b>virgola</b>: <b>312,5</b>.</div>
   </div>
   <div class="note esito" id="ric-esito"></div>
 
@@ -928,10 +943,11 @@ textarea.dw-input{
       <input class="dw-input" id="sen-unita" placeholder="Unità (es. µg/m³)" style="flex:1 1 120px;">
     </div>
     <div class="frow">
-      <input class="dw-input" id="sen-soglia" type="number" step="0.1" min="0" placeholder="Soglia" style="flex:1 1 120px;">
+      <input class="dw-input dec" id="sen-soglia" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Soglia" title="Soglia del punto di misura. La virgola va benissimo (2,5)." style="flex:1 1 120px;">
       <select class="dw-input" id="sen-ricettore" style="flex:2 1 190px;"></select>
       <button class="dw-btn" id="btn-sen">Aggiungi</button>
     </div>
+    <div class="form-hint">La <b>soglia</b> si scrive con la <b>virgola</b>: <b>2,5</b>. Va bene anche il punto.</div>
   </div>
   <div class="tools">
     <button class="dw-btn secondary" id="btn-import-mon">Importa sensori (CSV)</button>
@@ -942,11 +958,12 @@ textarea.dw-input{
   <div class="sec">Distanza scalata (volate)</div>
   <div class="form">
     <label class="flab" for="sd-carica">Carica per ritardo
-      <input class="dw-input" id="sd-carica" type="number" min="0" step="1" placeholder="kg"></label>
+      <input class="dw-input dec" id="sd-carica" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="kg" title="Carica di esplosivo per ritardo, in kg. La virgola va benissimo (12,5)."></label>
     <label class="flab" for="sd-dist">Distanza ricettore
-      <input class="dw-input" id="sd-dist" type="number" min="0" step="1" placeholder="m"></label>
+      <input class="dw-input dec" id="sd-dist" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="m" title="Distanza dal ricettore, in metri. La virgola va benissimo (312,5)."></label>
     <label class="flab" for="sd-target">SD obiettivo
-      <input class="dw-input" id="sd-target" type="number" min="0" step="1" placeholder="m/√kg" title="Distanza scalata di sicurezza da non scendere (dallo storico del sito / soglia PPV)"></label>
+      <input class="dw-input dec" id="sd-target" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="m/√kg" title="Distanza scalata di sicurezza da non scendere (dallo storico del sito / soglia PPV). La virgola va benissimo (22,5)."></label>
+    <div class="form-hint">I tre numeri si scrivono con la <b>virgola</b>: <b>12,5</b> · <b>312,5</b> · <b>22,5</b>. Va bene anche il punto.</div>
   </div>
   <div id="sd-out" class="note">Inserisci carica per ritardo (kg) e distanza (m) del ricettore per la distanza scalata SD = R/√W.</div>
   <div id="sd-max" class="note recap"></div>
@@ -1058,14 +1075,15 @@ textarea.dw-input{
     </div>
     <div class="frow">
       <input class="dw-input" id="vol-nfori" type="number" min="0" placeholder="N° fori" style="flex:1 1 110px;">
-      <input class="dw-input" id="vol-kg" type="number" min="0" placeholder="kg totali" style="flex:1 1 120px;">
-      <input class="dw-input" id="vol-kgmax" type="number" min="0" placeholder="kg max/ritardo" style="flex:1 1 140px;">
+      <input class="dw-input dec" id="vol-kg" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="kg totali" title="Esplosivo totale della volata, in kg. La virgola va benissimo (187,5)." style="flex:1 1 120px;">
+      <input class="dw-input dec" id="vol-kgmax" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="kg max/ritardo" title="Carica massima che parte su un solo ritardo, in kg. La virgola va benissimo (12,5)." style="flex:1 1 140px;">
     </div>
     <div class="frow">
-      <input class="dw-input" id="vol-dist" type="number" min="0" placeholder="Distanza ricettore (m)" style="flex:2 1 180px;">
+      <input class="dw-input dec" id="vol-dist" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Distanza ricettore (m)" title="Metri fra la volata e il ricettore misurato. La virgola va benissimo (312,5)." style="flex:2 1 180px;">
       <select class="dw-input" id="vol-esito" style="flex:1 1 150px;"><option value="regolare">Regolare</option><option value="contestazione">Con contestazione</option></select>
       <button class="dw-btn" id="btn-vol">Registra</button>
     </div>
+    <div class="form-hint">I <b>kg</b> e la <b>distanza</b> si scrivono con la <b>virgola</b>, come sul progetto: <b>187,5</b> · <b>12,5</b> · <b>312,5</b>. Va bene anche il punto.</div>
   </div>
   <div class="tools">
     <button class="dw-btn secondary" id="btn-vol-import">Importa da CSV</button>
@@ -1298,10 +1316,20 @@ textarea.dw-input{
            PPV_STRUMENTO, PPV_MANUALE,
            VOL_PREVISTA, statoVolata, volataPrevista, etichettaStatoVolata, previsioneDiVolata,
            testoFontePrevisione, scartoPpvVolata, confermaVolataEseguita, riepilogoPreviste,
-           volateOrdinate, firmaVolata, csvRegistroVolate, CSV_VOLATE_INTESTAZIONE } from "./sentinella-data.js";
+           volateOrdinate, firmaVolata, csvRegistroVolate, CSV_VOLATE_INTESTAZIONE,
+           numeroDaCampo, AVVISO_DECIMALE } from "./sentinella-data.js";
   import { mountExit, esc, csvCell, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
   const $ = (id) => document.getElementById(id);
   const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
+  // Il numero scritto all'italiana SENZA perderne le cifre: serve a
+  // riempire i campi decimali e a rimandare all'utente quello che ha
+  // scritto. `numeroIt` è per LEGGERE (arrotonda per stare in una riga),
+  // questo è per SCRIVERE dentro un campo: un arrotondamento lì
+  // cancellerebbe dei decimali veri al primo salvataggio.
+  const itDec = (v) => {
+    const s = String(v == null ? "" : v).trim();
+    return s === "" ? "" : s.replace(".", ",");
+  };
   const RB = { aggiornato: ["ok","Aggiornato"], "in-attesa": ["warn","In attesa"] };
 
   // ── Messaggi: toast del core + traccia scritta accanto al form ────────
@@ -1979,7 +2007,8 @@ textarea.dw-input{
         : `<div class="note avviso">Nessuna lettura di vibrazione in mm/s registrata il <b>${fmtD(v.data)}</b> fra i punti di misura${altraUnita.length ? " (ce ne sono " + altraUnita.length + " con un'altra unità: non sono PPV in mm/s e non si possono usare come tali)" : ""}. Se hai il referto dello strumento, trascrivi qui sotto il valore.</div>`
           + `<input type="hidden" id="ppv-scelta" value="mano">`)
       + '<label class="fl" for="ppv-val" id="ppv-lab">PPV misurata (mm/s)</label>'
-      + `<input class="dw-input" id="ppv-val" type="number" min="0" step="0.01" placeholder="es. 2,4" value="${gia && gia.fonte !== PPV_STRUMENTO ? esc(String(gia.valore)) : ""}">`
+      + `<input class="dw-input dec" id="ppv-val" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 2,4" title="Scrivila come sta sul referto: la virgola va benissimo (2,4)." value="${gia && gia.fonte !== PPV_STRUMENTO ? esc(itDec(gia.valore)) : ""}">`
+      + '<div class="note eco" id="ppv-eco" style="display:none;margin-top:6px;"></div>'
       + (dist > 0 ? "" : `<div class="note avviso">Sulla volata <b>manca la distanza del ricettore</b>: senza quella il referto non è completo, perché la distanza scalata non si calcola. Scrivila sulla riga del registro.</div>`)
       + '<div class="note" style="margin-bottom:0;">Se una misura non c\'è, <b>lascia stare</b>: la volata resta fuori dai referti e il motivo resta scritto. Una PPV stimata falserebbe <b>K</b> e <b>β</b> della cava, e da quei due numeri dipendono le distanze di sicurezza.</div>';
 
@@ -1997,6 +2026,25 @@ textarea.dw-input{
       // il campo a mano si accende solo quando non si sta usando una misura
       // dello strumento: due valori contemporanei non si possono confermare
       const s = $("ppv-scelta"), n = $("ppv-val"), info = $("ppv-info"), lab = $("ppv-lab");
+      // ECO DEL NUMERO CAPITO: il campo è di testo (perché la virgola deve
+      // poter entrare), quindi l'utente ha diritto di vedere, mentre scrive,
+      // QUALE numero verrà salvato. Su questo campo più che su ogni altro:
+      // è la PPV misurata, e da lì passa la legge di sito.
+      const eco = () => {
+        const box = $("ppv-eco"); if (!box || !n) return;
+        const r = numeroDaCampo(n.value, { positivo: true });
+        if (r.vuoto) { box.style.display = "none"; box.innerHTML = ""; return; }
+        box.style.display = "block";
+        if (!r.ok) {
+          box.className = "note eco avviso";
+          box.innerHTML = r.motivo === "non-positivo"
+            ? "La PPV misurata deve essere <b>maggiore di zero</b>."
+            : "Non riesco a leggere un numero in «" + esc(r.grezzo) + "». " + esc(AVVISO_DECIMALE);
+          return;
+        }
+        box.className = "note eco";
+        box.innerHTML = "Verrà salvato <b>" + esc(itDec(r.valore)) + " mm/s</b>.";
+      };
       const sincro = () => {
         if (!s || !n) return;
         const i = +s.value;
@@ -2005,15 +2053,17 @@ textarea.dw-input{
           // il valore è quello dello strumento: il campo lo mostra ma non lo
           // fa cambiare, e l'etichetta dice perché (un campo che sembra
           // modificabile e non lo è è una bugia piccola, ma è una bugia)
-          n.value = String(c.valore); n.readOnly = true; n.classList.remove("err");
+          n.value = itDec(c.valore); n.readOnly = true; n.classList.remove("err");
           n.style.opacity = ".85"; n.style.cursor = "not-allowed";
           n.title = "Valore preso dalla lettura del sismografo: per scriverne uno a mano scegli «nessuna» qui sopra.";
           if (lab) lab.textContent = "PPV misurata (mm/s) · dalla lettura scelta";
         } else {
           if (n.readOnly) { n.value = ""; n.readOnly = false; }
-          n.style.opacity = ""; n.style.cursor = ""; n.title = "";
+          n.style.opacity = ""; n.style.cursor = "";
+          n.title = "Scrivila come sta sul referto: la virgola va benissimo (2,4).";
           if (lab) lab.textContent = "PPV misurata (mm/s) · la scrivi tu";
         }
+        eco();
         if (!info) return;
         if (!c) {
           info.className = "note";
@@ -2037,6 +2087,7 @@ textarea.dw-input{
         }
       };
       if (s && s.tagName === "SELECT") s.onchange = sincro;
+      if (n) n.addEventListener("input", eco);
       sincro();
     });
     if (!scelta) return;
@@ -2055,9 +2106,18 @@ textarea.dw-input{
 
     const i = +scelta.scelta;
     const c = Number.isFinite(i) ? usabili[i] : null;
+    // Il valore scritto a mano passa da numeroDaCampo: «2,4» e «2.4» valgono
+    // lo stesso, e quello che il campo NON ha capito si dice, invece di
+    // salvare uno zero al posto della misura.
+    const aMano = c ? null : numeroDaCampo(scelta.valore, { positivo: true });
+    if (aMano && !aMano.ok && !aMano.vuoto && aMano.motivo === "non-numero") {
+      esito("ref-esito", "«" + scelta.valore + "» non è un numero che posso leggere come PPV. " + AVVISO_DECIMALE, "err",
+        "La PPV non è un numero leggibile.");
+      return;
+    }
     const campi = c
       ? campiPpvVolata(c.valore, { fonte: PPV_STRUMENTO, puntoId: c.puntoId, punto: c.punto, data: c.data, ora: c.ora })
-      : campiPpvVolata(String(scelta.valore || "").replace(",", "."), { fonte: PPV_MANUALE, data: v.data });
+      : campiPpvVolata(aMano.ok ? aMano.valore : null, { fonte: PPV_MANUALE, data: v.data });
     if (!campi) {
       esito("ref-esito", "Serve una PPV misurata maggiore di zero: scegli la lettura del sismografo di quel giorno oppure trascrivi il valore dal referto dello strumento. Un valore inventato qui falserebbe la legge di sito.", "err",
         "Serve la PPV misurata (maggiore di zero).");
@@ -2093,7 +2153,10 @@ textarea.dw-input{
     const pv = previsioneDiVolata(v);
     const d = new Date();
     const oggiISO = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-    const num = (x) => x == null || x === "" ? "" : esc(String(x));
+    // i valori del progetto entrano nei campi già scritti all'italiana: un
+    // campo che mostra «187.5» a chi ha scritto «187,5» è un campo che
+    // rimprovera l'utente per come scrive
+    const num = (x) => x == null || x === "" ? "" : esc(itDec(x));
     const corpo = `<div class="note" style="margin-top:0;">Stai registrando come <b>eseguita</b> la volata prevista del <b>${fmtD(v.data)}</b>${v.fronte ? " sul fronte <b>" + esc(v.fronte) + "</b>" : ""}: da questo momento entra nel brogliaccio e conta nelle volate del mese, nei kg del mese e nel report di conformità. Correggi quello che in cava è andato diversamente dal progetto: <b>i numeri veri sono questi</b>, non quelli disegnati.</div>
       <label class="fl" for="conf-data">Giorno in cui è stata sparata</label>
       <input class="dw-input" id="conf-data" type="date" max="${oggiISO}" value="${esc(String(v.data || "").slice(0, 10))}">
@@ -2102,11 +2165,11 @@ textarea.dw-input{
       <label class="fl" for="conf-nfori">N° fori</label>
       <input class="dw-input" id="conf-nfori" type="number" min="0" value="${num(+v.nFori || 0)}">
       <label class="fl" for="conf-kg">Carica totale (kg)</label>
-      <input class="dw-input" id="conf-kg" type="number" min="0" step="0.1" value="${num(+v.kgTotali || 0)}">
+      <input class="dw-input dec" id="conf-kg" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" title="Carica totale in kg. La virgola va benissimo (187,5)." value="${num(+v.kgTotali || 0)}">
       <label class="fl" for="conf-kgmax">Carica massima per ritardo (kg)</label>
-      <input class="dw-input" id="conf-kgmax" type="number" min="0" step="0.1" value="${num(+v.kgMaxRitardo || 0)}">
+      <input class="dw-input dec" id="conf-kgmax" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" title="Carica massima per ritardo in kg. La virgola va benissimo (12,5)." value="${num(+v.kgMaxRitardo || 0)}">
       <label class="fl" for="conf-dist">Distanza del ricettore (m)</label>
-      <input class="dw-input" id="conf-dist" type="number" min="0" value="${num(+v.distanzaRicettore || 0)}">
+      <input class="dw-input dec" id="conf-dist" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" title="Distanza del ricettore in metri. La virgola va benissimo (312,5)." value="${num(+v.distanzaRicettore || 0)}">
       <label class="fl" for="conf-esito">Esito</label>
       <select class="dw-input" id="conf-esito"><option value="regolare">Regolare</option><option value="contestazione"${v.esito === "contestazione" ? " selected" : ""}>Con contestazione</option></select>
       <label class="fl" for="conf-note">Note</label>
@@ -2143,8 +2206,13 @@ textarea.dw-input{
     const et = { data: "il giorno", fronte: "il fronte", nFori: "il numero di fori",
       kgTotali: "i kg totali", kgMaxRitardo: "i kg massimi per ritardo",
       distanzaRicettore: "la distanza del ricettore", esito: "l'esito", note: "le note" };
+    // i numeri corretti si rileggono all'italiana: «430 → 187.5» in un
+    // messaggio scritto in italiano è un numero che parla un'altra lingua
+    const NUMERICI = new Set(["nFori", "kgTotali", "kgMaxRitardo", "distanzaRicettore"]);
     const cambi = res.cambi.map(c => (et[c.campo] || c.etichetta)
-      + " (" + (c.campo === "data" ? fmtD(String(c.da)) + " → " + fmtD(String(c.a)) : String(c.da || "—") + " → " + String(c.a || "—")) + ")");
+      + " (" + (c.campo === "data" ? fmtD(String(c.da)) + " → " + fmtD(String(c.a))
+        : NUMERICI.has(c.campo) ? (itDec(c.da) || "—") + " → " + (itDec(c.a) || "—")
+        : String(c.da || "—") + " → " + String(c.a || "—")) + ")");
     esito("vol-esito-msg", "Volata del " + fmtD(res.campi.data) + " confermata come eseguita: adesso è un evento del brogliaccio."
       + (cambi.length ? " Rispetto al progetto " + (cambi.length === 1 ? "è stato corretto " : "sono stati corretti ") + cambi.join(", ") + "." : " Nessuna correzione: è stata sparata come progettata.")
       + " Ora si può collegare la PPV misurata dal sismografo (pulsante 〰 sulla riga): la previsione di Genesi resta al suo posto e il confronto fra le due comparirà da sé.",
@@ -2209,8 +2277,11 @@ textarea.dw-input{
       // prevista (colore dell'app) — quest'ultima non è un dato mancante
       const cls = r.pronto ? "ok" : (r.prevista ? "accent" : "warn");
       const pezzi = [
-        r.d != null ? `<b>${esc(numeroIt(r.d))} m</b>` : "distanza —",
-        r.w != null ? `<b>${esc(numeroIt(r.w))} kg</b>/ritardo` : "carica/ritardo —",
+        // distanza e carica per ritardo con UN decimale anche sopra i cento:
+        // 312,5 m arrotondato a «313 m» cancella una misura scritta a mano, e
+        // questa riga è il registro delle volate che va all'ente
+        r.d != null ? `<b>${esc(numeroIt(r.d, 1))} m</b>` : "distanza —",
+        r.w != null ? `<b>${esc(numeroIt(r.w, 1))} kg</b>/ritardo` : "carica/ritardo —",
       ];
       if (r.prevista) pezzi.push(r.previsione
         ? `PPV <b>prevista</b> ${esc(numeroIt(r.previsione.valore))} mm/s`
@@ -2858,7 +2929,7 @@ textarea.dw-input{
         esito("mis-esito", "Modifica annullata: il punto resta com'era.");
         ["sen-nome","sen-unita","sen-soglia"].forEach(i => { $(i).value = ""; err(i, false); }); return; }
       editMon = m.id;
-      $("sen-nome").value = m.nome || ""; $("sen-unita").value = m.unita || ""; $("sen-soglia").value = m.soglia != null ? m.soglia : "";
+      $("sen-nome").value = m.nome || ""; $("sen-unita").value = m.unita || ""; $("sen-soglia").value = itDec(m.soglia);
       $("sen-ricettore").value = m.ricettoreId || "";
       if ($("sen-preset")) $("sen-preset").value = "";
       if ($("sen-preset-nota")) { $("sen-preset-nota").style.display = "none"; $("sen-preset-nota").textContent = ""; }
@@ -2899,8 +2970,8 @@ textarea.dw-input{
       if (editRic === r.id) { svuotaFormRic(); esito("ric-esito", "Modifica annullata: il ricettore resta com'era."); return; }
       editRic = r.id;
       $("ric-nome").value = r.nome || ""; $("ric-tipo").value = r.tipo || "abitazione";
-      $("ric-dist").value = r.distanza != null ? r.distanza : ""; $("ric-classe").value = r.classe || "";
-      $("ric-soglia").value = r.soglia != null ? r.soglia : ""; $("ric-unita").value = r.unita || "";
+      $("ric-dist").value = itDec(r.distanza); $("ric-classe").value = r.classe || "";
+      $("ric-soglia").value = itDec(r.soglia); $("ric-unita").value = r.unita || "";
       $("ric-nota").value = r.nota || "";
       CAMPI_RIC.forEach(i => err(i, false));
       $("btn-ric").textContent = "Salva modifica";
@@ -2951,11 +3022,29 @@ textarea.dw-input{
       esito("vol-esito-msg", "Serve la data della volata: è il riferimento con cui gli enti leggono il registro.", "err", "Serve la data della volata."); return; }
     if (giorniTra(data) > 0) { err("vol-data", true); fuocoErr(["vol-data"]);
       esito("vol-esito-msg", "La data della volata non può essere nel futuro: correggila con il giorno in cui è stata sparata.", "err", "La data non può essere nel futuro."); return; }
+    // i tre campi decimali (kg totali, kg max per ritardo, distanza) sono di
+    // testo: si leggono con numeroDaCampo, così «187,5» arriva come 187,5 e
+    // non come niente. Un numero illeggibile si dice, non si salva a zero:
+    // un chilo di esplosivo scomparso dal registro è un dato falso verso l'ente.
+    const campiNum = [
+      ["vol-kg", "i kg totali"],
+      ["vol-kgmax", "i kg massimi per ritardo"],
+      ["vol-dist", "la distanza del ricettore"],
+    ].map(([id, et]) => ({ id, et, r: numeroDaCampo($(id).value, { min: 0 }) }));
+    const rotto = campiNum.find(c => !c.r.vuoto && !c.r.ok);
+    if (rotto) {
+      campiNum.forEach(c => err(c.id, c === rotto));
+      fuocoErr([rotto.id]);
+      esito("vol-esito-msg", "Non riesco a leggere " + rotto.et + ": «" + rotto.r.grezzo + "» non è un numero. " + AVVISO_DECIMALE, "err",
+        "«" + rotto.r.grezzo + "» non è un numero."); return;
+    }
+    campiNum.forEach(c => err(c.id, false));
+    const vn = (id) => { const c = campiNum.find(x => x.id === id); return c.r.ok ? c.r.valore : 0; };
     err("vol-data", false);
     await db.aggiungi("volate", {
       data, fronte: $("vol-fronte").value.trim(),
-      nFori: +$("vol-nfori").value || 0, kgTotali: +$("vol-kg").value || 0,
-      kgMaxRitardo: +$("vol-kgmax").value || 0, distanzaRicettore: +$("vol-dist").value || 0,
+      nFori: +$("vol-nfori").value || 0, kgTotali: vn("vol-kg"),
+      kgMaxRitardo: vn("vol-kgmax"), distanzaRicettore: vn("vol-dist"),
       esito: $("vol-esito").value, note: "",
     });
     ["vol-fronte","vol-nfori","vol-kg","vol-kgmax","vol-dist"].forEach(i => $(i).value = "");
@@ -3038,14 +3127,18 @@ textarea.dw-input{
     await refresh();
   };
   $("btn-sen").onclick = async () => {
-    const nome = $("sen-nome").value.trim(), unita = $("sen-unita").value.trim(), soglia = +$("sen-soglia").value;
-    if (!nome || !unita || !(soglia > 0)) {
-      [["sen-nome",nome],["sen-unita",unita],["sen-soglia",soglia>0]].forEach(([i,v]) => err(i, !v));
+    const nome = $("sen-nome").value.trim(), unita = $("sen-unita").value.trim();
+    const rs = numeroDaCampo($("sen-soglia").value, { positivo: true });
+    const soglia = rs.valore;
+    if (!nome || !unita || !rs.ok) {
+      [["sen-nome",nome],["sen-unita",unita],["sen-soglia",rs.ok]].forEach(([i,v]) => err(i, !v));
       fuocoErr(["sen-nome","sen-unita","sen-soglia"]);
       esito("mis-esito", !nome ? "Serve il nome del punto di misura (es. Polveri P2 — piazzale)."
         : !unita ? "Serve l'unità di misura (es. mm/s, dB(A), µg/m³): senza, i valori non si possono confrontare."
+        : rs.motivo === "non-numero" ? "«" + rs.grezzo + "» non è un numero che posso leggere come soglia. " + AVVISO_DECIMALE
         : "Serve una soglia maggiore di zero: è il limite rispetto a cui l'app calcola conformità e superamenti.", "err",
-        !nome ? "Serve il nome del punto." : !unita ? "Serve l'unità di misura." : "Serve una soglia maggiore di zero."); return;
+        !nome ? "Serve il nome del punto." : !unita ? "Serve l'unità di misura."
+        : rs.motivo === "non-numero" ? "La soglia non è un numero leggibile." : "Serve una soglia maggiore di zero."); return;
     }
     ["sen-nome","sen-unita","sen-soglia"].forEach(i => err(i, false));
     const ricettoreId = $("sen-ricettore").value || "";
@@ -3090,13 +3183,20 @@ textarea.dw-input{
     await refresh();
   };
   $("btn-mis").onclick = async () => {
-    const id = $("mis-sensore").value, raw = $("mis-valore").value.trim(), valore = +raw;
+    const id = $("mis-sensore").value, raw = $("mis-valore").value.trim();
+    // il campo è di testo perché la virgola deve poter entrare: il numero
+    // lo legge numeroDaCampo, che prende «4,8» e «4.8» come lo stesso valore
+    const r = numeroDaCampo(raw, { min: 0 });
+    const valore = r.valore;
     if (!id) { esito("mis-esito", "Prima configura almeno un punto di misura: senza sensore la lettura non ha dove andare.", "err", "Configura prima un punto di misura."); return; }
-    if (raw === "" || isNaN(valore) || valore < 0) {
+    if (!r.ok) {
       err("mis-valore", true); fuocoErr(["mis-valore"]);
-      esito("mis-esito", raw === "" ? "Scrivi il valore letto sullo strumento (anche zero è un dato valido)."
-        : "Il valore deve essere un numero non negativo: usa il punto per i decimali (es. 4.8).", "err",
-        raw === "" ? "Scrivi il valore letto." : "Il valore deve essere un numero non negativo."); return;
+      esito("mis-esito", r.vuoto ? "Scrivi il valore letto sullo strumento (anche zero è un dato valido)."
+        : r.motivo === "sotto-minimo" ? "Il valore letto non può essere negativo: uno strumento non misura meno di zero."
+        : "«" + raw + "» non è un numero che posso leggere. " + AVVISO_DECIMALE, "err",
+        r.vuoto ? "Scrivi il valore letto."
+        : r.motivo === "sotto-minimo" ? "Il valore non può essere negativo."
+        : "Il valore non è un numero leggibile."); return;
     }
     err("mis-valore", false);
     const m = MON.find(x => x.id === id);
@@ -3119,6 +3219,7 @@ textarea.dw-input{
   });
   ["ade-titolo","ade-data"].forEach(i => clearErr(i, "ade-esito"));
   clearErr("vol-data", "vol-esito-msg");
+  ["vol-kg","vol-kgmax","vol-dist"].forEach(i => clearErr(i, "vol-esito-msg"));
   ["sen-nome","sen-unita","sen-soglia"].forEach(i => clearErr(i, "mis-esito"));
   clearErr("mis-valore", "mis-esito");
   // Invio da tastiera: premere Invio in un campo del form equivale a
@@ -3146,7 +3247,7 @@ textarea.dw-input{
     sel.addEventListener("change", () => {
       const p = presetSoglia(sel.value); const nota = $("sen-preset-nota");
       if (!p) { nota.style.display = "none"; nota.textContent = ""; return; }
-      $("sen-unita").value = p.unita; $("sen-soglia").value = p.valore;
+      $("sen-unita").value = p.unita; $("sen-soglia").value = itDec(p.valore);
       err("sen-unita", false); err("sen-soglia", false);
       nota.style.display = "block";
       nota.innerHTML = "Fonte: " + esc(p.fonte) + ". Valore normativo di <b>riferimento</b>: verificalo sulla norma ufficiale e sulle prescrizioni (AUA/AIA, classe acustica) del tuo sito prima di usarlo come soglia.";
@@ -3157,15 +3258,26 @@ textarea.dw-input{
   // Distanza scalata SD = R/√W: indicatore standard per prevedere le
   // vibrazioni da volata (più alta = più sicura). Ricalcolo dal vivo.
   const renderSD = () => {
-    const sd = scaledDistance($("sd-dist").value, $("sd-carica").value);
+    // i tre campi sono decimali scritti a mano: si leggono con
+    // numeroDaCampo (virgola o punto), poi entrano nella formula come numeri
+    const cKg = numeroDaCampo($("sd-carica").value, { positivo: true });
+    const cM = numeroDaCampo($("sd-dist").value, { positivo: true });
+    const cSd = numeroDaCampo($("sd-target").value, { positivo: true });
+    const sd = scaledDistance(cM.ok ? cM.valore : null, cKg.ok ? cKg.valore : null);
+    const nonNumero = [cKg, cM, cSd].some(x => x.motivo === "non-numero");
     $("sd-out").innerHTML = sd == null
       ? "Inserisci carica per ritardo (kg) e distanza (m) del ricettore per la distanza scalata SD = R/&radic;W."
-      : "Distanza scalata <b>SD = " + (Math.round(sd * 10) / 10) + " m/&radic;kg</b>. Più è alta, minore il rischio di superare le soglie di vibrazione (confronta con lo storico del sito).";
+        + (nonNumero ? " <b>" + esc(AVVISO_DECIMALE) + "</b>" : "")
+      // i numeri che l'utente ha scritto si rimandano ESATTI (itDec): numeroIt
+      // sopra i 100 taglia i decimali, e rispondere «313 m» a chi ha scritto
+      // «312,5» sembra un dato corretto d'ufficio
+      : "Distanza scalata <b>SD = " + itDec(Math.round(sd * 10) / 10) + " m/&radic;kg</b> (a "
+        + itDec(cM.valore) + " m con " + itDec(cKg.valore) + " kg per ritardo). Più è alta, minore il rischio di superare le soglie di vibrazione (confronta con lo storico del sito).";
     // inverso: dalla SD obiettivo e dalla distanza, la carica massima per ritardo
-    const wmax = caricaMax($("sd-dist").value, $("sd-target").value);
+    const wmax = caricaMax(cM.ok ? cM.valore : null, cSd.ok ? cSd.valore : null);
     $("sd-max").innerHTML = wmax == null
       ? ""
-      : "Per restare sopra SD " + $("sd-target").value + ": <b>max " + Math.floor(wmax) + " kg</b> per ritardo a " + $("sd-dist").value + " m.";
+      : "Per restare sopra SD " + itDec(cSd.valore) + ": <b>max " + numeroIt(Math.floor(wmax)) + " kg</b> per ritardo a " + itDec(cM.valore) + " m.";
   };
   ["sd-carica","sd-dist","sd-target"].forEach(id => $(id).addEventListener("input", renderSD));
 
@@ -3182,29 +3294,37 @@ textarea.dw-input{
     const nome = $("ric-nome").value.trim();
     if (!nome) { err("ric-nome", true); fuocoErr(["ric-nome"]);
       esito("ric-esito", "Serve il nome del ricettore: scrivi come lo chiamate voi (es. Casa Bianchi — via Cava 12), così lo riconosci nel report.", "err", "Serve il nome del ricettore."); return; }
-    const distRaw = $("ric-dist").value.trim(), dist = +distRaw;
-    if (distRaw !== "" && (!Number.isFinite(dist) || dist < 0)) {
+    // distanza e soglia sono facoltative: vuote restano vuote. Piene devono
+    // essere numeri, scritti con la virgola o col punto indifferentemente.
+    const rd = numeroDaCampo($("ric-dist").value, { min: 0 });
+    if (!rd.vuoto && !rd.ok) {
       err("ric-dist", true); fuocoErr(["ric-dist"]);
-      esito("ric-esito", "La distanza dev'essere un numero di metri non negativo (o lasciala vuota se non la sai ancora).", "err", "Distanza non valida."); return; }
-    const sogRaw = $("ric-soglia").value.trim(), sog = +sogRaw;
-    if (sogRaw !== "" && (!Number.isFinite(sog) || sog <= 0)) {
+      esito("ric-esito", rd.motivo === "non-numero"
+        ? "«" + rd.grezzo + "» non è un numero che posso leggere come distanza. " + AVVISO_DECIMALE
+        : "La distanza dev'essere un numero di metri non negativo (o lasciala vuota se non la sai ancora).", "err", "Distanza non valida."); return; }
+    const rsg = numeroDaCampo($("ric-soglia").value, { positivo: true });
+    if (!rsg.vuoto && !rsg.ok) {
       err("ric-soglia", true); fuocoErr(["ric-soglia"]);
-      esito("ric-esito", "La soglia propria dev'essere un numero maggiore di zero, oppure vuota: se è vuota valgono le soglie dei singoli punti di misura.", "err", "Soglia del ricettore non valida."); return; }
+      esito("ric-esito", rsg.motivo === "non-numero"
+        ? "«" + rsg.grezzo + "» non è un numero che posso leggere come soglia. " + AVVISO_DECIMALE
+        : "La soglia propria dev'essere un numero maggiore di zero, oppure vuota: se è vuota valgono le soglie dei singoli punti di misura.", "err", "Soglia del ricettore non valida."); return; }
+    const haDist = !rd.vuoto, dist = rd.valore;
+    const haSog = !rsg.vuoto, sog = rsg.valore;
     const unita = $("ric-unita").value.trim();
-    if (sogRaw !== "" && !unita) {
+    if (haSog && !unita) {
       err("ric-unita", true); fuocoErr(["ric-unita"]);
       esito("ric-esito", "Se scrivi una soglia serve anche la sua unità (es. mm/s, dB(A), µg/m³): senza, l'app non sa a quali punti applicarla.", "err", "Serve l'unità della soglia."); return; }
     CAMPI_RIC.forEach(i => err(i, false));
 
     const dati = { nome, tipo: $("ric-tipo").value, classe: $("ric-classe").value,
-      distanza: distRaw === "" ? null : dist, soglia: sogRaw === "" ? null : sog,
+      distanza: haDist ? dist : null, soglia: haSog ? sog : null,
       unita, nota: $("ric-nota").value.trim() };
     if (editRic) await db.aggiorna("ricettori", editRic, dati);
     else await db.aggiungi("ricettori", dati);
     const modificato = !!editRic;
     svuotaFormRic();
     esito("ric-esito", `Ricettore «${nome}» ${modificato ? "aggiornato" : "aggiunto"}.` +
-      (sogRaw !== "" ? ` I punti collegati con unità ${unita} useranno la soglia ${numeroIt(sog)} ${unita}.` : " Non ha una soglia propria: i punti collegati usano la loro."),
+      (haSog ? ` I punti collegati con unità ${unita} useranno la soglia ${numeroIt(sog)} ${unita}.` : " Non ha una soglia propria: i punti collegati usano la loro."),
       "success", `Ricettore «${nome}» ${modificato ? "aggiornato" : "aggiunto"}.`);
     $("ric-nome").focus();
     await refresh();

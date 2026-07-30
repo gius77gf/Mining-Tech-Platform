@@ -129,7 +129,9 @@ export function prioritaConformita(monitoraggi, adempimenti, oggi = new Date()) 
     if (st.cls === "ok") continue;
     items.push({ gravita: st.cls, categoria: "misura",
       titolo: m.nome || "Misura",
-      dettaglio: m.valore + " " + (m.unita || "") + " / soglia " + m.soglia + (m.nota ? " · " + m.nota : ""),
+      // il numero era incollato grezzo: 36.8 col punto inglese, sulla prima
+      // schermata dell'app, accanto a numeri scritti con la virgola
+      dettaglio: numeroIt(m.valore) + " " + (m.unita || "") + " / soglia " + numeroIt(m.soglia) + (m.nota ? " · " + m.nota : ""),
       badge: st.label });
   }
   for (const a of adempimenti || []) {
@@ -171,10 +173,68 @@ export function unitaMisura(m) {
 }
 
 // Numero in formato italiano (virgola decimale), senza decimali inutili.
-export function numeroIt(v) {
+// Di serie i numeri da cento in su arrotondano all'unità: è la regola di
+// lettura di tutta l'app e non si cambia, perché «1.286,00 letture» non
+// aggiunge niente. Ma su ALCUNI numeri quell'arrotondamento cancella una
+// misura: la distanza del ricettore scritta 312,5 m diventava «313 m» sulla
+// riga della volata, cioè nel registro che va all'ente. Per quei casi si
+// chiedono i decimali esplicitamente col secondo argomento; per tutti gli
+// altri il comportamento è identico a prima, quindi nessuna chiamata
+// esistente cambia di una virgola.
+// `null` e `""` NON sono zero. `+null` fa 0, quindi la funzione scriveva «0»
+// per un dato che manca: su un rapporto di monitoraggio «0 µg/m³» è un fatto,
+// e falso, mentre il trattino dice la verità — non è stato misurato. Che fosse
+// un difetto e non una scelta lo diceva l'incoerenza: `undefined` dava già il
+// trattino, `null` no.
+export function numeroIt(v, dec) {
+  if (v === null || v === "") return "—";
   const n = +v;
   if (!Number.isFinite(n)) return "—";
-  return n.toLocaleString("it-IT", { maximumFractionDigits: Math.abs(n) >= 100 ? 0 : 2 });
+  const d = dec == null ? (Math.abs(n) >= 100 ? 0 : 2) : Math.max(0, Math.min(6, dec | 0));
+  return n.toLocaleString("it-IT", { maximumFractionDigits: d, useGrouping: true });
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// NUMERI SCRITTI A MANO — la virgola decimale, che in cava è la norma
+// Chi compila questi campi è un fochino italiano, e un fochino italiano
+// scrive «2,4». Fino a ieri i campi decimali erano <input type="number">,
+// e quel tipo di campo NON è neutro rispetto alla virgola: la specifica
+// HTML gli impone come valore un «valid floating-point number», cioè col
+// PUNTO. Che il browser accetti o no la virgola digitata dipende dal
+// locale del browser (non dalla pagina, quindi `lang="it"` non c'entra e
+// non risolve): dove non la accetta, il carattere non entra e `.value`
+// consegna la STRINGA VUOTA. Il `replace(",", ".")` che il codice faceva
+// non vedeva mai la virgola, perché la virgola era già stata buttata via
+// prima. Risultato: la PPV misurata — il dato da cui nasce la legge di
+// sito — si perdeva in silenzio, senza un errore da leggere.
+// Da qui in poi i campi decimali sono <input type="text"
+// inputmode="decimal">: sul telefono resta la tastiera numerica, il
+// carattere digitato arriva SEMPRE al codice, e il numero lo legge questa
+// funzione. Il prezzo da pagare è che min/max/step del browser non
+// valgono più: la validazione è nostra, ed è qui.
+// Accetta «2,4» · «2.4» · «1.250,75» · «1,250.75» · spazi intorno.
+// Ritorna { vuoto, ok, valore, grezzo, motivo } — chi chiama scrive il
+// messaggio, perché il messaggio giusto dipende dal campo.
+// Pura e testabile.
+// ══════════════════════════════════════════════════════════════════════
+export const AVVISO_DECIMALE =
+  "Va bene sia la virgola sia il punto: «2,4» e «2.4» sono lo stesso numero.";
+
+export function numeroDaCampo(testo, opts = {}) {
+  const grezzo = String(testo == null ? "" : testo).trim();
+  if (grezzo === "") return { vuoto: true, ok: false, valore: null, grezzo, motivo: "vuoto" };
+  const n = numIt(grezzo);
+  if (!Number.isFinite(n)) return { vuoto: false, ok: false, valore: null, grezzo, motivo: "non-numero" };
+  if (opts.positivo && !(n > 0)) return { vuoto: false, ok: false, valore: n, grezzo, motivo: "non-positivo" };
+  const min = opts.min == null ? null : +opts.min;
+  if (min != null && n < min) return { vuoto: false, ok: false, valore: n, grezzo, motivo: "sotto-minimo" };
+  const max = opts.max == null ? null : +opts.max;
+  if (max != null && n > max) return { vuoto: false, ok: false, valore: n, grezzo, motivo: "sopra-massimo" };
+  // arrotondamento all'ultima cifra che ha senso per il campo: quattro
+  // decimali di default, gli stessi con cui la PPV viene salvata sulla volata
+  const dec = opts.decimali == null ? 4 : Math.max(0, +opts.decimali || 0);
+  const p = Math.pow(10, dec);
+  return { vuoto: false, ok: true, valore: Math.round(n * p) / p, grezzo, motivo: "" };
 }
 
 // Chiave di ordinamento di una lettura: data + ora. Le letture senza ora
@@ -1706,9 +1766,12 @@ export function confermaVolataEseguita(volata, corr = {}, oggi = new Date()) {
   // Campo NON toccato (chiave assente) → resta il valore del progetto.
   // Campo SVUOTATO dall'utente ("") → zero: è una correzione, non una
   // dimenticanza, e va rispettata come nel form del registro a mano.
+  // I numeri arrivano dai campi decimali della modale, scritti a mano: la
+  // virgola italiana vale quanto il punto, e «1.250,5» vale 1250,5. Se non
+  // si legge un numero il campo torna a zero, come prima.
   const num = (x, fall) => {
     if (x === undefined || x === null) { const f = +fall; return Number.isFinite(f) && f >= 0 ? f : 0; }
-    const n = +String(x).replace(",", ".").trim();
+    const n = numIt(x);
     return Number.isFinite(n) && n >= 0 ? n : 0;
   };
   const data = String(corr.data == null ? (v.data || "") : corr.data).slice(0, 10);

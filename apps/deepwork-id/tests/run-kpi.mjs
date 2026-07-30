@@ -1663,5 +1663,174 @@ test("il valore del cavato non si inventa senza prezzo", () => {
   ok(conti.valoreCavato(10000, null) === null && conti.valoreCavato(10000, 0) === null, "senza prezzo: null, non zero");
 });
 
+// ══════════════════════════════════════════════════════════════════════
+// LA VIRGOLA DECIMALE — il difetto più pericoloso trovato finora
+// ══════════════════════════════════════════════════════════════════════
+// Misurato in Chromium: in un `input type="number"`, digitando «2,4» da
+// tastiera, `.value` diventa «24» e `checkValidity()` risponde true. Il
+// browser scarta la virgola e chiama valido il numero sbagliato: dieci volte
+// tanto, salvato in silenzio. Su una PPV significa un falso superamento e un
+// valore falso dentro la regressione della legge di sito, che decide le
+// distanze di sicurezza. La correzione è `type=text inputmode=decimal` più
+// una validazione nostra, e questa è la validazione.
+test("numeroDaCampo: la virgola italiana è un decimale", () => {
+  contiene(sentinella.numeroDaCampo("2,4"), { ok: true, valore: 2.4, vuoto: false }, "«2,4»");
+  contiene(sentinella.numeroDaCampo("2.4"), { ok: true, valore: 2.4 }, "il punto vale quanto la virgola");
+  ok(sentinella.numeroDaCampo("1.250,75").valore === 1250.75, "migliaia all'italiana");
+  ok(sentinella.numeroDaCampo("1,250.75").valore === 1250.75, "migliaia all'inglese");
+  ok(sentinella.numeroDaCampo("  2,4  ").valore === 2.4, "spazi intorno");
+});
+test("numeroDaCampo: vuoto non è zero, testo non è zero", () => {
+  contiene(sentinella.numeroDaCampo(""), { vuoto: true, ok: false, valore: null, motivo: "vuoto" }, "campo vuoto");
+  contiene(sentinella.numeroDaCampo(null), { vuoto: true, ok: false, valore: null }, "null");
+  contiene(sentinella.numeroDaCampo("abc"), { ok: false, valore: null, motivo: "non-numero" }, "testo");
+  ok(sentinella.numeroDaCampo("abc").valore === null, "non si salva zero al posto di un numero non capito");
+});
+test("numeroDaCampo: zero è una lettura valida ma non una soglia valida", () => {
+  ok(sentinella.numeroDaCampo("0", { min: 0 }).ok === true, "zero passa dove il minimo è zero");
+  ok(sentinella.numeroDaCampo("0", { positivo: true }).motivo === "non-positivo", "zero non passa dove serve positivo");
+  ok(sentinella.numeroDaCampo("-3", { min: 0 }).motivo === "sotto-minimo", "sotto il minimo");
+  ok(sentinella.numeroDaCampo("500", { max: 100 }).motivo === "sopra-massimo", "sopra il massimo");
+});
+test("numeroDaCampo: quattro decimali, gli stessi con cui la PPV viene salvata", () => {
+  ok(sentinella.numeroDaCampo("2,44449").valore === 2.4445, "arrotondato a quattro decimali");
+  ok(sentinella.numeroDaCampo("2,4", { decimali: 0 }).valore === 2, "decimali su richiesta");
+});
+test("la catena campo → record: 2,4 arriva sulla volata come 2,4", () => {
+  const v = sentinella.numeroDaCampo("2,4").valore;
+  const c = sentinella.campiPpvVolata(v, { fonte: sentinella.PPV_MANUALE });
+  ok(c.ppvMisurata === 2.4, "sulla volata la PPV è 2,4, non 24 — era " + c.ppvMisurata);
+});
+test("conferma volata: i chili scritti con la virgola non decuplicano", () => {
+  const prev = { id: "v1", stato: sentinella.VOL_PREVISTA, data: "2026-07-20",
+    nFori: 18, kgTotali: 430, kgMaxRitardo: 20, distanzaRicettore: 240 };
+  const r = sentinella.confermaVolataEseguita(prev,
+    { kgTotali: "187,5", kgMaxRitardo: "12,5", distanzaRicettore: "312,5", data: "2026-07-25" },
+    new Date("2026-07-30T12:00:00Z"));
+  contiene(r.campi, { kgTotali: 187.5, kgMaxRitardo: 12.5, distanzaRicettore: 312.5 }, "le tre virgole");
+  // svuotare un campo è una correzione, non una dimenticanza: era già così
+  const z = sentinella.confermaVolataEseguita(prev, { kgTotali: "", data: "2026-07-25" },
+    new Date("2026-07-30T12:00:00Z"));
+  ok(z.campi.kgTotali === 0, "campo svuotato → zero, come nel form a mano");
+  // chiave assente ≠ campo svuotato: resta il valore del progetto
+  const t = sentinella.confermaVolataEseguita(prev, { data: "2026-07-25" },
+    new Date("2026-07-30T12:00:00Z"));
+  ok(t.campi.kgTotali === 430, "campo non toccato → resta il progetto");
+});
+
+test("numeroIt: il secondo argomento non cambia il comportamento di prima", () => {
+  ok(sentinella.numeroIt(36.8) === "36,8", "sotto cento, due decimali di serie");
+  ok(sentinella.numeroIt(312.5) === "313", "da cento in su arrotonda: regola di lettura dell'app, invariata");
+  ok(sentinella.numeroIt(312.5, 1) === "312,5", "ma chi ha bisogno della misura la chiede — era " + sentinella.numeroIt(312.5, 1));
+  ok(sentinella.numeroIt(1286) === "1.286", "migliaia col punto anche su Node");
+});
+test("numeroIt: un dato che manca non si scrive «0»", () => {
+  // «0 µg/m³» è un fatto, e falso: dice che si è misurato zero. Il trattino
+  // dice la verità. Che il vecchio «0» fosse un difetto e non una scelta lo
+  // diceva l'incoerenza: undefined dava già il trattino, null no.
+  ok(sentinella.numeroIt(null) === "—", "null → trattino, non «0» — era " + sentinella.numeroIt(null));
+  ok(sentinella.numeroIt("") === "—", "stringa vuota → trattino — era " + sentinella.numeroIt(""));
+  ok(sentinella.numeroIt(undefined) === "—", "undefined → trattino, come già faceva");
+  ok(sentinella.numeroIt("abc") === "—", "testo → trattino");
+  ok(sentinella.numeroIt(0) === "0" && sentinella.numeroIt("0") === "0", "ma uno zero VERO si scrive: è una misura");
+});
+test("la prima schermata non scrive i numeri col punto inglese", () => {
+  const p = sentinella.prioritaConformita(
+    [{ nome: "Polveri PM10", valore: 36.8, soglia: 40, unita: "µg/m³", nota: "media 7gg" }], [],
+    new Date("2026-07-30T12:00:00Z"));
+  ok(p.length === 1, "una voce di priorità");
+  ok(p[0].dettaglio.startsWith("36,8 µg/m³"), "il valore con la virgola — era «" + p[0].dettaglio + "»");
+  ok(!/\d\.\d/.test(p[0].dettaglio), "e nessun punto decimale da nessuna parte nella riga");
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// FLOTTA: la tessera «Tagliandi 30gg» contava solo i tagliandi a data
+// ══════════════════════════════════════════════════════════════════════
+// Un tagliando programmato a ORE non entrava nel numero di testa, quindi la
+// tessera diceva un numero più basso del vero senza dirlo. Ora il ritmo d'uso
+// si MISURA dalle letture del contatore, e dove non si può misurare non si
+// stima: si dichiara a parte.
+const _OGGI_F = new Date("2026-07-30T12:00:00Z");
+const _ind = (g) => { const d = new Date(_OGGI_F); d.setDate(d.getDate() - g); return d.toISOString().slice(0, 10); };
+test("ritmo d'uso: due letture del contatore bastano, una no", () => {
+  const r = flotta.ritmoOreMezzi([
+    { mezzo: "E1", data: _ind(20), ore: 1000 },
+    { mezzo: "E1", data: _ind(2), ore: 1080 },
+  ], _OGGI_F)[0];
+  ok(r.oreGiorno === 4.44, "80 ore in 18 giorni = 4,44 h/gg — era " + r.oreGiorno);
+  const uno = flotta.ritmoOreMezzi([{ mezzo: "E1", data: _ind(5), ore: 1000 }], _OGGI_F)[0];
+  ok(uno.oreGiorno === null, "una lettura sola non è un ritmo");
+  ok(/seconda/.test(uno.perche), "e lo spiega nominando la seconda lettura: " + uno.perche);
+});
+test("ritmo d'uso: il confine è metà dell'orizzonte, 15 giorni su 30", () => {
+  const f = (g) => flotta.ritmoOreMezzi([
+    { mezzo: "E1", data: _ind(g), ore: 1000 }, { mezzo: "E1", data: _ind(0), ore: 1060 },
+  ], _OGGI_F)[0];
+  ok(f(15).oreGiorno !== null, "una finestra di 15 giorni si può proiettare a 30");
+  ok(f(14).oreGiorno === null, "una di 14 no — proiettare 30 giorni da 14 è una moltiplicazione, non una stima");
+  ok(/almeno 15/.test(f(14).perche), "e lo scrive: " + f(14).perche);
+});
+test("ritmo d'uso: contatore fermo, lettura vecchia, lettura nel futuro", () => {
+  const fermo = flotta.ritmoOreMezzi([
+    { mezzo: "E1", data: _ind(20), ore: 1000 }, { mezzo: "E1", data: _ind(0), ore: 1000 },
+  ], _OGGI_F)[0];
+  ok(fermo.oreGiorno === null && /non è salito/.test(fermo.perche), "contatore fermo: " + fermo.perche);
+  const vecchio = flotta.ritmoOreMezzi([
+    { mezzo: "E1", data: _ind(120), ore: 1000 }, { mezzo: "E1", data: _ind(90), ore: 1200 },
+  ], _OGGI_F)[0];
+  ok(vecchio.oreGiorno === null && /passato/.test(vecchio.perche), "storico vecchio: " + vecchio.perche);
+  const futuro = flotta.ritmoOreMezzi([
+    { mezzo: "E1", data: _ind(20), ore: 1000 }, { mezzo: "E1", data: _ind(2), ore: 1080 },
+    { mezzo: "E1", data: _ind(-10), ore: 9999 },
+  ], _OGGI_F)[0];
+  ok(futuro.oreGiorno === 4.44 && futuro.letture === 2,
+    "una lettura datata nel futuro non è un fatto e viene ignorata — " + futuro.oreGiorno + " su " + futuro.letture + " letture");
+  ok(flotta.ritmoOreMezzi(null, _OGGI_F).length === 0 && flotta.ritmoOreMezzi([], _OGGI_F).length === 0, "niente letture, niente ritmi");
+});
+const _MEZZI_F = [{ nome: "Escavatore E1", ore: 1080, stato: "operativo" }];
+const _LETT_F = [{ mezzo: "Escavatore E1", data: _ind(20), ore: 1000 },
+  { mezzo: "Escavatore E1", data: _ind(2), ore: 1080 }];
+test("tagliandi a ore: contati quando il ritmo si misura", () => {
+  // 100 ore mancanti a 4,44 h/gg ⇒ 23 giorni: dentro i 30
+  const t = flotta.tagliandiInScadenza([{ id: "m1", titolo: "Tagliando", mezzo: "Escavatore E1", orePreviste: 1180 }],
+    _MEZZI_F, _LETT_F, _OGGI_F);
+  contiene(t, { totale: 1, aOre: 1, aData: 0, nonStimabili: 0 }, "un tagliando a ore, ritmo noto");
+  ok(t.voci[0].giorni === 23, "100 ore a 4,44 h/gg = 23 giorni — erano " + t.voci[0].giorni);
+});
+test("tagliandi a ore: senza storico NON si stima, si dichiara", () => {
+  const t = flotta.tagliandiInScadenza([{ id: "m1", titolo: "Tagliando", mezzo: "Escavatore E1", orePreviste: 1180 }],
+    _MEZZI_F, [], _OGGI_F);
+  contiene(t, { totale: 0, aOre: 0, nonStimabili: 1 }, "niente letture: fuori dal conto, ma dichiarato");
+  ok(t.daStimare.length === 1 && /Escavatore E1/.test(t.daStimare[0].mezzo + " " + (t.daStimare[0].perche || "")),
+    "e il mezzo viene nominato, non nascosto");
+});
+test("tagliandi a ore: uno GIÀ oltre entra anche senza storico", () => {
+  const t = flotta.tagliandiInScadenza([{ id: "m1", titolo: "Tagliando", mezzo: "Escavatore E1", orePreviste: 1000 }],
+    _MEZZI_F, [], _OGGI_F);
+  contiene(t, { totale: 1, aOre: 1, nonStimabili: 0 }, "il contatore è già a 1080 su 1000: è scaduto, non da stimare");
+});
+test("tagliandi a ore: uno lontano resta fuori, e non è «non stimabile»", () => {
+  const t = flotta.tagliandiInScadenza([{ id: "m1", titolo: "Tagliando", mezzo: "Escavatore E1", orePreviste: 1600 }],
+    _MEZZI_F, _LETT_F, _OGGI_F);
+  contiene(t, { totale: 0, aOre: 0, nonStimabili: 0 }, "520 ore a 4,44 h/gg sono oltre 100 giorni: fuori, e si sa perché");
+});
+test("kpiFrom: il contratto a tre argomenti non è cambiato", () => {
+  const k = flotta.kpiFrom(_MEZZI_F, [{ id: "m1", mezzo: "Escavatore E1", dataPrevista: _ind(-10) }], []);
+  const chiavi = Object.keys(k).sort().join(",");
+  ok(chiavi === "carburante,inManutenzione,operativi,tagliandi30",
+    "esattamente le quattro chiavi storiche, nessuna in più — erano " + chiavi);
+  ok(k.tagliandi30 === 1, "un tagliando a data fra dieci giorni");
+});
+test("kpiFrom: col quarto argomento il conto è onesto e si scompone", () => {
+  const manut = [{ id: "m1", mezzo: "Escavatore E1", dataPrevista: _ind(-10) },
+    { id: "m2", titolo: "Tagliando", mezzo: "Escavatore E1", orePreviste: 1180 }];
+  const k = flotta.kpiFrom(_MEZZI_F, manut, [], { letture: _LETT_F, oggi: _OGGI_F });
+  ok(k.tagliandi30 === 2, "uno a data più uno a ore — era " + k.tagliandi30);
+  ok(k.tagliandi.aData + k.tagliandi.aOre === k.tagliandi.totale, "le due strade sommano al totale");
+  const senza = flotta.kpiFrom(_MEZZI_F, manut, [], { letture: [], oggi: _OGGI_F });
+  ok(senza.tagliandi30 === 1 && senza.tagliandi.nonStimabili === 1,
+    "senza letture il numero non cresce, ma il non stimabile è dichiarato");
+});
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);

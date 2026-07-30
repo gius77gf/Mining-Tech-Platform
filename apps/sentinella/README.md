@@ -261,6 +261,50 @@ Importa da CSV*.
   si torna alla firma di prima (`data|fronte|nFori|kgTotali`): i file già in giro
   si deduplicano esattamente come prima.
 
+## La virgola decimale: come si scrivono i numeri
+
+In cava i numeri li scrive un fochino italiano, e un fochino italiano scrive
+**2,4**. Fino al 29/07 i campi decimali erano `<input type="number">`, e quel
+tipo di campo non è neutro rispetto alla virgola: la specifica HTML gli impone
+come valore un *valid floating-point number*, cioè col **punto**. Chromium,
+provato in locale `en-US` **e** `it-IT`, si comporta allo stesso modo: digitando
+`2,4` **butta via la virgola e lascia `24`**. Non un errore, non un campo vuoto:
+un numero dieci volte più grande, salvato in silenzio. Sul campo della **PPV
+misurata** questo significa un falso superamento e — peggio — un valore
+sbagliato dentro la regressione della legge di sito.
+
+Il `replace(",", ".")` che il codice faceva non serviva a niente: la virgola
+era già stata scartata dal browser prima che JavaScript vedesse il valore.
+Nemmeno `lang="it"` avrebbe risolto: il comportamento di `type="number"` non
+dipende dalla lingua della pagina.
+
+Da qui in poi i **14 campi decimali** dell'app sono
+`<input type="text" inputmode="decimal">`:
+
+| dove | campi |
+| --- | --- |
+| Registra misura | `mis-valore` |
+| Ricettori | `ric-dist`, `ric-soglia` |
+| Nuovo punto di misura | `sen-soglia` |
+| Distanza scalata | `sd-carica`, `sd-dist`, `sd-target` |
+| Registra volata | `vol-kg`, `vol-kgmax`, `vol-dist` |
+| Collega la PPV misurata | `ppv-val` |
+| Conferma volata eseguita | `conf-kg`, `conf-kgmax`, `conf-dist` |
+
+`inputmode="decimal"` tiene la **tastiera numerica** sul telefono; il carattere
+digitato arriva sempre al codice; e il numero lo legge una sola funzione,
+`numeroDaCampo()` in `sentinella-data.js`, che accetta `2,4` · `2.4` ·
+`1.250,75` · `1,250.75` e restituisce `{ vuoto, ok, valore, grezzo, motivo }`.
+I campi interi (numero di fori, giorni del programma) restano `type="number"`:
+lì la virgola non serve e lo spinner del browser è un vantaggio.
+
+Il prezzo da pagare è che `min`/`max`/`step` del browser non valgono più: la
+validazione è **nostra**, in `numeroDaCampo` più il messaggio scritto sul posto.
+Quello che l'app **non** fa più è salvare uno zero al posto di un numero che
+non ha capito: lo dice. Sul campo della PPV misurata, mentre si scrive, una
+riga sotto il campo dichiara il valore che verrà salvato («Verrà salvato
+2,4 mm/s»).
+
 ## Regole rispettate
 
 - **Soglie di sicurezza**: i preset normativi (`SOGLIE_PRESET`, DIN 4150-3 /
@@ -269,7 +313,8 @@ Importa da CSV*.
 - **Unità mai in maiuscolo**: `text-transform:uppercase` trasformerebbe
   `µg/m³` in `MG/M³` (milligrammi, mille volte tanto). Su un documento che
   va all'ente sarebbe un errore, quindi le unità escono dal maiuscolo
-  (`.tab th .u`, `.graf-axlab`, override locale di `.dwg-axlab`).
+  (`.tab th .u`, `.graf-axlab`). Per i grafici del motore condiviso non c'è
+  più un override qui: `shared/dw-grafici.js` avvolge l'unità in `.dwg-u`.
 - Niente `alert()`/`confirm()`/`prompt()`: toast e modale del core.
 - I messaggi passati a `esito()`/`toast()` sono **testo semplice** (finiscono
   in `textContent`): l'HTML ci comparirebbe scritto.
@@ -289,3 +334,8 @@ Importa da CSV*.
 - Prova visiva: server statico + Chromium headless (telefono 360/390 px,
   desktop 1280 px) e **PDF A4 reale** generato con `page.pdf()` per
   controllare la stampa.
+- Virgola decimale: Chromium con locale `en-US` e `it-IT`, digitando `2,4` in
+  tutti e 14 i campi (il valore resta `2,4`); PPV salvata riletta dal record e
+  dal **CSV dei referti per Genesi**, dove la colonna `ppv_mms` esce `2.4` —
+  non `24`, non vuota. Provati anche `2.4`, `1.250,75` e un testo non
+  numerico, che viene rifiutato con il motivo scritto.
