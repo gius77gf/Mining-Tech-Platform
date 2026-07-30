@@ -166,6 +166,47 @@ elenca anche le tre sovrapposizioni vere.
 ⚠️ Nella vetrina la divisione **non è stata data per presa**: la scheda del core
 descrive quello che il core contiene, senza pronunciarsi. Aspetta la tua parola.
 
+## 12. Il cliente ha una copia di sicurezza solo di metà dei suoi dati
+*(nuova, 31/07 · misurato, dettaglio in `docs/ONBOARDING_DATI.md`)*
+
+Ogni app scarica dei CSV, e questo faceva credere — anche a me, e lo diceva il
+documento — che ci fosse un backup di tutto. **Misurato: non è così.** I file
+che si **ri-caricano** davvero sono **sette**, e sono stati provati uno per uno
+mandandoli dentro l'app: squadre (Campo), gare e listino (Conti), magazzino
+ricambi (Flotta), anagrafica lavoratori e registro infortuni (Scudo), ricettori
+(Sentinella).
+
+Tutti gli altri sono **prospetti**: hanno colonne calcolate (stato, residuo,
+giorni di pagamento) e servono al commercialista o all'ente. Non si ri-caricano,
+e va benissimo che sia così — quello che non va è **crederli un backup**.
+
+Restano quindi **senza nessun file che si ri-carica** proprio le cose che una
+cava non può riscrivere a mano:
+
+| Cosa | Dove | Perché fa male perderla |
+|---|---|---|
+| **pesate e DDT** | Conti | è il documento di consegna: mesi di lavoro, e sono la base delle fatture |
+| **incassi** (prima nota) | Conti | date e importi veri dei pagamenti ricevuti |
+| **clienti** | Conti | anagrafica con partita IVA, PEC/SDI, fido |
+| **azioni correttive** | Scudo | registro che un ispettore può chiedere |
+| **rilievi drone** | Terra | volumi che consumano la concessione |
+| **registro volate** | Sentinella | documento regolatorio |
+
+- [ ] **12a.** Vuoi che i cicli automatici costruiscano l'export ri-caricabile
+      per queste sei? È lavoro fattibile e senza rischio (nessun dato nuovo:
+      solo un secondo file, nel formato dell'import), ma **sono sei unità** e
+      tolgono tempo ad altro. Se sì, **con quale ordine di priorità?**
+- [ ] **12b.** In alternativa, prima del pilota basta **dirlo in chiaro** al
+      cliente («la copia di sicurezza copre questo, non quest'altro»)? È già
+      scritto nel documento di onboarding, ma è una scelta commerciale: la
+      dico io o la dici tu?
+
+⚠️ Nel frattempo **nessuna promessa falsa resta scritta**: la frase del
+documento che diceva «ogni import ha accanto un export ri-caricabile» è stata
+corretta, e sette controlli automatici tengono fermi i sette che lo sono
+davvero — se domani uno di loro smettesse di ri-caricarsi, se ne accorge la
+suite e non il cliente.
+
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde
 iterazioni UX delle app, test aggiuntivi, revisioni di qualità/sicurezza,
