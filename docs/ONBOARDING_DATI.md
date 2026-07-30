@@ -23,12 +23,34 @@ riscriverli a mano. È il manuale pratico del **Passo 6 del PIANO_GO_LIVE**.
   sistema la riconosce e la salta.
 - **Righe sbagliate**: una riga senza i dati obbligatori viene semplicemente
   saltata, senza bloccare le altre. Alla fine l'app dice quante ne ha caricate.
+- **Righe ripetute** *(uniformato il 31/07 in tutte le app)*: se la stessa cosa
+  compare **due volte nello stesso file**, entra **una volta sola** — vale la
+  prima riga, e maiuscole o spazi in più non la fanno sembrare una cosa diversa
+  («Rossi Mario» e « ROSSI MARIO » sono la stessa persona). Il messaggio finale
+  distingue **due ragioni diverse**, e vale la pena leggerle:
+  - «**già presenti (saltate)**» → quella riga c'era già in archivio, e non
+    andava ricaricata: non c'è niente da correggere;
+  - «**ripetute nel file**» → è il **tuo file** a nominarla più volte. Se non te
+    l'aspettavi, conviene guardare il foglio di calcolo prima del prossimo
+    caricamento.
+
+  Non vale ovunque, e non è una svista: dove ripetersi è **normale** — la
+  telemetria di Flotta, che **aggiorna** le ore dei mezzi invece di aggiungerli,
+  e il piano di carico di Campo, che **sostituisce** il piano precedente — non
+  viene tolto niente.
 - **Isolamento**: i dati caricati entrano SOLO nell'organizzazione del cliente.
   Nessun'altra azienda li vede mai.
 - **Backup**: ogni schermata di import ha accanto un bottone **Esporta (CSV)**
   che scarica gli stessi dati nel formato ri-caricabile. Serve per fare una
   copia di sicurezza o per spostare i dati: il file esportato si re-importa
-  senza duplicare (le righe già presenti vengono saltate).
+  senza duplicare.
+  ⚠️ **Fino al 30/07 questa frase era vera solo a metà**, e vale la pena
+  saperlo perché spiega cosa poteva succedere prima: le righe già in archivio
+  venivano saltate, sì, ma un file che nominava la **stessa cosa più volte** le
+  caricava tutte. Non è un caso raro: l'esportazione di Scudo scrive una riga
+  per ogni **scadenza**, quindi un lavoratore con tre scadenze compare tre volte
+  nel proprio file, e ri-caricarlo faceva comparire tre volte la stessa persona.
+  Dal 31/07 non succede più in nessuna app.
 
 ---
 
