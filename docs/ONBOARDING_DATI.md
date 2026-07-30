@@ -319,6 +319,11 @@ Pagina **Squadre → Importa squadre (CSV)** (oppure aggiungile a mano dal form)
   ```
 - **Note**: serve solo il **nome**; una squadra con lo stesso nome viene
   saltata. `stato` è `operativa` o `ferma` (default operativa).
+- **`persone` vuota resta vuota** *(dal 31/07)*: la squadra entra lo stesso — ha
+  un nome e va assegnata — e la scheda scrive «persone non indicate». Prima
+  scriveva «0 persone», che non è un dato mancante: è una frase che dice una
+  cosa non vera. Uno **0 scritto apposta** resta zero, perché una squadra si può
+  svuotare davvero.
 - **Backup**: il bottone **Esporta squadre (CSV)** scarica le squadre nello
   stesso formato dell'import, così il file si può ri-caricare o conservare.
 
