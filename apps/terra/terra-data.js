@@ -1001,3 +1001,88 @@ export async function terraData() {
   }
   return { mode, ...api };
 }
+
+// ============================================================
+// LA PROVENIENZA DEL VOLUME (tracciabilità del rilievo)
+// ------------------------------------------------------------
+// Il verbale di rilievo ha una sezione intitolata «Come è stato ottenuto il
+// numero». Per un volume arrivato dal visore non poteva dire niente di vero,
+// perché di quel calcolo Terra non conservava NESSUN parametro — e non è che
+// non esistessero: `volumeCumulo` restituisce cinque valori e il visore ne
+// salvava uno, buttando `zBase`, `cella`, `areaCelle` e `celle` una riga dopo.
+//
+// ⛔ E non sono dettagli da tecnici. Misurato su un cono di volume noto: il
+// LATO CELLA sposta il volume del 22% fra 0,25 m e 2 m — e non lo sceglie
+// l'utente, lo sceglie il software dalla dimensione del ritaglio. La QUOTA DI
+// BASE è una moltiplicazione: 1 m di errore = area coperta × 1 m³, cioè 729 m³
+// sul caso misurato. Una misura che non si può rifare non si può difendere.
+//
+// `origine` assente NON vale «inserita a mano»: vale «non lo sappiamo», ed è
+// per questo che è un oggetto solo invece di otto campi sparsi — i rilievi
+// scritti prima ricadono lì senza che nessuno inventi per loro un lato cella.
+// Ricerca e decisioni: docs/RICERCA_TRACCIABILITA_VOLUME_202608.md
+// ============================================================
+const _n0org = (v) => Number(v).toLocaleString("it-IT", { maximumFractionDigits: 0, useGrouping: true });
+const _n2org = (v) => Number(v).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true });
+/* ── DA DOVE VIENE IL VOLUME ────────────────────────────────────────────────
+   `origine` assente non vale «inserito a mano»: vale **non lo sappiamo**, ed è
+   la stessa forma dichiarata di `provenienzaDi` (assente = scavo) — ma con la
+   differenza che qui il ripiego NON è un valore, è l'ammissione. I rilievi
+   scritti prima di questa unità ci ricadono senza che nessuno inventi per loro
+   un lato cella o una quota di base. */
+export function origineDi(rilievo) {
+  const o = rilievo && rilievo.origine;
+  if (!o || typeof o !== "object") return { da: "non registrata", noto: false };
+  const da = String(o.da || "").trim().toLowerCase();
+  if (da !== "visore" && da !== "manuale" && da !== "csv") return { ...o, da: "non registrata", noto: false };
+  return { ...o, da, noto: true };
+}
+
+/* ── LA FRASE DEL VERBALE ───────────────────────────────────────────────────
+   ⛔ Il primo requisito NON è l'eleganza: è che senza provenienza la frase
+   **non sembri una misura**. Il verbale va a un ente: una riga che tace è una
+   riga che lascia credere che il numero sia verificabile. */
+export function descriviOrigine(rilievo) {
+  const o = origineDi(rilievo);
+  if (!o.noto)
+    return "La provenienza del calcolo non è registrata: per questo rilievo non "
+      + "risultano il metodo di volumetria, il lato della griglia né la quota di "
+      + "base, quindi il numero non è riproducibile a partire da questi dati.";
+  if (o.da === "manuale")
+    return "Volume inserito a mano da chi ha eseguito il rilievo: non deriva da un "
+      + "calcolo di questa applicazione.";
+  if (o.da === "csv")
+    return "Volume importato da un file esterno" + (o.file ? " (" + o.file + ")" : "")
+      + ": il calcolo è stato fatto fuori da questa applicazione.";
+
+  /* dal visore: si dice tutto quello che si ha, e si tace solo su ciò che
+     manca — dichiarandolo, non saltandolo */
+  const p = [];
+  p.push("Volume calcolato dal visore con il metodo a griglia: la nuvola viene "
+    + "divisa in celle quadrate e di ogni cella si prende la quota più alta; il "
+    + "volume è la somma delle altezze sopra un piano di base.");
+  const d = [];
+  if (Number.isFinite(+o.cella) && +o.cella > 0) d.push("lato cella " + _n2org(+o.cella) + " m");
+  if (Number.isFinite(+o.quotaBase)) d.push("quota di base " + _n2org(+o.quotaBase) + " m (2° percentile delle quote, non il minimo assoluto, per non farsi abbassare da un punto spurio)");
+  if (Number.isFinite(+o.areaCoperta) && +o.areaCoperta > 0) d.push("area coperta " + _n0org(+o.areaCoperta) + " m²");
+  if (Number.isFinite(+o.puntiRitaglio) && +o.puntiRitaglio > 0)
+    d.push("punti del ritaglio " + _n0org(+o.puntiRitaglio)
+      + (Number.isFinite(+o.puntiTotali) && +o.puntiTotali > 0 ? " su " + _n0org(+o.puntiTotali) : ""));
+  if (d.length) p.push("Parametri del calcolo: " + d.join("; ") + ".");
+  const r = o.ritaglio;
+  if (r && ["x0", "x1", "y0", "y1", "z0", "z1"].every((k) => Number.isFinite(+r[k])))
+    p.push("Ritaglio: X da " + _n2org(+r.x0) + " a " + _n2org(+r.x1) + ", Y da " + _n2org(+r.y0)
+      + " a " + _n2org(+r.y1) + ", Z da " + _n2org(+r.z0) + " a " + _n2org(+r.z1) + ".");
+  if (o.file) p.push("File di partenza: " + o.file + (o.quandoVisore ? ", caricato il " + String(o.quandoVisore).slice(0, 10).split("-").reverse().join("/") : "") + ".");
+  if (o.georeferenziato === false)
+    p.push("⚠️ La nuvola NON è georeferenziata: il volume è espresso nelle unità del file, non in metri cubi.");
+  /* ⛔ e quello che manca si DICHIARA: un elenco di parametri con dentro solo
+     quelli che c'erano sembra completo a chi legge */
+  const mancanti = [];
+  if (!(Number.isFinite(+o.cella) && +o.cella > 0)) mancanti.push("il lato della cella");
+  if (!Number.isFinite(+o.quotaBase)) mancanti.push("la quota di base");
+  if (!r) mancanti.push("il ritaglio");
+  if (mancanti.length)
+    p.push("Non risulta registrato " + mancanti.join(", né ") + ": per questa parte il calcolo non è riproducibile.");
+  return p.join(" ");
+}
