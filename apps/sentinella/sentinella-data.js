@@ -708,9 +708,17 @@ export function preparaLetture(righe, mappa) {
   return dati.map((r, k) => {
     const dataRaw = cella(r, cD), oraRaw = cella(r, cO), valRaw = cella(r, cV);
     const data = dataIso(dataRaw);
-    // se la colonna dell'ora non è stata scelta, l'ora si cerca nella cella
-    // della data: molti strumenti scrivono "12/07/2026 10:30" in una casella sola
-    const ora = oraHm(cO >= 0 ? oraRaw : dataRaw);
+    // L'ora si cerca prima nella colonna scelta e POI, se lì non c'è, nella
+    // cella della data: molti strumenti scrivono "12/07/2026 10:30" in una
+    // casella sola, e capita che il file abbia ANCHE una colonna Ora che per
+    // quelle righe è vuota.
+    // ⛔ Il ripiego non è una gentilezza. Senza, l'ora veniva buttata, e due
+    // misure dello stesso giorno con lo stesso valore finivano con la stessa
+    // firma (data + ora + valore): la seconda spariva come doppione e
+    // l'interfaccia annunciava «1 doppione scartato» — una frase sicura e non
+    // vera, su una serie storica che va all'ente.
+    // La colonna scelta VINCE: questo è un ripiego, non una sovrascrittura.
+    const ora = (cO >= 0 ? oraHm(oraRaw) : "") || oraHm(dataRaw);
     const valore = numIt(valRaw);
     let motivo = "";
     if (!data) motivo = dataRaw ? "data non riconosciuta" : "data mancante";

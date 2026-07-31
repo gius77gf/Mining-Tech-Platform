@@ -4813,6 +4813,27 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(r.data, "2026-07-12", "la data");
     eq(r.ora, "10:30", "e l'ora, senza chiedere una colonna che non c'è");
   });
+  test("⛔ import: se la colonna dell'ora è vuota, l'ora si cerca nella cella della data", () => {
+    /* il caso vero: il file scrive «12/07/2026 08:00» nella cella della data
+       E ha una colonna Ora che per quelle righe è vuota. Prima l'ora veniva
+       buttata, e allora due misure dello stesso giorno con lo stesso valore
+       avevano la STESSA firma (data + ora + valore): la seconda spariva come
+       doppione, e l'interfaccia annunciava «1 doppione scartato» — una frase
+       sicura e non vera, su una serie storica che va all'ente */
+    const r = pl([["12/07/2026 08:00", "", "0,5"], ["12/07/2026 14:00", "", "0,5"]],
+                 { colData: 0, colOra: 1, colValore: 2 });
+    eq(r.map((x) => x.ora).join(","), "08:00,14:00", "le due ore ci sono");
+    const buone = r.filter((x) => x.ok).map((x) => ({ data: x.data, valore: x.valore, ora: x.ora }));
+    const u = sentinella.unisciLetture([], buone);
+    eq(u.aggiunte, 2, "e restano due misure");
+    eq(u.duplicati, 0, "nessun doppione da annunciare");
+  });
+  test("import: la colonna dell'ora scelta vince su quella scritta nella data", () => {
+    /* la ricerca nella cella della data è un RIPIEGO, non una sovrascrittura:
+       se l'utente ha indicato dove sta l'ora, quella è l'ora */
+    const r = pl([["12/07/2026 08:00", "14:30", "0,5"]], { colData: 0, colOra: 1, colValore: 2 })[0];
+    eq(r.ora, "14:30", "quella della colonna");
+  });
   test("import: la notazione scientifica dello strumento è un numero", () => {
     /* già costata una volta in questo progetto: gli export delle macchine
        scrivono 1.2e-3, e irrigidire il lettore fa sparire quelle righe */
