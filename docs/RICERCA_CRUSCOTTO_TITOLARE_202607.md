@@ -363,6 +363,36 @@ cava è la domanda esistenziale: *quanti anni mi restano?*
 
 ---
 
+### 1.5-bis · Prova sul campo — le sei tessere si riempiono davvero?
+
+*Misurato il 02/08 chiamando le funzioni con l'archivio dimostrativo di ogni
+app. «Esiste la funzione» si vede dall'elenco; qui la domanda era un'altra:
+**che numero esce**, e contiene le tre cose che la scheda pretende?*
+
+| tessera | esce questo | è azionabile? |
+|---|---|---|
+| **T1 Produzione anno** | estratti **79.400 m³** su un piano di **125.000**, frazione d'anno 0,58 → proiezione **137.221 m³**, **110% del piano**, stato **rosso** | **Sì**: dice «al ritmo di oggi **sfori l'autorizzato**», che è la cosa che fa alzare il telefono |
+| **T2 Cassa** | **28.050 €** scaduti su 42.050 da incassare; invecchiamento 2 fatture in 1-30 giorni; tempo medio di incasso **26 giorni**, **4 in anticipo** sulla scadenza | **Sì**, e con la riga d'onestà: **1 fattura senza data** resta fuori dalla media e si dichiara |
+| **T3 Mezzi** | **67% adesso** (4 operativi su 6) ma **92,2% sui 30 giorni** contando i fermi veri; 14 giorni-macchina persi su 180; il peggiore è **Dumper D3** con 11 giorni e un fermo **ancora aperto** | **Sì**, e i due numeri vanno etichettati: «adesso» e «sui 30 giorni» dicono cose diverse |
+| **T4 Sicurezza** | **178 giorni** senza infortuni; 12 mesi: 1 infortunio, 5 mancati infortuni, 0 gravi | **Sì** |
+| **T5 Ambiente** | **1 superamento** e 1 in attenzione su 5 punti monitorati | **Sì** |
+| **T6 Autorizzazione** | riserve residue **1.120.600 m³** → **8,9 anni** di materiale. Ma il titolo scade il **14/03/2031**, cioè **~4,6 anni** | **Sì, e con la cosa che vale davvero**: le due risposte sono diverse, e **quella che conta è la più corta** |
+| **T7 La giornata** | attività del turno, fermi, rapportini consegnati | **Sì** |
+
+**Il caso T6 merita una riga in più.** Un gestionale generalista, se anche
+avesse le riserve, direbbe «ti restano quasi nove anni». La verità è che ne
+restano **quattro e mezzo**, perché prima del materiale finisce il **titolo**. È
+esattamente il tipo di cosa che si vede solo mettendo insieme due app, ed è la
+ragione per cui il Quadro esiste.
+
+> **Nota di metodo, pagata sul momento.** La prima passata di questa prova
+> rispondeva `null` su T1 e T6, e sembrava che le due tessere non fossero
+> alimentabili. Non era vero: avevo passato a `proiezioneAnnua` l'oggetto
+> dell'autorizzazione dove voleva un **numero**, e a `riservaResidua` la stessa
+> cosa. È la regola di `CLAUDE.md`: quando una prova risponde male, prima di
+> dire che c'è un difetto si legge **come il codice si aspetta i dati** — una
+> prova sbagliata che accusa il codice fa perdere più tempo di nessuna prova.
+
 ### 1.6 Le tre tessere secondarie (sotto la piega)
 
 Stessa forma, meno peso visivo (numero a 20px invece di 30px).
