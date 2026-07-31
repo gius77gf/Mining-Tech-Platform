@@ -1294,6 +1294,33 @@ campi interi, file delle macchine.
       suo nome. Controprova a tre difetti (funzione senza prova in una app · in
       un modulo condiviso · fondo alzato sopra il vero): tre su tre fanno cadere
       il censimento **col motivo giusto**, e uscita 1.
+- [x] **Il «Conforme» che nessuno ha misurato** — trovato *(03/08,
+      `docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md`)*, **correzione da fare** —
+      passate a tappeto le **342 funzioni pure** dei sei moduli con input vuoti,
+      cercando **un solo segno**: una risposta **tranquilla** dove non è stato
+      misurato niente. Nove casi; otto legittimi e scritti come tali; **uno no**,
+      ed è sulla prima schermata di Sentinella. Un punto di misura nasce con
+      `valore: 0, letture: []` — nessuno ha misurato — e `statoMisura` risponde
+      **«Conforme», verde**. Misurato con sei punti appena configurati: il
+      cartellone dice «**6 punti entro soglia**», il KPI `k-conf` dice **6**, e
+      ogni badge dice **Conforme**. Non è un caso limite: è **il primo giorno di
+      ogni cliente**. Ed è più grave che altrove perché Sentinella è l'app del
+      **report all'ente**, e il principio violato è **nato proprio qui** — il
+      report era stato corretto, il badge, il KPI e il cartellone no. Correzione
+      decisa: quarta risposta «**mai misurato**» con `ratio: null` (non `0`),
+      `maiMisurati` in `riepilogoConformita`, e il cartellone che lo dice. ⚠️ Il
+      test da scrivere **per primo** è quello che impedisce di correggere
+      troppo: un punto con **una lettura a zero** deve restare **Conforme** —
+      «anche zero è un dato valido» lo dice già l'interfaccia. Nate due
+      trappole **dormienti** dichiarate (`scudo.statoAzione`/`statoIspezione`:
+      «regolare» senza scadenza, ma **nessun percorso** ne crea una senza data —
+      misurato). La sonda resta come **controllo**
+      (`apps/deepwork-id/tests/sonda-vuoto.mjs`): fallisce se compare un caso
+      **nuovo non dichiarato** — il verso che il fondo della copertura non sapeva
+      catturare — e anche se un caso dichiarato **sparisce**, così l'elenco non
+      invecchia. Oggi è **rosso** sull'unico difetto vero, ed **entra in
+      `npm test` col commit che lo corregge**: rosso in CI per ore non serve a
+      nessuno.
 
 ---
 
