@@ -46,7 +46,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**1.408 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 05/08: 1054 + 264 + 48 + 26 + 9 + 7):
+**1.411 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 05/08: 1054 + 267 + 48 + 26 + 9 + 7):
 
 E **435 funzioni pure su 435** sono chiamate per nome da quelle prove: tutte e
 sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nessuno ha
@@ -161,4 +161,4 @@ Stanno in `CLAUDE.md` e valgono per chiunque tocchi il codice: lo **stile**
 identico al core con la palette propria di ogni app, l'**isolamento
 multi-tenant** che passa sempre dall'SDK, e la regola che una **logica usata da
 due app vive in `shared/`** e si chiama, non si ricopia. `run-stile.mjs` ne
-rende **tredici** verificabili in automatico.
+rende **diciannove** verificabili in automatico.

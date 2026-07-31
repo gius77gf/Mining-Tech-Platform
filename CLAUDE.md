@@ -214,7 +214,7 @@ in italiano, senza dare conoscenze per scontate).
   `run-pointcloud.mjs`, `run-manifest.mjs`, `run-stile.mjs`) girano anch'esse
   con `node`.
 - **`run-stile.mjs` rende verificabili le regole vincolanti** che prima
-  vivevano solo qui — diciotto, al 03/08: niente dialoghi del browser, unità mai in
+  vivevano solo qui — diciannove, al 05/08: niente dialoghi del browser, unità mai in
   maiuscolo, nessun campo decimale `type="number"`, nessun campo decimale letto
   col lettore che fa zero, la guardia sui campi interi montata dove servono, il
   ponte con Terra che non dà la colpa a chi compila, la provenienza di un
@@ -226,8 +226,14 @@ in italiano, senza dare conoscenze per scontate).
   gli stati che la sua funzione sa dire**: quel giorno `statoScadenzaHSE` ha
   guadagnato una quarta risposta e la mappa dei badge ne aveva tre, cioè
   `B[st][0]` avrebbe ucciso la pagina **al disegno**, senza nessun errore di
-  sintassi da vedere. L'intestazione del file le elenca con la
-  ragione di ognuna. Quando nasce un'app va aggiunta all'elenco `SUPERFICI`.
+  sintassi da vedere. E — dal 05/08, **regola 19** — che **la barra in basso
+  abbia tante colonne quante voci**: `.nav` è una griglia a colonne fisse
+  (`--nav-cols`), quindi una voce aggiunta senza toccare quel numero non
+  stringe la barra, la manda **a capo**, e l'ultima voce finisce sotto le
+  altre, invisibile e non toccabile. Successo lo stesso giorno aggiungendo
+  «Costi» a Conti: nessun errore, nessuna prova rossa, e leggendo il codice non
+  si vede — l'ha trovato solo lo scatto. L'intestazione del file le elenca con
+  la ragione di ognuna. Quando nasce un'app va aggiunta all'elenco `SUPERFICI`.
 - ⚠️ **UNO STRUMENTO CONDIVISO DA TUTTI I CONTROLLI NON È CONTROLLATO DA
   NESSUNO.** Il 03/08 la scansione che sta sotto a tutte e sedici le regole
   **perdeva la fase**, per due difetti indipendenti: leggeva la pagina intera

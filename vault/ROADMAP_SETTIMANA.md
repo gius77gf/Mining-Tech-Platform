@@ -1721,6 +1721,24 @@ campi interi, file delle macchine.
       cadute. Prove `node` **1.406 → 1.408**, banchi del browser **33 → 35**.
       Prossimo: il **ponte col volume di Terra**, così il denominatore non si
       chiede più a mano.
+- [x] ✅ **LA BARRA CHE VA A CAPO È DIVENTATA UNA REGOLA** *(05/08)* — regola
+      **19** di `run-stile.mjs`: la barra in basso ha tante colonne quante voci.
+      Guarda tutt'e due i modi di sbagliare, e il secondo è il peggiore — se
+      `--nav-cols` **manca** non manca davvero, vale il 5 di
+      `shared/deepwork-style.css` e una app da sei voci ne perde una senza che
+      nessuno abbia scritto niente di sbagliato. Tre prove: la regola, la
+      **copertura** (sei barre trovate, almeno 30 voci lette) e la controprova
+      con tre difetti rimessi.
+      ⚠️ **E la controprova, la prima volta, l'ho scritta male**: `sed` sul file
+      vero mentre girava il giro del browser — cioè la cosa che `impronta.mjs`
+      esiste per impedire. È andata bene per fortuna, che è peggio che andare
+      male. La correzione non è «stare attenti»: la regola prende il **testo**,
+      non un percorso, quindi il difetto si rimette nella stringa e la
+      controprova vive dentro la suite per sempre. **Una controprova che ha
+      bisogno di modificare un file tracciato è scritta male.**
+      `run-stile` **264 → 267**, prove `node` **1.408 → 1.411**. E
+      `numeri-nei-documenti.mjs` ha stanato una frase ferma da giorni:
+      `DEVELOPMENT.md` diceva «tredici» regole di stile quando erano diciotto.
 
 ---
 

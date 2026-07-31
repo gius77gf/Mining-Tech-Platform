@@ -7,7 +7,7 @@
 // perché non falliscono i test, si vedono solo aprendo la pagina giusta.
 // Qui diventano controlli che girano in automatico.
 //
-// 18 regole, al 03/08. *(Era rimasto scritto «tredici» per giorni mentre
+// 19 regole, al 05/08. *(Era rimasto scritto «tredici» per giorni mentre
 // l'elenco cresceva: un numero in un commento non fallisce, sta lì — la stessa
 // ragione per cui esiste `numeri-nei-documenti.mjs`. Adesso c'è una prova in
 // fondo al file che lo confronta con le voci davvero elencate qui sotto.)*
@@ -120,6 +120,18 @@
 //     Terra aveva la stessa coppia e lo stesso rischio. La regola confronta le
 //     stringhe che la funzione può restituire con le chiavi della mappa che la
 //     pagina usa per disegnarle.
+//
+// 19. LA BARRA IN BASSO HA TANTE COLONNE QUANTE VOCI. `.nav` non è una fila
+//     elastica: è una GRIGLIA a colonne fisse
+//     (`grid-template-columns:repeat(var(--nav-cols),1fr)`), e il numero lo
+//     dichiara ogni app. Aggiungere una voce senza toccarlo non stringe la
+//     barra: la manda A CAPO, e l'ultima voce finisce su una seconda riga,
+//     sotto le altre. Successo il 05/08 aggiungendo «Costi» a Conti: ottava
+//     voce, numero rimasto a 7, «Report» sparito sotto la barra. Nessun errore
+//     in console, nessuna prova rossa, e leggendo il codice non si vede —
+//     l'unica cosa che l'ha trovato è stato guardare lo scatto. Se il numero
+//     manca del tutto è peggio, perché non manca davvero: vale il 5 di
+//     `shared/deepwork-style.css`, quindi una app da sei voci ne perde una.
 //
 // Come si aggiunge una regola: una funzione che restituisce l'elenco delle
 // violazioni con file e riga, e un `test(...)` che pretende zero.
@@ -1981,6 +1993,83 @@ test("regola 18: ha davvero letto le coppie funzione↔mappa", () => {
   }
   ok(viste === COPPIE_STATO.length,
     `${viste} coppie lette su ${COPPIE_STATO.length}: il controllo non sta guardando quello che crede`);
+});
+
+/* ────────────────────────────────────────────────────────────────────────
+   REGOLA 19 — LA BARRA IN BASSO HA TANTE COLONNE QUANTE VOCI
+   ────────────────────────────────────────────────────────────────────────
+   `.nav` è una griglia a colonne fisse: `repeat(var(--nav-cols),1fr)`. Una
+   voce in più senza il numero aggiornato non stringe la barra, la manda a
+   capo — e la voce che finisce sotto è invisibile e non toccabile.
+   Due direzioni, e la seconda è la più insidiosa: se `--nav-cols` MANCA, non
+   manca davvero — vale il 5 di `shared/deepwork-style.css`, quindi una app da
+   sei voci ne perde una senza aver scritto niente di sbagliato. */
+function barraNav(html) {
+  // il blocco <nav class="nav" …> … </nav>, se c'è
+  const m = html.match(/<nav[^>]*class="[^"]*\bnav\b[^"]*"[^>]*>([\s\S]*?)<\/nav>/);
+  if (!m) return null;
+  const voci = [...m[1].matchAll(/<button[^>]*\bid="nav-[^"]*"/g)].length;
+  if (!voci) return null;
+  const dic = html.match(/--nav-cols\s*:\s*(\d+)/);
+  return { voci, colonne: dic ? +dic[1] : null };
+}
+function barreSbagliate() {
+  const out = [];
+  for (const [nome, file] of SUPERFICI) {
+    const b = barraNav(leggi(file));
+    if (!b) continue;
+    if (b.colonne == null)
+      out.push(`${nome} (${file}): la barra ha ${b.voci} voci e NON dichiara --nav-cols`
+        + ` — vale il 5 di shared/deepwork-style.css, quindi ${b.voci > 5 ? b.voci - 5 + " voci finiscono" : "le voci finiscono"} a capo`);
+    else if (b.colonne !== b.voci)
+      out.push(`${nome} (${file}): la barra ha ${b.voci} voci ma --nav-cols dice ${b.colonne}`
+        + ` — ${b.colonne < b.voci ? `${b.voci - b.colonne} voce/i va/nno A CAPO, sotto la barra` : "restano colonne vuote"}`);
+  }
+  return out;
+}
+test("regola 19: ogni barra ha tante colonne quante voci", () => {
+  const v = barreSbagliate();
+  ok(v.length === 0, v.join("\n      "));
+});
+/* Quante barre ha davvero guardato. Un «zero violazioni» ottenuto su zero
+   soggetti è il difetto raccolto tre volte in CLAUDE.md — e qui è facilissimo
+   da prendere, perché basta che il markup della barra cambi di una virgola e
+   l'espressione non aggancia più niente, restando verde. */
+test("regola 19: ha davvero trovato le barre delle sei app", () => {
+  const con = SUPERFICI.map(([n, f]) => [n, barraNav(leggi(f))]).filter(([, b]) => b);
+  ok(con.length === 6,
+    `barre trovate: ${con.length} (${con.map(([n]) => n).join(", ")}) — attese 6, una per app verticale`);
+  const totale = con.reduce((t, [, b]) => t + b.voci, 0);
+  ok(totale >= 30, `voci di navigazione lette in tutto: ${totale}, troppe poche perché il controllo stia guardando davvero`);
+});
+/* ⚠️ LA CONTROPROVA STA QUI DENTRO, E NON TOCCA NESSUN FILE.
+   La prima volta l'ho fatta a mano — `sed` sul file vero, controllo, `sed`
+   indietro — mentre nell'altra finestra girava il giro del browser: cioè
+   esattamente la cosa che `impronta.mjs` esiste per impedire, e che avrebbe
+   invalidato un giro da mezz'ora. È andata bene per pochi secondi, il che è
+   peggio che andare male, perché non insegna niente.
+   La regola prende il TESTO, non un percorso: quindi il difetto si rimette
+   nella stringa, in memoria, e la controprova diventa permanente invece di
+   vivere in una sessione di terminale. È lo stesso principio dei banchi del
+   browser, che iniettano nella risposta HTTP e mai nel file. */
+test("regola 19: la controprova — la barra col numero indietro viene vista", () => {
+  const vero = leggi("apps/conti/index.html");
+  const b = barraNav(vero);
+  ok(b && b.voci >= 7, `serve una barra vera con almeno 7 voci per provarci: ${JSON.stringify(b)}`);
+
+  // difetto 1, quello successo davvero: il numero rimasto indietro di uno
+  const indietro = barraNav(vero.replace(`--nav-cols:${b.voci};`, `--nav-cols:${b.voci - 1};`));
+  ok(indietro && indietro.colonne === b.voci - 1,
+    "l'iniezione non ha agganciato niente: la controprova non prova niente");
+  ok(indietro.voci !== indietro.colonne, "col numero indietro la regola DEVE vedere la differenza");
+
+  // difetto 2: la dichiarazione tolta del tutto — non manca, vale 5
+  const senza = barraNav(vero.replace(/--nav-cols\s*:\s*\d+/g, "--nav-cols-tolta:0"));
+  ok(senza && senza.colonne === null, "senza dichiarazione la regola deve accorgersene, non dare per buono");
+
+  // difetto 3: il controllo CIECO — la barra che non si aggancia più
+  const cieca = barraNav(vero.replace(/<nav([^>]*)class="([^"]*)\bnav\b([^"]*)"/, '<nav$1class="$2barra-bassa$3"'));
+  ok(cieca === null, "cambiando la classe la regola deve smettere di vedere la barra (e allora è il conteggio dei soggetti a doverlo dire)");
 });
 
 /* Il numero di regole scritto nell'intestazione è quello vero? Era rimasto a
