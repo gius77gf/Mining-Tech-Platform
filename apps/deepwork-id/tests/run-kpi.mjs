@@ -8543,5 +8543,42 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+// ── Conti: i centesimi, e il valore di una pesata già emessa ─────────
+{
+  console.log("\n— Conti: i centesimi e la pesata già emessa —");
+
+  test("⛔ round2: i soldi si fermano al centesimo, sempre", () => {
+    /* è la funzione da cui passa OGNI importo di Conti: se la somma degli
+       acconti non torna col totale al centesimo, una fattura risulta non
+       saldata per un millesimo e parte un sollecito a un cliente in regola */
+    eq(conti.round2(10.005), 10.01, "il mezzo centesimo sale");
+    eq(conti.round2(1 / 3), 0.33, "un terzo di euro");
+    eq(conti.round2(0.1 + 0.2), 0.3, "e il rumore binario di 0,1 + 0,2 sparisce");
+    eq(conti.round2(-4.567), -4.57, "anche in negativo");
+  });
+  test("round2: quello che non è un numero vale zero, e qui è giusto così", () => {
+    /* è un arrotondatore, non un lettore: chi legge un importo scritto a
+       mano passa da numeroDaCampo, che invece DICE quando non capisce */
+    eq(conti.round2(null), 0, "null");
+    eq(conti.round2("boh"), 0, "non è un numero");
+    eq(conti.round2("12,5"), 0, "e nemmeno un numero all'italiana: quello lo legge un'altra funzione");
+  });
+  test("valorePesata: legge i dati FOTOGRAFATI sul documento, non il listino di oggi", () => {
+    /* un DDT già emesso vale quello che è stato consegnato e fatturato:
+       se domani il listino cambia, il documento non deve cambiare con lui */
+    eq(conti.valorePesata({ quantita: 18.3, prezzoUnitario: 12.5 }), 228.75, "quantità × prezzo del documento");
+    eq(conti.valorePesata({ quantita: 10, prezzoUnitario: 0 }), 0, "senza prezzo scritto: zero euro");
+    eq(conti.valorePesata({ prezzoUnitario: 12.5 }), 0, "senza quantità non c'è nessun valore");
+    eq(conti.valorePesata(null), 0, "nessuna pesata");
+    /* ⛔ il caso che conta, e che la prima stesura non aveva: una pesata
+       venduta a METRO CUBO ma SENZA densità ha il netto in tonnellate e la
+       quantità a null. Ripiegare sul netto la valuterebbe a 18,3 × 20 €/m³,
+       cioè moltiplicando tonnellate per un prezzo al metro cubo. Zero è la
+       risposta giusta, e la pagina lì scrive «manca la densità». */
+    eq(conti.valorePesata({ netto: 18.3, quantita: null, unitaVendita: "m3", prezzoUnitario: 20 }), 0,
+      "il netto NON è un ripiego della quantità venduta");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
