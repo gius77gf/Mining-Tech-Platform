@@ -6182,5 +6182,97 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ LE ISPEZIONI PERIODICHE ════════════════════════════════════════════
+   Il terzo ingresso del registro delle azioni correttive, dopo gli eventi e i
+   due ponti ambientali: da una voce **non conforme** nasce un'azione.
+
+   La regola più importante non riguarda i conteggi, riguarda il **tempo**: le
+   voci del modello vengono **copiate dentro** l'ispezione. Un modello che
+   cambia domani non deve riscrivere le ispezioni già fatte — **un controllo
+   firmato non si modifica a posteriori**, e un'ispezione che cambiasse forma
+   dopo la firma non varrebbe niente davanti a nessuno. */
+{
+  const OGGI = new Date("2026-07-31T12:00:00");
+  const CHIAVE = scudo.MODELLI_ISPEZIONE[0].chiave;
+
+  test("⛔ ispezione: le voci del modello sono COPIATE, non collegate", () => {
+    /* la copia è quello che rende il controllo un documento e non una vista su
+       un modello che intanto è cambiato */
+    const isp = scudo.nuovaIspezioneDaModello(CHIAVE, { data: "2026-07-31" });
+    const modello = scudo.modelloIspezione(CHIAVE);
+    eq(isp.voci.length, modello.voci.length, "tutte le voci del modello");
+    eq(isp.voci[0].testo, modello.voci[0], "col loro testo");
+    eq(isp.voci[0].id, "v1", "e un id proprio dell'ispezione");
+    eq(Array.isArray(isp.voci) && isp.voci !== modello.voci, true, "un elenco nuovo, non lo stesso oggetto");
+  });
+  test("ispezione: nasce in corso, senza esiti e senza data di chiusura", () => {
+    const isp = scudo.nuovaIspezioneDaModello(CHIAVE, { data: "2026-07-31" });
+    eq(isp.stato, "in-corso", "in corso");
+    eq(Object.keys(isp.esiti).length, 0, "nessun esito già messo");
+    eq(isp.dataChiusura, null, "e nessuna chiusura");
+  });
+  test("ispezione: un modello che non esiste non produce un'ispezione vuota", () => {
+    eq(scudo.nuovaIspezioneDaModello("inventato"), null, "null, non un guscio senza voci");
+  });
+  test("⛔ ispezione: quello che manca si conta, non si dà per conforme", () => {
+    /* una voce non ancora spuntata è «da fare»: contarla come conforme
+       renderebbe completo un controllo che nessuno ha finito */
+    const isp = scudo.nuovaIspezioneDaModello(CHIAVE, { data: "2026-07-31" });
+    isp.esiti[isp.voci[0].id] = { esito: "conforme" };
+    isp.esiti[isp.voci[1].id] = { esito: "non-conforme", nota: "sbarramento caduto" };
+    const r = scudo.riepilogoIspezione(isp);
+    eq(r.conformi, 1, "una conforme");
+    eq(r.nonConformi, 1, "una no");
+    eq(r.daFare, isp.voci.length - 2, "e tutte le altre restano da fare");
+    eq(r.completa, false, "quindi non è completa");
+  });
+  test("ispezione: «non applicabile» è una risposta data, non una mancante", () => {
+    const isp = scudo.nuovaIspezioneDaModello(CHIAVE, { data: "2026-07-31" });
+    for (const v of isp.voci) isp.esiti[v.id] = { esito: "na" };
+    const r = scudo.riepilogoIspezione(isp);
+    eq(r.na, isp.voci.length, "tutte non applicabili");
+    eq(r.completa, true, "il controllo è comunque finito");
+    eq(r.percento, 100, "e si vede");
+  });
+  test("⛔ ispezione: le voci non conformi portano con sé la nota", () => {
+    /* la nota è quello che diventa la descrizione dell'azione correttiva:
+       perderla lascerebbe un compito senza il fatto che l'ha generato */
+    const isp = scudo.nuovaIspezioneDaModello(CHIAVE, { data: "2026-07-31" });
+    isp.esiti[isp.voci[1].id] = { esito: "non-conforme", nota: "  sbarramento caduto  " };
+    const nc = scudo.vociNonConformi(isp);
+    eq(nc.length, 1, "una voce");
+    eq(nc[0].nota, "sbarramento caduto", "con la nota, ripulita dagli spazi");
+    eq(nc[0].testo, isp.voci[1].testo, "e col testo della voce");
+  });
+  test("⛔ ispezione: un'ispezione COMPLETATA non è più in ritardo", () => {
+    /* è finita: tenerla rossa è lo stesso allarme che nessuno può togliere
+       delle azioni correttive */
+    eq(scudo.statoIspezione({ stato: "completata", data: "2026-01-01" }, OGGI), "regolare", "fatta a gennaio");
+    eq(scudo.statoIspezione({ stato: "in-corso", data: "2026-01-01" }, OGGI), "scaduta", "una non finita invece sì");
+  });
+  test("ispezione: senza data programmata non si allarma", () => {
+    eq(scudo.statoIspezione({ stato: "in-corso", data: "" }, OGGI), "regolare", "manca la data, non il rispetto della data");
+  });
+  test("⛔ ispezioni: il riepilogo somma le non conformità di TUTTE, anche delle chiuse", () => {
+    /* una non conformità trovata resta un fatto anche dopo che l'ispezione è
+       stata chiusa: è da lì che nascono le azioni */
+    const a = scudo.nuovaIspezioneDaModello(CHIAVE, { data: "2026-01-01", stato: "completata" });
+    a.esiti[a.voci[0].id] = { esito: "non-conforme", nota: "x" };
+    const b = scudo.nuovaIspezioneDaModello(CHIAVE, { data: "2026-01-15" });
+    b.esiti[b.voci[0].id] = { esito: "non-conforme", nota: "y" };
+    const r = scudo.riepilogoIspezioni([a, b], OGGI);
+    eq(r.totale, 2, "due ispezioni");
+    eq(r.completate, 1, "una completata");
+    eq(r.scadute, 1, "e una non finita che era di gennaio");
+    eq(r.nonConformi, 2, "le non conformità si contano tutte e due");
+  });
+  test("ispezioni: i tre esiti hanno il colore del semaforo di tutta l'app", () => {
+    eq(scudo.esitoLabel("conforme").cls, "ok", "verde");
+    eq(scudo.esitoLabel("non-conforme").cls, "danger", "rosso");
+    eq(scudo.esitoLabel("na").cls, "tag", "e «non applicabile» non è né l'uno né l'altro");
+    eq(scudo.esitoLabel("boh"), null, "un esito inventato non esiste");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
