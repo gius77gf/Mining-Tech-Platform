@@ -1,9 +1,26 @@
 # Il «Conforme» che nessuno ha misurato
 
-*03/08. Trovato passando a tappeto le **342 funzioni pure** dei sei moduli dati
-con input vuoti e cercando **un solo segno**: una risposta **tranquilla** dove
-non è stato misurato niente. Nove candidati; otto sono legittimi; uno no, ed è
-sulla prima schermata di Sentinella.*
+*03/08. Trovato passando a tappeto le funzioni pure con input vuoti e cercando
+**un solo segno**: una risposta **tranquilla** dove non è stato misurato niente.*
+
+> ## ✅ Che cosa è stato chiuso, in fondo alla giornata
+>
+> Quattro difetti, di cui **uno live e nell'app della sicurezza**:
+>
+> | difetto | dove | stato |
+> |---|---|---|
+> | una **scadenza con la data illeggibile** era «regolare» — e ci si arriva da un import CSV | `shared/dw-ponti.js`, Scudo, Terra | ✅ `706cbb1` |
+> | «**Conforme**» su un punto che nessuno ha mai misurato | Sentinella | ✅ `59c8601` |
+> | un tagliando **senza ore obiettivo** dichiarato «SCADUTA (+500 h)» in rosso | Flotta | ✅ `c985af2` |
+> | una **data nella casella del conteggio** e la pagina muore di memoria | Conti | ✅ `c985af2` |
+>
+> Il primo ne ha richiesti **sei** di correzioni, perché lo stesso difetto era
+> scritto in sei punti con nomi diversi. Prove: `run-kpi` **999 → 1004**,
+> `run-helpers` **43 → 48**, totale `node` **1.346 → 1.356**.
+>
+> E la sonda che li ha trovati resta come **controllo**
+> (`apps/deepwork-id/tests/sonda-vuoto.mjs`), verde, con l'elenco dei casi
+> accettati e la ragione di ognuno.
 
 ---
 
