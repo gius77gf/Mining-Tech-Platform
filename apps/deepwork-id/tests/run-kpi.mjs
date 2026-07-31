@@ -7764,5 +7764,163 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+// ── Conti: incassi veri, tempi di pagamento, DDT e fattura differita ──
+/* Due parti, tenute insieme da una regola sola: **quello che non ha una
+   data non entra in una media, e viene detto a parte.**
+   · gli INCASSI: quanto è entrato davvero e in quanti giorni. Le fatture
+     segnate «incassata» prima che esistesse la data d'incasso non hanno un
+     giorno: contarle a zero giorni farebbe sembrare i clienti puntuali;
+   · le PESATE/DDT: il netto NON si digita, è sempre lordo − tara, perché è
+     il numero che va in fattura. E i pesi sono in TONNELLATE. */
+{
+  console.log("\n— Conti: incassi, tempi di pagamento, DDT —");
+  const OGGI = new Date("2026-07-15T10:00:00");
+
+  const FATT = [
+    { id: "f1", cliente: "Rossi", emessa: "2026-06-01", scadenza: "2026-07-01", importo: 1000 },
+    { id: "f2", cliente: "Rossi", emessa: "2026-05-01", scadenza: "2026-05-31", importo: 500,
+      incassata: true, dataIncasso: "2026-06-10" },
+    { id: "f3", cliente: "Bianchi", emessa: "2026-04-01", scadenza: "2026-05-01", importo: 300, incassata: true },
+    { id: "f4", cliente: "Bianchi", emessa: "2026-07-01", scadenza: "2026-07-31",
+      imponibile: 1000, ivaImporto: 220, totale: 1220 },
+  ];
+  const INC = [
+    { fatturaId: "f1", data: "2026-07-10", importo: 400 },
+    { fatturaId: "f1", data: "2026-06-20", importo: 600 },
+    { fatturaId: "f9", data: "2026-07-01", importo: 999 },   // orfano: la fattura non c'è più
+  ];
+
+  test("movimentiDiFattura: solo i suoi, in ordine di data, a centesimi", () => {
+    eq(flotta.nomeBreve("x"), "x", "guardia: siamo nel blocco di Conti, non di Flotta");
+    eq(conti.movimentiDiFattura("f1", INC).map(m => [m.data, m.importo]),
+      [["2026-06-20", 600], ["2026-07-10", 400]], "i due acconti in ordine");
+    eq(conti.movimentiDiFattura("", INC), [], "senza id non si prende niente");
+    eq(conti.movimentiDiFattura("f4", INC), [], "una fattura senza acconti");
+  });
+  test("statoIncasso: due acconti che coprono il totale saldano la fattura", () => {
+    /* la somma degli acconti deve tornare col totale AL CENTESIMO, e il
+       giorno del saldo è quello dell'ULTIMO movimento, non del primo */
+    contiene(conti.statoIncasso(FATT[0], INC),
+      { totale: 1000, incassato: 1000, residuo: 0, saldata: true, parziale: false,
+        dataSaldo: "2026-07-10", giorniPagamento: 39, ritardoPagamento: 9 }, "f1 saldata");
+  });
+  test("⛔ statoIncasso: «incassata» senza data resta senza giorni, e lo dichiara", () => {
+    /* è la fattura marcata incassata prima che la data esistesse: metterle
+       zero giorni la farebbe entrare nelle medie come un pagamento
+       immediato, cioè farebbe sembrare i clienti più puntuali di quanto sono */
+    contiene(conti.statoIncasso(FATT[2], INC),
+      { saldata: true, incassato: 300, dataSaldo: null, senzaData: true,
+        giorniPagamento: null, ritardoPagamento: null }, "f3 senza data");
+  });
+  test("incassatoPeriodo: un movimento orfano non conta, e il periodo taglia", () => {
+    /* i 999 € di «f9» non hanno più una fattura: sommarli gonfierebbe
+       l'incassato di un numero che non si può nemmeno aprire */
+    contiene(conti.incassatoPeriodo(FATT, INC, "2026-07-01", "2026-07-31"),
+      { importo: 400, daMovimenti: 400, movimenti: 1 }, "solo l'acconto di luglio");
+    contiene(conti.incassatoPeriodo(FATT, INC, "2026-06-01", "2026-06-30"),
+      { daMovimenti: 600, senzaMovimenti: 500, fattureVecchie: 1 }, "giugno: l'acconto più la vecchia");
+  });
+  test("incassatoPeriodo: l'incassata senza data entra solo nel totale d'archivio", () => {
+    /* non è databile: in un periodo non può stare, ma sparire sarebbe
+       peggio — `senzaData` e `importoSenzaData` servono a scriverlo */
+    contiene(conti.incassatoPeriodo(FATT, INC, "", ""),
+      { importo: 1800, senzaData: 1, importoSenzaData: 300 }, "tutto l'archivio: i 300 ci sono");
+    contiene(conti.incassatoPeriodo(FATT, INC, "2026-07-01", "2026-07-31"),
+      { senzaData: 1, importoSenzaData: 300 }, "e in un periodo si dichiarano lo stesso");
+  });
+  test("tempiPagamentoClienti: la media si fa solo sulle date vere", () => {
+    /* una media su date inventate sarebbe peggio di nessuna media */
+    const t = conti.tempiPagamentoClienti(FATT, INC);
+    contiene(t.find(x => x.cliente === "Rossi"),
+      { conto: 2, importo: 1500, conGiorni: 2, giorniMedi: 40, ritardoMedio: 10 }, "Rossi");
+    contiene(t.find(x => x.cliente === "Bianchi"),
+      { conto: 1, senzaData: 1, giorniMedi: null, ritardoMedio: null },
+      "Bianchi ha una fattura saldata ma senza data: nessuna media, e si vede");
+  });
+  test("tempoMedioPagamento: conta le saldate con data e dichiara le altre", () => {
+    contiene(conti.tempoMedioPagamento(FATT, INC), { giorni: 40, conto: 2, senzaData: 1, ritardo: 10 }, "media");
+    contiene(conti.tempoMedioPagamento([], []), { giorni: null, conto: 0, ritardo: null },
+      "senza fatture non esiste un tempo medio: null, non zero giorni");
+  });
+  test("emessoIncassato: l'incassato sta nel mese in cui i soldi sono ENTRATI", () => {
+    /* prima della data vera dell'incasso questo confronto non si poteva
+       fare: l'incassato finiva nel mese di emissione, cioè copiava l'altra
+       serie e il grafico mostrava due linee identiche */
+    const e = conti.emessoIncassato(FATT, INC, 4, OGGI);
+    eq(e.mesi.map(m => m.mese), ["2026-04", "2026-05", "2026-06", "2026-07"], "quattro mesi fino a oggi");
+    contiene(e.mesi[2], { mese: "2026-06", emesso: 1000, incassato: 1100 },
+      "giugno: emessa f1, entrati 600 di acconto + i 500 della f2 saldata il 10");
+    contiene(e.mesi[3], { mese: "2026-07", emesso: 1220, incassato: 400 }, "luglio");
+    contiene(e, { conDato: 4, emesso: 3020, incassato: 1500, senzaData: 1, importoSenzaData: 300 }, "totali");
+  });
+
+  const P_T = { prezzo: 12.5, unitaPrezzo: "t", densita: 1.6, iva: 22 };
+  const P_M3 = { prezzo: 20, unitaPrezzo: "m3", densita: 1.6, iva: 22 };
+  test("rigaPesata: il netto è lordo − tara, e i pesi sono in tonnellate", () => {
+    /* il netto NON si digita: è il numero che va in fattura, quindi deve
+       venire dal calcolo e non dalla mano di chi scrive */
+    contiene(conti.rigaPesata(P_T, 32.5, 14.2), { netto: 18.3, unitaVendita: "t", quantita: 18.3, valore: 228.75 },
+      "32,5 meno 14,2");
+    contiene(conti.rigaPesata(P_T, 100, 500), { netto: 0, valore: 0 }, "una tara più grande del lordo non fa un netto negativo");
+  });
+  test("rigaPesata: se il prodotto si vende a metro cubo si converte con la densità", () => {
+    contiene(conti.rigaPesata(P_M3, 32.5, 14.2), { unitaVendita: "m3", densita: 1.6, quantita: 11.438, valore: 228.76 },
+      "18,3 t diviso 1,6");
+  });
+  test("⛔ rigaPesata: senza densità non si inventa una conversione", () => {
+    /* meglio nessun numero che un numero falso: qui il valore è null e la
+       pagina lo mostra come «manca la densità», non come «0 €» */
+    contiene(conti.rigaPesata({ prezzo: 20, unitaPrezzo: "m3", iva: 22 }, 32.5, 14.2),
+      { unitaVendita: "m3", densita: null, quantita: null, valore: null }, "niente conversione");
+  });
+  test("quantitaPesata: le tonnellate sono sempre vere, i metri cubi solo con la densità", () => {
+    /* le tonnellate le ha pesate la bilancia; i m³ sono un conto */
+    eq(conti.quantitaPesata({ netto: 18.3, quantita: 18.3, unitaVendita: "t", densita: 1.6 }),
+      { t: 18.3, m3: 11.438 }, "con densità");
+    eq(conti.quantitaPesata({ netto: 5, quantita: 5, unitaVendita: "t" }), { t: 5, m3: null }, "senza densità");
+  });
+  test("prezzoPerMetroCubo: si converte solo se la densità c'è", () => {
+    eq(conti.prezzoPerMetroCubo(P_T), 20, "12,50 €/t × 1,6");
+    eq(conti.prezzoPerMetroCubo(P_M3), 20, "già in €/m³");
+    eq(conti.prezzoPerMetroCubo({ prezzo: 12.5, unitaPrezzo: "t" }), null, "senza densità: null");
+    eq(conti.UNITA_LABEL.m3, "m³", "e l'unità si scrive col cubo, mai «M3»");
+  });
+
+  const PES = [
+    { id: "p1", numero: "1", data: "2026-07-02", prodotto: "Misto", prodottoId: "m", netto: 18, quantita: 18, unitaVendita: "t", prezzoUnitario: 12.5, aliquotaIva: 22, densita: 1.6 },
+    { id: "p2", numero: "2", data: "2026-07-03", prodotto: "Misto", prodottoId: "m", netto: 10, quantita: 10, unitaVendita: "t", prezzoUnitario: 12.5, aliquotaIva: 22, densita: 1.6 },
+    { id: "p3", numero: "3", data: "2026-07-04", prodotto: "Misto", prodottoId: "m", netto: 10, quantita: 10, unitaVendita: "t", prezzoUnitario: 14, aliquotaIva: 22, densita: 1.6 },
+    { id: "p4", numero: "4", data: "2026-07-05", prodotto: "Sabbia", prodottoId: "s", netto: 5, quantita: 5, unitaVendita: "t", prezzoUnitario: 20, aliquotaIva: 22 },
+  ];
+  test("fatturaDaPesate: stesso prodotto a prezzo diverso resta una riga diversa", () => {
+    /* raggrupparli darebbe un prezzo unitario medio che non compare su
+       nessun DDT e non si potrebbe spiegare al cliente */
+    const F = conti.fatturaDaPesate(PES);
+    eq(F.righe.map(r => [r.descrizione, r.prezzoUnitario, r.quantita, r.imponibile]),
+      [["Misto", 12.5, 28, 350], ["Misto", 14, 10, 140], ["Sabbia", 20, 5, 100]], "tre righe");
+    eq(F.righe[0].ddt, ["1", "2"], "e ogni riga porta i numeri dei DDT che la compongono");
+  });
+  test("fatturaDaPesate: totali, IVA e periodo dei documenti", () => {
+    const F = conti.fatturaDaPesate(PES);
+    contiene(F, { imponibile: 590, ivaImporto: 129.8, totale: 719.8, conto: 4,
+      dal: "2026-07-02", al: "2026-07-05" }, "riepilogo");
+  });
+  test("fatturaDaPesate: senza nessun DDT non c'è nessuna fattura", () => {
+    /* null, non una fattura vuota da zero euro che qualcuno può emettere */
+    eq(conti.fatturaDaPesate([]), null, "nessun documento");
+    eq(conti.fatturaDaPesate([null, undefined]), null, "e nemmeno righe finte");
+  });
+  test("venditePerProdotto: il materiale senza densità porta le tonnellate ma non i metri cubi", () => {
+    /* le sue tonnellate sono vere (le ha pesate la bilancia), i suoi metri
+       cubi no — e quindi nemmeno il valore per metro cubo può comprenderlo */
+    const v = conti.venditePerProdotto(PES, "2026-07-01", "2026-07-31");
+    contiene(v.find(r => r.prodotto === "Misto"), { t: 38, m3: 23.75, valore: 490, viaggi: 3, senzaDensita: 0 }, "Misto");
+    contiene(v.find(r => r.prodotto === "Sabbia"),
+      { t: 5, m3: 0, valore: 100, senzaDensita: 1, tSenzaDensita: 5, valoreConvertibile: 0 },
+      "Sabbia: tonnellate sì, metri cubi no, e il valore resta fuori dai €/m³");
+    eq(conti.venditePerProdotto(PES, "2026-08-01", "2026-08-31"), [], "fuori periodo: niente");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
