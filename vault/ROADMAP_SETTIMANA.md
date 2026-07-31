@@ -781,8 +781,19 @@ campi interi, file delle macchine.
       *Due lezioni pagate: una prova nuova non discriminava (i numeri scelti
       davano lo stesso risultato con e senza la difesa), e tre sono nate rosse
       perché avevo indovinato la forma dei dati invece di leggerla.*
+- [x] **Copertura per priorità di danno, seconda tornata**: il report di
+      conformità (il documento che va all'ente), chi va fermato e chi no
+      (`lavoratoriScoperti`), il giro macchina. **58 prove nuove** in giornata.
+- [x] ⚠️ **DIFETTO DI PRODOTTO trovato e corretto**: nel riquadro «giro
+      macchina» il conteggio dei mezzi con anomalie guardava solo il PRIMO giro
+      di ogni mezzo. Primo giro pulito, secondo giro con un'anomalia → il
+      riquadro diceva **zero**. In cava il giro si fa a ogni cambio turno,
+      quindi è il caso normale. Dipendeva perfino dall'ordine dell'elenco.
+- [x] **Regola nuova in `CLAUDE.md`**: niente iniezioni di difetti nei moduli
+      dati mentre gira un giro del browser — le pagine se li importano. Un giro
+      a 19 banchi è stato buttato per questo, ed è un errore mio.
 - Regole **14**; stile **149 → 177** prove; banchi del browser **15 → 19**;
-  prove `node` totali **719**.
+  prove `node` totali **750** (KPI **433 → 491**).
 
 ### Difetti chiusi il 30/07 (tutti «silenziosi»: nessuno dava errore)
 - [x] La **striscia** e la **pastiglia** di un riquadro dicevano un colore
