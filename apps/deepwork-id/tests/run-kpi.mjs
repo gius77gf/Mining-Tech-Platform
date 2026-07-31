@@ -7922,5 +7922,162 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+// ── Sentinella: la strada da cui entrano i numeri dello strumento ─────
+/* Il file del sismografo è la sorgente dei numeri che finiscono nel report
+   per l'ente. Il 31/07 proprio da qui è uscito un difetto vero — una misura
+   che spariva, annunciata all'utente come «1 doppione scartato» — e quindi
+   questo pezzo va tenuto stretto riga per riga: il lettore CSV, il
+   riconoscimento della data all'italiana, l'ora, la firma con cui si
+   riconosce un doppione, e il taglio a MAX_LETTURE. */
+{
+  console.log("\n— Sentinella: import dallo strumento e serie storica —");
+
+  test("leggiCsv: riconosce da solo il punto e virgola, la virgola e il TAB", () => {
+    eq(sentinella.leggiCsv("Data;Ora;PPV\n12/07/2026;10:30;4,8\n").delim, ";", "punto e virgola");
+    eq(sentinella.leggiCsv("Data\tOra\tPPV\n12/07/2026\t10:30\t4,8").delim, "\t", "TAB");
+    eq(sentinella.leggiCsv("a,b,c\n1,2,3").delim, ",", "virgola");
+  });
+  test("leggiCsv: le virgolette proteggono il separatore e sé stesse", () => {
+    /* senza questo, «b;c» dentro un campo diventerebbe due colonne e tutta
+       la riga scivolerebbe: la data finirebbe nella colonna dell'ora */
+    eq(sentinella.leggiCsv('a;"b;c";d').righe, [["a", "b;c", "d"]], "separatore dentro le virgolette");
+    eq(sentinella.leggiCsv('a;"lui ha detto ""ok""";c').righe, [["a", 'lui ha detto "ok"', "c"]],
+      "virgolette raddoppiate");
+    eq(sentinella.leggiCsv('a;"riga1\nriga2";c').righe, [["a", "riga1\nriga2", "c"]], "a capo dentro un campo");
+  });
+  test("leggiCsv: BOM, fine riga Windows e righe vuote non fanno danni", () => {
+    /* il BOM è il carattere invisibile che Excel mette in testa al file:
+       senza toglierlo, la prima intestazione non verrebbe riconosciuta.
+       ⚠️ Il BOM è protetto da DUE guardie indipendenti: il `replace` in
+       testa a leggiCsv e il `trim()` su ogni cella — U+FEFF per
+       `String.prototype.trim()` è uno spazio. Togliendone una sola la prova
+       NON cade: misurato scrivendola. Chi domani volesse «semplificare»
+       togliendo il replace deve sapere che a reggere resta il trim. */
+    eq(sentinella.leggiCsv("﻿a;b\r\nc;d\r\n").righe, [["a", "b"], ["c", "d"]], "BOM + CRLF");
+    eq(sentinella.leggiCsv("a;b\n\n\nc;d").righe, [["a", "b"], ["c", "d"]], "righe vuote via");
+    eq(sentinella.leggiCsv("").righe, [], "file vuoto");
+    eq(sentinella.leggiCsv(null).righe, [], "niente");
+  });
+  test("paresIntestazione: una riga che contiene un numero non è un'intestazione", () => {
+    ok(sentinella.paresIntestazione([["Data", "Ora", "PPV"]]), "titoli");
+    ok(!sentinella.paresIntestazione([["12/07/2026", "10:30", "4,8"]]), "già dati");
+    ok(!sentinella.paresIntestazione([]), "niente righe");
+    ok(!sentinella.paresIntestazione([["", "", ""]]), "riga vuota");
+  });
+
+  test("⛔ dataIso: due numeri di due cifre si leggono GIORNO/MESE, all'italiana", () => {
+    /* è la regola dichiarata anche nella schermata. Leggerla all'americana
+       sposterebbe le misure di mesi interi dentro un documento per l'ente */
+    eq(sentinella.dataIso("12/07/2026"), "2026-07-12", "12 luglio, non 7 dicembre");
+    eq(sentinella.dataIso("07/12/2026"), "2026-12-07", "e il 7 dicembre si scrive così");
+  });
+  test("dataIso: tutti i formati che si trovano negli export dello strumento", () => {
+    for (const d of ["2026-07-12", "2026/07/12", "12/07/2026", "12-07-2026", "12.07.2026", "12/07/26"])
+      eq(sentinella.dataIso(d), "2026-07-12", d);
+    eq(sentinella.dataIso("12/07/2026 10:30"), "2026-07-12", "data e ora nella stessa cella");
+    eq(sentinella.dataIso("12/07/68"), "2068-07-12", "l'anno a due cifre gira sul 70");
+  });
+  test("⛔ dataIso: una data che non esiste viene SCARTATA, non «corretta»", () => {
+    /* il 31 febbraio non è il 3 marzo: correggerlo in silenzio metterebbe
+       nel registro una misura in un giorno in cui non è stata fatta */
+    eq(sentinella.dataIso("31/02/2026"), "", "31 febbraio");
+    eq(sentinella.dataIso("13/13/2026"), "", "mese tredici");
+    eq(sentinella.dataIso("boh"), "", "non è una data");
+    eq(sentinella.dataIso(""), "", "vuoto");
+  });
+  test("oraHm: solo i due punti separano l'ora, e le ore impossibili non passano", () => {
+    /* col punto «12.07» sarebbe la data, non le dodici e sette */
+    eq(sentinella.oraHm("10:30"), "10:30", "ora e minuti");
+    eq(sentinella.oraHm("10:30:12"), "10:30", "i secondi si buttano");
+    eq(sentinella.oraHm("12/07/2026 10:30"), "10:30", "dentro una data completa");
+    eq(sentinella.oraHm("12.07"), "", "col punto è una data");
+    eq(sentinella.oraHm("25:00"), "", "le 25 non esistono");
+    eq(sentinella.oraHm("10:75"), "", "e nemmeno il minuto 75");
+    eq(sentinella.oraHm(null), "", "niente");
+  });
+
+  test("chiaveOrdine: una lettura senza ora resta all'inizio del suo giorno", () => {
+    /* è il comportamento di prima dell'import: nessuna serie storica già
+       salvata cambia forma perché è stata aggiunta la colonna dell'ora */
+    ok(sentinella.chiaveOrdine({ data: "2026-07-12" }) < sentinella.chiaveOrdine({ data: "2026-07-12", ora: "00:01" }),
+      "senza ora viene prima");
+    ok(sentinella.chiaveOrdine({ data: "2026-07-12", ora: "23:59" }) < sentinella.chiaveOrdine({ data: "2026-07-13" }),
+      "e mai dopo il giorno seguente");
+  });
+  test("⛔ firmaLettura: stessa data, stessa ora, stesso valore = stessa lettura", () => {
+    /* è la firma che ha causato il difetto del 31/07: quando l'ora veniva
+       persa, due misure diverse dello stesso giorno diventavano un doppione
+       e la seconda spariva dal report per l'ente, annunciata come «1
+       doppione scartato». La difesa vera sta a monte (l'ora si legge anche
+       dalla cella della data); qui si blinda che l'ORA ENTRI nella firma. */
+    const a = { data: "2026-07-12", ora: "10:30", valore: 4.8 };
+    const b = { data: "2026-07-12", ora: "11:00", valore: 4.8 };
+    ok(sentinella.firmaLettura(a) !== sentinella.firmaLettura(b),
+      "stesso giorno e stesso valore, ORE diverse: sono due misure");
+    eq(sentinella.firmaLettura(a), sentinella.firmaLettura({ ...a }), "la stessa lettura ha la stessa firma");
+  });
+  test("unisciLetture: scarta i doppioni anche DENTRO lo stesso file", () => {
+    /* reimportare il file della settimana che si sovrappone alla precedente
+       non deve raddoppiare la serie: su un documento per l'ente è un falso */
+    const r = sentinella.unisciLetture(
+      [{ data: "2026-07-12", ora: "10:30", valore: 4.8 }],
+      [{ data: "2026-07-12", ora: "10:30", valore: 4.8 },
+       { data: "2026-07-12", ora: "11:00", valore: 5.2 },
+       { data: "2026-07-12", ora: "11:00", valore: 5.2 }]);
+    contiene(r, { aggiunte: 1, duplicati: 2, tagliate: 0 }, "uno già c'era, uno era ripetuto nel file");
+    eq(r.letture.length, 2, "restano due letture");
+  });
+  test("unisciLetture: oltre il tetto si tengono le ULTIME, e il taglio si dichiara", () => {
+    /* buttare le più recenti sarebbe assurdo; buttarle in silenzio anche */
+    const r = sentinella.unisciLetture([], Array.from({ length: 5 }, (_, i) => ({ data: "2026-07-1" + i, valore: i + 1 })), 3);
+    eq(r.letture.length, 3, "il tetto vale");
+    eq(r.letture[0].data, "2026-07-12", "sono le tre più recenti");
+    contiene(r, { aggiunte: 5, tagliate: 2 }, "e quante ne sono state tagliate si sa");
+    eq(sentinella.MAX_LETTURE, 500, "il tetto vero è 500: 50 butterebbe quasi tutto un file appena importato");
+  });
+
+  test("unitaMisura: l'unità scritta dall'utente ha sempre la priorità", () => {
+    /* il ripiego per tipo serve solo quando l'utente non ha detto niente:
+       se ha scritto lui l'unità, è quella dell'autorizzazione */
+    eq(sentinella.unitaMisura({ unita: "mm/s ", tipo: "rumore" }), "mm/s", "vince quella scritta");
+    eq(sentinella.unitaMisura({ tipo: "Rumore" }), "dB(A)", "ripiego per tipo, anche col maiuscolo");
+    eq(sentinella.unitaMisura({ tipo: "boh" }), "", "tipo sconosciuto: nessuna unità inventata");
+    eq(sentinella.UNITA_TIPO.polveri, "µg/m³", "e le unità si scrivono per esteso, mai in maiuscolo");
+  });
+  test("serieStorica: le letture si ordinano per data E ORA", () => {
+    /* con l'import arrivano molte letture nello stesso giorno: una serie
+       fuori ordine racconterebbe un andamento che non è mai esistito */
+    const g = sentinella.serieStorica({ tipo: "vibrazioni", soglia: 5, letture: [
+      { data: "2026-07-12", ora: "11:00", valore: 5.2 },
+      { data: "2026-07-12", ora: "10:30", valore: 4.8 },
+      { data: "2026-07-10", valore: 2.1 },
+      { data: "2026-07-11", valore: "x" },
+    ] }, {});
+    contiene(g, { vuoto: false, n: 3, unita: "mm/s", soglia: 5, superamenti: 1, max: 5.2, ultimo: 5.2 },
+      "tre letture buone, una scartata perché il valore non è un numero");
+    ok(g.path.startsWith("M"), "e la geometria della linea esiste");
+  });
+  test("serieStorica: senza letture non c'è nessuna linea da disegnare", () => {
+    const g = sentinella.serieStorica({ tipo: "rumore" }, {});
+    contiene(g, { vuoto: true, n: 0, unita: "dB(A)", soglia: null, path: "", superamenti: 0 }, "vuota");
+    eq(g.punti, [], "nessun punto");
+  });
+  test("⛔ serieStorica: la soglia è quella impostata, e se schiaccia i dati lo dice", () => {
+    /* la soglia non si inventa mai: senza, è null. E una soglia molto più
+       alta dei dati appiattirebbe la linea a filo dell'asse — allora resta
+       segnata come `fuoriScala` invece di rendere illeggibile il grafico */
+    eq(sentinella.serieStorica({ tipo: "vibrazioni", letture: [{ data: "2026-07-10", valore: 1 }] }, {}).soglia, null,
+      "nessuna soglia impostata: nessuna soglia disegnata");
+    const g = sentinella.serieStorica({ tipo: "vibrazioni", soglia: 500, letture: [{ data: "2026-07-10", valore: 1 }] }, {});
+    contiene(g.lineaSoglia, { valore: 500, fuoriScala: true }, "soglia dichiarata fuori scala");
+  });
+  test("i tipi di ricettore sono una lista chiusa, e uno sconosciuto non diventa «abitazione»", () => {
+    eq(sentinella.TIPI_RICETTORE.map(t => t.chiave),
+      ["abitazione", "scuola", "ospedale", "confine", "storico", "altro"], "i sei tipi");
+    eq(sentinella.etichettaTipo("scuola"), "Scuola", "noto");
+    eq(sentinella.etichettaTipo("zzz"), "Ricettore", "sconosciuto: generico, non il primo dell'elenco");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
