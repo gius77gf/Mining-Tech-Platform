@@ -8204,5 +8204,108 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+// ── Terra: la denuncia annuale dei volumi e le scadenze del titolo ────
+/* Il numero che esce da qui va all'ente, e la distinzione che lo regge è
+   una sola: lo SCAVO consuma il volume concesso, la RIPRESA DA UN CUMULO
+   no — è materiale già estratto in passato. Sommarli è «l'errore che si
+   vede fare più spesso sui fogli di calcolo», e su una denuncia significa
+   dichiarare di aver consumato titolo che non è stato consumato. */
+{
+  console.log("\n— Terra: denuncia annuale e scadenze del titolo —");
+  const OGGI = new Date("2026-07-15T10:00:00");
+  const RIL = [
+    { id: "r1", data: "2026-03-10", stato: "elaborato", volumeM3: 1000, fronteId: "f1" },
+    { id: "r2", data: "2026-05-20", stato: "elaborato", volumeM3: 800, fronteId: "f1" },
+    { id: "r3", data: "2025-11-05", stato: "elaborato", volumeM3: 500, fronteId: "f1" },
+    { id: "r4", data: "2026-06-01", stato: "elaborato", volumeM3: 300, fronteId: null, provenienza: "cumulo" },
+    { id: "r5", data: "2026-04-01", stato: "bozza", volumeM3: 999, fronteId: "f1" },
+    { id: "r6", data: "2026-04-02", stato: "elaborato", volumeM3: null, fronteId: "f1" },
+    { id: "r7", data: "boh", stato: "elaborato", volumeM3: 100, fronteId: "f1" },
+    { id: "r8", data: "2026-02-01", stato: "elaborato", volumeM3: 200, fronteId: "f2" },
+  ];
+  const AUT = { volumeAutorizzatoM3: 10000, estrattoPregressoM3: 1000 };
+
+  test("PROVENIENZE: due sole, e ognuna dice in italiano che cosa cambia", () => {
+    eq(terra.PROVENIENZE.map(p => p.chiave), ["scavo", "cumulo"], "scavo e cumulo");
+    ok(/consuma il volume concesso/.test(terra.PROVENIENZE[0].nota), "lo scavo consuma");
+    ok(/non consuma il volume concesso/.test(terra.PROVENIENZE[1].nota), "la ripresa no");
+  });
+  test("etichettaProvenienza: quello che non è dichiarato «cumulo» è scavo", () => {
+    /* la scelta prudente: un rilievo vecchio senza il campo vale scavo,
+       cioè consuma titolo. Dare per «cumulo» quello che non si sa
+       farebbe risultare più titolo residuo di quanto ce n'è. */
+    eq(terra.etichettaProvenienza("cumulo"), "Ripresa da un cumulo", "cumulo");
+    eq(terra.etichettaProvenienza("scavo"), "Scavo dal fronte", "scavo");
+    eq(terra.etichettaProvenienza(""), "Scavo dal fronte", "non dichiarata");
+    eq(terra.etichettaProvenienza("zzz"), "Scavo dal fronte", "parola sconosciuta");
+  });
+
+  test("rilieviScavoFronte: solo elaborati, con volume, con data vera, di QUEL fronte", () => {
+    /* un rilievo in bozza o senza volume non è confrontabile, e mescolare
+       due fronti sarebbe sommare cose diverse */
+    eq(terra.rilieviScavoFronte(RIL, "f1").map(r => r.id), ["r2", "r1", "r3"], "dal più recente");
+    eq(terra.rilieviScavoFronte(RIL, "f2").map(r => r.id), ["r8"], "l'altro fronte per conto suo");
+    eq(terra.rilieviScavoFronte(RIL, null), [], "il rilievo senza fronte qui è di cumulo, e non entra");
+  });
+  test("rilievoPrecedente: il primo rilievo non ha un prima", () => {
+    /* «un volume senza il rilievo di partenza non dice da dove è stato
+       misurato»: meglio null che il rilievo di un altro fronte */
+    eq(terra.rilievoPrecedente(RIL, RIL[1]).id, "r1", "prima di r2 c'è r1");
+    eq(terra.rilievoPrecedente(RIL, RIL[2]), null, "r3 è il primo");
+    eq(terra.rilievoPrecedente(RIL, RIL[6]), null, "una data storta non trova nessun precedente");
+    eq(terra.rilievoPrecedente(RIL, null), null, "nessun rilievo");
+  });
+
+  test("⛔ anniConVolumi: l'anno in corso c'è SEMPRE, anche a volumi zero", () => {
+    /* la denuncia si prepara anche quando l'anno non è finito, e va
+       inviata anche se non si è scavato: se l'anno non comparisse
+       nell'elenco, non ci sarebbe modo di prepararla */
+    eq(terra.anniConVolumi(RIL, OGGI), [2026, 2025], "dal più recente");
+    eq(terra.anniConVolumi([], OGGI), [2026], "nessun rilievo: c'è comunque l'anno in corso");
+  });
+  test("⛔ serieAnnuale: lo scavo consuma il titolo, la ripresa dai cumuli NO", () => {
+    /* 300 m³ ripresi da un cumulo restano fuori dal cumulato: sono
+       materiale già estratto, e contarli vorrebbe dire dichiarare di aver
+       consumato titolo che non è stato consumato */
+    const s = terra.serieAnnuale(RIL, AUT, OGGI);
+    eq(s.map(a => a.anno), [2025, 2026], "in ordine di tempo, come le denunce");
+    contiene(s[0], { anno: 2025, scavo: 500, cumulo: 0, cumulato: 1500, pct: 15, inCorso: false },
+      "2025: 500 scavati sopra 1.000 di pregresso");
+    contiene(s[1], { anno: 2026, scavo: 2000, cumulo: 300, cumulato: 3500, pct: 35, inCorso: true },
+      "2026: 2.000 scavati, e i 300 del cumulo restano fuori dal cumulato");
+    eq(s[1].cumulato - s[0].cumulato, s[1].scavo, "la differenza fra i due cumulati è esattamente lo scavo");
+  });
+  test("serieAnnuale: bozze, rilievi senza volume e date storte non entrano", () => {
+    /* r5 è in bozza (999), r6 non ha volume, r7 ha una data illeggibile:
+       nessuno dei tre deve finire in un numero che va all'ente */
+    const s = terra.serieAnnuale(RIL, AUT, OGGI);
+    eq(s[1].scavo, 2000, "1.000 + 800 + 200, e basta");
+    eq(s[1].rilievi, 4, "quattro rilievi contati nell'anno");
+  });
+
+  test("TIPI_SCADENZA_TERRA: nessuna periodicità cablata, perché è materia regionale", () => {
+    /* è la regola vincolante del progetto: le scadenze e i termini cambiano
+       da regione a regione e da atto ad atto, e li mette sempre l'utente */
+    for (const p of terra.TIPI_SCADENZA_TERRA) {
+      ok(p.chiave && p.etichetta, "chiave ed etichetta: " + p.chiave);
+      ok(!("giorni" in p) && !("mesi" in p) && !("preavviso" in p),
+        "nessuna periodicità dentro la voce: " + p.chiave);
+    }
+    ok(terra.TIPI_SCADENZA_TERRA.some(p => p.chiave === "autorizzazione"), "il titolo c'è");
+    ok(terra.TIPI_SCADENZA_TERRA.some(p => p.chiave === "fideiussione"), "e la fideiussione anche");
+  });
+  test("presetScadenzaTerra: quello che propone è SEMPRE «da verificare»", () => {
+    /* Terra non può indovinare i termini: la proposta esce già marcata */
+    contiene(terra.presetScadenzaTerra("fideiussione"), { chiave: "fideiussione", daVerificare: true }, "marcata");
+    eq(terra.presetScadenzaTerra("zzz"), null, "un tipo che non esiste non diventa il primo dell'elenco");
+  });
+  test("etichettaTipoScadenza: nell'elenco si legge solo la parte prima del trattino", () => {
+    eq(terra.etichettaTipoScadenza("autorizzazione"), "Autorizzazione / concessione", "corta");
+    eq(terra.etichettaTipoScadenza("altro"), "Altro adempimento", "senza trattino resta intera");
+    eq(terra.etichettaTipoScadenza("zzz"), "zzz", "una chiave sconosciuta si mostra com'è");
+    eq(terra.etichettaTipoScadenza(""), "Altro", "e senza chiave si dice «Altro»");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
