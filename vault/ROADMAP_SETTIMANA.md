@@ -943,7 +943,7 @@ campi interi, file delle macchine.
 - [x] **Copertura delle funzioni pure, app per app** *(ricontata il 02/08
       cercando `app.<nome>` in run-kpi.mjs, non a memoria)*: Scudo 70/71 *(era 22)*,
       Terra 38/39 *(era 23)*, Conti 54/58 *(era 35)*, Flotta 65/71 *(era 29)*,
-      Campo 65/73 *(era 26)*, Sentinella 101/107 *(era 37)*. Nessuna app è più sotto la metà; quello che resta scoperto
+      Campo **73/73** *(era 26)*, Sentinella 101/107 *(era 37)*. Nessuna app è più sotto la metà; quello che resta scoperto
       sono quasi solo costanti e trasporto dati.
 - [x] **Il principio usato come lente.** Scritta in `CLAUDE.md` la regola
       «l'assenza di un dato non è un dato favorevole», un audit ha chiamato
@@ -1040,6 +1040,15 @@ campi interi, file delle macchine.
       prende i colori del semaforo**, perché non è un giudizio di conformità.
       run-kpi **948**, totale node **1.231**. Quello che resta scoperto nelle sei
       app è ormai quasi solo **caricatori dati** (vogliono la rete).
+- [x] **Campo chiude a 73/73, prima app al cento per cento.** 11 prove su come
+      si SCRIVE un numero: `null` e vuoto che non sono zero, il raggruppamento
+      delle migliaia fissato a mano (al default 1286 esce «1.286» su Chromium e
+      «1286» su Node), il meno tipografico, e la **carica reale non registrata
+      che resta `null` e non zero** — zero chili in un foro falserebbe lo scarto
+      e la riconciliazione con Genesi. Terza duplicazione trovata oggi:
+      `numeroIt` esiste in due app e dà **sei risposte diverse su dodici**, ma le
+      differenze sono volute e dichiarate — non va in `shared/`, e c'è una prova
+      che rende visibile il confine. run-kpi **959**, totale node **1.242**.
 
 ---
 
