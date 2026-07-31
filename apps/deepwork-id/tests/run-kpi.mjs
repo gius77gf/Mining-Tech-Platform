@@ -7253,5 +7253,186 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+// ── Flotta: i fermi, i costi per mese, la disponibilità registrata ────
+/* Flotta era rimasta la meno difesa (34 funzioni su 71). Il blocco dei
+   FERMI è quello che pesa di più: da lì esce la disponibilità del parco,
+   cioè il numero con cui si decide se una macchina si ripara ancora o si
+   sostituisce. Tutte le regole qui sotto sono scritte nei commenti del
+   modulo come «regole di onestà»: qui diventano asserzioni. */
+{
+  console.log("\n— Flotta: fermi, costi per mese, disponibilità —");
+  const OGGI = new Date("2026-07-31T10:00:00");
+
+  test("causali di fermo: la lista è chiusa, e un motivo non riconosciuto si vede", () => {
+    /* servono categorie confrontabili nel tempo, se no la disponibilità non
+       si può nemmeno calcolare; ma una chiave sconosciuta non diventa mai
+       «Altro» in silenzio: viene ripetuta com'è */
+    eq(flotta.etichettaCausale("attesa-ricambi"), "Attesa ricambi", "chiave nota");
+    eq(flotta.etichettaCausale("pippo"), "pippo", "chiave sconosciuta: si mostra com'è");
+    eq(flotta.etichettaCausale(""), "Motivo non indicato", "e senza motivo lo dice");
+    eq(flotta.causaleFermo("x"), null, "causaleFermo non inventa una voce");
+    ok(flotta.CAUSALI_FERMO.every(c => c.chiave && c.etichetta && c.nota),
+      "ogni causale ha chiave, etichetta e spiegazione");
+  });
+  test("⚠️ `CAUSALI_FERMO` esiste in DUE app e NON è la stessa cosa", () => {
+    /* Trovato scrivendo questa prova, con un'asserzione buttata lì che è
+       caduta: Campo esporta anche lui `CAUSALI_FERMO`. Non è la regola
+       riscritta due volte — sono due tassonomie di soggetti diversi:
+       Campo dice perché si è fermata UN'ATTIVITÀ di turno (testo semplice:
+       «Mancanza materiale», «Attesa mezzo», «Cambio turno»), Flotta perché
+       è fuori servizio UNA MACCHINA (voci con chiave, per calcolare la
+       disponibilità: «attesa-ricambi», «gomme-cingoli»).
+       La prova sta qui perché il nome uguale è una trappola per chi arriva
+       dopo: se un giorno le due liste diventassero davvero la stessa cosa,
+       il posto è `shared/`, non una copia. */
+    ok(Array.isArray(campo.CAUSALI_FERMO) && typeof campo.CAUSALI_FERMO[0] === "string",
+      "Campo: testo semplice, sono voci da scegliere in un elenco");
+    ok(typeof flotta.CAUSALI_FERMO[0] === "object" && flotta.CAUSALI_FERMO[0].chiave,
+      "Flotta: voci con chiave, perché ci si calcola sopra la disponibilità");
+    ok(campo.CAUSALI_FERMO.includes("Attesa mezzo"), "Campo parla di attività di turno");
+    ok(flotta.CAUSALI_FERMO.some(c => c.chiave === "gomme-cingoli"), "Flotta parla di macchine");
+  });
+
+  test("giorniFermo: una giornata persa è persa tutta (conteggio inclusivo)", () => {
+    /* ferma il 3 e ripartita il 3 = un giorno, non zero: in cava mezza
+       giornata di escavatore fermo non è mezza giornata di lavoro */
+    eq(flotta.giorniFermo({ inizio: "2026-07-03", fine: "2026-07-03" }, "2026-07-01", "2026-07-31"), 1,
+      "stesso giorno = 1");
+  });
+  test("giorniFermo: un fermo aperto conta fino alla fine della finestra", () => {
+    eq(flotta.giorniFermo({ inizio: "2026-07-29" }, "2026-07-01", "2026-07-31"), 3, "29, 30, 31");
+  });
+  test("giorniFermo: un fermo più vecchio pesa solo per la parte che ci sta dentro", () => {
+    /* un fermo di due mesi non può pesare due mesi su una finestra di trenta
+       giorni: il denominatore non lo reggerebbe e la percentuale mentirebbe */
+    eq(flotta.giorniFermo({ inizio: "2026-05-01", fine: "2026-07-05" }, "2026-07-01", "2026-07-31"), 5, "1→5 luglio");
+    eq(flotta.giorniFermo({ inizio: "2026-01-01", fine: "2026-01-05" }, "2026-07-01", "2026-07-31"), 0, "fuori finestra");
+    eq(flotta.giorniFermo({ fine: "2026-07-05" }, "2026-07-01", "2026-07-31"), 0, "senza inizio non è un fermo");
+  });
+  test("durataFermo: un fermo aperto conta fino a oggi E LO DICHIARA", () => {
+    /* «3 giorni» su un fermo ancora aperto è un numero che cresce: il flag
+       `aperto` è quello che impedisce di leggerlo come un fermo finito */
+    contiene(flotta.durataFermo({ inizio: "2026-07-29" }, OGGI), { giorni: 3, aperto: true, fine: null }, "aperto");
+    contiene(flotta.durataFermo({ inizio: "2026-07-28", fine: "2026-07-30" }, OGGI),
+      { giorni: 3, aperto: false, fine: "2026-07-30" }, "chiuso");
+  });
+  test("durataFermo: senza inizio non inventa una durata", () => {
+    /* zero giorni direbbe «non si è fermata»: qui la risposta è «non lo so» */
+    contiene(flotta.durataFermo({}, OGGI), { giorni: null }, "nessun inizio");
+    contiene(flotta.durataFermo({ inizio: "2026-07-30", fine: "2026-07-28" }, OGGI), { giorni: null },
+      "ripartita prima di fermarsi: nessuna durata, non una negativa");
+  });
+
+  test("validaFermo: mezzo, motivo e giorno sono obbligatori, con la frase che dice cosa fare", () => {
+    const v = flotta.validaFermo({}, OGGI);
+    eq(v.ok, false, "non si salva");
+    eq(Object.keys(v.errori).sort(), ["causale", "inizio", "mezzo"], "tre cose mancanti");
+    ok(/Scegli il mezzo/.test(v.errori.mezzo), "e l'errore dice cosa fare, non «campo non valido»");
+  });
+  test("validaFermo: un fermo non comincia domani e non riparte nel futuro", () => {
+    /* la data futura è il modo più facile per falsare la disponibilità:
+       giorni persi che non sono ancora successi */
+    ok(!flotta.validaFermo({ mezzo: "X", causale: "altro", inizio: "2026-08-01" }, OGGI).ok, "inizio domani");
+    const f = flotta.validaFermo({ mezzo: "X", causale: "altro", inizio: "2026-07-29", fine: "2026-08-05" }, OGGI);
+    ok(!f.ok && /futuro/.test(f.errori.fine), "ripartenza nel futuro");
+    ok(!flotta.validaFermo({ mezzo: "X", causale: "altro", inizio: "2026-07-29", fine: "2026-07-28" }, OGGI).ok,
+      "ripartita prima di essersi fermata");
+    ok(!flotta.validaFermo({ mezzo: "X", causale: "altro", inizio: "1990-01-01" }, OGGI).ok,
+      "oltre dieci anni fa: quasi sempre un anno sbagliato");
+  });
+  test("validaFermo: un fermo aperto è valido (la macchina è ferma adesso)", () => {
+    contiene(flotta.validaFermo({ mezzo: "CAT 320", causale: "guasto-meccanico", inizio: "2026-07-29" }, OGGI),
+      { ok: true, inizio: "2026-07-29", fine: null }, "senza ripartenza si salva");
+  });
+
+  test("fermiOrdinati: prima gli aperti dal più lungo, poi i chiusi dal più recente", () => {
+    /* l'ordine è la risposta a «di cosa mi devo occupare adesso»: una
+       macchina ferma da dodici giorni non può stare sotto a una riparata */
+    const FERMI = [
+      { mezzo: "B", causale: "attesa-ricambi", inizio: "2026-07-20" },
+      { mezzo: "A", causale: "guasto-meccanico", inizio: "2026-07-29" },
+      { mezzo: "C", causale: "operatore", inizio: "2026-07-10", fine: "2026-07-12" },
+      { mezzo: "D", causale: "verifica", inizio: "2026-07-25", fine: "2026-07-26" },
+    ];
+    eq(flotta.fermiOrdinati(FERMI, OGGI).map(f => f.mezzo), ["B", "A", "D", "C"], "ordine");
+    contiene(flotta.fermiOrdinati(FERMI, OGGI)[0], { aperto: true, giorni: 12, causaleTx: "Attesa ricambi" },
+      "la riga porta con sé durata, stato e motivo per esteso");
+  });
+
+  test("etichettaMese: «lug 2026», e un mese che non esiste non diventa gennaio", () => {
+    eq(flotta.etichettaMese("2026-07"), "lug 2026", "mese normale");
+    eq(flotta.etichettaMese("boh"), "—", "non è un mese");
+    eq(flotta.etichettaMese("2026-13"), "? 2026", "mese fuori scala: si vede che è storto");
+  });
+  test("costiPerMese: le voci senza data non finiscono in nessun mese, e si dichiarano", () => {
+    /* attribuirle a «oggi» sarebbe inventare un mese di competenza; farle
+       sparire sarebbe peggio, perché quei soldi sono stati spesi davvero */
+    const c = flotta.costiPerMese([
+      { data: "2026-05-10", importo: 100 }, { data: "2026-07-01", importo: 250 },
+      { data: "2026-07-20", importo: 50 }, { data: "", importo: 999 },
+    ]);
+    eq(c.senzaData, { voci: 1, importo: 999 }, "una voce senza data, dichiarata");
+    eq(c.totale, 400, "e non entra nel totale dei mesi");
+    eq(c.mesi.map(m => [m.ym, m.importo, m.voci]), [["2026-05", 100, 1], ["2026-07", 300, 2]], "mesi");
+  });
+  test("costiPerMese: un mese senza registrazioni NON è un mese a zero euro", () => {
+    /* non compare fra i mesi — disegnarlo a zero direbbe «quel mese non
+       abbiamo speso niente» — ma `mancanti` lo conta, così si può scrivere */
+    const c = flotta.costiPerMese([{ data: "2026-05-10", importo: 100 }, { data: "2026-07-01", importo: 250 }]);
+    eq(c.mesi.length, 2, "maggio e luglio");
+    eq(c.mancanti, 1, "giugno manca, e lo dice");
+    eq(flotta.costiPerMese([]).mancanti, 0, "senza dati non manca niente");
+  });
+
+  test("disponibilitaStorico: dello stesso giorno vale l'ultima registrazione", () => {
+    const s = flotta.disponibilitaStorico([
+      { data: "2026-07-31", operativi: 9, totale: 10 },
+      { data: "2026-07-31", operativi: 7, totale: 10 },
+    ], 30, OGGI);
+    eq(s.punti.length, 1, "un giorno, un punto");
+    contiene(s.punti[0], { operativi: 7, pct: 70 }, "l'ultima situazione nota del giorno");
+  });
+  test("disponibilitaStorico: una riga incoerente si scarta, non si aggiusta", () => {
+    /* 12 operativi su 10 non è un 120% da disegnare, ed è la ragione per cui
+       il giorno finisce fra quelli SENZA registrazione invece che nel grafico */
+    const s = flotta.disponibilitaStorico([
+      { data: "2026-07-29", operativi: 8, totale: 10 },
+      { data: "2026-07-30", operativi: 12, totale: 10 },
+      { data: "2026-07-30", operativi: 3, totale: 0 },
+    ], 30, OGGI);
+    eq(s.punti.map(p => p.data), ["2026-07-29"], "resta solo il giorno buono");
+    eq(s.giorniSenza, 29, "e i giorni senza registrazione si contano");
+  });
+  test("disponibilitaStorico: niente riempimenti, e la finestra taglia il passato", () => {
+    /* un giorno senza registrazione non vale «tutto operativo»: semplicemente
+       non c'è, e quanti sono si scrive accanto al grafico */
+    const s = flotta.disponibilitaStorico([
+      { data: "2026-06-01", operativi: 5, totale: 10 },
+      { data: "2026-07-29", operativi: 8, totale: 10 },
+    ], 30, OGGI);
+    eq(s.punti.map(p => p.data), ["2026-07-29"], "il 1° giugno è fuori dai 30 giorni");
+    contiene(s, { finestra: 30, giorniSenza: 29 }, "finestra e giorni senza");
+    eq(flotta.disponibilitaStorico([], 30, OGGI).punti, [], "senza registrazioni nessun punto");
+  });
+
+  test("costoOfficinaPerMezzo: dal più caro, e conta anche QUANTE volte", () => {
+    /* «3.000 € in un colpo» e «3.000 € in dieci volte» sono due storie
+       diverse: la prima è un guasto, la seconda è una macchina da sostituire */
+    const c = flotta.costoOfficinaPerMezzo([
+      { mezzo: "CAT 320", costo: 3000 }, { mezzo: "CAT 320", costo: 1000 },
+      { mezzo: "Volvo", costo: 500 }, { mezzo: "", costo: 200 },
+      { mezzo: "Volvo", costo: 0 }, { mezzo: "Volvo", costo: -50 },
+    ]);
+    eq(c.totale, 4700, "totale");
+    eq(c.mezzi.map(m => [m.mezzo, m.costo, m.interventi]),
+      [["CAT 320", 4000, 2], ["Volvo", 500, 1], ["Senza mezzo", 200, 1]],
+      "gli interventi a costo zero o negativo non entrano, e chi non ha mezzo si vede");
+    eq(c.mezzi[0].pct, 85, "e il peso di ciascuno");
+  });
+  test("costoOfficinaPerMezzo: senza interventi non c'è nessuna percentuale da dare", () => {
+    eq(flotta.costoOfficinaPerMezzo([]), { totale: 0, mezzi: [] }, "vuoto");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
