@@ -67,54 +67,94 @@ E l'informazione **c'è già**: la pagina calcola `nl = (m.letture || []).length
 in **due** punti (righe 1564 e 2796) e la usa per ordinare e per il grafico, ma
 **non** per lo stato.
 
-## La correzione
+## La correzione — e il vocabolario **esiste già in questa app**
 
-> **`statoMisura` guadagna una quarta risposta**, prima di tutte le altre:
->
-> ```js
-> if (!((m.letture || []).length) && m.valore == null)  // mai misurato
->   return { cls: "none", label: "Mai misurato", ratio: null };
-> ```
->
-> `ratio: null` e non `0`: un rapporto che nessuno ha calcolato non è zero.
+Prima di inventare una risposta nuova, la ricerca dentro casa. Sentinella **sa
+già** dire «mai misurato», in `statoRigaProgramma` (`sentinella-data.js:1005`):
 
-Tre conseguenze, tutte volute:
+```js
+const ul = ultimaLettura(monitoraggio);
+const base = { …, ultimoValore: ul ? ul.valore : null, maiMisurato: !ul, … };
+if (!partenza) return { ...base, stato: "mai", cls: "warn", label: "Mai misurato" };
+```
 
-1. **`riepilogoConformita` guadagna `maiMisurati`**, e quei punti **non**
-   entrano in `conformi`. Il totale continua a tornare: `conformi + attenzione +
-   superamento + maiMisurati === totale`;
+con il commento che spiega anche **perché giallo e non rosso**:
+
+> «lo stato è *mai misurato*, che è un **avviso e non un allarme**: magari il
+> punto è stato appena creato.»
+
+Quindi la correzione non introduce niente: **riusa**. Vocabolario `maiMisurato`,
+etichetta «Mai misurato», classe `warn`, e soprattutto il **rilevatore**
+`ultimaLettura(m)` — che non guarda `letture.length` grezzo ma **valida data e
+valore** (`/^\d{4}-\d{2}-\d{2}$/` e `Number.isFinite`), cioè non conta come
+misura una riga rotta.
+
+È il terzo posto in tre giorni in cui la cosa giusta era già scritta **in
+un'altra funzione della stessa app**: il report, `statoRigaProgramma`, e adesso.
+
+### Due casi, non uno — e questo è emerso solo misurando
+
+| situazione | `letture` | `valore` | oggi | proposta |
+|---|---|---|---|---|
+| punto appena creato dall'interfaccia | `[]` | `0` | **Conforme** | **Mai misurato** (`stato: "mai"`) |
+| punto importato da CSV | `[]` | numero vero | **Conforme** | **Senza data** (`stato: "senza-data"`) |
+| punto con una lettura a **zero** | 1 riga | `0` | Conforme | **Conforme** — non si tocca |
+
+Il secondo caso non è «mai misurato»: `parseMonitoraggiCsv` **filtra** le righe
+con `Number.isFinite(m.valore)`, quindi un punto importato **ha** un valore
+dichiarato dall'utente. Ma è un valore **senza data**: non entra nella serie
+storica e non si può citare in un report per l'ente. Chiamarlo «conforme» è
+falso quanto l'altro; chiamarlo «mai misurato» è ingeneroso. Sono **due stati
+diversi**, e vanno detti come tali.
+
+### Una decisione che avevo scritto e che la misura ha corretto
+
+La prima stesura di questa scheda diceva di cambiare la creazione a
+`valore: null` «perché domani la distinzione sia netta». **Non serve, e
+introduce rischio**: `m.valore` è letto in una dozzina di punti fra modulo e
+pagina (`numeroIt(m.valore)`, `valore: +m.valore`, i grafici) e un `null` che
+diventa `NaN` si vede peggio di quello che risolve. Il segnale autorevole è
+`ultimaLettura(m)`, non il valore corrente — e con i due stati qui sopra la
+distinzione è già netta senza toccare gli archivi.
+
+### Le tre conseguenze a valle
+
+1. **`riepilogoConformita` guadagna `maiMisurati` e `senzaData`**, e quei punti
+   **non** entrano in `conformi`. Il totale continua a tornare:
+   `conformi + attenzione + superamento + maiMisurati + senzaData === totale`.
+   ⚠️ Il ramo va messo **prima** del controllo su `cls`, se no i mai misurati
+   finiscono in `attenzione` (condividono il giallo);
 2. **il cartellone** dice «**6 punti mai misurati**» invece di «6 punti entro
-   soglia» quando non c'è nient'altro da dire, e quando ci sono entrambi lo
-   scrive: «4 entro soglia · **2 mai misurati**»;
-3. **`kpiFrom`** non conta i mai misurati fra gli «attivi» in ascolto senza
-   dirlo — o li conta e lo dichiara, ma non li lascia sparire dentro un numero
-   che sembra buono.
+   soglia», e quando ci sono entrambi lo scrive: «4 entro soglia · **2 mai
+   misurati**»;
+3. **`kpiFrom`** non li lascia sparire dentro un numero che sembra buono.
 
-### Il punto delicato: `valore: 0` è già scritto negli archivi
+### Il punto di chiamata da aggiornare, o la correzione si rompe da sola
 
-I punti creati finora hanno `valore: 0`, non `valore: null`. Quindi il **solo**
-modo onesto di distinguere «mai misurato» da «misurato e vale zero» è
-`letture.length === 0` — e va accettato che un punto **importato da CSV** con un
-valore ma senza storico rientri nel caso «misurato» (ha un valore dichiarato:
-`parseMonitoraggiCsv` porta `m.valore`). La condizione va quindi scritta
-**guardando le letture, non il valore**, e la creazione va cambiata a
-`valore: null` perché domani la distinzione sia netta.
+`index.html:3327` fa `statoMisura({ ...m, valore })` **dopo** aver registrato la
+lettura, ma spreta il vecchio `m`, le cui `letture` non contengono ancora quella
+nuova. Con la correzione, **la prima misura di un punto** mostrerebbe nel toast
+«Mai misurato» proprio mentre la si registra. La riga giusta è
+`statoMisura({ ...m, valore, letture })` — `letture` è già in scope una riga
+sopra.
 
 ⚠️ **Zero è un dato vero.** L'interfaccia lo dice già quando si registra una
 lettura — «anche zero è un dato valido» — e questa correzione **non deve**
 toglierlo: un punto con una lettura a zero è **Conforme**, e va lasciato tale.
-Il caso da cambiare è quello con **nessuna** lettura, non quello con la lettura
-a zero.
 
 ## Le prove che vanno con la correzione
 
-1. un punto con `letture: []` **non** è «Conforme» — e il suo `ratio` è `null`,
-   non `0`;
+1. un punto con `letture: []` e `valore: 0` **non** è «Conforme» — e il suo
+   `ratio` è `null`, non `0`;
 2. un punto con **una lettura a zero** **è** «Conforme» — la controprova della
    prima, e quella che impedisce di correggere troppo;
-3. `riepilogoConformita`: `conformi + attenzione + superamento + maiMisurati`
-   **fa** il totale, su un insieme che contiene tutti e quattro i casi;
-4. `puntoPeggiore` non sceglie un punto mai misurato quando ne esiste uno
+3. un punto **importato da CSV** (valore vero, `letture: []`) è «senza data», e
+   **non** è né «Conforme» né «Mai misurato»;
+4. una lettura con **data non valida** non conta come misura — è la ragione per
+   cui il rilevatore è `ultimaLettura` e non `letture.length`;
+5. `riepilogoConformita`: `conformi + attenzione + superamento + maiMisurati +
+   senzaData` **fa** il totale, su un insieme che contiene tutti e cinque i casi;
+6. `puntoPeggiore` non sceglie un punto mai misurato quando ne esiste uno
    misurato — un `ratio: null` non deve ordinarsi come uno zero.
 
 Il **primo** test è il numero 2, non il numero 1: la correzione più facile da
