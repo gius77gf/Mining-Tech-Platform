@@ -22,6 +22,11 @@ che non esiste).
   codice: il grafico che mostrava il mese sbagliato, il ruolo di sicurezza verde
   su una sedia vuota, la misura del sismografo che spariva dal report per l'ente.
   *Se hai dieci minuti e vuoi capire che lavoro è stato fatto oggi, leggi questo.*
+- **`docs/LA_STESSA_REGOLA_SCRITTA_DUE_VOLTE.md`** — perché una giornata di sole
+  prove (02/08) ha prodotto **tre correzioni di struttura**: tre regole che
+  vivevano in due posti invece che in uno. Dentro c'è anche il criterio per
+  distinguere il caso in cui è un difetto da quello in cui non lo è — che è la
+  domanda che torna ogni volta. *Cinque minuti.*
 - **`/apps/` — la vetrina** è la pagina da aprire davanti a qualcuno: nove
   riquadri con la schermata vera di ogni strumento, i ponti fra le app e il
   bottone che entra nel tour in un colpo solo.
