@@ -104,3 +104,30 @@ pagina si apre**. Il risultato diceva `toast:true, modale:true` ma
 **`chiusa:false`** — Escape non chiudeva più niente. Un banco che avesse
 guardato solo il caricamento avrebbe risposto «tutto a posto» su cinque pagine
 rotte.
+
+---
+
+## La seconda metà: anche la navigazione si è staccata
+
+*Misurato subito dopo, con la stessa domanda.*
+
+Nel blocco classico di ogni app resta la funzione `go(id)`, che cambia pagina.
+Esiste in **sei copie** e ha **due versioni**:
+
+- cinque app (331 caratteri) fanno
+  `document.getElementById("page-" + id).classList.add("active")` — **senza
+  guardia**. Se quella pagina non esiste, la riga **solleva un errore** e la
+  navigazione si ferma lì: schermo fermo, nessun messaggio;
+- **Flotta** (431 caratteri) ha le guardie (`if (pag)`, `if (nav)`) **e** una
+  mappa: la scheda del mezzo e l'ordine di lavoro non hanno una voce loro nella
+  pillola di navigazione — che resta di sei voci, come dev'essere — e allora
+  tengono acceso il segnalibro del *padre* (parco mezzi, officina).
+
+Di nuovo, come per `apriModale`: la versione che si è staccata è **la
+migliore**, e si è staccata **perché serviva**. Le altre cinque non l'hanno
+saputo, e si portano dietro una **trappola dormiente** — `go()` con un id che
+non esiste ferma la navigazione senza dire niente.
+
+La forma condivisa è quindi ancora una volta il **soprainsieme**: le guardie di
+Flotta per tutti, e la mappa come parametro facoltativo, perché *quella* è di
+Flotta e deve restare sua.
