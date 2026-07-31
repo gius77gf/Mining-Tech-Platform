@@ -4755,5 +4755,116 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ L'IMPORT DAL SISMOGRAFO: LEGGERE IL FILE PRIMA DI FIDARSENE ════════
+   `proponiMappa` indovina quale colonna è data, ora e valore; `preparaLetture`
+   applica quella scelta e restituisce **una voce per ogni riga del file**,
+   buona o scartata che sia. È il gemello di `unisciLetture`, e sta a monte:
+   qui si decide *cosa* entra nella serie storica che finisce nel report per
+   l'ente.
+
+   Le regole che valgono il lavoro:
+
+   · **nessuna riga sparisce in silenzio.** Ogni riga torna indietro con `ok` e,
+     se scartata, con il motivo scritto in italiano. Un import muto è il modo
+     migliore per perdere dati senza accorgersene: nessun errore, nessun
+     avviso, solo una serie storica più corta di quella che si è caricata;
+   · **il numero di riga è quello del FILE**, intestazione compresa. Chi legge
+     «riga 5» va a cercarla nel foglio: se contassimo le righe di dati, la
+     riga 5 dell'anteprima sarebbe la 6 del file e l'utente correggerebbe la
+     cella sbagliata;
+   · **due numeri di due cifre si leggono GIORNO/MESE**, mai mese/giorno. Su
+     `07/12/2026` la differenza fra le due letture è di cinque mesi, su una
+     data che va su un documento;
+   · **una data impossibile si scarta, non si "corregge"**. Il 31/02 non
+     diventa il 3 marzo: diventa una riga rossa con scritto perché. */
+{
+  const pl = sentinella.preparaLetture;
+  const M = { colData: 0, colOra: -1, colValore: 2 };
+
+  test("⛔ import: nessuna riga sparisce, ognuna torna col suo motivo", () => {
+    const r = pl([
+      ["12/07/2026", "", "2,5"],
+      ["12/07/2026", "", ""],
+      ["", "", "1"],
+      ["12/07/2026", "", "abc"],
+    ], M);
+    eq(r.length, 4, "quattro righe dentro, quattro voci fuori");
+    eq(r.map((x) => x.ok).join(","), "true,false,false,false", "una buona e tre scartate");
+    eq(r.filter((x) => !x.ok).every((x) => x.motivo !== ""), true, "e ognuna dice perché");
+  });
+  test("⛔ import: il numero di riga è quello del file, intestazione compresa", () => {
+    /* l'utente va a cercare «riga 2» nel foglio: se contassimo le righe di
+       dati correggerebbe la cella sbagliata */
+    const r = pl([["Data", "Ora", "PPV"], ["", "", "1"]], { ...M, conIntestazione: true });
+    eq(r.length, 1, "l'intestazione non è un dato");
+    eq(r[0].riga, 2, "ma la riga scartata è la 2 del file, non la 1");
+  });
+  test("⛔ import: 07/12/2026 è il 7 dicembre (giorno/mese), non il 12 luglio", () => {
+    eq(pl([["07/12/2026", "", "1"]], M)[0].data, "2026-12-07", "regola italiana, dichiarata anche a schermo");
+  });
+  test("⛔ import: una data impossibile si scarta, non si «corregge»", () => {
+    const r = pl([["31/02/2026", "", "1"]], M)[0];
+    eq(r.data, "", "il 31 febbraio non diventa il 3 marzo");
+    eq(r.motivo, "data non riconosciuta", "e lo dice");
+  });
+  test("import: data e ora nella stessa cella si leggono lo stesso", () => {
+    /* molti strumenti scrivono «12/07/2026 10:30» in una casella sola */
+    const r = pl([["12/07/2026 10:30", "", "2,5"]], M)[0];
+    eq(r.data, "2026-07-12", "la data");
+    eq(r.ora, "10:30", "e l'ora, senza chiedere una colonna che non c'è");
+  });
+  test("import: la notazione scientifica dello strumento è un numero", () => {
+    /* già costata una volta in questo progetto: gli export delle macchine
+       scrivono 1.2e-3, e irrigidire il lettore fa sparire quelle righe */
+    eq(pl([["12/07/2026", "", "1.2e-3"]], M)[0].valore, 0.0012, "0,0012 mm/s");
+  });
+  test("⛔ import: «manca» e «non è un numero» sono due motivi diversi", () => {
+    /* suggeriscono due azioni diverse: la prima cella è da compilare, la
+       seconda da correggere */
+    eq(pl([["12/07/2026", "", ""]], M)[0].motivo, "valore mancante", "vuota");
+    eq(pl([["12/07/2026", "", "n.d."]], M)[0].motivo, "valore non numerico", "scritta male");
+  });
+  test("import: un valore negativo non è una misura", () => {
+    eq(pl([["12/07/2026", "", "-1"]], M)[0].motivo, "valore negativo", "una PPV negativa non esiste");
+  });
+  test("⛔ import: lo zero è una misura buona, non un dato mancante", () => {
+    /* il fondo scala di una giornata senza volate è zero: scartarlo
+       toglierebbe dal report proprio i giorni tranquilli */
+    const r = pl([["12/07/2026", "", "0"]], M)[0];
+    eq(r.ok, true, "accettata");
+    eq(r.valore, 0, "e vale zero");
+  });
+  test("import: senza righe non si inventa niente", () => {
+    eq(pl([], M).length, 0, "vuoto");
+    eq(pl(null, null).length, 0, "e nemmeno con la mappa mancante");
+  });
+
+  const pm = sentinella.proponiMappa;
+  test("mappa: l'intestazione dice quale colonna è quale", () => {
+    eq(pm([["Data", "Time", "LAeq"], ["12/07/2026", "10:30", "61,2"]], true),
+       { colData: 0, colOra: 1, colValore: 2 }, "data, ora e valore riconosciuti");
+  });
+  test("⛔ mappa: una colonna non fa due mestieri", () => {
+    /* «Data/Ora» contiene sia «data» sia «ora»: senza l'esclusione finirebbe
+       proposta per tutt'e due, e l'ora verrebbe letta due volte al posto del
+       valore */
+    const m = pm([["Data/Ora", "PPV"], ["12/07/2026 10:30", "2,5"]], true);
+    eq(m.colData, 0, "è la data");
+    eq(m.colOra !== m.colData, true, "e non è anche l'ora");
+    eq(m.colValore, 1, "il valore è l'altra");
+  });
+  test("mappa: senza intestazione si va a colpo d'occhio sui dati", () => {
+    /* prima colonna che sembra una data, ultima colonna numerica come valore */
+    const m = pm([["2,5", "12/07/2026"]], false);
+    eq(m.colData, 1, "la data è dove c'è una data, non dove capita");
+    eq(m.colValore, 0, "e il valore è l'altra");
+  });
+  test("mappa: un'intestazione che non dice niente non blocca la proposta", () => {
+    const m = pm([["A", "B", "C"], ["12/07/2026", "10:30", "2,5"]], true);
+    eq(m.colData, 0, "ripiega sui dati");
+    eq(m.colValore, 2, "e prende l'ultima numerica");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
