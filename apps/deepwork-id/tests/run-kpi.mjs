@@ -8079,5 +8079,130 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+// ── Scudo: liste da toccare, DPI, e la data di «fra N giorni» ─────────
+/* Le liste di Scudo non sono decorazione: un near miss «o lo segnali in
+   pochi secondi o non lo segnala nessuno», e si segnala TOCCANDO una
+   categoria e un luogo. Una chiave sconosciuta non deve mai diventare la
+   prima voce dell'elenco — su un registro di sicurezza vorrebbe dire
+   attribuire un evento a un rischio che non è quello. */
+{
+  console.log("\n— Scudo: liste, DPI, date proposte —");
+
+  test("near miss: categorie e luoghi sono liste chiuse, e l'ignoto resta vuoto", () => {
+    eq(scudo.categoriaNearMiss("caduta-massi"), "Caduta massi", "categoria nota");
+    eq(scudo.categoriaNearMiss("zzz"), "", "sconosciuta: stringa vuota, MAI la prima dell'elenco");
+    eq(scudo.luogoNearMiss("fronte"), "Fronte", "luogo noto");
+    eq(scudo.luogoNearMiss("zzz"), "", "sconosciuto");
+    ok(scudo.NEARMISS_CATEGORIE.some(c => c.chiave === "volata"), "la volata c'è: è un rischio di cava");
+    ok(scudo.NEARMISS_LUOGHI.some(l => l.chiave === "fronte"), "e il fronte pure");
+    ok(scudo.NEARMISS_CATEGORIE.every(c => c.chiave && c.etichetta), "ogni voce ha chiave ed etichetta");
+  });
+  test("esiti dell'ispezione: tre soli, e «non applicabile» non è «conforme»", () => {
+    /* segnare N/A come conforme farebbe risultare controllata una cosa che
+       in quella cava non esiste nemmeno */
+    eq(scudo.ESITI_ISPEZIONE.map(e => e.chiave), ["conforme", "non-conforme", "na"], "i tre esiti");
+    eq(scudo.ESITI_ISPEZIONE.find(e => e.chiave === "non-conforme").cls, "danger", "la non conformità è rossa");
+    eq(scudo.ESITI_ISPEZIONE.find(e => e.chiave === "na").cls, "tag", "e N/A è neutro, non verde");
+    eq(scudo.esitoLabel("zzz"), null, "un esito che non esiste non diventa «conforme»");
+  });
+  test("i tipi di documento coprono il doppio binario 81/2008 + 624/1996", () => {
+    /* il DSS è il documento di sicurezza e salute dell'attività estrattiva:
+       senza, Scudo non sarebbe un'app per cave */
+    for (const t of ["DSS", "DVR", "POS", "DUVRI", "Nomina"]) ok(scudo.TIPI_DOCUMENTO.includes(t), t);
+    eq(scudo.TIPI_DOCUMENTO[scudo.TIPI_DOCUMENTO.length - 1], "Altro", "«Altro» in fondo, non in mezzo");
+    eq(scudo.ORIGINI_AMBIENTE, ["superamento", "reclamo"], "le due origini che arrivano da Sentinella");
+  });
+
+  test("dataPiuGiorni: conta in giorni di CALENDARIO LOCALI, non in ore", () => {
+    /* è la stessa regola del giorno locale che il 31/07 è costata quaranta
+       correzioni: costruire la data con i pezzi locali e non passare da
+       toISOString, se no fra mezzanotte e le due si scivola al giorno prima */
+    eq(scudo.dataPiuGiorni(30, new Date("2026-07-15T10:00:00")), "2026-08-14", "trenta giorni avanti");
+    eq(scudo.dataPiuGiorni(0, new Date("2026-05-01T00:30:00")), "2026-05-01",
+      "mezzanotte e mezza del primo maggio è ancora il primo maggio");
+    eq(scudo.dataPiuGiorni(-10, new Date("2026-07-15T10:00:00")), "2026-07-05", "e si può andare indietro");
+  });
+  test("⚠️ dataPiuGiorni: «boh» non dà nessuna data, ma `null` dà OGGI", () => {
+    /* Scritto com'è, non come dovrebbe essere. `Number(null)` è **0** — la
+       stessa famiglia di `+null === 0` già costata due volte qui dentro — e
+       quindi «nessun numero di giorni» diventa «scade oggi», che su
+       un'azione correttiva è una scadenza che qualcuno firma.
+       Misurato, NON è raggiungibile oggi: i due punti che la chiamano
+       passano o un 30 scritto a mano o `i.periodicitaGiorni ? … : ""`.
+       È una trappola dormiente, non un difetto vivo: la prova la blinda
+       così com'è e la nomina, invece di far finta che risponda null. */
+    eq(scudo.dataPiuGiorni("boh", new Date("2026-07-15T10:00:00")), null, "una parola: nessuna data");
+    eq(scudo.dataPiuGiorni(null, new Date("2026-07-15T10:00:00")), "2026-07-15",
+      "null diventa zero giorni, cioè oggi — è la trappola, ed è qui scritta");
+  });
+  test("normalizzaTesto: «Idoneità» e «idoneita» sono la stessa cosa", () => {
+    /* serve a riconoscere che «Corso antincendio» e «Antincendio —
+       aggiornamento addetti» parlano dello stesso obbligo */
+    eq(scudo.normalizzaTesto("Corso Antincendio — aggiornamento addetti!"),
+      "corso antincendio aggiornamento addetti", "minuscole, senza accenti né punteggiatura");
+    eq(scudo.normalizzaTesto("Idoneità"), "idoneita", "accento tolto");
+    eq(scudo.normalizzaTesto(null), "", "niente");
+  });
+  test("MESI_NOMI: dodici mesi in italiano, minuscoli", () => {
+    eq(scudo.MESI_NOMI.length, 12, "dodici");
+    eq([scudo.MESI_NOMI[0], scudo.MESI_NOMI[11]], ["gennaio", "dicembre"], "primo e ultimo");
+    ok(scudo.MESI_NOMI.every(m => m === m.toLowerCase()), "minuscoli: vanno dentro una frase");
+  });
+
+  test("tipoDpi: un DPI sconosciuto non prende i requisiti di un altro", () => {
+    /* `tipoDpiSicuro` serve a non far sparire dalla tabella un dispositivo
+       scritto a mano: gli dà un guscio neutro, NON quello del primo tipo */
+    eq(scudo.tipoDpi("zzz"), null, "non c'è");
+    const s = scudo.tipoDpiSicuro("zzz");
+    contiene(s, { chiave: "zzz", cat: "II", addestramento: false, mesi: null }, "guscio neutro");
+    contiene(scudo.tipoDpi("maschera"), { cat: "III", addestramento: true },
+      "la maschera è III categoria: l'addestramento è obbligatorio (art. 77)");
+  });
+  test("⛔ statoConsegnaDpi: un DPI mai consegnato è «mancante», non «regolare»", () => {
+    contiene(scudo.statoConsegnaDpi(null), { stato: "mancante", scadenza: null, addestramentoMancante: false },
+      "nessuna consegna");
+    contiene(scudo.statoConsegnaDpi({ tipo: "elmetto", scadenza: "2020-01-01" }, new Date("2026-07-15")),
+      { stato: "scaduta" }, "consegnato ma da sostituire");
+  });
+  test("statoConsegnaDpi: l'addestramento non fatto si vede anche se il DPI è in corso", () => {
+    /* un facciale filtrante consegnato senza addestramento è una consegna
+       incompleta, non una consegna a posto con un dettaglio in meno */
+    contiene(scudo.statoConsegnaDpi({ tipo: "maschera", scadenza: "2099-01-01" }, new Date("2026-07-15")),
+      { stato: "regolare", addestramentoMancante: true }, "manca l'addestramento");
+    contiene(scudo.statoConsegnaDpi({ tipo: "maschera", scadenza: "2099-01-01", addestramento: true }, new Date("2026-07-15")),
+      { addestramentoMancante: false }, "fatto");
+  });
+  test("⚠️ statoConsegnaDpi: una consegna SENZA data di sostituzione risulta regolare", () => {
+    /* Comportamento di oggi, scritto qui perché è una DOMANDA APERTA, non
+       una regola decisa (punto 14 di DECISIONI_WEEKEND.md).
+       Il form propone da sé la scadenza dai mesi del tipo, ma l'utente può
+       svuotarla: da lì in poi una maschera di III categoria non produce
+       nessun allarme di sostituzione, mai. Le due letture sono:
+       (a) l'ha svuotata apposta, quel dispositivo non scade → regolare;
+       (b) nessuno ha detto entro quando va sostituito → non è un verde.
+       Finché non è deciso, la prova blinda quello che il codice fa DAVVERO,
+       così se cambia si sa che è stato scelto e non successo. */
+    contiene(scudo.statoConsegnaDpi({ tipo: "maschera" }, new Date("2026-07-15")),
+      { stato: "regolare", scadenza: null }, "oggi: regolare");
+    eq(scudo.tipoDpi("maschera").mesi, 12, "eppure il tipo dice dodici mesi");
+  });
+  test("MANSIONI_PRESET: sono una base di partenza, e ogni mansione porta requisiti e DPI", () => {
+    /* «base da adattare al DVR e al DSS della propria cava, non un elenco
+       di verità di legge»: la prova blinda la forma, non i contenuti */
+    ok(scudo.MANSIONI_PRESET.length >= 5, "abbastanza mansioni da partire");
+    for (const m of scudo.MANSIONI_PRESET) {
+      ok(m.chiave && m.nome, "chiave e nome: " + m.chiave);
+      ok(Array.isArray(m.requisiti) && Array.isArray(m.dpi), "requisiti e dpi sono elenchi: " + m.chiave);
+    }
+    const f = scudo.MANSIONI_PRESET.find(m => m.chiave === "fochino");
+    ok(f.requisiti.includes("fochino"), "il fochino ha bisogno del suo titolo");
+    ok(f.dpi.includes("otoprotettori"), "e degli otoprotettori");
+  });
+  test("ruoloNomina: un ruolo che non esiste non diventa RSPP", () => {
+    contiene(scudo.ruoloNomina("rspp"), { chiave: "rspp", obbligatoria: true }, "l'RSPP c'è ed è obbligatorio");
+    eq(scudo.ruoloNomina("zzz"), null, "un ruolo inventato non prende il posto di uno vero");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);

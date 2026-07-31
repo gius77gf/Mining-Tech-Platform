@@ -273,6 +273,37 @@ detto a chi guarda la schermata è ambiguo, e le due letture sono opposte:
 oggi non afferma niente di falso su un dato misurato — dice solo poco. La
 correzione è pronta in tutte e tre le forme, e costa poco in tutte e tre.
 
+## 14. Un DPI consegnato senza data di sostituzione: verde o «non lo sappiamo»?
+
+*Trovato il 02/08 scrivendo le prove sui DPI. Stessa famiglia del punto 13, e
+per questo te lo chiedo invece di deciderlo io.*
+
+**Come funziona oggi.** Quando registri la consegna di un dispositivo, Scudo
+**propone da sé** la data di sostituzione a partire dai mesi previsti per quel
+tipo (per esempio dodici mesi per una maschera). Ma quella casella si può
+**svuotare**. Se la svuoti, da quel momento quel dispositivo **non produrrà mai
+più un avviso di sostituzione**: nella tabella la data si legge «—», e nel
+riepilogo il dispositivo risulta a posto.
+
+**Le due letture, tutt'e due ragionevoli:**
+
+a) **l'hai svuotata apposta.** Quel dispositivo non ha una scadenza —
+   l'interfaccia stessa dice che i mesi del tipo sono «una durata indicativa,
+   quella vera la dice il libretto del costruttore». Allora il verde è giusto;
+
+b) **nessuno ha detto entro quando va sostituito.** E allora non è un verde: è
+   un «non lo sappiamo», della stessa specie del contaore che segnava zero ore.
+   Su un facciale filtrante contro la silice, «non lo sappiamo» pesa.
+
+**Se scegli (b)**, la forma più mite è quella del punto 13: il dispositivo senza
+data di sostituzione va in **attenzione** (giallo) invece che in verde, e chi
+vuole dichiarare che quel pezzo non scade lo dice con una spunta.
+
+⚠️ **Non l'ho toccato**: come al punto 13 è una scelta di prodotto, e tocca il
+modulo della sicurezza. C'è però una prova che blinda il comportamento di oggi
+e lo nomina, così se un giorno cambia si sa che è stato **scelto** e non
+successo.
+
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde
 iterazioni UX delle app, test aggiuntivi, revisioni di qualità/sicurezza,
@@ -288,13 +319,13 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 1.197** *(ricontate il 31/07 lanciando le
+**Le prove automatiche sono passate a 1.210** *(ricontate il 31/07 lanciando le
 suite)*, più **106** che girano con l'emulatore Firestore (58 sulle regole di
 sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **19** banchi
 che aprono davvero le pagine in un browser.
 
 Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da
-**433 a 914**, e hanno fatto emergere **otto difetti veri**. I tre che pesano di
+**433 a 927**, e hanno fatto emergere **otto difetti veri**. I tre che pesano di
 più: il grafico «ultimi 6 mesi» del core riempiva ogni barra con la produzione
 del **mese precedente** (chiave del mese letta a Greenwich, etichetta letta in
 Italia); un **ruolo di sicurezza obbligatorio** risultava coperto quando la
