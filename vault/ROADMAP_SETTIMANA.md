@@ -1321,6 +1321,29 @@ campi interi, file delle macchine.
       invecchia. Oggi è **rosso** sull'unico difetto vero, ed **entra in
       `npm test` col commit che lo corregge**: rosso in CI per ore non serve a
       nessuno.
+- [x] **La seconda forma di vuoto, e le tre facce di `urgenzaOre`** *(03/08)* —
+      la prima sonda guardava la **lista vuota**; esiste un secondo vuoto, più
+      frequente: **la riga c'è e non è compilata**. Rifatta con `[{}]` al posto
+      di `[]`: **tre casi in più**, e uno merita di essere scritto.
+      `flotta.urgenzaOre` con `orePreviste` a `null` risponde **«SCADUTA (+500
+      h)» in rosso** — `+null === 0`, cioè un **allarme inventato**, ed è la
+      ragione per cui la prima sonda non l'aveva visto: cercava il *tranquillo*,
+      e questo è il contrario. Con un valore non numerico scrive «**tra NaN h**»
+      in verde; con tutt'e due ignote dice «**a 0 h**», e il ramo giusto
+      (`"a ore"`) non si raggiunge perché `+null` è finito. La cosa istruttiva:
+      la funzione era stata **appena corretta** per il difetto gemello — il
+      commento lo racconta, «*zero ore* e *non lo so* sono due cose diverse» — e
+      la guardia è finita su **`oreAttuali`** e non su **`orePreviste`**. Stesso
+      difetto, stessa funzione, stesso giorno: **metà chiusa e metà no**.
+      Raggiungibilità misurata: **dormiente**, tutti e quattro i punti di
+      chiamata guardano prima e il form passa da un validatore — ma la
+      protezione poggia su quattro chiamanti che si ricordano, e la correzione è
+      di **tre righe** dentro la funzione, nella stessa forma già scritta lì
+      accanto. La sonda adesso prova **entrambe** le forme (12 casi, 11
+      dichiarati con la ragione, 1 rosso). Corollario per `CLAUDE.md`: **anche
+      una sonda copre solo la forma di vuoto che le si dà in pasto** — quando un
+      controllo dice «tutto a posto», la domanda dopo non è «funziona?» ma «che
+      cosa ha guardato?».
 
 ---
 

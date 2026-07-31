@@ -201,6 +201,68 @@ scadenza»**, non «regolare».
 
 ---
 
+---
+
+## La seconda forma di vuoto, e le tre facce di `urgenzaOre`
+
+La prima passata guardava la **lista vuota** — «non c'è nessuna riga». Ma esiste
+un secondo vuoto, più frequente: **la riga c'è e non è compilata**. Si crea la
+scheda e la si lascia a metà, ed è quello che succede davvero.
+
+Rifatta la sonda con `[{}]` al posto di `[]`: **tre casi in più**, e uno merita
+la sua sezione.
+
+### `flotta.urgenzaOre`, misurata
+
+| `orePreviste` | `oreAttuali` | risposta |
+|---|---|---|
+| 600 | 500 | `{cls:"ok", label:"tra 100 h"}` — giusto |
+| 600 | *ignote* | `{cls:"", label:"a 600 h"}` — **giusto, ed è la parte già corretta** |
+| **`null`** | 500 | `{cls:"danger", label:"SCADUTA (+500 h)"}` |
+| **`""`** | 500 | `{cls:"danger", label:"SCADUTA (+500 h)"}` |
+| **`"boh"`** | 500 | `{cls:"ok", label:"**tra NaN h**"}` |
+| `null` | `null` | `{cls:"", label:"**a 0 h**"}` |
+
+Tre facce dello stesso buco:
+
+1. un tagliando **senza ore obiettivo** viene dichiarato **scaduto da 500 ore**,
+   in rosso. È `+null === 0` — la trappola dormiente già scritta in `CLAUDE.md` —
+   e qui produce un **allarme inventato**, non un falso «va bene». Per questo la
+   prima sonda non l'aveva vista: cercava il **tranquillo**, e questo è il
+   contrario;
+2. un valore non numerico scrive **«tra NaN h»** sul badge, in verde;
+3. con tutt'e due ignote dice **«a 0 h»**, cioè afferma che il tagliando è
+   previsto a zero ore. Il ramo giusto esiste (`Number.isFinite(prev) ? … :
+   "a ore"`) ma **non si raggiunge**, perché `+null` è `0` ed è finito.
+
+**La cosa che rende questo caso istruttivo** è che la funzione era stata
+**appena corretta** per il difetto gemello, e il commento lo racconta:
+
+> «⛔ *ZERO ORE* E *NON LO SO* SONO DUE COSE DIVERSE, anche qui. […] su un mezzo
+> di cui non sappiamo il contatore mostrava *tra 500 h* IN VERDE — un colore
+> tranquillo dove non è stato misurato niente.»
+
+La guardia è stata messa su **`oreAttuali`**, con la forma giusta
+(`== null || === ""` prima di convertire), e **non** su `orePreviste`, che è
+rimasto un `+orePreviste` nudo. **Stesso difetto, stessa funzione, stesso
+giorno: metà chiusa e metà no.**
+
+### Ma quanto è dormiente? — misurato
+
+Tutti e **quattro** i punti di chiamata guardano prima: `if (n.orePreviste)`,
+`n.orePreviste ? … : urgenza(…)`, `if (+(n && n.orePreviste) > 0)`. E il form
+scrive `orePreviste` solo attraverso un validatore
+(`const orePreviste = rmh.ok ? rmh.valore : null`), quindi il campo è **sempre**
+un numero finito o `null`.
+
+Quindi: **nessuna delle tre facce è raggiungibile oggi**. È dormiente come le
+guardie di `go()` — e va detto così. Ma la protezione poggia su **quattro punti
+di chiamata che si ricordano**, e la regola di questa casa è che una cosa
+affidata alla memoria prima o poi salta. La correzione è di tre righe, dentro la
+funzione, ed è **la stessa forma già scritta lì accanto** per l'altro parametro.
+
+---
+
 ## La lezione, che è più grande del difetto
 
 Il principio «l'assenza di un dato non è un dato favorevole» è in `CLAUDE.md` da
@@ -211,3 +273,9 @@ indietro, **e proprio nell'app dove il principio era nato**.
 
 Un principio che vive nella memoria di chi legge copre il codice che sta
 scrivendo in quel momento. Per coprire il resto serve qualcosa che lo cerchi.
+
+E la seconda passata aggiunge il corollario: **anche una sonda copre solo la
+forma di vuoto che le si dà in pasto**. La lista vuota ha trovato un difetto; il
+record vuoto ne ha trovati altri tre, nella stessa mezz'ora, senza cambiare una
+riga della logica. Quando un controllo risponde «tutto a posto», la domanda
+successiva non è *«funziona?»* ma **«che cosa ha guardato?»**.

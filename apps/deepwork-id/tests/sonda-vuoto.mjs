@@ -66,6 +66,17 @@ const ACCETTATI = {
     "DORMIENTE: «regolare» senza scadenza. Nessun percorso crea oggi un'azione senza data (il form la pretende)",
   "scudo.statoIspezione":
     "DORMIENTE: come statoAzione, e per la stessa ragione misurata",
+
+  /* Trovati dalla seconda forma (UN RECORD VUOTO), che la lista vuota non
+     raggiungeva. */
+  "scudo.statoConsegnaDpi":
+    "una consegna DPI senza scadenza è «regolare» ed è giusto: moltissimi DPI non scadono (un gilet ad alta visibilità)",
+  "scudo.verbaleDpi":
+    "stampa lo stato di statoConsegnaDpi: eredita la riga qui sopra, non decide niente per conto suo",
+  "flotta.urgenzaOre":
+    "DORMIENTE, ma con TRE facce — vedi docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md: "
+    + "la guardia è stata messa su `oreAttuali` e non su `orePreviste`, e i quattro punti di chiamata "
+    + "reggono da soli con `if (n.orePreviste)`. Da chiudere dentro la funzione",
 };
 
 let passed = 0, failed = 0;
@@ -89,12 +100,21 @@ function segnali(v, dove, out, prof = 0) {
   }
 }
 
-/* Gli input vuoti che una funzione può ricevere il primo giorno di un cliente.
-   Si provano più firme perché le arità sono diverse e non si può indovinare:
-   vale la prima chiamata che non lancia. */
+/* DUE forme di vuoto, e sono diverse davvero:
+   · LISTA VUOTA — «non c'è nessuna riga». È il caso del cliente appena
+     entrato, prima di aver inserito qualsiasi cosa;
+   · UN RECORD VUOTO — «la riga c'è ma non è compilata». È il caso più comune
+     di tutti: si crea la scheda e la si lascia a metà. Ed è quello che ha
+     trovato tre casi in più della lista vuota, fra cui i tre di `urgenzaOre`.
+   Si provano più firme perché le arità sono diverse e non si può indovinare;
+   per ogni forma si tengono TUTTE le chiamate riuscite, non la prima: una
+   funzione a due parametri risponde diversamente a `(lista, lista)` e a
+   `(record, lista)`, e fermarsi alla prima nasconde la seconda. */
 const VUOTI = [
   [], [[]], [[], []], [[], [], ""], [[], [], "", ""], [[], {}, "", ""],
   [{}], [{}, []], [[], {}], [null], [""], [[], [], []],
+  [[{}]], [[{}], [{}]], [[{}], [], ""], [[{}], {}, "", ""], [{}, [{}]],
+  [[{}], [{}], ""], [[{}], "", ""], [{}, {}],
 ];
 
 const trovati = new Map();
@@ -107,13 +127,13 @@ for (const app of APP) {
   for (const n of nomi) {
     const f = mod[n];
     if (typeof f !== "function") continue;
-    let risposta, riuscita = false;
-    for (const args of VUOTI) { try { risposta = f(...args); riuscita = true; break; } catch (e) { /* firma sbagliata */ } }
+    const out = []; let riuscita = false;
+    for (const args of VUOTI) {
+      try { segnali(f(...args), n, out); riuscita = true; } catch (e) { /* firma sbagliata */ }
+    }
     if (!riuscita) continue;
     chiamate++;
-    const out = [];
-    segnali(risposta, n, out);
-    if (out.length) trovati.set(`${app}.${n}`, out);
+    if (out.length) trovati.set(`${app}.${n}`, [...new Set(out)]);
   }
 }
 
