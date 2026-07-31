@@ -109,6 +109,41 @@ dice(Number.isFinite(+r.x0) && +r.x0 > 100000,
 dice(/base 3[34]\d/.test(String(letto.riga)),
   "la riga sotto il visore mostra la stessa quota", letto.riga.replace(/\s+/g, " ").slice(-90));
 
+/* ── E L'AVVISO SULLA GRIGLIA TROPPO FITTA ────────────────────────────────
+   Dando il lato cella in mano all'utente si è aperta una porta che prima non
+   c'era: il metodo somma solo le celle che CONTENGONO punti, quindi una griglia
+   più fitta della spaziatura della nuvola lascia vuote gran parte delle celle e
+   il volume manca dei pezzi. Su questa nuvola (campionata a 40 cm) a 0,25 m il
+   volume scende del **63%** — e un numero più basso, senza avviso, si legge come
+   «più preciso», perché una griglia fine SEMBRA più accurata. */
+const conCella = async (v) => {
+  await pg.selectOption("#cella", v);
+  await pg.waitForTimeout(900);
+  return pg.evaluate(() => {
+    let r = null;
+    try { const a = JSON.parse(localStorage.getItem("genesiNuvole") || "[]"); r = a[a.length - 1]; } catch (e) {}
+    const t = (document.getElementById("cropdim") || {}).textContent || "";
+    return { riga: t, avvisa: /griglia più fitta dei punti/.test(t),
+      vol: r ? +String(r.volume).replace(/[^\d]/g, "") : null,
+      cella: r && r.calcolo ? r.calcolo.cella : null,
+      auto: r && r.calcolo ? r.calcolo.cellaAutomatica : null };
+  });
+};
+const fine = await conCella("0.25");
+const grossa = await conCella("2");
+const autom = await conCella("");
+
+dice(fine.avvisa === true, "⛔ con la griglia più fitta dei punti l'app AVVISA", fine.riga.slice(-110));
+dice(grossa.avvisa === false && autom.avvisa === false,
+  "e tace quando la griglia regge (2,00 m e automatica)", [grossa.avvisa, autom.avvisa]);
+dice(fine.vol !== null && grossa.vol !== null && fine.vol < grossa.vol * 0.5,
+  "e il volume con la griglia fitta è davvero crollato, non solo diverso", [fine.vol, grossa.vol]);
+/* il verso della scheda, sulle celle che REGGONO: più grossa → più alto */
+dice(autom.vol !== null && grossa.vol > autom.vol,
+  "fra le celle che reggono, più grossa dà un volume più alto (verso della scheda)", [autom.vol, grossa.vol]);
+dice(grossa.auto === false && autom.auto === true,
+  "il record dice se la cella è stata SCELTA o è automatica", [grossa.auto, autom.auto]);
+
 console.log(`\n${ok + ko} prove · ${ok} passate, ${ko} fallite`);
 await b.close(); srv.close();
 if (CONTROPROVA) {
