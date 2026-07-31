@@ -1075,6 +1075,14 @@ campi interi, file delle macchine.
 - [x] **Per il fondatore**: `docs/LA_STESSA_REGOLA_SCRITTA_DUE_VOLTE.md` — perché
       una giornata di sole prove ha prodotto tre correzioni di struttura, e il
       criterio per distinguere quando è un difetto e quando no.
+- [x] **Misurato: lo stesso numero si scrive in due modi.**
+      `toLocaleString("it-IT")` sui numeri di **quattro cifre** dà «6.375» in
+      Chromium e «6375» in Node (strategia `min2`). Non è un difetto del
+      prodotto — dentro una pagina gira tutto nello stesso motore — ma lo è
+      delle **prove**: i moduli dati li leggono tutt'e due, e la prova sulla
+      frase del tagliando afferma «6375» mentre l'utente legge **6.375**. Stessa
+      famiglia del difetto delle date. Misura e correzione in
+      `docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md`.
 
 ---
 
