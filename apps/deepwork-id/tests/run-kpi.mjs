@@ -6376,5 +6376,90 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ LA CHIUSURA DEL TURNO: LA FIRMA DELLA CONSEGNA ═════════════════════
+   Il rapporto di fine turno diventa un **documento** quando porta un nome e
+   un'ora: chi consegna, chi riceve, quando. È quello che, in caso di
+   contestazione, distingue un appunto da una consegna fatta.
+
+   E una firma vale qualcosa **solo se dopo la firma il documento non cambia
+   più**: `turnoChiuso` è la funzione che ogni punto di salvataggio deve
+   chiedere prima di scrivere. Con due regole che tirano in direzioni opposte e
+   vanno tenute insieme:
+
+   · **chiuso vuol dire chiuso** — nessuno ci scrive più sopra;
+   · **i dati vecchi restano modificabili.** Una registrazione senza giorno o
+     senza turno — salvata prima che quei campi esistessero — non appartiene a
+     nessun turno chiuso. Nessuna azienda si ritrova i propri dati bloccati
+     dall'oggi al domani per un aggiornamento del programma. */
+{
+  const chiusure = [
+    { id: "c1", data: "2026-07-30", turno: "Mattina", consegna: "Mario", ricevuta: "Anna", ora: "14:05" },
+    { id: "c2", data: "2026-07-31", turno: "Mattina", consegna: "Bruno", ricevuta: "", ora: "" },
+    { id: "c3", data: "2026-07-30", turno: "Mattina", consegna: "Mario", ricevuta: "Carla", ora: "14:20",
+      riaperture: [{ da: "Mario Bianchi", il: "2026-07-30", ora: "15:10", motivo: "dimenticati i minuti di fermo" }] },
+    /* una chiusura VECCHIA, salvata prima che esistessero giorno e turno.
+       Senza questa riga la prova qui sotto non proverebbe niente: la guardia
+       `if (!d || !t) return null` non avrebbe niente da fermare, e il filtro su
+       una data vuota basterebbe da solo. È lo stesso difetto già trovato oggi
+       sulla lettura «più recente, non più alta». */
+    { id: "c0", data: "", turno: "", consegna: "Vecchio", ricevuta: "Registro", ora: "12:00" }];
+
+  test("⛔ chiusura: un turno con la firma e l'ora è CHIUSO", () => {
+    eq(campo.turnoChiuso(chiusure, "2026-07-30", "Mattina").id, "c3", "chiuso, e vale l'ultima registrata");
+  });
+  test("⛔ chiusura: senza l'ORA il turno non è chiuso", () => {
+    /* la riga c'è ma la firma no: è un foglio compilato a metà, e bloccarci
+       sopra le scritture fermerebbe il lavoro senza che nessuno abbia firmato */
+    eq(campo.turnoChiuso(chiusure, "2026-07-31", "Mattina"), null, "aperto");
+  });
+  test("⛔ chiusura: i dati vecchi senza giorno o turno restano modificabili", () => {
+    /* regola ferrea di compatibilità: nessuna azienda si ritrova i propri dati
+       bloccati dall'oggi al domani per un aggiornamento del programma */
+    eq(campo.turnoChiuso(chiusure, "", "Mattina"), null, "senza giorno non appartiene a nessun turno chiuso");
+    eq(campo.turnoChiuso(chiusure, "2026-07-30", ""), null, "e nemmeno senza turno");
+  });
+  test("chiusura: fra due chiusure dello stesso turno vale l'ULTIMA", () => {
+    eq(campo.chiusuraDi(chiusure, "2026-07-30", "Mattina").ricevuta, "Carla", "la consegna corretta");
+  });
+  test("⛔ chiusura: il riassunto dice chi consegna, a chi e a che ora", () => {
+    eq(campo.riassuntoChiusura(chiusure[2]), "Consegnato da Mario a Carla alle 14:20", "la frase intera");
+    eq(campo.riassuntoChiusura({ consegna: "Mario", ora: "14:00" }), "Consegnato da Mario alle 14:00",
+       "e con un nome solo non resta una preposizione appesa");
+    eq(campo.riassuntoChiusura(chiusure[1]), "", "senza ora non c'è niente da riassumere");
+  });
+
+  test("⛔ riapertura: la traccia resta, sempre", () => {
+    /* è quello che rende la correzione alla luce del sole invece che di
+       nascosto: le riaperture non si cancellano mai */
+    eq(campo.riaperture(chiusure[2]).length, 1, "una riapertura");
+    eq(campo.riaperture(chiusure[0]).length, 0, "e chi non ne ha non ne inventa");
+    eq(campo.riaperture(null).length, 0, "nemmeno senza chiusura");
+  });
+  test("riapertura: la riga dice chi, quando e perché", () => {
+    eq(campo.riassuntoRiapertura(chiusure[2].riaperture[0], (d) => d.split("-").reverse().join("/")),
+       "Riaperto da Mario Bianchi il 30/07/2026 alle 15:10 — dimenticati i minuti di fermo",
+       "tutto quello che serve a capire la correzione");
+    eq(campo.riassuntoRiapertura({ da: "Anna", ora: "09:00" }), "Riaperto da Anna alle 09:00",
+       "e senza motivo non resta un trattino sospeso");
+  });
+  test("riapertura: l'ultima è quella che conta per lo stato attuale", () => {
+    eq(campo.ultimaRiapertura(chiusure[2]).ora, "15:10", "la più recente");
+    eq(campo.ultimaRiapertura(chiusure[0]), null, "e senza riaperture è null, non un oggetto vuoto");
+  });
+
+  test("⛔ turno: quello suggerito segue l'ora, e la notte attraversa la mezzanotte", () => {
+    /* chi registra non deve sceglierlo ogni volta: 6-14 mattina, 14-22
+       pomeriggio, il resto notte — e alle 3 si è ancora nel turno di notte */
+    eq(campo.turnoCorrente(new Date(2026, 6, 31, 6, 0)), "Mattina", "le sei");
+    eq(campo.turnoCorrente(new Date(2026, 6, 31, 13, 59)), "Mattina", "fino alle due meno un minuto");
+    eq(campo.turnoCorrente(new Date(2026, 6, 31, 14, 0)), "Pomeriggio", "le quattordici");
+    eq(campo.turnoCorrente(new Date(2026, 6, 31, 22, 0)), "Notte", "le ventidue");
+    eq(campo.turnoCorrente(new Date(2026, 6, 31, 3, 0)), "Notte", "e le tre di mattina sono ancora notte");
+  });
+  test("turno: i tre turni sono quelli che usa il rapportino", () => {
+    eq(campo.TURNI.join(","), "Mattina,Pomeriggio,Notte", "e nient'altro");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
