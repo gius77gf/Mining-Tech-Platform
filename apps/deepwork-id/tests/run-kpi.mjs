@@ -5731,5 +5731,97 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ IL RECLAMO DI UN RESIDENTE, E LA COINCIDENZA CHE NON È UNA CAUSA ═══
+   Il reclamo è l'altro ingresso del ponte verso Scudo: non finisce quando è
+   stato registrato, richiede che qualcuno faccia qualcosa entro una data.
+
+   La regola più delicata di tutte non è un calcolo, è una **frase**. Un
+   superamento nello stesso giorno di una volata va **guardato**, non
+   **spiegato**: due fatti nello stesso giorno sono due fatti nello stesso
+   giorno. Scrivere «causato dalla volata» dentro un documento che finisce
+   all'ente è un autogol — e spesso è anche falso. */
+{
+  const reclami = [
+    { id: "r1", data: "2026-07-10", tipo: "rumore", stato: "aperto",
+      chi: "Sig. Rossi", descrizione: "rumore alle 6", ora: "06:15" },
+    { id: "r2", data: "2026-07-20", tipo: "polvere", stato: "chiuso" },
+    { id: "r3", data: "boh", tipo: "altro" }];
+
+  test("reclami: quanti in tutto, quanti ancora aperti, e l'ultimo", () => {
+    const r = sentinella.riepilogoReclami(reclami);
+    eq(r.totale, 3, "tre in tutto");
+    eq(r.aperti, 2, "due aperti: chi non ha stato non è chiuso");
+    eq(r.ultimo, "2026-07-20", "e una data impossibile non diventa «l'ultimo»");
+  });
+  test("reclami: senza reclami non si inventa una data", () => {
+    eq(sentinella.riepilogoReclami([]).ultimo, null, "nessun ultimo");
+    eq(sentinella.riepilogoReclami(null).totale, 0, "e nemmeno con la lista mancante");
+  });
+  test("reclami: un tipo sconosciuto finisce sotto «Altro», non sparisce", () => {
+    eq(sentinella.etichettaReclamo("POLVERE"), "Polvere", "il maiuscolo non conta");
+    eq(sentinella.etichettaReclamo("boh"), "Altro", "e l'ignoto ha un posto dove stare");
+  });
+
+  test("⛔ bozza reclamo: l'azione porta con sé il fatto, scritto in italiano", () => {
+    /* Scudo non può leggere le collezioni di Sentinella: un'azione che dicesse
+       solo «origine: reclamo xyz» sarebbe illeggibile per l'RSPP */
+    const b = sentinella.bozzaAzioneReclamo(reclami[0], { id: "ric1", nome: "Casa Rossi" });
+    eq(b.origineTipo, sentinella.ORIGINE_RECLAMO, "il tipo di fatto");
+    eq(b.origineApp, sentinella.PONTE_APP, "e da quale app arriva");
+    eq(b.origineNota.includes("Sig. Rossi"), true, "chi ha segnalato");
+    eq(b.origineNota.includes("«rumore alle 6»"), true, "e le sue parole, fra virgolette");
+    eq(b.origineNota.includes("Casa Rossi"), true, "col ricettore");
+  });
+  test("bozza reclamo: la descrizione proposta dice già cosa fare", () => {
+    const b = sentinella.bozzaAzioneReclamo(reclami[0], { id: "ric1", nome: "Casa Rossi" });
+    eq(b.descrizione, "Dare seguito al reclamo per rumore a Casa Rossi del 10/07/2026",
+       "un compito, non un'etichetta");
+    eq(b.stato, "aperta", "e nasce aperta");
+  });
+  test("⛔ bozza reclamo: senza data la voce non resta vuota", () => {
+    /* `origineVoce` è la chiave con cui si riconosce il doppione: vuota,
+       due reclami diversi sembrerebbero lo stesso */
+    eq(sentinella.bozzaAzioneReclamo({ id: "r9", tipo: "altro" }, null).origineVoce, "reclamo",
+       "una parola al posto del vuoto");
+    eq(sentinella.bozzaAzioneReclamo({ tipo: "rumore" }), null, "e senza id non si prepara niente");
+  });
+
+  const volate = [{ id: "v1", data: "2026-07-10", fronte: "A" },
+    { id: "v2", data: "2026-07-10", fronte: "B" }, { id: "v3", data: "2026-07-11", fronte: "A" }];
+  test("⛔ coincidenza: si dice che c'era una volata, NON che è stata la causa", () => {
+    /* «causato dalla volata» dentro un documento che va all'ente è un autogol,
+       e spesso è anche falso: servono la misura strumentale, l'ora e una
+       valutazione tecnica */
+    const c = sentinella.coincidenzaVolata(volate, "2026-07-10");
+    eq(c.n, 2, "due volate quel giorno");
+    eq(c.testo.includes("causa"), false, "il testo non parla di cause");
+    eq(c.avviso.includes("non una causa dimostrata"), true, "e l'avviso lo dice esplicitamente");
+  });
+  test("coincidenza: si dice quante e su quali fronti", () => {
+    eq(sentinella.coincidenzaVolata(volate, "2026-07-10").testo,
+       "Quel giorno sono state registrate 2 volate (A, B).", "al plurale");
+    eq(sentinella.coincidenzaVolata(volate, "2026-07-11").testo,
+       "Quel giorno è stata registrata una volata (A).", "e al singolare, in italiano");
+  });
+  test("⛔ coincidenza: senza volate quel giorno non si scrive niente", () => {
+    /* un riquadro vuoto accanto a un superamento suggerirebbe un legame che
+       nessuno ha misurato */
+    eq(sentinella.coincidenzaVolata(volate, "2026-07-12"), null, "niente da dire");
+  });
+
+  test("esito del report: le tre facce sono quelle del semaforo di tutta l'app", () => {
+    eq(sentinella.ESITI["conforme"].cls, "ok", "verde");
+    eq(sentinella.ESITI["non-conforme"].cls, "danger", "rosso");
+    eq(sentinella.ESITI["senza-dati"].cls, "warn", "e «senza dati» è giallo, non verde");
+  });
+  test("⛔ esito del report: «senza dati» non dice che il limite è stato rispettato", () => {
+    /* è la differenza fra «abbiamo misurato e va bene» e «non abbiamo
+       misurato»: su un documento per l'ente confonderle è il difetto peggiore */
+    const t = sentinella.ESITI["senza-dati"].testo;
+    eq(t.includes("non può dire se il limite è stato rispettato"), true, "lo dichiara");
+    eq(t.includes("nessuna lettura ha raggiunto la soglia"), false, "e non si spaccia per conforme");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
