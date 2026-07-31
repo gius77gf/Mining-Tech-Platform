@@ -4558,5 +4558,46 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ LA NUMERAZIONE DELLE FATTURE ═══════════════════════════════════════
+   `prossimoNumero` propone il numero della prossima fattura. Non era provata,
+   ed è una di quelle cose in cui un errore non si vede subito e poi non si può
+   più sistemare: due fatture con lo stesso numero sono un'irregolarità, e la
+   correzione a posteriori richiede una nota di credito.
+
+   Il comportamento che conta di più è quello sui **buchi**: se esistono la 001
+   e la 005, la prossima è la **006**, non la 002. Riempire un buco vorrebbe
+   dire riusare il numero di una fattura annullata — cioè creare il doppione
+   che si voleva evitare. */
+{
+  const pn = conti.prossimoNumero;
+
+  test("numerazione: il primo numero dell'anno", () => {
+    eq(pn([], 2026), "2026/001", "si comincia da uno, con lo zero davanti");
+  });
+  test("numerazione: si continua dal più alto", () => {
+    eq(pn(["2026/001", "2026/002"], 2026), "2026/003", "il massimo più uno");
+  });
+  test("⛔ numerazione: i buchi NON si riempiono", () => {
+    /* la 002, 003 e 004 possono essere state annullate: riusarle creerebbe
+       due documenti con lo stesso numero, che è l'irregolarità vera */
+    eq(pn(["2026/001", "2026/005"], 2026), "2026/006", "si va oltre il massimo, non nel buco");
+  });
+  test("numerazione: gli anni diversi non si mescolano", () => {
+    eq(pn(["2025/041", "2026/002"], 2026), "2026/003", "il 41 del 2025 non conta per il 2026");
+    eq(pn(["2025/041"], 2026), "2026/001", "e un anno nuovo riparte da uno");
+  });
+  test("numerazione: si riconosce anche la forma «001/2026»", () => {
+    /* chi arriva da un altro gestionale scrive spesso numero/anno: se non la
+       riconoscessimo, la proposta ripartirebbe da 001 e sarebbe un doppione */
+    eq(pn(["007/2026"], 2026), "2026/008", "letta anche al contrario");
+  });
+  test("numerazione: le righe che non sono numeri non spostano il conto", () => {
+    eq(pn(["", null, "bozza", "2026/002"], 2026), "2026/003", "solo i numeri veri contano");
+  });
+  test("numerazione: le cifre di riempimento si rispettano", () => {
+    eq(pn(["2026/009"], 2026, 5), "2026/00010", "cinque cifre se cinque sono chieste");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
