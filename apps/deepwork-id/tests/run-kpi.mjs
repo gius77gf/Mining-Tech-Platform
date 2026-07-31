@@ -5376,5 +5376,40 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ «OGGI» È UNA SOLA COSA, E VIVE IN shared/ ══════════════════════════
+   `oggiISO` era scritta **sei volte** nel progetto in **tre** versioni: cinque
+   giuste e una — quella di Conti — che prendeva il giorno da `toISOString()`,
+   cioè il giorno UTC. In Italia sono una o due ore avanti, e fra mezzanotte e
+   le due (il turno di notte) quella versione data i documenti **al giorno
+   prima**. Vedi `docs/RICERCA_GIORNO_LOCALE_202607.md`.
+
+   Il test pretende l'**IDENTITÀ**, non il comportamento: due copie uguali oggi
+   divergono domani senza che nessuno se ne accorga. È la stessa regola già
+   costata una giornata con la convenzione sui numeri. */
+{
+  test("⛔ oggi: Campo ri-esporta la funzione di shared, non ne tiene una sua", () => {
+    eq(campo.oggiISO === shell.oggiISO, true, "è la stessa funzione, non una copia che si comporta uguale");
+  });
+  test("⛔ oggi: il giorno si legge dall'orologio LOCALE, non da quello di Greenwich", () => {
+    /* mezzanotte e mezza del 2 giugno a Roma: `toISOString()` scriverebbe il
+       1° giugno, e il rapportino del turno di notte finirebbe nel giorno prima */
+    eq(shell.oggiISO(new Date(2026, 5, 2, 0, 30)), "2026-06-02", "il 2, non il 1°");
+    eq(shell.oggiISO(new Date(2026, 0, 1, 0, 30)), "2026-01-01", "e a capodanno l'anno è quello nuovo");
+  });
+  test("⛔ oggi: il MESE di una data si legge nello stesso modo", () => {
+    /* la chiave con cui si raggruppano i grafici: presa da `toISOString()`
+       sposta ogni barra di un mese intero */
+    eq(shell.meseLocale(new Date(2026, 4, 1)), "2026-05", "maggio è maggio, anche il primo giorno");
+    eq(shell.meseLocale(new Date(2026, 0, 1)), "2026-01", "e gennaio è gennaio");
+  });
+  test("oggi: una data che non è una data non diventa oggi", () => {
+    eq(shell.isoLocale("boh"), "", "stringa vuota, invece di un giorno inventato");
+  });
+  test("oggi: mezzogiorno e mezzanotte dello stesso giorno danno lo stesso giorno", () => {
+    eq(shell.isoLocale(new Date(2026, 6, 31, 12, 0)), shell.isoLocale(new Date(2026, 6, 31, 0, 0)),
+       "l'ora non sposta il calendario");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);

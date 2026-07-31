@@ -37,7 +37,7 @@
 // restano visibili come "senza data", vedi eDelGiorno).
 // ============================================================
 
-import { parseCsvLine, numIt, isIntestazione, csvCell, numeroScritto } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, numIt, isIntestazione, csvCell, numeroScritto, oggiISO as oggiISOShell, isoLocale } from "../../shared/deepwork-id-client/dw-shell.js";
 
 // ══════════════════════════════════════════════════════════════════════
 // NUMERI COME SI SCRIVONO IN ITALIA — un solo posto per la convenzione
@@ -127,10 +127,12 @@ export function numeroDaCampo(testo, opts = {}) {
 
 // Giorno di lavoro corrente in ISO (aaaa-mm-gg) e in ora LOCALE: usare
 // toISOString() sulla data grezza darebbe il giorno UTC e in Italia, la sera
-// tardi, sbaglierebbe di un giorno intero. Pura e testabile.
-export function oggiISO(adesso = new Date()) {
-  return new Date(adesso.getTime() - adesso.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-}
+// tardi, sbaglierebbe di un giorno intero.
+// La regola serviva a SEI posti (qui, Flotta, Scudo, Terra, Sentinella e —
+// scritta male — Conti), quindi dal 31/07 vive in `shared/`. Questo è un
+// ALIAS, non una seconda implementazione: le pagine di Campo continuano a
+// chiamarlo `oggiISO` e il test pretende l'identità, non il comportamento.
+export const oggiISO = oggiISOShell;
 
 // I turni di lavoro previsti dall'app (gli stessi già usati dal rapportino).
 export const TURNI = ["Mattina", "Pomeriggio", "Notte"];
@@ -162,7 +164,7 @@ export function senzaData(righe) {
 }
 
 const OGGI_DEMO = oggiISO();
-const GIORNI_FA = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+const GIORNI_FA = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return isoLocale(d); };
 
 export const DEMO = {
   attivita: [

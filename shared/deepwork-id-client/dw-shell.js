@@ -195,6 +195,39 @@ export function giorniTra(dataISO, oggi = new Date()) {
   return Math.round((new Date(dataISO + "T00:00:00") - o) / 86400000);
 }
 
+// UNA DATA SCRITTA IN ISO LEGGENDO L'OROLOGIO LOCALE (aaaa-mm-gg).
+// ⛔ Non si usa `toISOString()` per prendere il GIORNO di una data costruita in
+// ora locale: `toISOString()` scrive sempre l'istante in UTC, e in Italia
+// (UTC+1 d'inverno, UTC+2 d'estate) quell'istante sta una o due ore avanti.
+// Mezzanotte del 1° maggio a Roma è ancora **le 22:00 del 30 aprile** a
+// Greenwich, e `toISOString()` scrive appunto aprile.
+// Costava, misurato il 31/07: il grafico «ultimi 6 mesi» del core riempiva la
+// barra scritta «maggio» con la produzione di aprile — sempre, tutto l'anno,
+// perché la chiave era UTC e l'etichetta locale; le scadenze delle fatture di
+// Conti cadevano un giorno prima; e fra mezzanotte e le due — cioè durante il
+// turno di notte — un rapportino veniva datato al giorno prima.
+// Questa funzione stava scritta SEI volte nel progetto in TRE versioni: ora sta
+// qui, e le app la ri-esportano. Vedi docs/RICERCA_GIORNO_LOCALE_202607.md.
+export function isoLocale(d) {
+  const t = d instanceof Date ? d : new Date(d);
+  if (Number.isNaN(t.getTime())) return "";
+  const p = (n) => String(n).padStart(2, "0");
+  return `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())}`;
+}
+
+// Il giorno di lavoro corrente in ISO, in ora locale. `adesso` iniettabile
+// perché le prove non dipendano dall'orologio di chi le lancia.
+export function oggiISO(adesso = new Date()) {
+  return isoLocale(adesso);
+}
+
+// Il MESE di una data in ora locale (aaaa-mm): è la chiave con cui si
+// raggruppano i grafici e gli export, e prenderla da `toISOString()` sposta
+// ogni barra di un mese intero (vedi sopra).
+export function meseLocale(d) {
+  return isoLocale(d).slice(0, 7);
+}
+
 // ══════════════════════════════════════════════════════════════════════
 // UN NUMERO SCRITTO A MANO — una convenzione sola per tutte e sei le app
 // ══════════════════════════════════════════════════════════════════════

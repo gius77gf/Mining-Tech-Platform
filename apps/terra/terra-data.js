@@ -27,7 +27,7 @@
 // REGIONALE, quindi soglie, preavvisi e periodicità li imposta l'utente.
 // ============================================================
 
-import { parseCsvLine, numIt, isIntestazione, giorniTra } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, numIt, isIntestazione, giorniTra, isoLocale } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
   fronti: [
@@ -517,12 +517,16 @@ export function ritmoMedioAnnuo(rilievi, anni, oggi = new Date()) {
   const o = new Date(oggi); o.setHours(0, 0, 0, 0);
   const ANNO_MS = 365.25 * 86400000;
   const dal = new Date(o.getTime() - n * ANNO_MS);
-  const dalISO = dal.toISOString().slice(0, 10);
+  // ⛔ il giorno si legge in ora LOCALE: `toISOString()` su una mezzanotte
+  // locale scrive le 22:00 del giorno prima, e l'estremo alto della finestra
+  // diventerebbe IERI — il rilievo elaborato oggi resterebbe fuori dal conto
+  // che stima quando finisce il volume concesso (misurato il 31/07)
+  const dalISO = isoLocale(dal);
   // solo SCAVO: il ritmo serve a stimare quando finisce il volume concesso,
   // e i cumuli ripresi non lo consumano
   const el = soloScavo(rilievi)
     .filter(r => r.stato === "elaborato" && r.volumeM3 != null && /^\d{4}-\d{2}-\d{2}$/.test(String(r.data || "")))
-    .filter(r => String(r.data) >= dalISO && String(r.data) <= o.toISOString().slice(0, 10));
+    .filter(r => String(r.data) >= dalISO && String(r.data) <= isoLocale(o));
   if (!el.length) return null;
   const volume = el.reduce((s, r) => s + (+r.volumeM3 || 0), 0);
   if (!(volume > 0)) return null;
