@@ -416,6 +416,68 @@ pagato con `durataTurnoDi`: si allunga col contesto e si pretende che compaia
 
 ---
 
+## E poi la sonda ha guardato in `shared/`, ed è lì che stava il peggiore
+
+La sonda guardava le sei app. Ma la regola vincolante dice che **ciò che serve a
+due app vive in `shared/`** — cioè lì un difetto **si moltiplica per sei**.
+Allargata, ha risposto subito:
+
+```js
+// shared/dw-ponti.js
+export function statoScadenzaHSE(dataISO, oggi = new Date()) {
+  const t = Date.parse(String(dataISO || "") + "T00:00:00");
+  if (Number.isNaN(t)) return "regolare";        // ← una data illeggibile è «regolare»
+```
+
+**È in Scudo che si vede**, ed è l'app della sicurezza: `statoScadenza` è
+l'alias locale di questa funzione e viene chiamato **una trentina di volte** —
+scadenzario, badge, muro delle scadenze, idoneità, DPI, riepiloghi.
+
+### E non è dormiente: ci si arriva da un import CSV
+
+`parseScadenzeCsv` filtra le righe con `/^\d{4}-\d{2}-\d{2}$/`. Quella regex
+controlla la **forma**, non l'esistenza: **`2026-13-45` passa**. E
+`Date.parse("2026-13-45T00:00:00")` è `NaN`. Misurato su tre righe importate:
+
+```
+2026-13-45  ->  regolare      ← la visita medica che nessuno segnalerà mai
+2025-01-10  ->  scaduta
+2027-01-10  ->  regolare
+```
+
+Una scadenza di **idoneità sanitaria** con una data sbagliata di battitura
+entra in archivio e resta **verde per sempre**: non compare fra le urgenti
+(`SCA.filter(s => statoScadenza(s.dataScadenza) !== "regolare")`), non entra nel
+muro, non genera promemoria. Il dato c'è, è illeggibile, e l'app dice che va
+tutto bene.
+
+### Il vicino di casa, dodici righe sotto, lo fa giusto
+
+Nello **stesso file**, subito dopo, `idoneitaOperatore` apre con un commento che
+dice esattamente la cosa giusta:
+
+> «Torna sempre un oggetto: **non esistono risposte mancanti, esistono risposte
+> che dicono “non lo so” e perché**.»
+
+…e infatti risponde `stato: "non-collegato"`, `"collegamento-rotto"`,
+`"senza-scadenze"`. Due funzioni, **stesso file, dodici righe di distanza**,
+trattamento opposto dell'input che manca. È la forma già vista con `urgenzaOre`
+(metà chiusa e metà no), qui fra due funzioni invece che fra due parametri.
+
+### La correzione, e perché è più sicura di quanto sembri
+
+`statoScadenzaHSE` su una data illeggibile deve rispondere **`"senza data"`** —
+il termine che l'ecosistema già usa in tre app — invece di `"regolare"`. E le
+trenta chiamate **non** vanno riviste una per una: quasi tutte confrontano con
+`!== "regolare"`, quindi una riga con la data rotta comincerebbe **da sola** a
+comparire fra quelle da guardare. È il verso giusto.
+
+E `parseScadenzeCsv` deve controllare che la data **esista**, non solo che abbia
+la forma: `Date.parse` invece della sola regex. Una riga con «2026-13-45» va
+**scartata dicendo perché**, non importata in silenzio.
+
+---
+
 ## La lezione, che è più grande del difetto
 
 Il principio «l'assenza di un dato non è un dato favorevole» è in `CLAUDE.md` da

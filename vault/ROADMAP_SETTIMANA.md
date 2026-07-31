@@ -1398,6 +1398,28 @@ campi interi, file delle macchine.
       *(E l'ancora dell'iniezione compariva **due** volte, perché la stessa riga
       di lettura sta in due giri: allungata col contesto, come per
       `durataTurnoDi`.)*
+- [ ] ⚠️ **UNA SCADENZA CON LA DATA ILLEGGIBILE È «REGOLARE» — e si arriva da un
+      import CSV** *(trovato il 03/08, `docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md`,
+      **da correggere**)* — la sonda guardava le sei app; allargata a `shared/`
+      — dove la regola vincolante dice che vive ciò che serve a due app, cioè
+      dove un difetto **si moltiplica per sei** — ha risposto subito:
+      `statoScadenzaHSE` fa `if (Number.isNaN(t)) return "regolare"`. Si vede in
+      **Scudo**, l'app della sicurezza, dove è l'alias `statoScadenza` chiamato
+      una **trentina** di volte. **Non è dormiente**: `parseScadenzeCsv` filtra
+      con `/^\d{4}-\d{2}-\d{2}$/`, che controlla la **forma** e non l'esistenza —
+      **`2026-13-45` passa**, `Date.parse` dà `NaN`, e la riga entra in archivio
+      **verde per sempre**. Misurato: una scadenza di **idoneità sanitaria** con
+      un errore di battitura non compare fra le urgenti, non entra nel muro, non
+      genera promemoria. E dodici righe sotto, **nello stesso file**,
+      `idoneitaOperatore` apre col commento «non esistono risposte mancanti,
+      esistono risposte che dicono *non lo so* e perché» — due funzioni, stesso
+      file, trattamento opposto. Correzione: `statoScadenzaHSE` risponde **«senza
+      data»** (il termine che l'ecosistema già usa in tre app) e le trenta
+      chiamate **non** si toccano, perché quasi tutte confrontano con
+      `!== "regolare"` e quindi la riga rotta comincia **da sola** a comparire fra
+      quelle da guardare; e `parseScadenzeCsv` controlla che la data **esista**,
+      scartando la riga **dicendo perché**. La sonda adesso guarda anche
+      `shared/dw-ponti.js`, `dw-shell.js` e `pointcloud.js`.
 
 ---
 

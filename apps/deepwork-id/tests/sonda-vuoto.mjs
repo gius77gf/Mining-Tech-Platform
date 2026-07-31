@@ -117,11 +117,23 @@ const VUOTI = [
   [[{}], [{}], ""], [[{}], "", ""], [{}, {}],
 ];
 
+/* ⛔ E ANCHE IL CODICE CONDIVISO. La prima versione guardava solo le sei app —
+   e la regola vincolante dice che ciò che serve a DUE app vive in `shared/`,
+   cioè lì un difetto si moltiplica per sei. Allargando si è trovato subito
+   `statoScadenzaHSE`, che su una data illeggibile risponde «regolare»: la
+   stessa forma, nel posto peggiore. */
+const SOGGETTI = [
+  ...APP.map((a) => [a, join(RADICE, "apps", a, `${a}-data.js`)]),
+  ["ponti", join(RADICE, "shared", "dw-ponti.js")],
+  ["shell", join(RADICE, "shared", "deepwork-id-client", "dw-shell.js")],
+  ["pointcloud", join(RADICE, "apps", "genesi", "pointcloud.js")],
+];
+
 const trovati = new Map();
 let chiamate = 0, funzioni = 0;
-for (const app of APP) {
-  const mod = await import(join(RADICE, "apps", app, `${app}-data.js`));
-  const src = readFileSync(join(RADICE, "apps", app, `${app}-data.js`), "utf8");
+for (const [nomeSoggetto, percorso] of SOGGETTI) {
+  const mod = await import(percorso);
+  const src = readFileSync(percorso, "utf8");
   const nomi = [...src.matchAll(/^export (?:async )?function (\w+)/gm)].map((m) => m[1]);
   funzioni += nomi.length;
   for (const n of nomi) {
@@ -133,7 +145,7 @@ for (const app of APP) {
     }
     if (!riuscita) continue;
     chiamate++;
-    if (out.length) trovati.set(`${app}.${n}`, [...new Set(out)]);
+    if (out.length) trovati.set(`${nomeSoggetto}.${n}`, [...new Set(out)]);
   }
 }
 
