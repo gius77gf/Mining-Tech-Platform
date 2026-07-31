@@ -88,10 +88,19 @@ termini di pagamento per cliente.
 1. **note di credito** — oggi l'unico modo di annullare una fattura emessa è
    **eliminarla**, e l'app stessa scrive che è sbagliato. Serve un documento di
    storno con numerazione propria, che riduca l'esposizione senza cancellare
-   niente. Tocca `statoIncasso`, `apertoDi`, `esposizioneClienti`;
+   niente. Tocca `statoIncasso`, `apertoDi`, `esposizioneClienti`.
+   → **ricercata il 03/08**: `docs/RICERCA_NOTE_DI_CREDITO_202608.md`;
 2. **registro costi / uscite** — è la porta d'ingresso obbligata: senza costi,
    marginalità e pareggio non possono nemmeno cominciare, e Conti resta capace
-   di dire quanto incassi, mai se **guadagni**;
+   di dire quanto incassi, mai se **guadagni**.
+   ⚠️ **Correzione al censimento, dalla ricerca del 03/08**
+   (`docs/RICERCA_REGISTRO_COSTI_202608.md`): questa voce era scritta come se si
+   partisse da zero, e **non è vero** — un registro costi nell'ecosistema **c'è
+   già, in Flotta** (`costi/{voce, importo, nota, data|null}`, con
+   `ripartizioneCosti` e `costiPerMese`). Il lavoro non è quindi «scriverne
+   uno», che sarebbe la duplicazione vietata: è **estenderlo** a ciò che quello
+   di Flotta non può tenere (personale, energia, esplosivo, canone, ripristino)
+   e collegarlo alla produzione, con la classificazione in `shared/`;
 3. costo/t e marginalità per prodotto · break-even mensile · XML FatturaPA ·
    trasporto a fasce di km · storico solleciti · backup completo.
 

@@ -133,6 +133,21 @@ conviene fare per primo. Sono la fonte da cui nascono le unità di lavoro.
   onboarding, GDPR), **`docs/RICERCA_CRUSCOTTO_TITOLARE_202607.md`** (il quadro
   d'insieme per chi comanda) e **`docs/RICERCA_DOCUMENTI_ENTI_202607.md`** (cosa
   chiedono davvero gli enti).
+- Nate dal censimento del 03/08, una per unità, scritte **prima** di toccare il
+  codice:
+  - **`docs/RICERCA_NOTE_DI_CREDITO_202608.md`** — come si annulla una fattura
+    già emessa senza cancellarla. Comincia misurando la scorciatoia ovvia («è
+    una fattura col meno davanti») e mostrando dove cade: il numero grosso in
+    cima diventa giusto, l'esposizione del cliente **no**. La cosa da sapere:
+    una fattura **stornata** non è una fattura **pagata**, se no il cliente
+    peggiore diventa il più puntuale nelle statistiche.
+  - **`docs/RICERCA_REGISTRO_COSTI_202608.md`** — quello che serve per passare
+    da «quanto incasso» a «quanto guadagno». Correzione al censimento: un
+    registro costi **esiste già**, in Flotta, e il lavoro è estenderlo, non
+    riscriverlo. La cosa da sapere: il margine deve restare **vuoto** finché i
+    costi del mese non sono dichiarati completi — un «margine 42%» calcolato sul
+    mese in cui nessuno ha registrato gli stipendi è il numero più pericoloso
+    che l'app possa mostrare.
 
 ## Se ti interessa l'aspetto — perché è fatto così e non altrimenti
 - **`docs/SPECIFICA_ESTETICA_CORE.md`** — che cosa produce davvero la qualità
