@@ -8663,7 +8663,18 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(shell.dataPiuGiorni("boh", new Date("2026-07-15T10:00:00")), null, "né una parola");
     eq(shell.dataPiuGiorni(30, new Date("2026-07-15T10:00:00")), "2026-08-14", "e trenta giorni sono trenta giorni");
   });
-  test("giorni: alias di giorniTra in tutt'e due le app che lo usavano", () => {
+  test("⛔ perCampo: una sola, e Flotta la RI-ESPORTA", () => {
+  ok(flotta.perCampo === shell.perCampo, "è lo stesso oggetto, non una copia identica");
+  /* Che cosa regge quella riga, perché l'identità da sola non lo dice: dentro
+     un CAMPO il punto delle migliaia non ci va. Se ci finisse, rientrerebbe dal
+     lettore come ambiguo e l'app rifiuterebbe un valore che ha proposto lei. */
+  eq(shell.perCampo(1250.5), "1250,5", "virgola decimale, e nessun punto di migliaia");
+  eq(shell.perCampo(6375), "6375", "quattro cifre: nessun raggruppamento, in Node come in Chromium");
+  eq(shell.perCampo(12.345, 1), "12,3", "i decimali si tagliano a quelli chiesti");
+  eq(shell.perCampo(null), "", "un numero che manca lascia il campo vuoto, non «0»");
+  eq(shell.perCampo(""), "", "e nemmeno una stringa vuota diventa zero");
+});
+test("giorni: alias di giorniTra in tutt'e due le app che lo usavano", () => {
     ok(conti.giorni === shell.giorniTra, "Conti");
     ok(sentinella.giorni === shell.giorniTra, "Sentinella");
   });

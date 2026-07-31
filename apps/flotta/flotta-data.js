@@ -84,6 +84,7 @@
 
 import { parseCsvLine, numIt, giorniTra, isIntestazione, numeroScritto, oggiISO,
          messaggioNumero as messaggioNumeroShell,
+         perCampo as perCampoShell,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL,
          AVVISO_MIGLIAIA as AVVISO_MIGLIAIA_SHELL } from "../../shared/deepwork-id-client/dw-shell.js";
 
@@ -154,10 +155,13 @@ export function interoDaCampo(testo, opts = {}) {
 // virgola decimale, perché è quella che l'utente rileggerà e ribatterà, e
 // MAI col punto delle migliaia, che rientrerebbe da `numeroDaCampo` come
 // ambiguo e farebbe rifiutare un valore proposto dall'app stessa.
-export function perCampo(v, decimali = 2) {
-  if (v == null || v === "" || !Number.isFinite(+v)) return "";
-  return (+v).toLocaleString("it-IT", { useGrouping: false, maximumFractionDigits: Math.max(0, decimali) });
-}
+// ⛔ RI-ESPORTATA, non riscritta. Era scritta qui e nello shell IDENTICA
+// carattere per carattere, e nessun controllo poteva vederlo: quello sui nomi
+// doppi confrontava le app FRA LORO, e Flotta è l'unica app che la esporta.
+// Oggi fanno la stessa cosa; domani una cambia e l'altra no — e quando
+// divergeranno non ci sarà nessun errore, solo un campo che rifiuta un numero
+// che aveva proposto lui. Vedi docs/LA_STESSA_REGOLA_SCRITTA_DUE_VOLTE.md
+export const perCampo = perCampoShell;
 
 // Come si LEGGE un numero dentro un messaggio a schermo: all'italiana e CON
 // il punto delle migliaia, che è come si scrive un migliaio in Italia. È il
