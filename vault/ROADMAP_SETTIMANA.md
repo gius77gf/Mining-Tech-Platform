@@ -1061,6 +1061,20 @@ campi interi, file delle macchine.
       funzioni ha guardato** e ha un **fondo** per app che, se scende, fa
       cadere il controllo. Oggi: **401 funzioni coperte su 409** — Campo e
       Scudo al 100%, e quello che resta è tutto il blocco `messaggioNumero`.
+- [x] **Il controllo che trova da solo la regola scritta due volte**
+      (`apps/deepwork-id/tests/nomi-doppi.mjs`). La regola di `CLAUDE.md` sul
+      `shared/` era **scritta**, cioè affidata alla memoria: il 02/08 ne sono
+      uscite cinque violazioni in un giorno. Adesso ogni nome esportato da due
+      moduli dati o è lo **stesso oggetto**, o sta in un elenco di divergenze
+      **dichiarate con la ragione**. Guarda 12 nomi e ne trova 4 da sistemare —
+      due già noti e **due nuovi**: `dataPiuGiorni` scritta identica in Scudo e
+      Sentinella (e **già staccata**: su un valore non numerico una risponde
+      `null` e l'altra `""`) e `giorni`, lo stesso involucro di due righe in
+      Conti e Sentinella. Il controllo **fallisce** ed è giusto: entra in CI col
+      commit che corregge.
+- [x] **Per il fondatore**: `docs/LA_STESSA_REGOLA_SCRITTA_DUE_VOLTE.md` — perché
+      una giornata di sole prove ha prodotto tre correzioni di struttura, e il
+      criterio per distinguere quando è un difetto e quando no.
 
 ---
 
