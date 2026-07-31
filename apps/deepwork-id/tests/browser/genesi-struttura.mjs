@@ -34,7 +34,12 @@ import { join, extname } from "node:path";
 
 const R = "/home/user/Mining-Tech-Platform";
 const PRIMA = process.argv.includes("--prima");
-const PORTA = Number(process.argv.find((a) => /^\d+$/.test(a))) || 8329;
+/* ⚠️ Questo banco alza un SERVER SUO, quindi non può prendere la porta
+   posizionale che `tutti.mjs` passa a tutti i banchi: si metterebbe sulla porta
+   del server comune e cadrebbe con EADDRINUSE, dentro un elenco dove il suo
+   esito verrebbe letto come «il banco è rosso». La porta si cambia con
+   `--porta=`, che nessun altro passa. */
+const PORTA = Number((process.argv.find((a) => a.startsWith("--porta=")) || "").split("=")[1]) || 8329;
 const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript",
   ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png",
   ".glb": "model/gltf-binary", ".obj": "text/plain", ".wasm": "application/wasm" };

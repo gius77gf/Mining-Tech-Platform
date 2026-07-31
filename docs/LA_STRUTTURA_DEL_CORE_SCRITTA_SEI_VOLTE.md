@@ -377,6 +377,48 @@ schermata di progetto, ridipinte con tinte che nella pagina non esistono.
 
 ### Il piano che ne esce: **due unità, non una**
 
+## ✅ UNITÀ A — FATTA il 04/08
+
+Genesi era l'**ultima** superficie a tenersi in casa una copia delle cinque
+funzioni. Adesso `COPIA_PROPRIA` in `run-stile.mjs` ha **un solo nome**, ed è il
+core — che è l'originale.
+
+**Il banco:** `genesi-struttura.mjs`, **18 prove, 18 passate**. E la controprova
+`--prima` (che rimette gli id `mdl*` e toglie il `<script>` nella risposta HTTP,
+mai nel file) ne fa cadere **14 su 18** con **6 iniezioni** riuscite: il banco sa
+fallire, ed è misurato invece che dichiarato.
+
+**Le tre trappole si sono comportate come previsto**, e ne è saltata fuori una
+**quarta che questo documento non aveva**:
+
+> ⚠️ **Il CSS vestiva il cancello di consenso per ID: otto regole `#modal{…}`,
+> fra cui `display:flex` senza condizione.** Rinominare solo il markup avrebbe
+> lasciato quelle regole addosso al **nuovo** `#modal` — la modale generica — che
+> è nascosta da `.modal-ov{display:none}`, una **classe**: l'id vince. Risultato:
+> Genesi si sarebbe aperta con un velo nero fisso davanti a tutto. Non un errore
+> di sintassi, non un errore in console. Il piano parlava solo di id nel markup e
+> di chiamate JS; il vestito per id non era stato contato.
+
+Sostituzioni fatte, tutte contate: **21 passi**, dal `#modal{` del CSS alla
+chiamata di `chiediValore`, con `-1.851` caratteri netti (via 3.914 di copia
+locale, dentro il commento che spiega dove sono finite).
+
+**E una cosa trovata guardando lo screenshot, non il codice:** l'etichetta della
+casella del consenso è una `<label>` `display:flex`, quindi ogni figlio è una
+**colonna** — il `<b>estetici</b>` finiva in una colonna sua e la frase
+dell'avvertenza usciva spezzata in quattro pezzi affiancati, con lo spazio prima
+della virgola. Su un'avvertenza di sicurezza. Difetto **preesistente**, invisibile
+nel codice, corretto con un `<span>`.
+
+**Quello che NON è stato preso, di proposito:** `go()` (Genesi non ha pagine
+`.page` né la pillola `.nav`: si muove per sezioni `data-scr`), il **foglio di
+stile** condiviso (è l'unità B) e l'**alone** sulle schede della Home — Genesi ne
+ha già uno suo, e lo scrive in **pixel** mentre il condiviso lo scrive in
+**percentuale**: due mani sulla stessa variabile darebbero due posizioni diverse
+per lo stesso puntatore. L'aggancio è puntato su `.hg-item`.
+
+---
+
 **Unità A — solo il JavaScript** (meccanica, verificabile, nessuna decisione
 aperta):
 

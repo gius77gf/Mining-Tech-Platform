@@ -147,16 +147,16 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
 .tick{position:absolute;top:8px;width:2px;height:10px;background:rgba(255,138,80,.75);margin-left:-1px;border-radius:1px}
 .tick.big{top:5px;height:16px;background:var(--warn)}
 /* ---- modal ---- */
-#modal{position:fixed;inset:0;z-index:50;background:rgba(8,6,3,.78);display:flex;
+#consenso{position:fixed;inset:0;z-index:50;background:rgba(8,6,3,.78);display:flex;
   align-items:center;justify-content:center;padding:20px}
-#modal .card{max-width:520px;background:#1d1710;border:1px solid var(--line);border-radius:16px;padding:26px}
-#modal h2{font-family:'Barlow Condensed';font-weight:700;font-size:24px;color:var(--cu);margin-bottom:4px}
-#modal h3{font-size:13px;color:var(--mut);font-weight:400;margin-bottom:16px}
-#modal p{font-size:13.5px;line-height:1.6;color:var(--tx);margin-bottom:10px}
-#modal .warn{background:rgba(255,90,60,.12);border:1px solid rgba(255,120,80,.4);border-radius:10px;
+#consenso .card{max-width:520px;background:#1d1710;border:1px solid var(--line);border-radius:16px;padding:26px}
+#consenso h2{font-family:'Barlow Condensed';font-weight:700;font-size:24px;color:var(--cu);margin-bottom:4px}
+#consenso h3{font-size:13px;color:var(--mut);font-weight:400;margin-bottom:16px}
+#consenso p{font-size:13.5px;line-height:1.6;color:var(--tx);margin-bottom:10px}
+#consenso .warn{background:rgba(255,90,60,.12);border:1px solid rgba(255,120,80,.4);border-radius:10px;
   padding:10px 12px;font-size:13px;line-height:1.55;margin:14px 0}
-#modal .warn b{color:#ff9a70}
-#modal .foot{display:flex;justify-content:flex-end;margin-top:18px}
+#consenso .warn b{color:#ff9a70}
+#consenso .foot{display:flex;justify-content:flex-end;margin-top:18px}
 
 /* ---- modale generica: STRUTTURA del core, COLORE di Genesi ----------------
    Serviva perché Genesi usava `prompt()` e `confirm()` del browser, che la
@@ -164,7 +164,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
    carattere e i bottoni del sistema operativo, e su un telefono compaiono
    incollate in cima allo schermo. In mezzo a un'app costruita pelo per pelo
    erano l'unico punto che non era nostro.
-   `#modal` sopra è la modale del disclaimer, che ha un impianto suo: questa è
+   `#consenso` sopra è il cancello di consenso, che ha un impianto suo: questa è
    quella generica, con le stesse classi e la stessa struttura del core
    (`shared/dw-app-ui.css`: overlay, box, head col filo di luce, body che
    scorre, foot appiccicato in basso, `.mbtn` con primary e danger). Genesi non
@@ -959,27 +959,39 @@ body.scr-sim #tl{bottom:80px}
 
 <div id="toast"></div>
 
-<div id="modal" style="display:none">
+<div id="consenso" style="display:none">
   <div class="card">
     <h2>Deepwork Genesi</h2>
     <h3>Simulatore visivo di volate</h3>
     <p>Tempi, fasi e polvere della simulazione seguono la dinamica osservata nelle volate reali. I risultati dipendono dai parametri che imposti nella schermata 2D.</p>
     <div class="warn"><b>Avvertenza.</b> Questa è una <b>visualizzazione</b>, non un calcolo ingegneristico: niente onda d'urto, niente vibrazioni/PPV, frammentazione statistica e non meccanica. I frammenti volanti (flyrock) sono <b>estetici</b>: è <b>vietato</b> usarli per definire aree di sgombero o distanze di sicurezza. Genesi assiste, non sostituisce, il giudizio del professionista.</div>
-    <label style="display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:var(--mut);margin-top:6px;cursor:pointer;line-height:1.45"><input type="checkbox" id="disclaimerChk" style="accent-color:var(--cu);width:16px;height:16px;margin-top:1px;flex:0 0 auto"> Ho compreso: i frammenti volanti sono <b style="color:#ff9a70">estetici</b>, è vietato usarli per definire aree di sgombero o distanze di sicurezza.</label>
-    <div class="foot"><button class="btn cu disabled" id="modalOk">Ho capito</button></div>
+    <label style="display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:var(--mut);margin-top:6px;cursor:pointer;line-height:1.45"><input type="checkbox" id="disclaimerChk" style="accent-color:var(--cu);width:16px;height:16px;margin-top:1px;flex:0 0 auto"><!--
+   ⚠️ IL TESTO STA IN UN SOLO <span>, e non è una rifinitura. La `<label>` è
+   `display:flex`: ogni figlio diventa una COLONNA, quindi il `<b>estetici</b>`
+   finiva in una colonna sua e la frase dell'avvertenza usciva spezzata in
+   quattro pezzi affiancati, con lo spazio prima della virgola. Su un'avvertenza
+   di sicurezza — quella che dice che i frammenti volanti NON valgono per le
+   distanze di sgombero — una frase illeggibile è il difetto, non l'estetica.
+   Trovato il 04/08 guardando lo screenshot: nel codice non si vedeva.
+--><span>Ho compreso: i frammenti volanti sono <b style="color:#ff9a70">estetici</b>, è vietato usarli per definire aree di sgombero o distanze di sicurezza.</span></label>
+    <div class="foot"><button class="btn cu disabled" id="consensoOk">Ho capito</button></div>
   </div>
 </div>
 
 <!-- modale generica in stile core: sostituisce prompt() e confirm() del
      browser, vietati dalla direttiva sullo stile -->
-<div class="modal-ov" id="mdl" role="dialog" aria-modal="true" aria-labelledby="mdl-tit">
+<div class="modal-ov" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
   <div class="modal-box">
-    <div class="modal-head" id="mdl-tit">Conferma</div>
-    <div class="modal-body" id="mdl-body"></div>
-    <div class="modal-foot" id="mdl-foot"></div>
+    <div class="modal-head" id="modal-title">Conferma</div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot" id="modal-foot"></div>
   </div>
 </div>
 
+<!-- La struttura del core (toast, modale, conferma, alone) in un posto solo.
+     Script classico e `defer`: gira prima del modulo qui sotto, che le usa
+     come globali esattamente come faceva con le sue copie locali. -->
+<script src="../../shared/dw-app-ui.js" defer></script>
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -2777,86 +2789,27 @@ function loadFrontMeshFile(file){
 $('btnFronte3D').onclick = ()=> $('meshIn').click();
 $('meshIn').onchange = e=>{ if(e.target.files[0]) loadFrontMeshFile(e.target.files[0]); e.target.value=''; };
 
-/* ============ toast / modal ============ */
-let toastTimer=null;
-function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2800); }
+/* ============ toast / modale: NON PIÙ IN CASA ============
+   Erano scritte qui — `toast`, `mdlApri`, `mdlChiudi`, `chiedi`,
+   `chiediValore`, più l'uscita con Escape e col tocco fuori. Adesso vengono
+   da `shared/dw-app-ui.js`, caricato in testa alla pagina: Genesi era
+   l'ULTIMA superficie a tenersene una copia, e la direttiva del fondatore
+   vuole la struttura del core identica «pelo per pelo».
+   Il CSS invece resta qui, ed è voluto: `.modal-ov`, `.modal-head`,
+   `.modal-body`, `.modal-foot`, `.mbtn` vestono gli stessi id con i colori
+   di Genesi — l'ambra `--cu`, non l'accento del core. Genesi non carica il
+   foglio condiviso (72 delle sue 76 variabili qui non esistono, e una
+   variabile che non esiste non fallisce: fa sparire un bordo in silenzio).
+   Misura e piano: docs/LA_STRUTTURA_DEL_CORE_SCRITTA_SEI_VOLTE.md */
+/* L'aggancio del condiviso: uscita dalla modale con Escape e col tocco fuori,
+   riquadri premibili da tastiera, alone che segue il mouse.
+   ⚠️ L'alone NON va puntato sulle schede della Home: Genesi ne ha già uno suo
+   (riga ~3950), e lo scrive in PIXEL mentre il condiviso lo scrive in
+   PERCENTUALE. Due mani sulla stessa variabile darebbero due posizioni
+   diverse per lo stesso puntatore. Quale delle due tenere è una domanda di
+   colore, e sta nell'unità B. */
+dwUiAggancia({ alone: '.hg-item' });
 
-/* ══════════════════════════════════════════════════════════════════════
-   MODALE DEL CORE — al posto di prompt() e confirm() del browser
-   ══════════════════════════════════════════════════════════════════════
-   Erano tre: due per il nome della volata da salvare, uno per la conferma di
-   eliminazione. La direttiva sullo stile li vieta, e la ragione non è
-   estetica: la finestra del browser ha il carattere e i bottoni del sistema
-   operativo, su Android compare incollata in cima allo schermo, e in
-   `confirm()` il bottone che distrugge è indistinguibile da quello che
-   annulla. Qui invece «Elimina» è rosso e «Annulla» è il primo bottone,
-   cioè quello che risponde a Esc e al tocco fuori dal riquadro.
-   Restituiscono una Promise, quindi chi chiama resta leggibile come prima. */
-let _mdlPrec = null;
-function mdlApri(titolo, corpo, bottoni){
-  _mdlPrec = document.activeElement;
-  $('mdl-tit').textContent = titolo;
-  $('mdl-body').innerHTML = corpo;
-  const foot = $('mdl-foot');
-  foot.innerHTML = '';
-  (bottoni||[]).forEach(b=>{
-    const el = document.createElement('button');
-    el.className = 'mbtn ' + (b.cls||'');
-    el.textContent = b.label;
-    el.onclick = b.azione;
-    foot.appendChild(el);
-  });
-  $('mdl').classList.add('show');
-  /* il fuoco va al campo se c'è, altrimenti al bottone che agisce: chi usa la
-     tastiera non deve cercarlo, e chi arriva col dito lo trova già pronto */
-  const primo = $('mdl-body').querySelector('input,select,textarea')
-             || foot.querySelector('.mbtn.primary,.mbtn.danger') || foot.querySelector('.mbtn');
-  if(primo) setTimeout(()=>{ try{ primo.focus({preventScroll:true}); primo.select&&primo.select(); }catch(e){} }, 80);
-}
-function mdlChiudi(){
-  $('mdl').classList.remove('show');
-  if(_mdlPrec && _mdlPrec.focus){ try{ _mdlPrec.focus({preventScroll:true}); }catch(e){} }
-  _mdlPrec = null;
-}
-/* conferma → Promise<boolean>. `pericolo` colora di rosso il bottone che agisce */
-function chiedi(titolo, corpo, etichettaOk, pericolo){
-  return new Promise(res=>{
-    mdlApri(titolo, corpo, [
-      { label:'Annulla', azione:()=>{ mdlChiudi(); res(false); } },
-      { label: etichettaOk||'Conferma', cls: pericolo?'danger':'primary',
-        azione:()=>{ mdlChiudi(); res(true); } },
-    ]);
-  });
-}
-/* richiesta di un valore → Promise<string|null>. null = ha annullato, che NON
-   è la stessa cosa di aver lasciato il campo vuoto */
-function chiediValore(titolo, corpo, valore, etichettaOk){
-  const campo = '<label class="fl" for="mdl-campo">Nome</label>'
-    + '<input id="mdl-campo" type="text" autocomplete="off" spellcheck="false" value="'+_rEsc(valore||'')+'">';
-  return new Promise(res=>{
-    mdlApri(titolo, corpo + campo, [
-      { label:'Annulla', azione:()=>{ mdlChiudi(); res(null); } },
-      { label: etichettaOk||'Salva', cls:'primary', azione:()=>{
-          const c = $('mdl-campo'); const v = c ? c.value : '';
-          mdlChiudi(); res(v);
-        } },
-    ]);
-    const c = $('mdl-campo');
-    if(c) c.addEventListener('keydown', e=>{
-      if(e.key==='Enter'){ e.preventDefault(); document.querySelector('#mdl-foot .mbtn.primary').click(); }
-    });
-  });
-}
-/* tocco fuori dal riquadro e Esc = il PRIMO bottone, che è sempre «Annulla»:
-   uscire per sbaglio non deve mai eseguire l'azione */
-$('mdl').addEventListener('click', e=>{
-  if(e.target.id==='mdl'){ const b=document.querySelector('#mdl-foot .mbtn'); if(b) b.click(); }
-});
-document.addEventListener('keydown', e=>{
-  if(e.key!=='Escape') return;
-  const m = $('mdl');
-  if(m && m.classList.contains('show')){ e.stopPropagation(); const b=m.querySelector('#mdl-foot .mbtn'); if(b) b.click(); }
-}, true);
 /* ===== Confronto A/B tra progetti (A10): snapshot KPI in localStorage ===== */
 function computeKPI(){
   const B=D2.B, S=D2.S, H=D2.prof, Q=D2.kg, Dm=D2.diam/1000;
@@ -3781,9 +3734,9 @@ if($('sentExport')) $('sentExport').onclick=()=>{
   toast('Volata pronta per Sentinella: Registri → Registro volate → «Importa da CSV»');
 };
 
-function maybeConsent(){ if(!localStorage.getItem('genesiDisclaimerV1')){ $('modal').style.display='flex'; } }
-$('disclaimerChk').onchange = e=>{ $('modalOk').classList.toggle('disabled', !e.target.checked); };
-$('modalOk').onclick = ()=>{ localStorage.setItem('genesiDisclaimerV1','1'); $('modal').style.display='none'; };
+function maybeConsent(){ if(!localStorage.getItem('genesiDisclaimerV1')){ $('consenso').style.display='flex'; } }
+$('disclaimerChk').onchange = e=>{ $('consensoOk').classList.toggle('disabled', !e.target.checked); };
+$('consensoOk').onclick = ()=>{ localStorage.setItem('genesiDisclaimerV1','1'); $('consenso').style.display='none'; };
 /* login = porta d'ingresso (nessuna autenticazione reale per ora: Accedi entra nell'app) */
 function doLogin(){ const lg=$('screen-login'); if(lg){ lg.classList.add('hide'); setTimeout(()=>{ lg.classList.remove('show'); lg.style.display='none'; }, 480); } maybeConsent(); }
 $('loginBtn').onclick = doLogin;
@@ -3892,10 +3845,15 @@ function renderHome(){
 async function salvaVolata(codaMsg){
   const arr=_lsGet('genesiVolate');
   const proposta='Volata '+new Date().toLocaleDateString('it-IT');
+  /* il terzo parametro del condiviso è l'HTML DEL CAMPO, non il valore: la
+     proposta va messa dentro l'input, se no il campo compare vuoto e nessuno
+     se ne accorge finché non salva */
+  const campo = '<label class="fl" for="modal-campo">Nome</label>'
+    + '<input id="modal-campo" type="text" autocomplete="off" spellcheck="false" value="'+_rEsc(proposta)+'">';
   const v=await chiediValore('Salva la volata',
     'Il nome serve a ritrovarla in Home. Restano le ultime 50: '
     + (arr.length ? 'adesso ce ne sono <b>'+gnum(arr.length,0)+'</b>.' : 'questa è la prima.'),
-    proposta, 'Salva');
+    campo, 'Salva');
   if(v===null) return;                       // ha annullato: non è un errore
   const nome=v.trim();
   /* un nome vuoto non diventa «Volata senza nome»: si dice cosa manca e si

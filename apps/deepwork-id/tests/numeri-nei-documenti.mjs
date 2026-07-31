@@ -133,16 +133,26 @@ const testoGen = readFileSync(DOC_GEN, "utf8");
 const genesi = readFileSync(join(RADICE, "apps", "genesi", "genesi.html"), "utf8");
 const foglio = readFileSync(join(RADICE, "shared", "dw-app-ui.css"), "utf8");
 
-/* la modale in stile core di Genesi: i cinque id che l'unità A rinomina */
-const ID_MODALE = ["mdl", "mdl-tit", "mdl-body", "mdl-foot", "mdl-campo"];
+/* ✅ L'UNITÀ A È FATTA (04/08), e queste misure si sono girate.
+   Erano scritte per descrivere «com'è fatta OGGI la pagina che stiamo per
+   toccare», ed erano **destinate** a diventare false: è l'unità A che le
+   cambia. Sono cadute nel momento giusto — tutte e tre insieme, il giorno della
+   migrazione — e adesso guardano il verso opposto: non più «gli id vecchi ci
+   sono ancora», ma «i nomi nuovi ci sono e i vecchi non sono tornati».
+   Un controllo che descrive uno stato di passaggio non si cancella quando il
+   passaggio è fatto: si gira, se no la pagina può tornare indietro in silenzio. */
+const ID_MODALE = ["modal", "modal-title", "modal-body", "modal-foot"];
+const ID_VECCHI = ["mdl", "mdl-tit", "mdl-body", "mdl-foot", "mdl-campo"];
 /* il prefisso `mdl` è sovraccarico: questi SETTE sono dell'editor del fronte
-   3D e una sostituzione a tappeto se li porterebbe via */
+   3D e una sostituzione a tappeto se li porterebbe via. Restano `mdl*` di
+   proposito: non sono mai stati della modale. */
 const ID_EDITOR_3D = ["mdlQuote", "mdlTools", "mdlR", "mdlRLab", "mdlUndo", "mdlRedo", "mdlReset"];
 
-test("Genesi: i cinque id della modale sono ancora quelli del piano", () => {
+test("Genesi: i quattro id della modale sono quelli del core", () => {
   const mancanti = ID_MODALE.filter((id) => !genesi.includes(`id="${id}"`));
-  ok(mancanti.length === 0,
-    `non trovo più ${mancanti.join(", ")} — se la migrazione è fatta, il piano nel documento va riscritto`);
+  ok(mancanti.length === 0, `non trovo ${mancanti.join(", ")}: la modale non parla più la lingua del condiviso`);
+  const tornati = ID_VECCHI.filter((id) => genesi.includes(`id="${id}"`));
+  ok(tornati.length === 0, `sono tornati gli id di prima: ${tornati.join(", ")}`);
 });
 
 test("Genesi: i sette id dell'editor 3D che NON vanno rinominati ci sono tutti", () => {
@@ -153,18 +163,38 @@ test("Genesi: i sette id dell'editor 3D che NON vanno rinominati ci sono tutti",
 /* Il nome `modal` in Genesi è occupato dal CANCELLO DI CONSENSO — l'avvertenza
    che dichiara estetici i frammenti volanti. È il fatto che rende la rinomina
    uno scambio di inquilino invece di una sostituzione di stringhe. */
-test("Genesi: `#modal` è ancora il cancello di consenso, non una modale qualsiasi", () => {
-  const i = genesi.indexOf('id="modal"');
-  ok(i > 0, "non trovo più `id=\"modal\"` in Genesi");
-  const blocco = genesi.slice(i, i + 1600);
-  ok(/disclaimerChk/.test(blocco) && /modalOk/.test(blocco),
-    "`#modal` non contiene più la casella del consenso: il piano parla di un elemento che non esiste più");
+test("Genesi: il cancello di consenso ha un nome suo, e non è più `#modal`", () => {
+  const i = genesi.indexOf('id="consenso"');
+  ok(i > 0, "non trovo `id=\"consenso\"`: il cancello dell'avvertenza di sicurezza ha perso il suo nome");
+  /* la finestra è 2.400 e non 1.600: misurata, non indovinata — `consensoOk`
+     sta a 1.737 caratteri dall'apertura, e con 1.600 il controllo diceva
+     «non contiene più il bottone» mentre il bottone c'era. Un controllo che
+     guarda troppo poco risponde come uno che ha trovato un difetto. */
+  const blocco = genesi.slice(i, i + 2400);
+  ok(/disclaimerChk/.test(blocco) && /consensoOk/.test(blocco),
+    "`#consenso` non contiene più la casella e il bottone dell'avvertenza");
+  /* ⛔ e la parola che conta: l'avvertenza dice che i frammenti volanti NON
+     valgono per le distanze di sgombero. È il motivo per cui la rinomina era
+     uno scambio di inquilino e non una sostituzione di stringhe. */
+  ok(/vietato/.test(blocco) && /sgombero/.test(blocco),
+    "l'avvertenza non dice più che è VIETATO usare i frammenti per le distanze di sgombero");
 });
 
-test("Genesi: non carica ancora nessun file di shared/", () => {
+test("Genesi: carica la STRUTTURA condivisa e NON il foglio di stile", () => {
   const rif = (genesi.match(/(?:src|href)="[^"]*shared\/[^"]*"/g) || []);
-  ok(rif.length === 0,
-    `Genesi carica ora ${rif.length} file condivisi (${rif.join(", ")}): il documento dice che non ne carica nessuno`);
+  ok(rif.some((r) => /dw-app-ui\.js/.test(r)),
+    `Genesi non carica più shared/dw-app-ui.js (carica: ${rif.join(", ") || "niente"})`);
+  /* ⛔ IL FOGLIO NO, ed è la decisione dell'unità B, non una dimenticanza: il
+     condiviso pronuncia 76 variabili e Genesi ne definisce 12. Una variabile
+     CSS che non esiste NON fallisce — la dichiarazione decade e la proprietà
+     ricade sull'ereditato: nessun errore in console, un bordo che sparisce.
+     E 22 selettori del foglio cadrebbero su markup che Genesi ha già (.kpi,
+     .badge.ok, .note.ok, .dw-btn), ridipingendo le schede con tinte che nella
+     pagina non esistono. Finché la palette non è dichiarata, il foglio resta
+     fuori — e questo controllo impedisce che ci entri per distrazione. */
+  const css = rif.filter((r) => /\.css/.test(r));
+  ok(css.length === 0,
+    `Genesi carica ${css.length} fogli condivisi (${css.join(", ")}): è l'unità B, e prima va dichiarata la palette`);
 });
 
 /* Le variabili che il foglio condiviso PRONUNCIA e che Genesi non DEFINISCE.

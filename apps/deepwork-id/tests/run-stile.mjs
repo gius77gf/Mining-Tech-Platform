@@ -1765,17 +1765,13 @@ function usaLaStruttura(src) {
   return false;
 }
 
-/* Chi tiene ancora la sua copia, e perché. Misurato il 03/08. */
+/* Chi tiene ancora la sua copia, e perché. Misurato il 03/08, aggiornato il
+   04/08 quando Genesi — l'ultima rimasta — è passata al condiviso.
+   Resta **uno solo**, ed è l'originale. */
 const COPIA_PROPRIA = {
   "index.html":
     "il core È l'originale — il file condiviso è stato estratto da qui — e il suo "
     + "toast dura di più quando è acceso il modo «all'aperto» (DB.settings.outdoor)",
-  "apps/genesi/genesi.html":
-    "DA FARE, ma non è il caso facile: Genesi chiama la modale con altri id "
-    + "(mdl, mdl-foot, mdl-campo) e il suo `chiediValore` ha un TERZO parametro "
-    + "diverso — un VALORE invece dell'HTML del campo, e il campo se lo costruisce "
-    + "da sé. Passare al condiviso vuol dire rinominare gli id nel markup e "
-    + "riscrivere 62 chiamate, non solo togliere tre funzioni",
 };
 
 let uiGuardate = 0, uiCondivise = 0;
@@ -1814,8 +1810,9 @@ for (const [nome, rel] of SUPERFICI) {
 test("la regola 17 ha davvero guardato le superfici, e l'elenco delle copie è quello", () => {
   ok(uiGuardate === SUPERFICI.length,
     `guardate ${uiGuardate} superfici su ${SUPERFICI.length}`);
-  ok(uiCondivise === 7, `le superfici che caricano il file condiviso sono ${uiCondivise}, me ne aspettavo 7`
-     + " (le sei app e l'amministrazione di Deepwork ID, entrata il 03/08)");
+  ok(uiCondivise === 8, `le superfici che caricano il file condiviso sono ${uiCondivise}, me ne aspettavo 8`
+     + " (le sei app, l'amministrazione di Deepwork ID entrata il 03/08, e Genesi il 04/08:"
+     + " era l'ULTIMA a tenersi una copia in casa delle cinque funzioni)");
   const attese = Object.keys(COPIA_PROPRIA).sort().join(", ");
   ok(uiConCopia.sort().join(", ") === attese,
     `copie proprie trovate: [${uiConCopia.join(", ")}] · dichiarate: [${attese}]`);

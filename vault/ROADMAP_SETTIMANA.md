@@ -1550,6 +1550,34 @@ campi interi, file delle macchine.
       **sette** id dell'editor 3D, il bottone «salva la volata»).
       ⚠️ Non entra in `tutti.mjs` finché fallisce per progetto: ci va **con** la
       migrazione, nello stesso commit in cui comincia a passare.
+- [x] ✅ **GENESI UNITÀ A — l'ultima copia della struttura è sparita** *(04/08)* —
+      Genesi era l'**ultima** superficie a tenersi in casa `toast`, `mdlApri`,
+      `mdlChiudi`, `chiedi`, `chiediValore` e i due ascoltatori. Ora le prende da
+      `shared/dw-app-ui.js`, e `COPIA_PROPRIA` ha **un solo nome**: il core, che
+      è l'originale. **21 sostituzioni contate**, −1.851 caratteri netti.
+      Banco: **da 3/18 a 18/18**; controprova `--prima`: **14 cadute con 6
+      iniezioni**, verdetto guadagnato.
+      ⚠️ **Una quarta trappola che il piano non aveva**: il CSS vestiva il
+      cancello di consenso **per id** — otto regole `#modal{…}`, fra cui
+      `display:flex` senza condizione. Rinominando solo il markup, quelle regole
+      sarebbero rimaste addosso al **nuovo** `#modal`, che è nascosto da una
+      **classe** (`.modal-ov{display:none}`): l'id vince, e Genesi si sarebbe
+      aperta con un **velo nero fisso** davanti a tutto, senza un errore in
+      console. *Quando si sposta un nome non basta cercare chi lo chiama: va
+      cercato anche chi lo veste.*
+      ⚠️ **E una cosa vista solo nello screenshot**: l'etichetta della casella
+      del consenso è `display:flex`, quindi ogni figlio è una **colonna** — il
+      `<b>estetici</b>` finiva in una colonna sua e la frase dell'**avvertenza di
+      sicurezza** usciva spezzata in quattro pezzi affiancati. Preesistente,
+      invisibile nel codice, corretta con uno `<span>`.
+      Non presi di proposito: `go()` (Genesi non ha `.page` né la pillola), il
+      **foglio di stile** (unità B, e ora c'è un controllo che gli impedisce di
+      entrare per distrazione) e l'**alone** sulle schede della Home — Genesi ne
+      ha già uno suo, scritto in **pixel** contro la **percentuale** del
+      condiviso: due mani sulla stessa variabile, due posizioni diverse.
+      Tre prove «di passaggio» in `numeri-nei-documenti.mjs` sono cadute il
+      giorno giusto e sono state **girate**, non cancellate: guardano il verso
+      opposto. Banchi del browser **25 → 27**.
 
 ---
 
