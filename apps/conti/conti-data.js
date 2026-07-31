@@ -252,12 +252,12 @@ export function numeroDaCampo(testo, opts = {}) {
     : { vuoto: false, ok: true, valore: scelto.n, grezzo, letture, motivo: "" };
 }
 
-export function kpiFrom(fatture, gare, oggi = new Date()) {
+export function kpiFrom(fatture, gare, oggi = new Date(), note = null) {
   const aperte = fatture.filter(f => !f.incassata);
   // apertoDi: con un acconto registrato conta il RESIDUO, non il totale della
   // fattura. Senza incassi registrati residuo = importo, quindi il numero è
   // identico a quello di prima.
-  const daIncassare = aperte.reduce((t, f) => t + apertoDi(f), 0);
+  const daIncassare = aperte.reduce((t, f) => t + apertoDi(f, note), 0);
   const inScadenza = aperte.filter(f => giorni(f.scadenza, oggi) <= 10).length;
   const gareAperte = gare.filter(g => g.stato === "aperta").length;
   // Età media del credito aperto: media dei giorni dall'emissione sulle fatture NON
@@ -274,7 +274,7 @@ export function kpiFrom(fatture, gare, oggi = new Date()) {
 // ritardo rispetto alla scadenza (giorni negativi = scaduto). È lo
 // strumento amministrativo con cui si capisce quanto credito è "vecchio"
 // e va sollecitato per primo. Ogni fascia: numero fatture + importo.
-export function agingIncassi(fatture, oggi = new Date()) {
+export function agingIncassi(fatture, oggi = new Date(), note = null) {
   const b = {
     nonScaduto: { conto: 0, importo: 0 },
     g1_30:      { conto: 0, importo: 0 },
@@ -287,10 +287,10 @@ export function agingIncassi(fatture, oggi = new Date()) {
     const g = giorni(f.scadenza, oggi);
     // fattura senza data (o data non valida): non è classificabile come
     // scaduta → la contiamo come "non scaduto", non gonfiamo lo scaduto.
-    if (isNaN(g)) { b.nonScaduto.conto++; b.nonScaduto.importo += apertoDi(f); continue; }
+    if (isNaN(g)) { b.nonScaduto.conto++; b.nonScaduto.importo += apertoDi(f, note); continue; }
     // quello che pesa nell'aging è ciò che RESTA da incassare: un acconto già
     // arrivato non è più credito scaduto
-    const imp = apertoDi(f);
+    const imp = apertoDi(f, note);
     let k;
     if (g >= 0) k = "nonScaduto";
     else { const r = -g; k = r <= 30 ? "g1_30" : r <= 60 ? "g31_60" : r <= 90 ? "g61_90" : "oltre90"; }
@@ -575,11 +575,13 @@ export function clientiDaCollegare(fatture, clienti) {
 // vero). Raggruppa per anagrafica quando il cliente è collegato o riconoscibile
 // dal nome (niente più doppioni da maiuscole/punteggiatura) e segnala il
 // superamento del fido. Ignora le fatture con importo ≤ 0. Pura e testabile.
-export function esposizioneClienti(fatture, oggi = new Date(), clienti = []) {
+export function esposizioneClienti(fatture, oggi = new Date(), clienti = [], note = null) {
   const per = {};
   for (const f of fatture || []) {
     if (f.incassata) continue;
-    const imp = apertoDi(f);            // residuo: l'acconto già arrivato non è esposizione
+    // residuo meno storno: né l'acconto già arrivato né la parte stornata
+    // sono esposizione, e una fattura stornata per intero esce dal fido
+    const imp = apertoDi(f, note);
     if (imp <= 0) continue;
     const k = chiaveCliente(f, clienti);
     const c = clienteDiFattura(f, clienti);
@@ -943,9 +945,15 @@ export function applicaIncassi(fatture, incassi) {
 // Importo ancora APERTO di una fattura: il residuo se lo stato di incasso è
 // stato calcolato, altrimenti l'importo pieno. Senza incassi registrati il
 // residuo È l'importo: ecco perché nessun totale cambia da solo.
-export function apertoDi(fattura) {
+export function apertoDi(fattura, note) {
   const f = fattura || {};
-  return Number.isFinite(+f.residuo) ? round2(Math.max(0, +f.residuo)) : round2(+f.importo || 0);
+  const base = Number.isFinite(+f.residuo) ? round2(Math.max(0, +f.residuo)) : round2(+f.importo || 0);
+  // ⛔ e quello che una nota di credito ha già stornato NON è più esigibile.
+  // `note` è facoltativo: chi non lo passa ha esattamente il numero di prima —
+  // ed è così che questa riga è entrata senza cambiare nessuno dei chiamanti
+  // che ancora non sanno delle note.
+  if (!note || !note.length) return base;
+  return round2(Math.max(0, base - stornatoDi(f.id, note)));
 }
 
 // INCASSATO in un periodo (estremi inclusi; date vuote = tutto l'archivio):

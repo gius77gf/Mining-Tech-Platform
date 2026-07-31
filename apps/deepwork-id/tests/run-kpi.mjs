@@ -1789,6 +1789,61 @@ test("la stessa distanza su una causale di comma 2 NON avvisa: non c'è termine"
   eq(v.avvisi.length, 0, "e senza avvisi: il comma 2 non ha termine");
 });
 
+/* ── E GLI AGGREGATI LEGGONO LO STORNO ──────────────────────────────────────
+   La scheda del 03/08 ha misurato che cosa succede se una nota si scrive come
+   fattura NEGATIVA: il numero grosso in cima sembra giusto e quelli che nessuno
+   guarda sbagliano — `esposizioneClienti` salta gli importi negativi e il fido
+   NON si libera, `agingIncassi` conta la nota come una fattura scaduta da
+   sollecitare. Qui la nota è un documento a parte con importi positivi, e sono
+   gli aggregati a leggerla. Il parametro `note` è FACOLTATIVO: chi non lo passa
+   ha esattamente i numeri di prima, e queste prove lo pretendono. */
+test("apertoDi: senza note risponde come sempre, con una nota totale scende a zero", () => {
+  const f = { id: "F9", importo: 1000, scadenza: "2026-02-09" };
+  eq(conti.apertoDi(f), 1000, "senza note: il numero di prima");
+  eq(conti.apertoDi(f, []), 1000, "con un elenco vuoto: identico");
+  eq(conti.apertoDi(f, [{ fatturaId: "F9", totale: 400 }]), 600, "storno parziale");
+  eq(conti.apertoDi(f, [{ fatturaId: "F9", totale: 1000 }]), 0, "storno totale");
+  eq(conti.apertoDi(f, [{ fatturaId: "F9", totale: 5000 }]), 0, "e non va sotto zero");
+  eq(conti.apertoDi(f, [{ fatturaId: "ALTRA", totale: 400 }]), 1000, "la nota di un'altra fattura non tocca questa");
+});
+test("il fido si libera: una fattura stornata esce dall'esposizione del cliente", () => {
+  const fatture = [{ id: "F9", cliente: "Cava Rossi", importo: 1000, scadenza: "2026-02-09" }];
+  const oggi = new Date(2026, 2, 1);
+  const prima = conti.esposizioneClienti(fatture, oggi, []);
+  eq(prima[0].totale, 1000, "prima dello storno il cliente espone 1000");
+  const dopo = conti.esposizioneClienti(fatture, oggi, [], [{ fatturaId: "F9", totale: 1000 }]);
+  eq(dopo.length, 0, "dopo lo storno il cliente non ha più esposizione");
+});
+test("⛔ una nota di credito non compare MAI come riga a sé fra le fatture aperte", () => {
+  /* è il difetto della «fattura negativa»: la nota finiva in elenco come un
+     documento da incassare, per un importo negativo. Qui le note sono un
+     archivio separato — quello che si passa agli aggregati non entra mai
+     nell'elenco delle fatture, e questa prova lo blinda. */
+  const fatture = [{ id: "F9", cliente: "Cava Rossi", importo: 1000, scadenza: "2026-02-09" }];
+  const note = [{ id: "N9", fatturaId: "F9", totale: 400, cliente: "Cava Rossi" }];
+  const oggi = new Date(2026, 2, 1);
+  const e = conti.esposizioneClienti(fatture, oggi, [], note);
+  eq(e.length, 1, "un solo cliente, non due righe");
+  eq(e[0].conto, 1, "e UNA sola fattura: la nota non è un documento da incassare");
+  eq(e[0].totale, 600, "ma il suo effetto c'è");
+  const ag = conti.agingIncassi(fatture, oggi, note);
+  /* le fasce sono cinque; `scadutoTot` è un numero, non una fascia — letto dal
+     valore restituito, non indovinato dal nome */
+  const FASCE = ["nonScaduto", "g1_30", "g31_60", "g61_90", "oltre90"];
+  const righe = FASCE.reduce((t, k) => t + ag[k].conto, 0);
+  eq(righe, 1, "nell'aging pure: una riga, non due");
+  ok(FASCE.every((k) => ag[k].importo >= 0), "e nessuna fascia con un importo NEGATIVO");
+  ok(ag.scadutoTot >= 0, "e nemmeno lo scaduto totale");
+  eq(ag.g1_30.importo, 600, "lo scaduto è quello che resta dopo lo storno");
+});
+test("kpiFrom e agingIncassi: il credito scende dello stornato, e senza note non cambia niente", () => {
+  const fatture = [{ id: "F9", cliente: "Cava Rossi", importo: 1000, scadenza: "2026-02-09" }];
+  const oggi = new Date(2026, 2, 1);
+  eq(conti.kpiFrom(fatture, [], oggi).daIncassare, 1000, "senza note: come prima");
+  eq(conti.kpiFrom(fatture, [], oggi, [{ fatturaId: "F9", totale: 400 }]).daIncassare, 600, "con lo storno");
+  eq(conti.agingIncassi(fatture, oggi).g1_30.importo, 1000, "aging senza note");
+  eq(conti.agingIncassi(fatture, oggi, [{ fatturaId: "F9", totale: 400 }]).g1_30.importo, 600, "aging con lo storno");
+});
 test("causaleNota: trova la voce per id, e su un id inventato risponde null invece di indovinare", () => {
   eq(conti.causaleNota("errore").comma, 3, "l'errore di fatturazione sta al comma 3");
   eq(conti.causaleNota("resa").termine, null, "la merce resa non ha termine");

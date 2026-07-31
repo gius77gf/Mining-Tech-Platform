@@ -90,3 +90,55 @@ codice — se no o blocca il lavoro o misura codice che cambia sotto.
 
 Decisioni del fondatore ferme in `DECISIONI_WEEKEND.md` (5a/5b, 10-15) più
 **Firebase Storage** per le foto di Scudo.
+
+---
+
+# Seguito (stesso ciclo) — gli aggregati leggono lo storno
+
+**Suite:** 1.379 → **1.383**
+
+`apertoDi(fattura, note)` sottrae quello che una nota ha già stornato, e
+`kpiFrom`, `agingIncassi`, `esposizioneClienti` glielo passano. Il parametro è
+**facoltativo in tutti e quattro**: chi non lo passa ha esattamente i numeri di
+prima — ed è così che la riga è entrata senza toccare nessuno dei chiamanti che
+ancora non sanno delle note.
+
+## La prova che chiude il difetto della «fattura negativa»
+
+> **⛔ Una nota di credito non compare MAI come riga a sé fra le fatture aperte.**
+
+Era il difetto misurato il 03/08 sulla scorciatoia: la nota scritta come fattura
+col meno davanti finiva in elenco come un documento **da incassare**, per un
+importo **negativo** — `agingIncassi` la contava fra le scadute da sollecitare e
+`esposizioneClienti` la **saltava** (`if (imp <= 0) continue`), così il fido del
+cliente non si liberava. Adesso la prova pretende: **una** riga nell'esposizione,
+**una** nell'aging, **nessuna fascia con un importo negativo**, e l'effetto dello
+storno comunque presente (600 invece di 1.000).
+
+E il fido si libera davvero: una fattura stornata per intero fa **sparire** il
+cliente dall'esposizione, invece di lasciarcelo per l'importo pieno.
+
+## Controprova
+
+Quattro iniezioni, una per funzione: `apertoDi` che torna a ignorare le note (4
+cadute), `esposizioneClienti` (2), `kpiFrom` (1), `agingIncassi` (2). Ripristino
+identico.
+
+⚠️ La seconda ancora compariva **due volte** (`const imp = apertoDi(f, note);` sta
+uguale in `esposizioneClienti` e in `agingIncassi`) e la controprova l'ha detto
+invece di sostituire a caso — allungata col commento che la precede. È la stessa
+correzione già fatta due volte oggi.
+
+## E una prova sbagliata, corretta guardando il valore vero
+
+La prima stesura sommava `.conto` su **tutte** le chiavi di `agingIncassi`, ma
+`scadutoTot` è un **numero**, non una fascia: la somma dava `NaN`, che
+`JSON.stringify` scrive `null`. Non era il codice a sbagliare, era la prova a
+indovinare la forma. Le cinque fasce adesso sono dichiarate, lette dal valore
+restituito.
+
+## Resta da fare
+
+**L'interfaccia**: nella finestra che elimina una fattura non compare ancora
+«Emetti nota di credito», e l'elenco delle note non c'è. Lo strato dati è
+completo e collegato; la funzione si vede quando c'è la schermata.
