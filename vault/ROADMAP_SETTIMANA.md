@@ -1812,7 +1812,25 @@ campi interi, file delle macchine.
       verificato), e `volumeMisuratoDiLotto` che fa entrare i **rilievi** nel
       conto — «previsti 180.000 m³, misurati 96.400» invece di fidarsi del
       progetto.
-- [ ] ⚠️ **IL GIRO COMPLETO DEL BROWSER NON È STATO ESEGUITO IN QUESTO BLOCCO.**
+- [x] ✅ **IL GIRO COMPLETO LETTO FINO IN FONDO: 34 SU 35, E IL SOLO KO ERA
+      VERO** *(05/08)* — lanciato **da solo**, 1 ora e 40, nessun «GIRO NON
+      VALIDO»: l'impronta ha retto. Il banco nuovo del blocco (`registro
+      costi`) è passato **insieme alla sua controprova a quattro difetti**. E si
+      conferma la diagnosi: nel giro affamato i primi due banchi prendevano più
+      di un'ora, da soli venti minuti — la contesa di CPU su quattro core
+      costava **circa 3,5 volte**.
+      Il KO: in **Sentinella** la riga di un mese **senza letture** era
+      disegnata col colore dei disabilitati e coi numeri **barrati**. Il
+      contrasto (3,83:1 a 11 px) era il sintomo; il difetto è che marcava
+      «trascurabile» **proprio dove il dato manca** — il principio del fondatore
+      letto al rovescio, non un numero tranquillo ma un **grigio**, che ottiene
+      lo stesso risultato. E la barratura non aveva soggetto: quelle celle
+      scrivono «—». Adesso la riga si legge e il mese prende il colore
+      d'avviso; `contrasto.mjs` misura **3.492 testi, 0 sotto soglia**.
+      ⚠️ **Trovato solo perché le prove girano con l'orologio del cliente**, ed
+      è la dimostrazione più netta finora: senza `TZ` la riga difettosa **non
+      esiste in pagina** (a Greenwich era ancora luglio, che ha letture); con
+      `TZ=Europe/Rome` compare «Agosto 2026 (in corso), 0».
       Va detto, per non scambiarlo per una verifica fatta: lanciato, ha girato
       più di un'ora ed è arrivato al **terzo banco su 35**. La causa non è il
       giro — **sono io**: nel frattempo facevo scatti e controprove con altre

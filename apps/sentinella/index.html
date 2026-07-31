@@ -554,8 +554,20 @@
   display:block; margin-top:2px; font-size:10px; font-weight:400; line-height:1.4;
   color:var(--muted); white-space:normal; font-variant-numeric:normal; letter-spacing:.1px;
 }
-.tab tr.ko td{color:var(--disabled)}
-.tab tr.ko td.n{color:var(--disabled); text-decoration:line-through}
+/* ⛔ LA RIGA DI UN MESE SENZA LETTURE NON SI SPEGNE, E NON SI SBARRA.
+   Trovata dal giro il 05/08, e trovata SOLO perché gira con l'orologio del
+   cliente: in UTC era ancora luglio, in Italia agosto era appena cominciato e
+   il mese in corso non aveva nessuna lettura.
+   Quella riga usciva col colore dei disabilitati e i numeri barrati — cioè
+   marcata «trascurabile» PROPRIO DOVE IL DATO MANCA, che è il contrario di
+   quello che questa app dichiara ovunque. E lo strike-through non aveva
+   nemmeno un soggetto: quelle celle scrivono «—», non c'è niente da barrare.
+   Il contrasto era il sintomo (3,83:1 a 11 px contro il 4,5 che serve): la
+   riga che porta la notizia era anche la meno leggibile dello schermo.
+   Adesso si legge come le altre, e il mese prende il colore d'avviso. */
+.tab tr.ko td{color:var(--muted2)}
+.tab tr.ko td:first-child{color:var(--warn); font-weight:600}
+.tab tr.ko td.n{color:var(--muted2)}
 .tab tr.oltre td.n{color:var(--danger)}
 .tab tr.dup td.n{color:var(--warn)}
 /* pillola di stato dentro la tabella: piccola, con micro-profondità */
