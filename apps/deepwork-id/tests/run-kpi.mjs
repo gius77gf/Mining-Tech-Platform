@@ -5491,5 +5491,131 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ DAL PROGETTO ALLO SPARO: LA CONFERMA DI UNA VOLATA ═════════════════
+   Genesi manda a Sentinella una volata **prevista**. Dopo lo sparo qualcuno la
+   conferma come eseguita, correggendo quello che in cava è andato diversamente
+   dal progetto — fori saltati, carica ridotta, data spostata.
+
+   Le due regole che reggono tutto il ponte:
+
+   · **la previsione non si tocca.** I dati si correggono, il numero previsto
+     resta scritto com'era: altrimenti il confronto previsto→misurato sarebbe un
+     confronto con un numero **aggiustato dopo**, cioè con niente;
+   · **una volata eseguita è un fatto avvenuto**, quindi la sua data non può
+     stare nel futuro. È la stessa regola del registro a mano, per lo stesso
+     motivo. */
+{
+  const cv = sentinella.confermaVolataEseguita;
+  const OGGI = new Date("2026-07-31T12:00:00");
+  const prevista = { id: "v1", stato: "prevista", data: "2026-07-20", fronte: "A",
+    nFori: 20, kgTotali: 400, kgMaxRitardo: 50, distanzaRicettore: 200,
+    ppvPrevista: 4.2, ppvPrevLimite: 5, ppvPrevNorma: "UNI 9916",
+    ppvPrevFonte: "genesi-sito", airblastPrevisto: 120 };
+
+  test("stato: il silenzio del registro significa ESEGUITA", () => {
+    /* un registro compilato a mano è un elenco di fatti avvenuti: senza la
+       colonna dello stato non si dà per «prevista» ciò che è già successo */
+    eq(sentinella.statoVolata({}), "eseguita", "senza stato");
+    eq(sentinella.statoVolata({ stato: "progetto" }), "prevista", "e i sinonimi si riconoscono");
+    eq(sentinella.statoDaTesto("sparata"), "eseguita", "anche dall'altra parte");
+    eq(sentinella.statoDaTesto("boh"), "", "una parola che non dice niente non decide");
+  });
+  test("⛔ conferma: la previsione NON viene toccata", () => {
+    /* correggere anche il previsto renderebbe il confronto un confronto con un
+       numero aggiustato dopo lo sparo */
+    const r = cv(prevista, { nFori: "18", kgMaxRitardo: "45,5" }, OGGI);
+    eq(r.ok, true, "la conferma va a buon fine");
+    eq(Object.keys(r.campi).filter((k) => /^ppvPrev|^airblast|^ppvMisurata/.test(k)).length, 0,
+       "nessun campo della previsione né della misura viene riscritto");
+  });
+  test("⛔ conferma: la data non può essere nel futuro", () => {
+    const r = cv(prevista, { data: "2026-08-05" }, OGGI);
+    eq(r.ok, false, "rifiutata");
+    eq(r.errori[0].campo, "data", "e si dice quale campo");
+    eq(r.errori[0].testo.includes("lasciala prevista"), true, "con la via d'uscita, non solo il no");
+  });
+  test("conferma: una volata già eseguita non si conferma due volte", () => {
+    const r = cv({ ...prevista, stato: "eseguita" }, {}, OGGI);
+    eq(r.ok, false, "niente da confermare");
+    eq(r.errori[0].testo.includes("già registrata come eseguita"), true, "e lo dice in italiano");
+  });
+  test("⛔ conferma: un campo non toccato resta quello del progetto, uno svuotato vale zero", () => {
+    /* svuotare è una CORREZIONE («quei fori non li abbiamo fatti»), non una
+       dimenticanza: trattarla come «lascia com'era» ribalterebbe la volontà */
+    eq(cv(prevista, {}, OGGI).campi.nFori, 20, "non toccato: resta il progetto");
+    eq(cv(prevista, { nFori: "" }, OGGI).campi.nFori, 0, "svuotato: vale zero");
+  });
+  test("⛔ conferma: si dice che cosa è cambiato rispetto al progetto", () => {
+    /* una correzione silenziosa su un documento è un problema: prima di
+       salvare l'utente deve vedere che cosa sta cambiando */
+    const c = cv(prevista, { nFori: "18", kgMaxRitardo: "45,5" }, OGGI).cambi;
+    eq(c.map((x) => x.campo).join(","), "nFori,kgMaxRitardo", "due cose cambiate, due righe");
+    eq(c[0].da + "→" + c[0].a, "20→18", "da quanto a quanto");
+    eq(cv(prevista, {}, OGGI).cambi.length, 0, "e senza correzioni non si elenca niente");
+  });
+  test("conferma: la virgola italiana vale quanto il punto", () => {
+    eq(cv(prevista, { kgMaxRitardo: "45,5" }, OGGI).campi.kgMaxRitardo, 45.5, "45,5 kg");
+  });
+
+  test("⛔ previsione: si dice su che base Genesi ha previsto", () => {
+    /* una previsione calibrata sul sito vale più di una da manuale, e l'utente
+       ha il diritto di sapere quale delle due sta leggendo */
+    eq(sentinella.previsioneDiVolata(prevista).calibrata, true, "legge di sito");
+    eq(sentinella.testoFontePrevisione(sentinella.previsioneDiVolata(prevista)),
+       "da Genesi · legge di sito calibrata", "detto in chiaro");
+    eq(sentinella.testoFontePrevisione(sentinella.previsioneDiVolata({ ...prevista, ppvPrevFonte: "genesi-litologia" })),
+       "da Genesi · stima dalla litologia", "e l'altra base si distingue");
+  });
+  test("previsione: una volata registrata a mano non ne ha una calcolata qui", () => {
+    eq(sentinella.previsioneDiVolata({ id: "v" }), null, "niente previsione");
+    eq(sentinella.testoFontePrevisione(null), "", "e niente da scrivere");
+  });
+  test("⛔ previsione: i campi del progetto non entrano MAI in quelli della misura", () => {
+    const c = sentinella.campiPrevisioneVolata(4.2, { limite: 5, norma: "UNI 9916", fonte: "genesi-sito", airblast: 120 });
+    eq(Object.keys(c).some((k) => /^ppvMisurata|^ppvFonte$|^ppvPunto/.test(k)), false,
+       "una previsione messa accanto a una misura, in una settimana, diventa indistinguibile da essa");
+    eq(c.ppvPrevista, 4.2, "il previsto sta nel suo campo");
+  });
+
+  test("⛔ scarto: il confronto previsto→misurato esiste solo con ENTRAMBI i numeri", () => {
+    eq(sentinella.scartoPpvVolata(prevista), null, "manca la misura");
+    eq(sentinella.scartoPpvVolata({ ppvMisurata: 5, ppvFonte: "strumento" }), null, "manca la previsione");
+  });
+  test("scarto: con entrambi si dice di quanto e da che parte", () => {
+    const s = sentinella.scartoPpvVolata({ ...prevista, stato: "eseguita", ppvMisurata: 5.1, ppvFonte: "strumento" });
+    eq(s.delta, 0.9, "nove decimi in più");
+    eq(s.pct, 21.4, "cioè +21,4 %");
+    eq(s.verso, "sopra", "sopra il previsto");
+  });
+
+  test("⛔ firma: col codice di Genesi il doppione si riconosce anche dopo la conferma", () => {
+    /* la conferma può aver corretto fori, chili e persino la data: senza il
+       codice, reimportare il file del progetto creerebbe una riga fantasma */
+    eq(sentinella.firmaVolata({ codiceVolata: "G-77", data: "2026-07-20", nFori: 20 }),
+       sentinella.firmaVolata({ codiceVolata: "G-77", data: "2026-07-21", nFori: 18 }),
+       "stessa volata, stessa firma");
+  });
+  test("firma: senza codice si torna a data, fronte, fori e chili", () => {
+    eq(sentinella.firmaVolata({ data: "2026-07-20", fronte: "A", nFori: 20, kgTotali: 400 }),
+       "2026-07-20|a|20|400", "i file già in giro si deduplicano come prima");
+  });
+
+  const registro = [{ id: "a", stato: "prevista", data: "2026-08-10" },
+    { id: "b", stato: "prevista", data: "2026-07-20" },
+    { id: "c", data: "2026-07-01" }, { id: "d", data: "2026-07-25" }];
+  test("⛔ registro: prima le previste in ordine di calendario, poi le eseguite dalla più recente", () => {
+    /* le previste con la data già passata vengono per prime: sono quelle da
+       confermare, ed è l'unica cosa che chiede un'azione */
+    eq(sentinella.volateOrdinate(registro).map((v) => v.id).join(","), "b,a,d,c", "l'ordine del registro");
+  });
+  test("⛔ registro: si conta quante previste aspettano la conferma", () => {
+    /* una volata sparata e mai confermata lascia un buco nel brogliaccio */
+    const r = sentinella.riepilogoPreviste(registro, OGGI);
+    eq(r.totale, 2, "due previste");
+    eq(r.daConfermare, 1, "e una la cui data è già arrivata");
+    eq(r.prossima, "2026-08-10", "l'altra è la prossima in calendario");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
