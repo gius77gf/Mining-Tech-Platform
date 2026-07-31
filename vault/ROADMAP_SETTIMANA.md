@@ -1008,7 +1008,19 @@ campi interi, file delle macchine.
       DDT: il netto è lordo − tara e non va sottozero, i metri cubi si fanno solo
       con la densità, e lo stesso prodotto a prezzi diversi resta una riga
       diversa. run-kpi **897**, totale node **1.180**.
-- [ ] **Una sola `messaggioNumero`.** Misurato il 02/08: la funzione che dice
+- [x] **Una sola `messaggioNumero`** *(fatta il 02/08, appena finito il giro del
+      browser: 19 banchi a posto)*. Insieme a lei sono andate in `shared/` anche
+      **`dataPiuGiorni`** — scritta identica in Scudo e Sentinella e **già
+      staccata** sul caso d'errore, e irrigidita nel passaggio — e **`giorni`**,
+      tornato alias di `giorniTra`. Sette prove pretendono l'**identità**, non il
+      comportamento, e `nomi-doppi.mjs` è entrato in CI: **0 da sistemare**.
+      Cinque prove sono cadute perché blindavano la verità di prima; la più
+      istruttiva affermava «6375» — la stringa che si vede **solo nelle prove**.
+      run-kpi **969**, run-stile **212**, totale node **1.263**.
+- [x] **Regola 16 dello stile: le migliaia si raggruppano per scritto** dentro i
+      moduli, perché li leggono sia Node sia il browser e con le opzioni di serie
+      **non dicono la stessa cosa**.
+- [x] ~~**Una sola `messaggioNumero`.**~~ Misurato il 02/08: la funzione che dice
       «questo numero non l'ho capito» è scritta **due volte** (shell + Flotta) e
       `AVVISO_DECIMALE` **quattro volte**; tre messaggi su dieci sono diversi, e
       ognuna delle due versioni è migliore dell'altra in un punto. Correzione
