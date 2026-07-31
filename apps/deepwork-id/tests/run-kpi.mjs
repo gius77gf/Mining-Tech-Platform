@@ -4662,5 +4662,55 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ LE LETTURE DEL SISMOGRAFO CHE ARRIVANO DA UN FILE ══════════════════
+   `unisciLetture` mette insieme le letture importate e quelle già registrate.
+   Da qui esce il report che va all'ente, quindi tre cose devono valere:
+
+   · i doppioni si scartano — **anche quelli dentro lo stesso file**, che è la
+     forma che sfuggiva a tutti gli import prima del 31/07;
+   · quando si supera il tetto si tengono le letture **più recenti**, non le
+     prime capitate;
+   · e quante ne sono state **tagliate** si dice, invece di lasciarle sparire
+     in silenzio. Una misura che scompare senza una riga è peggio di una misura
+     mancante: nessuno la va a cercare. */
+{
+  const ul = sentinella.unisciLetture;
+  const L = (data, valore, ora) => ({ data, valore, ...(ora ? { ora } : {}) });
+
+  test("letture: le nuove si aggiungono a quelle che c'erano", () => {
+    const r = ul([L("2026-07-01", 1)], [L("2026-07-02", 2)]);
+    eq(r.aggiunte, 1, "una aggiunta");
+    eq(r.letture.length, 2, "e in tutto sono due");
+  });
+  test("⛔ letture: il doppione di una già presente viene scartato e contato", () => {
+    const r = ul([L("2026-07-01", 1)], [L("2026-07-01", 1)]);
+    eq(r.aggiunte, 0, "niente aggiunte");
+    eq(r.duplicati, 1, "e il doppione si dichiara");
+  });
+  test("⛔ letture: due righe uguali DENTRO lo stesso file entrano una volta sola", () => {
+    /* è la forma di doppione che nel progetto era sfuggita a tutti e dieci gli
+       import: si confrontava solo con l'archivio, che non si aggiorna mentre
+       il file scorre */
+    const r = ul([], [L("2026-07-01", 1), L("2026-07-01", 1)]);
+    eq(r.aggiunte, 1, "una sola");
+    eq(r.duplicati, 1, "e l'altra è dichiarata doppione");
+  });
+  test("letture: stessa data e ora ma valore diverso NON è un doppione", () => {
+    const r = ul([], [L("2026-07-01", 1, "08:00"), L("2026-07-01", 2, "08:00")]);
+    eq(r.aggiunte, 2, "sono due misure diverse");
+  });
+  test("letture: si riordinano per data e ora", () => {
+    const r = ul([], [L("2026-07-03", 3), L("2026-07-01", 1), L("2026-07-02", 2)]);
+    eq(r.letture.map((x) => x.valore).join(","), "1,2,3", "in ordine di tempo");
+  });
+  test("⛔ letture: oltre il tetto si tengono le PIÙ RECENTI, e si dice quante sono cadute", () => {
+    const molte = Array.from({ length: 5 }, (_, i) => L(`2026-07-0${i + 1}`, i + 1));
+    const r = ul([], molte, 3);
+    eq(r.letture.length, 3, "tre tenute");
+    eq(r.letture.map((x) => x.valore).join(","), "3,4,5", "le ultime tre, non le prime");
+    eq(r.tagliate, 2, "e le due cadute si dichiarano");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
