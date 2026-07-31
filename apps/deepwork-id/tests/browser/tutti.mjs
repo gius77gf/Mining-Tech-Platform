@@ -62,6 +62,8 @@ const BANCHI = [
   ['struttura di Genesi · controprova', 'genesi-struttura.mjs', ['--prima'], true],
   ['nota di credito', 'nota-credito.mjs', []],
   ['nota di credito · controprova', 'nota-credito.mjs', ['--controprova'], true],
+  ['il verbale dice come è nato il numero', 'verbale-origine.mjs', []],
+  ['verbale · controprova', 'verbale-origine.mjs', ['--controprova'], true],
 ];
 
 async function rispondePorta(porta) {
