@@ -1508,6 +1508,27 @@ campi interi, file delle macchine.
       scartate invece di 2.739. *Un filtro che toglie rumore va misurato anche
       su quello che toglie di buono.*
       Suite: **1.359 → 1.360**, tutte verdi con `TZ=Europe/Rome`.
+- [x] ✅ **LA REGOLA VIOLATA DUE VOLTE È DIVENTATA UN CONTROLLO** *(04/08)* — non
+      si modificano moduli dati e pagine mentre gira un giro del browser: scritto
+      in `CLAUDE.md` dal 01/08, col racconto dei 19 banchi buttati e la
+      domanda-guida. **Violata due volte in due giorni**, la seconda dal cantiere
+      che il giorno prima aveva scritto il paragrafo. Il giro di oggi è stato
+      ucciso; per fortuna era fermo a *flotta* e Terra non era ancora stata
+      aperta — ma l'ho saputo **dopo**. Adesso `tutti.mjs` prende l'**impronta**
+      dei file che le pagine caricano prima del giro, **dopo ogni banco** e alla
+      fine: se qualcosa cambia **dichiara sé stesso NON VALIDO** (uscita `2`),
+      dice dopo quale banco e **quanti banchi hanno ancora misurato il codice
+      giusto** — invece di un riepilogo verde con un avviso in mezzo, che
+      verrebbe letto come verde. Test, `docs/` e `vault/` non fanno scattare
+      niente, di proposito: un controllo che grida al lupo dove il lavoro è
+      permesso viene spento al secondo giro. **Due** controprove, perché la prima
+      non basta: il rilevatore (`impronta.mjs --controprova`, 6 prove) e il
+      **collegamento** (`impronta-giro.mjs`, 7 prove, su radice finta) — *una
+      guardia scollegata non è un errore di sintassi*, come il `<script>`
+      dimenticato. Trovato per strada: **`sonda-vuoto.mjs` non era in `npm
+      test`** — un controllo permanente che girava solo a memoria. Ora c'è.
+      E la CI del commit prima aveva ragione: `numeri-nei-documenti.mjs` ha visto
+      tre documenti fermi a «1.359». Aggiornati.
 
 ---
 

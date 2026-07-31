@@ -416,6 +416,18 @@ in italiano, senza dare conoscenze per scontate).
   iniezioni sui file di **test** (`run-stile.mjs`, `run-kpi.mjs`) restano sicure,
   perché nessuna pagina li importa. Finché gira un giro: si lavora su `docs/`,
   `vault/` e le suite `node`, e le iniezioni sui moduli si aspettano.
+  ✅ **E dal 04/08 non è più solo scritta qui: è un controllo.** Perché questa
+  regola, scritta e col suo racconto, è stata **violata due volte in due
+  giorni** — la seconda dal cantiere che il giorno prima aveva scritto il
+  paragrafo. `tutti.mjs` prende l'impronta dei file che le pagine caricano
+  prima del giro, **dopo ogni banco** e alla fine: se qualcosa cambia il giro
+  **dichiara sé stesso NON VALIDO** (uscita `2`) e dice **dopo quale banco**,
+  invece di stampare un riepilogo verde. Test e documenti si possono modificare
+  senza far scattare niente — se no il controllo verrebbe spento al secondo
+  giro. Controprovato su due piani: il rilevatore (`impronta.mjs
+  --controprova`, 6 prove) e il **collegamento** al giro (`impronta-giro.mjs`,
+  7 prove, su una radice finta) — perché una guardia scollegata non è un errore
+  di sintassi, esattamente come il `<script>` dimenticato.
 - ⚠️ La cartella scratchpad è **condivisa** fra i cantieri paralleli: ogni
   agente deve creare una propria sottocartella, altrimenti si sovrascrivono i
   file di prova a vicenda (è già successo più volte).
