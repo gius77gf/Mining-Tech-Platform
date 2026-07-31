@@ -178,6 +178,46 @@ esiste per impedire, ed è quello che passerebbe inosservato più a lungo.
 
 ---
 
+## 4-bis. Quanto costa **oggi** non averla — misurato il 04/08
+
+La scheda del 03/08 ha misurato la scorciatoia *futura* (la nota come fattura
+negativa). Mancava la misura della scorciatoia **presente**: senza note di
+credito, chi deve annullare una fattura realmente emessa ha due strade, e
+tutt'e due sporcano un numero.
+
+1. **cancellarla** — l'app stessa scrive che è sbagliato, e si perde il
+   documento;
+2. **registrare un incasso che non c'è stato**, per portarla a residuo zero. È
+   quello che fa chi non vuole cancellare, e non lascia traccia di essere una
+   finzione.
+
+Misurato sulle funzioni vere, due fatture da **1.488,40 €** emesse il 10/01 con
+scadenza 09/02:
+
+| | `giorniPagamento` | `tempoMedioPagamento` |
+|---|---|---|
+| pagata davvero il 09/02 | 30 | `{giorni: 30, ritardo: 0}` |
+| **annullata** col finto incasso del 30/06 | 171 | `{giorni: 171, ritardo: 141}` |
+| **le due insieme** | | **`{giorni: 101, ritardo: 71}`** |
+
+Cioè: **una sola fattura annullata porta il tempo medio di pagamento da 30 a
+101 giorni**, e il ritardo medio da 0 a 71. Il numero che dovrebbe dire «i miei
+clienti pagano bene» dice il contrario, per un documento che nessuno doveva
+pagare.
+
+E la direzione dell'errore **dipende dalla data che si mette nel finto
+incasso**: chi la scrive uguale alla scadenza fa comparire un pagamento
+puntuale mai avvenuto. Lo stesso identico gesto può gonfiare il numero in un
+verso o nell'altro — che è peggio di un errore costante, perché non si corregge
+guardando la media.
+
+*(Ricontrollato lo stesso giorno: `prossimoNumero(["NC/2026/001",
+"NC/2026/002"], 2026)` risponde ancora **`2026/001`** — un numero della serie
+delle fatture, e già usato. La sua arità è **1**: `anno` e `cifre` hanno un
+valore di serie, e il prefisso non c'è proprio.)*
+
+---
+
 ## 5. Che cosa questa scheda NON decide
 
 - **XML FatturaPA**: la nota `TD04` è la metà di una voce che nel censimento sta
