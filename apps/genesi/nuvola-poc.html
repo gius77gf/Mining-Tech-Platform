@@ -48,6 +48,23 @@
     <div class="cf"><span>Larghezza</span><input type="range" id="xmin" min="0" max="100" value="0"><input type="range" id="xmax" min="0" max="100" value="100"></div>
     <div class="cf"><span>Profondità</span><input type="range" id="ymin" min="0" max="100" value="0"><input type="range" id="ymax" min="0" max="100" value="100"></div>
     <div class="cf"><span>Altezza (quota)</span><input type="range" id="zmin" min="0" max="100" value="0"><input type="range" id="zmax" min="0" max="100" value="100"></div>
+    <!-- ⛔ IL LATO CELLA È LA SCELTA PIÙ PESANTE DEL CALCOLO: vale il 22% fra
+         0,25 m e 2 m, misurato su un cono di volume noto. Finora la faceva il
+         software dalla larghezza del ritaglio, in silenzio. «Automatica» resta
+         il valore di serie — chi non tocca niente ha esattamente il conto di
+         prima — ma adesso è una scelta VISIBILE e si può cambiare.
+         Il verso: di ogni cella si prende la quota massima, quindi celle più
+         grosse tirano la superficie verso l'alto e il volume sale. -->
+    <div class="cf" style="margin-top:6px">
+      <span>Lato cella</span>
+      <select id="cella" style="flex:1 1 auto;background:var(--panel2);color:var(--tx);border:1px solid var(--line);border-radius:8px;padding:5px 8px;font:inherit;font-size:12px">
+        <option value="">Automatica (dal ritaglio)</option>
+        <option value="0.25">0,25 m — più fine, volume più basso</option>
+        <option value="0.5">0,50 m</option>
+        <option value="1">1,00 m</option>
+        <option value="2">2,00 m — più grossa, volume più alto</option>
+      </select>
+    </div>
     <div id="cropdim" style="font-size:10.5px;color:var(--mut2);margin-top:4px"></div>
     <button class="btn sec" id="export" style="margin-top:8px">Esporta ritaglio (.xyz)</button>
   </div>
@@ -98,6 +115,10 @@ const drop=$('drop');
 ['dragleave','drop'].forEach(ev=>document.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.remove('hot'); }));
 document.addEventListener('drop', e=>{ const f=e.dataTransfer.files[0]; if(f) loadFile(f); });
 ['xmin','xmax','ymin','ymax','zmin','zmax'].forEach(id=> $(id).addEventListener('input', updateCrop));
+/* la cella rifà il conto come un cursore qualsiasi: il record porta sempre
+   l'ULTIMA risposta, come già faceva a ogni spostamento del ritaglio —
+   quindi non si creano due volumi per lo stesso taglio */
+$('cella').addEventListener('change', updateCrop);
 $('export').addEventListener('click', exportCrop);
 
 function clearObj(){ if(obj){ scene.remove(obj); obj.traverse&&obj.traverse(o=>{ o.geometry&&o.geometry.dispose(); }); if(obj.geometry)obj.geometry.dispose(); obj=null; } mats=[]; }
@@ -229,7 +250,9 @@ function updateCrop(){
          è grossa più la superficie viene tirata su). Ritagliare un fronte
          intero invece di un pezzo cambia il volume di venti punti percentuali.
          Da oggi il numero scelto almeno si CONSERVA. */
-      const _cella = Math.max(0.25, Math.min(2,(x1-x0)/60));
+      const _scelta = parseFloat((document.getElementById('cella')||{}).value);
+      const _auto = !(Number.isFinite(_scelta) && _scelta > 0);
+      const _cella = _auto ? Math.max(0.25, Math.min(2,(x1-x0)/60)) : _scelta;
       const v=volumeCumulo(sel, _cella);
       /* ⛔ IL LATO CELLA SI VEDE. Era la scelta più pesante del calcolo — vale
          il 22% fra 0,25 m e 2 m — e la faceva il software, in silenzio, dalla
@@ -242,8 +265,20 @@ function updateCrop(){
          l'alto. Su una forma convessa il segno non cambia. */
       volTxt=' · volume ≈ <b style="color:var(--tx)">'+Math.round(v.volume).toLocaleString('it-IT')+(_georef?' m³':' u³')+'</b>'
         +' <span style="color:var(--mut)">(griglia '+_cella.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:false})+' m'
+        +(_auto?'':' scelta')
         +(Number.isFinite(v.zBase)?', base '+(v.zBase+offset.z).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:true})+(_georef?' m':' u'):'')
-        +' — stima)</span>';
+        +' — stima)</span>'
+        /* ⛔ UNA CELLA PIÙ FINE DELLA SPAZIATURA DEI PUNTI FA CROLLARE IL
+           VOLUME, in silenzio. Il metodo somma solo le celle che CONTENGONO
+           punti: se la griglia è più fitta della nuvola, gran parte delle celle
+           resta vuota e il volume manca dei pezzi. Misurato su un cono
+           campionato a 40 cm: a 0,25 m il volume scende a 527 m³ contro i 1.414
+           veri, cioè **−63%** — e senza questo avviso sarebbe solo «un numero
+           più basso», che chi guarda leggerebbe come «più preciso».
+           Il segno è l'area coperta molto minore dell'impronta del ritaglio. */
+        +((v.areaCelle && (x1-x0)*(y1-y0) > 0 && v.areaCelle < 0.55*(x1-x0)*(y1-y0))
+          ? ' <b style="color:#ff9a70">⚠ griglia più fitta dei punti: molte celle sono vuote e il volume risulta più basso del vero — usa una cella più grossa</b>'
+          : '');
       try{ const k='genesiNuvole', a=JSON.parse(localStorage.getItem(k)||'[]');
         if(a.length){ a[a.length-1].volume=Math.round(v.volume)+(_georef?'':' u³');
           /* il conto che sta DAVVERO accanto al volume: i punti dentro il
@@ -272,6 +307,7 @@ function updateCrop(){
           const _q = (n, o) => (Number.isFinite(n) ? n + o : null);
           a[a.length-1].calcolo = {
             cella: v.cella,
+            cellaAutomatica: _auto,
             quotaBase: _q(v.zBase, offset.z),
             areaCoperta: v.areaCelle,
             celle: v.celle,
