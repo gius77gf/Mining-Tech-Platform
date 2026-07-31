@@ -40,8 +40,16 @@ const CERCA = () => {
   /* le forme con cui in italiano si scrive un tempo relativo. Con il numero
      dentro, perché «in scadenza» senza numero non promette nessuna data. */
   const RELATIVO = /\b(tra|fra)\s+\d+\s*(giorn|gg|mes|settiman)|scadut[ao]\s+da\s+\d+|in ritardo di\s+\d+|\d+\s*(giorni|gg)\s+fa\b/i;
-  /* una data in cifre: 12/08/2026, 12-08-2026, 2026-08-12 */
-  const DATA = /\b\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4}\b|\b\d{4}-\d{2}-\d{2}\b/;
+  /* una data in cifre: 12/08/2026, 12-08-2026, 2026-08-12 — e anche il solo
+     giorno/mese, 08/08.
+     ⚠️ L'anno NON si pretende, e l'ha insegnato la prima esecuzione di questo
+     banco: Flotta scrive «Fra 8 giorni (~08/08)», che è esattamente la doppia
+     forma chiesta dalla ricerca, in versione compatta perché parla di una
+     proiezione a otto giorni (e la tilde dice che è una stima). Pretendere
+     l'anno avrebbe segnalato come difetto una riga scritta bene: il banco
+     sbagliava, non il prodotto. È la correzione giusta e non un allentamento —
+     «08/08» una data lo è davvero. */
+  const DATA = /\b\d{1,2}[\/\-.]\d{1,2}([\/\-.]\d{2,4})?\b|\b\d{4}-\d{2}-\d{2}\b/;
   const out = [];
   document.querySelectorAll('body *').forEach((el) => {
     const proprio = [...el.childNodes]

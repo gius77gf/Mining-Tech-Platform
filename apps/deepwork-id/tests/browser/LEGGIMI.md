@@ -126,6 +126,40 @@ chiesto a `getComputedStyle`, che risponde comunque.
 Al primo giro: **21 violazioni su cinque superfici**. La controprova sporca una
 superficie pulita e pretende di essere scoperta.
 
+## `doppia-data.mjs`
+
+⛔ Il dettaglio 8 di `docs/RICERCA_VALORE_PRODOTTO_202607.md`: **un tempo
+relativo porta con sé la data**. «Scade tra 5 giorni **(12/08/2026)**». La
+ragione è pratica: il relativo si legge al volo scorrendo un elenco, ma la data
+assoluta è quella che serve con l'ente al telefono — e «fra cinque giorni»
+riletto domani vuol dire un altro giorno.
+
+```sh
+node apps/deepwork-id/tests/browser/doppia-data.mjs 8823
+node apps/deepwork-id/tests/browser/doppia-data.mjs 8823 --solo=flotta
+node apps/deepwork-id/tests/browser/doppia-data.mjs 8823 --controprova
+```
+
+**Perché nel browser e non in `run-stile.mjs`**: ci ho provato leggendo il
+codice e la misura era da buttare — Campo, Scudo e Terra risultavano a *zero*
+tempi relativi (non credibile per app con lo scadenzario) e tre degli otto
+«trovati» erano un commento, un `<label>` e un `title`. Il tempo relativo nasce
+al momento del disegno, da variabili che ogni app chiama a modo suo (`ritardo`,
+`gg`): nel sorgente non c'è una forma da cercare, nella pagina sì.
+
+Due decisioni che rendono il banco onesto invece che rumoroso:
+
+1. **Non si guarda solo il testo proprio dell'elemento.** Quello che l'occhio
+   legge come una riga sola è spesso spezzato — «scade tra 5 giorni» in uno
+   `<span>` e «(12/08/2026)» in quello accanto. Si sale al contenitore finché si
+   resta dentro una riga ragionevole; guardando solo il testo proprio si
+   segnalerebbero come colpevoli proprio le righe scritte **bene**.
+2. **L'anno non si pretende.** L'ha insegnato la prima esecuzione: Flotta
+   scrive «Fra 8 giorni (~08/08)», che è la doppia forma in versione compatta
+   per una proiezione a otto giorni. Il banco sbagliava, non il prodotto.
+
+Prima esecuzione: **9 superfici, 0 violazioni**; controprova **9 su 9**.
+
 ## `note-stato.mjs`
 
 **La striscia di un riquadro dice il suo STATO, non la sua decorazione.** In
