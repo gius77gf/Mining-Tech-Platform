@@ -4201,5 +4201,63 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ CHI PUÒ SALIRE SU UN MEZZO ═════════════════════════════════════════
+   `statoRequisito` legge, dalle scadenze di una persona, se un requisito
+   (visita medica, formazione, abilitazione) è coperto. Da lì esce chi risulta
+   idoneo. Non era provata.
+
+   Due comportamenti che vanno bloccati, e sono quelli su cui un errore non fa
+   rumore:
+   · «nessuna riga in scadenzario» deve dare **mancante**, non «regolare» —
+     l'assenza di un documento non è una conferma che va tutto bene;
+   · con più rinnovi vale **l'ultimo**, cioè la data più lontana: se vincesse
+     la più vecchia, una persona in regola risulterebbe scaduta e verrebbe
+     tenuta ferma per niente. */
+{
+  const oggiS = new Date("2026-07-01T00:00:00Z");
+  const req = { chiave: "visita-medica", etichetta: "Visita medica", parole: ["visita"] };
+
+  test("requisito senza nessuna riga in scadenzario: MANCANTE, non regolare", () => {
+    const r = scudo.statoRequisito(req, [], oggiS);
+    eq(r.stato, "mancante", "l'assenza del documento non è una conferma");
+    eq(r.scadenza, null, "e non si inventa una data");
+  });
+  test("requisito coperto e lontano: regolare", () => {
+    const r = scudo.statoRequisito(req, [
+      { id: "s1", preset: "visita-medica", dataScadenza: "2027-01-01" },
+    ], oggiS);
+    eq(r.stato, "regolare", "manca più di un mese");
+    eq(r.scadenzaId, "s1", "e dice quale riga lo copre");
+  });
+  test("requisito scaduto: scaduta", () => {
+    const r = scudo.statoRequisito(req, [
+      { id: "s1", preset: "visita-medica", dataScadenza: "2026-06-01" },
+    ], oggiS);
+    eq(r.stato, "scaduta", "la data è passata");
+  });
+  test("⛔ con più rinnovi vale l'ULTIMO, non il primo trovato", () => {
+    /* il caso vero: la visita del 2025 è stata rinnovata nel 2027. Se vincesse
+       la vecchia, una persona in regola risulterebbe scaduta e resterebbe a
+       terra senza motivo — un difetto che costa una giornata di lavoro a
+       qualcuno e non dà nessun errore. */
+    const r = scudo.statoRequisito(req, [
+      { id: "vecchia", preset: "visita-medica", dataScadenza: "2025-06-01" },
+      { id: "nuova", preset: "visita-medica", dataScadenza: "2027-06-01" },
+    ], oggiS);
+    eq(r.stato, "regolare", "vale il rinnovo più lontano");
+    eq(r.scadenzaId, "nuova", "ed è quello indicato");
+  });
+  test("requisito riconosciuto anche per descrizione, non solo per chiave", () => {
+    /* chi carica lo scadenzario da CSV non scrive le chiavi interne: scrive
+       «Visita medica». Se il riconoscimento fosse solo per chiave, tutti i
+       requisiti caricati da file risulterebbero mancanti. */
+    const r = scudo.statoRequisito(req, [
+      { id: "s9", descrizione: "Visita medica", dataScadenza: "2027-01-01" },
+    ], oggiS);
+    eq(r.stato, "regolare", "riconosciuto dalla descrizione");
+    eq(r.scadenzaId, "s9", "ed è la riga giusta");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
