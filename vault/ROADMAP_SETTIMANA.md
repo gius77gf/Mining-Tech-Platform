@@ -1529,6 +1529,27 @@ campi interi, file delle macchine.
       test`** — un controllo permanente che girava solo a memoria. Ora c'è.
       E la CI del commit prima aveva ragione: `numeri-nei-documenti.mjs` ha visto
       tre documenti fermi a «1.359». Aggiornati.
+- [x] ✅ **IL BANCO DI GENESI HA IMPARATO A FALLIRE ONESTAMENTE** *(04/08)* —
+      `genesi-struttura.mjs`, scritto ieri **prima** della migrazione, oggi
+      doveva cadere. È caduto, ma per arrivarci ha mostrato **tre difetti suoi**:
+      (1) non falliva, **moriva** — `window.toast(...)` non esiste ancora e
+      l'eccezione non raccolta ha ucciso il processo **alla nona prova su
+      diciotto**, e un banco spento a metà non può dire quante prove ha fatto;
+      (2) la controprova `--prima` non contava le proprie iniezioni; (3) e il
+      conto **non bastava**. Qui la misura ha corretto l'ipotesi: mi aspettavo
+      **zero** sostituzioni, ne è arrivata **una su sei** — `id="modal"`, perché
+      oggi quell'id è del **cancello di consenso**, cioè **la trappola 1 scritta
+      nell'intestazione di quel file**. Il difetto che il banco sorveglia era la
+      ragione per cui la sua controprova mentiva, e con la guardia «ho iniettato
+      qualcosa?» il verdetto sarebbe stato **verde**. La condizione giusta è
+      un'altra: *una controprova dimostra qualcosa solo se, **tolta
+      l'iniezione**, il banco passerebbe*. Ora `--prima` esce **3** e lo dichiara
+      finché il `<script>` di `shared/dw-app-ui.js` non è nella pagina.
+      Stato: **18 prove, 3 passate, 15 fallite** — e le tre che già passano sono
+      quelle che la migrazione **non deve rompere** (nessun errore in pagina, i
+      **sette** id dell'editor 3D, il bottone «salva la volata»).
+      ⚠️ Non entra in `tutti.mjs` finché fallisce per progetto: ci va **con** la
+      migrazione, nello stesso commit in cui comincia a passare.
 
 ---
 
