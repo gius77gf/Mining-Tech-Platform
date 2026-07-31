@@ -1321,6 +1321,16 @@ campi interi, file delle macchine.
       invecchia. Oggi è **rosso** sull'unico difetto vero, ed **entra in
       `npm test` col commit che lo corregge**: rosso in CI per ore non serve a
       nessuno.
+      **✅ Corretto** in `59c8601`, e il confine è stato spostato **due volte**
+      prima di essere giusto: la prima stesura faceva scattare «mai misurato» su
+      qualunque punto senza letture, e ha fatto cadere **dodici** prove — fra cui
+      una marcata ⛔ col suo perché già scritto («un punto senza storico è
+      comunque un superamento»). Quella decisione era **già stata presa**, e
+      vale. La regola giusta è più stretta: «mai misurato» solo quando non c'è
+      **nessuna** informazione, né una lettura datata né un valore dichiarato
+      maggiore di zero. *La lezione: prima di aggiungere uno stato, cercare se il
+      caso è già stato deciso — qui la decisione era scritta, con la sua ragione,
+      dentro il **nome** di una prova.*
 - [x] **La seconda forma di vuoto, e le tre facce di `urgenzaOre`** *(03/08)* —
       la prima sonda guardava la **lista vuota**; esiste un secondo vuoto, più
       frequente: **la riga c'è e non è compilata**. Rifatta con `[{}]` al posto
@@ -1344,6 +1354,7 @@ campi interi, file delle macchine.
       una sonda copre solo la forma di vuoto che le si dà in pasto** — quando un
       controllo dice «tutto a posto», la domanda dopo non è «funziona?» ma «che
       cosa ha guardato?».
+      **✅ Corretto** in `c985af2` (Flotta) e `59c8601` (Sentinella).
 - [x] **La terza sonda non ha trovato quello che cercava, e non la si tiene**
       *(03/08)* — chiamava le funzioni coi **dati veri della dimostrazione**
       cercando «NaN», «undefined», «Invalid Date» nelle stringhe che l'utente
@@ -1365,6 +1376,8 @@ campi interi, file delle macchine.
       processo figlio**, non nello stesso — oggi la prova giusta non farebbe
       *cadere* la suite, la **fermerebbe**, e una suite ferma non è un esito.
       Misurato in figlio: «non ritorna entro 6 secondi».
+      **✅ Corretto** in `c985af2`: `mesi` accettato solo se finito, positivo e
+      sotto un tetto di 60; tutto il resto ricade sul valore di serie.
 - [x] **E come si chiama, il dato che manca?** *(03/08)* — prima di aggiungere
       un'etichetta nuova, la domanda che la direttiva sull'eccellenza impone:
       *come lo dice già l'app?* Censite le **120 etichette di stato** dei sei
@@ -1398,9 +1411,9 @@ campi interi, file delle macchine.
       *(E l'ancora dell'iniezione compariva **due** volte, perché la stessa riga
       di lettura sta in due giri: allungata col contesto, come per
       `durataTurnoDi`.)*
-- [ ] ⚠️ **UNA SCADENZA CON LA DATA ILLEGGIBILE È «REGOLARE» — e si arriva da un
-      import CSV** *(trovato il 03/08, `docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md`,
-      **da correggere**)* — la sonda guardava le sei app; allargata a `shared/`
+- [x] ✅ **UNA SCADENZA CON LA DATA ILLEGGIBILE È «REGOLARE» — e si arriva da un
+      import CSV** *(trovato e **corretto** il 03/08, `706cbb1`;
+      `docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md`)* — la sonda guardava le sei app; allargata a `shared/`
       — dove la regola vincolante dice che vive ciò che serve a due app, cioè
       dove un difetto **si moltiplica per sei** — ha risposto subito:
       `statoScadenzaHSE` fa `if (Number.isNaN(t)) return "regolare"`. Si vede in
@@ -1420,6 +1433,23 @@ campi interi, file delle macchine.
       quelle da guardare; e `parseScadenzeCsv` controlla che la data **esista**,
       scartando la riga **dicendo perché**. La sonda adesso guarda anche
       `shared/dw-ponti.js`, `dw-shell.js` e `pointcloud.js`.
+      **✅ Fatto** in `706cbb1`, e sono uscite **sei** correzioni dello stesso
+      difetto: `statoScadenzaHSE` → «senza data»; `idoneitaOperatore`, che lo
+      ripresentava un piano più su (un operatore con un documento illeggibile
+      risultava «regolare»); il `peso` dell'ordinamento, dove un valore nuovo
+      avrebbe dato `NaN` muto; `livelloScadenza` di Scudo (diceva già «senza
+      data» ma **in verde**); la mappa `B` dei badge, senza la quale
+      `B[st]` è `undefined` e la pagina muore al primo riquadro; e **tutta la
+      famiglia gemella in Terra**, che aveva lo stesso difetto con altri nomi.
+      Nata anche `dataISOEsiste` in `dw-shell.js`, perché **`Date.parse` da solo
+      non basta**: «2026-02-30» non è `NaN`, JavaScript lo fa scivolare al 2
+      marzo — una scadenza spostata di due giorni in silenzio.
+      ⚠️ **Due prove blindavano il difetto**, e i loro nomi lo dicevano: «senza
+      data non allarma» e «una scadenza SENZA data non allarma (= regolare)».
+      Non erano sviste: erano la convinzione del momento messa per iscritto. Una
+      terza (il riepilogo di Terra) **quadrava lo stesso**, perché la riga
+      illeggibile finiva fra le «a posto»: il conto tornava e diceva una cosa
+      falsa.
 
 ---
 
