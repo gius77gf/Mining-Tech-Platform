@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const { esc, csvCell, parseCsvLine, numIt, isIntestazione } = await import(
+const { esc, csvCell, parseCsvLine, numIt, isIntestazione, dataISOEsiste } = await import(
   join(HERE, "../../../shared/deepwork-id-client/dw-shell.js")
 );
 
@@ -130,6 +130,41 @@ test("keyword PREFISSO di un nome più lungo → NON è intestazione (serve il d
   eq(isIntestazione("dataInizio;x", "data"), false, "dataInizio non è header 'data'");
   eq(isIntestazione("nominativo;x", "nome"), false, "nominativo non è header 'nome'");
   eq(isIntestazione("data;x", "data"), true, "data esatto sì");
+});
+
+/* ── UNA DATA ESISTE DAVVERO? ─────────────────────────────────────────
+   Nata il 03/08 da un difetto vero in Scudo: l'import delle scadenze filtrava
+   con `/^\d{4}-\d{2}-\d{2}$/`, che guarda la FORMA. «2026-13-45» ce l'ha, e
+   una visita medica con quella data restava verde per sempre.
+   E `Date.parse` da solo non basta — è la prova che conta più di tutte qui
+   sotto: «2026-02-30» NON è NaN, JavaScript lo fa scivolare al 2 marzo.
+   docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md */
+test("dataISOEsiste: le date vere passano", () => {
+  eq(dataISOEsiste("2026-07-31"), true, "una data qualsiasi");
+  eq(dataISOEsiste("2028-02-29"), true, "29 febbraio di un bisestile");
+  eq(dataISOEsiste("2026-12-31"), true, "ultimo dell'anno");
+  eq(dataISOEsiste("2026-01-01"), true, "primo dell'anno");
+});
+test("dataISOEsiste: la FORMA giusta col contenuto impossibile non passa", () => {
+  eq(dataISOEsiste("2026-13-45"), false, "mese 13, giorno 45");
+  eq(dataISOEsiste("2026-00-10"), false, "mese zero");
+  eq(dataISOEsiste("2026-04-31"), false, "31 aprile");
+});
+test("dataISOEsiste: il caso che `Date.parse` da solo NON vede", () => {
+  // è la ragione per cui questa funzione esiste invece di un Date.parse
+  eq(Number.isNaN(Date.parse("2026-02-30T00:00:00")), false, "Date.parse ACCETTA il 30 febbraio");
+  eq(dataISOEsiste("2026-02-30"), false, "30 febbraio non esiste");
+  eq(dataISOEsiste("2027-02-29"), false, "29 febbraio in un anno non bisestile");
+});
+test("dataISOEsiste: quello che non ha nemmeno la forma non passa", () => {
+  eq(dataISOEsiste("15/10/2026"), false, "formato italiano");
+  eq(dataISOEsiste(""), false, "vuota");
+  eq(dataISOEsiste(null), false, "null");
+  eq(dataISOEsiste(undefined), false, "undefined");
+  eq(dataISOEsiste("2026-7-31"), false, "senza lo zero davanti");
+});
+test("dataISOEsiste: una data ISO con l'ora dentro vale per la sua parte di data", () => {
+  eq(dataISOEsiste("2026-07-31T10:00:00"), true, "con l'ora");
 });
 
 console.log(`\nRisultato Helper: ${passed} passati, ${failed} falliti`);

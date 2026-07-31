@@ -76,9 +76,19 @@ test("livelloScadenza: etichette e fasce fini (scaduta/oggi/7/30/oltre)", () => 
   eq(scudo.livelloScadenza("2026-08-19", o).cls, "warn", "30 gg = giallo");
   eq(scudo.livelloScadenza("2026-08-20", o).cls, "ok", "31 gg = verde");
 });
-test("livelloScadenza: senza data non allarma (giorni null)", () => {
-  eq(scudo.livelloScadenza(undefined), { cls: "ok", label: "senza data", giorni: null }, "undefined");
-  eq(scudo.livelloScadenza("").giorni, null, "vuota");
+/* ⚠️ QUESTA PROVA BLINDAVA IL DIFETTO. Fino al 03/08 si chiamava «senza data
+   non allarma» e pretendeva `cls: "ok"` — cioè il verde su una data che non si
+   può leggere. Non era una svista di chi l'ha scritta: era la convinzione del
+   momento, messa per iscritto. Poi si è misurato che da un import CSV entrano
+   date impossibili («2026-13-45» ha la forma giusta) e che restavano verdi per
+   sempre. La prova è stata corretta rendendo l'asserzione PIÙ GIUSTA, non più
+   permissiva: adesso pretende il giallo.
+   docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md */
+test("livelloScadenza: una data che non si può leggere è un AVVISO, non un via libera", () => {
+  eq(scudo.livelloScadenza(undefined), { cls: "warn", label: "senza data", giorni: null }, "undefined");
+  eq(scudo.livelloScadenza("").cls, "warn", "vuota");
+  eq(scudo.livelloScadenza("").giorni, null, "vuota: nessun conto di giorni");
+  eq(scudo.livelloScadenza("2026-13-45").cls, "warn", "data impossibile con la forma giusta");
 });
 test("coperturaFormazione: raggruppa per tipo con stati, peggiore prima", () => {
   const o = new Date("2026-07-20T00:00:00");
@@ -136,6 +146,25 @@ test("parseScadenzeCsv: legge lav/tipo/desc/data, azienda=null, scarta data non 
   eq(s[0], { lavoratore: "Mario Rossi", tipo: "Visita medica", descrizione: "Periodica", dataScadenza: "2026-09-01" }, "riga lavoratore");
   eq(s[1].lavoratore, null, "AZIENDA → null");
   eq(s[2], { lavoratore: null, tipo: "Altro", descrizione: null, dataScadenza: "2026-11-01" }, "tipo assente → Altro");
+});
+/* ⛔ LA FORMA NON È L'ESISTENZA. La prova qui sopra copre la data «15/10/2026»,
+   che non ha la forma ISO ed è sempre stata scartata. Non copriva il caso vero
+   trovato il 03/08: una data con la forma GIUSTA e il contenuto impossibile.
+   «2026-13-45» passava il filtro, entrava in archivio e — col vecchio
+   `statoScadenzaHSE` — restava verde per sempre: una visita medica che nessuno
+   avrebbe mai visto fra le urgenti.
+   docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md */
+test("parseScadenzeCsv: una data con la FORMA giusta ma impossibile non entra", () => {
+  const csv = "lavoratore;tipo;descrizione;scadenza\n"
+    + "Mario Rossi;Visita medica;Idoneità;2026-13-45\n"      // mese 13, giorno 45
+    + "Mario Rossi;Corso;Antincendio;2026-02-30\n"           // 30 febbraio
+    + "Mario Rossi;Corso;Primo soccorso;2027-01-10\n";       // buona
+  const s = scudo.parseScadenzeCsv(csv);
+  eq(s.length, 1, "resta solo la riga con una data che esiste davvero");
+  eq(s[0].dataScadenza, "2027-01-10", "ed è quella buona");
+  // guardia contro il troppo zelo: le date valide di confine entrano
+  const b = scudo.parseScadenzeCsv("Tizio;Corso;x;2028-02-29\nCaio;Corso;y;2026-12-31\n");
+  eq(b.length, 2, "29 febbraio di un bisestile e 31 dicembre restano valide");
 });
 test("parseScadenzeCsv: CRLF (Excel) e testo vuoto = niente crash", () => {
   eq(scudo.parseScadenzeCsv(""), [], "vuoto");
@@ -273,14 +302,28 @@ test("kpiFrom: regolare solo se attivo E senza scadenze problematiche", () => {
   ];
   eq(scudo.kpiFrom(lav, sca), { scadute: 1, trenta: 0, regolari: 2 }, "regolari = a + b");
 });
-test("statoScadenza: una scadenza SENZA data non allarma (= regolare)", () => {
-  // dato incompleto (data mancante) → non deve risultare scaduta/in-scadenza
-  eq(scudo.statoScadenza(undefined), "regolare", "undefined");
-  eq(scudo.statoScadenza(""), "regolare", "vuota");
-  eq(scudo.statoScadenza(null), "regolare", "null");
-  // e nel KPI il lavoratore con una scadenza senza data resta "regolare"
+/* ⚠️ Anche questa blindava il difetto, e nel posto peggiore: il suo nome
+   diceva «= regolare» e il suo ultimo `eq` pretendeva che un lavoratore con una
+   scadenza senza data restasse fra i REGOLARI del KPI. Corretta il 03/08 con la
+   stessa regola: più giusta, non più permissiva. E il valore nuovo — «senza
+   data» — non è inventato: è il termine che Flotta, Scudo e Terra usano già. */
+test("statoScadenza: una scadenza con la data illeggibile NON è regolare", () => {
+  eq(scudo.statoScadenza(undefined), "senza data", "undefined");
+  eq(scudo.statoScadenza(""), "senza data", "vuota");
+  eq(scudo.statoScadenza(null), "senza data", "null");
+  eq(scudo.statoScadenza("2026-13-45"), "senza data", "forma giusta, data impossibile");
+  // e non è nemmeno «scaduta»: non si sa, e dirlo scaduto sarebbe inventare
+  // dall'altra parte
+  ok(scudo.statoScadenza("2026-13-45") !== "scaduta", "«non lo so» non è «scaduta»");
+  // nel KPI il lavoratore con una scadenza illeggibile ESCE dai regolari: il
+  // suo documento potrebbe essere scaduto e nessuno lo sa
   eq(scudo.kpiFrom([{ id: "l1", attivo: true }], [{ lavoratoreId: "l1" }]),
-    { scadute: 0, trenta: 0, regolari: 1 }, "kpi con scadenza senza data");
+    { scadute: 0, trenta: 0, regolari: 0 }, "kpi con scadenza senza data");
+  // le date buone continuano a comportarsi come sempre (guardia)
+  const o = new Date("2026-07-20T00:00:00");
+  eq(scudo.statoScadenza("2026-07-19", o), "scaduta", "ieri");
+  eq(scudo.statoScadenza("2026-08-10", o), "in-scadenza", "entro 30");
+  eq(scudo.statoScadenza("2027-01-01", o), "regolare", "lontana");
 });
 test("idoneitaLabel: esito → classe/etichetta (art. 41)", () => {
   eq(scudo.idoneitaLabel("idoneo").cls, "ok", "idoneo");
@@ -6707,8 +6750,23 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     const sc = [{ dataScadenza: "2026-07-01", preavvisoGiorni: 30 }, { dataScadenza: "2026-08-15", preavvisoGiorni: 30 },
       { dataScadenza: "2027-01-01", preavvisoGiorni: 30 }, { dataScadenza: "", preavvisoGiorni: 30 }];
     const r = terra.riepilogoScadenze(sc, OGGI);
-    eq(r.scadute + r.inScadenza + r.aPosto, r.totale, "la somma torna");
+    eq(r.scadute + r.inScadenza + r.senzaData + r.aPosto, r.totale, "la somma torna");
     eq(r.totale, 4, "e nessuna cade fuori, nemmeno quella senza data");
+    /* ⛔ Corretta il 03/08. Prima la somma era `scadute + inScadenza + aPosto`
+       e tornava lo stesso — perché la riga senza data finiva fra le «a posto».
+       Il conto quadrava e diceva una cosa falsa: è il modo in cui una riga
+       illeggibile spariva dentro il verde. Adesso ha un contatore suo, e la
+       prova pretende che ci finisca. */
+    eq(r.senzaData, 1, "la riga senza data ha un contatore suo");
+    eq(r.aPosto, 1, "e fra le «a posto» resta solo quella davvero a posto");
+  });
+  test("scadenze: una data con la forma giusta ma impossibile non è «a posto»", () => {
+    eq(terra.statoScadenzaTerra("2026-13-45", 30, OGGI), "senza data", "mese 13");
+    eq(terra.statoScadenzaTerra("2026-02-30", 30, OGGI), "senza data", "30 febbraio: Date.parse lo accetterebbe");
+    eq(terra.livelloScadenzaTerra("", 30, OGGI).cls, "warn", "e il badge non è verde");
+    // guardia: le date buone non cambiano
+    eq(terra.statoScadenzaTerra("2027-01-01", 30, OGGI), "a-posto", "lontana");
+    eq(terra.statoScadenzaTerra("2026-07-01", 30, OGGI), "scaduta", "passata");
   });
   test("⛔ scadenze: i tipi preimpostati dichiarano di essere da verificare", () => {
     /* periodicità e termini stanno nell'atto e nella legge regionale: un

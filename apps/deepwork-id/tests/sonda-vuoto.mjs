@@ -48,10 +48,6 @@ const ACCETTATI = {
     "ragiona su una distanza in giorni: nessuna scadenza vicina = nessuna urgenza",
   "flotta.riepilogoControllo":
     "un giro macchina senza voci fuori posto è davvero a posto: l'assenza qui è di PROBLEMI, non di misure",
-  "scudo.livelloScadenza":
-    "prende una data: nessuna data vicina = nessuna urgenza",
-  "terra.livelloScadenzaTerra":
-    "come sopra: è la distanza da una scadenza, non un giudizio su un dato mancante",
   "sentinella.confermaVolataEseguita":
     "«regolare» è il valore PRECOMPILATO di un campo di modulo, non un verdetto dell'app",
 

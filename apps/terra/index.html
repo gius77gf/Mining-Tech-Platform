@@ -1253,7 +1253,11 @@ a.dw-btn{text-decoration:none}
   }
 
   // ---------------- TITOLO: autorizzazione, vita cava, scadenzario ----------
-  const SB = { scaduta: ["danger","Scaduta"], "in-scadenza": ["warn","In scadenza"], "a-posto": ["ok","A posto"] };
+  /* ⛔ La quarta voce non è un vezzo: `statoScadenzaTerra` da oggi può
+     rispondere «senza data», e senza questa riga `SB[st]` sarebbe
+     `undefined` e la pagina morirebbe al primo riquadro. */
+  const SB = { scaduta: ["danger","Scaduta"], "in-scadenza": ["warn","In scadenza"],
+    "senza data": ["warn","Senza data"], "a-posto": ["ok","A posto"] };
   const n0 = (v) => Math.round(+v || 0).toLocaleString("it-IT");
   // numero all'italiana coi decimali che ha (fino a due): serve dove
   // arrotondare cancellerebbe una misura — una quota di 148,5 m non è 149 m,

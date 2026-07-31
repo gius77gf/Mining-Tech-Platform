@@ -27,7 +27,7 @@
 // REGIONALE, quindi soglie, preavvisi e periodicità li imposta l'utente.
 // ============================================================
 
-import { parseCsvLine, numIt, isIntestazione, giorniTra, isoLocale,
+import { parseCsvLine, numIt, isIntestazione, giorniTra, isoLocale, dataISOEsiste,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
@@ -770,12 +770,17 @@ export function etichettaTipoScadenza(chiave) {
   return p ? p.etichetta.split(" — ")[0] : (chiave || "Altro");
 }
 
-// SEMAFORO di una scadenza: scaduta / in-scadenza / a-posto. Il preavviso è
+// SEMAFORO di una scadenza: scaduta / in-scadenza / senza data / a-posto. Il preavviso è
 // quello impostato sulla singola scadenza (giorni): niente soglia fissa.
-// Senza data valida ritorna "a-posto" (un dato incompleto non deve allarmare).
+// ⛔ Fino al 03/08 qui c'era: «senza data valida ritorna a-posto (un dato
+// incompleto non deve allarmare)». È la stessa convinzione trovata quel giorno
+// in Scudo e in `shared/dw-ponti.js`, e misurata falsa: una data che non si può
+// leggere non è una scadenza a posto — è una scadenza di cui non si sa niente,
+// e va guardata. Si risponde «senza data», il termine che l'ecosistema usa già.
+// docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md
 export function statoScadenzaTerra(dataISO, preavvisoGiorni, oggi = new Date()) {
   const g = giorniTra(String(dataISO || ""), oggi);
-  if (!Number.isFinite(g)) return "a-posto";
+  if (!dataISOEsiste(dataISO)) return "senza data";
   const pre = Math.max(0, +preavvisoGiorni || 0);
   if (g < 0) return "scaduta";
   return g <= pre ? "in-scadenza" : "a-posto";
@@ -787,7 +792,7 @@ export function livelloScadenzaTerra(dataISO, preavvisoGiorni, oggi = new Date()
   const g = giorniTra(String(dataISO || ""), oggi);
   const stato = statoScadenzaTerra(dataISO, preavvisoGiorni, oggi);
   const cls = stato === "scaduta" ? "danger" : stato === "in-scadenza" ? "warn" : "ok";
-  if (!Number.isFinite(g)) return { cls: "ok", label: "senza data", giorni: null, stato };
+  if (!Number.isFinite(g)) return { cls: "warn", label: "senza data", giorni: null, stato };
   const label = g < 0 ? "scaduta da " + (-g) + " gg" : g === 0 ? "scade oggi" : "tra " + g + " gg";
   return { cls, label, giorni: g, stato };
 }
@@ -811,12 +816,15 @@ export function prossimaData(dataISO, ricorrenzaMesi) {
 // Riepilogo del scadenzario per i KPI e per il quadro: quante scadute,
 // quante in scadenza (col preavviso di ognuna), quante a posto.
 export function riepilogoScadenze(scadenze, oggi = new Date()) {
-  const out = { scadute: 0, inScadenza: 0, aPosto: 0, totale: 0 };
+  const out = { scadute: 0, inScadenza: 0, senzaData: 0, aPosto: 0, totale: 0 };
   for (const s of scadenze || []) {
     const st = statoScadenzaTerra(s.dataScadenza, s.preavvisoGiorni, oggi);
     out.totale++;
     if (st === "scaduta") out.scadute++;
     else if (st === "in-scadenza") out.inScadenza++;
+    // ⛔ le righe con la data illeggibile hanno un contatore LORO: contarle fra
+    // le «a posto» era il modo in cui sparivano
+    else if (st === "senza data") out.senzaData++;
     else out.aPosto++;
   }
   return out;

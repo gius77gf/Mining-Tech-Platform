@@ -53,7 +53,7 @@
 // (scaduta / entro 30gg / regolare) — niente dati derivati nel DB.
 // ============================================================
 
-import { parseCsvLine, numIt, giorniTra, isIntestazione, senzaDoppioni } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, numIt, giorniTra, isIntestazione, senzaDoppioni, dataISOEsiste } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
   lavoratori: [
@@ -276,10 +276,17 @@ export function idoneitaCriticita(lavoratori) {
 // giallo entro 30, verde oltre. Additiva: NON tocca statoScadenza (che
 // alimenta i KPI). Ritorna { cls, label, giorni } (giorni null se data
 // mancante, così un dato incompleto non allarma).
+// ⛔ «senza data» NON è verde (corretto il 03/08). Diceva già la parola
+// giusta — ed è la stessa che usano Flotta e Terra — ma con `cls: "ok"`, cioè
+// col colore di chi è a posto. Una data che non si può leggere è un avviso:
+// stesso criterio di `statoRigaProgramma` in Sentinella, che sul «mai
+// misurato» scrive «è un avviso e non un allarme».
+// Nessuno dei cinque punti di chiamata passa una data assente per davvero
+// (misurato): ci si arriva con una data ROTTA, e allora il giallo è giusto.
 export function livelloScadenza(dataISO, oggi = new Date()) {
-  if (!dataISO) return { cls: "ok", label: "senza data", giorni: null };
+  if (!dataISO) return { cls: "warn", label: "senza data", giorni: null };
   const g = giorniTra(dataISO, oggi);
-  if (isNaN(g)) return { cls: "ok", label: "senza data", giorni: null };
+  if (isNaN(g)) return { cls: "warn", label: "senza data", giorni: null };
   if (g < 0)  return { cls: "danger", label: "scaduta da " + (-g) + " gg", giorni: g };
   if (g === 0) return { cls: "danger", label: "scade oggi", giorni: 0 };
   if (g <= 7)  return { cls: "danger", label: "tra " + g + " gg", giorni: g };
@@ -924,7 +931,12 @@ export function parseScadenzeCsv(text) {
         dataScadenza: (scadenza || "").trim(),
       };
     })
-    .filter(p => /^\d{4}-\d{2}-\d{2}$/.test(p.dataScadenza));
+    /* ⛔ LA FORMA NON È L'ESISTENZA (corretto il 03/08). Questo filtro guardava
+       solo `/^\d{4}-\d{2}-\d{2}$/`, e «2026-13-45» ha quella forma: entrava in
+       archivio e — con il vecchio `statoScadenzaHSE` — restava verde per sempre.
+       Adesso si pretende che la data ESISTA davvero: `Date.parse` la rifiuta, e
+       la riga non entra. */
+    .filter(p => dataISOEsiste(p.dataScadenza));
 }
 
 // ============================================================

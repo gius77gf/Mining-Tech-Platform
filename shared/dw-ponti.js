@@ -17,7 +17,7 @@
 // Terra continuano a importare da dove hanno sempre importato — un alias non è
 // una seconda implementazione.
 //
-import { isoLocale } from "./deepwork-id-client/dw-shell.js";
+import { isoLocale, dataISOEsiste } from "./deepwork-id-client/dw-shell.js";
 
 // Tutto quello che c'è qui è PURO e testabile: nessun accesso ai dati, nessun
 // DOM. Le letture dei dati restano nei moduli delle app, che passano dall'SDK.
@@ -369,6 +369,7 @@ export function densitaDelMateriale(materiale) {
 export const ESITI_TURNO = [
   "scaduta",             // almeno un documento scaduto: va risolto prima del turno
   "in-scadenza",         // scade entro 30 giorni: si prenota adesso, senza fermare nessuno
+  "senza data",          // almeno un documento con una data che non si può leggere
   "regolare",            // tutto in corso di validità
   "senza-scadenze",      // collegato, ma in Scudo non risulta nessun documento
   "non-collegato",       // manca `lavoratoreId`: non lo sappiamo, e si dice
@@ -378,9 +379,23 @@ export const ESITI_TURNO = [
 // Le soglie sono quelle di Scudo, non nuove: 0 giorni = scaduta, entro 30 =
 // in scadenza. Stanno qui perché ora servono a DUE app, e Scudo le ri-esporta
 // col nome con cui le ha sempre chiamate.
+// ⛔ UNA DATA CHE NON SI PUÒ LEGGERE NON È UNA SCADENZA A POSTO (corretto il
+// 03/08). Prima qui c'era `if (Number.isNaN(t)) return "regolare"`, e non era
+// una trappola dormiente: `parseScadenzeCsv` di Scudo filtrava le righe con
+// `/^\d{4}-\d{2}-\d{2}$/`, che controlla la FORMA e non l'esistenza — quindi
+// «2026-13-45» entrava in archivio e restava VERDE per sempre. Una visita
+// medica con un errore di battitura non compariva fra le urgenti, non entrava
+// nel muro delle scadenze e non generava promemoria.
+// Si risponde «senza data», che è il termine che l'ecosistema usa già in tre
+// app (Flotta, Scudo, Terra) — non uno nuovo. Chi confronta con `!== "regolare"`
+// (quasi tutti i trenta punti di chiamata di Scudo) comincia da solo a
+// mostrarla fra quelle da guardare, ed è il verso giusto.
+// Racconto e misure: docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md
 export function statoScadenzaHSE(dataISO, oggi = new Date()) {
-  const t = Date.parse(String(dataISO || "") + "T00:00:00");
-  if (Number.isNaN(t)) return "regolare";
+  // `dataISOEsiste` e non `Date.parse`: «2026-02-30» non è NaN, JavaScript lo
+  // fa scivolare al 2 marzo — una scadenza spostata di due giorni in silenzio.
+  if (!dataISOEsiste(dataISO)) return "senza data";
+  const t = Date.parse(String(dataISO).slice(0, 10) + "T00:00:00");
   const g = Math.floor((t - new Date(oggi).setHours(0, 0, 0, 0)) / 86400000);
   if (g < 0) return "scaduta";
   if (g <= 30) return "in-scadenza";
@@ -391,22 +406,29 @@ export function statoScadenzaHSE(dataISO, oggi = new Date()) {
 // lui. Torna sempre un oggetto: non esistono risposte mancanti, esistono
 // risposte che dicono «non lo so» e perché.
 export function idoneitaOperatore(operatore, lavoratori, scadenze, oggi = new Date()) {
-  const vuoto = { stato: "non-collegato", lavoratore: null, scadute: [], inScadenza: [], documenti: 0 };
+  const vuoto = { stato: "non-collegato", lavoratore: null, scadute: [], inScadenza: [], senzaData: [], documenti: 0 };
   const rif = operatore && operatore.lavoratoreId != null ? String(operatore.lavoratoreId).trim() : "";
   if (!rif) return vuoto;
   const l = (lavoratori || []).find((x) => x && String(x.id) === rif) || null;
   if (!l) return { ...vuoto, stato: "collegamento-rotto" };
   const sue = (scadenze || []).filter((s) => s && String(s.lavoratoreId) === rif);
-  if (!sue.length) return { stato: "senza-scadenze", lavoratore: l, scadute: [], inScadenza: [], documenti: 0 };
-  const scadute = [], inScadenza = [];
+  if (!sue.length) return { stato: "senza-scadenze", lavoratore: l, scadute: [], inScadenza: [], senzaData: [], documenti: 0 };
+  // ⛔ `senzaData` esiste perché il difetto corretto in `statoScadenzaHSE` si
+  // ripresentava qui un piano più su: un documento con la data illeggibile non
+  // era né scaduto né in scadenza, quindi cadeva nel `else` e l'operatore
+  // risultava «regolare». Contarlo fra i regolari vuol dire mandare a lavorare
+  // qualcuno di cui non sappiamo se il documento è valido.
+  const scadute = [], inScadenza = [], senzaData = [];
   for (const s of sue) {
     const st = statoScadenzaHSE(s.dataScadenza, oggi);
     if (st === "scaduta") scadute.push(s);
     else if (st === "in-scadenza") inScadenza.push(s);
+    else if (st === "senza data") senzaData.push(s);
   }
   return {
-    stato: scadute.length ? "scaduta" : inScadenza.length ? "in-scadenza" : "regolare",
-    lavoratore: l, scadute, inScadenza, documenti: sue.length,
+    stato: scadute.length ? "scaduta" : inScadenza.length ? "in-scadenza"
+      : senzaData.length ? "senza data" : "regolare",
+    lavoratore: l, scadute, inScadenza, senzaData, documenti: sue.length,
   };
 }
 
@@ -491,7 +513,9 @@ export function scadenzeDiChiLavora(scadenze, lavoratori, operatori, squadre, og
     schierati.map((o) => (o.lavoratoreId != null ? String(o.lavoratoreId).trim() : "")).filter(Boolean),
   );
   const perId = new Map((lavoratori || []).map((l) => [String(l.id), l]));
-  const peso = { scaduta: 0, "in-scadenza": 1, regolare: 2 };
+  // «senza data» sta PRIMA di «regolare»: una riga che non si può leggere va
+  // guardata, non lasciata in fondo insieme a quelle a posto.
+  const peso = { scaduta: 0, "in-scadenza": 1, "senza data": 2, regolare: 3 };
   const righe = (scadenze || [])
     .filter((s) => s && s.lavoratoreId != null)
     .map((s) => {

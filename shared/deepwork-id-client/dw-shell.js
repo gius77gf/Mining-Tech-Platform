@@ -183,6 +183,25 @@ export function numIt(v) {
   return +s;
 }
 
+// ⛔ LA FORMA DI UNA DATA NON È LA SUA ESISTENZA. Trovato il 03/08 in Scudo:
+// l'import delle scadenze filtrava con `/^\d{4}-\d{2}-\d{2}$/`, e «2026-13-45»
+// ha quella forma — entrava in archivio e restava verde per sempre.
+// E `Date.parse` da solo non basta: «2026-02-30» NON è NaN, JavaScript lo fa
+// scivolare al 2 marzo. Una scadenza spostata di due giorni in silenzio è
+// peggio di una scartata a voce alta.
+// Quindi si costruisce la data e si pretende che torni la STESSA: se i pezzi
+// non tornano, quella data non esiste.
+// Sta qui perché serve a due posti (l'import di Scudo e `statoScadenzaHSE` in
+// `shared/dw-ponti.js`), e la regola del `shared/` dice che allora vive in un
+// posto solo. docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md
+export function dataISOEsiste(s) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s == null ? "" : s).slice(0, 10));
+  if (!m) return false;
+  const a = +m[1], me = +m[2], g = +m[3];
+  const d = new Date(Date.UTC(a, me - 1, g));
+  return d.getUTCFullYear() === a && d.getUTCMonth() === me - 1 && d.getUTCDate() === g;
+}
+
 // Giorni di calendario tra `oggi` e una data ISO (yyyy-mm-dd). Normalizza
 // ENTRAMBE le date alla mezzanotte LOCALE prima di sottrarre, così il conteggio
 // non slitta di un giorno per colpa dell'ora corrente: con new Date() come

@@ -1081,7 +1081,13 @@
 
   const $ = (id) => document.getElementById(id);
   const initials = (n) => (n || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
-  const B = { scaduta: ["danger", "Scaduta"], "in-scadenza": ["warn", "In scadenza"], regolare: ["ok", "Regolare"] };
+  /* ⛔ La quarta voce non è un vezzo: `statoScadenza` da oggi può rispondere
+     «senza data» (una data che non si può leggere non è una scadenza a
+     posto), e senza la riga qui sotto `B[st]` sarebbe `undefined` e la
+     pagina morirebbe al primo riquadro — non un errore di sintassi, un
+     errore al disegno. */
+  const B = { scaduta: ["danger", "Scaduta"], "in-scadenza": ["warn", "In scadenza"],
+    "senza data": ["warn", "Senza data"], regolare: ["ok", "Regolare"] };
   const fmtData = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
   // LE UNITÀ DI MISURA NON VANNO MAI IN MAIUSCOLO. Le pillole di stato dei
   // requisiti scrivono i giorni che mancano («3 gg») dentro `.badge`, che è
