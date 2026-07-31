@@ -888,6 +888,11 @@ export function ultimaDurataTurno(durate) {
 // Minuti scritti come li direbbe un capocantiere: «8 h», «7 h 30 min»,
 // «45 min». Pura e testabile.
 export function oreMinuti(min) {
+  /* ⛔ `+null` fa ZERO, e «0 min» è un'AFFERMAZIONE: dice che il tempo è stato
+     misurato e vale zero. Un tempo che manca non si scrive. Oggi nessun
+     chiamante passa null — sono tutti guardati a monte — ma è la trappola
+     dormiente già raccolta in CLAUDE.md, e costa una riga chiuderla. */
+  if (min === null || min === undefined || String(min).trim() === "") return "";
   const n = Math.round(+min);
   if (!Number.isFinite(n) || n < 0) return "";
   const h = Math.floor(n / 60), m = n % 60;

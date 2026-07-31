@@ -8692,6 +8692,152 @@ test("giorni: alias di giorniTra in tutt'e due le app che lo usavano", () => {
   });
 }
 
+/* ══ CAMPO: LA DISPONIBILITÀ DI TURNO ══
+   Le sei funzioni sono arrivate col cantiere in parallelo, che per scelta non
+   tocca questo file (è condiviso: due cantieri che ci scrivono insieme si
+   scontrano). Le prove le scrivo qui, e guardano i punti in cui un difetto
+   NON si vedrebbe: i modi in cui il numero non si può fare. */
+test("oreMinuti: si legge come lo direbbe una persona", () => {
+  eq(campo.oreMinuti(0), "0 min", "zero minuti sono zero minuti, non «0 h»");
+  eq(campo.oreMinuti(59), "59 min", "sotto l'ora non si scrivono le ore");
+  eq(campo.oreMinuti(60), "1 h", "e un'ora tonda non si scrive «1 h 0 min»");
+  eq(campo.oreMinuti(90), "1 h 30 min", "un'ora e mezza");
+  eq(campo.oreMinuti(480), "8 h", "il turno pieno");
+  eq(campo.oreMinuti(-5), "", "un tempo negativo non si scrive: non esiste");
+  eq(campo.oreMinuti(null), "", "e nemmeno un tempo che manca");
+  eq(campo.oreMinuti("abc"), "", "quello che non è un numero non è un tempo");
+});
+test("durataTurnoDi: se il turno viene ridichiarato vince l'ULTIMA", () => {
+  const d = [{ data: "2026-07-20", turno: "Mattino", minuti: 480 },
+             { data: "2026-07-20", turno: "Pomeriggio", minuti: 300 },
+             { data: "2026-07-20", turno: "Mattino", minuti: 420 }];
+  eq(campo.durataTurnoDi(d, "2026-07-20", "Mattino").minuti, 420,
+    "chi corregge la durata si aspetta che valga la correzione, non la prima");
+  eq(campo.durataTurnoDi(d, "2026-07-20", "Pomeriggio").minuti, 300, "gli altri turni non si toccano");
+  eq(campo.durataTurnoDi(d, "2026-07-21", "Mattino"), null, "un giorno senza dichiarazione è null, non zero");
+  eq(campo.durataTurnoDi(null, "2026-07-20", "Mattino"), null, "e un elenco che manca non fa cadere niente");
+});
+test("ultimaDurataTurno: la più recente per giorno E per ordine del turno", () => {
+  const d = [{ data: "2026-07-19", turno: "Notte", minuti: 480 },
+             { data: "2026-07-20", turno: "Mattino", minuti: 420 },
+             { data: "2026-07-20", turno: "Notte", minuti: 400 },
+             { data: "2026-07-20", turno: "Pomeriggio", minuti: 300 }];
+  const u = campo.ultimaDurataTurno(d);
+  eq(u.data + "|" + u.turno, "2026-07-20|Notte",
+    "stessa data: conta l'ordine dei turni, non quello in cui sono stati scritti");
+  eq(campo.ultimaDurataTurno([{ data: "2026-07-20", turno: "Mattino", minuti: 0 }]), null,
+    "una durata a zero non è una durata dichiarata");
+  eq(campo.ultimaDurataTurno([]), null, "e senza niente non si propone niente");
+});
+test("⛔ disponibilità: i tre modi in cui il numero NON si fa", () => {
+  const D = [{ data: "2026-07-20", turno: "Mattino", minuti: 480 }];
+  const att = (x) => [{ data: "2026-07-20", turno: "Mattino", stato: "anomalia", causale: "Guasto", ...x }];
+  const senzaDurata = campo.disponibilitaTurno(att({ fermoMin: 30 }), [], "2026-07-20", "Mattino");
+  eq(senzaDurata.pct, null, "senza la durata dichiarata non c'è denominatore");
+  ok(senzaDurata.mancano.includes("durata"), "e si dice che manca la durata");
+  const senzaAttivita = campo.disponibilitaTurno([], D, "2026-07-20", "Mattino");
+  eq(senzaAttivita.pct, null, "un turno senza nessuna attività non è un turno perfetto");
+  ok(senzaAttivita.mancano.includes("attività"), "e si dice così");
+  /* Il caso insidioso: dei fermi ci sono, ma nessuno ha i minuti. La somma
+     farebbe 0 minuti persi e quindi il 100% — il voto più alto proprio al
+     turno che ha registrato guasti e non li ha misurati. */
+  const fermiMuti = campo.disponibilitaTurno(att({ fermoMin: 0 }), D, "2026-07-20", "Mattino");
+  eq(fermiMuti.pct, null, "fermi senza minuti non fanno «100%»");
+  ok(fermiMuti.mancano.includes("minuti"), "e il motivo lo nomina");
+  /* ⚠️ La prima stesura cercava «fermo è senza minuti» e il testo vero dice
+     «L'unico fermo registrato è senza minuti»: era la prova a indovinare la
+     frase, non il codice a sbagliarla. */
+  ok(/senza minuti/.test(fermiMuti.motivo), "a parole: " + fermiMuti.motivo.slice(0, 50));
+});
+test("⛔ disponibilità: una misura PARZIALE non prende mai il verde", () => {
+  /* Con alcuni fermi misurati e altri no la percentuale è un MASSIMO: quella
+     vera può stare sotto la soglia. Un colore tranquillo direbbe «è andata
+     bene» su un turno che non sappiamo com'è andato. */
+  const D = [{ data: "2026-07-20", turno: "Mattino", minuti: 480 }];
+  const att = [
+    { data: "2026-07-20", turno: "Mattino", stato: "anomalia", causale: "Guasto", fermoMin: 20 },
+    { data: "2026-07-20", turno: "Mattino", stato: "anomalia", causale: "Attesa mezzo", fermoMin: 0 },
+    { data: "2026-07-20", turno: "Mattino", stato: "fatta" },
+  ];
+  const r = campo.disponibilitaTurno(att, D, "2026-07-20", "Mattino");
+  eq(r.parziale, true, "è parziale: un fermo su due è senza minuti");
+  eq(r.pct, 96, "il numero c'è (480 − 20 su 480), ma è un massimo");
+  ok(r.pct >= campo.DISPONIBILITA_OK, "e senza la regola sarebbe sopra la soglia del verde");
+  eq(r.stato, "warn", "invece non è «ok»: una misura incompleta non prende il verde");
+  eq(r.fermiSenzaMinuti, 1, "e si dice quanti fermi non sono stati misurati");
+});
+test("⛔ disponibilità: i fermi che superano il turno non danno una percentuale negativa", () => {
+  const D = [{ data: "2026-07-20", turno: "Mattino", minuti: 120 }];
+  const att = [{ data: "2026-07-20", turno: "Mattino", stato: "anomalia", causale: "Guasto", fermoMin: 200 }];
+  const r = campo.disponibilitaTurno(att, D, "2026-07-20", "Mattino");
+  eq(r.stato, "oltre", "succede davvero, con due fermi sovrapposti contati due volte");
+  eq(r.pct, null, "e una percentuale negativa sarebbe una bugia con l'aria di un dato");
+  ok(r.motivo.length > 20, "si spiega invece: " + r.motivo.slice(0, 50));
+});
+test("disponibilità: quando i numeri ci sono tutti, il conto è quello", () => {
+  const D = [{ data: "2026-07-20", turno: "Mattino", minuti: 480 }];
+  const att = [
+    { data: "2026-07-20", turno: "Mattino", stato: "anomalia", causale: "Attesa mezzo", fermoMin: 60 },
+    { data: "2026-07-20", turno: "Mattino", stato: "anomalia", causale: "Guasto", fermoMin: 30 },
+    { data: "2026-07-21", turno: "Mattino", stato: "anomalia", causale: "Guasto", fermoMin: 999 },
+  ];
+  const r = campo.disponibilitaTurno(att, D, "2026-07-20", "Mattino");
+  eq(r.parziale, false, "tutti i fermi hanno i minuti");
+  eq(r.fermiMin, 90, "il giorno dopo non entra nel conto di oggi");
+  eq(r.lavoratiMin, 390, "480 − 90");
+  eq(r.pct, 81, "cioè l'81%");
+  eq(r.stato, "warn", "sotto 85 ma sopra 70");
+  eq(r.peggiore.causale, "Attesa mezzo", "la causale su cui si è perso più tempo");
+  eq(r.peggiore.minuti, 60, "e quanto");
+  ok(campo.DISPONIBILITA_OK > campo.DISPONIBILITA_WARN, "le due soglie sono in ordine");
+});
+
+/* ══ FLOTTA: LA SEGNALAZIONE DI UN GUASTO ══ */
+test("GRAVITA_GUASTO: tre livelli, una sola «alta», tutti spiegati", () => {
+  const g = flotta.GRAVITA_GUASTO;
+  eq(g.length, 3, "non si può usare / lavora ma male / piccola cosa");
+  eq(new Set(g.map(x => x.chiave)).size, 3, "chiavi uniche");
+  eq(g.filter(x => x.alta).length, 1, "una sola gravità fa scattare la proposta di fermare");
+  eq(g[0].alta, true, "ed è la prima: l'elenco va dal più grave al meno");
+  for (const x of g) {
+    ok(x.etichetta && x.etichetta.length > 5, `${x.chiave}: l'etichetta si legge`);
+    ok(x.aiuto && x.aiuto.length > 30, `${x.chiave}: c'è la spiegazione sotto`);
+    ok(x.nota && x.nota.length > 20, `${x.chiave}: e la nota che finisce sulla manutenzione`);
+  }
+  eq(flotta.gravitaGuasto("inventata"), null, "una chiave che non c'è è null, non la prima della lista");
+});
+test("⛔ validaGuasto: ogni rifiuto dice che cosa fare, non «campo obbligatorio»", () => {
+  const buono = { mezzo: "Escavatore E1", descrizione: "perde olio dal braccio", gravita: "limita" };
+  eq(flotta.validaGuasto(buono).ok, true, "il caso normale passa");
+  eq(flotta.validaGuasto({ ...buono, mezzo: "" }).ok, false, "senza mezzo no");
+  eq(flotta.validaGuasto({ ...buono, descrizione: "" }).ok, false, "senza descrizione no");
+  eq(flotta.validaGuasto({ ...buono, descrizione: "x" }).ok, false, "una sigla di una lettera non dice niente a chi ripara");
+  eq(flotta.validaGuasto({ ...buono, descrizione: "abc" }).ok, true, "tre lettere bastano");
+  eq(flotta.validaGuasto({ ...buono, descrizione: "a".repeat(120) }).ok, true, "centoventi è il limite, e ci sta");
+  eq(flotta.validaGuasto({ ...buono, descrizione: "a".repeat(121) }).ok, false, "centoventuno no");
+  eq(flotta.validaGuasto({ ...buono, gravita: "" }).ok, false, "senza gravità no: serve a decidere se il turno si finisce");
+  eq(flotta.validaGuasto({ ...buono, descrizione: "  perde olio  " }).descrizione, "perde olio",
+    "gli spazi ai bordi si tolgono, se no due segnalazioni uguali sembrano diverse");
+  for (const [campo_, rotto] of [["mezzo", { mezzo: "" }], ["descrizione", { descrizione: "" }], ["gravita", { gravita: "" }]]) {
+    const e = flotta.validaGuasto({ ...buono, ...rotto }).errori[campo_];
+    ok(e && e.length > 40, `«${campo_}»: il messaggio spiega invece di sgridare (${(e || "").slice(0, 40)}…)`);
+  }
+});
+test("⛔ manutenzioneDaGuasto: «non si sa chi» si scrive, non si tace", () => {
+  const base = { mezzo: "Escavatore E1", descrizione: "perde olio dal braccio", gravita: "ferma" };
+  eq(flotta.manutenzioneDaGuasto({ ...base, descrizione: "" }), null,
+    "da una segnalazione non valida non nasce niente");
+  const m = flotta.manutenzioneDaGuasto({ ...base, segnalatoDa: "Rossi" }, new Date("2026-07-20T09:00:00"));
+  eq(m.origine, "guasto", "l'origine la distingue dalle altre manutenzioni");
+  ok(/^Guasto: /.test(m.titolo), "il titolo dice subito che cos'è: " + m.titolo);
+  ok(/perde olio dal braccio/.test(m.titolo), "e riporta quello che è stato scritto");
+  ok(/Rossi/.test(m.nota), "chi ha segnalato finisce nella nota");
+  /* Senza il nome NON si tace: chi legge in officina deve sapere che non
+     risulta, non credere che il campo non esista. */
+  const anonimo = flotta.manutenzioneDaGuasto(base, new Date("2026-07-20T09:00:00"));
+  ok(/non risulta chi/.test(anonimo.nota), "e se manca, lo dice: " + anonimo.nota.slice(-40));
+});
+
 /* ══ SU QUALE MATERIALE SI PAGA IL CANONE ══
    Terra scriveva al titolare «la base di calcolo sono N m³ di scavo misurato»
    e lo mandava in Conti; Conti calcolava sul VENDUTO, ricavato dalle pesate.
