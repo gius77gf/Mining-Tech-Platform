@@ -954,8 +954,15 @@ test("urgenzaOre: tagliando a ore motore ai confini (scaduto/50h/oltre)", () => 
   eq(flotta.urgenzaOre(500, 450).cls, "warn", "50 h mancanti = warn");   // confine 50
   eq(flotta.urgenzaOre(500, 449).cls, "ok", "51 h mancanti = ok");
 });
-test("urgenzaOre: ore attuali mancanti trattate come 0 (niente crash)", () =>
-  eq(flotta.urgenzaOre(500, undefined).mancano, 500, "ore attuali assenti → 0"));
+/* ⚠️ Questa prova, fino al 31/07, pretendeva l'OPPOSTO: «ore attuali mancanti
+   trattate come 0 (niente crash)», e bloccava `mancano === 500`. Era una prova
+   invecchiata che teneva in piedi un difetto — lo zero di comodo che faceva
+   sembrare lontano il tagliando di un mezzo senza contatore. Non è stata resa
+   più permissiva: è stata resa più GIUSTA, e adesso pretende che l'app
+   dichiari di non sapere. Il «niente crash» resta, ed è quello che conta di
+   quella prova: la funzione non esplode. */
+test("⛔ urgenzaOre: senza le ore attuali non si finge di saperle", () =>
+  eq(flotta.urgenzaOre(500, undefined).mancano, null, "non si sa quanto manca, e non si dice 500"));
 
 console.log("\n— Campo: attività e squadre —");
 test("kpiFrom: squadre attive, in corso, rapportini, anomalie", () => {
@@ -6556,6 +6563,47 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
   test("giorno: quante righe sono ancora senza data si dice, invece di nasconderle", () => {
     eq(campo.senzaData([{ data: OGGI }, {}, { data: "  " }]), 2, "due da sistemare");
+  });
+}
+
+/* ══ IL BADGE DEL TAGLIANDO A ORE: L'ULTIMO ZERO DI COMODO ══════════════
+   `tagliandiInScadenza` lo aveva già capito, e l'aveva scritto nel commento:
+   *«zero ore» e «non lo so» sono due cose diverse: con `|| 0` un mezzo senza
+   contatore diventava un mezzo nuovo di fabbrica, e il tagliando sembrava
+   lontano.* Là il mezzo senza contatore finisce fra quelli **da stimare**, con
+   il perché.
+
+   Ma il **badge della lista Manutenzioni** passava ancora da `urgenzaOre` con
+   le ore convertite a zero: su un mezzo di cui non sappiamo il contatore
+   mostrava **«tra 500 h» in verde** — un colore tranquillo dove non è stato
+   misurato niente. È il principio scritto in `CLAUDE.md`, e il terzo `+null`
+   della giornata. */
+{
+  test("⛔ tagliando a ore: senza contatore NON si dice che manca tanto", () => {
+    for (const ignoto of [null, undefined, ""]) {
+      const u = flotta.urgenzaOre(500, ignoto);
+      eq(u.mancano, null, "non si sa quanto manca");
+      eq(u.oreNote, false, "e si sa di non saperlo");
+      eq(u.cls, "", "niente verde rassicurante");
+    }
+  });
+  test("⛔ tagliando a ore: il badge dice comunque a quante ore è previsto", () => {
+    /* la stessa frase che la pagina usa quando il mezzo non è nel parco: chi
+       guarda deve capire che il tagliando c'è, non che è lontano */
+    eq(flotta.urgenzaOre(500, null).label, "a 500 h", "il dato che abbiamo, e nient'altro");
+  });
+  test("tagliando a ore: con il contatore noto il conto è quello di sempre", () => {
+    eq(flotta.urgenzaOre(6000, 5990).cls, "warn", "dieci ore: preavviso");
+    eq(flotta.urgenzaOre(6000, 5990).mancano, 10, "e quante ne mancano");
+    eq(flotta.urgenzaOre(6000, 6040).cls, "danger", "già passate: scaduta");
+    eq(flotta.urgenzaOre(6000, 5000).cls, "ok", "mille ore: lontano davvero");
+  });
+  test("tagliando a ore: un contatore di ZERO è un dato, non un'assenza", () => {
+    /* una macchina nuova ha davvero zero ore: la differenza fra «zero» e «non
+       lo so» va tenuta in tutte e due le direzioni */
+    const u = flotta.urgenzaOre(500, 0);
+    eq(u.oreNote, true, "lo zero è una lettura");
+    eq(u.mancano, 500, "e il conto si fa");
   });
 }
 

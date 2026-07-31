@@ -651,15 +651,30 @@ export function urgenza(dataISO, oggi = new Date()) {
 // oltre = ok. Funzione pura e testabile — decide quali manutenzioni a ore
 // segnalare al gestore del parco.
 export function urgenzaOre(orePreviste, oreAttuali) {
-  const mancano = orePreviste - (oreAttuali || 0);
   // il numero sul badge si scrive all'italiana: da quando il contatore può
   // avere i decimi, «tra 24.5 h» avrebbe messo un punto inglese in mezzo a
   // una schermata di virgole — e «tra 1000 h» resta «tra 1.000 h» come si
   // scrive un migliaio in Italia
   const h = (n) => n.toLocaleString("it-IT", { maximumFractionDigits: 1 });
-  if (mancano <= 0) return { cls: "danger", label: "SCADUTA (+" + h(-mancano) + " h)", mancano };
-  if (mancano <= 50) return { cls: "warn", label: "tra " + h(mancano) + " h", mancano };
-  return { cls: "ok", label: "tra " + h(mancano) + " h", mancano };
+  const prev = +orePreviste;
+  // ⛔ «ZERO ORE» E «NON LO SO» SONO DUE COSE DIVERSE, anche qui.
+  // `tagliandiInScadenza` l'aveva già capito e manda i mezzi senza contatore
+  // fra quelli «da stimare»; questo badge invece convertiva a zero con
+  // `oreAttuali || 0`, e su un mezzo di cui non sappiamo il contatore mostrava
+  // «tra 500 h» IN VERDE — un colore tranquillo dove non è stato misurato
+  // niente. Adesso lo dichiara: nessun colore, e l'etichetta dice solo a
+  // quante ore il tagliando è previsto, come fa la pagina quando il mezzo non
+  // è nel parco. Lo zero resta una lettura buona: una macchina nuova ha
+  // davvero zero ore.
+  const att = oreAttuali == null || oreAttuali === "" ? NaN : +oreAttuali;
+  if (!Number.isFinite(att)) {
+    return { cls: "", label: Number.isFinite(prev) ? "a " + h(prev) + " h" : "a ore",
+      mancano: null, oreNote: false };
+  }
+  const mancano = prev - att;
+  if (mancano <= 0) return { cls: "danger", label: "SCADUTA (+" + h(-mancano) + " h)", mancano, oreNote: true };
+  if (mancano <= 50) return { cls: "warn", label: "tra " + h(mancano) + " h", mancano, oreNote: true };
+  return { cls: "ok", label: "tra " + h(mancano) + " h", mancano, oreNote: true };
 }
 
 // Previsione "leggera": da quante ore mancano a un tagliando e dal ritmo

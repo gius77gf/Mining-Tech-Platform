@@ -1515,7 +1515,7 @@
     const urgDi = (n) => {
       if (n.orePreviste) {
         const m = MEZ.find(x => x.nome.split(" — ")[0] === n.mezzo);
-        return m ? urgenzaOre(n.orePreviste, m.ore) : { cls: "ok", label: "a " + numTx(n.orePreviste) + " h" };
+        return m ? urgenzaOre(n.orePreviste, m.ore) : { cls: "", label: "a " + numTx(n.orePreviste) + " h" };
       }
       return urgenza(n.dataPrevista);
     };
@@ -2520,7 +2520,7 @@
   const urgDiOrdine = (n) => {
     if (n.orePreviste) {
       const m = MEZ.find(x => nomeBreve(x.nome) === nomeBreve(n.mezzo));
-      return m ? urgenzaOre(n.orePreviste, +m.ore || 0) : { cls: "ok", label: "a " + numTx(n.orePreviste) + " h" };
+      return m ? urgenzaOre(n.orePreviste, m.ore) : { cls: "", label: "a " + numTx(n.orePreviste) + " h" };
     }
     return urgenza(n.dataPrevista);
   };
@@ -2692,7 +2692,7 @@
       || vuoto(I.bilancia, "Nessuna scadenza di legge", "Questa macchina non ha scadenze registrate: verifica periodica, funi e catene, revisione, assicurazione si aggiungono dalla schermata <b>Scadenze</b>.");
 
     $("sch-man").innerHTML = f.manutenzioni.map(n => {
-      const u = n.orePreviste ? urgenzaOre(n.orePreviste, +m.ore || 0) : urgenza(n.dataPrevista);
+      const u = n.orePreviste ? urgenzaOre(n.orePreviste, m && m.ore) : urgenza(n.dataPrevista);
       return `<div class="item statico ${striscia[u.cls] || "st-accent"}">
         <div class="avatar">${n.origine === "controllo" ? I.giro : I.chiave}</div>
         <div class="info"><div class="name">${esc(n.titolo)}</div>
