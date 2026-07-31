@@ -59,6 +59,35 @@ Nell'**hub** (`apps/index.html`), che oggi è solo un elenco di collegamenti all
 app: nove riquadri con nome, descrizione e stato, **zero dati**. Quella pagina è
 già il posto dove il titolare atterra, ma non gli dice niente.
 
+> ### ⛔ Aggiornamento del 02/08 — quella pagina NON può ospitare il cruscotto
+>
+> Verificato leggendo il file, non a memoria: `apps/index.html` **non ha nessuno
+> script a modulo, nessun Firebase, nessuno SDK**. È una pagina **statica e
+> pubblica** — la vetrina che si apre davanti a un cliente prima che entri.
+>
+> Un cruscotto con i numeri della cava lì dentro vorrebbe dire due cose
+> inaccettabili: che quei dati stanno su una pagina **senza login**, e che la
+> vetrina commerciale mostra i numeri di **un'azienda vera** a chiunque abbia il
+> collegamento. La regola del multi-tenant non è negoziabile: ogni accesso ai
+> dati passa dallo SDK e dall'organizzazione di chi è entrato.
+>
+> Il progetto del cruscotto — le tessere, la frase, il centro avvisi, le regole
+> di onestà — resta **valido parola per parola**. Cambia solo **dove vive**, e
+> quella è una scelta di prodotto, non tecnica: sta al punto **15** di
+> `DECISIONI_WEEKEND.md`.
+>
+> Le tre strade, in breve:
+> - **(a) nel core** (`index.html` alla radice), nella home che già cambia con
+>   il ruolo: veloce, ha già login e dati, ma mette i numeri delle sei app dentro
+>   il prodotto che si chiama Deepwork;
+> - **(b) una app nuova** `apps/quadro/`: la più pulita e la più coerente con
+>   l'ecosistema — il Quadro è una vista, e le viste qui sono app — ma è un
+>   cantiere intero;
+> - **(c) dentro Deepwork ID** (`apps/deepwork-id/`), che è già la porta
+>   d'ingresso autenticata: il titolare entra e la prima cosa che vede è il
+>   Quadro. Costo medio, e non sposta nessuna identità di prodotto.
+
+
 La proposta: l'hub diventa il **Quadro**. Sopra, il cruscotto. Sotto, l'elenco
 delle app come oggi (che resta utile: è il menu).
 

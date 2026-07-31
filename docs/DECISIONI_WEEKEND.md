@@ -304,6 +304,43 @@ modulo della sicurezza. C'è però una prova che blinda il comportamento di oggi
 e lo nomina, così se un giorno cambia si sa che è stato **scelto** e non
 successo.
 
+## 15. Dove vive «Il Quadro», il cruscotto del titolare?
+
+*Domanda nata il 02/08 rileggendo `RICERCA_CRUSCOTTO_TITOLARE_202607.md` prima di
+costruirlo. Il progetto del cruscotto è pronto e resta valido parola per parola:
+quello che manca è decidere **in quale pagina** vive.*
+
+**Il fatto.** La scheda diceva di metterlo nell'hub, `apps/index.html`. Ma quella
+pagina è la **vetrina**: statica, pubblica, senza login e senza nessun accesso ai
+dati. Un cruscotto lì dentro metterebbe i numeri di un'azienda vera su una pagina
+che chiunque può aprire. Non si fa.
+
+**Le tre strade.**
+
+**(a) Nel core**, cioè nel programma principale che si apre entrando. La sua
+schermata iniziale cambia già a seconda di chi sei (fochino, operatore, ufficio):
+basterebbe aggiungere il Quadro per chi è titolare o ufficio.
+*Pro:* è la strada più veloce, e il titolare non deve imparare un posto nuovo.
+*Contro:* mette i numeri delle sei app dentro il prodotto che si chiama Deepwork,
+e i due nomi si confondono.
+
+**(b) Una app nuova**, `apps/quadro/`, come le altre.
+*Pro:* è la più pulita e la più coerente — nell'ecosistema una vista è una app, e
+il Quadro avrebbe la sua identità e il suo colore.
+*Contro:* è un cantiere intero, ed è una nona voce nell'elenco delle app.
+
+**(c) Dentro Deepwork ID**, che è già la **porta d'ingresso** autenticata: entri
+e la prima cosa che vedi è il Quadro, con sotto le app.
+*Pro:* è il posto dove il titolare arriva già oggi, costa meno di (b) e non sposta
+nessuna identità di prodotto.
+*Contro:* Deepwork ID nasce come «chi sei e cosa puoi fare», e diventerebbe anche
+«come sta andando».
+
+⚠️ **Non ho scelto io.** Le tre strade costano diverso e dicono cose diverse su
+come si presenta il prodotto, ed è una scelta tua. Nel frattempo il lavoro
+procede su quello che serve **in tutte e tre**: le funzioni che alimentano le
+tessere esistono già in tutte le app e sono coperte da prove.
+
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde
 iterazioni UX delle app, test aggiuntivi, revisioni di qualità/sicurezza,
