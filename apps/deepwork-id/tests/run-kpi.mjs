@@ -4712,5 +4712,48 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ LA PRODUZIONE DEL GIORNO, PER UNITÀ E PER TURNO ════════════════════
+   `totaliProduzione` somma quanto è uscito dalla cava. La regola che va
+   difesa è scritta anche nell'interfaccia: **tonnellate e metri cubi restano
+   separati**. Sommarli darebbe un numero che non è né l'uno né l'altro, e che
+   sembrerebbe comunque plausibile — la categoria peggiore.
+
+   E la produzione **non dichiarata** non è zero: un rapportino senza quantità
+   semplicemente non partecipa, invece di tirare giù la media. */
+{
+  const tp = campo.totaliProduzione;
+  const rap = (turno, prodQta, prodUnita) => ({ turno, prodQta, prodUnita });
+
+  test("⛔ produzione: tonnellate e metri cubi NON si sommano fra loro", () => {
+    const r = tp([rap("Mattino", 100, "t"), rap("Mattino", 40, "m³")]);
+    eq(r.perUnita.t, 100, "cento tonnellate");
+    eq(r.perUnita["m³"], 40, "e quaranta metri cubi, separati");
+  });
+  test("produzione: i turni si sommano fra loro, unità per unità", () => {
+    const r = tp([rap("Mattino", 100, "t"), rap("Pomeriggio", 50, "t")]);
+    eq(r.perUnita.t, 150, "centocinquanta in giornata");
+    eq(r.perTurno.length, 2, "e due turni distinti");
+  });
+  test("⛔ produzione: un rapportino senza quantità non conta come zero", () => {
+    /* zero abbasserebbe la media di giornata; «non dichiarata» invece non
+       partecipa, ed è la verità */
+    const r = tp([rap("Mattino", 100, "t"), rap("Pomeriggio", null, "t")]);
+    eq(r.perUnita.t, 100, "resta cento");
+    eq(r.perTurno.length, 1, "e il turno senza produzione non compare fra i totali");
+  });
+  test("produzione: una quantità negativa o zero non è una produzione", () => {
+    eq(Object.keys(tp([rap("Mattino", 0, "t"), rap("Sera", -5, "t")]).perUnita).length, 0,
+       "nessun totale da dichiarare");
+  });
+  test("produzione: i turni escono nell'ordine della giornata, non alfabetico", () => {
+    const r = tp([rap("Sera", 10, "t"), rap("Mattino", 20, "t")]);
+    eq(r.perTurno[0].turno, "Mattino", "prima il mattino, anche se è arrivato dopo");
+  });
+  test("produzione: un turno non compilato finisce sotto «Senza turno»", () => {
+    const r = tp([rap("", 10, "t")]);
+    eq(r.perTurno[0].turno, "Senza turno", "detto, non nascosto");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
