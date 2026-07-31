@@ -3952,11 +3952,17 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(r.conIva, true, "ed è una fattura con IVA");
   });
   test("l'aliquota scritta a mano vince su quella calcolata", () => {
-    /* il caso vero: 10% su un imponibile arrotondato dà 9,99 e il calcolo
-       direbbe «10» per fortuna, ma su altri numeri direbbe 9. Se l'aliquota
-       c'è, è quella che vale: è un dato del documento, non una stima. */
-    const r = imp({ imponibile: 1000, ivaImporto: 100, aliquotaIva: 10 });
-    eq(r.aliquota, 10, "vince l'aliquota dichiarata");
+    /* ⚠️ I NUMERI DI QUESTA PROVA SONO SCELTI PER DISCRIMINARE, e la prima
+       versione non lo faceva: avevo scritto imponibile 1000 / IVA 100 /
+       aliquota 10, ma lì il calcolo dà **anch'esso** 10 — la prova passava
+       identica con e senza la riga che fa vincere l'aliquota dichiarata.
+       L'ha scoperto la controprova, rimettendo il difetto: due difetti
+       iniettati, uno solo trovato. Qui la scritta (10) e la calcolata (22)
+       sono diverse apposta, così la prova dice davvero qualcosa.
+       La ragione della regola: l'aliquota è un dato del documento, non una
+       stima da ricavare per divisione. */
+    const r = imp({ imponibile: 1000, ivaImporto: 220, aliquotaIva: 10 });
+    eq(r.aliquota, 10, "vince l'aliquota dichiarata, non il 22 che verrebbe dal rapporto");
   });
   test("il totale scritto vince sulla somma, e non viene corretto di nascosto", () => {
     const r = imp({ imponibile: 1000, ivaImporto: 220, totale: 1219.99 });
