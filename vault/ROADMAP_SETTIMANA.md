@@ -1049,6 +1049,18 @@ campi interi, file delle macchine.
       `numeroIt` esiste in due app e dà **sei risposte diverse su dodici**, ma le
       differenze sono volute e dichiarate — non va in `shared/`, e c'è una prova
       che rende visibile il confine. run-kpi **959**, totale node **1.242**.
+- [x] **Conti: i centesimi e la pesata già emessa.** `round2` è la funzione da
+      cui passa ogni importo: se gli acconti non tornano col totale al
+      centesimo, parte un sollecito a un cliente in regola. E `valorePesata` non
+      ripiega sul netto — su una pesata a metro cubo senza densità
+      moltiplicherebbe tonnellate per un prezzo al metro cubo.
+- [x] **La copertura si conta da sola**
+      (`apps/deepwork-id/tests/copertura-funzioni.mjs`, in coda alla suite di
+      CI). Due volte in due giorni ho scritto un numero di copertura sbagliato
+      contandolo a memoria: adesso lo conta un programma, stampa **quante
+      funzioni ha guardato** e ha un **fondo** per app che, se scende, fa
+      cadere il controllo. Oggi: **401 funzioni coperte su 409** — Campo e
+      Scudo al 100%, e quello che resta è tutto il blocco `messaggioNumero`.
 
 ---
 
