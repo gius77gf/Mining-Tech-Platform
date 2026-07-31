@@ -131,3 +131,67 @@ non esiste ferma la navigazione senza dire niente.
 La forma condivisa è quindi ancora una volta il **soprainsieme**: le guardie di
 Flotta per tutti, e la mappa come parametro facoltativo, perché *quella* è di
 Flotta e deve restare sua.
+
+---
+
+## La terza metà: le sei app non erano sei
+
+*Misurato il 03/08, scrivendo la regola che impedisce alla duplicazione di
+tornare.*
+
+Il conto «sei copie» era giusto per le **app verticali**, ma le superfici che
+aprono una modale sono **nove**. Le altre tre non erano state guardate:
+
+| superficie | che cosa ha in casa | è un problema? |
+|---|---|---|
+| **core** (radice) | `toast` con una durata che dipende dal modo «all'aperto» (`DB.settings.outdoor`: 4 secondi invece di 2,5, perché al sole si legge più piano) | **no**: il core è l'originale, il file condiviso è stato estratto da lì |
+| **Deepwork ID · amministrazione** | `apriModale` a tre parametri, `chiudiModale`, `chiedi` scritta come freccia | **sì, ed è il caso facile**: è esattamente la forma che il condiviso accetta già |
+| **Genesi** | `toast` senza il tipo, `chiedi`, `chiediValore` | **sì, ed è il caso difficile** |
+
+### Perché Genesi è il caso difficile
+
+Due divergenze, e la seconda è una **trappola vera**:
+
+1. **gli id sono altri.** Il condiviso cerca `modal`, `modal-body`,
+   `modal-foot`, `modal-campo`; Genesi ha `mdl`, `mdl-body`, `mdl-foot`,
+   `mdl-campo`, e le sue funzioni si chiamano `mdlApri` / `mdlChiudi`. Passare
+   al condiviso vuol dire rinominare nel markup, non solo togliere tre
+   funzioni;
+2. **`chiediValore` ha il terzo parametro incompatibile.**
+
+   ```js
+   // condiviso  (e le sei app)
+   chiediValore(titolo, corpo, campoHtml, etichettaOk)
+   // Genesi
+   chiediValore(titolo, corpo, valore, etichettaOk)   // ← un VALORE, e il campo se lo costruisce da sé
+   ```
+
+   Stesso nome, stesso numero di parametri, **significato diverso**. Se un
+   giorno qualcuno caricasse `dw-app-ui.js` in Genesi «per allinearla», la
+   chiamata — una sola, riga 3875, quella che dà il nome a una volata prima di
+   salvarla — continuerebbe a compilare e comincerebbe a passare il **nome
+   proposto** dove ci va l'HTML del campo. Nessun errore: il campo comparirebbe
+   vuoto, e chi salva si ritroverebbe la volata senza nome che aveva appena
+   letto nel riquadro.
+
+   *(Il conto è piccolo apposta: `chiediValore` la usa **un punto solo**,
+   `chiedi` un punto solo, `toast` cinquantasette. Il numero non c'entra —
+   quello che rende questa divergenza peggiore delle altre è che **non si
+   vede**.)*
+
+   È il difetto peggiore della famiglia — non due copie che **divergono**, ma
+   due copie che **si somigliano abbastanza da scambiarsi di posto**.
+
+### La regola che tiene il conto
+
+Da oggi l'elenco è scritto in `run-stile.mjs` (**regola 17**) con la ragione di
+ognuno, e non è un permesso: se una superficie nuova si scrive la struttura in
+casa il controllo **fallisce**; se una di queste tre passa al condiviso, il
+controllo dice che l'elenco va accorciato. La stessa forma del `FONDO` del
+censimento delle funzioni: un numero che può solo migliorare, e che nessuno
+deve ricordarsi di guardare.
+
+E controlla anche il verso opposto, che è l'errore già fatto una volta: chi
+**usa** toast e modale deve averle da qualche parte. Togliere le funzioni
+locali scordando il `<script>` non è un errore di sintassi — la pagina si apre,
+sembra a posto, e muore al primo tocco.
