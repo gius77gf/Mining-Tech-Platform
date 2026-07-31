@@ -6274,5 +6274,107 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ IL NEAR-MISS, E IL MURO DELLE SCADENZE ═════════════════════════════
+   Un mancato infortunio si segnala **in piedi sul piazzale, con i guanti**, in
+   pochi secondi — o non lo segnala nessuno. Da lì la scelta: si TOCCA una
+   categoria e un luogo invece di scrivere, e la segnalazione è già completa.
+
+   Le funzioni qui sotto sono quello che rende possibile quella scelta: la
+   descrizione si compone da sola, e il riepilogo **dichiara quando i numeri
+   sono troppo pochi** per leggerci una tendenza invece di disegnare un grafico
+   che suggerisce andamenti inesistenti. */
+{
+  const OGGI = new Date("2026-07-31T12:00:00");
+
+  test("⛔ near-miss: da due tocchi esce già una frase leggibile", () => {
+    /* la segnalazione deve restare leggibile nel registro anche se è costata
+       tre tocchi: una riga vuota nel registro degli eventi non serve a nessuno */
+    eq(scudo.descrizioneNearMiss({ categoria: "caduta-massi", luogoTipo: "fronte" }),
+       "Caduta massi — Fronte", "categoria e luogo");
+    eq(scudo.descrizioneNearMiss({ categoria: "caduta-massi" }), "Caduta massi", "o la sola categoria");
+    eq(scudo.descrizioneNearMiss({}), "Near-miss segnalato", "e senza niente resta comunque una frase");
+  });
+  test("near-miss: quello che scrive la persona vince su quello che compone l'app", () => {
+    eq(scudo.descrizioneNearMiss({ categoria: "caduta-massi", luogoTipo: "fronte",
+      dettaglio: "  masso caduto vicino alla pala  " }), "masso caduto vicino alla pala",
+      "le sue parole, ripulite dagli spazi");
+  });
+  test("near-miss: il luogo scritto a mano vale quanto quello toccato", () => {
+    eq(scudo.descrizioneNearMiss({ categoria: "caduta-massi", luogo: "Fronte nord" }),
+       "Caduta massi — Fronte nord", "il registro di sempre continua a funzionare");
+  });
+
+  const eventi = [
+    { id: "e1", tipo: "near-miss", data: "2026-07-20", categoria: "caduta-massi", luogoTipo: "fronte" },
+    { id: "e2", tipo: "near-miss", data: "2026-07-25", categoria: "caduta-massi", luogo: "Piazzale ovest" },
+    { id: "e3", tipo: "near-miss", data: "2026-01-01", categoria: "mezzi", luogoTipo: "pista" },
+    { id: "e4", tipo: "infortunio", data: "2026-07-10", categoria: "mezzi" },
+    { id: "e5", tipo: "near-miss", data: "2026-07-28", anonimo: true }];
+  const azioni = [{ origineTipo: "evento", origineId: "e1" }, { origineTipo: "evento", origineId: "e1" },
+    { origineTipo: "ispezione", origineId: "e2" }];
+
+  test("⛔ near-miss: il riepilogo guarda SOLO i near-miss, non gli infortuni", () => {
+    /* sono due registri diversi con due significati diversi: mescolarli
+       gonfierebbe un conteggio che la legge chiede separato */
+    const r = scudo.riepilogoNearMiss(eventi, azioni, 90, OGGI);
+    eq(r.totale, 3, "tre nel periodo");
+    eq(r.totaleStorico, 4, "quattro in tutto: l'infortunio resta fuori da entrambi");
+  });
+  test("near-miss: fuori dal periodo si conta nello storico, non nel periodo", () => {
+    eq(scudo.riepilogoNearMiss(eventi, azioni, null, OGGI).totale, 4, "senza finestra ci sono tutti");
+  });
+  test("⛔ near-miss: una segnalazione senza categoria non sparisce dal conto", () => {
+    /* finisce sotto «Non classificato»: toglierla farebbe sembrare che si
+       segnali meno di quanto si segnala */
+    const r = scudo.riepilogoNearMiss(eventi, azioni, 90, OGGI);
+    eq(r.perTipo.some((x) => x.etichetta === "Non classificato"), true, "c'è, e si vede che manca il dato");
+    eq(r.perTipo.reduce((s, x) => s + x.valore, 0), r.totale, "e la somma torna col totale");
+    eq(r.perLuogo.reduce((s, x) => s + x.valore, 0), r.totale, "anche per luogo");
+  });
+  test("⛔ near-miss: due azioni sullo stesso evento sono UN evento con azione", () => {
+    /* «quante segnalazioni hanno prodotto un'azione» è un conto di eventi, non
+       di azioni: contare le azioni farebbe sembrare seguito un registro dove
+       una sola segnalazione ne ha generate due */
+    const r = scudo.riepilogoNearMiss(eventi, azioni, 90, OGGI);
+    eq(r.conAzione, 1, "un evento seguito");
+    eq(r.azioni, 2, "da due azioni");
+    eq(r.senzaAzione, 2, "e due segnalazioni restate senza");
+  });
+  test("⛔ near-miss: con pochi numeri lo si DICE, invece di disegnare una tendenza", () => {
+    eq(scudo.riepilogoNearMiss(eventi, azioni, 90, OGGI).pochi, true,
+       "tre segnalazioni non sono un andamento");
+  });
+  test("near-miss: le anonime si contano, perché è la garanzia che le fa arrivare", () => {
+    eq(scudo.riepilogoNearMiss(eventi, azioni, 90, OGGI).anonime, 1, "una anonima");
+  });
+
+  test("⛔ muro: una scadenza già passata non finisce in un mese futuro", () => {
+    /* metterla nel mese in cui cadeva la nasconderebbe fra le cose da fare più
+       avanti: le scadute hanno un contatore tutto loro */
+    const sc = [{ dataScadenza: "2026-06-01" }, { dataScadenza: "2026-08-15" },
+      { dataScadenza: "2026-08-20" }, { dataScadenza: "2028-01-01" }, { dataScadenza: "boh" }];
+    const m = scudo.muroScadenze(sc, OGGI, 12);
+    eq(m.scadute, 1, "quella di giugno è scaduta");
+    eq(m.fuori, 1, "quella del 2028 è oltre l'orizzonte, e si dice");
+    eq(m.totale, 4, "la data illeggibile non si conta nemmeno");
+    eq(m.mesi.find((x) => x.chiave === "2026-08").totale, 2, "e due cadono ad agosto");
+  });
+  test("muro: i mesi ci sono tutti, anche quelli vuoti", () => {
+    /* un mese saltato farebbe sembrare il muro più basso di com'è */
+    const m = scudo.muroScadenze([], OGGI, 12);
+    eq(m.mesi.length, 12, "dodici mesi");
+    eq(m.da, "2026-07", "dal mese in corso");
+  });
+  test("⛔ periodicità: la data proposta non cade in un giorno che non esiste", () => {
+    /* dal 31 gennaio, «fra un mese» non è il 31 febbraio */
+    eq(scudo.dataDaPeriodicita(1, new Date("2026-01-31T12:00:00")), "2026-02-28", "l'ultimo giorno che c'è");
+    eq(scudo.dataDaPeriodicita(12, OGGI), "2027-07-31", "e a dodici mesi è lo stesso giorno dell'anno dopo");
+  });
+  test("periodicità: senza un numero di mesi non si propone una data", () => {
+    eq(scudo.dataDaPeriodicita(0, OGGI), null, "zero non è una periodicità");
+    eq(scudo.dataDaPeriodicita("boh", OGGI), null, "e nemmeno una parola");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
