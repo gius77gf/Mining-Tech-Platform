@@ -209,6 +209,40 @@ in italiano, senza dare conoscenze per scontate).
   2. La correzione delle unità nei grafici: le 11 asserzioni girate sulla
      versione precedente del motore ne facevano fallire 8. Senza quel passaggio
      non si sapeva se stessero misurando qualcosa.
+- ⚠️ **UNO SCRIPT CHE «NON FALLISCE» NON HA PER FORZA FATTO QUALCOSA.** Il
+  01/08 una controprova è stata **dichiarata riuscita in un messaggio di commit
+  senza essere mai partita**: l'`assert` sul testo da sostituire cercava
+  quattro spazi di indentazione dove il file ne ha due, è saltato **prima**
+  della scrittura, e tutt'e due le sonde hanno misurato un file **sano**. Un
+  `assert` che scatta, un `sed` che non trova, un `replace` che sostituisce zero
+  occorrenze: finiscono tutti in silenzio o con un'uscita che sembra buona.
+  Difesa: **stampare quanti soggetti ha toccato davvero** (`2 guardie tolte`,
+  `-31 caratteri`) **e** confrontare la copia con l'originale — la conta da sola
+  mente quando il difetto è uno scambio di due argomenti, che cambia zero
+  caratteri. E il corollario: **il messaggio del commit si scrive DOPO aver
+  letto l'esito.**
+- ⚠️ **«NON DISTINGUE» HA DUE LETTURE OPPOSTE, E VANNO SEPARATE.** Quando la
+  controprova dice che il difetto non fa cadere la prova, la causa è una di due,
+  e portano a interventi contrari:
+  1. **la prova non prova niente** — i suoi dati fanno **coincidere** la
+     risposta giusta con quella sbagliata. Successo su «l'ultima lettura oltre
+     è la più RECENTE, non la più alta», scritta con letture in cui la più
+     recente **era** la più alta: passava per un motivo diverso da quello nel
+     suo nome. Si correggono i **dati della prova**;
+  2. **il codice è difeso in profondità** — più guardie indipendenti reggono
+     la stessa regola, e toglierne una lascia in piedi l'altra. Successo sul
+     vincolo T9 (una volata prevista non è mai un referto), protetto sia dal
+     motivo spinto sempre sia dal flag. Si toglie **tutto lo strato**, e allora
+     si vede il danno vero.
+- ⚠️ **LE PROVE GIRANO ANCHE CON `TZ=Europe/Rome`.** Il contenitore è in **UTC**,
+  le cave sono in Italia. Il 01/08 una controprova sul conto dei giorni ha
+  risposto «non distingue» in UTC e ha visto il difetto in ora italiana; la
+  suite intera, rilanciata con l'orologio del cliente, è caduta in **due punti**
+  che in UTC erano verdi. Da lì è uscito un cantiere intero
+  (`docs/RICERCA_GIORNO_LOCALE_202607.md`): `toISOString()` su una data
+  costruita in ora **locale** perde una o due ore, e quando attraversano la
+  mezzanotte cambia il **giorno**. **Un controllo che gira in un ambiente
+  diverso da quello del cliente misura l'ambiente, non il prodotto.**
 - ⚠️ **IL CONTROLLO CHE NON GUARDA DOVE CREDE.** Variante della regola qui
   sopra, e più insidiosa: il controllo **sa** fallire, ma il suo filtro esclude
   proprio i casi che contano, e allora risponde «pulito» senza aver guardato
