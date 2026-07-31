@@ -1663,8 +1663,26 @@ campi interi, file delle macchine.
       c'è.
       Banco: **17 prove**, controprova **13 cadute su 17**. Banchi 27 → **29**.
       Suite **1.379 → 1.383**.
-      **Resta**: la nota non è ancora nell'export per il commercialista né
-      nell'estratto conto.
+      **Resta**: la nota non è ancora nell'export per il commercialista.
+- [x] ⛔ **IL BUCO CHE HO APERTO IO, E CHE CHIEDEVA SOLDI** *(04/08)* — collegata
+      la nota agli aggregati, **cinque funzioni erano rimaste fuori**, e fra
+      queste le due che producono documenti che **escono verso il cliente**:
+      `testoSollecito` scriveva la lettera che **chiede i soldi** su una fattura
+      già stornata, `estrattoContoCliente` la elencava fra i crediti da esigere.
+      Più `prioritaIncasso`, `incassoAtteso`, `incassoPerMese`. Non un numero
+      sbagliato in una schermata: una **richiesta di pagamento su un documento
+      annullato**, col nome del cliente sopra.
+      *Una funzione nuova non si misura solo su quello che aggiunge: si misura su
+      tutto quello che adesso può diventare falso.* Il collegamento era stato
+      scritto come «gli aggregati» — e cinque lettori sono rimasti fuori
+      dall'elenco. Trovati con un `grep` sui chiamanti di `apertoDi` senza
+      `note`: sei righe, due minuti.
+      ⚠️ E **la prova non provava niente**: cercava «1.000,00» nel testo e passava
+      **anche col difetto rimesso**, perché il sollecito scrive «€ 1.000» senza
+      decimali. Misurato, il comportamento vero è **più forte** dell'ipotesi: con
+      la nota `testoSollecito` restituisce **`null`**, la lettera non esiste
+      proprio. Asserzione rifatta più **giusta**, non più permissiva.
+      Tre iniezioni, tre cadute. Suite **1.383 → 1.384**.
 
 ---
 
