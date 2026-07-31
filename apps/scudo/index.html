@@ -982,6 +982,20 @@
 
   <div class="sec">Infortuni e near-miss</div>
   <div id="inf-riep" class="note recap"></div>
+  <!-- ⛔ I TRE INDICI, e il campo senza il quale non esistono. Le ore lavorate
+       non si stimano dal numero di operatori: su un indice che si porta in gara
+       un denominatore inventato e una dichiarazione falsa con la faccia di un
+       calcolo. Il campo e qui, accanto agli indici, perche e li che si capisce
+       a che cosa serve. -->
+  <div id="inf-indici" class="note recap" style="margin-top:10px;"></div>
+  <div class="form" style="margin-top:8px;">
+    <div class="fld" style="flex:1 1 160px;">
+      <label class="fl" for="ore-anno">Ore lavorate nell'anno</label>
+      <input class="dw-input" id="ore-anno" type="text" inputmode="numeric" autocomplete="off" placeholder="es. 21500">
+    </div>
+    <button class="dw-btn" id="ore-salva" style="align-self:flex-end;">Salva le ore</button>
+  </div>
+  <div class="note esito" id="ore-esito"></div>
 
   <!-- S2 — RIEPILOGO AGGREGATO DEI NEAR-MISS.
        Quanti nel periodo, per tipo e per luogo: serve a vedere DOVE il
@@ -1069,7 +1083,8 @@
     REQUISITI_FORMAZIONE, requisitoFormazione, requisitoSicuro, statoRequisito, MANSIONI_PRESET, mansionePreset,
     matriceMansione, riepilogoMansioni, lavoratoriScoperti, abilitazioneLavoratore,
     NOMINE_RUOLI, ruoloNomina, nominaAttiva, organigrammaSicurezza, nomineDaSistemare,
-    TIPI_DPI, tipoDpi, tipoDpiSicuro, ultimaConsegnaDpi, statoConsegnaDpi, allarmiDpi, riepilogoDpi, verbaleDpi } from "./scudo-data.js";
+    TIPI_DPI, tipoDpi, tipoDpiSicuro, ultimaConsegnaDpi, statoConsegnaDpi, allarmiDpi, riepilogoDpi, verbaleDpi,
+    indiciInfortunistici } from "./scudo-data.js";
   import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
@@ -1176,7 +1191,7 @@
     ? "Stai lavorando sui <b>dati reali</b> della tua organizzazione."
     : "Stai guardando <b>dati di esempio</b> (" + db.mode + "): le modifiche non vengono salvate.";
 
-  let LAV = [], SCA = [], DOC = [], INF = [], CANT = [], AZI = [], ISP = [];
+  let LAV = [], SCA = [], DOC = [], INF = [], CANT = [], AZI = [], ISP = [], ORE = [];
   // PONTE P3 · chi è schierato, letto da Campo. `null` = non lo sappiamo (Campo
   // non c'è o non è leggibile) ed è diverso da «non sta lavorando nessuno».
   let OPER_CAMPO = null, SQU_CAMPO = null;
@@ -1249,6 +1264,24 @@
     refresh();
   });
 
+  /* Le ore lavorate dell'anno. Intero: le ore di un'azienda non hanno decimali,
+     e un campo che li accetta invita a scriverli. Il messaggio dice a che cosa
+     servono, perché un numero chiesto senza ragione non viene compilato. */
+  if ($("ore-salva")) $("ore-salva").onclick = async () => {
+    const grezzo = String($("ore-anno").value || "").replace(/[\s.]/g, "");
+    const n = Math.round(+grezzo);
+    if (!grezzo || !Number.isFinite(n) || n <= 0) {
+      esito("ore-esito", "Scrivi le ore lavorate nell'anno, come numero intero (per esempio 21500). Senza, gli indici non si possono calcolare.", "err");
+      return;
+    }
+    const anno = new Date().getFullYear();
+    const gia = ORE.find(o => +o.anno === anno);
+    if (gia) await db.aggiorna("oreAnno", gia.id, { ore: n });
+    else await db.aggiungi("oreAnno", { anno, ore: n });
+    esito("ore-esito", "Ore " + anno + " salvate: " + n.toLocaleString("it-IT") + ". Gli indici qui sopra sono ricalcolati.", "success");
+    await refresh();
+  };
+
   async function refresh() {
     [OPER_CAMPO, SQU_CAMPO] = await Promise.all([
       db.operatoriCampo ? db.operatoriCampo() : null,
@@ -1256,6 +1289,7 @@
     ]);
     [LAV, SCA, DOC, INF, CANT, AZI, ISP, MANS, NOM, DPI] = await Promise.all([db.lavoratori(), db.scadenze(), db.documenti(), db.infortuni ? db.infortuni() : [], db.cantieri ? db.cantieri() : [], db.azioni ? db.azioni() : [], db.ispezioni ? db.ispezioni() : [],
       db.mansioni ? db.mansioni() : [], db.nomine ? db.nomine() : [], db.dpi ? db.dpi() : []]);
+    ORE = (db.oreAnno ? await db.oreAnno() : []) || [];
     const byId = Object.fromEntries(LAV.map(l => [l.id, l]));
     const infById = Object.fromEntries(INF.map(x => [x.id, x]));
     const k = kpiFrom(LAV, SCA);
@@ -1591,6 +1625,25 @@
           "Registra qui DSS, POS, DVR e verbali. Ogni documento porta il suo stato (valido, da rivedere, scaduto) e può avere in allegato la scansione firmata.");
 
     // Sicurezza: giorni senza infortuni (cartellone) + riepilogo + registro
+    const annoOra = new Date().getFullYear();
+    const oreRec = ORE.find(o => +o.anno === annoOra) || null;
+    { const ii = indiciInfortunistici(INF, oreRec ? oreRec.ore : null, annoOra);
+      const campo = $("ore-anno");
+      if (campo && !campo.value && oreRec) campo.value = String(oreRec.ore);
+      /* ⚠️ NELLO STILE DI SCUDO, non in quello di Conti. La prima stesura usava
+         `.mrec` (riga chiave/valore): in Scudo quella classe NON ESISTE — zero
+         occorrenze — e le righe uscivano attaccate, «Indice di frequenza
+         (IF)10,00». Il banco non poteva vederlo, perché legge il TESTO e il
+         testo conteneva già le due parti. L'ho visto nello screenshot.
+         Qui si usa la forma che questa scheda già adopera sopra: una riga sola
+         con i valori in accento, come «Infortuni: 1 · near-miss: 5». */
+      const nDec = (n) => n.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      $("inf-indici").innerHTML = ii.calcolabile
+        ? `Indice di frequenza (IF): <b>${nDec(ii.indiceFrequenza)}</b> · indice di gravità (IG): <b>${nDec(ii.indiceGravita)}</b> · LTIFR: <b>${nDec(ii.ltifr)}</b>
+           <div class="mini" style="margin-top:6px;">Anno ${annoOra} · ${ii.infortuni} ${ii.infortuni === 1 ? "infortunio" : "infortuni"}, di cui ${ii.conAssenza} con assenza, ${ii.giornatePerse} ${ii.giornatePerse === 1 ? "giornata persa" : "giornate perse"}, su <b>${(+ii.oreLavorate).toLocaleString("it-IT")}</b> ore lavorate. IF e LTIFR sono per milione di ore, IG per mille.</div>`
+        : `Indici infortunistici ${annoOra}: <b>non calcolabili</b>
+           <div class="mini" style="margin-top:6px;">${esc(ii.motivo)}</div>
+           <div class="mini" style="margin-top:4px;">Intanto i conteggi ci sono: <b>${ii.infortuni}</b> ${ii.infortuni === 1 ? "infortunio" : "infortuni"}, di cui <b>${ii.conAssenza}</b> con assenza, <b>${ii.giornatePerse}</b> ${ii.giornatePerse === 1 ? "giornata persa" : "giornate perse"}.</div>`; }
     const ri = riepilogoInfortuni(INF);
     $("safety-banner").innerHTML = ri.giorniSenza == null
       ? `<div class="safety none"><div class="safety-ico">${I.scudo}</div>

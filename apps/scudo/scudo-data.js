@@ -1474,6 +1474,10 @@ export async function scudoData() {
         scadenze:   () => read("scadenze"),
         documenti:  () => read("documenti"),
         infortuni:  () => read("infortuni"),
+        /* le ore lavorate dell'anno: senza di queste gli indici infortunistici
+           non si calcolano, e non si stimano. Un'organizzazione che non le ha
+           mai scritte legge una lista vuota, come per gli incassi. */
+        oreAnno:    () => read("oreAnno"),
         cantieri:   () => read("cantieri"),
         azioni:     () => read("azioni"),
         ispezioni:  () => read("ispezioni"),
@@ -1526,6 +1530,7 @@ export async function scudoData() {
       squadreCampo:   async () => mem.squadreCampo || [],
       documenti:  async () => mem.documenti,
       infortuni:  async () => mem.infortuni,
+      oreAnno:    async () => mem.oreAnno || (mem.oreAnno = []),
       cantieri:   async () => mem.cantieri,
       // le azioni di esempio PIÙ quelle arrivate da Sentinella (ponte demo):
       // in demo le due app comunicano solo così, in live è la stessa
