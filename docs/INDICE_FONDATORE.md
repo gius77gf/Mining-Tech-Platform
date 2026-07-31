@@ -17,6 +17,11 @@ che non esiste).
   app per app sono del 23/07 e reggono; in cima c'è un **aggiornamento del
   30/07** con quello che è arrivato dopo (la vetrina, i grafici, i sei ponti,
   l'estetica unificata) — quello va letto per primo.
+- **`docs/DIFETTI_TROVATI_202607.md`** — gli **otto difetti** trovati il 31/07,
+  raccontati per quello che dicevano all'utente e non per come erano scritti nel
+  codice: il grafico che mostrava il mese sbagliato, il ruolo di sicurezza verde
+  su una sedia vuota, la misura del sismografo che spariva dal report per l'ente.
+  *Se hai dieci minuti e vuoi capire che lavoro è stato fatto oggi, leggi questo.*
 - **`/apps/` — la vetrina** è la pagina da aprire davanti a qualcuno: nove
   riquadri con la schermata vera di ogni strumento, i ponti fra le app e il
   bottone che entra nel tour in un colpo solo.
