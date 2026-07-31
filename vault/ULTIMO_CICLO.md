@@ -5,28 +5,28 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-08-03 06:50 UTC — **la giornata dei controlli
-che non guardavano dove credevano**
-**Cosa ha fatto:** trovato e chiuso il difetto più grave incontrato finora in un
-CONTROLLO (non nel prodotto): la scansione carattere per carattere su cui stanno
-in piedi **tutte** le regole di stile **perdeva la fase**. Leggeva la pagina
-intera come JavaScript — e l'apostrofo di «l'ecosistema» scritto nel TESTO
-apriva una stringa — e giudicava lo slash dall'ultimo carattere invece che dalla
-parola. Effetto misurato: **115 delle 195 funzioni di Genesi** prese per testo,
-cioè la regola sui dialoghi del browser cieca su decine di migliaia di caratteri
-che rispondeva lo stesso «nessuna violazione». Il core ne usciva pulito **per
-caso**. Corretto, e blindato con una prova che verifica lo STRUMENTO invece di
-una regola: *7.485 dichiarazioni, nessuna presa per stringa*.
-Nella stessa giornata: la **regola 17** (la struttura del core non si riscrive
-in casa), la copertura delle funzioni da **405 a 410 su 411**, `perCampo`
-trovata scritta due volte, e **due pagine che l'utente apre** — «non
-autorizzato» e il portone di Genesi — che **nessuna regola aveva mai guardato**.
-Prove `node`: **1.265 → 1.309**.
-**Cosa sta facendo adesso:** aspetta l'ultimo banco del **giro a 19 banchi** del
-browser per applicare la correzione di `perCampo` (già scritta e provata su una
-copia), poi `go(id)` nel modulo condiviso e il passaggio
-dell'amministrazione a `dw-app-ui.js`.
-**Commit di partenza:** `57a7d1c`
+**Ultimo ciclo riuscito:** 2026-08-04 10:24 UTC — **il ciclo che ha trovato
+quattro difetti veri, e uno era vivo nella sicurezza**
+**Cosa ha fatto (ciclo precedente, chiuso poco fa):** una sonda che chiama
+**tutte** le funzioni pure con dati vuoti cercando **un solo segno** — *un numero
+tranquillo dove non è stato misurato niente* — ha trovato quattro difetti.
+Il peggiore era **live**: una scadenza importata da un file con la data sbagliata
+di battitura («2026-13-45» ha la forma giusta e non esiste) entrava in archivio e
+restava **verde per sempre** — una visita medica che nessuno avrebbe mai visto
+fra quelle da fare. Corretto in sei punti, perché lo stesso difetto era scritto
+sei volte con nomi diversi, e la correzione ha fatto nascere `dataISOEsiste`
+(«2026-02-30» non è nemmeno un errore per `Date.parse`: scivola al 2 marzo).
+Gli altri tre: Sentinella diceva «Conforme» su punti che nessuno aveva letto,
+Flotta poteva dichiarare «SCADUTA» un tagliando **senza obiettivo**, Conti poteva
+**bloccare la pagina**. Poi le altre **cinque porte d'ingresso** con lo stesso
+filtro a sola forma. Prove `node`: **1.343 → 1.359**.
+
+**Cosa sta facendo adesso:** il giro a 25 banchi del browser gira sul codice
+finale; nel frattempo si riparte dal «prossimo passo atomico» del checkpoint —
+**Genesi al condiviso (unità A)**, la **tracciabilità del volume dal visore** in
+Terra/Genesi e le **note di credito** in Conti, tutte e tre già misurate e
+pianificate con le prove scritte prima.
+**Commit di partenza:** `844896f`
 
 ---
 
