@@ -1775,6 +1775,24 @@ campi interi, file delle macchine.
       pure e quattro unità in ordine. `vociMancantiNelMese` **impara dallo
       storico** dell'azienda invece di inventare un elenco di voci obbligatorie
       che non esiste.
+- [x] ✅ **PIANO: L'ANALISI DELLA CAUSA IN SCUDO** *(05/08,
+      `docs/PIANO_CAUSA_RADICE_SCUDO.md`)* — e la scheda comincia da dove deve:
+      **cosa c'è già**. Scudo ha la catena evento → azione correttiva più
+      completa di quanto il censimento lasciasse credere (`origineTipo`/
+      `origineId`, `statoAzione`, `riepilogoNearMiss` che conta quante
+      segnalazioni hanno prodotto un'azione, e la pagina che spinge ad aprirla).
+      Quello che manca è una cosa sola, ed è misurata: la parola **causa**
+      compare **una volta in tutta l'app**, dentro una frase dell'interfaccia,
+      e nel modello dati non esiste. Quindi non si può rispondere alla domanda
+      che conta — *quali cause si ripetono* — e l'azione correttiva rischia di
+      curare il sintomo.
+      La scheda dice anche i **limiti del metodo** invece di venderlo: i 5
+      Perché portano a una causa sola, danno risposte diverse a persone diverse,
+      e finiscono quasi sempre **sulla persona**. La difesa è di prodotto: se
+      l'ultimo perché nomina una persona l'app lo chiede, e
+      `comportamentale` da sola non è un'analisi. Stessa idea del ponte con
+      Terra che non dà la colpa a chi compila — se lo strumento accusa, chi lo
+      usa smette di scrivere la verità.
 - [ ] ⚠️ **IL GIRO COMPLETO DEL BROWSER NON È STATO ESEGUITO IN QUESTO BLOCCO.**
       Va detto, per non scambiarlo per una verifica fatta: lanciato, ha girato
       più di un'ora ed è arrivato al **terzo banco su 35**. La causa non è il
