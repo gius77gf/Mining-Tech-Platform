@@ -832,17 +832,23 @@ export function totaliDaRighe(righe) {
 // Legge i numeri già usati nell'anno — sia "2026/037" sia "37/2026" — e
 // propone il primo libero, in formato AAAA/NNN. Così non si salta e non si
 // duplica: il numero non si digita più a mano.
-export function prossimoNumero(numeri, anno = new Date().getFullYear(), cifre = 3) {
+export function prossimoNumero(numeri, anno = new Date().getFullYear(), cifre = 3, prefisso = "") {
   const y = String(anno);
+  const p = String(prefisso || "");
   let max = 0;
   for (const n of numeri || []) {
-    const s = String(n == null ? "" : n).trim();
+    let s = String(n == null ? "" : n).trim();
+    /* con un prefisso si guardano SOLO i numeri di quella serie, e senza
+       prefisso SOLO quelli senza — se no le due serie si contaminano e la
+       nota NC/2026/004 farebbe saltare la fattura 2026/004 */
+    if (p) { if (!s.startsWith(p)) continue; s = s.slice(p.length); }
+    else if (/^[A-Za-z]/.test(s)) continue;
     let m = /^(\d{4})\s*[\/\-.]\s*(\d+)$/.exec(s);
     if (m && m[1] === y) { max = Math.max(max, +m[2]); continue; }
     m = /^(\d+)\s*[\/\-.]\s*(\d{4})$/.exec(s);
     if (m && m[2] === y) max = Math.max(max, +m[1]);
   }
-  return y + "/" + String(max + 1).padStart(cifre, "0");
+  return p + y + "/" + String(max + 1).padStart(cifre, "0");
 }
 
 // ============================================================
@@ -1509,4 +1515,146 @@ export async function contiData() {
     };
   }
   return { mode, ...api };
+}
+
+// ============================================================
+// LA NOTA DI CREDITO (art. 26 DPR 633/1972)
+// ------------------------------------------------------------
+// La finestra che elimina una fattura scrive, testuale, che «una fattura
+// realmente emessa non va cancellata, va gestita con una nota di credito» — e
+// il documento di cui parlava non esisteva. Ora esiste.
+//
+// ⛔ NON è una fattura col meno davanti. Misurato il 03/08: la scorciatoia dà
+// il numero giusto DOVE SI GUARDA (il KPI in cima) e sbagliato dove non si
+// guarda — `esposizioneClienti` salta gli importi negativi e il fido non si
+// libera, `agingIncassi` conta la nota come una fattura scaduta da sollecitare.
+// E nel tracciato della fattura elettronica gli importi negativi non sono
+// nemmeno ammessi: il verso «in diminuzione» lo dà soltanto il tipo TD04.
+//
+// ⛔ E STORNATA NON È SALDATA. Una nota totale su una fattura mai pagata porta
+// il residuo a zero: se quello zero facesse scattare «saldata», tutto ciò che
+// misura i tempi di pagamento conterebbe come «pagata in N giorni» una fattura
+// che è stata ANNULLATA, e il cliente peggiore diventerebbe il più puntuale.
+// È l'assenza di un dato — il pagamento — travestita da residuo a zero.
+// Misurato il 04/08 sul modo in cui la gente lo fa OGGI (un finto incasso per
+// portarla a zero): una sola fattura annullata porta il tempo medio di
+// pagamento da 30 a 101 giorni, e la direzione dell'errore dipende dalla data
+// che si scrive nel finto incasso.
+// Ricerca e decisioni: docs/RICERCA_NOTE_DI_CREDITO_202608.md
+// ============================================================
+/* ── LE CAUSALI, con il comma che le regge e il termine che ne discende ──────
+   Art. 26 DPR 633/1972. Il comma non è un dettaglio da giuristi: decide se
+   esiste un termine di dodici mesi, e quindi se l'app deve avvisare. */
+export const CAUSALI_NOTA = [
+  { id: "resa", label: "Merce resa o rifiutata", comma: 2, termine: null },
+  { id: "annullamento", label: "Annullamento, risoluzione o recesso", comma: 2, termine: null },
+  { id: "sconto-contratto", label: "Abbuono o sconto previsto dal contratto", comma: 2, termine: null },
+  { id: "errore", label: "Errore di fatturazione", comma: 3, termine: 12 },
+  { id: "accordo", label: "Accordo sopravvenuto fra le parti", comma: 3, termine: 12 },
+  { id: "sconto-successivo", label: "Sconto concesso dopo l'emissione", comma: 3, termine: 12 },
+];
+export function causaleNota(id) {
+  return CAUSALI_NOTA.find((c) => c.id === String(id || "")) || null;
+}
+
+
+/* ── QUANTO È GIÀ STATO STORNATO ────────────────────────────────────────────
+   Le note parziali possono essere più d'una: la somma è quella che conta, e
+   non può superare il totale della fattura. Importi POSITIVI: una nota non è
+   una fattura col meno davanti (nel tracciato elettronico i negativi non sono
+   nemmeno ammessi — il verso lo dà il tipo documento TD04). */
+export function stornatoDi(fatturaId, note) {
+  const id = String(fatturaId == null ? "" : fatturaId);
+  if (!id) return 0;
+  return round2((note || [])
+    .filter((n) => n && String(n.fatturaId) === id && !n.bozza)
+    .reduce((t, n) => t + Math.abs(+n.totale || 0), 0));
+}
+
+/* ── LO STATO A TRE VIE ─────────────────────────────────────────────────────
+   ⛔ STORNATA NON È SALDATA, ed è il difetto che questa unità esiste per
+   impedire. Una nota totale su una fattura mai pagata porta il residuo a zero:
+   se quello zero facesse scattare «saldata», `tempoMedioPagamento` conterebbe
+   come «pagata in N giorni» una fattura che nessuno ha pagato, e il cliente
+   peggiore diventerebbe il più puntuale.
+   È l'assenza di un dato — il pagamento — travestita da residuo a zero. */
+export function statoFattura(fattura, incassi, note) {
+  const f = fattura || {};
+  const s = statoIncasso(f, incassi);
+  const stornato = Math.min(stornatoDi(f.id, note), s.totale);
+  const esigibile = round2(Math.max(0, s.totale - stornato));
+  const residuo = round2(Math.max(0, esigibile - s.incassato));
+  /* stornata per intero: esce dal credito, ma NON entra nei tempi di pagamento */
+  if (stornato > 0 && esigibile === 0)
+    return { ...s, stato: "stornata", stornato, esigibile, residuo: 0, saldata: false,
+             contaNeiTempi: false, parziale: false };
+  if (residuo === 0 && s.incassato > 0)
+    return { ...s, stato: "saldata", stornato, esigibile, residuo: 0, saldata: true,
+             contaNeiTempi: true };
+  return { ...s, stato: "aperta", stornato, esigibile, residuo, saldata: false,
+           parziale: s.incassato > 0, contaNeiTempi: false };
+}
+
+/* ── LA VALIDAZIONE: dice PERCHÉ non si può, e AVVISA senza bloccare ────────
+   Sul termine dei dodici mesi l'app avvisa e lascia procedere: la materia ha
+   eccezioni che un software non può giudicare, e sbagliare per eccesso di
+   blocco è comunque sbagliare. */
+export function validaNota(nota, fattura, note, oggi = new Date()) {
+  const n = nota || {}, f = fattura || {};
+  const errori = [], avvisi = [];
+  if (!f.id) errori.push("Serve la fattura da stornare: una nota senza fattura collegata è fiscalmente orfana.");
+  const c = causaleNota(n.causale);
+  if (!c) errori.push("Serve la causale della rettifica: è quella che decide il termine.");
+
+  const totale = f.id ? round2(importiFattura(f).totale) : 0;
+  const giaStornato = stornatoDi(f.id, note);
+  const stornabile = round2(Math.max(0, totale - giaStornato));
+  const importo = round2(Math.abs(+n.totale || 0));
+  if (!(importo > 0)) errori.push("L'importo della nota dev'essere maggiore di zero.");
+  else if (importo > stornabile + 0.005)
+    errori.push(`L'importo supera quello che resta da stornare: ${stornabile.toFixed(2)} € `
+      + `(la fattura è ${totale.toFixed(2)} €, già stornati ${giaStornato.toFixed(2)} €).`);
+
+  if (c && c.termine != null && /^\d{4}-\d{2}-\d{2}/.test(String(f.emessa || ""))) {
+    const mesi = mesiFra(String(f.emessa).slice(0, 10), oggi);
+    if (mesi > c.termine)
+      avvisi.push(`Sono passati ${mesi} mesi dall'emissione, oltre i ${c.termine} previsti per questa causale `
+        + `(art. 26 comma ${c.comma}): l'IVA potrebbe non essere recuperabile. Verifica col commercialista.`);
+  }
+  return { ok: errori.length === 0, errori, avvisi, stornabile, giaStornato, totale };
+}
+
+function mesiFra(dataISO, oggi) {
+  const a = new Date(dataISO + "T00:00:00");
+  const b = new Date(oggi);
+  let m = (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+  if (b.getDate() < a.getDate()) m--;
+  return m;
+}
+
+/* ── LA NOTA COSTRUITA DALLA FATTURA ────────────────────────────────────────
+   Totale o parziale, importi POSITIVI, e il collegamento alla fattura
+   originaria — che nel tracciato è `DatiFattureCollegate` e senza il quale la
+   nota è formalmente valida ma fiscalmente orfana. */
+export function notaDaFattura(fattura, causale, importo, numero) {
+  const f = fattura || {};
+  const imp = importiFattura(f);
+  const totale = importo == null ? imp.totale : round2(Math.abs(+importo || 0));
+  const quota = imp.totale > 0 ? totale / imp.totale : 0;
+  return {
+    tipo: "TD04",
+    numero: numero || null,
+    emessa: null,
+    cliente: f.cliente || "",
+    clienteId: f.clienteId || null,
+    fatturaId: f.id || null,
+    fatturaNumero: f.numero || null,
+    fatturaData: f.emessa || null,
+    causale: causale || null,
+    imponibile: round2(imp.imponibile * quota),
+    ivaImporto: round2(imp.ivaImporto * quota),
+    totale,
+    aliquotaIva: imp.aliquota,
+    integrale: Math.abs(totale - imp.totale) < 0.005,
+  };
 }

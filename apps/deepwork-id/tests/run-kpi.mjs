@@ -1668,6 +1668,166 @@ test("proiezioneAnnua: senza niente da proiettare lo stato NON è «ok»", () =>
   eq(terra.proiezioneAnnua([{ data: "2026-04-01", volumeM3: 47500, stato: "elaborato" }], piano, meta).stato, "warn", "warn c'è ancora");
   eq(terra.proiezioneAnnua([{ data: "2026-04-01", volumeM3: 60000, stato: "elaborato" }], piano, meta).stato, "danger", "danger c'è ancora");
 });
+/* ── LA NOTA DI CREDITO ────────────────────────────────────────────────────
+   La prima prova non è aritmetica, ed è quella che l'unità esiste per reggere:
+   una fattura stornata al 100% NON deve entrare nei tempi di pagamento. Il
+   residuo va a zero come per una pagata, ma nessuno ha pagato niente — e se
+   quello zero contasse, il cliente peggiore diventerebbe il più puntuale.
+   Le 18 prove sono passate al primo colpo, quindi sono state controprovate
+   rimettendo quattro difetti: stornata contata come saldata (3 cadute), le due
+   serie di numerazione che si contaminano, l'avviso dei dodici mesi che non
+   arriva, lo storno parziale che non si somma. Cadono tutte.
+   Ricerca: docs/RICERCA_NOTE_DI_CREDITO_202608.md */
+const FNC = { id: "F1", numero: "2026/001", cliente: "Cava Rossi", emessa: "2026-01-10",
+  scadenza: "2026-02-09", imponibile: 1220, ivaImporto: 268.4 };
+const TOTNC = conti.importiFattura(FNC).totale;   // 1488.40
+console.log("\n— la nota di credito —");
+
+/* ⛔ LA PROVA CHE VALE PIÙ DI TUTTE */
+test("una fattura stornata al 100% NON è «saldata» e non entra nei tempi di pagamento", () => {
+  const note = [{ id: "N1", fatturaId: "F1", totale: TOTNC, causale: "errore" }];
+  const st = conti.statoFattura(FNC, [], note);
+  eq(st.stato, "stornata", "lo stato");
+  eq(st.saldata, false, "non è saldata: nessuno ha pagato niente");
+  eq(st.residuo, 0, "non è più esigibile");
+  eq(st.contaNeiTempi, false, "e non deve pesare sul tempo medio di pagamento");
+});
+
+test("stornata ≠ saldata: le due si distinguono anche quando il residuo è zero in tutt'e due", () => {
+  const pagata = conti.statoFattura(FNC, [{ fatturaId: "F1", importo: TOTNC, data: "2026-02-09" }], []);
+  const stornata = conti.statoFattura(FNC, [], [{ fatturaId: "F1", totale: TOTNC }]);
+  eq(pagata.residuo, 0, "la pagata ha residuo zero");
+  eq(stornata.residuo, 0, "la stornata pure");
+  ok(pagata.contaNeiTempi !== stornata.contaNeiTempi, "e allora le due DEVONO distinguersi altrove");
+  eq([pagata.stato, stornata.stato], ["saldata", "stornata"], "gli stati");
+});
+
+test("storno parziale: la fattura resta aperta per il residuo", () => {
+  const st = conti.statoFattura(FNC, [], [{ fatturaId: "F1", totale: 488.4 }]);
+  eq(st.stato, "aperta", "resta aperta");
+  eq(st.stornato, 488.4, "quanto è stornato");
+  eq(st.esigibile, 1000, "quanto resta dovuto");
+  eq(st.residuo, 1000, "e il residuo è quello");
+});
+
+test("storno parziale + acconto: residuo = totale − incassato − stornato", () => {
+  const st = conti.statoFattura(FNC, [{ fatturaId: "F1", importo: 400, data: "2026-02-01" }],
+    [{ fatturaId: "F1", totale: 488.4 }]);
+  eq(st.esigibile, 1000, "esigibile dopo lo storno");
+  eq(st.residuo, 600, "1000 − 400 di acconto");
+  eq(st.stato, "aperta", "ancora aperta");
+});
+
+test("più note parziali si sommano, e insieme possono chiudere la fattura", () => {
+  const note = [{ fatturaId: "F1", totale: 500 }, { fatturaId: "F1", totale: 988.4 }];
+  eq(conti.stornatoDi("F1", note), 1488.4, "la somma");
+  eq(conti.statoFattura(FNC, [], note).stato, "stornata", "insieme chiudono");
+});
+
+test("una nota in bozza non storna niente", () => {
+  eq(conti.stornatoDi("F1", [{ fatturaId: "F1", totale: 500, bozza: true }]), 0, "la bozza non conta");
+});
+
+test("stornatoDi: id assente non raccoglie tutto per sbaglio", () => {
+  eq(conti.stornatoDi(null, [{ fatturaId: "F1", totale: 500 }]), 0, "senza id, zero");
+  eq(conti.stornatoDi("F1", [{ fatturaId: "F2", totale: 500 }]), 0, "note di un'altra fattura");
+});
+
+console.log("\n— la numerazione della serie dedicata —");
+
+test("prossimoNumero col prefisso legge la serie NC/ invece di ripartire da capo", () => {
+  eq(conti.prossimoNumero(["NC/2026/001", "NC/2026/002"], 2026, 3, "NC/"), "NC/2026/003", "la serie dedicata");
+  eq(conti.prossimoNumero(["NC/2026/001", "NC/2026/002"], 2026), "2026/001",
+    "e questa è la risposta di OGGI, che è il difetto");
+});
+
+test("le due serie non si contaminano", () => {
+  const misti = ["2026/001", "2026/002", "NC/2026/001"];
+  eq(conti.prossimoNumero(misti, 2026, 3), "2026/003", "le fatture ignorano le note");
+  eq(conti.prossimoNumero(misti, 2026, 3, "NC/"), "NC/2026/002", "le note ignorano le fatture");
+});
+
+test("senza prefisso si comporta esattamente come prima", () => {
+  for (const caso of [["2026/001"], ["37/2026"], [], ["2025/090"]])
+    eq(conti.prossimoNumero(caso, 2026, 3), conti.prossimoNumero(caso, 2026, 3), `su ${JSON.stringify(caso)}`);
+});
+
+console.log("\n— la validazione: dice perché, e avvisa senza bloccare —");
+
+test("senza fattura collegata e senza causale non si emette, e dice perché", () => {
+  const v = conti.validaNota({ totale: 100 }, {}, [], new Date(2026, 5, 1));
+  eq(v.ok, false, "non si può");
+  ok(v.errori.some((e) => /fattura/.test(e)), "dice della fattura");
+  ok(v.errori.some((e) => /causale/.test(e)), "dice della causale");
+});
+
+test("non si storna più di quanto resta", () => {
+  const v = conti.validaNota({ totale: 2000, causale: "errore" }, FNC, [], new Date(2026, 5, 1));
+  eq(v.ok, false, "non si può");
+  eq(v.stornabile, 1488.4, "quanto resta stornabile");
+  ok(v.errori.some((e) => /1488.40/.test(e)), "e lo dice col numero");
+});
+
+test("con una nota già emessa, lo stornabile scende", () => {
+  const v = conti.validaNota({ totale: 1000, causale: "errore" }, FNC, [{ fatturaId: "F1", totale: 1000 }],
+    new Date(2026, 5, 1));
+  eq(v.stornabile, 488.4, "quanto resta");
+  eq(v.ok, false, "e 1000 non ci sta più");
+});
+
+test("oltre i dodici mesi su una causale di comma 3: AVVISA, non blocca", () => {
+  const v = conti.validaNota({ totale: 100, causale: "errore" }, FNC, [], new Date(2027, 5, 1));
+  eq(v.ok, true, "si può emettere lo stesso");
+  eq(v.avvisi.length, 1, "ma con un avviso");
+  ok(/16 mesi/.test(v.avvisi[0]), "che dice quanti mesi sono passati");
+  ok(/commercialista/.test(v.avvisi[0]), "e rimanda al commercialista");
+});
+
+test("la stessa distanza su una causale di comma 2 NON avvisa: non c'è termine", () => {
+  const v = conti.validaNota({ totale: 100, causale: "resa" }, FNC, [], new Date(2027, 5, 1));
+  eq(v.ok, true, "si può");
+  eq(v.avvisi.length, 0, "e senza avvisi: il comma 2 non ha termine");
+});
+
+test("causaleNota: trova la voce per id, e su un id inventato risponde null invece di indovinare", () => {
+  eq(conti.causaleNota("errore").comma, 3, "l'errore di fatturazione sta al comma 3");
+  eq(conti.causaleNota("resa").termine, null, "la merce resa non ha termine");
+  eq(conti.causaleNota("inventata"), null, "un id che non esiste NON ricade sulla prima voce");
+  eq(conti.causaleNota(null), null, "e nemmeno l'assenza di causale");
+  eq(conti.causaleNota(""), null, "né la stringa vuota");
+});
+test("le sei causali dichiarano tutte comma e termine, e i due comma sono coerenti", () => {
+  eq(conti.CAUSALI_NOTA.length, 6, "sono sei");
+  for (const c of conti.CAUSALI_NOTA) {
+    ok(c.comma === 2 || c.comma === 3, `${c.id}: comma dichiarato`);
+    ok(c.comma === 2 ? c.termine === null : c.termine === 12,
+      `${c.id}: il comma ${c.comma} vuole termine ${c.comma === 2 ? "nessuno" : "12 mesi"}`);
+  }
+});
+
+console.log("\n— la nota costruita dalla fattura —");
+
+test("nota totale: importi POSITIVI e collegamento alla fattura originaria", () => {
+  const n = conti.notaDaFattura(FNC, "errore", null, "NC/2026/001");
+  eq(n.tipo, "TD04", "il tipo documento");
+  eq(n.totale, 1488.4, "il totale, positivo");
+  eq(n.imponibile, 1220, "l'imponibile, positivo");
+  eq(n.ivaImporto, 268.4, "l'IVA, positiva");
+  eq(n.fatturaNumero, "2026/001", "il numero della fattura originaria");
+  eq(n.fatturaData, "2026-01-10", "e la sua data");
+  eq(n.integrale, true, "è integrale");
+  ok(n.totale > 0 && n.imponibile > 0, "⛔ mai negativi: nel tracciato elettronico non sono ammessi");
+});
+
+test("nota parziale: imponibile e IVA scendono in proporzione", () => {
+  const n = conti.notaDaFattura(FNC, "resa", 744.2, "NC/2026/002");
+  eq(n.totale, 744.2, "metà del totale");
+  eq(n.imponibile, 610, "metà dell'imponibile");
+  eq(n.ivaImporto, 134.2, "metà dell'IVA");
+  eq(n.integrale, false, "non è integrale");
+  eq(Math.round((n.imponibile + n.ivaImporto) * 100) / 100, n.totale, "e i pezzi tornano col totale");
+});
+
 test("prioritaOperative: manutenzione a ore su un mezzo assente viene ignorata (non crasha)", () => {
   const p = flotta.prioritaOperative(
     [{ nome: "Escavatore E1 — CAT 352", ore: 100, stato: "operativo" }],

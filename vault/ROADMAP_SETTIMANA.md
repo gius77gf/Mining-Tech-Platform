@@ -1613,6 +1613,30 @@ campi interi, file delle macchine.
       avvenuto** — peggio di un errore costante, perché non si corregge
       guardando la media. *(La prima stesura della misura sbagliava tre nomi di
       campo e dava **0 €**: una misura che sembrava fatta e non misurava niente.)*
+- [x] ✅ **CONTI — LA NOTA DI CREDITO: lo strato dati** *(04/08)* — sette funzioni
+      pure in `conti-data.js` con **19 prove**: `CAUSALI_NOTA`/`causaleNota` (le
+      sei causali col **comma** che le regge e il **termine** che ne discende),
+      `prossimoNumero` col **prefisso** della serie `NC/`, `stornatoDi`,
+      `statoFattura` a tre vie, `validaNota` (dice **perché** non si può e
+      **avvisa** sui dodici mesi senza bloccare), `notaDaFattura` (importi
+      **positivi**, tipo `TD04`, collegamento alla fattura originaria).
+      ⛔ **La prova che vale più di tutte: una fattura stornata al 100% NON è
+      «saldata».** Il residuo va a zero come per una pagata, ma nessuno ha pagato
+      niente — e se quello zero contasse, il cliente peggiore diventerebbe il più
+      puntuale. Quarta app in cui lo stesso principio morde.
+      Le 18 prove sono passate **al primo colpo**, quindi controprovate con
+      **cinque** difetti rimessi nel file vero: 3+1+1+1+2 cadute, ripristino
+      identico. E `copertura-funzioni.mjs` ha trovato l'unica funzione senza
+      prova (`causaleNota`): la prova aggiunta pretende che un id inventato dia
+      **`null`** invece di ricadere sulla prima causale, che è la **più
+      permissiva** — indovinare lì toglierebbe l'avviso dei dodici mesi a chi
+      scrive male l'id.
+      ⚠️ **Non è finita la funzione, è finito il suo strato**: l'interfaccia non
+      c'è e gli aggregati (`apertoDi`, `esposizioneClienti`, `agingIncassi`,
+      `kpiFrom`) non leggono ancora lo storno. Niente regredisce — finché nessuna
+      interfaccia crea note, l'elenco è vuoto e si comportano come prima — ma va
+      detto invece che lasciato intendere.
+      Suite **1.360 → 1.379**.
 
 ---
 
