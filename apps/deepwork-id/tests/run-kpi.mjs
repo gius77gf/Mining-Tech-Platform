@@ -3921,5 +3921,102 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ I NUMERI CHE DIVENTANO SOLDI, E CHE NESSUNA PROVA GUARDAVA ══════════
+   ────────────────────────────────────────────────────────────────────────
+   Censite il 01/08 le funzioni esportate dai moduli dati e cercate una per una
+   in TUTTE le suite. `importiFattura` — quella che decide imponibile, IVA e
+   totale di una fattura — non compariva in nessuna. Con lei `convertiQuantita`
+   (che trasforma tonnellate in metri cubi con la densità), `canonePeriodo`
+   (quello che si deve all'ente per il materiale cavato) e i due prezzi per
+   unità.
+
+   Non è un buco di stile: è la parte che finisce su un documento fiscale e su
+   una dichiarazione all'ente. Un errore lì non fa rumore — produce un numero
+   plausibile e sbagliato, esattamente la categoria di difetto che questa suite
+   esiste per prendere. */
+{
+  const imp = conti.importiFattura;
+
+  test("fattura vecchia (solo `importo`): vale come imponibile, IVA zero", () => {
+    const r = imp({ importo: 1000 });
+    eq(r.imponibile, 1000, "l'importo diventa imponibile");
+    eq(r.ivaImporto, 0, "nessuna IVA");
+    eq(r.totale, 1000, "totale uguale all'imponibile");
+    eq(r.conIva, false, "ed è dichiarata come fattura senza IVA");
+    eq(r.aliquota, null, "senza aliquota: non se ne inventa una");
+  });
+  test("fattura con IVA: totale e aliquota si ricavano, non si indovinano", () => {
+    const r = imp({ imponibile: 1000, ivaImporto: 220 });
+    eq(r.totale, 1220, "totale = imponibile + IVA quando il totale non è scritto");
+    eq(r.aliquota, 22, "l'aliquota si ricava dal rapporto IVA/imponibile");
+    eq(r.conIva, true, "ed è una fattura con IVA");
+  });
+  test("l'aliquota scritta a mano vince su quella calcolata", () => {
+    /* il caso vero: 10% su un imponibile arrotondato dà 9,99 e il calcolo
+       direbbe «10» per fortuna, ma su altri numeri direbbe 9. Se l'aliquota
+       c'è, è quella che vale: è un dato del documento, non una stima. */
+    const r = imp({ imponibile: 1000, ivaImporto: 100, aliquotaIva: 10 });
+    eq(r.aliquota, 10, "vince l'aliquota dichiarata");
+  });
+  test("il totale scritto vince sulla somma, e non viene corretto di nascosto", () => {
+    const r = imp({ imponibile: 1000, ivaImporto: 220, totale: 1219.99 });
+    eq(r.totale, 1219.99, "il totale del documento resta quello del documento");
+  });
+  test("imponibile zero: nessuna divisione per zero, nessuna aliquota inventata", () => {
+    const r = imp({ imponibile: 0, ivaImporto: 0 });
+    eq(r.aliquota, null, "con imponibile zero l'aliquota non si può ricavare: null, non NaN");
+    eq(r.totale, 0, "e il totale è zero");
+  });
+  test("una fattura assente non fa esplodere il conto", () => {
+    const r = imp(null);
+    eq(r.totale, 0, "totale zero");
+    eq(r.conIva, false, "e nessuna IVA");
+  });
+
+  /* ── le conversioni: qui un errore cambia i metri cubi dichiarati ── */
+  test("convertiQuantita: t → m³ divide per la densità, m³ → t moltiplica", () => {
+    eq(conti.convertiQuantita(27, "t", "m3", 2.7), 10, "27 t a densità 2,7 fanno 10 m³");
+    eq(conti.convertiQuantita(10, "m3", "t", 2.7), 27, "e 10 m³ tornano 27 t");
+  });
+  test("convertiQuantita: stessa unità, nessuna densità richiesta", () => {
+    eq(conti.convertiQuantita(12.5, "t", "t", null), 12.5, "t → t resta uguale anche senza densità");
+  });
+  test("convertiQuantita senza densità utile risponde null, non zero", () => {
+    /* zero sarebbe una misura, e sbagliata: null vuol dire «non lo so», ed è
+       la convenzione che il resto del progetto già usa */
+    eq(conti.convertiQuantita(27, "t", "m3", 0), null, "densità zero: non si sa");
+    eq(conti.convertiQuantita(27, "t", "m3", -1), null, "densità negativa: non si sa");
+    eq(conti.convertiQuantita(27, "t", "m3", undefined), null, "densità assente: non si sa");
+  });
+
+  /* ── il canone: è quello che si deve all'ente ── */
+  const pesate = [
+    { data: "2026-07-05", prodotto: "Misto", netto: 30, densita: 1.5 },
+    { data: "2026-07-20", prodotto: "Misto", netto: 30, densita: 1.5 },
+    { data: "2026-06-30", prodotto: "Misto", netto: 99, densita: 1.5 },   // fuori periodo
+    { data: "2026-07-10", prodotto: "Sabbia", netto: 10 },                // senza densità
+  ];
+  test("canonePeriodo: somma solo il periodo chiesto", () => {
+    const r = conti.canonePeriodo(pesate, { canoneUnita: "t", canoneAliquota: 1 }, "2026-07-01", "2026-07-31");
+    eq(r.tonnellate, 70, "30 + 30 + 10, e le 99 di giugno restano fuori");
+  });
+  test("canonePeriodo a metri cubi: chi non ha densità NON conta come zero", () => {
+    const r = conti.canonePeriodo(pesate, { canoneUnita: "m3", canoneAliquota: 2 }, "2026-07-01", "2026-07-31");
+    eq(r.metriCubi, 40, "60 t a densità 1,5 fanno 40 m³; la sabbia senza densità non si somma");
+    eq(r.senzaDensita, 1, "e viene CONTATA, così l'utente sa che manca un dato");
+  });
+  test("canonePeriodo: il dovuto è base × aliquota, per prodotto", () => {
+    const r = conti.canonePeriodo(pesate, { canoneUnita: "t", canoneAliquota: 0.5 }, "2026-07-01", "2026-07-31");
+    const misto = r.perProdotto.find((x) => x.prodotto === "Misto");
+    eq(misto.dovuto, 30, "60 t × 0,50 €/t");
+  });
+  test("canonePeriodo senza aliquota non inventa un dovuto", () => {
+    const r = conti.canonePeriodo(pesate, {}, "2026-07-01", "2026-07-31");
+    eq(r.aliquota, 0, "aliquota assente vale zero");
+    const misto = r.perProdotto.find((x) => x.prodotto === "Misto");
+    eq(misto.dovuto, 0, "e il dovuto è zero, non NaN");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
