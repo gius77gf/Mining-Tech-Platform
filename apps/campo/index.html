@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="../../shared/dw-grafici.css">
 <script src="../../shared/dw-tema.js" defer></script>
 <script src="../../shared/dw-grafici.js" defer></script>
+<script src="../../shared/dw-app-ui.js" defer></script>
 <style>
 /* ══════════════════════════════════════════════════════════════════════
    CAMPO — operatività di giornata
@@ -830,109 +831,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     window.scrollTo(0, 0);
   }
 
-  /* ── Toast del core: nessun alert() del browser ────────────────────── */
-  let toastT = null;
-  function toast(msg, tipo) {
-    const t = document.getElementById("toast");
-    t.className = "toast " + (tipo || "");
-    t.textContent = msg;
-    void t.offsetWidth;
-    t.classList.add("show");
-    clearTimeout(toastT);
-    toastT = setTimeout(() => t.classList.remove("show"), msg.length > 70 ? 4200 : 2800);
-  }
+  /* ── La struttura del core (toast, modale, conferma, alone) sta in
+     `shared/dw-app-ui.js`, in un posto solo: era scritta SEI VOLTE.
+     docs/LA_STRUTTURA_DEL_CORE_SCRITTA_SEI_VOLTE.md ───────────────────── */
 
-  /* ── Modale del core: sostituisce confirm() e prompt() ─────────────── */
-  let modalPrec = null;
-  function apriModale(titolo, corpo, bottoni) {
-    modalPrec = document.activeElement;
-    document.getElementById("modal-title").textContent = titolo;
-    document.getElementById("modal-body").innerHTML = corpo;
-    const foot = document.getElementById("modal-foot");
-    foot.innerHTML = "";
-    (bottoni || []).forEach(b => {
-      const el = document.createElement("button");
-      el.className = "mbtn " + (b.cls || "");
-      el.textContent = b.label;
-      el.onclick = b.azione;
-      foot.appendChild(el);
-    });
-    document.getElementById("modal").classList.add("show");
-    document.body.classList.add("modal-open");
-    const primo = document.getElementById("modal-body").querySelector("input,select,textarea")
-               || foot.querySelector(".mbtn.primary,.mbtn.danger") || foot.querySelector(".mbtn");
-    if (primo) setTimeout(() => { try { primo.focus({ preventScroll: true }); primo.select && primo.select(); } catch (e) {} }, 80);
-  }
-  function chiudiModale() {
-    document.getElementById("modal").classList.remove("show");
-    document.body.classList.remove("modal-open");
-    if (modalPrec && modalPrec.focus) { try { modalPrec.focus({ preventScroll: true }); } catch (e) {} }
-    modalPrec = null;
-  }
-  // Conferma in stile core: restituisce una Promise<boolean>
-  function chiedi(titolo, corpo, etichettaOk, pericolo) {
-    return new Promise(res => {
-      apriModale(titolo, corpo, [
-        { label: "Annulla", azione: () => { chiudiModale(); res(false); } },
-        { label: etichettaOk || "Conferma", cls: pericolo ? "danger" : "primary",
-          azione: () => { chiudiModale(); res(true); } },
-      ]);
-    });
-  }
-  // Richiesta di un valore in stile core: restituisce Promise<string|null>
-  function chiediValore(titolo, corpo, campoHtml, etichettaOk) {
-    return new Promise(res => {
-      apriModale(titolo, corpo + campoHtml, [
-        { label: "Annulla", azione: () => { chiudiModale(); res(null); } },
-        { label: etichettaOk || "Salva", cls: "primary", azione: () => {
-            const c = document.getElementById("modal-campo");
-            const v = c ? c.value : "";
-            chiudiModale(); res(v);
-          } },
-      ]);
-      const c = document.getElementById("modal-campo");
-      if (c) c.addEventListener("keydown", e => {
-        if (e.key === "Enter") { e.preventDefault(); document.querySelector("#modal-foot .mbtn.primary").click(); }
-      });
-    });
-  }
-  document.getElementById("modal").addEventListener("click", e => {
-    if (e.target.id === "modal") { const b = document.querySelector("#modal-foot .mbtn"); if (b) b.click(); }
-  });
-  document.addEventListener("keydown", e => {
-    if (e.key !== "Escape") return;
-    const m = document.getElementById("modal");
-    if (m && m.classList.contains("show")) { const b = m.querySelector("#modal-foot .mbtn"); if (b) b.click(); }
-  });
-  // KPI e voci di lista raggiungibili da tastiera (Invio/Spazio = tocco).
-  // I campi dentro la voce (causale, minuti) restano campi: lì Invio non
-  // deve far avanzare lo stato dell'attività.
-  document.addEventListener("keydown", e => {
-    if (e.key !== "Enter" && e.key !== " ") return;
-    const t = e.target;
-    if (!t.closest) return;
-    // campi e bottoni gestiscono già il tasto per conto loro
-    if (/^(INPUT|SELECT|TEXTAREA|BUTTON|A)$/.test(t.tagName) || t.closest(".fermo")) return;
-    const k = t.closest('.kpi[data-goto], .item[role="button"]');
-    if (k) { e.preventDefault(); k.click(); }
-  });
-
-  /* ── Alone che segue il mouse (firma dinamica del core: --mx/--my) ─── */
-  (function () {
-    if (matchMedia("(prefers-reduced-motion:reduce)").matches) return;
-    if (!matchMedia("(hover:hover) and (pointer:fine)").matches) return;
-    const sel = ".item,.kpi";
-    let cur = null, px = 50, py = 50, pend = false;
-    const apply = () => { pend = false; if (cur) { cur.style.setProperty("--mx", px + "%"); cur.style.setProperty("--my", py + "%"); } };
-    window.addEventListener("pointermove", e => {
-      const t = e.target.closest ? e.target.closest(sel) : null;
-      cur = t; if (!t) return;
-      const r = t.getBoundingClientRect();
-      px = (e.clientX - r.left) / r.width * 100;
-      py = (e.clientY - r.top) / r.height * 100;
-      if (!pend) { pend = true; requestAnimationFrame(apply); }
-    }, { passive: true });
-  })();
 </script>
 
 <script type="module">
@@ -952,6 +854,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   import { misuratoPeriodo, produzioneDichiarata, riconciliazioneTurni,
            periodoFraUltimiRilievi, densitaDelMateriale } from "../../shared/dw-ponti.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, messaggioNumero, montaGuardiaInteri } from "../../shared/deepwork-id-client/dw-shell.js";
+  // gli agganci della struttura condivisa (modale con Escape, riquadri da
+  // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
+  // classico in linea: i moduli girano dopo gli script `defer`.
+  dwUiAggancia({ alone: ".item,.kpi" });
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));

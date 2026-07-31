@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="../../shared/dw-grafici.css">
 <script src="../../shared/dw-tema.js" defer></script>
 <script src="../../shared/dw-grafici.js" defer></script>
+<script src="../../shared/dw-app-ui.js" defer></script>
 <style>
 /* ══════════════════════════════════════════════════════════════════════
    FLOTTA — mezzi e manutenzione
@@ -1007,132 +1008,10 @@
     window.scrollTo(0, 0);
   }
 
-  /* ── Toast del core: nessun alert() del browser ────────────────────── */
-  let toastT = null;
-  function toast(msg, tipo) {
-    const t = document.getElementById("toast");
-    t.className = "toast " + (tipo || "");
-    t.textContent = msg;
-    void t.offsetWidth;
-    t.classList.add("show");
-    clearTimeout(toastT);
-    toastT = setTimeout(() => t.classList.remove("show"), msg.length > 70 ? 4200 : 2800);
-  }
+  /* ── La struttura del core (toast, modale, conferma, alone) sta in
+     `shared/dw-app-ui.js`, in un posto solo: era scritta SEI VOLTE.
+     docs/LA_STRUTTURA_DEL_CORE_SCRITTA_SEI_VOLTE.md ───────────────────── */
 
-  /* ── Modale del core: sostituisce confirm() e prompt() ─────────────── */
-  let modalPrec = null;
-  function apriModale(titolo, corpo, bottoni) {
-    modalPrec = document.activeElement;
-    document.getElementById("modal-title").textContent = titolo;
-    document.getElementById("modal-body").innerHTML = corpo;
-    const foot = document.getElementById("modal-foot");
-    foot.innerHTML = "";
-    (bottoni || []).forEach(b => {
-      const el = document.createElement("button");
-      el.className = "mbtn " + (b.cls || "");
-      el.textContent = b.label;
-      el.onclick = b.azione;
-      foot.appendChild(el);
-    });
-    document.getElementById("modal").classList.add("show");
-    document.body.classList.add("modal-open");
-    const primo = document.getElementById("modal-body").querySelector("input,select,textarea")
-               || foot.querySelector(".mbtn.primary,.mbtn.danger") || foot.querySelector(".mbtn");
-    if (primo) setTimeout(() => { try { primo.focus({ preventScroll: true }); primo.select && primo.select(); } catch (e) {} }, 80);
-  }
-  function chiudiModale() {
-    document.getElementById("modal").classList.remove("show");
-    document.body.classList.remove("modal-open");
-    if (modalPrec && modalPrec.focus) { try { modalPrec.focus({ preventScroll: true }); } catch (e) {} }
-    modalPrec = null;
-  }
-  // Conferma in stile core: restituisce una Promise<boolean>
-  function chiedi(titolo, corpo, etichettaOk, pericolo) {
-    return new Promise(res => {
-      apriModale(titolo, corpo, [
-        { label: "Annulla", azione: () => { chiudiModale(); res(false); } },
-        { label: etichettaOk || "Conferma", cls: pericolo ? "danger" : "primary",
-          azione: () => { chiudiModale(); res(true); } },
-      ]);
-    });
-  }
-  // Avviso in stile core (sostituisce alert): Promise che si chiude col tasto
-  function avvisa(titolo, corpo) {
-    return new Promise(res => {
-      apriModale(titolo, corpo, [
-        { label: "Ho capito", cls: "primary", azione: () => { chiudiModale(); res(); } },
-      ]);
-    });
-  }
-  // Richiesta di uno o più valori in stile core: restituisce Promise<object|null>.
-  // campi = [{id, label, tipo, modo, valore, placeholder, aiuto}]
-  // `modo` = inputmode: un campo decimale è `tipo: "text", modo: "decimal"`,
-  // perché type="number" butterebbe via la virgola prima che il codice la
-  // veda (vedi numeroDaCampo in flotta-data.js) mentre inputmode tiene la
-  // tastiera numerica sul telefono.
-  function chiediDati(titolo, corpo, campi, etichettaOk) {
-    return new Promise(res => {
-      const html = (corpo || "") + campi.map(c =>
-        `<label class="fl" for="mc-${c.id}">${c.label}</label>
-         <input class="dw-input" id="mc-${c.id}" type="${c.tipo || "text"}"
-           value="${(c.valore == null ? "" : String(c.valore)).replace(/"/g, "&quot;")}"
-           placeholder="${(c.placeholder || "").replace(/"/g, "&quot;")}"
-           ${c.modo ? `inputmode="${c.modo}" autocomplete="off" spellcheck="false"` : ""}
-           ${c.min != null ? `min="${c.min}"` : ""} ${c.step ? `step="${c.step}"` : ""}>
-         ${c.aiuto ? `<div class="form-hint" style="margin-top:5px;">${c.aiuto}</div>` : ""}`).join("");
-      apriModale(titolo, html, [
-        { label: "Annulla", azione: () => { chiudiModale(); res(null); } },
-        { label: etichettaOk || "Salva", cls: "primary", azione: () => {
-            const out = {};
-            campi.forEach(c => { const el = document.getElementById("mc-" + c.id); out[c.id] = el ? el.value : ""; });
-            chiudiModale(); res(out);
-          } },
-      ]);
-      // Invio = premi il bottone principale. Il listener si aggiunge UNA volta
-      // sola: #modal-body è sempre lo stesso elemento, e ogni chiediDati ne
-      // appendeva un altro identico — dopo dieci finestre l'Invio scattava
-      // dieci volte. Non si vedeva perché la Promise, già risolta, ignora i
-      // colpi in più; ma è un accumulo, e adesso non c'è.
-      const box = document.getElementById("modal-body");
-      if (!box.dataset.invio) {
-        box.dataset.invio = "1";
-        box.addEventListener("keydown", e => {
-          if (e.key === "Enter") { e.preventDefault(); document.querySelector("#modal-foot .mbtn.primary").click(); }
-        });
-      }
-    });
-  }
-  document.getElementById("modal").addEventListener("click", e => {
-    if (e.target.id === "modal") { const b = document.querySelector("#modal-foot .mbtn"); if (b) b.click(); }
-  });
-  document.addEventListener("keydown", e => {
-    if (e.key !== "Escape") return;
-    const m = document.getElementById("modal");
-    if (m && m.classList.contains("show")) { const b = m.querySelector("#modal-foot .mbtn"); if (b) b.click(); }
-  });
-  // KPI e riquadri cliccabili raggiungibili da tastiera (Invio/Spazio = tocco)
-  document.addEventListener("keydown", e => {
-    if (e.key !== "Enter" && e.key !== " ") return;
-    const k = e.target.closest && e.target.closest('.kpi[role="button"],.note.link[role="button"]');
-    if (k) { e.preventDefault(); k.click(); }
-  });
-
-  /* ── Alone che segue il mouse (firma dinamica del core: --mx/--my) ─── */
-  (function () {
-    if (matchMedia("(prefers-reduced-motion:reduce)").matches) return;
-    if (!matchMedia("(hover:hover) and (pointer:fine)").matches) return;
-    const sel = ".item,.kpi";
-    let cur = null, px = 50, py = 50, pend = false;
-    const apply = () => { pend = false; if (cur) { cur.style.setProperty("--mx", px + "%"); cur.style.setProperty("--my", py + "%"); } };
-    window.addEventListener("pointermove", e => {
-      const t = e.target.closest ? e.target.closest(sel) : null;
-      cur = t; if (!t) return;
-      const r = t.getBoundingClientRect();
-      px = (e.clientX - r.left) / r.width * 100;
-      py = (e.clientY - r.top) / r.height * 100;
-      if (!pend) { pend = true; requestAnimationFrame(apply); }
-    }, { passive: true });
-  })();
 </script>
 
 <script type="module">
@@ -1152,6 +1031,10 @@
            numeroDaCampo, interoDaCampo, perCampo, messaggioNumero,
            AVVISO_DECIMALE, AVVISO_MIGLIAIA } from "./flotta-data.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, numIt, montaGuardiaInteri, avvolgiUnita, euro, conEuro, oggiISO } from "../../shared/deepwork-id-client/dw-shell.js";
+  // gli agganci della struttura condivisa (modale con Escape, riquadri da
+  // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
+  // classico in linea: i moduli girano dopo gli script `defer`.
+  dwUiAggancia({ alone: ".item,.kpi" });
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
