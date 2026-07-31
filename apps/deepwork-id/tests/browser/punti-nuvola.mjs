@@ -20,7 +20,14 @@ import { fileURLToPath } from "node:url";
 const QUI = dirname(fileURLToPath(import.meta.url));
 const R = join(QUI, "..", "..", "..", "..");
 const CONTO_UNICO = process.argv.includes("--conto-unico");
-const PORTA = Number(process.argv.find((a) => /^\d+$/.test(a))) || 8388;
+/* ⚠️ QUESTO BANCO ALZA UN SERVER SUO, quindi NON può prendere la porta
+   posizionale che `tutti.mjs` passa a tutti i banchi: proverebbe a mettersi
+   sulla porta del server comune e morirebbe con **EADDRINUSE alla prima riga**.
+   Ed è quello che succedeva: dentro il giro questo banco non è mai partito, e
+   il riepilogo scriveva «KO» — che si legge come «il banco ha trovato qualcosa»
+   invece di «il banco non è mai stato eseguito». Tre banchi su ventinove erano
+   in questo stato. La porta si cambia con `--porta=`, che nessun altro passa. */
+const PORTA = Number((process.argv.find((a) => a.startsWith("--porta=")) || "").split("=")[1]) || 8388;
 const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript",
   ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 
