@@ -71,7 +71,7 @@ E il 24% di righe proprie di ogni app è in buona parte **legittimo**: il
 selettore dell'alone cambia perché cambiano i componenti (`.segnala` c'è solo
 in Scudo).
 
-## La correzione
+## La correzione — ✅ FATTA il 02/08
 
 Un modulo condiviso — `shared/dw-app-ui.js` — caricato come script classico
 esattamente come `dw-tema.js` e `dw-grafici.js` fanno già, con dentro le cinque
@@ -86,3 +86,21 @@ Come si verifica che non cambia niente: per ogni app, aprire la pagina in
 Chromium e provare **il toast** (compare, sparisce), **la modale** (si apre, il
 fuoco va dove deve, Escape la chiude, il tocco fuori la chiude) e **l'alone**.
 Con lo screenshot prima e dopo.
+
+---
+
+## Fatto
+
+`shared/dw-app-ui.js` esiste e tutte e sei le app lo usano: **28.865
+caratteri** di codice duplicato tolti dalle pagine. Nella versione condivisa è
+entrato il **soprainsieme**, cioè il quarto parametro di Scudo — che adesso
+ce l'hanno tutte invece di una sola.
+
+**Un errore fatto e corretto, che vale la pena tenere.** La prima passata sulle
+cinque app ha infilato la chiamata d'aggancio *dentro un import multilinea*, e
+tutte e cinque hanno smesso di funzionare. L'ha trovato il banco in mezzo
+secondo, e per il motivo giusto: **prova la modale invece di guardare se la
+pagina si apre**. Il risultato diceva `toast:true, modale:true` ma
+**`chiusa:false`** — Escape non chiudeva più niente. Un banco che avesse
+guardato solo il caricamento avrebbe risposto «tutto a posto» su cinque pagine
+rotte.

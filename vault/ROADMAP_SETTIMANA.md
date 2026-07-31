@@ -65,6 +65,12 @@ dominante. Verifica obbligatoria con screenshot prima/dopo.
       dialoghi del browser eliminati, icone in SVG, ~40 stati vuoti, oltre
       150 coppie di contrasto verificate. Sette difetti funzionali trovati
       col confronto affiancato e corretti.
+- [x] **La STRUTTURA del core in un posto solo** *(02/08)* — toast, modale,
+      conferma, richiesta di un valore, Escape, riquadri da tastiera e alone che
+      segue il mouse erano scritti **sei volte** (27 copie, 76% delle righe
+      identiche) e **una si era già staccata** per una ragione buona. Adesso
+      stanno in `shared/dw-app-ui.js`, col **soprainsieme**: **28.865 caratteri**
+      tolti dalle sei pagine. `docs/LA_STRUTTURA_DEL_CORE_SCRITTA_SEI_VOLTE.md`
 - [ ] **E0. CONSOLIDAMENTO in `shared/`** *(in corso)* — la parte comune
       dello stile sale nei fogli condivisi, in ogni app restano solo
       palette e regole specifiche. Aggiunti nello stesso passaggio **tema
