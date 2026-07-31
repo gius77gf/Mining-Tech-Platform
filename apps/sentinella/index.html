@@ -2736,14 +2736,24 @@ textarea.dw-input{
     // Cartellone: lo stato d'insieme dell'ambiente, letto in un colpo d'occhio
     // (come i "giorni senza infortuni" di Scudo). Nessuna soglia inventata:
     // si contano solo i punti configurati dall'utente.
-    const cls = conf.superamento ? "danger" : conf.attenzione ? "warn" : conf.totale ? "" : "none";
-    const ico = conf.superamento ? I.allerta : conf.totale ? I.scudo : I.sensore;
-    const num = conf.totale ? (conf.superamento || conf.attenzione || conf.conformi) : 0;
+    /* ⛔ IL CARTELLONE NON DICE «ENTRO SOGLIA» SU PUNTI MAI LETTI (03/08).
+       Prima, con sei punti appena configurati e nessuna lettura, qui si leggeva
+       «6 punti entro soglia»: il numero più tranquillo della pagina su una cava
+       di cui non si era misurato niente. Adesso i mai misurati (e quelli con un
+       valore senza data) hanno una riga loro e vengono PRIMA dei conformi —
+       perché sono la cosa da fare, non un risultato. */
+    const daLeggere = conf.maiMisurati;
+    const cls = conf.superamento ? "danger" : conf.attenzione || daLeggere ? "warn" : conf.totale ? "" : "none";
+    const ico = conf.superamento ? I.allerta : daLeggere && !conf.conformi ? I.sensore : conf.totale ? I.scudo : I.sensore;
+    const num = conf.totale ? (conf.superamento || conf.attenzione || daLeggere || conf.conformi) : 0;
     const lab = conf.superamento ? (conf.superamento === 1 ? "punto in superamento" : "punti in superamento")
       : conf.attenzione ? (conf.attenzione === 1 ? "punto in attenzione" : "punti in attenzione")
+      : daLeggere ? (daLeggere === 1 ? "punto ancora da misurare" : "punti ancora da misurare")
       : conf.totale ? (conf.conformi === 1 ? "punto entro soglia" : "punti entro soglia") : "punti di misura";
     const sub = conf.totale
-      ? `${conf.conformi} conformi · ${conf.attenzione} in attenzione · ${conf.superamento} in superamento, su ${conf.totale} punti in ascolto.`
+      ? `${conf.conformi} conformi · ${conf.attenzione} in attenzione · ${conf.superamento} in superamento`
+        + (daLeggere ? ` · ${daLeggere} senza una lettura` : "")
+        + `, su ${conf.totale} punti in ascolto.`
       : "Nessun punto di misura configurato: aggiungi la prima centralina dai Monitoraggi.";
     $("conf-banner").innerHTML = `<div class="safety ${cls}">
       <div class="safety-ico">${ico}</div>
@@ -3324,7 +3334,10 @@ textarea.dw-input{
     // si perde sovrascrivendo il solo ultimo valore
     const letture = [ ...((m && m.letture) || []), { data: oggiISO(), valore } ].slice(-50);
     await db.aggiorna("monitoraggi", id, { valore, letture });
-    const st = statoMisura({ ...m, valore });
+    /* ⛔ `letture` va passato, se no la PRIMA misura di un punto direbbe «Mai
+       misurato» proprio mentre la si registra: `...m` porta le letture VECCHIE,
+       e quella appena scritta è nella variabile qui sopra. */
+    const st = statoMisura({ ...m, valore, letture });
     esito("mis-esito", "Misura su " + (m ? m.nome.split(" — ")[0] : id) + ": " + numeroIt(valore) + (m ? " " + m.unita : "") + " → " + st.label + ". La serie storica del punto è aggiornata.",
       st.cls === "danger" ? "err" : "success",
       numeroIt(valore) + (m ? " " + m.unita : "") + " → " + st.label);

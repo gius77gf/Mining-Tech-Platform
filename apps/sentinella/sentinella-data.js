@@ -86,11 +86,44 @@ export const DEMO = {
   ],
 };
 
+// ⛔ «CONFORME» SENZA AVER MISURATO NIENTE (corretto il 03/08). Un punto appena
+// configurato nasce con `valore: 0, letture: []` — nessuno ha misurato — e qui
+// il rapporto faceva zero, zero è sotto 0,9, e la risposta era «Conforme»,
+// verde. Con sei punti appena creati il cartellone diceva «6 punti entro
+// soglia», il KPI diceva 6 e ogni badge diceva Conforme: il primo giorno di
+// ogni cliente, prima ancora di appoggiare uno strumento.
+// È più grave che altrove perché Sentinella è l'app del report all'ente, e il
+// principio violato è NATO QUI («senza dati non è conforme»): il report era
+// stato corretto, il badge, il KPI e il cartellone no.
+//
+// Il rilevatore è `ultimaLettura`, non `letture.length`: valida data e valore,
+// quindi una riga rotta non conta come misura. Vocabolario e classe sono quelli
+// che Sentinella USA GIÀ in `statoRigaProgramma` — «Mai misurato», `warn`,
+// «è un avviso e non un allarme: magari il punto è stato appena creato».
+//
+// ⚠️ IL CONFINE È STRETTO, ed è stato spostato DUE volte prima di essere
+// giusto. La prima stesura faceva scattare «mai misurato» su qualunque punto
+// senza `letture` — e ha fatto cadere dodici prove, fra cui una marcata ⛔ col
+// suo perché scritto: «un punto senza storico è comunque un superamento, con la
+// voce *valore-corrente* invece di una data. Farlo sparire perché non c'è una
+// data da citare toglierebbe dall'elenco un superamento vero.» Quella decisione
+// era già stata presa, e vale.
+// Quindi la regola è più stretta: «mai misurato» solo quando non c'è NESSUNA
+// informazione — né una lettura datata né un valore dichiarato maggiore di
+// zero. Un valore digitato a mano continua a contare come sempre.
+// Resta un caso indistinguibile e va detto: un punto che dichiara esattamente
+// ZERO senza letture si comporta come uno appena creato. È la direzione sicura
+// — chiede una misura invece di sostenere che ce n'è una.
+// docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md
 export function statoMisura(m) {
-  const r = (+m.valore || 0) / Math.max(0.001, +m.soglia || 1);
-  if (r >= 1) return { cls: "danger", label: "Superamento", ratio: r };
-  if (r >= 0.9) return { cls: "warn", label: "Attenzione", ratio: r };
-  return { cls: "ok", label: "Conforme", ratio: r };
+  const mm = m || {};
+  const v = +mm.valore;
+  if (!ultimaLettura(mm) && !(Number.isFinite(v) && v > 0))
+    return { cls: "warn", label: "Mai misurato", stato: "mai", ratio: null };
+  const r = (+mm.valore || 0) / Math.max(0.001, +mm.soglia || 1);
+  if (r >= 1) return { cls: "danger", label: "Superamento", stato: "superamento", ratio: r };
+  if (r >= 0.9) return { cls: "warn", label: "Attenzione", stato: "attenzione", ratio: r };
+  return { cls: "ok", label: "Conforme", stato: "conforme", ratio: r };
 }
 // ⛔ Alias di `giorniTra`: lo stesso involucro di due righe era scritto anche
 // in Conti. Un alias non è una seconda implementazione.
@@ -99,11 +132,17 @@ export const giorni = giorniTra;
 // attenzione / in superamento, a colpo d'occhio. Usa statoMisura (stessa
 // logica dei badge). Funzione pura e testabile.
 export function riepilogoConformita(monitoraggi) {
-  const r = { conformi: 0, attenzione: 0, superamento: 0, totale: (monitoraggi || []).length };
+  const r = { conformi: 0, attenzione: 0, superamento: 0, maiMisurati: 0,
+    totale: (monitoraggi || []).length };
   for (const m of monitoraggi || []) {
-    const c = statoMisura(m).cls;
-    if (c === "danger") r.superamento++;
-    else if (c === "warn") r.attenzione++;
+    const st = statoMisura(m);
+    // ⛔ Lo `stato` si guarda PRIMA della classe: «mai misurato» e «senza data»
+    // condividono il giallo con «Attenzione», e leggendo solo `cls` finirebbero
+    // contati come punti vicini alla soglia — un'altra affermazione falsa, solo
+    // in un'altra direzione.
+    if (st.stato === "mai") r.maiMisurati++;
+    else if (st.cls === "danger") r.superamento++;
+    else if (st.cls === "warn") r.attenzione++;
     else r.conformi++;
   }
   return r;

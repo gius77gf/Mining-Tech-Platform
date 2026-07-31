@@ -92,42 +92,62 @@ misura una riga rotta.
 È il terzo posto in tre giorni in cui la cosa giusta era già scritta **in
 un'altra funzione della stessa app**: il report, `statoRigaProgramma`, e adesso.
 
-### Due casi, non uno — e questo è emerso solo misurando
+### Due casi, non uno — ❌ e questa proposta era sbagliata
 
-| situazione | `letture` | `valore` | oggi | proposta |
+*Scritta il 03/08 e **ritirata lo stesso giorno**, quando le prove sono cadute.
+Resta qui perché il modo in cui è caduta è la parte utile.*
+
+La proposta era: punto appena creato → «Mai misurato»; punto importato da CSV
+con un valore vero ma senza storico → «Senza data». Sembrava più preciso.
+Applicandola, **dodici prove sono cadute**, e fra quelle una era marcata ⛔ col
+suo perché già scritto:
+
+> «**un punto senza storico è comunque un superamento**, con la voce
+> *valore-corrente* invece di una data. Farlo sparire perché non c'è una data da
+> citare toglierebbe dall'elenco un superamento **vero**.»
+
+Quella decisione era **già stata presa**, e vale: un valore digitato a mano su
+un punto conta. La proposta l'avrebbe rovesciata senza accorgersene, e in una
+funzione che alimenta l'elenco dei superamenti dell'app ambientale.
+
+**La regola giusta è più stretta**: «mai misurato» solo quando non c'è
+**nessuna** informazione — né una lettura datata, né un valore dichiarato
+maggiore di zero.
+
+| situazione | `letture` | `valore` | oggi | dopo |
 |---|---|---|---|---|
-| punto appena creato dall'interfaccia | `[]` | `0` | **Conforme** | **Mai misurato** (`stato: "mai"`) |
-| punto importato da CSV | `[]` | numero vero | **Conforme** | **Senza data** (`stato: "senza-data"`) |
+| punto appena creato dall'interfaccia | `[]` | `0` | **Conforme** | **Mai misurato** |
+| punto con un valore digitato, sopra soglia | `[]` | `12` | Superamento | **Superamento** — non si tocca |
 | punto con una lettura a **zero** | 1 riga | `0` | Conforme | **Conforme** — non si tocca |
 
-Il secondo caso non è «mai misurato»: `parseMonitoraggiCsv` **filtra** le righe
-con `Number.isFinite(m.valore)`, quindi un punto importato **ha** un valore
-dichiarato dall'utente. Ma è un valore **senza data**: non entra nella serie
-storica e non si può citare in un report per l'ente. Chiamarlo «conforme» è
-falso quanto l'altro; chiamarlo «mai misurato» è ingeneroso. Sono **due stati
-diversi**, e vanno detti come tali.
+Resta un caso indistinguibile, e va detto: un punto che dichiara **esattamente
+zero** senza letture si comporta come uno appena creato. È la direzione sicura —
+chiede una misura invece di sostenere che ce n'è una.
 
-### Una decisione che avevo scritto e che la misura ha corretto
+**La lezione**: prima di aggiungere uno stato, cercare se il caso è già stato
+deciso. Qui la decisione era scritta, con la sua ragione, dentro il nome di una
+prova — e l'ho trovata solo perché la prova è caduta.
 
-La prima stesura di questa scheda diceva di cambiare la creazione a
-`valore: null` «perché domani la distinzione sia netta». **Non serve, e
-introduce rischio**: `m.valore` è letto in una dozzina di punti fra modulo e
-pagina (`numeroIt(m.valore)`, `valore: +m.valore`, i grafici) e un `null` che
-diventa `NaN` si vede peggio di quello che risolve. Il segnale autorevole è
-`ultimaLettura(m)`, non il valore corrente — e con i due stati qui sopra la
-distinzione è già netta senza toccare gli archivi.
+### Una seconda proposta ritirata: `valore: null` alla creazione
 
-### Le tre conseguenze a valle
+La prima stesura diceva di cambiare la creazione a `valore: null` «perché domani
+la distinzione sia netta». **Non serve, e introduce rischio**: `m.valore` è letto
+in una dozzina di punti fra modulo e pagina (`numeroIt(m.valore)`,
+`valore: +m.valore`, i grafici) e un `null` che diventa `NaN` si vede peggio di
+quello che risolve. Il segnale autorevole è `ultimaLettura(m)`, non il valore
+corrente.
 
-1. **`riepilogoConformita` guadagna `maiMisurati` e `senzaData`**, e quei punti
-   **non** entrano in `conformi`. Il totale continua a tornare:
-   `conformi + attenzione + superamento + maiMisurati + senzaData === totale`.
+### Le conseguenze a valle
+
+1. **`riepilogoConformita` guadagna `maiMisurati`**, e quei punti **non** entrano
+   in `conformi`. Il totale continua a tornare:
+   `conformi + attenzione + superamento + maiMisurati === totale`.
    ⚠️ Il ramo va messo **prima** del controllo su `cls`, se no i mai misurati
-   finiscono in `attenzione` (condividono il giallo);
-2. **il cartellone** dice «**6 punti mai misurati**» invece di «6 punti entro
-   soglia», e quando ci sono entrambi lo scrive: «4 entro soglia · **2 mai
-   misurati**»;
-3. **`kpiFrom`** non li lascia sparire dentro un numero che sembra buono.
+   finiscono in `attenzione` — condividono il giallo, e sarebbe un'altra
+   affermazione falsa, solo in un'altra direzione;
+2. **il cartellone** dice «**6 punti ancora da misurare**» invece di «6 punti
+   entro soglia», e quando ci sono entrambi lo scrive nel sottotitolo:
+   «… · **2 senza una lettura**, su 6 punti in ascolto».
 
 ### Il punto di chiamata da aggiornare, o la correzione si rompe da sola
 
@@ -148,14 +168,12 @@ toglierlo: un punto con una lettura a zero è **Conforme**, e va lasciato tale.
    `ratio` è `null`, non `0`;
 2. un punto con **una lettura a zero** **è** «Conforme» — la controprova della
    prima, e quella che impedisce di correggere troppo;
-3. un punto **importato da CSV** (valore vero, `letture: []`) è «senza data», e
-   **non** è né «Conforme» né «Mai misurato»;
-4. una lettura con **data non valida** non conta come misura — è la ragione per
-   cui il rilevatore è `ultimaLettura` e non `letture.length`;
-5. `riepilogoConformita`: `conformi + attenzione + superamento + maiMisurati +
-   senzaData` **fa** il totale, su un insieme che contiene tutti e cinque i casi;
-6. `puntoPeggiore` non sceglie un punto mai misurato quando ne esiste uno
-   misurato — un `ratio: null` non deve ordinarsi come uno zero.
+3. un punto con un **valore digitato sopra soglia** e nessuno storico resta un
+   **superamento** — la decisione già presa, che la prima proposta rovesciava;
+4. `riepilogoConformita`: `conformi + attenzione + superamento + maiMisurati`
+   **fa** il totale;
+5. il vocabolario è quello che Sentinella **usa già** (`stato: "mai"`,
+   «Mai misurato», `cls: "warn"`), non uno nuovo.
 
 Il **primo** test è il numero 2, non il numero 1: la correzione più facile da
 sbagliare qui è quella che, per non dire «Conforme» a vuoto, smette di dirlo

@@ -1221,10 +1221,27 @@ test("riepilogoConformita: conta conformi/attenzione/superamento", () => {
     { valore: 12, soglia: 10 },  // superamento
     { valore: 10, soglia: 10 },  // 100% → superamento
   ];
-  eq(sentinella.riepilogoConformita(mon), { conformi: 1, attenzione: 1, superamento: 2, totale: 4 }, "conteggi");
+  eq(sentinella.riepilogoConformita(mon),
+    { conformi: 1, attenzione: 1, superamento: 2, maiMisurati: 0, totale: 4 }, "conteggi");
+});
+/* ⛔ Il conteggio che mancava, ed è quello che il riepilogo esisteva per non
+   dire: un punto appena configurato (`valore: 0`, nessuna lettura) NON è
+   conforme. Prima ci finiva, e con sei punti nuovi il cartellone diceva «6
+   punti entro soglia» il primo giorno di ogni cliente.
+   docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md */
+test("riepilogoConformita: un punto MAI MISURATO non è conforme", () => {
+  const nuovi = [{ valore: 0, soglia: 5, letture: [] }, { valore: 0, soglia: 5, letture: [] }];
+  const r = sentinella.riepilogoConformita(nuovi);
+  eq(r, { conformi: 0, attenzione: 0, superamento: 0, maiMisurati: 2, totale: 2 }, "due punti nuovi");
+  eq(r.conformi + r.attenzione + r.superamento + r.maiMisurati, r.totale, "i pezzi fanno il totale");
+  // guardia contro il troppo zelo: una lettura a ZERO è un dato vero
+  const misurato = [{ valore: 0, soglia: 5, letture: [{ data: "2026-07-30", valore: 0 }] }];
+  eq(sentinella.riepilogoConformita(misurato).conformi, 1, "zero MISURATO è conforme");
+  eq(sentinella.statoMisura(misurato[0]).label, "Conforme", "e il badge lo dice");
 });
 test("riepilogoConformita: nessun monitoraggio = tutto 0 (niente crash)", () =>
-  eq(sentinella.riepilogoConformita([]), { conformi: 0, attenzione: 0, superamento: 0, totale: 0 }, "vuoto"));
+  eq(sentinella.riepilogoConformita([]),
+    { conformi: 0, attenzione: 0, superamento: 0, maiMisurati: 0, totale: 0 }, "vuoto"));
 test("prioritaConformita: misure non conformi + adempimenti (scaduto=danger), danger prima", () => {
   const mon = [
     { nome: "Vibr V2", valore: 5.6, soglia: 5, unita: "mm/s" },     // 1.12 → superamento (danger)
