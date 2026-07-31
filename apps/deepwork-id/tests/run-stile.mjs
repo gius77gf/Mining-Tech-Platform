@@ -7,7 +7,10 @@
 // perché non falliscono i test, si vedono solo aprendo la pagina giusta.
 // Qui diventano controlli che girano in automatico.
 //
-// Tredici regole, oggi:
+// 17 regole, al 03/08. *(Era rimasto scritto «tredici» per giorni mentre
+// l'elenco cresceva: un numero in un commento non fallisce, sta lì — la stessa
+// ragione per cui esiste `numeri-nei-documenti.mjs`. Adesso c'è una prova in
+// fondo al file che lo confronta con le voci davvero elencate qui sotto.)*
 //  1. NIENTE DIALOGHI DEL BROWSER. `alert()`, `confirm()`, `prompt()` sono
 //     vietati dalla direttiva sullo stile. La ragione non è estetica: la
 //     finestra ha il carattere e i bottoni del sistema operativo, su Android
@@ -1891,6 +1894,20 @@ controprovaSuiVeri("regola 14 (nota del modo come lavagna)", avvisoUsatoComeLava
    in tutte e sei le app fino al 02/08 */
 controprovaSuiVeri("regola 17 (struttura riscritta in casa)", strutturaInCasa,
   ';function toast(msg, tipo) { const t = document.getElementById("toast"); if (t) t.textContent = msg; }');
+
+/* Il numero di regole scritto nell'intestazione è quello vero? Era rimasto a
+   «tredici» mentre le regole erano diciassette. Un numero in un commento non
+   fallisce: sta lì, e chi legge si fida. */
+test("l'intestazione dice quante regole ci sono davvero", () => {
+  const testa = leggi("apps/deepwork-id/tests/run-stile.mjs").split("// ============================================================")[1] || "";
+  const voci = [...testa.matchAll(/^\/\/\s{0,2}(\d{1,2})\. /gm)].map((m) => +m[1]);
+  const dichiarate = +(testa.match(/^\/\/ (\d{1,2}) regole,/m) || [])[1];
+  ok(voci.length > 0, "nessuna voce numerata trovata nell'intestazione: il controllo non sta guardando niente");
+  ok(dichiarate === voci.length,
+    `l'intestazione dice ${dichiarate} regole ma ne elenca ${voci.length}`);
+  ok(voci.every((n, i) => n === i + 1),
+    `la numerazione salta: ${voci.join(", ")}`);
+});
 
 console.log(`\nRisultato Stile: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
