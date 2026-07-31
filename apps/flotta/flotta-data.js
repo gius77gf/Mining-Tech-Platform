@@ -1062,14 +1062,24 @@ export function manutenzioniDaControllo(controllo, oggi = new Date()) {
 export function coperturaControlli(controlli, mezzi, iso) {
   const giorno = String(iso || "").slice(0, 10);
   const fatti = new Set();
-  let conAnomalie = 0;
+  /* ⚠️ I MEZZI CON ANOMALIE SI RACCOLGONO, NON SI CONTANO AL VOLO.
+     La versione precedente faceva `if (!fatti.has(nome) && anomalie > 0)
+     conAnomalie++`, cioè guardava solo il PRIMO giro di ogni mezzo: se il
+     primo era pulito e il secondo trovava qualcosa, il riquadro diceva **zero
+     anomalie**. E il caso non è teorico — in cava il giro si fa a ogni cambio
+     turno, quindi due o tre giri al giorno sullo stesso mezzo sono la norma.
+     Il difetto dipendeva perfino dall'ORDINE dell'elenco: gli stessi due giri,
+     scambiati di posto, davano due risultati diversi.
+     Trovato il 01/08 misurando la funzione, non leggendola. */
+  const conAnomalia = new Set();
   for (const c of controlli || []) {
     if (String(c.data || "").slice(0, 10) !== giorno) continue;
     const nome = nomeBreve(c.mezzo);
     if (!nome) continue;
-    if (!fatti.has(nome) && (+c.anomalie || 0) > 0) conAnomalie++;
+    if ((+c.anomalie || 0) > 0) conAnomalia.add(nome);
     fatti.add(nome);
   }
+  const conAnomalie = conAnomalia.size;
   const tutti = (mezzi || []).map(m => nomeBreve(m.nome)).filter(Boolean);
   const mancanti = tutti.filter(n => !fatti.has(n));
   return { totale: tutti.length, fatti: tutti.length - mancanti.length, mancanti, conAnomalie };

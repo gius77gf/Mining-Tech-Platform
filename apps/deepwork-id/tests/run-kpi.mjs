@@ -4403,5 +4403,63 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ IL GIRO MACCHINA: CHI L'HA FATTO E CHI HA TROVATO QUALCOSA ═════════
+   `coperturaControlli` dice quanti mezzi hanno il giro fatto oggi, quali
+   mancano, e **su quanti è stata trovata un'anomalia**. È il riquadro da cui
+   si decide se un mezzo esce.
+
+   ⚠️ L'ultimo dei tre numeri aveva un difetto che dipendeva dall'ORDINE
+   dell'elenco, trovato il 01/08 misurando invece di leggere: il conteggio
+   guardava solo il PRIMO giro di ogni mezzo. In cava un mezzo si controlla a
+   ogni cambio turno, quindi il caso non è teorico — primo giro pulito, secondo
+   giro con un'anomalia, e il riquadro diceva **zero anomalie**. Adesso il mezzo
+   conta se l'anomalia c'è in QUALUNQUE giro della giornata. */
+{
+  const mezzi = [{ nome: "Dumper D4" }, { nome: "Pala PC210" }];
+  const cc = flotta.coperturaControlli;
+
+  test("giro macchina: chi non l'ha fatto finisce fra i mancanti", () => {
+    const r = cc([{ data: "2026-07-01", mezzo: "Dumper D4", anomalie: 0 }], mezzi, "2026-07-01");
+    eq(r.totale, 2, "due mezzi nel parco");
+    eq(r.fatti, 1, "uno solo ha il giro fatto");
+    eq(r.mancanti.join(","), "Pala PC210", "e si dice quale manca");
+  });
+  test("giro macchina: i giri di un altro giorno non contano per oggi", () => {
+    const r = cc([{ data: "2026-06-30", mezzo: "Dumper D4", anomalie: 0 }], mezzi, "2026-07-01");
+    eq(r.fatti, 0, "il giro di ieri non copre oggi");
+    eq(r.mancanti.length, 2, "mancano tutti e due");
+  });
+  test("giro macchina: un giro su un mezzo non più nel parco non gonfia il conto", () => {
+    const r = cc([{ data: "2026-07-01", mezzo: "Escavatore venduto", anomalie: 0 }], mezzi, "2026-07-01");
+    eq(r.fatti, 0, "non è un mezzo del parco");
+    eq(r.totale, 2, "e il totale resta quello del parco");
+  });
+  test("giro macchina: i mezzi con un'anomalia si contano una volta sola", () => {
+    const r = cc([
+      { data: "2026-07-01", mezzo: "Dumper D4", anomalie: 2 },
+      { data: "2026-07-01", mezzo: "Dumper D4", anomalie: 1 },
+    ], mezzi, "2026-07-01");
+    eq(r.conAnomalie, 1, "un mezzo, non due giri");
+  });
+  test("⛔ giro macchina: l'anomalia del SECONDO turno non sparisce", () => {
+    /* il difetto vero, che dipendeva dall'ordine: primo giro pulito, secondo
+       giro con un'anomalia. Il riquadro diceva zero. */
+    const r = cc([
+      { data: "2026-07-01", mezzo: "Dumper D4", anomalie: 0 },
+      { data: "2026-07-01", mezzo: "Dumper D4", anomalie: 3 },
+    ], mezzi, "2026-07-01");
+    eq(r.conAnomalie, 1, "l'anomalia trovata al secondo giro conta come il primo");
+  });
+  test("⛔ giro macchina: l'ordine dell'elenco non cambia il risultato", () => {
+    const giri = [
+      { data: "2026-07-01", mezzo: "Dumper D4", anomalie: 0 },
+      { data: "2026-07-01", mezzo: "Dumper D4", anomalie: 3 },
+    ];
+    eq(cc(giri, mezzi, "2026-07-01").conAnomalie,
+       cc(giri.slice().reverse(), mezzi, "2026-07-01").conAnomalie,
+       "stessa giornata, stesso numero, comunque siano ordinati i giri");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
