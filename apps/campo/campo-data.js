@@ -996,13 +996,18 @@ export function disponibilitaTurno(attivita, durate, data, turno) {
   out.lavoratiMin = durataMin - fermiMin;
   out.pct = Math.round(100 * out.lavoratiMin / durataMin);
   out.stato = out.pct >= DISPONIBILITA_OK ? "ok" : out.pct >= DISPONIBILITA_WARN ? "warn" : "basso";
-  // «al più il 86%» sarebbe sbagliato in italiano («l'86%»), e la regola
-  // dipende da come si PRONUNCIA il numero (8, 11, 18, 80-89…): l'articolo si
-  // toglie invece di indovinarlo.
+  // UNA MISURA INCOMPLETA NON PRENDE IL VERDE. Se qualche fermo è senza minuti
+  // la percentuale è un massimo: quella vera può stare sotto la soglia, e il
+  // colore tranquillo direbbe «è andata bene» su un turno che non sappiamo
+  // com'è andato. Si decide QUI e non nella pagina, se no il prossimo posto che
+  // mostra questo numero ricomincia a dipingerlo di verde.
+  if (out.parziale && out.stato === "ok") out.stato = "warn";
+  // Il motivo NON ripete la percentuale: chi lo mostra la scrive già accanto,
+  // e scritta in tutti e due i posti compariva due volte nella stessa riga.
   out.motivo = out.parziale
-    ? "Al più " + numeroIt(out.pct, 0) + "%: " + out.fermiSenzaMinuti
+    ? out.fermiSenzaMinuti
       + (out.fermiSenzaMinuti === 1 ? " fermo è senza minuti" : " fermi sono senza minuti")
-      + ", quindi il tempo perso è almeno questo e la disponibilità al massimo questa."
+      + ": il tempo perso è almeno questo, quindi la disponibilità è al massimo questa."
     : "";
   return out;
 }

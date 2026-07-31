@@ -1854,9 +1854,12 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       ? `<b>${numeroIt(dp.fermiMin, 0)} min</b> di fermo da <b>${dp.fermi}</b> ${dp.fermi === 1 ? "fermo" : "fermi"}`
         + (dp.peggiore ? ` · peggiore: <b>${esc(dp.peggiore.causale)}</b> (${numeroIt(dp.peggiore.minuti, 0)} min)` : "")
       : "nessun fermo registrato in questo turno";
+    // «al più» sta ATTACCATO al numero, non in fondo alla riga di spiegazione:
+    // chi guarda un cartellone legge la cifra grossa e va via, e una cifra
+    // grossa senza il suo «al più» è la misura che non abbiamo fatto.
     return `<div class="board ${cls}">
         <div class="board-ico">${I.orologio}</div>
-        <div><div class="board-num">${dp.pct}%</div>
+        <div><div class="board-num"${dp.parziale ? ` style="font-size:26px"` : ""}>${dp.parziale ? "al più " : ""}${dp.pct}%</div>
           <div class="board-lab">Disponibilità turno ${esc(dp.turno)}</div></div>
         <div class="board-txt">Turno dichiarato di <b>${esc(oreMinuti(dp.durataMin))}</b>, lavorati <b>${esc(oreMinuti(dp.lavoratiMin))}</b> ·
           ${daQuanti}${dp.parziale ? `<br><b class="bad">${esc(dp.motivo)}</b>` : ""}</div>
@@ -3018,7 +3021,7 @@ ${obOggi.length?`<table><tr><th>Turno</th><th>Obiettivo</th><th>Fatto</th><th>Sc
 <h2>Fermi per causale</h2>
 ${fermi.length?`<table><tr><th>Causale</th><th>Anomalie</th></tr>${fermi.map(f=>`<tr><td>${esc(f.causale)}</td><td>${f.conto}</td></tr>`).join("")}</table>`:"<div>Nessuna anomalia aperta.</div>"}
 <h2>Disponibilità del turno</h2>
-${dispOggi.length?`<table><tr><th>Turno</th><th>Durata dichiarata</th><th>Fermi</th><th>Tempo perso</th><th>Causale peggiore</th><th>Disponibilità</th></tr>${dispOggi.map(d=>`<tr><td>${esc(d.turno)}</td><td>${d.durataMin===null?"non dichiarata":esc(oreMinuti(d.durataMin))}</td><td>${d.fermi} ${d.fermi===1?"fermo":"fermi"}${d.fermiSenzaMinuti?" (di cui "+d.fermiSenzaMinuti+" senza minuti)":""}</td><td>${d.fermi?numeroIt(d.fermiMin,0)+" min":"—"}</td><td>${d.peggiore?esc(d.peggiore.causale)+" — "+numeroIt(d.peggiore.minuti,0)+" min su "+d.peggiore.conto+(d.peggiore.conto===1?" fermo":" fermi"):"—"}</td><td>${d.pct===null?"<b>non calcolata</b> — "+esc(d.motivo):(d.parziale?"al più <b>"+d.pct+"%</b>":"<b>"+d.pct+"%</b>")+" ("+esc(oreMinuti(d.lavoratiMin))+" lavorati su "+esc(oreMinuti(d.durataMin))+")"+(d.parziale?" — "+esc(d.motivo):"")}</td></tr>`).join("")}</table>
+${dispOggi.length?`<table><tr><th>Turno</th><th>Durata dichiarata</th><th>Fermi</th><th>Tempo perso</th><th>Causale peggiore</th><th>Disponibilità</th></tr>${dispOggi.map(d=>`<tr><td>${esc(d.turno)}</td><td>${d.durataMin===null?"non dichiarata":esc(oreMinuti(d.durataMin))}</td><td>${d.fermi} ${d.fermi===1?"fermo":"fermi"}${d.fermiSenzaMinuti?" (di cui "+d.fermiSenzaMinuti+" senza minuti)":""}</td><td>${d.fermi?numeroIt(d.fermiMin,0)+" min":"—"}</td><td>${d.peggiore?esc(d.peggiore.causale)+" — "+numeroIt(d.peggiore.minuti,0)+" min su "+d.peggiore.conto+(d.peggiore.conto===1?" fermo":" fermi"):"—"}</td><td>${d.pct===null?"<b>non calcolata</b> — "+esc(d.motivo):(d.parziale?"al più <b>"+d.pct+"%</b>":"<b>"+d.pct+"%</b>")+" ("+esc(oreMinuti(d.lavoratiMin))+" lavorati su "+esc(oreMinuti(d.durataMin))+")"+(d.parziale?"<br>"+esc(d.motivo):"")}</td></tr>`).join("")}</table>
 <div class="muted">Disponibilità = durata dichiarata del turno meno i minuti di fermo registrati sulle attività in anomalia. <b>Non è l'OEE</b>: l'OEE moltiplica disponibilità, prestazione e qualità, e prestazione e qualità qui non sono misurate.</div>`
  :"<div>Nessuna durata di turno dichiarata oggi e nessuna attività da cui misurarla: la disponibilità non è stata calcolata.</div>"}
 ${fotoOggi.length?`<h2>Foto delle anomalie</h2>${fotoOggi.map(a=>`<div class="foto"><div><b>${esc(a.titolo)}</b> — turno ${esc(a.turno||"—")}${a.causale?" · "+esc(a.causale):""}${a.fotoOra?" · scattata alle "+esc(a.fotoOra):""}</div><img src="${a.foto}" alt=""></div>`).join("")}`:""}
