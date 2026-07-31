@@ -68,9 +68,18 @@ condizioni · firma e chiusura del turno.
   persistente. Tocca anche un file condiviso: da fare con cautela;
 - **rapporto di turno più ricco** — manca il piano di carico.
 
-**Da fare:** evento di sicurezza dal campo → Scudo (sarebbe la **prima
-scrittura** cross-app di Campo, con le domande sui permessi Firestore che si
-porta dietro) · anomalia mezzo → Flotta · giro del sorvegliante · causali di
+**Da fare:** evento di sicurezza dal campo → Scudo.
+⚠️ **Correzione al censimento, dalla ricerca del 04/08**
+(`docs/RICERCA_EVENTO_SICUREZZA_DAL_CAMPO_202608.md`): qui c'era scritto «con le
+domande sui permessi Firestore che si porta dietro». **Quelle domande non ci
+sono**: Sentinella scrive già dentro Scudo (`ponteScudo`), e le regole
+permettono a **qualunque membro dell'organizzazione** di scrivere sotto
+qualunque `appId` — nessuna regola nuova. E la ricerca ha trovato una cosa che
+il censimento non poteva sapere: dal **29/12/2025** (art. 15 D.L. 159/2025,
+convertito con L. 198/2025) le imprese con **più di quindici dipendenti** devono
+**comunicare i dati aggregati dei mancati infortuni** e le azioni correttive.
+Scudo ha già near-miss e CAPA: **manca il foglio da consegnare**. La voce sale
+di priorità e va pensata insieme al prospetto · anomalia mezzo → Flotta · giro del sorvegliante · causali di
 fermo a due livelli · piano squadre settimanale · controllo di metà turno.
 
 ## Conti — 11 fatte, 3 parziali, 6 da fare
