@@ -1365,6 +1365,26 @@ campi interi, file delle macchine.
       processo figlio**, non nello stesso — oggi la prova giusta non farebbe
       *cadere* la suite, la **fermerebbe**, e una suite ferma non è un esito.
       Misurato in figlio: «non ritorna entro 6 secondi».
+- [x] **E come si chiama, il dato che manca?** *(03/08)* — prima di aggiungere
+      un'etichetta nuova, la domanda che la direttiva sull'eccellenza impone:
+      *come lo dice già l'app?* Censite le **120 etichette di stato** dei sei
+      moduli, Sentinella ne aveva **cinque** che sembrano dire la stessa cosa —
+      e guardate una per una **non lo dicono**: sono cinque **portate** diverse
+      («Senza dati» un periodo · «Mai misurato» un punto · «Manca <il campo>» un
+      campo · «Dato mancante» il ripiego · «Senza frequenza» un'impostazione). La
+      precisione è giusta; il rischio è il **sesto** termine — e stavo per
+      correrlo io, la scheda proponeva «senza data» per il punto importato da
+      CSV. Controllo aggiunto a `sonda-vuoto.mjs`: chi ne aggiunge uno lo
+      dichiara **con la sua portata**, e chi ne toglie uno accorcia l'elenco.
+      ⚠️ **La controprova ha bocciato la prima versione**: il filtro cercava solo
+      le frasi che **somigliavano già** a quelle note, quindi iniettando «Senza
+      rilevazioni» — esattamente il sinonimo che il controllo esiste per fermare
+      — **non succedeva niente**. Cieco proprio sul caso per cui era nato: è la
+      **quarta** volta che si presenta *il controllo che non guarda dove crede*.
+      Adesso il filtro è un **lessico dell'assenza**, e il suo limite è scritto
+      invece che scoperto (ferma le varianti costruite con le parole
+      dell'assenza, non un'invenzione lessicale: «Da rilevare» sì, «In attesa»
+      no). Controprova a tre difetti, tre su tre col motivo giusto.
 
 ---
 

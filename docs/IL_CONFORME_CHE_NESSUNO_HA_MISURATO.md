@@ -341,6 +341,52 @@ difetto non può raccontare come è finita.
 
 ---
 
+## E come si chiama, il dato che manca? — il censimento del vocabolario
+
+Prima di aggiungere un'etichetta nuova, la domanda che la direttiva
+sull'eccellenza impone: *come lo dice già l'app?* Censite le **120 etichette di
+stato** dei sei moduli, Sentinella ne aveva **cinque** che sembrano dire la
+stessa cosa. Guardate una per una **non lo dicono** — sono **cinque portate
+diverse**, e la precisione è giusta:
+
+| etichetta | che cosa manca |
+|---|---|
+| **Senza dati** | un **PERIODO** senza nessuna lettura (report all'ente) |
+| **Mai misurato** | un **PUNTO** che non è mai stato letto |
+| **Manca la PPV misurata** *(e sorelle)* | un **CAMPO** preciso, una frase per campo |
+| **Dato mancante** | il **ripiego** generico, quando il campo non è noto |
+| **Senza frequenza** | un'**IMPOSTAZIONE** che manca, non una misura |
+
+Il rischio non è quello che c'è: è il **sesto** termine che nasce la prossima
+volta. Ed è un rischio che stavo per correre io: la scheda proponeva
+«**senza data**» per il punto importato da CSV. Il controllo lo tiene chiuso —
+chi ne aggiunge uno deve dichiararlo con la sua **portata**, e accorgersi
+scrivendolo se stava inventando un sinonimo.
+
+### La controprova ha bocciato la prima versione del controllo
+
+Il filtro cercava `manca | senza dat | mai misur | non misur | n.d.` — cioè
+riconosceva **solo le frasi che somigliavano già a quelle note**. Iniettando
+«**Senza rilevazioni**», che è *esattamente* il quinto sinonimo che il controllo
+esiste per fermare, **non succedeva niente**.
+
+> Il controllo era cieco **proprio sul caso per cui era nato**. Ed è la quarta
+> volta che questa forma si presenta: *il controllo che non guarda dove crede*.
+
+Adesso il filtro è un **lessico dell'assenza** — `manca`, `senza`, `mai`,
+`n.d.`, `nessun dato/lettura/misura`, `non misurato/rilevato/pervenuto`,
+`assente`, `da rilevare`, `ignoto`, `sconosciuto`. Resta **incompleto per
+costruzione**, e il limite va **scritto** invece che scoperto: nessuna regex
+decide se una frase italiana nuova stia dicendo «manca». Ferma le varianti
+costruite con le parole dell'assenza («Da rilevare» sì), non un'invenzione
+lessicale («In attesa» no).
+
+Controprova a tre difetti — un quinto sinonimo, una famiglia dichiarata che
+sparisce, il filtro accecato — **tre su tre** cadono col motivo giusto, e sui
+file sani il controllo passa.
+
+---
+
 ## La lezione, che è più grande del difetto
 
 Il principio «l'assenza di un dato non è un dato favorevole» è in `CLAUDE.md` da

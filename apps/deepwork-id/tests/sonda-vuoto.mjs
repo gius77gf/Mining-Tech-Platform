@@ -163,6 +163,59 @@ test("la sonda ha davvero chiamato le funzioni", () => {
   ok(chiamate >= 300, `solo ${chiamate} funzioni chiamate a vuoto su ${funzioni}: la sonda non sta guardando niente`);
 });
 
+/* ── E COME SI CHIAMA, IL DATO CHE MANCA? ─────────────────────────────
+   Censite le etichette di stato dei sei moduli (03/08), Sentinella ne aveva
+   QUATTRO che sembrano dire la stessa cosa. Guardate una per una **non lo
+   dicono**: sono quattro PORTATE diverse, e la precisione è giusta —
+
+     · «Senza dati»            un PERIODO senza nessuna lettura (report all'ente)
+     · «Mai misurato»          un PUNTO che non è mai stato letto
+     · «Manca la PPV misurata» un CAMPO preciso che non c'è
+     · «Dato mancante»         il ripiego generico, quando il campo non è noto
+
+   Il rischio non è quello che c'è: è il **quinto** termine che nasce la
+   prossima volta che qualcuno deve dire «manca». Questo controllo tiene
+   l'elenco chiuso: chi ne aggiunge uno deve dichiararlo qui, con la sua
+   portata — e accorgersi, scrivendolo, se ne stava inventando un sinonimo.
+
+   Si dichiara la FAMIGLIA, non la singola frase: «Manca la PPV misurata»,
+   «Manca la distanza del ricettore» e «Manca la carica massima per ritardo»
+   sono la stessa convenzione applicata a tre campi — quella sì che va bene, ed
+   è la riga `Manca …` qui sotto. */
+const VOCABOLARIO_MANCANTE = [
+  [/^Senza dati$/, "un PERIODO senza nessuna lettura registrata (report di conformità)"],
+  [/^Mai misurato$/, "un PUNTO di misura che non è mai stato letto"],
+  [/^Manca /, "un CAMPO preciso che non c'è — convenzione «Manca <il campo>», una frase per campo"],
+  [/^Dato mancante$/, "il ripiego generico, quando non si sa quale campo manchi"],
+  [/^Senza frequenza$/, "un'IMPOSTAZIONE che manca (ogni quanti giorni), non una misura"],
+];
+/* ⚠️ IL FILTRO È IL PUNTO DEBOLE, e lo si è scoperto con la controprova. La
+   prima versione cercava `manca|senza dat|mai misur|non misur|n.d.` — cioè
+   riconosceva solo le frasi che SOMIGLIAVANO GIÀ a quelle note. Iniettando
+   «Senza rilevazioni», che è esattamente il quinto sinonimo che il controllo
+   esiste per fermare, non succedeva niente: il controllo era cieco proprio sul
+   caso per cui era nato. È la stessa famiglia del «controllo che non guarda
+   dove crede», raccolta tre volte in CLAUDE.md.
+   Adesso il filtro è un LESSICO DELL'ASSENZA, più largo. Resta comunque
+   incompleto — nessuna regex decide se una frase italiana nuova stia dicendo
+   «manca» — e questo limite va tenuto scritto invece che scoperto: il controllo
+   ferma le varianti costruite con le parole dell'assenza, non un'invenzione
+   lessicale («Da rilevare» lo prende, «In attesa» no). */
+const ASSENZA = /manca|mancante|\bsenza\b|\bmai\b|n\.?d\.|nessun\w* (dato|lettura|misura|rilevazione)|non (misurat|rilevat|pervenut|dichiarat|disponibil)|assente|da rilevare|ignot|sconosciut/i;
+test("Sentinella non ha inventato un sinonimo nuovo per «manca il dato»", () => {
+  const src = readFileSync(join(RADICE, "apps", "sentinella", "sentinella-data.js"), "utf8");
+  const etichette = [...src.matchAll(/\b(?:label|etichetta)\s*:\s*"([^"]+)"/g)].map((m) => m[1]);
+  const parlano = [...new Set(etichette.filter((t) => ASSENZA.test(t)))];
+  ok(parlano.length >= 4, `solo ${parlano.length} etichette esaminate: il filtro non sta guardando niente`);
+  const nuovi = parlano.filter((t) => !VOCABOLARIO_MANCANTE.some(([re]) => re.test(t)));
+  ok(nuovi.length === 0,
+    `${nuovi.length} modi nuovi di dire «manca il dato» → ${nuovi.join(" · ")}`
+    + " — se è una PORTATA diversa va dichiarata in VOCABOLARIO_MANCANTE, se è la stessa va usato il termine che c'è già");
+  const spariti = VOCABOLARIO_MANCANTE.filter(([re]) => !parlano.some((t) => re.test(t)));
+  ok(spariti.length === 0,
+    `${spariti.length} famiglie dichiarate non si usano più → ${spariti.map(([re]) => re.source).join(" · ")}: vanno tolte`);
+});
+
 console.log(`\nRisultato sonda del vuoto: ${passed} passati, ${failed} falliti`
   + `  ·  ${trovati.size} tranquilli trovati, ${Object.keys(ACCETTATI).length} dichiarati`);
 process.exit(failed > 0 ? 1 : 0);
