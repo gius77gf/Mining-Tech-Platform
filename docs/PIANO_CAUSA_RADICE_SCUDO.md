@@ -137,6 +137,44 @@ guardia `pochi` che `riepilogoNearMiss` ha già — e va riusata, non riscritta.
 
 ---
 
+---
+
+## Come si riconosce che «l'ultimo perché nomina una persona» *(12 prove in banco, 05/08)*
+
+Il piano diceva *cosa* fare e non *come*, che è il punto dove una scheda smette
+di essere utile. Provandolo, la risposta è venuta fuori — e **non è
+un'euristica linguistica**.
+
+Indovinare i nomi dalla forma delle parole è una pessima idea in italiano:
+«Rossi» è un cognome e anche un colore, «Bo» è un cognome e sta dentro
+«bordo». Un controllo che sbaglia **accusa chi ha scritto la verità**, ed è
+esattamente il danno che questa funzione dovrebbe evitare.
+
+**Ma il nome non va indovinato: va cercato.** Scudo ha già la collezione
+`lavoratori`. `nominaUnaPersona(testo, lavoratori)` confronta l'ultimo perché
+con i nomi **veri** dell'azienda, a parola intera — e la prova che vale più
+delle altre è quella al negativo: *«Il masso è caduto oltre il **bordo** della
+pista»* **non** deve accusare il lavoratore *Bo*.
+
+Sotto ai nomi c'è un secondo giro, breve, sui **ruoli senza nome**
+(«l'operatore», «l'addetto», «il conducente»): lì non serve beccarli tutti,
+serve **chiedere** quando ce n'è uno.
+
+E la validazione non blocca mai per questo motivo:
+
+| Caso | Esito |
+|---|---|
+| meno di due perché | **non valida** — il primo è quasi sempre la descrizione, non la causa |
+| famiglia della causa non scelta | **non valida** |
+| l'ultimo perché nomina una persona | **valida**, con la domanda accanto |
+| `comportamentale` con meno di tre perché | **valida**, con la richiesta di dire *perché quel comportamento era possibile* |
+
+Le due righe che bloccano riguardano dati mancanti; quelle che riguardano il
+**contenuto** chiedono e basta. Se lo strumento accusa, chi lo usa smette di
+scrivere la verità.
+
+---
+
 ## Le unità, in ordine
 
 1. **`analisiDiEvento` + `validaAnalisi`**, con le prove. La prova che conta
