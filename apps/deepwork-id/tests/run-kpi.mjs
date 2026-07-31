@@ -4461,5 +4461,56 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ IL CONSUMO PER MEZZO: QUANDO SI PUÒ DIRE, E QUANDO NO ══════════════
+   `consumoPerMezzo` calcola litri/ora dai rifornimenti. Il pregio da difendere
+   non è la divisione — è che la funzione **si rifiuta di rispondere** quando i
+   dati non bastano, e **dice perché**.
+
+   Serve almeno un secondo rifornimento col contatore delle ore, altrimenti non
+   si sa quante ore separano i due pieni. Rispondere lo stesso — con i litri
+   diviso un'ora inventata — darebbe un numero su cui qualcuno deciderebbe se
+   un mezzo consuma troppo. */
+{
+  const cpm = flotta.consumoPerMezzo;
+  const p = (data, litri, ore, euro) => ({ data, mezzo: "Dumper D4", litri, ore, euro });
+
+  test("consumo: con due pieni e il contatore si calcolano i litri/ora", () => {
+    const r = cpm([p("2026-07-01", 100, 1000, 150), p("2026-07-10", 200, 1100, 300)]);
+    const m = r.mezzi[0];
+    eq(m.oreCoperte, 100, "cento ore fra il primo e l'ultimo pieno");
+    ok(m.litriOra > 0, `litri/ora calcolati: ${m.litriOra}`);
+  });
+  test("⛔ consumo: con un solo contatore NON si inventa un numero", () => {
+    const r = cpm([p("2026-07-01", 100, 1000, 150), p("2026-07-10", 200, null, 300)]);
+    const m = r.mezzi[0];
+    eq(m.litriOra, null, "null invece di un litri/ora inventato");
+    /* ⚠️ È QUESTA la riga che discrimina, non quella sopra. Provato togliendo
+       il ramo «dati insufficienti» su una COPIA del modulo: `litriOra` resta
+       null lo stesso (con un contatore solo le ore coperte sono zero, e il
+       calcolo non parte comunque), mentre la RAGIONE cambia — diventa «il
+       contatore non è cambiato», che è una spiegazione sbagliata per il caso.
+       Se un domani si tenesse solo l'asserzione sul numero, questa prova
+       smetterebbe di misurare senza che il totale cali di uno. */
+    ok(/secondo rifornimento/i.test(m.perche), `e si dice perché: ${m.perche}`);
+  });
+  test("⛔ consumo: senza nessun contatore si dice che manca il contatore", () => {
+    const r = cpm([p("2026-07-01", 100, null, 150), p("2026-07-10", 200, null, 300)]);
+    const m = r.mezzi[0];
+    eq(m.litriOra, null, "niente numero");
+    ok(/contatore/i.test(m.perche), `e la ragione è quella giusta: ${m.perche}`);
+  });
+  test("consumo: i litri comunque si sommano, anche senza contatore", () => {
+    /* il consumo orario non si può dire, ma i litri messi nel serbatoio sì:
+       sono un dato certo e servono per la spesa */
+    const r = cpm([p("2026-07-01", 100, null, 150), p("2026-07-10", 200, null, 300)]);
+    eq(r.mezzi[0].litri, 300, "trecento litri in tutto");
+    eq(r.mezzi[0].euro, 450, "e quattrocentocinquanta euro");
+  });
+  test("consumo: un rifornimento senza litri non entra", () => {
+    const r = cpm([p("2026-07-01", 0, 1000, 0), p("2026-07-10", 200, 1100, 300)]);
+    eq(r.mezzi[0].litri, 200, "il pieno da zero litri non è un pieno");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
