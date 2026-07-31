@@ -94,3 +94,47 @@ falserebbe il controllo).
 Insieme alla correzione arriva anche la difesa: una regola automatica che
 **la prossima volta se ne accorge da sola**, invece di aspettare che
 qualcuno se ne accorga scrivendo una prova.
+
+---
+
+## Il 03/08: la difesa c'era, e guardava solo metà delle coppie
+
+La «difesa automatica» promessa qui sopra è stata scritta ed è
+`apps/deepwork-id/tests/nomi-doppi.mjs`. Ha funzionato — ha retto per due
+giorni — ma faceva **una domanda sola**: *due app esportano lo stesso nome?*
+
+E il posto della regola condivisa non è un'app: è `shared/`. La coppia più
+facile da sbagliare è quindi **un'app contro `shared/`**, cioè un'app che si
+riscrive in casa una funzione che nello shell c'è già. **Quella forma non la
+guardava nessuno.**
+
+Aggiunta la domanda mancante, è saltata fuori subito:
+
+### 4. `perCampo`, in Flotta e nello shell — *è un difetto*
+
+Come si scrive un numero **dentro un campo di testo**: con la virgola
+decimale e **mai** col punto delle migliaia, perché quel punto rientrerebbe
+dal lettore come ambiguo e l'app finirebbe per rifiutare un valore **proposto
+da lei stessa**.
+
+È scritta due volte, in `shared/deepwork-id-client/dw-shell.js` e in
+`apps/flotta/flotta-data.js`, **identiche carattere per carattere**. Oggi
+fanno la stessa cosa; domani una delle due cambia e l'altra no, e non se ne
+accorge nessuno — perché quando divergeranno non ci sarà nessun errore, solo
+un campo che rifiuta un numero che aveva proposto lui.
+
+Nessuno dei due controlli poteva vederla: l'app-contro-app perché Flotta è
+l'**unica** app che esporta quel nome, il nuovo perché non esisteva ancora.
+
+*(Applica il criterio: togliendo la copia di Flotta, chi perde qualcosa?
+Nessuno — il file importa già dallo shell altre sei cose. Quindi una delle
+due è di troppo.)*
+
+### La lezione, che è la solita
+
+Non «serviva un altro controllo». È che **un controllo va misurato anche
+nella sua copertura**: quante coppie ha davvero confrontato? Questo ne
+confrontava sedici su ventisei. Adesso stampa il numero — *«10 nomi
+condivisi fra le app e shared/ sono stati confrontati»* — e **cade se
+scendono sotto otto**, perché uno «zero violazioni» ottenuto su zero
+confronti si legge esattamente come uno vero.
