@@ -632,3 +632,47 @@ export function produzionePerFronte(rapportini, fronti, dal, al, densita) {
     scartati,
   };
 }
+
+// ============================================================
+// LE VOCI DI COSTO DELLA CAVA — la classificazione, in un posto solo
+// ------------------------------------------------------------
+// ⛔ STA IN `shared/` PERCHÉ SERVE A DUE APP, e la regola è vincolante: una
+// classificazione scritta due volte diverge alla prima aggiunta, e allora i
+// costi di Flotta e quelli di Conti smettono di sommarsi — senza che nessun
+// controllo se ne accorga, perché ognuna delle due è coerente con sé stessa.
+//
+// Il censimento diceva «registro costi: da fare, si parte da zero». **Non è
+// vero**, ed è stato misurato il 03/08: un registro costi **esiste già in
+// Flotta** (`costi/{voce, importo, nota, data}`, con `ripartizioneCosti` e
+// `costiPerMese`). Quello che manca non è il registro: è che copre solo il
+// MEZZO. Personale, energia, esplosivo, canone e ripristino non hanno posto, e
+// sono le voci senza le quali «quanto costa un metro cubo» non si può scrivere.
+//
+// `daMezzo` dice quali voci Flotta già registra: servono a non contarle DUE
+// VOLTE quando Conti sommerà le proprie. Chi somma tutto deve sapere che il
+// gasolio è già dentro il registro dei mezzi.
+export const VOCI_COSTO = [
+  { chiave: "carburante", etichetta: "Carburante", gruppo: "mezzi", daMezzo: true },
+  { chiave: "manutenzione", etichetta: "Manutenzione e ricambi", gruppo: "mezzi", daMezzo: true },
+  { chiave: "noleggio", etichetta: "Noleggi e leasing", gruppo: "mezzi", daMezzo: true },
+  { chiave: "personale", etichetta: "Personale", gruppo: "produzione", daMezzo: false },
+  { chiave: "esplosivo", etichetta: "Esplosivo e accessori", gruppo: "produzione", daMezzo: false },
+  { chiave: "energia", etichetta: "Energia elettrica", gruppo: "impianto", daMezzo: false },
+  { chiave: "lavorazione", etichetta: "Frantumazione e vagliatura", gruppo: "impianto", daMezzo: false },
+  { chiave: "canone", etichetta: "Canone di escavazione", gruppo: "concessione", daMezzo: false },
+  { chiave: "ripristino", etichetta: "Ripristino ambientale", gruppo: "concessione", daMezzo: false },
+  { chiave: "generali", etichetta: "Spese generali", gruppo: "generali", daMezzo: false },
+];
+
+export function voceCosto(chiave) {
+  return VOCI_COSTO.find((v) => v.chiave === String(chiave || "")) || null;
+}
+
+// ⛔ UNA VOCE CHE NON È NELL'ELENCO NON DIVENTA «generali». Sarebbe la solita
+// assenza travestita: il costo entrerebbe nei totali sotto un'etichetta che
+// nessuno ha scelto, e sparirebbe dalla ripartizione per gruppo che serve a
+// capire DOVE si spende. Si dichiara non classificata, e chi somma decide.
+export function gruppoDiVoce(chiave) {
+  const v = voceCosto(chiave);
+  return v ? v.gruppo : "non-classificata";
+}

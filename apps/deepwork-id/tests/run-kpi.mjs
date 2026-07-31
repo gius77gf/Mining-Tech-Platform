@@ -2016,6 +2016,39 @@ test("un anno senza infortuni dà indici a ZERO, che è un fatto — non l'assen
   eq([r.indiceFrequenza, r.indiceGravita, r.ltifr], [0, 0, 0], "zero infortuni = indici zero");
   eq(r.infortuni, 0, "ed è dichiarato che sono zero");
 });
+console.log("\n— Le voci di costo della cava (classificazione condivisa) —");
+/* ⛔ IL TEST PRETENDE L'IDENTITÀ, non il comportamento. Due copie uguali oggi
+   divergono domani senza che nessuno lo veda: è la regola scritta in CLAUDE.md
+   col racconto della convenzione sui numeri finita scritta quattro volte. */
+test("la classificazione dei costi è LA STESSA in Conti, Flotta e shared", () => {
+  ok(conti.VOCI_COSTO === ponti.VOCI_COSTO, "Conti ri-esporta, non riscrive");
+  ok(flotta.VOCI_COSTO === ponti.VOCI_COSTO, "e Flotta pure");
+  ok(conti.gruppoDiVoce === ponti.gruppoDiVoce, "e la funzione è la stessa funzione");
+});
+test("le voci sono ben formate e le chiavi non si ripetono", () => {
+  const ch = ponti.VOCI_COSTO.map(v => v.chiave);
+  eq(ch.length, new Set(ch).size, "nessuna chiave doppia");
+  for (const v of ponti.VOCI_COSTO) {
+    ok(!!v.etichetta && !!v.gruppo, v.chiave + ": etichetta e gruppo");
+    ok(typeof v.daMezzo === "boolean", v.chiave + ": daMezzo dichiarato, non lasciato indefinito");
+  }
+});
+test("⛔ una voce che non è nell'elenco NON diventa «generali»", () => {
+  eq(ponti.gruppoDiVoce("inventata"), "non-classificata", "un id sconosciuto si dichiara");
+  eq(ponti.gruppoDiVoce(null), "non-classificata", "e l'assenza pure");
+  eq(ponti.gruppoDiVoce(""), "non-classificata", "e la stringa vuota");
+  eq(ponti.voceCosto("inventata"), null, "voceCosto non ricade sulla prima");
+  /* se ricadesse su «generali» il costo entrerebbe nei totali sotto
+     un'etichetta che nessuno ha scelto, e sparirebbe dalla ripartizione per
+     gruppo, che è quella che serve a capire DOVE si spende */
+  eq(ponti.gruppoDiVoce("carburante"), "mezzi", "e una voce vera ha il suo gruppo");
+});
+test("le voci che Flotta registra già sono marcate, per non contarle due volte", () => {
+  const daMezzo = ponti.VOCI_COSTO.filter(v => v.daMezzo).map(v => v.chiave);
+  eq(daMezzo.sort(), ["carburante", "manutenzione", "noleggio"], "sono quelle del mezzo");
+  ok(ponti.VOCI_COSTO.some(v => v.chiave === "personale" && !v.daMezzo),
+    "e il personale NON viene dal registro dei mezzi: è la voce che manca a Flotta");
+});
 test("prioritaOperative: manutenzione a ore su un mezzo assente viene ignorata (non crasha)", () => {
   const p = flotta.prioritaOperative(
     [{ nome: "Escavatore E1 — CAT 352", ore: 100, stato: "operativo" }],

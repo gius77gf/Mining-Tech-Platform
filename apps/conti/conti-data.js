@@ -41,6 +41,10 @@
 import { parseCsvLine, numIt, giorniTra, isIntestazione,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL } from "../../shared/deepwork-id-client/dw-shell.js";
 import { provenienzaDi, misuratoPeriodo } from "../../shared/dw-ponti.js";
+/* la classificazione dei costi vive in shared/ perché serve anche a Flotta:
+   qui si RI-ESPORTA, non si riscrive. Un alias non è una seconda
+   implementazione — è la regola che è costata una giornata sui numeri. */
+export { VOCI_COSTO, voceCosto, gruppoDiVoce } from "../../shared/dw-ponti.js";
 
 export const DEMO = {
   // fatture d'esempio: alcune già collegate all'anagrafica (clienteId), altre

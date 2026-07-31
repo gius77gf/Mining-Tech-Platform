@@ -795,6 +795,11 @@ export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(
 // l'incidenza % sul totale, dal più pesante. Serve a vedere a colpo d'occhio
 // dove va la spesa della flotta (carburante vs ricambi vs noleggi…). Le voci a
 // importo ≤ 0 sono ignorate. Pura e testabile.
+/* stessa classificazione di Conti, presa da shared/: se le due app usassero
+   due elenchi diversi, i costi del mezzo e quelli della cava smetterebbero di
+   sommarsi senza che nessun controllo se ne accorga. */
+export { VOCI_COSTO, voceCosto, gruppoDiVoce } from "../../shared/dw-ponti.js";
+
 export function ripartizioneCosti(costi) {
   const per = {};
   let totale = 0;
