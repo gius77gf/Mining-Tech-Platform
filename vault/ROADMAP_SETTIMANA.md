@@ -940,9 +940,10 @@ campi interi, file delle macchine.
 - [x] **Regola 15 di `run-stile.mjs`**: vietato prendere il giorno di calendario
       da `toISOString()` su una data costruita in ora locale. Guarda 21 file e
       stampa quanti — e perdona chi entra ed esce in UTC, che è coerente.
-- [x] **Copertura delle funzioni pure, app per app.** Sentinella 77/107, Scudo
-      56/71 *(era 22)*, Campo 65/73 *(era 26)*, Flotta 65/71, Conti 35/58,
-      Terra 32/39 *(era 23)*. Nessuna app è più sotto la metà; quello che resta scoperto
+- [x] **Copertura delle funzioni pure, app per app** *(ricontata il 02/08
+      cercando `app.<nome>` in run-kpi.mjs, non a memoria)*: Sentinella 77/107,
+      Campo 65/73 *(era 26)*, Flotta 65/71 *(era 29)*, Scudo 55/71 *(era 22)*,
+      Conti 54/58 *(era 35)*, Terra 31/39. Nessuna app è più sotto la metà; quello che resta scoperto
       sono quasi solo costanti e trasporto dati.
 - [x] **Il principio usato come lente.** Scritta in `CLAUDE.md` la regola
       «l'assenza di un dato non è un dato favorevole», un audit ha chiamato
@@ -991,6 +992,21 @@ campi interi, file delle macchine.
       **880**, totale node **1.163**. Dalla controprova (14/14, ma 13 al primo
       giro) è uscita una **terza causa** di «non distingue»: l'iniezione che non
       inietta niente — si guarda l'iniezione, non la prova né il codice.
+- [x] **Gli incassi veri e i DDT di Conti.** 17 prove su una regola sola —
+      *quello che non ha una data non entra in una media, e viene detto a parte*.
+      Le fatture segnate «incassata» prima che la data esistesse restano fuori
+      dalle medie invece di entrarci come pagamenti immediati (farebbero sembrare
+      i clienti più puntuali di quanto sono); un movimento **orfano** non conta;
+      l'incassato del grafico sta nel mese in cui i **soldi sono entrati**. Sui
+      DDT: il netto è lordo − tara e non va sottozero, i metri cubi si fanno solo
+      con la densità, e lo stesso prodotto a prezzi diversi resta una riga
+      diversa. run-kpi **897**, totale node **1.180**.
+- [ ] **Una sola `messaggioNumero`.** Misurato il 02/08: la funzione che dice
+      «questo numero non l'ho capito» è scritta **due volte** (shell + Flotta) e
+      `AVVISO_DECIMALE` **quattro volte**; tre messaggi su dieci sono diversi, e
+      ognuna delle due versioni è migliore dell'altra in un punto. Correzione
+      prescritta in `docs/NUMERI_MESSAGGIO_DOPPIO_202608.md`: **aspetta la fine
+      del giro del browser**, perché tocca cinque moduli dati.
 
 ---
 
