@@ -100,6 +100,12 @@ dominante. Verifica obbligatoria con screenshot prima/dopo.
       un'app contro `shared/`. Adesso Flotta la ri-esporta, e il censimento
       delle funzioni pure arriva a **411 su 411**.
       `docs/LA_STESSA_REGOLA_SCRITTA_DUE_VOLTE.md`
+- [x] **Conti: lo sconto del cliente entra nel prezzo** ✅ *(03/08)* — la scheda
+      diceva «sconto 5%» e ogni DDT usciva al **prezzo pieno**: `rigaPesata` il
+      cliente non lo riceveva. Su una differita vera fa **1.375,91 €** in più su
+      un mese. Lo sconto si toglie dall'**imponibile** (piegarlo nel prezzo ne
+      perde 6,69 per l'arrotondamento) e si **vede** su anteprima, DDT
+      stampato, fattura, differita e CSV. Banco nuovo con controprova.
 - [x] **`go(id)` in un posto solo** ✅ *(03/08)* — la **seconda metà** della
       struttura: sei copie in due versioni diventano una, col soprainsieme
       (le guardie di Flotta per tutte, la sua mappa come parametro).
