@@ -223,7 +223,7 @@ Due divergenze, e la seconda è una **trappola vera**:
 
    Stesso nome, stesso numero di parametri, **significato diverso**. Se un
    giorno qualcuno caricasse `dw-app-ui.js` in Genesi «per allinearla», la
-   chiamata — una sola, riga 3875, quella che dà il nome a una volata prima di
+   chiamata — una sola, riga 3895, quella che dà il nome a una volata prima di
    salvarla — continuerebbe a compilare e comincerebbe a passare il **nome
    proposto** dove ci va l'HTML del campo. Nessun errore: il campo comparirebbe
    vuoto, e chi salva si ritroverebbe la volata senza nome che aveva appena
@@ -286,3 +286,155 @@ E controlla anche il verso opposto, che è l'errore già fatto una volta: chi
 **usa** toast e modale deve averle da qualche parte. Togliere le funzioni
 locali scordando il `<script>` non è un errore di sintassi — la pagina si apre,
 sembra a posto, e muore al primo tocco.
+
+---
+
+## Genesi, misurata prima di toccarla — 03/08
+
+*L'ultima superficie rimasta, e l'unica su cui il piano è stato **misurato
+prima** invece che scritto a intuito. È servito: tre delle quattro cose
+trovate non si vedono leggendo il codice delle funzioni, che è l'unica parte
+che qualcuno aveva guardato finora.*
+
+### 1. Genesi non carica **niente** di condiviso
+
+Non è «una app che ha una copia locale»: è l'unica superficie che non prende
+un solo file da `shared/`. Zero fogli di stile, zero script — nemmeno
+`deepwork-style.css`, che le sei app caricano tutte. Tutto quello che ha se
+l'è scritto in casa.
+
+Cambia la natura del lavoro: nelle sei app e nell'amministrazione «passare al
+condiviso» voleva dire **togliere una copia** da una pagina che il condiviso
+già lo caricava. Qui vuol dire **collegare una pagina che non è mai stata
+collegata**, e il rischio non è la funzione che si sposta: è tutto il resto che
+arriva insieme.
+
+### 2. Il nome `modal` in Genesi è **già occupato**, e da qualcosa che pesa
+
+Il piano diceva «rinominare `mdl` → `modal`». Misurando si è visto che
+`id="modal"` in Genesi **esiste già**, alla riga 962, e non è una modale
+qualsiasi: è il **cancello di consenso** — l'avvertenza che dichiara che i
+frammenti volanti della simulazione sono *estetici* e che è **vietato** usarli
+per definire aree di sgombero o distanze di sicurezza. Si apre da
+`maybeConsent()` con `display:flex`, ha la sua casella da spuntare e il suo
+`#modalOk`.
+
+Quindi la rinomina non è una sostituzione di stringhe: è uno **scambio di
+inquilino** su un id che porta un'avvertenza di sicurezza. E il prefisso `mdl`
+è a sua volta sovraccarico — sette id **non** sono della modale ma
+dell'editor del fronte 3D (`mdlQuote`, `mdlTools`, `mdlR`, `mdlRLab`,
+`mdlUndo`, `mdlRedo`, `mdlReset`): una sostituzione `mdl` → `modal` fatta a
+tappeto li porterebbe via tutti e sette.
+
+Da rinominare sono **cinque** id, non dodici: `mdl`, `mdl-tit`, `mdl-body`,
+`mdl-foot`, `mdl-campo`.
+
+### 3. Il CSS di Genesi **non è una copia invecchiata** — ed è il contrario dell'amministrazione
+
+| | amministrazione | Genesi |
+|---|---|---|
+| regole della famiglia modale/toast | 26, di cui 18 già nel condiviso | 30, di cui 14 col nome del condiviso |
+| **identiche** carattere per carattere | **15 su 18** | **2 su 14** |
+| divergenti | 3 — e le locali erano quelle **invecchiate** | 12 |
+| solo sue | 8 | 16 |
+
+Ma il numero da solo mente. Messe affiancate, tutte e dodici le divergenti
+divergono per **una cosa sola**: come si chiama la stessa idea.
+
+```
+.modal-head   Genesi   border-bottom:1px solid var(--line);  color:var(--tx)
+              condiviso border-bottom:1px solid var(--border); color:var(--text)
+.modal-body   Genesi   color:var(--mut2)
+              condiviso color:var(--muted2)
+.mbtn.danger  Genesi   background:#ef5350; color:#2a0906
+              condiviso background:var(--danger); color:var(--on-dg)
+```
+
+Non due gusti diversi: gli **stessi valori** con nomi diversi, e cablati dove
+Genesi il nome non ce l'ha mai messo. Nell'amministrazione la domanda era
+«quale delle due è quella giusta» e la risposta era il condiviso, perché la
+copia locale era una fotografia vecchia. Qui la domanda è un'altra: **Genesi
+dichiara i nomi che il condiviso pronuncia?**
+
+### 4. La risposta è no, ed è il numero che decide il piano
+
+> Il foglio condiviso pronuncia **76** variabili. Genesi ne definisce **12**
+> (`--bg --cu --cuD --ease --line --mut --mut2 --ok --panel --panel2 --tx
+> --warn`). Le **non** definite sono **72 su 76**.
+
+E una variabile CSS che non esiste **non fallisce**: la dichiarazione diventa
+invalida e la proprietà ricade sull'ereditato o sull'iniziale. Nessun errore in
+console, nessuna riga rossa — un bordo che sparisce, un testo che prende il
+colore del genitore, un raggio che torna a zero. È la stessa forma del
+principio che il prodotto applica ai numeri: **l'assenza di un dato non è un
+dato favorevole**, e qui il dato assente si traveste da «va bene così».
+
+Il conto del contagio: **22 selettori** del foglio condiviso cadrebbero su
+markup che Genesi **ha già** — non solo la famiglia `.modal-*`, che è quella
+che si vuole, ma anche `.kpi`, `.kpi.ok`, `.kpi.warn`, `.badge.ok`,
+`.badge.tag`, `.note.ok`, `.dw-btn`. Cioè le schede e le pillole della
+schermata di progetto, ridipinte con tinte che nella pagina non esistono.
+
+### Il piano che ne esce: **due unità, non una**
+
+**Unità A — solo il JavaScript** (meccanica, verificabile, nessuna decisione
+aperta):
+
+1. rinominare il cancello di consenso in `#consenso` / `#consensoOk` — è il
+   pezzo che oggi occupa il nome, e il suo nome nuovo lo descrive meglio di
+   `modal`;
+2. rinominare i **cinque** id della modale (`mdl` → `modal`, `mdl-tit` →
+   `modal-title`, `mdl-body` → `modal-body`, `mdl-foot` → `modal-foot`,
+   `mdl-campo` → `modal-campo`), lasciando stare i sette dell'editor 3D;
+3. riscrivere il **solo** punto che chiama `chiediValore`, che passa un valore
+   dove il condiviso vuole l'HTML del campo — è la divergenza che compilerebbe
+   in silenzio, ed è la ragione per cui questa unità non si fa a tappeto;
+4. caricare `shared/dw-app-ui.js` e togliere `toast`, `mdlApri`, `mdlChiudi`,
+   `chiedi`, `chiediValore` locali, aggiornando le **tre** chiamate a `mdlApri`
+   e le **cinque** a `mdlChiudi`;
+5. **non** caricare il foglio condiviso: le regole `.modal-*` di Genesi restano
+   dove sono e continuano a vestire gli stessi id.
+
+Genesi **non** prende `go()`: non ha pagine `.page` né una pillola `.nav`, si
+muove per sezioni `data-scr` con la sua barra in basso. Non è una copia che si
+è staccata, è un'altra cosa — e va scritto, se no la prossima lettura conta una
+duplicazione che non c'è.
+
+**Unità B — il colore, e non è un lavoro di pulizia.** Perché Genesi possa
+prendere anche il CSS condiviso deve prima **dichiarare** la sua palette con i
+nomi del condiviso — cioè avere una voce in `docs/PALETTE_APP.md` come le
+altre sei, con i contrasti verificati. È esattamente la seconda metà della
+direttiva sullo stile («colore: identità propria di ogni app»), e non si
+risolve rinominando dodici variabili: `--grad`, `--edge`, `--sh1..4`,
+`--halo-1/2`, `--glow-*` sono **concetti** che Genesi oggi non ha, non
+sinonimi di qualcosa che ha.
+
+Farle insieme vorrebbe dire mettere nello stesso commit una migrazione
+meccanica e una scelta cromatica: se qualcosa si vede storto in uno screenshot,
+non si saprebbe quale delle due l'ha fatto.
+
+### Le misure sono controllate, non ricordate
+
+Tutte e sei stanno in `numeri-nei-documenti.mjs` — il file che esiste apposta
+perché «un numero scritto in un documento non fallisce: sta lì e invecchia». La
+suite passa da **8 a 14** prove.
+
+Ed è voluto che siano **destinate a cadere**: l'unità A fa sparire i cinque id
+`mdl`, e da quel momento la prova che li cerca fallisce. È il modo giusto —
+quando il piano viene eseguito, il documento che lo descrive smette di essere
+vero **subito**, non sei settimane dopo che qualcuno se ne accorge leggendo.
+
+**Controprova, otto difetti rimessi uno alla volta su copie** (`genesi.html` non
+si tocca mentre gira un giro del browser): id della modale che sparisce, id
+dell'editor 3D travolto dalla rinomina, `#modal` che smette di essere il
+cancello di consenso, un `<script>` condiviso che compare, una variabile
+mancante che viene definita, una classe in più del foglio condiviso, e i due
+numeri del documento invecchiati a mano. **Otto su otto** fanno cadere la prova
+che porta il loro nome, **una sola** ciascuno; sui file sani, sette passate e
+zero cadute.
+
+Una cosa imparata scrivendola: per i due difetti sul **documento** la difesa del
+«quanti caratteri ho cambiato» stampa **+0** — `72` → `70` è una sostituzione a
+lunghezza uguale. È il corollario già scritto in `CLAUDE.md`, e qui si è
+presentato da solo: la conta da sola mente, e serve il confronto fra la copia e
+l'originale.
