@@ -54,6 +54,20 @@ Va guardato ognuno **uno per uno**, distinguendo visualizzazione da calcolo:
 una sostituzione in blocco romperebbe le righe dove lo zero è solo un modo di
 scrivere «—».
 
+**Guardati, e il risultato è uno solo su due** (aggiornato dopo la lettura):
+
+- riga ~1700 — **benigno**. Lo zero falso c'è, ma subito dopo interviene
+  `ritmoDelMezzo`: senza letture del contatore non c'è ritmo, quindi la
+  funzione esce con *«Quando cadrà non si sa: di questo mezzo non c'è nessuna
+  lettura del contatore con la sua data»*. Il messaggio che l'utente legge è
+  **onesto**. Non si tocca: "correggerlo" sarebbe inventarsi del lavoro.
+- riga ~1397 e ~1401 — **vero, ed è lo stesso della finestra già corretta**.
+  Precompila il campo con `0 + passo` e scrive *«X ha 0 ore: il tagliando è
+  proposto a 500»*. La frase asserisce che il mezzo ha zero ore, e non è vero:
+  non lo sappiamo.
+
+Quindi il prossimo passo è **una correzione sola**, non una campagna.
+
 ## Stato
 
 - **501** KPI (433 all'inizio della giornata) → **760** prove `node`, verdi
