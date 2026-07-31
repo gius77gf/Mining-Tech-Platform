@@ -647,7 +647,18 @@ export function urgenzaOre(orePreviste, oreAttuali) {
   // una schermata di virgole — e «tra 1000 h» resta «tra 1.000 h» come si
   // scrive un migliaio in Italia
   const h = (n) => n.toLocaleString("it-IT", { maximumFractionDigits: 1, useGrouping: true });
-  const prev = +orePreviste;
+  // ⛔ LA GUARDIA ERA SU META' FUNZIONE (chiusa il 03/08). Quella su
+  // `oreAttuali`, tre righe sotto, c'era già ed è scritta bene; su
+  // `orePreviste` no, ed era rimasto un `+orePreviste` nudo. Misurato, dava
+  // tre facce dello stesso buco: con `null` rispondeva «SCADUTA (+500 h)» IN
+  // ROSSO (`+null === 0`, cioè un allarme INVENTATO — ed è il motivo per cui la
+  // sonda che cercava i valori tranquilli non l'aveva visto), con un valore non
+  // numerico scriveva «tra NaN h» sul badge, e con tutt'e due ignote diceva
+  // «a 0 h», che afferma un obiettivo che nessuno ha messo.
+  // Era dormiente — i quattro punti di chiamata guardano tutti prima — ma la
+  // protezione poggiava su quattro chiamanti che si ricordano.
+  // docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md
+  const prev = orePreviste == null || orePreviste === "" ? NaN : +orePreviste;
   // ⛔ «ZERO ORE» E «NON LO SO» SONO DUE COSE DIVERSE, anche qui.
   // `tagliandiInScadenza` l'aveva già capito e manda i mezzi senza contatore
   // fra quelli «da stimare»; questo badge invece convertiva a zero con
@@ -661,6 +672,11 @@ export function urgenzaOre(orePreviste, oreAttuali) {
   if (!Number.isFinite(att)) {
     return { cls: "", label: Number.isFinite(prev) ? "a " + h(prev) + " h" : "a ore",
       mancano: null, oreNote: false };
+  }
+  if (!Number.isFinite(prev)) {
+    // nessun obiettivo: si dice quello che si sa (le ore del contatore) e non
+    // si inventa una distanza da un traguardo che non c'è
+    return { cls: "", label: "a ore", mancano: null, oreNote: false };
   }
   const mancano = prev - att;
   if (mancano <= 0) return { cls: "danger", label: "SCADUTA (+" + h(-mancano) + " h)", mancano, oreNote: true };

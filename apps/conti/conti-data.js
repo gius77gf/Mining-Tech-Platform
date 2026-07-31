@@ -664,7 +664,19 @@ export function estrattoContoCliente(cliente, fatture, oggi = new Date(), tassoA
 // la liquidità attesa nel tempo e non solo un totale a finestra. Le fatture già
 // SCADUTE e non incassate finiscono in un bucket "scadute" a parte (vanno
 // sollecitate, non pianificate come entrata futura). Ora locale. Pura e testabile.
+// ⛔ `mesi` E' UN CONTEGGIO, e va difeso come tale (chiuso il 03/08). Il ciclo
+// qui sotto gira `mesi` volte creando una `Date` e una chiave a ogni giro:
+// passandogli una DATA nella casella del conteggio — sbaglio invitato, perché
+// in questo file `agingIncassi`, `prioritaIncasso`, `esposizioneClienti` e
+// `kpiFrom` hanno tutte `oggi` in seconda o terza posizione e questa è l'unica
+// in cui il secondo posto è un numero — `i < mesi` la converte in millisecondi
+// dall'epoca: 1.785.456.000.000 giri, e la scheda muore di MEMORIA. Non un
+// numero sbagliato: la pagina che non risponde più, senza un errore da
+// mostrare. docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md
+const MESI_ORIZZONTE_MAX = 60;
 export function incassoPerMese(fatture, mesi = 6, oggi = new Date()) {
+  const n = Math.floor(+mesi);
+  mesi = Number.isFinite(n) && n > 0 ? Math.min(n, MESI_ORIZZONTE_MAX) : 6;
   const o = new Date(oggi); o.setHours(0, 0, 0, 0);
   const km = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   const ordine = [], perMese = {};

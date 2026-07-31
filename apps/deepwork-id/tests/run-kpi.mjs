@@ -492,6 +492,22 @@ test("incassoPerMese: raggruppa gli incassi attesi per mese, scadute a parte", (
   eq(r.mesi[1], { mese: "2026-08", conto: 1, importo: 50 }, "agosto: 1 fattura, 50");
   eq(r.scadute, { conto: 1, importo: 30 }, "una scaduta a parte");
 });
+/* ⛔ `mesi` è un CONTEGGIO, e la casella accanto invita a sbagliare: in questo
+   file `agingIncassi`, `prioritaIncasso`, `esposizioneClienti` e `kpiFrom`
+   hanno tutte `oggi` in seconda o terza posizione, e questa è l'unica in cui il
+   secondo posto è un numero. Passandogli una DATA, `i < mesi` la convertiva in
+   millisecondi dall'epoca: 1.785.456.000.000 giri, e la scheda moriva di
+   memoria — non un numero sbagliato, la pagina che non risponde più.
+   docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md */
+test("incassoPerMese: un orizzonte assurdo non blocca la pagina", () => {
+  const r = conti.incassoPerMese([], new Date("2026-07-31"), new Date(2026, 6, 15));
+  ok(r.mesi.length <= 60, `orizzonte limitato, sono ${r.mesi.length} mesi`);
+  eq(conti.incassoPerMese([], 0, new Date(2026, 6, 15)).mesi.length, 6, "zero mesi → il valore di serie");
+  eq(conti.incassoPerMese([], -3, new Date(2026, 6, 15)).mesi.length, 6, "negativo → il valore di serie");
+  eq(conti.incassoPerMese([], "boh", new Date(2026, 6, 15)).mesi.length, 6, "non numerico → il valore di serie");
+  // guardia: un orizzonte sensato resta quello chiesto
+  eq(conti.incassoPerMese([], 12, new Date(2026, 6, 15)).mesi.length, 12, "12 mesi restano 12");
+});
 test("incassoPerMese: lista vuota = 6 mesi a zero, niente scadute (no crash)", () => {
   const r = conti.incassoPerMese([], 6, new Date(2026, 6, 15));
   eq(r.mesi.length, 6, "6 mesi");
@@ -989,6 +1005,23 @@ test("kpiFrom: carburante somma solo le voci col nome «carburante» (case-insen
     { voce: "Assicurazione", importo: 1200 },        // → non conta
   ];
   eq(flotta.kpiFrom([], [], costi).carburante, 8000, "5000 + 3000, il resto escluso");
+});
+/* ⛔ LA GUARDIA ERA SU META' FUNZIONE. Quella su `oreAttuali` c'era già ed è
+   scritta bene («zero ore e non lo so sono due cose diverse»); su `orePreviste`
+   no. Con `null` la risposta era «SCADUTA (+500 h)» IN ROSSO — `+null === 0`,
+   cioè un allarme INVENTATO, ed è la ragione per cui la sonda che cercava i
+   valori TRANQUILLI non l'aveva visto: questo sbagliava dall'altra parte.
+   docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md */
+test("urgenzaOre: senza un obiettivo non si inventa né un allarme né un numero", () => {
+  const u = flotta.urgenzaOre(null, 500);
+  ok(u.cls !== "danger", `un allarme inventato: ${JSON.stringify(u)}`);
+  eq(u.mancano, null, "non si può dire quante ore mancano a un traguardo che non c'è");
+  eq(flotta.urgenzaOre("", 500).cls, "", "stringa vuota = assente");
+  ok(!/NaN/.test(flotta.urgenzaOre("boh", 500).label), "«tra NaN h» non finisce sul badge");
+  ok(!/\b0\b/.test(flotta.urgenzaOre(null, null).label), "e non si dice «a 0 h»");
+  // guardie: il comportamento buono non si tocca
+  eq(flotta.urgenzaOre(600, 500).mancano, 100, "obiettivo e contatore noti");
+  eq(flotta.urgenzaOre(600, null).mancano, null, "contatore ignoto: già corretto prima");
 });
 test("urgenzaOre: tagliando a ore motore ai confini (scaduto/50h/oltre)", () => {
   eq(flotta.urgenzaOre(500, 500).cls, "danger", "0 ore mancanti = scaduto");

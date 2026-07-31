@@ -69,10 +69,6 @@ const ACCETTATI = {
     "una consegna DPI senza scadenza è «regolare» ed è giusto: moltissimi DPI non scadono (un gilet ad alta visibilità)",
   "scudo.verbaleDpi":
     "stampa lo stato di statoConsegnaDpi: eredita la riga qui sopra, non decide niente per conto suo",
-  "flotta.urgenzaOre":
-    "DORMIENTE, ma con TRE facce — vedi docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md: "
-    + "la guardia è stata messa su `oreAttuali` e non su `orePreviste`, e i quattro punti di chiamata "
-    + "reggono da soli con `if (n.orePreviste)`. Da chiudere dentro la funzione",
 };
 
 let passed = 0, failed = 0;
