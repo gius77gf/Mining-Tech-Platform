@@ -1293,10 +1293,19 @@ export function organigrammaSicurezza(nomine, lavoratori, scadenze, oggi = new D
     const senzaFormazione = persone.filter(p => p.formazione &&
       (p.formazione.stato === "mancante" || p.formazione.stato === "scaduta")).length;
     const inScadenza = persone.filter(p => p.formazione && p.formazione.stato === "in-scadenza").length;
-    const mancante = !!r.obbligatoria && persone.length === 0;
-    const stato = (mancante || senzaFormazione) ? "danger"
-      : inScadenza ? "warn" : (persone.length ? "ok" : "mute");
-    return { ruolo: r, persone, mancante, senzaFormazione, inScadenza, stato, requisito: req };
+    // ⛔ UNA NOMINA COPRE IL RUOLO SOLO SE LA PERSONA C'È ANCORA.
+    // Una nomina che punta a un lavoratore cancellato dall'anagrafica — o non
+    // più in forza — non copre niente: il ruolo è scoperto. Prima il conto
+    // guardava soltanto quante nomine c'erano, e otto ruoli obbligatori di
+    // legge (RSPP, medico competente, sorvegliante…) restavano VERDI su una
+    // sedia vuota. La nomina resta comunque nell'elenco: si deve poter capire
+    // chi era, e la pagina lo scrive («persona non più in anagrafica»).
+    const valide = persone.filter(p => p.lavoratore && p.lavoratore.attivo !== false);
+    const senzaPersona = persone.length - valide.length;
+    const mancante = !!r.obbligatoria && valide.length === 0;
+    const stato = (mancante || senzaFormazione || senzaPersona) ? "danger"
+      : inScadenza ? "warn" : (valide.length ? "ok" : "mute");
+    return { ruolo: r, persone, valide, senzaPersona, mancante, senzaFormazione, inScadenza, stato, requisito: req };
   });
 }
 // Quello che va sistemato subito: ruoli obbligatori scoperti e nominati senza

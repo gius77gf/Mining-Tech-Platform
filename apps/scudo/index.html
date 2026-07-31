@@ -1406,12 +1406,17 @@
     // S4 — nomine obbligatorie scoperte o con la formazione non in regola.
     const nomUrg = nomKO.slice(0, 2).map(o => {
       const chi = o.persone.map(p => p.lavoratore ? p.lavoratore.nome : "persona non più in anagrafica").join(", ");
-      const perche = o.mancante ? "nessuno è nominato" : "formazione non in regola";
+      // La ragione va detta esatta: «nessuno è nominato» su un ruolo che UNA
+      // nomina ce l'ha manderebbe a cercare una cosa che c'è già. Il caso
+      // vero è che la persona non c'è più — in anagrafica o in azienda.
+      const perche = o.senzaPersona
+        ? (o.mancante ? "la persona nominata non è più in forza" : "una delle persone nominate non è più in forza")
+        : o.mancante ? "nessuno è nominato" : "formazione non in regola";
       return `<div class="item st-danger" data-vai-pers="nom" style="cursor:pointer" title="Vai alle nomine">
         <div class="avatar sup">${I.scudo}</div>
         <div class="info"><div class="name">${esc(o.ruolo.etichetta)}</div>
         <div class="meta">${esc(chi || "—")} · ${esc(perche)}</div></div>
-        <span class="acts"><span class="badge danger">${o.mancante ? "Da nominare" : "Formazione"}</span><span class="arr">›</span></span></div>`;
+        <span class="acts"><span class="badge danger">${o.senzaPersona ? "Da rinominare" : o.mancante ? "Da nominare" : "Formazione"}</span><span class="arr">›</span></span></div>`;
     });
     const urg = SCA.filter(s => statoScadenza(s.dataScadenza) !== "regolare")
                    .sort((a, b) => a.dataScadenza < b.dataScadenza ? -1 : 1).slice(0, 5);

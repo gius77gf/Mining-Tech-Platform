@@ -6030,5 +6030,78 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ L'ORGANIGRAMMA DELLA SICUREZZA: CHI HA QUEL RUOLO, DAVVERO ═════════
+   Sorvegliante, direttore, preposto, RSPP, medico competente, RLS, primo
+   soccorso, antincendio: otto ruoli **obbligatori**, e sono fra le prime cose
+   che un ispettore chiede. L'organigramma dice per ognuno chi c'è e com'è messa
+   la sua formazione.
+
+   ⛔ La regola che queste prove hanno trovato mancante: **una nomina copre un
+   ruolo solo se la persona c'è ancora.** Una nomina che punta a un lavoratore
+   cancellato dall'anagrafica — o non più in forza — non copre niente: il ruolo
+   è scoperto, e dirlo verde è un semaforo che mente su un obbligo di legge. */
+{
+  const OGGI = new Date("2026-07-31T12:00:00");
+  const rspp = (o) => ({ id: "n1", ruolo: "rspp", lavoratoreId: "L1", ...o });
+  const LAV = [{ id: "L1", nome: "Mario", attivo: true }, { id: "L2", nome: "Anna", attivo: false }];
+  const bloccoDi = (nomine, scadenze = []) =>
+    scudo.organigrammaSicurezza(nomine, LAV, scadenze, OGGI).find((x) => x.ruolo.chiave === "rspp");
+
+  test("nomina: è attiva quando è già decorsa e non è ancora finita", () => {
+    eq(scudo.nominaAttiva({ ruolo: "rspp" }, OGGI), true, "senza date è in corso");
+    eq(scudo.nominaAttiva({ dal: "2026-09-01" }, OGGI), false, "una che deve ancora partire");
+    eq(scudo.nominaAttiva({ al: "2026-06-01" }, OGGI), false, "e una già finita");
+    eq(scudo.nominaAttiva({ dal: "2026-07-31" }, OGGI), true, "il giorno in cui comincia conta");
+    eq(scudo.nominaAttiva({ al: "2026-07-31" }, OGGI), true, "e anche quello in cui finisce");
+  });
+  test("⛔ organigramma: un ruolo obbligatorio senza nessuno è ROSSO", () => {
+    const o = bloccoDi([]);
+    eq(o.mancante, true, "nessuno è nominato");
+    eq(o.stato, "danger", "e si vede");
+    eq(scudo.NOMINE_RUOLI.filter((r) => r.obbligatoria).length, 8, "gli obbligatori sono otto");
+  });
+  test("⛔ organigramma: una nomina su una persona NON PIÙ IN ANAGRAFICA non copre il ruolo", () => {
+    /* è un semaforo verde su una sedia vuota, e su un obbligo di legge */
+    const o = bloccoDi([rspp({ lavoratoreId: "sparito" })]);
+    eq(o.stato, "danger", "il ruolo resta da sistemare");
+    eq(scudo.nomineDaSistemare([o]).length, 1, "e finisce nelle urgenze del quadro");
+  });
+  test("⛔ organigramma: una nomina su chi NON È PIÙ IN FORZA non copre il ruolo", () => {
+    /* la persona esiste ancora in anagrafica ma ha lasciato l'azienda: la
+       nomina resta scritta, il ruolo però è scoperto */
+    const o = bloccoDi([rspp({ lavoratoreId: "L2" })]);
+    eq(o.stato, "danger", "da sistemare");
+    eq(o.persone.length, 1, "la nomina resta visibile: si deve poter capire chi era");
+  });
+  test("organigramma: con la persona in forza il ruolo è coperto", () => {
+    const o = bloccoDi([rspp()]);
+    eq(o.stato, "ok", "verde");
+    eq(o.mancante, false, "coperto");
+    eq(scudo.nomineDaSistemare([o]).length, 0, "niente da sistemare");
+  });
+  test("⛔ organigramma: nominato ma senza la formazione richiesta è ROSSO", () => {
+    /* il preposto ha un corso obbligatorio con aggiornamento biennale: averlo
+       nominato senza il corso è una nomina che non regge */
+    const org = scudo.organigrammaSicurezza([{ id: "n2", ruolo: "preposto", lavoratoreId: "L1" }],
+      LAV, [], OGGI).find((x) => x.ruolo.chiave === "preposto");
+    eq(org.senzaFormazione, 1, "una persona senza il corso");
+    eq(org.stato, "danger", "e il blocco è rosso");
+  });
+  test("organigramma: col corso in regola il preposto è a posto", () => {
+    const org = scudo.organigrammaSicurezza([{ id: "n2", ruolo: "preposto", lavoratoreId: "L1" }],
+      LAV, [{ lavoratoreId: "L1", preset: "form-preposto", dataScadenza: "2027-06-01" }],
+      OGGI).find((x) => x.ruolo.chiave === "preposto");
+    eq(org.senzaFormazione, 0, "il corso c'è");
+    eq(org.stato, "ok", "verde");
+  });
+  test("organigramma: un ruolo NON obbligatorio senza nessuno non è un allarme", () => {
+    /* il dirigente delegato è una figura che può non esserci: un rosso lì
+       insegnerebbe a ignorare i rossi */
+    const o = scudo.organigrammaSicurezza([], LAV, [], OGGI).find((x) => !x.ruolo.obbligatoria);
+    eq(o.mancante, false, "non manca: non è dovuto");
+    eq(o.stato, "mute", "e resta spento");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
