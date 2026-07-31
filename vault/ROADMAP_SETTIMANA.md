@@ -941,8 +941,8 @@ campi interi, file delle macchine.
       da `toISOString()` su una data costruita in ora locale. Guarda 21 file e
       stampa quanti — e perdona chi entra ed esce in UTC, che è coerente.
 - [x] **Copertura delle funzioni pure, app per app** *(ricontata il 02/08
-      cercando `app.<nome>` in run-kpi.mjs, non a memoria)*: Sentinella 89/107,
-      Campo 65/73 *(era 26)*, Flotta 65/71 *(era 29)*, Scudo 55/71 *(era 22)*,
+      cercando `app.<nome>` in run-kpi.mjs, non a memoria)*: Scudo 70/71 *(era 22)*,
+      Sentinella 89/107, Campo 65/73 *(era 26)*, Flotta 65/71 *(era 29)*,
       Conti 54/58 *(era 35)*, Terra 31/39. Nessuna app è più sotto la metà; quello che resta scoperto
       sono quasi solo costanti e trasporto dati.
 - [x] **Il principio usato come lente.** Scritta in `CLAUDE.md` la regola
@@ -1014,6 +1014,13 @@ campi interi, file delle macchine.
       protetto da **due guardie**, perché `U+FEFF` per `trim()` è uno spazio, e
       il banco adesso stampa quante guardie ha tolto. run-kpi **914**, totale
       node **1.197**.
+- [x] **Le liste di Scudo e i DPI.** 13 prove su una regola sola — una chiave
+      sconosciuta **non diventa mai la prima voce dell'elenco** — più «non
+      applicabile» che non è «conforme» e il confronto morbido dei testi. Due
+      cose scritte come SONO: `dataPiuGiorni(null)` risponde oggi (`Number(null)`
+      è 0) ma non è raggiungibile, ed è nominata come trappola dormiente; e un
+      **DPI senza data di sostituzione** risulta regolare per sempre → punto
+      **14** di `DECISIONI_WEEKEND.md`. run-kpi **927**, totale node **1.210**.
 
 ---
 
