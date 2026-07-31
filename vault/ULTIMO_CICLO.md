@@ -5,21 +5,26 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-08-01 (ricontrollato) — **la giornata degli otto difetti**
-**Cosa ha fatto:** le prove sulle funzioni delle app sono passate da **433 a
-783**, e hanno fatto emergere **otto difetti veri**, tutti della stessa famiglia:
-*un numero o un colore tranquillo dove non è stato misurato niente*. Fra questi,
-il grafico «ultimi 6 mesi» del core che riempiva ogni barra con la produzione del
-**mese precedente** (sempre, tutto l'anno), un **ruolo di sicurezza obbligatorio**
-che risultava coperto da una persona non più in azienda, e una **misura del
-sismografo** che spariva dal report per l'ente scambiata per un doppione.
-Da lì sono nati tre strumenti nuovi: `oggiISO` e compagni in `shared/` (erano
-scritti **sette** volte in tre modi), la passata delle prove con l'**orologio
-italiano** (`orologio-cliente.mjs`, in coda alla CI) e la **regola 15** dello
-stile. Il racconto per il fondatore è in `docs/DIFETTI_TROVATI_202607.md`.
-**Cosa sta facendo adesso:** il **giro a 19 banchi** del browser, rilanciato
-dopo il riavvio del contenitore, sulle sei superfici modificate in giornata.
-**Commit corrente:** `d42e3f2`
+**Ultimo ciclo riuscito:** 2026-08-02 04:37 UTC — **la giornata della copertura**
+**Cosa ha fatto:** le prove sulle funzioni pure delle app sono passate da **433 a
+962** (totale `node` **1.245**), e la copertura è arrivata a **401 funzioni su
+409**: Campo e Scudo al 100%, Sentinella 101/102, Conti 56/57, Terra 37/38,
+Flotta 65/70. Ogni blocco ha la sua controprova su una copia del modulo, e sono
+passate tutte (9/9, 11/11, 18/18, 14/14, 13/13, 12/12, 11/11, 9/9, 2/2).
+Scrivendo le prove sono uscite **cinque duplicazioni**: tre sono difetti veri
+(`messaggioNumero` scritta due volte con tre messaggi diversi su dieci,
+`dataPiuGiorni` identica in Scudo e Sentinella e **già staccata** sul caso
+d'errore, `giorni` lo stesso involucro in Conti e Sentinella) e due no
+(`numeroIt` e `CAUSALI_FERMO`: differenze **volute e dichiarate**). Il criterio
+per distinguerle sta in `docs/LA_STESSA_REGOLA_SCRITTA_DUE_VOLTE.md`.
+Nati due controlli che contano al posto della memoria — `copertura-funzioni.mjs`
+(con un **fondo** per app) e `nomi-doppi.mjs` — più la misura del raggruppamento
+delle migliaia fra Node e Chromium (`docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md`).
+**Cosa sta facendo adesso:** aspetta l'ultimo banco del **giro a 19 banchi** del
+browser per applicare le **tre correzioni già pronte** (una sola
+`messaggioNumero`, `dataPiuGiorni` in `shared/` e irrigidita, il raggruppamento
+scritto nei moduli), con le prove di **identità** e la **regola 16** dello stile.
+**Commit di partenza:** `ba14668`
 
 ---
 
