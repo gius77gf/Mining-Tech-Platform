@@ -941,7 +941,7 @@ campi interi, file delle macchine.
       da `toISOString()` su una data costruita in ora locale. Guarda 21 file e
       stampa quanti — e perdona chi entra ed esce in UTC, che è coerente.
 - [x] **Copertura delle funzioni pure, app per app** *(ricontata il 02/08
-      cercando `app.<nome>` in run-kpi.mjs, non a memoria)*: Sentinella 77/107,
+      cercando `app.<nome>` in run-kpi.mjs, non a memoria)*: Sentinella 89/107,
       Campo 65/73 *(era 26)*, Flotta 65/71 *(era 29)*, Scudo 55/71 *(era 22)*,
       Conti 54/58 *(era 35)*, Terra 31/39. Nessuna app è più sotto la metà; quello che resta scoperto
       sono quasi solo costanti e trasporto dati.
@@ -1007,6 +1007,13 @@ campi interi, file delle macchine.
       ognuna delle due versioni è migliore dell'altra in un punto. Correzione
       prescritta in `docs/NUMERI_MESSAGGIO_DOPPIO_202608.md`: **aspetta la fine
       del giro del browser**, perché tocca cinque moduli dati.
+- [x] **La strada da cui entrano i numeri dello strumento (Sentinella).** 17
+      prove sul lettore CSV, sulle date all'italiana (una data che non esiste si
+      **scarta**, non si «corregge»), sull'ora e sulla **firma del doppione** —
+      il punto esatto del difetto del 31/07. Dalla controprova (14/14): il BOM è
+      protetto da **due guardie**, perché `U+FEFF` per `trim()` è uno spazio, e
+      il banco adesso stampa quante guardie ha tolto. run-kpi **914**, totale
+      node **1.197**.
 
 ---
 
