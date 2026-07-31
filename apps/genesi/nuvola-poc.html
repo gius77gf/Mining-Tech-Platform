@@ -242,7 +242,7 @@ function updateCrop(){
          l'alto. Su una forma convessa il segno non cambia. */
       volTxt=' · volume ≈ <b style="color:var(--tx)">'+Math.round(v.volume).toLocaleString('it-IT')+(_georef?' m³':' u³')+'</b>'
         +' <span style="color:var(--mut)">(griglia '+_cella.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:false})+' m'
-        +(Number.isFinite(v.zBase)?', base '+v.zBase.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:true})+(_georef?' m':' u'):'')
+        +(Number.isFinite(v.zBase)?', base '+(v.zBase+offset.z).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:true})+(_georef?' m':' u'):'')
         +' — stima)</span>';
       try{ const k='genesiNuvole', a=JSON.parse(localStorage.getItem(k)||'[]');
         if(a.length){ a[a.length-1].volume=Math.round(v.volume)+(_georef?'':' u³');
@@ -259,14 +259,26 @@ function updateCrop(){
              La quota di base pesa per moltiplicazione: 1 m di errore = area
              coperta × 1 m³. Sul cono misurato sono 729 m³.
              Misura e decisioni: docs/RICERCA_TRACCIABILITA_VOLUME_202608.md */
+          /* ⛔ QUOTA E RITAGLIO TORNANO IN COORDINATE REALI. Il visore toglie il
+             baricentro per disegnare (`offset`), quindi `zBase` e la scatola del
+             ritaglio sono nel SUO sistema, non in quello del rilievo: sul cono
+             di prova la base usciva **−2,85 m** invece di ~340. Salvarli così
+             avrebbe messo nel verbale che va all'ente una quota **plausibile e
+             falsa** — un numero che sembra misurato e non è quello che dice di
+             essere, cioè esattamente il difetto che questa unità esiste per
+             impedire. L'esportazione del ritaglio l'offset lo rimette già
+             (riga ~281): qui si fa la stessa cosa. */
           const c = window._crop || {};
+          const _q = (n, o) => (Number.isFinite(n) ? n + o : null);
           a[a.length-1].calcolo = {
             cella: v.cella,
-            quotaBase: v.zBase,
+            quotaBase: _q(v.zBase, offset.z),
             areaCoperta: v.areaCelle,
             celle: v.celle,
             georeferenziato: _georef,
-            ritaglio: { x0: c.x0, x1: c.x1, y0: c.y0, y1: c.y1, z0: c.z0, z1: c.z1 },
+            ritaglio: { x0: _q(c.x0, offset.x), x1: _q(c.x1, offset.x),
+                        y0: _q(c.y0, offset.y), y1: _q(c.y1, offset.y),
+                        z0: _q(c.z0, offset.z), z1: _q(c.z1, offset.z) },
           };
           localStorage.setItem(k, JSON.stringify(a)); } }catch(e){}
     }catch(e){} }
