@@ -5011,5 +5011,128 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ DAL SUPERAMENTO ALL'AZIONE: «E VOI COSA AVETE FATTO?» ══════════════
+   È la domanda che l'ente fa dopo un superamento, e il ponte
+   Sentinella → Scudo esiste per avere una risposta scritta. Le funzioni qui
+   sotto decidono **quali superamenti sono ancora aperti**, **quali azioni
+   appartengono a quale superamento** e **che colore ha la risposta**.
+
+   Le regole bloccate:
+
+   · **senza soglia non esiste superamento.** Non se ne inventa una: un punto
+     senza soglia impostata non è né dentro né fuori, e dichiararlo fuori
+     riempirebbe il quadro di rossi che nessuno può chiudere;
+   · **un punto senza storico è comunque un superamento**, con la voce
+     «valore-corrente» invece di una data. Farlo sparire perché non c'è una
+     data da citare toglierebbe dall'elenco un superamento vero;
+   · **«nessuna azione» è ROSSO**, non grigio. La casella vuota è esattamente
+     la risposta che l'ente non vuole sentire;
+   · **le azioni si legano al preciso superamento**, non solo al punto: quella
+     chiusa a marzo non deve far sembrare gestito quello di luglio. */
+{
+  const punto = (o) => ({ id: "p1", nome: "Casa Rossi", tipo: "vibrazioni", valore: 12, soglia: 10, letture: [], ...o });
+
+  test("⛔ superamenti: l'ultima lettura oltre è la più RECENTE, non la più alta", () => {
+    /* la domanda è «quando è successo l'ultima volta», non «quanto è andata
+       male la peggiore». Il caso è costruito perché le due risposte siano
+       DIVERSE: il picco (50) è del 1° luglio, l'ultimo superamento (12) è del
+       3. Con dati in cui coincidono la prova non proverebbe niente — ed è
+       proprio così che era scritta la prima volta. */
+    const l = sentinella.ultimaLetturaOltre({ letture: [
+      { data: "2026-07-01", valore: 50 },
+      { data: "2026-07-05", valore: 3 },
+      { data: "2026-07-03", valore: 12 }] }, 10);
+    eq(l.data, "2026-07-03", "l'ultima che ha superato, non la più alta");
+    eq(l.valore, 12, "e con il suo valore, non col picco");
+  });
+  test("superamenti: «oltre» vuol dire anche «uguale», come il semaforo", () => {
+    eq(sentinella.ultimaLetturaOltre({ letture: [{ data: "2026-07-01", valore: 10 }] }, 10).valore, 10,
+       "il valore uguale alla soglia è già un superamento");
+  });
+  test("⛔ superamenti: senza soglia valida non se ne inventa una", () => {
+    eq(sentinella.ultimaLetturaOltre({ letture: [{ data: "2026-07-01", valore: 99 }] }, 0), null, "soglia zero");
+    eq(sentinella.superamentiAperti([punto({ soglia: null })], []).length, 0, "e il punto non finisce fra gli aperti");
+  });
+  test("⛔ superamenti: un punto senza storico è comunque un superamento", () => {
+    /* il valore digitato a mano sulla scheda: la voce esiste, solo senza una
+       data da citare */
+    const s = sentinella.superamentiAperti([punto({})], [])[0];
+    eq(s.voce, "valore-corrente", "la voce lo dice");
+    eq(s.data, "", "e la data resta vuota invece di essere inventata");
+  });
+  test("superamenti: con lo storico la voce è la data della lettura che l'ha causato", () => {
+    const s = sentinella.superamentiAperti([punto({ letture: [
+      { data: "2026-07-01", valore: 11 },
+      { data: "2026-07-09", valore: 12 },
+      { data: "2026-07-05", valore: 4 }] })], [])[0];
+    eq(s.voce, "2026-07-09", "l'ultima volta che è andata oltre");
+  });
+  test("⛔ superamenti: l'ordine è la gravità, non il nome", () => {
+    const l = sentinella.superamentiAperti([
+      punto({ id: "p1", nome: "Casa Rossi", valore: 12, soglia: 10 }),
+      punto({ id: "p2", nome: "Aaa scuola", valore: 30, soglia: 10 })], []);
+    eq(l[0].nome, "Aaa scuola", "tre volte la soglia prima di una volta e due decimi");
+    eq(l.length, 2, "e sono due");
+  });
+  test("superamenti: quello che sta sotto soglia non è aperto", () => {
+    eq(sentinella.superamentiAperti([punto({ valore: 2, soglia: 10 })], []).length, 0, "niente da chiudere");
+  });
+
+  test("⛔ ponte: le azioni si legano al preciso superamento, non solo al punto", () => {
+    /* quella chiusa a marzo non deve far sembrare gestito quello di luglio */
+    const az = [
+      { origineTipo: sentinella.ORIGINE_SUPERAMENTO, origineId: "p5", origineVoce: "2026-07-09", stato: "aperta" },
+      { origineTipo: sentinella.ORIGINE_SUPERAMENTO, origineId: "p5", origineVoce: "2026-03-01", stato: "chiusa" },
+      { origineTipo: sentinella.ORIGINE_RECLAMO, origineId: "p5", origineVoce: "2026-07-09", stato: "chiusa" }];
+    eq(sentinella.azioniDiOrigine(az, sentinella.ORIGINE_SUPERAMENTO, "p5", "2026-07-09").length, 1, "una sola è di questo");
+    eq(sentinella.azioniDiOrigine(az, sentinella.ORIGINE_SUPERAMENTO, "p5").length, 2, "senza voce tornano tutte del punto");
+    eq(sentinella.azioniDiOrigine(az, sentinella.ORIGINE_SUPERAMENTO, "").length, 0, "e senza id non si tira su niente");
+  });
+  test("⛔ ponte: «nessuna azione» è rosso, non grigio", () => {
+    /* la casella vuota è esattamente la risposta che l'ente non vuole sentire */
+    const p = sentinella.statoPonte([]);
+    eq(p.cls, "danger", "rosso");
+    eq(p.label, "Nessuna azione", "detto in chiaro");
+  });
+  test("ponte: tutte chiuse è verde, e si dice al singolare quando è una", () => {
+    eq(sentinella.statoPonte([{ stato: "chiusa" }]).cls, "ok", "verde");
+    eq(sentinella.statoPonte([{ stato: "chiusa" }]).label, "Azione chiusa", "una sola, non «1 azioni»");
+    eq(sentinella.statoPonte([{ stato: "chiusa" }, { stato: "chiusa" }]).label, "2 azioni chiuse", "due");
+  });
+  test("ponte: una aperta su due resta gialla e dice quante ne mancano", () => {
+    const p = sentinella.statoPonte([{ stato: "chiusa" }, { stato: "aperta" }]);
+    eq(p.cls, "warn", "giallo: qualcosa è stato fatto, ma non è finita");
+    eq(p.label, "1 azione da chiudere", "e si dice quante");
+  });
+  test("ponte: se sono tutte in corso si dice «in corso», non «da chiudere»", () => {
+    eq(sentinella.statoPonte([{ stato: "in-corso" }]).label, "Azione in corso", "qualcuno ci sta lavorando");
+  });
+
+  test("⛔ bozza: l'azione porta con sé da dove viene", () => {
+    /* senza la provenienza, in Scudo resterebbe un compito senza storia, e
+       la domanda dell'ente non avrebbe una risposta collegata al fatto */
+    const s = sentinella.superamentiAperti([punto({ id: "p5", nome: "Con storia",
+      letture: [{ data: "2026-07-09", valore: 12 }] })], [])[0];
+    const b = sentinella.bozzaAzioneSuperamento(s);
+    eq(b.origineApp, sentinella.PONTE_APP, "l'app di partenza");
+    eq(b.origineTipo, sentinella.ORIGINE_SUPERAMENTO, "il tipo di fatto");
+    eq(b.origineId, "p5", "il punto");
+    eq(b.origineVoce, "2026-07-09", "e il preciso superamento, non solo il punto");
+    eq(b.stato, "aperta", "nasce aperta");
+  });
+  test("bozza: la nota cita il valore misurato e la soglia applicata", () => {
+    const s = sentinella.superamentiAperti([punto({ id: "p5", nome: "Con storia",
+      letture: [{ data: "2026-07-09", valore: 12 }] })], [])[0];
+    const n = sentinella.bozzaAzioneSuperamento(s).origineNota;
+    eq(n.includes("misurato 12 mm/s"), true, "quanto si è misurato");
+    eq(n.includes("soglia applicata 10 mm/s"), true, "e contro cosa");
+    eq(n.includes("09/07/2026"), true, "e quando, in italiano");
+  });
+  test("bozza: senza un superamento vero non si prepara niente", () => {
+    eq(sentinella.bozzaAzioneSuperamento({ nome: "x" }), null, "manca l'id");
+    eq(sentinella.bozzaAzioneSuperamento(null), null, "e manca tutto");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
