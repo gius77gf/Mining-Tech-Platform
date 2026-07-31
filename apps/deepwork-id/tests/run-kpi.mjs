@@ -4259,5 +4259,84 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ IL REPORT DI CONFORMITÀ — È IL DOCUMENTO CHE VA ALL'ENTE ═══════════
+   ────────────────────────────────────────────────────────────────────────
+   `reportConformita` non era provata, ed è la funzione che produce l'unica
+   cosa che il cliente consegna davvero fuori dall'azienda. Qui un errore non
+   fa perdere tempo: fa dichiarare il falso a un ente.
+
+   Tre comportamenti da bloccare, tutti e tre nel verso che ASSOLVE — cioè
+   quello pericoloso, perché un difetto che assolve non lo segnala nessuno:
+   · la lettura **esattamente sulla soglia** conta come superamento (`>=`).
+     Cambiarlo in `>` farebbe risultare conformi proprio i casi limite, che
+     sono quelli su cui si discute;
+   · un punto **senza letture** non è «conforme», è «senza-dati». Dire
+     conforme dove non si è misurato è la bugia più facile da scrivere;
+   · le letture **fuori periodo** non entrano: un report di luglio con dentro
+     una misura di giugno non è il report di luglio.
+
+   ⛔ Qui si MISURA il comportamento, non si tocca nessuna soglia: le soglie
+   di sicurezza restano decisione del fondatore. */
+{
+  const casa = { id: "r1", nome: "Casa Bianchi", soglia: 3, unita: "mm/s" };
+  const punto = (letture) => ({
+    id: "m1", nome: "Vibrazioni P1", unita: "mm/s", soglia: 3, ricettoreId: "r1", letture,
+  });
+  const fai = (letture, extra) => sentinella.reportConformita({
+    dal: "2026-07-01", al: "2026-07-31", ricettori: [casa],
+    monitoraggi: [punto(letture)], ...(extra || {}),
+  });
+
+  test("report: una lettura sotto soglia è conforme", () => {
+    const r = fai([{ data: "2026-07-10", valore: 2 }]);
+    eq(r.esito, "conforme", "2 mm/s sotto una soglia di 3");
+    eq(r.nSuperamenti, 0, "nessun superamento");
+  });
+  test("⛔ report: la lettura ESATTAMENTE sulla soglia è un superamento", () => {
+    const r = fai([{ data: "2026-07-10", valore: 3 }]);
+    eq(r.nSuperamenti, 1, "3 su soglia 3 conta come superamento");
+    eq(r.esito, "non-conforme", "e il report lo dichiara");
+  });
+  test("⛔ report: senza letture NON è conforme, è senza-dati", () => {
+    const r = fai([]);
+    eq(r.esito, "senza-dati", "dire conforme dove non si è misurato sarebbe falso");
+    eq(r.nLetture, 0, "e le letture sono zero");
+  });
+  test("⛔ report: le letture fuori periodo restano fuori", () => {
+    const r = fai([
+      { data: "2026-06-20", valore: 9 },   // giugno: fuori
+      { data: "2026-07-10", valore: 2 },
+    ]);
+    eq(r.nLetture, 1, "una sola lettura nel periodo");
+    eq(r.esito, "conforme", "il 9 di giugno non rende non conforme il report di luglio");
+  });
+  test("report: minimo, massimo e media si leggono dalle letture del periodo", () => {
+    const r = fai([
+      { data: "2026-07-05", valore: 1 },
+      { data: "2026-07-15", valore: 2 },
+    ]);
+    const p = r.punti[0];
+    eq(p.min, 1, "minimo");
+    eq(p.max, 2, "massimo");
+    eq(p.media, 1.5, "media");
+  });
+  test("report: filtrando per ricettore si guarda solo quel ricettore", () => {
+    const altro = { id: "m2", nome: "Polveri P2", unita: "mm/s", soglia: 3,
+                    ricettoreId: "r2", letture: [{ data: "2026-07-10", valore: 99 }] };
+    const r = sentinella.reportConformita({
+      dal: "2026-07-01", al: "2026-07-31", ricettori: [casa], ricettoreId: "r1",
+      monitoraggi: [punto([{ data: "2026-07-10", valore: 2 }]), altro],
+    });
+    eq(r.punti.length, 1, "solo il punto di quel ricettore");
+    eq(r.esito, "conforme", "e il 99 dell'altro ricettore non lo tocca");
+  });
+  test("report: un valore illeggibile non diventa zero, viene scartato", () => {
+    /* zero sarebbe una misura, e per giunta rassicurante */
+    const r = fai([{ data: "2026-07-10", valore: "non-un-numero" }]);
+    eq(r.nLetture, 0, "scartata");
+    eq(r.esito, "senza-dati", "e il report lo dice invece di dichiarare conforme");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
