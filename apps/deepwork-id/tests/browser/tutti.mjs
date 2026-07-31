@@ -60,6 +60,8 @@ const BANCHI = [
   ['punti della nuvola · controprova', 'punti-nuvola.mjs', ['--conto-unico'], true],
   ['struttura di Genesi', 'genesi-struttura.mjs', []],
   ['struttura di Genesi · controprova', 'genesi-struttura.mjs', ['--prima'], true],
+  ['nota di credito', 'nota-credito.mjs', []],
+  ['nota di credito · controprova', 'nota-credito.mjs', ['--controprova'], true],
 ];
 
 async function rispondePorta(porta) {

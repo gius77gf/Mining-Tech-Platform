@@ -1479,6 +1479,9 @@ export async function contiData() {
         // le organizzazioni di prima non hanno la collezione degli incassi:
         // Firestore restituisce semplicemente una lista vuota, niente errori
         incassi: () => read("incassi"),
+        // e le note di credito: come per gli incassi, un'organizzazione che
+        // non ne ha mai emesse legge una lista vuota, senza errori
+        note: () => read("note"),
         impostazioni: () => read("impostazioni"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
         logout: () => id.logout(),
@@ -1512,6 +1515,7 @@ export async function contiData() {
       fatture: async () => mem.fatture, gare: async () => mem.gare, clienti: async () => mem.clienti,
       prodotti: async () => mem.prodotti, pesate: async () => mem.pesate,
       incassi: async () => mem.incassi || (mem.incassi = []),
+      note: async () => mem.note || (mem.note = []),
       impostazioni: async () => mem.impostazioni,
       // in dimostrazione i rilievi non arrivano da Terra: sono finti, ma
       // coerenti con le pesate d'esempio (vedi DEMO.rilieviTerra)

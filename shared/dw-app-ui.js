@@ -117,13 +117,22 @@
   }
 
   // Conferma in stile core: `Promise<boolean>`.
-  function chiedi(titolo, corpo, etichettaOk, pericolo) {
+  // `etichettaExtra` (facoltativa) aggiunge una TERZA strada, e allora la
+  // promessa può valere `"extra"`. Serve dove la scelta non è sì/no ma
+  // «questa, quella, o niente»: in Conti la finestra che elimina una fattura
+  // spiegava che una fattura emessa va stornata con una nota di credito — e
+  // poi offriva un solo bottone, che è quello che la regola viola.
+  // Chi non la passa ha esattamente i due bottoni di sempre, e `true`/`false`.
+  function chiedi(titolo, corpo, etichettaOk, pericolo, etichettaExtra) {
     return new Promise(function (res) {
-      apriModale(titolo, corpo, [
+      var bottoni = [
         { label: "Annulla", azione: function () { chiudiModale(); res(false); } },
-        { label: etichettaOk || "Conferma", cls: pericolo ? "danger" : "primary",
-          azione: function () { chiudiModale(); res(true); } },
-      ]);
+      ];
+      if (etichettaExtra) bottoni.push({ label: etichettaExtra, cls: "primary",
+        azione: function () { chiudiModale(); res("extra"); } });
+      bottoni.push({ label: etichettaOk || "Conferma", cls: pericolo ? "danger" : "primary",
+        azione: function () { chiudiModale(); res(true); } });
+      apriModale(titolo, corpo, bottoni);
     });
   }
 

@@ -1168,7 +1168,8 @@ label.item:has(.dw-chk:checked){
     cavatoPeriodo, vendutoPeriodo, riconciliazione, valoreCavato, SOGLIA_DIVARIO,
     applicaIncassi, apertoDi, statoIncasso, movimentiDiFattura, incassatoPeriodo,
     tempiPagamentoClienti, tempoMedioPagamento, emessoIncassato,
-    numeroDaCampo, AVVISO_DECIMALE } from "./conti-data.js";
+    numeroDaCampo, AVVISO_DECIMALE,
+    CAUSALI_NOTA, causaleNota, stornatoDi, statoFattura, validaNota, notaDaFattura } from "./conti-data.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, euro, euro0, conEuro, isoLocale, oggiISO as oggiISOShell, meseLocale } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
@@ -1327,7 +1328,7 @@ label.item:has(.dw-chk:checked){
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
-  let FAT=[], GAR=[], CLI=[], PRO=[], PES=[], INC=[], IMP=null;
+  let FAT=[], GAR=[], CLI=[], PRO=[], PES=[], INC=[], NOT=[], IMP=null;
   // Rilievi di TERRA, in sola lettura (confronto cavato/venduto). null = non
   // disponibili: «non lo so» e «zero» sono due risposte diverse, e l'app deve
   // saperle distinguere invece di mostrare un cavato di zero che non esiste.
@@ -1439,6 +1440,17 @@ label.item:has(.dw-chk:checked){
     if (f.incassata) return ["ok","Incassata"];
     // una fattura con un acconto già arrivato NON è come una insoluta secca:
     // il badge lo dice, e la percentuale dice quanta strada è stata fatta
+    /* ⛔ prima di tutto il resto: una fattura stornata da una nota di credito
+       non è né insoluta né regolare — è ANNULLATA, e chiamarla «Regolare»
+       perché non ha più residuo sarebbe l'assenza di un dato (il pagamento)
+       travestita da buona notizia. Lo storno parziale lo dice col suo numero,
+       così chi guarda l'elenco sa perché l'importo aperto non torna. */
+    const _st = stornatoDi(f.id, NOT);
+    if (_st > 0) {
+      const _tot = importiFattura(f).totale;
+      if (_st >= _tot - 0.005) return ["", "Stornata"];
+      return ["warn", "Stornata " + perc(Math.round(100 * _st / Math.max(1, _tot)))];
+    }
     if (f.parziale) return ["accent", "Acconto " + perc(Math.round(100 * (+f.incassato || 0) / Math.max(1, +f.importo || 0)))];
     const g = giorni(f.scadenza);
     if (g < 0) return ["danger","Insoluta"];
@@ -1447,18 +1459,19 @@ label.item:has(.dw-chk:checked){
   }
   async function refresh(){
     let IMPL, FATG;
-    [FATG,GAR,CLI,PRO,PES,INC,IMPL] = await Promise.all([db.fatture(), db.gare(), db.clienti(),
-      db.prodotti(), db.pesate(), db.incassi(), db.impostazioni()]);
+    [FATG,GAR,CLI,PRO,PES,INC,NOT,IMPL] = await Promise.all([db.fatture(), db.gare(), db.clienti(),
+      db.prodotti(), db.pesate(), db.incassi(), db.note(), db.impostazioni()]);
     INC = INC || [];
+    NOT = NOT || [];
     // ogni fattura porta con sé il suo stato di incasso (incassato, residuo,
     // giorni reali di pagamento). Senza movimenti registrati residuo = importo:
     // tutti i conti restano quelli di prima, al centesimo.
     FAT = applicaIncassi(FATG, INC);
     IMP = (IMPL || [])[0] || null;
-    const k = kpiFrom(FAT,GAR);
+    const k = kpiFrom(FAT, GAR, new Date(), NOT);
     const aperte  = FAT.filter(f => !f.incassata);
     const scadute = aperte.filter(f => giorni(f.scadenza) < 0);
-    const scadutoTot = scadute.reduce((t,f) => t + apertoDi(f), 0);   // il residuo, non il totale
+    const scadutoTot = scadute.reduce((t,f) => t + apertoDi(f, NOT), 0);   // il residuo meno lo stornato
     /* ⚠️ Stessa regola del riepilogo: una base che MANCA non vale zero, non
        entra proprio. Con `|| 0` la differenza non si vedeva, ma il totale era
        lo stesso e non c'era modo di sapere che era parziale. */
@@ -1618,7 +1631,7 @@ label.item:has(.dw-chk:checked){
     // Anagrafica clienti: esposizione aperta per cliente (per il badge e il fido),
     // elenco con ricerca e conteggio, tendina del form fattura, fatture da collegare.
     const espoPerId = {};
-    for (const c of esposizioneClienti(FAT, new Date(), CLI)) if (c.clienteId) espoPerId[c.clienteId] = c;
+    for (const c of esposizioneClienti(FAT, new Date(), CLI, NOT)) if (c.clienteId) espoPerId[c.clienteId] = c;
     const cliOrd = CLI.slice().sort((a, b) => String(a.ragioneSociale || "").localeCompare(String(b.ragioneSociale || ""), "it"));
     { // tendina "cliente" della nuova fattura: conserva la scelta in corso
       const sel = $("ft-cli"), prima = sel.value;
@@ -1827,7 +1840,7 @@ label.item:has(.dw-chk:checked){
     // Aging incassi: crediti aperti per fascia di ritardo. Le fasce
     // scadute usano il badge d'attenzione/allarme così l'occhio va subito
     // sul credito più vecchio, quello da sollecitare per primo.
-    const ag = agingIncassi(FAT);
+    const ag = agingIncassi(FAT, new Date(), NOT);
     const righe = [
       ["Non scaduto",        ag.nonScaduto, "ok"],
       ["Scaduto 1–30 gg",    ag.g1_30,     ag.g1_30.conto ? "warn" : "ok"],
@@ -1929,7 +1942,7 @@ label.item:has(.dw-chk:checked){
     // Esposizione per cliente: chi ci deve di più (e quanto è già scaduto).
     // Raggruppa per anagrafica: le varianti dello stesso nome non fanno più righe
     // separate. Con il fido impostato segnala anche chi lo ha superato.
-    const espo = esposizioneClienti(FAT, new Date(), CLI);
+    const espo = esposizioneClienti(FAT, new Date(), CLI, NOT);
     const espoMax = Math.max(1, ...espo.map(c => c.totale || 0));
     $("espo-list").innerHTML = espo.length
       ? espo.map((c, i) => `<div class="item st-${c.oltreFido ? "danger" : c.scaduto > 0 ? "warn" : "accent"}">
@@ -3006,6 +3019,77 @@ label.item:has(.dw-chk:checked){
         esito("gar-esito", "Gara «" + g.titolo + "» registrata come " + es + ".", es === "vinta" ? "success" : "");
         await refresh(); }
       return; }
+  /* ── EMETTERE UNA NOTA DI CREDITO ────────────────────────────────────────
+     Chiede la causale e l'importo, mostra che cosa resta stornabile, e prima di
+     scrivere passa da `validaNota`: gli errori fermano, gli AVVISI no. Sul
+     termine dei dodici mesi (art. 26 comma 3) l'app avvisa e lascia procedere —
+     la materia ha eccezioni che un software non può giudicare, e sbagliare per
+     eccesso di blocco è comunque sbagliare. */
+  async function emettiNota(f) {
+    const tot = importiFattura(f).totale;
+    const gia = stornatoDi(f.id, NOT);
+    const resta = round2(Math.max(0, tot - gia));
+    if (resta <= 0) {
+      esito("ft-esito", "La fattura " + f.numero + " è già stornata per intero: non c'è altro da stornare.", "");
+      return;
+    }
+    const numero = prossimoNumero(NOT.map(n => n.numero), new Date().getFullYear(), 3, "NC/");
+    const corpo = `<p>Storno della fattura <b>${esc(f.numero)}</b> di <b>${esc(nomeCliente(f, CLI))}</b>.</p>
+      <div class="mrec"><span class="k">Totale fattura</span><span class="v">${eur(tot)}</span></div>
+      ${gia > 0 ? `<div class="mrec"><span class="k">Già stornato</span><span class="v">${eur(gia)}</span></div>` : ""}
+      <div class="mrec"><span class="k">Stornabile</span><span class="v accent">${eur(resta)}</span></div>
+      <div class="mrec"><span class="k">Numero nota</span><span class="v">${esc(numero)}</span></div>
+      <label class="fl" for="nc-causale">Causale della rettifica</label>
+      <select class="dw-input" id="nc-causale">
+        ${CAUSALI_NOTA.map(c => `<option value="${c.id}">${esc(c.label)}${c.termine ? " · entro 12 mesi" : ""}</option>`).join("")}
+      </select>
+      <label class="fl" for="nc-importo" style="margin-top:10px;">Importo da stornare (€)</label>
+      <input class="dw-input" id="nc-importo" type="text" inputmode="decimal" autocomplete="off"
+             value="${String(resta).replace(".", ",")}">
+      <div class="form-hint" style="margin-top:6px;">${AVVISO_DECIMALE}</div>
+      <div class="note esito" id="nc-msg" style="margin-top:10px;"></div>`;
+    return new Promise((chiuso) => {
+      apriModale("Nota di credito " + numero, corpo, [
+        { label: "Annulla", azione: () => { chiudiModale(); chiuso(); } },
+        { label: "Emetti", cls: "primary", azione: async () => {
+            const causale = (document.getElementById("nc-causale") || {}).value || "";
+            const msg = document.getElementById("nc-msg");
+            /* ⚠️ `numeroDaCampo` restituisce un OGGETTO, non un numero: la
+               prima stesura gli passava l'oggetto a `validaNota`, dove `+ogg`
+               è NaN e diventava zero — «l'importo dev'essere maggiore di
+               zero» su un campo che diceva 18300. Il banco l'ha visto subito.
+               E il caso «ambiguo» (18.300 = diciottomila o diciotto e tre?)
+               si racconta con `spiegaNum`, che è la frase già scritta in
+               questa pagina: una convenzione sui numeri, non due. */
+            const r = numCampo("nc-importo");
+            if (!r.ok) {
+              if (msg) { msg.className = "note esito err";
+                msg.textContent = spiegaNum("l'importo da stornare", r, "€")
+                  || "Serve l'importo da stornare."; }
+              return;
+            }
+            const importo = r.valore;
+            const v = validaNota({ totale: importo, causale }, f, NOT, new Date());
+            if (!v.ok) {
+              /* gli errori restano NELLA finestra, accanto ai campi da correggere:
+                 chiuderla farebbe ricominciare da capo chi ha sbagliato una cifra */
+              if (msg) { msg.className = "note esito err"; msg.textContent = v.errori.join(" "); }
+              return;
+            }
+            const nota = notaDaFattura(f, causale, importo, numero);
+            nota.emessa = oggiISOShell();
+            await db.aggiungi("note", nota);
+            chiudiModale(); chiuso();
+            const coda = v.avvisi.length ? " " + v.avvisi.join(" ") : "";
+            esito("ft-esito", "Nota di credito " + numero + " emessa: "
+              + eur(importo) + " stornati dalla fattura " + f.numero + "." + coda,
+              v.avvisi.length ? "" : "success");
+            await refresh();
+          } },
+      ]);
+    });
+  }
+
     const btnDelFat = e.target.closest && e.target.closest("[data-del-fat]");
     if (btnDelFat) { const f = FAT.find(x => x.id === btnDelFat.getAttribute("data-del-fat")); if (!f) return;
       const ok = await chiedi("Elimina fattura",
@@ -3015,11 +3099,16 @@ label.item:has(.dw-chk:checked){
          <div class="mrec"><span class="k">Importo</span><span class="v accent">${eur(f.importo)}</span></div>
          <p style="margin-top:10px;">Sparisce da elenchi, totali, aging ed esposizione del cliente.
            <b>Usa questa opzione solo per correggere un inserimento sbagliato</b>: una fattura
-           realmente emessa non va cancellata, va gestita con una nota di credito.</p>
+           realmente emessa non va cancellata, va <b>stornata con una nota di credito</b> —
+           il bottone qui accanto. Lo storno lascia la fattura in archivio, riduce
+           l'esposizione del cliente e non cancella niente.</p>
          ${(PES.filter(p => p.fatturaId === f.id).length) ? `<p>I <b>${PES.filter(p => p.fatturaId === f.id).length} DDT</b> collegati tornano fra quelli <b>da fatturare</b>: le consegne non si perdono, si rimettono in coda.</p>` : ""}
          ${movimentiDiFattura(f.id, INC).length ? `<p>Vengono eliminati anche i <b>${plur(movimentiDiFattura(f.id, INC).length, "incasso registrato", "incassi registrati")}</b> su questa fattura (${eur(movimentiDiFattura(f.id, INC).reduce((t, m) => t + m.importo, 0))}): senza la fattura non avrebbero più un documento a cui riferirsi.</p>` : ""}`,
-        "Elimina", true);
-      if (ok) {
+        "Elimina", true, "Emetti nota di credito");
+      /* la finestra spiegava la regola e poi offriva UN SOLO bottone, che era
+         quello che la viola. Adesso la strada giusta è lì accanto. */
+      if (ok === "extra") { await emettiNota(f); return; }
+      if (ok === true) {
         // i DDT della fattura tornano liberi: nessuna consegna resta appesa a
         // un documento che non esiste più
         for (const p of PES.filter(x => x.fatturaId === f.id)) await db.aggiorna("pesate", p.id, { fatturaId: null });
@@ -3097,7 +3186,7 @@ label.item:has(.dw-chk:checked){
       } catch (_) { mostraTesto(titoloModale, spiega, testo); return false; }
     };
     const btnEspo = e.target.closest && e.target.closest("[data-espo]");
-    if (btnEspo) { const c = esposizioneClienti(FAT, new Date(), CLI)[+btnEspo.getAttribute("data-espo")];
+    if (btnEspo) { const c = esposizioneClienti(FAT, new Date(), CLI, NOT)[+btnEspo.getAttribute("data-espo")];
       const testo = c && estrattoContoCliente(c, FAT, new Date(), TASSO_MORA_DEFAULT, CLI);
       if (!testo) { esito("rep-esito", "Nessuna fattura aperta per questo cliente.", "err"); return; }
       const fatto = await copia(testo, "Estratto conto di " + c.cliente,
