@@ -7603,5 +7603,166 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+// ── Flotta: giro macchina, anagrafica del mezzo, libretto ─────────────
+/* Il giro macchina è quello che porta in Flotta CHI GUIDA, non solo chi sta
+   in ufficio: è il controllo di dieci minuti prima di salire, ed è da lì
+   che nasce una manutenzione. Il libretto (`fascicoloMezzo`) è invece la
+   pagina che un compratore guarda per prima.
+   Tutto il blocco si regge su una convenzione sola — il NOME BREVE del
+   mezzo — e su una distinzione: indovinare la checklist dal nome è
+   innocuo, scrivere un dato indovinato nell'anagrafica non lo sarebbe. */
+{
+  console.log("\n— Flotta: giro macchina, anagrafica, libretto —");
+  const OGGI = new Date("2026-07-31T10:00:00");
+
+  test("nomeBreve: «Escavatore E1 — CAT 352» è il mezzo «Escavatore E1»", () => {
+    /* è la chiave con cui manutenzioni, scadenze, interventi, controlli,
+       fermi e rifornimenti si ritrovano: se cambia, si scollega tutto */
+    eq(flotta.nomeBreve("Escavatore E1 — CAT 352"), "Escavatore E1", "il modello serve solo a leggere");
+    eq(flotta.nomeBreve("  Pala P2  "), "Pala P2", "spazi tolti");
+    eq(flotta.nomeBreve(null), "", "niente");
+  });
+  test("tipoMezzoDi: quello salvato vince, poi si indovina dal nome, poi «altro»", () => {
+    eq(flotta.tipoMezzoDi({ tipo: "dumper", nome: "Escavatore E1" }).chiave, "dumper",
+      "quello che l'utente ha SCELTO batte quello che il nome suggerisce");
+    eq(flotta.tipoMezzoDi({ nome: "Escavatore E1 — CAT 352" }).chiave, "escavatore", "indovinato");
+    eq(flotta.tipoMezzoDi({ nome: "Frantoio primario" }).chiave, "impianto", "indovinato dall'indizio");
+    eq(flotta.tipoMezzoDi({ nome: "Macchina X" }).chiave, "altro", "non indovinabile");
+    eq(flotta.tipoMezzoDi(null).chiave, "altro", "nessun mezzo");
+    eq(flotta.tipoMezzo("zzz"), null, "un tipo che non esiste non diventa il primo dell'elenco");
+  });
+  test("checklistPreUso: sette voci per tutti, più quelle del tipo", () => {
+    eq(flotta.checklistPreUso("altro").length, 7, "solo le comuni");
+    eq(flotta.checklistPreUso("zzz").length, 7, "un tipo sconosciuto non aggiunge voci a caso");
+    eq(flotta.checklistPreUso("perforatrice").length, 11, "sette comuni + quattro della perforatrice");
+    ok(flotta.checklistPreUso("perforatrice").some(v => v.chiave === "polveri" && v.critica),
+      "l'abbattimento polveri è una voce critica: è silice");
+  });
+  test("checklistPreUso: ogni chiamata torna un elenco NUOVO", () => {
+    /* la pagina ci scrive dentro gli esiti: una lista condivisa farebbe
+       comparire nel giro di domani le risposte di oggi */
+    const a = flotta.checklistPreUso("pala");
+    a.pop();
+    eq(flotta.checklistPreUso("pala").length, 10, "l'originale non si è accorciato");
+  });
+
+  const VOCI = [
+    { chiave: "livelli", esito: "ok", critica: false },
+    { chiave: "freni", esito: "no", critica: true, etichetta: "Freni, sterzo e comandi" },
+    { chiave: "luci", esito: "no", critica: false, etichetta: "Luci" },
+    { chiave: "cabina", critica: false },
+  ];
+  test("⛔ riepilogoControllo: un giro con voci senza risposta NON è completo", () => {
+    /* un controllo in cui non hai guardato non è un controllo, ed è il
+       motivo per cui non si può salvare: `primaMancante` serve a portarci
+       sopra chi compila invece di dirgli solo «no» */
+    const r = flotta.riepilogoControllo(VOCI);
+    contiene(r, { totali: 4, ok: 1, no: 2, mancanti: 1, completo: false, primaMancante: "cabina" }, "riepilogo");
+    eq(flotta.riepilogoControllo([]).completo, false, "un giro vuoto non è un giro fatto");
+  });
+  test("riepilogoControllo: una voce di sicurezza «non va» fa scattare il rosso", () => {
+    /* le altre anomalie sono un avviso; una voce critica è una macchina che
+       non deve lavorare finché non è sistemata */
+    const r = flotta.riepilogoControllo(VOCI);
+    eq(r.gravita, "danger", "c'è una critica");
+    eq(r.critiche.map(v => v.chiave), ["freni"], "e si sa quale");
+    eq(flotta.riepilogoControllo([{ chiave: "luci", esito: "no" }]).gravita, "warn", "senza critiche resta un avviso");
+    eq(flotta.riepilogoControllo([{ chiave: "a", esito: "ok" }]).gravita, "ok", "tutto a posto");
+  });
+  test("manutenzioniDaControllo: una manutenzione per ogni «non va», e si sa da dove viene", () => {
+    const m = flotta.manutenzioniDaControllo({ mezzo: "Escavatore E1", data: "2026-07-30", voci: VOCI }, OGGI);
+    eq(m.length, 2, "due voci segnate «non va»");
+    contiene(m[0], { titolo: "Giro macchina: Freni, sterzo e comandi", mezzo: "Escavatore E1",
+      dataPrevista: "2026-07-30", origine: "controllo" }, "la prima");
+    ok(/sicurezza/.test(m[0].nota), "e la nota dice che era una voce di sicurezza");
+    eq(flotta.manutenzioniDaControllo({ mezzo: "E1", voci: [{ esito: "ok" }] }, OGGI), [],
+      "un giro pulito non apre niente");
+  });
+  test("manutenzioniDaControllo: senza data del giro vale oggi (vanno guardate subito)", () => {
+    eq(flotta.manutenzioniDaControllo({ mezzo: "E1", voci: [{ esito: "no", etichetta: "Perdite" }] }, OGGI)[0].dataPrevista,
+      "2026-07-31", "oggi");
+  });
+  test("controlliDelMezzo: si riconosce dal nome breve, dal più recente", () => {
+    const CTRL = [
+      { mezzo: "Escavatore E1 — CAT 352", data: "2026-07-29" },
+      { mezzo: "Escavatore E1", data: "2026-07-31" },
+      { mezzo: "Pala P2", data: "2026-07-31" },
+    ];
+    eq(flotta.controlliDelMezzo(CTRL, "Escavatore E1 — CAT 352").map(c => c.data),
+      ["2026-07-31", "2026-07-29"], "nome lungo e nome breve sono lo stesso mezzo");
+    eq(flotta.controlliDelMezzo(CTRL, "Dumper D9"), [], "un mezzo senza giri");
+  });
+
+  test("validaRifornimento: «45,8» litri e «1.250,75 €» arrivano interi", () => {
+    /* quello che non si capisce viene DETTO, mai salvato come zero: su una
+       spesa di gasolio uno zero è un buco nei costi che nessuno ritrova */
+    contiene(flotta.validaRifornimento({ mezzo: "E1", litri: "45,8", euro: "1.250,75", ore: "1234,8", data: "2026-07-31" }, 1200),
+      { ok: true, litri: 45.8, euro: 1250.75, ore: 1234.8 }, "i tre numeri");
+  });
+  test("validaRifornimento: il contatore non può tornare indietro", () => {
+    /* un contaore che scende è quasi sempre una cifra saltata, e da lì
+       esce un consumo orario senza senso */
+    const v = flotta.validaRifornimento({ mezzo: "E1", litri: 40, data: "2026-07-31", ore: 900 }, 1200);
+    ok(!v.ok && /1200 ore già registrate/.test(v.errori.ore), "lo dice col numero che ha già");
+  });
+  test("validaRifornimento: mezzo, litri e giorno servono; la spesa può mancare", () => {
+    const e = flotta.validaRifornimento({}, null).errori;
+    eq(Object.keys(e).sort(), ["data", "litri", "mezzo"], "tre cose");
+    contiene(flotta.validaRifornimento({ mezzo: "E1", litri: 40, data: "2026-07-31" }, null),
+      { ok: true, euro: 0, ore: null }, "senza spesa e senza contatore si salva lo stesso");
+    ok(flotta.validaRifornimento({ mezzo: "E1", litri: 99999, data: "2026-07-31" }, null).errori.litri,
+      "ventimila litri in un rifornimento no");
+  });
+
+  test("fotografiaDaRegistrare: una riga sola al giorno, e nessuna su un parco vuoto", () => {
+    /* la funzione decide da sola se scrivere: è chiamata a ogni apertura e
+       dopo ogni cambio di stato */
+    const MEZZI = [{ nome: "E1", stato: "operativo" }, { nome: "P2", stato: "fermo" }];
+    eq(flotta.fotografiaDaRegistrare([], [], "2026-07-31"), null, "niente parco, niente da fotografare");
+    eq(flotta.fotografiaDaRegistrare([], MEZZI, "2026-07-31"),
+      { azione: "aggiungi", dati: { data: "2026-07-31", operativi: 1, totale: 2 } }, "prima riga del giorno");
+    eq(flotta.fotografiaDaRegistrare([{ id: "x", data: "2026-07-31", operativi: 1, totale: 2 }], MEZZI, "2026-07-31"),
+      null, "riga già uguale: non si tocca niente");
+    contiene(flotta.fotografiaDaRegistrare([{ id: "x", data: "2026-07-31", operativi: 2, totale: 2 }], MEZZI, "2026-07-31"),
+      { azione: "aggiorna", id: "x" }, "un mezzo è stato fermato: la fotografia del giorno è l'ULTIMA nota");
+    eq(flotta.fotografiaDaRegistrare([], MEZZI, "boh"), null, "senza un giorno valido non si scrive");
+  });
+
+  test("fascicoloMezzo: nel libretto entra solo quel mezzo, e il fermo c'è", () => {
+    /* «tenuta bene» è una parola finché non ci sono i fermi accanto */
+    const CTRL = [{ mezzo: "Escavatore E1 — CAT 352", data: "2026-07-29" }, { mezzo: "Pala P2", data: "2026-07-31" }];
+    const F = flotta.fascicoloMezzo({ nome: "Escavatore E1 — CAT 352" }, {
+      manutenzioni: [{ mezzo: "Escavatore E1", dataPrevista: "2026-08-10" }, { mezzo: "Pala P2", dataPrevista: "2026-08-01" }],
+      interventi: [{ mezzo: "Escavatore E1", data: "2026-07-01", costo: 300, oreManodopera: 4 }],
+      controlli: CTRL,
+      rifornimenti: [{ mezzo: "Escavatore E1", data: "2026-07-01", litri: 100, euro: 150, ore: 1000 }],
+      fermi: [{ mezzo: "Escavatore E1", causale: "guasto-meccanico", inizio: "2026-07-20", fine: "2026-07-22" }],
+    }, OGGI);
+    contiene(F, { nome: "Escavatore E1" }, "il nome breve");
+    eq(F.tipo.chiave, "escavatore", "tipo indovinato dal nome");
+    eq([F.manutenzioni.length, F.interventi.length, F.controlli.length], [1, 1, 1],
+      "le righe della Pala P2 non entrano");
+    contiene(F.officina, { totale: 300, interventi: 1, ore: 4 }, "officina");
+    contiene(F.fermo, { episodi: 1, giorni: 3, aperti: 0 }, "un fermo di tre giorni, chiuso");
+    eq(F.speso, 450, "300 di officina + 150 di gasolio");
+  });
+  test("fascicoloMezzo: un mezzo senza storia non inventa una storia", () => {
+    const F = flotta.fascicoloMezzo({ nome: "Nuovo N1" }, {}, OGGI);
+    eq([F.manutenzioni.length, F.interventi.length, F.controlli.length, F.fermi.length], [0, 0, 0, 0], "tutto vuoto");
+    contiene(F, { speso: 0 }, "zero speso perché non c'è niente, e la pagina ha i contatori per dirlo");
+    eq(F.ultimoControllo, null, "nessun giro fatto: null, non una data di comodo");
+  });
+  test("ritmoDelMezzo: si cerca col nome breve, e se non c'è risponde null", () => {
+    eq(flotta.ritmoDelMezzo([{ mezzo: "Escavatore E1", oreGiorno: 7 }], "Escavatore E1 — CAT 352").oreGiorno, 7, "trovato");
+    eq(flotta.ritmoDelMezzo([{ mezzo: "Pala P2" }], "Escavatore E1"), null, "non c'è: null, non un ritmo medio");
+  });
+  test("i piani di tagliando sono a ore motore, e uno sconosciuto non diventa il primo", () => {
+    eq(flotta.PIANI_TAGLIANDO.map(p => p.ogniOre), [250, 500, 1000, 2000], "la scaletta");
+    eq(flotta.pianoTagliando(500).chiave, "500", "si può cercare anche col numero");
+    eq(flotta.pianoTagliando("999"), null, "un piano che non esiste");
+    eq(flotta.ORIZZONTE_TAGLIANDI, 30, "l'orizzonte è di trenta giorni");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
