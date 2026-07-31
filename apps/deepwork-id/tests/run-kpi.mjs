@@ -4141,5 +4141,65 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ IL TITOLO CHE VALE E IL RITMO CHE STIMA L'ESAURIMENTO ══════════════
+   `autorizzazioneVigente` sceglie sotto quale titolo si sta cavando, e
+   `ritmoMedioAnnuo` è il numero da cui esce l'anno di esaurimento della cava.
+   Il ritmo ha una regola che vale la pena bloccare: conta **solo lo scavo**,
+   perché il materiale ripreso da un cumulo era già stato scavato (e già
+   scalato) prima — contarlo di nuovo consumerebbe due volte la concessione. */
+{
+  test("titolo vigente: vince quello dichiarato vigente, non il primo dell'elenco", () => {
+    const scaduto = { id: "a1", numero: "111", stato: "scaduta" };
+    const buono = { id: "a2", numero: "222", stato: "vigente" };
+    eq(terra.autorizzazioneVigente([scaduto, buono]).numero, "222", "vince il vigente");
+  });
+  test("titolo vigente: senza nessun vigente si ripiega sul primo, e nulla si inventa", () => {
+    eq(terra.autorizzazioneVigente([{ id: "a1", numero: "111", stato: "scaduta" }]).numero, "111",
+       "si mostra quello che c'è");
+    eq(terra.autorizzazioneVigente([]), null, "e con l'elenco vuoto: null");
+    eq(terra.autorizzazioneVigente(null), null, "come con l'elenco assente");
+  });
+
+  const oggiR = new Date("2026-07-01T00:00:00Z");
+  test("ritmo medio: volume di scavo diviso gli anni davvero coperti", () => {
+    const r = terra.ritmoMedioAnnuo([
+      { data: "2024-07-01", volumeM3: 10000, stato: "elaborato" },
+      { data: "2026-07-01", volumeM3: 10000, stato: "elaborato" },
+    ], 3, oggiR);
+    eq(r.volume, 20000, "somma dei volumi elaborati nella finestra");
+    eq(Math.round(r.durataAnni), 2, "dal primo rilievo a oggi: due anni");
+    /* ⚠️ NON si pretende esattamente 10.000: l'anno qui dura 365,25 giorni
+       (i bisestili), quindi due anni di calendario sono 1,9986 anni-media e
+       il ritmo viene 10.007. È il codice ad avere ragione — pretendere il
+       numero tondo avrebbe fatto passare per difetto la gestione corretta dei
+       bisestili. Si controlla quindi la cosa che conta: che il ritmo sia
+       quello, a meno dello scarto che i bisestili giustificano. */
+    ok(Math.abs(r.annuo - 10000) < 20, `ritmo ~10.000 m³/anno, trovato ${Math.round(r.annuo)}`);
+  });
+  test("⛔ ritmo medio: la ripresa di CUMULI non consuma la concessione", () => {
+    /* la stessa regola che `run-stile.mjs` difende alla regola 7: cumulo =
+       già estratto. Se entrasse nel ritmo, l'anno di esaurimento verrebbe
+       fuori prima del vero e si prenderebbero decisioni su un numero falso. */
+    const r = terra.ritmoMedioAnnuo([
+      { data: "2024-07-01", volumeM3: 10000, stato: "elaborato" },
+      { data: "2026-07-01", volumeM3: 10000, stato: "elaborato" },
+      { data: "2025-07-01", volumeM3: 50000, stato: "elaborato", provenienza: "cumulo" },
+    ], 3, oggiR);
+    eq(r.volume, 20000, "i 50.000 dal cumulo restano fuori dal ritmo");
+  });
+  test("ritmo medio: storico troppo corto non produce una media", () => {
+    /* meno di tre mesi: una media su due settimane direbbe che la cava finisce
+       il mese prossimo, ed è un numero peggiore di nessun numero */
+    eq(terra.ritmoMedioAnnuo([{ data: "2026-06-20", volumeM3: 5000, stato: "elaborato" }], 3, oggiR),
+       null, "null invece di una media senza senso");
+  });
+  test("ritmo medio: i rilievi non elaborati non contano", () => {
+    eq(terra.ritmoMedioAnnuo([
+      { data: "2024-07-01", volumeM3: 10000, stato: "in-calendario" },
+      { data: "2026-07-01", volumeM3: 10000, stato: "in-calendario" },
+    ], 3, oggiR), null, "un rilievo in calendario non è materiale uscito dalla cava");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
