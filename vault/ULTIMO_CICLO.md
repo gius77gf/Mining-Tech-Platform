@@ -5,26 +5,28 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-08-02 04:37 UTC — **la giornata della copertura**
-**Cosa ha fatto:** le prove sulle funzioni pure delle app sono passate da **433 a
-962** (totale `node` **1.245**), e la copertura è arrivata a **401 funzioni su
-409**: Campo e Scudo al 100%, Sentinella 101/102, Conti 56/57, Terra 37/38,
-Flotta 65/70. Ogni blocco ha la sua controprova su una copia del modulo, e sono
-passate tutte (9/9, 11/11, 18/18, 14/14, 13/13, 12/12, 11/11, 9/9, 2/2).
-Scrivendo le prove sono uscite **cinque duplicazioni**: tre sono difetti veri
-(`messaggioNumero` scritta due volte con tre messaggi diversi su dieci,
-`dataPiuGiorni` identica in Scudo e Sentinella e **già staccata** sul caso
-d'errore, `giorni` lo stesso involucro in Conti e Sentinella) e due no
-(`numeroIt` e `CAUSALI_FERMO`: differenze **volute e dichiarate**). Il criterio
-per distinguerle sta in `docs/LA_STESSA_REGOLA_SCRITTA_DUE_VOLTE.md`.
-Nati due controlli che contano al posto della memoria — `copertura-funzioni.mjs`
-(con un **fondo** per app) e `nomi-doppi.mjs` — più la misura del raggruppamento
-delle migliaia fra Node e Chromium (`docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md`).
+**Ultimo ciclo riuscito:** 2026-08-03 06:50 UTC — **la giornata dei controlli
+che non guardavano dove credevano**
+**Cosa ha fatto:** trovato e chiuso il difetto più grave incontrato finora in un
+CONTROLLO (non nel prodotto): la scansione carattere per carattere su cui stanno
+in piedi **tutte** le regole di stile **perdeva la fase**. Leggeva la pagina
+intera come JavaScript — e l'apostrofo di «l'ecosistema» scritto nel TESTO
+apriva una stringa — e giudicava lo slash dall'ultimo carattere invece che dalla
+parola. Effetto misurato: **115 delle 195 funzioni di Genesi** prese per testo,
+cioè la regola sui dialoghi del browser cieca su decine di migliaia di caratteri
+che rispondeva lo stesso «nessuna violazione». Il core ne usciva pulito **per
+caso**. Corretto, e blindato con una prova che verifica lo STRUMENTO invece di
+una regola: *7.485 dichiarazioni, nessuna presa per stringa*.
+Nella stessa giornata: la **regola 17** (la struttura del core non si riscrive
+in casa), la copertura delle funzioni da **405 a 410 su 411**, `perCampo`
+trovata scritta due volte, e **due pagine che l'utente apre** — «non
+autorizzato» e il portone di Genesi — che **nessuna regola aveva mai guardato**.
+Prove `node`: **1.265 → 1.309**.
 **Cosa sta facendo adesso:** aspetta l'ultimo banco del **giro a 19 banchi** del
-browser per applicare le **tre correzioni già pronte** (una sola
-`messaggioNumero`, `dataPiuGiorni` in `shared/` e irrigidita, il raggruppamento
-scritto nei moduli), con le prove di **identità** e la **regola 16** dello stile.
-**Commit di partenza:** `ba14668`
+browser per applicare la correzione di `perCampo` (già scritta e provata su una
+copia), poi `go(id)` nel modulo condiviso e il passaggio
+dell'amministrazione a `dw-app-ui.js`.
+**Commit di partenza:** `57a7d1c`
 
 ---
 
