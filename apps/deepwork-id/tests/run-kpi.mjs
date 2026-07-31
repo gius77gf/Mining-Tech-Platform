@@ -7434,5 +7434,174 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+// ── Flotta: ordini di lavoro, consumo ricambi, punto di riordino ──────
+/* Qui stanno i soldi dell'officina e le scorte di magazzino: è la parte
+   di Flotta dove un numero sbagliato costa davvero. Due idee la reggono, e
+   sono tutt'e due nei commenti del modulo:
+   · il costo di un ordine NON si scrive, si somma — così non può mai
+     smentire le righe che uno ha davanti;
+   · la soglia di riordino non è un numero che qualcuno ha scritto una
+     volta: è consumo al giorno × giorni di consegna + margine, e quando il
+     consumo non c'è la soglia NON si propone. */
+{
+  console.log("\n— Flotta: officina, ricambi, punto di riordino —");
+  const OGGI = new Date("2026-07-31T10:00:00");
+
+  test("statoOrdine: una manutenzione scritta prima di oggi è «da fare», non un errore", () => {
+    /* è esattamente quello che era: la riga non deve cambiare aspetto
+       perché è stata introdotta una colonna nuova */
+    eq(flotta.statoOrdine({}).chiave, "da-fare", "senza stato");
+    eq(flotta.statoOrdine({ stato: "boh" }).chiave, "da-fare", "stato non riconosciuto");
+    eq(flotta.STATI_ORDINE.map(s => s.chiave), ["da-fare", "in-corso", "attesa-ricambi"], "i tre stati");
+    ok(flotta.STATI_ORDINE.every(s => s.etichetta && s.breve && s.nota), "ognuno spiegato");
+  });
+  test("il rosso resta a chi aspetta un pezzo, non a chi sta lavorando", () => {
+    /* un colore, un significato: se «in lavorazione» fosse rosso, il rosso
+       non vorrebbe più dire niente */
+    eq(flotta.STATI_ORDINE.find(s => s.chiave === "attesa-ricambi").cls, "danger", "attesa pezzi");
+    eq(flotta.STATI_ORDINE.find(s => s.chiave === "in-corso").cls, "accent", "in lavorazione: colore dell'app");
+  });
+
+  test("costoOrdine: il costo si somma dalle righe, e non si scrive da nessuna parte", () => {
+    const q = flotta.costoOrdine({
+      manodopera: [{ chi: "Mario", ore: 2.5, tariffa: 35 }, { chi: "Luca", ore: 3, tariffa: 0 }],
+      ricambi: [{ nome: "Filtro", qta: 2, prezzo: 24.5 }, { nome: "Olio", qta: 10, prezzo: 0 }],
+      altreSpese: 120,
+    });
+    eq(q.totale, 256.5, "87,50 di manodopera + 49 di ricambi + 120 di spese");
+    contiene(q.manodopera, { ore: 5.5, costo: 87.5, senzaTariffa: 1 }, "manodopera");
+    contiene(q.ricambi, { pezzi: 12, costo: 49, senzaPrezzo: 1 }, "ricambi");
+    eq(q.persone, 2, "due persone ci hanno messo le mani");
+  });
+  test("⛔ costoOrdine: quello che non ha prezzo si DICHIARA, non passa per gratis", () => {
+    /* tre ore senza tariffa non sono tre ore gratis: sono tre ore di cui non
+       si sa il costo, e l'app deve poterlo dire invece di sommare zero */
+    const q = flotta.costoOrdine({
+      manodopera: [{ chi: "Luca", ore: 3 }],
+      ricambi: [{ nome: "Olio", qta: 10 }],
+    });
+    eq(q.manodopera.senzaTariffa, 1, "una riga di manodopera senza costo orario");
+    eq(q.ricambi.senzaPrezzo, 1, "un ricambio senza prezzo");
+    eq(q.totale, 0, "il totale è zero PERCHÉ non si sa, e i due contatori lo spiegano");
+  });
+  test("costoOrdine: un ordine vuoto non è un ordine da zero euro sbagliato", () => {
+    const q = flotta.costoOrdine({});
+    contiene(q, { totale: 0, persone: 0 }, "vuoto");
+    contiene(q.manodopera, { senzaTariffa: 0 }, "niente da dichiarare");
+  });
+
+  test("ordineDaManutenzione: chi aveva collegato un pezzo lo ritrova già pronto", () => {
+    /* la manutenzione vecchia aveva UN `ricambioId` e nessuna manodopera:
+       diventa una riga con quantità 1 e il prezzo del magazzino */
+    const CAT = [{ id: "r1", nome: "Filtro olio", prezzo: 24.5 }];
+    eq(flotta.ordineDaManutenzione({ ricambioId: "r1" }, CAT).ricambi,
+      [{ id: "r1", nome: "Filtro olio", qta: 1, prezzo: 24.5 }], "riga pronta dal catalogo");
+    eq(flotta.ordineDaManutenzione({ ricambioId: "zz" }, CAT).ricambi[0].prezzo, 0,
+      "un pezzo non più a catalogo non inventa un prezzo");
+  });
+  test("ordineDaManutenzione: le righe nuove tengono i decimali e ripuliscono i nomi", () => {
+    const CAT = [{ id: "r2", nome: "Olio idraulico", prezzo: 3.2 }];
+    const o = flotta.ordineDaManutenzione({
+      stato: "in-corso", ricambiUsati: [{ id: "r2", qta: 12.5 }],
+      manodopera: [{ chi: " Mario ", ore: "2.5", tariffa: 35 }],
+      altreSpese: 120, noteLavoro: " sostituito ",
+    }, CAT);
+    eq(o.stato, "in-corso", "lo stato resta");
+    contiene(o.ricambi[0], { nome: "Olio idraulico", qta: 12.5, prezzo: 3.2 }, "12,5 litri restano 12,5");
+    eq(o.manodopera, [{ chi: "Mario", ore: 2.5, tariffa: 35 }], "spazi tolti, mezz'ora tenuta");
+    eq(o.noteLavoro, "sostituito", "note ripulite");
+  });
+
+  test("validaRigaManodopera: «2,5» sono due ore e mezza, non venticinque", () => {
+    /* è la convenzione dei numeri di tutto l'ecosistema: la virgola è
+       decimale, e un campo che la mangiasse moltiplicherebbe per dieci */
+    contiene(flotta.validaRigaManodopera({ chi: "Mario", ore: "2,5", tariffa: "35" }),
+      { ok: true, ore: 2.5, tariffa: 35 }, "due ore e mezza");
+  });
+  test("validaRigaManodopera: senza nome no, oltre 24 ore in una riga no", () => {
+    ok(/Scrivi chi/.test(flotta.validaRigaManodopera({ ore: 2 }).errori.chi), "una riga senza nome non serve");
+    ok(/24 ore/.test(flotta.validaRigaManodopera({ chi: "Mario", ore: 25 }).errori.ore),
+      "venticinque ore in un colpo è un errore di dito");
+    ok(flotta.validaRigaManodopera({ chi: "Mario" }).errori.ore, "e le ore servono");
+  });
+  test("validaRigaManodopera: il costo orario può mancare, le ore restano registrate", () => {
+    /* buttare via la riga perché non si sa la tariffa perderebbe il dato
+       vero (chi ci ha lavorato e quanto) per colpa di uno che non si sa */
+    contiene(flotta.validaRigaManodopera({ chi: "Mario", ore: 2 }), { ok: true, ore: 2, tariffa: 0 }, "senza tariffa si salva");
+    ok(flotta.validaRigaManodopera({ chi: "Mario", ore: 2, tariffa: 5000 }).errori.tariffa, "mille euro l'ora no");
+  });
+  test("validaRigaRicambio: la quantità NON è per forza intera (olio e grasso a litri)", () => {
+    /* con un campo type=number «12,5» diventava 125: dieci volte l'olio */
+    contiene(flotta.validaRigaRicambio({ nome: "Olio", qta: "12,5", prezzo: "3,20" }),
+      { ok: true, qta: 12.5, prezzo: 3.2 }, "dodici litri e mezzo");
+    ok(flotta.validaRigaRicambio({ qta: 1 }).errori.nome, "senza nome no");
+    ok(flotta.validaRigaRicambio({ nome: "Olio" }).errori.qta, "senza quantità no");
+    contiene(flotta.validaRigaRicambio({ nome: "Olio", qta: 2 }), { ok: true, prezzo: 0 }, "senza prezzo si salva");
+  });
+
+  test("riepilogoOrdini: la stessa persona su due ordini è una persona sola", () => {
+    /* «Mario» e «mario» sono lo stesso meccanico: contarlo due volte
+       gonfierebbe la squadra che sta lavorando */
+    const r = flotta.riepilogoOrdini([
+      { stato: "in-corso", manodopera: [{ chi: "Mario", ore: 2 }] },
+      { stato: "attesa-ricambi" }, {},
+      { stato: "in-corso", manodopera: [{ chi: "mario", ore: 1.5 }, { chi: "Luca", ore: 1 }] },
+    ]);
+    contiene(r, { totale: 4, "da-fare": 1, "in-corso": 2, "attesa-ricambi": 1, oreAperte: 4.5, personeAperte: 2 },
+      "riepilogo dell'officina");
+  });
+
+  const INT = [
+    { data: "2026-07-01", ricambiUsati: [{ id: "r1", nome: "Filtro olio", qta: 2 }] },
+    { data: "2026-06-01", ricambiUsati: [{ id: "r1", nome: "Filtro olio", qta: 1 }] },
+    { data: "2026-05-01", ricambio: "Cinghia" },
+    { data: "2020-01-01", ricambiUsati: [{ id: "r1", nome: "Filtro olio", qta: 99 }] },
+    { data: "", ricambiUsati: [{ id: "r1", nome: "Filtro olio", qta: 50 }] },
+  ];
+  test("consumoRicambi: si legge dagli interventi, non si stima; e la finestra taglia", () => {
+    const c = flotta.consumoRicambi(INT, 180, OGGI);
+    contiene(c, { finestra: 180, da: "2026-02-02", a: "2026-07-31", interventi: 3 }, "finestra dichiarata");
+    contiene(c.righe[0], { nome: "Filtro olio", pezzi: 3, episodi: 2 }, "i 99 pezzi del 2020 e i 50 senza data restano fuori");
+  });
+  test("consumoRicambi: con un episodio solo la media si dà, ma si dichiara fragile", () => {
+    /* «un pezzo in sei mesi» non è una media: è un fatto capitato una volta,
+       e su quello non si dimensiona un magazzino senza saperlo */
+    const c = flotta.consumoRicambi(INT, 180, OGGI);
+    eq(c.righe.find(r => r.nome === "Filtro olio").affidabile, true, "due episodi: si può guardare");
+    eq(c.righe.find(r => r.nome === "Cinghia").affidabile, false, "un episodio: fragile");
+  });
+  test("consumoRicambi: gli interventi vecchi valgono un pezzo, e si contano a parte", () => {
+    /* è quello che l'app scaricava dal magazzino allora: dire zero
+       cancellerebbe un consumo vero, dire di più sarebbe inventato */
+    const c = flotta.consumoRicambi(INT, 180, OGGI);
+    eq(c.daInterventiVecchi, 1, "uno solo, e dichiarato");
+    eq(c.righe.find(r => r.nome === "Cinghia").pezzi, 1, "un pezzo");
+  });
+
+  test("puntoDiRiordino: consumo al giorno × (consegna + margine), arrotondato in su", () => {
+    /* è un conto che chiunque può rifare a mano, ed è per questo che l'app
+       restituisce anche il valore esatto e la copertura */
+    contiene(flotta.puntoDiRiordino(0.5, 15, 5), { soglia: 10, esatto: 10, copertura: 20 }, "mezzo pezzo al giorno per venti giorni");
+    eq(flotta.puntoDiRiordino(0.0167, 15, 5).soglia, 1, "mai sotto un pezzo, se un consumo c'è");
+  });
+  test("⛔ puntoDiRiordino: senza consumo o senza tempi di consegna NON si propone niente", () => {
+    /* proporre una soglia per un pezzo che non si sa quanto si usi è
+       inventare un numero e poi difenderlo */
+    eq(flotta.puntoDiRiordino(0, 15, 5), null, "nessun consumo");
+    eq(flotta.puntoDiRiordino(0.5, 0, 5), null, "nessun tempo di consegna");
+    eq(flotta.puntoDiRiordino(0.5, -3, 5), null, "una consegna negativa non è una consegna");
+  });
+  test("propostaScorte: chi non ha consumi resta A PARTE, non a soglia zero", () => {
+    const p = flotta.propostaScorte(
+      [{ id: "r1", nome: "Filtro olio", giacenza: 1, sogliaMin: 2, prezzo: 24.5 },
+       { id: "r9", nome: "Mai usato", giacenza: 5, sogliaMin: 1, prezzo: 10 }],
+      INT, { consegnaGiorni: 15, sicurezzaGiorni: 5, oggi: OGGI });
+    eq(p.righe.map(r => r.nome), ["Filtro olio"], "solo chi ha un consumo misurato");
+    eq(p.senzaConsumo.map(r => r.nome), ["Mai usato"], "l'altro è dichiarato, non proposto a zero");
+    contiene(p, { consegna: 15, sicurezza: 5, finestra: 180, interventi: 3, daInterventiVecchi: 1 },
+      "la proposta porta con sé su cosa è stata fatta");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
