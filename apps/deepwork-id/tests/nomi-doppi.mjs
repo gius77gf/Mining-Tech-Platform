@@ -102,6 +102,52 @@ for (const nome of FRASI_UNICHE) {
       + `${dove.length === 1 ? " (anche una copia sola è una copia: è quella che si stacca)" : ""}`);
 }
 
+/* ⚠️ E IL CONTROLLO GUARDAVA SOLO METÀ DELLE COPPIE.
+   Fino al 03/08 questo file confrontava le app **fra loro**: due app che
+   esportano lo stesso nome. Ma il posto della regola condivisa è `shared/`,
+   e la coppia più facile da sbagliare è proprio **app contro shared** — una
+   app che si riscrive in casa una funzione che nello shell c'è già. Quella
+   forma non veniva guardata da nessuno.
+   Trovata appena aggiunto il confronto: `perCampo` di Flotta era **identica
+   carattere per carattere** a quella di `dw-shell.js`, e nessuno dei due
+   controlli poteva accorgersene — l'app-contro-app perché Flotta è l'unica
+   app che la esporta, questo perché non esisteva.
+   È la stessa lezione di CLAUDE.md, ancora: il filtro che esclude proprio i
+   casi che contano risponde «pulito» senza aver guardato niente. */
+const SHARED = ["shared/deepwork-id-client/dw-shell.js", "shared/dw-ponti.js"];
+const dichiaratiIn = (src) =>
+  new Set([...src.matchAll(/^export (?:async )?function (\w+)|^export const (\w+)\s*=/gm)].map((m) => m[1] || m[2]));
+/* Un ri-export si riconosce dalla forma: `export const X = X_SHELL;` oppure
+   `export { X }`. Chi INVECE ridichiara il corpo — `export function X(` — sta
+   riscrivendo, ed è quello che qui si vuole vedere. */
+const riscriveInCasa = (src, nome) =>
+  new RegExp(`^export (?:async )?function ${nome}\\s*\\(`, "m").test(src);
+
+console.log("\n— Nomi che un'app riscrive in casa, ma in `shared/` ci sono già —");
+const nelloShared = new Map();
+for (const rel of SHARED) {
+  for (const n of dichiaratiIn(readFileSync(join(RADICE, rel), "utf8"))) nelloShared.set(n, rel);
+}
+let coppieAppShared = 0;
+for (const a of APP) {
+  const src = readFileSync(join(RADICE, "apps", a, `${a}-data.js`), "utf8");
+  for (const n of dichiaratiIn(src)) {
+    if (!nelloShared.has(n)) continue;
+    coppieAppShared++;
+    guardati++;
+    const dove = nelloShared.get(n).split("/").pop();
+    if (!riscriveInCasa(src, n)) { alias++; dice(true, `${a}.${n}: ri-esporta quella di ${dove}`); continue; }
+    dice(false, `${a}.${n}: RISCRITTA IN CASA, ma ${dove} ce l'ha già`
+      + " — va importata e ri-esportata, che è la regola vincolante di CLAUDE.md");
+  }
+}
+/* Quante coppie ha davvero guardato: un «zero violazioni» ottenuto su zero
+   coppie è il difetto raccolto tre volte in CLAUDE.md. */
+dice(coppieAppShared >= 8,
+  `${coppieAppShared} nomi condivisi fra le app e shared/ sono stati confrontati`
+  + (coppieAppShared < 8 ? " — troppo pochi: il confronto non sta guardando niente" : ""));
+guardati++;
+
 console.log(`\nRisultato nomi doppi: ${guardati} nomi guardati`
   + `  ·  ${alias} alias, ${dichiarati} divergenze dichiarate, ${failed} da sistemare`);
 process.exit(failed > 0 ? 1 : 0);

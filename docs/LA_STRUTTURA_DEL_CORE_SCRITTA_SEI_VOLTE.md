@@ -132,6 +132,32 @@ La forma condivisa è quindi ancora una volta il **soprainsieme**: le guardie di
 Flotta per tutti, e la mappa come parametro facoltativo, perché *quella* è di
 Flotta e deve restare sua.
 
+### Ma «trappola dormiente» quanto dorme? — *misurato il 03/08*
+
+Prima di irrigidire, la misura. Per ogni app: quante pagine esistono, quante
+voci ha la pillola di navigazione, con quanti id diversi viene chiamato `go()`.
+
+| app | pagine | voci nav | id passati a `go()` | id senza voce nav |
+|---|---|---|---|---|
+| Campo | 5 | 5 | 5 | — |
+| Conti | 7 | 7 | 7 | — |
+| **Flotta** | **8** | **6** | **8** | `sch`, `odl` |
+| Scudo | 6 | 6 | 6 | — |
+| Sentinella | 6 | 6 | 6 | — |
+| Terra | 6 | 6 | 6 | — |
+
+**Nessuna app chiama oggi `go()` verso una pagina che non esiste.** La trappola
+è dormiente davvero, non già scattata: le guardie servono contro l'id di
+*domani*, non contro un difetto di oggi, e va detto così invece di raccontarlo
+più grosso di quel che è.
+
+Quello che la tabella mostra bene è **perché** Flotta si è staccata: è l'unica
+con più pagine che voci di navigazione — la scheda del mezzo e l'ordine di
+lavoro si aprono da dentro, e la pillola resta di sei voci. Senza la mappa, i
+suoi due id spegnerebbero il segnalibro invece di lasciarlo acceso sul padre.
+Cioè: la mappa è una **funzione**, le guardie sono una **protezione**, e solo
+la seconda va data a tutti.
+
 ---
 
 ## La terza metà: le sei app non erano sei
