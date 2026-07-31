@@ -148,6 +148,16 @@ conviene fare per primo. Sono la fonte da cui nascono le unità di lavoro.
     costi del mese non sono dichiarati completi — un «margine 42%» calcolato sul
     mese in cui nessuno ha registrato gli stipendi è il numero più pericoloso
     che l'app possa mostrare.
+  - **`docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md`** — ⚠️ **il più importante
+    dei tre**, e non è una ricerca: è il racconto di **quattro difetti veri**
+    trovati e chiusi il 03/08, di cui **uno era vivo nell'app della sicurezza**.
+    Una scadenza importata da un file con la data sbagliata di battitura
+    («2026-13-45») entrava in archivio e restava **verde per sempre**: una visita
+    medica che nessuno avrebbe mai visto fra quelle da fare. La cosa da sapere:
+    li ha trovati **un programma**, non una rilettura — chiamando tutte le
+    funzioni con dati vuoti e cercando **un solo segno**, «un numero tranquillo
+    dove non è stato misurato niente». Quel programma adesso resta e controlla da
+    solo.
   - **`docs/RICERCA_TRACCIABILITA_VOLUME_202608.md`** — perché un volume
     calcolato dal drone deve portarsi dietro **come** è stato calcolato. Il
     verbale che si dà all'ente ha già una sezione «Come è stato ottenuto il

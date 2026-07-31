@@ -34,6 +34,18 @@ conto non è cambiato — sono sempre otto strumenti più l'accesso — ma adess
 una **vetrina** (`/apps/`) che li presenta tutti e nove con la schermata vera di
 ognuno. È la pagina da aprire per prima davanti a qualcuno.
 
+**⚠️ Il 3 agosto sono stati trovati e chiusi quattro difetti veri**, e uno era
+vivo nell'app della **sicurezza**: una scadenza importata da un file con la data
+sbagliata di battitura entrava in archivio e restava **verde per sempre** — una
+visita medica che non sarebbe mai comparsa fra quelle da fare. Gli altri tre:
+Sentinella diceva «**Conforme**» su punti di misura che nessuno aveva ancora
+letto (il primo giorno di ogni cliente); Flotta poteva dichiarare «SCADUTA» un
+tagliando che **non aveva un obiettivo**; Conti poteva bloccare la pagina.
+Non li ha trovati una rilettura: li ha trovati **un programma** che chiama tutte
+le funzioni con dati vuoti e cerca **un solo segno** — un numero tranquillo dove
+non è stato misurato niente. Quel programma resta e adesso controlla da solo.
+Il racconto è in `docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md`.
+
 **Le cose grosse arrivate dopo il 23:**
 
 - **La vetrina dell'ecosistema.** Apertura con tre schermate vere, i sei ponti
