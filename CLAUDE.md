@@ -281,6 +281,26 @@ in italiano, senza dare conoscenze per scontate).
   La lezione non è sui backtick: è che **una controprova va misurata anche nella
   sua copertura**, non solo nel suo esito. Sapere fallire in un punto non
   dimostra niente sugli altri mille.
+- ⚠️ **UNA FUNZIONE NUOVA SI PROVA IN SCRATCHPAD PRIMA DI SCRIVERLA NEL
+  MODULO**, e non è pignoleria: il 05/08 questo passaggio ha bocciato **tre
+  progetti su tre**, ognuno con un difetto che leggendo il piano non si vedeva.
+  1. Il ponte col volume di Terra avvisava confrontando le **date** («i rilievi
+     coprono dal 28/02, il periodo parte dall'01/01»): sbagliato **di
+     mestiere**, perché un rilievo misura il volume tolto *da quello prima*,
+     quindi la sua data è la FINE dell'intervallo che copre — e l'avviso
+     partiva su un caso sano. La domanda giusta non era sulle date: è **quanti
+     costi cadono fuori** dall'intervallo misurato.
+  2. La chiusura del mese calcolava il margine **e** continuava a elencare fra
+     le mancanti la voce che l'utente aveva appena dichiarato assente: sullo
+     schermo «margine 92%» e sotto «manca il personale», cioè la pagina che si
+     smentisce da sola *proprio quando qualcuno aveva risposto*.
+  3. `avanzamentoLotto` rispondeva **«0%»** per un lotto senza nessun rilievo,
+     perché `+null` fa zero e `Number.isFinite(0)` risponde **true**. Uno 0%
+     suggerisce «non ancora cominciato» dove la verità è «nessuno ha misurato».
+  Il costo è mezz'ora; il costo dell'alternativa è scrivere il difetto nel
+  modulo, blindarlo con una prova che lo conferma, e scoprirlo settimane dopo.
+  E vale doppio **quando il giro del browser sta girando**: lo scratchpad non è
+  tracciato, quindi si progetta mentre il giro cammina invece di aspettarlo.
 - **Il browser serve per SCOPRIRE un difetto, non per tenerlo chiuso.** Le prove
   sui buchi dei grafici sono nate con Playwright, ma `tratti`/`percorso` prendono
   numeri e restituiscono una stringa: vivono in `run-kpi.mjs` e girano sempre. Il
