@@ -1639,6 +1639,35 @@ test("proiezioneAnnua: soglie di stato ok (<90%) / warn (90-100%) a metà anno",
   eq(warn.stato, "warn", "proiezione ~95% → warn");
   if (!(warn.pctPiano >= 90 && warn.pctPiano < 100)) throw new Error("pctPiano warn deve stare in [90,100): " + warn.pctPiano);
 });
+/* ⛔ L'ASSENZA DI UN DATO NON È UN DATO FAVOREVOLE — trovato dalla sonda del
+   vuoto il 04/08. `stato` rispondeva "ok" anche quando non c'era niente da
+   proiettare, e la pagina di Terra ci colora il KPI dell'avanzamento: verde,
+   cioè «il ritmo sta dentro il piano», su una misura che non esisteva. Le due
+   cause sono distinte e restano distinte: nessun rilievo dell'anno, oppure anno
+   trascorso troppo poco. Il verde è riservato a chi ha misurato.
+   La prova pretende anche che i tre stati-misura NON siano cambiati: è la metà
+   che impedisce di «guarire» la funzione spegnendo tutti i colori. */
+test("proiezioneAnnua: senza niente da proiettare lo stato NON è «ok»", () => {
+  const piano = 100000;
+  const senza = terra.proiezioneAnnua([], piano, new Date(2026, 6, 2));
+  eq(senza.stato, "senza-rilievi", "nessun rilievo dell'anno → non è «ok»");
+  eq(senza.estrattoAnno, 0, "e l'estratto è comunque riportato");
+  // rilievi che ci sono, ma di un ALTRO anno: l'anno in corso resta a zero
+  const altroAnno = terra.proiezioneAnnua(
+    [{ data: "2025-04-01", volumeM3: 30000, stato: "elaborato" }], piano, new Date(2026, 6, 2));
+  eq(altroAnno.stato, "senza-rilievi", "rilievi solo dell'anno prima → l'anno in corso non è misurato");
+  // troppo presto nell'anno: il volume c'è, la stima no
+  const presto = terra.proiezioneAnnua(
+    [{ data: "2026-01-03", volumeM3: 500, stato: "elaborato" }], piano, new Date(2026, 0, 5));
+  eq(presto.proiezione, null, "meno di ~1 mese → niente stima");
+  eq(presto.stato, "presto", "e lo stato lo dice, invece di dire «ok»");
+  // e i tre stati che sono una misura restano quelli
+  const meta = new Date(2026, 6, 2);
+  eq(terra.proiezioneAnnua([{ data: "2026-04-01", volumeM3: 20000, stato: "elaborato" }], piano, meta).stato, "ok",
+    "con i rilievi e l'anno avanti, «ok» c'è ancora");
+  eq(terra.proiezioneAnnua([{ data: "2026-04-01", volumeM3: 47500, stato: "elaborato" }], piano, meta).stato, "warn", "warn c'è ancora");
+  eq(terra.proiezioneAnnua([{ data: "2026-04-01", volumeM3: 60000, stato: "elaborato" }], piano, meta).stato, "danger", "danger c'è ancora");
+});
 test("prioritaOperative: manutenzione a ore su un mezzo assente viene ignorata (non crasha)", () => {
   const p = flotta.prioritaOperative(
     [{ nome: "Escavatore E1 — CAT 352", ore: 100, stato: "operativo" }],

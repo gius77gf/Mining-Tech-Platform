@@ -1006,11 +1006,20 @@ a.dw-btn{text-decoration:none}
       + (pr && pr.stato === "danger" ? " err" : pr && pr.stato === "warn" ? " avviso" : "");
     // e lo stesso stato colora il KPI dell'avanzamento nel quadro: chi guarda
     // la prima schermata vede subito se il ritmo sta sfondando il piano.
+    // Solo i tre stati che sono una MISURA: "presto" e "senza-rilievi" dicono
+    // che la misura non c'è, e allora il KPI resta nella tinta dell'app —
+    // colorarlo di verde vorrebbe dire rispondere a una domanda non fatta.
     { const kAv = document.querySelectorAll(".kpis .kpi")[1];
       if (kAv) { kAv.classList.remove("ok", "warn", "danger");
-        if (pr && pr.stato) kAv.classList.add(pr.stato); } }
+        if (pr && ["ok", "warn", "danger"].includes(pr.stato)) kAv.classList.add(pr.stato); } }
     $("pia-proiezione").innerHTML = (!pr) ? ""
-      : pr.proiezione == null
+      // senza nessun rilievo dell'anno la frase diceva «al ritmo attuale ~0 m³
+      // — sotto il limite autorizzato»: rassicurante, e su niente. Zero non è
+      // un ritmo lento, è l'assenza della misura. (La frase è la stessa che il
+      // grafico dell'avanzamento usa già più sotto: una sola, non due.)
+      : pr.stato === "senza-rilievi"
+        ? `Proiezione di fine anno: <b>non calcolabile</b>. Quest'anno non è ancora stato registrato nessun volume: arriva col primo rilievo elaborato.`
+        : pr.proiezione == null
         ? `Proiezione di fine anno: ancora presto per una stima (poco anno trascorso). Estratti ${pr.estrattoAnno.toLocaleString("it-IT")} m³ finora.`
         : `Proiezione di fine anno al ritmo attuale: <b class="badge ${pr.stato}" style="font-size:inherit;">~${pr.proiezione.toLocaleString("it-IT")} <span class="u">m³</span></b> `
           + `(${pr.pctPiano}% dell'autorizzato ${fmtM3(pr.pianificato)} m³)`
@@ -1114,8 +1123,9 @@ a.dw-btn{text-decoration:none}
       // nell'unico caso in cui i due numeri contano davvero entrambi
       etichettaValore: false,
       // il colore di stato si accende solo quando ha qualcosa da dire:
-      // «in pari» resta nella tinta dell'app, non nel verde-acqua degli stati
-      stato: pr.stato === "ok" ? null : pr.stato,
+      // «in pari» resta nella tinta dell'app, non nel verde-acqua degli stati —
+      // e con «presto»/«senza-rilievi» non c'è proprio niente da dire
+      stato: pr.stato === "warn" || pr.stato === "danger" ? pr.stato : null,
       nota: note.join(" "),
       aria: "Estratti " + n0(pr.estrattoAnno) + " metri cubi sul piano annuo di " + n0(pr.pianificato)
         + " metri cubi; atteso a oggi " + n0(atteso) + " metri cubi.",

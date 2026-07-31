@@ -330,7 +330,18 @@ export function proiezioneAnnua(rilievi, pianificatoAnnuoM3, oggi = new Date()) 
   const frazione = (o - inizio) / (fine - inizio);            // 0..1 dell'anno trascorso
   const proiezione = frazione >= (1 / 12) ? Math.round(estrattoAnno / frazione) : null;
   const pctPiano = proiezione != null ? Math.round(100 * proiezione / piano) : null;
-  const stato = pctPiano == null ? "ok" : pctPiano > 100 ? "danger" : pctPiano >= 90 ? "warn" : "ok";
+  // ⛔ L'ASSENZA DI UN DATO NON È UN DATO FAVOREVOLE. Qui `stato` rispondeva
+  // "ok" anche quando non c'era NIENTE da proiettare — e la pagina ci colora il
+  // KPI dell'avanzamento, che diventava verde. Verde vuol dire «il ritmo sta
+  // dentro il piano»: una misura. Senza rilievi dell'anno, o a gennaio quando
+  // l'anno trascorso è troppo poco per una stima, quella misura non esiste.
+  // Il grafico se ne difendeva già da solo (`stato === "ok" ? null`), il KPI
+  // no: una regola che serve a due posti va scritta UNA volta, e il posto è
+  // qui. I due stati sono distinti perché le due cause lo sono, e la pagina
+  // aveva già le parole giuste per raccontarle separate.
+  const stato = estrattoAnno <= 0 ? "senza-rilievi"
+    : pctPiano == null ? "presto"
+      : pctPiano > 100 ? "danger" : pctPiano >= 90 ? "warn" : "ok";
   return { estrattoAnno, pianificato: piano, frazione, proiezione, pctPiano, stato };
 }
 

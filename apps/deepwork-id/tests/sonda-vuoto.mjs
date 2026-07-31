@@ -107,6 +107,14 @@ const VUOTI = [
   [{}], [{}, []], [[], {}], [null], [""], [[], [], []],
   [[{}]], [[{}], [{}]], [[{}], [], ""], [[{}], {}, "", ""], [{}, [{}]],
   [[{}], [{}], ""], [[{}], "", ""], [{}, {}],
+  /* ⛔ E LA FORMA CHE HA SMASCHERATO `urgenzaOre`: NON tutto vuoto, ma un
+     argomento ASSENTE ACCANTO A UNO BUONO. È il caso vero — le ore fatte dal
+     mezzo si conoscono, il tagliando previsto no — e nessuna delle venti forme
+     qui sopra lo riproduce: sono tutte «vuoto dappertutto», cioè la condizione
+     in cui una funzione tende a fermarsi sulla prima guardia e non arrivare mai
+     al conto che sbaglia. Sono queste sei a portare la sonda dove `+null === 0`
+     diventa «SCADUTA (+500 h)» in rosso. */
+  [null, 500], ["", 500], [500, null], [null, "2026-07-31"], ["", "2026-07-31"], ["2026-07-31", null],
 ];
 
 /* ⛔ E ANCHE IL CODICE CONDIVISO. La prima versione guardava solo le sei app —
@@ -121,8 +129,34 @@ const SOGGETTI = [
   ["pointcloud", join(RADICE, "apps", "genesi", "pointcloud.js")],
 ];
 
+/* ⚠️ E UNA FORMA VALE SOLO SE QUALCOSA MANCA DAVVERO A QUELLA FUNZIONE.
+   Le sei forme miste qui sopra hanno fatto emergere subito quattro casi che NON
+   erano difetti: `["2026-07-31", null]` dà a una funzione che dichiara UN
+   parametro una data **buona**, e il `null` in più finisce su un argomento che
+   non esiste — oppure su uno che ha un valore di default, che JavaScript NON
+   applica quando gli si passa `null` esplicito. Risultato: `oggi` diventa il
+   1970, la scadenza del 2026 è lontanissima, e la funzione risponde
+   «regolare». Giustamente: **il dato non mancava**.
+   Una sonda del vuoto che chiama una funzione con tutti i suoi parametri pieni
+   non sta misurando il vuoto: sta misurando sé stessa. Quindi una forma si
+   somministra a `f` solo se almeno uno dei parametri che `f` DICHIARA riceve
+   un valore assente. (`f.length` non conta quelli con default: per questo il
+   minimo è 1 — così le forme tutte-vuote restano buone per tutti.) */
+/* ⚠️ E «assente» va giù RICORSIVO, se no il filtro acceca la sonda proprio dove
+   rende di più. Prima versione: un array contava come presente appena aveva un
+   elemento — e `[[{}]]`, cioè **la riga che c'è ma non è compilata**, è la forma
+   che l'intestazione di questo file indica come la più produttiva di tutte
+   (tre casi in più della lista vuota, fra cui `urgenzaOre`). Con quel filtro
+   `campo.pianoRiepilogo` spariva dagli allarmi: non perché fosse guarito, ma
+   perché non veniva più chiamato. Una lista di record vuoti è un dato che
+   manca quanto una lista vuota. */
+const ASSENTE = (v) =>
+  v == null || v === ""
+  || (Array.isArray(v) ? v.every(ASSENTE) : typeof v === "object" && !Object.keys(v).length);
+const valePer = (f, args) => args.slice(0, Math.max(1, f.length)).some(ASSENTE);
+
 const trovati = new Map();
-let chiamate = 0, funzioni = 0;
+let chiamate = 0, funzioni = 0, formeScartate = 0;
 for (const [nomeSoggetto, percorso] of SOGGETTI) {
   const mod = await import(percorso);
   const src = readFileSync(percorso, "utf8");
@@ -133,6 +167,7 @@ for (const [nomeSoggetto, percorso] of SOGGETTI) {
     if (typeof f !== "function") continue;
     const out = []; let riuscita = false;
     for (const args of VUOTI) {
+      if (!valePer(f, args)) { formeScartate++; continue; }
       try { segnali(f(...args), n, out); riuscita = true; } catch (e) { /* firma sbagliata */ }
     }
     if (!riuscita) continue;
@@ -142,7 +177,8 @@ for (const [nomeSoggetto, percorso] of SOGGETTI) {
 }
 
 console.log(`\n${funzioni} funzioni esportate · ${chiamate} chiamate davvero a vuoto`
-  + ` · ${trovati.size} rispondono con un valore TRANQUILLO\n`);
+  + ` · ${trovati.size} rispondono con un valore TRANQUILLO`
+  + `\n(${formeScartate} somministrazioni scartate perché a quella funzione non mancava niente)\n`);
 if (ELENCO) for (const [k, v] of trovati) console.log(`    ${k}: ${v.slice(0, 4).join(" · ")}`);
 
 /* La prima difesa, che è quella che conta: un caso NUOVO non dichiarato. */
@@ -247,6 +283,88 @@ test("nessuna famiglia dichiarata è rimasta senza chi la usa", () => {
 
 console.log(`vocabolario dell'assenza: ${tutteAssenza.length} etichette su ${etichetteTotali}, in `
   + [...etichetteAssenza].filter(([, v]) => v.length).map(([k, v]) => `${k} ${v.length}`).join(", "));
+
+/* ── E IL DIFETTO GEMELLO: L'ALLARME INVENTATO ────────────────────────
+   La sonda qui sopra cerca il valore TRANQUILLO su un dato che manca. Ma
+   `urgenzaOre` sbagliava dall'altra parte: con l'obiettivo a `null` rispondeva
+   «SCADUTA (+500 h)» IN ROSSO — `+null === 0` — ed è **per questo** che la
+   prima sonda non l'aveva visto. Un'app che grida al lupo sui dati che mancano
+   viene ignorata, e il giorno che grida per davvero non la ascolta nessuno.
+
+   ⚠️ ATTENZIONE, e vale più della sonda: **su un'assenza l'allarme è spesso la
+   risposta GIUSTA**. «Nessuna azione correttiva» dopo un superamento è rosso di
+   proposito, ed è scritto nei documenti: *la casella vuota è esattamente la
+   risposta che l'ente non vuole sentire*. Lo stesso per una sedia vuota
+   nell'organigramma della sicurezza. Questo elenco quindi non è una lista di
+   difetti: è una lista di **decisioni**, e serve a fermare la NONA. */
+const ALLARME = /^(danger|err|errore|scaduta|scaduto|superamento|critico|grave|non conforme|non-conforme)$/i;
+const ALLARME_TESTO = /\bSCADUT[AO]\b|\bSUPERAMENTO\b|\bNON CONFORME\b/;
+const ALLARMI_ACCETTATI = {
+  "scudo.organigrammaSicurezza":
+    "VOLUTO: una sedia vuota nell'organigramma della sicurezza è un problema, non un vuoto neutro (difetto corretto il 31/07)",
+  "sentinella.statoPonte":
+    "VOLUTO: «nessuna azione» dopo un superamento è ROSSO — la casella vuota è la risposta che l'ente non vuole sentire",
+  "scudo.azioneLabel":
+    "prende lo STATO di un'azione: senza stato ricade sul primo della lista, non è un giudizio su un dato mancante",
+  "scudo.etichettaAmbiente":
+    "è un'etichetta binaria (reclamo/superamento) chiamata solo su azioni che vengono DAVVERO dall'ambiente",
+  /* `conti.livelloSollecito` stava qui con la ragione «la sonda gli passa anche
+     numeri grandi, e allora il rosso è giusto» — cioè era dichiarato accettabile
+     un allarme che NON nasceva da un dato mancante. Col filtro `valePer` la
+     sonda non gli passa più i giorni di ritardo pieni, e il caso è sparito da
+     solo: la seconda guardia lo ha preteso fuori. È il modo giusto di
+     accorciare questo elenco — non a memoria. */
+  "campo.scartoLivello":
+    "DORMIENTE: con la carica reale assente e quella di progetto presente dà il 100% di scarto. I chiamanti passano sempre da pianoRiepilogo, che per i fori non registrati usa la carica di PROGETTO",
+  "campo.pianoRiepilogo":
+    "eredita scartoLivello: stessa ragione, stessa guardia a monte",
+  "flotta.urgenzaOre":
+    "resta solo per `[]`, che JavaScript converte a zero: nessun chiamante passa un array dove va un numero di ore",
+};
+
+const allarmi = new Map();
+for (const [nomeSoggetto, percorso] of SOGGETTI) {
+  const mod = await import(percorso);
+  const src = readFileSync(percorso, "utf8");
+  const nomi = [...src.matchAll(/^export (?:async )?function (\w+)/gm)].map((m) => m[1]);
+  for (const n of nomi) {
+    const f = mod[n];
+    if (typeof f !== "function") continue;
+    const out = [];
+    const guarda = (v, dove, prof = 0) => {
+      if (prof > 3 || v == null) return;
+      if (typeof v === "string") {
+        if (ALLARME.test(v.trim()) || ALLARME_TESTO.test(v)) out.push(`${dove} = ${JSON.stringify(v.slice(0, 40))}`);
+        return;
+      }
+      if (Array.isArray(v)) { v.slice(0, 3).forEach((x, i) => guarda(x, `${dove}[${i}]`, prof + 1)); return; }
+      if (typeof v !== "object") return;
+      for (const k of Object.keys(v)) {
+        if (/^(stato|esito|classe|colore|gravita|livello|badge|cls|label)$/i.test(k)) guarda(v[k], `${dove}.${k}`, prof + 1);
+        else if (prof < 2) guarda(v[k], `${dove}.${k}`, prof + 1);
+      }
+    };
+    for (const args of VUOTI) {
+      if (!valePer(f, args)) continue;   // stessa regola della sonda dei tranquilli
+      try { guarda(f(...args), n); } catch (e) { /* firma sbagliata */ }
+    }
+    if (out.length) allarmi.set(`${nomeSoggetto}.${n}`, [...new Set(out)]);
+  }
+}
+if (ELENCO) for (const [k, v] of allarmi) console.log(`    ⚠ ${k}: ${v.slice(0, 3).join(" · ")}`);
+
+test("nessun ALLARME nuovo e non dichiarato su un dato che manca", () => {
+  ok(allarmi.size >= 5, `solo ${allarmi.size} allarmi trovati: la sonda non sta guardando niente`);
+  const nuovi = [...allarmi.keys()].filter((k) => !(k in ALLARMI_ACCETTATI));
+  ok(nuovi.length === 0,
+    `${nuovi.length} allarmi che nessuno ha dichiarato → ${nuovi.join(", ")}`
+    + " — o è un allarme INVENTATO e la funzione va corretta, o è VOLUTO e va scritto in ALLARMI_ACCETTATI con la ragione");
+});
+test("nessun allarme dichiarato che non si presenta più", () => {
+  const spariti = Object.keys(ALLARMI_ACCETTATI).filter((k) => !allarmi.has(k));
+  ok(spariti.length === 0, `${spariti.length} allarmi in ALLARMI_ACCETTATI non compaiono più → ${spariti.join(", ")}: vanno tolti`);
+});
+console.log(`allarmi su un dato che manca: ${allarmi.size} trovati, ${Object.keys(ALLARMI_ACCETTATI).length} dichiarati`);
 
 console.log(`\nRisultato sonda del vuoto: ${passed} passati, ${failed} falliti`
   + `  ·  ${trovati.size} tranquilli trovati, ${Object.keys(ACCETTATI).length} dichiarati`);

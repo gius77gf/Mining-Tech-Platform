@@ -1478,6 +1478,36 @@ campi interi, file delle macchine.
       risultato**, che la direttiva 5 vieta. Quello che resta ed è vero: la
       segnalazione dal campo non serve a costruire il prospetto — serve a
       **riempirlo di verità**, ed è il numeratore, non il foglio.
+- [x] ✅ **IL VERDE SU UN ANNO CHE NESSUNO HA MISURATO** *(04/08)* — la sonda del
+      vuoto chiamava le funzioni con **tutto** vuoto, e c'è una forma che non
+      riproduceva mai: **un argomento assente accanto a uno buono** — proprio
+      quella di `urgenzaOre`, dove le ore fatte si sanno e il tagliando previsto
+      no. Con tutto vuoto una funzione si ferma sulla prima guardia e non arriva
+      mai al conto che sbaglia. Aggiunte sei forme miste, è saltato fuori
+      `terra.proiezioneAnnua`: `stato` rispondeva **"ok"** anche quando non
+      c'era niente da proiettare, e la pagina di Terra ci **colora il KPI
+      dell'avanzamento**. Misurato in pagina: con zero rilievi dell'anno il KPI
+      era `kpi ok`, numero in **teal pieno `rgb(39,190,165)`**; e la frase
+      accanto diceva «*al ritmo attuale ~0 m³ — sotto il limite autorizzato*».
+      **Zero non è un ritmo lento: è l'assenza della misura.**
+      La cosa istruttiva è **chi lo sapeva già**: il grafico dell'avanzamento si
+      difendeva da solo (`stato === "ok" ? null`), il KPI no. Una regola che
+      serve a due posti va scritta **una volta**, e il posto è la funzione: ora
+      `stato` distingue `senza-rilievi` e `presto` dai tre stati che sono una
+      **misura**, e i due chiamanti accendono il colore solo su quelli.
+      Controprovato due volte: (a) rimesso il difetto, **`run-kpi` e la sonda
+      cadono tutt'e due**, ripristino identico all'originale; (b) rimesso il
+      difetto **e tolte le sei forme**, la sonda **non lo vede** — cioè sono
+      state loro a trovarlo, non è un merito raccontato a vuoto.
+      E il filtro nuovo (`valePer`: una forma vale solo se a quella funzione
+      manca davvero qualcosa) ha **accecato la sonda al primo tentativo**,
+      perché contava «presente» un array con dentro un record vuoto — che è la
+      forma più produttiva di tutte. Se ne è accorta la **seconda guardia**
+      (`campo.pianoRiepilogo` sparito dagli allarmi dichiarati): non era
+      guarito, non veniva più chiamato. Reso ricorsivo: **885** somministrazioni
+      scartate invece di 2.739. *Un filtro che toglie rumore va misurato anche
+      su quello che toglie di buono.*
+      Suite: **1.359 → 1.360**, tutte verdi con `TZ=Europe/Rome`.
 
 ---
 
