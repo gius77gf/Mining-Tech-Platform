@@ -742,7 +742,9 @@ export function parseInfortuniCsv(text) {
         luogo: (luogo || "").trim(),
       };
     })
-    .filter(x => /^\d{4}-\d{2}-\d{2}$/.test(x.data));
+    // un infortunio con una data che non esiste entrerebbe negli indici
+    // infortunistici e nel riepilogo annuale (03/08)
+    .filter(x => dataISOEsiste(x.data));
 }
 
 // Copertura formazione/competenze PER TIPO (visite mediche, corsi, DPI,

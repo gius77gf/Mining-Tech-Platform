@@ -877,7 +877,9 @@ export function parseRilieviCsv(text) {
       if (fr) out.fronte = fr;   // solo se presente: righe a 4 colonne restano invariate
       return out;
     })
-    .filter(p => /^\d{4}-\d{2}-\d{2}$/.test(p.data) && Number.isFinite(p.volumeM3) && p.volumeM3 >= 0);
+    // un rilievo con una data impossibile finirebbe nell'anno sbagliato del
+    // riepilogo volumi, che è un documento per l'ente (03/08)
+    .filter(p => dataISOEsiste(p.data) && Number.isFinite(p.volumeM3) && p.volumeM3 >= 0);
 }
 
 export function kpiFrom(fronti, rilievi, piano, oggi = new Date()) {

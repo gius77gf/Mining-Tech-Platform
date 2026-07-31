@@ -126,6 +126,31 @@ test("riepilogoInfortuni: senza infortuni veri giorniSenza è null (non un falso
   eq(r.nearMiss, 1, "un near-miss");
   eq(r.giorniSenza, null, "senza infortuni → null");
 });
+/* ⛔ LA FORMA NON È L'ESISTENZA, e vale per OGNI porta d'ingresso. Il 03/08 il
+   difetto è stato trovato nell'import delle scadenze di Scudo; lo stesso filtro
+   a sola forma stava in altre quattro porte. Un infortunio con una data che non
+   esiste entra negli indici infortunistici e nel riepilogo annuale; un rilievo
+   nell'anno sbagliato del riepilogo volumi, che è un documento per l'ente; un
+   adempimento non scade mai. E «2026-02-30» non è nemmeno scartato da
+   `Date.parse`: scivola al 2 marzo.
+   docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md */
+test("⛔ le porte d'ingresso rifiutano una data con la forma giusta e impossibile", () => {
+  const buone = (righe) => righe.map((r) => r.data || r.scadenza);
+  // Scudo — infortuni
+  const inf = scudo.parseInfortuniCsv("2026-13-45;caduta;lieve;3;x;y\n2026-02-30;caduta;lieve;3;x;y\n2026-03-10;caduta;lieve;3;x;y\n");
+  eq(inf.length, 1, "resta solo l'infortunio con una data che esiste");
+  eq(inf[0].data, "2026-03-10", "ed è quella buona");
+  // Terra — rilievi
+  const ril = terra.parseRilieviCsv("2026-02-30;1200;RTK;2\n2027-02-29;1200;RTK;2\n2026-03-10;1200;RTK;2\n");
+  eq(ril.length, 1, "resta solo il rilievo con una data che esiste");
+  eq(ril[0].data, "2026-03-10", "ed è quella buona");
+  // Sentinella — adempimenti e volate
+  const ade = sentinella.parseAdempimentiCsv("Fonometria;ARPA;2026-13-01\nRelazione;ARPA;2026-09-30\n");
+  eq(ade.length, 1, "resta solo l'adempimento con una scadenza che esiste");
+  eq(buone(ade)[0], "2026-09-30", "ed è quella buona");
+  // guardia contro il troppo zelo: il 29 febbraio di un bisestile è una data vera
+  eq(terra.parseRilieviCsv("2028-02-29;1200;RTK;2\n").length, 1, "29 febbraio bisestile resta valido");
+});
 test("parseInfortuniCsv: legge data/tipo/gravità/giorni/descrizione; scarta data non ISO", () => {
   const csv = "data;tipo;gravita;giorniAssenza;descrizione;luogo\n2026-02-03;infortunio;lieve;4;Taglio alla mano;officina\n2026-05-18;near-miss;lieve;0;Caduta massi;fronte Est\n15/05/2026;infortunio;grave;10;;\n";
   const p = scudo.parseInfortuniCsv(csv);

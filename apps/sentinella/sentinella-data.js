@@ -19,7 +19,7 @@
 //       da fare / in ritardo) si CALCOLA dall'ultima lettura del punto.
 // ============================================================
 
-import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto,
+import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto, dataISOEsiste,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL,
          dataPiuGiorni as dataPiuGiorniShell } from "../../shared/deepwork-id-client/dw-shell.js";
 
@@ -467,7 +467,10 @@ export function parseAdempimentiCsv(text) {
         scadenza: (scadenza || "").trim(),
       };
     })
-    .filter(a => a.titolo && /^\d{4}-\d{2}-\d{2}$/.test(a.scadenza));
+    // `dataISOEsiste` e non la sola forma: «2026-13-45» e «2026-02-30» hanno
+    // la forma giusta e non esistono — il primo entrerebbe e non scadrebbe
+    // mai, il secondo scivolerebbe al 2 marzo. (03/08)
+    .filter(a => a.titolo && dataISOEsiste(a.scadenza));
 }
 
 // Registro delle VOLATE (brogliaccio di brillamento): riepilogo per il quadro.
@@ -543,7 +546,7 @@ export function parseVolateCsv(text) {
       if (cod) v = { ...v, codiceVolata: cod };
       return v;
     })
-    .filter(v => /^\d{4}-\d{2}-\d{2}$/.test(v.data));
+    .filter(v => dataISOEsiste(v.data));
 }
 
 // ------------------------------------------------------------
@@ -1028,7 +1031,7 @@ export function piuGiorni(dataISO, n) {
 export function ultimaLettura(m) {
   const l = (((m || {}).letture) || [])
     .map(x => ({ data: String((x || {}).data || "").slice(0, 10), ora: String((x || {}).ora || ""), valore: +((x || {}).valore) }))
-    .filter(x => /^\d{4}-\d{2}-\d{2}$/.test(x.data) && Number.isFinite(x.valore))
+    .filter(x => dataISOEsiste(x.data) && Number.isFinite(x.valore))
     .sort((a, b) => { const ka = chiaveOrdine(a), kb = chiaveOrdine(b); return ka < kb ? -1 : ka > kb ? 1 : 0; });
   return l.length ? l[l.length - 1] : null;
 }
@@ -1136,7 +1139,7 @@ export function lettureNelPeriodo(m, dal, al) {
   const d = String(dal || "").slice(0, 10), a = String(al || "").slice(0, 10);
   return (((m || {}).letture) || [])
     .map(l => ({ data: String((l || {}).data || "").slice(0, 10), ora: String((l || {}).ora || ""), valore: +((l || {}).valore) }))
-    .filter(l => /^\d{4}-\d{2}-\d{2}$/.test(l.data) && Number.isFinite(l.valore))
+    .filter(l => dataISOEsiste(l.data) && Number.isFinite(l.valore))
     .filter(l => (!d || l.data >= d) && (!a || l.data <= a))
     .sort((x, z) => { const kx = chiaveOrdine(x), kz = chiaveOrdine(z); return kx < kz ? -1 : kx > kz ? 1 : 0; });
 }
@@ -1250,7 +1253,7 @@ export function ultimaLetturaOltre(m, soglia) {
   if (!Number.isFinite(s) || s <= 0) return null;
   const l = (((m || {}).letture) || [])
     .map(x => ({ data: String((x || {}).data || "").slice(0, 10), ora: String((x || {}).ora || ""), valore: +((x || {}).valore) }))
-    .filter(x => /^\d{4}-\d{2}-\d{2}$/.test(x.data) && Number.isFinite(x.valore) && x.valore >= s)
+    .filter(x => dataISOEsiste(x.data) && Number.isFinite(x.valore) && x.valore >= s)
     .sort((a, b) => { const ka = chiaveOrdine(a), kb = chiaveOrdine(b); return ka < kb ? -1 : ka > kb ? 1 : 0; });
   return l.length ? l[l.length - 1] : null;
 }
