@@ -129,9 +129,32 @@ in italiano, senza dare conoscenze per scontate).
   cinque letture sono celle di CSV di una perforatrice, che scrive in notazione
   scientifica. Mezz'ora di misura prima, invece di una correzione che rompe in
   silenzio.
+- ⛔ **LA RISPOSTA È QUASI SEMPRE GIÀ IN CASA — SI CERCA PRIMA DI INVENTARE.**
+  Quattro volte in due giorni, e ogni volta è costato lavoro o ha rischiato di
+  far scrivere una cosa falsa: il **registro costi** «da fare in Conti» esisteva
+  già in **Flotta**; «**mai misurato**» andava inventato in Sentinella e c'era
+  già, con l'etichetta e il colore giusti, dodici righe più in là in
+  `statoRigaProgramma`; «**senza data**» sembrava un termine nuovo ed era già la
+  convenzione di **tre** app; e la **L. 198/2025** sui mancati infortuni è stata
+  annunciata come scoperta quando era citata in **sei punti** di Scudo, che sul
+  quel obbligo aveva già costruito il prospetto. Due minuti di `grep` prima di
+  ogni «non c'è» e di ogni parola nuova. E la forma peggiore di questo errore è
+  **annunciarlo**: gonfiare un risultato è vietato dalla direttiva 5, e un
+  documento che spaccia per nuovo ciò che c'era rende meno credibile tutto il
+  resto che dice.
 - MULTI-TENANT: isolamento totale dei dati tra organizzazioni. Ogni
   accesso dati delle app passa dallo SDK deepwork-id-client
   (orgCollection), mai percorsi Firestore costruiti a mano.
+  ⚠️ **E il confine fra APP non è una barriera di sicurezza**, misurato il
+  04/08: `orgCollection` costruisce `organizations/{org}/apps/{appId}/{nome}`
+  con l'`appId` dell'istanza SDK, e le regole aprono `/apps/{appId}/**` a
+  **qualunque membro dell'organizzazione**. Chiunque può inizializzare l'SDK con
+  un altro `appId` — ed è esattamente quello che i **ponti** fanno di proposito
+  (`ponteScudo` in Sentinella). La barriera vera, provata da 58 test, è quella
+  fra **organizzazioni**. Le due cose non vanno raccontate come se fossero la
+  stessa: se un giorno servirà «chi lavora in cava non tocca i documenti di
+  sicurezza», non è un problema di `appId`, è la decisione aperta sui **ruoli**
+  dentro l'organizzazione.
 - GIT: sviluppo sul branch di sessione designato. Niente push diretto
   su main: gli aggiornamenti passano da Pull Request (prassi:
   merge via PR anche per vault/ e docs/). Commit piccoli con messaggi
