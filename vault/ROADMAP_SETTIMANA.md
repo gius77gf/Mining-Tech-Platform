@@ -760,7 +760,17 @@ campi interi, file delle macchine.
       «il programma è partito davvero» (la nota del modo: 57-72 caratteri viva,
       0 morta) con controprova `--senza-programma`, verde su 6 app su 6.
       Era anche **flaky** coi 2200 ms fissi: adesso aspetta la condizione.
-- Regole **14**; stile **149 → 177** prove; banchi del browser **15 → 17**.
+- [x] **Il banco della doppia data** (dettaglio 8 della ricerca sul valore: un
+      tempo relativo porta con sé la data). Alla prima esecuzione ha segnalato
+      Flotta e **aveva torto lui**: «Fra 8 giorni (~08/08)» è la doppia forma in
+      versione compatta, ed era il banco a pretendere l'anno. Corretto il banco,
+      non il prodotto. 9 superfici, 0 violazioni; controprova 9 su 9.
+- [x] **Decisione 5 misurata**: le app non si accorgono di essere offline (zero
+      su sei) e la persistenza offline di Firestore non è configurata — quindi
+      promettere «l'ho tenuto e lo salvo appena torna la linea» sarebbe falso.
+      La decisione diventa doppia e la seconda metà (persistenza sì/no) tocca
+      l'isolamento fra clienti: va al fondatore.
+- Regole **14**; stile **149 → 177** prove; banchi del browser **15 → 19**.
 
 ### Difetti chiusi il 30/07 (tutti «silenziosi»: nessuno dava errore)
 - [x] La **striscia** e la **pastiglia** di un riquadro dicevano un colore
