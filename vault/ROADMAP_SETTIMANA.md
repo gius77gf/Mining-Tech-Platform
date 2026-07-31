@@ -94,11 +94,19 @@ dominante. Verifica obbligatoria con screenshot prima/dopo.
       portone di Genesi non vengono aperte da nessun banco: niente contrasto,
       niente id doppi, niente fuori-schermo. Va allungato l'elenco e rilanciato
       il giro.
-- [ ] **`perCampo` scritta due volte** *(trovata il 03/08, corretta appena
-      finisce il giro del browser)* — identica in `dw-shell.js` e in
-      `flotta-data.js`. L'ha trovata la domanda che mancava a `nomi-doppi.mjs`:
-      confrontava le app **fra loro**, mai un'app contro `shared/`.
+- [x] **`perCampo` scritta due volte** ✅ *(03/08)* — identica **carattere per
+      carattere** in `dw-shell.js` e in `flotta-data.js`. L'ha trovata la domanda
+      che mancava a `nomi-doppi.mjs`: confrontava le app **fra loro**, mai
+      un'app contro `shared/`. Adesso Flotta la ri-esporta, e il censimento
+      delle funzioni pure arriva a **411 su 411**.
       `docs/LA_STESSA_REGOLA_SCRITTA_DUE_VOLTE.md`
+- [x] **`go(id)` in un posto solo** ✅ *(03/08)* — la **seconda metà** della
+      struttura: sei copie in due versioni diventano una, col soprainsieme
+      (le guardie di Flotta per tutte, la sua mappa come parametro).
+      **4.064 caratteri** tolti, e con loro sparisce l'**ultimo blocco
+      `<script>` classico** di ogni app. Verificato **provando la navigazione**:
+      62 asserzioni, 44 navigazioni, controprova che ne fa cadere sei. Nasce il
+      banco `browser/navigazione.mjs`: **19 → 21** esecuzioni.
 - [ ] **E0. CONSOLIDAMENTO in `shared/`** *(in corso)* — la parte comune
       dello stile sale nei fogli condivisi, in ogni app restano solo
       palette e regole specifiche. Aggiunti nello stesso passaggio **tema
