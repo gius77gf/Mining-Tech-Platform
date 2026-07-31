@@ -5437,5 +5437,59 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ LA PROPOSTA DEL TAGLIANDO, E LO ZERO CHE NON ESISTE ════════════════
+   Scegliendo un piano nel form, l'app propone a quante ore mettere il prossimo
+   tagliando. Prima faceva `Math.round(+m.ore || 0) + p.ogniOre` e scriveva
+   «X ha 0 ore: il tagliando è proposto a 500». Su un mezzo **senza contaore**
+   quella frase asserisce un numero che il contatore non ha mai dato: non è
+   imprecisa, è **falsa**. È il terzo `+null === 0` di questo progetto — dopo la
+   base d'asta delle gare in Conti e la finestra del prossimo tagliando. */
+{
+  const pt = flotta.propostaTagliando;
+  const p500 = flotta.pianoTagliando("500");
+
+  test("proposta: con le ore note si somma il passo", () => {
+    const r = pt("CAT 320", 5875, p500);
+    eq(r.oreProposte, 6375, "5875 più cinquecento");
+    eq(r.oreNote, true, "le ore si sanno");
+    /* ⚠️ in italiano 6375 si scrive SENZA il punto: la lingua raggruppa solo
+       da cinque cifre in su (`minimumGroupingDigits: 2`). La prima stesura
+       pretendeva «6.375» e cadeva — era la prova a sbagliare la lingua, non il
+       codice a sbagliare il numero */
+    eq(r.testo.includes("il tagliando è proposto a 6375"), true, "e lo dice");
+    eq((1234567).toLocaleString("it-IT"), "1.234.567", "col punto si scrive da cinque cifre in su");
+  });
+  test("⛔ proposta: senza contaore NON si propone zero più il passo", () => {
+    /* `+null` fa 0 e `Number.isFinite(0)` risponde true: è la forma sbagliata,
+       non `Number.isFinite(x)` ma `Number.isFinite(+x)` su un valore nullo */
+    for (const vuoto of [null, undefined, ""]) {
+      const r = pt("CAT 320", vuoto, p500);
+      eq(r.oreProposte, null, "niente da precompilare");
+      eq(r.oreNote, false, "e si sa di non sapere");
+      /* ⚠️ non basta cercare «0 ore»: la coda della frase contiene «+500 ore».
+         Quello che non deve esistere è l'ASSERZIONE sul mezzo */
+      eq(r.testo.includes("CAT 320 ha 0 ore"), false, "la frase «X ha 0 ore» non compare");
+      eq(/\bha 0 ore\b/.test(r.testo), false, "in nessuna forma");
+    }
+  });
+  test("⛔ proposta: senza contaore si dice cosa fare, non si lascia il vuoto", () => {
+    const r = pt("CAT 320", null, p500);
+    eq(r.testo.includes("non sappiamo le ore"), true, "si dichiara l'ignoranza");
+    eq(r.testo.includes("programma il tagliando per data"), true, "e si offre la via d'uscita vera");
+  });
+  test("proposta: un contaore illeggibile vale come mancante, non come zero", () => {
+    eq(pt("CAT 320", "boh", p500).oreProposte, null, "non è un numero");
+    eq(pt("CAT 320", -5, p500).oreProposte, null, "e un contaore non va indietro");
+  });
+  test("proposta: senza mezzo scelto si spiega il piano e basta", () => {
+    const r = pt("", 5875, p500);
+    eq(r.oreProposte, null, "non c'è un mezzo a cui proporlo");
+    eq(r.testo.includes("Tagliando 500 h"), true, "ma il piano si spiega lo stesso");
+  });
+  test("proposta: le ore si arrotondano solo per la proposta, mai in silenzio sul dato", () => {
+    eq(pt("CAT 320", 5875.6, p500).oreProposte, 6376, "5876 più cinquecento");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);

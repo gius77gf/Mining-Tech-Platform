@@ -1141,7 +1141,7 @@
            SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi,
            nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
            manutenzioniDaControllo, coperturaControlli, controlliDelMezzo,
-           PIANI_TAGLIANDO, pianoTagliando, prossimoTagliando,
+           PIANI_TAGLIANDO, pianoTagliando, propostaTagliando, prossimoTagliando,
            validaRifornimento, consumoPerMezzo, fascicoloMezzo,
            STATI_ORDINE, statoOrdine, costoOrdine, ordineDaManutenzione,
            validaRigaManodopera, validaRigaRicambio, riepilogoOrdini,
@@ -1392,13 +1392,16 @@
     const p = pianoTagliando(v.slice(1)); if (!p) return;
     if (!$("man-titolo").value.trim()) $("man-titolo").value = p.etichetta;
     const m = MEZ.find(x => nomeBreve(x.nome) === $("man-mezzo").value);
-    if (!$("man-ore").value && !$("man-data").value && m) {
-      $("man-ore").value = perCampo(Math.round(+m.ore || 0) + p.ogniOre, 1);
+    // ⛔ La proposta e la frase stanno in `propostaTagliando` (flotta-data.js),
+    // non qui: prima la pagina faceva `+m.ore || 0` e scriveva «X ha 0 ore: il
+    // tagliando è proposto a 500» su un mezzo di cui non sappiamo le ore. Una
+    // frase falsa, non imprecisa. Adesso la regola è una sola ed è provata.
+    const prop = propostaTagliando(m ? nomeBreve(m.nome) : "", m ? m.ore : null, p);
+    if (!$("man-ore").value && !$("man-data").value && prop.oreProposte != null) {
+      $("man-ore").value = perCampo(prop.oreProposte, 1);
     }
     box.className = "note esito";
-    box.textContent = p.etichetta + ": " + p.nota
-      + (m ? " " + nomeBreve(m.nome) + " ha " + (+m.ore || 0).toLocaleString("it-IT") + " ore: il tagliando è proposto a " + ($("man-ore").value || "—") + "." : "")
-      + " Alla chiusura, il prossimo nascerà da solo a +" + numTx(p.ogniOre) + " ore sulle ore di quel momento.";
+    box.textContent = prop.testo;
   };
   // Rifornimenti (L4): il giorno parte da oggi, come per le voci di costo.
   $("rif-data").value = oggiISO();

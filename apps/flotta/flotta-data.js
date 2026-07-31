@@ -1116,6 +1116,45 @@ export function pianoTagliando(chiave) {
   return PIANI_TAGLIANDO.find(p => p.chiave === String(chiave)) || null;
 }
 
+// LA PROPOSTA quando si sceglie un piano nel form: a quante ore mettere il
+// prossimo tagliando, e la frase che lo spiega.
+// ⛔ Il punto di questa funzione è quello che NON fa. Prima la pagina scriveva
+// `Math.round(+m.ore || 0) + p.ogniOre` e la frase «X ha 0 ore: il tagliando è
+// proposto a 500». Su un mezzo SENZA contaore quella frase asserisce un numero
+// che il contatore non ha mai dato: non è imprecisa, è falsa. È lo stesso
+// `+null === 0` già costato due volte in questo progetto (la base d'asta delle
+// gare in Conti, e la finestra del prossimo tagliando).
+// Senza le ore non si propone niente: si dice che non si sanno e si offre la
+// via d'uscita vera, che è programmarlo per data.
+// Pura e testabile: la frase vive qui, non dentro un innerHTML.
+export function propostaTagliando(nomeMezzo, oreMezzo, piano) {
+  const p = piano || {};
+  const passo = Math.round(+p.ogniOre || 0);
+  const nome = String(nomeMezzo || "").trim();
+  const testaPiano = (p.etichetta || "Tagliando") + (p.nota ? ": " + p.nota : "");
+  const coda = passo > 0
+    ? " Alla chiusura, il prossimo nascerà da solo a +" + passo + " ore sulle ore di quel momento."
+    : "";
+  if (!nome) return { oreProposte: null, oreNote: false, testo: testaPiano + coda };
+  // ⛔ null e "" PRIMA di convertire: `+null` fa 0 e `Number.isFinite(0)` è true
+  const grezze = oreMezzo == null || oreMezzo === "" ? NaN : +oreMezzo;
+  const oreNote = Number.isFinite(grezze) && grezze >= 0;
+  if (!oreNote) {
+    return {
+      oreProposte: null, oreNote: false,
+      testo: testaPiano + " Di " + nome + " non sappiamo le ore del contatore: scrivile tu"
+        + (passo > 0 ? ", oppure programma il tagliando per data." : ".") + coda,
+    };
+  }
+  const oreProposte = passo > 0 ? Math.round(grezze) + passo : null;
+  return {
+    oreProposte, oreNote: true,
+    testo: testaPiano + " " + nome + " ha " + Math.round(grezze).toLocaleString("it-IT") + " ore"
+      + (oreProposte != null ? ": il tagliando è proposto a " + oreProposte.toLocaleString("it-IT") + "." : ".")
+      + coda,
+  };
+}
+
 // IL PROSSIMO TAGLIANDO, calcolato alla chiusura di quello appena fatto.
 // Due modi, mai insieme:
 //  · a ORE: si riparte dalle ore che il mezzo ha ADESSO (non da quelle
