@@ -285,6 +285,12 @@
 .arr.dan:hover{
   color:var(--danger); background:rgba(240,94,92,.14); border-color:rgba(240,94,92,.4);
 }
+/* segnalare un guasto è un AVVISO, non una cancellazione: la terza tinta
+   dello stesso schema (`ok` verde, `dan` rosso, `avv` ambra), perché usare
+   il rosso della croce vorrebbe dire dire «qui si distrugge qualcosa» */
+.arr.avv:hover{
+  color:var(--warn); background:rgba(248,172,61,.14); border-color:rgba(248,172,61,.4);
+}
 
 /* ─────────────── badge (copia di .scad-badge: raggio 3px, pieno) ─────────────── */
 .badge.euro{font-variant-numeric:tabular-nums; letter-spacing:.5px}
@@ -1552,7 +1558,7 @@
       <div class="avatar">${esc(sig(m.nome))}</div>
       <div class="info"><div class="name">${esc(m.nome)}</div><div class="meta">${esc(tipoMezzoDi(m).etichetta)} · ${(m.ore||0).toLocaleString("it-IT")} ore motore${m.area ? " · " + esc(m.area) : ""}</div></div>
       <div class="acts"><span class="badge ${MB[m.stato][0]}">${MB[m.stato][1]}</span>
-      <span class="arr dan" role="button" tabindex="0" title="Segnala un guasto su questo mezzo" aria-label="Segnala un guasto su ${esc(m.nome)}" data-guasto-mezzo="${m.id}">${I.avviso}</span>
+      <span class="arr avv" role="button" tabindex="0" title="Segnala un guasto su questo mezzo" aria-label="Segnala un guasto su ${esc(m.nome)}" data-guasto-mezzo="${m.id}">${I.avviso}</span>
       <span class="arr" role="button" tabindex="0" title="Apri la scheda del mezzo (il libretto macchina)" aria-label="Scheda di ${esc(m.nome)}" data-scheda-mezzo="${m.id}">${I.scheda}</span>
       <span class="arr" role="button" tabindex="0" title="Modifica nome, tipo, area od ore" aria-label="Modifica ${esc(m.nome)}" data-edit-mezzo="${m.id}">${I.matita}</span>${m.stato==="fermo"?`<span class="arr dan" role="button" tabindex="0" title="Dismetti dal parco" aria-label="Dismetti ${esc(m.nome)}" data-del-mezzo="${m.id}">${I.croce}</span>`:""}</div></div>`).join("")
       || (qMez
@@ -3404,13 +3410,16 @@
   // La segnalazione in corso vive SOLO qui, in memoria, finché non si tocca
   // «Segnala»: come il giro, una cosa a metà non è un documento.
   let guasto = null;                       // { mezzoId, gravita }
-  // l'errore si dice due volte, come nel resto di Flotta: il toast lo fa
-  // vedere anche a chi sta guardando altrove, la riga sotto il modulo resta
-  // lì mentre si corregge
-  const guaErrore = (msg) => {
+  /* L'errore si dice due volte, come nel resto di Flotta: la riga dentro il
+     modulo resta lì mentre si corregge, il toast lo fa vedere subito.
+     Con una differenza voluta: nel toast va UNA cosa sola — la prima da
+     sistemare, quella su cui va anche il fuoco. Due istruzioni incollate in
+     una pastiglia che copre mezza finestra si leggono male e si eseguono
+     peggio; la riga sotto il modulo le tiene tutte, per chi vuole vederle. */
+  const guaErrore = (primo, tutti) => {
     const b = $("gua-esito");
-    if (b) { b.textContent = msg; b.className = "note esito err"; }
-    toast(msg, "err");
+    if (b) { b.textContent = tutti || primo; b.className = "note esito err"; }
+    toast(primo, "err");
   };
   function apriGuasto(mezzoId) {
     const m = MEZ.find(x => x.id === mezzoId);
@@ -3455,7 +3464,8 @@
     err("gua-desc", !!v.errori.descrizione);
     if ($("gua-gravita")) $("gua-gravita").classList.toggle("err", !!v.errori.gravita);
     if (!v.ok) {
-      guaErrore(Object.values(v.errori).join(" "));
+      const tutti = Object.values(v.errori);
+      guaErrore(tutti[0], tutti.join(" "));
       if (v.errori.descrizione) fuoco("gua-desc");
       else if (v.errori.gravita) $("gua-gravita").scrollIntoView({ behavior: "smooth", block: "center" });
       return;
