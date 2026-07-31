@@ -71,6 +71,16 @@ dominante. Verifica obbligatoria con screenshot prima/dopo.
       identiche) e **una si era già staccata** per una ragione buona. Adesso
       stanno in `shared/dw-app-ui.js`, col **soprainsieme**: **28.865 caratteri**
       tolti dalle sei pagine. `docs/LA_STRUTTURA_DEL_CORE_SCRITTA_SEI_VOLTE.md`
+- [x] **La struttura resa una REGOLA, e la scansione che perdeva la fase**
+      *(03/08)* — nasce la **regola 17**: chi carica `shared/dw-app-ui.js` non
+      ridefinisce toast e modale, e chi le usa deve averle da qualche parte
+      (togliere le funzioni scordando il `<script>` non è un errore di sintassi:
+      la pagina si apre e muore al primo tocco). Scrivendola è saltato fuori che
+      la **scansione sotto a tutte e diciassette le regole** perdeva la fase:
+      **115 delle 195 funzioni di Genesi** erano prese per testo, e il core ne
+      usciva pulito **per caso**. Corretta e blindata con una prova sullo
+      strumento — *934 dichiarazioni, tutte codice*.
+      `docs/LA_SCANSIONE_CHE_PERDEVA_LA_FASE.md`
 - [ ] **E0. CONSOLIDAMENTO in `shared/`** *(in corso)* — la parte comune
       dello stile sale nei fogli condivisi, in ogni app restano solo
       palette e regole specifiche. Aggiunti nello stesso passaggio **tema
