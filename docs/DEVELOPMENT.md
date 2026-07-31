@@ -55,6 +55,11 @@ node apps/deepwork-id/tests/run-helpers.mjs    # numeri, unità, soldi, CSV cond
 node apps/deepwork-id/tests/run-pointcloud.mjs # lettura nuvole di punti
 node apps/deepwork-id/tests/run-manifest.mjs   # i manifest delle PWA
 node apps/deepwork-id/tests/run-demo.mjs       # i dati della demo
+
+# ⚠️ E POI, SEMPRE, con l'orologio del cliente. Questo contenitore è a
+# Greenwich; le cave sono in Italia. Il 31/07 tre punti del prodotto
+# sbagliavano il giorno OGNI GIORNO, e in UTC erano tutti verdi.
+node apps/deepwork-id/tests/orologio-cliente.mjs   # le suite sensibili alla data, in TZ=Europe/Rome
 ```
 
 **106 con l'emulatore Firestore** (regole di sicurezza, SDK, funzioni, primo
