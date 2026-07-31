@@ -103,6 +103,17 @@ in italiano, senza dare conoscenze per scontate).
   vera con cifre allineate, movimento con curve morbide, spaziature su una
   scala coerente. Riferimenti: `docs/SPECIFICA_ESTETICA_CORE.md`,
   `docs/PALETTE_APP.md`.
+- ⛔ **L'ASSENZA DI UN DATO NON È UN DATO FAVOREVOLE.** Trovata il 31/07 in
+  **tre app indipendenti**, scritta ogni volta da un punto di vista diverso:
+  in Sentinella «senza dati» non è «conforme» (il report per l'ente lo dichiara
+  invece di spacciarsi per a posto); in Scudo un requisito senza nessuna riga in
+  scadenzario è **mancante**, non «regolare»; in Campo, nell'appello del turno,
+  **«non lo so» non è «non c'è»** — chi nessuno ha spuntato non si conta né
+  presente né assente, perché se suona l'allarme contarlo assente vuol dire non
+  andarlo a cercare. Tre posti, tre autori, la stessa idea: è un **principio del
+  prodotto**, e va applicato a ogni funzione nuova che riassume qualcosa. Il
+  segno che è stato violato è sempre lo stesso — un numero o un colore
+  **tranquillo** dove non è stato misurato niente.
 - ⛔ **UNA REGOLA CHE SERVE A DUE APP VIVE IN `shared/`.** Non nel modulo di una
   delle due (nessuna app importa il modulo dati di un'altra) e **mai riscritta**:
   è il difetto che è costato una giornata intera con la convenzione sui numeri,
