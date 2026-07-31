@@ -941,8 +941,8 @@ campi interi, file delle macchine.
       da `toISOString()` su una data costruita in ora locale. Guarda 21 file e
       stampa quanti — e perdona chi entra ed esce in UTC, che è coerente.
 - [x] **Copertura delle funzioni pure, app per app.** Sentinella 77/107, Scudo
-      56/71 *(era 22)*, Campo 39/73, Flotta 36/71, Conti 35/58, Terra 32/39
-      *(era 23)*. Nessuna app è più sotto la metà; quello che resta scoperto
+      56/71 *(era 22)*, Campo 49/73 *(era 26)*, Flotta 36/71, Conti 35/58,
+      Terra 32/39 *(era 23)*. Nessuna app è più sotto la metà; quello che resta scoperto
       sono quasi solo costanti e trasporto dati.
 - [x] **Il principio usato come lente.** Scritta in `CLAUDE.md` la regola
       «l'assenza di un dato non è un dato favorevole», un audit ha chiamato
@@ -950,6 +950,15 @@ campi interi, file delle macchine.
       le risposte rassicuranti: 39 candidati, letti uno per uno, **un difetto
       vero** (l'ottavo) e **una domanda per il fondatore** (punto 13 di
       `DECISIONI_WEEKEND.md`).
+- [x] **Le regole di turno di Campo escono dai commenti.** 25 prove su
+      `eMia`, `caricoSquadre`, `obiettivoDi`, `statoObiettivo`,
+      `fermiPerGiorno`, `storicoSettimana`, `totaliSettimana`,
+      `unitaPrevalente`: le attività senza squadra contate a parte, l'obiettivo
+      a zero che è «atteso» e non un allarme, la produzione che conta le bozze,
+      t e m³ che non si sommano, i giorni prima della prima registrazione fuori
+      dal grafico dei fermi, la percentuale di concluse **vuota e non cento**
+      quando non c'è nessuna attività. Controprova: 8 difetti su 8 fanno cadere
+      la prova col loro nome. run-kpi 783 → **808**, totale node **1.091**.
 
 ---
 
