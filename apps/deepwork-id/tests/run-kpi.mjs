@@ -4338,5 +4338,70 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ CHI VA FERMATO, E CHI INVECE NO ════════════════════════════════════
+   ────────────────────────────────────────────────────────────────────────
+   `lavoratoriScoperti` è il numero che va in cima al Quadro di Scudo, perché è
+   quello che **ferma il lavoro**. Sotto c'è `abilitazioneLavoratore`, che
+   distingue fra ciò che BLOCCA e ciò che è solo un'attenzione.
+
+   Quella distinzione è la cosa da difendere, e sbaglia in due modi opposti,
+   tutti e due costosi:
+   · se un'attenzione diventasse un blocco, si fermerebbe gente che può
+     lavorare — e un'app che ferma per niente viene aggirata entro una
+     settimana, che è il modo peggiore di perdere una difesa;
+   · se un blocco diventasse un'attenzione, salirebbe su un mezzo chi non
+     doveva. */
+{
+  const oggiL = new Date("2026-07-01T00:00:00Z");
+  const rossi = { id: "L1", nome: "Rossi Mario", attivo: true };
+  const mans = (extra) => ({ nome: "Escavatorista", lavoratoriIds: ["L1"],
+                             requisiti: ["visita-medica"], dpi: [], ...(extra || {}) });
+  const scad = (dataScadenza) => [{ id: "s1", lavoratoreId: "L1",
+                                    preset: "visita-medica", dataScadenza }];
+
+  test("scoperti: requisito in regola, nessuno da fermare", () => {
+    const out = scudo.lavoratoriScoperti([mans()], [rossi], scad("2027-01-01"), [], oggiL);
+    eq(out.length, 0, "Rossi può lavorare");
+  });
+  test("⛔ scoperti: requisito SCADUTO ferma la persona", () => {
+    const out = scudo.lavoratoriScoperti([mans()], [rossi], scad("2026-01-01"), [], oggiL);
+    eq(out.length, 1, "Rossi è scoperto");
+    ok(out[0].motivi.some((m) => /scadut/i.test(m)), `il motivo lo dice: ${out[0].motivi.join(" · ")}`);
+  });
+  test("⛔ scoperti: requisito MANCANTE ferma la persona", () => {
+    const out = scudo.lavoratoriScoperti([mans()], [rossi], [], [], oggiL);
+    eq(out.length, 1, "senza la riga in scadenzario è scoperto");
+    ok(out[0].motivi.some((m) => /manca/i.test(m)), "e il motivo dice che manca");
+  });
+  test("⛔ scoperti: «in scadenza» NON ferma — è un'attenzione, non un blocco", () => {
+    /* fra venti giorni scade: va rinnovata, ma oggi la persona può lavorare.
+       Fermarla sarebbe un falso allarme, e i falsi allarmi insegnano a
+       ignorare anche quelli veri. */
+    const out = scudo.lavoratoriScoperti([mans()], [rossi], scad("2026-07-20"), [], oggiL);
+    eq(out.length, 0, "in scadenza non è scoperto");
+  });
+  test("⛔ scoperti: chi non è più in forza è fermo, qualunque carta abbia", () => {
+    const uscito = { id: "L1", nome: "Rossi Mario", attivo: false };
+    const out = scudo.lavoratoriScoperti([mans()], [uscito], scad("2027-01-01"), [], oggiL);
+    eq(out.length, 1, "non è in forza");
+    ok(out[0].motivi.some((m) => /forza/i.test(m)), "e il motivo lo dice");
+  });
+  test("⛔ scoperti: «non idoneo» ferma, «idoneo con prescrizioni» no", () => {
+    const no = { id: "L1", nome: "Rossi Mario", attivo: true, idoneita: "non-idoneo" };
+    const pres = { id: "L1", nome: "Rossi Mario", attivo: true, idoneita: "prescrizioni" };
+    eq(scudo.lavoratoriScoperti([mans()], [no], scad("2027-01-01"), [], oggiL).length, 1,
+       "il giudizio di non idoneità ferma");
+    eq(scudo.lavoratoriScoperti([mans()], [pres], scad("2027-01-01"), [], oggiL).length, 0,
+       "le prescrizioni no: si lavora, con le prescrizioni");
+  });
+  test("scoperti: una persona compare UNA volta sola, con tutte le sue mansioni", () => {
+    const due = [mans(), mans({ nome: "Addetto brillamento" })];
+    const out = scudo.lavoratoriScoperti(due, [rossi], [], [], oggiL);
+    eq(out.length, 1, "una riga per persona, non una per mansione");
+    eq(out[0].mansioni.length, 2, "ma le mansioni bloccate sono elencate tutte e due");
+    eq(out[0].motivi.length, 1, "e il motivo, che è lo stesso, non si ripete");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
