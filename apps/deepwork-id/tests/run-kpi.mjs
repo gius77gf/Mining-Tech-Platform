@@ -5390,6 +5390,11 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   test("⛔ oggi: Campo ri-esporta la funzione di shared, non ne tiene una sua", () => {
     eq(campo.oggiISO === shell.oggiISO, true, "è la stessa funzione, non una copia che si comporta uguale");
   });
+  test("⛔ oggi: e nemmeno Flotta, che ne aveva la settima copia", () => {
+    /* l'ha trovata la regola 15 di run-stile.mjs, non una lettura del codice:
+       si chiamava `oggiIso` e stava nel modulo dati */
+    eq(flotta.oggiIso === shell.oggiISO, true, "stessa funzione, nome di sempre");
+  });
   test("⛔ oggi: il giorno si legge dall'orologio LOCALE, non da quello di Greenwich", () => {
     /* mezzanotte e mezza del 2 giugno a Roma: `toISOString()` scriverebbe il
        1° giugno, e il rapportino del turno di notte finirebbe nel giorno prima */

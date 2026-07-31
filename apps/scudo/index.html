@@ -1181,7 +1181,7 @@
     matriceMansione, riepilogoMansioni, lavoratoriScoperti, abilitazioneLavoratore,
     NOMINE_RUOLI, ruoloNomina, nominaAttiva, organigrammaSicurezza, nomineDaSistemare,
     TIPI_DPI, tipoDpi, tipoDpiSicuro, ultimaConsegnaDpi, statoConsegnaDpi, allarmiDpi, riepilogoDpi, verbaleDpi } from "./scudo-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
@@ -2564,7 +2564,7 @@
   });
   // niente eventi datati nel futuro: il registro infortuni è un documento HSE e la
   // data più recente pilota il cartellone "giorni senza infortuni" (un refuso lo azzererebbe)
-  { const d = new Date(); $("inf-data").max = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
+  $("inf-data").max = oggiISO();
   $("btn-inf").onclick = async () => {
     const data = $("inf-data").value, desc = $("inf-desc").value.trim();
     if (!data) { err("inf-data", true); $("inf-data").focus();
@@ -2669,7 +2669,6 @@
   // ---- AZIONI CORRETTIVE (CAPA): form unico per aggiunta e modifica -------
   // Stesso schema del form "Aggiungi lavoratore": il pulsante fa doppio
   // servizio (Aggiungi / Salva modifica) e la ✎ riporta i dati nei campi.
-  const oggiISO = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   function annullaEditAzi() {
     editAzi = null;
     $("btn-azi").textContent = "Aggiungi";

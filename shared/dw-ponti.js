@@ -17,6 +17,8 @@
 // Terra continuano a importare da dove hanno sempre importato — un alias non è
 // una seconda implementazione.
 //
+import { isoLocale } from "./deepwork-id-client/dw-shell.js";
+
 // Tutto quello che c'è qui è PURO e testabile: nessun accesso ai dati, nessun
 // DOM. Le letture dei dati restano nei moduli delle app, che passano dall'SDK.
 
@@ -278,7 +280,13 @@ export function avanzamentoDaUltimoRilievo(rilievi, rapportini, densita, oggi = 
   const giornoDopo = new Date(mis.ultimo + "T00:00:00Z");
   giornoDopo.setUTCDate(giornoDopo.getUTCDate() + 1);
   const dal = giornoDopo.toISOString().slice(0, 10);
-  const al = (oggi instanceof Date ? oggi : new Date(oggi)).toISOString().slice(0, 10);
+  // ⛔ il giorno di «oggi» si legge in ora LOCALE: `toISOString()` su una data
+  // locale scrive il giorno UTC, e in Italia fra mezzanotte e le due sarebbe
+  // IERI — con il rilievo di ieri il buco da riempire non esisterebbe più e il
+  // riquadro dell'avanzamento sparirebbe. I due `toISOString` qui sopra invece
+  // restano: quelli entrano ed escono in UTC (`T00:00:00Z` + `setUTCDate`) e
+  // sono coerenti.
+  const al = isoLocale(oggi instanceof Date ? oggi : new Date(oggi));
   if (dal > al) return null;                      // il rilievo è di oggi: niente buco da riempire
   const dich = produzioneDichiarata(rapportini, dal, al, densita);
   if (dich === null) return null;

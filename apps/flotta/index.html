@@ -1151,7 +1151,7 @@
            ORIZZONTE_TAGLIANDI, ritmoOreMezzi, ritmoDelMezzo, tagliandiInScadenza,
            numeroDaCampo, interoDaCampo, perCampo, messaggioNumero,
            AVVISO_DECIMALE, AVVISO_MIGLIAIA } from "./flotta-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, numIt, montaGuardiaInteri, avvolgiUnita, euro, conEuro } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, numIt, montaGuardiaInteri, avvolgiUnita, euro, conEuro, oggiISO } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
@@ -1333,7 +1333,6 @@
   let preavvisoSca = 30;
   const dataIt = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || "").slice(0,10)); return m ? `${m[3]}/${m[2]}/${m[1]}` : "—"; };
   const itToIso = (s) => { const m = /^\s*(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})\s*$/.exec(String(s || "")); return m ? `${m[3]}-${String(+m[2]).padStart(2,"0")}-${String(+m[1]).padStart(2,"0")}` : null; };
-  const oggiISO = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   try { const _p = +localStorage.getItem("dwFlottaPreavviso"); if (_p >= 1 && _p <= 365) preavvisoSca = _p; } catch (e) {}
   $("sca-preavviso").value = preavvisoSca;
   $("sca-preavviso").addEventListener("input", () => {

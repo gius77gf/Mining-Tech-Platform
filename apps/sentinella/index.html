@@ -1347,7 +1347,7 @@ textarea.dw-input{
            testoFontePrevisione, scartoPpvVolata, confermaVolataEseguita, riepilogoPreviste,
            volateOrdinate, firmaVolata, csvRegistroVolate, CSV_VOLATE_INTESTAZIONE,
            numeroDaCampo, AVVISO_DECIMALE } from "./sentinella-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, giorniTra, montaGuardiaInteri, avvolgiUnita } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
@@ -2199,15 +2199,13 @@ textarea.dw-input{
       return;
     }
     const pv = previsioneDiVolata(v);
-    const d = new Date();
-    const oggiISO = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
     // i valori del progetto entrano nei campi già scritti all'italiana: un
     // campo che mostra «187.5» a chi ha scritto «187,5» è un campo che
     // rimprovera l'utente per come scrive
     const num = (x) => x == null || x === "" ? "" : esc(itDec(x));
     const corpo = `<div class="note" style="margin-top:0;">Stai registrando come <b>eseguita</b> la volata prevista del <b>${fmtD(v.data)}</b>${v.fronte ? " sul fronte <b>" + esc(v.fronte) + "</b>" : ""}: da questo momento entra nel brogliaccio e conta nelle volate del mese, nei kg del mese e nel report di conformità. Correggi quello che in cava è andato diversamente dal progetto: <b>i numeri veri sono questi</b>, non quelli disegnati.</div>
       <label class="fl" for="conf-data">Giorno in cui è stata sparata</label>
-      <input class="dw-input" id="conf-data" type="date" max="${oggiISO}" value="${esc(String(v.data || "").slice(0, 10))}">
+      <input class="dw-input" id="conf-data" type="date" max="${oggiISO()}" value="${esc(String(v.data || "").slice(0, 10))}">
       <label class="fl" for="conf-fronte">Fronte</label>
       <input class="dw-input" id="conf-fronte" value="${esc(v.fronte || "")}" placeholder="Fronte">
       <label class="fl" for="conf-nfori">N° fori</label>
@@ -2550,7 +2548,7 @@ textarea.dw-input{
   // ══════════════════════════════════════════════════════════════════
   // T3 · REPORT DI CONFORMITÀ — il documento per l'ente
   // ══════════════════════════════════════════════════════════════════
-  const oggiIso = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+  const oggiIso = oggiISO;   // stesso giorno locale di shared/: una regola, un posto
   let repGrafici = [];   // grafici montati: si smontano prima di ridisegnare
 
   function renderReport() {
@@ -3079,7 +3077,7 @@ textarea.dw-input{
   };
   // niente volate datate nel futuro: il registro è un documento verso gli enti e
   // il conteggio "questo mese" si baserebbe su un dato impossibile
-  { const d = new Date(); $("vol-data").max = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
+  $("vol-data").max = oggiISO();
   $("btn-vol").onclick = async () => {
     const data = $("vol-data").value;
     if (!data) { err("vol-data", true); fuocoErr(["vol-data"]);
@@ -3329,7 +3327,7 @@ textarea.dw-input{
     const m = MON.find(x => x.id === id);
     // storico: ogni registrazione si ACCODA alle letture (max 50), non
     // si perde sovrascrivendo il solo ultimo valore
-    const letture = [ ...((m && m.letture) || []), { data: new Date().toISOString().slice(0,10), valore } ].slice(-50);
+    const letture = [ ...((m && m.letture) || []), { data: oggiISO(), valore } ].slice(-50);
     await db.aggiorna("monitoraggi", id, { valore, letture });
     const st = statoMisura({ ...m, valore });
     esito("mis-esito", "Misura su " + (m ? m.nome.split(" — ")[0] : id) + ": " + numeroIt(valore) + (m ? " " + m.unita : "") + " → " + st.label + ". La serie storica del punto è aggiornata.",
@@ -3460,7 +3458,7 @@ textarea.dw-input{
   enterSubmit(["ric-nome","ric-dist","ric-soglia","ric-unita","ric-nota"], "btn-ric");
 
   // ── T4 · salvataggio di un reclamo ──────────────────────────────────
-  { const d = new Date(); $("rec-data").max = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
+  $("rec-data").max = oggiISO();
   $("btn-rec").onclick = async () => {
     const data = $("rec-data").value;
     if (!data) { err("rec-data", true); fuocoErr(["rec-data"]);
@@ -3540,7 +3538,7 @@ textarea.dw-input{
     const oggi = oggiIso();
     const d = new Date(oggi + "T00:00:00"); d.setDate(d.getDate() - 30);
     $("rep-al").value = oggi;
-    $("rep-dal").value = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    $("rep-dal").value = oggiISO(d);
     $("rep-al").max = oggi;
   }
   ["rep-dal","rep-al","rep-ricettore"].forEach(id => $(id).addEventListener("change", renderReport));
@@ -3548,7 +3546,7 @@ textarea.dw-input{
     const d = new Date(oggiIso() + "T00:00:00");
     const primo = new Date(d.getFullYear(), d.getMonth() - 1, 1);
     const ultimo = new Date(d.getFullYear(), d.getMonth(), 0);
-    const iso = (x) => new Date(x.getTime() - x.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    const iso = oggiISO;
     $("rep-dal").value = iso(primo); $("rep-al").value = iso(ultimo);
     renderReport();
     toast("Periodo: mese scorso, dal " + fmtD(iso(primo)) + " al " + fmtD(iso(ultimo)) + ".");
@@ -3556,7 +3554,7 @@ textarea.dw-input{
   $("btn-rep-anno").onclick = () => {
     const oggi = oggiIso(); const d = new Date(oggi + "T00:00:00");
     d.setFullYear(d.getFullYear() - 1); d.setDate(d.getDate() + 1);
-    $("rep-dal").value = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    $("rep-dal").value = oggiISO(d);
     $("rep-al").value = oggi;
     renderReport();
     toast("Periodo: ultimi 12 mesi.");

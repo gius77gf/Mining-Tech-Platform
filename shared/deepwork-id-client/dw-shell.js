@@ -228,6 +228,17 @@ export function meseLocale(d) {
   return isoLocale(d).slice(0, 7);
 }
 
+// Il TIMBRO «quando l'ho salvato» (aaaa-mm-gg hh:mm), in ora locale. Serve
+// all'utente per distinguere due versioni della stessa cosa: preso da
+// `toISOString()` mostrerebbe l'ora di Greenwich, cioè un salvataggio delle
+// 15:00 scritto «13:00» — e a mezzanotte e mezza anche il giorno sbagliato.
+export function timbroLocale(d = new Date()) {
+  const t = d instanceof Date ? d : new Date(d);
+  if (Number.isNaN(t.getTime())) return "";
+  const p = (n) => String(n).padStart(2, "0");
+  return `${isoLocale(t)} ${p(t.getHours())}:${p(t.getMinutes())}`;
+}
+
 // ══════════════════════════════════════════════════════════════════════
 // UN NUMERO SCRITTO A MANO — una convenzione sola per tutte e sei le app
 // ══════════════════════════════════════════════════════════════════════

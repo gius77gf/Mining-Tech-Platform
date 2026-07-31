@@ -995,7 +995,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
    non caricava niente da shared/ — e leggeva «1.250» come 1,25 in silenzio.
    `dw-shell.js` è un modulo senza dipendenze: non porta dentro né Firebase né
    l'SDK, quindi Genesi resta quello che è (localStorage, nessun account). */
-import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri } from '../../shared/deepwork-id-client/dw-shell.js';
+import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, oggiISO, timbroLocale } from '../../shared/deepwork-id-client/dw-shell.js';
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
@@ -2667,7 +2667,7 @@ $('btnExport').onclick = ()=>{
   const fori = SIM.fori.map(f=>({ id:'foro_'+(f.i+1), num:f.i+1, x:+f.x.toFixed(2), prof:+(f.prof||P.prof), diam:P.diam,
     kg:P.kg, esplosivo:(selEsplosivo()||{}).nome||'', ritardo:f.tDet, innesco:(selInnesco()||{}).short||'', sequenza:f.i+1 }));
   const out = { schemaV:1, tipo:'volata-deepwork',
-    volata:{ id:'vol_demo_genesi', sitoId:null, tipo:'cava', numero:1, data:new Date().toISOString().slice(0,10),
+    volata:{ id:'vol_demo_genesi', sitoId:null, tipo:'cava', numero:1, data:oggiISO(),
       fronte:{ lunghezza_m:SIM.Lm, altezza_m:SIM.H, profilo:(P.profilo||[]).map(p=>({x:+p.x.toFixed(2),y:+p.z.toFixed(2)})) },
       geometria:{ spalla_m:SPALLA, interasse_m:INTERASSE, borraggio_m:D2.stem, file:1 },
       default:{ diametro_mm:P.diam, profondita_m:P.prof, esplosivo:(selEsplosivo()||{}).nome||'', ritardo_ms:P.ritardo, innesco:(selInnesco()||{}).short||'' },
@@ -2883,7 +2883,7 @@ function computeKPI(){
     maglia:B+'×'+S+' m · Ø'+D2.diam+' · '+D2.prof+' m' };
 }
 function cmpSave(slot){
-  const snap={ ts:new Date().toISOString().slice(0,16).replace('T',' '), kpi:computeKPI(), design:JSON.parse(JSON.stringify({B:D2.B,S:D2.S,diam:D2.diam,prof:D2.prof,kg:D2.kg,stem:D2.stem,sub:D2.sub,esplosivo:D2.esplosivo,innesco:D2.innesco,roccia:D2.roccia,frat:D2.frat,bagnato:D2.bagnato,presplit:D2.presplit,sequenza:D2.sequenza})) };
+  const snap={ ts:timbroLocale(), kpi:computeKPI(), design:JSON.parse(JSON.stringify({B:D2.B,S:D2.S,diam:D2.diam,prof:D2.prof,kg:D2.kg,stem:D2.stem,sub:D2.sub,esplosivo:D2.esplosivo,innesco:D2.innesco,roccia:D2.roccia,frat:D2.frat,bagnato:D2.bagnato,presplit:D2.presplit,sequenza:D2.sequenza})) };
   localStorage.setItem('genesiCmp'+slot, JSON.stringify(snap));
   toast('Progetto salvato come '+slot);
 }
@@ -3230,7 +3230,7 @@ function riconRender(){
 function riconSave(){
   const k=computeKPI();
   const val=id=>{ const v=$(id)?$(id).value:''; return v===''?null:(isNaN(+v)?v:+v); };
-  const rec={ ts:new Date().toISOString().slice(0,16).replace('T',' '), nome:($('ric-nome')&&$('ric-nome').value.trim())||'',
+  const rec={ ts:timbroLocale(), nome:($('ric-nome')&&$('ric-nome').value.trim())||'',
     prev:{x50:k.x50, ppv:k.ppv, fly:k.fly},
     real:{x50:val('ric-x50'), ppv:val('ric-ppv'), fly:val('ric-fly'), ovs:val('ric-ovs'), note:($('ric-note')&&$('ric-note').value.trim())||''} };
   // il consuntivo di Campo, se c'è, viaggia insieme al resto: senza di lui la
@@ -3605,7 +3605,7 @@ function sitoAggiungi(){
   const d=num('sito-d'), w=num('sito-w'), p=num('sito-p');
   if(!(d>0)||!(w>0)||!(p>0)){ toast('Servono distanza, carica per ritardo e PPV, tutte maggiori di zero'); return; }
   const st=sitoStore();
-  st.punti.push({ d, w, ppv:p, nome:($('sito-n')&&$('sito-n').value.trim())||'', ts:new Date().toISOString().slice(0,10), fonte:'mano' });
+  st.punti.push({ d, w, ppv:p, nome:($('sito-n')&&$('sito-n').value.trim())||'', ts:oggiISO(), fonte:'mano' });
   sitoSalva(st); toast('Referto aggiunto'); sitoRender();
 }
 
@@ -3628,7 +3628,7 @@ function sitoImportaConferma(){
   const fonteFile=$('sito-c-org')?$('sito-c-org').value:'csv';
   const val=(r,i)=>parseFloat(String(r[i]==null?'':r[i]).replace(',','.'));
   const txt=(r,i)=>i>=0?String(r[i]==null?'':r[i]).trim().slice(0,90):'';
-  const oggi=new Date().toISOString().slice(0,10);
+  const oggi=oggiISO();
   const st=sitoStore(); let ok=0, scartate=0, doppie=0;
   const gia=new Set((st.punti||[]).map(p=>p.d+'|'+p.w+'|'+p.ppv));
   for(const r of _sitoCsv.righe){
@@ -3698,7 +3698,7 @@ const CSV_SENT_HEAD='data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;e
 let _sentFatto=null;                        /* ultimo file mandato, per dirlo a schermo */
 function _sentStore(){ try{ return JSON.parse(localStorage.getItem('genesiSent')||'{}')||{}; }catch(e){ return {}; } }
 function _sentSave(o){ try{ localStorage.setItem('genesiSent',JSON.stringify(o)); }catch(e){} }
-function _sentOggi(){ const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+function _sentOggi(){ return oggiISO(); }   // stessa regola di shared/, un posto solo
 /* numero per il file: punto decimale (è un file per un'altra macchina) */
 function _sentNum(n){ const v=+n; return Number.isFinite(v)?String(Math.round(v*1e4)/1e4):''; }
 /* cella di testo: si virgoletta se contiene il separatore (il lettore di
@@ -3848,7 +3848,7 @@ function volSnapshot(nome){
   let sintesi=(D2.perRow*D2.file)+' fori';
   try{ const k=computeKPI(); sintesi=k.nf+' fori · '+k.qtot+' kg · X50 '+k.x50+' cm'; }catch(e){}
   return { id:'v'+Date.now(), nome:nome,
-    data:new Date().toISOString().slice(0,16).replace('T',' '),
+    data:timbroLocale(),
     design:JSON.parse(JSON.stringify({B:D2.B,S:D2.S,file:D2.file,perRow:D2.perRow,diam:D2.diam,prof:D2.prof,kg:D2.kg,kgAuto:D2.kgAuto,ritardo:D2.ritardo,ritardoFila:D2.ritardoFila,stem:D2.stem,sub:D2.sub,incl:D2.incl,esplosivo:D2.esplosivo,innesco:D2.innesco,roccia:D2.roccia,ucs:D2.ucs,eMod:D2.eMod,frat:D2.frat,bagnato:D2.bagnato,acquaCol:D2.acquaCol,presplit:D2.presplit,psSpacing:D2.psSpacing,psCharge:D2.psCharge,sequenza:D2.sequenza,recDist:D2.recDist,recNorma:D2.recNorma,recFreq:D2.recFreq,decks:D2.decks,deckStem:D2.deckStem,profilo:D2.profilo,piede:D2.piede})),
     sintesi:sintesi };
 }
@@ -3910,7 +3910,7 @@ if($('hgVolate')) $('hgVolate').addEventListener('click',e=>{
       });
     return;
   }
-  if(act==='dup'){ const c=JSON.parse(JSON.stringify(arr[i])); c.id='v'+Date.now(); c.nome=arr[i].nome+' (copia)'; c.data=new Date().toISOString().slice(0,16).replace('T',' '); arr.push(c); _lsSet('genesiVolate',arr); renderHome(); toast('✓ Duplicata'); return; }
+  if(act==='dup'){ const c=JSON.parse(JSON.stringify(arr[i])); c.id='v'+Date.now(); c.nome=arr[i].nome+' (copia)'; c.data=timbroLocale(); arr.push(c); _lsSet('genesiVolate',arr); renderHome(); toast('✓ Duplicata'); return; }
   if(act==='apri'){
     Object.assign(D2, JSON.parse(JSON.stringify(arr[i].design)));
     D2.holes=[]; D2.sel=-1; D2.selPt=-1;

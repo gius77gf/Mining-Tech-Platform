@@ -896,7 +896,7 @@ a.dw-btn{text-decoration:none}
            periodoFraUltimiRilievi, intervalliFraRilievi, avanzamentoDaUltimoRilievo, SOGLIA_TURNI,
            produzionePerFronte,
            numeroDaCampo, AVVISO_DECIMALE } from "./terra-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, montaGuardiaInteri, euro0 } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, montaGuardiaInteri, euro0, isoLocale, oggiISO } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   // Oltre al toast, Terra segna in rosso il campo e scrive nel riquadro
@@ -1091,7 +1091,7 @@ a.dw-btn{text-decoration:none}
 
     // Deplezione riserve: residuo e durata stimata al ritmo pianificato.
     const refP = PIA.find(p => p.pianificatoAnnuoM3 > 0);
-    const annoP = new Date().toISOString().slice(0, 4);
+    const annoP = oggiISO().slice(0, 4);
     const estrattoAnnoP = RIL.filter(r => r.stato === "elaborato" && r.volumeM3 != null && (r.data||"").slice(0,4) === annoP)
                              .reduce((s, r) => s + r.volumeM3, 0);
     const rr = refP ? riservaResidua(refP.riserveM3, estrattoAnnoP, refP.pianificatoAnnuoM3) : null;
@@ -1713,7 +1713,7 @@ a.dw-btn{text-decoration:none}
   function fogliaStampa() {
     const { R, aut, soglia } = DEN;
     const oggi = new Date();
-    const dataOggi = fmtData(new Date(oggi.getTime() - oggi.getTimezoneOffset() * 60000).toISOString().slice(0, 10));
+    const dataOggi = fmtData(oggiISO(oggi));
     const meseOggi = oggi.getMonth() + 1;
     const mesiVisti = R.inCorso ? R.mesi.slice(0, meseOggi) : R.mesi;
     const riga = (c, tag) => "<tr>" + c.map(x => "<" + (tag || "td") + ">" + x + "</" + (tag || "td") + ">").join("") + "</tr>";
@@ -2077,7 +2077,7 @@ a.dw-btn{text-decoration:none}
   // Valore del materiale estratto: volume elaborato dell'anno × densità ×
   // prezzo. Ricalcolo dal vivo quando l'utente cambia densità o prezzo.
   function renderValore() {
-    const anno = new Date().toISOString().slice(0, 4);
+    const anno = oggiISO().slice(0, 4);
     const dellAnno = (RIL || []).filter(r => r.stato === "elaborato" && r.volumeM3 != null && (r.data||"").slice(0,4) === anno);
     // «estratto» = SCAVO: il materiale ripreso da un cumulo era già stato
     // estratto (e già valorizzato) prima, sommarlo conterebbe due volte lo
@@ -2195,10 +2195,10 @@ a.dw-btn{text-decoration:none}
       // misurati dai rilievi, che stanno in un altro riquadro. Una stima
       // messa accanto a una misura, nel giro di una settimana, diventa
       // indistinguibile da essa: qui non si mescolano mai.
-      /* la data di oggi in ISO, presa dall'orologio LOCALE: `toISOString()` su
-         una data locale sposta il giorno di qualche ora, e a cavallo della
-         mezzanotte farebbe entrare o uscire un turno dal periodo */
-      const oggiLoc = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+      /* la data di oggi in ISO, presa dall'orologio LOCALE (regola in shared/):
+         a cavallo della mezzanotte il giorno UTC farebbe entrare o uscire un
+         turno dal periodo */
+      const oggiLoc = oggiISO();
       const pf = d.turni ? produzionePerFronte(RAPP, FRO, av.dal, oggiLoc, dens) : null;
       if (pf && (pf.righe.length || pf.senzaFronte.m3 > 0 || pf.fronteSconosciuto.m3 > 0)) {
         const righe = pf.righe.map((r) =>
@@ -2230,7 +2230,7 @@ a.dw-btn{text-decoration:none}
       // Terra può dire di questa cava.
       const oggi = new Date();
       const primo = new Date(oggi.getTime() - 29 * 86400000);
-      const iso = (d) => d.toISOString().slice(0, 10);
+      const iso = isoLocale;
       const d = produzioneDichiarata(RAPP, iso(primo), iso(oggi), dens);
       if (d && d.turni) {
         html += `<div class="kpis" style="--kpi-cols:3;">
@@ -2485,7 +2485,7 @@ a.dw-btn{text-decoration:none}
     const prec = rilievoPrecedente(RIL, r);
     const c = prec ? confrontoRilievi(RIL, prec.id, r.id) : null;
     const oggi = new Date();
-    const dataOggi = fmtData(new Date(oggi.getTime() - oggi.getTimezoneOffset() * 60000).toISOString().slice(0, 10));
+    const dataOggi = fmtData(oggiISO(oggi));
     const riga = (c1, c2) => "<tr><td><b>" + c1 + "</b></td><td>" + c2 + "</td></tr>";
     const cum = provenienzaRilievo(r) === "cumulo";
     const dati = [
@@ -2730,7 +2730,7 @@ a.dw-btn{text-decoration:none}
     // dice «non è stato tolto niente», e all'ente è una dichiarazione falsa.
     const rv = numCampo("new-ril-vol", { min: 0, decimali: 2 });
     const vol = rv.ok ? rv.valore : NaN;
-    const futuro = data && data > new Date().toISOString().slice(0,10);
+    const futuro = data && data > oggiISO();
     if (!data) {
       err("new-ril-data", true); fuoco("new-ril-data");
       esito("ril-esito", "Manca la data del rilievo: è lei a dire se il rilievo è già stato fatto o va messo in calendario.", "err"); return;
@@ -2803,8 +2803,7 @@ a.dw-btn{text-decoration:none}
       "Usa questo volume");
     if (scelta == null) return;
     const prov = provenienzaRilievo({ provenienza: scelta });
-    const oggiISO = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-    $("new-ril-data").value = oggiISO;
+    $("new-ril-data").value = oggiISO();
     $("new-ril-vol").value = itDec(vol);
     $("new-ril-metodo").value = "senza GCP";   // drone consumer: scala approssimata, onesto
     $("new-ril-prov").value = prov; notaProv();

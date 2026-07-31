@@ -1286,6 +1286,72 @@ test("la regola 14 sa vedere il difetto che è stato tolto", () => {
     "una superficie senza avviso non ha niente da cancellare");
 });
 
+/* ══ REGOLA 15 · IL GIORNO DI CALENDARIO NON SI PRENDE IN UTC ═══════════
+   `toISOString()` scrive sempre l'istante in **UTC**. Una data costruita in ora
+   locale — `new Date()`, `new Date(anno, mese, 1)` — in Italia sta una o due
+   ore avanti: mezzanotte del 1° maggio a Roma è ancora **le 22:00 del 30
+   aprile** a Greenwich. Prenderne il giorno (o il mese, o l'ora) con
+   `toISOString().slice(...)` sposta quindi il calendario.
+
+   Misurato il 31/07 e costato tre cose vere (docs/RICERCA_GIORNO_LOCALE_202607.md):
+   il grafico «ultimi 6 mesi» del core riempiva la barra scritta «mag» con la
+   produzione di **aprile** — sempre, tutto l'anno, perché la chiave era UTC e
+   l'etichetta locale; le scadenze delle fatture di Conti cadevano **un giorno
+   prima**; e fra mezzanotte e le due — cioè durante il turno di notte — un
+   rapportino veniva datato al giorno prima.
+
+   ⚠️ NON tutti i `toISOString()` sono sbagliati, e una sostituzione in blocco
+   avrebbe introdotto il difetto che si voleva togliere: `piuGiorni` di
+   Sentinella e i due intervalli in `dw-ponti.js` costruiscono la data con
+   `"T00:00:00Z"` e la spostano con `setUTCDate` — entrano in UTC ed escono in
+   UTC, e sono coerenti. La regola quindi perdona la riga che porta un segno
+   esplicito di UTC nelle vicinanze, e accusa solo chi mescola i due calendari. */
+const SEGNO_UTC = /T00:00:00Z|Date\.UTC|setUTC|getUTC/;
+function giornoInUtc(src) {
+  const righe = src.split("\n");
+  const fuori = [];
+  righe.forEach((riga, i) => {
+    // interessa solo chi ne PRENDE UN PEZZO: `toISOString()` intero (per un
+    // campo tecnico o un log) non parla di calendario
+    if (!/\.toISOString\(\)\s*\.slice\(/.test(riga)) return;
+    if (/^\s*(\/\/|\*|\/\*)/.test(riga)) return;               // è un commento che lo spiega
+    // il segno di UTC può stare sulla riga o nelle tre sopra, dove la data
+    // viene costruita (`const g = new Date(x + "T00:00:00Z");`)
+    const intorno = righe.slice(Math.max(0, i - 3), i + 1).join("\n");
+    if (SEGNO_UTC.test(intorno)) return;
+    fuori.push(`riga ${i + 1}: ${riga.trim().slice(0, 90)}`);
+  });
+  return fuori;
+}
+let guardateData = 0;
+for (const [nome, rel] of [...SUPERFICI, ...MODULI]) {
+  const src = leggi(rel);
+  if (src === null || !/\.js$|\.html$/.test(rel)) continue;
+  guardateData++;
+  const casi = giornoInUtc(src);
+  test(`${nome}: il giorno di calendario non viene preso in UTC`, () => {
+    ok(casi.length === 0, `${rel}: ${casi.length} punti → ${casi.join(" · ")}`);
+  });
+}
+/* Quanti file ha guardato davvero: un «zero violazioni» ottenuto non guardando
+   nessuno è il difetto raccolto tre volte in CLAUDE.md. */
+test("la regola 15 ha davvero guardato tutte le superfici e i moduli", () => {
+  ok(guardateData === SUPERFICI.length + MODULI.length - 1,
+     `guardati ${guardateData}, me ne aspettavo ${SUPERFICI.length + MODULI.length - 1} (tutti tranne il CSS del motore grafici)`);
+});
+test("la regola 15 distingue il giorno locale da quello UTC", () => {
+  ok(giornoInUtc('const oggi = new Date().toISOString().slice(0, 10);').length === 1,
+     "il giorno preso in UTC da una data locale è una violazione");
+  ok(giornoInUtc('const mese = d.toISOString().slice(0, 7);').length === 1,
+     "e anche il mese, che è la forma che spostava le barre del grafico");
+  ok(giornoInUtc('const g = new Date(x + "T00:00:00Z");\ng.setUTCDate(g.getUTCDate() + 1);\nconst dal = g.toISOString().slice(0, 10);').length === 0,
+     "una data costruita e spostata in UTC invece è coerente: non si tocca");
+  ok(giornoInUtc('const ts = new Date().toISOString();').length === 0,
+     "e un timbro tecnico intero non parla di calendario");
+  ok(giornoInUtc('// prima qui c\'era new Date().toISOString().slice(0,10), che sbagliava').length === 0,
+     "il commento che racconta il difetto non è il difetto");
+});
+
 /* ══ CONTROPROVE SUI FILE VERI, PER LE REGOLE CHE NE AVEVANO SOLO DI FINTE ══
    ────────────────────────────────────────────────────────────────────────
    La lezione del 01/08, pagata con la regola 1: **una controprova va misurata
@@ -1352,6 +1418,10 @@ controprovaSuiVeri("regola 9 (guardia degli interi riscritta in casa)", guardieI
 /* regola 10: uno stato vuoto col solo titolo, come i tredici del core */
 controprovaSuiVeri("regola 10 (stato vuoto muto)", vuotiSenzaSpiegazione,
   '<div class="empty-state"><div class="empty-title">Nessun mezzo da lavoro</div></div>');
+
+/* regola 15: il giorno preso da toISOString() su una data locale */
+controprovaSuiVeri("regola 15 (il giorno di calendario preso in UTC)", giornoInUtc,
+  ';const oggiFinto = new Date().toISOString().slice(0, 10);');
 
 /* regola 14: un esito scritto sulla nota del modo */
 controprovaSuiVeri("regola 14 (nota del modo come lavagna)", avvisoUsatoComeLavagna,

@@ -1269,7 +1269,7 @@ label.item:has(.dw-chk:checked){
     applicaIncassi, apertoDi, statoIncasso, movimentiDiFattura, incassatoPeriodo,
     tempiPagamentoClienti, tempoMedioPagamento, emessoIncassato,
     numeroDaCampo, AVVISO_DECIMALE } from "./conti-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, euro, euro0, conEuro } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, euro, euro0, conEuro, isoLocale, oggiISO as oggiISOShell, meseLocale } from "../../shared/deepwork-id-client/dw-shell.js";
   const ggU = avvolgiUnita;   // la regola vive in shared/: qui solo il nome di sempre
   const $ = (id) => document.getElementById(id);
   // ── CIFRE: formato italiano, sempre due decimali, spazio unificatore
@@ -1335,9 +1335,16 @@ label.item:has(.dw-chk:checked){
   // vero quando il campo contiene qualcosa che NON si riesce a leggere come
   // numero: è il caso in cui bisogna fermarsi e dirlo, mai salvare uno zero
   const numIllegibile = (r) => !r.ok && !r.vuoto && (r.motivo === "ambiguo" || r.motivo === "non-numero");
-  const oggiISO = () => new Date().toISOString().slice(0, 10);
+  // ⛔ IL GIORNO SI LEGGE DALL'OROLOGIO LOCALE. Qui c'era `toISOString()`, che
+  // scrive l'istante in UTC: in Italia siamo una o due ore avanti, quindi una
+  // fattura emessa fra mezzanotte e le due veniva datata al giorno prima, e
+  // `piuGiorni` — che parte dalla mezzanotte LOCALE — sbagliava la scadenza di
+  // un giorno SEMPRE, tutto l'anno (01/07 a 30 giorni proponeva il 30/07).
+  // La funzione era scritta sei volte nel progetto: ora sta in shared/ e qui si
+  // ri-esporta. Vedi docs/RICERCA_GIORNO_LOCALE_202607.md.
+  const oggiISO = oggiISOShell;
   const piuGiorni = (iso, n) => { const d = new Date(iso + "T00:00:00");
-    d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+    d.setDate(d.getDate() + n); return isoLocale(d); };
   // iniziali per l'avatar del cliente (massimo due lettere, come nel core)
   const iniziali = (nome) => String(nome || "?").replace(/[^\p{L}\s]/gu, " ").trim()
     .split(/\s+/).slice(0, 2).map(w => w[0] || "").join("").toUpperCase() || "?";
@@ -1578,7 +1585,7 @@ label.item:has(.dw-chk:checked){
     // Ora la cifra viene dai MOVIMENTI veri (data in cui i soldi sono arrivati),
     // più le fatture vecchie marcate incassate con la loro data: chi non ha mai
     // registrato un incasso vede esattamente il numero di prima.
-    { const ym = new Date().toISOString().slice(0,7);
+    { const ym = meseLocale(new Date());
       const meseIn = incassatoPeriodo(FAT, INC, ym + "-01", ym + "-31");
       const totMese = meseIn.importo;
       const quanti = meseIn.movimenti + meseIn.fattureVecchie;
@@ -1796,7 +1803,7 @@ label.item:has(.dw-chk:checked){
     // Incassato: dai MOVIMENTI veri. Le fatture vecchie marcate incassate
     // contano com'è sempre stato (col loro totale), così nessun numero cambia
     // finché non si registra un incasso nuovo.
-    const ym = new Date().toISOString().slice(0,7);
+    const ym = meseLocale(new Date());
     const incTot = incassatoPeriodo(FAT, INC, "", "");
     const incMeseR = incassatoPeriodo(FAT, INC, ym + "-01", ym + "-31");
     const inc = incTot.importo, incMese = incMeseR.importo;

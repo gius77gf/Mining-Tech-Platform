@@ -113,6 +113,58 @@ numeri, e la regola di `CLAUDE.md` che ne è nata dice dove va messa: **una rego
 che serve a due app vive in `shared/`, e le app la ri-esportano** — un alias, non
 una seconda implementazione.
 
+## Cosa è stato fatto (31/07, tutto in un'unità sola)
+
+1. **`isoLocale` / `oggiISO` / `meseLocale` / `timbroLocale` in
+   `shared/deepwork-id-client/dw-shell.js`**, accanto a `giorniTra` che già
+   ragionava in ora locale. Campo, Flotta, Scudo, Terra, Sentinella, Conti e
+   Genesi **ri-esportano**: un alias, non una seconda implementazione. Il test
+   pretende l'**identità** (`campo.oggiISO === shell.oggiISO`), non il
+   comportamento.
+2. **I tre della categoria A**, corretti: le due chiavi dei mesi nel core,
+   `piuGiorni` di Conti, la finestra di `ritmoMedioAnnuo` in Terra. Quest'ultima
+   faceva cadere due prove in ora italiana: adesso la suite passa in tutti e due
+   i fusi.
+3. **I sei della categoria B**, uno per uno.
+4. **`apps/deepwork-id/tests/orologio-cliente.mjs`**, in coda alla suite di CI:
+   rilancia le tre suite `node` sensibili alla data con `TZ=Europe/Rome`. Non
+   duplica prove — rilancia le stesse in un ambiente in cui possono fallire
+   diversamente.
+5. **La regola 15 di `run-stile.mjs`**: `toISOString().slice(...)` è vietato
+   quando prende un pezzo di calendario da una data costruita in ora locale, e
+   perdona la riga che porta un segno esplicito di UTC (`T00:00:00Z`,
+   `setUTCDate`, `Date.UTC`) nelle tre righe precedenti — perché `piuGiorni` di
+   Sentinella e i due intervalli di `dw-ponti.js` entrano ed escono in UTC e
+   **sono giusti così**.
+
+## Due cose che sono uscite solo perché il controllo è stato scritto
+
+- **La settima copia.** `oggiIso` esisteva anche in `apps/flotta/flotta-data.js`,
+  e non era nell'elenco qui sopra: l'ha trovata la regola 15, non una rilettura
+  del codice. Sei copie contate a mano, sette contate da un controllo.
+- **Un difetto in più in `shared/dw-ponti.js`.** `avanzamentoDaUltimoRilievo`
+  chiudeva la finestra con il giorno **UTC** di un `oggi` locale: fra mezzanotte
+  e le due l'estremo alto era ieri, e con un rilievo di ieri `dal > al` faceva
+  tornare `null` — cioè il riquadro dell'avanzamento **spariva**.
+
+## La misura finale, in un browser vero con l'orologio di Roma
+
+Eseguendo l'espressione del grafico dentro la pagina del core:
+
+```
+etichetta  chiave UTC (prima)  chiave locale (adesso)
+  feb        2026-01             2026-02
+  mar        2026-02             2026-03
+  apr        2026-03             2026-04
+  mag        2026-04             2026-05
+  giu        2026-05             2026-06
+  lug        2026-06             2026-07
+
+6 barre su 6 erano riempite col mese sbagliato
+```
+
+## L'elenco di partenza (per memoria)
+
 ## Cosa fare (unità concrete, in quest'ordine)
 
 1. **`isoLocale(data)` e `oggiISO()` in `shared/deepwork-id-client/dw-shell.js`**,

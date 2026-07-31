@@ -82,14 +82,14 @@
 // L'urgenza delle manutenzioni si CALCOLA dalla data (mai salvata).
 // ============================================================
 
-import { parseCsvLine, numIt, giorniTra, isIntestazione, numeroScritto } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, numIt, giorniTra, isIntestazione, numeroScritto, oggiISO } from "../../shared/deepwork-id-client/dw-shell.js";
 
 // Data di oggi in formato ISO (aaaa-mm-gg) nel fuso dell'utente: la stessa
 // che scrive l'app quando registra la fotografia del giorno.
-export function oggiIso(oggi = new Date()) {
-  const d = new Date(oggi);
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-}
+// Era la SETTIMA copia della stessa regola — l'ha trovata la regola 15 di
+// run-stile.mjs, non una lettura del codice. Adesso è un ALIAS di quella in
+// shared/: le pagine di Flotta continuano a chiamarla `oggiIso`.
+export const oggiIso = oggiISO;
 const isoIndietro = (giorni) => oggiIso(new Date(Date.now() - giorni * 86400000));
 
 // ══════════════════════════════════════════════════════════════════════
