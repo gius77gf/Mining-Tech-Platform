@@ -7,7 +7,7 @@
 // perché non falliscono i test, si vedono solo aprendo la pagina giusta.
 // Qui diventano controlli che girano in automatico.
 //
-// 17 regole, al 03/08. *(Era rimasto scritto «tredici» per giorni mentre
+// 18 regole, al 03/08. *(Era rimasto scritto «tredici» per giorni mentre
 // l'elenco cresceva: un numero in un commento non fallisce, sta lì — la stessa
 // ragione per cui esiste `numeri-nei-documenti.mjs`. Adesso c'è una prova in
 // fondo al file che lo confronta con le voci davvero elencate qui sotto.)*
@@ -110,6 +110,16 @@
 //     riapre la distanza), e chi le usa deve averle da qualche parte —
 //     togliere le funzioni dimenticando il `<script>` non è un errore di
 //     sintassi: la pagina si apre e muore al primo tocco.
+//
+// 18. UNA MAPPA DI STATI COPRE TUTTI GLI STATI CHE LA SUA FUNZIONE SA DIRE.
+//     Il 03/08 `statoScadenzaHSE` ha guadagnato una quarta risposta («senza
+//     data», perché una data illeggibile non è una scadenza a posto) e la mappa
+//     dei badge di Scudo ne aveva tre: `B[st]` sarebbe stato `undefined` e
+//     `B[st][0]` avrebbe ucciso la pagina **al disegno del primo riquadro** —
+//     non un errore di sintassi, quindi nessun controllo esistente lo vedeva.
+//     Terra aveva la stessa coppia e lo stesso rischio. La regola confronta le
+//     stringhe che la funzione può restituire con le chiavi della mappa che la
+//     pagina usa per disegnarle.
 //
 // Come si aggiunge una regola: una funzione che restituisce l'elenco delle
 // violazioni con file e riga, e un `test(...)` che pretende zero.
@@ -1905,6 +1915,76 @@ controprovaSuiVeri("regola 14 (nota del modo come lavagna)", avvisoUsatoComeLava
    in tutte e sei le app fino al 02/08 */
 controprovaSuiVeri("regola 17 (struttura riscritta in casa)", strutturaInCasa,
   ';function toast(msg, tipo) { const t = document.getElementById("toast"); if (t) t.textContent = msg; }');
+
+/* ── REGOLA 18 · una mappa di stati copre tutti gli stati ─────────────
+   Le coppie sono dichiarate a mano perché sono poche e perché indovinarle
+   automaticamente vorrebbe dire indovinare male: qui si vuole sapere che
+   QUESTA funzione alimenta QUELLA mappa. */
+const COPPIE_STATO = [
+  { funzione: "statoScadenzaHSE", modulo: "shared/dw-ponti.js",
+    pagina: "apps/scudo/index.html", mappa: "B",
+    perche: "il semaforo dello scadenzario di Scudo (badge e striscia)" },
+  { funzione: "statoScadenzaTerra", modulo: "apps/terra/terra-data.js",
+    pagina: "apps/terra/index.html", mappa: "SB",
+    perche: "il semaforo dello scadenzario di Terra" },
+];
+/* ⚠️ Due letture sbagliate al primo colpo, e le controprove le hanno viste
+   subito — vale la pena scriverle perché sono la stessa famiglia:
+   1. le risposte cercate come `return "..."` perdevano quelle dentro un
+      TERNARIO (`return g <= pre ? "in-scadenza" : "a-posto"`), cioè metà di
+      quelle di Terra. Adesso si prende l'intera istruzione `return …;` e si
+      raccolgono TUTTE le stringhe che contiene;
+   2. le chiavi della mappa pretendevano una virgola o una graffa davanti, e
+      così la PRIMA chiave — quella subito dopo `const B = {` a capo — non
+      veniva mai vista: il controllo diceva che mancava «scaduta», che c'era. */
+function statiRestituiti(src, nome) {
+  const i = src.indexOf(`export function ${nome}(`);
+  if (i < 0) return null;
+  const fine = src.indexOf("\n}", i);
+  const corpo = src.slice(i, fine < 0 ? src.length : fine);
+  const stati = [];
+  for (const r of corpo.matchAll(/return[^;]*;/g))
+    for (const s of r[0].matchAll(/"([^"]+)"/g)) stati.push(s[1]);
+  return [...new Set(stati)];
+}
+function chiaviMappa(src, nome) {
+  const i = src.indexOf(`const ${nome} = {`);
+  if (i < 0) return null;
+  const fine = src.indexOf("};", i);
+  const corpo = src.slice(i + `const ${nome} = {`.length, fine < 0 ? src.length : fine);
+  return [...new Set([...corpo.matchAll(/(?:^|[,{\s])\s*(?:"([^"]+)"|([A-Za-z_$][\w$]*))\s*:/g)]
+    .map((m) => m[1] || m[2]))];
+}
+function mappeIncomplete() {
+  const out = [];
+  for (const c of COPPIE_STATO) {
+    const stati = statiRestituiti(leggi(c.modulo), c.funzione);
+    const chiavi = chiaviMappa(leggi(c.pagina), c.mappa);
+    if (!stati || !stati.length) { out.push(`${c.modulo}: non trovo le risposte di ${c.funzione}()`); continue; }
+    if (!chiavi || !chiavi.length) { out.push(`${c.pagina}: non trovo la mappa ${c.mappa}`); continue; }
+    for (const s of stati)
+      if (!chiavi.includes(s))
+        out.push(`${c.pagina}: la mappa ${c.mappa} non ha «${s}», che ${c.funzione}() sa restituire`
+          + ` — ${c.perche}: la pagina morirebbe al disegno`);
+  }
+  return out;
+}
+test("regola 18: ogni mappa di stati copre tutte le risposte della sua funzione", () => {
+  const v = mappeIncomplete();
+  ok(v.length === 0, v.join("\n      "));
+});
+/* Quante coppie ha davvero guardato: un «zero violazioni» ottenuto non
+   leggendo niente è il difetto raccolto tre volte in CLAUDE.md. */
+test("regola 18: ha davvero letto le coppie funzione↔mappa", () => {
+  let viste = 0;
+  for (const c of COPPIE_STATO) {
+    const stati = statiRestituiti(leggi(c.modulo), c.funzione);
+    const chiavi = chiaviMappa(leggi(c.pagina), c.mappa);
+    if (stati && stati.length >= 3 && chiavi && chiavi.length >= 3) viste++;
+  }
+  ok(viste === COPPIE_STATO.length,
+    `${viste} coppie lette su ${COPPIE_STATO.length}: il controllo non sta guardando quello che crede`);
+});
 
 /* Il numero di regole scritto nell'intestazione è quello vero? Era rimasto a
    «tredici» mentre le regole erano diciassette. Un numero in un commento non
