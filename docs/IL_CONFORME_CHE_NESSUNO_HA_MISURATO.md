@@ -326,6 +326,19 @@ La correzione è di due righe — `mesi` accettato solo se finito e dentro un
 intervallo sensato, altrimenti il valore di serie — e trasforma una pagina morta
 in un grafico normale. Va in coda alle altre due.
 
+### Come si prova che una cosa **non si blocca**
+
+Non nello stesso processo. La prova
+`incassoPerMese(fatture, oggi).mesi.length <= 60` è quella giusta da mettere in
+`run-kpi.mjs` **dopo** la correzione, ma lanciarla **oggi** non farebbe cadere
+la suite: la **fermerebbe**, e una suite ferma non racconta niente — non è un
+esito, è un'assenza di esito.
+
+Quindi la controprova gira in un **processo figlio** con un tetto di tempo, e
+pretende che **prima** scada e **dopo** risponda. Misurato: `non ritorna entro 6
+secondi`. È l'unico modo onesto: una prova che gira dentro il processo del
+difetto non può raccontare come è finita.
+
 ---
 
 ## La lezione, che è più grande del difetto

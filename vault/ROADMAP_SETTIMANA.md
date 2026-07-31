@@ -1344,6 +1344,27 @@ campi interi, file delle macchine.
       una sonda copre solo la forma di vuoto che le si dà in pasto** — quando un
       controllo dice «tutto a posto», la domanda dopo non è «funziona?» ma «che
       cosa ha guardato?».
+- [x] **La terza sonda non ha trovato quello che cercava, e non la si tiene**
+      *(03/08)* — chiamava le funzioni coi **dati veri della dimostrazione**
+      cercando «NaN», «undefined», «Invalid Date» nelle stringhe che l'utente
+      legge. **Non ha finito**: si è piantata, e le combinazioni che genera sono
+      in buona parte spazzatura. Come sonda **non vale** e **non entra nel
+      repository** — gonfiare un risultato che non c'è è il modo più veloce di
+      rendere inservibili anche le altre. Ma il punto in cui si è piantata vale
+      due righe, perché **il modo di rompersi è peggio di un numero sbagliato**:
+      `incassoPerMese(fatture, mesi = 6, oggi)` ha `for (let i = 0; i < mesi;
+      i++)`, e passandogli una **data** nella casella del conteggio `i < mesi` la
+      converte in millisecondi dall'epoca — **1.785.456.000.000 giri**, ognuno
+      con una `Date` nuova e una chiave in più: la scheda **muore di memoria**,
+      senza un errore da mostrare. Raggiungibilità: **nessuna dai dati**, solo
+      sbagliando l'ordine degli argomenti — ma è uno sbaglio **invitato**, perché
+      in Conti `agingIncassi`, `prioritaIncasso`, `esposizioneClienti` e
+      `kpiFrom` hanno tutte `oggi` in seconda o terza posizione e questa è
+      **l'unica** in cui il secondo posto è un conteggio. Due righe di guardia.
+      E una lezione di metodo: **una cosa che non si blocca si prova in un
+      processo figlio**, non nello stesso — oggi la prova giusta non farebbe
+      *cadere* la suite, la **fermerebbe**, e una suite ferma non è un esito.
+      Misurato in figlio: «non ritorna entro 6 secondi».
 
 ---
 
