@@ -770,7 +770,19 @@ campi interi, file delle macchine.
       promettere «l'ho tenuto e lo salvo appena torna la linea» sarebbe falso.
       La decisione diventa doppia e la seconda metà (persistenza sì/no) tocca
       l'isolamento fra clienti: va al fondatore.
-- Regole **14**; stile **149 → 177** prove; banchi del browser **15 → 19**.
+- [x] **Le funzioni che diventano soldi, documenti e decisioni non erano
+      provate.** Censite le export dei sei moduli dati e cercate in TUTTE le
+      suite: 208 su 338 non comparivano da nessuna parte. Fra quelle:
+      `importiFattura` (imponibile, IVA, totale di una fattura),
+      `canonePeriodo` (quello che si deve all'ente), `convertiQuantita`,
+      `sogliaEfficace` (decide se una lettura è un superamento),
+      `puntoDiRiordino`, `vitaCava`. **26 prove nuove**, ognuna vista fallire
+      col difetto rimesso. KPI **433 → 460**.
+      *Due lezioni pagate: una prova nuova non discriminava (i numeri scelti
+      davano lo stesso risultato con e senza la difesa), e tre sono nate rosse
+      perché avevo indovinato la forma dei dati invece di leggerla.*
+- Regole **14**; stile **149 → 177** prove; banchi del browser **15 → 19**;
+  prove `node` totali **719**.
 
 ### Difetti chiusi il 30/07 (tutti «silenziosi»: nessuno dava errore)
 - [x] La **striscia** e la **pastiglia** di un riquadro dicevano un colore
