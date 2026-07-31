@@ -1793,6 +1793,25 @@ campi interi, file delle macchine.
       `comportamentale` da sola non è un'analisi. Stessa idea del ponte con
       Terra che non dà la colpa a chi compila — se lo strumento accusa, chi lo
       usa smette di scrivere la verità.
+- [x] ✅ **PIANO: IL PIANO DI COLTIVAZIONE A LOTTI IN TERRA** *(05/08,
+      `docs/PIANO_LOTTI_TERRA.md`)* — terza e ultima voce scoperta del
+      censimento, e il punto di partenza è **una frase che l'app scrive già**:
+      nelle prescrizioni dell'atto, mostrate in pagina, c'è scritto «recupero
+      ambientale **contestuale alla coltivazione, lotto per lotto**». **L'app
+      enuncia l'obbligo e non ha nessun modo di mostrare che è rispettato**: la
+      parola *lotto* compare **una volta sola** in tutto il codice di Terra —
+      dentro quella stessa stringa — e **zero volte** nella pagina; *ripristino*
+      nel modulo dati non c'è, e nella pagina compare due volte parlando
+      d'altro. È la versione ambientale di «senza dati non è conforme».
+      Il numero che serve è il **divario di recupero** (aperto − recuperato), e
+      porta la trappola di sempre in forma cattiva: **una cava senza lotti
+      registrati non ha divario zero**, ha divario **non misurato** — e uno
+      «0 m² in ritardo» in verde finirebbe davanti a chi fa vigilanza. Sei
+      stati e non due (`collaudato` lo dice l'**ente**, `recuperato` lo dice
+      l'azienda: confonderli mostra come chiusa una pratica che nessuno ha
+      verificato), e `volumeMisuratoDiLotto` che fa entrare i **rilievi** nel
+      conto — «previsti 180.000 m³, misurati 96.400» invece di fidarsi del
+      progetto.
 - [ ] ⚠️ **IL GIRO COMPLETO DEL BROWSER NON È STATO ESEGUITO IN QUESTO BLOCCO.**
       Va detto, per non scambiarlo per una verifica fatta: lanciato, ha girato
       più di un'ora ed è arrivato al **terzo banco su 35**. La causa non è il
