@@ -2117,6 +2117,66 @@ test("senza periodo non c'è un «fuori periodo»: le righe senza data sono già
   eq(r.righeSenzaData, [], "niente da mostrare a parte");
   ok(r.righe.some(c => c.voce === "energia"), "l'energia senza data è nel conto principale");
 });
+
+console.log("\n— Il ponte col volume di Terra: il denominatore preso da dove esiste —");
+const RILIEVI_T = [
+  { id: "t1", data: "2026-02-28", volumeM3: 31, stato: "elaborato", metodo: "RTK+GCP" },
+  { id: "t2", data: "2026-04-30", volumeM3: 46, stato: "elaborato", metodo: "RTK+GCP" },
+  { id: "t3", data: "2026-06-30", volumeM3: 47, stato: "elaborato", metodo: "RTK" },
+  { id: "t4", data: "2026-07-28", volumeM3: 54, stato: "elaborato", metodo: "RTK+GCP" },
+  { id: "t5", data: "2026-05-20", volumeM3: 22, stato: "elaborato", metodo: "RTK", provenienza: "cumulo" },
+  { id: "t6", data: "2026-08-31", volumeM3: null, stato: "pianificato" },
+  { id: "t0", data: "2025-11-20", volumeM3: 40, stato: "elaborato", metodo: "RTK" },
+];
+test("il volume dell'anno somma i rilievi di scavo, e tiene fuori il cumulo dichiarandolo", () => {
+  const v = conti.volumeDaTerra(RILIEVI_T, "2026-01-01", "2026-12-31");
+  eq(v.usabile, true, "si può usare");
+  eq(v.m3, 178, "31 + 46 + 47 + 54");
+  eq(v.cumuloM3, 22, "la ripresa dal cumulo resta fuori");
+  eq(v.rilieviCumulo, 1, "ed è dichiarata, non nascosta");
+  eq([v.primo, v.ultimo], ["2026-02-28", "2026-07-28"], "con l'intervallo che i rilievi coprono davvero");
+});
+test("⛔ quattro assenze diverse hanno quattro frasi diverse, non «nessun volume»", () => {
+  /* dirle allo stesso modo farebbe fare la cosa sbagliata a tre persone su
+     quattro: chi ha solo cumuli deve sapere che il cumulo non è scavo nuovo,
+     chi ha solo pianificati che manca l'elaborazione e non la misura */
+  const casi = [
+    [null, /non si leggono/, "Terra non leggibile"],
+    [[RILIEVI_T[4]], /cumulo/, "solo riprese da cumulo"],
+    [[RILIEVI_T[5]], /pianificat/, "solo rilievi pianificati"],
+    [[RILIEVI_T[6]], /nessuno cade in questo periodo/, "tutti fuori periodo"],
+    [[], /nessun rilievo elaborato/, "Terra vuota"],
+  ];
+  const viste = new Set();
+  for (const [ril, atteso, che] of casi) {
+    const v = conti.volumeDaTerra(ril, "2026-01-01", "2026-12-31");
+    eq(v.usabile, false, che + ": non si usa");
+    eq(v.m3, null, che + ": ⛔ e NON è zero");
+    ok(atteso.test(v.motivo), che + ": la ragione è quella giusta — " + v.motivo);
+    viste.add(v.motivo);
+  }
+  eq(viste.size, casi.length, "e sono cinque frasi diverse, non la stessa cinque volte");
+});
+test("⛔ i costi che cadono fuori dall'intervallo misurato si contano", () => {
+  /* stanno nel numeratore e il loro volume non sta nel denominatore: il costo
+     al metro cubo esce PIÙ ALTO del vero, e prudente non vuol dire giusto */
+  const v = conti.volumeDaTerra(RILIEVI_T, "2026-01-01", "2026-12-31");
+  const righe = [
+    { voce: "personale", importo: 310, data: "2026-02-28" },   // dentro
+    { voce: "energia", importo: 132, data: "2026-04-30" },     // dentro
+    { voce: "generali", importo: 88, data: "2026-01-05" },     // prima del primo rilievo
+    { voce: "canone", importo: 98, data: "2026-09-30" },       // dopo l'ultimo
+    { voce: "ripristino", importo: 120, data: "" },            // senza data: si conta altrove
+  ];
+  const f = conti.costiFuoriDaiRilievi(righe, v.primo, v.ultimo);
+  eq(f.quante, 2, "due voci fuori dall'intervallo");
+  eq(f.importo, 186, "88 + 98");
+  eq(conti.costiFuoriDaiRilievi(righe, v.primo, v.ultimo).misurabile, true, "misurabile");
+  eq(conti.costiFuoriDaiRilievi(righe, "", "").misurabile, false,
+    "⛔ e senza intervallo non si finge una misura: si dice che non si può fare");
+  const dentro = conti.costiFuoriDaiRilievi([righe[0], righe[1]], v.primo, v.ultimo);
+  eq(dentro.quante, 0, "e quando stanno tutte dentro non si avvisa per niente");
+});
 test("prioritaOperative: manutenzione a ore su un mezzo assente viene ignorata (non crasha)", () => {
   const p = flotta.prioritaOperative(
     [{ nome: "Escavatore E1 — CAT 352", ore: 100, stato: "operativo" }],

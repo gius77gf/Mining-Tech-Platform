@@ -865,7 +865,14 @@ label.item:has(.dw-chk:checked){
       <input class="dw-input dec" id="cos-vol" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 1.250" title="Metri cubi tolti dal fronte nel periodo scelto qui sopra. La virgola va benissimo: 1250,5.">
       <span class="err-msg" id="err-cos-vol"></span>
     </div>
+    <!-- Il denominatore non si chiede a mano se esiste già: lo misura Terra, e
+         Conti lo legge col ponte in sola lettura che serve già al confronto
+         cavato/venduto. Quando Terra non ha niente da dare, il bottone lo dice
+         invece di riempire il campo con uno zero. -->
+    <button class="dw-btn secondary" id="btn-cos-terra"
+      title="Prende i metri cubi scavati nel periodo dai rilievi di Terra">Prendi da Terra</button>
   </div>
+  <div id="cos-terra"></div>
   <div id="cos-m3"></div>
 
   <div class="sec">Nuovo costo</div>
@@ -1269,7 +1276,8 @@ label.item:has(.dw-chk:checked){
     tempiPagamentoClienti, tempoMedioPagamento, emessoIncassato,
     numeroDaCampo, AVVISO_DECIMALE,
     CAUSALI_NOTA, causaleNota, stornatoDi, statoFattura, validaNota, notaDaFattura,
-    VOCI_COSTO, voceCosto, gruppoDiVoce, riepilogoCosti, costoPerMetroCubo } from "./conti-data.js";
+    VOCI_COSTO, voceCosto, gruppoDiVoce, riepilogoCosti, costoPerMetroCubo,
+    volumeDaTerra, costiFuoriDaiRilievi } from "./conti-data.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, euro, euro0, conEuro, isoLocale, oggiISO as oggiISOShell, meseLocale } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
@@ -1433,6 +1441,12 @@ label.item:has(.dw-chk:checked){
   // disponibili: «non lo so» e «zero» sono due risposte diverse, e l'app deve
   // saperle distinguere invece di mostrare un cavato di zero che non esiste.
   let RIL = null, rilLetti = false;
+  /* Il volume che il costo al metro cubo sta usando ARRIVA DA TERRA, oppure
+     l'ha scritto una persona. Non è la stessa cosa e non si mostra uguale: un
+     numero misurato porta con sé quanti rilievi, di che periodo e cosa è
+     rimasto fuori; uno scritto a mano non porta niente, ed è giusto che si
+     veda. null = scritto a mano (o non ancora chiesto). */
+  let volDaTerra = null;
   let ricPrezzo = "";        // "" = mix del venduto nel periodo, altrimenti id prodotto
   let filtroFat = "tutte";
   let filtroPes = "tutte";
@@ -2892,6 +2906,29 @@ label.item:has(.dw-chk:checked){
         title="Elimina questo costo" aria-label="Elimina il costo ${esc(leggiVoce(c.voce))} da ${eur(c.importo)}">${IC.croce}</button></div></div>`;
   }
 
+  /* ⛔ DA DOVE VIENE IL DENOMINATORE, scritto accanto al numero che ne esce.
+     Un costo al metro cubo senza la sua provenienza è un numero che chiunque
+     può contestare e nessuno può controllare — e la parte che conta di più non
+     è «178 m³», è **cosa è rimasto fuori**: le riprese da cumulo (materiale
+     già cavato prima) e, soprattutto, le voci di costo datate FUORI
+     dall'intervallo che i rilievi hanno misurato. Quelle stanno nel totale e
+     il loro volume no: il costo unitario esce più ALTO del vero. */
+  function provenienzaVolume(r) {
+    if (!r.calcolabile) return "";
+    if (!volDaTerra || !volDaTerra.usabile)
+      return `<div class="note">Il volume l'hai scritto tu: Conti lo usa così com'è, e non ha modo di dire da quale misura venga. Con <b>Prendi da Terra</b> il numero arriva dai rilievi e si porta dietro quanti sono, che periodo coprono e cosa resta fuori.</div>`;
+    const v = volDaTerra, fuori = costiFuoriDaiRilievi(r.righe, v.primo, v.ultimo);
+    const p = [`<b>${qt(v.m3)} m³</b> misurati da ${plur(v.rilievi, "rilievo", "rilievi")} di <b>Terra</b>, dal ${fmtD(v.primo)} al ${fmtD(v.ultimo)}.`];
+    if (v.cumuloM3 > 0)
+      p.push(`Restano fuori <b>${qt(v.cumuloM3)} m³</b> di ${plur(v.rilieviCumulo, "ripresa", "riprese")} dai cumuli: materiale già cavato prima, non scavo nuovo.`);
+    if (v.pianificati > 0)
+      p.push(`${v.pianificati === 1 ? "Un rilievo pianificato non entra" : v.pianificati + " rilievi pianificati non entrano"}: un rilievo previsto non è un volume.`);
+    const avviso = fuori.quante > 0
+      ? `<div class="note avviso">${plur(fuori.quante, "voce di costo è datata", "voci di costo sono datate")} fuori da questo intervallo (<b>${eur(fuori.importo)}</b>): ${fuori.quante === 1 ? "quella spesa è" : "quelle spese sono"} nel totale, ma il volume che le corrisponde <b>non è stato misurato</b>. Il costo al metro cubo qui sopra esce quindi <b>più alto</b> del vero.</div>`
+      : "";
+    return `<div class="note">${p.join(" ")}</div>` + avviso;
+  }
+
   function renderCosti() {
     const [d1, d2] = cosPeriodo();
     const per = fmtD(d1) + " – " + fmtD(d2);
@@ -2991,7 +3028,8 @@ label.item:has(.dw-chk:checked){
       + `<div class="note">${r.calcolabile
         ? "È un costo <b>di produzione</b>: dentro c'è quello che hai registrato qui, non ci sono le imposte né il margine. Confrontalo con i prezzi del <b>Listino</b> per capire quanto resta su ogni metro cubo venduto."
         : (volRotto ? spiegaNum("il volume", rv, "m³")
-                    : esc(r.motivo) + " Il confronto <b>cavato contro venduto</b>, nella scheda <b>Report</b>, te li dà già per il periodo che scegli.")}</div>`;
+                    : esc(r.motivo) + " Il bottone <b>Prendi da Terra</b> qui sopra lo va a prendere dai rilievi, se ci sono.")}</div>`
+      + provenienzaVolume(r);
 
     // ── il registro: prima il periodo, poi quello che ne è rimasto fuori ──
     const ordinate = r.righe.slice().sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
@@ -3735,12 +3773,44 @@ label.item:has(.dw-chk:checked){
       ? `<div class="note"><b>${esc(v.etichetta)}</b> è una voce che <b>Flotta</b> registra già mezzo per mezzo. Se la scrivi anche qui, la stessa spesa finisce nei totali di tutt'e due le app: scegli in quale delle due tenerla.</div>`
       : ""; };
   $("co-voce").addEventListener("change", avvisoVoce);
+  /* ── IL VOLUME PRESO DA TERRA ─────────────────────────────────────────
+     I rilievi si leggono una volta sola, quando servono (`caricaRilievi`).
+     Quando non c'è niente da prendere il campo NON si tocca: riempirlo con
+     uno zero sarebbe la solita assenza travestita, e per giunta farebbe uscire
+     un costo al metro cubo enorme al posto di nessun costo. */
+  $("btn-cos-terra").onclick = async () => {
+    const [d1, d2] = cosPeriodo();
+    $("cos-terra").innerHTML = `<div class="note">Sto leggendo i rilievi di <b>Terra</b>…</div>`;
+    const v = volumeDaTerra(await caricaRilievi(), d1, d2);
+    if (!v.usabile) {
+      volDaTerra = null;
+      $("cos-terra").innerHTML = vuoto("fronte", "Il volume del periodo non si può prendere da Terra", esc(v.motivo))
+        + `<div class="tools"><a class="dw-btn secondary" href="../terra/index.html">Apri Terra</a></div>`;
+      esito("cos-esito", "Il volume non arriva da Terra: " + v.motivo, "err");
+      return;
+    }
+    volDaTerra = v;
+    $("cos-vol").value = itDec(v.m3);
+    esito("cos-esito", "Volume preso da Terra: " + qt(v.m3) + " m³.", "success");
+    renderCosti();
+  };
   const cosAnno = (delta) => { const a = new Date().getFullYear() - delta;
-    $("cos-dal").value = a + "-01-01"; $("cos-al").value = a + "-12-31"; renderCosti(); };
+    $("cos-dal").value = a + "-01-01"; $("cos-al").value = a + "-12-31";
+    /* cambiando periodo il volume di prima non vale più: si scorda, invece di
+       restare lì a far credere che sia quello giusto */
+    volDaTerra = null; $("cos-terra").innerHTML = ""; renderCosti(); };
   $("btn-cos-anno").onclick = () => cosAnno(0);
   $("btn-cos-prec").onclick = () => cosAnno(1);
   ["cos-dal", "cos-al", "cos-vol"].forEach(id =>
-    $(id).addEventListener("input", () => { puliscoErr(id); renderCosti(); }));
+    $(id).addEventListener("input", () => { puliscoErr(id);
+      /* ⛔ Se il volume lo riscrive una persona, la provenienza di Terra NON
+         vale più. Lasciarla lì attaccata a un numero diverso sarebbe la bugia
+         peggiore di tutte: una misura dichiarata sopra un numero inventato.
+         Il valore messo dal bottone non passa di qui — `.value` da programma
+         non scatena `input` — quindi arrivarci significa che l'ha battuto
+         qualcuno. */
+      volDaTerra = null; $("cos-terra").innerHTML = "";
+      renderCosti(); }));
   $("btn-cos-export").onclick = () => {
     const [d1, d2] = cosPeriodo();
     const r = riepilogoCosti(COS, d1, d2);

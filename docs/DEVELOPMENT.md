@@ -46,9 +46,9 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**1.411 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 05/08: 1054 + 267 + 48 + 26 + 9 + 7):
+**1.415 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 05/08: 1057 + 268 + 48 + 26 + 9 + 7):
 
-E **435 funzioni pure su 435** sono chiamate per nome da quelle prove: tutte e
+E **437 funzioni pure su 437** sono chiamate per nome da quelle prove: tutte e
 sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nessuno ha
 ancora guardato», che è il minimo e finora non c'era. Lo conta
 `copertura-funzioni.mjs`, e questo numero lo verifica `numeri-nei-documenti.mjs`:

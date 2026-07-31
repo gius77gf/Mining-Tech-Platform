@@ -1739,6 +1739,39 @@ campi interi, file delle macchine.
       `run-stile` **264 → 267**, prove `node` **1.408 → 1.411**. E
       `numeri-nei-documenti.mjs` ha stanato una frase ferma da giorni:
       `DEVELOPMENT.md` diceva «tredici» regole di stile quando erano diciotto.
+- [x] ✅ **CONTI ↔ TERRA — IL PONTE COL VOLUME** *(05/08)* — il costo al metro
+      cubo chiedeva i metri cubi **a mano**, e i metri cubi esistono: li misura
+      Terra. Bottone **Prendi da Terra**, e dietro `volumeDaTerra` +
+      `costiFuoriDaiRilievi`. Tre cose rendono il numero controllabile:
+      **quattro assenze diverse hanno quattro frasi diverse** (Terra non
+      leggibile, solo cumuli, solo pianificati, tutti fuori periodo — e il test
+      pretende che siano davvero cinque frasi distinte); la **provenienza
+      viaggia col numero** e **sparisce** se il volume lo riscrive una persona
+      (una misura dichiarata sopra un numero inventato è la bugia peggiore
+      possibile); e l'avviso quando **numeratore e denominatore non guardano lo
+      stesso tempo**.
+      ⚠️ La prima versione di quell'avviso confrontava le **date** ed era
+      sbagliata di mestiere: un rilievo misura il volume tolto **da quello
+      prima**, quindi la sua data è la FINE dell'intervallo, e un periodo
+      «scoperto» da agosto in poi è semplicemente il futuro. Bocciata dalla
+      prova prima di nascere.
+      `run-kpi` **1054 → 1057**, `registro-costi.mjs` **31 → 40** prove,
+      controprova da 2 a **4 difetti** e 10 cadute — fra cui il **cumulo
+      contato come scavo nuovo**, che fa scendere il costo da 16,59 a 14,76
+      €/m³, cioè legge **meglio** del vero. Prove `node` **1.415**, copertura
+      **437/437**.
+- [ ] ⚠️ **IL GIRO COMPLETO DEL BROWSER NON È STATO ESEGUITO IN QUESTO BLOCCO.**
+      Va detto, per non scambiarlo per una verifica fatta: lanciato, ha girato
+      più di un'ora ed è arrivato al **terzo banco su 35**. La causa non è il
+      giro — **sono io**: nel frattempo facevo scatti e controprove con altre
+      sessioni di Chromium, e su un contenitore da **4 core** due Chromium
+      headless si affamano a vicenda (misurato dopo: `interi-superfici` da solo
+      cammina). È la stessa regola già scritta per i file — non si tocca il
+      cantiere mentre gira il giro — e vale anche per la CPU. Le tre unità di
+      oggi hanno comunque ciascuna il **proprio banco** verde e la **propria
+      controprova** che cade. Prossimo passo: lanciarlo **da solo** e leggerlo
+      fino in fondo; se anche da solo non finisce, far servire ai banchi una
+      **copia** del repository invece della cartella viva.
 
 ---
 

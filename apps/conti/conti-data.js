@@ -1761,3 +1761,64 @@ export function costoPerMetroCubo(costi, volumeM3, dal = "", al = "") {
         + "calcola. Il volume arriva dai rilievi di Terra, o si scrive a mano." };
   return { ...r, volumeM3: v, costoM3: round2(r.totale / v), calcolabile: true, motivo: "" };
 }
+
+// ============================================================
+// IL DENOMINATORE PRESO DA DOVE ESISTE GIÀ — il ponte col volume di Terra
+// ------------------------------------------------------------
+// `costoPerMetroCubo` chiedeva i metri cubi a mano, e i metri cubi ci sono:
+// li misura Terra, e Conti li legge già col ponte in sola lettura che serve al
+// confronto cavato/venduto. Chiederli a chi guarda voleva dire, in pratica,
+// che il costo al metro cubo non lo calcolava nessuno.
+//
+// ⛔ QUATTRO ASSENZE DIVERSE, QUATTRO FRASI DIVERSE. «Nessun volume» detto
+// allo stesso modo per quattro cause fa fare la cosa sbagliata a tre persone
+// su quattro: chi ha solo riprese da cumulo deve sapere che il cumulo NON è
+// scavo nuovo (e come denominatore conterebbe due volte lo stesso materiale),
+// chi ha solo rilievi pianificati deve sapere che manca l'elaborazione, non la
+// misura.
+export function volumeDaTerra(rilievi, dal = "", al = "") {
+  const c = cavatoPeriodo(rilievi, dal, al);
+  if (c == null)
+    return { m3: null, usabile: false, rilievi: 0, cumuloM3: 0, rilieviCumulo: 0,
+      pianificati: 0, fuoriPeriodo: 0, primo: null, ultimo: null,
+      motivo: "I rilievi di Terra non si leggono da qui: o l'app non è attiva per la tua organizzazione, o non hai il permesso di vederli." };
+  const base = { m3: null, usabile: false, rilievi: c.rilievi, cumuloM3: c.cumuloM3,
+    rilieviCumulo: c.rilieviCumulo, pianificati: c.pianificati, fuoriPeriodo: c.fuoriPeriodo,
+    primo: c.primo, ultimo: c.ultimo };
+  if (c.rilievi === 0) {
+    const motivo = c.rilieviCumulo > 0
+      ? "Nel periodo ci sono solo riprese da cumulo: è materiale già cavato prima, non scavo nuovo, e come denominatore conterebbe due volte lo stesso materiale."
+      : c.pianificati > 0
+        ? "I rilievi che riguardano questo periodo sono ancora pianificati: un rilievo previsto non è un volume misurato."
+        : c.fuoriPeriodo > 0
+          ? "Terra ha dei rilievi, ma nessuno cade in questo periodo: allarga le date, oppure guarda il periodo che i rilievi coprono davvero."
+          : "Terra non ha ancora nessun rilievo elaborato: il volume estratto non è stato misurato da nessuno.";
+    return { ...base, motivo };
+  }
+  return { ...base, m3: c.m3, usabile: true, motivo: "" };
+}
+
+/* ⛔ QUANTI COSTI STANNO FUORI DA QUELLO CHE I RILIEVI HANNO MISURATO.
+   ------------------------------------------------------------
+   La prima versione di questo avviso confrontava le DATE: «i rilievi coprono
+   dal 28/02, il periodo parte dall'01/01». Sbagliato, e la prova in banco l'ha
+   mostrato al primo colpo: un rilievo misura il volume tolto **da quello
+   prima**, quindi la sua data è la FINE dell'intervallo che copre, non
+   l'inizio — e un periodo che finisce il 31/12 «scoperto» da agosto in poi è
+   semplicemente il futuro. L'avviso partiva su un caso sano.
+   La domanda vera non è sulle date: è se NUMERATORE e DENOMINATORE guardano lo
+   stesso pezzo di tempo. E quella si misura coi costi in mano — quante voci, e
+   per quanti euro, cadono fuori dall'intervallo davvero misurato. Quelle
+   spese stanno nel totale e il loro volume no: il costo al metro cubo esce
+   più ALTO del vero, e un numero sbagliato in senso prudente resta sbagliato. */
+export function costiFuoriDaiRilievi(righe, primo, ultimo) {
+  const p = String(primo || ""), u = String(ultimo || "");
+  if (!p || !u) return { quante: 0, importo: 0, misurabile: false };
+  let quante = 0, importo = 0;
+  for (const c of righe || []) {
+    const d = String((c || {}).data || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;   // le voci senza data si contano altrove
+    if (d < p || d > u) { quante++; importo = round2(importo + (+c.importo || 0)); }
+  }
+  return { quante, importo, misurabile: true };
+}

@@ -48,11 +48,28 @@ const srv = createServer((q, s) => {
      Uno di struttura (la barra a capo), uno di sostanza (la voce sconosciuta
      che si traveste da spesa generale). */
   if (CONTROPROVA && p.endsWith("apps/conti/index.html")) {
-    corpo = Buffer.from(rimetti(corpo.toString("utf8"), "--nav-cols:8;", "--nav-cols:7;"), "utf8");
+    let t = rimetti(corpo.toString("utf8"), "--nav-cols:8;", "--nav-cols:7;");
+    /* difetto 4: la provenienza che RESTA attaccata a un numero riscritto a
+       mano. È la bugia peggiore della schermata — una misura dichiarata sopra
+       un numero inventato — e non si vede: la frase è giusta, il numero è
+       giusto, è il legame fra i due a non esserci più. */
+    t = rimetti(t, "      volDaTerra = null; $(\"cos-terra\").innerHTML = \"\";\n      renderCosti(); }));",
+                   "      renderCosti(); }));");
+    corpo = Buffer.from(t, "utf8");
   }
   if (CONTROPROVA && p.endsWith("shared/dw-ponti.js")) {
     corpo = Buffer.from(rimetti(corpo.toString("utf8"),
       'return v ? v.gruppo : "non-classificata";', 'return v ? v.gruppo : "generali";'), "utf8");
+  }
+  /* difetto 3, sul ponte col volume: il cumulo contato come scavo nuovo. È lo
+     sbaglio più facile da fare — `cavatoPeriodo` restituisce due numeri e
+     sommarli sembra «prendere tutto» — e gonfia il denominatore, quindi il
+     costo al metro cubo esce più BASSO del vero: la notizia che si vuole
+     leggere. Qui 178 diventerebbero 200, e 9,56 €/m³ diventerebbero 8,51. */
+  if (CONTROPROVA && p.endsWith("apps/conti/conti-data.js")) {
+    corpo = Buffer.from(rimetti(corpo.toString("utf8"),
+      "return { ...base, m3: c.m3, usabile: true, motivo: \"\" };",
+      "return { ...base, m3: c.m3 + c.cumuloM3, usabile: true, motivo: \"\" };"), "utf8");
   }
   s.writeHead(200, { "content-type": TIPI[extname(p)] || "application/octet-stream" });
   s.end(corpo);
@@ -250,13 +267,59 @@ dice(/1\.250,50/.test(dopo.esito || ""), "e l'esito ripete l'importo letto, in i
 dice(Math.abs(soldi(dopo.num) - (1702 + 1250.5)) < 0.01, "e il totale sale di quell'importo", dopo && dopo.num);
 dice(errori.length === 0, "e nessun errore in pagina alla fine", errori.slice(0, 2));
 
+/* ── 9. IL DENOMINATORE PRESO DA TERRA, E LA SUA PROVENIENZA ─────────────
+   Chiedere i metri cubi a mano voleva dire, in pratica, che il costo al metro
+   cubo non lo calcolava nessuno. Ma un numero preso da un'altra app senza
+   dire da dove viene è peggio che chiederlo: non è controllabile. */
+await pg.fill("#cos-vol", "");
+await pg.waitForTimeout(300);
+await pg.click("#btn-cos-terra").catch(() => {});
+await pg.waitForTimeout(1200);
+const terra = await misura(() => ({
+  campo: (document.getElementById("cos-vol") || {}).value || "",
+  num: (document.querySelector("#cos-m3 .cassa-num") || {}).textContent || "",
+  totale: (document.querySelector("#cos-riep .cassa-num") || {}).textContent || "",
+  testo: (document.getElementById("cos-m3") || {}).textContent.replace(/\s+/g, " ").trim(),
+}));
+dice(/^178/.test(terra.campo || ""),
+  "⛔ il volume arriva da Terra: 178 m³, non i 200 col cumulo dentro", terra);
+/* ⚠️ Il costo unitario NON si confronta con una cifra scritta a mano qui: il
+   banco stesso, poche righe più su, ha registrato un costo di prova, quindi il
+   totale non è più quello dei dati d'esempio. La prima versione pretendeva
+   «9,56» e falliva accusando il prodotto di un difetto che era suo. Si prende
+   il totale DALLO SCHERMO e si controlla la divisione. */
+dice(Math.abs(soldi(terra.num) - soldi(terra.totale) / 178) < 0.02,
+  "e il costo al metro cubo è quel totale diviso quei 178 m³",
+  { unitario: terra.num, totale: terra.totale, atteso: soldi(terra.totale) / 178 });
+dice(/misurati da 4 rilievi/.test(terra.testo || ""),
+  "⛔ e porta con sé la provenienza: quanti rilievi", terra && (terra.testo || "").slice(-300));
+dice(/28\/02\/2026 al 28\/07\/2026/.test(terra.testo || ""),
+  "e che intervallo coprono davvero", terra && (terra.testo || "").slice(-300));
+dice(/Restano fuori 22,00 m³/.test(terra.testo || ""),
+  "⛔ e che il cumulo è rimasto FUORI, dichiarato", terra && (terra.testo || "").slice(-300));
+dice(/più alto del vero/.test(terra.testo || ""),
+  "⛔ e avvisa che una spesa fuori intervallo alza il costo unitario", terra && (terra.testo || "").slice(-300));
+
+/* E se il volume lo riscrive una persona, la provenienza NON vale più: una
+   misura dichiarata sopra un numero inventato è la bugia peggiore possibile,
+   perché la frase è giusta, il numero è giusto, e a mancare è il legame. */
+await pg.fill("#cos-vol", "200");
+await pg.waitForTimeout(600);
+const aMano = await misura(() => ({
+  testo: (document.getElementById("cos-m3") || {}).textContent.replace(/\s+/g, " ").trim() }));
+dice(!/misurati da/.test(aMano.testo || ""),
+  "⛔ riscritto a mano, il numero NON dice più di essere misurato da Terra", aMano && (aMano.testo || "").slice(-260));
+dice(/l'hai scritto tu/.test(aMano.testo || ""),
+  "e dice invece che l'ha scritto una persona", aMano && (aMano.testo || "").slice(-260));
+dice(errori.length === 0, "e nessun errore in pagina dopo il ponte", errori.slice(0, 2));
+
 console.log(`\n${ok + ko} prove · ${ok} passate, ${ko} fallite`);
 await b.close(); srv.close();
 if (CONTROPROVA) {
   console.log(`iniezioni: ${iniezioni} sostituzioni nella risposta HTTP`);
-  if (iniezioni !== 2) { console.log("⚠️ INIEZIONI MANCANTI: la controprova non prova niente"); process.exit(3); }
-  console.log(ko >= 3 ? "✓ il banco SA fallire: la barra va a capo e la voce ignota si traveste"
+  if (iniezioni !== 4) { console.log("⚠️ INIEZIONI MANCANTI: la controprova non prova niente"); process.exit(3); }
+  console.log(ko >= 5 ? "✓ il banco SA fallire: barra a capo, voce ignota travestita, cumulo contato come scavo, provenienza appiccicata a un numero a mano"
                       : "⚠️ troppo poche cadute");
-  process.exit(ko >= 3 ? 0 : 1);
+  process.exit(ko >= 5 ? 0 : 1);
 }
 process.exit(ko ? 1 : 0);
