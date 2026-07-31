@@ -60,6 +60,11 @@ node apps/deepwork-id/tests/run-demo.mjs       # i dati della demo
 # Greenwich; le cave sono in Italia. Il 31/07 tre punti del prodotto
 # sbagliavano il giorno OGNI GIORNO, e in UTC erano tutti verdi.
 node apps/deepwork-id/tests/orologio-cliente.mjs   # le suite sensibili alla data, in TZ=Europe/Rome
+
+# I numeri scritti QUI SOPRA e nei documenti del fondatore sono quelli veri?
+# Il 31/07 tre conteggi erano invecchiati senza che nessuno se ne accorgesse:
+# un numero in un documento non fallisce, sta lì.
+node apps/deepwork-id/tests/numeri-nei-documenti.mjs
 ```
 
 **106 con l'emulatore Firestore** (regole di sicurezza, SDK, funzioni, primo
