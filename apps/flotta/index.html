@@ -426,6 +426,37 @@
 .giro-tutto{width:100%; min-height:48px}
 @media(min-width:760px){ .giro-tutto{width:auto; min-width:250px} }
 
+/* ═══════════════ SEGNALAZIONE GUASTO RAPIDA (L8) ═══════════════
+   Si compila nello stesso posto in cui si fa il giro macchina: in piedi,
+   accanto alla macchina, col guanto addosso. Perciò i tre gradini della
+   gravità sono bersagli pieni alti 52px con la loro riga di spiegazione
+   sotto — «grave» vuol dire cose diverse per persone diverse, e la parola
+   da sola non basta — e non tre pastiglie da infilare col mignolo.
+   Il colore del gradino scelto è quello del suo stato (rosso / ambra /
+   acciaio): sono le tinte che Flotta usa già per fermo, verifica e
+   informazione, non tre colori nuovi. Cassa, raggi, ombre e curve restano
+   quelli del core, come per le due risposte del giro.                     */
+.gua-op{display:flex; flex-direction:column; gap:8px; margin:4px 0 12px}
+.gua-op button{
+  display:block; width:100%; text-align:left; min-height:52px; padding:9px 13px;
+  border-radius:9px; border:1px solid var(--border2); background:var(--card2);
+  color:var(--muted2); cursor:pointer; box-shadow:var(--edge);
+  transition:all .16s var(--ease);
+}
+.gua-op button:hover{border-color:var(--border-hi); color:var(--text)}
+.gua-op button:active{transform:translateY(1px)}
+.gua-op .t{
+  display:block; font-family:'Barlow Condensed',sans-serif; font-size:14px;
+  font-weight:700; letter-spacing:1.2px; text-transform:uppercase; line-height:1.2;
+}
+.gua-op .a{display:block; font-family:'Barlow',sans-serif; font-size:11.5px;
+  letter-spacing:0; text-transform:none; opacity:.86; margin-top:3px; line-height:1.45}
+.gua-op button.on{border-color:transparent; box-shadow:var(--sh2),var(--edge-hi)}
+.gua-op button.on[data-gua-gr="ferma"] {background:var(--grad-dg);  color:var(--on-dg)}
+.gua-op button.on[data-gua-gr="limita"]{background:var(--grad-wr);  color:var(--on-wr)}
+.gua-op button.on[data-gua-gr="annota"]{background:var(--grad-sup); color:var(--grad-on)}
+.gua-op button.on .a{opacity:.78}
+
 /* ═══════════════ FASCICOLO DEL MEZZO (libretto macchina) ═══════════════ */
 .sch-testa{
   position:relative; overflow:hidden; display:flex; align-items:flex-start; gap:14px;
@@ -951,6 +982,10 @@
 <div class="page" id="page-sch">
   <div class="tools no-print" style="margin:0 0 12px;">
     <button class="dw-btn secondary" id="btn-sch-back">Torna ai mezzi</button>
+    <!-- L8 — il comando sta anche QUI, e non solo nella riga del parco: chi
+         apre il libretto di una macchina spesso lo apre proprio perché quella
+         macchina ha qualcosa che non va. -->
+    <button class="dw-btn" id="btn-sch-guasto">Segnala un guasto</button>
   </div>
   <div class="solo-stampa" id="sch-stampa"></div>
   <div id="sch-testa"></div>
@@ -1000,6 +1035,7 @@
            SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi,
            nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
            manutenzioniDaControllo, coperturaControlli, controlliDelMezzo,
+           GRAVITA_GUASTO, gravitaGuasto, validaGuasto, manutenzioneDaGuasto,
            PIANI_TAGLIANDO, pianoTagliando, propostaTagliando, prossimoTagliando,
            validaRifornimento, consumoPerMezzo, fascicoloMezzo,
            STATI_ORDINE, statoOrdine, costoOrdine, ordineDaManutenzione,
@@ -1066,6 +1102,14 @@
     fermo:   '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M10 9.2v5.6M14 9.2v5.6"/></svg>',
     riparte: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M10.2 8.8l5.6 3.2-5.6 3.2z"/></svg>',
   };
+
+  // DA DOVE NASCE UNA MANUTENZIONE, in una icona sola: il giro di inizio
+  // turno, la segnalazione di un guasto, oppure il programma dell'officina.
+  // Torna stringa vuota per le altre, così ogni elenco ci mette dietro
+  // l'icona che usava già (`|| I.chiave`, `|| PRIO_ICO[...]`): la scelta
+  // stava scritta uguale in quattro posti, e una quinta origine avrebbe
+  // voluto dire ricordarseli tutti e quattro.
+  const icoOrigine = (origine) => origine === "controllo" ? I.giro : origine === "guasto" ? I.avviso : "";
 
   // stato vuoto in stile core: icona, titolo, spiegazione di cosa fare
   /* La regola sta in shared/ (era scritta sei volte, una per app, e non tutte
@@ -1390,7 +1434,7 @@
     const PRIO_ICO = { scadenza: I.bilancia, manutenzione: I.chiave, ricambio: I.bullone, mezzo: I.mezzo };
     const prio = prioritaOperative(MEZ, MAN, RIC, new Date(), SCA, preavvisoSca, FER);
     $("alert-list").innerHTML = prio.map(a => `<div class="item statico ${striscia[a.gravita] || "st-accent"}">
-      <div class="avatar${a.categoria === "ricambio" || a.categoria === "mezzo" ? " sup" : ""}">${a.origine === "controllo" ? I.giro : (PRIO_ICO[a.categoria] || I.avviso)}</div>
+      <div class="avatar${a.categoria === "ricambio" || a.categoria === "mezzo" ? " sup" : ""}">${icoOrigine(a.origine) || PRIO_ICO[a.categoria] || I.avviso}</div>
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc(a.dettaglio)}</div></div>
       <span class="badge ${a.gravita}">${ggU(esc(a.badge))}</span></div>`).join("")
       || vuoto(I.ok, "Tutto in ordine",
@@ -1496,6 +1540,7 @@
       <div class="avatar">${esc(sig(m.nome))}</div>
       <div class="info"><div class="name">${esc(m.nome)}</div><div class="meta">${esc(tipoMezzoDi(m).etichetta)} · ${(m.ore||0).toLocaleString("it-IT")} ore motore${m.area ? " · " + esc(m.area) : ""}</div></div>
       <div class="acts"><span class="badge ${MB[m.stato][0]}">${MB[m.stato][1]}</span>
+      <span class="arr dan" role="button" tabindex="0" title="Segnala un guasto su questo mezzo" aria-label="Segnala un guasto su ${esc(m.nome)}" data-guasto-mezzo="${m.id}">${I.avviso}</span>
       <span class="arr" role="button" tabindex="0" title="Apri la scheda del mezzo (il libretto macchina)" aria-label="Scheda di ${esc(m.nome)}" data-scheda-mezzo="${m.id}">${I.scheda}</span>
       <span class="arr" role="button" tabindex="0" title="Modifica nome, tipo, area od ore" aria-label="Modifica ${esc(m.nome)}" data-edit-mezzo="${m.id}">${I.matita}</span>${m.stato==="fermo"?`<span class="arr dan" role="button" tabindex="0" title="Dismetti dal parco" aria-label="Dismetti ${esc(m.nome)}" data-del-mezzo="${m.id}">${I.croce}</span>`:""}</div></div>`).join("")
       || (qMez
@@ -1598,7 +1643,7 @@
         q.totale > 0 ? eur(q.totale) + " finora" : "",
       ].filter(Boolean).join(" · ");
       return `<div class="item ${striscia[u.cls] || "st-accent"}" role="button" tabindex="0" data-odl-man="${n.id}" title="Apri l'ordine di lavoro: stato, ore, ricambi, costo">
-      <div class="avatar">${n.origine === "controllo" ? I.giro : I.chiave}</div>
+      <div class="avatar">${icoOrigine(n.origine) || I.chiave}</div>
       <div class="info"><div class="name">${esc(n.titolo)} — ${esc(n.mezzo)}</div><div class="meta">${n.orePreviste ? "A " + (+n.orePreviste).toLocaleString("it-IT") + " ore motore" : "Previsto " + (n.dataPrevista ? n.dataPrevista.split("-").reverse().join("/") : "—")}${ritmo}${ricN ? " · usa " + esc(ricN.nome) : ""}</div>${quando ? `<div class="meta norma quando">${I.tachi}${quando}</div>` : ""}${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}${lav ? `<div class="meta norma">${I.persona}${lav}</div>` : ""}</div>
       <div class="acts">${so.chiave !== "da-fare" ? `<span class="badge ${so.cls}">${so.breve}</span>` : ""}<span class="badge ${u.cls}">${ggU(esc(u.label))}</span>
       <span class="arr ok" role="button" tabindex="0" title="Chiudi l'ordine e registra l'intervento" aria-label="Chiudi ${esc(n.titolo)}" data-man-done="${n.id}">${I.spunta}</span></div></div>`; }).join("")
@@ -2315,7 +2360,7 @@
     const u = urgDiOrdine(n);
     const m = MEZ.find(x => nomeBreve(x.nome) === nomeBreve(n.mezzo)) || null;
     $("odl-testa").innerHTML = `<div class="sch-testa">
-      <div class="sch-av">${n.origine === "controllo" ? I.giro : I.chiave}</div>
+      <div class="sch-av">${icoOrigine(n.origine) || I.chiave}</div>
       <div class="sch-b"><div class="sch-nome">${esc(n.titolo)}</div>
         <div class="sch-sotto"><span class="badge ${so.cls}">${so.etichetta}</span>
           <span class="badge ${u.cls}">${ggU(esc(u.label))}</span>
@@ -2557,7 +2602,7 @@
     $("sch-man").innerHTML = f.manutenzioni.map(n => {
       const u = n.orePreviste ? urgenzaOre(n.orePreviste, m && m.ore) : urgenza(n.dataPrevista);
       return `<div class="item statico ${striscia[u.cls] || "st-accent"}">
-        <div class="avatar">${n.origine === "controllo" ? I.giro : I.chiave}</div>
+        <div class="avatar">${icoOrigine(n.origine) || I.chiave}</div>
         <div class="info"><div class="name">${esc(n.titolo)}</div>
           <div class="meta">${n.orePreviste ? "a " + numTx(n.orePreviste) + " ore motore" : "previsto " + esc(dataIt(n.dataPrevista))}${n.ogniOre ? " · piano: ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · piano: ogni " + n.ogniMesi + " mesi" : ""}</div>${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}</div>
         <span class="badge ${u.cls}">${ggU(esc(u.label))}</span></div>`;
@@ -3280,11 +3325,9 @@
          <b>${esc(quali)}</b>.<br>
          Finché non è sistemata, questa macchina non dovrebbe lavorare. La segno <b>ferma</b>?`, "Ferma il mezzo", true);
       if (ok) await db.aggiorna("mezzi", m.id, { stato: "fermo" });
-    } else if (r.no && m.stato === "operativo") {
-      const ok = await chiedi("Mettere il mezzo in verifica?",
-        `Su <b>${esc(nomeBreve(m.nome))}</b> ${r.no === 1 ? "c'è una voce" : "ci sono " + r.no + " voci"} da sistemare, nessuna di sicurezza.<br>
-         Vuoi segnare il mezzo <b>in verifica</b>, così chi lo cerca sa che c'è qualcosa in sospeso? Può continuare a lavorare.`, "Metti in verifica");
-      if (ok) await db.aggiorna("mezzi", m.id, { stato: "verifica" });
+    } else if (r.no) {
+      await proponiVerifica(m, r.no === 1 ? "c'è una voce da sistemare, nessuna di sicurezza."
+                                          : "ci sono " + r.no + " voci da sistemare, nessuna di sicurezza.");
     }
     toast(r.no
       ? "Giro salvato: " + r.no + (r.no === 1 ? " manutenzione aperta" : " manutenzioni aperte") + " su " + nomeBreve(m.nome) + "."

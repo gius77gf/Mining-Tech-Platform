@@ -531,6 +531,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   <div id="dash-hse"></div>
   <div id="att-avanz"></div>
   <div id="ob-board"></div>
+  <div id="disp-board"></div>
   </div>
 
   <div class="sec">Oggi in cava</div>
@@ -699,6 +700,21 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   </div>
   <div class="note esito" id="ob-esito"></div>
 
+  <div class="sec">Durata del turno e disponibilità</div>
+  <div id="disp-stato"></div>
+  <div class="form col">
+    <div class="frow">
+      <input class="dw-input" id="disp-ore" type="text" inputmode="decimal" placeholder="Ore di turno (es. 8)" aria-label="Ore di turno dichiarate" style="flex:2 1 180px;">
+      <input class="dw-input" id="disp-data" type="date" title="Giorno di lavoro" aria-label="Giorno di lavoro" style="flex:1 1 150px;">
+    </div>
+    <div class="frow">
+      <select class="dw-input" id="disp-turno" title="Turno" aria-label="Turno" style="flex:1 1 130px;"></select>
+      <button class="dw-btn" id="btn-disp">Dichiara la durata</button>
+    </div>
+    <div class="form-hint">La <b>disponibilità</b> è il tempo del turno meno i minuti di fermo: dice quanta parte del turno si è potuto lavorare. Si dichiara <b>turno per turno</b> perché i turni non durano tutti uguali (mezza giornata, sabato corto, straordinario) e perché il rapporto è un documento datato: una durata cambiata domani non deve riscrivere i rapporti di ieri. Il campo propone l'ultima durata dichiarata. <b>Non è l'OEE</b>: quello moltiplica disponibilità, ritmo e qualità, e ritmo e qualità qui non si misurano.</div>
+  </div>
+  <div class="note esito" id="disp-esito"></div>
+
   <div class="sec">Rapportini di turno<span class="cnt" id="rap-count">0</span></div>
   <div class="ord">
     <span class="of"><label for="rap-giorno">Giorno</label>
@@ -835,6 +851,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            turnoChiuso, riaperture, riassuntoRiapertura, ultimaRiapertura,
            FOTO_MAX_BYTE, FOTO_TENTATIVI, eImmagine, byteFoto, eFotoValida, misuraRidotta, formattaByte,
            METEO_CIELO, METEO_PISTE, METEO_VISIBILITA, meteoDi, riassuntoMeteo, meteoAvverso,
+           durataTurnoDi, ultimaDurataTurno, disponibilitaTurno, oreMinuti,
            pianoParziale, pianoConsuntivoCsv,
            numeroIt, segnoIt, numeroItDa, numeroDaCampo } from "./campo-data.js";
   import { misuratoPeriodo, produzioneDichiarata, riconciliazioneTurni,
@@ -1014,7 +1031,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
-  let ATT=[], SQU=[], RAP=[], OPER=[], OBIE=[], CHK=[], PRE=[], CHI=[], MET=[];
+  let ATT=[], SQU=[], RAP=[], OPER=[], OBIE=[], CHK=[], PRE=[], CHI=[], MET=[], DUR=[];
   // i documenti del personale letti da Scudo (ponte P3): `null` = non lo sappiamo
   let LAV_HSE = null, SCAD_HSE = null;
   // ATT/RAP restano SEMPRE la lista completa (serve per ritrovare per id anche
@@ -1102,6 +1119,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   $("att-turno").innerHTML = optTurni(turnoCorrente());
   $("new-rap-turno").innerHTML = optTurni(turnoCorrente());
   $("ob-turno").innerHTML = optTurni(turnoCorrente());
+  $("disp-turno").innerHTML = optTurni(turnoCorrente());
   $("chk-turno").innerHTML = optTurni(turnoCorrente());
   $("new-rap-unita").innerHTML = UNITA_PRODUZIONE.map(u => `<option>${u}</option>`).join("");
 
@@ -1142,6 +1160,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   $("att-data").value = OGGI;
   $("new-rap-data").value = OGGI;
   $("ob-data").value = OGGI;
+  $("disp-data").value = OGGI;
   // Svuota il form attività riportando data, turno e assegnazione ai default.
   const resetFormAtt = () => { $("att-titolo").value = ""; $("att-dett").value = "";
     $("att-data").value = OGGI; $("att-turno").value = turnoCorrente();
@@ -1267,8 +1286,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   }
 
   async function refresh(){
-    [ATT,SQU,RAP,OPER,OBIE,CHK,PRE,CHI,MET] = await Promise.all([db.attivita(), db.squadre(), db.rapportini(),
-      db.operatori(), db.obiettivi(), db.checklist(), db.presenze(), db.chiusure(), db.meteo()]);
+    [ATT,SQU,RAP,OPER,OBIE,CHK,PRE,CHI,MET,DUR] = await Promise.all([db.attivita(), db.squadre(), db.rapportini(),
+      db.operatori(), db.obiettivi(), db.checklist(), db.presenze(), db.chiusure(), db.meteo(), db.durate()]);
     // PONTE P3 · i documenti del personale, in sola lettura da Scudo. `null` vuol
     // dire «non lo so» — Scudo non c'è o non è leggibile — ed è diverso da «non
     // c'è nessun documento scaduto». La schermata deve dire quale dei due.
@@ -1330,6 +1349,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
 
     // C2 · Obiettivo del turno in corso: quanto manca, a colpo d'occhio.
     renderObiettivo();
+    // Disponibilità del turno: quanta parte del turno si è potuto lavorare.
+    renderDisponibilita();
     // C1 · Cosa tocca a me / alla mia squadra.
     renderIo();
 
@@ -1804,6 +1825,97 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     await refresh();
   };
   ["ob-data", "ob-turno"].forEach(id => $(id).addEventListener("change", () => renderObiettivo()));
+
+  // ══════════════════════════════════════════════════════════════════════
+  // DISPONIBILITÀ DEL TURNO (proposta 7 della ricerca su Campo)
+  // ══════════════════════════════════════════════════════════════════════
+  // Quanta parte del turno si è potuto lavorare: durata DICHIARATA meno minuti
+  // di fermo REGISTRATI. Il conto e le regole di onestà stanno tutte in
+  // `disponibilitaTurno` (campo-data.js): qui si disegna e basta.
+  // ⛔ Non si chiama OEE e non lo si accenna nemmeno: l'OEE è disponibilità ×
+  // prestazione × qualità, e noi le ultime due non le misuriamo.
+  const dispCartello = (dp) => {
+    // Un cartellone col numero SOLO quando il numero esiste. Quando non esiste
+    // — durata non dichiarata, turno senza attività, fermi senza minuti — al
+    // suo posto va lo stato vuoto che dice cosa manca: una percentuale
+    // tranquilla dove non è stato misurato niente è la cosa che qui non si fa.
+    if (dp.stato === "non-calcolabile")
+      return vuoto(I.orologio, "Disponibilità non calcolata",
+        esc(dp.motivo) + "<br>Dichiara le <b>ore del turno</b> qui sotto e scrivi i <b>minuti</b> sulle attività in anomalia.");
+    if (dp.stato === "oltre")
+      return `<div class="board warn">
+          <div class="board-ico">${I.allarme}</div>
+          <div><div class="board-num">—</div>
+            <div class="board-lab">Disponibilità turno ${esc(dp.turno)}</div></div>
+          <div class="board-txt">${esc(dp.motivo)}</div>
+        </div>`;
+    const cls = dp.stato === "ok" ? "ok" : "warn";
+    const daQuanti = dp.fermi
+      ? `<b>${numeroIt(dp.fermiMin, 0)} min</b> di fermo da <b>${dp.fermi}</b> ${dp.fermi === 1 ? "fermo" : "fermi"}`
+        + (dp.peggiore ? ` · peggiore: <b>${esc(dp.peggiore.causale)}</b> (${numeroIt(dp.peggiore.minuti, 0)} min)` : "")
+      : "nessun fermo registrato in questo turno";
+    return `<div class="board ${cls}">
+        <div class="board-ico">${I.orologio}</div>
+        <div><div class="board-num">${dp.pct}%</div>
+          <div class="board-lab">Disponibilità turno ${esc(dp.turno)}</div></div>
+        <div class="board-txt">Turno dichiarato di <b>${esc(oreMinuti(dp.durataMin))}</b>, lavorati <b>${esc(oreMinuti(dp.lavoratiMin))}</b> ·
+          ${daQuanti}${dp.parziale ? `<br><b class="bad">${esc(dp.motivo)}</b>` : ""}</div>
+      </div>`;
+  };
+
+  function renderDisponibilita() {
+    const data = $("disp-data").value || OGGI, turno = $("disp-turno").value || turnoCorrente();
+    const dp = disponibilitaTurno(ATT, DUR, data, turno);
+    $("disp-stato").innerHTML = dispCartello(dp);
+    // Nel Quadro ci va solo la giornata di OGGI: il Quadro è la lavagna di
+    // adesso, non la finestra su un giorno qualunque scelto altrove.
+    const dpOggi = data === OGGI ? dp : disponibilitaTurno(ATT, DUR, OGGI, turnoCorrente());
+    // e nel Quadro NON si mette lo stato vuoto: là dove il numero non c'è
+    // basta e avanza la card dell'avanzamento. La riga compare quando c'è
+    // qualcosa da dire, e sparisce quando non c'è.
+    $("disp-board").innerHTML = dpOggi.stato === "non-calcolabile" ? "" : dispCartello(dpOggi);
+    // Il campo propone l'ultima durata dichiarata: è una proposta da
+    // confermare, non un valore usato di nascosto.
+    const campoOre = $("disp-ore");
+    if (document.activeElement !== campoOre) {
+      const gia = durataTurnoDi(DUR, data, turno);
+      const rif = gia && +gia.minuti > 0 ? gia : ultimaDurataTurno(DUR);
+      campoOre.value = rif ? numeroIt(+rif.minuti / 60, 2) : "";
+    }
+  }
+
+  $("btn-disp").onclick = async () => {
+    // ore con la virgola («7,5»): campo di testo e lettura nostra, mai
+    // `type=number` — su «7,5» Chromium scriverebbe 75
+    const let_ore = numeroDaCampo($("disp-ore").value, { positivo: true });
+    if (!let_ore.ok) {
+      sbaglia("disp-ore", "disp-esito", messaggioNumero(let_ore, "le ore del turno", { min: 0 }));
+      return;
+    }
+    const ore = let_ore.valore;
+    if (ore > 24) {
+      sbaglia("disp-ore", "disp-esito",
+        "Un turno non può durare più di 24 ore: hai scritto " + numeroIt(ore, 2) + ". Controlla il numero.");
+      return;
+    }
+    const minuti = Math.round(ore * 60);
+    if (minuti < 1) {
+      sbaglia("disp-ore", "disp-esito", "Un turno dura almeno un minuto: controlla il numero.");
+      return;
+    }
+    err("disp-ore", false);
+    const data = $("disp-data").value || OGGI, turno = $("disp-turno").value || turnoCorrente();
+    // punto di scrittura 21 — durata dichiarata del turno
+    if (bloccato(data, turno, "la durata del turno", "disp-esito")) return;
+    const ora = new Date().toTimeString().slice(0, 5);
+    const gia = durataTurnoDi(DUR, data, turno);
+    if (gia) await db.aggiorna("durate", gia.id, { minuti, ora });
+    else await db.aggiungi("durate", { data, turno, minuti, ora });
+    esito("disp-esito", (gia ? "Durata aggiornata: " : "Durata dichiarata: ") + oreMinuti(minuti)
+      + " per il turno " + turno + " del " + dmy(data) + ".", "success");
+    await refresh();
+  };
+  ["disp-data", "disp-turno"].forEach(id => $(id).addEventListener("change", () => renderDisponibilita()));
 
   // ══════════════════════════════════════════════════════════════════════
   // C3 · CHECKLIST DI INIZIO TURNO
@@ -2873,6 +2985,11 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const metOggi = TURNI.map(t => meteoDi(MET, OGGI, t)).filter(m => m && riassuntoMeteo(m));
     // Foto delle anomalie: la prova visiva di cosa è successo.
     const fotoOggi = ATT_OGGI.filter(a => eFotoValida(a.foto));
+    // Disponibilità, turno per turno. Entrano SOLO i turni che hanno qualcosa
+    // — una durata dichiarata o almeno un'attività: in una cava che lavora un
+    // turno solo, tre righe vuote su tre non sarebbero informazione.
+    const dispOggi = TURNI.map(t => disponibilitaTurno(ATT_OGGI, DUR, OGGI, t))
+      .filter(d => d.durataMin !== null || d.attivita > 0);
     const html = `<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><title>Rapporto di fine turno — ${oggi}</title>
 <style>body{font:13px/1.45 sans-serif;color:#222;margin:28px;max-width:800px}h1{font-size:19px;margin:0 0 2px}h2{font-size:14px;margin:18px 0 6px;border-bottom:1px solid #999;padding-bottom:2px}
 table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px 8px;text-align:left;font-size:12px;font-variant-numeric:tabular-nums}th{background:#f2f2f2}
@@ -2900,6 +3017,10 @@ ${obOggi.length?`<table><tr><th>Turno</th><th>Obiettivo</th><th>Fatto</th><th>Sc
 <table><tr><th>Turno</th><th>Attività</th><th>Dettaglio</th><th>Assegnata a</th><th>Stato</th></tr>${ATT_OGGI.slice().sort((a,b)=>(ordR[a.stato]??4)-(ordR[b.stato]??4)).map(riga).join("")||"<tr><td colspan=5>Nessuna attività registrata.</td></tr>"}</table>
 <h2>Fermi per causale</h2>
 ${fermi.length?`<table><tr><th>Causale</th><th>Anomalie</th></tr>${fermi.map(f=>`<tr><td>${esc(f.causale)}</td><td>${f.conto}</td></tr>`).join("")}</table>`:"<div>Nessuna anomalia aperta.</div>"}
+<h2>Disponibilità del turno</h2>
+${dispOggi.length?`<table><tr><th>Turno</th><th>Durata dichiarata</th><th>Fermi</th><th>Tempo perso</th><th>Causale peggiore</th><th>Disponibilità</th></tr>${dispOggi.map(d=>`<tr><td>${esc(d.turno)}</td><td>${d.durataMin===null?"non dichiarata":esc(oreMinuti(d.durataMin))}</td><td>${d.fermi} ${d.fermi===1?"fermo":"fermi"}${d.fermiSenzaMinuti?" (di cui "+d.fermiSenzaMinuti+" senza minuti)":""}</td><td>${d.fermi?numeroIt(d.fermiMin,0)+" min":"—"}</td><td>${d.peggiore?esc(d.peggiore.causale)+" — "+numeroIt(d.peggiore.minuti,0)+" min su "+d.peggiore.conto+(d.peggiore.conto===1?" fermo":" fermi"):"—"}</td><td>${d.pct===null?"<b>non calcolata</b> — "+esc(d.motivo):(d.parziale?"al più <b>"+d.pct+"%</b>":"<b>"+d.pct+"%</b>")+" ("+esc(oreMinuti(d.lavoratiMin))+" lavorati su "+esc(oreMinuti(d.durataMin))+")"+(d.parziale?" — "+esc(d.motivo):"")}</td></tr>`).join("")}</table>
+<div class="muted">Disponibilità = durata dichiarata del turno meno i minuti di fermo registrati sulle attività in anomalia. <b>Non è l'OEE</b>: l'OEE moltiplica disponibilità, prestazione e qualità, e prestazione e qualità qui non sono misurate.</div>`
+ :"<div>Nessuna durata di turno dichiarata oggi e nessuna attività da cui misurarla: la disponibilità non è stata calcolata.</div>"}
 ${fotoOggi.length?`<h2>Foto delle anomalie</h2>${fotoOggi.map(a=>`<div class="foto"><div><b>${esc(a.titolo)}</b> — turno ${esc(a.turno||"—")}${a.causale?" · "+esc(a.causale):""}${a.fotoOra?" · scattata alle "+esc(a.fotoOra):""}</div><img src="${a.foto}" alt=""></div>`).join("")}`:""}
 <h2>Produzione</h2>
 ${unitaProd.length?`<table><tr><th>Turno</th><th>Produzione</th></tr>${tp.perTurno.map(t=>`<tr><td>${esc(t.turno)}</td><td>${esc(somma(t.perUnita))}</td></tr>`).join("")}<tr><th>Totale</th><th>${esc(somma(tp.perUnita))}</th></tr></table>`:"<div>Nessuna produzione registrata.</div>"}
@@ -2932,6 +3053,7 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
   clearErr("squ-nome", "squ-esito");
   clearErr("ope-nome", "ope-esito");
   clearErr("ob-valore", "ob-esito");
+  clearErr("disp-ore", "disp-esito");
   clearErr("fir-consegna", "fir-esito");
   // Invio da tastiera: premere Invio in un campo del form equivale a
   // toccare il pulsante — data entry più rapida senza spostare il dito.

@@ -57,7 +57,8 @@
 //                      successivo (+ogniOre sulle ore attuali del mezzo,
 //                      oppure +ogniMesi sulla data di chiusura).
 //   manutenzioni.origine / .nota       da dove nasce la manutenzione
-//                      ("controllo" = giro macchina, "piano" = tagliando
+//                      ("controllo" = giro macchina, "guasto" = segnalazione
+//                      rapida di chi sta sulla macchina, "piano" = tagliando
 //                      ricorrente) e la riga scritta da chi l'ha aperta.
 //   manutenzioni.stato / .manodopera / .ricambiUsati / .altreSpese /
 //   manutenzioni.noteLavoro            ORDINE DI LAVORO (L5, 29/07): lo
@@ -1042,23 +1043,41 @@ export function riepilogoControllo(voci) {
   };
 }
 
+// LA FORMA DI UNA MANUTENZIONE APERTA DA CHI STA SULLA MACCHINA.
+// Due strade portano qui — il giro di inizio turno e la segnalazione di un
+// guasto — e scrivono lo STESSO oggetto: stessi campi, stesso schema delle
+// manutenzioni scritte a mano, nessun campo nuovo obbligatorio. È scritta
+// una volta sola di proposito: due copie uguali oggi divergono domani senza
+// che nessuno lo veda. L'unica cosa che le distingue nel registro è
+// `origine`, ed è quella che l'app mostra con l'icona della riga.
+// Senza data vale OGGI: quello che trova chi usa la macchina si guarda
+// adesso, non «prima o poi».
+function manutenzioneAperta(dati, oggi) {
+  const d = dati || {};
+  return {
+    titolo: d.titolo,
+    mezzo: d.mezzo || "",
+    dataPrevista: d.data || oggiIso(oggi),
+    orePreviste: null,
+    ricambioId: null,
+    origine: d.origine,
+    nota: d.nota,
+  };
+}
+
 // Da un giro macchina alle MANUTENZIONI da aprire: una per ogni voce «non
 // va». Nascono con la data di oggi (vanno guardate subito) e portano scritto
 // da dove vengono, così nel registro si capisce che è stato l'operatore a
-// trovarle. Stesso schema delle manutenzioni scritte a mano: nessun campo
-// nuovo obbligatorio. Pura e testabile.
+// trovarle. Pura e testabile.
 export function manutenzioniDaControllo(controllo, oggi = new Date()) {
   const c = controllo || {};
-  const data = oggiIso(oggi);
-  return (c.voci || []).filter(v => v.esito === "no").map(v => ({
+  return (c.voci || []).filter(v => v.esito === "no").map(v => manutenzioneAperta({
     titolo: "Giro macchina: " + v.etichetta,
-    mezzo: c.mezzo || "",
-    dataPrevista: c.data || data,
-    orePreviste: null,
-    ricambioId: null,
+    mezzo: c.mezzo,
+    data: c.data,
     origine: "controllo",
     nota: (v.nota || "").trim() || (v.critica ? "voce di sicurezza segnata «non va» al controllo pre-uso" : "segnalata al controllo pre-uso"),
-  }));
+  }, oggi));
 }
 
 // COPERTURA DEI GIRI DI OGGI: quanti mezzi hanno già il loro controllo
@@ -1095,6 +1114,90 @@ export function controlliDelMezzo(controlli, nome) {
   const n = nomeBreve(nome);
   return (controlli || []).filter(c => nomeBreve(c.mezzo) === n)
     .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
+}
+
+// ============================================================
+// L8 — SEGNALAZIONE GUASTO RAPIDA
+// Chi vede un guasto è SULLA MACCHINA, non in ufficio: se per dirlo deve
+// tornare al container, aspettare che qualcuno sia libero e farselo scrivere
+// da un altro, quel guasto lo dice a voce — e a voce si perde. Qui la strada
+// è una sola e corta: che cosa non va, quanto è grave, chi l'ha visto. Da lì
+// nasce una manutenzione APERTA sul mezzo, identica a quelle del giro
+// macchina: entra nelle priorità del Quadro, si apre come ordine di lavoro,
+// si chiude nel registro degli interventi. Nessuna collezione nuova, nessuna
+// logica nuova nel Quadro: la stessa strada che il giro macchina percorre
+// già da inizio turno.
+// ============================================================
+
+/* Tre gradini, non cinque: chi ha i guanti e il motore acceso alle spalle
+   sceglie fra cose che si distinguono a colpo d'occhio. Il gradino alto è
+   l'unico che fa succedere qualcosa in più — l'app PROPONE di mettere il
+   mezzo in verifica — e per questo porta il flag `alta`: la decisione resta
+   di chi gestisce il parco, ma la domanda gliela si fa.
+   `nota` è la frase che finisce scritta sulla manutenzione: in officina si
+   legge quella, non la chiave. */
+export const GRAVITA_GUASTO = [
+  { chiave: "ferma", etichetta: "Non si può usare", alta: true,
+    aiuto: "La macchina non è in condizione di lavorare: va guardata prima di rimetterla in moto.",
+    nota: "guasto grave segnalato dalla macchina: non è in condizione di lavorare" },
+  { chiave: "limita", etichetta: "Lavora, ma male",
+    aiuto: "Il turno si finisce, ma il problema c'è e va messo in programma.",
+    nota: "guasto segnalato dalla macchina: lavora, ma con un problema" },
+  { chiave: "annota", etichetta: "Piccola cosa",
+    aiuto: "Nessuna fretta: si scrive adesso perché non vada persa.",
+    nota: "difetto minore segnalato da chi usa la macchina" },
+];
+
+// La voce della gravità, o null se la chiave non è una delle tre. Torna null
+// e non il gradino più basso: una gravità che non si sa NON è una gravità
+// lieve, ed è `validaGuasto` a pretenderla scritta. Pura.
+export function gravitaGuasto(chiave) {
+  return GRAVITA_GUASTO.find(g => g.chiave === chiave) || null;
+}
+
+// Controlli su una segnalazione prima di salvarla. I messaggi dicono che
+// cosa fare, non «campo obbligatorio»: chi compila è in piedi accanto alla
+// macchina e non ha nessuna voglia di indovinare. Pura e testabile.
+export function validaGuasto(dati) {
+  const d = dati || {}, errori = {};
+  if (!String(d.mezzo || "").trim())
+    errori.mezzo = "Non risulta su quale macchina: chiudi e riapri la segnalazione dalla riga del mezzo, nel parco, o dalla sua scheda.";
+  const descrizione = String(d.descrizione || "").trim();
+  if (!descrizione)
+    errori.descrizione = "Scrivi in poche parole che cosa non va — per esempio «perde olio dal braccio»: chi ripara deve sapere cosa cercare prima di arrivare alla macchina.";
+  else if (descrizione.length < 3)
+    errori.descrizione = "Servono almeno tre lettere: una sigla come «x» in officina non dice niente a chi legge.";
+  else if (descrizione.length > 120)
+    errori.descrizione = "Qui va la riga corta che si legge nell'elenco (al massimo 120 lettere): il racconto lungo si scrive dopo, nell'ordine di lavoro.";
+  if (!gravitaGuasto(d.gravita))
+    errori.gravita = "Tocca quanto è grave: serve a decidere se la macchina può finire il turno o se va guardata subito.";
+  return {
+    ok: Object.keys(errori).length === 0, errori,
+    descrizione, segnalatoDa: String(d.segnalatoDa || "").trim(),
+  };
+}
+
+// Dalla segnalazione alla MANUTENZIONE aperta sul mezzo. Stessa forma di
+// quelle del giro macchina (`manutenzioneAperta`), con `origine: "guasto"`:
+// è l'unico campo che le distingue, e l'app ci mette sopra l'icona
+// dell'avviso. La data è oggi, quindi la riga entra da sola nelle priorità
+// del Quadro senza toccare `prioritaOperative`.
+// Chi ha segnalato finisce nella nota, e se non è scritto la nota lo DICE:
+// «non risulta chi l'ha segnalato» è un'informazione, il silenzio no —
+// in officina la prima cosa che si fa è andare a chiedere alla persona.
+// Ritorna null se la segnalazione non è valida (chi chiama passa da
+// `validaGuasto` e mostra gli errori). Pura e testabile: `oggi` iniettabile.
+export function manutenzioneDaGuasto(dati, oggi = new Date()) {
+  const v = validaGuasto(dati);
+  if (!v.ok) return null;
+  const g = gravitaGuasto((dati || {}).gravita);
+  return manutenzioneAperta({
+    titolo: "Guasto: " + v.descrizione,
+    mezzo: nomeBreve((dati || {}).mezzo),
+    data: null,
+    origine: "guasto",
+    nota: g.nota + (v.segnalatoDa ? " · segnalato da " + v.segnalatoDa : " · non risulta chi l'ha segnalato"),
+  }, oggi);
 }
 
 // ============================================================

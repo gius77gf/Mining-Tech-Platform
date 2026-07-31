@@ -25,6 +25,12 @@
 //   meteo/{id}:      { data, turno, cielo, piste, visibilita, note, ora }
 //                     (meteo e condizioni del sito del turno: uno per
 //                      giorno+turno, l'ultimo salvato vince)
+//   durate/{id}:     { data, turno, minuti, ora }
+//                     (durata DICHIARATA del turno, uno per giorno+turno:
+//                      è il denominatore della disponibilità. Sta qui e non
+//                      in un'impostazione dell'organizzazione perché il
+//                      rapporto di fine turno è un documento datato — vedi
+//                      la ragione per esteso sopra `disponibilitaTurno`)
 //   pianocarico/{id}: { data, turno, foro, x, fila, prof, prog, borr, rit,
 //                       reale, da, squadra }
 //                     (piano di carico volata importato da CSV, ponte Genesi;
@@ -171,7 +177,10 @@ export const DEMO = {
     { id: "a1", data: OGGI_DEMO, turno: "Mattina", titolo: "Perforazione fronte Est", dettaglio: "14/22 fori", squadra: "Squadra A", operatore: "Luca Bianchi", stato: "in-corso" },
     { id: "a2", data: OGGI_DEMO, turno: "Mattina", titolo: "Volata fronte Nord", dettaglio: "Ore 12:30", squadra: "Squadra A", operatore: "Mario Rossi", stato: "pianificata" },
     { id: "a3", data: OGGI_DEMO, turno: "Mattina", titolo: "Carico e trasporto", dettaglio: "Piazzale 2 → frantoio", squadra: "Squadra B", operatore: "", stato: "in-corso" },
-    { id: "a4", data: OGGI_DEMO, turno: "Mattina", titolo: "Frantoio primario", dettaglio: "Fermo per intasamento tramoggia", squadra: "Squadra C", operatore: "", stato: "anomalia" },
+    // il fermo della dimostrazione ha CAUSALE e MINUTI: senza, il Pareto dei
+    // fermi e la disponibilità del turno non possono che dire «non misurato»,
+    // e nel giro di dimostrazione si vedrebbero solo schermate di rifiuto
+    { id: "a4", data: OGGI_DEMO, turno: "Mattina", titolo: "Frantoio primario", dettaglio: "Fermo per intasamento tramoggia", squadra: "Squadra C", operatore: "", stato: "anomalia", causale: "Intasamento impianto", fermoMin: 55 },
     { id: "a5", data: OGGI_DEMO, turno: "Mattina", titolo: "Controllo pre-turno mezzi", dettaglio: "completato", squadra: "Squadra B", operatore: "Giulia Verdi", stato: "conclusa" },
   ],
   squadre: [
@@ -256,6 +265,11 @@ export const DEMO = {
   presenze: [],
   chiusure: [],
   meteo: [],
+  // il turno di Mattina della dimostrazione dura 8 ore DICHIARATE: è il
+  // denominatore senza il quale la disponibilità non si calcola
+  durate: [
+    { id: "t1", data: OGGI_DEMO, turno: "Mattina", minuti: 480, ora: "06:00" },
+  ],
   pianocarico: [],
   // I RILIEVI che in esercizio arrivano da Terra (ponte P2, sola lettura). Qui
   // sono finti ma coerenti coi rapportini qui sotto: due voli a 21 e 7 giorni
@@ -769,9 +783,9 @@ export function checklistDi(lista, data, turno, squadra) {
   return trovate.length ? trovate[trovate.length - 1] : null;
 }
 
-// Causali di fermo STANDARDIZZATE: senza una lista fissa non si possono
-// calcolare OEE e disponibilità (servono categorie confrontabili nel
-// tempo, non testo libero). Sono le voci tipiche di un fermo in cava.
+// Causali di fermo STANDARDIZZATE: senza una lista fissa non si può misurare
+// dove si perde tempo (servono categorie confrontabili nel tempo, non testo
+// libero). Sono le voci tipiche di un fermo in cava.
 export const CAUSALI_FERMO = [
   "Guasto meccanico",
   "Mancanza materiale",
@@ -816,6 +830,177 @@ export function paretoFermi(attivita) {
     .sort((a, b) => b.minuti - a.minuti || b.conto - a.conto || a.causale.localeCompare(b.causale, "it"));
   const totaleMin = voci.reduce((t, v) => t + v.minuti, 0);
   return { voci, totaleMin };
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// DISPONIBILITÀ DI TURNO (proposta 7 di docs/RICERCA_CAMPO_202607.md §3)
+// ══════════════════════════════════════════════════════════════════════
+// ⛔ SI CHIAMA **DISPONIBILITÀ**, E NON SI CHIAMERÀ MAI «OEE». L'OEE è il
+// prodotto di tre fattori — disponibilità × prestazione × qualità — e noi la
+// prestazione (il ritmo effettivo contro quello nominale) e la qualità (lo
+// scarto sul prodotto) NON le misuriamo: servirebbero portata e granulometria
+// in continuo, cioè hardware che non abbiamo. Scrivere «OEE» su un documento
+// che il cliente consegna vorrebbe dire dichiarare una misura che non è stata
+// fatta. Qui si calcola SOLO la disponibilità, e si dice esattamente da cosa
+// viene: ore di turno DICHIARATE meno minuti di fermo REGISTRATI.
+//
+// La durata del turno è un RECORD PER GIORNO+TURNO (collezione `durate`), non
+// un'impostazione unica dell'organizzazione. Tre ragioni, in ordine di peso:
+//  1. il rapporto di fine turno è un DOCUMENTO DATATO: «turno di 8 h» dev'essere
+//     un fatto registrato quel giorno. Con un'impostazione globale, cambiarla a
+//     novembre riscriverebbe all'indietro la disponibilità di tutti i rapporti
+//     già stampati e consegnati — e nessuno se ne accorgerebbe;
+//  2. i turni veri non durano tutti uguale: mezza giornata, sabato corto,
+//     fermata dell'impianto, straordinario. Con un numero solo, il sabato da
+//     4 ore uscirebbe con una disponibilità disastrosa e nessuno potrebbe
+//     correggerla;
+//  3. è il meccanismo che Campo usa già per obiettivo, meteo, checklist,
+//     appello e chiusura: un record per giorno+turno. Un concetto nuovo non ha
+//     bisogno di un meccanismo nuovo.
+// Il costo (dichiararla ogni turno) lo paga `ultimaDurataTurno`, che propone
+// nel campo l'ultima durata dichiarata: proporre un valore in un campo che
+// l'utente conferma NON è calcolare con un dato che nessuno ha scritto.
+
+// La durata dichiarata per quel giorno e turno (l'ultima salvata vince, come
+// per l'obiettivo e il meteo). Pura e testabile.
+export function durataTurnoDi(durate, data, turno) {
+  const trovate = (durate || []).filter(d => d
+    && String(d.data || "") === String(data || "")
+    && String(d.turno || "") === String(turno || ""));
+  return trovate.length ? trovate[trovate.length - 1] : null;
+}
+
+// L'ultima durata dichiarata in assoluto (la più recente per giorno, e a parità
+// di giorno il turno più avanti nella giornata). Serve SOLO a precompilare il
+// campo: non entra in nessun calcolo. null se non ne è mai stata dichiarata
+// una valida. Pura e testabile.
+export function ultimaDurataTurno(durate) {
+  const valide = (durate || []).filter(d => d && Number.isFinite(+d.minuti) && +d.minuti > 0);
+  if (!valide.length) return null;
+  const ord = (t) => { const i = TURNI.indexOf(String(t || "")); return i < 0 ? -1 : i; };
+  return valide.slice().sort((a, b) => {
+    const da = String(a.data || ""), db = String(b.data || "");
+    if (da !== db) return da < db ? -1 : 1;
+    return ord(a.turno) - ord(b.turno);
+  }).pop();
+}
+
+// Minuti scritti come li direbbe un capocantiere: «8 h», «7 h 30 min»,
+// «45 min». Pura e testabile.
+export function oreMinuti(min) {
+  const n = Math.round(+min);
+  if (!Number.isFinite(n) || n < 0) return "";
+  const h = Math.floor(n / 60), m = n % 60;
+  if (!h) return m + " min";
+  return h + " h" + (m ? " " + m + " min" : "");
+}
+
+// Soglie della disponibilità di turno. Non sono sacre e non vengono da una
+// norma: nel comparto estrattivo un obiettivo di disponibilità dei mezzi
+// dell'85-90% è quello che si legge nelle fonti tecniche, quindi sotto l'85%
+// il turno merita uno sguardo e sotto il 70% è un turno andato storto. Stanno
+// qui, in un posto solo, perché siano discutibili senza cercarle nelle pagine.
+export const DISPONIBILITA_OK = 85;
+export const DISPONIBILITA_WARN = 70;
+
+// LA DISPONIBILITÀ DEL TURNO + LA CAUSALE PEGGIORE.
+//
+// Ritorna sempre un oggetto (mai null): quando il numero non si può fare, il
+// numero è `null` e `motivo` dice PERCHÉ. È la regola del prodotto: l'assenza
+// di un dato non è un dato favorevole, e «100%» dove non si è misurato niente
+// è esattamente il numero tranquillo che quella regola vieta.
+//
+// Tre modi in cui il numero NON si fa (`stato: "non-calcolabile"`, con
+// `mancano` che elenca cosa manca):
+//  · la durata del turno non è stata dichiarata — senza il denominatore non
+//    esiste percentuale;
+//  · non c'è nessuna attività registrata per quel turno — non c'è niente da
+//    cui misurare, e un turno vuoto non è un turno perfetto;
+//  · ci sono fermi registrati ma NESSUNO ha i minuti. Questo è il caso
+//    insidioso: la somma farebbe 0 minuti persi e quindi il 100%, cioè il
+//    voto più alto proprio al turno che ha registrato guasti e non li ha
+//    misurati.
+// E un quarto stato, `"oltre"`: i minuti di fermo superano la durata del
+// turno. Succede davvero, con due fermi sovrapposti contati due volte. Una
+// percentuale negativa sarebbe una bugia con l'aria di un dato: si dice invece
+// che i due numeri non tornano.
+//
+// `parziale` è vero quando ALCUNI fermi hanno i minuti e altri no: allora la
+// percentuale è un MASSIMO («al più»), non una misura, e chi la mostra deve
+// dirlo.
+// Pura e testabile.
+export function disponibilitaTurno(attivita, durate, data, turno) {
+  const d = String(data || ""), t = String(turno || "");
+  const delTurno = (attivita || []).filter(a => a
+    && String(a.data || "") === d && String(a.turno || "") === t);
+  const rec = durataTurnoDi(durate, d, t);
+  const durataMin = rec && Number.isFinite(+rec.minuti) && +rec.minuti > 0
+    ? Math.round(+rec.minuti) : null;
+  const par = paretoFermi(delTurno);
+  const fermiMin = par.totaleMin;
+  const anomalie = delTurno.filter(a => a.stato === "anomalia");
+  const conMinuti = anomalie.filter(a => Math.max(0, +a.fermoMin || 0) > 0).length;
+  const out = {
+    data: d, turno: t,
+    durataMin, fermiMin,
+    attivita: delTurno.length,
+    fermi: anomalie.length,
+    fermiConMinuti: conMinuti,
+    fermiSenzaMinuti: anomalie.length - conMinuti,
+    // la causale su cui si è perso più tempo: esiste solo se dei minuti sono
+    // stati misurati davvero (a zero minuti non c'è nessuna "peggiore")
+    peggiore: par.voci.length && par.voci[0].minuti > 0
+      ? { causale: par.voci[0].causale, minuti: par.voci[0].minuti, conto: par.voci[0].conto }
+      : null,
+    lavoratiMin: null, pct: null, parziale: false,
+    stato: "non-calcolabile", mancano: [], motivo: "",
+  };
+  // `mancano` porta i CODICI (per chi deve decidere cosa mostrare), `motivo`
+  // la frase per chi legge: due mestieri diversi nello stesso oggetto, ma non
+  // nello stesso campo — altrimenti chi controlla «manca la durata» finisce a
+  // cercare sottostringhe dentro una frase, e la frase un giorno cambia.
+  const mancano = [], detto = [];
+  if (durataMin === null) {
+    mancano.push("durata");
+    detto.push("la durata del turno non è stata dichiarata");
+  }
+  if (!delTurno.length) {
+    mancano.push("attività");
+    detto.push("non è registrata nessuna attività per questo turno");
+  }
+  if (anomalie.length && !conMinuti) {
+    mancano.push("minuti");
+    detto.push(anomalie.length === 1
+      ? "l'unico fermo registrato è senza minuti"
+      : "i " + anomalie.length + " fermi registrati sono tutti senza minuti");
+  }
+  if (mancano.length) {
+    out.mancano = mancano;
+    out.motivo = "Disponibilità non calcolata: " + detto.join("; ")
+      + ". Un numero qui direbbe che il turno è andato bene, mentre la verità è che non è stato misurato.";
+    return out;
+  }
+  out.parziale = out.fermiSenzaMinuti > 0;
+  if (fermiMin > durataMin) {
+    out.stato = "oltre";
+    out.motivo = "I minuti di fermo registrati (" + numeroIt(fermiMin, 0) + ") superano la durata dichiarata del turno ("
+      + numeroIt(durataMin, 0) + "): probabilmente due fermi si sovrappongono e sono stati contati due volte, "
+      + "oppure la durata dichiarata è sbagliata. Finché i due numeri non tornano la disponibilità non si calcola: "
+      + "una percentuale negativa non esiste.";
+    return out;
+  }
+  out.lavoratiMin = durataMin - fermiMin;
+  out.pct = Math.round(100 * out.lavoratiMin / durataMin);
+  out.stato = out.pct >= DISPONIBILITA_OK ? "ok" : out.pct >= DISPONIBILITA_WARN ? "warn" : "basso";
+  // «al più il 86%» sarebbe sbagliato in italiano («l'86%»), e la regola
+  // dipende da come si PRONUNCIA il numero (8, 11, 18, 80-89…): l'articolo si
+  // toglie invece di indovinarlo.
+  out.motivo = out.parziale
+    ? "Al più " + numeroIt(out.pct, 0) + "%: " + out.fermiSenzaMinuti
+      + (out.fermiSenzaMinuti === 1 ? " fermo è senza minuti" : " fermi sono senza minuti")
+      + ", quindi il tempo perso è almeno questo e la disponibilità al massimo questa."
+    : "";
+  return out;
 }
 
 // Minuti di fermo giorno per giorno, negli ultimi `giorni` giorni di
@@ -1233,6 +1418,7 @@ export async function campoData() {
         presenze: () => read("presenze"),
         chiusure: () => read("chiusure"),
         meteo: () => read("meteo"),
+        durate: () => read("durate"),
         pianocarico: () => read("pianocarico"),
         aggiungi: (name, data) => addDoc(id.orgCollection(name), data),
         logout: () => id.logout(),
@@ -1341,6 +1527,7 @@ export async function campoData() {
       presenze: async () => mem.presenze || (mem.presenze = []),
       chiusure: async () => mem.chiusure || (mem.chiusure = []),
       meteo: async () => mem.meteo || (mem.meteo = []),
+      durate: async () => mem.durate || (mem.durate = []),
       pianocarico: async () => mem.pianocarico || (mem.pianocarico = []),
       logout: async () => {},
       aggiungi: async (name, data) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[name] = mem[name] || []).push({ id, ...data }); return { id }; },

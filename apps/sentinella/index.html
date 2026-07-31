@@ -544,6 +544,16 @@
    dipingerlo col colore del «disabilitato» lo portava a 3,83:1, sotto soglia,
    e per di più lo faceva sembrare spento. */
 .tab td.grezzo{color:var(--muted); font-size:11px; max-width:190px; overflow:hidden; text-overflow:ellipsis}
+/* LA PROVENIENZA SCRITTA SOTTO AL NUMERO, dentro la stessa cella. Su un
+   documento che va all'ente un valore di cui non si sa da dove viene non è un
+   dato: questa riga è ciò che permette a chi legge di risalire allo strumento,
+   al progetto o alla trascrizione a mano — e, quando il numero non c'è, di
+   sapere PERCHÉ non c'è. È una frase, non una cifra: va a capo (la cella dei
+   numeri no) e non prende né il grassetto né le cifre allineate. */
+.tab td .fonte{
+  display:block; margin-top:2px; font-size:10px; font-weight:400; line-height:1.4;
+  color:var(--muted); white-space:normal; font-variant-numeric:normal; letter-spacing:.1px;
+}
 .tab tr.ko td{color:var(--disabled)}
 .tab tr.ko td.n{color:var(--disabled); text-decoration:line-through}
 .tab tr.oltre td.n{color:var(--danger)}
@@ -786,6 +796,7 @@ textarea.dw-input{
   .tab{width:100%; font-size:9px}
   .tab th,.tab td{padding:5px 6px; white-space:normal; overflow-wrap:normal; word-break:normal}
   .tab td.grezzo{max-width:none; font-size:8.5px}
+  .tab td .fonte{font-size:7.5px; margin-top:1px}
   .tag{font-size:8px; padding:1px 5px; white-space:nowrap}
   a[href]::after{content:"" !important}
 }
@@ -2518,6 +2529,7 @@ textarea.dw-input{
       ${sezPunti}
       ${sezReclami(R)}
       ${sezVolate(R)}
+      ${sezPpvVolate(R)}
       <div class="rep-foot">
         <b>Come leggere questo documento.</b> Sentinella non misura: <b>registra</b> i valori che
         arrivano dagli strumenti o che vengono inseriti a mano, li confronta con la soglia
@@ -2616,7 +2628,9 @@ textarea.dw-input{
 
   const sezVolate = (R) => !R.nVolate ? "" : `<div class="rep-sez">Volate del periodo</div>
     <div class="rep-punto-meta">Le volate sono riportate come <b>contesto</b>: servono a spiegare i
-      picchi delle vibrazioni e della sovrappressione d'aria nei giorni in cui si è sparato.</div>
+      picchi delle vibrazioni e della sovrappressione d'aria nei giorni in cui si è sparato.
+      Il confronto fra la PPV <b>prevista</b> e la PPV <b>misurata</b> di ciascuna volata sta nella
+      sezione subito dopo questa tabella.</div>
     <div class="tab-wrap"><table class="tab">
       <thead><tr><th>Data</th><th>Fronte</th><th>Fori</th><th><span class="u">kg</span> totali</th><th><span class="u">kg</span> max/ritardo</th><th>Distanza (<span class="u">m</span>)</th><th>SD</th><th>Esito</th></tr></thead>
       <tbody>${R.volate.map(v => { const sd = scaledDistance(v.distanzaRicettore, v.kgMaxRitardo);
@@ -2625,6 +2639,72 @@ textarea.dw-input{
         <td>${esc(numeroIt(v.kgMaxRitardo || 0))}</td><td>${esc(numeroIt(v.distanzaRicettore || 0))}</td>
         <td>${sd != null ? esc(numeroIt(sd)) : "—"}</td>
         <td class="stato">${v.esito === "contestazione" ? '<span class="tag danger">contestazione</span>' : '<span class="tag ok">regolare</span>'}</td></tr>`;
+      }).join("")}</tbody></table></div>`;
+
+  // ── PREVISTO → MISURATO, volata per volata ──────────────────────────
+  // È l'argomento più forte che questo documento possa portare davanti a un
+  // ente: non «abbiamo rispettato un numero», ma «avevamo previsto tanto,
+  // abbiamo misurato tanto, ecco la differenza, ed ecco la norma da cui il
+  // limite di progetto è stato preso».
+  //
+  // ⛔ TRE REGOLE, e valgono più della tabella:
+  // 1. L'ASSENZA DI UN DATO NON È UN DATO FAVOREVOLE. Una volata senza
+  //    previsione o senza misura NON prende un trattino né uno zero: lo dice
+  //    a parole. Lo scarto si scrive solo dove ci sono tutt'e due i numeri —
+  //    e dove manca, la cella dice QUALE dei due manca.
+  //    «Non misurata» pesa più di «non prevista» e prende il giallo del
+  //    «senza dati»: la volata è avvenuta e nessuno ha rilevato quanto ha
+  //    vibrato. La previsione invece può mancare legittimamente (una volata
+  //    scritta a mano non ha un progetto collegato): resta dichiarata, ma
+  //    senza il colore dell'allerta.
+  // 2. Le UNITÀ dentro <span class="u">, come nella tabella qui sopra.
+  // 3. NIENTE NUMERI RIFATTI QUI. Previsione, misura e scarto arrivano tali
+  //    e quali dal modulo dati (previsioneDiVolata, ppvDiVolata,
+  //    scartoPpvVolata) e la norma si riporta COM'È REGISTRATA sulla volata
+  //    (pv.norma), mai a memoria: chi legge deve poter rifare ogni numero.
+  //
+  // Il limite che compare qui è quello DICHIARATO SUL PROGETTO, cioè
+  // contesto: il semaforo di conformità di questo report resta quello della
+  // soglia del punto di misura. Due semafori diversi sullo stesso documento
+  // sarebbero un difetto, non una funzione — ed è per questo che la nota di
+  // testa lo dice con parole sue.
+  const sezPpvVolate = (R) => !R.nVolate ? "" : `<div class="rep-sez">Volate · previsto, misurato e scarto</div>
+    <div class="rep-punto-meta">Per ogni volata del periodo: la PPV <b>prevista</b> in progetto, la PPV
+      <b>misurata</b> dallo strumento e lo <b>scarto</b> fra le due, ognuna con la propria provenienza
+      scritta sotto al numero. Lo scarto compare solo dove ci sono <b>tutti e due</b> i numeri: dove ne
+      manca uno la riga lo <b>dichiara</b>, perché un dato che manca non è un dato favorevole.
+      Il limite in ultima colonna è quello <b>dichiarato sul progetto</b>, riportato con la norma da cui
+      è stato preso: è un <b>riferimento di contesto</b>, non l'esito di questo report — la conformità
+      qui si giudica sulla soglia del punto di misura, indicata più sopra punto per punto.</div>
+    <div class="tab-wrap"><table class="tab">
+      <thead><tr><th>Data</th><th>Fronte</th><th>PPV prevista (<span class="u">mm/s</span>)</th><th>PPV misurata (<span class="u">mm/s</span>)</th><th>Scarto</th><th>Limite dichiarato e norma</th></tr></thead>
+      <tbody>${R.volate.map(v => {
+        const pv = previsioneDiVolata(v), ppv = ppvDiVolata(v), sc = scartoPpvVolata(v);
+        const cPrev = pv
+          ? `<b>${esc(numeroIt(pv.valore))}</b><span class="fonte">${esc(testoFontePrevisione(pv))}</span>`
+          : `<span class="tag">non prevista</span><span class="fonte">nessun progetto collegato a questa volata</span>`;
+        const cMis = ppv
+          ? `<b>${esc(numeroIt(ppv.valore))}</b><span class="fonte">${esc(testoFontePpv(ppv))}</span>`
+          : `<span class="tag warn">non misurata</span><span class="fonte">nessuna PPV collegata: per questa volata il documento non può dire quanto si è vibrato</span>`;
+        // il verso lo decide il modulo dati (soglia sotto il decimillesimo):
+        // riscriverlo qui vorrebbe dire una seconda regola che diverge
+        const verso = sc && (sc.verso === "sopra" ? "misurata sopra la previsione"
+          : sc.verso === "sotto" ? "misurata sotto la previsione" : "misurata pari alla previsione");
+        const cSc = sc
+          ? `<b>${sc.delta > 0 ? "+" : ""}${esc(numeroIt(sc.delta))} <span class="u">mm/s</span></b>${
+              sc.pct != null ? ` (${sc.pct > 0 ? "+" : ""}${esc(numeroIt(sc.pct))}%)` : ""
+            }<span class="fonte">${esc(verso)}</span>`
+          : `<span class="tag">non calcolabile</span><span class="fonte">manca ${
+              !pv && !ppv ? "sia la previsione sia la misura" : !pv ? "la previsione" : "la misura"}</span>`;
+        const cLim = !pv
+          ? `<span class="tag">non dichiarato</span><span class="fonte">senza previsione non c'è un limite di progetto da citare</span>`
+          : pv.limite != null
+            ? `<b>${esc(numeroIt(pv.limite))} <span class="u">mm/s</span></b><span class="fonte">${
+                pv.norma ? "norma citata sul progetto: " + esc(pv.norma) : "norma non indicata sul progetto"}</span>`
+            : `<span class="tag">non dichiarato</span><span class="fonte">il progetto non porta il limite né la norma da cui è preso</span>`;
+        return `<tr><td>${fmtD(v.data)}</td><td class="n">${esc(v.fronte || "—")}</td>
+        <td class="n">${cPrev}</td><td class="n">${cMis}</td>
+        <td class="n">${cSc}</td><td class="stato">${cLim}</td></tr>`;
       }).join("")}</tbody></table></div>`;
 
   async function refresh(){

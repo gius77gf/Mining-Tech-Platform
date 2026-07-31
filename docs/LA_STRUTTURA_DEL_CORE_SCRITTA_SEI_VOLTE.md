@@ -237,6 +237,42 @@ Due divergenze, e la seconda è una **trappola vera**:
    È il difetto peggiore della famiglia — non due copie che **divergono**, ma
    due copie che **si somigliano abbastanza da scambiarsi di posto**.
 
+### ✅ L'amministrazione è passata al condiviso — 03/08
+
+Era il caso «facile» solo a guardare il JavaScript. Misurando anche il **CSS**
+si è visto che la copia era doppia: **26 regole** nel suo `<style>`, di cui
+**18 già in `shared/dw-app-ui.css`** — e **15 identiche carattere per
+carattere** (contate normalizzando gli spazi).
+
+Le **tre** che differivano meritano di essere scritte, perche la domanda «quale
+delle due e quella giusta?» non si risolve a gusto:
+
+| regola | copia locale | condiviso | chi ha ragione |
+|---|---|---|---|
+| `.modal-box` | `animation: mdUp .25s var(--ease)` | `fadeUp .25s ease` | **il condiviso**: il CORE scrive `animation:fadeUp .25s ease`, ed e il riferimento |
+| `.mbtn.danger` | `color: #2a0906` | `color: var(--on-dg)` | **il condiviso**: `--on-dg` vale `#2b0705` ed e definito in `deepwork-style.css`, che la pagina carica gia |
+| `.mbtn.danger:hover` | idem | idem | idem |
+
+Tolti **2.043 caratteri di CSS** e **1.420 di JavaScript**; e rimasta la sola
+regola davvero sua (`.modal-body p + p`).
+
+**Che cosa e cambiato a vederlo, e va detto:** caricando il foglio condiviso
+l'amministrazione ha preso anche il resto dell'impianto — «← profilo» adesso e
+il bottone `.dw-home` come nelle sei app, le righe hanno la profondita delle
+schede, le due note in fondo sono riquadri `.note` invece di paragrafi grigi, e
+c'e l'alone che segue il mouse, che qui non c'era. E **piu** di «spostare la
+modale», ed e esattamente quello che la direttiva chiede: struttura identica.
+Verificato che il colore non sia scappato: la barra delle note e
+`var(--note-bar)` → `var(--info)`, che e il valore che **tutte** le app usano
+per una nota semplice; l'accento della pagina resta la sabbia `#c7b794`.
+
+**E un difetto della regola 17, trovato da questo passaggio.** La regola
+riconosceva «questa pagina carica il condiviso» cercando la stringa
+`dw-app-ui.js` **ovunque nel file**: il commento che la nominava bastava.
+Infatti ha detto «sette superfici» quando lo `<script>` non c'era ancora — e il
+conto che sta li apposta ha sbagliato **verso l'alto**, cioe nella direzione
+che rassicura. Adesso cerca il tag.
+
 ### La regola che tiene il conto
 
 Da oggi l'elenco è scritto in `run-stile.mjs` (**regola 17**) con la ragione di

@@ -1766,9 +1766,6 @@ const COPIA_PROPRIA = {
     + "diverso — un VALORE invece dell'HTML del campo, e il campo se lo costruisce "
     + "da sé. Passare al condiviso vuol dire rinominare gli id nel markup e "
     + "riscrivere 62 chiamate, non solo togliere tre funzioni",
-  "apps/deepwork-id/admin.html":
-    "DA FARE, ed è il caso facile: `apriModale` a tre parametri, senza `opzioni`, "
-    + "cioè esattamente la forma che il condiviso accetta già",
 };
 
 let uiGuardate = 0, uiCondivise = 0;
@@ -1777,7 +1774,13 @@ for (const [nome, rel] of SUPERFICI) {
   const src = leggi(rel);
   if (src === null) continue;
   uiGuardate++;
-  const carica = /dw-app-ui\.js/.test(src);
+  /* ⚠️ Il caricamento si riconosce dal TAG, non dalla stringa: cercando
+     `dw-app-ui.js` ovunque, un COMMENTO che la nomina bastava a far dire alla
+     regola «questa pagina la carica». È successo il 03/08 sull'amministrazione
+     di Deepwork ID: il commento c'era, il `<script>` no, e la regola diceva
+     sette superfici quando erano sei. Il conto che sta lì apposta l'ha detto —
+     ma diceva un numero TROPPO ALTO, cioè nella direzione che rassicura. */
+  const carica = /<script[^>]+src=["'][^"']*dw-app-ui\.js["']/.test(src);
   const proprie = strutturaInCasa(src);
   if (carica) uiCondivise++;
   if (proprie.length) uiConCopia.push(rel);
@@ -1801,7 +1804,8 @@ for (const [nome, rel] of SUPERFICI) {
 test("la regola 17 ha davvero guardato le superfici, e l'elenco delle copie è quello", () => {
   ok(uiGuardate === SUPERFICI.length,
     `guardate ${uiGuardate} superfici su ${SUPERFICI.length}`);
-  ok(uiCondivise === 6, `le app che caricano il file condiviso sono ${uiCondivise}, me ne aspettavo 6`);
+  ok(uiCondivise === 7, `le superfici che caricano il file condiviso sono ${uiCondivise}, me ne aspettavo 7`
+     + " (le sei app e l'amministrazione di Deepwork ID, entrata il 03/08)");
   const attese = Object.keys(COPIA_PROPRIA).sort().join(", ");
   ok(uiConCopia.sort().join(", ") === attese,
     `copie proprie trovate: [${uiConCopia.join(", ")}] · dichiarate: [${attese}]`);
