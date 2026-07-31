@@ -4599,5 +4599,68 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ DAI DDT ALLA FATTURA: NIENTE VIAGGI FATTURATI DUE VOLTE ════════════
+   È il flusso vero della cava: tanti viaggi documentati da DDT nel mese, UNA
+   fattura riepilogativa. Due funzioni, nessuna delle due provata, e tutte e
+   due su cose che diventano soldi:
+
+   · `pesateDaFatturare` sceglie **quali** viaggi entrano. La riga che fa tutto
+     il lavoro è `filter(p => !p.fatturaId)`: senza, un DDT già fatturato
+     tornerebbe in una seconda fattura, e il cliente pagherebbe due volte lo
+     stesso viaggio.
+   · `righeDaPesate` raggruppa per prodotto — ma a **parità di prezzo, unità e
+     aliquota**. Due prezzi diversi dello stesso prodotto restano due righe, ed
+     è come deve essere: fonderle darebbe un prezzo medio che non è quello di
+     nessun DDT, su un documento fiscale. */
+{
+  const ddt = (id, extra) => ({ id, numero: id, data: "2026-07-10", clienteId: "C1",
+    prodotto: "Misto", prodottoId: "P1", netto: 10, prezzoUnitario: 5,
+    unitaVendita: "t", aliquotaIva: 22, ...(extra || {}) });
+
+  test("⛔ DDT: quelli già fatturati non tornano in una seconda fattura", () => {
+    const out = conti.pesateDaFatturare([
+      ddt("d1"),
+      ddt("d2", { fatturaId: "F-2026-001" }),
+    ], "C1");
+    eq(out.length, 1, "solo quello non ancora fatturato");
+    eq(out[0].id, "d1", "ed è quello giusto");
+  });
+  test("DDT: si prendono solo quelli del cliente e del periodo chiesti", () => {
+    const tutti = [
+      ddt("d1"),
+      ddt("d2", { clienteId: "C2" }),
+      ddt("d3", { data: "2026-06-01" }),
+    ];
+    eq(conti.pesateDaFatturare(tutti, "C1", "2026-07-01", "2026-07-31").length, 1,
+       "un cliente, un periodo, un viaggio");
+  });
+  test("DDT: senza cliente si prendono quelli di tutti", () => {
+    eq(conti.pesateDaFatturare([ddt("d1"), ddt("d2", { clienteId: "C2" })], "").length, 2,
+       "il filtro cliente è facoltativo");
+  });
+
+  test("righe: i viaggi dello stesso prodotto si sommano in una riga sola", () => {
+    const r = conti.righeDaPesate([ddt("d1"), ddt("d2")]);
+    eq(r.length, 1, "una riga");
+    eq(r[0].quantita, 20, "venti tonnellate in tutto");
+    eq(r[0].imponibile, 100, "venti per cinque euro");
+    eq(r[0].ddt.length, 2, "e la riga porta con sé i due numeri di DDT");
+  });
+  test("⛔ righe: prezzi diversi dello stesso prodotto NON si fondono", () => {
+    /* fonderle darebbe un prezzo medio che non è quello di nessun DDT, su un
+       documento fiscale in cui ogni riga deve essere verificabile */
+    const r = conti.righeDaPesate([ddt("d1"), ddt("d2", { prezzoUnitario: 7 })]);
+    eq(r.length, 2, "due prezzi, due righe");
+  });
+  test("⛔ righe: unità diverse non si sommano fra loro", () => {
+    const r = conti.righeDaPesate([ddt("d1"), ddt("d2", { unitaVendita: "m3", quantita: 4 })]);
+    eq(r.length, 2, "tonnellate e metri cubi restano separati");
+  });
+  test("righe: aliquote diverse restano righe diverse (serve al registro IVA)", () => {
+    const r = conti.righeDaPesate([ddt("d1"), ddt("d2", { aliquotaIva: 10 })]);
+    eq(r.length, 2, "ogni aliquota fa storia a sé");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
