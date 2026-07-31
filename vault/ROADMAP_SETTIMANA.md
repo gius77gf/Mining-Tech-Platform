@@ -941,7 +941,7 @@ campi interi, file delle macchine.
       da `toISOString()` su una data costruita in ora locale. Guarda 21 file e
       stampa quanti — e perdona chi entra ed esce in UTC, che è coerente.
 - [x] **Copertura delle funzioni pure, app per app.** Sentinella 77/107, Scudo
-      56/71 *(era 22)*, Campo 49/73 *(era 26)*, Flotta 36/71, Conti 35/58,
+      56/71 *(era 22)*, Campo 65/73 *(era 26)*, Flotta 36/71, Conti 35/58,
       Terra 32/39 *(era 23)*. Nessuna app è più sotto la metà; quello che resta scoperto
       sono quasi solo costanti e trasporto dati.
 - [x] **Il principio usato come lente.** Scritta in `CLAUDE.md` la regola
@@ -959,6 +959,14 @@ campi interi, file delle macchine.
       dal grafico dei fermi, la percentuale di concluse **vuota e non cento**
       quando non c'è nessuna attività. Controprova: 8 difetti su 8 fanno cadere
       la prova col loro nome. run-kpi 783 → **808**, totale node **1.091**.
+- [x] **La foto dell'anomalia e il meteo di Campo.** 18 prove. `eFotoValida` è
+      l'ultima cosa fra un `data:` scritto a mano e un `<img>` della pagina:
+      bloccata contro SVG e `javascript:`. Il peso della foto si conta **in
+      byte, non in caratteri base64**; la scaletta dei tentativi scende; una
+      foto piccola non si stira mai. Sul meteo la prova scrive la cosa che
+      conta: `meteoAvverso(null)` è false, e **non vuol dire bel tempo** — il
+      cartellone si disegna solo se il riassunto dice qualcosa. run-kpi
+      **826**, totale node **1.109**.
 
 ---
 
