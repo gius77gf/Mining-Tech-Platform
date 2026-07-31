@@ -4024,5 +4024,62 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ LA SOGLIA CHE DECIDE SE C'È UN SUPERAMENTO ═════════════════════════
+   ────────────────────────────────────────────────────────────────────────
+   `sogliaEfficace` era anche lei fra le funzioni che nessuna prova nominava, e
+   non decide una sfumatura: decide **contro quale numero** si confronta una
+   lettura, cioè se quella lettura diventa un superamento da mettere nel report
+   che il cliente consegna all'ente.
+
+   La regola è dichiarata anche nell'interfaccia: se il punto è collegato a un
+   ricettore che ha una soglia propria **e la stessa unità**, vince quella del
+   ricettore, perché è il limite scritto per quella casa. Il caso che conta
+   davvero è però il terzo: unità **diverse**. Lì la funzione NON usa il numero
+   del ricettore — confrontare mm/s con dB(A) darebbe un verdetto inventato —
+   torna a quella del punto e alza `conflitto`, così l'interfaccia può dirlo. */
+{
+  const se = sentinella.sogliaEfficace;
+  const casa = { id: "r1", nome: "Casa Bianchi", soglia: 3, unita: "mm/s" };
+
+  test("soglia: vince quella del ricettore quando l'unità è la stessa", () => {
+    const r = se({ ricettoreId: "r1", soglia: 5, unita: "mm/s" }, [casa]);
+    eq(r.valore, 3, "il limite scritto per quella casa");
+    eq(r.fonte, "ricettore", "e la fonte lo dice");
+    eq(r.conflitto, false, "nessun conflitto");
+  });
+  test("soglia: senza ricettore collegato vale quella del punto", () => {
+    const r = se({ soglia: 5, unita: "mm/s" }, [casa]);
+    eq(r.valore, 5, "resta la soglia del punto");
+    eq(r.fonte, "punto", "e la fonte lo dice");
+  });
+  test("soglia: unità DIVERSE non si confrontano, e il conflitto si dichiara", () => {
+    /* è il caso per cui questa prova esiste: 3 mm/s e 55 dB(A) non sono
+       confrontabili, e prendere il numero del ricettore darebbe un verdetto
+       inventato su un documento che va all'ente */
+    const r = se({ ricettoreId: "r1", soglia: 55, unita: "dB(A)" }, [casa]);
+    eq(r.valore, 55, "si torna alla soglia del punto");
+    eq(r.conflitto, true, "e si dichiara il conflitto invece di nasconderlo");
+    eq(r.unitaRicettore, "mm/s", "dicendo anche quale unità aveva il ricettore");
+  });
+  test("soglia: un ricettore senza soglia propria non copre quella del punto", () => {
+    const muto = { id: "r2", nome: "Scuola", unita: "mm/s" };
+    const r = se({ ricettoreId: "r2", soglia: 4, unita: "mm/s" }, [muto]);
+    eq(r.valore, 4, "vale quella del punto");
+    eq(r.fonte, "punto", "e la fonte lo dice");
+  });
+  test("soglia: zero e negativi non sono soglie", () => {
+    /* zero non è «nessun limite»: è un limite impossibile da rispettare, e
+       preso sul serio farebbe risultare superata ogni singola lettura */
+    const zero = { id: "r3", nome: "Cascina", soglia: 0, unita: "mm/s" };
+    eq(se({ ricettoreId: "r3", soglia: 4, unita: "mm/s" }, [zero]).valore, 4,
+       "una soglia zero sul ricettore non vince");
+    eq(se({ soglia: -1, unita: "mm/s" }, []).valore, null,
+       "e una soglia negativa sul punto non è una soglia: null");
+  });
+  test("soglia: un punto senza soglia e senza ricettore risponde null, non zero", () => {
+    eq(se({ unita: "mm/s" }, []).valore, null, "null vuol dire «non lo so»");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
