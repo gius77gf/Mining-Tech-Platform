@@ -238,6 +238,41 @@ corretta, e sette controlli automatici tengono fermi i sette che lo sono
 davvero — se domani uno di loro smettesse di ri-caricarsi, se ne accorge la
 suite e non il cliente.
 
+## 13. Una mansione senza requisiti: «può andare» o «non lo sappiamo»?
+
+**Come è saltata fuori.** Il 31/07 ho scritto in `CLAUDE.md` un principio che si
+era ripetuto in tre app: *l'assenza di un dato non è un dato favorevole* —
+«senza dati» non è «conforme», «non risulta» non è «va bene», «non lo so» non è
+«non c'è». Poi l'ho usato come lente, chiamando ogni funzione delle sei app con
+i dati vuoti per vedere chi risponde qualcosa di tranquillo. Sono uscite 39
+candidate: quasi tutte innocue, **una** era un difetto vero (corretto: il badge
+verde del tagliando su un mezzo senza contaore), e **una** è una domanda per te.
+
+**La domanda.** In Scudo, la matrice dice chi può fare una mansione domani
+mattina — *può / attenzione / no*. Se una mansione è stata creata, le persone
+sono state assegnate, ma **nessuno ha ancora scritto quali corsi servono**, oggi
+tutti risultano **«può andare»**, in verde.
+
+Tecnicamente è coerente: non è richiesto niente, quindi non manca niente. Ma
+detto a chi guarda la schermata è ambiguo, e le due letture sono opposte:
+
+- *«questa mansione non richiede corsi particolari»* — vero per certi lavori;
+- *«nessuno ha ancora detto che cosa serve per questa mansione»* — che è il caso
+  più probabile su una mansione appena creata, e allora il verde è proprio il
+  colore sbagliato.
+
+- [ ] **13.** Quale delle due? Le strade possibili, in ordine di invadenza:
+  a) **si lascia com'è** — chi crea una mansione sa che cosa ha creato;
+  b) **si dice, senza cambiare il colore**: sotto la mansione compare «nessun
+     requisito impostato», e la riga resta verde;
+  c) **la mansione senza requisiti va in «attenzione»** finché qualcuno non
+     dichiara che non ne servono (una spunta «per questa mansione non servono
+     corsi»), e da quel momento torna verde.
+
+⚠️ **Non l'ho toccata**: è una scelta di prodotto, non un difetto, e il verde di
+oggi non afferma niente di falso su un dato misurato — dice solo poco. La
+correzione è pronta in tutte e tre le forme, e costa poco in tutte e tre.
+
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde
 iterazioni UX delle app, test aggiuntivi, revisioni di qualità/sicurezza,
