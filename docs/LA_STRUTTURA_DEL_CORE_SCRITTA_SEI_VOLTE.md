@@ -369,11 +369,40 @@ colore del genitore, un raggio che torna a zero. È la stessa forma del
 principio che il prodotto applica ai numeri: **l'assenza di un dato non è un
 dato favorevole**, e qui il dato assente si traveste da «va bene così».
 
-Il conto del contagio: **22 selettori** del foglio condiviso cadrebbero su
-markup che Genesi **ha già** — non solo la famiglia `.modal-*`, che è quella
-che si vuole, ma anche `.kpi`, `.kpi.ok`, `.kpi.warn`, `.badge.ok`,
-`.badge.tag`, `.note.ok`, `.dw-btn`. Cioè le schede e le pillole della
-schermata di progetto, ridipinte con tinte che nella pagina non esistono.
+~~Il conto del contagio: **22 selettori** del foglio condiviso cadrebbero su
+markup che Genesi **ha già** — non solo la famiglia `.modal-*` ma anche `.kpi`,
+`.kpi.ok`, `.kpi.warn`, `.badge.ok`, `.badge.tag`, `.note.ok`, `.dw-btn`.~~
+
+> ⛔ **QUESTO CONTO ERA SBAGLIATO — rimisurato il 04/08.**
+>
+> | | dichiarato il 03/08 | misurato il 04/08 |
+> |---|---|---|
+> | selettori del foglio che cadono su markup di Genesi | 22 | **8** |
+> | di cui **fuori** dalla famiglia modale/toast | 7 nominati | **0** |
+>
+> In Genesi **non esiste nessuna** delle classi nominate: `kpi` compare 81
+> volte, ma sempre come **proprietà JavaScript** (`A.kpi.nf`, `snap.kpi`);
+> `badge` compare 14 volte e sempre **in prosa** dentro commenti e testi
+> («la riga arriva col badge *Prevista*»); `dw-btn` **non compare mai**.
+> Censite tutte e **365** le `class="…"` della pagina — **141 classi
+> distinte**, e nessuna `class='…'` con apici singoli che potesse sfuggire.
+>
+> Il difetto è quello che questo repository ha già trovato quattro volte: si è
+> contata **una parola** invece della **cosa**. Cercare `kpi` in un file trova i
+> nomi di proprietà e i commenti; cercare `class="… kpi …"` trova le schede.
+>
+> **E cambia il ragionamento, non solo un numero.** Il «contagio» era l'argomento
+> più forte per tenere il foglio condiviso fuori da Genesi: *ti ridipinge le
+> schede*. Quell'argomento **non regge**. Resta l'altro, che è vero e misurato
+> due volte in modo indipendente: il foglio pronuncia **76** variabili, Genesi ne
+> definisce **12**, e le **72** scoperte non fallirebbero — decadrebbero in
+> silenzio. Gli **8** selettori che cadono sono proprio quelli della modale e del
+> toast, cioè quelli che Genesi si veste già da sé: caricare il foglio oggi
+> significherebbe **sostituire un vestito che funziona con uno senza colori**.
+>
+> Un rischio gonfiato blocca una decisione quanto un risultato gonfiato la
+> giustifica. La direttiva 5 vieta di gonfiare i risultati; vale identica
+> all'incontrario.
 
 ### Il piano che ne esce: **due unità, non una**
 

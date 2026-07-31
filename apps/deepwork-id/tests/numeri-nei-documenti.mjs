@@ -188,10 +188,15 @@ test("Genesi: carica la STRUTTURA condivisa e NON il foglio di stile", () => {
      condiviso pronuncia 76 variabili e Genesi ne definisce 12. Una variabile
      CSS che non esiste NON fallisce — la dichiarazione decade e la proprietà
      ricade sull'ereditato: nessun errore in console, un bordo che sparisce.
-     E 22 selettori del foglio cadrebbero su markup che Genesi ha già (.kpi,
-     .badge.ok, .note.ok, .dw-btn), ridipingendo le schede con tinte che nella
-     pagina non esistono. Finché la palette non è dichiarata, il foglio resta
-     fuori — e questo controllo impedisce che ci entri per distrazione. */
+     ⚠️ E NON per il «contagio»: quel conto era sbagliato, rimisurato il 04/08.
+     Dicevano 22 selettori su markup che Genesi ha già, fra cui .kpi e .badge —
+     ma in Genesi `kpi` è un nome di PROPRIETÀ (`A.kpi.nf`) e `badge` sta nei
+     COMMENTI: nessuna delle due è mai una classe. I selettori che cadono sono
+     8, tutti della famiglia modale/toast, cioè quelli che Genesi si veste già
+     da sé — caricare il foglio oggi vorrebbe dire sostituire un vestito che
+     funziona con uno senza colori. La ragione vera è solo la prima.
+     Finché la palette non è dichiarata, il foglio resta fuori — e questo
+     controllo impedisce che ci entri per distrazione. */
   const css = rif.filter((r) => /\.css/.test(r));
   ok(css.length === 0,
     `Genesi carica ${css.length} fogli condivisi (${css.join(", ")}): è l'unità B, e prima va dichiarata la palette`);
@@ -203,6 +208,52 @@ test("Genesi: carica la STRUTTURA condivisa e NON il foglio di stile", () => {
 const usate = new Set([...foglio.matchAll(/var\(\s*(--[\w-]+)/g)].map((m) => m[1]));
 const definite = new Set([...genesi.matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1]));
 const scoperte = [...usate].filter((v) => !definite.has(v));
+
+/* ⛔ IL CONTO DEL «CONTAGIO», che il 03/08 era sbagliato e nessuno poteva
+   controllare. Diceva 22 selettori del foglio condiviso su markup che Genesi ha
+   già; misurati sono 8, tutti della famiglia modale/toast. L'errore era di
+   forma nota: si è cercata una PAROLA (`kpi`, `badge`) invece della COSA (la
+   classe), e in Genesi quelle parole vivono nei nomi di proprietà e nei
+   commenti. Adesso il numero nel documento si ricalcola, così non può marcire
+   una seconda volta — e si guarda che il censimento abbia davvero letto le
+   classi, non zero. */
+const CLASSI_GENESI = new Set([...genesi.matchAll(/class="([^"]+)"/g)]
+  .flatMap((m) => m[1].split(/\s+/)).filter(Boolean));
+/* ⚠️ I COMMENTI SI TOLGONO PRIMA, se no l'estrazione li incolla al selettore che
+   segue: 68 dei 302 «selettori» letti a crudo contenevano un `/*` o un ritorno a
+   capo, e un selettore incollato a un commento porta dentro le classi nominate
+   NEL TESTO. Effetto: un selettore vero può risultare «non cade» perché il
+   commento accanto nomina una classe che Genesi non ha — cioè il controllo
+   sottostima, nella direzione che rassicura. Puliti: 242 selettori, zero
+   sporchi. (Nel CSS non esistono stringhe che contengano `/*`, quindi qui la
+   sottrazione dei commenti è sicura — nel JavaScript non lo sarebbe, ed è il
+   difetto che il 01/08 ha cancellato 400.000 caratteri di codice vivo.) */
+const FOGLIO_PULITO = foglio.replace(/\/\*[\s\S]*?\*\//g, "");
+const SELETTORI_FOGLIO = [...new Set([...FOGLIO_PULITO.matchAll(/(^|\})\s*([^{}@]+?)\s*\{/gm)]
+  .map((m) => m[2].trim())
+  .flatMap((x) => x.split(",").map((y) => y.trim()))
+  .filter((x) => x && !x.startsWith("@") && !/^(from|to|\d+%)$/.test(x)))];
+const CADONO = SELETTORI_FOGLIO.filter((sel) => {
+  const c = [...sel.matchAll(/\.([\w-]+)/g)].map((m) => m[1]);
+  return c.length && c.every((x) => CLASSI_GENESI.has(x));
+});
+
+test("Genesi: il conto dei selettori condivisi che cadono sul suo markup è quello del documento", () => {
+  /* la guardia sul censimento: senza queste due righe un errore di lettura
+     darebbe «zero collisioni» e sembrerebbe una buona notizia */
+  ok(CLASSI_GENESI.size > 100, `ho letto solo ${CLASSI_GENESI.size} classi in Genesi: il censimento non sta guardando`);
+  ok(SELETTORI_FOGLIO.length > 200, `ho letto solo ${SELETTORI_FOGLIO.length} selettori nel foglio`);
+  ok(SELETTORI_FOGLIO.every((x) => !/\/\*|\n/.test(x)),
+    "ci sono ancora selettori incollati a un commento: l'estrazione sta leggendo prosa");
+  const m = /cadono su markup di Genesi \| 22 \| \*\*(\d+)\*\* \|/.exec(testoGen);
+  ok(m, "non trovo la riga del contagio rimisurato nel documento");
+  ok(+m[1] === CADONO.length,
+    `il documento dice ${m && m[1]}, la misura ne trova ${CADONO.length} (${CADONO.join(", ")})`);
+  /* e la metà che conta: nessuno FUORI dalla famiglia modale/toast */
+  const fuori = CADONO.filter((x) => !/modal|mbtn|toast|dw-vuoto/.test(x));
+  ok(fuori.length === 0,
+    `${fuori.length} selettori fuori dalla famiglia modale/toast cadrebbero su Genesi: ${fuori.join(", ")}`);
+});
 
 test("docs/LA_STRUTTURA_DEL_CORE_SCRITTA_SEI_VOLTE.md: il conto delle variabili è quello vero", () => {
   const m = /pronuncia \*\*(\d+)\*\* variabili\. Genesi ne definisce \*\*(\d+)\*\*/.exec(testoGen);

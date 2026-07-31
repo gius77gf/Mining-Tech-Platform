@@ -1578,6 +1578,41 @@ campi interi, file delle macchine.
       Tre prove «di passaggio» in `numeri-nei-documenti.mjs` sono cadute il
       giorno giusto e sono state **girate**, non cancellate: guardano il verso
       opposto. Banchi del browser **25 → 27**.
+- [x] ⚠️ **IL CONTAGIO CHE NON C'ERA — una misura del piano era sbagliata**
+      *(04/08)* — il piano dell'unità B poggiava su due misure; una regge (76
+      variabili pronunciate, 12 definite, **72 scoperte**), l'altra **no**. Il
+      documento diceva «**22 selettori** del foglio cadrebbero su markup che
+      Genesi ha già: `.kpi`, `.badge.ok`, `.note.ok`, `.dw-btn`». Rimisurato:
+      **8**, e **zero** fuori dalla famiglia modale/toast. In Genesi quelle
+      classi **non esistono**: `kpi` compare 81 volte ma sempre come **proprietà
+      JavaScript** (`A.kpi.nf`), `badge` 14 volte e sempre **in prosa** dentro i
+      commenti, `dw-btn` mai. Censite tutte e **365** le `class="…"`, **141
+      classi distinte**, zero con apici singoli. *Si era contata una **parola**
+      invece della **cosa** — la quinta volta che questo difetto esce.*
+      **E cambia il ragionamento**: il contagio era l'argomento più forte per
+      tenere il foglio fuori da Genesi, e non regge. Resta l'altro, vero: gli 8
+      selettori che cadono sono proprio quelli della modale e del toast, cioè
+      quelli che Genesi si veste già da sé — caricare il foglio oggi vorrebbe
+      dire **sostituire un vestito che funziona con uno senza colori**.
+      *Un **rischio** gonfiato blocca una decisione quanto un **risultato**
+      gonfiato la giustifica.*
+      Ora il numero è **ricalcolato** da `numeri-nei-documenti.mjs` (14 → 15
+      prove) con due guardie sul censimento, e controprovato su una Genesi finta:
+      da **8 a 33** selettori, **25** fuori famiglia.
+      ⚠️ E il controllo nuovo era sporco a sua volta: estraeva i selettori
+      **senza togliere i commenti**, e 68 su 302 erano incollati a un commento —
+      un selettore che si porta dentro le classi nominate **nel testo**
+      **sottostima**, cioè sbaglia nella direzione che rassicura. Puliti: **242,
+      zero sporchi**, con la prova che lo pretende.
+- [x] **Conti — quanto costa OGGI non avere la nota di credito** *(04/08)* —
+      misurato sulle funzioni vere: una sola fattura annullata col **finto
+      incasso** (l'unico modo che l'app permette senza cancellarla) porta il
+      **tempo medio di pagamento da 30 a 101 giorni** e il ritardo da 0 a 71. E
+      la direzione dell'errore dipende dalla **data** del finto incasso: chi la
+      scrive uguale alla scadenza fa comparire un pagamento **puntuale mai
+      avvenuto** — peggio di un errore costante, perché non si corregge
+      guardando la media. *(La prima stesura della misura sbagliava tre nomi di
+      campo e dava **0 €**: una misura che sembrava fatta e non misurava niente.)*
 
 ---
 
