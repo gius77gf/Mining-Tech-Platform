@@ -8,12 +8,11 @@
 **Ultimo ciclo riuscito:** 2026-08-04 18:45 UTC — **il ciclo della
 tracciabilità del volume e della nota di credito completa**
 **Commit di partenza:** `80111f2`
-**Cosa sta per fare:** il contenitore è ripartito da zero e il giro del browser
-che stava verificando le ultime sei unità **è andato perso a metà** — quella
-verifica non è stata completata e va rifatta. Prima però si prosegue col lavoro
-sul codice, così il giro si lancia una volta sola alla fine: dalle schede, gli
-**indici infortunistici** di Scudo (IF, IG, LTIFR) o il **registro costi esteso**
-di Conti, che il censimento indica come la porta d'ingresso alla marginalità.
+**Cosa ha appena finito:** il giro completo del browser passa **33 su 33**, con
+tutte le controprove, e senza dichiararsi non valido. È la verifica che mancava:
+quello lanciato prima del riavvio del contenitore era andato perso a metà, e da
+allora erano entrate sette unità senza conferma.
+Prove `node`: **1.396**, copertura **433/433**.
 
 **Cosa ha fatto oggi, dopo quel blocco** — sei unità, tutte con la loro
 controprova:
