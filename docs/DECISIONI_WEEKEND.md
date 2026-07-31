@@ -59,7 +59,38 @@ può procedere con l'attuazione.
   messaggio rosso "Operazione non riuscita, riprova"). Una volta scelto lo
   stile, l'implementazione è meccanica e sicura.
 - **Dettaglio**: `docs/AUDIT_SICUREZZA.md` punto 12.
-- [ ] Stile deciso
+
+**Misurato il 01/08 — due fatti che la decisione non aveva:**
+
+1. **Le app non si accorgono di essere offline: zero su sei.** Nessuna delle sei
+   guarda `navigator.onLine` né ascolta gli eventi `online`/`offline` (il core
+   sì, in due punti). E l'assenza di segnale in cava non è un caso di scuola: è
+   il modo in cui una scrittura fallirà **più spesso** di tutti. Oggi il turno
+   scrive il rapportino, tocca «Crea bozza», e non ha modo di sapere che non è
+   partito.
+2. **La persistenza offline di Firestore NON è configurata** (nessun
+   `enableIndexedDbPersistence` né `persistentLocalCache` in tutto il progetto).
+   È importante perché la ricerca sul valore dà per scontato il contrario —
+   scrive che con la persistenza offline «è letteralmente quello che succede».
+   **Da noi oggi non succede.** Se si scrivesse all'utente «l'ho tenuto e lo
+   salvo appena torna la linea» sarebbe una promessa **falsa**, ed è la peggior
+   categoria di messaggio: quello che rassicura a vuoto.
+
+La superficie interessata sono **203 chiamate `await db.`** nelle sei app.
+*(Quante siano già protette non lo dico: il conto dei `try/catch` non lo
+distingue, perché nelle stesse pagine ci sono catch per la clipboard e per la
+lettura dei file. Serve una scansione vera, e la farò quando la decisione sarà
+presa — misurare bene una cosa che poi non si tocca è lavoro sprecato.)*
+
+**Quindi le domande diventano due, e la seconda è nuova:**
+- (a) **come** si avvisa che il salvataggio non è riuscito (stile del messaggio);
+- (b) se vogliamo la **persistenza offline** di Firestore. Non è gratis in senso
+  tecnico: mette una copia dei dati dell'organizzazione **nel browser del
+  dispositivo**, e su un telefono di cantiere condiviso è una scelta che tocca
+  l'isolamento fra clienti — quindi la porto a te invece di prenderla io.
+
+- [ ] (a) Stile del messaggio deciso
+- [ ] (b) Persistenza offline: sì o no
 
 ## 6. Genesi — sblocco delle funzioni sulla geometria del fronte
 - **Stato**: hai indicato la direzione ("raggiungere il livello dei
