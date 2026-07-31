@@ -242,11 +242,21 @@ credito"**, che è quello che sappiamo davvero.
 | **Valore grande** | % di mezzi operativi (es. `86%`) |
 | **Confronto** | `12 operativi su 14 · riferimento di settore 92-94%` |
 | **Tendenza** | `2 fermi: Dumper 3 (guasto), Pala 1 (verifica)` |
-| **Micro-grafico** | nessuno (il dato storico non esiste — vedi §4) |
-| **Fonte** | **Flotta** — `mezzi` (campo `stato: operativo / verifica / fermo`) |
-| **Funzione già esistente** | `disponibilitaFlotta()` in `apps/flotta/flotta-data.js` |
+| **Micro-grafico** | ~~nessuno~~ **la linea della disponibilità registrata** — vedi l'aggiornamento del 02/08 |
+| **Fonte** | **Flotta** — `mezzi` (campo `stato`), `disponibilita` (la fotografia del giorno), `fermi` (inizio, fine, causale) |
+| **Funzioni già esistenti** | `disponibilitaFlotta()`, `disponibilitaStorico()`, `fotografiaDaRegistrare()`, `affidabilitaFlotta()` |
 | **Clic** | apre **Flotta → Mezzi**, filtro "non operativi" |
-| **Oggi si può fare?** | **Sì, subito**, ma **senza andamento** (Flotta fotografa lo stato di adesso, non lo storicizza). |
+| **Oggi si può fare?** | **Sì, subito, e ORA anche con l'andamento.** |
+
+> **Aggiornamento del 02/08.** Quando la scheda è stata scritta, Flotta sapeva
+> dire solo com'era messo il parco **adesso**. Adesso registra una **fotografia
+> al giorno** (`fotografiaDaRegistrare`, una riga sola per giornata) e soprattutto
+> i **fermi** come fatti con un inizio, una fine e una causale — da cui esce la
+> disponibilità **reale** (`giorni-macchina persi / giorni-macchina disponibili`),
+> non la fotografia di adesso. Due cose da tenere per la tessera: la percentuale
+> «adesso» e quella «sui 30 giorni» sono **due numeri diversi** e vanno etichettati
+> come tali; e i giorni **senza registrazione** non valgono «tutto operativo» —
+> `disponibilitaStorico` li conta in `giorniSenza` apposta per poterli scrivere.
 
 Il riferimento 92-94% è già scritto dentro Flotta. Il cruscotto lo riusa: è l'unico
 modo per far capire a un titolare se 86% è buono o pessimo.
@@ -306,7 +316,18 @@ l'indagine". La regola completa è in §2.
 | **Fonte** | **Terra** — `piano` (`riserveM3`, `pianificatoAnnuoM3`) + `rilievi` |
 | **Funzione già esistente** | `riservaResidua()` in `apps/terra/terra-data.js` |
 | **Clic** | apre **Terra → Piano** |
-| **Oggi si può fare?** | **Sì, subito**, con un limite grosso: le riserve sono un numero che l'utente digita a mano, e **la scadenza dell'atto autorizzativo non esiste in Terra** (nessun campo per ente, numero, data). Vedi §4. |
+| **Oggi si può fare?** | **Sì, subito.** Le riserve restano un numero digitato a mano (ed è giusto: le stima un tecnico), ma ~~la scadenza dell'atto non esiste~~ **adesso esiste** — vedi qui sotto. |
+
+> **Aggiornamento del 02/08.** Terra ha uno **scadenzario del titolo** con i tipi
+> tipici già pronti da scegliere invece che da digitare: scadenza
+> dell'**autorizzazione**, **fideiussione**, screening/VIA, collaudo, rilievo
+> periodico, comunicazione dei volumi all'ente. Con una regola vincolante scritta
+> nel codice e coperta da prove: **nessuna periodicità è cablata**, perché termini
+> e ricorrenze cambiano da regione a regione e da atto ad atto — li mette sempre
+> l'utente, e la proposta esce marcata «da verificare».
+> Per la tessera questo vuol dire che «quanti anni mi restano» può dire **due**
+> cose invece di una: gli anni di **materiale** e gli anni di **titolo**. E la più
+> corta delle due è quella che conta.
 
 Questa è la tessera che un gestionale generalista non ha mai. Per un titolare di
 cava è la domanda esistenziale: *quanti anni mi restano?*
@@ -325,9 +346,16 @@ rapportino. **Fonte:** Campo (`attivita` con `data`+`turno`, `rapportini`,
 
 #### T8 · COSTO DEI MEZZI PER TONNELLATA
 Costi registrati in Flotta diviso le tonnellate stimate da Terra.
-**Oggi: NO — e va detto perché.** Vedi §4.3: i costi di Flotta non hanno una data
-né un legame con la cava, quindi non si può dividere "i costi di questo mese" per
-"le tonnellate di questo mese". Con un campo data sui costi diventa immediato.
+~~**Oggi: NO**~~ → **Oggi: SÌ per metà.** *(aggiornamento del 02/08)* I costi di
+Flotta **hanno una data**: `costiPerMese()` li raggruppa per mese di competenza,
+e con due regole di onestà già coperte da prove — le voci **senza data** non
+vengono attribuite a nessun mese ma **dichiarate** a parte, e un mese **senza
+registrazioni non è un mese a zero euro** (non compare, e `mancanti` dice quanti
+sono). Anche i rifornimenti col prezzo entrano da soli nei costi, con la loro data.
+Resta aperta l'altra metà: il **legame con la cava**, cioè a quale sito attribuire
+il costo quando i siti sono più d'uno. Con un sito solo la divisione «costi del
+mese / tonnellate del mese» si può già fare, ed è onesta purché il mese abbia
+registrazioni da tutt'e due le parti.
 
 #### T9 · GARE E LAVORI
 Gare aperte, valore a base d'asta, tasso di vittoria. **Fonte:** Conti (`gare`).
