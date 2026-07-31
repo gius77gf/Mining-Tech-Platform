@@ -158,6 +158,35 @@ suoi due id spegnerebbero il segnalibro invece di lasciarlo acceso sul padre.
 Cioè: la mappa è una **funzione**, le guardie sono una **protezione**, e solo
 la seconda va data a tutti.
 
+### ✅ FATTO il 03/08
+
+`go` sta in `shared/dw-app-ui.js` con le guardie per tutte e la mappa come
+parametro dell'aggancio:
+
+```js
+dwUiAggancia({ navDi: (id) => (id === "sch" ? "mez" : id === "odl" ? "man" : id), alone: ".item,.kpi" });
+```
+
+**4.064 caratteri** tolti dalle sei pagine, e con loro **sparisce l'ultimo
+blocco `<script>` classico di ogni app**: dentro non era rimasto altro che
+`go`. Le sei app adesso hanno solo i tre script condivisi e il proprio modulo.
+
+Come è stato verificato — **provando la navigazione, non guardando se la pagina
+si apre**, che è la lezione pagata il 02/08 con cinque pagine rotte che
+rispondevano «tutto a posto»: per ognuna delle sei app si preme ogni voce della
+pillola e si pretende che diventi attiva **una sola** pagina e si accenda **un
+solo** segnalibro; in Flotta si pretende in più che `sch` e `odl` tengano acceso
+il segnalibro del padre; e in tutte si chiama `go()` con un id inventato e si
+pretende che la navigazione **regga**. **62 asserzioni, 44 navigazioni, zero
+rosse.**
+
+La controprova serve alla pagina una versione del file condiviso **senza le
+guardie** — cioè la versione delle cinque app di prima — e ne cadono
+**sei**, una per app: esattamente le asserzioni sull'id che non esiste. Il
+banco è entrato nella suite (`tests/browser/navigazione.mjs`), che passa da
+**19 a 21** esecuzioni: una difesa che resta nello scratchpad, alla sessione
+dopo non esiste.
+
 ---
 
 ## La terza metà: le sei app non erano sei

@@ -19,16 +19,44 @@
 
    COME SI USA. Script classico, come `dw-tema.js` e `dw-grafici.js`:
        <script src="../../shared/dw-app-ui.js" defer></script>
-   Definisce funzioni globali (`toast`, `apriModale`, …) che il blocco
+   Definisce funzioni globali (`go`, `toast`, `apriModale`, …) che il blocco
    `type="module"` dell'app usa senza importarle, esattamente come faceva
    con le sue copie locali. L'unica cosa da chiamare è l'aggancio:
        dwUiAggancia({ alone: ".item,.kpi,.segnala" });
+   e, per le app che hanno pagine senza una voce nella pillola:
+       dwUiAggancia({ alone: ".item,.kpi", navDi: (id) => id === "sch" ? "mez" : id });
 
    IL CSS NON STA QUI: sta in `shared/dw-app-ui.css`, e lì era già in un
    posto solo.
    ============================================================ */
 (function () {
   "use strict";
+
+  // ── NAVIGAZIONE FRA LE PAGINE ───────────────────────────────────────
+  // Era scritta SEI VOLTE anche lei, in DUE versioni: cinque app senza
+  // guardie, Flotta con le guardie E una mappa. Qui c'è il SOPRAINSIEME —
+  // le guardie per tutte, la mappa come parametro — perché la mappa è una
+  // FUNZIONE di Flotta mentre le guardie sono una PROTEZIONE, e solo la
+  // seconda va data a tutti.
+  //
+  // ⚠️ Onestà sulla gravità, misurata il 03/08 prima di irrigidire: NESSUNA
+  // app chiama oggi `go()` verso una pagina che non esiste. Le guardie
+  // servono contro l'id di DOMANI — senza, la riga solleva un errore e la
+  // navigazione si ferma lì: schermo fermo, nessun messaggio.
+  var navDi = null;   // (id) -> id della voce di navigazione da accendere
+  function go(id) {
+    document.querySelectorAll(".page").forEach(function (p) { p.classList.remove("active"); });
+    document.querySelectorAll(".nav button").forEach(function (b) { b.classList.remove("active"); });
+    var pag = document.getElementById("page-" + id);
+    if (pag) pag.classList.add("active");
+    // Alcune pagine non hanno una voce loro nella pillola (in Flotta la scheda
+    // del mezzo e l'ordine di lavoro): ci si arriva da dentro, e allora resta
+    // acceso il segnalibro del PADRE. Chi non passa `navDi` accende `nav-<id>`.
+    var voce = navDi ? navDi(id) : id;
+    var nav = voce ? document.getElementById("nav-" + voce) : null;
+    if (nav) nav.classList.add("active");
+    window.scrollTo(0, 0);
+  }
 
   // ── TOAST ───────────────────────────────────────────────────────────
   // La durata cresce coi messaggi lunghi: 2,8 s per una riga, 4,2 s per un
@@ -126,6 +154,9 @@
   // giusto che resti un parametro.
   function dwUiAggancia(opz) {
     var o = opz || {};
+    // la mappa della navigazione, per le app che hanno pagine senza una voce
+    // loro nella pillola. Chi non la passa accende `nav-<id>`, come sempre.
+    if (typeof o.navDi === "function") navDi = o.navDi;
 
     // toccando fuori dalla modale, o con Escape, si preme il PRIMO pulsante
     // del piede — che per convenzione è quello che annulla
@@ -167,6 +198,7 @@
     }, { passive: true });
   }
 
+  window.go = go;
   window.toast = toast;
   window.apriModale = apriModale;
   window.chiudiModale = chiudiModale;

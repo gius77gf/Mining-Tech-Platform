@@ -1154,20 +1154,6 @@ label.item:has(.dw-chk:checked){
 <!-- foglio di stampa: vuoto sullo schermo, si riempie un attimo prima di stampare -->
 <div id="stampa" aria-hidden="true"></div>
 
-<script>
-  function go(id) {
-    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-    document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
-    document.getElementById("page-" + id).classList.add("active");
-    document.getElementById("nav-" + id).classList.add("active");
-    window.scrollTo(0, 0);
-  }
-
-  /* ── La struttura del core (toast, modale, conferma, alone) sta in
-     `shared/dw-app-ui.js`, in un posto solo: era scritta SEI VOLTE.
-     docs/LA_STRUTTURA_DEL_CORE_SCRITTA_SEI_VOLTE.md ───────────────────── */
-
-</script>
 
 <script type="module">
   import { contiData, giorni, kpiFrom, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, parseFattureCsv, parseGareCsv, parseListinoCsv, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,

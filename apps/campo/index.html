@@ -822,20 +822,6 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
      rimpicciolito dal canvas; nessun servizio esterno, nessun caricamento -->
 <input type="file" id="foto-file" accept="image/*" style="display:none;">
 
-<script>
-  function go(id) {
-    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-    document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
-    document.getElementById("page-" + id).classList.add("active");
-    document.getElementById("nav-" + id).classList.add("active");
-    window.scrollTo(0, 0);
-  }
-
-  /* ── La struttura del core (toast, modale, conferma, alone) sta in
-     `shared/dw-app-ui.js`, in un posto solo: era scritta SEI VOLTE.
-     docs/LA_STRUTTURA_DEL_CORE_SCRITTA_SEI_VOLTE.md ───────────────────── */
-
-</script>
 
 <script type="module">
   import { campoData, kpiFrom, parsePianoCsv, mappaPianoCsv, foriRipetuti, parseSquadreCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, fermiPerGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,

@@ -1717,7 +1717,11 @@ console.log("\n── Regola 17: la struttura del core non si riscrive in casa �
    L'elenco `COPIA_PROPRIA` non è un permesso: è il conto di quanto lavoro
    resta, e deve accorciarsi. Se una superficie ne esce (è passata al
    condiviso) il controllo lo dice; se ne entra una nuova, fallisce. */
-const UI_CONDIVISA = ["toast", "apriModale", "chiudiModale", "chiedi", "chiediValore"];
+/* `go` è entrato il 03/08, il giorno dopo le altre cinque: era la SECONDA metà
+   della struttura, sei copie in due versioni — cinque senza guardie e Flotta
+   con guardie e mappa. Nella versione condivisa ci sono le guardie per tutti e
+   la mappa come parametro. */
+const UI_CONDIVISA = ["go", "toast", "apriModale", "chiudiModale", "chiedi", "chiediValore"];
 const RE_UI_DEF = new RegExp(
   `\\b(?:function\\s+(?:${UI_CONDIVISA.join("|")})\\s*\\(`
   + `|(?:const|let|var)\\s+(?:${UI_CONDIVISA.join("|")})\\s*=\\s*(?:function\\b|\\(|async\\b))`, "g");

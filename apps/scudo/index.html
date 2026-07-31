@@ -1060,23 +1060,6 @@
      che esce dalla stampante (regole in @media print). -->
 <div id="verbale" aria-hidden="true"></div>
 
-<script>
-  function go(id) {
-    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-    document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
-    document.getElementById("page-" + id).classList.add("active");
-    document.getElementById("nav-" + id).classList.add("active");
-    window.scrollTo(0, 0);
-  }
-
-  /* ── La struttura del core (toast, modale, conferma, alone) sta in
-     `shared/dw-app-ui.js`, in un posto solo. Era scritta SEI VOLTE, una per
-     app, e quella di Scudo si era già staccata: aveva il quarto parametro
-     `opzioni.autofocus`, che adesso è nella versione condivisa perché è un
-     soprainsieme e serve a chi compila a tocchi.
-     docs/LA_STRUTTURA_DEL_CORE_SCRITTA_SEI_VOLTE.md ───────────────────── */
-
-</script>
 
 <script type="module">
   import { scudoData, statoScadenza, inTurnoOggi, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, parseScadenzeCsv, parseLavoratoriCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, azioniUrgenti, riepilogoAzioni, azioniDiEvento,

@@ -993,26 +993,6 @@
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script>
-  function go(id) {
-    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-    document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
-    const pag = document.getElementById("page-" + id);
-    if (pag) pag.classList.add("active");
-    // La scheda del mezzo e l'ordine di lavoro non hanno una voce loro nella
-    // pillola di navigazione (che resta di sei voci, come dev'essere): ci si
-    // arriva dal parco mezzi e dall'officina, ed è lì che resta acceso il
-    // segnalibro.
-    const nav = document.getElementById("nav-" + (id === "sch" ? "mez" : id === "odl" ? "man" : id));
-    if (nav) nav.classList.add("active");
-    window.scrollTo(0, 0);
-  }
-
-  /* ── La struttura del core (toast, modale, conferma, alone) sta in
-     `shared/dw-app-ui.js`, in un posto solo: era scritta SEI VOLTE.
-     docs/LA_STRUTTURA_DEL_CORE_SCRITTA_SEI_VOLTE.md ───────────────────── */
-
-</script>
 
 <script type="module">
   import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, scaricoGiacenza, parseTelemetriaCsv, parseMezziCsv, parseRicambiCsv, ripartizioneCosti, costoOfficinaPerMezzo, prioritaOperative,
@@ -1034,7 +1014,7 @@
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
-  dwUiAggancia({ alone: ".item,.kpi" });
+  dwUiAggancia({ navDi: (id) => (id === "sch" ? "mez" : id === "odl" ? "man" : id), alone: ".item,.kpi" });
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));

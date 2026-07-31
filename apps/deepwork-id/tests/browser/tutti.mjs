@@ -39,6 +39,8 @@ const BANCHI = [
   ['id unici · controprova', 'id-unici.mjs', ['--controprova'], true],
   ['bersagli degli stati vuoti', 'vuoti-azione.mjs', []],
   ['bersagli · controprova', 'vuoti-azione.mjs', ['--controprova'], true],
+  ['navigazione fra le pagine', 'navigazione.mjs', []],
+  ['navigazione · controprova', 'navigazione.mjs', ['--senza-guardie'], true],
 ];
 
 async function rispondePorta(porta) {
