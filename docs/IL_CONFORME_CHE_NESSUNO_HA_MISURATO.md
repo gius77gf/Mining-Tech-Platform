@@ -161,6 +161,28 @@ Il **primo** test è il numero 2, non il numero 1: la correzione più facile da
 sbagliare qui è quella che, per non dire «Conforme» a vuoto, smette di dirlo
 anche a chi ha misurato zero.
 
+### Scritte **prima** della correzione, e già provate a fallire
+
+Le sei sono state scritte e lanciate sul modulo **non ancora corretto**:
+**cinque cadono**, ognuna col messaggio che nomina il suo caso, e la sesta —
+la numero 2, quella che protegge lo zero misurato — **passa, e deve passare
+anche dopo**. È il modo di non scrivere le prove *addosso* al comportamento
+appena ottenuto.
+
+E una delle sei è stata **rifatta**, perché passava già oggi:
+
+> La prima versione della numero 6 diceva «un punto mai misurato non diventa il
+> punto messo peggio» e confrontava i due `ratio`. Passava, e **non perché il
+> codice fosse a posto**: `0 > 1,6` è falso esattamente come `null > 1,6`. È il
+> **caso (1)** della tassonomia in `CLAUDE.md` — i dati della prova facevano
+> **coincidere** la risposta giusta con quella sbagliata.
+
+Al suo posto una prova che distingue davvero **e** difende una regola di casa:
+`statoMisura` deve usare **lo stesso vocabolario** di `statoRigaProgramma`
+(`stato: "mai"`, «Mai misurato», `cls: "warn"`). Due funzioni della stessa app
+non possono chiamare la stessa idea in due modi — è la duplicazione che questa
+settimana è già costata una giornata.
+
 ---
 
 ## Gli altri otto candidati: perché non sono difetti
