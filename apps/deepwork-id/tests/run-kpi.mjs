@@ -2049,6 +2049,56 @@ test("le voci che Flotta registra già sono marcate, per non contarle due volte"
   ok(ponti.VOCI_COSTO.some(v => v.chiave === "personale" && !v.daMezzo),
     "e il personale NON viene dal registro dei mezzi: è la voce che manca a Flotta");
 });
+console.log("\n— Il registro costi: totali per gruppo e costo al metro cubo —");
+const COSTI = [
+  { voce: "carburante", importo: 1000, data: "2026-03-01" },
+  { voce: "personale", importo: 5000, data: "2026-03-15" },
+  { voce: "inventata", importo: 200, data: "2026-03-20" },
+  { voce: "energia", importo: 800, data: null },          // senza data
+  { voce: "canone", importo: 300, data: "2026-02-10" },   // fuori periodo
+  { voce: "generali", importo: -50, data: "2026-03-05" }, // importo non positivo
+];
+test("i totali si dividono per gruppo, e il periodo taglia davvero", () => {
+  const r = conti.riepilogoCosti(COSTI, "2026-03-01", "2026-03-31");
+  eq(r.totale, 6200, "1000 + 5000 + 200");
+  eq(r.perGruppo.mezzi, 1000, "il carburante è del mezzo");
+  eq(r.perGruppo.produzione, 5000, "il personale è produzione");
+  eq(r.conto, 3, "tre righe nel periodo");
+  ok(!("concessione" in r.perGruppo), "il canone di febbraio resta fuori");
+});
+test("⛔ una voce sconosciuta si conta a parte, non finisce in un gruppo qualsiasi", () => {
+  const r = conti.riepilogoCosti(COSTI, "2026-03-01", "2026-03-31");
+  eq(r.nonClassificate, 1, "una riga non classificata");
+  eq(r.importoNonClassificate, 200, "e il suo importo è dichiarato");
+  eq(r.perGruppo["non-classificata"], 200, "sta in un gruppo suo, visibile");
+});
+test("⛔ le voci SENZA DATA non spariscono da un periodo: si contano a parte", () => {
+  /* escluderle e tacere farebbe risultare il mese più economico di quello che
+     è — un totale tranquillo ottenuto lasciando fuori ciò che non si sapeva
+     dove mettere */
+  eq(conti.riepilogoCosti(COSTI, "2026-03-01", "2026-03-31").senzaData, 1, "dichiarata");
+  eq(conti.riepilogoCosti(COSTI).senzaData, 0, "senza periodo non c'è niente da dichiarare");
+  eq(conti.riepilogoCosti(COSTI).totale, 7300, "e senza periodo entrano tutte (meno la negativa)");
+});
+test("gli importi non positivi non entrano nei totali", () => {
+  ok(!Object.keys(conti.riepilogoCosti(COSTI).perGruppo).includes("generali"),
+    "il -50 non crea un gruppo");
+});
+test("⛔ senza il volume il costo al metro cubo NON si calcola", () => {
+  for (const v of [null, 0, "", NaN, -5]) {
+    const r = conti.costoPerMetroCubo(COSTI, v);
+    eq(r.calcolabile, false, "su volume=" + JSON.stringify(v));
+    eq(r.costoM3, null, "nessun numero inventato");
+    ok(/volume estratto/.test(r.motivo), "e la ragione dice quale dato manca");
+  }
+  ok(conti.costoPerMetroCubo(COSTI, null).totale > 0, "ma il totale dei costi c'è comunque");
+});
+test("col volume il costo al metro cubo esce, e usa il totale del periodo", () => {
+  const r = conti.costoPerMetroCubo(COSTI, 1000, "2026-03-01", "2026-03-31");
+  eq(r.calcolabile, true, "si calcola");
+  eq(r.costoM3, 6.2, "6.200 € su 1.000 m³");
+  eq(r.volumeM3, 1000, "e il denominatore è dichiarato");
+});
 test("prioritaOperative: manutenzione a ore su un mezzo assente viene ignorata (non crasha)", () => {
   const p = flotta.prioritaOperative(
     [{ nome: "Escavatore E1 — CAT 352", ore: 100, stato: "operativo" }],

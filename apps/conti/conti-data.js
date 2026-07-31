@@ -44,7 +44,12 @@ import { provenienzaDi, misuratoPeriodo } from "../../shared/dw-ponti.js";
 /* la classificazione dei costi vive in shared/ perché serve anche a Flotta:
    qui si RI-ESPORTA, non si riscrive. Un alias non è una seconda
    implementazione — è la regola che è costata una giornata sui numeri. */
+/* ⚠️ `export … from` RI-ESPORTA ma NON lega il nome in questo modulo: è un
+   passaggio, non un import. `riepilogoCosti` qui sotto usa `gruppoDiVoce`,
+   quindi serve anche l'import vero — con `export … from` da solo il modulo
+   si carica e muore alla prima chiamata, senza errori di sintassi. */
 export { VOCI_COSTO, voceCosto, gruppoDiVoce } from "../../shared/dw-ponti.js";
+import { gruppoDiVoce } from "../../shared/dw-ponti.js";
 
 export const DEMO = {
   // fatture d'esempio: alcune già collegate all'anagrafica (clienteId), altre
@@ -1673,4 +1678,53 @@ export function notaDaFattura(fattura, causale, importo, numero) {
     aliquotaIva: imp.aliquota,
     integrale: Math.abs(totale - imp.totale) < 0.005,
   };
+}
+
+// ============================================================
+// IL REGISTRO COSTI DELLA CAVA — totali per gruppo, e il costo al metro cubo
+// ------------------------------------------------------------
+// La classificazione sta in `shared/dw-ponti.js` (ri-esportata qui sopra): qui
+// ci sono i due conti che ne discendono.
+export function riepilogoCosti(costi, dal = "", al = "") {
+  const d1 = String(dal || ""), d2 = String(al || "");
+  const dentro = (c) => {
+    const d = String(c && c.data || "").slice(0, 10);
+    if (!d1 && !d2) return true;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false;   // senza data non si può collocare
+    return (!d1 || d >= d1) && (!d2 || d <= d2);
+  };
+  const righe = (costi || []).filter(c => c && +c.importo > 0);
+  const nelPeriodo = righe.filter(dentro);
+  const perGruppo = {};
+  let totale = 0, nonClassificate = 0, importoNonClassificate = 0;
+  for (const c of nelPeriodo) {
+    const g = gruppoDiVoce(c.voce);
+    const imp = round2(+c.importo || 0);
+    perGruppo[g] = round2((perGruppo[g] || 0) + imp);
+    totale = round2(totale + imp);
+    if (g === "non-classificata") { nonClassificate++; importoNonClassificate = round2(importoNonClassificate + imp); }
+  }
+  /* ⛔ le voci SENZA DATA non spariscono: si contano a parte. Escluderle da un
+     periodo e non dirlo farebbe risultare un mese più economico di quello che è,
+     ed è la forma esatta del principio — un totale tranquillo ottenuto
+     lasciando fuori quello che non si sapeva dove mettere. */
+  const senzaData = righe.length - righe.filter(c => /^\d{4}-\d{2}-\d{2}$/.test(String(c.data || "").slice(0, 10))).length;
+  return { totale, perGruppo, conto: nelPeriodo.length,
+           nonClassificate, importoNonClassificate,
+           senzaData: (d1 || d2) ? senzaData : 0 };
+}
+
+// ⛔ E IL COSTO AL METRO CUBO NON SI CALCOLA SENZA I METRI CUBI. È la stessa
+// forma degli indici infortunistici: il denominatore è il dato che manca più
+// spesso, e inventarlo (o peggio, trattarlo come 1) darebbe un costo unitario
+// che sembra una misura. Qui il travestimento sarebbe un numero BASSO, cioè la
+// notizia che chi guarda vuole leggere.
+export function costoPerMetroCubo(costi, volumeM3, dal = "", al = "") {
+  const r = riepilogoCosti(costi, dal, al);
+  const v = +volumeM3;
+  if (!(Number.isFinite(v) && v > 0))
+    return { ...r, volumeM3: null, costoM3: null, calcolabile: false,
+      motivo: "Serve il volume estratto nel periodo: senza, il costo al metro cubo non si "
+        + "calcola. Il volume arriva dai rilievi di Terra, o si scrive a mano." };
+  return { ...r, volumeM3: v, costoM3: round2(r.totale / v), calcolabile: true, motivo: "" };
 }
