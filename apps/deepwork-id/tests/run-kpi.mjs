@@ -5134,5 +5134,139 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ IL REFERTO DEL SISMOGRAFO CHE TARA LA LEGGE DI SITO ════════════════
+   Da queste volate Genesi ricava K e β, e da K e β dipendono **le distanze di
+   sicurezza**. È il posto in tutto l'ecosistema dove un numero finto fa più
+   danno: non produce un report brutto, produce una distanza di sicurezza
+   sbagliata.
+
+   Il vincolo più importante è uno solo, ed è quello che queste prove
+   difendono: **una volata PREVISTA non diventa mai un referto.** Nemmeno se
+   porta una PPV prevista, nemmeno se ha distanza e carica. Se dentro la
+   regressione entrasse un valore *previsto* al posto di uno *misurato*, la
+   legge di sito confermerebbe sé stessa e le distanze uscirebbero da un
+   calcolo circolare — un numero che sembra misurato e non lo è. */
+{
+  const vol = (o) => ({ id: "v1", data: "2026-07-10", fronte: "Fronte A",
+    distanzaRicettore: 200, kgMaxRitardo: 50, ppvMisurata: 3.2, ppvFonte: "strumento",
+    ppvPuntoId: "p1", ppvPuntoNome: "Casa Rossi", ppvData: "2026-07-10", ppvOra: "10:30", ...o });
+
+  test("referto: una volata completa è pronta, con i suoi tre numeri", () => {
+    const r = sentinella.refertoDaVolata(vol());
+    eq(r.pronto, true, "pronta");
+    eq(r.motivi.length, 0, "niente da chiedere");
+    eq(r.ppv, 3.2, "la PPV misurata");
+  });
+  test("⛔ referto: una volata PREVISTA non è un referto, nemmeno con tutto il resto", () => {
+    /* il vincolo T9: con una PPV prevista dentro la regressione, la legge di
+       sito confermerebbe sé stessa e le distanze di sicurezza uscirebbero da
+       un calcolo circolare */
+    const r = sentinella.refertoDaVolata(vol({ stato: "prevista" }));
+    eq(r.pronto, false, "non è un referto");
+    eq(r.ppv, null, "e la PPV che porta con sé non viene nemmeno letta");
+  });
+  test("⛔ referto: alla volata prevista si chiede UNA cosa sola: che sia stata sparata", () => {
+    /* elencarle anche gli altri dati mancanti chiederebbe di riempire una PPV
+       che non può ancora esistere */
+    const r = sentinella.refertoDaVolata(vol({ stato: "prevista", ppvMisurata: 0, distanzaRicettore: 0, kgMaxRitardo: 0 }));
+    eq(r.motivi.join(","), "prevista", "un motivo solo, e dice il fatto che manca");
+  });
+  test("referto: quello che manca si dice tutto insieme, non uno alla volta", () => {
+    const r = sentinella.refertoDaVolata({ id: "v9", data: "2026-01-01" });
+    eq(r.motivi.join(","), "ppv,distanza,carica", "tre mancanze, tre motivi");
+  });
+  test("⛔ referto: una volata vecchia non porta una PPV finta", () => {
+    /* registrata prima che quei campi esistessero: null, non zero */
+    eq(sentinella.ppvDiVolata({ id: "v" }), null, "niente PPV");
+    eq(sentinella.ppvDiVolata({ ppvMisurata: 0 }), null, "e zero non è una misura");
+    eq(sentinella.ppvDiVolata({ ppvMisurata: -1 }), null, "nemmeno un valore negativo");
+  });
+  test("⛔ referto: la PPV a mano non si porta dietro una provenienza che non ha", () => {
+    /* «trascritta dal referto» significa che il punto di misura non lo
+       sappiamo: tenerne uno vecchio farebbe risalire alla casa sbagliata */
+    const c = sentinella.campiPpvVolata(3.25, { fonte: "manuale", puntoId: "p1", punto: "Casa", ora: "10:30", data: "2026-07-10" });
+    eq(c.ppvPuntoId, "", "nessun punto");
+    eq(c.ppvPuntoNome, "", "nessun nome");
+    eq(c.ppvOra, "", "nessuna ora");
+    eq(c.ppvData, "2026-07-10", "la data invece resta: quella la sappiamo");
+  });
+  test("referto: la PPV dal sismografo tiene punto, nome e ora", () => {
+    const c = sentinella.campiPpvVolata(3.25678, { fonte: "strumento", puntoId: "p1", punto: "Casa", ora: "10:30", data: "2026-07-10" });
+    eq(c.ppvPuntoNome, "Casa", "il punto");
+    eq(c.ppvMisurata, 3.2568, "e il valore a quattro decimali, come lo strumento");
+  });
+  test("⛔ referto: togliere una PPV azzera anche la sua provenienza", () => {
+    /* mai il valore senza la sua provenienza, e mai la provenienza senza il
+       valore: resterebbe un numero che dice di venire da un punto che non l'ha
+       mai misurato */
+    const v = Object.values(sentinella.CAMPI_PPV_VUOTI);
+    eq(v.length, 6, "sei campi");
+    eq(v.every((x) => x === "" || x === 0), true, "e si azzerano tutti insieme");
+  });
+  test("referto: da dove viene la PPV si dice sempre con le stesse parole", () => {
+    eq(sentinella.testoFontePpv(sentinella.ppvDiVolata(vol())), "sismografo · Casa Rossi · 10:30", "dal sismografo");
+    eq(sentinella.testoFontePpv(sentinella.ppvDiVolata(vol({ ppvFonte: "manuale" }))),
+       "trascritta a mano dal referto", "a mano");
+    eq(sentinella.testoFontePpv(null), "", "e senza PPV non si scrive niente");
+  });
+  test("referto: il riferimento permette di risalire alla volata dalla riga della regressione", () => {
+    eq(sentinella.riferimentoReferto(sentinella.refertoDaVolata(vol())),
+       "Volata 10/07/2026 · Fronte A · Casa Rossi", "data, fronte e punto");
+  });
+
+  test("⛔ candidate: solo le letture di VIBRAZIONE di quel giorno", () => {
+    const mons = [
+      { id: "p1", nome: "Casa", tipo: "vibrazioni", unita: "mm/s",
+        letture: [{ data: "2026-07-10", valore: 3.2, ora: "10:30" }, { data: "2026-07-10", valore: 5.1 }, { data: "2026-07-09", valore: 9 }] },
+      { id: "p2", nome: "Rumore", tipo: "rumore", letture: [{ data: "2026-07-10", valore: 70 }] }];
+    const c = sentinella.lettureVibrazioniDelGiorno(mons, "2026-07-10");
+    eq(c.length, 2, "due: il rumore non è una PPV e il giorno prima non è quel giorno");
+    eq(c[0].valore, 5.1, "e in cima la più alta, che è quella che conta per la conformità");
+  });
+  test("⛔ candidate: un punto che non misura in mm/s è marcato, non silenziato", () => {
+    /* il numero c'è ma NON è una PPV: la scheda lo mostra a parte invece di
+       farlo scegliere, e nasconderlo lascerebbe l'utente a chiedersi dove è
+       finita la sua lettura */
+    const c = sentinella.lettureVibrazioniDelGiorno(
+      [{ id: "p3", nome: "Altro", tipo: "vibrazioni", unita: "dB", letture: [{ data: "2026-07-10", valore: 99 }] }],
+      "2026-07-10");
+    eq(c.length, 1, "c'è");
+    eq(c[0].unitaOk, false, "ma è marcato come non utilizzabile come PPV");
+  });
+  test("candidate: senza una data vera non si propone niente", () => {
+    eq(sentinella.lettureVibrazioniDelGiorno([], "boh").length, 0, "elenco vuoto");
+  });
+
+  test("⛔ registro: prima ciò su cui c'è da lavorare, poi il fatto più recente", () => {
+    const reg = sentinella.refertiDaVolate([
+      vol({ id: "a", data: "2026-07-01" }), vol({ id: "b", data: "2026-07-20" }),
+      vol({ id: "c", data: "2026-07-15", ppvMisurata: 0 }), vol({ id: "d", stato: "prevista" })]);
+    eq(reg.tutti.map((r) => r.id).join(","), "c,d,b,a", "le due incomplete davanti, poi le pronte dalla più recente");
+    eq(reg.nPronti, 2, "due pronte");
+    eq(reg.motivi.ppv, 1, "e il conto di cosa manca, per dirlo una volta sola");
+    eq(reg.motivi.prevista, 1, "compresa quella ancora da sparare");
+  });
+  test("⛔ registro: sotto tre referti si dice quanti ne mancano, non «non si può»", () => {
+    const reg = sentinella.refertiDaVolate([vol({ id: "a" }), vol({ id: "b", data: "2026-07-02" })]);
+    eq(reg.abbastanza, false, "due non bastano");
+    eq(reg.mancanoAlMinimo, 1, "e ne manca uno: è un numero, non un muro");
+  });
+  test("⛔ registro: senza escursione di distanza scalata la pendenza non è ricavabile", () => {
+    /* tre volate identiche danno tre volte lo stesso punto: da lì passa
+       qualunque retta, e la legge uscirebbe da un calcolo che non ha misurato
+       niente. Meglio dirlo prima dell'export che dopo il rifiuto */
+    const uguali = sentinella.refertiDaVolate([vol({ id: "a" }), vol({ id: "b" }), vol({ id: "c" })]);
+    eq(uguali.escursione, 1, "nessuna escursione");
+    const diverse = sentinella.refertiDaVolate([
+      vol({ id: "a", distanzaRicettore: 100 }), vol({ id: "b", distanzaRicettore: 400 }), vol({ id: "e" })]);
+    eq(Math.round(diverse.escursione * 100) / 100, 4, "quattro volte fra la più vicina e la più lontana");
+  });
+  test("registro: ogni motivo dice anche come si rimedia", () => {
+    eq(sentinella.MOTIVI_REFERTO.every((m) => m.come && m.etichetta && m.breve), true,
+       "un elenco di mancanze senza il rimedio lascia l'utente fermo");
+    eq(sentinella.motivoReferto("boh").etichetta, "Dato mancante", "e un motivo sconosciuto non rompe la pagina");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
