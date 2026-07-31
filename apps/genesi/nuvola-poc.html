@@ -231,7 +231,19 @@ function updateCrop(){
          Da oggi il numero scelto almeno si CONSERVA. */
       const _cella = Math.max(0.25, Math.min(2,(x1-x0)/60));
       const v=volumeCumulo(sel, _cella);
-      volTxt=' · volume ≈ <b style="color:var(--tx)">'+Math.round(v.volume).toLocaleString('it-IT')+(_georef?' m³':' u³')+'</b> <span style="color:var(--mut)">(griglia, base piana — stima)</span>';
+      /* ⛔ IL LATO CELLA SI VEDE. Era la scelta più pesante del calcolo — vale
+         il 22% fra 0,25 m e 2 m — e la faceva il software, in silenzio, dalla
+         larghezza del ritaglio: nessuno poteva sapere che allargare il taglio
+         gonfia il volume. Adesso il numero sta accanto al volume, con la quota
+         di base che lo accompagna: sono i due valori che rendono la stima
+         rifacibile, e il verbale li stampa entrambi.
+         Perché il verso è quello: di ogni cella si prende la quota MASSIMA,
+         quindi più la cella è grossa più la superficie viene tirata verso
+         l'alto. Su una forma convessa il segno non cambia. */
+      volTxt=' · volume ≈ <b style="color:var(--tx)">'+Math.round(v.volume).toLocaleString('it-IT')+(_georef?' m³':' u³')+'</b>'
+        +' <span style="color:var(--mut)">(griglia '+_cella.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:false})+' m'
+        +(Number.isFinite(v.zBase)?', base '+v.zBase.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:true})+(_georef?' m':' u'):'')
+        +' — stima)</span>';
       try{ const k='genesiNuvole', a=JSON.parse(localStorage.getItem(k)||'[]');
         if(a.length){ a[a.length-1].volume=Math.round(v.volume)+(_georef?'':' u³');
           /* il conto che sta DAVVERO accanto al volume: i punti dentro il
