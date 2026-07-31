@@ -4512,5 +4512,51 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ IL PROSSIMO TAGLIANDO — DA DOVE RIPARTE IL CONTO ═══════════════════
+   `prossimoTagliando` decide quando un mezzo andrà fermato per la
+   manutenzione. La regola scritta nel modulo, e che qui si blocca:
+
+   > si riparte dalle ore che il mezzo ha **adesso**, non da quelle previste.
+
+   Se il tagliando dei 6000 h è stato fatto a **6040**, il prossimo cade a
+   6040 + passo. Ripartire dalle 6000 previste vorrebbe dire che ogni ritardo
+   si accumula in silenzio: dopo cinque tagliandi il mezzo gira con duecento
+   ore di manutenzione arretrata, e il piano continua a dire che è a posto.
+
+   E i decimi: i contaore contano i decimi, quindi 5875,5 non diventa 5876 —
+   scriveremmo «il contatore segna adesso 5.876 ore», un numero che quel
+   contatore non ha mai detto. */
+{
+  const pt = flotta.prossimoTagliando;
+
+  test("⛔ tagliando a ore: si riparte dalle ore VERE, non da quelle previste", () => {
+    const r = pt({ titolo: "Tagliando 500h", mezzo: "Dumper D4", ogniOre: 500 }, 6040, "2026-07-01");
+    eq(r.orePreviste, 6540, "6040 (le ore vere) + 500, non 6000 + 500");
+    eq(r.oreBase, 6040, "e si dichiara da quali ore si è ripartiti");
+    eq(r.da, "ore", "il criterio è quello a ore");
+  });
+  test("tagliando a ore: i decimi del contatore non si arrotondano all'ora", () => {
+    const r = pt({ titolo: "T", ogniOre: 500 }, 5875.5, "2026-07-01");
+    eq(r.oreBase, 5875.5, "il contatore segna 5875,5 e resta 5875,5");
+  });
+  test("tagliando a calendario: dalla data di chiusura più i mesi del passo", () => {
+    const r = pt({ titolo: "Revisione", ogniMesi: 12 }, null, "2026-07-01");
+    eq(r.dataPrevista, "2027-07-01", "un anno dopo la chiusura");
+    eq(r.da, "mesi", "il criterio è quello a calendario");
+    eq(r.orePreviste, null, "e non si mette anche una soglia a ore");
+  });
+  test("tagliando: senza passo non si programma niente", () => {
+    /* comportamento dichiarato: una manutenzione una tantum non genera il
+       prossimo appuntamento, e inventarlo riempirebbe lo scadenzario di
+       scadenze che nessuno ha chiesto */
+    eq(pt({ titolo: "Riparazione una tantum" }, 6040, "2026-07-01"), null, "nessun passo, nessun piano");
+  });
+  test("tagliando a ore: senza il contatore non si programma a ore", () => {
+    eq(pt({ titolo: "T", ogniOre: 500 }, null, "2026-07-01"), null,
+       "senza le ore attuali il conto non si può fare, e non si tira a indovinare");
+    eq(pt({ titolo: "T", ogniOre: 500 }, -1, "2026-07-01"), null, "e un contatore negativo non è un contatore");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);

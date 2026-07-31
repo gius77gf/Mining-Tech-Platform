@@ -1142,6 +1142,15 @@ export function prossimoTagliando(man, oreAttuali, dataChiusura) {
     // un decimo di ora, non un'ora intera: i contaore contano i decimi, e
     // arrotondare 5875,5 a 5876 farebbe scrivere nella finestra «il contatore
     // segna adesso 5.876 ore» — un numero che il contatore non ha mai detto
+    /* ⚠️ `oreAttuali == null` VA ESCLUSO PRIMA, perché `+null` fa **0** e
+       `Number.isFinite(0)` risponde true: senza questa riga un mezzo **senza
+       contaore** riceveva il piano a «0 + passo», e la finestra gli diceva
+       «il contatore segna adesso 0 ore» — una frase falsa su un numero che
+       quel contatore non ha mai dato. È lo stesso `+null === 0` che in questo
+       progetto è già costato una volta (la base d'asta delle gare in Conti):
+       la forma sbagliata non è `Number.isFinite(x)`, è `Number.isFinite(+x)`
+       su un valore che può essere nullo. Trovato il 01/08 da una prova nuova. */
+    if (oreAttuali == null || oreAttuali === "") return null;
     const ore = Math.round(+oreAttuali * 10) / 10;
     if (!Number.isFinite(ore) || ore < 0) return null;
     return { ...base, orePreviste: ore + ogniOre, dataPrevista: null, da: "ore", oreBase: ore };

@@ -2596,7 +2596,14 @@
   // campo chiude il piano, senza dover cercare dove si fa.
   async function ripianificaTagliando(n) {
     const mezzoDi = MEZ.find(x => nomeBreve(x.nome) === nomeBreve(n.mezzo));
-    const px = prossimoTagliando(n, mezzoDi ? (+mezzoDi.ore || 0) : NaN, oggiISO());
+    /* ⚠️ NIENTE `|| 0` SULLE ORE MOTORE. Un mezzo senza contaore non ha zero
+       ore: non si sa quante ne ha. Con lo zero di comodo la finestra diceva
+       «il contatore segna adesso 0 ore» e proponeva il tagliando a 500, su una
+       macchina che poteva essere a seimila. Si passa il valore com'è (o NaN) e
+       decide la funzione, che quel caso lo sa gestire. */
+    const oreMezzo = mezzoDi && Number.isFinite(+mezzoDi.ore) && mezzoDi.ore != null
+      ? +mezzoDi.ore : NaN;
+    const px = prossimoTagliando(n, oreMezzo, oggiISO());
     if (px && px.da === "ore") {
       const nx = await chiediNumero("Il prossimo tagliando",
         `<b>${esc(n.titolo)} — ${esc(n.mezzo)}</b> si ripete <b>ogni ${numTx(px.ogniOre)} ore</b>.<br>
