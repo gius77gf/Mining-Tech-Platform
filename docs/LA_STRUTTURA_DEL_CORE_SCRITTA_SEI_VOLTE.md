@@ -400,6 +400,32 @@ muove per sezioni `data-scr` con la sua barra in basso. Non è una copia che si
 è staccata, è un'altra cosa — e va scritto, se no la prossima lettura conta una
 duplicazione che non c'è.
 
+### Il banco che dirà se l'unità A è fatta bene — scritto **prima**
+
+`apps/deepwork-id/tests/browser/genesi-struttura.mjs`. Le tre trappole di questa
+migrazione **non sono errori di sintassi**: la pagina si apre lo stesso in tutti
+e tre i casi. Quindi il controllo non può essere statico, deve **toccare la
+pagina**:
+
+| prova | quale trappola coglie |
+|---|---|
+| i **sette** id dell'editor 3D ci sono ancora | la sostituzione `mdl` → `modal` fatta a tappeto |
+| il **cancello di consenso** esiste, si sblocca con la casella, e dice ancora «**vietato** … sgombero» | l'id `modal` rubato all'avvertenza di sicurezza |
+| il campo della richiesta del nome è **precompilato** col nome proposto | `chiediValore` col terzo parametro incompatibile — quello che **compila in silenzio** |
+
+più il condiviso caricato, le cinque funzioni globali, il toast che compare, la
+modale che si apre e si chiude con Escape.
+
+Ha una **controprova incorporata** (`--prima`): il server rimette gli id `mdl*`
+e toglie il `<script>` del condiviso **nella risposta HTTP**, senza toccare il
+file — la regola di `CLAUDE.md` sulle iniezioni — e allora almeno cinque prove
+devono cadere.
+
+⚠️ **Scritto e non ancora eseguito**, e va detto: mentre lo scrivevo girava il
+giro a 25 banchi, e aprire un secondo Chromium avrebbe falsato le sue misure di
+tempo. Va lanciato appena il giro finisce, **prima** di cominciare la migrazione:
+oggi deve fallire (la migrazione non c'è), ed è quella la sua prima prova.
+
 **Unità B — il colore, e non è un lavoro di pulizia.** Perché Genesi possa
 prendere anche il CSS condiviso deve prima **dichiarare** la sua palette con i
 nomi del condiviso — cioè avere una voce in `docs/PALETTE_APP.md` come le
