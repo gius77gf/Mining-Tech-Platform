@@ -792,8 +792,15 @@ campi interi, file delle macchine.
 - [x] **Regola nuova in `CLAUDE.md`**: niente iniezioni di difetti nei moduli
       dati mentre gira un giro del browser — le pagine se li importano. Un giro
       a 19 banchi è stato buttato per questo, ed è un errore mio.
+- [x] ⚠️ **SECONDO DIFETTO DI PRODOTTO**: «il contatore segna adesso 0 ore»
+      era una frase **falsa**. `+null` fa 0 e `Number.isFinite(0)` dice true,
+      quindi un mezzo senza contaore riceveva il tagliando programmato a 500 ore
+      su una macchina che poteva essere a seimila. Stesso `+null === 0` già
+      costato una volta sulla base d'asta delle gare. Corretto nella funzione
+      **e** nella pagina.
 - Regole **14**; stile **149 → 177** prove; banchi del browser **15 → 19**;
-  prove `node` totali **750** (KPI **433 → 491**).
+  prove `node` totali **760** (KPI **433 → 501**), **2 difetti di prodotto**
+  trovati dalle prove nuove.
 
 ### Difetti chiusi il 30/07 (tutti «silenziosi»: nessuno dava errore)
 - [x] La **striscia** e la **pastiglia** di un riquadro dicevano un colore
