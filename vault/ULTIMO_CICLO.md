@@ -5,16 +5,18 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-07-31 21:43 UTC
-**Cosa sta per fare:** il ciclo precedente ha chiuso la giornata su «far entrare
-i dati del cliente e poterli riportare fuori» — doppioni dentro il file, giro di
-andata e ritorno degli export, zeri di comodo, stati vuoti che dicono come si
-comincia. Questo riprende dal «Prossimo passo atomico» dell'ultimo checkpoint:
-leggere il riepilogo del giro a **quindici banchi** del browser (lanciato e in
-corso), poi rifare il conto dei messaggi d'errore «che dicono cosa fare» con la
-sonda buona — quella che conta gli argomenti invece dei caratteri — e da lì
-decidere se ne esce un'unità, senza riscrivere messaggi che vanno già bene.
-**Commit di partenza:** `4f686f0`
+**Ultimo ciclo riuscito:** 2026-08-01 00:07 UTC
+**Cosa sta per fare:** il ciclo precedente ha passato la giornata sui
+**controlli che non guardavano dove credevano** — la regola che vieta i dialoghi
+del browser era cieca su 764 iniezioni su 1030, core compreso, mentre la sua
+controprova diceva «a posto». Da lì: tokenizzatore rifatto, controprove **a
+tappeto** per tutte le regole, banco del contrasto che adesso sa fallire, e il
+segno d'avvio per le otto superfici che hanno un programma.
+Questo ciclo riprende dal «Prossimo passo atomico»: leggere il riepilogo del
+giro a **17 banchi** (lanciato e in corso), poi eseguire per la prima volta il
+banco della **doppia data** — scritto ieri ma volutamente mai lanciato e non
+ancora in elenco — con la sua controprova, e solo dopo metterlo nella suite.
+**Commit di partenza:** `fb9bbb3`
 
 ---
 
