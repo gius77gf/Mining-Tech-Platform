@@ -941,7 +941,7 @@ campi interi, file delle macchine.
       da `toISOString()` su una data costruita in ora locale. Guarda 21 file e
       stampa quanti — e perdona chi entra ed esce in UTC, che è coerente.
 - [x] **Copertura delle funzioni pure, app per app.** Sentinella 77/107, Scudo
-      56/71 *(era 22)*, Campo 65/73 *(era 26)*, Flotta 52/71, Conti 35/58,
+      56/71 *(era 22)*, Campo 65/73 *(era 26)*, Flotta 65/71, Conti 35/58,
       Terra 32/39 *(era 23)*. Nessuna app è più sotto la metà; quello che resta scoperto
       sono quasi solo costanti e trasporto dati.
 - [x] **Il principio usato come lente.** Scritta in `CLAUDE.md` la regola
@@ -983,6 +983,14 @@ campi interi, file delle macchine.
       non c'è **non si propone**, con la media da un episodio solo dichiarata
       fragile. Bloccate anche «2,5 ore» che non diventano 25 e «12,5 litri» che
       non diventano 125. run-kpi **863**, totale node **1.146**.
+- [x] **Il giro macchina e il libretto del mezzo.** 17 prove: un giro con voci
+      senza risposta **non è completo**, una voce di sicurezza «non va» fa
+      scattare il rosso mentre le altre restano un avviso, ogni «non va» apre
+      una manutenzione che **dice da dove viene**, il tipo di mezzo **scelto**
+      batte quello indovinato dal nome, il contaore non torna indietro. run-kpi
+      **880**, totale node **1.163**. Dalla controprova (14/14, ma 13 al primo
+      giro) è uscita una **terza causa** di «non distingue»: l'iniezione che non
+      inietta niente — si guarda l'iniezione, non la prova né il codice.
 
 ---
 
