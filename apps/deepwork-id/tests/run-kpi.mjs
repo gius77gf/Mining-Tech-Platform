@@ -6607,5 +6607,107 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ TERRA: LO SCAVO CONSUMA IL CONCESSO, LA RIPRESA NO ═════════════════
+   È la distinzione che regge tutta l'app, e sta anche nei moduli degli enti:
+   il materiale **tolto dal fronte** consuma il volume autorizzato; quello
+   **ripreso da un cumulo** era già stato estratto e si conta a parte. Contarli
+   insieme farebbe risultare esaurita una concessione che non lo è — o, peggio,
+   nasconderebbe un esaurimento vero sotto un numero gonfiato dai cumuli. */
+{
+  const OGGI = new Date("2026-07-31T12:00:00");
+  const R = (o) => ({ id: "r1", data: "2026-07-01", stato: "elaborato", volumeM3: 10000, fronteId: "f1", ...o });
+  const rilievi = [
+    R({ id: "a", data: "2026-05-01", volumeM3: 5000 }),
+    R({ id: "b", data: "2026-06-01", volumeM3: 8000 }),
+    R({ id: "c", data: "2026-07-01", volumeM3: 12000 }),
+    R({ id: "d", data: "2026-07-15", volumeM3: 50000, provenienza: "cumulo" }),
+    R({ id: "e", data: "2026-07-20", volumeM3: 3000, fronteId: "f2" }),
+    R({ id: "f", data: "2026-07-25", volumeM3: 1000, stato: "da-elaborare" })];
+
+  test("⛔ provenienza: la ripresa dai cumuli si separa dallo scavo", () => {
+    eq(terra.soloCumulo(rilievi).map((r) => r.id).join(","), "d", "solo quello dal cumulo");
+    eq(terra.soloScavo(rilievi).some((r) => r.id === "d"), false, "e lo scavo non lo comprende");
+  });
+  test("provenienza: senza il campo, un rilievo è SCAVO", () => {
+    /* è il valore che consuma il concesso: dare per «cumulo» quello che non è
+       dichiarato farebbe sparire volume vero dal conto della concessione */
+    eq(terra.etichettaProvenienza(""), "Scavo dal fronte", "il valore di partenza");
+    eq(terra.etichettaProvenienza("boh"), "Scavo dal fronte", "e anche una parola sconosciuta");
+    eq(terra.etichettaProvenienza("cumulo"), "Ripresa da un cumulo", "il cumulo va dichiarato");
+  });
+  test("⛔ ritmo: il grafico mensile conta lo SCAVO, non i cumuli ripresi", () => {
+    /* i 50.000 m³ ripresi dal cumulo a luglio raddoppierebbero la barra e
+       farebbero sembrare che si stia scavando il triplo */
+    const m = terra.volumiPerMese(rilievi, 12, OGGI);
+    eq(m.find((x) => x.ym === "2026-07").volume, 15000, "luglio: 12.000 dal fronte f1 più 3.000 da f2");
+    eq(m.map((x) => x.ym).join(","), "2026-05,2026-06,2026-07", "e si parte dal primo mese con dati");
+  });
+  test("ritmo: i mesi vuoti in mezzo restano, quelli davanti no", () => {
+    /* un mese a zero in mezzo è un'informazione (non si è scavato); dodici mesi
+       vuoti prima del primo rilievo sono solo un grafico che comincia lontano */
+    const soloLuglio = terra.volumiPerMese([R({ id: "z", data: "2026-07-10", volumeM3: 100 })], 12, OGGI);
+    eq(soloLuglio.length, 1, "un mese solo");
+  });
+
+  test("⛔ confronto: fra due rilievi si somma quello scavato IN MEZZO", () => {
+    /* la differenza fra i due volumi non è quanto si è scavato: è quanto è
+       cambiato il volume del fronte. Lo scavato è la somma dei rilievi
+       intermedi, ed è quello che consuma la concessione */
+    const c = terra.confrontoRilievi(rilievi, "a", "c");
+    eq(c.giorni, 61, "due mesi fra i due voli");
+    eq(c.scavato, 20000, "8.000 di giugno più 12.000 di luglio");
+    eq(c.rilieviInMezzo, 2, "due rilievi in mezzo");
+    eq(c.delta, 7000, "e la differenza fra i due volumi è un'altra cosa");
+  });
+  test("confronto: l'ordine in cui si scelgono i due rilievi non conta", () => {
+    eq(terra.confrontoRilievi(rilievi, "c", "a").giorni, 61, "si mette in ordine da solo");
+  });
+  test("⛔ confronto: due fronti diversi non si confrontano", () => {
+    /* sarebbe una differenza fra due posti diversi della cava: un numero che
+       non significa niente e che sembra un avanzamento */
+    eq(terra.confrontoRilievi(rilievi, "a", "e"), null, "fronti diversi");
+    eq(terra.confrontoRilievi(rilievi, "a", "a"), null, "e lo stesso rilievo con sé stesso");
+    eq(terra.confrontoRilievi(rilievi, "a", "f"), null, "né uno ancora da elaborare");
+  });
+
+  test("⛔ scadenze: «senza data» non è «a posto» per caso, ed è dichiarato", () => {
+    const l = terra.livelloScadenzaTerra("", 30, OGGI);
+    eq(l.label, "senza data", "lo dice");
+    eq(l.giorni, null, "e non inventa un conto alla rovescia");
+  });
+  test("scadenze: il preavviso lo decide l'utente, e il confine è preciso", () => {
+    /* periodicità e termini cambiano da regione a regione: Terra non li
+       indovina, li applica */
+    eq(terra.statoScadenzaTerra("2026-08-15", 30, OGGI), "in-scadenza", "quindici giorni, preavviso trenta");
+    eq(terra.statoScadenzaTerra("2026-08-15", 0, OGGI), "a-posto", "col preavviso a zero è ancora lontana");
+    eq(terra.statoScadenzaTerra("2026-07-31", 0, OGGI), "in-scadenza", "ma il giorno stesso sì");
+    eq(terra.statoScadenzaTerra("2026-07-30", 30, OGGI), "scaduta", "e ieri è scaduta");
+  });
+  test("scadenze: la frase dice da quanto è scaduta o quanto manca", () => {
+    eq(terra.livelloScadenzaTerra("2026-07-01", 30, OGGI).label, "scaduta da 30 gg", "da quanto");
+    eq(terra.livelloScadenzaTerra("2026-08-15", 30, OGGI).label, "tra 15 gg", "quanto manca");
+    eq(terra.livelloScadenzaTerra("2026-07-31", 30, OGGI).label, "scade oggi", "e oggi si dice oggi");
+  });
+  test("scadenze: il riepilogo conta ogni scadenza una volta sola", () => {
+    const sc = [{ dataScadenza: "2026-07-01", preavvisoGiorni: 30 }, { dataScadenza: "2026-08-15", preavvisoGiorni: 30 },
+      { dataScadenza: "2027-01-01", preavvisoGiorni: 30 }, { dataScadenza: "", preavvisoGiorni: 30 }];
+    const r = terra.riepilogoScadenze(sc, OGGI);
+    eq(r.scadute + r.inScadenza + r.aPosto, r.totale, "la somma torna");
+    eq(r.totale, 4, "e nessuna cade fuori, nemmeno quella senza data");
+  });
+  test("⛔ scadenze: i tipi preimpostati dichiarano di essere da verificare", () => {
+    /* periodicità e termini stanno nell'atto e nella legge regionale: un
+       preset che si desse per certo sarebbe una consulenza sbagliata */
+    eq(terra.presetScadenzaTerra("autorizzazione").daVerificare, true, "sempre da verificare");
+    eq(terra.presetScadenzaTerra("boh"), null, "e un tipo inventato non esiste");
+  });
+  test("scadenze: la ricorrenza non propone un giorno che non esiste", () => {
+    eq(terra.prossimaData("2026-01-31", 1), "2026-02-28", "dal 31 gennaio, fra un mese");
+    eq(terra.prossimaData("2026-07-31", 12), "2027-07-31", "e a dodici mesi lo stesso giorno");
+    eq(terra.prossimaData("boh", 1), null, "senza una data vera non si propone niente");
+    eq(terra.prossimaData("2026-01-31", 0), null, "e senza ricorrenza nemmeno");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
