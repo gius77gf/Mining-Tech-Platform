@@ -1554,3 +1554,47 @@ export async function scudoData() {
   }
   return { mode, ...api };
 }
+
+// ============================================================
+// INDICI INFORTUNISTICI (IF, IG, LTIFR)
+// ------------------------------------------------------------
+// Sono i tre numeri con cui un'azienda si confronta col proprio settore, e
+// quelli che un committente chiede in fase di qualifica:
+//
+//   IF    = infortuni × 1.000.000 / ore lavorate       (frequenza)
+//   IG    = giornate perse × 1.000 / ore lavorate      (gravità)
+//   LTIFR = infortuni CON assenza × 1.000.000 / ore    (lost time injury rate)
+//
+// ⛔ E TUTTI E TRE DIVIDONO PER LE ORE LAVORATE, che Scudo non ha. La
+// tentazione è ricavarle: numero di operatori × 1.700 ore l'anno, e il numero
+// esce. Sarebbe un **denominatore inventato**, e su un indice che si porta in
+// gara o si confronta con la media di settore un denominatore inventato non è
+// un'approssimazione: è una dichiarazione falsa fatta con la faccia di un
+// calcolo. Un'azienda con molti part-time o molti interinali starebbe fuori
+// di parecchio, e nessuno potrebbe accorgersene guardando il risultato.
+//
+// Quindi: senza le ore l'indice **non si calcola**, e la funzione lo dice —
+// `calcolabile: false` e la ragione in chiaro. È lo stesso principio del
+// prodotto applicato per la quinta volta: l'assenza di un dato non è un dato
+// favorevole, e qui il travestimento sarebbe un indice **basso**, cioè la
+// notizia migliore che un'azienda possa leggere sulla propria sicurezza.
+export function indiciInfortunistici(infortuni, oreLavorate, anno = new Date().getFullYear()) {
+  const y = String(anno);
+  const nell_anno = (infortuni || []).filter(i =>
+    i && i.tipo === "infortunio" && String(i.data || "").slice(0, 4) === y);
+  const conAssenza = nell_anno.filter(i => (+i.giorniAssenza || 0) > 0);
+  const giornatePerse = nell_anno.reduce((t, i) => t + Math.max(0, +i.giorniAssenza || 0), 0);
+  const ore = +oreLavorate;
+  const base = { anno: +anno, infortuni: nell_anno.length, conAssenza: conAssenza.length,
+                 giornatePerse, oreLavorate: Number.isFinite(ore) && ore > 0 ? ore : null };
+  if (!(Number.isFinite(ore) && ore > 0))
+    return { ...base, calcolabile: false, indiceFrequenza: null, indiceGravita: null, ltifr: null,
+      motivo: "Servono le ORE LAVORATE dell'anno: senza di quelle i tre indici non si possono "
+        + "calcolare. Non vengono stimate dal numero di operatori — un denominatore inventato "
+        + "renderebbe l'indice inconfrontabile con la media di settore, e più basso del vero." };
+  const r2 = (n) => Math.round(n * 100) / 100;
+  return { ...base, calcolabile: true,
+    indiceFrequenza: r2(nell_anno.length * 1e6 / ore),
+    indiceGravita: r2(giornatePerse * 1e3 / ore),
+    ltifr: r2(conAssenza.length * 1e6 / ore) };
+}

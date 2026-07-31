@@ -1972,6 +1972,50 @@ test("i numeri sono scritti all'italiana e col raggruppamento dichiarato", () =>
   ok(/0,50/.test(f), "i decimali con la virgola");
   ok(!/218004/.test(f), "e mai la cifra secca");
 });
+console.log("\n— Scudo: gli indici infortunistici (IF, IG, LTIFR) —");
+/* ⛔ La prova che regge l'unità: SENZA LE ORE l'indice non si calcola. Il
+   travestimento pericoloso qui è un indice BASSO — la notizia migliore che
+   un'azienda possa leggere sulla propria sicurezza — ottenuto stimando le ore
+   dal numero di operatori. */
+const INF = [
+  { data: "2026-02-03", tipo: "infortunio", giorniAssenza: 4 },
+  { data: "2026-05-18", tipo: "near-miss", giorniAssenza: 0 },
+  { data: "2026-06-01", tipo: "infortunio", giorniAssenza: 0 },
+  { data: "2025-04-04", tipo: "infortunio", giorniAssenza: 30 },
+];
+test("⛔ senza le ore lavorate i tre indici NON si calcolano, e la funzione dice perché", () => {
+  for (const ore of [null, undefined, 0, "", NaN, -100]) {
+    const r = scudo.indiciInfortunistici(INF, ore, 2026);
+    eq(r.calcolabile, false, "su ore=" + JSON.stringify(ore));
+    eq([r.indiceFrequenza, r.indiceGravita, r.ltifr], [null, null, null], "nessun numero inventato");
+    ok(/ORE LAVORATE/.test(r.motivo), "e la ragione è scritta");
+    ok(/denominatore inventato|più basso del vero/.test(r.motivo), "col perché non si stima");
+  }
+});
+test("i conteggi ci sono comunque: quelli non dipendono dalle ore", () => {
+  const r = scudo.indiciInfortunistici(INF, null, 2026);
+  eq(r.infortuni, 2, "infortuni dell'anno (i near-miss non sono infortuni)");
+  eq(r.conAssenza, 1, "di cui con assenza");
+  eq(r.giornatePerse, 4, "giornate perse");
+  eq(r.oreLavorate, null, "e le ore restano dichiarate assenti");
+});
+test("con le ore i tre indici escono, e con le formule del settore", () => {
+  const r = scudo.indiciInfortunistici(INF, 100000, 2026);
+  eq(r.calcolabile, true, "si calcola");
+  eq(r.indiceFrequenza, 20, "IF = 2 × 1.000.000 / 100.000");
+  eq(r.indiceGravita, 0.04, "IG = 4 × 1.000 / 100.000");
+  eq(r.ltifr, 10, "LTIFR = 1 × 1.000.000 / 100.000 (solo quelli con assenza)");
+});
+test("l'anno separa davvero: il 2025 non entra nel 2026", () => {
+  eq(scudo.indiciInfortunistici(INF, 100000, 2025).giornatePerse, 30, "il 2025 ha le sue 30");
+  eq(scudo.indiciInfortunistici(INF, 100000, 2026).giornatePerse, 4, "il 2026 le sue 4");
+});
+test("un anno senza infortuni dà indici a ZERO, che è un fatto — non l'assenza di dati", () => {
+  const r = scudo.indiciInfortunistici(INF, 100000, 2024);
+  eq(r.calcolabile, true, "le ore ci sono, quindi si calcola");
+  eq([r.indiceFrequenza, r.indiceGravita, r.ltifr], [0, 0, 0], "zero infortuni = indici zero");
+  eq(r.infortuni, 0, "ed è dichiarato che sono zero");
+});
 test("prioritaOperative: manutenzione a ore su un mezzo assente viene ignorata (non crasha)", () => {
   const p = flotta.prioritaOperative(
     [{ nome: "Escavatore E1 — CAT 352", ore: 100, stato: "operativo" }],
