@@ -1191,6 +1191,32 @@ campi interi, file delle macchine.
       cinque id, e il documento va riscritto **subito**. Controprova: **otto**
       difetti su copie, otto cadute col nome giusto, sui file sani 7 passate e 0
       cadute.
+- [x] **Ricerca: la nota di credito in Conti** ✅ *(03/08, `docs/RICERCA_NOTE_DI_CREDITO_202608.md`)* —
+      è la voce in cima al censimento di Conti, e il motivo è che **l'app stessa
+      dice che sta facendo la cosa sbagliata**: la finestra che elimina una
+      fattura scrive «una fattura realmente emessa non va cancellata, va gestita
+      con una nota di credito», e poi offre un solo bottone, che è quello che la
+      viola. La scheda parte **misurando la scorciatoia ovvia** («è una fattura
+      col meno davanti»), e la scorciatoia cade: `daIncassare` scende
+      correttamente da 1.220 a 610, ma `esposizioneClienti` **salta** la nota
+      (`imp <= 0`) e resta a 1.220 — due numeri della stessa app che si
+      contraddicono, e quello tranquillo è in prima pagina. In più `agingIncassi`
+      conta la nota **fra le fatture scadute da sollecitare**, e
+      `prossimoNumero(["NC/2026/001",…])` risponde **`2026/001`**, cioè un numero
+      **della serie delle fatture**, già usato. Una previsione mia era sbagliata
+      ed è scritta: davo per buono che `apertoDi` schiacciasse i negativi a zero
+      — il `Math.max(0,…)` sta nell'**altro ramo**. La trappola che vale la
+      scheda è però un'altra: una nota **totale** porta il residuo a zero, e se
+      da lì scattasse `saldata`, `tempoMedioPagamento` conterebbe come «pagata in
+      N giorni» una fattura **annullata** — il cliente peggiore diventerebbe il
+      più puntuale. Quattro decisioni prese (non è una fattura negativa · serie
+      dedicata con `prossimoNumero` esteso · la causale si chiede e da lì
+      l'avviso sui 12 mesi, che **avvisa e non blocca** · **stornata ≠ saldata**,
+      terza via nello stato) e sette funzioni pure da scrivere. Norma verificata
+      alla fonte: art. 26 DPR 633/72 commi 2 e 3, `TD04`,
+      `DatiFattureCollegate`, e il fatto che **nel tracciato gli importi negativi
+      non sono ammessi** — la forma che ci serve per non rompere i totali è la
+      stessa che il formato pretende.
 
 ---
 
