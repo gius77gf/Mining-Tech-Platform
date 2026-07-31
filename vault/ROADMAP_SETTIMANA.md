@@ -100,6 +100,20 @@ dominante. Verifica obbligatoria con screenshot prima/dopo.
       un'app contro `shared/`. Adesso Flotta la ri-esporta, e il censimento
       delle funzioni pure arriva a **411 su 411**.
       `docs/LA_STESSA_REGOLA_SCRITTA_DUE_VOLTE.md`
+- [x] **Il canone: due basi, e l'asimmetria fra loro** ✅ *(03/08)* — Terra
+      prometteva «N m³ di scavo misurato», Conti calcolava sul **venduto**:
+      € 89,23 contro € 97,90 sullo stesso periodo. Adesso la base è una scelta
+      dichiarata. Nessuna pesata = dovuto **zero** (è un fatto); nessun rilievo
+      = dovuto **null** (nessuno ha misurato).
+- [x] **Tre cantieri in parallelo** ✅ *(03/08)* — **Sentinella**: previsto,
+      misurato, scarto e norma citata nel report per l'ente, e ogni dato che
+      manca detto a parole. **Campo**: la disponibilità di turno, e una misura
+      parziale che **non prende il verde**. **Flotta**: la segnalazione guasto
+      in ambra (un guasto è un avviso, non una cancellazione).
+- [x] **Le dieci funzioni dei cantieri hanno le loro prove** ✅ *(03/08)* —
+      copertura **424 su 424**, tutte e sei le app al 100%. Controprova: nove
+      difetti, nove prove cadute. Trovato scrivendole: `oreMinuti(null)`
+      rispondeva «0 min», che è un'affermazione falsa.
 - [x] **Conti: lo sconto del cliente entra nel prezzo** ✅ *(03/08)* — la scheda
       diceva «sconto 5%» e ogni DDT usciva al **prezzo pieno**: `rigaPesata` il
       cliente non lo riceveva. Su una differita vera fa **1.375,91 €** in più su
