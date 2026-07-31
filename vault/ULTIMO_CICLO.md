@@ -21,11 +21,41 @@ Flotta poteva dichiarare «SCADUTA» un tagliando **senza obiettivo**, Conti pot
 **bloccare la pagina**. Poi le altre **cinque porte d'ingresso** con lo stesso
 filtro a sola forma. Prove `node`: **1.343 → 1.359**.
 
-**Cosa sta facendo adesso:** il giro a 25 banchi del browser gira sul codice
-finale; nel frattempo si riparte dal «prossimo passo atomico» del checkpoint —
-**Genesi al condiviso (unità A)**, la **tracciabilità del volume dal visore** in
-Terra/Genesi e le **note di credito** in Conti, tutte e tre già misurate e
-pianificate con le prove scritte prima.
+**Cosa ha fatto oggi, dopo quel blocco** — sei unità, tutte con la loro
+controprova:
+
+1. **Terra — il verde su un anno che nessuno ha misurato.** Il KPI
+   dell'avanzamento si colorava di verde anche con **zero rilievi dell'anno**, e
+   la frase accanto diceva «al ritmo attuale ~0 m³ — sotto il limite
+   autorizzato». *Zero non è un ritmo lento: è l'assenza della misura.* Il
+   grafico lì sotto si difendeva già da solo, il KPI no.
+2. **Il giro del browser si accorge da sé se gli cambiano il codice sotto.** La
+   regola c'era scritta, ed è stata violata **due volte in due giorni** — la
+   seconda da me. Ora il giro si dichiara **NON VALIDO** invece di stampare un
+   riepilogo verde, e dice dopo quale banco.
+3. **Genesi è passata al condiviso** — era l'**ultima** app a tenersi in casa
+   una copia di toast e modale. Con una trappola che il piano non aveva: il CSS
+   vestiva un id che stava per cambiare inquilino, e la pagina si sarebbe aperta
+   con un **velo nero fisso** davanti a tutto.
+4. **Una misura del piano era sbagliata, e l'ho corretta**: non 22 selettori a
+   rischio ma **8**, perché si era contata una *parola* invece della *cosa*. Un
+   rischio gonfiato blocca una decisione quanto un risultato gonfiato la
+   giustifica.
+5. **Conti — la nota di credito.** L'app scriveva che «una fattura realmente
+   emessa non va cancellata, va gestita con una nota di credito», e poi offriva
+   **un solo bottone**: quello che la regola viola. Ora si emette, storna,
+   libera il fido e si rilegge. Misurato quanto costava non averla: una sola
+   fattura annullata col trucco del finto incasso portava il **tempo medio di
+   pagamento da 30 a 101 giorni**.
+6. E la regola che tiene tutto in piedi: **stornata non è saldata.** Una fattura
+   annullata ha residuo zero come una pagata — ma nessuno l'ha pagata, e se
+   contasse, il cliente peggiore diventerebbe il più puntuale.
+
+Prove `node`: **1.359 → 1.383**. Banchi del browser: **25 → 29**.
+
+**Cosa sta facendo adesso:** il giro completo dei 29 banchi gira sul codice
+finale della giornata. Poi si riprende dalla **tracciabilità del volume** in
+Terra/Genesi, già misurata e pianificata.
 **Commit di partenza:** `844896f`
 
 ---
