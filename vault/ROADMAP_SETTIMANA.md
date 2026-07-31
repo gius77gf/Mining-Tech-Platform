@@ -1217,6 +1217,35 @@ campi interi, file delle macchine.
       `DatiFattureCollegate`, e il fatto che **nel tracciato gli importi negativi
       non sono ammessi** — la forma che ci serve per non rompere i totali è la
       stessa che il formato pretende.
+- [x] **Ricerca: il registro costi** ✅ *(03/08, `docs/RICERCA_REGISTRO_COSTI_202608.md`)* —
+      seconda voce del censimento di Conti, e la scheda comincia dalla domanda
+      che il censimento non si era posto: **esiste già?** Sì, e **non è in
+      Conti**: è in **Flotta** (`costi/{voce, importo, nota, data|null}`, con
+      `ripartizioneCosti` e `costiPerMese`), e ha già dentro le regole di onestà
+      giuste — le voci senza data non si attribuiscono a nessun mese, e «un mese
+      senza registrazioni **non è un mese a zero euro**». Scriverne un secondo in
+      Conti sarebbe la duplicazione che la regola vincolante vieta. Ma quello di
+      Flotta è **della flotta**: `voce` a testo libero, nessun posto per
+      personale, energia, esplosivo, canone, ripristino, e nessun legame con la
+      produzione — quindi nessun **costo per tonnellata**. Ordine di grandezza
+      di ciò che manca (letteratura, miniera a cielo aperto, **indicativo**):
+      trasporto 40,5% e caricamento 22,0% sono flotta, perforazione 15,1% e
+      abbattimento 19,0% **no**. **La trappola che vale la scheda**: i ricavi in
+      Conti sono completi per costruzione (nascono da pesate e fatture), i costi
+      **solo se qualcuno li inserisce** — il mese in cui la busta paga non è
+      stata registrata non dà un errore, dà «**margine 42%**», in verde, in cima
+      alla pagina. Decisione: il margine è **`null`** finché il mese non è
+      dichiarato **chiuso**, e una categoria mai usata **non è una categoria a
+      zero**. Seconda trappola, il doppio conteggio: Flotta l'ha già incontrata
+      al suo interno (`rifornimenti.costoId`) e si ripresenta fra le app col
+      **canone**, che Conti già *calcola* da Terra — quindi ogni voce dichiara la
+      sua `origine` e le calcolate non si digitano. Forma proposta: Conti prende
+      una collezione sua e **legge** quella di Flotta col ponte in sola lettura
+      che esiste già (`db.rilieviTerra()`, `conti-data.js:1470`), e la
+      **classificazione** (`CATEGORIE_COSTO`, `categoriaDi`, fisso/variabile) va
+      in `shared/dw-ponti.js` perché serve a due app. Sette funzioni pure, e il
+      primo test non è l'aritmetica: è che `costoPerTonnellata` risponda `null`
+      su un periodo con pesate e **senza** nessuna voce di personale.
 
 ---
 
