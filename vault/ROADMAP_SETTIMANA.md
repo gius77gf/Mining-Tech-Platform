@@ -1167,6 +1167,30 @@ campi interi, file delle macchine.
       frase del tagliando afferma «6375» mentre l'utente legge **6.375**. Stessa
       famiglia del difetto delle date. Misura e correzione in
       `docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md`.
+- [x] **Genesi al condiviso: misurata prima di toccarla** ✅ *(03/08, `5e05c00`)* —
+      l'ultima superficie con la struttura del core scritta in casa, e l'unica su
+      cui il piano è stato **misurato prima** invece che scritto a intuito. Tre
+      delle quattro cose trovate cambiano il piano, e nessuna si vede leggendo il
+      codice delle funzioni: **(1)** Genesi non carica **niente** di `shared/` —
+      non è togliere una copia da una pagina già collegata, è collegare una
+      pagina mai collegata; **(2)** il nome `modal` è **già occupato**, dal
+      **cancello di consenso** (l'avvertenza che vieta di usare i frammenti
+      volanti per le distanze di sicurezza), e il prefisso `mdl` è sovraccarico —
+      **sette** id sono dell'editor del fronte 3D, da rinominare sono **cinque**,
+      non dodici; **(3)** il CSS **non** è una copia invecchiata, ed è il
+      contrario dell'amministrazione: lì 15 regole su 18 identiche, qui **2 su
+      14**, e tutte e dodici le divergenti divergono per *come si chiama la stessa
+      idea*. Il numero che decide il piano: il foglio condiviso pronuncia **76**
+      variabili, Genesi ne definisce **12**, le scoperte sono **72 su 76** — e una
+      variabile CSS assente **non fallisce**, ricade sull'ereditato. Contagio:
+      **22 selettori** cadrebbero su markup che Genesi ha già (`.kpi`, `.badge`,
+      `.note`, non solo `.modal-*`). Ne esce un piano in **due unità**: A il solo
+      JavaScript, B il colore — che chiede prima una voce in `PALETTE_APP.md` coi
+      nomi del condiviso. Le sei misure stanno in `numeri-nei-documenti.mjs`
+      (**8 → 14** prove) e sono **destinate a cadere**: l'unità A fa sparire i
+      cinque id, e il documento va riscritto **subito**. Controprova: **otto**
+      difetti su copie, otto cadute col nome giusto, sui file sani 7 passate e 0
+      cadute.
 
 ---
 
