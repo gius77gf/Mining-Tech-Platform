@@ -307,9 +307,16 @@ function scansionaJs(t, tipo, marca, da, a, spie) {
       }
       tipo[i] = DENTRO;                    // anche il delimitatore di chiusura
       if (c === stringa) {
-        // un template di PRIMO livello che si chiude: da qui riprende il
-        // codice vero, ed è lì che la controprova può iniettare il difetto
-        if (c === "`" && pila.length === 0 && spie) spie.push(i + 1);
+        /* Una stringa di PRIMO livello che si chiude: da qui riprende il
+           codice vero, ed è lì che la controprova può iniettare il difetto.
+           ⚠️ All'inizio si segnavano solo i **template**, e sembrava
+           ragionevole: erano loro a mandare fuori fase la scansione vecchia.
+           Ma Genesi i template quasi non li usa — scrive per concatenazione —
+           e ne dava **24** contro i 120 di Terra, che è un terzo della sua
+           misura: la superficie più grande era anche la meno provata, e la
+           ragione era il **modo di scrivere**, non il rischio. Adesso vale per
+           tutte e tre le virgolette. */
+        if (pila.length === 0 && spie) spie.push(i + 1);
         stringa = null;
       }
       i++; continue;
@@ -543,28 +550,50 @@ test("la scansione sa fallire: i due difetti rimessi le fanno perdere la fase", 
     "e una divisione vera resta una divisione");
 });
 
-/* LA CONTROPROVA A TAPPETO: il difetto rimesso DOVE OGNI TEMPLATE SI CHIUDE.
+/* LA CONTROPROVA A TAPPETO: il difetto rimesso DOVE OGNI STRINGA SI CHIUDE.
    ────────────────────────────────────────────────────────────────────────
    Quella qui sopra inietta in tre superfici a un punto ciascuna, e nessuno di
    quei punti cadeva dove la scansione andava fuori fase: sapeva fallire, ma
-   non dove serviva. Questa inietta in TUTTI i punti di ri-sincronizzazione di
-   TUTTE le superfici — e stampa quanti ne ha provati, perché uno «zero
-   violazioni» ottenuto su zero soggetti è il difetto raccolto in CLAUDE.md. */
+   non dove serviva. Questa inietta nei punti di ri-sincronizzazione di TUTTE
+   le superfici — e stampa quanti ne ha provati, perché uno «zero violazioni»
+   ottenuto su zero soggetti è il difetto raccolto in CLAUDE.md.
+
+   ⚠️ IL TETTO È DICHIARATO, NON NASCOSTO. I punti sono **20.566** e ognuno
+   costa una ri-scansione del file intero: provarli tutti porta la suite da
+   pochi secondi a oltre due minuti, e a 240 per superficie a un minuto. Se ne
+   provano `TETTO`, presi a passo regolare su tutta la lunghezza del file — e
+   si stampa **quanti ne sono stati saltati**, perché un taglio taciuto si
+   legge come «copre tutto».
+   Il numero è scelto misurando, non a occhio: con `TETTO` a 120 la suite gira
+   in **49 secondi**, cioè meno dei **51** che ci metteva prima di questo
+   lavoro — e nel frattempo la controprova è passata da dieci superfici a
+   **dodici** e dai soli template a **tutte e tre le virgolette**. Il passo regolare conta più della quantità: un
+   difetto di fase non è un punto isolato, è un TRATTO — se la scansione si
+   perde, si perde per migliaia di caratteri, e un colpo ogni ventun punti ci
+   cade dentro lo stesso.
+
+   ⚠️ E PRIMA SEGNAVA SOLO I TEMPLATE. Sembrava ragionevole — erano loro a
+   mandare fuori fase la scansione vecchia — ma Genesi i template quasi non li
+   usa: ne dava **24** contro i 120 di Terra, che è un terzo della sua misura.
+   La superficie meno provata era la più grande, e per il modo di scrivere di
+   chi l'aveva scritta, non per il rischio. */
+const TETTO = 120;
 function iniezioniNonViste(src, masc) {
   const spie = [];
   classifica(src, spie);
+  const passo = Math.max(1, Math.ceil(spie.length / TETTO));
   const base = dialoghiIn(src, masc).length;
   let ciechi = 0, provati = 0;
-  for (const p of spie) {
+  for (let k = 0; k < spie.length; k += passo) {
     provati++;
-    // si inietta ESATTAMENTE dove il template si chiude: lì siamo in codice.
-    // (Prima iniettavo a fine riga, ma dopo un template chiuso la riga spesso
-    // prosegue dentro un'altra stringa: il dialogo finiva in un testo, dove
-    // NON deve essere trovato, e la controprova accusava la scansione giusta.)
-    const rotto = src.slice(0, p) + ";window.prompt('x');" + src.slice(p);
+    // si inietta ESATTAMENTE dove la stringa si chiude: lì siamo in codice.
+    // (Prima iniettavo a fine riga, ma dopo una stringa chiusa la riga spesso
+    // prosegue dentro un'altra: il dialogo finiva in un testo, dove NON deve
+    // essere trovato, e la controprova accusava la scansione giusta.)
+    const rotto = src.slice(0, spie[k]) + ";window.prompt('x');" + src.slice(spie[k]);
     if (dialoghiIn(rotto, masc).length <= base) ciechi++;
   }
-  return { provati, ciechi };
+  return { provati, ciechi, esistenti: spie.length };
 }
 /* La scansione SBAGLIATA, tenuta apposta: serve a dimostrare che questa
    controprova sa fallire. Senza, direbbe «tutto trovato» anche se non stesse
@@ -583,21 +612,25 @@ function mascheraIngenua(t) {
   }
   return vivo;
 }
-let provatiTot = 0, ciechiIngenua = 0;
+let provatiTot = 0, esistentiTot = 0, ciechiIngenua = 0;
 for (const [nome, rel] of SUPERFICI) {
   const src = leggi(rel);
   if (src === null) continue;
-  const { provati, ciechi } = iniezioniNonViste(src);
+  const { provati, ciechi, esistenti } = iniezioniNonViste(src);
   if (provati === 0) continue;
   provatiTot += provati;
+  esistentiTot += esistenti;
   ciechiIngenua += iniezioniNonViste(src, mascheraIngenua).ciechi;
-  test(`controprova a tappeto su ${nome}: ${provati} dialoghi rimessi dove riprende il codice, tutti trovati`, () => {
+  const quanti = provati < esistenti
+    ? `${provati} dialoghi su ${esistenti} punti (uno ogni ${Math.ceil(esistenti / TETTO)})`
+    : `${provati} dialoghi, cioè TUTTI i punti`;
+  test(`controprova a tappeto su ${nome}: ${quanti}, tutti trovati`, () => {
     ok(ciechi === 0, `${rel}: ${ciechi} iniezioni su ${provati} passano inosservate`);
   });
 }
 test("la controprova a tappeto ha davvero iniettato qualcosa", () => {
-  ok(provatiTot >= 60, `solo ${provatiTot} iniezioni: i template annidati sono spariti, o le spie non funzionano più`);
-  console.log(`     (${provatiTot} iniezioni provate in tutto)`);
+  ok(provatiTot >= 60, `solo ${provatiTot} iniezioni: le stringhe sono sparite, o le spie non funzionano più`);
+  console.log(`     (${provatiTot} iniezioni provate, prese a passo regolare su ${esistentiTot} punti di ri-sincronizzazione)`);
 });
 test("la controprova a tappeto sa fallire: con la scansione ingenua il difetto sfugge", () => {
   ok(ciechiIngenua > 0,

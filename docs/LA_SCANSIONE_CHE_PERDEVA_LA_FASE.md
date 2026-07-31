@@ -141,8 +141,35 @@ Nello stesso passaggio è entrato nell'elenco dei moduli
 `shared/dw-app-ui.js`, nato il giorno prima: **nessuna regola lo guardava**, ed
 è il file che tutte e sei le app caricano.
 
-Effetto collaterale visibile: la controprova a tappeto della regola 1 è passata
-da **1.029 a 1.096 iniezioni**, e Genesi c'è finalmente dentro.
+### La controprova a tappeto, rimessa in bolla
+
+La correzione ha reso visibile un difetto della controprova stessa. I suoi
+punti d'iniezione erano quelli in cui si chiude un **template** — la forma che
+mandava fuori fase la scansione vecchia. Ma Genesi i template quasi non li usa:
+scrive per concatenazione, e ne dava **24** contro i **120** di Terra, che è un
+terzo della sua misura. **La superficie più grande era la meno provata**, e la
+ragione era il modo di scrivere di chi l'aveva scritta, non il rischio.
+
+Adesso vale per tutte e tre le virgolette: i punti di ri-sincronizzazione sono
+**20.566**. Provarli tutti costa una ri-scansione del file per ognuno — la
+suite passerebbe da un minuto a più di due — quindi se ne provano **120 per
+superficie**, presi a **passo regolare** su tutta la lunghezza, e il numero
+saltato **si stampa**:
+
+```
+✓ controprova a tappeto su Genesi: 228 dialoghi su 3409 punti (uno ogni 15), tutti trovati
+✓ controprova a tappeto su Deepwork ID · profilo: 55 dialoghi, cioè TUTTI i punti, tutti trovati
+     (1.211 iniezioni provate, prese a passo regolare su 20.566 punti)
+```
+
+Il passo regolare conta più della quantità: un difetto di fase non è un punto
+isolato, è un **tratto** — se la scansione si perde, si perde per migliaia di
+caratteri, e un colpo ogni quindici punti ci cade dentro lo stesso.
+
+Il tetto è scelto **misurando**: con 120 la suite gira in **49 secondi**, cioè
+meno dei **51** che ci metteva prima di tutto questo lavoro. Nel frattempo la
+controprova è passata da **dieci superfici a dodici** — la vetrina e la pagina
+d'accesso prima non davano nessun punto e restavano fuori in silenzio.
 
 ## La lezione, che non è sui tokenizzatori
 
