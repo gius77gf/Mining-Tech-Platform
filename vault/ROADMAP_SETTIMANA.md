@@ -941,7 +941,7 @@ campi interi, file delle macchine.
       da `toISOString()` su una data costruita in ora locale. Guarda 21 file e
       stampa quanti — e perdona chi entra ed esce in UTC, che è coerente.
 - [x] **Copertura delle funzioni pure, app per app.** Sentinella 77/107, Scudo
-      56/71 *(era 22)*, Campo 65/73 *(era 26)*, Flotta 45/71, Conti 35/58,
+      56/71 *(era 22)*, Campo 65/73 *(era 26)*, Flotta 52/71, Conti 35/58,
       Terra 32/39 *(era 23)*. Nessuna app è più sotto la metà; quello che resta scoperto
       sono quasi solo costanti e trasporto dati.
 - [x] **Il principio usato come lente.** Scritta in `CLAUDE.md` la regola
@@ -976,6 +976,13 @@ campi interi, file delle macchine.
       Trovato per strada: `CAUSALI_FERMO` esiste in **due app** e non è la
       stessa cosa (attività di turno in Campo, macchine in Flotta) — c'è una
       prova che lo scrive. run-kpi **845**, totale node **1.128**.
+- [x] **L'officina e le scorte di Flotta.** 18 prove dove un numero sbagliato
+      costa: il **costo di un ordine non si scrive, si somma** — e quello che
+      non ha prezzo si **dichiara** invece di passare per gratis; la **soglia di
+      riordino** è consumo al giorno × (consegna + margine) e quando il consumo
+      non c'è **non si propone**, con la media da un episodio solo dichiarata
+      fragile. Bloccate anche «2,5 ore» che non diventano 25 e «12,5 litri» che
+      non diventano 125. run-kpi **863**, totale node **1.146**.
 
 ---
 
