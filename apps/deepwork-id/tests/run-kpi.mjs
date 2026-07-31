@@ -8240,6 +8240,28 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   ];
   const AUT = { volumeAutorizzatoM3: 10000, estrattoPregressoM3: 1000 };
 
+  test("⛔ rilievoUsabile: «questo rilievo si può usare» è UNA condizione sola", () => {
+    /* Era scritta DIECI volte in terra-data.js, in tre varianti. Un rilievo in
+       bozza che cominciasse a contare in UNO solo dei dieci punti non darebbe
+       nessun errore: darebbe un numero diverso, in un documento che va
+       all'ente. La prova blinda la condizione, non i dieci punti. */
+    ok(terra.rilievoUsabile({ stato: "elaborato", volumeM3: 100 }), "elaborato con volume");
+    ok(!terra.rilievoUsabile({ stato: "bozza", volumeM3: 100 }), "una bozza non è un numero da usare");
+    ok(!terra.rilievoUsabile({ stato: "elaborato", volumeM3: null }), "senza volume non c'è niente da contare");
+    ok(!terra.rilievoUsabile({ stato: "elaborato" }), "e nemmeno col campo assente");
+    ok(!terra.rilievoUsabile(null), "niente");
+    /* uno ZERO scritto è un volume vero: si è misurato, e faceva zero */
+    ok(terra.rilievoUsabile({ stato: "elaborato", volumeM3: 0 }), "un volume di zero è comunque una misura");
+  });
+  test("rilievoUsabileConData: chi ordina nel tempo pretende anche una data vera", () => {
+    /* senza data non si sa dove sta nella serie: entrerebbe in un confronto
+       «fra due rilievi» senza che si possa dire quale viene prima */
+    ok(terra.rilievoUsabileConData({ stato: "elaborato", volumeM3: 100, data: "2026-07-12" }), "con data ISO");
+    ok(!terra.rilievoUsabileConData({ stato: "elaborato", volumeM3: 100, data: "12/07/2026" }), "non è ISO");
+    ok(!terra.rilievoUsabileConData({ stato: "elaborato", volumeM3: 100 }), "senza data");
+    ok(!terra.rilievoUsabileConData({ stato: "bozza", volumeM3: 100, data: "2026-07-12" }),
+      "e resta la condizione di prima: una bozza non passa neanche con la data");
+  });
   test("PROVENIENZE: due sole, e ognuna dice in italiano che cosa cambia", () => {
     eq(terra.PROVENIENZE.map(p => p.chiave), ["scavo", "cumulo"], "scavo e cumulo");
     ok(/consuma il volume concesso/.test(terra.PROVENIENZE[0].nota), "lo scavo consuma");

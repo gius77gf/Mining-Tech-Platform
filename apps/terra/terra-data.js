@@ -240,13 +240,29 @@ export function fmtM3(v) {
 
 // Volume estratto da un fronte = somma dei m³ dei rilievi ELABORATI di
 // quel fronte (i pianificati e i volumi assenti non contano). È il "m³
+// ⛔ «QUESTO RILIEVO SI PUÒ USARE» — la condizione, scritta UNA VOLTA.
+// Era scritta DIECI volte in questo file, in tre varianti (liscia, con la data
+// vera, con l'anno), ed è il modo in cui una variante si stacca dalle altre
+// senza che nessuno lo veda: un rilievo in bozza o senza volume che comincia a
+// contare in UNO dei dieci punti non dà nessun errore — dà un numero diverso.
+// Non va in `shared/` perché non serve a due app: serve dieci volte a una.
+//  · `rilievoUsabile`      — elaborato e con un volume. È il minimo per contare;
+//  · `rilievoUsabileConData` — in più una data ISO vera, per chi ORDINA o
+//    confronta nel tempo: senza data non si sa dove sta nella serie.
+export function rilievoUsabile(r) {
+  return !!r && r.stato === "elaborato" && r.volumeM3 != null;
+}
+export function rilievoUsabileConData(r) {
+  return rilievoUsabile(r) && /^\d{4}-\d{2}-\d{2}$/.test(String((r && r.data) || ""));
+}
+
 // estratti" mostrato per fronte. Di serie conta solo lo SCAVO: un cumulo
 // ripreso sul piazzale non è materiale uscito dal fronte. Con
 // `prov = "cumulo"` si ottiene la parte ripresa dai cumuli, con
 // `prov = "tutti"` la somma grezza. Funzione pura e testabile.
 export function volumeFronte(rilievi, fronteId, prov = "scavo") {
   return (rilievi || [])
-    .filter(r => r.fronteId === fronteId && r.stato === "elaborato" && r.volumeM3 != null)
+    .filter(r => r.fronteId === fronteId && rilievoUsabile(r))
     .filter(r => prov === "tutti" || provenienzaDi(r) === prov)
     .reduce((s, r) => s + r.volumeM3, 0);
 }
@@ -308,7 +324,7 @@ export function proiezioneAnnua(rilievi, pianificatoAnnuoM3, oggi = new Date()) 
   // solo SCAVO: il piano annuo è un limite di estrazione, la ripresa di un
   // cumulo non lo intacca
   const estrattoAnno = soloScavo(rilievi)
-    .filter(r => r.stato === "elaborato" && r.volumeM3 != null && String(r.data || "").slice(0, 4) === String(anno))
+    .filter(r => rilievoUsabile(r) && String(r.data || "").slice(0, 4) === String(anno))
     .reduce((s, r) => s + (+r.volumeM3 || 0), 0);
   const inizio = new Date(anno, 0, 1), fine = new Date(anno + 1, 0, 1);
   const frazione = (o - inizio) / (fine - inizio);            // 0..1 dell'anno trascorso
@@ -353,7 +369,7 @@ export function bandaVolume(volumeM3, tolleranzaPct) {
 // almeno due rilievi elaborati con volume. Pura e testabile.
 export function trendVolumi(rilievi) {
   const el = soloScavo(rilievi)
-    .filter(r => r.stato === "elaborato" && r.volumeM3 != null)
+    .filter(rilievoUsabile)
     .sort((a, b) => (b.data || "").localeCompare(a.data || ""));
   if (el.length < 2) return null;
   const ultimo = +el[0].volumeM3 || 0, precedente = +el[1].volumeM3 || 0;
@@ -373,8 +389,7 @@ export function volumiPerMese(rilievi, mesi = 12, oggi = new Date()) {
   const n = Math.max(1, Math.round(+mesi || 12));
   // solo SCAVO: il grafico del ritmo mensile racconta quanto si sta
   // scavando, non quanto materiale è stato spostato dai cumuli
-  const el = soloScavo(rilievi).filter(r => r.stato === "elaborato" && r.volumeM3 != null
-    && /^\d{4}-\d{2}-\d{2}$/.test(String(r.data || "")));
+  const el = soloScavo(rilievi).filter(rilievoUsabileConData);
   const o = new Date(oggi);
   const out = [];
   for (let i = n - 1; i >= 0; i--) {
@@ -411,7 +426,7 @@ export function volumiPerMese(rilievi, mesi = 12, oggi = new Date()) {
 export function rilieviScavoFronte(rilievi, fronteId) {
   const f = fronteId || null;
   return soloScavo(rilievi || [])
-    .filter(r => r.stato === "elaborato" && r.volumeM3 != null && /^\d{4}-\d{2}-\d{2}$/.test(String(r.data || "")))
+    .filter(rilievoUsabileConData)
     .filter(r => (r.fronteId || null) === f)
     .sort((a, b) => String(b.data).localeCompare(String(a.data)));
 }
@@ -439,7 +454,7 @@ export function rilievoPrecedente(rilievi, r) {
 //                 ritmo fra le due misure, NON materiale scavato).
 export function confrontoRilievi(rilievi, idPrimo, idSecondo) {
   const el = soloScavo(rilievi || [])
-    .filter(r => r.stato === "elaborato" && r.volumeM3 != null && /^\d{4}-\d{2}-\d{2}$/.test(String(r.data || "")));
+    .filter(rilievoUsabileConData);
   let a = el.find(r => r.id === idPrimo), b = el.find(r => r.id === idSecondo);
   if (!a || !b || a.id === b.id) return null;
   if ((a.fronteId || null) !== (b.fronteId || null)) return null;
@@ -500,7 +515,7 @@ export function estrattoComplessivo(rilievi, autorizzazione) {
   const a = autorizzazione || {};
   const da = /^\d{4}-\d{2}-\d{2}$/.test(String(a.dataRilascio || "")) ? String(a.dataRilascio) : null;
   const dentro = (rilievi || [])
-    .filter(r => r.stato === "elaborato" && r.volumeM3 != null)
+    .filter(rilievoUsabile)
     .filter(r => !da || String(r.data || "") >= da);
   const somma = (arr) => arr.reduce((s, r) => s + (+r.volumeM3 || 0), 0);
   const rilevato = somma(soloScavo(dentro));
@@ -528,7 +543,7 @@ export function ritmoMedioAnnuo(rilievi, anni, oggi = new Date()) {
   // solo SCAVO: il ritmo serve a stimare quando finisce il volume concesso,
   // e i cumuli ripresi non lo consumano
   const el = soloScavo(rilievi)
-    .filter(r => r.stato === "elaborato" && r.volumeM3 != null && /^\d{4}-\d{2}-\d{2}$/.test(String(r.data || "")))
+    .filter(rilievoUsabileConData)
     .filter(r => String(r.data) >= dalISO && String(r.data) <= isoLocale(o));
   if (!el.length) return null;
   const volume = el.reduce((s, r) => s + (+r.volumeM3 || 0), 0);
@@ -620,8 +635,7 @@ export function anniConVolumi(rilievi, oggi = new Date()) {
 export function riepilogoAnnuale(rilievi, anno, autorizzazione, oggi = new Date()) {
   const y = String(anno || new Date(oggi).getFullYear());
   const a = autorizzazione || {};
-  const elab = (rilievi || []).filter(r => r.stato === "elaborato" && r.volumeM3 != null
-    && /^\d{4}-\d{2}-\d{2}$/.test(String(r.data || "")));
+  const elab = (rilievi || []).filter(rilievoUsabileConData);
   const dellAnno = elab.filter(r => String(r.data).slice(0, 4) === y);
   const scavoRil = soloScavo(dellAnno), cumuloRil = soloCumulo(dellAnno);
   const somma = (arr) => arr.reduce((s, r) => s + (+r.volumeM3 || 0), 0);
@@ -864,7 +878,7 @@ export function kpiFrom(fronti, rilievi, piano, oggi = new Date()) {
   // mese si sarebbe puntato al mese/anno precedente azzerando i volumi.
   const ym = `${oggi.getFullYear()}-${String(oggi.getMonth() + 1).padStart(2, "0")}`;  // yyyy-mm
   const anno = String(oggi.getFullYear());
-  const elaborati = rilievi.filter(r => r.stato === "elaborato" && r.volumeM3 != null);
+  const elaborati = rilievi.filter(rilievoUsabile);
   const mese = elaborati.filter(r => (r.data || "").slice(0, 7) === ym);
   // «m³ estratti» = SCAVO. I cumuli ripresi si contano a parte
   // (volumiMeseCumulo): sono materiale già estratto, sommarli gonfierebbe
