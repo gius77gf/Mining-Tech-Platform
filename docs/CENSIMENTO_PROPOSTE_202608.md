@@ -74,12 +74,12 @@ condizioni · firma e chiusura del turno.
 domande sui permessi Firestore che si porta dietro». **Quelle domande non ci
 sono**: Sentinella scrive già dentro Scudo (`ponteScudo`), e le regole
 permettono a **qualunque membro dell'organizzazione** di scrivere sotto
-qualunque `appId` — nessuna regola nuova. E la ricerca ha trovato una cosa che
-il censimento non poteva sapere: dal **29/12/2025** (art. 15 D.L. 159/2025,
-convertito con L. 198/2025) le imprese con **più di quindici dipendenti** devono
-**comunicare i dati aggregati dei mancati infortuni** e le azioni correttive.
-Scudo ha già near-miss e CAPA: **manca il foglio da consegnare**. La voce sale
-di priorità e va pensata insieme al prospetto · anomalia mezzo → Flotta · giro del sorvegliante · causali di
+qualunque `appId` — nessuna regola nuova.
+*(E una correzione alla correzione: la prima stesura di quella scheda annunciava
+come scoperta l'obbligo di comunicazione dei near-miss della L. 198/2025. **Era
+già noto**, citato in sei punti di Scudo, e il prospetto aggregato **esiste**.
+Quello che manca è a monte — gli eventi che nascono al fronte e non arrivano
+all'ufficio.)* · anomalia mezzo → Flotta · giro del sorvegliante · causali di
 fermo a due livelli · piano squadre settimanale · controllo di metà turno.
 
 ## Conti — 11 fatte, 3 parziali, 6 da fare

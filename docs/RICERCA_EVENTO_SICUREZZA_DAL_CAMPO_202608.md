@@ -2,8 +2,25 @@
 
 *04/08. Il censimento la mette fra le cose «da fare» di Campo e la descrive
 così: «sarebbe la **prima scrittura** cross-app di Campo, con le domande sui
-permessi Firestore che si porta dietro». Misurando, **le domande non ci sono** —
-e c'è invece una cosa molto più grossa che il censimento non poteva sapere.*
+permessi Firestore che si porta dietro». Misurando, **le domande non ci sono**.*
+
+> ## ⚠️ Correzione scritta prima di tutto il resto
+>
+> La prima stesura di questa scheda annunciava come **scoperta** l'obbligo di
+> comunicazione dei mancati infortuni (art. 15 D.L. 159/2025 → L. 198/2025).
+> **Era già noto in casa, e da tempo**: la legge è citata in **sei punti** fra
+> `apps/scudo/`, il `README` di Scudo la indica come **finestra di mercato**
+> dell'app, e il **riepilogo aggregato esiste già** — con l'export CSV «nella
+> forma che serve alla comunicazione», la nota informativa e il richiamo a
+> confermare con l'RSPP. Il censimento stesso lo elenca fra le cose **fatte**.
+>
+> Annunciarlo come nuovo sarebbe stato **gonfiare un risultato**, che la
+> direttiva 5 vieta esplicitamente. Quello che questa ricerca aggiunge davvero è
+> più piccolo, ed è nei due punti qui sotto: **il ponte non ha problemi di
+> permessi** (misurato sulle regole) e **il confine fra app non è una barriera
+> di sicurezza** (misurato sull'SDK). Il resto è conferma di quello che il
+> prodotto sapeva già — utile per la data e per il numero della legge di
+> conversione, non per la sostanza.
 
 ---
 
@@ -62,9 +79,11 @@ l'azienda sono tutti amministratori).
 
 ---
 
-## 2. La cosa grossa: dal 29/12/2025 i near-miss **si comunicano**
+## 2. La norma: quello che il prodotto sapeva già, e la riga che si può precisare
 
-Questa è la parte che cambia la priorità della voce.
+⚠️ **Non è una scoperta**: Scudo la cita in sei punti e il riepilogo aggregato è
+già costruito su di lei. Qui resta solo perché serve avere in un posto la
+**catena esatta** della norma, che nel codice è abbreviata.
 
 L'**art. 15 del D.L. 31 ottobre 2025 n. 159**, convertito con modificazioni
 dalla **L. 29 dicembre 2025 n. 198** (in vigore dal 29/12/2025), introduce per
@@ -95,17 +114,20 @@ Scudo **ha già** i due pezzi che quella norma mette insieme:
 | **tracciare** | ✅ data, luogo, categoria di rischio, descrizione, anonimo/no |
 | **analizzare** | ⚠️ c'è il riepilogo aggregato; **manca** l'analisi causa-radice (5 Perché), che il censimento ha fra le «da fare» |
 | **azioni correttive o preventive** | ✅ le CAPA, e sono **legate al preciso evento** |
-| **comunicare i dati aggregati** | ❌ non esiste un prospetto pensato per questo |
+| **comunicare i dati aggregati** | ✅ **esiste già**: `btn-nm-export` produce il CSV per periodo, tipo, luogo, azioni aperte e chiuse |
 
-Cioè: **il grosso c'è già**, ed è stato costruito quando era solo buona pratica.
-Quello che manca è **il foglio da consegnare** — e per una volta non è una
-funzione nuova, è mettere in fila numeri che l'app ha già.
+**Il foglio da consegnare esiste già** (`btn-nm-export`: periodo, totale, di cui
+anonimi, per tipo, per luogo, near-miss con e senza azione, azioni aperte e
+chiuse). Quindi la riga «manca il prospetto» che avevo scritto era **falsa**.
 
-> **Decisione 2 — l'evento dal campo e il prospetto aggregato sono la stessa
-> unità di valore, e vanno pensati insieme.** Aprire la segnalazione al
-> caposquadra senza avere dove farla confluire riempie l'archivio e basta; fare
-> il prospetto senza aprire la segnalazione lo fa sui pochi eventi che arrivano
-> all'ufficio.
+Quello che manca davvero è **a monte**: il prospetto conta gli eventi che
+qualcuno ha inserito **dall'ufficio**. Un near-miss visto al fronte alle sei del
+mattino ci arriva solo se il caposquadra si ricorda di dirlo a fine turno.
+
+> **Decisione 2 — la segnalazione dal campo non serve a costruire il prospetto:
+> serve a riempirlo di verità.** È il numeratore, non il foglio. E si misura
+> così: se dopo un mese i near-miss segnalati **dal turno** sono zero, la
+> funzione non ha funzionato — non la cava è sicura.
 
 ---
 
@@ -146,16 +168,17 @@ Sentinella → Scudo, girato dalla parte di chi sta in cava.
 2. **la segnalazione dal turno**: pochi campi, categorie **prese da Scudo** e non
    riscritte — la regola del `shared/` vale anche per gli elenchi;
 3. **il ritorno in Campo**: lo stato delle segnalazioni della squadra;
-4. **il prospetto aggregato** per l'art. 15: eventi per **categoria di rischio**
-   e per periodo, con accanto le azioni correttive **aperte e chiuse**. Con la
-   regola di casa: un periodo **senza segnalazioni non è un periodo sicuro**, è
-   un periodo di cui non si sa niente, e il foglio lo deve dire;
+4. **niente prospetto nuovo**: c'è. Semmai una riga in più dentro quello che
+   c'è — **quanti eventi sono arrivati dal campo** e quanti dall'ufficio, perché
+   è l'unico modo di sapere se la funzione sta funzionando;
 5. *(rimandata, ma da qui si vede)* l'**analisi causa-radice**, che l'art. 15
    nomina esplicitamente («analizzare») e che il censimento ha già in elenco.
 
-**Il primo test da scrivere** non è l'aritmetica del prospetto: è che un periodo
-**senza nessun near-miss** non produca un foglio che sembra buono. È il
-principio dell'assenza applicato al documento che va all'ente.
+**Il primo test da scrivere** non è l'aritmetica: è che una segnalazione partita
+dal turno **arrivi in Scudo con la sua origine leggibile**, e che il ritorno in
+Campo dica lo stato vero anche quando lo stato è «nessuno l'ha ancora guardata».
+*(Il principio dell'assenza sul prospetto è già applicato, e bene: «un registro
+vuoto non vuol dire che non succeda niente, vuol dire che non si segnala».)*
 
 ---
 
