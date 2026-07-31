@@ -286,7 +286,19 @@ sopra restano in attesa finché non le sblocchi in conversazione.
 **vetrina dell'ecosistema** (`/apps/`, nove riquadri con la schermata vera di
 ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
-condivise su numeri, unità di misura e soldi. Le prove automatiche sono passate
-a **662** *(ricontate il 31/07)*, più **106** che girano con l'emulatore
-Firestore (58 sulle regole di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul
-primo avvio) e **13** banchi che aprono davvero le pagine in un browser.
+condivise su numeri, unità di misura e soldi.
+
+**Le prove automatiche sono passate a 1.066** *(ricontate il 31/07 lanciando le
+suite)*, più **106** che girano con l'emulatore Firestore (58 sulle regole di
+sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **19** banchi
+che aprono davvero le pagine in un browser.
+
+Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da
+**433 a 783**, e hanno fatto emergere **otto difetti veri**. I tre che pesano di
+più: il grafico «ultimi 6 mesi» del core riempiva ogni barra con la produzione
+del **mese precedente** (chiave del mese letta a Greenwich, etichetta letta in
+Italia); un **ruolo di sicurezza obbligatorio** risultava coperto quando la
+persona nominata non era più in azienda; e una **misura del sismografo spariva**
+dal report che va all'ente, scambiata per un doppione. Da lì è nato anche un
+controllo nuovo: le suite si rilanciano con l'**orologio italiano**, perché il
+contenitore è a Greenwich e in UTC quei difetti erano invisibili.
