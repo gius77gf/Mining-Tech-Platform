@@ -249,6 +249,16 @@ in italiano, senza dare conoscenze per scontate).
   solo prodotti: nella giornata del 29/07 un campo scomparso, una miniatura
   illeggibile e un'unità di misura stravolta dal maiuscolo sono stati trovati
   così, e nessuno di quei difetti si vedeva leggendo il codice.
+- ⚠️ **NON SI INIETTANO DIFETTI MENTRE GIRA UN GIRO DEL BROWSER.** Per provare
+  che un controllo sappia fallire si rimette il difetto nel file vero e si
+  ripristina subito: giusto, ed è la regola qui sopra. Ma se il file è un
+  **modulo dati** (`apps/<nome>/<nome>-data.js`) o una **pagina**, quelle stesse
+  righe se le carica il browser — e se un banco apre la pagina dentro la
+  finestra d'iniezione, il suo risultato è **falso**, in un verso o nell'altro.
+  Il 01/08 è successo: un giro a 19 banchi è stato buttato per questo. Le
+  iniezioni sui file di **test** (`run-stile.mjs`, `run-kpi.mjs`) restano sicure,
+  perché nessuna pagina li importa. Finché gira un giro: si lavora su `docs/`,
+  `vault/` e le suite `node`, e le iniezioni sui moduli si aspettano.
 - ⚠️ La cartella scratchpad è **condivisa** fra i cantieri paralleli: ogni
   agente deve creare una propria sottocartella, altrimenti si sovrascrivono i
   file di prova a vicenda (è già successo più volte).
