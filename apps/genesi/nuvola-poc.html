@@ -222,13 +222,40 @@ function updateCrop(){
   if(obj&&obj.isPoints){
     const a=obj.geometry.attributes.position.array, sel=[];
     for(let i=0;i<a.length;i+=3){ if(insideCrop(a[i],a[i+1],a[i+2])) sel.push(a[i],a[i+1],a[i+2]); }
-    if(sel.length>=90){ try{ const v=volumeCumulo(sel, Math.max(0.25, Math.min(2,(x1-x0)/60)));
+    if(sel.length>=90){ try{
+      /* ⛔ IL LATO CELLA LO SCEGLIE IL SOFTWARE, NON L'UTENTE — e vale il 22%.
+         Misurato su un cono di volume noto: 0,25 m dà −1,1%, 2 m dà +22,1%, e
+         il verso è strutturale (di ogni cella si prende la quota MASSIMA, più
+         è grossa più la superficie viene tirata su). Ritagliare un fronte
+         intero invece di un pezzo cambia il volume di venti punti percentuali.
+         Da oggi il numero scelto almeno si CONSERVA. */
+      const _cella = Math.max(0.25, Math.min(2,(x1-x0)/60));
+      const v=volumeCumulo(sel, _cella);
       volTxt=' · volume ≈ <b style="color:var(--tx)">'+Math.round(v.volume).toLocaleString('it-IT')+(_georef?' m³':' u³')+'</b> <span style="color:var(--mut)">(griglia, base piana — stima)</span>';
       try{ const k='genesiNuvole', a=JSON.parse(localStorage.getItem(k)||'[]');
         if(a.length){ a[a.length-1].volume=Math.round(v.volume)+(_georef?'':' u³');
           /* il conto che sta DAVVERO accanto al volume: i punti dentro il
              ritaglio, non quelli della nuvola intera */
           a[a.length-1].puntiRitaglio=sel.length/3;
+          /* ── I PARAMETRI CHE SPIEGANO IL NUMERO ────────────────────────
+             `volumeCumulo` ne restituisce cinque e finora se ne salvava UNO:
+             `zBase`, `cella`, `areaCelle` e `celle` venivano calcolati e
+             buttati una riga dopo. Senza di loro il volume non è
+             riproducibile nemmeno da chi l'ha fatto — e il verbale che va
+             all'ente ha una sezione intitolata «Come è stato ottenuto il
+             numero» che non poteva dire niente di vero.
+             La quota di base pesa per moltiplicazione: 1 m di errore = area
+             coperta × 1 m³. Sul cono misurato sono 729 m³.
+             Misura e decisioni: docs/RICERCA_TRACCIABILITA_VOLUME_202608.md */
+          const c = window._crop || {};
+          a[a.length-1].calcolo = {
+            cella: v.cella,
+            quotaBase: v.zBase,
+            areaCoperta: v.areaCelle,
+            celle: v.celle,
+            georeferenziato: _georef,
+            ritaglio: { x0: c.x0, x1: c.x1, y0: c.y0, y1: c.y1, z0: c.z0, z1: c.z1 },
+          };
           localStorage.setItem(k, JSON.stringify(a)); } }catch(e){}
     }catch(e){} }
   }

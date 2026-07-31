@@ -789,7 +789,7 @@ a.dw-btn{text-decoration:none}
            produzioneDichiarata, misuratoPeriodo, riconciliazioneTurni,
            periodoFraUltimiRilievi, intervalliFraRilievi, avanzamentoDaUltimoRilievo, SOGLIA_TURNI,
            produzionePerFronte,
-           numeroDaCampo, AVVISO_DECIMALE } from "./terra-data.js";
+           numeroDaCampo, AVVISO_DECIMALE, origineDi, descriviOrigine } from "./terra-data.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, montaGuardiaInteri, euro0, isoLocale, oggiISO } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
@@ -2473,6 +2473,14 @@ a.dw-btn{text-decoration:none}
             + "<p class='mini'>Sullo stesso fronte non risulta registrato in Terra alcun rilievo precedente a questo: il volume indicato non ha quindi un termine di confronto interno.</p>")
       + "<h2>Come è stato ottenuto il numero</h2>"
       + "<p class='mini'>" + comeNato
+      /* ⛔ E COME È STATO CALCOLATO, non solo con che accuratezza. Il titolo
+         della sezione promette «Come è stato ottenuto il numero»: la classe di
+         accuratezza dice quanto ci si può fidare, non da dove viene il numero.
+         Per un rilievo dal visore qui compaiono lato cella, quota di base, area
+         coperta e ritaglio — cioè quello che serve a RIFARE il conto. Per uno
+         senza provenienza registrata la frase lo dichiara, invece di tacere:
+         una riga che tace lascia credere che il numero sia verificabile. */
+      + " " + descriviOrigine(r)
       + " Le tolleranze sono valori tipici del metodo di rilievo e vanno confermate con i punti di controllo del rilevatore."
       + (cum ? " Trattandosi della ripresa di un cumulo, il volume non costituisce nuovo scavo e non consuma il volume concesso dal titolo." : "")
       + "</p>"
@@ -2675,7 +2683,13 @@ a.dw-btn{text-decoration:none}
       await db.aggiungi("rilievi", { titolo: "Prossimo rilievo" + (fr ? " — " + fr.nome : ""), data, tipo: "Drone pianificato", volumeM3: null, fronteId, stato: "pianificato", provenienza: prov });
       esito("ril-esito", "Rilievo pianificato per il " + fmtData(data) + (fr ? " su " + fr.nome : "") + ".");
     } else {
-      await db.aggiungi("rilievi", { titolo: (prov === "cumulo" ? "Ripresa da cumulo " : "Rilievo drone ") + dmy(data) + (fr ? " — " + fr.nome : ""), data, tipo: "Ortofoto + DEM", volumeM3: vol, fronteId, stato: "elaborato", metodo, gsd, rilevatore, provenienza: prov });
+      /* `origine` accompagna il rilievo solo se viene DAVVERO dal visore: per
+         uno scritto a mano resta assente, e assente vuol dire «non lo
+         sappiamo» — non «inserito a mano», che sarebbe un'affermazione che
+         nessuno ha fatto. */
+      await db.aggiungi("rilievi", { titolo: (prov === "cumulo" ? "Ripresa da cumulo " : "Rilievo drone ") + dmy(data) + (fr ? " — " + fr.nome : ""), data, tipo: "Ortofoto + DEM", volumeM3: vol, fronteId, stato: "elaborato", metodo, gsd, rilevatore, provenienza: prov,
+        ...(_origineDalVisore ? { origine: _origineDalVisore } : {}) });
+      _origineDalVisore = null;   // il prossimo rilievo non eredita questa provenienza
       esito("ril-esito", "Rilievo del " + fmtData(data) + " registrato: " + vol.toLocaleString("it-IT") + " m³"
         + (fr ? " su " + fr.nome : "")
         + (prov === "cumulo" ? " — ripresa da cumulo: non scala il volume concesso." : "."));
@@ -2693,6 +2707,11 @@ a.dw-btn{text-decoration:none}
   $("new-ril-prov").addEventListener("change", notaProv);
   notaProv();
 
+  /* L'origine raccolta dal visore, in attesa che si tocchi «Registra». Si
+     azzera a ogni registrazione: se no il rilievo DOPO, scritto a mano,
+     erediterebbe la provenienza di quello prima — cioè si inventerebbe un lato
+     cella che non ha mai avuto. */
+  let _origineDalVisore = null;
   // Ponte col visore nuvola (Genesi): riprende l'ULTIMO ritaglio con volume
   // calcolato e precompila il form del rilievo — il flusso drone→Terra chiuso.
   $("btn-dal-drone").onclick = async () => {
@@ -2715,13 +2734,48 @@ a.dw-btn{text-decoration:none}
       "Usa questo volume");
     if (scelta == null) return;
     const prov = provenienzaRilievo({ provenienza: scelta });
-    $("new-ril-data").value = oggiISO();
+    /* ⛔ LA DATA NON SI INVENTA. Qui c'era `oggiISO()` seguito da
+       `err("new-ril-data", false)`: la data veniva messa a OGGI e il campo
+       subito marcato valido. Chi elabora il volo del lunedì il giovedì si
+       ritrovava un rilievo datato giovedì, precompilato, verde, e nessun
+       motivo per guardarlo — e la data del rilievo entra nel confronto fra due
+       rilievi, nei giorni fra i due, nel ritmo al mese e nel periodo del
+       canone. Il visore la sa già (`data`, il momento del caricamento): si usa
+       quella, si dice DA DOVE VIENE, e si lascia il campo da confermare. */
+    const dataVisore = /^\d{4}-\d{2}-\d{2}/.test(String(ultimo.data || "")) ? String(ultimo.data).slice(0, 10) : "";
+    $("new-ril-data").value = dataVisore || "";
     $("new-ril-vol").value = itDec(vol);
     $("new-ril-metodo").value = "senza GCP";   // drone consumer: scala approssimata, onesto
     $("new-ril-prov").value = prov; notaProv();
-    err("new-ril-data", false); err("new-ril-vol", false);
+    err("new-ril-vol", false);
+    /* il campo della data resta da confermare: non è un errore, è una cosa che
+       solo chi ha fatto il volo può sapere */
+    if (dataVisore) fuoco("new-ril-data");
+    /* ── LA PROVENIENZA DEL CALCOLO viaggia col rilievo ────────────────────
+       Finora Terra prendeva dal visore il volume e basta: né i punti, né il
+       lato cella, né la quota di base. Il verbale che va all'ente ha una
+       sezione «Come è stato ottenuto il numero» che per questi rilievi non
+       poteva dire niente di vero. Una misura che non si può rifare non si può
+       difendere. */
+    const c = ultimo.calcolo || {};
+    _origineDalVisore = {
+      da: "visore",
+      file: ultimo.nome || null,
+      quandoVisore: ultimo.data || null,
+      puntiTotali: Number.isFinite(+ultimo.punti) ? +ultimo.punti : null,
+      puntiRitaglio: Number.isFinite(+ultimo.puntiRitaglio) ? +ultimo.puntiRitaglio : null,
+      cella: Number.isFinite(+c.cella) ? +c.cella : null,
+      quotaBase: Number.isFinite(+c.quotaBase) ? +c.quotaBase : null,
+      areaCoperta: Number.isFinite(+c.areaCoperta) ? Math.round(+c.areaCoperta) : null,
+      ritaglio: c.ritaglio || null,
+      georeferenziato: c.georeferenziato === undefined ? null : !!c.georeferenziato,
+    };
     esito("ril-esito", "Precompilato dal visore: «" + (ultimo.nome || "rilievo") + "» ≈ " + vol.toLocaleString("it-IT") + " m³ come "
-      + (prov === "cumulo" ? "ripresa da cumulo" : "scavo dal fronte") + ". Controlla fronte e metodo, poi tocca Registra.");
+      + (prov === "cumulo" ? "ripresa da cumulo" : "scavo dal fronte") + ". "
+      + (dataVisore
+          ? "La data è quella del caricamento nel visore (" + fmtD(dataVisore) + "): <b>confermala</b> se il volo è di un altro giorno."
+          : "<b>Metti la data del volo</b>: il visore non l'ha registrata.")
+      + " Controlla fronte e metodo, poi tocca Registra.");
   };
   // Import rilievi elaborati da CSV (onboarding storico).
   $("btn-imp-ril").onclick = () => $("ril-file").click();
