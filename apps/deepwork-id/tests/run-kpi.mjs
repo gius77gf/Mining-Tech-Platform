@@ -5823,5 +5823,108 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ IL REGISTRO DELLE AZIONI CORRETTIVE (CAPA) ═════════════════════════
+   È l'altra sponda dei due ponti di Sentinella, ed è quello che la legge chiede
+   di tracciare insieme agli eventi: **segnala → correggi → verifica**. Un
+   infortunio, un near-miss, una voce non conforme di un'ispezione, un
+   superamento ambientale, il reclamo di un residente: tutti finiscono qui, e da
+   qui esce la risposta alla domanda «e voi cosa avete fatto?».
+
+   La scelta di fondo che le prove difendono: **l'avanzamento si salva, il
+   semaforo si calcola.** «Aperta / in corso / chiusa» è un dato scritto da
+   qualcuno; «scaduta / in scadenza / regolare» viene dalla data, ogni volta.
+   Salvare anche quello significherebbe avere nel database un'azione «regolare»
+   che nel frattempo è scaduta — un dato derivato che invecchia in silenzio. */
+{
+  const OGGI = new Date("2026-07-31T12:00:00");
+  const az = (o) => ({ id: "a1", descrizione: "x", stato: "aperta", scadenza: "2026-08-15", ...o });
+
+  test("azioni: l'avanzamento gira col tocco, e si richiude in cerchio", () => {
+    eq(scudo.azioneStatoSuccessivo("aperta"), "in-corso", "aperta → in corso");
+    eq(scudo.azioneStatoSuccessivo("in-corso"), "chiusa", "in corso → chiusa");
+    eq(scudo.azioneStatoSuccessivo("chiusa"), "aperta", "e si può riaprire, perché a volte non era finita");
+    eq(scudo.azioneStatoSuccessivo("boh"), "in-corso", "uno stato sconosciuto vale «aperta»");
+  });
+  test("⛔ azioni: un'azione senza stato è APERTA, non chiusa", () => {
+    /* il valore di partenza deve essere quello che chiede attenzione: il
+       contrario nasconderebbe un compito che nessuno ha preso in carico */
+    eq(scudo.azioneLabel(undefined).label, "Aperta", "aperta");
+    eq(scudo.azioneLabel(undefined).cls, "danger", "e in rosso");
+  });
+  test("⛔ azioni: il semaforo della scadenza NON è lo stato salvato", () => {
+    /* è calcolato dalla data ogni volta: salvarlo darebbe un'azione «regolare»
+       nel database che nel frattempo è scaduta */
+    eq(scudo.statoAzione(az({ scadenza: "2026-07-30" }), OGGI), "scaduta", "ieri");
+    eq(scudo.statoAzione(az({ scadenza: "2026-07-31" }), OGGI), "in-scadenza", "oggi non è ancora scaduta");
+    eq(scudo.statoAzione(az({ scadenza: "2026-08-30" }), OGGI), "in-scadenza", "trenta giorni: preavviso");
+    eq(scudo.statoAzione(az({ scadenza: "2026-08-31" }), OGGI), "regolare", "trentuno: ancora lontana");
+  });
+  test("⛔ azioni: un'azione CHIUSA non scade più, nemmeno se la data è passata", () => {
+    /* il lavoro è finito: tenerla rossa riempirebbe il quadro di allarmi che
+       nessuno può togliere, e allora si smette di guardarli */
+    eq(scudo.statoAzione(az({ scadenza: "2026-01-01", stato: "chiusa" }), OGGI), "regolare", "chiusa a gennaio");
+  });
+  test("azioni: senza scadenza non si allarma", () => {
+    eq(scudo.statoAzione(az({ scadenza: "" }), OGGI), "regolare", "manca la data, non il rispetto della data");
+  });
+
+  const elenco = [az({ id: "a1", scadenza: "2026-08-30" }), az({ id: "a2", scadenza: "2026-07-01" }),
+    az({ id: "a3", scadenza: "2027-01-01" }), az({ id: "a4", scadenza: "2026-07-02", stato: "chiusa" }),
+    az({ id: "a5", scadenza: "", stato: "in-corso" })];
+
+  test("⛔ azioni: le urgenti sono solo quelle DA CHIUDERE e con la data addosso", () => {
+    const u = scudo.azioniUrgenti(elenco, OGGI);
+    eq(u.map((a) => a.id).join(","), "a2,a1", "la scaduta e quella in scadenza");
+    eq(u[0].scadenza < u[1].scadenza, true, "prima la più vecchia, che è la più urgente");
+  });
+  test("azioni: la chiusa e quella senza data non entrano fra le urgenti", () => {
+    const u = scudo.azioniUrgenti(elenco, OGGI).map((a) => a.id);
+    eq(u.includes("a4"), false, "chiusa a luglio, era scaduta");
+    eq(u.includes("a5"), false, "e quella senza scadenza");
+  });
+  test("⛔ azioni: il riepilogo conta ogni azione una volta sola", () => {
+    const r = scudo.riepilogoAzioni(elenco, OGGI);
+    eq(r.totale, 5, "cinque azioni");
+    eq(r.aperte + r.inCorso + r.chiuse, r.totale, "e i tre stati fanno il totale: nessuna cade fuori");
+    eq(r.daChiudere, 4, "quattro non sono chiuse");
+    eq(r.scadute, 1, "una scaduta");
+    eq(r.inScadenza, 1, "e una in scadenza");
+  });
+
+  const miste = [{ origineTipo: "evento", origineId: "e1" }, { origineTipo: "ispezione", origineId: "i1" },
+    { origineTipo: "superamento", origineId: "p1", stato: "aperta" },
+    { origineTipo: "reclamo", origineId: "r1", stato: "chiusa" }];
+
+  test("⛔ azioni: si risale dall'evento alle sue azioni, e solo alle sue", () => {
+    /* è la catena che l'ispettore percorre al contrario: questo infortunio,
+       che cosa avete fatto? */
+    eq(scudo.azioniDiEvento(miste, "e1").length, 1, "quella dell'evento");
+    eq(scudo.azioniDiEvento(miste, "i1").length, 0, "non quella dell'ispezione, che ha lo stesso ruolo ma altra origine");
+    eq(scudo.azioniDiEvento(miste, "").length, 0, "e senza id non si tira su tutto");
+  });
+  test("azioni: e allo stesso modo dall'ispezione", () => {
+    eq(scudo.azioniDiIspezione(miste, "i1").length, 1, "quella dell'ispezione");
+    eq(scudo.azioniDiIspezione(miste, "e1").length, 0, "non quella dell'evento");
+  });
+  test("⛔ ambiente: un'azione che arriva da Sentinella si riconosce", () => {
+    /* serve a scrivere l'origine giusta e a NON farla cancellare da una
+       modifica fatta dal form di Scudo, che non sa da dove viene */
+    eq(miste.map((a) => scudo.daAmbiente(a)).join(","), "false,false,true,true", "le due ambientali");
+    eq(scudo.etichettaAmbiente(miste[2]), "Superamento", "e si dice quale delle due è");
+    eq(scudo.etichettaAmbiente(miste[3]), "Reclamo", "l'altra");
+  });
+  test("ambiente: il riepilogo separa i superamenti dai reclami", () => {
+    const r = scudo.riepilogoAmbiente(miste);
+    eq(r.totale, 2, "due ambientali");
+    eq(r.superamenti, 1, "un superamento");
+    eq(r.reclami, 1, "e un reclamo");
+    eq(r.daChiudere, 1, "una sola resta da chiudere");
+  });
+  test("ambiente: senza nessuna azione ambientale tutti zero, niente si rompe", () => {
+    eq(scudo.riepilogoAmbiente([]).totale, 0, "vuoto");
+    eq(scudo.riepilogoAmbiente(null).daChiudere, 0, "e nemmeno con la lista mancante");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
