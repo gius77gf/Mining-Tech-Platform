@@ -8428,5 +8428,120 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+// ── Campo: come si SCRIVE un numero, e il piano di carico ────────────
+/* Ultimo gruppo scoperto di Campo. Sono le funzioni che decidono come un
+   numero arriva sotto gli occhi di chi lavora — ed è lì che una carica
+   non registrata può diventare «0 kg», cioè un fatto, e falso. */
+{
+  console.log("\n— Campo: come si scrive un numero, e il piano di carico —");
+
+  test("⛔ numeroIt: `null` e stringa vuota NON sono zero", () => {
+    /* `+null` fa 0: senza il controllo, una carica non registrata
+       comparirebbe come «0 kg». Qui la risposta è la stringa vuota, così
+       chi la mostra decide cosa metterci al posto. */
+    eq(campo.numeroIt(null), "", "null");
+    eq(campo.numeroIt(""), "", "vuoto");
+    eq(campo.numeroIt(undefined), "", "niente");
+    eq(campo.numeroIt("boh"), "", "non è un numero");
+    eq(campo.numeroIt(0), "0", "ma uno zero SCRITTO è uno zero, e si vede");
+  });
+  test("numeroIt: raggruppa le migliaia sempre allo stesso modo", () => {
+    /* `useGrouping: true` è scritto a mano di proposito: al valore di
+       default 1286 esce «1.286» su Chromium e «1286» su Node, cioè lo
+       stesso numero in due modi a seconda di dove gira */
+    eq(campo.numeroIt(1286), "1.286", "mille duecentottantasei");
+    eq(campo.numeroIt(1234567), "1.234.567", "e i milioni");
+    eq(campo.numeroIt(60), "60", "senza decimali inutili");
+    eq(campo.numeroIt(1250.5), "1.250,5", "virgola decimale");
+  });
+  test("segnoIt: il verso davanti, col segno meno tipografico", () => {
+    /* «−» è U+2212, non il trattino: negli scostamenti il verso è metà
+       dell'informazione, e un trattino si confonde con una lineetta */
+    eq(campo.segnoIt(-15.3), "−15,3", "meno tipografico");
+    eq(campo.segnoIt(4.7), "+4,7", "più esplicito");
+    eq(campo.segnoIt(0), "+0", "lo zero è «in pari», non negativo");
+    eq(campo.segnoIt(null), "", "e il dato che manca resta vuoto anche qui");
+  });
+  test("numeroItDa: legge un numero di un file e lo riscrive all'italiana", () => {
+    /* le colonne del piano che Campo non converte arrivano come testo:
+       «13.20» e «13,20» sono lo stesso numero, e quello che numero non è
+       torna com'era — è roba di un file, non la si indovina */
+    eq(campo.numeroItDa("13.20"), "13,2", "punto decimale");
+    eq(campo.numeroItDa("13,20"), "13,2", "virgola decimale");
+    eq(campo.numeroItDa("ciao"), "ciao", "non è un numero: resta com'era");
+    eq(campo.numeroItDa(""), "", "vuoto");
+  });
+  test("⚠️ `numeroIt` esiste in DUE app, e risponde diverso in mezzo dei casi", () => {
+    /* Misurato: su dodici valori provati, SEI risposte diverse.
+       Le differenze sono volute e dichiarate nei commenti dei due moduli:
+       · sul dato che manca Campo scrive "" e Sentinella "—", perché in un
+         rapporto di monitoraggio il trattino dice «non è stato misurato»;
+       · da cento in su Sentinella arrotonda all'unità di serie («1.286,00
+         letture» non aggiunge niente), Campo no.
+       Non sono quindi la stessa regola scritta due volte, e non vanno in
+       `shared/` così come sono. Ma il NUCLEO è lo stesso in tutt'e due —
+       «null e "" non sono zero», il raggruppamento fissato a mano — ed è
+       la parte che, se un giorno viene corretta in una sola delle due,
+       resta indietro nell'altra senza che nessuno lo veda.
+       Questa prova esiste per rendere visibile quel confine. */
+    ok(campo.numeroIt !== sentinella.numeroIt, "sono due funzioni diverse, non un alias");
+    eq([campo.numeroIt(null), sentinella.numeroIt(null)], ["", "—"], "il dato che manca");
+    eq([campo.numeroIt(312.5), sentinella.numeroIt(312.5)], ["312,5", "313"], "da cento in su");
+    /* il nucleo condiviso: nessuna delle due scrive «0» per un dato assente */
+    for (const f of [campo.numeroIt, sentinella.numeroIt])
+      ok(!/0/.test(f(null)) && !/0/.test(f("")), "né l'una né l'altra scrive zero su un dato che manca");
+  });
+
+  test("squadraBase: «Squadra A — Perforazione» è la squadra «Squadra A»", () => {
+    eq(campo.squadraBase("Squadra A — Perforazione"), "Squadra A", "il mestiere resta fuori dalla chiave");
+    eq(campo.squadraBase("  Squadra B "), "Squadra B", "spazi tolti");
+    eq(campo.squadraBase(null), "", "niente");
+  });
+  test("RUOLI: lista corta da toccare, perché in cava coi guanti non si scrive", () => {
+    ok(campo.RUOLI.length <= 12, "corta: se è lunga nessuno la usa");
+    ok(campo.RUOLI.includes("Fochino") && campo.RUOLI.includes("Caposquadra"), "i ruoli di cava ci sono");
+    eq(campo.RUOLI[campo.RUOLI.length - 1], "Altro", "«Altro» in fondo");
+  });
+  test("formattaProduzione: numero all'italiana e unità accanto, mai in maiuscolo", () => {
+    /* «m³» e «M³» non sono la stessa cosa */
+    eq(campo.formattaProduzione(1250.5, "t"), "1.250,5 t", "tonnellate");
+    eq(campo.formattaProduzione(0, null), "0 t", "senza unità vale la prima delle tre");
+    eq(campo.formattaProduzione("boh", "m³"), "0 m³", "un numero illeggibile non fa sparire l'unità");
+  });
+
+  test("normalizzaPiano: butta le righe senza foro o senza carica, e ordina per foro", () => {
+    /* una riga senza numero di foro o senza carica prevista non è una riga
+       del piano: tenerla farebbe un consuntivo su fori che non esistono */
+    const p = campo.normalizzaPiano([
+      { foro: "3", prog: "100", reale: "" },
+      { foro: "1", prog: "80", reale: "75" },
+      { foro: "0", prog: "50" },
+      { foro: "2", prog: "0" },
+      { foro: "2", prog: "90", reale: null },
+    ]);
+    eq(p.map(x => x.foro), [1, 2, 3], "in ordine di foro, e le due righe storte fuori");
+    eq(p.map(x => x.prog), [80, 90, 100], "le cariche previste lette come numeri");
+  });
+  test("⛔ normalizzaPiano: «carica reale non ancora registrata» è null, non zero", () => {
+    /* zero chili di esplosivo in un foro è un fatto — e se non è vero,
+       falsa lo scarto e quindi la riconciliazione con Genesi */
+    const p = campo.normalizzaPiano([
+      { foro: "1", prog: "80", reale: "" }, { foro: "2", prog: "80", reale: null },
+      { foro: "3", prog: "80", reale: "0" }, { foro: "4", prog: "80", reale: "75" },
+    ]);
+    eq(p.map(x => x.reale), [null, null, 0, 75], "vuoto e null restano null; uno zero SCRITTO resta zero");
+  });
+  test("CONSUNTIVO_COLONNE: le colonne del consuntivo dicono le unità nel nome", () => {
+    /* «carica_prog_kg» e non «carica_prog»: chi apre il file in un foglio
+       di calcolo non ha nessun altro posto dove leggere l'unità */
+    eq(campo.CONSUNTIVO_COLONNE[0], "data", "la data per prima");
+    ok(campo.CONSUNTIVO_COLONNE.includes("carica_prog_kg"), "prevista in kg");
+    ok(campo.CONSUNTIVO_COLONNE.includes("carica_reale_kg"), "reale in kg");
+    ok(campo.CONSUNTIVO_COLONNE.includes("scarto_pct") && campo.CONSUNTIVO_COLONNE.includes("scarto_kg"),
+      "lo scarto in percentuale E in chili: sono due letture diverse dello stesso fatto");
+    eq(new Set(campo.CONSUNTIVO_COLONNE).size, campo.CONSUNTIVO_COLONNE.length, "nessuna colonna ripetuta");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);

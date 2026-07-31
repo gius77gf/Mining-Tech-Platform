@@ -46,7 +46,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**1.231 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 31/07: 948 + 201 + 43 + 23 + 9 + 7):
+**1.242 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 31/07: 959 + 201 + 43 + 23 + 9 + 7):
 
 ```sh
 node apps/deepwork-id/tests/run-kpi.mjs        # i calcoli delle sei app + i lettori CSV
