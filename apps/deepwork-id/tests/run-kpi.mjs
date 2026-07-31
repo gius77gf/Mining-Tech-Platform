@@ -1752,7 +1752,12 @@ test("l'avviso sulla volata nega esplicitamente il rapporto di causa", () =>
 test("la scadenza proposta scavalca mese e anno, e non produce NaN", () => {
   ok(sentinella.dataPiuGiorni(30, new Date(2026, 6, 29)) === "2026-08-28", "30 giorni da 29/07");
   ok(sentinella.dataPiuGiorni(1, new Date(2026, 11, 31)) === "2027-01-01", "capodanno");
-  ok(sentinella.dataPiuGiorni("boh", new Date(2026, 6, 29)) === "", "ingresso non numerico = vuoto, non NaN");
+  /* ⛔ dal 02/08 risponde `null`, non `""`. Le due app avevano la STESSA
+     funzione scritta due volte, e le due copie si erano già staccate proprio
+     qui: Scudo diceva `null`, Sentinella `""`. Adesso ce n'è una sola, in
+     `shared/`, e dice `null` — che vuol dire «non lo so», mentre la stringa
+     vuota si confonde con «una data vuota». */
+  ok(sentinella.dataPiuGiorni("boh", new Date(2026, 6, 29)) === null, "ingresso non numerico = niente data, non NaN");
 });
 test("Scudo riconosce l'origine ambientale e non la confonde con un'ispezione", () => {
   ok(scudo.daAmbiente({ origineTipo: "superamento" }) === true, "un superamento è ambientale");
@@ -2245,8 +2250,12 @@ test("Flotta: il mezzo decimo del contatore non si perde", () => {
   ok(flotta.prossimoTagliando({ titolo: "Tagliando", mezzo: "E1", ogniOre: 250 }, 5875.5).orePreviste === 6125.5,
     "contatore 5875,5 + ogni 250 h = 6125,5 h — era "
     + JSON.stringify(flotta.prossimoTagliando({ titolo: "T", mezzo: "E1", ogniOre: 250 }, 5875.5)));
-  ok(flotta.urgenzaOre(6500, 5265.5).label === "tra 1234,5 h",
-    "l'etichetta scrive 1234,5 e non 1234.5 — era «" + flotta.urgenzaOre(6500, 5265.5).label + "»");
+  /* dal 02/08 l'etichetta raggruppa le migliaia — «1.234,5» — perché il
+     raggruppamento nei moduli è scritto esplicito e non lasciato al motore:
+     senza, Node scriveva «1234,5» e il browser dell'utente «1.234,5».
+     docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md */
+  ok(flotta.urgenzaOre(6500, 5265.5).label === "tra 1.234,5 h",
+    "l'etichetta scrive 1.234,5 e non 1234.5 — era «" + flotta.urgenzaOre(6500, 5265.5).label + "»");
   ok(flotta.urgenzaOre(6500, 6520).label === "SCADUTA (+20 h)", "l'etichetta storica non cambia");
 });
 test("Terra: il GSD si legge sia numero sia testo, e si scrive con la virgola", () => {
@@ -5459,12 +5468,18 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     const r = pt("CAT 320", 5875, p500);
     eq(r.oreProposte, 6375, "5875 più cinquecento");
     eq(r.oreNote, true, "le ore si sanno");
-    /* ⚠️ in italiano 6375 si scrive SENZA il punto: la lingua raggruppa solo
-       da cinque cifre in su (`minimumGroupingDigits: 2`). La prima stesura
-       pretendeva «6.375» e cadeva — era la prova a sbagliare la lingua, non il
-       codice a sbagliare il numero */
-    eq(r.testo.includes("il tagliando è proposto a 6375"), true, "e lo dice");
-    eq((1234567).toLocaleString("it-IT"), "1.234.567", "col punto si scrive da cinque cifre in su");
+    /* ⚠️ CORRETTA IL 02/08, e vale la pena tenere la storia.
+       La prima stesura pretendeva «6.375» e cadeva; la seconda ne concluse che
+       «in italiano 6375 si scrive senza il punto, la lingua raggruppa solo da
+       cinque cifre in su». Mezza verità: è la preferenza CLDR per l'italiano
+       (`minimumGroupingDigits: 2`), ma NON è quello che vede l'utente — misurato
+       affiancando i motori, con le opzioni di serie **Chromium scrive «6.375» e
+       Node «6375»**. La prova stava quindi blindando la stringa che si vede solo
+       nelle prove. Adesso il raggruppamento è scritto esplicito nei moduli e i
+       due motori dicono la stessa cosa: «6.375», che è anche la convenzione già
+       scelta in Campo e in Sentinella. docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md */
+    eq(r.testo.includes("il tagliando è proposto a 6.375"), true, "e lo dice come lo legge l'utente");
+    eq((1234567).toLocaleString("it-IT", { useGrouping: true }), "1.234.567", "e i milioni col punto");
   });
   test("⛔ proposta: senza contaore NON si propone zero più il passo", () => {
     /* `+null` fa 0 e `Number.isFinite(0)` risponde true: è la forma sbagliata,
@@ -7703,7 +7718,7 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     /* un contaore che scende è quasi sempre una cifra saltata, e da lì
        esce un consumo orario senza senso */
     const v = flotta.validaRifornimento({ mezzo: "E1", litri: 40, data: "2026-07-31", ore: 900 }, 1200);
-    ok(!v.ok && /1200 ore già registrate/.test(v.errori.ore), "lo dice col numero che ha già");
+    ok(!v.ok && /1\.200 ore già registrate/.test(v.errori.ore), "lo dice col numero che ha già, raggruppato");
   });
   test("validaRifornimento: mezzo, litri e giorno servono; la spesa può mancare", () => {
     const e = flotta.validaRifornimento({}, null).errori;
@@ -8122,18 +8137,18 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
       "mezzanotte e mezza del primo maggio è ancora il primo maggio");
     eq(scudo.dataPiuGiorni(-10, new Date("2026-07-15T10:00:00")), "2026-07-05", "e si può andare indietro");
   });
-  test("⚠️ dataPiuGiorni: «boh» non dà nessuna data, ma `null` dà OGGI", () => {
-    /* Scritto com'è, non come dovrebbe essere. `Number(null)` è **0** — la
-       stessa famiglia di `+null === 0` già costata due volte qui dentro — e
-       quindi «nessun numero di giorni» diventa «scade oggi», che su
-       un'azione correttiva è una scadenza che qualcuno firma.
-       Misurato, NON è raggiungibile oggi: i due punti che la chiamano
-       passano o un 30 scritto a mano o `i.periodicitaGiorni ? … : ""`.
-       È una trappola dormiente, non un difetto vivo: la prova la blinda
-       così com'è e la nomina, invece di far finta che risponda null. */
+  test("⛔ dataPiuGiorni: senza un numero di giorni non propone NESSUNA data", () => {
+    /* La trappola c'era, ed è stata chiusa il 02/08 nel passaggio a `shared/`.
+       `Number(null)` è **0** — la famiglia di `+null === 0` già costata due
+       volte qui dentro — e quindi «nessun numero di giorni» diventava «scade
+       oggi»: su un'azione correttiva, una scadenza che qualcuno firma.
+       Non era raggiungibile (i punti che la chiamano passano un 30 scritto a
+       mano, o guardano prima `i.periodicitaGiorni`), ma stava in DUE copie
+       identiche — Scudo e Sentinella — e chiuderla in un posto solo l'ha
+       chiusa in tutt'e due. */
     eq(scudo.dataPiuGiorni("boh", new Date("2026-07-15T10:00:00")), null, "una parola: nessuna data");
-    eq(scudo.dataPiuGiorni(null, new Date("2026-07-15T10:00:00")), "2026-07-15",
-      "null diventa zero giorni, cioè oggi — è la trappola, ed è qui scritta");
+    eq(scudo.dataPiuGiorni(null, new Date("2026-07-15T10:00:00")), null, "e nemmeno il niente");
+    eq(scudo.dataPiuGiorni("", new Date("2026-07-15T10:00:00")), null, "né il vuoto");
   });
   test("normalizzaTesto: «Idoneità» e «idoneita» sono la stessa cosa", () => {
     /* serve a riconoscere che «Corso antincendio» e «Antincendio —
@@ -8577,6 +8592,70 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
        risposta giusta, e la pagina lì scrive «manca la densità». */
     eq(conti.valorePesata({ netto: 18.3, quantita: null, unitaVendita: "m3", prezzoUnitario: 20 }), 0,
       "il netto NON è un ripiego della quantità venduta");
+  });
+}
+
+// ── Le regole che servono a due app: UNA sola, e le app la ri-esportano ──
+/* ⛔ Queste prove pretendono l'IDENTITÀ, non il comportamento. La differenza
+   non è formale: due copie che si comportano uguale OGGI divergono domani
+   senza che nessuno lo veda, ed è esattamente quello che era successo —
+   `messaggioNumero` scritta due volte con tre messaggi diversi su dieci, e
+   `dataPiuGiorni` scritta identica in due app ma già staccata sul caso
+   d'errore (`null` di qua, `""` di là).
+   Misura e racconto: docs/NUMERI_MESSAGGIO_DOPPIO_202608.md e
+   docs/LA_STESSA_REGOLA_SCRITTA_DUE_VOLTE.md */
+{
+  console.log("\n— Una regola, un posto solo (identità, non comportamento) —");
+
+  test("⛔ messaggioNumero: una sola implementazione, e Flotta la RI-ESPORTA", () => {
+    ok(flotta.messaggioNumero === shell.messaggioNumero, "è lo stesso oggetto, non una copia");
+  });
+  test("⛔ le due frasi degli avvisi vengono tutte dallo stesso posto", () => {
+    for (const app of [conti, flotta, sentinella, terra])
+      ok(app.AVVISO_DECIMALE === shell.AVVISO_DECIMALE, "AVVISO_DECIMALE");
+    ok(flotta.AVVISO_MIGLIAIA === shell.AVVISO_MIGLIAIA, "AVVISO_MIGLIAIA");
+  });
+  test("la frase sull'ambiguo dice anche COME si scrive", () => {
+    /* era la versione di Flotta, ed era la migliore delle due: quella dello
+       shell si fermava a «senza il punto delle migliaia» e lasciava indovinare
+       la forma giusta, proprio dove l'app ha appena detto di non voler indovinare */
+    ok(/«1250».*«1\.250»/.test(shell.AVVISO_MIGLIAIA), "con l'esempio dentro");
+    const r = shell.numeroScritto("1.250", { decimali: 2 });
+    ok(/1250.*1,25/.test(shell.messaggioNumero(r, "il numero")), "e la frase scioglie l'ambiguità");
+  });
+  test("⛔ uno ZERO scritto si vede nel messaggio (non «hai scritto «»»)", () => {
+    /* era il difetto della copia di Flotta: `(r.grezzo || "")`, e `0 || ""`
+       è `""` — l'utente ha scritto zero e l'app gli rispondeva che non aveva
+       scritto niente */
+    ok(/«0»/.test(flotta.messaggioNumero({ motivo: "non-positivo", grezzo: 0 }, "le ore")),
+      "lo zero compare nella frase");
+  });
+
+  test("⛔ dataPiuGiorni: una sola, e senza un numero non propone nessuna data", () => {
+    ok(scudo.dataPiuGiorni === shell.dataPiuGiorni, "Scudo la ri-esporta");
+    ok(sentinella.dataPiuGiorni === shell.dataPiuGiorni, "e Sentinella pure");
+    /* irrigidita nel passaggio: `Number(null)` è 0, quindi «nessun numero di
+       giorni» diventava «scade oggi» — una scadenza che qualcuno firma */
+    eq(shell.dataPiuGiorni(null, new Date("2026-07-15T10:00:00")), null, "null non è zero giorni");
+    eq(shell.dataPiuGiorni("", new Date("2026-07-15T10:00:00")), null, "e nemmeno il vuoto");
+    eq(shell.dataPiuGiorni("boh", new Date("2026-07-15T10:00:00")), null, "né una parola");
+    eq(shell.dataPiuGiorni(30, new Date("2026-07-15T10:00:00")), "2026-08-14", "e trenta giorni sono trenta giorni");
+  });
+  test("giorni: alias di giorniTra in tutt'e due le app che lo usavano", () => {
+    ok(conti.giorni === shell.giorniTra, "Conti");
+    ok(sentinella.giorni === shell.giorniTra, "Sentinella");
+  });
+
+  test("⛔ le migliaia si raggruppano allo stesso modo in Node e nel browser", () => {
+    /* misurato: sui numeri di quattro cifre Chromium scrive «6.375» e Node
+       «6375». I moduli dati li leggono tutt'e due, quindi il raggruppamento
+       va SCRITTO. docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md */
+    eq(campo.numeroIt(6375, 0), "6.375", "Campo");
+    eq(sentinella.numeroIt(6375, 0), "6.375", "Sentinella");
+    /* Terra accorcia le migliaia («6k») e i milioni li scrive raggruppati:
+       12.500.000 m³ deve leggersi «12,5M», non «12.5M» col punto inglese */
+    eq(terra.fmtM3(6375), "6k", "Terra accorcia le migliaia");
+    eq(terra.fmtM3(12500000), "12,5M", "e i milioni con la virgola");
   });
 }
 

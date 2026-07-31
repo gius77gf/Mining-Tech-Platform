@@ -242,6 +242,7 @@ export const TIPI_DOCUMENTO = [
 // restavano scoperte — dieci prove rosse subito, che è il comportamento giusto
 // della suite. Serve importare e poi ri-esportare il nome.
 import { statoScadenzaHSE } from "../../shared/dw-ponti.js";
+import { dataPiuGiorni as dataPiuGiorniShell } from "../../shared/deepwork-id-client/dw-shell.js";
 const statoScadenza = statoScadenzaHSE;
 export { statoScadenza };
 
@@ -707,14 +708,11 @@ export function riepilogoIspezioni(ispezioni, oggi = new Date()) {
 }
 
 // Data di oggi + N giorni in ISO (per la prossima ispezione ricorrente e per
-// la scadenza proposta alle azioni correttive). Pura; `oggi` iniettabile.
-export function dataPiuGiorni(giorni, oggi = new Date()) {
-  const n = Number(giorni);
-  if (!Number.isFinite(n)) return null;
-  const d = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate() + Math.round(n));
-  const p = (x) => String(x).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
+// la scadenza proposta alle azioni correttive).
+// ⛔ RI-ESPORTATA da `shared/`: era scritta identica anche in Sentinella, e le
+// due copie si erano già staccate sul caso d'errore. Un alias non è una seconda
+// implementazione. docs/LA_STESSA_REGOLA_SCRITTA_DUE_VOLTE.md
+export const dataPiuGiorni = dataPiuGiorniShell;
 
 // Import registro infortuni da CSV (onboarding: caricare lo storico eventi di
 // una cava). Colonne: data;tipo;gravita;giorniAssenza;descrizione[;luogo]

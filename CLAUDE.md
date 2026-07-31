@@ -174,7 +174,7 @@ in italiano, senza dare conoscenze per scontate).
   `run-pointcloud.mjs`, `run-manifest.mjs`, `run-stile.mjs`) girano anch'esse
   con `node`.
 - **`run-stile.mjs` rende verificabili le regole vincolanti** che prima
-  vivevano solo qui — sette, al 31/07: niente dialoghi del browser, unità mai in
+  vivevano solo qui — sedici, al 02/08: niente dialoghi del browser, unità mai in
   maiuscolo, nessun campo decimale `type="number"`, nessun campo decimale letto
   col lettore che fa zero, la guardia sui campi interi montata dove servono, il
   ponte con Terra che non dà la colpa a chi compila, e la provenienza di un

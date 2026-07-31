@@ -74,9 +74,25 @@ Quella che `CLAUDE.md` prescrive, e per lo stesso motivo:
    divergono domani senza che nessuno lo veda. È già successo — e questo
    documento ne è la misura.
 
-## Stato
+## Stato — ✅ FATTO il 02/08
 
-Analisi e misura fatte il 02/08. La correzione tocca i moduli dati di
-quattro app e lo shell: applicata appena finisce il giro del browser in
-corso, perché una modifica ai moduli mentre un banco apre le pagine
-falsifica il banco (regola di `CLAUDE.md`).
+Applicata appena il giro del browser è finito (**19 banchi a posto, 0 da
+guardare**), come previsto: modificare i moduli mentre un banco apre le
+pagine falsifica il banco.
+
+- una sola `messaggioNumero`, nello shell, col **meglio delle due**: la frase
+  dell'ambiguo con l'esempio dentro (era di Flotta) e lo zero che si vede (era
+  dello shell);
+- `AVVISO_DECIMALE` e `AVVISO_MIGLIAIA` **esportati dallo shell**; le quattro
+  app li **ri-esportano** col nome di sempre — le pagine non cambiano una riga;
+- le prove pretendono l'**identità** (`flotta.messaggioNumero ===
+  shell.messaggioNumero`), non il comportamento;
+- e il controllo `nomi-doppi.mjs` adesso lo verifica da solo, in coda alla CI:
+  **12 nomi guardati, 4 alias, 5 divergenze dichiarate, 0 da sistemare**.
+
+Nella stessa passata sono andate in `shared/` anche `dataPiuGiorni` (che era
+scritta identica in Scudo e Sentinella e **si era già staccata** sul caso
+d'errore, `null` contro `""`) e `giorni`, che è tornato a essere un alias di
+`giorniTra`. `dataPiuGiorni` ne è uscita anche **irrigidita**: `Number(null)` è
+0, quindi «nessun numero di giorni» diventava «scade oggi» — in tutt'e due le
+copie, e chiuderla in un posto solo l'ha chiusa in tutt'e due.

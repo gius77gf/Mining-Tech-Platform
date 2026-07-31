@@ -38,7 +38,8 @@
 // KPI CALCOLATI: da incassare, in scadenza, gare aperte, età media del credito.
 // ============================================================
 
-import { parseCsvLine, numIt, giorniTra, isIntestazione } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, numIt, giorniTra, isIntestazione,
+         AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL } from "../../shared/deepwork-id-client/dw-shell.js";
 import { provenienzaDi } from "../../shared/dw-ponti.js";
 
 export const DEMO = {
@@ -170,9 +171,9 @@ export const DEMO = {
   ],
 };
 
-export function giorni(dataISO, oggi = new Date()) {
-  return giorniTra(dataISO, oggi);
-}
+// ⛔ Alias di `giorniTra`: lo stesso involucro di due righe era scritto anche
+// in Sentinella. Un alias non è una seconda implementazione.
+export const giorni = giorniTra;
 
 // ══════════════════════════════════════════════════════════════════════
 // NUMERI SCRITTI A MANO — la virgola decimale, che in Italia è la norma
@@ -209,8 +210,10 @@ export function giorni(dataISO, oggi = new Date()) {
 // scrive chi chiama, perché il messaggio giusto dipende dal campo.
 // Pura e testabile: nessun DOM.
 // ══════════════════════════════════════════════════════════════════════
-export const AVVISO_DECIMALE =
-  "Va bene sia la virgola sia il punto: «2,4» e «2.4» sono lo stesso numero.";
+// ⛔ RI-ESPORTATA, non ridichiarata: era scritta alla lettera in quattro
+// moduli dati. Un alias non è una seconda implementazione.
+// Vedi docs/NUMERI_MESSAGGIO_DOPPIO_202608.md
+export const AVVISO_DECIMALE = AVVISO_DECIMALE_SHELL;
 
 // un solo punto, esattamente tre cifre dopo, nessuna virgola: le due letture
 // (migliaia / decimale) sono entrambe legittime e distano mille volte

@@ -82,7 +82,10 @@
 // L'urgenza delle manutenzioni si CALCOLA dalla data (mai salvata).
 // ============================================================
 
-import { parseCsvLine, numIt, giorniTra, isIntestazione, numeroScritto, oggiISO } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, numIt, giorniTra, isIntestazione, numeroScritto, oggiISO,
+         messaggioNumero as messaggioNumeroShell,
+         AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL,
+         AVVISO_MIGLIAIA as AVVISO_MIGLIAIA_SHELL } from "../../shared/deepwork-id-client/dw-shell.js";
 
 // Data di oggi in formato ISO (aaaa-mm-gg) nel fuso dell'utente: la stessa
 // che scrive l'app quando registra la fotografia del giorno.
@@ -121,10 +124,12 @@ const isoIndietro = (giorni) => oggiIso(new Date(Date.now() - giorni * 86400000)
 // Ritorna { vuoto, ok, valore, grezzo, motivo } — il messaggio lo scrive chi
 // chiama, perché il messaggio giusto dipende dal campo. Pura e testabile.
 // ══════════════════════════════════════════════════════════════════════
-export const AVVISO_DECIMALE =
-  "Va bene sia la virgola sia il punto: «2,4» e «2.4» sono lo stesso numero.";
-export const AVVISO_MIGLIAIA =
-  "Scrivilo senza il punto delle migliaia: «1250», non «1.250».";
+// ⛔ RI-ESPORTATE, non ridichiarate. Erano scritte qui alla lettera e la
+// frase delle migliaia era diversa da quella dello shell: la stessa cosa
+// sbagliata riceveva due spiegazioni. Un alias non è una seconda
+// implementazione. Vedi docs/NUMERI_MESSAGGIO_DOPPIO_202608.md
+export const AVVISO_DECIMALE = AVVISO_DECIMALE_SHELL;
+export const AVVISO_MIGLIAIA = AVVISO_MIGLIAIA_SHELL;
 
 // spazi di ogni tipo (anche quelli “fini” che arrivano dal foglio di calcolo)
 // e il simbolo dell'euro: chi scrive «€ 12,50» ha scritto un numero
@@ -158,8 +163,12 @@ export function perCampo(v, decimali = 2) {
 // il punto delle migliaia, che è come si scrive un migliaio in Italia. È il
 // contrario di perCampo, e la differenza non è un vezzo: dentro un campo il
 // punto delle migliaia rientrerebbe come ambiguo, dentro una frase serve.
+// ⛔ `useGrouping` scritto a mano: al valore di default Node NON raggruppa i
+// numeri di quattro cifre (6375 → «6375») e Chromium sì (→ «6.375»). Questo
+// file lo leggono tutt'e due, e senza questa riga una prova affermerebbe una
+// stringa che l'utente non vede mai. docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md
 const mostra = (v, dec = 2) =>
-  Number.isFinite(+v) ? (+v).toLocaleString("it-IT", { maximumFractionDigits: Math.max(0, dec) }) : "";
+  Number.isFinite(+v) ? (+v).toLocaleString("it-IT", { maximumFractionDigits: Math.max(0, dec), useGrouping: true }) : "";
 
 // IL MESSAGGIO di un numero che non si è potuto leggere. Sta qui, in un posto
 // solo, perché i validatori di riga e le schermate dicono la stessa cosa: se
@@ -172,36 +181,13 @@ const mostra = (v, dec = 2) =>
 // soggetto: «le ore di lavoro deve essere…» è un errore di grammatica che
 // nasce da sé se si concatenano le parole senza pensarci, e un messaggio
 // scritto male fa sembrare rotto anche quello che funziona.
-export function messaggioNumero(r, cosa, opts = {}) {
-  const q = "«" + String((r && r.grezzo) || "") + "»";
-  const u = opts.unita ? " " + opts.unita : "";
-  switch (r && r.motivo) {
-    case "vuoto":
-      return "Senza " + cosa + " non posso salvare: scrivi il numero.";
-    case "ambiguo":
-      // Le due letture si scrivono con perCampo, non con mostra: raggruppate
-      // darebbero «1.250 oppure 1,25», cioè la frase ripeterebbe la stringa
-      // ambigua invece di scioglierla. E tre decimali, non due: la lettura
-      // decimale di «5.875» è 5,875 — con i due di default diventava «5,88»,
-      // un terzo numero che non c'entra niente con quello che era stato scritto.
-      return q + " può voler dire " + perCampo(r.letture[0]) + u + " (punto delle migliaia) oppure "
-        + perCampo(r.letture[1], 3) + u + " (punto decimale), e non voglio indovinare al posto tuo. " + AVVISO_MIGLIAIA;
-    case "non-numero":
-      return "Non riesco a leggere " + cosa + ": " + q + " non è un numero. " + AVVISO_DECIMALE;
-    case "non-intero":
-      return "Per " + cosa + " serve un numero intero: " + q + " non lo è.";
-    case "non-positivo":
-      return "Serve un numero maggiore di zero per " + cosa + ": hai scritto " + q + ".";
-    case "sotto-minimo":
-      return +opts.min === 0
-        ? "Un numero negativo non ha senso per " + cosa + ": hai scritto " + q + "."
-        : "Per " + cosa + " serve almeno " + mostra(opts.min) + u + ": hai scritto " + q + ".";
-    case "sopra-massimo":
-      return "Per " + cosa + " il massimo è " + mostra(opts.max) + u + ": " + q + " è troppo, controlla il numero.";
-    default:
-      return "Non riesco a leggere " + cosa + ": " + q + ". " + AVVISO_DECIMALE;
-  }
-}
+/* ⛔ UN ALIAS, non una seconda implementazione. Questa funzione era scritta
+   due volte — qui e nello shell — e su dieci casi provati TRE messaggi erano
+   diversi, con ognuna delle due migliore dell'altra in un punto: qui la frase
+   dell'ambiguo diceva anche come si scrive, là uno zero scritto si vedeva
+   («hai scritto «0»» invece di «hai scritto «»»). Adesso ce n'è una sola, con
+   il meglio delle due. docs/NUMERI_MESSAGGIO_DOPPIO_202608.md */
+export const messaggioNumero = messaggioNumeroShell;
 
 // Storico DEMO della disponibilità: giorni RELATIVI a oggi, così l'esempio
 // resta leggibile in qualunque momento lo si guardi. Tre giorni sono saltati
@@ -655,7 +641,7 @@ export function urgenzaOre(orePreviste, oreAttuali) {
   // avere i decimi, «tra 24.5 h» avrebbe messo un punto inglese in mezzo a
   // una schermata di virgole — e «tra 1000 h» resta «tra 1.000 h» come si
   // scrive un migliaio in Italia
-  const h = (n) => n.toLocaleString("it-IT", { maximumFractionDigits: 1 });
+  const h = (n) => n.toLocaleString("it-IT", { maximumFractionDigits: 1, useGrouping: true });
   const prev = +orePreviste;
   // ⛔ «ZERO ORE» E «NON LO SO» SONO DUE COSE DIVERSE, anche qui.
   // `tagliandiInScadenza` l'aveva già capito e manda i mezzi senza contatore
@@ -1164,8 +1150,8 @@ export function propostaTagliando(nomeMezzo, oreMezzo, piano) {
   const oreProposte = passo > 0 ? Math.round(grezze) + passo : null;
   return {
     oreProposte, oreNote: true,
-    testo: testaPiano + " " + nome + " ha " + Math.round(grezze).toLocaleString("it-IT") + " ore"
-      + (oreProposte != null ? ": il tagliando è proposto a " + oreProposte.toLocaleString("it-IT") + "." : ".")
+    testo: testaPiano + " " + nome + " ha " + mostra(Math.round(grezze), 0) + " ore"
+      + (oreProposte != null ? ": il tagliando è proposto a " + mostra(oreProposte, 0) + "." : ".")
       + coda,
   };
 }

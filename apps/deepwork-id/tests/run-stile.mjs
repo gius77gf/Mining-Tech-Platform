@@ -86,6 +86,18 @@
 //     sia quale — chi poi ri-carica quello sbagliato si sente rispondere che
 //     non è valido e conclude che è l'app a non funzionare. Nessuna prova sul
 //     comportamento lo trova: ogni export, preso da solo, funziona.
+// 14. NESSUNA CLASSE DI COLORE DOVE IL COLORE NON È STATO MISURATO *(vedi il
+//     corpo del file, dove la regola è scritta per esteso)*.
+// 15. IL GIORNO DI CALENDARIO NON SI PRENDE IN UTC. `toISOString()` scrive
+//     sempre l'istante a Greenwich: in Italia sta una o due ore avanti, e
+//     quando attraversano la mezzanotte cambia il GIORNO. Il 31/07 questo
+//     spostava di un mese intero le barre del grafico del core.
+// 16. DENTRO UN MODULO, LE MIGLIAIA SI RAGGRUPPANO PER SCRITTO. Misurato il
+//     02/08 affiancando i motori: con le opzioni di serie, sui numeri di
+//     QUATTRO cifre Chromium scrive «6.375» e Node «6375». Le pagine non ne
+//     soffrono (girano solo nel browser); i moduli sì, perché li leggono
+//     tutt'e due — e da lì una prova che passa in Node e fallirebbe nel
+//     browser, cioè che blinda una stringa che l'utente non vede mai.
 //
 // Come si aggiunge una regola: una funzione che restituisce l'elenco delle
 // violazioni con file e riga, e un `test(...)` che pretende zero.
@@ -1349,6 +1361,62 @@ test("la regola 15 distingue il giorno locale da quello UTC", () => {
   ok(giornoInUtc('const ts = new Date().toISOString();').length === 0,
      "e un timbro tecnico intero non parla di calendario");
   ok(giornoInUtc('// prima qui c\'era new Date().toISOString().slice(0,10), che sbagliava').length === 0,
+     "il commento che racconta il difetto non è il difetto");
+});
+
+/* ══ 16. DENTRO UN MODULO, LE MIGLIAIA SI RAGGRUPPANO PER SCRITTO ══════════
+   Misurato il 02/08 affiancando i due motori: sui numeri di QUATTRO cifre
+   Chromium scrive «6.375» e Node «6375» (strategia `min2`, che raggruppa solo
+   da cinque cifre in su). Da cinque cifre in poi sono d'accordo.
+   Le PAGINE non hanno questo problema: girano solo nel browser e sono coerenti
+   fra loro. I MODULI sì: li importano tutt'e due — la pagina nel browser e le
+   prove in Node — e una funzione che non fissa il raggruppamento restituisce
+   due stringhe diverse a seconda di dove gira. Da lì una prova che passa in
+   Node e fallirebbe nel browser, cioè che blinda una verità che l'utente non
+   vede mai. È già successo: la prova sulla frase del tagliando affermava
+   «6375 ore» mentre all'utente quella frase dice «6.375».
+   `useGrouping: false` va benissimo: è una scelta scritta (e in `perCampo` è
+   quella giusta — un punto delle migliaia dentro un campo rientrerebbe come
+   numero ambiguo). Quello che non va bene è NON dirlo.
+   docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md
+   ─────────────────────────────────────────────────────────────────────── */
+function migliaiaMute(src) {
+  const fuori = [];
+  const righe = senzaCommenti(src).split("\n");
+  righe.forEach((riga, i) => {
+    if (!/toLocaleString\(\s*["']it-IT["']/.test(riga)) return;
+    /* la chiamata può continuare sulla riga dopo (l'oggetto delle opzioni
+       scritto a capo): si guarda la riga e le due successive */
+    const intorno = righe.slice(i, i + 3).join("\n");
+    if (/useGrouping/.test(intorno)) return;
+    fuori.push(`riga ${i + 1}`);
+  });
+  return fuori;
+}
+let guardatiMigliaia = 0;
+for (const [nome, rel] of MODULI) {
+  const src = leggi(rel);
+  if (src === null || !/\.js$/.test(rel)) continue;
+  guardatiMigliaia++;
+  const casi = migliaiaMute(src);
+  test(`${nome}: il raggruppamento delle migliaia è scritto, non lasciato al motore`, () => {
+    ok(casi.length === 0, `${rel}: ${casi.length} punti → ${casi.join(" · ")}`);
+  });
+}
+test("la regola 16 ha davvero guardato tutti i moduli", () => {
+  const attesi = MODULI.filter(([, r]) => /\.js$/.test(r)).length;
+  ok(guardatiMigliaia === attesi, `guardati ${guardatiMigliaia}, me ne aspettavo ${attesi}`);
+});
+test("la regola 16 distingue il raggruppamento scritto da quello taciuto", () => {
+  ok(migliaiaMute('const s = n.toLocaleString("it-IT", { maximumFractionDigits: 2 });').length === 1,
+     "senza useGrouping è una violazione");
+  ok(migliaiaMute('const s = n.toLocaleString("it-IT", { useGrouping: true });').length === 0,
+     "scritto true va bene");
+  ok(migliaiaMute('const s = n.toLocaleString("it-IT", { useGrouping: false });').length === 0,
+     "e scritto false anche: è una scelta, purché sia scritta");
+  ok(migliaiaMute('const s = n.toLocaleString("it-IT", {\n  maximumFractionDigits: 2,\n  useGrouping: true,\n});').length === 0,
+     "l'oggetto delle opzioni scritto a capo si legge lo stesso");
+  ok(migliaiaMute('// prima qui c\'era toLocaleString("it-IT") senza useGrouping').length === 0,
      "il commento che racconta il difetto non è il difetto");
 });
 

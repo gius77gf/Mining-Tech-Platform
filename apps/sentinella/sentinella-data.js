@@ -19,7 +19,9 @@
 //       da fare / in ritardo) si CALCOLA dall'ultima lettura del punto.
 // ============================================================
 
-import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto,
+         AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL,
+         dataPiuGiorni as dataPiuGiorniShell } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
   monitoraggi: [
@@ -90,9 +92,9 @@ export function statoMisura(m) {
   if (r >= 0.9) return { cls: "warn", label: "Attenzione", ratio: r };
   return { cls: "ok", label: "Conforme", ratio: r };
 }
-export function giorni(dataISO, oggi = new Date()) {
-  return giorniTra(dataISO, oggi);
-}
+// ⛔ Alias di `giorniTra`: lo stesso involucro di due righe era scritto anche
+// in Conti. Un alias non è una seconda implementazione.
+export const giorni = giorniTra;
 // Riepilogo di conformità: quanti monitoraggi sono conformi / in
 // attenzione / in superamento, a colpo d'occhio. Usa statoMisura (stessa
 // logica dei badge). Funzione pura e testabile.
@@ -217,8 +219,10 @@ export function numeroIt(v, dec) {
 // messaggio, perché il messaggio giusto dipende dal campo.
 // Pura e testabile.
 // ══════════════════════════════════════════════════════════════════════
-export const AVVISO_DECIMALE =
-  "Va bene sia la virgola sia il punto: «2,4» e «2.4» sono lo stesso numero.";
+// ⛔ RI-ESPORTATA, non ridichiarata: era scritta alla lettera in quattro
+// moduli dati. Un alias non è una seconda implementazione.
+// Vedi docs/NUMERI_MESSAGGIO_DOPPIO_202608.md
+export const AVVISO_DECIMALE = AVVISO_DECIMALE_SHELL;
 
 export function numeroDaCampo(testo, opts = {}) {
   // Delega al lettore CONDIVISO (`shared/deepwork-id-client/dw-shell.js`).
@@ -1194,13 +1198,10 @@ export const ORIGINE_RECLAMO = "reclamo";
 
 // Data di oggi + N giorni, in ISO. Serve solo a PROPORRE una scadenza
 // all'azione correttiva: la decide comunque chi la apre.
-export function dataPiuGiorni(giorniAvanti, oggi = new Date()) {
-  const n = Number(giorniAvanti);
-  if (!Number.isFinite(n)) return "";
-  const d = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate() + Math.round(n));
-  const p = (x) => String(x).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
+// ⛔ RI-ESPORTATA da `shared/`: era scritta identica anche in Scudo, e la copia
+// di qui rispondeva `""` dove quella di là rispondeva `null` — due copie uguali
+// che si erano già staccate. docs/LA_STESSA_REGOLA_SCRITTA_DUE_VOLTE.md
+export const dataPiuGiorni = dataPiuGiorniShell;
 
 // L'ultima lettura che ha raggiunto o superato una soglia (>= soglia, la
 // stessa regola del semaforo in tutto il resto dell'app). Senza soglia

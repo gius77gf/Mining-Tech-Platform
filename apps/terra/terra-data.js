@@ -27,7 +27,8 @@
 // REGIONALE, quindi soglie, preavvisi e periodicità li imposta l'utente.
 // ============================================================
 
-import { parseCsvLine, numIt, isIntestazione, giorniTra, isoLocale } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, numIt, isIntestazione, giorniTra, isoLocale,
+         AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
   fronti: [
@@ -182,8 +183,10 @@ export function etichettaProvenienza(chiave) {
 // scrive chi chiama, perché il messaggio giusto dipende dal campo.
 // Pura e testabile: nessun DOM.
 // ══════════════════════════════════════════════════════════════════════
-export const AVVISO_DECIMALE =
-  "Va bene sia la virgola sia il punto: «2,4» e «2.4» sono lo stesso numero.";
+// ⛔ RI-ESPORTATA, non ridichiarata: era scritta alla lettera in quattro
+// moduli dati. Un alias non è una seconda implementazione.
+// Vedi docs/NUMERI_MESSAGGIO_DOPPIO_202608.md
+export const AVVISO_DECIMALE = AVVISO_DECIMALE_SHELL;
 
 // un solo punto, esattamente tre cifre dopo, nessuna virgola: le due letture
 // (migliaia / decimale) sono entrambe legittime e distano mille volte
@@ -230,9 +233,9 @@ export function fmtM3(v) {
   if (v == null) return "—";
   // il decimale dei milioni va scritto con la VIRGOLA: la tessera delle riserve
   // diceva «1.2M m³», col punto inglese, accanto a numeri all'italiana
-  if (v >= 1e6) return (Math.round(v / 1e5) / 10).toLocaleString("it-IT") + "M";
+  if (v >= 1e6) return (Math.round(v / 1e5) / 10).toLocaleString("it-IT", { useGrouping: true }) + "M";
   if (v >= 1e3) return Math.round(v / 1e3) + "k";
-  return (+v).toLocaleString("it-IT", { maximumFractionDigits: 2 });
+  return (+v).toLocaleString("it-IT", { maximumFractionDigits: 2, useGrouping: true });
 }
 
 // Volume estratto da un fronte = somma dei m³ dei rilievi ELABORATI di

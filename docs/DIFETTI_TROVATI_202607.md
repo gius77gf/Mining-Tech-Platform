@@ -122,7 +122,7 @@ letti uno per uno: uno era questo.
 - Tutti e otto **corretti**, ognuno con una prova che **prima falliva e adesso
   passa** — così se domani qualcuno li rifà, se ne accorge il programma e non il
   cliente.
-- Le prove sulle funzioni delle app sono passate da **433 a 962 in una
+- Le prove sulle funzioni delle app sono passate da **433 a 969 in una
   giornata**.
 - Le prove si rilanciano anche con l'**orologio italiano**: il computer su cui
   gira il controllo è a Greenwich, e i difetti 3, 4 e 5 lì erano **invisibili**.

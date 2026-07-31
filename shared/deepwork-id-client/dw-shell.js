@@ -195,6 +195,23 @@ export function giorniTra(dataISO, oggi = new Date()) {
   return Math.round((new Date(dataISO + "T00:00:00") - o) / 86400000);
 }
 
+// OGGI PIÙ N GIORNI, in ISO e in giorni di CALENDARIO LOCALI.
+// Serve a Scudo (la prossima ispezione ricorrente, la scadenza proposta a
+// un'azione correttiva) e a Sentinella (la scadenza di un'azione nata da un
+// superamento o da un reclamo). Era scritta IDENTICA nei due moduli, e si era
+// già staccata: su un valore non numerico una rispondeva `null` e l'altra `""`.
+// ⛔ Irrigidita qui, una volta sola: `Number(null)` è **0**, quindi «nessun
+// numero di giorni» diventava «scade oggi» — una scadenza che qualcuno firma.
+// Adesso senza un numero vero la risposta è `null`, che vuol dire «non lo so».
+export function dataPiuGiorni(giorni, oggi = new Date()) {
+  if (giorni === null || giorni === undefined || String(giorni).trim() === "") return null;
+  const n = Number(giorni);
+  if (!Number.isFinite(n)) return null;
+  const d = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate() + Math.round(n));
+  const p = (x) => String(x).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
 // UNA DATA SCRITTA IN ISO LEGGENDO L'OROLOGIO LOCALE (aaaa-mm-gg).
 // ⛔ Non si usa `toISOString()` per prendere il GIORNO di una data costruita in
 // ora locale: `toISOString()` scrive sempre l'istante in UTC, e in Italia
@@ -363,13 +380,22 @@ export function perCampo(v, decimali = 2) {
 // PPV misurata»): la frase deve nominarlo, altrimenti in un form con cinque
 // caselle non si sa quale correggere. Non dice MAI «valore non valido»: dice
 // cos'è scritto e cosa fare.
-const NUM_AVVISO_DEC = "Va bene sia la virgola sia il punto: «2,4» e «2.4» sono lo stesso numero.";
-const NUM_AVVISO_MIG = "Scrivilo senza il punto delle migliaia.";
+// Le due frasi fisse degli avvisi sui numeri. Stanno QUI, esportate, perché
+// erano ridichiarate alla lettera in quattro moduli dati — e quella delle
+// migliaia si era già staccata: la copia di Flotta diceva anche COME si
+// scrive («1250», non «1.250»), questa no. Vince la più utile.
+// Misura e ragionamento: docs/NUMERI_MESSAGGIO_DOPPIO_202608.md
+export const AVVISO_DECIMALE = "Va bene sia la virgola sia il punto: «2,4» e «2.4» sono lo stesso numero.";
+export const AVVISO_MIGLIAIA = "Scrivilo senza il punto delle migliaia: «1250», non «1.250».";
+const NUM_AVVISO_DEC = AVVISO_DECIMALE;
+const NUM_AVVISO_MIG = AVVISO_MIGLIAIA;
 export function messaggioNumero(r, cosa, opts = {}) {
   const q = "«" + String((r && r.grezzo) != null ? r.grezzo : "") + "»";
   const u = opts.unita ? " " + opts.unita : "";
+  // ⛔ `useGrouping` esplicito: Node non raggruppa i numeri di quattro cifre e
+  // Chromium sì. docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md
   const mostra = (v, dec = 2) => Number.isFinite(+v)
-    ? (+v).toLocaleString("it-IT", { maximumFractionDigits: Math.max(0, dec) }) : "";
+    ? (+v).toLocaleString("it-IT", { maximumFractionDigits: Math.max(0, dec), useGrouping: true }) : "";
   switch (r && r.motivo) {
     case "vuoto":
       return "Senza " + cosa + " non posso salvare: scrivi il numero.";
