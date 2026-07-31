@@ -1451,6 +1451,34 @@ campi interi, file delle macchine.
       illeggibile finiva fra le «a posto»: il conto tornava e diceva una cosa
       falsa.
 
+- [x] **Il banco di Genesi, scritto PRIMA della migrazione** ✅ *(04/08, `bb09c38`)* —
+      `tests/browser/genesi-struttura.mjs`. Le tre trappole dell'unità A non sono
+      errori di sintassi (la pagina si apre lo stesso), quindi il controllo deve
+      **toccare la pagina**: i sette id dell'editor 3D ancora al loro posto, il
+      **cancello di consenso** che si sblocca con la casella e dice ancora
+      «vietato … sgombero», e il campo del nome **precompilato** — la trappola di
+      `chiediValore`, che compilerebbe in silenzio. Con controprova incorporata
+      (`--prima`) che rimette gli id `mdl*` **nella risposta HTTP**, senza toccare
+      il file. ⚠️ Scritto e **non ancora eseguito**, e detto: girava il giro a 25
+      banchi. Va lanciato prima della migrazione, e oggi deve fallire.
+- [x] **Ricerca: l'evento di sicurezza dal campo → Scudo** ✅ *(04/08,
+      `docs/RICERCA_EVENTO_SICUREZZA_DAL_CAMPO_202608.md`)* — il censimento
+      parlava di «domande sui permessi Firestore»: **non ci sono**. Sentinella
+      scrive già dentro Scudo (`ponteScudo`), e le regole permettono a qualunque
+      **membro dell'organizzazione** di scrivere sotto qualunque `appId`. Da lì
+      una cosa da dire bene: il confine fra **organizzazioni** è una barriera
+      (regole + claim + 58 test), quello fra **app** è una **convenzione del
+      percorso** — chiunque può inizializzare l'SDK con un altro `appId`, ed è
+      quello che il ponte fa di proposito. Non è un difetto; non va raccontato
+      come una garanzia.
+      ⚠️ **E una «scoperta» che non lo era, corretta lo stesso giorno**: la prima
+      stesura annunciava come nuovo l'obbligo di comunicazione dei near-miss
+      (L. 198/2025). Era **già noto**, citato in sei punti di Scudo, con il
+      prospetto aggregato **già fatto**. Annunciarlo sarebbe stato **gonfiare un
+      risultato**, che la direttiva 5 vieta. Quello che resta ed è vero: la
+      segnalazione dal campo non serve a costruire il prospetto — serve a
+      **riempirlo di verità**, ed è il numeratore, non il foglio.
+
 ---
 
 ## VINCOLI INVARIATI
