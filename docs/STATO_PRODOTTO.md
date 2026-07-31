@@ -56,14 +56,14 @@ ognuno. È la pagina da aprire per prima davanti a qualcuno.
   impediscono a un'app di riscriversene una propria.
 
 **Quanto è controllato, oggi** *(ricontato il 31/07 lanciando le suite, non a
-memoria)*: **1.220** prove automatiche che girano senza rete — **937** sulle
+memoria)*: **1.231** prove automatiche che girano senza rete — **948** sulle
 funzioni delle app, **201** sulle regole di stile, 43 sugli aiuti condivisi, 23
 sulla nuvola di punti, 9 sul manifesto, 7 sulla demo — più **106** che girano
 con l'emulatore Firestore (58 sulle **regole di sicurezza**, 19 sull'SDK, 21
 sulle funzioni, 8 sul primo avvio) e **19 esecuzioni** che aprono davvero le
 pagine in un browser.
 
-Le prove sulle funzioni delle app sono passate da **433 a 937 in una giornata**,
+Le prove sulle funzioni delle app sono passate da **433 a 948 in una giornata**,
 e non sono prove di forma: hanno fatto emergere **otto difetti veri** — fra cui
 un grafico del core che mostrava la produzione del mese sbagliato, un ruolo di
 sicurezza obbligatorio che risultava coperto da una persona non più in azienda,

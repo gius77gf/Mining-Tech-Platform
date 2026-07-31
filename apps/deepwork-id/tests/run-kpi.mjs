@@ -8307,5 +8307,126 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+// ── Sentinella: prevista o eseguita, reclami, periodicità ────────────
+/* Il registro delle volate contiene DUE nature di riga: una volata
+   PREVISTA (progettata da Genesi, non ancora sparata) e una ESEGUITA (un
+   evento successo). Confonderle vorrebbe dire mettere un progetto in un
+   registro che va all'ente. Le funzioncine qui sotto sono quelle che
+   tengono in piedi la distinzione dappertutto — filtri, etichetta,
+   colonne del CSV — e finora nessuna era chiamata per nome da una prova. */
+{
+  console.log("\n— Sentinella: prevista o eseguita, reclami, periodicità —");
+
+  const VOLATE = [
+    { data: "2026-07-01", stato: "prevista", ppvPrevista: 3.2 },
+    { data: "2026-07-02", stato: "eseguita", ppvMisurata: 4.1 },
+    { data: "2026-07-03" },                                  // dati vecchi: nessuno stato
+    { data: "2026-07-04", stato: "progetto" },               // scritto a mano
+    { data: "2026-07-05", stato: "sparata" },
+  ];
+  test("⛔ una volata senza stato vale ESEGUITA (è ciò che era, nel brogliaccio)", () => {
+    /* regola dura di compatibilità: nessun conteggio esistente cambia e
+       nessuna riga d'archivio va convertita. Il contrario — dare per
+       «prevista» quello che non lo dichiara — farebbe sparire dal registro
+       le volate vere di tutti gli anni passati. */
+    ok(!sentinella.volataPrevista(VOLATE[2]), "senza stato: eseguita");
+    ok(sentinella.volataPrevista(VOLATE[0]), "prevista");
+    ok(sentinella.volataPrevista(VOLATE[3]), "«progetto» scritto a mano vale prevista");
+    ok(!sentinella.volataPrevista(VOLATE[4]), "«sparata» vale eseguita");
+  });
+  test("volatePreviste e volateEseguite dividono l'elenco senza perdere righe", () => {
+    /* è la proprietà che conta: una riga sta di qua o di là, mai in
+       tutt'e due e mai in nessuna delle due */
+    const p = sentinella.volatePreviste(VOLATE), e = sentinella.volateEseguite(VOLATE);
+    eq(p.map(v => v.data), ["2026-07-01", "2026-07-04"], "le previste");
+    eq(e.map(v => v.data), ["2026-07-02", "2026-07-03", "2026-07-05"], "le eseguite");
+    eq(p.length + e.length, VOLATE.length, "nessuna riga persa e nessuna contata due volte");
+    eq(sentinella.volatePreviste([]), [], "elenco vuoto");
+    eq(sentinella.volateEseguite(null), [], "niente");
+  });
+  test("⛔ etichettaStatoVolata: la prevista NON prende i colori del semaforo", () => {
+    /* verde/giallo/rosso in questa app vogliono dire conforme / al limite /
+       superato: una volata prevista non è un giudizio di conformità, è
+       un'altra natura di riga, e prende il colore dell'app */
+    contiene(sentinella.etichettaStatoVolata(VOLATE[0]), { stato: "prevista", cls: "accent", label: "Prevista" },
+      "prevista");
+    contiene(sentinella.etichettaStatoVolata(VOLATE[2]), { stato: "eseguita", cls: "", label: "Eseguita" },
+      "eseguita: nessuna classe di colore");
+    for (const v of VOLATE) ok(!/^(ok|warn|danger)$/.test(sentinella.etichettaStatoVolata(v).cls),
+      "mai una classe del semaforo");
+  });
+  test("CAMPI_PREVISIONE_VUOTI: la previsione si toglie TUTTA INSIEME", () => {
+    /* mai il numero senza la sua provenienza: una PPV prevista senza
+       sapere da dove viene è un numero orfano dentro un registro */
+    const c = sentinella.CAMPI_PREVISIONE_VUOTI;
+    eq(Object.keys(c).sort(), ["airblastPrevisto", "ppvPrevFonte", "ppvPrevLimite", "ppvPrevNorma", "ppvPrevista"],
+      "cinque campi, sempre gli stessi");
+    ok(!sentinella.previsioneDiVolata({ ...VOLATE[0], ...c }), "applicandoli la previsione sparisce davvero");
+  });
+  test("CSV_VOLATE_INTESTAZIONE: le colonne dell'export sono quelle che l'import rilegge", () => {
+    /* due elenchi di colonne in due punti diversi si scollano: qui stanno
+       nello stesso file di proposito, e la prova pretende che il giro
+       export → import non perda lo stato */
+    const cols = sentinella.CSV_VOLATE_INTESTAZIONE.split(";");
+    for (const c of ["data", "stato", "ppvMisurata", "ppvPrevista", "codiceVolata"]) ok(cols.includes(c), c);
+    eq(cols[0], "data", "la data per prima");
+    eq(new Set(cols).size, cols.length, "nessuna colonna ripetuta");
+    const csv = sentinella.csvRegistroVolate(VOLATE);
+    eq(csv.split("\n")[0], sentinella.CSV_VOLATE_INTESTAZIONE, "l'export scrive esattamente quell'intestazione");
+    ok(csv.includes(";prevista;"), "e la riga prevista si dichiara prevista");
+  });
+  test("PPV_STRUMENTO: la misura letta dal sismografo ha una provenienza sua", () => {
+    /* serve a distinguerla da quella scritta a mano: nel report per l'ente
+       «l'ha detto lo strumento» e «l'ha scritto qualcuno» non sono uguali */
+    eq(sentinella.PPV_STRUMENTO, "strumento", "la chiave");
+    eq(sentinella.VOL_ESEGUITA, "eseguita", "e lo stato di una volata sparata");
+  });
+
+  test("reclami: cinque tipi, e uno sconosciuto finisce in «Altro»", () => {
+    /* qui il ripiego è giusto: un reclamo va comunque registrato, e
+       «Altro» non afferma niente di falso sul suo contenuto */
+    eq(sentinella.TIPI_RECLAMO.map(t => t.chiave), ["rumore", "polvere", "vibrazione", "acque", "altro"], "i cinque");
+    eq(sentinella.etichettaReclamo("POLVERE"), "Polvere", "anche col maiuscolo");
+    eq(sentinella.etichettaReclamo("zzz"), "Altro", "sconosciuto");
+    eq(sentinella.etichettaReclamo(""), "Altro", "vuoto");
+  });
+  test("riepilogoReclami: aperto è tutto ciò che non è chiuso", () => {
+    /* un reclamo senza stato è aperto: dare per chiuso quello che nessuno
+       ha chiuso è la solita risposta tranquilla su un dato che non c'è */
+    const r = sentinella.riepilogoReclami([
+      { data: "2026-07-01", stato: "chiuso" }, { data: "2026-07-05" }, { data: "boh", stato: "aperto" },
+    ]);
+    contiene(r, { totale: 3, aperti: 2, ultimo: "2026-07-05" }, "riepilogo");
+    contiene(sentinella.riepilogoReclami([]), { totale: 0, aperti: 0, ultimo: null }, "nessun reclamo");
+  });
+
+  test("PERIODICITA: scorciatoie per scrivere i giorni, non regole di legge", () => {
+    /* frequenze e tolleranze cambiano da autorizzazione a autorizzazione:
+       «mensile» qui vale 30 giorni ed è scritto anche nell'interfaccia,
+       perché un mese di calendario non ha una durata fissa */
+    ok(sentinella.PERIODICITA.every(p => p.chiave && p.etichetta && p.giorni > 0), "ogni voce ha i suoi giorni");
+    eq(sentinella.PERIODICITA.find(p => p.chiave === "mensile").giorni, 30, "mensile = 30 giorni");
+    eq(sentinella.PERIODICITA.map(p => p.giorni), [...sentinella.PERIODICITA.map(p => p.giorni)].sort((a, b) => a - b),
+      "in ordine crescente");
+  });
+  test("etichettaFrequenza: il nome se coincide, altrimenti i giorni; e se manca lo dice", () => {
+    eq(sentinella.etichettaFrequenza(30), "ogni mese", "coincide con una periodicità tipica");
+    eq(sentinella.etichettaFrequenza(45), "ogni 45 giorni", "non coincide");
+    eq(sentinella.etichettaFrequenza(0), "frequenza non impostata", "non impostata: lo dice invece di dire «ogni 0 giorni»");
+    eq(sentinella.etichettaFrequenza(null), "frequenza non impostata", "niente");
+  });
+  test("trovaRicettore e le classi acustiche: nessun limite dedotto dalla classe", () => {
+    /* la classe acustica DESCRIVE la zona che il Comune ha assegnato; il
+       limite lo scrive l'autorizzazione e lo imposta l'utente */
+    const R = [{ id: "a", nome: "Casa Rossi" }, { id: "b", nome: "Scuola" }];
+    eq(sentinella.trovaRicettore(R, "b").nome, "Scuola", "trovato");
+    eq(sentinella.trovaRicettore(R, "zzz"), null, "non c'è: null, non il primo");
+    eq(sentinella.trovaRicettore(null, "a"), null, "nessun ricettore");
+    eq(sentinella.CLASSI_ACUSTICHE.map(c => c.chiave), ["I", "II", "III", "IV", "V", "VI"], "le sei classi del DPCM");
+    ok(sentinella.CLASSI_ACUSTICHE.every(c => !("limite" in c) && !("db" in c)),
+      "nessun numero di limite dentro la classe");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
