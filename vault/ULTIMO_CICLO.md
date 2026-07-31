@@ -5,18 +5,19 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-08-01 00:07 UTC
-**Cosa sta per fare:** il ciclo precedente ha passato la giornata sui
-**controlli che non guardavano dove credevano** — la regola che vieta i dialoghi
-del browser era cieca su 764 iniezioni su 1030, core compreso, mentre la sua
-controprova diceva «a posto». Da lì: tokenizzatore rifatto, controprove **a
-tappeto** per tutte le regole, banco del contrasto che adesso sa fallire, e il
-segno d'avvio per le otto superfici che hanno un programma.
+**Ultimo ciclo riuscito:** 2026-08-01 00:43 UTC
+**Cosa sta per fare:** il ciclo precedente ha messo in suite il banco della
+**doppia data** (che alla prima esecuzione ha segnalato Flotta **avendo torto
+lui**) e ha scoperto, censendo le export dei sei moduli dati, che **208
+funzioni su 338 non erano nominate da nessuna prova** — fra cui `importiFattura`
+(imponibile, IVA e totale di una fattura), `canonePeriodo`, `sogliaEfficace`,
+`vitaCava`, `statoRequisito`. Sono nate **38 prove nuove** (KPI 433 → 471),
+ognuna vista fallire col difetto rimesso.
 Questo ciclo riprende dal «Prossimo passo atomico»: leggere il riepilogo del
-giro a **17 banchi** (lanciato e in corso), poi eseguire per la prima volta il
-banco della **doppia data** — scritto ieri ma volutamente mai lanciato e non
-ancora in elenco — con la sua controprova, e solo dopo metterlo nella suite.
-**Commit di partenza:** `fb9bbb3`
+giro a **19 banchi** (in corso da ore, al secondo banco) e continuare la
+copertura per **priorità di danno** — `reportConformita` di Sentinella, che è
+il documento che il cliente consegna davvero all'ente.
+**Commit di partenza:** `96a566a`
 
 ---
 
