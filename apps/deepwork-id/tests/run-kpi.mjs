@@ -6908,5 +6908,201 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+// ── Campo: chi fa cosa, obiettivo di turno, fermi ─────────────────────
+/* Il censimento della copertura dava Campo come la meno difesa delle sei
+   (39 funzioni su 73). Queste sono le funzioni che rispondono alle tre
+   domande che un preposto fa a inizio e a fine turno: «di chi è questa
+   attività», «quanto manca all'obiettivo», «quanto ci siamo fermati».
+   Le regole bloccate qui sono TUTTE dichiarate nei commenti del modulo:
+   il test serve a impedire che una riscrittura le contraddica in silenzio. */
+{
+  console.log("\n— Campo: assegnazione, obiettivo di turno, fermi —");
+
+  const SQU_A = "Squadra A — Perforazione", SQU_B = "Squadra B — Carico";
+  const ATT = [
+    { data: "2026-07-31", turno: "Mattino", squadra: SQU_A, operatore: "Mario Rossi", stato: "conclusa" },
+    { data: "2026-07-31", turno: "Mattino", squadra: SQU_A, operatore: "", stato: "in-corso" },
+    { data: "2026-07-31", turno: "Mattino", squadra: SQU_A, operatore: "Luca Bianchi", stato: "anomalia", fermoMin: 45 },
+    { data: "2026-07-31", turno: "Mattino", squadra: SQU_B, operatore: "Anna Neri", stato: "in-corso" },
+    { data: "2026-07-31", turno: "Mattino", squadra: "", operatore: "", stato: "in-corso" },
+  ];
+  const SQUADRE = [{ nome: SQU_A }, { nome: SQU_B }, { nome: "Squadra C — Impianto" }];
+
+  test("eMia: il mio nome vince sulla squadra (se me l'hanno data, tocca a me)", () => {
+    ok(campo.eMia({ squadra: "Squadra Z", operatore: "Mario Rossi" },
+      { squadra: "Squadra A", operatore: "Mario Rossi" }),
+      "un'attività col mio nome è mia anche se è di un'altra squadra");
+  });
+  test("eMia: della mia squadra senza nome è mia, con il nome di un altro no", () => {
+    ok(campo.eMia({ squadra: SQU_A, operatore: "" }, { squadra: "Squadra A", operatore: "Mario Rossi" }),
+      "senza nome tocca a chiunque della squadra");
+    ok(!campo.eMia({ squadra: "Squadra A", operatore: "Luca" }, { squadra: "Squadra A", operatore: "Mario Rossi" }),
+      "col nome di un altro non è mia");
+  });
+  test("eMia: chi dichiara solo la squadra vede il lavoro di TUTTA la squadra", () => {
+    /* è il caposquadra: se filtrasse anche a lui per nome non vedrebbe niente */
+    ok(campo.eMia({ squadra: "Squadra A", operatore: "Luca" }, { squadra: "Squadra A" }),
+      "senza il mio nome guardo tutta la squadra");
+  });
+  test("eMia: se non ho detto qual è la mia squadra non è mia niente", () => {
+    ok(!campo.eMia({ squadra: "Squadra A", operatore: "" }, { operatore: "Mario Rossi" }),
+      "nessuna squadra dichiarata: nessuna attività mia");
+    ok(!campo.eMia(null, { squadra: "Squadra A" }), "attività assente");
+    ok(!campo.eMia({ squadra: "Squadra A" }, null), "io assente");
+  });
+
+  test("caricoSquadre: le attività senza squadra sono contate A PARTE", () => {
+    /* il commento del modulo: «sono il vero problema: non le fa nessuno».
+       Se finissero in una squadra qualsiasi sparirebbero dal conto. */
+    const c = campo.caricoSquadre(ATT, SQUADRE);
+    eq(c.nonAssegnate, 1, "una attività senza squadra");
+    eq(c.righe.reduce((n, r) => n + r.aperte + r.concluse, 0), 4,
+      "e non entra nel carico di nessuna squadra");
+  });
+  test("caricoSquadre: un'anomalia è ancora aperta (non è una conclusa)", () => {
+    const a = campo.caricoSquadre(ATT, SQUADRE).righe.find(r => r.squadra === "Squadra A");
+    contiene(a, { squadra: "Squadra A", nome: SQU_A, aperte: 2, concluse: 1, anomalie: 1 },
+      "l'anomalia conta fra le aperte e in più come anomalia");
+  });
+  test("caricoSquadre: una squadra senza attività resta in elenco a zero", () => {
+    /* farla sparire direbbe «non esiste»; a zero dice «non ha niente in mano» */
+    const c = campo.caricoSquadre(ATT, SQUADRE);
+    contiene(c.righe.find(r => r.squadra === "Squadra C") || {},
+      { aperte: 0, concluse: 0 }, "la squadra ferma si vede");
+    eq(c.righe.length, 3, "tutte e tre le squadre in elenco");
+    eq(c.righe.map(r => r.squadra), ["Squadra A", "Squadra B", "Squadra C"],
+      "ordinate per aperte in giù, poi per nome");
+  });
+  test("caricoSquadre: senza dati non inventa righe", () =>
+    eq(campo.caricoSquadre([], []), { righe: [], nonAssegnate: 0 }, "vuoto"));
+
+  const OBIETTIVI = [
+    { data: "2026-07-31", turno: "Mattino", unita: "t", valore: 100 },
+    { data: "2026-07-31", turno: "Mattino", unita: "t", valore: 120 },
+    { data: "2026-07-31", turno: "Mattino", unita: campo.UNITA_ATTIVITA, valore: 3 },
+  ];
+  const RAP = [
+    { data: "2026-07-31", turno: "Mattino", stato: "bozza",   prodQta: 60, prodUnita: "t" },
+    { data: "2026-07-31", turno: "Mattino", stato: "inviato", prodQta: 45, prodUnita: "t" },
+    { data: "2026-07-31", turno: "Pomeriggio", stato: "inviato", prodQta: 500, prodUnita: "t" },
+    { data: "2026-07-31", turno: "Mattino", stato: "inviato", prodQta: 9, prodUnita: "m³" },
+  ];
+
+  test("obiettivoDi: l'ultimo salvato vince (si corregge riscrivendolo)", () => {
+    eq(campo.obiettivoDi(OBIETTIVI, "2026-07-31", "Mattino", "t").valore, 120,
+      "120 salvato dopo 100");
+  });
+  test("obiettivoDi: cerca per giorno, turno e unità, e non ne inventa uno", () => {
+    eq(campo.obiettivoDi(OBIETTIVI, "2026-07-31", "Notte", "t"), null, "turno senza obiettivo");
+    eq(campo.obiettivoDi(OBIETTIVI, "2026-07-31", "Mattino", "m³"), null, "unità senza obiettivo");
+    eq(campo.obiettivoDi([], "2026-07-31", "Mattino", "t"), null, "nessun obiettivo salvato");
+  });
+
+  test("statoObiettivo: la produzione conta BOZZE COMPRESE (la produzione è produzione)", () => {
+    /* 60 in bozza + 45 inviato = 105: contare solo l'inviato direbbe al preposto
+       che è più indietro di quanto è, e lo farebbe correre per niente */
+    contiene(campo.statoObiettivo(OBIETTIVI[1], RAP, ATT),
+      { obiettivo: 120, fatto: 105, mancante: 15, scarto: -15, pct: 88, livello: "warn" },
+      "105 su 120");
+  });
+  test("statoObiettivo: le unità non si mescolano, e gli altri turni nemmeno", () => {
+    /* i 9 m³ e i 500 t del pomeriggio non entrano in un obiettivo di mattino in t */
+    eq(campo.statoObiettivo(OBIETTIVI[1], RAP, ATT).fatto, 105,
+      "solo i t di quel turno");
+  });
+  test("statoObiettivo: a zero il livello è «atteso», non un allarme", () => {
+    /* a inizio turno essere a zero è normale: un rosso lì dentro insegna a
+       ignorare i rossi, ed è il modo migliore per non vedere quelli veri */
+    const s = campo.statoObiettivo({ data: "2026-07-30", turno: "Notte", unita: "t", valore: 100 }, RAP, ATT);
+    contiene(s, { fatto: 0, pct: 0, livello: "atteso" }, "zero all'inizio non è un allarme");
+    ok(s.livello !== "danger", "e non deve mai diventare danger");
+  });
+  test("statoObiettivo: raggiunto e superato si vedono nello scarto", () => {
+    const s = campo.statoObiettivo({ data: "2026-07-31", turno: "Mattino", unita: "t", valore: 100 }, RAP, ATT);
+    contiene(s, { fatto: 105, mancante: 0, scarto: 5, pct: 105, livello: "ok" },
+      "sopra l'obiettivo: mancante a zero, scarto positivo");
+  });
+  test("statoObiettivo: un obiettivo sulle attività conta quelle concluse", () => {
+    contiene(campo.statoObiettivo(OBIETTIVI[2], RAP, ATT),
+      { unita: campo.UNITA_ATTIVITA, obiettivo: 3, fatto: 1, pct: 33 }, "una conclusa su tre");
+  });
+  test("statoObiettivo: senza un numero positivo non risponde niente", () => {
+    /* meglio nessuno stato che uno stato costruito su un obiettivo che non c'è */
+    eq(campo.statoObiettivo(null, RAP, ATT), null, "nessun obiettivo");
+    eq(campo.statoObiettivo({ data: "x", turno: "y", unita: "t", valore: 0 }, RAP, ATT), null, "zero");
+    eq(campo.statoObiettivo({ data: "x", turno: "y", unita: "t", valore: "" }, RAP, ATT), null, "vuoto");
+    eq(campo.statoObiettivo({ data: "x", turno: "y", unita: "t", valore: -5 }, RAP, ATT), null, "negativo");
+  });
+
+  const ATT_FERMI = [
+    { data: "2026-07-29", stato: "anomalia", fermoMin: 5 },
+    { data: "2026-07-31", stato: "anomalia", fermoMin: 30 },
+    { data: "2026-07-31", stato: "anomalia", fermoMin: 15 },
+    { data: "2026-07-31", stato: "conclusa" },
+    { data: "", stato: "anomalia", fermoMin: 999 },
+    { data: "2026-08-05", stato: "anomalia", fermoMin: 777 },
+  ];
+  const OGGI = new Date("2026-07-31T12:00:00");
+
+  test("fermiPerGiorno: i giorni PRIMA della prima registrazione restano fuori", () => {
+    /* disegnarli a zero direbbe «quel giorno non ci siamo fermati», mentre la
+       verità è che non c'era ancora nessuno a registrare — è la stessa regola
+       che dice che l'assenza di un dato non è un dato favorevole */
+    const g = campo.fermiPerGiorno(ATT_FERMI, 14, OGGI);
+    eq(g[0].data, "2026-07-29", "la finestra parte dalla prima registrazione, non 14 giorni fa");
+    eq(g.length, 3, "tre giorni, non quattordici");
+  });
+  test("fermiPerGiorno: un giorno DENTRO la finestra senza fermi vale zero", () => {
+    /* e questo invece è un dato vero: quel giorno c'eravamo e non ci siamo fermati */
+    eq(campo.fermiPerGiorno(ATT_FERMI, 14, OGGI)[1], { data: "2026-07-30", minuti: 0, fermi: 0 },
+      "il 30 luglio a zero");
+  });
+  test("fermiPerGiorno: somma i minuti del giorno e conta i fermi", () => {
+    eq(campo.fermiPerGiorno(ATT_FERMI, 14, OGGI)[2], { data: "2026-07-31", minuti: 45, fermi: 2 },
+      "30 + 15 minuti, due fermi; la conclusa non è un fermo");
+  });
+  test("fermiPerGiorno: senza data o nel futuro non entrano", () => {
+    /* i 999 minuti senza data e i 777 del 5 agosto non compaiono da nessuna parte */
+    const tot = campo.fermiPerGiorno(ATT_FERMI, 14, OGGI).reduce((n, g) => n + g.minuti, 0);
+    eq(tot, 50, "5 + 45, e basta");
+    eq(campo.fermiPerGiorno([], 14, OGGI), [], "nessuna registrazione: nessuna finestra");
+    eq(campo.fermiPerGiorno([{ data: "", stato: "anomalia", fermoMin: 10 }], 14, OGGI), [],
+      "solo registrazioni senza data: idem");
+  });
+
+  test("storicoSettimana: le giornate vuote restano in elenco (un giorno vuoto è un'informazione)", () => {
+    const st = campo.storicoSettimana(ATT, RAP, 3, OGGI);
+    eq(st.map(g => g.data), ["2026-07-29", "2026-07-30", "2026-07-31"], "tre giornate in ordine");
+    contiene(st[0], { attTot: 0, rapTot: 0, minutiFermo: 0 }, "il 29 è vuoto e si vede");
+    contiene(st[2], { attTot: 5, attConcluse: 1, minutiFermo: 45, fermi: 1, rapInviati: 3, rapTot: 4 },
+      "il 31 ha tutto");
+    eq(st[2].prod, { "t": 605, "m³": 9 }, "produzione tenuta separata per unità");
+  });
+  test("totaliSettimana: t e m³ non si sommano, e i giorni con dati si contano", () => {
+    const t = campo.totaliSettimana(campo.storicoSettimana(ATT, RAP, 3, OGGI));
+    contiene(t, { giorni: 3, giorniConDati: 1, minutiFermo: 45, fermi: 1, attTot: 5, attConcluse: 1, pctConcluse: 20 },
+      "totali della finestra");
+    eq(t.prod, { "t": 605, "m³": 9 }, "due unità, due totali");
+  });
+  test("totaliSettimana: senza attività la percentuale è vuota, non cento", () => {
+    /* zero attività su zero non è «tutto concluso»: è «non c'è niente da dire» */
+    eq(campo.totaliSettimana(campo.storicoSettimana([], [], 3, OGGI)).pctConcluse, null, "null, non 100");
+  });
+  test("unitaPrevalente: sceglie l'unità che pesa di più, e null se non c'è produzione", () => {
+    /* tonnellate e metri cubi non si sommano: il grafico ne disegna una sola */
+    eq(campo.unitaPrevalente(campo.storicoSettimana(ATT, RAP, 3, OGGI)), "t", "605 t contro 9 m³");
+    eq(campo.unitaPrevalente(campo.storicoSettimana([], [], 3, OGGI)), null, "nessuna produzione");
+  });
+
+  test("etichettaAssegnazione e operatoriDi: nome breve della squadra e ordine alfabetico", () => {
+    eq(campo.etichettaAssegnazione({ squadra: SQU_A, operatore: "Mario Rossi" }), "Squadra A · Mario Rossi", "squadra e persona");
+    eq(campo.etichettaAssegnazione({ squadra: SQU_A }), "Squadra A", "solo squadra");
+    eq(campo.etichettaAssegnazione({}), "", "non assegnata: stringa vuota, non «nessuno»");
+    eq(campo.operatoriDi([{ nome: "Zeno", squadra: SQU_A }, { nome: "Anna", squadra: "Squadra A" },
+      { nome: "Bruno", squadra: "Squadra B" }], "Squadra A").map(o => o.nome),
+      ["Anna", "Zeno"], "la squadra si riconosce dal nome breve, in ordine alfabetico");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
