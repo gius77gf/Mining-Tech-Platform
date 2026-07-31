@@ -81,6 +81,17 @@ dominante. Verifica obbligatoria con screenshot prima/dopo.
       usciva pulito **per caso**. Corretta e blindata con una prova sullo
       strumento — *934 dichiarazioni, tutte codice*.
       `docs/LA_SCANSIONE_CHE_PERDEVA_LA_FASE.md`
+- [x] **Gli ultimi sei export che nessuna prova nominava** *(03/08)* — copertura
+      **405 → 410 su 411**. Erano tutti alias e costanti, cioè le cose che
+      sembrano non aver bisogno di una prova: `TIPI_MEZZO` adesso è blindato su
+      quello che conta (nessun indizio dentro un altro, altrimenti il tipo lo
+      deciderebbe l'ORDINE dell'elenco) e il dato scritto in anagrafica vince
+      sempre sull'indizio pescato dal nome.
+- [ ] **`perCampo` scritta due volte** *(trovata il 03/08, corretta appena
+      finisce il giro del browser)* — identica in `dw-shell.js` e in
+      `flotta-data.js`. L'ha trovata la domanda che mancava a `nomi-doppi.mjs`:
+      confrontava le app **fra loro**, mai un'app contro `shared/`.
+      `docs/LA_STESSA_REGOLA_SCRITTA_DUE_VOLTE.md`
 - [ ] **E0. CONSOLIDAMENTO in `shared/`** *(in corso)* — la parte comune
       dello stile sale nei fogli condivisi, in ogni app restano solo
       palette e regole specifiche. Aggiunti nello stesso passaggio **tema

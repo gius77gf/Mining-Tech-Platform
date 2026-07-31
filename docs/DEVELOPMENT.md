@@ -76,6 +76,9 @@ node apps/deepwork-id/tests/copertura-funzioni.mjs --elenco   # dice anche QUALI
 # `shared/` era scritta in CLAUDE.md, cioè affidata alla memoria — e in un
 # giorno solo ne sono uscite cinque violazioni. Qui o le due cose sono lo
 # STESSO oggetto, o la differenza va DICHIARATA con la ragione.
+# Guarda DUE coppie, e la seconda è arrivata dopo: app contro app, e app
+# contro `shared/` — che è quella più facile da sbagliare, e per due giorni
+# non la guardava nessuno. Stampa quanti confronti ha fatto.
 node apps/deepwork-id/tests/nomi-doppi.mjs
 ```
 
