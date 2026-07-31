@@ -48,6 +48,12 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 **1.343 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 03/08: 999 + 262 + 43 + 23 + 9 + 7):
 
+E **424 funzioni pure su 424** sono chiamate per nome da quelle prove: tutte e
+sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nessuno ha
+ancora guardato», che è il minimo e finora non c'era. Lo conta
+`copertura-funzioni.mjs`, e questo numero lo verifica `numeri-nei-documenti.mjs`:
+era già finito sbagliato due volte perché scritto a memoria.
+
 ```sh
 node apps/deepwork-id/tests/run-kpi.mjs        # i calcoli delle sei app + i lettori CSV
 node apps/deepwork-id/tests/run-stile.mjs      # le regole di stile vincolanti, rese verificabili

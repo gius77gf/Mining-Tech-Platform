@@ -82,6 +82,30 @@ test("il controllo ha davvero letto tutti i documenti dell'elenco", () => {
   ok(totale > 0, "nessuna prova contata: le suite non hanno risposto");
 });
 
+/* ── quante funzioni delle app sono provate ───────────────────────────
+   Il censimento stampa «N funzioni coperte su M guardate»: è il numero che nei
+   documenti dice quanto è controllato il prodotto, ed è **già finito sbagliato
+   due volte** perché scritto a memoria (un checkpoint diceva «Scudo 35/71»
+   quando erano 30, un commit «Sentinella 94/107» quando erano 89). Adesso è il
+   censimento a dirlo, e chi lo scrive in un documento deve dire la stessa cosa. */
+const cop = spawnSync(process.execPath, [join(QUI, "copertura-funzioni.mjs")], { encoding: "utf8" });
+const mCop = /(\d+) funzioni coperte su (\d+) guardate/.exec(String(cop.stdout || ""));
+const coperte = mCop ? +mCop[1] : 0, guardateFn = mCop ? +mCop[2] : 0;
+const COPERTURA = [
+  ["docs/DEVELOPMENT.md", /\*\*(\d+) funzioni pure su (\d+)\*\* sono chiamate per nome/],
+  ["docs/STATO_PRODOTTO.md", /\*\*(\d+) funzioni pure su (\d+)\*\* delle sei app/],
+];
+for (const [rel, regola] of COPERTURA) {
+  const testo = readFileSync(join(RADICE, rel), "utf8");
+  const m = regola.exec(testo);
+  test(`${rel}: la copertura delle funzioni è quella vera`, () => {
+    ok(mCop, "il censimento non ha stampato un riepilogo leggibile");
+    ok(m, "non trovo la frase con la copertura — se l'hai riscritta, aggiorna la regola qui");
+    ok(+m[1] === coperte && +m[2] === guardateFn,
+      `il documento dice ${m[1]}/${m[2]}, il censimento conta ${coperte}/${guardateFn}`);
+  });
+}
+
 const BROWSER = [
   ["docs/DEVELOPMENT.md", /\*\*(\d+) esecuzioni che aprono davvero le pagine\*\*/],
   ["docs/STATO_PRODOTTO.md", /\*\*(\d+) esecuzioni\*\* che aprono davvero le\s+pagine/],
@@ -97,5 +121,5 @@ for (const [rel, regola] of BROWSER) {
 }
 
 console.log(`\nRisultato numeri nei documenti: ${passed} passati, ${failed} falliti`
-  + `  ·  ${guardati} documenti letti, ${banchi} banchi contati`);
+  + `  ·  ${guardati} documenti letti, ${banchi} banchi contati, copertura ${coperte}/${guardateFn}`);
 process.exit(failed > 0 ? 1 : 0);
