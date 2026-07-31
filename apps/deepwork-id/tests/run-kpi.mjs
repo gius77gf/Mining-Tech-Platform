@@ -7104,5 +7104,154 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+// ── Campo: la foto dell'anomalia, il meteo, la checklist ──────────────
+/* Secondo gruppo di funzioni scoperte di Campo. Due famiglie molto diverse:
+   · la FOTO è anche una questione di sicurezza — `eFotoValida` è l'ultima
+     cosa che sta fra un `data:` costruito a mano e un tag <img> della
+     pagina (docs/AUDIT_SICUREZZA.md), e le misure decidono se una foto da
+     8 MB entra o no in un documento Firestore da 1 MB;
+   · il METEO è la voce che «spiega i fermi»: qui conta soprattutto che
+     quando NON è stato registrato niente non esca un giudizio tranquillo. */
+{
+  console.log("\n— Campo: foto dell'anomalia, meteo, checklist —");
+
+  test("eImmagine: passano le foto del telefono (HEIC compreso), non i documenti", () => {
+    ok(campo.eImmagine({ type: "image/jpeg" }), "jpeg");
+    ok(campo.eImmagine({ type: "IMAGE/HEIC" }), "heic dell'iPhone, anche scritto in maiuscolo");
+    ok(!campo.eImmagine({ type: "application/pdf" }), "un pdf non è una foto");
+    ok(!campo.eImmagine({ type: "image/svg+xml" }), "un SVG può contenere codice: fuori");
+    ok(!campo.eImmagine({}), "senza tipo non si indovina");
+    ok(!campo.eImmagine(null), "senza file nemmeno");
+  });
+  test("⛔ eFotoValida: solo data URL di immagine in base64, mai «javascript:», mai SVG", () => {
+    /* è l'ultimo controllo prima di un <img> della pagina: se cede qui, cede
+       in tutte le anomalie salvate da chiunque nell'organizzazione */
+    ok(campo.eFotoValida("data:image/jpeg;base64,AAAA"), "jpeg");
+    ok(campo.eFotoValida("data:image/png;base64,AAA="), "png col padding");
+    ok(!campo.eFotoValida("data:image/svg+xml;base64,AAAA"), "SVG: no");
+    ok(!campo.eFotoValida("data:image/gif;base64,AAAA"), "gif: no (il canvas riscrive in JPEG)");
+    ok(!campo.eFotoValida("javascript:alert(1)"), "javascript: no");
+    ok(!campo.eFotoValida("https://esterno/foto.jpg"), "un indirizzo esterno non è una foto salvata");
+    ok(!campo.eFotoValida(""), "vuoto: no");
+  });
+  test("byteFoto: conta i byte del file, non i caratteri del base64", () => {
+    /* il base64 è un terzo più lungo del file: leggere la lunghezza del testo
+       farebbe credere che una foto da 210 kB ne pesi 280, e la scaletta dei
+       tentativi rimpicciolirebbe per niente */
+    eq(campo.byteFoto("data:image/jpeg;base64," + "A".repeat(100)), 75, "100 caratteri = 75 byte");
+    eq(campo.byteFoto("data:image/jpeg;base64," + "A".repeat(98) + "=="), 73, "il riempimento finale non conta");
+  });
+  test("byteFoto: quello che non è un data URL pesa zero", () => {
+    eq(campo.byteFoto("robaccia"), 0, "senza virgola non c'è nessun contenuto");
+    eq(campo.byteFoto(""), 0, "vuoto");
+    eq(campo.byteFoto(null), 0, "niente");
+  });
+  test("formattaByte: kB fin sotto il mega, poi MB con la virgola italiana", () => {
+    eq(campo.formattaByte(245760), "240 kB", "240 kB");
+    eq(campo.formattaByte(3355443), "3,2 MB", "virgola, non punto");
+    /* il pavimento a 1 kB è voluto: una foto da 300 byte esiste, e «0 kB»
+       direbbe che non c'è. Non è un numero inventato su un dato mancante —
+       lì la pagina non disegna proprio la riga della foto. */
+    eq(campo.formattaByte(300), "1 kB", "un file piccolo non pesa «0 kB»");
+  });
+  test("misuraRidotta: rimpicciolisce tenendo le proporzioni, sul lato lungo", () => {
+    eq(campo.misuraRidotta(4000, 3000, 1280), { w: 1280, h: 960 }, "orizzontale");
+    eq(campo.misuraRidotta(3000, 4000, 1024), { w: 768, h: 1024 }, "verticale: il lato lungo è l'altezza");
+  });
+  test("misuraRidotta: non ingrandisce mai una foto piccola", () => {
+    /* stirarla non aggiunge niente e fa pesare di più lo stesso dettaglio */
+    eq(campo.misuraRidotta(800, 600, 1280), { w: 800, h: 600 }, "resta com'è");
+  });
+  test("misuraRidotta: misure assenti o assurde danno 1×1, non zero né NaN", () => {
+    eq(campo.misuraRidotta(0, 0, 1280), { w: 1, h: 1 }, "zero per zero");
+    eq(campo.misuraRidotta(-5, -5, 1280), { w: 1, h: 1 }, "negative");
+    eq(campo.misuraRidotta("", "", 1280), { w: 1, h: 1 }, "vuote");
+  });
+  test("la scaletta dei tentativi scende, e il tetto sta ben sotto il mega di Firestore", () => {
+    /* un documento Firestore non può superare 1 MB IN TUTTO: se il tetto della
+       sola foto ci arrivasse vicino, l'anomalia non si salverebbe più */
+    ok(campo.FOTO_MAX_BYTE < 1048576 * 0.35, "il tetto lascia spazio agli altri campi");
+    const lati = campo.FOTO_TENTATIVI.map(t => t.lato);
+    const qual = campo.FOTO_TENTATIVI.map(t => t.qualita);
+    eq(lati, [...lati].sort((a, b) => b - a), "i lati scendono");
+    eq(qual, [...qual].sort((a, b) => b - a), "e anche la qualità");
+    ok(campo.FOTO_TENTATIVI.length >= 3, "più di un tentativo, se no non è una scaletta");
+  });
+
+  const METEO = [
+    { data: "2026-07-31", turno: "Mattino", cielo: "Sereno" },
+    { data: "2026-07-31", turno: "Mattino", cielo: "Pioggia", piste: "Fangose", visibilita: "Ridotta" },
+    { data: "2026-07-31", turno: "Pomeriggio", cielo: "Nuvoloso" },
+  ];
+  test("meteoDi: l'ultimo registrato vince, e per un turno senza niente non inventa", () => {
+    contiene(campo.meteoDi(METEO, "2026-07-31", "Mattino"), { cielo: "Pioggia" }, "la correzione vale");
+    eq(campo.meteoDi(METEO, "2026-07-31", "Notte"), null, "turno mai registrato");
+    eq(campo.meteoDi([], "2026-07-31", "Mattino"), null, "niente registrato");
+  });
+  test("riassuntoMeteo: una riga sola, e vuota se non c'è niente", () => {
+    eq(campo.riassuntoMeteo(METEO[1]), "Pioggia · piste fangose · visibilità ridotta", "la riga intera");
+    eq(campo.riassuntoMeteo({ cielo: "Sereno" }), "Sereno", "solo quello che è stato detto");
+    eq(campo.riassuntoMeteo({}), "", "registrazione vuota");
+    eq(campo.riassuntoMeteo(null), "", "nessuna registrazione");
+  });
+  test("meteoAvverso: le condizioni che da sole spiegano un fermo", () => {
+    ok(campo.meteoAvverso({ cielo: "Pioggia" }), "pioggia");
+    ok(campo.meteoAvverso({ cielo: "Neve o gelo" }), "neve o gelo");
+    ok(campo.meteoAvverso({ cielo: "Caldo estremo" }), "caldo estremo");
+    ok(campo.meteoAvverso({ cielo: "Sereno", piste: "Ghiacciate" }), "col sole ma le piste ghiacciate");
+    ok(campo.meteoAvverso({ cielo: "Sereno", visibilita: "Scarsa" }), "visibilità scarsa");
+  });
+  test("meteoAvverso: «Ridotta» non è «Scarsa», e il sereno non è avverso", () => {
+    /* allargare la soglia farebbe suonare l'allarme quasi sempre, e un
+       allarme quasi sempre acceso non è un allarme */
+    ok(!campo.meteoAvverso({ cielo: "Sereno", visibilita: "Ridotta" }), "ridotta no");
+    ok(!campo.meteoAvverso({ cielo: "Sereno", piste: "Asciutte", visibilita: "Buona" }), "giornata buona");
+    ok(!campo.meteoAvverso({ cielo: "Nuvoloso" }), "nuvoloso non ferma niente");
+  });
+  test("⛔ meteo non registrato: nessun giudizio, e il cartellone non si disegna", () => {
+    /* meteoAvverso(null) è false, ma NON significa «bel tempo»: la pagina
+       disegna il cartellone solo quando riassuntoMeteo dice qualcosa, e
+       l'export scrive «non registrato». Le due cose vanno insieme: se un
+       giorno il cartellone comparisse anche a riassunto vuoto, un turno mai
+       compilato si mostrerebbe come un turno senza problemi. */
+    ok(!campo.meteoAvverso(null), "senza registrazione non c'è nessun giudizio");
+    eq(campo.riassuntoMeteo(null), "", "e nemmeno niente da scrivere: è questo che spegne il cartellone");
+    eq(campo.riassuntoMeteo(campo.meteoDi([], "2026-07-31", "Notte")), "", "turno mai compilato");
+  });
+
+  test("checklistDi: l'ultima salvata vince e la squadra si riconosce dal nome breve", () => {
+    const CHK = [
+      { data: "2026-07-31", turno: "Mattino", squadra: "Squadra A", esiti: { "0": "ok" } },
+      { data: "2026-07-31", turno: "Mattino", squadra: "Squadra A — Perforazione", esiti: { "0": "no" } },
+    ];
+    eq(campo.checklistDi(CHK, "2026-07-31", "Mattino", "Squadra A — Perforazione").esiti, { "0": "no" },
+      "«Squadra A» e «Squadra A — Perforazione» sono la stessa squadra");
+    eq(campo.checklistDi(CHK, "2026-07-31", "Mattino", "Squadra B"), null, "un'altra squadra non eredita");
+    eq(campo.checklistDi([], "2026-07-31", "Mattino", "Squadra A"), null, "mai compilata");
+  });
+  test("statoChecklist: «non risposto» non è «a posto», e i problemi si leggono", () => {
+    /* una voce lasciata in bianco che contasse come ok trasformerebbe la
+       checklist in una firma finta: è esattamente ciò che deve impedire */
+    const s = campo.statoChecklist({ "0": "ok", "1": "no", "2": "na" });
+    contiene(s, { ok: 1, no: 1, na: 1, risposte: 3, completa: false }, "tre risposte su nove");
+    eq(s.mancanti, s.totale - s.risposte, "le mancanti sono quelle non toccate");
+    eq(s.problemi.length, 1, "un problema elencato");
+    ok(s.problemi[0].length > 3, "e nominato per esteso, non per numero");
+  });
+  test("statoChecklist: mai compilata è 0%, non «completa»", () => {
+    const s = campo.statoChecklist({});
+    contiene(s, { ok: 0, no: 0, na: 0, risposte: 0, completa: false, pct: 0 }, "vuota");
+    eq(s.problemi, [], "nessun problema TROVATO non vuol dire nessun problema");
+    eq(campo.statoChecklist(null).risposte, 0, "senza esiti non esplode");
+  });
+  test("le liste a scelta rapida restano quelle previste (si tocca, non si scrive)", () => {
+    eq(campo.ESITI_CHECK, ["ok", "no", "na"], "fatto / non a posto / non applicabile");
+    eq(campo.STATI_PRESENZA, ["presente", "assente"], "e «non spuntato» non è uno stato: è l'assenza di risposta");
+    ok(campo.METEO_CIELO.includes("Pioggia") && campo.METEO_CIELO.includes("Neve o gelo"), "cielo");
+    ok(campo.METEO_PISTE.includes("Ghiacciate"), "piste");
+    eq(campo.METEO_VISIBILITA, ["Buona", "Ridotta", "Scarsa"], "visibilità");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
