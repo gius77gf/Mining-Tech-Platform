@@ -943,7 +943,7 @@ campi interi, file delle macchine.
 - [x] **Copertura delle funzioni pure, app per app** *(ricontata il 02/08
       cercando `app.<nome>` in run-kpi.mjs, non a memoria)*: Scudo 70/71 *(era 22)*,
       Terra 38/39 *(era 23)*, Conti 54/58 *(era 35)*, Flotta 65/71 *(era 29)*,
-      Campo 65/73 *(era 26)*, Sentinella 89/107 *(era 37)*. Nessuna app è più sotto la metà; quello che resta scoperto
+      Campo 65/73 *(era 26)*, Sentinella 101/107 *(era 37)*. Nessuna app è più sotto la metà; quello che resta scoperto
       sono quasi solo costanti e trasporto dati.
 - [x] **Il principio usato come lente.** Scritta in `CLAUDE.md` la regola
       «l'assenza di un dato non è un dato favorevole», un audit ha chiamato
@@ -1033,6 +1033,13 @@ campi interi, file delle macchine.
       (quindi non va in `shared/`), ma è il modo in cui una variante si stacca
       dalle altre senza che nessuno lo veda: da raccogliere in una funzione sola
       quando finisce il giro del browser.
+- [x] **Prevista o eseguita (Sentinella).** 11 prove sulle funzioni che tengono
+      in piedi le **due nature di riga** del registro volate. La regola dura: una
+      volata **senza stato vale eseguita** — il contrario farebbe sparire dal
+      registro le volate vere di tutti gli anni passati. E la prevista **non
+      prende i colori del semaforo**, perché non è un giudizio di conformità.
+      run-kpi **948**, totale node **1.231**. Quello che resta scoperto nelle sei
+      app è ormai quasi solo **caricatori dati** (vogliono la rete).
 
 ---
 
