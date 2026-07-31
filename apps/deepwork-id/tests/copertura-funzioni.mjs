@@ -35,7 +35,7 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
 /* Il fondo per app. Si alza quando si aggiungono prove, non si abbassa mai
    per far passare il controllo: abbassarlo è esattamente il gesto che
    questo file esiste per rendere visibile. */
-const FONDO = { campo: 72, conti: 57, flotta: 70, scudo: 70, sentinella: 102, terra: 40 };
+const FONDO = { campo: 72, conti: 59, flotta: 70, scudo: 70, sentinella: 102, terra: 40 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.

@@ -8692,6 +8692,75 @@ test("giorni: alias di giorniTra in tutt'e due le app che lo usavano", () => {
   });
 }
 
+/* ══ LO SCONTO DEL CLIENTE ENTRA NEL PREZZO ══
+   Fino al 03/08 la scheda cliente diceva «sconto 5%» e ogni DDT usciva al
+   prezzo PIENO di listino: `rigaPesata` il cliente non lo riceveva proprio.
+   Misurato su una differita vera — 2.230 t a 12,34 €/t — erano **1.375,91 €**
+   fatturati in più di quello che il cliente vedeva scritto sulla sua scheda. */
+test("⛔ lo sconto del cliente arriva fino al valore della pesata", () => {
+  const prod = { prezzo: 12.34, unitaPrezzo: "t", iva: 22 };
+  const pieno = conti.rigaPesata(prod, 30.5, 8.2);
+  eq(pieno.scontoPct, 0, "senza cliente lo sconto è zero, non «non lo so»");
+  eq(pieno.valore, 275.18, "e il valore è quello di listino");
+  const scontato = conti.rigaPesata(prod, 30.5, 8.2, { sconto: 5 });
+  eq(scontato.scontoPct, 5, "lo sconto viene fotografato sulla pesata");
+  eq(scontato.prezzoUnitario, 12.34, "il prezzo resta il LISTINO: il DDT lo deve scrivere");
+  eq(scontato.valore, 261.42, "e lo sconto si vede nel valore");
+  eq(conti.valorePesata(scontato), 261.42, "il valore ricalcolato da un documento salvato è lo stesso");
+});
+test("⛔ un DDT salvato PRIMA che lo sconto esistesse non cambia di un centesimo", () => {
+  /* La compatibilità all'indietro non è un dettaglio: sono documenti già
+     consegnati. Un record senza `scontoPct` deve valere esattamente quanto
+     valeva ieri. */
+  const vecchio = { quantita: 22.3, prezzoUnitario: 12.34, unitaVendita: "t" };
+  eq(conti.valorePesata(vecchio), 275.18, "nessuno sconto scritto = nessuno sconto applicato");
+  eq(conti.valorePesata({ ...vecchio, scontoPct: null }), 275.18, "e nemmeno uno sconto nullo");
+});
+test("⛔ lo sconto si toglie dall'IMPONIBILE, non dal prezzo unitario", () => {
+  /* Piegarlo dentro il prezzo obbligherebbe ad arrotondarlo ai centesimi, e
+     l'errore si moltiplica per la quantità: sulla stessa differita fa 6,69 €
+     in meno del dovuto. Su un documento fiscale i centesimi non sono un
+     dettaglio, e il conto lo rifà chi riceve la fattura. */
+  eq(conti.imponibileRiga(2230, 12.34, 5), 26142.29, "sconto sull'imponibile");
+  const prezzoPiegato = Math.round(12.34 * 0.95 * 100) / 100;   // 11,72
+  eq(Math.round(2230 * prezzoPiegato * 100) / 100, 26135.60, "sconto piegato nel prezzo: 6,69 € in meno");
+  eq(conti.imponibileRiga(2230, 12.34, 0), 27518.20, "senza sconto è il pieno");
+});
+test("scontoValido: una percentuale, non un numero qualunque", () => {
+  eq(conti.scontoValido({ sconto: 5 }), 5, "il caso normale");
+  eq(conti.scontoValido({ sconto: 2.5 }), 2.5, "i mezzi punti si tengono");
+  eq(conti.scontoValido({ sconto: 0 }), 0, "zero è zero");
+  eq(conti.scontoValido({}), 0, "un cliente senza sconto non ne ha");
+  eq(conti.scontoValido(null), 0, "e nemmeno un cliente che manca");
+  eq(conti.scontoValido({ sconto: -3 }), 0, "uno sconto negativo sarebbe un RINCARO: non passa");
+  eq(conti.scontoValido({ sconto: 150 }), 100, "e oltre il 100% si regala, non si paga: si ferma a 100");
+  eq(conti.scontoValido({ sconto: "abc" }), 0, "quello che non è un numero non è uno sconto");
+});
+test("⛔ la fattura differita porta lo sconto, e non mescola sconti diversi", () => {
+  const ddt = [
+    { id: "p1", numero: "1", prodotto: "Misto", prodottoId: "m", quantita: 100, unitaVendita: "t",
+      prezzoUnitario: 12.34, scontoPct: 5, aliquotaIva: 22 },
+    { id: "p2", numero: "2", prodotto: "Misto", prodottoId: "m", quantita: 50, unitaVendita: "t",
+      prezzoUnitario: 12.34, scontoPct: 5, aliquotaIva: 22 },
+    /* stesso prodotto, stesso prezzo, sconto DIVERSO: succede quando le
+       condizioni cambiano a metà mese. Non si possono unire — unirle vuol dire
+       scegliere quale dei due sconti raccontare. */
+    { id: "p3", numero: "3", prodotto: "Misto", prodottoId: "m", quantita: 40, unitaVendita: "t",
+      prezzoUnitario: 12.34, scontoPct: 0, aliquotaIva: 22 },
+  ];
+  const righe = conti.righeDaPesate(ddt);
+  eq(righe.length, 2, "due righe: uno sconto per riga");
+  const conSconto = righe.find(r => r.scontoPct === 5);
+  eq(conSconto.quantita, 150, "i due DDT scontati si sommano");
+  eq(conSconto.imponibile, 1758.45, "150 × 12,34 − 5%");
+  eq(conSconto.ddt.sort().join(","), "1,2", "e la riga dice da quali DDT viene");
+  const senza = righe.find(r => r.scontoPct === 0);
+  eq(senza.imponibile, 493.60, "40 × 12,34, pieno");
+  const f = conti.fatturaDaPesate(ddt);
+  eq(f.imponibile, 2252.05, "il totale della fattura tiene conto dello sconto");
+  eq(f.ivaImporto, 495.45, "e l'IVA si calcola sull'imponibile scontato, non sul pieno");
+});
+
 /* ══ GLI ULTIMI SEI EXPORT CHE NESSUNA PROVA NOMINAVA ══
    Il censimento (`copertura-funzioni.mjs`) diceva 405 su 411, e i sei
    scoperti erano tutti della stessa famiglia: **alias e costanti**, cioè

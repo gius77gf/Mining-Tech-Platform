@@ -41,6 +41,8 @@ const BANCHI = [
   ['bersagli · controprova', 'vuoti-azione.mjs', ['--controprova'], true],
   ['navigazione fra le pagine', 'navigazione.mjs', []],
   ['navigazione · controprova', 'navigazione.mjs', ['--senza-guardie'], true],
+  ['sconto del cliente', 'sconto-cliente.mjs', []],
+  ['sconto · controprova', 'sconto-cliente.mjs', ['--senza-cliente'], true],
 ];
 
 async function rispondePorta(porta) {

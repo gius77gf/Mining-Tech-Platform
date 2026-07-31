@@ -2085,7 +2085,7 @@ label.item:has(.dw-chk:checked){
       <div class="meta">${meta}</div></div>
       <div class="amt" title="${p.unitaVendita === "m3" ? "Venduto a metro cubo: i m³ vengono dal netto diviso la densità" : "Venduto a tonnellata"}">
         <div class="amt-n${p.fatturaId ? " mute" : ""}">${eur(valorePesata(p))}</div>
-        <div class="amt-s">${p.quantita == null ? "quantità non calcolabile" : qtu(p.quantita, p.unitaVendita) + " × " + eur(p.prezzoUnitario)}</div></div>
+        <div class="amt-s">${p.quantita == null ? "quantità non calcolabile" : qtu(p.quantita, p.unitaVendita) + " × " + eur(p.prezzoUnitario) + (+p.scontoPct > 0 ? " − " + perc(p.scontoPct) : "")}</div></div>
       <span class="badge ${p.fatturaId ? "ok" : "warn"}">${p.fatturaId ? "Fatturato" : "Da fatturare"}</span>
       <div class="acts"><button class="arr" type="button" title="Stampa il DDT da dare al camionista (o salvalo in PDF)" aria-label="Stampa il DDT ${esc(p.numero || "")}" data-stampa-ddt="${p.id}">${IC.stampa}</button>${p.fatturaId ? "" : `<button class="arr del" type="button" title="Elimina pesata" aria-label="Elimina il DDT ${esc(p.numero || "")}" data-del-pes="${p.id}">${IC.croce}</button>`}</div>
       <div class="frow"><div class="meta pesa">${dettaglio}</div></div>
@@ -2256,13 +2256,17 @@ label.item:has(.dw-chk:checked){
     const n = nettoPesata(lordoN, taraN);
     $("pes-netto").value = qt(n);
     const p = PRO.find(x => x.id === $("pes-prod").value);
-    const r = p ? rigaPesata(p, lordoN, taraN) : null;
+    // ⛔ il CLIENTE entra nel conto: la sua scheda dichiara uno sconto, e fino
+    // al 03/08 quello sconto non arrivava da nessuna parte.
+    const cliAnt = CLI.find(x => x.id === $("pes-cli").value) || null;
+    const r = p ? rigaPesata(p, lordoN, taraN, cliAnt) : null;
     $("pes-riep").innerHTML = (r && n > 0)
       ? `<div class="riep">
          <div class="mrec"><span class="k">Netto</span><span class="v">${qt(r.netto)} t</span></div>
          ${r.unitaVendita === "m3"
            ? `<div class="mrec"><span class="k">Volume (netto ÷ densità ${qt(r.densita)})</span><span class="v">${qt(r.quantita)} m³</span></div>` : ""}
-         <div class="mrec"><span class="k">Prezzo</span><span class="v">${eur(r.prezzoUnitario)}/${uni(r.unitaVendita)}</span></div>
+         <div class="mrec"><span class="k">Prezzo di listino</span><span class="v">${eur(r.prezzoUnitario)}/${uni(r.unitaVendita)}</span></div>
+         ${r.scontoPct > 0 ? `<div class="mrec"><span class="k">Sconto ${esc(cliAnt.ragioneSociale)}</span><span class="v">− ${perc(r.scontoPct)}</span></div>` : ""}
          <div class="mrec"><span class="k">Valore della consegna</span><span class="v">${r.valore == null ? "—" : eur(r.valore)}</span></div>
          </div>`
       : "";
@@ -2525,16 +2529,17 @@ label.item:has(.dw-chk:checked){
       </div>
       <table><thead><tr>
         <th>Natura e qualità dei beni</th><th class="num">Lordo (t)</th><th class="num">Tara (t)</th>
-        <th class="num">Netto (t)</th><th class="num">Quantità</th><th class="num">Prezzo</th><th class="num">Valore</th>
+        <th class="num">Netto (t)</th><th class="num">Quantità</th><th class="num">Prezzo</th><th class="num">Sconto</th><th class="num">Valore</th>
       </tr></thead><tbody><tr>
         <td>${esc(p.prodotto || "—")}</td>
         <td class="num">${qt(p.lordo)}</td><td class="num">${qt(p.tara)}</td>
         <td class="num"><b>${qt(p.netto)}</b></td>
         <td class="num">${p.quantita == null ? "—" : qtu(p.quantita, p.unitaVendita)}</td>
         <td class="num">${eur(p.prezzoUnitario)}/${uni(p.unitaVendita)}</td>
+        <td class="num">${+p.scontoPct > 0 ? "− " + perc(p.scontoPct) : "—"}</td>
         <td class="num">${eur(valorePesata(p))}</td>
       </tr></tbody>
-      <tfoot><tr class="tot-riga"><td colspan="6">Valore della consegna (imponibile, IVA ${perc(p.aliquotaIva)} esclusa)</td>
+      <tfoot><tr class="tot-riga"><td colspan="7">Valore della consegna (imponibile, IVA ${perc(p.aliquotaIva)} esclusa)</td>
         <td class="num grande">${eur(valorePesata(p))}</td></tr></tfoot></table>
       ${q.m3 != null ? `<div class="box" style="margin-bottom:4mm;"><span class="et">Volume corrispondente</span>${qt(q.m3)} m³ (netto ÷ densità ${qt(p.densita)} t/m³)</div>` : ""}
       <div class="firme"><div>Firma del conducente</div><div>Firma del destinatario per ricevuta</div></div>
@@ -2552,7 +2557,7 @@ label.item:has(.dw-chk:checked){
     const corpo = righe
       ? righe.map(r => `<tr><td>${esc(r.descrizione || "—")}${r.ddt && r.ddt.length ? `<br><span style="font-size:8.5pt;color:#444;">DDT ${esc(r.ddt.join(", "))}</span>` : ""}</td>
           <td class="num">${qtu(r.quantita, r.unita)}</td>
-          <td class="num">${eur(r.prezzoUnitario)}</td>
+          <td class="num">${eur(r.prezzoUnitario)}${+r.scontoPct > 0 ? `<br><span style="font-size:8.5pt;color:#444;">sconto ${perc(r.scontoPct)}</span>` : ""}</td>
           <td class="num">${perc(r.aliquota)}</td>
           <td class="num">${eur(r.imponibile)}</td></tr>`).join("")
       : `<tr><td>Fornitura di materiali inerti</td><td class="num">—</td><td class="num">—</td>
@@ -3292,7 +3297,7 @@ label.item:has(.dw-chk:checked){
     if (err.length) { err.forEach(x => segnaErr(x[0], x[1]));
       esito("pes-esito", "Compila i campi evidenziati per registrare la pesata.", "err");
       primoErrore(PES_CAMPI); return; }
-    const r = rigaPesata(p, lordo, tara);
+    const r = rigaPesata(p, lordo, tara, c);
     if (r.quantita == null) {
       segnaErr("pes-prod", "Questo prodotto si vende a metro cubo ma non ha la densità: aggiungila nel listino, altrimenti non si sa quanti m³ sono queste tonnellate.");
       esito("pes-esito", "Manca la densità di " + p.nome + ": aggiungila nel listino.", "err"); return; }
@@ -3300,7 +3305,7 @@ label.item:has(.dw-chk:checked){
     await db.aggiungi("pesate", { numero, data, clienteId, cliente: c.ragioneSociale,
       prodottoId, prodotto: p.nome, lordo: round2(lordo), tara: round2(tara), netto: r.netto,
       unitaVendita: r.unitaVendita, quantita: r.quantita, densita: r.densita,
-      prezzoUnitario: r.prezzoUnitario, aliquotaIva: r.aliquotaIva,
+      prezzoUnitario: r.prezzoUnitario, scontoPct: r.scontoPct, aliquotaIva: r.aliquotaIva,
       mezzo, destinatario, fatturaId: null });
     esito("pes-esito", "DDT " + numero + " registrato: " + qt(r.netto) + " t nette di " + p.nome + " per " + eur(r.valore) + ".", "success");
     // si svuotano solo i pesi: stesso camion, stesso prodotto, viaggio dopo viaggio
@@ -3308,10 +3313,10 @@ label.item:has(.dw-chk:checked){
     aggiornaNetto(); $("pes-lordo").focus(); await refresh();
   };
   $("btn-pes-export").onclick = () => {
-    let csv = "ddt;data;cliente;prodotto;lordo_t;tara_t;netto_t;quantita;unita;prezzo_unitario;valore;iva;mezzo;destinatario;fattura\n";
+    let csv = "ddt;data;cliente;prodotto;lordo_t;tara_t;netto_t;quantita;unita;prezzo_unitario;sconto_pct;valore;iva;mezzo;destinatario;fattura\n";
     for (const p of PES.slice().sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")))) {
       const f = p.fatturaId ? FAT.find(x => x.id === p.fatturaId) : null;
-      csv += `${csvCell(p.numero)};${p.data || ""};${csvCell(p.cliente)};${csvCell(p.prodotto)};${+p.lordo || 0};${+p.tara || 0};${+p.netto || 0};${p.quantita == null ? "" : p.quantita};${p.unitaVendita === "m3" ? "m3" : "t"};${+p.prezzoUnitario || 0};${valorePesata(p)};${+p.aliquotaIva || 0};${csvCell(p.mezzo)};${csvCell(p.destinatario)};${csvCell(f ? f.numero : "")}\n`;
+      csv += `${csvCell(p.numero)};${p.data || ""};${csvCell(p.cliente)};${csvCell(p.prodotto)};${+p.lordo || 0};${+p.tara || 0};${+p.netto || 0};${p.quantita == null ? "" : p.quantita};${p.unitaVendita === "m3" ? "m3" : "t"};${+p.prezzoUnitario || 0};${+p.scontoPct || 0};${valorePesata(p)};${+p.aliquotaIva || 0};${csvCell(p.mezzo)};${csvCell(p.destinatario)};${csvCell(f ? f.numero : "")}\n`;
     }
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
@@ -3339,7 +3344,7 @@ label.item:has(.dw-chk:checked){
          (consegne dal ${fmtD(ant.dal)} al ${fmtD(ant.al)}) nasce <b>una fattura sola</b>,
          con le righe raggruppate per prodotto.</p>
        <div class="mrec"><span class="k">Numero</span><span class="v">${esc(numero)}</span></div>
-       ${ant.righe.map(r => `<div class="mrec"><span class="k">${esc(r.descrizione)} — ${qtu(r.quantita, r.unita)} × ${eur(r.prezzoUnitario)} · IVA ${perc(r.aliquota)}</span><span class="v">${eur(r.imponibile)}</span></div>`).join("")}
+       ${ant.righe.map(r => `<div class="mrec"><span class="k">${esc(r.descrizione)} — ${qtu(r.quantita, r.unita)} × ${eur(r.prezzoUnitario)}${+r.scontoPct > 0 ? " − " + perc(r.scontoPct) : ""} · IVA ${perc(r.aliquota)}</span><span class="v">${eur(r.imponibile)}</span></div>`).join("")}
        <div class="mrec"><span class="k">Imponibile</span><span class="v">${eur(ant.imponibile)}</span></div>
        ${ant.perAliquota.map(a => `<div class="mrec"><span class="k">IVA ${perc(a.aliquota)} su ${eur(a.imponibile)}</span><span class="v">${eur(a.imposta)}</span></div>`).join("")}
        <div class="mrec"><span class="k">Totale fattura</span><span class="v accent">${eur(ant.totale)}</span></div>
@@ -3354,7 +3359,7 @@ label.item:has(.dw-chk:checked){
           const scadenza = ($("modal-scad") && $("modal-scad").value) || scadDefault;
           chiudiModale();
           const righe = ant.righe.map(r => ({ descrizione: r.descrizione, quantita: r.quantita,
-            unita: r.unita, prezzoUnitario: r.prezzoUnitario, imponibile: r.imponibile,
+            unita: r.unita, prezzoUnitario: r.prezzoUnitario, scontoPct: r.scontoPct, imponibile: r.imponibile,
             aliquota: r.aliquota, ddt: r.ddt }));
           const res = await db.aggiungi("fatture", {
             numero, cliente: (c && c.ragioneSociale) || "", clienteId,

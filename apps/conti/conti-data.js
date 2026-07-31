@@ -1059,20 +1059,51 @@ export function nettoPesata(lordo, tara) {
   return round2(Math.max(0, (+lordo || 0) - (+tara || 0)));
 }
 
-// Riga di pesata completa a partire da pesi, prodotto e anagrafica: quantità
-// nell'unità in cui il prodotto si VENDE (t o m³), prezzo unitario e valore.
-// La densità e il prezzo vengono FOTOGRAFATI qui: se domani il listino cambia,
-// il DDT già emesso resta quello che è stato consegnato e fatturato.
-export function rigaPesata(prodotto, lordo, tara) {
+/* ⛔ LO SCONTO DEL CLIENTE È UNA PERCENTUALE SULL'IMPONIBILE, non un prezzo
+   diverso. Sono due cose che sembrano uguali e non lo sono:
+   · piegando lo sconto dentro il prezzo unitario, quel prezzo va arrotondato
+     ai centesimi e l'errore si moltiplica per la quantità. Misurato su una
+     differita vera (2.230 t a 12,34 €/t con il 5%): **6,69 € di meno** del
+     dovuto, e su un documento fiscale i centesimi non sono un dettaglio;
+   · e soprattutto: un DDT italiano il prezzo di listino lo SCRIVE, e lo sconto
+     lo scrive accanto. Chi riceve il documento deve poter rifare il conto.
+   Quindi `prezzoUnitario` resta il **listino**, e lo sconto viaggia con lui. */
+export function scontoValido(cliente) {
+  const s = +((cliente || {}).sconto);
+  if (!Number.isFinite(s) || s <= 0) return 0;
+  return round2(Math.min(100, s));
+}
+// L'imponibile di una riga: quantità × prezzo di listino, meno lo sconto.
+// In un posto solo, perché lo usano la pesata singola e la fattura differita —
+// e due arrotondamenti diversi sullo stesso conto darebbero due totali diversi
+// sullo stesso mese.
+export function imponibileRiga(quantita, prezzoUnitario, scontoPct) {
+  const q = +quantita;
+  if (!Number.isFinite(q)) return 0;
+  const sc = Math.min(100, Math.max(0, +scontoPct || 0));
+  return round2(q * (+prezzoUnitario || 0) * (1 - sc / 100));
+}
+
+// Riga di pesata completa a partire da pesi, prodotto, anagrafica e CLIENTE:
+// quantità nell'unità in cui il prodotto si VENDE (t o m³), prezzo di listino,
+// sconto del cliente e valore.
+// La densità, il prezzo e lo sconto vengono FOTOGRAFATI qui: se domani il
+// listino cambia o il cliente cambia condizioni, il DDT già emesso resta
+// quello che è stato consegnato e fatturato.
+// ⚠️ Il quarto parametro è un SOPRAINSIEME: chi non passa il cliente ha il
+// comportamento di prima (sconto zero), e i DDT salvati prima del 03/08 —
+// quando lo sconto non veniva applicato a nessuno — restano quello che sono.
+export function rigaPesata(prodotto, lordo, tara, cliente) {
   const p = prodotto || {};
   const netto = nettoPesata(lordo, tara);
   const unitaVendita = p.unitaPrezzo === "m3" ? "m3" : "t";
   const densita = densitaValida(p);
   const quantita = unitaVendita === "t" ? netto : convertiQuantita(netto, "t", "m3", densita);
   const prezzoUnitario = round2(+p.prezzo || 0);
-  const valore = quantita == null ? null : round2(quantita * prezzoUnitario);
+  const scontoPct = scontoValido(cliente);
+  const valore = quantita == null ? null : imponibileRiga(quantita, prezzoUnitario, scontoPct);
   return { netto, unitaVendita, densita: densita || null, quantita,
-           prezzoUnitario, aliquotaIva: +p.iva || 0, valore };
+           prezzoUnitario, scontoPct, aliquotaIva: +p.iva || 0, valore };
 }
 
 // Valore di una pesata già salvata (usa i dati fotografati sul documento).
@@ -1080,7 +1111,7 @@ export function valorePesata(pesata) {
   const d = pesata || {};
   const q = +d.quantita;
   if (!Number.isFinite(q)) return 0;
-  return round2(q * (+d.prezzoUnitario || 0));
+  return imponibileRiga(q, d.prezzoUnitario, d.scontoPct);
 }
 
 // Tonnellate e metri cubi di una pesata (i m³ solo se la densità c'era).
@@ -1114,23 +1145,28 @@ export function pesateDaFatturare(pesate, clienteId, dal, al) {
 // Righe di fattura raggruppate PER PRODOTTO (a parità di prezzo, unità e
 // aliquota: prezzi diversi dello stesso prodotto restano righe diverse, come
 // deve essere). Ogni riga porta i numeri dei DDT che la compongono.
+// ⚠️ Lo SCONTO entra nella chiave del raggruppamento. Due consegne dello stesso
+// prodotto allo stesso prezzo ma con sconti diversi — succede quando le
+// condizioni del cliente cambiano a metà mese — restano due righe, come devono:
+// unirle vorrebbe dire scegliere quale dei due sconti raccontare.
 export function righeDaPesate(pesate) {
   const per = {};
   for (const p of pesate || []) {
     const unita = p.unitaVendita === "m3" ? "m3" : "t";
     const prezzo = round2(+p.prezzoUnitario || 0);
     const aliquota = Math.max(0, +p.aliquotaIva || 0);
-    const k = [p.prodottoId || p.prodotto || "—", unita, prezzo, aliquota].join("|");
+    const sconto = Math.min(100, Math.max(0, round2(+p.scontoPct || 0)));
+    const k = [p.prodottoId || p.prodotto || "—", unita, prezzo, sconto, aliquota].join("|");
     const r = per[k] || (per[k] = { prodottoId: p.prodottoId || null,
       descrizione: String(p.prodotto || "Prodotto"), unita, prezzoUnitario: prezzo,
-      aliquota, quantita: 0, imponibile: 0, ddt: [], ddtIds: [] });
+      scontoPct: sconto, aliquota, quantita: 0, imponibile: 0, ddt: [], ddtIds: [] });
     const q = Number.isFinite(+p.quantita) ? +p.quantita : (+p.netto || 0);
     r.quantita = round3(r.quantita + q);
     r.ddt.push(p.numero || "—");
     r.ddtIds.push(p.id);
   }
   const righe = Object.values(per).sort((a, b) => a.descrizione.localeCompare(b.descrizione, "it"));
-  for (const r of righe) r.imponibile = round2(r.quantita * r.prezzoUnitario);
+  for (const r of righe) r.imponibile = imponibileRiga(r.quantita, r.prezzoUnitario, r.scontoPct);
   return righe;
 }
 
