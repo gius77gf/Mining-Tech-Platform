@@ -910,6 +910,47 @@ campi interi, file delle macchine.
       qualcosa che **esiste**. Nato da un difetto mio — due id indovinati che
       avrebbero lasciato i bottoni muti, senza nessun errore da nessuna parte.
 
+- [x] **La giornata degli otto difetti (31/07)**. Le prove sulle funzioni delle
+      app sono passate da **433 a 783**, e non erano prove di forma: hanno fatto
+      emergere **otto difetti veri**, tutti della stessa famiglia — *un numero o
+      un colore tranquillo dove non è stato misurato niente*. Il racconto per il
+      fondatore sta in `docs/DIFETTI_TROVATI_202607.md`; qui basta l'elenco:
+      - il contatore che segnava **0 ore** su un mezzo senza contaore (due
+        punti diversi: la finestra del tagliando e il form);
+      - l'**anomalia del secondo turno** che spariva dal conto del giro macchina;
+      - il grafico «ultimi 6 mesi» del core con la barra «mag» piena della
+        produzione di **aprile** — sempre, tutto l'anno;
+      - le **scadenze delle fatture** di Conti un giorno prima, sempre;
+      - il **turno di notte** datato al giorno prima (rapportino, fattura,
+        lettura), e Terra che **rifiutava** un rilievo di oggi come «futuro»;
+      - la **misura del sismografo** che spariva dal report per l'ente,
+        annunciata come «1 doppione scartato»;
+      - il **ruolo di sicurezza obbligatorio verde** su una persona non più in
+        azienda;
+      - il badge **«tra 500 h» in verde** su un mezzo di cui non sappiamo le ore.
+- [x] **«Oggi» è una sola cosa, e adesso vive in `shared/`.** `oggiISO` era
+      scritta **sette** volte in tre versioni: ora `isoLocale`/`oggiISO`/
+      `meseLocale`/`timbroLocale` stanno in `dw-shell.js` e le app le
+      ri-esportano, col test che pretende l'**identità**. Corretti 40 punti su
+      12 superfici (`docs/RICERCA_GIORNO_LOCALE_202607.md`).
+- [x] **Le prove girano anche con l'orologio del cliente.**
+      `apps/deepwork-id/tests/orologio-cliente.mjs`, in coda alla suite di CI,
+      rilancia le suite sensibili alla data con `TZ=Europe/Rome`: il contenitore
+      è a Greenwich, e tre di quegli otto difetti in UTC erano **invisibili**.
+- [x] **Regola 15 di `run-stile.mjs`**: vietato prendere il giorno di calendario
+      da `toISOString()` su una data costruita in ora locale. Guarda 21 file e
+      stampa quanti — e perdona chi entra ed esce in UTC, che è coerente.
+- [x] **Copertura delle funzioni pure, app per app.** Sentinella 77/107, Scudo
+      56/71 *(era 22)*, Campo 39/73, Flotta 36/71, Conti 35/58, Terra 32/39
+      *(era 23)*. Nessuna app è più sotto la metà; quello che resta scoperto
+      sono quasi solo costanti e trasporto dati.
+- [x] **Il principio usato come lente.** Scritta in `CLAUDE.md` la regola
+      «l'assenza di un dato non è un dato favorevole», un audit ha chiamato
+      **ogni funzione delle sei app con input vuoti** (2.058 chiamate) cercando
+      le risposte rassicuranti: 39 candidati, letti uno per uno, **un difetto
+      vero** (l'ottavo) e **una domanda per il fondatore** (punto 13 di
+      `DECISIONI_WEEKEND.md`).
+
 ---
 
 ## VINCOLI INVARIATI
