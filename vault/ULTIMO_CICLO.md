@@ -5,21 +5,14 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-08-04 10:24 UTC — **il ciclo che ha trovato
-quattro difetti veri, e uno era vivo nella sicurezza**
-**Cosa ha fatto (ciclo precedente, chiuso poco fa):** una sonda che chiama
-**tutte** le funzioni pure con dati vuoti cercando **un solo segno** — *un numero
-tranquillo dove non è stato misurato niente* — ha trovato quattro difetti.
-Il peggiore era **live**: una scadenza importata da un file con la data sbagliata
-di battitura («2026-13-45» ha la forma giusta e non esiste) entrava in archivio e
-restava **verde per sempre** — una visita medica che nessuno avrebbe mai visto
-fra quelle da fare. Corretto in sei punti, perché lo stesso difetto era scritto
-sei volte con nomi diversi, e la correzione ha fatto nascere `dataISOEsiste`
-(«2026-02-30» non è nemmeno un errore per `Date.parse`: scivola al 2 marzo).
-Gli altri tre: Sentinella diceva «Conforme» su punti che nessuno aveva letto,
-Flotta poteva dichiarare «SCADUTA» un tagliando **senza obiettivo**, Conti poteva
-**bloccare la pagina**. Poi le altre **cinque porte d'ingresso** con lo stesso
-filtro a sola forma. Prove `node`: **1.343 → 1.359**.
+**Ultimo ciclo riuscito:** 2026-08-04 12:43 UTC — **il ciclo che ha reso
+misurabile una regola violata due volte, e ha chiuso un buco che chiedeva soldi**
+**Commit di partenza:** `d3c3ab9`
+**Cosa sta per fare:** riprendere dal «prossimo passo atomico» —
+**tracciabilità del volume** in Terra/Genesi (i parametri che producono il
+numero sono già calcolati e buttati una riga dopo, e il lato cella da solo
+sposta il volume del **22%**), la nota di credito nell'**export per il
+commercialista**, e l'esito del giro a 29 banchi che sta girando adesso.
 
 **Cosa ha fatto oggi, dopo quel blocco** — sei unità, tutte con la loro
 controprova:
