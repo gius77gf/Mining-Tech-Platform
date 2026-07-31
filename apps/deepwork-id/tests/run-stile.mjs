@@ -135,6 +135,12 @@ const SUPERFICI = [
   ["Deepwork ID · amministrazione", "apps/deepwork-id/admin.html"],
   ["Deepwork ID · profilo", "apps/deepwork-id/profilo.html"],
   ["Deepwork ID · accesso", "apps/deepwork-id/index.html"],
+  /* Entrate il 03/08. Erano pagine che l'utente apre davvero — una ci finisce
+     quando gli manca un permesso, l'altra è il portone di Genesi — e nessuna
+     regola di stile le aveva mai guardate: l'elenco si aggiornava a mano, cioè
+     a memoria. Adesso c'è il controllo qui sotto che lo pretende. */
+  ["Deepwork ID · non autorizzato", "apps/deepwork-id/non-autorizzato.html"],
+  ["Genesi · accesso", "apps/genesi/login.html"],
 ];
 // I moduli dati e il motore condiviso: nessuna interfaccia, ma è da lì che
 // partirebbe una regressione silenziosa.
@@ -154,6 +160,50 @@ const MODULI = [
   ["Sentinella (dati)", "apps/sentinella/sentinella-data.js"],
   ["Terra (dati)", "apps/terra/terra-data.js"],
 ];
+
+/* ⛔ L'ELENCO DELLE SUPERFICI SI AGGIORNAVA A MEMORIA.
+   `CLAUDE.md` lo dice — «quando nasce un'app va aggiunta all'elenco
+   SUPERFICI» — ed è esattamente la forma di regola che questo file esiste per
+   sostituire. Il 03/08 la misura: nel repo ci sono **sedici** file `.html`, e
+   l'elenco ne conosceva **dodici**. Le quattro fuori non erano state escluse:
+   erano state dimenticate. Due sono pagine che l'utente apre davvero — quella
+   in cui si finisce quando manca un permesso, e il portone di Genesi — e
+   nessuna regola di stile le aveva mai guardate.
+   Chi resta fuori adesso deve dirlo con la ragione. */
+const FUORI_SUPERFICI = {
+  "apps/genesi/nuvola-poc.html":
+    "banco di prova della lettura LAS/nuvola di punti: non è una schermata del "
+    + "prodotto, non è raggiungibile dalla navigazione e non ha la struttura del core",
+  "shared/_collaudo-grafici.html":
+    "il collaudo del motore dei grafici — l'underscore nel nome lo dichiara: "
+    + "serve a guardare i grafici uno accanto all'altro, non è un'interfaccia",
+};
+function tutteLePagine(dir = "", trovate = []) {
+  for (const v of readdirSync(join(root, dir), { withFileTypes: true })) {
+    if (v.name === "node_modules" || v.name === ".git" || v.name === "vendor") continue;
+    const rel = dir ? `${dir}/${v.name}` : v.name;
+    if (v.isDirectory()) tutteLePagine(rel, trovate);
+    else if (v.name.endsWith(".html")) trovate.push(rel);
+  }
+  return trovate;
+}
+console.log("\n── L'elenco delle superfici è completo ──");
+{
+  const sulDisco = tutteLePagine().sort();
+  const conosciute = new Set(SUPERFICI.map(([, r]) => r));
+  const dimenticate = sulDisco.filter((r) => !conosciute.has(r) && !(r in FUORI_SUPERFICI));
+  const fantasmi = [...conosciute].filter((r) => !sulDisco.includes(r));
+  const escluseSparite = Object.keys(FUORI_SUPERFICI).filter((r) => !sulDisco.includes(r));
+  test(`ogni pagina del repo è guardata o esclusa con la ragione (${sulDisco.length} file .html)`, () => {
+    ok(sulDisco.length >= 14, `solo ${sulDisco.length} pagine trovate: la scansione delle cartelle non sta guardando niente`);
+    ok(dimenticate.length === 0,
+      `${dimenticate.length} pagine che nessuna regola guarda → ${dimenticate.join(", ")}`
+      + " — o entrano in SUPERFICI, o la ragione va scritta in FUORI_SUPERFICI");
+    ok(fantasmi.length === 0, `SUPERFICI nomina file che non esistono più: ${fantasmi.join(", ")}`);
+    ok(escluseSparite.length === 0,
+      `FUORI_SUPERFICI esclude file che non ci sono più: ${escluseSparite.join(", ")} — righe da togliere`);
+  });
+}
 
 const leggi = (rel) => { try { return readFileSync(join(root, rel), "utf8"); } catch { return null; } };
 
@@ -513,14 +563,24 @@ function dichiarazioniFuoriFase(src) {
   return fuori;
 }
 let dichTot = 0, dichFuori = 0, dichSuperfici = 0;
-const dichDove = [], dichVuote = [];
+const dichDove = [], dichVuote = [], dichSenzaProgramma = [];
 for (const [nome, rel] of SUPERFICI.concat(MODULI)) {
   const src = leggi(rel);
   if (src === null) continue;
   DICHIARAZIONE.lastIndex = 0;
   const quante = (src.match(DICHIARAZIONE) || []).length;
   dichTot += quante;
-  if (quante > 0) dichSuperfici++; else if (!rel.endsWith(".css")) dichVuote.push(nome);
+  /* Un file può non dare nessuna ancora per due ragioni opposte, e vanno
+     separate: perché non ha PROGRAMMA (il foglio di stile del motore grafici,
+     e il portone di Genesi, che è markup e basta — nemmeno un `<script>`),
+     oppure perché la scansione ha perso la fase e non ne trova più. La prima è
+     legittima e si conta a parte; la seconda fa cadere la prova.
+     ⚠️ Ci sono cascato appena messo `login.html` nell'elenco: la prova l'ha
+     accusato di essere fuori fase, e invece non c'era niente da vedere. */
+  const senzaProgramma = rel.endsWith(".css") || (rel.endsWith(".html") && !/<script/i.test(src));
+  if (quante > 0) dichSuperfici++;
+  else if (senzaProgramma) dichSenzaProgramma.push(nome);
+  else dichVuote.push(nome);
   const f = dichiarazioniFuoriFase(src);
   if (f.length) { dichFuori += f.length; dichDove.push(`${nome} (righe ${f.slice(0, 4).join(", ")}…)`); }
 }
