@@ -114,6 +114,64 @@ peggio di un numero mancante.
 
 ---
 
+---
+
+## Quello che il prototipo ha insegnato *(aggiunto il 05/08, dopo 28 prove in banco)*
+
+Il piano qui sopra è stato scritto **prima** di provarlo. Provandolo sono
+uscite tre cose che non c'erano, e la prima cambia la schermata.
+
+### 1. Le voci dichiarate assenti vanno **sottratte**, o la pagina si contraddice
+
+`vociAssenti` era già nel piano, ma solo come dato da salvare. Non bastava:
+`margineMese` calcolava il margine **e** continuava a elencare fra le mancanti
+proprio la voce che l'utente aveva appena dichiarato assente. Sullo schermo
+sarebbe uscito «**margine 92%**» e sotto «**manca il personale**» — cioè la
+pagina che si smentisce da sola *anche quando l'utente aveva risposto*.
+
+La regola giusta è a tre stati, non a due:
+
+| | cosa mostra |
+|---|---|
+| voce presente | niente |
+| voce assente **e dichiarata** nella chiusura | niente: è una risposta |
+| voce assente e **mai dichiarata** | resta scritta accanto al margine |
+
+E nel terzo caso il margine **si calcola lo stesso** — l'ha chiesto una
+persona, e rifiutarglielo dopo che ha chiuso il mese sarebbe un dispetto — ma
+si porta dietro la frase: *«se quella spesa c'è stata e non è in elenco, il
+margine qui sopra è più alto del vero»*.
+
+### 2. `registratoIl` è un campo che ancora non esiste
+
+`arriviDopoLaChiusura` confronta il giorno in cui la voce è stata **battuta**
+con il giorno della chiusura. Ma i costi già in archivio quel campo non ce
+l'hanno, e la pagina finora non lo scrive.
+
+Due conseguenze, e la seconda è una trappola: la pagina deve cominciare a
+scrivere `registratoIl` sui costi nuovi; e il confronto deve trattare
+l'**assenza** del campo come «non lo so», mai come «arrivato dopo». Con un
+confronto fra stringhe fatto male (`undefined > "2026-08-04"` è **vero** in
+JavaScript) *ogni voce vecchia* diventerebbe un arrivo tardivo e *ogni* mese
+chiuso sarebbe `chiuso-con-arrivi`. La prova che lo blinda c'è.
+
+### 3. La percentuale non si calcola su ricavi zero
+
+Un mese chiuso con costi e senza fatture ha un margine **negativo**, e va
+mostrato: è un dato vero. Ma la *percentuale* no — dividere per zero ricavi dà
+`Infinity`, che sullo schermo è indistinguibile da un numero. Margine sì,
+percentuale `null`.
+
+### E una scelta tarata, non indovinata
+
+`vociMancantiNelMese` ha una soglia: una voce è «abituale» se compare in almeno
+**metà** degli altri mesi. Sotto quella soglia non si chiede niente. Serve a non
+rinfacciare una spesa capitata due volte l'anno — e la prova la fissa con un
+caso preciso: personale in **2 mesi su 5** non è un'abitudine, carburante in
+5 su 5 sì.
+
+---
+
 ## Le unità, in ordine
 
 1. **`statoMese` + `vociMancantiNelMese`**, con le prove. Nessuna interfaccia.
