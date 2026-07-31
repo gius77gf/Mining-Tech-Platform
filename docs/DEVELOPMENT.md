@@ -46,7 +46,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**662 prove girano senza rete e senza browser**, con `node`:
+**692 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 01/08: 433 + 177 + 43 + 23 + 9 + 7):
 
 ```sh
 node apps/deepwork-id/tests/run-kpi.mjs        # i calcoli delle sei app + i lettori CSV
@@ -64,12 +64,40 @@ avvio) — servono `firebase-tools` e Java:
 cd apps/deepwork-id && firebase emulators:exec --project demo-deepwork "cd tests && npm test"
 ```
 
-**13 banchi che aprono davvero le pagine** in Chromium (già installato in
+**17 esecuzioni che aprono davvero le pagine** in Chromium — 8 banchi
+distinti, ognuno seguito dalla sua controprova (già installato in
 `/opt/pw-browsers/chromium`, **non** si lancia `playwright install`):
 
 ```sh
 node apps/deepwork-id/tests/browser/tutti.mjs
 ```
+
+### La regola che vale più del numero di prove
+
+**Una prova che non sa fallire non dimostra niente** — e, dal 01/08, anche:
+**una controprova va misurata nella sua COPERTURA, non solo nel suo esito.**
+
+Il caso che l'ha insegnato: la regola che vieta i dialoghi del browser aveva la
+sua controprova, e passava. Ma iniettava il difetto in **tre superfici a un
+punto ciascuna**. Rimettendolo in tutti i punti dove la scansione era in
+difficoltà, **764 iniezioni su 1030 non venivano viste**: la regola era cieca su
+gran parte del codice, core compreso, mentre rispondeva «a posto».
+
+Quindi, quando si scrive un controllo nuovo:
+
+1. si rimette il difetto **nei file veri**, non su tre righe inventate — su tre
+   righe inventate funzionava benissimo anche quella cieca;
+2. lo si rimette **dove il codice è difficile** (dentro i template, dopo le
+   stringhe), non in fondo al file, che è il posto più facile;
+3. si **stampa quanti soggetti si sono guardati davvero** (`9 superfici`,
+   `1030 iniezioni`, `84 tendine misurate`). Un numero che non torna si vede;
+   uno «zero violazioni» ottenuto su zero soggetti no;
+4. se il controllo ha un elenco di soggetti attesi, lo si **asserisce**: è così
+   che è saltata fuori una settima superficie di cui non sapevamo.
+
+Gli aiuti per farlo esistono già in `run-stile.mjs`: `controprovaSuiVeri(...)`
+per i difetti che si **aggiungono**, e il blocco della regola 12 come esempio
+per quelli che si **tolgono** (lì il difetto è l'assenza di una difesa).
 
 Il dettaglio di ogni banco sta in `apps/deepwork-id/tests/browser/LEGGIMI.md`.
 
