@@ -1246,6 +1246,34 @@ campi interi, file delle macchine.
       in `shared/dw-ponti.js` perché serve a due app. Sette funzioni pure, e il
       primo test non è l'aritmetica: è che `costoPerTonnellata` risponda `null`
       su un periodo con pesate e **senza** nessuna voce di personale.
+- [x] **Ricerca: la tracciabilità del volume dal visore** ✅ *(03/08,
+      `docs/RICERCA_TRACCIABILITA_VOLUME_202608.md`)* — terza voce del censimento
+      per valore. Il modo più netto di dirla: **il verbale di rilievo ha già una
+      sezione intitolata «Come è stato ottenuto il numero», e per un volume che
+      arriva dal visore non può dire niente di vero.** E non è che i parametri
+      manchino: `volumeCumulo` ne ritorna **cinque** (`volume`, `areaCelle`,
+      `celle`, `zBase`, `cella`) e il visore ne salva **uno** — gli altri sono
+      **calcolati e buttati una riga dopo**; poi Terra prende il solo volume, e
+      lascia indietro anche `puntiRitaglio` e `puntiTotali`, che il visore invece
+      salva. Quanto pesano, **misurato** su un cono di volume noto (1.413,7 m³):
+      cella 0,25 m → **−1,1%**, 0,5 → +2,1%, 1 → +8,6%, **2 → +22,1%** — e la
+      cella **non la sceglie l'utente**, la sceglie il software con
+      `(x1-x0)/60`, quindi ritagliare un fronte intero invece di un pezzo sposta
+      il numero di un quinto **senza che il perché compaia da nessuna parte**. La
+      quota di base è una **moltiplicazione**: 1 m di errore = area coperta in m³
+      (sul cono, **729 m³**, cioè ~401 € di canone e 729 m³ di concessione). Più
+      un **difetto vero** trovato misurando: il ponte mette la data a **oggi** e
+      marca subito il campo valido, mentre il visore la data ce l'ha — chi
+      elabora il volo del lunedì il giovedì si ritrova un rilievo datato giovedì,
+      verde, e nessun motivo per guardarlo. Tre decisioni (la data non si
+      inventa · il rilievo porta la sua `origine` in **un oggetto solo**, così
+      `null` vuol dire «non sappiamo come è nato» · il verbale dice quello che sa
+      e **ammette** quello che non sa) e cinque unità. Le misure non restano nel
+      documento: **`run-pointcloud.mjs` 23 → 26**, che blindano il **verso** e
+      non i decimali, con **cinque difetti** su copia e cinque cadute col nome
+      giusto. E una correzione alla controprova stessa: la prima iniezione sulla
+      base scriveva su una `const`, il modulo moriva e **tutte** le prove
+      cadevano — un ✓ per il motivo sbagliato, caso (3) della tassonomia.
 
 ---
 

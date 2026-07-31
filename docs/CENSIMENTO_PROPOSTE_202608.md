@@ -161,7 +161,10 @@ rilievi.
 
 **Parziali:** provenienza del volume dal visore (la domanda scavo/cumulo c'è ed
 è fatta bene, ma **nessun metadato di provenienza viene salvato**: né lato
-cella, né quota di base, né punti del ritaglio) · riconciliazione con Conti (in
+cella, né quota di base, né punti del ritaglio — **ricercata il 03/08**,
+`docs/RICERCA_TRACCIABILITA_VOLUME_202608.md`: quei parametri sono **già
+calcolati** da `volumeCumulo` e buttati una riga dopo, e il lato cella da solo
+sposta il volume del **22%**) · riconciliazione con Conti (in
 Terra **non c'è**: vive solo dentro Conti, e il direttore di cava che apre Terra
 non la vede) · **oneri di escavazione** *(la base ora esiste davvero, 03/08)* ·
 timeline dell'avanzamento (`serieAnnuale` produce già il cumulato, ma è

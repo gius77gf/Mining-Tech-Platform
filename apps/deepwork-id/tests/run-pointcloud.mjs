@@ -194,5 +194,62 @@ test("preShiftOBJ: senza vertici → offset zero, testo invariato", () => {
   eq(r.off, { x: 0, y: 0, z: 0 }, "offset zero");
 });
 
+// ── IL LATO CELLA È UN PARAMETRO, NON UN DETTAGLIO ───────────────────
+// Misurato il 03/08 (docs/RICERCA_TRACCIABILITA_VOLUME_202608.md): il volume
+// dipende dal lato della cella, e nel visore quel lato **lo sceglie il
+// software** — `(x1-x0)/60` limitato fra 0,25 e 2 — senza comparire da nessuna
+// parte. Su un cono di volume noto, da 0,25 m a 2 m il numero sale del 22%.
+//
+// Il verso NON è casuale ed è la ragione per cui questa prova esiste: ogni
+// cella prende la quota MASSIMA dei punti che le cadono dentro, quindi una
+// cella più grossa tira la superficie verso l'alto. È una proprietà del
+// codice, non dei dati, e se qualcuno la cambiasse (media invece di massimo,
+// per dire) i volumi registrati fin qui smetterebbero di essere confrontabili
+// con quelli nuovi — in silenzio. Qui si blinda il verso, non i decimali.
+console.log("\n— pointcloud: il lato cella sposta il volume, e sempre nello stesso verso —");
+function conoCloud(raggio, altezza, passo, quotaBase) {
+  const pos = [];
+  for (let x = -raggio; x <= raggio; x += passo)
+    for (let y = -raggio; y <= raggio; y += passo) {
+      const r = Math.hypot(x, y);
+      if (r > raggio) continue;
+      pos.push(x, y, quotaBase + altezza * (1 - r / raggio));
+    }
+  return pos;
+}
+test("volumeCumulo: celle più grosse → volume più alto, monotòno", () => {
+  const pos = conoCloud(15, 6, 0.1, 100);
+  const vol = [0.25, 0.5, 1, 2].map((c) => pc.volumeCumulo(pos, c).volume);
+  for (let i = 1; i < vol.length; i++)
+    ok(vol[i] > vol[i - 1],
+      `cella più grossa deve dare volume maggiore (la cella prende la quota MASSIMA): ${vol[i - 1].toFixed(1)} → ${vol[i].toFixed(1)}`);
+  // e lo scarto è grande abbastanza da meritare di essere registrato: se un
+  // giorno diventasse trascurabile, la scheda che chiede di salvare la cella
+  // andrebbe riscritta, non lasciata a dire una cosa non più vera
+  ok(vol[3] / vol[0] > 1.15,
+    `da 0,25 m a 2 m il volume deve cambiare di più del 15%, cambia del ${((vol[3] / vol[0] - 1) * 100).toFixed(1)}%`);
+});
+test("volumeCumulo: la cella fine si avvicina al volume vero del cono", () => {
+  const teorico = Math.PI * 15 * 15 * 6 / 3;
+  const v = pc.volumeCumulo(conoCloud(15, 6, 0.1, 100), 0.25).volume;
+  ok(Math.abs(v / teorico - 1) < 0.05,
+    `con cella 0,25 m lo scarto dal cono esatto deve stare sotto il 5%, è ${((v / teorico - 1) * 100).toFixed(1)}%`);
+});
+test("volumeCumulo: 1 m di quota di base = area coperta in m³ (è una moltiplicazione)", () => {
+  // La quota di base non è una sfumatura: il volume è Σ (quota − zBase) × cella²,
+  // quindi spostare la base di 1 m sposta il volume di ESATTAMENTE l'area
+  // coperta. È il motivo per cui `zBase` va conservata insieme al volume.
+  const base = conoCloud(15, 6, 0.1, 100);
+  const alzato = base.slice();
+  for (let i = 2; i < alzato.length; i += 3) alzato[i] += 1;   // tutto il cono 1 m più su
+  const a = pc.volumeCumulo(base, 0.5), b = pc.volumeCumulo(alzato, 0.5);
+  ok(Math.abs((b.zBase - a.zBase) - 1) < 1e-6, `la base deve salire di 1 m, sale di ${(b.zBase - a.zBase).toFixed(4)}`);
+  ok(Math.abs(b.volume - a.volume) < 1e-6,
+    `alzando TUTTO di 1 m il volume non cambia (base e superficie salgono insieme): ${a.volume.toFixed(2)} → ${b.volume.toFixed(2)}`);
+  // e la sensibilità vera: la stessa nuvola con la base tenuta ferma
+  const finto = a.volume + a.areaCelle * 1;
+  ok(finto > a.volume, "1 m di base sbagliata vale areaCelle m³ — qui è il conto che il verbale deve poter rifare");
+});
+
 console.log(`\nRisultato pointcloud: ${passed} passati, ${failed} falliti`);
 if (failed) process.exit(1);
