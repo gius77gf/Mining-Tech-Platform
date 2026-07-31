@@ -87,6 +87,13 @@ dominante. Verifica obbligatoria con screenshot prima/dopo.
       quello che conta (nessun indizio dentro un altro, altrimenti il tipo lo
       deciderebbe l'ORDINE dell'elenco) e il dato scritto in anagrafica vince
       sempre sull'indizio pescato dal nome.
+- [ ] **Le due pagine dimenticate anche nei banchi del browser** *(trovato il
+      03/08)* — `run-stile.mjs` adesso le guarda, ma l'elenco `SUPERFICI` di
+      `tests/browser/giro.mjs` — quello che serve a **tutti e diciannove i
+      banchi** — ne conosce ancora nove. La pagina «non autorizzato» e il
+      portone di Genesi non vengono aperte da nessun banco: niente contrasto,
+      niente id doppi, niente fuori-schermo. Va allungato l'elenco e rilanciato
+      il giro.
 - [ ] **`perCampo` scritta due volte** *(trovata il 03/08, corretta appena
       finisce il giro del browser)* — identica in `dw-shell.js` e in
       `flotta-data.js`. L'ha trovata la domanda che mancava a `nomi-doppi.mjs`:
