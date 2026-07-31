@@ -285,6 +285,49 @@ funzione, ed è **la stessa forma già scritta lì accanto** per l'altro paramet
 
 ---
 
+## La terza sonda non ha trovato quello che cercava, e va detto
+
+La terza passata chiamava le funzioni con i **dati veri della dimostrazione**
+(`DEMO`), cercando «NaN», «undefined» e «Invalid Date» dentro le stringhe che
+l'utente legge — la famiglia del «tra NaN h». **Non ha finito**: si è piantata,
+e le combinazioni che genera sono in buona parte spazzatura (una lista passata
+dove va un numero). Come sonda **non vale**, e non la si tiene: gonfiare un
+risultato che non c'è è il modo più veloce di rendere inservibili tutte le
+altre.
+
+Ma il punto in cui si è piantata merita due righe, perché il modo di rompersi è
+peggio di un numero sbagliato.
+
+### `incassoPerMese(fatture, oggi)` — la data nella casella del conteggio
+
+```js
+export function incassoPerMese(fatture, mesi = 6, oggi = new Date()) {
+  …
+  for (let i = 0; i < mesi; i++) { … ordine.push(k); perMese[k] = {…}; }
+```
+
+Passando una **data** dove va il numero di mesi, `i < mesi` la converte in
+millisecondi dall'epoca: **1.785.456.000.000** giri, ognuno dei quali crea una
+`Date`, spinge in un array e aggiunge una chiave a un oggetto. Non finisce: la
+scheda **muore di memoria**. Non un numero sbagliato — la pagina che non
+risponde più, senza un errore da mostrare.
+
+**Raggiungibilità: nessuna dai dati.** Ci si arriva solo sbagliando l'**ordine
+degli argomenti** — ma è uno sbaglio *invitato*, perché in Conti quasi tutte le
+sorelle hanno `oggi` in seconda o terza posizione:
+
+```js
+agingIncassi(fatture, oggi)          esposizioneClienti(fatture, oggi, clienti)
+prioritaIncasso(fatture, oggi)       kpiFrom(fatture, gare, oggi)
+incassoPerMese(fatture, mesi, oggi)  // ← l'unica in cui il secondo posto è un CONTEGGIO
+```
+
+La correzione è di due righe — `mesi` accettato solo se finito e dentro un
+intervallo sensato, altrimenti il valore di serie — e trasforma una pagina morta
+in un grafico normale. Va in coda alle altre due.
+
+---
+
 ## La lezione, che è più grande del difetto
 
 Il principio «l'assenza di un dato non è un dato favorevole» è in `CLAUDE.md` da
