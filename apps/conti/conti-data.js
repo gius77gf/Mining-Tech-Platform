@@ -460,12 +460,12 @@ function dataIt(iso) {
 // scaduta (niente da sollecitare) o se i dati non sono validi. La nota "da
 // confermare col commercialista" resta nell'interfaccia, non nella lettera al
 // cliente. Pura e testabile: nessun DOM, `oggi` e `tasso` iniettabili.
-export function testoSollecito(fattura, oggi = new Date(), tassoAnnuo = TASSO_MORA_DEFAULT) {
+export function testoSollecito(fattura, oggi = new Date(), tassoAnnuo = TASSO_MORA_DEFAULT, note = null) {
   const f = fattura || {};
   // si sollecita ciò che RESTA da avere: se il cliente ha già versato un
   // acconto, chiedergli di nuovo l'intero sarebbe una lettera sbagliata.
   const totDoc = round2(+f.importo || 0);
-  const imp = apertoDi(f);
+  const imp = apertoDi(f, note);
   const acconti = round2(Math.max(0, totDoc - imp));
   const g = giorni(f.scadenza, oggi);
   if (imp <= 0 || !Number.isFinite(g) || g >= 0) return null;   // non scaduta, saldata o dati non validi
@@ -502,12 +502,12 @@ export function testoSollecito(fattura, oggi = new Date(), tassoAnnuo = TASSO_MO
 // Incasso atteso nei prossimi N giorni: somma delle fatture aperte la cui
 // scadenza cade da oggi a oggi+N (non ancora scadute). È l'entrata di cassa
 // PREVISTA, complementare all'aging (che guarda al ritardo passato).
-export function incassoAtteso(fatture, giorniAvanti = 30, oggi = new Date()) {
+export function incassoAtteso(fatture, giorniAvanti = 30, oggi = new Date(), note = null) {
   let importo = 0, conto = 0;
   for (const f of fatture || []) {
     if (f.incassata) continue;
     const g = giorni(f.scadenza, oggi);
-    if (Number.isFinite(g) && g >= 0 && g <= giorniAvanti) { importo += apertoDi(f); conto++; }
+    if (Number.isFinite(g) && g >= 0 && g <= giorniAvanti) { importo += apertoDi(f, note); conto++; }
   }
   return { conto, importo };
 }
@@ -607,14 +607,14 @@ export function esposizioneClienti(fatture, oggi = new Date(), clienti = [], not
 // oppure una riga di esposizioneClienti ({ chiave, cliente }): con la chiave le
 // fatture del gruppo entrano tutte, comprese quelle col nome scritto in un
 // altro modo. Pura e testabile.
-export function estrattoContoCliente(cliente, fatture, oggi = new Date(), tassoAnnuo = TASSO_MORA_DEFAULT, clienti = []) {
+export function estrattoContoCliente(cliente, fatture, oggi = new Date(), tassoAnnuo = TASSO_MORA_DEFAULT, clienti = [], note = null) {
   const rif = cliente && typeof cliente === "object" ? cliente : { cliente: cliente };
   const nome = String(rif.cliente || "").trim();
   const chiave = rif.chiave || null;
   if (!nome && !chiave) return null;
   const kNome = chiaveNome(nome);
   const aperte = (fatture || []).filter(f =>
-    !f.incassata && apertoDi(f) > 0 && (chiave
+    !f.incassata && apertoDi(f, note) > 0 && (chiave
       ? chiaveCliente(f, clienti) === chiave
       : chiaveNome(nomeCliente(f, clienti)) === kNome));
   if (!aperte.length) return null;
@@ -622,7 +622,7 @@ export function estrattoContoCliente(cliente, fatture, oggi = new Date(), tassoA
   const e = (v) => "€ " + euroIt(v);
   let totale = 0, scaduto = 0, moraTot = 0, scaduteN = 0;
   const righe = aperte.map(f => {
-    const imp = apertoDi(f);                              // residuo dovuto
+    const imp = apertoDi(f, note);                        // residuo dovuto, meno lo stornato
     const acconti = round2(Math.max(0, round2(+f.importo || 0) - imp));
     totale += imp;
     const g = giorni(f.scadenza, oggi);
@@ -676,7 +676,7 @@ export function estrattoContoCliente(cliente, fatture, oggi = new Date(), tassoA
 // numero sbagliato: la pagina che non risponde più, senza un errore da
 // mostrare. docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md
 const MESI_ORIZZONTE_MAX = 60;
-export function incassoPerMese(fatture, mesi = 6, oggi = new Date()) {
+export function incassoPerMese(fatture, mesi = 6, oggi = new Date(), note = null) {
   const n = Math.floor(+mesi);
   mesi = Number.isFinite(n) && n > 0 ? Math.min(n, MESI_ORIZZONTE_MAX) : 6;
   const o = new Date(oggi); o.setHours(0, 0, 0, 0);
@@ -688,7 +688,7 @@ export function incassoPerMese(fatture, mesi = 6, oggi = new Date()) {
     if (f.incassata) continue;
     const g = giorni(f.scadenza, oggi);
     if (!Number.isFinite(g)) continue;                 // senza data valida: non pianificabile
-    const imp = apertoDi(f);                           // solo ciò che resta da incassare
+    const imp = apertoDi(f, note);                     // solo ciò che resta da incassare
     if (g < 0) { scadute.conto++; scadute.importo += imp; continue; }
     const k = (f.scadenza || "").slice(0, 7);          // yyyy-mm della scadenza
     if (perMese[k]) { perMese[k].conto++; perMese[k].importo += imp; }  // oltre l'orizzonte: ignorata
@@ -700,14 +700,14 @@ export function incassoPerMese(fatture, mesi = 6, oggi = new Date()) {
 // in ritardo, a parità di ritardo prima l'importo più alto. Serve a sapere
 // CHI sollecitare per primo. Ogni voce porta i giorni di ritardo (0 se non
 // ancora scaduta). Funzione pura e testabile.
-export function prioritaIncasso(fatture, oggi = new Date()) {
+export function prioritaIncasso(fatture, oggi = new Date(), note = null) {
   return (fatture || [])
     .filter(f => !f.incassata)
     .map(f => {
       const g = giorni(f.scadenza, oggi);
       return { f, ritardo: Number.isFinite(g) ? Math.max(0, -g) : 0 };
     })
-    .sort((a, b) => b.ritardo - a.ritardo || apertoDi(b.f) - apertoDi(a.f));
+    .sort((a, b) => b.ritardo - a.ritardo || apertoDi(b.f, note) - apertoDi(a.f, note));
 }
 
 // Riepilogo delle gare d'appalto: quante aperte/vinte/perse, valore a

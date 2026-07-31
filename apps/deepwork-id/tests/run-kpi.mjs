@@ -1844,6 +1844,39 @@ test("kpiFrom e agingIncassi: il credito scende dello stornato, e senza note non
   eq(conti.agingIncassi(fatture, oggi).g1_30.importo, 1000, "aging senza note");
   eq(conti.agingIncassi(fatture, oggi, [{ fatturaId: "F9", totale: 400 }]).g1_30.importo, 600, "aging con lo storno");
 });
+/* ⛔ IL BUCO APERTO DAL RENDERE POSSIBILE LA NOTA DI CREDITO.
+   Gli aggregati leggevano lo storno, ma CINQUE funzioni no — e fra queste le due
+   che producono documenti che ESCONO verso il cliente: il sollecito e l'estratto
+   conto. Cioè: storni una fattura, e l'app manda lo stesso la lettera che chiede
+   quei soldi. Non un numero sbagliato in una schermata: una richiesta di
+   pagamento su un documento annullato. */
+test("⛔ una fattura stornata NON finisce nel sollecito né nell'estratto conto", () => {
+  const f = { id: "FS", numero: "2026/050", cliente: "Cava Rossi", importo: 1000,
+    emessa: "2026-01-10", scadenza: "2026-02-09" };
+  const note = [{ fatturaId: "FS", totale: 1000 }];
+  const oggi = new Date(2026, 4, 1);
+  // l'estratto conto: senza altre fatture aperte non deve esistere proprio
+  ok(conti.estrattoContoCliente({ cliente: "Cava Rossi" }, [f], oggi, 8, [], note) === null,
+    "estratto conto: una fattura stornata non è un credito da esigere");
+  ok(conti.estrattoContoCliente({ cliente: "Cava Rossi" }, [f], oggi, 8, []) !== null,
+    "e senza le note l'estratto conto c'è ancora: la differenza la fanno loro");
+  // il sollecito: l'importo richiesto scende a zero
+  /* ⚠️ la prima stesura di questa riga cercava «1.000,00» nel testo e passava
+     ANCHE col difetto rimesso: il sollecito scrive «€ 1.000», senza decimali,
+     quindi il confronto era vero in tutti e due i casi. Misurato: con la nota
+     `testoSollecito` non restituisce un testo più povero — restituisce `null`,
+     cioè la lettera non esiste proprio. L'asserzione giusta è quella, ed è più
+     forte, non più permissiva. */
+  const con = conti.testoSollecito({ ...f }, oggi, 8, note);
+  const senza = conti.testoSollecito({ ...f }, oggi, 8);
+  ok(/€ 1\.000/.test(String(senza)), "senza note il sollecito chiede i 1.000 €");
+  eq(con, null, "con la nota il sollecito NON esiste: non c'è niente da chiedere");
+  // la priorità di incasso e le previsioni
+  eq(conti.incassoAtteso([{ ...f, scadenza: "2026-05-20" }], 30, oggi, note).importo, 0,
+    "l'incasso atteso non conta una fattura stornata");
+  eq(conti.incassoAtteso([{ ...f, scadenza: "2026-05-20" }], 30, oggi).importo, 1000,
+    "e senza note lo conta, come sempre");
+});
 test("causaleNota: trova la voce per id, e su un id inventato risponde null invece di indovinare", () => {
   eq(conti.causaleNota("errore").comma, 3, "l'errore di fatturazione sta al comma 3");
   eq(conti.causaleNota("resa").termine, null, "la merce resa non ha termine");

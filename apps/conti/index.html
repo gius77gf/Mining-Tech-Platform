@@ -1527,7 +1527,7 @@ label.item:has(.dw-chk:checked){
 
     const prio = [
       // fatture ordinate per priorità di incasso (più in ritardo / più grosse)
-      ...prioritaIncasso(FAT).slice(0, 3)
+      ...prioritaIncasso(FAT, new Date(), NOT).slice(0, 3)
             .map(({ f, ritardo }) => ({ ico: IC.fattura, t: "Fattura " + f.numero + " — " + nomeCliente(f, CLI),
               d: (ritardo > 0 ? "scaduta da " + plur(ritardo, "giorno", "giorni") : "scade il " + fmtD(f.scadenza))
                  + (f.parziale ? " · acconto " + eur(f.incassato) + " già arrivato" : ""),
@@ -1755,7 +1755,7 @@ label.item:has(.dw-chk:checked){
     const incMeseR = incassatoPeriodo(FAT, INC, ym + "-01", ym + "-31");
     const inc = incTot.importo, incMese = incMeseR.importo;
     const tmp = tempoMedioPagamento(FAT, INC);         // giorni reali di pagamento
-    const ia30 = incassoAtteso(FAT, 30);
+    const ia30 = incassoAtteso(FAT, 30, new Date(), NOT);
     $("rep-list").innerHTML = [
       ["Incassato questo mese", eur(incMese), incMese > 0 ? plur(incMeseR.movimenti + incMeseR.fattureVecchie, "incasso registrato", "incassi registrati") : "nessun incasso registrato", incMese > 0 ? "ok" : "warn"],
       ["Incassato (totale registrato)", eur(inc), incTot.senzaData ? plur(incTot.senzaData, "fattura incassata senza data", "fatture incassate senza data") : "da inizio archivio", "ok"],
@@ -1929,7 +1929,7 @@ label.item:has(.dw-chk:checked){
     // scadute, mese per mese (nomi dei mesi in italiano).
     const MESI = ["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"];
     const nomeMese = (k) => { const [y, m] = k.split("-"); return MESI[(+m) - 1] + " " + y; };
-    const prev = incassoPerMese(FAT, 6);
+    const prev = incassoPerMese(FAT, 6, new Date(), NOT);
     const prevMax = Math.max(1, ...prev.mesi.map(m => m.importo || 0));
     $("prev-list").innerHTML = (prev.mesi.some(m => m.conto)
       ? prev.mesi.map(m =>
@@ -3217,7 +3217,7 @@ label.item:has(.dw-chk:checked){
     };
     const btnEspo = e.target.closest && e.target.closest("[data-espo]");
     if (btnEspo) { const c = esposizioneClienti(FAT, new Date(), CLI, NOT)[+btnEspo.getAttribute("data-espo")];
-      const testo = c && estrattoContoCliente(c, FAT, new Date(), TASSO_MORA_DEFAULT, CLI);
+      const testo = c && estrattoContoCliente(c, FAT, new Date(), TASSO_MORA_DEFAULT, CLI, NOT);
       if (!testo) { esito("rep-esito", "Nessuna fattura aperta per questo cliente.", "err"); return; }
       const fatto = await copia(testo, "Estratto conto di " + c.cliente,
         "Il browser non ha permesso la copia automatica: seleziona il testo qui sotto e copialo a mano.",
@@ -3232,7 +3232,11 @@ label.item:has(.dw-chk:checked){
     const btnSol = e.target.closest && e.target.closest("[data-sollecito]");
     if (btnSol) { const f = FAT.find(x => x.id === btnSol.getAttribute("data-sollecito"));
       // il sollecito viaggia col nome di anagrafica, non con il testo vecchio
-      const testo = f && testoSollecito({ ...f, cliente: nomeCliente(f, CLI) });
+      /* ⛔ le note vanno passate anche qui: il sollecito è il documento che
+         CHIEDE i soldi, e chiederli su una fattura già stornata è la forma
+         peggiore di questo difetto — non un numero sbagliato in una schermata,
+         una lettera che parte verso il cliente. */
+      const testo = f && testoSollecito({ ...f, cliente: nomeCliente(f, CLI) }, new Date(), TASSO_MORA_DEFAULT, NOT);
       if (!testo) { esito("ft-esito", "Sollecito disponibile solo per fatture scadute.", "err"); return; }
       const fatto = await copia(testo, "Sollecito per la fattura " + f.numero,
         "Il browser non ha permesso la copia automatica: seleziona il testo qui sotto e copialo a mano.",
