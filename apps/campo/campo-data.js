@@ -976,7 +976,11 @@ export function disponibilitaTurno(attivita, durate, data, turno) {
   }
   if (mancano.length) {
     out.mancano = mancano;
-    out.motivo = "Disponibilità non calcolata: " + detto.join("; ")
+    // niente preambolo «disponibilità non calcolata:» dentro il motivo: lo dice
+    // già `stato`, e chi lo mostra lo scrive nel titolo — scritto in tutti e due
+    // i posti, sulla schermata compariva due volte di fila
+    const testo = detto.join("; ");
+    out.motivo = testo.charAt(0).toUpperCase() + testo.slice(1)
       + ". Un numero qui direbbe che il turno è andato bene, mentre la verità è che non è stato misurato.";
     return out;
   }
