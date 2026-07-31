@@ -6803,5 +6803,110 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ CONTI: LA FATTURA E IL SUO CLIENTE ═════════════════════════════════
+   È il punto in cui i soldi trovano un nome. Una fattura attaccata al cliente
+   sbagliato è un sollecito mandato a chi ha già pagato — e un'esposizione che
+   sembra sotto controllo mentre è concentrata su uno solo.
+
+   Il problema vero non è tecnico, è di **dati veri**: le fatture vecchie hanno
+   solo il testo libero, e la stessa azienda è scritta in cinque modi («Cave
+   S.r.l.», «CAVE SRL», «Cave  Srl»). Se ogni variante diventa una riga, il
+   credito guarda cinque clienti piccoli invece di uno grosso. */
+{
+  const clienti = [{ id: "c1", ragioneSociale: "Cave del Nord S.r.l.", fido: 10000 },
+    { id: "c2", ragioneSociale: "Edil Rossi" }];
+
+  test("⛔ cliente: le varianti di scrittura sono lo stesso nome", () => {
+    /* accenti, punteggiatura, maiuscole e spazi doppi: quello che cambia fra
+       due modi di scrivere la stessa azienda, e non fra due aziende */
+    eq(conti.chiaveNome("Cave S.r.l."), conti.chiaveNome("CAVE SRL"), "punteggiatura e maiuscole");
+    eq(conti.chiaveNome("  Società   Anonima  "), conti.chiaveNome("Societa Anonima"), "accenti e spazi doppi");
+    eq(conti.chiaveNome(""), "", "e il vuoto resta vuoto");
+  });
+  test("⛔ cliente: una fattura vecchia col solo testo si riconosce dal nome", () => {
+    /* è quello che rende possibile la migrazione senza toccare le fatture
+       già emesse */
+    eq(conti.clienteDiFattura({ cliente: "CAVE DEL NORD SRL" }, clienti).id, "c1", "riconosciuto");
+    eq(conti.clienteDiFattura({ cliente: "Tizio" }, clienti), null, "e chi non c'è resta senza");
+  });
+  test("⛔ cliente: un collegamento ROTTO non viene sostituito da un nome simile", () => {
+    /* la fattura punta a un cliente cancellato: ripiegare sul nome la
+       attaccherebbe a un'anagrafica che nessuno ha scelto, e i soldi
+       finirebbero sul conto di un altro */
+    eq(conti.clienteDiFattura({ clienteId: "cancellato", cliente: "Edil Rossi" }, clienti), null,
+       "meglio nessun cliente che quello sbagliato");
+  });
+  test("cliente: il nome mostrato è quello dell'anagrafica quando c'è", () => {
+    /* così correggere la ragione sociale in un posto la corregge ovunque */
+    eq(conti.nomeCliente({ cliente: "cave del nord srl" }, clienti), "Cave del Nord S.r.l.", "dall'anagrafica");
+    eq(conti.nomeCliente({ cliente: "Tizio" }, clienti), "Tizio", "altrimenti il testo salvato");
+    eq(conti.nomeCliente({}, clienti), "—", "e senza niente un trattino, non una riga vuota");
+  });
+  test("⛔ cliente: le fatture si raggruppano per anagrafica, non per come è scritto il nome", () => {
+    eq(conti.chiaveCliente({ cliente: "CAVE DEL NORD SRL" }, clienti), "id:c1", "quello collegato");
+    eq(conti.chiaveCliente({ cliente: "Cave del Nord S.r.l." }, clienti),
+       conti.chiaveCliente({ cliente: "CAVE DEL NORD SRL" }, clienti), "due scritture, una riga sola");
+    eq(conti.chiaveCliente({ cliente: "Tizio" }, clienti), "nome:tizio", "e chi non è in anagrafica sta sul nome normalizzato");
+  });
+
+  const fatture = [{ id: "f1", cliente: "Tizio S.p.A.", importo: 1000 },
+    { id: "f2", cliente: "TIZIO SPA", importo: 500 }, { id: "f3", cliente: "Edil Rossi", importo: 200 },
+    { id: "f4", cliente: "", importo: 99 }, { id: "f5", cliente: "Caio", importo: 300 }];
+
+  test("⛔ migrazione: l'elenco da collegare unisce le varianti e porta gli id", () => {
+    /* è la lista di lavoro: «questi nomi vanno collegati». Le due scritture di
+       Tizio sono una voce sola, e porta gli id di tutte e due le fatture così
+       si collegano in un colpo */
+    const l = conti.clientiDaCollegare(fatture, clienti);
+    eq(l.length, 2, "Tizio e Caio: Edil Rossi è già in anagrafica");
+    eq(l[0].conto, 2, "Tizio ha due fatture");
+    eq(l[0].importo, 1500, "per millecinquecento euro");
+    eq(l[0].ids.join(","), "f1,f2", "e si collegano insieme");
+  });
+  test("migrazione: prima chi ha più fatture, e una fattura senza nome non entra", () => {
+    const l = conti.clientiDaCollegare(fatture, clienti);
+    eq(l[0].nome, "Tizio S.p.A.", "il più grosso in cima");
+    eq(l.some((x) => x.ids.includes("f4")), false, "e su una fattura senza nome non c'è niente da collegare");
+  });
+
+  test("⛔ prezzo: senza la densità non si inventa una conversione", () => {
+    /* il listino è in €/m³ e la pesa dà tonnellate: senza il peso di volume
+       quel prezzo non si può portare a tonnellata, e tirare a indovinare
+       vorrebbe dire fatturare un numero inventato */
+    eq(conti.prezzoPerTonnellata({ prezzo: 30, unitaPrezzo: "m3" }), null, "manca la densità");
+    eq(conti.prezzoPerTonnellata({ prezzo: 30, unitaPrezzo: "m3", densita: 1.6 }), 18.75, "con la densità si converte");
+    eq(conti.prezzoPerTonnellata({ prezzo: 12.5, unitaPrezzo: "t" }), 12.5, "e se è già in tonnellate resta");
+  });
+  test("prezzo: una densità di zero o negativa non è una densità", () => {
+    for (const d of [0, -1, "boh", null]) eq(conti.densitaValida({ densita: d }), null, "scartata");
+    eq(conti.densitaValida({ densita: 1.6 }), 1.6, "e quella buona passa");
+  });
+
+  test("⛔ mora: gli interessi si contano solo su un ritardo vero", () => {
+    /* su una fattura non ancora scaduta il conto è zero: chiedere interessi
+       prima della scadenza è la cosa che fa perdere un cliente */
+    eq(conti.interessiMora(10000, 0, 12).interessi, 0, "nessun ritardo");
+    /* ⚠️ il caso che la guardia difende davvero è il ritardo NEGATIVO: con
+       zero giorni l'aritmetica dà già zero da sola, e la prova non provava
+       niente. Con -10 giorni, senza guardia, gli interessi diventerebbero
+       NEGATIVI — cioè l'app farebbe uno sconto per aver pagato in anticipo,
+       che è l'opposto di quello che significa la mora */
+    eq(conti.interessiMora(10000, -10, 12).interessi, 0, "e su una fattura ancora da scadere nemmeno");
+    eq(conti.interessiMora(10000, -10, 12).giorni, 0, "i giorni di ritardo non vanno sottozero");
+    eq(conti.interessiMora(0, 90, 12).interessi, 0, "e su zero euro nemmeno");
+    eq(conti.interessiMora(10000, 90, 12).interessi, 295.89, "novanta giorni al 12%");
+  });
+  test("mora: il sollecito sale per fasce, e prima della scadenza non esiste", () => {
+    eq(conti.livelloSollecito(0).livello, 0, "non scaduta: nessun sollecito");
+    eq(conti.livelloSollecito(1).livello, 1, "il giorno dopo, il primo");
+    eq(conti.livelloSollecito(16).livello, 2, "dopo due settimane, il secondo");
+    eq(conti.livelloSollecito(46).livello, 3, "e dopo un mese e mezzo, l'ultimo avviso");
+    eq(conti.livelloSollecito(46).cls, "danger", "che è rosso");
+  });
+  test("mora: le spese di recupero sono quelle di legge", () => {
+    eq(conti.SPESE_RECUPERO_231, 40, "quaranta euro forfettari, art. 6 D.Lgs 231/2002");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
