@@ -4866,5 +4866,150 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ IL PROGRAMMA DI MONITORAGGIO: «SONO IN REGOLA CON LE MISURE?» ══════
+   L'autorizzazione dice ogni quanto va misurato ogni punto. Queste funzioni
+   rispondono alla domanda che l'azienda si fa davvero — *sono indietro?* — e
+   accendono l'allerta nel quadro. Sbagliare qui non produce un numero storto:
+   produce un **verde tranquillo su una misura che l'ente si aspettava**.
+
+   Le regole bloccate:
+
+   · **si riparte dall'ultima misura VERA, non da quella prevista.** Misura dei
+     7 giorni fatta all'undicesimo → la prossima cade all'undicesimo + 7. È lo
+     stesso principio del tagliando in Flotta, ed è quello che impedisce al
+     ritardo di accumularsi in silenzio;
+   · **la tolleranza separa il giallo dal rosso, e il confine è preciso**:
+     scaduta da *tolleranza* giorni è ancora «da fare»; il giorno dopo è «in
+     ritardo». Un confine spostato di uno cambia il colore di una tessera;
+   · **«mai misurato» è un avviso, non un allarme**: può essere un punto appena
+     creato, e un rosso che non serve insegna a ignorare i rossi;
+   · **una riga che punta a un punto sparito resta visibile.** Sparire in
+     silenzio toglierebbe dall'elenco proprio l'obbligo che nessuno sta più
+     seguendo;
+   · **l'ordine è l'urgenza, non l'alfabeto**: prima il ritardo più lungo. */
+{
+  const OGGI = new Date("2026-07-31T12:00:00");
+  const punto = (id, nome, ...date) => ({ id, nome, letture: date.map((d) => ({ data: d, valore: 1 })) });
+  const riga = (o) => ({ monitoraggioId: "m1", ogniGiorni: 7, tolleranzaGiorni: 3, ...o });
+  const stato = (r, m) => sentinella.statoRigaProgramma(r, m, OGGI);
+
+  test("programma: la prossima misura si conta dall'ultima fatta", () => {
+    const s = stato(riga(), punto("m1", "Casa", "2026-07-29"));
+    eq(s.prossima, "2026-08-05", "ultima + sette giorni");
+    eq(s.stato, "in-regola", "e per ora è in regola");
+    eq(s.label, "Fra 5 giorni", "detto in giorni, non in date da tradurre");
+  });
+  test("⛔ programma: si riparte dalla misura VERA, non da quella prevista", () => {
+    /* misura dei 7 giorni fatta all'undicesimo: la prossima cade
+       all'undicesimo + 7, altrimenti ogni ritardo si somma al successivo e
+       dopo cinque giri il punto è indietro di un mese col semaforo verde */
+    const s = stato(riga({ dal: "2026-07-01" }), punto("m1", "Casa", "2026-07-12"));
+    eq(s.prossima, "2026-07-19", "dal 12, non dall'8 che era la scadenza teorica");
+  });
+  test("⛔ programma: scaduta da quanto vale la tolleranza è ancora «da fare»", () => {
+    const s = stato(riga(), punto("m1", "Casa", "2026-07-21"));   // prossima 28/07, oggi 31
+    eq(s.stato, "da-fare", "tre giorni di ritardo, tolleranza tre");
+    eq(s.cls, "warn", "giallo");
+    eq(s.label, "Da fare da 3 giorni", "e si dice da quanto");
+  });
+  test("⛔ programma: il giorno dopo la tolleranza diventa «in ritardo»", () => {
+    const s = stato(riga(), punto("m1", "Casa", "2026-07-20"));   // prossima 27/07, oggi 31
+    eq(s.stato, "in-ritardo", "quattro giorni, tolleranza tre");
+    eq(s.cls, "danger", "rosso");
+    eq(s.label, "In ritardo di 4 giorni", "e si dice di quanto");
+  });
+  test("programma: scaduta oggi si dice «Da fare oggi», non «da 0 giorni»", () => {
+    eq(stato(riga(), punto("m1", "Casa", "2026-07-24")).label, "Da fare oggi", "in italiano");
+  });
+  test("⛔ programma: «mai misurato» è un avviso, non un allarme", () => {
+    /* può essere un punto appena creato: un rosso che non serve insegna a
+       ignorare i rossi */
+    const s = stato(riga(), punto("m1", "Casa"));
+    eq(s.stato, "mai", "mai misurato");
+    eq(s.cls, "warn", "giallo, non rosso");
+    eq(s.maiMisurato, true, "e la pagina lo sa senza rileggere le letture");
+  });
+  test("programma: senza letture si parte dalla data di inizio, se c'è", () => {
+    const s = stato(riga({ dal: "2026-07-01" }), punto("m1", "Casa"));
+    eq(s.stato, "in-ritardo", "l'obbligo è partito il primo, la prima misura era l'8");
+  });
+  test("programma: una riga sospesa non è né in regola né in ritardo", () => {
+    const s = stato(riga({ attivo: false }), punto("m1", "Casa", "2026-01-01"));
+    eq(s.stato, "sospesa", "sospesa");
+    eq(s.cls, "", "e niente semaforo: non chiede niente a nessuno");
+  });
+  test("programma: senza frequenza non si finge una scadenza", () => {
+    const s = stato(riga({ ogniGiorni: 0 }), punto("m1", "Casa", "2026-01-01"));
+    eq(s.stato, "senza-frequenza", "manca il dato, e si chiede");
+    eq(s.prossima, null, "invece di inventare una data");
+  });
+  test("⛔ programma: l'ultima misura è quella più recente per data E ora", () => {
+    const m = { letture: [
+      { data: "2026-07-30", ora: "18:00", valore: 9 },
+      { data: "2026-07-30", ora: "08:00", valore: 1 },
+      { data: "2026-07-29", valore: 5 }] };
+    eq(sentinella.ultimaLettura(m).valore, 9, "le 18, non l'ultima riga dell'elenco");
+  });
+  test("programma: una lettura senza valore leggibile non è l'ultima misura", () => {
+    const m = { letture: [{ data: "2026-07-30", valore: "boh" }, { data: "2026-07-29", valore: 5 }] };
+    eq(sentinella.ultimaLettura(m).data, "2026-07-29", "l'ultima buona");
+  });
+
+  const prog = [riga({ monitoraggioId: "m1" }), riga({ monitoraggioId: "m2" }), riga({ monitoraggioId: "sparito" })];
+  const punti = [punto("m1", "Casa Rossi", "2026-07-01"), punto("m2", "Aaa scuola", "2026-07-10")];
+
+  test("⛔ programma: l'ordine è l'urgenza, non l'alfabeto", () => {
+    const v = sentinella.programmaEsteso(prog, punti, OGGI);
+    eq(v[0].nome, "Casa Rossi", "23 giorni di ritardo prima di 14, anche se viene dopo nell'alfabeto");
+    eq(v[1].nome, "Aaa scuola", "poi il ritardo più corto");
+  });
+  test("⛔ programma: la riga di un punto sparito resta visibile", () => {
+    /* sparire in silenzio toglierebbe dall'elenco proprio l'obbligo che
+       nessuno sta più seguendo */
+    const v = sentinella.programmaEsteso(prog, punti, OGGI);
+    eq(v.length, 3, "tre righe dentro, tre fuori");
+    eq(v[2].nome, "Punto non più in elenco", "detto, non nascosto");
+  });
+  test("programma: il riepilogo conta tutte le righe, nessuna esclusa", () => {
+    const r = sentinella.riepilogoProgramma(prog, punti, OGGI);
+    eq(r.totale, 3, "il totale è il numero di righe");
+    eq(r.inRitardo + r.daFare + r.mai + r.sospese + r.senzaFrequenza + r.inRegola, r.totale,
+       "e la somma degli stati torna: nessuna riga cade fuori dal conto");
+  });
+  test("⛔ programma: nelle allerte finisce solo ciò che chiede un'azione", () => {
+    const sospese = [riga({ monitoraggioId: "m1", attivo: false })];
+    eq(sentinella.allerteProgramma(sospese, punti, OGGI).length, 0, "una riga sospesa non allerta nessuno");
+    const a = sentinella.allerteProgramma(prog, punti, OGGI);
+    eq(a.length, 3, "le altre tre sì");
+    eq(a[0].categoria, "programma", "stessa forma delle allerte del quadro");
+    eq(a[0].gravita, "danger", "il ritardo è rosso");
+    eq(a[2].gravita, "warn", "il mai misurato è giallo");
+  });
+  test("programma: l'allerta dice ogni quanto e da quando non si misura", () => {
+    const a = sentinella.allerteProgramma(prog, punti, OGGI)[0];
+    eq(a.dettaglio.includes("ogni settimana"), true, "la frequenza in parole");
+    eq(a.dettaglio.includes("01/07/2026"), true, "e la data dell'ultima misura");
+  });
+  test("programma: senza nessuna misura l'allerta lo scrive, non lascia il vuoto", () => {
+    const a = sentinella.allerteProgramma([riga({ monitoraggioId: "sparito" })], punti, OGGI)[0];
+    eq(a.dettaglio.includes("nessuna misura registrata"), true, "detto in italiano");
+  });
+
+  test("programma: la frequenza si dice in parole quando ha un nome", () => {
+    eq(sentinella.etichettaFrequenza(30), "ogni mese", "trenta giorni");
+    eq(sentinella.etichettaFrequenza(7), "ogni settimana", "sette");
+    eq(sentinella.etichettaFrequenza(45), "ogni 45 giorni", "e quando un nome non c'è si dicono i giorni");
+    eq(sentinella.etichettaFrequenza(0), "frequenza non impostata", "zero non è una frequenza");
+  });
+  test("⛔ programma: il conto dei giorni non inciampa nell'ora legale", () => {
+    /* il 29 marzo 2026 l'ora legale toglie un'ora: contando in ora locale la
+       somma scivolerebbe di un giorno, e la scadenza cadrebbe il giorno prima */
+    eq(sentinella.piuGiorni("2026-03-28", 1), "2026-03-29", "il giorno del cambio");
+    eq(sentinella.piuGiorni("2026-03-28", 2), "2026-03-30", "e quello dopo");
+    eq(sentinella.piuGiorni("2026-02-28", 1), "2026-03-01", "il 2026 non è bisestile");
+    eq(sentinella.piuGiorni("boh", 1), "", "e una data che non è una data non diventa oggi");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
