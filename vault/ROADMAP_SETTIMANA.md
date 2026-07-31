@@ -942,8 +942,8 @@ campi interi, file delle macchine.
       stampa quanti — e perdona chi entra ed esce in UTC, che è coerente.
 - [x] **Copertura delle funzioni pure, app per app** *(ricontata il 02/08
       cercando `app.<nome>` in run-kpi.mjs, non a memoria)*: Scudo 70/71 *(era 22)*,
-      Sentinella 89/107, Campo 65/73 *(era 26)*, Flotta 65/71 *(era 29)*,
-      Conti 54/58 *(era 35)*, Terra 31/39. Nessuna app è più sotto la metà; quello che resta scoperto
+      Terra 38/39 *(era 23)*, Conti 54/58 *(era 35)*, Flotta 65/71 *(era 29)*,
+      Campo 65/73 *(era 26)*, Sentinella 89/107 *(era 37)*. Nessuna app è più sotto la metà; quello che resta scoperto
       sono quasi solo costanti e trasporto dati.
 - [x] **Il principio usato come lente.** Scritta in `CLAUDE.md` la regola
       «l'assenza di un dato non è un dato favorevole», un audit ha chiamato
@@ -1021,6 +1021,18 @@ campi interi, file delle macchine.
       è 0) ma non è raggiungibile, ed è nominata come trappola dormiente; e un
       **DPI senza data di sostituzione** risulta regolare per sempre → punto
       **14** di `DECISIONI_WEEKEND.md`. run-kpi **927**, totale node **1.210**.
+- [x] **La denuncia annuale dei volumi (Terra).** 10 prove sulla distinzione da
+      cui dipende il numero che va all'ente: **lo scavo consuma il titolo, la
+      ripresa da un cumulo no**. Verificata anche **per differenza** — fra il
+      cumulato di un anno e quello dell'anno prima ci deve stare esattamente lo
+      scavo. Più: l'anno in corso c'è sempre anche a volumi zero, e nei tipi di
+      scadenza del titolo **nessuna periodicità è cablata**. run-kpi **937**,
+      totale node **1.220**.
+- [ ] **Il predicato «rilievo elaborato con volume» è scritto DIECI volte** in
+      `terra-data.js`, in tre varianti. Non è la regola condivisa fra due app
+      (quindi non va in `shared/`), ma è il modo in cui una variante si stacca
+      dalle altre senza che nessuno lo veda: da raccogliere in una funzione sola
+      quando finisce il giro del browser.
 
 ---
 
