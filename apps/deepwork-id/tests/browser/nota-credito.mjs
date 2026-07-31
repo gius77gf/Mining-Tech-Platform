@@ -137,6 +137,22 @@ dice(!!elenco && /Merce resa|Totale/.test(String(elenco.testo || "")),
   "e con quale causale", elenco);
 dice(errori.length === 0, "e nessun errore in pagina", errori.slice(0, 2));
 
+/* ── E IL RIEPILOGO IVA, che è quello che si guarda per il registro ───────
+   Una nota di credito abbassa imponibile e IVA del periodo (art. 26 DPR
+   633/1972). Se il riepilogo non la vede, il numero è più ALTO del vero: si
+   dichiarerebbe più imponibile di quello che c'è. E le due cifre vanno
+   MOSTRATE, non sottratte in silenzio — una sottrazione invisibile dentro un
+   totale è indistinguibile da un errore. */
+const iva = await misura(() => {
+  const t = (document.getElementById("fat-tot") || {}).textContent || "";
+  return { testo: t.replace(/\s+/g, " "), vede: /Nota di credito|Note di credito/.test(t),
+    netto: /Imponibile al netto/.test(t) && /IVA al netto/.test(t),
+    norma: /art\. 26/.test(t) };
+});
+dice(!!iva && iva.vede === true, "⛔ il riepilogo IVA vede la nota di credito", iva && iva.testo.slice(-160));
+dice(!!iva && iva.netto === true, "e mostra imponibile e IVA AL NETTO, accanto al lordo", iva && iva.testo.slice(-160));
+dice(!!iva && iva.norma === true, "citando la norma che lo impone", iva && iva.testo.slice(-120));
+
 console.log(`\n${ok + ko} prove · ${ok} passate, ${ko} fallite`);
 await b.close(); srv.close();
 if (CONTROPROVA) {

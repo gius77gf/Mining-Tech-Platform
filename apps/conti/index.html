@@ -1646,6 +1646,25 @@ label.item:has(.dw-chk:checked){
              <div class="mrec"><span class="k">IVA</span><span class="v">${eur(sIva)}</span></div>
              <div class="mrec"><span class="k">Totale documenti</span><span class="v">${eur(round2(sBase + sIva))}</span></div>
              </div>${senzaIva ? `<div class="note">${plur(senzaIva, "fattura non ha", "fatture non hanno")} il dettaglio IVA (importo secco, inserito prima): ${senzaIva === 1 ? "vale" : "valgono"} come imponibile con IVA 0. Per correggerla apri la matita e scegli l'aliquota.</div>` : ""}` : "")
+          /* ⛔ LE NOTE DI CREDITO ABBASSANO IMPONIBILE E IVA DEL PERIODO, e
+             questo riepilogo è quello che si guarda per il registro IVA. Senza
+             di loro il numero è più ALTO del vero — cioè si dichiarerebbe più
+             imponibile di quello che c'è.
+             Si MOSTRANO invece di sottrarle in silenzio: al commercialista
+             servono tutte e due le cifre, e una sottrazione invisibile dentro
+             un totale è indistinguibile da un errore. */
+          + (() => {
+              const viste = new Set(fatViste.map(f => f.id));
+              const nv = NOT.filter(n => viste.has(n.fatturaId));
+              if (!nv.length) return "";
+              const nb = nv.reduce((t, n) => t + (+n.imponibile || 0), 0);
+              const ni = nv.reduce((t, n) => t + (+n.ivaImporto || 0), 0);
+              return `<div class="riep">
+                <div class="mrec"><span class="k">${plur(nv.length, "Nota di credito", "Note di credito")} su queste fatture</span><span class="v">− ${eur(round2(nb + ni))}</span></div>
+                <div class="mrec"><span class="k">Imponibile al netto</span><span class="v">${eur(round2(sBase - nb))}</span></div>
+                <div class="mrec"><span class="k">IVA al netto</span><span class="v">${eur(round2(sIva - ni))}</span></div>
+                </div><div class="note">Le note di credito riducono imponibile e IVA del periodo (art. 26 DPR 633/1972). Le due cifre sono separate apposta: al commercialista serve sia il fatturato lordo sia quello al netto degli storni.</div>`;
+            })()
         : ""; }
     { const n = fatViste.length, filtrata = qFat || filtroFat !== "tutte";
       $("fat-count").innerHTML = n === 0 ? "" : "<b>" + n + "</b>" + (n === 1 ? " fattura" : " fatture") + (filtrata ? " su " + FAT.length : ""); }
