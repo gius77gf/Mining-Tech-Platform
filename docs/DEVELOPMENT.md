@@ -65,6 +65,18 @@ node apps/deepwork-id/tests/orologio-cliente.mjs   # le suite sensibili alla dat
 # Il 31/07 tre conteggi erano invecchiati senza che nessuno se ne accorgesse:
 # un numero in un documento non fallisce, sta lì.
 node apps/deepwork-id/tests/numeri-nei-documenti.mjs
+
+# Quante funzioni delle app sono davvero PROVATE? Per due giorni questo numero
+# è stato contato a mano, e due volte è finito sbagliato in un documento.
+# Stampa quante funzioni ha GUARDATO, e ha un FONDO per app: se scende, cade.
+node apps/deepwork-id/tests/copertura-funzioni.mjs
+node apps/deepwork-id/tests/copertura-funzioni.mjs --elenco   # dice anche QUALI mancano
+
+# Lo stesso nome esportato da due app: è un alias o una copia? La regola del
+# `shared/` era scritta in CLAUDE.md, cioè affidata alla memoria — e in un
+# giorno solo ne sono uscite cinque violazioni. Qui o le due cose sono lo
+# STESSO oggetto, o la differenza va DICHIARATA con la ragione.
+node apps/deepwork-id/tests/nomi-doppi.mjs
 ```
 
 **106 con l'emulatore Firestore** (regole di sicurezza, SDK, funzioni, primo
