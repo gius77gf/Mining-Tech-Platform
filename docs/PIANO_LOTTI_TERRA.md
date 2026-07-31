@@ -131,6 +131,31 @@ un numero tranquillo dove non è stato misurato niente.
 
 ---
 
+## Quello che il prototipo ha già insegnato *(13 prove in banco, 05/08)*
+
+`divarioRecupero` e `avanzamentoLotto` sono stati provati prima di scriverli
+nel modulo. Sono usciti due punti che il piano qui sopra non poteva vedere.
+
+**1. `+null` fa zero, e `Number.isFinite(0)` risponde `true`.** La prima
+versione di `avanzamentoLotto` rispondeva **«0%»** per un lotto a cui non è
+collegato **nessun rilievo** — cioè l'assenza travestita da misura, nella forma
+già raccolta in `CLAUDE.md`, e nella direzione peggiore: uno 0% suggerisce «non
+ancora cominciato» dove la verità è «nessuno ha misurato». La guardia va messa
+**prima** della conversione (`x == null || x === ""`), non dopo.
+
+**2. «Tutti recuperati» e «nessun lotto» vanno separati per costruzione.** Il
+primo dà un divario negativo ed è un ottimo risultato; il secondo non dà
+niente. Se la funzione restituisse `0` in entrambi i casi, la cava più
+diligente e quella che non ha mai registrato niente mostrerebbero lo stesso
+numero. La prova lo fissa confrontando i due `misurabile`, non i due numeri.
+
+E una terza cosa, minore ma dello stesso stampo: un lotto **aperto senza
+superficie dichiarata** si conta a parte (`senzaMq`). Un divario calcolato su
+tre lotti quando ce ne sono sei è più piccolo del vero — di nuovo la buona
+notizia.
+
+---
+
 ## Cosa questo piano NON decide
 
 - **Il valore della garanzia finanziaria e il suo svincolo.** Sono importi e
