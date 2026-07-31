@@ -8681,5 +8681,69 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ GLI ULTIMI SEI EXPORT CHE NESSUNA PROVA NOMINAVA ══
+   Il censimento (`copertura-funzioni.mjs`) diceva 405 su 411, e i sei
+   scoperti erano tutti della stessa famiglia: **alias e costanti**, cioè
+   proprio le cose che sembrano non aver bisogno di una prova. Ma un alias è
+   esattamente ciò che si rompe in silenzio — basta che qualcuno rimetta un
+   `export const AVVISO_DECIMALE = "…"` e la frase torna a essere due. */
+/* ⚠️ QUI L'IDENTITÀ NON DIMOSTRA QUELLO CHE DIMOSTRA ALTROVE, e la
+   controprova me l'ha fatto vedere: rimettendo in Terra una COPIA della frase
+   scritta a mano, `terra.AVVISO_DECIMALE === shell.AVVISO_DECIMALE` resta
+   **vero** — due stringhe uguali sono `===` anche quando sono due copie. Per
+   le funzioni l'identità è la prova buona; per le costanti di testo no, e il
+   controllo che sa vederlo guarda il SORGENTE (`FRASI_UNICHE` in
+   `nomi-doppi.mjs`). Questa prova serve a un'altra cosa: che la frase arrivi
+   dappertutto e che DICA quello che deve dire. */
+test("AVVISO_DECIMALE: la stessa frase in quattro app, e con l'esempio dentro", () => {
+  ok(conti.AVVISO_DECIMALE === shell.AVVISO_DECIMALE, "Conti");
+  ok(flotta.AVVISO_DECIMALE === shell.AVVISO_DECIMALE, "Flotta");
+  ok(sentinella.AVVISO_DECIMALE === shell.AVVISO_DECIMALE, "Sentinella");
+  ok(terra.AVVISO_DECIMALE === shell.AVVISO_DECIMALE, "Terra");
+  /* La frase deve NOMINARE tutt'e due le forme con un esempio: «va bene la
+     virgola» detto in astratto non dice a chi compila che può battere il
+     punto della tastiera numerica. */
+  ok(/2,4/.test(shell.AVVISO_DECIMALE) && /2\.4/.test(shell.AVVISO_DECIMALE),
+    "la frase mostra l'esempio in tutt'e due le scritture");
+});
+test("⛔ AVVISO_MIGLIAIA: dice di NON scriverlo, e lo fa vedere", () => {
+  ok(flotta.AVVISO_MIGLIAIA === shell.AVVISO_MIGLIAIA, "Flotta la ri-esporta");
+  ok(/1250/.test(shell.AVVISO_MIGLIAIA) && /1\.250/.test(shell.AVVISO_MIGLIAIA),
+    "mostra la forma giusta e quella sbagliata: senza l'esempio la frase non si capisce");
+  ok(shell.AVVISO_MIGLIAIA !== shell.AVVISO_DECIMALE, "sono due avvisi diversi");
+});
+test("TIPI_MEZZO: chiavi uniche, «altro» è l'ultimo e non indovina niente", () => {
+  const chiavi = flotta.TIPI_MEZZO.map(t => t.chiave);
+  eq(new Set(chiavi).size, chiavi.length, "nessuna chiave ripetuta");
+  eq(chiavi[chiavi.length - 1], "altro", "«altro» sta in fondo: si arriva lì solo se nessun indizio ha preso");
+  eq(flotta.TIPI_MEZZO[flotta.TIPI_MEZZO.length - 1].indizi.length, 0,
+    "e non ha indizi, altrimenti prenderebbe al posto di un tipo vero");
+  for (const t of flotta.TIPI_MEZZO) {
+    ok(t.etichetta && t.etichetta.length > 2, `${t.chiave} ha un'etichetta leggibile`);
+    for (const i of t.indizi) eq(i, i.toLowerCase(), `l'indizio «${i}» è minuscolo: il confronto lo è`);
+  }
+  /* Nessun indizio deve essere il PREFISSO di un altro tipo: l'ordine di
+     TIPI_MEZZO deciderebbe il tipo al posto del nome, e cambiando una riga
+     dell'elenco cambierebbe la checklist di macchine già registrate. */
+  const tutti = flotta.TIPI_MEZZO.flatMap(t => t.indizi.map(i => [t.chiave, i]));
+  for (const [c1, i1] of tutti) for (const [c2, i2] of tutti) {
+    if (c1 === c2) continue;
+    ok(!i2.includes(i1), `«${i1}» (${c1}) è dentro «${i2}» (${c2}): il tipo lo deciderebbe l'ordine`);
+  }
+});
+test("TIPI_MEZZO: `tipoMezzo` e `tipoMezzoDi` restituiscono sempre una voce dell'elenco", () => {
+  eq(flotta.tipoMezzo("escavatore").etichetta, "Escavatore", "per chiave");
+  eq(flotta.tipoMezzo("inventato"), null, "una chiave che non c'è è null, non «altro»");
+  const dentro = (v) => flotta.TIPI_MEZZO.includes(v);
+  ok(dentro(flotta.tipoMezzoDi({ tipo: "pala" })), "il tipo salvato vince");
+  ok(dentro(flotta.tipoMezzoDi({ nome: "Miniescavatore 3t" })), "indovinato dal nome");
+  eq(flotta.tipoMezzoDi({ nome: "Miniescavatore 3t" }).chiave, "escavatore", "e lo indovina giusto");
+  eq(flotta.tipoMezzoDi({ tipo: "dumper", nome: "Escavatore vecchio" }).chiave, "dumper",
+    "il dato scritto batte l'indizio nel nome: indovinare non deve sovrascrivere l'anagrafica");
+  eq(flotta.tipoMezzoDi({ nome: "Coso senza nome noto" }).chiave, "altro", "nessun indizio → altro");
+  eq(flotta.tipoMezzoDi(null).chiave, "altro", "e un mezzo che manca non fa cadere niente");
+  eq(flotta.tipoMezzoDi({}).chiave, "altro", "nemmeno uno senza nome né tipo");
+});
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
