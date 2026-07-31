@@ -105,6 +105,13 @@ rende il prodotto prezioso per chi lo compra**.
 - [ ] `docs/RICERCA_CRUSCOTTO_TITOLARE_202607.md` — la vista che fa capire
       in dieci secondi come sta andando la cava, e il centro avvisi unico
       che raccoglie scadenze e anomalie dalle sei app.
+      ✅ **Rimessa a fuoco il 02/08** prima di costruirci sopra: **quattro** dei
+      suoi «oggi non si può» erano invecchiati — il **tempo di incasso** (adesso
+      si misura sulle date vere invece di stimarlo), l'**andamento dei mezzi**
+      (Flotta storicizza e sa la disponibilità reale dai fermi), i **costi con la
+      data**, e la **scadenza dell'atto** in Terra. Verificati chiamando le
+      funzioni una per una, non a memoria. Restano prudenti, ed è giusto, gli
+      indici infortunistici e l'OEE: servono ore lavorate che nessuna app ha.
 
 ## BLOCCO 1 — FONDAMENTA: I DIFETTI REALI TROVATI NEL CODICE
 La ricerca ha trovato **difetti concreti**, non solo funzioni mancanti.
