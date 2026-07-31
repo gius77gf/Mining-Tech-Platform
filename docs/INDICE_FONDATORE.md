@@ -98,6 +98,17 @@ chi può leggere e scrivere cosa — il secondo il CODICE del core.)*
 - **`docs/GENESI_OPENSOURCE_EMULAZIONE.md`** — su quali fondamenta open-source si
   può costruire restando indipendenti.
 
+## Se vuoi sapere che cosa resta DAVVERO da fare
+- **`docs/CENSIMENTO_PROPOSTE_202608.md`** — le sei ricerche riconfrontate col
+  codice vero il 03/08, app per app: che cosa è **fatto**, che cosa è **a
+  metà** e che cosa è **da fare**, con la prova di ogni «fatto». Le ricerche
+  sono del 27/07, quando le app erano molto più piccole (Conti aveva 460 righe,
+  oggi 3.679): leggerle come se fossero ancora attuali porta a rifare cose già
+  fatte e a non vedere quelle rimaste. Dentro ci sono anche le **tre cose che
+  valgono più di una tabella**, fra cui le due voci di Scudo che aspettano una
+  tua decisione (le foto, quindi Firebase Storage). *Dieci minuti, ed è il
+  documento da cui partire per decidere il prossimo lavoro.*
+
 ## Se vuoi le idee per le altre app (confronto concorrenza + prossimi passi)
 - **`docs/SCUDO_HSE_ROADMAP.md`** (sicurezza/HSE), **`docs/FLOTTA_MANUTENZIONE_ROADMAP.md`**
   (mezzi/manutenzione), **`docs/CONTI_FATTURAZIONE_ROADMAP.md`** (fatturazione),
