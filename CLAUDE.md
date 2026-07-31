@@ -153,6 +153,23 @@ in italiano, senza dare conoscenze per scontate).
      totale resta invariato senza che nulla segnali l'errore;
   2. si controlla sempre che il **totale sia salito**, non solo che i falliti
      siano zero: un file di test inerte dice «0 falliti» come uno che passa.
+- ⚠️ **`toLocaleString("it-IT")` NON RAGGRUPPA ALLO STESSO MODO** in Node e nel
+  browser: sui numeri di **quattro cifre** Chromium scrive «6.375» e Node
+  «6375» (strategia `min2`). Da cinque cifre in su sono d'accordo. Le pagine
+  non ne soffrono — girano solo nel browser — ma i **moduli dati li leggono
+  tutt'e due**, e una loro funzione che non scrive `useGrouping` restituisce
+  due stringhe diverse a seconda di dove gira: da lì una prova che passa in
+  Node e **fallirebbe nel browser**, cioè che blinda una verità che l'utente
+  non vede mai. La regola 16 di `run-stile.mjs` lo pretende scritto (anche
+  `false`, dove è la scelta giusta). Misura: `docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md`.
+- **DUE CONTROLLI CONTANO AL POSTO DELLA MEMORIA**, e sono in coda alla suite:
+  `copertura-funzioni.mjs` (quante funzioni delle app sono provate: due volte
+  in due giorni quel numero è finito sbagliato in un documento perché contato a
+  mente — ha un **fondo** per app che, se scende, fa cadere il controllo) e
+  `nomi-doppi.mjs` (lo stesso nome esportato da due app: o è lo **stesso
+  oggetto**, o la differenza va **dichiarata con la ragione**). La regola del
+  `shared/` era scritta qui dentro da mesi, e in un giorno solo ne sono uscite
+  **cinque** violazioni: una regola scritta è affidata alla memoria di chi legge.
 - Le altre suite locali (`run-demo.mjs`, `run-helpers.mjs`,
   `run-pointcloud.mjs`, `run-manifest.mjs`, `run-stile.mjs`) girano anch'esse
   con `node`.
@@ -245,6 +262,23 @@ in italiano, senza dare conoscenze per scontate).
      vincolo T9 (una volata prevista non è mai un referto), protetto sia dal
      motivo spinto sempre sia dal flag. Si toglie **tutto lo strato**, e allora
      si vede il danno vero.
+  3. **l'iniezione non ha iniettato niente** — i caratteri cambiati ci sono, ma
+     nessuno sta su un percorso che viene eseguito. Successo il 02/08 mettendo
+     nella copia solo la *lettura* di una cache e non la *scrittura*: la copia
+     si comportava come l'originale. Non si tocca né la prova né il codice: si
+     guarda **l'iniezione**.
+  4. **l'iniezione è puntata nel posto sbagliato** — il difetto è vero, ma il
+     nome della prova che dovrebbe cadere guarda un'altra funzione. Successo il
+     02/08 togliendo il filtro delle bozze da `anniConVolumi` col nome di una
+     prova che le bozze non le guarda. Si sposta l'iniezione dove il numero si
+     forma davvero.
+  5. **il caso difeso non c'è nella prova** — variante di (1): i dati della
+     prova non arrivano mai al ramo che il difetto rompe. Successo su
+     `valorePesata`, dove mancava la pesata a metro cubo **senza densità**:
+     l'unico caso in cui il ripiego sul netto avrebbe moltiplicato tonnellate
+     per un prezzo al metro cubo.
+  Le prime due si distinguono per **dove** si interviene; le altre tre per il
+  fatto che il codice non è mai stato messo alla prova.
 - ⚠️ **UNA PROVA DI ANDATA E RITORNO RESTA VERDE SE LE DUE METÀ SBAGLIANO
   INSIEME.** Il giro `csvRegistroVolate` → `parseVolateCsv` pretende l'identità
   su 19 campi ed è la prova più forte che il registro non perda niente. Ma
