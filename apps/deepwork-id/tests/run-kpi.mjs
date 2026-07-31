@@ -5617,5 +5617,119 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ IL GIRO EXPORT → IMPORT DEL REGISTRO VOLATE ════════════════════════
+   Il CSV è il modo in cui i dati **escono** dall'app e **rientrano**: nel
+   backup dell'azienda, nel file che Genesi manda a Sentinella, nel foglio che
+   qualcuno apre per controllare. Una colonna spostata o un'intestazione che
+   non combacia con quello che il lettore si aspetta è il modo più **silenzioso**
+   di perdere un registro: nessun errore, solo righe che rientrano diverse da
+   come sono uscite.
+
+   La prova più forte è quindi una sola: **si scrive, si rilegge, e si pretende
+   che torni identico** — campo per campo, non «più o meno».
+
+   ⚠️ Ma il giro da solo NON basta, e la controprova l'ha fatto vedere: scritti
+   i numeri con la virgola italiana invece che col punto, il giro resta
+   **identico** — perché il lettore usa `numIt`, che la virgola la legge. Il
+   giro dimostra che scrittore e lettore vanno d'accordo fra loro, **non** che
+   il formato sia quello giusto per chi il file lo apre con un altro programma.
+   Per quello serve un'asserzione sul TESTO del file, ed è la penultima qui
+   sotto. Vale in generale: **una prova di andata e ritorno resta verde anche
+   se le due metà sbagliano insieme.** */
+{
+  const volate = [
+    { id: "v1", data: "2026-07-20", fronte: 'Fronte "A"; nord', nFori: 20, kgTotali: 400,
+      kgMaxRitardo: 50, distanzaRicettore: 200, esito: "regolare", note: "tutto ok",
+      ppvMisurata: 3.2, ppvFonte: "strumento", ppvPuntoId: "p1", ppvPuntoNome: "Casa Rossi",
+      ppvData: "2026-07-20", ppvOra: "10:30", stato: "eseguita", codiceVolata: "G-77" },
+    { id: "v2", data: "2026-08-10", fronte: "B", nFori: 15, kgTotali: 300, kgMaxRitardo: 40,
+      distanzaRicettore: 180, stato: "prevista", ppvPrevista: 4.2, ppvPrevLimite: 5,
+      ppvPrevNorma: "UNI 9916", ppvPrevFonte: "genesi-sito", airblastPrevisto: 120, codiceVolata: "G-78" },
+  ];
+  const CAMPI = ["data", "fronte", "nFori", "kgTotali", "kgMaxRitardo", "distanzaRicettore",
+    "esito", "note", "ppvMisurata", "ppvFonte", "ppvPuntoNome", "ppvOra", "stato",
+    "ppvPrevista", "ppvPrevLimite", "ppvPrevNorma", "ppvPrevFonte", "airblastPrevisto", "codiceVolata"];
+  const giro = sentinella.parseVolateCsv(sentinella.csvRegistroVolate(volate));
+
+  test("⛔ csv: quello che esce rientra IDENTICO, campo per campo", () => {
+    eq(giro.length, 2, "due righe fuori, due dentro");
+    for (const orig of volate) {
+      const r = giro.find((x) => x.codiceVolata === orig.codiceVolata) || {};
+      const diversi = CAMPI.filter((c) => orig[c] !== undefined
+        && String(orig[c]) !== String(r[c] === undefined ? "" : r[c]));
+      eq(diversi.join(","), "", `la volata ${orig.codiceVolata} torna com'era`);
+    }
+  });
+  test("⛔ csv: un punto e virgola DENTRO un campo non spacca il file", () => {
+    /* il separatore è il punto e virgola, e «Fronte "A"; nord» ne contiene uno
+       insieme a due virgolette: senza le regole delle virgolette la riga si
+       spezzerebbe e tutte le colonne dopo scivolerebbero di uno */
+    eq(giro[0].fronte, 'Fronte "A"; nord', "il testo torna esattamente com'era");
+  });
+  test("⛔ csv: una cella che comincia per «=» non diventa una formula", () => {
+    /* aperto in Excel, «=SOMMA(A1:A9)» in una cella di testo verrebbe ESEGUITO:
+       è la strada con cui un file di dati diventa un programma */
+    const riga = sentinella.csvRegistroVolate([{ data: "2026-07-01", fronte: "=SOMMA(A1:A9)", nFori: 1 }]).split("\n")[1];
+    eq(riga.includes("'=SOMMA(A1:A9)"), true, "l'apice davanti la disinnesca");
+  });
+  test("⛔ csv: lo stato attraversa il giro, così progetto ed evento restano distinti", () => {
+    eq(giro.find((x) => x.codiceVolata === "G-78").stato, "prevista", "la prevista resta prevista");
+    eq(giro.find((x) => x.codiceVolata === "G-77").stato, "eseguita", "e l'eseguita eseguita");
+  });
+  test("⛔ csv: la PPV PREVISTA non rientra nelle colonne della misurata", () => {
+    /* sono due colonne diverse perché sono due cose diverse: una previsione
+       messa dove sta una misura, dopo una settimana, non si distingue più */
+    const prevista = giro.find((x) => x.codiceVolata === "G-78");
+    eq(prevista.ppvMisurata, undefined, "nessuna misura su una volata non ancora sparata");
+    eq(prevista.ppvPrevista, 4.2, "il previsto sta nel suo campo");
+  });
+  test("csv: l'id del punto di misura non viaggia nel file", () => {
+    /* un id è vero solo dentro l'organizzazione che l'ha scritto: nel file
+       resta il NOME, che è quello che un'altra azienda può leggere */
+    eq(giro[0].ppvPuntoId, "", "nessun id");
+    eq(giro[0].ppvPuntoNome, "Casa Rossi", "ma il nome sì");
+  });
+  test("⛔ csv: un file vecchio, senza le colonne in coda, si importa come prima", () => {
+    /* le undici colonne della PPV e della previsione sono nate dopo: un
+       registro esportato prima deve rientrare uguale, non a metà */
+    const vecchio = "data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note\n"
+      + "2026-07-01;A;12;250;30;150;regolare;niente\n";
+    const v = sentinella.parseVolateCsv(vecchio);
+    eq(v.length, 1, "la riga entra");
+    eq(v[0].nFori, 12, "coi suoi numeri");
+    eq(sentinella.statoVolata(v[0]), "eseguita", "e resta un fatto avvenuto, che è quello che è");
+  });
+  test("csv: una riga senza una data vera si scarta", () => {
+    eq(sentinella.parseVolateCsv("data;fronte\n;A\n2026-07-01;B").length, 1, "solo quella con la data");
+  });
+  test("⛔ csv: un registro vuoto è l'intestazione da sola, non un file vuoto", () => {
+    /* chi lo apre vede le colonne e capisce che il registro è vuoto, invece di
+       un file di zero byte che sembra un export fallito */
+    const c = sentinella.csvRegistroVolate([]);
+    eq(c.startsWith("data;fronte;"), true, "c'è l'intestazione");
+    eq(sentinella.parseVolateCsv(c).length, 0, "e nessuna riga");
+  });
+  test("csv: le righe escono in ordine di data", () => {
+    const righe = sentinella.csvRegistroVolate(volate).split("\n").slice(1).filter(Boolean);
+    eq(righe[0].startsWith("2026-07-20"), true, "prima luglio");
+    eq(righe[1].startsWith("2026-08-10"), true, "poi agosto");
+  });
+  test("⛔ csv: i numeri per un'altra macchina escono col PUNTO decimale", () => {
+    /* il file lo legge un programma, non una persona: la virgola italiana
+       sarebbe un separatore di colonna in mezzo a un numero */
+    eq(sentinella.csvRegistroVolate(volate).includes(";3.2;"), true, "3.2, non 3,2");
+  });
+
+  test("⛔ csv referti: a Genesi vanno i tre numeri e da dove vengono", () => {
+    const pronti = sentinella.refertiDaVolate([{ id: "r1", data: "2026-07-20", fronte: "A",
+      distanzaRicettore: 200, kgMaxRitardo: 50, ppvMisurata: 3.2, ppvFonte: "strumento",
+      ppvPuntoNome: "Casa" }]).pronti;
+    const c = sentinella.csvRefertiGenesi(pronti).split("\n");
+    eq(c[0], sentinella.CSV_REFERTI_INTESTAZIONE, "l'intestazione è quella dichiarata");
+    eq(c[1].startsWith("200;50;3.2;"), true, "distanza, carica per ritardo, PPV");
+    eq(c[1].includes("Volata 20/07/2026"), true, "e il riferimento per risalire alla volata");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
