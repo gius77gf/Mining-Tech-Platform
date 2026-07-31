@@ -5,13 +5,15 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-08-04 15:43 UTC — **il ciclo che ha scoperto
-tre banchi del browser che non partivano da mesi**
-**Commit di partenza:** `cdbd22c`
-**Cosa sta per fare:** leggere l'esito del giro a 29 banchi (in corso), poi
-proseguire con la **tracciabilità del volume** — il visore conserva i parametri
-che gia calcola, il ponte di Terra li porta dentro con la data che non si
-inventa, il verbale li stampa.
+**Ultimo ciclo riuscito:** 2026-08-04 18:45 UTC — **il ciclo della
+tracciabilità del volume e della nota di credito completa**
+**Commit di partenza:** `80111f2`
+**Cosa sta per fare:** il contenitore è ripartito da zero e il giro del browser
+che stava verificando le ultime sei unità **è andato perso a metà** — quella
+verifica non è stata completata e va rifatta. Prima però si prosegue col lavoro
+sul codice, così il giro si lancia una volta sola alla fine: dalle schede, gli
+**indici infortunistici** di Scudo (IF, IG, LTIFR) o il **registro costi esteso**
+di Conti, che il censimento indica come la porta d'ingresso alla marginalità.
 
 **Cosa ha fatto oggi, dopo quel blocco** — sei unità, tutte con la loro
 controprova:
