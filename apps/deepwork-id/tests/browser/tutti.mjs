@@ -64,6 +64,8 @@ const BANCHI = [
   ['nota di credito · controprova', 'nota-credito.mjs', ['--controprova'], true],
   ['il verbale dice come è nato il numero', 'verbale-origine.mjs', []],
   ['verbale · controprova', 'verbale-origine.mjs', ['--controprova'], true],
+  ['la quota di base è nel sistema del rilievo', 'quota-base-reale.mjs', []],
+  ['quota di base · controprova', 'quota-base-reale.mjs', ['--controprova'], true],
 ];
 
 async function rispondePorta(porta) {
