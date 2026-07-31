@@ -204,6 +204,28 @@ piacere e non fa fare niente. Lo scaduto invece produce **una telefonata**. Cont
 sa già dire a chi telefonare per primo (`prioritaIncasso()`) e sa già scrivere il
 testo del sollecito.
 
+> ### ⚠️ Aggiornamento del 02/08 — il tempo di incasso adesso si MISURA
+>
+> Quando questa scheda è stata scritta, Conti non sapeva **quando** una fattura
+> era stata incassata: c'era solo la spunta «incassata». Da lì la conclusione
+> prudente qui sotto — niente DSO, si scrive «età media del credito».
+>
+> Adesso non è più così. Conti registra la **data vera dell'incasso** (anche per
+> acconti multipli) e `tempoMedioPagamento()` restituisce i **giorni medi fra
+> emissione e saldo** contati sulle date vere, più i **giorni medi oltre la
+> scadenza**. È meglio del DSO classico, non peggio: il DSO è una **stima** che
+> divide il credito per il fatturato di periodo, questo è una **misura**.
+>
+> Con una regola di onestà già scritta nel codice e coperta da prove: le fatture
+> segnate incassate **senza data** (quelle di prima) restano **fuori dalla media**
+> e vengono contate a parte in `senzaData`. Contarle a zero giorni farebbe
+> sembrare i clienti più puntuali di quanto sono.
+>
+> **Per la tessera T2** questo vuol dire che la riga della tendenza può dire una
+> cosa vera e utile: *«i tuoi clienti pagano in media a 47 giorni, 12 oltre la
+> scadenza»* — e, se ci sono fatture senza data, dirlo accanto invece di
+> nasconderlo.
+
 **Onestà sul DSO.** Il DSO (giorni medi di incasso) è l'indicatore che tutti i
 manuali italiani citano per la liquidità. **Non lo possiamo calcolare oggi**:
 serve il fatturato del periodo, che Conti non ha (il codice lo dice esplicitamente:
@@ -645,7 +667,7 @@ funzione.
 | **Costo per tonnellata** | I costi in Flotta hanno voce, importo e nota ma **nessuna data** e nessun legame con la cava. Non si può dire "i costi di luglio". | Aggiungere `data` (e più avanti `cavaId`) alla voce di costo. Mezz'ora di lavoro, sblocca l'indicatore economico più richiesto. |
 | **Andamento della disponibilità mezzi** | Flotta salva lo **stato attuale** del mezzo, non la sua storia. Non esiste "com'era la disponibilità a giugno". | Una fotografia giornaliera automatica (una riga al giorno: data + operativi + totale). Poche righe, e nasce il grafico. |
 | **Andamento dei costi** | Stesso motivo: i costi non hanno data. | Come sopra. |
-| **DSO (giorni medi di incasso)** | Serve il fatturato del periodo, che Conti non ha (il codice lo dichiara esplicitamente). | Un totale del fatturato per mese. Fino ad allora si scrive **"età media del credito"**, che è vero. |
+| **DSO (giorni medi di incasso)** | ~~Serve il fatturato del periodo, che Conti non ha.~~ **SBLOCCATO il 02/08** — vedi l'aggiornamento qui sotto. | — |
 | **Scadenza dell'autorizzazione di cava** | Terra **non ha** l'atto autorizzativo: nessun campo per ente, numero, data di scadenza, volume totale concesso, prescrizioni. La tessera T6 sa dire "quanti anni di riserve", non "quando scade il permesso". | Una scheda "Autorizzazione" in Terra con ente, numero, scadenza, volume concesso. È anche la funzione che manca di più a Terra secondo la sua ricerca. |
 | **Fideiussione, collaudo, ripristino** | Non esistono in nessuna app. | Vedi sopra: stessa scheda. |
 | **"Chi è in turno è in regola?"** | Le squadre di Campo hanno un **numero** di persone, non i **nomi**; i lavoratori con le idoneità stanno in Scudo. I due mondi non si toccano. | Un elenco di persone dentro la squadra, collegato agli `id` dei lavoratori di Scudo. È la funzione più forte dell'intero ecosistema: vale la pena farla presto. |
