@@ -1760,6 +1760,21 @@ campi interi, file delle macchine.
       contato come scavo nuovo**, che fa scendere il costo da 16,59 a 14,76
       €/m³, cioè legge **meglio** del vero. Prove `node` **1.415**, copertura
       **437/437**.
+- [x] ✅ **PIANO: LA CHIUSURA DEL MESE IN CONTI** *(05/08,
+      `docs/PIANO_CHIUSURA_MESE_CONTI.md`)* — la Decisione 2 della ricerca sui
+      costi era scritta come principio e non come progetto. Il punto: **i
+      ricavi sono completi per costruzione, i costi no**, e il registro costi
+      appena fatto **aumenta** il rischio invece di ridurlo — prima nessuno
+      avrebbe calcolato un margine, adesso i costi ci sono, sembrano completi e
+      dividerli è immediato. Tre cose che la chiusura NON deve essere (un
+      lucchetto — la fattura del fornitore che arriva il 12 del mese dopo è la
+      norma, e se l'app la rifiuta le mettono la data sbagliata; una spunta
+      silenziosa; un giudizio), la forma dei dati con `vociAssenti` **dichiarate
+      apposta** (senza, la chiusura non distingue «non ho speso» da «non ho
+      ancora inserito», che è la distinzione per cui esiste), quattro funzioni
+      pure e quattro unità in ordine. `vociMancantiNelMese` **impara dallo
+      storico** dell'azienda invece di inventare un elenco di voci obbligatorie
+      che non esiste.
 - [ ] ⚠️ **IL GIRO COMPLETO DEL BROWSER NON È STATO ESEGUITO IN QUESTO BLOCCO.**
       Va detto, per non scambiarlo per una verifica fatta: lanciato, ha girato
       più di un'ora ed è arrivato al **terzo banco su 35**. La causa non è il
