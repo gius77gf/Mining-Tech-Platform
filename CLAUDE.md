@@ -174,12 +174,32 @@ in italiano, senza dare conoscenze per scontate).
   `run-pointcloud.mjs`, `run-manifest.mjs`, `run-stile.mjs`) girano anch'esse
   con `node`.
 - **`run-stile.mjs` rende verificabili le regole vincolanti** che prima
-  vivevano solo qui — sedici, al 02/08: niente dialoghi del browser, unità mai in
+  vivevano solo qui — diciassette, al 03/08: niente dialoghi del browser, unità mai in
   maiuscolo, nessun campo decimale `type="number"`, nessun campo decimale letto
   col lettore che fa zero, la guardia sui campi interi montata dove servono, il
-  ponte con Terra che non dà la colpa a chi compila, e la provenienza di un
-  rilievo decisa in un posto solo. L'intestazione del file le elenca con la
+  ponte con Terra che non dà la colpa a chi compila, la provenienza di un
+  rilievo decisa in un posto solo, e la **struttura del core mai riscritta in
+  casa** (chi carica `shared/dw-app-ui.js` non ridefinisce toast e modale; chi
+  le usa deve averle da qualche parte — togliere le funzioni dimenticando il
+  `<script>` non è un errore di sintassi, la pagina si apre e muore al primo
+  tocco). L'intestazione del file le elenca con la
   ragione di ognuna. Quando nasce un'app va aggiunta all'elenco `SUPERFICI`.
+- ⚠️ **UNO STRUMENTO CONDIVISO DA TUTTI I CONTROLLI NON È CONTROLLATO DA
+  NESSUNO.** Il 03/08 la scansione che sta sotto a tutte e sedici le regole
+  **perdeva la fase**, per due difetti indipendenti: leggeva la pagina intera
+  come JavaScript (e l'apostrofo di «l'ecosistema» nel TESTO apriva una
+  stringa — da 7 a 131 apostrofi per superficie, dispari = fase invertita), e
+  giudicava lo slash dall'ultimo carattere invece che dalla parola (`return
+  /[;"\n]/` preso per una divisione, e la virgoletta dentro la regex apriva una
+  stringa lunga 1.500 caratteri). Effetto: **115 delle 195 funzioni dichiarate a
+  colonna zero in Genesi** finivano marcate «non codice», cioè la regola 1 era
+  cieca su decine di migliaia di caratteri e rispondeva lo stesso «nessuna
+  violazione». Il core ne usciva pulito **per caso** — due inversioni che si
+  annullavano. Ogni regola aveva la sua controprova e ognuna passava: mancava
+  la prova sullo **strumento**. Adesso c'è, ed è l'unica del file che verifica
+  la scansione invece di una regola: *934 dichiarazioni a colonna zero, tutte
+  codice*, con la controprova che rimette i due difetti (99 + 16 = 115, il buco
+  intero). Racconto e misure: `docs/LA_SCANSIONE_CHE_PERDEVA_LA_FASE.md`.
 - **Due tokenizzatori, e vanno scelti**: `mascheraCodice` maschera il
   **contenuto** delle stringhe (giusto per i dialoghi — un `prompt(` dentro una
   stringa non è una chiamata), `senzaCommenti` toglie **solo i commenti** e tiene

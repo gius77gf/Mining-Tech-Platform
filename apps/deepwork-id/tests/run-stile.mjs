@@ -98,6 +98,15 @@
 //     soffrono (girano solo nel browser); i moduli sì, perché li leggono
 //     tutt'e due — e da lì una prova che passa in Node e fallirebbe nel
 //     browser, cioè che blinda una stringa che l'utente non vede mai.
+// 17. LA STRUTTURA DEL CORE NON SI RISCRIVE IN CASA. Toast, modale, conferma,
+//     richiesta di un valore e chiusura con Escape erano scritti SEI VOLTE —
+//     27 copie, il 76% delle righe identico carattere per carattere — e una si
+//     era già staccata perché a un'app serviva qualcosa in più. Ora stanno in
+//     `shared/dw-app-ui.js`. La regola guarda le due direzioni opposte: chi
+//     carica il condiviso non deve ridefinirle (una copia locale vince e
+//     riapre la distanza), e chi le usa deve averle da qualche parte —
+//     togliere le funzioni dimenticando il `<script>` non è un errore di
+//     sintassi: la pagina si apre e muore al primo tocco.
 //
 // Come si aggiunge una regola: una funzione che restituisce l'elenco delle
 // violazioni con file e riga, e un `test(...)` che pretende zero.
@@ -193,15 +202,98 @@ const COMMENTO = 0, CODICE = 1, DENTRO = 2;   // DENTRO = contenuto di stringa o
    versione vecchia andava fuori fase. La controprova li usa per sapere DOVE
    iniettare il difetto — senza doverli ricavare con una terza scansione, che
    è il modo in cui questo difetto è nato la prima volta. */
+/* ⚠️ UNA PAGINA NON È TUTTA JAVASCRIPT, e per mesi questa scansione ha fatto
+   finta di sì (trovato il 03/08). Il file veniva letto dal primo carattere
+   come se fosse un programma: quindi l'apostrofo di «l'ecosistema» scritto
+   nel TESTO della pagina apriva una stringa, che correva fino all'apostrofo
+   successivo. Con un numero PARI di apostrofi non succede niente di visibile;
+   con un numero DISPARI la fase si inverte, e da lì in poi il codice vero
+   viene preso per testo e il testo per codice.
+
+   Non è teoria: in `apps/genesi/genesi.html` **115 delle 195 funzioni
+   dichiarate a colonna zero** finivano marcate «non codice», cioè un tratto
+   da 23.000 caratteri in cui la regola 1 (niente dialoghi del browser) non
+   guardava niente. E il core ne usciva pulito **per caso**: 131 apostrofi e
+   39 virgolette, due inversioni che si annullavano.
+
+   Misurato su tutte le superfici: apostrofi nel testo fuori dai tag, da 7
+   (profilo) a 131 (core). Cioè la prossima frase in italiano scritta nel
+   markup poteva accecare una regola su una pagina intera, in silenzio.
+
+   Adesso: in una pagina il JavaScript sta SOLO dentro i `<script>` e dentro
+   gli attributi `on*` (253 in tutto, 202 dei quali nel core — buttarli via
+   sarebbe stato barattare un buco con un altro). Tutto il resto — testo,
+   nomi dei tag, CSS dentro `<style>`, valori degli altri attributi — non è
+   codice, e un apostrofo lì dentro non apre proprio niente. */
 function classifica(t, spie) {
-  const tipo = new Uint8Array(t.length).fill(CODICE);
-  const prevSignificativo = (k) => { for (let j = k - 1; j >= 0; j--) { const c = t[j]; if (c !== " " && c !== "\t" && c !== "\n" && c !== "\r") return c; } return ""; };
+  const paginaHtml = /^\s*<(?:!doctype|html)\b/i.test(t);
+  const tipo = new Uint8Array(t.length).fill(paginaHtml ? DENTRO : CODICE);
   const marca = (da, a, v) => { for (let k = da; k < a; k++) tipo[k] = v; };
+  if (!paginaHtml) { scansionaJs(t, tipo, marca, 0, t.length, spie); return tipo; }
+
+  let i = 0;
+  while (i < t.length) {
+    if (t.startsWith("<!--", i)) {                       // commento del markup
+      const fine = t.indexOf("-->", i + 4);
+      const a = fine < 0 ? t.length : fine + 3;
+      marca(i, a, COMMENTO); i = a; continue;
+    }
+    if (/^<script\b/i.test(t.slice(i, i + 8))) {
+      const apre = t.indexOf(">", i);
+      if (apre < 0) break;
+      /* ⚠️ Il tag di chiusura si cerca da DOPO l'apertura, e il corpo lo
+         mastica la scansione JS: in Campo un modello di stampa scrive
+         `<script>window.print()</` + `script>` — spezzato apposta perché il
+         browser non chiuda il blocco lì. Sta dentro il modulo, quindi il
+         markup non lo incontra mai. */
+      const fine = t.toLowerCase().indexOf("</script", apre + 1);
+      const a = fine < 0 ? t.length : fine;
+      scansionaJs(t, tipo, marca, apre + 1, a, spie);
+      i = a; continue;
+    }
+    // `onclick="…"` e compagni: il valore è JavaScript a tutti gli effetti
+    const m = /^\son[a-z]+\s*=\s*(["'])/i.exec(t.slice(i, i + 48));
+    if (m) {
+      const virgoletta = m[1];
+      const da = i + m[0].length;
+      const fine = t.indexOf(virgoletta, da);
+      if (fine > 0) { scansionaJs(t, tipo, marca, da, fine, spie); i = fine + 1; continue; }
+    }
+    i++;
+  }
+  return tipo;
+}
+/* La scansione del JavaScript vero, su un tratto [da, a). Prima era il corpo
+   di `classifica`; adesso è a parte perché in una pagina va chiamata una volta
+   per blocco `<script>` e una per ogni attributo `on*`, ognuno con il suo
+   stato — un template aperto in un blocco non continua in quello dopo. */
+function scansionaJs(t, tipo, marca, da, a, spie) {
+  /* Che cosa c'è prima di questo `/`: un carattere, oppure — se è una parola —
+     la parola INTERA. Serve solo a decidere se lo slash apre un'espressione
+     regolare o è una divisione, e la differenza non è accademica:
+     `return /[;"\n]/.test(s)` esisteva davvero in Genesi, e con la sola
+     lettura dell'ultimo carattere («n» di return) veniva preso per una
+     divisione — quindi la virgoletta DENTRO la regex apriva una stringa
+     fantasma che correva per 1.500 caratteri. */
+  const primaDi = (k) => {
+    let j = k - 1;
+    while (j >= da && (t[j] === " " || t[j] === "\t" || t[j] === "\n" || t[j] === "\r")) j--;
+    if (j < da) return "\n";                      // inizio del blocco: qui ci sta un'espressione
+    if (!/[\w$]/.test(t[j])) return t[j];
+    let ini = j;
+    while (ini >= da && /[\w$]/.test(t[ini])) ini--;
+    return t.slice(ini + 1, j + 1);               // l'identificatore intero
+  };
+  /* Le parole dopo le quali ci sta un'ESPRESSIONE, non un operando: dietro a
+     una di queste lo slash è per forza una regex. Dietro a un nome qualunque
+     (`larghezza / 2`) è per forza una divisione. */
+  const PAROLE = new Set(["return", "typeof", "instanceof", "in", "of", "new",
+    "delete", "void", "throw", "case", "do", "else", "yield", "await"]);
   const pila = [];        // template in attesa che finisca la loro interpolazione
   let stringa = null;     // il delimitatore della stringa in cui ci troviamo
   let graffe = 0;         // profondità di graffe nel codice corrente
-  let i = 0;
-  while (i < t.length) {
+  let i = da;
+  while (i < a) {
     const c = t[i], d = t[i + 1];
     if (stringa) {
       if (c === "\\") { marca(i, i + 2, DENTRO); i += 2; continue; }
@@ -218,9 +310,9 @@ function classifica(t, spie) {
       }
       i++; continue;
     }
-    if (c === "/" && d === "/") { const fine = t.indexOf("\n", i); const a = fine < 0 ? t.length : fine; marca(i, a, COMMENTO); i = a; continue; }
-    if (c === "/" && d === "*") { const fine = t.indexOf("*/", i + 2); const a = fine < 0 ? t.length : fine + 2; marca(i, a, COMMENTO); i = a; continue; }
-    if (c === "<" && t.startsWith("<!--", i)) { const fine = t.indexOf("-->", i + 4); const a = fine < 0 ? t.length : fine + 3; marca(i, a, COMMENTO); i = a; continue; }
+    if (c === "/" && d === "/") { const fine = t.indexOf("\n", i); const f = fine < 0 || fine > a ? a : fine; marca(i, f, COMMENTO); i = f; continue; }
+    if (c === "/" && d === "*") { const fine = t.indexOf("*/", i + 2); const f = fine < 0 || fine + 2 > a ? a : fine + 2; marca(i, f, COMMENTO); i = f; continue; }
+    if (c === "<" && t.startsWith("<!--", i)) { const fine = t.indexOf("-->", i + 4); const f = fine < 0 || fine + 3 > a ? a : fine + 3; marca(i, f, COMMENTO); i = f; continue; }
     if (c === "'" || c === '"' || c === "`") { tipo[i] = CODICE; stringa = c; i++; continue; }
     if (c === "{") { graffe++; tipo[i] = CODICE; i++; continue; }
     if (c === "}") {
@@ -230,10 +322,10 @@ function classifica(t, spie) {
       graffe--; tipo[i] = CODICE; i++; continue;
     }
     // un'espressione regolare comincia con / solo dove non può stare una divisione
-    if (c === "/" && "(,=:[!&|?{};\n".includes(prevSignificativo(i))) {
+    if (c === "/" && (() => { const p = primaDi(i); return p.length === 1 ? "(,=:[!&|?{};\n".includes(p) : PAROLE.has(p); })()) {
       tipo[i] = CODICE; i++;
       let inClasse = false;
-      while (i < t.length) {
+      while (i < a) {
         if (t[i] === "\\") { marca(i, i + 2, DENTRO); i += 2; continue; }
         if (t[i] === "[") inClasse = true; else if (t[i] === "]") inClasse = false;
         else if (t[i] === "/" && !inClasse) { tipo[i] = DENTRO; i++; break; }
@@ -244,7 +336,6 @@ function classifica(t, spie) {
     }
     tipo[i] = CODICE; i++;
   }
-  return tipo;
 }
 function mascheraCodice(t) {
   const tipo = classifica(t);
@@ -360,6 +451,75 @@ test("un dialogo dentro un'interpolazione è una chiamata, non un testo", () => 
     "`${prompt(...)}` è codice vero: la versione vecchia lo mascherava come stringa");
   ok(dialoghiIn("const s = `scrivi ${x} e poi prompt(qualcosa)`;").length === 0,
     "ma il testo che PARLA di un prompt resta testo");
+});
+
+/* ══ LA SCANSIONE NON PERDE LA FASE — la misura che l'ha resa verificabile ══
+   ────────────────────────────────────────────────────────────────────────
+   Trovato il 03/08, e i due difetti erano indipendenti:
+
+   1. la scansione leggeva la PAGINA INTERA come JavaScript, quindi
+      l'apostrofo di «l'ecosistema» scritto nel testo apriva una stringa.
+      Con un numero pari di apostrofi non succede niente; con uno dispari la
+      fase si inverte e il codice vero diventa «testo»;
+   2. `return /[;"\n]/.test(s)` — che in Genesi c'è davvero — veniva preso per
+      una divisione, perché la regola guardava solo l'ULTIMO carattere prima
+      dello slash («n», di return) e non la parola.
+
+   Insieme facevano sparire **115 delle 195 funzioni dichiarate a colonna zero
+   in Genesi**, cioè tratti da decine di migliaia di caratteri in cui la
+   regola 1 non guardava niente e rispondeva lo stesso «nessuna violazione».
+   Il core ne usciva pulito per CASO: 131 apostrofi e 39 virgolette, due
+   inversioni che si annullavano.
+
+   Questa prova è la misura stessa, tenuta accesa: una dichiarazione di
+   funzione a colonna zero è codice per definizione, e se la scansione la
+   chiama «stringa» ha perso la fase. È l'unico controllo del file che
+   verifica lo STRUMENTO invece di una regola. */
+const DICHIARAZIONE = /(^|\n)((?:export\s+)?(?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\()/g;
+function dichiarazioniFuoriFase(src) {
+  const tipo = classifica(src);
+  const fuori = [];
+  DICHIARAZIONE.lastIndex = 0;
+  let m;
+  while ((m = DICHIARAZIONE.exec(src)) !== null) {
+    const at = m.index + m[1].length;
+    if (tipo[at] !== CODICE) fuori.push(src.slice(0, at).split("\n").length);
+  }
+  return fuori;
+}
+let dichTot = 0, dichFuori = 0;
+const dichDove = [];
+for (const [nome, rel] of SUPERFICI.concat(MODULI)) {
+  const src = leggi(rel);
+  if (src === null) continue;
+  DICHIARAZIONE.lastIndex = 0;
+  dichTot += (src.match(DICHIARAZIONE) || []).length;
+  const f = dichiarazioniFuoriFase(src);
+  if (f.length) { dichFuori += f.length; dichDove.push(`${nome} (righe ${f.slice(0, 4).join(", ")}…)`); }
+}
+test(`la scansione non perde la fase: ${dichTot} dichiarazioni a colonna zero, tutte codice`, () => {
+  ok(dichTot > 900, `solo ${dichTot} dichiarazioni guardate: il controllo non sta misurando niente`);
+  ok(dichFuori === 0, `${dichFuori} dichiarazioni prese per testo → ${dichDove.join(" · ")}`);
+});
+test("la scansione sa fallire: i due difetti rimessi le fanno perdere la fase", () => {
+  // (1) la pagina letta come se fosse tutta JavaScript
+  const pagina = "<!DOCTYPE html>\n<html lang=\"it\">\n<body>\n<p>l'ecosistema</p>\n"
+    + "<script>\nfunction f(){ }\n</script>\n</body></html>\n";
+  ok(dichiarazioniFuoriFase(pagina).length === 0,
+    "un apostrofo nel TESTO della pagina non apre nessuna stringa");
+  ok(dialoghiIn(pagina.replace("function f(){ }", "function f(){ confirm('x'); }")).length === 1,
+    "e il dialogo dentro lo <script> si vede lo stesso");
+  ok(dialoghiIn("<!DOCTYPE html>\n<html><body>\n<p>l'ora, l'altra e un'altra</p>\n"
+    + "<button onclick=\"confirm('davvero?')\">via</button>\n</body></html>").length === 1,
+    "un gestore scritto nell'attributo È JavaScript: 253 nelle superfici, 202 nel solo core");
+  ok(dialoghiIn("<!DOCTYPE html>\n<html><body>\n<p>qui si parla di confirm(x) a parole</p>\n</body></html>").length === 0,
+    "ma il testo che NOMINA un dialogo resta testo");
+  // (2) lo slash dopo una parola-chiave
+  const conRegex = "function a(s){ return /[;\"\\n]/.test(s); }\nfunction b(){ }\n";
+  ok(dichiarazioniFuoriFase(conRegex).length === 0,
+    "`return /…\"…/` è un'espressione regolare, non una divisione: la virgoletta dentro non apre niente");
+  ok(dichiarazioniFuoriFase("const q = larghezza / 2, r = altezza / 3;\nfunction b(){ }\n").length === 0,
+    "e una divisione vera resta una divisione");
 });
 
 /* LA CONTROPROVA A TAPPETO: il difetto rimesso DOVE OGNI TEMPLATE SI CHIUDE.
@@ -1420,6 +1580,123 @@ test("la regola 16 distingue il raggruppamento scritto da quello taciuto", () =>
      "il commento che racconta il difetto non è il difetto");
 });
 
+console.log("\n── Regola 17: la struttura del core non si riscrive in casa ──");
+/* LA STRUTTURA DEL CORE NON SI RISCRIVE IN CASA.
+   Il 02/08 il toast, la modale, la conferma, la richiesta di un valore e la
+   chiusura con Escape erano scritti SEI VOLTE, una per app: 27 copie, il 76%
+   delle righe identico carattere per carattere. E una si era già staccata —
+   `apriModale` di Scudo aveva un quarto parametro che le altre cinque non
+   avevano, per una ragione buona. Adesso stanno in `shared/dw-app-ui.js`.
+
+   Questa regola serve a che non tornino. Guarda due cose opposte, e la
+   seconda è quella che ho già sbagliato una volta:
+   (a) chi CARICA il file condiviso non deve ridefinirle — una copia locale
+       vince sul globale e la superficie torna a divergere in silenzio;
+   (b) chi le USA deve averle da qualche parte — o dal file condiviso, o da
+       una copia propria dichiarata. Togliere le funzioni e dimenticare il
+       `<script>` non dà nessun errore di sintassi: la pagina si apre, e il
+       primo tocco che apre una modale muore con un ReferenceError.
+
+   L'elenco `COPIA_PROPRIA` non è un permesso: è il conto di quanto lavoro
+   resta, e deve accorciarsi. Se una superficie ne esce (è passata al
+   condiviso) il controllo lo dice; se ne entra una nuova, fallisce. */
+const UI_CONDIVISA = ["toast", "apriModale", "chiudiModale", "chiedi", "chiediValore"];
+const RE_UI_DEF = new RegExp(
+  `\\b(?:function\\s+(?:${UI_CONDIVISA.join("|")})\\s*\\(`
+  + `|(?:const|let|var)\\s+(?:${UI_CONDIVISA.join("|")})\\s*=\\s*(?:function\\b|\\(|async\\b))`, "g");
+const RE_UI_USO = new RegExp(`\\b(?:${UI_CONDIVISA.join("|")})\\s*\\(`, "g");
+
+function strutturaInCasa(src) {
+  const vivo = mascheraCodice(src);   // `function toast(` dentro un modello di stampa non è una definizione
+  const fuori = [];
+  let m;
+  RE_UI_DEF.lastIndex = 0;
+  while ((m = RE_UI_DEF.exec(src)) !== null) {
+    if (!vivo[m.index]) continue;
+    const riga = src.slice(0, m.index).split("\n").length;
+    fuori.push(`riga ${riga}: ${m[0].trim()}`);
+  }
+  return fuori;
+}
+function usaLaStruttura(src) {
+  const vivo = mascheraCodice(src);
+  let m;
+  RE_UI_USO.lastIndex = 0;
+  while ((m = RE_UI_USO.exec(src)) !== null) {
+    if (!vivo[m.index]) continue;
+    const prima = src.slice(Math.max(0, m.index - 3), m.index);
+    if (/[.\w$]$/.test(prima)) continue;           // metodo di un oggetto, o nome più lungo
+    return true;
+  }
+  return false;
+}
+
+/* Chi tiene ancora la sua copia, e perché. Misurato il 03/08. */
+const COPIA_PROPRIA = {
+  "index.html":
+    "il core È l'originale — il file condiviso è stato estratto da qui — e il suo "
+    + "toast dura di più quando è acceso il modo «all'aperto» (DB.settings.outdoor)",
+  "apps/genesi/genesi.html":
+    "DA FARE, ma non è il caso facile: Genesi chiama la modale con altri id "
+    + "(mdl, mdl-foot, mdl-campo) e il suo `chiediValore` ha un TERZO parametro "
+    + "diverso — un VALORE invece dell'HTML del campo, e il campo se lo costruisce "
+    + "da sé. Passare al condiviso vuol dire rinominare gli id nel markup e "
+    + "riscrivere 62 chiamate, non solo togliere tre funzioni",
+  "apps/deepwork-id/admin.html":
+    "DA FARE, ed è il caso facile: `apriModale` a tre parametri, senza `opzioni`, "
+    + "cioè esattamente la forma che il condiviso accetta già",
+};
+
+let uiGuardate = 0, uiCondivise = 0;
+const uiConCopia = [];
+for (const [nome, rel] of SUPERFICI) {
+  const src = leggi(rel);
+  if (src === null) continue;
+  uiGuardate++;
+  const carica = /dw-app-ui\.js/.test(src);
+  const proprie = strutturaInCasa(src);
+  if (carica) uiCondivise++;
+  if (proprie.length) uiConCopia.push(rel);
+
+  if (carica) {
+    test(`${nome}: usa la struttura condivisa e non se la riscrive in casa`, () => {
+      ok(proprie.length === 0,
+        `${rel}: ${proprie.length} definizioni locali vincono sul file condiviso → ${proprie.join(" · ")}`);
+    });
+  } else if (usaLaStruttura(src)) {
+    test(`${nome}: le funzioni che chiama esistono davvero`, () => {
+      ok(proprie.length > 0,
+        `${rel}: chiama toast/apriModale/… ma non carica dw-app-ui.js e non le definisce — `
+        + "la pagina si apre e muore al primo tocco, senza errori di sintassi");
+      ok(rel in COPIA_PROPRIA,
+        `${rel} tiene una copia propria della struttura senza una ragione scritta: `
+        + "o passa a shared/dw-app-ui.js, o la ragione va in COPIA_PROPRIA");
+    });
+  }
+}
+test("la regola 17 ha davvero guardato le superfici, e l'elenco delle copie è quello", () => {
+  ok(uiGuardate === SUPERFICI.length,
+    `guardate ${uiGuardate} superfici su ${SUPERFICI.length}`);
+  ok(uiCondivise === 6, `le app che caricano il file condiviso sono ${uiCondivise}, me ne aspettavo 6`);
+  const attese = Object.keys(COPIA_PROPRIA).sort().join(", ");
+  ok(uiConCopia.sort().join(", ") === attese,
+    `copie proprie trovate: [${uiConCopia.join(", ")}] · dichiarate: [${attese}]`);
+});
+test("la regola 17 distingue una definizione da un uso", () => {
+  ok(strutturaInCasa("function toast(msg, tipo) {}").length === 1, "la funzione dichiarata è una copia");
+  ok(strutturaInCasa("const chiedi = (t, c) => new Promise(r => r(1));").length === 1,
+     "e anche la freccia: è così che l'ha scritta l'amministrazione");
+  ok(strutturaInCasa("toast('Salvato.', 'success'); apriModale('x', 'y', []);").length === 0,
+     "chiamarle non è ridefinirle");
+  ok(strutturaInCasa('const t = "function toast(msg) { … }";').length === 0,
+     "dentro una stringa non è codice");
+  ok(strutturaInCasa('const toast = document.getElementById("toast");').length === 0,
+     "una variabile che si chiama come la funzione non è la funzione");
+  ok(usaLaStruttura("apriModale('Titolo', 'Corpo', []);") === true, "l'uso si vede");
+  ok(usaLaStruttura("obj.toast(1);") === false, "il metodo di un oggetto non è la funzione globale");
+  ok(usaLaStruttura("// qui una volta c'era toast('x')") === false, "e un commento nemmeno");
+});
+
 /* ══ CONTROPROVE SUI FILE VERI, PER LE REGOLE CHE NE AVEVANO SOLO DI FINTE ══
    ────────────────────────────────────────────────────────────────────────
    La lezione del 01/08, pagata con la regola 1: **una controprova va misurata
@@ -1495,6 +1772,11 @@ controprovaSuiVeri("regola 15 (il giorno di calendario preso in UTC)", giornoInU
 controprovaSuiVeri("regola 14 (nota del modo come lavagna)", avvisoUsatoComeLavagna,
   ';esito("mode-note", "Esportate 3 fatture.", "success");',
   (src) => /id="mode-note"/.test(src));
+
+/* regola 17: la copia locale del toast rimessa dentro, esattamente come stava
+   in tutte e sei le app fino al 02/08 */
+controprovaSuiVeri("regola 17 (struttura riscritta in casa)", strutturaInCasa,
+  ';function toast(msg, tipo) { const t = document.getElementById("toast"); if (t) t.textContent = msg; }');
 
 console.log(`\nRisultato Stile: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
