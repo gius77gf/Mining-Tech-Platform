@@ -6709,5 +6709,99 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ LE SCADENZE DI LEGGE DEI MEZZI ═════════════════════════════════════
+   Revisione alla Motorizzazione, verifica periodica dell'attrezzatura, funi e
+   catene, assicurazione. Un mezzo che gira in cava con la verifica scaduta è
+   la stessa famiglia del lavoratore senza il corso: un obbligo non rispettato
+   che l'app deve far vedere prima che lo veda un ispettore.
+
+   ⛔ E qui il principio di `CLAUDE.md` — **l'assenza di un dato non è un dato
+   favorevole** — è già applicato bene, ed è quello che queste prove tengono:
+   una scadenza **senza data** è **gialla**, non verde, e nel conteggio sta
+   insieme a quelle in scadenza. «Non so quando scade la revisione» è un
+   problema, non una tranquillità. */
+{
+  const OGGI = new Date("2026-07-31T12:00:00");
+
+  test("⛔ scadenze mezzi: «senza data» è GIALLA, non verde", () => {
+    /* è la stessa idea di «senza dati» ≠ «conforme»: non sapere quando scade
+       la revisione di un mezzo che gira è un problema aperto */
+    for (const vuota of ["", null, undefined]) {
+      const st = flotta.statoScadenzaMezzo(vuota, OGGI);
+      eq(st.stato, "senza-data", "lo dichiara");
+      eq(st.cls, "warn", "e resta gialla");
+      eq(st.giorni, null, "senza inventare un conto alla rovescia");
+    }
+  });
+  test("⛔ scadenze mezzi: «senza data» si conta con le cose da fare, non con quelle a posto", () => {
+    const c = flotta.contaScadenzeMezzi([{ mezzo: "CAT 320", dataScadenza: "" }], OGGI);
+    eq(c.inScadenza, 1, "sta fra quelle da sistemare");
+    eq(c.aPosto, 0, "e non fra quelle a posto");
+  });
+  test("scadenze mezzi: il semaforo segue la data, e il giorno stesso è rosso", () => {
+    /* una revisione che scade oggi non è «fra poco»: o si fa oggi o domani il
+       mezzo non può circolare */
+    eq(flotta.statoScadenzaMezzo("2026-07-01", OGGI).label, "scaduta da 30 gg", "da quanto");
+    eq(flotta.statoScadenzaMezzo("2026-07-31", OGGI).cls, "danger", "oggi è rosso, non giallo");
+    eq(flotta.statoScadenzaMezzo("2026-08-15", OGGI).cls, "warn", "quindici giorni: preavviso");
+    eq(flotta.statoScadenzaMezzo("2027-01-01", OGGI).cls, "ok", "cinque mesi: lontana");
+  });
+  test("scadenze mezzi: il preavviso lo decide l'utente", () => {
+    eq(flotta.statoScadenzaMezzo("2026-08-15", OGGI, 0).stato, "a-posto", "col preavviso a zero");
+    eq(flotta.statoScadenzaMezzo("2026-08-15", OGGI, 30).stato, "in-scadenza", "e con trenta giorni no");
+  });
+
+  const scadenze = [
+    { id: "s1", mezzo: "CAT 320", tipo: "Revisione", dataScadenza: "2026-08-15" },
+    { id: "s2", mezzo: "Aaa", tipo: "Assicurazione", dataScadenza: "2026-07-01" },
+    { id: "s3", mezzo: "Zeta", tipo: "Verifica", dataScadenza: "" },
+    { id: "s4", mezzo: "CAT 320", tipo: "Funi", dataScadenza: "2027-06-01" }];
+
+  test("⛔ scadenze mezzi: in cima quelle senza data e le scadute, non l'alfabeto", () => {
+    /* la prima riga che si guarda deve essere quella che ferma un mezzo: una
+       senza data viene prima di tutto perché non si sa nemmeno quanto tempo c'è */
+    eq(flotta.scadenzeOrdinate(scadenze, OGGI).map((x) => x.id).join(","), "s3,s2,s1,s4",
+       "senza data, scaduta, in scadenza, a posto");
+  });
+  test("scadenze mezzi: il conteggio torna, e dice quanti MEZZI sono coinvolti", () => {
+    const c = flotta.contaScadenzeMezzi(scadenze, OGGI);
+    eq(c.scadute + c.inScadenza + c.aPosto, c.totale, "nessuna cade fuori");
+    eq(c.mezzi, 3, "tre mezzi, anche se le scadenze sono quattro");
+  });
+
+  test("⛔ scadenze mezzi: un anno digitato male si ferma prima di salvare", () => {
+    /* è l'errore più frequente su un campo data, e una revisione datata 2010
+       farebbe risultare il mezzo fermo da anni */
+    eq(flotta.validaScadenzaMezzo({ mezzo: "x", tipo: "y", dataScadenza: "2010-01-01" }, OGGI).errori.dataScadenza
+       .includes("controlla l'anno"), true, "dieci anni indietro");
+    eq(flotta.validaScadenzaMezzo({ mezzo: "x", tipo: "y", dataScadenza: "2060-01-01" }, OGGI).errori.dataScadenza
+       .includes("controlla l'anno"), true, "e quindici avanti");
+  });
+  test("scadenze mezzi: quello che manca si dice campo per campo", () => {
+    const e = flotta.validaScadenzaMezzo({}, OGGI).errori;
+    eq(Object.keys(e).join(","), "mezzo,tipo,dataScadenza", "tre campi, tre messaggi");
+    eq(e.mezzo.startsWith("Scegli"), true, "e ognuno dice che cosa fare");
+  });
+  test("scadenze mezzi: una scadenza buona passa", () => {
+    eq(flotta.validaScadenzaMezzo({ mezzo: "x", tipo: "y", dataScadenza: "2026-12-01" }, OGGI).ok, true, "ok");
+  });
+
+  test("⛔ ricorrenza: la prossima scadenza non cade in un giorno che non esiste", () => {
+    eq(flotta.aggiungiMesi("2026-01-31", 1), "2026-02-28", "dal 31 gennaio, fra un mese");
+    eq(flotta.aggiungiMesi("2026-07-31", 12), "2027-07-31", "e a dodici mesi lo stesso giorno");
+    eq(flotta.aggiungiMesi("boh", 1), null, "senza una data vera non si propone niente");
+    eq(flotta.aggiungiMesi("2026-01-31", 0), null, "e senza periodicità nemmeno");
+  });
+  test("ricorrenza: i preset portano la norma che li giustifica", () => {
+    /* «ogni 12 mesi» detto senza dire perché è una regola che nessuno può
+       controllare: qui accanto c'è l'articolo */
+    eq(flotta.SCADENZE_MEZZO_PRESET.every((p) => p.etichetta && p.norma !== undefined), true,
+       "ognuno ha etichetta e riferimento");
+    eq(flotta.presetScadenzaMezzo("revisione").mesi, 60, "la revisione è ogni cinque anni");
+    eq(flotta.presetScadenzaMezzo("funi-catene").mesi, 3, "funi e catene ogni tre mesi");
+    eq(flotta.presetScadenzaMezzo("boh"), null, "e un tipo inventato non esiste");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
