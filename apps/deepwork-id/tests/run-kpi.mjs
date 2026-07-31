@@ -4081,5 +4081,65 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ IL PUNTO DI RIORDINO E LA VITA DELLA CAVA ══════════════════════════
+   Due numeri su cui si prende una decisione vera, e nessuno dei due era
+   provato: quanti pezzi tenere a magazzino prima che il fornitore consegni, e
+   quanto materiale resta nella concessione. */
+{
+  test("punto di riordino: consumo × (consegna + sicurezza), arrotondato in su", () => {
+    const r = flotta.puntoDiRiordino(0.5, 10, 4);
+    eq(r.copertura, 14, "dieci giorni di consegna più quattro di sicurezza");
+    eq(r.esatto, 7, "mezzo pezzo al giorno per quattordici giorni");
+    eq(r.soglia, 7, "e la soglia è il numero intero di pezzi");
+  });
+  test("punto di riordino: si arrotonda SEMPRE in su, mai in giù", () => {
+    /* mezzo pezzo non si ordina: arrotondare in giù vuol dire restare a secco
+       proprio il giorno in cui il mezzo è fermo */
+    const r = flotta.puntoDiRiordino(0.5, 11, 0);
+    eq(r.esatto, 5.5, "il conto esatto ha i decimali");
+    eq(r.soglia, 6, "ma la soglia sale a sei");
+  });
+  test("punto di riordino: mai sotto un pezzo", () => {
+    const r = flotta.puntoDiRiordino(0.001, 1, 0);
+    eq(r.soglia, 1, "un consumo piccolissimo dà comunque soglia 1, non 0");
+  });
+  test("punto di riordino: senza consumo o senza tempo di consegna risponde null", () => {
+    /* null vuol dire «non lo so», e per un pezzo che non si sa quanto si usi è
+       la risposta onesta: proporre zero sarebbe una proposta */
+    eq(flotta.puntoDiRiordino(0, 10, 2), null, "nessun consumo: non si propone niente");
+    eq(flotta.puntoDiRiordino(0.5, 0, 2), null, "nessun tempo di consegna: idem");
+  });
+
+  const oggi = new Date("2026-07-01T00:00:00Z");
+  const aut = { volumeAutorizzatoM3: 100000, sogliaGuardiaPct: 80, anniRitmo: 3 };
+  /* ⚠️ I rilievi devono avere `stato: "elaborato"`: `estrattoComplessivo`
+     conta SOLO quelli, ed è giusto — un rilievo in calendario o ancora da
+     elaborare non è materiale uscito dalla cava. La prima stesura di queste
+     prove non lo sapeva e accusava il codice: prima di dire che c'è un
+     difetto va letto come il codice si aspetta i dati. */
+  const ril = (volumeM3) => [{ data: "2025-07-01", volumeM3, stato: "elaborato" }];
+  test("vita cava: percentuale e residuo dal volume autorizzato", () => {
+    const v = terra.vitaCava(aut, ril(25000), oggi);
+    eq(v.pct, 25, "25.000 su 100.000 fanno il 25%");
+    eq(v.residuo, 75000, "e restano 75.000 m³");
+    eq(v.stato, "ok", "sotto la soglia di guardia");
+  });
+  test("vita cava: superata la soglia di guardia lo stato cambia", () => {
+    const v = terra.vitaCava(aut, ril(85000), oggi);
+    eq(v.stato, "warn", "85% è oltre la guardia dell'80%");
+  });
+  test("vita cava: il residuo non va sotto zero", () => {
+    /* se si è cavato più dell'autorizzato il residuo è zero, non un numero
+       negativo: un «-4.000 m³ residui» su un documento è peggio di un errore */
+    const v = terra.vitaCava(aut, ril(104000), oggi);
+    eq(v.residuo, 0, "residuo zero, non negativo");
+    eq(v.stato, "danger", "e lo stato è rosso");
+  });
+  test("vita cava: senza volume autorizzato non si inventa una vita", () => {
+    eq(terra.vitaCava({}, ril(1000), oggi), null,
+       "null: senza il numero della concessione non c'è niente da dire");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
