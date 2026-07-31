@@ -15,6 +15,7 @@
 //                   mezzo (targa), destinatario, fatturaId|null }
 //   incassi/{id}:  { fatturaId, data (ISO: il giorno in cui i soldi sono ARRIVATI),
 //                    importo (€), metodo ("bonifico"|"assegno"|"contanti"|"riba"|"") }
+//   costi/{id}:    { data (ISO), voce (chiave di VOCI_COSTO), importo (€), nota }
 //   impostazioni/{id}: { canoneUnita: "t"|"m3", canoneAliquota (€/unità), canoneNota }
 // LETTURA DAI RILIEVI DI TERRA (sola lettura, ponte cavato↔venduto): i rilievi
 // NON sono di Conti, stanno sotto l'app Terra della STESSA organizzazione
@@ -170,6 +171,28 @@ export const DEMO = {
     // confronto non devono entrare, ed è giusto che si veda
     { id: "t6", titolo: "Prossimo rilievo", data: "2026-08-31", volumeM3: null, stato: "pianificato" },
     { id: "t0", titolo: "Rilievo di fine 2025", data: "2025-11-20", volumeM3: 40, stato: "elaborato", metodo: "RTK", gsd: "2" },
+  ],
+  // REGISTRO COSTI d'esempio. Tre righe stanno qui apposta perché fanno vedere
+  // cosa succede quando il dato non è pulito — che è la condizione normale del
+  // primo mese di uso, e l'app deve dirlo invece di nasconderlo:
+  //  · c8 ha una voce che NON è nell'elenco → finisce fra le «non classificate»,
+  //    non fra le spese generali (una voce che nessuno ha scelto);
+  //  · c9 è senza data → non sparisce dal periodo in silenzio, si conta a parte;
+  //  · c1/c4 sono voci `daMezzo`: Flotta le registra già, e chi somma deve
+  //    saperlo per non contarle due volte.
+  costi: [
+    { id: "c1", data: "2026-02-14", voce: "carburante", importo: 148, nota: "Gasolio pala e dumper" },
+    { id: "c2", data: "2026-02-28", voce: "personale", importo: 310, nota: "Squadra di fronte, febbraio" },
+    { id: "c3", data: "2026-03-20", voce: "esplosivo", importo: 96, nota: "Volata del 18 marzo" },
+    { id: "c4", data: "2026-04-08", voce: "manutenzione", importo: 74, nota: "Denti benna + filtri" },
+    { id: "c5", data: "2026-04-30", voce: "energia", importo: 132, nota: "Bolletta impianto, bimestre" },
+    { id: "c6", data: "2026-05-15", voce: "lavorazione", importo: 205, nota: "Vagliatura conto terzi" },
+    { id: "c7", data: "2026-06-30", voce: "canone", importo: 98, nota: "Canone di escavazione, primo semestre" },
+    { id: "c8", data: "2026-06-30", voce: "consulenze", importo: 60, nota: "Perizia geologica (voce fuori elenco)" },
+    { id: "c9", data: "", voce: "ripristino", importo: 120, nota: "Fattura del vivaista, data da recuperare" },
+    { id: "c10", data: "2026-07-12", voce: "personale", importo: 330, nota: "Squadra di fronte, luglio" },
+    { id: "c11", data: "2026-07-18", voce: "carburante", importo: 161, nota: "Gasolio, secondo rifornimento" },
+    { id: "c12", data: "2026-07-25", voce: "generali", importo: 88, nota: "Assicurazioni e amministrazione" },
   ],
   // canone di escavazione: l'aliquota NON è cablata, cambia da regione a regione.
   impostazioni: [
@@ -1491,6 +1514,9 @@ export async function contiData() {
         // e le note di credito: come per gli incassi, un'organizzazione che
         // non ne ha mai emesse legge una lista vuota, senza errori
         note: () => read("note"),
+        // e il registro costi: stessa storia, chi non ne ha mai registrato uno
+        // legge una lista vuota
+        costi: () => read("costi"),
         impostazioni: () => read("impostazioni"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
         logout: () => id.logout(),
@@ -1525,6 +1551,7 @@ export async function contiData() {
       prodotti: async () => mem.prodotti, pesate: async () => mem.pesate,
       incassi: async () => mem.incassi || (mem.incassi = []),
       note: async () => mem.note || (mem.note = []),
+      costi: async () => mem.costi || (mem.costi = []),
       impostazioni: async () => mem.impostazioni,
       // in dimostrazione i rilievi non arrivano da Terra: sono finti, ma
       // coerenti con le pesate d'esempio (vedi DEMO.rilieviTerra)
@@ -1708,10 +1735,16 @@ export function riepilogoCosti(costi, dal = "", al = "") {
      periodo e non dirlo farebbe risultare un mese più economico di quello che è,
      ed è la forma esatta del principio — un totale tranquillo ottenuto
      lasciando fuori quello che non si sapeva dove mettere. */
-  const senzaData = righe.length - righe.filter(c => /^\d{4}-\d{2}-\d{2}$/.test(String(c.data || "").slice(0, 10))).length;
+  const nonDatate = righe.filter(c => !/^\d{4}-\d{2}-\d{2}$/.test(String(c.data || "").slice(0, 10)));
+  /* Le righe tornano indietro insieme ai totali perché la schermata deve
+     mostrare ESATTAMENTE quelle che ha sommato. Rifiltrarle nella pagina
+     vorrebbe dire riscrivere `dentro` una seconda volta, e due copie della
+     stessa regola divergono al primo ritocco: il totale direbbe una cosa e
+     l'elenco sotto un'altra, senza che niente lo segnali. */
   return { totale, perGruppo, conto: nelPeriodo.length,
            nonClassificate, importoNonClassificate,
-           senzaData: (d1 || d2) ? senzaData : 0 };
+           senzaData: (d1 || d2) ? nonDatate.length : 0,
+           righe: nelPeriodo, righeSenzaData: (d1 || d2) ? nonDatate : [] };
 }
 
 // ⛔ E IL COSTO AL METRO CUBO NON SI CALCOLA SENZA I METRI CUBI. È la stessa

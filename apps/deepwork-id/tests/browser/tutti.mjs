@@ -66,6 +66,8 @@ const BANCHI = [
   ['verbale · controprova', 'verbale-origine.mjs', ['--controprova'], true],
   ['la quota di base è nel sistema del rilievo', 'quota-base-reale.mjs', []],
   ['quota di base · controprova', 'quota-base-reale.mjs', ['--controprova'], true],
+  ['il registro costi', 'registro-costi.mjs', []],
+  ['registro costi · controprova', 'registro-costi.mjs', ['--controprova'], true],
 ];
 
 async function rispondePorta(porta) {

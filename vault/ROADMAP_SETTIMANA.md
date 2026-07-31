@@ -1684,6 +1684,44 @@ campi interi, file delle macchine.
       proprio. Asserzione rifatta più **giusta**, non più permissiva.
       Tre iniezioni, tre cadute. Suite **1.383 → 1.384**.
 
+- [x] ✅ **LE VOCI DI COSTO DELLA CAVA, IN UN POSTO SOLO** *(05/08)* — la
+      classificazione (`VOCI_COSTO`, `voceCosto`, `gruppoDiVoce`) è nata
+      direttamente in `shared/dw-ponti.js`, non in Conti: serve **anche a
+      Flotta**, e una classificazione scritta due volte diverge alla prima
+      aggiunta — allora i costi di Flotta e quelli di Conti smettono di
+      sommarsi, senza che nessun controllo se ne accorga. Dieci voci, ognuna
+      col suo gruppo e con `daMezzo`, che dice **quali Flotta registra già**:
+      servono a non contarle due volte. E una voce fuori elenco **non ricade su
+      «generali»**: si dichiara `non-classificata`.
+- [x] ✅ **CONTI — I TOTALI DEI COSTI, E I DUE DENOMINATORI CHE MANCANO**
+      *(05/08, `86c9828`)* — `riepilogoCosti` e `costoPerMetroCubo`. Tre
+      proprietà, tutte e tre provate contro il difetto rimesso: la voce ignota
+      conta a parte, le voci **senza data** non spariscono dal periodo in
+      silenzio, e il costo al metro cubo **rifiuta** senza il volume — mentre il
+      totale dei costi resta disponibile, perché lui dal volume non dipende.
+      ⚠️ Trappola di linguaggio annotata: `export … from` **ri-esporta ma non
+      lega il nome** nel modulo che scrive. `riepilogoCosti` usava
+      `gruppoDiVoce`, il modulo si caricava senza un errore di sintassi e moriva
+      **alla prima chiamata**.
+- [x] ✅ **CONTI — LA SCHERMATA DEL REGISTRO COSTI** *(05/08)* — l'ottava
+      scheda: la collezione `costi`, il modulo con le dieci voci raggruppate,
+      la ripartizione «dove se ne va», l'export che porta con sé anche le voci
+      senza data, e il costo al metro cubo che resta **un trattino** finché il
+      volume non c'è. Conti sapeva dire quanto **entra** e non sapeva dire
+      quanto **esce**.
+      ⚠️ **Due difetti trovati allo scatto, invisibili leggendo il codice.**
+      Primo: `.nav` è una **griglia a colonne fisse** (`--nav-cols`), e la voce
+      nuova era l'ottava su un numero rimasto a 7 — la barra non si è stretta,
+      ha mandato «Report» su una **seconda riga**. Secondo: la tendina tagliava
+      «Carburante — anch…», cioè **proprio l'avviso**; è la stessa lezione già
+      scritta nel Listino per le unità di prezzo, ripetuta tre schede più in là.
+      E due testi che **mentivano sullo schermo che avevano accanto**. Banco
+      nuovo `registro-costi.mjs`: 31 prove, controprova con due difetti veri
+      rimessi (`--nav-cols:7` e `gruppoDiVoce` che ricade su «generali»), 6
+      cadute. Prove `node` **1.406 → 1.408**, banchi del browser **33 → 35**.
+      Prossimo: il **ponte col volume di Terra**, così il denominatore non si
+      chiede più a mano.
+
 ---
 
 ## VINCOLI INVARIATI

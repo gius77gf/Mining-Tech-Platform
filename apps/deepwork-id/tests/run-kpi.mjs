@@ -2099,6 +2099,24 @@ test("col volume il costo al metro cubo esce, e usa il totale del periodo", () =
   eq(r.costoM3, 6.2, "6.200 € su 1.000 m³");
   eq(r.volumeM3, 1000, "e il denominatore è dichiarato");
 });
+test("⛔ il riepilogo restituisce le RIGHE che ha sommato, non solo il totale", () => {
+  /* Serve a far mostrare alla schermata esattamente quelle: rifiltrarle nella
+     pagina vorrebbe dire riscrivere la regola del periodo una seconda volta, e
+     due copie divergono al primo ritocco — il cartellone direbbe una cosa e
+     l'elenco sotto un'altra, senza che niente lo segnali. */
+  const r = conti.riepilogoCosti(COSTI, "2026-03-01", "2026-03-31");
+  eq(r.righe.length, r.conto, "tante quante ne dichiara il conto");
+  eq(r.righe.reduce((t, c) => t + c.importo, 0), r.totale, "e sommano al totale, al centesimo");
+  ok(!r.righe.some(c => c.voce === "canone"), "il canone di febbraio non è fra loro");
+  ok(!r.righe.some(c => +c.importo <= 0), "e nemmeno l'importo non positivo");
+  eq(r.righeSenzaData.map(c => c.voce), ["energia"], "e quelle senza data tornano a parte");
+  eq(r.righeSenzaData.length, r.senzaData, "in accordo col numero già dichiarato");
+});
+test("senza periodo non c'è un «fuori periodo»: le righe senza data sono già dentro", () => {
+  const r = conti.riepilogoCosti(COSTI);
+  eq(r.righeSenzaData, [], "niente da mostrare a parte");
+  ok(r.righe.some(c => c.voce === "energia"), "l'energia senza data è nel conto principale");
+});
 test("prioritaOperative: manutenzione a ore su un mezzo assente viene ignorata (non crasha)", () => {
   const p = flotta.prioritaOperative(
     [{ nome: "Escavatore E1 — CAT 352", ore: 100, stato: "operativo" }],

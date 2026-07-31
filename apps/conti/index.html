@@ -95,7 +95,11 @@
   --info-basis:130px;
   --arr-ico:15px;
   --arr-stroke:1.8;
-  --nav-cols:7;
+  /* ⚠️ VA CAMBIATO INSIEME AI BOTTONI DELLA BARRA. La barra è una GRIGLIA a
+     colonne fisse: aggiungere una voce senza toccare questo numero non la
+     stringe, la manda A CAPO — e la voce in più finisce su una seconda riga,
+     sotto le altre. Non si vede leggendo il codice, si vede allo scatto. */
+  --nav-cols:8;
   --kpi-cols:4;
   --form-gap:11px;
   --form-pad:14px 13px 13px;
@@ -819,6 +823,90 @@ label.item:has(.dw-chk:checked){
     Per correggere una pesata sbagliata eliminala e rifalla, finché non è fatturata.</div>
 </div>
 
+<!-- ══ REGISTRO COSTI ═══════════════════════════════════════════════════
+     Conti sapeva dire quanto ENTRA (fatture, incassi, canone) e non sapeva
+     dire quanto ESCE: «quanto costa un metro cubo» — la domanda con cui si
+     decide un prezzo di listino — non aveva nessun posto da cui partire.
+     La classificazione delle voci sta in shared/dw-ponti.js perché la usa
+     anche Flotta: qui non si riscrive, si legge. -->
+<div class="page" id="page-cos">
+  <div class="sec">Costi della cava<span class="cnt" id="cos-cnt">0</span></div>
+  <div class="note">Qui si scrive <b>quanto costa produrre</b>, voce per voce: è l'altra metà del
+    conto, quella che le fatture non dicono. Serve a rispondere alla domanda con cui si decide un
+    prezzo — <b>quanto costa un metro cubo</b> — e a vedere <b>dove</b> se ne va il denaro.
+    Tre voci (carburante, manutenzione, noleggi) le registra già <b>Flotta</b> mezzo per mezzo:
+    se le riscrivi anche qui le conti <b>due volte</b>, e Conti te lo ricorda sotto ognuna.</div>
+  <div class="form" id="cos-per">
+    <div class="fld" id="fld-cos-dal" style="flex:1 1 150px;">
+      <label for="cos-dal">Periodo dal</label>
+      <input class="dw-input" id="cos-dal" type="date">
+      <span class="err-msg" id="err-cos-dal"></span>
+    </div>
+    <div class="fld" id="fld-cos-al" style="flex:1 1 150px;">
+      <label for="cos-al">Al</label>
+      <input class="dw-input" id="cos-al" type="date">
+      <span class="err-msg" id="err-cos-al"></span>
+    </div>
+    <button class="dw-btn secondary" id="btn-cos-anno">Quest'anno</button>
+    <button class="dw-btn secondary" id="btn-cos-prec">Anno scorso</button>
+  </div>
+  <div id="cos-riep"></div>
+  <div id="graf-cos"></div>
+  <div id="cos-gruppi"></div>
+
+  <div class="sec">Costo al metro cubo</div>
+  <div class="note">Il totale dei costi diviso i <b>metri cubi usciti dal fronte</b> nello stesso
+    periodo. Senza il volume <b>non si calcola</b>, e Conti non lo stima: un costo unitario
+    inventato sembra una misura, e sembrerebbe pure una buona notizia — un numero basso. Il volume
+    lo misura <b>Terra</b> con i rilievi; qui lo puoi anche scrivere a mano.</div>
+  <div class="form" id="cos-vol-form">
+    <div class="fld" id="fld-cos-vol" style="flex:1 1 210px;">
+      <label for="cos-vol">Volume estratto nel periodo (<span class="u">m³</span>)</label>
+      <input class="dw-input dec" id="cos-vol" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 1.250" title="Metri cubi tolti dal fronte nel periodo scelto qui sopra. La virgola va benissimo: 1250,5.">
+      <span class="err-msg" id="err-cos-vol"></span>
+    </div>
+  </div>
+  <div id="cos-m3"></div>
+
+  <div class="sec">Nuovo costo</div>
+  <div class="form" id="cos-form">
+    <!-- ⛔ LA VOCE PRENDE TUTTA LA RIGA. In mezza riga (200 px) tre etichette
+         su dieci uscivano tagliate — «Manutenzione e ricamb…», e la tendina è
+         il campo che decide dove finisce il costo: un'etichetta a metà è una
+         scelta fatta al buio. Misurato dal banco, non a occhio. E l'ordine è
+         quello con cui si pensa: cosa, quando, quanto, perché. -->
+    <div class="fld" id="fld-co-voce" style="flex:1 1 100%;">
+      <label for="co-voce">Voce di costo</label>
+      <select class="dw-input" id="co-voce"></select>
+      <span class="err-msg" id="err-co-voce"></span>
+    </div>
+    <div class="fld" id="fld-co-data" style="flex:1 1 150px;">
+      <label for="co-data">Data</label>
+      <input class="dw-input" id="co-data" type="date">
+      <span class="err-msg" id="err-co-data"></span>
+    </div>
+    <div class="fld" id="fld-co-imp" style="flex:1 1 150px;">
+      <label for="co-imp">Importo €</label>
+      <input class="dw-input dec" id="co-imp" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0,00" title="Importo del costo in euro, al netto dell'IVA. La virgola va benissimo: 148,50.">
+      <span class="err-msg" id="err-co-imp"></span>
+    </div>
+    <div class="fld w2" id="fld-co-nota">
+      <label for="co-nota">Nota (fornitore o documento)</label>
+      <input class="dw-input" id="co-nota" placeholder="es. gasolio pala, fattura 214" autocomplete="off">
+      <span class="err-msg" id="err-co-nota"></span>
+    </div>
+    <button class="dw-btn" id="btn-cos">Registra</button>
+  </div>
+  <div id="co-avviso"></div>
+  <div class="note esito" id="cos-esito"></div>
+
+  <div class="sec">Registro del periodo</div>
+  <div id="cos-list"></div>
+  <div class="tools">
+    <button class="dw-btn secondary" id="btn-cos-export">Esporta costi (CSV)</button>
+  </div>
+</div>
+
 <div class="page" id="page-lis">
   <div class="sec">Listino prodotti<span class="cnt" id="lis-cnt">0</span></div>
   <div class="note">Un prodotto si vende <b>a tonnellata</b> oppure <b>a metro cubo</b>:
@@ -1151,6 +1239,7 @@ label.item:has(.dw-chk:checked){
   <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg></span>Quadro</button>
   <button id="nav-fat" onclick="go('fat')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M5.5 3.2h13v17.6l-2.6-1.5-2.6 1.5-2.6-1.5-2.6 1.5L5.5 20.8z"/><path d="M9 8.2h6M9 12h6M9 15.4h3.6"/></svg></span>Fatture</button>
   <button id="nav-pes" onclick="go('pes')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M2.6 6.6h11v9.4h-11z"/><path d="M13.6 10.2h3.5l3.3 3.1V16h-6.8z"/><circle cx="7" cy="18.4" r="2"/><circle cx="17" cy="18.4" r="2"/></svg></span>Pesate</button>
+  <button id="nav-cos" onclick="go('cos')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M12 3.2v9.6M8.4 9.4l3.6 3.8 3.6-3.8"/><path d="M3.6 15v3.4a2.2 2.2 0 0 0 2.2 2.2h12.4a2.2 2.2 0 0 0 2.2-2.2V15"/></svg></span>Costi</button>
   <button id="nav-lis" onclick="go('lis')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M12.4 3.1h7.1a1.4 1.4 0 0 1 1.4 1.4v7.1a1.4 1.4 0 0 1-.4 1l-8.2 8.2a1.4 1.4 0 0 1-2 0l-7.1-7.1a1.4 1.4 0 0 1 0-2l8.2-8.2a1.4 1.4 0 0 1 1-.4z"/><path d="M16.6 7.4v.02"/></svg></span>Listino</button>
   <button id="nav-cli" onclick="go('cli')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M16.6 20.5v-1.6a3.9 3.9 0 0 0-3.9-3.9H6.9A3.9 3.9 0 0 0 3 18.9v1.6"/><circle cx="9.8" cy="7.6" r="3.9"/><path d="M21 20.5v-1.6a3.9 3.9 0 0 0-2.9-3.8M15.6 4a3.9 3.9 0 0 1 0 7.2"/></svg></span>Clienti</button>
   <button id="nav-gar" onclick="go('gar')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M9 4.2H6.5A2 2 0 0 0 4.5 6.2v13a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-13a2 2 0 0 0-2-2H15"/><rect x="9" y="2.5" width="6" height="3.6" rx="1.2"/><path d="M8.6 12.4l2.2 2.2 4.6-4.6"/></svg></span>Gare</button>
@@ -1179,7 +1268,8 @@ label.item:has(.dw-chk:checked){
     applicaIncassi, apertoDi, statoIncasso, movimentiDiFattura, incassatoPeriodo,
     tempiPagamentoClienti, tempoMedioPagamento, emessoIncassato,
     numeroDaCampo, AVVISO_DECIMALE,
-    CAUSALI_NOTA, causaleNota, stornatoDi, statoFattura, validaNota, notaDaFattura } from "./conti-data.js";
+    CAUSALI_NOTA, causaleNota, stornatoDi, statoFattura, validaNota, notaDaFattura,
+    VOCI_COSTO, voceCosto, gruppoDiVoce, riepilogoCosti, costoPerMetroCubo } from "./conti-data.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, euro, euro0, conEuro, isoLocale, oggiISO as oggiISOShell, meseLocale } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
@@ -1338,7 +1428,7 @@ label.item:has(.dw-chk:checked){
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
-  let FAT=[], GAR=[], CLI=[], PRO=[], PES=[], INC=[], NOT=[], IMP=null;
+  let FAT=[], GAR=[], CLI=[], PRO=[], PES=[], INC=[], NOT=[], COS=[], IMP=null;
   // Rilievi di TERRA, in sola lettura (confronto cavato/venduto). null = non
   // disponibili: «non lo so» e «zero» sono due risposte diverse, e l'app deve
   // saperle distinguere invece di mostrare un cavato di zero che non esiste.
@@ -1469,10 +1559,11 @@ label.item:has(.dw-chk:checked){
   }
   async function refresh(){
     let IMPL, FATG;
-    [FATG,GAR,CLI,PRO,PES,INC,NOT,IMPL] = await Promise.all([db.fatture(), db.gare(), db.clienti(),
-      db.prodotti(), db.pesate(), db.incassi(), db.note(), db.impostazioni()]);
+    [FATG,GAR,CLI,PRO,PES,INC,NOT,COS,IMPL] = await Promise.all([db.fatture(), db.gare(), db.clienti(),
+      db.prodotti(), db.pesate(), db.incassi(), db.note(), db.costi(), db.impostazioni()]);
     INC = INC || [];
     NOT = NOT || [];
+    COS = COS || [];
     // ogni fattura porta con sé il suo stato di incasso (incassato, residuo,
     // giorni reali di pagamento). Senza movimenti registrati residuo = importo:
     // tutti i conti restano quelli di prima, al centesimo.
@@ -2203,9 +2294,11 @@ label.item:has(.dw-chk:checked){
       // stesso periodo di partenza per il confronto cavato/venduto: l'anno
       // in corso è la domanda che il titolare fa più spesso
       $("ric-dal").value = a + "-01-01"; $("ric-al").value = a + "-12-31";
+      $("cos-dal").value = a + "-01-01"; $("cos-al").value = a + "-12-31";
     }
     renderCanone();
     renderRiconciliazione();
+    renderCosti();
 
     // ══════════════════════════════════════════════════════════════════
     // QUADRO — consegne consegnate ma non ancora fatturate (per cliente)
@@ -2742,6 +2835,178 @@ label.item:has(.dw-chk:checked){
     return RIL;
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  // REGISTRO COSTI — dove se ne va il denaro, e quanto costa un metro cubo
+  // ----------------------------------------------------------------------
+  // Regole di condotta di questa schermata:
+  //  1. una voce che non è nell'elenco NON diventa «spese generali»: si vede
+  //     per quello che è, non classificata, con scritto cosa fare;
+  //  2. un costo senza data non sparisce dal periodo in silenzio: resta in
+  //     fondo, contato a parte, con la ragione;
+  //  3. il costo al metro cubo NON si calcola senza i metri cubi, e non si
+  //     stima: il numero inventato sarebbe basso, cioè la notizia che chi
+  //     guarda vuole leggere;
+  //  4. le voci che Flotta registra già si dichiarano, per non contarle due
+  //     volte senza accorgersene.
+  // ══════════════════════════════════════════════════════════════════════
+  /* I gruppi non si elencano a mano: si ricavano dalle voci di shared/, così
+     un gruppo aggiunto là compare qui da solo. Le etichette e le icone sono
+     l'unica cosa che vive in Conti — e un gruppo senza etichetta mostra la
+     sua chiave, che è brutta ma VISIBILE, invece di sparire. */
+  const ETICHETTA_GRUPPO = {
+    produzione: "Produzione", mezzi: "Mezzi e trasporti",
+    impianto: "Impianto e lavorazione", concessione: "Concessione e ambiente",
+    generali: "Spese generali", "non-classificata": "Voci non classificate",
+  };
+  const ICONA_GRUPPO = {
+    produzione: "fronte", mezzi: "camion", impianto: "cumulo",
+    concessione: "gara", generali: "busta", "non-classificata": "allarme",
+  };
+  const gruppiCosto = () => senzaDoppioni(VOCI_COSTO.map(v => v.gruppo), (g) => g).concat("non-classificata");
+  const etichettaGruppo = (g) => ETICHETTA_GRUPPO[g] || g;
+  const cosPeriodo = () => {
+    const a = new Date().getFullYear();
+    return [$("cos-dal").value || (a + "-01-01"), $("cos-al").value || (a + "-12-31")];
+  };
+  // la voce come si legge: etichetta se è nell'elenco, altrimenti la chiave
+  // scritta da chi ha registrato il costo — che è comunque un'informazione
+  const leggiVoce = (chiave) => { const v = voceCosto(chiave);
+    return v ? v.etichetta : (String(chiave || "").trim() || "(voce non indicata)"); };
+
+  function rigaCosto(c, fuoriPeriodo) {
+    const g = gruppoDiVoce(c.voce);
+    const nc = g === "non-classificata";
+    const v = voceCosto(c.voce);
+    const meta = [fuoriPeriodo ? "senza data" : fmtD(c.data), c.nota ? esc(c.nota) : ""]
+      .filter(Boolean).join(" · ");
+    return `<div class="item ${nc || fuoriPeriodo ? "st-warn" : "st-accent"}">
+      <span class="avatar">${IC[ICONA_GRUPPO[g]] || IC.euro}</span>
+      <div class="info"><div class="name">${esc(leggiVoce(c.voce))}</div>
+      <div class="meta">${meta || "—"}</div></div>
+      <div class="amt"><div class="amt-n">${eur(c.importo)}</div>
+        <div class="amt-s">${esc(etichettaGruppo(g))}</div></div>
+      ${v && v.daMezzo ? `<span class="badge">anche in Flotta</span>` : ""}
+      ${nc ? `<span class="badge warn">non classificata</span>` : ""}
+      ${fuoriPeriodo ? `<span class="badge warn">senza data</span>` : ""}
+      <div class="acts"><button class="arr del" type="button" data-del-cos="${esc(c.id)}"
+        title="Elimina questo costo" aria-label="Elimina il costo ${esc(leggiVoce(c.voce))} da ${eur(c.importo)}">${IC.croce}</button></div></div>`;
+  }
+
+  function renderCosti() {
+    const [d1, d2] = cosPeriodo();
+    const per = fmtD(d1) + " – " + fmtD(d2);
+    const rv = numCampo("cos-vol", { positivo: true, decimali: 2 });
+    const r = costoPerMetroCubo(COS, rv.ok ? rv.valore : null, d1, d2);
+    $("cos-cnt").textContent = r.conto;
+
+    if (!r.conto && !r.senzaData) {
+      $("cos-riep").innerHTML = vuoto("euro", "Nessun costo registrato nel periodo",
+        "Il registro dei costi è quello che permette di dire <b>quanto costa un metro cubo</b>. "
+        + "Comincia dalle voci grosse — <b>personale</b>, <b>esplosivo</b>, <b>energia</b> — e "
+        + "aggiungile qui sotto: bastano data, voce e importo.");
+      $("cos-gruppi").innerHTML = ""; $("cos-list").innerHTML = ""; $("cos-m3").innerHTML = "";
+      grafVuoto("graf-cos", "grafico", "Ancora niente da ripartire",
+        "Quando ci sono almeno due voci registrate, qui compare <b>dove</b> se ne va il denaro.");
+      return;
+    }
+
+    // ── il cartellone: il totale del periodo, e cosa NON c'è dentro ──────
+    $("cos-riep").innerHTML = `<div class="cassa">
+      <span class="cassa-ico">${IC.euro}</span>
+      <div><div class="cassa-num">${eur(r.totale)}</div>
+      <div class="cassa-lab">Costi del periodo</div></div>
+      <div class="cassa-txt" style="margin-left:auto;text-align:right;">
+      ${plur(r.conto, "voce registrata", "voci registrate")}.<br>
+      ${r.senzaData ? plur(r.senzaData, "voce senza data", "voci senza data") + ": <b>fuori da questo totale</b>."
+                    : "Nessuna voce lasciata fuori."}</div></div>`
+      /* ⚠️ Questo testo diceva che le voci non classificate «non entrano nella
+         ripartizione per gruppo» — e sullo schermo, tre centimetri più sotto,
+         il loro gruppo c'è: si chiama «Voci non classificate». Una nota che
+         contraddice il riquadro che ha accanto è peggio di nessuna nota. */
+      + (r.nonClassificate ? `<div class="note">${plur(r.nonClassificate, "voce ha", "voci hanno")} una voce di costo che <b>non è nell'elenco</b> (${eur(r.importoNonClassificate)}): ${r.nonClassificate === 1 ? "sta" : "stanno"} nel totale, ma in un gruppo a parte — <b>Voci non classificate</b> — perché nessuno ha deciso dove ${r.nonClassificate === 1 ? "va" : "vanno"}. Finché ${r.nonClassificate === 1 ? "resta lì non dice" : "restano lì non dicono"} niente su <i>dove</i> si spende: nel registro qui sotto ${r.nonClassificate === 1 ? "porta il segno «non classificata»" : "portano il segno «non classificata»"}.</div>` : "");
+
+    // ── dove se ne va: la ripartizione per gruppo ────────────────────────
+    const gruppi = gruppiCosto()
+      .map(g => ({ g, importo: +r.perGruppo[g] || 0,
+                   conto: r.righe.filter(c => gruppoDiVoce(c.voce) === g).length }))
+      .filter(x => x.importo > 0)
+      .sort((a, b) => b.importo - a.importo);
+    /* Sotto la cifra ci va QUANTE VOCI l'hanno fatta, non il periodo: il
+       periodo è lo stesso per tutte le righe ed è già scritto due volte qui
+       sopra — ripeterlo sei volte è rumore che copre l'unico dato che
+       cambia da riga a riga. */
+    $("cos-gruppi").innerHTML = gruppi.map(x => `<div class="item st-accent">
+      <span class="avatar">${IC[ICONA_GRUPPO[x.g]] || IC.euro}</span>
+      <div class="info"><div class="name">${esc(etichettaGruppo(x.g))}</div>
+      <div class="meta">${perc(Math.round(100 * x.importo / Math.max(0.01, r.totale)))} dei costi del periodo</div></div>
+      <div class="amt"><div class="amt-n">${eur(x.importo)}</div>
+        <div class="amt-s">${plur(x.conto, "voce", "voci")}</div></div></div>`).join("")
+      + `<div class="tot"><span class="tot-l">Totale costi del periodo</span>
+         <span class="tot-n">${eur(r.totale)}</span></div>`;
+
+    // le voci che Flotta registra già: dirlo è l'unico modo per non contarle
+    // due volte senza accorgersene
+    { const dop = r.righe.filter(c => { const v = voceCosto(c.voce); return v && v.daMezzo; });
+      const totDop = dop.reduce((t, c) => t + (+c.importo || 0), 0);
+      $("cos-gruppi").innerHTML += dop.length
+        ? `<div class="note">${plur(dop.length, "voce di questo periodo appartiene", "voci di questo periodo appartengono")} a costi che <b>Flotta</b> registra già mezzo per mezzo (${eur(totDop)}): carburante, manutenzione e noleggi. Se li scrivi in tutt'e due i posti il totale qui sopra è <b>gonfiato</b>: tienili in uno solo.</div>`
+        : "";
+    }
+
+    if (G() && gruppi.length >= 2) {
+      svuotaGraf("graf-cos");
+      G().barre("#graf-cos", {
+        titolo: "Dove se ne va — " + per,
+        meta: "costi registrati, per gruppo",
+        orientamento: "orizzontale",
+        formato: eur0,
+        tabella: false,
+        valori: gruppi.map(x => ({ etichetta: etichettaGruppo(x.g), valore: Math.round(x.importo) })),
+        aria: "Costi per gruppo: " + gruppi.map(x => etichettaGruppo(x.g) + " " + eur0(x.importo)).join(", ") + ".",
+        nota: "La barra è il <b>peso</b> di ogni gruppo sul totale: è da lì che si capisce dove conviene intervenire.",
+      });
+    } else {
+      grafVuoto("graf-cos", "grafico", "Serve più di un gruppo per ripartire",
+        "Con voci di un solo gruppo la ripartizione non dice niente che il totale qui sopra non dica già.");
+    }
+
+    // ── il costo al metro cubo ───────────────────────────────────────────
+    /* ⛔ Quando manca il volume NON si scrive un numero: si scrive perché non
+       si può scrivere. La cifra grossa resta un trattino — un costo unitario
+       inventato passerebbe per una misura, e da lì si decide un prezzo. */
+    /* ⚠️ La spiegazione lunga sta in una nota SOTTO il cartellone, non dentro.
+       Misurato allo scatto: col numero ridotto a un trattino il testo a destra
+       si prendeva tutta la larghezza e l'etichetta «COSTO DI UN METRO CUBO»
+       usciva su quattro righe, una parola per riga. Dentro il cartellone ci va
+       una riga sola — la stessa abitudine del canone qui sopra. */
+    const volRotto = numIllegibile(rv);
+    $("cos-m3").innerHTML = `<div class="cassa${r.calcolabile ? "" : " vuota"}">
+      <span class="cassa-ico">${IC.fronte}</span>
+      <div><div class="cassa-num">${r.calcolabile ? eur(r.costoM3) + "<span class=\"u\">/m³</span>" : "—"}</div>
+      <div class="cassa-lab">Costo di un metro cubo</div></div>
+      <div class="cassa-txt" style="margin-left:auto;text-align:right;">
+      ${r.calcolabile
+        ? "<b>" + eur(r.totale) + "</b><br>su <b>" + qt(r.volumeM3) + " m³</b>"
+        : "il volume<br>non c'è"}</div></div>`
+      + `<div class="note">${r.calcolabile
+        ? "È un costo <b>di produzione</b>: dentro c'è quello che hai registrato qui, non ci sono le imposte né il margine. Confrontalo con i prezzi del <b>Listino</b> per capire quanto resta su ogni metro cubo venduto."
+        : (volRotto ? spiegaNum("il volume", rv, "m³")
+                    : esc(r.motivo) + " Il confronto <b>cavato contro venduto</b>, nella scheda <b>Report</b>, te li dà già per il periodo che scegli.")}</div>`;
+
+    // ── il registro: prima il periodo, poi quello che ne è rimasto fuori ──
+    const ordinate = r.righe.slice().sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
+    $("cos-list").innerHTML = ordinate.map(c => rigaCosto(c, false)).join("")
+      + (r.righeSenzaData.length
+        ? (() => { const n = r.righeSenzaData.length, una = n === 1;
+            /* ⚠️ Qui c'era `plur`, che scrive ANCHE il numero: veniva fuori
+               «1 Questa voce non ha una data». `plur` serve a contare, non a
+               scegliere fra due frasi. */
+            return `<div class="sec" style="margin-top:14px;">Fuori dal periodo perché senza data</div>
+           <div class="note">${una ? "Questa voce non ha" : "Queste " + n + " voci non hanno"} una data, quindi non ${una ? "sta" : "stanno"} in nessun periodo e non ${una ? "entra" : "entrano"} in nessun totale. ${una ? "Riscrivila" : "Riscrivile"} con la data del documento e ${una ? "torna" : "tornano"} nel conto.</div>`; })()
+          + r.righeSenzaData.map(c => rigaCosto(c, true)).join("")
+        : "");
+  }
+
   // periodo di lavoro del confronto: di serie l'anno in corso
   const ricPeriodo = () => {
     const a = new Date().getFullYear();
@@ -3029,6 +3294,21 @@ label.item:has(.dw-chk:checked){
            cioè l'app che dà dell'incapace a chi ha fatto la cosa giusta. Il
            core, che è il riferimento, usa "success" per ogni eliminazione. */
         esito("pr-esito", "Prodotto " + p.nome + " eliminato dal listino.", "success"); await refresh(); }
+      return; }
+    const btnDelCos = e.target.closest && e.target.closest("[data-del-cos]");
+    if (btnDelCos) { const c = COS.find(x => x.id === btnDelCos.getAttribute("data-del-cos")); if (!c) return;
+      const ok = await chiedi("Elimina costo",
+        `<p>Stai per togliere questa voce dal registro dei costi.</p>
+         <div class="mrec"><span class="k">Voce</span><span class="v">${esc(leggiVoce(c.voce))}</span></div>
+         <div class="mrec"><span class="k">Importo</span><span class="v accent">${eur(c.importo)}</span></div>
+         <div class="mrec"><span class="k">Data</span><span class="v">${c.data ? fmtD(c.data) : "non indicata"}</span></div>
+         ${c.nota ? `<div class="mrec"><span class="k">Nota</span><span class="v">${esc(c.nota)}</span></div>` : ""}
+         <p style="margin-top:10px;">Esce dal totale del periodo e dal costo al metro cubo.
+           <b>Fallo solo se la voce è sbagliata o doppia</b>: un costo tolto per far tornare
+           il conto rende il costo unitario più basso di quello vero.</p>`,
+        "Elimina", true);
+      if (ok) { await db.rimuovi("costi", c.id);
+        esito("cos-esito", "Costo eliminato dal registro.", "success"); await refresh(); }
       return; }
     const btnDelPes = e.target.closest && e.target.closest("[data-del-pes]");
     if (btnDelPes) { const p = PES.find(x => x.id === btnDelPes.getAttribute("data-del-pes")); if (!p) return;
@@ -3422,6 +3702,63 @@ label.item:has(.dw-chk:checked){
     }
     pulisciPro(); $("pr-nome").focus(); await refresh();
   };
+  // ── REGISTRO COSTI: registrare, filtrare, esportare ───────────────────
+  const COS_CAMPI = ["co-voce", "co-data", "co-imp", "co-nota"];
+  const pulisciCos = () => { $("co-imp").value = ""; $("co-nota").value = "";
+    COS_CAMPI.forEach(puliscoErr); };
+  $("btn-cos").onclick = async () => {
+    const data = $("co-data").value;
+    const voce = $("co-voce").value;
+    const nota = $("co-nota").value.trim();
+    const ri = numCampo("co-imp", { positivo: true });
+    COS_CAMPI.forEach(puliscoErr);
+    const err = [];
+    /* La data è OBBLIGATORIA qui, anche se il calcolo sa reggere le voci che
+       non ce l'hanno: quelle esistono per i registri vecchi, non si creano
+       apposta. Un costo senza data non sta in nessun periodo, cioè non serve
+       a niente — e chiederla adesso costa un tocco. */
+    if (!data) err.push(["co-data", "Serve la data del documento: senza, il costo non entra in nessun periodo e resta fuori da ogni totale."]);
+    if (!voceCosto(voce)) err.push(["co-voce", "Scegli una voce dall'elenco: è quella che decide in quale gruppo di spesa finisce il costo."]);
+    if (numIllegibile(ri)) err.push(["co-imp", spiegaNum("l'importo del costo", ri, "€")]);
+    else if (!(ri.valore > 0)) err.push(["co-imp", "Scrivi l'importo in euro, al netto dell'IVA: deve essere maggiore di zero."]);
+    if (err.length) { err.forEach(x => segnaErr(x[0], x[1]));
+      esito("cos-esito", "Compila i campi evidenziati per registrare il costo.", "err");
+      primoErrore(COS_CAMPI); return; }
+    await db.aggiungi("costi", { data, voce, importo: round2(ri.valore), nota });
+    esito("cos-esito", "Costo registrato: " + leggiVoce(voce) + ", " + eur(ri.valore) + " del " + fmtD(data) + ".", "success");
+    pulisciCos(); $("co-imp").focus(); await refresh();
+  };
+  // avviso vivo sotto il form: la voce scelta è una di quelle che Flotta
+  // registra già? Dirlo PRIMA di salvare vale più che dirlo dopo.
+  const avvisoVoce = () => { const v = voceCosto($("co-voce").value);
+    $("co-avviso").innerHTML = v && v.daMezzo
+      ? `<div class="note"><b>${esc(v.etichetta)}</b> è una voce che <b>Flotta</b> registra già mezzo per mezzo. Se la scrivi anche qui, la stessa spesa finisce nei totali di tutt'e due le app: scegli in quale delle due tenerla.</div>`
+      : ""; };
+  $("co-voce").addEventListener("change", avvisoVoce);
+  const cosAnno = (delta) => { const a = new Date().getFullYear() - delta;
+    $("cos-dal").value = a + "-01-01"; $("cos-al").value = a + "-12-31"; renderCosti(); };
+  $("btn-cos-anno").onclick = () => cosAnno(0);
+  $("btn-cos-prec").onclick = () => cosAnno(1);
+  ["cos-dal", "cos-al", "cos-vol"].forEach(id =>
+    $(id).addEventListener("input", () => { puliscoErr(id); renderCosti(); }));
+  $("btn-cos-export").onclick = () => {
+    const [d1, d2] = cosPeriodo();
+    const r = riepilogoCosti(COS, d1, d2);
+    /* Nell'export ci vanno ANCHE le voci senza data, marcate: un file che le
+       lascia fuori in silenzio è lo stesso totale tranquillo di prima, solo
+       che stavolta finisce dal commercialista. */
+    let csv = "data;voce;gruppo;importo;nota;nel_periodo\n";
+    for (const c of r.righe.slice().sort((a, b) => String(a.data || "").localeCompare(String(b.data || ""))))
+      csv += `${csvCell(c.data)};${csvCell(leggiVoce(c.voce))};${csvCell(etichettaGruppo(gruppoDiVoce(c.voce)))};${+c.importo || 0};${csvCell(c.nota || "")};si\n`;
+    for (const c of r.righeSenzaData)
+      csv += `;${csvCell(leggiVoce(c.voce))};${csvCell(etichettaGruppo(gruppoDiVoce(c.voce)))};${+c.importo || 0};${csvCell(c.nota || "")};no (senza data)\n`;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
+    a.download = "conti_costi_" + d1 + "_" + d2 + ".csv";
+    a.click(); URL.revokeObjectURL(a.href);
+    esito("cos-esito", "Esportate " + plur(r.righe.length + r.righeSenzaData.length, "voce di costo", "voci di costo") + ".", "success");
+  };
+
   /* Il PROSPETTO dei prezzi: quello che il commercialista o il cliente
      guardano, col prezzo già convertito a tonnellata e a metro cubo. Non è
      un backup e non si ri-carica — per quello c'è l'Esporta della scheda
@@ -3830,8 +4167,27 @@ label.item:has(.dw-chk:checked){
   enterSubmit(PR_CAMPI, "btn-pr");
   enterSubmit(PES_CAMPI, "btn-pes");
   enterSubmit(["az-nome","az-piva","az-ind","az-con"], "btn-az");
+  enterSubmit(COS_CAMPI, "btn-cos");
+  COS_CAMPI.forEach(i => clearErr(i, "cos-esito"));
   // la pesata nasce con la data di oggi: nove volte su dieci è quella giusta
   $("pes-data").value = oggiISO();
+  /* La tendina delle voci di costo si riempie da shared/, RAGGRUPPATA: dieci
+     voci in fila sono un elenco da leggere tutto, dieci voci in cinque gruppi
+     sono cinque decisioni brevi. E l'ordine è quello di `VOCI_COSTO`, che è
+     l'ordine in cui la classificazione è stata pensata. */
+  $("co-voce").innerHTML = senzaDoppioni(VOCI_COSTO.map(v => v.gruppo), (g) => g)
+    .map(g => `<optgroup label="${esc(ETICHETTA_GRUPPO[g] || g)}">`
+      /* ⛔ NIENTE CODE NELLE OPZIONI. C'era «Carburante — anche in Flotta», e
+         allo scatto su un telefono da 430 usciva «Carburante — anch…»: la
+         tendina è larga ~200 px e la parte tagliata era proprio l'avviso. È la
+         stessa lezione già scritta nel Listino per le unità di prezzo. Chi
+         avvisa è la nota sotto il modulo, che ha tutta la riga. */
+      + VOCI_COSTO.filter(v => v.gruppo === g)
+        .map(v => `<option value="${esc(v.chiave)}"${v.daMezzo ? ' title="Flotta registra già questa voce mezzo per mezzo: tienila in una sola delle due app."' : ""}>${esc(v.etichetta)}</option>`).join("")
+      + "</optgroup>").join("");
+  // il costo nasce con la data di oggi, come la pesata
+  $("co-data").value = oggiISO();
+  avvisoVoce();
   await refresh();
   // I rilievi di Terra si leggono DOPO che Conti è già in piedi e usabile:
   // il confronto cavato/venduto si riempie da solo un attimo più tardi,
