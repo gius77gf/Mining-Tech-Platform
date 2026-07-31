@@ -5268,5 +5268,113 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ «COME STA ANDANDO DOVE ABITA LA GENTE» ═════════════════════════════
+   Il confronto fra il mese in corso e quello prima, per ogni punto collegato
+   a un ricettore. La regola di onestà è scritta nel modulo e va difesa qui:
+   **se le letture non bastano NON si inventa una linea** — si dice quante ce
+   ne sono.
+
+   Le due che contano di più:
+
+   · **«nessuna misura» non è «zero mm/s».** Senza letture media, massimo e
+     minimo restano `null`: uno zero lì significherebbe «è andato benissimo»
+     su un mese in cui non si è misurato niente;
+   · **non si confronta un mese con il nulla.** Con un mese vuoto la
+     variazione non esiste: dichiararla −100 % darebbe un miglioramento
+     inventato dall'assenza di dati, che è esattamente il numero che un'azienda
+     vorrebbe leggere e che non deve trovare. */
+{
+  const punto = { id: "p1", nome: "Casa", tipo: "vibrazioni", letture: [
+    { data: "2026-06-10", valore: 2 }, { data: "2026-06-20", valore: 4 },
+    { data: "2026-07-05", valore: 6, ora: "14:00" }, { data: "2026-07-05", valore: 3, ora: "08:00" },
+    { data: "2026-07-25", valore: 12 }] };
+  const OGGI = new Date("2026-07-31T12:00:00");
+
+  test("periodo: il mese finisce quando finisce davvero", () => {
+    eq(sentinella.limitiMese(2026, 2).al, "2026-02-28", "febbraio normale");
+    eq(sentinella.limitiMese(2028, 2).al, "2028-02-29", "e quello bisestile");
+    eq(sentinella.limitiMese(2026, 12).al, "2026-12-31", "dicembre");
+  });
+  test("⛔ periodo: gli estremi sono compresi", () => {
+    /* un intervallo che escludesse il primo o l'ultimo giorno toglierebbe
+       silenziosamente due letture da ogni mese */
+    eq(sentinella.lettureNelPeriodo(punto, "2026-06-10", "2026-06-20").map((x) => x.valore).join(","),
+       "2,4", "la prima e l'ultima ci sono");
+  });
+  test("periodo: le letture dello stesso giorno restano in ordine di ora", () => {
+    eq(sentinella.lettureNelPeriodo(punto, "2026-07-01", "2026-07-10").map((x) => x.valore).join(","),
+       "3,6", "le 8 prima delle 14");
+  });
+  test("periodo: senza estremi si prende tutto, invece di niente", () => {
+    eq(sentinella.lettureNelPeriodo(punto, "", "").length, 5, "cinque letture");
+  });
+
+  test("statistiche: media, massimo, minimo e superamenti del periodo", () => {
+    const st = sentinella.statPeriodo(punto, "2026-07-01", "2026-07-31", 10);
+    eq(st.n, 3, "tre letture");
+    eq(st.media, 7, "media sette");
+    eq(st.max, 12, "massimo dodici");
+    eq(st.min, 3, "minimo tre");
+    eq(st.superamenti, 1, "e un solo superamento della soglia");
+  });
+  test("⛔ statistiche: «nessuna misura» non è «zero»", () => {
+    /* uno zero lì significherebbe «è andato benissimo» su un mese in cui non
+       si è misurato niente */
+    const st = sentinella.statPeriodo(punto, "2027-01-01", "2027-01-31", 10);
+    eq(st.n, 0, "nessuna lettura");
+    eq(st.media, null, "e la media non esiste");
+    eq(st.max, null, "né il massimo");
+  });
+  test("⛔ statistiche: senza soglia non si contano superamenti", () => {
+    eq(sentinella.statPeriodo(punto, "2026-07-01", "2026-07-31", 0).superamenti, 0,
+       "non se ne inventa una per poter contare");
+  });
+
+  test("⛔ confronto: non si confronta un mese con il nulla", () => {
+    /* dichiarare −100 % darebbe un miglioramento inventato dall'assenza di
+       dati: esattamente il numero che un'azienda vorrebbe leggere */
+    const c = sentinella.confrontoMesi({ letture: [{ data: "2026-07-05", valore: 6 }] }, 10, OGGI);
+    eq(c.confrontabile, false, "il mese prima è vuoto");
+    eq(c.deltaPct, null, "quindi nessuna variazione");
+    eq(c.deltaMedia, null, "e nessuna differenza di media");
+  });
+  test("confronto: con due mesi pieni la variazione si calcola e si dice in percento", () => {
+    const c = sentinella.confrontoMesi(punto, 10, OGGI);
+    eq(c.confrontabile, true, "confrontabile");
+    eq(c.deltaMedia, 4, "quattro in più di media");
+    eq(c.deltaPct, 133.3, "cioè +133,3 %");
+    eq(c.deltaSuperamenti, 1, "e un superamento in più");
+  });
+  test("⛔ confronto: una media su UNA lettura sola viene dichiarata debole", () => {
+    /* è un confronto legittimo ma fragile: nasconderlo farebbe prendere per
+       tendenza quello che è un caso */
+    const c = sentinella.confrontoMesi(
+      { letture: [{ data: "2026-06-10", valore: 2 }, { data: "2026-07-05", valore: 6 }] }, 10, OGGI);
+    eq(c.confrontabile, true, "confrontabile");
+    eq(c.debole, true, "ma dichiarato debole");
+    eq(sentinella.confrontoMesi(punto, 10, OGGI).debole, false, "con più letture no");
+  });
+
+  test("andamento: si guardano solo i punti collegati a quel ricettore", () => {
+    const a = sentinella.andamentoRicettore(
+      [{ ...punto, ricettoreId: "r1" }, { id: "p2", nome: "Altro", ricettoreId: "r2", letture: [] }],
+      [{ id: "r1", nome: "Casa Rossi" }], "r1", { oggi: OGGI });
+    eq(a.punti.length, 1, "uno solo è di questo ricettore");
+    eq(a.ricettore.nome, "Casa Rossi", "e il ricettore si ritrova");
+    eq(a.dal + "→" + a.al, "2026-02-01→2026-07-31", "sei mesi, mese in corso compreso");
+  });
+  test("⛔ andamento: sotto tre letture non si disegna una linea", () => {
+    /* da due punti passa qualunque linea: mostrarla darebbe una tendenza che
+       i dati non contengono */
+    const a = sentinella.andamentoRicettore(
+      [{ id: "p3", nome: "Poche", ricettoreId: "r1",
+         letture: [{ data: "2026-07-01", valore: 1 }, { data: "2026-07-02", valore: 2 }] }],
+      [{ id: "r1", nome: "X" }], "r1", { oggi: OGGI });
+    eq(a.punti[0].n, 2, "due letture");
+    eq(a.punti[0].abbastanza, false, "non bastano");
+    eq(a.minLetture, 3, "e si dice qual è il minimo, invece di lasciare il vuoto");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
