@@ -6461,5 +6461,103 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ L'INIZIO DEL TURNO: LA CHECKLIST E L'APPELLO ═══════════════════════
+   Due cose si fanno prima di cominciare: si controlla che il posto sia sicuro,
+   e si guarda **chi c'è**.
+
+   ⛔ La regola più affilata di tutta l'app sta nell'appello, ed è scritta nel
+   modulo: **«non lo so» è una risposta diversa da «non c'è».** Chi non è ancora
+   stato spuntato non viene contato né presente né assente — perché se suona
+   l'allarme e si va al punto di raccolta, l'appello si fa su questa lista, e
+   contare per assente qualcuno che nessuno ha guardato vuol dire non andarlo a
+   cercare. */
+{
+  const OGGI = "2026-07-31";
+  const operatori = [
+    { id: "o1", nome: "Anna", squadra: "Squadra A — Perforazione", stato: "in-forza" },
+    { id: "o2", nome: "Bruno", squadra: "Squadra A", stato: "in-forza" },
+    { id: "o3", nome: "Carla", squadra: "Squadra A", stato: "non-disponibile" },
+    { id: "o4", nome: "Dario", squadra: "Squadra B", stato: "in-forza" }];
+  const presenze = [{ data: OGGI, turno: "Mattina", operatoreId: "o1", stato: "presente", ora: "06:05" }];
+
+  test("⛔ appello: chi non è stato spuntato NON è un assente", () => {
+    /* su un appello di emergenza la differenza è tutto: contare per assente
+       qualcuno che nessuno ha guardato vuol dire non andarlo a cercare */
+    const a = campo.appelloTurno(operatori, presenze, OGGI, "Mattina", "Squadra A");
+    eq(a.presenti, 1, "una presente");
+    eq(a.assenti, 0, "nessun assente");
+    eq(a.daFare, 1, "e uno ancora da guardare");
+    eq(a.completo, false, "quindi l'appello non è finito");
+  });
+  test("⛔ appello: chi non è disponibile non entra nella lista da spuntare", () => {
+    /* è in anagrafica ma oggi non è al lavoro: chiederne la presenza
+       allungherebbe la lista con una domanda che non ha risposta */
+    const a = campo.appelloTurno(operatori, presenze, OGGI, "Mattina", "Squadra A");
+    eq(a.righe.some((r) => r.operatore.id === "o3"), false, "Carla non c'è nell'elenco");
+    eq(a.totale, 2, "restano due persone da spuntare");
+  });
+  test("appello: la squadra si riconosce anche col nome esteso", () => {
+    /* «Squadra A — Perforazione» e «Squadra A» sono la stessa squadra: chi
+       scrive il nome per esteso non deve sparire dall'appello */
+    const a = campo.appelloTurno(operatori, presenze, OGGI, "Mattina", "Squadra A");
+    eq(a.righe.some((r) => r.operatore.nome === "Anna"), true, "Anna c'è");
+  });
+  test("appello: senza squadra si guarda tutta la cava", () => {
+    eq(campo.appelloTurno(operatori, presenze, OGGI, "Mattina", "").totale, 3,
+       "tutti quelli in forza, di ogni squadra");
+  });
+  test("appello: fra due spunte della stessa persona vale l'ULTIMA", () => {
+    const due = [{ data: OGGI, turno: "Mattina", operatoreId: "o1", stato: "presente", ora: "06:05" },
+      { data: OGGI, turno: "Mattina", operatoreId: "o1", stato: "assente", ora: "06:40" }];
+    eq(campo.presenzaDi(due, OGGI, "Mattina", "o1").stato, "assente", "la correzione conta");
+  });
+  test("appello: un appello vuoto non è un appello completo", () => {
+    eq(campo.appelloTurno([], [], OGGI, "Mattina", "").completo, false,
+       "zero persone spuntate su zero non è «fatto»");
+  });
+
+  test("⛔ checklist: quello che non è stato spuntato NON risulta a posto", () => {
+    /* stessa regola delle ispezioni di Scudo: un controllo mai finito non deve
+       sembrare un controllo superato */
+    const st = campo.statoChecklist({ 0: "ok", 1: "no" });
+    eq(st.ok, 1, "una a posto");
+    eq(st.no, 1, "una no");
+    eq(st.mancanti, campo.CHECKLIST_INIZIO.length - 2, "e tutte le altre mancano");
+    eq(st.completa, false, "quindi non è completa");
+  });
+  test("⛔ checklist: le voci NON a posto escono con il loro testo", () => {
+    /* è quello che il preposto legge e su cui decide se si comincia: un numero
+       non dice che cosa non va */
+    const st = campo.statoChecklist({ 1: "no" });
+    eq(st.problemi.length, 1, "un problema");
+    eq(st.problemi[0], campo.CHECKLIST_INIZIO[1].testo, "col testo della voce, non l'indice");
+  });
+  test("checklist: «non applicabile» è una risposta data, e chiude il controllo", () => {
+    const esiti = {};
+    campo.CHECKLIST_INIZIO.forEach((_, i) => { esiti[i] = "na"; });
+    const st = campo.statoChecklist(esiti);
+    eq(st.completa, true, "il controllo è finito");
+    eq(st.problemi.length, 0, "e non c'è niente da segnalare");
+    eq(st.pct, 100, "cento per cento");
+  });
+  test("checklist: gli esiti si leggono sia con la chiave testo sia con quella numero", () => {
+    /* come sono salvati nel database, senza costringere la pagina a
+       normalizzare prima di chiedere */
+    eq(campo.statoChecklist({ "0": "ok" }).ok, 1, "chiave testo");
+    eq(campo.statoChecklist({ 0: "ok" }).ok, 1, "chiave numero");
+  });
+
+  test("⛔ giorno: una registrazione SENZA data appartiene a tutti i giorni", () => {
+    /* i dati salvati prima che la data esistesse non devono sparire dagli
+       elenchi: è la stessa compatibilità del turno chiuso */
+    eq(campo.eDelGiorno({ titolo: "vecchia" }, OGGI), true, "una riga senza data si vede");
+    eq(campo.eDelGiorno({ data: "2026-07-30" }, OGGI), false, "una di ieri no");
+    eq(campo.diGiorno([{ data: OGGI }, { data: "2026-07-30" }, {}], OGGI).length, 2, "oggi e la senza data");
+  });
+  test("giorno: quante righe sono ancora senza data si dice, invece di nasconderle", () => {
+    eq(campo.senzaData([{ data: OGGI }, {}, { data: "  " }]), 2, "due da sistemare");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
