@@ -890,8 +890,13 @@ label.item:has(.dw-chk:checked){
   <div class="note">Chi coltiva una cava versa alla Regione (e spesso al Comune) un canone
     sul materiale cavato, in <b>€/m³</b> o in <b>€/t</b>. Le tariffe cambiano da regione a
     regione e da concessione a concessione: <b>Conti non ne dà per scontata nessuna</b>,
-    l'aliquota la scrivi tu qui sotto e il conto lo fa l'app sul materiale delle pesate.</div>
+    l'aliquota la scrivi tu qui sotto. E scegli <b>su quale materiale</b> si paga: quello <b>venduto</b> (dalle pesate) o quello <b>scavato</b> (dai rilievi di Terra). Non sono lo stesso numero — in mezzo ci sono le scorte di piazzale, gli scarti e il materiale usato per il ripristino — e quale delle due valga lo dice la tua concessione.</div>
   <div class="form" id="can-form">
+    <div class="fld" id="fld-can-base" style="flex:1 1 240px;">
+      <label for="can-base">Base di calcolo</label>
+      <select class="dw-input" id="can-base"></select>
+      <span class="err-msg" id="err-can-base"></span>
+    </div>
     <div class="fld" id="fld-can-unita" style="flex:1 1 170px;">
       <label for="can-unita">Canone calcolato su</label>
       <select class="dw-input" id="can-unita">
@@ -1159,7 +1164,7 @@ label.item:has(.dw-chk:checked){
   import { contiData, giorni, kpiFrom, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, parseFattureCsv, parseGareCsv, parseListinoCsv, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita,
     importiFattura, totaliDaRighe, prossimoNumero, nettoPesata, rigaPesata, valorePesata,
-    quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, venditePerProdotto,
+    quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, BASI_CANONE, venditePerProdotto,
     cavatoPeriodo, vendutoPeriodo, riconciliazione, valoreCavato, SOGLIA_DIVARIO,
     applicaIncassi, apertoDi, statoIncasso, movimentiDiFattura, incassatoPeriodo,
     tempiPagamentoClienti, tempoMedioPagamento, emessoIncassato,
@@ -2120,6 +2125,9 @@ label.item:has(.dw-chk:checked){
     // ══════════════════════════════════════════════════════════════════
     if (!canoneInit) {
       canoneInit = true;
+      $("can-base").innerHTML = BASI_CANONE
+        .map(b => `<option value="${b.chiave}" title="${esc(b.spiega)}">${esc(b.etichetta)}</option>`).join("");
+      $("can-base").value = (IMP && IMP.canoneBase === "scavato") ? "scavato" : "venduto";
       $("can-unita").value = (IMP && IMP.canoneUnita === "t") ? "t" : "m3";
       $("can-ali").value = IMP && +IMP.canoneAliquota > 0 ? itDec(IMP.canoneAliquota) : "";
       $("can-nota").value = (IMP && IMP.canoneNota) || "";
@@ -2600,12 +2608,23 @@ label.item:has(.dw-chk:checked){
   }
 
   // ── Canone di escavazione sul periodo scelto ──
-  function renderCanone() {
+  async function renderCanone() {
     const ra = numCampo("can-ali", { positivo: true, decimali: 4 });
-    const cfg = { canoneUnita: $("can-unita").value, canoneAliquota: ra.ok ? ra.valore : 0 };
-    const c = canonePeriodo(PES, cfg, $("can-dal").value, $("can-al").value);
+    const cfg = { canoneUnita: $("can-unita").value, canoneBase: $("can-base").value,
+                  canoneAliquota: ra.ok ? ra.valore : 0 };
+    const c = canonePeriodo(PES, cfg, $("can-dal").value, $("can-al").value,
+                            cfg.canoneBase === "scavato" ? await caricaRilievi() : null);
     const u = uni(c.unita);
-    if (!c.viaggi) {
+    /* ⛔ Lo stato vuoto dipende dalla BASE scelta, e le due frasi non sono
+       intercambiabili: sul venduto «nessuna pesata» vuol dire che non è stato
+       venduto niente; sullo scavato «nessun rilievo» vuol dire che nessuno ha
+       misurato. Il secondo non è uno zero, ed è `motivo` a dirlo. */
+    if (c.baseScelta === "scavato" && c.base == null) {
+      $("can-riep").innerHTML = vuoto("bilancia", "Lo scavato del periodo non è misurato", esc(c.motivo))
+        + `<div class="tools"><a class="dw-btn secondary" href="../terra/index.html">Apri Terra</a></div>`;
+      $("can-list").innerHTML = ""; return;
+    }
+    if (c.baseScelta === "venduto" && !c.viaggi) {
       $("can-riep").innerHTML = vuoto("bilancia", "Nessun materiale nel periodo",
         "Il canone si calcola sul materiale delle <b>pesate</b>: registra i DDT del periodo, oppure allarga le date qui sopra.");
       $("can-list").innerHTML = ""; return;
@@ -2618,10 +2637,20 @@ label.item:has(.dw-chk:checked){
       <div class="cassa-txt" style="margin-left:auto;text-align:right;">
       ${senzaAli ? "Scrivi l'aliquota della tua concessione qui sopra.<br>"
                  : "Aliquota <b>" + eur(c.aliquota) + "/" + u + "</b> × <b>" + qt(c.base) + " " + u + "</b><br>"}
-      Materiale del periodo: <b>${qt(c.tonnellate)} t</b>${c.metriCubi ? " · <b>" + qt(c.metriCubi) + " m³</b>" : ""} in ${plur(c.viaggi, "viaggio", "viaggi")}.</div></div>`
+      ${c.baseScelta === "scavato"
+        ? "Base: <b>" + qt(c.scavatoM3) + " m³ scavati</b> da " + plur(c.rilieviUsati, "rilievo", "rilievi")
+          + (c.m3DaCumuli ? " (fuori <b>" + qt(c.m3DaCumuli) + " m³</b> ripresi dai cumuli)" : "")
+          + ".<br>Venduto nello stesso periodo: <b>" + qt(c.tonnellate) + " t</b>"
+          + (c.metriCubi ? " · <b>" + qt(c.metriCubi) + " m³</b>" : "") + "."
+        : "Materiale del periodo: <b>" + qt(c.tonnellate) + " t</b>"
+          + (c.metriCubi ? " · <b>" + qt(c.metriCubi) + " m³</b>" : "")
+          + " in " + plur(c.viaggi, "viaggio", "viaggi") + "."}</div></div>`
       + (c.senzaDensita ? `<div class="note">${plur(c.senzaDensita, "pesata è", "pesate sono")} senza densità del prodotto: ${c.senzaDensita === 1 ? "il suo volume non entra" : "i loro volumi non entrano"} nel conto in m³. Aggiungi la densità nel <b>Listino</b> e il calcolo si completa.</div>` : "")
       + `<div class="note">Il canone si versa agli enti indicati dalla tua concessione (in genere Comune, Provincia e Regione, con quote diverse da regione a regione) e molte regioni chiedono anche una <b>dichiarazione annuale dei quantitativi estratti</b>. Questo è il numero da cui partire: <b>confermalo con il tuo ente e col commercialista</b>.</div>`;
-    $("can-list").innerHTML = c.perProdotto.map(r => `<div class="item st-accent">
+    /* Il dettaglio per prodotto esiste solo sul VENDUTO: un rilievo misura un
+       volume di banco, non sa che prodotto ne uscirà. Inventarlo qui sarebbe
+       una ripartizione senza misura. */
+    $("can-list").innerHTML = c.baseScelta === "scavato" ? "" : c.perProdotto.map(r => `<div class="item st-accent">
       <span class="avatar">${IC.listino}</span>
       <div class="info"><div class="name">${esc(r.prodotto)}</div>
       <div class="meta">${qt(r.t)} t${r.m3 ? " · " + qt(r.m3) + " m³" : ""} · ${plur(r.viaggi, "viaggio", "viaggi")}${r.senzaDensita ? " · " + r.senzaDensita + " senza densità" : ""}</div></div>
@@ -3382,6 +3411,7 @@ label.item:has(.dw-chk:checked){
   // ══════════════════════════════════════════════════════════════════
   $("btn-can").onclick = async () => {
     const canoneUnita = $("can-unita").value === "t" ? "t" : "m3";
+    const canoneBase = $("can-base").value === "scavato" ? "scavato" : "venduto";
     // l'aliquota del canone è di solito sotto l'euro («0,55 €/m³»): senza la
     // virgola non si può nemmeno scrivere
     const ra = numCampo("can-ali", { positivo: true, decimali: 4 });
@@ -3394,8 +3424,8 @@ label.item:has(.dw-chk:checked){
     if (!(canoneAliquota > 0)) {
       segnaErr("can-ali", "Scrivi l'aliquota della tua concessione, in euro per " + (canoneUnita === "t" ? "tonnellata" : "metro cubo") + ".");
       esito("can-esito", "Senza aliquota il canone non si può calcolare.", "err"); return; }
-    if (IMP && IMP.id) await db.aggiorna("impostazioni", IMP.id, { canoneUnita, canoneAliquota, canoneNota });
-    else await db.aggiungi("impostazioni", { canoneUnita, canoneAliquota, canoneNota });
+    if (IMP && IMP.id) await db.aggiorna("impostazioni", IMP.id, { canoneUnita, canoneBase, canoneAliquota, canoneNota });
+    else await db.aggiungi("impostazioni", { canoneUnita, canoneBase, canoneAliquota, canoneNota });
     esito("can-esito", "Aliquota salvata: " + eur(canoneAliquota) + " per " + (canoneUnita === "t" ? "tonnellata" : "metro cubo") + ".", "success");
     await refresh();
   };

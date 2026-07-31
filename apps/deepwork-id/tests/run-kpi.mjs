@@ -8692,6 +8692,98 @@ test("giorni: alias di giorniTra in tutt'e due le app che lo usavano", () => {
   });
 }
 
+/* ══ SU QUALE MATERIALE SI PAGA IL CANONE ══
+   Terra scriveva al titolare «la base di calcolo sono N m³ di scavo misurato»
+   e lo mandava in Conti; Conti calcolava sul VENDUTO, ricavato dalle pesate.
+   Fra scavato e venduto ci sono le scorte di piazzale, gli scarti e il
+   materiale usato per il ripristino: il numero che Terra prometteva non lo
+   produceva nessuno. */
+test("⛔ canone: la base è una scelta dichiarata, e la risposta dice quale ha usato", () => {
+  const pesate = [{ data: "2026-03-10", prodotto: "Misto", netto: 20, quantita: 12,
+                    unitaVendita: "m3", densita: 1.6 }];
+  const rilievi = [{ data: "2026-03-15", stato: "elaborato", volumeM3: 900, provenienza: "scavo" },
+                   { data: "2026-03-20", stato: "elaborato", volumeM3: 100, provenienza: "cumulo" }];
+  const base = { canoneUnita: "m3", canoneAliquota: 0.5 };
+  const v = conti.canonePeriodo(pesate, base, "2026-01-01", "2026-12-31");
+  eq(v.baseScelta, "venduto", "senza scelta si resta sul venduto, come prima");
+  eq(v.base, 12, "i metri cubi venduti");
+  eq(v.dovuto, 6, "12 × 0,50");
+  const s = conti.canonePeriodo(pesate, { ...base, canoneBase: "scavato" }, "2026-01-01", "2026-12-31", rilievi);
+  eq(s.baseScelta, "scavato", "la scelta si vede nella risposta");
+  eq(s.base, 900, "i metri cubi SCAVATI, non i dodici venduti");
+  eq(s.dovuto, 450, "900 × 0,50");
+  eq(s.m3DaCumuli, 100, "e i cento ripresi dai cumuli restano fuori: erano già stati scavati");
+  eq(s.metriCubi, 12, "il venduto resta scritto lo stesso, per poter confrontare");
+});
+test("⛔ canone: senza rilievi il dovuto è «non lo so», non zero", () => {
+  /* L'asimmetria è voluta: nessuna PESATA vuol dire che non è stato venduto
+     niente, ed è un fatto. Nessun RILIEVO non vuol dire che non è stato
+     scavato niente — vuol dire che nessuno ha misurato. */
+  const cfg = { canoneUnita: "m3", canoneAliquota: 0.5, canoneBase: "scavato" };
+  const vuoto = conti.canonePeriodo([], cfg, "2026-01-01", "2026-12-31", []);
+  eq(vuoto.base, null, "la base non c'è");
+  eq(vuoto.dovuto, null, "e il dovuto nemmeno: uno zero direbbe «non devi niente»");
+  ok(/nessuno ha misurato/.test(vuoto.motivo), "e la frase lo dice: " + vuoto.motivo.slice(0, 60));
+  const staccato = conti.canonePeriodo([], cfg, "2026-01-01", "2026-12-31", null);
+  eq(staccato.dovuto, null, "e nemmeno se Terra non è raggiungibile");
+  ok(/non sono raggiungibili/.test(staccato.motivo), "che è un motivo diverso, e va detto diverso");
+  /* Sul VENDUTO invece lo zero è la risposta giusta. */
+  const senzaPesate = conti.canonePeriodo([], { canoneUnita: "m3", canoneAliquota: 0.5 }, "2026-01-01", "2026-12-31");
+  eq(senzaPesate.dovuto, 0, "nessuna pesata = non è stato venduto niente, e zero è un fatto");
+});
+test("⛔ canone: l'aliquota a tonnellata sui rilievi non si inventa una densità", () => {
+  /* I rilievi misurano metri cubi IN POSTO. Convertirli in tonnellate vorrebbe
+     la densità del banco, che non è quella del materiale sciolto del listino:
+     usare quella darebbe un numero plausibile e sbagliato su un documento che
+     va all'ente. */
+  const r = conti.canonePeriodo([], { canoneUnita: "t", canoneAliquota: 1.2, canoneBase: "scavato" },
+    "2026-01-01", "2026-12-31", [{ data: "2026-03-15", stato: "elaborato", volumeM3: 900, provenienza: "scavo" }]);
+  eq(r.dovuto, null, "non si risponde");
+  eq(r.scavatoM3, 900, "ma i metri cubi si dicono lo stesso");
+  ok(/densità del banco/.test(r.motivo), "e si spiega che cosa manca");
+});
+test("BASI_CANONE: due scelte, ognuna con la sua spiegazione", () => {
+  eq(conti.BASI_CANONE.length, 2, "venduto e scavato");
+  for (const b of conti.BASI_CANONE) {
+    ok(b.chiave && b.etichetta && b.spiega, `«${b.chiave}» ha etichetta e spiegazione`);
+    ok(b.spiega.length > 40, `e la spiegazione dice qualcosa (${b.chiave})`);
+  }
+  eq(conti.BASI_CANONE[0].chiave, "venduto", "il venduto è il primo: è il comportamento di sempre");
+});
+
+/* ══ SENTINELLA: LE VOLATE NEL REPORT DI CONFORMITÀ ══ */
+test("⛔ report: nelle volate del periodo entrano solo le ESEGUITE", () => {
+  /* la sezione previsto/misurato marca «non misurata» ciò che non ha PPV: su una
+     volata soltanto PREVISTA sarebbe una dichiarazione falsa a un ente — l'evento
+     non è avvenuto, non è che nessuno l'ha misurato */
+  const r = sentinella.reportConformita({ dal: "2026-07-01", al: "2026-07-31",
+    monitoraggi: [], ricettori: [], volate: [
+      { id: "a", data: "2026-07-10", stato: "eseguita" },
+      { id: "c", data: "2026-07-20", stato: "prevista" },
+      { id: "d", data: "2026-06-10", stato: "eseguita" }] });
+  eq(r.nVolate, 1, "una sola");
+  eq(r.volate.map(v => v.id).join(","), "a", "la prevista e quella di giugno restano fuori");
+});
+test("⛔ previsione: un limite a zero è «non dichiarato», non un limite di zero", () => {
+  /* la cella del report scrive il limite solo se non è null: se qui uscisse 0,
+     il documento citerebbe all'ente un limite di 0 mm/s, cioè il falso peggiore */
+  eq(sentinella.previsioneDiVolata({ ppvPrevista: 3.4, ppvPrevLimite: 0 }).limite, null, "zero non è un limite");
+  eq(sentinella.previsioneDiVolata({ ppvPrevista: 3.4, ppvPrevLimite: 5 }).limite, 5, "cinque sì");
+});
+test("⛔ previsione: la norma si riporta com'è registrata, non riscritta", () => {
+  eq(sentinella.previsioneDiVolata({ ppvPrevista: 4.6, ppvPrevNorma: "  DIN 4150-3 residenziale @ 25 Hz  " }).norma,
+     "DIN 4150-3 residenziale @ 25 Hz", "solo gli spazi ai bordi");
+  eq(sentinella.previsioneDiVolata({ ppvPrevista: 4.6 }).norma, "", "e se non c'è resta vuota");
+});
+test("scarto: sotto la previsione il segno resta negativo, in mm/s e in percentuale", () => {
+  /* provato solo il verso «sopra»: è il caso in cui delta e pct sono positivi e
+     un segno perso non si vedrebbe */
+  const s = sentinella.scartoPpvVolata({ ppvPrevista: 3.4, ppvMisurata: 3.35, ppvFonte: "strumento" });
+  eq(s.delta, -0.05, "cinque centesimi in meno");
+  eq(s.pct, -1.5, "cioè -1,5 %");
+  eq(s.verso, "sotto", "sotto il previsto");
+});
+
 /* ══ LO SCONTO DEL CLIENTE ENTRA NEL PREZZO ══
    Fino al 03/08 la scheda cliente diceva «sconto 5%» e ogni DDT usciva al
    prezzo PIENO di listino: `rigaPesata` il cliente non lo riceveva proprio.

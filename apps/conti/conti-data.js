@@ -40,7 +40,7 @@
 
 import { parseCsvLine, numIt, giorniTra, isIntestazione,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL } from "../../shared/deepwork-id-client/dw-shell.js";
-import { provenienzaDi } from "../../shared/dw-ponti.js";
+import { provenienzaDi, misuratoPeriodo } from "../../shared/dw-ponti.js";
 
 export const DEMO = {
   // fatture d'esempio: alcune già collegate all'anagrafica (clienteId), altre
@@ -1191,9 +1191,32 @@ export function fatturaDaPesate(pesate) {
 // parte. Qui si calcola solo il dovuto sul materiale del periodo.
 // ============================================================
 
-export function canonePeriodo(pesate, impostazioni, dal, al) {
+/* ⛔ SU QUALE MATERIALE SI PAGA IL CANONE? Fino al 03/08 questa funzione
+   rispondeva in un modo solo — il **venduto**, ricavato dalle pesate — mentre
+   Terra scriveva al titolare «la base di calcolo sono N m³ di scavo misurato»
+   e lo mandava qui. Erano due numeri diversi: fra scavato e venduto ci sono le
+   scorte di piazzale, gli scarti e il materiale usato per il ripristino. Il
+   numero che Terra prometteva non lo produceva nessuno.
+   Adesso la base è una SCELTA dichiarata (`impostazioni.canoneBase`), e la
+   risposta dice sempre quale ha usato e quanto valeva l'altra.
+
+   ⚠️ L'ASIMMETRIA FRA LE DUE BASI È VOLUTA, e non è un dettaglio:
+   · **nessuna pesata** nel periodo vuol dire che non è stato venduto niente,
+     e allora il dovuto è **zero**: è un fatto;
+   · **nessun rilievo** nel periodo NON vuol dire che non è stato scavato
+     niente: vuol dire che **nessuno ha misurato**. Lì il dovuto è `null` e la
+     funzione dice perché — uno zero direbbe «non devi niente», che è
+     esattamente il numero tranquillo dove non è stato misurato niente. */
+export const BASI_CANONE = [
+  { chiave: "venduto", etichetta: "Materiale venduto (dalle pesate)",
+    spiega: "Somma dei DDT del periodo, convertiti nell'unità dell'aliquota." },
+  { chiave: "scavato", etichetta: "Materiale scavato (dai rilievi di Terra)",
+    spiega: "Metri cubi misurati dai rilievi, al netto delle riprese dai cumuli — quelle erano già state scavate." },
+];
+export function canonePeriodo(pesate, impostazioni, dal, al, rilievi) {
   const cfg = impostazioni || {};
   const unita = cfg.canoneUnita === "t" ? "t" : "m3";
+  const baseScelta = cfg.canoneBase === "scavato" ? "scavato" : "venduto";
   const aliquota = +cfg.canoneAliquota || 0;
   const d1 = String(dal || ""), d2 = String(al || "");
   const per = {};
@@ -1210,13 +1233,42 @@ export function canonePeriodo(pesate, impostazioni, dal, al) {
     tot.t = round2(tot.t + q.t);
     if (q.m3 != null) tot.m3 = round3(tot.m3 + q.m3);
   }
-  const base = unita === "t" ? tot.t : tot.m3;
   const perProdotto = Object.values(per).sort((a, b) => b.t - a.t);
   for (const r of perProdotto) r.dovuto = round2((unita === "t" ? r.t : r.m3) * aliquota);
-  return { unita, aliquota, tonnellate: round2(tot.t), metriCubi: round3(tot.m3),
-           base: round3(base), dovuto: round2(base * aliquota),
-           senzaDensita: tot.senzaDensita, perProdotto,
-           viaggi: perProdotto.reduce((s, r) => s + r.viaggi, 0) };
+  const comune = { unita, aliquota, baseScelta,
+    tonnellate: round2(tot.t), metriCubi: round3(tot.m3),
+    senzaDensita: tot.senzaDensita, perProdotto,
+    viaggi: perProdotto.reduce((s, r) => s + r.viaggi, 0) };
+
+  if (baseScelta === "scavato") {
+    /* Lo scavato lo misura `misuratoPeriodo` di `shared/dw-ponti.js`, la stessa
+       funzione che Terra usa per il suo riepilogo: due conti diversi sullo
+       stesso materiale darebbero due importi diversi per la stessa cava. */
+    const mis = misuratoPeriodo(rilievi, d1, d2);
+    const scavatoM3 = mis ? mis.m3 : null;
+    if (!mis || !mis.rilievi) {
+      return { ...comune, scavatoM3: mis ? mis.m3 : null, rilieviUsati: mis ? mis.rilievi : 0,
+        m3DaCumuli: mis ? mis.m3Cumulo : 0,
+        base: null, dovuto: null,
+        motivo: rilievi == null
+          ? "I rilievi di Terra non sono raggiungibili: senza quelli lo scavato non si può misurare."
+          : "Nessun rilievo elaborato in questo periodo: lo scavato non è stato misurato. "
+            + "Uno zero qui direbbe che non c'è niente da pagare, mentre la verità è che nessuno ha misurato." };
+    }
+    if (unita === "t") {
+      return { ...comune, scavatoM3, rilieviUsati: mis.rilievi, m3DaCumuli: mis.m3Cumulo,
+        base: null, dovuto: null,
+        motivo: "L'aliquota è a tonnellata ma i rilievi misurano metri cubi: per convertirli servirebbe la "
+          + "densità del banco in posto, che non è quella del materiale sciolto e qui non c'è. "
+          + "Metti l'aliquota a metro cubo, oppure usa il materiale venduto, dove le tonnellate sono pesate." };
+    }
+    return { ...comune, scavatoM3, rilieviUsati: mis.rilievi, m3DaCumuli: mis.m3Cumulo,
+      base: round3(scavatoM3), dovuto: round2(scavatoM3 * aliquota), motivo: "" };
+  }
+
+  const base = unita === "t" ? tot.t : tot.m3;
+  return { ...comune, base: round3(base), dovuto: round2(base * aliquota),
+           scavatoM3: null, rilieviUsati: 0, m3DaCumuli: 0, motivo: "" };
 }
 
 // Venduto per prodotto in un periodo (tonnellate, metri cubi e valore): è la
