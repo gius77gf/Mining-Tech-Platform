@@ -1047,11 +1047,14 @@ campi interi, file delle macchine.
       scavo. Più: l'anno in corso c'è sempre anche a volumi zero, e nei tipi di
       scadenza del titolo **nessuna periodicità è cablata**. run-kpi **937**,
       totale node **1.220**.
-- [ ] **Il predicato «rilievo elaborato con volume» è scritto DIECI volte** in
-      `terra-data.js`, in tre varianti. Non è la regola condivisa fra due app
-      (quindi non va in `shared/`), ma è il modo in cui una variante si stacca
-      dalle altre senza che nessuno lo veda: da raccogliere in una funzione sola
-      quando finisce il giro del browser.
+- [x] **Il predicato «rilievo elaborato con volume», raccolto.** Era scritto
+      **dieci volte** in `terra-data.js` in tre varianti: adesso è
+      `rilievoUsabile` (il minimo per contare) e `rilievoUsabileConData` (in più
+      la data vera, per chi **ordina** nel tempo). Che la riscrittura non abbia
+      cambiato niente è dimostrato da un'**impronta** di tutte le funzioni pure
+      di Terra presa prima e dopo — 34 chiamate a tappeto comprese — identica
+      carattere per carattere. Nella controprova, allentare quella riga sola fa
+      cadere anche la prova sulla **denuncia annuale**.
 - [x] **Prevista o eseguita (Sentinella).** 11 prove sulle funzioni che tengono
       in piedi le **due nature di riga** del registro volate. La regola dura: una
       volata **senza stato vale eseguita** — il contrario farebbe sparire dal
