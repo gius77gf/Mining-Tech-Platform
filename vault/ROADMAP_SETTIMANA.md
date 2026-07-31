@@ -1637,6 +1637,34 @@ campi interi, file delle macchine.
       interfaccia crea note, l'elenco è vuoto e si comportano come prima — ma va
       detto invece che lasciato intendere.
       Suite **1.360 → 1.379**.
+- [x] ✅ **CONTI — la nota di credito si emette, agisce e si rilegge** *(04/08)* —
+      gli aggregati leggono lo storno (`apertoDi(f, note)`, e `kpiFrom`,
+      `agingIncassi`, `esposizioneClienti` glielo passano; parametro
+      **facoltativo**, chi non lo passa ha i numeri di prima). La finestra che
+      elimina una fattura offre **due strade** invece di una — `chiedi` ha un
+      quinto parametro facoltativo per la terza voce, e le altre cinque app non
+      se ne accorgono. Il modulo chiede causale e importo, propone lo
+      **stornabile** e il numero della serie `NC/`; la fattura resta in archivio
+      col badge **«Stornata»**, e la sezione **Note di credito** compare sotto le
+      fatture (solo se ce n'è almeno una) dicendo per ognuna **da quale fattura**
+      storna e **con quale causale** — senza quei due dati la nota è
+      fiscalmente **orfana**.
+      ⚠️ **Il difetto che il banco ha trovato al primo colpo** non era nei dati:
+      `numeroDaCampo` restituisce un **oggetto**, non un numero, e la pagina lo
+      passava a `validaNota` dove `+oggetto` è `NaN` → zero. «L'importo
+      dev'essere maggiore di zero» su un campo che diceva **18300**, senza un
+      errore in console e senza nessuna prova `node` che potesse vederlo. La
+      correzione usa `numCampo`/`spiegaNum`, che in quella pagina ci sono già:
+      **una convenzione sui numeri, non due**.
+      ⚠️ E il banco nuovo, alla prima controprova, è **morto** invece di
+      fallire — lo **stesso** difetto corretto poche ore prima in
+      `genesi-struttura.mjs`: due banchi scritti lo stesso giorno, lo stesso
+      buco, perché «prendi l'elemento e premilo» non regge quando l'elemento non
+      c'è.
+      Banco: **17 prove**, controprova **13 cadute su 17**. Banchi 27 → **29**.
+      Suite **1.379 → 1.383**.
+      **Resta**: la nota non è ancora nell'export per il commercialista né
+      nell'estratto conto.
 
 ---
 
