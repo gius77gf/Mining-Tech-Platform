@@ -6103,5 +6103,84 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ I DPI: UN ELENCO DI CONSEGNE CHE DICE CHI È SCOPERTO ═══════════════
+   Il registro dei dispositivi di protezione non serve a niente se dice solo
+   quello che è stato consegnato: la domanda vera è **chi è scoperto**. Qui si
+   incrociano le mansioni (che dicono quali DPI servono) con le consegne
+   registrate.
+
+   ⚠️ Nota di parentela: `allarmiDpi` **salta** i lavoratori non più in forza
+   (`if (!l || l.attivo === false) continue`), ed è la guardia che
+   nell'organigramma delle nomine **mancava** — il difetto corretto un'unità fa.
+   Qui c'era già: si scrive la prova perché resti. */
+{
+  const OGGI = new Date("2026-07-31T12:00:00");
+  const ELMETTO = scudo.TIPI_DPI[0];
+  const OTO = scudo.TIPI_DPI.find((t) => t.addestramento);   // otoprotettori: addestramento obbligatorio
+  const LAV = [{ id: "L1", nome: "Mario", attivo: true }, { id: "L2", nome: "Anna", attivo: false },
+    { id: "L3", nome: "Bruno", attivo: true }];
+  const MANS = [{ id: "m1", nome: "Fochino", lavoratoriIds: ["L1", "L2", "L3"],
+    dpi: [ELMETTO.chiave, OTO.chiave] }];
+
+  test("⛔ dpi: chi non ha mai ricevuto un dispositivo richiesto è scoperto, in rosso", () => {
+    const a = scudo.allarmiDpi(MANS, LAV, [], OGGI);
+    eq(a.length, 4, "due persone in forza per due dispositivi");
+    eq(a.every((x) => x.gravita === "danger"), true, "e «mai consegnato» è rosso");
+  });
+  test("⛔ dpi: chi non è più in forza non compare fra gli scoperti", () => {
+    /* è la guardia che nell'organigramma delle nomine mancava: qui c'era già,
+       e questa prova serve a tenerla */
+    const a = scudo.allarmiDpi(MANS, LAV, [], OGGI);
+    eq(a.some((x) => x.lavoratoreId === "L2"), false, "Anna ha lasciato l'azienda");
+  });
+  test("⛔ dpi: due problemi sullo stesso dispositivo stanno in UNA riga sola", () => {
+    /* due righe uguali una sotto l'altra sembrano un errore del programma, e
+       chi legge non capisce se sono due elmetti o due volte lo stesso */
+    const c = [{ id: "c1", lavoratoreId: "L1", tipo: OTO.chiave, dataConsegna: "2020-01-01",
+      scadenza: "2024-01-01", addestramento: false }];
+    const righe = scudo.allarmiDpi(MANS, LAV, c, OGGI)
+      .filter((x) => x.lavoratoreId === "L1" && x.tipo === OTO.chiave);
+    eq(righe.length, 1, "una riga");
+    eq(righe[0].motivo, "da sostituire · addestramento non registrato", "coi due motivi dentro");
+    eq(righe[0].gravita, "danger", "e il più grave dei due vince");
+  });
+  test("dpi: con tutto consegnato e addestrato non si allarma nessuno", () => {
+    const c = [{ id: "c2", lavoratoreId: "L1", tipo: ELMETTO.chiave, dataConsegna: "2026-01-01", scadenza: "2028-01-01" },
+      { id: "c3", lavoratoreId: "L1", tipo: OTO.chiave, dataConsegna: "2026-01-01", scadenza: "2028-01-01", addestramento: true }];
+    eq(scudo.allarmiDpi(MANS, LAV, c, OGGI).filter((x) => x.lavoratoreId === "L1").length, 0, "niente da sistemare");
+  });
+  test("⛔ dpi: l'addestramento mancante emerge anche FUORI da una mansione", () => {
+    /* un dispositivo che richiede addestramento consegnato senza è una cosa
+       fuori posto comunque, anche se nessuna mansione lo richiede */
+    const c = [{ id: "c4", lavoratoreId: "L3", tipo: OTO.chiave, dataConsegna: "2026-01-01",
+      scadenza: "2028-01-01", addestramento: false }];
+    const a = scudo.allarmiDpi([], LAV, c, OGGI);
+    eq(a.length, 1, "una riga anche senza mansioni");
+    eq(a[0].motivo, "addestramento non registrato", "col suo motivo");
+  });
+  test("dpi: la consegna che conta è l'ULTIMA, non la prima registrata", () => {
+    const c = [{ id: "x1", lavoratoreId: "L1", tipo: "elmetto", dataConsegna: "2024-01-01" },
+      { id: "x2", lavoratoreId: "L1", tipo: "elmetto", dataConsegna: "2026-01-01" }];
+    eq(scudo.ultimaConsegnaDpi(c, "L1", "elmetto").id, "x2", "quella del 2026");
+  });
+  test("dpi: il riepilogo separa i tre motivi", () => {
+    const c = [{ id: "c1", lavoratoreId: "L1", tipo: OTO.chiave, dataConsegna: "2020-01-01",
+      scadenza: "2024-01-01", addestramento: false }];
+    const r = scudo.riepilogoDpi(c, scudo.allarmiDpi(MANS, LAV, c, OGGI));
+    eq(r.mancanti, 3, "tre mai consegnati");
+    eq(r.daSostituire, 1, "uno da sostituire");
+    eq(r.addestramenti, 1, "e un addestramento non registrato");
+  });
+  test("⛔ verbale: il foglio della persona parte dalla consegna più recente", () => {
+    /* è il documento che in ispezione viene chiesto per primo: in cima ci va
+       quello che vale adesso */
+    const c = [{ id: "x1", lavoratoreId: "L1", tipo: "elmetto", dataConsegna: "2024-01-01" },
+      { id: "x2", lavoratoreId: "L1", tipo: "elmetto", dataConsegna: "2026-01-01" }];
+    const v = scudo.verbaleDpi({ id: "L1" }, c, OGGI);
+    eq(v.righe[0].consegna.id, "x2", "la più recente in cima");
+    eq(v.righe.length, 2, "e la storia resta tutta");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
