@@ -234,6 +234,15 @@ in italiano, senza dare conoscenze per scontate).
      vincolo T9 (una volata prevista non è mai un referto), protetto sia dal
      motivo spinto sempre sia dal flag. Si toglie **tutto lo strato**, e allora
      si vede il danno vero.
+- ⚠️ **UNA PROVA DI ANDATA E RITORNO RESTA VERDE SE LE DUE METÀ SBAGLIANO
+  INSIEME.** Il giro `csvRegistroVolate` → `parseVolateCsv` pretende l'identità
+  su 19 campi ed è la prova più forte che il registro non perda niente. Ma
+  scritti i numeri con la **virgola** italiana invece che col punto, il giro
+  resta **identico**: il lettore usa `numIt`, che la virgola la legge. Il giro
+  dimostra che scrittore e lettore vanno d'accordo **fra loro**, non che il
+  formato sia quello giusto per chi apre il file con un altro programma. Per
+  quello serve un'asserzione sul **testo** del file (`;3.2;`). Stessa forma per
+  qualunque coppia scrivi/leggi, cifra/decifra, serializza/deserializza.
 - ⚠️ **LE PROVE GIRANO ANCHE CON `TZ=Europe/Rome`.** Il contenitore è in **UTC**,
   le cave sono in Italia. Il 01/08 una controprova sul conto dei giorni ha
   risposto «non distingue» in UTC e ha visto il difetto in ora italiana; la
