@@ -5,17 +5,40 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-08-04 18:45 UTC — **il ciclo della
-tracciabilità del volume e della nota di credito completa**
-**Commit di partenza:** `80111f2`
-**Cosa ha appena finito:** il giro completo del browser passa **33 su 33**, con
-tutte le controprove, e senza dichiararsi non valido. È la verifica che mancava:
-quello lanciato prima del riavvio del contenitore era andato perso a metà, e da
-allora erano entrate sette unità senza conferma.
-Prove `node`: **1.396**, copertura **433/433**.
+**Ultimo ciclo riuscito:** 2026-08-05 22:14 UTC — **il ciclo del registro
+costi: la schermata, la regola sulla barra, il ponte col volume di Terra**
+**Commit di partenza:** `ee26789`
+**Cosa sta per fare:** trapiantare la **chiusura del mese** in Conti — già
+provata in banco a 22 prove — e leggere fino in fondo il **giro completo del
+browser**, che sta girando da solo in questo momento.
 
-**Cosa ha fatto oggi, dopo quel blocco** — sei unità, tutte con la loro
-controprova:
+**Cosa ha appena finito** — quattro unità:
+
+1. **La schermata del registro costi in Conti** (ottava scheda): la collezione,
+   il modulo con le dieci voci raggruppate, la ripartizione «dove se ne va», e
+   il costo al metro cubo che resta **un trattino** finché il volume non c'è.
+   Conti sapeva dire quanto **entra** e non sapeva dire quanto **esce**.
+2. **Regola 19 di `run-stile.mjs`**: la barra in basso ha tante colonne quante
+   voci. Nasce da un difetto vero di questo ciclo — `.nav` è una griglia a
+   colonne fisse, la voce nuova era l'ottava su un numero rimasto a 7, e
+   «Report» è finito **a capo**, sotto la barra. Nessun errore, nessuna prova
+   rossa: l'ha trovato solo lo scatto.
+3. **Il ponte Conti ↔ Terra**: il denominatore del costo al metro cubo preso
+   dai rilievi invece che chiesto a mano, con la **provenienza che viaggia col
+   numero** e sparisce se il volume lo riscrive una persona.
+4. **Il piano della chiusura del mese**, con il prototipo già verde a 22 prove.
+
+Prove `node`: **1.415**, copertura **437/437**, banchi del browser **35**.
+
+⚠️ **Due errori miei, scritti perché non si ripetano**: ho fatto una
+controprova con `sed` sul file vero **mentre girava il giro del browser** (la
+cosa che `impronta.mjs` esiste per impedire), ed è andata bene solo per
+fortuna; e ho **affamato** il giro lanciando altre sessioni di Chromium in
+parallelo su un contenitore da 4 core — fermo al terzo banco su 35 dopo un'ora,
+mentre da solo cammina.
+
+**Cosa aveva fatto il blocco precedente (04/08)** — sei unità, tutte con la
+loro controprova:
 
 1. **Terra — il verde su un anno che nessuno ha misurato.** Il KPI
    dell'avanzamento si colorava di verde anche con **zero rilievi dell'anno**, e
