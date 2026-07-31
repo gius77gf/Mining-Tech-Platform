@@ -456,6 +456,10 @@
 .gua-op button.on[data-gua-gr="limita"]{background:var(--grad-wr);  color:var(--on-wr)}
 .gua-op button.on[data-gua-gr="annota"]{background:var(--grad-sup); color:var(--grad-on)}
 .gua-op button.on .a{opacity:.78}
+/* nessun gradino toccato e si è premuto «Segnala»: i tre bordi si accendono
+   di rosso come il bordo di un campo sbagliato, che è la grammatica che
+   Flotta usa già dappertutto */
+.gua-op.err button{border-color:var(--danger)}
 
 /* ═══════════════ FASCICOLO DEL MEZZO (libretto macchina) ═══════════════ */
 .sch-testa{
@@ -1110,6 +1114,14 @@
   // stava scritta uguale in quattro posti, e una quinta origine avrebbe
   // voluto dire ricordarseli tutti e quattro.
   const icoOrigine = (origine) => origine === "controllo" ? I.giro : origine === "guasto" ? I.avviso : "";
+
+  /* CHI STA SULLA MACCHINA, ricordato sul dispositivo. In cava il telefono è
+     personale e il nome è sempre lo stesso: farlo riscrivere ogni volta è il
+     modo migliore per farlo lasciare in bianco. Lo leggono e lo scrivono il
+     giro macchina e la segnalazione di guasto — una chiave sola, in un posto
+     solo, così non nasce una seconda memoria che si scorda. */
+  const chiRicordato = () => { try { return localStorage.getItem("dwFlottaOperatore") || ""; } catch (e) { return ""; } };
+  const ricordaChi = (nome) => { try { localStorage.setItem("dwFlottaOperatore", nome); } catch (e) {} };
 
   // stato vuoto in stile core: icona, titolo, spiegazione di cosa fare
   /* La regola sta in shared/ (era scritta sei volte, una per app, e non tutte
@@ -2004,8 +2016,7 @@
     $("giro-nome").textContent = nomeBreve(m.nome);
     $("giro-sotto").textContent = t.etichetta + " · " + giro.voci.length + " controlli · "
       + (+m.ore || 0).toLocaleString("it-IT") + " ore motore" + (m.area ? " · " + m.area : "");
-    let chi = ""; try { chi = localStorage.getItem("dwFlottaOperatore") || ""; } catch (e) {}
-    $("giro-operatore").value = chi;
+    $("giro-operatore").value = chiRicordato();
     $("giro-ore").value = ""; $("giro-note").value = ""; $("giro-esito").textContent = "";
     $("giro-voci").innerHTML = giro.voci.map(v => `
       <div class="chk" data-chk-riga="${v.chiave}">
@@ -2767,6 +2778,12 @@
     // Scheda del mezzo (fascicolo): si apre dal parco mezzi.
     const schedaMez = attr(e, "data-scheda-mezzo");
     if (schedaMez) { apriScheda(schedaMez); return; }
+    /* L8 — segnalazione di un guasto dalla riga del parco. Sta PRIMA del
+       tocco sulla riga (che fa girare lo stato del mezzo): senza il `return`
+       una segnalazione cambierebbe anche lo stato, che è esattamente la cosa
+       che la modale sta per chiedere. */
+    const guastoMez = attr(e, "data-guasto-mezzo");
+    if (guastoMez) { apriGuasto(guastoMez); return; }
     // Rimozione di un rifornimento: se aveva una voce di costo gemella,
     // sparisce anche quella — altrimenti resterebbe una spesa senza pieno.
     const delRif = attr(e, "data-del-rif");
@@ -3245,6 +3262,26 @@
     fuoco("man-titolo"); await refresh();
   };
 
+  /* «METTO IL MEZZO IN VERIFICA?» — LA DOMANDA SI FA, LA RISPOSTA LA DÀ CHI
+     GUARDA LA MACCHINA. Chi trova qualcosa non decide da solo che una
+     macchina esce dal lavoro, e l'app nemmeno: cambiare lo stato in silenzio
+     vorrebbe dire che domani mattina qualcuno trova un mezzo «in verifica»
+     senza sapere perché.
+     Il giro macchina la faceva già; dal 31/07 la fa anche la segnalazione di
+     guasto, e la domanda è la stessa — perciò è scritta in un posto solo.
+     `motivo` è la mezza frase che cambia: quello che c'è di storto.
+     Su un mezzo già fermo o già in verifica non si chiede niente: sarebbe
+     una domanda a cui è già stata data risposta. */
+  async function proponiVerifica(m, motivo) {
+    if (!m || m.stato !== "operativo") return false;
+    const ok = await chiedi("Mettere il mezzo in verifica?",
+      `Su <b>${esc(nomeBreve(m.nome))}</b> ${motivo}<br>
+         Vuoi segnare il mezzo <b>in verifica</b>, così chi lo cerca sa che c'è qualcosa in sospeso? Può continuare a lavorare.`,
+      "Metti in verifica");
+    if (ok) await db.aggiorna("mezzi", m.id, { stato: "verifica" });
+    return ok;
+  }
+
   // ══════════════════════════════════════════════════════════════════════
   // L2 — i comandi del giro macchina
   // ══════════════════════════════════════════════════════════════════════
@@ -3303,7 +3340,7 @@
     }
     err("giro-ore", false);
     const operatore = $("giro-operatore").value.trim();
-    try { localStorage.setItem("dwFlottaOperatore", operatore); } catch (e) {}
+    ricordaChi(operatore);
     const dati = {
       data: oggiISO(), mezzo: nomeBreve(m.nome), tipo: giro.tipo, operatore,
       ore, anomalie: r.no, note: $("giro-note").value.trim(),
@@ -3350,6 +3387,99 @@
     a.download = "flotta-giri-macchina.csv"; a.click();
     toast("Esportati " + CTR.length + " giri macchina (CSV).", "success");
   };
+
+  // ══════════════════════════════════════════════════════════════════════
+  // L8 — SEGNALAZIONE GUASTO RAPIDA
+  // Il giro macchina si fa a inizio turno; un guasto succede alle undici. Chi
+  // lo vede è sulla macchina, non in ufficio: se per dirlo deve tornare al
+  // container e trovare qualcuno libero, quel guasto lo dice a voce — e a
+  // voce si perde. Qui la strada è corta: si tocca il triangolo sulla riga
+  // del mezzo (o «Segnala un guasto» dentro il suo libretto), si scrive cosa
+  // non va, si tocca quanto è grave, ed è fatta.
+  // Dietro c'è ESATTAMENTE la strada del giro macchina: la stessa forma di
+  // manutenzione (`manutenzioneAperta` nel modulo dati), la stessa proposta
+  // di mettere il mezzo in verifica, le stesse priorità del Quadro. Non una
+  // seconda strada, che domani si comporterebbe in un altro modo.
+  // ══════════════════════════════════════════════════════════════════════
+  // La segnalazione in corso vive SOLO qui, in memoria, finché non si tocca
+  // «Segnala»: come il giro, una cosa a metà non è un documento.
+  let guasto = null;                       // { mezzoId, gravita }
+  // l'errore si dice due volte, come nel resto di Flotta: il toast lo fa
+  // vedere anche a chi sta guardando altrove, la riga sotto il modulo resta
+  // lì mentre si corregge
+  const guaErrore = (msg) => {
+    const b = $("gua-esito");
+    if (b) { b.textContent = msg; b.className = "note esito err"; }
+    toast(msg, "err");
+  };
+  function apriGuasto(mezzoId) {
+    const m = MEZ.find(x => x.id === mezzoId);
+    if (!m) { toast("Questa macchina non è più nel parco: aggiorna l'elenco dei mezzi.", "err"); return; }
+    guasto = { mezzoId, gravita: "" };
+    const t = tipoMezzoDi(m);
+    apriModale("Segnala un guasto",
+      `<div class="note recap" style="margin:0 0 12px;"><b>${esc(nomeBreve(m.nome))}</b> · ${esc(t.etichetta)} · <b>${(+m.ore || 0).toLocaleString("it-IT")}</b> ore motore${m.area ? " · " + esc(m.area) : ""}</div>
+       <label class="fl" for="gua-desc">Che cosa non va</label>
+       <input class="dw-input" id="gua-desc" maxlength="120" autocomplete="off" spellcheck="false"
+              placeholder="Es. perde olio dal braccio">
+       <label class="fl" style="margin-top:12px;">Quanto è grave</label>
+       <div class="gua-op" id="gua-gravita">${GRAVITA_GUASTO.map(g =>
+         `<button type="button" data-gua-gr="${g.chiave}" aria-pressed="false"><span class="t">${esc(g.etichetta)}</span><span class="a">${esc(g.aiuto)}</span></button>`).join("")}</div>
+       <label class="fl" for="gua-chi">Chi segnala</label>
+       <input class="dw-input" id="gua-chi" autocomplete="off" placeholder="Il tuo nome (facoltativo)"
+              value="${esc(chiRicordato())}">
+       <div class="form-hint" style="margin-top:10px;">Quello che scrivi diventa una <b>manutenzione aperta</b> su questa macchina: la trovi nelle priorità del Quadro e in <b>Officina</b>, dove si apre come ordine di lavoro e si chiude nel registro degli interventi. Il nome non è obbligatorio, ma è la prima cosa che cerca chi ripara: serve a farsi raccontare il rumore.</div>
+       <div class="note esito err" id="gua-esito"></div>`,
+      [{ label: "Annulla", azione: () => { guasto = null; chiudiModale(); } },
+       { label: "Segnala", cls: "primary", azione: inviaGuasto }]);
+    // I tre gradini si comportano come le pastiglie del core: uno solo acceso,
+    // e ri-toccando quello acceso si toglie la scelta (chi ha sbagliato mira
+    // col guanto non deve chiudere e riaprire la finestra).
+    const box = $("gua-gravita");
+    if (box) box.querySelectorAll("button").forEach(b => b.onclick = () => {
+      const gia = b.classList.contains("on");
+      box.querySelectorAll("button").forEach(x => { x.classList.remove("on"); x.setAttribute("aria-pressed", "false"); });
+      box.classList.remove("err");
+      if (gia) { guasto.gravita = ""; return; }
+      b.classList.add("on"); b.setAttribute("aria-pressed", "true");
+      guasto.gravita = b.getAttribute("data-gua-gr");
+    });
+  }
+  async function inviaGuasto() {
+    if (!guasto) return;
+    const m = MEZ.find(x => x.id === guasto.mezzoId);
+    if (!m) { guaErrore("Questa macchina non è più nel parco: annulla e riapri la segnalazione dalla riga del mezzo."); return; }
+    const dati = { mezzo: nomeBreve(m.nome), descrizione: $("gua-desc").value,
+                   gravita: guasto.gravita, segnalatoDa: $("gua-chi").value };
+    const v = validaGuasto(dati);
+    err("gua-desc", !!v.errori.descrizione);
+    if ($("gua-gravita")) $("gua-gravita").classList.toggle("err", !!v.errori.gravita);
+    if (!v.ok) {
+      guaErrore(Object.values(v.errori).join(" "));
+      if (v.errori.descrizione) fuoco("gua-desc");
+      else if (v.errori.gravita) $("gua-gravita").scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    ricordaChi(v.segnalatoDa);
+    const nuova = manutenzioneDaGuasto(dati);
+    await db.aggiungi("manutenzioni", nuova);
+    const g = gravitaGuasto(dati.gravita);
+    guasto = null;
+    chiudiModale();
+    await refresh();
+    /* GRAVITÀ ALTA: si PROPONE, non si decide. Fermare una macchina è una
+       decisione di chi gestisce il parco, e prendersela in silenzio vorrebbe
+       dire far trovare domattina un mezzo «in verifica» senza che nessuno
+       sappia perché. La domanda è la stessa del giro macchina, e infatti la
+       fa la stessa funzione. */
+    const messo = g.alta
+      ? await proponiVerifica(m, `è appena stato segnalato un guasto grave: <b>${esc(v.descrizione)}</b>.`)
+      : false;
+    if (messo) await refresh();
+    toast("Guasto segnalato su " + nomeBreve(m.nome) + ": è aperto in Officina come lavoro da fare"
+      + (messo ? ", e il mezzo è ora in verifica." : "."), "success");
+  }
+  $("btn-sch-guasto").onclick = () => { if (schedaId) apriGuasto(schedaId); };
 
   // ══════════════════════════════════════════════════════════════════════
   // L4 — registrazione di un rifornimento
