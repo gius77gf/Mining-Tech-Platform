@@ -141,6 +141,10 @@ const SUPERFICI = [
 const MODULI = [
   ["motore grafici", "shared/dw-grafici.js"],
   ["motore grafici (stile)", "shared/dw-grafici.css"],
+  /* La struttura del core (toast, modale, alone) da quando vive in un posto
+     solo. Ci è entrata il 03/08, il giorno dopo essere nata: nessuna regola la
+     guardava, ed è il file che le sei app caricano tutte. */
+  ["struttura condivisa", "shared/dw-app-ui.js"],
   ["guscio SDK", "shared/deepwork-id-client/dw-shell.js"],
   ["ponti fra le app", "shared/dw-ponti.js"],
   ["Campo (dati)", "apps/campo/campo-data.js"],
@@ -471,34 +475,51 @@ test("un dialogo dentro un'interpolazione è una chiamata, non un testo", () => 
    Il core ne usciva pulito per CASO: 131 apostrofi e 39 virgolette, due
    inversioni che si annullavano.
 
-   Questa prova è la misura stessa, tenuta accesa: una dichiarazione di
-   funzione a colonna zero è codice per definizione, e se la scansione la
-   chiama «stringa» ha perso la fase. È l'unico controllo del file che
-   verifica lo STRUMENTO invece di una regola. */
-const DICHIARAZIONE = /(^|\n)((?:export\s+)?(?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\()/g;
+   Questa prova è la misura stessa, tenuta accesa: una dichiarazione all'inizio
+   di una riga — `function x(`, `const y =` — è codice o commento, mai il
+   CONTENUTO di una stringa. Se la scansione la chiama «stringa» ha perso la
+   fase. È l'unico controllo del file che verifica lo STRUMENTO invece di una
+   regola.
+
+   ⚠️ DUE COSE IMPARATE SCRIVENDOLA, e sono la stessa lezione di sempre —
+   contare quanti soggetti si sta guardando davvero:
+   1. la prima stesura prendeva solo le dichiarazioni a **colonna zero**: 934
+      ancore, che sembravano tante, ma **le sei pagine delle app ne davano
+      ZERO**. Il loro codice è tutto indentato dentro un blocco, quindi la
+      prova non guardava proprio le superfici che contano di più. Contando
+      anche le righe indentate le ancore diventano **7.485**, e nessuna
+      superficie resta fuori;
+   2. si pretende «non DENTRO», non «uguale a CODICE». In `dw-grafici.js` c'è
+      un `const g = dwGrafici.linea(…)` dentro un commento — è l'esempio d'uso
+      scritto nell'intestazione. Un pezzo di codice mostrato in un commento è
+      un commento, e pretendere CODICE lo accusava a torto. */
+const DICHIARAZIONE = /(^|\n)([ \t]*)((?:export\s+)?(?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\(|(?:export\s+)?(?:const|let|var)\s+[A-Za-z_$][\w$]*\s*=)/g;
 function dichiarazioniFuoriFase(src) {
   const tipo = classifica(src);
   const fuori = [];
   DICHIARAZIONE.lastIndex = 0;
   let m;
   while ((m = DICHIARAZIONE.exec(src)) !== null) {
-    const at = m.index + m[1].length;
-    if (tipo[at] !== CODICE) fuori.push(src.slice(0, at).split("\n").length);
+    const at = m.index + m[1].length + m[2].length;
+    if (tipo[at] === DENTRO) fuori.push(src.slice(0, at).split("\n").length);
   }
   return fuori;
 }
-let dichTot = 0, dichFuori = 0;
-const dichDove = [];
+let dichTot = 0, dichFuori = 0, dichSuperfici = 0;
+const dichDove = [], dichVuote = [];
 for (const [nome, rel] of SUPERFICI.concat(MODULI)) {
   const src = leggi(rel);
   if (src === null) continue;
   DICHIARAZIONE.lastIndex = 0;
-  dichTot += (src.match(DICHIARAZIONE) || []).length;
+  const quante = (src.match(DICHIARAZIONE) || []).length;
+  dichTot += quante;
+  if (quante > 0) dichSuperfici++; else if (!rel.endsWith(".css")) dichVuote.push(nome);
   const f = dichiarazioniFuoriFase(src);
   if (f.length) { dichFuori += f.length; dichDove.push(`${nome} (righe ${f.slice(0, 4).join(", ")}…)`); }
 }
-test(`la scansione non perde la fase: ${dichTot} dichiarazioni a colonna zero, tutte codice`, () => {
-  ok(dichTot > 900, `solo ${dichTot} dichiarazioni guardate: il controllo non sta misurando niente`);
+test(`la scansione non perde la fase: ${dichTot} dichiarazioni in ${dichSuperfici} file, nessuna presa per stringa`, () => {
+  ok(dichTot > 7000, `solo ${dichTot} dichiarazioni guardate: il controllo non sta misurando niente`);
+  ok(dichVuote.length === 0, `${dichVuote.join(", ")}: nessuna ancora, quindi su questi file la prova non guarda niente`);
   ok(dichFuori === 0, `${dichFuori} dichiarazioni prese per testo → ${dichDove.join(" · ")}`);
 });
 test("la scansione sa fallire: i due difetti rimessi le fanno perdere la fase", () => {

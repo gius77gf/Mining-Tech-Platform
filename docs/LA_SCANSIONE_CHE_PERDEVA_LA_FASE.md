@@ -110,20 +110,36 @@ non lo incontra mai.
 
 La misura è diventata una **prova permanente** dentro la suite:
 
-> `✓ la scansione non perde la fase: 934 dichiarazioni a colonna zero, tutte codice`
+> `✓ la scansione non perde la fase: 7.485 dichiarazioni in 22 file, nessuna presa per stringa`
 
 E la controprova rimette i due difetti nella scansione vera, uno alla volta,
 stampando quanti caratteri ha cambiato:
 
 ```
 ✓ (1) la pagina letta come se fosse tutta JavaScript
-    iniezione: -9 caratteri  ·  99 dichiarazioni perse
+    iniezione: -9 caratteri  ·  801 dichiarazioni perse
 ✓ (2) lo slash giudicato dall'ultimo carattere invece che dalla parola
-    iniezione: -37 caratteri  ·  16 dichiarazioni perse
+    iniezione: -37 caratteri  ·  54 dichiarazioni perse
 ```
 
-99 + 16 = **115**, esattamente le dichiarazioni che erano fuori fase all'inizio:
-i due difetti sono indipendenti e insieme spiegano tutto il buco.
+### E la prova ha dovuto essere corretta due volte, per la solita ragione
+
+La prima stesura contava solo le dichiarazioni a **colonna zero**: 934 ancore,
+che sembravano tante. Ma il codice delle sei app sta tutto **indentato** dentro
+un blocco, quindi quelle sei pagine — le superfici che contano di più —
+davano **zero ancore**: la prova non le guardava affatto. Contando anche le
+righe indentate le ancore diventano **7.485**, e nessun file resta fuori (ora
+la prova lo pretende: se un file non dà nessuna ancora, cade).
+
+La seconda correzione è più piccola e altrettanto istruttiva: si pretende «non
+è il contenuto di una stringa», non «è codice». In `dw-grafici.js`
+l'intestazione contiene l'esempio d'uso `const g = dwGrafici.linea(…)` dentro
+un commento — e un pezzo di codice mostrato in un commento **è** un commento.
+La prima versione lo accusava a torto.
+
+Nello stesso passaggio è entrato nell'elenco dei moduli
+`shared/dw-app-ui.js`, nato il giorno prima: **nessuna regola lo guardava**, ed
+è il file che tutte e sei le app caricano.
 
 Effetto collaterale visibile: la controprova a tappeto della regola 1 è passata
 da **1.029 a 1.096 iniezioni**, e Genesi c'è finalmente dentro.

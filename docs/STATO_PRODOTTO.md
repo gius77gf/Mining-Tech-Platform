@@ -56,8 +56,8 @@ ognuno. È la pagina da aprire per prima davanti a qualcuno.
   impediscono a un'app di riscriversene una propria.
 
 **Quanto è controllato, oggi** *(ricontato il 03/08 lanciando le suite, non a
-memoria)*: **1.279** prove automatiche che girano senza rete — **971** sulle
-funzioni delle app, **226** sulle regole di stile, 43 sugli aiuti condivisi, 23
+memoria)*: **1.282** prove automatiche che girano senza rete — **971** sulle
+funzioni delle app, **229** sulle regole di stile, 43 sugli aiuti condivisi, 23
 sulla nuvola di punti, 9 sul manifesto, 7 sulla demo — più **106** che girano
 con l'emulatore Firestore (58 sulle **regole di sicurezza**, 19 sull'SDK, 21
 sulle funzioni, 8 sul primo avvio) e **19 esecuzioni** che aprono davvero le

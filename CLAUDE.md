@@ -197,9 +197,14 @@ in italiano, senza dare conoscenze per scontate).
   violazione». Il core ne usciva pulito **per caso** — due inversioni che si
   annullavano. Ogni regola aveva la sua controprova e ognuna passava: mancava
   la prova sullo **strumento**. Adesso c'è, ed è l'unica del file che verifica
-  la scansione invece di una regola: *934 dichiarazioni a colonna zero, tutte
-  codice*, con la controprova che rimette i due difetti (99 + 16 = 115, il buco
-  intero). Racconto e misure: `docs/LA_SCANSIONE_CHE_PERDEVA_LA_FASE.md`.
+  la scansione invece di una regola: *7.485 dichiarazioni in 22 file, nessuna
+  presa per stringa*, con la controprova che rimette i due difetti (801 e 54
+  dichiarazioni perse). E anche quella prova ha sbagliato mira due volte, per la
+  solita ragione: contava solo le righe a **colonna zero** — 934 ancore, ma le
+  sei pagine delle app ne davano **zero**, perché il loro codice è indentato —
+  e pretendeva «è codice» dove basta «non è dentro una stringa» (l'esempio d'uso
+  scritto in un commento è un commento). Racconto e misure:
+  `docs/LA_SCANSIONE_CHE_PERDEVA_LA_FASE.md`.
 - **Due tokenizzatori, e vanno scelti**: `mascheraCodice` maschera il
   **contenuto** delle stringhe (giusto per i dialoghi — un `prompt(` dentro una
   stringa non è una chiamata), `senzaCommenti` toglie **solo i commenti** e tiene
