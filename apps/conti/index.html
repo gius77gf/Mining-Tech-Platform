@@ -649,6 +649,16 @@ label.item:has(.dw-chk:checked){
   <div id="fat-list"></div>
   <div id="fat-tot"></div>
 
+  <!-- Le note di credito emesse. Stanno QUI, sotto le fatture, e non in una
+       schermata loro: una nota non è un documento che vive da solo — si legge
+       sempre insieme alla fattura che storna. La sezione compare solo quando
+       ce n'è almeno una: uno stato vuoto per un documento che la maggior parte
+       delle cave non emette mai sarebbe rumore. -->
+  <div id="nc-sez" hidden>
+    <div class="sec">Note di credito</div>
+    <div id="nc-list"></div>
+  </div>
+
   <div class="sec">Nuova fattura</div>
   <div class="form" id="ft-form">
     <div class="fld" id="fld-ft-num" style="flex:1 1 140px;">
@@ -1549,6 +1559,26 @@ label.item:has(.dw-chk:checked){
     // si trova anche cercando il vecchio modo di scrivere il cliente
     const fatCerca = (f) => !qFat || (nomeCliente(f, CLI) + " " + (f.cliente || "") + " " + (f.numero || "")).toLowerCase().includes(qFat);
     const fatViste = FAT.filter(fatMatch).filter(fatCerca).sort(fatCmp);
+    /* le note di credito emesse, dalla più recente. Ognuna dice DA QUALE
+       fattura storna e con quale causale: senza quelle due cose la nota è
+       formalmente valida e fiscalmente orfana, ed è la prima cosa che un
+       controllo chiede. */
+    { const sez = $("nc-sez");
+      const note = NOT.slice().sort((a, b) => String(b.emessa || "").localeCompare(String(a.emessa || "")));
+      if (sez) sez.hidden = note.length === 0;
+      if (note.length) $("nc-list").innerHTML = note.map(n => {
+        const c = causaleNota(n.causale);
+        const f = FAT.find(x => x.id === n.fatturaId);
+        return `<div class="item">
+          <div class="info">
+            <div class="name">${esc(n.numero || "senza numero")} · <span class="accent">${eur(n.totale)}</span></div>
+            <div class="meta">${esc(n.cliente || "")}${n.emessa ? " · " + fmtD(n.emessa) : ""}
+              · storna la fattura <b>${esc(n.fatturaNumero || "?")}</b>${f ? "" : " (non più in archivio)"}
+              ${c ? "· " + esc(c.label) : "· <b>causale non indicata</b>"}</div>
+          </div>
+          <div class="acts"><span class="badge ${n.integrale ? "" : "warn"}">${n.integrale ? "Totale" : "Parziale"}</span></div>
+        </div>`;
+      }).join(""); }
     $("fat-list").innerHTML = fatViste.map(f => { const b = fatBadge(f);
       const ritardo = !f.incassata ? Math.max(0, -giorni(f.scadenza)) : 0;
       const sol = !f.incassata ? livelloSollecito(ritardo) : null;

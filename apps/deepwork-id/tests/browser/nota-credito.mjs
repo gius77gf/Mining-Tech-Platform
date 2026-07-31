@@ -120,6 +120,21 @@ const dopo = await misura((id) => {
 }, prima.id);
 dice(!!dopo && /Stornata/.test(String(dopo.badge || "")), "la fattura porta il badge «Stornata»", dopo);
 dice(!!dopo && /Nota di credito NC\//.test(String(dopo.esito || "")), "e l'esito lo dice col numero", dopo);
+
+/* e la nota si RILEGGE: emetterla e non poterla più vedere sarebbe un documento
+   fiscale che esiste solo come effetto su un altro */
+const elenco = await misura(() => {
+  const sez = document.getElementById("nc-sez");
+  const righe = [...document.querySelectorAll("#nc-list .item")];
+  return { visibile: !!sez && !sez.hidden, righe: righe.length,
+    testo: righe.length ? righe[0].textContent.replace(/\s+/g, " ").trim().slice(0, 150) : null };
+});
+dice(!!elenco && elenco.visibile === true, "la sezione delle note di credito compare", elenco);
+dice(!!elenco && elenco.righe === 1, "con una riga", elenco);
+dice(!!elenco && /storna la fattura/.test(String(elenco.testo || "")),
+  "e la riga dice DA QUALE fattura storna", elenco);
+dice(!!elenco && /Merce resa|Totale/.test(String(elenco.testo || "")),
+  "e con quale causale", elenco);
 dice(errori.length === 0, "e nessun errore in pagina", errori.slice(0, 2));
 
 console.log(`\n${ok + ko} prove · ${ok} passate, ${ko} fallite`);
