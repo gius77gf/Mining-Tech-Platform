@@ -5926,5 +5926,109 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
 }
 
+/* ══ «CHI PUÒ FARE QUEL LAVORO DOMANI MATTINA» ══════════════════════════
+   È la funzione con la posta più alta di tutta la piattaforma: dice se una
+   persona può stare in cava a fare un certo lavoro. Tre risposte sole, perché
+   di mattina non c'è tempo di leggere una tabella — **può / attenzione / no**.
+
+   La scelta dichiarata nel modulo, e che queste prove blindano:
+
+   · **bloccano** la persona non in forza, l'idoneità sanitaria negativa e un
+     corso richiesto **mancante o scaduto**;
+   · **i DPI NON bloccano, ma pesano.** L'app sa se la consegna è
+     *registrata*, non se il lavoratore ha l'elmetto **in mano**: dirlo come
+     certezza sarebbe una bugia. Restano in evidenza, non nascosti.
+
+   ⛔ Qui non si tocca nulla di quello che l'app decide: si scrive soltanto la
+   prova che continui a deciderlo così. */
+{
+  const OGGI = new Date("2026-07-31T12:00:00");
+  const REQ = scudo.REQUISITI_FORMAZIONE[0];      // la visita medica periodica
+  const lav = (o) => ({ id: "L1", nome: "Mario Rossi", attivo: true, idoneita: "idoneo", ...o });
+  const mansione = { id: "m1", nome: "Fochino", lavoratoriIds: ["L1"], requisiti: [REQ.chiave], dpi: [] };
+  const inRegola = [{ lavoratoreId: "L1", preset: REQ.chiave, dataScadenza: "2027-06-01" }];
+
+  test("⛔ requisito: una scadenza lo copre in tre modi, dal più sicuro al più tollerante", () => {
+    /* i dati veri arrivano da fogli diversi: pretendere solo il campo `preset`
+       lascerebbe fuori tutte le righe scritte a mano prima che esistesse */
+    eq(scudo.scadenzaCopreRequisito({ preset: REQ.chiave, descrizione: "qualsiasi" }, REQ), true, "nata da quell'adempimento");
+    eq(scudo.scadenzaCopreRequisito({ descrizione: REQ.etichetta.toUpperCase() }, REQ), true, "stessa descrizione, maiuscole a parte");
+    eq(scudo.scadenzaCopreRequisito({ descrizione: "corso " + REQ.parole[0] }, REQ), true, "o una parola che lo identifica");
+    eq(scudo.scadenzaCopreRequisito({ descrizione: "revisione estintori" }, REQ), false, "e un'altra cosa non lo copre");
+  });
+  test("⛔ requisito: con più rinnovi vale l'ULTIMO, non il primo trovato", () => {
+    /* il primo trovato sarebbe il corso del 2026 già scaduto, e la persona
+       risulterebbe non abilitata pur avendo rinnovato */
+    const due = [{ lavoratoreId: "L1", preset: REQ.chiave, dataScadenza: "2026-01-01" },
+      { lavoratoreId: "L1", preset: REQ.chiave, dataScadenza: "2027-06-01" }];
+    const st = scudo.statoRequisito(REQ, due, OGGI);
+    eq(st.scadenza, "2027-06-01", "il rinnovo più lontano");
+    eq(st.stato, "regolare", "quindi in regola");
+  });
+  test("requisito: senza nessuna riga lo stato è MANCANTE, non «regolare»", () => {
+    /* «non risulta» non è «va bene»: è la stessa differenza fra «senza dati» e
+       «conforme» del report ambientale */
+    eq(scudo.statoRequisito(REQ, [], OGGI).stato, "mancante", "mancante");
+  });
+  test("requisito: una chiave sconosciuta non rompe la schermata", () => {
+    const r = scudo.requisitoSicuro("corso-inventato");
+    eq(r.etichetta, "corso-inventato", "meglio l'etichetta grezza che una pagina rotta");
+    eq(scudo.requisitoFormazione("corso-inventato"), null, "ma si sa che non è dell'elenco");
+  });
+
+  test("abilitazione: con tutto a posto la risposta è «può»", () => {
+    eq(scudo.abilitazioneLavoratore(lav(), mansione, inRegola, [], OGGI).esito, "puo", "può andare");
+  });
+  test("⛔ abilitazione: un corso richiesto che manca BLOCCA", () => {
+    const a = scudo.abilitazioneLavoratore(lav(), mansione, [], [], OGGI);
+    eq(a.esito, "no", "non può");
+    eq(a.bloccanti.length > 0, true, "e si dice perché");
+  });
+  test("⛔ abilitazione: bloccano anche il non in forza e il non idoneo", () => {
+    eq(scudo.abilitazioneLavoratore(lav({ attivo: false }), mansione, inRegola, [], OGGI).bloccanti.join(""),
+       "non è in forza", "chi non è in forza non va in cava");
+    eq(scudo.abilitazioneLavoratore(lav({ idoneita: "non-idoneo" }), mansione, inRegola, [], OGGI).bloccanti.join(""),
+       "giudicato non idoneo alla visita medica", "e nemmeno chi il medico ha giudicato non idoneo");
+  });
+  test("⛔ abilitazione: «idoneo con prescrizioni» avvisa, non blocca", () => {
+    /* il medico l'ha dichiarato idoneo: bloccarlo sarebbe l'app che decide al
+       posto del medico competente */
+    const a = scudo.abilitazioneLavoratore(lav({ idoneita: "prescrizioni" }), mansione, inRegola, [], OGGI);
+    eq(a.esito, "attenzione", "può andare, con qualcosa da sapere");
+    eq(a.attenzioni.join(""), "idoneo con prescrizioni", "e lo si legge");
+  });
+  test("⛔ abilitazione: un DPI mai consegnato NON blocca, ma resta in evidenza", () => {
+    /* l'app sa se la consegna è REGISTRATA, non se il lavoratore ha l'elmetto
+       in mano: dirlo come certezza sarebbe una bugia in tutte e due le
+       direzioni — bloccare chi ce l'ha, o assolvere chi non ce l'ha */
+    const dpi = scudo.TIPI_DPI[0];
+    const a = scudo.abilitazioneLavoratore(lav(), { ...mansione, dpi: [dpi.chiave] }, inRegola, [], OGGI);
+    eq(a.esito, "attenzione", "non «no»");
+    eq(a.attenzioni.some((x) => x.includes("consegna mai registrata")), true,
+       "e la frase dice REGISTRATA, non «non ce l'ha»");
+  });
+
+  test("⛔ matrice: prima chi può andare, poi chi no — non l'alfabeto", () => {
+    /* di mattina si guarda la prima riga: deve essere una persona che può
+       lavorare, non la prima in ordine alfabetico */
+    const righe = scudo.matriceMansione({ ...mansione, lavoratoriIds: ["L1", "L2"] },
+      [lav({ id: "L1", nome: "Zeta" }), lav({ id: "L2", nome: "Anna" })], inRegola, [], OGGI);
+    eq(righe.map((r) => r.lavoratore.nome + ":" + r.esito).join(","), "Zeta:puo,Anna:no",
+       "Zeta può e viene prima, Anna no e viene dopo");
+  });
+  test("matrice: una persona non più in elenco non fa sparire la riga delle altre", () => {
+    const righe = scudo.matriceMansione({ ...mansione, lavoratoriIds: ["L1", "sparito"] },
+      [lav({ id: "L1" })], inRegola, [], OGGI);
+    eq(righe.length, 1, "resta quella che c'è");
+  });
+  test("matrice: il riepilogo conta le tre risposte, e la somma torna", () => {
+    const r = scudo.riepilogoMansioni([{ ...mansione, lavoratoriIds: ["L1", "L2"] }],
+      [lav({ id: "L1" }), lav({ id: "L2", nome: "Anna" })], inRegola, [], OGGI)[0];
+    eq(r.puo + r.attenzione + r.no, r.totale, "nessuna persona cade fuori dal conto");
+    eq(r.puo, 1, "una può");
+    eq(r.no, 1, "e una no");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
