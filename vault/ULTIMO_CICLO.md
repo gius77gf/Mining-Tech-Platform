@@ -5,19 +5,21 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-08-01 00:43 UTC
-**Cosa sta per fare:** il ciclo precedente ha messo in suite il banco della
-**doppia data** (che alla prima esecuzione ha segnalato Flotta **avendo torto
-lui**) e ha scoperto, censendo le export dei sei moduli dati, che **208
-funzioni su 338 non erano nominate da nessuna prova** — fra cui `importiFattura`
-(imponibile, IVA e totale di una fattura), `canonePeriodo`, `sogliaEfficace`,
-`vitaCava`, `statoRequisito`. Sono nate **38 prove nuove** (KPI 433 → 471),
-ognuna vista fallire col difetto rimesso.
-Questo ciclo riprende dal «Prossimo passo atomico»: leggere il riepilogo del
-giro a **19 banchi** (in corso da ore, al secondo banco) e continuare la
-copertura per **priorità di danno** — `reportConformita` di Sentinella, che è
-il documento che il cliente consegna davvero all'ente.
-**Commit di partenza:** `96a566a`
+**Ultimo ciclo riuscito:** 2026-08-01 (ricontrollato) — **la giornata degli otto difetti**
+**Cosa ha fatto:** le prove sulle funzioni delle app sono passate da **433 a
+783**, e hanno fatto emergere **otto difetti veri**, tutti della stessa famiglia:
+*un numero o un colore tranquillo dove non è stato misurato niente*. Fra questi,
+il grafico «ultimi 6 mesi» del core che riempiva ogni barra con la produzione del
+**mese precedente** (sempre, tutto l'anno), un **ruolo di sicurezza obbligatorio**
+che risultava coperto da una persona non più in azienda, e una **misura del
+sismografo** che spariva dal report per l'ente scambiata per un doppione.
+Da lì sono nati tre strumenti nuovi: `oggiISO` e compagni in `shared/` (erano
+scritti **sette** volte in tre modi), la passata delle prove con l'**orologio
+italiano** (`orologio-cliente.mjs`, in coda alla CI) e la **regola 15** dello
+stile. Il racconto per il fondatore è in `docs/DIFETTI_TROVATI_202607.md`.
+**Cosa sta facendo adesso:** il **giro a 19 banchi** del browser, rilanciato
+dopo il riavvio del contenitore, sulle sei superfici modificate in giornata.
+**Commit corrente:** `d42e3f2`
 
 ---
 
