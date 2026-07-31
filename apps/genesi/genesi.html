@@ -3852,6 +3852,26 @@ function volSnapshot(nome){
     design:JSON.parse(JSON.stringify({B:D2.B,S:D2.S,file:D2.file,perRow:D2.perRow,diam:D2.diam,prof:D2.prof,kg:D2.kg,kgAuto:D2.kgAuto,ritardo:D2.ritardo,ritardoFila:D2.ritardoFila,stem:D2.stem,sub:D2.sub,incl:D2.incl,esplosivo:D2.esplosivo,innesco:D2.innesco,roccia:D2.roccia,ucs:D2.ucs,eMod:D2.eMod,frat:D2.frat,bagnato:D2.bagnato,acquaCol:D2.acquaCol,presplit:D2.presplit,psSpacing:D2.psSpacing,psCharge:D2.psCharge,sequenza:D2.sequenza,recDist:D2.recDist,recNorma:D2.recNorma,recFreq:D2.recFreq,decks:D2.decks,deckStem:D2.deckStem,profilo:D2.profilo,piede:D2.piede})),
     sintesi:sintesi };
 }
+/* ⛔ QUALE conto di punti si sta scrivendo? Fino al 03/08 lo storico metteva
+   «250.000 punti» accanto a «volume ≈ 1.234 m³»: il primo era la nuvola INTERA
+   (per giunta sottocampionata a quello che si riesce a disegnare), il secondo
+   il RITAGLIO. Due numeri di due cose diverse, uno accanto all'altro, che
+   chiunque legge come «il ritaglio ha 250.000 punti» — cioè un numero
+   tranquillo dove non era stato misurato niente.
+   Adesso: se il conto del ritaglio c'è, si scrive QUELLO e si dice che è del
+   ritaglio; altrimenti si scrive quello della nuvola dicendo che è caricata, e
+   se era sottocampionata si scrive anche su quanti.
+   I record vecchi hanno solo `punti`: si mostrano com'erano, senza inventare. */
+function _puntiNuvola(e){
+  if(!e) return '';
+  if(e.puntiRitaglio>0) return ' · '+gnum(e.puntiRitaglio,0)+' punti nel ritaglio';
+  const mostrati = e.puntiMostrati || e.punti || 0;
+  if(!mostrati) return '';
+  const tot = e.puntiTotali || 0;
+  return tot>mostrati
+    ? ' · '+gnum(mostrati,0)+' punti disegnati su '+gnum(tot,0)+' caricati'
+    : ' · '+gnum(mostrati,0)+' punti caricati';
+}
 function renderHome(){
   const arr=_lsGet('genesiVolate');
   if($('hgVolN')) $('hgVolN').textContent=arr.length? (arr.length+' salvate'):'';
@@ -3863,7 +3883,7 @@ function renderHome(){
   if($('hgNuvN')) $('hgNuvN').textContent=nv.length? (nv.length+' lavorazioni'):'';
   const ln=$('hgNuvole');
   if(ln) ln.innerHTML = nv.length
-    ? nv.slice(-6).reverse().map(e=>'<div class="hg-item"><div class="t"><b>'+_rEsc(e.nome)+'</b><small>'+_rEsc(e.data||'')+(e.punti?(' · '+gnum(e.punti,0)+' punti'):'')+(e.volume?(' · volume ≈ '+gnum(e.volume,1)+' m³'):'')+'</small></div></div>').join('')
+    ? nv.slice(-6).reverse().map(e=>'<div class="hg-item"><div class="t"><b>'+_rEsc(e.nome)+'</b><small>'+_rEsc(e.data||'')+_puntiNuvola(e)+(e.volume?(' · volume ≈ '+gnum(e.volume,1)+' m³'):'')+'</small></div></div>').join('')
     : '<div class="hg-empty">Nessun rilievo ancora. Carica la nuvola del drone nel visore: le lavorazioni compaiono qui.</div>';
 }
 /* Un solo posto per «salva la volata»: i due bottoni facevano la stessa cosa

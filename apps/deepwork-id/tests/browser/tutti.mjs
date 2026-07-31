@@ -43,6 +43,8 @@ const BANCHI = [
   ['navigazione · controprova', 'navigazione.mjs', ['--senza-guardie'], true],
   ['sconto del cliente', 'sconto-cliente.mjs', []],
   ['sconto · controprova', 'sconto-cliente.mjs', ['--senza-cliente'], true],
+  ['quali punti conta la nuvola', 'punti-nuvola.mjs', []],
+  ['punti della nuvola · controprova', 'punti-nuvola.mjs', ['--conto-unico'], true],
 ];
 
 async function rispondePorta(porta) {

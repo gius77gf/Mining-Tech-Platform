@@ -144,6 +144,12 @@ const SUPERFICI = [
      a memoria. Adesso c'è il controllo qui sotto che lo pretende. */
   ["Deepwork ID · non autorizzato", "apps/deepwork-id/non-autorizzato.html"],
   ["Genesi · accesso", "apps/genesi/login.html"],
+  /* ⚠️ Entrato il 03/08 CORREGGENDO una mia esclusione sbagliata: l'avevo
+     dichiarato «non raggiungibile dalla navigazione», e invece la home di
+     Genesi ha un bottone «Apri il visore nuvola» (genesi.html:607) e Terra ci
+     manda l'utente a parole quando manca il volume dal drone. Una ragione
+     scritta va verificata come tutto il resto: dichiararla non la rende vera. */
+  ["Genesi · visore nuvola", "apps/genesi/nuvola-poc.html"],
 ];
 // I moduli dati e il motore condiviso: nessuna interfaccia, ma è da lì che
 // partirebbe una regressione silenziosa.
@@ -174,9 +180,6 @@ const MODULI = [
    nessuna regola di stile le aveva mai guardate.
    Chi resta fuori adesso deve dirlo con la ragione. */
 const FUORI_SUPERFICI = {
-  "apps/genesi/nuvola-poc.html":
-    "banco di prova della lettura LAS/nuvola di punti: non è una schermata del "
-    + "prodotto, non è raggiungibile dalla navigazione e non ha la struttura del core",
   "shared/_collaudo-grafici.html":
     "il collaudo del motore dei grafici — l'underscore nel nome lo dichiara: "
     + "serve a guardare i grafici uno accanto all'altro, non è un'interfaccia",
