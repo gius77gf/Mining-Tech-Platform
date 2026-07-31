@@ -1274,6 +1274,26 @@ campi interi, file delle macchine.
       giusto. E una correzione alla controprova stessa: la prima iniezione sulla
       base scriveva su una `const`, il modulo moriva e **tutte** le prove
       cadevano — un ✓ per il motivo sbagliato, caso (3) della tassonomia.
+- [x] **Il fondo della copertura non faceva quello che c'era scritto** ✅ *(03/08)* —
+      l'intestazione di `copertura-funzioni.mjs` prometteva: «se una app scende
+      sotto il fondo vuol dire che sono state aggiunte funzioni senza prove».
+      **Falso, e misurato**: aggiungendo a Terra un `export function
+      funzioneMaiProvata` la conta va a **40/41, 98%** e il controllo esce
+      **zero**. Il fondo sta sul numero di funzioni **coperte**, che aggiungendo
+      codice non provato **non scende**: cattura le prove **tolte**, non il
+      codice aggiunto senza prove — cioè proprio il caso che prometteva, e nella
+      direzione che rassicura. Adesso la regola vera è **nessuna funzione
+      scoperta** (tutte e sei le app sono al 100%: il fondo era una scala mentre
+      si saliva), e il fondo resta come seconda guardia. Nello stesso passaggio,
+      il censimento ha smesso di guardare solo `apps/<nome>/<nome>-data.js`: si
+      chiamava «quante funzioni delle **app**» e lasciava fuori proprio il codice
+      che la regola del `shared/` indica come il più pericoloso. Misurato prima
+      di allarmarsi — la copertura vera lì è **46 su 46** (dw-ponti 18, dw-shell
+      23, pointcloud 5): non c'era un buco nel prodotto, c'era un buco nel
+      **controllo**, che diceva «tutto a posto» su un perimetro più stretto del
+      suo nome. Controprova a tre difetti (funzione senza prova in una app · in
+      un modulo condiviso · fondo alzato sopra il vero): tre su tre fanno cadere
+      il censimento **col motivo giusto**, e uscita 1.
 
 ---
 

@@ -163,13 +163,30 @@ in italiano, senza dare conoscenze per scontate).
   non vede mai. La regola 16 di `run-stile.mjs` lo pretende scritto (anche
   `false`, dove è la scelta giusta). Misura: `docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md`.
 - **DUE CONTROLLI CONTANO AL POSTO DELLA MEMORIA**, e sono in coda alla suite:
-  `copertura-funzioni.mjs` (quante funzioni delle app sono provate: due volte
-  in due giorni quel numero è finito sbagliato in un documento perché contato a
-  mente — ha un **fondo** per app che, se scende, fa cadere il controllo) e
-  `nomi-doppi.mjs` (lo stesso nome esportato da due app: o è lo **stesso
+  `copertura-funzioni.mjs` (quante funzioni sono provate: due volte in due
+  giorni quel numero è finito sbagliato in un documento perché contato a mente)
+  e `nomi-doppi.mjs` (lo stesso nome esportato da due app: o è lo **stesso
   oggetto**, o la differenza va **dichiarata con la ragione**). La regola del
   `shared/` era scritta qui dentro da mesi, e in un giorno solo ne sono uscite
   **cinque** violazioni: una regola scritta è affidata alla memoria di chi legge.
+- ⚠️ **UN FONDO CATTURA LE PROVE TOLTE, NON IL CODICE AGGIUNTO SENZA PROVE.** Il
+  03/08 `copertura-funzioni.mjs` prometteva nella sua intestazione: «se una app
+  scende sotto il fondo vuol dire che sono state aggiunte funzioni senza prove».
+  **Falso, e misurato**: aggiungendo a Terra un `export function
+  funzioneMaiProvata` la conta va a **40/41, 98%** e il controllo esce **0** —
+  perché il fondo sta sul numero di funzioni **coperte**, che aggiungendo codice
+  non provato non scende. Il caso che la riga prometteva era esattamente quello
+  che non vedeva, e nella direzione che rassicura. Vale per **qualunque** soglia
+  scritta su un valore monotòno: si controlli **che cosa fa scendere il numero**,
+  non solo che il numero non scenda. Adesso la regola vera è **nessuna funzione
+  scoperta** (tutte e sei le app e tutti e tre i moduli condivisi sono al 100%,
+  e chi aggiunge una funzione aggiunge la prova o la dichiara in `FUORI` con la
+  ragione); il fondo resta come seconda guardia.
+  E il censimento adesso guarda anche `shared/dw-ponti.js`,
+  `shared/deepwork-id-client/dw-shell.js` e `apps/genesi/pointcloud.js`: si
+  chiamava «quante funzioni delle **app**» e lasciava fuori proprio il codice
+  che la regola del `shared/` indica come il più pericoloso. Copertura misurata
+  lì: **46 su 46**.
 - Le altre suite locali (`run-demo.mjs`, `run-helpers.mjs`,
   `run-pointcloud.mjs`, `run-manifest.mjs`, `run-stile.mjs`) girano anch'esse
   con `node`.
