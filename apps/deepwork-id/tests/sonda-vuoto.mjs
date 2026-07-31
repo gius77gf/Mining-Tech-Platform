@@ -181,13 +181,25 @@ test("la sonda ha davvero chiamato le funzioni", () => {
    Si dichiara la FAMIGLIA, non la singola frase: «Manca la PPV misurata»,
    «Manca la distanza del ricettore» e «Manca la carica massima per ritardo»
    sono la stessa convenzione applicata a tre campi — quella sì che va bene, ed
-   è la riga `Manca …` qui sotto. */
+   è la riga `Manca …` qui sotto.
+
+   ⛔ E SI GUARDANO TUTTE E SEI LE APP, non solo Sentinella. La prima versione
+   guardava lei sola, ed era la solita miopia: il censimento sulle sei ha
+   mostrato che **«senza data» è già la convenzione di TRE app** (Flotta, Scudo,
+   Terra) per «questo record non ha una data», e che «… n.d.» è quella di DUE
+   (Scudo «Idoneità n.d.», Terra «Accuratezza n.d.»). Cioè il vocabolario
+   dell'assenza è **già dell'ecosistema**, non di un'app — e allora il posto in
+   cui tenerlo chiuso è uno solo. È anche la ragione per cui la correzione di
+   Sentinella userà «senza data» per il punto importato senza storico invece di
+   inventare un termine nuovo: la parola c'è già, e la dicono in tre. */
 const VOCABOLARIO_MANCANTE = [
   [/^Senza dati$/, "un PERIODO senza nessuna lettura registrata (report di conformità)"],
   [/^Mai misurato$/, "un PUNTO di misura che non è mai stato letto"],
   [/^Manca /, "un CAMPO preciso che non c'è — convenzione «Manca <il campo>», una frase per campo"],
   [/^Dato mancante$/, "il ripiego generico, quando non si sa quale campo manchi"],
   [/^Senza frequenza$/, "un'IMPOSTAZIONE che manca (ogni quanti giorni), non una misura"],
+  [/^senza data$/, "il record non porta una data — convenzione di Flotta, Scudo e Terra"],
+  [/ n\.?d\.$/, "un GIUDIZIO che non si può dare per mancanza di dati (idoneità, accuratezza)"],
 ];
 /* ⚠️ IL FILTRO È IL PUNTO DEBOLE, e lo si è scoperto con la controprova. La
    prima versione cercava `manca|senza dat|mai misur|non misur|n.d.` — cioè
@@ -202,19 +214,35 @@ const VOCABOLARIO_MANCANTE = [
    ferma le varianti costruite con le parole dell'assenza, non un'invenzione
    lessicale («Da rilevare» lo prende, «In attesa» no). */
 const ASSENZA = /manca|mancante|\bsenza\b|\bmai\b|n\.?d\.|nessun\w* (dato|lettura|misura|rilevazione)|non (misurat|rilevat|pervenut|dichiarat|disponibil)|assente|da rilevare|ignot|sconosciut/i;
-test("Sentinella non ha inventato un sinonimo nuovo per «manca il dato»", () => {
-  const src = readFileSync(join(RADICE, "apps", "sentinella", "sentinella-data.js"), "utf8");
-  const etichette = [...src.matchAll(/\b(?:label|etichetta)\s*:\s*"([^"]+)"/g)].map((m) => m[1]);
-  const parlano = [...new Set(etichette.filter((t) => ASSENZA.test(t)))];
-  ok(parlano.length >= 4, `solo ${parlano.length} etichette esaminate: il filtro non sta guardando niente`);
-  const nuovi = parlano.filter((t) => !VOCABOLARIO_MANCANTE.some(([re]) => re.test(t)));
+const etichetteAssenza = new Map();   // app -> etichette che parlano di assenza
+let etichetteTotali = 0;
+for (const app of APP) {
+  const src = readFileSync(join(RADICE, "apps", app, `${app}-data.js`), "utf8");
+  const et = [...new Set([...src.matchAll(/\b(?:label|etichetta)\s*:\s*"([^"]+)"/g)].map((m) => m[1]))];
+  etichetteTotali += et.length;
+  etichetteAssenza.set(app, et.filter((t) => ASSENZA.test(t)));
+}
+const tutteAssenza = [...new Set([...etichetteAssenza.values()].flat())];
+
+test("nessuna app ha inventato un sinonimo nuovo per «manca il dato»", () => {
+  ok(etichetteTotali >= 100, `solo ${etichetteTotali} etichette lette in tutto: la lettura non sta guardando niente`);
+  ok(tutteAssenza.length >= 10, `solo ${tutteAssenza.length} etichette di assenza trovate: il filtro non sta guardando niente`);
+  const nuovi = [];
+  for (const [app, et] of etichetteAssenza)
+    for (const t of et) if (!VOCABOLARIO_MANCANTE.some(([re]) => re.test(t))) nuovi.push(`${app}: «${t}»`);
   ok(nuovi.length === 0,
     `${nuovi.length} modi nuovi di dire «manca il dato» → ${nuovi.join(" · ")}`
     + " — se è una PORTATA diversa va dichiarata in VOCABOLARIO_MANCANTE, se è la stessa va usato il termine che c'è già");
-  const spariti = VOCABOLARIO_MANCANTE.filter(([re]) => !parlano.some((t) => re.test(t)));
+});
+
+test("nessuna famiglia dichiarata è rimasta senza chi la usa", () => {
+  const spariti = VOCABOLARIO_MANCANTE.filter(([re]) => !tutteAssenza.some((t) => re.test(t)));
   ok(spariti.length === 0,
     `${spariti.length} famiglie dichiarate non si usano più → ${spariti.map(([re]) => re.source).join(" · ")}: vanno tolte`);
 });
+
+console.log(`vocabolario dell'assenza: ${tutteAssenza.length} etichette su ${etichetteTotali}, in `
+  + [...etichetteAssenza].filter(([, v]) => v.length).map(([k, v]) => `${k} ${v.length}`).join(", "));
 
 console.log(`\nRisultato sonda del vuoto: ${passed} passati, ${failed} falliti`
   + `  ·  ${trovati.size} tranquilli trovati, ${Object.keys(ACCETTATI).length} dichiarati`);

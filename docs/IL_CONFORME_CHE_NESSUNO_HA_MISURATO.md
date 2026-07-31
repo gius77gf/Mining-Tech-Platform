@@ -381,9 +381,38 @@ decide se una frase italiana nuova stia dicendo «manca». Ferma le varianti
 costruite con le parole dell'assenza («Da rilevare» sì), non un'invenzione
 lessicale («In attesa» no).
 
-Controprova a tre difetti — un quinto sinonimo, una famiglia dichiarata che
-sparisce, il filtro accecato — **tre su tre** cadono col motivo giusto, e sui
-file sani il controllo passa.
+### E poi si è visto che il vocabolario **non è di Sentinella**
+
+La prima versione del controllo guardava lei sola — la solita miopia. Allargato
+a tutte e sei le app, il censimento ha risposto una cosa che cambia la
+correzione:
+
+| famiglia | chi la usa già |
+|---|---|
+| **«senza data»** | **Flotta, Scudo, Terra** — tre app su sei |
+| **«… n.d.»** *(Idoneità n.d., Accuratezza n.d.)* | Scudo, Terra |
+| «Senza dati» · «Mai misurato» · «Manca …» · «Dato mancante» · «Senza frequenza» | Sentinella |
+
+**11 etichette di assenza su 213** in tutto. Cioè il vocabolario dell'assenza è
+già **dell'ecosistema**, non di un'app — e allora il posto dove tenerlo chiuso è
+uno solo.
+
+E la decisione che ne segue è quella che questa scheda aveva lasciata aperta: il
+punto **importato senza storico** si chiamerà **«senza data»**, come lo dicono
+già Flotta, Scudo e Terra. Non «Valore senza data», non un termine nuovo: la
+parola c'è, e la dicono in tre.
+
+### Controprova
+
+Tre difetti — un sinonimo nuovo **in Flotta** (che la versione a una sola app
+non avrebbe visto), una famiglia dichiarata che resta senza chi la usa, il
+filtro accecato: **tre su tre** cadono col motivo giusto, e sui file sani i due
+controlli passano avendo guardato **11 etichette su 213**.
+
+*(E l'ancora dell'iniezione compariva **due** volte — la stessa riga di lettura
+sta sia nel giro delle funzioni sia in quello delle etichette. È l'errore già
+pagato con `durataTurnoDi`: si allunga col contesto e si pretende che compaia
+**esattamente una volta**, invece di fidarsi.)*
 
 ---
 

@@ -1385,6 +1385,19 @@ campi interi, file delle macchine.
       invece che scoperto (ferma le varianti costruite con le parole
       dell'assenza, non un'invenzione lessicale: «Da rilevare» sì, «In attesa»
       no). Controprova a tre difetti, tre su tre col motivo giusto.
+      **E poi si è visto che il vocabolario non è di Sentinella**: allargato il
+      controllo a tutte e sei le app, **«senza data» è già la convenzione di TRE**
+      (Flotta, Scudo, Terra) e «… n.d.» di **due** (Scudo «Idoneità n.d.», Terra
+      «Accuratezza n.d.») — **11 etichette di assenza su 213**. Il vocabolario è
+      già **dell'ecosistema**, non di un'app, e allora il posto dove tenerlo
+      chiuso è uno solo. Ne segue la decisione che restava aperta: il punto
+      importato senza storico si chiamerà **«senza data»**, come lo dicono già in
+      tre — non un termine nuovo. Controprova rifatta a sei app: il sinonimo
+      iniettato **in Flotta** (che la versione a una sola app non avrebbe visto),
+      la famiglia rimasta senza chi la usa, il filtro accecato — tre su tre.
+      *(E l'ancora dell'iniezione compariva **due** volte, perché la stessa riga
+      di lettura sta in due giri: allungata col contesto, come per
+      `durataTurnoDi`.)*
 
 ---
 
