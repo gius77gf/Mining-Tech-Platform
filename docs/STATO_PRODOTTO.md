@@ -74,7 +74,7 @@ sulla nuvola di punti, 9 sul manifesto, 8 sulla demo — più **106** che girano
 con l'emulatore Firestore (58 sulle **regole di sicurezza**, 19 sull'SDK, 21
 sulle funzioni, 8 sul primo avvio) e **43 esecuzioni** che aprono davvero le
 pagine in un browser.
-E **465 funzioni pure su 465** delle sei app sono chiamate per nome dalle prove:
+E **466 funzioni pure su 466** delle sei app sono chiamate per nome dalle prove:
 tutte al 100%. Vuol dire che non ne resta nessuna che nessuno ha ancora
 guardato — non che siano provate *bene*, che è un'altra domanda.
 
