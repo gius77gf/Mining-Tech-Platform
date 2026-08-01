@@ -411,6 +411,44 @@ legge il prodotto di prima — messaggio vuoto dopo 14 secondi d'attesa, e col
 server che rifiuta un `Missing or insufficient permissions.` che finisce in
 console e non sotto gli occhi di nessuno.
 
+## `modali.mjs` — il contenuto delle finestre di conferma ci sta dentro?
+
+Nato il 01/08 da un difetto che **uno scatto** ha visto e un banco verde no: in
+una finestra di conferma di Conti la causale del bonifico chiedeva **491 px
+dentro 352** — 139 tagliati via, e proprio sul testo che serve a decidere se
+l'abbinamento è giusto.
+
+⛔ **Perché `fuori-schermo.mjs` non poteva vederlo**: quello guarda i *comandi*
+che escono dallo schermo e lo scorrimento laterale della *pagina*. Una modale
+chiusa è larga zero e viene saltata; un testo che trabocca dentro il suo
+riquadro non muove né l'una né l'altra cosa. È il «controllo che non guarda dove
+crede» nella sua forma più comune: funziona benissimo su quello che vede.
+
+La domanda è una sola, e la risponde il browser: `scrollWidth > clientWidth`.
+Non si calcola niente — calcolare una cosa che il browser sa dire è il difetto
+che ha fatto riscrivere cinque volte il banco della barra.
+
+⚠️ **La copertura è dichiarata, non sottintesa.** Le modali si aprono con un
+gesto generico (il bottone «Rimuovi» di una riga, che apre la conferma con
+dentro il nome vero della cosa), e quel gesto è stato **misurato prima** di
+scrivere il banco: apre le modali in **quattro app su sei** — Flotta, Scudo,
+Sentinella e Terra a 6 modali ciascuna; **Campo e Conti hanno un markup diverso
+e restano NON GUARDATE**. Il banco lo stampa in fondo, perché «nessuna modale
+fuori posto» senza dire su quante app si è guardato è lo stesso «zero
+violazioni» ottenuto su zero soggetti.
+
+Misura di riferimento: **24 modali aperte, 198 elementi misurati, 0 tagliati.**
+
+```sh
+node apps/deepwork-id/tests/browser/modali.mjs 8823
+node apps/deepwork-id/tests/browser/modali.mjs 8823 --solo=terra
+node apps/deepwork-id/tests/browser/modali.mjs 8823 --controprova
+```
+
+La controprova mette dentro la modale una parola lunghissima che non si può
+spezzare — il caso vero è un IBAN o una causale senza spazi — e pretende che il
+banco la veda. Se non la vede, il banco non sta guardando dove crede.
+
 ## `finto-firebase.mjs`
 
 **Serve per aprire il core in locale, e non solo per questa prova.**

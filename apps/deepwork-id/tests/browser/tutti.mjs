@@ -76,6 +76,15 @@ const BANCHI = [
   ['verbale · controprova', 'verbale-origine.mjs', ['--controprova'], true],
   ['la manina promette un tocco che c\'è', 'promesse-tocco.mjs', []],
   ['la manina · controprova', 'promesse-tocco.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 01/08. `fuori-schermo` guarda i COMANDI fuori dallo schermo
+     e lo scorrimento della PAGINA: una modale chiusa è larga zero e viene
+     saltata, e un testo che trabocca dentro il suo riquadro non muove nessuna
+     delle due cose. Una causale da 491 px in 352 gli è passata sotto — la
+     trovò uno scatto. Il banco dichiara che apre le modali in QUATTRO app su
+     sei: dire «nessuna fuori posto» senza dire su quante si è guardato è lo
+     stesso «zero violazioni» ottenuto su zero soggetti. */
+  ['il contenuto delle finestre di conferma ci sta dentro', 'modali.mjs', []],
+  ['finestre di conferma · controprova', 'modali.mjs', ['--controprova'], true],
   ['le etichette della barra stanno nella loro colonna', 'barra-etichette.mjs', []],
   ['etichette della barra · controprova', 'barra-etichette.mjs', ['--controprova'], true],
   ['la quota di base è nel sistema del rilievo', 'quota-base-reale.mjs', []],
