@@ -62,8 +62,26 @@ funzione sbagliata lì sbaglia in sei posti insieme.
 Le sei app hanno la loro logica in `apps/<nome>/<nome>-data.js`, che `node`
 importa. **Genesi no**: le sue **192 funzioni** stanno dentro
 `apps/genesi/genesi.html`, e da lì non si importano — di Genesi entra nel conto
-solo `pointcloud.js`. Non è una svista da correggere in una riga (tirarne fuori
-un modulo dati è un cantiere intero), ma il numero non deve poter essere letto
+solo `pointcloud.js`. Non è una svista da correggere in una riga — ma dal
+01/08 «è un cantiere intero» ha smesso di essere una frase ed è diventato un
+**numero**, perché una frase non dice da dove si comincia né quanto si è
+avanzati. `node apps/deepwork-id/tests/genesi-estraibili.mjs` misura quante
+funzioni si possono portare fuori **senza cambiargli la firma**:
+
+| variabili del modulo che legge | funzioni |
+|---|---|
+| nessuna — si porta fuori com'è | **46** |
+| una o due | **64** |
+| da tre a cinque | 27 |
+| da sei a dieci | 31 |
+| più di dieci — lì è un rifacimento | 24 |
+
+Cioè **110 su 192 si estraggono senza rifare il modo in cui Genesi tiene il suo
+stato**, e la parte davvero dura sono 55 funzioni. La domanda giusta non era
+«quante sono», era «quante dipendono da uno stato condiviso»: una funzione che
+legge una variabile del modulo non è una funzione pura scritta nel posto
+sbagliato, è una funzione che va richiamata da capo in ogni punto che la usa (tirarne fuori
+un modulo dati resta un cantiere intero), ma il numero non deve poter essere letto
 per più di quello che è: dal 01/08 lo dichiara il censimento stesso, in fondo
 alla sua uscita, e il conto lo **misura** invece di scriverlo a mano. Lo conta
 `copertura-funzioni.mjs`, e questo numero lo verifica `numeri-nei-documenti.mjs`:
