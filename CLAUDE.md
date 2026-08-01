@@ -67,6 +67,17 @@ in italiano, senza dare conoscenze per scontate).
 
 ## Come si spende il tempo di un ciclo *(01/08, misurato su una giornata storta)*
 
+⛔ **IL GIRO `node` PRIMA DEL COMMIT È UN COMANDO SOLO, E NON SI SCEGLIE A
+MEMORIA:** `node apps/deepwork-id/tests/giro-node.mjs` (con `--tz` rifà tutto
+anche in ora italiana). Il 01/08 la CI è caduta su `suite-collegate.mjs`, e il
+controllo aveva ragione; quello che era sbagliato è che il giro fatto a mano ne
+lanciava **undici su diciannove**. Le quattro rimaste fuori non erano difficili,
+erano **dimenticate**. Una lista tenuta a mente si accorcia da sola, e ogni
+volta che si accorcia il verde che stampa vale un po' meno. Il lanciatore legge
+`scripts.test` di `tests/package.json` — la stessa verità che gira in CI — e ne
+toglie solo le quattro suite che vogliono gli emulatori, dichiarate con la
+ragione: elenco **derivato**, non gemello.
+
 ⛔ **IL COSTO DELLA VERIFICA VA A SCAGLIONI.** Rilanciare tutto a ogni unità è
 il modo più sicuro di lavorare piano: il giro completo dei banchi dura **una o
 due ore** e, mentre gira, rallenta di cinque-dieci volte ogni altra misura.
