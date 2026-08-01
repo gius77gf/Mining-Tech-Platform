@@ -78,6 +78,8 @@ const BANCHI = [
      `suite-collegate.mjs`, che esiste per non riprovarci. */
   ['il giro gira su una copia', 'giro-su-copia.mjs', []],
   ['contrasto del core', 'contrasto-core.mjs', []],
+  ['stati «non misurato» visibili', 'stati-non-misurati.mjs', []],
+  ['stati «non misurato» · controprova', 'stati-non-misurati.mjs', ['--controprova'], true],
 ];
 
 async function rispondePorta(porta) {
