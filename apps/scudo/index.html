@@ -1011,6 +1011,19 @@
   </div>
   <div class="note esito" id="ore-esito"></div>
 
+  <!-- ANDAMENTO DEGLI INDICI, anno per anno.
+       I tre numeri dicono dove si è; questo dice dove si sta andando, ed è la
+       domanda che fa un committente in qualifica. È ANNUALE perché le ore
+       lavorate — il denominatore — si registrano per anno: un andamento
+       mensile avrebbe dodici indici costruiti su ore spalmate a occhio.
+       ⛔ Un anno senza ore resta un BUCO nella linea, mai uno zero: il motore
+       dei grafici non scavalca i valori nulli, e uno zero disegnato fra due
+       anni misurati sarebbe l'anno perfetto che nessuno ha misurato. -->
+  <div class="sec">Andamento degli indici</div>
+  <div id="inf-andamento" class="note recap" style="margin-top:0;"></div>
+  <div id="graf-if" style="margin-top:12px;"></div>
+  <div id="graf-ig" style="margin-top:12px;"></div>
+
   <!-- S2 — RIEPILOGO AGGREGATO DEI NEAR-MISS.
        Quanti nel periodo, per tipo e per luogo: serve a vedere DOVE il
        rischio si concentra, ed è la forma in cui la L. 198/2025 chiede di
@@ -1115,7 +1128,7 @@
     NOMINE_RUOLI, ruoloNomina, nominaAttiva, organigrammaSicurezza, nomineDaSistemare,
     cartellaLavoratore, descriviCartella,
     TIPI_DPI, tipoDpi, tipoDpiSicuro, ultimaConsegnaDpi, statoConsegnaDpi, allarmiDpi, riepilogoDpi, verbaleDpi,
-    indiciInfortunistici,
+    indiciInfortunistici, andamentoIndici,
     CAUSE_ANALISI, validaAnalisi, analisiDiEvento, eventiSenzaAnalisi, causeRicorrenti } from "./scudo-data.js";
   import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO, dataISOEsiste } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
@@ -1747,6 +1760,99 @@
         : `Indici infortunistici ${annoOra}: <b>non calcolabili</b>
            <div class="mini" style="margin-top:6px;">${esc(ii.motivo)}</div>
            <div class="mini" style="margin-top:4px;">Intanto i conteggi ci sono: <b>${ii.infortuni}</b> ${ii.infortuni === 1 ? "infortunio" : "infortuni"}, di cui <b>${ii.conAssenza}</b> con assenza, <b>${ii.giornatePerse}</b> ${ii.giornatePerse === 1 ? "giornata persa" : "giornate perse"}.</div>`; }
+
+    /* ── ANDAMENTO DEGLI INDICI ANNO PER ANNO ───────────────────────────────
+       Legge le bandiere che il modulo dichiara — `calcolabile` per ogni anno,
+       `confrontabile` e `pochi` sul confronto — invece di disegnare e basta.
+       ⛔ IL VERSO LO DICE LA FUNZIONE, non il segno: su questi indici scendere
+       è migliorare, e un «−86,7%» colorato di rosso perché comincia col meno
+       racconterebbe una buona notizia come se fosse brutta. */
+    { const an = andamentoIndici(INF, ORE, { annoFine: annoOra });
+      const c = an.confronto;
+      const nInd = (n) => n.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true });
+      // L'allarme che vale più di tutto il resto: un anno CON infortuni e
+      // SENZA ore. Lì l'indice manca proprio dove sarebbe servito.
+      const buchiCaldi = an.conEventiSenzaOre;
+      const avvisoBuchi = buchiCaldi.length
+        ? `<div class="mini" style="margin-top:6px;">⚠️ ${buchiCaldi.length === 1 ? "L'anno" : "Gli anni"} <b>${buchiCaldi.join(", ")}</b>
+             ${buchiCaldi.length === 1 ? "ha" : "hanno"} infortuni registrati ma non ${buchiCaldi.length === 1 ? "ha" : "hanno"} le ore lavorate:
+             ${buchiCaldi.length === 1 ? "l'indice manca" : "gli indici mancano"} proprio ${buchiCaldi.length === 1 ? "nell'anno" : "negli anni"} in cui è successo qualcosa.
+             Nella linea ${buchiCaldi.length === 1 ? "resta un buco" : "restano dei buchi"}, non uno zero.</div>`
+        : "";
+      const avvisoDubbi = an.anniDubbi.length
+        ? `<div class="mini" style="margin-top:4px;">⚠️ Per <b>${an.anniDubbi.join(", ")}</b> risultano due registrazioni di ore diverse: finché non ne resta una sola quell'anno non si calcola.</div>`
+        : "";
+      if (!c.confrontabile) {
+        $("inf-andamento").innerHTML = `Andamento degli indici: <b>non ancora leggibile</b>
+          <div class="mini" style="margin-top:6px;">${esc(c.motivo)}</div>${avvisoBuchi}${avvisoDubbi}`;
+      } else {
+        /* Con pochi eventi NON si dichiara un verso: due infortuni che
+           diventano uno non sono un miglioramento, sono due numeri piccoli.
+           È la stessa regola del riepilogo near-miss, con la stessa soglia. */
+        const V = { migliora: ["ok", "In miglioramento"], peggiora: ["danger", "In peggioramento"],
+                    stabile: ["tag", "Stabile"], misto: ["warn", "Segnali contrastanti"] };
+        const b = c.pochi ? ["tag", "Da leggere con prudenza"] : (V[c.verso] || ["tag", "—"]);
+        /* La ragione del «niente percentuale» è la stessa per tutti e tre gli
+           indici quando l'anno di partenza era a zero: scritta su ogni riga
+           diventava tre volte la stessa frase. Si scrive una volta sola, sotto.
+           E il badge «pochi eventi» ripetuto per indice suggerirebbe che sia
+           una proprietà dell'indice: quando i pochi sono pochi lo dice il
+           cappello, e le righe restano numeri puliti. */
+        const tuttiDaZero = c.per.every(p => p.variazione == null);
+        const righe = c.per.map(p => {
+          const vv = { migliora: "ok", peggiora: "danger", stabile: "tag" }[p.verso];
+          const var_ = p.variazione == null ? "" : ` (${p.variazione > 0 ? "+" : "−"}${Math.abs(p.variazione).toLocaleString("it-IT", { minimumFractionDigits: 1, maximumFractionDigits: 1, useGrouping: false })}%)`;
+          // «LTIFR (LTIFR)» era il nome ripetuto: la sigla si scrive solo se aggiunge qualcosa.
+          const titolo = p.nome === p.sigla ? esc(p.nome) : `${esc(p.nome)} (${esc(p.sigla)})`;
+          return `<div class="mini" style="margin-top:4px;">${titolo}: <b>${nInd(p.da)}</b> → <b>${nInd(p.a)}</b>${var_}
+            ${c.pochi ? "" : `<span class="badge ${vv}" style="margin-left:6px;">${p.verso}</span>`}
+            ${(!tuttiDaZero && p.variazione == null) ? `<span style="opacity:.75;"> — ${esc(p.variazionePerche)}</span>` : ""}</div>`;
+        }).join("")
+          + (tuttiDaZero ? `<div class="mini" style="margin-top:6px;opacity:.8;">${esc(c.per[0].variazionePerche)}</div>` : "");
+        $("inf-andamento").innerHTML =
+          `Andamento ${c.da} → ${c.a}: <span class="badge ${b[0]}">${b[1]}</span>
+           <div class="mini" style="margin-top:6px;">Su questi indici <b>scendere è migliorare</b>.
+             ${c.adiacenti ? "" : `<b>Attenzione:</b> ${c.da} e ${c.a} non sono anni consecutivi — in mezzo ci sono ${c.salto - 1} ${c.salto - 1 === 1 ? "anno" : "anni"} senza ore lavorate, quindi non è «rispetto all'anno scorso».`}</div>
+           ${righe}
+           ${c.pochi ? `<div class="mini" style="margin-top:6px;">${
+             c.eventi === 0
+               ? `Fra ${c.da} e ${c.a} non è stato registrato <b>nessun infortunio</b>: gli indici sono a zero perché le ore ci sono e gli eventi no — non perché nessuno abbia guardato. Non c'è una differenza da leggere.`
+               : `Fra ${c.da} e ${c.a} ${c.eventi === 1 ? "c'è in tutto <b>1</b> infortunio: troppo poco" : `ci sono in tutto <b>${c.eventi}</b> infortuni: troppo pochi`} perché la differenza sia una tendenza invece che il caso. I numeri sono giusti, la <b>direzione</b> non si può ancora leggere.`
+             }</div>` : ""}
+           ${avvisoBuchi}${avvisoDubbi}`;
+      }
+      // I grafici: DUE, non uno. IF e LTIFR sono per milione di ore, IG per
+      // mille — su un asse solo il più piccolo diventerebbe una riga piatta.
+      // È la regola che il motore dichiara: mai due scale sullo stesso asse.
+      const x = an.anni.map(r => String(r.anno));
+      const serieDi = (k) => an.anni.map(r => (r.calcolabile ? r[k] : null));
+      const notaPochi = c.confrontabile && c.pochi
+        ? " Con così pochi eventi la linea mostra una variazione, non una tendenza."
+        : "";
+      if (an.misurabili >= 2) {
+        grafico("graf-if", "linea", {
+          titolo: "Frequenza degli infortuni", unita: "per milione di ore", x,
+          formato: (v) => nInd(v), nudo: true, altezza: 190,
+          serie: [{ nome: "IF (tutti)", valori: serieDi("indiceFrequenza"), area: true },
+                  { nome: "LTIFR (con assenza)", valori: serieDi("ltifr") }],
+          // La frase sui buchi si scrive solo se un buco c'è davvero: spiegare
+          // un'interruzione che non si vede fa cercare all'utente una cosa che
+          // non c'è. Con la linea intera resta solo l'avvertenza sui numeri.
+          nota: (an.anni.some(r => !r.calcolabile)
+            ? "Gli anni senza ore lavorate restano vuoti: la linea si interrompe invece di passare per uno zero mai misurato."
+            : "Ogni anno mostrato ha le sue ore lavorate registrate: la linea non ha interruzioni.") + notaPochi,
+        });
+        grafico("graf-ig", "linea", {
+          titolo: "Gravità degli infortuni", unita: "per mille ore", x,
+          formato: (v) => nInd(v), nudo: true, altezza: 190,
+          serie: [{ nome: "IG", valori: serieDi("indiceGravita"), area: true }],
+          nota: "L'indice di gravità pesa le giornate perse, non il numero di eventi: sta in un grafico suo perché è su una scala diversa.",
+        });
+      } else {
+        grafVuoto("graf-if", I.scudo, "Non c'è ancora un andamento da disegnare",
+          "Servono <b>almeno due anni</b> con le ore lavorate registrate. Gli indici di un anno solo sono un numero, non una direzione.");
+        puliscoGrafico("graf-ig");
+      } }
     const ri = riepilogoInfortuni(INF);
     $("safety-banner").innerHTML = ri.giorniSenza == null
       ? `<div class="safety none"><div class="safety-ico">${I.scudo}</div>

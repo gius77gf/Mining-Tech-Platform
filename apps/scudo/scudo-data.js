@@ -143,6 +143,21 @@ export const DEMO = {
     { id: "i4", data: "2026-07-06", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "fronte Nord", luogoTipo: "fronte", categoria: "caduta-massi", rapida: true, descrizione: "Blocco staccato dal ciglio durante il disgaggio" },
     { id: "i5", data: "2026-07-15", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "impianto", luogoTipo: "impianto", categoria: "impianto", rapida: true, descrizione: "Riparo del nastro 3 trovato aperto a macchina ferma" },
     { id: "i6", data: "2026-07-21", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "pista di risalita", luogoTipo: "pista", categoria: "mezzi", anonimo: true, rapida: true, descrizione: "Pietra caduta dal cassone su tratto di pista con arginello basso" },
+    // i7 sta in un ANNO PRECEDENTE di proposito: senza almeno due anni non
+    // esiste un andamento da mostrare, e la dimostrazione deve contenere il
+    // caso per cui la schermata è stata costruita.
+    { id: "i7", data: "2025-09-12", tipo: "infortunio", gravita: "lieve", giorniAssenza: 12, luogo: "impianto", luogoTipo: "impianto", descrizione: "Contusione a un piede durante lo sblocco di un nastro" },
+  ],
+  /* LE ORE LAVORATE, ANNO PER ANNO — il denominatore dei tre indici.
+     ⛔ Il 2026 NON c'è, ed è la parte più importante della dimostrazione: è
+     l'anno in corso, ha un infortunio registrato (i2) e non ha le ore. Così si
+     vede quello che questa schermata serve a non far succedere — l'indice che
+     manca proprio nell'anno in cui è appena successo qualcosa — invece di un
+     grafico tutto verde che non insegna niente. Il 2024 è a zero infortuni con
+     le ore note: quello è uno zero VERO, e si distingue dal buco del 2026. */
+  oreAnno: [
+    { id: "o1", anno: 2024, ore: 21500 },
+    { id: "o2", anno: 2025, ore: 22100 },
   ],
   azioni: [
     { id: "a1", descrizione: "Disgaggio del fronte Est e ripristino della fascia di rispetto a valle", responsabileId: "d3", scadenza: "2026-07-31", stato: "in-corso", origineTipo: "evento", origineId: "i1" },
@@ -1837,6 +1852,131 @@ export function indiciInfortunistici(infortuni, oreLavorate, anno = new Date().g
     indiceFrequenza: r2(nell_anno.length * 1e6 / ore),
     indiceGravita: r2(giornatePerse * 1e3 / ore),
     ltifr: r2(conAssenza.length * 1e6 / ore) };
+}
+
+// ============================================================
+// L'ANDAMENTO DEGLI INDICI NEL TEMPO (anno per anno)
+// ------------------------------------------------------------
+// I tre numeri da soli dicono dove si è; l'andamento dice DOVE SI STA ANDANDO,
+// ed è la domanda che fanno un committente in qualifica e un ispettore.
+//
+// ⛔ ANNO PER ANNO, E NON PER SCELTA ESTETICA: le ore lavorate — il
+// denominatore di tutti e tre — Scudo le raccoglie **per anno** (collezione
+// `oreAnno`, un record {anno, ore}). Un andamento MENSILE avrebbe quindi un
+// numeratore mensile e un denominatore annuale spalmato: cioè dodici indici
+// costruiti su ore inventate. È lo stesso divieto già scritto sopra, applicato
+// all'asse del tempo invece che al totale.
+//
+// Le regole di onestà, tutte già in casa e qui solo applicate:
+//  · un anno SENZA ore non vale zero: vale **buco**. La riga esce
+//    `calcolabile: false` con la sua ragione, e il grafico riceve `null` —
+//    che il motore non scavalca. Un anno a zero disegnato in mezzo a due anni
+//    misurati è la bugia più tranquilla che questa schermata possa dire;
+//  · un anno con INFORTUNI ma senza ore è il caso peggiore, perché è quello in
+//    cui il buco nasconde una notizia brutta: esce a parte in
+//    `conEventiSenzaOre`, perché l'interfaccia lo dica per nome;
+//  · due registrazioni di ore DIVERSE per lo stesso anno non si risolvono
+//    scegliendone una: quell'anno diventa non calcolabile e la ragione lo
+//    scrive. Prendere l'ultima cambierebbe l'indice senza che si veda;
+//  · il confronto è fra gli ultimi DUE anni misurati, che non sono per forza
+//    consecutivi: `adiacenti` e `salto` esistono perché la pagina non scriva
+//    «rispetto all'anno scorso» saltando un buco di tre anni;
+//  · su questi indici **scendere è migliorare**: il verso lo dice la funzione
+//    (`migliora`/`peggiora`/`stabile`/`misto`), così nessuno lo deduce dal
+//    segno e lo colora al contrario. `misto` esiste perché il caso vero —
+//    meno infortuni ma più gravi — non si riassume in una freccia sola;
+//  · da zero non esiste una variazione in percentuale: `variazione` è `null` e
+//    `variazionePerche` lo scrive, invece di stampare un ∞ o un 100% inventato;
+//  · sotto `MIN_TENDENZA` eventi non si legge una tendenza: `pochi` è la stessa
+//    bandiera, con la stessa soglia, che usa già il riepilogo dei near-miss.
+export const INDICI_TREND = [
+  { chiave: "indiceFrequenza", sigla: "IF", nome: "Indice di frequenza" },
+  { chiave: "indiceGravita", sigla: "IG", nome: "Indice di gravità" },
+  { chiave: "ltifr", sigla: "LTIFR", nome: "LTIFR" },
+];
+
+/* L'anno si legge ESATTAMENTE come lo legge indiciInfortunistici (`slice(0,4)`).
+   La prima stesura pretendeva la data ISO intera, ed era una seconda regola:
+   un infortunio registrato con `data: "2026"` entrava nel conteggio dell'anno
+   ma il suo anno non compariva nella serie — l'indice c'era e la riga no. */
+function annoRegistrato(x) {
+  const y = String((x && x.data) || "").slice(0, 4);
+  return /^\d{4}$/.test(y) ? +y : null;
+}
+
+/* Le ore per anno, con i doppioni tolti di mezzo invece che risolti a caso. */
+function orePerAnno(oreAnni) {
+  const per = new Map(), dubbi = new Set();
+  for (const r of oreAnni || []) {
+    const a = +((r && r.anno)), o = +((r && r.ore));
+    if (!Number.isInteger(a) || !(Number.isFinite(o) && o > 0)) continue;
+    if (per.has(a) && per.get(a) !== o) dubbi.add(a);
+    per.set(a, o);
+  }
+  for (const a of dubbi) per.delete(a);
+  return { per, dubbi };
+}
+
+export function andamentoIndici(infortuni, oreAnni, opts = {}) {
+  const annoFine = Number.isInteger(+opts.annoFine) ? +opts.annoFine : new Date().getFullYear();
+  const finestra = Math.max(2, Math.round(+opts.finestra) || 6);
+  const { per: ore, dubbi } = orePerAnno(oreAnni);
+  const conEventi = new Set();
+  for (const i of infortuni || []) if (i && i.tipo === "infortunio") {
+    const a = annoRegistrato(i); if (a != null) conEventi.add(a);
+  }
+  const noti = [...new Set([...ore.keys(), ...conEventi, ...dubbi])].filter(a => a <= annoFine);
+  const primo = Math.max(noti.length ? Math.min(...noti) : annoFine, annoFine - finestra + 1);
+  const anni = [];
+  for (let a = primo; a <= annoFine; a++) {
+    const r = indiciInfortunistici(infortuni, ore.has(a) ? ore.get(a) : null, a);
+    anni.push(dubbi.has(a)
+      ? { ...r, motivo: "Per il " + a + " ci sono DUE registrazioni di ore diverse: finché non ne resta "
+          + "una sola l'indice non si calcola, perché sceglierne una cambierebbe il risultato senza che si veda." }
+      : r);
+  }
+  const misurabili = anni.filter(r => r.calcolabile);
+  const fuoriPeriodo = noti.filter(a => a < primo).sort((a, b) => a - b);
+  const oreFuoriPeriodo = fuoriPeriodo.filter(a => ore.has(a));
+  return {
+    anni, dal: primo, al: annoFine,
+    misurabili: misurabili.length,
+    conEventiSenzaOre: anni.filter(r => !r.calcolabile && r.infortuni > 0).map(r => r.anno),
+    anniDubbi: [...dubbi].filter(a => a >= primo && a <= annoFine).sort((a, b) => a - b),
+    fuoriPeriodo, oreFuoriPeriodo,
+    confronto: confrontaUltimiDueAnni(misurabili, primo, annoFine, oreFuoriPeriodo),
+    indici: INDICI_TREND,
+  };
+}
+
+/* Il confronto fra gli ultimi due anni MISURATI. Non è esportata: l'unica
+   porta è `andamentoIndici`, così non nascono due modi di leggere il verso. */
+function confrontaUltimiDueAnni(misurabili, dal, al, oreFuori) {
+  const coda = oreFuori.length
+    ? " Fuori dal periodo mostrato ci sono anche le ore del " + oreFuori.join(", ") + "."
+    : "";
+  if (misurabili.length < 2)
+    return { confrontabile: false, pochi: false, verso: null, per: [],
+      motivo: (misurabili.length === 0
+        ? "Nel periodo " + dal + "–" + al + " non c'è nessun anno con le ore lavorate: senza il "
+          + "denominatore non c'è nessun indice, quindi neanche un andamento."
+        : "Nel periodo " + dal + "–" + al + " c'è un anno solo con le ore lavorate (" + misurabili[0].anno
+          + "): per dire se gli indici salgono o scendono ne servono almeno due.") + coda };
+  const a = misurabili[misurabili.length - 1], da = misurabili[misurabili.length - 2];
+  const eventi = da.infortuni + a.infortuni;
+  const per = INDICI_TREND.map(d => {
+    const v0 = da[d.chiave], v1 = a[d.chiave], delta = Math.round((v1 - v0) * 100) / 100;
+    return { ...d, da: v0, a: v1, delta,
+      variazione: v0 > 0 ? Math.round((v1 - v0) / v0 * 1000) / 10 : null,
+      variazionePerche: v0 > 0 ? null
+        : "Il " + da.anno + " era a zero: una variazione in percentuale non esiste, si legge il valore.",
+      verso: delta === 0 ? "stabile" : delta < 0 ? "migliora" : "peggiora" };
+  });
+  const versi = new Set(per.map(p => p.verso)); versi.delete("stabile");
+  return { confrontabile: true, motivo: null, da: da.anno, a: a.anno,
+    adiacenti: a.anno - da.anno === 1, salto: a.anno - da.anno,
+    eventi, pochi: troppoPochiPerTendenza(eventi), per,
+    verso: versi.size === 0 ? "stabile" : versi.size > 1 ? "misto" : [...versi][0] };
 }
 
 // ============================================================
