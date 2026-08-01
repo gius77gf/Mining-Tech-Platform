@@ -111,7 +111,10 @@ chiamata a due argomenti invece di far finta.
 
 ## Che cosa resta
 
-**Conti** e **Sentinella** usano ancora `tap` e `cliccabile`: stesso verso,
-nome diverso, vanno rinominate. **Campo**, **Flotta** e **Terra** partono dal
-verso opposto e sono a zero: si migrano senza fretta, e adesso il banco protegge
-comunque, qualunque convenzione usino.
+✅ **Conti** e **Sentinella** sono state rinominate a `tocca` (01/08): erano
+`tap` e `cliccabile`, cioè la stessa idea con due nomi. Le convenzioni scendono
+da **cinque a tre**.
+
+Restano **Campo**, **Flotta** e **Terra**, che partono dal verso opposto (riga
+viva di serie, ferma marcata). Sono a zero e il banco le protegge comunque,
+quindi è pulizia, non sicurezza.

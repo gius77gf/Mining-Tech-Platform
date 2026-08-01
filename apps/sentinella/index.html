@@ -244,16 +244,18 @@
 .item:active{transform:translateX(1px) scale(.995)}
 /* ⛔ La riga qui sotto diceva «la manina solo alle voci che si toccano», e per
    mesi non ha funzionato: `dw-app-shell.css` metteva `cursor:pointer` su TUTTE
-   le `.item`, quindi `.cliccabile` era gia' vera dappertutto e la decisione era
+   le `.item`, quindi la classe era gia' vera dappertutto e la decisione era
    solo scritta. Trovato il 01/08 smontando i due fogli condivisi.
    Misurato prima di toccare, perche' togliere la manina a una voce viva sarebbe
    peggio del difetto: 42 voci guardate in tutte le sezioni, **36 con
-   `.cliccabile` e 36 con un aggancio, zero disaccordi** — e nel sorgente sono
+   la classe e 36 con un aggancio, zero disaccordi** — e nel sorgente sono
    due sole le emissioni che portano la classe, tutt'e due con un `data-`.
    Le altre sei non fanno niente al tocco: il bersaglio e' il bottoncino `.arr`
    dentro la riga, che la sua manina ce l'ha. */
+/* il nome della classe e' `tocca`, quello dichiarato in `shared/dw-app-ui.css`:
+   si chiamava `cliccabile` e Conti la chiamava `tap`, cioe' la stessa idea con
+   due nomi. Rinominate il 01/08. */
 .item{cursor:default}
-.item.cliccabile{cursor:pointer}
 
 /* la voce con la serie storica aperta resta agganciata al grafico sotto */
 .item.aperto{
@@ -2835,7 +2837,7 @@ textarea.dw-input{
       .sort((x, y) => (rankAll[x.gravita] || 0) - (rankAll[y.gravita] || 0));
     $("all-list").innerHTML = allerte.map(a => { const ade = a.categoria === "adempimento";
       const prg = a.categoria === "programma";
-      return `<div class="item cliccabile ${striscia[a.gravita] || "st-mute"}" data-allerta="${prg ? "prog" : ade ? "ade" : "mon"}"
+      return `<div class="item tocca ${striscia[a.gravita] || "st-mute"}" data-allerta="${prg ? "prog" : ade ? "ade" : "mon"}"
         title="${prg ? "Vai al programma di monitoraggio" : ade ? "Vai agli adempimenti" : "Vai al punto di misura"}">
       <div class="avatar ${a.gravita === "danger" ? "danger" : a.gravita === "warn" ? "warn" : "sup"}">${prg ? I.programma : ade ? I.calendario : I.sensore}</div>
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc(a.dettaglio)}</div></div>
@@ -2930,7 +2932,7 @@ textarea.dw-input{
     { const n = adeVis.length;
       $("ade-count").innerHTML = n === 0 ? "" : `<b>${n}</b> ${n === 1 ? "adempimento" : "adempimenti"}${qAde ? " · su " + ADE.length : ""}`; }
 
-    $("reg-list").innerHTML = REG.slice().sort((a,b)=>(a.stato==="in-attesa"?0:1)-(b.stato==="in-attesa"?0:1)).map(r => `<div class="item cliccabile ${striscia[RB[r.stato][0]]}" data-reg="${r.id}" title="${r.stato==="in-attesa" ? "Tocca per segnare aggiornato" : "Tocca per rimettere in attesa"}">
+    $("reg-list").innerHTML = REG.slice().sort((a,b)=>(a.stato==="in-attesa"?0:1)-(b.stato==="in-attesa"?0:1)).map(r => `<div class="item tocca ${striscia[RB[r.stato][0]]}" data-reg="${r.id}" title="${r.stato==="in-attesa" ? "Tocca per segnare aggiornato" : "Tocca per rimettere in attesa"}">
       <div class="avatar ${r.stato === "in-attesa" ? "warn" : "ok"}">${I.registro}</div>
       <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${esc(r.nota || "")}</div></div>
       <span class="acts"><span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span></span></div>`).join("")
@@ -3742,7 +3744,7 @@ textarea.dw-input{
         s.tolleranzaGiorni ? "tolleranza " + s.tolleranzaGiorni + " gg" : null,
         v.riga.nota || null,
       ].filter(Boolean).join(" · ");
-      return `<div class="item cliccabile ${cls}" data-prg="${esc(v.riga.id)}"
+      return `<div class="item tocca ${cls}" data-prg="${esc(v.riga.id)}"
         title="${sosp ? "Tocca per riattivare questa riga" : "Tocca per sospendere questa riga"}">
         <div class="avatar ${s.cls === "danger" ? "danger" : s.cls === "warn" ? "warn" : sosp ? "sup" : ""}">${I.programma}</div>
         <div class="info"><div class="name">${esc(v.nome)}</div>

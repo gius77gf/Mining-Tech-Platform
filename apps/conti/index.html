@@ -239,7 +239,7 @@
 @media (max-width:430px){ .conf{grid-template-columns:1fr} }
 
 /* ─────────────── voci di lista (copia di .sitem) ─────────────── */
-/* ⛔ `.item.tap` diceva «la manina solo alle voci che si toccano», e per mesi
+/* ⛔ `.item.tocca` diceva «la manina solo alle voci che si toccano», e per mesi
    non ha funzionato: `dw-app-shell.css` metteva `cursor:pointer` su TUTTE le
    `.item`, quindi la distinzione era solo scritta. Trovato il 01/08 smontando
    i fogli condivisi. Misurato prima di toccare, riga per riga in tutte e otto
@@ -248,8 +248,7 @@
    `data-fat` e otto `<label>` con dentro un controllo — cliccabili per natura,
    e infatti `label.item` la manina ce l'ha per conto suo poco piu' sotto. */
 .item{cursor:default}
-.item.tap{cursor:pointer}
-.item.tap:active{transform:translateX(1px) scale(.995)}
+.item.tocca:active{transform:translateX(1px) scale(.995)}
 .item.st-sup{border-left:3px solid var(--app-support2)}
 .name .num-doc{
   font-family:'Barlow Condensed',sans-serif; font-weight:800; letter-spacing:.6px;
@@ -603,7 +602,7 @@ label.item:has(.dw-chk:checked){
 /* ─────────────── touch: come il core, niente effetti "incollati" ─────────────── */
 
 @media(hover:none),(pointer:coarse){
-  .item.tap:active,.kpi:active{transform:scale(.985)}
+  .item.tocca:active,.kpi:active{transform:scale(.985)}
 }
 
 </style>
@@ -1816,7 +1815,7 @@ label.item:has(.dw-chk:checked){
         nDdt ? "da " + plur(nDdt, "DDT", "DDT") : "",
         sol && sol.livello ? sol.label : "",
       ].filter(Boolean).join(" · ");
-      return `<div class="item tap ${st}" data-fat="${f.id}" title="${f.incassata ? "Tocca per vedere gli incassi registrati" : "Tocca per registrare un incasso (anche un acconto)"}">
+      return `<div class="item tocca ${st}" data-fat="${f.id}" title="${f.incassata ? "Tocca per vedere gli incassi registrati" : "Tocca per registrare un incasso (anche un acconto)"}">
       <span class="avatar">${IC.fattura}</span>
       <div class="info"><div class="name"><span class="num-doc">${esc(f.numero)}</span> · ${esc(nomeCliente(f, CLI))}${clienteDiFattura(f, CLI) ? "" : ' <span class="badge tag" title="Cliente non ancora collegato all\'anagrafica: collegalo dalla scheda Clienti">da collegare</span>'}</div>
       <div class="meta">${esc(meta)}${mora && mora.interessi > 0 ? ` · <span title="Interessi di mora D.Lgs 231/2002 al ${TASSO_MORA_DEFAULT}% (tipico, da confermare) + € 40,00 di spese art. 6">mora ~${eur(mora.interessi)}</span>` : ""}</div></div>
@@ -2609,7 +2608,7 @@ label.item:has(.dw-chk:checked){
     if (!difSel.size && ids.length) ids.forEach(id => difSel.add(id));
     const scelti = lista.filter(p => difSel.has(p.id));
     $("dif-list").innerHTML = lista.length
-      ? lista.map(p => `<label class="item tap st-accent">
+      ? lista.map(p => `<label class="item tocca st-accent">
         <input type="checkbox" class="dw-chk" data-ddt="${p.id}"${difSel.has(p.id) ? " checked" : ""}
                aria-label="Includi il DDT ${esc(p.numero || "")} nella fattura">
         <div class="info"><div class="name"><span class="num-doc">DDT ${esc(p.numero || "—")}</span> · ${esc(p.prodotto || "—")}</div>
@@ -3174,7 +3173,7 @@ label.item:has(.dw-chk:checked){
            si accende quando è spuntata). Avevo inventato una classe
            `.dw-check` che nessun foglio definiva — cioè una casella che si
            vedeva a metà e un bersaglio di tocco piccolo come il quadratino. */
-        + man.mancanti.map(v => `<label class="item tap st-warn">
+        + man.mancanti.map(v => `<label class="item tocca st-warn">
           <input type="checkbox" class="dw-chk chi-assente" value="${esc(v.chiave)}"
                  aria-label="In ${esc(parlante)} non c'è nessuna spesa di ${esc(v.etichetta.toLowerCase())}">
           <div class="info"><div class="name">${esc(v.etichetta)}</div>
