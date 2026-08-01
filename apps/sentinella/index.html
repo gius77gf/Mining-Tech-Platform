@@ -242,6 +242,17 @@
 
 /* ─────────────── voci di lista (copia di .sitem) ─────────────── */
 .item:active{transform:translateX(1px) scale(.995)}
+/* ⛔ La riga qui sotto diceva «la manina solo alle voci che si toccano», e per
+   mesi non ha funzionato: `dw-app-shell.css` metteva `cursor:pointer` su TUTTE
+   le `.item`, quindi `.cliccabile` era gia' vera dappertutto e la decisione era
+   solo scritta. Trovato il 01/08 smontando i due fogli condivisi.
+   Misurato prima di toccare, perche' togliere la manina a una voce viva sarebbe
+   peggio del difetto: 42 voci guardate in tutte le sezioni, **36 con
+   `.cliccabile` e 36 con un aggancio, zero disaccordi** — e nel sorgente sono
+   due sole le emissioni che portano la classe, tutt'e due con un `data-`.
+   Le altre sei non fanno niente al tocco: il bersaglio e' il bottoncino `.arr`
+   dentro la riga, che la sua manina ce l'ha. */
+.item{cursor:default}
 .item.cliccabile{cursor:pointer}
 
 /* la voce con la serie storica aperta resta agganciata al grafico sotto */
