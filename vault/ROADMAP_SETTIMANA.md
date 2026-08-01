@@ -2051,6 +2051,19 @@ campi interi, file delle macchine.
       Serve a **impedire il lavoro sbagliato**: chi riprendesse dalla scheda
       vecchia scriverebbe strati dati che esistono, l'errore che `CLAUDE.md`
       elenca fra i più costosi con quattro casi datati.
+- [x] ✅ **UN «NO» MOTIVATO: IL RESIDUO CHE NON SI PUÒ DIMOSTRARE** *(01/08)* —
+      la condizione più pesante fra quelle invisibili («Residuo del volume
+      concesso: non calcolabile», **sul foglio che va all'ente**) **non va
+      messa in dimostrazione**, e la ragione è misurata: Terra ha una sola
+      autorizzazione e il foglio legge la **vigente**, quindi bisognerebbe
+      togliere il volume concesso al titolo attivo — un numero che regge la
+      percentuale, il residuo, la soglia, la vita cava e il cartellone.
+      Spegnerebbe **sei schermate** per accenderne una riga. ⚠️ Da qui il
+      criterio che stanotte mancava: **un caso da dimostrare deve poter mancare
+      senza portarsi via il resto**. Là il dato mancante era **locale** (un
+      documento, una nomina, un lotto, una fattura); qui è **strutturale**.
+      Scritto invece di lasciato cadere, perché un «no» senza ragione si
+      trasforma in «non ci ha pensato nessuno».
 - [x] ✅ **QUATTRO LO SANNO DIRE, UNA SOLA LO MOSTRA** *(01/08)* — voce
       successiva della classifica: «non calcolabile», in **quattro** app, sette
       occorrenze e **nessun falso positivo** — tutti stati veri, fra cui il
