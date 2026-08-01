@@ -2015,6 +2015,29 @@ campi interi, file delle macchine.
       ha il terminatore indentato, che in bash non chiude — ma **YAML dedenta il
       blocco `run: |` prima di darlo a bash**. Era la mia riproduzione a essere
       sbagliata; estraendo i passi col parser YAML, tutti e tre passano `bash -n`.
+- [x] ✅ **TERRA — L'ONERE DI ESCAVAZIONE** *(01/08)* — la **seconda voce** dei
+      «5 documenti da fare per primi» di `RICERCA_DOCUMENTI_ENTI_202607.md`: la
+      scadenza annuale che fa perdere giornate intere. I volumi c'erano già;
+      mancava il conto. Ora `onereEscavazione` (lordo, detratto per recupero,
+      imponibile, importo, **banda d'incertezza**) e `descriviOnere`, la riga
+      come va scritta sul foglio.
+      ⛔ La **tariffa non sta nel codice**: cambia da regione a regione, la
+      scrive il cliente. Senza, la risposta **non è zero** ma «non calcolabile»
+      — un «€ 0» su un foglio che va all'ente è una *dichiarazione*, non un
+      vuoto. Ma una tariffa **di** zero è un dato, e allora il conto si fa.
+      ⚠️ **Il caso che ha cambiato il disegno, e che avevo sbagliato**: un anno
+      con un solo rilievo di **cumulo** sembra un anno misurato con scavo zero,
+      quindi «€ 0 dovuti». Non è così: un rilievo del cumulo misura **il
+      mucchio, non il fronte**. Dichiarare € 0 sarebbe dichiarare **in difetto**
+      una cosa che nessuno ha misurato — e qui il numero tranquillo lo legge un
+      ispettore. Trovato dal prototipo in scratchpad, come pretende `CLAUDE.md`:
+      leggendo il piano non si vedeva.
+      ⚠️ E la **regola 20 ha bocciato la mia funzione dieci minuti dopo**:
+      `run-stile` è passata da 271 a **269** — due prove *in meno*, non fallite —
+      perché `onereEscavazione` dichiarava `calcolabile` e nessuno lo leggeva.
+      Il rimedio non è spegnere la regola ma il disegno che indica, già in casa
+      (`origineDi` → `descriviOrigine`): la frase che va all'ente la scrive il
+      modulo. Da lì è nata `descriviOnere`, che serviva comunque.
 - [x] ✅ **IL CENSIMENTO DEL PRINCIPIO, IN TUTTE E SEI LE APP** *(01/08)* — sei
       cantieri in parallelo, stesso mandato: rileggere **tutto quello che c'è
       già** col metro dell'«assenza non è un dato favorevole». **28 punti

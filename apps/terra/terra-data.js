@@ -793,6 +793,86 @@ export function riepilogoAnnuale(rilievi, anno, autorizzazione, oggi = new Date(
   };
 }
 
+/* ── L'ONERE DI ESCAVAZIONE ─────────────────────────────────────────────────
+   Il conto che accompagna il riepilogo annuale dei volumi: quanto si deve
+   all'ente per il materiale estratto nell'anno. È la seconda voce dell'elenco
+   in `docs/RICERCA_DOCUMENTI_ENTI_202607.md` — quella che «fa perdere giornate
+   intere» e che in alcune regioni va presentata **anche se non si è estratto
+   nulla**.
+
+   ⛔ LA TARIFFA NON STA NEL CODICE. Cambia da regione a regione e da titolo a
+   titolo: la scrive il cliente nella scheda del titolo. Senza, la risposta non
+   è zero — è «non calcolabile», con scritto dove si imposta.
+
+   ⛔ E SI PAGA LO SCAVO, NON IL CUMULO. È la stessa convenzione con cui in
+   tutta Terra il cumulo non consuma il concesso: un cumulo ripreso è materiale
+   già estratto (e già pagato) che si sposta.
+
+   ⚠️ IL CASO CHE HA CAMBIATO IL DISEGNO, e va scritto perché il prossimo
+   lettore avrà lo stesso istinto sbagliato che ho avuto io. Un anno in cui c'è
+   **un rilievo di solo cumulo** sembra un anno *misurato* in cui lo scavo è
+   stato zero — e quindi un onere di **zero euro**, vero e dichiarabile.
+   Non è così: un rilievo del cumulo misura **il mucchio, non il fronte**. Di
+   quanto sia stato tolto dal fronte, quell'anno, non si sa niente. Scrivere
+   «€ 0 dovuti» su un documento che va all'ente vorrebbe dire dichiarare in
+   difetto una cosa che nessuno ha misurato — la faccia peggiore del principio
+   dell'assenza, perché qui il numero tranquillo lo legge un ispettore.
+   Quindi: senza nemmeno un rilievo DI SCAVO nell'anno, non si calcola — e il
+   motivo dice esplicitamente che «zero misurato» e «non misurato» all'ente non
+   sono la stessa cosa, così chi non ha davvero estratto niente lo dichiara
+   invece di lasciarlo dedurre. */
+export function onereEscavazione(riepilogo, opzioni = {}) {
+  const R = riepilogo || {}, o = opzioni || {};
+  const avvisi = [];
+  const tar = o.tariffaEuroM3;
+  const tariffaImpostata = !(tar == null || tar === "") && Number.isFinite(+tar) && +tar >= 0;
+  if (!tariffaImpostata)
+    return { calcolabile: false, importo: null, avvisi,
+      motivo: "La tariffa al metro cubo non è impostata: cambia da regione a regione e da titolo a titolo, quindi l'app non la inventa. Scrivila nella scheda del titolo e il conto si fa da sé." };
+  if (!R.rilieviScavo)
+    return { calcolabile: false, importo: null, avvisi,
+      motivo: `Nessun rilievo di scavo nel ${R.anno}: il volume dell'anno non è stato misurato, quindi l'onere non si può calcolare. Se in quest'anno non si è estratto nulla va dichiarato a parte — per l'ente «zero misurato» e «non misurato» non sono la stessa cosa.` };
+
+  const det = o.volumeDetrattoM3;
+  const detNumerico = !(det == null || det === "") && Number.isFinite(+det);
+  if (!(det == null || det === "") && !detNumerico)
+    avvisi.push("Il volume detratto per recupero non è un numero: non è stato tolto dall'imponibile.");
+  const detratto = detNumerico ? Math.max(0, +det) : 0;
+  const lordo = r2(R.scavo);
+  if (detratto > lordo)
+    avvisi.push(`Il volume detratto (${detratto} m³) supera lo scavo misurato dell'anno (${lordo} m³): l'imponibile è fermo a zero, ma uno dei due numeri va rivisto.`);
+  const imponibile = r2(Math.max(0, lordo - detratto));
+  return {
+    calcolabile: true, motivo: "",
+    lordo, detratto: r2(detratto), imponibile,
+    tariffa: r2(tar), importo: r2(imponibile * (+tar)),
+    // la banda d'incertezza del volume: il riepilogo la calcola già, e questo è
+    // l'unico foglio in circolazione che la dichiara invece di nasconderla
+    banda: r2(R.banda || 0),
+    avvisi,
+  };
+}
+
+/* LA RIGA DELL'ONERE COM'È SCRITTA SUL FOGLIO. Sta qui e non nella pagina per
+   la stessa ragione di `descriviOrigine`: la frase che va all'ente è una
+   REGOLA, non un disegno, e chi la scrive deve essere uno solo.
+   ⚠️ E c'è una seconda ragione, imparata subito: `onereEscavazione` dichiara
+   `calcolabile`, e una bandiera che non legge nessuno non protegge niente —
+   la regola 20 di `run-stile.mjs` ha bocciato la funzione dieci minuti dopo che
+   l'avevo scritta, perché il modulo la restituiva e basta. Il lettore giusto è
+   questo, dentro il modulo: la pagina di stampa non deve sapere né decidere
+   come si racconta un onere che non si può calcolare. */
+export function descriviOnere(onere) {
+  const o = onere || {};
+  if (!o.calcolabile) return o.motivo || "Onere non calcolabile.";
+  const eur = (n) => Number(n).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true });
+  const m3 = (n) => Number(n).toLocaleString("it-IT", { maximumFractionDigits: 0, useGrouping: true });
+  return `Volume scavato ${m3(o.lordo)} m³`
+    + (o.detratto ? `, meno ${m3(o.detratto)} m³ detratti per recupero` : "")
+    + `: imponibile ${m3(o.imponibile)} m³ × ${eur(o.tariffa)} €/m³ = € ${eur(o.importo)}.`
+    + (o.banda ? ` Incertezza del volume dichiarata: ± ${m3(o.banda)} m³.` : "");
+}
+
 // LA RIPARTIZIONE PER FRONTE, pronta da mostrare. Sta qui e non nella pagina
 // perché è una REGOLA, non un disegno, e una regola si prova.
 //
