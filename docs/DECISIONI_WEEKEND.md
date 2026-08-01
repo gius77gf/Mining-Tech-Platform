@@ -341,6 +341,82 @@ come si presenta il prodotto, ed è una scelta tua. Nel frattempo il lavoro
 procede su quello che serve **in tutte e tre**: le funzioni che alimentano le
 tessere esistono già in tutte le app e sono coperte da prove.
 
+## 16. Un punto di monitoraggio SENZA soglia: che cosa deve dire?
+
+*Trovato il 01/08 dal censimento del principio in Sentinella. Te lo chiedo
+invece di deciderlo io perché **tocca una soglia**, e le soglie sono ferme
+finché non lo dici tu.*
+
+**Come funziona oggi.** Quando Sentinella giudica una misura la confronta con la
+soglia del punto. Se la soglia **manca**, la riga di codice ne usa una di
+ripiego: **1**. Non è una scelta scritta da qualcuno — è un `|| 1` messo per non
+dividere per zero.
+
+**Che cosa succede davvero** (misurato, non dedotto, su un punto senza soglia):
+
+| lettura | che cosa risponde l'app |
+|---|---|
+| 0,8 mm/s | **«Conforme»**, verde |
+| 1,2 mm/s | **«Superamento»**, rosso |
+
+Cioè sbaglia in **tutt'e due i versi**: dà un verde tranquillizzante a chi non
+ha nessun limite da rispettare, e **inventa un allarme** a chi ne sta sopra —
+sopra un numero che nessuno ha scelto. È il principio dell'assenza in tutte e
+due le sue facce nello stesso punto, ed è la cosa più grave uscita dal
+censimento.
+
+**Quanto è raggiungibile, misurato:** dall'interfaccia **non lo è**. Il form
+pretende una soglia maggiore di zero con un messaggio esplicito
+(«Serve una soglia maggiore di zero…»), e l'import CSV scarta le righe con
+soglia ≤ 0. Il caso vive per **dati scritti prima**, o da un'altra strada.
+
+**Le due strade:**
+
+a) **uno stato a sé, «Senza soglia»** (giallo), che non è né conforme né
+   superamento. È coerente con tutto il resto dell'app — «senza dati» non è
+   «conforme» è nato proprio qui — ma **cambia i conteggi**: quel punto esce dal
+   numeratore *e* dal denominatore della conformità, e il report per l'ente lo
+   deve dichiarare;
+
+b) **lasciarlo com'è** e considerarlo chiuso dal fatto che l'interfaccia non ci
+   arriva. Costa zero, e regge finché nessuno importa dati da un'altra via.
+
+⚠️ **Non l'ho toccato.** La (a) è quasi certamente la risposta giusta per il
+prodotto, ma tocca il modo in cui si giudica una misura ambientale: è tua.
+
+## 17. Un infortunio con la prognosi ANCORA APERTA: quante giornate perse?
+
+*Trovato il 01/08 dallo stesso censimento, in Scudo. Anche questo è tuo, e per
+una ragione diversa: qui la decisione di oggi è **scritta e datata** nelle
+prove, con la sua ragione — quindi non è una svista, è una scelta che forse va
+rivista.*
+
+**Come funziona oggi.** Il campo «giorni di assenza» lasciato vuoto vale **0**.
+La ragione scritta il 31/07 è buona: in un **near-miss** la colonna vuota vuol
+dire davvero *nessuna assenza*, ed è il caso normale.
+
+**Il caso che quella ragione non copre.** Un **infortunio** registrato mentre la
+prognosi è ancora aperta: i giorni non si sanno *ancora*. Misurato su un anno
+con 20.000 ore lavorate:
+
+| | indice di frequenza | indice di gravità | LTIFR |
+|---|---|---|---|
+| un solo infortunio, 12 giorni | 50 | 0,6 | 50 |
+| **più uno con prognosi aperta** | 100 | **0,6** | **50** |
+
+La frequenza sale — giusto, l'infortunio c'è stato. Ma la **gravità non si
+muove** e l'infortunio **non viene contato fra quelli con assenza**: l'app dice
+«un infortunio in più che non è costato nemmeno una giornata». Che è
+esattamente quello che ancora non si sa.
+
+**La strada mite**, se scegli di cambiarlo: distinguere «0 giornate» (scritto)
+da «prognosi aperta» (non ancora scritto), contare il secondo fra gli infortuni
+**con assenza da quantificare**, e dichiarare la gravità come un **minimo** —
+come Terra fa già col cumulato quando il pregresso non è dichiarato.
+
+⚠️ **Non l'ho toccato**, e c'è la prova che blinda il comportamento di oggi e lo
+nomina: se un giorno cambia, si saprà che è stato **scelto**.
+
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde
 iterazioni UX delle app, test aggiuntivi, revisioni di qualità/sicurezza,
