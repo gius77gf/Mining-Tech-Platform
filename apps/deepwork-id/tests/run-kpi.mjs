@@ -10279,6 +10279,47 @@ test("disponibilità: quando i numeri ci sono tutti, il conto è quello", () => 
   ok(campo.DISPONIBILITA_OK > campo.DISPONIBILITA_WARN, "le due soglie sono in ordine");
 });
 
+test("⛔ Flotta: senza le ore, il costo orario NON è zero", () => {
+  /* Il numero con cui un titolare decide se tenere una macchina. Candidato
+     uscito dalla ricerca continua e rimisurato: gli ingredienti c'erano già
+     tutti — `costoOfficinaPerMezzo` e `consumoPerMezzo`, che sa pure le ore —
+     mancava la somma. E il caso che conta è quello in cui non si può
+     rispondere: nella dimostrazione il Dumper D3 ha 5.090 € di officina e
+     nessun rifornimento col contatore. Uno «0 €/h» lì lo farebbe sembrare la
+     macchina che costa meno. */
+  const r = flotta.costoOrarioMezzo(flotta.DEMO.interventi, flotta.DEMO.rifornimenti);
+  ok(r.length >= 3, "la dimostrazione ha abbastanza mezzi per misurare");
+  const senzaOre = r.filter(x => x.ore === null);
+  ok(senzaOre.length > 0, "e ha almeno un mezzo di cui non si sanno le ore");
+  for (const x of senzaOre) {
+    eq(x.euroOra, null, x.mezzo + ": senza ore l'euro/ora non si calcola");
+    ok(x.perche.length > 10, x.mezzo + ": e dice che cosa manca");
+    ok(x.totale > 0 || x.officina === 0, x.mezzo + ": il totale speso resta comunque leggibile");
+  }
+  const conOre = r.filter(x => x.ore !== null);
+  ok(conOre.length > 0, "e almeno uno di cui si sanno");
+  for (const x of conOre) {
+    eq(x.perche, "", x.mezzo + ": se si calcola non c'è niente da spiegare");
+    eq(x.euroOra, Math.round(100 * (x.officina + x.carburante) / x.ore) / 100,
+       x.mezzo + ": officina + carburante diviso le ore");
+    ok(x.euroOra >= x.euroOraOfficina, x.mezzo + ": il totale non è meno della sola officina");
+  }
+  /* ⚠️ le ore NON sono ricalcolate qui: vengono da `consumoPerMezzo`, e devono
+     essere le STESSE. Due conti delle stesse ore un giorno divergono. */
+  const car = flotta.consumoPerMezzo(flotta.DEMO.rifornimenti);
+  for (const x of conOre) {
+    const c = car.mezzi.find(m => m.mezzo === x.mezzo);
+    eq(x.ore, c.oreCoperte, x.mezzo + ": le ore sono quelle di consumoPerMezzo, non una seconda copia");
+  }
+  /* un intervento senza costo rende il totale un MINIMO, e lo dichiara */
+  const conVuoto = flotta.costoOrarioMezzo(
+    [{ mezzo: "Pala P1", costo: 500 }, { mezzo: "Pala P1", costo: 0 }],
+    flotta.DEMO.rifornimenti);
+  const pala = conVuoto.find(x => x.mezzo === "Pala P1");
+  eq(pala.parziale, true, "un intervento senza costo rende il totale parziale");
+  eq(pala.interventiSenzaCosto, 1, "e si sa quanti sono");
+});
+
 test("⛔ Campo: un turno ANCORA APERTO non prende il verde, e il 100% dice perché", () => {
   /* I fermi si registrano DURANTE il turno. Su un turno non ancora chiuso
      «100%» non vuol dire «è andato tutto bene»: vuol dire «finora nessuno ha

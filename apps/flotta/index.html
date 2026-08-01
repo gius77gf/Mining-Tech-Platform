@@ -655,6 +655,7 @@
        lavoro), che l'app raccoglieva senza mostrarli da nessuna parte. -->
   <div class="sec">Officina</div>
   <div id="graf-officina" class="graf"></div>
+  <div id="costo-ora"></div>
 
   <div class="sec">Nuovo mezzo</div>
   <div class="form">
@@ -1039,7 +1040,7 @@
 
 
 <script type="module">
-  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, scaricoGiacenza, parseTelemetriaCsv, parseMezziCsv, parseRicambiCsv, ripartizioneCosti, costoOfficinaPerMezzo, prioritaOperative,
+  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, scaricoGiacenza, parseTelemetriaCsv, parseMezziCsv, parseRicambiCsv, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
            costiPerMese, disponibilitaStorico, fotografiaDaRegistrare,
            SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi,
            nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
@@ -1618,6 +1619,33 @@
         + "costo, la spesa finisce sul mezzo. Dopo qualche intervento vedrai qui, in ordine, "
         + "<b>quale macchina ti sta costando di più</b>.");
     }
+
+    // QUANTO COSTA ALL'ORA. L'officina da sola dice quanto hai speso, non
+    // quanto ti costa TENERLA: una macchina che lavora il doppio può costare
+    // il doppio ed essere la più conveniente. Il numero che decide è
+    // officina + carburante diviso le ore lavorate.
+    // ⛔ E dove le ore non si sanno NON si scrive un numero: nella
+    //    dimostrazione il Dumper D3 ha la spesa di officina più alta di tutte
+    //    e nessun rifornimento col contatore. Un «0 €/h» lì lo farebbe
+    //    sembrare la macchina che costa meno.
+    const oraMezzi = costoOrarioMezzo(INT, RIF);
+    const conOra = oraMezzi.filter(m => m.euroOra !== null);
+    const senzOra = oraMezzi.filter(m => m.euroOra === null && m.totale > 0);
+    $("costo-ora").innerHTML = !oraMezzi.length ? "" : `
+      <div class="sec">Quanto costa un'ora di macchina</div>
+      ${conOra.map((m, i) => `<div class="item statico ${i === 0 ? "st-danger" : "st-mute"}">
+        <div class="info"><div class="name">${esc(m.mezzo)} · <b>${eur(m.euroOra)}</b> <span class="u">/h</span></div>
+          <div class="meta">${eur(m.totale)} in ${numTx(m.ore)} ore misurate ·
+            officina ${eur(m.officina)} + carburante ${eur(m.carburante)}${
+            m.parziale ? ` · <b class="bad">${m.interventiSenzaCosto} intervent${m.interventiSenzaCosto === 1 ? "o" : "i"} senza costo: è un minimo</b>` : ""}</div></div>
+      </div>`).join("")}
+      ${senzOra.map(m => `<div class="item statico st-warn">
+        <div class="info"><div class="name">${esc(m.mezzo)} · <b>non si sa</b></div>
+          <div class="meta">${eur(m.totale)} spesi, ma ${esc(m.perche.charAt(0).toLowerCase() + m.perche.slice(1))}</div></div>
+      </div>`).join("")}
+      ${conOra.length ? `<div class="note">Si confrontano solo i mezzi di cui si sanno le ore.
+        Per gli altri la spesa c'è, il costo orario no: scrivi il <b>contatore delle ore</b>
+        quando registri un rifornimento e comparirà anche il loro.</div>` : ""}`;
 
     // RITMO D'USO: quello MISURATO sulle letture del contatore vale sempre più
     // di un numero medio scritto a mano, perché è quello di QUEL mezzo. Il

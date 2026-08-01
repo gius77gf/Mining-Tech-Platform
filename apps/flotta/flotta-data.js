@@ -962,6 +962,48 @@ export function costoOfficinaPerMezzo(interventi) {
   };
 }
 
+// QUANTO MI COSTA ALL'ORA QUESTA MACCHINA — la domanda con cui un titolare
+// decide se tenerla o cambiarla. Gli ingredienti c'erano già tutti e sparsi:
+// `costoOfficinaPerMezzo` sa l'officina, `consumoPerMezzo` sa il carburante E
+// le ore (`oreCoperte`, prese dai contatori scritti sui pieni). Mancava solo
+// la somma, cioè il numero che decide.
+//
+// ⛔ LE ORE NON SI RICALCOLANO QUI. `consumoPerMezzo` le sa già, e sa già dire
+//    perché non le sa quando non le sa: rifarle vorrebbe dire avere due conti
+//    delle stesse ore, che un giorno divergono senza che nessuno se ne accorga.
+//    È la regola del `shared/` applicata dentro una app sola.
+// ⛔ E SENZA ORE NON SI RISPONDE «0 €/h». Nella dimostrazione il Dumper D3 ha
+//    5.090 € di officina e nessun rifornimento col contatore: un numero lì
+//    direbbe che è la macchina che costa meno, mentre la verità è che non si sa
+//    quanto ha lavorato. `euroOra` resta `null` e `perche` dice che cosa manca.
+// ⚠️ E il totale è un MINIMO quando qualche intervento è senza costo: `parziale`
+//    lo dichiara, così chi disegna non lo spaccia per definitivo.
+export function costoOrarioMezzo(interventi, rifornimenti) {
+  const off = costoOfficinaPerMezzo(interventi);
+  const car = consumoPerMezzo(rifornimenti);
+  const nomi = new Set([...off.mezzi.map(m => m.mezzo), ...car.mezzi.map(m => m.mezzo)]);
+  nomi.delete("Senza mezzo");
+  const righe = [];
+  for (const mezzo of nomi) {
+    const o = off.mezzi.find(m => m.mezzo === mezzo);
+    const c = car.mezzi.find(m => m.mezzo === mezzo);
+    const officina = o ? o.costo : 0;
+    const carburante = c ? c.euro : 0;
+    const ore = c && Number.isFinite(c.oreCoperte) && c.oreCoperte > 0 ? c.oreCoperte : null;
+    const mancanti = (interventi || []).filter(w => String(w.mezzo || "").trim() === mezzo && !(+w.costo > 0)).length;
+    righe.push({
+      mezzo, officina, carburante, totale: officina + carburante,
+      ore, parziale: mancanti > 0, interventiSenzaCosto: mancanti,
+      euroOraOfficina: ore ? Math.round(100 * officina / ore) / 100 : null,
+      euroOraCarburante: c && Number.isFinite(c.euroOra) ? c.euroOra : null,
+      euroOra: ore ? Math.round(100 * (officina + carburante) / ore) / 100 : null,
+      perche: ore ? "" : ((c && c.perche)
+        || "Nessun rifornimento porta la lettura del contatore: le ore lavorate non si sanno."),
+    });
+  }
+  return righe.sort((a, b) => b.totale - a.totale || a.mezzo.localeCompare(b.mezzo, "it"));
+}
+
 // ============================================================
 // L2 — GIRO MACCHINA (controllo pre-uso)
 // Il controllo che l'operatore fa PRIMA di salire in macchina, a inizio
