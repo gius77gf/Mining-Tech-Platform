@@ -18,6 +18,13 @@
 //                   sogliaGuardiaPct, preavvisoGiorni, anniRitmo }
 //   scadenze/{id}: { tipo, descrizione, dataScadenza (ISO),
 //                   preavvisoGiorni, ricorrenzaMesi|null, note }
+//   lotti/{id}:   { nome, ordine (la sequenza prevista dal progetto),
+//                   superficieMq, volumeM3 (previsto dal progetto, non
+//                   misurato), stato: previsto|aperto|esaurito|in-recupero|
+//                   recuperato|collaudato, apertoIl, esauritoIl,
+//                   recuperoIniziatoIl, recuperoFinitoIl, collaudatoIl (ISO
+//                   o null), frontiId: [] (i fronti che stanno nel lotto),
+//                   nota }
 // I KPI non si salvano mai: si CALCOLANO dai rilievi
 // (volumi mese = somma dei volumi elaborati del mese,
 //  avanzamento piano = estratto anno / pianificato anno).
@@ -35,6 +42,42 @@ export const DEMO = {
     { id: "f1", nome: "Fronte Nord", banco: "banco 2", quota: 340, dettaglio: "Prossima volata 12:30", avanzamento: 72, stato: "attivo" },
     { id: "f2", nome: "Fronte Est", banco: "banco 1", quota: 355, dettaglio: "Perforazione in corso · 14/22 fori", avanzamento: 41, stato: "attivo" },
     { id: "f3", nome: "Fronte Sud", banco: "banco 3", quota: 320, dettaglio: "Verifica stabilità scarpata", avanzamento: 18, stato: "sospeso" },
+  ],
+  // IL PIANO DI COLTIVAZIONE A LOTTI. I lotti d'esempio sono COERENTI coi
+  // fronti qui sopra e coi rilievi qui sotto: il lotto Nord contiene f1, quello
+  // Est f2, quello Sud f3 (fronte sospeso, e infatti il lotto è ancora
+  // «previsto»). I tre lotti più vecchi non dichiarano nessun fronte perché
+  // quei fronti sono stati chiusi prima di Terra: sullo schermo il loro volume
+  // misurato resta un TRATTINO con la sua ragione, non uno zero che
+  // sembrerebbe «non ancora cominciato».
+  // Gli stati coprono tutta la vita di un lotto, collaudo compreso: `lo2` è
+  // recuperato ma NON collaudato, cioè il caso in cui l'azienda ha finito e
+  // l'ente non ha ancora verificato.
+  lotti: [
+    { id: "lo1", nome: "Lotto 1 — settore Ovest", ordine: 1, superficieMq: 14000, volumeM3: 210000,
+      stato: "collaudato", apertoIl: "2021-04-12", esauritoIl: "2022-11-30",
+      recuperoIniziatoIl: "2023-01-16", recuperoFinitoIl: "2023-09-08", collaudatoIl: "2024-02-19",
+      frontiId: [], nota: "Chiuso e collaudato dall'ente: verbale agli atti." },
+    { id: "lo2", nome: "Lotto 2 — settore Sud-Ovest", ordine: 2, superficieMq: 6000, volumeM3: 88000,
+      stato: "recuperato", apertoIl: "2022-10-03", esauritoIl: "2024-07-19",
+      recuperoIniziatoIl: "2024-09-02", recuperoFinitoIl: "2026-05-22", collaudatoIl: null,
+      frontiId: [], nota: "Collaudo chiesto all'ente: fino al verbale il lotto non è chiuso." },
+    { id: "lo3", nome: "Lotto 3 — settore Nord-Ovest", ordine: 3, superficieMq: 5500, volumeM3: 75000,
+      stato: "in-recupero", apertoIl: "2023-02-06", esauritoIl: "2026-02-27",
+      recuperoIniziatoIl: "2026-04-13", recuperoFinitoIl: null, collaudatoIl: null,
+      frontiId: [], nota: "Rimodellamento delle scarpate in corso." },
+    { id: "lo4", nome: "Lotto 4 — settore Nord", ordine: 4, superficieMq: 12000, volumeM3: 180000,
+      stato: "aperto", apertoIl: "2024-05-02", esauritoIl: null,
+      recuperoIniziatoIl: null, recuperoFinitoIl: null, collaudatoIl: null,
+      frontiId: ["f1"], nota: "" },
+    { id: "lo5", nome: "Lotto 5 — settore Est", ordine: 5, superficieMq: 9500, volumeM3: 140000,
+      stato: "aperto", apertoIl: "2025-09-08", esauritoIl: null,
+      recuperoIniziatoIl: null, recuperoFinitoIl: null, collaudatoIl: null,
+      frontiId: ["f2"], nota: "" },
+    { id: "lo6", nome: "Lotto 6 — settore Sud", ordine: 6, superficieMq: 15000, volumeM3: 200000,
+      stato: "previsto", apertoIl: null, esauritoIl: null,
+      recuperoIniziatoIl: null, recuperoFinitoIl: null, collaudatoIl: null,
+      frontiId: ["f3"], nota: "Coltivazione subordinata alla verifica di stabilità della scarpata." },
   ],
   rilievi: [
     { id: "r1", titolo: "Rilievo drone 15/07", data: "2026-07-15", tipo: "Ortofoto + DEM", volumeM3: 19400, stato: "elaborato", metodo: "RTK+GCP", gsd: "2", fronteId: "f1" },
@@ -951,6 +994,7 @@ export async function terraData() {
         piano: () => read("piano"),
         autorizzazioni: () => read("autorizzazioni"),
         scadenze: () => read("scadenze"),
+        lotti: () => read("lotti"),
         aggiungi: (name, data) => addDoc(id.orgCollection(name), data),
         logout: () => id.logout(),
         aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), data),
@@ -990,6 +1034,7 @@ export async function terraData() {
       piano: async () => mem.piano,
       autorizzazioni: async () => mem.autorizzazioni,
       scadenze: async () => mem.scadenze,
+      lotti: async () => mem.lotti,
       // in dimostrazione i rapportini non arrivano da Campo: sono finti, ma
       // coerenti coi rilievi d'esempio (vedi DEMO.rapportiniCampo)
       rapportiniCampo: async () => mem.rapportiniCampo || [],

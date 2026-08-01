@@ -55,6 +55,10 @@ const srv = createServer((q, s) => {
        giusto, è il legame fra i due a non esserci più. */
     t = rimetti(t, "      volDaTerra = null; $(\"cos-terra\").innerHTML = \"\";\n      renderCosti(); }));",
                    "      renderCosti(); }));");
+    /* difetto 5: il costo salvato SENZA `registratoIl`. La funzione
+       «chiuso-con-arrivi» resta lì, provata in run-kpi, e non scatta mai —
+       perché il difetto non è nel modulo ma in chi lo chiama. */
+    t = rimetti(t, "nota, registratoIl: istanteLocale() });", "nota });");
     corpo = Buffer.from(t, "utf8");
   }
   if (CONTROPROVA && p.endsWith("shared/dw-ponti.js")) {
@@ -320,15 +324,50 @@ dice(!/misurati da/.test(aMano.testo || ""),
   "⛔ riscritto a mano, il numero NON dice più di essere misurato da Terra", aMano && (aMano.testo || "").slice(-260));
 dice(/l'hai scritto tu/.test(aMano.testo || ""),
   "e dice invece che l'ha scritto una persona", aMano && (aMano.testo || "").slice(-260));
+/* ── 10. UNA VOCE ARRIVATA DOPO LA CHIUSURA VIENE DETTA ──────────────────
+   ⛔ `registratoIl` è il giorno in cui la voce è stata BATTUTA, e senza di lui
+   `statoMese` non può accorgersi di niente: la risposta «chiuso-con-arrivi»
+   esiste, è provata in `run-kpi`, e **non potrebbe scattare mai** perché
+   nessuno le dà il dato. Il difetto non sta nel modulo ma in CHI LO CHIAMA,
+   quindi nessuna prova di `node` poteva vederlo.
+   E non si guarda il campo: si guarda il COMPORTAMENTO — si chiude un mese, ci
+   si registra dentro un costo, e la pagina deve dirlo. Provare il campo
+   direttamente vorrebbe dire fidarsi che chi lo legge poi lo usi. */
+const meseChi = await pg.inputValue("#chi-mese");
+await pg.click("#btn-chi-chiudi").catch(() => {});
+await pg.waitForTimeout(400);
+await pg.evaluate(() => { const b = [...document.querySelectorAll("#modal-foot .mbtn")]
+  .find((x) => /Dichiara/.test(x.textContent)); if (b) b.click(); }).catch(() => {});
+await pg.waitForTimeout(900);
+const chiuso = await misura(() => ({ t: (document.getElementById("chi-conferme") || {}).textContent || "" }));
+dice(/dichiarato chiuso/.test(chiuso.t || ""), "il mese si dichiara completo", chiuso && (chiuso.t || "").slice(0, 90));
+
+// ora un costo datato DENTRO quel mese, registrato adesso: è un arrivo tardivo
+await pg.selectOption("#co-voce", "energia").catch(() => {});
+await pg.fill("#co-data", meseChi + "-15");
+await pg.fill("#co-imp", "77");
+await pg.fill("#co-nota", "Bolletta arrivata in ritardo");
+await pg.click("#btn-cos").catch(() => {});
+await pg.waitForTimeout(900);
+const tardi = await misura(() => ({
+  t: (document.getElementById("chi-stato") || {}).textContent.replace(/\s+/g, " ").trim(),
+}));
+dice(/arrivat/.test(tardi.t || ""),
+  "⛔ e una voce registrata DOPO la chiusura viene dichiarata come arrivo tardivo",
+  tardi && (tardi.t || "").slice(-220));
+dice(/77/.test(tardi.t || ""), "con l'importo che è arrivato dopo", tardi && (tardi.t || "").slice(-160));
+dice(/non è più/.test(tardi.t || ""),
+  "e dicendo che il margine non è più quello dichiarato quel giorno", tardi && (tardi.t || "").slice(-200));
+
 dice(errori.length === 0, "e nessun errore in pagina dopo il ponte", errori.slice(0, 2));
 
 console.log(`\n${ok + ko} prove · ${ok} passate, ${ko} fallite`);
 await b.close(); srv.close();
 if (CONTROPROVA) {
   console.log(`iniezioni: ${iniezioni} sostituzioni nella risposta HTTP`);
-  if (iniezioni !== 4) { console.log("⚠️ INIEZIONI MANCANTI: la controprova non prova niente"); process.exit(3); }
-  console.log(ko >= 5 ? "✓ il banco SA fallire: barra a capo, voce ignota travestita, cumulo contato come scavo, provenienza appiccicata a un numero a mano"
+  if (iniezioni !== 5) { console.log("⚠️ INIEZIONI MANCANTI: la controprova non prova niente"); process.exit(3); }
+  console.log(ko >= 6 ? "✓ il banco SA fallire: barra a capo, voce ignota travestita, cumulo contato come scavo, provenienza appiccicata a un numero a mano, e il costo salvato senza il giorno in cui è stato battuto"
                       : "⚠️ troppo poche cadute");
-  process.exit(ko >= 5 ? 0 : 1);
+  process.exit(ko >= 6 ? 0 : 1);
 }
 process.exit(ko ? 1 : 0);

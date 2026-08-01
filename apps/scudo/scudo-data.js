@@ -49,6 +49,20 @@
 //                      dataConsegna (ISO), scadenza?|null, addestramento (bool),
 //                      dataAddestramento?|null, note? }
 //                    → registro delle consegne DPI (art. 77 D.Lgs 81/08).
+//   analisi/{id}:    { eventoId, perche: [testo], causa (chiave di
+//                      CAUSE_ANALISI), fatta (ISO), daChi (lavoratoreId|null),
+//                      azioniId: [id] }
+//                    → l'analisi della causa di un evento del registro (i «5
+//                      Perché»). UNA SOLA per evento: se serve rifarla si
+//                      corregge quella, invece di accumulare versioni fra cui
+//                      nessuno sa quale valga.
+//                      ⚠️ `azioniId` NON è il legame evento↔azione: quello vive
+//                      dove è sempre vissuto, in `azioni.origineTipo`/
+//                      `origineId`, ed è l'unico che le schermate leggono per
+//                      dire quante azioni ha un evento. `azioniId` registra le
+//                      azioni nate DOPO l'analisi, cioè quelle che il «perché»
+//                      ha prodotto: due numeri diversi che dicono due cose
+//                      diverse, e nessuno dei due è una copia dell'altro.
 // Lo "stato" delle scadenze non si salva: si CALCOLA dalla data
 // (scaduta / entro 30gg / regolare) — niente dati derivati nel DB.
 // ============================================================
@@ -129,6 +143,31 @@ export const DEMO = {
     { id: "a2", descrizione: "Consegna guanti antitaglio e addestramento agli addetti officina", responsabileId: "d7", scadenza: "2026-03-15", stato: "chiusa", esito: "Guanti consegnati e addestramento registrato", dataChiusura: "2026-03-12", origineTipo: "evento", origineId: "i2" },
     { id: "a3", descrizione: "Ripristinare la segnaletica di viabilità sulla pista principale", responsabileId: null, scadenza: "2026-06-30", stato: "aperta", origineTipo: "nc", origineNota: "Non conformità rilevata durante il giro di sorveglianza" },
     { id: "a4", descrizione: "Delimitare la fascia di rispetto al ciglio del fronte Nord", responsabileId: "d3", scadenza: "2026-08-09", stato: "aperta", origineTipo: "ispezione", origineId: "q1", origineVoce: "v2", origineNota: "Fascia di rispetto al ciglio delimitata e rispettata dai mezzi" },
+  ],
+  // L'ANALISI DELLA CAUSA di due eventi su sei. Sono DUE di proposito, e non
+  // cinque: `causeRicorrenti` risponde `leggibile: false` sotto MIN_TENDENZA, e
+  // la dimostrazione deve far vedere proprio quella risposta — «sono stati
+  // analizzati due eventi su sei, su così pochi non si legge nessuna
+  // ricorrenza» — invece di una tendenza disegnata su due punti. Chi guarda la
+  // dimostrazione vede il lavoro che manca, che è il punto della funzione.
+  // Nessuna delle due catene finisce su una persona: sono l'esempio di come
+  // vanno scritte, e il primo perché è la descrizione di quello che è successo.
+  analisi: [
+    { id: "an1", eventoId: "i1",
+      perche: [
+        "Un masso si è staccato dal fronte Est mentre si perforava sotto",
+        "Sul ciglio era rimasto materiale sciolto dopo l'ultima volata",
+        "La fascia di rispetto a valle non era delimitata",
+        "La delimitazione non è prevista nel giro di sorveglianza",
+      ],
+      causa: "organizzativa", fatta: "2026-05-20", daChi: "d3", azioniId: ["a1"] },
+    { id: "an2", eventoId: "i2",
+      perche: [
+        "Taglio alla mano su una lamiera durante una manutenzione",
+        "I guanti in uso in officina non erano antitaglio",
+        "In magazzino c'erano solo guanti da carico generico",
+      ],
+      causa: "dpi", fatta: "2026-02-05", daChi: "d7", azioniId: ["a2"] },
   ],
   ispezioni: [
     { id: "q1", modello: "fronte", nome: "Fronte di cava — stabilità e disgaggio", ambito: "Fronti",
@@ -1495,6 +1534,10 @@ export async function scudoData() {
         mansioni:   () => read("mansioni"),
         nomine:     () => read("nomine"),
         dpi:        () => read("dpi"),
+        /* l'analisi della causa degli eventi. Come le collezioni di S4/S5: chi
+           non ne ha mai scritta una legge un elenco vuoto, e il registro si
+           apre con tutti gli eventi «senza un perché» — che è la verità. */
+        analisi:    () => read("analisi"),
         aggiungi: (name, data) => addDoc(id.orgCollection(name), data),
         logout: () => id.logout(),
         aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), data),
@@ -1548,6 +1591,7 @@ export async function scudoData() {
       mansioni:   async () => mem.mansioni || [],
       nomine:     async () => mem.nomine || [],
       dpi:        async () => mem.dpi || [],
+      analisi:    async () => mem.analisi || (mem.analisi = []),
       logout: async () => {},
       aggiungi: async (name, data) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[name] = mem[name] || []).push({ id, ...data }); return { id }; },
       aggiorna: async (name, docId, data) => {

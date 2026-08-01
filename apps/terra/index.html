@@ -720,6 +720,66 @@ a.dw-btn{text-decoration:none}
   </div>
   <div class="note esito" id="terra-esito"></div>
   <div class="note">Tocca una voce di piano con un volume annuo per correggerlo: riserve, avanzamento e proiezione si ricalcolano subito.</div>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       IL PIANO DI COLTIVAZIONE A LOTTI, E IL DIVARIO DI RECUPERO
+       L'atto scrive «recupero ambientale contestuale alla coltivazione,
+       lotto per lotto» — Terra lo mostrava nelle prescrizioni e non aveva
+       nessun modo di far vedere che venisse rispettato. Sta dentro il Piano
+       estrattivo e non in una voce nuova della barra: i lotti SONO il piano.
+       Ragioni per esteso: docs/PIANO_LOTTI_TERRA.md
+       ══════════════════════════════════════════════════════════════════ -->
+  <div class="sec">Piano di coltivazione a lotti</div>
+  <div id="lot-divario"></div>
+  <div id="lot-count" class="count"></div>
+  <div id="lot-list"></div>
+  <div id="lot-fuori" class="note"></div>
+
+  <div class="sec" id="lot-form-sec">Nuovo lotto</div>
+  <div class="form col">
+    <div class="frow">
+      <div class="fld" style="flex:3 1 220px;"><label class="fl" for="lot-nome">Nome del lotto</label>
+        <input class="dw-input" id="lot-nome" placeholder="es. Lotto 3 — settore Nord"></div>
+      <div class="fld" style="flex:1 1 110px;"><label class="fl" for="lot-ordine">Ordine</label>
+        <input class="dw-input" id="lot-ordine" type="number" min="1" max="999" placeholder="es. 3" title="La sequenza prevista dal progetto: 1 è il primo lotto da coltivare"></div>
+      <div class="fld" style="flex:2 1 180px;"><label class="fl" for="lot-stato">Stato</label>
+        <select class="dw-input" id="lot-stato" title="Dove sta il lotto nella sua vita: dal previsto al collaudo dell'ente"></select></div>
+    </div>
+    <div class="frow">
+      <div class="fld" style="flex:1 1 160px;"><label class="fl" for="lot-mq">Superficie del lotto (<span class="u">m²</span>)</label>
+        <input class="dw-input dec" id="lot-mq" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 12000" title="Superficie del lotto in metri quadri. La virgola va benissimo: 12000,50."></div>
+      <div class="fld" style="flex:1 1 190px;"><label class="fl" for="lot-m3">Volume previsto dal progetto (<span class="u">m³</span>)</label>
+        <input class="dw-input dec" id="lot-m3" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 180000" title="Volume che il progetto prevede di cavare da questo lotto. La virgola va benissimo."></div>
+    </div>
+    <div class="fld">
+      <div class="fl">Fronti che stanno in questo lotto</div>
+      <div id="lot-fronti" class="chgs"></div>
+    </div>
+    <div class="form-hint">I <b>fronti</b> sono il collegamento coi rilievi: da lì il volume tolto dal lotto è <b>misurato</b> invece che dichiarato. Un lotto che non ne indica nessuno non ha volume zero — non ha un volume misurabile, e la riga lo dice.</div>
+    <div class="frow">
+      <div class="fld" style="flex:1 1 140px;"><label class="fl" for="lot-aperto">Aperto il</label>
+        <input class="dw-input" id="lot-aperto" type="date" title="Quando è cominciato lo scavo di questo lotto"></div>
+      <div class="fld" style="flex:1 1 140px;"><label class="fl" for="lot-esaurito">Esaurito il</label>
+        <input class="dw-input" id="lot-esaurito" type="date" title="Quando lo scavo è finito"></div>
+      <div class="fld" style="flex:1 1 150px;"><label class="fl" for="lot-rec-inizio">Recupero iniziato il</label>
+        <input class="dw-input" id="lot-rec-inizio" type="date"></div>
+    </div>
+    <div class="frow">
+      <div class="fld" style="flex:1 1 150px;"><label class="fl" for="lot-rec-fine">Recupero finito il</label>
+        <input class="dw-input" id="lot-rec-fine" type="date"></div>
+      <div class="fld" style="flex:1 1 180px;"><label class="fl" for="lot-collaudo">Collaudato il (verbale dell'ente)</label>
+        <input class="dw-input" id="lot-collaudo" type="date" title="La data del verbale con cui l'ente ha verificato il recupero"></div>
+    </div>
+    <div class="fld"><label class="fl" for="lot-nota">Nota</label>
+      <textarea class="dw-input" id="lot-nota" rows="2" placeholder="Quello che serve ricordare su questo lotto" style="min-height:56px;"></textarea></div>
+    <div class="frow">
+      <button class="dw-btn" id="btn-lot">Aggiungi</button>
+      <button class="dw-btn secondary" id="btn-lot-annulla" style="display:none;">Annulla la modifica</button>
+    </div>
+    <div class="form-hint"><b>Collaudato</b> non è <b>recuperato</b>: il secondo lo dice l'azienda, il primo lo dice l'ente col suo verbale. Finché quel verbale non c'è, il lotto resta recuperato — e la differenza è quella che ti chiedono per svincolare la garanzia.</div>
+  </div>
+  <div class="note esito" id="lot-esito"></div>
+  <div class="note avviso">Quanti lotti si possono tenere aperti insieme, e quanto può restare indietro il recupero, lo scrive il <b>tuo</b> atto: Terra mette in fila i numeri, non applica nessuna soglia di legge.</div>
 </div>
 
 <!-- DENUNCIA: riepilogo annuale dei volumi da consegnare all'ente -->
@@ -789,8 +849,10 @@ a.dw-btn{text-decoration:none}
            produzioneDichiarata, misuratoPeriodo, riconciliazioneTurni,
            periodoFraUltimiRilievi, intervalliFraRilievi, avanzamentoDaUltimoRilievo, SOGLIA_TURNI,
            produzionePerFronte,
-           numeroDaCampo, AVVISO_DECIMALE, origineDi, descriviOrigine } from "./terra-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, montaGuardiaInteri, euro0, isoLocale, oggiISO } from "../../shared/deepwork-id-client/dw-shell.js";
+           numeroDaCampo, AVVISO_DECIMALE, origineDi, descriviOrigine,
+           STATI_LOTTO, statoLotto, divarioRecupero, avanzamentoLotto,
+           volumeMisuratoDiLotto, rilieviFuoriDaiLotti } from "./terra-data.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, montaGuardiaInteri, euro0, isoLocale, oggiISO, dataISOEsiste } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -858,6 +920,9 @@ a.dw-btn{text-decoration:none}
     clessi: '<svg viewBox="0 0 24 24"><path d="M6.5 3h11M6.5 21h11"/><path d="M7.5 3v3.4c0 2 4.5 4 4.5 5.6s-4.5 3.6-4.5 5.6V21"/><path d="M16.5 3v3.4c0 2-4.5 4-4.5 5.6s4.5 3.6 4.5 5.6V21"/></svg>',
     allarme:'<svg viewBox="0 0 24 24"><path d="M12 3.6l9 15.6H3z"/><path d="M12 9.6v4.2M12 16.6v.1"/></svg>',
     stop:   '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.8"/><path d="M8.6 8.6l6.8 6.8"/></svg>',
+    // il piano a lotti: una particella divisa in campi, come sulla tavola del
+    // progetto di coltivazione
+    lotti:  '<svg viewBox="0 0 24 24"><path d="M2.8 5.2h18.4v13.6H2.8z"/><path d="M9.4 5.2v13.6M15.4 5.2v13.6"/><path d="M2.8 12h6.6"/></svg>',
   };
   // azioni di riga: pittogrammi, non caratteri
   const A = {
@@ -889,9 +954,11 @@ a.dw-btn{text-decoration:none}
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
-  let FRO=[], RIL=[], PIA=[], AUT=[], SCA=[];
+  let FRO=[], RIL=[], PIA=[], AUT=[], SCA=[], LOT=[];
   let editFro = null;   // id del fronte in modifica (riusa il form "Nuovo fronte"; rilievi/avanzamento restano)
   let editAut = null;   // id dell'autorizzazione in modifica (null = la scheda compilata è nuova)
+  let editLot = null;   // id del lotto in modifica (riusa il form "Nuovo lotto")
+  let frontiLot = [];   // i fronti scelti nel form del lotto (pillole, non un campo)
   let filtroScad = "tutte";
   let filtroRil = "tutti";
   let ordRil = "data";
@@ -907,6 +974,9 @@ a.dw-btn{text-decoration:none}
   }
   document.querySelector(".nav") && document.querySelector(".nav").addEventListener("click", () => {
     if (editFro) { annullaEditFronte(); $("fro-esito").textContent = ""; }
+    // stessa regola per il lotto in modifica: cambiare scheda lascia il form
+    // pronto per uno nuovo, invece di salvare per sbaglio sopra un altro
+    if (editLot) { annullaEditLotto(); $("lot-esito").textContent = ""; renderLotti(); }
   });
   $("ril-filtri").addEventListener("click", (e) => {
     const b = e.target.closest && e.target.closest("[data-filtro]"); if (!b) return;
@@ -918,8 +988,9 @@ a.dw-btn{text-decoration:none}
     go(card.getAttribute("data-goto")); refresh();
   });
   async function refresh(){
-    [FRO,RIL,PIA,AUT,SCA] = await Promise.all([db.fronti(), db.rilievi(), db.piano(),
-      db.autorizzazioni ? db.autorizzazioni() : [], db.scadenze ? db.scadenze() : []]);
+    [FRO,RIL,PIA,AUT,SCA,LOT] = await Promise.all([db.fronti(), db.rilievi(), db.piano(),
+      db.autorizzazioni ? db.autorizzazioni() : [], db.scadenze ? db.scadenze() : [],
+      db.lotti ? db.lotti() : []]);
     const k = kpiFrom(FRO,RIL,PIA);
     const kn = document.querySelectorAll(".kpis .kpi .n");
     if (kn[0]) kn[0].textContent = fmtM3(k.volumiMese);
@@ -1035,6 +1106,7 @@ a.dw-btn{text-decoration:none}
           "Qui vivono le voci del piano: volume annuo pianificato e riserve stimate. Senza di esse Terra non può calcolare avanzamento e proiezione di fine anno.");
 
     renderTitolo();
+    renderLotti();
     renderDenuncia();
     densitaDaAutorizzazione();   // prima di renderValore: la densità la usano entrambi
     renderValore();
@@ -1399,6 +1471,182 @@ a.dw-btn{text-decoration:none}
       || (rp.totale
           ? vuoto(I.ok, "Nessuna urgenza", "Tutte le scadenze registrate sono oltre il preavviso che hai impostato. Le trovi comunque nella scheda <b>Titolo</b>.")
           : vuoto(I.sveglia, "Scadenzario vuoto", "Dalla scheda <b>Titolo</b> puoi registrare le scadenze del tuo atto — rinnovi, garanzie, rilievi periodici — con la data e il preavviso che decidi tu."));
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // IL PIANO DI COLTIVAZIONE A LOTTI, E IL DIVARIO DI RECUPERO
+  // ----------------------------------------------------------------------
+  // I conti li fanno le funzioni pure di terra-data.js (`divarioRecupero`,
+  // `statoLotto`, `volumeMisuratoDiLotto`, `avanzamentoLotto`,
+  // `rilieviFuoriDaiLotti`): qui si DISEGNA, e la sola regola che questa
+  // schermata deve rispettare da sé è non tradire quelle risposte.
+  //
+  // ⛔ QUANDO NON È STATO MISURATO NIENTE, SI SCRIVE UN TRATTINO E LA RAGIONE.
+  // Mai uno zero: uno «0 m² in ritardo» su una cava che non ha registrato
+  // nessun lotto è il numero tranquillo dove non è stato misurato niente, e
+  // stavolta finisce davanti a chi fa vigilanza. Vale per il divario in cima,
+  // per il volume misurato di ogni lotto e per la sua percentuale.
+  // ══════════════════════════════════════════════════════════════════════
+  /* ⛔ La mappa copre TUTTI e sei gli stati che `statoLotto` sa restituire —
+     è la regola 18: una mappa più corta della sua funzione non è un errore di
+     sintassi, è una pagina che muore al disegno. Il ripiego non inventa uno
+     stato buono: mostra il nome grezzo, in grigio, così un settimo stato si
+     vedrebbe invece di spegnere la schermata.
+     Striscia, pastiglia e chip-icona portano lo STESSO colore: lo stato si
+     legge tre volte — forma, posizione, parola. */
+  const LB = {
+    previsto:      ["st-mute",   "tag",    "Previsto",    ""],
+    aperto:        ["st-accent", "accent", "Aperto",      ""],
+    esaurito:      ["st-warn",   "warn",   "Esaurito",    "warn"],
+    "in-recupero": ["st-warn",   "warn",   "In recupero", "warn"],
+    recuperato:    ["st-ok",     "ok",     "Recuperato",  "ok"],
+    collaudato:    ["st-ok",     "ok",     "Collaudato",  "ok"],
+  };
+  const stileLotto = (st) => LB[st] || ["st-mute", "tag", st, ""];
+  /* La data che ogni stato PRETENDE. Serve a dire «senza data» dove lo stato
+     racconta un fatto e la data che lo dimostra non c'è: un lotto «collaudato»
+     senza la data del verbale non è documentato, e l'assenza di un dato non è
+     un dato favorevole. «Previsto» non pretende niente: non è successo ancora
+     nulla. */
+  const DATA_LOTTO = {
+    aperto:        ["apertoIl",           "aperto il"],
+    esaurito:      ["esauritoIl",         "scavo finito il"],
+    "in-recupero": ["recuperoIniziatoIl", "recupero iniziato il"],
+    recuperato:    ["recuperoFinitoIl",   "recupero finito il"],
+    collaudato:    ["collaudatoIl",       "collaudato il"],
+  };
+
+  // Il cartellone del divario: lo stesso impianto della scheda «vita cava»,
+  // perché è lo stesso genere di numero — quello che si guarda per primo.
+  function cardDivario(dv) {
+    if (!dv.misurabile) {
+      /* ⛔ Niente zero, niente verde, nessuna pastiglia di stato: qui non c'è
+         una misura da colorare. C'è un trattino e la ragione. */
+      return `<div class="vita">
+        <div class="vita-head">
+          <div class="vita-ico" aria-hidden="true">${I.lotti}</div>
+          <div class="vita-htxt">
+            <div class="vita-lab">Divario di recupero</div>
+            <div class="vita-sub">Quanto è stato aperto e non ancora recuperato</div>
+          </div>
+          <span class="badge tag">non misurato</span>
+        </div>
+        <div class="vita-num">
+          <span class="vita-cifre">—</span><span class="vita-un">non misurato</span>
+        </div>
+        <div class="riga">${esc(dv.motivo)}</div>
+        <div class="riga">Registra qui sotto i lotti del progetto di coltivazione — nome, superficie e stato di ognuno — e il divario si calcola da sé.</div>
+      </div>`;
+    }
+    const inRitardo = dv.mq > 0;
+    const nAperti = dv.aperti + " " + (dv.aperti === 1 ? "lotto aperto" : "lotti aperti");
+    /* ⚠️ Nessuna soglia scritta nel codice: quanti lotti si possono tenere
+       aperti insieme e quanto può restare indietro il recupero lo dice l'atto,
+       e cambia da regione a regione. Il colore di stato resterebbe un giudizio
+       che Terra non è in grado di dare: la scheda tiene la tinta dell'app e
+       spiega a parole che cosa significa il numero. */
+    return `<div class="vita">
+      <div class="vita-head">
+        <div class="vita-ico" aria-hidden="true">${I.lotti}</div>
+        <div class="vita-htxt">
+          <div class="vita-lab">Divario di recupero</div>
+          <div class="vita-sub">${n0(dv.apertiMq)} m² aperti · ${n0(dv.chiusiMq)} m² recuperati</div>
+        </div>
+        <span class="badge tag">${esc(nAperti)}</span>
+      </div>
+      <div class="vita-num">
+        <span class="vita-cifre">${n0(dv.mq)}</span><span class="vita-un">m² aperti e non ancora recuperati</span>
+        <span class="vita-pct">${n0(dv.m3)} <span class="u">m³</span></span>
+      </div>
+      <div class="riga">${inRitardo
+        ? `Ci sono <b>${n0(dv.mq)} m²</b> di cava aperti in più di quelli già recuperati: è il numero che un ente guarda per primo quando chiede se il recupero sta camminando insieme allo scavo.`
+        : dv.mq === 0
+          ? `Aperto e recuperato si equivalgono: <b>${n0(dv.apertiMq)} m²</b> da una parte e <b>${n0(dv.chiusiMq)} m²</b> dall'altra.`
+          : `Il recupero è <b>avanti</b> allo scavo di <b>${n0(-dv.mq)} m²</b>: i lotti chiusi coprono più superficie di quelli ancora aperti.`}</div>
+      <div class="riga">In volume di progetto: <b>${n0(dv.m3)} m³</b> di differenza fra i lotti aperti e quelli recuperati. ${dv.recuperati} ${dv.recuperati === 1 ? "lotto è chiuso" : "lotti sono chiusi"}, ${dv.aperti} ${dv.aperti === 1 ? "è ancora aperto" : "sono ancora aperti"}.</div>
+      ${dv.senzaMq ? `<div class="riga att">${I.allarme}<span><b>${dv.senzaMq} ${dv.senzaMq === 1 ? "lotto non dichiara" : "lotti non dichiarano"} la superficie</b>: ${dv.senzaMq === 1 ? "non entra" : "non entrano"} in questo conto, quindi il divario che leggi è <b>più piccolo</b> di quello vero. Aprilo qui sotto e scrivi i m².</span></div>` : ""}
+    </div>`;
+  }
+
+  // Riga di un lotto: stato col semaforo, e il PREVISTO accanto al MISURATO.
+  function itemLotto(l) {
+    const st = statoLotto(l);
+    const sty = stileLotto(st);
+    const vm = volumeMisuratoDiLotto(l, RIL);
+    /* ⛔ `avanzamentoLotto` va chiamata col misurato SOLO se c'è davvero: un
+       `0` al suo posto darebbe «0%», che si legge «non ancora cominciato»
+       mentre la verità è «nessuno ha misurato». */
+    const av = avanzamentoLotto(l, vm.misurabile ? vm.m3 : null);
+    const nome = esc(l.nome || "Lotto senza nome");
+    const dd = DATA_LOTTO[st];
+    const conData = dd && dataISOEsiste(l[dd[0]]);
+    const meta = [
+      +l.ordine > 0 ? l.ordine + "° del progetto" : "senza ordine",
+      +l.superficieMq > 0 ? n0(l.superficieMq) + " m²" : "superficie non dichiarata",
+      // il previsto ACCANTO al misurato: due numeri, mai uno solo — se no non
+      // si sa se il progetto è stato seguito o no
+      "previsti " + (+l.volumeM3 > 0 ? n0(l.volumeM3) + " m³" : "—"),
+      "misurati " + (vm.misurabile ? n0(vm.m3) + " m³" : "—")
+        + (av.pct == null ? "" : " (" + un1(av.pct) + "% del previsto)"),
+      conData ? dd[1] + " " + fmtData(l[dd[0]]) : "",
+    ].filter(Boolean).join(" · ");
+    // la ragione per cui manca un numero, con le parole della funzione che
+    // quel numero non l'ha dato: non se ne inventano di nuove
+    const perche = [
+      !vm.misurabile ? vm.motivo : (av.pct == null ? av.motivo : ""),
+      vm.rilieviCumulo > 0
+        ? "Sui suoi fronti ci sono anche " + n0(vm.cumuloM3) + " m³ ripresi da cumuli: materiale già cavato, che non conta come scavo di questo lotto."
+        : "",
+      dd && !conData
+        ? "Lo stato dice «" + sty[2].toLowerCase() + "» ma la data non è registrata: senza quella data non si può dimostrare quando è successo."
+        : "",
+      l.nota || "",
+    ].filter(Boolean).map(esc).join(" ");
+    return `<div class="item ${sty[0]}" style="cursor:default;">
+      <div class="avatar ico${sty[3] ? " " + sty[3] : ""}" aria-hidden="true">${I.lotti}</div>
+      <div class="info"><div class="name">${nome}</div><div class="meta">${meta}</div></div>
+      <div class="acts">${dd && !conData ? '<span class="badge warn">senza data</span>' : ""}
+      ${st === "recuperato" ? '<span class="badge tag" title="Il recupero lo dichiara l\'azienda; il collaudo lo verifica l\'ente">senza collaudo</span>' : ""}
+      <span class="badge ${sty[1]}">${esc(sty[2])}</span>
+      <button class="arr" type="button" title="Modifica il lotto" aria-label="Modifica il lotto ${nome}" data-edit-lot="${l.id}">${A.mod}</button>
+      <button class="arr del" type="button" title="Rimuovi il lotto" aria-label="Rimuovi il lotto ${nome}" data-del-lot="${l.id}">${A.del}</button></div>
+      ${perche ? `<div class="form-hint">${perche}</div>` : ""}</div>`;
+  }
+
+  function renderLotti() {
+    // in ordine di progetto: è la sequenza con cui la cava va coltivata, e
+    // leggerla in ordine alfabetico non direbbe niente a nessuno
+    const lotti = LOT.slice().sort((a, b) =>
+      (+a.ordine || 9999) - (+b.ordine || 9999)
+      || String(a.nome || "").localeCompare(String(b.nome || ""), "it"));
+    const dv = divarioRecupero(LOT);
+    $("lot-divario").innerHTML = cardDivario(dv);
+    $("lot-list").innerHTML = lotti.map(itemLotto).join("")
+      || vuoto(I.lotti, "Nessun lotto registrato",
+          "Il progetto di coltivazione divide la cava in <b>lotti</b>, e l'atto quasi sempre chiede il <b>recupero contestuale</b>: un lotto si recupera mentre si scava il successivo. Registra qui sotto il primo — nome, superficie e stato — e Terra comincia a misurare quanto hai aperto e quanto hai già rimesso a posto.",
+          `<button class="dw-btn secondary mini" data-vuoto-fai="lot-nome">Aggiungi il primo lotto</button>`);
+    $("lot-count").innerHTML = LOT.length
+      ? `<b>${LOT.length}</b> ${LOT.length === 1 ? "lotto" : "lotti"}`
+        + (dv.misurabile ? ` · <b>${dv.aperti}</b> ${dv.aperti === 1 ? "aperto" : "aperti"} · <b>${dv.recuperati}</b> ${dv.recuperati === 1 ? "chiuso" : "chiusi"}` : "")
+      : "";
+    /* ⛔ I RILIEVI CHE NON STANNO IN NESSUN LOTTO SI DICONO. Se sparissero, la
+       somma dei lotti sarebbe più piccola del volume davvero misurato e ogni
+       singola riga tornerebbe lo stesso: nessuno se ne accorgerebbe. */
+    const fu = rilieviFuoriDaiLotti(LOT, RIL);
+    $("lot-fuori").className = "note" + (fu.quanti ? " avviso" : "");
+    $("lot-fuori").innerHTML = !LOT.length ? ""
+      : fu.quanti
+        ? `<b>${fu.quanti}</b> ${fu.quanti === 1 ? "rilievo di scavo non sta" : "rilievi di scavo non stanno"} in nessun lotto, per <b>${n0(fu.m3)} m³</b>`
+          + (fu.senzaFronte ? ` (${fu.senzaFronte} ${fu.senzaFronte === 1 ? "non indica" : "non indicano"} nemmeno il fronte)` : "")
+          + `: quei metri cubi sono stati misurati ma non appartengono a nessuna parte del piano, quindi <b>la somma dei lotti è più piccola</b> del volume davvero cavato. Aggiungi il fronte mancante al lotto giusto, oppure registra il lotto che manca.`
+        : `Ogni volume misurato sta dentro un lotto: la somma dei lotti e il volume cavato raccontano la stessa cosa.`;
+    // le pillole dei fronti nel form (una per fronte, si accendono toccandole)
+    $("lot-fronti").innerHTML = FRO.map(f =>
+      `<button class="chg${frontiLot.includes(f.id) ? " active" : ""}" type="button" data-fro-lot="${f.id}" aria-pressed="${frontiLot.includes(f.id)}">${esc(f.nome)}</button>`).join("")
+      || `<span class="form-hint">Nessun fronte registrato: aggiungine uno dalla scheda <b>Fronti</b> e potrai collegarlo a un lotto.</span>`;
+    $("lot-form-sec").textContent = editLot ? "Lotto — modifica in corso" : "Nuovo lotto";
+    $("btn-lot").textContent = editLot ? "Salva modifiche" : "Aggiungi";
+    $("btn-lot-annulla").style.display = editLot ? "" : "none";
   }
 
   // ══════════════════════════════════════════════════════════════════════
@@ -1813,6 +2061,7 @@ a.dw-btn{text-decoration:none}
     "aut-preavviso": ["Il preavviso si conta in giorni interi",                  "aut-esito"],
     "new-scad-pre":  ["Il preavviso si conta in giorni interi",                  "scad-esito"],
     "new-scad-ric":  ["La ricorrenza si conta in mesi interi",                   "scad-esito"],
+    "lot-ordine":    ["L'ordine di un lotto è un numero intero",                 "lot-esito"],
   };
   // Quando il rosso se ne va. Misurato: toglierlo a ogni `input` lo rendeva
   // invisibile — scrivendo «2,4» la sequenza è «2» (input, rosso via), «,»
@@ -1983,6 +2232,132 @@ a.dw-btn{text-decoration:none}
       if (!ok) return;
       await db.rimuovi("scadenze", sd);
       esito("scad-esito", "Scadenza «" + s.descrizione + "» rimossa.");
+      await refresh(); return; }
+  });
+
+  // ── IL FORM DEL LOTTO ────────────────────────────────────────────────
+  // Stesso idioma degli altri form di Terra: pillole per i fronti (le stesse
+  // dei filtri), campi decimali con la virgola, date vere, e un solo bottone
+  // che aggiunge o salva a seconda che si stia modificando.
+  const ET_STATO_LOTTO = {
+    previsto: "Previsto — non ancora aperto",
+    aperto: "Aperto — si sta scavando",
+    esaurito: "Esaurito — scavo finito, recupero non cominciato",
+    "in-recupero": "In recupero — i lavori di ripristino sono in corso",
+    recuperato: "Recuperato — l'azienda ha finito",
+    collaudato: "Collaudato — l'ente ha verificato, col suo verbale",
+  };
+  $("lot-stato").innerHTML = STATI_LOTTO
+    .map(s => `<option value="${s}">${esc(ET_STATO_LOTTO[s] || s)}</option>`).join("");
+  const CAMPI_DATA_LOTTO = [["lot-aperto", "apertoIl"], ["lot-esaurito", "esauritoIl"],
+    ["lot-rec-inizio", "recuperoIniziatoIl"], ["lot-rec-fine", "recuperoFinitoIl"],
+    ["lot-collaudo", "collaudatoIl"]];
+  function riempiFormLotto(l) {
+    $("lot-nome").value = l ? (l.nome || "") : "";
+    $("lot-ordine").value = l && +l.ordine > 0 ? l.ordine : "";
+    $("lot-stato").value = l ? statoLotto(l) : "previsto";
+    $("lot-mq").value = l ? itDec(l.superficieMq == null ? "" : l.superficieMq) : "";
+    $("lot-m3").value = l ? itDec(l.volumeM3 == null ? "" : l.volumeM3) : "";
+    $("lot-nota").value = l ? (l.nota || "") : "";
+    for (const [id, campo] of CAMPI_DATA_LOTTO) $(id).value = l && dataISOEsiste(l[campo]) ? l[campo] : "";
+    frontiLot = l && Array.isArray(l.frontiId) ? l.frontiId.map(String) : [];
+    ["lot-nome", "lot-mq", "lot-m3", "lot-ordine"].forEach(i => err(i, false));
+  }
+  function annullaEditLotto() { editLot = null; riempiFormLotto(null); }
+  function leggiFormLotto() {
+    const t = (id) => $(id).value.trim();
+    const d = (id) => (dataISOEsiste($(id).value) ? $(id).value : null);
+    const ord = parseInt($("lot-ordine").value, 10);
+    const mq = numCampo("lot-mq", { min: 0 }), m3 = numCampo("lot-m3", { min: 0 });
+    return {
+      nome: t("lot-nome"),
+      // senza ordine scritto, il lotto si mette in coda: un numero inventato in
+      // mezzo alla sequenza sposterebbe di posto i lotti già registrati
+      ordine: Number.isFinite(ord) && ord > 0 ? ord : (LOT.reduce((m, x) => Math.max(m, +x.ordine || 0), 0) + 1),
+      superficieMq: mq.ok ? mq.valore : null,
+      volumeM3: m3.ok ? m3.valore : null,
+      stato: STATI_LOTTO.includes($("lot-stato").value) ? $("lot-stato").value : "previsto",
+      apertoIl: d("lot-aperto"), esauritoIl: d("lot-esaurito"),
+      recuperoIniziatoIl: d("lot-rec-inizio"), recuperoFinitoIl: d("lot-rec-fine"),
+      collaudatoIl: d("lot-collaudo"),
+      frontiId: frontiLot.slice(),
+      nota: t("lot-nota"),
+    };
+  }
+  $("btn-lot").onclick = async () => {
+    const nome = $("lot-nome").value.trim();
+    if (!nome) {
+      err("lot-nome", true); fuoco("lot-nome");
+      esito("lot-esito", "Dai un nome al lotto (per esempio «Lotto 3 — settore Nord»): è così che lo riconoscerai nell'elenco e nelle comunicazioni all'ente.", "err");
+      return;
+    }
+    err("lot-nome", false);
+    /* Un numero che non si riesce a leggere ferma il salvataggio: la superficie
+       del lotto entra nel divario di recupero, e un m² sbagliato lì sbaglia il
+       numero che si mostra a chi fa vigilanza. */
+    for (const [id, che, unita] of [["lot-mq", "la superficie del lotto", "m²"],
+                                    ["lot-m3", "il volume previsto dal progetto", "m³"]]) {
+      const r = numCampo(id, { min: 0 });
+      err(id, false);
+      if (numIllegibile(r)) {
+        err(id, true); fuoco(id);
+        esito("lot-esito", spiegaNum(che, r, unita) + " Il lotto non è stato salvato.", "err"); return; }
+      if (r.motivo === "sotto-minimo") {
+        err(id, true); fuoco(id);
+        esito("lot-esito", "Un valore negativo non ha senso per " + che + ": il lotto non è stato salvato.", "err"); return; }
+    }
+    const d = leggiFormLotto();
+    // che cosa manca ancora: si salva lo stesso, ma si dice — un lotto senza
+    // superficie non entra nel divario, e un lotto senza fronti non ha un
+    // volume misurabile. Tacerlo farebbe leggere quei vuoti come «a posto».
+    const manca = [];
+    if (!(+d.superficieMq > 0)) manca.push("la superficie, quindi il lotto resta fuori dal divario di recupero");
+    if (!d.frontiId.length) manca.push("i fronti, quindi il volume tolto non si può misurare");
+    const coda = manca.length ? " Manca ancora " + manca.join(", e ") + "." : "";
+    if (editLot) {
+      await db.aggiorna("lotti", editLot, d);
+      esito("lot-esito", "Lotto «" + d.nome + "» aggiornato." + coda);
+      editLot = null;
+    } else {
+      await db.aggiungi("lotti", d);
+      esito("lot-esito", "Lotto «" + d.nome + "» registrato al posto " + d.ordine + " della sequenza." + coda);
+    }
+    riempiFormLotto(null);
+    await refresh();
+  };
+  $("btn-lot-annulla").onclick = () => {
+    annullaEditLotto();
+    esito("lot-esito", "Modifica annullata: il lotto è rimasto com'era.");
+    renderLotti();
+  };
+  // Azioni sui lotti: pillole dei fronti, modifica, rimozione.
+  document.addEventListener("click", async (e) => {
+    const bFro = e.target.closest && e.target.closest("[data-fro-lot]");
+    if (bFro) {
+      const id = bFro.getAttribute("data-fro-lot");
+      frontiLot = frontiLot.includes(id) ? frontiLot.filter(x => x !== id) : frontiLot.concat([id]);
+      renderLotti(); return; }
+    const bEd = e.target.closest && e.target.closest("[data-edit-lot]");
+    if (bEd) { e.stopPropagation();
+      const l = LOT.find(x => x.id === bEd.getAttribute("data-edit-lot")); if (!l) return;
+      editLot = l.id; riempiFormLotto(l); renderLotti();
+      esito("lot-esito", "Stai modificando «" + (l.nome || "il lotto") + "»: correggi i campi e tocca Salva modifiche.");
+      $("lot-nome").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+    const bDel = e.target.closest && e.target.closest("[data-del-lot]");
+    if (bDel) { e.stopPropagation();
+      const ld = bDel.getAttribute("data-del-lot");
+      const l = LOT.find(x => x.id === ld); if (!l) return;
+      const vm = volumeMisuratoDiLotto(l, RIL);
+      const ok = await chiedi("Rimuovere il lotto",
+        "Stai per togliere <b>«" + esc(l.nome || "senza nome") + "»</b> dal piano di coltivazione.<br><br>"
+        + "I <b>rilievi</b> e i <b>fronti</b> restano dove sono: sparisce il lotto, cioè il modo di legarli fra loro."
+        + (vm.misurabile ? " I <b>" + n0(vm.m3) + " m³</b> misurati sui suoi fronti finiranno fra i volumi <b>fuori dai lotti</b>, e la somma dei lotti diventerà più piccola del cavato." : "")
+        + "<br><br>Il divario di recupero si ricalcola senza di lui. L'operazione non si può annullare.",
+        "Rimuovi il lotto", true);
+      if (!ok) return;
+      if (editLot === ld) annullaEditLotto();
+      await db.rimuovi("lotti", ld);
+      esito("lot-esito", "Lotto «" + (l.nome || "senza nome") + "» rimosso dal piano.");
       await refresh(); return; }
   });
 
@@ -2821,6 +3196,7 @@ a.dw-btn{text-decoration:none}
   ["new-ril-data","new-ril-vol"].forEach(i => clearErr(i, "ril-esito"));
   clearErr("aut-numero", "aut-esito");
   ["new-scad-desc","new-scad-data"].forEach(i => clearErr(i, "scad-esito"));
+  ["lot-nome","lot-mq","lot-m3"].forEach(i => clearErr(i, "lot-esito"));
   // Invio da tastiera: premere Invio in un campo del form equivale a
   // toccare il pulsante — data entry più rapida senza spostare il dito.
   const enterSubmit = (inputIds, btnId) => inputIds.forEach(id =>
@@ -2828,6 +3204,7 @@ a.dw-btn{text-decoration:none}
   enterSubmit(["fro-nome", "fro-banco", "fro-quota"], "btn-fro");
   enterSubmit(["new-ril-data", "new-ril-vol"], "btn-add-ril");
   enterSubmit(["new-scad-desc", "new-scad-data", "new-scad-pre", "new-scad-ric"], "btn-add-scad");
+  enterSubmit(["lot-nome", "lot-ordine", "lot-mq", "lot-m3"], "btn-lot");
   await refresh();
   // All'apertura la scheda mostra già l'autorizzazione vigente in modifica:
   // così "Salva" aggiorna quella che c'è invece di creare un doppione.

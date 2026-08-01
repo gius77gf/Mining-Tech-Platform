@@ -11,9 +11,10 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const { esc, csvCell, parseCsvLine, numIt, isIntestazione, dataISOEsiste } = await import(
+const H = await import(
   join(HERE, "../../../shared/deepwork-id-client/dw-shell.js")
 );
+const { esc, csvCell, parseCsvLine, numIt, isIntestazione, dataISOEsiste } = H;
 
 let passed = 0, failed = 0;
 const test = (name, fn) => {
@@ -165,6 +166,33 @@ test("dataISOEsiste: quello che non ha nemmeno la forma non passa", () => {
 });
 test("dataISOEsiste: una data ISO con l'ora dentro vale per la sua parte di data", () => {
   eq(dataISOEsiste("2026-07-31T10:00:00"), true, "con l'ora");
+});
+
+test("⛔ istanteLocale mette in ordine due gesti dello STESSO giorno", () => {
+  /* Serve dove la sola data non basta: «chiudo il mese» e «registro una
+     bolletta che mi ero dimenticato» capitano lo stesso giorno, e col solo
+     giorno il confronto «dopo» è sempre falso — la funzione che deve
+     accorgersene non scatta mai. */
+  const mattina = H.istanteLocale(new Date(2026, 7, 1, 9, 30, 0));
+  const sera = H.istanteLocale(new Date(2026, 7, 1, 18, 5, 0));
+  eq(mattina < sera, true, "ordinabile come stringa: " + mattina + " < " + sera);
+  eq(mattina.slice(0, 10), "2026-08-01", "e i primi dieci caratteri restano il giorno");
+  /* ⛔ i SECONDI non sono precisione, sono necessità: al minuto due gesti fatti
+     di seguito cadono nello stesso istante e l'ordine si perde. */
+  eq(H.istanteLocale(new Date(2026, 7, 1, 9, 30, 10))
+     > H.istanteLocale(new Date(2026, 7, 1, 9, 30, 9)), true, "e i secondi distinguono");
+  /* ⛔ E COSTRUITO DAI GETTER LOCALI, MAI DA `toISOString()`.
+     ⚠️ Il caso che lo dimostra è il MATTINO PRESTO, non la sera: la prima
+     stesura provava le 23:30 italiane, e la controprova non distingueva —
+     alle 23:30 d'estate Greenwich segna le 21:30 dello STESSO giorno. È a
+     mezzanotte e mezza che l'Italia è già il 2 agosto e Greenwich è ancora
+     l'1, cioè dove `toISOString()` scriverebbe il giorno SBAGLIATO. */
+  const notte = new Date(2026, 7, 2, 0, 30, 0);
+  eq(H.istanteLocale(notte).slice(0, 10), H.isoLocale(notte),
+    "il giorno è quello locale, non quello di Greenwich");
+  eq(H.istanteLocale(notte).slice(0, 10), "2026-08-02",
+    "il 2 agosto alle 00:30 in Italia è il 2 agosto, non l'1");
+  eq(H.istanteLocale("non una data"), "", "e una data illeggibile non diventa un istante");
 });
 
 console.log(`\nRisultato Helper: ${passed} passati, ${failed} falliti`);

@@ -1304,7 +1304,7 @@ label.item:has(.dw-chk:checked){
     VOCI_COSTO, voceCosto, gruppoDiVoce, riepilogoCosti, costoPerMetroCubo,
     volumeDaTerra, costiFuoriDaiRilievi,
     statoMese, vociMancantiNelMese, margineMese } from "./conti-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, euro, euro0, conEuro, isoLocale, oggiISO as oggiISOShell, meseLocale } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -2993,7 +2993,7 @@ label.item:has(.dw-chk:checked){
         : `<div class="note">${esc(m.motivo)}</div>`)
       + (m.motivo && m.calcolabile ? `<div class="note avviso">${esc(m.motivo)}</div>` : "")
       + (st.stato === "chiuso-con-arrivi"
-        ? `<div class="note avviso">Dopo la chiusura del ${fmtD(st.chiusura.chiusoIl)} ${plur(st.arrivi, "è arrivata una voce", "sono arrivate voci")} per <b>${eur(st.importoArrivi)}</b>: ${st.arrivi === 1 ? "è" : "sono"} nel margine qui sopra, che quindi <b>non è più</b> quello dichiarato quel giorno. È giusto così — una fattura che arriva dopo va registrata — ma chi ha già letto il numero di allora deve saperlo.</div>`
+        ? `<div class="note avviso">Dopo la chiusura del ${fmtD(String(st.chiusura.chiusoIl || "").slice(0, 10))} ${plur(st.arrivi, "è arrivata una voce", "sono arrivate voci")} per <b>${eur(st.importoArrivi)}</b>: ${st.arrivi === 1 ? "è" : "sono"} nel margine qui sopra, che quindi <b>non è più</b> quello dichiarato quel giorno. È giusto così — una fattura che arriva dopo va registrata — ma chi ha già letto il numero di allora deve saperlo.</div>`
         : "");
 
     // ── le conferme: una riga per ogni voce abituale che qui non c'è ──────
@@ -3002,7 +3002,7 @@ label.item:has(.dw-chk:checked){
       $("chi-conferme").innerHTML = `<div class="item st-ok">
         <span class="avatar">${IC.spunta}</span>
         <div class="info"><div class="name">Mese dichiarato chiuso</div>
-        <div class="meta">il ${fmtD(st.chiusura.chiusoIl)}${dich.size ? " · " + plur(dich.size, "voce dichiarata assente", "voci dichiarate assenti") : ""}</div></div>
+        <div class="meta">il ${fmtD(String(st.chiusura.chiusoIl || "").slice(0, 10))}${dich.size ? " · " + plur(dich.size, "voce dichiarata assente", "voci dichiarate assenti") : ""}</div></div>
         <div class="acts"><button class="dw-btn secondary mini" id="btn-chi-riapri">Riapri</button></div></div>`;
       $("btn-chi-riapri").onclick = async () => {
         const ok = await chiedi("Riapri il mese",
@@ -3055,7 +3055,7 @@ label.item:has(.dw-chk:checked){
          <p style="margin-top:10px;"><b>Non blocca niente</b>: un costo che arriva dopo si registra lo stesso, e Conti ti dirà che è arrivato dopo la chiusura.</p>`,
         "Dichiara completo");
       if (!ok) return;
-      await db.aggiungi("chiusure", { mese, chiusoIl: oggiISO(), vociAssenti: spuntate, nota: "" });
+      await db.aggiungi("chiusure", { mese, chiusoIl: istanteLocale(), vociAssenti: spuntate, nota: "" });
       esito("chi-esito", "Mese " + parlante + " dichiarato completo.", "success");
       await refresh();
     };
@@ -3894,7 +3894,13 @@ label.item:has(.dw-chk:checked){
     if (err.length) { err.forEach(x => segnaErr(x[0], x[1]));
       esito("cos-esito", "Compila i campi evidenziati per registrare il costo.", "err");
       primoErrore(COS_CAMPI); return; }
-    await db.aggiungi("costi", { data, voce, importo: round2(ri.valore), nota });
+    /* ⛔ `registratoIl` È IL GIORNO IN CUI LA VOCE È STATA BATTUTA, non quello
+       del documento — e senza di lui `statoMese` non può accorgersi di niente:
+       la funzione «chiuso-con-arrivi» esisteva, era provata, e non poteva
+       scattare mai perché nessuno le dava il dato. Una funzione che non guarda
+       niente è la stessa cosa di un controllo che non guarda niente, in un
+       altro vestito. */
+    await db.aggiungi("costi", { data, voce, importo: round2(ri.valore), nota, registratoIl: istanteLocale() });
     esito("cos-esito", "Costo registrato: " + leggiVoce(voce) + ", " + eur(ri.valore) + " del " + fmtD(data) + ".", "success");
     pulisciCos(); $("co-imp").focus(); await refresh();
   };

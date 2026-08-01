@@ -244,6 +244,27 @@ export function dataPiuGiorni(giorni, oggi = new Date()) {
 // turno di notte — un rapportino veniva datato al giorno prima.
 // Questa funzione stava scritta SEI volte nel progetto in TRE versioni: ora sta
 // qui, e le app la ri-esportano. Vedi docs/RICERCA_GIORNO_LOCALE_202607.md.
+/* L'ISTANTE in ora LOCALE, `AAAA-MM-GGTHH:MM:SS`. Serve dove due momenti dello
+   STESSO GIORNO vanno messi in ordine — per esempio «questa voce è stata
+   registrata dopo che il mese era già stato dichiarato completo»: con la sola
+   data quel confronto è sempre falso, perché si chiude e si scrive lo stesso
+   giorno.
+   ⛔ Costruito dai getter LOCALI, mai da `toISOString()`: quello scrive
+   l'istante a Greenwich, e in Italia attraversando la mezzanotte cambierebbe
+   il GIORNO — è la trappola già raccolta in CLAUDE.md. Ordinabile come
+   stringa, e i primi dieci caratteri restano il giorno locale.
+   ⚠️ I SECONDI ci sono per necessità, non per precisione: al minuto due gesti
+   fatti di seguito — chiudo il mese, mi accorgo di una bolletta, la registro —
+   cadono nello stesso istante e l'ordine si perde. Col secondo l'ordine regge
+   in tutti i casi che una persona può produrre. */
+export function istanteLocale(d) {
+  const t = d instanceof Date ? d : (d ? new Date(d) : new Date());
+  if (Number.isNaN(t.getTime())) return "";
+  const p = (n) => String(n).padStart(2, "0");
+  return `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())}`
+    + `T${p(t.getHours())}:${p(t.getMinutes())}:${p(t.getSeconds())}`;
+}
+
 export function isoLocale(d) {
   const t = d instanceof Date ? d : new Date(d);
   if (Number.isNaN(t.getTime())) return "";

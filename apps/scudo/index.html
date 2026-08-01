@@ -1017,6 +1017,22 @@
   </div>
   <div class="note">Dal 2026 le aziende <b>oltre i 15 addetti</b> devono tracciare i mancati infortuni e comunicare i <b>dati aggregati</b> sugli eventi e sulle azioni correttive adottate (L. 198/2025, ex D.L. 159/2025; linee guida MLPS/INAIL e decreto attuativo attesi). Questo riepilogo tiene i numeri già in ordine. <b>Nota informativa, non un parere legale</b>: modalità e obblighi vanno confermati con l'RSPP e il consulente dell'azienda.</div>
 
+  <!-- L'ANALISI DELLA CAUSA — le cause che si ripetono.
+       Il riepilogo dei near-miss qui sopra dice DOVE e COME: caduta massi in
+       officina, mezzi in pista. Non dice PERCHÉ, e due tagli in officina e due
+       in cava contano come «quattro tagli» anche se uno dipende dai guanti e
+       l'altro dalla fretta di fine turno. Il perché si scrive evento per
+       evento, nel registro qui sotto.
+       ⛔ Con poche analisi NON si disegna nessuna tendenza e nessun grafico: si
+       scrive quante ne sono state fatte su quanti eventi. Le righe restano —
+       il poco che c'è non si nasconde — ma un numero tranquillo dove non è
+       stato analizzato niente è il difetto che questa funzione deve evitare. -->
+  <div class="sec">Perché succedono<span class="cnt" id="cause-count">0</span></div>
+  <div id="cause-riep" class="note recap" style="margin-top:0;"></div>
+  <div id="cause-list" style="margin-top:10px;"></div>
+  <div id="graf-cause" style="margin-top:12px;"></div>
+  <div class="note">I «5 Perché» sono uno <b>strumento di lavoro</b>, non un adempimento: il D.Lgs 81/2008 chiede la valutazione dei rischi e le misure che ne conseguono, non un metodo. Vanno usati sapendo che portano a <b>una causa sola</b>, che persone diverse arrivano a risposte diverse, e che <b>cinque non è un obbligo</b>: una catena che si ferma a tre con una causa correggibile vale più di una tirata a cinque per riempire i campi.</div>
+
   <div class="sec">Registro degli eventi</div>
   <div id="inf-filtri" class="chgs" style="margin-top:10px;">
     <button class="chg active" data-filtro="tutti">Tutti</button>
@@ -1084,7 +1100,8 @@
     matriceMansione, riepilogoMansioni, lavoratoriScoperti, abilitazioneLavoratore,
     NOMINE_RUOLI, ruoloNomina, nominaAttiva, organigrammaSicurezza, nomineDaSistemare,
     TIPI_DPI, tipoDpi, tipoDpiSicuro, ultimaConsegnaDpi, statoConsegnaDpi, allarmiDpi, riepilogoDpi, verbaleDpi,
-    indiciInfortunistici } from "./scudo-data.js";
+    indiciInfortunistici,
+    CAUSE_ANALISI, validaAnalisi, analisiDiEvento, eventiSenzaAnalisi, causeRicorrenti } from "./scudo-data.js";
   import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
@@ -1103,6 +1120,18 @@
      errore al disegno. */
   const B = { scaduta: ["danger", "Scaduta"], "in-scadenza": ["warn", "In scadenza"],
     "senza data": ["warn", "Senza data"], regolare: ["ok", "Regolare"] };
+  /* ⛔ LE SEI FAMIGLIE DELLA CAUSA NON SI RISCRIVONO A MANO. Una mappa scritta
+     qui («tecnica», «organizzativa», …) sarebbe la stessa trappola di `B`: il
+     giorno in cui `CAUSE_ANALISI` guadagna una settima famiglia, la pagina
+     scriverebbe `undefined` accanto a un evento — o morirebbe al disegno se
+     qualcuno leggesse `[0]`. Qui l'elenco si LEGGE dal modulo, quindi copre
+     per costruzione tutte le famiglie che esistono, oggi e domani. E una
+     chiave sconosciuta (un dato vecchio, un import) torna sé stessa invece di
+     sparire: un valore che non si sa leggere si mostra, non si nasconde. */
+  const CAUSA_ET = new Map(CAUSE_ANALISI.map(c => [c.chiave, c.etichetta]));
+  const CAUSA_ES = new Map(CAUSE_ANALISI.map(c => [c.chiave, c.esempio]));
+  const etichettaCausa = (k) => CAUSA_ET.get(k) || String(k || "non scelta");
+  const famigliaEsempio = (k) => CAUSA_ES.get(k) || "famiglia non più in elenco";
   const fmtData = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
   // LE UNITÀ DI MISURA NON VANNO MAI IN MAIUSCOLO. Le pillole di stato dei
   // requisiti scrivono i giorni che mancano («3 gg») dentro `.badge`, che è
@@ -1198,6 +1227,10 @@
   // S4/S5: mansioni, nomine e consegne DPI. Le organizzazioni già attive non
   // hanno queste collezioni: restano array vuoti e le schede si aprono vuote.
   let MANS = [], NOM = [], DPI = [];
+  // L'analisi della causa degli eventi (i «5 Perché»). Come sopra: chi non ne
+  // ha mai scritta una legge un elenco vuoto, e il registro dice che TUTTI gli
+  // eventi sono senza un perché — che è la verità, non un vuoto tranquillo.
+  let ANA = [];
   let tabPers = "lav";      // scheda aperta dentro Personale
   let matSel = null;        // mansione scelta nella matrice (null = tutte)
   let editMans = null;      // mansione in modifica (il form fa doppio servizio)
@@ -1290,6 +1323,7 @@
     [LAV, SCA, DOC, INF, CANT, AZI, ISP, MANS, NOM, DPI] = await Promise.all([db.lavoratori(), db.scadenze(), db.documenti(), db.infortuni ? db.infortuni() : [], db.cantieri ? db.cantieri() : [], db.azioni ? db.azioni() : [], db.ispezioni ? db.ispezioni() : [],
       db.mansioni ? db.mansioni() : [], db.nomine ? db.nomine() : [], db.dpi ? db.dpi() : []]);
     ORE = (db.oreAnno ? await db.oreAnno() : []) || [];
+    ANA = (db.analisi ? await db.analisi() : []) || [];
     const byId = Object.fromEntries(LAV.map(l => [l.id, l]));
     const infById = Object.fromEntries(INF.map(x => [x.id, x]));
     const k = kpiFrom(LAV, SCA);
@@ -1302,6 +1336,11 @@
     const rDpi = riepilogoDpi(DPI, alDpi);
     const org = organigrammaSicurezza(NOM, LAV, SCA);
     const nomKO = nomineDaSistemare(org);
+    // ⛔ GLI EVENTI RIMASTI SENZA UN PERCHÉ. Serve due volte — nelle urgenze del
+    // Quadro e nel riepilogo delle cause — e si calcola una volta sola. È il
+    // conto che rende l'analisi VIVA invece che facoltativa: senza, la fa chi
+    // ha voglia e il registro si riempie di eventi muti.
+    const senzaAn = eventiSenzaAnalisi(INF, ANA);
     $("k-scadute").textContent = k.scadute;
     $("k-30gg").textContent = k.trenta;
     $("k-regolari").textContent = k.regolari;
@@ -1351,16 +1390,30 @@
         <div class="meta">${esc(chi || "—")} · ${esc(perche)}</div></div>
         <span class="acts"><span class="badge danger">${o.senzaPersona ? "Da rinominare" : o.mancante ? "Da nominare" : "Formazione"}</span><span class="arr">›</span></span></div>`;
     });
+    // ⛔ GLI EVENTI SENZA UN PERCHÉ, nel Quadro. È il conto che fa fare
+    // l'analisi invece di lasciarla facoltativa: un evento registrato e mai
+    // spiegato produce, nel migliore dei casi, un'azione correttiva che cura
+    // il sintomo. La riga porta il numero e apre l'analisi del più grave —
+    // `eventiSenzaAnalisi` mette davanti gli infortuni con assenza, che sono
+    // quelli su cui l'ente chiede conto.
+    const anUrg = senzaAn.length ? [(() => {
+      const primo = senzaAn[0];
+      return `<div class="item st-warn" style="cursor:pointer" data-analisi="${primo.id}" title="Scrivi perché è successo">
+        <div class="avatar sup">${I.allerta}</div>
+        <div class="info"><div class="name">Perché è successo non è scritto</div>
+        <div class="meta">${senzaAn.length === 1 ? "Un evento del registro è" : senzaAn.length + " eventi del registro sono"} senza un'analisi della causa · si comincia da ${esc((primo.descrizione || "l'evento").slice(0, 48))} del ${fmtData(primo.data)}</div></div>
+        <span class="acts"><span class="badge warn">${senzaAn.length} senza perché</span><span class="arr">›</span></span></div>`;
+    })()] : [];
     const urg = SCA.filter(s => statoScadenza(s.dataScadenza) !== "regolare")
                    .sort((a, b) => a.dataScadenza < b.dataScadenza ? -1 : 1).slice(0, 5);
-    $("urg-list").innerHTML = (idonUrg.join("") + manUrg.join("") + nomUrg.join("") + aziUrg.join("") + urg.map(sc => {
+    $("urg-list").innerHTML = (idonUrg.join("") + manUrg.join("") + nomUrg.join("") + aziUrg.join("") + anUrg.join("") + urg.map(sc => {
       const st = statoScadenza(sc.dataScadenza), l = byId[sc.lavoratoreId];
       return `<div class="item ${striscia[B[st][0]]}" onclick="go('scad')" title="Vai allo scadenzario">
         <div class="avatar">${esc(initials(l && l.nome))}</div>
         <div class="info"><div class="name">${esc(l ? l.nome : "Scadenza aziendale")}</div><div class="meta">${esc(sc.descrizione)} · ${fmtData(sc.dataScadenza)}</div></div>
         <span class="acts"><span class="badge ${B[st][0]}">${B[st][1]}</span><span class="arr">›</span></span></div>`;
     }).join("")) || vuoto(I.ok, "Nessuna urgenza",
-        "Idoneità, mansioni, nomine, scadenze e azioni correttive sono tutte in regola. Il quadro resta pulito finché una data non si avvicina.");
+        "Idoneità, mansioni, nomine, scadenze e azioni correttive sono tutte in regola, e ogni evento del registro ha la sua analisi della causa. Il quadro resta pulito finché una data non si avvicina.");
 
     const q = ($("pers-cerca").value || "").trim().toLowerCase();
     const lavVis = LAV.filter(l => !q || (l.nome + " " + (l.ruolo || "")).toLowerCase().includes(q))
@@ -1710,6 +1763,52 @@
     nmBarre("graf-nm-tipo", rnm.perTipo, "Near-miss per tipo", "tipo di rischio", "Pochi dati per tipo", true);
     nmBarre("graf-nm-luogo", rnm.perLuogo, "Near-miss per luogo", "luogo della cava", "Pochi dati per luogo", false);
 
+    // ── L'ANALISI DELLA CAUSA · le cause che si ripetono ────────────────
+    // ⛔ `leggibile` non vuol dire «ci sono dati»: vuol dire che ce n'è
+    // abbastanza da poterci leggere qualcosa. Le due cose confuse producono la
+    // freccia verso l'alto disegnata su due punti. Quando è `false` le righe si
+    // mostrano lo stesso — il poco che c'è non si nasconde — ma NON si disegna
+    // nessun grafico e non si nomina nessuna tendenza: si scrive il motivo.
+    const rc = causeRicorrenti(INF, ANA);
+    $("cause-count").textContent = rc.analizzati + " su " + rc.eventi;
+    $("cause-riep").innerHTML = rc.eventi === 0
+      ? "Nessun evento nel registro: non c'è ancora nessuna causa da analizzare."
+      /* ⚠️ `righe` può essere vuoto anche con `leggibile: true` — basta che le
+         analisi portino una famiglia che il modulo non conosce più (un dato
+         vecchio, un import). Leggere `righe[0].etichetta` senza guardare
+         ucciderebbe la pagina AL DISEGNO, senza nessun errore di sintassi. */
+      : (rc.leggibile && rc.righe.length
+          ? `Analizzati <b>${rc.analizzati}</b> eventi su <b>${rc.eventi}</b>. In testa <b>${esc(rc.righe[0].etichetta)}</b>`
+            + ` con <b>${rc.righe[0].quante}</b> ${rc.righe[0].quante === 1 ? "evento" : "eventi"}:`
+            + " è lì che conviene guardare per prima cosa."
+          : esc(rc.motivo))
+      + (senzaAn.length
+          ? ` <b>${senzaAn.length}</b> ${senzaAn.length === 1 ? "evento è" : "eventi sono"} ancora senza un perché:`
+            + " l'analisi si scrive dal registro qui sotto, con il pulsante <b>Perché?</b>."
+          : "");
+    $("cause-list").innerHTML = rc.righe.map(r =>
+      `<div class="item st-accent"><div class="info"><div class="name">${esc(r.etichetta)}</div>
+        <div class="meta">${esc(famigliaEsempio(r.chiave))}</div></div>
+        <span class="acts"><span class="badge">${r.quante} ${r.quante === 1 ? "evento" : "eventi"}</span></span></div>`).join("")
+      || vuoto(I.lista, "Nessuna causa registrata",
+          "Il registro dice <b>dove</b> e <b>come</b>, mai <b>perché</b>. Apri un evento qui sotto e tocca <b>Perché?</b>: bastano due risposte per sapere che cosa correggere davvero.");
+    // Il grafico solo quando c'è qualcosa da confrontare E il numero di analisi
+    // regge il confronto: con due famiglie su due analisi le barre direbbero
+    // una cosa che non è stata misurata.
+    if (rc.leggibile && rc.righe.length >= 2) {
+      grafico("graf-cause", "barre", {
+        titolo: "Cause che si ripetono",
+        meta: rc.analizzati + (rc.analizzati === 1 ? " evento analizzato" : " eventi analizzati") + " su " + rc.eventi,
+        orientamento: "orizzontale", ordina: true, formato: soloInteri,
+        valori: rc.righe.map(r => ({ etichetta: r.etichetta, valore: r.quante })),
+        aria: "Cause che si ripetono: " + rc.righe.map(r => r.etichetta + " " + r.quante).join(", ") + ".",
+        nota: "Ogni barra è il numero di eventi la cui analisi è finita in quella famiglia."
+          + " Una famiglia che torna è un problema di sistema, non una serie di casi sfortunati.",
+      });
+    } else {
+      puliscoGrafico("graf-cause");
+    }
+
     const TB = { infortunio: ["danger", "Infortunio"], "near-miss": ["warn", "Near-miss"] };
     const infVis = INF.filter(x => filtroInf === "tutti" || x.tipo === filtroInf);
     $("inf-list").innerHTML = infVis.slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1).map(x => {
@@ -1724,10 +1823,19 @@
       // scelta la forma anonima (che è ciò che tiene vivo un registro vero).
       const chi = x.anonimo ? "segnalazione anonima"
         : (byId[x.segnalatoDaId] ? "segnalata da " + esc(byId[x.segnalatoDaId].nome) : "");
+      // ⛔ IL PERCHÉ, ACCANTO ALLE AZIONI. Un evento senza analisi NON è un
+      // evento a posto: la pastiglia lo dice con la parola, non con un colore
+      // tranquillo. Chi ce l'ha mostra la FAMIGLIA della causa, che è ciò che
+      // poi si conta nel riepilogo qui sopra.
+      const an = analisiDiEvento(ANA, x.id);
+      const anb = an
+        ? `<span class="badge ok" style="cursor:pointer" title="Vedi o correggi l'analisi della causa" data-analisi="${x.id}">Causa ${esc(etichettaCausa(an.causa))}</span>`
+        : `<button class="dw-btn secondary mini" data-analisi="${x.id}" title="Scrivi perché è successo: l'analisi della causa">Perché?</button>`;
       return `<div class="item ${striscia[tb[0]]}" data-evt="${x.id}"><div class="info"><div class="name">${esc(x.descrizione || x.tipo || "Evento")}</div>
         <div class="meta">${fmtData(x.data)}${x.luogo ? " · " + esc(x.luogo) : ""}${x.categoria ? " · " + esc(categoriaNearMiss(x.categoria)) : ""}${x.gravita && x.tipo !== "near-miss" ? " · " + esc(x.gravita) : ""}${(+x.giorniAssenza) ? " · " + (+x.giorniAssenza) + " gg assenza" : ""}${chi ? " · " + chi : ""}</div></div>
         <span class="acts"><span class="badge ${tb[0]}">${tb[1]}</span>
         <span class="badge ${ab[0]}" style="cursor:pointer" title="Vedi le azioni correttive di questo evento" data-azi-evt="${x.id}">${ab[1]}</span>
+        ${anb}
         <button class="dw-btn secondary mini" data-azi-da="${x.id}" title="Apri un'azione correttiva da questo evento">+ Azione</button>
         <span class="arr" style="cursor:pointer" title="Rimuovi evento" data-del-inf="${x.id}">✕</span></span></div>`;
     }).join("") || (filtroInf === "tutti"
@@ -2253,6 +2361,13 @@
         for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
         window.open(URL.createObjectURL(new Blob([buf], { type: mime })), "_blank");
       } catch (err) { window.open(d.allegatoData, "_blank"); } } return; }
+    // --- l'analisi della causa: dalla pastiglia (o dalla riga del Quadro) ---
+    // ⚠️ `closest` e non `getAttribute`: nel Quadro la riga intera è il
+    // bersaglio, e il dito atterra sull'icona, sul testo o sulla freccia —
+    // tutti figli. Leggendo solo `e.target` la riga sarebbe morta ovunque
+    // tranne che sul suo bordo.
+    const anEvt = e.target.closest && e.target.closest("[data-analisi]");
+    if (anEvt) { e.stopPropagation(); apriAnalisi(anEvt.getAttribute("data-analisi")); return; }
     // --- azioni correttive: navigazione nei due sensi evento ↔ azione ---
     const at = (n) => e.target.getAttribute && e.target.getAttribute(n);
     const vaiAzi = at("data-vai-azi");
@@ -2382,13 +2497,20 @@
     const delInf = e.target.getAttribute && e.target.getAttribute("data-del-inf");
     if (delInf) { const x = INF.find(v => v.id === delInf);
       const naz = azioniDiEvento(AZI, delInf).length;
+      // L'analisi della causa è il perché DI QUELL'EVENTO: senza l'evento non
+      // vuol dire niente, e resterebbe a gonfiare il conto delle analisi fatte
+      // senza che nessuno possa più leggerla. Va via con lui, e lo si dice.
+      const anRim = analisiDiEvento(ANA, delInf);
       const ok = await chiedi("Rimuovere l'evento?",
         "Stai per togliere dal registro l'evento del <b>" + fmtData(x ? x.data : "") + "</b>"
         + (x && x.descrizione ? " — " + esc(x.descrizione) : "") + ".<br><br>"
         + (naz ? "Attenzione: <b>" + naz + (naz === 1 ? " azione correttiva</b> resterà" : " azioni correttive</b> resteranno") + " senza l'evento di origine.<br><br>" : "")
+        + (anRim ? "Anche <b>l'analisi della causa</b> di questo evento viene rimossa: senza l'evento non si può più leggere.<br><br>" : "")
         + "Il registro infortuni è un documento HSE: rimuovi solo per correggere un inserimento sbagliato.",
         "Rimuovi", true);
-      if (ok) { await db.rimuovi("infortuni", delInf); await refresh();
+      if (ok) { await db.rimuovi("infortuni", delInf);
+        if (anRim && anRim.id && db.rimuovi) await db.rimuovi("analisi", anRim.id);
+        await refresh();
         esito("inf-esito", "Evento rimosso dal registro.", "success"); } return; }
     const idon = e.target.getAttribute && e.target.getAttribute("data-idon");
     if (idon && db.aggiorna) { const l = LAV.find(x => x.id === idon);
@@ -2678,7 +2800,13 @@
       esito("azi-esito-msg", "Azione aggiornata: " + descrizione + ".", "success");
     } else {
       rec.stato = "aperta"; rec.esito = ""; rec.dataChiusura = null;
-      await db.aggiungi("azioni", rec);
+      const nuova = await db.aggiungi("azioni", rec);
+      // Un'azione aperta su un evento che HA un'analisi è nata da quel perché:
+      // `azioniId` tiene il conto delle correzioni che l'analisi ha prodotto.
+      // Non è una copia del legame `origineId` — quello dice «di quale evento
+      // parla», questo dice «che cosa ha prodotto l'analisi», e le due cose
+      // non coincidono per le azioni aperte prima che il perché fosse scritto.
+      if (daEvento && nuova && nuova.id) await collegaAzioneAllAnalisi(rec.origineId, nuova.id);
       annullaEditAzi();
       esito("azi-esito-msg", "Azione correttiva aperta: " + descrizione + " (entro il " + fmtData(scadenza) + ").", "success");
       $("azi-desc").focus();   // pronto per la prossima
@@ -2703,6 +2831,15 @@
     a.download = "scudo_azioni_correttive.csv"; a.click();
     esito("azi-esito-msg", "Esportate " + AZI.length + " azioni correttive (CSV).", "success");
   };
+
+  async function collegaAzioneAllAnalisi(idEvento, idAzione) {
+    const an = analisiDiEvento(ANA, idEvento);
+    if (!an || !an.id || !idAzione || !db.aggiorna) return;
+    const ids = Array.isArray(an.azioniId) ? an.azioniId.slice() : [];
+    if (ids.includes(idAzione)) return;
+    ids.push(idAzione);
+    await db.aggiorna("analisi", an.id, { azioniId: ids });
+  }
 
   // "+ Azione" da un evento del registro: porta alla pagina Azioni con
   // l'origine già impostata. Usata sia dal registro sia — subito dopo aver
@@ -3195,6 +3332,207 @@
     a.download = "scudo_riepilogo_near_miss.csv"; a.click();
     esito("inf-esito", "Riepilogo near-miss esportato (" + per + ").", "success");
   };
+
+  // ══════════════════════════════════════════════════════════════════════
+  // L'ANALISI DELLA CAUSA — LA CATENA DEI PERCHÉ
+  // Il registro dice DOVE e COME; questa scheda è l'unico posto in cui si
+  // scrive PERCHÉ. Piano per esteso: docs/PIANO_CAUSA_RADICE_SCUDO.md
+  //
+  // ⛔ TRE RIGHE, NON CINQUE. Cinque caselle vuote si riempiono per farle
+  // sparire, e una catena tirata a cinque per riempire i campi vale meno di
+  // una che si ferma a tre con una causa correggibile. Si parte da tre e si
+  // aggiunge una riga alla volta, fino a cinque.
+  //
+  // ⛔ E GLI AVVISI CHE RIGUARDANO IL CONTENUTO CHIEDONO, NON VIETANO. Bloccano
+  // soltanto i due che riguardano dati mancanti (meno di due perché, famiglia
+  // non scelta). Che l'ultimo perché nomini una persona è una DOMANDA scritta
+  // accanto — «è quello che è successo, o è la persona a cui è successo?» — e
+  // l'analisi si salva lo stesso: a volte è davvero un comportamento, e se lo
+  // strumento accusa, chi lo usa smette di scrivere la verità. Da lì in poi il
+  // dato non serve più a nessuno, che è un danno peggiore di un'analisi
+  // imprecisa.
+  // ══════════════════════════════════════════════════════════════════════
+  const AN_MIN = 3, AN_MAX = 5;
+  const AN = { eventoId: "", causa: "", righe: AN_MIN };
+  // I suggerimenti dentro le caselle: il primo perché è quasi sempre la
+  // descrizione del fatto, ed è giusto che lo sia — il lavoro comincia dal
+  // secondo. Scriverlo nel campo evita l'errore più comune del metodo.
+  const AN_SUGG = [
+    "Che cosa è successo, in una riga",
+    "E perché è successo? (la prima condizione sotto il fatto)",
+    "E perché quella condizione c'era?",
+    "E perché? (se serve — fermarsi prima va benissimo)",
+    "L'ultimo perché: qui sotto ci deve essere qualcosa da correggere",
+  ];
+  const anRiga = (i, valore) =>
+    `<label class="fl" for="an-p${i}">${i + 1}° perché</label>`
+    + `<input class="dw-input" id="an-p${i}" placeholder="${esc(AN_SUGG[i] || "E perché?")}" value="${esc(valore || "")}">`;
+  // La bozza letta dai campi: le righe lasciate vuote non contano (una casella
+  // vuota non è un perché), ed è `validaAnalisi` a decidere se bastano.
+  const bozzaAnalisi = () => {
+    const perche = [];
+    for (let i = 0; i < AN.righe; i++) {
+      const c = $("an-p" + i);
+      if (c && String(c.value || "").trim()) perche.push(String(c.value).trim());
+    }
+    return { eventoId: AN.eventoId, perche, causa: AN.causa };
+  };
+  /* Gli avvisi, tutti e due i tipi, nello stesso riquadro. La striscia cambia
+     colore secondo il PEGGIORE che c'è dentro: rossa se qualcosa blocca,
+     gialla se sono solo domande. Un riquadro vuoto sparisce da solo
+     (`.note:empty`), quindi non resta una cornice muta sotto i campi. */
+  const mostraAvvisiAnalisi = (avvisi) => {
+    const box = $("an-avvisi"); if (!box) return;
+    const lista = avvisi || [];
+    box.className = "note" + (lista.some(a => a.grave) ? " err" : " avviso");
+    box.innerHTML = lista.map(a =>
+      `<div style="margin:3px 0;">${a.grave ? "<b>Manca:</b> " : "<b>Una domanda:</b> "}${esc(a.testo)}</div>`).join("");
+  };
+  /* Mentre si scrive si mostrano SOLO le domande (quelle che non bloccano):
+     sono legate a quello che si sta scrivendo e devono comparire lì per lì.
+     Gli avvisi che bloccano compaiono al salvataggio — dire «manca il secondo
+     perché» a un campo appena aperto è rimproverare chi non ha ancora
+     cominciato. */
+  const aggiornaAvvisiAnalisi = () =>
+    mostraAvvisiAnalisi(validaAnalisi(bozzaAnalisi(), LAV).avvisi.filter(a => !a.grave));
+
+  function apriAnalisi(idEvento) {
+    const ev = INF.find(x => x.id === idEvento);
+    if (!ev) { toast("Quell'evento non è più nel registro.", "err"); return; }
+    const pre = analisiDiEvento(ANA, idEvento);
+    const testi = pre ? (pre.perche || []).map(p => String(p || "")) : [];
+    AN.eventoId = idEvento;
+    AN.causa = pre ? String(pre.causa || "") : "";
+    // tre righe, o quante ne servono per non nascondere un'analisi più lunga
+    AN.righe = Math.max(AN_MIN, testi.length);
+    const oggi = oggiISO();
+    const righe = [];
+    for (let i = 0; i < AN.righe; i++) righe.push(anRiga(i, testi[i]));
+    apriModale(pre ? "L'analisi della causa" : "Perché è successo",
+      '<div class="note">' + esc(ev.descrizione || (ev.tipo === "infortunio" ? "Infortunio" : "Near-miss"))
+        + "<br>" + fmtData(ev.data) + (ev.luogo ? " · " + esc(ev.luogo) : "")
+        + ((+ev.giorniAssenza) ? " · " + (+ev.giorniAssenza) + " gg di assenza" : "") + "</div>"
+      + '<div class="nm-lab">1 · La catena dei perché</div>'
+      + '<div id="an-perche">' + righe.join("") + "</div>"
+      + '<div class="frow" style="margin-top:10px;">'
+      + '<button type="button" class="dw-btn secondary mini" id="an-piu">+ Un altro perché</button></div>'
+      + '<div class="form-hint" style="margin-top:8px;">Il primo è quasi sempre la descrizione del fatto: il lavoro comincia dal secondo. <b>Cinque non è un obbligo</b> — fermarsi a tre con una causa correggibile vale di più che tirare la catena per riempire le caselle.</div>'
+      + '<div class="nm-lab">2 · La famiglia della causa</div>'
+      + '<div class="chgs griglia2" id="an-causa">'
+      + CAUSE_ANALISI.map(c =>
+          `<button type="button" class="chg${AN.causa === c.chiave ? " active" : ""}" data-an-causa="${c.chiave}"`
+          + ` aria-pressed="${AN.causa === c.chiave ? "true" : "false"}" title="${esc(c.esempio)}">${esc(c.etichetta)}</button>`).join("")
+      + "</div>"
+      + '<div class="form-hint" id="an-causa-es" style="margin-top:8px;"></div>'
+      + '<div class="nm-lab">Quando e chi ha fatto l\'analisi</div>'
+      + '<div class="frow">'
+      + '<input class="dw-input" id="an-data" type="date" value="' + esc((pre && pre.fatta) || oggi) + '" max="' + oggi + '" title="Quando è stata fatta l\'analisi" style="flex:1 1 140px;">'
+      + '<select class="dw-input" id="an-chi" title="Chi ha fatto l\'analisi" style="flex:1 1 170px;"><option value="">— chi l\'ha fatta (facoltativo) —</option>'
+      + LAV.map(l => `<option value="${l.id}"${pre && pre.daChi === l.id ? " selected" : ""}>${esc(l.nome)}</option>`).join("") + "</select></div>"
+      + '<div class="note avviso" id="an-avvisi"></div>'
+      + '<div class="form-hint" style="margin-top:10px;">I «5 Perché» sono uno strumento di lavoro, non un adempimento di legge: portano a <b>una causa sola</b> e persone diverse arrivano a risposte diverse. Servono a scegliere l\'azione correttiva giusta — «consegna guanti antitaglio» è la cura del sintomo se i guanti c\'erano e nessuno li indossava.</div>',
+      [{ label: "Annulla", azione: chiudiModale },
+       { label: pre ? "Salva le correzioni" : "Salva l'analisi", cls: "primary", azione: salvaAnalisi }],
+      { autofocus: false });
+    // le domande compaiono mentre si scrive: è lì che servono
+    for (let i = 0; i < AN.righe; i++) {
+      const c = $("an-p" + i); if (c) c.oninput = aggiornaAvvisiAnalisi;
+    }
+    const piu = $("an-piu");
+    const aggiornaPiu = () => {
+      if (!piu) return;
+      const pieno = AN.righe >= AN_MAX;
+      piu.disabled = pieno;
+      piu.textContent = pieno ? "Cinque perché: è il massimo" : "+ Un altro perché";
+    };
+    if (piu) piu.onclick = () => {
+      if (AN.righe >= AN_MAX) return;
+      const box = $("an-perche"); if (!box) return;
+      box.insertAdjacentHTML("beforeend", anRiga(AN.righe, ""));
+      const nuovo = $("an-p" + AN.righe);
+      AN.righe++;
+      if (nuovo) { nuovo.oninput = aggiornaAvvisiAnalisi; nuovo.focus(); }
+      aggiornaPiu();
+      aggiornaAvvisiAnalisi();
+    };
+    aggiornaPiu();
+    const mostraEsempio = () => {
+      const el = $("an-causa-es"); if (!el) return;
+      el.innerHTML = AN.causa
+        ? "<b>" + esc(etichettaCausa(AN.causa)) + "</b>: " + esc(famigliaEsempio(AN.causa))
+        : "Serve a sapere <b>quali cause si ripetono</b>, che è la domanda a cui questa scheda deve rispondere. Passa sopra una famiglia per un esempio.";
+    };
+    const boxCausa = $("an-causa");
+    if (boxCausa) boxCausa.querySelectorAll(".chg").forEach(b => b.onclick = () => {
+      const gia = b.classList.contains("active");
+      boxCausa.querySelectorAll(".chg").forEach(x => { x.classList.remove("active"); x.setAttribute("aria-pressed", "false"); });
+      AN.causa = "";
+      if (!gia) {
+        b.classList.add("active"); b.setAttribute("aria-pressed", "true");
+        AN.causa = b.getAttribute("data-an-causa");
+      }
+      mostraEsempio();
+      aggiornaAvvisiAnalisi();
+    });
+    mostraEsempio();
+    aggiornaAvvisiAnalisi();
+  }
+
+  async function salvaAnalisi() {
+    const bozza = bozzaAnalisi();
+    const v = validaAnalisi(bozza, LAV);
+    // ⛔ SI MOSTRA TUTTO, POI SI DECIDE. Le due righe che bloccano riguardano
+    // dati mancanti; quelle che riguardano il contenuto restano scritte e
+    // l'analisi si salva lo stesso.
+    mostraAvvisiAnalisi(v.avvisi);
+    if (!v.valida) {
+      toast("Manca qualcosa per salvare: qui sotto c'è scritto che cosa.", "err");
+      const box = $("an-avvisi"); if (box) box.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    const fatta = ($("an-data") && $("an-data").value) || oggiISO();
+    if (giorniTra(fatta) > 0) { toast("La data dell'analisi non può essere nel futuro.", "err"); return; }
+    const pre = analisiDiEvento(ANA, AN.eventoId);
+    const rec = {
+      eventoId: AN.eventoId, perche: bozza.perche, causa: bozza.causa, fatta,
+      daChi: ($("an-chi") && $("an-chi").value) || null,
+      /* ⚠️ `azioniId` NON si ricalcola qui: sono le azioni nate DOPO questa
+         analisi, e riscriverle con quelle collegate all'evento le
+         trasformerebbe in una copia del legame `origineId` — due posti che
+         dicono la stessa cosa finché non divergono. Correggendo un'analisi si
+         PORTANO AVANTI quelle che c'erano. */
+      azioniId: (pre && Array.isArray(pre.azioniId)) ? pre.azioniId : [],
+    };
+    if (pre) await db.aggiorna("analisi", pre.id, rec);
+    else await db.aggiungi("analisi", rec);
+    chiudiModale();
+    await refresh();
+    const ev = INF.find(x => x.id === rec.eventoId);
+    esito("inf-esito", "Analisi salvata per l'evento del " + fmtData(ev ? ev.data : fatta)
+      + ": causa " + etichettaCausa(rec.causa).toLowerCase() + ".", "success",
+      "Analisi salvata: causa " + etichettaCausa(rec.causa).toLowerCase() + ".");
+    // Le domande non bloccano il salvataggio, ma non devono nemmeno sparire con
+    // la modale: si ripetono qui, dove si può ancora tornare a correggere.
+    const domande = v.avvisi.filter(a => !a.grave);
+    const az = azioniDiEvento(AZI, rec.eventoId);
+    apriModale("Analisi salvata",
+      (domande.length
+        ? domande.map(d => "<b>Una domanda:</b> " + esc(d.testo)).join("<br><br>") + "<br><br>"
+        : "")
+      + "Il perché adesso è scritto. Serve a scegliere <b>l'azione correttiva giusta</b>: "
+      + (az.length
+          ? "questo evento ne ha già <b>" + az.length + "</b> — vale la pena rileggerla con la causa davanti."
+          : "questo evento non ne ha ancora nessuna."),
+      [{ label: domande.length ? "Torno a correggere" : "Chiudi",
+         azione: domande.length
+           ? () => { chiudiModale(); apriAnalisi(rec.eventoId); }
+           : chiudiModale },
+       { label: az.length ? "Vedi le azioni" : "Apri un'azione correttiva", cls: "primary",
+         azione: az.length
+           ? async () => { chiudiModale(); filtroOrig = { tipo: "evento", id: rec.eventoId };
+               filtroAzi = "tutte"; $("azi-cerca").value = ""; go("azio"); await refresh(); }
+           : () => { chiudiModale(); apriAzioneDaEvento(rec.eventoId); } }]);
+  }
 
   // ══════════════════════════════════════════════════════════════════════
   // S3 · ISPEZIONI E CHECKLIST PERIODICHE
