@@ -1,4 +1,11 @@
-/* COME SI SCRIVE UN VALORE DENTRO UNA PROVA
+/* ⚠️ NON VA IN npm test: non è una suite né un banco, è un AIUTO che le suite
+   importano — non ha prove dentro e non fallisce mai, quindi metterlo in CI
+   aggiungerebbe un verde che non guarda niente. Le sue prove ci sono, e stanno
+   dove il difetto ha morso: `run-kpi.mjs`, cinque asserzioni sotto «harness».
+   Il controllo che pretende questa riga (`suite-collegate`) ha fatto il suo
+   lavoro il giorno stesso in cui il file è nato.
+
+   COME SI SCRIVE UN VALORE DENTRO UNA PROVA
    ══════════════════════════════════════════════════════════════════════
    Fino al 01/08 le suite confrontavano i valori con `JSON.stringify`, e
    quella funzione **confonde cose diverse**. Non è un dettaglio teorico:
