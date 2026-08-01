@@ -67,6 +67,18 @@ in italiano, senza dare conoscenze per scontate).
 
 ## Come si spende il tempo di un ciclo *(01/08, misurato su una giornata storta)*
 
+⛔ **E LA VERIFICA VALE PER LO STATO CHE SI COMMITTA, NON PER QUELLO CHE SI ERA
+MISURATO.** Variante della regola qui sotto, e il 01/08 è successa un'ora dopo
+averla scritta: ho lanciato quattro suite sul disco, le ho viste verdi, e ho
+committato — ma nel frattempo due cantieri avevano scritto altre funzioni, e il
+commit conteneva **nove funzioni senza prova** che la mia misura non poteva
+contenere. La CI l'ha detto, io no. Fra la misura e il `git commit` un albero
+con cantieri aperti **cambia**, quindi o si misura la **copia di quello che si
+sta per committare** (worktree + `git diff --cached | git apply`), oppure si
+aspetta che i cantieri chiudano. Le due cose che si muovono di più sono il
+**conto delle prove** e la **copertura**: sono anche le due che finiscono nei
+documenti, e quindi le due che fanno cadere la CI.
+
 ⛔ **NON SI METTE NELL'INDICE UN FILE CHE UN CANTIERE STA MODIFICANDO**, e il
 01/08 questa regola è costata la pagina di Scudo per cinque commit. Committando
 il lavoro sugli allegati ho fatto `git add apps/scudo/index.html` credendolo

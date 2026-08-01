@@ -2814,6 +2814,45 @@ campi interi, file delle macchine.
 
 ## IN ATTESA DEL FONDATORE (non bloccano il lavoro)
 
+⛔ **LA DICIANNOVESIMA, arrivata la notte dell'01/08 e diversa dalle altre
+diciotto: questa la porta una MISURA, non un dubbio.**
+
+**(19) La persistenza offline dei dati nelle app.** Il **core**, che si usa in
+ufficio, tiene una copia dei dati sul dispositivo; **le sei app, che si usano in
+cava, no** — è al contrario di come dovrebbe essere. E il commento in `sw.js:66`
+dice che la persistenza c'è: è vero per il core e **falso per le app**.
+
+Misurato con Firestore vero e la rete chiusa, quattro chiamate:
+| chiamata | risposta |
+|---|---|
+| giro macchina (scrittura) | **resta appesa per sempre** |
+| segnalazione guasto (scrittura) | **resta appesa** |
+| ore del mezzo (aggiornamento) | **resta appesa** |
+| lettura | risolta in 8 ms |
+
+Cioè le scritture **non falliscono**: non rispondono. Da stanotte Flotta lo
+**dice** all'utente dopo otto secondi, quindi nessuno perde più un giro macchina
+in silenzio — ma quella è la difesa, non la cura.
+
+Il codice per attivarla è pronto. **Non l'ho applicato**, e la ragione è che
+porta quattro rischi che vanno decisi, non subiti:
+1. **i ponti** aprono un secondo collegamento sulla stessa app Firebase, e
+   l'attivazione lì solleva un errore: funziona solo grazie a una rete di
+   sicurezza, che quindi non è cosmetica;
+2. **il messaggio di Flotta va cambiato insieme**: con la persistenza «non
+   chiudere la pagina» diventerebbe inutilmente severo, perché la scrittura
+   sopravvivrebbe alla chiusura. Le due cose sono accoppiate;
+3. ⛔ **la copia sul dispositivo è per SITO, non per organizzazione**: dopo un
+   cambio di azienda restano lì i dati della precedente. È l'unica barriera che
+   i 58 test difendono, quindi va accompagnata da una pulizia all'uscita;
+4. **le letture diventerebbero vecchie in silenzio**: senza rete l'app
+   mostrerebbe i dati di ieri senza dirlo — cioè il numero tranquillo dove non è
+   stato misurato niente, applicato a tutto il prodotto insieme.
+
+*Che cosa serve da te:* un sì o un no. Se sì, è un cantiere suo, con la pulizia
+all'uscita e la dichiarazione «questi dati sono di prima» nelle pagine.
+
+
 ⚠️ **Questo elenco diceva quattro cose, e in `docs/DECISIONI_WEEKEND.md` le
 decisioni sono diciotto** *(corretto il 01/08, 18ª aggiunta la stessa notte)*. Non è una svista da poco: è
 la lista che il fondatore guarda per sapere **che cosa aspetta lui**, e ne
