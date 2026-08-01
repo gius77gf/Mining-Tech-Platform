@@ -902,6 +902,25 @@ campi interi, file delle macchine.
       Flotta**, che ha tutt'e due — e ha un cantiere aperto sopra.
 
 ### Fatto il 01/08 (notte, secondo ciclo)
+- [x] ⛔ **Il cantiere di Genesi smette di essere una frase e diventa un
+      numero.** «Tirarne fuori un modulo dati è un cantiere intero» era scritto
+      da giorni: vero, e inutile — una frase non dice da dove si comincia. La
+      domanda giusta non era «quante sono» ma **quante dipendono da uno stato
+      condiviso**: **46** funzioni non ne leggono nessuna, 64 ne leggono una o
+      due, e solo 24 ne leggono più di dieci. **110 su 192 si estraggono senza
+      toccare l'architettura.** Misura in `tests/genesi-estraibili.mjs`, non in
+      uno scratchpad — perché lo strumento **ha sbagliato una volta** prima di
+      rispondere bene, e nei test si corregge invece di riscriverlo. Commit
+      `486dd58`.
+- [x] **Campo — il riposo fra due turni.**
+- [x] **Flotta — la pagella del parco** (costo orario × disponibilità). Commit
+      `ccff0c3`, con Scudo tenuto **fuori** perché ancora al lavoro: sul disco
+      aveva cinque funzioni senza prova.
+- [ ] **Scudo — appaltatori e DUVRI** (art. 26 D.Lgs 81/08): cantiere in corso.
+- [ ] **Il primo passo del cantiere di Genesi**: portare fuori le 46 funzioni
+      senza stato in `apps/genesi/genesi-data.js`, con le loro prove. È l'unico
+      pezzo di prodotto con **zero prove pure**, e adesso si sa quanto è grande.
+
 - [x] ⛔ **Il lettore di CSV vive in `shared/`, e un bonifico da 12.300 € smette
       di sparire.** Debito dichiarato dal cantiere di Conti e **misurato prima
       di crederci**: le banche la descrizione lunga la scrivono su più righe

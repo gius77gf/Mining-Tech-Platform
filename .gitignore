@@ -3,3 +3,14 @@ node_modules/
 firestore-debug.log
 *serviceAccount*.json
 *-firebase-adminsdk-*.json
+
+# ⛔ I CONTRASSEGNI COL PID CHE I BANCHI LASCIANO NELLA CARTELLA SERVITA.
+# CLAUDE.md li prescrive: un banco che alza un server deve scrivere un
+# contrassegno col proprio pid e rileggerlo DAL server, se no — trovando la
+# porta gia' occupata da un giro precedente — misura la copia di qualcun altro
+# e non fallisce. Il 01/08 e' costata un'ora di misure false.
+# Qui si impedisce solo che finiscano committati: un `git add .` distratto li
+# porterebbe dentro, e un file di tre byte nella radice del repo e' il genere
+# di cosa che nessuno nota finche' non da' fastidio.
+.pagella-*.txt
+.contrassegno-*.txt
