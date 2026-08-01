@@ -667,7 +667,8 @@
 
   <div id="tab-lav">
     <div class="sec">Lavoratori<span class="cnt" id="pers-count">0</span></div>
-    <input class="dw-input" id="pers-cerca" type="search" placeholder="Cerca per nome o ruolo…" style="margin-bottom:10px;">
+    <div id="pers-riep" class="note recap" style="margin-top:0;"></div>
+    <input class="dw-input" id="pers-cerca" type="search" placeholder="Cerca per nome o ruolo…" style="margin:10px 0;">
     <div id="pers-list"></div>
     <div class="sec">Aggiungi lavoratore</div>
     <div class="form">
@@ -1103,7 +1104,7 @@
     TIPI_DPI, tipoDpi, tipoDpiSicuro, ultimaConsegnaDpi, statoConsegnaDpi, allarmiDpi, riepilogoDpi, verbaleDpi,
     indiciInfortunistici,
     CAUSE_ANALISI, validaAnalisi, analisiDiEvento, eventiSenzaAnalisi, causeRicorrenti } from "./scudo-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO, dataISOEsiste } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
@@ -1437,15 +1438,28 @@
     const lavVis = LAV.filter(l => !q || (l.nome + " " + (l.ruolo || "")).toLowerCase().includes(q))
                       .sort((a, b) => a.nome.localeCompare(b.nome, "it"));
     $("pers-count").textContent = (q && lavVis.length !== LAV.length) ? lavVis.length + " su " + LAV.length : LAV.length;
+    /* ⛔ CHI NON HA NEMMENO UNA SCADENZA NON È «REGOLARE»: È NON VERIFICATO. Il
+       numero del Quadro adesso li tiene fuori (`kpiFrom`), e qui si dice quanti
+       sono — se no il verde scenderebbe senza che si capisca perché. */
+    const attiviTot = LAV.filter(l => l.attivo).length;
+    $("pers-riep").innerHTML = !LAV.length ? ""
+      : `Scadenzario in regola: <b>${k.regolari}</b> su ${attiviTot} in forza`
+        + (k.senzaScadenze
+            ? ` · di <b>${k.senzaScadenze}</b> non c'è nessuna scadenza registrata: ${k.senzaScadenze === 1 ? "non è «a posto», è una persona di cui non si sa niente" : "non sono «a posto», sono persone di cui non si sa niente"}.`
+            : ".");
     $("pers-list").innerHTML = lavVis.map(l => {
-      const prob = SCA.filter(s => s.lavoratoreId === l.id && statoScadenza(s.dataScadenza) !== "regolare");
+      const sue = SCA.filter(s => s.lavoratoreId === l.id);
+      const prob = sue.filter(s => statoScadenza(s.dataScadenza) !== "regolare");
       const st = prob.some(s => statoScadenza(s.dataScadenza) === "scaduta") ? "scaduta" : (prob.length ? "in-scadenza" : "regolare");
+      // stessa regola del KPI: senza nessuna riga in scadenzario non si scrive
+      // «Regolare», che è il colore di chi è stato guardato ed è a posto
+      const bg = sue.length ? B[st] : ["warn", "Nessuna scadenza"];
       const idn = idoneitaLabel(l.idoneita);
-      return `<div class="item ${striscia[B[st][0]]}">
+      return `<div class="item ${striscia[bg[0]]}">
         <div class="avatar">${esc(initials(l.nome))}</div>
-        <div class="info"><div class="name">${esc(l.nome)} <span class="badge inline ${idn.cls}" style="cursor:pointer" title="Idoneità sanitaria (art. 41) — tocca per cambiare esito" data-idon="${l.id}">${idn.label}</span></div><div class="meta">${esc(l.ruolo || "ruolo non indicato")}${prob.length ? " · " + esc(prob[0].descrizione) : ""}</div></div>
+        <div class="info"><div class="name">${esc(l.nome)} <span class="badge inline ${idn.cls}" style="cursor:pointer" title="Idoneità sanitaria (art. 41) — tocca per cambiare esito" data-idon="${l.id}">${idn.label}</span></div><div class="meta">${esc(l.ruolo || "ruolo non indicato")}${prob.length ? " · " + esc(prob[0].descrizione) : (sue.length ? "" : " · né visita medica né corsi in scadenzario")}</div></div>
         <span class="acts">
-        <span class="badge ${B[st][0]}">${B[st][1]}</span>
+        <span class="badge ${bg[0]}" title="${sue.length ? sue.length + (sue.length === 1 ? " scadenza registrata" : " scadenze registrate") : "nessun adempimento registrato per questa persona"}">${bg[1]}</span>
         <span class="arr" style="cursor:pointer" title="Modifica lavoratore" data-edit-lav="${l.id}">✎</span>
         <span class="arr" style="cursor:pointer" title="Rimuovi lavoratore" data-del-lav="${l.id}">✕</span></span></div>`;
     }).join("") || (q
@@ -1688,9 +1702,14 @@
     const cById = Object.fromEntries(CANT.map(c => [c.id, c]));
     $("doc-list").innerHTML = DOC.map(d => {
       const legami = [d.cantiereId && cById[d.cantiereId] ? "sito: " + esc(cById[d.cantiereId].nome) : "", d.lavoratoreId && byId[d.lavoratoreId] ? "lavoratore: " + esc(byId[d.lavoratoreId].nome) : ""].filter(Boolean).join(" · ");
-      return `<div class="item ${striscia[D[d.stato][0]]}" data-doc="${d.id}" style="cursor:pointer" title="Tocca per cambiare stato"><div class="info"><div class="name">${d.tipo ? `<span class="badge tag" style="margin-right:6px;">${esc(d.tipo)}</span>` : ""}${esc(d.titolo)}</div><div class="meta">${esc(d.meta || "")}${legami ? (d.meta ? " · " : "") + legami : ""}</div></div>
+      /* ⛔ Un documento di cui lo stato non è scritto — un import, un dato
+         vecchio — non è un documento «valido»: leggerlo con `D[d.stato][0]`
+         uccideva la pagina AL DISEGNO, e cadere sul verde sarebbe stato peggio
+         del crash. Si dichiara che non si sa, in giallo. */
+      const ds = D[d.stato] || ["warn", "Stato non indicato"];
+      return `<div class="item ${striscia[ds[0]]}" data-doc="${d.id}" style="cursor:pointer" title="Tocca per cambiare stato"><div class="info"><div class="name">${d.tipo ? `<span class="badge tag" style="margin-right:6px;">${esc(d.tipo)}</span>` : ""}${esc(d.titolo)}</div><div class="meta">${esc(d.meta || "")}${legami ? (d.meta ? " · " : "") + legami : ""}</div></div>
        <span class="acts">${d.allegatoData ? `<span class="arr" style="cursor:pointer" title="Apri allegato ${esc(d.allegatoNome || "")}" data-open-doc="${d.id}">${I.clip}</span>` : ""}
-       <span class="badge ${D[d.stato][0]}">${D[d.stato][1]}</span></span></div>`;
+       <span class="badge ${ds[0]}">${ds[1]}</span></span></div>`;
     }).join("")
       || vuoto(I.doc, "Nessun documento",
           "Registra qui DSS, POS, DVR e verbali. Ogni documento porta il suo stato (valido, da rivedere, scaduto) e può avere in allegato la scansione firmata.");
@@ -1930,7 +1949,7 @@
         <div class="info"><div class="name">${esc(a.descrizione)}</div><div class="meta">${amb}${meta}</div></div>
         <span class="acts">
         <span class="badge ${al.cls}" style="cursor:pointer" title="Tocca per far avanzare lo stato (aperta → in corso → chiusa)" data-azi-stato="${a.id}">${al.label}</span>
-        ${(a.stato !== "chiusa" && a.scadenza && st !== "regolare") ? `<span class="badge ${B[st][0]}">${B[st][1]}</span>` : ""}
+        ${(a.stato !== "chiusa" && st !== "regolare") ? `<span class="badge ${B[st][0]}">${B[st][1]}</span>` : ""}
         ${(a.origineTipo === "evento" && infById[a.origineId]) ? `<span class="arr" style="cursor:pointer" title="Vai all'evento che l'ha generata" data-vai-evt="${a.origineId}">↗</span>` : ""}
         ${(a.origineTipo === "ispezione" && ispById[a.origineId]) ? `<span class="arr" style="cursor:pointer" title="Vai all'ispezione che l'ha generata" data-vai-isp="${a.origineId}">↗</span>` : ""}
         <span class="arr" style="cursor:pointer" title="Modifica azione" data-edit-azi="${a.id}">✎</span>
@@ -1971,6 +1990,12 @@
     $("isp-count").textContent = ISP.length;
     $("isp-riep").innerHTML = ISP.length
       ? `Da fare: <b>${rIsp.daFare}</b>${rIsp.scadute ? ` (di cui <b>${rIsp.scadute}</b> in ritardo)` : ""} · completate: <b>${rIsp.completate}</b> su ${rIsp.totale} · voci non conformi trovate finora: <b>${rIsp.nonConformi}</b>.`
+        /* ⛔ «Trovate finora» è vero solo se si dice anche quante voci nessuno
+           ha guardato: zero non conformi su una checklist chiusa a metà è il
+           numero tranquillo dove non è stato misurato niente. */
+        + (rIsp.senzaEsito
+            ? ` Attenzione: <b>${rIsp.senzaEsito}</b> ${rIsp.senzaEsito === 1 ? "voce è rimasta" : "voci sono rimaste"} senza esito in ${rIsp.parziali === 1 ? "un'ispezione chiusa" : rIsp.parziali + " ispezioni chiuse"}: su ${rIsp.senzaEsito === 1 ? "quella" : "quelle"} non è stato guardato niente.`
+            : "")
       : "Nessuna ispezione ancora avviata. Scegli un modello qui sotto: le voci sono già scritte, tu metti solo gli esiti.";
     const ispVis = ISP.filter(i => filtroIsp === "tutte" ? true
       : filtroIsp === "completata" ? i.stato === "completata" : i.stato !== "completata");
@@ -1983,8 +2008,11 @@
       const r = riepilogoIspezione(i), st = statoIspezione(i), lv = livelloScadenza(i.data);
       const cant = cById[i.cantiereId], resp = byId[i.responsabileId];
       const naz = azioniDiIspezione(AZI, i.id), nazChiuse = naz.filter(a => a.stato === "chiusa").length;
-      const cls = i.stato === "completata" ? "st-ok" : (striscia[B[st][0]] || "st-accent");
-      const sb = i.stato === "completata" ? ["ok", "Completata"]
+      // una chiusa con delle voci indietro NON è una chiusa a posto: il verde
+      // direbbe «guardata tutta» dove metà non è stata guardata
+      const parziale = i.stato === "completata" && r.daFare > 0;
+      const cls = i.stato === "completata" ? (parziale ? "st-warn" : "st-ok") : (striscia[B[st][0]] || "st-accent");
+      const sb = i.stato === "completata" ? (parziale ? ["warn", "Chiusa a metà"] : ["ok", "Completata"])
         : i.stato === "programmata" ? ["tag", "Programmata"] : ["warn", "In corso"];
       const meta = [
         fmtData(i.data) + (i.stato === "completata" ? "" : " · " + lv.label),
@@ -1992,6 +2020,7 @@
         resp ? resp.nome : "chi la esegue: da assegnare",
         i.stato === "completata"
           ? `${r.conformi} conformi · ${r.nonConformi} non conformi · ${r.na} non applicabili`
+            + (parziale ? ` · ${r.daFare} senza esito` : "")
           : `${r.fatte} voci compilate su ${r.totale}`,
       ].join(" · ");
       const ab = naz.length ? badgeAzioni(naz.length, nazChiuse) : null;
@@ -2037,7 +2066,8 @@
       $("isp-c-testa").innerHTML = `<b>${esc(i.nome)}</b> · ${fmtData(i.data)}`
         + (cant ? " · " + esc(cant.nome) : "") + (resp ? " · esegue " + esc(resp.nome) : "")
         + (i.stato === "completata"
-            ? ` — <b>completata</b> il ${fmtData(i.dataChiusura || i.data)}: <b>${r.nonConformi}</b> voci non conformi.`
+            ? ` — <b>completata</b> il ${fmtData(i.dataChiusura || i.data)}: <b>${r.nonConformi}</b> voci non conformi`
+              + (r.daFare ? `, e <b>${r.daFare}</b> ${r.daFare === 1 ? "voce chiusa" : "voci chiuse"} senza esito.` : ".")
             : ` — restano <b>${r.daFare}</b> voci su ${r.totale}.`);
       grafico("isp-c-avanz", "avanzamento", {
         titolo: "Avanzamento della checklist",
@@ -2206,18 +2236,30 @@
     // formalmente — se manca deve vedersi, non restare implicito.
     // ══════════════════════════════════════════════════════════════════════
     const nomOk = org.filter(o => o.stato === "ok").length;
+    const nomSenzaData = org.reduce((s, o) => s + o.senzaData, 0);
     $("nom-riep").innerHTML = NOM.length || nomKO.length
       ? `Ruoli in regola: <b>${nomOk}</b> su ${org.length}`
         + (nomKO.length ? ` · da sistemare: <b>${nomKO.length}</b> (${esc(nomKO.map(o => o.ruolo.etichetta).join(", "))})` : "")
+        /* ⛔ Una nomina di cui non si sa da quando decorre non si può
+           dimostrare a un ispettore: non è un allarme (la persona c'è), ma
+           nemmeno un ruolo in regola. */
+        + (nomSenzaData ? ` · senza data di nomina: <b>${nomSenzaData}</b>` : "")
         + "."
       : "Nessuna nomina registrata. In cava il <b>sorvegliante</b> è obbligatorio per legge e il <b>preposto</b> va individuato formalmente: comincia da questi due.";
     $("nom-list").innerHTML = org.map(o => {
       const righe = o.persone.map(p => {
         const f = p.formazione;
-        const fb = !p.requisito ? ["tag", "Nomina attiva"]
+        /* ⛔ «Senza data di nomina» sta PRIMA di «Nomina attiva» e di «In
+           regola», e dopo i due rossi della formazione: una data mai scritta
+           non è un allarme, ma nemmeno una cosa a posto — e finora la riga
+           diceva «attiva» col verde sotto, mentre la sua stessa meta scriveva
+           «senza data di nomina». */
+        const senzaData = !dataISOEsiste(p.nomina.dal);
+        const fb = f && f.stato === "mancante" ? ["danger", "Formazione non registrata"]
+          : f && f.stato === "scaduta" ? ["danger", "Formazione scaduta"]
+          : senzaData ? ["warn", "Senza data di nomina"]
+          : !p.requisito ? ["tag", "Nomina attiva"]
           : !f ? ["tag", "—"]
-          : f.stato === "mancante" ? ["danger", "Formazione non registrata"]
-          : f.stato === "scaduta" ? ["danger", "Formazione scaduta"]
           : f.stato === "in-scadenza" ? ["warn", "Formazione in scadenza"]
           : ["ok", "In regola"];
         const cls = fb[0] === "danger" ? "st-danger" : fb[0] === "warn" ? "st-warn" : "st-ok";

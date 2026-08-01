@@ -1077,6 +1077,17 @@
   const ggTx = (n) => (+n||0).toLocaleString("it-IT", { maximumFractionDigits: 1 }) + (Math.abs(+n||0) === 1 ? " giorno" : " giorni");
   // un numero all'italiana, senza unità: per i ritmi d'uso (3,42 h/gg)
   const numTx = (v) => Number.isFinite(+v) ? (+v).toLocaleString("it-IT", { maximumFractionDigits: 2 }) : "—";
+  /* ⛔ IL CONTATORE CHE NESSUNO HA LETTO NON SEGNA ZERO. Fino al 01/08 le ore
+     motore si scrivevano dappertutto come `(+m.ore || 0).toLocaleString(...)`:
+     su un mezzo senza contatore uscivano «0 ore motore» — non un vuoto, una
+     MISURA, e su una macchina usata è falsa. Da lì il tagliando dei 500 h
+     sembra lontano cinquecento ore proprio quando magari è già passato.
+     La guardia sta PRIMA della conversione: `+null` fa zero e
+     `Number.isFinite(0)` risponde true. */
+  const oreNote = (v) => !(v == null || v === "") && Number.isFinite(+v);
+  const oreMotoreTx = (v) => oreNote(v)
+    ? (+v).toLocaleString("it-IT") + " ore motore"
+    : "ore motore non registrate";
   // LE UNITÀ DI MISURA NON VANNO MAI IN MAIUSCOLO. Le etichette del semaforo
   // («tra 13 gg», «scaduta da 20 gg», «21 gg») nascono nel modulo dati come
   // TESTO SEMPLICE — lì devono restare, perché finiscono anche nei conteggi e
@@ -1556,7 +1567,7 @@
                        .filter(m => !qMez || ((m.nome || "") + " " + (m.area || "")).toLowerCase().includes(qMez));
     $("mez-list").innerHTML = mezOrd.map(m => `<div class="item ${striscia[MB[m.stato][0]]}" data-mezzo="${m.id}" title="Tocca per cambiare stato: operativo → in verifica → fermo">
       <div class="avatar">${esc(sig(m.nome))}</div>
-      <div class="info"><div class="name">${esc(m.nome)}</div><div class="meta">${esc(tipoMezzoDi(m).etichetta)} · ${(m.ore||0).toLocaleString("it-IT")} ore motore${m.area ? " · " + esc(m.area) : ""}</div></div>
+      <div class="info"><div class="name">${esc(m.nome)}</div><div class="meta">${esc(tipoMezzoDi(m).etichetta)} · ${oreMotoreTx(m.ore)}${m.area ? " · " + esc(m.area) : ""}</div></div>
       <div class="acts"><span class="badge ${MB[m.stato][0]}">${MB[m.stato][1]}</span>
       <span class="arr avv" role="button" tabindex="0" title="Segnala un guasto su questo mezzo" aria-label="Segnala un guasto su ${esc(m.nome)}" data-guasto-mezzo="${m.id}">${I.avviso}</span>
       <span class="arr" role="button" tabindex="0" title="Apri la scheda del mezzo (il libretto macchina)" aria-label="Scheda di ${esc(m.nome)}" data-scheda-mezzo="${m.id}">${I.scheda}</span>
@@ -1625,7 +1636,15 @@
       if (!n.orePreviste) return "";
       const m = MEZ.find(x => x.nome.split(" — ")[0] === n.mezzo);
       if (!m) return "Il mezzo non è nel parco: il suo contatore non si può leggere.";
-      const mancano = n.orePreviste - (m.ore || 0);
+      /* ⛔ NIENTE `|| 0` SUL CONTATORE. Con lo zero di comodo questa riga
+         scriveva una data intera — «Fra 1.765 gg (~12/06), col ritmo misurato
+         di 3,4 h al giorno» — su una macchina di cui nessuno ha letto le ore:
+         una previsione precisa, verificabile, e falsa dal primo addendo. La
+         tessera in cima al Quadro quel tagliando lo mette fra i «non so
+         quando»: qui deve dire la stessa cosa, o le due si smentiscono. */
+      if (!oreNote(m.ore))
+        return "Di questa macchina non risultano le ore del contatore: scrivile nella sua scheda e la data uscirà da sola.";
+      const mancano = n.orePreviste - (+m.ore);
       if (mancano <= 0) return "Le ore ci sono già: da fare adesso.";
       const r = ritmoDelMezzo(tag.ritmi, n.mezzo);
       const misurato = r && r.oreGiorno != null;
@@ -2021,7 +2040,7 @@
     giro = { mezzoId, tipo: t.chiave, voci: checklistPreUso(t.chiave).map(v => ({ ...v, esito: null, nota: "" })) };
     $("giro-nome").textContent = nomeBreve(m.nome);
     $("giro-sotto").textContent = t.etichetta + " · " + giro.voci.length + " controlli · "
-      + (+m.ore || 0).toLocaleString("it-IT") + " ore motore" + (m.area ? " · " + m.area : "");
+      + oreMotoreTx(m.ore) + (m.area ? " · " + m.area : "");
     $("giro-operatore").value = chiRicordato();
     $("giro-ore").value = ""; $("giro-note").value = ""; $("giro-esito").textContent = "";
     $("giro-voci").innerHTML = giro.voci.map(v => `
@@ -2381,7 +2400,7 @@
       <div class="sch-b"><div class="sch-nome">${esc(n.titolo)}</div>
         <div class="sch-sotto"><span class="badge ${so.cls}">${so.etichetta}</span>
           <span class="badge ${u.cls}">${ggU(esc(u.label))}</span>
-          ${esc(nomeBreve(n.mezzo) || "senza mezzo")}${m ? " · <b>" + (+m.ore || 0).toLocaleString("it-IT") + "</b> ore motore" : " · mezzo non più nel parco"}</div>
+          ${esc(nomeBreve(n.mezzo) || "senza mezzo")}${m ? " · " + (oreNote(m.ore) ? "<b>" + (+m.ore).toLocaleString("it-IT") + "</b> ore motore" : "ore motore non registrate") : " · mezzo non più nel parco"}</div>
         <div class="sch-sotto">${n.orePreviste ? "Tagliando a <b>" + numTx(n.orePreviste) + "</b> ore motore" : "Previsto per il <b>" + dataIt(n.dataPrevista) + "</b>"}${n.ogniOre ? " · si ripete ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · si ripete ogni " + n.ogniMesi + " mesi" : ""}${n.nota ? " · " + esc(n.nota) : ""}</div>
       </div></div>`;
     $("odl-stati").innerHTML = STATI_ORDINE.map(s =>
@@ -2599,11 +2618,12 @@
     $("sch-testa").innerHTML = `<div class="sch-testa">
       <div class="sch-av">${I.mezzo}</div>
       <div class="sch-b"><div class="sch-nome">${esc(m.nome)}</div>
-        <div class="sch-sotto"><span class="badge ${st[0]}">${st[1]}</span> ${esc(f.tipo.etichetta)}${m.area ? " · " + esc(m.area) : ""} · <b>${(+m.ore || 0).toLocaleString("it-IT")}</b> ore motore${m.oreDaTelemetria ? " (da telemetria)" : ""}</div>
+        <div class="sch-sotto"><span class="badge ${st[0]}">${st[1]}</span> ${esc(f.tipo.etichetta)}${m.area ? " · " + esc(m.area) : ""} · ${oreNote(m.ore) ? "<b>" + (+m.ore).toLocaleString("it-IT") + "</b> ore motore" + (m.oreDaTelemetria ? " (da telemetria)" : "") : "ore motore non registrate"}</div>
         <div class="sch-sotto">${f.ultimoIntervento ? "Ultimo intervento: <b>" + esc(f.ultimoIntervento.titolo) + "</b> del " + dataIt(f.ultimoIntervento.data) : "Nessun intervento registrato"}${f.ultimoControllo ? " · ultimo giro macchina: " + dataIt(f.ultimoControllo.data) : " · nessun giro macchina"}</div>
       </div></div>`;
     $("sch-kpi").innerHTML = [
-      ["accent", "Ore motore", (+m.ore || 0).toLocaleString("it-IT")],
+      // «—» come il consumo qui accanto: non misurato non è zero
+      ["accent", "Ore motore", oreNote(m.ore) ? (+m.ore).toLocaleString("it-IT") : "—"],
       [f.officina.totale ? "warn" : "ok", "Officina", eur(f.officina.totale)],
       ["accent", "Consumo", f.consumo && f.consumo.litriOra != null ? lh(f.consumo.litriOra) : "—"],
       ["accent", "Gasolio", f.consumo && f.consumo.euroOra != null ? eh(f.consumo.euroOra) : "—"],
@@ -3101,13 +3121,24 @@
     if (MEZ.some(m => m.id !== editMez && m.nome.split(" — ")[0].toLowerCase() === nome.split(" — ")[0].toLowerCase())) {
       err("mez-nome", true); esito("ore-esito", "C'è già un mezzo che si chiama «" + nome + "»: dagli un nome diverso, altrimenti in cantiere non si capisce di quale si parla.", "err"); fuoco("mez-nome"); return; }
     err("mez-nome", false);
-    // Le ore del contatore sono facoltative (un mezzo nuovo ne ha zero), ma
-    // se sono scritte devono essere lette per quello che sono: un contaore
-    // conta i DECIMI, e «1234,5» con un campo type=number diventava 12345 —
-    // dieci volte le ore vere, cioè tutti i tagliandi del mezzo fuori posto.
+    // Le ore del contatore sono facoltative, ma se sono scritte devono essere
+    // lette per quello che sono: un contaore conta i DECIMI, e «1234,5» con un
+    // campo type=number diventava 12345 — dieci volte le ore vere, cioè tutti
+    // i tagliandi del mezzo fuori posto.
+    /* ⛔ E IL CAMPO LASCIATO VUOTO NON VALE ZERO (01/08). Qui c'era
+       `rmo.ok ? rmo.valore : 0` con accanto scritto «un mezzo nuovo ne ha
+       zero»: è vero di un mezzo nuovo, non di chi non ha guardato il
+       contatore. Con quello zero l'app SALVAVA una misura che nessuno ha
+       fatto, e tutte le difese scritte a valle — `urgenzaOre`,
+       `propostaTagliando`, `tagliandiInScadenza`, che distinguono con cura
+       null da 0 — ricevevano uno zero e non avevano più niente da
+       distinguere. `parseMezziCsv` questa scelta l'aveva già fatta il 31/07
+       («niente zero di comodo sulle ore»): l'import faceva la cosa giusta e
+       il form, che è la strada principale, no. Chi vuole dichiarare un mezzo
+       nuovo scrive 0, ed è un dato come un altro. */
     const rmo = leggiNumero("mez-ore", "le ore del contatore", { min: 0, decimali: 1, unita: "h", facoltativo: true }, "ore-esito");
     if (!rmo.ok && !rmo.vuoto) return;
-    const ore = rmo.ok ? rmo.valore : 0;
+    const ore = rmo.ok ? rmo.valore : null;
     if (editMez) {
       await db.aggiorna("mezzi", editMez, { nome, area, ore, tipo });   // stato/manutenzioni restano
       editMez = null; $("btn-mez").textContent = "Aggiungi";
@@ -3116,7 +3147,8 @@
     }
     $("mez-nome").value = ""; $("mez-area").value = ""; $("mez-ore").value = ""; $("mez-tipo").value = "altro";
     esito("ore-esito", "Mezzo salvato: " + nome + " · " + (tipoMezzo(tipo) || { etichetta: "mezzo" }).etichetta
-      + " (" + ore.toLocaleString("it-IT") + " ore motore).", "success");
+      + " (" + oreMotoreTx(ore) + ")"
+      + (ore == null ? ": scrivile quando le leggi, o i tagliandi a ore non si potranno collocare." : "."), "success");
     fuoco("mez-nome");   // torna al primo campo per inserire subito il prossimo
     await refresh();
   };
@@ -3222,7 +3254,7 @@
   $("btn-flotta-export").onclick = () => {
     let csv = "tipo;nome;stato;dettaglio\n";
     for (const m of MEZ.slice().sort((a, b) => a.nome.localeCompare(b.nome, "it")))
-      csv += `mezzo;${csvCell(m.nome)};${m.stato};${csvCell((m.ore || 0).toLocaleString("it-IT") + " h" + (m.area ? " · " + m.area : ""))}\n`;
+      csv += `mezzo;${csvCell(m.nome)};${m.stato};${csvCell((oreNote(m.ore) ? (+m.ore).toLocaleString("it-IT") + " h" : "ore non registrate") + (m.area ? " · " + m.area : ""))}\n`;
     for (const n of MAN.slice().sort((a, b) => (a.dataPrevista || "9999") < (b.dataPrevista || "9999") ? -1 : 1))
       csv += `manutenzione;${csvCell(n.titolo + " — " + n.mezzo)};pianificata;${csvCell(n.orePreviste ? "a " + n.orePreviste + " h motore" : "previsto " + (n.dataPrevista ? n.dataPrevista.split("-").reverse().join("/") : "—"))}\n`;
     const scorta = new Set(sottoScorta(RIC).map(r => r.id));
@@ -3427,7 +3459,7 @@
     guasto = { mezzoId, gravita: "" };
     const t = tipoMezzoDi(m);
     apriModale("Segnala un guasto",
-      `<div class="note recap" style="margin:0 0 12px;"><b>${esc(nomeBreve(m.nome))}</b> · ${esc(t.etichetta)} · <b>${(+m.ore || 0).toLocaleString("it-IT")}</b> ore motore${m.area ? " · " + esc(m.area) : ""}</div>
+      `<div class="note recap" style="margin:0 0 12px;"><b>${esc(nomeBreve(m.nome))}</b> · ${esc(t.etichetta)} · ${oreNote(m.ore) ? "<b>" + (+m.ore).toLocaleString("it-IT") + "</b> ore motore" : "ore motore non registrate"}${m.area ? " · " + esc(m.area) : ""}</div>
        <label class="fl" for="gua-desc">Che cosa non va</label>
        <input class="dw-input" id="gua-desc" maxlength="120" autocomplete="off" spellcheck="false"
               placeholder="Es. perde olio dal braccio">
@@ -3545,7 +3577,9 @@
     const righe = [["sezione", "voce", "data", "dettaglio", "importo"].join(";")];
     const R = (s, v, d, det, imp) => righe.push([s, v, d, det, imp == null ? "" : imp].map(csvCell).join(";"));
     R("mezzo", m.nome, dataIt(oggiISO()),
-      f.tipo.etichetta + " · " + (m.area || "senza area") + " · " + (+m.ore || 0) + " ore motore · " + (MB[m.stato] || MB.operativo)[1], "");
+      f.tipo.etichetta + " · " + (m.area || "senza area") + " · "
+      + (oreNote(m.ore) ? (+m.ore) + " ore motore" : "ore motore non registrate")
+      + " · " + (MB[m.stato] || MB.operativo)[1], "");
     f.scadenze.forEach(s => R("scadenza di legge", s.tipo || "", dataIt(s.dataScadenza),
       s.sem.label + (s.mesi ? " · ogni " + s.mesi + " mesi" : "") + (s.documento ? " · doc. " + s.documento : ""), ""));
     f.manutenzioni.forEach(n => R("manutenzione in programma", n.titolo || "", n.dataPrevista ? dataIt(n.dataPrevista) : "",

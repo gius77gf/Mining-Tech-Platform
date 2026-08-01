@@ -1611,6 +1611,11 @@ textarea.dw-input{
         + ` · rispetto alla lettura prima è <b>${verso}</b>. Tocca per aprire la serie storica completa.`;
     } else if (valori.length === 1) {
       nota = `C'è <b>una sola lettura</b> registrata (${esc(g.al)}): la miniatura mostra l'andamento dalla seconda in poi. Registra le misure dai <b>Monitoraggi</b>.`;
+    } else if (p.st.stato === "mai") {
+      // ⛔ Nessuna lettura E nessun valore scritto a mano: di questo punto non
+      // si sa niente. La frase di prima («il valore qui accanto è quello
+      // inserito a mano») presentava come dato lo ZERO con cui il punto nasce.
+      nota = `Su questo punto <b>non è ancora stata registrata nessuna misura</b>, e nessun valore è stato scritto a mano sulla scheda: finché non arriva una lettura, l'app non può dire se la soglia è rispettata. Usa <b>Registra misura</b> nei Monitoraggi, o importa i dati dello strumento.`;
     } else {
       nota = `Su questo punto <b>non è ancora stata registrata nessuna misura</b>: il valore qui accanto è quello inserito a mano sulla scheda. Usa <b>Registra misura</b> nei Monitoraggi e qui compare l'andamento.`;
     }
@@ -1623,8 +1628,8 @@ textarea.dw-input{
         </div>
         <div class="peggio-body">
           <div class="peggio-cifre">
-            <div class="peggio-num">${esc(numeroIt(m.valore))}${u}</div>
-            <div class="peggio-lab">valore di adesso</div>
+            <div class="peggio-num">${p.st.stato === "mai" ? "—" : esc(numeroIt(m.valore)) + u}</div>
+            <div class="peggio-lab">${p.st.stato === "mai" ? "nessuna misura" : "valore di adesso"}</div>
             ${sogliaOk ? `<div class="peggio-sog"><i aria-hidden="true"></i>soglia <b>${esc(numeroIt(m.soglia))}${unita ? " " + esc(unita) : ""}</b></div>` : ""}
           </div>
           ${valori.length >= 2 ? `<div class="peggio-spark">
@@ -2449,12 +2454,17 @@ textarea.dw-input{
     const nDup = righe.filter(r => r.ok && r.dup).length;
     const nScarti = righe.filter(r => !r.ok).length;
     const nOltre = impPronte.filter(r => r.oltre).length;
+    // ⛔ «Oltre soglia: 0» va detto solo se una soglia c'è. Senza punto scelto
+    // (o su un punto senza soglia) il confronto non è stato fatto da nessuno, e
+    // uno zero spento lì è un «tutto a posto» ricavato dal non aver guardato:
+    // la stessa cosa che l'avviso qui sotto dice a parole.
     $("imp-riepilogo").innerHTML = `
       <div class="imp-cifra"><div class="k">Righe lette</div><div class="v">${righe.length}</div></div>
       <div class="imp-cifra ${nEntrano ? "ok" : "spento"}"><div class="k">Entrano</div><div class="v">${nEntrano}</div></div>
       <div class="imp-cifra ${nDup ? "warn" : "spento"}"><div class="k">Doppioni</div><div class="v">${nDup}</div></div>
       <div class="imp-cifra ${nScarti ? "warn" : "spento"}"><div class="k">Scartate</div><div class="v">${nScarti}</div></div>
-      <div class="imp-cifra ${nOltre ? "danger" : "spento"}"><div class="k">Oltre soglia</div><div class="v">${nOltre}</div></div>`;
+      <div class="imp-cifra ${nOltre ? "danger" : "spento"}"><div class="k">Oltre soglia</div><div class="v">${
+        eff.valore == null ? "—" : nOltre}</div></div>`;
 
     const stato = (r) => !r.ok ? `<span class="tag">${esc(r.motivo)}</span>`
       : r.dup ? '<span class="tag warn">già presente</span>'
@@ -2807,20 +2817,43 @@ textarea.dw-input{
     $("mon-conf").innerHTML = conf.totale
       ? `Conformità: <b>${conf.conformi}</b> conformi · <b>${conf.attenzione}</b> in attenzione · <b>${conf.superamento}</b> in superamento, su <b>${conf.totale}</b> punti.`
       : "";
-    const monCmp = (a, b) => ordMon === "margine" ? a.st.ratio - b.st.ratio
-      : ordMon === "nome" ? String(a.m.nome || "").localeCompare(String(b.m.nome || ""), "it")
+    /* ⛔ UN PUNTO MAI MISURATO STA FUORI DALLA CLASSIFICA DEI NUMERI.
+       `statoMisura` gli dà `ratio: null` apposta — non c'è nessun rapporto
+       valore/soglia da mettere in fila — ma una sottrazione lo legge come
+       ZERO (`null - 0.9` fa −0,9). Effetto misurato: primo in «Margine (dal
+       più tranquillo)» e ultimo in «Criticità», cioè in tutt'e due gli
+       ordinamenti nel posto dei più sereni. Adesso è un blocco a parte: in
+       criticità viene per PRIMO (è la cosa da fare, la stessa decisione già
+       presa nel cartellone), nel margine per ULTIMO (un margine che nessuno
+       ha misurato non è un margine). Per nome resta l'alfabeto. */
+    const mai = (x) => x.st.stato === "mai";
+    const monCmp = (a, b) => ordMon === "nome"
+      ? String(a.m.nome || "").localeCompare(String(b.m.nome || ""), "it")
+      : mai(a) !== mai(b) ? (ordMon === "margine" ? (mai(a) ? 1 : -1) : (mai(a) ? -1 : 1))
+      : mai(a) ? String(a.m.nome || "").localeCompare(String(b.m.nome || ""), "it")
+      : ordMon === "margine" ? a.st.ratio - b.st.ratio
       : b.st.ratio - a.st.ratio;
     const qMon = ($("mon-cerca") && $("mon-cerca").value || "").trim().toLowerCase();
     const monVis = MONE.map(m => ({ m, st: statoMisura(m) }))
       .filter(x => filtroMon === "tutti" || x.st.cls === filtroMon)
       .filter(x => !qMon || ((x.m.nome || "") + " " + (x.m.nota || "")).toLowerCase().includes(qMon))
       .sort(monCmp);
+    /* ⛔ E NELLA RIGA NON CI VA NESSUNA CIFRA, se nessuno ha misurato. Il badge
+       diceva «Mai misurato» (corretto il 03/08) e la riga accanto diceva
+       «0 mm/s / soglia 5 · 0%»: lo zero con cui il punto NASCE (`valore: 0,
+       letture: []`) letto come una misura, e `Math.round(null*100)` che fa
+       0% — la percentuale più tranquilla della scala, dove non c'è niente da
+       mettere in percentuale. Restano la soglia impostata (quella è un dato
+       vero) e «nessuna lettura». */
     $("mon-list").innerHTML = monVis.map(({m, st}) => { const nl = (m.letture || []).length, aperto = grafMon === m.id;
       return `<div class="item ${striscia[st.cls] || "st-accent"}${aperto ? " aperto" : ""}">
       <div class="avatar ${st.cls === "danger" ? "danger" : st.cls === "warn" ? "warn" : ""}">${I.sensore}</div>
       <div class="info"><div class="name">${esc(m.nome)}</div>
       <div class="riga"><span class="badge ${st.cls}">${st.label}</span>
-      <span class="meta"><b>${esc(numeroIt(m.valore))} ${esc(m.unita)}</b> / soglia ${esc(numeroIt(m.soglia))}${sogliaDaRicettore(m)} · ${Math.round(st.ratio*100)}%${nl ? " · " + nl + (nl === 1 ? " lettura" : " letture") : " · nessuna lettura"}${m.nota ? " · " + esc(m.nota) : ""}</span></div></div>
+      <span class="meta">${st.stato === "mai"
+        ? `<b>nessuna misura</b> / soglia ${esc(numeroIt(m.soglia))} ${esc(m.unita)}${sogliaDaRicettore(m)}`
+        : `<b>${esc(numeroIt(m.valore))} ${esc(m.unita)}</b> / soglia ${esc(numeroIt(m.soglia))}${sogliaDaRicettore(m)} · ${Math.round(st.ratio*100)}%`
+      }${nl ? " · " + nl + (nl === 1 ? " lettura" : " letture") : " · nessuna lettura"}${m.nota ? " · " + esc(m.nota) : ""}</span></div></div>
       <span class="acts">
       <button type="button" class="arr${aperto ? " on" : ""}" title="${aperto ? "Chiudi la serie storica" : "Apri la serie storica nel tempo"}" aria-label="${aperto ? "Chiudi la serie storica" : "Apri la serie storica"} di ${esc(m.nome)}" aria-expanded="${aperto}" data-graf-mon="${m.id}">${aperto ? I.chiudi : I.serie}</button>
       <button type="button" class="arr" title="Modifica il punto di misura" aria-label="Modifica ${esc(m.nome)}" data-edit-mon="${m.id}">${I.modifica}</button>
@@ -2846,7 +2879,14 @@ textarea.dw-input{
       // b[1] finisce nel markup SENZA passare da esc(), quindi lo <span class="u">
       // qui è markup vero e non un tag che l'utente si vede scritto.
       const gu = ' <span class="u">gg</span>';
-      const b = g < 0 ? ["danger","Scaduto"] : (g <= 30 ? ["warn", g + gu] : ["ok", g + gu]);
+      // ⛔ SENZA DATA NON È «IN REGOLA». `giorni("")` non fa zero, fa NaN — e
+      // NaN non è < 0 e non è <= 30, quindi la scadenza senza data cadeva
+      // nell'ultimo ramo e prendeva il badge VERDE, per di più scritto
+      // «NaN gg». Un adempimento di cui non si sa quando scade non è un
+      // adempimento tranquillo: è uno da datare. «Senza data» è la stessa
+      // parola che l'app usa già per le azioni correttive senza scadenza.
+      const b = !Number.isFinite(g) ? ["warn", "Senza data"]
+        : g < 0 ? ["danger","Scaduto"] : (g <= 30 ? ["warn", g + gu] : ["ok", g + gu]);
       return `<div class="item ${striscia[b[0]]}">
       <div class="avatar ${b[0] === "danger" ? "danger" : b[0] === "warn" ? "warn" : "ok"}">${I.calendario}</div>
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${a.ente!=="—"?esc(a.ente)+" · ":""}entro ${fmtD(a.scadenza)}</div></div>
@@ -3790,11 +3830,16 @@ textarea.dw-input{
       ? "Nessuna soglia impostata su questo punto: i superamenti non si possono contare."
       : "Soglia applicata <b>" + esc(numeroIt(p.soglia.valore)) + " " + esc(p.unita) + "</b>, "
         + (p.soglia.fonte === "ricettore" ? "presa dal ricettore" : "impostata sul punto di misura") + ".";
+    /* ⛔ LA RIGA SPENTA NON DEVE PORTARE UNA CIFRA. Un mese senza letture si
+       vede già grigio (`.ko`), e media e massimo dicevano «—»: i superamenti
+       però dicevano «0», l'unica cifra della riga, cioè il numero migliore
+       possibile su un mese in cui non si è misurato niente. Adesso `statPeriodo`
+       risponde `null` e qui si scrive «—», come per le altre due colonne. */
     const riga = (st, nome) => `<tr${st.n ? "" : ' class="ko"'}><td>${nome}</td>
       <td class="n">${st.n}</td>
       <td class="n">${st.media != null ? esc(numeroIt(st.media)) : "—"}</td>
       <td class="n">${st.max != null ? esc(numeroIt(st.max)) : "—"}</td>
-      <td class="n">${p.soglia.valore == null ? "—" : st.superamenti}</td></tr>`;
+      <td class="n">${p.soglia.valore == null || st.superamenti == null ? "—" : st.superamenti}</td></tr>`;
     const tab = `<div class="tab-wrap" style="margin-top:10px;"><table class="tab">
       <thead><tr><th>Mese</th><th>Letture</th><th>Media ${u}</th><th>Massimo ${u}</th><th>Superamenti</th></tr></thead>
       <tbody>${riga(pre, maiusc(MESI_IT[pre.mese - 1]) + " " + pre.anno)}

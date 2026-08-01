@@ -688,11 +688,18 @@ export function urgenzaOre(orePreviste, oreAttuali) {
 // d'uso (ore/giorno) stima tra quanti GIORNI andrà fatto — così un
 // tagliando "a ore motore" diventa una data prevedibile. Ritorna 0 se già
 // scaduto, null se il ritmo non è noto (non si può stimare).
+// ⛔ QUANTE ORE MANCANO NON SI SA ≠ NE MANCANO ZERO. `null <= 0` risponde
+// **true** in JavaScript, quindi la prima riga rispondeva **0** — cioè «da
+// fare adesso» — a chi non aveva niente da confrontare. È la stessa forma di
+// `avanzamentoLotto` che diceva «0%» di un lotto mai misurato. Guardia PRIMA
+// della conversione, perché `+null` fa zero e `Number.isFinite(0)` è true.
 export function previsioneGiorni(mancanoOre, oreGiorno) {
+  const manca = mancanoOre == null || mancanoOre === "" ? NaN : +mancanoOre;
+  if (!Number.isFinite(manca)) return null;
   const rate = +oreGiorno || 0;
-  if (mancanoOre <= 0) return 0;
+  if (manca <= 0) return 0;
   if (rate <= 0) return null;
-  return Math.ceil(mancanoOre / rate);
+  return Math.ceil(manca / rate);
 }
 
 // Disponibilità della flotta: % di mezzi operativi sul totale. È il KPI
@@ -703,6 +710,27 @@ export function disponibilitaFlotta(mezzi) {
   const operativi = (mezzi || []).filter(m => m.stato === "operativo").length;
   return { pct: totale ? Math.round(100 * operativi / totale) : null, operativi, totale };
 }
+
+// LE ORE DEL CONTATORE DI UN MEZZO, oppure null se nessuno le ha lette.
+/* ⛔ LA GUARDIA VA PRIMA DELLA CONVERSIONE, e qui non c'era. Le due righe che
+   fanno questo lavoro — dentro `prioritaOperative` e dentro
+   `tagliandiInScadenza` — erano scritte `Number.isFinite(+m.ore)` e portavano
+   sopra il commento «chi non ha il contatore torna null». Falso e misurato il
+   01/08: `+null` fa **0** e `Number.isFinite(0)` risponde **true**, quindi un
+   mezzo con `ore: null` — esattamente quello che `parseMezziCsv` scrive quando
+   il contatore è illeggibile — tornava **zero ore**. Da lì:
+    · nel Quadro compariva una riga «Tagliando 50h — Dumper D1 · tra 40 h» in
+      GIALLO, cioè un avviso calcolato su un contatore che nessuno ha letto;
+    · nella tessera dei tagliandi quello stesso tagliando veniva CONTATO, con
+      «fra 30 giorni» ricavati da «ore previste meno zero».
+   Ed è lo stesso `+null === 0` che in questo progetto è già costato tre volte.
+   Scritta una volta sola: era la stessa regola in due funzioni, con lo stesso
+   difetto in tutt'e due — due copie uguali oggi sbagliano insieme domani. */
+const oreContatore = (mezzo) => {
+  const v = mezzo == null ? null : mezzo.ore;
+  if (v == null || v === "") return null;
+  return Number.isFinite(+v) ? +v : null;
+};
 
 // PRIORITÀ OPERATIVE del giorno: un'unica lista ordinata di "cose da fare" per
 // il gestore del parco, che unisce in un colpo solo (1) le manutenzioni urgenti
@@ -732,14 +760,12 @@ export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(
       dettaglio: "scadenza di legge" + (s.dataScadenza ? " del " + String(s.dataScadenza).split("-").reverse().join("/") : ""),
       badge: sem.label });
   }
-  const oreDi = (nomeMezzo) => {
-    const m = (mezzi || []).find(x => String(x.nome || "").split(" — ")[0] === nomeMezzo);
-    /* «zero ore» e «non lo so» sono due cose diverse: con `|| 0` un mezzo
-       senza contatore diventava un mezzo nuovo di fabbrica, e il tagliando
-       sembrava lontano. Ora chi non ha il contatore torna null, e chi chiama
-       lo manda fra quelli «da stimare» spiegando perché. */
-    return m && Number.isFinite(+m.ore) ? +m.ore : null;
-  };
+  /* «zero ore» e «non lo so» sono due cose diverse: con `|| 0` un mezzo
+     senza contatore diventava un mezzo nuovo di fabbrica, e il tagliando
+     sembrava lontano. Chi non ha il contatore torna null, e chi chiama lo
+     salta invece di misurare da uno zero che nessuno ha letto. */
+  const oreDi = (nomeMezzo) =>
+    oreContatore((mezzi || []).find(x => String(x.nome || "").split(" — ")[0] === nomeMezzo));
   for (const n of manutenzioni || []) {
     let u, dettaglio;
     if (n.orePreviste) {
@@ -2042,14 +2068,7 @@ export function ritmoDelMezzo(ritmi, nomeMezzo) {
 export function tagliandiInScadenza(manutenzioni, mezzi, letture, oggi = new Date(), orizzonte = ORIZZONTE_TAGLIANDI) {
   const oriz = +orizzonte || ORIZZONTE_TAGLIANDI;
   const ritmi = ritmoOreMezzi(letture, oggi, oriz);
-  const contatoreDi = (nome) => {
-    const m = (mezzi || []).find(x => nomeBreve(x.nome) === nome);
-    /* «zero ore» e «non lo so» sono due cose diverse: con `|| 0` un mezzo
-       senza contatore diventava un mezzo nuovo di fabbrica, e il tagliando
-       sembrava lontano. Ora chi non ha il contatore torna null, e chi chiama
-       lo manda fra quelli «da stimare» spiegando perché. */
-    return m && Number.isFinite(+m.ore) ? +m.ore : null;
-  };
+  const mezzoDi = (nome) => (mezzi || []).find(x => nomeBreve(x.nome) === nome) || null;
   const voci = [], daStimare = [];
   for (const n of manutenzioni || []) {
     const mezzo = nomeBreve(n && n.mezzo);
@@ -2057,10 +2076,17 @@ export function tagliandiInScadenza(manutenzioni, mezzi, letture, oggi = new Dat
     // Come in prioritaOperative e nella lista Manutenzioni: se un tagliando
     // ha le ore, sono le ore a comandare. Un solo criterio in tutta l'app.
     if (+(n && n.orePreviste) > 0) {
-      const ore = contatoreDi(mezzo);
+      const m = mezzoDi(mezzo);
+      const ore = oreContatore(m);
       if (ore == null) {
+        /* DUE ASSENZE DIVERSE, DUE FRASI DIVERSE. Fino al 01/08 ce n'era una
+           sola — «il mezzo non è nel parco» — e la si diceva anche del mezzo
+           che nel parco C'È, solo senza contatore: chi legge va a cercare una
+           macchina che è lì, e non trova niente da correggere. */
         daStimare.push({ ...base, via: "ore", orePreviste: +n.orePreviste, mancano: null,
-          perche: "il mezzo «" + mezzo + "» non è nel parco: il suo contatore non si può leggere" });
+          perche: m
+            ? "del mezzo «" + mezzo + "» non risultano le ore del contatore: scrivile nella sua scheda"
+            : "il mezzo «" + mezzo + "» non è nel parco: il suo contatore non si può leggere" });
         continue;
       }
       const u = urgenzaOre(+n.orePreviste, ore);

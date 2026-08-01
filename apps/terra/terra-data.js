@@ -565,6 +565,15 @@ export function autorizzazioneVigente(autorizzazioni) {
 //  - `pregresso`: quanto era già stato estratto quando si è iniziato a usare
 //    Terra, dichiarato dall'utente nella scheda (senza questo numero il
 //    contatore vita cava sarebbe ottimista e quindi pericoloso).
+//    ⛔ E allora un pregresso MAI DICHIARATO non può passare per uno zero
+//    dichiarato: `pregressoDichiarato` tiene le due cose separate, perché il
+//    numero resta zero (non c'è niente di meglio da sommare) ma la frase che
+//    lo accompagna deve dire che il consumato è un MINIMO, non una misura.
+//    La guardia sta PRIMA della conversione: `+null` fa zero e
+//    `Number.isFinite(0)` risponde true.
+//  - `rilieviScavo`: quanti rilievi di scavo reggono `rilevato`. Zero rilievi
+//    non è «zero estratto»: è «nessuno ha misurato», e chi colora un semaforo
+//    su questo numero ha bisogno di saperlo (vedi `vitaCava`).
 export function estrattoComplessivo(rilievi, autorizzazione) {
   const a = autorizzazione || {};
   const da = /^\d{4}-\d{2}-\d{2}$/.test(String(a.dataRilascio || "")) ? String(a.dataRilascio) : null;
@@ -572,10 +581,14 @@ export function estrattoComplessivo(rilievi, autorizzazione) {
     .filter(rilievoUsabile)
     .filter(r => !da || String(r.data || "") >= da);
   const somma = (arr) => arr.reduce((s, r) => s + (+r.volumeM3 || 0), 0);
-  const rilevato = somma(soloScavo(dentro));
+  const scavo = soloScavo(dentro);
+  const rilevato = somma(scavo);
   const daCumulo = somma(soloCumulo(dentro));
-  const pregresso = Math.max(0, +a.estrattoPregressoM3 || 0);
-  return { rilevato, daCumulo, pregresso, totale: rilevato + pregresso, daData: da };
+  const gp = a.estrattoPregressoM3;
+  const pregressoDichiarato = !(gp == null || gp === "") && Number.isFinite(+gp);
+  const pregresso = Math.max(0, +gp || 0);
+  return { rilevato, daCumulo, pregresso, pregressoDichiarato,
+    rilieviScavo: scavo.length, totale: rilevato + pregresso, daData: da };
 }
 
 // RITMO MEDIO annuo degli ultimi `anni` anni (finestra scelta dall'utente):
@@ -625,7 +638,17 @@ export function vitaCava(autorizzazione, rilievi, oggi = new Date()) {
   const pct = Math.round(1000 * est.totale / totale) / 10;      // un decimale
   const sogliaN = +a.sogliaGuardiaPct;
   const soglia = Number.isFinite(sogliaN) && sogliaN > 0 && sogliaN <= 100 ? sogliaN : null;
-  const stato = pct >= 100 ? "danger" : (soglia != null && pct >= soglia) ? "warn" : "ok";
+  // ⛔ L'ASSENZA DI UN DATO NON È UN DATO FAVOREVOLE — la stessa lezione già
+  // imparata dal KPI dell'avanzamento, e questo è il cartellone che si guarda
+  // per primo. Senza nessun rilievo di scavo sotto il titolo e senza un
+  // pregresso dichiarato, «0% consumato · nei limiti» in verde non è una buona
+  // notizia: è una domanda a cui non ha risposto nessuno. `pct` e `residuo`
+  // restano quello che sono (il conto va comunque fatto), ma `misurabile` dice
+  // a chi disegna che quei numeri non si colorano e non si mostrano come una
+  // misura. Un cumulo ripreso non conta: non è scavo sotto questo titolo.
+  const misurabile = est.rilieviScavo > 0 || est.pregressoDichiarato;
+  const stato = !misurabile ? "senza-misure"
+    : pct >= 100 ? "danger" : (soglia != null && pct >= soglia) ? "warn" : "ok";
   const rm = ritmoMedioAnnuo(rilievi, a.anniRitmo, oggi);
   const annuo = rm ? rm.annuo : 0;
   const anniResidui = annuo > 0 ? residuo / annuo : null;
@@ -644,6 +667,7 @@ export function vitaCava(autorizzazione, rilievi, oggi = new Date()) {
   return {
     totale, estratto: est.totale, rilevato: est.rilevato, pregresso: est.pregresso,
     daCumulo: est.daCumulo,
+    misurabile, pregressoDichiarato: est.pregressoDichiarato, rilieviScavo: est.rilieviScavo,
     residuo, pct, soglia, stato, ritmoAnnuo: annuo > 0 ? annuo : null,
     ritmo: rm, anniResidui, annoEsaurimento, scadePrimaIlTitolo,
   };
@@ -727,8 +751,16 @@ export function riepilogoAnnuale(rilievi, anno, autorizzazione, oggi = new Date(
   // dove arriva il titolo alla fine di quell'anno
   const da = /^\d{4}-\d{2}-\d{2}$/.test(String(a.dataRilascio || "")) ? String(a.dataRilascio) : null;
   const finoA = y + "-12-31";
-  const scavoSotto = somma(soloScavo(elab).filter(r => (!da || String(r.data) >= da) && String(r.data) <= finoA));
-  const pregresso = Math.max(0, +a.estrattoPregressoM3 || 0);
+  const sottoIlTitolo = soloScavo(elab).filter(r => (!da || String(r.data) >= da) && String(r.data) <= finoA);
+  const scavoSotto = somma(sottoIlTitolo);
+  // stessa distinzione di `estrattoComplessivo`, e per lo stesso motivo: il
+  // cumulato e il residuo di fine anno si colorano solo se sotto ci sta una
+  // misura o un pregresso dichiarato. Zero rilievi e nessun pregresso danno
+  // «0% del concesso» in verde su una cava di cui non si sa niente.
+  const gp = a.estrattoPregressoM3;
+  const pregressoDichiarato = !(gp == null || gp === "") && Number.isFinite(+gp);
+  const pregresso = Math.max(0, +gp || 0);
+  const misurabile = sottoIlTitolo.length > 0 || pregressoDichiarato;
   const concesso = +a.volumeAutorizzatoM3 || 0;
   const cumulatoFineAnno = pregresso + scavoSotto;
   const residuoFineAnno = concesso > 0 ? Math.max(0, concesso - cumulatoFineAnno) : null;
@@ -739,7 +771,7 @@ export function riepilogoAnnuale(rilievi, anno, autorizzazione, oggi = new Date(
     scavo: somma(scavoRil), cumulo: somma(cumuloRil),
     rilieviScavo: scavoRil.length, rilieviCumulo: cumuloRil.length,
     mesi, fronti, qualita, banda,
-    concesso: concesso > 0 ? concesso : null, pregresso,
+    concesso: concesso > 0 ? concesso : null, pregresso, pregressoDichiarato, misurabile,
     cumulatoFineAnno, residuoFineAnno, pctFineAnno,
     inCorso: +y === new Date(oggi).getFullYear(),
   };
@@ -785,7 +817,7 @@ export function serieAnnuale(rilievi, autorizzazione, oggi = new Date()) {
   return anniConVolumi(rilievi, oggi).sort((x, z) => x - z).map(anno => {
     const r = riepilogoAnnuale(rilievi, anno, autorizzazione, oggi);
     return { anno, scavo: r.scavo, cumulo: r.cumulo, rilievi: r.rilieviScavo + r.rilieviCumulo,
-      cumulato: r.cumulatoFineAnno, pct: r.pctFineAnno, inCorso: r.inCorso };
+      cumulato: r.cumulatoFineAnno, pct: r.pctFineAnno, misurabile: r.misurabile, inCorso: r.inCorso };
   });
 }
 
@@ -947,12 +979,27 @@ export function kpiFrom(fronti, rilievi, piano, oggi = new Date()) {
   // «m³ estratti» = SCAVO. I cumuli ripresi si contano a parte
   // (volumiMeseCumulo): sono materiale già estratto, sommarli gonfierebbe
   // l'estratto e l'avanzamento del piano.
-  const volumiMese = soloScavo(mese).reduce((s, r) => s + r.volumeM3, 0);
-  const volumiMeseCumulo = soloCumulo(mese).reduce((s, r) => s + r.volumeM3, 0);
-  const estrattoAnno = soloScavo(elaborati).filter(r => (r.data || "").slice(0, 4) === anno)
-                                .reduce((s, r) => s + r.volumeM3, 0);
+  // ⛔ E la stessa trappola vale UNA RIGA PIÙ SU di `avanzamento`, dove era
+  // rimasta: in Terra il rilievo È la misura dell'estratto, quindi un mese
+  // senza nessun rilievo di scavo non è un mese in cui non si è cavato — è un
+  // mese che nessuno ha misurato. Lo `0` della tessera si legge «fermi», e in
+  // una cava che lavora è la lettura più rassicurante e più falsa. Trovato
+  // guardando lo scatto, non il codice: la tessera diceva «0» mentre quella
+  // accanto diceva «rilievi drone mese 0», cioè dichiarava da sé di non sapere.
+  // Un rilievo che ha misurato ZERO resta uno zero vero, e si scrive.
+  const scavoMese = soloScavo(mese), cumuloMese = soloCumulo(mese);
+  const volumiMese = scavoMese.length ? scavoMese.reduce((s, r) => s + r.volumeM3, 0) : null;
+  const volumiMeseCumulo = cumuloMese.reduce((s, r) => s + r.volumeM3, 0);
+  const scavoAnno = soloScavo(elaborati).filter(r => (r.data || "").slice(0, 4) === anno);
+  const estrattoAnno = scavoAnno.reduce((s, r) => s + r.volumeM3, 0);
   const ref = piano.find(p => p.pianificatoAnnuoM3 > 0);
-  const avanzamento = ref ? Math.round(100 * estrattoAnno / ref.pianificatoAnnuoM3) : null;
+  // ⛔ Il COLORE di questo KPI era già stato difeso (proiezioneAnnua non dice
+  // più «ok» sul nulla); il NUMERO no, e restava «0%». Uno 0% si legge «non
+  // ancora cominciato» dove la verità è «nessuno ha misurato» — la stessa
+  // trappola di `avanzamentoLotto`. Senza nessun rilievo di scavo dell'anno la
+  // risposta è null, cioè il trattino. Un rilievo che ha misurato ZERO invece
+  // è una misura, e allora 0% è vero e si scrive.
+  const avanzamento = ref && scavoAnno.length ? Math.round(100 * estrattoAnno / ref.pianificatoAnnuoM3) : null;
   return {
     volumiMese, volumiMeseCumulo,
     rilieviMese: mese.length,

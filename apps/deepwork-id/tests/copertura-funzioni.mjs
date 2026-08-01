@@ -49,7 +49,7 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
 /* Il fondo per app. Si alza quando si aggiungono prove, non si abbassa mai
    per far passare il controllo: abbassarlo è esattamente il gesto che
    questo file esiste per rendere visibile. */
-const FONDO = { campo: 78, conti: 60, flotta: 74, scudo: 70, sentinella: 102, terra: 46 };
+const FONDO = { campo: 79, conti: 74, flotta: 74, scudo: 79, sentinella: 102, terra: 48 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.
@@ -105,9 +105,9 @@ console.log(`\n${coperte} funzioni coperte su ${guardate} guardate, in ${APP.len
    «tutto a posto» su un perimetro più stretto del suo nome. Adesso il
    perimetro è dichiarato, con il suo fondo. */
 const CONDIVISI = [
-  { file: "shared/dw-ponti.js", fondo: 18,
+  { file: "shared/dw-ponti.js", fondo: 21,
     perche: "le regole che servono a DUE app: è il posto dove un difetto si moltiplica" },
-  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 23,
+  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 25,
     perche: "gli aiuti che tutte le app importano (numeri, date, CSV)" },
   { file: "apps/genesi/pointcloud.js", fondo: 5,
     perche: "il calcolo del volume dal drone: da lì passano i m³ che consumano la concessione" },

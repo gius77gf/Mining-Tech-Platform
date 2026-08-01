@@ -157,16 +157,38 @@ usato 65 volte, oggi sotto la soglia di contrasto).
 ## BLOCCO 0-bis — SECONDA ONDATA DI RICERCA *(valore del prodotto)*
 Taglio diverso dalla prima ondata: non "cosa manca per legge", ma **cosa
 rende il prodotto prezioso per chi lo compra**.
-- [ ] `docs/RICERCA_VALORE_PRODOTTO_202607.md` — funzioni ad alto rapporto
-      valore/lavoro, i dieci dettagli che fanno sembrare il prodotto curato,
-      e il vantaggio dell'ecosistema collegato (un dato inserito una volta,
-      utile in cinque posti).
-- [ ] `docs/RICERCA_DOCUMENTI_ENTI_202607.md` — il calendario annuale degli
-      adempimenti di una cava italiana e quali documenti possiamo generare
-      noi: è la funzione per cui il cliente paga volentieri.
-- [ ] `docs/RICERCA_CRUSCOTTO_TITOLARE_202607.md` — la vista che fa capire
-      in dieci secondi come sta andando la cava, e il centro avvisi unico
-      che raccoglie scadenze e anomalie dalle sei app.
+⚠️ **Le tre caselle qui sotto erano rimaste vuote, e i tre documenti sono
+scritti da giorni** *(corretto il 01/08)*. Non è una svista da poco: una
+roadmap che dichiara «da fare» quello che è **fatto** manda il fondatore a
+cercare un lavoro che c'è già — è lo stesso danno, in specchio, di un
+documento che spaccia per nuovo ciò che esisteva. Misurati, non stimati:
+**1.098**, **538** e **1.096** righe, tutti e tre con fonti, priorità e la
+riga di sintesi finale.
+
+- [x] ✅ `docs/RICERCA_VALORE_PRODOTTO_202607.md` *(1.098 righe)* — funzioni ad
+      alto rapporto valore/lavoro, i dieci dettagli che fanno sembrare il
+      prodotto curato, e il vantaggio dell'ecosistema collegato (un dato
+      inserito una volta, utile in cinque posti). Ha anche il capitolo che
+      serviva di più: **«cosa NON proporre»**.
+- [x] ✅ `docs/RICERCA_DOCUMENTI_ENTI_202607.md` *(538 righe)* — il calendario
+      annuale degli adempimenti di una cava italiana, documento per documento
+      con «possiamo generarlo e con quali dati», i **cinque da fare per primi**
+      e come si stampa senza spendere niente.
+- [x] ✅ `docs/RICERCA_CRUSCOTTO_TITOLARE_202607.md` *(1.096 righe)* — le sei
+      tessere una per una, la regola dei semafori (**il cruscotto non inventa
+      soglie**), il centro avvisi con le sette regole contro il rumore, e la
+      prova sul campo che le tessere si riempiano davvero.
+      ⚠️ **Il documento ha già corretto sé stesso**, ed è la parte che vale di
+      più: il cruscotto era progettato per l'hub `apps/index.html`, e rileggendo
+      il file — non a memoria — è saltato fuori che quella è una pagina
+      **statica e pubblica**, senza SDK e senza login. Metterci i numeri di una
+      cava vera li mostrerebbe a chiunque abbia il collegamento, e la vetrina
+      commerciale esporrebbe i dati di un'azienda reale. Il progetto resta
+      valido parola per parola: cambia **dove vive**.
+      ⬜ **Quindi la ricerca non è il pezzo che manca: manca una decisione del
+      fondatore** — punto **15** di `DECISIONI_WEEKEND.md`, fra il core, una
+      app nuova `apps/quadro/` e Deepwork ID. Finché non arriva, costruirlo
+      vorrebbe dire scegliere al posto suo un'identità di prodotto.
       ✅ **Rimessa a fuoco il 02/08** prima di costruirci sopra: **quattro** dei
       suoi «oggi non si può» erano invecchiati — il **tempo di incasso** (adesso
       si misura sulle date vere invece di stimarlo), l'**andamento dei mezzi**
@@ -1937,6 +1959,37 @@ campi interi, file delle macchine.
       dichiara affatto. «Nessuna violazione» qui non vuol dire «tutte le app
       sono a posto», e la prova dei soggetti stampa i numeri app per app perché
       quello zero non venga letto per più di quello che è.
+- [x] ✅ **IL CENSIMENTO DEL PRINCIPIO, IN TUTTE E SEI LE APP** *(01/08)* — sei
+      cantieri in parallelo, stesso mandato: rileggere **tutto quello che c'è
+      già** col metro dell'«assenza non è un dato favorevole». **28 punti
+      corretti.** Prove **1.438 → 1.469**, copertura **454 → 456** (sempre 100%).
+      I più gravi, uno per app: **Flotta**, il campo ore vuoto **salvava 0 in
+      archivio** e due guardie `Number.isFinite(+m.ore)` si vantavano del
+      contrario di quel che facevano (`+null` è 0); **Conti**, una fattura senza
+      data d'emissione entrava nella media del credito come zero giorni — **92
+      gg → 46 gg** misurati, e la frase passava a «sotto controllo»; **Scudo**,
+      un lavoratore **senza nemmeno una riga in scadenzario** contato fra i
+      «regolari», cioè la regola che `shared/dw-ponti.js` applica già per Campo,
+      **con una prova che la blindava**; **Campo**, il turno chiuso e firmato
+      vinceva sul colore, e l'appello mai fatto usciva verde; **Sentinella**, lo
+      zero di nascita di un punto lo metteva **primo** fra i tranquilli in un
+      ordinamento e **ultimo** per criticità nell'altro; **Terra**, «Nei limiti»
+      verde con **zero rilievi**, e un pregresso mai dichiarato stampato
+      all'ente come «0 m³ dichiarati».
+      ⚠️ **E un difetto l'ha trovato lo SCATTO, non il codice** — una riga sopra
+      quello appena corretto: la tessera «m³ estratti mese» diceva **0** accanto
+      a «rilievi drone mese **0**». La schermata dichiarava da sé di non sapere,
+      e a fianco affermava una misura. In Terra il rilievo *è* la misura
+      dell'estratto. La prova che diceva `volumiMese === 0` **blindava il
+      difetto**: resa più giusta, non più permissiva, con accanto la prova
+      opposta (uno zero **misurato** resta zero).
+      ⛔ Cinque cose **lasciate fuori con la ragione scritta**, non dimenticate:
+      la soglia inventata di Sentinella (ferma finché il fondatore non conferma —
+      è una soglia di sicurezza), `giorniAssenza` di Scudo su una prognosi
+      aperta, `proiezioneAnnua` di Terra che sbaglia nel verso prudente, la
+      quinta variante di «rilievo usabile», e la fattura senza date che
+      `run-demo.mjs` **vieta** alla dimostrazione — rendendo invisibile la
+      difesa appena costruita.
 
 ---
 

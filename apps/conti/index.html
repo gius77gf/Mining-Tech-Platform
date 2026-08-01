@@ -1292,7 +1292,7 @@ label.item:has(.dw-chk:checked){
 
 
 <script type="module">
-  import { contiData, giorni, kpiFrom, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, parseFattureCsv, parseGareCsv, parseListinoCsv, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
+  import { contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, parseFattureCsv, parseGareCsv, parseListinoCsv, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita,
     importiFattura, totaliDaRighe, prossimoNumero, nettoPesata, rigaPesata, valorePesata,
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, BASI_CANONE, venditePerProdotto,
@@ -1592,11 +1592,28 @@ label.item:has(.dw-chk:checked){
       return ["warn", "Stornata " + perc(Math.round(100 * _st / Math.max(1, _tot)))];
     }
     if (f.parziale) return ["accent", "Acconto " + perc(Math.round(100 * (+f.incassato || 0) / Math.max(1, +f.importo || 0)))];
-    const g = giorni(f.scadenza);
-    if (g < 0) return ["danger","Insoluta"];
-    if (g <= 10) return ["warn", g + " gg"];
-    return ["ok","Regolare"];
+    /* ⛔ E una fattura SENZA SCADENZA non è «Regolare». La regola sta in
+       conti-data.js (`statoScadenzaFattura`) perché qui era scritta due volte —
+       badge e striscia della riga — e tutt'e due leggevano `giorni(f.scadenza)`
+       crudo: su una scadenza che non c'è quel conto fa NaN, che non è né `< 0`
+       né `<= 10`, e la fattura scivolava nell'ultimo ramo col badge verde.
+       Le fatture importate da CSV senza la colonna della scadenza sono
+       esattamente quelle: il badge adesso lo dice, e si va a metterla. */
+    const s = statoScadenzaFattura(f);
+    return BADGE_SCAD[s.stato](s.giorni);
   }
+  /* La mappa copre TUTTE le risposte di `statoScadenzaFattura`: una risposta in
+     più senza la sua riga qui ucciderebbe il disegno dell'elenco. */
+  const BADGE_SCAD = {
+    "senza-scadenza": () => ["warn", "senza scadenza"],
+    insoluta:         () => ["danger", "Insoluta"],
+    "in-scadenza":    (g) => ["warn", g + " gg"],
+    regolare:         () => ["ok", "Regolare"],
+  };
+  /* stessa risposta, tinta della riga: una fattura senza scadenza non si tinge
+     come una nei termini */
+  const ST_SCAD = { "senza-scadenza": "st-warn", insoluta: "st-danger",
+                    "in-scadenza": "st-warn", regolare: "st-accent" };
   async function refresh(){
     let IMPL, FATG;
     [FATG,GAR,CLI,PRO,PES,INC,NOT,COS,CHI,IMPL] = await Promise.all([db.fatture(), db.gare(), db.clienti(),
@@ -1631,8 +1648,16 @@ label.item:has(.dw-chk:checked){
     $("k-gare-s").textContent = gareAperteLista.length === 0 ? "nessuna gara aperta"
       : (baseAperta > 0 ? eur0(baseAperta) + " a base d'asta" : "base d'asta non indicata")
         + (gareSenzaBase ? ` (${gareSenzaBase} senza base)` : "");
-    $("k-eta").innerHTML = k.etaCredito + '<span class="u"> gg</span>';
-    $("k-eta-s").textContent = k.etaCredito > 45 ? "sopra i 45 giorni" : "sotto controllo";
+    /* ⛔ «Sotto controllo» è un giudizio, e un giudizio senza una misura sotto
+       non si scrive: senza nemmeno una fattura aperta con la sua data
+       d'emissione la cifra è un trattino, e la riga sotto dice perché. Le
+       fatture aperte senza data — l'import da CSV le produce — restano fuori
+       dalla media e si contano accanto, se no la abbassano in silenzio. */
+    $("k-eta").innerHTML = k.etaCredito == null ? "—" : k.etaCredito + '<span class="u"> gg</span>';
+    $("k-eta-s").textContent = k.etaCredito == null
+      ? (k.etaSenzaData ? plur(k.etaSenzaData, "fattura aperta senza data", "fatture aperte senza data") : "nessuna fattura aperta")
+      : (k.etaCredito > 45 ? "sopra i 45 giorni" : "sotto controllo")
+        + (k.etaSenzaData ? " · " + k.etaSenzaData + " senza data" : "");
     // il KPI dello scaduto pulsa in rosso solo se c'è davvero uno scaduto
     document.querySelector('[data-filtro="insolute"].kpi')
       && document.querySelector('[data-filtro="insolute"].kpi').classList.toggle("danger", scadutoTot > 0);
@@ -1661,7 +1686,9 @@ label.item:has(.dw-chk:checked){
       // fatture ordinate per priorità di incasso (più in ritardo / più grosse)
       ...prioritaIncasso(FAT, new Date(), NOT).slice(0, 3)
             .map(({ f, ritardo }) => ({ ico: IC.fattura, t: "Fattura " + f.numero + " — " + nomeCliente(f, CLI),
-              d: (ritardo > 0 ? "scaduta da " + plur(ritardo, "giorno", "giorni") : "scade il " + fmtD(f.scadenza))
+              // «scade il —» non è una data: se la scadenza non c'è si dice
+              d: (ritardo > 0 ? "scaduta da " + plur(ritardo, "giorno", "giorni")
+                  : f.scadenza ? "scade il " + fmtD(f.scadenza) : "senza scadenza: non si sa entro quando")
                  + (f.parziale ? " · acconto " + eur(f.incassato) + " già arrivato" : ""),
               v: eur(apertoDi(f)), s: f.parziale ? "residuo" : "", b: fatBadge(f),
               st: ritardo > 0 ? "st-danger" : "st-warn" })),
@@ -1719,7 +1746,7 @@ label.item:has(.dw-chk:checked){
       // attenzione, non allarme: sono due situazioni diverse e si vedono diverse
       const st = f.incassata ? "st-ok"
         : ritardo > 0 ? (f.parziale ? "st-warn" : "st-danger")
-        : f.parziale ? "st-accent" : giorni(f.scadenza) <= 10 ? "st-warn" : "st-accent";
+        : f.parziale ? "st-accent" : ST_SCAD[statoScadenzaFattura(f).stato];
       // IVA: le fatture nuove portano imponibile e imposta, quelle vecchie
       // (importo secco) valgono come imponibile con IVA 0 — e lo diciamo.
       const im = importiFattura(f);
@@ -1728,12 +1755,15 @@ label.item:has(.dw-chk:checked){
       // davvero (o che la data non c'è) e quanto ne è arrivato
       const dataInc = f.dataSaldo || f.dataIncasso || null;
       const meta = [
-        "emessa " + fmtD(f.emessa),
+        // «emessa —» non dice niente a chi legge: se la data non c'è si scrive
+        // che non c'è, ed è anche il motivo per cui questa fattura non entra
+        // nell'età media del credito
+        f.emessa ? "emessa " + fmtD(f.emessa) : "senza data d'emissione",
         f.incassata
           ? (dataInc ? "incassata il " + fmtD(dataInc)
                        + (f.giorniPagamento != null ? " (" + plur(f.giorniPagamento, "giorno", "giorni") + ")" : "")
                      : "incassata, data non registrata")
-          : "scade " + fmtD(f.scadenza),
+          : f.scadenza ? "scade " + fmtD(f.scadenza) : "senza scadenza",
         f.parziale ? (f.nMovimenti === 1
                        ? "acconto " + eur(f.incassato) + (f.ultimoIncasso ? " il " + fmtD(f.ultimoIncasso) : "")
                        : f.nMovimenti + " acconti " + eur(f.incassato) + (f.ultimoIncasso ? ", l'ultimo il " + fmtD(f.ultimoIncasso) : "")) : "",
@@ -1879,14 +1909,22 @@ label.item:has(.dw-chk:checked){
     $("gar-riep").innerHTML =
       `Aperte <b>${gr.aperte}</b> (${eur0(gr.baseAperta)} a base d'asta${gr.apertesenzaBase ? `, ${gr.apertesenzaBase} senza base` : ""}) · Vinte <b>${gr.vinte}</b> (${eur0(gr.baseVinta)}) · Perse <b>${gr.perse}</b>`
       + (gr.tassoVittoria == null ? " · nessuna gara ancora decisa" : ` · tasso di vittoria <b>${gr.tassoVittoria}%</b>`);
+    /* ⚠️ UNA GARA APERTA SENZA TERMINE non è una gara tranquilla. `giorni` di
+       una data che non c'è risponde NaN: sul badge finiva scritto «NaN gg», e
+       nessun confronto con NaN è vero, quindi la riga restava della tinta
+       serena e la gara non compariva mai fra quelle in scadenza. Le gare senza
+       scadenza esistono (l'import da CSV le porta quando la colonna è vuota):
+       il badge lo dice, invece di far finta che il termine sia lontano. */
     $("gar-list").innerHTML = garOrd.map(g => { const gg = giorni(g.scadenza);
-      const st = g.stato === "vinta" ? "st-ok" : g.stato === "persa" ? "st-mute" : gg <= 15 ? "st-warn" : "st-accent";
+      const senzaTermine = !Number.isFinite(gg);
+      const st = g.stato === "vinta" ? "st-ok" : g.stato === "persa" ? "st-mute"
+        : senzaTermine ? "st-warn" : gg <= 15 ? "st-warn" : "st-accent";
       return `<div class="item ${st}">
       <span class="avatar${g.stato === "aperta" ? "" : " sup"}">${IC.gara}</span>
       <div class="info"><div class="name">${esc(g.titolo)}</div>
-      <div class="meta">${g.stato === "aperta" ? "scade il " + fmtD(g.scadenza) : "esito: " + GB[g.stato][1].toLowerCase() + " · scadeva il " + fmtD(g.scadenza)}</div></div>
+      <div class="meta">${g.stato === "aperta" ? (senzaTermine ? "senza data di scadenza" : "scade il " + fmtD(g.scadenza)) : "esito: " + GB[g.stato][1].toLowerCase() + (senzaTermine ? "" : " · scadeva il " + fmtD(g.scadenza))}</div></div>
       <div class="amt"><div class="amt-n${g.stato === "persa" || g.base == null ? " mute" : ""}">${g.base == null ? "non indicata" : eur(g.base)}</div><div class="amt-s">base d'asta</div></div>
-      <span class="badge ${GB[g.stato][0]}">${ggU(esc(g.stato==="aperta" ? gg + " gg" : GB[g.stato][1]))}</span>
+      <span class="badge ${g.stato === "aperta" && senzaTermine ? "warn" : GB[g.stato][0]}">${ggU(esc(g.stato==="aperta" ? (senzaTermine ? "senza termine" : gg + " gg") : GB[g.stato][1]))}</span>
       ${g.stato==="aperta" ? `<div class="acts">
       <button class="dw-btn secondary mini" data-gara-esito="vinta" data-gara="${g.id}" title="Segna questa gara come vinta">${IC.spunta}Vinta</button>
       <button class="dw-btn secondary mini no" data-gara-esito="persa" data-gara="${g.id}" title="Segna questa gara come persa">${IC.croce}Persa</button></div>` : ""}
@@ -1921,7 +1959,15 @@ label.item:has(.dw-chk:checked){
         tmp.giorni == null ? "warn" : tmp.ritardo != null && tmp.ritardo > 0 ? "warn" : "ok"],
       ["Da incassare", eur(k.daIncassare), plur(aperte.length, "fattura aperta", "fatture aperte"), k.inScadenza ? "warn" : "ok"],
       ["Incasso atteso (prossimi 30 gg)", eur(ia30.importo), plur(ia30.conto, "fattura in scadenza", "fatture in scadenza"), "ok"],
-      ["Età media del credito aperto", k.etaCredito + " gg", k.etaCredito > 45 ? "sopra i 45 giorni" : "sotto controllo", k.etaCredito > 45 ? "warn" : "ok"],
+      /* la media si scrive solo se è stata calcolata su qualcosa: «0 gg ·
+         sotto controllo» su un archivio senza date è la stessa riga di un
+         credito nuovo di zecca, e le due cose non si somigliano per niente */
+      ["Età media del credito aperto", k.etaCredito == null ? "—" : k.etaCredito + " gg",
+        k.etaCredito == null
+          ? (k.etaSenzaData ? plur(k.etaSenzaData, "fattura aperta non ha", "fatture aperte non hanno") + " la data d'emissione: senza quella l'età non si misura" : "nessuna fattura aperta")
+          : (k.etaCredito > 45 ? "sopra i 45 giorni" : "sotto controllo")
+            + (k.etaSenzaData ? " · " + plur(k.etaSenzaData, "fattura senza data d'emissione, fuori dalla media", "fatture senza data d'emissione, fuori dalla media") : ""),
+        k.etaCredito == null ? (k.etaSenzaData ? "warn" : "ok") : k.etaCredito > 45 || k.etaSenzaData ? "warn" : "ok"],
       ["Gare aperte", eur(baseAperta), plur(k.gareAperte, "gara a base d'asta", "gare a base d'asta"), "ok"],
     ].map(r => `<div class="item st-${r[3] === "ok" ? "accent" : r[3]}">
       <div class="info"><div class="name">${r[0]}</div><div class="meta">${r[2]}</div></div>
@@ -2029,6 +2075,11 @@ label.item:has(.dw-chk:checked){
       ["Scaduto 61–90 gg",   ag.g61_90,    ag.g61_90.conto ? "danger" : "ok"],
       ["Scaduto oltre 90 gg",ag.oltre90,   ag.oltre90.conto ? "danger" : "ok"],
     ];
+    /* ⛔ Le fatture SENZA SCADENZA non stanno sull'asse del tempo — non si sa
+       da quando aspettano — e fino a ieri finivano nella fascia «non
+       scaduto», cioè in mezzo al credito che è ancora nei termini. Hanno una
+       riga loro, e compare solo quando ce ne sono davvero. */
+    if (ag.senzaScadenza.conto) righe.push(["Senza scadenza", ag.senzaScadenza, "warn"]);
     // la barra sotto la riga dà il peso relativo: si vede a colpo d'occhio
     // dove è fermo il grosso del credito, senza leggere le cifre
     const agMax = Math.max(1, ...righe.map(r => r[1].importo || 0));
@@ -2042,7 +2093,15 @@ label.item:has(.dw-chk:checked){
       <div class="amt"><div class="amt-n${v.conto ? (cls === "danger" ? " neg" : "") : " mute"}">${eur(v.importo)}</div></div>
       <span class="bar" style="width:${Math.round((v.importo || 0) / agMax * 100)}%"></span></div>`).join("")
       + `<div class="tot${ag.scadutoTot > 0 ? " warn" : ""}"><span class="tot-l">Totale scaduto da sollecitare</span>
-         <span class="tot-n">${eur(ag.scadutoTot)}</span></div>`;
+         <span class="tot-n">${eur(ag.scadutoTot)}</span></div>`
+      /* ⚠️ niente `plur` qui: scrive anche il numero, e la frase ne ha già uno.
+         È lo stesso inciampo già raccolto due volte nella chiusura del mese. */
+      + (ag.senzaScadenza.conto ? (() => { const n = ag.senzaScadenza.conto, una = n === 1;
+          return `<div class="note avviso">${una ? "Una fattura aperta non ha" : n + " fatture aperte non hanno"}
+            la data di scadenza (<b>${eur(ag.senzaScadenza.importo)}</b>): ${una ? "non è" : "non sono"} in ritardo e
+            ${una ? "non è" : "non sono"} nei termini — <b>non si sa</b>, e finché è così ${una ? "resta fuori" : "restano fuori"}
+            dallo scaduto e dalla previsione degli incassi. Nell'elenco <b>Fatture</b> ${una ? "porta il segno «senza scadenza»" : "portano il segno «senza scadenza»"}:
+            ${una ? "va aperta" : "vanno aperte"} e ci si scrive entro quando il cliente deve pagare.</div>`; })() : "");
 
     // ── Grafico dell'invecchiamento del credito (barre vere, non più solo
     //    testo): le fasce restano nell'ordine del tempo, identico a quello
@@ -2052,6 +2111,9 @@ label.item:has(.dw-chk:checked){
     //    stato e non un colore in più sul grafico.
     const agFasce = [["Non scaduto", ag.nonScaduto], ["1–30 gg", ag.g1_30],
       ["31–60 gg", ag.g31_60], ["61–90 gg", ag.g61_90], ["Oltre 90 gg", ag.oltre90]];
+    /* in fondo, fuori dall'asse del tempo: se restasse fuori dal disegno il
+       totale del grafico sarebbe più piccolo del credito aperto vero */
+    if (ag.senzaScadenza.conto) agFasce.push(["Senza scadenza", ag.senzaScadenza]);
     const agTot = agFasce.reduce((t, f) => t + (+f[1].importo || 0), 0);
     if (agVuoto) {
       grafVuoto("graf-aging", "spunta", "Nessuna fattura aperta",
@@ -2068,10 +2130,17 @@ label.item:has(.dw-chk:checked){
           valori: agFasce.map(([et, v]) => ({ etichetta: et, valore: Math.round(+v.importo || 0) })),
           aria: "Credito aperto per fascia di ritardo: " + agFasce
             .map(([et, v]) => et + " " + eur0(v.importo)).join(", ") + ".",
-          nota: ag.scadutoTot > 0
+          /* ⛔ «tutto il credito aperto è ancora nei termini» non si può dire
+             se una fattura la scadenza non ce l'ha: di quella non si sa se è
+             nei termini o no, e la frase la darebbe per buona. */
+          nota: (ag.scadutoTot > 0
             ? "Scaduto in tutto <b>" + eur0(ag.scadutoTot) + "</b> su " + eur0(agTot) +
               " di credito aperto. Sotto i 60 giorni di solito basta una telefonata; oltre i <b>90 giorni</b> il credito raramente rientra da solo."
-            : "Nessuna fattura oltre la scadenza: tutto il credito aperto è ancora nei termini.",
+            : ag.senzaScadenza.conto
+              ? "Nessuna fattura oltre la scadenza fra quelle che una scadenza ce l'hanno."
+              : "Nessuna fattura oltre la scadenza: tutto il credito aperto è ancora nei termini.")
+            + (ag.senzaScadenza.conto ? " L'ultima barra è il credito <b>senza scadenza</b> (" + eur0(ag.senzaScadenza.importo)
+              + "): non è in ritardo e non è nei termini, perché nessuno ha scritto entro quando va pagato." : ""),
         });
       }
     }

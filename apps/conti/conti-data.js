@@ -75,6 +75,15 @@ export const DEMO = {
     // cava, ed è quello che rende veri i giorni di pagamento.
     { id: "f6", numero: "2026/030", cliente: "Stradesud", clienteId: "c2", importo: 7320, emessa: "2026-06-02", scadenza: "2026-07-02", incassata: true, dataIncasso: "2026-06-28" },
   ],
+  /* ⚠️ NEI DATI DIMOSTRATIVI NON C'È UNA FATTURA SENZA DATE, e non perché il
+     caso non conti: è il caso su cui l'app diceva le cose più tranquillizzanti
+     che sapesse dire (badge verde «Regolare», fascia «non scaduto», età media
+     del credito abbassata contandola zero giorni), ed è quello per cui esistono
+     `statoScadenzaFattura` e la fascia `senzaScadenza`. Non sta qui perché
+     `run-demo.mjs` pretende che OGNI fattura dimostrativa abbia emissione e
+     scadenza valide: metterla vuol dire prima decidere cosa deve dire quella
+     regola, e quel file non è di Conti. Le prove del caso stanno in
+     `run-kpi.mjs`, dove i dati se li scrive la prova. */
   // Movimenti di incasso: il giorno in cui i soldi sono ARRIVATI davvero.
   incassi: [
     { id: "i1", fatturaId: "f6", data: "2026-06-15", importo: 3000, metodo: "bonifico" },
@@ -323,10 +332,45 @@ export function kpiFrom(fatture, gare, oggi = new Date(), note = null) {
   // ancora incassate. NON è il DSO (Days Sales Outstanding = crediti/vendite×giorni):
   // è l'anzianità media dei crediti aperti, onesta e utile per capire quanto "vecchio"
   // è il credito che l'azienda ha in giro. (DSO vero → roadmap: serve il fatturato del periodo.)
-  const etaCredito = aperte.length
-    ? Math.round(aperte.reduce((t, f) => t + Math.max(0, -giorni(f.emessa, oggi) || 0), 0) / aperte.length)
-    : 0;
-  return { daIncassare, inScadenza, gareAperte, etaCredito };
+  /* ⛔ UNA FATTURA SENZA DATA D'EMISSIONE NON HA ZERO GIORNI DI VITA. Fino a ieri
+     la riga era `Math.max(0, -giorni(f.emessa, oggi) || 0)`: su una
+     fattura senza `emessa` — l'import da CSV le produce, `parseFattureCsv`
+     lascia `emessa: null` quando la colonna è vuota — `giorni` risponde NaN,
+     `-NaN || 0` fa ZERO, e quello zero entrava nella media CON il suo posto al
+     denominatore. Misurato: due fatture da 92 giorni più una senza data danno
+     **46** invece di 92, cioè l'indicatore si dimezza e la scritta accanto
+     passa da «sopra i 45 giorni» a «sotto controllo». L'assenza travestita da
+     credito giovane, e sempre nel verso che tranquillizza.
+     Adesso la guardia sta PRIMA della conversione (`Number.isFinite`, che su
+     zero risponde vero e quindi da sola non basterebbe), le non databili si
+     contano a parte, e senza nemmeno una fattura misurabile la risposta è
+     `null` — «non lo so», che è diverso da «zero giorni». */
+  let etaTot = 0, etaConto = 0, etaSenzaData = 0;
+  for (const f of aperte) {
+    const g = giorni(f.emessa, oggi);
+    if (!Number.isFinite(g)) { etaSenzaData++; continue; }
+    etaTot += Math.max(0, -g); etaConto++;
+  }
+  return { daIncassare, inScadenza, gareAperte,
+           etaCredito: etaConto ? Math.round(etaTot / etaConto) : null,
+           etaConto, etaSenzaData };
+}
+
+/* ⛔ LO STATO DELLA SCADENZA DI UNA FATTURA, in un posto solo e testabile.
+   Serviva perché la pagina lo calcolava DUE volte a mano (il badge dell'elenco
+   e la striscia colorata della riga), tutt'e due con `giorni(f.scadenza)` letto
+   crudo: e `giorni` di una scadenza che non c'è risponde NaN, che non è né
+   `< 0` né `<= 10`. Risultato: una fattura SENZA SCADENZA cadeva nell'ultimo
+   ramo e usciva col badge verde «Regolare» — la stessa forma esatta del
+   requisito senza righe in scadenzario dato per «regolare» in Scudo.
+   «senza-scadenza» non è un allarme (nessuno è in ritardo: non si sa quando
+   dovrebbe pagare) ed è per quello che vive come stato a sé. */
+export function statoScadenzaFattura(fattura, oggi = new Date()) {
+  const g = giorni((fattura || {}).scadenza, oggi);
+  if (!Number.isFinite(g)) return { stato: "senza-scadenza", giorni: null };
+  if (g < 0) return { stato: "insoluta", giorni: g };
+  if (g <= 10) return { stato: "in-scadenza", giorni: g };
+  return { stato: "regolare", giorni: g };
 }
 
 // Aging degli incassi: suddivide le fatture NON incassate per fasce di
@@ -340,18 +384,29 @@ export function agingIncassi(fatture, oggi = new Date(), note = null) {
     g31_60:     { conto: 0, importo: 0 },
     g61_90:     { conto: 0, importo: 0 },
     oltre90:    { conto: 0, importo: 0 },
+    // ⛔ NÉ SCADUTA NÉ NON SCADUTA: vedi qui sotto.
+    senzaScadenza: { conto: 0, importo: 0 },
   };
   for (const f of fatture) {
     if (f.incassata) continue;
     const g = giorni(f.scadenza, oggi);
-    // fattura senza data (o data non valida): non è classificabile come
-    // scaduta → la contiamo come "non scaduto", non gonfiamo lo scaduto.
-    if (isNaN(g)) { b.nonScaduto.conto++; b.nonScaduto.importo += apertoDi(f, note); continue; }
     // quello che pesa nell'aging è ciò che RESTA da incassare: un acconto già
     // arrivato non è più credito scaduto
     const imp = apertoDi(f, note);
     let k;
-    if (g >= 0) k = "nonScaduto";
+    /* ⛔ UNA FATTURA SENZA SCADENZA HA UN SECCHIO SUO. Fino a ieri finiva in
+       «non scaduto», con la motivazione — giusta a metà — che non bisogna
+       gonfiare lo scaduto. Ma «non scaduto» è la fascia TRANQUILLA: un credito
+       di cui nessuno sa quando dovrebbe rientrare veniva contato, in verde,
+       insieme a quello nei termini, e nulla nel risultato diceva che era lì.
+       È la stessa cosa dell'appello di Campo: chi nessuno ha spuntato non si
+       conta né presente né assente. Le fatture senza scadenza esistono davvero
+       — `parseFattureCsv` lascia `scadenza: null` quando la colonna del file è
+       vuota — e la risposta giusta è farle vedere per quello che sono, così
+       chi le trova ci scrive la data. Lo `scadutoTot` non cambia di un
+       centesimo: quella metà della vecchia decisione resta. */
+    if (!Number.isFinite(g)) k = "senzaScadenza";
+    else if (g >= 0) k = "nonScaduto";
     else { const r = -g; k = r <= 30 ? "g1_30" : r <= 60 ? "g31_60" : r <= 90 ? "g61_90" : "oltre90"; }
     b[k].conto++; b[k].importo += imp;
   }

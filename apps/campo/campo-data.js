@@ -448,14 +448,22 @@ export function storicoSettimana(attivita, rapportini, giorni = 7, oggi = new Da
   const mappa = {};
   for (let i = quanti - 1; i >= 0; i--) {
     const d = oggiISO(new Date(meta(fine).getTime() - i * 86400000));
-    mappa[d] = { data: d, prod: {}, minutiFermo: 0, fermi: 0, attTot: 0, attConcluse: 0, rapInviati: 0, rapTot: 0 };
+    mappa[d] = { data: d, prod: {}, minutiFermo: 0, fermi: 0, fermiSenzaMinuti: 0, attTot: 0, attConcluse: 0, rapInviati: 0, rapTot: 0 };
   }
   for (const a of attivita || []) {
     const g = mappa[String((a && a.data) || "").trim()];
     if (!g) continue;
     g.attTot++;
     if (a.stato === "conclusa") g.attConcluse++;
-    if (a.stato === "anomalia") { g.minutiFermo += Math.max(0, +a.fermoMin || 0); g.fermi++; }
+    if (a.stato === "anomalia") {
+      // quanti fermi NON hanno i minuti: senza questo conto la giornata con
+      // tre guasti mai misurati e quella senza nemmeno un fermo escono dalla
+      // stessa parte, «0 min», che è il numero tranquillo dove non è stato
+      // misurato niente (stessa regola di `disponibilitaTurno`)
+      const m = Math.max(0, +a.fermoMin || 0);
+      g.minutiFermo += m; g.fermi++;
+      if (!m) g.fermiSenzaMinuti++;
+    }
   }
   for (const r of rapportini || []) {
     const g = mappa[String((r && r.data) || "").trim()];
@@ -473,10 +481,11 @@ export function storicoSettimana(attivita, rapportini, giorni = 7, oggi = new Da
 export function totaliSettimana(righe) {
   const prod = {}, out = {
     giorni: (righe || []).length, giorniConDati: 0, prod,
-    minutiFermo: 0, fermi: 0, attTot: 0, attConcluse: 0, rapInviati: 0,
+    minutiFermo: 0, fermi: 0, fermiSenzaMinuti: 0, attTot: 0, attConcluse: 0, rapInviati: 0,
   };
   for (const g of righe || []) {
     out.minutiFermo += g.minutiFermo; out.fermi += g.fermi;
+    out.fermiSenzaMinuti += Math.max(0, +g.fermiSenzaMinuti || 0);
     out.attTot += g.attTot; out.attConcluse += g.attConcluse; out.rapInviati += g.rapInviati;
     let conDati = g.attTot > 0 || g.rapTot > 0;
     for (const [u, q] of Object.entries(g.prod || {})) { prod[u] = Math.round((( prod[u] || 0) + q) * 100) / 100; conDati = true; }
@@ -900,6 +909,31 @@ export function oreMinuti(min) {
   return h + " h" + (m ? " " + m + " min" : "");
 }
 
+// IL TEMPO PERSO SCRITTO SENZA MENTIRE. Tre posti di Campo mostrano i minuti
+// di fermo — il cartellone della settimana, la riga di ogni giornata e la
+// colonna «Tempo perso» del rapporto stampato — e tutti e tre scrivevano
+// «0 min» quando i fermi c'erano ma nessuno aveva messo i minuti. È lo stesso
+// numero tranquillo che `disponibilitaTurno` si rifiuta di dare: «0 min persi»
+// afferma che il tempo è stato misurato e vale zero, mentre la verità è che
+// non è stato misurato. Qui si dice quale delle tre cose è:
+//  · nessun fermo registrato → «0 min», ed è una misura vera (c'eravamo e non
+//    ci siamo fermati);
+//  · fermi registrati, nessuno con i minuti → «senza minuti»;
+//  · alcuni sì e alcuni no → «almeno N min», perché il tempo perso è ALMENO
+//    quello, mai esattamente quello.
+// Pura e testabile.
+export function minutiFermoTesto(minuti, fermi, senzaMinuti) {
+  const f = Math.max(0, Math.round(+fermi || 0));
+  const s = Math.max(0, Math.round(+senzaMinuti || 0));
+  // ⛔ la guardia PRIMA della conversione: `+null` fa 0 e `Number.isFinite(0)`
+  // risponde true, quindi «non lo so» diventerebbe «zero minuti persi»
+  const m = (minuti === null || minuti === undefined || String(minuti).trim() === "") ? null : +minuti;
+  if (!Number.isFinite(m) || m < 0) return "senza minuti";
+  if (f && s >= f) return "senza minuti";
+  if (f && s > 0) return "almeno " + numeroIt(m, 0) + " min";
+  return numeroIt(m, 0) + " min";
+}
+
 // Soglie della disponibilità di turno. Non sono sacre e non vengono da una
 // norma: nel comparto estrattivo un obiettivo di disponibilità dei mezzi
 // dell'85-90% è quello che si legge nelle fonti tecniche, quindi sotto l'85%
@@ -1147,7 +1181,11 @@ export function kpiFrom(attivita, squadre, rapportini) {
 
 // Avanzamento della giornata: quante attività sono CONCLUSE sul totale, con la
 // ripartizione per stato. Dà al preposto un "quanto manca" a colpo d'occhio.
-// pct = concluse / totale (0 se non ci sono attività). Pura e testabile.
+// pct = concluse / totale, e null quando non c'è nessuna attività: zero su
+// zero non è «non abbiamo ancora fatto niente», è «non c'è niente da dire», e
+// uno «0%» in un cartellone si legge come una giornata ferma. È la stessa
+// risposta che `totaliSettimana` dà già alla stessa domanda (pctConcluse), e
+// finora le due funzioni la davano diversa. Pura e testabile.
 export function avanzamentoGiornata(attivita) {
   const per = { pianificata: 0, "in-corso": 0, conclusa: 0, anomalia: 0 };
   for (const a of attivita || []) if (per[a.stato] != null) per[a.stato]++;
@@ -1158,7 +1196,7 @@ export function avanzamentoGiornata(attivita) {
     inCorso: per["in-corso"],
     pianificate: per.pianificata,
     anomalie: per.anomalia,
-    pct: totale > 0 ? Math.round(100 * per.conclusa / totale) : 0,
+    pct: totale > 0 ? Math.round(100 * per.conclusa / totale) : null,
   };
 }
 
@@ -1323,6 +1361,24 @@ export function pianoRiepilogo(piano) {
   const progettatoKg = piano.reduce((t, p) => t + p.prog, 0);
   const stimatoKg = reg.reduce((t, p) => t + p.reale, 0)
                   + piano.filter(p => p.reale == null).reduce((t, p) => t + p.prog, 0);
+  // ⛔ NESSUN FORO REGISTRATO: NIENTE PERCENTUALE E NIENTE VERDE.
+  // Con zero cariche reali lo stimato È il progettato per costruzione, quindi
+  // la differenza fa 0 e `scartoLivello` risponde «ok»: la pillola verde
+  // «+0%» compariva su una volata in cui nessuno aveva ancora pesato un solo
+  // foro. È esattamente il colore tranquillo dove non è stato misurato niente.
+  // Si risponde con la parola che l'app usa già foro per foro — «da-registrare»
+  // — e con `pct` a null, che chi disegna deve gestire invece di stampare uno
+  // zero. Il totale progettato resta: quello è scritto nel piano, è un dato.
+  if (!reg.length) {
+    return {
+      registrati: 0,
+      totale: piano.length,
+      progettatoKg,
+      stimatoKg,
+      pct: null,
+      livello: "da-registrare",
+    };
+  }
   const pct = Math.round((stimatoKg - progettatoKg) / progettatoKg * 100);
   return {
     registrati: reg.length,

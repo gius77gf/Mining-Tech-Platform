@@ -851,7 +851,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            turnoChiuso, riaperture, riassuntoRiapertura, ultimaRiapertura,
            FOTO_MAX_BYTE, FOTO_TENTATIVI, eImmagine, byteFoto, eFotoValida, misuraRidotta, formattaByte,
            METEO_CIELO, METEO_PISTE, METEO_VISIBILITA, meteoDi, riassuntoMeteo, meteoAvverso,
-           durataTurnoDi, ultimaDurataTurno, disponibilitaTurno, oreMinuti,
+           durataTurnoDi, ultimaDurataTurno, disponibilitaTurno, oreMinuti, minutiFermoTesto,
            pianoParziale, pianoConsuntivoCsv,
            numeroIt, segnoIt, numeroItDa, numeroDaCampo } from "./campo-data.js";
   import { misuratoPeriodo, produzioneDichiarata, riconciliazioneTurni,
@@ -971,7 +971,15 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       nota: `La causale che pesa di più è <b>${top.causale}</b>: `
         + `${top.conto} ${top.conto === 1 ? "fermo" : "fermi"} per <b>${numeroIt(top.minuti, 0)} min</b>. `
         + "Le causali sopra la riga di taglio fanno insieme l'80% del tempo perso: "
-        + "sono quelle su cui conviene intervenire per prime.",
+        + "sono quelle su cui conviene intervenire per prime."
+        // una barra a zero non vuol dire «quel fermo non è costato niente»:
+        // vuol dire che i minuti non sono stati scritti, e va detto o il
+        // grafico afferma una misura che nessuno ha fatto
+        + (pf.voci.filter(v => !v.minuti).length
+            ? " " + (pf.voci.filter(v => !v.minuti).length === 1
+                ? "Una causale è a zero perché i suoi minuti non sono stati scritti"
+                : pf.voci.filter(v => !v.minuti).length + " causali sono a zero perché i loro minuti non sono stati scritti")
+              + ", non perché quei fermi non siano costati tempo." : ""),
       aria: "Minuti di fermo per causale " + quando + ": "
         + pf.voci.map(v => v.causale + " " + numeroIt(v.minuti, 0) + " minuti").join(", ") + ".",
     });
@@ -998,13 +1006,24 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       return;
     }
     const totale = righe.reduce((t, r) => t + r.minuti, 0);
+    // ⛔ «NESSUN FERMO» E «FERMI MAI MISURATI» NON SONO LA STESSA COSA. La
+    // somma dei minuti fa zero in tutti e due i casi, e il titolo dichiarava
+    // il primo anche quando era vero il secondo: «non c'è nemmeno un minuto di
+    // fermo» su giornate piene di guasti che nessuno ha cronometrato.
+    const totFermi = righe.reduce((t, r) => t + r.fermi, 0);
     if (!totale) {
-      el.innerHTML = vuoto(I.orologio, "Nessun fermo in questi giorni",
-        `In <b>${righe.length}</b> giornate registrate non c'è nemmeno un minuto di fermo: non c'è niente da mettere in colonna. `
-        + `Se invece qualche fermo c'è stato, scrivi i <b>minuti</b> sulla voce in anomalia.`);
+      el.innerHTML = totFermi
+        ? `<div class="senza-minuti">In queste <b>${righe.length}</b> giornate ci sono
+           <b>${totFermi}</b> ${totFermi === 1 ? "fermo registrato" : "fermi registrati"}
+           ma <b>nessun minuto</b>: senza i minuti non si può disegnare quanto sono costati.
+           Scrivi i minuti nel campo accanto alla causale, sulla voce in anomalia.</div>`
+        : vuoto(I.orologio, "Nessun fermo in questi giorni",
+            `In <b>${righe.length}</b> giornate registrate non c'è nemmeno un fermo: non c'è niente da mettere in colonna. `
+            + `Se invece qualche fermo c'è stato, registralo come <b>anomalia</b> e scrivi i <b>minuti</b>.`);
       return;
     }
     const media = Math.round(totale / righe.length);
+    const senzaMin = righe.filter(r => r.fermi && !r.minuti).length;
     const peggiore = righe.reduce((a, b) => b.minuti > a.minuti ? b : a);
     if (!window.dwGrafici) return;
     dwGrafici.barre(el, {
@@ -1020,7 +1039,12 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
         + `con <b>${numeroIt(peggiore.minuti, 0)} min</b>. Un giorno storto capita a tutti; se le colonne restano alte `
         + `per settimane il problema è la manutenzione, non la sfortuna.`
         + (righe.length < FERMI_GIORNI
-            ? ` Il conto parte dalla prima giornata registrata: prima non c'era ancora niente da contare.` : ""),
+            ? ` Il conto parte dalla prima giornata registrata: prima non c'era ancora niente da contare.` : "")
+        // una colonna a zero su una giornata che ha avuto fermi non dice «non
+        // ci siamo fermati»: dice che nessuno li ha misurati, ed è un'altra cosa
+        + (senzaMin
+            ? ` In ${senzaMin === 1 ? "una giornata la colonna è a zero" : senzaMin + " giornate le colonne sono a zero"}`
+              + ` pur avendo fermi registrati: lì i minuti non sono stati scritti.` : ""),
       aria: "Minuti di fermo per giornata, " + righe.length + " giornate: "
         + righe.map(r => dmy(r.data) + " " + numeroIt(r.minuti, 0) + " minuti").join(", ") + ".",
     });
@@ -1947,7 +1971,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const st = statoChecklist(esiti);
     const chiusa = !!(doc && doc.ora);
     const bloc = eChiuso(OGGI, turno);
-    const cls = bloc ? "ok" : (st.no ? "warn" : (chiusa ? "ok" : ""));
+    // ⛔ come per l'appello: il lucchetto non tinge di verde una checklist mai
+    // compilata. Un turno chiuso con 0/9 risposte usciva col cartellone verde,
+    // cioè «controlli a posto» dove nessun controllo è stato fatto.
+    const cls = st.no ? "warn" : (bloc && st.mancanti ? "warn" : (chiusa ? "ok" : ""));
     board.innerHTML = `<div class="board ${cls}">
         <div class="board-ico">${bloc ? I.lucchetto : (st.no ? I.allarme : I.spunta)}</div>
         <div><div class="board-num">${st.risposte}/${st.totale}</div>
@@ -2072,13 +2099,21 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       return;
     }
     const bloc = eChiuso(OGGI, turno);
-    const cls = bloc ? "ok" : (app.daFare ? "warn" : (app.assenti ? "" : "ok"));
+    // ⛔ IL TURNO CHIUSO NON RENDE VERDE UN APPELLO CHE NON È STATO FATTO.
+    // Prima il lucchetto vinceva su tutto: un turno firmato senza nemmeno una
+    // spunta usciva col cartellone verde e «0/5 presenti». Il colore è la
+    // prima cosa che si legge, e diceva «a posto» dove non è stato chiesto a
+    // nessuno se c'era. Chiuso o no, se qualcuno non è stato spuntato resta
+    // giallo: è un appello incompleto, e adesso non si può nemmeno più
+    // completare.
+    const cls = app.daFare ? "warn" : (app.assenti ? "" : "ok");
     $("pre-board").innerHTML = `<div class="board ${cls}">
         <div class="board-ico">${bloc ? I.lucchetto : (app.daFare ? I.allarme : I.persone)}</div>
         <div><div class="board-num">${app.presenti}/${app.totale}</div>
           <div class="board-lab">Presenti · turno ${esc(turno)}</div></div>
         <div class="board-txt">${esc(squ || "tutte le squadre")} · ${dmy(OGGI)}<br>
-          ${app.assenti ? `<b>${app.assenti}</b> ${app.assenti === 1 ? "assente" : "assenti"}` : "nessun assente"}
+          ${app.assenti ? `<b>${app.assenti}</b> ${app.assenti === 1 ? "assente" : "assenti"}`
+            : (app.daFare === app.totale ? "appello non ancora cominciato" : "nessun assente")}
           ${app.daFare ? ` · <b class="bad">${app.daFare} ancora da spuntare</b>` : " · appello completo"}
           ${bloc ? `<br><b>Turno chiuso e firmato</b>: l'appello non si può più cambiare.` : ""}</div>
       </div>`;
@@ -2179,7 +2214,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     ].filter(Boolean).join(" · ");
     const mancano = m ? [!m.cielo ? "il cielo" : "", !m.piste ? "le piste" : "", !m.visibilita ? "la visibilità" : ""].filter(Boolean) : [];
     $("met-board").innerHTML = riass
-      ? `<div class="board ${bloc ? "ok" : (brutto ? "warn" : "")}">
+      // ⛔ e il lucchetto non vince nemmeno qui: un turno chiuso con pioggia e
+      // piste ghiacciate usciva VERDE, cioè il colore diceva «condizioni a
+      // posto» sopra le condizioni difficili scritte due righe più sotto.
+      ? `<div class="board ${brutto ? "warn" : (bloc ? "ok" : "")}">
            <div class="board-ico">${bloc ? I.lucchetto : I.nuvola}</div>
            <div><div class="board-num" style="font-size:24px">${esc(String(m.cielo || "—"))}</div>
              <div class="board-lab">Turno ${esc(turno)} · ${dmy(OGGI)}</div></div>
@@ -2375,7 +2413,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
           <div class="board-lab">${tot.giorniConDati === 1 ? "Giornata registrata" : "Giornate registrate"} su ${tot.giorni}</div></div>
         <div class="board-txt">
           Prodotto: <b>${prodTot ? esc(prodTot) : "niente registrato"}</b> ·
-          fermi: <b>${numeroIt(tot.minutiFermo, 0)} min</b><br>
+          fermi: <b>${esc(minutiFermoTesto(tot.minutiFermo, tot.fermi, tot.fermiSenzaMinuti))}</b><br>
           Attività concluse: <b>${tot.attConcluse}/${tot.attTot}</b>${tot.pctConcluse != null ? " (" + tot.pctConcluse + "%)" : ""} ·
           rapportini inviati: <b>${tot.rapInviati}</b>
         </div>
@@ -2393,7 +2431,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
           <div class="meta gio-num">${vuota
             ? "nessuna registrazione"
             : `<span>prodotto <b>${p ? esc(p) : "—"}</b></span>
-               <span>fermi <b>${numeroIt(g.minutiFermo, 0)} min</b></span>
+               <span>fermi <b>${esc(minutiFermoTesto(g.minutiFermo, g.fermi, g.fermiSenzaMinuti))}</b></span>
                <span>attività <b>${g.attConcluse}/${g.attTot}</b></span>
                <span>rapportini <b>${g.rapInviati}</b></span>`}</div>
         </div>
@@ -2775,7 +2813,15 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     if (SQU.some(q => (q.nome || "").toLowerCase() === nome.toLowerCase())) {
       sbaglia("squ-nome", "squ-esito", "Esiste già una squadra chiamata «" + nome + "»: cambia nome, altrimenti i rapportini non si capiscono più."); return; }
     err("squ-nome", false);
-    await db.aggiungi("squadre", { nome, persone: +$("squ-persone").value || 0, area: $("squ-area").value.trim(), stato: "operativa" });
+    // ⛔ «Persone» lasciato vuoto NON è «0 persone»: è una squadra di cui non
+    // sappiamo quanti sono. La regola è già scritta dodici righe più in là,
+    // in `parseSquadreCsv` («niente zero di comodo»), e la scheda la mostra
+    // già («persone non indicate»): qui il form la contraddiceva, scrivendo
+    // uno zero che poi si legge come un fatto. Uno zero digitato apposta
+    // resta zero — una squadra si può svuotare.
+    const nPers = String($("squ-persone").value || "").trim();
+    const persone = nPers === "" || !Number.isFinite(+nPers) ? null : Math.max(0, Math.round(+nPers));
+    await db.aggiungi("squadre", { nome, persone, area: $("squ-area").value.trim(), stato: "operativa" });
     $("squ-nome").value = ""; $("squ-persone").value = ""; $("squ-area").value = "";
     esito("squ-esito", "Squadra aggiunta: " + nome + " — è in turno.", "success"); $("squ-nome").focus();
     await refresh();
@@ -2894,8 +2940,12 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // backup/condivisione delle squadre, nello STESSO formato dell'import
     // (nome;persone;area;stato): il file esportato si può re-importare.
     let csv = "nome;persone;area;stato\n";
+    // ⛔ e nel file la casella resta VUOTA se le persone non sono indicate.
+    // Scrivendoci 0, il giro esporta→reimporta trasformava «non lo so» in
+    // «zero persone»: `parseSquadreCsv` legge lo 0 come un numero vero, e
+    // l'informazione che mancava spariva senza che nessuno la togliesse.
     for (const q of SQU)
-      csv += `${csvCell(q.nome)};${+q.persone || 0};${csvCell(q.area || "")};${q.stato || "operativa"}\n`;
+      csv += `${csvCell(q.nome)};${q.persone == null ? "" : Math.max(0, Math.round(+q.persone) || 0)};${csvCell(q.area || "")};${q.stato || "operativa"}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "campo_squadre.csv"; a.click();
@@ -3021,7 +3071,7 @@ ${obOggi.length?`<table><tr><th>Turno</th><th>Obiettivo</th><th>Fatto</th><th>Sc
 <h2>Fermi per causale</h2>
 ${fermi.length?`<table><tr><th>Causale</th><th>Anomalie</th></tr>${fermi.map(f=>`<tr><td>${esc(f.causale)}</td><td>${f.conto}</td></tr>`).join("")}</table>`:"<div>Nessuna anomalia aperta.</div>"}
 <h2>Disponibilità del turno</h2>
-${dispOggi.length?`<table><tr><th>Turno</th><th>Durata dichiarata</th><th>Fermi</th><th>Tempo perso</th><th>Causale peggiore</th><th>Disponibilità</th></tr>${dispOggi.map(d=>`<tr><td>${esc(d.turno)}</td><td>${d.durataMin===null?"non dichiarata":esc(oreMinuti(d.durataMin))}</td><td>${d.fermi} ${d.fermi===1?"fermo":"fermi"}${d.fermiSenzaMinuti?" (di cui "+d.fermiSenzaMinuti+" senza minuti)":""}</td><td>${d.fermi?numeroIt(d.fermiMin,0)+" min":"—"}</td><td>${d.peggiore?esc(d.peggiore.causale)+" — "+numeroIt(d.peggiore.minuti,0)+" min su "+d.peggiore.conto+(d.peggiore.conto===1?" fermo":" fermi"):"—"}</td><td>${d.pct===null?"<b>non calcolata</b> — "+esc(d.motivo):(d.parziale?"al più <b>"+d.pct+"%</b>":"<b>"+d.pct+"%</b>")+" ("+esc(oreMinuti(d.lavoratiMin))+" lavorati su "+esc(oreMinuti(d.durataMin))+")"+(d.parziale?"<br>"+esc(d.motivo):"")}</td></tr>`).join("")}</table>
+${dispOggi.length?`<table><tr><th>Turno</th><th>Durata dichiarata</th><th>Fermi</th><th>Tempo perso</th><th>Causale peggiore</th><th>Disponibilità</th></tr>${dispOggi.map(d=>`<tr><td>${esc(d.turno)}</td><td>${d.durataMin===null?"non dichiarata":esc(oreMinuti(d.durataMin))}</td><td>${d.fermi} ${d.fermi===1?"fermo":"fermi"}${d.fermiSenzaMinuti?" (di cui "+d.fermiSenzaMinuti+" senza minuti)":""}</td><td>${d.fermi?esc(minutiFermoTesto(d.fermiMin,d.fermi,d.fermiSenzaMinuti)):"—"}</td><td>${d.peggiore?esc(d.peggiore.causale)+" — "+numeroIt(d.peggiore.minuti,0)+" min su "+d.peggiore.conto+(d.peggiore.conto===1?" fermo":" fermi"):"—"}</td><td>${d.pct===null?"<b>non calcolata</b> — "+esc(d.motivo):(d.parziale?"al più <b>"+d.pct+"%</b>":"<b>"+d.pct+"%</b>")+" ("+esc(oreMinuti(d.lavoratiMin))+" lavorati su "+esc(oreMinuti(d.durataMin))+")"+(d.parziale?"<br>"+esc(d.motivo):"")}</td></tr>`).join("")}</table>
 <div class="muted">Disponibilità = durata dichiarata del turno meno i minuti di fermo registrati sulle attività in anomalia. <b>Non è l'OEE</b>: l'OEE moltiplica disponibilità, prestazione e qualità, e prestazione e qualità qui non sono misurate.</div>`
  :"<div>Nessuna durata di turno dichiarata oggi e nessuna attività da cui misurarla: la disponibilità non è stata calcolata.</div>"}
 ${fotoOggi.length?`<h2>Foto delle anomalie</h2>${fotoOggi.map(a=>`<div class="foto"><div><b>${esc(a.titolo)}</b> — turno ${esc(a.turno||"—")}${a.causale?" · "+esc(a.causale):""}${a.fotoOra?" · scattata alle "+esc(a.fotoOra):""}</div><img src="${a.foto}" alt=""></div>`).join("")}`:""}
@@ -3190,7 +3240,16 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
                   + (par.totale - par.registrati === 1 ? "manca ancora 1 foro" : "mancano ancora " + (par.totale - par.registrati) + " fori")
                   + " da caricare.")
             : "");
-    $("piano-riep").innerHTML = quandoPiano + "Fori <b>" + r.registrati + "/" + r.totale + "</b> registrati · progettato <b>" + kg1(r.progettatoKg) + "</b> kg · stimato reale <b>" + numeroIt(r.stimatoKg, 0) + "</b> kg <span class=\"badge " + r.livello + "\">" + segnoIt(r.pct, 0) + "%</span>" + rigaFinora + "<br>Tocca un foro per registrare la carica davvero caricata: viene salvata.";
+    // ⛔ FINCHÉ NESSUN FORO È REGISTRATO NON C'È NESSUNO SCOSTAMENTO DA DIRE.
+    // Con zero cariche reali lo «stimato» è il progetto ricopiato, quindi la
+    // percentuale faceva +0% e la pillola usciva VERDE su una volata in cui
+    // nessuno aveva ancora pesato niente. `pianoRiepilogo` adesso risponde
+    // `pct: null`, e qui si scrive la stessa parola che porta il badge del
+    // singolo foro non ancora registrato: «da registrare».
+    const riepScarto = r.pct === null
+      ? "nessuna carica reale registrata <span class=\"badge warn\">da registrare</span>"
+      : "stimato reale <b>" + numeroIt(r.stimatoKg, 0) + "</b> kg <span class=\"badge " + r.livello + "\">" + segnoIt(r.pct, 0) + "%</span>";
+    $("piano-riep").innerHTML = quandoPiano + "Fori <b>" + r.registrati + "/" + r.totale + "</b> registrati · progettato <b>" + kg1(r.progettatoKg) + "</b> kg · " + riepScarto + rigaFinora + "<br>Tocca un foro per registrare la carica davvero caricata: viene salvata.";
     // x, prof, borr, rit restano TESTO GREZZO del file arrivato da Genesi (là
     // dentro il decimale è il punto, ed è giusto che lo sia): a schermo
     // passano da numeroItDa, che li riscrive all'italiana senza toccare il file.

@@ -421,10 +421,17 @@ export function azioneStatoSuccessivo(stato) {
 // Semaforo di un'azione, con lo STESSO schema delle scadenze: un'azione
 // chiusa è sempre "regolare" (non scade più), le altre seguono la data.
 // Ritorna "scaduta" | "in-scadenza" | "regolare".
+/* ⛔ «SENZA DATA» NON È «REGOLARE» (corretto il 04/08). La riga diceva «senza
+   data non allarma», ed era la stessa scorciatoia già corretta in
+   `livelloScadenza` il 03/08: un'azione correttiva aperta di cui nessuno ha
+   scritto l'entro-quando usciva verde come una in perfetto orario. Non allarma
+   è giusto — è un avviso, non un allarme — ma la parola giusta esiste già e la
+   dice `statoScadenza`: «senza data», gialla, ed è la stessa che usano Flotta e
+   Terra. I due form dell'app (Scudo e il ponte di Sentinella) la data la
+   pretendono: ci si arriva con un import o con un dato vecchio. */
 export function statoAzione(azione, oggi = new Date()) {
   const a = azione || {};
   if (a.stato === "chiusa") return "regolare";
-  if (!a.scadenza) return "regolare";          // senza data non allarma
   return statoScadenza(a.scadenza, oggi);
 }
 // Azioni ancora da chiudere che sono scadute o in scadenza: sono quelle che
@@ -744,17 +751,30 @@ export function vociNonConformi(isp) {
 export function statoIspezione(isp, oggi = new Date()) {
   const i = isp || {};
   if (i.stato === "completata") return "regolare";
-  if (!i.data) return "regolare";
+  // stessa correzione di `statoAzione`: un'ispezione programmata senza data non
+  // è in ordine, è un'ispezione di cui non si sa quando va fatta
   return statoScadenza(i.data, oggi);
 }
 
 // Riepilogo per la testata della pagina Ispezioni.
+/* ⛔ UNA VOCE SENZA ESITO NON È UNA VOCE CONFORME. Un'ispezione si può chiudere
+   lasciandone indietro qualcuna — la modale di chiusura lo dice, «resteranno
+   così» — ma da lì in poi non se ne trovava più traccia: nell'elenco restava il
+   verde «Completata», e la testata contava le non conformi TROVATE. Zero non
+   conformi su una checklist guardata a metà è il numero tranquillo di cui parla
+   il principio: non è stato misurato niente, e il conto lo dice a posto.
+   `senzaEsito` sono le voci mai giudicate dentro le ispezioni CHIUSE (in quelle
+   ancora aperte è lavoro in corso, non una mancanza), `parziali` quante
+   ispezioni ne hanno almeno una. */
 export function riepilogoIspezioni(ispezioni, oggi = new Date()) {
   const list = ispezioni || [];
   const aperte = list.filter(i => i.stato !== "completata");
+  const chiuse = list.filter(i => i.stato === "completata");
   return {
     totale: list.length,
-    completate: list.filter(i => i.stato === "completata").length,
+    completate: chiuse.length,
+    parziali: chiuse.filter(i => riepilogoIspezione(i).daFare > 0).length,
+    senzaEsito: chiuse.reduce((s, i) => s + riepilogoIspezione(i).daFare, 0),
     daFare: aperte.length,
     scadute: aperte.filter(i => statoIspezione(i, oggi) === "scaduta").length,
     nonConformi: list.reduce((s, i) => s + riepilogoIspezione(i).nonConformi, 0),
@@ -1362,9 +1382,19 @@ export function organigrammaSicurezza(nomine, lavoratori, scadenze, oggi = new D
     const valide = persone.filter(p => p.lavoratore && p.lavoratore.attivo !== false);
     const senzaPersona = persone.length - valide.length;
     const mancante = !!r.obbligatoria && valide.length === 0;
+    /* ⛔ UNA NOMINA SENZA LA DATA DA CUI DECORRE È UNA NOMINA CHE NON SI PUÒ
+       DIMOSTRARE. `nominaAttiva` la tiene per attiva — ed è giusto, il contrario
+       direbbe «nessuno è nominato» su un ruolo che una persona ce l'ha — ma il
+       ruolo usciva verde e la pastiglia diceva «Nomina attiva» / «In regola»:
+       il colore tranquillo su un dato che nessuno ha scritto. È un avviso, non
+       un allarme (la persona c'è), quindi giallo e non rosso.
+       Il form scrive sempre una data (`dal || oggiISO()`): ci si arriva con un
+       import o con un dato vecchio. `dataISOEsiste` e non `!n.dal`, perché una
+       data impossibile — «2025-02-30» — è illeggibile quanto una mancante. */
+    const senzaData = valide.filter(p => !dataISOEsiste(p.nomina.dal)).length;
     const stato = (mancante || senzaFormazione || senzaPersona) ? "danger"
-      : inScadenza ? "warn" : (valide.length ? "ok" : "mute");
-    return { ruolo: r, persone, valide, senzaPersona, mancante, senzaFormazione, inScadenza, stato, requisito: req };
+      : (inScadenza || senzaData) ? "warn" : (valide.length ? "ok" : "mute");
+    return { ruolo: r, persone, valide, senzaPersona, senzaData, mancante, senzaFormazione, inScadenza, stato, requisito: req };
   });
 }
 // Quello che va sistemato subito: ruoli obbligatori scoperti e nominati senza
@@ -1465,6 +1495,18 @@ export function verbaleDpi(lavoratore, consegne, oggi = new Date()) {
   };
 }
 
+/* ⛔ CHI NON HA NEMMENO UNA SCADENZA NON È «REGOLARE»: È NON VERIFICATO.
+   `regolari` è il numero verde in cima al Quadro, e ci finiva dentro anche la
+   persona di cui non è stata registrata NESSUNA riga — né visita medica, né
+   formazione, né patentino — cioè esattamente quella di cui non si sa niente.
+   Nella dimostrazione erano due su sette, e nessuna delle due si distingueva
+   da chi ha davvero tutto in ordine.
+   La regola non è nuova e non è nostra: `idoneitaDiTurno`, in
+   `shared/dw-ponti.js`, tiene `senzaScadenze` FUORI dai regolari e scrive la
+   ragione — «sommarlo ai tutto a posto trasformerebbe un non lo so in un sì».
+   Era scritta lì per Campo e violata qui.
+   `senzaScadenze` sta a parte e non si somma: non è un allarme (una persona
+   appena assunta ci passa) ma nemmeno un «a posto», e chi guarda deve leggerlo. */
 export function kpiFrom(lavoratori, scadenze) {
   const st = scadenze.map(s => statoScadenza(s.dataScadenza));
   const scadute = st.filter(x => x === "scaduta").length;
@@ -1472,8 +1514,13 @@ export function kpiFrom(lavoratori, scadenze) {
   const conProblemi = new Set(
     scadenze.filter(s => statoScadenza(s.dataScadenza) !== "regolare")
             .map(s => s.lavoratoreId).values());
-  const regolari = lavoratori.filter(l => l.attivo && !conProblemi.has(l.id)).length;
-  return { scadute, trenta, regolari };
+  const conScadenze = new Set(scadenze.map(s => s.lavoratoreId));
+  const attivi = lavoratori.filter(l => l.attivo);
+  return {
+    scadute, trenta,
+    regolari: attivi.filter(l => conScadenze.has(l.id) && !conProblemi.has(l.id)).length,
+    senzaScadenze: attivi.filter(l => !conScadenze.has(l.id)).length,
+  };
 }
 
 // ── PONTE CON SENTINELLA, LATO DEMO ──────────────────────────────────

@@ -843,7 +843,7 @@ a.dw-btn{text-decoration:none}
 <script type="module">
   import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, parseFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita, densitaDelMateriale,
            autorizzazioneVigente, vitaCava, statoScadenzaTerra, livelloScadenzaTerra, prossimaData, riepilogoScadenze, TIPI_SCADENZA_TERRA, presetScadenzaTerra, etichettaTipoScadenza,
-           provenienzaRilievo, soloScavo, soloCumulo, PROVENIENZE, etichettaProvenienza,
+           provenienzaRilievo, soloScavo, soloCumulo, rilievoUsabile, PROVENIENZE, etichettaProvenienza,
            anniConVolumi, riepilogoAnnuale, ripartizioneFronti, serieAnnuale,
            rilieviScavoFronte, rilievoPrecedente, confrontoRilievi,
            produzioneDichiarata, misuratoPeriodo, riconciliazioneTurni,
@@ -902,6 +902,16 @@ a.dw-btn{text-decoration:none}
       return "Non riesco a leggere un numero in «" + r.grezzo + "»: serve " + che + ". " + AVVISO_DECIMALE;
     return "";
   };
+  /* ⛔ L'AVANZAMENTO DI UN FRONTE NON LO MISURA NESSUNO. In Terra non c'è un
+     campo per scriverlo — la matita corregge nome, banco e quota — e alla
+     creazione l'app ci scriveva dentro uno `0`: sullo schermo diventava
+     «avanzamento 0%» per sempre, che si legge «non ancora cominciato» dove la
+     verità è «non lo sa nessuno». È la stessa trappola già pagata da
+     `avanzamentoLotto`. Adesso il fronte nasce senza quel campo e la riga non
+     scrive una percentuale che non ha. Guardia PRIMA della conversione:
+     `+null` fa zero e `Number.isFinite(0)` risponde true. */
+  const avFronte = (f, et) => (f && f.avanzamento != null && f.avanzamento !== ""
+    && Number.isFinite(+f.avanzamento)) ? et + " " + nD(f.avanzamento) + "%" : "";
   const FB = { attivo: ["ok","Attivo"], sospeso: ["warn","Sospeso"] };
   const RB = { elaborato: ["ok","Elaborato"], pianificato: ["warn","Pianificato"] };
   const PB = { vigente: ["ok","Vigente"], "in-esame": ["warn","In esame"] };
@@ -1000,7 +1010,7 @@ a.dw-btn{text-decoration:none}
 
     $("dash-fronti").innerHTML = FRO.map(f => `<div class="item ${f.stato === "attivo" ? "st-accent" : "st-warn"}" onclick="go('fro')" title="Vai ai fronti di cava">
       <div class="avatar">${esc(sig(f.nome))}</div>
-      <div class="info"><div class="name">${esc(f.nome)}</div><div class="meta">Avanzamento ${f.avanzamento}%${f.dettaglio ? " · " + esc(f.dettaglio) : ""}</div></div>
+      <div class="info"><div class="name">${esc(f.nome)}</div><div class="meta">${[avFronte(f, "Avanzamento"), f.dettaglio ? esc(f.dettaglio) : ""].filter(Boolean).join(" · ")}</div></div>
       <div class="acts"><span class="badge ${FB[f.stato][0]}">${FB[f.stato][1]}</span>
       <span class="arr" aria-hidden="true">${A.vai}</span></div></div>`).join("")
       || vuoto(I.monte, "Nessun fronte di cava",
@@ -1010,7 +1020,7 @@ a.dw-btn{text-decoration:none}
     $("fro-list").innerHTML = FRO.map(f => { const v = volFronte(f.id);
       return `<div class="item ${f.stato === "attivo" ? "st-accent" : "st-warn"}" data-fro="${f.id}" title="Tocca per sospendere o riattivare il fronte">
       <div class="avatar">${esc(sig(f.nome))}</div>
-      <div class="info"><div class="name">${esc(f.nome)}${f.banco ? " — " + esc(f.banco) : ""}</div><div class="meta">Quota ${nD(f.quota)} m · avanzamento ${f.avanzamento}%${v ? " · estratti " + fmtM3(v) + " m³ (rilievi)" : ""}${f.dettaglio ? " · " + esc(f.dettaglio) : ""}</div></div>
+      <div class="info"><div class="name">${esc(f.nome)}${f.banco ? " — " + esc(f.banco) : ""}</div><div class="meta">${["Quota " + nD(f.quota) + " m", avFronte(f, "avanzamento"), v ? "estratti " + fmtM3(v) + " m³ (rilievi)" : "", f.dettaglio ? esc(f.dettaglio) : ""].filter(Boolean).join(" · ")}</div></div>
       <div class="acts"><span class="badge ${FB[f.stato][0]}">${FB[f.stato][1]}</span>
       <button class="arr" type="button" title="Modifica nome, banco e quota" aria-label="Modifica il fronte ${esc(f.nome)}" data-edit-fro="${f.id}">${A.mod}</button></div></div>`; }).join("")
       || vuoto(I.monte, "Nessun fronte registrato",
@@ -1061,7 +1071,13 @@ a.dw-btn{text-decoration:none}
     // Deplezione riserve: residuo e durata stimata al ritmo pianificato.
     const refP = PIA.find(p => p.pianificatoAnnuoM3 > 0);
     const annoP = oggiISO().slice(0, 4);
-    const estrattoAnnoP = RIL.filter(r => r.stato === "elaborato" && r.volumeM3 != null && (r.data||"").slice(0,4) === annoP)
+    /* ⛔ la regola «questo rilievo si può usare» e quella «solo scavo» stanno
+       nel modulo e si chiamano, non si riscrivono: questa riga aveva una copia
+       a mano della prima e si era DIMENTICATA la seconda, così una ripresa da
+       cumulo scalava le riserve — materiale già cavato che non è più nel
+       terreno. Misurato: 1.184.800 m³ residui invece di 1.190.000. */
+    const estrattoAnnoP = soloScavo(RIL).filter(rilievoUsabile)
+                             .filter(r => (r.data||"").slice(0,4) === annoP)
                              .reduce((s, r) => s + r.volumeM3, 0);
     const rr = refP ? riservaResidua(refP.riserveM3, estrattoAnnoP, refP.pianificatoAnnuoM3) : null;
     $("pia-riserva").innerHTML = (rr && refP.riserveM3 != null)
@@ -1309,9 +1325,9 @@ a.dw-btn{text-decoration:none}
     const noti = new Set(FRO.map(f => f.id));
     const voci = FRO.map(f => ({ etichetta: f.nome, valore: volumeFronte(RIL, f.id) }));
     // solo SCAVO, come volumeFronte: i cumuli ripresi non escono dal fronte
-    const nonAss = soloScavo(RIL).filter(r => r.stato === "elaborato" && r.volumeM3 != null && !noti.has(r.fronteId))
+    const nonAss = soloScavo(RIL).filter(r => rilievoUsabile(r) && !noti.has(r.fronteId))
       .reduce((s, r) => s + (+r.volumeM3 || 0), 0);
-    const cumTot = soloCumulo(RIL).filter(r => r.stato === "elaborato" && r.volumeM3 != null)
+    const cumTot = soloCumulo(RIL).filter(rilievoUsabile)
       .reduce((s, r) => s + (+r.volumeM3 || 0), 0);
     if (nonAss > 0) voci.push({ etichetta: "Non assegnato", valore: nonAss });
     if (!(voci.reduce((s, v) => s + v.valore, 0) > 0)) {
@@ -1354,8 +1370,33 @@ a.dw-btn{text-decoration:none}
   function cardVita(vc, breve) {
     if (!vc) return vuoto(I.clessi, "Contatore vita cava spento",
       "Terra non sa ancora quanto volume ti è stato concesso. Compila la <b>scheda autorizzazione</b> qui sotto — servono il numero dell'atto e il <b>volume totale autorizzato in m³</b> — e il contatore si accende.");
+    /* ⛔ NIENTE VERDE SUL NULLA. Il volume concesso c'è, ma sotto non c'è
+       nessun rilievo di scavo e nessun pregresso dichiarato: «0% consumato ·
+       nei limiti» sarebbe il numero tranquillo dove non è stato misurato
+       niente, sul cartellone che si guarda per primo. Stessa forma del
+       divario di recupero: un trattino, la ragione, nessuna pastiglia di
+       stato. */
+    if (!vc.misurabile) {
+      return `<div class="vita">
+        <div class="vita-head">
+          <div class="vita-ico" aria-hidden="true">${I.clessi}</div>
+          <div class="vita-htxt">
+            <div class="vita-lab">Quanto resta del volume autorizzato</div>
+            <div class="vita-sub">${n0(vc.totale)} m³ concessi dall'atto</div>
+          </div>
+          <span class="badge tag">non misurato</span>
+        </div>
+        <div class="vita-num">
+          <span class="vita-cifre">—</span><span class="vita-un">consumo non misurato</span>
+        </div>
+        <div class="riga">Sotto questo titolo non risulta <b>nessun rilievo di scavo</b>, e il già estratto prima di Terra <b>non è dichiarato</b>: quanta concessione sia stata consumata non l'ha misurato nessuno. Non vuol dire che il concesso è ancora tutto lì.</div>
+        <div class="riga">Registra un <b>rilievo elaborato</b> con il suo volume, oppure scrivi il <b>già estratto</b> nella scheda dell'autorizzazione: il contatore parte da lì.</div>
+      </div>`;
+    }
     const w = Math.max(0, Math.min(100, vc.pct));
-    const st = vc.stato === "ok" ? "" : vc.stato;
+    /* solo gli stati che sono una MISURA colorano la scheda: una classe di
+       stato inventata qui non esisterebbe nel foglio di stile */
+    const st = ["warn", "danger"].includes(vc.stato) ? vc.stato : "";
     // Tacca della soglia di guardia: linea sulla barra + etichetta agganciata
     // sotto, tenuta dentro la scheda anche con soglie agli estremi.
     let soglia = "", tag = "", scalaCls = "";
@@ -1403,6 +1444,7 @@ a.dw-btn{text-decoration:none}
         <div class="vita-scala${scalaCls}"><span class="s0">0%</span>${tag}<span class="s100">100%</span></div>
       </div>
       <div class="riga">Consumato <b>${un1(vc.pct)}%</b> del concesso${vc.pregresso ? `, di cui ${n0(vc.pregresso)} m³ dichiarati prima di Terra` : ""}.</div>
+      ${vc.pregressoDichiarato ? "" : `<div class="riga att">${I.allarme}<span>Il <b>già estratto prima di Terra</b> non è dichiarato nella scheda: questo conto tiene solo i rilievi registrati qui, quindi il consumato è un <b>minimo</b> e il residuo è la cifra <b>più alta possibile</b>. Se prima di Terra si era già cavato, scrivilo nella scheda.</span></div>`}
       ${vc.daCumulo > 0 ? `<div class="riga">Altri <b>${n0(vc.daCumulo)} m³</b> arrivano dalla <b>ripresa di cumuli</b>: era materiale già scavato, quindi <b>non</b> scala il volume concesso.</div>` : ""}
       <div class="riga">${ritmo}</div>
       ${breve ? "" : titolo}${avviso}
@@ -1460,8 +1502,14 @@ a.dw-btn{text-decoration:none}
           ? vuoto(I.sveglia, "Scadenzario vuoto", "Aggiungi la prima scadenza qui sotto: puoi partire da un adempimento tipico del titolo e mettere tu la data che leggi nel tuo atto.")
           : vuoto(I.ok, "Niente in questa categoria", "Nessuna scadenza rientra nel filtro scelto. Tocca <b>Tutte</b> per vedere l'elenco completo."));
     const rp = riepilogoScadenze(SCA);
+    /* ⛔ `riepilogoScadenze` tiene un contatore APPOSTA per le righe con la data
+       illeggibile, proprio perché contarle fra le «a posto» era il modo in cui
+       sparivano. Qui non veniva scritto: sparivano lo stesso, e per giunta i
+       quattro numeri non tornavano col totale. */
     $("scad-count").innerHTML = rp.totale
-      ? `<b>${rp.totale}</b> ${rp.totale === 1 ? "scadenza" : "scadenze"} · <b>${rp.scadute}</b> ${rp.scadute === 1 ? "scaduta" : "scadute"} · <b>${rp.inScadenza}</b> in scadenza · <b>${rp.aPosto}</b> a posto` : "";
+      ? `<b>${rp.totale}</b> ${rp.totale === 1 ? "scadenza" : "scadenze"} · <b>${rp.scadute}</b> ${rp.scadute === 1 ? "scaduta" : "scadute"} · <b>${rp.inScadenza}</b> in scadenza`
+        + (rp.senzaData ? ` · <b>${rp.senzaData}</b> senza data` : "")
+        + ` · <b>${rp.aPosto}</b> a posto` : "";
     segna("scad-filtri", filtroScad);
 
     // Quadro: solo le scadenze che chiedono attenzione (le prime tre).
@@ -1695,14 +1743,18 @@ a.dw-btn{text-decoration:none}
       : `<div class="note avviso">Non c'è ancora una <b>scheda autorizzazione</b>: qui sotto trovi comunque i volumi dell'anno, ma senza gli estremi dell'atto e senza il confronto col concesso. La compili nella scheda <b>Titolo</b>.</div>`;
 
     // 2 · i quattro numeri della denuncia
-    const stRes = R.pctFineAnno == null ? "" : R.pctFineAnno >= 100 ? "danger"
+    /* ⛔ il verde della tessera «residuo» si accende solo se sotto c'è una
+       misura: con zero rilievi sotto il titolo e nessun pregresso dichiarato,
+       «100% del concesso ancora disponibile» in verde è la buona notizia che
+       nessuno ha verificato */
+    const stRes = R.pctFineAnno == null || !R.misurabile ? "" : R.pctFineAnno >= 100 ? "danger"
       : (soglia != null && R.pctFineAnno >= soglia) ? "warn" : "ok";
     const U = '<span class="u">m³</span>';
     const tessere = [
       [U + " scavati nel " + R.anno, fmtM3(R.scavo), ""],
       [U + " ripresi da cumuli", fmtM3(R.cumulo), ""],
-      ["Cumulato sul titolo", R.concesso ? fmtM3(R.cumulatoFineAnno) : "—", ""],
-      ["Residuo a fine " + R.anno, R.residuoFineAnno != null ? fmtM3(R.residuoFineAnno) : "—", stRes],
+      ["Cumulato sul titolo", R.concesso && R.misurabile ? fmtM3(R.cumulatoFineAnno) : "—", ""],
+      ["Residuo a fine " + R.anno, R.residuoFineAnno != null && R.misurabile ? fmtM3(R.residuoFineAnno) : "—", stRes],
     ];
     $("den-kpi").innerHTML = tessere.map(([l, n, c]) =>
       `<div class="kpi ${c}"><div class="l">${l}</div><div class="n">${n}</div></div>`).join("");
@@ -1764,21 +1816,34 @@ a.dw-btn{text-decoration:none}
         "Senza il <b>volume totale autorizzato</b> Terra non può dire quanto resta dopo quest'anno. Lo trovi nel tuo atto e lo scrivi nella scheda <b>Titolo</b>: da lì in poi il confronto compare da solo, qui e nel foglio stampato.");
     } else {
       const fine = R.inCorso ? "a oggi" : "al 31/12/" + R.anno;
-      cel.innerHTML = '<div id="den-barra"></div>'
-        + `<div class="note recap">Volume concesso dall'atto: <b>${nD(R.concesso)} m³</b>.`
-        + (R.pregresso ? ` Di questi, <b>${n0(R.pregresso)} m³</b> risultavano già estratti prima di usare Terra.` : "")
-        + ` Sommando lo scavo misurato fino ${fine}, il cumulato sotto questo titolo arriva a <b>${n0(R.cumulatoFineAnno)} m³</b>`
-        + ` — il <b>${un1(R.pctFineAnno)}%</b> del concesso — e restano <b>${n0(R.residuoFineAnno)} m³</b>.`
-        + (R.cumulo ? ` I <b>${n0(R.cumulo)} m³</b> ripresi dai cumuli nel ${R.anno} <b>non</b> entrano in questo conto: erano già stati scavati e già scalati a suo tempo.` : "")
-        + "</div>";
+      /* la barra del consumo esiste solo se c'è un consumo misurato: disegnarla
+         a zero sarebbe la stessa buona notizia, in forma di grafico */
+      cel.innerHTML = (R.misurabile ? '<div id="den-barra"></div>' : "")
+        /* ⛔ senza nessuna misura sotto il titolo la frase diceva «il cumulato
+           arriva a 0 m³ — lo 0% del concesso — e restano 1.200.000 m³»: tre
+           numeri rassicuranti costruiti sul niente */
+        + (R.misurabile
+          ? `<div class="note recap">Volume concesso dall'atto: <b>${nD(R.concesso)} m³</b>.`
+            + (R.pregresso ? ` Di questi, <b>${n0(R.pregresso)} m³</b> risultavano già estratti prima di usare Terra.` : "")
+            + ` Sommando lo scavo misurato fino ${fine}, il cumulato sotto questo titolo arriva a <b>${n0(R.cumulatoFineAnno)} m³</b>`
+            + ` — il <b>${un1(R.pctFineAnno)}%</b> del concesso — e restano <b>${n0(R.residuoFineAnno)} m³</b>.`
+            + (R.pregressoDichiarato ? "" : ` Il <b>già estratto prima di Terra</b> non è dichiarato: il cumulato è quindi un <b>minimo</b>.`)
+            + (R.cumulo ? ` I <b>${n0(R.cumulo)} m³</b> ripresi dai cumuli nel ${R.anno} <b>non</b> entrano in questo conto: erano già stati scavati e già scalati a suo tempo.` : "")
+            + "</div>"
+          : `<div class="note avviso">Volume concesso dall'atto: <b>${nD(R.concesso)} m³</b>. Sotto questo titolo però non risulta <b>nessun rilievo di scavo</b> e il <b>già estratto prima di Terra</b> non è dichiarato: quanto concesso sia stato consumato <b>non è stato misurato</b>, quindi qui non c'è un cumulato né un residuo da scrivere. Registra un rilievo elaborato, oppure dichiara il già estratto nella scheda <b>Titolo</b>.</div>`);
     }
 
     // 6 · anno per anno: la riga di controllo che l'ente ricostruisce da sé
     const S = serieAnnuale(RIL, aut).reverse();
     $("den-storico").innerHTML = S.map(s => `<div class="item ${s.anno === annoDen ? "st-accent" : "st-mute"}" data-anno="${s.anno}" title="Vedi il riepilogo del ${s.anno}">
       <div class="info"><div class="name">${s.anno}${s.inCorso ? " — anno in corso" : ""}</div>
-      <div class="meta">Scavati ${n0(s.scavo)} m³${s.pct != null ? " · cumulato " + n0(s.cumulato) + " m³" : ""}${s.cumulo ? " · da cumuli " + n0(s.cumulo) + " m³" : ""} · ${s.rilievi} ${s.rilievi === 1 ? "rilievo" : "rilievi"}</div></div>
-      <div class="acts">${s.pct != null ? `<span class="badge ${s.pct >= 100 ? "danger" : (soglia != null && s.pct >= soglia) ? "warn" : "ok"}" title="Quota del volume concesso consumata alla fine di quell'anno">${un1(s.pct)}% del concesso</span>` : ""}
+      <div class="meta">Scavati ${n0(s.scavo)} m³${s.pct != null && s.misurabile ? " · cumulato " + n0(s.cumulato) + " m³" : ""}${s.cumulo ? " · da cumuli " + n0(s.cumulo) + " m³" : ""} · ${s.rilievi} ${s.rilievi === 1 ? "rilievo" : "rilievi"}</div></div>
+      <div class="acts">${s.pct == null ? ""
+        /* ⛔ un anno senza nessun rilievo dava «0% del concesso» in verde: il
+           badge racconta il consumo del titolo, e su un titolo mai misurato
+           non è zero, è ignoto */
+        : !s.misurabile ? `<span class="badge tag" title="Sotto questo titolo non risulta ancora nessun rilievo di scavo, e il già estratto prima di Terra non è dichiarato">consumo non misurato</span>`
+        : `<span class="badge ${s.pct >= 100 ? "danger" : (soglia != null && s.pct >= soglia) ? "warn" : "ok"}" title="Quota del volume concesso consumata alla fine di quell'anno">${un1(s.pct)}% del concesso</span>`}
       <span class="arr" aria-hidden="true">${A.vai}</span></div></div>`).join("")
       || vuoto(I.riga, "Ancora nessun anno da confrontare",
           "Appena registri i rilievi di più anni, qui compare la riga di controllo: quanto per anno e a che punto era il titolo alla fine di ognuno.");
@@ -1949,7 +2014,11 @@ a.dw-btn{text-decoration:none}
       // foglio va all'ente, e arrotondare all'unità un numero che l'utente ha
       // trascritto dal titolo autorizzativo lo farebbe divergere dal documento
       + riga(["<b>Volume concesso dall'atto</b>", "<span class='n'>" + (R.concesso ? nD(R.concesso) + " m³" : "non indicato") + "</span>"])
-      + riga(["<b>Estratto dichiarato prima dell'uso di Terra</b>", "<span class='n'>" + nD(R.pregresso) + " m³</span>"])
+      // ⛔ su un foglio che va all'ente, un pregresso mai dichiarato non si
+      // stampa «0 m³»: sarebbe una dichiarazione che nessuno ha fatto, e per
+      // giunta quella che abbassa il cumulato
+      + riga(["<b>Estratto dichiarato prima dell'uso di Terra</b>",
+              "<span class='n'>" + (R.pregressoDichiarato ? nD(R.pregresso) + " m³" : "non dichiarato") + "</span>"])
       + riga(["<b>Scavo misurato sotto questo titolo fino al 31/12/" + R.anno + "</b>", "<span class='n'>" + n0(Math.max(0, R.cumulatoFineAnno - R.pregresso)) + " m³</span>"])
       + "<tr class='tot'><td>Cumulato a fine " + R.anno + "</td><td class='n'>" + n0(R.cumulatoFineAnno) + " m³"
       + (R.pctFineAnno != null ? " (" + un1(R.pctFineAnno) + "% del concesso)" : "") + "</td></tr>"
@@ -1962,6 +2031,11 @@ a.dw-btn{text-decoration:none}
       + (R.banda > 0 ? " Incertezza complessiva stimata sullo scavo: ± " + n0(R.banda)
           + " m³, ottenuta sommando la tolleranza tipica del metodo di ogni rilievo (stima prudente)." : "")
       + (R.rilieviScavo > 0 ? " Le tolleranze sono valori tipici del metodo di rilievo e vanno confermate con i punti di controllo del rilevatore." : "")
+      /* ⛔ e se il pregresso non è dichiarato, il cumulato qui sopra è un
+         MINIMO: tacerlo lo farebbe leggere come il totale vero */
+      + (R.pregressoDichiarato ? ""
+          : " Nella scheda dell'autorizzazione non è dichiarato quanto risultava già estratto prima dell'uso di Terra:"
+            + " il cumulato riportato tiene quindi conto dei soli rilievi registrati in Terra ed è da intendersi come valore minimo.")
       + "</p>"
       + "<div class='firma'><div>Luogo e data</div><div>Il titolare / il direttore dei lavori</div></div>"
       + "<div class='foot'>Prospetto generato da Deepwork Terra a partire dai rilievi registrati dall'utente. "
@@ -2041,7 +2115,12 @@ a.dw-btn{text-decoration:none}
       numeroAtto: t("aut-numero"), ente: t("aut-ente") || null,
       dataRilascio: t("aut-rilascio") || null, dataScadenza: t("aut-scadenza") || null,
       superficieMq: num("aut-superficie"), volumeAutorizzatoM3: num("aut-volume"),
-      estrattoPregressoM3: pregresso == null ? 0 : pregresso, materiale: t("aut-materiale") || null,
+      // ⛔ un campo lasciato vuoto NON è uno zero dichiarato: scriverci 0
+      // faceva sembrare che l'utente avesse dichiarato «prima di Terra non si
+      // era cavato niente», cioè la lettura più favorevole possibile, su un
+      // conto che finisce in una comunicazione all'ente. Resta null, e la
+      // scheda della vita cava lo dice.
+      estrattoPregressoM3: pregresso, materiale: t("aut-materiale") || null,
       prescrizioni: t("aut-prescrizioni") || null, riferimenti: t("aut-riferimenti") || null,
       sogliaGuardiaPct: numInt("aut-soglia"), anniRitmo: numInt("aut-anni"), preavvisoGiorni: numInt("aut-preavviso"),
     };
@@ -2369,7 +2448,7 @@ a.dw-btn{text-decoration:none}
   // prezzo. Ricalcolo dal vivo quando l'utente cambia densità o prezzo.
   function renderValore() {
     const anno = oggiISO().slice(0, 4);
-    const dellAnno = (RIL || []).filter(r => r.stato === "elaborato" && r.volumeM3 != null && (r.data||"").slice(0,4) === anno);
+    const dellAnno = (RIL || []).filter(r => rilievoUsabile(r) && (r.data||"").slice(0,4) === anno);
     // «estratto» = SCAVO: il materiale ripreso da un cumulo era già stato
     // estratto (e già valorizzato) prima, sommarlo conterebbe due volte lo
     // stesso metro cubo
@@ -2959,7 +3038,7 @@ a.dw-btn{text-decoration:none}
   });
   $("btn-terra-export").onclick = () => {
     let csv = "tipo;nome;stato;provenienza;dettaglio\n";
-    for (const f of FRO) csv += `fronte;${csvCell(f.nome+" "+(f.banco||""))};${f.stato};;quota ${f.quota}m · avanzamento ${f.avanzamento}%\n`;
+    for (const f of FRO) csv += `fronte;${csvCell(f.nome+" "+(f.banco||""))};${f.stato};;${["quota " + f.quota + "m", avFronte(f, "avanzamento")].filter(Boolean).join(" · ")}\n`;
     for (const r of RIL.slice().sort((a,b)=>(b.data||"").localeCompare(a.data||"")))
       csv += `rilievo;${csvCell(r.titolo)};${r.stato};${provenienzaRilievo(r)};${dmy(r.data)}${r.volumeM3!=null?" · "+r.volumeM3+" m³":""}\n`;
     const a = document.createElement("a");
@@ -2988,7 +3067,7 @@ a.dw-btn{text-decoration:none}
     if (editFro) {
       await db.aggiorna("fronti", editFro, { nome, banco, quota });   // rilievi/avanzamento/stato restano
     } else {
-      await db.aggiungi("fronti", { nome, banco, quota, dettaglio: "", avanzamento: 0, stato: "attivo" });
+      await db.aggiungi("fronti", { nome, banco, quota, dettaglio: "", stato: "attivo" });
     }
     annullaEditFronte();
     esito("fro-esito", "Fronte «" + nome + "» " + (modifica ? "aggiornato." : "aggiunto."));
@@ -3011,7 +3090,7 @@ a.dw-btn{text-decoration:none}
     let agg = 0, dup = 0;
     for (const r of righe) {
       if (FRO.some(f => f.nome.trim().toLowerCase() === r.nome.toLowerCase())) { dup++; continue; }
-      await db.aggiungi("fronti", { nome: r.nome, banco: r.banco, quota: r.quota, dettaglio: "", avanzamento: 0, stato: r.stato });
+      await db.aggiungi("fronti", { nome: r.nome, banco: r.banco, quota: r.quota, dettaglio: "", stato: r.stato });
       agg++;
     }
     $("fro-file").value = "";

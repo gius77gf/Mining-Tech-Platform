@@ -312,12 +312,16 @@ test("kpiFrom conta scadute/in-scadenza e lavoratori regolari", () => {
     { lavoratoreId: "l2", dataScadenza: plusDays(10) },// in-scadenza
     { lavoratoreId: "l1", dataScadenza: FUT },         // regolare
   ];
-  eq(scudo.kpiFrom(lav, sca), { scadute: 1, trenta: 1, regolari: 0 }, "kpi scudo");
+  contiene(scudo.kpiFrom(lav, sca), { scadute: 1, trenta: 1, regolari: 0 }, "kpi scudo");
 });
-test("kpiFrom: regolare solo se attivo E senza scadenze problematiche", () => {
+/* ⚠️ Anche questa blindava il difetto, e col nome che lo dichiarava: «b:
+   nessuna scadenza → regolare». Corretta il 04/08 come quella del 03/08 sulle
+   date illeggibili — più giusta, non più permissiva — e col termine che
+   `idoneitaDiTurno` usa già in `shared/dw-ponti.js`: senza scadenze. */
+test("kpiFrom: regolare solo se attivo, VERIFICATO e senza scadenze problematiche", () => {
   const lav = [
     { id: "a", attivo: true },   // solo una scadenza futura → regolare
-    { id: "b", attivo: true },   // nessuna scadenza → regolare
+    { id: "b", attivo: true },   // nessuna scadenza → NON regolare: non verificato
     { id: "c", attivo: false },  // nessun problema ma inattivo → NON conta
     { id: "d", attivo: true },   // ha una scaduta → NON regolare
   ];
@@ -325,7 +329,28 @@ test("kpiFrom: regolare solo se attivo E senza scadenze problematiche", () => {
     { lavoratoreId: "a", dataScadenza: FUT },
     { lavoratoreId: "d", dataScadenza: PAST },
   ];
-  eq(scudo.kpiFrom(lav, sca), { scadute: 1, trenta: 0, regolari: 2 }, "regolari = a + b");
+  eq(scudo.kpiFrom(lav, sca), { scadute: 1, trenta: 0, regolari: 1, senzaScadenze: 1 },
+     "regolare è solo «a»; «b» è non verificato e sta a parte");
+});
+/* ⛔ L'ASSENZA DI UN DATO NON È UN DATO FAVOREVOLE — nel numero verde del
+   Quadro. Chi non ha NEMMENO una riga in scadenzario finiva fra i «Lavoratori
+   regolari»: nessuna visita medica, nessun corso, nessun patentino, e il
+   colore di chi è a posto. È la stessa cosa che `idoneitaDiTurno` tiene
+   separata per Campo, scritta lì e violata qui. */
+test("⛔ kpiFrom: chi non ha NESSUNA scadenza non è regolare, è non verificato", () => {
+  const lav = [{ id: "a", attivo: true }, { id: "b", attivo: true }, { id: "z", attivo: false }];
+  const sca = [{ lavoratoreId: "a", dataScadenza: FUT }];
+  const k = scudo.kpiFrom(lav, sca);
+  eq(k.regolari, 1, "solo chi è stato guardato davvero");
+  eq(k.senzaScadenze, 1, "e l'altro si conta a parte, non fra i verdi");
+  ok(k.regolari + k.senzaScadenze === 2, "i due conti non si sovrappongono e coprono gli attivi");
+  // il non verificato NON si somma ai regolari: sarebbe «non lo so» letto «sì»
+  ok(k.regolari !== 2, "sommarli è il difetto che questa prova difende");
+  // e chi non è in forza non entra in nessuno dei due
+  eq(scudo.kpiFrom([{ id: "z", attivo: false }], []).senzaScadenze, 0, "gli inattivi restano fuori");
+  // una scadenza aziendale (lavoratoreId null) non copre nessuna persona
+  eq(scudo.kpiFrom([{ id: "a", attivo: true }], [{ lavoratoreId: null, dataScadenza: FUT }]),
+     { scadute: 0, trenta: 0, regolari: 0, senzaScadenze: 1 }, "l'adempimento di sito non verifica «a»");
 });
 /* ⚠️ Anche questa blindava il difetto, e nel posto peggiore: il suo nome
    diceva «= regolare» e il suo ultimo `eq` pretendeva che un lavoratore con una
@@ -343,7 +368,10 @@ test("statoScadenza: una scadenza con la data illeggibile NON è regolare", () =
   // nel KPI il lavoratore con una scadenza illeggibile ESCE dai regolari: il
   // suo documento potrebbe essere scaduto e nessuno lo sa
   eq(scudo.kpiFrom([{ id: "l1", attivo: true }], [{ lavoratoreId: "l1" }]),
-    { scadute: 0, trenta: 0, regolari: 0 }, "kpi con scadenza senza data");
+    { scadute: 0, trenta: 0, regolari: 0, senzaScadenze: 0 }, "kpi con scadenza senza data");
+  // e non è nemmeno «non verificato»: una riga c'è, è la sua data a non leggersi
+  eq(scudo.kpiFrom([{ id: "l1", attivo: true }], [{ lavoratoreId: "l1" }]).senzaScadenze, 0,
+    "i due modi di non sapere restano distinti");
   // le date buone continuano a comportarsi come sempre (guardia)
   const o = new Date("2026-07-20T00:00:00");
   eq(scudo.statoScadenza("2026-07-19", o), "scaduta", "ieri");
@@ -387,8 +415,14 @@ test("kpiFrom: da incassare, in scadenza, gare aperte, età media credito", () =
     { importo: 30, incassata: false, scadenza: "2026-07-22", emessa: "2026-07-02" },
   ];
   const gare = [{ stato: "aperta" }, { stato: "vinta" }];
-  eq(conti.kpiFrom(fatture, gare, oggi),
+  /* `contiene` e non `eq`: il KPI è cresciuto di due campi (quante fatture
+     hanno fatto la media e quante sono rimaste fuori perché senza data
+     d'emissione), e i due nuovi hanno la loro riga qui sotto — coperti, non
+     solo tollerati. */
+  contiene(conti.kpiFrom(fatture, gare, oggi),
     { daIncassare: 130, inScadenza: 2, gareAperte: 1, etaCredito: 14 }, "kpi conti");
+  eq(conti.kpiFrom(fatture, gare, oggi).etaConto, 2, "l'età media è la media di DUE fatture aperte");
+  eq(conti.kpiFrom(fatture, gare, oggi).etaSenzaData, 0, "e nessuna è senza data d'emissione");
 });
 test("kpiFrom: inScadenza = solo fatture NON incassate con scadenza entro 10 giorni", () => {
   const oggi = new Date("2026-07-20T00:00:00");
@@ -400,17 +434,34 @@ test("kpiFrom: inScadenza = solo fatture NON incassate con scadenza entro 10 gio
   ];
   eq(conti.kpiFrom(fatture, [], oggi).inScadenza, 2, "confine 10gg + scaduta, esclusa l'incassata");
 });
-test("kpiFrom: una fattura senza data di emissione non rompe l'età media credito", () => {
-  // regressione: prima una fattura senza "emessa" rendeva la metrica = NaN
-  // (mostrata come "NaN giorni" nel cruscotto). Ora contribuisce 0.
+test("⛔ kpiFrom: una fattura senza data di emissione RESTA FUORI dall'età media, non vale zero giorni", () => {
+  /* Storia di questa prova, che vale più dell'asserzione. Nasce contro un NaN
+     («NaN giorni» nel cruscotto) e la correzione di allora fu far contribuire
+     ZERO alla fattura senza data — e la prova lo blindò: «media di 0 e 10 = 5».
+     Ma zero giorni vuol dire «emessa oggi», cioè il credito più giovane
+     possibile: l'assenza della data ABBASSA l'età media, sempre nel verso che
+     tranquillizza, e senza dirlo. Misurato sul caso vero: due fatture da 92
+     giorni più una senza data davano 46, e la scritta accanto passava da
+     «sopra i 45 giorni» a «sotto controllo».
+     Adesso quella fattura non entra nella media e si conta a parte. Il NaN
+     resta impossibile, che era il punto giusto della prova di prima. */
   const oggi = new Date("2026-07-20T00:00:00");
   const fatture = [
-    { importo: 100, incassata: false, scadenza: "2026-07-25", emessa: undefined },   // senza data → 0 gg
+    { importo: 100, incassata: false, scadenza: "2026-07-25", emessa: undefined },   // senza data
     { importo: 50,  incassata: false, scadenza: "2026-07-25", emessa: "2026-07-10" }, // 10 gg
   ];
-  const etaCredito = conti.kpiFrom(fatture, [], oggi).etaCredito;
-  eq(Number.isFinite(etaCredito), true, "età media credito è un numero finito");
-  eq(etaCredito, 5, "media di 0 e 10");
+  const k = conti.kpiFrom(fatture, [], oggi);
+  eq(Number.isFinite(k.etaCredito), true, "età media credito è un numero finito");
+  eq(k.etaCredito, 10, "la media è dei 10 giorni misurati, non di 0 e 10");
+  eq(k.etaConto, 1, "una sola fattura ha fatto la media");
+  eq(k.etaSenzaData, 1, "e l'altra è dichiarata, non sciolta dentro il numero");
+  /* nessuna fattura databile: «non lo so», che è diverso da «zero giorni» —
+     `+null` fa 0 e `Number.isFinite(0)` risponde vero, quindi lo zero non si
+     distingue da una misura vera una volta che è passato */
+  const solaSenzaData = conti.kpiFrom([fatture[0]], [], oggi);
+  eq(solaSenzaData.etaCredito, null, "senza nemmeno una data l'età media non esiste");
+  eq(solaSenzaData.etaSenzaData, 1, "e si dice quante fatture l'hanno impedita");
+  eq(solaSenzaData.daIncassare, 100, "ma il credito resta contato per intero");
 });
 test("agingIncassi: fatture divise per fascia di ritardo, importi corretti", () => {
   const oggi = new Date("2026-07-20T00:00:00");
@@ -790,13 +841,56 @@ test("prioritaIncasso: fattura senza data = ritardo 0 (non in cima per errore)",
   const p = conti.prioritaIncasso([{ numero: "X", importo: 50, incassata: false }], new Date("2026-07-20T00:00:00"));
   eq(p[0].ritardo, 0, "senza data → ritardo 0");
 });
-test("agingIncassi: fattura senza scadenza = non scaduto, non gonfia lo scaduto", () => {
-  // robustezza su dati importati/legacy: una data mancante non deve
-  // finire nel bucket 'oltre 90 gg' (regressione da revisione notturna).
-  const a = conti.agingIncassi([{ importo: 100, incassata: false }], new Date("2026-07-20T00:00:00"));
-  eq(a.nonScaduto, { conto: 1, importo: 100 }, "senza data → non scaduto");
+test("⛔ agingIncassi: fattura senza scadenza = né scaduta né NON scaduta, ha un secchio suo", () => {
+  /* La versione precedente di questa prova pretendeva «senza data → non
+     scaduto», e metà della ragione era giusta: una data che manca non deve
+     finire in «oltre 90 gg» e gonfiare lo scaduto. L'altra metà no — «non
+     scaduto» è la fascia TRANQUILLA, quella del credito ancora nei termini, e
+     un credito di cui nessuno sa quando dovrebbe rientrare ci finiva dentro in
+     verde, senza che il risultato lo dicesse da nessuna parte.
+     È l'appello di Campo: chi nessuno ha spuntato non si conta né presente né
+     assente. Lo `scadutoTot` non cambia: quella metà buona resta. */
+  const oggi = new Date("2026-07-20T00:00:00");
+  const a = conti.agingIncassi([{ importo: 100, incassata: false }], oggi);
+  eq(a.senzaScadenza, { conto: 1, importo: 100 }, "senza scadenza → secchio suo");
+  eq(a.nonScaduto, { conto: 0, importo: 0 }, "e NON in mezzo al credito nei termini");
   eq(a.oltre90.conto, 0, "non finisce in oltre 90");
-  eq(a.scadutoTot, 0, "scaduto totale 0");
+  eq(a.scadutoTot, 0, "scaduto totale 0: la metà giusta della vecchia decisione");
+  // una data illeggibile è una data che non c'è: stesso trattamento
+  eq(conti.agingIncassi([{ importo: 7, incassata: false, scadenza: "boh" }], oggi).senzaScadenza.conto, 1,
+    "anche una scadenza illeggibile");
+  /* e il credito aperto non si perde per strada: la somma dei secchi torna col
+     totale, che è ciò che rende la nuova fascia una separazione e non una
+     sottrazione */
+  const miste = [
+    { importo: 100, incassata: false },                       // senza scadenza
+    { importo: 200, incassata: false, scadenza: "2026-08-01" }, // nei termini
+    { importo: 300, incassata: false, scadenza: "2026-07-10" }, // scaduta di 10 gg
+    { importo: 999, incassata: true,  scadenza: "2026-07-10" }, // incassata: fuori
+  ];
+  const b = conti.agingIncassi(miste, oggi);
+  eq(b.nonScaduto.importo + b.scadutoTot + b.senzaScadenza.importo, 600, "i secchi coprono tutto l'aperto");
+  eq(b.scadutoTot, 300, "e lo scaduto è solo quello con una scadenza passata");
+});
+test("statoScadenzaFattura: quattro risposte, e «senza scadenza» non è «regolare»", () => {
+  /* ⛔ la risposta che questa funzione esiste per dare: prima la pagina faceva
+     `giorni(f.scadenza)` e confrontava il risultato, ma NaN non è né `< 0` né
+     `<= 10`, quindi una fattura senza scadenza scivolava nell'ultimo ramo e si
+     prendeva il badge verde «Regolare» — il requisito senza righe in
+     scadenzario dato per regolare, la stessa forma trovata in Scudo. */
+  const oggi = new Date("2026-08-01T10:00:00");
+  eq(conti.statoScadenzaFattura({ scadenza: null }, oggi).stato, "senza-scadenza", "scadenza assente");
+  eq(conti.statoScadenzaFattura({}, oggi).stato, "senza-scadenza", "campo che non c'è proprio");
+  eq(conti.statoScadenzaFattura({ scadenza: "boh" }, oggi).stato, "senza-scadenza", "data illeggibile");
+  eq(conti.statoScadenzaFattura(null, oggi).stato, "senza-scadenza", "nemmeno la fattura fa cadere niente");
+  eq(conti.statoScadenzaFattura({ scadenza: "2026-07-31" }, oggi).stato, "insoluta", "ieri = insoluta");
+  eq(conti.statoScadenzaFattura({ scadenza: "2026-08-01" }, oggi).stato, "in-scadenza", "oggi non è ancora in ritardo");
+  eq(conti.statoScadenzaFattura({ scadenza: "2026-08-11" }, oggi).stato, "in-scadenza", "dieci giorni: ancora in scadenza");
+  eq(conti.statoScadenzaFattura({ scadenza: "2026-08-12" }, oggi).stato, "regolare", "undici giorni: regolare");
+  // i giorni tornano indietro perché il badge ci scrive «N gg»; senza data
+  // sono `null`, che è l'unico modo per non farci scrivere «NaN gg» sopra
+  eq(conti.statoScadenzaFattura({ scadenza: "2026-08-06" }, oggi).giorni, 5, "cinque giorni");
+  eq(conti.statoScadenzaFattura({ scadenza: null }, oggi).giorni, null, "senza data nessun numero");
 });
 
 console.log("\n— Sentinella: monitoraggi ambientali —");
@@ -869,7 +963,19 @@ test("kpiFrom: l'avanzamento annuo ignora i rilievi di altri anni", () => {
   const piano = [{ pianificatoAnnuoM3: 12000 }];
   const k = terra.kpiFrom([], rilievi, piano, oggi);
   eq(k.avanzamento, 25, "solo i 3000 del 2026 (non 100% con i 9000 del 2025)");
-  eq(k.volumiMese, 0, "nessun rilievo a luglio → volumi mese 0");
+  // ⚠️ Questa riga diceva `0`, e BLINDAVA IL DIFETTO: in Terra il rilievo è la
+  // misura dell'estratto, quindi «nessun rilievo a luglio» vuol dire che di
+  // luglio non si sa niente — non che non si è cavato. Resa più GIUSTA, non più
+  // permissiva. Trovata guardando lo scatto: la tessera scriveva «0» accanto a
+  // «rilievi drone mese 0», cioè affermava una misura dichiarando di non averla.
+  eq(k.volumiMese, null, "nessun rilievo a luglio → non misurato, non zero");
+});
+test("kpiFrom: un rilievo che ha misurato ZERO resta uno zero vero", () => {
+  const oggi = new Date("2026-07-15T00:00:00");
+  // il rilievo c'è ed è del mese: la misura è stata fatta, e dice zero
+  const k = terra.kpiFrom([], [{ stato: "elaborato", volumeM3: 0, data: "2026-07-02" }], [], oggi);
+  eq(k.volumiMese, 0, "misurato zero è zero: qui il trattino nasconderebbe una misura vera");
+  eq(k.rilieviMese, 1, "e il rilievo si conta");
 });
 test("volumeFronte: somma solo i rilievi elaborati (con volume) del fronte", () => {
   const rilievi = [
@@ -1369,14 +1475,20 @@ test("giorni: domani = 1, ieri = -1", () => {
 // ------------------------------------------------------------
 console.log("\n— Input vuoti: azienda al giorno zero —");
 test("Scudo kpiFrom([],[]) = tutti zero", () =>
-  eq(scudo.kpiFrom([], []), { scadute: 0, trenta: 0, regolari: 0 }, "scudo vuoto"));
-test("Conti kpiFrom([],[]) = zero e età media credito 0 (niente divisione per zero)", () =>
-  eq(conti.kpiFrom([], []), { daIncassare: 0, inScadenza: 0, gareAperte: 0, etaCredito: 0 }, "conti vuoto"));
+  eq(scudo.kpiFrom([], []), { scadute: 0, trenta: 0, regolari: 0, senzaScadenze: 0 }, "scudo vuoto"));
+test("Conti kpiFrom([],[]) = zero, e l'età media del credito è null (non «0 gg, sotto controllo»)", () =>
+  /* i soldi da incassare sono davvero zero — nessuna fattura, nessun credito —
+     ma l'ETÀ di quel credito non è zero giorni: non c'è. La differenza si vede
+     sullo schermo, dove «0 gg · sotto controllo» è la stessa riga di un
+     portafoglio nuovo di zecca. */
+  eq(conti.kpiFrom([], []),
+    { daIncassare: 0, inScadenza: 0, gareAperte: 0, etaCredito: null, etaConto: 0, etaSenzaData: 0 },
+    "conti vuoto"));
 test("Sentinella kpiFrom([],[]) = tutti zero", () =>
   eq(sentinella.kpiFrom([], []), { attivi: 0, superamenti: 0, adempimenti30: 0 }, "sentinella vuoto"));
 test("Terra kpiFrom([],[],[]) = zero, avanzamento e riserve null", () =>
   contiene(terra.kpiFrom([], [], []),
-    { volumiMese: 0, volumiMeseCumulo: 0, rilieviMese: 0, avanzamento: null, riserveM3: null, frontiAttivi: 0 }, "terra vuoto"));
+    { volumiMese: null, volumiMeseCumulo: 0, rilieviMese: 0, avanzamento: null, riserveM3: null, frontiAttivi: 0 }, "terra vuoto"));
 test("Flotta kpiFrom([],[],[]) = tutti zero", () =>
   eq(flotta.kpiFrom([], [], []),
     { operativi: 0, inManutenzione: 0, tagliandi30: 0, carburante: 0 }, "flotta vuoto"));
@@ -1527,8 +1639,11 @@ test("avanzamentoGiornata: concluse sul totale + ripartizione per stato", () => 
   eq(campo.avanzamentoGiornata(att),
      { totale: 6, concluse: 3, inCorso: 1, pianificate: 1, anomalie: 1, pct: 50 }, "3/6 = 50%");
 });
-test("avanzamentoGiornata: nessuna attività = tutto zero, pct 0 (niente crash)", () =>
-  eq(campo.avanzamentoGiornata([]), { totale: 0, concluse: 0, inCorso: 0, pianificate: 0, anomalie: 0, pct: 0 }, "vuoto"));
+test("⛔ avanzamentoGiornata: nessuna attività = pct vuota, non zero per cento", () =>
+  /* zero su zero non è «non abbiamo fatto niente»: è «non c'è niente da dire».
+     Uno «0%» in un cartellone racconta una giornata ferma. Stessa risposta che
+     `totaliSettimana.pctConcluse` dà già alla stessa domanda. */
+  eq(campo.avanzamentoGiornata([]), { totale: 0, concluse: 0, inCorso: 0, pianificate: 0, anomalie: 0, pct: null }, "vuoto"));
 test("riassuntoRapportino: compone turno/squadra/produzione/consegne", () => {
   eq(campo.riassuntoRapportino({ turno: "Mattina", squadra: "Squadra A", produzione: "90 t", note: "cambiare benna" }),
      "Turno Mattina · Squadra A · Produzione: 90 t · Consegne: cambiare benna", "completo");
@@ -6317,6 +6432,57 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(sentinella.statPeriodo(punto, "2026-07-01", "2026-07-31", 0).superamenti, 0,
        "non se ne inventa una per poter contare");
   });
+  test("⛔ statistiche: ZERO SUPERAMENTI SU ZERO MISURE non è un buon risultato", () => {
+    /* media e massimo dicevano già «non lo so» su un mese vuoto; i superamenti
+       dicevano «0», ed è la cifra che si guarda per prima — in tabella restava
+       l'unico numero della riga, accanto a due trattini, su un mese in cui
+       nessuno ha misurato niente. */
+    const vuoto = sentinella.statPeriodo(punto, "2027-01-01", "2027-01-31", 10);
+    eq(vuoto.n, 0, "nessuna lettura nel periodo");
+    eq(vuoto.superamenti, null, "e allora nemmeno i superamenti si possono contare");
+    eq(sentinella.statPeriodo(punto, "2026-07-01", "2026-07-31", 10).superamenti, 1,
+       "dove invece si è misurato, il conto resta un numero");
+    eq(sentinella.statPeriodo(punto, "2026-07-01", "2026-07-31", 100).superamenti, 0,
+       "e uno zero MISURATO resta uno zero: la differenza è fra «nessuno» e «nessuna misura»");
+  });
+  test("⛔ confronto: senza uno dei due mesi non c'è nemmeno una differenza di superamenti", () => {
+    /* con due mesi vuoti la sottrazione faceva 0 − 0 = 0, cioè «nessun
+       peggioramento» ricavato dal nulla; con un mese solo pieno faceva un
+       numero che si spacciava per un confronto */
+    const nessuno = sentinella.confrontoMesi({ letture: [] }, 10, OGGI);
+    eq(nessuno.confrontabile, false, "non c'è niente da confrontare");
+    eq(nessuno.deltaSuperamenti, null, "e quindi nessuna differenza da dichiarare");
+    const soloUno = sentinella.confrontoMesi({ letture: [{ data: "2026-07-05", valore: 60 }] }, 10, OGGI);
+    eq(soloUno.confrontabile, false, "il mese prima è vuoto");
+    eq(soloUno.deltaSuperamenti, null, "un mese solo non fa un confronto");
+    eq(sentinella.confrontoMesi(punto, 10, OGGI).deltaSuperamenti, 1,
+       "con tutt'e due i mesi pieni la differenza si dice ancora");
+  });
+  test("⛔ un punto MAI MISURATO non ha un rapporto da mettere in classifica", () => {
+    /* `ratio: null` non è un dettaglio: la lista dei punti ci ordina sopra
+       «Criticità» e «Margine», e una sottrazione legge `null` come ZERO
+       (`null - 0.9` fa −0,9). Se questo campo tornasse a essere 0, il punto mai
+       misurato uscirebbe primo fra «i più tranquilli» e ultimo fra «i più
+       critici»: in tutt'e due gli ordinamenti nel posto dei più sereni. */
+    const st = sentinella.statoMisura({ valore: 0, soglia: 5, unita: "mm/s", letture: [] });
+    eq(st.stato, "mai", "punto appena creato: nessuno ha misurato");
+    eq(st.ratio, null, "e nessun rapporto valore/soglia da mettere in fila");
+    eq(sentinella.statoMisura({ valore: 1, soglia: 5 }).ratio, 0.2, "dove c'è una misura il rapporto c'è");
+  });
+  test("⛔ priorità: sulla riga di un punto mai misurato non si scrive nessuna cifra di misura", () => {
+    /* il badge diceva «Mai misurato» e il dettaglio accanto «0 mm/s / soglia 5»:
+       lo zero con cui il punto NASCE letto come una misura. Due frasi opposte
+       sulla stessa riga, e quella con la cifra è la sola che si guarda. */
+    const p = sentinella.prioritaConformita(
+      [{ nome: "Sismografo Sud", valore: 0, soglia: 5, unita: "mm/s", letture: [], nota: "appena installato" }],
+      [], new Date(2026, 6, 21));
+    eq(p.length, 1, "il punto compare fra le allerte (è la cosa da fare)");
+    eq(p[0].badge, "Mai misurato", "col suo badge");
+    ok(/nessuna misura registrata/.test(p[0].dettaglio), "e la riga lo dice a parole — era «" + p[0].dettaglio + "»");
+    ok(!/\b0\s*mm\/s/.test(p[0].dettaglio), "senza nessun «0 mm/s» spacciato per misura");
+    ok(/soglia 5/.test(p[0].dettaglio), "la soglia impostata invece è un dato vero e resta");
+    ok(/appena installato/.test(p[0].dettaglio), "e la nota dell'utente resta dov'era");
+  });
 
   test("⛔ confronto: non si confronta un mese con il nulla", () => {
     /* dichiarare −100 % darebbe un miglioramento inventato dall'assenza di
@@ -6837,8 +7003,20 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
        nessuno può togliere, e allora si smette di guardarli */
     eq(scudo.statoAzione(az({ scadenza: "2026-01-01", stato: "chiusa" }), OGGI), "regolare", "chiusa a gennaio");
   });
-  test("azioni: senza scadenza non si allarma", () => {
-    eq(scudo.statoAzione(az({ scadenza: "" }), OGGI), "regolare", "manca la data, non il rispetto della data");
+  /* ⛔ «SENZA DATA» NON È «REGOLARE». La prova diceva «non si allarma» e
+     pretendeva il verde: giusto il primo pezzo (è un avviso, non un allarme),
+     sbagliato il secondo. Corretta il 04/08 come `livelloScadenza` il 03/08, e
+     col termine che le altre app usano già. */
+  test("⛔ azioni: un'azione aperta senza scadenza è «senza data», non regolare", () => {
+    eq(scudo.statoAzione(az({ scadenza: "" }), OGGI), "senza data", "manca la data: non si sa, e si dice");
+    eq(scudo.statoAzione(az({ scadenza: null }), OGGI), "senza data", "e vale anche per il null");
+    eq(scudo.statoAzione(az({ scadenza: "2026-13-45" }), OGGI), "senza data", "forma giusta, data impossibile");
+    ok(scudo.statoAzione(az({ scadenza: "" }), OGGI) !== "regolare",
+       "il verde su un'azione di cui nessuno sa l'entro-quando è il difetto difeso qui");
+    ok(scudo.statoAzione(az({ scadenza: "" }), OGGI) !== "scaduta",
+       "e non si inventa dall'altra parte: non è scaduta, non si sa");
+    // una CHIUSA resta regolare anche senza data: il lavoro è finito
+    eq(scudo.statoAzione(az({ scadenza: "", stato: "chiusa" }), OGGI), "regolare", "chiusa senza data");
   });
 
   const elenco = [az({ id: "a1", scadenza: "2026-08-30" }), az({ id: "a2", scadenza: "2026-07-01" }),
@@ -7015,7 +7193,10 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
    è scoperto, e dirlo verde è un semaforo che mente su un obbligo di legge. */
 {
   const OGGI = new Date("2026-07-31T12:00:00");
-  const rspp = (o) => ({ id: "n1", ruolo: "rspp", lavoratoreId: "L1", ...o });
+  /* La nomina di riferimento porta la sua DATA, come quelle che scrive il form
+     (`dal || oggiISO()`): senza, ogni prova di questo blocco misurava anche il
+     giallo del «senza data di nomina», che ha una prova sua qui sotto. */
+  const rspp = (o) => ({ id: "n1", ruolo: "rspp", lavoratoreId: "L1", dal: "2025-01-15", ...o });
   const LAV = [{ id: "L1", nome: "Mario", attivo: true }, { id: "L2", nome: "Anna", attivo: false }];
   const bloccoDi = (nomine, scadenze = []) =>
     scudo.organigrammaSicurezza(nomine, LAV, scadenze, OGGI).find((x) => x.ruolo.chiave === "rspp");
@@ -7061,11 +7242,28 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(org.stato, "danger", "e il blocco è rosso");
   });
   test("organigramma: col corso in regola il preposto è a posto", () => {
-    const org = scudo.organigrammaSicurezza([{ id: "n2", ruolo: "preposto", lavoratoreId: "L1" }],
+    const org = scudo.organigrammaSicurezza([{ id: "n2", ruolo: "preposto", lavoratoreId: "L1", dal: "2025-01-15" }],
       LAV, [{ lavoratoreId: "L1", preset: "form-preposto", dataScadenza: "2027-06-01" }],
       OGGI).find((x) => x.ruolo.chiave === "preposto");
     eq(org.senzaFormazione, 0, "il corso c'è");
     eq(org.stato, "ok", "verde");
+  });
+  /* ⛔ UNA NOMINA SENZA LA DATA DA CUI DECORRE NON SI PUÒ DIMOSTRARE, e usciva
+     verde con la pastiglia «Nomina attiva». È un avviso, non un allarme — la
+     persona c'è — quindi giallo: il rosso qui direbbe «da nominare» su un ruolo
+     che qualcuno ce l'ha, e insegnerebbe a ignorare i rossi. */
+  test("⛔ organigramma: una nomina SENZA DATA non è un ruolo in regola", () => {
+    const o = bloccoDi([rspp({ dal: "" })]);
+    eq(o.senzaData, 1, "una nomina di cui non si sa da quando");
+    eq(o.stato, "warn", "giallo: c'è qualcuno, ma il dato non c'è");
+    ok(o.stato !== "ok", "il verde su una data mai scritta è il difetto difeso qui");
+    eq(o.mancante, false, "e non è «da nominare»: la persona c'è");
+    eq(scudo.nomineDaSistemare([o]).length, 0, "non entra fra le urgenze rosse del Quadro");
+    // una data IMPOSSIBILE è illeggibile quanto una mancante (stessa regola di statoScadenza)
+    eq(bloccoDi([rspp({ dal: "2025-02-30" })]).senzaData, 1, "31 febbraio: non esiste");
+    // e la nomina con la sua data resta verde
+    eq(bloccoDi([rspp()]).senzaData, 0, "con la data non si conta niente");
+    eq(bloccoDi([rspp()]).stato, "ok", "e il ruolo è coperto");
   });
   test("organigramma: un ruolo NON obbligatorio senza nessuno non è un allarme", () => {
     /* il dirigente delegato è una figura che può non esserci: un rosso lì
@@ -7223,8 +7421,14 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(scudo.statoIspezione({ stato: "completata", data: "2026-01-01" }, OGGI), "regolare", "fatta a gennaio");
     eq(scudo.statoIspezione({ stato: "in-corso", data: "2026-01-01" }, OGGI), "scaduta", "una non finita invece sì");
   });
-  test("ispezione: senza data programmata non si allarma", () => {
-    eq(scudo.statoIspezione({ stato: "in-corso", data: "" }, OGGI), "regolare", "manca la data, non il rispetto della data");
+  test("⛔ ispezione: senza data programmata è «senza data», non regolare", () => {
+    // stessa correzione di `statoAzione`: un'ispezione di cui non si sa quando
+    // va fatta non è un'ispezione in ordine
+    eq(scudo.statoIspezione({ stato: "in-corso", data: "" }, OGGI), "senza data", "manca la data");
+    eq(scudo.statoIspezione({ stato: "programmata", data: null }, OGGI), "senza data", "e il null");
+    ok(scudo.statoIspezione({ stato: "in-corso", data: "" }, OGGI) !== "regolare", "niente verde");
+    // una COMPLETATA resta regolare: è finita, la sua data non conta più
+    eq(scudo.statoIspezione({ stato: "completata", data: "" }, OGGI), "regolare", "completata senza data");
   });
   test("⛔ ispezioni: il riepilogo somma le non conformità di TUTTE, anche delle chiuse", () => {
     /* una non conformità trovata resta un fatto anche dopo che l'ispezione è
@@ -7238,6 +7442,31 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(r.completate, 1, "una completata");
     eq(r.scadute, 1, "e una non finita che era di gennaio");
     eq(r.nonConformi, 2, "le non conformità si contano tutte e due");
+  });
+  /* ⛔ UNA VOCE SENZA ESITO NON È UNA VOCE CONFORME. Un'ispezione si chiude
+     anche con delle voci indietro (la modale lo dice, «resteranno così»), ma
+     dopo restava solo il verde «Completata» e il conto delle non conformi
+     TROVATE: zero non conformi su una checklist guardata a metà è il numero
+     tranquillo dove non è stato misurato niente. */
+  test("⛔ ispezioni: le voci chiuse senza esito si contano, non spariscono nel verde", () => {
+    const a = scudo.nuovaIspezioneDaModello(CHIAVE, { data: "2026-01-01", stato: "completata" });
+    a.esiti[a.voci[0].id] = { esito: "conforme", nota: "" };   // una sola voce su tutte
+    const tot = a.voci.length;
+    const r = scudo.riepilogoIspezioni([a], OGGI);
+    eq(r.completate, 1, "risulta completata");
+    eq(r.parziali, 1, "ma è una di quelle chiuse a metà");
+    eq(r.senzaEsito, tot - 1, "e le voci mai giudicate si contano tutte");
+    eq(r.nonConformi, 0, "le non conformi TROVATE restano zero: è vero, ed è il punto");
+    ok(r.senzaEsito > 0, "senza questo conto lo zero qui sopra sembra un'ispezione a posto");
+    // una chiusa DAVVERO completa non conta niente
+    const b = scudo.nuovaIspezioneDaModello(CHIAVE, { data: "2026-01-01", stato: "completata" });
+    for (const v of b.voci) b.esiti[v.id] = { esito: "na", nota: "" };
+    const rb = scudo.riepilogoIspezioni([b], OGGI);
+    eq(rb.parziali, 0, "tutte le voci hanno un esito, anche se è «non applicabile»");
+    eq(rb.senzaEsito, 0, "niente da dichiarare");
+    // e una ancora APERTA non è una mancanza: è lavoro in corso
+    const c = scudo.nuovaIspezioneDaModello(CHIAVE, { data: "2026-01-15" });
+    eq(scudo.riepilogoIspezioni([c], OGGI).senzaEsito, 0, "un'ispezione in corso non si accusa");
   });
   test("ispezioni: i tre esiti hanno il colore del semaforo di tutta l'app", () => {
     eq(scudo.esitoLabel("conforme").cls, "ok", "verde");
@@ -10028,6 +10257,303 @@ test("TIPI_MEZZO: `tipoMezzo` e `tipoMezzoDi` restituiscono sempre una voce dell
   eq(flotta.tipoMezzoDi(null).chiave, "altro", "e un mezzo che manca non fa cadere niente");
   eq(flotta.tipoMezzoDi({}).chiave, "altro", "nemmeno uno senza nome né tipo");
 });
+
+/* ────────────────────────────────────────────────────────────────────────
+   CAMPO · L'ASSENZA DI UN DATO NON È UN DATO FAVOREVOLE
+   Tre punti in cui Campo rispondeva con un numero (o un colore) tranquillo
+   dove non era stato misurato niente. Il censimento e le misure stanno nel
+   racconto del cantiere; qui restano le prove.
+   ──────────────────────────────────────────────────────────────────────── */
+test("⛔ pianoRiepilogo: nessun foro pesato non è «in linea col progetto»", () => {
+  /* Con zero cariche reali lo stimato È il progettato per costruzione: la
+     differenza faceva 0, scartoLivello rispondeva «ok» e la pillola usciva
+     VERDE a +0% su una volata in cui nessuno aveva ancora pesato un foro. */
+  const piano = [{ foro: 1, prog: 40, reale: null },
+                 { foro: 2, prog: 50, reale: null },
+                 { foro: 3, prog: 60, reale: null }];
+  const r = campo.pianoRiepilogo(piano);
+  eq(r.pct, null, "niente percentuale: non c'è nessuna misura da confrontare");
+  eq(r.livello, "da-registrare", "e nemmeno un livello tranquillo: la stessa parola del badge del singolo foro");
+  eq(r.registrati, 0, "zero registrati");
+  eq(r.progettatoKg, 150, "il progettato resta: quello è scritto nel piano");
+});
+test("⛔ pianoRiepilogo: basta UN foro pesato e la percentuale torna a esserci", () => {
+  /* la guardia non deve spegnere il conto quando la misura c'è davvero */
+  const r = campo.pianoRiepilogo([{ foro: 1, prog: 100, reale: 130 },
+                                  { foro: 2, prog: 100, reale: null }]);
+  eq(r.pct, 15, "+15%: 30 kg in più su 200 progettati");
+  eq(r.livello, "warn", "e il livello è quello vero, non «da-registrare»");
+});
+test("⛔ minutiFermoTesto: «0 min» solo quando lo zero è una misura", () => {
+  /* `+null` fa zero e `Number.isFinite(0)` risponde true: la guardia sta
+     PRIMA della conversione, se no «non lo so» diventa «zero minuti persi» */
+  eq(campo.minutiFermoTesto(0, 0, 0), "0 min", "nessun fermo: lo zero è vero, c'eravamo e non ci siamo fermati");
+  eq(campo.minutiFermoTesto(45, 1, 0), "45 min", "un fermo misurato: il numero com'è");
+  eq(campo.minutiFermoTesto(0, 2, 2), "senza minuti", "due fermi e nessun minuto: NON «0 min»");
+  eq(campo.minutiFermoTesto(30, 3, 2), "almeno 30 min", "misurato uno su tre: il tempo perso è almeno questo");
+  eq(campo.minutiFermoTesto(null, 1, 1), "senza minuti", "e null non diventa zero");
+  eq(campo.minutiFermoTesto(undefined, 0, 0), "senza minuti", "nemmeno undefined");
+  eq(campo.minutiFermoTesto("", 0, 0), "senza minuti", "nemmeno la stringa vuota");
+});
+test("⛔ storicoSettimana: la giornata coi fermi mai misurati si distingue da quella senza fermi", () => {
+  const OGGI = new Date("2026-07-31T12:00:00");
+  const att = [
+    { data: "2026-07-30", stato: "conclusa" },                                    // giornata senza fermi
+    { data: "2026-07-31", stato: "anomalia", causale: "Guasto meccanico" },       // fermo senza minuti
+    { data: "2026-07-31", stato: "anomalia", causale: "Meteo" },                  // idem
+    { data: "2026-07-31", stato: "conclusa" },
+  ];
+  const st = campo.storicoSettimana(att, [], 2, OGGI);
+  contiene(st[0], { data: "2026-07-30", fermi: 0, fermiSenzaMinuti: 0, minutiFermo: 0 },
+    "il 30 non ha fermi: lo zero è una misura");
+  contiene(st[1], { data: "2026-07-31", fermi: 2, fermiSenzaMinuti: 2, minutiFermo: 0 },
+    "il 31 ha due fermi e nessun minuto: stessi zero minuti, fatto diverso");
+  eq(campo.minutiFermoTesto(st[0].minutiFermo, st[0].fermi, st[0].fermiSenzaMinuti), "0 min",
+    "e a schermo le due giornate non si scrivono uguale");
+  eq(campo.minutiFermoTesto(st[1].minutiFermo, st[1].fermi, st[1].fermiSenzaMinuti), "senza minuti",
+    "il 31 non dice «0 min»");
+  const tot = campo.totaliSettimana(st);
+  contiene(tot, { fermi: 2, fermiSenzaMinuti: 2, minutiFermo: 0 },
+    "e il cartellone della settimana porta lo stesso conto");
+});
+test("⛔ storicoSettimana: un fermo misurato e uno no fanno «almeno»", () => {
+  const OGGI = new Date("2026-07-31T12:00:00");
+  const att = [
+    { data: "2026-07-31", stato: "anomalia", fermoMin: 20 },
+    { data: "2026-07-31", stato: "anomalia" },
+  ];
+  const st = campo.storicoSettimana(att, [], 1, OGGI);
+  contiene(st[0], { fermi: 2, fermiSenzaMinuti: 1, minutiFermo: 20 }, "uno misurato, uno no");
+  eq(campo.minutiFermoTesto(st[0].minutiFermo, st[0].fermi, st[0].fermiSenzaMinuti), "almeno 20 min",
+    "il tempo perso è ALMENO 20 min, non esattamente 20");
+});
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ⛔ FLOTTA — IL CONTATORE CHE NESSUNO HA LETTO NON SEGNA ZERO (01/08)
+   Censimento dei punti in cui Flotta riassume, colora o conta qualcosa a
+   partire dalle ore motore. Due righe facevano lo stesso lavoro — dentro
+   `prioritaOperative` e dentro `tagliandiInScadenza` — ed erano scritte tutt'e
+   due `Number.isFinite(+m.ore)`, con sopra il commento «chi non ha il
+   contatore torna null». Misurato: `+null` fa **0** e `Number.isFinite(0)`
+   risponde **true**, quindi un mezzo con `ore: null` (che è esattamente quello
+   che `parseMezziCsv` scrive quando il contatore è illeggibile, per una regola
+   scritta il 31/07) valeva **zero ore**.
+   La prova che c'era già — «un mezzo senza contatore non fa sembrare il
+   tagliando lontano» — passava lo stesso, ma per un motivo diverso dal suo
+   nome: non passava nessuna lettura del contatore, quindi il ritmo mancava
+   comunque e le due risposte coincidevano. È il caso (1) di CLAUDE.md: i dati
+   della prova fanno coincidere la risposta giusta con quella sbagliata. Qui
+   sotto le letture ci sono, ed è lì che il difetto si vede.
+   ══════════════════════════════════════════════════════════════════════════ */
+test("⛔ Flotta: con ore ignote e ritmo misurabile il tagliando NON viene contato", () => {
+  const oggi = new Date(2026, 7, 1, 10, 0, 0);
+  const g = (n) => new Date(Date.parse("2026-08-01T12:00:00Z") - n * 86400000).toISOString().slice(0, 10);
+  const mezzi = [{ id: "m1", nome: "Dumper D1 — CAT 745", ore: null, stato: "operativo" }];
+  // due letture del contatore a 18 giorni di distanza: il ritmo si MISURA
+  const letture = [{ mezzo: "Dumper D1", data: g(20), ore: 8355 },
+                   { mezzo: "Dumper D1", data: g(2), ore: 8416 }];
+  const man = [{ id: "n1", titolo: "Tagliando 250h", mezzo: "Dumper D1", dataPrevista: null, orePreviste: 100 }];
+  const t = flotta.tagliandiInScadenza(man, mezzi, letture, oggi);
+  eq(t.totale, 0, "col contatore ignoto non si conta un tagliando «fra 30 giorni»");
+  eq(t.aOre, 0, "e non lo si conta nemmeno fra quelli a ore");
+  eq(t.nonStimabili, 1, "va dichiarato a parte, che è la strada onesta");
+  eq(t.daStimare[0].mancano, null, "e «quante ore mancano» resta null: 100 − 0 era un numero inventato");
+});
+test("⛔ Flotta: «non è nel parco» e «senza contatore» sono due frasi diverse", () => {
+  const oggi = new Date(2026, 7, 1, 10, 0, 0);
+  const man = [{ id: "n1", titolo: "Tagliando 500h", mezzo: "Pala P1", dataPrevista: null, orePreviste: 6000 }];
+  const dentro = flotta.tagliandiInScadenza(man, [{ nome: "Pala P1 — CAT 980", ore: null }], [], oggi);
+  const fuori = flotta.tagliandiInScadenza(man, [], [], oggi);
+  ok(!/non è nel parco/.test(dentro.daStimare[0].perche),
+    "il mezzo C'È: dire che non è nel parco manda a cercare una macchina che sta lì — «"
+    + dentro.daStimare[0].perche + "»");
+  ok(/ore del contatore/.test(dentro.daStimare[0].perche), "si dice quale dato manca");
+  ok(/non è nel parco/.test(fuori.daStimare[0].perche), "e quando davvero non c'è, lo si dice");
+});
+test("⛔ Flotta: un mezzo senza contatore non fa comparire un avviso nel Quadro", () => {
+  const oggi = new Date(2026, 7, 1, 10, 0, 0);
+  const mezzi = [{ id: "m1", nome: "Dumper D1 — CAT 745", ore: null, stato: "operativo" }];
+  // 40 ore previste: con lo zero di comodo uscivano «tra 40 h» in GIALLO
+  const man = [{ id: "n9", titolo: "Tagliando 50h", mezzo: "Dumper D1", dataPrevista: null, orePreviste: 40 }];
+  eq(flotta.prioritaOperative(mezzi, man, [], oggi), [],
+    "nessuna riga: un avviso su un contatore mai letto è un allarme inventato");
+  // e il contatore che c'è continua a funzionare come sempre
+  const conOre = flotta.prioritaOperative([{ nome: "Dumper D1 — CAT 745", ore: 20, stato: "operativo" }], man, [], oggi);
+  eq(conOre.length, 1, "col contatore noto l'avviso c'è");
+  eq(conOre[0].badge, "tra 20 h", "e dice le ore vere");
+});
+test("⛔ Flotta: lo ZERO scritto apposta resta uno zero, non diventa «non lo so»", () => {
+  const oggi = new Date(2026, 7, 1, 10, 0, 0);
+  const man = [{ id: "n1", titolo: "Tagliando 250h", mezzo: "Pala P1", dataPrevista: null, orePreviste: 40 }];
+  // una macchina NUOVA ha davvero zero ore: la correzione non deve mangiarsi
+  // anche questo caso, che è un dato come un altro
+  const p = flotta.prioritaOperative([{ nome: "Pala P1 — CAT 980", ore: 0, stato: "operativo" }], man, [], oggi);
+  eq(p.length, 1, "il mezzo nuovo entra nel conto");
+  eq(p[0].badge, "tra 40 h", "con le sue 40 ore di distanza dal tagliando");
+  /* Senza letture del contatore il RITMO non si può misurare, quindi il
+     tagliando resta fra i non stimabili anche col contatore noto: quello che
+     conta è che il perché parli del ritmo, non delle ore del mezzo — sono due
+     assenze diverse e devono restare distinguibili. */
+  const t = flotta.tagliandiInScadenza(man, [{ nome: "Pala P1 — CAT 980", ore: 0 }], [], oggi);
+  eq(t.daStimare[0].mancano, 40, "le ore mancanti si sanno: 40 − 0 è una sottrazione vera");
+  ok(!/ore del contatore del mezzo|non risultano le ore/.test(t.daStimare[0].perche),
+    "e il perché non accusa un contatore che c'è — «" + t.daStimare[0].perche + "»");
+});
+test("⛔ Flotta: previsioneGiorni non risponde «adesso» a chi non ha misurato niente", () => {
+  /* `null <= 0` è **true** in JavaScript: la prima riga rispondeva 0, cioè
+     «il tagliando è da fare adesso», a chi non sapeva quante ore mancassero.
+     È la stessa forma di `avanzamentoLotto` che diceva «0%» di un lotto mai
+     misurato: un numero tranquillo dove non è stato misurato niente. */
+  eq(flotta.previsioneGiorni(null, 8), null, "quante ore mancano non si sa → non si stima");
+  eq(flotta.previsioneGiorni(undefined, 8), null, "e nemmeno con undefined");
+  eq(flotta.previsioneGiorni("", 8), null, "né con un campo vuoto");
+  eq(flotta.previsioneGiorni("boh", 8), null, "né con qualcosa che non è un numero");
+  eq(flotta.previsioneGiorni(0, 8), 0, "ma uno zero misurato resta «adesso»");
+  eq(flotta.previsioneGiorni(-10, 8), 0, "e un tagliando già passato pure");
+  eq(flotta.previsioneGiorni(80, 8), 10, "il conto di sempre non cambia");
+  eq(flotta.previsioneGiorni(80, null), null, "e il ritmo ignoto resta non stimabile");
+});
+test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte", () => {
+  /* La stessa regola stava scritta in due funzioni, con lo stesso difetto in
+     tutt'e due: adesso è una sola, e questa prova pretende che le due strade
+     rispondano nello stesso modo — se un giorno divergono, si vede qui. */
+  const oggi = new Date(2026, 7, 1, 10, 0, 0);
+  const man = [{ id: "n1", titolo: "Tagliando", mezzo: "Pala P1", dataPrevista: null, orePreviste: 30 }];
+  for (const ignoto of [null, undefined, "", "abc"]) {
+    const mezzi = [{ nome: "Pala P1 — CAT 980", ore: ignoto, stato: "operativo" }];
+    eq(flotta.prioritaOperative(mezzi, man, [], oggi), [],
+      `ore=${JSON.stringify(ignoto)}: nessun avviso nel Quadro`);
+    eq(flotta.tagliandiInScadenza(man, mezzi, [], oggi).nonStimabili, 1,
+      `ore=${JSON.stringify(ignoto)}: dichiarato fra i non stimabili`);
+  }
+});
+
+/* ══════════════════════════════════════════════════════════════════════
+   ⛔ TERRA — L'ASSENZA DI UN DATO NON È UN DATO FAVOREVOLE, SUL CONTATORE
+   CHE SI GUARDA PER PRIMO
+   ----------------------------------------------------------------------
+   Terra ne aveva già pagati due (il KPI dell'avanzamento verde con zero
+   rilievi, il badge «senza collaudo» dove il collaudo non era dovuto). Il
+   censimento del 01/08 ne ha misurati altri tre, e tutti e tre stavano sul
+   percorso che finisce davanti a un ente:
+    1. `vitaCava` rispondeva stato «ok» — pastiglia verde «Nei limiti», «0%
+       consumato», «1.200.000 m³ residui» — su una cava dove non era stato
+       registrato NESSUN rilievo e non era dichiarato nessun pregresso;
+    2. `estrattoComplessivo` faceva di un pregresso mai dichiarato uno zero
+       dichiarato, cioè la lettura più favorevole possibile, e il foglio da
+       consegnare stampava «0 m³»;
+    3. `kpiFrom` rispondeva «0%» di avanzamento senza nessun rilievo
+       dell'anno: uno 0% si legge «non ancora cominciato» dove la verità è
+       «nessuno ha misurato» (la stessa trappola di `avanzamentoLotto`).
+   La riga di confine, in tutt'e tre: uno zero MISURATO resta uno zero, e si
+   scrive. Quello che non si scrive è lo zero che nessuno ha misurato. */
+{
+  const oggiT = new Date("2026-08-01T10:00:00");
+  const attoT = { volumeAutorizzatoM3: 100000, sogliaGuardiaPct: 80, anniRitmo: 3 };
+  const scavo = (v, d) => ({ data: d || "2026-01-15", volumeM3: v, stato: "elaborato" });
+
+  test("⛔ Terra: un pregresso mai dichiarato non è uno zero dichiarato", () => {
+    /* la guardia sta PRIMA della conversione: `+null` fa zero e
+       `Number.isFinite(0)` risponde true */
+    for (const vuoto of [undefined, null, ""]) {
+      const e = terra.estrattoComplessivo([], { estrattoPregressoM3: vuoto });
+      eq(e.pregressoDichiarato, false, `pregresso ${JSON.stringify(vuoto)}: non dichiarato`);
+      eq(e.pregresso, 0, "il numero resta zero: non c'è niente di meglio da sommare");
+    }
+    eq(terra.estrattoComplessivo([], {}).pregressoDichiarato, false, "campo assente: non dichiarato");
+    eq(terra.estrattoComplessivo([], { estrattoPregressoM3: "boh" }).pregressoDichiarato, false,
+       "un testo che non è un numero non è una dichiarazione");
+    eq(terra.estrattoComplessivo([], { estrattoPregressoM3: 0 }).pregressoDichiarato, true,
+       "⛔ lo ZERO scritto apposta dall'utente resta una dichiarazione");
+    eq(terra.estrattoComplessivo([], { estrattoPregressoM3: 340000 }).pregressoDichiarato, true,
+       "e un numero vero pure");
+  });
+
+  test("⛔ Terra: `rilieviScavo` conta solo i rilievi che reggono il numero", () => {
+    const ril = [
+      scavo(10000, "2026-01-10"),                                                  // conta
+      { data: "2026-02-10", volumeM3: 5200, stato: "elaborato", provenienza: "cumulo" }, // no: già cavato
+      { data: "2026-03-10", volumeM3: null, stato: "elaborato" },                  // no: senza volume
+      { data: "2026-04-10", volumeM3: 900, stato: "pianificato" },                 // no: in calendario
+      scavo(0, "2026-05-10"),                                                      // SÌ: zero misurato è una misura
+    ];
+    const e = terra.estrattoComplessivo(ril, {});
+    eq(e.rilieviScavo, 2, "il volume misurato a zero conta, il cumulo e il pianificato no");
+    eq(e.rilevato, 10000, "e la somma non cambia");
+    eq(terra.estrattoComplessivo(ril, { dataRilascio: "2026-12-01" }).rilieviScavo, 0,
+       "i rilievi precedenti al rilascio appartengono a un altro titolo");
+  });
+
+  test("⛔ Terra: la vita cava non risponde «nei limiti» a chi non ha misurato niente", () => {
+    const v = terra.vitaCava(attoT, [], oggiT);
+    eq(v.misurabile, false, "nessun rilievo e nessun pregresso: non c'è niente da misurare");
+    ok(v.stato !== "ok", "e allora lo stato NON è quello che colora la pastiglia di verde");
+    eq(v.stato, "senza-misure", "si dice quale delle due cose manca, invece di tacere");
+    /* i numeri restano al loro posto: il conto va fatto lo stesso, è la
+       PAGINA che non deve mostrarli come una misura */
+    eq(v.pct, 0, "il conto resta zero");
+    eq(v.residuo, 100000, "e il residuo resta il concesso intero");
+  });
+
+  test("⛔ Terra: che cosa fa tornare misurabile la vita cava", () => {
+    eq(terra.vitaCava(attoT, [scavo(25000)], oggiT).stato, "ok",
+       "un rilievo di scavo: misura, e sotto la soglia è «ok»");
+    eq(terra.vitaCava({ ...attoT, estrattoPregressoM3: 25000 }, [], oggiT).stato, "ok",
+       "oppure un pregresso dichiarato dall'utente");
+    eq(terra.vitaCava(attoT, [scavo(0)], oggiT).stato, "ok",
+       "⛔ e un rilievo che ha misurato ZERO è una misura: 0% è vero e si scrive");
+    eq(terra.vitaCava(attoT, [{ data: "2026-01-15", volumeM3: 9000, stato: "elaborato", provenienza: "cumulo" }], oggiT).stato,
+       "senza-misure",
+       "una ripresa da cumulo NO: non è scavo sotto questo titolo, e infatti non lo consuma");
+    eq(terra.vitaCava(attoT, [{ data: "2026-01-15", volumeM3: 9000, stato: "pianificato" }], oggiT).stato,
+       "senza-misure", "e un rilievo in calendario nemmeno: non è ancora una misura");
+    eq(terra.vitaCava({ ...attoT, estrattoPregressoM3: 85000 }, [], oggiT).stato, "warn",
+       "e quando misura, le soglie funzionano come prima");
+  });
+
+  test("⛔ Terra: la vita cava dice se il pregresso è dichiarato", () => {
+    /* il consumato calcolato senza il pregresso è un MINIMO, e la scheda lo
+       deve poter dire: senza questa bandiera il residuo si legge come la
+       cifra vera invece che come la più alta possibile */
+    eq(terra.vitaCava(attoT, [scavo(25000)], oggiT).pregressoDichiarato, false, "campo mai compilato");
+    eq(terra.vitaCava({ ...attoT, estrattoPregressoM3: 0 }, [scavo(25000)], oggiT).pregressoDichiarato, true,
+       "zero scritto apposta: dichiarato");
+  });
+
+  test("⛔ Terra: l'avanzamento dell'anno è «—», non «0%», senza rilievi dell'anno", () => {
+    const pianoT = [{ pianificatoAnnuoM3: 12000 }];
+    eq(terra.kpiFrom([], [], pianoT, oggiT).avanzamento, null, "nessun rilievo: non è 0%, è ignoto");
+    eq(terra.kpiFrom([], [scavo(9000, "2025-12-31")], pianoT, oggiT).avanzamento, null,
+       "rilievi solo dell'anno prima: quest'anno non è stato misurato");
+    eq(terra.kpiFrom([], [{ data: "2026-03-01", volumeM3: 9000, stato: "elaborato", provenienza: "cumulo" }], pianoT, oggiT).avanzamento,
+       null, "solo cumuli: non consumano il piano annuo, quindi non lo misurano");
+    eq(terra.kpiFrom([], [scavo(0, "2026-03-01")], pianoT, oggiT).avanzamento, 0,
+       "⛔ ma un rilievo che ha misurato zero dà 0%, che è vero");
+    eq(terra.kpiFrom([], [scavo(3000, "2026-03-01")], pianoT, oggiT).avanzamento, 25,
+       "e il conto normale non cambia");
+  });
+
+  test("⛔ Terra: il riepilogo annuale non colora un consumo mai misurato", () => {
+    const R = terra.riepilogoAnnuale([], 2026, attoT, oggiT);
+    eq(R.misurabile, false, "nessun rilievo sotto il titolo e nessun pregresso");
+    eq(R.pregressoDichiarato, false, "e lo dice anche separatamente, per il foglio da consegnare");
+    eq(R.pctFineAnno, 0, "il conto resta zero: è la pagina a non doverlo colorare");
+    const conMisura = terra.riepilogoAnnuale([scavo(25000)], 2026, attoT, oggiT);
+    eq(conMisura.misurabile, true, "con un rilievo di scavo il cumulato è misurato");
+    eq(conMisura.pctFineAnno, 25, "e la percentuale è quella");
+    eq(terra.riepilogoAnnuale([], 2026, { ...attoT, estrattoPregressoM3: 40000 }, oggiT).misurabile, true,
+       "oppure basta il pregresso dichiarato");
+  });
+
+  test("⛔ Terra: lo storico anno per anno porta con sé la bandiera", () => {
+    /* la riga «0% del concesso» in verde su un anno senza nessun rilievo era
+       la stessa buona notizia, in formato badge */
+    const s = terra.serieAnnuale([], attoT, oggiT);
+    eq(s.length, 1, "l'anno in corso c'è sempre: la denuncia si prepara comunque");
+    eq(s[0].misurabile, false, "e dichiara che sotto non c'è nessuna misura");
+    eq(terra.serieAnnuale([scavo(25000)], attoT, oggiT)[0].misurabile, true, "con un rilievo, sì");
+  });
+}
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);

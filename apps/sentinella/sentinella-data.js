@@ -172,7 +172,15 @@ export function prioritaConformita(monitoraggi, adempimenti, oggi = new Date()) 
       titolo: m.nome || "Misura",
       // il numero era incollato grezzo: 36.8 col punto inglese, sulla prima
       // schermata dell'app, accanto a numeri scritti con la virgola
-      dettaglio: numeroIt(m.valore) + " " + (m.unita || "") + " / soglia " + numeroIt(m.soglia) + (m.nota ? " · " + m.nota : ""),
+      // ⛔ E su un punto MAI MISURATO il numero non va scritto affatto: `valore`
+      // lì è lo zero con cui il punto nasce, e «0 µg/m³ / soglia 40» è la riga
+      // più tranquilla che si possa leggere — accanto a un badge che dice
+      // «Mai misurato». Due frasi opposte sulla stessa riga: quella con la
+      // cifra è la sola che si guarda.
+      dettaglio: (st.stato === "mai"
+        ? "nessuna misura registrata · soglia " + numeroIt(m.soglia) + (m.unita ? " " + m.unita : "")
+        : numeroIt(m.valore) + " " + (m.unita || "") + " / soglia " + numeroIt(m.soglia))
+        + (m.nota ? " · " + m.nota : ""),
       badge: st.label });
   }
   for (const a of adempimenti || []) {
@@ -1147,6 +1155,15 @@ export function lettureNelPeriodo(m, dal, al) {
 // Statistiche di un punto in un periodo: quante letture, media, massimo,
 // minimo e quanti superamenti della soglia applicata (>= soglia, come in
 // tutto il resto dell'app). Senza letture torna n = 0 e valori null.
+// ⛔ SUPERAMENTI: ZERO SU ZERO MISURE NON È UN BUON RISULTATO. Media, massimo
+// e minimo dicevano già `null` su un mese senza letture; i superamenti no,
+// dicevano 0 — ed è il numero che si legge per primo, perché è quello che
+// l'ente guarda. In tabella finiva un «0» accanto a due trattini, cioè
+// l'unica cifra della riga, su un mese in cui nessuno ha misurato niente.
+// Senza letture la risposta è `null` = «non lo so», e chi mostra scrive «—».
+// Con le letture ma senza soglia resta 0: quella scelta è già dichiarata e
+// provata («non se ne inventa una per poter contare»), e chi mostra scrive
+// comunque «—» perché sa che la soglia non c'è.
 export function statPeriodo(m, dal, al, soglia) {
   const l = lettureNelPeriodo(m, dal, al);
   const v = l.map(x => x.valore);
@@ -1156,7 +1173,7 @@ export function statPeriodo(m, dal, al, soglia) {
     media: v.length ? v.reduce((a, b) => a + b, 0) / v.length : null,
     max: v.length ? Math.max(...v) : null,
     min: v.length ? Math.min(...v) : null,
-    superamenti: s == null ? 0 : v.filter(x => x >= s).length,
+    superamenti: !v.length ? null : s == null ? 0 : v.filter(x => x >= s).length,
   };
 }
 
@@ -1178,7 +1195,12 @@ export function confrontoMesi(m, soglia, oggi = new Date()) {
     corrente, precedente, confrontabile,
     debole: confrontabile && (corrente.n < 2 || precedente.n < 2),
     deltaMedia, deltaPct,
-    deltaSuperamenti: corrente.superamenti - precedente.superamenti,
+    // ⛔ Come `deltaMedia` e `deltaPct`: senza uno dei due mesi non c'è
+    // differenza da dire. Prima usciva un numero anche quando un mese era
+    // vuoto — e con due mesi vuoti usciva `0`, cioè «nessun peggioramento»
+    // ricavato dal nulla. Con `null` in mezzo la sottrazione avrebbe fatto
+    // finta di sapere lo stesso (`null - 3` fa −3).
+    deltaSuperamenti: confrontabile ? corrente.superamenti - precedente.superamenti : null,
   };
 }
 
