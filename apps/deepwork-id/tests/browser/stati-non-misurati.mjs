@@ -94,6 +94,16 @@ const CASI = [
      (`daStimare: 1`), quindi qui non si aggiungono dati: si sorveglia. */
   ['flotta', 'tagliando a ore senza ritmo: non si sa quando cadrà', '#nav-dash', null, '#kpi-tag',
     /non si sa quando/i],
+  /* ⛔ L'ULTIMO DEI CINQUE. Nel dettaglio della manutenzione: senza ritmo
+     misurato e con l'ipotesi svuotata, la riga dice «Quando cadrà non si sa» e
+     **la ragione** — «le letture del contatore coprono 12 giorni: per stimare
+     30 giorni servono almeno 15». Il commento del codice lo dice meglio di
+     me: una data intera su una macchina di cui nessuno ha letto le ore e'
+     «una previsione precisa, verificabile, e falsa dal primo addendo». */
+  ['flotta', 'manutenzione a ore senza ritmo né ipotesi: dice quando non si sa, e perché',
+    '#nav-man', null, '#man-list', /Quando cadrà non si sa/i,
+    { scrivi: '#man-oregiorno', valore: '' },
+    { vietato: /Fra \d+ (giorni|gg)/i, perche: 'senza ritmo né ipotesi non si stampa nessuna data' }],
   /* ⛔ Qui non basta che lo STATO sia dichiarato: il commento del modulo dice
      che il difetto vero e' il numero tranquillo scritto ACCANTO al badge —
      «0 µg/m³ / soglia 40» accanto a «Mai misurato», due frasi opposte sulla
@@ -157,7 +167,19 @@ for (const [app, casi] of Object.entries(perApp)) {
       const sel = `#pers-tabs [data-tab="${sotto}"]`;
       if (await p.$(sel)) { await p.click(sel); await p.waitForTimeout(800); }
     }
-    if (prima && prima.seleziona) {
+    if (prima && prima.scrivi) {
+      /* ⛔ Terzo modo di preparare la pagina, dopo il click e la tendina:
+         SCRIVERE in un campo. Serve per l'ultimo dei cinque stati veri, che si
+         accende quando l'utente **svuota** l'ipotesi di ore al giorno: senza
+         un ritmo misurato e senza ipotesi, l'app dice «non si sa quando»
+         invece di inventare una data. Un campo svuotato e' uno stato
+         dell'utente come un altro, e va raggiunto per digitazione. */
+      const ok = await p.fill(prima.scrivi, prima.valore).then(() => true).catch(() => false);
+      guardati++;
+      if (!ok) { dice(false, `${app}: ${etichetta} — non riesco a scrivere in ${prima.scrivi}`); continue; }
+      await p.dispatchEvent(prima.scrivi, 'input').catch(() => {});
+      await p.waitForTimeout(800);
+    } else if (prima && prima.seleziona) {
       /* una tendina, non un bottone: `selectOption` non basta da solo perche'
          la pagina ridisegna su «change», che va lasciato arrivare */
       const ok = await p.selectOption(prima.seleziona, prima.valore).then(() => true).catch(() => false);

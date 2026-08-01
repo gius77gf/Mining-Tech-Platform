@@ -2051,6 +2051,19 @@ campi interi, file delle macchine.
       Serve a **impedire il lavoro sbagliato**: chi riprendesse dalla scheda
       vecchia scriverebbe strati dati che esistono, l'errore che `CLAUDE.md`
       elenca fra i più costosi con quattro casi datati.
+- [x] ✅ **L'ULTIMO DEI CINQUE** *(01/08, Flotta)* — nel dettaglio di una
+      manutenzione a ore, senza ritmo misurato **e** con l'ipotesi svuotata, la
+      riga dice «Quando cadrà non si sa» **e la ragione**. Non è un dato che
+      manca nella dimostrazione: è uno **stato dell'utente**, che si raggiunge
+      **svuotando un campo** — da qui il terzo modo di preparare la pagina nel
+      banco (`scrivi`), dopo il click e la tendina. Il `vietato` qui è il cuore:
+      la riga non deve contenere «Fra N giorni», perché dire «non si sa» e
+      stampare accanto una data è come dire «mai misurato» e stampare uno zero.
+      Controprova: fatto inventare un ritmo di 8 h/giorno, **cadono due righe** —
+      il dettaglio e la piastrella del cartellone — ed è giusto, perché il
+      codice pretende che le due dicano la stessa cosa «o si smentiscono».
+      Banco **49/0**, 23 stati. **I cinque sono chiusi**, e di quei cinque
+      **uno era un difetto di prodotto vero**.
 - [x] ✅ **IL LOTTO SENZA FRONTE** *(01/08, Terra)* — quarto dei cinque: un lotto
       che non dichiara nessun fronte **non ha volume zero**, non ha un modo di
       essere misurato («misurati —», non «0 m³», perché su un lotto lo zero si
