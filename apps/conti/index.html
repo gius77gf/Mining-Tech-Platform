@@ -1257,6 +1257,7 @@ label.item:has(.dw-chk:checked){
   <div class="form-hint" style="margin:-4px 0 10px;">La quantità <b>esatta della soglia entra
     nello scaglione più alto</b>: con una soglia a 500 t, 500 t tonde pagano già il prezzo «da 500».</div>
   <div id="sca-list"></div>
+  <div class="note esito" id="pr-esito"></div>
   <div class="tools">
     <!-- ⚠️ Questo bottone aveva lo STESSO id dell'Esporta della scheda
          Listino: due elementi con lo stesso id, e getElementById restituisce
@@ -1265,7 +1266,6 @@ label.item:has(.dw-chk:checked){
          l'unico export che calcola i prezzi convertiti. -->
     <button class="dw-btn secondary" id="btn-lis-prezzi">Esporta prezzi convertiti (CSV)</button>
   </div>
-  <div class="note esito" id="pr-esito"></div>
 
   <div class="sec">Canoni e diritti di escavazione</div>
   <div class="note">Chi coltiva una cava versa alla Regione (e spesso al Comune) un canone
