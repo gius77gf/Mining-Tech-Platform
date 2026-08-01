@@ -117,6 +117,25 @@ export async function sezioniDi(p, nome) {
    linguette. È il gesto che farebbe una persona, non un forzare gli stili — che
    non regge, perché la schermata rimette a posto i propri stili appena cambia. */
 export async function vaiA(p, nome, sezione) {
+  /* ⛔ CHIAMATA CON DUE ARGOMENTI: NON NAVIGA, E NON SE NE ACCORGE NESSUNO.
+     Successo il 01/08 scrivendo una sonda: `vaiA(p, sez)` mette la sezione in
+     `nome`, lascia `sezione` a `undefined`, e la funzione esce senza cliccare
+     niente. La sonda ha girato otto sezioni di Conti misurando **otto volte la
+     stessa schermata** — e il risultato non sembrava rotto, sembrava un
+     prodotto strano: la stessa riga che compariva in ogni sezione. Da lì una
+     conclusione sbagliata sul prodotto, e mezz'ora buttata a cercarla nel posto
+     sbagliato.
+     Non è la firma a essere sbagliata (i banchi la usano bene da sempre): è che
+     l'errore è **silenzioso**, e un banco che non naviga risponde «tutto a
+     posto» dopo aver guardato una schermata su otto. Costa una riga impedirlo.
+     ⚠️ Il controllo è sul NUMERO di argomenti, non sul valore: `sezione` vuota
+     è legittima — è quello che risponde `sezioniDi` per le pagine senza barra
+     di navigazione, e vuol dire «guardala tutta in una passata». */
+  if (arguments.length < 3) {
+    throw new Error('vaiA(p, nome, sezione) vuole TRE argomenti: chiamata con '
+      + `${arguments.length} ("${nome}" e' finito in \`nome\`). Senza il terzo non naviga, `
+      + 'e il banco misurerebbe la stessa schermata a ogni giro.');
+  }
   if (sezione && sezione.startsWith('@')) {
     await p.evaluate((x) => { if (typeof nav === 'function') nav(x); }, sezione.slice(1)).catch(() => {});
     await p.waitForTimeout(450);

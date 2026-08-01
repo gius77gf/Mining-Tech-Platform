@@ -1,3 +1,14 @@
+> ⛔ **NUMERI SBAGLIATI IN QUESTO FILE — vedi
+> `20260801-161500_la-sonda-che-non-navigava.md`.** La misura nel browser
+> descritta qui («42 voci in tutte le sezioni, 36 con `.cliccabile`») è stata
+> presa da una sonda che **non navigava**: chiamava `vaiA` con due argomenti
+> invece di tre, quindi ha misurato **la stessa schermata sei volte**. Rifatta
+> come si deve: **39 voci, 14 con `.cliccabile`, 25 ferme, zero disaccordi**.
+> La correzione fatta al prodotto **resta giusta** — e vale più di quanto
+> scritto qui: le voci che smettono di promettere un tocco che non c'è sono
+> **25**, non 6. Lascio il file com'era, con questo avviso in cima: un
+> checkpoint non si riscrive.
+
 # Sentinella: la manina solo alle voci che si toccano
 
 **Data:** 01/08/2026 · **Area:** `apps/sentinella/index.html`
