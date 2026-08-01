@@ -122,6 +122,13 @@ const CASI = [
      e il pannello ne mostra tre. Terzo dei cinque stati veri. */
   ['conti', 'da fare adesso: la fattura senza scadenza compare', '#nav-dash', null, '#prio-list',
     /non si sa entro quando/i],
+  /* «non calcolabile» nel report per l'ente: un indice che non si può
+     calcolare lo dichiara invece di stampare uno zero. Delle quattro app che
+     sanno dire questa frase, in dimostrazione la mostra **solo** Sentinella —
+     le altre tre sono difese invisibili, annotate nel checkpoint. */
+  ['sentinella', 'indice non calcolabile nel report: lo dichiara', '#nav-rep', null, '#rep-doc',
+    /non calcolabile/i, null, { vietato: /non calcolabile[\s\S]{0,40}\b0[.,]?0*\b/i,
+                                perche: 'accanto a «non calcolabile» non si scrive uno zero' }],
   ['sentinella', 'punto in programma e mai misurato', '#nav-dash', null, '#all-list',
     /nessuna misura registrata/i, null, { vietato: /\d+[\s\u00a0]*[^\s]*\s*\/\s*soglia/i,
                                           perche: 'accanto a «mai misurato» non si scrive nessuna cifra' }],
@@ -204,7 +211,7 @@ for (const [app, casi] of Object.entries(perApp)) {
          nota: e' il cartellone in cima, che e' proprio il posto dove il numero
          tranquillo si vedrebbe. Un elenco di selettori e' anche una
          dichiarazione di dove si e' guardato. */
-      const SEL = '.item, .note, .badge, .board, .recap, .kpi';
+      const SEL = '.item, .note, .badge, .board, .recap, .kpi, .tag';
       const radice = document.querySelector(dove);
       if (!radice) return { assente: `contenitore ${dove} non trovato` };
       const semi = radice.matches(SEL) ? [radice] : [];

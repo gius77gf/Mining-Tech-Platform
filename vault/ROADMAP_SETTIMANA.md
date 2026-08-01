@@ -2051,6 +2051,19 @@ campi interi, file delle macchine.
       Serve a **impedire il lavoro sbagliato**: chi riprendesse dalla scheda
       vecchia scriverebbe strati dati che esistono, l'errore che `CLAUDE.md`
       elenca fra i più costosi con quattro casi datati.
+- [x] ✅ **QUATTRO LO SANNO DIRE, UNA SOLA LO MOSTRA** *(01/08)* — voce
+      successiva della classifica: «non calcolabile», in **quattro** app, sette
+      occorrenze e **nessun falso positivo** — tutti stati veri, fra cui il
+      **residuo del volume concesso sul foglio che va all'ente**. ⛔ Ma in
+      dimostrazione ne compare **una sola** (Sentinella): le altre tre non si
+      accendono perché la demo è troppo sana. Quinta ripetizione dello stesso
+      schema — però qui la conclusione **non** è «aggiungere subito i dati»: per
+      farli comparire servirebbero un titolo senza volume concesso e una pesata
+      senza quantità, cioè dati **rotti**, e infilarne troppi fa sembrare l'app
+      guasta invece che onesta (la stessa misura presa per i DDT: dieci righe
+      gialle su dodici erano rumore, due sono un insegnamento). Sorvegliata
+      quella che c'è, le altre tre **dichiarate** con la loro condizione. Banco
+      **51/0**, 24 stati.
 - [x] ✅ **L'ULTIMO DEI CINQUE** *(01/08, Flotta)* — nel dettaglio di una
       manutenzione a ore, senza ritmo misurato **e** con l'ipotesi svuotata, la
       riga dice «Quando cadrà non si sa» **e la ragione**. Non è un dato che
