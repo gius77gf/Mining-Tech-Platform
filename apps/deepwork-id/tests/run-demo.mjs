@@ -158,7 +158,17 @@ test("sentinella: id unici, valore/soglia numerici, date adempimenti", () => {
   idsOk(E.volate, "volate");
   for (const v of E.volate) {
     ok(isDate(v.data), `volata ${v.id}: data non valida ${v.data}`);
-    ok(isNum(v.kgTotali) && isNum(v.kgMaxRitardo) && isNum(v.distanzaRicettore), `volata ${v.id}: numerici`);
+    /* ⛔ ASSENTE NON È CORROTTO, anche qui. Questa riga pretendeva che ogni
+       volata avesse tutti i numeri — quindi la dimostrazione NON POTEVA
+       contenere il caso per cui la difesa esiste: la volata che non dichiara
+       la distanza del ricettore, su cui il report per l'ente scriveva
+       «distanza 0 m». È lo stesso difetto già corretto per le fatture senza
+       scadenza, in un'altra app e con un altro autore. Quello che va
+       impedito resta il numero che C'È e non si legge («abc», `NaN`): un
+       campo assente è uno stato che il prodotto sa raccontare. */
+    for (const [ch, val] of [["kgTotali", v.kgTotali], ["kgMaxRitardo", v.kgMaxRitardo],
+                             ["distanzaRicettore", v.distanzaRicettore]])
+      ok(val == null || isNum(val), `volata ${v.id}: ${ch} c'è ma non è un numero («${val}»)`);
     ok(["regolare", "contestazione"].includes(v.esito), `volata ${v.id}: esito «${v.esito}» sconosciuto`);
   }
 });

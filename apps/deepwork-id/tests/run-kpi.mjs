@@ -7001,6 +7001,37 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(righe[0].startsWith("2026-07-20"), true, "prima luglio");
     eq(righe[1].startsWith("2026-08-10"), true, "poi agosto");
   });
+  test("⛔ csv: una casella VUOTA non diventa uno zero, in nessuno dei due versi", () => {
+    /* ⛔ Il difetto stava su tutt'e due i lati e nessuno dei due lo vedeva,
+       perché si annullavano fra loro: `csvRegistroVolate` scriveva
+       `n(+v.distanzaRicettore || 0)` e `parseVolateCsv` leggeva
+       `Number.isFinite(n) ? … : 0`. Il giro di andata e ritorno restava
+       IDENTICO — 0 andava, 0 tornava — ed è esattamente la trappola scritta in
+       `CLAUDE.md`: due metà che sbagliano insieme tengono la prova verde. Per
+       questo qui si asserisce anche sul TESTO del file, dove la cella vuota o
+       lo «0» si vedono. Perché conta: il report per l'ente stampava
+       «distanza 0 m», che si legge come il ricettore dentro il fronte. */
+    const v = [{ data: "2026-07-20", fronte: "F1", nFori: null, kgTotali: 400,
+                 kgMaxRitardo: 20, distanzaRicettore: null, esito: "regolare" }];
+    const riga = sentinella.csvRegistroVolate(v).split("\n")[1];
+    eq(riga, "2026-07-20;F1;;400;20;;regolare;;;;;;eseguita;;;;;;",
+      "le due caselle non dichiarate escono VUOTE, non a zero");
+    const back = sentinella.parseVolateCsv(sentinella.csvRegistroVolate(v))[0];
+    eq(back.nFori, null, "e rientrano come «non dichiarato»");
+    eq(back.distanzaRicettore, null, "anche la distanza");
+    eq(back.kgTotali, 400, "mentre il numero dichiarato non si tocca");
+    const r = sentinella.refertoDaVolata(back);
+    eq(r.motivi.includes("distanza"), true, "e il referto sa che la distanza manca");
+    eq(r.sd, null, "quindi la distanza scalata non si calcola");
+  });
+  test("⛔ csv: uno ZERO scritto da qualcuno resta uno zero", () => {
+    /* la guardia sta sull'ASSENZA, non sul valore: chi dichiara zero fori ha
+       dichiarato qualcosa, e cancellarglielo sarebbe l'errore opposto */
+    const riga = sentinella.csvRegistroVolate([{ data: "2026-07-20", nFori: 0, kgTotali: 0 }]).split("\n")[1];
+    eq(riga.split(";")[2], "0", "zero fori dichiarati restano «0»");
+    eq(sentinella.parseVolateCsv(sentinella.csvRegistroVolate([{ data: "2026-07-20", nFori: 0 }]))[0].nFori, 0,
+      "e rientrano come zero, non come «non dichiarato»");
+  });
   test("⛔ csv: i numeri per un'altra macchina escono col PUNTO decimale", () => {
     /* il file lo legge un programma, non una persona: la virgola italiana
        sarebbe un separatore di colonna in mezzo a un numero */

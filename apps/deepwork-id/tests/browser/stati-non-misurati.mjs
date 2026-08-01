@@ -203,6 +203,24 @@ const CASI = [
   ['sentinella', 'punto in programma e mai misurato', '#nav-dash', null, '#all-list',
     /nessuna misura registrata/i, null, { vietato: /\d+[\s\u00a0]*[^\s]*\s*\/\s*soglia/i,
                                           perche: 'accanto a «mai misurato» non si scrive nessuna cifra' }],
+  /* ⛔ LA TABELLA DELLE VOLATE DEL REPORT SCRIVEVA «0» DOVE NON C'ERA NIENTE, e
+     sulla colonna della distanza «0 m» si legge come il ricettore DENTRO il
+     fronte. Il difetto stava su tutt'e tre i passaggi — il form salvava 0 su un
+     campo vuoto, il CSV lo esportava e lo rileggeva come 0, la tabella lo
+     stampava — e il giro di andata e ritorno restava verde perché le due metà
+     sbagliavano insieme.
+     ⚠️ Il banco NON cerca «non dichiarato» da solo: quella pastiglia il report
+     la scrive già per il limite di progetto senza norma, quindi la sonda
+     avrebbe trovato QUELLA e portato il nome di un altro caso (caso 1 della
+     tassonomia). Cerca invece la dichiarazione che sta SOPRA la tabella e che
+     conta le righe incomplete: col difetto rimesso quel conto va a zero e la
+     frase sparisce.
+     ⚠️ E qui NON c'è un `vietato`: il primo che avevo scritto cercava «sono
+     zeri» per vietarlo, e la frase giusta dice «**non** sono zeri» — cioè lo
+     conteneva, e il banco sarebbe caduto sul testo corretto. Un `vietato`
+     inventato per riempire la colonna è peggio di nessun `vietato`. */
+  ['sentinella', 'report: la tabella incompleta lo dichiara sopra di sé', '#nav-rep', null, '#rep-doc',
+    /non dichiara(?:no)? tutti i dati/i],
 ];
 
 /* ⛔ CONTI STA A PARTE, e non per pigrizia: il suo caso non è una riga di un
@@ -309,7 +327,11 @@ for (const [app, casi] of Object.entries(perApp)) {
          nota: e' il cartellone in cima, che e' proprio il posto dove il numero
          tranquillo si vedrebbe. Un elenco di selettori e' anche una
          dichiarazione di dove si e' guardato. */
-      const SEL = '.item, .note, .badge, .board, .recap, .kpi, .tag';
+      /* `.rep-punto-meta` è il paragrafo del report di Sentinella: senza di
+         lui il banco, dentro `#rep-doc`, poteva vedere solo le pastiglie —
+         e quello che il report DICE su una tabella incompleta è scritto in
+         un paragrafo, non in una pastiglia. */
+      const SEL = '.item, .note, .badge, .board, .recap, .kpi, .tag, .rep-punto-meta';
       const radice = document.querySelector(dove);
       if (!radice) return { assente: `contenitore ${dove} non trovato` };
       const semi = radice.matches(SEL) ? [radice] : [];

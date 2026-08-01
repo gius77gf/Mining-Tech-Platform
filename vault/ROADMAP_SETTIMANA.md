@@ -2547,6 +2547,29 @@ campi interi, file delle macchine.
       (11 caratteri) la misura **si ferma** e dice quale app si prende una frase
       che non dice. Tolto anche un numero contato a mano nell'intestazione.
       `stati-non-misurati` **58 → 63** prove, 30 → 32 stati.
+- [x] ✅ **«DISTANZA 0 M» SUL DOCUMENTO PER L'ENTE** *(01/08, Sentinella)* —
+      seguendo la voce «non indicata» si arriva alla tabella delle volate nel
+      **report di conformità**: `numeroIt(v.distanzaRicettore || 0)` scriveva
+      **«0»** su una volata che quel dato non l'ha mai avuto, e sulla colonna
+      della distanza «0 m» si legge come il **ricettore dentro il fronte**. Il
+      difetto stava su **tre** passaggi: il form salvava 0 su un campo vuoto
+      (che il controllo lascia passare apposta, tre righe sotto il commento che
+      dice «non si salva a zero»), il CSV lo esportava e lo rileggeva come 0, la
+      tabella lo stampava. ⚠️ **Il giro di andata e ritorno restava verde**
+      perché le due metà sbagliavano insieme — 0 andava, 0 tornava — cioè la
+      trappola scritta in `CLAUDE.md`: la prova nuova asserisce sul **testo** del
+      file. Controprova su **due piani separati**: coi due difetti cade la prova
+      sul testo, col **solo lato lettura** cade `nFori === null`; provando solo
+      la coppia, il lato lettura restava scoperto. Seconda prova per l'altra metà
+      della regola: **uno zero dichiarato resta uno zero**.
+      ⚠️ E `run-demo` **impediva alla dimostrazione di contenere il caso**
+      (`volata b4: numerici`): stesso difetto già corretto lo stesso giorno per
+      le fatture senza scadenza, in un'altra app e da un altro autore — segno che
+      è una forma, non un episodio. Corretto come là, con la controprova che
+      rimette `kgTotali: "abc"`. Il report adesso dichiara **sopra** la tabella
+      quante volate del periodo non sono complete, e casella e conto condividono
+      **una** condizione (`nonDichiarato`), non due copie. Prove **1121 → 1123**,
+      `stati-non-misurati` **63 → 64**, 33 stati.
 
 ---
 

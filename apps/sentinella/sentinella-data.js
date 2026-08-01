@@ -83,6 +83,16 @@ export const DEMO = {
     { id: "b3", data: "2026-08-04", fronte: "Fronte Sud", nFori: 38, kgTotali: 430, kgMaxRitardo: 20, distanzaRicettore: 240, esito: "regolare", note: "",
       stato: "prevista", ppvPrevista: 3.9, ppvPrevLimite: 5, ppvPrevNorma: "DIN residenziale @ 25 Hz",
       ppvPrevFonte: "genesi-litologia", airblastPrevisto: 121, codiceVolata: "GEN-20260804-9c71b" },
+    /* ⛔ LA VOLATA CHE NON DICHIARA LA DISTANZA. Succede: il brogliaccio si
+       compila in cava, e il campo della distanza del ricettore resta vuoto.
+       È un'ASSENZA — quindi sta nei dati d'esempio, e serve a far vedere la
+       cosa che il prodotto sa dire: nella tabella del report per l'ente la
+       casella scrive «non dichiarato» e sopra la tabella compare quante
+       volate del periodo non sono complete. Prima di oggi qui usciva
+       «distanza 0 m», che su un documento si legge come il ricettore dentro
+       il fronte, e la distanza scalata non si sarebbe potuta calcolare
+       comunque. */
+    { id: "b4", data: "2026-07-24", fronte: "Fronte Nord", nFori: 34, kgTotali: 390, kgMaxRitardo: 19, distanzaRicettore: null, esito: "regolare", note: "", stato: "eseguita" },
   ],
 };
 
@@ -522,7 +532,12 @@ export function riepilogoVolate(volate, oggi = new Date()) {
 // ⛔ La PPV PREVISTA non entra MAI nelle colonne della PPV misurata: sono due
 // colonne diverse perché sono due cose diverse (vedi T9).
 export function parseVolateCsv(text) {
-  const num = (v) => { const n = numIt(v); return Number.isFinite(n) ? Math.max(0, n) : 0; };
+  /* ⛔ `null`, non `0`: una casella vuota nel file non è una dichiarazione di
+     zero. Rispondeva `0` — e da lì il registro, e il report per l'ente,
+     scrivevano «0 m» dove nessuno aveva misurato niente. Vale anche per una
+     cella illeggibile: `refertoDaVolata` la conta fra i motivi per cui la
+     volata non è ancora un referto, che è la risposta giusta. */
+  const num = (v) => { const n = numIt(v); return Number.isFinite(n) ? Math.max(0, n) : null; };
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
     .filter(r => !isIntestazione(r, "data"))
     .map(r => {
@@ -1980,13 +1995,21 @@ export const CSV_VOLATE_INTESTAZIONE =
 // un'altra macchina.
 export function csvRegistroVolate(volate) {
   const n = (x) => { const v = +x; return Number.isFinite(v) ? String(Math.round(v * 1e4) / 1e4) : ""; };
+  /* ⛔ UNA CASELLA VUOTA NON È UNO ZERO, e sul registro delle volate è la
+     differenza fra «il ricettore è a zero metri» e «la distanza non l'ha
+     scritta nessuno». Prima qui c'era `n(+v.nFori || 0)`: la guardia `|| 0`
+     trasformava l'assenza in una dichiarazione, e il file esportato — che va
+     all'ente, o torna dentro con l'import — la portava come tale.
+     `n` da solo la risposta giusta ce l'aveva già (`""` sui non finiti): era
+     il `|| 0` davanti a impedirgliela. */
+  const cella = (x) => (x == null || String(x).trim() === "" ? "" : n(x));
   const righe = (volate || []).slice()
     .sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")))
     .map(v => {
       const p = ppvDiVolata(v), q = previsioneDiVolata(v);
       return [
         String(v.data || ""), csvCell(v.fronte || ""),
-        n(+v.nFori || 0), n(+v.kgTotali || 0), n(+v.kgMaxRitardo || 0), n(+v.distanzaRicettore || 0),
+        cella(v.nFori), cella(v.kgTotali), cella(v.kgMaxRitardo), cella(v.distanzaRicettore),
         v.esito === "contestazione" ? "contestazione" : "regolare", csvCell(v.note || ""),
         p ? n(p.valore) : "", p ? p.fonte : "", csvCell(p ? p.punto : ""), p ? p.ora : "",
         statoVolata(v),

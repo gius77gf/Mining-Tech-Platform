@@ -2648,17 +2648,37 @@ textarea.dw-input{
         <td class="stato">${x.stato === "chiuso" ? '<span class="tag ok">chiuso</span>' : '<span class="tag warn">aperto</span>'}</td></tr>`;
       }).join("")}</tbody></table></div>`;
 
+  /* ⛔ IN UN DOCUMENTO PER L'ENTE UNO ZERO È UNA DICHIARAZIONE. Queste caselle
+     scrivevano `numeroIt(v.kgTotali || 0)`: su una volata che quel dato non
+     l'ha mai avuto uscivano «0 fori», «0 kg» e — la peggiore — «distanza 0 m»,
+     cioè il ricettore dentro il fronte. Chi legge il report non ha modo di
+     distinguerlo da una misura. Adesso la casella dice «non dichiarato», che è
+     la stessa parola che il report usa già per il limite di progetto senza
+     norma. Lo zero VERO, scritto da qualcuno, continua a comparire come zero:
+     la guardia sta sull'assenza, non sul valore. */
+  /* UNA condizione sola per la casella e per il conto qui sotto: se fossero due
+     copie, un domani la frase direbbe «tutto completo» mentre una casella
+     scrive «non dichiarato» — ed è la riga che il banco guarda. */
+  const nonDichiarato = (x) => x == null || String(x).trim() === "" || !Number.isFinite(+x);
+  const cellaVolata = (x, dec) => nonDichiarato(x)
+    ? '<span class="tag">non dichiarato</span>' : esc(numeroIt(+x, dec));
+  /* Quante volate del periodo lasciano scoperta almeno una casella: si dice
+     SOPRA la tabella, perché una riga con un «non dichiarato» in mezzo a
+     venti si perde, e il lettore deve sapere che la tabella non è completa
+     PRIMA di leggerla. */
+  const volateIncomplete = (righe) => (righe || []).filter(v =>
+    [v.nFori, v.kgTotali, v.kgMaxRitardo, v.distanzaRicettore].some(nonDichiarato)).length;
   const sezVolate = (R) => !R.nVolate ? "" : `<div class="rep-sez">Volate del periodo</div>
     <div class="rep-punto-meta">Le volate sono riportate come <b>contesto</b>: servono a spiegare i
       picchi delle vibrazioni e della sovrappressione d'aria nei giorni in cui si è sparato.
       Il confronto fra la PPV <b>prevista</b> e la PPV <b>misurata</b> di ciascuna volata sta nella
-      sezione subito dopo questa tabella.</div>
+      sezione subito dopo questa tabella.${volateIncomplete(R.volate) ? `<br><b>Attenzione: ${volateIncomplete(R.volate)} ${volateIncomplete(R.volate) === 1 ? "volata di questo periodo non dichiara" : "volate di questo periodo non dichiarano"} tutti i dati.</b> Le caselle marcate <b>«non dichiarato»</b> non sono zeri: sono valori che nessuno ha registrato, e senza di essi la distanza scalata (SD) non si calcola.` : ""}</div>
     <div class="tab-wrap"><table class="tab">
       <thead><tr><th>Data</th><th>Fronte</th><th>Fori</th><th><span class="u">kg</span> totali</th><th><span class="u">kg</span> max/ritardo</th><th>Distanza (<span class="u">m</span>)</th><th>SD</th><th>Esito</th></tr></thead>
       <tbody>${R.volate.map(v => { const sd = scaledDistance(v.distanzaRicettore, v.kgMaxRitardo);
         return `<tr><td>${fmtD(v.data)}</td><td class="n">${esc(v.fronte || "—")}</td>
-        <td>${+v.nFori || 0}</td><td>${esc(numeroIt(v.kgTotali || 0))}</td>
-        <td>${esc(numeroIt(v.kgMaxRitardo || 0))}</td><td>${esc(numeroIt(v.distanzaRicettore || 0))}</td>
+        <td>${cellaVolata(v.nFori, 0)}</td><td>${cellaVolata(v.kgTotali)}</td>
+        <td>${cellaVolata(v.kgMaxRitardo)}</td><td>${cellaVolata(v.distanzaRicettore)}</td>
         <td>${sd != null ? esc(numeroIt(sd)) : "—"}</td>
         <td class="stato">${v.esito === "contestazione" ? '<span class="tag danger">contestazione</span>' : '<span class="tag ok">regolare</span>'}</td></tr>`;
       }).join("")}</tbody></table></div>`;
@@ -2946,7 +2966,14 @@ textarea.dw-input{
       // su una volata che porta previsto, misurato e scarto la riga andava a
       // capo tre volte — e una riga di dati che va a capo tre volte non si
       // legge, si scorre. Una volata senza PPV resta com'era: una riga sola.
-      const pezzi = [`${+v.nFori||0} fori`, `${(+v.kgTotali||0).toLocaleString("it-IT")} kg`];
+      /* stessa regola della tabella del report: «0 fori» e «0 kg» non sono la
+         risposta per una volata che quei dati non li ha mai avuti — e qui la
+         riga li scriveva sempre, mentre carica massima e distanza le ometteva
+         già quando mancavano */
+      const pezzi = [
+        v.nFori == null || !Number.isFinite(+v.nFori) ? "fori non dichiarati" : `${+v.nFori} fori`,
+        v.kgTotali == null || !Number.isFinite(+v.kgTotali) ? "kg non dichiarati" : `${esc(numeroIt(+v.kgTotali))} kg`,
+      ];
       if (+v.kgMaxRitardo) pezzi.push("max/ritardo " + esc(numeroIt(+v.kgMaxRitardo)) + " kg");
       if (+v.distanzaRicettore) pezzi.push("ricettore a " + esc(numeroIt(+v.distanzaRicettore)) + " m");
       if (sd != null) pezzi.push("<b>SD " + esc(numeroIt(sd)) + "</b>");
@@ -3158,11 +3185,21 @@ textarea.dw-input{
         "«" + rotto.r.grezzo + "» non è un numero."); return;
     }
     campiNum.forEach(c => err(c.id, false));
-    const vn = (id) => { const c = campiNum.find(x => x.id === id); return c.r.ok ? c.r.valore : 0; };
+    /* ⛔ CAMPO VUOTO → `null`, NON `0`. Il commento qui sopra dice «un numero
+       illeggibile si dice, non si salva a zero: un chilo di esplosivo
+       scomparso dal registro è un dato falso verso l'ente» — e poi questa
+       riga faceva esattamente quello per il campo VUOTO, che il controllo
+       lascia passare apposta (`!c.r.vuoto`). Da lì lo zero entrava nel
+       registro e arrivava fino alla tabella del report, dove «distanza 0 m»
+       si legge come il ricettore dentro il fronte. Un campo che nessuno ha
+       compilato è «non dichiarato», e `refertoDaVolata` lo sa già leggere. */
+    const vn = (id) => { const c = campiNum.find(x => x.id === id); return c.r.ok ? c.r.valore : null; };
+    const interoVuoto = (id) => { const t = String($(id).value || "").trim();
+      return t === "" || !Number.isFinite(+t) ? null : Math.max(0, Math.round(+t)); };
     err("vol-data", false);
     await db.aggiungi("volate", {
       data, fronte: $("vol-fronte").value.trim(),
-      nFori: +$("vol-nfori").value || 0, kgTotali: vn("vol-kg"),
+      nFori: interoVuoto("vol-nfori"), kgTotali: vn("vol-kg"),
       kgMaxRitardo: vn("vol-kgmax"), distanzaRicettore: vn("vol-dist"),
       esito: $("vol-esito").value, note: "",
     });
