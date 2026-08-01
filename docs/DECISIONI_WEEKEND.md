@@ -10,6 +10,77 @@ può procedere con l'attuazione.
 
 ---
 
+# 📖 Da dove cominciare — le decisioni aperte sono **25**
+
+*Questa pagina è stata aggiunta il 01/08 per una ragione precisa: hai scritto
+che avresti potuto rispondere «in settimana», e un file di cinquecento righe con
+venticinque caselle non è una cosa a cui si risponde in una sera. Qui sotto le
+stesse venticinque, ordinate per **quanto ti costano a te** e con, per ognuna,
+la risposta che darei io. Il testo lungo resta nelle sezioni numerate: questa è
+solo la porta d'ingresso.*
+
+## 🔴 Le tre che NON prendo da solo, mai — e che restano ferme finché non parli
+
+Non è prudenza mia: è una regola che hai dato tu, ed è scritta in `CLAUDE.md`.
+Toccano la sicurezza delle persone o dei dati, e una scelta sbagliata qui non si
+vede subito.
+
+| # | in una riga | perché aspetta te |
+|---|---|---|
+| **3** | i dati di default nel core (nomi, telefoni, IBAN) sono **veri o inventati**? | se sono veri sono **pubblici su GitHub** adesso |
+| **4** | via libera a togliere le **password in chiaro** dal sorgente | va fatta insieme alla rotazione di tutte le password: se la faccio da solo qualcuno resta fuori |
+| **9** | le **curve dei limiti di vibrazione** (USBM/DIN) esatte | è la soglia che dice a una cava se può sparare: la cambio solo se me lo dici |
+
+## 🟡 Le tre che richiedono che tu apra qualcosa
+
+Non posso farle io perché servono un tuo account o un tuo file.
+
+| # | in una riga | che cosa ti chiede |
+|---|---|---|
+| **1** | creare il progetto Firebase nuovo | un account Google, dieci minuti, e incollarmi la config |
+| **2** | le regole di sicurezza del progetto **esistente** | aprire la console e incollarmi quello che c'è scritto |
+| **7** | la prova drone → Genesi con un volo vero | un file di un volo tuo |
+
+## 🟢 Le diciannove che posso portare avanti io, se non dici niente
+
+Sono scelte di **prodotto**, non di sicurezza. Per ognuna ho una risposta che mi
+convince, e sotto trovi la ragione per esteso. **Se entro la settimana non dici
+niente, procedo con la colonna «la mia risposta» e lo scrivo nel commit**, così
+resta chiaro che l'ha decisa il ciclo e non tu — e si cambia in qualunque
+momento.
+
+| # | la domanda, in una riga | la mia risposta |
+|---|---|---|
+| **5a** | come suona il messaggio quando un salvataggio non riesce | «non è stato salvato», mai un codice d'errore |
+| **5b** | il lavoro **senza rete** (giro macchina, appello al fronte) | **sì**, ma prima misuro cosa succede a due persone che scrivono la stessa riga |
+| **6** | la geometria del fronte in Genesi | resta com'è finché non c'è un volo vero da confrontare (dipende da **7**) |
+| **8** | quale funzione nuova per prima nelle app | quella che l'ispettore chiede per prima, non quella più citata dai concorrenti |
+| **10a** | l'abbonamento è una **barriera vera**? | sì: se hai solo Campo, Scudo non si apre |
+| **10b** | chi può **cancellare** dentro l'azienda | solo chi ha creato l'organizzazione, e con conferma scritta |
+| **10c** | al primo cliente, un utente solo o più | più utenti: una cava ha almeno il titolare e il capocava |
+| **11a** | Deepwork è il **diario**, Genesi il **tavolo da disegno** | confermo: è la frase che regge alla domanda «perché due app» |
+| **11b** | le tre sovrapposizioni fra i due | si tolgono da Deepwork, che è il posto dove pesano di più |
+| **11c** | alla presentazione: due app o una | **due**, e si mostra il ponte fra loro — è la cosa che i concorrenti non hanno |
+| **12a** | export dei dati **ri-caricabile** | sì: senza, il cliente ha una copia che non sa rimettere dentro |
+| **12b** | oppure dirlo in chiaro prima del pilota | si fa **comunque**, anche con l'export: è onestà, non un ripiego |
+| **13** | una mansione **senza requisiti**: «può andare» o «non lo sappiamo»? | **non lo sappiamo** |
+| **14** | un DPI **senza data di sostituzione**: verde o attenzione? | **attenzione** |
+| **15** | dove vive «Il Quadro», il cruscotto del titolare | nel **core**: è la cosa che il titolare apre per prima |
+| **16** | un punto di monitoraggio **senza soglia** | stato a sé, «Senza soglia», e i conteggi di conformità lo dicono |
+| **17** | un infortunio a **prognosi aperta**: quante giornate perse? | si distingue da «0», e la gravità si dichiara un **minimo** |
+| **18a** | il volume rimesso per il **recupero** si toglie dall'onere? | è un'opzione nella scheda del titolo: cambia da Regione a Regione |
+| **18b** | un recupero **a cavallo di due anni** | conta nell'anno in cui **finisce** |
+
+⚠️ Noterai che dieci di queste diciannove danno la stessa risposta con parole
+diverse: **quando non si sa, si dice che non si sa.** Non è una fissazione — è
+il principio che hai dato tu («l'assenza di un dato non è un dato favorevole»),
+e ogni volta che lo abbiamo violato l'app diceva a qualcuno una cosa
+tranquillizzante che nessuno aveva misurato. Se su questo sei d'accordo in
+generale, **una riga sola basta per tutte e dieci**, e le altre nove sono scelte
+vere su cui ha senso che tu dica la tua.
+
+---
+
 ## 1. Creazione del progetto Firebase nuovo
 - **Stato**: guida pronta, niente creato.
 - **Decisione che serve**: crei tu il progetto (serve un account Google) e

@@ -324,6 +324,38 @@ test("docs/LA_STRUTTURA_DEL_CORE_SCRITTA_SEI_VOLTE.md: il conto del contagio è 
   ok(+m[1] === toccati, `il documento dice ${m[1]} selettori, ne conto ${toccati}`);
 });
 
+/* ⛔ LA PORTA D'INGRESSO DELLE DECISIONI È UNA SECONDA COPIA, QUINDI INVECCHIA.
+   Il 01/08 in cima a `DECISIONI_WEEKEND.md` è stata messa una pagina che ordina
+   le decisioni aperte per quanto costano al fondatore — utile, perché a
+   venticinque caselle sparse su cinquecento righe non si risponde in una sera.
+   Ma è un **elenco**, e un elenco è la cosa che in questo repo invecchia sempre:
+   basta spuntare una casella, o aggiungere una decisione in fondo, e la porta
+   d'ingresso dice un numero che non è più vero — proprio a chi la apre per
+   fidarsi. Due pretese, tutt'e due meccaniche:
+     1. il numero dichiarato in testa è **quello vero** delle caselle aperte;
+     2. **ogni sezione numerata compare** in una delle tre tabelle: una decisione
+        aggiunta in fondo e non indicizzata è una decisione che il fondatore non
+        vede, ed è peggio di non avere l'indice. */
+{
+  const testo = readFileSync(join(RADICE, "docs/DECISIONI_WEEKEND.md"), "utf8");
+  const aperte = (testo.match(/^- \[ \]/gm) || []).length;
+  const porta = /le decisioni aperte sono \*\*(\d+)\*\*/.exec(testo);
+  test("docs/DECISIONI_WEEKEND.md: la porta d'ingresso conta le decisioni aperte che ci sono davvero", () => {
+    ok(porta, "non trovo la frase «le decisioni aperte sono **N**» in cima al documento");
+    ok(+porta[1] === aperte, `la porta dice ${porta[1]}, di caselle aperte ce ne sono ${aperte}`);
+  });
+
+  const sezioni = [...testo.matchAll(/^## (\d+)\. /gm)].map((m) => m[1]);
+  /* l'indice cita le sezioni in grassetto nelle celle: `| **13** | …` — e anche
+     le lettere (`**18a**`), che qui si riducono al numero della sezione */
+  const citate = new Set([...testo.matchAll(/\|\s*\*\*(\d+)[a-z]?\*\*\s*\|/g)].map((m) => m[1]));
+  test("docs/DECISIONI_WEEKEND.md: nessuna decisione resta fuori dalla porta d'ingresso", () => {
+    const fuori = sezioni.filter((n) => !citate.has(n));
+    ok(!fuori.length, `${fuori.length} sezioni non compaiono in nessuna tabella dell'indice: ${fuori.join(", ")}`);
+  });
+  console.log(`\ndecisioni del fondatore: ${aperte} aperte, ${sezioni.length} sezioni, ${citate.size} indicizzate`);
+}
+
 /* Quanti soggetti ha guardato davvero questa parte: un «tutto a posto»
    ottenuto non leggendo niente è il difetto raccolto tre volte in CLAUDE.md. */
 console.log(`\nmisure su Genesi: ${ID_MODALE.length + ID_EDITOR_3D.length} id verificati, `
