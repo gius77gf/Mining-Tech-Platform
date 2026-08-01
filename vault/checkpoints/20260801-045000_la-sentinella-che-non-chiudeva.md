@@ -85,3 +85,38 @@ un quarto. Leggerlo fino in fondo resta il passo che chiude la giornata di
 verifiche. In parallelo, restano da guardare a schermo — quando la CPU si
 libera — le **cinque righe nuove di Scudo**, che il loro cantiere ha dichiarato
 non viste.
+
+---
+
+## Aggiornamento — la catena aveva un anello morto *(01/08, stessa notte)*
+
+Seguendo la catena un anello più in là: l'allarme manda il fondatore a
+`docs/ROUTINE_AUTOMATICA.md`, e **la prima istruzione di quel documento era un
+comando che non esiste.**
+
+    /riarma-routine
+
+Verificato: in `.claude/skills/` c'è **una sola** skill, `weekly-kickoff` — e la
+sua descrizione dice testualmente di usarla per «riarbare la Cloud Routine di
+sviluppo automatico», con fra i trigger «riarma la routine di sviluppo». Il
+comando giusto c'era, il documento ne nominava un altro.
+
+È l'anello peggiore in cui avere un errore: il fondatore lo legge **quando tutto
+il resto è già morto**, non è tecnico, e quella riga è la prima cosa che prova.
+Il documento aveva un ripiego («se la scorciatoia non fosse disponibile,
+incolla questo testo»), quindi non era una strada chiusa — ma la porta
+principale non si apriva.
+
+Corretti tutti e due i punti: il documento, e **il corpo dell'allarme**, che
+adesso dà il comando direttamente invece di rimandare a un documento. Riprovato
+eseguendo il passo con `gh` finto: l'issue esce con `/weekly-kickoff` e
+l'alternativa a parole.
+
+### E un guard che ho deciso di NON scrivere
+
+La tentazione era un controllo «ogni comando slash nominato nei documenti
+esiste». Misurato prima di scriverlo: nei documenti i `/parola` sono **37 volte
+`/apps`**, poi `/index`, `/x50`, `/ora`, `/foro`, `/giorno`, `/prezzo` — cioè
+**percorsi e unità di misura** (`€/ora`, `m³/giorno`), non comandi. Un controllo
+così sarebbe rumoroso dal primo giorno, e una regola rumorosa si spegne. Il caso
+vero era uno solo ed è corretto.

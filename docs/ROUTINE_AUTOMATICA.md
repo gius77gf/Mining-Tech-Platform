@@ -44,7 +44,16 @@ di Claude sono morte. Non ripara: avvisa.
 Apri **una sessione qualsiasi su claude.ai/code con il repository
 Mining-Tech-Platform collegato** (è il punto essenziale) e scrivi:
 
-    /riarma-routine
+    /weekly-kickoff
+
+⚠️ **Qui c'era scritto `/riarma-routine`, e quel comando NON ESISTE.** Verificato
+il 01/08: in `.claude/skills/` c'è **una sola** skill, `weekly-kickoff`, e la sua
+descrizione dice testualmente di usarla per «riarmare la Cloud Routine di
+sviluppo automatico», con fra i trigger «riarma la routine di sviluppo».
+Era la **prima istruzione** che il fondatore avrebbe letto nel momento peggiore —
+quando il lavoro automatico è morto — e non faceva niente. Se preferisci non
+usare la scorciatoia, va bene anche scrivere a parole *«riarma la routine di
+sviluppo automatico»*: la skill si attiva lo stesso.
 
 Se la scorciatoia non fosse disponibile, incolla questo testo:
 

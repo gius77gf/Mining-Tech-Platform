@@ -87,8 +87,10 @@ jobs:
           Apri una sessione su claude.ai/code **con il repository
           Mining-Tech-Platform collegato** — è il punto essenziale — e scrivi:
 
-          > Riarma la routine di sviluppo automatico seguendo
-          > \`docs/ROUTINE_AUTOMATICA.md\`.
+          > /weekly-kickoff
+
+          (oppure, a parole: *«riarma la routine di sviluppo automatico»* — la
+          procedura completa è in \`docs/ROUTINE_AUTOMATICA.md\`.)
 
           La riparazione è confermata solo quando compare un nuovo commit che
           inizia con \`canarino:\`. Non fidarti di altre conferme.
