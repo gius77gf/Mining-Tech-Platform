@@ -23,6 +23,20 @@
    non può vedere è una difesa che nessuno può controllare — e alla prima
    modifica della dimostrazione sparisce senza far rumore.
 
+   ⛔ DUE FAMIGLIE DI STATI, E SI RAGGIUNGONO IN MODO DIVERSO. Quasi tutti i
+   casi qui sotto sono ASSENZE — un lotto senza fronte, un anno senza rilievi,
+   una fattura senza scadenza — e un'assenza sta benissimo nei dati
+   d'esempio: è uno stato che il prodotto sa raccontare, e vederlo in
+   dimostrazione è un modo di mostrarlo (è la stessa distinzione che
+   `run-demo.mjs` fa fra il dato ASSENTE, ammesso, e quello CORROTTO,
+   vietato). Ma ce n'è una seconda famiglia: le CONTRADDIZIONI, dove i dati
+   ci sono tutti e non tornano fra loro. Quelle **non vanno messe in
+   dimostrazione**, perché sono lo sbaglio di chi compila, e una demo che le
+   contiene mette in vetrina una cava che tiene male i conti. Si raggiungono
+   invece **digitando**, cioè facendo lo stesso gesto che le crea: `prima`
+   accetta un ELENCO di passi apposta per questo. La prima è la disponibilità
+   di Campo, in fondo ai suoi casi.
+
    ⛔ E si pretende la RIGA, non il testo: la prima versione di questa sonda
    (in scratchpad) trovava «Senza data di nomina» dentro il riepilogo in cima e
    diceva «c'è», mentre la riga della persona stava in una scheda chiusa, alta
@@ -82,6 +96,28 @@ const CASI = [
     /\bassente\b[\s\S]*ancora da spuntare/i, { seleziona: '#chk-turno', valore: 'Mattina' }],
   ['campo', 'appello completo: il contrasto', '#nav-rap', null, '#pre-board',
     /appello completo/i, { seleziona: '#chk-turno', valore: 'Pomeriggio' }],
+  /* ⛔ IL PRIMO STATO CHE NON PUÒ STARE NELLA DIMOSTRAZIONE, E VA RAGGIUNTO
+     DIGITANDO. I minuti di fermo superano la durata dichiarata del turno: i
+     due numeri non tornano, quindi la disponibilità NON si calcola — una
+     percentuale negativa sarebbe «una bugia con l'aria di un dato».
+     Perché non sta in dimostrazione: gli altri stati di questo banco sono
+     ASSENZE (un lotto senza fronte, un anno senza rilievi, una fattura senza
+     scadenza), e un'assenza nella demo mostra una cosa che il prodotto sa
+     dire. Questo invece è una CONTRADDIZIONE fra due dati presenti, cioè uno
+     sbaglio di chi compila: metterlo nei dati d'esempio vorrebbe dire mettere
+     in vetrina una cava che tiene male i conti. È lo stesso confine che
+     `run-demo.mjs` traccia fra il dato ASSENTE (ammesso, anzi utile) e il dato
+     CORROTTO (vietato) — e una contraddizione sta dalla parte del secondo.
+     Quindi si fa quello che farebbe l'utente: si dichiarano mezz'ora di turno
+     su un turno che ha già 55 minuti di fermo registrati, e si guarda cosa
+     scrive l'app. `vietato` la percentuale: è tutto il punto dello stato.
+     ⚠️ Va TENUTO PER ULTIMO fra i casi di Campo: è l'unico che SCRIVE nella
+     dimostrazione (la durata dichiarata resta), quindi un caso messo dopo
+     misurerebbe una pagina che questo banco ha già cambiato. */
+  ['campo', 'disponibilità che non torna: nessuna percentuale, mai', '#nav-rap', null, '#disp-stato',
+    /non calcolabile/i,
+    [{ scrivi: '#disp-ore', valore: '0,5' }, { tocca: '#btn-disp' }],
+    { vietato: /\d\s*%/, perche: 'con i due numeri che non tornano non si stampa nessuna percentuale' }],
   /* Flotta e Sentinella un caso ciascuna ce l'avevano gia' in dimostrazione:
      qui non si aggiungono dati, si mette sotto guardia quello che c'e' — se
      un domani sparisce dalla demo, il banco lo dice invece di restare verde. */
@@ -192,37 +228,56 @@ for (const [app, casi] of Object.entries(perApp)) {
       const sel = `#pers-tabs [data-tab="${sotto}"]`;
       if (await p.$(sel)) { await p.click(sel); await p.waitForTimeout(800); }
     }
-    if (prima && prima.scrivi) {
-      /* ⛔ Terzo modo di preparare la pagina, dopo il click e la tendina:
-         SCRIVERE in un campo. Serve per l'ultimo dei cinque stati veri, che si
-         accende quando l'utente **svuota** l'ipotesi di ore al giorno: senza
-         un ritmo misurato e senza ipotesi, l'app dice «non si sa quando»
-         invece di inventare una data. Un campo svuotato e' uno stato
-         dell'utente come un altro, e va raggiunto per digitazione. */
-      const ok = await p.fill(prima.scrivi, prima.valore).then(() => true).catch(() => false);
-      guardati++;
-      if (!ok) { dice(false, `${app}: ${etichetta} — non riesco a scrivere in ${prima.scrivi}`); continue; }
-      await p.dispatchEvent(prima.scrivi, 'input').catch(() => {});
-      await p.waitForTimeout(800);
-    } else if (prima && prima.seleziona) {
-      /* una tendina, non un bottone: `selectOption` non basta da solo perche'
-         la pagina ridisegna su «change», che va lasciato arrivare */
-      const ok = await p.selectOption(prima.seleziona, prima.valore).then(() => true).catch(() => false);
-      guardati++;
-      if (!ok) { dice(false, `${app}: ${etichetta} — non riesco a scegliere «${prima.valore}» in ${prima.seleziona}`); continue; }
-      await p.waitForTimeout(800);
-    } else if (prima) {
-      const fatto = await p.evaluate(([dentro, testo]) => {
-        const c = document.querySelector(dentro);
-        if (!c) return false;
-        const b = [...c.querySelectorAll('button, .chg, [data-anno]')]
-          .find((x) => x.textContent.trim() === testo);
-        if (!b) return false;
-        b.click(); return true;
-      }, [prima.dentro, prima.testo]);
-      if (!fatto) { dice(false, `${app}: ${etichetta} — non trovo «${prima.testo}» in ${prima.dentro}`); guardati++; continue; }
-      await p.waitForTimeout(800);
+    /* `prima` è UNO passo oppure un ELENCO di passi in ordine. L'elenco serve
+       da quando c'è uno stato che non si raggiunge con un gesto solo: la
+       disponibilità che non torna, in Campo, vuole che si scrivano le ore e
+       POI si tocchi «Dichiara la durata». Un elenco invece di un secondo
+       campo `poi`: il terzo passo si aggiunge senza inventargli un nome. */
+    let saltato = false;
+    for (const passo of prima == null ? [] : Array.isArray(prima) ? prima : [prima]) {
+      if (passo.scrivi) {
+        /* ⛔ Terzo modo di preparare la pagina, dopo il click e la tendina:
+           SCRIVERE in un campo. Serve per l'ultimo dei cinque stati veri, che si
+           accende quando l'utente **svuota** l'ipotesi di ore al giorno: senza
+           un ritmo misurato e senza ipotesi, l'app dice «non si sa quando»
+           invece di inventare una data. Un campo svuotato e' uno stato
+           dell'utente come un altro, e va raggiunto per digitazione. */
+        const ok = await p.fill(passo.scrivi, passo.valore).then(() => true).catch(() => false);
+        guardati++;
+        if (!ok) { dice(false, `${app}: ${etichetta} — non riesco a scrivere in ${passo.scrivi}`); saltato = true; break; }
+        await p.dispatchEvent(passo.scrivi, 'input').catch(() => {});
+        await p.waitForTimeout(800);
+      } else if (passo.seleziona) {
+        /* una tendina, non un bottone: `selectOption` non basta da solo perche'
+           la pagina ridisegna su «change», che va lasciato arrivare */
+        const ok = await p.selectOption(passo.seleziona, passo.valore).then(() => true).catch(() => false);
+        guardati++;
+        if (!ok) { dice(false, `${app}: ${etichetta} — non riesco a scegliere «${passo.valore}» in ${passo.seleziona}`); saltato = true; break; }
+        await p.waitForTimeout(800);
+      } else if (passo.tocca) {
+        /* ⛔ Quarto modo: TOCCARE un bottone preciso. Diverso da {dentro,testo},
+           che cerca a testo dentro un contenitore: qui il bottone si sa qual è,
+           e quello che conta è che la pagina abbia il tempo di SALVARE prima
+           che si misuri — un'attesa corta misurerebbe lo schermo di prima. */
+        const ok = await p.click(passo.tocca).then(() => true).catch(() => false);
+        guardati++;
+        if (!ok) { dice(false, `${app}: ${etichetta} — non riesco a toccare ${passo.tocca}`); saltato = true; break; }
+        await p.waitForTimeout(1200);
+      } else {
+        const fatto = await p.evaluate(([dentro, testo]) => {
+          const c = document.querySelector(dentro);
+          if (!c) return false;
+          const b = [...c.querySelectorAll('button, .chg, [data-anno]')]
+            .find((x) => x.textContent.trim() === testo);
+          if (!b) return false;
+          b.click(); return true;
+        }, [passo.dentro, passo.testo]);
+        guardati++;
+        if (!fatto) { dice(false, `${app}: ${etichetta} — non trovo «${passo.testo}» in ${passo.dentro}`); saltato = true; break; }
+        await p.waitForTimeout(800);
+      }
     }
+    if (saltato) continue;
     const r = await p.evaluate(([fonte, dove]) => {
       const rx = new RegExp(fonte, 'i');
       /* ⚠️ `.board` c'e' perche' l'appello di Campo non e' una riga ne' una

@@ -2502,6 +2502,28 @@ campi interi, file delle macchine.
       sesta si dimentica. Adesso c'è la regola, con la controprova in tre
       direzioni e la conta dei soggetti (sei addendi trovati, non quattro che
       tornano per caso).
+- [x] ✅ **LO STATO CHE NON PUÒ STARE IN VETRINA** *(01/08, Campo)* — l'ultima
+      condizione «non calcolabile» rimasta: quando i minuti di fermo **superano**
+      la durata dichiarata del turno, la disponibilità non si calcola («una
+      percentuale negativa sarebbe una bugia con l'aria di un dato»). La
+      dimostrazione non lo produce, e il criterio scritto poche ore prima — *un
+      caso da dimostrare deve poter mancare senza portarsi via il resto* — lo
+      lasciava passare. Ma applicandolo è uscita **una distinzione che quel
+      criterio non fa**: tutti gli altri casi del banco sono **assenze** (un
+      lotto senza fronte, un anno senza rilievi, una fattura senza scadenza), e
+      un'assenza in dimostrazione è una cosa che il prodotto **sa raccontare**;
+      questa è una **contraddizione** fra due dati presenti, cioè lo sbaglio di
+      chi compila — metterla nei dati d'esempio vuol dire mettere in vetrina una
+      cava che tiene male i conti. È il confine che `run-demo.mjs` traccia fra
+      dato **assente** (ammesso) e dato **corrotto** (vietato), e una
+      contraddizione sta dalla parte del secondo. Quindi **nessun dato
+      aggiunto**: lo stato si raggiunge **digitando**, come fa l'utente che lo
+      crea. Il banco ha imparato il quarto gesto — `prima` adesso è un passo
+      **o un elenco di passi**, con la forma `{tocca}` per il bottone che salva.
+      Controprova: tolta la guardia (−15 caratteri, una sola occorrenza,
+      riportata), la pagina stampa una percentuale **negativa** e il banco cade
+      sul caso giusto (57 prove, 1 fallita). `stati-non-misurati` **56 → 58**
+      prove, 26 → 30 stati cercati.
 
 ---
 
