@@ -13956,6 +13956,26 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
              { totale: 0, completi: 0, minuti: null, limite: "" }, "nessun presente, nessun numero");
   });
 
+  test("Campo · orari: una riga che non regge esce dal totale, non dalla vista", () => {
+    /* ⛔ TROVATO IN UNO SCATTO, non leggendo il codice: la nota diceva «le ore
+       lavorate note sono almeno 23 h» e sotto «1 riga ha orari da controllare».
+       Le ventitré ore erano proprio quella riga. Un pavimento che contiene ore
+       che nessuno ha lavorato non è prudente: è FALSO. */
+    const OP = [{ id: "o1", nome: "A", squadra: "Squadra A", stato: "in-forza" },
+                { id: "o2", nome: "B", squadra: "Squadra A", stato: "in-forza" }];
+    const P = [p(OGGI_R, "Mattina", "o1", "presente", "06:00", "14:00"),
+               p(OGGI_R, "Mattina", "o2", "presente", "06:00", "05:00")];
+    const q = campo.orariDiTurno(OP, P, OGGI_R, "Mattina", "");
+    contiene(q, { totale: 2, completi: 2, daControllare: 1, minuti: 480, limite: "almeno" },
+             "le ventitré ore restano contate fra le righe da controllare e fuori dal totale");
+    // ⚠️ e il caso in cui l'UNICA riga completa è quella dubbia: allora non
+    // c'è nessun totale da dare, e si dice `null` invece di scriverne uno
+    const solo = campo.orariDiTurno(OP, [p(OGGI_R, "Mattina", "o1", "presente", "06:00", "05:00")],
+                                    OGGI_R, "Mattina", "");
+    contiene(solo, { totale: 1, completi: 1, daControllare: 1, minuti: null, limite: "" },
+             "nessuna riga che regge: nessun numero");
+  });
+
   test("Campo · orari: sulla dimostrazione si vede la differenza fra la misura e la stima", () => {
     const D = campo.DEMO, oggi = campo.oggiISO();
     const m = campo.riposoDiTurno(D.operatori, D.presenze, D.durate, oggi, "Mattina", "");

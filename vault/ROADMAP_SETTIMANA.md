@@ -950,6 +950,25 @@ campi interi, file delle macchine.
       **lettura**: la colonna della prova è prosa in sei notazioni e cita ciò
       che esiste accanto a ciò che manca.
 
+- [x] ⛔ **Tre difetti in `shared/`, e tutti e tre segnalati da un cantiere come
+      «non è roba mia».** È il segno che la regola del `shared/` funziona: chi
+      lavora su un'app vede il difetto e **non lo aggira scrivendosi una copia**.
+      · **Il giro di andata e ritorno del CSV non si chiudeva** — un numero
+        negativo esce dal nostro export come `'-12,5` e rientra `NaN`. La prova
+        c'era, ma sul lettore **vecchio**: `leggiCsv` ha ereditato il mestiere e
+        non le difese.
+      · **`giorniTra` sbagliava nei due versi opposti**, e la usano **cinque
+        app**: inventava un numero per il 30 febbraio (una fattura «insoluta da
+        152 giorni» invece che «senza scadenza» — un cliente sollecitato per una
+        data che non esiste) e perdeva un istante buono. La funzione che sa la
+        differenza, `dataISOEsiste`, era nello stesso file **da mesi**.
+      · **`avvolgiUnita` non conosceva la tonnellata** — né da sola («300,00 T»)
+        né in coda a un prezzo («€ 11,50/T»): la pastiglia è `uppercase` e
+        l'unità ci finiva dentro. Serve a Conti, Terra e Flotta.
+      ⚠️ Su `giorniTra` la controprova dice la cosa più utile della giornata:
+      rimettendo il difetto cadono **2 prove in `run-helpers` e ZERO in
+      `run-kpi`**, sulle cinque app che la usano. Nessuna prova d'app copriva il
+      caso — ed è esattamente perché il difetto è sopravvissuto.
 - [x] 🏗️ **Cinque cantieri paralleli, e tre rientrati con qualcosa che non era
       nel mandato.** Genesi, Sentinella, Terra chiusi; Conti e Campo ancora al
       lavoro. Prove da **1308 a 1383**, copertura **574/574**, nessuna funzione

@@ -622,9 +622,19 @@ export function montaGuardiaInteri(avvisa) {
    «/h», che senza di questa riga diventava «€19,02/H». Il banco delle unità
    l'ha trovato da sé il 30/07, un'ora dopo che «h» era entrata nell'elenco:
    tre pastiglie in Flotta, «€19,02/H», «9,7 L/H», «€14,55/H». */
+/* ⛔ E LA TONNELLATA MANCAVA, da sola e in coda a un prezzo. Trovata dal
+   cantiere degli ordini di Conti il 01/08 guardando lo scatto: «300,00 T»,
+   «57,66 T di 300,00 T», «€ 11,50/T», «€ 4,20/M³» — la pastiglia è
+   `text-transform: uppercase` e senza lo `<span class="u">` l'unità ci finisce
+   dentro. Serve a tre app: Conti la scrive negli ordini, Terra nei volumi
+   convertiti, Flotta nei consumi.
+   ⚠️ «t» è una lettera sola, quindi la regola che la protegge è la stessa che
+   protegge «h»: dev'esserci una CIFRA prima e non un carattere di parola dopo
+   (`(?![\w³²])`). Così «12 tonnellate» e «il 3 turno» non vengono toccati —
+   misurato prima di aggiungerla. */
 const UNITA_DA_SALVARE = ["gg", "m³", "m²", "mm/s", "µg/m³", "mg/m³", "kg/m³",
   "kg/foro", "kg/m", "kg", "km/h", "km", "cm", "mm", "m³/h", "m³/giorno",
-  "m³/anno", "t/m³", "l/h", "€/h", "/h", "h"];
+  "m³/anno", "t/m³", "l/h", "€/h", "/h", "h", "/m³", "/t", "t"];
 const IN_ORDINE = [...UNITA_DA_SALVARE].sort((a, b) => b.length - a.length);
 export function avvolgiUnita(testo) {
   let t = String(testo == null ? "" : testo);

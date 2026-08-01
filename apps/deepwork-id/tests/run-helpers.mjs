@@ -14,7 +14,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const H = await import(
   join(HERE, "../../../shared/deepwork-id-client/dw-shell.js")
 );
-const { esc, csvCell, parseCsvLine, numIt, isIntestazione, dataISOEsiste, leggiCsv, giorniTra } = H;
+const { esc, csvCell, parseCsvLine, numIt, isIntestazione, dataISOEsiste, leggiCsv, giorniTra, avvolgiUnita } = H;
 
 let passed = 0, failed = 0;
 const test = (name, fn) => {
@@ -235,6 +235,25 @@ test("l'apostrofo che NON è una guardia resta dov'è", () => {
   // sarebbe cambiare il dato di chi scrive
   eq(leggiCsv("a;b\n'ndrangheta;x").righe[1][0], "'ndrangheta", "parola");
   eq(leggiCsv("a;b\n'90;x").righe[1][0], "'90", "anno abbreviato");
+});
+test("⛔ avvolgiUnita: la tonnellata è un'unità — da sola e in coda a un prezzo", () => {
+  /* Trovata guardando uno scatto degli ordini di Conti: «300,00 T», «€ 11,50/T»,
+     «€ 4,20/M³». La pastiglia è `text-transform:uppercase` e un'unità fuori
+     dallo `<span class="u">` ci finisce dentro — un'unità in maiuscolo è un
+     difetto già pestato tre volte. Serve a Conti, Terra e Flotta. */
+  const q = (s) => avvolgiUnita(s).replace(/<span class="u">/g, "[").replace(/<\/span>/g, "]");
+  eq(q("300,00 t"), "300,00[ t]", "tonnellata da sola");
+  eq(q("€ 11,50/t"), "€ 11,50[/t]", "prezzo alla tonnellata");
+  eq(q("€ 4,20/m³"), "€ 4,20[/m³]", "prezzo al metro cubo");
+  eq(q("2,5 t/m³"), "2,5[ t/m³]", "e la densità resta una cosa sola");
+});
+test("⛔ avvolgiUnita: «t» è UNA LETTERA, e non deve mordere le parole", () => {
+  /* la difesa è la stessa di «h»: una cifra prima, e nessun carattere di parola
+     dopo. Senza, «12 tonnellate» diventerebbe «12 [t]onnellate». */
+  for (const s of ["12 tonnellate", "il 3 turno", "2026-08-01T00:00", "5 tir in coda"])
+    eq(avvolgiUnita(s), s, `«${s}» non contiene un'unità`);
+  eq(avvolgiUnita("5 t di ghiaia").includes('<span class="u"> t</span>'), true,
+     "ma «5 t di ghiaia» sì");
 });
 test("⛔ giorniTra: una data che NON ESISTE non produce un conto di giorni", () => {
   /* `new Date("2026-02-30T00:00:00")` non è invalida: `Date` fa **scorrere** il

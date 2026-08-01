@@ -1431,6 +1431,16 @@ export function orariDiTurno(operatori, presenze, data, turno, squadra) {
   const completi = righe.filter(r => r.orari.minuti !== null);
   const parziali = righe.filter(r => r.orari.minuti === null
     && (r.orari.entrata !== null || r.orari.uscita !== null));
+  /* ⛔ NELLA SOMMA ENTRANO SOLO LE RIGHE CHE REGGONO, e la ragione è che
+     `minuti` si presenta come un PAVIMENTO («almeno N ore»). Una riga da
+     ventitré ore — che il modulo ha appena dichiarato non attendibile — dentro
+     la somma non rende il pavimento più prudente: lo rende FALSO, perché quelle
+     ore non sono state lavorate da nessuno. Visto in uno scatto, dove la nota
+     diceva «le ore lavorate note sono almeno 23 h» con accanto «1 riga ha
+     orari da controllare». Le righe dubbie restano contate a parte in
+     `daControllare`, come i «non misurabili» del riposo: si tolgono dal
+     numero, non dalla vista. */
+  const buoni = completi.filter(r => r.orari.attendibile !== false);
   return {
     righe,
     completi: completi.length,
@@ -1438,8 +1448,8 @@ export function orariDiTurno(operatori, presenze, data, turno, squadra) {
     senza: righe.length - completi.length - parziali.length,
     totale: righe.length,
     daControllare: righe.filter(r => r.orari.attendibile === false).length,
-    minuti: completi.length ? completi.reduce((t, r) => t + r.orari.minuti, 0) : null,
-    limite: completi.length && completi.length < righe.length ? "almeno" : "",
+    minuti: buoni.length ? buoni.reduce((t, r) => t + r.orari.minuti, 0) : null,
+    limite: buoni.length && buoni.length < righe.length ? "almeno" : "",
   };
 }
 
