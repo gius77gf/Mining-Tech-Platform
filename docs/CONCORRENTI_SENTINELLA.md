@@ -5,15 +5,30 @@
 > cercati a vuoto se non c'è). La sezione «Verifica del delta» in fondo a
 > ciascun documento porta i verdetti.*
 >
-> | app | righe | assenti confermate | **false** | a metà |
-> |---|---|---|---|---|
-> | Scudo | 16 | 10 | 2 | 4 |
-> | Sentinella | 22 | 18 | 4 | 0 |
-> | Terra | 11 | 6 | 2 | 3 |
-> | Campo | 22 | 13 | 2 | 7 |
-> | Conti | 18 | 11 | **5** | 2 |
-> | Flotta | 16 | 5 | 3 | 8 |
-> | **totale** | **105** | **63** | **18** | **24** |
+> | app | righe | assenti confermate | **false** | ⏱️ **scadute** | a metà |
+> |---|---|---|---|---|---|
+> | Scudo | 16 | 9 | 2 | 1 | 4 |
+> | Sentinella | 22 | 17 | 4 | 1 | 0 |
+> | Terra | 11 | 4 | 2 | 2 | 3 |
+> | Campo | 22 | 12 | 2 | 2 | 6 |
+> | Conti | 18 | 11 | **5** | 0 | 2 |
+> | Flotta | 16 | 5 | 3 | 0 | 8 |
+> | **totale** | **105** | **58** | **18** | **6** | **23** |
+>
+> ⏱️ **E LA COLONNA «SCADUTE» È NATA LA SERA STESSA, con sei righe dentro.**
+> Non sono verifiche **sbagliate**: erano vere quando sono state scritte, e il
+> cantiere che colmava la mancanza è girato **dopo**, lo stesso pomeriggio,
+> senza sapere l'uno dell'altro. Due sono scadute in **trentaquattro e
+> trentacinque minuti** (il volume per banco di Terra, lo storico tarature di
+> Sentinella). È il prezzo dei cantieri paralleli — che sono anche il primo
+> moltiplicatore misurato — quindi la cura non può essere lavorare in fila.
+> Quanto è vecchio ciascun documento lo dice adesso un controllo:
+> `node apps/deepwork-id/tests/documenti-invecchiati.mjs`.
+>
+> ⚠️ E il costo di non saperlo è misurato: una ricerca lanciata quella sera,
+> **con il divieto esplicito** di dichiarare un «non c'è» senza la prova, ha
+> proposto come mancanza l'anagrafe appaltatori di Scudo — costruita due ore
+> prima, cinque funzioni esportate e dodici punti nella pagina.
 >
 > **Una mancanza dichiarata su sei non esisteva**, e va peggio dove il codice è
 > più maturo: in Conti una riga su tre e mezzo era falsa. Le più grosse: le
@@ -369,6 +384,14 @@ Ricerca web 01 agosto 2026:
 
 ## Verifica del delta (01/08)
 
+> **Verificato contro il codice al commit `e9f9b0d`.** Ogni riga qui sotto
+> era vera **a quel commit**, e non lo è più per forza adesso: il 01/08 una riga è
+> scaduta in **trentacinque minuti**, perché la verifica e il cantiere che la
+> colmava sono girati lo stesso pomeriggio senza sapere l'uno dell'altro.
+> Di quanti commit l'app sia andata avanti da allora lo dice
+> `node apps/deepwork-id/tests/documenti-invecchiati.mjs`. Le righe già trovate
+> scadute portano la loro correzione accanto, con la data.
+
 Ogni riga marcata come "non c'è" o "c'è a metà" verificata contro il codice reale di `apps/sentinella/sentinella-data.js` e `apps/sentinella/index.html`.
 
 ### Righe "C'è a metà"
@@ -394,7 +417,7 @@ Ogni riga marcata come "non c'è" o "c'è a metà" verificata contro il codice r
 | Integrazione API | **CONFERMATO ASSENTE** | Grep su `API\|integrazione\|esterna\|webhook\|endpoint` (escludendo Firebase): zero match. Nessuna API pubblica dichiarata. |
 | Smartphone app nativa | **CONFERMATO ASSENTE** | App è PWA Web su Netlify. Grep su `android\|ios\|appstore\|app.*store`: zero match |
 | Audit trail (chi, quando, cosa è cambiato) | **CONFERMATO ASSENTE** | Grep su `audit\|trail\|modifi.*log\|chi.*quando\|changelog`: zero match. Log delle modifiche non presente. |
-| Storico tarature strumenti | **CONFERMATO ASSENTE** | Grep su `calibr\|taratur\|manutenzione\|strumento.*data`: zero match su taratura. Menzione di `PPV_STRUMENTO` è il tipo di fonte, non storico manutenzione. |
+| Storico tarature strumenti | ⏱️ **SCADUTA — C'È DAL 01/08** (verifica `e9f9b0d` 16:20 → costruito `76e7937` 16:54, **34 minuti**; oggi `coperturaTaratura`, `statoTaraturaStrumento`, `taratureDelReport`, `parseTaratureCsv`, `abbinaTarature`, `csvTarature`, `allerteTaratura`) | Grep su `calibr\|taratur\|manutenzione\|strumento.*data`: zero match su taratura. Menzione di `PPV_STRUMENTO` è il tipo di fonte, non storico manutenzione. |
 | Certificazione/validazione strumenti | **CONFERMATO ASSENTE** | Grep su `certificazione\|IEC.*61672\|validazione.*strumento`: zero match. Nessuna dichiarazione di conformità IEC/DIN/USBM nel codice. |
 | Catena di custodia dato | **CONFERMATO ASSENTE** | Grep su `catena.*custodia\|provenance\|provenienza.*storico`: zero match. Nessun logging della catena di custodia. |
 | Modellazione dispersione inquinanti | **CONFERMATO ASSENTE** | Grep su `modella\|dispersione\|inquinante\|polverosa`: zero match |
@@ -406,8 +429,9 @@ Ogni riga marcata come "non c'è" o "c'è a metà" verificata contro il codice r
 ### Conteggio
 
 - **Righe verificate:** 22
-- **Confermate assenti:** 18
+- **Confermate assenti:** 17
 - **False (c'è già):** 4
+- **⏱️ Scadute:** 1 (storico tarature → `coperturaTaratura`, **34 minuti** dopo la verifica)
 - **C'è a metà:** 0
 
 ### La mancanza confermata più importante

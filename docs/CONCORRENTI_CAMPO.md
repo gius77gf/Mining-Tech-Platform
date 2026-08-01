@@ -5,15 +5,30 @@
 > cercati a vuoto se non c'è). La sezione «Verifica del delta» in fondo a
 > ciascun documento porta i verdetti.*
 >
-> | app | righe | assenti confermate | **false** | a metà |
-> |---|---|---|---|---|
-> | Scudo | 16 | 10 | 2 | 4 |
-> | Sentinella | 22 | 18 | 4 | 0 |
-> | Terra | 11 | 6 | 2 | 3 |
-> | Campo | 22 | 13 | 2 | 7 |
-> | Conti | 18 | 11 | **5** | 2 |
-> | Flotta | 16 | 5 | 3 | 8 |
-> | **totale** | **105** | **63** | **18** | **24** |
+> | app | righe | assenti confermate | **false** | ⏱️ **scadute** | a metà |
+> |---|---|---|---|---|---|
+> | Scudo | 16 | 9 | 2 | 1 | 4 |
+> | Sentinella | 22 | 17 | 4 | 1 | 0 |
+> | Terra | 11 | 4 | 2 | 2 | 3 |
+> | Campo | 22 | 12 | 2 | 2 | 6 |
+> | Conti | 18 | 11 | **5** | 0 | 2 |
+> | Flotta | 16 | 5 | 3 | 0 | 8 |
+> | **totale** | **105** | **58** | **18** | **6** | **23** |
+>
+> ⏱️ **E LA COLONNA «SCADUTE» È NATA LA SERA STESSA, con sei righe dentro.**
+> Non sono verifiche **sbagliate**: erano vere quando sono state scritte, e il
+> cantiere che colmava la mancanza è girato **dopo**, lo stesso pomeriggio,
+> senza sapere l'uno dell'altro. Due sono scadute in **trentaquattro e
+> trentacinque minuti** (il volume per banco di Terra, lo storico tarature di
+> Sentinella). È il prezzo dei cantieri paralleli — che sono anche il primo
+> moltiplicatore misurato — quindi la cura non può essere lavorare in fila.
+> Quanto è vecchio ciascun documento lo dice adesso un controllo:
+> `node apps/deepwork-id/tests/documenti-invecchiati.mjs`.
+>
+> ⚠️ E il costo di non saperlo è misurato: una ricerca lanciata quella sera,
+> **con il divieto esplicito** di dichiarare un «non c'è» senza la prova, ha
+> proposto come mancanza l'anagrafe appaltatori di Scudo — costruita due ore
+> prima, cinque funzioni esportate e dodici punti nella pagina.
 >
 > **Una mancanza dichiarata su sei non esisteva**, e va peggio dove il codice è
 > più maturo: in Conti una riga su tre e mezzo era falsa. Le più grosse: le
@@ -319,6 +334,14 @@ Fonti: Newtrax MDP product page, Micromine Pitram short-interval control docs.
 
 ## Verifica del delta (01/08)
 
+> **Verificato contro il codice al commit `f3432f4`.** Ogni riga qui sotto
+> era vera **a quel commit**, e non lo è più per forza adesso: il 01/08 una riga è
+> scaduta in **trentacinque minuti**, perché la verifica e il cantiere che la
+> colmava sono girati lo stesso pomeriggio senza sapere l'uno dell'altro.
+> Di quanti commit l'app sia andata avanti da allora lo dice
+> `node apps/deepwork-id/tests/documenti-invecchiati.mjs`. Le righe già trovate
+> scadute portano la loro correzione accanto, con la data.
+
 *Ogni voce marcata «non c'è» nella sezione 3 e nella sezione 4 è stata riaperta
 sul codice: **23 voci in 22 righe**, perché «geofenced time tracking» e «geofence
 size configurability» sono la stessa cosa e hanno un verdetto solo. I duplicati
@@ -333,13 +356,13 @@ riferimento che conta è il **nome** della funzione, non il numero.*
 |---|---|---|
 | Geofenced time tracking / GPS attendance (e «geofence size configurability») | **CONFERMATO ASSENTE** | Cercati `geofenc`, `geo-fenc`, `geolocation`, `navigator.geolocation`, `GPS`, `latitudine`, `longitudine`, `coordinat` in `apps/campo/campo-data.js`, `apps/campo/index.html`, `shared/dw-ponti.js` e in tutto `apps/`+`shared/`: **zero occorrenze in tutto il repo**. L'unico «posizione» che compare è la lettura per posizione delle colonne CSV (`campo-data.js:1308`). |
 | Photo annotation / documentazione fotografica strutturata | **C'È A METÀ** | *C'è*: allegato foto con validazione e ridimensionamento — `eImmagine`, `byteFoto`, `eFotoValida`, `misuraRidotta`, `FOTO_MAX_BYTE`, `FOTO_TENTATIVI` (`campo-data.js:713-774`), compressione via canvas (`index.html:2626-2644`), ora dello scatto (`a.fotoOra`) e foto nel rapporto stampabile (`index.html:3085`). *Manca*: il canvas di **markup** (frecce, rettangoli, etichette sopra la foto) e la **galleria ricercabile** per luogo/categoria. Cercati `annotaz`, `markup`, `freccia/frecce`, `disegna`: le sole occorrenze di `canvas` sono per rimpicciolire il file, non per disegnarci sopra. |
-| Work order generation & maintenance scheduling | **C'È A METÀ** (nell'ecosistema) — e la motivazione scritta in §4 è **falsa** | Gli ordini di lavoro **esistono e sono completi**, ma in **Flotta**, non in Scudo come dice §4 («Le manutenzioni in Deepwork vivono in Scudo (HSE)»): `STATI_ORDINE` da-fare/in-corso/attesa-ricambi (`apps/flotta/flotta-data.js:1574`), `ordineDaManutenzione` (1634), `costoOrdine` con manodopera+ricambi+spese (1601), `validaRigaManodopera` (1668), `validaRigaRicambio` (1693), `riepilogoOrdini` (1720), generazione da controllo pre-uso (`manutenzioniDaControllo`, 1161) e da guasto (`manutenzioneDaGuasto`, 1279). *Manca davvero*: il ponte **Campo → Flotta**, cioè un'anomalia di Campo che genera l'ordine di lavoro. Cercati `ordine di lavoro`, `work order`, `azione correttiva`, `follow-up` in `campo-data.js` e `campo/index.html`: zero. |
+| Work order generation & maintenance scheduling | **C'È A METÀ** (nell'ecosistema) — e la motivazione scritta in §4 è **falsa** | Gli ordini di lavoro **esistono e sono completi**, ma in **Flotta**, non in Scudo come dice §4 («Le manutenzioni in Deepwork vivono in Scudo (HSE)»): `STATI_ORDINE` da-fare/in-corso/attesa-ricambi (`apps/flotta/flotta-data.js:1574`), `ordineDaManutenzione` (1634), `costoOrdine` con manodopera+ricambi+spese (1601), `validaRigaManodopera` (1668), `validaRigaRicambio` (1693), `riepilogoOrdini` (1720), generazione da controllo pre-uso (`manutenzioniDaControllo`, 1161) e da guasto (`manutenzioneDaGuasto`, 1279). *Manca davvero*: il ponte **Campo → Flotta**, cioè un'anomalia di Campo che genera l'ordine di lavoro. Cercati `ordine di lavoro`, `work order`, `azione correttiva`, `follow-up` in `campo-data.js` e `campo/index.html`: zero. ⏱️ **Metà scaduta il 01/08**: l'`azione correttiva` adesso c'è (`azioniDelFermo`, `29f0229` 17:45). **Resta assente** il ponte Campo → Flotta, cioè l'anomalia che genera l'*ordine di lavoro* in officina: sono due cose diverse e solo la prima è stata costruita. |
 | Real-time KPI during shift | **FALSO, C'È GIÀ** | `avanzamentoGiornata` (`campo-data.js:1248`) disegnato live in `index.html:1358-1370`; `statoObiettivo` (439) con `mancante`/`pct`/`livello` reso da `renderObiettivo` (`index.html:1773`); `disponibilitaTurno` (1004) con il flag **`provvisorio`** (1039) che fa scrivere «**finora** N%» e «Disponibilità turno X · **in corso**» (`index.html:1885-1887`); `paretoFermi` (862) disegnato a `index.html:1443`; `appelloTurno` (614) per chi c'è adesso. La frase «Campo calcola tutto a fine rapportino» è smentita dal codice che distingue esplicitamente il turno finito da quello in corso. |
 | IoT sensor integration (temperatura, vibrazione) | **CONFERMATO ASSENTE** | Cercati `IoT`, `sensore`, `vibrazione`, `telemetri`, `sensor` in `campo-data.js` e `campo/index.html`: zero. Nessuna `fetch(`/`XMLHttpRequest` verso servizi esterni nella pagina. |
 | Tablet in-cab data capture | **CONFERMATO ASSENTE** | Cercati `tablet`, `in-cab`, `in cab`, `cabina`: zero in `campo-data.js` e `campo/index.html`. |
 | Hazard / near-miss tracking separato | **C'È A METÀ** (nell'ecosistema) | *C'è, in Scudo*: `infortuni/{id}` con `tipo: infortunio\|near-miss`, `categoria` del rischio, `gravita`, `luogoTipo` (`apps/scudo/scudo-data.js:32-34`, dato d'esempio `i1` a riga 140). *Manca in Campo*: cercati `near-miss`, `mancato infortunio`, `quasi infortunio`, `pericolo`, `hazard` in `campo-data.js` e `campo/index.html` → **zero**. Chi è in cava non può segnalare un mancato infortunio dal rapportino: deve aprire Scudo. |
 | Skill / certification matrix («chi è abilitato a fare cosa») | **FALSO, C'È GIÀ** | La matrice esiste per intero in Scudo: `MANSIONI_PRESET` con `requisiti` e `dpi` per mansione (`scudo-data.js:1199`), `abilitazioneLavoratore` con esito `puo`/`attenzione`/`no` e l'elenco dei bloccanti (1298), `matriceMansione` (1332), `riepilogoMansioni` (1345), i requisiti censiti (`patentino-attr` — Accordo Stato-Regioni 22/02/2012 —, `fochino` — D.P.R. 302/1956, righe 977-978). E **Campo la consuma già**: `idoneitaDiTurno`/`idoneitaOperatore`/`inTurnoOggi` in `shared/dw-ponti.js:408-508`, importate in `campo/index.html:845` e usate nel Quadro (1350) e nell'appello delle squadre (1729). |
-| Fatigue monitoring | **CONFERMATO ASSENTE** | Cercati `fatica`, `stanchez`, `fatigue`, `riposo`, `ore consecutive` in `campo-data.js` e `campo/index.html`: zero. Esistono le `durate` del turno (`durataTurnoDi`, 908) ma nessun conto di turni consecutivi o di riposo fra turni. |
+| Fatigue monitoring | ⏱️ **SCADUTA — C'È DAL 01/08** (verifica `f3432f4` 16:55 → costruito `ccff0c3` 19:09; `RIPOSO_MINIMO_ORE`, `riposoPrimaDelTurno`, `riposoDiTurno`, `STATI_RIPOSO` ex D.Lgs 66/2003 art. 7) | Cercati `fatica`, `stanchez`, `fatigue`, `riposo`, `ore consecutive` in `campo-data.js` e `campo/index.html`: zero. Esistono le `durate` del turno (`durataTurnoDi`, 908) ma nessun conto di turni consecutivi o di riposo fra turni. |
 | Equipment dispatch optimization | **CONFERMATO ASSENTE** | Cercati `dispatch`, `assegnazione dinamica`, `instradamento`: zero. Esiste l'assegnazione **manuale** a squadra/operatore (`etichettaAssegnazione`, 358; `caricoSquadre`, 392), non l'ottimizzazione. |
 | Material / inventory RFID tracking | **CONFERMATO ASSENTE** in Campo | Cercati `RFID`, `barcode`, `codice a barre`, `QR`, `inventario`, `giacenza`, `magazzino` in `campo-data.js` e `campo/index.html`: zero. *Nota d'ecosistema*: la giacenza esiste in **Flotta**, ma sui **ricambi** (`sottoScorta`, `flotta-data.js:625`; `scaricoGiacenza`, 617; `propostaScorte`, 1823), non sui materiali di cava. |
 | Mixed-fleet brand-agnostic monitoring | **CONFERMATO ASSENTE** | Stessa ricerca di `telemetri`/`GPS`: zero in Campo. In Flotta c'è solo l'import CSV dai portali OEM (`parseTelemetriaCsv`, `flotta-data.js:531`), che è brand-agnostico ma non è monitoraggio. |
@@ -352,7 +375,7 @@ riferimento che conta è il **nome** della funzione, non il numero.*
 | Equipment RFID per componenti | **CONFERMATO ASSENTE** | Stessa ricerca di `RFID`/`barcode`/`QR`: zero in Campo e in Flotta. |
 | Predictive maintenance | **CONFERMATO ASSENTE** in Campo | Cercati `predittiv`, `previsione`, `manutenzione preventiva` in `campo-data.js`: zero. *Nota d'ecosistema*: in Flotta c'è la **previsione a scadenza** (`previsioneGiorni`, `flotta-data.js:696`; `ritmoOreMezzi`, 2053; `tagliandiInScadenza`, 2110), che è programmazione, non previsione di guasto. |
 | API export per data warehouse | **C'È A METÀ** | *C'è*: l'export CSV — `pianoConsuntivoCsv` con `CONSUNTIVO_COLONNE` (`campo-data.js:1495-1528`). *Manca*: qualunque endpoint o API; nessuna chiamata in uscita esiste nella pagina. |
-| Anomalie: radice, azione correttiva tracciata, follow-up (§4.1) | **C'È A METÀ** (nell'ecosistema) | *C'è, in Scudo*: le azioni correttive complete — `azioni/{id}` con `descrizione`, `responsabileId`, `scadenza`, `stato`, `esito`, `dataChiusura`, `origineTipo`/`origineId` (`scudo-data.js:16-18`, esempi 163-166), `statoAzione` (505), `azioniUrgenti` (513), `azioniDiEvento` (533), e l'analisi del «perché» che genera `azioniId` (60-63); nella pagina la freccia che riporta all'evento d'origine (`apps/scudo/index.html:2053`). *Manca*: `origineTipo` ammette `evento\|ispezione\|nc\|superamento\|reclamo` e **non** un'anomalia di Campo — cercato `origineTipo` in tutto Scudo: nessun valore che punti a Campo. Quindi la macchina della radice+CAPA c'è, ma l'anomalia registrata al fronte non ci entra. |
+| Anomalie: radice, azione correttiva tracciata, follow-up (§4.1) | ⏱️ **SCADUTA — COMPLETA DAL 01/08** (verifica `f3432f4` 16:55 → costruito `29f0229` 17:45, **50 minuti**: `ORIGINE_FERMO`, `azioniDelFermo`, `statoPonte` in `shared/dw-ponti.js`, 12 punti nella pagina di Campo. La metà che mancava era proprio questa) | *C'è, in Scudo*: le azioni correttive complete — `azioni/{id}` con `descrizione`, `responsabileId`, `scadenza`, `stato`, `esito`, `dataChiusura`, `origineTipo`/`origineId` (`scudo-data.js:16-18`, esempi 163-166), `statoAzione` (505), `azioniUrgenti` (513), `azioniDiEvento` (533), e l'analisi del «perché» che genera `azioniId` (60-63); nella pagina la freccia che riporta all'evento d'origine (`apps/scudo/index.html:2053`). *Manca*: `origineTipo` ammette `evento\|ispezione\|nc\|superamento\|reclamo` e **non** un'anomalia di Campo — cercato `origineTipo` in tutto Scudo: nessun valore che punti a Campo. Quindi la macchina della radice+CAPA c'è, ma l'anomalia registrata al fronte non ci entra. |
 
 ### Riepilogo numerico — Campo
 
@@ -368,6 +391,13 @@ riferimento che conta è il **nome** della funzione, non il numero.*
 **Errore di fatto trovato nel documento, oltre ai verdetti:** §4 «Work order as a native object» scrive che «le manutenzioni in Deepwork vivono in Scudo (HSE) come check di conformità». Non è vero: vivono in **Flotta**, come ordini di lavoro con stato, manodopera, ricambi e costo calcolato. Chi avesse letto quella riga avrebbe progettato da zero una cosa che esiste da settimane.
 
 ### La mancanza confermata più importante — Campo
+
+> ⏱️ **QUESTA MANCANZA È STATA COLMATA IL 01/08 ALLE 17:45** (`29f0229`), cinquanta
+> minuti dopo che la riga qui sotto è stata scritta. Il testo resta com'era —
+> serve a ricordare che **la voce più in vista di un documento invecchia come
+> tutte le altre**, e che qui non c'è più lavoro da fare. Quale sia adesso la
+> mancanza più importante di Campo **non lo si può dire senza riverificare**: è
+> esattamente ciò che misura `documenti-invecchiati.mjs`.
 
 **Il ponte «anomalia di Campo → azione correttiva».** Non è la più ricorrente fra i
 concorrenti (lo sono geofencing e photo annotation), ma è l'unica che oggi fa

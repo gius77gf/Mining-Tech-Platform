@@ -931,6 +931,24 @@ campi interi, file delle macchine.
       `dmy` di Campo — ha preso il nome che dice quello che fa: `giornoMese`.
       Due funzioni diverse con lo stesso nome in due app sono esattamente ciò
       che `nomi-doppi.mjs` esiste per prendere.
+- [x] ⏱️ **«Non c'è» ha una seconda forma, e non è colpa di nessuno: quello
+      SCADUTO.** Sei righe su 105, misurate. Due scadute in **34 e 35 minuti**;
+      la «mancanza più importante» di Campo costruita **50 minuti** dopo essere
+      stata scritta; e la sera una ricerca — col divieto esplicito di dichiarare
+      un «non c'è» senza prova — ha proposto l'anagrafe appaltatori di Scudo,
+      costruita due ore prima. Rileggere il documento non basta: **il documento
+      è la cosa vecchia.**
+      Adesso ogni documento del delta dichiara il commit contro cui è stato
+      verificato, e `documenti-invecchiati.mjs` pretende che quel commit esista
+      e che abbia **davvero toccato quel documento** (una data incollata non è
+      una verifica), poi stampa l'arretrato: **34 commit su sei documenti**,
+      dichiarato per essere visto scendere. Le sei righe scadute sono corrette,
+      ognuna con la sua data e il commit che l'ha colmata.
+      ⚠️ La strada ovvia — rimettere alla prova i termini dichiarati da ogni
+      riga — è stata **provata e scartata con i numeri**: 8 segnalate, 2 vere, 6
+      falsi allarmi, 2 vere non viste. Non sbaglia il confronto, sbaglia la
+      **lettura**: la colonna della prova è prosa in sei notazioni e cita ciò
+      che esiste accanto a ciò che manca.
 
 ### Fatto il 01/08 (notte, secondo ciclo)
 - [x] ⛔ **Il cantiere di Genesi smette di essere una frase e diventa un

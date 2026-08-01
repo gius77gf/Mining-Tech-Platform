@@ -5,15 +5,30 @@
 > cercati a vuoto se non c'è). La sezione «Verifica del delta» in fondo a
 > ciascun documento porta i verdetti.*
 >
-> | app | righe | assenti confermate | **false** | a metà |
-> |---|---|---|---|---|
-> | Scudo | 16 | 10 | 2 | 4 |
-> | Sentinella | 22 | 18 | 4 | 0 |
-> | Terra | 11 | 6 | 2 | 3 |
-> | Campo | 22 | 13 | 2 | 7 |
-> | Conti | 18 | 11 | **5** | 2 |
-> | Flotta | 16 | 5 | 3 | 8 |
-> | **totale** | **105** | **63** | **18** | **24** |
+> | app | righe | assenti confermate | **false** | ⏱️ **scadute** | a metà |
+> |---|---|---|---|---|---|
+> | Scudo | 16 | 9 | 2 | 1 | 4 |
+> | Sentinella | 22 | 17 | 4 | 1 | 0 |
+> | Terra | 11 | 4 | 2 | 2 | 3 |
+> | Campo | 22 | 12 | 2 | 2 | 6 |
+> | Conti | 18 | 11 | **5** | 0 | 2 |
+> | Flotta | 16 | 5 | 3 | 0 | 8 |
+> | **totale** | **105** | **58** | **18** | **6** | **23** |
+>
+> ⏱️ **E LA COLONNA «SCADUTE» È NATA LA SERA STESSA, con sei righe dentro.**
+> Non sono verifiche **sbagliate**: erano vere quando sono state scritte, e il
+> cantiere che colmava la mancanza è girato **dopo**, lo stesso pomeriggio,
+> senza sapere l'uno dell'altro. Due sono scadute in **trentaquattro e
+> trentacinque minuti** (il volume per banco di Terra, lo storico tarature di
+> Sentinella). È il prezzo dei cantieri paralleli — che sono anche il primo
+> moltiplicatore misurato — quindi la cura non può essere lavorare in fila.
+> Quanto è vecchio ciascun documento lo dice adesso un controllo:
+> `node apps/deepwork-id/tests/documenti-invecchiati.mjs`.
+>
+> ⚠️ E il costo di non saperlo è misurato: una ricerca lanciata quella sera,
+> **con il divieto esplicito** di dichiarare un «non c'è» senza la prova, ha
+> proposto come mancanza l'anagrafe appaltatori di Scudo — costruita due ore
+> prima, cinque funzioni esportate e dodici punti nella pagina.
 >
 > **Una mancanza dichiarata su sei non esisteva**, e va peggio dove il codice è
 > più maturo: in Conti una riga su tre e mezzo era falsa. Le più grosse: le
@@ -323,6 +338,14 @@
 ---
 
 ## Verifica del delta (01/08)
+
+> **Verificato contro il codice al commit `f3432f4`.** Ogni riga qui sotto
+> era vera **a quel commit**, e non lo è più per forza adesso: il 01/08 una riga è
+> scaduta in **trentacinque minuti**, perché la verifica e il cantiere che la
+> colmava sono girati lo stesso pomeriggio senza sapere l'uno dell'altro.
+> Di quanti commit l'app sia andata avanti da allora lo dice
+> `node apps/deepwork-id/tests/documenti-invecchiati.mjs`. Le righe già trovate
+> scadute portano la loro correzione accanto, con la data.
 
 *Ogni riga marcata «Non c'è» o «C'è a metà» nella tabella §2 e ogni riga della
 tabella §3 è stata riaperta sul codice. Le righe che comparivano in tutt'e due

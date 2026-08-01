@@ -5,15 +5,30 @@
 > cercati a vuoto se non c'è). La sezione «Verifica del delta» in fondo a
 > ciascun documento porta i verdetti.*
 >
-> | app | righe | assenti confermate | **false** | a metà |
-> |---|---|---|---|---|
-> | Scudo | 16 | 10 | 2 | 4 |
-> | Sentinella | 22 | 18 | 4 | 0 |
-> | Terra | 11 | 6 | 2 | 3 |
-> | Campo | 22 | 13 | 2 | 7 |
-> | Conti | 18 | 11 | **5** | 2 |
-> | Flotta | 16 | 5 | 3 | 8 |
-> | **totale** | **105** | **63** | **18** | **24** |
+> | app | righe | assenti confermate | **false** | ⏱️ **scadute** | a metà |
+> |---|---|---|---|---|---|
+> | Scudo | 16 | 9 | 2 | 1 | 4 |
+> | Sentinella | 22 | 17 | 4 | 1 | 0 |
+> | Terra | 11 | 4 | 2 | 2 | 3 |
+> | Campo | 22 | 12 | 2 | 2 | 6 |
+> | Conti | 18 | 11 | **5** | 0 | 2 |
+> | Flotta | 16 | 5 | 3 | 0 | 8 |
+> | **totale** | **105** | **58** | **18** | **6** | **23** |
+>
+> ⏱️ **E LA COLONNA «SCADUTE» È NATA LA SERA STESSA, con sei righe dentro.**
+> Non sono verifiche **sbagliate**: erano vere quando sono state scritte, e il
+> cantiere che colmava la mancanza è girato **dopo**, lo stesso pomeriggio,
+> senza sapere l'uno dell'altro. Due sono scadute in **trentaquattro e
+> trentacinque minuti** (il volume per banco di Terra, lo storico tarature di
+> Sentinella). È il prezzo dei cantieri paralleli — che sono anche il primo
+> moltiplicatore misurato — quindi la cura non può essere lavorare in fila.
+> Quanto è vecchio ciascun documento lo dice adesso un controllo:
+> `node apps/deepwork-id/tests/documenti-invecchiati.mjs`.
+>
+> ⚠️ E il costo di non saperlo è misurato: una ricerca lanciata quella sera,
+> **con il divieto esplicito** di dichiarare un «non c'è» senza la prova, ha
+> proposto come mancanza l'anagrafe appaltatori di Scudo — costruita due ore
+> prima, cinque funzioni esportate e dodici punti nella pagina.
 >
 > **Una mancanza dichiarata su sei non esisteva**, e va peggio dove il codice è
 > più maturo: in Conti una riga su tre e mezzo era falsa. Le più grosse: le
@@ -277,24 +292,33 @@ Nella roadmap, il ponte P2 (riconciliazione volume vs tonnellate) è il prossimo
 
 ## Verifica del delta (01/08)
 
+> **Verificato contro il codice al commit `e9f9b0d`.** Ogni riga qui sotto
+> era vera **a quel commit**, e non lo è più per forza adesso: il 01/08 una riga è
+> scaduta in **trentacinque minuti**, perché la verifica e il cantiere che la
+> colmava sono girati lo stesso pomeriggio senza sapere l'uno dell'altro.
+> Di quanti commit l'app sia andata avanti da allora lo dice
+> `node apps/deepwork-id/tests/documenti-invecchiati.mjs`. Le righe già trovate
+> scadute portano la loro correzione accanto, con la data.
+
 | Funzione | Verdetto | Prova |
 |----------|----------|-------|
 | Cut & fill volumes | **CONFERMATO ASSENTE** | Cercati `cut`, `fill`, `taglio`, `riempimento` in terra-data.js, index.html, dw-ponti.js: zero occorrenze |
-| Bench-by-bench volume tracking | **CONFERMATO ASSENTE** | `banco` esiste (terra-data.js:42-44, 1064) ma solo come campo della fronte, non c'è tracking volumetrico per banco singolo — il tracking è per fronte (volumeFronte), non per banco |
+| Bench-by-bench volume tracking | ⏱️ **SCADUTA — C'È DAL 01/08** (verifica `e9f9b0d` 16:20 → costruito `e5f15a7` 16:55, **35 minuti**) | `banco` esiste (terra-data.js:42-44, 1064) ma solo come campo della fronte, non c'è tracking volumetrico per banco singolo — il tracking è per fronte (volumeFronte), non per banco |
 | Automatic stockpile detection | **CONFERMATO ASSENTE** | Cercati `stockpile`, `automatic`, `detection`, `automático`: zero occorrenze rilevanti (index.html:955 è autocompilamento di form, non detection) |
 | Pit design e scheduling | **CONFERMATO ASSENTE** | Cercati `pit`, `design`, `scheduling`: zero occorrenze rilevanti. Lotti creati manualmente (terra-data.js:56-80) senza design automatico |
 | Reserve estimation con optimization | **FALSO, C'È GIÀ** | terra-data.js:384 `riservaResidua()` calcola la riserva residua; usata in index.html:1082-1083 per mostrare il consumo annuale — non è full optimization ma c'è stima della riserva |
 | Floating cone optimization | **CONFERMATO ASSENTE** | Cercati `floating`, `cone`, `conical`, `ottimizzazione`: zero occorrenze |
 | Pit progression monitoring | **C'È A METÀ** | terra-data.js:670 `vitaCava()` e terra-data.js:400 `proiezioneAnnua()` monitorano vita della cava (consumo annuale, residuo, anni stimati) ma non è monitoraggio del pit design — è monitoraggio della concessione |
 | Volume reconciliation (misurato vs dichiarato) | **FALSO, C'È GIÀ** | shared/dw-ponti.js:185 `riconciliazioneTurni()` fa esattamente il confronto fra volumi misurati dai rilievi e dichiarati dai turni di campo; importata e usata in terra-data.js:1152 e index.html:849; confronta `misuratoPeriodo()` (dw-ponti.js:211) con `produzioneDichiarata()` |
-| Conformità design | **CONFERMATO ASSENTE** | Cercati `conformit`, `conform`, `overlay`, `design`: zero occorrenze rilevanti |
+| Conformità design | ⏱️ **SCADUTA — C'È DAL 01/08** (verifica `e9f9b0d` 16:20 → costruito `e19e196` 18:22) | Allora zero occorrenze di `conformit`; oggi `statoConformitaQuota`, `conformitaQuota` e `conformitaProgetto` in `terra-data.js`: «stiamo scavando dove il progetto dice?» è la domanda dell'ente, e l'app sa rispondere |
 | Gestione concessione regionale | **C'È A METÀ** | terra-data.js:580, 722, 959, 980 e index.html:541, 819 dichiarano "materia regionale": l'app non applica regole specifiche per regione, ma l'utente le imposta. `vitaCava()` è generico, niente regole per regione |
 | Compliance reporting per ente | **C'È A METÀ** | terra-data.js:751 `riepilogoAnnuale()` e terra-data.js:857 `baseOnereEscavazione()` producono i dati per la denuncia annuale (volumi per mese/fronte, qualità, banda incertezza, onere di escavazione); index.html:819 dichiara esplicitamente "Terra ti dà i tuoi numeri ordinati, non compila la denuncia al posto tuo" — i dati ci sono, il modulo ufficiale lo compila l'utente |
 
 **Riepilogo verifica:**
 - **Righe verificate:** 11
-- **Confermate assenti:** 6 (cut/fill, bench-by-bench, automatic detection, pit design, floating cone, conformità)
+- **Confermate assenti:** 4 (cut/fill, automatic detection, pit design, floating cone)
 - **False (c'è già):** 2 (reserve estimation, volume reconciliation)
+- **⏱️ Scadute:** 2 (bench-by-bench → `ripartizioneBanchi`, 35 minuti dopo; conformità → `conformitaProgetto`)
 - **C'è a metà:** 3 (pit progression, concessione regionale, compliance reporting)
 
 **Mancanza confermata più importante:** Automatic cut/fill volume calculation (riga 1, ricorrenza 6/13 concorrenti) — nessuna progettazione automatica del pit da disegno. Terra accetta lotti manualmente, non li genera da topografia.

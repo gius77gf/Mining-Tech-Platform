@@ -200,6 +200,36 @@ se l'ha trovato a metà. Un «non c'è» senza la sua ricerca accanto vale zero,
 un elenco di mancanze gonfiato è peggio di nessun elenco: manda a lavorare
 dove non serve, che è l'unico modo di sprecare una giornata intera.
 
+⏱️ **E C'È UNA SECONDA FORMA, CHE NON È COLPA DI NESSUNO: IL «NON C'È» SCADUTO.**
+Misurata il 01/08, **sei righe** su 105. Non verifiche sbagliate: erano vere
+quando sono state scritte, e il cantiere che colmava la mancanza è girato
+**dopo**, lo stesso pomeriggio, senza sapere l'uno dell'altro. Due sono scadute
+in **trentaquattro e trentacinque minuti**; la voce dichiarata «mancanza più
+importante» di Campo è stata costruita **cinquanta minuti** dopo essere stata
+scritta. E il costo si è visto la sera: una ricerca lanciata **con il divieto
+esplicito** di dichiarare un «non c'è» senza la prova ha proposto l'anagrafe
+appaltatori di Scudo, costruita due ore prima — cinque funzioni esportate e
+dodici punti nella pagina. Cioè: **rileggere il documento non basta, perché il
+documento è la cosa vecchia.**
+La causa è il primo moltiplicatore (i cantieri paralleli), quindi la cura non
+può essere lavorare in fila. È **meccanica**: ogni documento del delta dichiara
+il commit contro cui è stato verificato, e
+`node apps/deepwork-id/tests/documenti-invecchiati.mjs` pretende che quel commit
+**esista** e che abbia **davvero toccato quel documento** (una data incollata
+non è una verifica), poi stampa di quanti commit l'app è andata avanti da
+allora. Arretrato al 01/08: **34 commit su sei documenti**, dichiarato per
+essere visto scendere.
+⚠️ **E la strada ovvia è stata provata e scartata, con i numeri, perché nessuno
+la rifaccia alla cieca**: rimettere alla prova i termini che ogni riga dichiara
+di aver cercato dà **8 righe segnalate, 2 vere, 6 falsi allarmi, e 2 righe vere
+non viste**. Non è il confronto a sbagliare, è la **lettura**: la colonna della
+prova è prosa, scritta da sei autori in sei notazioni, e cita i nomi di ciò che
+**esiste** come controesempio accanto ai termini cercati a vuoto. Un allarme che
+sbaglia tre volte su quattro insegna a non guardarlo.
+⛔ La regola di comportamento che ne segue, e vale per ogni cantiere: **chi
+chiude un'unità aggiorna la riga del documento che gliel'aveva proposta.** È la
+sola cosa che fa scendere quel numero.
+
 Perché serva davvero e non produca elenchi generici, cinque vincoli:
 
 1. **Legge prima di proporre.** Ogni agente parte da `docs/RICERCA_*_<app>.md`,
