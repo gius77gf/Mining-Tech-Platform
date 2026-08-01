@@ -127,7 +127,14 @@ export const DEMO = {
     { id: "s1", numero: "2026/001", data: "2026-02-11", clienteId: "c1", cliente: "Edilcave Srl",
       prodottoId: "p1", prodotto: "Stabilizzato 0/30", lordo: 42.6, tara: 14.2, netto: 28.4,
       unitaVendita: "t", quantita: 28.4, densita: 1.9, prezzoUnitario: 8.5, aliquotaIva: 22,
-      mezzo: "FT 421 KP", destinatario: "Cantiere SS115 km 12", fatturaId: "storico" },
+      mezzo: "FT 421 KP", destinatario: "Cantiere SS115 km 12", fatturaId: "storico",
+      /* ⛔ Causale e «a cura di» NON stanno su tutte le pesate d'esempio, e non
+         e' una dimenticanza: fino al 01/08 il foglio le dichiarava FISSE
+         («Vendita», «a cura del mittente») su ogni DDT, e nessuno poteva
+         accorgersene. Qui la prima e' compilata, s4 e' a cura di un vettore, e
+         le altre restano vuote — cosi' si vede il riquadro «questo documento
+         non e' completo» invece di un DDT che sembra a posto. */
+      causaleTrasporto: "vendita", trasportoACura: "mittente" },
     { id: "s2", numero: "2026/002", data: "2026-03-09", clienteId: "c2", cliente: "Stradesud",
       prodottoId: "p2", prodotto: "Pietrisco 8/12", lordo: 40, tara: 13.8, netto: 26.2,
       unitaVendita: "t", quantita: 26.2, densita: 1.5, prezzoUnitario: 12, aliquotaIva: 22,
@@ -139,7 +146,10 @@ export const DEMO = {
     { id: "s4", numero: "2026/004", data: "2026-05-08", clienteId: "c2", cliente: "Stradesud",
       prodottoId: "p3", prodotto: "Sabbia lavata 0/4", lordo: 36, tara: 13.6, netto: 22.4,
       unitaVendita: "m3", quantita: 14, densita: 1.6, prezzoUnitario: 22, aliquotaIva: 22,
-      mezzo: "DR 118 XS", destinatario: "Piazzale Modica", fatturaId: "storico" },
+      mezzo: "DR 118 XS", destinatario: "Piazzale Modica", fatturaId: "storico",
+      // il trasporto a cura di un VETTORE terzo, col suo nome: e' l'unico caso
+      // in cui il foglio deve scrivere chi trasporta al posto del mittente
+      causaleTrasporto: "vendita", trasportoACura: "vettore", vettore: "Autotrasporti Ragusa Srl" },
     { id: "s5", numero: "2026/005", data: "2026-06-05", clienteId: "c1", cliente: "Edilcave Srl",
       prodottoId: "p4", prodotto: "Massi da scogliera", lordo: 45.3, tara: 15.1, netto: 30.2,
       unitaVendita: "t", quantita: 30.2, densita: 2.4, prezzoUnitario: 15.5, aliquotaIva: 22,
@@ -1692,6 +1702,65 @@ export const CAUSALI_NOTA = [
 ];
 export function causaleNota(id) {
   return CAUSALI_NOTA.find((c) => c.id === String(id || "")) || null;
+}
+
+
+/* ── LA CAUSALE DEL TRASPORTO E CHI TRASPORTA (DDT) ───────────────────────
+   ⛔ IL FOGLIO DICHIARAVA DUE COSE CHE NESSUNO AVEVA SCRITTO. Fino al 01/08 il
+   documento di trasporto stampava «Causale del trasporto: **Vendita**» e
+   «Trasporto a cura di: **mittente**» — **fissi nel codice**, su ogni DDT.
+
+   Non è un dettaglio di forma. Il DDT è il documento che viaggia sul camion e
+   che la Guardia di Finanza legge a un posto di blocco: la causale decide se
+   quel materiale è venduto, dato in conto lavorazione, reso, o spostato fra due
+   depositi della stessa ditta — e da lì se ci vuole una fattura. Un materiale
+   mandato in conto lavorazione con scritto «Vendita» è una dichiarazione
+   sbagliata fatta dall'app al posto dell'utente; «trasporto a cura del
+   mittente» quando il cliente è venuto a ritirare con un camion suo sposta la
+   responsabilità del trasporto sulla persona sbagliata.
+
+   È il principio del fondatore nel posto in cui costa di più: non un numero
+   tranquillo su uno schermo, ma una **dichiarazione** su un documento fiscale.
+   Quando non è indicata, il foglio lo dice — come fa già con l'IVA delle
+   fatture registrate a importo unico. */
+export const CAUSALI_TRASPORTO = [
+  { id: "vendita", label: "Vendita" },
+  { id: "conto-lavorazione", label: "Conto lavorazione" },
+  { id: "conto-visione", label: "Conto visione o prova" },
+  { id: "reso", label: "Reso al fornitore" },
+  { id: "trasferimento", label: "Trasferimento fra depositi della ditta" },
+  { id: "omaggio", label: "Omaggio" },
+  { id: "riparazione", label: "Riparazione o manutenzione" },
+];
+export function causaleTrasporto(id) {
+  return CAUSALI_TRASPORTO.find((c) => c.id === String(id || "")) || null;
+}
+
+export const TRASPORTO_A_CURA = [
+  { id: "mittente", label: "Mittente", spiega: "Consegniamo noi, con un mezzo nostro o incaricato da noi." },
+  { id: "destinatario", label: "Destinatario", spiega: "Il cliente viene a ritirare con un mezzo suo." },
+  { id: "vettore", label: "Vettore", spiega: "Un trasportatore terzo, che va indicato sul documento." },
+];
+export function trasportoACura(id) {
+  return TRASPORTO_A_CURA.find((c) => c.id === String(id || "")) || null;
+}
+
+/* Quello che al DDT manca per essere un documento completo, detto una volta
+   sola perché lo dicano allo stesso modo la pagina e il foglio stampato.
+   ⛔ Restituisce un elenco di MANCANZE, non un booleano «valido»: un DDT si
+   stampa lo stesso — il camion parte — ma chi lo stampa deve sapere che cosa
+   ci sta scrivendo sopra. */
+export function mancanzeDdt(pesata) {
+  const p = pesata || {};
+  const mancano = [];
+  if (!causaleTrasporto(p.causaleTrasporto))
+    mancano.push("la causale del trasporto (vendita, conto lavorazione, reso…): decide come va trattata la consegna");
+  const cura = trasportoACura(p.trasportoACura);
+  if (!cura)
+    mancano.push("chi cura il trasporto (mittente, destinatario o vettore)");
+  else if (cura.id === "vettore" && !String(p.vettore || "").trim())
+    mancano.push("il nome del vettore: il trasporto è dichiarato a cura di un vettore, ma non è scritto quale");
+  return mancano;
 }
 
 

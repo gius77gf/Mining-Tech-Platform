@@ -1992,6 +1992,54 @@ test("⛔ una fattura stornata NON finisce nel sollecito né nell'estratto conto
   eq(conti.incassoAtteso([{ ...f, scadenza: "2026-05-20" }], 30, oggi).importo, 1000,
     "e senza note lo conta, come sempre");
 });
+test("⛔ DDT: la causale del trasporto non si inventa «Vendita»", () => {
+  /* Il foglio stampava «Causale del trasporto: Vendita» e «Trasporto a cura di:
+     mittente» FISSI NEL CODICE, su ogni DDT. Non e' forma: il DDT viaggia sul
+     camion e lo legge la Guardia di Finanza — la causale decide se il materiale
+     e' venduto, in conto lavorazione, reso o spostato fra depositi. Scriverci
+     «Vendita» sopra e' una dichiarazione fatta dall'app al posto dell'utente.
+     E' il principio del fondatore nel posto dove costa di piu': non un numero
+     tranquillo su uno schermo, una dichiarazione su un documento fiscale. */
+  eq(conti.causaleTrasporto("conto-lavorazione").label, "Conto lavorazione", "la voce si trova per id");
+  eq(conti.causaleTrasporto("vendita").label, "Vendita", "e vendita resta una scelta possibile");
+  for (const x of [undefined, null, "", "inventata", 0])
+    eq(conti.causaleTrasporto(x), null, `su ${JSON.stringify(x)} risponde null invece di indovinare`);
+  ok(conti.CAUSALI_TRASPORTO.length >= 5, "le causali tipiche di una cava ci sono tutte");
+});
+test("⛔ trasportoACura: le tre possibilita' del DDT, e nessuna inventata", () => {
+  /* Non e' una tendina qualsiasi: «a cura del mittente» scritto su un DDT dove
+     il cliente e' venuto a ritirare col camion suo sposta la responsabilita'
+     del trasporto sulla persona sbagliata. Le tre voci sono quelle previste, e
+     ognuna porta la sua spiegazione perche' la scelta non e' ovvia a chi
+     compila di fretta. */
+  eq(conti.TRASPORTO_A_CURA.length, 3, "mittente, destinatario, vettore");
+  for (const id of ["mittente", "destinatario", "vettore"]) {
+    const c = conti.trasportoACura(id);
+    ok(c && c.label && c.spiega, `«${id}» c'e' ed e' spiegata: ${JSON.stringify(c)}`);
+  }
+  for (const x of [undefined, null, "", "corriere", 0])
+    eq(conti.trasportoACura(x), null, `su ${JSON.stringify(x)} risponde null invece di indovinare`);
+});
+test("⛔ mancanzeDdt: elenca cosa manca, e non risponde «valido»", () => {
+  const pieno = { causaleTrasporto: "vendita", trasportoACura: "mittente" };
+  eq(conti.mancanzeDdt(pieno).length, 0, "un DDT completo non ha mancanze");
+  const vuoto = conti.mancanzeDdt({});
+  eq(vuoto.length, 2, "senza causale e senza chi trasporta, le mancanze sono due");
+  ok(vuoto.some((m) => /causale/.test(m)) && vuoto.some((m) => /cura il trasporto/.test(m)),
+    `e sono nominate: ${JSON.stringify(vuoto)}`);
+  /* ⛔ il caso che una lista di booleani non prenderebbe: «a cura di un
+     vettore» SENZA il nome del vettore. La scelta c'e', quindi un controllo
+     che guarda solo se il campo e' pieno direbbe che va tutto bene — e sul
+     foglio comparirebbe «trasporto a cura del vettore» senza dire quale. */
+  const senzaNome = conti.mancanzeDdt({ causaleTrasporto: "vendita", trasportoACura: "vettore" });
+  eq(senzaNome.length, 1, "il vettore scelto ma non nominato e' una mancanza");
+  ok(/quale/.test(senzaNome[0]), `e lo dice: ${senzaNome[0]}`);
+  eq(conti.mancanzeDdt({ causaleTrasporto: "vendita", trasportoACura: "vettore", vettore: "Autotrasporti Rossi" }).length, 0,
+    "col nome del vettore non manca piu' niente");
+  /* uno spazio non e' un nome */
+  eq(conti.mancanzeDdt({ causaleTrasporto: "vendita", trasportoACura: "vettore", vettore: "   " }).length, 1,
+    "e uno spazio non conta come nome");
+});
 test("causaleNota: trova la voce per id, e su un id inventato risponde null invece di indovinare", () => {
   eq(conti.causaleNota("errore").comma, 3, "l'errore di fatturazione sta al comma 3");
   eq(conti.causaleNota("resa").termine, null, "la merce resa non ha termine");

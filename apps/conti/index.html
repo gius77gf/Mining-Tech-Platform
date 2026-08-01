@@ -809,6 +809,28 @@ label.item:has(.dw-chk:checked){
       <input class="dw-input" id="pes-dest" placeholder="es. Cantiere SS115 km 12" autocomplete="off">
       <span class="err-msg" id="err-pes-dest"></span>
     </div>
+    <!-- ⛔ Le due cose che il foglio dichiarava al posto dell'utente. Sono
+         tendine e non campi liberi perche' la causale del trasporto e' un
+         elenco chiuso: e' quella che decide come va trattata la consegna. -->
+    <div class="fld" id="fld-pes-causale" style="flex:1 1 190px;">
+      <label for="pes-causale">Causale del trasporto</label>
+      <select class="dw-input" id="pes-causale">
+        <option value="">— da indicare —</option>
+      </select>
+      <span class="err-msg" id="err-pes-causale"></span>
+    </div>
+    <div class="fld" id="fld-pes-cura" style="flex:1 1 170px;">
+      <label for="pes-cura">Trasporto a cura di</label>
+      <select class="dw-input" id="pes-cura">
+        <option value="">— da indicare —</option>
+      </select>
+      <span class="err-msg" id="err-pes-cura"></span>
+    </div>
+    <div class="fld w2" id="fld-pes-vettore" style="display:none;">
+      <label for="pes-vettore">Vettore che esegue il trasporto</label>
+      <input class="dw-input" id="pes-vettore" placeholder="es. Autotrasporti Rossi Srl" autocomplete="off">
+      <span class="err-msg" id="err-pes-vettore"></span>
+    </div>
     <button class="dw-btn" id="btn-pes">Registra pesata</button>
   </div>
   <div id="pes-riep"></div>
@@ -1301,6 +1323,7 @@ label.item:has(.dw-chk:checked){
     tempiPagamentoClienti, tempoMedioPagamento, emessoIncassato,
     numeroDaCampo, AVVISO_DECIMALE,
     CAUSALI_NOTA, causaleNota, stornatoDi, statoFattura, validaNota, notaDaFattura,
+    CAUSALI_TRASPORTO, causaleTrasporto, TRASPORTO_A_CURA, trasportoACura, mancanzeDdt,
     VOCI_COSTO, voceCosto, gruppoDiVoce, riepilogoCosti, costoPerMetroCubo,
     volumeDaTerra, costiFuoriDaiRilievi,
     statoMese, vociMancantiNelMese, margineMese } from "./conti-data.js";
@@ -1518,6 +1541,19 @@ label.item:has(.dw-chk:checked){
   ["pr-prezzo","pr-dens","pr-unita"].forEach(i => $(i).addEventListener("input", aggiornaConvPro));
   ["pes-lordo","pes-tara","pes-prod"].forEach(i => $(i).addEventListener("input", aggiornaNetto));
   $("pes-data").addEventListener("change", () => { $("pes-num").value = numeroProssimoDdt(); });
+
+  /* le due tendine del DDT: l'elenco lo tiene il modulo, la pagina lo disegna */
+  $("pes-causale").innerHTML = '<option value="">— da indicare —</option>'
+    + CAUSALI_TRASPORTO.map(c => `<option value="${c.id}">${esc(c.label)}</option>`).join("");
+  $("pes-cura").innerHTML = '<option value="">— da indicare —</option>'
+    + TRASPORTO_A_CURA.map(c => `<option value="${c.id}" title="${esc(c.spiega)}">${esc(c.label)}</option>`).join("");
+  /* il nome del vettore si chiede SOLO se il trasporto e' a cura di un vettore:
+     un campo sempre visibile che quasi sempre resta vuoto insegna a saltarlo */
+  const mostraVettore = () => {
+    $("fld-pes-vettore").style.display = $("pes-cura").value === "vettore" ? "" : "none";
+  };
+  $("pes-cura").addEventListener("change", mostraVettore);
+  mostraVettore();
   ["dif-cli","dif-dal","dif-al"].forEach(i => $(i).addEventListener("change", () => {
     difSel = new Set(); renderDifferita(); }));
   ["can-unita","can-ali","can-dal","can-al"].forEach(i => $(i).addEventListener("input", renderCanone));
@@ -2797,9 +2833,28 @@ label.item:has(.dw-chk:checked){
     return `<div class="doc">
       ${testaStampa("Documento di trasporto", "n. <b>" + esc(p.numero || "—") + "</b> del " + fmtD(p.data))}
       ${destStampa("Destinatario", c, p.destinatario ? `<br><span class="et" style="margin-top:2mm;">Luogo di consegna</span>${esc(p.destinatario)}` : "")}
+      ${(() => {
+        /* ⛔ QUI IL FOGLIO DICHIARAVA DUE COSE CHE NESSUNO AVEVA SCRITTO:
+           «Vendita» e «a cura del mittente», fissi nel codice. Su un documento
+           che viaggia sul camion e che legge la Guardia di Finanza, la causale
+           decide se il materiale e' venduto, in conto lavorazione, reso o
+           spostato fra depositi. Adesso, quando non e' indicata, il foglio lo
+           dice — con lo stesso riquadro tratteggiato che usa per l'IVA delle
+           fatture registrate a importo unico. */
+        const m = mancanzeDdt(p);
+        return m.length
+          ? `<div class="manca"><b>Questo documento non è completo.</b> Prima di stamparlo va indicato: ${m.map(x => esc(x)).join("; ")}. Si compila sulla pesata, in Conti.</div>`
+          : "";
+      })()}
       <div class="cols">
-        <div class="box"><span class="et">Causale del trasporto</span>Vendita</div>
-        <div class="box"><span class="et">Trasporto a cura di</span>${esc(p.mezzo ? "mittente — mezzo " + p.mezzo : "mittente")}</div>
+        <div class="box"><span class="et">Causale del trasporto</span>${
+          (causaleTrasporto(p.causaleTrasporto) || {}).label || "<b>da indicare</b>"}</div>
+        <div class="box"><span class="et">Trasporto a cura di</span>${(() => {
+          const c = trasportoACura(p.trasportoACura);
+          if (!c) return "<b>da indicare</b>";
+          if (c.id === "vettore") return esc(String(p.vettore || "").trim() || "vettore — <b>da indicare</b>");
+          return esc(c.label.toLowerCase()) + (p.mezzo ? " — mezzo " + esc(p.mezzo) : "");
+        })()}</div>
         <div class="box"><span class="et">Data e ora di ritiro</span>${fmtD(p.data)}</div>
       </div>
       <table><thead><tr>
@@ -4067,6 +4122,8 @@ label.item:has(.dw-chk:checked){
     const rt = numCampo("pes-tara", { min: 0, max: 500 });
     const lordo = rl.ok ? rl.valore : NaN, tara = rt.ok ? rt.valore : NaN;
     const mezzo = $("pes-mezzo").value.trim(), destinatario = $("pes-dest").value.trim();
+    const causaleTr = $("pes-causale").value, curaTr = $("pes-cura").value;
+    const vettore = $("pes-vettore").value.trim();
     PES_CAMPI.forEach(puliscoErr);
     const p = PRO.find(x => x.id === prodottoId), c = CLI.find(x => x.id === clienteId);
     const err = [];
@@ -4092,7 +4149,12 @@ label.item:has(.dw-chk:checked){
       prodottoId, prodotto: p.nome, lordo: round2(lordo), tara: round2(tara), netto: r.netto,
       unitaVendita: r.unitaVendita, quantita: r.quantita, densita: r.densita,
       prezzoUnitario: r.prezzoUnitario, scontoPct: r.scontoPct, aliquotaIva: r.aliquotaIva,
-      mezzo, destinatario, fatturaId: null });
+      mezzo, destinatario, fatturaId: null,
+      /* ⛔ si salvano vuoti se l'utente non li ha scelti: NON si mette
+         «vendita» per comodità. Un valore di comodo qui diventa una
+         dichiarazione sul documento di trasporto. */
+      causaleTrasporto: causaleTr || null, trasportoACura: curaTr || null,
+      vettore: curaTr === "vettore" ? (vettore || null) : null });
     esito("pes-esito", "DDT " + numero + " registrato: " + qt(r.netto) + " t nette di " + p.nome + " per " + eur(r.valore) + ".", "success");
     // si svuotano solo i pesi: stesso camion, stesso prodotto, viaggio dopo viaggio
     ["pes-lordo", "pes-tara"].forEach(i => { $(i).value = ""; puliscoErr(i); });

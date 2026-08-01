@@ -2051,6 +2051,26 @@ campi interi, file delle macchine.
       Serve a **impedire il lavoro sbagliato**: chi riprendesse dalla scheda
       vecchia scriverebbe strati dati che esistono, l'errore che `CLAUDE.md`
       elenca fra i più costosi con quattro casi datati.
+- [x] ✅ **IL DDT DICHIARAVA «VENDITA» AL POSTO DELL'UTENTE** *(01/08, Conti)* —
+      andando a fare «le anagrafiche cantieri e vettori, l'unico buco di dati
+      rimasto», la scheda era di nuovo più vecchia del codice: **la pagina del
+      DDT esiste**, completa di stampa, firme e richiamo al DPR 472/1996, e
+      destinatario e mezzo ci sono già come campi liberi. Quel «buco» misurava i
+      **nomi delle collezioni**, non quello che il documento sa dire — ed era un
+      documento che avevo scritto **io**, poche ore prima. Il difetto vero era
+      molto peggio: la stampa scriveva «Causale del trasporto: **Vendita**» e
+      «Trasporto a cura di: **mittente**» **fissi nel codice, su ogni DDT**. È
+      il documento che viaggia sul camion e che legge la Guardia di Finanza: la
+      causale decide se il materiale è venduto, in conto lavorazione, reso o
+      spostato fra depositi. È il principio del fondatore dove costa di più —
+      non un numero tranquillo su uno schermo, una **dichiarazione su un
+      documento fiscale**. Aggiunti `CAUSALI_TRASPORTO`, `TRASPORTO_A_CURA` e
+      `mancanzeDdt` (che elenca **cosa manca**, non risponde «valido»), con la
+      stessa forma che Conti usava già per le note di credito; il foglio dice
+      «da indicare» e mostra il riquadro rosso che esisteva già per l'IVA. I
+      tre stati sono in dimostrazione **da subito** — la lezione delle due
+      unità precedenti applicata prima invece che dopo. Prove **1114 → 1117**.
+      ⚠️ `numeri-nei-documenti` caduta 2 volte, e aveva ragione tutt'e due.
 - [x] ✅ **UN BANCO PRETENDE CHE GLI STATI «NON MISURATO» SI VEDANO** *(01/08)* —
       in due unità di fila lo stesso difetto in **due app a un'ora di distanza**:
       uno stato che dice «non è stato misurato» scritto, provato, commentato — e
