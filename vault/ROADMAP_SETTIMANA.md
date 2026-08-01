@@ -950,6 +950,38 @@ campi interi, file delle macchine.
       **lettura**: la colonna della prova è prosa in sei notazioni e cita ciò
       che esiste accanto a ciò che manca.
 
+- [x] 💰 **Il numero con cui si decide se tenere una macchina era gonfiato del
+      120%.** `costoOrarioMezzo` di Flotta divideva l'officina **da sempre** per
+      le ore di un **periodo solo** (quelle coperte dalle letture del contatore
+      sui rifornimenti). Tre mezzi su sei sbagliati. E il segno stava sotto gli
+      occhi da giorni: la media pesata del parco era **54,25 €/h su mezzi fra 28
+      e 39** — più alta di ogni suo addendo. Ora 32,38, e la striscia rossa non
+      è più sulla macchina più economica.
+      ⛔ La correzione **non baratta una domanda con l'altra**: totale, officina
+      e carburante restano quelli veri; cambia solo il numeratore del rapporto,
+      e ciò che cade fuori dalla finestra si conta a parte e si dichiara.
+      ⚠️ Il cantiere ha misurato che il difetto ha una **seconda metà, dal lato
+      gasolio, più grossa** (+93,7% su un mezzo) e l'ha **dichiarata invece di
+      correggerla**, perché il mandato fissava numeri d'arrivo diversi.
+- [x] 🧪 **Terra: la densità con la fonte dichiarata** (atto / laboratorio con
+      data e riferimento / preset / a mano), e un numero senza fonte **non
+      diventa «a mano»**: resta «non dichiarata». Via il `value="1,6"`
+      prestampato — su sabbia e ghiaia sposta i metri cubi del **19%**, cioè
+      quanto lo scostamento che quel confronto dovrebbe misurare.
+      ⚠️ Il cantiere ha **smentito una riga del mandato**: la densità non sta
+      sotto la base dell'onere, che lavora tutta in m³.
+- [x] 📋 **Scudo: il ciclo di vita del DSS** a sette stati — e senza data di
+      revisione non è «aggiornato» né «scaduto», è **non databile**. Anche lo
+      stato verde dichiara che cosa Scudo **non** ha guardato. Le deduzioni
+      normative sono marcate come tali. Il cantiere ha trovato **quattro preset
+      di scadenzario che esistevano già e che nessuno leggeva**: non li ha
+      riscritti, ci ha attaccato sopra il ciclo e legge da lì i dodici mesi.
+- [x] 💶 **Conti: i prezzi a scaglioni.** Sconto cliente e scaglione **si
+      sommano**, perché il cliente deve poter rifare il conto a mente e perché
+      una percentuale piegata nel prezzo unitario perde soldi (6,24 € su 2.230
+      t, misurato). ⛔ E lo scaglione vive nel **preventivo, non sul DDT**: un
+      DDT è un camion, e scegliere la banda sulla portata di un autocarro
+      farebbe pagare il prezzo del privato a chi ha comprato 5.000 t.
 - [x] 🎯 **I tre difetti che Genesi aveva TROVATO E NON BLINDATO, chiusi tutti
       e tre in ordine di pericolo.** Il metodo conta quanto il risultato: il
       cantiere aveva un mandato di **trasloco**, mentre spostava le funzioni le
