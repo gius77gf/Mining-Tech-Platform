@@ -74,16 +74,20 @@ export const DEMO = {
     // f6: saldata con DUE movimenti (acconto + saldo): è il caso normale in
     // cava, ed è quello che rende veri i giorni di pagamento.
     { id: "f6", numero: "2026/030", cliente: "Stradesud", clienteId: "c2", importo: 7320, emessa: "2026-06-02", scadenza: "2026-07-02", incassata: true, dataIncasso: "2026-06-28" },
+    /* f7: LA FATTURA SENZA SCADENZA — il caso su cui l'app diceva le cose più
+       tranquillizzanti che sapesse dire: badge verde «Regolare», fascia «non
+       scaduto», e nell'età media del credito contata **zero giorni**, col suo
+       posto al denominatore (misurato: 92 gg → 46 gg, e la frase accanto
+       passava a «sotto controllo»). È il caso per cui esistono
+       `statoScadenzaFattura` e la fascia `senzaScadenza`, e adesso si VEDE.
+       ⚠️ Fino al 01/08 non poteva stare qui: `run-demo.mjs` pretendeva che ogni
+       fattura dimostrativa avesse emissione e scadenza valide, quindi la
+       dimostrazione non poteva contenere proprio il caso che il prodotto era
+       appena stato costruito per raccontare. Quella regola adesso distingue un
+       dato CORROTTO (che deve cadere) da un dato ASSENTE (che è uno stato che
+       l'app sa dire). Emessa c'è, scadenza no: è come arrivano dagli import. */
+    { id: "f7", numero: "2026/037", cliente: "Cave del Sud", importo: 4400, emessa: "2026-06-18", scadenza: null, incassata: false },
   ],
-  /* ⚠️ NEI DATI DIMOSTRATIVI NON C'È UNA FATTURA SENZA DATE, e non perché il
-     caso non conti: è il caso su cui l'app diceva le cose più tranquillizzanti
-     che sapesse dire (badge verde «Regolare», fascia «non scaduto», età media
-     del credito abbassata contandola zero giorni), ed è quello per cui esistono
-     `statoScadenzaFattura` e la fascia `senzaScadenza`. Non sta qui perché
-     `run-demo.mjs` pretende che OGNI fattura dimostrativa abbia emissione e
-     scadenza valide: metterla vuol dire prima decidere cosa deve dire quella
-     regola, e quel file non è di Conti. Le prove del caso stanno in
-     `run-kpi.mjs`, dove i dati se li scrive la prova. */
   // Movimenti di incasso: il giorno in cui i soldi sono ARRIVATI davvero.
   incassi: [
     { id: "i1", fatturaId: "f6", data: "2026-06-15", importo: 3000, metodo: "bonifico" },

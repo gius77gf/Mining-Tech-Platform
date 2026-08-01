@@ -1990,6 +1990,31 @@ campi interi, file delle macchine.
       quinta variante di «rilievo usabile», e la fattura senza date che
       `run-demo.mjs` **vieta** alla dimostrazione — rendendo invisibile la
       difesa appena costruita.
+- [x] ✅ **ASSENTE NON È CORROTTO: la dimostrazione può mostrare il caso**
+      *(01/08)* — chiuso il punto 5 lasciato aperto sopra. `run-demo.mjs`
+      pretendeva che **ogni** fattura d'esempio avesse emissione e scadenza
+      valide, quindi la dimostrazione non poteva contenere proprio il caso per
+      cui la difesa era appena stata costruita. Ora la regola distingue: un dato
+      **corrotto** cade (`2026-13-45`, il formato italiano, il testo), un campo
+      **assente** passa — perché è uno stato che il prodotto sa raccontare.
+      Nella dimostrazione c'è **f7 · 2026/037**, senza scadenza, con la pastiglia
+      gialla; riga alta 198 px, identica alle due accanto.
+      ⚠️ E la regola era scritta **una seconda volta, più debole**: la `isDate`
+      di casa accettava **«2026-02-30»**, perché `Date.parse` un giorno che non
+      esiste non lo rifiuta — lo fa **scorrere** al 2 marzo. La versione giusta
+      (`dataISOEsiste`) è in `shared/` da mesi. Adesso `run-demo` la importa.
+      ⚠️ **Due volte la prova aveva torto, non il codice**: `2026-07-01T00:00`
+      messo fra i corrotti (ma `dataISOEsiste` taglia a dieci caratteri apposta,
+      perché in archivio ci sono istanti interi), e `2026-02-29` messo fra i
+      validi (il 2026 non è bisestile).
+      ⚠️ **La CI è caduta su `e452e9a`, e per la ragione giusta**: la *sonda del
+      vuoto* ha visto che **tre eccezioni dichiarate non si presentano più**
+      (`scudo.statoAzione`, `scudo.statoIspezione`, `campo.pianoRiepilogo`) —
+      non erano guasti, erano casi che il censimento aveva **corretto**, e le
+      righe che li scusavano andavano tolte. *Un'eccezione che non serve più è
+      un'eccezione che nasconde.* Adesso «7 trovati, 7 dichiarati»: prima i due
+      numeri non coincidevano. Quella suite non era nel mio giro di verifica
+      prima del commit, ed è il motivo per cui l'ha trovata la CI invece di me.
 
 ---
 

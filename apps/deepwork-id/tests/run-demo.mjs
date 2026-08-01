@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+const { dataISOEsiste } = await import(join(HERE, "../../../shared/deepwork-id-client/dw-shell.js"));
 const demo = async (name, file) => (await import(join(HERE, `../../${name}/${file}`))).DEMO;
 
 const S = await demo("scudo", "scudo-data.js");
@@ -25,7 +26,32 @@ const test = (name, fn) => {
   catch (e) { failed++; console.error(`  ✗ ${name}: ${e.message}`); }
 };
 const ok = (c, why) => { if (!c) throw new Error(why); };
-const isDate = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s + "T00:00:00"));
+/* ⚠️ QUESTA REGOLA ERA SCRITTA UNA SECONDA VOLTA, E PIÙ DEBOLE. La versione di
+   casa era `/^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(…))`, e
+   accettava «2026-02-30»: `Date.parse` non rifiuta un giorno che non esiste, lo
+   fa SCORRERE al 2 marzo. Una data d'esempio impossibile sarebbe passata per
+   buona, diventando un altro giorno in silenzio.
+   La versione giusta è in `shared/` da mesi — `dataISOEsiste`, che ricostruisce
+   la data e la confronta con quella scritta — e la usano già le app. Qui si
+   importa: un alias non è una seconda implementazione. */
+const isDate = (s) => dataISOEsiste(s);
+/* ⛔ ASSENTE E CORROTTO NON SONO LA STESSA COSA, e confonderli ha un costo che
+   si è visto il 01/08: `run-demo` pretendeva che ogni fattura d'esempio avesse
+   emissione e scadenza valide, quindi la dimostrazione NON POTEVA contenere una
+   fattura senza data — cioè proprio il caso per cui era appena stata costruita
+   una difesa (senza scadenza non è «Regolare», e senza emissione non entra
+   nella media del credito come zero giorni). Il divieto rendeva invisibile la
+   parte migliore del prodotto, che è lo stesso difetto già trovato con la
+   chiusura del mese: la dimostrazione più povera della realtà proprio dove il
+   prodotto è più forte.
+   Quello che `run-demo` deve impedire è un dato CORROTTO — «2026-13-45», un
+   numero al posto di una data, un refuso che fa crashare un badge. Un campo
+   ASSENTE non è un refuso: è uno stato che il prodotto sa raccontare, e
+   metterlo nella dimostrazione è un modo di mostrarlo.
+   ⚠️ Il permesso è stretto apposta: assente vuol dire `null`, `undefined` o
+   stringa vuota. Qualunque altra cosa deve restare una data valida. */
+const assente = (v) => v == null || v === "";
+const dataAssenteOValida = (v) => assente(v) || isDate(v);
 const isNum = (v) => typeof v === "number" && !Number.isNaN(v);
 // ogni record ha un id e gli id sono unici nella collezione
 const idsOk = (arr, label) => {
@@ -87,11 +113,42 @@ test("conti: id unici, importi numerici, emessa non dopo scadenza", () => {
   idsOk(N.fatture, "fatture"); idsOk(N.gare, "gare");
   for (const f of N.fatture) {
     ok(isNum(f.importo), `fattura ${f.id}: importo non numerico`);
-    ok(isDate(f.emessa) && isDate(f.scadenza), `fattura ${f.id}: date non valide`);
-    ok(Date.parse(f.emessa) <= Date.parse(f.scadenza), `fattura ${f.id}: emessa dopo la scadenza`);
+    ok(dataAssenteOValida(f.emessa) && dataAssenteOValida(f.scadenza),
+      `fattura ${f.id}: una data c'è ma non si legge (emessa «${f.emessa}», scadenza «${f.scadenza}»)`);
+    // il confronto ha senso solo con tutt'e due: con una sola non c'è ordine da
+    // violare — e pretenderlo qui rimetterebbe dalla finestra il divieto tolto
+    ok(assente(f.emessa) || assente(f.scadenza)
+      || Date.parse(f.emessa) <= Date.parse(f.scadenza), `fattura ${f.id}: emessa dopo la scadenza`);
   }
   for (const g of N.gare)
     ok(["aperta", "vinta", "persa"].includes(g.stato), `gara ${g.id}: stato «${g.stato}» sconosciuto`);
+});
+
+/* ⚠️ LA CONTROPROVA DEL PERMESSO APPENA DATO. Allargare una regola è il modo
+   più facile di spegnerla senza accorgersene: da qui in avanti «assente va
+   bene» potrebbe voler dire «qualunque cosa va bene». Quindi si pretende che
+   la distinzione regga in tutt'e due i versi, e si contano i casi provati. */
+test("conti: la data ASSENTE è permessa, la data CORROTTA no", () => {
+  // assente in tutte le forme che i moduli producono davvero, più una data vera
+  // ⚠️ «2026-07-01T00:00» sta fra gli ACCETTATI, e non è una svista: la prova
+  // l'aveva messo fra i corrotti e ha accusato il codice. `dataISOEsiste`
+  // taglia a dieci caratteri di proposito, perché in archivio ci sono istanti
+  // interi (`registratoIl`) e un istante valido non è una data rotta. Corretta
+  // la prova, non la funzione.
+  const passano = [null, undefined, "", "2026-07-01", "2024-02-29",   // 2024 è bisestile
+                   "2026-07-01T00:00"];
+  // corrotto: il giorno che NON ESISTE (`Date.parse` lo farebbe scorrere al 2
+  // marzo), il mese impossibile, il formato italiano, il testo, lo zero
+  // mancante, il numero, e lo spazio — che non è «vuoto»
+  const cadono = ["2026-02-30", "2026-13-45", "01/07/2026", "domani",
+                  "2026-7-1", 20260701, " "];
+  for (const v of passano)
+    ok(dataAssenteOValida(v), `«${v}» doveva essere accettata (assente, o data che esiste)`);
+  for (const v of cadono)
+    ok(!dataAssenteOValida(v), `«${v}» doveva essere RIFIUTATA: una data che c'è deve leggersi`);
+  ok(passano.length === 6 && cadono.length === 7,
+    `casi provati: ${passano.length} accettati e ${cadono.length} rifiutati — se questi numeri`
+    + " scendono, la controprova sta guardando meno di quel che dice");
 });
 
 test("sentinella: id unici, valore/soglia numerici, date adempimenti", () => {

@@ -60,17 +60,17 @@ const ACCETTATI = {
   "terra.livelloScadenzaTerra":
     "l'argomento assente è il PREAVVISO, non la data: senza finestra di avviso una scadenza lontana resta lontana",
 
-  /* ⚠️ TRAPPOLE DORMIENTI, dichiarate come tali dopo aver misurato la
-     raggiungibilità (CLAUDE.md: «misurare prima di irrigidire»). Oggi NESSUN
-     percorso crea un'azione o un'ispezione senza data: il form la pretende con
-     un messaggio esplicito, e la creazione automatica da un'ispezione passa
-     sempre una scadenza. Restano qui perché il giorno in cui nascerà un
-     percorso nuovo — un ponte, un import CSV — la risposta giusta è «senza
-     scadenza», non «regolare». */
-  "scudo.statoAzione":
-    "DORMIENTE: «regolare» senza scadenza. Nessun percorso crea oggi un'azione senza data (il form la pretende)",
-  "scudo.statoIspezione":
-    "DORMIENTE: come statoAzione, e per la stessa ragione misurata",
+  /* ✅ TOLTI IL 01/08: `scudo.statoAzione` e `scudo.statoIspezione`.
+     Stavano qui come «trappole dormienti», dichiarate dopo aver misurato che
+     nessun percorso ci arrivava — il form la data la pretende — e con la nota
+     che il giorno in cui fosse nato un percorso nuovo la risposta giusta era
+     «senza scadenza», non «regolare». Il censimento del principio le ha
+     corrette invece di aspettare quel giorno: adesso rispondono «senza data»,
+     che la mappa dei badge copriva già.
+     ⚠️ E la riga è stata tolta perché **la sonda l'ha preteso**, non perché
+     qualcuno se ne sia ricordato: un'eccezione che non serve più è
+     un'eccezione che nasconde. È lo stesso modo in cui `campo.scartoLivello`
+     era stato accorciato — non a memoria. */
 
   /* Trovati dalla seconda forma (UN RECORD VUOTO), che la lista vuota non
      raggiungeva. */
@@ -342,8 +342,13 @@ const ALLARMI_ACCETTATI = {
      accorciare questo elenco — non a memoria. */
   "campo.scartoLivello":
     "DORMIENTE: con la carica reale assente e quella di progetto presente dà il 100% di scarto. I chiamanti passano sempre da pianoRiepilogo, che per i fori non registrati usa la carica di PROGETTO",
-  "campo.pianoRiepilogo":
-    "eredita scartoLivello: stessa ragione, stessa guardia a monte",
+  /* ✅ TOLTO IL 01/08: `campo.pianoRiepilogo`, che ereditava `scartoLivello`.
+     Non è più un allarme dichiarabile perché non è più un allarme: con un piano
+     importato e ZERO fori pesati lo stimato coincideva col progettato per
+     costruzione, quindi la differenza faceva 0 e la riga usciva col verde
+     «+0%» — un «in linea col progetto» su una volata in cui nessuno ha pesato
+     un foro. Adesso quel caso è dichiarato invece di colorato.
+     ⚠️ E anche questo l'ha preteso la sonda, non la memoria. */
   "flotta.urgenzaOre":
     "resta solo per `[]`, che JavaScript converte a zero: nessun chiamante passa un array dove va un numero di ore",
 };
