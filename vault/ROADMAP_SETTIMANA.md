@@ -1998,6 +1998,23 @@ campi interi, file delle macchine.
       su una lista lunga il doppio (dava per «mancanti» due banchi che c'erano),
       e un `readdirSync` che prendeva per suite le **copie dell'SDK generate a
       runtime** — il criterio giusto non è il nome del file, è l'indice di git.
+- [x] ✅ **LA SENTINELLA PROMETTEVA DI CHIUDERSI DA SOLA** *(01/08)* — tre unità
+      di fila su guardie scollegate portano alla domanda: *e la guardia più
+      esterna?* `canarino.yml` gira sui computer di GitHub ed è l'unica difesa
+      indipendente dall'infrastruttura che esegue i cicli: se è rotta non se ne
+      accorge nessuno, **per definizione**.
+      Il testo dell'allarme prometteva «*si chiude da sola quando il canarino
+      torna a cantare*» e **nessun passo la chiudeva** — il job conosceva solo
+      `list`, `comment` e `create`. Peggio: il passo dell'allarme **deduplica**,
+      quindi una segnalazione mai chiusa trasforma **ogni allarme futuro in un
+      commento su quella vecchia**, il cui titolo continua a dire le ore del
+      *primo* guasto. La sentinella peggiorava dopo il primo incidente, proprio
+      mentre sembrava funzionare. Ora il ramo «tutto a posto» commenta e chiude.
+      Provato **eseguendo i passi** con un `gh` finto, nei due versi.
+      ⚠️ E un difetto che ho creduto di trovare e non c'era: l'heredoc del corpo
+      ha il terminatore indentato, che in bash non chiude — ma **YAML dedenta il
+      blocco `run: |` prima di darlo a bash**. Era la mia riproduzione a essere
+      sbagliata; estraendo i passi col parser YAML, tutti e tre passano `bash -n`.
 - [x] ✅ **IL CENSIMENTO DEL PRINCIPIO, IN TUTTE E SEI LE APP** *(01/08)* — sei
       cantieri in parallelo, stesso mandato: rileggere **tutto quello che c'è
       già** col metro dell'«assenza non è un dato favorevole». **28 punti

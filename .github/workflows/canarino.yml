@@ -112,6 +112,32 @@ jobs:
               --body "$CORPO"
           fi
 
-      - name: Tutto a posto
+      # ⛔ E QUANDO IL CANARINO TORNA A CANTARE, LA SEGNALAZIONE SI CHIUDE.
+      # Il testo dell'allarme lo prometteva gia' — «si chiude da sola quando il
+      # canarino torna a cantare» — e NESSUN PASSO LO FACEVA: questo job sapeva
+      # solo `list`, `comment` e `create`. Misurato il 01/08 leggendo i passi.
+      # Non era solo una promessa non mantenuta: per via della deduplica qui
+      # sopra, una segnalazione che resta aperta per sempre trasforma OGNI
+      # allarme futuro in un commento su quella vecchia, il cui titolo continua
+      # a dire le ore del primo guasto. Cioe' la sentinella peggiora dopo il
+      # primo incidente, proprio mentre sembra funzionare.
+      - name: Tutto a posto — e chiude la segnalazione se ce n'e' una aperta
         if: steps.canarino.outputs.ore < 6
-        run: echo "La routine ha lavorato ${{ steps.canarino.outputs.ore }} ore fa. Nessun allarme."
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ORE: ${{ steps.canarino.outputs.ore }}
+          DATA: ${{ steps.canarino.outputs.data }}
+        run: |
+          set -euo pipefail
+          echo "La routine ha lavorato ${ORE} ore fa. Nessun allarme."
+          APERTA=$(gh issue list --repo "$REPO" --label "routine-ferma" --state open \
+                     --json number --jq '.[0].number' 2>/dev/null || echo "")
+          if [ -z "$APERTA" ]; then
+            echo "Nessuna segnalazione aperta da chiudere."
+            exit 0
+          fi
+          echo "Chiudo la segnalazione #$APERTA: il canarino ha cantato."
+          gh issue comment "$APERTA" --repo "$REPO" --body \
+            "Il canarino ha cantato di nuovo${DATA:+ (ultimo: ${DATA})}: la routine ha lavorato circa ${ORE} ore fa. Chiudo." || true
+          gh issue close "$APERTA" --repo "$REPO" --reason completed
