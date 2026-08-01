@@ -99,12 +99,33 @@ console.log("⚠️ Un motivo del banco può guardare uno stato CON ALTRE PAROLE
 console.log("   sotto ci sono candidati da guardare a mano, non una copertura.\n");
 
 let totDette = 0, totCoperte = 0;
+const residui = [];
 const scoperteTutte = new Map();
 for (const app of APP) {
-  const testo = ["index.html", `${app}-data.js`]
-    .map((f) => { try { return readFileSync(join(RADICE, "apps", app, f), "utf8"); } catch (e) { return ""; } })
-    .join("\n");
-  const dette = frasiDette(testo);
+  /* ⛔ UN FILE PER VOLTA, MAI CONCATENATI. Prima incollavo `index.html` e il
+     modulo e passavo il blocco unico a `senzaCommenti`: la scansione legge
+     JavaScript, e la parte HTML la mandava FUORI FASE — nell'elenco che ne
+     usciva ricomparivano righe `//` che il tokenizzatore da solo toglie
+     benissimo. È il difetto raccontato in `CLAUDE.md` («leggeva la pagina
+     intera come JavaScript»), riprodotto pari pari il giorno dopo averlo
+     riletto. Misura: separando i file, i residui passano da alcuni a ZERO. */
+  const dette = new Set();
+  for (const f of ["index.html", `${app}-data.js`]) {
+    let t = "";
+    try { t = readFileSync(join(RADICE, "apps", app, f), "utf8"); } catch (e) { continue; }
+    for (const x of frasiDette(t)) dette.add(x);
+    /* ⛔ E LA MISURA CONTROLLA LA PROPRIA SCANSIONE. Se dopo `senzaCommenti`
+       restano righe che cominciano per `//` o `*` e contengono una delle
+       frasi, la scansione è andata fuori fase e questo elenco NON vale: è
+       successo due volte in mezz'ora (56 → 53 → 42 occorrenze), e le prime due
+       volte non se n'è accorto nessuno perché il numero c'era comunque. Un
+       controllo che non dice quanti soggetti ha guardato mente in silenzio. */
+    for (const r of senzaCommenti(t).split("\n")) {
+      const nudo = r.trim();
+      if (!/^(\/\/|\*)/.test(nudo)) continue;
+      if (FRASI.some((f) => nudo.toLowerCase().includes(f))) residui.push(`${app}/${f}: ${nudo.slice(0, 70)}`);
+    }
+  }
   const coperte = [...dette].filter((f) => sorv.frasi.has(f));
   const scoperte = [...dette].filter((f) => !sorv.frasi.has(f));
   totDette += dette.size; totCoperte += coperte.length;
@@ -114,6 +135,13 @@ for (const app of APP) {
 
 console.log(`\nIn tutto: ${totDette} occorrenze di frase nelle sei app, ${totCoperte} nominate anche dal banco.`);
 console.log("(NON è una percentuale di copertura: vedi l'avvertenza sopra.)");
+if (residui.length) {
+  console.log(`\n⛔ SCANSIONE FUORI FASE: ${residui.length} righe di commento sono sopravvissute a`);
+  console.log("   `senzaCommenti`. L'elenco qui sotto NON vale finché non è risolto.");
+  for (const r of residui.slice(0, 5)) console.log(`   ${r}`);
+} else {
+  console.log("Scansione in fase: nessun commento è sopravvissuto al tokenizzatore.");
+}
 
 /* ⛔ La riga che serve davvero non è la percentuale: è QUALI frasi nessun banco
    guarda, ordinate per quante app le dicono. Una frase che dicono in quattro e

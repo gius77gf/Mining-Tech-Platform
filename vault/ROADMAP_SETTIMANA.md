@@ -2051,6 +2051,21 @@ campi interi, file delle macchine.
       Serve a **impedire il lavoro sbagliato**: chi riprendesse dalla scheda
       vecchia scriverebbe strati dati che esistono, l'errore che `CLAUDE.md`
       elenca fra i più costosi con quattro casi datati.
+- [x] ✅ **56, POI 53, POI 42 — E SOLO L'ULTIMO VALE** *(01/08)* — con il
+      tokenizzatore finalmente disponibile, fra le righe «senza commenti»
+      comparivano commenti: `// I KPI non si salvano mai…`. Causa mia:
+      incollavo `index.html` e il modulo e passavo il blocco unico allo
+      scanner, che legge **JavaScript** — e la parte HTML lo mandava **fuori
+      fase**. È il difetto che `CLAUDE.md` racconta per esteso, riprodotto **il
+      giorno dopo averlo riletto**, nel file che quel racconto lo cita. Le
+      occorrenze passano da 56 (commenti compresi) a 53 (fuori fase) a **42**
+      (un file per volta): Flotta da 9 frasi a **4**. ⛔ E i primi due numeri
+      avevano **lo stesso aspetto del terzo** — se non avessi tolto la
+      percentuale un'unità fa, adesso ci sarebbero tre percentuali diverse in
+      tre checkpoint, tutte con la stessa faccia. Ora la misura **controlla la
+      propria scansione**: se sopravvive un commento, dichiara l'elenco non
+      valido. Controprova: rimessa la concatenazione, conta **61 righe**
+      sopravvissute.
 - [x] ✅ **IL TOKENIZZATORE PRIGIONIERO DI UN `process.exit`** *(01/08)* —
       aprendo la classifica della misura nuova, la voce in cima («non lo so»,
       sei app) si è rivelata fatta quasi tutta di **commenti**: in Conti tutte
