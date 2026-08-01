@@ -5,37 +5,44 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-08-05 22:14 UTC — **il ciclo del registro
-costi: la schermata, la regola sulla barra, il ponte col volume di Terra**
-**Commit di partenza:** `ee26789`
-**Cosa sta per fare:** trapiantare la **chiusura del mese** in Conti — già
-provata in banco a 22 prove — e leggere fino in fondo il **giro completo del
-browser**, che sta girando da solo in questo momento.
+**Ultimo ciclo riuscito:** 2026-08-01 00:43 UTC — **il ciclo che ha chiuso il
+giro del browser e portato in produzione tre schede progettate in banco**
+**Commit di partenza:** `4c3b994`
+**Cosa sta per fare:** due cantieri aperti in parallelo — la **schermata dei
+lotti** in Terra e la **schermata dell'analisi della causa** in Scudo — poi
+verifica con scatto e commit app per app.
 
-**Cosa ha appena finito** — quattro unità:
+**Cosa ha appena finito** — otto unità dopo il canarino precedente:
 
-1. **La schermata del registro costi in Conti** (ottava scheda): la collezione,
-   il modulo con le dieci voci raggruppate, la ripartizione «dove se ne va», e
-   il costo al metro cubo che resta **un trattino** finché il volume non c'è.
-   Conti sapeva dire quanto **entra** e non sapeva dire quanto **esce**.
-2. **Regola 19 di `run-stile.mjs`**: la barra in basso ha tante colonne quante
-   voci. Nasce da un difetto vero di questo ciclo — `.nav` è una griglia a
-   colonne fisse, la voce nuova era l'ottava su un numero rimasto a 7, e
-   «Report» è finito **a capo**, sotto la barra. Nessun errore, nessuna prova
-   rossa: l'ha trovato solo lo scatto.
-3. **Il ponte Conti ↔ Terra**: il denominatore del costo al metro cubo preso
-   dai rilievi invece che chiesto a mano, con la **provenienza che viaggia col
-   numero** e sparisce se il volume lo riscrive una persona.
-4. **Il piano della chiusura del mese**, con il prototipo già verde a 22 prove.
+1. **Il giro completo del browser, letto fino in fondo**: 1h40 da solo,
+   **34 banchi a posto e 1 da guardare**, nessun «GIRO NON VALIDO». Era la
+   verifica che mancava da due blocchi.
+2. **Sentinella — la riga di un mese senza letture** non si spegne più e non si
+   sbarra. Il contrasto (3,83:1) era il sintomo: il difetto era marcare
+   «trascurabile» proprio dove il dato manca. Trovato **solo** perché le prove
+   girano con l'orologio del cliente.
+3. **La sonda del vuoto accusava due funzioni sane**: la sua data campione era
+   `"2026-07-31"`, cioè «oggi» il giorno in cui fu scritta. Stanotte è diventata
+   ieri e ha fatto cadere la CI su un difetto che non esiste.
+4. **La chiusura del mese in Conti**, strato dati e schermata: il margine è un
+   trattino finché il mese non è dichiarato completo, e la ragione **nomina la
+   voce che manca**.
+5. **La dimostrazione di Conti** ora mostra quella funzione: i costi d'esempio
+   erano quasi tutti uno per mese, quindi non c'era mai niente da confermare.
+6. **Terra — i lotti**: `divarioRecupero`, `avanzamentoLotto`, e il **ponte coi
+   rilievi** (`volumeMisuratoDiLotto`). Zero lotti registrati NON è divario
+   zero: è divario non misurato.
+7. **Scudo — l'analisi della causa**: il nome di una persona **non si indovina,
+   si cerca** nella collezione `lavoratori` che l'app ha già.
+8. **La soglia della tendenza** vive ora in un posto solo, con due chiamanti.
 
-Prove `node`: **1.415**, copertura **437/437**, banchi del browser **35**.
+Prove `node`: **1.437**, copertura **454/454**, banchi del browser **35**.
 
-⚠️ **Due errori miei, scritti perché non si ripetano**: ho fatto una
-controprova con `sed` sul file vero **mentre girava il giro del browser** (la
-cosa che `impronta.mjs` esiste per impedire), ed è andata bene solo per
-fortuna; e ho **affamato** il giro lanciando altre sessioni di Chromium in
-parallelo su un contenitore da 4 core — fermo al terzo banco su 35 dopo un'ora,
-mentre da solo cammina.
+⚠️ **Tre controlli che dicevano di guardare una cosa e ne guardavano un'altra**,
+tutti trovati oggi: la data invecchiata della sonda, il banco dei costi legato
+al letterale «1702», e una mia prova che diceva «si pretende la parola intera»
+mentre passava per tutt'altra ragione. Le prove legate a un valore scritto a
+mano invecchiano come il codice.
 
 **Cosa aveva fatto il blocco precedente (04/08)** — sei unità, tutte con la
 loro controprova:
