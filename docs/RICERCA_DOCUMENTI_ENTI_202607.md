@@ -397,6 +397,45 @@ Criterio: **quanto valore per il cliente diviso quanto lavoro per noi**.
 - È anche l'unico foglio in circolazione che dichiara onestamente l'incertezza
   del volume (**19.400 m³ ± 388**): è un elemento di distinzione vero.
 
+---
+
+## ⚠️ Rimisurato il 01/08 — quattro dei cinque non aspettano più i dati
+
+Questa sezione è stata scritta stimando il lavoro. Rileggendola prima di
+costruirci sopra, e **contando le funzioni invece di ricordarle**, le stime sono
+in gran parte superate: nei cicli seguenti gli strati dati sono stati costruiti,
+e oggi **quattro documenti su cinque aspettano solo la pagina**.
+
+| # | documento | dati | che cosa manca davvero |
+|---|---|---|---|
+| 1 | **DDT** — Conti | `clienti` ✅ `prodotti` ✅ | ⛔ **`cantieri` e `vettori`: zero riferimenti nel modulo.** È l'unico buco di dati rimasto dei cinque. Poi la pagina. |
+| 2 | **Riepilogo annuale + onere** — Terra | ✅ completo | solo la pagina di stampa |
+| 3 | **Cartella lavoratore + verbale DPI** — Scudo | ✅ completo | solo la pagina |
+| 4 | **Fascicolo ambientale** — Sentinella | ✅ completo | solo la pagina |
+| 5 | **Avanzamento + verbale di rilievo** — Terra | ✅ completo | solo la pagina |
+
+**Dove le stime erano più lontane dal vero, oggi:**
+
+- **#3 diceva «lavoro medio per i DPI — serve l'elenco DPI e l'assegnazione al
+  lavoratore».** Sono stati costruiti: Scudo ha **undici** funzioni sui DPI, fra
+  cui `ultimaConsegnaDpi`, `statoConsegnaDpi`, `allarmiDpi`, `riepilogoDpi` — e
+  **`verbaleDpi`**, cioè proprio il documento che questa scheda elencava come la
+  parte difficile.
+- **#4 diceva «manca la pagina che li unisce»**, ed è ancora esatto:
+  `reportConformita` produce già periodo, ricettore, letture, soglia applicata
+  con la sua provenienza, superamenti ed **esito** — compreso `senza-dati`, che
+  è il principio dell'assenza nel suo posto d'origine.
+- **#2 è stato completato il 01/08** con `onereEscavazione` e `descriviOnere`.
+- **#5** ha già `proiezioneAnnua`, `classeAccuratezza`, `bandaVolume` e
+  `descriviOrigine` — cioè anche la frase che dichiara **come è nato il numero**,
+  che questa scheda indicava come l'elemento di distinzione.
+
+**Conseguenza pratica, ed è il motivo per cui questa nota esiste:** chi riprende
+da qui **non deve scrivere strati dati**. Se lo facesse, riscriverebbe roba che
+c'è — l'errore che in questo progetto è già costato quattro volte. Il lavoro
+rimasto è **una pagina di stampa per documento**, più le due anagrafiche
+mancanti di Conti.
+
 **Il primo dei rimandati (6°): il generatore di DoP** in Conti. Valore alto
 verso i clienti, ma richiede prima l'anagrafica prodotti — che è la stessa che
 serve al DDT. Quindi: si fa il DDT, e la DoP diventa quasi gratis subito dopo.

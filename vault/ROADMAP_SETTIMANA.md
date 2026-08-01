@@ -2038,6 +2038,19 @@ campi interi, file delle macchine.
       Il rimedio non è spegnere la regola ma il disegno che indica, già in casa
       (`origineDi` → `descriviOrigine`): la frase che va all'ente la scrive il
       modulo. Da lì è nata `descriviOnere`, che serviva comunque.
+- [x] ✅ **RIMISURATI I «5 DOCUMENTI DA FARE PER PRIMI»** *(01/08)* — passando al
+      4° della lista, due minuti di `grep` prima di scrivere: **c'era già**
+      (`reportConformita` fa periodo, letture, soglia con la provenienza,
+      superamenti ed esito, `senza-dati` compreso). Misurati allora tutti e
+      cinque, contando le funzioni invece di ricordarle: **quattro su cinque
+      aspettano solo la pagina**. L'unico buco di dati rimasto è il **DDT di
+      Conti**, e adesso è preciso: `clienti` e `prodotti` ci sono, **`cantieri`
+      e `vettori` no** (zero riferimenti). La scheda diceva anche «#3 lavoro
+      medio per i DPI»: nel frattempo Scudo ha **undici** funzioni sui DPI, fra
+      cui **`verbaleDpi`** — proprio il documento dato per difficile.
+      Serve a **impedire il lavoro sbagliato**: chi riprendesse dalla scheda
+      vecchia scriverebbe strati dati che esistono, l'errore che `CLAUDE.md`
+      elenca fra i più costosi con quattro casi datati.
 - [x] ✅ **IL CENSIMENTO DEL PRINCIPIO, IN TUTTE E SEI LE APP** *(01/08)* — sei
       cantieri in parallelo, stesso mandato: rileggere **tutto quello che c'è
       già** col metro dell'«assenza non è un dato favorevole». **28 punti
