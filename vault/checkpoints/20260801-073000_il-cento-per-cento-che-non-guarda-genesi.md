@@ -81,3 +81,37 @@ carica, legge di sito, powder factor) e quali toccano la scena 3D e devono
 restare. È il cantiere che rende provabile l'app che decide quanto esplosivo
 mettere in un foro — e finché non si fa, il «100%» va letto con la riga che
 adesso lo accompagna.
+
+---
+
+## Aggiornamento — la misura per il passo dopo *(01/08, stessa notte)*
+
+Fatto il censimento vero, in `docs/PIANO_GENESI_MODULO_DATI.md`. La parte che
+conta è **come il numero è cambiato stringendo il criterio**:
+
+| giro | criterio | «estraibili» |
+|---|---|---|
+| 1 | il corpo non nomina DOM / 3D / rete | **113** |
+| 2 | …e non **chiama** nulla che lo faccia (chiusura transitiva) | **81** |
+| 3 | …e **prende almeno un argomento** | **54** |
+
+Il terzo giro l'ha imposto un controllo sul mio stesso lavoro: il giro 2 dava
+`pfNominale` e `rockFactorA` per pure, e tutt'e due si dichiarano **senza
+argomenti**. Una funzione senza argomenti prende i dati da fuori: non si può
+chiamare da una prova con dei valori dati, qualunque cosa faccia dentro. **La
+purezza non basta: serve una porta d'ingresso.**
+
+**79 funzioni su 191 — il 41% — non prendono nessun argomento.**
+
+E delle otto che decidono i numeri di sicurezza, **sei** sono così, compresa
+`ppvSite()`, che sceglie **K e β**, cioè i due coefficienti da cui esce tutta la
+previsione di vibrazione.
+
+Il piano è in tre passi separati: **54 funzioni / 637 righe** si spostano senza
+toccare nulla (fra cui `sitoFit(punti)`, la regressione della legge di sito);
+poi si dà una porta ai sei critici, una per volta; il resto resta nella pagina
+perché tocca la scena 3D.
+⛔ `ppvLimit(norma, f)` è nell'elenco del passo 1 ma va trattato a parte: è la
+tabella delle soglie DIN/USBM, ferme finché il fondatore non conferma.
+Spostarla non è cambiarla, ma lo spostamento vuole una prova che pretenda
+**ogni valore identico** prima e dopo.
