@@ -18,9 +18,23 @@ in italiano, senza dare conoscenze per scontate).
 
 ## Procedura dei cicli di lavoro automatici
 1. `git pull` per allinearsi, poi leggere vault/ROADMAP_SETTIMANA.md
-   e il checkpoint PIÙ RECENTE in vault/checkpoints/ (timestamp più
-   alto nel nome, esclusa la sottocartella archivio): riprendere dal
+   e il checkpoint PIÙ RECENTE in vault/checkpoints/: riprendere dal
    suo "Prossimo passo atomico".
+   ⛔ **QUAL È IL PIÙ RECENTE LO DICE GIT, NON IL NOME DEL FILE.** Questa riga
+   diceva «timestamp più alto nel nome», e il 01/08 si è misurato che il nome
+   **non è un'ora: è una stringa che le somiglia**. Confrontando ogni nome col
+   giorno in cui il file è entrato in git: `20260722-*` entrato il 21/07,
+   `20260805-*` entrato il **31/07**. Un solo giorno di lavoro si era dato
+   **cinque date diverse**, una per blocco, e in tutto **184 checkpoint su 640
+   sono datati avanti**, fino a cinque giorni. Effetto: chi ordinava per nome
+   apriva un file **più vecchio** di quello vero credendolo il più fresco, e non
+   se ne accorgeva — perché una risposta la regola la dà sempre.
+   Il comando che risponde giusto, e che stampa anche i due candidati a
+   confronto: `node apps/deepwork-id/tests/date-checkpoint.mjs`.
+   La stessa suite impedisce che il difetto si riformi: un checkpoint **nuovo**
+   non può essere datato dopo il giorno in cui entra in git. Il lascito è
+   dichiarato per data (non a elenco) e **misurato**, così il giorno in cui
+   qualcuno lo sistemasse il numero scenderebbe e si vedrebbe.
 2. Unità piccole, commit frequenti. Al completamento di OGNI unità:
    nuovo file checkpoint (MAI sovrascrivere i precedenti) con task
    completato, hash commit, prossimo passo atomico preciso; aggiornare

@@ -1959,6 +1959,27 @@ campi interi, file delle macchine.
       dichiara affatto. «Nessuna violazione» qui non vuol dire «tutte le app
       sono a posto», e la prova dei soggetti stampa i numeri app per app perché
       quello zero non venga letto per più di quello che è.
+- [x] ✅ **L'OROLOGIO DEL VAULT: il nome somigliava a un'ora** *(01/08)* — la
+      regola con cui **ogni ciclo trova dove ricominciare** («riprendere dal
+      checkpoint col timestamp più alto nel nome») non guardava l'ora: guardava
+      una **stringa che le somiglia**. Misurato confrontando ogni nome col
+      giorno in cui il file è entrato in git: `20260805-*` è entrato il **31/07**,
+      e in tutto **184 checkpoint su 640 sono datati avanti**, fino a **cinque
+      giorni**, a partire dal 21/07. Un solo giorno di lavoro si era dato cinque
+      date diverse, una per blocco. Chi seguiva la regola apriva un file **più
+      vecchio** di quello vero credendolo il più fresco — e non se ne accorgeva,
+      perché una risposta la regola la dà sempre.
+      Ora c'è `apps/deepwork-id/tests/date-checkpoint.mjs`: un checkpoint nuovo
+      non può essere datato dopo il giorno in cui entra in git, e il comando
+      stampa **qual è davvero l'ultimo** affiancato a quello che sceglierebbe il
+      nome. Il lascito è dichiarato **per data e non a elenco** (rinominare 184
+      file romperebbe la catena dei rimandi «Unità precedente»), quindi non può
+      invecchiare: un file nuovo entra nel controllo per costruzione.
+      ⚠️ Trovato dal canarino, perché l'ora l'ho chiesta a `date -u` invece di
+      ricordarla: nel file c'era **07:45** scritto a mano e l'orologio diceva
+      **03:43**. E la prima lista degli «ereditati» era un mio elenco di cinque
+      prefissi, costruito guardando solo gli ultimi otto giorni: rifatta dalla
+      misura, che dice che lo scarto comincia due settimane prima.
 - [x] ✅ **IL CENSIMENTO DEL PRINCIPIO, IN TUTTE E SEI LE APP** *(01/08)* — sei
       cantieri in parallelo, stesso mandato: rileggere **tutto quello che c'è
       già** col metro dell'«assenza non è un dato favorevole». **28 punti
