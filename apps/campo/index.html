@@ -920,7 +920,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            numeroIt, segnoIt, numeroItDa, numeroDaCampo } from "./campo-data.js";
   import { misuratoPeriodo, produzioneDichiarata, riconciliazioneTurni,
            periodoFraUltimiRilievi, densitaDelMateriale } from "../../shared/dw-ponti.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, messaggioNumero, montaGuardiaInteri } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, messaggioNumero, montaGuardiaInteri, dataIt } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -929,7 +929,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
   const $ = (id) => document.getElementById(id);
-  const dmy = (iso) => iso ? iso.slice(8,10)+"/"+iso.slice(5,7)+"/"+iso.slice(0,4) : "senza data";
+  const dmy = (iso) => dataIt(iso, "senza data");   // la regola sta in shared/; la PAROLA resta di Campo
   // Badge di stato: colore + PAROLA + (per l'errore) icona e pulsazione, mai il
   // solo colore — in Campo cotto ed errore sono vicini di tinta.
   // «Conclusa» è neutra apposta: il verde deve restare per ciò che sta

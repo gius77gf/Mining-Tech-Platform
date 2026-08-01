@@ -574,6 +574,17 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   2. La correzione delle unità nei grafici: le 11 asserzioni girate sulla
      versione precedente del motore ne facevano fallire 8. Senza quel passaggio
      non si sapeva se stessero misurando qualcosa.
+- ⛔ **IL RIPRISTINO DOPO UN'INIEZIONE SI FA DA UNA COPIA, NON DA `git checkout`.**
+  Il 01/08, finita la controprova sulla data italiana, ho scritto
+  `git checkout shared/…/dw-shell.js` per rimettere il file a posto — e ho
+  cancellato **la funzione appena scritta**, che era lì da dieci minuti e non era
+  ancora committata. Il comando ha fatto esattamente quello che dice: riporta il
+  file a **HEAD**, cioè butta via *tutto* il non committato, non solo
+  l'iniezione. Sono bastate le prove a dirlo (tre rosse invece di zero), ma solo
+  perché c'erano; e il file era piccolo. Prima di iniettare: `cp file
+  copia`, e alla fine `cp copia file` + `diff -q`. La regola generale è la
+  stessa dello script che non fallisce: **si guarda il risultato**, e qui il
+  risultato è `grep -c` sulla funzione che doveva esserci ancora.
 - ⚠️ **UNO SCRIPT CHE «NON FALLISCE» NON HA PER FORZA FATTO QUALCOSA.** Il
   01/08 una controprova è stata **dichiarata riuscita in un messaggio di commit
   senza essere mai partita**: l'`assert` sul testo da sostituire cercava

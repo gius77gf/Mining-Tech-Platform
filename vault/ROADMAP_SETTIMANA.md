@@ -901,6 +901,32 @@ campi interi, file delle macchine.
       non ha `.form.col`, Campo non ha quella base. Resta da guardare **solo
       Flotta**, che ha tutt'e due — e ha un cantiere aperto sopra.
 
+### Fatto il 01/08 (notte, terzo ciclo)
+- [x] **Campo — il riposo fra due turni** (D.Lgs 66/2003 art. 7). Il cuore è
+      un'**asimmetria**: se fra l'ultimo turno lavorato e questo ci sono turni
+      non spuntati, il riposo è un **tetto**. Un tetto sotto le 11 ore prova
+      comunque la violazione; un tetto sopra **non prova niente**. Il dato
+      incompleto sa ancora accusare, non sa più assolvere.
+- [x] **Flotta — la pagella del parco**: costo orario e disponibilità sulla
+      stessa riga, perché «la riparo o la sostituisco» non si risponde con un
+      asse solo — una macchina cara può esserlo perché lavora il doppio.
+- [x] **Scudo — appaltatori e DUVRI** (art. 26 D.Lgs 81/08).
+- [x] ⛔ **Genesi esce da `genesi.html`**: i sei formattatori che scrivono quasi
+      trecento numeri della pagina, con le sue **prime prove pure**. Commit
+      `2bac90b`.
+- [x] ⛔ **La data come si scrive in Italia, una volta sola.** Sei pagine,
+      quattro nomi, **quattro comportamenti su sette casi** — e due erano
+      difetti visibili: «30/02/2026» e «45/13/2026» stampate come fatti, e
+      «31T10:00/07/2026» quando arrivava un istante. Il principio del fondatore
+      **rovesciato**: non un dato mancante spacciato per buono, ma uno
+      **sbagliato** spacciato per certo.
+      ⚠️ La *parola* per il vuoto resta dell'app («senza data» / «—»):
+      unificarla sarebbe stato decidere al posto di sei schermate.
+- [ ] **Terra e Flotta non migrate alla data condivisa**, e la ragione è
+      dichiarata: la `dmy` di Terra scrive **gg/mm senza l'anno** (funzione
+      diversa con lo stesso nome di quella di Campo — un caso da `nomi-doppi`) e
+      quella di Flotta valida già. Vanno guardate una per una.
+
 ### Fatto il 01/08 (notte, secondo ciclo)
 - [x] ⛔ **Il cantiere di Genesi smette di essere una frase e diventa un
       numero.** «Tirarne fuori un modulo dati è un cantiere intero» era scritto

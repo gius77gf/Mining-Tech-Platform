@@ -1398,7 +1398,7 @@ textarea.dw-input{
            parseTaratureCsv, abbinaTarature, csvTarature, allerteTaratura, CSV_TARATURE_INTESTAZIONE,
            numeroDaCampo, AVVISO_DECIMALE } from "./sentinella-data.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO,
-         controllaAllegato, testoAllegatoRifiutato, pezziDataURL } from "../../shared/deepwork-id-client/dw-shell.js";
+         controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt } from "../../shared/deepwork-id-client/dw-shell.js";
   // Il colore della riga di una taratura è quello di una scadenza qualunque:
   // la regola sta in shared/ e la usano già Scudo e Campo. Non se ne scrive
   // una copia qui dentro solo perché la parola è diversa.
@@ -1411,7 +1411,7 @@ textarea.dw-input{
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
   const $ = (id) => document.getElementById(id);
-  const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
+  const fmtD = (iso) => dataIt(iso);   // la regola sta in shared/: vedi `dataIt`
   // Il numero scritto all'italiana SENZA perderne le cifre: serve a
   // riempire i campi decimali e a rimandare all'utente quello che ha
   // scritto. `numeroIt` è per LEGGERE (arrotonda per stare in una riga),

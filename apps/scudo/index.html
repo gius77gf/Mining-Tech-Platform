@@ -414,15 +414,33 @@
 
 /* ─────────────── navigazione: pillola flottante (copia di #global-nav.bnav) ─────────────── */
 .nav{border-top:1px solid var(--border2); padding-bottom:0}
-/* Scudo ha SEI sezioni (le ispezioni sono arrivate con S3) e sul telefono la
-   pillola sta stretta: le parole finirebbero attaccate ai bordi e fra loro.
-   Un filo di lettera in meno restituisce l'aria che ha il core con cinque
-   voci — nessuna etichetta tagliata, nessuna abbreviazione da indovinare. */
+/* Scudo ha SETTE sezioni (le ispezioni sono arrivate con S3, gli appalti dopo)
+   e sul telefono la pillola sta stretta: le parole finirebbero attaccate ai
+   bordi e fra loro. Un filo di lettera in meno restituisce l'aria che ha il
+   core con cinque voci — nessuna etichetta tagliata, nessuna abbreviazione da
+   indovinare.
+   ⚠️ CON LA SETTIMA VOCE NON BASTAVA PIÙ, e a dirlo è stata la misura, non la
+   lettura: a 320px «Quadro» chiedeva 40px e la sua cella ne dava 39 — un
+   pixel, invisibile a occhio e invisibile nel codice, ma è la risposta che dà
+   il browser a «esce dal suo spazio?» (`scrollWidth > clientWidth`).
+   Stringere la lettera non serviva: a occupare lo spazio è l'ICONA, che è a
+   misura fissa, e il corpo del carattere. Si rimpicciolisce l'una e l'altro —
+   è quello che Conti fa già per le sue NOVE voci, che a 320px non ne taglia
+   nessuna.
+   ⛔ E `overflow:hidden` NON VA MESSO QUI, per quanto Conti ce l'abbia: provato
+   e misurato, PEGGIORA le cose da una etichetta tagliata a TRE. La ragione è
+   che cambia la larghezza minima automatica dell'elemento di griglia — da
+   «quanto serve al contenuto» a zero — e allora le colonne diventano davvero
+   tutte uguali (45px a 320px) e le etichette lunghe di Scudo («Personale»,
+   «Documenti») non ci stanno più. Conti se lo può permettere perché le sue
+   parole sono corte. Misure: 8px → 1 tagliata; 7,5px → nessuna. */
 @media(max-width:470px){
   .nav button{font-size:8.5px; letter-spacing:.5px; padding-left:1px; padding-right:1px}
+  .nav .ico svg{width:19px; height:19px}
 }
 @media(max-width:370px){
-  .nav button{font-size:8px; letter-spacing:.2px}
+  .nav button{font-size:7.5px; letter-spacing:0; padding-left:0; padding-right:0}
+  .nav .ico svg{width:18px; height:18px}
 }
 /* Sotto il sole le scritte della pillola sono più grandi (si legge in piedi,
    con la luce di traverso): con sei voci, sul telefono, vanno riportate
@@ -431,7 +449,10 @@
   body.dw.outdoor-mode .nav button{font-size:9.5px; letter-spacing:.2px}
 }
 @media(max-width:370px){
-  body.dw.outdoor-mode .nav button{font-size:8.5px; letter-spacing:.1px}
+  /* con la settima voce anche qui si scende di mezzo punto: sotto il sole le
+     scritte restano più grandi che in modalità normale — è tutto il senso di
+     outdoor — ma «più grandi» non vuol dire «tagliate». */
+  body.dw.outdoor-mode .nav button{font-size:8px; letter-spacing:0}
 }
 
 /* ─────────────── modale (copia di .modal-* del core) ─────────────── */
@@ -1264,7 +1285,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     costiInterferenze, statoCoordinamento, STATI_COORDINAMENTO, statoAppalto,
     appaltiDiCantiere, appaltiDiAppaltatore, riepilogoAppalti, appaltatoriDaVerificare } from "./scudo-data.js";
   import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO, dataISOEsiste,
-           controllaAllegato, testoAllegatoRifiutato, pezziDataURL } from "../../shared/deepwork-id-client/dw-shell.js";
+           controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
@@ -1311,7 +1332,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     !quante ? ["warn", "0 azioni"]
     : chiuse === quante ? ["ok", quante + (quante === 1 ? " chiusa" : " chiuse")]
     : ["warn", (quante - chiuse) + " da chiudere"];
-  const fmtData = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
+  const fmtData = (iso) => dataIt(iso);   // la regola sta in shared/: vedi `dataIt`
   // LE UNITÀ DI MISURA NON VANNO MAI IN MAIUSCOLO. Le pillole di stato dei
   // requisiti scrivono i giorni che mancano («3 gg») dentro `.badge`, che è
   // maiuscolo per struttura: «GG» non è un giorno. Qui l'unità si avvolge in

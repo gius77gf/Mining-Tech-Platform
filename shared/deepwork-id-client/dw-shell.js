@@ -847,3 +847,41 @@ export function leggiCsv(testo) {
   chiudiRiga();
   return { delim, righe };
 }
+
+/* LA DATA COME SI SCRIVE IN ITALIA
+   ══════════════════════════════════════════════════════════════════════
+   Sei pagine su sei se la scrivevano da sole, con quattro nomi diversi
+   (`dmy`, `fmtD`, `fmtData`, `dataIt`) e — misurato il 01/08 — con
+   comportamenti diversi su **quattro casi su sette**:
+
+     valore passato        campo        conti/scudo/sentinella   terra
+     ""                    senza data   —                        —
+     "2026-13-45"          45/13/2026   45/13/2026               45/13/2026
+     "2026-02-30"          30/02/2026   30/02/2026               30/02/2026
+     "2026-07-31T10:00"    31/07/2026   31T10:00/07/2026         —
+
+   ⛔ E DUE DI QUELLE RIGHE SONO DIFETTI CHE L'UTENTE VEDE.
+   «30/02/2026» e «45/13/2026» sono date che **non esistono**, stampate
+   come se fossero fatti: è il principio del fondatore rovesciato — non un
+   dato mancante spacciato per buono, ma un dato **sbagliato** spacciato
+   per certo. E «31T10:00/07/2026» è spazzatura a schermo, che compariva
+   ogni volta che a una di quelle funzioni arrivava un istante invece di
+   un giorno.
+   Il difetto veniva da `split("-").reverse().join("/")`, che non guarda
+   che cosa sta girando: gira e basta.
+
+   Qui la data si valida con `dataISOEsiste` — la stessa che rifiuta il 30
+   febbraio nelle scadenze — e si taglia ai primi dieci caratteri, così un
+   istante diventa il suo giorno invece di spazzatura.
+
+   ⚠️ La parola per il vuoto resta **un parametro**, e non è pigrizia: è
+   una scelta di prodotto che le app hanno già fatto in modo diverso.
+   «senza data» è il termine che l'ecosistema usa in tre app quando la
+   mancanza di un giorno è essa stessa un'informazione (una scadenza senza
+   data va datata); «—» è quello giusto in una tabella dove la colonna può
+   legittimamente essere vuota. Unificare anche quello sarebbe stato
+   decidere al posto di sei schermate, di straforo. */
+export function dataIt(iso, vuoto = "—") {
+  const s = String(iso == null ? "" : iso).slice(0, 10);
+  return dataISOEsiste(s) ? s.slice(8, 10) + "/" + s.slice(5, 7) + "/" + s.slice(0, 4) : vuoto;
+}

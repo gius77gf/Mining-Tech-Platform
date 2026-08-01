@@ -11573,6 +11573,41 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
   });
 }
 
+/* ══ SHARED · LA DATA COME SI SCRIVE IN ITALIA ══
+   Sei pagine su sei se la scrivevano da sole, con quattro nomi diversi e —
+   misurato — comportamenti diversi su quattro casi su sette. Due di quelle
+   righe erano difetti che l'utente VEDE. */
+{
+  test("⛔ shared: una data che NON ESISTE non si stampa come se fosse un fatto", () => {
+    /* `split("-").reverse().join("/")` non guarda cosa sta girando: gira e
+       basta, e su «2026-02-30» scriveva «30/02/2026» — un giorno che non c'è
+       mai stato, mostrato con la stessa faccia di uno vero */
+    eq(shell.dataIt("2026-02-30"), "—", "il 30 febbraio");
+    eq(shell.dataIt("2026-13-45"), "—", "il quarantacinque tredici");
+    eq(shell.dataIt("2026-00-10"), "—", "il mese zero");
+    eq(shell.dataIt("31/07/2026"), "—", "e una data già italiana non si rigira");
+  });
+
+  test("⛔ shared: un ISTANTE diventa il suo giorno, non spazzatura", () => {
+    /* tre app su sei scrivevano «31T10:00/07/2026» ogni volta che a quella
+       funzione arrivava un istante invece di un giorno */
+    eq(shell.dataIt("2026-07-31T10:00"), "31/07/2026", "con la T");
+    eq(shell.dataIt("2026-07-31 10:00"), "31/07/2026", "con lo spazio");
+    eq(shell.dataIt("2026-07-31T10:00:00.000Z"), "31/07/2026", "e in forma completa");
+  });
+
+  test("shared: la data normale, e il vuoto con la parola che l'app ha scelto", () => {
+    eq(shell.dataIt("2026-07-31"), "31/07/2026", "il caso di tutti i giorni");
+    eq(shell.dataIt("2026-01-01"), "01/01/2026", "gli zeri davanti restano");
+    for (const niente of ["", null, undefined])
+      eq(shell.dataIt(niente), "—", `${mostra(niente)}: il trattino`);
+    eq(shell.dataIt("", "senza data"), "senza data",
+       "⛔ e la PAROLA resta dell'app: «senza data» dove la mancanza è essa stessa un'informazione");
+    eq(shell.dataIt("2026-02-29"), "—", "il 2026 non è bisestile");
+    eq(shell.dataIt("2024-02-29"), "29/02/2024", "il 2024 sì");
+  });
+}
+
 /* ══ GENESI · COME SCRIVE UN NUMERO — le prime prove pure di Genesi ══
    Genesi era l'unica parte del prodotto con ZERO prove pure: le sue 192
    funzioni stanno dentro `genesi.html`, e `node` non importa un file .html.

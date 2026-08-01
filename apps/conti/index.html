@@ -1367,7 +1367,7 @@ label.item:has(.dw-chk:checked){
     VOCI_COSTO, voceCosto, gruppoDiVoce, riepilogoCosti, costoPerMetroCubo,
     volumeDaTerra, costiFuoriDaiRilievi,
     statoMese, vociMancantiNelMese, margineMese } from "./conti-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale, dataIt } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -1450,7 +1450,7 @@ label.item:has(.dw-chk:checked){
   // iniziali per l'avatar del cliente (massimo due lettere, come nel core)
   const iniziali = (nome) => String(nome || "?").replace(/[^\p{L}\s]/gu, " ").trim()
     .split(/\s+/).slice(0, 2).map(w => w[0] || "").join("").toUpperCase() || "?";
-  const fmtD = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
+  const fmtD = (iso) => dataIt(iso);   // la regola sta in shared/: vedi `dataIt`
   const GB = { aperta: ["warn","Aperta"], vinta: ["ok","Vinta"], persa: ["danger","Persa"] };
 
   // ── Icone SVG (niente emoji: tratto coerente, 24×24, stroke) ────────
