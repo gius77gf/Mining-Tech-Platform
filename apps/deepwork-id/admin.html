@@ -102,9 +102,27 @@
   const msg = (text, kind = 'info') => { const el = $('msg'); el.className = 'msg ' + kind; el.textContent = text; };
   const RB = { owner: 'ok', admin: 'warn', member: 'ok' };
   const sig = (s) => (s || '?').slice(0, 2).toUpperCase();
+  const quando = (ts) => {
+    try { return ts && ts.toDate ? ts.toDate() : new Date(ts); } catch (e) { return null; }
+  };
   const giorniA = (ts) => {
-    try { const d = ts && ts.toDate ? ts.toDate() : new Date(ts); return Math.max(0, Math.ceil((d - new Date()) / 86400000)); }
-    catch (e) { return '—'; }
+    const d = quando(ts);
+    if (!d || Number.isNaN(d.getTime())) return '—';
+    return Math.max(0, Math.ceil((d - new Date()) / 86400000));
+  };
+  /* ⛔ UN TEMPO RELATIVO PORTA CON SÉ LA DATA. «Scade tra 11 giorni» si legge
+     al volo mentre si scorre l'elenco, ma quando si ha qualcuno al telefono
+     serve il giorno — e «fra 11 giorni», letto domani, vuol dire un altro
+     giorno. Trovato dal banco `doppia-data.mjs` il 01/08, alla PRIMA volta che
+     un banco ha aperto questa pagina.
+     ⚠️ La data si compone dall'orologio LOCALE, non da `toISOString()`: a
+     cavallo della mezzanotte quello scrive il giorno prima (regola di
+     `shared/`, misurata in `docs/RICERCA_GIORNO_LOCALE_202607.md`). */
+  const dataIt = (ts) => {
+    const d = quando(ts);
+    if (!d || Number.isNaN(d.getTime())) return '';
+    const p = (n) => String(n).padStart(2, '0');
+    return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
   };
 
   // dati demo per l'anteprima senza backend
@@ -149,7 +167,7 @@
 
     $('inv-list').innerHTML = inv.map(i => `<div class="item" style="cursor:default;">
       <div class="avatar">✉</div>
-      <div class="info"><div class="name">${esc(i.email)}</div><div class="meta">Ruolo ${i.role} · scade tra ${giorniA(i.expiresAt)} giorni</div></div>
+      <div class="info"><div class="name">${esc(i.email)}</div><div class="meta">Ruolo ${i.role} · scade tra ${giorniA(i.expiresAt)} giorni${dataIt(i.expiresAt) ? ` (${dataIt(i.expiresAt)})` : ''}</div></div>
       ${canManage ? `<button class="dw-btn secondary btn-mini btn-danger" data-revoke="${i.id}">Revoca</button>` : ''}
     </div>`).join('') || '<div class="note" style="text-align:left;">Nessun invito in attesa.</div>';
   }
