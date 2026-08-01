@@ -133,6 +133,24 @@ lista della spesa.
 un'invenzione di un agente è il modo peggiore di sbagliare, perché sembra
 fondato. Un argomento diverso per blocco, a rotazione.
 
+⛔ **E «NON C'È» VA PROVATO, NON DICHIARATO — misurato il 01/08 e costoso.**
+Le sei ricerche sui concorrenti hanno censito 470 funzioni con le fonti: quella
+metà è buona. Il **confronto con la nostra app** no. Delle tre mancanze più
+ricorrenti, **due su tre erano false**:
+  · Scudo, «cruscotto degli indici, 10 concorrenti su 10, noi zero» → indice di
+    frequenza, indice di gravità e LTIFR erano **già calcolati e mostrati**,
+    col caso «non calcolabile» già gestito;
+  · Conti, «solleciti di pagamento» → **già presenti**, con i livelli di
+    escalation, la mora ex D.Lgs 231/2002, il bottone per fattura e la sezione
+    «chi sollecitare per primo».
+Due cantieri stavano per aprirsi su cose già costruite, e li ha fermati la
+regola «niente entra sulla parola dell'agente».
+La difesa, da mettere nel mandato: **per ogni «non c'è» l'agente scrive la
+prova di aver guardato** — il termine cercato e il file, oppure la riga citata
+se l'ha trovato a metà. Un «non c'è» senza la sua ricerca accanto vale zero, e
+un elenco di mancanze gonfiato è peggio di nessun elenco: manda a lavorare
+dove non serve, che è l'unico modo di sprecare una giornata intera.
+
 Perché serva davvero e non produca elenchi generici, cinque vincoli:
 
 1. **Legge prima di proporre.** Ogni agente parte da `docs/RICERCA_*_<app>.md`,

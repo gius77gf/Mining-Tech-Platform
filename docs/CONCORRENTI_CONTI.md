@@ -1,3 +1,22 @@
+> # ⛔ AVVISO — LA COLONNA «NON C'È» NON È VERIFICATA
+>
+> *Misurato il 01/08, subito dopo aver ricevuto queste sei ricerche.* Delle tre
+> mancanze dichiarate più ricorrenti, **due su tre erano false**:
+>
+> | dichiarato mancante | com'è davvero |
+> |---|---|
+> | Scudo: «cruscotto KPI, 10 concorrenti su 10 ce l'hanno, noi zero» | **c'è già**: indice di frequenza, indice di gravità e LTIFR sono calcolati in `scudo-data.js` e mostrati nella pagina, col caso «non calcolabile» già gestito |
+> | Conti: «solleciti di pagamento» | **ci sono già**: livelli di escalation per giorni di ritardo, mora ex D.Lgs 231/2002, bottone per fattura e sezione «chi sollecitare per primo» |
+> | Sentinella: «allarmi in tempo reale» | **vero**: nessun meccanismo di avviso esiste |
+>
+> Quindi: **l'elenco delle funzioni dei concorrenti (con le fonti) vale; il
+> confronto con la nostra app no.** Ogni riga «non c'è» va riaperta e
+> rimisurata prima di diventare lavoro — è la regola che ha impedito di aprire
+> due cantieri per cose già costruite.
+>
+> Chi legge questo documento parta dalla colonna del **mondo**, non dalla
+> colonna del **delta**.
+
 # Ricerca concorrenti — Conti
 
 **Data**: 01.08.2026  
