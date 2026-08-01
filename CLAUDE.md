@@ -105,10 +105,33 @@ divisa per il corpo del carattere non lo è.
 ## La ricerca che gira di fianco *(direttiva fondatore 01/08)*
 
 I crediti di una sessione restano in parte inutilizzati mentre si lavora in
-serie. Si impiegano in una **ricerca approssimativa e continua**, con agenti
-`haiku` lanciati **in background all'inizio di ogni blocco, uno per app**, che
-propongono modifiche possibili da approfondire dopo. Non è una fonte di verità:
-è una fonte di **candidati**.
+serie. Si impiegano in una **ricerca continua**, con agenti `haiku` lanciati
+**in background all'inizio di ogni blocco**. Non è una fonte di verità: è una
+fonte di **candidati**.
+
+⛔ **MIRATA, NON A CASO — e a indirizzarla è chi lavora** (direttiva fondatore,
+01/08, dopo la prima tornata). «Cerca miglioramenti per l'app X» produce
+dettagli d'interfaccia: utili, ma non è lì che sta il salto di qualità. La
+ricerca si punta su **una domanda precisa con una risposta verificabile**, e le
+domande escono da due posti soli:
+  1. **dove chi lavora è carente** — e va detto per nome invece che aggirato.
+     Al 01/08: **il mestiere della cava** (che cosa contiene davvero un rapporto
+     di fine turno, che cosa chiede un ispettore, che cosa vuole la denuncia
+     annuale — oggi lo si DEDUCE, e il codice solido poggia su inferenze);
+     **i concorrenti di cinque app su sei** (per Genesi lo studio c'è, per le
+     altre si è progettato da principi primi, che è il modo elegante di
+     reinventare una ruota peggiore); **le norme citate ma non lette una per
+     una**; **le parole del mestiere**, perché i testi devono suonare come li
+     scriverebbe chi lavora in cava;
+  2. **dove si è già lavorato ma in superficie** — una funzione consegnata che
+     merita il dettaglio che la rende eccellente invece che sufficiente.
+La forma della domanda è sempre questa: *«prima il mondo, poi la nostra app»* —
+l'agente descrive come si fa fuori, POI apre il nostro file e dice **il
+delta**. Un trattato senza delta non serve; un delta senza il mondo è una
+lista della spesa.
+⚠️ **Le fonti si citano, e la deduzione si dichiara deduzione.** Costruire su
+un'invenzione di un agente è il modo peggiore di sbagliare, perché sembra
+fondato. Un argomento diverso per blocco, a rotazione.
 
 Perché serva davvero e non produca elenchi generici, cinque vincoli:
 
