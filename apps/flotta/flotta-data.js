@@ -84,6 +84,7 @@
 // ============================================================
 
 import { parseCsvLine, numIt, giorniTra, isIntestazione, numeroScritto, oggiISO,
+         dataISOEsiste,
          messaggioNumero as messaggioNumeroShell,
          perCampo as perCampoShell,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL,
@@ -978,6 +979,38 @@ export function costoOfficinaPerMezzo(interventi) {
 //    quanto ha lavorato. `euroOra` resta `null` e `perche` dice che cosa manca.
 // ⚠️ E il totale è un MINIMO quando qualche intervento è senza costo: `parziale`
 //    lo dichiara, così chi disegna non lo spaccia per definitivo.
+//
+// ⛔ UNA SOLA FINESTRA, E DICHIARATA (05/08). Fino a stamattina il numeratore e
+//    il denominatore coprivano DUE PERIODI DIVERSI: sopra tutta l'officina del
+//    mezzo, DA SEMPRE; sotto le ore, che si sanno solo fra il primo e l'ultimo
+//    rifornimento col contatore. Un rapporto fra due periodi diversi non è una
+//    misura sbagliata di poco: sulla dimostrazione il Dumper D1 rispondeva
+//    63,03 €/h invece di 28,61 — più del DOPPIO — perché ci finiva dentro un
+//    intervento da 2.100 € fatto sei settimane prima che qualcuno cominciasse a
+//    scrivere il contatore. E il verso dell'errore è sempre lo stesso: gonfia.
+//    Tre mezzi su sei della dimostrazione ne erano toccati (+120%, +82%, +19%).
+//    Adesso il €/h si calcola sulla finestra `da`→`a` che arriva da
+//    `consumoPerMezzo` (le stesse letture da cui escono le ore), e quello che
+//    cade fuori NON è né incluso di nascosto né tolto di nascosto: si conta in
+//    `fuori` (quanti interventi, quanti euro) perché la pagina lo scriva.
+// ⛔ E IL TOTALE SPESO RESTA QUELLO VERO, DA SEMPRE. «Quanto ho speso su questa
+//    macchina» e «quanto mi costa un'ora» sono due domande diverse: aggiustare
+//    la seconda non deve far scendere la prima, o chi guarda la spesa vedrebbe
+//    sparire dei soldi che ha pagato davvero. `totale` e `officina` non
+//    cambiano; il numeratore del rapporto è `spesaInFinestra`.
+// ⛔ E UN INTERVENTO SENZA DATA NON SI COLLOCA «DENTRO PER COMODITÀ». Non si sa
+//    se sia dentro o fuori, quindi non entra nel rapporto e non si finge che
+//    non esista: va in `senzaData` e rende il €/h `parziale` — la stessa
+//    bandiera che già dichiarava gli interventi senza costo, perché dicono la
+//    stessa cosa (c'è una spesa d'officina che il rapporto non ha potuto
+//    contare, quindi il €/h è un MINIMO). Una seconda bandiera accanto a
+//    quella direbbe due volte la stessa cosa con due parole diverse.
+//    `percheParziale` dice quale delle due ragioni, o tutt'e due.
+// ⛔ E SENZA FINESTRA NON SI RISPONDE LO STESSO. Se le letture del contatore ci
+//    sono ma nessuna porta la data (succede solo con dati importati: il modulo
+//    del rifornimento la data la pretende), le ore si sanno e il periodo no:
+//    allora non c'è modo di dire quale spesa ci appartenga, e `euroOra` resta
+//    `null` con la sua ragione — come per il Dumper D3, ma per l'altro motivo.
 export function costoOrarioMezzo(interventi, rifornimenti) {
   const off = costoOfficinaPerMezzo(interventi);
   const car = consumoPerMezzo(rifornimenti);
@@ -989,16 +1022,47 @@ export function costoOrarioMezzo(interventi, rifornimenti) {
     const c = car.mezzi.find(m => m.mezzo === mezzo);
     const officina = o ? o.costo : 0;
     const carburante = c ? c.euro : 0;
-    const ore = c && Number.isFinite(c.oreCoperte) && c.oreCoperte > 0 ? c.oreCoperte : null;
-    const mancanti = (interventi || []).filter(w => String(w.mezzo || "").trim() === mezzo && !(+w.costo > 0)).length;
+    // le ore ci sono E si sa che periodo coprono: sono due condizioni, non una
+    const oreNote = !!(c && Number.isFinite(c.oreCoperte) && c.oreCoperte > 0);
+    const da = oreNote ? c.da : null, a = oreNote ? c.a : null;
+    const ore = oreNote && da && a ? c.oreCoperte : null;
+
+    const miei = (interventi || []).filter(w => String(w.mezzo || "").trim() === mezzo);
+    const mancanti = miei.filter(w => !(+w.costo > 0)).length;
+    let inFinestra = 0, fuoriN = 0, fuoriEuro = 0, sdN = 0, sdEuro = 0;
+    for (const w of miei) {
+      const costo = +w.costo;
+      if (!(costo > 0)) continue;                       // già contato in `mancanti`
+      const g = String(w.data || "").slice(0, 10);
+      // ⚠️ `dataISOEsiste`, non una regex di casa: «2026-02-30» passa il
+      //    controllo di forma e `Date.parse` la fa SCORRERE al 2 marzo, cioè
+      //    la collocherebbe in un giorno che non è mai esistito.
+      if (!dataISOEsiste(g)) { sdN++; sdEuro += costo; continue; }
+      if (!ore) continue;                               // niente finestra: niente da collocare
+      if (g >= da && g <= a) inFinestra += costo;       // estremi compresi
+      else { fuoriN++; fuoriEuro += costo; }
+    }
+    const spesaInFinestra = ore ? Math.round(100 * (inFinestra + carburante)) / 100 : null;
+    const parziale = mancanti > 0 || sdN > 0;
+    const ragioni = [];
+    if (mancanti > 0) ragioni.push(mancanti + (mancanti === 1 ? " intervento senza costo" : " interventi senza costo"));
+    if (sdN > 0) ragioni.push(sdN + (sdN === 1 ? " intervento senza data" : " interventi senza data"));
     righe.push({
       mezzo, officina, carburante, totale: officina + carburante,
-      ore, parziale: mancanti > 0, interventiSenzaCosto: mancanti,
-      euroOraOfficina: ore ? Math.round(100 * officina / ore) / 100 : null,
+      ore, da, a,
+      officinaInFinestra: ore ? Math.round(100 * inFinestra) / 100 : null,
+      spesaInFinestra,
+      fuori: { interventi: fuoriN, costo: Math.round(100 * fuoriEuro) / 100 },
+      senzaData: { interventi: sdN, costo: Math.round(100 * sdEuro) / 100 },
+      parziale, interventiSenzaCosto: mancanti,
+      percheParziale: ragioni.length ? ragioni.join(" e ") + ": il conto è un minimo" : "",
+      euroOraOfficina: ore ? Math.round(100 * inFinestra / ore) / 100 : null,
       euroOraCarburante: c && Number.isFinite(c.euroOra) ? c.euroOra : null,
-      euroOra: ore ? Math.round(100 * (officina + carburante) / ore) / 100 : null,
-      perche: ore ? "" : ((c && c.perche)
-        || "Nessun rifornimento porta la lettura del contatore: le ore lavorate non si sanno."),
+      euroOra: ore ? Math.round(100 * spesaInFinestra / ore) / 100 : null,
+      perche: ore ? "" : (oreNote
+        ? "i rifornimenti col contatore non portano la data: non si sa che periodo coprono le ore"
+        : ((c && c.perche)
+          || "Nessun rifornimento porta la lettura del contatore: le ore lavorate non si sanno.")),
     });
   }
   return righe.sort((a, b) => b.totale - a.totale || a.mezzo.localeCompare(b.mezzo, "it"));
@@ -1479,7 +1543,7 @@ export function consumoPerMezzo(rifornimenti) {
   }
   const mezzi = [...per.values()].map(v => {
     const conOre = v.pieni.filter(p => p.ore != null).sort((a, b) => a.ore - b.ore);
-    let litriOra = null, euroOra = null, oreCoperte = null, perche = "";
+    let litriOra = null, euroOra = null, oreCoperte = null, perche = "", da = null, a = null;
     if (conOre.length < 2) {
       perche = conOre.length === 1
         ? "serve almeno un secondo rifornimento con il contatore delle ore"
@@ -1492,6 +1556,19 @@ export function consumoPerMezzo(rifornimenti) {
         const e = dopoIlPrimo.reduce((t, p) => t + p.euro, 0);
         litriOra = Math.round(100 * l / oreCoperte) / 100;
         euroOra = e > 0 ? Math.round(100 * e / oreCoperte) / 100 : null;
+        /* LA FINESTRA che quelle ore coprono. Le ore da sole dicono QUANTO ha
+           lavorato la macchina, non DA QUANDO A QUANDO: e senza quel «da
+           quando a quando» chi divide una spesa per quelle ore non sa se
+           numeratore e denominatore parlano dello stesso periodo (è il difetto
+           che `costoOrarioMezzo` aveva, e che gonfiava il €/h fino al doppio).
+           Le date vengono dalle STESSE letture da cui escono le ore — non da
+           un secondo conto — e si prendono la più vecchia e la più recente
+           fra quelle scritte per bene: una lettura senza data non allarga la
+           finestra e non la restringe, semplicemente non la delimita. Con meno
+           di due date leggibili la finestra non c'è: `null`, non una data
+           inventata al posto dell'altra. */
+        const date = conOre.map(p => p.data).filter(dataISOEsiste).sort();
+        if (date.length >= 2) { da = date[0]; a = date[date.length - 1]; }
       } else {
         oreCoperte = null;
         perche = "fra i rifornimenti il contatore non è cambiato";
@@ -1501,7 +1578,7 @@ export function consumoPerMezzo(rifornimenti) {
       mezzo: v.mezzo, pieni: v.pieni.length, litri: Math.round(v.litri * 10) / 10,
       euro: Math.round(v.euro * 100) / 100,
       euroLitro: v.litri > 0 && v.euro > 0 ? Math.round(1000 * v.euro / v.litri) / 1000 : null,
-      oreCoperte, litriOra, euroOra, perche,
+      oreCoperte, litriOra, euroOra, perche, da, a,
     };
   }).sort((a, b) => (b.litriOra == null ? -1 : b.litriOra) - (a.litriOra == null ? -1 : a.litriOra)
     || a.mezzo.localeCompare(b.mezzo, "it"));
@@ -2089,11 +2166,23 @@ export function pagellaMezzi(righeCosto, aff, mezzi) {
   // La media della flotta è TUTTI i costi misurabili diviso TUTTE le ore
   // misurabili — non la media dei €/h, che darebbe lo stesso peso a una
   // macchina di cinquanta ore e a una di cinquemila.
+  // ⛔ E IL NUMERATORE È QUELLO DEI €/h DI RIGA (`spesaInFinestra`), non la
+  //    spesa totale del mezzo. Sono due numeri diversi da quando il €/h si
+  //    calcola sulla finestra dei contatori: prendendo `totale` la media
+  //    sarebbe più alta di TUTTE le righe che deve mediare (sulla
+  //    dimostrazione 54,25 contro un parco che sta fra 28 e 39), e ogni
+  //    scostamento nascerebbe da un confronto fra due cose diverse. È la
+  //    stessa regola che questa funzione si è già data: non ricalcolare, e
+  //    non mescolare due misure che coprono periodi diversi.
   let spesaMisurata = 0, oreTotali = 0;
   for (const n of parco) {
     const c = perCosto.get(n);
-    if (c && c.ore > 0 && c.euroOra != null) { spesaMisurata += c.totale; oreTotali += c.ore; }
+    if (c && c.ore > 0 && c.euroOra != null && Number.isFinite(c.spesaInFinestra)) {
+      spesaMisurata += c.spesaInFinestra;
+      oreTotali += c.ore;
+    }
   }
+  spesaMisurata = Math.round(100 * spesaMisurata) / 100;
   const mediaEuroOra = oreTotali > 0 && spesaMisurata > 0
     ? Math.round(100 * spesaMisurata / oreTotali) / 100 : null;
   // La disponibilità di riferimento è quella del parco, già calcolata e già
@@ -2123,10 +2212,18 @@ export function pagellaMezzi(righeCosto, aff, mezzi) {
     const fermo = scostamentoFermo == null ? null
       : scostamentoFermo < -BANDA_PAGELLA.disponibilita ? "piu"
       : scostamentoFermo > BANDA_PAGELLA.disponibilita ? "meno" : "linea";
+    // ⛔ LA FINESTRA DEL €/h VIAGGIA CON LA RIGA. I due assi non coprono lo
+    //    stesso periodo — la disponibilità è la finestra dei fermi, il costo
+    //    è quella dei contatori, e ogni macchina ha la SUA — quindi scriverli
+    //    accanto senza portarsi dietro il periodo del secondo li farebbe
+    //    leggere come se fossero lo stesso mese.
     const base = {
       mezzo: n, disponibilita, scostamentoFermo, fermo,
       giorniFermo: f ? f.giorni : 0, episodi: f ? f.episodi : 0, aperti: f ? f.aperti : 0,
       totale: c ? c.totale : 0, parziale: !!(c && c.parziale),
+      percheParziale: (c && c.percheParziale) || "",
+      da: (c && c.da) || null, a: (c && c.a) || null,
+      fuori: (c && c.fuori) || { interventi: 0, costo: 0 },
     };
     if (!c || c.euroOra == null) {
       senzaCosto.push({

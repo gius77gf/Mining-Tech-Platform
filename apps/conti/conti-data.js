@@ -7,7 +7,12 @@
 //   clienti/{id}: { ragioneSociale, piva, sdi (codice destinatario o PEC), indirizzo,
 //                   sconto (%), fido (€), note }
 //   gare/{id}:    { titolo, base, scadenza (ISO), stato: aperta|vinta|persa }
-//   prodotti/{id}:{ nome, unitaPrezzo: "t"|"m3", prezzo (€/unità), densita (t/m³), iva (%) }
+//   prodotti/{id}:{ nome, unitaPrezzo: "t"|"m3", prezzo (€/unità), densita (t/m³), iva (%),
+//                   scaglioni?: [{ da (quantità nell'unità del listino), prezzo (€/unità) }]
+//                               oppure [{ da, sconto (%) }] — prezzi a scaglioni
+//                               di quantità. Facoltativo: i prodotti di prima
+//                               non ce l'hanno e si comportano esattamente come
+//                               prima (nessuna banda = listino pieno) }
 //   pesate/{id}:  { numero (progressivo per anno), data (ISO), clienteId, cliente,
 //                   prodottoId, prodotto, lordo (t), tara (t), netto (t),
 //                   unitaVendita "t"|"m3", quantita (nell'unità di vendita), densita,
@@ -128,14 +133,24 @@ export const DEMO = {
   // listino d'esempio: un prodotto venduto a metro cubo (sabbia) accanto a
   // quelli venduti a tonnellata, così si vede subito a cosa serve la densità.
   prodotti: [
-    { id: "p1", nome: "Stabilizzato 0/30", unitaPrezzo: "t",  prezzo: 8.5,  densita: 1.9, iva: 22 },
-    { id: "p2", nome: "Pietrisco 8/12",    unitaPrezzo: "t",  prezzo: 12,   densita: 1.5, iva: 22 },
+    /* p1 porta una scala a SCONTI, p2 una scala a PREZZI: sono le due forme
+       che il listino sa dire, e la dimostrazione le fa vedere tutt'e due
+       accanto. p3 e p4 non hanno scaglioni — è la maggioranza dei prodotti, e
+       si comportano esattamente come prima. */
+    { id: "p1", nome: "Stabilizzato 0/30", unitaPrezzo: "t",  prezzo: 8.5,  densita: 1.9, iva: 22,
+      scaglioni: [{ da: 250, sconto: 4 }, { da: 1000, sconto: 7 }] },
+    { id: "p2", nome: "Pietrisco 8/12",    unitaPrezzo: "t",  prezzo: 12,   densita: 1.5, iva: 22,
+      scaglioni: [{ da: 100, prezzo: 11.2 }, { da: 500, prezzo: 10.5 }] },
     { id: "p3", nome: "Sabbia lavata 0/4", unitaPrezzo: "m3", prezzo: 22,   densita: 1.6, iva: 22 },
     { id: "p4", nome: "Massi da scogliera",unitaPrezzo: "t",  prezzo: 15.5, densita: 2.4, iva: 22 },
     // p5: prodotto VECCHIO senza densità dichiarata (il form oggi la pretende,
     // ma un listino nato prima può averne). Sta qui apposta: fa vedere cosa
     // succede quando la densità manca — Conti non converte e lo dice.
-    { id: "p5", nome: "Misto di cava (non classificato)", unitaPrezzo: "t", prezzo: 6.5, densita: null, iva: 22 },
+    // ⛔ E CON UNA SCALA ADDOSSO fa vedere il caso peggiore: ordinato in metri
+    // cubi, lo scaglione NON si può scegliere — e Conti non ripiega né sulla
+    // banda più bassa «per prudenza» né sul listino pieno, dice che non lo sa.
+    { id: "p5", nome: "Misto di cava (non classificato)", unitaPrezzo: "t", prezzo: 6.5, densita: null, iva: 22,
+      scaglioni: [{ da: 200, prezzo: 6 }] },
   ],
   // pesate/DDT d'esempio. Le prime sei sono di mesi passati e GIÀ fatturate
   // (servono a far quadrare l'anno nel confronto cavato/venduto); le ultime
@@ -340,6 +355,21 @@ export const DEMO = {
       clienteId: "c1", cliente: "Edilcave Srl", stato: "inviato", riferimento: "", note: "",
       righe: [{ prodottoId: "p4", descrizione: "Massi da scogliera", quantita: 120, unita: "t",
         densita: 2.4, prezzoUnitario: 15.5, scontoPct: 5, aliquota: 22, imponibile: 1767 }] },
+    /* ⛔ L'ORDINE CHE ARRIVA ALLO SCAGLIONE PIÙ ALTO, e che fa vedere la
+       composizione: 800 t di Pietrisco cadono nella banda «da 500 t» (10,50
+       €/t invece di 12,00 di listino) e sopra ci va il 5% di Edilcave. Le due
+       cose stanno in due colonne diverse del documento e per questo non si
+       pestano i piedi: 800 × 10,50 − 5% = 7.980 €. La riga porta con sé quale
+       banda ha usato, fotografata come il prezzo: se domani il listino cambia,
+       l'offerta già mandata resta questa e sa ancora dire perché. */
+    { id: "o8", numero: "PREV/2026/008", numeroOrdine: "ORD/2026/004", data: "2026-07-18",
+      validoAl: "2026-08-17", clienteId: "c1", cliente: "Edilcave Srl", stato: "accettato",
+      decisoIl: "2026-07-24", riferimento: "Fornitura sottofondo — lotto 2",
+      note: "Prezzo da scaglione: 800 t superano la soglia delle 500.",
+      righe: [{ prodottoId: "p2", descrizione: "Pietrisco 8/12", quantita: 800, unita: "t",
+        densita: 1.5, prezzoUnitario: 10.5, scontoPct: 5, aliquota: 22, imponibile: 7980,
+        scaglione: { da: 500, a: null, unita: "t", tipo: "prezzo", prezzo: 10.5, sconto: 0 },
+        scontoCliente: 5, scontoScaglione: 0, motivoSenzaPrezzo: "" }] },
   ],
 };
 
@@ -1349,6 +1379,225 @@ export function imponibileRiga(quantita, prezzoUnitario, scontoPct) {
   if (!Number.isFinite(q)) return 0;
   const sc = Math.min(100, Math.max(0, +scontoPct || 0));
   return round2(q * (+prezzoUnitario || 0) * (1 - sc / 100));
+}
+
+// ============================================================
+// PREZZI A SCAGLIONI DI QUANTITÀ (N9)
+// ------------------------------------------------------------
+// Gli inerti non si vendono a prezzo unico: chi ritira 5.000 t per un cantiere
+// non paga il listino di chi ne prende tre. Fino a qui Conti aveva UNA sola
+// percentuale per cliente, e la politica di prezzo per volume la teneva il
+// venditore in testa — cioè da nessuna parte.
+//
+// ⛔ LA FORMA È «DA», NON «DA…A», e non è un dettaglio: è quello che rende
+//    IMPOSSIBILI per costruzione le due cose che il mandato vieta. Con le
+//    fasce scritte a coppie (0–99, 100–499, 500–∞) i buchi e le sovrapposizioni
+//    si scrivono per sbaglio ogni volta che si corregge un estremo — e il
+//    controllo che li cerca va scritto, mantenuto, e sbaglia. Con una sola
+//    soglia per riga un buco non è rappresentabile: ogni quantità cade
+//    nell'ultima soglia che ha superato. Resta UNA cosa da controllare, e la
+//    controlla `validaScaglioni`: due righe che partono dalla stessa quantità.
+//
+// ⛔ LA SOGLIA APPARTIENE ALLO SCAGLIONE PIÙ ALTO: 100 t esatte pagano il
+//    prezzo «da 100». È la lettura naturale di un listino («da 100 t: 11,20»)
+//    ed è detta una volta, nella pagina, sotto la tabella.
+//
+// ⛔ LA BANDA BASE È IL LISTINO, E SI VEDE. Se la prima soglia scritta è
+//    maggiore di zero, la scala si completa in basso con una riga «fino a N» al
+//    prezzo di listino, marcata `implicita`. Non è un'inferenza nascosta: la
+//    pagina la disegna come le altre, così nessuno deve indovinare che cosa
+//    paga chi ritira poco.
+//
+// ⛔ E QUANDO LA BANDA NON SI PUÒ SCEGLIERE, NON SE NE SCEGLIE UNA. Una
+//    quantità in metri cubi su una scala in tonnellate, senza densità, non si
+//    converte: lì non vale né «la più bassa per prudenza» né il listino pieno —
+//    `calcolabile: false` e il perché scritto. Stessa cosa per la fornitura a
+//    chiamata: senza quantità lo scaglione non esiste ancora, e un prezzo
+//    unitario tranquillo sarebbe una promessa che non è stata fatta.
+// ============================================================
+
+/* ⛔ COME SI COMPONGONO SCONTO CLIENTE E SCAGLIONE — DECISIONE DICHIARATA, E
+   UNA SOLA STRADA. Le due cose vivono in due colonne diverse del documento e
+   si sommano: `scontoPct = sconto cliente + sconto scaglione`, con il tetto
+   del 100% che `imponibileRiga` già impone.
+
+   Perché SOMMATI e non «a cascata» (il classico 20+10 dell'ingrosso, cioè
+   1−0,95×0,92 = 12,6% invece di 13%): tutt'e due gli sconti li facciamo NOI,
+   sulla stessa vendita — non c'è nessuna catena di intermediari da modellare —
+   e soprattutto questo file ha già deciso, dodici righe più su, che *chi riceve
+   il documento deve poter rifare il conto*. «5% cliente + 8% quantità = 13%» lo
+   rifà chiunque a mente; 1−(0,95×0,92) no. La differenza sta nella terza cifra
+   e va a favore del cliente: fra sbagliare di 0,4% in meno e di 0,4% in più,
+   la telefonata arriva solo nel secondo caso.
+
+   Perché NON «il maggiore vince» e non «uno esclude l'altro»: sono due
+   promesse fatte per due ragioni diverse — una a chi ritira tanto, una a chi è
+   cliente da anni. Farne vincere una vuol dire rimangiarsi l'altra, e il
+   cliente che si vede annullare lo sconto contrattuale *proprio perché* ha
+   ordinato di più fa la telefonata che nessuno vuole ricevere.
+
+   ⚠️ E UNA SCALA A PREZZI NON DIVENTA MAI UNA PERCENTUALE, né il contrario:
+   · scala a PREZZI → la banda dà il `prezzoUnitario` (esatto, è già un prezzo)
+     e il suo sconto vale 0. Lo sconto cliente resta quello che era;
+   · scala a SCONTI → il `prezzoUnitario` resta il LISTINO e la percentuale si
+     somma. Piegarla dentro il prezzo la costringerebbe ad arrotondarsi ai
+     centesimi, e l'errore si moltiplica per la quantità: misurato in prototipo
+     su 2.230 t a 12,34 €/t con l'8%, **6,24 € in meno** del dovuto. È la stessa
+     ragione per cui, dodici righe più su, lo sconto del cliente non si piega
+     nel prezzo — qui vale identica, quindi la risposta è identica.
+   Le due forme non si mescolano nella stessa scala (`validaScaglioni` la
+   rifiuta): una tabella che riga per riga cambia moneta non la legge nessuno. */
+
+/* Legge `prodotto.scaglioni` e ne restituisce la scala ordinata, oppure i
+   problemi che le impediscono di essere una scala. `ok: true` con `quanti: 0`
+   vuol dire «questo prodotto non ha scaglioni», che NON è un errore: è come si
+   comportano tutti i prodotti scritti prima di oggi. */
+export function validaScaglioni(prodotto) {
+  const p = prodotto || {};
+  const unita = p.unitaPrezzo === "m3" ? "m3" : "t";
+  const grezze = Array.isArray(p.scaglioni) ? p.scaglioni.filter(Boolean) : [];
+  const problemi = [];
+  if (!grezze.length) return { ok: true, quanti: 0, tipo: null, unita, scala: [], problemi };
+
+  const dichiarato = (v) => v != null && String(v).trim() !== "";
+  const conPrezzo = grezze.filter((r) => dichiarato(r.prezzo)).length;
+  const conSconto = grezze.filter((r) => dichiarato(r.sconto)).length;
+  let tipo = null;
+  if (conPrezzo && conSconto) problemi.push("la scala mescola prezzi e sconti: scegli l'una o l'altra forma.");
+  else if (conPrezzo) tipo = "prezzo";
+  else if (conSconto) tipo = "sconto";
+  else problemi.push("nessuno scaglione dice né un prezzo né uno sconto.");
+
+  const viste = new Set();
+  const righe = [];
+  for (const r of grezze) {
+    const da = +r.da;
+    if (!Number.isFinite(da) || da < 0) { problemi.push("una soglia di quantità non è un numero valido."); continue; }
+    const k = String(round3(da));
+    if (viste.has(k)) { problemi.push("due scaglioni partono dalla stessa quantità (" + k + "): si sovrappongono."); continue; }
+    viste.add(k);
+    if (tipo === "prezzo") {
+      const v = +r.prezzo;
+      /* ⛔ NIENTE PREZZO ZERO, ed è la regola già scritta per l'import del
+         listino: uno zero fa sembrare gratis un prodotto che non lo è, e da lì
+         finisce in un DDT e poi in una fattura. */
+      if (!Number.isFinite(v) || v <= 0) { problemi.push("lo scaglione da " + k + " non ha un prezzo maggiore di zero."); continue; }
+      righe.push({ da: round3(da), prezzo: round2(v), sconto: null });
+    } else if (tipo === "sconto") {
+      const v = +r.sconto;
+      if (!Number.isFinite(v) || v < 0 || v > 100) { problemi.push("lo sconto dello scaglione da " + k + " deve stare fra 0 e 100."); continue; }
+      righe.push({ da: round3(da), prezzo: null, sconto: round2(v) });
+    }
+  }
+  righe.sort((a, b) => a.da - b.da);
+
+  const listino = round2(+p.prezzo || 0);
+  const scala = [];
+  if (!righe.length || righe[0].da > 0)
+    scala.push({ da: 0, prezzo: tipo === "prezzo" ? listino : null,
+                 sconto: tipo === "sconto" ? 0 : null, implicita: true });
+  for (const r of righe) scala.push({ ...r, implicita: false });
+  // `a` è la soglia dello scaglione successivo, cioè dove questo finisce (esclusa).
+  for (let i = 0; i < scala.length; i++) scala[i].a = i + 1 < scala.length ? scala[i + 1].da : null;
+  return { ok: problemi.length === 0, quanti: righe.length, tipo, unita, scala, problemi };
+}
+
+/* Come si chiama uno scaglione. Vive qui e non nella pagina perché la usano
+   anche `descriviScaglione` e l'export: scritta nella pagina, il giorno che
+   serve al CSV se ne scriverebbe una seconda, diversa.
+   ⚠️ IL FORMATO DEL NUMERO SI PASSA DA FUORI, e non è pignoleria: `1500`
+   scritto con `toLocaleString("it-IT")` diventa «1500» in Node e «1.500» in
+   Chromium (vedi docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md), quindi un'etichetta
+   costruita qui con la formattazione dentro sarebbe una prova che passa dove
+   l'utente non guarda. Di suo scrive il numero nudo; la pagina le passa il
+   proprio formattatore. */
+export function etichettaScaglione(banda, unita, fmt) {
+  const b = banda || {};
+  const n = typeof fmt === "function" ? fmt : String;
+  const u = " " + (UNITA_LABEL[unita] || UNITA_LABEL.t);
+  if (b.a == null) return (+b.da > 0 ? "da " + n(b.da) + u + " in su" : "qualunque quantità");
+  if (!(+b.da > 0)) return "fino a " + n(b.a) + u;
+  return "da " + n(b.da) + u;
+}
+
+/* Quale scaglione vale per questa quantità. `calcolabile: false` quando la
+   banda NON si può scegliere, e `motivo` dice quale dei tre casi è — la pagina
+   ne ha bisogno perché due sono errori da correggere e uno (la fornitura a
+   chiamata) è un'offerta legittima che va salvata lo stesso. */
+export function scaglionePer(prodotto, quantita, unita) {
+  const p = prodotto || {};
+  const v = validaScaglioni(p);
+  const uL = v.unita;
+  const uChiesta = unita === "t" || unita === "m3" ? unita : uL;
+  const base = { tipo: v.tipo, unita: uL, scala: v.scala, quanti: v.quanti, banda: null,
+                 indice: -1, quantitaListino: null, prezzoScala: null, scontoScaglione: 0 };
+  if (!v.quanti) return { ...base, calcolabile: true, motivo: "nessuna-scala", perche: "" };
+  if (!v.ok) return { ...base, calcolabile: false, motivo: "scala-non-valida", perche: v.problemi[0] };
+  /* ⛔ `Number.isFinite(+quantita)` DA SOLO NON BASTA: `+null` fa 0 e
+     `Number.isFinite(0)` risponde true, quindi una quantità assente prenderebbe
+     la banda base — che è esattamente il prezzo più caro spacciato per scelta.
+     È la trappola che questo file documenta in altri quattro punti. */
+  const dich = quantita != null && String(quantita).trim() !== "" && Number.isFinite(+quantita);
+  if (!dich) return { ...base, calcolabile: false, motivo: "quantita-assente",
+    perche: "la quantità non è indicata, e lo scaglione si decide sulla quantità" };
+  const qL = uChiesta === uL ? round3(+quantita)
+    : convertiQuantita(+quantita, uChiesta, uL, densitaValida(p));
+  if (qL == null) return { ...base, calcolabile: false, motivo: "densita-mancante",
+    perche: "la quantità è in " + UNITA_LABEL[uChiesta] + ", gli scaglioni sono in "
+      + UNITA_LABEL[uL] + ", e senza densità non si convertono" };
+  let i = 0;
+  for (let k = 0; k < v.scala.length; k++) if (v.scala[k].da <= qL) i = k;
+  const b = v.scala[i];
+  return { ...base, calcolabile: true, motivo: "", perche: "", banda: b, indice: i,
+           quantitaListino: qL, prezzoScala: b.prezzo,
+           scontoScaglione: b.sconto == null ? 0 : b.sconto };
+}
+
+/* La frase che accompagna lo scaglione, e il posto in cui la bandiera
+   `calcolabile` viene LETTA (regola 20 di run-stile: una non-misurabilità che
+   non legge nessuno non protegge niente). Stessa forma di `descriviAvanzamento`.
+   Il formattatore dei numeri si passa da fuori, per la ragione scritta sopra. */
+export function descriviScaglione(sc, fmt) {
+  const s = sc || {};
+  const n = typeof fmt === "function" ? fmt : String;
+  if (!s.calcolabile) return "Lo scaglione non si può applicare: " + (s.perche || "dato mancante") + ".";
+  if (s.motivo === "nessuna-scala" || !s.banda) return "Prezzo di listino: questo prodotto non ha scaglioni.";
+  const dove = etichettaScaglione(s.banda, s.unita, n);
+  if (s.banda.implicita) return "Sotto il primo scaglione (" + dove + "): prezzo di listino pieno.";
+  return s.tipo === "sconto"
+    ? "Scaglione " + dove + ": " + n(s.scontoScaglione) + "% sulla quantità."
+    : "Scaglione " + dove + ": " + n(s.prezzoScala) + " €/" + (UNITA_LABEL[s.unita] || UNITA_LABEL.t) + ".";
+}
+
+/* IL PREZZO DI UNA RIGA, IN UN POSTO SOLO. Mette insieme la banda e lo sconto
+   del cliente secondo la regola dichiarata qui sopra, e restituisce le due
+   cose che il documento stampa: il prezzo unitario e UNA percentuale.
+   `prezzoUnitario: null` quando la banda non si è potuta scegliere — chi chiama
+   legge `scaglione.motivo` per sapere se è un errore da correggere o
+   un'offerta a chiamata da salvare così. */
+export function applicaScaglione(prodotto, quantita, unita, cliente) {
+  const p = prodotto || {};
+  const uL = p.unitaPrezzo === "m3" ? "m3" : "t";
+  const u = unita === "t" || unita === "m3" ? unita : uL;
+  const dens = densitaValida(p);
+  /* la conversione del prezzo fra le due unità è quella di
+     `prezzoPerTonnellata`/`prezzoPerMetroCubo`: qui si riusa la formula, non se
+     ne scrive una seconda che domani diverge. */
+  const inUnita = (vL) => vL == null ? null
+    : u === uL ? round2(vL)
+    : !dens ? null
+    : u === "m3" ? round2(vL * dens) : round2(vL / dens);
+  const sc = scaglionePer(p, quantita, u);
+  const scontoCliente = scontoValido(cliente);
+  const listino = inUnita(+p.prezzo || 0);
+  if (!sc.calcolabile)
+    return { prezzoUnitario: null, listino, scontoPct: scontoCliente, scontoCliente,
+             scontoScaglione: 0, scaglione: sc };
+  const prezzoL = sc.prezzoScala != null ? sc.prezzoScala : (+p.prezzo || 0);
+  return { prezzoUnitario: inUnita(prezzoL), listino, scontoCliente,
+           scontoScaglione: sc.scontoScaglione,
+           scontoPct: round2(Math.min(100, scontoCliente + sc.scontoScaglione)),
+           scaglione: sc };
 }
 
 // Riga di pesata completa a partire da pesi, prodotto, anagrafica e CLIENTE:
@@ -2796,24 +3045,50 @@ export function ordineConfermato(ordine, oggi = new Date()) {
    prezzo è `null`: meglio nessun numero che un numero falso.
    ⛔ E la quantità VUOTA resta `null`, non zero. `+null` fa 0 e
    `Number.isFinite(0)` risponde true: è la trappola che questo file documenta
-   in altri tre punti, e qui produrrebbe un'offerta di zero tonnellate. */
+   in altri tre punti, e qui produrrebbe un'offerta di zero tonnellate.
+
+   ⛔ ED È QUI CHE VIVE LO SCAGLIONE, non sul DDT, e la ragione è di mestiere:
+   lo scaglione si decide sulla quantità **della trattativa**, e un DDT è un
+   camion. Sceglierlo sulla portata di un autocarro vorrebbe dire far pagare il
+   prezzo del privato — 28 t alla volta — a chi ha comprato 5.000 t per un
+   cantiere: esattamente il difetto che questa funzione esiste per togliere.
+   Chi vende a scaglioni fa un'offerta; chi non la fa vende a listino, come
+   prima. (Che il DDT agganciato a un ordine erediti il prezzo dell'ordine è
+   una cosa che oggi NON succede — non succedeva nemmeno prima — ed è un
+   cantiere suo, dichiarato e non fatto qui.) */
 export function rigaPreventivo(prodotto, quantita, cliente, unitaScelta) {
   const p = prodotto || {};
   const unitaListino = p.unitaPrezzo === "m3" ? "m3" : "t";
   const unita = unitaScelta === "t" || unitaScelta === "m3" ? unitaScelta : unitaListino;
   const dens = densitaValida(p);
-  let prezzoUnitario = round2(+p.prezzo || 0);
-  if (unita !== unitaListino)
-    prezzoUnitario = !dens ? null
-      : unita === "m3" ? round2((+p.prezzo || 0) * dens) : round2((+p.prezzo || 0) / dens);
   const dich = quantita != null && String(quantita).trim() !== "" && Number.isFinite(+quantita);
   const q = dich ? round3(+quantita) : null;
-  const scontoPct = scontoValido(cliente);
+  /* prezzo e sconto vengono da `applicaScaglione`: è l'unico posto in cui la
+     banda e lo sconto del cliente si mettono insieme. Un prodotto senza scala
+     ne esce con il listino e lo sconto cliente, cioè identico a prima. */
+  const a = applicaScaglione(p, q, unita, cliente);
+  const prezzoUnitario = a.prezzoUnitario;
+  const scontoPct = a.scontoPct;
   const imponibile = (q == null || prezzoUnitario == null) ? null
     : imponibileRiga(q, prezzoUnitario, scontoPct);
   return { prodottoId: p.id || null, descrizione: String(p.nome || "Prodotto"),
            quantita: q, unita, densita: dens || null, prezzoUnitario, scontoPct,
-           aliquota: Math.max(0, +p.iva || 0), imponibile };
+           aliquota: Math.max(0, +p.iva || 0), imponibile,
+           /* che cosa ha deciso il prezzo, FOTOGRAFATO come tutto il resto: un
+              prezzo che cambia senza dire perché è un prezzo che il cliente
+              contesta. `null` per i prodotti senza scala (e per le righe
+              salvate prima di oggi, che restano quello che sono). */
+           scaglione: a.scaglione.banda && !a.scaglione.banda.implicita
+             ? { da: a.scaglione.banda.da, a: a.scaglione.banda.a, unita: a.scaglione.unita,
+                 tipo: a.scaglione.tipo, prezzo: a.scaglione.prezzoScala,
+                 sconto: a.scaglione.scontoScaglione }
+             : null,
+           scontoCliente: a.scontoCliente, scontoScaglione: a.scontoScaglione,
+           /* la ragione per cui il prezzo manca, quando manca: la pagina deve
+              distinguere «scrivi la densità» da «è una fornitura a chiamata». */
+           motivoSenzaPrezzo: prezzoUnitario != null ? ""
+             : (a.scaglione.motivo && a.scaglione.motivo !== "nessuna-scala"
+                ? a.scaglione.motivo : "densita-mancante") };
 }
 
 /* Totali del preventivo: passano da `totaliDaRighe`, la stessa funzione della

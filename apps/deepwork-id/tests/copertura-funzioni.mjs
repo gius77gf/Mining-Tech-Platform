@@ -70,7 +70,22 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    `testoOrari`, `orariProposti`, `orariDiTurno` — con le loro prove. Da lì
    `riposoPrimaDelTurno` preferisce l'ora di uscita vera alla durata
    dichiarata del turno, e quando ripiega lo dichiara. */
-const FONDO = { campo: 102, conti: 102, flotta: 81, scudo: 113, sentinella: 120, terra: 56 };
+/* ⚠️ `terra` SALE DA 56 A 66: DA DOVE VIENE LA DENSITÀ — il vocabolario chiuso
+   delle provenienze (`DENS_ATTO`, `DENS_LABORATORIO`, `DENS_PRESET`,
+   `DENS_MANO`, `DENS_NON_DICHIARATA`, `FONTI_DENSITA`) e le quattro funzioni
+   che lo usano (`densitaDichiarata`, `densitaPerEnte`, `descriviDensita`,
+   `densitaDellaCava`), con le loro 17 prove. */
+/* ⚠️ `scudo` SALE DA 113 A 123: IL CICLO DI VITA DEL DSS (D.Lgs 624/96 art. 6)
+   — `MOTIVI_REVISIONE_DSS`, `motivoRevisioneDss`, `dssDiCantiere`,
+   `dssScollegati`, `cicloDss`, `descriviCicloDss`, `descriviTrasmissioneDss`,
+   `etichettaCicloDss`, `sintesiCicloDss`, `dssDaSeguire` — con le loro 24
+   prove. Il DSS c'era già come TIPO di documento con uno stato messo a mano;
+   quello che non c'era è il ciclo, e il suo terzo stato: senza data di
+   revisione un DSS non è «aggiornato» né «scaduto», è NON DATABILE.
+   `sintesiCicloDss` è la decima e l'ha pretesa uno SCATTO: la forma lunga,
+   nella riga del Quadro, finiva tagliata da `-webkit-line-clamp:2` a metà di
+   «non è…» — cioè proprio dove il principio del fondatore vuole essere letto. */
+const FONDO = { campo: 102, conti: 107, flotta: 81, scudo: 123, sentinella: 120, terra: 66 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.

@@ -1220,6 +1220,43 @@ label.item:has(.dw-chk:checked){
     <button class="dw-btn" id="btn-pr">Aggiungi</button>
   </div>
   <div id="pr-conv"></div>
+
+  <!-- ⛔ PREZZI A SCAGLIONI. Gli inerti non si vendono a prezzo unico: chi
+       ritira 5.000 t per un cantiere non paga il listino di chi ne prende tre.
+       La forma è «DA una quantità in su», non «da…a»: con una sola soglia per
+       riga i buchi e le sovrapposizioni non si possono scrivere. -->
+  <span class="fl">Prezzi a scaglioni di quantità <span class="badge tag">facoltativo</span></span>
+  <div class="note">Un prodotto può costare meno a chi ne prende di più. Scrivi le soglie
+    <b>da una quantità in su</b>: chi resta sotto la prima paga il <b>listino</b>.
+    Ogni scaglione dice <b>un prezzo</b> (es. da 500 t: 10,50 €/t) <b>oppure uno sconto</b>
+    (es. da 250 t: −4%) — <b>non tutt'e due nella stessa scala</b>.
+    Le soglie sono nell'unità del listino di questo prodotto.</div>
+  <div class="form" id="sca-form">
+    <div class="fld" id="fld-sca-da" style="flex:1 1 170px;">
+      <label for="sca-da">Da (quantità)</label>
+      <input class="dw-input dec" id="sca-da" type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+             placeholder="es. 500" title="Da quale quantità in su vale questo scaglione. La virgola va benissimo.">
+      <span class="err-msg" id="err-sca-da"></span>
+    </div>
+    <div class="fld" id="fld-sca-tipo" style="flex:1 1 190px;">
+      <label for="sca-tipo">Lo scaglione dice</label>
+      <select class="dw-input" id="sca-tipo">
+        <option value="prezzo">un prezzo (€/unità)</option>
+        <option value="sconto">uno sconto (%)</option>
+      </select>
+      <span class="err-msg" id="err-sca-tipo"></span>
+    </div>
+    <div class="fld" id="fld-sca-val" style="flex:1 1 150px;">
+      <label for="sca-val" id="lbl-sca-val">Prezzo €</label>
+      <input class="dw-input dec" id="sca-val" type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+             placeholder="0,00" title="Il prezzo (o lo sconto) di questo scaglione. La virgola va benissimo.">
+      <span class="err-msg" id="err-sca-val"></span>
+    </div>
+    <button class="dw-btn secondary" id="btn-sca">Aggiungi scaglione</button>
+  </div>
+  <div class="form-hint" style="margin:-4px 0 10px;">La quantità <b>esatta della soglia entra
+    nello scaglione più alto</b>: con una soglia a 500 t, 500 t tonde pagano già il prezzo «da 500».</div>
+  <div id="sca-list"></div>
   <div class="tools">
     <!-- ⚠️ Questo bottone aveva lo STESSO id dell'Esporta della scheda
          Listino: due elementi con lo stesso id, e getElementById restituisce
@@ -1527,7 +1564,9 @@ label.item:has(.dw-chk:checked){
     STATI_PREVENTIVO, statoPreventivoLabel, statoPreventivo, ordineConfermato,
     rigaPreventivo, totaliPreventivo, consegnatoOrdine, ddtDaAgganciare,
     avanzamentoOrdine, descriviAvanzamento, portafoglioOrdini,
-    preventiviDaSeguire } from "./conti-data.js";
+    preventiviDaSeguire,
+    validaScaglioni, scaglionePer, applicaScaglione, etichettaScaglione,
+    descriviScaglione } from "./conti-data.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale, dataIt, dataPiuGiorni } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
@@ -1563,6 +1602,13 @@ label.item:has(.dw-chk:checked){
   const NUMV = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 2 });
   const NUM1 = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   const perc1 = (v) => NUM1.format(+v || 0) + "%";
+  /* ⛔ LE SOGLIE DEGLI SCAGLIONI NON SI SCRIVONO COL DECIMALE FISSO. Un
+     listino dice «fino a 100 t», non «fino a 100,00 t»: quei due zeri sono
+     rumore su un numero che è una soglia, non una misura. Trovato solo nello
+     SCATTO — leggendo il codice `qt()` sembrava la scelta ovvia, perché è
+     quella giusta per le quantità pesate. I decimali restano possibili (una
+     soglia a 2,5 m³ si scrive «2,5»), semplicemente non si impongono. */
+  const qtS  = (v) => NUMV.format(+v || 0);
   // «l'8%» e non «il 8%»: davanti a otto e undici l'articolo si elide
   const ilPerc = (v) => (/^(8|11)([,.]|$)/.test(NUM1.format(+v || 0)) ? "l'" : "il ") + perc1(v);
   // ── CAMPI DECIMALI SCRITTI A MANO ─────────────────────────────────────
@@ -1732,8 +1778,45 @@ label.item:has(.dw-chk:checked){
   const pulisciFat = () => { FT_CAMPI.forEach(i => { $(i).value = ""; puliscoErr(i); });
     ftNumAuto = true; $("ft-iva").value = "22"; $("ft-num").value = numeroProssimaFattura();
     aggiornaRiepFat(); syncCliNuovo(); };
+  /* ── SCAGLIONI DEL PRODOTTO IN COMPILAZIONE ─────────────────────────
+     Vivono qui accanto al form, non nel documento: si salvano insieme al
+     prodotto, con un solo «Aggiungi» / «Salva modifica». Il modulo dati
+     rifiuta le scale che non sono scale; questa parte le disegna e le
+     lascia correggere prima del salvataggio. */
+  let proScaglioni = [];
+  const SCA_CAMPI = ["sca-da", "sca-val"];
+  const scaTipo = () => ($("sca-tipo") && $("sca-tipo").value === "sconto" ? "sconto" : "prezzo");
+  const scaUnita = () => ($("pr-unita") && $("pr-unita").value === "m3" ? "m3" : "t");
+  function renderScaglioni() {
+    /* si valida contro un prodotto FINTO fatto con quello che c'è nel form:
+       le stesse regole del salvataggio, viste prima di salvare. */
+    const prezzoOra = numCampo("pr-prezzo", { positivo: true });
+    const finto = { unitaPrezzo: scaUnita(), prezzo: prezzoOra.ok ? prezzoOra.valore : 0,
+                    scaglioni: proScaglioni };
+    const v = validaScaglioni(finto);
+    $("sca-list").innerHTML = !proScaglioni.length
+      ? `<div class="form-hint" style="margin:0 0 10px;">Nessuno scaglione: questo prodotto si vende
+         a <b>prezzo unico di listino</b>, per qualunque quantità. È il caso più comune, e va benissimo.</div>`
+      : (!v.ok ? `<div class="note" style="border-left-color:var(--danger);margin-bottom:10px;">${
+           esc(v.problemi[0])}${v.problemi.length > 1 ? " (e altri " + (v.problemi.length - 1) + ")" : ""}</div>` : "")
+        + v.scala.map((b, i) => `<div class="item ${b.implicita ? "st-mute" : "st-accent"}">
+            <span class="avatar">${IC.listino}</span>
+            <div class="info"><div class="name">${esc(etichettaScaglione(b, v.unita, qtS))}${
+              b.implicita ? ' <span class="badge tag">di listino</span>' : ""}</div>
+            <div class="meta">${b.implicita
+              ? "chi resta sotto la prima soglia paga il prezzo pieno"
+              : v.tipo === "sconto" ? "sconto sulla quantità" : "prezzo di questo scaglione"}</div></div>
+            <div class="amt"><div class="amt-n">${v.tipo === "sconto"
+              ? (b.sconto == null ? "—" : "−" + perc(b.sconto))
+              : (b.prezzo == null ? "—" : eur(b.prezzo) + '<span class="u">/' + uni(v.unita) + "</span>")}</div></div>
+            <div class="acts">${b.implicita ? "" : `<button class="arr del" type="button"
+              data-del-sca="${b.da}" title="Togli questo scaglione"
+              aria-label="Togli lo scaglione da ${qtS(b.da)}">${IC.croce}</button>`}</div></div>`).join("");
+  }
   const pulisciPro = () => { PR_CAMPI.forEach(i => { $(i).value = ""; puliscoErr(i); });
-    $("pr-unita").value = "t"; $("pr-iva").value = "22"; aggiornaConvPro(); };
+    $("pr-unita").value = "t"; $("pr-iva").value = "22";
+    proScaglioni = []; SCA_CAMPI.forEach(i => { $(i).value = ""; puliscoErr(i); });
+    renderScaglioni(); aggiornaConvPro(); };
   const pulisciCli = () => CL_CAMPI.forEach(i => { $(i).value = ""; puliscoErr(i); });
   $("ft-cli").onchange = () => { syncCliNuovo(); if ($("ft-cli").value === "__nuovo") $("ft-cli-nuovo").focus(); };
   try { const _s = localStorage.getItem("dwSort_fat"); if (_s) { ordFat = _s; if ($("fat-ord")) $("fat-ord").value = _s; } } catch (e) {}
@@ -1927,9 +2010,35 @@ label.item:has(.dw-chk:checked){
   const conU = (x) => '<span class="u">' + esc(x) + '</span>';
   const qtaRiga = (r) => r.quantita == null ? "quantità a chiamata"
     : qt(r.quantita) + " " + conU(uni(r.unita));
+  /* ⛔ «MANCA LA DENSITÀ» NON È PIÙ L'UNICA RAGIONE per cui un prezzo può non
+     esserci, e mandare a scrivere la densità quando il problema è un altro fa
+     perdere mezz'ora a chi legge. Da quando il listino ha gli scaglioni, un
+     prezzo può mancare anche perché lo scaglione si decide sulla quantità e la
+     quantità non c'è (fornitura a chiamata) o perché la scala è rotta. La riga
+     legge `motivoSenzaPrezzo`, che il modulo scrive apposta. */
+  const SENZA_PREZZO = {
+    "densita-mancante": "prezzo non convertibile: manca la densità",
+    "quantita-assente": "prezzo a scaglioni: si decide sulla quantità",
+    "scala-non-valida": "prezzo non calcolabile: gli scaglioni del listino non tornano",
+  };
   const prezzoRiga = (r) => r.prezzoUnitario == null
-    ? "prezzo non convertibile: manca la densità"
+    ? (SENZA_PREZZO[r.motivoSenzaPrezzo] || SENZA_PREZZO["densita-mancante"])
     : eur(r.prezzoUnitario) + conU("/" + uni(r.unita)) + (+r.scontoPct > 0 ? " − " + perc(r.scontoPct) : "");
+  /* Che cosa ha deciso il prezzo di questa riga. Un prezzo che cambia senza
+     dire perché è un prezzo che il cliente contesta: la banda usata è
+     fotografata sulla riga e qui si scrive per esteso, con le due metà dello
+     sconto separate — chi riceve l'offerta deve poter rifare il conto. */
+  const spiegaScaglioneRiga = (r) => {
+    const s = r.scaglione;
+    if (!s) return "";
+    const dove = etichettaScaglione({ da: s.da, a: s.a }, s.unita, qtS);
+    return s.tipo === "sconto"
+      ? "Scaglione " + dove + ": " + perc(s.sconto) + " sulla quantità"
+        + (+r.scontoCliente > 0 ? ", più " + perc(r.scontoCliente) + " di sconto cliente = " + perc(r.scontoPct) : "")
+        + "."
+      : "Scaglione " + dove + ": " + eur(s.prezzo) + "/" + uni(s.unita) + " invece del listino"
+        + (+r.scontoCliente > 0 ? ", e sopra ci va il " + perc(r.scontoCliente) + " del cliente" : "") + ".";
+  };
 
   function renderOrdini() {
     const oggi = new Date();
@@ -2059,7 +2168,15 @@ label.item:has(.dw-chk:checked){
             <div class="amt-s">IVA ${perc(r.aliquota)}</div></div>
           <div class="acts"><button class="arr del" type="button" data-del-riga="${i}"
             title="Togli questa riga" aria-label="Togli la riga ${esc(r.descrizione)}">${IC.croce}</button></div>
-          </div>`).join("")
+          </div>${/* ⛔ NON IN CODA ALLA RIGA DI DETTAGLIO: quella ha
+             `-webkit-line-clamp:2` e una frase appesa lì non la legge nessuno.
+             Va in un `form-hint` sotto, che è la forma già usata nei lotti. */""
+          }${r.scaglione ? `<div class="form-hint" style="margin:-2px 0 8px;">${esc(spiegaScaglioneRiga(r))}</div>` : ""
+          }${r.prezzoUnitario == null && r.motivoSenzaPrezzo === "quantita-assente"
+              ? `<div class="form-hint" style="margin:-2px 0 8px;">Il prezzo di questo prodotto
+                 dipende dalla quantità: senza quantità Conti <b>non lo decide al posto tuo</b>, e
+                 non scrive il listino pieno. Alla conferma dell'ordine scrivi la quantità e lo
+                 scaglione si applica da solo.</div>` : ""}`).join("")
       : vuoto("listino", "Nessuna riga", "Scegli un prodotto dal listino qui sopra e aggiungilo. Il <b>prezzo</b> e lo <b>sconto del cliente</b> li porta Conti: restano scritti separati, così chi riceve l'offerta può rifare il conto.");
     const t = totaliPreventivo({ righe: orRighe });
     $("ord-tot").innerHTML = orRighe.length ? `<div class="riep">
@@ -2085,7 +2202,10 @@ label.item:has(.dw-chk:checked){
 
     const righe = (o.righe || []).map(r => `<div class="mrec">
       <span class="k">${esc(r.descrizione)} — ${qtaRiga(r)}<br><span class="amt-s">${prezzoRiga(r)}</span></span>
-      <span class="v">${r.imponibile == null ? "—" : eur(r.imponibile)}</span></div>`).join("");
+      <span class="v">${r.imponibile == null ? "—" : eur(r.imponibile)}</span></div>`
+      /* la banda usata va SOTTO la riga, non in coda alla `.k`: lì la frase
+         finirebbe dentro il testo tagliato e non la leggerebbe nessuno. */
+      + (r.scaglione ? `<div class="form-hint" style="margin:-2px 0 6px;">${esc(spiegaScaglioneRiga(r))}</div>` : "")).join("");
 
     /* ⛔ IL PUNTO IN CUI IL PRINCIPIO SI VEDE. Se `misurabile` è falso non si
        disegna nessuna barra e non si scrive nessuna percentuale: si scrive
@@ -3004,6 +3124,7 @@ label.item:has(.dw-chk:checked){
       const d = densitaValida(p), suT = p.unitaPrezzo !== "m3";
       const pt = prezzoPerTonnellata(p), pm = prezzoPerMetroCubo(p);
       const usato = PES.filter(x => x.prodottoId === p.id).length;
+      const v = validaScaglioni(p);
       const meta = [
         d ? "densità " + qt(d) + " t/m³" : "densità mancante",
         "IVA " + perc(p.iva),
@@ -3012,16 +3133,30 @@ label.item:has(.dw-chk:checked){
       const conv = d
         ? (suT ? "= " + eur(pm) + "/m³" : "= " + eur(pt) + "/t")
         : "conversione impossibile";
-      return `<div class="item ${d ? "st-accent" : "st-warn"}">
+      /* ⛔ UNA SCALA ROTTA È UN ALLARME, non un dettaglio: finché non torna,
+         questo prodotto non ha un prezzo che Conti sappia calcolare — e la
+         riga lo dice invece di stare tranquilla. */
+      const stato = !v.ok ? "st-danger" : d ? "st-accent" : "st-warn";
+      return `<div class="item ${stato}">
       <span class="avatar">${IC.listino}</span>
-      <div class="info"><div class="name">${esc(p.nome)} <span class="badge tag">${suT ? "a tonnellata" : "a metro cubo"}</span></div>
+      <div class="info"><div class="name">${esc(p.nome)} <span class="badge tag">${suT ? "a tonnellata" : "a metro cubo"}</span>${
+        v.quanti ? ` <span class="badge ok">${v.quanti === 1 ? "1 scaglione" : v.quanti + " scaglioni"}</span>` : ""}${
+        !v.ok ? ` <span class="badge danger">scala da correggere</span>` : ""}</div>
       <div class="meta">${esc(meta)}</div></div>
       <div class="amt" title="${suT ? "Prezzo di listino a tonnellata" : "Prezzo di listino a metro cubo"}">
         <div class="amt-n">${eur(p.prezzo)}<span class="u">/${uni(p.unitaPrezzo)}</span></div>
         <div class="amt-s"><span class="conv">${conv}</span></div></div>
       <div class="acts">
         <button class="arr" type="button" title="Modifica prodotto" aria-label="Modifica ${esc(p.nome)}" data-edit-pro="${p.id}">${IC.matita}</button>
-        <button class="arr del" type="button" title="Elimina prodotto" aria-label="Elimina ${esc(p.nome)}" data-del-pro="${p.id}">${IC.croce}</button></div></div>`;
+        <button class="arr del" type="button" title="Elimina prodotto" aria-label="Elimina ${esc(p.nome)}" data-del-pro="${p.id}">${IC.croce}</button></div></div>`
+      /* la scala va SOTTO la riga: in coda al dettaglio finirebbe nelle due
+         righe tagliate dal `line-clamp` e non la leggerebbe nessuno. */
+      + (!v.ok ? `<div class="form-hint" style="margin:-2px 0 8px;color:var(--danger);">${esc(v.problemi[0])}</div>`
+         : v.quanti ? `<div class="form-hint" style="margin:-2px 0 8px;">${
+             v.scala.map(b => esc(etichettaScaglione(b, v.unita, qtS)) + ": "
+               + (b.implicita ? "listino pieno"
+                  : v.tipo === "sconto" ? "−" + perc(b.sconto)
+                  : eur(b.prezzo) + "/" + uni(v.unita))).join(" · ")}</div>` : "");
     }).join("")
       || (qLis ? vuoto("listino", "Nessun risultato", "Nessun prodotto trovato per «<b>" + esc(qLis) + "</b>». Prova con una parte del nome o della pezzatura.")
                : vuoto("listino", "Listino vuoto",
@@ -4291,6 +4426,11 @@ label.item:has(.dw-chk:checked){
       $("pr-prezzo").value = itDec(p.prezzo);
       $("pr-dens").value = itDec(p.densita);
       $("pr-iva").value = String(+p.iva || 0);
+      /* la scala si porta dietro come tutto il resto: si modifica il prodotto
+         intero, non gli scaglioni per conto loro. */
+      proScaglioni = (Array.isArray(p.scaglioni) ? p.scaglioni : []).filter(Boolean).map(s => ({ ...s }));
+      SCA_CAMPI.forEach(i => { $(i).value = ""; puliscoErr(i); });
+      renderScaglioni();
       PR_CAMPI.forEach(puliscoErr); aggiornaConvPro();
       $("btn-pr").textContent = "Salva modifica";
       esito("pr-esito", "Stai modificando " + p.nome + ": i DDT già registrati non cambiano, tengono il prezzo del giorno della consegna.");
@@ -4713,7 +4853,20 @@ label.item:has(.dw-chk:checked){
     if (err.length) { err.forEach(x => segnaErr(x[0], x[1]));
       esito("pr-esito", "Compila i campi evidenziati per " + (editPro ? "salvare la modifica" : "aggiungere il prodotto") + ".", "err");
       primoErrore(PR_CAMPI); return; }
-    const dati = { nome, unitaPrezzo, prezzo: round2(prezzo), densita, iva };
+    /* ⛔ LA SCALA SI SALVA CON IL PRODOTTO, E NON SI SALVA SE NON È UNA SCALA.
+       Un listino con gli scaglioni rotti non è un listino a metà: è un prodotto
+       di cui Conti non sa dire il prezzo, e lasciarlo entrare vorrebbe dire
+       scoprirlo davanti al cliente. */
+    const vs = validaScaglioni({ unitaPrezzo, prezzo: round2(prezzo), scaglioni: proScaglioni });
+    if (!vs.ok) {
+      esito("pr-esito", "Gli scaglioni non tornano: " + vs.problemi[0]
+        + " Correggili qui sotto (oppure toglili tutti: il prodotto si venderà a prezzo unico).", "err");
+      return;
+    }
+    const dati = { nome, unitaPrezzo, prezzo: round2(prezzo), densita, iva,
+      /* niente campo vuoto sui prodotti senza scaglioni: restano identici a
+         prima, ed è quello che deve succedere alla stragrande maggioranza. */
+      scaglioni: proScaglioni.length ? proScaglioni.map(s => ({ ...s })) : null };
     if (editPro) {
       await db.aggiorna("prodotti", editPro, dati);
       editPro = null; $("btn-pr").textContent = "Aggiungi";
@@ -4724,6 +4877,70 @@ label.item:has(.dw-chk:checked){
     }
     pulisciPro(); $("pr-nome").focus(); await refresh();
   };
+  /* ── SCAGLIONI: aggiungere e togliere una soglia ────────────────────
+     ⛔ Il campo cambia MESTIERE quando cambia il tipo (€ oppure %), quindi
+     cambia anche l'etichetta e il segnaposto: un campo che si chiama «Prezzo
+     €» e vuole un 8 per cento è il modo più veloce di far scrivere 8 euro. */
+  const syncScaTipo = () => {
+    const sconto = scaTipo() === "sconto";
+    $("lbl-sca-val").innerHTML = sconto ? "Sconto <span class=\"u\">%</span>" : "Prezzo €";
+    $("sca-val").placeholder = sconto ? "es. 4" : "0,00";
+    $("sca-val").title = sconto
+      ? "Di quanto scende il prezzo per chi supera questa soglia, in percentuale. La virgola va benissimo: 4,5."
+      : "Il prezzo unitario per chi supera questa soglia. La virgola va benissimo: 10,50.";
+  };
+  if ($("sca-tipo")) $("sca-tipo").onchange = () => { syncScaTipo(); puliscoErr("sca-val"); };
+  syncScaTipo();
+  /* cambiando l'unità del listino cambiano le etichette delle soglie: la scala
+     si riscrive, se no dice «da 500 t» su un prodotto passato ai metri cubi. */
+  if ($("pr-unita")) $("pr-unita").addEventListener("change", renderScaglioni);
+  if ($("pr-prezzo")) $("pr-prezzo").addEventListener("input", renderScaglioni);
+  $("btn-sca").onclick = () => {
+    SCA_CAMPI.forEach(puliscoErr);
+    const sconto = scaTipo() === "sconto";
+    const rd = numCampo("sca-da", { min: 0 });
+    const rv = numCampo("sca-val", sconto ? { min: 0, max: 100 } : { positivo: true });
+    const err = [];
+    if (numIllegibile(rd)) err.push(["sca-da", spiegaNum("la soglia di quantità", rd, uni(scaUnita()))]);
+    else if (rd.vuoto) err.push(["sca-da", "Scrivi da quale quantità in su vale questo scaglione (in " + uni(scaUnita()) + ")."]);
+    else if (!(rd.valore >= 0)) err.push(["sca-da", "La soglia non può essere negativa."]);
+    if (numIllegibile(rv)) err.push(["sca-val", spiegaNum(sconto ? "lo sconto" : "il prezzo dello scaglione", rv, sconto ? "%" : "€")]);
+    else if (rv.vuoto) err.push(["sca-val", sconto ? "Scrivi di quanto scende il prezzo, in percentuale." : "Scrivi il prezzo di questo scaglione."]);
+    else if (sconto && !(rv.valore >= 0 && rv.valore <= 100)) err.push(["sca-val", "Uno sconto sta fra 0 e 100."]);
+    /* ⛔ NIENTE PREZZO ZERO, ed è la stessa regola dell'import del listino: uno
+       zero fa sembrare gratis un prodotto che non lo è, e da lì finisce in un
+       DDT e poi in una fattura. */
+    else if (!sconto && !(rv.valore > 0)) err.push(["sca-val", "Il prezzo di uno scaglione deve essere maggiore di zero: uno zero farebbe sembrare gratis un materiale che non lo è."]);
+    /* ⛔ due soglie uguali si SOVRAPPONGONO, e l'app non sceglie per te quale
+       delle due vale: si dice qui, prima che la riga entri. */
+    if (!err.length && proScaglioni.some(s => Math.abs((+s.da || 0) - rd.valore) < 0.0005))
+      err.push(["sca-da", "C'è già uno scaglione che parte da questa quantità: modifica quello, oppure toglilo prima."]);
+    /* ⛔ e una scala non mescola le due forme: una tabella che riga per riga
+       cambia moneta non la legge nessuno. */
+    if (!err.length && proScaglioni.length) {
+      const primoSconto = proScaglioni[0].sconto != null;
+      if (primoSconto !== sconto)
+        err.push(["sca-tipo", "Gli scaglioni di questo prodotto sono " + (primoSconto ? "sconti in percentuale" : "prezzi in euro")
+          + ": scegli la stessa forma, oppure togli quelli che ci sono e ricomincia con l'altra."]);
+    }
+    if (err.length) { err.forEach(x => segnaErr(x[0], x[1])); primoErrore(["sca-da", "sca-tipo", "sca-val"]); return; }
+    proScaglioni.push(sconto ? { da: rd.valore, sconto: round2(rv.valore) }
+                             : { da: rd.valore, prezzo: round2(rv.valore) });
+    proScaglioni.sort((a, b) => (+a.da || 0) - (+b.da || 0));
+    $("sca-da").value = ""; $("sca-val").value = "";
+    renderScaglioni();
+    toast("Scaglione da " + qtS(rd.valore) + " " + uni(scaUnita()) + " aggiunto: ricordati di salvare il prodotto.", "success");
+    try { $("sca-da").focus(); } catch (e) {}
+  };
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest && e.target.closest("[data-del-sca]");
+    if (!b) return;
+    const da = +b.getAttribute("data-del-sca");
+    proScaglioni = proScaglioni.filter(s => Math.abs((+s.da || 0) - da) >= 0.0005);
+    renderScaglioni();
+    esito("pr-esito", "Scaglione tolto: salva il prodotto per confermare.", "");
+  });
+
   // ── REGISTRO COSTI: registrare, filtrare, esportare ───────────────────
   const COS_CAMPI = ["co-voce", "co-data", "co-imp", "co-nota"];
   const pulisciCos = () => { $("co-imp").value = ""; $("co-nota").value = "";
@@ -5536,16 +5753,29 @@ label.item:has(.dw-chk:checked){
       quantita = n.valore;
     }
     const riga = rigaPreventivo(p, quantita, cliente, $("or-unita").value);
-    if (riga.prezzoUnitario == null) {
+    /* ⛔ UN PREZZO CHE MANCA HA TRE RAGIONI, E DUE SOLE SONO ERRORI. Fino a
+       ieri ce n'era una sola (la densità) e si poteva fermare tutto; da quando
+       il listino ha gli scaglioni, «prezzo non determinato» è anche lo stato
+       LEGITTIMO di una fornitura a chiamata su un prodotto a scaglioni, e
+       bloccarla vorrebbe dire impedire di offrire proprio quello che il
+       cliente ha chiesto. Si distingue leggendo `motivoSenzaPrezzo`. */
+    if (riga.prezzoUnitario == null && riga.motivoSenzaPrezzo === "densita-mancante") {
       segnaErr("or-qta", "Questo prodotto è a listino in " + uni(p.unitaPrezzo)
         + " e non ha la densità: il prezzo in " + uni($("or-unita").value)
         + " non si può calcolare. Scrivi la densità nel listino, oppure ordina in " + uni(p.unitaPrezzo) + ".");
       primoErrore(["or-qta"]); return;
     }
+    if (riga.motivoSenzaPrezzo === "scala-non-valida") {
+      segnaErr("or-prod", "Gli scaglioni di «" + p.nome + "» non tornano: "
+        + validaScaglioni(p).problemi[0] + " Sistemali nel listino prima di usarlo in un'offerta.");
+      primoErrore(["or-prod"]); return;
+    }
     orRighe.push(riga);
     $("or-qta").value = "";
     renderRigheOrd();
-    toast(riga.descrizione + " aggiunto all'offerta.", "success");
+    toast(riga.descrizione + " aggiunto all'offerta"
+      + (riga.scaglione ? " · scaglione " + etichettaScaglione({ da: riga.scaglione.da, a: riga.scaglione.a }, riga.scaglione.unita, qtS) : "")
+      + ".", "success");
     try { $("or-prod").focus(); } catch (e) {}
   };
   $("btn-or-annulla").onclick = () => { pulisciOrd(); esito("ord-esito", "Modifica annullata.", ""); };
@@ -5583,8 +5813,14 @@ label.item:has(.dw-chk:checked){
   };
   $("btn-or-export").onclick = () => {
     if (!ORD.length) { esito("ord-esito", "Non c'è ancora nessun preventivo da esportare.", "err"); return; }
+    /* ⛔ LA COLONNA «SCAGLIONE» C'È PERCHÉ IL PREZZO DA SOLO NON SI SPIEGA.
+       Chi apre questo file con un altro programma vede 10,50 dove il listino
+       dice 12,00: senza la soglia che l'ha prodotto, quel numero sembra un
+       errore di battitura — e le due metà dello sconto stanno in due colonne
+       loro per la stessa ragione, così il conto si rifà. */
     const righe = [["numero", "ordine", "data", "valido al", "cliente", "stato", "prodotto",
-                    "quantita", "unita", "prezzo", "sconto %", "imponibile"].join(";")];
+                    "quantita", "unita", "prezzo", "sconto %", "sconto cliente %",
+                    "sconto scaglione %", "scaglione da", "imponibile"].join(";")];
     for (const o of ORD) {
       const st = ordStato(o);
       for (const r of (o.righe || [])) righe.push([o.numero, o.numeroOrdine || "", o.data,
@@ -5596,7 +5832,13 @@ label.item:has(.dw-chk:checked){
            dichiarata di niente. */
         r.quantita == null ? "" : String(r.quantita), r.unita,
         r.prezzoUnitario == null ? "" : String(r.prezzoUnitario),
-        String(r.scontoPct || 0), r.imponibile == null ? "" : String(r.imponibile)]
+        String(r.scontoPct || 0),
+        /* le righe salvate prima di oggi non hanno le due metà: la colonna
+           resta VUOTA invece di scrivere uno zero, che direbbe «misurato». */
+        r.scontoCliente == null ? "" : String(r.scontoCliente),
+        r.scontoScaglione == null ? "" : String(r.scontoScaglione),
+        r.scaglione ? String(r.scaglione.da) + " " + (r.scaglione.unita === "m3" ? "m3" : "t") : "",
+        r.imponibile == null ? "" : String(r.imponibile)]
         .map(csvCell).join(";"));
     }
     const a = document.createElement("a");
@@ -5610,6 +5852,12 @@ label.item:has(.dw-chk:checked){
      giorni. Va chiamata PRIMA del primo refresh, se no il primo disegno
      trova i campi vuoti e la validità sembra facoltativa. */
   pulisciOrd();
+  /* e la scala del prodotto in compilazione: senza questa chiamata, al primo
+     disegno `sca-list` resta un div VUOTO — cioè lo stato vuoto che spiega
+     «nessuno scaglione = prezzo unico, ed è il caso normale» non lo vede
+     nessuno finché non si tocca qualcosa. Uno stato vuoto muto è la cosa che
+     `run-stile` regola 10 esiste per prendere. */
+  renderScaglioni();
 
   avvisoVoce();
   await refresh();

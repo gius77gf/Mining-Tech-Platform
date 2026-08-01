@@ -12,6 +12,17 @@
 //                      lavoratoreId?|null, allegatoNome?, allegatoData?
 //                      (dataURL ≤ 400 KB — file grandi: Firebase Storage,
 //                      arriverà col progetto live), stato: valido|da-rivedere|scaduto }
+//                    → sui documenti di tipo "DSS" vivono anche i tre campi del
+//                      CICLO DI VITA (D.Lgs 624/96 art. 6): dssRevisione (ISO,
+//                      ultima revisione), dssMotivo (chiave di
+//                      MOTIVI_REVISIONE_DSS) e dssTrasmissione (ISO, invio
+//                      all'autorità di vigilanza). Stanno QUI e non in una
+//                      collezione a parte, come i documenti di qualifica degli
+//                      appaltatori: il DSS è un documento del registro, e il
+//                      suo ciclo è fatto di date sue.
+//                      ⛔ Sono OPZIONALI, e la loro assenza è uno stato che il
+//                      prodotto sa raccontare: senza dssRevisione il DSS non è
+//                      «aggiornato» né «scaduto», è NON DATABILE (cicloDss).
 //   cantieri/{id}:   { nome, comune, tipo: cava|cantiere, stato: attivo|chiuso }
 //   azioni/{id}:     { descrizione, responsabileId|null, scadenza (ISO),
 //                      stato: aperta|in-corso|chiusa, esito?, dataChiusura?,
@@ -133,7 +144,16 @@ export const DEMO = {
     { id: "c1", titolo: "DVR — Documento Valutazione Rischi", meta: "Aggiornato 03/2026", tipo: "DVR", stato: "valido" },
     { id: "c2", titolo: "Piano di Emergenza", meta: "Aggiornato 01/2026", tipo: "Altro", stato: "valido" },
     { id: "c3", titolo: "Nomine RSPP / addetti", meta: "Revisione richiesta", tipo: "Nomina", stato: "da-rivedere" },
-    { id: "c4", titolo: "DSS — Documento Sicurezza e Salute", meta: "Inviato ASL 02/2026", tipo: "DSS", cantiereId: "k1", stato: "valido" },
+    /* ⛔ IL DSS DELLA CAVA, ED È NON DATABILE DI PROPOSITO. Il documento c'è,
+       il suo stato dice «valido» e la nota dice pure che è stato inviato: tre
+       cose rassicuranti, e nessuna delle tre è una data che l'app possa
+       leggere. È esattamente il caso per cui `cicloDss` esiste — un DSS di cui
+       non si sa l'età non è «aggiornato» e non è «scaduto» — ed è anche il
+       punto di partenza vero di una cava che carica il suo archivio.
+       Il ciclo si compila dalla schermata Documenti: messe le date, la stessa
+       riga passa a «in corso di validità» o a «certificazione scaduta». */
+    { id: "c4", titolo: "DSS — Documento Sicurezza e Salute", meta: "Inviato ASL 02/2026", tipo: "DSS", cantiereId: "k1", stato: "valido",
+      dssRevisione: null, dssMotivo: "", dssTrasmissione: null },
     { id: "c5", titolo: "Verbale consegna DPI — M. Rossi", meta: "Firmato 04/2026", tipo: "Verbale DPI", lavoratoreId: "d1", stato: "valido" },
     /* ⛔ UN DOCUMENTO DI CUI NESSUNO HA SCRITTO LO STATO. Ci si arriva con un
        import o con un archivio vecchio, ed è il caso per cui `D[d.stato]` ha
@@ -1264,6 +1284,219 @@ export function dataDaPeriodicita(mesi, oggi = new Date()) {
   d.setDate(giorno);
   const p = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+// ============================================================
+// IL CICLO DI VITA DEL DSS (D.Lgs 624/96 art. 6)
+// ============================================================
+// Il DSS c'era già come TIPO di documento, con il suo stato a tre valori
+// (valido / da rivedere / scaduto) messo a mano, e c'erano già quattro voci di
+// scadenzario che lo nominano (`dss`, `dss-certif`, `dss-aggiorn`,
+// `dss-trasmiss`). Quello che non c'era è il CICLO: chi lo aggiorna, quando, e
+// che cosa lo fa scadere. Uno stato messo a mano dice quello che qualcuno ha
+// digitato l'ultima volta che ci ha pensato; questo dice quello che risulta.
+//
+// ⛔ E IL PUNTO PER CUI ESISTE È IL TERZO STATO. Un DSS senza una data di
+// revisione leggibile NON è «aggiornato» e NON è «scaduto»: è **non databile**,
+// e va detto con la sua parola. È il principio del fondatore nel punto in cui
+// costa di più, perché il DSS è il primo documento che un ispettore chiede in
+// una cava: un badge verde su un documento di cui non sappiamo l'età sarebbe
+// la cosa peggiore che questa schermata possa fare.
+// Allo stesso modo «nessun infortunio grave registrato» non vuol dire «non
+// serve aggiornarlo»: le modifiche delle lavorazioni — nuovo fronte, nuovo
+// metodo, nuovo impianto — Scudo non le vede, e quindi lo scrive INVECE di
+// lasciar credere di aver guardato anche quelle (costante `CIECO_DSS`).
+//
+// Campi sul documento di tipo "DSS" nel registro `documenti` (nessun secondo
+// archivio, come per i documenti di qualifica degli appaltatori):
+//   dssRevisione:    ISO — data dell'ultima revisione
+//   dssMotivo:       chiave di MOTIVI_REVISIONE_DSS
+//   dssTrasmissione: ISO — data di invio all'autorità di vigilanza
+//
+// ⚠️ FONTI SECONDARIE. I riferimenti normativi qui sotto ripetono quelli già
+// scritti nei preset di scadenzario, che vengono da ricerca su fonti
+// SECONDARIE: il testo primario non è stato letto riga per riga. Nella pagina
+// il blocco porta la formula che Scudo usa già — «nota informativa, non un
+// parere legale» — e la periodicità di dodici mesi è quella del preset
+// `dss-certif`, cioè una PROPOSTA, non una verità di legge riga per riga.
+
+// Perché il DSS è stato rivisto. I due motivi «dopo…» sono i fatti che la
+// norma indica come scatenanti; gli altri due sono il calendario e l'origine.
+export const MOTIVI_REVISIONE_DSS = [
+  { chiave: "prima-stesura", nome: "Prima stesura",
+    riferimento: "D.Lgs 624/96 art. 6 — il DSS è redatto prima dell'inizio dei lavori." },
+  { chiave: "periodica", nome: "Revisione periodica",
+    riferimento: "D.Lgs 624/96 art. 6 — il datore di lavoro certifica ogni anno l'attualità del documento." },
+  { chiave: "dopo-evento", nome: "Dopo un infortunio o un incidente",
+    riferimento: "D.Lgs 624/96 artt. 6 e 10 — la data la fissa l'evento, non il calendario." },
+  { chiave: "dopo-modifica", nome: "Dopo una modifica delle lavorazioni",
+    riferimento: "D.Lgs 624/96 artt. 6 e 10 — nuovo fronte, nuovo metodo di coltivazione, nuovo impianto." },
+];
+export function motivoRevisioneDss(chiave) {
+  return MOTIVI_REVISIONE_DSS.find((m) => m.chiave === chiave) || null;
+}
+
+// I mesi della certificazione annuale: NON un numero nuovo, è quello del preset
+// `dss-certif` — se un giorno cambia là, cambia qui. Una periodicità scritta due
+// volte è una periodicità che si stacca.
+const MESI_CERTIF_DSS = (SCADENZE_PRESET.find((p) => p.chiave === "dss-certif") || {}).mesi || 12;
+
+/* I DSS di una cava, dal più recente al più vecchio. Vivono nel registro
+   `documenti` che Scudo ha già, collegati da `cantiereId` come il DSS della
+   dimostrazione lo è sempre stato. */
+export function dssDiCantiere(documenti, cantiereId) {
+  if (!cantiereId) return [];
+  return (documenti || [])
+    .filter((d) => d && d.tipo === "DSS" && d.cantiereId === cantiereId)
+    .sort((a, b) => String(b.dssRevisione || "").localeCompare(String(a.dssRevisione || "")));
+}
+
+/* ⛔ I DSS CHE NON SONO COLLEGATI A NESSUNA CAVA. Senza questa riga il modulo
+   direbbe «non registrato» su una cava mentre il suo DSS è in archivio, appeso
+   a niente: un allarme falso manda a rifare un documento che c'è, ed è il modo
+   più veloce per far spegnere l'allarme a chi lo riceve. */
+export function dssScollegati(documenti) {
+  return (documenti || []).filter((d) => d && d.tipo === "DSS" && !d.cantiereId);
+}
+
+// La frase che dichiara quello che Scudo NON ha potuto guardare. Sta in una
+// costante perché la dicono tre stati su sette e riscriverla tre volte è il
+// modo in cui, fra un mese, ne resteranno due.
+const CIECO_DSS = "Le modifiche delle lavorazioni Scudo non le vede: se sono cambiati il fronte, "
+  + "il metodo di coltivazione o l'impianto, il DSS va rivisto lo stesso.";
+
+/* Il ciclo di UN DSS. `documento` è quello della cava (o null: la cava non ne
+   ha nessuno). Le scadenze non si giudicano qui — le dice `statoScadenza`,
+   cioè `statoScadenzaHSE` di `shared/dw-ponti.js`, la stessa dello scadenzario
+   e dei turni di Campo — e la data della certificazione annuale la calcola
+   `dataDaPeriodicita`, la stessa che precompila i preset. Pura e testabile;
+   `oggi` iniettabile. */
+export function cicloDss(documento, infortuni, oggi = new Date()) {
+  const d = documento || null;
+  const rev = d && dataISOEsiste(d.dssRevisione) ? String(d.dssRevisione).slice(0, 10) : null;
+  const tra = d && dataISOEsiste(d.dssTrasmissione) ? String(d.dssTrasmissione).slice(0, 10) : null;
+  const mot = (d && d.dssMotivo) || "";
+  const veri = (infortuni || []).filter((x) => x && x.tipo === "infortunio" && dataISOEsiste(x.data));
+  const graviRegistrati = veri.filter((x) => x.gravita === "grave").length;
+  // Confronto STRETTO: un infortunio dello stesso giorno della revisione si
+  // considera già dentro il documento. Con `>=` una cava che rivede il DSS il
+  // giorno dell'incidente — cioè che fa la cosa giusta — resterebbe rossa.
+  const dopo = rev ? veri.filter((x) => String(x.data).slice(0, 10) > rev) : [];
+  const graviDopo = dopo.filter((x) => x.gravita === "grave");
+  const giorni = rev ? -giorniTra(rev, oggi) : null;
+  const scadenzaCertificazione = rev
+    ? dataDaPeriodicita(MESI_CERTIF_DSS, new Date(rev + "T00:00:00")) : null;
+  const statoCertificazione = rev ? statoScadenza(scadenzaCertificazione, oggi) : "senza data";
+  // Tre valori, e il terzo conta: `null` = non lo sappiamo (manca una delle due
+  // date). `false` = sappiamo che la revisione in vigore non è stata trasmessa.
+  const trasmissioneAllineata = (!rev || !tra) ? null : tra >= rev;
+
+  const base = {
+    presente: !!d, documentoId: d ? d.id : null, revisione: rev, motivo: mot,
+    motivoNome: (motivoRevisioneDss(mot) || {}).nome || "",
+    trasmissione: tra, trasmissioneAllineata, giorniDaRevisione: giorni,
+    scadenzaCertificazione, statoCertificazione,
+    eventiDopo: dopo, graviDopo: graviDopo.length, graviRegistrati,
+  };
+
+  if (!d) return { ...base, noto: false, stato: "assente",
+    perche: "Nel registro documenti non c'è nessun DSS collegato a questa cava. Non vuol dire che non "
+      + "esista: vuol dire che da qui non lo vediamo, e finché è così questa schermata non dimostra niente." };
+  if (!rev) return { ...base, noto: false, stato: "non-databile",
+    perche: "Il DSS è in archivio ma non ha una data di revisione leggibile: non è «aggiornato» e non è "
+      + "«scaduto», è non databile. Finché quella data manca non si può dire nient'altro." };
+  /* Una data di revisione nel FUTURO è un errore di digitazione, e senza questa
+     riga darebbe il verde per un anno intero: è la stessa famiglia dello 0% di
+     `avanzamentoLotto`, un numero tranquillo prodotto da un dato sbagliato. */
+  if (giorni < 0) return { ...base, noto: false, stato: "revisione-futura",
+    perche: "La data dell'ultima revisione cade nel futuro (fra " + (-giorni) + " giorni): è un errore di "
+      + "compilazione, e tutto quello che verrebbe dopo sarebbe calcolato su una data falsa." };
+  if (graviDopo.length) return { ...base, noto: true, stato: "da-aggiornare",
+    perche: "Dopo l'ultima revisione " + (graviDopo.length === 1
+      ? "è stato registrato un infortunio grave" : "sono stati registrati " + graviDopo.length + " infortuni gravi")
+      + ": il DSS va aggiornato." };
+  if (statoCertificazione === "scaduta") return { ...base, noto: true, stato: "certificazione-scaduta",
+    perche: "Ultima revisione " + giorni + " giorni fa: i dodici mesi sono passati. " + CIECO_DSS };
+  if (statoCertificazione === "in-scadenza") return { ...base, noto: true, stato: "certificazione-in-scadenza",
+    perche: "Ultima revisione " + giorni + " giorni fa: i dodici mesi scadono entro trenta giorni. " + CIECO_DSS };
+  return { ...base, noto: true, stato: "regolare",
+    perche: "Ultima revisione " + giorni + " giorni fa, dentro i dodici mesi, e dopo di essa "
+      + (graviRegistrati ? "non risultano infortuni gravi" : "Scudo non ha registrato nessun infortunio grave")
+      + ". " + CIECO_DSS };
+}
+
+/* Chi consuma la bandiera `noto`: sta nel modulo e non nella pagina, come per
+   `descriviQualifica`, perché la frase che distingue «non a posto» da «non lo
+   sappiamo» va decisa in un posto solo (regola 7 di run-stile). */
+export function descriviCicloDss(c) {
+  if (!c) return "";
+  return (c.noto ? "" : "Non lo sappiamo — ") + c.perche;
+}
+
+/* La trasmissione all'autorità di vigilanza è un obbligo SUO, separato
+   dall'attualità del documento: si dice su una riga sua, con la sua parola, e
+   `null` non diventa mai un sì. */
+export function descriviTrasmissioneDss(c) {
+  if (!c || !c.presente) return "";
+  if (c.trasmissioneAllineata === true)
+    return "Trasmesso all'autorità di vigilanza il " + c.trasmissione + ", dopo l'ultima revisione.";
+  if (c.trasmissioneAllineata === false)
+    return "L'ultimo invio all'autorità di vigilanza (" + c.trasmissione + ") è anteriore alla revisione del "
+      + c.revisione + ": la versione in vigore non risulta trasmessa.";
+  return c.trasmissione
+    ? "Risulta un invio all'autorità di vigilanza il " + c.trasmissione + ", ma senza una data di revisione "
+      + "non si sa a quale versione si riferisca."
+    : "Non risulta nessun invio all'autorità di vigilanza. Non vuol dire che non sia stato trasmesso: "
+      + "vuol dire che qui non ne resta traccia.";
+}
+
+/* ⛔ LA FORMA CORTA, E NON È UN VEZZO: LO SCATTO L'HA PRETESA. La riga del
+   Quadro ha `-webkit-line-clamp:2`, e mettendoci `descriviCicloDss` il testo
+   finiva tagliato a «non è…» — cioè proprio la parte che il principio del
+   fondatore esiste per far leggere, morta sullo schermo. Le due uscite giuste
+   sono note: o il dato va in un posto suo, o non ci va. Qui va la forma corta,
+   che è una frase INTERA; quella lunga vive nella schermata Documenti, dove sta
+   in un `form-hint` che non taglia niente. Sta nel modulo, e non nella pagina,
+   perché anche la versione corta è una frase sul «non lo so» (regola 7). */
+export function sintesiCicloDss(stato) {
+  switch (stato) {
+    case "assente":                    return "Nessun DSS collegato a questa cava";
+    case "non-databile":               return "Manca la data dell'ultima revisione";
+    case "revisione-futura":           return "La data di revisione cade nel futuro";
+    case "da-aggiornare":              return "Infortunio grave dopo l'ultima revisione";
+    case "certificazione-scaduta":     return "Più di dodici mesi dall'ultima revisione";
+    case "certificazione-in-scadenza": return "I dodici mesi scadono entro trenta giorni";
+    case "regolare":                   return "Rivisto entro i dodici mesi";
+    default:                           return "Stato del ciclo non indicato";
+  }
+}
+
+/* Badge del ciclo. È uno `switch` con `default`, non una mappa: una mappa a cui
+   manca uno stato uccide la pagina al disegno (regola 18), e questa funzione di
+   stati ne sa dire sette. */
+export function etichettaCicloDss(stato) {
+  switch (stato) {
+    case "assente":                    return { cls: "warn",   label: "Non registrato" };
+    case "non-databile":               return { cls: "warn",   label: "Non databile" };
+    case "revisione-futura":           return { cls: "warn",   label: "Data da correggere" };
+    case "da-aggiornare":              return { cls: "danger", label: "Da aggiornare" };
+    case "certificazione-scaduta":     return { cls: "danger", label: "Certificazione scaduta" };
+    case "certificazione-in-scadenza": return { cls: "warn",   label: "Certificazione in scadenza" };
+    case "regolare":                   return { cls: "ok",     label: "In corso di validità" };
+    default:                           return { cls: "warn",   label: "Stato non indicato" };
+  }
+}
+
+/* Le cave il cui DSS chiede qualcosa, per le urgenze del Quadro: prima i rossi.
+   Una cava CHIUSA resta fuori — non ci si lavora — ma una cava attiva senza
+   nessun DSS collegato ci entra, ed è la riga più silenziosa di tutte. */
+export function dssDaSeguire(documenti, cantieri, infortuni, oggi = new Date()) {
+  const peso = (s) => (etichettaCicloDss(s).cls === "danger" ? 0 : 1);
+  return (cantieri || [])
+    .filter((c) => c && c.tipo === "cava" && c.stato !== "chiuso")
+    .map((c) => ({ cantiere: c, ...cicloDss(dssDiCantiere(documenti, c.id)[0] || null, infortuni, oggi) }))
+    .filter((r) => r.stato !== "regolare")
+    .sort((a, b) => peso(a.stato) - peso(b.stato));
 }
 
 // IMPORT DELL'ANAGRAFICA LAVORATORI DA CSV.

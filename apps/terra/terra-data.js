@@ -15,7 +15,13 @@
 //                   dataScadenza (ISO), superficieMq, volumeAutorizzatoM3,
 //                   quotaFondoM (quota di fondo scavo del progetto, m s.l.m.,
 //                   anche negativa; assente = non dichiarata, non zero),
-//                   estrattoPregressoM3, materiale, prescrizioni,
+//                   estrattoPregressoM3, materiale,
+//                   densita (t/m³ in banco) e la sua PROVENIENZA:
+//                     densitaFonte: atto|laboratorio|preset|manuale (assente =
+//                     non dichiarata, MAI un ripiego su «manuale»),
+//                     densitaQuando (ISO, la data della prova),
+//                     densitaRiferimento (il documento da esibire),
+//                   prescrizioni,
 //                   riferimenti, stato: vigente|archiviata,
 //                   sogliaGuardiaPct, preavvisoGiorni, anniRitmo }
 //   scadenze/{id}: { tipo, descrizione, dataScadenza (ISO),
@@ -364,6 +370,11 @@ export function volumeFronte(rilievi, fronteId, prov = "scavo") {
 // tonnellate = m³ × densità (t/m³); valore = tonnellate × prezzo (€/t).
 // È l'anello che lega il rilievo alla contabilità. Densità e prezzo
 // dipendono dal materiale (l'utente li imposta). Numeri non validi → 0.
+// ⚠️ QUESTA FUNZIONE PRENDE LA DENSITÀ COME NUMERO, e va bene: qui si
+// moltiplica. DA DOVE VIENE quel numero è un'altra domanda, e la risposta sta
+// più in basso in questo file (`densitaDichiarata` e compagnia): chi mostra il
+// risultato deve dire anche quella, se no un valore tipico di letteratura e un
+// certificato di laboratorio finiscono sullo schermo con la stessa faccia.
 export function valoreMateriale(volumeM3, densita, prezzoTon) {
   const v = Math.max(0, +volumeM3 || 0), d = Math.max(0, +densita || 0), p = Math.max(0, +prezzoTon || 0);
   const tonnellate = v * d;
@@ -374,6 +385,11 @@ export function valoreMateriale(volumeM3, densita, prezzoTon) {
 // portare in metri cubi le tonnellate dichiarate dai turni senza chiedere a chi
 // compila un numero che nell'autorizzazione c'è già.
 export { DENSITA_PRESET, presetDensita, densitaDelMateriale } from "../../shared/dw-ponti.js";
+// e serve anche QUI dentro, a `densitaDellaCava`: un `export … from` ri-esporta
+// senza creare un nome locale, quindi l'import va scritto lo stesso — e non è
+// una seconda copia, è lo stesso oggetto (lo pretende la prova `terra.X ===
+// ponti.X` in run-kpi).
+import { densitaDelMateriale } from "../../shared/dw-ponti.js";
 
 // Qualità del dato di un rilievo: mette insieme metodo (RTK/PPK, GCP…) e
 // GSD in una stringa breve, così il volume è "difendibile" in audit senza
@@ -1631,6 +1647,224 @@ export function descriviOrigine(rilievo) {
   if (mancanti.length)
     p.push("Non risulta registrato " + mancanti.join(", né ") + ": per questa parte il calcolo non è riproducibile.");
   return p.join(" ");
+}
+
+// ============================================================
+// DA DOVE VIENE LA DENSITÀ (la provenienza del fattore di conversione)
+// ------------------------------------------------------------
+// La densità è la sola cosa che fa parlare due grandezze che in cava si
+// misurano separatamente: i turni dichiarano TONNELLATE, il drone misura METRI
+// CUBI. Da lei passano due numeri che escono dall'azienda — il confronto fra
+// dichiarato e misurato, e il valore del materiale — e finché è solo un numero
+// in un campo, un valore tipico preso da un manuale e un certificato di
+// laboratorio sul materiale di QUESTA cava si presentano identici.
+//
+// ⛔ NON HANNO LO STESSO PESO DAVANTI A CHI CHIEDE. Sono quattro cose diverse:
+//   · `atto`        — il numero prescritto dall'atto o dal disciplinare. Non è
+//                     una misura del materiale: è la regola con cui l'ente
+//                     stesso vuole che si converta. Non si discute.
+//   · `laboratorio` — una prova sul materiale di questa cava, con la sua data e
+//                     il suo certificato. È la più forte tecnicamente: è
+//                     l'unica delle quattro che MISURA questo materiale.
+//   · `preset`      — il valore tipico del litotipo (`DENSITA_PRESET` di
+//                     `shared/`). Utile per non partire da zero, ma è
+//                     letteratura: non è stato misurato niente qui.
+//   · `manuale`     — l'ha scritta una persona. Sappiamo CHI, non DA DOVE.
+//
+// ⛔ E LA QUINTA NON È UN RIPIEGO SULLE ALTRE. Una densità di cui non risulta la
+// provenienza NON è «preset» e NON è «a mano»: è NON DICHIARATA, e chi legge il
+// numero deve saperlo. È la stessa forma di `origineDi` qui sopra e di
+// `provenienzaMisura` di Sentinella — l'assenza si dice, non si riempie.
+//
+// ⚠️ DOV'È LA DIFFERENZA CON LE ALTRE DUE PROVENIENZE DELL'ECOSISTEMA, che
+// esistono già e non sono questa. `origineDi` (poche righe più su) descrive
+// **come è stato calcolato** un volume: metodo, lato cella, quota di base.
+// `provenienzaMisura` di Sentinella descrive **per che strada è entrato** un
+// numero già misurato da uno strumento. Qui non si descrive né un calcolo né
+// una strada: si dice **chi risponde** di un fattore di conversione che non è
+// stato misurato in cava e che moltiplica tutto quello che ci passa dentro.
+// Nessuna delle tre risponderebbe alla domanda delle altre, e per questo i nomi
+// sono diversi: `nomi-doppi.mjs` non deve confonderle.
+//
+// ⚠️ È SEMPRE IL PESO DI VOLUME **IN BANCO**, non quello del materiale sciolto
+// in mucchio né quello del prodotto finito a listino (che è la densità di
+// Conti, un'altra cosa): il rilievo misura il vuoto lasciato dallo scavo.
+// ============================================================
+
+/* Il vocabolario, chiuso. Cinque parole: aggiungerne una sesta vorrebbe dire
+   aggiungere un soggetto che risponde del numero. */
+export const DENS_ATTO = "atto";
+export const DENS_LABORATORIO = "laboratorio";
+export const DENS_PRESET = "preset";
+export const DENS_MANO = "manuale";
+export const DENS_NON_DICHIARATA = "non dichiarata";
+
+/* Come si mostra ognuna. `cls` è la classe del semaforo, e la scelta è la
+   stessa già presa in Sentinella: **«a mano» non è un allarme** — è una
+   pratica legittima, e un badge giallo su ogni densità battuta a mano sarebbe
+   un rimprovero continuo, che si impara a non guardare. Giallo lo prende solo
+   ciò che non si sa. Il `preset` resta neutro ma la sua etichetta dice da sola
+   che è provvisorio, perché lo è: `presetDensita` marca ogni valore tipico
+   `daVerificare` da quando esiste.
+   ⚠️ `breve` sta dentro una pillola accanto a un campo stretto: la forma
+   lunga è `label`, ed è quella che va nelle frasi dove non c'è un'etichetta
+   accanto a dire di che si parla. */
+/* ⚠️ E `label` NON È «LA VERSIONE LUNGA»: è la voce di una TENDINA, e una
+   tendina ha una larghezza. Le prime stesure dicevano «Prova di laboratorio
+   sul materiale di questa cava» e «Valore prescritto dall'atto autorizzativo»:
+   a 320 px Chromium le taglia a «Prova di laboratorio sul mate…», cioè proprio
+   dove sta la differenza fra le due fonti forti. Non si vedeva leggendo il
+   codice — l'ha trovato lo scatto. Quello che il taglio si portava via lo dice
+   già `descriviDensita`, per esteso, nella riga sotto i campi. */
+export const FONTI_DENSITA = {
+  [DENS_ATTO]:            { cls: "ok",   breve: "dall'atto",      label: "Prescritta dall'atto" },
+  [DENS_LABORATORIO]:     { cls: "ok",   breve: "laboratorio",    label: "Prova di laboratorio" },
+  [DENS_PRESET]:          { cls: "",     breve: "valore tipico",  label: "Valore tipico del litotipo" },
+  [DENS_MANO]:            { cls: "",     breve: "a mano",         label: "Inserita a mano" },
+  [DENS_NON_DICHIARATA]:  { cls: "warn", breve: "non dichiarata", label: "Provenienza non dichiarata" },
+};
+
+/* LA DENSITÀ COM'È SCRITTA. Legge, non deduce: un `da` che non sta nel
+   vocabolario ricade su «non dichiarata» invece di essere corretto a
+   indovinare.
+   Ritorna { densita, leggibile, grezza, da, noto, quando, riferimento,
+   etichetta, fonte }. Le bandiere le consuma `descriviDensita` qui sotto,
+   dentro il modulo: la pagina non deve decidere come si racconta una densità
+   senza provenienza, se no la regola starebbe scritta in due posti. */
+export function densitaDichiarata(d) {
+  const o = (d && typeof d === "object") ? d : {};
+  /* ⛔ IDEMPOTENTE, e non è eleganza: la pagina si passa in giro il record già
+     normalizzato. Il prototipo perdeva `grezza` al secondo giro, e un «0»
+     scritto da qualcuno tornava indietro come «densità non impostata» — cioè
+     l'errore dell'utente spariva proprio rileggendo il proprio dato. */
+  const g = (o.densita == null && typeof o.grezza === "string" && o.grezza !== "") ? o.grezza : o.densita;
+  const vuoto = (g == null || (typeof g === "string" && g.trim() === ""));
+  const n = vuoto ? null : +g;
+  /* `leggibile` risponde SOLO a «è un numero?»: «1,9» con la virgola italiana
+     per JavaScript non lo è, e qui non lo si legge — sarebbe la seconda copia
+     di `numeroDaCampo`, che è il difetto che questo repo ha già pagato. «0»
+     invece È un numero, e non è una densità: sono due errori diversi e hanno
+     due frasi diverse.
+     ⛔ E `+null` fa ZERO con `Number.isFinite(0)` a true: il controllo del
+     vuoto viene PRIMA, se no una densità assente tornerebbe «0 t/m³», cioè un
+     numero al posto dell'ammissione. */
+  const siLegge = vuoto || Number.isFinite(n);
+  const densita = (siLegge && !vuoto && n > 0) ? n : null;
+  const da = String(o.da || "").trim().toLowerCase();
+  const siSa = Object.prototype.hasOwnProperty.call(FONTI_DENSITA, da) && da !== DENS_NON_DICHIARATA;
+  /* ⚠️ `leggibile:` e `noto:` scritte per esteso, non in forma breve: la regola
+     20 di `run-stile.mjs` riconosce una bandiera dai DUE PUNTI, e con
+     `{ leggibile, noto }` non l'avrebbe vista — cioè non avrebbe controllato
+     che qualcuno le legga. Una guardia che non sa di dover guardare non
+     protegge niente, ed è lo stesso difetto della guardia scollegata. */
+  return {
+    densita, leggibile: siLegge,
+    grezza: vuoto ? "" : String(g),
+    da: siSa ? da : DENS_NON_DICHIARATA, noto: siSa,
+    quando: siSa ? String(o.quando || "").trim() : "",
+    riferimento: siSa ? String(o.riferimento || "").trim() : "",
+    etichetta: siSa ? String(o.etichetta || "").trim() : "",
+    fonte: siSa ? String(o.fonte || "").trim() : "",
+  };
+}
+
+/* SI REGGE DAVANTI A CHI LA CHIEDE? Non è «è giusta»: è «esiste un documento
+   che qualcuno può farsi mostrare». Un valore tipico può essere azzeccatissimo
+   e non reggere lo stesso, perché non è stato misurato niente qui.
+   ⛔ Una prova di laboratorio dichiarata SENZA data e senza riferimento non
+   regge: l'assenza di un dato non è un dato favorevole, e qui la dichiarazione
+   da sola varrebbe come il certificato. */
+export function densitaPerEnte(d) {
+  const o = densitaDichiarata(d);
+  if (!o.leggibile) return { perEnte: false, perche: `il valore registrato («${o.grezza}») non si legge come numero.` };
+  if (o.densita == null && o.grezza !== "") return { perEnte: false, perche: `«${o.grezza}» non è una densità possibile.` };
+  if (o.densita == null) return { perEnte: false, perche: "non c'è nessun numero da dichiarare." };
+  if (!o.noto) return { perEnte: false, perche: "non risulta da dove venga il numero." };
+  if (o.da === DENS_ATTO) return { perEnte: true, perche: "è il numero prescritto dall'atto." };
+  if (o.da === DENS_LABORATORIO) {
+    const scritta = o.quando !== "";
+    /* `dataISOEsiste` e non `Date.parse`: il 30 febbraio non è NaN, JavaScript
+       lo fa scivolare al 2 marzo — una prova datata due giorni dopo. */
+    const buona = dataISOEsiste(o.quando.slice(0, 10));
+    if (scritta && !buona)
+      return { perEnte: false, perche: `la data della prova di laboratorio («${o.quando}») non è un giorno che esiste.` };
+    if (!scritta && !o.riferimento)
+      return { perEnte: false, perche: "la prova di laboratorio è dichiarata ma non risultano né la sua data né il riferimento del certificato: non c'è niente da esibire." };
+    if (!scritta)
+      return { perEnte: false, perche: "della prova di laboratorio risulta il riferimento ma non la data: non si sa a quando risalga." };
+    return { perEnte: true, perche: "c'è una prova di laboratorio con la sua data." };
+  }
+  if (o.da === DENS_PRESET) return { perEnte: false, perche: "è un valore tipico del litotipo, non una misura di questo materiale." };
+  return { perEnte: false, perche: "è stata scritta a mano: non risulta il documento da cui viene." };
+}
+
+/* LA RIGA CHE VA SOTTO IL NUMERO. Sta qui e non nella pagina per la stessa
+   ragione di `descriviOrigine` e `descriviBaseOnere`: la frase che accompagna
+   un numero destinato a uscire è una REGOLA, e chi la scrive dev'essere uno.
+   ⛔ Primo requisito: quando la provenienza non c'è, la frase NON deve
+   somigliare a una tracciatura. Chi legge tende a fidarsi di una riga che
+   sembra completa. */
+export function descriviDensita(d) {
+  const o = densitaDichiarata(d), e = densitaPerEnte(d);
+  const CODA = " Finché resta così, le tonnellate dichiarate dai turni e i metri cubi misurati"
+    + " dai rilievi restano due grandezze diverse, e il valore del materiale non si calcola.";
+  if (!o.leggibile)
+    return `Densità registrata come testo: al posto del numero risulta «${o.grezza}».` + CODA;
+  if (o.densita == null && o.grezza !== "")
+    return `Densità registrata «${o.grezza}»: un metro cubo di materiale non può pesare zero o meno,`
+      + " quindi questo valore non è utilizzabile." + CODA;
+  if (o.densita == null)
+    return "Densità non impostata"
+      + (o.noto ? `: risulta dichiarata la provenienza (${FONTI_DENSITA[o.da].label.toLowerCase()}) ma non il numero.` : ".")
+      + CODA;
+  const q = `Densità usata ${_nDens(o.densita)} t/m³ (peso di volume in banco)`;
+  if (!o.noto)
+    return q + ": la provenienza non è dichiarata — non risulta se venga dall'atto, da una prova di"
+      + " laboratorio o da una stima, quindi il numero non è riconducibile a nessun documento.";
+  if (o.da === DENS_ATTO)
+    return q + ", valore prescritto dall'atto autorizzativo" + (o.riferimento ? ` (${o.riferimento})` : "") + ".";
+  if (o.da === DENS_LABORATORIO)
+    return q + ", da prova di laboratorio"
+      + (o.riferimento ? ` (${o.riferimento})` : "")
+      + (dataISOEsiste(o.quando.slice(0, 10)) ? ` del ${_dmyDens(o.quando)}` : "")
+      + "." + (e.perEnte ? "" : " ⚠️ " + _maiuDens(e.perche));
+  if (o.da === DENS_PRESET)
+    return q + `, valore tipico ${o.etichetta ? `di «${o.etichetta}»` : "del litotipo"}`
+      + (o.fonte ? ` (fonte: ${o.fonte})` : "")
+      + ": non è una misura di questo materiale e va confermata con una prova di laboratorio"
+      + " prima di appoggiarci un numero che va a un ente o a un cliente.";
+  return q + ", inserita a mano: non risulta il documento da cui viene.";
+}
+/* `useGrouping` scritto anche dove è `false`: una densità non arriva mai a
+   quattro cifre, ma la regola 16 lo pretende scritto perché Node e Chromium
+   raggruppano diversamente e una funzione che tace risponde in due modi. */
+const _nDens = (v) => Number(v).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 3, useGrouping: false });
+const _dmyDens = (iso) => String(iso || "").slice(0, 10).split("-").reverse().join("/");
+const _maiuDens = (s) => s ? s[0].toUpperCase() + s.slice(1) : "";
+
+/* LA DENSITÀ DI QUESTA CAVA, presa dall'atto dove sta il resto dei suoi dati.
+   Un posto solo: il materiale è già scritto lì, e chiedere la densità una
+   seconda volta da un'altra parte vorrebbe dire avere due risposte per la
+   stessa cava — è la ragione per cui la pagina già riempiva il campo dal
+   materiale, e questa funzione ne prende il posto aggiungendo la provenienza.
+   ⛔ SI RIPIEGA SUL VALORE TIPICO SOLO SE NON È STATO SCRITTO NIENTE. Se
+   qualcuno ha scritto un valore impossibile, o ha dichiarato la fonte senza il
+   numero, sostituirglielo con un preset nasconde il suo errore e gli mette in
+   mano un numero che non ha scelto.
+   ⛔ E UN NUMERO SENZA FONTE NON DIVENTA «A MANO»: resta «non dichiarata». */
+export function densitaDellaCava(autorizzazione) {
+  const a = autorizzazione || {};
+  const daAtto = String(a.densitaFonte || "").trim().toLowerCase() === DENS_ATTO;
+  const scritta = densitaDichiarata({
+    densita: a.densita, da: a.densitaFonte, quando: a.densitaQuando,
+    // l'atto è già identificato dal suo numero: se nessuno ha scritto un
+    // riferimento più preciso, quello è il documento da esibire
+    riferimento: a.densitaRiferimento || (daAtto ? a.numeroAtto : ""),
+  });
+  if (scritta.grezza !== "" || scritta.noto) return scritta;
+  const p = densitaDelMateriale(a.materiale);
+  if (!p) return densitaDichiarata(null);
+  return densitaDichiarata({ densita: p.densita, da: DENS_PRESET, etichetta: p.etichetta, fonte: p.fonte });
 }
 
 // ============================================================

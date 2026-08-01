@@ -17,6 +17,8 @@ firestore-debug.log
 contrassegno-*
 pagella-*
 cont-*.txt
+__pid-*.txt
+.marca-*
 # ⚠️ E QUESTA LISTA SI ALLUNGA OGNI VOLTA CHE NASCE UN BANCO — .pagella-, poi
 # contrassegno-, poi cont- — che è il segno che la difesa è nel posto sbagliato:
 # il contrassegno col pid andrebbe scritto in una SOTTOCARTELLA, non nella

@@ -519,6 +519,24 @@ a.dw-btn{text-decoration:none}
         <input class="dw-input" id="aut-materiale" placeholder="es. Sabbia e ghiaia"></div>
     </div>
     <div class="form-hint">Il <b>già estratto</b> è quanto era stato scavato sotto questo atto prima di usare Terra: senza quel numero il contatore sarebbe ottimista.</div>
+
+    <!-- LA DENSITÀ, E DA DOVE VIENE. Sta nella scheda dell'atto e non accanto
+         al calcolo perché è un dato della CAVA, non di una schermata: la usano
+         il valore del materiale e il confronto con i turni, e due copie
+         divergono. Quattro campi e non uno solo perché un valore tipico di
+         manuale e un certificato di laboratorio non hanno lo stesso peso
+         davanti a chi li chiede — e chi legge il numero deve saperlo. -->
+    <div class="frow">
+      <div class="fld" style="flex:1 1 130px;"><label class="fl" for="aut-densita">Densità del materiale (<span class="u">t/m³</span>)</label>
+        <input class="dw-input dec" id="aut-densita" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 1,9" title="Quante tonnellate pesa un metro cubo di materiale IN BANCO, cioè come sta nel terreno prima di essere smosso. La virgola va benissimo: 1,9."></div>
+      <div class="fld" style="flex:2 1 200px;"><label class="fl" for="aut-dens-fonte">Da dove viene la densità</label>
+        <select class="dw-input" id="aut-dens-fonte" title="Chi risponde di questo numero: non è un dettaglio, è quello che lo rende difendibile"></select></div>
+      <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-dens-quando">Data della prova</label>
+        <input class="dw-input" id="aut-dens-quando" type="date" title="La data del certificato di laboratorio"></div>
+      <div class="fld" style="flex:2 1 200px;"><label class="fl" for="aut-dens-rif">Riferimento del documento</label>
+        <input class="dw-input" id="aut-dens-rif" placeholder="es. Certificato n. 118/26" title="Il documento che qualcuno può chiedere di vedere: numero del certificato, oppure il punto dell'atto"></div>
+    </div>
+    <div class="form-hint" id="aut-dens-nota"></div>
     <div class="fld"><label class="fl" for="aut-prescrizioni">Prescrizioni dell'atto</label>
       <textarea class="dw-input" id="aut-prescrizioni" rows="4" placeholder="Copia qui le prescrizioni da rispettare (una per riga)" style="min-height:90px;"></textarea></div>
     <div class="fld"><label class="fl" for="aut-riferimenti">Riferimenti</label>
@@ -642,8 +660,8 @@ a.dw-btn{text-decoration:none}
     <div class="frow">
       <div class="fld" style="flex:2 1 190px;"><label class="fl" for="val-materiale">Materiale</label>
         <select class="dw-input" id="val-materiale" title="Riempie la densità con un valore tipico del litotipo"><option value="">— scegli —</option></select></div>
-      <div class="fld" style="flex:1 1 120px;"><label class="fl" for="val-densita">Densità (<span class="u">t/m³</span>)</label>
-        <input class="dw-input dec" id="val-densita" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="1,6" title="Quante tonnellate pesa un metro cubo di questo materiale. La virgola va benissimo: 1,6."></div>
+      <div class="fld" style="flex:1 1 150px;"><label class="fl" for="val-densita">Densità (<span class="u">t/m³</span>) <span id="val-dens-badge"></span></label>
+        <input class="dw-input dec" id="val-densita" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" title="Quante tonnellate pesa un metro cubo di materiale in banco. La virgola va benissimo: 1,9."></div>
       <div class="fld" style="flex:1 1 120px;"><label class="fl" for="val-prezzo">Prezzo (<span class="u">€/t</span>)</label>
         <input class="dw-input dec" id="val-prezzo" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="12" title="Prezzo in euro per tonnellata. La virgola va benissimo: 12,50."></div>
     </div>
@@ -886,6 +904,8 @@ a.dw-btn{text-decoration:none}
            periodoFraUltimiRilievi, intervalliFraRilievi, avanzamentoDaUltimoRilievo, SOGLIA_TURNI,
            produzionePerFronte,
            numeroDaCampo, AVVISO_DECIMALE, origineDi, descriviOrigine,
+           FONTI_DENSITA, densitaDichiarata, densitaPerEnte, descriviDensita, densitaDellaCava,
+           DENS_ATTO, DENS_LABORATORIO, DENS_PRESET, DENS_MANO, DENS_NON_DICHIARATA,
            STATI_LOTTO, statoLotto, divarioRecupero, avanzamentoLotto,
            conformitaProgetto,
            volumeMisuratoDiLotto, rilieviFuoriDaiLotti } from "./terra-data.js";
@@ -922,6 +942,14 @@ a.dw-btn{text-decoration:none}
   // costringere nessuno a indovinare cosa significa il punto.
   const itDec = (v) => { const s = String(v == null ? "" : v).trim(); return s === "" ? "" : s.replace(".", ","); };
   const numCampo = (id, opts) => numeroDaCampo(($(id) ? $(id).value : ""), opts || {});
+  /* I LIMITI DELLA DENSITÀ, scritti UNA volta: la leggono il campo della scheda
+     dell'atto, quello del valore del materiale e il confronto coi turni. Erano
+     già ripetuti in due punti, e tre copie della stessa soglia divergono al
+     primo che ne corregge una. Restano nella PAGINA e non nel modulo perché
+     sono i limiti di un campo da compilare, non una regola sul dato: il modulo
+     chiede solo «è un numero positivo», e su un numero salvato da un'altra
+     strada non ha titolo per rifiutare. */
+  const LIM_DENSITA = { min: 0.3, max: 5, decimali: 3 };
   // vero quando il campo contiene qualcosa che NON si riesce a leggere come
   // numero: lì bisogna fermarsi e dirlo, mai salvare uno zero al suo posto
   const numIllegibile = (r) => !r.ok && !r.vuoto && (r.motivo === "ambiguo" || r.motivo === "non-numero");
@@ -2445,6 +2473,13 @@ a.dw-btn{text-decoration:none}
     $("aut-pregresso").value = itDec(a && a.estrattoPregressoM3);
     $("aut-fondo").value = itDec(a && a.quotaFondoM);
     v("aut-materiale", a && a.materiale);
+    // la densità e la sua provenienza: quattro campi che si leggono insieme,
+    // perché una fonte senza il suo documento non regge (e la scheda lo dice)
+    $("aut-densita").value = itDec(a && a.densita);
+    $("aut-dens-fonte").value = (a && a.densitaFonte) || "";
+    $("aut-dens-quando").value = (a && a.densitaQuando) || "";
+    v("aut-dens-rif", a && a.densitaRiferimento);
+    disegnaDensAtto();
     v("aut-prescrizioni", a && a.prescrizioni); v("aut-riferimenti", a && a.riferimenti);
     $("aut-soglia").value = a && a.sogliaGuardiaPct != null ? a.sogliaGuardiaPct : 80;
     $("aut-anni").value = a && a.anniRitmo != null ? a.anniRitmo : 3;
@@ -2458,6 +2493,42 @@ a.dw-btn{text-decoration:none}
     ["aut-volume", "il volume totale autorizzato", "m³"],
     ["aut-pregresso", "il già estratto", "m³"],
   ];
+  /* ── LA PROVENIENZA DELLA DENSITÀ, NELLA SCHEDA DELL'ATTO ────────────────
+     Il menù si costruisce dal vocabolario del modulo, non da un elenco
+     riscritto qui: se un giorno nasce una quinta fonte, questa tendina la
+     mostra da sola. La voce vuota è «non dichiarata» ed è la PRIMA, perché è
+     lo stato in cui parte chiunque — e perché sceglierla non è un errore da
+     nascondere, è una risposta onesta. */
+  $("aut-dens-fonte").innerHTML =
+    `<option value="">— non dichiarata —</option>`
+    + [DENS_ATTO, DENS_LABORATORIO, DENS_PRESET, DENS_MANO]
+        .map((k) => `<option value="${k}">${esc(FONTI_DENSITA[k].label)}</option>`).join("");
+  /* La riga sotto i quattro campi: la scrive il modulo, e dice sia che cosa
+     risulta sia che cosa manca perché regga davanti a chi la chiede. */
+  function disegnaDensAtto() {
+    const el = $("aut-dens-nota"); if (!el) return;
+    const r = numCampo("aut-densita", LIM_DENSITA);
+    if (numIllegibile(r)) { el.textContent = spiegaNum("la densità", r, "t/m³"); return; }
+    const d = densitaDichiarata({
+      densita: r.ok ? r.valore : null, da: $("aut-dens-fonte").value,
+      quando: $("aut-dens-quando").value.trim(),
+      riferimento: $("aut-dens-rif").value.trim() || ($("aut-dens-fonte").value === DENS_ATTO ? $("aut-numero").value.trim() : ""),
+    });
+    /* ⛔ SE IL CAMPO È VUOTO SI MOSTRA IL RIPIEGO CHE VARRÀ DAVVERO, non un
+       «non impostata» che poi in un'altra schermata diventa 1,9: sarebbero due
+       verità per la stessa cava. Il ripiego dal materiale dell'atto lo decide
+       `densitaDellaCava`, e qui si guarda quello che deciderà lei. */
+    const eff = (d.densita == null && !d.noto)
+      ? densitaDellaCava({ materiale: $("aut-materiale").value.trim() })
+      : d;
+    el.textContent = descriviDensita(eff)
+      + (eff.da === DENS_PRESET && d.densita == null
+          ? " (Questo è il valore che Terra userà finché non ne scrivi uno tuo qui sopra.)" : "");
+  }
+  ["aut-densita", "aut-dens-fonte", "aut-dens-quando", "aut-dens-rif", "aut-materiale", "aut-numero"]
+    .forEach((id) => { const el = $(id); if (el) el.addEventListener("input", disegnaDensAtto); });
+  $("aut-dens-fonte").addEventListener("change", disegnaDensAtto);
+
   function leggiFormAut() {
     const t = (id) => $(id).value.trim();
     // i tre numeri dell'atto sono campi di TESTO: si leggono con numeroDaCampo,
@@ -2491,6 +2562,15 @@ a.dw-btn{text-decoration:none}
       // conto che finisce in una comunicazione all'ente. Resta null, e la
       // scheda della vita cava lo dice.
       estrattoPregressoM3: pregresso, materiale: t("aut-materiale") || null,
+      /* LA DENSITÀ E LA SUA PROVENIENZA. Il numero si legge con gli stessi
+         limiti del campo del valore (`LIM_DENSITA`, scritti una volta sola).
+         ⛔ La fonte NON viene dedotta dal fatto che c'è un numero: chi non
+         sceglie niente lascia «non dichiarata», che è uno stato vero e che il
+         prodotto sa raccontare — non un ripiego su «a mano». */
+      densita: (() => { const r = numCampo("aut-densita", LIM_DENSITA); return r.ok ? r.valore : null; })(),
+      densitaFonte: $("aut-dens-fonte").value || null,
+      densitaQuando: t("aut-dens-quando") || null,
+      densitaRiferimento: t("aut-dens-rif") || null,
       prescrizioni: t("aut-prescrizioni") || null, riferimenti: t("aut-riferimenti") || null,
       sogliaGuardiaPct: numInt("aut-soglia"), anniRitmo: numInt("aut-anni"), preavvisoGiorni: numInt("aut-preavviso"),
     };
@@ -2555,7 +2635,25 @@ a.dw-btn{text-decoration:none}
         err("aut-fondo", true); fuoco("aut-fondo");
         esito("aut-esito", spiegaNum("la quota di fondo autorizzata", r, "m") + " La scheda non è stata salvata.", "err"); return; }
     }
+    // la densità: se il campo c'è ma non si legge si dice, invece di salvarla
+    // `null` e lasciare che il valore del materiale ricada su un valore tipico
+    // senza che nessuno se ne accorga
+    {
+      const r = numCampo("aut-densita", LIM_DENSITA);
+      err("aut-densita", false);
+      if (!r.vuoto && !r.ok) {
+        err("aut-densita", true); fuoco("aut-densita");
+        esito("aut-esito", (numIllegibile(r)
+          ? spiegaNum("la densità del materiale", r, "t/m³")
+          : "La densità del materiale deve stare fra 0,3 e 5 t/m³: un metro cubo di roccia non pesa né meno né più di così.")
+          + " La scheda non è stata salvata.", "err"); return; }
+    }
     const senzaVolume = d.volumeAutorizzatoM3 ? "" : " Senza il volume totale autorizzato il contatore vita cava resta spento.";
+    /* ⛔ chi ha appena dichiarato la densità nell'atto deve vederla comparire
+       nel calcolo: senza questa riga il valore scritto a mano nella schermata
+       dei rilievi continuerebbe a vincere, e le due schermate direbbero due
+       numeri diversi per la stessa cava. */
+    densitaToccata = false;
     if (editAut) {
       await db.aggiorna("autorizzazioni", editAut, d);
       esito("aut-esito", "Scheda «" + d.numeroAtto + "» aggiornata." + senzaVolume);
@@ -2851,7 +2949,7 @@ a.dw-btn{text-decoration:none}
     // densità e prezzo si scrivono a mano, con la virgola: «1,6» e «12,50».
     // Se uno dei due non si legge il riquadro NON mostra un valore a zero (che
     // sembrerebbe un materiale senza valore): dice cosa non ha capito.
-    const rd = numCampo("val-densita", { min: 0.3, max: 5, decimali: 3 });
+    const rd = numCampo("val-densita", LIM_DENSITA);
     const rp = numCampo("val-prezzo", { min: 0, decimali: 2 });
     const rotto = numIllegibile(rd) ? ["la densità", rd, "t/m³"] : numIllegibile(rp) ? ["il prezzo", rp, "€/t"] : null;
     if (rotto) { $("val-out").innerHTML = esc(spiegaNum(rotto[0], rotto[1], rotto[2])); return; }
@@ -2859,13 +2957,27 @@ a.dw-btn{text-decoration:none}
     const { tonnellate, valore } = valoreMateriale(volAnno, dens, prezzo);
     const eur = euro0;   // la regola vive in shared/ (prima aveva lo spazio normale)
     const ton = (n) => Math.round(n).toLocaleString("it-IT");
+    /* ⛔ IL NUMERO NON BASTA. Le tonnellate qui sopra sono metri cubi
+       moltiplicati per la densità: dire quanto valgono senza dire con QUALE
+       densità — e con che provenienza — presenta un valore tipico di manuale e
+       un certificato di laboratorio con la stessa faccia. La forma breve, non
+       la frase intera: quella sta sotto il campo, tre righe più su. */
+    const f = FONTI_DENSITA[DENS.da] || FONTI_DENSITA[DENS_NON_DICHIARATA];
+    const attrib = dens > 0
+      ? ` <span class="form-hint">Conversione fatta con <b>${itDec(dens)} t/m³</b> — ${esc(f.breve === "non dichiarata" ? "provenienza non dichiarata" : f.breve)}.</span>`
+      : "";
     $("val-out").innerHTML = volAnno
       ? `Estratto ${anno}: <b>${volAnno.toLocaleString("it-IT")} m³</b> → <b>${ton(tonnellate)} t</b> → <b>${eur(valore)}</b> di materiale.`
         + (volCum ? ` Fuori dal conto restano <b>${volCum.toLocaleString("it-IT")} m³</b> ripresi da cumuli: erano già stati estratti, contarli qui varrebbe due volte lo stesso materiale.` : "")
+        + attrib
       : `Nessun volume di scavo elaborato per il ${anno}: registra un rilievo per stimare il valore.`
         + (volCum ? ` Nell'anno risultano solo <b>${volCum.toLocaleString("it-IT")} m³</b> ripresi da cumuli.` : "");
   }
-  ["val-densita","val-prezzo"].forEach(id => $(id).addEventListener("input", () => { renderValore(); renderTurni(); }));
+  // ⚠️ la densità NON sta qui dentro: il suo `input` deve aggiornare PRIMA la
+  // provenienza (`DENS`) e poi ridisegnare, se no i due riquadri raccontano la
+  // provenienza di un giro fa. Il suo ascoltatore è più in basso, insieme al
+  // resto della densità.
+  $("val-prezzo").addEventListener("input", () => { renderValore(); renderTurni(); });
 
   // la scelta del periodo ridisegna solo questa sezione
   if ($("tur-per")) $("tur-per").addEventListener("change", (e) => { turPeriodo = e.target.value; renderTurni(); });
@@ -2913,8 +3025,18 @@ a.dw-btn{text-decoration:none}
       return;
     }
     // la densità è quella scritta qui sopra: una sola in tutta l'app
-    const rd = numCampo("val-densita", { min: 0.3, max: 5, decimali: 3 });
+    const rd = numCampo("val-densita", LIM_DENSITA);
     const dens = rd.ok ? rd.valore : null;
+    /* ⛔ QUI IL NUMERO CONTA DOPPIO. Questo confronto mette il dichiarato dai
+       turni (tonnellate) accanto al misurato dal drone (metri cubi): lo
+       scostamento che ne esce è la densità quanto è la produzione. Uno
+       scostamento del 2% con una densità presa da un manuale non è la stessa
+       affermazione di uno scostamento del 2% con un certificato in mano, e
+       finora sullo schermo erano identici. */
+    const fD = FONTI_DENSITA[DENS.da] || FONTI_DENSITA[DENS_NON_DICHIARATA];
+    const attribD = dens != null
+      ? `<div class="form-hint">Tonnellate portate in metri cubi con <b>${itDec(dens)} t/m³</b> — ${esc(fD.breve === "non dichiarata" ? "provenienza non dichiarata" : fD.breve)}.</div>`
+      : "";
     // la tendina: gli intervalli fra due voli, dal più recente. Se ce n'è uno
     // solo non si mostra — una scelta con una voce sola è un ingombro.
     const intervalli = intervalliFraRilievi(RIL);
@@ -3021,7 +3143,7 @@ a.dw-btn{text-decoration:none}
       const r = riconciliazioneTurni(RIL, RAPP, per.dal, per.al, dens);
       const cornice = `<div class="note">Periodo: dal <b>${fmtData(per.dal)}</b> al <b>${fmtData(per.al)}</b>, cioè fra il rilievo del ${fmtData(per.rilievoPrecedente)} e quello del ${fmtData(per.al)}. Il confronto è di <b>cava</b>, non di fronte: qui si mettono a confronto due totali, e attribuire un rilievo a un fronte indovinando lo metterebbe sul volume concesso sbagliato. La ripartizione per fronte, quando i turni la dichiarano, sta più sopra ed è una stima a parte.</div>`;
       if (r.stato === "no-densita") {
-        html += cornice + `<div class="note avviso">In quel periodo i turni hanno dichiarato solo <b>tonnellate senza densità</b>${r.dich.viaggi ? " e/o <b>viaggi</b>" : ""}: niente di convertibile in metri cubi, quindi non c'è confronto. Scrivi la densità del materiale qui sopra e il confronto compare.</div>`;
+        html += cornice + `<div class="note avviso">In quel periodo i turni hanno dichiarato solo <b>tonnellate senza densità</b>${r.dich.viaggi ? " e/o <b>viaggi</b>" : ""}: niente di convertibile in metri cubi, quindi non c'è confronto. Scrivi la densità del materiale qui sopra e il confronto compare — meglio ancora nella scheda <b>Titolo</b>, dove si dichiara anche da dove viene.</div>`;
       } else if (r.stato === "no-dichiarato") {
         html += cornice + `<div class="note">In quel periodo <b>nessun turno</b> ha registrato una produzione, quindi non c'è niente da confrontare col rilievo del ${fmtData(per.al)}.</div>`;
       } else if (r.stato === "no-misura") {
@@ -3056,7 +3178,10 @@ a.dw-btn{text-decoration:none}
         }
       }
     }
-    out.innerHTML = html;
+    // la riga che dice CON QUALE densità sono stati fatti i conti qui sopra:
+    // una sola volta, in fondo, e non appesa a una riga di elenco (lì il testo
+    // finisce dentro `-webkit-line-clamp:2` e non lo legge nessuno)
+    out.innerHTML = html + attribD;
     renderGrafTurni(intervalli, dens);
   }
 
@@ -3122,37 +3247,80 @@ a.dw-btn{text-decoration:none}
   $("val-materiale").innerHTML = '<option value="">— scegli —</option>' +
     DENSITA_PRESET.map(p => `<option value="${p.chiave}">${esc(p.etichetta)}</option>`).join("");
 
-  // LA DENSITÀ DALL'AUTORIZZAZIONE. Il materiale della cava è già scritto
-  // nell'atto («Sabbia e ghiaia»), quindi far ridigitare la densità è chiedere
-  // due volte la stessa cosa — e con due risposte possibili: il campo partiva
-  // da 1,6 generico, che su sabbia e ghiaia (1,9) sposta i metri cubi del 19%.
-  // Su un confronto fra misurato e dichiarato quel 19% È il confronto.
-  // Si riempie SOLO se l'utente non ha ancora toccato il campo: quello che
-  // scrive lui comanda sempre.
+  // LA DENSITÀ DELLA CAVA, E DA DOVE VIENE.
+  // Il materiale è già scritto nell'atto («Sabbia e ghiaia»), quindi far
+  // ridigitare la densità è chiedere due volte la stessa cosa — e con due
+  // risposte possibili: il campo partiva da «1,6» generico, che su sabbia e
+  // ghiaia (1,9) sposta i metri cubi del 19%, e su un confronto fra misurato e
+  // dichiarato quel 19% È il confronto.
+  // ⛔ E QUEL «1,6» PRESTAMPATO ADESSO NON C'È PIÙ: un numero di comodo scritto
+  // nel campo prima che qualcuno abbia deciso qualcosa è la faccia più
+  // tranquilla dell'assenza di un dato. Se non c'è una densità, il campo resta
+  // vuoto e la riga sotto lo dice.
+  // La regola di quale densità vale sta in `terra-data.js` (`densitaDellaCava`),
+  // non qui: la usano tre punti di questa pagina e una regola scritta tre volte
+  // diverge al primo che la corregge.
+  let DENS = densitaDichiarata(null);   // il record normalizzato, uno solo per la pagina
   let densitaToccata = false;
-  $("val-densita").addEventListener("input", () => { densitaToccata = true; });
+
+  /* Disegna la densità corrente: la pillola accanto al campo e la frase sotto.
+     La frase la scrive il MODULO — la pagina non decide come si racconta una
+     densità senza provenienza, se no la regola starebbe in due posti. */
+  function disegnaDensita() {
+    const f = FONTI_DENSITA[DENS.da] || FONTI_DENSITA[DENS_NON_DICHIARATA];
+    const bad = $("val-dens-badge");
+    if (bad) bad.innerHTML = DENS.densita == null ? "" : `<span class="badge ${f.cls}">${esc(f.breve)}</span>`;
+    const nota = $("val-dens-nota");
+    if (!nota) return;
+    let t = descriviDensita(DENS);
+    /* il verso giusto: chi ha in mano un numero non dichiarato non va
+       rimproverato, va portato dove si dichiara */
+    if (DENS.densita != null && !densitaPerEnte(DENS).perEnte)
+      t += " Per dichiararla — e per non doverla riscrivere ogni volta — scrivila nella scheda «Titolo», dove sta il resto dei dati dell'atto.";
+    nota.textContent = t;
+  }
+  /* La densità che vale adesso, e da dove viene. `null` come fonte vuol dire
+     «l'ha scritta qualcuno qui e adesso»: ⛔ NON diventa «a mano», che sarebbe
+     un'informazione che nessuno ha dato — diventa «non dichiarata». */
+  function fissaDensita(dich, scrivi = true) {
+    DENS = densitaDichiarata(dich);
+    if (scrivi) $("val-densita").value = DENS.densita == null ? "" : itDec(DENS.densita);
+    disegnaDensita();
+  }
   function densitaDaAutorizzazione() {
     if (densitaToccata) return;
-    const a = autorizzazioneVigente(AUT);
-    // il riconoscimento del materiale sta in `shared/dw-ponti.js`, perché lo usa
-    // anche Campo dall'altro capo del ponte: una regola, un posto
-    const p = densitaDelMateriale(a && a.materiale);
-    if (!p) return;
-    $("val-densita").value = itDec(p.densita);
-    const sel = $("val-materiale"); if (sel) sel.value = p.chiave;
-    $("val-dens-nota").textContent =
-      `Densità tipica di «${p.etichetta}», il materiale scritto nell'autorizzazione (${itDec(p.densita)} t/m³, fonte: ${p.fonte}) — valore da confermare col laboratorio.`;
+    fissaDensita(densitaDellaCava(autorizzazioneVigente(AUT)));
+    const sel = $("val-materiale");
+    if (sel && DENS.da === DENS_PRESET) {
+      const p = DENSITA_PRESET.find((x) => x.etichetta === DENS.etichetta);
+      if (p) sel.value = p.chiave;
+    }
   }
-  $("val-materiale").addEventListener("change", (e) => {
-    const p = presetDensita(e.target.value);
-    if (p) {
-      $("val-densita").value = itDec(p.densita);
-      $("val-dens-nota").textContent = `Densità tipica (${itDec(p.densita)} t/m³, fonte: ${p.fonte}) — valore da confermare col laboratorio.`;
-    } else $("val-dens-nota").textContent = "";
-    renderValore();
+  $("val-densita").addEventListener("input", () => {
+    densitaToccata = true;
+    $("val-materiale").value = "";
+    const r = numCampo("val-densita", LIM_DENSITA);
+    /* un campo che non si legge NON diventa «densità non impostata»: il
+       riquadro del valore lo spiega già, e con più precisione (l'ambiguità del
+       punto). Qui si tace la provenienza invece di raccontarne una falsa. */
+    if (numIllegibile(r)) { DENS = densitaDichiarata(null); $("val-dens-badge").innerHTML = ""; $("val-dens-nota").textContent = ""; }
+    else fissaDensita({ densita: r.ok ? r.valore : null }, false);
+    renderValore(); renderTurni();
   });
-  // se l'utente modifica la densità a mano, il menù torna neutro
-  $("val-densita").addEventListener("input", () => { $("val-materiale").value = ""; $("val-dens-nota").textContent = ""; });
+  $("val-materiale").addEventListener("change", (e) => {
+    densitaToccata = true;
+    const p = presetDensita(e.target.value);
+    fissaDensita(p ? { densita: p.densita, da: DENS_PRESET, etichetta: p.etichetta, fonte: p.fonte } : null);
+    renderValore(); renderTurni();
+  });
+  /* ⛔ QUI C'ERA UN SECONDO ASCOLTATORE su `val-densita` che rimetteva a zero
+     il menù dei materiali E SVUOTAVA LA NOTA. Con la provenienza è diventato
+     un cancellatore: girava dopo il mio e spegneva la frase appena scritta, e
+     leggendo il codice non si vedeva — i due `addEventListener` stanno a
+     centosessanta righe di distanza. L'ha trovato lo SCATTO: la riga della
+     provenienza c'era col preset e spariva scrivendo la densità a mano, cioè
+     spariva **proprio nello stato in cui serve di più**. Quello che faceva di
+     utile (azzerare il menù) è dentro l'ascoltatore qui sopra. */
 
   // ══════════════════════════════════════════════════════════════════════
   // CONFRONTO FRA DUE RILIEVI DELLO STESSO FRONTE

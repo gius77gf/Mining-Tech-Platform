@@ -10484,9 +10484,17 @@ test("⛔ Flotta: senza le ore, il costo orario NON è zero", () => {
   ok(conOre.length > 0, "e almeno uno di cui si sanno");
   for (const x of conOre) {
     eq(x.perche, "", x.mezzo + ": se si calcola non c'è niente da spiegare");
-    eq(x.euroOra, Math.round(100 * (x.officina + x.carburante) / x.ore) / 100,
-       x.mezzo + ": officina + carburante diviso le ore");
+    /* ⚠️ ASSERZIONE CORRETTA IL 05/08, e nella direzione più giusta non più
+       permissiva: prima diceva `(officina + carburante) / ore` e quindi
+       blindava il difetto — l'officina DA SEMPRE divisa le ore di una finestra
+       corta. Adesso il numeratore è quello della finestra. */
+    eq(x.euroOra, Math.round(100 * x.spesaInFinestra / x.ore) / 100,
+       x.mezzo + ": la spesa DELLA FINESTRA diviso le ore della stessa finestra");
+    eq(x.spesaInFinestra, Math.round(100 * (x.officinaInFinestra + x.carburante)) / 100,
+       x.mezzo + ": e la spesa della finestra è l'officina collocata dentro più il carburante");
     ok(x.euroOra >= x.euroOraOfficina, x.mezzo + ": il totale non è meno della sola officina");
+    ok(x.totale >= x.spesaInFinestra,
+       x.mezzo + ": il totale speso resta quello vero, da sempre — non scende perché il rapporto si è stretto");
   }
   /* ⚠️ le ore NON sono ricalcolate qui: vengono da `consumoPerMezzo`, e devono
      essere le STESSE. Due conti delle stesse ore un giorno divergono. */
@@ -10503,6 +10511,184 @@ test("⛔ Flotta: senza le ore, il costo orario NON è zero", () => {
   eq(pala.parziale, true, "un intervento senza costo rende il totale parziale");
   eq(pala.interventiSenzaCosto, 1, "e si sa quanti sono");
 });
+
+/* ══ IL €/h SI CALCOLA SU UNA FINESTRA SOLA, E DICHIARATA (05/08) ═══════
+   Il difetto che queste prove chiudono, misurato sulla dimostrazione prima di
+   toccare una riga: numeratore e denominatore coprivano DUE PERIODI DIVERSI.
+   Sopra tutta l'officina del mezzo, da sempre; sotto le ore, che si sanno solo
+   fra il primo e l'ultimo rifornimento col contatore.
+
+     mezzo            €/h prima   ore   finestra                fuori finestra
+     Dumper D1          63,03      61   12/07 → 30/07           2.100 €  → 28,61  (+120%)
+     Pala P1            51,21      33   16/07 → 28/07             760 €  → 28,18  (+82%)
+     Escavatore E1      46,46      56   14/07 → 29/07             420 €  → 38,96  (+19%)
+
+   Tre mezzi su sei, e su uno il numero era più del doppio della verità. Il
+   verso dell'errore è sempre lo stesso: GONFIA — e gonfia il numero con cui un
+   titolare decide se rottamare una macchina.
+   Le prove sono scritte attorno alle tre cose che non devono tornare indietro:
+   la finestra c'è ed è dichiarata; quello che ci sta fuori si CONTA invece di
+   sparire; e il totale speso resta quello vero, da sempre. */
+{
+  const F = flotta.DEMO;
+  // due letture del contatore a un mese di distanza: 100 ore, finestra 01→31/07
+  const RIF = [{ data: "2026-07-01", mezzo: "Pala X", litri: 100, ore: 1000, euro: 150 },
+               { data: "2026-07-31", mezzo: "Pala X", litri: 100, ore: 1100, euro: 150 }];
+  const uno = (interventi, rif = RIF) =>
+    flotta.costoOrarioMezzo(interventi, rif).find((r) => r.mezzo === "Pala X");
+
+  test("⛔ Flotta · €/h: la finestra è dichiarata, e l'officina fuori NON entra nel rapporto", () => {
+    const r = uno([{ mezzo: "Pala X", data: "2026-07-15", costo: 300 },
+                   { mezzo: "Pala X", data: "2026-06-01", costo: 900 }]);
+    eq([r.da, r.a], ["2026-07-01", "2026-07-31"], "la finestra è quella delle letture del contatore");
+    eq(r.ore, 100, "e le ore sono quelle di quella finestra");
+    eq(r.officinaInFinestra, 300, "dell'officina entra solo l'intervento che ci cade dentro");
+    eq(r.fuori, { interventi: 1, costo: 900 }, "e quello di giugno si conta a parte, non sparisce");
+    eq(r.euroOra, 6, "(300 di officina + 300 di gasolio) / 100 ore");
+    /* ⚠️ LA RIGA CHE DISCRIMINA: col difetto rimesso dentro (officina da
+       sempre) verrebbe 15 €/h invece di 6 — due volte e mezzo. Senza questa
+       asserzione la prova sopra passerebbe anche con un numeratore diverso
+       che per caso desse lo stesso arrotondamento. */
+    eq(Math.round(100 * (r.officina + r.carburante) / r.ore) / 100, 15,
+       "il conto vecchio — tutta l'officina diviso le ore della finestra — dava 15: due volte e mezzo");
+  });
+
+  test("⛔ Flotta · €/h: il TOTALE SPESO resta quello vero, da sempre", () => {
+    /* «Quanto ho speso su questa macchina» e «quanto mi costa un'ora» sono due
+       domande diverse. Aggiustare la seconda non deve far scendere la prima, o
+       chi guarda la spesa vede sparire dei soldi che ha pagato davvero. */
+    const r = uno([{ mezzo: "Pala X", data: "2026-07-15", costo: 300 },
+                   { mezzo: "Pala X", data: "2026-06-01", costo: 900 }]);
+    eq(r.officina, 1200, "l'officina del mezzo è tutta, dal primo intervento registrato");
+    eq(r.totale, 1500, "e il totale speso è officina + carburante, senza nessuna finestra");
+    eq(r.spesaInFinestra, 600, "mentre il numeratore del rapporto è un'altra cosa, e ha un nome suo");
+    eq(r.officina, r.officinaInFinestra + r.fuori.costo + r.senzaData.costo,
+       "e i tre pezzi tornano: dentro + fuori + non collocabile = tutta l'officina, nessun euro perso per strada");
+  });
+
+  test("⛔ Flotta · €/h: un intervento SENZA DATA non è «dentro per comodità»", () => {
+    /* Non si sa se sia dentro o fuori la finestra: metterlo dentro gonfierebbe
+       il €/h, lasciarlo cadere lo sgonfierebbe. Non entra nel rapporto E non
+       si finge che non esista: si dichiara, e finché c'è il €/h è un MINIMO. */
+    const r = uno([{ mezzo: "Pala X", data: "2026-07-15", costo: 300 },
+                   { mezzo: "Pala X", costo: 900 }]);
+    eq(r.senzaData, { interventi: 1, costo: 900 }, "l'intervento senza data si conta a parte");
+    eq(r.fuori, { interventi: 0, costo: 0 }, "e NON viene messo fuori: fuori vuol dire «so che è fuori»");
+    eq(r.officinaInFinestra, 300, "nel rapporto entra solo quello che si sa collocare");
+    eq(r.euroOra, 6, "quindi il €/h non si muove per colpa sua");
+    eq(r.parziale, true, "ma il €/h è dichiarato parziale: c'è una spesa che non ha potuto contare");
+    ok(/senza data/.test(r.percheParziale), "e la ragione è scritta: " + r.percheParziale);
+    ok(/minimo/.test(r.percheParziale), "col verso giusto — è un minimo, non un numero definitivo");
+    /* ⚠️ UNA BANDIERA SOLA PER LE DUE RAGIONI, non due che dicono la stessa
+       cosa: un intervento senza costo e uno senza data fanno tutt'e due del
+       €/h un minimo, e la seconda bandiera sarebbe solo una parola in più. */
+    const due = uno([{ mezzo: "Pala X", data: "2026-07-15", costo: 300 },
+                     { mezzo: "Pala X", costo: 900 }, { mezzo: "Pala X", data: "2026-07-20", costo: 0 }]);
+    eq(due.parziale, true, "con tutt'e due le ragioni la bandiera resta una");
+    eq(due.interventiSenzaCosto, 1, "e i due conti restano distinti");
+    eq(due.senzaData.interventi, 1, "uno per ragione");
+    ok(/senza costo e .*senza data/.test(due.percheParziale), "la frase le dice tutt'e due: " + due.percheParziale);
+    eq(uno([{ mezzo: "Pala X", data: "2026-07-15", costo: 300 }]).percheParziale, "",
+       "e dove non c'è niente da dichiarare la frase è vuota, non «nessuna ragione»");
+  });
+
+  test("⛔ Flotta · €/h: una data che NON ESISTE non colloca niente", () => {
+    /* «2026-02-30» passa qualunque controllo di forma, e `Date.parse` non la
+       rifiuta: la fa SCORRERE al 2 marzo. Collocata così, una spesa finirebbe
+       dentro o fuori la finestra per un giorno che non c'è mai stato. */
+    const r = uno([{ mezzo: "Pala X", data: "2026-02-30", costo: 900 }]);
+    eq(r.senzaData, { interventi: 1, costo: 900 }, "una data impossibile vale come nessuna data");
+    eq(r.officinaInFinestra, 0, "e non entra nel rapporto");
+    eq(r.parziale, true, "che resta dichiarato parziale");
+  });
+
+  test("Flotta · €/h: gli estremi della finestra sono compresi", () => {
+    /* Il giorno del primo e dell'ultimo rifornimento sono giorni in cui la
+       macchina ha lavorato dentro le ore contate: escluderli toglierebbe una
+       spesa vera dal numeratore giusto. */
+    const r = uno([{ mezzo: "Pala X", data: "2026-07-01", costo: 100 },
+                   { mezzo: "Pala X", data: "2026-07-31", costo: 100 }]);
+    eq(r.officinaInFinestra, 200, "il primo e l'ultimo giorno stanno dentro");
+    eq(r.fuori.interventi, 0, "e non finisce niente fuori");
+    const bordi = uno([{ mezzo: "Pala X", data: "2026-06-30", costo: 100 },
+                       { mezzo: "Pala X", data: "2026-08-01", costo: 100 }]);
+    eq(bordi.officinaInFinestra, 0, "il giorno prima e il giorno dopo invece no");
+    eq(bordi.fuori, { interventi: 2, costo: 200 }, "e si contano fuori");
+  });
+
+  test("⛔ Flotta · €/h: le ore ci sono ma le letture non hanno data → non si risponde", () => {
+    /* Senza le date non si sa che PERIODO coprano quelle ore, quindi non si sa
+       quale spesa appartenga al rapporto. È lo stesso principio del Dumper D3
+       («senza ore non si risponde 0 €/h») applicato all'altra metà: un numero
+       qui sarebbe un rapporto fra due periodi che nessuno conosce. */
+    const r = uno([{ mezzo: "Pala X", data: "2026-07-15", costo: 300 }],
+      [{ mezzo: "Pala X", litri: 100, ore: 1000, euro: 150 },
+       { mezzo: "Pala X", litri: 100, ore: 1100, euro: 150 }]);
+    eq(r.euroOra, null, "niente €/h");
+    eq([r.da, r.a], [null, null], "e nessuna finestra inventata");
+    eq(r.ore, null, "le ore ci sarebbero, ma da sole non bastano a fare un rapporto");
+    ok(/non portano la data/.test(r.perche), "e si dice quale delle due cose manca: " + r.perche);
+    eq(r.totale, 600, "la spesa registrata invece resta leggibile, come per il Dumper D3");
+  });
+
+  test("⛔ Flotta · €/h: la finestra la fanno le letture COL CONTATORE, non tutti i rifornimenti", () => {
+    /* ⚠️ QUESTA PROVA È NATA DA UNA CONTROPROVA CHE NON DISTINGUEVA, ed è la
+       quinta delle cause: il caso difeso non stava nei dati. Rimettendo il
+       difetto (la finestra presa da TUTTI i pieni invece che da quelli col
+       contatore) la suite restava verde, perché nella dimostrazione e in tutte
+       le prove scritte fin lì ogni rifornimento aveva la sua lettura.
+       Il difetto vero che il caso nasconde: un pieno di gennaio senza
+       contatore allargherebbe la finestra a sei mesi che NON stanno nelle 100
+       ore contate, e ci farebbe rientrare l'officina di gennaio. Cioè
+       esattamente il difetto che tutto questo lavoro chiude, rientrato dalla
+       finestra. Il denominatore lo fanno le letture del contatore: la finestra
+       deve venire dalle STESSE. */
+    const r = uno([{ mezzo: "Pala X", data: "2026-01-20", costo: 900 }],
+      [{ data: "2026-01-05", mezzo: "Pala X", litri: 100, euro: 150 },      // niente contatore
+       { data: "2026-07-01", mezzo: "Pala X", litri: 100, ore: 1000, euro: 150 },
+       { data: "2026-07-31", mezzo: "Pala X", litri: 100, ore: 1100, euro: 150 }]);
+    eq([r.da, r.a], ["2026-07-01", "2026-07-31"],
+       "il pieno di gennaio non allarga la finestra: non porta nessuna ora con sé");
+    eq(r.ore, 100, "le ore restano quelle fra le due letture");
+    eq(r.officinaInFinestra, 0, "e l'officina di gennaio resta fuori");
+    eq(r.fuori, { interventi: 1, costo: 900 }, "contata, dichiarata, non nascosta");
+    eq(r.carburante, 450, "il gasolio di gennaio invece è speso davvero e resta nel conto del carburante");
+    const c = flotta.consumoPerMezzo([{ data: "2026-01-05", mezzo: "Pala X", litri: 100, euro: 150 },
+                                      { data: "2026-07-01", mezzo: "Pala X", litri: 100, ore: 1000, euro: 150 },
+                                      { data: "2026-07-31", mezzo: "Pala X", litri: 100, ore: 1100, euro: 150 }]).mezzi[0];
+    eq([c.da, c.a], [r.da, r.a], "e la finestra è quella di consumoPerMezzo, non una seconda copia");
+  });
+
+  test("Flotta · €/h: la finestra è quella di consumoPerMezzo, non un secondo conto", () => {
+    /* Stessa regola che la funzione si è già data sulle ore: due conti delle
+       stesse letture un giorno divergono senza che nessuno se ne accorga. */
+    const righe = flotta.costoOrarioMezzo(F.interventi, F.rifornimenti).filter((r) => r.ore !== null);
+    const car = flotta.consumoPerMezzo(F.rifornimenti);
+    ok(righe.length >= 3, righe.length + " mezzi della dimostrazione hanno una finestra");
+    for (const r of righe) {
+      const c = car.mezzi.find((m) => m.mezzo === r.mezzo);
+      eq([r.da, r.a], [c.da, c.a], r.mezzo + ": la finestra è quella delle letture, non una seconda copia");
+      ok(r.da <= r.a, r.mezzo + ": e va nel verso giusto (" + r.da + " → " + r.a + ")");
+    }
+  });
+
+  test("⛔ Flotta · €/h: sulla dimostrazione il numero SCENDE, e si sa di quanto", () => {
+    /* La prova che il difetto era quello e non un'impressione. I tre mezzi
+       toccati, con lo scarto misurato prima della correzione. */
+    const righe = flotta.costoOrarioMezzo(F.interventi, F.rifornimenti);
+    const atteso = { "Dumper D1": [28.61, 2100], "Pala P1": [28.18, 760], "Escavatore E1": [38.96, 420] };
+    let toccati = 0;
+    for (const r of righe) {
+      if (!atteso[r.mezzo]) continue;
+      const [eh, fuori] = atteso[r.mezzo];
+      eq(r.euroOra, eh, r.mezzo + ": il €/h sulla finestra");
+      eq(r.fuori.costo, fuori, r.mezzo + ": e l'officina che cade fuori, dichiarata");
+      ok(r.fuori.interventi === 1, r.mezzo + ": un intervento solo, ma pesante");
+      toccati++;
+    }
+    eq(toccati, 3, "tre mezzi su sei della dimostrazione avevano il numero gonfiato: sono questi");
+  });
+}
 
 test("⛔ Campo: un turno ANCORA APERTO non prende il verde, e il 100% dice perché", () => {
   /* I fermi si registrano DURANTE il turno. Su un turno non ancora chiuso
@@ -14041,9 +14227,15 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
   const costi = flotta.costoOrarioMezzo(D.interventi, D.rifornimenti);
   const aff = flotta.affidabilitaFlotta(D.fermi, D.mezzi, 30, OGGI);
   const pag = () => flotta.pagellaMezzi(costi, aff, D.mezzi);
-  // righe di costo finte, per costruire i verdetti che la dimostrazione non dà
+  // righe di costo finte, per costruire i verdetti che la dimostrazione non dà.
+  // ⚠️ `spesaInFinestra` è il numeratore del €/h dal 05/08 (la finestra dei
+  //    contatori), e `totale` è la spesa DA SEMPRE: qui coincidono perché la
+  //    riga finta non ha niente fuori finestra — ma vanno scritti tutt'e due,
+  //    o la media della pagella non ha da dove nascere.
   const rc = (mezzo, euroOra, extra = {}) =>
-    ({ mezzo, totale: euroOra * 100, ore: 100, euroOra, perche: "", parziale: false, ...extra });
+    ({ mezzo, totale: euroOra * 100, spesaInFinestra: euroOra * 100, ore: 100, euroOra,
+       da: "2026-07-01", a: "2026-07-31", fuori: { interventi: 0, costo: 0 },
+       perche: "", parziale: false, ...extra });
 
   test("Flotta · pagella: compone senza ricalcolare — €/h e disponibilità sono quelli delle due schermate", () => {
     const p = pag();
@@ -14072,11 +14264,20 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
   test("Flotta · pagella: la media della flotta è pesata sulle ore, non la media dei €/h", () => {
     const p = pag();
     const conOre = costi.filter((c) => c.euroOra != null && c.ore > 0);
-    const spesa = conOre.reduce((t, c) => t + c.totale, 0);
+    /* ⚠️ IL NUMERATORE È `spesaInFinestra`, NON `totale` — corretto il 05/08
+       insieme al €/h. Con `totale` la media della dimostrazione veniva 54,25
+       €/h mentre le tre righe da mediare stanno fra 28,18 e 38,96: una media
+       PIÙ ALTA DI OGNI SUO ADDENDO, e ogni scostamento che ne nasceva era il
+       confronto fra la spesa da sempre e un €/h di finestra. */
+    const spesa = conOre.reduce((t, c) => t + c.spesaInFinestra, 0);
     const ore = conOre.reduce((t, c) => t + c.ore, 0);
     eq(p.mediaEuroOra, Math.round(100 * spesa / ore) / 100, "tutti i costi diviso tutte le ore");
     eq(p.oreTotali, ore, "le ore su cui la media è calcolata sono dichiarate");
-    eq(p.spesaMisurata, spesa, "e anche la spesa");
+    eq(p.spesaMisurata, Math.round(100 * spesa) / 100, "e anche la spesa");
+    const min = Math.min(...conOre.map((c) => c.euroOra)), max = Math.max(...conOre.map((c) => c.euroOra));
+    ok(p.mediaEuroOra >= min && p.mediaEuroOra <= max,
+       "e la media sta FRA il €/h più basso e il più alto: se ne uscisse fuori (54,25 su un parco fra "
+       + min + " e " + max + ") vorrebbe dire che numeratore e denominatore misurano due cose diverse");
     const mediaDeiNumeri = Math.round(100 * conOre.reduce((t, c) => t + c.euroOra, 0) / conOre.length) / 100;
     ok(p.mediaEuroOra !== mediaDeiNumeri,
        "sulla dimostrazione le due medie differiscono: la prova distingue davvero (pesata "
@@ -14112,15 +14313,22 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
   test("Flotta · pagella: la banda evita che mezzo parco finisca segnalato ogni giorno", () => {
     const p = pag();
     eq(p.banda, flotta.BANDA_PAGELLA, "la tolleranza è dichiarata, non nascosta nel codice");
-    const e1 = p.righe.find((r) => r.mezzo === "Escavatore E1");
-    ok(e1.scostamentoCosto < 0 && Math.abs(e1.scostamentoCosto) < flotta.BANDA_PAGELLA.costo,
-       "E1 sta sotto la media ma dentro la banda: " + e1.scostamentoCosto + "%");
-    eq(e1.costo, "linea", "quindi sul costo è in linea, non «costa meno»");
+    /* ⚠️ I DUE RUOLI SI SONO SCAMBIATI IL 05/08, e non per un ritocco di
+       soglia: col €/h calcolato sulla finestra dei contatori il Dumper D1
+       scende da 63,03 a 28,61 (portava dentro 2.100 € di gomme cambiate sei
+       settimane prima che qualcuno scrivesse il contatore) e RIENTRA nella
+       banda; l'Escavatore E1, che di spesa fuori finestra ne ha poca, resta a
+       38,96 su una media di 32,38 ed è lui a uscire. La segnalazione era
+       puntata sulla macchina sbagliata. */
     const d1 = p.righe.find((r) => r.mezzo === "Dumper D1");
-    ok(d1.scostamentoCosto > flotta.BANDA_PAGELLA.costo, "D1 supera la banda: " + d1.scostamentoCosto + "%");
-    eq(d1.costo, "piu", "e allora si segnala");
-    eq(d1.verdetto, "costa", "ma la sua disponibilità è del 100%: costa, non «costa e si ferma»");
-    eq(p.righe[0].mezzo, "Dumper D1", "e in cima alla classifica c'è lui");
+    ok(d1.scostamentoCosto < 0 && Math.abs(d1.scostamentoCosto) < flotta.BANDA_PAGELLA.costo,
+       "D1 sta sotto la media ma dentro la banda: " + d1.scostamentoCosto + "%");
+    eq(d1.costo, "linea", "quindi sul costo è in linea, non «costa meno»");
+    const e1 = p.righe.find((r) => r.mezzo === "Escavatore E1");
+    ok(e1.scostamentoCosto > flotta.BANDA_PAGELLA.costo, "E1 supera la banda: " + e1.scostamentoCosto + "%");
+    eq(e1.costo, "piu", "e allora si segnala");
+    eq(e1.verdetto, "costa", "ma la sua disponibilità è del 100%: costa, non «costa e si ferma»");
+    eq(p.righe[0].mezzo, "Escavatore E1", "e in cima alla classifica c'è lui");
   });
 
   test("Flotta · pagella: «si ferma di più» si dice sui fermi, non sulla percentuale al contrario", () => {
@@ -14198,6 +14406,31 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     eq(e1.parziale, true,
        "un intervento senza costo rende il totale un minimo: se si perdesse qui, un «in linea» nascerebbe da una spesa incompleta");
     eq(p.righe.find((r) => r.mezzo === "Dumper D1").parziale, false, "e chi non ne ha non è marcato");
+  });
+
+  test("⛔ Flotta · pagella: la finestra del €/h viaggia con la riga, e ogni macchina ha la sua", () => {
+    /* I due assi della pagella non coprono lo stesso periodo — la
+       disponibilità è la finestra dei fermi (una sola, del parco), il costo è
+       quella dei contatori (una PER MACCHINA). La pagella lo scriveva già per
+       il primo; se il periodo del secondo non arrivasse fino alla riga, i due
+       numeri accanto si leggerebbero come se fossero lo stesso mese. */
+    const p = pag();
+    const perNome = {}; costi.forEach((c) => { perNome[c.mezzo] = c; });
+    let conFinestra = 0;
+    for (const r of p.righe) {
+      eq([r.da, r.a], [perNome[r.mezzo].da, perNome[r.mezzo].a],
+         r.mezzo + ": la finestra è quella di costoOrarioMezzo, non un secondo conto");
+      eq(r.fuori, perNome[r.mezzo].fuori, r.mezzo + ": e anche la spesa che ci cade fuori");
+      ok(r.da && r.a, r.mezzo + ": chi sta in classifica ha per forza una finestra");
+      conFinestra++;
+    }
+    eq(conFinestra, 3, "tre macchine in classifica, tre finestre dichiarate");
+    const finestre = new Set(p.righe.map((r) => r.da + "→" + r.a));
+    ok(finestre.size > 1,
+       "e non sono la stessa per tutte: sarebbero " + [...finestre].join(", ")
+       + " — una finestra sola nel riepilogo sarebbe una bugia su due macchine su tre");
+    // chi non ha il €/h non ha nemmeno una finestra da mostrare: non se ne inventa una
+    for (const r of p.senzaCosto) eq([r.da, r.a], [null, null], r.mezzo + ": nessuna finestra dove non c'è il costo");
   });
 
   test("Flotta · pagella: parco vuoto non risponde niente di tranquillo", () => {
@@ -14777,7 +15010,7 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
       eq(r.imponibile, conti.imponibileRiga(r.quantita, r.prezzoUnitario, r.scontoPct),
          o.numero + " · " + r.descrizione + ": l'imponibile scritto è quello che calcola l'app");
     }
-    eq(righe, 8, "righe d'esempio controllate");
+    eq(righe, 9, "righe d'esempio controllate");
   });
 
   test("Conti · ordini d'esempio: la dimostrazione contiene i casi che il prodotto esiste per raccontare", () => {
@@ -14806,12 +15039,715 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
 
   test("Conti · ordini: la numerazione dei preventivi è una serie sua, e non tocca quella delle fatture", () => {
     const numeri = conti.DEMO.ordini.map((o) => o.numero);
-    eq(conti.prossimoNumero(numeri, 2026, 3, "PREV/"), "PREV/2026/008", "il prossimo preventivo");
+    eq(conti.prossimoNumero(numeri, 2026, 3, "PREV/"), "PREV/2026/009", "il prossimo preventivo");
     eq(conti.prossimoNumero(conti.DEMO.ordini.map((o) => o.numeroOrdine).filter(Boolean), 2026, 3, "ORD/"),
-       "ORD/2026/004", "e il prossimo ordine, che è un registro a parte");
+       "ORD/2026/005", "e il prossimo ordine, che è un registro a parte");
     eq(conti.prossimoNumero([...numeri, ...conti.DEMO.fatture.map((f) => f.numero)], 2026, 3, ""),
        conti.prossimoNumero(conti.DEMO.fatture.map((f) => f.numero), 2026, 3, ""),
        "e i preventivi non fanno saltare il numero della prossima fattura");
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // CONTI · PREZZI A SCAGLIONI DI QUANTITÀ (N9)
+  // ══════════════════════════════════════════════════════════════════
+  {
+    const PZ = { id: "sx1", nome: "Pietrisco 8/12", unitaPrezzo: "t", prezzo: 12, densita: 1.5, iva: 22,
+      scaglioni: [{ da: 500, prezzo: 10.5 }, { da: 100, prezzo: 11.2 }] };  // apposta fuori ordine
+    const SC = { id: "sx2", nome: "Stabilizzato", unitaPrezzo: "t", prezzo: 10, densita: 1.9, iva: 22,
+      scaglioni: [{ da: 200, sconto: 8 }] };
+    const ND = { id: "sx3", nome: "Misto", unitaPrezzo: "t", prezzo: 6.5, densita: null, iva: 22,
+      scaglioni: [{ da: 100, prezzo: 6 }] };
+    const NUDO = { id: "sx4", nome: "Sabbia", unitaPrezzo: "m3", prezzo: 22, densita: 1.6, iva: 22 };
+    const C5 = { sconto: 5 };
+
+    test("Conti · scaglioni: la scala si ordina da sé e la banda base è il listino, scritta", () => {
+      const v = conti.validaScaglioni(PZ);
+      ok(v.ok, "la scala è valida");
+      eq(v.tipo, "prezzo", "tipo dedotto dalle righe");
+      eq(v.quanti, 2, "due scaglioni scritti");
+      eq(v.scala.map((s) => s.da), [0, 100, 500], "ordinati, anche se scritti al contrario");
+      eq(v.scala.map((s) => s.a), [100, 500, null], "e ogni banda sa dove finisce (l'ultima è aperta)");
+      /* ⛔ la banda base NON è un'inferenza nascosta: è una riga della scala,
+         marcata `implicita`, così la pagina la disegna come le altre. */
+      eq(v.scala[0].implicita, true, "la banda base è marcata implicita");
+      eq(v.scala[0].prezzo, 12, "e vale il prezzo di listino");
+      eq(v.scala[1].implicita, false, "gli scaglioni scritti no");
+      /* ⛔ i buchi e le sovrapposizioni sono IMPOSSIBILI per costruzione con la
+         forma «da»: ogni banda comincia dove finisce la precedente. */
+      for (let i = 1; i < v.scala.length; i++)
+        eq(v.scala[i].da, v.scala[i - 1].a, "nessun buco fra la banda " + (i - 1) + " e la " + i);
+    });
+
+    test("Conti · scaglioni: una scala che non è una scala viene rifiutata, e dice perché", () => {
+      const dop = conti.validaScaglioni({ ...PZ, scaglioni: [{ da: 100, prezzo: 11 }, { da: 100, prezzo: 10 }] });
+      ok(!dop.ok, "due righe dalla stessa quantità: rifiutata");
+      ok(/sovrappongono/.test(dop.problemi[0]), "e il motivo è la sovrapposizione: " + dop.problemi[0]);
+      const mix = conti.validaScaglioni({ ...PZ, scaglioni: [{ da: 100, prezzo: 11 }, { da: 500, sconto: 8 }] });
+      ok(!mix.ok && /mescola/.test(mix.problemi[0]), "prezzi e sconti nella stessa scala: rifiutata");
+      /* stessa regola dell'import del listino: uno zero fa sembrare gratis un
+         prodotto che non lo è, e da lì finisce in un DDT e poi in fattura. */
+      ok(!conti.validaScaglioni({ ...PZ, scaglioni: [{ da: 100, prezzo: 0 }] }).ok, "prezzo zero rifiutato");
+      ok(!conti.validaScaglioni({ ...PZ, scaglioni: [{ da: -5, prezzo: 11 }] }).ok, "soglia negativa rifiutata");
+      ok(!conti.validaScaglioni({ ...SC, scaglioni: [{ da: 100, sconto: 140 }] }).ok, "sconto oltre 100 rifiutato");
+      const nulla = conti.validaScaglioni(NUDO);
+      ok(nulla.ok, "un prodotto senza scaglioni NON è un errore");
+      eq(nulla.quanti, 0, "ha zero scaglioni");
+      eq(nulla.scala, [], "e nessuna banda: la scala vuota non si inventa una base");
+    });
+
+    test("Conti · scaglioni: la soglia appartiene allo scaglione più alto", () => {
+      eq(conti.scaglionePer(PZ, 99.999, "t").prezzoScala, 12, "99,999 t: banda base");
+      eq(conti.scaglionePer(PZ, 100, "t").prezzoScala, 11.2, "100 t esatte: SECONDA banda, non la prima");
+      eq(conti.scaglionePer(PZ, 499.9, "t").prezzoScala, 11.2, "499,9 t: ancora la seconda");
+      eq(conti.scaglionePer(PZ, 500, "t").prezzoScala, 10.5, "500 t esatte: terza banda");
+      eq(conti.scaglionePer(PZ, 1e6, "t").indice, 2, "e sopra l'ultima soglia resta l'ultima banda");
+      eq(conti.scaglionePer(PZ, 0, "t").prezzoScala, 12, "zero cade nella banda base");
+    });
+
+    test("Conti · scaglioni: la quantità si converte nell'unità della scala", () => {
+      const a = conti.scaglionePer(PZ, 70, "m3");   // 70 m³ × 1,5 = 105 t
+      ok(a.calcolabile, "70 m³ di un prodotto listinato a tonnellata: calcolabile");
+      eq(a.quantitaListino, 105, "convertiti in 105 t");
+      eq(a.prezzoScala, 11.2, "quindi seconda banda, non la base");
+      /* ⛔ IL PRINCIPIO DEL FONDATORE. Senza densità NON si sceglie «la più
+         bassa per prudenza» e nemmeno il listino pieno: non si sa, e si dice. */
+      const b = conti.scaglionePer(ND, 70, "m3");
+      eq(b.calcolabile, false, "senza densità la banda NON si sceglie");
+      eq(b.motivo, "densita-mancante", "e il motivo è leggibile da chi chiama");
+      eq(b.prezzoScala, null, "nessun prezzo di ripiego");
+      eq(b.banda, null, "e nessuna banda scelta di nascosto");
+      ok(/densità/.test(b.perche), "il perché lo dice a parole: " + b.perche);
+      /* la stessa cosa senza quantità: la fornitura a chiamata */
+      const c = conti.scaglionePer(PZ, null, "t");
+      eq(c.calcolabile, false, "quantità assente: non calcolabile");
+      eq(c.motivo, "quantita-assente", "e si distingue dal caso della densità");
+      eq(conti.scaglionePer(PZ, "", "t").motivo, "quantita-assente", "la stringa vuota si comporta uguale");
+      /* ⛔ `+null` fa 0 e `Number.isFinite(0)` risponde true: senza la guardia
+         una quantità assente prenderebbe la banda base, cioè il prezzo PIÙ
+         CARO spacciato per scelta. */
+      ok(conti.scaglionePer(PZ, null, "t").prezzoScala !== 12, "e NON ripiega sulla banda base");
+      /* una scala rotta non fa comunque scegliere una banda a caso */
+      const d = conti.scaglionePer({ ...PZ, scaglioni: [{ da: 100, prezzo: 11 }, { da: 100, prezzo: 9 }] }, 300, "t");
+      eq(d.calcolabile, false, "scala non valida: non calcolabile");
+      eq(d.motivo, "scala-non-valida", "e lo dice");
+      /* un prodotto senza scala è calcolabile: non c'è niente da scegliere */
+      const e = conti.scaglionePer(NUDO, 5000, "m3");
+      ok(e.calcolabile, "prodotto senza scaglioni: calcolabile");
+      eq(e.motivo, "nessuna-scala", "con il motivo che lo dice");
+      eq(e.prezzoScala, null, "e nessuna banda");
+    });
+
+    test("Conti · scaglioni: sconto cliente e scaglione si SOMMANO, in un posto solo", () => {
+      /* scala a PREZZI: la banda cambia il prezzo, lo sconto cliente resta suo */
+      const a = conti.applicaScaglione(PZ, 5000, "t", C5);
+      eq(a.prezzoUnitario, 10.5, "il prezzo scende alla banda");
+      eq(a.scontoScaglione, 0, "una scala a prezzi non produce percentuali");
+      eq(a.scontoPct, 5, "e lo sconto resta quello del cliente");
+      eq(conti.imponibileRiga(5000, a.prezzoUnitario, a.scontoPct), 49875, "5000 × 10,50 − 5%");
+      /* scala a SCONTI: il prezzo resta il listino e le due percentuali si sommano */
+      const b = conti.applicaScaglione(SC, 500, "t", C5);
+      eq(b.prezzoUnitario, 10, "il prezzo di listino non si tocca");
+      eq(b.scontoScaglione, 8, "la banda dà 8%");
+      eq(b.scontoPct, 13, "5% cliente + 8% quantità = 13%, non 12,6% a cascata");
+      eq(b.scontoCliente, 5, "e le due metà restano leggibili separatamente");
+      /* ⛔ perché NON si piega la percentuale dentro il prezzo: l'errore di
+         arrotondamento ai centesimi si moltiplica per la quantità. La misura
+         sta nel commento di `applicaScaglione`; qui si prova che il risultato
+         è quello dritto, non quello piegato. */
+      const dritto = Math.round(2230 * 12.34 * 0.92 * 100) / 100;
+      const piegato = Math.round(2230 * (Math.round(12.34 * 0.92 * 100) / 100) * 100) / 100;
+      ok(dritto - piegato > 6, "piegare la % nel prezzo perderebbe " + Math.round((dritto - piegato) * 100) / 100 + " € su 2.230 t");
+      const c = conti.applicaScaglione(SC, 500, "t", { sconto: 0 });
+      eq(c.scontoPct, 8, "senza sconto cliente resta solo quello della quantità");
+      /* il tetto: `imponibileRiga` lo impone comunque, ma la somma lo dichiara */
+      eq(conti.applicaScaglione({ ...SC, scaglioni: [{ da: 0, sconto: 97 }] }, 10, "t", { sconto: 20 }).scontoPct,
+         100, "la somma si ferma a 100");
+    });
+
+    test("Conti · scaglioni: nessuna regressione sui prodotti che non ne hanno", () => {
+      /* la prova che conta di più: chi non usa gli scaglioni deve vedere
+         esattamente i numeri di ieri. */
+      for (const p of conti.DEMO.prodotti.filter((x) => !x.scaglioni)) {
+        const a = conti.applicaScaglione(p, 5000, p.unitaPrezzo, C5);
+        eq(a.prezzoUnitario, conti.round2(p.prezzo), p.nome + ": prezzo di listino intatto");
+        eq(a.scontoPct, 5, p.nome + ": solo lo sconto del cliente");
+      }
+      const senza = { ...PZ, scaglioni: undefined };
+      eq(conti.applicaScaglione(senza, 5000, "t", C5).prezzoUnitario, 12, "e togliere la scala riporta al listino");
+      /* e la conversione del prezzo fra unità è ancora quella di prima */
+      eq(conti.applicaScaglione(PZ, 5000, "m3", C5).prezzoUnitario, conti.round2(10.5 * 1.5),
+         "la banda in €/t si converte in €/m³ con la densità, come il listino");
+      eq(conti.applicaScaglione(ND, 10, "m3", C5).prezzoUnitario, null,
+         "e senza densità il prezzo in un'altra unità resta null, come prima");
+    });
+
+    test("Conti · scaglioni: la riga di preventivo li applica e dice quale ha usato", () => {
+      const r = conti.rigaPreventivo(PZ, 800, C5, "t");
+      eq(r.prezzoUnitario, 10.5, "prezzo della banda");
+      eq(r.scontoPct, 5, "sconto del cliente");
+      eq(r.imponibile, 7980, "800 × 10,50 − 5%");
+      /* ⛔ un prezzo che cambia senza dire perché è un prezzo che il cliente
+         contesta: la banda si FOTOGRAFA sulla riga, come il prezzo. */
+      eq(r.scaglione.da, 500, "la riga porta la soglia usata");
+      eq(r.scaglione.tipo, "prezzo", "e di che forma era la scala");
+      eq(r.scaglione.prezzo, 10.5, "e il prezzo di quella banda");
+      const base = conti.rigaPreventivo(PZ, 50, C5, "t");
+      eq(base.prezzoUnitario, 12, "sotto la prima soglia: listino pieno");
+      eq(base.scaglione, null, "e la banda base non si racconta come uno scaglione applicato");
+      const s = conti.rigaPreventivo(SC, 500, C5, "t");
+      eq(s.scontoPct, 13, "scala a sconti: le due percentuali sommate finiscono in una sola colonna");
+      eq(s.scontoCliente, 5, "e la riga tiene le due metà separate, per chi deve rifare il conto");
+      eq(s.scontoScaglione, 8, "");
+      eq(s.imponibile, conti.imponibileRiga(500, 10, 13), "l'imponibile passa da imponibileRiga, non da un secondo conto");
+    });
+
+    test("Conti · scaglioni: quando il prezzo non si sa, la riga non se lo inventa", () => {
+      /* fornitura a chiamata su un prodotto a scaglioni: il prezzo unitario
+         DIPENDE dalla quantità, e la quantità non c'è. Un prezzo di listino
+         scritto lì sarebbe una promessa che non è stata fatta. */
+      const a = conti.rigaPreventivo(PZ, "", C5, "t");
+      eq(a.quantita, null, "quantità assente");
+      eq(a.prezzoUnitario, null, "e prezzo NON determinato");
+      eq(a.imponibile, null, "quindi nessun imponibile");
+      eq(a.motivoSenzaPrezzo, "quantita-assente", "e chi chiama sa che è un'offerta legittima, non un errore");
+      /* ma su un prodotto SENZA scaglioni la fornitura a chiamata ha ancora il
+         suo prezzo: è quello che faceva prima, e deve continuare a farlo */
+      const b = conti.rigaPreventivo(NUDO, "", C5, "m3");
+      eq(b.prezzoUnitario, 22, "prodotto senza scala: il prezzo bloccato resta");
+      eq(b.motivoSenzaPrezzo, "", "e non c'è niente da spiegare");
+      /* densità mancante: il motivo deve restare quello vecchio, se no la
+         pagina manda a scrivere la cosa sbagliata */
+      const c = conti.rigaPreventivo({ ...NUDO, densita: null }, 10, C5, "t");
+      eq(c.prezzoUnitario, null, "prodotto a m³ senza densità ordinato a tonnellata");
+      eq(c.motivoSenzaPrezzo, "densita-mancante", "il motivo è la densità, non «nessuna scala»");
+    });
+
+    test("Conti · scaglioni: le etichette e la frase, scritte una volta sola", () => {
+      const v = conti.validaScaglioni(PZ);
+      eq(v.scala.map((b) => conti.etichettaScaglione(b, v.unita)),
+         ["fino a 100 t", "da 100 t", "da 500 t in su"], "come si chiamano le tre bande");
+      /* ⚠️ il formattatore si passa da fuori: `toLocaleString("it-IT")` su
+         1500 dà «1500» in Node e «1.500» in Chromium, quindi un'etichetta che
+         formatta da sé sarebbe una prova verde su una stringa che l'utente non
+         vede mai (docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md). */
+      eq(conti.etichettaScaglione({ da: 1500, a: null }, "t", (n) => "«" + n + "»"),
+         "da «1500» t in su", "e il formato del numero lo decide chi chiama");
+      eq(conti.etichettaScaglione({ da: 0, a: null }, "m3"), "qualunque quantità",
+         "una scala di una riga sola che parte da zero non ha soglie da nominare");
+      /* la frase LEGGE la bandiera `calcolabile`: una non-misurabilità che non
+         legge nessuno non protegge niente (regola 20 di run-stile). */
+      ok(/non si può applicare/.test(conti.descriviScaglione(conti.scaglionePer(PZ, null, "t"))),
+         "senza quantità la frase lo dice");
+      ok(/densità/.test(conti.descriviScaglione(conti.scaglionePer(ND, 10, "m3"))),
+         "e senza densità nomina la densità");
+      ok(/listino pieno/.test(conti.descriviScaglione(conti.scaglionePer(PZ, 10, "t"))),
+         "sotto la prima soglia dice che si paga il listino");
+      ok(/non ha scaglioni/.test(conti.descriviScaglione(conti.scaglionePer(NUDO, 10, "m3"))),
+         "e un prodotto senza scala lo dice invece di tacere");
+      ok(/8/.test(conti.descriviScaglione(conti.scaglionePer(SC, 500, "t"))),
+         "la scala a sconti nomina la percentuale");
+    });
+
+    test("Conti · scaglioni: la dimostrazione contiene tutt'e tre le forme", () => {
+      const P = conti.DEMO.prodotti;
+      const conScala = P.filter((p) => conti.validaScaglioni(p).quanti > 0);
+      ok(conScala.length >= 2, "almeno due prodotti d'esempio hanno una scala");
+      const tipi = new Set(conScala.map((p) => conti.validaScaglioni(p).tipo));
+      ok(tipi.has("prezzo") && tipi.has("sconto"), "e ci sono tutt'e due le forme: " + [...tipi].join(", "));
+      for (const p of P) ok(conti.validaScaglioni(p).ok, p.nome + ": la scala d'esempio è valida");
+      /* ⛔ e c'è il caso che il prodotto esiste per raccontare: una scala su un
+         prodotto SENZA densità, ordinato nell'altra unità. */
+      const senzaDens = P.find((p) => !p.densita && conti.validaScaglioni(p).quanti > 0);
+      ok(!!senzaDens, "in dimostrazione c'è un prodotto a scaglioni senza densità");
+      eq(conti.scaglionePer(senzaDens, 300, "m3").motivo, "densita-mancante",
+         "e ordinato a metro cubo dice che non lo sa");
+      /* l'ordine d'esempio che arriva alla banda alta */
+      const o8 = conti.DEMO.ordini.find((o) => o.id === "o8");
+      ok(!!o8 && o8.righe[0].scaglione, "e c'è un ordine d'esempio con lo scaglione fotografato");
+      const rifatta = conti.rigaPreventivo(P.find((p) => p.id === "p2"), 800, conti.DEMO.clienti[0], "t");
+      eq(rifatta.prezzoUnitario, o8.righe[0].prezzoUnitario, "e rifacendola oggi il prezzo torna");
+      eq(rifatta.imponibile, o8.righe[0].imponibile, "e l'imponibile pure");
+      eq(rifatta.scaglione.da, o8.righe[0].scaglione.da, "e la banda pure");
+    });
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// TERRA · DA DOVE VIENE LA DENSITÀ
+// ----------------------------------------------------------------------
+// La densità è il fattore che fa parlare tonnellate e metri cubi, e da lei
+// passano due numeri che escono dall'azienda. Queste prove difendono una cosa
+// sola: che un valore tipico di manuale e un certificato di laboratorio NON
+// finiscano sullo schermo con la stessa faccia — e che una densità di cui non
+// si sa niente si dichiari tale invece di ricadere su «a mano».
+// ══════════════════════════════════════════════════════════════════════
+{
+  console.log("\n— Terra: la provenienza della densità —");
+
+  test("Terra · densitaDichiarata: un `da` fuori vocabolario NON viene corretto a indovinare, ricade su «non dichiarata»", () => {
+    for (const da of [undefined, "", "regione", "istat", "campo", "non dichiarata", 42]) {
+      const o = terra.densitaDichiarata({ densita: 1.9, da });
+      eq(o.da, terra.DENS_NON_DICHIARATA, "con da=" + mostra(da));
+      eq(o.noto, false, "e `noto` è false con da=" + mostra(da));
+    }
+    eq(terra.densitaDichiarata({ densita: 1.9, da: "  ATTO " }).da, terra.DENS_ATTO,
+       "mentre spazi e maiuscole non fanno perdere una fonte vera");
+  });
+
+  test("Terra · densitaDichiarata: una densità assente NON torna indietro come zero", () => {
+    for (const v of [undefined, null, ""]) {
+      const o = terra.densitaDichiarata({ densita: v, da: "atto" });
+      eq(o.densita, null, "densita=" + mostra(v) + ": `+null` fa zero e Number.isFinite(0) dice true");
+      eq(o.leggibile, true, "e non è «illeggibile»: non c'è niente da leggere");
+      eq(o.grezza, "", "e non resta nessun valore grezzo");
+    }
+  });
+
+  test("Terra · densitaDichiarata: CORROTTO e ASSENTE non sono lo stesso stato", () => {
+    const testo = terra.densitaDichiarata({ densita: "1,9", da: "atto" });   // virgola italiana: JS non la legge
+    eq(testo.leggibile, false, "«1,9» salvato come testo non si legge come numero");
+    eq(testo.grezza, "1,9", "e il valore grezzo si conserva, per poterlo mostrare a chi l'ha scritto");
+    const zero = terra.densitaDichiarata({ densita: 0, da: "atto" });
+    eq(zero.leggibile, true, "«0» invece È un numero");
+    eq(zero.densita, null, "ma non è una densità");
+    eq(terra.densitaDichiarata({ densita: -1.9 }).densita, null, "e nemmeno una negativa");
+    eq(terra.densitaDichiarata({ densita: "1.9", da: "atto" }).densita, 1.9,
+       "col punto, invece, si legge: il modulo non riscrive `numeroDaCampo`");
+  });
+
+  test("Terra · densitaDichiarata: è idempotente, se no rileggendo il proprio dato l'errore sparisce", () => {
+    const casi = [null, {}, { densita: 0, da: "atto" }, { densita: "1,9" }, { densita: 1.9 },
+      { densita: 1.9, da: "preset", etichetta: "E", fonte: "F" },
+      { densita: 2.1, da: "laboratorio", quando: "2026-03-04", riferimento: "Cert. 118/26" }];
+    for (const c of casi) {
+      const a = terra.densitaDichiarata(c), b = terra.densitaDichiarata(a);
+      eq(b, a, "secondo giro su " + mostra(c));
+      eq(terra.descriviDensita(a), terra.descriviDensita(c), "e la frase non cambia su " + mostra(c));
+    }
+  });
+
+  test("Terra · densitaPerEnte: un valore tipico non regge davanti a chi lo chiede, un certificato sì", () => {
+    eq(terra.densitaPerEnte({ densita: 1.9, da: "preset", etichetta: "Sabbia e ghiaia" }).perEnte, false,
+       "il preset è letteratura, non una misura di questo materiale");
+    eq(terra.densitaPerEnte({ densita: 1.9, da: "manuale" }).perEnte, false, "«a mano» dice chi, non da dove");
+    eq(terra.densitaPerEnte({ densita: 1.9 }).perEnte, false, "e senza provenienza non regge di sicuro");
+    eq(terra.densitaPerEnte({ densita: 1.95, da: "atto" }).perEnte, true, "il numero prescritto dall'atto regge");
+    eq(terra.densitaPerEnte({ densita: 2.1, da: "laboratorio", quando: "2026-03-04" }).perEnte, true,
+       "e una prova di laboratorio con la sua data");
+  });
+
+  test("Terra · densitaPerEnte: una prova di laboratorio senza data non regge — l'assenza non è un dato favorevole", () => {
+    const nuda = terra.densitaPerEnte({ densita: 2.1, da: "laboratorio" });
+    eq(nuda.perEnte, false, "dichiarata e basta: non c'è niente da esibire");
+    ok(/né la sua data né il riferimento/.test(nuda.perche), "e il motivo dice che cosa manca: " + nuda.perche);
+    const soloRif = terra.densitaPerEnte({ densita: 2.1, da: "laboratorio", riferimento: "Cert. 118/26" });
+    eq(soloRif.perEnte, false, "col solo riferimento non si sa a quando risalga");
+    ok(/non la data/.test(soloRif.perche), "e il motivo lo dice: " + soloRif.perche);
+  });
+
+  test("Terra · densitaPerEnte: il 30 febbraio non scivola al 2 marzo, e non si confonde con «data mancante»", () => {
+    const finta = terra.densitaPerEnte({ densita: 2.1, da: "laboratorio", quando: "2026-02-30" });
+    eq(finta.perEnte, false, "una data che non esiste non vale come data");
+    ok(/non è un giorno che esiste/.test(finta.perche), "e il motivo NON dice che la data manca: " + finta.perche);
+    ok(!/né la sua data/.test(finta.perche),
+       "dire «non risulta la data» a chi l'ha scritta è una bugia dell'app: " + finta.perche);
+  });
+
+  test("Terra · descriviDensita: senza provenienza la frase non somiglia a una tracciatura", () => {
+    const f = terra.descriviDensita({ densita: 1.9 });
+    ok(/provenienza non è dichiarata/.test(f), "lo dice in chiaro: " + f);
+    ok(/non è riconducibile a nessun documento/.test(f), "e dice perché conta: " + f);
+    ok(/1,90 t\/m³/.test(f), "il numero c'è lo stesso: il calcolo si fa, la sua debolezza si dichiara");
+  });
+
+  test("Terra · descriviDensita: quattro provenienze, quattro frasi diverse", () => {
+    const frasi = [
+      terra.descriviDensita({ densita: 1.95, da: "atto", riferimento: "Atto n. 128 del 2021" }),
+      terra.descriviDensita({ densita: 2.1, da: "laboratorio", quando: "2026-03-04", riferimento: "Cert. 118/26" }),
+      terra.descriviDensita({ densita: 1.9, da: "preset", etichetta: "Sabbia e ghiaia (deposito)", fonte: "Geostru" }),
+      terra.descriviDensita({ densita: 1.7, da: "manuale" }),
+    ];
+    eq(new Set(frasi).size, 4, "quattro frasi distinte, se no le fonti si presentano uguali");
+    ok(/Atto n\. 128 del 2021/.test(frasi[0]), "l'atto nomina il documento: " + frasi[0]);
+    ok(/Cert\. 118\/26/.test(frasi[1]) && /04\/03\/2026/.test(frasi[1]), "il laboratorio nomina certificato e data: " + frasi[1]);
+    ok(/fonte: Geostru/.test(frasi[2]) && /confermata con una prova di laboratorio/.test(frasi[2]),
+       "il valore tipico cita la fonte E dice che va confermato: " + frasi[2]);
+    ok(/non risulta il documento da cui viene/.test(frasi[3]), "«a mano» dice il suo limite: " + frasi[3]);
+    for (const f of frasi) ok(/in banco/.test(f), "e tutte dicono che è il peso di volume IN BANCO: " + f);
+  });
+
+  test("Terra · descriviDensita: «non impostata», «testo» e «zero» sono tre frasi diverse", () => {
+    const niente = terra.descriviDensita(null);
+    const testo = terra.descriviDensita({ densita: "1,9" });
+    const zero = terra.descriviDensita({ densita: 0 });
+    eq(new Set([niente, testo, zero]).size, 3, "tre stati, tre frasi");
+    ok(/non impostata/.test(niente), niente);
+    ok(/come testo/.test(testo) && /«1,9»/.test(testo), "e mostra quello che c'è scritto: " + testo);
+    ok(/non può pesare zero/.test(zero), zero);
+    ok(!/non impostata/.test(zero), "uno «0» scritto da qualcuno non è un campo vuoto: " + zero);
+  });
+
+  test("Terra · descriviDensita: fonte dichiarata ma numero assente si dice, non si tace", () => {
+    const f = terra.descriviDensita({ da: "laboratorio", quando: "2026-03-04" });
+    ok(/non impostata/.test(f), f);
+    ok(/risulta dichiarata la provenienza/.test(f), "e dice che la metà scritta c'è: " + f);
+  });
+
+  test("Terra · densitaDellaCava: dal materiale dell'atto esce un valore tipico, dichiarato tale", () => {
+    const d = terra.densitaDellaCava({ materiale: "Sabbia e ghiaia", numeroAtto: "Atto n. 128" });
+    eq(d.da, terra.DENS_PRESET, "il ripiego è il preset del litotipo…");
+    eq(d.densita, 1.9, "…col suo numero");
+    eq(terra.densitaPerEnte(d).perEnte, false, "…e non regge davanti a chi lo chiede");
+    eq(terra.densitaDellaCava({ materiale: "Materiale che non esiste" }).da, terra.DENS_NON_DICHIARATA,
+       "un materiale che nessun preset riconosce non si indovina");
+    eq(terra.densitaDellaCava(null).densita, null, "e senza atto non c'è niente");
+  });
+
+  test("Terra · densitaDellaCava: un numero SENZA fonte non diventa «a mano» — resta «non dichiarata»", () => {
+    const d = terra.densitaDellaCava({ materiale: "Sabbia e ghiaia", densita: 1.95 });
+    eq(d.densita, 1.95, "il numero scritto dall'utente vince sul preset");
+    eq(d.da, terra.DENS_NON_DICHIARATA, "ma nessuno ha detto da dove viene, e l'app non lo inventa");
+    eq(d.noto, false, "quindi `noto` è false");
+  });
+
+  test("Terra · densitaDellaCava: un valore impossibile NON viene sostituito di nascosto dal preset", () => {
+    const zero = terra.densitaDellaCava({ materiale: "Sabbia e ghiaia", densita: 0 });
+    eq(zero.densita, null, "«0» non diventa 1,9: l'errore di chi scrive resta visibile");
+    eq(zero.grezza, "0", "e si conserva per poterglielo mostrare");
+    const testo = terra.densitaDellaCava({ materiale: "Sabbia e ghiaia", densita: "mille", densitaFonte: "atto" });
+    eq(testo.leggibile, false, "e nemmeno un testo diventa un preset");
+    const soloFonte = terra.densitaDellaCava({ materiale: "Sabbia e ghiaia", densitaFonte: "laboratorio" });
+    eq(soloFonte.da, terra.DENS_LABORATORIO, "chi ha dichiarato la fonte senza il numero non si vede sostituire la fonte");
+    eq(soloFonte.densita, null, "e il numero resta mancante");
+  });
+
+  test("Terra · densitaDellaCava: dichiarata «dall'atto», il documento da esibire è l'atto stesso", () => {
+    const d = terra.densitaDellaCava({ materiale: "Sabbia e ghiaia", densita: 1.95,
+                                       densitaFonte: "atto", numeroAtto: "Atto n. 128 del 2021" });
+    eq(d.riferimento, "Atto n. 128 del 2021", "il numero d'atto fa da riferimento se non ce n'è uno più preciso");
+    ok(/Atto n\. 128 del 2021/.test(terra.descriviDensita(d)), "e finisce nella frase");
+    const preciso = terra.densitaDellaCava({ densita: 1.95, densitaFonte: "atto",
+                                             numeroAtto: "Atto n. 128", densitaRiferimento: "art. 7 del disciplinare" });
+    eq(preciso.riferimento, "art. 7 del disciplinare", "ma un riferimento scritto a mano vince");
+  });
+
+  test("Terra · FONTI_DENSITA: la mappa copre tutte le parole del vocabolario, e solo «non dichiarata» è gialla", () => {
+    const voc = [terra.DENS_ATTO, terra.DENS_LABORATORIO, terra.DENS_PRESET,
+                 terra.DENS_MANO, terra.DENS_NON_DICHIARATA];
+    eq(Object.keys(terra.FONTI_DENSITA).length, voc.length, "nessuna voce in più né in meno");
+    for (const v of voc) ok(terra.FONTI_DENSITA[v] && terra.FONTI_DENSITA[v].label, "manca la voce «" + v + "»");
+    const gialle = voc.filter((v) => terra.FONTI_DENSITA[v].cls === "warn");
+    eq(gialle, [terra.DENS_NON_DICHIARATA],
+       "«a mano» è una pratica legittima: un badge giallo su ogni densità battuta a mano si impara a non guardare");
+    /* ⚠️ `label` è la voce di una TENDINA, e a 320 px Chromium taglia oltre i
+       ~30 caratteri: le prime stesure finivano in «Prova di laboratorio sul
+       mate…», cioè il taglio si portava via proprio la differenza fra le due
+       fonti forti. Trovato con uno scatto, tenuto chiuso qui. */
+    for (const v of voc)
+      ok(terra.FONTI_DENSITA[v].label.length <= 30,
+         `«${terra.FONTI_DENSITA[v].label}» è lunga ${terra.FONTI_DENSITA[v].label.length}: a 320 px la tendina la taglia`);
+  });
+
+  /* La regola del `shared/` pretende l'IDENTITÀ, non il comportamento: due
+     copie uguali oggi divergono domani senza che nessuno lo veda. Qui serve
+     due volte — `terra-data.js` ri-esporta questi tre nomi E li importa per
+     usarli dentro `densitaDellaCava`, e un `export … from` non crea un nome
+     locale: la doppia scrittura è il punto in cui una seconda copia potrebbe
+     entrare senza far cadere niente. */
+  test("Terra · le densità di riferimento sono LO STESSO oggetto di shared/, non una copia", () => {
+    ok(terra.densitaDelMateriale === ponti.densitaDelMateriale, "densitaDelMateriale");
+    ok(terra.DENSITA_PRESET === ponti.DENSITA_PRESET, "DENSITA_PRESET");
+    ok(terra.presetDensita === ponti.presetDensita, "presetDensita");
+  });
+
+  /* ⚠️ TRE PROVENIENZE NELL'ECOSISTEMA, E NON SONO LA STESSA IDEA. `origineDi`
+     dice COME è stato calcolato un volume, `provenienzaMisura` di Sentinella
+     dice PER CHE STRADA è entrato un numero già misurato, e questa dice CHI
+     RISPONDE di un fattore di conversione mai misurato in cava. La prova non è
+     una dichiarazione: è lo stesso oggetto passato a due delle tre, che
+     rispondono cose diverse — se un giorno diventassero la stessa cosa, questa
+     cade e il duplicato va in `shared/`. */
+  test("Terra · la provenienza della densità NON è la provenienza del volume", () => {
+    const r = { origine: { da: "visore", cella: 0.5 }, densita: 1.9 };
+    eq(terra.origineDi(r).da, "visore", "per il VOLUME l'origine è il visore…");
+    eq(terra.densitaDichiarata(r).da, terra.DENS_NON_DICHIARATA,
+       "…e per la DENSITÀ, sullo stesso identico oggetto, non risulta niente");
+    ok(terra.origineDi !== terra.densitaDichiarata, "e non sono la stessa funzione");
+    for (const n of ["densitaDichiarata", "densitaPerEnte", "descriviDensita", "densitaDellaCava", "FONTI_DENSITA"])
+      ok(!(n in sentinella), "il nome «" + n + "» non collide con Sentinella: due idee diverse, due nomi diversi");
+  });
+
+  test("Terra · la densità dell'atto d'esempio è quella con cui sono stati costruiti i rapportini", () => {
+    const a = terra.autorizzazioneVigente(terra.DEMO.autorizzazioni);
+    const d = terra.densitaDellaCava(a);
+    eq(d.densita, 1.9, "se cambia, il 2,4% di scostamento della dimostrazione non è più quello");
+    eq(d.da, terra.DENS_PRESET, "e la dimostrazione mostra proprio lo stato del primo giorno: un valore tipico da confermare");
+  });
+}
+
+// ────────────────────────────────────────────────────────────────────────
+console.log("\n— Scudo: il ciclo di vita del DSS (D.Lgs 624/96 art. 6) —");
+// Il DSS c'era già come TIPO di documento con uno stato messo a mano; quello
+// che non c'era è il CICLO. Il cuore di queste prove è il terzo stato: un DSS
+// senza data di revisione non è «aggiornato» e non è «scaduto», è NON
+// DATABILE — il principio del fondatore sul documento che un ispettore chiede
+// per primo in una cava.
+{
+  const OGGI_DSS = new Date(2026, 7, 1);          // 01/08/2026, ora locale
+  const INF_DSS = [
+    { id: "x1", data: "2026-02-03", tipo: "infortunio", gravita: "lieve" },
+    { id: "x2", data: "2025-09-12", tipo: "infortunio", gravita: "lieve" },
+    { id: "x3", data: "2026-05-18", tipo: "near-miss", gravita: "lieve" },
+  ];
+  const conGrave = INF_DSS.concat([{ id: "xg", data: "2026-06-10", tipo: "infortunio", gravita: "grave" }]);
+  const dss = (extra) => ({ id: "c4", titolo: "DSS", tipo: "DSS", cantiereId: "k1", ...extra });
+
+  test("Scudo · cicloDss: senza documento è «assente», e lo dice invece di tacere", () => {
+    const c = scudo.cicloDss(null, INF_DSS, OGGI_DSS);
+    eq(c.stato, "assente");
+    eq(c.noto, false, "un DSS che non vediamo non è un DSS che non esiste");
+    eq(c.presente, false);
+    ok(/da qui non lo vediamo/.test(scudo.descriviCicloDss(c)),
+       "la frase deve dire che è Scudo a non saperlo, non che il documento manchi");
+  });
+
+  /* ⛔ LA PROVA PER CUI ESISTE TUTTO IL RESTO. */
+  test("Scudo · cicloDss: senza data di revisione NON è «aggiornato» né «scaduto», è NON DATABILE", () => {
+    const c = scudo.cicloDss(dss({ stato: "valido" }), INF_DSS, OGGI_DSS);
+    eq(c.stato, "non-databile");
+    eq(c.noto, false);
+    eq(c.giorniDaRevisione, null, "senza revisione non c'è nessuna età da scrivere");
+    eq(c.scadenzaCertificazione, null, "e nessuna scadenza da calcolare");
+    eq(c.statoCertificazione, "senza data");
+    ok(scudo.etichettaCicloDss(c.stato).cls !== "ok",
+       "il badge non può essere verde: è il numero tranquillo dove non è stato misurato niente");
+    ok(scudo.descriviCicloDss(c).startsWith("Non lo sappiamo — "),
+       "la bandiera `noto` deve arrivare fino alla frase");
+  });
+
+  test("Scudo · cicloDss: lo stato «valido» digitato a mano non rende databile il DSS", () => {
+    // due documenti identici salvo lo stato del registro: il ciclo non cambia,
+    // perché quello dice cos'ha digitato qualcuno, questo cosa risulta
+    for (const st of ["valido", "da-rivedere", "scaduto", ""])
+      eq(scudo.cicloDss(dss({ stato: st }), INF_DSS, OGGI_DSS).stato, "non-databile",
+         "stato del registro «" + st + "»: il ciclo si legge dalle date, non dal badge");
+  });
+
+  test("Scudo · cicloDss: una data di revisione ROTTA vale come assente (2026-02-30 non esiste)", () => {
+    const c = scudo.cicloDss(dss({ dssRevisione: "2026-02-30" }), INF_DSS, OGGI_DSS);
+    eq(c.stato, "non-databile", "Date.parse la farebbe scivolare al 2 marzo: `dataISOEsiste` no");
+    eq(c.revisione, null);
+  });
+
+  test("Scudo · cicloDss: un infortunio GRAVE dopo la revisione lo rende «da aggiornare»", () => {
+    const c = scudo.cicloDss(dss({ dssRevisione: "2026-03-01", dssMotivo: "periodica" }), conGrave, OGGI_DSS);
+    eq(c.stato, "da-aggiornare");
+    eq(c.graviDopo, 1);
+    eq(c.noto, true, "qui sappiamo: l'evento è nel registro");
+    eq(scudo.etichettaCicloDss(c.stato).cls, "danger");
+  });
+
+  test("Scudo · cicloDss: un infortunio grave PRIMA della revisione non la fa scattare", () => {
+    // il DSS rivisto DOPO l'evento è il DSS che ha fatto la cosa giusta
+    const c = scudo.cicloDss(dss({ dssRevisione: "2026-07-01" }), conGrave, OGGI_DSS);
+    eq(c.stato, "regolare", "l'evento del 10/06 è già dentro la revisione del 01/07");
+    eq(c.graviDopo, 0);
+    eq(c.graviRegistrati, 1, "ma resta scritto che un grave c'è stato");
+  });
+
+  test("Scudo · cicloDss: l'evento dello STESSO giorno della revisione si considera già dentro", () => {
+    const c = scudo.cicloDss(dss({ dssRevisione: "2026-06-10" }), conGrave, OGGI_DSS);
+    eq(c.graviDopo, 0, "con `>=` una cava che rivede il DSS il giorno dell'incidente resterebbe rossa");
+    eq(c.stato, "regolare");
+  });
+
+  test("Scudo · cicloDss: i near-miss NON fanno scattare l'aggiornamento del DSS", () => {
+    const soloNm = [{ id: "n1", data: "2026-07-20", tipo: "near-miss", gravita: "grave" }];
+    const c = scudo.cicloDss(dss({ dssRevisione: "2026-03-01" }), soloNm, OGGI_DSS);
+    eq(c.graviDopo, 0, "un mancato infortunio non è l'incidente dell'art. 6");
+    eq(c.stato, "regolare");
+  });
+
+  test("Scudo · cicloDss: dopo dodici mesi la certificazione annuale è scaduta", () => {
+    const c = scudo.cicloDss(dss({ dssRevisione: "2025-01-10" }), INF_DSS, OGGI_DSS);
+    eq(c.stato, "certificazione-scaduta");
+    eq(c.scadenzaCertificazione, "2026-01-10");
+    eq(c.statoCertificazione, "scaduta");
+    eq(scudo.etichettaCicloDss(c.stato).cls, "danger");
+  });
+
+  test("Scudo · cicloDss: entro trenta giorni dai dodici mesi è «in scadenza»", () => {
+    const c = scudo.cicloDss(dss({ dssRevisione: "2025-08-20" }), INF_DSS, OGGI_DSS);
+    eq(c.stato, "certificazione-in-scadenza");
+    eq(c.scadenzaCertificazione, "2026-08-20");
+    eq(scudo.etichettaCicloDss(c.stato).cls, "warn");
+  });
+
+  /* La periodicità NON è un numero nuovo: è quella del preset `dss-certif`.
+     Se un giorno cambia là, questa prova cade — ed è quello che deve fare. */
+  test("Scudo · cicloDss: i dodici mesi vengono dal preset «dss-certif», non da un numero scritto due volte", () => {
+    eq(scudo.presetScadenza("dss-certif").mesi, 12, "il preset è la fonte della periodicità");
+    const c = scudo.cicloDss(dss({ dssRevisione: "2026-01-15" }), [], OGGI_DSS);
+    eq(c.scadenzaCertificazione, scudo.dataDaPeriodicita(12, new Date("2026-01-15T00:00:00")),
+       "e la data la calcola `dataDaPeriodicita`, la stessa che precompila i preset");
+  });
+
+  test("Scudo · cicloDss: il 31 non scivola al mese dopo (31/08 + 12 mesi)", () => {
+    eq(scudo.cicloDss(dss({ dssRevisione: "2025-08-31" }), [], OGGI_DSS).scadenzaCertificazione, "2026-08-31");
+    eq(scudo.cicloDss(dss({ dssRevisione: "2025-02-28" }), [], OGGI_DSS).scadenzaCertificazione, "2026-02-28");
+  });
+
+  /* ⛔ Una data di revisione nel FUTURO dava il verde per un anno intero: è la
+     famiglia dello 0% di `avanzamentoLotto`, un numero tranquillo prodotto da
+     un dato sbagliato. */
+  test("Scudo · cicloDss: una revisione datata nel FUTURO non è «regolare», è da correggere", () => {
+    const c = scudo.cicloDss(dss({ dssRevisione: "2027-03-01" }), INF_DSS, OGGI_DSS);
+    eq(c.stato, "revisione-futura");
+    eq(c.noto, false, "su una data falsa non si può dire niente");
+    ok(c.giorniDaRevisione < 0, "l'età del documento è negativa: è il segno del refuso");
+    ok(scudo.etichettaCicloDss(c.stato).cls !== "ok");
+  });
+
+  /* ⛔ IL SECONDO CORNO DEL PRINCIPIO: «nessun infortunio grave registrato»
+     non vuol dire «non serve aggiornarlo». Le modifiche delle lavorazioni
+     Scudo non le vede, e lo deve DIRE anche quando è tutto verde. */
+  test("Scudo · cicloDss: anche da «regolare» dichiara che le modifiche delle lavorazioni non le vede", () => {
+    const c = scudo.cicloDss(dss({ dssRevisione: "2026-03-01" }), INF_DSS, OGGI_DSS);
+    eq(c.stato, "regolare");
+    eq(c.graviRegistrati, 0);
+    const t = scudo.descriviCicloDss(c);
+    ok(/modifiche delle lavorazioni/.test(t) && /non le vede/.test(t),
+       "un verde che tace su quello che non ha guardato è il difetto che questo modulo esiste per non fare");
+    ok(/Scudo non ha registrato nessun infortunio grave/.test(t),
+       "e dice «non ne ho registrati», non «non ce ne sono stati»");
+  });
+
+  test("Scudo · descriviTrasmissioneDss: senza invio non diventa mai un sì", () => {
+    const c = scudo.cicloDss(dss({ dssRevisione: "2026-03-01" }), INF_DSS, OGGI_DSS);
+    eq(c.trasmissioneAllineata, null, "manca una delle due date: non lo sappiamo");
+    ok(/non ne resta traccia/.test(scudo.descriviTrasmissioneDss(c)));
+  });
+
+  test("Scudo · descriviTrasmissioneDss: un invio anteriore alla revisione è un «no» che si sa", () => {
+    const c = scudo.cicloDss(dss({ dssRevisione: "2026-03-01", dssTrasmissione: "2025-11-02" }), INF_DSS, OGGI_DSS);
+    eq(c.trasmissioneAllineata, false, "la versione in vigore non è quella trasmessa");
+    ok(/non risulta trasmessa/.test(scudo.descriviTrasmissioneDss(c)));
+    const b = scudo.cicloDss(dss({ dssRevisione: "2026-03-01", dssTrasmissione: "2026-03-05" }), INF_DSS, OGGI_DSS);
+    eq(b.trasmissioneAllineata, true);
+    ok(/dopo l'ultima revisione/.test(scudo.descriviTrasmissioneDss(b)));
+    eq(scudo.descriviTrasmissioneDss(scudo.cicloDss(null, [], OGGI_DSS)), "",
+       "senza documento non c'è nessuna trasmissione da raccontare");
+  });
+
+  /* Regola 18, ma dal lato giusto: `etichettaCicloDss` è uno `switch` con
+     `default`, quindi non può uccidere la pagina — e la prova pretende che
+     ogni stato che `cicloDss` sa dire abbia la sua etichetta. */
+  test("Scudo · etichettaCicloDss: ogni stato che il ciclo sa dire ha la sua etichetta", () => {
+    const stati = ["assente", "non-databile", "revisione-futura", "da-aggiornare",
+                   "certificazione-scaduta", "certificazione-in-scadenza", "regolare"];
+    for (const s of stati) {
+      const e = scudo.etichettaCicloDss(s);
+      ok(e && e.label && e.cls, "manca l'etichetta di «" + s + "»");
+    }
+    eq(stati.filter((s) => scudo.etichettaCicloDss(s).cls === "ok"), ["regolare"],
+       "un solo stato può essere verde, ed è quello in cui si è guardato e va bene");
+    eq(scudo.etichettaCicloDss("stato-mai-visto").label, "Stato non indicato",
+       "il `default` esiste perché una mappa senza ripiego ucciderebbe la pagina al disegno");
+  });
+
+  /* ⛔ Nata da uno SCATTO: nella riga del Quadro `descriviCicloDss` finiva
+     tagliata da `-webkit-line-clamp:2` a metà di «non è…», cioè proprio dove
+     il principio del fondatore vuole essere letto. La forma corta è una frase
+     INTERA, e la prova pretende che stia dentro il taglio. */
+  test("Scudo · sintesiCicloDss: una frase intera e corta per ogni stato, che la riga del Quadro non tagli", () => {
+    const stati = ["assente", "non-databile", "revisione-futura", "da-aggiornare",
+                   "certificazione-scaduta", "certificazione-in-scadenza", "regolare"];
+    for (const s of stati) {
+      const t = scudo.sintesiCicloDss(s);
+      ok(t && t.length <= 46, "«" + s + "» → «" + t + "» (" + (t || "").length + " caratteri): due righe a 430px non lo reggono");
+      ok(!/…|\.\.\./.test(t), "«" + s + "»: una sintesi non finisce con i puntini, è una frase intera");
+    }
+    eq(new Set(stati.map((s) => scudo.sintesiCicloDss(s))).size, stati.length,
+       "due stati diversi non possono leggersi uguale nella riga del Quadro");
+    eq(scudo.sintesiCicloDss("stato-mai-visto"), "Stato del ciclo non indicato",
+       "il ripiego c'è, e non è una frase tranquilla");
+  });
+
+  test("Scudo · MOTIVI_REVISIONE_DSS: quattro motivi, ognuno con il suo riferimento", () => {
+    eq(scudo.MOTIVI_REVISIONE_DSS.map((m) => m.chiave),
+       ["prima-stesura", "periodica", "dopo-evento", "dopo-modifica"]);
+    for (const m of scudo.MOTIVI_REVISIONE_DSS) {
+      ok(m.nome && m.riferimento, "il motivo «" + m.chiave + "» non porta la sua fonte");
+      ok(/624\/96/.test(m.riferimento), "il riferimento deve nominare la norma, non alludervi");
+    }
+    eq(scudo.motivoRevisioneDss("dopo-evento").nome, "Dopo un infortunio o un incidente");
+    eq(scudo.motivoRevisioneDss("inventato"), null, "una chiave sconosciuta non inventa un motivo");
+    eq(scudo.motivoRevisioneDss(""), null);
+  });
+
+  test("Scudo · dssDiCantiere: solo i DSS di quella cava, dal più recente", () => {
+    const docs = [
+      { id: "a", tipo: "DSS", cantiereId: "k1", dssRevisione: "2025-01-10" },
+      { id: "b", tipo: "DSS", cantiereId: "k1", dssRevisione: "2026-03-01" },
+      { id: "c", tipo: "DVR", cantiereId: "k1" },
+      { id: "d", tipo: "DSS", cantiereId: "k2" },
+    ];
+    eq(scudo.dssDiCantiere(docs, "k1").map((x) => x.id), ["b", "a"]);
+    eq(scudo.dssDiCantiere(docs, "k2").map((x) => x.id), ["d"]);
+    eq(scudo.dssDiCantiere(docs, null), [], "senza cava non si indovina");
+    eq(scudo.dssDiCantiere(null, "k1"), []);
+  });
+
+  /* ⛔ Un DSS in archivio ma appeso a niente farebbe dire «non registrato» su
+     una cava che il suo DSS ce l'ha: un allarme falso manda a rifare un
+     documento che c'è, ed è il modo più veloce per farlo spegnere. */
+  test("Scudo · dssScollegati: i DSS senza cava si contano a parte, non spariscono", () => {
+    const docs = [
+      { id: "a", tipo: "DSS", cantiereId: "k1" },
+      { id: "b", tipo: "DSS" },
+      { id: "c", tipo: "DSS", cantiereId: "" },
+      { id: "d", tipo: "DVR" },
+    ];
+    eq(scudo.dssScollegati(docs).map((x) => x.id), ["b", "c"]);
+    eq(scudo.dssScollegati([]), []);
+  });
+
+  test("Scudo · dssDaSeguire: solo le cave attive, e i rossi davanti", () => {
+    const cant = [
+      { id: "k1", nome: "Cava A", tipo: "cava", stato: "attivo" },
+      { id: "k2", nome: "Cantiere", tipo: "cantiere", stato: "attivo" },
+      { id: "k3", nome: "Cava chiusa", tipo: "cava", stato: "chiuso" },
+      { id: "k4", nome: "Cava B", tipo: "cava", stato: "attivo" },
+    ];
+    const docs = [
+      { id: "a", tipo: "DSS", cantiereId: "k1" },                            // non databile → warn
+      { id: "b", tipo: "DSS", cantiereId: "k4", dssRevisione: "2025-01-10" }, // certif. scaduta → danger
+    ];
+    const r = scudo.dssDaSeguire(docs, cant, INF_DSS, OGGI_DSS);
+    eq(r.map((x) => x.cantiere.id), ["k4", "k1"], "prima il rosso, poi il «non lo sappiamo»");
+    eq(r.map((x) => x.stato), ["certificazione-scaduta", "non-databile"]);
+    ok(!r.some((x) => x.cantiere.id === "k2"), "un cantiere esterno non ha un DSS di cava");
+    ok(!r.some((x) => x.cantiere.id === "k3"), "una cava chiusa non ha lavorazioni da valutare");
+  });
+
+  test("Scudo · dssDaSeguire: una cava attiva SENZA nessun DSS collegato ci entra", () => {
+    const cant = [{ id: "k1", nome: "Cava A", tipo: "cava", stato: "attivo" }];
+    const r = scudo.dssDaSeguire([], cant, INF_DSS, OGGI_DSS);
+    eq(r.length, 1, "è la riga più silenziosa di tutte: non produce niente di rosso, produce un elenco corto");
+    eq(r[0].stato, "assente");
+    eq(scudo.dssDaSeguire([{ id: "a", tipo: "DSS", cantiereId: "k1", dssRevisione: "2026-03-01" }],
+       cant, INF_DSS, OGGI_DSS), [], "e un ciclo regolare non affolla il Quadro");
+  });
+
+  test("Scudo · la dimostrazione contiene il caso per cui il ciclo esiste", () => {
+    const D = scudo.DEMO;
+    const doc = scudo.dssDiCantiere(D.documenti, "k1")[0];
+    ok(doc, "la cava della dimostrazione ha il suo DSS in archivio");
+    eq(doc.stato, "valido", "e il registro lo dice pure «valido»: tre cose rassicuranti");
+    const c = scudo.cicloDss(doc, D.infortuni, OGGI_DSS);
+    eq(c.stato, "non-databile",
+       "…e nessuna delle tre è una data leggibile: è il punto di partenza vero di una cava che carica l'archivio");
+    eq(scudo.dssScollegati(D.documenti), [], "nessun DSS della dimostrazione è appeso a niente");
   });
 }
 

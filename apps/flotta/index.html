@@ -1656,24 +1656,61 @@
     //    dimostrazione il Dumper D3 ha la spesa di officina più alta di tutte
     //    e nessun rifornimento col contatore. Un «0 €/h» lì lo farebbe
     //    sembrare la macchina che costa meno.
+    // ⛔ E IL PERIODO SI SCRIVE, perché il numero è un RAPPORTO e un rapporto
+    //    ha senso solo se sopra e sotto parlano dello stesso periodo. Fino al
+    //    05/08 non era così — sopra tutta l'officina da sempre, sotto le ore
+    //    dei contatori — e sul Dumper D1 il numero veniva più del doppio. Ora
+    //    la finestra è dichiarata sulla riga, e la spesa che ci cade fuori si
+    //    conta: né inclusa di nascosto, né tolta di nascosto.
+    // ⛔ E la finestra va sul TERZO rigo (`.meta.norma`), non appesa in fondo
+    //    al secondo: le righe delle liste tagliano il testo a due righe, e il
+    //    periodo su cui il numero è calcolato è proprio la parte che non si
+    //    può perdere.
+    // ⛔ E LA LISTA VA ORDINATA PER QUELLO CHE IL TITOLO CHIEDE. `costoOrarioMezzo`
+    //    restituisce le righe dalla SPESA più alta (serve a chi guarda i soldi
+    //    spesi), ma questa lista si chiama «quanto costa un'ora»: prendendo
+    //    quell'ordine così com'era, la striscia rossa della prima riga finiva
+    //    sulla macchina più CARA IN TOTALE, che dal 05/08 non è più la più cara
+    //    all'ora — nella dimostrazione la riga rossa era il Dumper D1 a 28,61
+    //    €/h con l'Escavatore E1 a 38,96 in grigio due righe sotto, e la
+    //    pagella qui a fianco diceva l'esatto contrario («Costa di più:
+    //    Escavatore E1»). Due schermate accanto che si smentiscono. Si vede
+    //    solo nello scatto: leggendo il codice l'ordine sembrava giusto.
     const oraMezzi = costoOrarioMezzo(INT, RIF);
-    const conOra = oraMezzi.filter(m => m.euroOra !== null);
+    const conOra = oraMezzi.filter(m => m.euroOra !== null)
+      .slice().sort((a, b) => b.euroOra - a.euroOra || a.mezzo.localeCompare(b.mezzo, "it"));
     const senzOra = oraMezzi.filter(m => m.euroOra === null && m.totale > 0);
+    // ⛔ IL TOTALE SPESO STA SUL TERZO RIGO, e non è una scelta di gusto: le
+    //    righe delle liste tagliano il testo a due righe, e a 320 px lo scatto
+    //    ha mostrato «… speso in tutto su…» con i puntini — cioè proprio il
+    //    numero che questo lavoro esiste per NON far sparire («il totale speso
+    //    resta quello vero»). Il terzo rigo è `.meta.norma` e non si taglia.
+    //    Leggendo il codice non si vedeva: si vede solo nello scatto.
+    const finestraTx = (m) => "Misurato dal <b>" + dataIt(m.da) + "</b> al <b>" + dataIt(m.a)
+      + "</b>, il periodo coperto dalle letture del contatore."
+      + (m.fuori.interventi
+        ? ` Fuori da questo periodo restano <b>${eur(m.fuori.costo)}</b> di officina in `
+          + `${m.fuori.interventi} intervent${m.fuori.interventi === 1 ? "o" : "i"}: `
+          + `su questa macchina hai speso in tutto <b>${eur(m.totale)}</b>, ma quei soldi non `
+          + "vanno divisi per ore che non li riguardano."
+        : ` Tutta l'officina registrata su questa macchina ci cade dentro: il totale speso è <b>${eur(m.totale)}</b>.`)
+      + (m.parziale ? ` <b class="bad">${esc(m.percheParziale.charAt(0).toUpperCase() + m.percheParziale.slice(1))}.</b>` : "");
     $("costo-ora").innerHTML = !oraMezzi.length ? "" : `
       <div class="sec">Quanto costa un'ora di macchina</div>
       ${conOra.map((m, i) => `<div class="item statico ${i === 0 ? "st-danger" : "st-mute"}">
         <div class="info"><div class="name">${esc(m.mezzo)} · <b>${eur(m.euroOra)}</b> <span class="u">/h</span></div>
-          <div class="meta">${eur(m.totale)} in ${numTx(m.ore)} ore misurate ·
-            officina ${eur(m.officina)} + carburante ${eur(m.carburante)}${
-            m.parziale ? ` · <b class="bad">${m.interventiSenzaCosto} intervent${m.interventiSenzaCosto === 1 ? "o" : "i"} senza costo: è un minimo</b>` : ""}</div></div>
+          <div class="meta">${eur(m.spesaInFinestra)} in ${numTx(m.ore)} ore misurate ·
+            officina ${eur(m.officinaInFinestra)} + carburante ${eur(m.carburante)}</div>
+          <div class="meta norma">${finestraTx(m)}</div></div>
       </div>`).join("")}
       ${senzOra.map(m => `<div class="item statico st-warn">
         <div class="info"><div class="name">${esc(m.mezzo)} · <b>non si sa</b></div>
           <div class="meta">${eur(m.totale)} spesi, ma ${esc(m.perche.charAt(0).toLowerCase() + m.perche.slice(1))}</div></div>
       </div>`).join("")}
-      ${conOra.length ? `<div class="note">Si confrontano solo i mezzi di cui si sanno le ore.
-        Per gli altri la spesa c'è, il costo orario no: scrivi il <b>contatore delle ore</b>
-        quando registri un rifornimento e comparirà anche il loro.</div>` : ""}`;
+      ${conOra.length ? `<div class="note">Si confrontano solo i mezzi di cui si sanno le ore, e
+        <b>ogni macchina ha il suo periodo</b>: è quello fra il primo e l'ultimo rifornimento su cui
+        qualcuno ha scritto il contatore. La spesa fatta fuori da lì resta nel totale, ma non in
+        questo rapporto — sarebbero soldi divisi per ore che non li riguardano.</div>` : ""}`;
 
     // ── LA PAGELLA DEL PARCO ─────────────────────────────────────────────
     // «La riparo ancora o la sostituisco» non si risponde con un asse solo,
@@ -2285,9 +2322,10 @@
       ? esc(p.perchePochi) + " Il confronto fra le macchine nasce da lì: scrivi il <b>contatore delle ore</b> "
         + "quando registri un rifornimento, e la pagella si riempie da sola."
       : `Un'ora di macchina costa in media <b>${eur(p.mediaEuroOra)}</b><span class="u">/h</span> in tutta la flotta `
-        + `(${eur(p.spesaMisurata)} di spesa registrata divisi ${numTx(p.oreTotali)} ore coperte dai contatori). `
+        + `(${eur(p.spesaMisurata)} di spesa caduta dentro i periodi misurati, divisi ${numTx(p.oreTotali)} ore coperte dai contatori). `
         + `La disponibilità media è <b>${pctTx(p.mediaDisponibilita)}</b> negli ultimi ${p.finestra} giorni (${periodo}) — `
-        + `i due numeri <b>non coprono lo stesso periodo</b>. Si segnala chi esce dalla banda: oltre il `
+        + `i due numeri <b>non coprono lo stesso periodo</b>, e il costo orario ha per di più `
+        + `<b>un periodo per macchina</b> (quello scritto sotto ogni riga). Si segnala chi esce dalla banda: oltre il `
         + `<b>${BANDA_PAGELLA.costo}%</b> sul costo, oltre <b>${BANDA_PAGELLA.disponibilita} punti</b> sulla disponibilità.`;
     const coda = (!p.misurabile ? " " + esc(p.percheDisponibilita) : "")
       + (p.fuoriParco ? ` Restano fuori dal conto <b>${p.fuoriParco}</b> ${p.fuoriParco === 1 ? "riga di spesa" : "righe di spesa"} `
@@ -2305,8 +2343,16 @@
         ? "Il costo non si può confrontare: " + esc(p.perchePochi || "manca una media di flotta")
       : "La disponibilità non è stata calcolata: si legge solo il costo.";
 
+    // ⛔ IL PERIODO DEL €/h STA SULLA RIGA, NON NEL RIEPILOGO: la finestra dei
+    //    fermi è UNA SOLA per tutto il parco, quella dei contatori è una PER
+    //    MACCHINA (nella dimostrazione tre macchine, tre periodi diversi).
+    //    Scriverne una sola in cima sarebbe una frase falsa su due righe su tre.
     const righe = p.righe.map(r => {
       const [bd, et, st] = PAG_V[r.verdetto];
+      const quando = r.da && r.a
+        ? " Il costo orario è misurato dal " + dataIt(r.da) + " al " + dataIt(r.a)
+          + (r.fuori.interventi ? ", e restano fuori " + eur(r.fuori.costo) + " di officina" : "") + "."
+        : "";
       return `<div class="item statico ${striscia[st] || "st-mute"}">
         <div class="info"><div class="name">${esc(r.mezzo)} · <b>${eur(r.euroOra)}</b><span class="u">/h</span></div>
           <div class="meta">${r.scostamentoCosto == null ? "costo non confrontabile"
@@ -2314,8 +2360,8 @@
             r.disponibilita == null ? "non calcolata" : pctTx(r.disponibilita)
             + (r.scostamentoFermo == null ? "" : " (" + scostTx(r.scostamentoFermo) + " punti)")}${
             r.giorniFermo ? " · " + ggTx(r.giorniFermo) + " di fermo" : ""}${
-            r.parziale ? " · <b class=\"bad\">la spesa è un minimo</b>" : ""}</div>
-          <div class="meta norma">${lettura(r)}</div></div>
+            r.parziale ? " · <b class=\"bad\">" + esc(r.percheParziale || "la spesa è un minimo") + "</b>" : ""}</div>
+          <div class="meta norma">${lettura(r)}${quando}</div></div>
         <div class="acts"><span class="badge ${bd}">${esc(et)}</span></div>
       </div>`;
     }).join("");
@@ -2324,15 +2370,26 @@
     // lavoro. Ci finisce chi ha speso di più senza che nessuno possa dire
     // se sia caro — e un «0 €/h» al suo posto lo farebbe sembrare il più
     // conveniente del parco.
+    // ⛔ E LA STORIA DEI FERMI STA SUL TERZO RIGO, non appesa in fondo al
+    //    secondo. A 320 px il nome «Dumper D3 · non si sa» va a capo, stringe
+    //    la riga di dettaglio, e il taglio a due righe si mangiava prima
+    //    «ancora fermo» e poi «11 giorni di fermo»: cioè, sulla macchina messa
+    //    peggio del parco, proprio la parte per cui sta in quella lista. Il
+    //    terzo rigo (`.meta.norma`) non si taglia. Misurato nello scatto con
+    //    `scrollHeight > clientHeight`, che è la risposta del browser: 2 righe
+    //    tagliate su 21 misurate, adesso 0.
+    const fermoTx = (r) => !r.giorniFermo
+      ? (r.aperti ? "<span class=\"rosso\">Ferma adesso.</span> " : "")
+      : (r.aperti ? "<span class=\"rosso\">Ferma adesso</span>, ha già perso " : "Ha perso ")
+        + ggTx(r.giorniFermo) + " nel periodo. ";
     const senza = p.senzaCosto.map(r => {
       const [bd, et, st] = PAG_V[r.verdetto];
       return `<div class="item statico ${striscia[st] || "st-mute"}">
         <div class="info"><div class="name">${esc(r.mezzo)} · <b>non si sa</b></div>
           <div class="meta">${r.totale ? eur(r.totale) + " spesi" : "nessuna spesa registrata"} · disponibilità ${
-            r.disponibilita == null ? "non calcolata" : pctTx(r.disponibilita)}${
-            r.giorniFermo ? " · " + ggTx(r.giorniFermo) + " di fermo" : ""}${
-            r.aperti ? ", <span class=\"rosso\">ancora fermo</span>" : ""}</div>
-          <div class="meta norma">${esc(r.perche.charAt(0).toUpperCase() + r.perche.slice(1))}</div></div>
+            r.disponibilita == null ? "non calcolata" : pctTx(r.disponibilita)}</div>
+          <div class="meta norma">${fermoTx(r)}${
+            esc(r.perche.charAt(0).toUpperCase() + r.perche.slice(1))}</div></div>
         <div class="acts"><span class="badge ${bd}">${esc(et)}</span></div>
       </div>`;
     }).join("");

@@ -46,13 +46,13 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**1.769 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 01/08: 1387 + 282 + 57 + 26 + 9 + 8):
+**1.832 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 01/08: 1450 + 282 + 57 + 26 + 9 + 8):
 
-E **574 funzioni pure su 574** sono chiamate per nome da quelle prove: tutte e
+E **599 funzioni pure su 599** sono chiamate per nome da quelle prove: tutte e
 sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nessuno ha
 ancora guardato», che è il minimo e finora non c'era.
 
-⚠️ **Quel 574 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
+⚠️ **Quel 599 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
 lo dice («in 6 app»). I condivisi si contano a parte, e sono anche loro al
 100%: `dw-ponti.js` **23/23**, `dw-shell.js` **31/31**, `pointcloud.js`
 **5/5**. Vanno guardati con più attenzione delle app, non con meno: una

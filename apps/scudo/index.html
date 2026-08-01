@@ -1072,6 +1072,37 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   <div class="note esito" id="doc-esito"></div>
   <div class="note">Tocca un documento per cambiarne lo stato (valido → da rivedere → scaduto). Collega il <b>DSS/POS al cantiere</b> e i <b>verbali DPI al lavoratore</b>; l'allegato (foto o scansione firmata) si riapre con la graffetta. In questa fase gli allegati arrivano a ~400 KB; per l'archivio completo serve lo storage del progetto live.</div>
 
+  <!-- ⛔ IL CICLO DI VITA DEL DSS (D.Lgs 624/96 art. 6).
+       Lo stato del registro qui sopra è quello che qualcuno ha DIGITATO
+       l'ultima volta che ci ha pensato; questo è quello che RISULTA dalle
+       date. Sono due cose diverse e stanno una sotto l'altra apposta.
+       Il terzo stato è il motivo per cui il blocco esiste: un DSS senza data
+       di revisione non è «aggiornato» e non è «scaduto», è NON DATABILE. -->
+  <div class="sec">Il DSS e il suo ciclo</div>
+  <div id="dss-riep" class="note recap" style="margin-top:0;"></div>
+  <div id="dss-list" style="margin-top:10px;"></div>
+  <div class="sec">Registra una revisione del DSS</div>
+  <div class="form col">
+    <div class="frow">
+      <select class="dw-input" id="dss-doc" style="flex:2 1 220px;"></select>
+      <select class="dw-input" id="dss-motivo" style="flex:2 1 220px;"></select>
+    </div>
+    <div class="frow">
+      <div class="fld" style="flex:1 1 170px;">
+        <label class="fl" for="dss-rev">Ultima revisione</label>
+        <input class="dw-input" id="dss-rev" type="date">
+      </div>
+      <div class="fld" style="flex:1 1 170px;">
+        <label class="fl" for="dss-tra">Trasmesso all'autorità il</label>
+        <input class="dw-input" id="dss-tra" type="date">
+      </div>
+      <button class="dw-btn" id="btn-dss" style="align-self:flex-end;">Salva il ciclo</button>
+    </div>
+  </div>
+  <div class="note esito" id="dss-esito"></div>
+  <div id="dss-rif" class="form-hint" style="margin-top:8px;"></div>
+  <div class="note">Il DSS si aggiorna <b>quando cambiano le lavorazioni</b> o <b>dopo un incidente</b>, e il datore di lavoro ne <b>certifica ogni anno</b> l'attualità; va <b>trasmesso all'autorità di vigilanza</b> prima dell'inizio dei lavori e dopo gli aggiornamenti. Scudo vede gli infortuni che sono stati registrati qui: <b>le modifiche del cantiere no</b>, quelle le sai solo tu. <b>Nota informativa, non un parere legale</b>: i riferimenti al D.Lgs 624/96 vengono da fonti secondarie e vanno confermati con l'RSPP e il consulente dell'azienda.</div>
+
   <div class="sec">Infortuni e near-miss</div>
   <div id="inf-riep" class="note recap"></div>
   <!-- ⛔ I TRE INDICI, e il campo senza il quale non esistono. Le ore lavorate
@@ -1287,7 +1318,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     TIPI_DOC_APPALTATORE, tipoDocAppaltatore, docDiAppaltatore, qualificaAppaltatore, descriviQualifica,
     documentoCoordinamento, RISCHI_PARTICOLARI, rischioParticolare, NATURE_APPALTO, duvriDovuto,
     costiInterferenze, statoCoordinamento, STATI_COORDINAMENTO, statoAppalto,
-    appaltiDiCantiere, appaltiDiAppaltatore, riepilogoAppalti, appaltatoriDaVerificare } from "./scudo-data.js";
+    appaltiDiCantiere, appaltiDiAppaltatore, riepilogoAppalti, appaltatoriDaVerificare,
+    MOTIVI_REVISIONE_DSS, motivoRevisioneDss, dssDiCantiere, dssScollegati, cicloDss,
+    descriviCicloDss, descriviTrasmissioneDss, etichettaCicloDss, sintesiCicloDss,
+    dssDaSeguire } from "./scudo-data.js";
   import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO, dataISOEsiste,
            controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
@@ -1543,6 +1577,40 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     await refresh();
   };
 
+  /* IL CICLO DEL DSS — le tre date che lo fanno vivere.
+     Il riferimento normativo del motivo scelto compare sotto il form: una
+     periodicità o un obbligo citati senza la loro fonte sono un'affermazione
+     che nessuno può controllare. */
+  function mostraRifDss() {
+    const el = $("dss-rif"); if (!el) return;
+    const m = motivoRevisioneDss(($("dss-motivo") || {}).value || "");
+    el.innerHTML = m ? "<b>" + esc(m.nome) + "</b> — " + esc(m.riferimento) : "";
+  }
+  if ($("dss-motivo")) $("dss-motivo").onchange = mostraRifDss;
+  if ($("btn-dss")) $("btn-dss").onclick = async () => {
+    const id = ($("dss-doc").value || "").trim();
+    const doc = DOC.find(d => d.id === id);
+    if (!doc) {
+      esito("dss-esito", "Prima serve un documento di tipo DSS collegato a una cava: aggiungilo qui sopra, scegliendo il tipo «DSS» e il sito.", "err"); return; }
+    const rev = ($("dss-rev").value || "").trim();
+    const tra = ($("dss-tra").value || "").trim();
+    const mot = ($("dss-motivo").value || "").trim();
+    /* ⛔ La data si PRETENDE, e la ragione è tutta qui: salvare senza revisione
+       lascerebbe il documento non databile facendo credere di aver compilato
+       qualcosa. `dataISOEsiste` e non `Date.parse`: «2026-02-30» non è NaN,
+       JavaScript lo fa scivolare al 2 marzo. */
+    if (!dataISOEsiste(rev)) {
+      esito("dss-esito", "Scrivi la data dell'ultima revisione: è quella che decide tutto il resto. Senza, il DSS resta «non databile» — non «aggiornato» e non «scaduto».", "err"); return; }
+    if (tra && !dataISOEsiste(tra)) {
+      esito("dss-esito", "La data di trasmissione all'autorità di vigilanza non si legge. Lasciala vuota se non la sai: qui un campo vuoto vale più di una data inventata.", "err"); return; }
+    if (!mot) {
+      esito("dss-esito", "Scegli perché il DSS è stato rivisto: prima stesura, revisione periodica, dopo un evento o dopo una modifica delle lavorazioni.", "err"); return; }
+    await db.aggiorna("documenti", doc.id, { dssRevisione: rev, dssMotivo: mot, dssTrasmissione: tra || null });
+    const c = cicloDss({ ...doc, dssRevisione: rev, dssMotivo: mot, dssTrasmissione: tra || null }, INF);
+    esito("dss-esito", "Ciclo del DSS aggiornato. " + descriviCicloDss(c), c.noto ? "success" : "err");
+    await refresh();
+  };
+
   async function refresh() {
     [OPER_CAMPO, SQU_CAMPO] = await Promise.all([
       db.operatoriCampo ? db.operatoriCampo() : null,
@@ -1650,16 +1718,31 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         <div class="meta">${esc(descriviQualifica(r))}</div></div>
         <span class="acts"><span class="badge ${mai ? "warn" : "danger"}">${mai ? "Non verificata" : "Documenti scaduti"}</span><span class="arr">›</span></span></div>`;
     });
+    /* ⛔ IL DSS, NEL QUADRO. È il primo documento che un ispettore chiede in
+       una cava, e finora non compariva da nessuna parte finché non si apriva
+       Documenti. La riga distingue il rosso («va aggiornato», «la
+       certificazione è scaduta») dal giallo del «non lo sappiamo»: sono due
+       lavori diversi — uno è rifare il documento, l'altro è andare a cercare
+       una data — e dirli con la stessa parola è il difetto che questo blocco
+       esiste per non fare. */
+    const dssUrg = dssDaSeguire(DOC, CANT, INF).slice(0, 2).map(r => {
+      const b = etichettaCicloDss(r.stato);
+      return `<div class="item tocca ${striscia[b.cls] || "st-mute"}" onclick="go('doc')" title="Vai al ciclo del DSS">
+        <div class="avatar sup">${I.doc}</div>
+        <div class="info"><div class="name">DSS — ${esc(r.cantiere.nome)}</div>
+        <div class="meta">${esc(sintesiCicloDss(r.stato))}</div></div>
+        <span class="acts"><span class="badge ${b.cls}">${esc(b.label)}</span><span class="arr">›</span></span></div>`;
+    });
     const urg = SCA.filter(s => statoScadenza(s.dataScadenza) !== "regolare")
                    .sort((a, b) => a.dataScadenza < b.dataScadenza ? -1 : 1).slice(0, 5);
-    $("urg-list").innerHTML = (idonUrg.join("") + manUrg.join("") + nomUrg.join("") + aziUrg.join("") + anUrg.join("") + appUrg.join("") + urg.map(sc => {
+    $("urg-list").innerHTML = (idonUrg.join("") + manUrg.join("") + nomUrg.join("") + aziUrg.join("") + anUrg.join("") + appUrg.join("") + dssUrg.join("") + urg.map(sc => {
       const st = statoScadenza(sc.dataScadenza), l = byId[sc.lavoratoreId];
       return `<div class="item tocca ${striscia[B[st][0]]}" onclick="go('scad')" title="Vai allo scadenzario">
         <div class="avatar">${esc(initials(l && l.nome))}</div>
         <div class="info"><div class="name">${esc(l ? l.nome : "Scadenza aziendale")}</div><div class="meta">${esc(sc.descrizione)} · ${fmtData(sc.dataScadenza)}</div></div>
         <span class="acts"><span class="badge ${B[st][0]}">${B[st][1]}</span><span class="arr">›</span></span></div>`;
     }).join("")) || vuoto(I.ok, "Nessuna urgenza",
-        "Idoneità, mansioni, nomine, scadenze e azioni correttive sono tutte in regola, e ogni evento del registro ha la sua analisi della causa. Il quadro resta pulito finché una data non si avvicina.");
+        "Idoneità, mansioni, nomine, scadenze, azioni correttive e ciclo del DSS sono tutti in regola, e ogni evento del registro ha la sua analisi della causa. Il quadro resta pulito finché una data non si avvicina.");
 
     const q = ($("pers-cerca").value || "").trim().toLowerCase();
     const lavVis = LAV.filter(l => !q || (l.nome + " " + (l.ruolo || "")).toLowerCase().includes(q))
@@ -1956,6 +2039,59 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     }).join("")
       || vuoto(I.doc, "Nessun documento",
           "Registra qui DSS, POS, DVR e verbali. Ogni documento porta il suo stato (valido, da rivedere, scaduto) e può avere in allegato la scansione firmata.");
+
+    /* ── IL CICLO DI VITA DEL DSS ────────────────────────────────────
+       Una riga per ogni cava attiva, col suo badge, la ragione per esteso e
+       la riga della trasmissione — che è un obbligo SUO e quindi ha una
+       parola sua: `null` non diventa mai un sì.
+       ⛔ La ragione va in un `form-hint` SOTTO la riga e non nella riga di
+       dettaglio: quelle hanno `-webkit-line-clamp:2`, e proprio la parte che
+       il principio del fondatore esiste per far leggere finirebbe tagliata. */
+    {
+      const cave = CANT.filter(c => c.tipo === "cava" && c.stato !== "chiuso");
+      const cicli = cave.map(c => ({ cantiere: c, ...cicloDss(dssDiCantiere(DOC, c.id)[0] || null, INF) }));
+      const scoll = dssScollegati(DOC);
+      const nonNoti = cicli.filter(x => !x.noto).length;
+      const rossi = cicli.filter(x => etichettaCicloDss(x.stato).cls === "danger").length;
+      /* Il verde si accende solo se TUTTE le cave hanno un ciclo noto e in
+         regola. Nessuna cava in anagrafe non è «tutto a posto»: è una
+         schermata che non dimostra niente, e lo dice. */
+      $("dss-riep").className = "note " + (cave.length && !nonNoti && !rossi ? "recap" : "avviso");
+      $("dss-riep").innerHTML = !cave.length
+        ? "Nessuna cava in anagrafe: senza un sito di tipo «cava» non c'è nessun DSS da seguire, e questo blocco non dimostra niente."
+        : `<b>${cave.length === 1 ? "Una cava" : cave.length + " cave"}</b> in anagrafe · `
+          + `<b class="acc">${rossi}</b> con un adempimento da fare · `
+          + `<b class="acc">${nonNoti}</b> su cui non si può dire niente`
+          + (scoll.length ? `<br>⚠ ${scoll.length === 1 ? "Un DSS è in archivio" : scoll.length + " DSS sono in archivio"} senza nessuna cava collegata: finché è così ${scoll.length === 1 ? "non viene contato" : "non vengono contati"} qui sopra.` : "");
+      $("dss-list").innerHTML = cicli.map(x => {
+        const b = etichettaCicloDss(x.stato);
+        const quando = x.revisione ? "rivisto il " + fmtData(x.revisione) : "nessuna data di revisione";
+        /* ⛔ IL MOTIVO STA FUORI DALLA RIGA DI DETTAGLIO, e ce l'ha messo uno
+           scatto: `.meta` ha `-webkit-line-clamp:2`, e «Dopo una modifica
+           delle lavorazioni» finiva tagliato a «delle…». Sotto, nel
+           `form-hint`, ci sta intero e porta anche la sua norma. */
+        const m = motivoRevisioneDss(x.motivo);
+        return `<div class="item ${striscia[b.cls] || "st-mute"}">
+          <div class="avatar sup">${I.doc}</div>
+          <div class="info"><div class="name">${esc(x.cantiere.nome)}</div>
+          <div class="meta">DSS · ${esc(quando)}</div></div>
+          <span class="acts"><span class="badge ${b.cls}">${esc(b.label)}</span></span></div>
+          <div class="form-hint" style="margin:-2px 0 12px 4px;">${esc(descriviCicloDss(x))}<br>${esc(descriviTrasmissioneDss(x) || "Nessun DSS in archivio per questa cava, quindi nessuna trasmissione da verificare.")}${m ? `<br>Motivo dell'ultima revisione: <b>${esc(m.nome)}</b> — ${esc(m.riferimento)}` : ""}</div>`;
+      }).join("") || vuoto(I.doc, "Nessuna cava",
+          "Il DSS è il documento della <b>cava</b>: aggiungi qui sopra un sito di tipo «cava» e il suo ciclo comincia a essere seguito.");
+
+      // il form: solo i DSS collegati a una cava, e i quattro motivi
+      const dssDoc = DOC.filter(d => d.tipo === "DSS" && d.cantiereId);
+      const selD = $("dss-doc");
+      if (selD) selD.innerHTML = dssDoc.length
+        ? dssDoc.map(d => `<option value="${esc(d.id)}">${esc(d.titolo)}${cById[d.cantiereId] ? " — " + esc(cById[d.cantiereId].nome) : ""}</option>`).join("")
+        : '<option value="">— nessun DSS collegato a una cava —</option>';
+      const selM = $("dss-motivo");
+      if (selM && !selM.children.length)
+        selM.innerHTML = '<option value="">— perché è stato rivisto —</option>'
+          + MOTIVI_REVISIONE_DSS.map(m => `<option value="${m.chiave}">${esc(m.nome)}</option>`).join("");
+      mostraRifDss();
+    }
 
     // ── APPALTI E IMPRESE ESTERNE ────────────────────────────────────
     // Le tre domande dell'art. 26: l'impresa e' qualificata? il documento di
