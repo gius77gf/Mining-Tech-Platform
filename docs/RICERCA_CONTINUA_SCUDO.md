@@ -63,3 +63,98 @@ Letto da `apps/scudo/scudo-data.js` e confermato da `docs/RICERCA_SCUDO_202607.m
 ---
 
 *Ricerca del 01/08/2026. Nessun codice modificato, nessun commit.*
+
+---
+
+## Che cosa chiede davvero un ispettore in una visita a cava (01/08/2026)
+
+**Nota metodologica**: questa sezione riparte dal mondo (cosa chiede un ispettore in Italia) per giungere al delta di Scudo. Le fonti sono ricerche web su D.Lgs 624/96, D.Lgs 81/08, L. 198/2025 e guide pratiche di ispezione ASL. ⚠️ Una sequenza esatta di visita in cava non è reperibile online: quella qui sotto è **dedotta** dai riferimenti normativi e da guide generiche ASL. Le fonti complete sono citate in fondo.
+
+### Il mondo: cosa cerca un ispettore
+
+Un ispettore ASL/ATS competente per industria estrattiva entra in cava e (dedotto, non letto nel dettaglio) ordina i controlli così:
+
+1. **Documenti amministrativi e anagrafe** (10 min): camerale, INPS, INAIL, registri di sorveglianza sanitaria (art. 41).
+2. **Il DSS e il DVR, con le loro firme** (15 min): il DSS è il documento specifico di cava (D.Lgs 624/96 art. 6), deve essere datato, sottoscritto da direttore, sorveglianti, medico e RLS, trasmesso all'ASL prima dell'inizio lavori. Il DVR (art. 28 D.Lgs 81/08) è per tutte le aziende.
+3. **Aggiornamenti e ciclo di vita dei documenti** (15 min): quando l'ultimo infortunio? Il DSS è stato aggiornato dopo? La relazione di stabilità dei fronti (D.Lgs 624/96) è annuale?
+4. **Nomine della sicurezza** (carta): RSPP, medico competente, RLS, sorvegliante (obbligatorio in cava), preposti, addetti primo soccorso e antincendio. Con date di decorrenza, non foto di chiacchiere.
+5. **Appaltatori e subappaltatori**: quando è entrata l'ultima ditta? Ha DURC, visura, DVR? Il DUVRI è firmato?
+6. **Verifiche periodiche attrezzature** (D.M. 11/04/2011): verbali di prima verifica INAIL e controlli successivi.
+7. **Registro infortuni e near-miss** (L. 198/2025): cosa è successo? Il numero di near-miss è credibile? Per ogni evento, è stata avviata un'azione correttiva?
+
+**Tutto il resto** (idoneità sanitaria, corsi, DPI, ispezioni interne) supporta questi pilastri. Niente di quello che chiede l'ispettore è opzionale.
+
+### Il delta: che cosa Scudo tiene e che cosa no
+
+| Categoria | Chiede l'ispettore | Scudo oggi | Completezza |
+|---|---|---|---|
+| **DSS e ciclo di vita** | DSS datato, firmato, trasmesso ASL all'inizio; **aggiornamento obbligatorio dopo ogni infortunio grave o modifica**; certificazione annuale | Ha il tipo di documento "DSS" ✅; niente ciclo di vita (aggiornamento dopo evento, certificazione annuale) ❌ | ~40% |
+| **Relazione stabilità fronti** | Documento obbligatorio annuale (D.Lgs 624/96), su stabilità fronti, caduta massi, franamento — citato persino nelle ispezioni della demo (righe 271, q1) | **Assente**, anche solo come promemoria scadenzario | 0% |
+| **Nomine della sicurezza** | RSPP, medico, RLS, **sorvegliante** (obbligatorio cava), preposti. Con data di decorrenza chiara, consultazione RLS, formazione collegata | Solo come tipo di documento "Nomina"; non c'è anagrafica delle nomine, non c'è organigramma. Sorvegliante è solo un ruolo possibile in anagrafica lavoratori, non una nomina formale | ~20% |
+| **Azioni correttive tracciabili** | Ogni evento (infortunio, near-miss, non conformità ispezione) produce un'azione con responsabile e scadenza; **L. 198/2025 chiede la comunicazione dei dati aggregati su eventi E azioni correttive** | ✅ Esiste il modello `azioni` (righe 16-32 di scudo-data.js) ed è usato nella demo; **NON è visibile o tracciabile dalla schermata "Infortuni"** — non si apre una maschera "Crea azione" dopo un evento | ~50% (traccia nascosta) |
+| **Appaltatori con scadenze** | DURC (120 giorni), visura CCIAA, DVR della ditta, polizza; DUVRI firma doppia; verifiche anti-mafia | Solo come tipo di documento "DUVRI"; **no anagrafica ditte**, no scadenze documenti appaltatore, no verifica | ~10% |
+| **Verifiche attrezzature** | Verbale prima verifica INAIL + controlli successivi per attrezzature soggette (art. 71 D.Lgs 81/08 e D.M. 11/04/2011) | Solo come preset di scadenza aziendale "Verifiche periodiche attrezzature"; nessuna anagrafica attrezzature | ~15% |
+| **Registro DPI specifico** | Consegna per ogni lavoratore con taglia, data, firma (art. 77); **addestramento obbligatorio per DPI III categoria e protettori udito** | ✅ Esiste modello `dpi` (righe 57-60); **nella schermata c'è solo come tipo di documento generico**, non un registro visibile | ~40% |
+| **Infortuni e near-miss aggregati (L. 198/2025)** | Evento, categoria, data, descrizione, luogo; **numero di near-miss per anno/trimestre**; **azioni correttive adottate**; LTIFR calcolato se noto ore lavorate | ✅ Traccia infortuni/near-miss con gravità, luogo, categoria; ❌ Non aggrega per periodo; ❌ Non mostra azioni correttive collegate; ❌ Non calcola LTIFR | ~40% |
+
+### Le cinque proposte più forti
+
+| Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura | Note |
+|---|---|---|---|---|---|
+| **Infortuni** | Azione correttiva non è tracciabile dopo un infortunio o near-miss | Aprire un infortunio della demo (i1, i2): non c'è un bottone "Crea azione correttiva" o "Azioni correlate", nemmeno come link | Piccolo | Nella demo, l'infortunio i1 ha `origineId` in `azioni.a1`. La schermata mostra "Azioni correlate: 1"? Oppure hai aperto `scudo-data.js` per saperlo? | **Motivazione**: L. 198/2025 chiede comunicazione di eventi E azioni. Senza visibilità sono due database disaccoppiati |
+| **Dashboard / Documenti** | Ciclo DSS (aggiornamento dopo evento, certificazione annuale) non è seguito | Aggiungi un infortunio grave; il DSS rimane silente — nessun promemoria "Il DSS va aggiornato", nessun flag rosso sul documento. Che cosa succede il 01/12 di un anno? Nessun avviso "DSS deve essere certificato e trasmesso" | Piccolo | Nel codice: il documento di tipo "DSS" ha una scadenza? Esiste un controllo `dataUltimoAgg` o `dataTrasmissione`? Se no, è una mancanza | **Motivazione**: D.Lgs 624/96 art. 6 richiede aggiornamento dopo modifiche/incidenti e trasmissione annuale. È adempimento legale, non opzionale |
+| **Scadenze / Quadro** | Relazione stabilità fronti non è nemmeno nello scadenzario — è un vuoto totale | Aprire Scadenze: cercare "stabilità", "fronti", "relazione cava". Non esiste nemmeno come preset. In quadro non c'è nemmeno una riga "Relazione fronti" fra gli adempimenti | Piccolissimo | Nella dimostrazione di scudo-data.js, nelle scadenze e nei preset, cercare la parola "fronte" o "stabilità" — non esiste | **Motivazione**: D.Lgs 624/96 obbliga a relazione annuale su stabilità, è il documento più specificamente estrattivo che esista. La sua assenza è evidente ad un ispettore specializzato di cave |
+| **Nomine della sicurezza** | Anagrafica nomine non è visibile — solo come "tipo di documento" generico | La schermata Personale mostra lavoratori, ma non c'è una sezione "Organigramma della sicurezza" che dica "RSPP: Sara Conti, da 16/09/2024, formazione entro X". Gli è tutto appiccicato al registro documenti, invisibile | Medio (riusa gran parte del codice di scadenze) | Nella demo, c'è una schermata che elenca RSPP, RLS, medico, sorvegliante, preposti con date e scadenze formazione? Se no, è assente | **Motivazione**: Quando arriva l'ispettore la prima domanda è "Chi è il vostro RSPP? Da quando? Il preposto è stato nominato per iscritto?" Oggi Scudo non lo sa dire in un secondo |
+| **Appaltatori** | Anagrafica ditte esterne con scadenze DURC, visura, polizza non esiste | La gestione appalti è virtualmente assente. DUVRI è solo un tipo di documento. Quando entra una ditta, dove si registra? Dove si mette il DURC? Chi controlla che sia scaduto? | Medio/Grande (nuovo modulo dati) | Nel codice, esiste una collezione per appaltatori con DURC, visura, polizza e relative scadenze? Oggi la demo ha appaltatori (ap1, ap2, ap3) per il ponte col rilievo di Terra, ma zero gestione scadenze ❌ | **Motivazione**: L. 198/2025 e D.Lgs 81/08 art. 26 richiedono verifica tecnico-professionale e DUVRI per ogni ditta. In cava si alternano autotrasporti, manutentori, perforatori: è controllo costante. Nessun software generalista lo sa fare bene |
+
+### Nota metodologica: quel che è dedotto
+
+- **Sequenza e ordine di visita**: dedotto da D.Lgs 624/96 (DSS), D.Lgs 81/08 (DVR, DUVRI, verifiche), guide ASL generiche. **Non letto nel dettaglio** da una checklist di cava specifica — nessuna fonte online la contiene per nome.
+- **Ciclo DSS e aggiornamento post-incidente**: codificato nell'art. 6 D.Lgs 624/96. La forma esatta della "certificazione annuale" è **dedotta** come obbligo ricorrente, non trovata in un documento che la nomini per nome.
+- **Relazione stabilità fronti**: D.Lgs 624/96 art. 10 lo richiede. Forma, periodicità, sottoscrizioni **non trovate in fonte secondaria**. Letto il riferimento normativo.
+
+**Fonti citate**:
+- [Il documento di sicurezza e salute nel settore estrattivo — Punto Sicuro](https://www.puntosicuro.it/valutazione-dei-rischi-C-59/come-elaborare-il-documento-di-sicurezza-salute-nel-settore-estrattivo-AR-23129/)
+- [D.Lgs 624/96 (Attuazione della direttiva 92/104/CEE relativa alla sicurezza nei lavori in sotterraneo)](https://www.parlamento.it/parlam/leggi/deleghe/96624dl.htm)
+- [D.Lgs 81/08 art. 26 (DUVRI)](https://biblus.acca.it/art-26-dlgs-81-2008/)
+- [L. 198/2025 su near-miss — INAIL e linee guida MLPS](https://www.certifico.com/sicurezza-lavoro/documenti-sicurezza/documenti-riservati-sicurezza/d-l-159-2025-obbligo-comunicazione-mancati-infortuni-near-miss-note)
+- [Verifiche periodiche attrezzature di lavoro](https://www.repertoriosalute.it/wp-content/uploads/2015/11/PO_VADEMECUMSIS.pdf)
+- [Ispezioni ASL — procedure generiche](https://www.secogestsrl.com/checklist-per-affrontare-una-visita-ispettiva-senza-rischi/)
+
+*Ricerca del 01/08/2026. Nessun codice modificato, nessun commit.*
+
+---
+
+## ⛔ Verifica della ricerca del 01/08 — quattro proposte su cinque non reggono
+
+*Verificata contro il codice subito dopo, come pretende la direttiva 4 («niente
+entra in roadmap sulla parola dell'agente»). La regola ha funzionato: **niente
+è entrato**. Il conto sta qui perché il numero serva la prossima volta.*
+
+| # | proposta | verdetto | la prova |
+|---|---|---|---|
+| 1 | «azione correttiva visibile dopo l'evento: la schermata infortuni non le mostra» | **FALSA** | `azioniDiEvento` compare **4 volte** in `apps/scudo/index.html`. La schermata le mostra già. |
+| 2 | ciclo di vita del DSS (aggiornamento dopo evento grave, trasmissione annuale) | **DA VERIFICARE** — l'unica che regge | `DSS` compare 27 volte in `scudo-data.js` e 13 nella pagina: c'è come **tipo di documento** con stato, e c'è il DSS **coordinato** degli appalti. Il *ciclo* (chi lo aggiorna e quando) non è stato ancora guardato riga per riga. |
+| 3 | «relazione annuale stabilità fronti: completamente assente, anche dal radar dello scadenzario» | **FALSA** | `scudo-data.js:1236` — preset di scadenzario `stabilita-fronti`, «Relazione annuale sulla stabilità dei fronti», `mesi: 12`, con il riferimento al D.Lgs 624/96 scritto per esteso. E c'è pure il **modello d'ispezione** «Fronte di cava — stabilità e disgaggio» (794). |
+| 4 | «organigramma della sicurezza: Scudo non lo sa dire in un secondo» | **FALSA** | `NOMINE_RUOLI`, `ruoloNomina`, `nominaAttiva`, `nomineDaSistemare`, `nominaUnaPersona` — cinque funzioni esportate. |
+| 5 | «anagrafica appaltatori: Scudo non ha nemmeno un posto dove registrare una ditta» | **FALSA** | `qualificaAppaltatore`, `docDiAppaltatore`, `appaltiDiAppaltatore`, `appaltatoriDaVerificare`, `tipoDocAppaltatore` + 12 punti nella pagina. Costruito **due ore prima** che la ricerca girasse. |
+
+### E la lezione non è quella che sembra
+
+Verrebbe da dire «i documenti erano vecchi». In parte sì — la #5 è un
+[«non c'è» **scaduto**](../CLAUDE.md) di due ore. Ma le altre tre no: il mandato
+di questa ricerca **elencava i termini da cercare**, e fra quelli c'erano
+`nomina` e `appaltatore` alla lettera. Cioè l'agente aveva la domanda giusta
+scritta davanti e ha risposto senza guardare.
+
+Quindi: **una proposta di ricerca è un candidato, mai un fatto**, e la verifica
+non può stare in capo a chi l'ha scritta — chi scrive una mancanza non ha modo
+di accorgersi di non aver guardato. La difesa che ha retto oggi è quella
+strutturale, non quella del mandato: *niente entra sulla parola dell'agente*.
+La resa misurata di questa tornata è **1 proposta su 5**, e quell'una è
+«da verificare», non «da fare».
+
+⚠️ Il **censimento delle fonti** invece regge, ed è la metà che vale: la
+sequenza di una visita ispettiva, i documenti richiesti e i riferimenti
+normativi restano utili anche adesso che il delta è sbagliato. Non buttare il
+documento: buttare la sua colonna «non c'è».

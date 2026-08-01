@@ -950,6 +950,28 @@ campi interi, file delle macchine.
       **lettura**: la colonna della prova è prosa in sei notazioni e cita ciò
       che esiste accanto a ciò che manca.
 
+- [x] 🔬 **La ricerca di fianco, e la sua resa misurata.** Due tornate `haiku`
+      in parallelo, con lo stesso mandato e lo stesso divieto («ogni "non c'è"
+      porta la prova di aver guardato»), e due esiti opposti — verificati **tutti
+      e due** contro il codice prima di scrivere qualsiasi cosa in roadmap.
+      · **Scudo — che cosa chiede un ispettore**: **4 proposte su 5 FALSE**.
+        Le azioni correttive sull'evento ci sono (`azioniDiEvento`, 4 punti nella
+        pagina), la relazione annuale sulla stabilità dei fronti è un preset
+        dello scadenzario (`scudo-data.js:1236`), le nomine sono cinque funzioni
+        esportate, gli appaltatori erano stati costruiti **due ore prima**. E il
+        mandato **elencava alla lettera** i termini `nomina` e `appaltatore` da
+        cercare: non è solo un documento vecchio, è un agente che aveva la
+        domanda davanti e ha risposto senza guardare. Resa: **1 su 5**, e
+        quell'una è «da verificare».
+      · **Campo — che cosa contiene un rapporto di fine turno**: **3 su 3
+        confermate**, ed è andata a guardare il modulo con termini che il codice
+        non ha invece di riassumere il documento dei concorrenti.
+      La difesa che ha retto è quella **strutturale** (direttiva 4: niente entra
+      sulla parola dell'agente), non quella del mandato. Verifiche scritte in
+      coda a `docs/RICERCA_CONTINUA_SCUDO.md` e `docs/RICERCA_CONTINUA_CAMPO.md`.
+      ⚠️ La metà **buona** anche della tornata sbagliata è il censimento delle
+      fonti: si butta la colonna «non c'è», non il documento.
+
 ### Fatto il 01/08 (notte, secondo ciclo)
 - [x] ⛔ **Il cantiere di Genesi smette di essere una frase e diventa un
       numero.** «Tirarne fuori un modulo dati è un cantiere intero» era scritto
