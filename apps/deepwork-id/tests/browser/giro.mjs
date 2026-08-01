@@ -34,6 +34,17 @@ export const SUPERFICI = [
   ['sentinella', '/apps/sentinella/index.html'],
   ['terra', '/apps/terra/index.html'],
   ['genesi', '/apps/genesi/genesi.html'],
+  /* ⛔ ENTRATE IL 01/08, e la ragione è che i banchi dicevano «tutte le
+     superfici» e ne conoscevano NOVE. `run-stile.mjs` le guardava già da
+     giorni; qui no — quindi su queste due pagine nessun banco ha mai misurato
+     il contrasto, gli id doppi, il fuori-schermo o i bersagli di tocco.
+     Non sono pagine di servizio: la prima è quella in cui finisce chi non ha
+     un permesso — cioè un momento in cui l'utente è già in difficoltà — e la
+     seconda è il portone di Genesi, la prima cosa che si vede.
+     ⚠️ Un elenco tenuto a mano si aggiorna quando qualcuno se ne ricorda: il
+     controllo in fondo a questo file pretende che le due liste combacino. */
+  ['id · non autorizzato', '/apps/deepwork-id/non-autorizzato.html'],
+  ['genesi · accesso', '/apps/genesi/login.html'],
 ];
 
 /* Il core è l'unico che non ha la barra delle sezioni delle app: si naviga con
