@@ -8,12 +8,18 @@
 > | app | righe | assenti confermate | **false** | ⏱️ **scadute** | a metà |
 > |---|---|---|---|---|---|
 > | Scudo | 16 | 9 | 2 | 1 | 4 |
-> | Sentinella | 22 | 17 | 4 | 1 | 0 |
+> | Sentinella | 22 | 15 | 4 | 1 | 0 |
 > | Terra | 11 | 4 | 2 | 2 | 3 |
 > | Campo | 22 | 12 | 2 | 2 | 6 |
 > | Conti | 18 | 11 | **5** | 0 | 2 |
 > | Flotta | 16 | 5 | 3 | 0 | 8 |
-> | **totale** | **105** | **58** | **18** | **6** | **23** |
+> | **totale** | **105** | **56** | **18** | **6** | **23** |
+>
+> ✅ **E due sono già SCESE**, che è il motivo per cui il conto sta scritto: la
+> **catena di custodia del dato** di Sentinella e il suo **audit trail** (a metà)
+> sono stati costruiti la sera del 01/08 **perché quella riga li proponeva**.
+> Una riga che diventa lavoro e poi si aggiorna è una riga che ha fatto il suo
+> mestiere; una che resta ferma mentre il codice cammina è l'arretrato.
 >
 > ⏱️ **E LA COLONNA «SCADUTE» È NATA LA SERA STESSA, con sei righe dentro.**
 > Non sono verifiche **sbagliate**: erano vere quando sono state scritte, e il
@@ -416,10 +422,10 @@ Ogni riga marcata come "non c'è" o "c'è a metà" verificata contro il codice r
 | Portale pubblico per residenti | **CONFERMATO ASSENTE** | Grep su `portale.*pubblico\|public.*portal\|residenti\|cittadini\|trasparenza`: zero match. Unico risultato è commento su "segnalazioni residenti interni", non portale esterno. |
 | Integrazione API | **CONFERMATO ASSENTE** | Grep su `API\|integrazione\|esterna\|webhook\|endpoint` (escludendo Firebase): zero match. Nessuna API pubblica dichiarata. |
 | Smartphone app nativa | **CONFERMATO ASSENTE** | App è PWA Web su Netlify. Grep su `android\|ios\|appstore\|app.*store`: zero match |
-| Audit trail (chi, quando, cosa è cambiato) | **CONFERMATO ASSENTE** | Grep su `audit\|trail\|modifi.*log\|chi.*quando\|changelog`: zero match. Log delle modifiche non presente. |
+| Audit trail (chi, quando, cosa è cambiato) | 🟡 **COLMATA A METÀ IL 01/08** | `correggiLettura` conserva il **primo** valore e l'**ultima** correzione, così una misura corretta dopo l'inserimento non può più sembrare quella originale. Limite dichiarato nel codice: **i passaggi intermedi non si conservano**, e non c'è il «chi» — dentro l'organizzazione i ruoli sono una decisione aperta, non un difetto. |
 | Storico tarature strumenti | ⏱️ **SCADUTA — C'È DAL 01/08** (verifica `e9f9b0d` 16:20 → costruito `76e7937` 16:54, **34 minuti**; oggi `coperturaTaratura`, `statoTaraturaStrumento`, `taratureDelReport`, `parseTaratureCsv`, `abbinaTarature`, `csvTarature`, `allerteTaratura`) | Grep su `calibr\|taratur\|manutenzione\|strumento.*data`: zero match su taratura. Menzione di `PPV_STRUMENTO` è il tipo di fonte, non storico manutenzione. |
 | Certificazione/validazione strumenti | **CONFERMATO ASSENTE** | Grep su `certificazione\|IEC.*61672\|validazione.*strumento`: zero match. Nessuna dichiarazione di conformità IEC/DIN/USBM nel codice. |
-| Catena di custodia dato | **CONFERMATO ASSENTE** | Grep su `catena.*custodia\|provenance\|provenienza.*storico`: zero match. Nessun logging della catena di custodia. |
+| Catena di custodia dato | ✅ **COLMATA IL 01/08** — la riga ha fatto il suo lavoro | `provenienzaMisura`, `descriviProvenienza`, `campiProvenienza`, `composizioneProvenienza`, `correggiLettura` in `sentinella-data.js` (sezione T2d): ogni misura porta se è entrata **da file** (con nome del file e momento) o **a mano**, e una misura di cui non si sa nulla è **«provenienza non dichiarata»** — non «a mano». Il report di conformità dichiara la composizione. |
 | Modellazione dispersione inquinanti | **CONFERMATO ASSENTE** | Grep su `modella\|dispersione\|inquinante\|polverosa`: zero match |
 | Report automatico periodico | **CONFERMATO ASSENTE** | Grep su `report.*automatico\|periodic\|schedule\|cron`: zero match. Report è build manuale via bottone. Periodicità gestita solo per **misure**, non report. |
 | Notifica automatica residenti su reclami | **CONFERMATO ASSENTE** | Grep su `notifica.*residenti\|email.*reclamo\|avviso.*cittadini\|reclamo.*notif`: zero match. Nessun portale pubblico, quindi nessun meccanismo di avviso esterno. |

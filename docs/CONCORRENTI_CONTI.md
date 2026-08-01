@@ -8,12 +8,18 @@
 > | app | righe | assenti confermate | **false** | ⏱️ **scadute** | a metà |
 > |---|---|---|---|---|---|
 > | Scudo | 16 | 9 | 2 | 1 | 4 |
-> | Sentinella | 22 | 17 | 4 | 1 | 0 |
+> | Sentinella | 22 | 15 | 4 | 1 | 0 |
 > | Terra | 11 | 4 | 2 | 2 | 3 |
 > | Campo | 22 | 12 | 2 | 2 | 6 |
 > | Conti | 18 | 11 | **5** | 0 | 2 |
 > | Flotta | 16 | 5 | 3 | 0 | 8 |
-> | **totale** | **105** | **58** | **18** | **6** | **23** |
+> | **totale** | **105** | **56** | **18** | **6** | **23** |
+>
+> ✅ **E due sono già SCESE**, che è il motivo per cui il conto sta scritto: la
+> **catena di custodia del dato** di Sentinella e il suo **audit trail** (a metà)
+> sono stati costruiti la sera del 01/08 **perché quella riga li proponeva**.
+> Una riga che diventa lavoro e poi si aggiorna è una riga che ha fatto il suo
+> mestiere; una che resta ferma mentre il codice cammina è l'arretrato.
 >
 > ⏱️ **E LA COLONNA «SCADUTE» È NATA LA SERA STESSA, con sei righe dentro.**
 > Non sono verifiche **sbagliate**: erano vere quando sono state scritte, e il
