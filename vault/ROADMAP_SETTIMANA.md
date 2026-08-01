@@ -1885,6 +1885,30 @@ campi interi, file delle macchine.
       controprova** che cade. Prossimo passo: lanciarlo **da solo** e leggerlo
       fino in fondo; se anche da solo non finisce, far servire ai banchi una
       **copia** del repository invece della cartella viva.
+- [x] ✅ **SCUDO — L'ANALISI DELLA CAUSA: la schermata** *(01/08)* — la sezione
+      **«Perché succedono»**, la pastiglia **«0 perché»** su ogni evento senza
+      analisi, la riga nelle Urgenze del Quadro e la modale dei cinque perché
+      (tre righe che crescono fino a cinque, le sei famiglie, gli avvisi che
+      **chiedono senza vietare**: le domande compaiono mentre si scrive, quelle
+      che bloccano solo al salvataggio, e chi nomina una persona nell'ultimo
+      perché viene interrogato ma **salva lo stesso**).
+      Applica il principio: `leggibile: false` **non nasconde le righe** ma non
+      disegna nessun grafico e non nomina nessuna tendenza — scrive il motivo
+      («2 eventi analizzati su 6»). Una freccia disegnata su due punti sarebbe
+      un colore tranquillo dove non è stato misurato niente.
+      ⚠️ **Il difetto vero l'ha trovato il confronto affiancato, non il codice.**
+      Misurate le due versioni una accanto all'altra a 430 px: **prima tutte e
+      sei** le righe del registro mandavano la barra dei comandi a capo, con la
+      ✕ da sola in fondo (79 px invece di 44); **dopo, zero**. Non era colpa del
+      lavoro nuovo — era «1 azione chiusa», 120 px, scritta **due volte
+      identica** in due elenchi diversi. Ora è una funzione sola
+      (`badgeAzioni`), e dice «1 chiusa» (73 px), che è anche la forma coerente
+      con la sua vicina «1 da chiudere» — il sostantivo lo omette già.
+      ⚠️ E una **correzione a una mia correzione**: in `2a52a6d` ho scritto che
+      il `git add -A` aveva inghiottito «400 righe della schermata dei lotti di
+      Terra». Vero, ma incompleto: `31f4d5b` portava dentro **anche Scudo**
+      (+348 in `index.html`, +44 in `scudo-data.js`). Una correzione che
+      sottostima il danno è ancora un resoconto sbagliato.
 
 ---
 

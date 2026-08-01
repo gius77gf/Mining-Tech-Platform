@@ -350,7 +350,7 @@
   border-radius:7px; transition:color .15s var(--ease),background .15s var(--ease);
 }
 .arr[data-edit-lav],.arr[data-edit-azi],.arr[data-ren-scad], .arr[data-vai-azi],.arr[data-vai-evt],.arr[data-open-doc],
-.arr[data-isp-apri],.arr[data-nota-voce],.arr[data-vai-isp]{
+.arr[data-isp-apri],.arr[data-nota-voce],.arr[data-vai-isp],.arr[data-analisi]{
   border:1px solid transparent;
 }
 .arr:hover{
@@ -375,9 +375,10 @@
    un'ispezione) restano piccoli come nel core, ma l'area che ascolta il dito
    è alta quanto un bersaglio vero: si allarga l'ombra del tocco, non il
    disegno. Sono scorciatoie di sola navigazione: sbagliare mira non combina
-   guai, porta solo in un'altra pagina. */
-.badge[data-azi-evt],.badge[data-azi-isp]{position:relative}
-.badge[data-azi-evt]::after,.badge[data-azi-isp]::after{
+   guai, porta solo in un'altra pagina — o, per «0 perché», apre una finestra
+   che si chiude con Annulla senza aver scritto niente. */
+.badge[data-azi-evt],.badge[data-azi-isp],.badge[data-analisi]{position:relative}
+.badge[data-azi-evt]::after,.badge[data-azi-isp]::after,.badge[data-analisi]::after{
   content:""; position:absolute; inset:-13px -3px;
 }
 
@@ -1131,7 +1132,24 @@
   const CAUSA_ET = new Map(CAUSE_ANALISI.map(c => [c.chiave, c.etichetta]));
   const CAUSA_ES = new Map(CAUSE_ANALISI.map(c => [c.chiave, c.esempio]));
   const etichettaCausa = (k) => CAUSA_ET.get(k) || String(k || "non scelta");
+  /* Un testo tagliato di netto sembra un difetto («…su tratto di pista con del
+     21/07»): i puntini sono la differenza fra «è tagliato» e «è sbagliato». */
+  const accorcia = (t, n) => { const s = String(t || "").trim();
+    return s.length <= n ? s : s.slice(0, n - 1).trimEnd() + "…"; };
   const famigliaEsempio = (k) => CAUSA_ES.get(k) || "famiglia non più in elenco";
+  /* Le tre risposte della pastiglia delle azioni, in UN posto solo: erano
+     scritte due volte, identiche, in due elenchi diversi — e due copie uguali
+     oggi divergono domani senza che nessuno lo veda.
+     ⚠️ E il testo è corto per MISURA, non per gusto. «1 azione chiusa» occupava
+     120 px: sulla riga di un infortunio — che porta anche la pastiglia del tipo
+     («Infortunio», 90) — la barra dei comandi andava a capo e la ✕ restava sola
+     in fondo, 79 px invece di 44. «1 chiusa» ne occupa 66 e sta in riga; ed è
+     anche la forma coerente con la sua vicina «1 da chiudere», che il
+     sostantivo lo omette già. */
+  const badgeAzioni = (quante, chiuse) =>
+    !quante ? ["warn", "0 azioni"]
+    : chiuse === quante ? ["ok", quante + (quante === 1 ? " chiusa" : " chiuse")]
+    : ["warn", (quante - chiuse) + " da chiudere"];
   const fmtData = (iso) => iso ? iso.split("-").reverse().join("/") : "—";
   // LE UNITÀ DI MISURA NON VANNO MAI IN MAIUSCOLO. Le pillole di stato dei
   // requisiti scrivono i giorni che mancano («3 gg») dentro `.badge`, che è
@@ -1401,7 +1419,7 @@
       return `<div class="item st-warn" style="cursor:pointer" data-analisi="${primo.id}" title="Scrivi perché è successo">
         <div class="avatar sup">${I.allerta}</div>
         <div class="info"><div class="name">Perché è successo non è scritto</div>
-        <div class="meta">${senzaAn.length === 1 ? "Un evento del registro è" : senzaAn.length + " eventi del registro sono"} senza un'analisi della causa · si comincia da ${esc((primo.descrizione || "l'evento").slice(0, 48))} del ${fmtData(primo.data)}</div></div>
+        <div class="meta">${senzaAn.length === 1 ? "Un evento del registro è" : senzaAn.length + " eventi del registro sono"} senza un'analisi della causa · si comincia da quello del ${fmtData(primo.data)}: ${esc(accorcia(primo.descrizione || "evento senza descrizione", 44))}</div></div>
         <span class="acts"><span class="badge warn">${senzaAn.length} senza perché</span><span class="arr">›</span></span></div>`;
     })()] : [];
     const urg = SCA.filter(s => statoScadenza(s.dataScadenza) !== "regolare")
@@ -1784,14 +1802,14 @@
           : esc(rc.motivo))
       + (senzaAn.length
           ? ` <b>${senzaAn.length}</b> ${senzaAn.length === 1 ? "evento è" : "eventi sono"} ancora senza un perché:`
-            + " l'analisi si scrive dal registro qui sotto, con il pulsante <b>Perché?</b>."
+            + " l'analisi si scrive dal registro qui sotto, dalla pastiglia gialla <b>0 perché</b>."
           : "");
     $("cause-list").innerHTML = rc.righe.map(r =>
       `<div class="item st-accent"><div class="info"><div class="name">${esc(r.etichetta)}</div>
         <div class="meta">${esc(famigliaEsempio(r.chiave))}</div></div>
         <span class="acts"><span class="badge">${r.quante} ${r.quante === 1 ? "evento" : "eventi"}</span></span></div>`).join("")
       || vuoto(I.lista, "Nessuna causa registrata",
-          "Il registro dice <b>dove</b> e <b>come</b>, mai <b>perché</b>. Apri un evento qui sotto e tocca <b>Perché?</b>: bastano due risposte per sapere che cosa correggere davvero.");
+          "Il registro dice <b>dove</b> e <b>come</b>, mai <b>perché</b>. Tocca la pastiglia gialla <b>0 perché</b> su un evento qui sotto: bastano due risposte per sapere che cosa correggere davvero.");
     // Il grafico solo quando c'è qualcosa da confrontare E il numero di analisi
     // regge il confronto: con due famiglie su due analisi le barre direbbero
     // una cosa che non è stata misurata.
@@ -1816,23 +1834,30 @@
       // Dall'evento si risale alle sue azioni correttive (e viceversa): è il
       // legame che la L. 198/2025 chiede di poter mostrare.
       const az = azioniDiEvento(AZI, x.id), azChiuse = az.filter(a => a.stato === "chiusa").length;
-      const ab = !az.length ? ["warn", "0 azioni"]
-        : (azChiuse === az.length ? ["ok", az.length + (az.length === 1 ? " azione chiusa" : " azioni chiuse")]
-                                  : ["warn", (az.length - azChiuse) + " da chiudere"]);
+      const ab = badgeAzioni(az.length, azChiuse);
       // Chi ha segnalato: nome se c'è, «segnalazione anonima» se è stata
       // scelta la forma anonima (che è ciò che tiene vivo un registro vero).
       const chi = x.anonimo ? "segnalazione anonima"
         : (byId[x.segnalatoDaId] ? "segnalata da " + esc(byId[x.segnalatoDaId].nome) : "");
       // ⛔ IL PERCHÉ, ACCANTO ALLE AZIONI. Un evento senza analisi NON è un
-      // evento a posto: la pastiglia lo dice con la parola, non con un colore
-      // tranquillo. Chi ce l'ha mostra la FAMIGLIA della causa, che è ciò che
-      // poi si conta nel riepilogo qui sopra.
+      // evento a posto: la pastiglia lo dice con la parola e col giallo, non con
+      // un colore tranquillo.
+      // ⚠️ Le due metà stanno in DUE POSTI diversi di proposito, ed è una
+      // MISURA, non un gusto. La barra dei comandi porta già due pastiglie, il
+      // pulsante «+ Azione» e la ✕: a 430 px restano ~85 px liberi. Provate:
+      // «Causa organizzativa» 156 px e «Senza perché» 108 px mandavano la riga
+      // a capo con la ✕ da sola in fondo (112 px di altezza che diventavano
+      // 164). Quindi: quello che serve VEDERE senza toccare è la MANCANZA, e
+      // sta in una pastiglia corta quanto la sua vicina («0 azioni» 68 px,
+      // «0 perché» 72); la causa di chi l'ha già scritta è un DATO dell'evento
+      // e sta nella riga di dettaglio, insieme al luogo e alla categoria. Per
+      // riaprirla basta la matita, larga 30 px come negli altri elenchi.
       const an = analisiDiEvento(ANA, x.id);
       const anb = an
-        ? `<span class="badge ok" style="cursor:pointer" title="Vedi o correggi l'analisi della causa" data-analisi="${x.id}">Causa ${esc(etichettaCausa(an.causa))}</span>`
-        : `<button class="dw-btn secondary mini" data-analisi="${x.id}" title="Scrivi perché è successo: l'analisi della causa">Perché?</button>`;
+        ? `<span class="arr" style="cursor:pointer" title="Vedi o correggi l'analisi della causa" data-analisi="${x.id}">✎</span>`
+        : `<span class="badge warn" style="cursor:pointer" title="Nessuna analisi della causa: tocca per scrivere perché è successo" data-analisi="${x.id}">0 perché</span>`;
       return `<div class="item ${striscia[tb[0]]}" data-evt="${x.id}"><div class="info"><div class="name">${esc(x.descrizione || x.tipo || "Evento")}</div>
-        <div class="meta">${fmtData(x.data)}${x.luogo ? " · " + esc(x.luogo) : ""}${x.categoria ? " · " + esc(categoriaNearMiss(x.categoria)) : ""}${x.gravita && x.tipo !== "near-miss" ? " · " + esc(x.gravita) : ""}${(+x.giorniAssenza) ? " · " + (+x.giorniAssenza) + " gg assenza" : ""}${chi ? " · " + chi : ""}</div></div>
+        <div class="meta">${fmtData(x.data)}${x.luogo ? " · " + esc(x.luogo) : ""}${x.categoria ? " · " + esc(categoriaNearMiss(x.categoria)) : ""}${x.gravita && x.tipo !== "near-miss" ? " · " + esc(x.gravita) : ""}${(+x.giorniAssenza) ? " · " + (+x.giorniAssenza) + " gg assenza" : ""}${chi ? " · " + chi : ""}${an ? " · causa: " + esc(etichettaCausa(an.causa)) : ""}</div></div>
         <span class="acts"><span class="badge ${tb[0]}">${tb[1]}</span>
         <span class="badge ${ab[0]}" style="cursor:pointer" title="Vedi le azioni correttive di questo evento" data-azi-evt="${x.id}">${ab[1]}</span>
         ${anb}
@@ -1969,10 +1994,7 @@
           ? `${r.conformi} conformi · ${r.nonConformi} non conformi · ${r.na} non applicabili`
           : `${r.fatte} voci compilate su ${r.totale}`,
       ].join(" · ");
-      const ab = naz.length
-        ? (nazChiuse === naz.length ? ["ok", naz.length + (naz.length === 1 ? " azione chiusa" : " azioni chiuse")]
-                                    : ["warn", (naz.length - nazChiuse) + " da chiudere"])
-        : null;
+      const ab = naz.length ? badgeAzioni(naz.length, nazChiuse) : null;
       return `<div class="item ${cls}" data-isp-apri="${i.id}" title="Apri la checklist">
         <div class="avatar sup">${I.lista}</div>
         <div class="info"><div class="name">${esc(i.nome)}</div><div class="meta">${esc(meta)}</div></div>
@@ -3357,12 +3379,14 @@
   // I suggerimenti dentro le caselle: il primo perché è quasi sempre la
   // descrizione del fatto, ed è giusto che lo sia — il lavoro comincia dal
   // secondo. Scriverlo nel campo evita l'errore più comune del metodo.
+  // ⚠️ Corti: un suggerimento più lungo del campo viene TAGLIATO dal browser, e
+  // un consiglio tagliato a metà non consiglia niente. Misurati nel campo vero.
   const AN_SUGG = [
     "Che cosa è successo, in una riga",
-    "E perché è successo? (la prima condizione sotto il fatto)",
+    "E perché è successo?",
     "E perché quella condizione c'era?",
-    "E perché? (se serve — fermarsi prima va benissimo)",
-    "L'ultimo perché: qui sotto ci deve essere qualcosa da correggere",
+    "E perché? (fermarsi prima va bene)",
+    "L'ultimo: che cosa si può correggere?",
   ];
   const anRiga = (i, valore) =>
     `<label class="fl" for="an-p${i}">${i + 1}° perché</label>`
@@ -3509,8 +3533,8 @@
     await refresh();
     const ev = INF.find(x => x.id === rec.eventoId);
     esito("inf-esito", "Analisi salvata per l'evento del " + fmtData(ev ? ev.data : fatta)
-      + ": causa " + etichettaCausa(rec.causa).toLowerCase() + ".", "success",
-      "Analisi salvata: causa " + etichettaCausa(rec.causa).toLowerCase() + ".");
+      + " — causa: " + etichettaCausa(rec.causa) + ".", "success",
+      "Analisi salvata — causa: " + etichettaCausa(rec.causa) + ".");
     // Le domande non bloccano il salvataggio, ma non devono nemmeno sparire con
     // la modale: si ripetono qui, dove si può ancora tornare a correggere.
     const domande = v.avvisi.filter(a => !a.grave);
