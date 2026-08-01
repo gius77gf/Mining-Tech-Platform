@@ -5,21 +5,22 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-08-01 **11:29 UTC**
-**Commit di partenza:** `e85b689`
-**Cosa sta per fare:** leggere l'esito del **giro completo del browser** (39
-banchi, gia' in corso su una copia congelata: la giornata ha toccato le
-dimostrazioni di cinque app su sei e finora e' girato solo
-`stati-non-misurati`), poi ripartire dalla roadmap — il filone degli stati
-«non misurato» e' chiuso, i tre stati veri del censimento sono tutti sotto
-guardia e il resto e' dichiarato in
-`docs/QUANDO_UN_CASO_VA_IN_DIMOSTRAZIONE.md`.
+**Ultimo ciclo riuscito:** 2026-08-01 **15:19 UTC**
+**Commit di partenza:** `2d7dade`
+**Cosa sta per fare:** riprendere da **E8** — le sette pagine affiancate. Il
+foglio a contatto e' gia' fatto e dice che le sei app si leggono come una
+famiglia (barra alta 62 px, titolo di sezione 19 px e 11,5/2,5 in tutte e sei);
+le divergenze misurate sono **l'etichetta della barra in basso scritta a tre
+misure diverse** (8, 8,5 e 9 px, dove il core dice 9) e Genesi che sta fuori
+dalla struttura senza che nessuno l'abbia dichiarato. Intanto gira il **giro
+completo dei 41 banchi** su copia congelata di `2d7dade`.
 
-⚠️ **Correzione, e riguarda proprio questo file.** La riga qui sopra diceva
-«07:45 UTC» ed è stata **scritta a mano, non misurata**: l'orologio del
-contenitore dice 03:43. Un canarino serve a dire al fondatore *quando* la
-routine era viva — un'ora inventata lo rende inutile esattamente come una data
-vecchia. Da qui in avanti l'ora la scrive `date -u`, non io.
+⚠️ **Il blocco precedente ha lasciato una lezione che vale per chi legge questo
+file**: il giro del browser gira su una **copia del committato**, quindi va
+lanciato DOPO il commit — due tentativi sono stati buttati perche' la copia non
+conteneva le modifiche appena fatte (il giro lo dichiara: «2 file NON committati
+restano FUORI da quello che il giro sta provando») e perche' la porta 8823 era
+ancora occupata dal server del giro precedente.
 
 ---
 
