@@ -226,6 +226,59 @@ if (!CONTROPROVA) {
   dice(errori.length === 0, 'conti: nessun errore di pagina', errori[0]);
   await ctx.close();
 }
+
+/* ── Scudo: la CARTELLA del lavoratore ──────────────────────────────────
+   ⛔ Come il DDT, e per la stessa ragione: e' un FOGLIO, e un foglio mente
+   per OMISSIONE. Una sezione vuota su un fascicolo che esce dalla stampante
+   si legge «a questa persona non serve» invece di «non e' stato registrato
+   niente» — e chi lo legge e' un ispettore.
+   Si chiede come lo chiede l'utente: si sceglie la persona, si conferma la
+   modale del core, e si guarda il foglio. */
+if (!CONTROPROVA) {
+  const ctx = await browser.newContext({ viewport: { width: 900, height: 1300 }, locale: 'it-IT' });
+  const p = await ctx.newPage();
+  const errori = [];
+  p.on('pageerror', (e) => errori.push(e.message));
+  await p.goto(`http://localhost:${PORTA}/apps/scudo/index.html?demo=1`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(2400);
+  /* la stampa vera aprirebbe il dialogo del browser e bloccherebbe il banco */
+  await p.evaluate(() => { window.print = () => {}; });
+  await p.click('#nav-pers').catch(() => {});
+  await p.waitForTimeout(600);
+  await p.click('#pers-tabs [data-tab="dpi"]').catch(() => {});
+  await p.waitForTimeout(600);
+
+  const CARTELLE = [
+    ['d1', 'cartella piena', { manca: false, contiene: /Mansioni assegnate/i,
+                               vietato: /non è completa/i }],
+    ['d4', 'cartella incompleta: dichiara le sezioni vuote', { manca: true,
+      contiene: /non è stato registrato niente/i,
+      /* ⛔ e non deve MAI limitarsi a lasciare la sezione bianca: la frase in
+         fondo deve dire come vanno lette */
+      pretende: /non vanno lette come «non dovuto»/i }],
+  ];
+  for (const [id, etichetta, atteso] of CARTELLE) {
+    guardati++;
+    const scelto = await p.selectOption('#dpi-verb-lav', id).then(() => true).catch(() => false);
+    if (!scelto) { dice(false, `scudo: ${etichetta} — non riesco a scegliere ${id}`); continue; }
+    await p.waitForTimeout(300);
+    await p.click('#btn-cartella').catch(() => {});
+    await p.waitForTimeout(500);
+    const conferma = await p.$('#modal-foot .mbtn.primary');
+    if (!conferma) { dice(false, `scudo: ${etichetta} — la modale non ha il bottone di conferma`); continue; }
+    await conferma.click();
+    await p.waitForTimeout(600);
+    const t = await p.evaluate(() => (document.querySelector('#verbale') || {}).innerText || '');
+    if (!t.trim()) { dice(false, `scudo: ${etichetta} — il foglio non si è costruito`); continue; }
+    dice(atteso.contiene.test(t), `scudo: ${etichetta} — il foglio dice quello che deve`, t.slice(0, 90));
+    if (atteso.vietato) dice(!atteso.vietato.test(t), `scudo: ${etichetta} — e non dice quello che non deve`,
+      (t.match(atteso.vietato) || [])[0]);
+    if (atteso.pretende) dice(atteso.pretende.test(t),
+      `scudo: ${etichetta} — spiega come vanno lette le sezioni vuote`, t.slice(-120));
+  }
+  dice(errori.length === 0, 'scudo: nessun errore di pagina', errori[0]);
+  await ctx.close();
+}
 await browser.close();
 
 console.log(`\n${guardati} stati cercati nelle pagine vive${CONTROPROVA ? ' (CONTROPROVA: devono cadere)' : ''}`);

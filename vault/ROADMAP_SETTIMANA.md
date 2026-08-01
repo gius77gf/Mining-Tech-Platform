@@ -2051,6 +2051,18 @@ campi interi, file delle macchine.
       Serve a **impedire il lavoro sbagliato**: chi riprendesse dalla scheda
       vecchia scriverebbe strati dati che esistono, l'errore che `CLAUDE.md`
       elenca fra i più costosi con quattro casi datati.
+- [x] ✅ **IL FASCICOLO SOTTO GUARDIA** *(01/08)* — la cartella era provata solo
+      dal **modulo**, ma il difetto che quella funzione esiste per impedire vive
+      **sul foglio stampato**: il modulo può dire la cosa giusta e la pagina
+      stamparla bianca lo stesso — è esattamente quello che il DDT faceva fino a
+      stamattina. Il banco adesso chiede il foglio **come lo chiede l'utente**
+      (scelta della persona, conferma della modale del core, lettura del foglio)
+      su due casi: cartella piena e cartella incompleta. ⚠️ Due accortezze:
+      `window.print` va spento prima, e il bottone di conferma è `.mbtn.primary`
+      — col selettore sbagliato il banco resta appeso e va in timeout invece di
+      dire perché. Da **32 a 37 prove**, 17 stati. Controprova: rimesse bianche
+      le sezioni vuote, cade — e cade **una** delle due asserzioni, perché
+      sezioni e frase di chiusura sono due strati indipendenti.
 - [x] ✅ **LA CARTELLA DEL LAVORATORE — L'ULTIMO DEI CINQUE** *(01/08, Scudo)* —
       era l'unico pezzo davvero mancante dei «5 documenti da fare per primi»:
       il verbale DPI si stampava, il fascicolo no. `cartellaLavoratore` **non
