@@ -2051,6 +2051,18 @@ campi interi, file delle macchine.
       Serve a **impedire il lavoro sbagliato**: chi riprendesse dalla scheda
       vecchia scriverebbe strati dati che esistono, l'errore che `CLAUDE.md`
       elenca fra i più costosi con quattro casi datati.
+- [x] ✅ **LA PROVA PUNTATA SUL PERCORSO SBAGLIATO** *(01/08)* — scritta la riga
+      del banco sull'**elenco** delle pesate: verde. Poi la controprova: rimesso
+      il difetto, **verde lo stesso**. Caso 3 della tassonomia — la cella della
+      lista legge il **campo grezzo** (`p.quantita == null`), non
+      `quantitaPesata`: rompere quella funzione non cambiava una virgola lì.
+      `quantitaPesata` la consuma **il foglio del DDT**, dove la casella «Volume
+      corrispondente» compare solo se i m³ ci sono — e col difetto ci scriveva
+      **«0,00 m³ (netto ÷ densità 0,00 t/m³)»** su un documento che viaggia col
+      camion. Guardia spostata lì: distingue, e il messaggio contiene la frase
+      falsa per intero. ⚠️ La riga sull'elenco l'ho **tolta**, non tenuta «tanto
+      male non fa»: una prova che sembra guardare una cosa e non la guarda è
+      peggio di nessuna prova. Banco **56/0**, 25 stati.
 - [x] ✅ **ZERO METRI CUBI SU UN DDT** *(01/08, Conti)* — aggiunta in
       dimostrazione la pesata venduta a metro cubo **senza densità e senza
       quantità** (locale: una riga su tredici, quindi passa il criterio scritto

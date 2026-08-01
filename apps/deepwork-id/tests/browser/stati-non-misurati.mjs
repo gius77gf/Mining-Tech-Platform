@@ -122,6 +122,16 @@ const CASI = [
      e il pannello ne mostra tre. Terzo dei cinque stati veri. */
   ['conti', 'da fare adesso: la fattura senza scadenza compare', '#nav-dash', null, '#prio-list',
     /non si sa entro quando/i],
+  /* ⛔ IL CASO PIÙ NETTO PER IL `vietato`. Una pesata venduta a metro cubo
+     senza densità né quantità: la riga scrive «quantità non calcolabile», e
+     accanto NON ci deve essere «0 m³». Qui lo zero non è un colore tranquillo:
+     è una **quantità consegnata** su un documento che viaggia col camion.
+     Aggiungendo questo caso alla dimostrazione è saltato fuori che il modulo
+     lo zero lo scriveva davvero (`+null` fa 0, `Number.isFinite(0)` è true). */
+  ['conti', 'pesata a m³ senza densità: quantità non calcolabile, non «0 m³»',
+    '#nav-pes', null, '#pes-list', /quantità non calcolabile/i, null,
+    { vietato: /2026\/013[\s\S]{0,220}0[,.]00?\s*m³/i,
+      perche: 'su quel DDT non si scrive «0 m³»: sarebbe una consegna dichiarata di niente' }],
   /* «non calcolabile» nel report per l'ente: un indice che non si può
      calcolare lo dichiara invece di stampare uno zero. Delle quattro app che
      sanno dire questa frase, in dimostrazione la mostra **solo** Sentinella —
@@ -146,6 +156,14 @@ const FOGLI_CONTI = [
   ['s1', 'DDT completo a cura del mittente', { manca: false, cura: /mittente/i, causale: /Vendita/ }],
   ['s4', 'DDT a cura di un vettore, col suo nome', { manca: false, cura: /Autotrasporti/i }],
   ['s2', 'DDT senza causale: lo dichiara invece di scrivere «Vendita»', { manca: true, causale: /da indicare/i }],
+  /* ⛔ `quantitaPesata` la consuma IL FOGLIO, non l'elenco: la riga della lista
+     legge il campo grezzo `quantita`, quindi guardarla lì non distingueva
+     niente (caso 3 della tassonomia — l'iniezione non stava su un percorso che
+     la prova esercita). Sul foglio invece la casella «Volume corrispondente»
+     compare **solo se** i m³ ci sono: col difetto (`+null` → 0) comparirebbe
+     con «0,00 m³», cioè un volume consegnato che nessuno ha misurato. */
+  ['d7', 'DDT a m³ senza densità: niente casella del volume, non «0 m³»',
+   { manca: false, senzaVolume: true }],
 ];
 /* la controprova cerca uno stato che nessuna pagina scrive: se la sonda dice
    «trovato» anche questo, non sta guardando dove crede */
@@ -276,12 +294,15 @@ if (!CONTROPROVA) {
         box[(et.textContent || '').trim().toLowerCase()] = (b.innerText || '').replace(et.innerText || '', '').trim();
       }
       return { causale: box['causale del trasporto'] || '', cura: box['trasporto a cura di'] || '',
-               manca: !!el.querySelector('.manca') };
+               manca: !!el.querySelector('.manca'),
+               volume: box['volume corrispondente'] || '' };
     });
     if (!d) { dice(false, `conti: ${etichetta} — il foglio non si è costruito`); continue; }
     dice(d.manca === atteso.manca, `conti: ${etichetta} — il riquadro «non completo» ${atteso.manca ? 'c\'è' : 'non c\'è'}`, d);
     if (atteso.causale) dice(atteso.causale.test(d.causale), `conti: ${etichetta} — causale`, d.causale);
     if (atteso.cura) dice(atteso.cura.test(d.cura), `conti: ${etichetta} — chi trasporta`, d.cura);
+    if (atteso.senzaVolume)
+      dice(!d.volume, `conti: ${etichetta} — la casella del volume non c'è (e non dice «0 m³»)`, d.volume);
   }
   /* ⛔ la regola che riassume tutto: nessun foglio incompleto scrive «Vendita» */
   dice(errori.length === 0, 'conti: nessun errore di pagina', errori[0]);
