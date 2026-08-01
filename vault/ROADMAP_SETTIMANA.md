@@ -2675,6 +2675,18 @@ campi interi, file delle macchine.
       (`["ok", "In regola"]`): cade **una** prova, quella giusta. Regola per le
       prossime: **si sostituisce un valore, non si cancella una riga di una
       struttura** — e il conto dei falliti lo dice subito. **79/0**, 46 stati.
+- [x] ✅ **IL RICETTORE DI CUI NON SI SA QUANTO È LONTANO** *(01/08, Sentinella)*
+      — secondo dei tre stati veri, e non è un dettaglio d'anagrafica: la
+      distanza del ricettore è il **denominatore della distanza scalata** e il
+      primo numero che un ente guarda. La riga lo scriveva gia' e non lo vedeva
+      nessuno (tutti e tre i ricettori d'esempio la distanza ce l'avevano).
+      Aggiunta `rc4`, una cascina registrata dopo un esposto con la distanza da
+      misurare sulla mappa catastale: additiva, nessun punto di misura vi e'
+      collegato. Il `vietato` dice la meta' che conta — **un ricettore senza
+      distanza non e' a zero metri dalla cava**, e uno «0 m» li' sarebbe la
+      lettura piu' allarmante possibile scritta al posto di un dato mai
+      misurato. Controprova: rimessa la guardia sbagliata, la riga torna a dire
+      «0 m dalla cava» e il banco cade. **82/0**, 47 stati.
 
 ---
 

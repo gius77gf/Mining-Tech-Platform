@@ -39,6 +39,18 @@ export const DEMO = {
     { id: "rc1", nome: "Casa Bianchi — via Cava 12", tipo: "abitazione", distanza: 320, classe: "III", soglia: 5, unita: "mm/s", nota: "abitazione più vicina al fronte Sud" },
     { id: "rc2", nome: "Confine Nord — mappale 214", tipo: "confine", distanza: 90, classe: "V", soglia: 20, unita: "mm/s", nota: "confine di proprietà, nessun edificio" },
     { id: "rc3", nome: "Scuola primaria — via Roma 4", tipo: "scuola", distanza: 640, classe: "I", soglia: 40, unita: "µg/m³", nota: "ricettore sensibile: orario scolastico 08–16" },
+    /* ⛔ IL RICETTORE DI CUI NON SI SA QUANTO È LONTANO. La distanza governa la
+       lettura di qualunque livello misurato lì — è il denominatore della
+       distanza scalata e il primo numero che un ente guarda — quindi la sua
+       assenza NON è un dettaglio d'anagrafica: è il motivo per cui su quel
+       ricettore non si può dire quasi niente. La riga lo scrive («distanza non
+       indicata») invece di lasciare il posto vuoto, e prima di oggi non lo
+       vedeva nessuno perché tutti e tre i ricettori la distanza ce l'avevano.
+       Assenza, e additiva: nessun punto di misura è collegato a questo, quindi
+       non cambia nessun conteggio del report.
+       Storia vera: il ricettore lo si aggiunge quando arriva un esposto, e la
+       distanza si misura dopo, sulla mappa catastale. */
+    { id: "rc4", nome: "Cascina Ferrero — strada vicinale", tipo: "abitazione", distanza: null, classe: "", soglia: null, unita: "", nota: "aggiunto dopo un esposto: distanza da misurare sulla mappa catastale" },
   ],
   reclami: [
     { id: "x1", data: "2026-07-17", ora: "10:30", tipo: "vibrazione", ricettoreId: "rc1", chi: "Sig. Bianchi",

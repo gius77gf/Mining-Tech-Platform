@@ -257,6 +257,17 @@ const CASI = [
   ['sentinella', 'indice non calcolabile nel report: lo dichiara', '#nav-rep', null, '#rep-doc',
     /non calcolabile/i, null, { vietato: /non calcolabile[\s\S]{0,40}\b0[.,]?0*\b/i,
                                 perche: 'accanto a «non calcolabile» non si scrive uno zero' }],
+  /* ⛔ Secondo dei tre stati veri del censimento. La distanza del ricettore è
+     il denominatore della distanza scalata e il primo numero che un ente
+     guarda: senza, su quel ricettore non si può dire quasi niente. La riga lo
+     scrive invece di lasciare il posto vuoto — e non lo vedeva nessuno perché
+     tutti e tre i ricettori d'esempio la distanza ce l'avevano.
+     ⚠️ La riga nomina il ricettore: le altre tre dicono «N m dalla cava», e una
+     regex sulla sola frase non avrebbe distinto quale riga stava guardando. */
+  ['sentinella', 'ricettore di cui non si sa quanto è lontano', '#nav-mon', null, '#ric-list',
+    /Cascina Ferrero[\s\S]{0,120}distanza non indicata/i, null,
+    { vietato: /Cascina Ferrero[\s\S]{0,120}\b0\s*m dalla cava/i,
+      perche: 'un ricettore senza distanza non è a zero metri dalla cava' }],
   ['sentinella', 'punto in programma e mai misurato', '#nav-dash', null, '#all-list',
     /nessuna misura registrata/i, null, { vietato: /\d+[\s\u00a0]*[^\s]*\s*\/\s*soglia/i,
                                           perche: 'accanto a «mai misurato» non si scrive nessuna cifra' }],
