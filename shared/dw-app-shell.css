@@ -28,12 +28,20 @@
    ============================================================ */
 
 
-  /* ⚠️ 64 px riservati alla barra in basso — che questa pagina NON ha:
-     misurati, sono altrettanti pixel di vuoto sotto l'ultimo elemento
-     (a 390 px: la pagina è alta 1100, l'ultima cosa finisce a 1036).
-     Non tolti qui di proposito: questa unità doveva restare a costo
-     zero sul disegno, e un ritocco vero si misura da solo. */
-  body.dw { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  /* ⛔ Qui c'erano 64 px riservati alla barra in basso — che questa
+     pagina NON ha. Non era spazio scelto: era spazio **avanzato**, da
+     quando questo foglio serviva anche le app. Misurato: a 390 px la
+     pagina era alta 1100 e l'ultima cosa finiva a 1036; a 360, 1140
+     contro 1076. Restano l'intaglio del telefono e uno stacco
+     **deciso**, uguale a quello che `dw-app-ui.css` dà alle pagine
+     delle app (24 px), così le due metà della famiglia respirano
+     allo stesso modo in fondo.
+     ⛔ E lo stacco sta sul BODY, non sulla `.page`: il messaggio di stato
+     (`#msg`) vive FUORI dalla `.page`, quindi una spaziatura messa lì lo
+     lascia incollato al bordo. Provato con lo stacco sulla `.page`, e lo
+     scatto del fondo pagina lo ha mostrato subito: il numero diceva «56 px
+     in meno» ed era contento, la pagina no. */
+  body.dw { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
 
   /* barra alta — qui è un BLOCCO (titolo sopra, sottotitolo sotto), non
      la riga del core: è la ragione per cui `.top .sub` e `.top h1` di
