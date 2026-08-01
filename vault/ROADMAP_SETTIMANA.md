@@ -2051,6 +2051,21 @@ campi interi, file delle macchine.
       Serve a **impedire il lavoro sbagliato**: chi riprendesse dalla scheda
       vecchia scriverebbe strati dati che esistono, l'errore che `CLAUDE.md`
       elenca fra i più costosi con quattro casi datati.
+- [x] ✅ **IL BANCO ARRIVA AL DOCUMENTO FISCALE** *(01/08)* —
+      `stati-non-misurati.mjs` guardava Scudo e Terra: il caso peggiore della
+      notte — il DDT che scriveva «Vendita» al posto dell'utente — era provato
+      dal modulo e da uno scatto **in scratchpad**, cioè da niente di
+      permanente. Aggiunto Conti, che sta a parte perché il suo caso non è una
+      riga di un elenco ma un **foglio che si costruisce solo quando qualcuno
+      lo chiede** (`#stampa` è vuoto finché non si clicca): il banco lo chiede
+      come lo chiede l'utente e legge tre fogli — completo, a cura di un
+      vettore nominato, e senza causale. ⚠️ Le etichette non si cercano a
+      testo: il CSS le mette in maiuscolo e `innerText` riflette la
+      trasformazione; si leggono le caselle per struttura. Da **13 a 21 prove**,
+      da 6 a 9 stati, da due a **tre app**. Controprova: rimesso il «Vendita»
+      fisso, cade con il difetto scritto nel messaggio. Cade **una prova su
+      21**, ed è giusto — il riquadro rosso lo decide `mancanzeDdt` sul dato:
+      due guardie indipendenti, il caso 2 della tassonomia e non il caso 1.
 - [x] ✅ **IL DDT DICHIARAVA «VENDITA» AL POSTO DELL'UTENTE** *(01/08, Conti)* —
       andando a fare «le anagrafiche cantieri e vettori, l'unico buco di dati
       rimasto», la scheda era di nuovo più vecchia del codice: **la pagina del

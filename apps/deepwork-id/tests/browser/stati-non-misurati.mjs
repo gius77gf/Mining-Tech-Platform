@@ -48,6 +48,20 @@ const CASI = [
   ['terra', 'base dell\'onere non dichiarabile', '#nav-den', null, '#den-oneri', /non è stato misurato/i,
     { dentro: '#den-anni', testo: '2024' }],
 ];
+
+/* ⛔ CONTI STA A PARTE, e non per pigrizia: il suo caso non è una riga di un
+   elenco, è un FOGLIO che si costruisce solo quando qualcuno lo chiede. Il DDT
+   stampava «Causale del trasporto: Vendita» e «Trasporto a cura di: mittente»
+   fissi nel codice — una dichiarazione su un documento fiscale, che è il posto
+   dove questo difetto costa di più. Qui si chiede il foglio come lo chiede
+   l'utente (click su [data-stampa-ddt]) e si legge che cosa c'è scritto.
+   ⚠️ Le etichette NON si cercano a testo: il CSS le mette in maiuscolo e
+   `innerText` riflette la trasformazione. Si leggono le caselle per struttura. */
+const FOGLI_CONTI = [
+  ['s1', 'DDT completo a cura del mittente', { manca: false, cura: /mittente/i, causale: /Vendita/ }],
+  ['s4', 'DDT a cura di un vettore, col suo nome', { manca: false, cura: /Autotrasporti/i }],
+  ['s2', 'DDT senza causale: lo dichiara invece di scrivere «Vendita»', { manca: true, causale: /da indicare/i }],
+];
 /* la controprova cerca uno stato che nessuna pagina scrive: se la sonda dice
    «trovato» anche questo, non sta guardando dove crede */
 const FINTO = [['scudo', 'stato inventato', '#nav-doc', null, '#doc-list', /pinco pallino non misurato/i]];
@@ -113,6 +127,46 @@ for (const [app, casi] of Object.entries(perApp)) {
     if (max) dice(r.altezza <= max * 1.6, `${nome} — non manda la riga a capo`, { riga: r.altezza, sorelle: max });
   }
   dice(errori.length === 0, `${app}: nessun errore di pagina`, errori[0]);
+  await ctx.close();
+}
+
+/* ── Conti: il foglio del DDT ─────────────────────────────────────────── */
+if (!CONTROPROVA) {
+  const ctx = await browser.newContext({ viewport: { width: 430, height: 950 }, locale: 'it-IT' });
+  const p = await ctx.newPage();
+  const errori = [];
+  p.on('pageerror', (e) => errori.push(e.message));
+  await p.goto(`http://localhost:${PORTA}/apps/conti/index.html?demo=1`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(2400);
+  await p.emulateMedia({ media: 'print' });
+  for (const [id, etichetta, atteso] of FOGLI_CONTI) {
+    const chiesto = await p.evaluate((x) => {
+      const b = document.querySelector(`[data-stampa-ddt="${x}"]`);
+      if (!b) return false;
+      b.click(); return true;
+    }, id);
+    guardati++;
+    if (!chiesto) { dice(false, `conti: ${etichetta} — nessun bottone di stampa per ${id}`); continue; }
+    await p.waitForTimeout(450);
+    const d = await p.evaluate(() => {
+      const el = document.querySelector('#stampa .doc');
+      if (!el) return null;
+      const box = {};
+      for (const b of el.querySelectorAll('.box')) {
+        const et = b.querySelector('.et');
+        if (!et) continue;
+        box[(et.textContent || '').trim().toLowerCase()] = (b.innerText || '').replace(et.innerText || '', '').trim();
+      }
+      return { causale: box['causale del trasporto'] || '', cura: box['trasporto a cura di'] || '',
+               manca: !!el.querySelector('.manca') };
+    });
+    if (!d) { dice(false, `conti: ${etichetta} — il foglio non si è costruito`); continue; }
+    dice(d.manca === atteso.manca, `conti: ${etichetta} — il riquadro «non completo» ${atteso.manca ? 'c\'è' : 'non c\'è'}`, d);
+    if (atteso.causale) dice(atteso.causale.test(d.causale), `conti: ${etichetta} — causale`, d.causale);
+    if (atteso.cura) dice(atteso.cura.test(d.cura), `conti: ${etichetta} — chi trasporta`, d.cura);
+  }
+  /* ⛔ la regola che riassume tutto: nessun foglio incompleto scrive «Vendita» */
+  dice(errori.length === 0, 'conti: nessun errore di pagina', errori[0]);
   await ctx.close();
 }
 await browser.close();
