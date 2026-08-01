@@ -10279,6 +10279,47 @@ test("disponibilità: quando i numeri ci sono tutti, il conto è quello", () => 
   ok(campo.DISPONIBILITA_OK > campo.DISPONIBILITA_WARN, "le due soglie sono in ordine");
 });
 
+test("⛔ Campo: un turno ANCORA APERTO non prende il verde, e il 100% dice perché", () => {
+  /* I fermi si registrano DURANTE il turno. Su un turno non ancora chiuso
+     «100%» non vuol dire «è andato tutto bene»: vuol dire «finora nessuno ha
+     scritto niente». È il principio del fondatore nel punto in cui l'assenza è
+     soltanto il fatto che il turno non è ancora finito.
+     Candidato uscito dalla ricerca continua su Campo e RIMISURATO prima di
+     essere creduto: la ricerca diceva «il numero è tranquillo», la misura ha
+     detto che la funzione non sapeva nemmeno se il turno fosse chiuso. */
+  const D = [{ data: "2026-07-20", turno: "Mattino", minuti: 480 }];
+  const lavoro = [{ data: "2026-07-20", turno: "Mattino", titolo: "Perforazione", stato: "in-corso" }];
+  const CHIUSO = [{ data: "2026-07-20", turno: "Mattino", da: "Rossi", a: "Bianchi", ora: "14:05" }];
+
+  const aperto = campo.disponibilitaTurno(lavoro, D, "2026-07-20", "Mattino", []);
+  eq(aperto.pct, 100, "il conto resta 100: nessun fermo registrato");
+  eq(aperto.provvisorio, true, "ma il turno è ancora aperto");
+  eq(aperto.stato, "warn", "e allora NON prende il verde");
+  ok(/non è ancora chiuso/.test(aperto.motivo), "e lo dice");
+  ok(/non che il turno stia andando bene/.test(aperto.motivo),
+     "col caso peggiore nominato: zero fermi su un turno aperto");
+
+  const chiuso = campo.disponibilitaTurno(lavoro, D, "2026-07-20", "Mattino", CHIUSO);
+  eq(chiuso.provvisorio, false, "a turno chiuso non è più provvisorio");
+  eq(chiuso.stato, "ok", "e il verde è meritato: qualcuno ha dichiarato finito il turno");
+  eq(chiuso.motivo, "", "e non c'è niente da spiegare");
+
+  /* ⚠️ E se chi chiama NON passa le chiusure, la funzione non si inventa una
+     risposta rassicurante: dice «non lo so». Vale per lei come per il
+     prodotto. */
+  const nonDetto = campo.disponibilitaTurno(lavoro, D, "2026-07-20", "Mattino");
+  eq(nonDetto.provvisorio, null, "senza chiusure: non lo so, non «è chiuso»");
+  eq(nonDetto.stato, "ok", "e il comportamento di prima resta invariato");
+
+  /* un turno aperto CON un fermo misurato: il numero può solo scendere */
+  const conFermo = campo.disponibilitaTurno(
+    lavoro.concat([{ data: "2026-07-20", turno: "Mattino", stato: "anomalia", causale: "Guasto", fermoMin: 48 }]),
+    D, "2026-07-20", "Mattino", []);
+  eq(conFermo.pct, 90, "480 − 48");
+  eq(conFermo.stato, "warn", "aperto: niente verde");
+  ok(/può solo scendere/.test(conFermo.motivo), "e la ragione è quella giusta, non quella dello zero");
+});
+
 /* ══ FLOTTA: LA SEGNALAZIONE DI UN GUASTO ══ */
 test("GRAVITA_GUASTO: tre livelli, una sola «alta», tutti spiegati", () => {
   const g = flotta.GRAVITA_GUASTO;

@@ -1001,7 +1001,7 @@ export const DISPONIBILITA_WARN = 70;
 // percentuale è un MASSIMO («al più»), non una misura, e chi la mostra deve
 // dirlo.
 // Pura e testabile.
-export function disponibilitaTurno(attivita, durate, data, turno) {
+export function disponibilitaTurno(attivita, durate, data, turno, chiusure) {
   const d = String(data || ""), t = String(turno || "");
   const delTurno = (attivita || []).filter(a => a
     && String(a.data || "") === d && String(a.turno || "") === t);
@@ -1026,6 +1026,17 @@ export function disponibilitaTurno(attivita, durate, data, turno) {
       : null,
     lavoratiMin: null, pct: null, parziale: false,
     stato: "non-calcolabile", mancano: [], motivo: "",
+    // ⛔ `provvisorio` distingue un turno FINITO da uno ANCORA IN CORSO, e non
+    //    è una sfumatura: i fermi si registrano DURANTE il turno, quindi su un
+    //    turno aperto «100%» non vuol dire «è andato tutto bene», vuol dire
+    //    «finora nessuno ha scritto niente». È il principio del fondatore —
+    //    l'assenza di un dato non è un dato favorevole — nel punto in cui
+    //    l'assenza è solo il fatto che il turno non è ancora finito.
+    //    Tre valori, e il terzo conta: `true` aperto, `false` chiuso, `null`
+    //    quando chi chiama non ha passato le chiusure, cioè «non lo so» —
+    //    perché anche la funzione, di ciò che non le è stato dato, non deve
+    //    inventarsi una risposta rassicurante.
+    provvisorio: chiusure === undefined ? null : !turnoChiuso(chiusure, d, t),
   };
   // `mancano` porta i CODICI (per chi deve decidere cosa mostrare), `motivo`
   // la frase per chi legge: due mestieri diversi nello stesso oggetto, ma non
@@ -1074,13 +1085,28 @@ export function disponibilitaTurno(attivita, durate, data, turno) {
   // com'è andato. Si decide QUI e non nella pagina, se no il prossimo posto che
   // mostra questo numero ricomincia a dipingerlo di verde.
   if (out.parziale && out.stato === "ok") out.stato = "warn";
+  // E NEMMENO UNA MISURA ANCORA IN CORSO PRENDE IL VERDE, per la stessa
+  // ragione: il turno non è finito, altri fermi possono ancora arrivare, e il
+  // numero può solo SCENDERE. Il caso peggiore è proprio quello che sembra
+  // migliore — 100% senza nessun fermo registrato su un turno appena
+  // cominciato.
+  if (out.provvisorio === true && out.stato === "ok") out.stato = "warn";
   // Il motivo NON ripete la percentuale: chi lo mostra la scrive già accanto,
   // e scritta in tutti e due i posti compariva due volte nella stessa riga.
-  out.motivo = out.parziale
-    ? out.fermiSenzaMinuti
+  const detti = [];
+  if (out.parziale) {
+    detti.push(out.fermiSenzaMinuti
       + (out.fermiSenzaMinuti === 1 ? " fermo è senza minuti" : " fermi sono senza minuti")
-      + ": il tempo perso è almeno questo, quindi la disponibilità è al massimo questa."
-    : "";
+      + ": il tempo perso è almeno questo, quindi la disponibilità è al massimo questa.");
+  }
+  if (out.provvisorio === true) {
+    detti.push(out.fermi === 0
+      ? "Il turno non è ancora chiuso e non è stato registrato nessun fermo: "
+        + "questo numero dice che finora non è stato scritto niente, non che il turno stia andando bene."
+      : "Il turno non è ancora chiuso: altri fermi possono ancora essere registrati, "
+        + "quindi questa percentuale può solo scendere.");
+  }
+  out.motivo = detti.join(" ");
   return out;
 }
 

@@ -1882,20 +1882,25 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // grossa senza il suo «al più» è la misura che non abbiamo fatto.
     return `<div class="board ${cls}">
         <div class="board-ico">${I.orologio}</div>
-        <div><div class="board-num"${dp.parziale ? ` style="font-size:26px"` : ""}>${dp.parziale ? "al più " : ""}${dp.pct}%</div>
-          <div class="board-lab">Disponibilità turno ${esc(dp.turno)}</div></div>
+        <div><div class="board-num"${dp.parziale || dp.provvisorio ? ` style="font-size:26px"` : ""}>${
+            dp.parziale ? "al più " : dp.provvisorio ? "finora " : ""}${dp.pct}%</div>
+          <div class="board-lab">Disponibilità turno ${esc(dp.turno)}${dp.provvisorio ? " · in corso" : ""}</div></div>
         <div class="board-txt">Turno dichiarato di <b>${esc(oreMinuti(dp.durataMin))}</b>, lavorati <b>${esc(oreMinuti(dp.lavoratiMin))}</b> ·
-          ${daQuanti}${dp.parziale ? `<br><b class="bad">${esc(dp.motivo)}</b>` : ""}</div>
+          ${daQuanti}${/* ⛔ il motivo si mostra SEMPRE se c'è: prima era legato a
+             `parziale`, e la spiegazione del turno ancora aperto sarebbe stata
+             scritta dal modulo e letta da nessuno — la guardia scollegata della
+             regola 20 */""
+          }${dp.motivo ? `<br><b class="bad">${esc(dp.motivo)}</b>` : ""}</div>
       </div>`;
   };
 
   function renderDisponibilita() {
     const data = $("disp-data").value || OGGI, turno = $("disp-turno").value || turnoCorrente();
-    const dp = disponibilitaTurno(ATT, DUR, data, turno);
+    const dp = disponibilitaTurno(ATT, DUR, data, turno, CHI);
     $("disp-stato").innerHTML = dispCartello(dp);
     // Nel Quadro ci va solo la giornata di OGGI: il Quadro è la lavagna di
     // adesso, non la finestra su un giorno qualunque scelto altrove.
-    const dpOggi = data === OGGI ? dp : disponibilitaTurno(ATT, DUR, OGGI, turnoCorrente());
+    const dpOggi = data === OGGI ? dp : disponibilitaTurno(ATT, DUR, OGGI, turnoCorrente(), CHI);
     // e nel Quadro NON si mette lo stato vuoto: là dove il numero non c'è
     // basta e avanza la card dell'avanzamento. La riga compare quando c'è
     // qualcosa da dire, e sparisce quando non c'è.
@@ -3040,7 +3045,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // Disponibilità, turno per turno. Entrano SOLO i turni che hanno qualcosa
     // — una durata dichiarata o almeno un'attività: in una cava che lavora un
     // turno solo, tre righe vuote su tre non sarebbero informazione.
-    const dispOggi = TURNI.map(t => disponibilitaTurno(ATT_OGGI, DUR, OGGI, t))
+    const dispOggi = TURNI.map(t => disponibilitaTurno(ATT_OGGI, DUR, OGGI, t, CHI))
       .filter(d => d.durataMin !== null || d.attivita > 0);
     const html = `<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><title>Rapporto di fine turno — ${oggi}</title>
 <style>body{font:13px/1.45 sans-serif;color:#222;margin:28px;max-width:800px}h1{font-size:19px;margin:0 0 2px}h2{font-size:14px;margin:18px 0 6px;border-bottom:1px solid #999;padding-bottom:2px}
