@@ -1603,3 +1603,82 @@ export function indiciInfortunistici(infortuni, oreLavorate, anno = new Date().g
     indiceGravita: r2(giornatePerse * 1e3 / ore),
     ltifr: r2(conAssenza.length * 1e6 / ore) };
 }
+
+// ============================================================
+// L'ANALISI DELLA CAUSA (i «5 Perché»), E LA SUA DIFESA
+// ------------------------------------------------------------
+// Scudo aveva già la catena evento → azione correttiva (`origineTipo`/
+// `origineId`, `statoAzione`, `riepilogoNearMiss`), e la pagina spinge ad
+// aprire l'azione subito dopo la segnalazione dicendo — testuale — che
+// «registrarlo serve a poco se non si corregge quello che l'ha causato».
+// Ma il «quello che l'ha causato» non era scritto da nessuna parte: la parola
+// CAUSA compariva una volta sola in tutta l'app, dentro quella frase.
+// Piano per esteso: docs/PIANO_CAUSA_RADICE_SCUDO.md
+//
+// ⛔ I «5 Perché» hanno una fama migliore di quella che meritano, e vanno
+// introdotti sapendolo: portano a una causa sola, danno risposte diverse a
+// persone diverse, e finiscono quasi sempre SULLA PERSONA («perché non ha
+// guardato» → «perché è distratto»), il che come azione correttiva produce un
+// richiamo, cioè niente. La difesa è di prodotto, non di metodo — e non vieta:
+// CHIEDE. Se lo strumento accusa, chi lo usa smette di scrivere la verità, ed è
+// la stessa regola del ponte con Terra che non dà la colpa a chi compila.
+export const CAUSE_ANALISI = [
+  { chiave: "tecnica", etichetta: "Tecnica", esempio: "attrezzatura rotta, protezione mancante, mezzo inadeguato" },
+  { chiave: "organizzativa", etichetta: "Organizzativa", esempio: "procedura assente, sorveglianza non prevista, turni" },
+  { chiave: "formazione", etichetta: "Formazione", esempio: "mansione affidata senza addestramento, istruzione mai data" },
+  { chiave: "dpi", etichetta: "DPI", esempio: "DPI mancante, sbagliato, o non usabile nel lavoro reale" },
+  { chiave: "ambientale", etichetta: "Ambientale", esempio: "fronte instabile, pista, meteo, visibilità, rumore" },
+  { chiave: "comportamentale", etichetta: "Comportamentale", esempio: "scelta di chi lavorava — con le difese qui sotto" },
+];
+
+/* Le parole che nominano una persona senza fare un nome. Non serve beccarle
+   tutte: serve CHIEDERE quando ce n'è una. */
+const RUOLI_PERSONA = ["operatore", "lavoratore", "addetto", "collega", "autista",
+  "conducente", "dipendente", "manovratore", "fochino", "capocantiere"];
+
+/* ⛔ IL NOME DI UNA PERSONA NON SI INDOVINA: SI CERCA.
+   Un'euristica linguistica in italiano è una pessima idea — «Rossi» è un
+   cognome e anche un colore, «Bo» è un cognome e sta dentro «bordo» — e un
+   controllo che sbaglia ACCUSA CHI HA SCRITTO LA VERITÀ, cioè fa esattamente
+   il danno che dovrebbe evitare. Ma Scudo ha già l'elenco dei LAVORATORI: il
+   confronto è coi nomi veri dell'azienda, a parola intera. */
+export function nominaUnaPersona(testo, lavoratori) {
+  const t = normalizzaTesto(testo);
+  if (!t) return null;
+  const intera = (parola) => new RegExp("(^| )" + parola + "( |$)").test(t);
+  for (const l of lavoratori || []) {
+    const nome = normalizzaTesto((l || {}).nome
+      || ((l || {}).cognome ? (l.cognome + " " + (l.nome || "")) : ""));
+    if (!nome) continue;
+    // il cognome da solo basta: nei verbali si scrive «Rossi non ha guardato»
+    const pezzi = nome.split(" ").filter((p) => p.length >= 3);
+    if (pezzi.some(intera))
+      return { tipo: "nome", trovato: String((l.nome || l.cognome || "")).trim() };
+  }
+  for (const r of RUOLI_PERSONA) if (intera(r)) return { tipo: "ruolo", trovato: r };
+  return null;
+}
+
+/* Le due righe che BLOCCANO riguardano dati mancanti; quelle che riguardano il
+   CONTENUTO chiedono e basta. Un'analisi che finisce su una persona resta
+   valida: a volte è davvero un comportamento, e vietarlo insegnerebbe solo a
+   scrivere quello che l'app vuole sentire. */
+export function validaAnalisi(bozza, lavoratori) {
+  const b = bozza || {};
+  const perche = (b.perche || []).map((x) => String(x || "").trim()).filter(Boolean);
+  const avvisi = [];
+  if (perche.length < 2)
+    avvisi.push({ campo: "perche", grave: true,
+      testo: "Serve almeno un secondo perché: il primo è quasi sempre la descrizione di quello che è successo, non la sua causa." });
+  const chi = nominaUnaPersona(perche[perche.length - 1] || "", lavoratori);
+  if (chi)
+    avvisi.push({ campo: "perche", grave: false,
+      testo: `L'ultimo perché nomina una persona${chi.tipo === "nome" ? " (" + chi.trovato + ")" : ""}. È quello che è successo, o è la persona a cui è successo? Se sotto c'è una condizione — un'attrezzatura, una procedura, un addestramento — è quella la causa da correggere.` });
+  if (b.causa === "comportamentale" && perche.length < 3)
+    avvisi.push({ campo: "causa", grave: false,
+      testo: "«Comportamentale» da sola non è un'analisi: scrivi anche perché quel comportamento era possibile. Quasi sempre sotto c'è una causa tecnica, organizzativa o di formazione." });
+  if (!CAUSE_ANALISI.some((c) => c.chiave === b.causa))
+    avvisi.push({ campo: "causa", grave: true,
+      testo: "Scegli la famiglia della causa: serve a capire quali cause si ripetono, che è la domanda a cui questa scheda deve rispondere." });
+  return { valida: !avvisi.some((a) => a.grave), avvisi };
+}

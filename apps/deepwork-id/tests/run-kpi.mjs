@@ -2255,6 +2255,61 @@ test("a mese chiuso il margine esce, per COMPETENZA e al netto delle note di cre
   eq(muta.calcolabile, true, "chiusura muta: il margine si calcola lo stesso, l'ha chiesto una persona");
   ok(/più alto del vero/.test(muta.motivo), "⛔ ma la voce senza risposta resta scritta accanto al numero");
 });
+console.log("\n— Scudo: l'analisi della causa, e la difesa contro l'accusa —");
+const LAV_A = [{ id: "d1", nome: "Mario Bo" }, { id: "d3", nome: "Giuseppe Rossi" }, { id: "d7", nome: "Ana Ilie" }];
+test("⛔ il nome di una persona non si INDOVINA, si CERCA fra i lavoratori veri", () => {
+  /* un'euristica linguistica in italiano accuserebbe chi ha scritto la verità:
+     «Rossi» è un cognome e anche un colore, «Bo» sta dentro «bordo» */
+  eq(scudo.nominaUnaPersona("Rossi non ha guardato a monte", LAV_A).tipo, "nome", "il cognome vero si riconosce");
+  eq(scudo.nominaUnaPersona("Ilie ha usato la scala sbagliata", LAV_A).trovato, "Ana Ilie", "nome o cognome, basta uno");
+  /* ⚠️ QUESTA PROVA PRIMA MENTIVA. Diceva «bordo non accusa Bo: si pretende la
+     parola intera», e la controprova l'ha smascherata: togliendo il confronto a
+     parola intera **non cadeva**, perché «Bo» ha due lettere e lo scarta prima
+     il filtro `length >= 3`. Passava per una ragione diversa da quella nel suo
+     nome — il caso (1) di CLAUDE.md, i dati che fanno coincidere la risposta
+     giusta con quella sbagliata. Adesso sono due prove, ognuna col suo motivo. */
+  eq(scudo.nominaUnaPersona("Il masso è caduto oltre il bordo della pista", LAV_A), null,
+    "un cognome di due lettere non si cerca affatto: troppo rumore");
+  eq(scudo.nominaUnaPersona("ha colpito la muratura del muro di sostegno", [{ nome: "Elena Mura" }]), null,
+    "⛔ «muratura» NON accusa la lavoratrice Mura: si pretende la PAROLA INTERA");
+  eq(scudo.nominaUnaPersona("Mura non ha delimitato l'area", [{ nome: "Elena Mura" }]).tipo, "nome",
+    "e lo stesso cognome, scritto come parola, viene riconosciuto");
+  eq(scudo.nominaUnaPersona("La fascia di rispetto non era delimitata", LAV_A), null,
+    "e una condizione non è una persona");
+  eq(scudo.nominaUnaPersona("L'operatore era in fretta", LAV_A).tipo, "ruolo",
+    "un ruolo senza nome si vede lo stesso");
+  eq(scudo.nominaUnaPersona("", LAV_A), null, "e il vuoto non accusa nessuno");
+});
+test("⛔ l'analisi che finisce su una persona non si VIETA: si CHIEDE", () => {
+  /* se lo strumento accusa, chi lo usa smette di scrivere la verità — stessa
+     regola del ponte con Terra che non dà la colpa a chi compila */
+  const a = scudo.validaAnalisi({ causa: "comportamentale",
+    perche: ["Taglio alla mano in officina", "Rossi non indossava i guanti"] }, LAV_A);
+  eq(a.valida, true, "resta valida");
+  ok(a.avvisi.some(x => /è la persona a cui è successo/.test(x.testo)), "ma l'app fa la domanda");
+  ok(a.avvisi.some(x => /non è un'analisi/.test(x.testo)),
+    "e «comportamentale» con due perché non basta: chiede perché era possibile");
+  ok(a.avvisi.every(x => !x.grave), "nessuno dei due avvisi blocca");
+});
+test("bloccano solo i dati mancanti: meno di due perché, o nessuna famiglia", () => {
+  eq(scudo.validaAnalisi({ causa: "tecnica", perche: ["Si è rotto il tubo"] }, LAV_A).valida, false,
+    "⛔ un solo perché è la descrizione, non un'analisi");
+  eq(scudo.validaAnalisi({ perche: ["a", "b"] }, LAV_A).valida, false, "senza famiglia della causa nemmeno");
+  eq(scudo.validaAnalisi({ causa: "inventata", perche: ["a", "b"] }, LAV_A).valida, false,
+    "e una famiglia che non esiste non vale come scelta");
+  const buona = scudo.validaAnalisi({ causa: "organizzativa", perche: [
+    "Il masso è caduto dal fronte Est",
+    "La fascia di rispetto non era delimitata",
+    "La delimitazione non è nel giro di sorveglianza"] }, LAV_A);
+  eq([buona.valida, buona.avvisi.length], [true, 0], "una catena che finisce su una condizione passa pulita");
+});
+test("le sei famiglie di causa hanno chiavi uniche e un esempio ciascuna", () => {
+  const ch = scudo.CAUSE_ANALISI.map(c => c.chiave);
+  eq(ch.length, new Set(ch).size, "nessun doppione");
+  ok(scudo.CAUSE_ANALISI.every(c => c.etichetta && c.esempio), "ognuna dice cosa ci va dentro");
+  eq(ch[ch.length - 1], "comportamentale", "⛔ «comportamentale» è l'ULTIMA: non è il fondo in cui far cadere quello che non si capisce");
+});
+
 console.log("\n— Terra: il piano a lotti e il divario di recupero —");
 const LOTTI = [
   { id: "l1", superficieMq: 12000, volumeM3: 180000, stato: "recuperato" },
