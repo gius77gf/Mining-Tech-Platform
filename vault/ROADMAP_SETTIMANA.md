@@ -2660,6 +2660,21 @@ campi interi, file delle macchine.
       allo span il caso sarebbe caduto per un motivo che non c'entra col
       prodotto. Controprova: tolta la coda, il totale si presenta come completo
       e il banco cade. **76/0**, 45 stati.
+- [x] ✅ **NOMINATA, E SENZA LA FORMAZIONE SOTTO** *(01/08, Scudo)* — primo dei
+      tre stati veri rimasti, e il più pesante: una persona **nominata a un
+      ruolo obbligatorio per legge** (sorvegliante, D.Lgs 624/96) di cui la
+      formazione richiesta **non risulta registrata**. Il ripiego rosso c'è e sta
+      prima di «Nomina attiva» e «In regola» — una nomina senza la formazione
+      sotto non è una cosa a posto. La dimostrazione lo produce già (1 su 7):
+      solo la riga del banco, che nomina **la persona** perché nella stessa
+      lista convivono «Formazione scaduta» e «Senza data di nomina».
+      ⚠️ **La prima controprova era da buttare**: cancellare la riga del ramo
+      da una catena di ternari non inietta un difetto, **rompe la pagina** —
+      «Unexpected token» e **dieci** prove cadute, cioè il banco che cade per
+      una ragione che col prodotto non c'entra. Rifatta sostituendo il valore
+      (`["ok", "In regola"]`): cade **una** prova, quella giusta. Regola per le
+      prossime: **si sostituisce un valore, non si cancella una riga di una
+      struttura** — e il conto dei falliti lo dice subito. **79/0**, 46 stati.
 
 ---
 

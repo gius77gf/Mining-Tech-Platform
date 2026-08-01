@@ -64,6 +64,20 @@ const CASI = [
   ['scudo', 'ispezione chiusa a metà', '#nav-isp', null, '#isp-list', /chiusa a metà/i],
   ['scudo', 'nomina senza data', '#nav-pers', 'nom', '#nom-list', /senza data di nomina/i],
   ['scudo', 'lavoratore senza scadenze', '#nav-pers', 'lav', '#pers-list', /nessuna scadenza/i],
+  /* ⛔ Primo dei tre stati veri rimasti dal censimento delle 50 occorrenze, ed
+     è il più pesante: una persona **nominata** a un ruolo obbligatorio per
+     legge (sorvegliante, D.Lgs 624/96) di cui la formazione richiesta **non
+     risulta registrata**. Il ripiego rosso c'è, e sta PRIMA di «Nomina attiva»
+     e di «In regola» proprio perché una nomina senza la formazione sotto non è
+     una cosa a posto. La dimostrazione lo produce già (1 persona su 7): qui
+     non si aggiungono dati, si sorveglia.
+     ⚠️ La riga nomina LA PERSONA: nella stessa lista ci sono «Formazione
+     scaduta» e «Senza data di nomina», che sono stati diversi, e una regex
+     sulla sola frase avrebbe potuto prendere la riga sbagliata. */
+  ['scudo', 'nominata a un ruolo obbligatorio, formazione mai registrata',
+    '#nav-pers', 'nom', '#nom-list', /Giulia Verdi[\s\S]{0,200}Formazione non registrata/i, null,
+    { vietato: /Giulia Verdi[\s\S]{0,200}\bIn regola\b/i,
+      perche: 'una nomina senza la formazione registrata non si legge «in regola»' }],
   /* ⛔ Prima voce della classifica «non registrato», che quattro app dicono.
      Un DPI di III categoria consegnato e valido, con l'addestramento (art. 77)
      mai registrato: l'app lo tiene fra le cose da sistemare invece di leggere
