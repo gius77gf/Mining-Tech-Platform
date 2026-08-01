@@ -49,7 +49,13 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
 /* Il fondo per app. Si alza quando si aggiungono prove, non si abbassa mai
    per far passare il controllo: abbassarlo è esattamente il gesto che
    questo file esiste per rendere visibile. */
-const FONDO = { campo: 87, conti: 90, flotta: 79, scudo: 85, sentinella: 102, terra: 51 };
+/* ⚠️ `campo` SCENDE DA 87 A 86, e la ragione va scritta perché abbassare un
+   fondo è il gesto che questo file esiste per rendere visibile: non è una
+   prova tolta, è `statoRisposta` che ha smesso di essere una FUNZIONE di
+   Campo ed è diventata un alias di `shared/dw-ponti.js`. La sua prova non è
+   sparita: si è spostata, e adesso pretende l'IDENTITÀ invece del
+   comportamento. Il conto di `dw-ponti` sale da 21 a 23 dello stesso passo. */
+const FONDO = { campo: 86, conti: 90, flotta: 79, scudo: 85, sentinella: 105, terra: 51 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.
@@ -105,7 +111,7 @@ console.log(`\n${coperte} funzioni coperte su ${guardate} guardate, in ${APP.len
    «tutto a posto» su un perimetro più stretto del suo nome. Adesso il
    perimetro è dichiarato, con il suo fondo. */
 const CONDIVISI = [
-  { file: "shared/dw-ponti.js", fondo: 21,
+  { file: "shared/dw-ponti.js", fondo: 23,
     perche: "le regole che servono a DUE app: è il posto dove un difetto si moltiplica" },
   { file: "shared/deepwork-id-client/dw-shell.js", fondo: 29,
     perche: "gli aiuti che tutte le app importano (numeri, date, CSV)" },

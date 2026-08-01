@@ -1620,27 +1620,20 @@ export function anomalieAperte(attivita) {
 // perché serva a riconoscerla — così una data corretta dopo non spezza il
 // collegamento. Pura e testabile.
 export function azioniDelFermo(azioni, id) {
-  if (!id) return [];
-  return (azioni || []).filter(a => a && a.origineTipo === ORIGINE_FERMO && a.origineId === id);
+  /* Non è una regola sua: è `azioniDiOrigine` di `shared/` col tipo già
+     fissato. Campo ha una sola origine, quindi il nome corto serve alla
+     pagina — ma il filtro è scritto in un posto solo. */
+  return azioniDiOrigine(azioni, ORIGINE_FERMO, id);
 }
 
-// Il semaforo di un gruppo di azioni, per il badge accanto al fermo: nessuna /
-// da chiudere / tutte chiuse. È la risposta alla domanda dell'ispettore «e voi
-// cosa avete fatto?», e «nessuna» è ROSSA — l'assenza di una risposta non è
-// una risposta buona. Pura e testabile.
-export function statoRisposta(azioni) {
-  const l = azioni || [];
-  const chiuse = l.filter(a => (a || {}).stato === "chiusa").length;
-  const inCorso = l.filter(a => (a || {}).stato === "in-corso").length;
-  if (!l.length) return { n: 0, chiuse: 0, inCorso: 0, daChiudere: 0, cls: "danger", label: "Nessuna azione" };
-  if (chiuse === l.length) return { n: l.length, chiuse, inCorso: 0, daChiudere: 0, cls: "ok",
-    label: l.length === 1 ? "Azione chiusa" : l.length + " azioni chiuse" };
-  const daChiudere = l.length - chiuse;
-  return { n: l.length, chiuse, inCorso, daChiudere, cls: "warn",
-    label: inCorso && daChiudere === inCorso
-      ? (inCorso === 1 ? "Azione in corso" : inCorso + " azioni in corso")
-      : daChiudere + (daChiudere === 1 ? " azione da chiudere" : " azioni da chiudere") };
-}
+/* ⛔ ERA UNA COPIA, E ADESSO È UN ALIAS. `statoRisposta` era identica —
+   misurata byte per byte, 809 caratteri contro 806 — a `statoPonte` di
+   Sentinella: due copie uguali oggi divergono domani senza che nessuno lo
+   veda, perché ognuna ha le sue prove e tutt'e due restano verdi. Il nome
+   resta quello che la pagina di Campo ha sempre usato; la regola è una sola,
+   e la prova pretende l'IDENTITÀ, non un comportamento uguale per caso. */
+export { statoPonte as statoRisposta } from "../../shared/dw-ponti.js";
+
 
 // LA BOZZA DELL'AZIONE nata da un fermo. Funzione PURA: prepara il record che
 // verrà scritto nella collezione `azioni` di Scudo. Chi la apre può cambiare
@@ -1706,7 +1699,7 @@ export function fermiEAzioni(attivita, azioni) {
   return voci
     .map(v => {
       const az = azioni ? azioniDelFermo(azioni, v.id) : null;
-      return { ...v, azioni: az, risposta: az ? statoRisposta(az) : null };
+      return { ...v, azioni: az, risposta: az ? statoPonte(az) : null };
     })
     .sort((x, y) => (x.chiuso ? 1 : 0) - (y.chiuso ? 1 : 0)
       || ((x.azioni && x.azioni.length ? 1 : 0) - (y.azioni && y.azioni.length ? 1 : 0)));
@@ -1752,6 +1745,15 @@ export function coperturaFermi(attivita, azioni) {
 // PONTE P3 CON SCUDO — la regola sta in `shared/dw-ponti.js` perché serve a due
 // app, e Campo la ri-esporta col nome con cui la chiamano le sue pagine.
 // ══════════════════════════════════════════════════════════════════════
+/* `azioniDiOrigine` e `statoPonte` servono DENTRO il modulo, non solo alle
+   pagine: si importano, oltre a ri-esportarli.
+   ⚠️ E questa riga l'ha pretesa una prova, non un ragionamento: tolta la
+   funzione locale e messo solo il `export … from`, il nome NON esiste più
+   dentro il file — `export from` ri-esporta, non lega. Due prove di Campo
+   sono cadute con «statoRisposta is not defined» nel giro dopo. È il modo in
+   cui una ri-esportazione fatta a metà si vede subito invece che in
+   produzione. */
+import { azioniDiOrigine, statoPonte } from "../../shared/dw-ponti.js";
 export {
   ESITI_TURNO, statoScadenzaHSE, idoneitaOperatore, idoneitaDiTurno, inTurnoOggi,
 } from "../../shared/dw-ponti.js";

@@ -676,3 +676,56 @@ export function gruppoDiVoce(chiave) {
   const v = voceCosto(chiave);
   return v ? v.gruppo : "non-classificata";
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// LA RISPOSTA A UN FATTO — la stessa regola per due app
+// ══════════════════════════════════════════════════════════════════════
+// «Questo fatto ha avuto una risposta?» se la chiedono Sentinella (un
+// superamento di soglia, un reclamo) e Campo (un fermo di produzione), e la
+// risposta è la stessa perché le azioni sono le stesse: quelle di Scudo.
+//
+// ⛔ Erano scritte DUE VOLTE, e misurate byte per byte erano identiche a meno
+// del nome (806 e 809 caratteri, `statoPonte` contro `statoRisposta`). È
+// esattamente la forma di debito che il CLAUDE.md descrive: due copie uguali
+// oggi divergono domani senza che nessuno lo veda — il giorno in cui una
+// impara a distinguere «in ritardo» da «da chiudere», l'altra continua a dire
+// la vecchia cosa, e nessuna prova se ne accorge perché ognuna prova la sua.
+// Il cantiere che ha scritto la seconda l'ha DICHIARATA in un commento invece
+// di nasconderla; qui la si chiude.
+//
+// Le due app la ri-esportano col nome con cui l'hanno sempre chiamata — un
+// alias non è una seconda implementazione — e la prova pretende
+// l'IDENTITÀ (`campo.statoRisposta === ponti.statoPonte`), non che si
+// comportino allo stesso modo: due funzioni che oggi si comportano uguale
+// sono due funzioni, e domani sono due comportamenti.
+
+// Le azioni nate da una certa origine. `voce` è facoltativa: senza, tornano
+// tutte le azioni di quell'origine; con, solo quelle di quella precisa voce.
+// Serve a Sentinella, dove lo stesso punto di misura supera la soglia in più
+// giorni e ogni superamento è una voce sua.
+export function azioniDiOrigine(azioni, tipo, id, voce) {
+  if (!id) return [];
+  return (azioni || []).filter((a) => a && a.origineTipo === tipo && a.origineId === id
+    && (voce == null || voce === "" || a.origineVoce === voce));
+}
+
+// Il semaforo di un gruppo di azioni: nessuna / da chiudere / tutte chiuse.
+// ⛔ «Nessuna azione» è ROSSA, ed è il principio del fondatore nella sua forma
+// più diretta: l'assenza di una risposta non è una risposta buona. La domanda
+// dell'ispettore è «e poi?», e una lista vuota è quello che non si vuole
+// dovergli rispondere.
+export function statoPonte(azioni) {
+  const l = azioni || [];
+  const chiuse = l.filter((a) => (a || {}).stato === "chiusa").length;
+  const inCorso = l.filter((a) => (a || {}).stato === "in-corso").length;
+  if (!l.length) return { n: 0, chiuse: 0, inCorso: 0, daChiudere: 0, cls: "danger", label: "Nessuna azione" };
+  if (chiuse === l.length) {
+    return { n: l.length, chiuse, inCorso: 0, daChiudere: 0, cls: "ok",
+      label: l.length === 1 ? "Azione chiusa" : l.length + " azioni chiuse" };
+  }
+  const daChiudere = l.length - chiuse;
+  return { n: l.length, chiuse, inCorso, daChiudere, cls: "warn",
+    label: inCorso && daChiudere === inCorso
+      ? (inCorso === 1 ? "Azione in corso" : inCorso + " azioni in corso")
+      : daChiudere + (daChiudere === 1 ? " azione da chiudere" : " azioni da chiudere") };
+}

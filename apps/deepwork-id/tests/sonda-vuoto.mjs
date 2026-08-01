@@ -336,12 +336,18 @@ const ALLARME_TESTO = /\bSCADUT[AO]\b|\bSUPERAMENTO\b|\bNON CONFORME\b/;
 const ALLARMI_ACCETTATI = {
   "scudo.organigrammaSicurezza":
     "VOLUTO: una sedia vuota nell'organigramma della sicurezza è un problema, non un vuoto neutro (difetto corretto il 31/07)",
-  "sentinella.statoPonte":
-    "VOLUTO: «nessuna azione» dopo un superamento è ROSSO — la casella vuota è la risposta che l'ente non vuole sentire",
-  "campo.statoRisposta":
-    "VOLUTO, ed è lo stesso caso di `sentinella.statoPonte` dall'altro capo dell'ecosistema: «nessuna azione»"
-    + " dopo un fermo di produzione è ROSSO. La domanda dell'ispettore è «e poi?», e una lista di azioni vuota"
-    + " è la risposta che non si vuole dover dare — non un vuoto neutro",
+  /* ✅ ERANO DUE, E ADESSO SONO UNA. Fino al 01/08 qui stavano
+     `sentinella.statoPonte` e `campo.statoRisposta`, dichiarati separatamente
+     perché erano due funzioni separate — copie identiche misurate byte per
+     byte. Portata la regola in `shared/dw-ponti.js`, le due app la
+     ri-esportano e la sonda ne vede UNA sola. Le righe non sono state tolte
+     perché qualcuno se n'è ricordato: **la sonda le ha pretese**, dicendo che
+     due casi dichiarati non si presentavano più. È la seconda metà del suo
+     mestiere, quella che tiene l'elenco più giovane del codice. */
+  "ponti.statoPonte":
+    "VOLUTO, ed è il principio del fondatore nella sua forma più diretta: «nessuna azione» dopo un superamento"
+    + " di soglia (Sentinella) o dopo un fermo di produzione (Campo) è ROSSO. La domanda dell'ispettore è «e poi?»,"
+    + " e una lista di azioni vuota è la risposta che non si vuole dover dare — non un vuoto neutro",
   "scudo.azioneLabel":
     "prende lo STATO di un'azione: senza stato ricade sul primo della lista, non è un giudizio su un dato mancante",
   "scudo.etichettaAmbiente":

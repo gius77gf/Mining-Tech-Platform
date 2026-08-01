@@ -26,6 +26,11 @@ import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto,
 // funzione che lo dice per le visite mediche di Scudo e per i documenti di
 // Campo. Non se ne scrive una quarta (regola del `shared/`).
 import { statoScadenzaHSE } from "../../shared/dw-ponti.js";
+/* ⛔ `statoPonte` e `azioniDiOrigine` STAVANO QUI, ed erano identiche — misurate
+   byte per byte — alle due di Campo. Una regola che serve a due app vive in
+   `shared/`: qui restano col nome con cui le pagine le hanno sempre chiamate,
+   che è un alias e non una seconda implementazione. */
+export { azioniDiOrigine, statoPonte } from "../../shared/dw-ponti.js";
 
 export const DEMO = {
   monitoraggi: [
@@ -1503,32 +1508,6 @@ export function superamentiAperti(monitoraggi, ricettori) {
     })
     .filter(Boolean)
     .sort((a, b) => b.st.ratio - a.st.ratio);
-}
-
-// Le azioni nate da una certa origine. `voce` facoltativa: senza, tornano
-// tutte le azioni di quell'origine (utile per il reclamo, che è un fatto
-// solo); con, solo quelle di quel preciso superamento.
-export function azioniDiOrigine(azioni, tipo, id, voce) {
-  if (!id) return [];
-  return (azioni || []).filter(a => a && a.origineTipo === tipo && a.origineId === id
-    && (voce == null || voce === "" || a.origineVoce === voce));
-}
-
-// Il semaforo di un gruppo di azioni, per il badge che si vede accanto al
-// superamento o al reclamo: nessuna / da chiudere / tutte chiuse. È la
-// risposta alla domanda dell'ente «e voi cosa avete fatto?».
-export function statoPonte(azioni) {
-  const l = azioni || [];
-  const chiuse = l.filter(a => (a || {}).stato === "chiusa").length;
-  const inCorso = l.filter(a => (a || {}).stato === "in-corso").length;
-  if (!l.length) return { n: 0, chiuse: 0, inCorso: 0, daChiudere: 0, cls: "danger", label: "Nessuna azione" };
-  if (chiuse === l.length) return { n: l.length, chiuse, inCorso: 0, daChiudere: 0, cls: "ok",
-    label: l.length === 1 ? "Azione chiusa" : l.length + " azioni chiuse" };
-  const daChiudere = l.length - chiuse;
-  return { n: l.length, chiuse, inCorso, daChiudere, cls: "warn",
-    label: inCorso && daChiudere === inCorso
-      ? (inCorso === 1 ? "Azione in corso" : inCorso + " azioni in corso")
-      : daChiudere + (daChiudere === 1 ? " azione da chiudere" : " azioni da chiudere") };
 }
 
 // Testo della soglia applicata, con l'unità: si ripete in più punti e deve

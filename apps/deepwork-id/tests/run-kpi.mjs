@@ -11354,6 +11354,57 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
   });
 }
 
+/* ══ SHARED · LA RISPOSTA A UN FATTO: UNA REGOLA, NON DUE COPIE ══
+   `statoPonte` di Sentinella e `statoRisposta` di Campo erano identiche —
+   misurate byte per byte, 806 contro 809 caratteri, differenti solo nel nome.
+   Adesso vivono in `shared/dw-ponti.js` e le due app le ri-esportano.
+   ⛔ E LA PROVA PRETENDE L'IDENTITÀ, NON IL COMPORTAMENTO: due funzioni che
+   oggi rispondono uguale sono due funzioni, e domani sono due comportamenti —
+   il giorno in cui una impara a distinguere «in ritardo» da «da chiudere»,
+   l'altra resta indietro e le prove di tutt'e due restano verdi. */
+{
+  test("⛔ shared: la risposta a un fatto è UNA funzione, e le due app la ri-esportano", () => {
+    ok(sentinella.statoPonte === ponti.statoPonte,
+       "Sentinella deve ESSERE quella di shared, non una copia che si comporta uguale");
+    ok(campo.statoRisposta === ponti.statoPonte,
+       "e Campo pure: `statoRisposta` è l'alias con cui la sua pagina l'ha sempre chiamata");
+    ok(sentinella.azioniDiOrigine === ponti.azioniDiOrigine, "e il filtro delle azioni idem");
+  });
+
+  test("⛔ shared: nessuna azione è ROSSA — l'assenza di una risposta non è una risposta buona", () => {
+    contiene(ponti.statoPonte([]), { n: 0, cls: "danger", label: "Nessuna azione" }, "elenco vuoto");
+    contiene(ponti.statoPonte(null), { n: 0, cls: "danger" }, "e nemmeno l'elenco che non c'è");
+    contiene(ponti.statoPonte(undefined), { cls: "danger" }, "idem");
+  });
+
+  test("shared: i tre stati della risposta, e il plurale giusto", () => {
+    const az = (...st) => st.map(stato => ({ stato }));
+    contiene(ponti.statoPonte(az("chiusa")), { cls: "ok", label: "Azione chiusa", daChiudere: 0 }, "una sola, chiusa");
+    contiene(ponti.statoPonte(az("chiusa", "chiusa")), { cls: "ok", label: "2 azioni chiuse" }, "due chiuse");
+    contiene(ponti.statoPonte(az("in-corso")), { cls: "warn", label: "Azione in corso" }, "una in corso");
+    contiene(ponti.statoPonte(az("in-corso", "in-corso")), { cls: "warn", label: "2 azioni in corso" }, "due in corso");
+    contiene(ponti.statoPonte(az("aperta")), { cls: "warn", label: "1 azione da chiudere" },
+       "aperta ma non in corso: si dice «da chiudere», che è la cosa vera");
+    contiene(ponti.statoPonte(az("chiusa", "in-corso")), { cls: "warn", label: "Azione in corso", chiuse: 1 },
+       "mista: comanda quella che resta aperta");
+  });
+
+  test("shared: `azioniDelFermo` di Campo è quella di shared col tipo fissato", () => {
+    const A = [{ origineTipo: "fermo", origineId: "t1", stato: "in-corso" },
+               { origineTipo: "fermo", origineId: "t2" },
+               { origineTipo: "nc", origineId: "t1" }];
+    eq(campo.azioniDelFermo(A, "t1"), ponti.azioniDiOrigine(A, "fermo", "t1"),
+       "stessa risposta perché è la stessa funzione, non perché si somigliano");
+    eq(campo.azioniDelFermo(A, ""), [], "senza id non si indovina: elenco vuoto");
+    eq(ponti.azioniDiOrigine(A, "fermo", "t1", "").length, 1,
+       "la voce vuota NON filtra: vuol dire «tutte quelle di questa origine»");
+    eq(ponti.azioniDiOrigine([{ origineTipo: "sup", origineId: "p1", origineVoce: "2026-07-01" },
+                              { origineTipo: "sup", origineId: "p1", origineVoce: "2026-07-08" }],
+                             "sup", "p1", "2026-07-08").length, 1,
+       "e con la voce filtra: in Sentinella lo stesso punto supera in più giorni");
+  });
+}
+
 /* ══ SHARED · LA GRAFFETTA: LA REGOLA DELL'ALLEGATO, UNA SOLA ══
    Stava scritta a mano dentro `apps/scudo/index.html`. Da oggi serve anche a
    Sentinella (il documento consegnato all'ente accanto alla sua scadenza),
