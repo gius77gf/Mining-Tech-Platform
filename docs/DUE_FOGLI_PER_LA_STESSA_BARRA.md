@@ -59,7 +59,47 @@ del core ho provato ad applicarla anche a `profilo.html`, e lì `.top-brand`,
 `.logo-sm` e `.role-sm` **non esistono** — quella pagina `dw-app-ui.css` non lo
 carica. Il titolo è rimasto senza stile, e l'ho ripristinata.
 
-## Che cosa farne (proposta per E0, in ordine di rischio)
+## ⛔ Misurato dopo: il piano migliore non è togliere regole, è non caricarle insieme
+
+*(01/08, seconda misura. La prima proposta — «togliere da shell i 38 ridefiniti»
+— era la più ovvia, non la migliore.)*
+
+Ritagliata la barra alta di **tutte e nove** le pagine che ne hanno una, sul tag
+di chiusura vero, e cercato chi usa davvero i cinque superstiti:
+
+| superstite | chi lo usa |
+|---|---|
+| `.top .sub` | **solo `profilo.html`** |
+| `.top h1 .accent` | **solo `profilo.html`** |
+| `.kpi.accent`, `.kpi.accent .n` | **solo Flotta** (`class="kpi accent"`, 3 punti) |
+| `.item:active` | tutte le pagine con `.item` |
+
+Le sei app, `admin.html` e `_collaudo-grafici` usano già **la struttura del
+core** (`.top-brand`). L'unica pagina rimasta indietro è `profilo.html` — che è
+anche l'unica a caricare shell **senza** ui.
+
+Da qui il piano vero, che risolve il conflitto **senza riscrivere una regola**:
+
+1. spostare in `dw-app-ui.css` i superstiti che servono alle pagine che
+   caricano ui: `.item:active` (tutte) e `.kpi.accent` + `.kpi.accent .n`
+   (Flotta);
+2. **togliere il `<link>` a `dw-app-shell.css`** dalle sette pagine che caricano
+   entrambi;
+3. `dw-app-shell.css` resta il foglio **di `profilo.html`**, con i suoi
+   `.top .sub` e `.top h1 .accent` — che lì sono giusti, perché lì la barra è
+   davvero un blocco.
+
+Effetto: i **38 doppioni spariscono** senza toccare il contenuto delle regole, e
+il conflitto della barra alta non può più presentarsi, perché **nessuna pagina
+carica più i due fogli insieme**. La regola nuova di `run-stile.mjs` costringerà
+ad accorciare l'elenco dichiarato: è il suo secondo verso, e serve proprio a
+questo.
+
+⚠️ Da rimisurare comunque, pagina per pagina: le sette perdono 43 regole di
+shell, e 38 erano già coperte da ui — ma le altre 5 no. Prima di committare:
+`fuori-schermo` e `contrasto` alle due larghezze, e scatti prima/dopo.
+
+## Che cosa farne (prima proposta, superata dalla misura qui sopra)
 
 1. **Togliere da `dw-app-shell.css` i 38 selettori che `dw-app-ui.css`
    ridefinisce.** Sono già senza effetto dove i due convivono; l'unico posto
