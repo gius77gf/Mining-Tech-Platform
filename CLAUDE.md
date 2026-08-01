@@ -442,6 +442,19 @@ in italiano, senza dare conoscenze per scontate).
   iniezioni sui file di **test** (`run-stile.mjs`, `run-kpi.mjs`) restano sicure,
   perché nessuna pagina li importa. Finché gira un giro: si lavora su `docs/`,
   `vault/` e le suite `node`, e le iniezioni sui moduli si aspettano.
+  ✅ **E dal 01/08 la regola serve molto meno, perché il giro non serve più la
+  cartella viva.** `tutti.mjs` crea una `git worktree` temporanea e serve
+  QUELLA: la copia è immobile per costruzione, quindi si può continuare a
+  lavorare mentre il giro cammina. La difesa che fermava il lavoro era una
+  difesa, non una soluzione — e una regola che chiede di non lavorare per due
+  ore viene violata (due volte in due giorni, la seconda da chi il giorno prima
+  aveva scritto il paragrafo). ⛔ La trappola che la copia introduce è
+  dichiarata, non nascosta: una worktree su `HEAD` contiene il **committato**,
+  quindi il giro **scrive su cosa sta girando** — in cima E in fondo — ed
+  elenca i file non committati, che altrimenti resterebbero fuori da un verde
+  che sembra riguardare quello che hai su disco. Provato da
+  `tests/browser/giro-su-copia.mjs` su tutt'e due i versi. Piano:
+  `docs/PIANO_GIRO_SU_COPIA.md`.
   ✅ **E dal 04/08 non è più solo scritta qui: è un controllo.** Perché questa
   regola, scritta e col suo racconto, è stata **violata due volte in due
   giorni** — la seconda dal cantiere che il giorno prima aveva scritto il

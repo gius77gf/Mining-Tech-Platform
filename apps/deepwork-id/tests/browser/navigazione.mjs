@@ -13,7 +13,10 @@ import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
 
-const R = "/home/user/Mining-Tech-Platform";
+/* La radice che il banco SERVE. Di serie è la cartella viva, ma `tutti.mjs`
+   la punta su una COPIA congelata (`DW_RADICE`): così il giro non pretende più
+   che nessuno lavori per un'ora e mezza. Vedi docs/PIANO_GIRO_SU_COPIA.md. */
+const R = process.env.DW_RADICE || "/home/user/Mining-Tech-Platform";
 const SENZA_GUARDIE = process.argv.includes("--senza-guardie");
 /* ⚠️ QUESTO BANCO ALZA UN SERVER SUO, quindi NON può prendere la porta
    posizionale che `tutti.mjs` passa a tutti i banchi: proverebbe a mettersi

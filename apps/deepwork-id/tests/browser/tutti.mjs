@@ -16,6 +16,8 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { impronta, differenze } from './impronta.mjs';
+import { execFileSync } from 'node:child_process';
+import { rmSync, existsSync } from 'node:fs';
 
 const QUI = dirname(fileURLToPath(import.meta.url));
 const RADICE = join(QUI, '..', '..', '..', '..');
@@ -86,19 +88,72 @@ async function aspetta(porta, secondi) {
 }
 
 const PORTA = process.argv[2] || '8823';
+const SU_COPIA = !process.argv.includes('--sulla-viva');
+
+/* ══ IL GIRO GIRA SU UNA COPIA CONGELATA ═══════════════════════════════════
+   Prima serviva la cartella VIVA, e per un'ora e mezza nessuno poteva
+   toccarla: `impronta.mjs` proteggeva il risultato FERMANDO IL LAVORO. È una
+   difesa, non una soluzione — e una regola che chiede di non lavorare per due
+   ore viene violata, è già successo due volte in due giorni.
+   Adesso i banchi servono una `git worktree` temporanea, immobile per
+   costruzione. Vedi docs/PIANO_GIRO_SU_COPIA.md.
+
+   ⛔ E la trappola che questo introduce, risolta prima di scrivere una riga:
+   una worktree su HEAD contiene il COMMITTATO, non quello che c'è su disco.
+   Con modifiche non committate il giro proverebbe codice diverso da quello che
+   si sta guardando, e uscirebbe VERDE su una versione che non esiste da
+   nessuna parte. Quindi il giro DICHIARA su cosa sta girando, in cima e in
+   fondo: un avviso stampato solo all'inizio, dopo un'ora e mezza di
+   scorrimento, non l'ha letto nessuno. */
+let COPIA = null, FUORI_DALLA_COPIA = [];
+function nonCommittati() {
+  try {
+    return execFileSync('git', ['status', '--porcelain'], { cwd: RADICE, encoding: 'utf8' })
+      .split('\n').map((r) => r.slice(3).trim()).filter(Boolean);
+  } catch (e) { return []; }
+}
+function dichiaraSuCosaGira() {
+  if (!COPIA) { console.log('▶ Il giro sta girando sulla CARTELLA VIVA: non toccare i file finché non finisce.'); return; }
+  const hash = (() => { try { return execFileSync('git', ['rev-parse', '--short', 'HEAD'],
+    { cwd: RADICE, encoding: 'utf8' }).trim(); } catch (e) { return '?'; } })();
+  console.log(`▶ Il giro sta girando su una COPIA di ${hash} (il committato), non sulla cartella viva.`);
+  if (FUORI_DALLA_COPIA.length) {
+    console.log(`⚠️ ATTENZIONE: ${FUORI_DALLA_COPIA.length} file NON committati restano FUORI da quello che`);
+    console.log('   il giro sta provando. Quello che vedi su disco NON è quello che è stato misurato:');
+    for (const f of FUORI_DALLA_COPIA.slice(0, 12)) console.log(`   · ${f}`);
+    if (FUORI_DALLA_COPIA.length > 12) console.log(`   · …e altri ${FUORI_DALLA_COPIA.length - 12}`);
+  } else {
+    console.log('  Niente di non committato: la copia è identica a quello che hai su disco.');
+  }
+}
+if (SU_COPIA && !BANCHI_FINTI) {
+  const dove = join(RADICE, '..', 'giro-copia-' + process.pid);
+  try {
+    if (existsSync(dove)) rmSync(dove, { recursive: true, force: true });
+    execFileSync('git', ['worktree', 'add', '--detach', dove, 'HEAD'], { cwd: RADICE, stdio: 'ignore' });
+    COPIA = dove;
+    FUORI_DALLA_COPIA = nonCommittati();
+    process.env.DW_RADICE = COPIA;   // i banchi che alzano un server loro
+  } catch (e) {
+    console.log('⚠️ non riesco a creare la copia (' + String(e.message).split('\n')[0] + '): giro sulla cartella viva.');
+    COPIA = null;
+  }
+}
+const SERVITA = COPIA || RADICE;
+dichiaraSuCosaGira();
 let server = null;
 /* i banchi finti non aprono niente: servono solo a provare la guardia
    dell'impronta, e alzare un server per loro li renderebbe inadatti alla CI */
 if (!BANCHI_FINTI && !(await rispondePorta(PORTA))) {
   console.log(`Il server sulla porta ${PORTA} non risponde: lo alzo io.`);
-  server = spawn('python3', ['-m', 'http.server', PORTA], { cwd: RADICE, stdio: 'ignore', detached: true });
+  server = spawn('python3', ['-m', 'http.server', PORTA], { cwd: SERVITA, stdio: 'ignore', detached: true });
   if (!(await aspetta(PORTA, 12))) {
     console.error(`✗ non riesco ad alzare un server statico sulla porta ${PORTA}.`);
     process.exit(2);
   }
 }
 
-let base = impronta(RADICE_IMPRONTA);
+let base = impronta(COPIA || RADICE_IMPRONTA);
 console.log(`Impronta di partenza: ${base.size} file che le pagine caricano (test, docs e vault esclusi apposta).`);
 const cambiamenti = [];
 
@@ -120,19 +175,33 @@ for (const [nome, file, argomenti, eControprova] of DA_FARE) {
   esiti.push({ nome, ok: codice === 0, eControprova: !!eControprova });
 
   /* e subito dopo: qualcuno ha toccato il codice mentre questo banco girava? */
-  const d = differenze(base, impronta(RADICE_IMPRONTA));
+  const d = differenze(base, impronta(COPIA || RADICE_IMPRONTA));
   if (d.length) {
     console.log(`\n  ⚠️  IL CODICE È CAMBIATO DURANTE «${nome}»: ${d.length} file`);
     for (const x of d.slice(0, 8)) console.log(`      ${x.come}: ${x.file}`);
     if (d.length > 8) console.log(`      … e altri ${d.length - 8}`);
     cambiamenti.push({ dopo: nome, quanti: d.length, file: d.map((x) => x.file) });
-    base = impronta(RADICE_IMPRONTA);   // si riparte da qui, se no ogni banco ripete lo stesso avviso
+    base = impronta(COPIA || RADICE_IMPRONTA);   // si riparte da qui, se no ogni banco ripete lo stesso avviso
   }
 }
 
 if (server) { try { process.kill(-server.pid); } catch (e) { /* già morto */ } }
+/* La copia si toglie SEMPRE, anche se il giro è caduto: una worktree lasciata
+   in giro fa fallire la prossima creazione e nessuno capisce perché. */
+function togliLaCopia() {
+  if (!COPIA) return;
+  try { execFileSync('git', ['worktree', 'remove', '--force', COPIA], { cwd: RADICE, stdio: 'ignore' }); }
+  catch (e) { try { rmSync(COPIA, { recursive: true, force: true }); } catch (e2) {} }
+  COPIA = null;
+}
 
 console.log('\n════════ RIEPILOGO ════════');
+/* ⛔ La dichiarazione si RIPETE qui in fondo. Stampata solo in cima, dopo
+   un'ora e mezza di scorrimento non l'ha letta nessuno — e il caso in cui
+   serve davvero (ci sono file non committati, quindi il verde vale per una
+   versione diversa da quella su disco) è proprio quello in cui si legge solo
+   il riepilogo. */
+dichiaraSuCosaGira();
 for (const e of esiti) console.log(`  ${e.ok ? 'ok ' : 'KO '} ${e.nome}`);
 const caduti = esiti.filter((e) => !e.ok);
 console.log(`\n${esiti.length - caduti.length} banchi a posto, ${caduti.length} da guardare`);
@@ -148,6 +217,8 @@ if (cambiamenti.length) {
   console.log(`   Hanno misurato il codice giusto solo i primi ${indice + 1} banchi su ${esiti.length}.`);
   console.log(`   Va rilanciato a modifiche finite. (La regola sta in CLAUDE.md: mentre gira un giro`);
   console.log(`   si lavora su docs/, vault/ e le suite node — mai sui moduli dati e sulle pagine.)`);
+  togliLaCopia();
   process.exit(2);
 }
+togliLaCopia();
 process.exit(caduti.length ? 1 : 0);

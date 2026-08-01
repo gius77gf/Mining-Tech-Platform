@@ -1532,7 +1532,7 @@ a.dw-btn{text-decoration:none}
           <span class="badge tag">non misurato</span>
         </div>
         <div class="vita-num">
-          <span class="vita-cifre">—</span><span class="vita-un">non misurato</span>
+          <span class="vita-cifre">—</span><span class="vita-un">divario non misurato</span>
         </div>
         <div class="riga">${esc(dv.motivo)}</div>
         <div class="riga">Registra qui sotto i lotti del progetto di coltivazione — nome, superficie e stato di ognuno — e il divario si calcola da sé.</div>
@@ -1556,7 +1556,7 @@ a.dw-btn{text-decoration:none}
       </div>
       <div class="vita-num">
         <span class="vita-cifre">${n0(dv.mq)}</span><span class="vita-un">m² aperti e non ancora recuperati</span>
-        <span class="vita-pct">${n0(dv.m3)} <span class="u">m³</span></span>
+        <span class="vita-pct">${n0(dv.m3)} <span class="u">m³</span> di volume</span>
       </div>
       <div class="riga">${inRitardo
         ? `Ci sono <b>${n0(dv.mq)} m²</b> di cava aperti in più di quelli già recuperati: è il numero che un ente guarda per primo quando chiede se il recupero sta camminando insieme allo scavo.`
@@ -1582,11 +1582,15 @@ a.dw-btn{text-decoration:none}
     const conData = dd && dataISOEsiste(l[dd[0]]);
     const meta = [
       +l.ordine > 0 ? l.ordine + "° del progetto" : "senza ordine",
-      +l.superficieMq > 0 ? n0(l.superficieMq) + " m²" : "superficie non dichiarata",
+      /* `nD` e non `n0`: nella riga i numeri si leggono per intero, decimali
+         compresi — arrotondare cancellerebbe una misura, ed è la stessa scelta
+         fatta nell'elenco delle autorizzazioni. Il cartellone in cima, che è
+         un titolo, arrotonda. */
+      +l.superficieMq > 0 ? nD(l.superficieMq) + " m²" : "superficie non dichiarata",
       // il previsto ACCANTO al misurato: due numeri, mai uno solo — se no non
       // si sa se il progetto è stato seguito o no
-      "previsti " + (+l.volumeM3 > 0 ? n0(l.volumeM3) + " m³" : "—"),
-      "misurati " + (vm.misurabile ? n0(vm.m3) + " m³" : "—")
+      "previsti " + (+l.volumeM3 > 0 ? nD(l.volumeM3) + " m³" : "—"),
+      "misurati " + (vm.misurabile ? nD(vm.m3) + " m³" : "—")
         + (av.pct == null ? "" : " (" + un1(av.pct) + "% del previsto)"),
       conData ? dd[1] + " " + fmtData(l[dd[0]]) : "",
     ].filter(Boolean).join(" · ");
@@ -1595,7 +1599,7 @@ a.dw-btn{text-decoration:none}
     const perche = [
       !vm.misurabile ? vm.motivo : (av.pct == null ? av.motivo : ""),
       vm.rilieviCumulo > 0
-        ? "Sui suoi fronti ci sono anche " + n0(vm.cumuloM3) + " m³ ripresi da cumuli: materiale già cavato, che non conta come scavo di questo lotto."
+        ? "Sui suoi fronti ci sono anche " + nD(vm.cumuloM3) + " m³ ripresi da cumuli: materiale già cavato, che non conta come scavo di questo lotto."
         : "",
       dd && !conData
         ? "Lo stato dice «" + sty[2].toLowerCase() + "» ma la data non è registrata: senza quella data non si può dimostrare quando è successo."
