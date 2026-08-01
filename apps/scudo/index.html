@@ -334,7 +334,14 @@
 }
 
 /* ─────────────── voci di lista (copia di .sitem) ─────────────── */
-.item{cursor:pointer}
+/* ⛔ Scudo partiva dal verso sbagliato: `cursor:pointer` su TUTTE le righe,
+   e 91 voci su 118 promettevano un tocco che non c'era. Misurato il 01/08
+   mettendo il cursore calcolato contro l'aggancio vero della riga.
+   Adesso parte ferma e si marcano le vive con `tocca`, che e' la convenzione
+   dichiarata in `shared/dw-app-ui.css`: dimenticare di marcare una riga viva
+   si vede subito (non si accende), dimenticare di marcarne una ferma no.
+   Censimento delle sei app: `docs/LA_MANINA_CHE_PROMETTE.md`. */
+.item{cursor:default}
 .item:active{transform:translateX(1px) scale(.995)}
 .item.evidenzia{
   border-color:var(--app-accent) !important;
@@ -1378,7 +1385,7 @@
     // Urgenze: prima l'idoneità sanitaria critica (non idoneo / con
     // prescrizioni), poi le scadenze non regolari.
     const idonUrg = idoneitaCriticita(LAV).map(l => { const idn = idoneitaLabel(l.idoneita);
-      return `<div class="item ${striscia[idn.cls] || "st-mute"}" onclick="go('pers')" title="Vai al lavoratore">
+      return `<div class="item tocca ${striscia[idn.cls] || "st-mute"}" onclick="go('pers')" title="Vai al lavoratore">
         <div class="avatar">${esc(initials(l.nome))}</div>
         <div class="info"><div class="name">${esc(l.nome)}</div><div class="meta">Idoneità sanitaria · ${esc(l.ruolo || "—")}</div></div>
         <span class="acts"><span class="badge ${idn.cls}">${idn.label}</span><span class="arr">›</span></span></div>`; });
@@ -1387,7 +1394,7 @@
     // deve vedere subito che una correzione promessa non è stata fatta.
     const aziUrg = azioniUrgenti(AZI).slice(0, 5).map(a => {
       const st = statoAzione(a), r = byId[a.responsabileId], lv = livelloScadenza(a.scadenza);
-      return `<div class="item ${striscia[B[st][0]]}" onclick="go('azio')" title="Vai all'azione correttiva">
+      return `<div class="item tocca ${striscia[B[st][0]]}" onclick="go('azio')" title="Vai all'azione correttiva">
         <div class="avatar sup">${SVG_AZIONE}</div>
         <div class="info"><div class="name">${esc(a.descrizione)}</div>
         <div class="meta">Azione correttiva · ${esc(r ? r.nome : "responsabile da assegnare")} · ${fmtData(a.scadenza)} · ${esc(lv.label)}</div></div>
@@ -1395,7 +1402,7 @@
     // S4 — chi oggi NON può fare la mansione che gli è assegnata: è la cosa
     // che ferma il lavoro domani mattina, e va vista prima di tutto il resto.
     const manUrg = scoperti.slice(0, 3).map(s =>
-      `<div class="item st-danger" data-vai-pers="mans" style="cursor:pointer" title="Vai alla matrice delle mansioni">
+      `<div class="item tocca st-danger" data-vai-pers="mans" title="Vai alla matrice delle mansioni">
         <div class="avatar">${esc(initials(s.lavoratore.nome))}</div>
         <div class="info"><div class="name">${esc(s.lavoratore.nome)}</div>
         <div class="meta">Non può fare ${esc(s.mansioni.join(", "))} · ${esc(s.motivi.join(" · "))}</div></div>
@@ -1409,7 +1416,7 @@
       const perche = o.senzaPersona
         ? (o.mancante ? "la persona nominata non è più in forza" : "una delle persone nominate non è più in forza")
         : o.mancante ? "nessuno è nominato" : "formazione non in regola";
-      return `<div class="item st-danger" data-vai-pers="nom" style="cursor:pointer" title="Vai alle nomine">
+      return `<div class="item tocca st-danger" data-vai-pers="nom" title="Vai alle nomine">
         <div class="avatar sup">${I.scudo}</div>
         <div class="info"><div class="name">${esc(o.ruolo.etichetta)}</div>
         <div class="meta">${esc(chi || "—")} · ${esc(perche)}</div></div>
@@ -1423,7 +1430,7 @@
     // quelli su cui l'ente chiede conto.
     const anUrg = senzaAn.length ? [(() => {
       const primo = senzaAn[0];
-      return `<div class="item st-warn" style="cursor:pointer" data-analisi="${primo.id}" title="Scrivi perché è successo">
+      return `<div class="item tocca st-warn" data-analisi="${primo.id}" title="Scrivi perché è successo">
         <div class="avatar sup">${I.allerta}</div>
         <div class="info"><div class="name">Perché è successo non è scritto</div>
         <div class="meta">${senzaAn.length === 1 ? "Un evento del registro è" : senzaAn.length + " eventi del registro sono"} senza un'analisi della causa · si comincia da quello del ${fmtData(primo.data)}: ${esc(accorcia(primo.descrizione || "evento senza descrizione", 44))}</div></div>
@@ -1433,7 +1440,7 @@
                    .sort((a, b) => a.dataScadenza < b.dataScadenza ? -1 : 1).slice(0, 5);
     $("urg-list").innerHTML = (idonUrg.join("") + manUrg.join("") + nomUrg.join("") + aziUrg.join("") + anUrg.join("") + urg.map(sc => {
       const st = statoScadenza(sc.dataScadenza), l = byId[sc.lavoratoreId];
-      return `<div class="item ${striscia[B[st][0]]}" onclick="go('scad')" title="Vai allo scadenzario">
+      return `<div class="item tocca ${striscia[B[st][0]]}" onclick="go('scad')" title="Vai allo scadenzario">
         <div class="avatar">${esc(initials(l && l.nome))}</div>
         <div class="info"><div class="name">${esc(l ? l.nome : "Scadenza aziendale")}</div><div class="meta">${esc(sc.descrizione)} · ${fmtData(sc.dataScadenza)}</div></div>
         <span class="acts"><span class="badge ${B[st][0]}">${B[st][1]}</span><span class="arr">›</span></span></div>`;
@@ -1713,7 +1720,7 @@
          uccideva la pagina AL DISEGNO, e cadere sul verde sarebbe stato peggio
          del crash. Si dichiara che non si sa, in giallo. */
       const ds = D[d.stato] || ["warn", "Stato non indicato"];
-      return `<div class="item ${striscia[ds[0]]}" data-doc="${d.id}" style="cursor:pointer" title="Tocca per cambiare stato"><div class="info"><div class="name">${d.tipo ? `<span class="badge tag" style="margin-right:6px;">${esc(d.tipo)}</span>` : ""}${esc(d.titolo)}</div><div class="meta">${esc(d.meta || "")}${legami ? (d.meta ? " · " : "") + legami : ""}</div></div>
+      return `<div class="item tocca ${striscia[ds[0]]}" data-doc="${d.id}" title="Tocca per cambiare stato"><div class="info"><div class="name">${d.tipo ? `<span class="badge tag" style="margin-right:6px;">${esc(d.tipo)}</span>` : ""}${esc(d.titolo)}</div><div class="meta">${esc(d.meta || "")}${legami ? (d.meta ? " · " : "") + legami : ""}</div></div>
        <span class="acts">${d.allegatoData ? `<span class="arr" style="cursor:pointer" title="Apri allegato ${esc(d.allegatoNome || "")}" data-open-doc="${d.id}">${I.clip}</span>` : ""}
        <span class="badge ${ds[0]}">${ds[1]}</span></span></div>`;
     }).join("")
@@ -1881,7 +1888,7 @@
       const anb = an
         ? `<span class="arr" style="cursor:pointer" title="Vedi o correggi l'analisi della causa" data-analisi="${x.id}">✎</span>`
         : `<span class="badge warn" style="cursor:pointer" title="Nessuna analisi della causa: tocca per scrivere perché è successo" data-analisi="${x.id}">0 perché</span>`;
-      return `<div class="item ${striscia[tb[0]]}" data-evt="${x.id}"><div class="info"><div class="name">${esc(x.descrizione || x.tipo || "Evento")}</div>
+      return `<div class="item tocca ${striscia[tb[0]]}" data-evt="${x.id}"><div class="info"><div class="name">${esc(x.descrizione || x.tipo || "Evento")}</div>
         <div class="meta">${fmtData(x.data)}${x.luogo ? " · " + esc(x.luogo) : ""}${x.categoria ? " · " + esc(categoriaNearMiss(x.categoria)) : ""}${x.gravita && x.tipo !== "near-miss" ? " · " + esc(x.gravita) : ""}${(+x.giorniAssenza) ? " · " + (+x.giorniAssenza) + " gg assenza" : ""}${chi ? " · " + chi : ""}${an ? " · causa: " + esc(etichettaCausa(an.causa)) : ""}</div></div>
         <span class="acts"><span class="badge ${tb[0]}">${tb[1]}</span>
         <span class="badge ${ab[0]}" style="cursor:pointer" title="Vedi le azioni correttive di questo evento" data-azi-evt="${x.id}">${ab[1]}</span>
@@ -2030,7 +2037,7 @@
           : `${r.fatte} voci compilate su ${r.totale}`,
       ].join(" · ");
       const ab = naz.length ? badgeAzioni(naz.length, nazChiuse) : null;
-      return `<div class="item ${cls}" data-isp-apri="${i.id}" title="Apri la checklist">
+      return `<div class="item tocca ${cls}" data-isp-apri="${i.id}" title="Apri la checklist">
         <div class="avatar sup">${I.lista}</div>
         <div class="info"><div class="name">${esc(i.nome)}</div><div class="meta">${esc(meta)}</div></div>
         <span class="acts">

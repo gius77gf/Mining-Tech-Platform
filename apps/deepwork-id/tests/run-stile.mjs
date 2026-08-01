@@ -446,6 +446,11 @@ const SOLO_IN_SHELL = [
   [".top h1 .accent", "color", "vive solo in `profilo.html`, che shell lo carica ancora"],
   [".top .sub", "font-size, color, letter-spacing, text-transform",
    "vive solo in `profilo.html`: le altre usano la struttura del core (`.top-brand`)"],
+  ["a.item", "cursor",
+   "serve solo a `profilo.html`, dove le righe partono ferme (`cursor:default`) "
+   + "e la voce «Amministrazione» e' un `<a href>`: cliccabile per natura, e la "
+   + "manina gliela ridà questa riga. Nelle app la domanda non si pone — li' "
+   + "`.item` parte gia' con la manina o la marca con `tocca`"],
 ];
 console.log("\n── Le proprietà che solo dw-app-shell.css dichiara sono quelle dichiarate ──");
 {

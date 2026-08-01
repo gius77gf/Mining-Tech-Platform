@@ -43,7 +43,7 @@ il bottone, e la sua manina ce l'ha per conto suo.
 | terra | 46 | 2 → **0** | 0 |
 | conti | 126 | 111 → **0** | 0 |
 | sentinella | 39 | 25 → **0** | 0 |
-| **scudo** | 118 | **91** | 0 |
+| scudo | 118 | 91 → **0** | 0 |
 
 Nessuna app ha il difetto opposto (una riga viva che non lo dice).
 
@@ -71,16 +71,47 @@ scadenze è resa in due punti, e uno dei due si era dimenticato `.statico`; in
 **Terra** le righe ferme portano `style="cursor:default"` in quattro punti su
 cinque.
 
-## Che cosa farne
+## Che cosa è stato fatto
 
-1. **Scudo** è il caso grosso e non va corretto copiando a occhio: 27 righe vive
-   su 118, riconoscibili da un `data-…` sulla riga. Va deciso **con quale
-   convenzione**, e la decisione riguarda tutti.
-2. **Una convenzione sola, in `shared/dw-app-ui.css`.** Il verso giusto è
-   «parti ferme e marca le vive»: una riga che non fa niente è il caso normale,
-   e dimenticare di marcare una riga viva si vede subito (non si accende),
-   mentre dimenticare di marcare una riga ferma **non si vede** — è il difetto
-   di oggi.
-3. **Un controllo che lo tenga fermo**, nella forma già usata dagli altri: il
-   censimento qui sopra diventa un banco del browser che pretende **zero**
-   promesse mancate su tutte le superfici, e stampa quante voci ha guardato.
+1. ✅ **La convenzione, una sola, in `shared/dw-app-ui.css`**: `.item.tocca`.
+   Il verso è «parti ferma e marca le vive», e la ragione è **misurabile**:
+   dimenticare di marcare una riga **viva** si vede subito (non si accende),
+   dimenticare di marcarne una **ferma** non si vede — ed è il difetto che si è
+   presentato cinque volte oggi.
+2. ✅ **Scudo** portata su quella convenzione: la regola locale girata a
+   `cursor:default`, e `tocca` sulle **nove** emissioni vive (che erano
+   marcate in tre modi diversi *dentro la stessa app*: `onclick`, `data-…`,
+   e `style="cursor:pointer"` scritto a mano). 91 → 0.
+3. ✅ **Un banco che lo tiene fermo**:
+   `apps/deepwork-id/tests/browser/promesse-tocco.mjs`, su tutte le superfici,
+   con la controprova che rimette il difetto (`.item{cursor:pointer
+   !important}`) e pretende che il banco lo veda. Non guarda le classi — le
+   misurerebbe invece della promessa — ma il cursore calcolato contro
+   l'aggancio vero, e **stampa quante voci ha guardato**.
+
+## Come rifare la misura
+
+```
+python3 -m http.server 8931          # dalla radice del repo
+node apps/deepwork-id/tests/browser/promesse-tocco.mjs 8931
+node apps/deepwork-id/tests/browser/promesse-tocco.mjs 8931 --controprova
+```
+
+La prima deve dire **0 promesse fuori posto**; la seconda deve **trovarne**, se
+no il banco non sa fallire. Tutt'e due stampano quante voci hanno guardato: è il
+numero da leggere per primo, perché uno zero su zero voci non è una buona
+notizia, è un banco che non ha misurato niente.
+
+⚠️ E una trappola che è costata un'ora, scritta perché non ricapiti: la sonda
+usata per il censimento chiamava `vaiA(p, sezione)` invece di
+`vaiA(p, nome, sezione)`. Con due argomenti **non naviga**, quindi misurava otto
+volte la stessa schermata — e il risultato non sembrava rotto, sembrava un
+prodotto strano (la stessa riga in ogni sezione). Adesso `vaiA` rifiuta la
+chiamata a due argomenti invece di far finta.
+
+## Che cosa resta
+
+**Conti** e **Sentinella** usano ancora `tap` e `cliccabile`: stesso verso,
+nome diverso, vanno rinominate. **Campo**, **Flotta** e **Terra** partono dal
+verso opposto e sono a zero: si migrano senza fretta, e adesso il banco protegge
+comunque, qualunque convenzione usino.

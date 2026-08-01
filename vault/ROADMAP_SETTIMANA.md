@@ -487,6 +487,22 @@ inserito una volta serve in cinque posti**.
 ## BLOCCO 6 — SECONDE ITERAZIONI: I DIFETTI DICHIARATI, CHIUSI
 Non feature nuove: i difetti che i cantieri avevano trovato e scritto nero su
 bianco invece di nascondere. Ognuno era piccolo, ognuno era vero.
+- [x] **S0. La manina che promette un tocco che non c'è** ✅ *(01/08)* — nato
+      da E0: smontando i due fogli condivisi si è visto che
+      `dw-app-shell.css` metteva `cursor:pointer` su **tutte** le `.item`, e
+      quindi le decisioni che le app avevano preso («la manina solo alle voci
+      che si toccano») erano solo **scritte**. Misurato con il cursore
+      calcolato contro l'aggancio vero, sezione per sezione, su tutte e sei:
+      **Scudo 91 righe su 118, Conti 111 su 126, Sentinella 25 su 39, Flotta 3,
+      Terra 2** — e zero il difetto opposto. Tutte a **0**.
+      Una riga che mostra la manina dice «toccami»: se non fa niente, chi la
+      tocca non pensa «la riga è ferma», pensa di aver **sbagliato mira**.
+      Lasciti: la convenzione unica `.item.tocca` in `shared/dw-app-ui.css`
+      (verso «parti ferma e marca le vive», perché dimenticare di marcare una
+      riga viva si vede subito e una ferma no), il banco
+      `browser/promesse-tocco.mjs` con la sua controprova, e
+      `docs/LA_MANINA_CHE_PROMETTE.md`. Resta la pulizia dei nomi: Conti e
+      Sentinella usano ancora `tap` e `cliccabile`.
 - [x] **S1. Unità di misura mai in maiuscolo — alla radice** ✅ *(30/07,
       `aab9d07`)* — la causa stava in `shared/dw-grafici`, non nelle app: tre
       toppe locali (Terra, Sentinella, Campo) per un difetto solo. Chromium

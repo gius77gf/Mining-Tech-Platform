@@ -227,6 +227,22 @@ img{max-width:100%}
    la usano tutte le pagine che hanno righe `.item`, cioè tutte quelle che
    caricano questo foglio */
 .item:active{background:var(--card2)}
+/* ⛔ LA MANINA È UNA PROMESSA, e va detta in un posto solo. Misurato il 01/08
+   su tutte e sei le app: **sei app, cinque convenzioni diverse** per dire
+   «questa riga si tocca» — due filosofie opposte (parti viva e marca le ferme /
+   parti ferma e marca le vive), tre nomi (`tap`, `cliccabile`, `statico`), due
+   modi di scriverla (classe o stile in riga). E il conto delle righe che
+   mostravano la manina senza fare niente: Scudo 91 su 118, Conti 111 su 126,
+   Sentinella 25 su 39, Flotta 3, Terra 2. Chi le tocca non pensa «la riga è
+   ferma», pensa di aver **sbagliato mira**.
+   `tocca` è il nome unico, e il verso è quello giusto per una ragione
+   misurabile: dimenticare di marcare una riga **viva** si vede subito (non si
+   accende), dimenticare di marcarne una **ferma** non si vede — ed è il difetto
+   che si è presentato cinque volte.
+   Le app che usano ancora `tap` e `cliccabile` vanno portate qui; quelle che
+   partono dal verso opposto (campo, flotta, terra) sono a zero e si migrano
+   senza fretta. Censimento: `docs/LA_MANINA_CHE_PROMETTE.md`. */
+.item.tocca{cursor:pointer}
 .item.st-danger{border-left:3px solid var(--danger)}
 .item.st-warn{border-left:3px solid var(--warn)}
 .item.st-ok{border-left:3px solid var(--success)}
