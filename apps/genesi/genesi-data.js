@@ -86,7 +86,16 @@ export function sitoFit(punti){
     K:  Math.round(Math.exp(a)),                      // riga media (50%)
     K95:Math.round(Math.exp(a+1.645*s)),              // riga di progetto (95%)
     beta:+beta.toFixed(2),
-    r2: sst>1e-12 ? +(1-ssr/sst).toFixed(3) : 0,
+    /* ⛔ ZERO È UN VALORE, «non calcolabile» no. Quando tutte le PPV sono
+       uguali `sst` è nullo e r² non esiste: scriverlo 0 vuol dire «la legge non
+       spiega niente», che è un'affermazione, non un'ammissione.
+       ⚠️ Onestà su quanto pesa: oggi quel caso esce SEMPRE con
+       `errore: 'pendenza'` (PPV tutte uguali ⇒ β = 0, fuori da 0,5–3) e la
+       modale disegna il riquadro di r² solo nel ramo senza errore — quindi
+       nella pagina questo numero non si vede. È difesa in profondità, non
+       innocuità: la difesa sta in un'altra riga, e la funzione adesso si
+       importa. Si toglie lo strato che inventa. */
+    r2: sst>1e-12 ? +(1-ssr/sst).toFixed(3) : null,
     sdMin:+Math.min.apply(null,sd).toFixed(1),
     sdMax:+Math.max.apply(null,sd).toFixed(1) };
   if(!(beta>0.5 && beta<3)) out.errore='pendenza';

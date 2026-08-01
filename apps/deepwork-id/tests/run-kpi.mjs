@@ -12160,6 +12160,22 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     eq(v.normaPpvLab("din-res"), "DIN residenziale", "e uno vero si traduce");
   });
 
+  test("⛔ Genesi: r² non calcolabile è `null`, non `0` — e la pagina è difesa due volte", () => {
+    /* con tutte le PPV uguali `sst` è nullo e r² non esiste. Scriverlo 0 vuol
+       dire «la legge non spiega niente»: un'affermazione, non un'ammissione. */
+    const f = v.sitoFit([{ d: 100, w: 25, ppv: 10 }, { d: 200, w: 25, ppv: 10 }, { d: 400, w: 25, ppv: 10 }]);
+    eq(f.r2, null, "r² non calcolabile");
+    /* ⚠️ e la seconda metà della prova è l'onestà su quanto pesa: quel caso
+       esce SEMPRE anche con `errore: 'pendenza'` (PPV uguali ⇒ β = 0, fuori da
+       0,5–3), e la modale disegna il riquadro di r² solo nel ramo senza errore.
+       Difesa in profondità, non innocuità — la difesa stava in un'altra riga. */
+    eq(f.errore, "pendenza", "e lo stesso caso porta già l'errore che la pagina legge");
+    eq(f.beta, 0, "perché la pendenza è zero");
+    /* e su dati veri r² resta un numero */
+    eq(v.sitoFit([{ d: 100, w: 25, ppv: 30 }, { d: 200, w: 25, ppv: 15 }, { d: 400, w: 25, ppv: 7.5 }]).r2, 1,
+       "una legge perfetta ha r² = 1");
+  });
+
   test("Genesi · ogni codice di norma che la pagina propone ha un nome scritto per esteso", () => {
     /* il nome finisce nel rapporto e nel file per Sentinella, accanto al numero:
        un limite citato senza dire QUALE limite non è verificabile da nessuno */
