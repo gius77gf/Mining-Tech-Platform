@@ -2051,6 +2051,22 @@ campi interi, file delle macchine.
       Serve a **impedire il lavoro sbagliato**: chi riprendesse dalla scheda
       vecchia scriverebbe strati dati che esistono, l'errore che `CLAUDE.md`
       elenca fra i più costosi con quattro casi datati.
+- [x] ✅ **TUTTE E SEI — E LA SECONDA METÀ DEL PRINCIPIO** *(01/08)* — messi
+      sotto guardia i due casi che Flotta e Sentinella avevano già in
+      dimostrazione (il costo senza data, il punto mai misurato): il banco
+      copre **tutte e sei le app**, 31 prove, 15 stati. ⛔ Ma la controprova su
+      Sentinella **non faceva cadere niente**, e la diagnosi vale più della
+      correzione: il banco garantiva «lo **stato è dichiarato**» — la regex
+      accettava anche il badge — mentre il difetto vero è quello scritto nel
+      commento del modulo, cioè **la cifra scritta accanto**: «0 µg/m³ / soglia
+      40» vicino a «Mai misurato», due frasi opposte sulla stessa riga, e quella
+      con la cifra è la sola che si guarda. Aggiunto il campo `vietato`: un
+      motivo che nella riga **non deve** comparire. ⚠️ Tre inciampi nel farlo,
+      tutti già in `CLAUDE.md`: l'iniezione puntata sulla funzione sbagliata
+      (caso 4), l'iniezione **sostitutiva** che faceva cadere un altro controllo
+      invece di quello nuovo (serve **additiva**), e il messaggio di fallimento
+      che non conteneva il colpevole. E un `cp` di ripristino fallito per la
+      cartella sbagliata: se n'è accorto il `git status` di rito, non la memoria.
 - [x] ✅ **L'APPELLO CHE NON SI POTEVA VEDERE** *(01/08, Campo)* — censite con
       una sonda le tre app che il banco non guardava: Sentinella e Flotta uno
       stato ciascuna lo mostrano davvero; **Campo no**, e in un modo istruttivo

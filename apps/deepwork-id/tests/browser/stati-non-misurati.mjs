@@ -63,6 +63,20 @@ const CASI = [
     /\bassente\b[\s\S]*ancora da spuntare/i, { seleziona: '#chk-turno', valore: 'Mattina' }],
   ['campo', 'appello completo: il contrasto', '#nav-rap', null, '#pre-board',
     /appello completo/i, { seleziona: '#chk-turno', valore: 'Pomeriggio' }],
+  /* Flotta e Sentinella un caso ciascuna ce l'avevano gia' in dimostrazione:
+     qui non si aggiungono dati, si mette sotto guardia quello che c'e' — se
+     un domani sparisce dalla demo, il banco lo dice invece di restare verde. */
+  ['flotta', 'costo senza data: non sparisce dal periodo in silenzio', '#nav-cos', null, '#cos-list',
+    /senza data/i],
+  /* ⛔ Qui non basta che lo STATO sia dichiarato: il commento del modulo dice
+     che il difetto vero e' il numero tranquillo scritto ACCANTO al badge —
+     «0 µg/m³ / soglia 40» accanto a «Mai misurato», due frasi opposte sulla
+     stessa riga, e quella con la cifra e' la sola che si guarda. Misurato: una
+     controprova che toglieva la frase e rimetteva la cifra NON faceva cadere il
+     banco, perche' il badge restava e la regex lo accettava. Da qui `vietato`. */
+  ['sentinella', 'punto in programma e mai misurato', '#nav-dash', null, '#all-list',
+    /nessuna misura registrata/i, null, { vietato: /\d+[\s\u00a0]*[^\s]*\s*\/\s*soglia/i,
+                                          perche: 'accanto a «mai misurato» non si scrive nessuna cifra' }],
 ];
 
 /* ⛔ CONTI STA A PARTE, e non per pigrizia: il suo caso non è una riga di un
@@ -99,7 +113,7 @@ for (const [app, casi] of Object.entries(perApp)) {
   await p.goto(`http://localhost:${PORTA}/apps/${app}/index.html?demo=1`, { waitUntil: 'networkidle' });
   await p.waitForTimeout(2200);
 
-  for (const [, etichetta, tab, sotto, dove, re, prima] of casi) {
+  for (const [, etichetta, tab, sotto, dove, re, prima, extra] of casi) {
     if (await p.$(tab)) { await p.click(tab); await p.waitForTimeout(800); }
     if (sotto) {
       const sel = `#pers-tabs [data-tab="${sotto}"]`;
@@ -143,7 +157,8 @@ for (const [app, casi] of Object.entries(perApp)) {
       const sorelle = [...(riga.parentElement ? riga.parentElement.children : [])]
         .filter((x) => x !== riga && x.classList.contains('item'))
         .map((x) => Math.round(x.getBoundingClientRect().height));
-      return { altezza: Math.round(riga.getBoundingClientRect().height), sorelle };
+      return { altezza: Math.round(riga.getBoundingClientRect().height), sorelle,
+               testo: (riga.innerText || '').replace(/\n/g, ' ') };
     }, [re.source, dove]);
     guardati++;
     const nome = `${app}: ${etichetta}`;
@@ -152,6 +167,15 @@ for (const [app, casi] of Object.entries(perApp)) {
     dice(r.altezza > 0, `${nome} — si vede sullo schermo`, r.altezza);
     const max = r.sorelle.length ? Math.max(...r.sorelle) : null;
     if (max) dice(r.altezza <= max * 1.6, `${nome} — non manda la riga a capo`, { riga: r.altezza, sorelle: max });
+    /* ⛔ la seconda meta' del principio: non basta DIRE che non si sa, non si
+       deve scrivere accanto un numero che sembra una misura */
+    if (extra && extra.vietato) {
+      /* si mostra QUELLO CHE HA FATTO CADERE, non i primi 90 caratteri della
+         riga: un messaggio che non contiene il colpevole fa ricominciare la
+         caccia da capo */
+      const colpa = r.testo.match(extra.vietato);
+      dice(!colpa, `${nome} — ${extra.perche}`, colpa && colpa[0]);
+    }
   }
   dice(errori.length === 0, `${app}: nessun errore di pagina`, errori[0]);
   await ctx.close();
