@@ -463,6 +463,86 @@ if (!CONTROPROVA) {
   dice(errori.length === 0, 'scudo: nessun errore di pagina', errori[0]);
   await ctx.close();
 }
+
+/* ── Terra: il RIEPILOGO ANNUALE che va all'ente ─────────────────────────
+   ⛔ Terzo foglio, e porta TRE assenze dichiarate una sotto l'altra: il volume
+   dell'atto «non indicato», il pregresso «non dichiarato», il residuo «non
+   calcolabile». Erano già scritte bene da prima, e non le guardava nessuno —
+   nessuna prova `node` può vederle, perché vivono nel foglio.
+
+   ⛔ E QUI L'ASSENZA SI RAGGIUNGE DIGITANDO, come una contraddizione. Fin qui
+   la regola era: assenza → sta nei dati d'esempio; contraddizione → no, si
+   digita. Questo caso mostra l'eccezione alla prima riga: togliere il volume
+   concesso all'unico atto della dimostrazione **si porta via quattro numeri**
+   (la percentuale del concesso, il cumulato letto in proporzione, il residuo,
+   la soglia di guardia) — è strutturale, non additivo, e il criterio dice di
+   no. Ma il gesto è realistico e non artificioso: è il cliente nuovo che ha
+   aperto Terra e **non ha ancora trascritto l'atto**, cioè lo stato del primo
+   giorno.
+   Misurato prima di scriverlo: il form di Terra il campo vuoto lo salva
+   `null`, non `0`, e lo dice in un commento — la stessa regola che a
+   Sentinella mancava e che è costata l'unità precedente.
+   ⚠️ Terra stampa in una FINESTRA NUOVA (`window.open`): si aspetta la pagina
+   che nasce e si legge quella, e `window.print` va zittito o il banco resta
+   appeso al riquadro di stampa. */
+if (!CONTROPROVA) {
+  const ctx = await browser.newContext({ viewport: { width: 900, height: 1300 }, locale: 'it-IT' });
+  const p = await ctx.newPage();
+  const errori = [];
+  p.on('pageerror', (e) => errori.push(e.message));
+  await p.goto(`http://localhost:${PORTA}/apps/terra/index.html?demo=1`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(2400);
+  /* il titolo autorizzativo si compila nella scheda «Titolo», non nella
+     denuncia: si svuotano i due numeri dell'atto e si salva */
+  await p.click('#nav-tit').catch(() => {});
+  await p.waitForTimeout(900);
+  let pronto = true;
+  for (const campo of ['#aut-volume', '#aut-pregresso']) {
+    guardati++;
+    const ok = await p.fill(campo, '').then(() => true).catch(() => false);
+    if (!ok) { dice(false, `terra: riepilogo all'ente — non riesco a svuotare ${campo}`); pronto = false; }
+  }
+  if (pronto) {
+    await p.click('#btn-aut-salva').catch(() => {});
+    await p.waitForTimeout(1200);
+    await p.click('#nav-den').catch(() => {});
+    await p.waitForTimeout(1200);
+    const attesa = ctx.waitForEvent('page', { timeout: 9000 }).catch(() => null);
+    await p.click('#btn-den-stampa').catch(() => {});
+    const foglio = await attesa;
+    guardati++;
+    if (!foglio) {
+      dice(false, "terra: il riepilogo non ha aperto nessuna finestra di stampa");
+    } else {
+      await foglio.evaluate(() => { window.print = () => {}; }).catch(() => {});
+      await foglio.waitForTimeout(700);
+      const t = await foglio.evaluate(() => document.body.innerText || '').catch(() => '');
+      if (!t.trim()) {
+        dice(false, 'terra: il foglio del riepilogo non si è costruito');
+      } else {
+        for (const [etichetta, re] of [
+          ["volume dell'atto non indicato", /volume concesso dall'atto[\s\S]{0,60}non indicato/i],
+          ['pregresso non dichiarato', /prima dell'uso di terra[\s\S]{0,60}non dichiarato/i],
+          ['residuo non calcolabile', /residuo del volume concesso[\s\S]{0,60}non calcolabile/i],
+        ]) { guardati++; dice(re.test(t), `terra: riepilogo all'ente — ${etichetta}`, t.slice(0, 90)); }
+        /* ⛔ e la seconda metà del principio, che qui ha una forma tutta sua:
+           senza il volume dell'atto la riga del cumulato NON deve portarsi
+           dietro «(36,8% del concesso)». Una percentuale del concesso, quando
+           il concesso non c'è, sarebbe una frazione di un numero che nessuno
+           ha scritto — su un foglio che va all'ente. */
+        guardati++;
+        const pct = t.match(/%\s*del concesso/i);
+        dice(!pct, "terra: riepilogo all'ente — nessuna percentuale di un concesso che non c'è", pct && pct[0]);
+        guardati++;
+        const zero = t.match(/(?:volume concesso dall'atto|prima dell'uso di terra)[\s\S]{0,40}\b0(?:[.,]0+)?\s*m³/i);
+        dice(!zero, "terra: riepilogo all'ente — nessuno zero al posto di un dato mai scritto", zero && zero[0]);
+      }
+      await foglio.close().catch(() => {});
+    }
+  }
+  dice(errori.length === 0, 'terra: nessun errore di pagina', errori[0]);
+  await ctx.close();
+}
 await browser.close();
 
 console.log(`\n${guardati} stati cercati nelle pagine vive${CONTROPROVA ? ' (CONTROPROVA: devono cadere)' : ''}`);

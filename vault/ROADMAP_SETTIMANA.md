@@ -2570,6 +2570,26 @@ campi interi, file delle macchine.
       quante volate del periodo non sono complete, e casella e conto condividono
       **una** condizione (`nonDichiarato`), non due copie. Prove **1121 → 1123**,
       `stati-non-misurati` **63 → 64**, 33 stati.
+- [x] ✅ **TRE DICHIARAZIONI CHE LA DIMOSTRAZIONE NON PUÒ MOSTRARE** *(01/08,
+      Terra)* — il riepilogo annuale che va all'ente porta **tre assenze
+      dichiarate** una sotto l'altra (volume dell'atto «non indicato»,
+      pregresso «non dichiarato», residuo «non calcolabile»), scritte bene da
+      prima e **guardate da nessuno**. Scritto il blocco del banco: **3 prove su
+      3 cadute** — la dimostrazione quei numeri **ce li ha** (mi ero fidato di
+      una misura fatta al livello sbagliato: cercavo `volumeConcesso`, il campo
+      è `volumeAutorizzatoM3`). ⛔ E metterle in dimostrazione **non si può**:
+      togliere il volume concesso all'unico atto porta via anche la percentuale
+      del concesso, il cumulato in proporzione, il residuo e la soglia — è
+      **strutturale**, lo stesso «no» del residuo. Da qui **l'eccezione alla
+      regola scritta stamattina**: un'assenza che, messa in dimostrazione, ne
+      smonta il resto **si raggiunge digitando** come una contraddizione — e il
+      gesto è realistico, è il cliente nuovo che non ha ancora trascritto
+      l'atto. Misurato prima: il form di Terra il campo vuoto lo salva `null` e
+      lo dice in un commento — **la stessa regola che a Sentinella mancava** e
+      che è costata l'unità precedente. Il banco pretende anche che, senza il
+      concesso, **non compaia nessuna «% del concesso»**: una frazione di un
+      numero che nessuno ha scritto, su un foglio per l'ente.
+      `stati-non-misurati` **64 → 70** prove, 33 → 41 stati.
 
 ---
 
