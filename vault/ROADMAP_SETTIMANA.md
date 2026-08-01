@@ -901,6 +901,42 @@ campi interi, file delle macchine.
       non ha `.form.col`, Campo non ha quella base. Resta da guardare **solo
       Flotta**, che ha tutt'e due — e ha un cantiere aperto sopra.
 
+### Fatto il 01/08 (notte) — sette unità, e due buchi negli strumenti
+- [x] **Sentinella — la graffetta sull'adempimento**: la scadenza c'era, il
+      **documento consegnato** no. E la regola dell'allegato, che era scritta a
+      mano in Scudo, è passata in `shared/` — dove copre tre casi che quella di
+      casa non guardava (file vuoto, senza nome, dimensione illeggibile).
+- [x] **Sentinella — import delle tarature da CSV + l'allerta** quando scadono.
+      L'allerta porta `puntoId`, perché atterrare sulla sezione giusta *ma con
+      lo strumento sbagliato in tendina* è peggio di un collegamento rotto.
+- [x] **Scudo — la foto come prova** su infortuni e ispezioni.
+- [x] **Terra — la conformità alla quota di progetto**: «stiamo scavando dove il
+      progetto dice?» è la domanda dell'ente, e l'app non sapeva rispondere.
+- [x] **Conti — l'abbinamento dei movimenti bancari**, con la certezza graduata:
+      l'incerto **non diventa mai** una proposta automatica.
+- [x] **Flotta — il salvataggio che non riesce.** Misurato con Firestore vero e
+      la rete chiusa: le scritture **non falliscono, restano appese**. Il giro
+      macchina compilato in cava spariva in silenzio; adesso l'utente lo sa.
+- [x] **Campo — il ponte anomalia → azione correttiva**: al fronte la riga
+      moriva lì, e la macchina per darle seguito era già in Scudo.
+- [x] ⛔ **`eq` scriveva «null» per quattro valori diversi** (`Infinity`,
+      `-Infinity`, `NaN`, `null`), più `-0` su `0` e `{a:undefined}` su `{}`. Il
+      buco stava **sotto le prove che difendono il principio del fondatore**, e
+      sul valore che il difetto produce. Ora il confronto passa da
+      `tests/mostra.mjs`.
+- [x] ⛔ **Cinque prove non potevano fallire**: `test` era sincrono, e una prova
+      `async` gli tornava una promessa invece di un esito. Misurato con un
+      `ok(false)` dentro una di loro: «0 falliti».
+- [x] **Il giro `node` è un comando solo** (`giro-node.mjs`), e la lista è
+      **derivata** da `scripts.test`, non gemella: fatto a memoria ne lanciava
+      undici su diciannove.
+- [x] ⛔ **La regola nata dalla CI rossa**: la verifica vale per lo stato **che
+      si committa**, non per quello che si era misurato.
+- [ ] **`browser/modali.mjs`** — il banco per le finestre di conferma. Scritto,
+      copertura **già misurata** (quattro app su sei: Campo e Conti hanno un
+      markup diverso) e **dichiarata** dal banco stesso. Restano: girata intera,
+      controprova, registrazione in `tutti.mjs` e nel `LEGGIMI`.
+
 ### Difetti chiusi il 01/08 — i controlli che non guardavano dove credevano
 - [x] **La regola che vieta i dialoghi del browser era cieca.** I due
       tokenizzatori di `run-stile.mjs`, entrati in un backtick, correvano fino
