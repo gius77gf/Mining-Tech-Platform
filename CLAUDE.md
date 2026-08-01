@@ -214,7 +214,7 @@ in italiano, senza dare conoscenze per scontate).
   `run-pointcloud.mjs`, `run-manifest.mjs`, `run-stile.mjs`) girano anch'esse
   con `node`.
 - **`run-stile.mjs` rende verificabili le regole vincolanti** che prima
-  vivevano solo qui — diciannove, al 05/08: niente dialoghi del browser, unità mai in
+  vivevano solo qui — venti, al 05/08: niente dialoghi del browser, unità mai in
   maiuscolo, nessun campo decimale `type="number"`, nessun campo decimale letto
   col lettore che fa zero, la guardia sui campi interi montata dove servono, il
   ponte con Terra che non dà la colpa a chi compila, la provenienza di un
@@ -232,8 +232,50 @@ in italiano, senza dare conoscenze per scontate).
   stringe la barra, la manda **a capo**, e l'ultima voce finisce sotto le
   altre, invisibile e non toccabile. Successo lo stesso giorno aggiungendo
   «Costi» a Conti: nessun errore, nessuna prova rossa, e leggendo il codice non
-  si vede — l'ha trovato solo lo scatto. L'intestazione del file le elenca con
+  si vede — l'ha trovato solo lo scatto. E — dal 01/08, **regola 20** — che
+  **una non-misurabilità dichiarata dal modulo sia letta da qualcuno**: quando
+  un modulo si accorge di non poter misurare qualcosa lo dichiara con una
+  bandiera accanto al numero (`misurabile`, `leggibile`, `calcolabile`, `noto`,
+  `attendibile`, `pochi`), e se quella bandiera non la legge nessuno — né la
+  pagina né il modulo stesso — **non protegge niente**: il numero tranquillo si
+  disegna lo stesso e il modulo sembra a posto perché la dichiarazione c'è. È la
+  guardia scollegata della regola 17, applicata al principio del fondatore.
+  Due cose imparate scrivendola, tutt'e due già in questo file e fatte lo
+  stesso: cercava `bandiera:` **a testo** e prendeva i commenti per
+  dichiarazioni (si usa `mascheraCodice`, non se ne scrive un altro); e
+  pretendeva la lettura **nella pagina**, accusando `origineDi` di Terra il cui
+  `noto` lo consuma `descriviOrigine` dentro il modulo — cioè il disegno
+  **giusto**, quello della regola 7. Il vocabolario è **corto di proposito**:
+  `misurato` è fuori perché è un *valore*, `assente` e `mai` perché sono
+  *stati*. E la copertura è **dichiarata**: usano quel vocabolario tre app su
+  sei, quindi «nessuna violazione» non vuol dire «tutte a posto».
+  L'intestazione del file le elenca con
   la ragione di ognuna. Quando nasce un'app va aggiunta all'elenco `SUPERFICI`.
+- ⚠️ **UN'ECCEZIONE CHE NON SERVE PIÙ È UN'ECCEZIONE CHE NASCONDE**, e a
+  pretenderlo è `sonda-vuoto.mjs`. Non controlla solo che non nascano
+  «tranquilli» nuovi: controlla anche che ogni caso scritto in `ACCETTATI` e
+  `ALLARMI_ACCETTATI` **si presenti ancora**. Il 01/08 ha fatto cadere la CI
+  perché tre non si presentavano più — `scudo.statoAzione`,
+  `scudo.statoIspezione`, `campo.pianoRiepilogo` — e non erano guasti: erano
+  casi **corretti** dal censimento del principio, con le righe che li scusavano
+  rimaste lì a coprire un difetto che non c'era più. La forma da leggere in
+  fondo è «7 tranquilli trovati, **7** dichiarati»: quando i due numeri si
+  scostano, l'elenco è più vecchio del codice.
+  ⚠️ **E questa suite va nel giro di verifica PRIMA del commit**, insieme a
+  `numeri-nei-documenti.mjs`: quel giorno non c'erano, e infatti il difetto
+  l'ha trovato la CI invece di chi committava.
+- ⚠️ **`run-demo.mjs` distingue il dato CORROTTO dal dato ASSENTE**, dal 01/08,
+  e la ragione vale per qualunque controllo d'integrità che si scriverà dopo:
+  pretendeva che ogni fattura d'esempio avesse emissione e scadenza valide,
+  quindi la dimostrazione **non poteva contenere** proprio il caso per cui la
+  difesa era appena stata costruita — la fattura senza scadenza, su cui l'app
+  diceva le cose più tranquillizzanti che sapesse dire. Un campo assente non è
+  un refuso: è **uno stato che il prodotto sa raccontare**, e metterlo nella
+  dimostrazione è un modo di mostrarlo. Quello che va impedito è `2026-13-45`.
+  ⚠️ E lì dentro c'era **la stessa regola scritta due volte, più debole**: la
+  `isDate` di casa accettava **«2026-02-30»**, perché `Date.parse` un giorno che
+  non esiste non lo rifiuta — lo fa **scorrere** al 2 marzo. La versione giusta
+  (`dataISOEsiste`) era in `shared/` da mesi.
 - ⚠️ **UNO STRUMENTO CONDIVISO DA TUTTI I CONTROLLI NON È CONTROLLATO DA
   NESSUNO.** Il 03/08 la scansione che sta sotto a tutte e sedici le regole
   **perdeva la fase**, per due difetti indipendenti: leggeva la pagina intera
