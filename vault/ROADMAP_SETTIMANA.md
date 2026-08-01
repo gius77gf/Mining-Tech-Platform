@@ -2051,6 +2051,21 @@ campi interi, file delle macchine.
       Serve a **impedire il lavoro sbagliato**: chi riprendesse dalla scheda
       vecchia scriverebbe strati dati che esistono, l'errore che `CLAUDE.md`
       elenca fra i più costosi con quattro casi datati.
+- [x] ✅ **UN BANCO PRETENDE CHE GLI STATI «NON MISURATO» SI VEDANO** *(01/08)* —
+      in due unità di fila lo stesso difetto in **due app a un'ora di distanza**:
+      uno stato che dice «non è stato misurato» scritto, provato, commentato — e
+      invisibile, perché la **dimostrazione** non aveva il caso. Nessuna prova
+      `node` poteva vederlo: il codice era giusto, erano i dati a non arrivarci.
+      `stati-non-misurati.mjs` apre le pagine vive e pretende **sei** stati di
+      questo tipo (quattro in Scudo, due in Terra): è `sonda-vuoto` preso
+      dall'altro capo — quella chiede ai **moduli** che non nascano numeri
+      tranquilli, questo chiede alla **pagina** che gli stati che dicono «non si
+      sa» ci siano. Pretende la **riga** e non il testo (contenitore dichiarato,
+      altezza ≠ 0, nessuna riga a capo): le tre trappole in cui la sonda di
+      scratchpad era caduta. Controprova su due piani, e la seconda è la
+      regressione vera — rimesso `c6` a «valido», il banco cade sul caso giusto.
+      Collegato a `tutti.mjs`: **39 banchi** (erano 37), `suite-collegate` 44
+      file. ⚠️ `numeri-nei-documenti` caduta 2 volte, e aveva ragione.
 - [x] ✅ **TERRA NON FA EURO — E LA MIA FUNZIONE LO FACEVA** *(01/08, Terra)* —
       andando a scrivere «la pagina di stampa del riepilogo annuale», due
       sorprese. La prima: **la pagina esiste già** (`fogliaStampa`), mancava
@@ -2218,20 +2233,20 @@ campi interi, file delle macchine.
 ## IN ATTESA DEL FONDATORE (non bloccano il lavoro)
 
 ⚠️ **Questo elenco diceva quattro cose, e in `docs/DECISIONI_WEEKEND.md` le
-decisioni sono diciassette** *(corretto il 01/08)*. Non è una svista da poco: è
+decisioni sono diciotto** *(corretto il 01/08, 18ª aggiunta la stessa notte)*. Non è una svista da poco: è
 la lista che il fondatore guarda per sapere **che cosa aspetta lui**, e ne
 mostrava meno di un quarto. La fonte unica resta il documento; qui sotto
 l'estratto, con i numeri per ritrovarle.
 ⚠️ E il documento diceva «spuntare `[ ]` → `[x]` quando la decisione è presa»
 mentre i punti **14, 15, 16 e 17 non avevano nessuna casella** — compresi i due
-aggiunti stanotte. Adesso ce l'hanno tutti: 23 caselle in 17 decisioni.
+aggiunti stanotte. Adesso ce l'hanno tutti: **25 caselle in 18 decisioni**.
 
 **Le tre che sbloccano lavoro fermo:**
 1. **Progetto Firebase** (10 minuti) → sblocca il go-live delle sei app. *(1)*
 2. **Prova del drone** → sblocca il burden reale sul fronte vero. *(7)*
 3. **Via libera alle curve di sicurezza** USBM + DIN (pronte, documentate). *(9)*
 
-**Le cinque scelte di prodotto aperte** — nessuna blocca il lavoro, ma ognuna
+**Le sei scelte di prodotto aperte** — nessuna blocca il lavoro, ma ognuna
 decide come il prodotto racconta un dato che manca, che è il tema di questa
 settimana:
 - *(13)* una **mansione senza requisiti**: «può andare» o «non lo sappiamo»?
@@ -2243,6 +2258,12 @@ settimana:
   allarme a 1,2). ⛔ È una soglia di sicurezza: ferma finché non lo dici tu.
 - *(17)* un **infortunio a prognosi ancora aperta**: oggi entra come **zero
   giornate perse**, quindi alza la frequenza e lascia la gravità ferma.
+- *(18)* il **volume rimesso per il recupero** si toglie dalla base dell'onere?
+  «Diverse regioni» lo ammettono — non tutte. Dove sta il dato l'ho già risolto
+  (un campo sul **lotto**, dove il recupero vive già), ma **non l'ho collegato**:
+  detrarre dove non è ammesso fa dichiarare all'ente **meno del dovuto**, e
+  l'errore in quella direzione non si legge come una svista. Due caselle: se si
+  applica, e a quale anno conta un recupero a cavallo.
 
 **E le altre**, già scritte nel documento: regole del progetto Firebase
 esistente *(2)*, dati di default reali o di fantasia *(3)*, mitigazione password

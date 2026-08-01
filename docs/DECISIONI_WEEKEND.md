@@ -425,6 +425,43 @@ nomina: se un giorno cambia, si saprà che è stato **scelto**.
 
 - [ ] **17.** Infortunio a prognosi aperta: **(a)** si distingue da «0 giornate» e la gravità si dichiara un **minimo**, o **(b)** resta com'è?
 
+## 18. Il volume rimesso per il RECUPERO si toglie dall'onere?
+
+*Nato il 01/08 progettando la detrazione in scratchpad, prima di scriverla nel
+modulo. Il progetto tecnico è finito e funziona; quello che manca non è codice,
+è una tua decisione — e sbagliarla ha un costo asimmetrico.*
+
+**Il fatto.** La pagina di Terra dice già, ed è vero: *«diverse regioni applicano
+la tariffa al volume **al netto** del materiale usato per il recupero ambientale
+della cava stessa»*. **Diverse**, non tutte. `baseOnereEscavazione` sa già
+accettare un volume da detrarre, e oggi nessuno può scriverlo.
+
+**Dove andrebbe il dato — questo l'ho già risolto, e non serve a te.** Non un
+campo per anno con una entità «anno» nuova: i **lotti** di Terra hanno già
+`recuperoIniziatoIl`, `recuperoFinitoIl` e gli stati `in-recupero` /
+`recuperato` / `collaudato`, e l'atto in dimostrazione prescrive il recupero
+**lotto per lotto**. Quindi un campo `volumeRecuperoM3` **sul lotto**, e l'anno
+si ricava dalla data. Provato in scratchpad, 5 casi su 5, compreso quello in cui
+un lotto ha finito il recupero e nessuno ha scritto quanto materiale ci è
+andato: lì la detrazione non è quella parziale, è **incompleta**, e va detto.
+
+**Le due cose che decidi tu:**
+
+1. **Si applica?** Se la tua concessione non ammette la detrazione e Terra la
+   applica lo stesso, il foglio che va all'ente dichiara **meno del dovuto** —
+   e un errore in quella direzione un ispettore non lo legge come una svista.
+   L'errore opposto (non detrarre dove si potrebbe) fa pagare di più: spiacevole,
+   ma non pericoloso. Per questo, finché non lo dici tu, **non ho collegato la
+   detrazione all'onere**.
+2. **A quale anno si attribuisce** un recupero cominciato in un anno e finito
+   nell'altro? Nel progetto ho usato l'anno di **fine**, che è verificabile
+   perché c'è una data — ma concentra in un anno solo un lavoro fatto in due.
+   Ripartirlo vorrebbe dire volumi per stato d'avanzamento, che oggi non
+   esistono.
+
+- [ ] **18a.** La detrazione per recupero: **(a)** si applica alla base dell'onere, **(b)** non si applica, o **(c)** è un'opzione che il cliente accende nella scheda del titolo?
+- [ ] **18b.** Un recupero a cavallo di due anni conta **(a)** nell'anno in cui finisce, o **(b)** va ripartito?
+
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde
 iterazioni UX delle app, test aggiuntivi, revisioni di qualità/sicurezza,
