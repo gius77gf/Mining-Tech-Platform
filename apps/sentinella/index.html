@@ -1178,6 +1178,20 @@ textarea.dw-input{
       <input class="dw-input" id="ade-data" type="date" title="Entro quando" style="flex:1 1 160px;">
       <button class="dw-btn" id="btn-ade">Aggiungi</button>
     </div>
+    <!-- L'ALLEGATO. Un adempimento verso un ente e' fatto di due cose: la
+         scadenza e il DOCUMENTO che si consegna. Fino a oggi Sentinella
+         teneva solo la prima, quindi la ricevuta della raccomandata o la
+         relazione firmata restavano in una cartella sul computer di
+         qualcuno — cioe' proprio dove non si trovano quando servono. -->
+    <div class="tools" style="margin-top:0;">
+      <button class="dw-btn secondary" id="btn-ade-alleg">Allega documento</button>
+      <input type="file" id="ade-alleg" accept="image/*,application/pdf" style="display:none;">
+      <span class="form-hint" id="ade-alleg-nome" style="margin:0;"></span>
+    </div>
+    <div class="form-hint">Foto o scansione della <b>relazione consegnata</b> o della <b>ricevuta</b>:
+      resta attaccata alla scadenza, e si riapre con la graffetta. In questa fase l'allegato
+      arriva a ~400 KB, perche' viaggia dentro il dato; per l'archivio completo servira' lo
+      storage del progetto live.</div>
   </div>
   <div class="tools">
     <button class="dw-btn secondary" id="btn-ade-import">Importa scadenze (CSV)</button>
@@ -1365,7 +1379,8 @@ textarea.dw-input{
            volateOrdinate, firmaVolata, csvRegistroVolate, CSV_VOLATE_INTESTAZIONE,
            coperturaTaratura, statoTaraturaStrumento, STATI_TARATURA, DICHIARAZIONI_TARATURA,
            numeroDaCampo, AVVISO_DECIMALE } from "./sentinella-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO,
+         controllaAllegato, testoAllegatoRifiutato, pezziDataURL } from "../../shared/deepwork-id-client/dw-shell.js";
   // Il colore della riga di una taratura è quello di una scadenza qualunque:
   // la regola sta in shared/ e la usano già Scudo e Campo. Non se ne scrive
   // una copia qui dentro solo perché la parola è diversa.
@@ -1413,6 +1428,7 @@ textarea.dw-input{
 
   // ── Icone disegnate (stessa famiglia di quelle del menu): niente emoji ──
   const I = {
+    clip:   '<svg viewBox="0 0 24 24"><path d="M20.5 11.5l-8.6 8.6a5 5 0 0 1-7.1-7.1l9-9a3.4 3.4 0 0 1 4.8 4.8l-8.9 9a1.8 1.8 0 0 1-2.5-2.5l8.2-8.2"/></svg>',
     sensore: '<svg viewBox="0 0 24 24"><path d="M12 21v-6.2"/><path d="M4.6 15.2A9.4 9.4 0 0 1 3.2 10 8.8 8.8 0 0 1 12 2.6 8.8 8.8 0 0 1 20.8 10a9.4 9.4 0 0 1-1.4 5.2"/><path d="M7.9 13.6A5.6 5.6 0 0 1 7 10.4 5 5 0 0 1 12 6a5 5 0 0 1 5 4.4 5.6 5.6 0 0 1-.9 3.2"/><circle cx="12" cy="10.4" r="1.5"/><path d="M8.8 21h6.4"/></svg>',
     onda:    '<svg viewBox="0 0 24 24"><path d="M2.5 12h2.8l2-6.4 3.2 13L14 8.6l1.6 3.4h5.9"/></svg>',
     serie:   '<svg viewBox="0 0 24 24"><path d="M3 3.5v17h18"/><path d="M6.5 15.5l4-4.5 3 2.6 4.4-6"/><circle cx="6.5" cy="15.5" r="1.2"/><circle cx="17.9" cy="7.6" r="1.2"/></svg>',
@@ -3091,7 +3107,8 @@ textarea.dw-input{
       return `<div class="item ${striscia[b[0]]}">
       <div class="avatar ${b[0] === "danger" ? "danger" : b[0] === "warn" ? "warn" : "ok"}">${I.calendario}</div>
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${a.ente!=="—"?esc(a.ente)+" · ":""}entro ${fmtD(a.scadenza)}</div></div>
-      <span class="acts"><span class="badge ${b[0]}">${b[1]}</span>
+      <span class="acts"><span class="badge ${b[0]}">${b[1]}</span>${
+        a.allegatoData ? `<button type="button" class="arr" title="Apri il documento allegato${a.allegatoNome ? " (" + esc(a.allegatoNome) + ")" : ""}" aria-label="Apri il documento allegato a ${esc(a.titolo)}" data-ade-alleg="${a.id}">${I.clip}</button>` : ""}
       <button type="button" class="arr" title="Segna come eseguito" aria-label="Segna come eseguito ${esc(a.titolo)}" data-ade-done="${a.id}">${I.fatto}</button></span></div>`; }).join("")
       || (ADE.length
           ? vuoto(I.cerca, "Nessun adempimento trovato",
@@ -3232,6 +3249,20 @@ textarea.dw-input{
         if (grafMon === delMon) grafMon = null;
         await db.rimuovi("monitoraggi", delMon); await refresh();
         toast("Punto di misura «" + m.nome + "» rimosso."); } return; }
+    const apriAde = attr(e, "data-ade-alleg");
+    if (apriAde) {
+      const a = ADE.find(x => x.id === apriAde);
+      const pz = a && pezziDataURL(a.allegatoData);
+      /* ⛔ Se il dato salvato non e' leggibile lo si DICE, invece di aprire una
+         finestra vuota: una graffetta che non apre niente e' peggio di nessuna
+         graffetta, perche' fa credere che il documento ci sia. */
+      if (!pz) { toast("L'allegato di questo adempimento non si riesce ad aprire: il file salvato non e' leggibile.", "err"); return; }
+      try {
+        const bin = atob(pz.contenuto); const buf = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+        window.open(URL.createObjectURL(new Blob([buf], { type: pz.mime })), "_blank");
+      } catch (err) { window.open(a.allegatoData, "_blank"); }
+      return; }
     const delTar = attr(e, "data-del-tar");
     if (delTar) {
       /* La taratura non ha un id suo: sta dentro il punto. La si riconosce
@@ -3463,12 +3494,41 @@ textarea.dw-input{
         !titolo && !scadenza ? "Servono titolo e scadenza." : !titolo ? "Serve il titolo." : "Serve la data di scadenza."); return;
     }
     err("ade-titolo", false); err("ade-data", false);
-    await db.aggiungi("adempimenti", { titolo, ente, scadenza });
+    const rec = { titolo, ente, scadenza };
+    if (adeAlleg) { rec.allegatoNome = adeAlleg.nome; rec.allegatoData = adeAlleg.dataURL; }
+    await db.aggiungi("adempimenti", rec);
+    const conAlleg = !!adeAlleg;
     $("ade-titolo").value = ""; $("ade-ente").value = ""; $("ade-data").value = "";
-    esito("ade-esito", "Adempimento aggiunto: " + titolo + ", entro il " + fmtD(scadenza) + ".", "success",
+    $("ade-alleg").value = ""; $("ade-alleg-nome").textContent = ""; adeAlleg = null;
+    esito("ade-esito", "Adempimento aggiunto: " + titolo + ", entro il " + fmtD(scadenza) + "."
+      + (conAlleg ? " Il documento allegato si riapre con la graffetta." : ""), "success",
       "Adempimento aggiunto per il " + fmtD(scadenza) + ".");
     $("ade-titolo").focus();   // pronto per il prossimo adempimento
     await refresh();
+  };
+  /* L'allegato scelto per il PROSSIMO adempimento. Vive qui e non nel record
+     perche' finche' non si tocca «Aggiungi» non esiste ancora niente a cui
+     attaccarlo. */
+  let adeAlleg = null;
+  $("btn-ade-alleg").onclick = () => $("ade-alleg").click();
+  $("ade-alleg").onchange = () => {
+    const f = $("ade-alleg").files[0];
+    adeAlleg = null; $("ade-alleg-nome").textContent = "";
+    if (!f) return;
+    /* La regola sta in shared/: la usa anche Scudo, e non se ne scrive una
+       seconda. Copre anche i casi che una versione di casa non guarderebbe:
+       file vuoto, file senza nome, dimensione illeggibile. */
+    const via = controllaAllegato(f);
+    if (!via.ok) { esito("ade-esito", testoAllegatoRifiutato(via), "err", "Allegato non valido."); $("ade-alleg").value = ""; return; }
+    const r = new FileReader();
+    r.onload = () => { adeAlleg = { nome: via.nome, dataURL: r.result };
+      $("ade-alleg-nome").textContent = "Allegato: " + via.nome + " (" + via.peso + ")"; pulisci("ade-esito"); };
+    /* ⛔ Anche la LETTURA puo' fallire (file su una chiavetta staccata, permessi
+       negati): senza questo ramo il nome non comparirebbe e basta, e l'utente
+       toccherebbe «Aggiungi» convinto di aver allegato qualcosa. */
+    r.onerror = () => { adeAlleg = null; $("ade-alleg").value = "";
+      esito("ade-esito", "Non sono riuscito a leggere «" + via.nome + "»: riprova a sceglierlo.", "err", "File non letto."); };
+    r.readAsDataURL(f);
   };
   $("btn-ade-import").onclick = () => $("ade-file").click();
   $("ade-file").onchange = async (e) => {

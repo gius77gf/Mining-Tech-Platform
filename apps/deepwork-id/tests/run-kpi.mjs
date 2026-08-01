@@ -11327,6 +11327,63 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
   });
 }
 
+/* ══ SHARED · LA GRAFFETTA: LA REGOLA DELL'ALLEGATO, UNA SOLA ══
+   Stava scritta a mano dentro `apps/scudo/index.html`. Da oggi serve anche a
+   Sentinella (il documento consegnato all'ente accanto alla sua scadenza),
+   quindi vive in `shared/` — e la versione condivisa copre tre casi che
+   quella di casa non guardava. */
+{
+  const f = (name, size) => ({ name, size });
+
+  test("shared: un allegato dentro il limite passa, e dice quanto pesa", () => {
+    eq(shell.controllaAllegato(f("scan.pdf", 120 * 1024)),
+       { ok: true, motivo: "", kb: 120, peso: "120 KB", nome: "scan.pdf" }, "file buono");
+    /* ⛔ «0 KB» è il numero con cui questa stessa funzione dice «vuoto»:
+       trovato provando il modulo davvero, non leggendo il codice. */
+    eq(shell.controllaAllegato(f("ricevuta.pdf", 23)).peso, "meno di 1 KB",
+       "un file valido di 23 byte non può annunciarsi «0 KB»");
+    eq(shell.controllaAllegato(f("x.pdf", 1024)).peso, "1 KB", "da un chilobyte in su si scrive il numero");
+    eq(shell.controllaAllegato(f("x.pdf", 0)).peso, "0 KB", "e il vuoto sì, perché è vero");
+    eq(shell.controllaAllegato(f("x.pdf", shell.LIMITE_ALLEGATO)).ok, true, "il limite esatto è compreso");
+    eq(shell.controllaAllegato(f("x.pdf", shell.LIMITE_ALLEGATO + 1)).motivo, "troppo-grande", "un byte oltre no");
+    eq(shell.controllaAllegato(f("  foto.jpg  ", 10)).nome, "foto.jpg", "il nome si ripulisce");
+    eq(shell.controllaAllegato(f("x.pdf", 200 * 1024), 100 * 1024).motivo, "troppo-grande", "il limite si può stringere");
+  });
+
+  test("⛔ shared: i tre casi che la versione scritta in casa non guardava", () => {
+    /* la copia dentro Scudo controllava SOLO `f.size > 400*1024` */
+    eq(shell.controllaAllegato(f("x.pdf", 0)).motivo, "vuoto",
+       "un file vuoto non è un file piccolo: la graffetta non aprirebbe niente");
+    eq(shell.controllaAllegato(f("", 100)).motivo, "senza-nome", "un file senza nome");
+    eq(shell.controllaAllegato(f("x.pdf", undefined)).motivo, "dimensione-ignota", "una dimensione illeggibile");
+    eq(shell.controllaAllegato(null).motivo, "nessuno", "e nessun file affatto");
+  });
+
+  test("shared: ogni motivo di rifiuto ha la sua frase (regola 18)", () => {
+    for (const caso of [null, f("", 1), f("x", undefined), f("x", 0), f("x", 9e9)]) {
+      const via = shell.controllaAllegato(caso);
+      ok(!via.ok, "questo caso deve essere rifiutato");
+      ok(shell.testoAllegatoRifiutato(via).length > 10,
+         `manca la frase per «${via.motivo}»: la pagina mostrerebbe un errore vuoto`);
+    }
+    ok(/600 KB/.test(shell.testoAllegatoRifiutato(shell.controllaAllegato(f("x", 600 * 1024)))),
+       "e quella del troppo grande dice quanto pesa davvero");
+    eq(shell.testoAllegatoRifiutato({ motivo: "" }), "", "un esito buono non ha niente da dire");
+  });
+
+  test("shared: un dataURL si scompone, e quello che dataURL non è torna null", () => {
+    eq(shell.pezziDataURL("data:application/pdf;base64,AAAA"),
+       { mime: "application/pdf", base64: true, contenuto: "AAAA" }, "normale");
+    eq(shell.pezziDataURL("data:text/plain;charset=utf-8,ciao"),
+       { mime: "text/plain", base64: false, contenuto: "ciao" }, "col charset: il tipo resta quello");
+    eq(shell.pezziDataURL("data:;base64,AAAA").mime, "application/octet-stream", "senza tipo, il ripiego");
+    eq(shell.pezziDataURL("data:text/csv,a,b,c").contenuto, "a,b,c", "le virgole del contenuto non spezzano");
+    for (const brutto of ["https://x/y.pdf", "", null, "data:application/pdf;base64"])
+      ok(shell.pezziDataURL(brutto) === null,
+         `«${brutto}» non è un dataURL: deve tornare null, non un tipo inventato`);
+  });
+}
+
 /* ══ L'HARNESS: `mostra` DISTINGUE QUELLO CHE `JSON.stringify` CONFONDEVA ══
    Le prove di uno strumento di prova. Ci sono perché il difetto che
    correggono è stato trovato per caso — una controprova che rispondeva

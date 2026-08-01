@@ -1120,7 +1120,7 @@
 
 <script type="module">
   import { scudoData, statoScadenza, inTurnoOggi, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, parseScadenzeCsv, parseLavoratoriCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
-    daAmbiente, etichettaAmbiente, riepilogoAmbiente,
+    daAmbiente, etichettaAmbiente, riepilogoAmbiente, daCampo,
     NEARMISS_CATEGORIE, NEARMISS_LUOGHI, categoriaNearMiss, luogoNearMiss, descrizioneNearMiss, riepilogoNearMiss,
     MODELLI_ISPEZIONE, modelloIspezione, nuovaIspezioneDaModello, riepilogoIspezione, riepilogoIspezioni, vociNonConformi, statoIspezione, azioniDiIspezione, esitoLabel, ESITI_ISPEZIONE, dataPiuGiorni,
     REQUISITI_FORMAZIONE, requisitoFormazione, requisitoSicuro, statoRequisito, MANSIONI_PRESET, mansionePreset,
@@ -1130,7 +1130,8 @@
     TIPI_DPI, tipoDpi, tipoDpiSicuro, ultimaConsegnaDpi, statoConsegnaDpi, allarmiDpi, riepilogoDpi, verbaleDpi,
     indiciInfortunistici, andamentoIndici,
     CAUSE_ANALISI, validaAnalisi, analisiDiEvento, eventiSenzaAnalisi, causeRicorrenti } from "./scudo-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO, dataISOEsiste } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO, dataISOEsiste,
+           controllaAllegato, testoAllegatoRifiutato, pezziDataURL } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
@@ -2026,7 +2027,15 @@
             ? "da ispezione «" + ispById[a.origineId].nome + "» del " + fmtData(ispById[a.origineId].data)
               + (a.origineNota ? " — " + a.origineNota : "")
             : "da un'ispezione rimossa")
-        : (a.origineNota ? "non conformità: " + a.origineNota : "");
+        /* ⛔ IL FERMO DI PRODUZIONE (Campo) VA PRIMA DELL'ULTIMO RAMO. Senza
+           questa riga cadeva lì dentro e Scudo lo raccontava come «non
+           conformità: …» — che è un'altra cosa, e finisce davanti a un
+           ispettore. Come per le azioni ambientali, si legge la fotografia che
+           l'azione porta con sé: Scudo non vede le collezioni di Campo. */
+        : daCampo(a)
+          ? (a.origineNota || ("da un fermo di produzione registrato in Campo"
+              + (a.origineData ? " il " + fmtData(a.origineData) : "")))
+          : (a.origineNota ? "non conformità: " + a.origineNota : "");
     $("azi-count-tot").textContent = AZI.length;
     $("azi-riep").innerHTML = AZI.length
       ? `Da chiudere: <b>${ra.daChiudere}</b> (di cui <b>${ra.scadute}</b> fuori tempo e ${ra.inScadenza} in scadenza entro 30 giorni) · in corso: <b>${ra.inCorso}</b> · chiuse: <b>${ra.chiuse}</b> su ${ra.totale}.`
@@ -2539,8 +2548,10 @@
     const op = e.target.getAttribute && e.target.getAttribute("data-open-doc");
     if (op) { e.stopPropagation(); const d = DOC.find(x => x.id === op);
       if (d && d.allegatoData) { try {
-        const parts = d.allegatoData.split(","), mime = (parts[0].match(/data:(.*?);/) || [])[1] || "application/octet-stream";
-        const bin = atob(parts[1]); const buf = new Uint8Array(bin.length);
+        const pz = pezziDataURL(d.allegatoData);
+        if (!pz) { toast("L'allegato di questo documento non si riesce ad aprire: il file salvato non è leggibile.", "err"); return; }
+        const mime = pz.mime;
+        const bin = atob(pz.contenuto); const buf = new Uint8Array(bin.length);
         for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
         window.open(URL.createObjectURL(new Blob([buf], { type: mime })), "_blank");
       } catch (err) { window.open(d.allegatoData, "_blank"); } } return; }
@@ -2782,9 +2793,14 @@
   $("doc-file").onchange = () => {
     const f = $("doc-file").files[0]; docFileSel = null; $("doc-file-nome").textContent = "";
     if (!f) return;
-    if (f.size > 400 * 1024) { esito("doc-esito", "Allegato troppo grande (" + Math.round(f.size / 1024) + " KB): serve una foto o scansione sotto i 400 KB.", "err"); $("doc-file").value = ""; return; }
+    /* La regola dell'allegato vive in shared/: la usa anche Sentinella, e
+       una regola che serve a due app non si scrive due volte. Qui si
+       aggiungono i casi che la versione di casa non guardava — file vuoto,
+       file senza nome, dimensione illeggibile. */
+    const via = controllaAllegato(f);
+    if (!via.ok) { esito("doc-esito", testoAllegatoRifiutato(via), "err"); $("doc-file").value = ""; return; }
     const r = new FileReader();
-    r.onload = () => { docFileSel = { nome: f.name, dataURL: r.result }; $("doc-file-nome").textContent = "Allegato: " + f.name + " (" + Math.round(f.size / 1024) + " KB)"; pulisci("doc-esito"); };
+    r.onload = () => { docFileSel = { nome: f.name, dataURL: r.result }; $("doc-file-nome").textContent = "Allegato: " + via.nome + " (" + via.peso + ")"; pulisci("doc-esito"); };
     r.readAsDataURL(f);
   };
   $("btn-doc").onclick = async () => {

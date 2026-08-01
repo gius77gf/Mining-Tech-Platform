@@ -690,3 +690,77 @@ export function mountExit(db) {
   top.appendChild(a);
   document.body.classList.add("has-exit");
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   ALLEGATI — la graffetta accanto a un documento
+   ══════════════════════════════════════════════════════════════════════
+   Perché sta qui e non dentro un'app: la regola serve a DUE app (Scudo la
+   usa per le scansioni firmate dei documenti, Sentinella per il documento
+   che accompagna un adempimento verso l'ente), e una regola che serve a
+   due app vive in `shared/` — è il difetto costato una giornata intera con
+   la convenzione sui numeri.
+
+   ⛔ IL LIMITE NON È UNA PIGNOLERIA: gli allegati viaggiano DENTRO il
+   documento Firestore, che ha un tetto di 1 MB. Oltre quel tetto non
+   «viene male»: la scrittura viene rifiutata, e con essa tutto il record.
+   400 KB è prudente perché il dataURL in base64 cresce di circa un terzo
+   rispetto al file. Quando ci sarà lo storage del progetto live, il limite
+   si alza in un posto solo.
+
+   ⚠️ Qui c'è solo la parte PURA — «questo file va bene?» e «di che cosa è
+   fatto questo dataURL?» — perché è quella che si può provare senza
+   browser. `FileReader` e `URL.createObjectURL` restano nella pagina. */
+export const LIMITE_ALLEGATO = 400 * 1024;
+
+/* Prende un `File` (o qualunque cosa abbia `name` e `size`) e dice se si
+   può allegare, con il motivo scritto perché la pagina possa spiegarlo.
+   ⛔ Un file VUOTO non è un file piccolo: è un file che non contiene
+   niente, e allegarlo vorrebbe dire mettere una graffetta che non apre
+   nulla — un'altra forma dell'assenza spacciata per presenza. */
+export function controllaAllegato(file, limite = LIMITE_ALLEGATO) {
+  if (!file) return { ok: false, motivo: "nessuno", kb: 0, peso: "", nome: "" };
+  const nome = String(file.name || "").trim();
+  const size = +file.size;
+  if (!nome) return { ok: false, motivo: "senza-nome", kb: 0, peso: "", nome: "" };
+  if (!Number.isFinite(size)) return { ok: false, motivo: "dimensione-ignota", kb: 0, peso: "", nome };
+  if (size <= 0) return { ok: false, motivo: "vuoto", kb: 0, peso: "0 KB", nome };
+  const kb = Math.round(size / 1024);
+  /* ⛔ «0 KB» E' IL NUMERO CON CUI QUESTA STESSA FUNZIONE DICE «VUOTO».
+     Trovato provando davvero il modulo: una ricevuta di 23 byte si
+     annunciava «Allegato: ricevuta.pdf (0 KB)», cioe' con la cifra che due
+     righe piu' su vuol dire «non contiene niente». Il numero e' pure giusto
+     — 23/1024 arrotonda a zero — ed e' proprio per questo che non si vede
+     leggendo il codice. Il peso scritto e' un TESTO, non un numero: sotto il
+     chilobyte dice «meno di 1 KB», che e' vero e non si confonde con nulla. */
+  const peso = size < 1024 ? "meno di 1 KB" : kb + " KB";
+  if (size > limite) return { ok: false, motivo: "troppo-grande", kb, peso, nome, limiteKb: Math.round(limite / 1024) };
+  return { ok: true, motivo: "", kb, peso, nome };
+}
+
+/* La frase da mostrare, in italiano, per ogni motivo. Sta accanto alla
+   funzione che produce i motivi: una mappa di stati deve coprire tutti gli
+   stati che la sua funzione sa dire (regola 18 di run-stile). */
+export function testoAllegatoRifiutato(esito) {
+  const e = esito || {};
+  switch (e.motivo) {
+    case "nessuno":            return "Nessun file scelto.";
+    case "senza-nome":         return "Questo file non ha un nome: non si può allegare.";
+    case "dimensione-ignota":  return "Non riesco a leggere quanto pesa questo file: riprova a sceglierlo.";
+    case "vuoto":              return "Il file è vuoto (0 KB): la graffetta non aprirebbe niente.";
+    case "troppo-grande":      return `Allegato troppo grande (${e.peso}): serve una foto o una scansione sotto i ${e.limiteKb} KB.`;
+    default:                   return "";
+  }
+}
+
+/* Scompone un dataURL in tipo e contenuto. Torna `null` se dataURL non è —
+   e non un tipo inventato, che manderebbe il browser ad aprire una cosa
+   dichiarandola per quello che non è. */
+export function pezziDataURL(s) {
+  const t = String(s || "");
+  const virgola = t.indexOf(",");
+  if (!/^data:/.test(t) || virgola < 0) return null;
+  const testa = t.slice(5, virgola);
+  const base64 = /;base64$/i.test(testa);
+  const mime = (testa.replace(/;base64$/i, "").split(";")[0] || "").trim() || "application/octet-stream";
+  return { mime, base64, contenuto: t.slice(virgola + 1) };
+}
