@@ -32,11 +32,20 @@
 //   infortuni/{id}:  { data (ISO), tipo: infortunio|near-miss, gravita,
 //                      giorniAssenza, descrizione, luogo,
 //                      categoria? (near-miss: tipo di rischio),
-//                      anonimo? (bool), segnalatoDaId?|null, rapida? (bool) }
+//                      anonimo? (bool), segnalatoDaId?|null, rapida? (bool),
+//                      foto?: [{ nome, dataURL, didascalia? }] — max 3, e
+//                      max 400 KB IN TUTTO (LIMITE_ALLEGATO): due allegati
+//                      da 400 KB fanno il 104% del tetto di 1 MB del
+//                      documento Firestore e la scrittura viene rifiutata,
+//                      portandosi dietro l'evento intero. }
 //   ispezioni/{id}:  { modello (chiave), nome, ambito, cantiereId|null,
 //                      responsabileId|null, data (ISO), periodicitaGiorni|null,
 //                      riferimento?, voci: [{ id, testo }],
-//                      esiti: { voceId: { esito: conforme|non-conforme|na, nota } },
+//                      esiti: { voceId: { esito: conforme|non-conforme|na, nota,
+//                        foto?: [{ nome, dataURL, didascalia? }] } }
+//                      → le foto di TUTTE le voci stanno in questo unico
+//                        documento, quindi i 400 KB sono il totale
+//                        dell'ispezione, non della voce (bilancioFotoVoce),
 //                      stato: programmata|in-corso|completata, dataChiusura?|null }
 //   mansioni/{id}:   { nome, note?, requisiti: [chiave], dpi: [chiave],
 //                      lavoratoriIds: [id] }
@@ -67,7 +76,8 @@
 // (scaduta / entro 30gg / regolare) — niente dati derivati nel DB.
 // ============================================================
 
-import { parseCsvLine, numIt, giorniTra, isIntestazione, senzaDoppioni, dataISOEsiste } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, numIt, giorniTra, isIntestazione, senzaDoppioni, dataISOEsiste,
+         pezziDataURL, LIMITE_ALLEGATO } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
   lavoratori: [
@@ -867,6 +877,167 @@ export function riepilogoIspezioni(ispezioni, oggi = new Date()) {
     scadute: aperte.filter(i => statoIspezione(i, oggi) === "scaduta").length,
     nonConformi: list.reduce((s, i) => s + riepilogoIspezione(i).nonConformi, 0),
   };
+}
+
+// ============================================================
+// S3b · LA FOTO COME PROVA (eventi del registro e voci d'ispezione)
+//
+// Davanti a un near-miss o a una protezione mancante la prima cosa che si fa
+// è tirare fuori il telefono, ed è la prima cosa che un ispettore chiede
+// quando domanda «avete una prova?». Fino a oggi la graffetta esisteva solo
+// sui DOCUMENTI: infortuni e ispezioni non avevano nessun campo per una foto.
+//
+// ⛔ LA REGOLA DELL'ALLEGATO NON SI RISCRIVE. «Questo file va bene?» è
+// `controllaAllegato` di `shared/`, che Scudo importa già per i documenti e
+// che usa anche Sentinella; «di che cosa è fatto questo dataURL?» è
+// `pezziDataURL`. Qui c'è SOLO ciò che quelle due non sanno: quanto pesa una
+// foto GIÀ SALVATA, e quanto spazio resta quando le foto sono più d'una.
+//
+// ⛔ IL NUMERO CHE HA DECISO «PIÙ D'UNA O UNA SOLA», misurato prima di
+// scrivere una riga. Le foto viaggiano dentro il documento Firestore, che ha
+// un tetto di 1.048.576 byte; il base64 cresce di un terzo, più i 23
+// caratteri di «data:image/jpeg;base64,». Quindi:
+//     1 foto da 400 KB →   546.159 byte di dataURL =  52,1% del tetto  ✅
+//     2 foto da 400 KB → 1.092.318 byte            = 104,2% del tetto  ❌
+// Due allegati al limite della singola NON stanno nel documento: la scrittura
+// viene rifiutata e con essa TUTTO il record — l'evento, non solo la foto.
+// Per questo il limite qui è sul TOTALE e non sulla singola foto, e il totale
+// resta `LIMITE_ALLEGATO` (400 KB di file = 52,1% del tetto, metà documento
+// libera per il resto). Le foto ammesse sono al massimo TRE: a 400 KB in tutto
+// sono 133 KB l'una, che è l'ultima divisione in cui un fronte di cava resta
+// leggibile ingrandendolo; una quarta casella prometterebbe uno spazio che il
+// tetto non ha.
+//
+// ⛔ E PER L'ISPEZIONE IL TOTALE È DI TUTTA L'ISPEZIONE, non della voce: le
+// voci di una checklist stanno in UN SOLO documento (`esiti: { voceId: … }`),
+// quindi cinque voci fotografate al limite fanno 2,6 volte il tetto. È la
+// trappola che `bilancioFotoVoce` esiste per chiudere.
+//
+// ⛔ L'ASSENZA DI UNA FOTO NON È UN DATO SFAVOREVOLE, e qui va guardata al
+// verso opposto del solito: un infortunio senza foto non è «meno grave» né
+// «mal documentato» — chi soccorre non fotografa, ed è giusto così. Non c'è
+// nessun punteggio di completezza: `pastigliaFoto(0)` risponde `null`, cioè
+// niente pastiglia e niente colore, e la pastiglia non ha MAI una classe
+// d'allarme.
+// ============================================================
+
+// Quante foto si possono attaccare a un evento o a una voce d'ispezione.
+export const MAX_FOTO = 3;
+/* Sotto un kilobyte non ci sta nessuna foto: uno spazio residuo più piccolo
+   di così vale zero. Serve anche a non dover riscrivere il «meno di 1 KB» di
+   `controllaAllegato` — sopra questa soglia i KB arrotondati sono onesti. */
+const SPAZIO_MINIMO_FOTO = 1024;
+
+/* Quanto pesa il FILE dietro una foto già salvata, in byte, per poterlo
+   confrontare con `LIMITE_ALLEGATO` (che è misurato su `file.size`).
+   ⛔ Torna `null`, non `0`, quando il dataURL non si sa leggere: uno zero
+   sarebbe un'assenza spacciata per «non occupa spazio», e il budget si
+   sfonderebbe in silenzio portandosi dietro tutto il record. */
+export function pesoFoto(f) {
+  const pz = pezziDataURL(f && f.dataURL);
+  if (!pz || !pz.base64) return null;
+  const c = String(pz.contenuto || "");
+  const corpo = c.replace(/=+$/, ""), pad = c.length - corpo.length;
+  if (pad > 2 || c.length % 4 !== 0 || !/^[A-Za-z0-9+/]*$/.test(corpo)) return null;
+  return Math.floor(c.length / 4) * 3 - pad;
+}
+
+// Le foto di un evento del registro (infortunio o near-miss).
+export function fotoDiEvento(ev) {
+  return (ev && Array.isArray(ev.foto) ? ev.foto : []).filter(f => f && f.dataURL);
+}
+// Le foto attaccate a UNA voce della checklist.
+export function fotoDiVoce(isp, voceId) {
+  const e = isp && isp.esiti && isp.esiti[voceId];
+  return (e && Array.isArray(e.foto) ? e.foto : []).filter(f => f && f.dataURL);
+}
+/* TUTTE le foto di un'ispezione, con la voce a cui appartengono.
+   ⚠️ Si scorrono gli ESITI, non le voci: una foto rimasta su una voce che il
+   modello non ha più occupa spazio nel documento esattamente come le altre, e
+   scorrendo `voci` non la vedrebbe nessuno — cioè il budget direbbe che c'è
+   posto proprio quando non c'è. */
+export function fotoDiIspezione(isp) {
+  const esiti = (isp && isp.esiti) || {};
+  const testo = Object.fromEntries(((isp && isp.voci) || []).map(v => [v.id, v.testo]));
+  const out = [];
+  for (const id of Object.keys(esiti)) {
+    const e = esiti[id];
+    if (!e || !Array.isArray(e.foto)) continue;
+    for (const f of e.foto) if (f && f.dataURL)
+      out.push(Object.assign({ voceId: id, voce: testo[id] || "" }, f));
+  }
+  return out;
+}
+
+/* Si può aggiungere un'altra foto? `condivise` sono le foto che stanno nello
+   STESSO documento ma in un'altra casella (le altre voci dell'ispezione):
+   contano nello spazio, non nel numero. La bandiera `misurabile` dichiara il
+   caso in cui il conto non si può fare, e la legge `testoBilancioFoto`. */
+export function bilancioFoto(foto, opts = {}) {
+  const max = opts.max === undefined ? MAX_FOTO : opts.max;
+  const limite = opts.limite === undefined ? LIMITE_ALLEGATO : opts.limite;
+  const proprie = (Array.isArray(foto) ? foto : []).filter(Boolean);
+  const condivise = (Array.isArray(opts.condivise) ? opts.condivise : []).filter(Boolean);
+  let usati = 0, misurabile = true;
+  for (const f of proprie.concat(condivise)) {
+    const p = pesoFoto(f);
+    if (p === null) misurabile = false; else usati += p;
+  }
+  const quante = proprie.length;
+  const residuo = misurabile ? Math.max(0, limite - usati) : 0;
+  const motivo = !misurabile ? "peso-illeggibile"
+    : quante >= max ? "numero"
+    : residuo < SPAZIO_MINIMO_FOTO ? "spazio" : "";
+  return { quante, max, usati, residuo, misurabile, pieno: motivo !== "", motivo, limite };
+}
+
+/* Il bilancio di UNA voce d'ispezione, col totale preso su tutta l'ispezione.
+   La pagina chiama questa e non `bilancioFoto`, perché comporre le condivise a
+   mano è esattamente l'errore che fa passare cinque foto da 400 KB. */
+export function bilancioFotoVoce(isp, voceId) {
+  const tutte = fotoDiIspezione(isp);
+  return bilancioFoto(fotoDiVoce(isp, voceId), { condivise: tutte.filter(f => f.voceId !== voceId) });
+}
+
+/* Che cosa dire di quel bilancio. Una risposta per OGNI motivo che
+   `bilancioFoto` sa produrre (regola 18 di run-stile). */
+export function testoBilancioFoto(b) {
+  const x = b || {};
+  const kb = (n) => Math.round((+n || 0) / 1024) + " KB";
+  switch (x.motivo) {
+    case "peso-illeggibile":
+      return "Una delle foto già salvate non si riesce a pesare: finché c'è non so dire quanto spazio resta. Toglila e riprova.";
+    case "numero":
+      return `Ci sono già ${x.quante} foto, il massimo: per aggiungerne un'altra togline una.`;
+    case "spazio":
+      return `Le foto hanno già usato i ${kb(x.limite)} disponibili: per aggiungerne un'altra togline una.`;
+    default:
+      return `Puoi aggiungere ancora ${x.max - x.quante} foto: restano ${kb(x.residuo)} in tutto.`;
+  }
+}
+
+/* La pastiglia con quante foto ci sono.
+   ⛔ Con zero foto NON torna una pastiglia «0 foto»: torna `null`. Un evento
+   senza foto non è un evento mal documentato, e un contatore a zero accanto
+   agli altri badge lo farebbe sembrare. La classe è vuota — il grigio dei
+   badge neutri — e non diventa mai `warn` né `danger`. */
+export function pastigliaFoto(n) {
+  const q = Math.max(0, Math.trunc(+n) || 0);
+  if (!q) return null;
+  return { testo: q === 1 ? "1 foto" : q + " foto", classe: "" };
+}
+
+/* Di che cosa è questa foto. Una foto senza contesto, tre mesi dopo, non la sa
+   leggere nessuno: vale la didascalia scritta da chi ha scattato, e in
+   mancanza il soggetto a cui la foto è attaccata (la voce della checklist, la
+   descrizione dell'evento). Torna `null` — e non una stringa vuota — quando
+   non c'è né l'una né l'altro, così la pagina lo può DIRE invece di mostrare
+   una miniatura muta. */
+export function contestoFoto(f, contesto = "") {
+  const d = String((f && f.didascalia) || "").trim();
+  if (d) return d;
+  const c = String(contesto || "").trim();
+  return c || null;
 }
 
 // Data di oggi + N giorni in ISO (per la prossima ispezione ricorrente e per

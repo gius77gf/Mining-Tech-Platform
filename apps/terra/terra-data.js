@@ -13,6 +13,8 @@
 //                   pianificatoAnnuoM3?, riserveM3? }
 //   autorizzazioni/{id}: { numeroAtto, ente, dataRilascio (ISO),
 //                   dataScadenza (ISO), superficieMq, volumeAutorizzatoM3,
+//                   quotaFondoM (quota di fondo scavo del progetto, m s.l.m.,
+//                   anche negativa; assente = non dichiarata, non zero),
 //                   estrattoPregressoM3, materiale, prescrizioni,
 //                   riferimenti, stato: vigente|archiviata,
 //                   sogliaGuardiaPct, preavvisoGiorni, anniRitmo }
@@ -24,7 +26,9 @@
 //                   recuperato|collaudato, apertoIl, esauritoIl,
 //                   recuperoIniziatoIl, recuperoFinitoIl, collaudatoIl (ISO
 //                   o null), frontiId: [] (i fronti che stanno nel lotto),
-//                   nota }
+//                   quotaFondoM (il fondo di QUESTO settore quando il
+//                   progetto ne dà uno diverso da quello generale: vince
+//                   sull'atto), nota }
 // I KPI non si salvano mai: si CALCOLANO dai rilievi
 // (volumi mese = somma dei volumi elaborati del mese,
 //  avanzamento piano = estratto anno / pianificato anno).
@@ -1194,7 +1198,14 @@ export function parseFrontiCsv(text) {
       return {
         nome: (nome || "").trim(),
         banco: (banco || "").trim(),
-        quota: Number.isFinite(q) ? q : 0,
+        /* ⛔ UNA QUOTA CHE NON SI LEGGE NON È UNA QUOTA DI ZERO. Fino al 05/08
+           qui c'era `Number.isFinite(q) ? q : 0`: una colonna vuota entrava in
+           archivio come «0 m s.l.m.», che è una quota vera e per giunta
+           bassissima. Finché quel numero serviva solo a scrivere «Quota 0 m»
+           in una riga era brutto; da quando c'è il confronto con la quota di
+           fondo autorizzata diventa un giudizio inventato — «questo fronte è
+           340 m sotto il fondo» su un fronte che nessuno ha misurato. */
+        quota: Number.isFinite(q) ? q : null,
         stato: (stato || "").trim().toLowerCase() === "sospeso" ? "sospeso" : "attivo",
       };
     })
@@ -1578,4 +1589,183 @@ export function rilieviFuoriDaiLotti(lotti, rilievi) {
   return { quanti: orfani.length,
     m3: r2(orfani.reduce((t, r) => t + (+r.volumeM3 || 0), 0)),
     senzaFronte: orfani.filter((r) => !String(r.fronteId || "").trim()).length };
+}
+
+// ============================================================
+// «STIAMO SCAVANDO DOVE IL PROGETTO DICE?» — CONFORMITÀ AL PROGETTO
+// ------------------------------------------------------------
+// È la domanda che un ente fa a una cava autorizzata, e Terra sapeva
+// rispondere solo a metà di essa. Quello che c'era già, e che qui NON si
+// riscrive (si chiama):
+//   · QUANTO in tutto      → `vitaCava` (volume concesso − estratto);
+//   · QUANTO quest'anno    → `proiezioneAnnua` (piano annuo contro proiezione);
+//   · QUANTO per lotto     → `volumeMisuratoDiLotto` + `avanzamentoLotto`
+//     (previsto dal progetto contro misurato dai rilievi);
+//   · QUANTA superficie aperta e non ancora recuperata → `divarioRecupero`.
+// Quello che mancava è l'asse VERTICALE: il progetto di coltivazione dice
+// fino a che QUOTA si può scendere, e in tutto il modulo non c'era nessun
+// posto dove scrivere quel numero. Senza di lui la domanda «un fronte ha già
+// passato il fondo?» non era nemmeno ponibile.
+//
+// IL DATO NUOVO, e uno solo: `quotaFondoM` (metri sul livello del mare).
+//   · sull'AUTORIZZAZIONE è il fondo cava del progetto allegato all'atto;
+//   · sul LOTTO è il fondo di quel settore, quando il progetto ne dà uno
+//     diverso — cosa normale, perché un progetto scende per gradoni e ogni
+//     settore ha il suo. Il lotto VINCE sull'atto, e da quale dei due venga
+//     il numero si dice sempre (`origine`): un giudizio che va a un ente
+//     deve poter essere rifatto da chi lo legge.
+// I dati vecchi non hanno il campo: NON valgono zero, valgono «non
+// dichiarato», e il confronto non si fa (vedi `quotaFondoNota`).
+//
+// NIENTE regole di legge cablate, come in tutto il resto del modulo: la
+// quota di fondo la scrive l'utente copiandola dal SUO atto. Terra mette in
+// fila i numeri, non decide che cosa è lecito.
+// ============================================================
+
+/* ⛔ LO ZERO NON È UNA QUOTA DICHIARATA, e la ragione sta nei dati di Terra,
+   non in una preferenza di stile. Fino al 05/08 il form dei fronti scriveva
+   `quota: 0` quando il campo era lasciato vuoto, e `parseFrontiCsv` faceva lo
+   stesso su una colonna vuota. In archivio, quindi, uno zero NON si distingue
+   da una quota mai inserita — e le due letture portano a conclusioni opposte:
+   presa per buona, una cava di collina con i fronti a 340 m risulterebbe
+   «340 m sotto il fondo autorizzato», cioè uno sconfinamento grave inventato
+   di sana pianta, su un foglio che va a chi fa vigilanza.
+   Il prezzo dichiarato: una cava il cui fondo sta ESATTAMENTE a 0 m s.l.m.
+   non si può misurare, e finisce fra i «non misurabili» — che è lo stato
+   rumoroso, quello che chiede di andare a guardare. Sorgente e imboccatura
+   sono state corrette (adesso scrivono `null`), ma i dati già scritti no, e
+   una convenzione che vale solo per il futuro non difende nessuno. */
+function quotaFondoNota(v) {
+  if (v == null || String(v).trim() === "") return null;
+  const n = +v;
+  if (!Number.isFinite(n) || n === 0) return null;
+  /* ⚠️ E NON SI ARROTONDA QUI. `r2` passa da `Math.round`, che sul mezzo tira
+     verso +∞: `r2(-12.345)` fa -12,34 e non -12,35. Una quota può benissimo
+     essere negativa (una cava in fossa sta sotto il livello del mare), quindi
+     arrotondare l'ingresso aggiunge una sorpresa che non serve a niente. Si
+     arrotonda una volta sola, sul margine, che è il numero che si legge. */
+  return n;
+}
+
+/* DA QUALE RIGA VIENE IL FONDO. `noto` è la bandiera che dice a chi disegna
+   che sotto non c'è nessuna misura: senza di lei un fondo mancante si
+   leggerebbe come un fondo a zero, che è la solita buona notizia inventata. */
+export function fondoAutorizzato(lotto, autorizzazione) {
+  const dalLotto = quotaFondoNota((lotto || {}).quotaFondoM);
+  if (dalLotto != null)
+    return { m: dalLotto, origine: "lotto", noto: true, perche: "" };
+  const dallAtto = quotaFondoNota((autorizzazione || {}).quotaFondoM);
+  if (dallAtto != null)
+    return { m: dallAtto, origine: "autorizzazione", noto: true, perche: "" };
+  return { m: null, origine: null, noto: false,
+    perche: "Il progetto di coltivazione non dichiara nessuna quota di fondo: senza quel numero non si può dire se lo scavo sta dentro il progetto." };
+}
+
+/* LA DECISIONE, IN UN POSTO SOLO, e su un numero solo — così la mappa dei
+   badge della pagina si può controllare contro di lei (regola 18 di
+   `run-stile.mjs`). Quattro risposte:
+     · `oltre`          il fronte è sceso SOTTO il fondo autorizzato;
+     · `al-limite`      ci è arrivato esatto: non è una violazione, ma da lì
+                        non si scende più, ed è una cosa da sapere prima;
+     · `dentro`         c'è ancora margine, e quanto lo dice `margineM`;
+     · `non-misurabile` manca la quota di fondo, o quella del fronte.
+   Nessuna soglia di guardia inventata («warn sotto i 5 m»): quanto franco
+   tenere lo dice il progetto, non noi. */
+export function statoConformitaQuota(margineM) {
+  if (margineM == null || String(margineM).trim() === "") return "non-misurabile";
+  const m = +margineM;
+  if (!Number.isFinite(m)) return "non-misurabile";
+  return m < 0 ? "oltre" : m === 0 ? "al-limite" : "dentro";
+}
+
+/* UN FRONTE CONTRO IL SUO FONDO. `lotto` è quello che contiene il fronte
+   (può essere `null`: allora vale il fondo dell'atto). */
+export function conformitaQuota(fronte, lotto, autorizzazione) {
+  const f = fondoAutorizzato(lotto, autorizzazione);
+  const q = quotaFondoNota((fronte || {}).quota);
+  if (!f.noto)
+    return { stato: "non-misurabile", misurabile: false, margineM: null,
+      quotaFronte: q, fondoM: null, origineFondo: null, perche: f.perche };
+  if (q == null)
+    return { stato: "non-misurabile", misurabile: false, margineM: null,
+      quotaFronte: null, fondoM: f.m, origineFondo: f.origine,
+      perche: "Questo fronte non dichiara la quota raggiunta: il confronto con la quota di fondo del progetto non è stato fatto." };
+  const margineM = r2(q - f.m);
+  return { stato: statoConformitaQuota(margineM), misurabile: true, margineM,
+    quotaFronte: q, fondoM: f.m, origineFondo: f.origine, perche: "" };
+}
+
+/* IL QUADRO D'INSIEME, sui tre modi in cui si può scavare fuori dal progetto:
+     1. più GIÙ del fondo autorizzato          → asse verticale, il dato nuovo;
+     2. più di quanto quel lotto PREVEDE       → `avanzamentoLotto`, che c'era
+        già e dava la percentuale senza che nessuno la chiamasse per nome;
+     3. in un lotto che il progetto non ha ancora APERTO — un lotto «previsto»
+        su cui però i rilievi misurano scavo. Anche questo si legge da funzioni
+        che ci sono già: il dato mancava solo di una domanda.
+   ⛔ E il conto dei NON misurabili si restituisce sempre, sui tre assi: un
+   «nessun fronte oltre il fondo» calcolato su due fronti quando ce ne sono
+   otto è la buona notizia che nasconde le altre sei. */
+export function conformitaProgetto(fronti, lotti, rilievi, autorizzazione) {
+  const FR = (fronti || []).filter(Boolean);
+  const LO = (lotti || []).filter(Boolean);
+  const lottoDi = (id) => LO.find((l) =>
+    ((l || {}).frontiId || []).map((x) => String(x || "")).includes(String(id))) || null;
+
+  const righe = FR.map((f) => {
+    const lo = lottoDi(f.id);
+    return { id: f.id, nome: String(f.nome || "Fronte senza nome"),
+      lottoId: lo ? lo.id : null, lottoNome: lo ? String(lo.nome || "") : "",
+      ...conformitaQuota(f, lo, autorizzazione) };
+  });
+  const quanti = (s) => righe.filter((r) => r.stato === s).length;
+  const misurate = righe.filter((r) => r.misurabile);
+
+  // il più vicino al fondo fra quelli che non l'hanno passato: è il fronte da
+  // guardare, e «al-limite» ci sta dentro (margine 0, cioè arrivati)
+  const ancoraSopra = misurate.filter((r) => r.margineM >= 0);
+  const oltreIlFondo = misurate.filter((r) => r.margineM < 0);
+  const minimo = (arr) => arr.length ? arr.reduce((a, b) => (b.margineM < a.margineM ? b : a)) : null;
+
+  const fondiSuiLotti = LO.some((l) => quotaFondoNota(l.quotaFondoM) != null);
+  const fondoAtto = quotaFondoNota((autorizzazione || {}).quotaFondoM);
+  // tre ragioni diverse per «non si sa», e vanno tenute distinte: mandano a
+  // fare tre cose diverse
+  const perche = misurate.length ? ""
+    : !FR.length
+      ? "Nessun fronte registrato: non c'è ancora niente di cui confrontare la quota."
+      : (fondoAtto == null && !fondiSuiLotti)
+        ? "Il progetto di coltivazione non dichiara nessuna quota di fondo, né sull'atto né sui lotti: scrivila nella scheda dell'autorizzazione e il confronto comincia."
+        : "Nessuno dei fronti registrati dichiara la quota raggiunta: senza quel numero non c'è niente da confrontare con il fondo del progetto.";
+
+  // ── assi 2 e 3: chiamano le funzioni che ci sono già ──
+  const perLotto = LO.map((l) => {
+    const vm = volumeMisuratoDiLotto(l, rilievi);
+    /* la stessa cautela della pagina: `avanzamentoLotto` si chiama col
+       misurato SOLO se c'è davvero, se no risponde «0%» — che si legge «non
+       ancora cominciato» dove la verità è «nessuno ha misurato». */
+    const av = avanzamentoLotto(l, vm.misurabile ? vm.m3 : null);
+    return { id: l.id, nome: String(l.nome || "Lotto senza nome"), stato: statoLotto(l),
+      previstoM3: +l.volumeM3 > 0 ? +l.volumeM3 : null,
+      misuratoM3: av.misuratoM3, pct: av.pct, perche: av.pct == null ? (vm.misurabile ? av.motivo : vm.motivo) : "" };
+  });
+  const conPct = perLotto.filter((v) => v.pct != null);
+  const oltrePrevisto = conPct.filter((v) => v.pct > 100);
+  const fuoriSequenza = perLotto.filter((v) => v.stato === "previsto" && v.misuratoM3 > 0);
+
+  return {
+    misurabile: misurate.length > 0, perche,
+    fondoAtto, fondiSuiLotti, fronti: righe,
+    oltre: quanti("oltre"), alLimite: quanti("al-limite"), dentro: quanti("dentro"),
+    nonMisurabili: quanti("non-misurabile"),
+    piuVicino: minimo(ancoraSopra), peggiore: minimo(oltreIlFondo),
+    volume: {
+      misurabile: conPct.length > 0,
+      perche: conPct.length ? "" : (!LO.length
+        ? "Nessun lotto registrato: non c'è nessun volume di progetto con cui confrontarsi."
+        : "Nessun lotto ha insieme un volume di progetto e un volume misurato: il confronto non è stato fatto per nessuno."),
+      lotti: perLotto, conConfronto: conPct.length,
+      senzaConfronto: perLotto.length - conPct.length,
+      oltrePrevisto, fuoriSequenza,
+    },
+  };
 }

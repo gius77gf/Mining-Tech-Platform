@@ -20,6 +20,7 @@
 // ============================================================
 
 import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto, dataISOEsiste,
+         senzaDoppioni,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL,
          dataPiuGiorni as dataPiuGiorniShell } from "../../shared/deepwork-id-client/dw-shell.js";
 // Una scadenza è una scadenza: lo stato della taratura lo dice la stessa
@@ -1074,6 +1075,239 @@ export const DICHIARAZIONI_TARATURA = {
   "scoperte":       { cls: "danger", testo: "Una o più letture del periodo sono state prese in un giorno non coperto da nessuna taratura registrata." },
   "senza-letture":  { cls: "warn",   testo: "Nel periodo non ci sono letture, quindi non c'è nessuna taratura da verificare." },
 };
+
+// ══════════════════════════════════════════════════════════════════════
+// T2c · I CERTIFICATI CHE ARRIVANO DA UN FILE, E QUELLI CHE SCADONO
+// Due cose rimaste aperte da T2b, e sono facce dello stesso problema: una
+// dichiarazione amministrativa che costa fatica a tenere aggiornata resta
+// indietro, e un report che poggia su un archivio vecchio dice «non
+// dichiarata» dove la carta invece c'è.
+//
+// ⛔ QUESTA SEZIONE NON TOCCA NESSUN GIUDIZIO DI CONFORMITÀ. Non legge
+// soglie, non legge curve, non cambia l'esito di un report: sposta pezzi di
+// carta. Vale identica la decisione di T2b — la taratura sta ACCANTO
+// all'esito, mai dentro.
+// ══════════════════════════════════════════════════════════════════════
+
+// L'IMPORT DEI CERTIFICATI DA CSV.
+// Perché esiste: una cava con otto strumenti ricopia otto certificati
+// all'anno, campo per campo, e il centro di taratura glieli manda già in
+// elenco. Battere a mano una data è il modo più facile per scriverne una
+// sbagliata su un dato che poi finisce in un documento verso l'ente.
+//
+// Colonne: strumento;data;scadenza;centro;certificato[;nota]
+// (intestazione facoltativa, riconosciuta dalla prima colonna «strumento»;
+// è la stessa che scrive `csvTarature`, così il giro export → import torna).
+//
+// ⛔ LE DATE SI LEGGONO CON `dataIso`, MAI CON `Date.parse`. È il lettore che
+// Sentinella usa già per l'import dallo strumento (T1): regge ISO e forma
+// italiana, e — questo è il punto — il 30 febbraio lo RIFIUTA invece di farlo
+// scivolare al 2 marzo. Una data scivolata di due giorni allungherebbe in
+// silenzio la copertura di un certificato, cioè farebbe risultare «coperte»
+// letture che non lo sono: l'esatto contrario di quello che T2b esiste per
+// dire. Il suo esito è sempre una data ISO che esiste, quindi `coperturaTaratura`
+// la ritrova buona più avanti.
+// ⚠️ Ne eredita anche la convenzione sugli anni a due cifre (12/04/26 →
+// 2026): è la regola già scritta e dichiarata di quel lettore, e non se ne
+// inventa una seconda diversa per questo file.
+//
+// ⛔ NESSUNA RIGA SPARISCE IN SILENZIO. Esce una voce per ogni riga del file,
+// buona o scartata che sia, con il motivo scritto in italiano e il NUMERO DI
+// RIGA vero (quello del file, non quello dopo aver tolto vuote e
+// intestazione): un import che scarta metà del file senza dirlo è peggio di
+// un import che fallisce, perché chi lo lancia crede di aver caricato tutto.
+//
+// ⚠️ UNA SCADENZA PRIMA DELLA TARATURA SI SCARTA, NON SI RADDRIZZA. Le due
+// date invertite sono un intervallo che non copre nessun giorno: girarle
+// vorrebbe dire inventare quale delle due l'utente ha sbagliato a scrivere,
+// e coprire delle letture con una decisione presa dal programma. È la stessa
+// regola che `certificatiTaratura` applica già ai dati in archivio.
+export function parseTaratureCsv(text) {
+  return String(text == null ? "" : text).split(/\r?\n/)
+    .map((r, i) => ({ testo: r.trim(), n: i + 1 }))
+    .filter(x => x.testo && !isIntestazione(x.testo, "strumento"))
+    .map(x => {
+      const [strumento, dataRaw, scadRaw, ente, certificato, nota] = parseCsvLine(x.testo);
+      const s = String(strumento || "").trim();
+      const dR = String(dataRaw || "").trim(), sR = String(scadRaw || "").trim();
+      const data = dataIso(dR), scadenza = dataIso(sR);
+      let motivo = "";
+      if (!s) motivo = "manca il nome dello strumento";
+      else if (!data) motivo = dR ? "la data della taratura non è una data" : "manca la data della taratura";
+      else if (!scadenza) motivo = sR ? "la scadenza non è una data" : "manca la scadenza";
+      else if (scadenza < data) motivo = "la scadenza viene prima della taratura";
+      return {
+        riga: x.n, strumento: s, dataRaw: dR, scadenzaRaw: sR, data, scadenza,
+        ente: String(ente || "").trim(), certificato: String(certificato || "").trim(),
+        nota: String(nota || "").trim(),
+        ok: !motivo, motivo,
+      };
+    });
+}
+
+// Confronto fra nomi: spazi di contorno, spazi doppi e maiuscole non contano.
+// Chi scrive un elenco a mano scrive «polveri p2» dove l'app ha «Polveri P2».
+function chiaveStrumento(s) {
+  return String(s == null ? "" : s).trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+// A CHI VA OGNI CERTIFICATO — e che cosa si fa di quelli che non trovano casa.
+//
+// ⛔ UNO STRUMENTO CHE NON ESISTE NON SI CREA, E LA RAGIONE NON È PRUDENZA
+// GENERICA. Un punto di misura non è un'etichetta: porta una SOGLIA e
+// un'unità, ed è la soglia a decidere se una misura è conforme. Un
+// certificato di taratura non dice niente né dell'una né dell'altra. Crearne
+// uno da qui vorrebbe dire far comparire nell'elenco dei monitoraggi un punto
+// con una soglia che nessuno ha scelto — cioè un giudizio di conformità
+// fabbricato da un file amministrativo. La riga si scarta, e il nome che non
+// si è trovato viene DETTO (`sconosciuti`), così chi ha caricato il file sa
+// se correggere il nome nel file o creare prima il punto di misura.
+//
+// ⚠️ E UN NOME CHE CORRISPONDE A DUE STRUMENTI NON SI ASSEGNA AL PRIMO. Il
+// nome corto («Polveri P2», la parte prima del trattino lungo, che è quella
+// che la pagina mostra nelle tendine) può essere di due punti diversi:
+// attaccare il certificato a uno dei due a caso vorrebbe dire dichiarare
+// riferibili le letture dello strumento sbagliato.
+//
+// Il doppione si cerca in due posti, come in ogni import dell'ecosistema:
+// dentro il file appena letto — con la regola condivisa `senzaDoppioni`, non
+// una copia — e contro quello che è GIÀ registrato sullo strumento. Due
+// certificati con le stesse due date sullo stesso strumento sono lo stesso
+// certificato: è la stessa chiave che il form usa già per non farne
+// registrare due a mano.
+export function abbinaTarature(voci, monitoraggi) {
+  const indice = new Map();
+  const agg = (k, id) => { if (!k) return; if (!indice.has(k)) indice.set(k, new Set()); indice.get(k).add(id); };
+  for (const m of monitoraggi || []) {
+    const nome = String((m || {}).nome || "");
+    agg(chiaveStrumento(nome), (m || {}).id);
+    agg(chiaveStrumento(nome.split(" — ")[0]), (m || {}).id);
+  }
+  const perId = new Map((monitoraggi || []).map(m => [(m || {}).id, m]));
+
+  const abbinate = (voci || []).map(v => {
+    if (!v.ok) return { ...v, puntoId: "", nomePunto: "" };
+    const ids = indice.get(chiaveStrumento(v.strumento));
+    if (!ids || !ids.size)
+      return { ...v, puntoId: "", nomePunto: "", ok: false, motivo: "nessuno strumento si chiama così" };
+    if (ids.size > 1)
+      return { ...v, puntoId: "", nomePunto: "", ok: false, motivo: "il nome corrisponde a più di uno strumento" };
+    const id = [...ids][0];
+    const m = perId.get(id) || {};
+    const gia = ((m.tarature) || []).some(t =>
+      String((t || {}).data || "").slice(0, 10) === v.data
+      && String((t || {}).scadenza || "").slice(0, 10) === v.scadenza);
+    if (gia)
+      return { ...v, puntoId: id, nomePunto: m.nome || "", ok: false, motivo: "già registrata su questo strumento" };
+    return { ...v, puntoId: id, nomePunto: m.nome || "" };
+  });
+
+  const tenute = new Set(
+    senzaDoppioni(abbinate.filter(v => v.ok), v => `${v.puntoId}|${v.data}|${v.scadenza}`).map(v => v.riga));
+  const finali = abbinate.map(v =>
+    (v.ok && !tenute.has(v.riga)) ? { ...v, ok: false, motivo: "ripetuta nel file" } : v);
+
+  const conta = new Map();
+  const sconosciuti = [];
+  for (const v of finali) {
+    if (v.ok) continue;
+    conta.set(v.motivo, (conta.get(v.motivo) || 0) + 1);
+    if (v.motivo === "nessuno strumento si chiama così" && !sconosciuti.includes(v.strumento))
+      sconosciuti.push(v.strumento);
+  }
+  const pronte = finali.filter(v => v.ok).length;
+  return {
+    voci: finali,
+    // `letti` è il totale delle righe con dei dati dentro, e `pronte +
+    // scartate` gli torna sempre uguale: è così che chi guarda il riepilogo
+    // vede subito se il file è entrato tutto.
+    riepilogo: {
+      letti: finali.length, pronte, scartate: finali.length - pronte,
+      motivi: [...conta.entries()].map(([motivo, n]) => ({ motivo, n }))
+        .sort((a, b) => b.n - a.n || a.motivo.localeCompare(b.motivo, "it")),
+      sconosciuti,
+    },
+  };
+}
+
+// Le colonne del file, in un posto solo: le scrive l'export e le riconosce
+// l'import (`isIntestazione` guarda la prima). Due elenchi in due punti
+// diversi si scollano.
+export const CSV_TARATURE_INTESTAZIONE = "strumento;data;scadenza;centro;certificato;nota";
+
+// L'ARCHIVIO DEI CERTIFICATI IN UN FILE.
+// ⛔ ESCONO TUTTI, ANCHE QUELLI CON LE DATE ROTTE. Esportare solo i leggibili
+// vorrebbe dire che chi fa un backup, o chi riapre il proprio file, si ritrova
+// un archivio più corto senza che nessuno glielo abbia detto. Il file è la
+// fotografia di quello che c'è; a dire che una riga non si può usare ci pensa
+// l'import, che lo dichiara riga per riga.
+// Le celle di testo passano da `csvCell`: il nome del centro di taratura è
+// campo libero e un punto e virgola dentro spezzerebbe la riga in silenzio.
+export function csvTarature(monitoraggi) {
+  const righe = [];
+  for (const m of monitoraggi || [])
+    for (const t of ((m || {}).tarature || []))
+      righe.push([
+        csvCell((m || {}).nome || ""),
+        String((t || {}).data || ""), String((t || {}).scadenza || ""),
+        csvCell((t || {}).ente || ""), csvCell((t || {}).certificato || ""),
+        csvCell((t || {}).nota || ""),
+      ].join(";"));
+  return CSV_TARATURE_INTESTAZIONE + "\n" + (righe.length ? righe.join("\n") + "\n" : "");
+}
+
+// LA TARATURA CHE SCADE, NELLE ALLERTE DEL QUADRO.
+// Fino al 01/08 lo stato si vedeva solo entrando nella sezione, cioè lo
+// scopriva chi era già andato a cercarlo. Ma una taratura che scade non è un
+// dettaglio d'archivio: dal giorno dopo ogni lettura di quello strumento
+// risulta SCOPERTA, e chi se ne accorge davanti al report per l'ente non può
+// più rimediare — un certificato non si fa fare a ritroso.
+//
+// ⛔ E ALLORA PERCHÉ NON TUTTI GLI STATI? Perché il Quadro è già denso e una
+// lista che dice tutto non la legge nessuno. Entrano SOLO le due che sono una
+// scadenza arrivata:
+//   · `scaduta`     → danger, come un adempimento con l'ente mancato;
+//   · `in-scadenza` → warn, con la stessa finestra di 30 giorni che il Quadro
+//                     usa già per gli adempimenti (la decide `statoScadenzaHSE`
+//                     in `shared/`, non un numero riscritto qui).
+// Restano FUORI, e sono decisioni, non dimenticanze:
+//   · `regolare` — non c'è niente da fare;
+//   · `non-dichiarata` — è lo stato di un archivio che non è ancora
+//     cominciato, non una scadenza arrivata. Metterlo qui vorrebbe dire che il
+//     primo giorno l'app apre con una riga per OGNI strumento, per sempre
+//     finché qualcuno non carica tutti i certificati: il Quadro diventerebbe
+//     illeggibile proprio per chi non ha ancora niente da leggerci. E non
+//     resta muto: lo dicono già il badge sulla riga del punto di misura, il
+//     conto della sezione e la dichiarazione del report.
+// Conseguenza voluta: un archivio senza nessun certificato registrato aggiunge
+// ZERO righe al Quadro. Le righe compaiono a chi ha già dichiarato una
+// taratura — cioè esattamente a chi può fare qualcosa.
+//
+// Stessa forma delle altre allerte ({ gravita, categoria, titolo, dettaglio,
+// badge }) così si mescolano senza casi particolari. `oggi` iniettabile.
+export function allerteTaratura(monitoraggi, oggi = new Date()) {
+  const out = [];
+  for (const m of monitoraggi || []) {
+    const t = statoTaraturaStrumento(m, oggi);
+    if (t.stato !== "scaduta" && t.stato !== "in-scadenza") continue;
+    const scaduta = t.stato === "scaduta";
+    const g = giorni(t.scadenza, oggi);
+    out.push({
+      gravita: scaduta ? "danger" : "warn",
+      categoria: "taratura",
+      titolo: (m || {}).nome || "Strumento",
+      /* ⚠️ Corto di proposito: la riga di dettaglio delle allerte è tagliata a
+         due righe, quindi una frase appesa in fondo non la legge nessuno. Il
+         numero del certificato e il centro stanno nella sezione, che è dove si
+         va a cercarli; qui ci va la sola cosa che serve per decidere. */
+      dettaglio: scaduta
+        ? "taratura scaduta il " + dataIt(t.scadenza) + " · letture non più coperte"
+        : "taratura valida fino al " + dataIt(t.scadenza) + " · poi non copre più",
+      badge: scaduta ? "scaduta da " + (-g) + " gg" : g + " gg",
+    });
+  }
+  return out;
+}
 
 // ══════════════════════════════════════════════════════════════════════
 // T3 · REPORT DI CONFORMITÀ

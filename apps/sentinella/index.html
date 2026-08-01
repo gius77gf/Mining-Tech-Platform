@@ -1085,7 +1085,24 @@ textarea.dw-input{
       quello che l'ente chiede quando vuole risalire alla misura. Le <b>due date</b> sì: senza
       di loro non si può dire quali letture copre.</div>
   </div>
+  <!-- I certificati arrivano dal centro di taratura già in elenco: una cava con
+       otto strumenti li ricopiava a mano otto volte l'anno, campo per campo.
+       L'import li prende dal file; le righe che non si possono usare le scarta
+       DICHIARANDOLE, una per una, invece di farle sparire. -->
+  <div class="ord" style="margin-top:12px;">
+    <button class="dw-btn secondary mini" id="btn-tar-import"
+      title="Carica i certificati da un file CSV: strumento;data;scadenza;centro;certificato;nota">Importa tarature CSV</button>
+    <button class="dw-btn secondary mini" id="btn-tar-export"
+      title="Scarica tutti i certificati registrati in CSV, per l'ente o per un backup">Esporta CSV</button>
+    <input type="file" id="tar-file" accept=".csv,text/csv" style="display:none;">
+  </div>
+  <div class="form-hint" style="margin-top:8px;">Colonne del file:
+    <b>strumento; data; scadenza; centro; certificato; nota</b>. Lo <b>strumento</b> è il nome
+    del punto di misura come è scritto qui sopra: se nessuno si chiama così la riga viene
+    scartata e te lo dice — un punto di misura non si crea da un certificato, perché porta una
+    <b>soglia</b> che il certificato non sa.</div>
   <div class="note esito" id="tar-esito"></div>
+  <div id="tar-scarti" style="margin-top:10px;"></div>
   <div id="tar-list" style="margin-top:10px;"></div>
 
   <div class="sec">Distanza scalata (volate)</div>
@@ -1378,6 +1395,7 @@ textarea.dw-input{
            testoFontePrevisione, scartoPpvVolata, confermaVolataEseguita, riepilogoPreviste,
            volateOrdinate, firmaVolata, csvRegistroVolate, CSV_VOLATE_INTESTAZIONE,
            coperturaTaratura, statoTaraturaStrumento, STATI_TARATURA, DICHIARAZIONI_TARATURA,
+           parseTaratureCsv, abbinaTarature, csvTarature, allerteTaratura, CSV_TARATURE_INTESTAZIONE,
            numeroDaCampo, AVVISO_DECIMALE } from "./sentinella-data.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO,
          controllaAllegato, testoAllegatoRifiutato, pezziDataURL } from "../../shared/deepwork-id-client/dw-shell.js";

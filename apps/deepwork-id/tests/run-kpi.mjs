@@ -12259,6 +12259,139 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
   });
 }
 
+// ── Scudo · la foto come prova ────────────────────────────────────────────
+// Il numero che ha deciso «più d'una foto o una sola»: due allegati da 400 KB
+// (il limite della SINGOLA, in shared/) fanno il 104,2% del tetto di 1 MB del
+// documento Firestore, e la scrittura viene rifiutata portandosi dietro tutto
+// il record. Quindi il limite è sul TOTALE, e per l'ispezione il totale è di
+// tutta l'ispezione — le voci stanno in un unico documento.
+{
+  const B64 = (n) => Buffer.alloc(n, 7).toString("base64");
+  const foto = (n, extra) => Object.assign({ nome: "f.jpg", dataURL: "data:image/jpeg;base64," + B64(n) }, extra || {});
+  const KB = 1024;
+
+  test("Scudo · foto: il numero che ha deciso il limite sul TOTALE", () => {
+    // dataURL di un file da N byte = 23 caratteri di prefisso + ceil(N/3)*4
+    const dataURL = (n) => "data:image/jpeg;base64,".length + Math.ceil(n / 3) * 4;
+    const TETTO = 1024 * 1024;                       // tetto del documento Firestore
+    eq(shell.LIMITE_ALLEGATO, 400 * KB, "il limite della singola sta in shared/, non qui");
+    ok(dataURL(400 * KB) < TETTO, "una foto da 400 KB ci sta: " + dataURL(400 * KB) + " byte");
+    ok(dataURL(400 * KB) * 2 > TETTO,
+       "DUE no, ed è il numero che decide: " + (dataURL(400 * KB) * 2) + " byte su " + TETTO);
+    eq(scudo.MAX_FOTO, 3, "al massimo tre: a 400 KB in tutto sono 133 KB l'una");
+  });
+
+  test("Scudo · foto: il peso di una foto salvata è quello del file, al byte", () => {
+    for (const n of [1, 2, 3, 23, 1024, 100000, 409600])
+      eq(scudo.pesoFoto(foto(n)), n, "un file da " + n + " byte");
+    eq(scudo.pesoFoto({ dataURL: "ciao" }), null, "non è un dataURL");
+    eq(scudo.pesoFoto(null), null, "nessuna foto");
+    eq(scudo.pesoFoto({ dataURL: "data:text/plain,ciao" }), null, "dataURL non base64");
+    eq(scudo.pesoFoto({ dataURL: "data:image/jpeg;base64,@@@@" }), null, "base64 corrotto");
+  });
+
+  test("Scudo · foto: il budget è sul totale, e un peso illeggibile NON conta zero", () => {
+    const vuoto = scudo.bilancioFoto([]);
+    contiene(vuoto, { quante: 0, pieno: false, motivo: "", misurabile: true }, "nessuna foto: si può");
+    eq(vuoto.residuo, 400 * KB, "e c'è tutto lo spazio");
+    eq(scudo.bilancioFoto([foto(200 * KB)]).residuo, 200 * KB, "una da 200 KB ne lascia 200");
+    contiene(scudo.bilancioFoto([foto(200 * KB), foto(200 * KB)]), { pieno: true, motivo: "spazio", residuo: 0 },
+             "due da 200 KB chiudono lo spazio: la terza sfonderebbe il documento");
+    contiene(scudo.bilancioFoto([foto(10), foto(10), foto(10)]), { pieno: true, motivo: "numero" },
+             "tre foto minuscole: pieno per NUMERO, non per spazio");
+    contiene(scudo.bilancioFoto([foto(400 * KB - 500)]), { pieno: true, motivo: "spazio" },
+             "meno di 1 KB residuo non è spazio: non ci sta nessuna foto");
+    contiene(scudo.bilancioFoto([foto(400 * KB - 2000)]), { pieno: false, motivo: "" }, "poco meno di 2 KB sì");
+    const rotto = scudo.bilancioFoto([{ dataURL: "boh" }]);
+    contiene(rotto, { misurabile: false, pieno: true, motivo: "peso-illeggibile", residuo: 0 },
+             "una foto che non si sa pesare ferma il conto invece di contare zero");
+  });
+
+  test("Scudo · foto: il residuo diventa il limite del controllo condiviso", () => {
+    // ⛔ la regola «questo file va bene?» resta UNA, quella di shared/: qui le
+    // si passa solo lo spazio rimasto, così il messaggio parla del residuo
+    // vero e non dei 400 KB che non ci sono più.
+    const b = scudo.bilancioFoto([foto(300 * KB)]);
+    eq(b.residuo, 100 * KB, "restano 100 KB");
+    const via = shell.controllaAllegato({ name: "grande.jpg", size: 150 * KB }, b.residuo);
+    contiene(via, { ok: false, motivo: "troppo-grande", limiteKb: 100 }, "150 KB non ci stanno più");
+    ok(shell.testoAllegatoRifiutato(via).includes("100 KB"),
+       "e la frase dice il residuo: " + shell.testoAllegatoRifiutato(via));
+    ok(shell.controllaAllegato({ name: "piccola.jpg", size: 90 * KB }, b.residuo).ok, "90 KB sì");
+  });
+
+  test("Scudo · foto: nell'ispezione il totale è di TUTTA l'ispezione, non della voce", () => {
+    const isp = { voci: [{ id: "v1", testo: "Arginelli" }, { id: "v2", testo: "DPI" }],
+      esiti: { v1: { esito: "non-conforme", foto: [foto(150 * KB)] },
+               v2: { esito: "non-conforme", foto: [foto(260 * KB)] } } };
+    eq(scudo.bilancioFotoVoce(isp, "v1").usati, 410 * KB, "il conto vede le foto di tutte le voci");
+    ok(!scudo.bilancioFoto(scudo.fotoDiVoce(isp, "v1")).pieno,
+       "guardando la SOLA voce il conto passerebbe: è la trappola");
+    contiene(scudo.bilancioFotoVoce(isp, "v1"), { pieno: true, motivo: "spazio" }, "guardando l'ispezione no");
+    contiene(scudo.bilancioFotoVoce(isp, "v2"), { pieno: true, motivo: "spazio" }, "e nemmeno per l'altra voce");
+    contiene(scudo.bilancioFotoVoce({}, "v1"), { pieno: false, quante: 0 }, "ispezione senza foto: si può");
+  });
+
+  test("Scudo · foto: una foto su una voce che il modello non ha più occupa spazio lo stesso", () => {
+    const isp = { voci: [{ id: "v1", testo: "Arginelli" }],
+      esiti: { v1: { foto: [foto(10)] }, v9: { foto: [foto(300 * KB)] } } };
+    eq(scudo.fotoDiIspezione(isp).length, 2, "si scorrono gli ESITI, non le voci");
+    eq(scudo.fotoDiIspezione(isp).find(f => f.voceId === "v1").voce, "Arginelli", "col testo della voce");
+    eq(scudo.fotoDiIspezione(isp).find(f => f.voceId === "v9").voce, "", "e senza inventarlo quando la voce non c'è più");
+    ok(scudo.bilancioFotoVoce(isp, "v1").usati > 300 * KB,
+       "la foto orfana pesa nel documento: se non la si contasse il budget direbbe che c'è posto");
+  });
+
+  test("Scudo · foto: le foto di un evento, senza contare i buchi", () => {
+    eq(scudo.fotoDiEvento({ foto: [foto(10), { nome: "x" }, null] }).length, 1, "senza dataURL non è una foto");
+    eq(scudo.fotoDiEvento({}).length, 0, "evento senza foto");
+    eq(scudo.fotoDiEvento(null).length, 0, "nessun evento");
+    eq(scudo.fotoDiVoce({ esiti: { v1: { foto: [foto(10)] } } }, "v1").length, 1, "voce con una foto");
+    eq(scudo.fotoDiVoce({ esiti: { v1: { esito: "conforme" } } }, "v1").length, 0, "voce con esito e senza foto");
+  });
+
+  test("Scudo · foto: una frase per OGNI motivo che il bilancio sa dire", () => {
+    // regola 18: la mappa copre tutti gli stati della sua funzione
+    const motivi = new Set();
+    motivi.add(scudo.bilancioFoto([]).motivo);
+    motivi.add(scudo.bilancioFoto([foto(10), foto(10), foto(10)]).motivo);
+    // ⚠️ 399 KB tondi NON bastano a produrre «spazio»: il residuo è 1024 byte
+    // esatti, e la soglia è «meno di 1 KB». La prima stesura di questa riga
+    // faceva coincidere due risposte diverse e la prova è caduta subito.
+    motivi.add(scudo.bilancioFoto([foto(400 * KB - 500)]).motivo);
+    motivi.add(scudo.bilancioFoto([{ dataURL: "boh" }]).motivo);
+    eq([...motivi].sort(), ["", "numero", "peso-illeggibile", "spazio"], "quattro motivi, prodotti davvero");
+    for (const m of motivi) {
+      const s = scudo.testoBilancioFoto({ motivo: m, quante: 3, max: 3, residuo: 100 * KB, limite: 400 * KB });
+      ok(typeof s === "string" && s.length > 20, "motivo «" + m + "» ha la sua frase: " + s);
+    }
+    ok(scudo.testoBilancioFoto(scudo.bilancioFoto([])).includes("400 KB"), "col posto libero dice quanto ne resta");
+    ok(/non so dire quanto spazio resta/.test(scudo.testoBilancioFoto(scudo.bilancioFoto([{ dataURL: "boh" }]))),
+       "e la non-misurabilità la legge qualcuno, invece di restare una bandiera muta");
+  });
+
+  test("Scudo · foto: zero foto NON è un difetto — nessuna pastiglia, nessun colore", () => {
+    eq(scudo.pastigliaFoto(0), null, "chi soccorre non fotografa: nessun contatore a zero accanto agli altri badge");
+    eq(scudo.pastigliaFoto(undefined), null, "campo assente");
+    eq(scudo.pastigliaFoto(NaN), null, "e nemmeno un numero che non è un numero");
+    eq(scudo.pastigliaFoto(-3), null, "né un numero impossibile");
+    eq(scudo.pastigliaFoto(1).testo, "1 foto", "una foto, al singolare");
+    eq(scudo.pastigliaFoto(2).testo, "2 foto", "due");
+    for (const n of [1, 2, 3])
+      ok(!/danger|warn/.test(scudo.pastigliaFoto(n).classe), "e la classe non è mai d'allarme (" + n + ")");
+  });
+
+  test("Scudo · foto: una foto senza contesto lo DICE, non si spaccia per prova", () => {
+    eq(scudo.contestoFoto({ didascalia: "arginello mancante" }, "Fascia di rispetto"), "arginello mancante",
+       "la didascalia di chi ha scattato viene prima");
+    eq(scudo.contestoFoto({}, "Fascia di rispetto al ciglio"), "Fascia di rispetto al ciglio",
+       "senza didascalia vale il soggetto a cui la foto è attaccata");
+    eq(scudo.contestoFoto({ didascalia: "   " }, ""), null, "una didascalia di soli spazi non è una didascalia");
+    eq(scudo.contestoFoto({}, ""), null, "e senza né l'una né l'altro torna null, non stringa vuota");
+    eq(scudo.contestoFoto(null, null), null, "chiamata a vuoto");
+  });
+}
+
 if (inVolo.length) await Promise.all(inVolo);   // si aspetta PRIMA di contare
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);
