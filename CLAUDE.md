@@ -67,6 +67,24 @@ in italiano, senza dare conoscenze per scontate).
 
 ## Come si spende il tempo di un ciclo *(01/08, misurato su una giornata storta)*
 
+⛔ **NON SI METTE NELL'INDICE UN FILE CHE UN CANTIERE STA MODIFICANDO**, e il
+01/08 questa regola è costata la pagina di Scudo per cinque commit. Committando
+il lavoro sugli allegati ho fatto `git add apps/scudo/index.html` credendolo
+libero — il cantiere di Scudo era finito. Ma quello di **Campo** l'aveva toccato
+(a ragione: senza quelle righe il suo ponte consegnava una falsità), e mi sono
+portato dietro l'`import { daCampo }` **senza** il modulo che lo esporta, rimasto
+su disco. Un import ESM di un nome inesistente è un errore **duro**: la pagina
+non parte, e le suite `node` non se ne accorgono perché non importano le pagine.
+Misurato affiancando due copie: `HEAD` dava elenco vuoto e KPI tutti «—», il
+disco funzionava.
+La difesa esiste già ed è quella che uso per i file di test: si costruisce il
+contenuto **da `HEAD`** e lo si mette nell'indice con `hash-object -w` +
+`update-index --cacheinfo`, senza toccare il working tree. Va usata per
+**qualunque** file che un agente possa aver toccato — cioè, mentre girano
+cantieri paralleli, per tutti tranne i propri. E il controllo che l'avrebbe
+presa non c'è: nessuna suite apre le pagine partendo dal committato prima del
+push.
+
 ⛔ **IL GIRO `node` PRIMA DEL COMMIT È UN COMANDO SOLO, E NON SI SCEGLIE A
 MEMORIA:** `node apps/deepwork-id/tests/giro-node.mjs` (con `--tz` rifà tutto
 anche in ora italiana). Il 01/08 la CI è caduta su `suite-collegate.mjs`, e il
