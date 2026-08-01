@@ -305,6 +305,44 @@ un fondo opaco fra gli antenati si finisce contro il nero della pagina: bianco s
 arancione risultava 19:1), la **trasparenza** del colore del testo, e
 l'**`opacity`** ereditata dagli antenati.
 
+## `salvataggio-offline.mjs`
+
+**Che cosa vede chi ha appena compilato un giro macchina senza rete.**
+
+⛔ **Il fatto, misurato prima di scrivere il banco** (01/08), col pacchetto
+`firebase` vero (12.16.0, quello in `tests/node_modules`) e la rete chiusa con
+`disableNetwork`: le tre **scritture** provate (`addDoc` di un controllo,
+`addDoc` di una manutenzione, `updateDoc` delle ore) **non risolvono e non
+rifiutano** — restano pendenti per sempre; la **lettura** risponde in 8 ms
+dalla cache. Quindi il difetto non era un errore da catturare: un `try/catch`
+non lo vede. Era un `await` che non torna, e la pagina si fermava lì.
+
+```sh
+node apps/deepwork-id/tests/browser/salvataggio-offline.mjs 8853
+node apps/deepwork-id/tests/browser/salvataggio-offline.mjs 8853 --senza-guardia
+```
+
+Quattro scenari — giro macchina e segnalazione di guasto, per «rete tolta»
+(`context.setOffline(true)`) e «server che rifiuta» — **37 asserzioni**. Per
+ognuno: che un messaggio compaia, che dica *«non è stato salvato niente»*, che
+non sia una frase di Firebase, che la scheda resti a schermo con dentro quello
+che era stato scritto, e che il bottone si spenga mentre la scrittura è per
+aria.
+
+⚠️ **Che cosa NON misura.** Firestore vero qui non c'è: al suo posto un finto
+che applica la regola misurata sopra (a `navigator.onLine` falso le scritture
+non rispondono mai). Il soggetto della misura è **la pagina**, non Firestore.
+A differenza di `finto-firebase.mjs`, questo finto porta anche `firebase-auth`
+e `firebase-functions`: senza, l'app resta in **dimostrazione** e scrive in
+memoria — cioè il banco misurerebbe un percorso che in cava non esiste. La
+prima asserzione di ogni scenario è proprio che l'app sia in modo reale.
+
+Con `--senza-guardia` la pagina servita torna a com'era (due iniezioni, +134
+caratteri, il file su disco non si tocca): **11 asserzioni su 37 cadono**, e si
+legge il prodotto di prima — messaggio vuoto dopo 14 secondi d'attesa, e col
+server che rifiuta un `Missing or insufficient permissions.` che finisce in
+console e non sotto gli occhi di nessuno.
+
 ## `finto-firebase.mjs`
 
 **Serve per aprire il core in locale, e non solo per questa prova.**

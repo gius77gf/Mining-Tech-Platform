@@ -84,6 +84,8 @@ const BANCHI = [
   ['contrasto del core', 'contrasto-core.mjs', []],
   ['stati «non misurato» visibili', 'stati-non-misurati.mjs', []],
   ['stati «non misurato» · controprova', 'stati-non-misurati.mjs', ['--controprova'], true],
+  ['il salvataggio che non riesce (Flotta, senza rete)', 'salvataggio-offline.mjs', []],
+  ['salvataggio senza rete · controprova', 'salvataggio-offline.mjs', ['--senza-guardia'], true],
 ];
 
 async function rispondePorta(porta) {

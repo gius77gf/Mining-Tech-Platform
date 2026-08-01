@@ -1055,7 +1055,8 @@
            consumoRicambi, puntoDiRiordino, propostaScorte,
            ORIZZONTE_TAGLIANDI, ritmoOreMezzi, ritmoDelMezzo, tagliandiInScadenza,
            numeroDaCampo, interoDaCampo, perCampo, messaggioNumero,
-           AVVISO_DECIMALE, AVVISO_MIGLIAIA } from "./flotta-data.js";
+           AVVISO_DECIMALE, AVVISO_MIGLIAIA,
+           scriviConEsito } from "./flotta-data.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, numIt, montaGuardiaInteri, avvolgiUnita, euro, conEuro, oggiISO } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
@@ -1237,6 +1238,24 @@
 
   const db = await flottaData();
   mountExit(db);
+  /* ── UNA SCRITTURA CHE NON RIESCE VA DETTA ────────────────────────────────
+     Il perché, la misura e i tre esiti stanno in `scriviConEsito` dentro
+     flotta-data.js. Qui si aggiunge solo quello che il modulo non può sapere:
+     se il telefono si dichiara connesso. `poi` viene chiamato se la scrittura
+     arriva DOPO la scadenza — serve a non lasciare in piedi una scheda già
+     salvata, che verrebbe ricompilata una seconda volta. */
+  const salva = (azione, cosa, poi) => scriviConEsito(azione, {
+    cosa, poi, inRete: (typeof navigator !== "undefined" && typeof navigator.onLine === "boolean") ? navigator.onLine : null,
+  });
+  /* Il bottone mentre la scrittura è per aria: spento e con scritto che sta
+     salvando. Senza, otto secondi di apparente immobilità invitano al secondo
+     tocco — e due tocchi sul giro macchina sono due giri nel registro. */
+  const occupato = (id, on, testo) => {
+    const b = $(id);
+    if (!b) return;
+    if (on) { b.dataset.testo = b.dataset.testo || b.textContent; b.textContent = testo || "Salvo…"; b.disabled = true; }
+    else { if (b.dataset.testo) b.textContent = b.dataset.testo; b.disabled = false; }
+  };
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").innerHTML = db.mode === "live"
     ? "Stai lavorando sui <b>dati reali</b> della tua organizzazione."
@@ -2503,10 +2522,16 @@
 
   // Salvataggio di una parte dell'ordine: una riga sola, perché ogni comando
   // dell'ordine fa la stessa cosa — scrive sulla manutenzione e ridisegna.
+  // Ritorna `false` quando la scrittura non è arrivata: da qui passano ore,
+  // ricambi, spese e chiusura dell'ordine, e nessuna di quelle deve poter
+  // sparire lasciando sullo schermo la riga di conferma.
   async function salvaOrdine(n, patch, messaggio) {
-    await db.aggiorna("manutenzioni", n.id, patch);
+    const scritto = await salva(() => db.aggiorna("manutenzioni", n.id, patch),
+      "questa modifica all'ordine di lavoro");
+    if (!scritto.ok) { esito("odl-esito", scritto.messaggio, "err"); toast(scritto.breve, "err"); return false; }
     if (messaggio) esito("odl-esito", messaggio, "success");
     await refresh();
+    return true;
   }
 
   // CHIUSURA DELL'ORDINE. Il costo non viene chiesto: è già scritto nelle
@@ -3348,8 +3373,13 @@
       `Su <b>${esc(nomeBreve(m.nome))}</b> ${motivo}<br>
          Vuoi segnare il mezzo <b>in verifica</b>, così chi lo cerca sa che c'è qualcosa in sospeso? Può continuare a lavorare.`,
       "Metti in verifica");
-    if (ok) await db.aggiorna("mezzi", m.id, { stato: "verifica" });
-    return ok;
+    if (!ok) return false;
+    // Anche questa è una scrittura, e mettere in verifica una macchina è una
+    // decisione di sicurezza: se non riesce va detto, non fatto sparire.
+    const w = await salva(() => db.aggiorna("mezzi", m.id, { stato: "verifica" }),
+      "il nuovo stato di " + nomeBreve(m.nome));
+    if (!w.ok) { toast(w.breve, "err"); return false; }
+    return true;
   }
 
   // ══════════════════════════════════════════════════════════════════════
@@ -3417,13 +3447,41 @@
       voci: giro.voci.map(v => ({ chiave: v.chiave, etichetta: v.etichetta, esito: v.esito,
                                   nota: (v.nota || "").trim(), critica: !!v.critica })),
     };
-    await db.aggiungi("controlli", dati);
-    if (ore != null && ore > (+m.ore || 0)) await db.aggiorna("mezzi", m.id, { ore });
-    // Il cuore della funzione: ogni «non va» diventa una manutenzione aperta
-    // sul mezzo, con la data di oggi. Da lì in poi vive come tutte le altre:
-    // compare nelle priorità del Quadro, si chiude come ordine di lavoro.
-    const nuove = manutenzioniDaControllo(dati);
-    for (const n of nuove) await db.aggiungi("manutenzioni", n);
+    /* IL SALVATAGGIO. Il giro macchina si fa in piazzale, dove la rete non
+       c'è: senza rete la scrittura non rifiuta, resta pendente per sempre
+       (misura nell'intestazione di `scriviConEsito`), e fino al 01/08 questo
+       gestore si fermava qui — nessun toast, nessun errore, la scheda ferma
+       col dito ancora sul bottone. Adesso una risposta arriva sempre, e
+       quando è «non salvato» la scheda RESTA COM'È: chi ha compilato ritrova
+       le sue risposte e ritenta, invece di ricominciare da capo. */
+    occupato("btn-giro-salva", true);
+    const scritto = await salva(async () => {
+      await db.aggiungi("controlli", dati);
+      if (ore != null && ore > (+m.ore || 0)) await db.aggiorna("mezzi", m.id, { ore });
+      // Il cuore della funzione: ogni «non va» diventa una manutenzione aperta
+      // sul mezzo, con la data di oggi. Da lì in poi vive come tutte le altre:
+      // compare nelle priorità del Quadro, si chiude come ordine di lavoro.
+      for (const n of manutenzioniDaControllo(dati)) await db.aggiungi("manutenzioni", n);
+    }, "il giro macchina di " + nomeBreve(m.nome), (poi) => {
+      /* Arrivato in ritardo. Si chiude la scheda (o al prossimo tocco il giro
+         si scriverebbe due volte) e si dice com'è finita. La domanda sulle
+         voci di sicurezza NON si apre a sorpresa mezzo minuto dopo: finisce
+         nel messaggio, e la decisione si prende dalla schermata Mezzi. */
+      if (!poi.ok) { esito("giro-esito", poi.messaggio, "err"); toast(poi.breve, "err"); return; }
+      // solo se sullo schermo c'è ancora QUESTO giro: nel frattempo può essere
+      // stato aperto quello di un'altra macchina, e chiuderlo cancellerebbe
+      // risposte appena date.
+      if (giro && giro.mezzoId === m.id) chiudiGiro();
+      refresh();
+      toast("Adesso il giro di " + nomeBreve(m.nome) + " è salvato: era rimasto in attesa della linea."
+        + (r.critiche.length ? " Attenzione: " + r.critiche.length + (r.critiche.length === 1 ? " voce di sicurezza non va" : " voci di sicurezza non vanno") + ", valuta se fermare il mezzo." : ""),
+        r.critiche.length ? "err" : "success");
+    });
+    occupato("btn-giro-salva", false);
+    if (!scritto.ok) { esito("giro-esito", scritto.messaggio, "err"); toast(scritto.breve, "err");
+      // la pastiglia sparisce, la riga resta: ma se sta sotto la piega non
+      // l'ha letta nessuno, e lo scatto del 01/08 la mostrava fuori schermo
+      $("giro-esito").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
 
     if (r.critiche.length && m.stato !== "fermo") {
       const quali = r.critiche.map(v => v.etichetta).join(", ");
@@ -3431,7 +3489,14 @@
         `Su <b>${esc(nomeBreve(m.nome))}</b> ${r.critiche.length === 1 ? "non va una voce di sicurezza" : "non vanno " + r.critiche.length + " voci di sicurezza"}:
          <b>${esc(quali)}</b>.<br>
          Finché non è sistemata, questa macchina non dovrebbe lavorare. La segno <b>ferma</b>?`, "Ferma il mezzo", true);
-      if (ok) await db.aggiorna("mezzi", m.id, { stato: "fermo" });
+      if (ok) {
+        const w = await salva(() => db.aggiorna("mezzi", m.id, { stato: "fermo" }),
+          "il fermo di " + nomeBreve(m.nome));
+        // Il giro è già salvato: quello che può mancare è SOLO il fermo, e
+        // dirlo è più importante che confermare il resto — una macchina che
+        // qualcuno crede ferma e che risulta operativa è il caso peggiore.
+        if (!w.ok) { chiudiGiro(); await refresh(); toast(w.breve, "err"); return; }
+      }
     } else if (r.no) {
       await proponiVerifica(m, r.no === 1 ? "c'è una voce da sistemare, nessuna di sicurezza."
                                           : "ci sono " + r.no + " voci da sistemare, nessuna di sicurezza.");
@@ -3482,7 +3547,8 @@
      peggio; la riga sotto il modulo le tiene tutte, per chi vuole vederle. */
   const guaErrore = (primo, tutti) => {
     const b = $("gua-esito");
-    if (b) { b.textContent = tutti || primo; b.className = "note esito err"; }
+    if (b) { b.textContent = tutti || primo; b.className = "note esito err";
+             b.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
     toast(primo, "err");
   };
   function apriGuasto(mezzoId) {
@@ -3518,8 +3584,12 @@
       guasto.gravita = b.getAttribute("data-gua-gr");
     });
   }
+  // finché la scrittura è per aria il secondo tocco non fa un secondo guasto:
+  // otto secondi di attesa sono lunghi e il bottone della modale non si spegne
+  // da solo.
+  let guastoInCorso = false;
   async function inviaGuasto() {
-    if (!guasto) return;
+    if (!guasto || guastoInCorso) return;
     const m = MEZ.find(x => x.id === guasto.mezzoId);
     if (!m) { guaErrore("Questa macchina non è più nel parco: annulla e riapri la segnalazione dalla riga del mezzo."); return; }
     const dati = { mezzo: nomeBreve(m.nome), descrizione: $("gua-desc").value,
@@ -3536,7 +3606,20 @@
     }
     ricordaChi(v.segnalatoDa);
     const nuova = manutenzioneDaGuasto(dati);
-    await db.aggiungi("manutenzioni", nuova);
+    /* Come il giro macchina, e per la stessa ragione: un guasto si segnala
+       dove è successo, cioè dove la rete non c'è. La finestra NON si chiude
+       finché il server non ha risposto: chiuderla di corsa vorrebbe dire far
+       credere segnalato un guasto che non è mai arrivato. */
+    guastoInCorso = true;
+    const scritto = await salva(() => db.aggiungi("manutenzioni", nuova),
+      "la segnalazione del guasto su " + nomeBreve(m.nome),
+      (poi) => {
+        if (!poi.ok) { guaErrore(poi.breve, poi.messaggio); return; }
+        guasto = null; chiudiModale(); refresh();
+        toast("Adesso il guasto su " + nomeBreve(m.nome) + " è segnalato: era rimasto in attesa della linea.", "success");
+      });
+    guastoInCorso = false;
+    if (!scritto.ok) { guaErrore(scritto.breve, scritto.messaggio); return; }
     const g = gravitaGuasto(dati.gravita);
     guasto = null;
     chiudiModale();
@@ -3709,8 +3792,10 @@
     const altre = ra.ok ? ra.valore : 0;
     const note = $("odl-note").value.trim();
     if (altre === o.altreSpese && note === o.noteLavoro) return true;   // niente da salvare
-    await salvaOrdine(n, { altreSpese: altre, noteLavoro: note });
-    return true;
+    // se la scrittura non arriva NON si prosegue: chiudere l'ordine su spese
+    // che non sono state salvate scriverebbe nello storico un costo diverso
+    // da quello che si legge a schermo.
+    return await salvaOrdine(n, { altreSpese: altre, noteLavoro: note });
   };
   $("odl-altre").addEventListener("change", salvaCampoOrdine);
   $("odl-note").addEventListener("change", salvaCampoOrdine);

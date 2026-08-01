@@ -2183,6 +2183,118 @@ export function kpiFrom(mezzi, manutenzioni, costi, opts) {
   return { ...base, tagliandi30: t.totale, tagliandi: t };
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// IL SALVATAGGIO CHE NON RIESCE
+// ══════════════════════════════════════════════════════════════════════════
+// Flotta è l'app che si usa DAVANTI ALLA MACCHINA: il giro macchina si fa in
+// piazzale a inizio turno, il guasto si segnala dove è successo. Sono i due
+// posti dove la rete non c'è, e fino a oggi un salvataggio che non riusciva
+// non lo diceva a nessuno.
+//
+// ⛔ E NON BASTA UN `try/catch`, perché il difetto non è un errore: MISURATO il
+// 01/08 col pacchetto `firebase` vero (12.16.0) e la rete chiusa
+// (`disableNetwork`), su quattro chiamate — `addDoc` di un controllo, `addDoc`
+// di una manutenzione, `updateDoc` delle ore, e una lettura:
+//   · le tre SCRITTURE non risolvono e non rifiutano: restano PENDENTI per
+//     sempre (attese 4 secondi ciascuna, nessuna delle tre si è mossa);
+//   · la lettura risponde in 8 ms, dalla cache.
+// Un `catch` attorno a una promessa che non rifiuta non viene mai eseguito: il
+// programma si ferma sull'`await` e la pagina resta lì, senza toast, senza
+// errore, senza chiudere la scheda. Chi ha compilato non sa se ha salvato.
+// La difesa è quindi un'ATTESA MASSIMA, non una cattura.
+//
+// Tre esiti dichiarati, mai un quarto silenzioso:
+//   `fatto`      — il server ha confermato;
+//   `errore`     — il server ha rifiutato (regole, dato malformato…);
+//   `in-sospeso` — nessuna risposta entro l'attesa. NON è «perso» (Firestore
+//                  tiene la scrittura in coda e può ancora arrivare) e NON è
+//                  «salvato»: è l'assenza del dato, e l'assenza di un dato non
+//                  è un dato favorevole. Se poi arriva, `opts.poi` lo dice.
+// ⚠️ E QUANDO SERVIRÀ ALLA SECONDA APP, SI SPOSTA IN `shared/`, NON SI RISCRIVE.
+// Il difetto è di tutte e sei (nessuna app dice niente se una scrittura non
+// riesce: cercato `catch` attorno alle scritture di Campo e Scudo il 01/08 —
+// `db.aggiungi`/`db.aggiorna` compaiono 30 volte in quei due file, nessuna
+// dentro un `try`). Qui sta in Flotta perché è l'app che si usa senza rete e
+// perché la decisione di infrastruttura (la cache persistente nell'SDK) non è
+// ancora presa. La seconda app che ne ha bisogno la porta in
+// `shared/dw-ponti.js` e la ri-esporta col nome di sempre: un alias non è una
+// seconda implementazione.
+export const ATTESA_SCRITTURA = 8000;
+
+// Il testo per chi sta davanti alla macchina. Scritto SENZA participi che
+// concordano col soggetto («salvato»/«salvata»): il prototipo del 01/08
+// produceva «La segnalazione NON risulta salvato» perché la stessa frase serve
+// a un giro (maschile) e a una segnalazione (femminile).
+export function messaggioScrittura(esito, cosa, opts = {}) {
+  const che = cosa || "il dato";
+  if (esito === "fatto") return "";
+  if (esito === "errore") {
+    return "Il server ha rifiutato " + che
+      + (opts.dettaglio ? " (" + opts.dettaglio + ")" : "")
+      + ". Non è stato salvato niente. Quello che hai scritto è ancora qui: riprova fra un momento.";
+  }
+  // `navigator.onLine` a `true` NON vuol dire che c'è internet (una barra di
+  // segnale, un portale captivo): per questo la frase non accusa il server, lo
+  // dichiara e basta.
+  const perche = opts.inRete === false
+    ? "il telefono è senza linea"
+    : opts.inRete === true
+      ? "il telefono risulta connesso, ma il server non ha risposto"
+      : "il server non ha risposto";
+  return "Il server non ha ricevuto " + che + ": " + perche
+    + ". Non è stato salvato niente. Quello che hai scritto è ancora qui: non chiudere la pagina e riprova quando torna la linea.";
+}
+
+/* ⚠️ E LA STESSA FRASE NON VA IN TUTTI E DUE I POSTI. Flotta dice gli errori
+   due volte — la riga sotto il modulo, che resta lì mentre si corregge, e il
+   toast, che si vede subito — ma nel toast «va UNA cosa sola»: è scritto in
+   `guaErrore`, ed è stato violato scrivendoci il messaggio lungo. Lo si è
+   visto solo guardando lo scatto: nove righe di pastiglia semitrasparente
+   sopra la checklist, e nella segnalazione di guasto **sopra il bottone
+   «Segnala»**. Il breve dice la cosa che conta — non è salvato — e perché;
+   il resto sta nella riga, dove si può leggere con calma. */
+export function messaggioScritturaBreve(esito, cosa, opts = {}) {
+  if (esito === "fatto") return "";
+  if (esito === "errore") return "Non è stato salvato niente: il server ha rifiutato.";
+  return "Non è stato salvato niente: " + (opts.inRete === false
+    ? "il telefono è senza linea."
+    : "il server non ha risposto.");
+}
+
+// Esegue una scrittura e RISPONDE SEMPRE, anche quando la scrittura non
+// risponde. `azione` è una funzione (non una promessa già avviata), così anche
+// un lancio sincrono finisce fra gli esiti invece di sfuggire.
+export async function scriviConEsito(azione, opts = {}) {
+  const attesa = Number.isFinite(opts.attesa) ? opts.attesa : ATTESA_SCRITTURA;
+  const cosa = opts.cosa || "";
+  const codice = (e) => (e && (e.code || e.message)) || "";
+  let scaduta = false, orologio = null;
+  const lavoro = Promise.resolve().then(azione);
+  const esito = await Promise.race([
+    lavoro.then(() => ({ esito: "fatto" }), (e) => ({ esito: "errore", dettaglio: codice(e) })),
+    new Promise((r) => { orologio = setTimeout(() => { scaduta = true; r({ esito: "in-sospeso" }); }, attesa); }),
+  ]);
+  if (orologio) clearTimeout(orologio);
+  // La scrittura scaduta continua per conto suo. Due ragioni per restare
+  // agganciati: se ARRIVA, chi chiama lo può dire (e chiudere la scheda, così
+  // nessuno la ricompila una seconda volta); e se rifiuta, il rifiuto va
+  // consumato o resta un `unhandledRejection`.
+  if (scaduta) lavoro.then(
+    () => { if (typeof opts.poi === "function") opts.poi({ ok: true, esito: "fatto", dettaglio: "", messaggio: "", breve: "" }); },
+    (e) => { if (typeof opts.poi === "function") opts.poi({ ok: false, esito: "errore", dettaglio: codice(e),
+                messaggio: messaggioScrittura("errore", cosa, { dettaglio: codice(e), inRete: opts.inRete }),
+                breve: messaggioScritturaBreve("errore", cosa, { inRete: opts.inRete }) }); }
+  );
+  const dove = { dettaglio: esito.dettaglio, inRete: opts.inRete };
+  return {
+    ok: esito.esito === "fatto",
+    esito: esito.esito,
+    dettaglio: esito.dettaglio || "",
+    messaggio: messaggioScrittura(esito.esito, cosa, dove),
+    breve: messaggioScritturaBreve(esito.esito, cosa, dove),
+  };
+}
+
 export async function flottaData() {
   let mode = "demo", api = null;
   try {
