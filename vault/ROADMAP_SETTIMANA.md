@@ -1855,6 +1855,25 @@ campi interi, file delle macchine.
       La data del campione ora è **neutra per costruzione** (nel futuro,
       ricavata da oggi). Spostandola è emerso il caso opposto, guardato prima di
       dichiararlo: l'argomento assente è il **preavviso**, non la data.
+- [x] ✅ **CONTI — LA CHIUSURA DEL MESE: la schermata** *(01/08)* — la
+      collezione `chiusure`, il cartellone del margine (un **trattino** finché
+      il mese non è dichiarato completo, con la ragione che **nomina la voce che
+      manca**), l'elenco delle conferme voce per voce, la finestra che dice cosa
+      resta senza risposta, e la riapertura che tocca solo la dichiarazione.
+      Provata sulla pagina viva: `—` → finestra → **€ 13.421,00** e «mese
+      dichiarato chiuso · Riapri», nessun errore.
+      ⚠️ Stavo per inventare `.dw-check`, una classe che **nessun foglio
+      definisce**: casella disegnata a metà e bersaglio di tocco grande quanto
+      il quadratino. L'idioma c'era già in Conti (la fattura differita): la
+      **riga intera** è un `label.item` con `.dw-chk`, e si accende quando è
+      spuntata. Stessa lezione del `.mrec` usato in Scudo dove non esisteva.
+      ⚠️ **E la dimostrazione non mostra la funzione**: con i costi d'esempio di
+      oggi l'elenco delle conferme resta vuoto, perché i dodici costi sono quasi
+      tutti **uno per mese** e nessuna voce arriva alla soglia di «abituale». È
+      la risposta giusta per quei dati, ma una cava vera ha costi **ricorrenti**
+      — e chi apre la dimostrazione non vede mai la parte che dà valore.
+      Prossimo passo: renderli ricorrenti, **ricalcolando** i numeri che
+      `registro-costi.mjs` asserisce invece di aggiustarli finché torna verde.
       Va detto, per non scambiarlo per una verifica fatta: lanciato, ha girato
       più di un'ora ed è arrivato al **terzo banco su 35**. La causa non è il
       giro — **sono io**: nel frattempo facevo scatti e controprove con altre

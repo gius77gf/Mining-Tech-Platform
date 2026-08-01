@@ -875,6 +875,31 @@ label.item:has(.dw-chk:checked){
   <div id="cos-terra"></div>
   <div id="cos-m3"></div>
 
+  <!-- ══ CHIUSURA DEL MESE ═══════════════════════════════════════════════
+       ⛔ NON è un lucchetto: un costo arrivato dopo si registra lo stesso. La
+       fattura del fornitore che arriva il 12 del mese dopo è la norma, e se
+       l'app la rifiutasse chi la inserisce le metterebbe la data sbagliata —
+       avremmo peggiorato il dato per difendere una regola.
+       E non è una spunta secca: un bottone «chiudi» si preme per far sparire
+       l'avviso. Qui si dichiara voce per voce, e le risposte restano scritte. -->
+  <div class="sec">Chiusura del mese</div>
+  <div class="note">Il margine — quanto resta dopo i costi — <b>non si calcola</b> finché non
+    dici che per quel mese hai finito di inserire. La ragione è che <b>i ricavi sono completi
+    da soli</b> (nascono dalle fatture) mentre <b>i costi ci sono solo se li scrivi tu</b>: il
+    mese in cui manca la busta paga non dà un errore, dà un margine <b>più alto del vero</b>.
+    Chiudere il mese <b>non blocca niente</b>: una fattura che arriva dopo si registra lo
+    stesso, e Conti ti dice che è arrivata dopo.</div>
+  <div class="form" id="cos-chi-form">
+    <div class="fld" id="fld-chi-mese" style="flex:1 1 190px;">
+      <label for="chi-mese">Mese da chiudere</label>
+      <input class="dw-input" id="chi-mese" type="month">
+      <span class="err-msg" id="err-chi-mese"></span>
+    </div>
+  </div>
+  <div id="chi-stato"></div>
+  <div id="chi-conferme"></div>
+  <div class="note esito" id="chi-esito"></div>
+
   <div class="sec">Nuovo costo</div>
   <div class="form" id="cos-form">
     <!-- ⛔ LA VOCE PRENDE TUTTA LA RIGA. In mezza riga (200 px) tre etichette
@@ -1277,7 +1302,8 @@ label.item:has(.dw-chk:checked){
     numeroDaCampo, AVVISO_DECIMALE,
     CAUSALI_NOTA, causaleNota, stornatoDi, statoFattura, validaNota, notaDaFattura,
     VOCI_COSTO, voceCosto, gruppoDiVoce, riepilogoCosti, costoPerMetroCubo,
-    volumeDaTerra, costiFuoriDaiRilievi } from "./conti-data.js";
+    volumeDaTerra, costiFuoriDaiRilievi,
+    statoMese, vociMancantiNelMese, margineMese } from "./conti-data.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, euro, euro0, conEuro, isoLocale, oggiISO as oggiISOShell, meseLocale } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
@@ -1436,7 +1462,7 @@ label.item:has(.dw-chk:checked){
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
-  let FAT=[], GAR=[], CLI=[], PRO=[], PES=[], INC=[], NOT=[], COS=[], IMP=null;
+  let FAT=[], GAR=[], CLI=[], PRO=[], PES=[], INC=[], NOT=[], COS=[], CHI=[], IMP=null;
   // Rilievi di TERRA, in sola lettura (confronto cavato/venduto). null = non
   // disponibili: «non lo so» e «zero» sono due risposte diverse, e l'app deve
   // saperle distinguere invece di mostrare un cavato di zero che non esiste.
@@ -1573,11 +1599,12 @@ label.item:has(.dw-chk:checked){
   }
   async function refresh(){
     let IMPL, FATG;
-    [FATG,GAR,CLI,PRO,PES,INC,NOT,COS,IMPL] = await Promise.all([db.fatture(), db.gare(), db.clienti(),
-      db.prodotti(), db.pesate(), db.incassi(), db.note(), db.costi(), db.impostazioni()]);
+    [FATG,GAR,CLI,PRO,PES,INC,NOT,COS,CHI,IMPL] = await Promise.all([db.fatture(), db.gare(), db.clienti(),
+      db.prodotti(), db.pesate(), db.incassi(), db.note(), db.costi(), db.chiusure(), db.impostazioni()]);
     INC = INC || [];
     NOT = NOT || [];
     COS = COS || [];
+    CHI = CHI || [];
     // ogni fattura porta con sé il suo stato di incasso (incassato, residuo,
     // giorni reali di pagamento). Senza movimenti registrati residuo = importo:
     // tutti i conti restano quelli di prima, al centesimo.
@@ -2309,10 +2336,12 @@ label.item:has(.dw-chk:checked){
       // in corso è la domanda che il titolare fa più spesso
       $("ric-dal").value = a + "-01-01"; $("ric-al").value = a + "-12-31";
       $("cos-dal").value = a + "-01-01"; $("cos-al").value = a + "-12-31";
+      $("chi-mese").value = mesePrecedente();
     }
     renderCanone();
     renderRiconciliazione();
     renderCosti();
+    renderChiusura();
 
     // ══════════════════════════════════════════════════════════════════
     // QUADRO — consegne consegnate ma non ancora fatturate (per cliente)
@@ -2927,6 +2956,104 @@ label.item:has(.dw-chk:checked){
       ? `<div class="note avviso">${plur(fuori.quante, "voce di costo è datata", "voci di costo sono datate")} fuori da questo intervallo (<b>${eur(fuori.importo)}</b>): ${fuori.quante === 1 ? "quella spesa è" : "quelle spese sono"} nel totale, ma il volume che le corrisponde <b>non è stato misurato</b>. Il costo al metro cubo qui sopra esce quindi <b>più alto</b> del vero.</div>`
       : "";
     return `<div class="note">${p.join(" ")}</div>` + avviso;
+  }
+
+  // ── LA CHIUSURA DEL MESE ──────────────────────────────────────────────
+  const MESI_IT = ["gennaio","febbraio","marzo","aprile","maggio","giugno",
+    "luglio","agosto","settembre","ottobre","novembre","dicembre"];
+  const meseParlante = (m) => { const p = String(m || "").split("-");
+    return p.length === 2 && MESI_IT[+p[1] - 1] ? MESI_IT[+p[1] - 1] + " " + p[0] : (m || "—"); };
+  /* Di serie si propone il mese SCORSO, non quello in corso: è quello che si
+     chiude davvero, perché il mese in corso non è finito e chiuderlo sarebbe
+     dichiarare completa una cosa che sta ancora succedendo. */
+  const mesePrecedente = () => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1);
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); };
+
+  function renderChiusura() {
+    const mese = $("chi-mese").value || mesePrecedente();
+    const st = statoMese(COS, CHI, mese);
+    const m = margineMese(FAT, NOT, COS, CHI, mese);
+    const man = vociMancantiNelMese(COS, mese);
+    const parlante = meseParlante(mese);
+
+    /* Il cartellone del margine: la cifra grossa c'è SOLO se è vera. Prima
+       della chiusura resta un trattino con la ragione, che nomina la voce
+       mancante invece di dire genericamente «mese aperto». */
+    $("chi-stato").innerHTML = `<div class="cassa${m.calcolabile ? "" : " vuota"}">
+      <span class="cassa-ico">${IC.euro}</span>
+      <div><div class="cassa-num">${m.calcolabile ? eur(m.margine) : "—"}</div>
+      <div class="cassa-lab">Margine di ${esc(parlante)}</div></div>
+      <div class="cassa-txt" style="margin-left:auto;text-align:right;">
+      ${m.calcolabile
+        ? "ricavi <b>" + eur(m.ricavi) + "</b><br>costi <b>" + eur(m.costi) + "</b>"
+          + (m.marginePct != null ? "<br>" + perc(Math.round(m.marginePct)) + " sui ricavi" : "")
+        : "costi inseriti<br><b>" + eur(m.costi) + "</b>"}</div></div>`
+      + (m.calcolabile
+        ? `<div class="note">Ricavi <b>per competenza</b>: le fatture <b>emesse</b> in ${esc(parlante)} (${eur(m.ricaviLordi)} di imponibile)${m.storni > 0 ? `, meno <b>${eur(m.storni)}</b> di note di credito` : ""}. Non sono gli <b>incassi</b>: quelli arrivano dopo, e mescolarli darebbe due margini diversi per lo stesso mese.</div>`
+        : `<div class="note">${esc(m.motivo)}</div>`)
+      + (m.motivo && m.calcolabile ? `<div class="note avviso">${esc(m.motivo)}</div>` : "")
+      + (st.stato === "chiuso-con-arrivi"
+        ? `<div class="note avviso">Dopo la chiusura del ${fmtD(st.chiusura.chiusoIl)} ${plur(st.arrivi, "è arrivata una voce", "sono arrivate voci")} per <b>${eur(st.importoArrivi)}</b>: ${st.arrivi === 1 ? "è" : "sono"} nel margine qui sopra, che quindi <b>non è più</b> quello dichiarato quel giorno. È giusto così — una fattura che arriva dopo va registrata — ma chi ha già letto il numero di allora deve saperlo.</div>`
+        : "");
+
+    // ── le conferme: una riga per ogni voce abituale che qui non c'è ──────
+    if (st.stato !== "aperto") {
+      const dich = new Set((st.chiusura && st.chiusura.vociAssenti) || []);
+      $("chi-conferme").innerHTML = `<div class="item st-ok">
+        <span class="avatar">${IC.spunta}</span>
+        <div class="info"><div class="name">Mese dichiarato chiuso</div>
+        <div class="meta">il ${fmtD(st.chiusura.chiusoIl)}${dich.size ? " · " + plur(dich.size, "voce dichiarata assente", "voci dichiarate assenti") : ""}</div></div>
+        <div class="acts"><button class="dw-btn secondary mini" id="btn-chi-riapri">Riapri</button></div></div>`;
+      $("btn-chi-riapri").onclick = async () => {
+        const ok = await chiedi("Riapri il mese",
+          `<p>Stai per togliere la dichiarazione di chiusura di <b>${esc(parlante)}</b>.</p>
+           <p style="margin-top:10px;">Il margine tornerà a non calcolarsi, finché non lo dichiari di nuovo completo.
+             <b>Nessun costo viene toccato</b>: si toglie solo la dichiarazione.</p>`, "Riapri");
+        if (ok) { await db.rimuovi("chiusure", st.chiusura.id);
+          esito("chi-esito", "Mese " + parlante + " riaperto.", "success"); await refresh(); }
+      };
+      return;
+    }
+    if (!man.misurabile && !m.costi) {
+      $("chi-conferme").innerHTML = vuoto("euro", "Nessun costo in " + parlante,
+        "Registra i costi del mese qui sotto: quando ci sono, puoi dichiarare il mese completo e leggere il margine.");
+      return;
+    }
+    /* ⛔ Una casella per ogni voce ABITUALE che manca. Non un elenco di voci
+       obbligatorie — non esiste — ma quelle che in questa cava compaiono negli
+       altri mesi: spuntarle vuol dire «questo mese non c'è, ed è giusto», ed è
+       una RISPOSTA, che è la differenza fra una chiusura e una spunta. */
+    $("chi-conferme").innerHTML = (man.mancanti.length
+      ? `<div class="note">Rispetto agli altri mesi, in ${esc(parlante)} ${plur(man.mancanti.length, "manca una voce", "mancano voci")}. Spunta quelle che <b>non ci sono davvero</b>; le altre inseriscile prima di chiudere.</div>`
+        /* ⚠️ La riga INTERA è la casella, come nella fattura differita: è
+           l'idioma che Conti ha già (`label.item` + `.dw-chk`, con la riga che
+           si accende quando è spuntata). Avevo inventato una classe
+           `.dw-check` che nessun foglio definiva — cioè una casella che si
+           vedeva a metà e un bersaglio di tocco piccolo come il quadratino. */
+        + man.mancanti.map(v => `<label class="item tap st-warn">
+          <input type="checkbox" class="dw-chk chi-assente" value="${esc(v.chiave)}"
+                 aria-label="In ${esc(parlante)} non c'è nessuna spesa di ${esc(v.etichetta.toLowerCase())}">
+          <div class="info"><div class="name">${esc(v.etichetta)}</div>
+          <div class="meta">c'è in ${v.suQuanti} ${v.suQuanti === 1 ? "mese" : "mesi"} su ${v.mesi}, in ${esc(parlante)} no — spunta se questo mese non c'è davvero</div></div></label>`).join("")
+      : `<div class="note">Tutte le voci che questa cava usa di solito ci sono anche in ${esc(parlante)}: niente da confermare.</div>`)
+      + `<div class="tools"><button class="dw-btn" id="btn-chi-chiudi">Dichiara ${esc(parlante)} completo</button></div>`;
+    $("btn-chi-chiudi").onclick = async () => {
+      const spuntate = [...document.querySelectorAll(".chi-assente:checked")].map(x => x.value);
+      const senzaRisposta = man.mancanti.filter(v => !spuntate.includes(v.chiave));
+      const ok = await chiedi("Dichiara il mese completo",
+        `<p>Stai dichiarando che per <b>${esc(parlante)}</b> hai finito di inserire i costi.</p>
+         <div class="mrec"><span class="k">Costi registrati</span><span class="v accent">${eur(m.costi)}</span></div>
+         ${spuntate.length ? `<div class="mrec"><span class="k">Dichiarate assenti</span><span class="v">${spuntate.map(k => esc(voceCosto(k) ? voceCosto(k).etichetta : k)).join(", ")}</span></div>` : ""}
+         <p style="margin-top:10px;">${senzaRisposta.length
+           ? `⚠️ ${plur(senzaRisposta.length, "voce resta", "voci restano")} senza risposta (<b>${senzaRisposta.map(v => esc(v.etichetta)).join(", ")}</b>): il margine si calcolerà lo stesso, ma resterà scritto accanto al numero che ${senzaRisposta.length === 1 ? "quella spesa potrebbe mancare" : "quelle spese potrebbero mancare"}.`
+           : "Tutte le voci abituali hanno una risposta."}</p>
+         <p style="margin-top:10px;"><b>Non blocca niente</b>: un costo che arriva dopo si registra lo stesso, e Conti ti dirà che è arrivato dopo la chiusura.</p>`,
+        "Dichiara completo");
+      if (!ok) return;
+      await db.aggiungi("chiusure", { mese, chiusoIl: oggiISO(), vociAssenti: spuntate, nota: "" });
+      esito("chi-esito", "Mese " + parlante + " dichiarato completo.", "success");
+      await refresh();
+    };
   }
 
   function renderCosti() {
@@ -3799,6 +3926,7 @@ label.item:has(.dw-chk:checked){
     /* cambiando periodo il volume di prima non vale più: si scorda, invece di
        restare lì a far credere che sia quello giusto */
     volDaTerra = null; $("cos-terra").innerHTML = ""; renderCosti(); };
+  $("chi-mese").addEventListener("input", () => { puliscoErr("chi-mese"); $("chi-esito").textContent = ""; renderChiusura(); });
   $("btn-cos-anno").onclick = () => cosAnno(0);
   $("btn-cos-prec").onclick = () => cosAnno(1);
   ["cos-dal", "cos-al", "cos-vol"].forEach(id =>

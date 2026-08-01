@@ -15,7 +15,13 @@
 //                   mezzo (targa), destinatario, fatturaId|null }
 //   incassi/{id}:  { fatturaId, data (ISO: il giorno in cui i soldi sono ARRIVATI),
 //                    importo (€), metodo ("bonifico"|"assegno"|"contanti"|"riba"|"") }
-//   costi/{id}:    { data (ISO), voce (chiave di VOCI_COSTO), importo (€), nota }
+//   costi/{id}:    { data (ISO), voce (chiave di VOCI_COSTO), importo (€), nota,
+//                    registratoIl? (ISO: il giorno in cui è stato BATTUTO, non
+//                    quello del documento — serve a riconoscere le voci
+//                    arrivate dopo la chiusura del mese) }
+//   chiusure/{id}: { mese ("AAAA-MM"), chiusoIl (ISO), vociAssenti [chiavi],
+//                    nota } — «per questo mese ho finito di inserire». NON è un
+//                    lucchetto: un costo arrivato dopo si registra lo stesso.
 //   impostazioni/{id}: { canoneUnita: "t"|"m3", canoneAliquota (€/unità), canoneNota }
 // LETTURA DAI RILIEVI DI TERRA (sola lettura, ponte cavato↔venduto): i rilievi
 // NON sono di Conti, stanno sotto l'app Terra della STESSA organizzazione
@@ -1517,6 +1523,8 @@ export async function contiData() {
         // e il registro costi: stessa storia, chi non ne ha mai registrato uno
         // legge una lista vuota
         costi: () => read("costi"),
+        // le chiusure di mese: chi non ne ha mai dichiarata una legge vuoto
+        chiusure: () => read("chiusure"),
         impostazioni: () => read("impostazioni"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
         logout: () => id.logout(),
@@ -1552,6 +1560,7 @@ export async function contiData() {
       incassi: async () => mem.incassi || (mem.incassi = []),
       note: async () => mem.note || (mem.note = []),
       costi: async () => mem.costi || (mem.costi = []),
+      chiusure: async () => mem.chiusure || (mem.chiusure = []),
       impostazioni: async () => mem.impostazioni,
       // in dimostrazione i rilievi non arrivano da Terra: sono finti, ma
       // coerenti con le pesate d'esempio (vedi DEMO.rilieviTerra)
