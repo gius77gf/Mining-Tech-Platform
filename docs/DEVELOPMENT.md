@@ -46,13 +46,13 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**1.532 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 01/08: 1166 + 274 + 49 + 26 + 9 + 8):
+**1.581 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 01/08: 1214 + 275 + 49 + 26 + 9 + 8):
 
-E **474 funzioni pure su 474** sono chiamate per nome da quelle prove: tutte e
+E **499 funzioni pure su 499** sono chiamate per nome da quelle prove: tutte e
 sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nessuno ha
 ancora guardato», che è il minimo e finora non c'era.
 
-⚠️ **Quel 474 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
+⚠️ **Quel 499 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
 lo dice («in 6 app»). I condivisi si contano a parte, e sono anche loro al
 100%: `dw-ponti.js` **21/21**, `dw-shell.js` **29/29**, `pointcloud.js`
 **5/5**. Vanno guardati con più attenzione delle app, non con meno: una
@@ -110,7 +110,7 @@ avvio) — servono `firebase-tools` e Java:
 cd apps/deepwork-id && firebase emulators:exec --project demo-deepwork "cd tests && npm test"
 ```
 
-**43 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
+**45 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
 ognuno seguito dalla sua **controprova** (Chromium è già installato in
 `/opt/pw-browsers/chromium`, **non** si lancia `playwright install`):
 

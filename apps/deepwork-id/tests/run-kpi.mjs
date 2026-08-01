@@ -11468,12 +11468,746 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
   });
 }
 
-/* ⛔ SI ASPETTA PRIMA DI CONTARE. Senza questa riga il riepilogo verrebbe
-   stampato mentre le prove asincrone sono ancora in volo, e `process.exit`
-   ucciderebbe il processo prima che finiscano: un rosso diventerebbe verde
-   per una questione di tempi. */
-if (inVolo.length) await Promise.all(inVolo);
+// ── Flotta · il salvataggio che non riesce ────────────────────────────────
+// MISURATO il 01/08 col pacchetto `firebase` vero (12.16.0) e la rete chiusa
+// (`disableNetwork`): su quattro chiamate, le tre SCRITTURE (`addDoc` di un
+// controllo, `addDoc` di una manutenzione, `updateDoc` delle ore) non
+// risolvono e non rifiutano — restano pendenti per sempre; la lettura
+// risponde in 8 ms dalla cache. Quindi il difetto non è un errore da
+// catturare: è una promessa che non torna, e un `try/catch` non la vede.
+// Flotta è l'app che si usa davanti alla macchina, dove la rete non c'è: il
+// giro macchina e la segnalazione di guasto si fermavano sull'`await`, senza
+// toast, senza errore, con la scheda ferma. Queste prove difendono l'unica
+// risposta accettabile: SEMPRE una risposta, e quando non è «salvato» non lo
+// deve sembrare.
+{
+  /* ⚠️ `test` è sincrono: passandogli una funzione `async` il suo `try` non
+     vede niente e l'esito non viene contato. Qui serve l'attesa vera, quindi
+     un aiuto locale che aspetta prima di contare. */
+  const provaSalv = async (nome, fn) => {
+    try { await fn(); passed++; console.log(`  ✓ ${nome}`); }
+    catch (e) { failed++; console.error(`  ✗ ${nome}: ${e.message}`); }
+  };
+  const mai = () => new Promise(() => {});
+  const rompi = (codice) => () => { const e = new Error("x"); e.code = codice; throw e; };
+  let nonGestiti = 0;
+  const spiaRifiuti = (r) => { nonGestiti++; };
+  process.on("unhandledRejection", spiaRifiuti);
 
-console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`
-  + (inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""));
+  await provaSalv("Flotta · scrittura riuscita: nessun messaggio, esito «fatto»", async () => {
+    const r = await flotta.scriviConEsito(async () => 1, { cosa: "il giro macchina", attesa: 60 });
+    ok(r.ok === true && r.esito === "fatto", "esito atteso «fatto», ottenuto «" + r.esito + "»");
+    eq(r.messaggio, "", "una scrittura riuscita non ha niente da dire");
+  });
+
+  await provaSalv("Flotta · scrittura rifiutata: lo dice, col codice del server", async () => {
+    const r = await flotta.scriviConEsito(rompi("permission-denied"), { cosa: "il giro macchina", attesa: 60 });
+    ok(r.ok === false && r.esito === "errore", "esito atteso «errore», ottenuto «" + r.esito + "»");
+    ok(/permission-denied/.test(r.messaggio), "il codice del server sta nel messaggio: " + r.messaggio);
+    ok(/ancora qui/.test(r.messaggio), "e dice che quello che ha scritto non è andato perso: " + r.messaggio);
+  });
+
+  await provaSalv("Flotta · la scrittura MUTA (il caso vero senza rete) risponde lo stesso", async () => {
+    const t0 = Date.now();
+    const r = await flotta.scriviConEsito(mai, { cosa: "il giro macchina", attesa: 80, inRete: false });
+    ok(r.ok === false && r.esito === "in-sospeso", "esito atteso «in-sospeso», ottenuto «" + r.esito + "»");
+    ok(Date.now() - t0 >= 70, "ha aspettato l'attesa dichiarata, non è tornata subito");
+    ok(/non ha ricevuto/.test(r.messaggio) && /senza linea/.test(r.messaggio), "messaggio: " + r.messaggio);
+  });
+
+  await provaSalv("Flotta · ⛔ un salvataggio non riuscito non dice MAI «salvato»", async () => {
+    // il principio del fondatore, nella forma che riguarda questa funzione: la
+    // parola tranquilla dove non è stato misurato niente.
+    for (const [esito, extra] of [["errore", {}], ["errore", { dettaglio: "unavailable" }],
+                                  ["in-sospeso", { inRete: false }],
+                                  ["in-sospeso", { inRete: true }], ["in-sospeso", {}]]) {
+      const m = flotta.messaggioScrittura(esito, "il giro macchina", extra);
+      ok(/non è stato salvato niente/i.test(m), "va detto per esteso che non c'è niente, esito «" + esito + "»: " + m);
+      // e l'UNICA volta che compare la parola «salvato» è dentro quella
+      // negazione: qualunque altra occorrenza sarebbe la parola tranquilla
+      // dove non è stato misurato niente.
+      ok(!/salvat/i.test(m.replace(/non è stato salvato niente/i, "")),
+         "«salvato» compare fuori dalla negazione, esito «" + esito + "»: " + m);
+    }
+  });
+
+  await provaSalv("Flotta · la frase regge anche su un soggetto femminile", async () => {
+    // il prototipo del 01/08 scriveva «La segnalazione NON risulta salvato»:
+    // la stessa frase serve a un giro (maschile) e a una segnalazione
+    // (femminile), quindi non può contenere un participio che concorda.
+    // La prova vera è che la frase sia la STESSA a meno del soggetto: se da
+    // qualche parte restasse un participio che concorda, togliendo i due
+    // soggetti i due testi non coinciderebbero.
+    let confronti = 0;
+    for (const [esito, extra] of [["errore", { dettaglio: "unavailable" }],
+                                  ["in-sospeso", { inRete: false }],
+                                  ["in-sospeso", { inRete: true }], ["in-sospeso", {}]]) {
+      const f = flotta.messaggioScrittura(esito, "la segnalazione del guasto", extra);
+      const m = flotta.messaggioScrittura(esito, "il giro macchina", extra);
+      ok(f.includes("la segnalazione del guasto"), "il soggetto femminile c'è: " + f);
+      ok(m.includes("il giro macchina"), "il soggetto maschile c'è: " + m);
+      eq(f.replace("la segnalazione del guasto", "·"), m.replace("il giro macchina", "·"),
+         "esito «" + esito + "»: tolto il soggetto le due frasi devono coincidere");
+      confronti++;
+    }
+    eq(confronti, 4, "quattro forme del messaggio messe a confronto");
+  });
+
+  await provaSalv("Flotta · tre spiegazioni diverse, e «connesso» non è un'assoluzione", async () => {
+    const senza = flotta.messaggioScrittura("in-sospeso", "il giro", { inRete: false });
+    const con = flotta.messaggioScrittura("in-sospeso", "il giro", { inRete: true });
+    const boh = flotta.messaggioScrittura("in-sospeso", "il giro", {});
+    ok(/senza linea/.test(senza), "senza linea: " + senza);
+    // `navigator.onLine === true` non vuol dire che c'è internet: la frase lo
+    // dichiara («risulta connesso»), non lo dà per buono.
+    ok(/risulta connesso/.test(con) && /non ha risposto/.test(con), "connesso ma muto: " + con);
+    ok(!/senza linea/.test(boh) && !/risulta connesso/.test(boh), "non sapendolo, non se lo inventa: " + boh);
+    ok(new Set([senza, con, boh]).size === 3, "tre casi, tre frasi diverse");
+  });
+
+  await provaSalv("Flotta · la scrittura che arriva DOPO la scadenza viene detta", async () => {
+    let poi = null, sblocca;
+    const lenta = new Promise((r) => { sblocca = r; });
+    const r = await flotta.scriviConEsito(() => lenta, { cosa: "il giro", attesa: 40, poi: (x) => { poi = x; } });
+    ok(r.esito === "in-sospeso", "prima risposta in-sospeso");
+    ok(poi === null, "e finché non arriva non si dice niente");
+    sblocca(1);
+    await new Promise((r2) => setTimeout(r2, 30));
+    ok(poi && poi.ok === true && poi.esito === "fatto", "arrivata dopo: il richiamo lo dice");
+  });
+
+  await provaSalv("Flotta · il rifiuto tardivo viene detto e non resta non gestito", async () => {
+    const prima = nonGestiti;
+    let poi = null, spacca;
+    const rotta = new Promise((_, rj) => { spacca = rj; });
+    const r = await flotta.scriviConEsito(() => rotta, { cosa: "il giro", attesa: 40, poi: (x) => { poi = x; } });
+    ok(r.esito === "in-sospeso", "prima risposta in-sospeso");
+    const e = new Error("boom"); e.code = "unavailable"; spacca(e);
+    await new Promise((r2) => setTimeout(r2, 30));
+    ok(poi && poi.ok === false && /unavailable/.test(poi.messaggio), "il rifiuto tardivo ha una frase: " + (poi && poi.messaggio));
+    eq(nonGestiti - prima, 0, "e nessun rifiuto è rimasto non gestito");
+  });
+
+  await provaSalv("Flotta · un lancio sincrono finisce fra gli esiti, non sfugge", async () => {
+    const r = await flotta.scriviConEsito(() => { throw new Error("sincrono"); }, { cosa: "il giro", attesa: 60 });
+    ok(r.ok === false && r.esito === "errore", "esito «errore», ottenuto «" + r.esito + "»");
+    ok(/sincrono/.test(r.messaggio), "col motivo dentro: " + r.messaggio);
+  });
+
+  await provaSalv("Flotta · nel toast va UNA cosa sola, e la cosa è «non è salvato»", async () => {
+    /* Visto sullo SCATTO, non leggendo il codice: col messaggio lungo dentro
+       il toast, la pastiglia semitrasparente diventava di nove righe sopra la
+       checklist, e nella segnalazione di guasto copriva il bottone «Segnala».
+       La regola era già scritta in `guaErrore` dentro Flotta. */
+    let visti = 0;
+    for (const [esito, extra] of [["errore", { dettaglio: "permission-denied" }],
+                                  ["in-sospeso", { inRete: false }],
+                                  ["in-sospeso", { inRete: true }], ["in-sospeso", {}]]) {
+      const b = flotta.messaggioScritturaBreve(esito, "il giro macchina di Escavatore E1", extra);
+      const lungo = flotta.messaggioScrittura(esito, "il giro macchina di Escavatore E1", extra);
+      ok(b.length <= 70, `il breve sta in una riga di pastiglia (${b.length} caratteri): ${b}`);
+      ok(b.length < lungo.length / 2, "e resta molto più corto della riga sotto il modulo");
+      ok(/^Non è stato salvato niente/.test(b), "comincia dalla cosa che conta: " + b);
+      visti++;
+    }
+    eq(visti, 4, "quattro forme del breve guardate");
+    eq(flotta.messaggioScritturaBreve("fatto", "il giro"), "", "e una scrittura riuscita non fa toast d'errore");
+    // il breve NON nomina la macchina: il nome sta nella riga lunga, dove c'è
+    // spazio, e nella pastiglia mangerebbe la metà utile
+    ok(!/Escavatore/.test(flotta.messaggioScritturaBreve("errore", "il giro macchina di Escavatore E1", {})),
+       "il breve non si porta dietro il nome della macchina");
+  });
+
+  await provaSalv("Flotta · scriviConEsito restituisce tutti e due i testi", async () => {
+    const r = await flotta.scriviConEsito(rompi("unavailable"), { cosa: "il giro macchina", attesa: 60 });
+    ok(typeof r.breve === "string" && r.breve.length > 0, "c'è il breve per il toast: " + r.breve);
+    ok(r.messaggio.length > r.breve.length, "e il lungo per la riga sotto il modulo");
+    ok(/unavailable/.test(r.messaggio) && !/unavailable/.test(r.breve),
+       "il codice del server sta nel lungo, non nella pastiglia");
+  });
+
+  await provaSalv("Flotta · l'attesa predefinita è dichiarata e ragionevole", async () => {
+    ok(Number.isFinite(flotta.ATTESA_SCRITTURA) && flotta.ATTESA_SCRITTURA >= 3000 && flotta.ATTESA_SCRITTURA <= 20000,
+       "un'attesa in secondi, non infinita né istantanea: " + flotta.ATTESA_SCRITTURA);
+    // e senza `attesa` fra le opzioni si usa quella: una scrittura riuscita
+    // torna subito, quindi la prova resta veloce
+    const r = await flotta.scriviConEsito(async () => 1, { cosa: "il giro" });
+    ok(r.ok, "il valore predefinito non rompe il caso buono");
+  });
+
+  process.off("unhandledRejection", spiaRifiuti);
+}
+
+// ── Campo · ponte anomalia → azione ────────────────────────────────────
+/* PONTE P4 · «avete registrato il problema, e poi?». Al fronte si registra
+   causale e minuti di fermo, e lì la riga moriva: nessun responsabile,
+   nessuna data, nessuna chiusura. La macchina che dà seguito a un fatto è
+   già in Scudo (azioni correttive), e qui si aggiunge solo la provenienza
+   `origineTipo: "fermo"` — il gemello di quella che Sentinella usa per i
+   superamenti. Queste prove difendono le tre cose che si possono sbagliare
+   in silenzio: che un fermo senza risposta risulti «a posto», che «non lo
+   so» diventi «non c'è», e che un tempo non misurato diventi zero. */
+{
+  const FERMI = [
+    { id: "f1", data: "2026-07-30", turno: "Mattina", titolo: "Frantoio primario",
+      dettaglio: "tramoggia intasata", squadra: "Squadra C — Impianto",
+      stato: "anomalia", causale: "Intasamento impianto", fermoMin: 55 },
+    { id: "f2", data: "2026-08-01", turno: "Notte", titolo: "Pala gommata",
+      stato: "anomalia", causale: "Guasto meccanico" },                    // senza minuti
+    { id: "f3", data: "", turno: "Mattina", titolo: "Nastro trasportatore",
+      stato: "anomalia", causale: "", fermoMin: 20 },                      // senza data né causale
+    { id: "f4", data: "2026-08-01", turno: "Mattina", titolo: "Perforazione fronte Est",
+      stato: "in-corso" },                                                 // non è un fermo
+  ];
+  const azioneSu = (id, stato) => ({ id: "az-" + id, descrizione: "x", stato: stato || "aperta",
+    scadenza: "2026-08-31", origineTipo: "fermo", origineApp: "campo", origineId: id });
+
+  test("Campo: i fermi che chiedono una risposta sono le attività ANCORA in anomalia", () => {
+    const f = campo.anomalieAperte(FERMI);
+    eq(f.map(x => x.id), ["f3", "f2", "f1"],
+       "tre fermi: il senza data in cima, poi dal più recente; l'attività in corso resta fuori");
+    eq(f.map(x => x.voce), ["senza-data", "2026-08-01", "2026-07-30"], "la voce dice a che giorno appartiene il fatto");
+    eq(campo.anomalieAperte([]).length, 0, "nessuna attività, nessun fermo");
+  });
+
+  test("⛔ Campo: un fermo senza minuti NON vale zero minuti", () => {
+    const f = campo.anomalieAperte(FERMI);
+    const senza = f.find(x => x.id === "f2"), con = f.find(x => x.id === "f1");
+    /* `+null` fa 0 e `Number.isFinite(0)` risponde true: senza la guardia
+       PRIMA della conversione, «nessuno ha misurato» diventerebbe «zero minuti
+       persi», cioè un turno che si è fermato senza perdere tempo. */
+    ok(senza.minuti === null, "il fermo senza minuti risponde null, non 0");
+    eq(senza.minutiTesto, "senza minuti", "e a parole lo dice");
+    eq(con.minutiTesto, "55 min", "mentre quello misurato scrive la misura");
+    // lo zero SCRITTO conta come non misurato: in cava un fermo di zero minuti
+    // non è un fermo, ed è la stessa convenzione del campo nella pagina
+    ok(campo.anomalieAperte([{ id: "z", stato: "anomalia", titolo: "T", fermoMin: 0 }])[0].minuti === null,
+       "e nemmeno uno zero scritto a mano diventa una misura");
+  });
+
+  test("Campo: una causale fuori dall'elenco standard non si traduce in «Altro»", () => {
+    const f = campo.anomalieAperte(FERMI);
+    eq(f.find(x => x.id === "f3").causale, "", "la casella non compilata resta vuota");
+    eq(f.find(x => x.id === "f1").causale, "Intasamento impianto", "quella scelta resta quella scelta");
+    /* «Altro» è una SCELTA che qualcuno ha fatto; il vuoto è una casella che
+       nessuno ha toccato. `riepilogoFermi` li accorpa perché deve fare un
+       Pareto, qui si distinguono perché la bozza li scrive in modo diverso. */
+    eq(campo.riepilogoFermi([FERMI[2]]).map(x => x.causale), ["Altro"],
+       "il Pareto invece li accorpa, ed è giusto: lì serve una categoria");
+  });
+
+  test("⛔ Campo: un fermo senza azione collegata è SCOPERTO, non «a posto»", () => {
+    const c = campo.coperturaFermi(FERMI, []);
+    contiene(c, { totale: 3, conAzione: 0, scoperti: 3, daChiudere: 0, leggibile: true },
+             "nessuna azione registrata: tutti e tre scoperti");
+    eq(c.senzaMinuti, 1, "e uno di loro è anche senza minuti");
+    eq(c.senzaCausale, 1, "e uno senza causale");
+    const c2 = campo.coperturaFermi(FERMI, [azioneSu("f1")]);
+    contiene(c2, { conAzione: 1, scoperti: 2, daChiudere: 1 }, "con un'azione su f1: uno coperto, due scoperti");
+    const c3 = campo.coperturaFermi(FERMI, [azioneSu("f1", "chiusa")]);
+    eq(c3.daChiudere, 0, "chiusa l'azione, non resta niente da chiudere");
+    eq(c3.conAzione, 1, "ma il fermo resta uno di quelli che una risposta l'hanno avuta");
+  });
+
+  test("⛔ Campo: se Scudo non si legge, «non lo so» NON diventa «non c'è»", () => {
+    const c = campo.coperturaFermi(FERMI, null);
+    /* La bandiera `leggibile` esiste per questo: senza, la riga scriverebbe
+       «0 con un'azione» anche quando nessuno ha potuto chiedere. */
+    ok(c.leggibile === false, "la bandiera dichiara che non si è potuto guardare");
+    ok(c.conAzione === null, "quanti hanno un'azione: non si sa");
+    ok(c.scoperti === null, "e nemmeno quanti sono scoperti");
+    ok(c.daChiudere === null, "né quante restino da chiudere");
+    eq(c.totale, 3, "il conto dei fermi però lo sa lo stesso: è roba di Campo");
+    ok(c.motivo.length > 40, "e il perché è scritto per chi legge");
+    const v = campo.fermiEAzioni(FERMI, null);
+    ok(v.every(x => x.azioni === null && x.risposta === null),
+       "anche riga per riga: nessuna lista vuota che si leggerebbe «nessuna azione»");
+  });
+
+  test("Campo: il semaforo della risposta — «nessuna» è ROSSA", () => {
+    contiene(campo.statoRisposta([]), { n: 0, cls: "danger", label: "Nessuna azione" },
+             "l'assenza di una risposta non è una risposta buona");
+    contiene(campo.statoRisposta([{ stato: "chiusa" }]), { cls: "ok", label: "Azione chiusa" }, "una chiusa");
+    contiene(campo.statoRisposta([{ stato: "chiusa" }, { stato: "chiusa" }]),
+             { cls: "ok", label: "2 azioni chiuse" }, "due chiuse");
+    contiene(campo.statoRisposta([{ stato: "in-corso" }]), { cls: "warn", label: "Azione in corso" }, "una in corso");
+    contiene(campo.statoRisposta([{ stato: "chiusa" }, { stato: "aperta" }]),
+             { cls: "warn", daChiudere: 1, label: "1 azione da chiudere" }, "una chiusa e una aperta");
+  });
+
+  test("Campo: azioniDelFermo non confonde due fermi, e guarda solo le azioni nate da un fermo", () => {
+    const azi = [azioneSu("f1"), azioneSu("f2"), { id: "x", origineTipo: "evento", origineId: "f1" }];
+    eq(campo.azioniDelFermo(azi, "f1").map(a => a.id), ["az-f1"],
+       "l'azione nata da un infortunio con lo stesso id NON è di questo fermo");
+    eq(campo.azioniDelFermo(azi, "f9").length, 0, "un fermo senza azioni ne ha zero");
+    eq(campo.azioniDelFermo(azi, "").length, 0, "e senza id non si indovina niente");
+  });
+
+  test("Campo: la bozza dell'azione porta a Scudo la fotografia del fermo", () => {
+    const f = campo.anomalieAperte(FERMI).find(x => x.id === "f1");
+    const b = campo.bozzaAzioneFermo(f, { scadenza: "2026-08-31", fmtData: (d) => d.slice(8, 10) + "/" + d.slice(5, 7) });
+    contiene(b, { origineTipo: "fermo", origineApp: "campo", origineId: "f1", origineVoce: "2026-07-30",
+                  origineData: "2026-07-30", stato: "aperta", esito: "", dataChiusura: null,
+                  scadenza: "2026-08-31", responsabileId: null },
+             "l'azione nasce aperta e dichiara da dove viene");
+    /* Scudo non legge le collezioni di Campo: se l'azione non si portasse
+       dietro il TESTO del fatto, l'RSPP leggerebbe «origine: fermo f1». */
+    ok(b.origineNota.includes("Frantoio primario") && b.origineNota.includes("Intasamento impianto")
+       && b.origineNota.includes("55 min") && b.origineNota.includes("Squadra C"),
+       "la nota racconta il fermo in italiano: " + b.origineNota);
+    ok(b.origineNota.includes("30/07"), "e la data passa dal formattatore che le si dà");
+    ok(campo.bozzaAzioneFermo(null) === null, "senza fermo non si inventa nessuna bozza");
+  });
+
+  test("⛔ Campo: quello che MANCA sul fermo è dichiarato nell'azione, non taciuto", () => {
+    const f = campo.anomalieAperte(FERMI);
+    const senzaMin = campo.bozzaAzioneFermo(f.find(x => x.id === "f2"));
+    const senzaCau = campo.bozzaAzioneFermo(f.find(x => x.id === "f3"));
+    /* È il testo che finisce davanti a un ispettore: una casella vuota taciuta
+       lì diventa un fatto che nessuno rimette più a posto. */
+    ok(senzaMin.origineNota.includes("tempo perso: senza minuti"),
+       "il fermo non misurato lo dice: " + senzaMin.origineNota);
+    ok(!/tempo perso: 0/.test(senzaMin.origineNota), "e non scrive zero al posto del non misurato");
+    ok(senzaCau.origineNota.includes("causale: non indicata"),
+       "la causale mancante lo dice: " + senzaCau.origineNota);
+    eq(senzaCau.origineData, "", "e un fermo senza data non se ne inventa una");
+    eq(senzaCau.origineVoce, "senza-data", "la voce usa la convenzione che l'ecosistema ha già");
+  });
+
+  test("⛔ Campo: rimettere in marcia il frantoio non chiude l'azione correttiva", () => {
+    /* Il caso che il prototipo ha fatto venire fuori: quando l'attività torna
+       «in corso» esce da `anomalieAperte`, e con lei sparirebbe dalla vista
+       l'azione ancora aperta — che quindi non chiuderebbe più nessuno. */
+    const ripartito = FERMI.map(a => a.id === "f1" ? { ...a, stato: "in-corso" } : a);
+    ok(campo.anomalieAperte(ripartito).every(x => x.id !== "f1"), "f1 non è più un fermo aperto");
+    const aperta = campo.fermiEAzioni(ripartito, [azioneSu("f1")]);
+    const riga = aperta.find(x => x.id === "f1");
+    ok(riga && riga.chiuso === true, "ma con l'azione ancora da chiudere la riga resta, marcata come ripartita");
+    eq(aperta[aperta.length - 1].id, "f1", "e sta in fondo, dopo i fermi ancora in corso");
+    ok(campo.fermiEAzioni(ripartito, [azioneSu("f1", "chiusa")]).every(x => x.id !== "f1"),
+       "chiusa l'azione, la riga esce di scena");
+    ok(campo.fermiEAzioni(ripartito, []).every(x => x.id !== "f1"),
+       "e un fermo ripartito senza nessuna azione non torna a chiedere niente");
+  });
+
+  test("Campo: prima i fermi SCOPERTI, poi quelli che una risposta l'hanno già avuta", () => {
+    const v = campo.fermiEAzioni(FERMI, [azioneSu("f3")]);
+    eq(v.map(x => x.id), ["f2", "f1", "f3"], "f3 ha un'azione e scende in fondo");
+    contiene(v[0].risposta, { n: 0, cls: "danger" }, "chi non ha nessuna azione resta in cima, e in rosso");
+    /* ⚠️ ambra, non verde: l'azione c'è ma è ancora da chiudere. Il verde è
+       riservato a chi la causa l'ha davvero tolta. */
+    contiene(v[2].risposta, { cls: "warn", daChiudere: 1 }, "un'azione aperta non è «tutto a posto»");
+  });
+
+  test("Campo: `dataPiuGiorni` è l'ALIAS di shared/, non una seconda implementazione", () => {
+    /* Il test pretende l'IDENTITÀ, non il comportamento: due copie uguali oggi
+       divergono domani senza che nessuno lo veda (CLAUDE.md). */
+    ok(campo.dataPiuGiorni === shell.dataPiuGiorni, "stessa funzione dello shell");
+    ok(campo.dataPiuGiorni === scudo.dataPiuGiorni && campo.dataPiuGiorni === sentinella.dataPiuGiorni,
+       "e la stessa che hanno già Scudo e Sentinella");
+    eq(campo.dataPiuGiorni(30, new Date(2026, 6, 30)), "2026-08-29", "trenta giorni avanti dal 30/07");
+  });
+
+  test("Campo: la provenienza «fermo» è dichiarata una volta sola e finisce nell'azione", () => {
+    eq(campo.ORIGINE_FERMO, "fermo", "la parola con cui Scudo riconoscerà queste azioni");
+    const f = campo.anomalieAperte(FERMI)[0];
+    eq(campo.bozzaAzioneFermo(f).origineTipo, campo.ORIGINE_FERMO, "la bozza usa quella, non una copia scritta a mano");
+    /* ⛔ e NON è una delle cinque che Scudo già conosce: se lo fosse, un fermo
+       finirebbe raccontato come un infortunio o una non conformità. */
+    ok(!["evento", "ispezione", "nc", "superamento", "reclamo"].includes(campo.ORIGINE_FERMO),
+       "provenienza nuova, non riciclata da un'altra");
+    ok(!scudo.daAmbiente({ origineTipo: campo.ORIGINE_FERMO }),
+       "e Scudo non la scambia per un fatto ambientale di Sentinella");
+  });
+
+  test("⛔ Campo→Scudo: le due sponde del ponte chiamano il fermo con la STESSA parola", () => {
+    /* Scudo non può importare il modulo di Campo (l'isolamento dello SDK è per
+       organizzazione E per app), quindi la parola è scritta in tutt'e due i
+       moduli. È esattamente la coppia che si stacca in silenzio: qui si
+       pretende che coincida, come già si fa per i fronti della dimostrazione. */
+    eq(scudo.ORIGINI_CAMPO, [campo.ORIGINE_FERMO],
+       "se una delle due cambia, l'azione arriva a Scudo e non viene riconosciuta");
+    ok(scudo.daCampo(campo.bozzaAzioneFermo(campo.anomalieAperte(FERMI)[0])),
+       "Scudo riconosce come sua un'azione preparata da Campo");
+    ok(!scudo.daCampo({ origineTipo: "nc" }) && !scudo.daCampo({ origineTipo: "evento" })
+       && !scudo.daCampo({}) && !scudo.daCampo(null),
+       "e non si prende quello che non è un fermo");
+    /* ⛔ le due famiglie NON si sovrappongono: un fermo non è un fatto
+       ambientale e un superamento non è un fermo. */
+    ok(!scudo.ORIGINI_CAMPO.some(t => scudo.ORIGINI_AMBIENTE.includes(t)),
+       "provenienze distinte, non due nomi per la stessa cosa");
+    ok(!scudo.daAmbiente(campo.bozzaAzioneFermo(campo.anomalieAperte(FERMI)[0])),
+       "e il riepilogo dell'ambiente non conta i fermi di Campo");
+  });
+}
+
+// ── Conti · abbinamento dei movimenti bancari ──────────────────────────
+// L'estratto conto della banca letto e confrontato con le fatture aperte.
+// È l'unico punto in cui Conti chiedeva di ribattere un dato che esiste già
+// altrove, e la sua assenza degradava tutto il resto: un sollecito con la mora
+// ex D.Lgs 231/2002 mandato su una fattura GIÀ PAGATA non è un dettaglio
+// sbagliato, è una lettera sbagliata a un cliente.
+{
+  const fat = (id, numero, cliente, importo, extra = {}) =>
+    ({ id, numero, cliente, importo, emessa: "2026-01-10", scadenza: "2026-02-10",
+       incassata: false, ...extra });
+  const FB = [
+    fat("b1", "2026/001", "Edilcave Srl", 1000, { clienteId: "k1" }),
+    fat("b2", "2026/002", "Edilcave Srl", 2000, { clienteId: "k1" }),
+    fat("b3", "2026/003", "Edilcave Srl", 3000, { clienteId: "k1" }),
+    fat("b4", "2026/004", "Stradesud", 5000),
+    fat("b5", "2026/005", "Stradesud", 5000),
+    fat("b6", "2026/006", "Cave del Sud", 7000, { incassata: true }),
+  ];
+  const CLB = [{ id: "k1", ragioneSociale: "Edilcave Srl" }];
+  const testa = "Data;Valuta;Descrizione;Importo\n";
+  const uno = (causale, importo, data = "10/03/2026", fatture = FB, incassi = [], clienti = CLB) =>
+    conti.abbinaMovimenti(
+      conti.parseMovimentiCsv(`${testa}${data};${data};${causale};${importo}`),
+      fatture, incassi, clienti).righe[0];
+
+  /* ⛔ MISURATO PRIMA DI IRRIGIDIRE. `numIt` da solo legge giusto 9 di questi
+     15 formati: i sei che restano non chiedono un secondo lettore di numeri,
+     chiedono una pulitura prima. Se un giorno qualcuno "semplificasse"
+     `importoBancario` chiamando `numIt` e basta, questi sei tornerebbero NaN —
+     cioè righe di estratto conto scartate in silenzio. */
+  test("Conti · banca: l'importo letto nei formati che scrivono davvero le banche", () => {
+    const c = conti.importoBancario;
+    eq(c("1.234,56"), 1234.56, "italiano classico, quello dell'home banking");
+    eq(c("-1.234,56"), -1234.56, "addebito col segno davanti");
+    eq(c("1234,56"), 1234.56, "italiano senza migliaia");
+    eq(c("-1234.56"), -1234.56, "inglese: il punto è il decimale");
+    eq(c("1,234.56"), 1234.56, "inglese con le migliaia");
+    eq(c("1 234,56"), 1234.56, "spazio normale come separatore delle migliaia");
+    eq(c("1 234,56"), 1234.56, "spazio unificatore (U+00A0): è quello che scrive Excel");
+    eq(c("1 234,56"), 1234.56, "spazio stretto (U+202F)");
+    eq(c("1'234.56"), 1234.56, "apostrofo delle migliaia (export di area svizzera)");
+    eq(c("1.234,56-"), -1234.56, "segno DOPO il numero: i gestionali di derivazione mainframe scrivono così");
+    eq(c("+1.234,56"), 1234.56, "segno più esplicito");
+    eq(c("1.234,56 EUR"), 1234.56, "con la valuta appiccicata");
+    eq(c("€ 1.234,56"), 1234.56, "col simbolo davanti");
+    eq(c("(1.234,56)"), -1234.56, "parentesi tonde = negativo, stile contabile");
+    eq(c("18300"), 18300, "intero secco");
+    eq(c("0,00"), 0, "uno zero è un numero, non un'assenza");
+    ok(Number.isNaN(c("")), "cella vuota: non è zero");
+    ok(Number.isNaN(c("-")), "il trattino di alcuni export non è un meno");
+    ok(Number.isNaN(c("EUR")), "solo la valuta, senza cifre");
+  });
+
+  /* ⛔ LA FORMA DI UNA DATA NON È LA SUA ESISTENZA — e qui la difesa arriva da
+     `shared/`: `dataISOEsiste`. `Date.parse("2026-02-30")` non fallisce, fa
+     SCORRERE la data al 2 marzo, e un movimento spostato di due giorni falsa i
+     giorni medi di pagamento del cliente senza che nulla si accorga. */
+  test("Conti · banca: la data del movimento, e quella che non esiste viene scartata", () => {
+    const d = conti.isoDaDataItaliana;
+    eq(d("12/07/2026"), "2026-07-12", "GG/MM/AAAA, la forma dell'home banking italiano");
+    eq(d("12-07-2026"), "2026-07-12", "col trattino");
+    eq(d("12.07.2026"), "2026-07-12", "col punto");
+    eq(d("2026-07-12"), "2026-07-12", "già in ISO");
+    eq(d("12/07/2026 10:30"), "2026-07-12", "con l'ora nella stessa cella");
+    eq(d("31/02/2026"), "", "il 31 febbraio non esiste: si scarta, non si fa scorrere");
+    eq(d("2026-02-30"), "", "e nemmeno scritto in ISO: è la trappola di Date.parse");
+    eq(d("2026-13-45"), "", "una data che ha la forma giusta e non è una data");
+    eq(d("12/07/26"), "", "anno a due cifre: si dichiara illeggibile invece di indovinare il secolo");
+    eq(d(""), "", "cella vuota");
+    eq(d("bonifico"), "", "testo qualunque");
+  });
+
+  /* ⛔ NESSUNA RIGA SPARISCE. La riga con la data rotta esce lo stesso, con il
+     motivo scritto: un import muto è il modo migliore per perdere dei soldi
+     senza accorgersene. È la stessa regola per cui `run-demo.mjs` distingue il
+     dato CORROTTO dal dato ASSENTE. */
+  test("Conti · banca: il file letto — una colonna, due colonne, e niente che sparisce", () => {
+    const uno = conti.parseMovimentiCsv(
+      "Data;Data valuta;Descrizione;Importo\n"
+      + "12/07/2026;13/07/2026;BONIFICO DA EDILCAVE SRL FATT 2026/031;18.300,00\n"
+      + '15/07/2026;15/07/2026;"ORD: STRADESUD; DES: SALDO FT 34";9.750,00\n'
+      + "20/07/2026;;COMMISSIONI SU BONIFICO;-2,50\n"
+      + "pippo;;RIGA CON LA DATA ROTTA;123,00\n"
+      + "22/07/2026;;RIGA SENZA IMPORTO;\n");
+    eq(uno.length, 5, "cinque righe di dati: l'intestazione non si conta e nessuna riga sparisce");
+    contiene(uno[0], { data: "2026-07-12", valuta: "2026-07-13", importo: 18300, scarto: "" }, "prima riga");
+    eq(uno[1].descrizione, "ORD: STRADESUD; DES: SALDO FT 34",
+       "il punto e virgola dentro le virgolette non spezza la causale");
+    eq(uno[2].importo, -2.5, "l'uscita resta negativa");
+    contiene(uno[3], { importo: 123, scarto: "data non riconosciuta" }, "la riga rotta esce, col motivo");
+    ok(uno[4].scarto.startsWith("importo non leggibile"), "e anche quella senza importo");
+    eq(uno.map((x) => x.riga), [1, 2, 3, 4, 5], "la numerazione delle righe non salta");
+
+    const due = conti.parseMovimentiCsv(
+      "Data;Valuta;Descrizione;Entrate;Uscite\n"
+      + "12/07/2026;12/07/2026;BONIFICO EDILCAVE;18.300,00;\n"
+      + "13/07/2026;13/07/2026;F24;;2.410,00\n");
+    eq(due.map((x) => x.importo), [18300, -2410],
+       "due colonne dare/avere: l'uscita diventa negativa anche se nel file è scritta senza segno");
+  });
+
+  /* Il numero si cerca DAL VERSO GIUSTO: i numeri delle nostre fatture li
+     conosciamo, quindi si cerca il numero nella causale — non si indovina
+     quali gruppi di cifre della causale siano un numero di fattura. Il verso
+     sbagliato prende per numero il giorno del mese e quello del mandato. */
+  test("Conti · banca: il numero della fattura dentro la causale, e i falsi che deve rifiutare", () => {
+    const n = conti.numeroInCausale;
+    eq(n("2026/031", "BONIFICO DA EDILCAVE SRL FATT 2026/031"), "pieno", "il numero intero");
+    eq(n("2026/031", "PAGAMENTO FATTURA 031/2026"), "pieno", "e rovesciato, come lo scrivono in molti");
+    eq(n("2026/031", "ns fatt 2026 / 031"), "pieno", "con gli spazi attorno alla barra");
+    eq(n("2026/031", "SALDO FT 31"), "progressivo", "solo il progressivo, ma con la parola che dice cos'è");
+    eq(n("2026/031", "SALDO FT. N. 31 DEL 07/06"), "progressivo", "con «n.» in mezzo");
+    eq(n("2026/031", "BONIFICO 31 LUGLIO"), "",
+       "⛔ un «31» nudo NON vale: in una causale il 31 è quasi sempre un giorno");
+    eq(n("2026/031", "PAGAMENTO FATT 310"), "", "310 non è 31");
+    eq(n("2026/031", "PAGAMENTO 2026/0310"), "", "né 2026/0310 è 2026/031");
+    eq(n("2026/031", ""), "", "causale vuota");
+    eq(n("", "FATT 2026/031"), "", "fattura senza numero");
+  });
+
+  test("Conti · banca: il cliente riconosciuto nella causale, senza i falsi da sigla", () => {
+    const c = conti.clienteInCausale;
+    ok(c("Edilcave Srl", "BONIFICO DA EDILCAVE SRL FATT 2026/031"), "nome intero");
+    ok(c("Edilcave Srl", "BONIFICO DA EDILCAVE S.R.L."), "la punteggiatura non conta: è `chiaveNome`");
+    ok(c("Edilcave Srl", "ORD: EDILCAVE - SALDO"), "la banca scrive il nome senza la forma societaria");
+    ok(c("Comune di Modica", "BONIFICO COMUNE DI MODICA MANDATO 4412"), "un ente");
+    ok(!c("Edilcave Srl", "BONIFICO DA EDIL CAVE"), "«Edil Cave» staccato non è «Edilcave»");
+    ok(!c("Srl", "BONIFICO DA PIPPO SRL"),
+       "⛔ una chiave corta non è un indizio: «Srl» comparirebbe in mezza rubrica");
+    ok(!c("", "qualunque cosa"), "cliente senza nome");
+  });
+
+  /* ⛔ DUE COMBINAZIONI CHE TORNANO NON SONO UN ABBINAMENTO, SONO UNA SCELTA. */
+  test("Conti · banca: la combinazione di fatture risponde solo quando è UNA sola", () => {
+    const ap = (v) => v.map((x, i) => ({ id: "x" + i, aperto: x }));
+    eq(conti.combinazioneUnica(ap([1000, 2000, 3000]), 3000).map((x) => x.id), ["x0", "x1"],
+       "1000+2000 è l'unica combinazione da due o più che fa 3000");
+    ok(conti.combinazioneUnica(ap([1000, 2000, 1000, 2000]), 3000) === null,
+       "quattro fatture, due modi di fare 3000: non risponde");
+    ok(conti.combinazioneUnica(ap([1000, 2000]), 9999) === null, "nessuna combinazione");
+    ok(conti.combinazioneUnica(ap([3000]), 3000) === null,
+       "una fattura sola non è una combinazione: quel caso lo tratta l'abbinamento diretto");
+    ok(conti.combinazioneUnica(ap(new Array(11).fill(10)), 20) === null,
+       "oltre il tetto non si cerca: più fatture ci sono, più è probabile che le risposte siano tante");
+    eq(conti.combinazioneUnica(ap([0.1, 0.2, 5]), 0.3).map((x) => x.id), ["x0", "x1"],
+       "i conti si fanno in centesimi interi: 0,1+0,2 in virgola mobile non fa 0,3");
+  });
+
+  test("Conti · banca: CERTO — il numero in causale e l'importo che torna esatto", () => {
+    const r = uno("BONIFICO ORD STRADESUD SALDO FATT 2026/004", "5.000,00");
+    contiene(r, { grado: "certo", verso: "entrata" }, "grado massimo");
+    eq(r.proposta.map((p) => p.fatturaId), ["b4"], "una proposta sola, sulla fattura nominata");
+    eq(r.proposta[0].importo, 5000, "e per tutto il movimento");
+    ok(/2026\/004/.test(r.perche), "il motivo nomina la fattura: la proposta si spiega, non si impone");
+  });
+
+  test("Conti · banca: PROBABILE — l'acconto dichiarato lascia la fattura aperta", () => {
+    const r = uno("FATT 2026/003 ACCONTO", "500,00");
+    contiene(r, { grado: "probabile" }, "acconto: non è certo, ma la fattura è nominata");
+    eq(r.proposta[0].importo, 500, "entra quello che è arrivato, non il totale della fattura");
+    eq(r.proposta[0].aperto, 3000, "e si ricorda quanto restava aperto");
+    ok(/acconto/.test(r.perche) && /2\.500/.test(r.perche),
+       "il motivo dice che resta scoperto: " + r.perche);
+  });
+
+  test("Conti · banca: PROBABILE — nessun numero, ma il cliente e l'importo combaciano", () => {
+    const r = uno("BONIFICO DA EDILCAVE SRL", "3.000,00");
+    contiene(r, { grado: "probabile" }, "cliente + importo esatto: probabile, non certo");
+    eq(r.proposta.map((p) => p.fatturaId), ["b3"], "la sua unica fattura aperta da 3.000");
+  });
+
+  test("Conti · banca: CERTO — il bonifico cumulativo che nomina le sue fatture", () => {
+    const r = uno("PAGAMENTO FATTURE 2026/001 2026/002 2026/003", "6.000,00");
+    contiene(r, { grado: "certo" }, "tre numeri e la somma che torna: non c'è niente da indovinare");
+    eq(r.proposta.map((p) => p.fatturaId), ["b1", "b2", "b3"], "tre proposte, una per fattura");
+    eq(r.proposta.map((p) => p.importo), [1000, 2000, 3000], "ognuna per il suo aperto");
+  });
+
+  test("Conti · banca: PROBABILE — il cumulativo non dichiarato, ma con UNA sola combinazione", () => {
+    const r = uno("BONIFICO DA EDILCAVE SRL", "6.000,00");
+    contiene(r, { grado: "probabile" }, "il cliente c'è e la combinazione è unica");
+    eq(r.proposta.map((p) => p.fatturaId), ["b1", "b2", "b3"], "1000+2000+3000");
+    ok(/combinazione/.test(r.perche), "e il motivo lo dice: " + r.perche);
+  });
+
+  /* ⛔ UN ABBINAMENTO INCERTO NON È UN ABBINAMENTO. Sotto «probabile» la riga
+     NON porta nessuna proposta: porta le alternative, e decide l'utente. Se un
+     giorno qualcuno facesse scendere questa soglia, sarebbero questi tre casi
+     a cadere — e il danno vero è a valle: una fattura marcata incassata senza
+     esserlo esce dal sollecito, e il credito si perde in silenzio. */
+  test("Conti · banca: DEBOLE — quello che è incerto resta da decidere a mano, senza proposta", () => {
+    const due = uno("BONIFICO STRADESUD", "5.000,00");
+    contiene(due, { grado: "debole" }, "due fatture identiche dello stesso cliente");
+    eq(due.proposta.length, 0, "nessuna proposta: sceglierne una a caso sarebbe peggio di non scegliere");
+    eq(due.alternative.map((a) => a.fatturaId), ["b4", "b5"], "ma le alternative ci sono tutte");
+
+    const soloImporto = uno("BONIFICO A NS FAVORE", "1.000,00");
+    contiene(soloImporto, { grado: "debole" }, "solo l'importo torna, la causale non dice niente");
+    eq(soloImporto.proposta.length, 0, "l'importo da solo non basta a proporre");
+    eq(soloImporto.alternative.map((a) => a.fatturaId), ["b1"], "la candidata si mostra lo stesso");
+
+    const troppo = uno("PAGAMENTO FATT 2026/001", "1.500,00");
+    contiene(troppo, { grado: "debole" }, "il numero c'è ma l'importo supera la fattura");
+    eq(troppo.proposta.length, 0, "e allora paga anche dell'altro: lo decide l'utente");
+
+    const sommaNo = uno("FATT 2026/001 E FATT 2026/002", "9.999,00");
+    contiene(sommaNo, { grado: "debole" }, "due numeri in causale ma la somma non torna");
+    eq(sommaNo.alternative.length, 2, "tutt'e due le fatture nominate restano in vista");
+  });
+
+  /* ⛔ IL CASO CHE HA FATTO NASCERE QUESTO CANTIERE, girato dall'altra parte:
+     la causale nomina una fattura GIÀ SALDATA. Prima di questa risposta la riga
+     usciva con «nella causale non si riconosce niente» — che è falso, e manda a
+     cercare dalla parte sbagliata. */
+  test("Conti · banca: la fattura nominata in causale che risulta già saldata viene DETTA", () => {
+    const r = uno("PAGAMENTO FATT 2026/006", "7.000,00");
+    contiene(r, { grado: "nessuno", verso: "entrata" }, "niente da proporre: non è più aperta");
+    eq(r.proposta.length, 0, "e nessuna proposta");
+    ok(/2026\/006/.test(r.perche) && /saldat/.test(r.perche),
+       "il motivo nomina la fattura e dice che è già a posto: " + r.perche);
+    ok(/doppio/.test(r.perche), "e mette in guardia sul pagamento doppio: " + r.perche);
+  });
+
+  /* ⛔ LO STESSO ESTRATTO CONTO CARICATO DUE VOLTE. Si scarica a fine mese e si
+     ricarica il mese dopo: i giorni si sovrappongono quasi sempre. */
+  test("Conti · banca: un movimento già registrato non si ripropone", () => {
+    const inc = [{ id: "z1", fatturaId: "b4", data: "2026-03-10", importo: 5000, metodo: "bonifico" }];
+    const r = uno("SALDO FATT 2026/004", "5.000,00", "10/03/2026", FB, inc);
+    contiene(r, { grado: "nessuno", giaRegistrato: true }, "riconosciuto e messo da parte");
+    ok(/due volte/.test(r.perche), "e detto perché: " + r.perche);
+    /* la stessa fattura, ma un giorno diverso: è un movimento nuovo e va proposto */
+    const altro = uno("SALDO FATT 2026/004", "5.000,00", "11/03/2026", FB, inc);
+    ok(!altro.giaRegistrato, "cambiando giorno non è più lo stesso movimento");
+    eq(conti.movimentoGiaRegistrato({ data: "2026-03-10", importo: 5000 }, "b4", inc), true, "l'impronta è fattura+giorno+importo");
+    eq(conti.movimentoGiaRegistrato({ data: "2026-03-10", importo: 5000 }, "b5", inc), false, "su un'altra fattura no");
+    eq(conti.movimentoGiaRegistrato({ data: "", importo: 5000 }, "b4", inc), false, "senza data non si può dire");
+  });
+
+  /* ⛔ DUE BONIFICI UGUALI SULLA STESSA FATTURA. Ogni riga è giudicata da sola
+     contro l'aperto di partenza — ed è giusto, perché finché non si conferma
+     non è successo niente. Ma uscivano tutt'e due «certo, saldo esatto», e chi
+     conferma in blocco registra il doppio. Trovato in scratchpad prima che
+     entrasse nel modulo. */
+  test("Conti · banca: due movimenti che propongono la stessa fattura scendono TUTTI a debole", () => {
+    const r = conti.abbinaMovimenti(conti.parseMovimentiCsv(
+      testa + "10/03/2026;;SALDO FATT 2026/004;5.000,00\n11/03/2026;;SALDO FATT 2026/004;5.000,00"),
+      FB, [], CLB).righe;
+    eq(r.map((x) => x.grado), ["debole", "debole"], "nessuno dei due viene proposto");
+    eq(r.every((x) => x.proposta.length === 0), true, "e nessuno porta una proposta");
+    ok(/incasso che non c'è/.test(r[0].perche), "il motivo spiega il danno: " + r[0].perche);
+    eq(r[0].alternative.map((a) => a.fatturaId), ["b4"], "la fattura contesa resta in vista");
+    /* e la guardia NON deve scattare quando i due insieme ci stanno: acconto + saldo
+       sulla stessa fattura è il caso normale, non un doppione. */
+    const sani = conti.abbinaMovimenti(conti.parseMovimentiCsv(
+      testa + "10/03/2026;;FATT 2026/003 ACCONTO;1.000,00\n20/03/2026;;FATT 2026/003 SALDO;2.000,00"),
+      FB, [], CLB).righe;
+    eq(sani.map((x) => x.grado), ["probabile", "probabile"],
+       "acconto + saldo che insieme fanno l'aperto non è un doppione");
+  });
+
+  test("Conti · banca: le uscite si elencano e si dichiarano, non si abbinano", () => {
+    const r = uno("COMMISSIONI E SPESE DI TENUTA CONTO", "-4,50");
+    contiene(r, { grado: "nessuno", verso: "uscita" }, "riconosciuta come uscita");
+    ok(/costi/.test(r.perche), "e detto dove si registra: " + r.perche);
+  });
+
+  /* ⛔ L'ASSENZA DI UN DATO NON È UN DATO FAVOREVOLE: zero movimenti da
+     decidere perché nessun file è mai stato caricato NON è «tutto abbinato».
+     La bandiera `misurabile` è quella che la schermata legge per mostrare lo
+     stato vuoto invece dei contatori a zero (regola 20 di run-stile.mjs). */
+  test("Conti · banca: senza estratto conto il riepilogo si dichiara NON misurabile", () => {
+    const v = conti.abbinaMovimenti([], FB, [], CLB);
+    eq(v.righe.length, 0, "nessuna riga");
+    contiene(v.riepilogo, { misurabile: false, letti: 0, daConfermare: 0, daDecidere: 0 },
+       "zero contatori, ma dichiarati non misurati");
+    ok(/nessun estratto conto/.test(v.riepilogo.perche), "col perché scritto: " + v.riepilogo.perche);
+    /* e con dei movimenti torna misurabile: una bandiera che non sa riaccendersi
+       non distingue niente */
+    const w = conti.abbinaMovimenti(conti.parseMovimentiCsv(testa + "10/03/2026;;X;1,00"), FB, [], CLB);
+    contiene(w.riepilogo, { misurabile: true, perche: "" }, "con un movimento si misura davvero");
+  });
+
+  /* `riepilogoAbbinamento` si prova anche DA SOLA e non solo attraverso
+     `abbinaMovimenti`: è la funzione che porta la bandiera, e una funzione
+     provata solo di rimbalzo è una funzione che nessuno ha guardato. */
+  test("Conti · banca: il riepilogo chiamato da solo, sulle righe che gli si danno", () => {
+    const r = conti.riepilogoAbbinamento([
+      { grado: "certo", verso: "entrata", importo: 100, giaRegistrato: false },
+      { grado: "probabile", verso: "entrata", importo: 50, giaRegistrato: false },
+      { grado: "debole", verso: "entrata", importo: 70, giaRegistrato: false },
+      { grado: "nessuno", verso: "entrata", importo: 30, giaRegistrato: false },
+      { grado: "nessuno", verso: "entrata", importo: 20, giaRegistrato: true },
+      { grado: "nessuno", verso: "uscita", importo: -5, giaRegistrato: false },
+      { grado: "nessuno", verso: "scartato", importo: null, giaRegistrato: false },
+    ]);
+    contiene(r, { letti: 7, entrate: 5, uscite: 1, scartati: 1, certi: 1, probabili: 1,
+                  daConfermare: 2, daDecidere: 1, senzaCandidato: 1, giaRegistrati: 1,
+                  importoDaConfermare: 150, misurabile: true, perche: "" },
+      "ogni riga in una casella sola");
+    eq(conti.riepilogoAbbinamento([]).misurabile, false, "lista vuota: non misurabile");
+    eq(conti.riepilogoAbbinamento(null).letti, 0, "e null non fa esplodere niente");
+    ok(conti.riepilogoAbbinamento(null).perche.length > 0, "col perché scritto anche lì");
+  });
+
+  test("Conti · banca: il riepilogo conta ogni riga del file una volta sola", () => {
+    const mov = conti.parseMovimentiCsv(conti.ESTRATTO_ESEMPIO);
+    const r = conti.abbinaMovimenti(mov, conti.DEMO.fatture, conti.DEMO.incassi, conti.DEMO.clienti);
+    const q = r.riepilogo;
+    eq(q.letti, mov.length, "una riga di riepilogo per ogni riga del file");
+    eq(q.entrate + q.uscite + q.scartati, q.letti,
+       "⛔ le tre categorie coprono TUTTO: se non tornassero, una riga sarebbe sparita");
+    eq(q.certi + q.probabili, q.daConfermare, "da confermare = certi + probabili");
+    eq(q.daConfermare + q.daDecidere + q.senzaCandidato + q.giaRegistrati + q.uscite + q.scartati,
+       q.letti, "e ogni riga finisce in uno degli esiti, nessuna in due");
+    ok(q.certi >= 2 && q.probabili >= 2 && q.daDecidere >= 1 && q.giaRegistrati >= 1,
+       "l'esempio deve contenere davvero tutti i casi che serve mostrare: " + JSON.stringify(q));
+    /* ⚠️ La prima stesura di questa riga filtrava su `proposta.length` e falliva:
+       una riga GIÀ REGISTRATA conserva la sua proposta (serve a mostrare su quale
+       fattura), ma non è da confermare. Corretta la PROVA, non il modulo — che
+       aveva ragione. */
+    eq(q.importoDaConfermare,
+       conti.round2(r.righe.filter((x) => x.grado === "certo" || x.grado === "probabile")
+         .reduce((t, x) => t + x.importo, 0)),
+       "il totale da confermare è la somma dei movimenti proposti, non delle fatture");
+    ok(q.importoDaConfermare < r.righe.reduce((t, x) => t + Math.max(0, +x.importo || 0), 0),
+       "e NON è la somma di tutte le entrate: quella comprenderebbe il già registrato e i non abbinati");
+  });
+
+  /* ⚠️ UNA PROVA DI ANDATA E RITORNO RESTA VERDE SE LE DUE METÀ SBAGLIANO
+     INSIEME: leggere il nostro esempio col nostro lettore dimostra che vanno
+     d'accordo FRA LORO, non che il formato sia quello che esporta una banca.
+     Per quello serve un'asserzione sul TESTO. */
+  test("Conti · banca: l'estratto d'esempio è scritto come lo scrive una banca italiana", () => {
+    const t = conti.ESTRATTO_ESEMPIO;
+    ok(t.startsWith("Data;"), "intestazione e separatore punto e virgola, come l'export italiano");
+    ok(t.includes(";12.300,00"), "punto per le migliaia e virgola per i decimali, non «12300.00»");
+    ok(t.includes("21/07/2026"), "data GG/MM/AAAA, non ISO");
+    ok(t.includes(";-4,50"), "e almeno un movimento in uscita, col segno davanti");
+    ok(!/\d{4}-\d{2}-\d{2}/.test(t), "nessuna data in ISO: sarebbe il nostro formato, non il suo");
+    const mov = conti.parseMovimentiCsv(t);
+    eq(mov.length, 8, "otto movimenti");
+    eq(mov.filter((m) => m.scarto).length, 0, "e il nostro lettore li legge tutti");
+    eq(mov[5].importo, 12300, "12.300,00 letto come dodicimilatrecento");
+    eq(mov[5].data, "2026-07-21", "e la data convertita in ISO");
+  });
+
+  test("Conti · banca: i gradi dichiarati sono tutti e soli quelli che l'abbinamento sa dire", () => {
+    eq(conti.GRADI_ABBINAMENTO, ["certo", "probabile", "debole", "nessuno"], "quattro gradi, dal più sicuro");
+    const usati = new Set();
+    for (const c of [["SALDO FATT 2026/004", "5.000,00"], ["FATT 2026/003 ACCONTO", "500,00"],
+                     ["BONIFICO STRADESUD", "5.000,00"], ["SPESE CONTO", "-4,50"]])
+      usati.add(uno(c[0], c[1]).grado);
+    eq([...usati].sort(), ["certo", "debole", "nessuno", "probabile"],
+       "e tutti e quattro escono davvero: se ne nascesse un quinto, la mappa dei badge della pagina non lo coprirebbe");
+    ok(usati.size === conti.GRADI_ABBINAMENTO.length,
+       "quanti gradi ha davvero prodotto questa prova: " + usati.size);
+  });
+
+  test("Conti · banca: senza nessuna fattura aperta il movimento non si abbina, e lo dice", () => {
+    const r = uno("BONIFICO QUALUNQUE", "1.234,00", "10/03/2026", []);
+    contiene(r, { grado: "nessuno", verso: "entrata" }, "niente con cui confrontare");
+    ok(/nessuna fattura aperta/.test(r.perche), "col perché: " + r.perche);
+    eq(conti.abbinaMovimenti(null, null, null, null).riepilogo.misurabile, false,
+       "e chiamato con tutto a null non esplode: risponde «non misurabile»");
+  });
+}
+
+if (inVolo.length) await Promise.all(inVolo);   // si aspetta PRIMA di contare
+console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

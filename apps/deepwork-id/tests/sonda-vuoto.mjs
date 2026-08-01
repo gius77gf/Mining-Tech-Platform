@@ -338,6 +338,10 @@ const ALLARMI_ACCETTATI = {
     "VOLUTO: una sedia vuota nell'organigramma della sicurezza è un problema, non un vuoto neutro (difetto corretto il 31/07)",
   "sentinella.statoPonte":
     "VOLUTO: «nessuna azione» dopo un superamento è ROSSO — la casella vuota è la risposta che l'ente non vuole sentire",
+  "campo.statoRisposta":
+    "VOLUTO, ed è lo stesso caso di `sentinella.statoPonte` dall'altro capo dell'ecosistema: «nessuna azione»"
+    + " dopo un fermo di produzione è ROSSO. La domanda dell'ispettore è «e poi?», e una lista di azioni vuota"
+    + " è la risposta che non si vuole dover dare — non un vuoto neutro",
   "scudo.azioneLabel":
     "prende lo STATO di un'azione: senza stato ricade sul primo della lista, non è un giudizio su un dato mancante",
   "scudo.etichettaAmbiente":
