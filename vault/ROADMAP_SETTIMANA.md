@@ -1831,6 +1831,30 @@ campi interi, file delle macchine.
       è la dimostrazione più netta finora: senza `TZ` la riga difettosa **non
       esiste in pagina** (a Greenwich era ancora luglio, che ha letture); con
       `TZ=Europe/Rome` compare «Agosto 2026 (in corso), 0».
+- [x] ✅ **CONTI — LA CHIUSURA DEL MESE: lo strato dati** *(01/08)* —
+      `statoMese`, `vociMancantiNelMese`, `margineMese`, trapiantate dal banco
+      dove erano già verdi a 28 prove. Il problema: **i ricavi sono completi
+      per costruzione, i costi no**, e il registro costi di ieri *aumentava* il
+      rischio invece di ridurlo. Quattro decisioni: il margine è **`null`**
+      prima della chiusura e la ragione **nomina la voce che manca**; quali
+      voci manchino si **impara dallo storico** (l'esplosivo che non compare
+      mai non è una mancanza, è come lavora quella cava); una voce **dichiarata**
+      assente non si rinfaccia ma una **mai dichiarata** resta scritta accanto
+      al numero; i ricavi sono **per competenza**, al netto delle note di
+      credito. `run-kpi` **1057 → 1063**, prove `node` **1.421**, copertura
+      **440/440**.
+- [x] ✅ **LA SONDA DEL VUOTO ACCUSAVA DUE FUNZIONI SANE** *(01/08)* — CI rossa
+      stanotte, e il difetto era del **controllo**. Fra i campioni c'era la data
+      letterale `"2026-07-31"`, che il giorno in cui è stata scritta era
+      **oggi**: il 1° agosto è diventata ieri, `statoScadenzaTerra` ha
+      cominciato a rispondere «scaduta» — giustamente — e la sonda l'ha letto
+      come allarme **inventato** su un dato mancante. È la stessa forma del
+      difetto che quella sonda cerca, al rovescio: un verdetto sicuro prodotto
+      da un dato che non diceva quello che si credeva. **Un controllo che grida
+      al lupo perde il diritto di essere creduto la volta che ha ragione.**
+      La data del campione ora è **neutra per costruzione** (nel futuro,
+      ricavata da oggi). Spostandola è emerso il caso opposto, guardato prima di
+      dichiararlo: l'argomento assente è il **preavviso**, non la data.
       Va detto, per non scambiarlo per una verifica fatta: lanciato, ha girato
       più di un'ora ed è arrivato al **terzo banco su 35**. La causa non è il
       giro — **sono io**: nel frattempo facevo scatti e controprove con altre

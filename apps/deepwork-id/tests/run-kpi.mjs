@@ -2177,6 +2177,90 @@ test("⛔ i costi che cadono fuori dall'intervallo misurato si contano", () => {
   const dentro = conti.costiFuoriDaiRilievi([righe[0], righe[1]], v.primo, v.ultimo);
   eq(dentro.quante, 0, "e quando stanno tutte dentro non si avvisa per niente");
 });
+
+console.log("\n— La chiusura del mese: il margine che senza di lei non esiste —");
+/* cinque mesi con personale e carburante, il sesto (luglio) senza personale.
+   L'esplosivo non compare MAI: non è una mancanza, è come lavora la cava. */
+const COSTI_M = [
+  { voce: "personale", importo: 300, data: "2026-02-10" }, { voce: "carburante", importo: 100, data: "2026-02-14" },
+  { voce: "personale", importo: 310, data: "2026-03-10" }, { voce: "carburante", importo: 110, data: "2026-03-14" },
+  { voce: "personale", importo: 320, data: "2026-04-10" }, { voce: "carburante", importo: 120, data: "2026-04-14" },
+  { voce: "personale", importo: 330, data: "2026-05-10" }, { voce: "carburante", importo: 130, data: "2026-05-14" },
+  { voce: "personale", importo: 340, data: "2026-06-10" }, { voce: "carburante", importo: 140, data: "2026-06-14" },
+  { voce: "carburante", importo: 150, data: "2026-07-14" },
+];
+const FAT_M = [
+  { id: "f1", emessa: "2026-07-05", importo: 12200, imponibile: 10000, ivaImporto: 2200, totale: 12200 },
+  { id: "f2", emessa: "2026-07-20", importo: 6100, imponibile: 5000, ivaImporto: 1100, totale: 6100 },
+  { id: "f3", emessa: "2026-06-11", importo: 3660, imponibile: 3000, ivaImporto: 660, totale: 3660 },
+];
+const NOTE_M = [{ id: "n1", tipo: "TD04", emessa: "2026-07-28", fatturaId: "f1", imponibile: 1000, totale: 1220 }];
+const CH_M = [{ mese: "2026-07", chiusoIl: "2026-08-04", vociAssenti: ["personale"] }];
+
+test("⛔ quali voci mancano si IMPARA dallo storico, non da un elenco inventato", () => {
+  /* un elenco di voci obbligatorie non esiste — cambia da cava a cava — e
+     inventarlo accuserebbe di incompletezza chi paga la squadra da un'altra
+     società */
+  const m = conti.vociMancantiNelMese(COSTI_M, "2026-07");
+  eq(m.mesiVisti, 5, "cinque mesi di storico letti");
+  eq(m.mancanti.map(x => x.chiave), ["personale"], "il personale c'è in tutti gli altri e a luglio no");
+  ok(!m.mancanti.some(x => x.chiave === "esplosivo"),
+    "⛔ e l'esplosivo, che non compare MAI, non è una mancanza: è come lavora la cava");
+  eq(conti.vociMancantiNelMese(COSTI_M, "2026-06").mancanti.length, 0, "un mese completo non chiede niente");
+  eq(conti.vociMancantiNelMese([COSTI_M[10]], "2026-07").misurabile, false,
+    "⛔ e senza storico non si finge di sapere cosa manca");
+});
+test("una voce che compare in 2 mesi su 5 non è un'abitudine: non si rinfaccia", () => {
+  const salt = [
+    { voce: "personale", importo: 100, data: "2026-02-10" }, { voce: "personale", importo: 100, data: "2026-03-10" },
+    { voce: "carburante", importo: 10, data: "2026-04-10" }, { voce: "carburante", importo: 10, data: "2026-05-10" },
+    { voce: "carburante", importo: 10, data: "2026-06-10" }, { voce: "carburante", importo: 10, data: "2026-07-10" },
+  ];
+  ok(!conti.vociMancantiNelMese(salt, "2026-07").mancanti.some(x => x.chiave === "personale"),
+    "sotto la metà degli altri mesi non è una dimenticanza");
+});
+test("⛔ una voce arrivata DOPO la chiusura non riapre il mese, ma lo dice", () => {
+  eq(conti.statoMese(COSTI_M, [], "2026-07").stato, "aperto", "senza chiusura è aperto");
+  eq(conti.statoMese(COSTI_M, CH_M, "2026-07").stato, "chiuso", "con la chiusura è chiuso");
+  const dopo = COSTI_M.concat([{ voce: "personale", importo: 350, data: "2026-07-31", registratoIl: "2026-08-12" }]);
+  const s = conti.statoMese(dopo, CH_M, "2026-07");
+  eq(s.stato, "chiuso-con-arrivi", "il margine già letto non si fa sparire, ma non è più quello dichiarato");
+  eq([s.arrivi, s.importoArrivi], [1, 350], "e dice quante e per quanto");
+  /* ⚠️ i costi già in archivio non hanno `registratoIl`, e in JavaScript
+     `undefined > "2026-08-04"` è VERO: senza guardia OGNI voce vecchia sarebbe
+     un arrivo tardivo e ogni mese chiuso sarebbe «con arrivi» */
+  eq(conti.statoMese([{ voce: "personale", importo: 300, data: "2026-07-10" }], CH_M, "2026-07").stato, "chiuso",
+    "⛔ una voce SENZA `registratoIl` non è un arrivo dopo la chiusura");
+  eq(conti.statoMese(COSTI_M, [{ mese: "2026-06", chiusoIl: "2026-07-03" }], "2026-07").stato, "aperto",
+    "e la chiusura di un ALTRO mese non chiude questo");
+});
+test("⛔ prima della chiusura il margine è ASSENTE, e la ragione nomina la voce che manca", () => {
+  const a = conti.margineMese(FAT_M, NOTE_M, COSTI_M, [], "2026-07");
+  eq(a.calcolabile, false, "non si calcola");
+  eq(a.margine, null, "⛔ e non è zero");
+  ok(/personale/.test(a.motivo), "la ragione dice QUALE voce manca: " + a.motivo);
+  eq(a.costi, 150, "ma i costi inseriti si vedono lo stesso");
+});
+test("a mese chiuso il margine esce, per COMPETENZA e al netto delle note di credito", () => {
+  const c = conti.margineMese(FAT_M, NOTE_M, COSTI_M, CH_M, "2026-07");
+  eq(c.calcolabile, true, "si calcola");
+  eq(c.ricaviLordi, 15000, "le fatture emesse a luglio: 10.000 + 5.000 di imponibile");
+  eq(c.storni, 1000, "⛔ e la nota di credito emessa a luglio li abbassa");
+  eq([c.ricavi, c.margine], [14000, 13850], "14.000 meno 150 di costi");
+  /* ⛔ dichiarare «questo mese il personale non c'è» è una RISPOSTA: rinfacciarla
+     accanto al margine farebbe scrivere «margine 92%» e sotto «manca il
+     personale», cioè la pagina che si smentisce da sola */
+  eq(c.mancanti.length, 0, "⛔ la voce dichiarata assente nella chiusura non si rinfaccia");
+  const muta = conti.margineMese(FAT_M, NOTE_M, COSTI_M, [{ mese: "2026-07", chiusoIl: "2026-08-04", vociAssenti: [] }], "2026-07");
+  eq(muta.calcolabile, true, "chiusura muta: il margine si calcola lo stesso, l'ha chiesto una persona");
+  ok(/più alto del vero/.test(muta.motivo), "⛔ ma la voce senza risposta resta scritta accanto al numero");
+});
+test("⛔ la percentuale non si calcola su ricavi zero, il margine negativo sì", () => {
+  const s = conti.margineMese([], [], COSTI_M, [{ mese: "2026-05", chiusoIl: "2026-06-02" }], "2026-05");
+  eq(s.ricavi, 0, "nessuna fattura nel mese");
+  eq(s.margine, -460, "il margine è negativo, ed è un dato vero: si mostra");
+  eq(s.marginePct, null, "⛔ ma la percentuale sarebbe infinito travestito da numero");
+});
 test("prioritaOperative: manutenzione a ore su un mezzo assente viene ignorata (non crasha)", () => {
   const p = flotta.prioritaOperative(
     [{ nome: "Escavatore E1 — CAT 352", ore: 100, stato: "operativo" }],

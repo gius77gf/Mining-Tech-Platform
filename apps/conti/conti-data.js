@@ -50,7 +50,7 @@ import { provenienzaDi, misuratoPeriodo } from "../../shared/dw-ponti.js";
    quindi serve anche l'import vero — con `export … from` da solo il modulo
    si carica e muore alla prima chiamata, senza errori di sintassi. */
 export { VOCI_COSTO, voceCosto, gruppoDiVoce } from "../../shared/dw-ponti.js";
-import { gruppoDiVoce } from "../../shared/dw-ponti.js";
+import { gruppoDiVoce, VOCI_COSTO } from "../../shared/dw-ponti.js";
 
 export const DEMO = {
   // fatture d'esempio: alcune già collegate all'anagrafica (clienteId), altre
@@ -1821,4 +1821,102 @@ export function costiFuoriDaiRilievi(righe, primo, ultimo) {
     if (d < p || d > u) { quante++; importo = round2(importo + (+c.importo || 0)); }
   }
   return { quante, importo, misurabile: true };
+}
+
+// ============================================================
+// LA CHIUSURA DEL MESE — e il margine, che senza di lei non esiste
+// ------------------------------------------------------------
+// ⛔ I RICAVI SONO COMPLETI PER COSTRUZIONE, I COSTI NO. I ricavi nascono da
+// pesate e fatture, che qualcuno ha dovuto emettere; i costi ci sono solo se
+// qualcuno li ha battuti a mano. Il mese in cui la busta paga non è stata
+// registrata non dà un errore: dà «margine 42%», in verde, in cima alla
+// pagina. È il numero più pericoloso che questa app possa mostrare, ed è
+// l'assenza travestita nella sua forma più convincente — perché stavolta il
+// numero è ALTO, cioè quello che si spera.
+// E il registro costi AUMENTA il rischio invece di ridurlo: prima non c'era
+// nessun costo e nessuno si sarebbe sognato di calcolare un margine; adesso i
+// costi ci sono, sembrano completi, e dividerli è immediato.
+// Piano e ragionamento per esteso: docs/PIANO_CHIUSURA_MESE_CONTI.md
+const meseDi = (d) => String(d || "").slice(0, 7);
+const eMese = (m) => /^\d{4}-\d{2}$/.test(String(m || ""));
+
+export function statoMese(costi, chiusure, mese) {
+  if (!eMese(mese)) return { stato: "aperto", mese, chiusura: null, arrivi: 0, importoArrivi: 0 };
+  const c = (chiusure || []).find((x) => x && x.mese === mese) || null;
+  if (!c) return { stato: "aperto", mese, chiusura: null, arrivi: 0, importoArrivi: 0 };
+  /* ⛔ Un mese dichiarato chiuso a cui arrivano voci dopo NON torna aperto: il
+     margine che qualcuno ha già letto, e magari stampato, non si può far
+     sparire. Ma non è nemmeno più quello dichiarato, e un numero che cambia in
+     silenzio dopo essere stato dato per definitivo è peggio di uno mancante.
+     ⚠️ E l'ASSENZA di `registratoIl` vale «non lo so», mai «arrivato dopo»: i
+     costi già in archivio quel campo non ce l'hanno, e in JavaScript
+     `undefined > "2026-08-04"` è VERO — senza il `|| ""` ogni voce vecchia
+     diventerebbe un arrivo tardivo e ogni mese chiuso sarebbe «con arrivi». */
+  const dopo = (costi || []).filter((x) => x && meseDi(x.data) === mese
+    && String(x.registratoIl || "") > String(c.chiusoIl || ""));
+  return { stato: dopo.length ? "chiuso-con-arrivi" : "chiuso", mese, chiusura: c,
+    arrivi: dopo.length, importoArrivi: round2(dopo.reduce((t, x) => t + (+x.importo || 0), 0)) };
+}
+
+/* ⛔ QUALI VOCI MANCANO RISPETTO A COME LAVORA QUESTA CAVA. Non esiste un
+   elenco di voci obbligatorie: cambia da cava a cava, e inventarlo vorrebbe
+   dire accusare di incompletezza chi paga la squadra da un'altra società.
+   L'elenco si impara dallo STORICO dell'azienda stessa: una voce è «abituale»
+   se compare in almeno metà degli altri mesi. Sotto quella soglia non si
+   chiede niente — una spesa capitata due volte l'anno non è una dimenticanza. */
+export function vociMancantiNelMese(costi, mese, soglia = 0.5) {
+  if (!eMese(mese)) return { mancanti: [], mesiVisti: 0, misurabile: false };
+  const righe = (costi || []).filter((c) => c && +c.importo > 0 && /^\d{4}-\d{2}/.test(String(c.data || "")));
+  const mesi = [...new Set(righe.map((c) => meseDi(c.data)))].filter((m) => m !== mese);
+  if (!mesi.length) return { mancanti: [], mesiVisti: 0, misurabile: false };
+  const quiCi = new Set(righe.filter((c) => meseDi(c.data) === mese).map((c) => c.voce));
+  const mancanti = [];
+  for (const v of VOCI_COSTO) {
+    if (quiCi.has(v.chiave)) continue;
+    const quanti = mesi.filter((m) => righe.some((c) => meseDi(c.data) === m && c.voce === v.chiave)).length;
+    if (quanti / mesi.length >= soglia)
+      mancanti.push({ chiave: v.chiave, etichetta: v.etichetta, suQuanti: quanti, mesi: mesi.length });
+  }
+  return { mancanti, mesiVisti: mesi.length, misurabile: true };
+}
+
+export function margineMese(fatture, note, costi, chiusure, mese) {
+  const st = statoMese(costi, chiusure, mese);
+  const man = vociMancantiNelMese(costi, mese);
+  const spesa = round2((costi || []).filter((c) => c && meseDi(c.data) === mese && +c.importo > 0)
+    .reduce((t, c) => t + (+c.importo || 0), 0));
+  const fuori = { stato: st.stato, mese, costi: spesa, mancanti: man.mancanti,
+    dichiarateAssenti: [], ricavi: null, ricaviLordi: null, storni: null,
+    margine: null, marginePct: null, calcolabile: false };
+  if (st.stato === "aperto")
+    return { ...fuori, motivo: man.mancanti.length
+      ? `Il mese non è chiuso, e rispetto agli altri mesi mancano i costi di ${man.mancanti.map((x) => x.etichetta.toLowerCase()).join(", ")}. Un margine calcolato adesso sarebbe più alto del vero.`
+      : "Il mese non è ancora dichiarato chiuso: finché non lo è, i costi possono essere incompleti e il margine uscirebbe più alto del vero." };
+  /* RICAVI PER COMPETENZA: le fatture emesse nel mese, al netto delle note di
+     credito emesse nel mese. Confonderli con gli INCASSI darebbe due margini
+     diversi per lo stesso mese, giusti tutti e due — il modo migliore per non
+     essere creduti. */
+  const emesse = (fatture || []).filter((f) => f && meseDi(f.emessa) === mese);
+  const lordo = round2(emesse.reduce((t, f) => t + importiFattura(f).imponibile, 0));
+  const storni = round2((note || []).filter((n) => n && meseDi(n.emessa) === mese)
+    .reduce((t, n) => t + (+n.imponibile || 0), 0));
+  const ricavi = round2(lordo - storni);
+  const margine = round2(ricavi - spesa);
+  /* ⛔ Chiudere il mese dichiarando «l'esplosivo questo mese non c'è» è una
+     RISPOSTA; chiuderlo senza dire niente di una voce che negli altri mesi c'è
+     sempre non lo è. Senza questa sottrazione la schermata scriverebbe
+     «margine 92%» e sotto «manca il personale» — contraddicendosi da sola
+     PROPRIO QUANDO l'utente aveva risposto. */
+  const dichiarate = new Set((st.chiusura && st.chiusura.vociAssenti) || []);
+  const nonDichiarate = man.mancanti.filter((x) => !dichiarate.has(x.chiave));
+  return { ...fuori, ricavi, ricaviLordi: lordo, storni, margine,
+    mancanti: nonDichiarate, dichiarateAssenti: [...dichiarate],
+    /* la percentuale NON si calcola su ricavi zero: sarebbe Infinity, che
+       sullo schermo è indistinguibile da un numero. Il margine negativo sì:
+       quello è un dato vero e va mostrato. */
+    marginePct: ricavi > 0 ? round2(100 * margine / ricavi) : null,
+    calcolabile: true,
+    motivo: nonDichiarate.length
+      ? `Il mese è chiuso, ma ${nonDichiarate.length === 1 ? "una voce non è mai stata dichiarata" : nonDichiarate.length + " voci non sono mai state dichiarate"}: ${nonDichiarate.map((x) => x.etichetta.toLowerCase()).join(", ")}. Se ${nonDichiarate.length === 1 ? "quella spesa c'è stata" : "quelle spese ci sono state"} e non ${nonDichiarate.length === 1 ? "è" : "sono"} in elenco, il margine qui sopra è più alto del vero.`
+      : "" };
 }
