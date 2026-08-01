@@ -254,6 +254,49 @@ console.log("\n── L'elenco delle superfici è completo ──");
 
 const leggi = (rel) => { try { return readFileSync(join(root, rel), "utf8"); } catch { return null; } };
 
+/* ⛔ LA GUARDIA CHE ERA DICHIARATA E NON ESISTEVA. In cima all'elenco delle
+   superfici di `tests/browser/giro.mjs` c'è scritto: «un elenco tenuto a mano
+   si aggiorna quando qualcuno se ne ricorda: **il controllo in fondo a questo
+   file pretende che le due liste combacino**». Quel controllo **non c'era** —
+   né in fondo a quel file né in nessun altro punto del repo. È la guardia
+   scollegata di cui `CLAUDE.md` parla due volte, nella forma peggiore:
+   annunciata in un commento, quindi chi legge la dà per fatta e non la cerca.
+   Misurata la differenza il 01/08: le regole di stile guardavano **quindici**
+   pagine, il giro del browser **undici**. Quattro pagine che passano le regole
+   di stile non le apriva **nessun banco** — cioè su di esse nessuno ha mai
+   misurato contrasto, id doppi, fuori-schermo o bersagli di tocco.
+   ⚠️ L'elenco si legge come TESTO, non importando `giro.mjs`: quel file tira
+   dentro Playwright, e una suite `node` che gira senza rete non deve dipendere
+   dal browser per sapere che cosa il browser dovrebbe guardare. */
+const FUORI_GIRO = {
+  "apps/genesi/nuvola-poc.html":
+    "banco di prova della lettura nuvola/mesh (il titolo dice «prova»): le regole "
+    + "di stile la guardano perché è pur sempre HTML, ma non è una superficie che "
+    + "un cliente apre — come `_collaudo-grafici.html`, che infatti è già fuori",
+};
+console.log("\n── Le due liste di superfici combaciano ──");
+{
+  const testoGiro = leggi("apps/deepwork-id/tests/browser/giro.mjs") || "";
+  const i = testoGiro.indexOf("export const SUPERFICI = [");
+  const blocco = i < 0 ? "" : testoGiro.slice(i, testoGiro.indexOf("];", i));
+  const nelGiro = new Set([...blocco.matchAll(/'([^']+\.html)'/g)].map((m) => m[1].replace(/^\//, "")));
+  const noi = SUPERFICI.map(([, r]) => r);
+  const fuori = noi.filter((r) => !nelGiro.has(r) && !(r in FUORI_GIRO));
+  const fantasmi = [...nelGiro].filter((r) => !noi.includes(r));
+  const escluseInutili = Object.keys(FUORI_GIRO).filter((r) => nelGiro.has(r) || !noi.includes(r));
+  test(`ogni superficie delle regole di stile è aperta anche dal giro del browser (${nelGiro.size} nel giro, ${noi.length} qui)`, () => {
+    ok(nelGiro.size >= 10,
+      `solo ${nelGiro.size} superfici lette da giro.mjs: la lettura dell'elenco non sta guardando niente`);
+    ok(fuori.length === 0,
+      `${fuori.length} pagine che le regole di stile guardano e nessun banco apre → ${fuori.join(", ")}`
+      + " — o entrano in SUPERFICI di giro.mjs, o la ragione va scritta in FUORI_GIRO");
+    ok(fantasmi.length === 0,
+      `il giro apre pagine che le regole di stile non guardano: ${fantasmi.join(", ")}`);
+    ok(escluseInutili.length === 0,
+      `FUORI_GIRO scusa pagine che non ne hanno bisogno: ${escluseInutili.join(", ")} — righe da togliere`);
+  });
+}
+
 // I dialoghi vietati compaiono di proposito DENTRO I COMMENTI, che spiegano
 // perché sono stati mandati via: bisogna saper distinguere il commento dal
 // codice.

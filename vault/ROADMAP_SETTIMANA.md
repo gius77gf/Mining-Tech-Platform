@@ -87,13 +87,21 @@ dominante. Verifica obbligatoria con screenshot prima/dopo.
       quello che conta (nessun indizio dentro un altro, altrimenti il tipo lo
       deciderebbe l'ORDINE dell'elenco) e il dato scritto in anagrafica vince
       sempre sull'indizio pescato dal nome.
-- [ ] **Le due pagine dimenticate anche nei banchi del browser** *(trovato il
-      03/08)* — `run-stile.mjs` adesso le guarda, ma l'elenco `SUPERFICI` di
-      `tests/browser/giro.mjs` — quello che serve a **tutti e diciannove i
-      banchi** — ne conosce ancora nove. La pagina «non autorizzato» e il
-      portone di Genesi non vengono aperte da nessun banco: niente contrasto,
-      niente id doppi, niente fuori-schermo. Va allungato l'elenco e rilanciato
-      il giro.
+- [x] ✅ **Le pagine dimenticate nei banchi del browser** *(chiuso il 01/08)* —
+      le due nominate qui (la pagina «non autorizzato» e il portone di Genesi)
+      erano gia' entrate stamattina. Ma la riga che quel lavoro si era lasciato
+      dietro diceva «**il controllo in fondo a questo file pretende che le due
+      liste combacino**», e ⛔ **quel controllo non esisteva** — ne' li' ne'
+      altrove: la guardia scollegata di `CLAUDE.md` nella forma peggiore,
+      annunciata in un commento, quindi data per fatta da chi legge.
+      Misurato: le regole di stile guardavano **15** superfici, il giro del
+      browser **11**. Tre pagine che un cliente apre davvero — **accesso**,
+      **profilo** e **amministrazione** di Deepwork ID — non le apriva nessun
+      banco, cioe' su di esse nessuno ha mai misurato contrasto, id doppi,
+      fuori-schermo, bersagli di tocco. Il controllo adesso c'e' (in
+      `run-stile.mjs`, che il censimento lo possiede gia') e **sa fallire per
+      costruzione**: appena scritto e' caduto nominando le tre. Aggiunte al
+      giro: **11 → 14** superfici, `nuvola-poc.html` fuori **con la ragione**.
 - [x] **`perCampo` scritta due volte** ✅ *(03/08)* — identica **carattere per
       carattere** in `dw-shell.js` e in `flotta-data.js`. L'ha trovata la domanda
       che mancava a `nomi-doppi.mjs`: confrontava le app **fra loro**, mai

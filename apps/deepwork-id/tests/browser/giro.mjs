@@ -47,6 +47,16 @@ export const SUPERFICI = [
      controllo in fondo a questo file pretende che le due liste combacino. */
   ['id · non autorizzato', '/apps/deepwork-id/non-autorizzato.html'],
   ['genesi · accesso', '/apps/genesi/login.html'],
+  /* ⛔ ENTRATE il 01/08, e la ragione è che il controllo che le due liste
+     combacino era **dichiarato in questo commento e non esisteva**: le regole
+     di stile guardavano quindici superfici, il giro undici. Queste tre le apre
+     un cliente davvero — è dove si accede, dove si guarda il proprio profilo e
+     dove il titolare amministra l'organizzazione — e nessun banco le aveva mai
+     misurate. Non hanno barra di navigazione: `sezioniDi` risponde [''] e
+     vengono guardate in una passata sola, che è quello che serve. */
+  ['id · accesso', '/apps/deepwork-id/index.html'],
+  ['id · profilo', '/apps/deepwork-id/profilo.html'],
+  ['id · amministrazione', '/apps/deepwork-id/admin.html'],
 ];
 
 /* Il core è l'unico che non ha la barra delle sezioni delle app: si naviga con
