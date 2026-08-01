@@ -154,6 +154,35 @@ console.log(righeC.join("\n"));
 console.log(`\n${coperteC} funzioni condivise coperte su ${guardateC} guardate, in ${CONDIVISI.length} moduli`
   + `  ·  ${FUORI_CONDIVISI.size} tenute fuori con la ragione scritta`);
 
+/* ⛔ E QUELLO CHE QUESTO CENSIMENTO NON GUARDA, DETTO DA LUI STESSO.
+   Un «456 su 456, 100%» si legge «tutto il prodotto è provato», e non è vero:
+   il conto guarda i sei moduli `apps/<nome>/<nome>-data.js` e tre file
+   condivisi. **Genesi non ha un modulo dati**: la sua logica sta dentro
+   `apps/genesi/genesi.html`, e da lì `node` non la può importare. Di Genesi
+   entra nel conto solo `pointcloud.js`.
+   Non è una svista da correggere qui: tirare fuori un `genesi-data.js` è un
+   cantiere intero, ed è la ragione per cui questa riga esiste invece della
+   correzione. Ma il numero non deve poter essere letto per più di quello che è
+   — è la stessa lezione del fondo che prometteva di vedere un caso che non
+   vedeva. Il conto si misura, non si scrive a mano: se un giorno le funzioni
+   di Genesi diventano importabili, questa riga lo dirà da sé. */
+/* ⚠️ Il `?` invece di uno zero è voluto: se la lettura fallisse, uno zero si
+   leggerebbe «Genesi non ha funzioni fuori conto», cioè la risposta più
+   tranquilla — e sarebbe l'errore che questo blocco esiste per non fare. Il
+   primo tentativo ha davvero stampato `?` (avevo scritto `root` invece di
+   `RADICE`), e si è visto subito. */
+const genesiPagina = (() => {
+  try {
+    const t = readFileSync(join(RADICE, "apps/genesi/genesi.html"), "utf8");
+    return (t.match(/^\s*function\s+[A-Za-z_$][\w$]*\s*\(/gm) || []).length;
+  } catch { return null; }
+})();
+console.log(`\n⛔ Fuori dal conto, e va detto: **Genesi non ha un modulo dati**.`
+  + ` Le sue ${genesiPagina == null ? "?" : genesiPagina} funzioni stanno dentro genesi.html,`
+  + ` che node non importa: di Genesi qui entra solo pointcloud.js (5).`
+  + `\n   Quindi il 100% qui sopra vale per il perimetro misurato, non per tutto il prodotto.`);
+
 console.log(`\nRisultato copertura: ${passed} soggetti a posto, ${failed} con funzioni senza prova`
-  + ` (o sotto il fondo)  ·  ${APP.length} app + ${CONDIVISI.length} moduli condivisi`);
+  + ` (o sotto il fondo)  ·  ${APP.length} app + ${CONDIVISI.length} moduli condivisi`
+  + ` (Genesi: ${genesiPagina == null ? "?" : genesiPagina} funzioni nella pagina, fuori portata di node)`);
 process.exit(failed > 0 ? 1 : 0);

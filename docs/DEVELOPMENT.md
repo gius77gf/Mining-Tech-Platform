@@ -50,7 +50,16 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 E **456 funzioni pure su 456** sono chiamate per nome da quelle prove: tutte e
 sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nessuno ha
-ancora guardato», che è il minimo e finora non c'era. Lo conta
+ancora guardato», che è il minimo e finora non c'era.
+
+⛔ **E il 100% vale per il perimetro misurato, non per tutto il prodotto.**
+Le sei app hanno la loro logica in `apps/<nome>/<nome>-data.js`, che `node`
+importa. **Genesi no**: le sue **192 funzioni** stanno dentro
+`apps/genesi/genesi.html`, e da lì non si importano — di Genesi entra nel conto
+solo `pointcloud.js`. Non è una svista da correggere in una riga (tirarne fuori
+un modulo dati è un cantiere intero), ma il numero non deve poter essere letto
+per più di quello che è: dal 01/08 lo dichiara il censimento stesso, in fondo
+alla sua uscita, e il conto lo **misura** invece di scriverlo a mano. Lo conta
 `copertura-funzioni.mjs`, e questo numero lo verifica `numeri-nei-documenti.mjs`:
 era già finito sbagliato due volte perché scritto a memoria.
 

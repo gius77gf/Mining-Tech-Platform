@@ -78,6 +78,11 @@ E **456 funzioni pure su 456** delle sei app sono chiamate per nome dalle prove:
 tutte al 100%. Vuol dire che non ne resta nessuna che nessuno ha ancora
 guardato — non che siano provate *bene*, che è un'altra domanda.
 
+⛔ **Delle sei app**, appunto: **Genesi non ha un modulo dati** e le sue 192
+funzioni stanno dentro la pagina, dove `node` non arriva. Il 100% è vero per
+quello che guarda, e dal 01/08 il censimento lo dice da sé invece di lasciarlo
+intendere.
+
 Le prove sulle funzioni delle app sono passate da **433 a 971 in una giornata**,
 e non sono prove di forma: hanno fatto emergere **otto difetti veri** — fra cui
 un grafico del core che mostrava la produzione del mese sbagliato, un ruolo di
