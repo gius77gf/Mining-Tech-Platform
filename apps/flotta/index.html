@@ -1911,7 +1911,12 @@
         s.ultimaData ? "ultima: " + dataIt(s.ultimaData) + (s.ultimoEsito ? " (" + s.ultimoEsito + ")" : "") : "",
         s.note || "",
       ].filter(Boolean).map(esc).join(" · ");
-      return `<div class="item ${striscia[s.sem.cls] || "st-accent"}">
+      /* `statico`: la riga non fa niente se la tocchi — quello che si tocca
+         sono i due bottoncini in fondo. Mancava, e la riga mostrava la manina
+         promettendo un tocco che non c'era. La stessa lista dentro la scheda
+         del mezzo la classe ce l'aveva: due rese della stessa cosa, e una si
+         era dimenticata. */
+      return `<div class="item statico ${striscia[s.sem.cls] || "st-accent"}">
         <div class="avatar">${esc(sig(s.mezzo))}</div>
         <div class="info"><div class="name">${esc(s.tipo || "Scadenza")} — ${esc(s.mezzo || "?")}</div>
           <div class="meta">${meta}</div>

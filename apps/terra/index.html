@@ -2605,7 +2605,11 @@ a.dw-btn{text-decoration:none}
       const pf = d.turni ? produzionePerFronte(RAPP, FRO, av.dal, oggiLoc, dens) : null;
       if (pf && (pf.righe.length || pf.senzaFronte.m3 > 0 || pf.fronteSconosciuto.m3 > 0)) {
         const righe = pf.righe.map((r) =>
-          `<div class="item st-accent"><div class="avatar">${esc(sig(r.nome))}</div>
+          /* `cursor:default`: e' una riga di sola lettura — dice quanti metri
+             cubi vengono da quel fronte secondo i turni, e non si tocca. E'
+             la convenzione che Terra usa gia' nelle altre righe ferme; qui
+             mancava, e la riga prometteva un tocco che non c'era. */
+          `<div class="item st-accent" style="cursor:default;"><div class="avatar">${esc(sig(r.nome))}</div>
              <div class="info"><div class="name">${esc(r.nome)}</div>
                <div class="meta">${r.turni} turn${r.turni === 1 ? "o" : "i"}${r.quotaPct != null ? " · " + nD(r.quotaPct) + "% di quello che si sa" : ""}</div></div>
              <div class="acts"><span class="vita-pct">${n0(r.m3)} <span class="u">m³</span></span></div></div>`).join("");
