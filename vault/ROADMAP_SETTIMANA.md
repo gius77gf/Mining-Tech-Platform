@@ -950,6 +950,23 @@ campi interi, file delle macchine.
       **lettura**: la colonna della prova è prosa in sei notazioni e cita ciò
       che esiste accanto a ciò che manca.
 
+- [x] 🎯 **I tre difetti che Genesi aveva TROVATO E NON BLINDATO, chiusi tutti
+      e tre in ordine di pericolo.** Il metodo conta quanto il risultato: il
+      cantiere aveva un mandato di **trasloco**, mentre spostava le funzioni le
+      ha **lette**, e i difetti li ha **dichiarati nel rapporto con la riga**
+      invece di correggerli di straforo o di certificarli con una prova.
+      1. `ppvLimit` su una frequenza illeggibile dava la fascia **più
+         permissiva** di ogni norma — sul valore che decide se si spara.
+         Nessuna soglia cambiata (35 risposte identiche su 5 norme × 7
+         frequenze). ⛔ E la prima guardia era sbagliata: `+null` fa **zero**,
+         che è finito.
+      2. La **tabella delle norme era scritta due volte**, e la copia della
+         pagina battezzava «DIN residenziale» un codice che nessuno aveva
+         riconosciuto. Adesso è una sola.
+      3. `r2: 0` → `null`, **con la prova che dice anche quanto pesa**: quel
+         caso porta sempre `errore: 'pendenza'` e nella pagina non si vede mai.
+         Difesa in profondità, non innocuità — scritto perché la correzione non
+         sembri più grossa di quello che è.
 - [x] ⛔ **Tre difetti in `shared/`, e tutti e tre segnalati da un cantiere come
       «non è roba mia».** È il segno che la regola del `shared/` funziona: chi
       lavora su un'app vede il difetto e **non lo aggira scrivendosi una copia**.
