@@ -408,6 +408,25 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   `isDate` di casa accettava **«2026-02-30»**, perché `Date.parse` un giorno che
   non esiste non lo rifiuta — lo fa **scorrere** al 2 marzo. La versione giusta
   (`dataISOEsiste`) era in `shared/` da mesi.
+- ⚠️ **IL CONFRONTO DELLE PROVE SCRIVEVA `null` PER QUATTRO VALORI DIVERSI.**
+  Seconda faccia della regola qui sotto, e più insidiosa perché lo strumento
+  non è una *scansione* ma il **confronto stesso**. Fino al 01/08 `eq` di
+  `run-kpi.mjs` e `run-pointcloud.mjs` usava `JSON.stringify`, che appiattisce
+  cinque coppie: `Infinity`, `-Infinity`, `NaN` e `null` si scrivono **tutti**
+  `"null"`; `-0` come `0`; `{a:undefined}` come `{}`. Non conta il numero delle
+  collisioni, conta **dove cadono**: `null` è la convenzione con cui
+  l'ecosistema dice «non si può calcolare» — il principio del fondatore — e
+  `Infinity` è **esattamente quello che produce il difetto** (una divisione per
+  zero). Cioè il buco stava sotto le prove che difendono il principio, sul
+  valore che quelle prove esistono per prendere. È saltato fuori perché una
+  controprova rispondeva «non distingue» **col difetto rimesso dentro**: non
+  era la prova scritta male, era lo strumento sotto — la sesta causa da
+  aggiungere alle cinque dell'elenco. Adesso il confronto passa da
+  `tests/mostra.mjs`, che sta in un file suo perché lo usano **due** suite.
+  Il risultato onesto, che non va gonfiato: **con il confronto stretto la
+  suite resta verde**, i 253 `eq(..., null)` erano tutti `null` davvero. Il
+  buco c'era e non aveva ancora nascosto niente in ciò che è scritto: ha morso
+  una prova **nuova**, mentre la si scriveva.
 - ⚠️ **UNO STRUMENTO CONDIVISO DA TUTTI I CONTROLLI NON È CONTROLLATO DA
   NESSUNO.** Il 03/08 la scansione che sta sotto a tutte e sedici le regole
   **perdeva la fase**, per due difetti indipendenti: leggeva la pagina intera
@@ -584,6 +603,26 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   La difesa: dopo aver scritto un controllo, chiedersi **quanti soggetti ha
   guardato davvero** e stamparlo (`84 tendine misurate`, `20 gestori`,
   `9 superfici`). Un numero che non torna si vede; un «zero violazioni» no.
+- ⚠️ **`vaiA(p, nome, sezione)` VUOLE L'ID DEL BOTTONE, NON IL NOME DELLA
+  SEZIONE.** La guardia sull'arità ferma la chiamata a due argomenti, ma non
+  questa: `vaiA(p, 'sentinella', 'mon')` ha tre argomenti buoni e costruisce il
+  selettore `#mon`, che non esiste — il click cade nel `.catch()` e la sonda
+  fotografa **la stessa schermata a ogni giro** senza dire niente. Successo il
+  01/08: due scatti di sezioni diverse erano tutt'e due il Quadro, e leggendoli
+  sembravano prodotto, non banco rotto. Il nome giusto è quello del bottone
+  (`nav-mon`, `nav-rep`), e la difesa che costa una riga è **pretendere la prova
+  di aver navigato** prima di scattare: quale `.page` ha `display` diverso da
+  `none`. Un banco che non naviga risponde «tutto a posto» dopo aver guardato
+  una schermata su otto.
+- ⚠️ **UN DETTAGLIO CHE FINISCE DOVE IL TESTO È TAGLIATO È TESTO MORTO.** Le
+  righe delle liste hanno `-webkit-line-clamp:2`: una frase appesa in fondo
+  alla riga di dettaglio **non la legge nessuno**, e nel 01/08 è successo due
+  volte lo stesso giorno, in due app diverse (la validità della taratura in
+  Sentinella, la ragione di un banco non misurato in Terra) — e in Terra era
+  proprio la parte che il principio del fondatore esiste per far leggere. Le
+  due uscite giuste: o il dato va in un posto suo (la sezione che lo riguarda,
+  o un `form-hint` sotto la riga, che è la forma che Terra usa già nei lotti),
+  o non ci va. Si vede solo nello **scatto**.
 - Quando si misura qualcosa nel browser, due trappole già pestate:
   `document.elementFromPoint` vive nel **viewport** (un elemento sotto la piega
   risponde `null` e sembra irraggiungibile: va portato in vista), e «questo

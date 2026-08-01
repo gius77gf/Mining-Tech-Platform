@@ -864,6 +864,40 @@ campi interi, file delle macchine.
       app. Due proposte col loro costo, tre domande al fondatore, nessuna
       regola toccata.*
 
+### Fatto il 01/08 (sera) — quattro cantieri insieme
+- [x] **Sentinella — la taratura dello strumento** *(mancanza confermata dal
+      delta)*. Il report diceva «conforme» sui numeri di uno strumento di cui
+      non si sapeva se fosse tarato. Storico dei certificati, non ultima
+      scadenza, perché la domanda è «era tarato **quel giorno**?»; e «non
+      coperta» si divide in **scoperta** (buco vero) e **prima-dello-storico**
+      (poteva essere tarato, qui non risulta) — schiacciarle avrebbe accusato
+      chi compila di una cosa non misurata. La dichiarazione sta **accanto**
+      all'esito, non dentro, e una prova lo blinda. Commit `76e7937`.
+- [x] **Scudo — l'andamento degli indici nel tempo.** I tre indici c'erano già
+      (la riga del delta era **falsa**), mancava l'andamento. Serie annuale
+      perché le ore si registrano per anno; anno senza ore = **buco**, mai zero;
+      con pochi eventi il verso non dice «migliora». Commit `6a971ff`.
+- [x] **Terra — il volume banco per banco**, senza aggiungere nessun campo: la
+      catena `rilievo.fronteId → fronte.banco` c'era già intera. Banco senza
+      rilievi → `null` + `misurabile:false`, e nel CSV cella **vuota**. Commit
+      `e5f15a7`.
+- [x] **Verifica del delta chiusa su tutte e sei le app**: 105 righe, 63 assenti
+      confermate, **18 false**, 24 a metà. Una dichiarata su sei non esisteva, e
+      va peggio dove il codice è più maturo (Conti: una su tre e mezzo). Commit
+      `f3432f4`.
+- [x] ⛔ **Lo strumento di prova che confondeva i valori.** `eq` confrontava con
+      `JSON.stringify`, che scrive `"null"` per `Infinity`, `-Infinity`, `NaN`
+      **e** `null` — cioè non distingueva «non calcolabile» da una divisione per
+      zero, proprio sotto le prove che difendono il principio del fondatore.
+      Trovato perché una controprova rispondeva «non distingue» **col difetto
+      rimesso dentro**. Onestamente: con il confronto stretto la suite resta
+      verde — i 253 `eq(..., null)` erano tutti `null` davvero. Commit `c9fe7cf`.
+- [x] **Il campo che si allunga da solo** (trovato guardando lo scatto):
+      `.flab{flex:1 1 120px}` dentro `.form.col` è una base **verticale**, e tre
+      etichette di Sentinella erano alte 120 px invece di 63. ⚠️ Lo stesso
+      `flex` sta in **Conti, Flotta, Scudo e Terra**: là va fatto con i loro
+      scatti accanto — **rimandato, non chiuso**.
+
 ### Difetti chiusi il 01/08 — i controlli che non guardavano dove credevano
 - [x] **La regola che vieta i dialoghi del browser era cieca.** I due
       tokenizzatori di `run-stile.mjs`, entrati in un backtick, correvano fino
@@ -2827,4 +2861,9 @@ di sicurezza dei dati del cliente *(12)*.
 ## RIFERIMENTI
 - Ricerche: `docs/RICERCA_{SCUDO,CAMPO,FLOTTA,CONTI,SENTINELLA,TERRA,GENESI}_202607.md`
 - Estetica: `docs/SPECIFICA_ESTETICA_CORE.md`
-- Ultimo checkpoint: `vault/checkpoints/` (file col timestamp più alto)
+- Ultimo checkpoint: ⛔ **NON quello col nome più alto** — il nome è una stringa
+  che somiglia a un'ora, non un'ora: 184 checkpoint su 640 sono datati avanti,
+  fino a cinque giorni, quindi ordinando per nome si apre un file **più vecchio**
+  di quello vero credendolo il più fresco. Il comando che risponde giusto, e che
+  stampa anche i due candidati a confronto:
+  `node apps/deepwork-id/tests/date-checkpoint.mjs`
