@@ -9470,59 +9470,76 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   const riepOnere = (ril, anno = 2026) =>
     terra.riepilogoAnnuale(ril, anno, AUT_ONERE, new Date("2026-08-01T00:00:00"));
 
-  test("onereEscavazione: si paga lo SCAVO, non il cumulo ripreso", () => {
-    const o = terra.onereEscavazione(riepOnere(RIL_ONERE), { tariffaEuroM3: 0.52 });
-    eq(o.calcolabile, true, "con tariffa e rilievi il conto si fa");
+  test("baseOnereEscavazione: si paga lo SCAVO, non il cumulo ripreso", () => {
+    const o = terra.baseOnereEscavazione(riepOnere(RIL_ONERE));
+    eq(o.calcolabile, true, "con i rilievi di scavo la base si dichiara");
     eq(o.lordo, 20000, "i 3.000 m³ di cumulo NON entrano: è materiale già estratto");
     eq(o.imponibile, 20000, "senza detrazioni l'imponibile è il lordo");
-    eq(o.importo, 10400, "20.000 × 0,52");
   });
-  test("onereEscavazione: il volume recuperato si detrae, e se eccede lo dice", () => {
-    const o = terra.onereEscavazione(riepOnere(RIL_ONERE), { tariffaEuroM3: 0.52, volumeDetrattoM3: 2000 });
+  test("baseOnereEscavazione: il volume recuperato si detrae, e se eccede lo dice", () => {
+    const o = terra.baseOnereEscavazione(riepOnere(RIL_ONERE), { volumeDetrattoM3: 2000 });
     eq(o.imponibile, 18000, "20.000 − 2.000");
-    eq(o.importo, 9360, "18.000 × 0,52");
-    const troppo = terra.onereEscavazione(riepOnere(RIL_ONERE), { tariffaEuroM3: 0.52, volumeDetrattoM3: 99999 });
+    const troppo = terra.baseOnereEscavazione(riepOnere(RIL_ONERE), { volumeDetrattoM3: 99999 });
     eq(troppo.imponibile, 0, "l'imponibile non va sotto zero");
     ok(troppo.avvisi.length === 1 && /supera lo scavo/.test(troppo.avvisi[0]),
       "ma non lo fa in silenzio: uno dei due numeri va rivisto");
   });
-  test("⛔ onereEscavazione: senza TARIFFA la risposta non è zero euro", () => {
-    /* La tariffa cambia da regione a regione: l'app non la inventa. Un «€ 0»
-       su un documento che va all'ente sarebbe una dichiarazione, non un vuoto. */
-    for (const t of [undefined, null, "", "abc", -1]) {
-      const o = terra.onereEscavazione(riepOnere(RIL_ONERE), { tariffaEuroM3: t });
-      eq(o.calcolabile, false, `tariffa ${JSON.stringify(t)} → non calcolabile`);
-      eq(o.importo, null, "e l'importo è un trattino, non zero");
-    }
-    // ma una tariffa di ZERO è una scelta, non un'assenza: si calcola
-    const zero = terra.onereEscavazione(riepOnere(RIL_ONERE), { tariffaEuroM3: 0 });
-    eq(zero.calcolabile, true, "una regione che non chiede nulla è un dato, non un vuoto");
-    eq(zero.importo, 0, "e allora l'importo è davvero zero");
+  test("⛔ serieAnnuale: un anno senza rilievi di SCAVO non vale «scavati 0 m³»", () => {
+    /* Trovato guardando lo scatto: la riga dell'anno 2024 (sole riprese da
+       cumulo) diceva «Scavati 0 m³» accanto a una pastiglia tranquilla. Quello
+       zero l'ente lo legge come una dichiarazione di non-estrazione, mentre la
+       verità è che il fronte non l'ha rilevato nessuno.
+       ⚠️ `misurabile` NON copre questo caso: parla del titolo nel suo insieme
+       e resta vero mentre il singolo anno è cieco — per questo serve
+       `rilieviScavo` sulla riga. */
+    const S = terra.serieAnnuale(RIL_ONERE, AUT_ONERE, new Date("2026-08-01T00:00:00"));
+    const y = S.find(x => x.anno === 2026);
+    ok(y && y.rilieviScavo === 2, `l'anno misurato porta la conta dei rilievi di scavo: ${y && y.rilieviScavo}`);
+    const soloCumulo = terra.serieAnnuale([RIL_ONERE[2]], AUT_ONERE, new Date("2026-08-01T00:00:00"));
+    eq(soloCumulo.length, 1, "l'anno di solo cumulo compare comunque nello storico");
+    eq(soloCumulo[0].rilieviScavo, 0, "ma con ZERO rilievi di scavo: la pagina scrive «Scavo non misurato»");
+    ok(soloCumulo[0].cumulo > 0, "e il cumulo ripreso resta, perche' quello e' stato misurato davvero");
   });
-  test("⛔ onereEscavazione: un anno con SOLO CUMULO non vale «zero dovuto»", () => {
+
+  test("⛔ TERRA NON FA EURO: la base è in metri cubi, l'aliquota vive in Conti", () => {
+    /* La prima versione moltiplicava per una tariffa €/m³ e restituiva un
+       importo: era la TERZA scrittura della regola di `canonePeriodo` (Conti),
+       che l'aliquota ce l'ha davvero, sa scegliere fra €/t e €/m³ e per lo
+       scavato legge `misuratoPeriodo` di shared/. E la pagina di Terra scrive
+       al cliente «il conto in euro non lo fa Terra»: il modulo contraddiceva
+       in silenzio una decisione dichiarata a schermo.
+       ⚠️ `nomi-doppi.mjs` non poteva vederlo: i nomi erano diversi. Quel
+       controllo prende lo stesso NOME in due app, non la stessa REGOLA. */
+    const o = terra.baseOnereEscavazione(riepOnere(RIL_ONERE), { volumeDetrattoM3: 2000 });
+    for (const k of ["importo", "tariffa", "euro", "dovuto"])
+      eq(o[k], undefined, `la base non porta «${k}»: l'euro non si calcola qui`);
+    const f = terra.descriviBaseOnere(o);
+    ok(!/€/.test(f), `e la frase non nomina nessun importo: «${f}»`);
+    ok(/Conti/.test(f), "ma dice dove si fa il conto, invece di lasciare un buco");
+  });
+  test("⛔ baseOnereEscavazione: un anno con SOLO CUMULO non vale «zero dovuto»", () => {
     /* È il caso che ha cambiato il disegno. Un rilievo di cumulo misura IL
        MUCCHIO, non il fronte: di quanto sia stato tolto dal fronte quell'anno
-       non si sa niente. Scrivere «€ 0» all'ente sarebbe dichiarare in difetto
+       non si sa niente. Scrivere «0 m³» all'ente sarebbe dichiarare in difetto
        una cosa che nessuno ha misurato. */
-    const soloCumulo = terra.onereEscavazione(riepOnere([RIL_ONERE[2]]), { tariffaEuroM3: 0.52 });
+    const soloCumulo = terra.baseOnereEscavazione(riepOnere([RIL_ONERE[2]]));
     eq(soloCumulo.calcolabile, false, "un rilievo c'è, ma non misura il fronte");
-    eq(soloCumulo.importo, null, "quindi niente importo");
+    eq(soloCumulo.imponibile, null, "quindi niente imponibile: un trattino, non zero");
     ok(/non misurato/.test(soloCumulo.motivo),
       "e il motivo deve dire che «zero misurato» e «non misurato» non sono la stessa cosa");
-    const nessunRilievo = terra.onereEscavazione(riepOnere([], 2025), { tariffaEuroM3: 0.52 });
+    const nessunRilievo = terra.baseOnereEscavazione(riepOnere([], 2025));
     eq(nessunRilievo.calcolabile, false, "e un anno senza nessun rilievo idem");
   });
 
-  test("descriviOnere: la frase che va all'ente la scrive il modulo, non la pagina", () => {
-    const o = terra.onereEscavazione(riepOnere(RIL_ONERE), { tariffaEuroM3: 0.52, volumeDetrattoM3: 2000 });
-    const f = terra.descriviOnere(o);
+  test("descriviBaseOnere: la frase che va all'ente la scrive il modulo, non la pagina", () => {
+    const o = terra.baseOnereEscavazione(riepOnere(RIL_ONERE), { volumeDetrattoM3: 2000 });
+    const f = terra.descriviBaseOnere(o);
     ok(/18\.000 m³/.test(f), `l'imponibile va scritto all'italiana: «${f}»`);
-    ok(/0,52 €\/m³/.test(f), "e la tariffa con la virgola");
-    ok(/€ 9\.360,00/.test(f), "e l'importo con due decimali");
-    // ⛔ e quando non si calcola, la frase E' il motivo: non «€ 0», non un vuoto
-    const senza = terra.descriviOnere(terra.onereEscavazione(riepOnere(RIL_ONERE), {}));
-    ok(/tariffa/i.test(senza) && !/€/.test(senza),
-      `senza tariffa la frase dice perche', e non nomina nessun importo: «${senza}»`);
+    ok(/2\.000 m³ detratti/.test(f), "e la detrazione va detta, non nascosta nel totale");
+    // ⛔ e quando non si dichiara, la frase E' il motivo: non «0 m³», non un vuoto
+    const senza = terra.descriviBaseOnere(terra.baseOnereEscavazione(riepOnere([], 2025)));
+    ok(/non misurato/.test(senza) && !/^Volume scavato/.test(senza),
+      `senza rilievi la frase dice perche': «${senza}»`);
   });
 
   test("⛔ volumeMisuratoDiLotto usa rilievoUsabile, non una sesta copia a mano", () => {

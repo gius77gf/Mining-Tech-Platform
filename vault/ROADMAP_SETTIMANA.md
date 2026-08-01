@@ -2051,6 +2051,28 @@ campi interi, file delle macchine.
       Serve a **impedire il lavoro sbagliato**: chi riprendesse dalla scheda
       vecchia scriverebbe strati dati che esistono, l'errore che `CLAUDE.md`
       elenca fra i più costosi con quattro casi datati.
+- [x] ✅ **TERRA NON FA EURO — E LA MIA FUNZIONE LO FACEVA** *(01/08, Terra)* —
+      andando a scrivere «la pagina di stampa del riepilogo annuale», due
+      sorprese. La prima: **la pagina esiste già** (`fogliaStampa`), mancava
+      solo la sezione dell'onere. La seconda è un difetto **mio, di poche ore
+      prima**: `onereEscavazione` moltiplicava per una tariffa e restituiva
+      euro, mentre la pagina di Terra **scrive al cliente** «il conto in euro
+      non lo fa Terra, l'aliquota si imposta in Conti» — e `canonePeriodo` di
+      Conti fa già tutto, meglio (€/t o €/m³, base venduto/scavato, e per lo
+      scavato legge `misuratoPeriodo` di `shared/`). Era la **terza scrittura
+      della stessa regola**. ⚠️ `nomi-doppi.mjs` non poteva vederlo: prende lo
+      stesso *nome* in due app, non la stessa *regola* con due nomi. Corretto:
+      `baseOnereEscavazione` / `descriviBaseOnere` restano in **metri cubi** e
+      rimandano a Conti. Sezione «Base per l'onere» aggiunta al foglio da
+      consegnare. E poi **lo stesso difetto dell'unità precedente, un'ora dopo**:
+      il caso «non dichiarabile» non si vedeva perché la dimostrazione non aveva
+      un anno senza rilievi di scavo — aggiunto `r7` (2024, sole riprese da
+      cumulo). Che ha subito fatto emergere un **secondo zero tranquillo**: la
+      riga dell'anno diceva «Scavati 0 m³» dove il fronte non l'aveva rilevato
+      nessuno; ora `serieAnnuale` porta `rilieviScavo` e la riga scrive «Scavo
+      non misurato». Prove **1113 → 1114**, tutt'e due con controprova.
+      ⚠️ `numeri-nei-documenti` è caduta 3 volte e aveva ragione: prova aggiunta
+      senza aggiornare i documenti che la contano (1.476 → 1.477).
 - [x] ✅ **TRE DIFESE CHE NESSUNO POTEVA VEDERE** *(01/08, Scudo)* — il debito
       dichiarato dal cantiere di Scudo (cinque righe nuove mai guardate a
       schermo) si è rivelato un'altra cosa: lo scatto ne trovava **due**, e non

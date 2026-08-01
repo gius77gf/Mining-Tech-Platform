@@ -92,6 +92,17 @@ export const DEMO = {
     // rilievo dell'anno prima: serve al contatore vita cava per avere uno
     // storico abbastanza lungo da stimare il ritmo medio annuo
     { id: "r0", titolo: "Rilievo drone 20/11", data: "2025-11-20", tipo: "Ortofoto + DEM", volumeM3: 22000, stato: "elaborato", metodo: "RTK", gsd: "2", fronteId: "f1" },
+    /* ⛔ UN ANNO CON SOLO UNA RIPRESA DA CUMULO, e nessun rilievo del fronte.
+       È l'anno fiacco in cui si è solo rimosso materiale dal piazzale e nessuno
+       ha rilevato la parete — e senza di lui il caso più delicato del riepilogo
+       annuale non lo vedeva nessuno: `baseOnereEscavazione` risponde «non
+       dichiarabile» invece di «0 m³», perché un rilievo del cumulo misura il
+       MUCCHIO, non il fronte, e uno zero su un foglio che va all'ente sarebbe
+       una dichiarazione in difetto su una cosa mai misurata.
+       Stessa ragione per cui la dimostrazione di Conti contiene una fattura
+       senza scadenza e quella di Scudo un documento senza stato: un dato
+       assente è uno stato che il prodotto sa raccontare. */
+    { id: "r7", titolo: "Ripresa da cumulo 12/09", data: "2024-09-12", tipo: "Ortofoto + DEM", volumeM3: 3100, stato: "elaborato", metodo: "RTK", gsd: "2", fronteId: null, provenienza: "cumulo" },
   ],
   piano: [
     { id: "p1", titolo: "Autorizzazione vigente", dettaglio: "Scadenza 2029", stato: "vigente", pianificatoAnnuoM3: 125000, riserveM3: 1200000 },
@@ -800,9 +811,20 @@ export function riepilogoAnnuale(rilievi, anno, autorizzazione, oggi = new Date(
    intere» e che in alcune regioni va presentata **anche se non si è estratto
    nulla**.
 
-   ⛔ LA TARIFFA NON STA NEL CODICE. Cambia da regione a regione e da titolo a
-   titolo: la scrive il cliente nella scheda del titolo. Senza, la risposta non
-   è zero — è «non calcolabile», con scritto dove si imposta.
+   ⛔ QUI NON SI FANNO EURO, E LA RAGIONE È COSTATA UNA CORREZIONE. La prima
+   versione di questa funzione moltiplicava per una tariffa €/m³ e restituiva un
+   importo. Era una **terza scrittura della stessa regola**: `canonePeriodo` di
+   Conti fa già il conto in euro, con l'aliquota impostata dall'organizzazione,
+   la scelta fra €/t e €/m³ e la base «venduto o scavato» — e per lo scavato usa
+   `misuratoPeriodo` di `shared/dw-ponti.js`, la stessa che usa Terra. Non solo:
+   la pagina di Terra **scrive al cliente** «il conto in euro non lo fa Terra,
+   l'aliquota si imposta in Conti», quindi il modulo contraddiceva in silenzio
+   una decisione che il prodotto dichiara a schermo.
+   ⚠️ E `nomi-doppi.mjs` non poteva vederlo: i due nomi sono diversi
+   (`onereEscavazione` contro `canonePeriodo`). Quel controllo prende lo stesso
+   NOME esportato da due app, non la stessa REGOLA scritta con due nomi.
+   Terra tiene quello che è suo — i **metri cubi**: lordo, detratto per recupero,
+   imponibile, con la banda d'incertezza. L'euro lo fa Conti.
 
    ⛔ E SI PAGA LO SCAVO, NON IL CUMULO. È la stessa convenzione con cui in
    tutta Terra il cumulo non consuma il concesso: un cumulo ripreso è materiale
@@ -821,17 +843,12 @@ export function riepilogoAnnuale(rilievi, anno, autorizzazione, oggi = new Date(
    motivo dice esplicitamente che «zero misurato» e «non misurato» all'ente non
    sono la stessa cosa, così chi non ha davvero estratto niente lo dichiara
    invece di lasciarlo dedurre. */
-export function onereEscavazione(riepilogo, opzioni = {}) {
+export function baseOnereEscavazione(riepilogo, opzioni = {}) {
   const R = riepilogo || {}, o = opzioni || {};
   const avvisi = [];
-  const tar = o.tariffaEuroM3;
-  const tariffaImpostata = !(tar == null || tar === "") && Number.isFinite(+tar) && +tar >= 0;
-  if (!tariffaImpostata)
-    return { calcolabile: false, importo: null, avvisi,
-      motivo: "La tariffa al metro cubo non è impostata: cambia da regione a regione e da titolo a titolo, quindi l'app non la inventa. Scrivila nella scheda del titolo e il conto si fa da sé." };
   if (!R.rilieviScavo)
-    return { calcolabile: false, importo: null, avvisi,
-      motivo: `Nessun rilievo di scavo nel ${R.anno}: il volume dell'anno non è stato misurato, quindi l'onere non si può calcolare. Se in quest'anno non si è estratto nulla va dichiarato a parte — per l'ente «zero misurato» e «non misurato» non sono la stessa cosa.` };
+    return { calcolabile: false, imponibile: null, avvisi,
+      motivo: `Nessun rilievo di scavo nel ${R.anno}: il volume dell'anno non è stato misurato, quindi la base dell'onere non si può dichiarare. Se in quest'anno non si è estratto nulla va dichiarato a parte — per l'ente «zero misurato» e «non misurato» non sono la stessa cosa.` };
 
   const det = o.volumeDetrattoM3;
   const detNumerico = !(det == null || det === "") && Number.isFinite(+det);
@@ -845,7 +862,6 @@ export function onereEscavazione(riepilogo, opzioni = {}) {
   return {
     calcolabile: true, motivo: "",
     lordo, detratto: r2(detratto), imponibile,
-    tariffa: r2(tar), importo: r2(imponibile * (+tar)),
     // la banda d'incertezza del volume: il riepilogo la calcola già, e questo è
     // l'unico foglio in circolazione che la dichiara invece di nasconderla
     banda: r2(R.banda || 0),
@@ -853,24 +869,27 @@ export function onereEscavazione(riepilogo, opzioni = {}) {
   };
 }
 
-/* LA RIGA DELL'ONERE COM'È SCRITTA SUL FOGLIO. Sta qui e non nella pagina per
+/* LA RIGA DELLA BASE COM'È SCRITTA SUL FOGLIO. Sta qui e non nella pagina per
    la stessa ragione di `descriviOrigine`: la frase che va all'ente è una
    REGOLA, non un disegno, e chi la scrive deve essere uno solo.
-   ⚠️ E c'è una seconda ragione, imparata subito: `onereEscavazione` dichiara
+   ⚠️ E c'è una seconda ragione, imparata subito: `baseOnereEscavazione` dichiara
    `calcolabile`, e una bandiera che non legge nessuno non protegge niente —
    la regola 20 di `run-stile.mjs` ha bocciato la funzione dieci minuti dopo che
    l'avevo scritta, perché il modulo la restituiva e basta. Il lettore giusto è
    questo, dentro il modulo: la pagina di stampa non deve sapere né decidere
-   come si racconta un onere che non si può calcolare. */
-export function descriviOnere(onere) {
-  const o = onere || {};
-  if (!o.calcolabile) return o.motivo || "Onere non calcolabile.";
-  const eur = (n) => Number(n).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true });
+   come si racconta una base che non si può dichiarare.
+   ⛔ La frase finisce **in metri cubi** e dice dove si fa l'euro: scriverlo qui
+   sarebbe la terza copia della regola di `canonePeriodo`. */
+export function descriviBaseOnere(base) {
+  const o = base || {};
+  if (!o.calcolabile) return o.motivo || "Base dell'onere non dichiarabile.";
   const m3 = (n) => Number(n).toLocaleString("it-IT", { maximumFractionDigits: 0, useGrouping: true });
   return `Volume scavato ${m3(o.lordo)} m³`
     + (o.detratto ? `, meno ${m3(o.detratto)} m³ detratti per recupero` : "")
-    + `: imponibile ${m3(o.imponibile)} m³ × ${eur(o.tariffa)} €/m³ = € ${eur(o.importo)}.`
-    + (o.banda ? ` Incertezza del volume dichiarata: ± ${m3(o.banda)} m³.` : "");
+    + `: imponibile ${m3(o.imponibile)} m³.`
+    + (o.banda ? ` Incertezza del volume dichiarata: ± ${m3(o.banda)} m³.` : "")
+    + " L'importo dovuto si ottiene applicando l'aliquota della concessione,"
+    + " che si imposta in Deepwork Conti.";
 }
 
 // LA RIPARTIZIONE PER FRONTE, pronta da mostrare. Sta qui e non nella pagina
@@ -912,7 +931,13 @@ export function ripartizioneFronti(riepilogo) {
 export function serieAnnuale(rilievi, autorizzazione, oggi = new Date()) {
   return anniConVolumi(rilievi, oggi).sort((x, z) => x - z).map(anno => {
     const r = riepilogoAnnuale(rilievi, anno, autorizzazione, oggi);
+    /* ⛔ `rilieviScavo` esce da qui, e non è un di più: senza, la riga
+       dell'anno scriveva «Scavati 0 m³» anche in un anno in cui il fronte non
+       l'ha rilevato NESSUNO — quello zero l'ente lo legge come «non ho estratto
+       niente». `misurabile` non copre questo caso: parla del TITOLO (pregresso
+       + rilievi complessivi), e resta vero mentre il singolo anno è cieco. */
     return { anno, scavo: r.scavo, cumulo: r.cumulo, rilievi: r.rilieviScavo + r.rilieviCumulo,
+      rilieviScavo: r.rilieviScavo,
       cumulato: r.cumulatoFineAnno, pct: r.pctFineAnno, misurabile: r.misurabile, inCorso: r.inCorso };
   });
 }
