@@ -2051,6 +2051,19 @@ campi interi, file delle macchine.
       Serve a **impedire il lavoro sbagliato**: chi riprendesse dalla scheda
       vecchia scriverebbe strati dati che esistono, l'errore che `CLAUDE.md`
       elenca fra i più costosi con quattro casi datati.
+- [x] ✅ **«NON SI SA» CONTRO «NON SI SALTA»** *(01/08)* — lette a mano le
+      undici occorrenze, e la prima riga di Conti era: «così **non si salta** e
+      non si duplica». La ricerca era una sottostringa **senza confine di
+      parola**, e pescava anche «non si salva». Corretto con una regola
+      leggibile — fine di parola, oppure una delle **code dichiarate** («nno»,
+      «prà»…), perché in italiano «non si sanno» è lo stesso stato — e con
+      cinque prove **dentro la misura**, che si ferma con uscita 1 se cadono.
+      Occorrenze 42 → **40**. E finalmente la classificazione, che era il
+      punto: delle undici, sei sono **già sorvegliate o non sono stati** (due
+      falsi positivi, una validazione, un testo esplicativo) e **cinque sono
+      stati veri che nessun banco guarda** — due in Flotta, due in Conti, uno
+      in Terra. I sei chiusi restano **dichiarati**, così nessuno rifà la
+      strada.
 - [x] ✅ **56, POI 53, POI 42 — E SOLO L'ULTIMO VALE** *(01/08)* — con il
       tokenizzatore finalmente disponibile, fra le righe «senza commenti»
       comparivano commenti: `// I KPI non si salvano mai…`. Causa mia:

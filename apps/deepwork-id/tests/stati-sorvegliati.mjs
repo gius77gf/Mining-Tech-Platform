@@ -73,8 +73,30 @@ export const FRASI = [
 export function frasiDette(testo) {
   const t = senzaCommenti(String(testo || "")).toLowerCase();
   const fuori = new Set();
-  for (const f of FRASI) if (t.includes(f)) fuori.add(f);
+  for (const f of FRASI) if (dice(t, f)) fuori.add(f);
   return fuori;
+}
+
+/* ⛔ LA FRASE DEVE FINIRE DOVE FINISCE LA PAROLA. Cercandola come semplice
+   sottostringa, «non si sa» trovava **«non si salta»** — in Conti, dentro la
+   spiegazione della numerazione progressiva dei DDT, che col principio non
+   c'entra niente. Stesso inganno per «non si salva», che nei moduli è di casa.
+   Si accetta invece quello che continua la STESSA parola in modo legittimo
+   («non si sanno», «non si saprà»): la differenza è che lì la frase non è
+   seguita da una consonante che ne fa un'altra parola. Regola: dopo la frase
+   ci può stare fine-parola, oppure una lettera che la coniuga — e le forme
+   ammesse si dichiarano, invece di tirare a indovinare con una regex furba. */
+const CODE = { "non si sa": ["nno", "prà", "pranno", "peva"] };
+export function dice(testo, frase) {
+  let i = testo.indexOf(frase);
+  while (i >= 0) {
+    const dopo = testo.slice(i + frase.length);
+    if (!/^[a-zàèéìòù]/.test(dopo)) return true;                    // finisce la parola
+    const code = CODE[frase] || [];
+    if (code.some((c) => dopo.startsWith(c))) return true;          // coniugazione ammessa
+    i = testo.indexOf(frase, i + 1);
+  }
+  return false;
 }
 
 /* Le frasi che il banco guarda. I suoi motivi sono espressioni regolari
@@ -88,6 +110,23 @@ export function frasiSorvegliate(testoBanco) {
     for (const f of FRASI) if (nudo.includes(f)) fuori.add(f);
   }
   return { frasi: fuori, quantiMotivi: motivi.length };
+}
+
+/* ⛔ IL CONFINE DI PAROLA SI PROVA QUI, non altrove: e' una regola, e una
+   regola senza prova e' una promessa. Cinque casi, e i primi due sono i
+   difetti veri trovati leggendo l'elenco a mano. */
+const PROVE_DICE = [
+  ["così non si salta e non si duplica", "non si sa", false],
+  ["il costo non si salva mai", "non si sa", false],
+  ["senza scadenza: non si sa entro quando", "non si sa", true],
+  ["di questi non si sanno le date", "non si sa", true],
+  ["non si saprà mai", "non si sa", true],
+];
+const sbagliate = PROVE_DICE.filter(([t, f, atteso]) => dice(t, f) !== atteso);
+if (sbagliate.length) {
+  console.log(`⛔ IL CONFINE DI PAROLA È ROTTO: ${sbagliate.length} casi su ${PROVE_DICE.length}`);
+  for (const [t] of sbagliate) console.log(`   ${JSON.stringify(t)}`);
+  process.exit(1);
 }
 
 const banco = readFileSync(join(QUI, "browser", "stati-non-misurati.mjs"), "utf8");
