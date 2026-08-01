@@ -2524,6 +2524,29 @@ campi interi, file delle macchine.
       riportata), la pagina stampa una percentuale **negativa** e il banco cade
       sul caso giusto (57 prove, 1 fallita). `stati-non-misurati` **56 → 58**
       prove, 26 → 30 stati cercati.
+- [x] ✅ **LA MISURA CHE SI ACCORCIAVA DA SOLA** *(01/08, Scudo + Conti + la
+      misura)* — presa la voce «non registrato» (quattro app). In **Conti** lo
+      stato è già in dimostrazione (`f5`: una fattura incassata di cui non si sa
+      quando), in **Scudo** c'era ma **mai da solo**: l'unico allarme DPI diceva
+      «da sostituire · addestramento non registrato», e la pagina accende la
+      pastiglia «Addestramento» e il bottone «Addestrato» solo quando
+      l'addestramento è l'**unica** cosa che manca — cioè pastiglia e bottone
+      erano codice morto in dimostrazione. Aggiunta una consegna (`e25`), che è
+      un'**assenza** e quindi ci sta: provata prima in scratchpad, allarmi 1 → 2
+      e **nessuno stato della matrice cambia**.
+      ⚠️ **E poi la misura ha mentito, nella direzione che rassicura**:
+      `frasiSorvegliate` restituiva **un insieme globale**, quindi una frase
+      sorvegliata in UNA app risultava sorvegliata in **tutte e sei**. Aggiunte
+      due righe, dall'elenco sparivano anche le voci di Campo, Flotta e Terra —
+      **20 → 27 «nominate»** senza che nessuno le avesse guardate. È la lista con
+      cui si sceglie da dove cominciare: se si sgonfia da sé, manda la prossima
+      unità altrove. Corretta con l'attribuzione **app per app** (segmenti dal
+      marcatore `['scudo', …]`, più `FOGLI_CONTI` e `CARTELLE` dichiarati in
+      `SEZIONI`). Numeri veri: 40 occorrenze, **11** nominate, 38 motivi in 23
+      segmenti, 0 senza app. Controprova dentro il file: rimessa la riga globale
+      (11 caratteri) la misura **si ferma** e dice quale app si prende una frase
+      che non dice. Tolto anche un numero contato a mano nell'intestazione.
+      `stati-non-misurati` **58 → 63** prove, 30 → 32 stati.
 
 ---
 

@@ -58,6 +58,21 @@ const CASI = [
   ['scudo', 'ispezione chiusa a metà', '#nav-isp', null, '#isp-list', /chiusa a metà/i],
   ['scudo', 'nomina senza data', '#nav-pers', 'nom', '#nom-list', /senza data di nomina/i],
   ['scudo', 'lavoratore senza scadenze', '#nav-pers', 'lav', '#pers-list', /nessuna scadenza/i],
+  /* ⛔ Prima voce della classifica «non registrato», che quattro app dicono.
+     Un DPI di III categoria consegnato e valido, con l'addestramento (art. 77)
+     mai registrato: l'app lo tiene fra le cose da sistemare invece di leggere
+     la consegna come «a posto».
+     ⚠️ La riga nomina LA PERSONA, e `vietato` esclude l'altro motivo: in
+     dimostrazione c'è anche una riga che dice «da sostituire · addestramento
+     non registrato», e con una regex sulla sola frase il banco avrebbe trovato
+     QUELLA — cioè avrebbe portato il nome di un caso e provato l'altro (caso 1
+     della tassonomia). La riga che conta è quella in cui l'addestramento è
+     l'unica cosa che manca: è la sola che accende la pastiglia
+     «Addestramento» e il bottone «Addestrato». */
+  ['scudo', 'DPI valido con l\'addestramento mai registrato', '#nav-pers', 'dpi', '#dpi-allarmi',
+    /Paolo Gallo[\s\S]*addestramento non registrato/i, null,
+    { vietato: /da sostituire/i,
+      perche: 'questa riga ha un motivo solo: l\'addestramento che manca' }],
   /* stessa forma di Sentinella: la riga dell'anno diceva «Scavati 0 m³» dove
      il fronte non l'aveva rilevato nessuno, e quello zero l'ente lo legge come
      una dichiarazione. Non basta che compaia «Scavo non misurato»: accanto non
@@ -158,6 +173,16 @@ const CASI = [
      e il pannello ne mostra tre. Terzo dei cinque stati veri. */
   ['conti', 'da fare adesso: la fattura senza scadenza compare', '#nav-dash', null, '#prio-list',
     /non si sa entro quando/i],
+  /* ⛔ Seconda voce della classifica «non registrato». Una fattura segnata
+     come incassata di cui NON si sa quando i soldi sono arrivati: la riga lo
+     scrive, invece di limitarsi a dire «incassata» e lasciar credere che
+     l'incasso sia tracciato. È lo stesso principio della fattura senza
+     scadenza, dall'altra parte del ciclo — e ha un effetto concreto: senza la
+     data la fattura non entra nei giorni medi di pagamento.
+     La dimostrazione lo produce già (`f5`), quindi qui non si aggiungono dati:
+     si sorveglia. Il filtro dell'elenco parte da «tutte», nessun gesto serve. */
+  ['conti', 'fattura incassata di cui non si sa quando', '#nav-fat', null, '#fat-list',
+    /incassata, data non registrata/i],
   /* ⛔ IL CASO PIÙ NETTO PER IL `vietato`. Una pesata venduta a metro cubo
      senza densità né quantità: la riga scrive «quantità non calcolabile», e
      accanto NON ci deve essere «0 m³». Qui lo zero non è un colore tranquillo:

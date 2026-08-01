@@ -300,6 +300,22 @@ export const DEMO = {
     { id: "e22", lavoratoreId: "d2", tipo: "guanti", modello: "", taglia: "9", dataConsegna: "2026-05-11", scadenza: "2027-05-11", addestramento: false, dataAddestramento: null, note: "" },
     { id: "e23", lavoratoreId: "d3", tipo: "scarpe", modello: "", taglia: "38", dataConsegna: "2026-03-09", scadenza: "2028-03-09", addestramento: false, dataAddestramento: null, note: "" },
     { id: "e24", lavoratoreId: "d3", tipo: "gilet", modello: "", taglia: "M", dataConsegna: "2026-03-09", scadenza: "2028-03-09", addestramento: false, dataAddestramento: null, note: "" },
+    /* ⛔ QUESTA CONSEGNA ACCENDE DUE COSE CHE NESSUNO POTEVA VEDERE. Un DPI di
+       III categoria consegnato e in corso di validità, ma con l'addestramento
+       (art. 77 D.Lgs 81/08) mai registrato: è un'ASSENZA, e un'assenza nella
+       dimostrazione è una cosa che il prodotto sa raccontare.
+       Prima non c'era: le uniche due consegne di otoprotettori con
+       addestramento richiesto lo avevano registrato, e la terza (Luca Bianchi)
+       è **anche** scaduta — quindi la sua riga porta due motivi, la pastiglia
+       dice «Da sostituire» e il bottone «Addestrato» non compare, perché si
+       accende solo quando l'addestramento è l'UNICA cosa che manca. Risultato:
+       la pastiglia «Addestramento» e quel bottone erano codice morto in
+       dimostrazione.
+       E accende anche il secondo giro di `allarmiDpi`, quello che pesca gli
+       addestramenti FUORI dalle mansioni: l'autista dumper non ha gli
+       otoprotettori fra i DPI della sua mansione, e il commento di quel giro
+       dice esattamente perché va segnalato lo stesso. */
+    { id: "e25", lavoratoreId: "d5", tipo: "otoprotettori", modello: "inserti", taglia: "unica", dataConsegna: "2026-05-18", scadenza: "2029-05-18", addestramento: false, dataAddestramento: null, note: "" },
   ],
 };
 

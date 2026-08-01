@@ -28,7 +28,10 @@
      dalla regola 20 di `run-stile.mjs` (le bandiere di non-misurabilità);
    · sullo SCHERMO, da `browser/stati-non-misurati.mjs`, che pretende che gli
      stati «non misurato» si vedano davvero.
-   Il banco ne guarda diciassette. Questa misura elenca **gli altri posti dove
+   Il banco ne guarda una parte — quanti, lo conta lui stesso quando gira, e
+   qui non si riscrive a mano: un numero contato a mente in un'intestazione è
+   il difetto che `copertura-funzioni.mjs` esiste per non ripetere. Questa
+   misura elenca **gli altri posti dove
    il prodotto dice «non lo so»**, così che la prossima unità sappia da dove
    cominciare invece di sceglierli a intuito.
 
@@ -99,17 +102,50 @@ export function dice(testo, frase) {
   return false;
 }
 
-/* Le frasi che il banco guarda. I suoi motivi sono espressioni regolari
-   scritte a mano: si prende il loro TESTO e ci si cerca dentro il vocabolario,
-   che è il modo onesto di dire «questo banco parla di questa cosa». */
+/* Le frasi che il banco guarda, **APP PER APP**. I suoi motivi sono espressioni
+   regolari scritte a mano: si prende il loro TESTO e ci si cerca dentro il
+   vocabolario, che è il modo onesto di dire «questo banco parla di questa cosa».
+
+   ⛔ E L'«APP PER APP» È UNA CORREZIONE, non un vezzo. Fino al 01/08 questa
+   funzione restituiva **un insieme solo**, globale: una frase sorvegliata in
+   UNA app risultava sorvegliata in **tutte e sei**. Il difetto si è visto
+   usandola — aggiunte due righe al banco (una in Scudo, una in Conti) sulla
+   voce «non registrato», dall'elenco sono sparite anche quelle di **Campo,
+   Flotta e Terra**, che nessuno aveva guardato: 20 frasi «nominate» diventate
+   27 con due righe. È la forma peggiore, quella che **rassicura**: la lista di
+   lavoro si accorcia da sé, e i posti tolti sembrano a posto.
+
+   Come si attribuisce: il banco dichiara l'app in testa a ogni riga
+   (`['scudo', …]`), quindi il file si taglia in **segmenti** — ogni marcatore
+   possiede il testo fino al successivo — e i motivi di un segmento contano per
+   l'app di quel marcatore. Due elenchi non portano l'app in ogni riga e sono
+   dichiarati qui: `FOGLI_CONTI` (i DDT di Conti) e `CARTELLE` (le cartelle dei
+   lavoratori di Scudo). Un elenco nuovo senza app va aggiunto a `SEZIONI`,
+   altrimenti i suoi motivi finiscono all'app del marcatore precedente. */
+const SEZIONI = { FOGLI_CONTI: "conti", CARTELLE: "scudo" };
 export function frasiSorvegliate(testoBanco) {
-  const motivi = String(testoBanco || "").match(/\/[^/\n]{3,}\/i/g) || [];
-  const fuori = new Set();
-  for (const m of motivi) {
-    const nudo = m.slice(1, -2).replace(/\\[sbd]|\[[^\]]*\]|[*+?(){}|^$]/g, " ").toLowerCase();
-    for (const f of FRASI) if (nudo.includes(f)) fuori.add(f);
+  const testo = String(testoBanco || "");
+  const marcatori = [];
+  const rigaApp = new RegExp(`\\[\\s*'(${APP.join("|")})'`, "g");
+  for (let m; (m = rigaApp.exec(testo)); ) marcatori.push({ i: m.index, app: m[1] });
+  for (const [nome, app] of Object.entries(SEZIONI)) {
+    const i = testo.indexOf(`const ${nome} = [`);
+    if (i >= 0) marcatori.push({ i, app });
   }
-  return { frasi: fuori, quantiMotivi: motivi.length };
+  marcatori.sort((a, b) => a.i - b.i);
+  const perApp = new Map(APP.map((a) => [a, new Set()]));
+  let quantiMotivi = 0, senzaPadrone = 0;
+  const dentro = /\/[^/\n]{3,}\/i/g;
+  for (let m; (m = dentro.exec(testo)); ) {
+    quantiMotivi++;
+    /* l'ultimo marcatore che comincia PRIMA di questo motivo: è il proprietario */
+    let padrone = null;
+    for (const k of marcatori) { if (k.i > m.index) break; padrone = k; }
+    if (!padrone) { senzaPadrone++; continue; }
+    const nudo = m[0].slice(1, -2).replace(/\\[sbd]|\[[^\]]*\]|[*+?(){}|^$]/g, " ").toLowerCase();
+    for (const f of FRASI) if (nudo.includes(f)) perApp.get(padrone.app).add(f);
+  }
+  return { perApp, quantiMotivi, segmenti: marcatori.length, senzaPadrone };
 }
 
 /* ⛔ IL CONFINE DI PAROLA SI PROVA QUI, non altrove: e' una regola, e una
@@ -129,11 +165,38 @@ if (sbagliate.length) {
   process.exit(1);
 }
 
+/* ⛔ E L'ATTRIBUZIONE SI PROVA QUI, con la sua controprova incorporata: è la
+   regola nuova, e una regola senza prova è una promessa. Il banco finto dice
+   «non registrato» in una riga di **scudo** e niente in quella di **flotta**.
+   La risposta giusta è che flotta resti VUOTA; la versione globale di prima
+   gliela avrebbe attribuita. */
+const BANCO_FINTO = `
+const CASI = [
+  ['scudo', 'un caso', '#nav-x', null, '#x', /addestramento non registrato/i],
+  ['flotta', 'un altro', '#nav-y', null, '#y', /costo aperto/i],
+];
+const FOGLI_CONTI = [
+  ['s1', 'un foglio', { causale: /causale non indicata/i }],
+];`;
+{
+  const p = frasiSorvegliate(BANCO_FINTO);
+  const male = [];
+  if (!p.perApp.get("scudo").has("non registrato")) male.push("scudo non vede la frase che dice");
+  if (p.perApp.get("flotta").size) male.push("flotta si prende una frase che non dice");
+  if (!p.perApp.get("conti").has("non indicata")) male.push("FOGLI_CONTI non va a Conti");
+  if (p.senzaPadrone) male.push(`${p.senzaPadrone} motivi senza app`);
+  if (male.length) {
+    console.log(`⛔ L'ATTRIBUZIONE APP PER APP È ROTTA: ${male.length} casi su 4`);
+    for (const x of male) console.log(`   ${x}`);
+    process.exit(1);
+  }
+}
+
 const banco = readFileSync(join(QUI, "browser", "stati-non-misurati.mjs"), "utf8");
 const sorv = frasiSorvegliate(banco);
 
 console.log("═══ DOVE IL PRODOTTO DICE «NON LO SO» E NESSUN BANCO GUARDA ═══\n");
-console.log(`Vocabolario: ${FRASI.length} frasi · il banco dichiara ${sorv.quantiMotivi} motivi`);
+console.log(`Vocabolario: ${FRASI.length} frasi · il banco dichiara ${sorv.quantiMotivi} motivi\n   in ${sorv.segmenti} segmenti, attribuiti app per app (${sorv.senzaPadrone} senza app)`);
 console.log("⚠️ Un motivo del banco può guardare uno stato CON ALTRE PAROLE: qui");
 console.log("   sotto ci sono candidati da guardare a mano, non una copertura.\n");
 
@@ -165,8 +228,12 @@ for (const app of APP) {
       if (FRASI.some((f) => nudo.toLowerCase().includes(f))) residui.push(`${app}/${f}: ${nudo.slice(0, 70)}`);
     }
   }
-  const coperte = [...dette].filter((f) => sorv.frasi.has(f));
-  const scoperte = [...dette].filter((f) => !sorv.frasi.has(f));
+  /* ⛔ `sorv.perApp.get(app)`, non l'insieme globale: vedi la ragione sopra
+     `frasiSorvegliate`. Con il globale questa riga diceva «coperta» per una
+     frase che il banco guarda in un'ALTRA app. */
+  const guarda = sorv.perApp.get(app) || new Set();
+  const coperte = [...dette].filter((f) => guarda.has(f));
+  const scoperte = [...dette].filter((f) => !guarda.has(f));
   totDette += dette.size; totCoperte += coperte.length;
   for (const f of scoperte) scoperteTutte.set(f, (scoperteTutte.get(f) || 0) + 1);
   console.log(`${app.padEnd(11)} dice ${String(dette.size).padStart(2)} frasi · da guardare: ${scoperte.join(", ") || "(nessuna)"}`);
