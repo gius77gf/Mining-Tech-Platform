@@ -97,6 +97,20 @@ if (execSync("git rev-parse --is-shallow-repository", { cwd: RADICE, encoding: "
   console.error("  Rimedio: `fetch-depth: 0` sul passo actions/checkout che lancia le suite.\n");
   process.exit(1);
 }
+/* ⚠️ E IL FUSO ORARIO QUI NON C'ENTRA — misurato, dopo aver creduto il
+   contrario e aver quasi «corretto» un difetto che non esiste.
+   Il sospetto era ragionevole: `git log --date=short` sembra rendere la data
+   nel fuso di chi guarda, quindi lo stesso commit delle 23:30 UTC si leggerebbe
+   «domani» a Roma — e il controllo darebbe due risposte diverse sullo stesso
+   repository, che è il difetto descritto in CLAUDE.md applicato a sé stesso.
+   **Falso.** `--date=short` rende la data nell'offset REGISTRATO NEL COMMIT
+   (qui `+0000`), non in quello di chi legge: è `--date=local` a seguire il
+   lettore. Provato sullo stesso commit in UTC, Asia/Tokyo e
+   Pacific/Kiritimati (+14): **stessa data tutte e tre le volte**, mentre
+   `--date=local` cambia come previsto.
+   Quindi niente `TZ` da fissare: sarebbe stata una riga che non fa niente, con
+   accanto un commento che spiega una trappola inesistente — e un commento
+   sbagliato è peggio della riga, perché lo crede anche il prossimo. */
 const git = execSync(
   "git log --diff-filter=A --format='C %ad' --date=short --name-only -- vault/checkpoints/",
   { cwd: RADICE, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
