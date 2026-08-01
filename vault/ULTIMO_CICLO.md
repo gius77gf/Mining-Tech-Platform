@@ -5,12 +5,15 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-08-01 **03:43 UTC**
-**Commit di partenza:** `04f5ce6`
-**Cosa sta per fare:** leggere fino in fondo il **giro completo del browser**
-(in corso da un'ora sul codice finale, su una copia congelata), poi saldare il
-debito visivo dichiarato: le **cinque righe nuove di Scudo** che il loro
-cantiere non ha potuto guardare a schermo.
+**Ultimo ciclo riuscito:** 2026-08-01 **11:29 UTC**
+**Commit di partenza:** `e85b689`
+**Cosa sta per fare:** leggere l'esito del **giro completo del browser** (39
+banchi, gia' in corso su una copia congelata: la giornata ha toccato le
+dimostrazioni di cinque app su sei e finora e' girato solo
+`stati-non-misurati`), poi ripartire dalla roadmap — il filone degli stati
+«non misurato» e' chiuso, i tre stati veri del censimento sono tutti sotto
+guardia e il resto e' dichiarato in
+`docs/QUANDO_UN_CASO_VA_IN_DIMOSTRAZIONE.md`.
 
 ⚠️ **Correzione, e riguarda proprio questo file.** La riga qui sopra diceva
 «07:45 UTC» ed è stata **scritta a mano, non misurata**: l'orologio del
