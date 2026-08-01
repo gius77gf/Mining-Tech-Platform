@@ -2051,6 +2051,16 @@ campi interi, file delle macchine.
       Serve a **impedire il lavoro sbagliato**: chi riprendesse dalla scheda
       vecchia scriverebbe strati dati che esistono, l'errore che `CLAUDE.md`
       elenca fra i più costosi con quattro casi datati.
+- [x] ✅ **IL SECONDO DEI CINQUE: LA FATTURA CHE RESTA FUORI** *(01/08, Conti)*
+      — una fattura aperta **senza data di scadenza** non è in ritardo e non è
+      nei termini: lo scadenzario incassi lo **dichiara** invece di infilarla in
+      una fascia a caso, e su un prospetto che si guarda per decidere chi
+      sollecitare una fattura nella fascia sbagliata è peggio di una fuori.
+      Banco **41/0**, 19 stati. Controprova: data una scadenza a `f7`, cade.
+      ⚠️ Il **terzo** non si è fatto trovare: «senza scadenza: non si sa entro
+      quando» c'è nel sorgente ma non compare visitando le sezioni — o sta in un
+      dettaglio che si apre con un tocco, o è un ramo che la dimostrazione non
+      raggiunge. Non dichiarato coperto, resta il prossimo.
 - [x] ✅ **IL PRIMO DEI CINQUE STATI VERI** *(01/08, Flotta)* — messo sotto
       guardia il tagliando **a ore** su un mezzo di cui non si conosce il
       ritmo: il cartellone scrive «+1 a ore: **non si sa quando**» invece di

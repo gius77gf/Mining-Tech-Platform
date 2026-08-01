@@ -87,6 +87,12 @@ const CASI = [
      stessa riga, e quella con la cifra e' la sola che si guarda. Misurato: una
      controprova che toglieva la frase e rimetteva la cifra NON faceva cadere il
      banco, perche' il badge restava e la regex lo accettava. Da qui `vietato`. */
+  /* ⛔ Una fattura aperta SENZA data di scadenza: non è in ritardo e non è nei
+     termini — «non si sa», e finché è così resta fuori dallo scadenzario, che
+     lo **dichiara** invece di metterla in una fascia a caso. Secondo dei
+     cinque stati veri; la dimostrazione lo produce già (`f7`). */
+  ['conti', 'fattura senza scadenza: resta fuori e lo dice', '#nav-rep', null, '#aging-list',
+    /non si sa, e finché/i],
   ['sentinella', 'punto in programma e mai misurato', '#nav-dash', null, '#all-list',
     /nessuna misura registrata/i, null, { vietato: /\d+[\s\u00a0]*[^\s]*\s*\/\s*soglia/i,
                                           perche: 'accanto a «mai misurato» non si scrive nessuna cifra' }],
