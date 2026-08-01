@@ -5,11 +5,22 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-08-01 07:45 UTC — **la notte in cui il
-principio del fondatore è diventato un metro per rileggere tutto**
-**Commit di partenza:** `4c3b994` · **arrivato a:** `b964a73`
-**Cosa sta facendo adesso:** il **giro completo del browser** sta girando sul
-codice finale, su una copia congelata, e va letto fino in fondo.
+**Ultimo ciclo riuscito:** 2026-08-01 **03:43 UTC**
+**Commit di partenza:** `04f5ce6`
+**Cosa sta per fare:** leggere fino in fondo il **giro completo del browser**
+(in corso da un'ora sul codice finale, su una copia congelata), poi saldare il
+debito visivo dichiarato: le **cinque righe nuove di Scudo** che il loro
+cantiere non ha potuto guardare a schermo.
+
+⚠️ **Correzione, e riguarda proprio questo file.** La riga qui sopra diceva
+«07:45 UTC» ed è stata **scritta a mano, non misurata**: l'orologio del
+contenitore dice 03:43. Un canarino serve a dire al fondatore *quando* la
+routine era viva — un'ora inventata lo rende inutile esattamente come una data
+vecchia. Da qui in avanti l'ora la scrive `date -u`, non io.
+
+---
+
+## Il blocco precedente — dodici unità *(commit `4c3b994` → `04f5ce6`)*
 
 ---
 
