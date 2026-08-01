@@ -310,8 +310,13 @@
    dei 63 del suo contenuto — 57 px di vuoto sotto il campo. Erano tre in
    Sentinella (`imp-punto`, `tar-punto`, `rep-ricettore`), e il vuoto non si
    vede leggendo il codice: si vede nello scatto.
-   ⚠️ Lo stesso `flex:1 1 120px` sta anche in Conti, Flotta, Scudo e Terra:
-   lì la correzione va fatta con i loro scatti accanto, non a scatola chiusa. */
+   ⚠️ E il resto dell'ecosistema è stato MISURATO, non supposto: la stessa
+   riga `flex:1 1 120px` sta anche in Conti, Flotta, Scudo e Terra, ma il
+   difetto ha bisogno di due cose insieme — quella base **e** una `.flab`
+   figlia diretta di un `.form.col`. Aprendo tutte le sezioni: **Scudo 0,
+   Terra 0**; Conti non ha nessun `.form.col`; Campo non ha quella base.
+   Resta da guardare solo Flotta, che ha tutt'e due. Cioè la correzione qui
+   non è la prima di cinque: è l'unica misurata finora. */
 .form.col>.flab{flex:0 0 auto}
 .form-hint b{color:var(--muted2)}
 .flab{

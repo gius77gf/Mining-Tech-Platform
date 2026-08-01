@@ -894,9 +894,12 @@ campi interi, file delle macchine.
       verde — i 253 `eq(..., null)` erano tutti `null` davvero. Commit `c9fe7cf`.
 - [x] **Il campo che si allunga da solo** (trovato guardando lo scatto):
       `.flab{flex:1 1 120px}` dentro `.form.col` è una base **verticale**, e tre
-      etichette di Sentinella erano alte 120 px invece di 63. ⚠️ Lo stesso
-      `flex` sta in **Conti, Flotta, Scudo e Terra**: là va fatto con i loro
-      scatti accanto — **rimandato, non chiuso**.
+      etichette di Sentinella erano alte 120 px invece di 63. ✅ E il resto
+      dell'ecosistema è stato **misurato invece che supposto**: il difetto
+      vuole due cose insieme (quella base **e** una `.flab` figlia diretta di
+      un `.form.col`), e aprendo tutte le sezioni **Scudo 0, Terra 0**, Conti
+      non ha `.form.col`, Campo non ha quella base. Resta da guardare **solo
+      Flotta**, che ha tutt'e due — e ha un cantiere aperto sopra.
 
 ### Difetti chiusi il 01/08 — i controlli che non guardavano dove credevano
 - [x] **La regola che vieta i dialoghi del browser era cieca.** I due

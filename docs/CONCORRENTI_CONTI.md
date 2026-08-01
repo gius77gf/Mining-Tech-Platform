@@ -1,21 +1,34 @@
-> # ⛔ AVVISO — LA COLONNA «NON C'È» NON È VERIFICATA
+> # ⛔ AVVISO — LA COLONNA «NON C'È» E' STATA VERIFICATA: UNA SU SEI ERA FALSA
 >
-> *Misurato il 01/08, subito dopo aver ricevuto queste sei ricerche.* Delle tre
-> mancanze dichiarate più ricorrenti, **due su tre erano false**:
+> *Verificate tutte e sei le app il 01/08, riga per riga contro il codice, con
+> la prova accanto a ogni verdetto (il `file:riga` se la cosa c'è, i termini
+> cercati a vuoto se non c'è). La sezione «Verifica del delta» in fondo a
+> ciascun documento porta i verdetti.*
 >
-> | dichiarato mancante | com'è davvero |
-> |---|---|
-> | Scudo: «cruscotto KPI, 10 concorrenti su 10 ce l'hanno, noi zero» | **c'è già**: indice di frequenza, indice di gravità e LTIFR sono calcolati in `scudo-data.js` e mostrati nella pagina, col caso «non calcolabile» già gestito |
-> | Conti: «solleciti di pagamento» | **ci sono già**: livelli di escalation per giorni di ritardo, mora ex D.Lgs 231/2002, bottone per fattura e sezione «chi sollecitare per primo» |
-> | Sentinella: «allarmi in tempo reale» | **vero**: nessun meccanismo di avviso esiste |
+> | app | righe | assenti confermate | **false** | a metà |
+> |---|---|---|---|---|
+> | Scudo | 16 | 10 | 2 | 4 |
+> | Sentinella | 22 | 18 | 4 | 0 |
+> | Terra | 11 | 6 | 2 | 3 |
+> | Campo | 22 | 13 | 2 | 7 |
+> | Conti | 18 | 11 | **5** | 2 |
+> | Flotta | 16 | 5 | 3 | 8 |
+> | **totale** | **105** | **63** | **18** | **24** |
 >
-> Quindi: **l'elenco delle funzioni dei concorrenti (con le fonti) vale; il
-> confronto con la nostra app no.** Ogni riga «non c'è» va riaperta e
-> rimisurata prima di diventare lavoro — è la regola che ha impedito di aprire
-> due cantieri per cose già costruite.
+> **Una mancanza dichiarata su sei non esisteva**, e va peggio dove il codice è
+> più maturo: in Conti una riga su tre e mezzo era falsa. Le più grosse: le
+> **note di credito** di Conti (impianto completo su art. 26 DPR 633/1972), la
+> **gestione guasti** di Flotta, l'**aging con le fasce e il fido**, la
+> **previsione dei giorni a scadenza** (che il documento elencava fra le cose
+> fatte dodici righe più su, contraddicendosi da solo), la **riconciliazione
+> volume misurato/dichiarato** di Terra e gli **indici infortunistici** di
+> Scudo.
 >
-> Chi legge questo documento parta dalla colonna del **mondo**, non dalla
-> colonna del **delta**.
+> Quindi: **l'elenco delle funzioni dei concorrenti, con le fonti, vale.** Il
+> delta vale **solo dove porta la sua prova**: nessuna riga diventa lavoro
+> senza passare dalla sezione di verifica. È la regola che ha impedito di
+> aprire due cantieri per cose già costruite, il giorno stesso in cui è stata
+> scritta.
 
 # Ricerca concorrenti — Conti
 
