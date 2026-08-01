@@ -2255,6 +2255,69 @@ test("a mese chiuso il margine esce, per COMPETENZA e al netto delle note di cre
   eq(muta.calcolabile, true, "chiusura muta: il margine si calcola lo stesso, l'ha chiesto una persona");
   ok(/più alto del vero/.test(muta.motivo), "⛔ ma la voce senza risposta resta scritta accanto al numero");
 });
+console.log("\n— Terra: il piano a lotti e il divario di recupero —");
+const LOTTI = [
+  { id: "l1", superficieMq: 12000, volumeM3: 180000, stato: "recuperato" },
+  { id: "l2", superficieMq: 9000, volumeM3: 120000, stato: "aperto" },
+  { id: "l3", superficieMq: 7000, volumeM3: 90000, stato: "in-recupero" },
+  { id: "l4", superficieMq: 15000, volumeM3: 200000, stato: "previsto" },
+];
+test("i sei stati di un lotto sono sei, e in ordine di vita", () => {
+  /* ⛔ Fra «esaurito» e «recuperato» c'è tutta la distanza che l'ente misura, e
+     `collaudato` NON è `recuperato`: il primo lo dice l'ENTE, il secondo
+     l'azienda. Confonderli mostrerebbe come chiusa una pratica che nessuno ha
+     verificato — la stessa differenza fra «l'ho fatto» e «qualcuno l'ha
+     controllato» che vale in tutta Scudo. */
+  eq(terra.STATI_LOTTO,
+    ["previsto", "aperto", "esaurito", "in-recupero", "recuperato", "collaudato"],
+    "l'ordine è quello in cui un lotto attraversa la sua vita");
+  eq(terra.STATI_LOTTO.length, new Set(terra.STATI_LOTTO).size, "senza doppioni");
+  ok(terra.STATI_LOTTO.every(s => terra.statoLotto({ stato: s }) === s),
+    "e `statoLotto` li riconosce tutti e sei, senza ricadere sul primo");
+});
+test("⛔ zero lotti registrati NON è divario zero: è divario non misurato", () => {
+  /* uno «0 m² in ritardo» in verde su un'app che non sa niente dei lotti è il
+     numero tranquillo dove non è stato misurato niente — e finisce davanti a
+     chi fa vigilanza */
+  const v = terra.divarioRecupero([]);
+  eq(v.misurabile, false, "non si misura");
+  eq(v.mq, null, "⛔ e non è zero");
+  ok(/Non vuol dire che è a posto/.test(v.motivo), "e la frase lo dice in chiaro");
+  eq(terra.divarioRecupero(null).misurabile, false, "vale anche per una lista assente");
+});
+test("⛔ «tutti recuperati» e «nessun lotto» non si confondono", () => {
+  /* il primo è un ottimo risultato, il secondo non è un risultato: se dessero
+     lo stesso zero, la cava più diligente e quella che non ha registrato niente
+     si leggerebbero uguali */
+  const c = terra.divarioRecupero([LOTTI[0], { id: "x", superficieMq: 9000, stato: "collaudato" }]);
+  eq(c.misurabile, true, "questo è misurato");
+  eq([c.aperti, c.recuperati], [0, 2], "niente di aperto, due chiusi");
+  eq(c.mq, -21000, "e il divario è negativo, non nullo per caso");
+});
+test("il divario somma gli aperti meno i recuperati, e il PREVISTO non entra", () => {
+  const d = terra.divarioRecupero(LOTTI);
+  eq(d.mq, 4000, "aperti 16.000 m² meno recuperati 12.000");
+  eq(d.apertiMq, 16000, "⛔ il lotto ancora previsto non è stato scavato: non è aperto");
+  eq([d.aperti, d.recuperati], [2, 1], "e li conta");
+  eq(terra.divarioRecupero(LOTTI.concat([{ id: "l5", stato: "aperto", volumeM3: 50000 }])).senzaMq, 1,
+    "⛔ un lotto aperto senza superficie dichiarata si conta a parte, non sparisce");
+  eq(terra.statoLotto({ stato: "inventato" }), "previsto", "uno stato sconosciuto non diventa «aperto»");
+});
+test("⛔ l'avanzamento di un lotto NON stima", () => {
+  eq(terra.avanzamentoLotto({ volumeM3: 180000 }, 96400).pct, 53.56, "misurato ÷ previsto");
+  const senzaPrev = terra.avanzamentoLotto({}, 96400);
+  eq(senzaPrev.pct, null, "senza volume di progetto niente percentuale");
+  eq(senzaPrev.misuratoM3, 96400, "ma il misurato resta, che è già un dato");
+  /* ⚠️ `+null` fa zero e `Number.isFinite(0)` risponde true: senza la guardia
+     PRIMA della conversione usciva «0%», che suggerisce «non ancora
+     cominciato» dove la verità è «nessuno ha misurato» */
+  for (const v of [null, undefined, ""]) {
+    const s = terra.avanzamentoLotto({ volumeM3: 180000 }, v);
+    eq(s.pct, null, "⛔ senza rilievi non è zero: è non misurato (" + JSON.stringify(v) + ")");
+    eq(s.misuratoM3, null, "e nemmeno il misurato si inventa");
+    ok(/non è stato misurato/.test(s.motivo), "con la ragione scritta");
+  }
+});
 test("⛔ la percentuale non si calcola su ricavi zero, il margine negativo sì", () => {
   const s = conti.margineMese([], [], COSTI_M, [{ mese: "2026-05", chiusoIl: "2026-06-02" }], "2026-05");
   eq(s.ricavi, 0, "nessuna fattura nel mese");

@@ -1086,3 +1086,84 @@ export function descriviOrigine(rilievo) {
     p.push("Non risulta registrato " + mancanti.join(", né ") + ": per questa parte il calcolo non è riproducibile.");
   return p.join(" ");
 }
+
+// ============================================================
+// IL PIANO DI COLTIVAZIONE A LOTTI, E IL DIVARIO DI RECUPERO
+// ------------------------------------------------------------
+// Il punto di partenza è una frase che l'app scrive GIÀ: nelle prescrizioni
+// dell'atto, mostrate nella scheda dell'autorizzazione, c'è «recupero
+// ambientale contestuale alla coltivazione, lotto per lotto». Terra enunciava
+// l'obbligo e non aveva nessun modo di mostrare che venisse rispettato — la
+// parola «lotto» compariva una volta sola in tutto il modulo, dentro quella
+// stessa stringa d'esempio.
+//
+// Il recupero contestuale non è una buona pratica: è la condizione con cui
+// l'autorizzazione è stata data, e quasi sempre è assistita da una garanzia
+// finanziaria che si svincola per stralci, lotto per lotto.
+// Piano per esteso: docs/PIANO_LOTTI_TERRA.md
+//
+// SEI STATI, non due, e ognuno serve. Fra «esaurito» e «recuperato» c'è tutta
+// la distanza che l'ente misura; e `collaudato` NON è `recuperato` — il primo
+// lo dice l'ente, il secondo l'azienda. Confonderli mostrerebbe come chiusa
+// una pratica che nessuno ha verificato.
+const LOTTI_APERTI = ["aperto", "esaurito", "in-recupero"];   // scavato, non ancora chiuso
+const LOTTI_CHIUSI = ["recuperato", "collaudato"];
+export const STATI_LOTTO = ["previsto", ...LOTTI_APERTI, ...LOTTI_CHIUSI];
+// Terra non ha un arrotondatore di modulo (usa `Math.round` dove serve): qui
+// ne serve uno solo, e resta locale a questo blocco.
+const r2 = (n) => Math.round((+n || 0) * 100) / 100;
+
+export function statoLotto(lotto) {
+  const s = String((lotto || {}).stato || "");
+  return STATI_LOTTO.includes(s) ? s : "previsto";
+}
+
+/* ⛔ IL NUMERO CHE UN ENTE GUARDA PER PRIMO, E LA TRAPPOLA CHE PORTA CON SÉ.
+   Una cava che non ha registrato nessun lotto NON ha divario zero: ha divario
+   NON MISURATO. Uno «0 m² in ritardo» in verde su un'app che non sa niente dei
+   lotti è il numero tranquillo dove non è stato misurato niente — e stavolta
+   finisce davanti a chi fa vigilanza.
+   E «tutti recuperati» va tenuto distinto per costruzione: quello è un ottimo
+   risultato, e se desse lo stesso zero la cava più diligente e quella che non
+   ha mai registrato niente si leggerebbero uguali. */
+export function divarioRecupero(lotti) {
+  const l = (lotti || []).filter((x) => x && STATI_LOTTO.includes(String(x.stato || "")));
+  if (!l.length)
+    return { misurabile: false, mq: null, m3: null, aperti: 0, recuperati: 0,
+      apertiMq: 0, chiusiMq: 0, senzaMq: 0,
+      motivo: "Nessun lotto registrato: il divario fra quello che è stato aperto e quello che è stato recuperato non è stato misurato. Non vuol dire che è a posto." };
+  const somma = (dove, campo) => r2(l.filter((x) => dove.includes(statoLotto(x)))
+    .reduce((t, x) => t + (+x[campo] || 0), 0));
+  const apertiMq = somma(LOTTI_APERTI, "superficieMq"), chiusiMq = somma(LOTTI_CHIUSI, "superficieMq");
+  /* ⛔ E i lotti SENZA superficie dichiarata non spariscono nel conto: un
+     divario calcolato su tre lotti quando ce ne sono sei è più piccolo del
+     vero, cioè di nuovo la buona notizia. */
+  const senzaMq = l.filter((x) => !(+x.superficieMq > 0)
+    && [...LOTTI_APERTI, ...LOTTI_CHIUSI].includes(statoLotto(x))).length;
+  return { misurabile: true, mq: r2(apertiMq - chiusiMq),
+    m3: r2(somma(LOTTI_APERTI, "volumeM3") - somma(LOTTI_CHIUSI, "volumeM3")),
+    apertiMq, chiusiMq, senzaMq,
+    aperti: l.filter((x) => LOTTI_APERTI.includes(statoLotto(x))).length,
+    recuperati: l.filter((x) => LOTTI_CHIUSI.includes(statoLotto(x))).length,
+    motivo: "" };
+}
+
+/* ⛔ E L'AVANZAMENTO NON STIMA. Un lotto senza volume previsto dal progetto non
+   ha una percentuale: ha un volume MISURATO, che è già un dato e più
+   affidabile della percentuale che ne uscirebbe.
+   ⚠️ E la guardia va PRIMA della conversione: `+null` fa zero e
+   `Number.isFinite(0)` risponde true, quindi un lotto a cui non è collegato
+   nessun rilievo rispondeva «0%» — che suggerisce «non ancora cominciato»
+   dove la verità è «nessuno ha misurato». Trovato in banco, non leggendo. */
+export function avanzamentoLotto(lotto, misuratoM3) {
+  const prev = +((lotto || {}).volumeM3);
+  const assente = misuratoM3 == null || misuratoM3 === "";
+  const mis = +misuratoM3;
+  if (assente || !Number.isFinite(mis))
+    return { misuratoM3: null, pct: null,
+      motivo: "Nessun rilievo collegato ai fronti di questo lotto: il volume tolto non è stato misurato." };
+  if (!(Number.isFinite(prev) && prev > 0))
+    return { misuratoM3: r2(mis), pct: null,
+      motivo: "Il progetto non dichiara un volume per questo lotto: c'è il misurato, non una percentuale." };
+  return { misuratoM3: r2(mis), pct: r2(100 * mis / prev), motivo: "" };
+}
