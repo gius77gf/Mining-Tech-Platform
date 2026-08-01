@@ -554,6 +554,21 @@ export function daAmbiente(a) {
 export function etichettaAmbiente(a) {
   return (a || {}).origineTipo === "reclamo" ? "Reclamo" : "Superamento";
 }
+// ── Azioni che arrivano dalla PRODUZIONE (Campo) ──────────────────────
+// Un fermo di produzione registrato al fronte — «frantoio intasato, 55 minuti»
+// — chiede un responsabile e una data come ogni altra azione correttiva, e
+// vive nello stesso scadenzario. È il gemello del ponte con Sentinella, e la
+// ragione per cui questa provenienza esiste è che senza di lei Scudo la
+// raccontava come una NON CONFORMITÀ: la riga cadeva nell'ultimo ramo di
+// `origineTesto`, e un fermo di macchina non è una non conformità.
+// ⚠️ La parola è scritta anche qui perché Scudo non può importare il modulo di
+// Campo (l'isolamento dello SDK è per organizzazione E per app): è la stessa
+// scelta già presa per `ORIGINI_AMBIENTE`. La difesa è la prova che pretende
+// `scudo.ORIGINI_CAMPO` e `campo.ORIGINE_FERMO` uguali.
+export const ORIGINI_CAMPO = ["fermo"];
+export function daCampo(a) {
+  return ORIGINI_CAMPO.includes(String((a || {}).origineTipo || ""));
+}
 // Quante azioni ambientali ci sono e come stanno: serve alla riga di
 // riepilogo della pagina Azioni. Compatibilità: senza nessuna, tutti zero.
 export function riepilogoAmbiente(azioni) {

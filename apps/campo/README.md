@@ -94,6 +94,42 @@ Chi registra la carica reale finisce nel documento del foro (`da`, `squadra`,
 presi da *Cosa tocca a me*): se lì non c'è nessun nome il campo resta **vuoto**,
 non si inventa un nome.
 
+### «E poi?» — dal fermo all'azione correttiva (ponte P4, Campo → Scudo)
+
+Al fronte si registra che una cosa si è fermata, con la **causale** e i
+**minuti persi**. Fino a ieri la riga moriva lì: nessun responsabile, nessuna
+data, nessuna chiusura. È anche la prima domanda che fa un ispettore —
+*«avete registrato il problema, e poi?»* — e la risposta non esisteva.
+
+Campo **non costruisce un secondo meccanismo**: la macchina che dà seguito a un
+fatto (aperta → in corso → chiusa, con responsabile e scadenza) è già in
+**Scudo**, nello scadenzario delle azioni correttive, ed è la stessa che usano
+gli infortuni, le ispezioni e i superamenti ambientali di Sentinella. Qui si
+aggiunge solo una provenienza nuova: `origineTipo: "fermo"`,
+`origineApp: "campo"`.
+
+In *Attività → E poi? Le azioni correttive* stanno **tutti i fermi ancora
+aperti**, di ogni giornata e non solo di quella scelta nel selettore: un fermo
+aperto tre giorni fa è proprio quello che va rincorso. Un tocco su *Apri azione
+correttiva* propone il testo, la scadenza e il responsabile — e l'azione nasce
+**in Scudo**, già collegata al fermo, portandosi dietro la fotografia del fatto
+scritta in italiano (Scudo non può leggere le collezioni di Campo).
+
+Tre cose che qui non si dicono, e sono la parte importante:
+
+- un fermo **senza nessuna azione collegata non è «a posto»**: è **scoperto**,
+  e la riga di riepilogo usa quella parola;
+- se **Scudo non si riesce a leggere** non si scrive «zero azioni»: si scrive
+  che non lo sappiamo. `coperturaFermi` lo dichiara con la bandiera
+  `leggibile`, e la schermata la legge;
+- **rimettere in marcia il frantoio non chiude l'azione correttiva**: quando
+  l'attività torna «in corso» il fermo esce dalle anomalie, ma se l'azione è
+  ancora da chiudere la riga **resta**, marcata come ripartita — altrimenti
+  sparirebbe dalla vista senza che nessuno l'abbia risolta.
+
+E il tempo perso non misurato **non vale zero**: un fermo senza minuti si
+scrive «senza minuti», anche dentro la nota che arriva a Scudo.
+
 ### Il turno chiuso non si tocca più
 
 Una firma vale qualcosa solo se, dopo la firma, il turno non cambia più.

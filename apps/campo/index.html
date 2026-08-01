@@ -276,6 +276,43 @@ button.arr.del:hover{
 }
 .senza-minuti b{color:var(--text)}
 
+/* ─────────────── PONTE P4 · «e poi?» — l'azione correttiva sul fermo ───────
+   Struttura copiata pelo per pelo dal pannello agganciato del core (la stessa
+   che usa il ponte di Sentinella): la voce perde gli angoli bassi e il
+   pannello continua sotto, stessa cassa, nessun bordo alto. Il colore è
+   quello di Campo — cotto per la cornice, semaforo solo per lo STATO DELLA
+   RISPOSTA, che è la domanda di questa sezione. */
+.item.pon-voce{
+  background:var(--card2);
+  border-bottom-left-radius:0; border-bottom-right-radius:0; margin-bottom:0;
+}
+.pon-det{
+  position:relative; overflow:hidden;
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--border2); border-top:none;
+  border-radius:0 0 var(--r) var(--r); padding:11px 13px 12px; margin:0 0 10px;
+  box-shadow:var(--sh2),var(--edge);
+}
+.pon-det.st-danger{border-left:3px solid var(--danger)}
+.pon-det.st-warn{border-left:3px solid var(--warn)}
+.pon-det.st-ok{border-left:3px solid var(--success)}
+.pon-det.st-mute{border-left:3px solid var(--border-hi)}
+.pon-riga{font-size:12px; line-height:1.6; color:var(--muted2); margin-top:7px}
+.pon-riga:first-child{margin-top:0}
+.pon-riga b{color:var(--text); font-variant-numeric:tabular-nums}
+.pon-az{
+  display:flex; align-items:flex-start; gap:9px; margin-top:8px; padding:9px 11px;
+  background:var(--dark); border:1px solid var(--border);
+  border-left:3px solid var(--app-support2); border-radius:var(--r-sm);
+  box-shadow:var(--edge);
+}
+.pon-az.ok{border-left-color:var(--success)}
+.pon-az.warn{border-left-color:var(--warn)}
+.pon-az.danger{border-left-color:var(--danger)}
+.pon-az-txt{flex:1 1 auto; min-width:0; font-size:12px; line-height:1.55; color:var(--muted2)}
+.pon-az-txt b{color:var(--text)}
+.pon-cmd{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
+
 /* ─────────────── minuti/causale del fermo dentro la voce ─────────────── */
 .fermo{
   display:flex; align-items:center; gap:7px; flex:1 1 100%; flex-wrap:wrap;
@@ -569,6 +606,14 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   <div id="fermi-pareto"></div>
   <div class="sec">Fermi giorno per giorno</div>
   <div id="fermi-storico"></div>
+  <!-- PONTE P4 · «avete registrato il problema, e poi?». È la prima domanda
+       di un ispettore, e finché il fermo moriva qui la risposta non c'era.
+       L'azione correttiva nasce in Scudo — responsabile, scadenza, chiusura —
+       e qui resta scritto a che punto è. -->
+  <div class="sec">E poi? Le azioni correttive<span class="cnt" id="pon-tot">0</span></div>
+  <div id="pon-riep" class="note recap" style="margin-top:0;"></div>
+  <div id="pon-list" style="margin-top:10px;"></div>
+  <div class="note esito" id="pon-esito"></div>
   <div class="tools">
     <button class="dw-btn secondary" id="btn-att-export"><svg viewBox="0 0 24 24"><path d="M12 3.6v11.2"/><path d="M7.8 10.6L12 14.8l4.2-4.2"/><path d="M4.5 18.4v1.1A1.4 1.4 0 0 0 5.9 21h12.2a1.4 1.4 0 0 0 1.4-1.5v-1.1"/></svg>Esporta attività (CSV)</button>
   </div>
@@ -851,6 +896,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            FOTO_MAX_BYTE, FOTO_TENTATIVI, eImmagine, byteFoto, eFotoValida, misuraRidotta, formattaByte,
            METEO_CIELO, METEO_PISTE, METEO_VISIBILITA, meteoDi, riassuntoMeteo, meteoAvverso,
            durataTurnoDi, ultimaDurataTurno, disponibilitaTurno, oreMinuti, minutiFermoTesto,
+           anomalieAperte, azioniDelFermo, statoRisposta, bozzaAzioneFermo, fermiEAzioni,
+           coperturaFermi, dataPiuGiorni,
            pianoParziale, pianoConsuntivoCsv,
            numeroIt, segnoIt, numeroItDa, numeroDaCampo } from "./campo-data.js";
   import { misuratoPeriodo, produzioneDichiarata, riconciliazioneTurni,
@@ -1057,6 +1104,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   let ATT=[], SQU=[], RAP=[], OPER=[], OBIE=[], CHK=[], PRE=[], CHI=[], MET=[], DUR=[];
   // i documenti del personale letti da Scudo (ponte P3): `null` = non lo sappiamo
   let LAV_HSE = null, SCAD_HSE = null;
+  // le azioni correttive lette da Scudo (ponte P4): `null` = non lo sappiamo,
+  // che NON è «non ce n'è nessuna» — su questa sezione è la differenza fra
+  // «nessuno ha fatto niente» e «non siamo riusciti a chiederlo»
+  let AZI_HSE = null;
   // ATT/RAP restano SEMPRE la lista completa (serve per ritrovare per id anche
   // ciò che non è a schermo); ATT_G/RAP_G sono la fetta del giorno mostrata e
   // conteggiata. Una registrazione senza data resta dentro (dato vecchio).
@@ -1308,15 +1359,180 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       + (spiega ? `<div class="note avviso">${spiega}</div>` : "");
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  // PONTE P4 · DALL'ANOMALIA ALL'AZIONE CORRETTIVA (Campo → Scudo)
+  // ══════════════════════════════════════════════════════════════════════
+  // Al fronte si registra causale e minuti di fermo, e lì la riga moriva. La
+  // macchina che dà seguito a un fatto — responsabile, scadenza, chiusura —
+  // esiste già in Scudo: qui non se ne costruisce una seconda. L'azione si
+  // apre LÀ, già collegata al fermo che l'ha generata, e qui se ne vede lo
+  // stato. Così, quando l'ispettore chiede «e poi?», la risposta esiste.
+  //
+  // ⛔ SI GUARDANO TUTTE LE GIORNATE, non solo quella scelta nel selettore qui
+  // sopra: un fermo aperto tre giorni fa è proprio quello che va rincorso, e
+  // cambiando giorno sparirebbe dalla vista senza essere stato risolto.
+  const STATO_AZ = { aperta: ["danger", "aperta"], "in-corso": ["warn", "in corso"], chiusa: ["ok", "chiusa"] };
+
+  // L'elenco delle azioni già aperte su un fermo, in parole: cosa si è deciso
+  // di fare, entro quando, e a che punto è.
+  function elencoAzioniFermo(az) {
+    return az.slice()
+      .sort((a, b) => String(a.scadenza || "9999").localeCompare(String(b.scadenza || "9999")))
+      .map(a => {
+        const s = STATO_AZ[a.stato] || STATO_AZ.aperta;
+        const resp = (LAV_HSE || []).find(l => l.id === a.responsabileId);
+        return `<div class="pon-az ${s[0]}">
+          <span class="badge ${s[0]}">${s[1]}</span>
+          <span class="pon-az-txt"><b>${esc(a.descrizione || "Azione correttiva")}</b><br>
+          ${a.scadenza ? "entro il <b>" + dmy(a.scadenza) + "</b>" : "senza data"}
+          · ${resp ? "responsabile <b>" + esc(resp.nome) + "</b>" : "responsabile da assegnare"}
+          ${a.stato === "chiusa" ? " · chiusa il <b>" + dmy(a.dataChiusura) + "</b>" + (a.esito ? " · esito: " + esc(a.esito) : "") : ""}</span>
+        </div>`;
+      }).join("");
+  }
+
+  function renderPonteFermi() {
+    const voci = fermiEAzioni(ATT, AZI_HSE);
+    const cop = coperturaFermi(ATT, AZI_HSE);
+    $("pon-tot").textContent = voci.length;
+    // ⛔ QUI SI LEGGE LA BANDIERA `leggibile`. Senza, la riga scriverebbe «0
+    // con un'azione» anche quando Scudo non si è potuto interrogare — cioè il
+    // numero tranquillo su un dato che non è stato misurato.
+    $("pon-riep").innerHTML = !cop.leggibile
+      ? (cop.totale
+          ? `Fermi ancora aperti: <b>${cop.totale}</b>. ` + esc(cop.motivo)
+          : esc(cop.motivo))
+      : (!voci.length
+          ? ""
+          : `Fermi che chiedono una risposta: <b>${cop.totale}</b> · con un'azione correttiva già aperta: <b>${cop.conAzione}</b> · ancora <b>scoperti</b>: <b>${cop.scoperti}</b>`
+            + (cop.daChiudere ? ` · azioni ancora da chiudere: <b>${cop.daChiudere}</b>.` : ".")
+            + (cop.senzaMinuti ? ` ${cop.senzaMinuti === 1 ? "Uno di questi fermi è" : cop.senzaMinuti + " di questi fermi sono"} senza minuti, quindi non si sa quanto sia costato.` : "")
+            + (cop.senzaCausale ? ` ${cop.senzaCausale === 1 ? "Uno è" : cop.senzaCausale + " sono"} senza causale.` : "")
+            + " Le azioni correttive vivono in Scudo, nello stesso scadenzario della sicurezza: lì hanno un responsabile e una data.");
+
+    $("pon-list").innerHTML = voci.map(v => {
+      const az = v.azioni || [];
+      // la striscia dice che FATTO è (fermo ancora aperto = rosso, fermo
+      // ripartito = spento); il badge colorato dice a che punto è la
+      // RISPOSTA, che è la domanda di questa sezione
+      const cls = v.chiuso ? "st-mute" : "st-danger";
+      // ⛔ la riga di dettaglio è clampata a due righe come nel core: ci sta
+      // solo l'essenziale. Che il fermo sia ANCORA aperto lo dicono già la
+      // striscia rossa e l'icona d'allarme; la parola serve nel caso contrario
+      // — «ripartito» — che a colpo d'occhio non si distinguerebbe.
+      const meta = [
+        v.chiuso ? "Fermo ripartito" : "",
+        v.causale || "causale non indicata",
+        v.minutiTesto,
+        v.turno ? "turno " + v.turno : "",
+        v.data ? dmy(v.data) : "senza data",
+        v.squadra,
+      ].filter(Boolean).join(" · ");
+      // il badge dice a che punto è la RISPOSTA — la domanda di questa
+      // sezione. `null` non è «nessuna azione»: è «non lo sappiamo», e prende
+      // la pillola neutra, non quella rossa che accuserebbe senza aver visto.
+      return `<div class="item pon-voce ${cls}">
+        <div class="avatar${v.chiuso ? " mute" : ""}">${v.chiuso ? I.avanti : I.allarme}</div>
+        <div class="info"><div class="name">${esc(v.titolo)}</div>
+        <div class="meta">${esc(meta)}</div></div>
+        <span class="badge ${v.risposta ? v.risposta.cls : "tag"}">${v.risposta ? esc(v.risposta.label) : "Non lo sappiamo"}</span></div>
+      <div class="pon-det ${cls}">
+        ${!v.azioni
+          ? `<div class="pon-riga">Le azioni correttive stanno in <b>Scudo</b> e da qui non si riescono a leggere: non si sa se questo fermo abbia già avuto una risposta. Finché non si sa, non si può dare per coperto.</div>`
+          : (az.length
+              ? elencoAzioniFermo(az)
+                + (v.chiuso ? `<div class="pon-riga">L'attività è ripartita, ma l'azione correttiva è ancora da chiudere: rimettere in marcia non vuol dire aver tolto la causa.</div>` : "")
+              : `<div class="pon-riga">Nessuna azione correttiva aperta su questo fermo.
+                 Se un ispettore chiedesse oggi cosa avete fatto, non ci sarebbe niente da mostrare.</div>
+                 <div class="pon-cmd"><button type="button" class="dw-btn mini" data-pon-nuova="${esc(v.id)}">Apri azione correttiva</button></div>`)}
+      </div>`;
+    }).join("")
+      || vuoto(I.spunta, "Nessun fermo da rincorrere",
+          "Non c'è nessuna attività in anomalia. Quando ne comparirà una, da qui si apre in un tocco l'<b>azione correttiva</b> in Scudo — con un responsabile e una data — e qui resta scritto a che punto è.");
+  }
+
+  // APRE L'AZIONE CORRETTIVA in Scudo, già collegata al fermo che l'ha
+  // generata. Il testo, la data e il responsabile si possono correggere prima
+  // di confermare: la proposta serve a non far partire da un foglio bianco.
+  async function apriAzioneFermo(id) {
+    const v = fermiEAzioni(ATT, AZI_HSE).find(x => x.id === id);
+    if (!v) { esito("pon-esito", "Questo fermo non è più in elenco: la lista si è aggiornata.", "err"); return; }
+    if (v.azioni === null) {
+      esito("pon-esito", "Le azioni correttive stanno in Scudo, che adesso non è raggiungibile: "
+        + "aprirne una senza poter vedere quelle che ci sono già rischia di scriverne due uguali. Riprova più tardi.", "err");
+      return;
+    }
+    if (v.azioni.length) {   // secondo controllo, al momento del tocco: mai un doppione
+      esito("pon-esito", "Su questo fermo un'azione correttiva c'è già: la trovi qui sotto e si gestisce da Scudo.", "err");
+      renderPonteFermi(); return;
+    }
+    const bozza = bozzaAzioneFermo(v, { scadenza: dataPiuGiorni(30), fmtData: dmy });
+    if (!bozza) return;
+    const lav = (LAV_HSE || []).slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it"));
+    const opzResp = '<option value="">— responsabile da assegnare —</option>'
+      + lav.map(l => `<option value="${esc(l.id)}">${esc(l.nome)}</option>`).join("");
+    const corpo = `<div class="note" style="margin-top:0;"><b>Origine, già scritta nell'azione:</b><br>${esc(bozza.origineNota)}</div>`
+      + (!v.causale || v.minuti === null
+          ? `<div class="note avviso"><b>Quello che manca lo legge anche chi riceve l'azione:</b> `
+            + [!v.causale ? "la causale del fermo non è indicata" : "", v.minuti === null ? "i minuti persi non sono stati scritti" : ""]
+                .filter(Boolean).join(" e ")
+            + `. Si può aprire lo stesso, ma completarlo sull'attività qui sopra vale più di qualunque testo.</div>`
+          : "")
+      + '<label class="fl" for="pon-desc">Cosa si deve fare</label>'
+      + `<textarea class="dw-input" id="pon-desc" rows="3">${esc(bozza.descrizione)}</textarea>`
+      + '<label class="fl" for="pon-scad">Entro quando</label>'
+      + `<input class="dw-input" id="pon-scad" type="date" value="${esc(bozza.scadenza)}">`
+      + (lav.length ? '<label class="fl" for="pon-resp">Chi la fa</label>'
+          + `<select class="dw-input" id="pon-resp">${opzResp}</select>` : "")
+      + '<div class="note" style="margin-bottom:0;">L\'azione nasce in <b>Scudo</b>, nell\'elenco delle azioni correttive: '
+      + 'da lì entra nello scadenzario e nel semaforo, e si chiude quando la causa del fermo è stata tolta.</div>';
+    const scelta = await new Promise(res => {
+      apriModale("Apri l'azione correttiva", corpo, [
+        { label: "Annulla", azione: () => { chiudiModale(); res(null); } },
+        { label: "Apri in Scudo", cls: "primary", azione: () => {
+            const d = $("pon-desc"), s = $("pon-scad"), r = $("pon-resp");
+            const val = { descrizione: (d && d.value || "").trim(), scadenza: (s && s.value) || "",
+              responsabileId: (r && r.value) || null };
+            chiudiModale(); res(val);
+          } },
+      ]);
+    });
+    if (!scelta) return;
+    if (!scelta.descrizione || !/^\d{4}-\d{2}-\d{2}$/.test(scelta.scadenza)) {
+      esito("pon-esito", "Servono cosa fare e la data entro cui farlo: senza una data l'azione non entra in nessuno scadenzario.", "err");
+      return;
+    }
+    try {
+      await db.aggiungiAzioneScudo(bozzaAzioneFermo(v, { ...scelta, fmtData: dmy }));
+    } catch (e) {
+      esito("pon-esito", "L'azione non è stata aperta: Scudo non ha accettato la scrittura. "
+        + "Di solito succede quando la tua organizzazione non ha Scudo attivo, oppure quando manca il collegamento. Riprova più tardi.", "err");
+      return;
+    }
+    await refresh();
+    esito("pon-esito", "Azione correttiva aperta in Scudo: «" + scelta.descrizione + "», entro il " + dmy(scelta.scadenza)
+      + ". È collegata a questo fermo e da adesso compare nello scadenzario di Scudo.", "success");
+  }
+
+  document.addEventListener("click", async (e) => {
+    const b = e.target.closest && e.target.closest("[data-pon-nuova]");
+    if (!b) return;
+    e.preventDefault();
+    await apriAzioneFermo(b.getAttribute("data-pon-nuova"));
+  });
+
   async function refresh(){
     [ATT,SQU,RAP,OPER,OBIE,CHK,PRE,CHI,MET,DUR] = await Promise.all([db.attivita(), db.squadre(), db.rapportini(),
       db.operatori(), db.obiettivi(), db.checklist(), db.presenze(), db.chiusure(), db.meteo(), db.durate()]);
     // PONTE P3 · i documenti del personale, in sola lettura da Scudo. `null` vuol
     // dire «non lo so» — Scudo non c'è o non è leggibile — ed è diverso da «non
     // c'è nessun documento scaduto». La schermata deve dire quale dei due.
-    [LAV_HSE, SCAD_HSE] = await Promise.all([
+    // PONTE P4 · le azioni correttive nate dai fermi, in lettura da Scudo.
+    // Stessa convenzione: `null` = non lo so.
+    [LAV_HSE, SCAD_HSE, AZI_HSE] = await Promise.all([
       db.lavoratoriScudo ? db.lavoratoriScudo() : null,
       db.scadenzeScudo ? db.scadenzeScudo() : null,
+      db.azioniScudo ? db.azioniScudo().catch(() => null) : null,
     ]);
     // Il giorno di lavoro è la chiave di tutto: i KPI del quadro contano SEMPRE
     // e solo le registrazioni di oggi (prima "Rapportini oggi" sommava tutti i
@@ -1455,6 +1671,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
           + (anom ? ` · <b>${anom}</b> ${anom === 1 ? "attività ancora aperta" : "attività ancora aperte"} in anomalia`
                   : " · nessuna attività ancora in anomalia")
         : ""; }
+    // PONTE P4 · «e poi?»: a quali fermi è già stata data una risposta.
+    renderPonteFermi();
 
     // Carico di lavoro della giornata, squadra per squadra: è la risposta a
     // «chi sta facendo cosa», che prima non esisteva.

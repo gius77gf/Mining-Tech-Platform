@@ -43,7 +43,8 @@
 // restano visibili come "senza data", vedi eDelGiorno).
 // ============================================================
 
-import { parseCsvLine, numIt, isIntestazione, csvCell, numeroScritto, oggiISO as oggiISOShell, isoLocale } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, numIt, isIntestazione, csvCell, numeroScritto, oggiISO as oggiISOShell, isoLocale,
+         dataPiuGiorni as dataPiuGiorniShell } from "../../shared/deepwork-id-client/dw-shell.js";
 
 // ══════════════════════════════════════════════════════════════════════
 // NUMERI COME SI SCRIVONO IN ITALIA — un solo posto per la convenzione
@@ -1514,6 +1515,240 @@ export function pianoConsuntivoCsv(piano) {
 }
 
 // ══════════════════════════════════════════════════════════════════════
+// PONTE P4 · DALL'ANOMALIA ALL'AZIONE CORRETTIVA — Campo → Scudo
+// ══════════════════════════════════════════════════════════════════════
+// Al fronte si registra che una cosa si è fermata, con la causale e i minuti
+// persi. E poi? Fino a oggi la riga MORIVA lì: nessun responsabile, nessuna
+// data, nessuna chiusura. È anche la prima domanda che fa un ispettore —
+// «avete registrato il problema, e poi?» — e la risposta non esisteva.
+//
+// Non se ne costruisce un secondo meccanismo: la macchina che dà seguito a un
+// fatto (aperta → in corso → chiusa, con responsabile e scadenza) è già in
+// Scudo, nello scadenzario delle AZIONI CORRETTIVE, ed è la stessa che usano
+// gli infortuni, le ispezioni e — dal ponte gemello — i superamenti
+// ambientali di Sentinella. Qui si aggiunge solo una PROVENIENZA nuova:
+// `origineTipo: "fermo"`, `origineApp: "campo"`.
+//
+// Perché l'azione si porta dietro anche il TESTO del fatto (`origineNota`,
+// `origineData`, `origineEtichetta`): Scudo non legge le collezioni di Campo,
+// e un'azione che dicesse solo «origine: fermo a4» sarebbe illeggibile per
+// l'RSPP. Quindi porta con sé la fotografia del fermo, scritta in italiano.
+// È la stessa scelta già presa dal ponte di Sentinella.
+//
+// ⛔ E QUI IL PRINCIPIO DEL FONDATORE VALE DUE VOLTE, IN VERSI OPPOSTI:
+//  · un fermo SENZA nessuna azione collegata non è «a posto»: è SCOPERTO, e
+//    la schermata lo dice con quella parola;
+//  · ma se Scudo non si riesce a leggere, non si scrive «zero azioni»: non si
+//    sa, e «non lo so» non è «non c'è». Per questo `coperturaFermi` dichiara
+//    la bandiera `leggibile` accanto ai conti, e chi la mostra la legge.
+//
+// ⚠️ DEBITO DICHIARATO, non dimenticato: `statoRisposta` e la forma di
+// `azioniDelFermo` sono la STESSA regola di `statoPonte`/`azioniDiOrigine` in
+// `apps/sentinella/sentinella-data.js`. Il posto giusto è `shared/dw-ponti.js`,
+// con le due app che le ri-esportano — e ci vanno appena `shared/` si libera:
+// finché sono due copie, il giorno in cui una cambia l'altra resta indietro.
+
+export const ORIGINE_FERMO = "fermo";
+// Chi ha generato l'azione. Resta LOCALE al modulo di proposito: `PONTE_APP`
+// è esportato anche da Sentinella con un altro valore, e due export omonimi
+// con valori diversi sono esattamente ciò che `nomi-doppi.mjs` esiste per
+// fermare. Il valore finisce comunque nell'azione, in `origineApp`.
+const PONTE_APP = "campo";
+
+// Data di oggi + N giorni, in ISO: serve solo a PROPORRE una scadenza
+// all'azione, che la decide comunque chi la apre. ALIAS di `shared/`, non una
+// seconda implementazione — la stessa riga che hanno già Scudo e Sentinella.
+export const dataPiuGiorni = dataPiuGiorniShell;
+
+// I FERMI CHE CHIEDONO UNA RISPOSTA: le attività ANCORA in anomalia. È il
+// gemello di `superamentiAperti` in Sentinella — lì «adesso oltre soglia»,
+// qui «adesso ferma» — e sono le stesse righe che il Quadro conta nel KPI
+// «Anomalie aperte».
+//
+// ⛔ NON SI ORDINA PER GRAVITÀ, e non è una dimenticanza. La gravità di un
+// fermo sarebbero i minuti persi, ma i minuti NON sempre ci sono: mettere in
+// fondo un fermo senza minuti come se ne valesse zero è precisamente il numero
+// tranquillo che il principio vieta, e metterlo in cima sarebbe l'affermazione
+// opposta, altrettanto inventata. Si ordina quindi per FATTO: prima quelli
+// SENZA DATA — che non si sanno collocare e sono i primi a sparire da
+// qualunque conteggio (è già la convenzione di Campo, vedi `senzaData`) — poi
+// dal più recente, e a parità di giorno dal turno più avanti.
+// `minuti` è `null`, mai 0, quando nessuno li ha scritti; `minutiTesto` lo
+// dice a parole riusando `minutiFermoTesto`, che è già il posto dove Campo
+// decide come si scrive un tempo che non è stato misurato.
+// Pura e testabile.
+export function anomalieAperte(attivita) {
+  const ordTurno = (t) => { const i = TURNI.indexOf(String(t || "")); return i < 0 ? 99 : i; };
+  return (attivita || [])
+    .filter(a => a && a.id && a.stato === "anomalia")
+    .map(a => {
+      // una causale fuori dall'elenco standard non si traduce in "Altro" qui:
+      // "Altro" è una SCELTA che qualcuno ha fatto, il vuoto è una casella non
+      // compilata, e la bozza le scrive in modo diverso
+      const causale = CAUSALI_FERMO.includes(a.causale) ? a.causale : "";
+      /* ⛔ la guardia PRIMA della conversione: `+null` fa 0 e `Number.isFinite(0)`
+         risponde true, quindi «nessuno ha misurato» diventerebbe «zero minuti
+         persi». Lo zero esplicito conta come non misurato per la stessa ragione
+         per cui il campo della pagina lo mostra vuoto: in cava un fermo che dura
+         zero minuti non è un fermo. */
+      const grezzo = a.fermoMin;
+      const n = (grezzo === null || grezzo === undefined || String(grezzo).trim() === "") ? NaN : +grezzo;
+      const minuti = Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+      const data = String(a.data || "").slice(0, 10);
+      return {
+        a, id: a.id,
+        titolo: String(a.titolo || "").trim() || "Attività senza titolo",
+        dettaglio: String(a.dettaglio || "").trim(),
+        causale, minuti,
+        minutiTesto: minutiFermoTesto(minuti, 1, minuti === null ? 1 : 0),
+        data, turno: String(a.turno || ""),
+        squadra: squadraBase(a.squadra) || "",
+        voce: data || "senza-data",
+      };
+    })
+    .sort((x, y) =>
+      (x.data ? 1 : 0) - (y.data ? 1 : 0)
+      || String(y.data).localeCompare(String(x.data))
+      || ordTurno(y.turno) - ordTurno(x.turno)
+      || String(x.titolo).localeCompare(String(y.titolo), "it"));
+}
+
+// Le azioni correttive nate da UN fermo. L'identità è l'id dell'attività, che
+// in Campo è già un fatto solo (una giornata, un turno): non serve la seconda
+// chiave che in Sentinella distingue due superamenti dello stesso punto in due
+// giorni diversi. `origineVoce` resta scritta nell'azione perché si legga, non
+// perché serva a riconoscerla — così una data corretta dopo non spezza il
+// collegamento. Pura e testabile.
+export function azioniDelFermo(azioni, id) {
+  if (!id) return [];
+  return (azioni || []).filter(a => a && a.origineTipo === ORIGINE_FERMO && a.origineId === id);
+}
+
+// Il semaforo di un gruppo di azioni, per il badge accanto al fermo: nessuna /
+// da chiudere / tutte chiuse. È la risposta alla domanda dell'ispettore «e voi
+// cosa avete fatto?», e «nessuna» è ROSSA — l'assenza di una risposta non è
+// una risposta buona. Pura e testabile.
+export function statoRisposta(azioni) {
+  const l = azioni || [];
+  const chiuse = l.filter(a => (a || {}).stato === "chiusa").length;
+  const inCorso = l.filter(a => (a || {}).stato === "in-corso").length;
+  if (!l.length) return { n: 0, chiuse: 0, inCorso: 0, daChiudere: 0, cls: "danger", label: "Nessuna azione" };
+  if (chiuse === l.length) return { n: l.length, chiuse, inCorso: 0, daChiudere: 0, cls: "ok",
+    label: l.length === 1 ? "Azione chiusa" : l.length + " azioni chiuse" };
+  const daChiudere = l.length - chiuse;
+  return { n: l.length, chiuse, inCorso, daChiudere, cls: "warn",
+    label: inCorso && daChiudere === inCorso
+      ? (inCorso === 1 ? "Azione in corso" : inCorso + " azioni in corso")
+      : daChiudere + (daChiudere === 1 ? " azione da chiudere" : " azioni da chiudere") };
+}
+
+// LA BOZZA DELL'AZIONE nata da un fermo. Funzione PURA: prepara il record che
+// verrà scritto nella collezione `azioni` di Scudo. Chi la apre può cambiare
+// testo, responsabile e data prima di confermare — la proposta serve a non far
+// partire da un foglio bianco, non a decidere al posto suo.
+// `opts.fmtData` è il formattatore di date: Campo lo passa dall'esterno come fa
+// già `riassuntoRiapertura`, invece di tenersene una copia nel modulo.
+// Pura e testabile.
+export function bozzaAzioneFermo(f, opts = {}) {
+  if (!f || !f.id) return null;
+  const fmt = typeof opts.fmtData === "function" ? opts.fmtData : (d) => d;
+  const quando = f.data ? " del " + fmt(f.data) : "";
+  // ⛔ la causale e i minuti che MANCANO si dichiarano mancanti dentro la nota:
+  // è il testo che l'RSPP legge in Scudo e che finisce davanti all'ispettore,
+  // e una casella vuota taciuta lì diventa un fatto che nessuno rimette a posto
+  const nota = "Fermo di produzione (Campo) — " + f.titolo + quando
+    + (f.turno ? ", turno " + f.turno : "")
+    + (f.squadra ? " · " + f.squadra : "")
+    + " · causale: " + (f.causale || "non indicata")
+    + " · tempo perso: " + f.minutiTesto
+    + (f.dettaglio ? " · «" + f.dettaglio + "»" : "");
+  return {
+    descrizione: String(opts.descrizione || ("Rimuovere la causa del fermo «" + f.titolo + "»")).trim(),
+    responsabileId: opts.responsabileId || null,
+    scadenza: String(opts.scadenza || "").slice(0, 10),
+    stato: "aperta", esito: "", dataChiusura: null,
+    origineTipo: ORIGINE_FERMO, origineApp: PONTE_APP,
+    origineId: f.id, origineVoce: f.voce,
+    origineData: f.data || "",
+    origineEtichetta: f.titolo + (f.causale ? " · " + f.causale : ""),
+    origineNota: nota,
+  };
+}
+
+// I FERMI E LE AZIONI CHE NE SONO NATE, pronti da disegnare.
+//
+// ⛔ NON SOLO I FERMI ANCORA APERTI, e questa riga l'ha fatta venire fuori il
+// prototipo. Quando il capocantiere rimette l'attività «in corso», il fermo
+// esce da `anomalieAperte` — ma rimettere in marcia il frantoio non vuol dire
+// aver rimosso la causa: l'azione correttiva può essere ancora aperta, e
+// sparendo dalla schermata non la chiuderebbe più nessuno. Quindi un ex-fermo
+// con un'azione ANCORA DA CHIUDERE resta in elenco, marcato `chiuso: true`.
+// È la stessa scelta del ponte di Sentinella, dove un reclamo chiuso con
+// un'azione aperta non sparisce.
+//
+// `azioni === null` vuol dire «Scudo non si legge»: allora `azioni` e
+// `risposta` di ogni voce restano `null` — «non lo so» — invece di diventare
+// una lista vuota, che si leggerebbe «non c'è nessuna azione».
+// Ordine: prima i fermi ancora aperti, e fra questi prima gli SCOPERTI.
+// Pura e testabile.
+export function fermiEAzioni(attivita, azioni) {
+  const aperti = anomalieAperte(attivita);
+  const apertiId = new Set(aperti.map(f => f.id));
+  const voci = aperti.map(f => ({ ...f, chiuso: false }));
+  if (azioni) {
+    for (const a of attivita || []) {
+      if (!a || !a.id || a.stato === "anomalia" || apertiId.has(a.id)) continue;
+      if (!azioniDelFermo(azioni, a.id).some(x => x.stato !== "chiusa")) continue;
+      const ex = anomalieAperte([{ ...a, stato: "anomalia" }])[0];
+      if (ex) voci.push({ ...ex, chiuso: true });
+    }
+  }
+  return voci
+    .map(v => {
+      const az = azioni ? azioniDelFermo(azioni, v.id) : null;
+      return { ...v, azioni: az, risposta: az ? statoRisposta(az) : null };
+    })
+    .sort((x, y) => (x.chiuso ? 1 : 0) - (y.chiuso ? 1 : 0)
+      || ((x.azioni && x.azioni.length ? 1 : 0) - (y.azioni && y.azioni.length ? 1 : 0)));
+}
+
+// QUANTI FERMI HANNO AVUTO UNA RISPOSTA, e quanti no. È la riga di riepilogo
+// della sezione, ed è il numero che un ispettore guarderebbe per primo.
+//
+// ⛔ LA BANDIERA `leggibile`. Se Scudo non è raggiungibile, `conAzione`,
+// `scoperti` e `daChiudere` restano `null` e `leggibile` è `false`: scrivere
+// «0 con azione» direbbe che nessuno ha fatto niente, mentre la verità è che
+// non lo sappiamo. La bandiera la legge la pagina, che al suo posto mostra il
+// `motivo` — una bandiera che nessuno legge non protegge niente.
+// `totale`, `senzaCausale` e `senzaMinuti` invece si sanno comunque: sono dati
+// di Campo e non dipendono da Scudo.
+// Pura e testabile.
+export function coperturaFermi(attivita, azioni) {
+  const fermi = anomalieAperte(attivita);
+  const out = {
+    totale: fermi.length,
+    senzaCausale: fermi.filter(f => !f.causale).length,
+    senzaMinuti: fermi.filter(f => f.minuti === null).length,
+    conAzione: null, scoperti: null, daChiudere: null,
+    leggibile: false, motivo: "",
+  };
+  if (azioni === null || azioni === undefined) {
+    out.motivo = "Le azioni correttive vivono in Scudo e da qui non si riescono a leggere: "
+      + "non si sa quali di questi fermi abbiano già una risposta, e finché non si sa "
+      + "nessuno di loro si può dare per coperto.";
+    return out;
+  }
+  out.leggibile = true;
+  out.conAzione = fermi.filter(f => azioniDelFermo(azioni, f.id).length).length;
+  out.scoperti = out.totale - out.conAzione;
+  // le azioni da chiudere si contano sulle AZIONI, non sui fermi in elenco:
+  // quella nata da un fermo poi rimesso in marcia va chiusa lo stesso
+  out.daChiudere = (azioni || []).filter(a => a && a.origineTipo === ORIGINE_FERMO
+    && a.stato !== "chiusa").length;
+  return out;
+}
+
+// ══════════════════════════════════════════════════════════════════════
 // PONTE P3 CON SCUDO — la regola sta in `shared/dw-ponti.js` perché serve a due
 // app, e Campo la ri-esporta col nome con cui la chiamano le sue pagine.
 // ══════════════════════════════════════════════════════════════════════
@@ -1525,6 +1760,30 @@ export {
 // regola di sempre: sta in `shared/` perché serve a due app, e qui si
 // ri-esporta. Un alias non è una seconda implementazione.
 export { produzionePerFronte } from "../../shared/dw-ponti.js";
+
+// ── IL TRASPORTO DEL PONTE P4 IN DIMOSTRAZIONE ────────────────────────
+// In demo/tour non esiste nessun backend, ma Campo e Scudo sono due PAGINE
+// diverse: il "finto backend" è una riga di localStorage condivisa fra le due
+// app dello stesso browser. Serve solo a far vedere la catena completa —
+// apri l'azione qui, la ritrovi là — non è un canale dati e in live non
+// esiste. La chiave è la STESSA che usano già Sentinella e Scudo, quindi le
+// azioni aperte da Campo compaiono nello scadenzario di Scudo senza toccare
+// niente dall'altra parte.
+// ⚠️ Restano LOCALI al modulo (come in Scudo, e a differenza di Sentinella che
+// le esporta): non sono una regola, sono un ripiego dichiarato.
+const PONTE_DEMO_KEY = "deepwork.demo.azioni-ponte";
+function ponteDemoLeggi() {
+  try {
+    const v = JSON.parse(globalThis.localStorage.getItem(PONTE_DEMO_KEY) || "[]");
+    return Array.isArray(v) ? v.filter(x => x && x.id) : [];
+  } catch (e) { return []; }
+}
+function ponteDemoScrivi(lista) {
+  try {
+    globalThis.localStorage.setItem(PONTE_DEMO_KEY, JSON.stringify((lista || []).slice(-200)));
+    return true;
+  } catch (e) { return false; }   // navigazione privata, quota piena: si prosegue senza
+}
 
 export async function campoData() {
   let mode = "demo", api = null;
@@ -1630,6 +1889,19 @@ export async function campoData() {
       };
       api.lavoratoriScudo = () => leggiScudo("lavoratori");
       api.scadenzeScudo = () => leggiScudo("scadenze");
+      // ── PONTE P4 CON SCUDO — L'UNICA SCRITTURA CHE CAMPO FA FUORI CASA ──
+      // Le azioni correttive nate dai fermi. Si LEGGONO per sapere a quali
+      // fermi è già stata data una risposta, e se ne AGGIUNGE una quando
+      // qualcuno la apre da qui. Nessun aggiornamento e nessuna cancellazione:
+      // un'azione, una volta aperta, si gestisce in Scudo — che è il posto dove
+      // vive lo scadenzario, il responsabile e la chiusura.
+      // Lettura fallita → `null`, cioè «non lo so», mai una lista vuota.
+      api.azioniScudo = () => leggiScudo("azioni");
+      api.aggiungiAzioneScudo = async (rec) => {
+        const s = await apriScudo();
+        if (!s) throw new Error("Scudo non raggiungibile");
+        return addDoc(s.orgCollection("azioni"), rec);
+      };
     } else if (id.authState() === "tour") mode = "tour";
   } catch (e) { /* backend assente: demo */ }
 
@@ -1647,6 +1919,15 @@ export async function campoData() {
       // finti, ma copiati dalla dimostrazione di Scudo id per id
       lavoratoriScudo: async () => mem.lavoratoriScudo || [],
       scadenzeScudo: async () => mem.scadenzeScudo || [],
+      // ponte P4: le azioni correttive che in esercizio stanno in Scudo. In
+      // dimostrazione ci sono solo quelle aperte da qui, e si vedono anche
+      // aprendo Scudo nello stesso browser (stessa chiave)
+      azioniScudo: async () => ponteDemoLeggi(),
+      aggiungiAzioneScudo: async (rec) => {
+        const nuova = { id: "pn" + Math.random().toString(36).slice(2, 8), ...rec };
+        ponteDemoScrivi([...ponteDemoLeggi(), nuova]);
+        return nuova;
+      },
       autorizzazioniTerra: async () => mem.autorizzazioniTerra || [],
       // i fronti di Terra: in dimostrazione sono gli stessi tre di terra-data,
       // identificativi compresi (la suite pretende che coincidano)
