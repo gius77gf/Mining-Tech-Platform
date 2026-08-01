@@ -98,7 +98,12 @@
      colonne fisse: aggiungere una voce senza toccare questo numero non la
      stringe, la manda A CAPO — e la voce in più finisce su una seconda riga,
      sotto le altre. Non si vede leggendo il codice, si vede allo scatto. */
-  --nav-cols:9;
+  /* ⛔ DIECI VOCI, DIECI COLONNE. `.nav` è una griglia a colonne FISSE: una
+     voce aggiunta senza toccare questo numero non stringe la barra, la manda
+     A CAPO, e l'ultima finisce sotto le altre — invisibile e non toccabile.
+     Successo il 05/08 aggiungendo «Costi», e non si vede leggendo il codice:
+     l'ha trovato solo lo scatto. La regola 19 di run-stile.mjs lo controlla. */
+  --nav-cols:10;
   --kpi-cols:4;
   --form-gap:11px;
   --form-pad:14px 13px 13px;
@@ -454,6 +459,18 @@ input[type=number].dw-input,
   letter-spacing:.4px; font-variant-numeric:tabular-nums;
 }
 .mrec .v.accent{color:var(--app-accent2)}
+/* ⛔ L'UNITÀ NON VA IN MAIUSCOLO, e dentro `.mrec .k` ci finiva: l'etichetta è
+   `text-transform:uppercase`, quindi «€ 8,50/t» usciva «€ 8,50/T» e «100,00 m³»
+   «100,00 M³». Trovato SOLO nello scatto della scheda dell'ordine — leggendo il
+   codice non si vede. La riga 131 fa già questo per pastiglie ed etichette dei
+   campi: qui mancava il terzo posto in cui il maiuscolo passa. */
+.mrec .k .u{text-transform:none; letter-spacing:.2px}
+/* Un valore che è una FRASE non è una cifra: `.mrec .v` è `nowrap` apposta —
+   le colonne di numeri devono incolonnarsi — ma un riferimento o un residuo
+   scritto per esteso, con quella regola, esce dal bordo destro della finestra
+   e viene tagliato senza nemmeno i puntini. Anche questo si vede solo nello
+   scatto. */
+.mrec .v.testo{white-space:normal; font-size:14px; font-weight:600; letter-spacing:.1px}
 
 /* ─────────────── casella di spunta (scelta dei DDT da fatturare) ───────────────
    Stessa tinta dell'app, nessun colore nuovo: accent-color prende l'accento
@@ -514,11 +531,26 @@ label.item:has(.dw-chk:checked){
   .amt{min-width:96px}
 }
 
-/* ─────────────── sette voci di navigazione ───────────────
-   Con il listino e le pesate le sezioni diventano sette: su schermo stretto
-   l'etichetta si stringe invece di andare a capo o tagliarsi a metà. */
+/* ─────────────── DIECI voci di navigazione ───────────────
+   Con il listino, le pesate, i costi e ora i preventivi le sezioni sono dieci:
+   su schermo stretto l'etichetta si stringe invece di andare a capo o
+   tagliarsi a metà — «una voce o si legge intera o non serve», che è la regola
+   scritta in `dw-app-ui.css` dove questo problema è nato.
+   ⛔ E i numeri qui sotto sono MISURATI, non stimati. Aggiungendo la decima
+   voce la barra è rimasta su una riga sola (controprovato: dieci voci in nove
+   colonne vanno davvero a capo, altezza 104 invece di 53) ma le etichette si
+   sono messe a traboccare: a 390 px «Quadro» chiedeva 37,4 px per 35,2
+   disponibili e «Fatture» 38; a 320 px «Quadro» 33,3 per 30,2, «Fatture» 34,
+   «Report» 31. Sotto i 380 px non bastava più stringere il testo — era già
+   a spaziatura zero e senza margini interni — e allora si prende quel che
+   manca dai due margini ESTERNI della barra, che a 320 px valgono otto pixel
+   buoni: mezzo pixel a colonna, ed è quello che chiude il conto.
+   ⚠️ La misura va fatta sul TESTO dentro il bottone, avvolgendolo in uno span:
+   copiando a mano `getComputedStyle(b).font` si perde `text-transform`, si
+   misura «Quadro» minuscolo e la sonda risponde «nessuna tagliata» mentre lo
+   scatto mostra il contrario. Successo, e costato un giro. */
 @media(max-width:440px){
-  .nav button{font-size:8px; letter-spacing:.3px; padding:9px 1px 8px; overflow:hidden}
+  .nav button{font-size:8px; letter-spacing:0; padding:9px 0 8px; overflow:hidden}
   .nav .ico{height:20px}
   .nav .ico svg{width:19px; height:19px}
   .nav button.active::before{width:34px; height:28px}
@@ -526,8 +558,10 @@ label.item:has(.dw-chk:checked){
 /* telefoni piccoli (e caso in cui il Condensed non si carica): l'etichetta
    si stringe ancora, perché due voci non si devono mai toccare */
 @media(max-width:380px){
-  .nav button{font-size:7.5px; letter-spacing:0; padding:9px 0 8px}
+  .nav button{font-size:7px; letter-spacing:0; padding:9px 0 8px}
   .nav .ico svg{width:18px; height:18px}
+  /* gli ultimi pixel non stanno più nel testo: stanno nei margini della barra */
+  .nav{width:calc(100% - 8px)}
 }
 
 /* ─────────────── azioni di riga su schermo stretto ───────────────
@@ -783,6 +817,118 @@ label.item:has(.dw-chk:checked){
   <div id="ban-conferma"></div>
   <div id="ban-decidere"></div>
   <div id="ban-fuori"></div>
+</div>
+
+<!-- ══ PREVENTIVI E ORDINI (N9) ═════════════════════════════════════════
+     Il ciclo di Conti partiva dalla PESATA: il primo documento che l'app
+     conosceva era il DDT di un camion già carico. Prima del camion però c'è
+     una richiesta d'offerta, un prezzo tenuto fermo per un po', e una
+     conferma — ed è lì che si decide quanto materiale uscirà dal piazzale.
+     UN DOCUMENTO SOLO: il preventivo accettato DIVENTA l'ordine. Stesse
+     righe, stato che cambia, un numero d'ordine in più. -->
+<div class="page" id="page-ord">
+  <div class="sec">Portafoglio ordini</div>
+  <div id="ord-banner"></div>
+  <div class="note">Qui vive quello che hai <b>già venduto e non ancora consegnato</b>: la
+    domanda con cui si programma la settimana in cava. Un preventivo diventa un ordine solo
+    quando il cliente lo <b>accetta</b>: <b>scaduti e rifiutati non entrano mai nel venduto</b>,
+    perché è materiale che non uscirà dal piazzale. Ai DDT che parti si può agganciare l'ordine,
+    e da lì Conti sa dirti quanto ne resta.</div>
+
+  <div class="sec">Offerte da richiamare<span class="cnt" id="ord-seg-cnt">0</span></div>
+  <div id="ord-seguire"></div>
+
+  <div class="sec">Preventivi e ordini<span class="cnt" id="ord-cnt">0</span></div>
+  <div id="ord-filtri" class="chgs">
+    <button class="chg active" data-ofiltro="tutti">Tutti<span class="qt" data-oqt="tutti"></span></button>
+    <button class="chg" data-ofiltro="aperti">In attesa<span class="qt" data-oqt="aperti"></span></button>
+    <button class="chg" data-ofiltro="ordini">Ordini<span class="qt" data-oqt="ordini"></span></button>
+    <button class="chg" data-ofiltro="chiusi">Chiusi<span class="qt" data-oqt="chiusi"></span></button>
+  </div>
+  <input class="dw-input" id="ord-cerca" type="search" placeholder="Cerca per cliente, numero o riferimento…" style="margin-bottom:10px;">
+  <div id="ord-count" class="count"></div>
+  <div id="ord-list"></div>
+
+  <div class="sec">Nuovo preventivo</div>
+  <div class="form" id="ord-form">
+    <div class="fld" id="fld-or-num" style="flex:1 1 160px;">
+      <label for="or-num">Numero</label>
+      <input class="dw-input calc" id="or-num" readonly tabindex="-1" aria-readonly="true" value="—"
+             title="Lo propone Conti: serie propria dei preventivi, separata da quella delle fatture.">
+      <span class="err-msg" id="err-or-num"></span>
+    </div>
+    <div class="fld" id="fld-or-data" style="flex:1 1 150px;">
+      <label for="or-data">Data dell'offerta</label>
+      <input class="dw-input" id="or-data" type="date">
+      <span class="err-msg" id="err-or-data"></span>
+    </div>
+    <!-- ⛔ La validità NON è un campo facoltativo qualsiasi: un'offerta senza
+         data di scadenza è un prezzo bloccato per sempre, e in cava gli inerti
+         si muovono col gasolio. Il form la propone a trenta giorni e la
+         pretende: chi la lascia vuota vede lo stato «senza validità». -->
+    <div class="fld" id="fld-or-val" style="flex:1 1 150px;">
+      <label for="or-val">Valida fino al</label>
+      <input class="dw-input" id="or-val" type="date">
+      <span class="err-msg" id="err-or-val"></span>
+    </div>
+    <div class="fld w2" id="fld-or-cli">
+      <label for="or-cli">Cliente</label>
+      <select class="dw-input" id="or-cli"></select>
+      <span class="err-msg" id="err-or-cli"></span>
+    </div>
+    <div class="fld w2" id="fld-or-rif">
+      <label for="or-rif">Riferimento della richiesta</label>
+      <input class="dw-input" id="or-rif" placeholder="es. mail del 18/07 · prot. 4412" autocomplete="off">
+      <span class="err-msg" id="err-or-rif"></span>
+    </div>
+    <div class="fld w2" id="fld-or-note">
+      <label for="or-note">Note per il cliente</label>
+      <input class="dw-input" id="or-note" placeholder="es. consegne scaglionate, a chiamata del capocantiere" autocomplete="off">
+      <span class="err-msg" id="err-or-note"></span>
+    </div>
+  </div>
+
+  <span class="fl">Righe dell'offerta</span>
+  <div class="form" id="ord-riga-form">
+    <div class="fld w2" id="fld-or-prod">
+      <label for="or-prod">Prodotto</label>
+      <select class="dw-input" id="or-prod"></select>
+      <span class="err-msg" id="err-or-prod"></span>
+    </div>
+    <div class="fld" id="fld-or-unita" style="flex:1 1 160px;">
+      <label for="or-unita">Ordinato in</label>
+      <select class="dw-input" id="or-unita">
+        <option value="t">t — tonnellate</option>
+        <option value="m3">m³ — metri cubi</option>
+      </select>
+      <span class="err-msg" id="err-or-unita"></span>
+    </div>
+    <!-- ⛔ Campo di TESTO con inputmode decimal, non type=number: nel campo
+         numerico la virgola italiana non entra e «1.500,5» diventa «15005». -->
+    <div class="fld" id="fld-or-qta" style="flex:1 1 150px;">
+      <label for="or-qta">Quantità</label>
+      <input class="dw-input dec" id="or-qta" type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+             placeholder="0,00" title="Quanto materiale. La virgola va benissimo: 1.250,5. Lasciala vuota per una fornitura a chiamata.">
+      <span class="err-msg" id="err-or-qta"></span>
+    </div>
+    <button class="dw-btn secondary" id="btn-or-riga">Aggiungi riga</button>
+  </div>
+  <div class="form-hint" style="margin:-4px 0 10px;">La <b>quantità si può lasciare vuota</b>: è la
+    <b>fornitura a chiamata</b>, prezzo bloccato e quantità da vedersi. Conti la accetta e poi te lo
+    ricorda — di un ordine così <b>non può dire quanto è stato consegnato</b>, e non finge di saperlo.</div>
+  <div id="ord-righe"></div>
+  <div id="ord-tot"></div>
+  <div class="tools">
+    <button class="dw-btn" id="btn-or">Salva preventivo</button>
+    <button class="dw-btn secondary" id="btn-or-annulla" style="display:none;">Annulla la modifica</button>
+    <button class="dw-btn secondary" id="btn-or-export">Esporta preventivi (CSV)</button>
+  </div>
+  <div class="note esito" id="ord-esito"></div>
+  <div class="note">Il preventivo <b>non è un documento fiscale</b>: non ha numerazione obbligatoria
+    né termini di legge, e la sua serie è tenuta a parte da quella delle fatture. Quello che conta
+    è che il cliente possa <b>rifare il conto</b>: prezzo di listino e sconto scritti separati,
+    imponibile, IVA e totale come li scriverà la fattura. Alla consegna, aggancia il DDT
+    all'ordine dalla scheda del documento: solo così Conti sa quanto resta.</div>
 </div>
 
 <div class="page" id="page-pes">
@@ -1329,6 +1475,7 @@ label.item:has(.dw-chk:checked){
   <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg></span>Quadro</button>
   <button id="nav-fat" onclick="go('fat')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M5.5 3.2h13v17.6l-2.6-1.5-2.6 1.5-2.6-1.5-2.6 1.5L5.5 20.8z"/><path d="M9 8.2h6M9 12h6M9 15.4h3.6"/></svg></span>Fatture</button>
   <button id="nav-ban" onclick="go('ban')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M3.2 9.4L12 4.2l8.8 5.2"/><path d="M4.6 9.4v8.2M9.6 9.4v8.2M14.4 9.4v8.2M19.4 9.4v8.2"/><path d="M2.8 20.2h18.4"/></svg></span>Banca</button>
+  <button id="nav-ord" onclick="go('ord')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M6.4 2.9h11.2a1.5 1.5 0 0 1 1.5 1.5v15.2a1.5 1.5 0 0 1-1.5 1.5H6.4a1.5 1.5 0 0 1-1.5-1.5V4.4a1.5 1.5 0 0 1 1.5-1.5z"/><path d="M8.4 8h7.2M8.4 11.6h7.2"/><path d="M8.4 15.8l1.9 1.9 3.6-3.8"/></svg></span>Ordini</button>
   <button id="nav-pes" onclick="go('pes')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M2.6 6.6h11v9.4h-11z"/><path d="M13.6 10.2h3.5l3.3 3.1V16h-6.8z"/><circle cx="7" cy="18.4" r="2"/><circle cx="17" cy="18.4" r="2"/></svg></span>Pesate</button>
   <button id="nav-cos" onclick="go('cos')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M12 3.2v9.6M8.4 9.4l3.6 3.8 3.6-3.8"/><path d="M3.6 15v3.4a2.2 2.2 0 0 0 2.2 2.2h12.4a2.2 2.2 0 0 0 2.2-2.2V15"/></svg></span>Costi</button>
   <button id="nav-lis" onclick="go('lis')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M12.4 3.1h7.1a1.4 1.4 0 0 1 1.4 1.4v7.1a1.4 1.4 0 0 1-.4 1l-8.2 8.2a1.4 1.4 0 0 1-2 0l-7.1-7.1a1.4 1.4 0 0 1 0-2l8.2-8.2a1.4 1.4 0 0 1 1-.4z"/><path d="M16.6 7.4v.02"/></svg></span>Listino</button>
@@ -1366,8 +1513,12 @@ label.item:has(.dw-chk:checked){
     CAUSALI_TRASPORTO, causaleTrasporto, TRASPORTO_A_CURA, trasportoACura, mancanzeDdt,
     VOCI_COSTO, voceCosto, gruppoDiVoce, riepilogoCosti, costoPerMetroCubo,
     volumeDaTerra, costiFuoriDaiRilievi,
-    statoMese, vociMancantiNelMese, margineMese } from "./conti-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale, dataIt } from "../../shared/deepwork-id-client/dw-shell.js";
+    statoMese, vociMancantiNelMese, margineMese,
+    STATI_PREVENTIVO, statoPreventivoLabel, statoPreventivo, ordineConfermato,
+    rigaPreventivo, totaliPreventivo, consegnatoOrdine, ddtDaAgganciare,
+    avanzamentoOrdine, descriviAvanzamento, portafoglioOrdini,
+    preventiviDaSeguire } from "./conti-data.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale, dataIt, dataPiuGiorni } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -1526,6 +1677,13 @@ label.item:has(.dw-chk:checked){
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
   let FAT=[], GAR=[], CLI=[], PRO=[], PES=[], INC=[], NOT=[], COS=[], CHI=[], IMP=null;
+  /* PREVENTIVI E ORDINI (N9). `ORD` è la lista salvata; `orRighe` sono le
+     righe del preventivo che si sta scrivendo, che vivono nella pagina finché
+     non si salva — come il carrello dei DDT nella fattura differita. */
+  let ORD=[];
+  let orRighe = [];        // righe in composizione del preventivo nuovo
+  let editOrd = null;      // id del preventivo in modifica (riusa il form)
+  let filtroOrd = "tutti";
   // Rilievi di TERRA, in sola lettura (confronto cavato/venduto). null = non
   // disponibili: «non lo so» e «zero» sono due risposte diverse, e l'app deve
   // saperle distinguere invece di mostrare un cavato di zero che non esiste.
@@ -1690,11 +1848,495 @@ label.item:has(.dw-chk:checked){
      come una nei termini */
   const ST_SCAD = { "senza-scadenza": "st-warn", insoluta: "st-danger",
                     "in-scadenza": "st-warn", regolare: "st-accent" };
+  // ══════════════════════════════════════════════════════════════════
+  // PREVENTIVI E ORDINI (N9)
+  // ------------------------------------------------------------------
+  // Il ciclo di Conti partiva dalla pesata. Qui c'è il pezzo che viene
+  // prima: l'offerta, la sua validità, la conferma — e da lì «quanto ho
+  // venduto e non ho ancora consegnato».
+  // ⛔ La regola che governa ogni riga di questo blocco: un ordine di cui
+  //    non si sa quanto è stato consegnato NON è «0% consegnato». La
+  //    pagina legge `misurabile` PRIMA di disegnare qualunque barra, e la
+  //    frase la scrive `descriviAvanzamento` (nel modulo, una volta sola).
+  // ══════════════════════════════════════════════════════════════════
+  const ORD_BADGE = {
+    bozza:            ["", "Bozza"],
+    inviato:          ["warn", "Inviato"],
+    scaduto:          ["danger", "Scaduto"],
+    "senza-validita": ["warn", "senza validità"],
+    accettato:        ["ok", "Ordine"],
+    rifiutato:        ["danger", "Rifiutato"],
+    annullato:        ["", "Annullato"],
+  };
+  /* ⛔ Regola 18: la mappa deve coprire TUTTI gli stati che la sua funzione sa
+     dire. `statoPreventivo` ne restituisce sette — i cinque salvabili più i due
+     che li calcola il calendario — e se ne mancasse uno `ORD_BADGE[st][0]`
+     ucciderebbe la pagina AL DISEGNO, senza nessun errore di sintassi da
+     leggere. Qui il ripiego c'è lo stesso, perché una pagina che si spegne è
+     peggio di un'etichetta generica. */
+  const ordBadge = (st) => ORD_BADGE[st] || ["", st || "—"];
+  const ordStato = (o) => statoPreventivo(o, new Date()).stato;
+  const nomeClienteOrd = (o) => {
+    const c = CLI.find(x => x.id === (o || {}).clienteId);
+    return (c && c.ragioneSociale) || (o && o.cliente) || "Cliente non indicato";
+  };
+  const numeroProssimoPreventivo = () =>
+    prossimoNumero(ORD.map(o => o.numero), new Date().getFullYear(), 3, "PREV/");
+  const numeroProssimoOrdine = () =>
+    prossimoNumero(ORD.map(o => o.numeroOrdine).filter(Boolean), new Date().getFullYear(), 3, "ORD/");
+
+  /* ⛔ QUANDO NON C'È NIENTE DA SOMMARE NON SI SCRIVE «€ 0,00». Un ordine le
+     cui righe sono TUTTE a chiamata ha imponibile, IVA e totale a zero — e tre
+     cifre a zero, grosse e allineate, dicono «costa zero», che è la cosa più
+     tranquilla e più falsa che l'app sappia dire. Trovato solo guardando lo
+     scatto della scheda: nella prova il numero era giusto (zero È la somma di
+     niente), ma sullo schermo era una risposta a una domanda che nessuno ha
+     misurato. Con almeno una riga sommabile il totale è vero, e allora si
+     scrive: è la stessa distinzione delle gare fra «base zero» e «senza base». */
+  const nienteDaSommare = (t) => t.righe > 0 && t.righe === t.senzaImporto;
+  const eurOrd = (t, v) => nienteDaSommare(t) ? "—" : eur(v);
+
+  const ordMatch = (o) => { const st = ordStato(o);
+    return filtroOrd === "tutti"
+      || (filtroOrd === "aperti" && (st === "bozza" || st === "inviato" || st === "senza-validita"))
+      || (filtroOrd === "ordini" && st === "accettato")
+      || (filtroOrd === "chiusi" && (st === "scaduto" || st === "rifiutato" || st === "annullato")); };
+
+  /* La quantità di una riga scritta per esteso. `null` NON diventa «0»: è la
+     fornitura a chiamata, e va detta con le sue parole. */
+  /* ⛔ L'UNITÀ SI SCRIVE AVVOLTA IN `.u`, sempre. Queste due frasi finiscono
+     anche dentro `.mrec .k`, che è `text-transform:uppercase`: senza
+     l'involucro «€ 8,50/t» diventa «€ 8,50/T» e «100,00 m³» diventa «100,00 M³».
+     Trovato solo nello scatto — leggendo il codice non si vede.
+     ⚠️ `avvolgiUnita` di shared/ qui NON basta: il suo elenco non conosce la
+     tonnellata da sola («300,00 t») né le unità dopo lo slash («/t», «/m³»),
+     perché la sua regola vuole una CIFRA prima dell'unità. È una mancanza di
+     shared/, dichiarata nel rapporto e non aggirata riscrivendola qui: queste
+     due righe scrivono `.u` a mano, come Conti fa già per «gg» e «t/m³».
+     E restituiscono HTML: NON vanno passate a `esc`. */
+  const conU = (x) => '<span class="u">' + esc(x) + '</span>';
+  const qtaRiga = (r) => r.quantita == null ? "quantità a chiamata"
+    : qt(r.quantita) + " " + conU(uni(r.unita));
+  const prezzoRiga = (r) => r.prezzoUnitario == null
+    ? "prezzo non convertibile: manca la densità"
+    : eur(r.prezzoUnitario) + conU("/" + uni(r.unita)) + (+r.scontoPct > 0 ? " − " + perc(r.scontoPct) : "");
+
+  function renderOrdini() {
+    const oggi = new Date();
+    // ── il cartellone del portafoglio ────────────────────────────────
+    const P = portafoglioOrdini(ORD, PES, oggi);
+    /* ⛔ Il valore del portafoglio è PARZIALE quando qualche ordine ha righe
+       senza importo (le forniture a chiamata). Un totale che esclude qualcosa
+       senza dirlo è un totale che inganna: stessa regola delle gare senza base
+       d'asta, e qui la riga sotto la cifra lo scrive. */
+    const parti = [];
+    if (P.daConsegnare) parti.push(plur(P.daConsegnare, "ordine da consegnare", "ordini da consegnare"));
+    if (P.completati) parti.push(plur(P.completati, "già consegnato", "già consegnati"));
+    if (P.nonMisurabili) parti.push(P.nonMisurabili + " di cui non si sa quanto è stato consegnato");
+    $("ord-banner").innerHTML = `<div class="cassa${P.quanti > 0 ? "" : " vuota"}">
+      <span class="cassa-ico">${IC.spunta}</span>
+      <div><div class="cassa-num">${eur(P.valore)}</div>
+      <div class="cassa-lab">Ordini confermati${P.senzaImporto ? " (in parte)" : ""}</div></div>
+      <div class="cassa-txt" style="margin-left:auto;text-align:right;">
+      ${P.quanti > 0 ? plur(P.quanti, "ordine accettato", "ordini accettati") + "<br>" + esc(parti.join(" · "))
+                     : "Nessun ordine accettato.<br>Un preventivo diventa un ordine quando il cliente lo conferma."}
+      ${P.senzaImporto ? `<br><b>${P.senzaImporto === 1 ? "Un ordine è" : P.senzaImporto + " ordini sono"} a chiamata</b>: il valore qui sopra non ${P.senzaImporto === 1 ? "lo" : "li"} comprende.` : ""}
+      </div></div>`;
+
+    // ── le offerte da richiamare ─────────────────────────────────────
+    const seg = preventiviDaSeguire(ORD, oggi);
+    $("ord-seg-cnt").textContent = seg.length;
+    $("ord-seguire").innerHTML = seg.length
+      ? seg.map(({ ordine: o, stato, giorni: g }) => {
+          const b = ordBadge(stato);
+          const t = totaliPreventivo(o);
+          const perche = stato === "scaduto"
+            ? "il prezzo che avevi tenuto fermo è scaduto il " + fmtD(o.validoAl) + ": richiamalo o rifai l'offerta"
+            : stato === "senza-validita"
+              ? "manca la data di validità: finché non c'è, è un prezzo bloccato per sempre"
+              : "scade " + (g === 0 ? "oggi" : "fra " + plur(g, "giorno", "giorni")) + ", il " + fmtD(o.validoAl);
+          return `<div class="item tocca st-warn" data-ord="${esc(o.id)}" tabindex="0" role="button">
+            <span class="avatar">${IC.busta}</span>
+            <div class="info"><div class="name"><span class="num-doc">${esc(o.numero || "—")}</span> · ${esc(nomeClienteOrd(o))}</div>
+            <div class="meta">${esc(perche)}</div></div>
+            <div class="amt"><div class="amt-n">${eurOrd(t, t.imponibile)}</div>
+              <div class="amt-s">${nienteDaSommare(t) ? "a chiamata" : "imponibile"}</div></div>
+            <span class="badge ${b[0]}">${ggU(esc(b[1]))}</span></div>`; }).join("")
+      : vuoto("ok", "Nessuna offerta da richiamare", "Tutti i preventivi inviati sono ancora nei termini. Quando uno scade — o gli manca la data di validità — compare qui, perché un prezzo tenuto fermo che nessuno richiama è una vendita persa in silenzio.");
+
+    // ── l'elenco ─────────────────────────────────────────────────────
+    const q = ($("ord-cerca") && $("ord-cerca").value || "").trim().toLowerCase();
+    const cerca = (o) => !q || (nomeClienteOrd(o) + " " + (o.numero || "") + " " + (o.numeroOrdine || "")
+      + " " + (o.riferimento || "")).toLowerCase().includes(q);
+    const viste = ORD.filter(ordMatch).filter(cerca)
+      .sort((a, b) => String(b.data || "").localeCompare(String(a.data || ""))
+        || String(b.numero || "").localeCompare(String(a.numero || ""), "it", { numeric: true }));
+
+    $("ord-list").innerHTML = viste.length ? viste.map(o => {
+      const st = ordStato(o), b = ordBadge(st), t = totaliPreventivo(o);
+      const av = st === "accettato" ? avanzamentoOrdine(o, PES) : null;
+      /* ⛔ La ragione della non-misurabilità NON va appesa in coda al
+         `.meta`: quelle righe hanno `-webkit-line-clamp:2`, e una frase in
+         fondo è testo che non legge nessuno (successo due volte in un
+         giorno, in due app). Qui il `.meta` porta gli estremi, la pastiglia
+         di destra dice «non misurabile», e la ragione per esteso sta nella
+         scheda del documento — che si apre toccando la riga. */
+      const meta = [fmtD(o.data),
+        o.numeroOrdine ? "ordine " + esc(o.numeroOrdine) : (o.validoAl ? "valido fino al " + fmtD(o.validoAl) : "senza data di validità"),
+        plur(o.righe ? o.righe.length : 0, "riga", "righe"),
+        o.riferimento ? esc(o.riferimento) : ""].filter(Boolean).join(" · ");
+      const dx = av
+        ? (av.misurabile ? `<div class="amt-s">consegnato ${av.percentuale}%</div>`
+                         : `<div class="amt-s">consegnato: non misurabile</div>`)
+        : `<div class="amt-s">${t.senzaImporto ? plur(t.senzaImporto, "riga a chiamata", "righe a chiamata") : "imponibile"}</div>`;
+      return `<div class="item tocca ${st === "accettato" ? "st-ok" : st === "scaduto" || st === "rifiutato" ? "st-danger" : "st-accent"}"
+          data-ord="${esc(o.id)}" tabindex="0" role="button">
+        <span class="avatar">${st === "accettato" ? IC.spunta : IC.busta}</span>
+        <div class="info"><div class="name"><span class="num-doc">${esc(o.numero || "—")}</span> · ${esc(nomeClienteOrd(o))}</div>
+        <div class="meta">${meta}</div></div>
+        <div class="amt"><div class="amt-n">${eurOrd(t, t.imponibile)}</div>${dx}</div>
+        <span class="badge ${b[0]}">${ggU(esc(b[1]))}</span>${
+          av && !av.misurabile ? `<span class="badge warn" title="${esc(av.perche)}">non misurabile</span>` : ""}${
+          av && av.misurabile && av.percentuale === 0 && av.daAgganciare > 0
+            ? `<span class="badge warn" title="${esc(descriviAvanzamento(av))}">${av.daAgganciare} DDT da collegare</span>` : ""}
+        <div class="acts"><button class="arr" type="button" title="Stampa il preventivo" aria-label="Stampa il preventivo ${esc(o.numero || "")}" data-stampa-ord="${esc(o.id)}">${IC.stampa}</button></div>
+        </div>`; }).join("")
+      : (q ? vuoto("busta", "Nessun risultato", "Nessun preventivo trovato per «<b>" + esc(q) + "</b>». Prova col nome del cliente o col numero.")
+         : filtroOrd === "tutti"
+           ? vuoto("busta", "Nessun preventivo", "Scrivi il primo qui sotto: scegli il cliente, la data fino a cui tieni fermo il prezzo, e aggiungi le righe dal listino. Quando il cliente conferma, diventa un <b>ordine</b> e i DDT gli si agganciano.")
+           : vuoto("busta", "Categoria vuota", "Nessun documento in questa categoria. Tocca <b>Tutti</b> per vedere l'elenco completo."));
+
+    { const n = viste.length, filtrata = q || filtroOrd !== "tutti";
+      $("ord-count").innerHTML = n === 0 ? "" : "<b>" + n + "</b>" + (n === 1 ? " documento" : " documenti") + (filtrata ? " su " + ORD.length : ""); }
+    $("ord-cnt").textContent = ORD.length;
+    document.querySelectorAll("#ord-filtri [data-ofiltro]").forEach(b =>
+      b.classList.toggle("active", b.getAttribute("data-ofiltro") === filtroOrd));
+    { const stati = ORD.map(ordStato);
+      const c = { tutti: ORD.length,
+        aperti: stati.filter(s => s === "bozza" || s === "inviato" || s === "senza-validita").length,
+        ordini: stati.filter(s => s === "accettato").length,
+        chiusi: stati.filter(s => s === "scaduto" || s === "rifiutato" || s === "annullato").length };
+      document.querySelectorAll("#ord-filtri .qt").forEach(s => {
+        const v = c[s.getAttribute("data-oqt")]; s.textContent = v ? v : ""; }); }
+
+    // ── il form: tendine e numero proposto ───────────────────────────
+    if (!editOrd) $("or-num").value = numeroProssimoPreventivo();
+    riempiTendineOrd();
+    renderRigheOrd();
+  }
+
+  function riempiTendineOrd() {
+    const cli = $("or-cli"), prod = $("or-prod");
+    const vc = cli.value, vp = prod.value;
+    cli.innerHTML = '<option value="">— scegli il cliente —</option>'
+      + CLI.map(c => `<option value="${esc(c.id)}">${esc(c.ragioneSociale)}${+c.sconto > 0 ? " — sconto " + perc(c.sconto) : ""}</option>`).join("");
+    prod.innerHTML = '<option value="">— scegli dal listino —</option>'
+      + PRO.map(p => `<option value="${esc(p.id)}">${esc(p.nome)} — ${eur(p.prezzo)}/${uni(p.unitaPrezzo)}</option>`).join("");
+    if (vc) cli.value = vc;
+    if (vp) prod.value = vp;
+  }
+
+  /* Le righe in composizione. Il totale si ricalcola con `totaliPreventivo`,
+     cioè con la stessa funzione che userà il documento salvato: due conti
+     diversi sullo stesso imponibile darebbero un'anteprima che non torna. */
+  function renderRigheOrd() {
+    $("ord-righe").innerHTML = orRighe.length
+      ? orRighe.map((r, i) => `<div class="item st-accent">
+          <span class="avatar">${IC.listino}</span>
+          <div class="info"><div class="name">${esc(r.descrizione)}</div>
+          <div class="meta">${qtaRiga(r)} · ${prezzoRiga(r)}</div></div>
+          <div class="amt"><div class="amt-n">${r.imponibile == null ? "—" : eur(r.imponibile)}</div>
+            <div class="amt-s">IVA ${perc(r.aliquota)}</div></div>
+          <div class="acts"><button class="arr del" type="button" data-del-riga="${i}"
+            title="Togli questa riga" aria-label="Togli la riga ${esc(r.descrizione)}">${IC.croce}</button></div>
+          </div>`).join("")
+      : vuoto("listino", "Nessuna riga", "Scegli un prodotto dal listino qui sopra e aggiungilo. Il <b>prezzo</b> e lo <b>sconto del cliente</b> li porta Conti: restano scritti separati, così chi riceve l'offerta può rifare il conto.");
+    const t = totaliPreventivo({ righe: orRighe });
+    $("ord-tot").innerHTML = orRighe.length ? `<div class="riep">
+      <div class="mrec"><span class="k">Righe</span><span class="v">${t.righe}</span></div>
+      <div class="mrec"><span class="k">Imponibile</span><span class="v">${eur(t.imponibile)}</span></div>
+      <div class="mrec"><span class="k">IVA</span><span class="v">${eur(t.ivaImporto)}</span></div>
+      <div class="mrec"><span class="k">Totale offerta</span><span class="v accent">${eur(t.totale)}</span></div>
+      ${t.senzaImporto ? `<div class="mrec"><span class="k">Righe a chiamata, fuori dal totale</span><span class="v">${t.senzaImporto}</span></div>` : ""}
+      </div>` : "";
+    $("btn-or").disabled = !orRighe.length;
+  }
+
+  // ── LA SCHEDA DEL DOCUMENTO ──────────────────────────────────────────
+  // Qui va per esteso quello che nella riga sarebbe testo tagliato: la
+  // ragione per cui il consegnato non è misurabile, il residuo prodotto per
+  // prodotto, i DDT agganciati e quelli che forse andrebbero collegati.
+  function schedaOrdine(id) {
+    const o = ORD.find(x => x.id === id); if (!o) return;
+    const st = ordStato(o), b = ordBadge(st), t = totaliPreventivo(o);
+    const av = avanzamentoOrdine(o, PES);
+    const sciolti = ddtDaAgganciare(o, PES);
+    const agganciati = PES.filter(p => String(p.ordineId || "") === String(o.id));
+
+    const righe = (o.righe || []).map(r => `<div class="mrec">
+      <span class="k">${esc(r.descrizione)} — ${qtaRiga(r)}<br><span class="amt-s">${prezzoRiga(r)}</span></span>
+      <span class="v">${r.imponibile == null ? "—" : eur(r.imponibile)}</span></div>`).join("");
+
+    /* ⛔ IL PUNTO IN CUI IL PRINCIPIO SI VEDE. Se `misurabile` è falso non si
+       disegna nessuna barra e non si scrive nessuna percentuale: si scrive
+       che cosa manca. Una barra a zero, qui, direbbe «non è ancora partito
+       niente» — che è un'informazione, e non ce l'abbiamo. */
+    const avanz = st !== "accettato"
+      ? `<p style="margin-top:10px;">Questo documento non è ancora un ordine: le consegne si
+         agganciano solo dopo che il cliente ha <b>accettato</b>.</p>`
+      : `<span class="fl">Avanzamento delle consegne</span>
+         <p style="margin:6px 0 8px;">${esc(descriviAvanzamento(av))}</p>
+         ${av.misurabile ? `<div id="ord-barra" style="margin-bottom:10px;"></div>` : ""}
+         ${av.prodotti.map(g => { const u = conU(uni(g.unita));
+            /* ⛔ Una FRASE non sta in `.mrec .v`, che è `nowrap` apposta per
+               incolonnare le cifre: «57,66 t di 300,00 t · restano 242,34 t»
+               usciva dal bordo destro della finestra e veniva tagliata senza
+               nemmeno i puntini. Si vede solo nello scatto. Qui la riga porta
+               il numero secco, e il residuo lo dice una frase che va a capo. */
+            return `<div class="mrec"><span class="k">${esc(g.descrizione)}</span>
+            <span class="v">${g.misurabile ? qt(g.consegnato) + " / " + qt(g.ordinato) + " " + u : "non misurabile"}</span></div>`
+            + (g.misurabile ? `<div class="form-hint" style="margin:-2px 0 6px;">${
+                g.residuo > 0 ? "Restano " + qt(g.residuo) + " " + u + " da consegnare."
+                : g.residuo < 0 ? "Consegnate " + qt(-g.residuo) + " " + u + " in più dell'ordinato: da fatturare a parte."
+                : "Consegnato per intero."}</div>` : ""); }).join("")}
+         ${/* con UN prodotto solo la frase qui sotto ripete parola per parola
+               quella in cima — visto nello scatto. Serve quando i prodotti sono
+               più d'uno e bisogna sapere QUALE non si misura. */
+            av.prodotti.length > 1 ? av.prodotti.filter(g => !g.misurabile).map(g =>
+            `<p style="margin-top:8px;">Su <b>${esc(g.descrizione)}</b> non si può dire quanto è
+             stato consegnato: ${esc(g.perche)}.</p>`).join("") : ""}
+         ${av.fuoriOrdine.length ? `<p style="margin-top:8px;"><b>${plur(av.fuoriOrdine.length, "DDT agganciato", "DDT agganciati")}</b>
+            di un prodotto che in quest'ordine non c'è (${esc(av.fuoriOrdine.map(p => p.numero || "—").join(", "))}):
+            non consumano l'ordine, e restano da fatturare a parte.</p>` : ""}`;
+
+    const listaAgg = agganciati.length ? `<span class="fl">DDT agganciati (${agganciati.length})</span>`
+      + agganciati.map(p => `<div class="mrec">
+          <span class="k">DDT ${esc(p.numero || "—")} · ${fmtD(p.data)}</span>
+          <span class="v">${p.quantita == null ? "quantità non calcolabile" : qtu(p.quantita, p.unitaVendita)}
+          <button class="arr del" type="button" style="margin-left:8px;" data-stacca="${esc(p.id)}"
+            title="Stacca questo DDT dall'ordine" aria-label="Stacca il DDT ${esc(p.numero || "")}">${IC.croce}</button></span></div>`).join("") : "";
+
+    const listaSciolti = (st === "accettato" && sciolti.length)
+      ? `<span class="fl">DDT di questo cliente senza ordine (${sciolti.length})</span>
+         <p style="margin:6px 0 8px;">Stessi prodotti, stesso cliente, nessun ordine collegato: se sono
+           consegne di quest'ordine, agganciale — altrimenti il residuo resta sbagliato.</p>`
+        + sciolti.map(p => `<div class="mrec">
+            <span class="k">DDT ${esc(p.numero || "—")} · ${fmtD(p.data)} · ${esc(p.prodotto || "—")}</span>
+            <span class="v">${p.quantita == null ? "—" : qtu(p.quantita, p.unitaVendita)}
+            <button class="dw-btn secondary mini" type="button" style="margin-left:8px;" data-aggancia="${esc(p.id)}">Aggancia</button></span></div>`).join("")
+      : "";
+
+    const corpo = `
+      <div class="mrec"><span class="k">Stato</span><span class="v"><span class="badge ${b[0]}">${ggU(esc(b[1]))}</span></span></div>
+      <div class="mrec"><span class="k">Cliente</span><span class="v">${esc(nomeClienteOrd(o))}</span></div>
+      <div class="mrec"><span class="k">Data dell'offerta</span><span class="v">${fmtD(o.data)}</span></div>
+      <div class="mrec"><span class="k">Valida fino al</span><span class="v">${o.validoAl ? fmtD(o.validoAl) : "non indicata"}</span></div>
+      ${o.numeroOrdine ? `<div class="mrec"><span class="k">Numero d'ordine</span><span class="v accent">${esc(o.numeroOrdine)}</span></div>` : ""}
+      ${o.decisoIl ? `<div class="mrec"><span class="k">Deciso il</span><span class="v">${fmtD(o.decisoIl)}</span></div>` : ""}
+      ${o.riferimento ? `<div class="mrec"><span class="k">Riferimento</span><span class="v testo">${esc(o.riferimento)}</span></div>` : ""}
+      <span class="fl">Righe dell'offerta</span>
+      ${righe || '<p style="margin-top:6px;">Nessuna riga.</p>'}
+      <div class="mrec"><span class="k">Imponibile</span><span class="v">${eurOrd(t, t.imponibile)}</span></div>
+      <div class="mrec"><span class="k">IVA</span><span class="v">${eurOrd(t, t.ivaImporto)}</span></div>
+      <div class="mrec"><span class="k">Totale</span><span class="v accent">${eurOrd(t, t.totale)}</span></div>
+      ${t.senzaImporto ? `<p style="margin-top:8px;"><b>${plur(t.senzaImporto, "riga è a chiamata", "righe sono a chiamata")}</b>
+         e ${t.senzaImporto === 1 ? "non entra" : "non entrano"} nel totale: il prezzo è bloccato, la quantità si vedrà.</p>` : ""}
+      ${o.note ? `<p style="margin-top:10px;">${esc(o.note)}</p>` : ""}
+      ${avanz}
+      ${listaAgg}
+      ${listaSciolti}
+      ${st === "bozza" || st === "inviato" || st === "senza-validita"
+        ? `<div class="tools">
+             <button class="dw-btn secondary mini" type="button" id="ord-modifica">${IC.matita}Modifica</button>
+             ${st === "bozza" ? '<button class="dw-btn secondary mini" type="button" id="ord-invia">Segna come inviato</button>' : ""}
+             <button class="dw-btn secondary mini no" type="button" id="ord-rifiuta">Il cliente ha rifiutato</button>
+             <button class="dw-btn secondary mini no" type="button" id="ord-annulla-doc">Ritira l'offerta</button>
+           </div>` : ""}
+      ${st === "scaduto" ? `<div class="tools"><button class="dw-btn secondary mini" type="button" id="ord-modifica">${IC.matita}Rifai l'offerta</button></div>` : ""}
+      <div class="tools"><button class="dw-btn secondary mini no" type="button" id="ord-elimina">${IC.croce}Elimina</button></div>`;
+
+    const bottoni = [{ label: "Chiudi", azione: chiudiModale }];
+    if (st === "bozza" || st === "inviato" || st === "senza-validita")
+      bottoni.push({ label: "Il cliente accetta", cls: "primary", azione: () => accettaOrdine(o) });
+
+    apriModale((o.numeroOrdine ? "Ordine " + o.numeroOrdine + " — " : "Preventivo ") + (o.numero || ""), corpo, bottoni);
+
+    /* la barra si disegna DOPO l'apertura, perché prima il contenitore non ha
+       una larghezza; e si disegna SOLO se il numero esiste davvero */
+    if (st === "accettato" && av.misurabile && $("ord-barra") && G()) {
+      const tot = av.prodotti.reduce((s, g) => s + g.ordinato, 0);
+      const fat = av.prodotti.reduce((s, g) => s + g.consegnato, 0);
+      G().avanzamento($("ord-barra"), {
+        valore: fat, massimo: tot || 1, formato: "decimale", nudo: true, tabella: false,
+        stato: av.percentuale >= 100 ? "ok" : null, etichettaValore: false,
+        aria: "Consegnato il " + av.percentuale + "% dell'ordinato.",
+      });
+    }
+
+    const on = (id2, fn) => { const n = $(id2); if (n) n.onclick = fn; };
+    on("ord-modifica", () => { chiudiModale(); modificaOrdine(o); });
+    on("ord-invia", () => cambiaStatoOrdine(o, "inviato", "Preventivo segnato come inviato."));
+    on("ord-rifiuta", async () => {
+      const ok = await chiedi("Il cliente ha rifiutato",
+        `<p>Il preventivo <b>${esc(o.numero)}</b> risulterà <b>rifiutato</b>.</p>
+         <p style="margin-top:8px;">Non entra nel portafoglio ordini e non compare fra le offerte
+         da richiamare: è materiale che non uscirà dal piazzale.</p>`, "Segna rifiutato", true);
+      if (ok) cambiaStatoOrdine(o, "rifiutato", "Preventivo segnato come rifiutato.");
+    });
+    on("ord-annulla-doc", async () => {
+      const ok = await chiedi("Ritira l'offerta",
+        `<p>Il preventivo <b>${esc(o.numero)}</b> risulterà <b>annullato</b>: l'hai ritirato tu,
+         prima che il cliente rispondesse.</p>`, "Ritira", true);
+      if (ok) cambiaStatoOrdine(o, "annullato", "Offerta ritirata.");
+    });
+    on("ord-elimina", async () => {
+      const ok = await chiedi("Elimina il preventivo",
+        `<p>Stai per eliminare <b>${esc(o.numero)}</b>${o.numeroOrdine ? " (ordine <b>" + esc(o.numeroOrdine) + "</b>)" : ""}.</p>
+         ${agganciati.length ? `<p style="margin-top:8px;">Ci sono <b>${plur(agganciati.length, "DDT agganciato", "DDT agganciati")}</b>:
+           non vengono cancellati, ma perdono il collegamento all'ordine e tornano fra le consegne senza ordine.</p>` : ""}
+         <p style="margin-top:8px;">Un preventivo non è un documento fiscale: eliminarlo si può.
+         Un DDT già emesso, no.</p>`, "Elimina", true);
+      if (!ok) return;
+      for (const p of agganciati) await db.aggiorna("pesate", p.id, { ordineId: null });
+      await db.rimuovi("ordini", o.id);
+      chiudiModale(); await refresh();
+      esito("ord-esito", "Preventivo " + o.numero + " eliminato.", "success");
+    });
+    document.querySelectorAll("[data-aggancia]").forEach(btn => btn.onclick = async () => {
+      await db.aggiorna("pesate", btn.getAttribute("data-aggancia"), { ordineId: o.id });
+      await refresh(); schedaOrdine(o.id);
+      toast("DDT agganciato all'ordine.", "success");
+    });
+    document.querySelectorAll("[data-stacca]").forEach(btn => btn.onclick = async () => {
+      await db.aggiorna("pesate", btn.getAttribute("data-stacca"), { ordineId: null });
+      await refresh(); schedaOrdine(o.id);
+      toast("DDT staccato dall'ordine.", "");
+    });
+  }
+
+  async function cambiaStatoOrdine(o, stato, messaggio) {
+    await db.aggiorna("ordini", o.id, { stato, decisoIl: stato === "inviato" ? null : oggiISO() });
+    chiudiModale(); await refresh();
+    esito("ord-esito", messaggio, "success");
+  }
+
+  /* L'ACCETTAZIONE. Da qui in poi il documento è un ORDINE: prende un numero
+     della serie ORD, la data della decisione, e i DDT gli si possono
+     agganciare. La validità dell'offerta smette di contare — è un impegno
+     preso, non più una promessa a scadenza. */
+  async function accettaOrdine(o) {
+    const t = totaliPreventivo(o);
+    const num = numeroProssimoOrdine();
+    const ok = await chiedi("Il cliente accetta",
+      `<p>Il preventivo <b>${esc(o.numero)}</b> diventa l'ordine <b>${esc(num)}</b>.</p>
+       <div class="mrec"><span class="k">Cliente</span><span class="v">${esc(nomeClienteOrd(o))}</span></div>
+       <div class="mrec"><span class="k">Imponibile</span><span class="v accent">${eurOrd(t, t.imponibile)}</span></div>
+       ${t.senzaImporto ? `<div class="mrec"><span class="k">Righe a chiamata</span><span class="v">${t.senzaImporto}</span></div>` : ""}
+       <p style="margin-top:10px;">Da adesso entra nel <b>portafoglio ordini</b> e la data di validità
+       dell'offerta non conta più: quello che hai promesso va consegnato. Ai DDT di questo cliente
+       potrai agganciare l'ordine, e Conti terrà il conto di quanto resta.</p>
+       ${t.senzaImporto ? `<p style="margin-top:8px;">Attenzione: ${plur(t.senzaImporto, "una riga è", "alcune righe sono")}
+         <b>a chiamata</b>. Di un ordine così Conti <b>non può dire quanto è stato consegnato</b> — e lo scriverà,
+         invece di mostrarti uno zero che sembra «non ancora cominciato».</p>` : ""}`,
+      "Conferma l'ordine");
+    if (!ok) return;
+    await db.aggiorna("ordini", o.id, { stato: "accettato", decisoIl: oggiISO(), numeroOrdine: num });
+    chiudiModale(); await refresh();
+    esito("ord-esito", "Ordine " + num + " confermato.", "success");
+  }
+
+  function modificaOrdine(o) {
+    editOrd = o.id;
+    orRighe = (o.righe || []).map(r => ({ ...r }));
+    $("or-num").value = o.numero || "";
+    $("or-data").value = o.data || "";
+    $("or-val").value = o.validoAl || "";
+    $("or-cli").value = o.clienteId || "";
+    $("or-rif").value = o.riferimento || "";
+    $("or-note").value = o.note || "";
+    $("btn-or").textContent = "Salva le modifiche";
+    $("btn-or-annulla").style.display = "";
+    renderRigheOrd();
+    go("ord");
+    try { $("or-cli").scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {}
+  }
+
+  const OR_CAMPI = ["or-data", "or-val", "or-cli", "or-rif", "or-note"];
+  function pulisciOrd() {
+    editOrd = null; orRighe = [];
+    OR_CAMPI.forEach(i => { $(i).value = ""; puliscoErr(i); });
+    puliscoErr("or-qta"); puliscoErr("or-prod");
+    $("or-qta").value = ""; $("or-prod").value = ""; $("or-unita").value = "t";
+    $("or-data").value = oggiISO();
+    /* trenta giorni è la durata che un'offerta di inerti ha di solito, ed è una
+       PROPOSTA: si può cambiare, ma non si può lasciare vuota senza vederselo
+       dire. Meglio un valore ragionevole scritto che un campo vuoto che tutti
+       saltano — e che poi diventa «senza validità». */
+    $("or-val").value = dataPiuGiorni(30) || "";
+    $("or-num").value = numeroProssimoPreventivo();
+    $("btn-or").textContent = "Salva preventivo";
+    $("btn-or-annulla").style.display = "none";
+    renderRigheOrd();
+  }
+
+  /* IL FOGLIO DEL PREVENTIVO. Non è un documento fiscale, quindi non ha un
+     modello obbligatorio: quello che deve permettere è che il cliente possa
+     RIFARE IL CONTO — prezzo di listino e sconto scritti separati, imponibile,
+     IVA e totale come li scriverà la fattura.
+     ⛔ E la validità si scrive sempre, anche quando manca: «valida fino a —»
+     non è una data. Un foglio che tace su quel punto è un prezzo che il
+     cliente crede bloccato per sempre. */
+  function stampaPreventivo(id) {
+    const o = ORD.find(x => x.id === id); if (!o) return;
+    const c = CLI.find(x => x.id === o.clienteId) || { ragioneSociale: o.cliente };
+    const t = totaliPreventivo(o);
+    const st = ordStato(o);
+    const titolo = o.numeroOrdine ? "Conferma d'ordine" : "Preventivo";
+    const sotto = "n. <b>" + esc(o.numeroOrdine || o.numero || "—") + "</b> del " + fmtD(o.data);
+    const righe = (o.righe || []).map(r => `<tr>
+        <td>${esc(r.descrizione)}</td>
+        <td class="num">${r.quantita == null ? "a chiamata" : qtu(r.quantita, r.unita)}</td>
+        <td class="num">${r.prezzoUnitario == null ? "—" : eur(r.prezzoUnitario) + "/" + uni(r.unita)}</td>
+        <td class="num">${+r.scontoPct > 0 ? "− " + perc(r.scontoPct) : "—"}</td>
+        <td class="num">${perc(r.aliquota)}</td>
+        <td class="num">${r.imponibile == null ? "—" : eur(r.imponibile)}</td></tr>`).join("");
+    stampaFoglio(`<div class="doc">
+      ${testaStampa(titolo, sotto)}
+      ${destStampa("Spett.le", c, o.riferimento ? `<br><span class="et" style="margin-top:2mm;">Riferimento</span>${esc(o.riferimento)}` : "")}
+      <div class="cols">
+        <div class="box"><span class="et">Valida fino al</span>${o.validoAl ? fmtD(o.validoAl) : "<b>non indicata</b>"}</div>
+        <div class="box"><span class="et">Stato</span>${esc(ordBadge(st)[1])}</div>
+        ${o.numeroOrdine ? `<div class="box"><span class="et">Preventivo di origine</span>${esc(o.numero)}</div>`
+                         : `<div class="box"><span class="et">Prezzi</span>di listino, sconto indicato a parte</div>`}
+      </div>
+      ${t.senzaImporto ? `<div class="manca"><b>${plur(t.senzaImporto, "Una riga è", "Alcune righe sono")} a quantità da definire</b>
+        (fornitura a chiamata): il prezzo unitario è impegnativo, il totale qui sotto <b>non ${t.senzaImporto === 1 ? "la" : "le"} comprende</b>.</div>` : ""}
+      <table><thead><tr>
+        <th>Prodotto</th><th class="num">Quantità</th><th class="num">Prezzo di listino</th>
+        <th class="num">Sconto</th><th class="num">IVA</th><th class="num">Imponibile</th>
+      </tr></thead><tbody>${righe || '<tr><td colspan="6">Nessuna riga.</td></tr>'}</tbody>
+      <tfoot>
+        <tr><td colspan="5">Imponibile</td><td class="num">${eurOrd(t, t.imponibile)}</td></tr>
+        <tr><td colspan="5">IVA</td><td class="num">${eurOrd(t, t.ivaImporto)}</td></tr>
+        <tr class="tot-riga"><td colspan="5">Totale ${o.numeroOrdine ? "dell'ordine" : "dell'offerta"}</td>
+          <td class="num grande">${eurOrd(t, t.totale)}</td></tr></tfoot></table>
+      ${o.note ? `<div class="box" style="margin-bottom:4mm;"><span class="et">Note</span>${esc(o.note)}</div>` : ""}
+      <div class="firme"><div>Per accettazione — timbro e firma</div><div>Data</div></div>
+      <div class="piede">${o.numeroOrdine
+        ? "Conferma dell'ordine ricevuto. Le consegne saranno accompagnate da documento di trasporto (DPR 472/1996) e fatturate, anche in forma riepilogativa, entro il 15 del mese successivo alla consegna."
+        : "Offerta valida fino alla data indicata; oltre quel giorno i prezzi vanno riconfermati. Le quantità sono indicative e si intendono franco cava salvo diverso accordo scritto. La fornitura è soggetta a documento di trasporto e a fatturazione secondo i termini di legge."}</div>
+    </div>`, titolo);
+  }
+
   async function refresh(){
     let IMPL, FATG;
-    [FATG,GAR,CLI,PRO,PES,INC,NOT,COS,CHI,IMPL] = await Promise.all([db.fatture(), db.gare(), db.clienti(),
-      db.prodotti(), db.pesate(), db.incassi(), db.note(), db.costi(), db.chiusure(), db.impostazioni()]);
+    [FATG,GAR,CLI,PRO,PES,INC,NOT,COS,CHI,ORD,IMPL] = await Promise.all([db.fatture(), db.gare(), db.clienti(),
+      db.prodotti(), db.pesate(), db.incassi(), db.note(), db.costi(), db.chiusure(),
+      /* chi non ha mai fatto un preventivo legge una lista vuota: il ciclo che
+         parte dalla pesata resta valido, l'ordine è un passo IN PIÙ */
+      db.ordini ? db.ordini() : [], db.impostazioni()]);
     INC = INC || [];
+    ORD = ORD || [];
     NOT = NOT || [];
     COS = COS || [];
     CHI = CHI || [];
@@ -2465,6 +3107,11 @@ label.item:has(.dw-chk:checked){
     // FATTURA DIFFERITA DAI DDT (N4) — più consegne, una fattura sola
     // ══════════════════════════════════════════════════════════════════
     renderDifferita();
+
+    // ══════════════════════════════════════════════════════════════════
+    // PREVENTIVI E ORDINI (N9) — il pezzo che viene PRIMA della pesata
+    // ══════════════════════════════════════════════════════════════════
+    renderOrdini();
 
     // ══════════════════════════════════════════════════════════════════
     // CANONI E DIRITTI DI ESCAVAZIONE (N5) — aliquota impostata dall'utente
@@ -4826,6 +5473,134 @@ label.item:has(.dw-chk:checked){
       + "</optgroup>").join("");
   // il costo nasce con la data di oggi, come la pesata
   $("co-data").value = oggiISO();
+  // ── PREVENTIVI E ORDINI (N9): gli agganci della scheda ──────────────
+  $("ord-filtri").addEventListener("click", (e) => {
+    const f = e.target.getAttribute && e.target.getAttribute("data-ofiltro");
+    if (f) { filtroOrd = f; renderOrdini(); }
+  });
+  if ($("ord-cerca")) $("ord-cerca").oninput = () => renderOrdini();
+  /* toccare la riga apre la scheda; il bottone della stampa NO — sta dentro
+     `.acts` e va fermato prima, se no si aprirebbe anche la finestra */
+  const apriDaRiga = (e) => {
+    const stampa = e.target.closest && e.target.closest("[data-stampa-ord]");
+    if (stampa) { stampaPreventivo(stampa.getAttribute("data-stampa-ord")); return; }
+    const riga = e.target.closest && e.target.closest("[data-ord]");
+    if (riga) schedaOrdine(riga.getAttribute("data-ord"));
+  };
+  ["ord-list", "ord-seguire"].forEach(id => {
+    $(id).addEventListener("click", apriDaRiga);
+    // e con la tastiera: una riga che si apre solo col dito non è raggiungibile
+    $(id).addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const riga = e.target.closest && e.target.closest("[data-ord]");
+      if (riga) { e.preventDefault(); schedaOrdine(riga.getAttribute("data-ord")); }
+    });
+  });
+  $("ord-righe").addEventListener("click", (e) => {
+    const b = e.target.closest && e.target.closest("[data-del-riga]");
+    if (!b) return;
+    orRighe.splice(+b.getAttribute("data-del-riga"), 1);
+    renderRigheOrd();
+  });
+  /* l'unità si propone da quella del listino: chi vende a metro cubo ordina a
+     metro cubo, nove volte su dieci. Resta cambiabile. */
+  $("or-prod").addEventListener("change", () => {
+    const p = PRO.find(x => x.id === $("or-prod").value);
+    if (p) $("or-unita").value = p.unitaPrezzo === "m3" ? "m3" : "t";
+    puliscoErr("or-prod");
+  });
+  $("btn-or-riga").onclick = () => {
+    ["or-prod", "or-qta"].forEach(puliscoErr);
+    const p = PRO.find(x => x.id === $("or-prod").value);
+    if (!p) { segnaErr("or-prod", "Scegli un prodotto dal listino."); primoErrore(["or-prod"]); return; }
+    const cliente = CLI.find(c => c.id === $("or-cli").value) || null;
+    const grezzo = $("or-qta").value.trim();
+    let quantita = null;
+    if (grezzo !== "") {
+      /* il lettore che capisce la virgola italiana. `parseFloat` su «1.250,5»
+         legge 1.25: è la ragione per cui questo campo non è un type=number e
+         non si legge a mano. */
+      const n = numeroDaCampo(grezzo, { min: 0 });
+      if (!n.ok) { segnaErr("or-qta", n.messaggio || AVVISO_DECIMALE); primoErrore(["or-qta"]); return; }
+      if (!(n.valore > 0)) { segnaErr("or-qta", "Una quantità ordinata deve essere maggiore di zero. Lasciala vuota se è una fornitura a chiamata."); primoErrore(["or-qta"]); return; }
+      quantita = n.valore;
+    }
+    const riga = rigaPreventivo(p, quantita, cliente, $("or-unita").value);
+    if (riga.prezzoUnitario == null) {
+      segnaErr("or-qta", "Questo prodotto è a listino in " + uni(p.unitaPrezzo)
+        + " e non ha la densità: il prezzo in " + uni($("or-unita").value)
+        + " non si può calcolare. Scrivi la densità nel listino, oppure ordina in " + uni(p.unitaPrezzo) + ".");
+      primoErrore(["or-qta"]); return;
+    }
+    orRighe.push(riga);
+    $("or-qta").value = "";
+    renderRigheOrd();
+    toast(riga.descrizione + " aggiunto all'offerta.", "success");
+    try { $("or-prod").focus(); } catch (e) {}
+  };
+  $("btn-or-annulla").onclick = () => { pulisciOrd(); esito("ord-esito", "Modifica annullata.", ""); };
+  $("btn-or").onclick = async () => {
+    OR_CAMPI.forEach(puliscoErr);
+    const clienteId = $("or-cli").value;
+    const data = $("or-data").value;
+    const validoAl = $("or-val").value;
+    if (!clienteId) segnaErr("or-cli", "Scegli il cliente a cui va l'offerta: senza, non si sa a chi si sta bloccando un prezzo.");
+    if (!data) segnaErr("or-data", "Indica il giorno dell'offerta.");
+    /* ⛔ La validità si PRETENDE. Un'offerta senza scadenza è un prezzo
+       bloccato per sempre, e in cava gli inerti si muovono col gasolio: uno
+       stato «senza validità» esiste per i documenti vecchi e per gli import,
+       non per farne nascere di nuovi così. */
+    if (!validoAl) segnaErr("or-val", "Scrivi fino a quando tieni fermo il prezzo. Senza, l'offerta non scade mai — e nessuno la richiama.");
+    else if (data && validoAl < data) segnaErr("or-val", "La validità non può finire prima del giorno dell'offerta.");
+    if (!orRighe.length) { esito("ord-esito", "Aggiungi almeno una riga prima di salvare.", "err"); return; }
+    if (["or-cli", "or-data", "or-val"].some(i => $("fld-" + i).classList.contains("bad"))) {
+      primoErrore(["or-cli", "or-data", "or-val"]); return; }
+    const cliente = CLI.find(c => c.id === clienteId);
+    const doc = { data, validoAl, clienteId, cliente: (cliente && cliente.ragioneSociale) || "",
+      riferimento: $("or-rif").value.trim(), note: $("or-note").value.trim(),
+      righe: orRighe.map(r => ({ ...r })) };
+    if (editOrd) {
+      await db.aggiorna("ordini", editOrd, doc);
+      const n = $("or-num").value;
+      pulisciOrd(); await refresh();
+      esito("ord-esito", "Preventivo " + n + " aggiornato.", "success");
+    } else {
+      const numero = numeroProssimoPreventivo();
+      await db.aggiungi("ordini", { numero, stato: "bozza", ...doc });
+      pulisciOrd(); await refresh();
+      esito("ord-esito", "Preventivo " + numero + " salvato come bozza. Quando lo mandi al cliente, segnalo come inviato.", "success");
+    }
+  };
+  $("btn-or-export").onclick = () => {
+    if (!ORD.length) { esito("ord-esito", "Non c'è ancora nessun preventivo da esportare.", "err"); return; }
+    const righe = [["numero", "ordine", "data", "valido al", "cliente", "stato", "prodotto",
+                    "quantita", "unita", "prezzo", "sconto %", "imponibile"].join(";")];
+    for (const o of ORD) {
+      const st = ordStato(o);
+      for (const r of (o.righe || [])) righe.push([o.numero, o.numeroOrdine || "", o.data,
+        o.validoAl || "", nomeClienteOrd(o), st, r.descrizione,
+        /* ⛔ IL PUNTO, NON LA VIRGOLA, e il separatore è il punto e virgola:
+           un file che si apre in un altro programma deve essere leggibile da
+           quel programma, non solo dal nostro lettore. E una quantità che non
+           c'è resta VUOTA: uno zero in una colonna «quantità» è una consegna
+           dichiarata di niente. */
+        r.quantita == null ? "" : String(r.quantita), r.unita,
+        r.prezzoUnitario == null ? "" : String(r.prezzoUnitario),
+        String(r.scontoPct || 0), r.imponibile == null ? "" : String(r.imponibile)]
+        .map(csvCell).join(";"));
+    }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["\ufeff" + righe.join("\n") + "\n"], { type: "text/csv;charset=utf-8" }));
+    a.download = "conti_preventivi.csv";
+    a.click(); URL.revokeObjectURL(a.href);
+    esito("ord-esito", plur(ORD.length, "preventivo esportato", "preventivi esportati") + ".", "success");
+  };
+
+  /* i valori di partenza del preventivo: data di oggi e validità a trenta
+     giorni. Va chiamata PRIMA del primo refresh, se no il primo disegno
+     trova i campi vuoti e la validità sembra facoltativa. */
+  pulisciOrd();
+
   avvisoVoce();
   await refresh();
   // I rilievi di Terra si leggono DOPO che Conti è già in piedi e usabile:

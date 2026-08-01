@@ -950,6 +950,35 @@ campi interi, file delle macchine.
       **lettura**: la colonna della prova è prosa in sei notazioni e cita ciò
       che esiste accanto a ciò che manca.
 
+- [x] 🏗️ **Cinque cantieri paralleli, e tre rientrati con qualcosa che non era
+      nel mandato.** Genesi, Sentinella, Terra chiusi; Conti e Campo ancora al
+      lavoro. Prove da **1308 a 1383**, copertura **574/574**, nessuna funzione
+      scoperta.
+      · **Genesi esce dalla pagina**: 12 export in `apps/genesi/genesi-data.js`
+        — la storia intera che decide se una volata si può sparare (referto →
+        legge del sito → limite di norma → aria). Le funzioni dentro
+        `genesi.html` scendono da **186 a 174**. E il cantiere ha trovato tre
+        difetti **senza blindarli**: `ppvLimit` su una frequenza non numerica
+        restituisce la fascia **più permissiva** di ogni norma, un codice di
+        norma sconosciuto prende in silenzio la soglia residenziale, e `r2: 0`
+        dove r² non è calcolabile.
+      · **Sentinella — la catena di custodia del dato**: ogni misura porta se è
+        entrata da file (con nome e momento) o a mano, e quella di cui non si sa
+        nulla è **«provenienza non dichiarata»**, non «a mano». Misurato che
+        **non** è la stessa idea di `origineDi` di Terra
+        (`sentinella.provenienzaMisura === terra.origineDi` → `false`, e i due
+        vocabolari non si sovrappongono): niente alias in `shared/`.
+      · **Terra — il banco da sempre**: e la domanda «tetto o minimo» ha una
+        risposta ragionata, non scelta. Un anno cieco non può togliere volume
+        negativo, quindi la somma dei soli anni misurati è un **minimo** —
+        «almeno 62.700 m³». La **quota %** invece è `null`, perché il
+        denominatore contiene anni in cui sono stati misurati *altri* banchi:
+        non è né tetto né minimo, non è niente.
+      ⛔ **E tre cose viste solo negli scatti**, che leggendo il codice non si
+      vedono: `(MM/S)` in maiuscolo nella modale di Sentinella (la sua prima
+      `.flab` con un'unità), la colonna della provenienza che a 320px spingeva
+      l'esito fuori schermo, e in Terra il badge «almeno 62.700 m³» **largo 120px
+      contro 90** che manda il dettaglio a quattro righe su un taglio di due.
 - [x] 🔬 **La ricerca di fianco, e la sua resa misurata.** Due tornate `haiku`
       in parallelo, con lo stesso mandato e lo stesso divieto («ogni "non c'è"
       porta la prova di aver guardato»), e due esiti opposti — verificati **tutti

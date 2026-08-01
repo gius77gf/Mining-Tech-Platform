@@ -11229,6 +11229,134 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
   });
 }
 
+// ── Terra · il banco DA SEMPRE ──────────────────────────────────────────────
+// `ripartizioneBanchi` è annuale per costruzione. «Quale gradone si sto
+// consumando» non si ferma al 1° gennaio, e sommando gli anni nasce il caso
+// che il principio del fondatore rende insidioso: un anno NON MISURATO dentro
+// una somma non vale zero, e il totale che ne esce non è un fatto.
+{
+  const AUT_S = { volumeAutorizzatoM3: 1200000, estrattoPregressoM3: 340000, dataRilascio: "2021-03-15" };
+  const OGGI_S = new Date("2026-08-01T00:00:00");
+  const FRO_S = [{ id: "f1", nome: "A", banco: "banco 1" }, { id: "f2", nome: "B", banco: "banco 2" }];
+  const ril = (v, data, fronteId, provenienza) =>
+    ({ id: data + fronteId + v, data, stato: "elaborato", volumeM3: v, fronteId, provenienza });
+  const DS = (r, f = terra.DEMO.fronti, a = AUT_S) => terra.banchiDaSempre(r, f, a, OGGI_S);
+
+  test("⛔ Terra: il banco da sempre somma gli anni con le funzioni che ci sono già", () => {
+    const D = DS(terra.DEMO.rilievi);
+    eq(D.anni, [2024, 2025, 2026], "la finestra va dal primo anno con volumi a oggi");
+    const b2 = D.righe.find((r) => r.etichetta === "banco 2");
+    eq(b2.scavo, 62700, "banco 2 = 19.400 + 21.300 (2026) + 22.000 (2025)");
+    eq(b2.anniMisurati, [2025, 2026], "e dice in quali anni è stato misurato");
+    eq(D.righe.find((r) => r.etichetta === "banco 1").scavo, 38700, "banco 1 = 18.600 + 20.100, tutti nel 2026");
+    eq(D.totale, 101400, "il totale è lo scavo misurato di tutta la finestra, cumuli esclusi");
+    eq(D.righe.map((r) => r.etichetta), ["banco 2", "banco 1", "banco 3"],
+       "in ordine di scavo, e i mai misurati in fondo");
+  });
+
+  test("⛔ Terra: un anno non misurato dentro la somma non vale zero — è un «almeno»", () => {
+    /* la domanda «tetto o quantità parziale» ha una risposta sola: il volume di
+       un anno cieco è ignoto ma non può essere NEGATIVO, quindi la somma dei
+       soli anni misurati è un PAVIMENTO. Mai un tetto. */
+    const D = DS(terra.DEMO.rilievi);
+    const b2 = D.righe.find((r) => r.etichetta === "banco 2");
+    eq(b2.limite, "almeno", "⛔ nel 2024 nessuno ha rilevato questo banco: 62.700 è un pavimento");
+    eq(b2.anniCiechi, [2024], "e l'anno cieco è dichiarato, non nascosto");
+    eq(b2.misurabile, true, "resta una misura: è parziale, non assente");
+    ok(/questo o di più, mai di meno/.test(b2.motivo), "e la ragione dice il verso: " + b2.motivo);
+    eq(D.limite, "almeno", "e la testata porta la stessa bandiera");
+    // finestra piena: un anno solo, tutti i banchi misurati, pregresso dichiarato
+    const pieno = DS([ril(100, "2026-05-01", "f1"), ril(300, "2026-06-01", "f2")], FRO_S,
+      { estrattoPregressoM3: 0 });
+    eq(pieno.limite, "", "quando tutti gli anni sono misurati il totale è una misura");
+    eq(pieno.righe.map((r) => r.limite), ["", ""], "riga per riga");
+    eq(pieno.completo, true, "e il quadro si dichiara completo");
+  });
+
+  test("⛔ Terra: un anno SENZA RILIEVI non sparisce dalla finestra, è cieco", () => {
+    /* il difetto che il prototipo ha preso in flagrante: `anniConVolumi` dà gli
+       anni CHE HANNO un rilievo, quindi 2022 e 2026 davano «due anni su due,
+       quadro completo» mentre 2023, 2024 e 2025 non li aveva guardati nessuno */
+    const D = DS([ril(500, "2022-05-01", "f1"), ril(700, "2026-05-01", "f1")], FRO_S,
+      { estrattoPregressoM3: 0 });
+    eq(D.anni, [2022, 2023, 2024, 2025, 2026], "⛔ la finestra è continua, non l'elenco degli anni con dati");
+    const b1 = D.righe.find((r) => r.etichetta === "banco 1");
+    eq(b1.anniCiechi, [2023, 2024, 2025], "i tre anni di mezzo sono ciechi");
+    eq(b1.scavo, 1200, "il totale resta la somma dei due anni misurati");
+    eq(b1.limite, "almeno", "ma è un pavimento");
+    eq(D.completo, false, "e il quadro non è completo");
+  });
+
+  test("⛔ Terra: «misurato zero» e «mai misurato» restano diversi anche sommando", () => {
+    const D = DS([ril(0, "2025-05-01", "f1"), ril(0, "2026-05-01", "f1")], FRO_S,
+      { estrattoPregressoM3: 0 });
+    const b1 = D.righe.find((r) => r.etichetta === "banco 1");
+    const b2 = D.righe.find((r) => r.etichetta === "banco 2");
+    eq(b1.scavo, 0, "due anni rilevati a zero fanno zero");
+    eq(b1.misurabile, true, "ed è una misura");
+    eq(b1.limite, "", "senza anni ciechi: è un fatto, non un pavimento");
+    eq(b2.scavo, null, "⛔ il banco che nessuno ha mai rilevato resta ignoto");
+    eq(b2.misurabile, false, "e non è una misura");
+    ok(/non l'ha misurato nessuno/.test(b2.motivo), "con la sua ragione: " + b2.motivo);
+    eq(terra.banchiDaSempre([], FRO_S, null, OGGI_S).misurabile, false,
+       "una cava senza nessun rilievo non ha banchi a zero");
+  });
+
+  test("⛔ Terra: la quota % di un banco con anni ciechi non esiste", () => {
+    /* il suo scavo è un pavimento, ma il denominatore contiene gli anni in cui
+       sono stati misurati ALTRI banchi: il rapporto non è né un tetto né un
+       pavimento, non è niente */
+    const D = DS(terra.DEMO.rilievi);
+    eq(D.righe.map((r) => r.quotaPct), [null, null, null], "nella demo nessun banco ha la storia intera");
+    const pieno = DS([ril(100, "2026-05-01", "f1"), ril(300, "2026-06-01", "f2")], FRO_S,
+      { estrattoPregressoM3: 0 });
+    eq(pieno.righe.map((r) => [r.etichetta, r.quotaPct]), [["banco 2", 75], ["banco 1", 25]],
+       "con la finestra piena la quota si calcola");
+  });
+
+  test("⛔ Terra: quello che nessun banco può reclamare si dichiara", () => {
+    const D = DS(terra.DEMO.rilievi);
+    eq(D.pregresso, 340000, "il già estratto prima di Terra è per CAVA, non per banco");
+    eq(D.completo, false, "quindi il quadro non copre tutto lo scavo");
+    eq(D.perche.length, 2, "e le ragioni sono elencate, non lasciate dedurre");
+    ok(D.perche.some((p) => /non l'ha rilevato nessuno/.test(p)), "gli anni ciechi");
+    ok(D.perche.some((p) => /nessun banco può reclamare/.test(p)), "e il pregresso");
+    ok(D.perche.every((p) => !/\d{5}/.test(p)),
+       "⛔ e nessuna frase porta un numero grosso: i separatori delle migliaia sono della pagina");
+    // pregresso NON dichiarato: peggio, perché non si sa nemmeno se ci sia
+    const senza = DS(terra.DEMO.rilievi, terra.DEMO.fronti, { volumeAutorizzatoM3: 1200000 });
+    eq(senza.pregressoDichiarato, false, "senza pregresso dichiarato");
+    ok(senza.perche.some((p) => /non è dichiarato/.test(p)), "la ragione cambia: " + senza.perche.join(" · "));
+  });
+
+  test("⛔ Terra: da sempre, i tre secchi si sommano e la somma torna", () => {
+    const fro = [...terra.DEMO.fronti, { id: "f9", nome: "Ovest", banco: "" }];
+    const D = DS([...terra.DEMO.rilievi, ril(1000, "2025-03-04", "f9"), ril(700, "2024-03-05", "fX")], fro);
+    eq(D.nonDichiarato.scavo, 1000, "lo scavo di un fronte senza banco resta nel suo secchio");
+    eq(D.nonDichiarato.fronti, 1, "⛔ e il conto dei fronti da compilare è di OGGI: non si somma per anno");
+    eq(D.fuoriElenco.scavo, 700, "il rilievo su un fronte cancellato si conta a parte");
+    eq(D.senzaFronte.cumulo, 8300, "le riprese senza fronte di tutti gli anni: 5.200 + 3.100");
+    const dentro = D.righe.reduce((t, r) => t + (+r.scavo || 0), 0);
+    eq(dentro + D.nonDichiarato.scavo + D.fuoriElenco.scavo + D.senzaFronte.scavo, D.totale,
+       "⛔ e la somma torna su tutta la finestra: niente si perde per strada");
+  });
+
+  test("⛔ Terra: da sempre, le grafie e i due casi in cui non si può ripartire", () => {
+    const D = DS(terra.DEMO.rilievi, [{ id: "f1", nome: "A", banco: "Banco 2" },
+                                      { id: "f2", nome: "B", banco: "banco  2" }]);
+    eq(D.righe.length, 1, "«Banco 2» e «banco  2» sono lo stesso banco");
+    eq(D.righe[0].scavo, 101400, "e i volumi di tutti gli anni si sommano");
+    eq(D.grafieDoppie, [["Banco 2", "banco 2"]], "le grafie si dichiarano");
+    const senzaFro = terra.banchiDaSempre(terra.DEMO.rilievi, [], AUT_S, OGGI_S);
+    eq(senzaFro.righe, [], "senza fronti nessuna riga inventata");
+    ok(/Nessun fronte registrato/.test(senzaFro.motivo), "col motivo di sempre: " + senzaFro.motivo);
+    const senzaBanco = terra.banchiDaSempre(terra.DEMO.rilievi, [{ id: "f1", nome: "A", banco: "" }], AUT_S, OGGI_S);
+    ok(/dichiara un banco/.test(senzaBanco.motivo), "e l'altro caso è un altro motivo: " + senzaBanco.motivo);
+    eq(terra.banchiDaSempre(null, null, null, OGGI_S).misurabile, false,
+       "argomenti nulli: non un errore, e nemmeno una buona notizia");
+  });
+}
+
 /* ══ SENTINELLA · LA TARATURA DELLO STRUMENTO ══
    Il report va all'ente e dice «conforme» sulla base di numeri scritti da uno
    strumento. Se quello strumento non era tarato IL GIORNO DELLA MISURA, il
@@ -11417,6 +11545,237 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     for (const v of leggi("Vibrazioni V1 — abitato Sud;2026-01-15;2027-01-14").voci)
       ok(shell.dataISOEsiste(v.data) && shell.dataISOEsiste(v.scadenza),
          "quello che entra è sempre una data che esiste, così `coperturaTaratura` la ritrova buona");
+  });
+
+  /* ══════════════════════════════════════════════════════════════════
+     T2d · LA CATENA DI CUSTODIA DEL DATO DI MISURA (Sentinella)
+     «Da dove viene questo numero, e chi può dire di averlo visto entrare?»
+     Il report di Sentinella va a un ente: un valore di PPV o di dB vale
+     quanto la sua provenienza, e prima di questa unità il documento
+     affiancava numeri usciti dal file dello strumento e numeri digitati a
+     mano senza distinguerli.
+     La prova che conta più di tutte è la prima: **l'assenza non ripiega su
+     "a mano"**. È il principio del fondatore, ed è nato in questa app.
+     ══════════════════════════════════════════════════════════════════ */
+  const lImp = (file, quando) => ({ data: "2026-06-01", ora: "10:00", valore: 3.2,
+    origine: { da: "import", file, quando: quando || "2026-07-01T08:44:00" } });
+  const lMano = (quando) => ({ data: "2026-06-02", ora: "11:00", valore: 4.4,
+    origine: { da: "manuale", quando: quando || "2026-06-02T17:10:00" } });
+
+  test("⛔ Sentinella · custodia: una provenienza che non c'è NON è «a mano» — è non dichiarata", () => {
+    /* ⛔ IL CUORE DELL'UNITÀ. Il ripiego comodo sarebbe contare fra le misure
+       inserite a mano quelle di cui non si sa niente: sono le più vecchie, ed
+       è pure probabile. Sarebbe un'invenzione scritta in un documento verso
+       un ente. Il ripiego opposto — contarle fra le strumentali — è peggio. */
+    eq(sentinella.provenienzaMisura({ data: "2026-06-01", valore: 3 }).da, sentinella.FONTE_IGNOTA,
+       "una lettura senza `origine` non dichiara la sua provenienza");
+    eq(sentinella.provenienzaMisura({ data: "2026-06-01", valore: 3 }).noto, false,
+       "e la bandiera lo dice: `noto` è false");
+    eq(sentinella.provenienzaMisura({ origine: { da: "sismografo" } }).da, sentinella.FONTE_IGNOTA,
+       "⛔ e una parola fuori dal vocabolario non diventa una fonte: ricade su «non dichiarata», non su «manuale»");
+    eq(sentinella.provenienzaMisura({ origine: "import" }).da, sentinella.FONTE_IGNOTA,
+       "e nemmeno una stringa al posto dell'oggetto");
+    eq(sentinella.provenienzaMisura(null).da, sentinella.FONTE_IGNOTA, "né una lettura che non c'è");
+    eq(sentinella.provenienzaMisura(lImp("V2.csv")).da, sentinella.FONTE_IMPORT, "il file dello strumento si riconosce");
+    eq(sentinella.provenienzaMisura(lMano()).da, sentinella.FONTE_MANO, "e la digitazione a mano pure");
+    ok(sentinella.provenienzaMisura(lImp("V2.csv")).noto && sentinella.provenienzaMisura(lMano()).noto,
+       "tutt'e due sono provenienze NOTE: il terzo stato è solo per ciò che non si sa");
+  });
+
+  test("⛔ Sentinella · custodia: la frase del documento non fa sembrare tracciato ciò che non lo è", () => {
+    /* Stessa ragione di `descriviOrigine` di Terra: il verbale va a un ente,
+       e una riga che tace lascia credere che il numero sia verificabile. */
+    const punto = { nome: "Vibrazioni V2 — confine Nord" };
+    const dImp = sentinella.descriviProvenienza(lImp("V2_giugno.csv"), punto);
+    ok(dImp.includes("V2_giugno.csv"), "il file c'è: è quello che permette di risalire al documento");
+    ok(dImp.includes("01/07/2026 alle 08:44"), "e il momento dell'import, scritto come lo legge una persona");
+    ok(dImp.includes("Vibrazioni V2 — confine Nord"), "e lo strumento a cui la misura è attribuita");
+    const dIgn = sentinella.descriviProvenienza({ data: "2026-06-01", valore: 3 }, punto);
+    ok(/^Provenienza non dichiarata/.test(dIgn),
+       "⛔ la frase di una misura senza custodia COMINCIA dichiarandolo, non lo nasconde in coda");
+    ok(!/^Misura inserita a mano/.test(dIgn) && !/^Misura importata/.test(dIgn),
+       "⛔ e non afferma nessuna delle due strade");
+    ok(dIgn.includes("Vibrazioni V2 — confine Nord"),
+       "ma lo strumento lo dice lo stesso: quello si sa, ed è l'unica cosa che si sa");
+    ok(/inserita a mano/.test(sentinella.descriviProvenienza(lMano(), punto)),
+       "la misura battuta a mano lo dichiara");
+    ok(/non proviene da un file/.test(sentinella.descriviProvenienza(lMano(), punto)),
+       "e dice a chi legge che cosa comporta, invece di lasciarglielo dedurre");
+    ok(/testo incollato/.test(sentinella.descriviProvenienza(lImp(""), punto)),
+       "⛔ un import senza nome del file NON inventa un file: dice che era un testo incollato");
+    ok(sentinella.descriviProvenienza(lImp("V2.csv"), null).includes("al punto di misura"),
+       "e senza il punto la frase regge lo stesso");
+  });
+
+  test("⛔ Sentinella · custodia: una misura corretta non può sembrare quella originale", () => {
+    const l0 = lImp("V2.csv");
+    const l1 = sentinella.correggiLettura(l0, 4.1, "2026-08-01T10:00:00");
+    eq(l1.valore, 4.1, "il valore nuovo entra");
+    eq(sentinella.provenienzaMisura(l1).corretta.prima, 3.2,
+       "⛔ e il numero registrato in ORIGINE resta scritto: è quello che un ispettore può chiedere");
+    eq(sentinella.provenienzaMisura(l1).corretta.quando, "2026-08-01T10:00:00", "col momento della correzione");
+    eq(sentinella.provenienzaMisura(l1).da, sentinella.FONTE_IMPORT,
+       "la strada d'ingresso non cambia: la misura viene ancora da quel file, è il valore a essere stato ritoccato");
+    eq(sentinella.provenienzaMisura(l1).file, "V2.csv", "e il file resta citabile");
+    const l2 = sentinella.correggiLettura(l1, 4.5, "2026-08-02T10:00:00");
+    eq(sentinella.provenienzaMisura(l2).prima, undefined, "il valore d'origine non finisce alla radice");
+    eq(sentinella.provenienzaMisura(l2).corretta.prima, 3.2,
+       "⛔ correggendo due volte resta il PRIMO valore, non il penultimo: è quello che dice «questo non è il numero che è entrato»");
+    eq(sentinella.provenienzaMisura(l2).corretta.quando, "2026-08-02T10:00:00", "e l'ultima correzione è quella recente");
+    eq(sentinella.provenienzaMisura(sentinella.correggiLettura(l0, 3.2)).corretta, null,
+       "⛔ riscrivere lo STESSO numero non produce una correzione finta: non è successo niente");
+    eq(sentinella.correggiLettura(l0, "quattro"), null, "un valore illeggibile non si registra");
+    eq(sentinella.correggiLettura(l0, -1), null, "e nemmeno uno negativo: uno strumento non misura meno di zero");
+    eq(sentinella.correggiLettura(null, 4), null, "né si corregge una lettura che non c'è");
+    eq(sentinella.correggiLettura(l0, 0).valore, 0, "zero invece è una misura valida, e si può correggere a zero");
+    /* ⛔ CORREGGERE UNA MISURA DI PROVENIENZA IGNOTA NON LE DÀ UNA
+       PROVENIENZA. Il ripiego sarebbe marcarla «manuale» perché qualcuno l'ha
+       toccata: sarebbe dire che il valore è entrato a mano, che non si sa. */
+    const lIgn = sentinella.correggiLettura({ data: "2026-06-01", valore: 2 }, 5, "2026-08-01T10:00:00");
+    eq(sentinella.provenienzaMisura(lIgn).da, sentinella.FONTE_IGNOTA,
+       "⛔ resta non dichiarata: la correzione non è la strada d'ingresso");
+    eq(sentinella.provenienzaMisura(lIgn).corretta.prima, 2, "ma la correzione sì, col valore d'origine");
+    /* ⛔ E UNA CORREZIONE SU UN VALORE ILLEGGIBILE RESTA UNA CORREZIONE:
+       pretendere che `prima` fosse un numero l'avrebbe fatta sparire proprio
+       nel caso più sospetto. */
+    const lRotta = sentinella.correggiLettura({ data: "2026-06-01", valore: "boh" }, 5, "2026-08-01T10:00:00");
+    eq(sentinella.provenienzaMisura(lRotta).corretta.prima, null, "`prima` vale null, non zero");
+    ok(sentinella.provenienzaMisura(lRotta).corretta !== null,
+       "⛔ ma la correzione si vede lo stesso: sparire sarebbe stato il difetto");
+    ok(/non è leggibile/.test(sentinella.descriviProvenienza(lRotta, { nome: "V2" })),
+       "e la frase lo dice invece di scrivere «era 0»");
+    ok(/CORRETTO/.test(sentinella.descriviProvenienza(l1, { nome: "V2" }))
+       && /4,2|3,2/.test(sentinella.descriviProvenienza(l1, { nome: "V2" })),
+       "la frase del documento porta la correzione e il numero d'origine, scritto all'italiana");
+  });
+
+  test("⛔ Sentinella · custodia: la composizione del report tiene i tre conti separati", () => {
+    const punti = (n) => ({ letture: Array.from({ length: n }, () => ({ data: "2026-06-01", valore: 1 })) });
+    const conOrig = (n, o) => ({ letture: Array.from({ length: n }, () => ({ data: "2026-06-01", valore: 1, origine: { ...o } })) });
+    const c = sentinella.composizioneProvenienza([conOrig(3, { da: "import", file: "a.csv" }), conOrig(2, { da: "manuale" }), punti(1)]);
+    eq([c.importate, c.aMano, c.nonDichiarate, c.n], [3, 2, 1, 6], "i tre conti, e il totale");
+    eq(c.fuori, 3, "«non strumentali» sono le a mano PIÙ le non dichiarate: le seconde non si regalano alle prime");
+    eq(sentinella.composizioneProvenienza([punti(5)]).aMano, 0,
+       "⛔ cinque letture senza provenienza NON diventano cinque letture a mano");
+    eq(sentinella.composizioneProvenienza([punti(5)]).importate, 0,
+       "⛔ e nemmeno cinque letture strumentali");
+    eq(sentinella.composizioneProvenienza([punti(5)]).stato, "non-dichiarata", "lo stato lo dice");
+    eq(sentinella.composizioneProvenienza([]).stato, "senza-letture", "senza misure non c'è composizione");
+    eq(sentinella.composizioneProvenienza([]).quota, null,
+       "⛔ e la quota è `null`, non 0: «zero per cento a mano» sarebbe la buona notizia mai misurata");
+    eq(sentinella.composizioneProvenienza([conOrig(4, { da: "import" })]).stato, "tracciata", "tutte da file");
+    eq(sentinella.composizioneProvenienza([conOrig(19, { da: "import" }), conOrig(1, { da: "manuale" })]).stato,
+       "mista", "una su venti a mano: si dice, ma senza alzare la voce");
+    eq(sentinella.composizioneProvenienza([conOrig(8, { da: "import" }), conOrig(2, { da: "manuale" })]).stato,
+       "non-trascurabile", "due su dieci: la quota non è più trascurabile e il documento non tace");
+    eq(sentinella.composizioneProvenienza([conOrig(8, { da: "import" }), punti(2)]).stato,
+       "non-trascurabile", "⛔ e ci si arriva anche con sole misure NON DICHIARATE: non è un problema di digitazione, è di custodia");
+    /* la soglia è dichiarata e si legge dal modulo: se un giorno cambia, la
+       prova cambia con lei invece di restare a blindare un vecchio numero */
+    ok(sentinella.QUOTA_NON_STRUMENTALE > 0 && sentinella.QUOTA_NON_STRUMENTALE < 1,
+       "la soglia della quota è una frazione dichiarata");
+    const corr = sentinella.composizioneProvenienza([{ letture: [sentinella.correggiLettura(lImp("a.csv"), 9)] }]);
+    eq([corr.corrette, corr.importate], [1, 1],
+       "⛔ una misura corretta si conta a parte E resta nella sua fonte: sono due fatti diversi");
+  });
+
+  test("⛔ Sentinella · custodia: la mappa delle dichiarazioni copre tutti gli stati (regola 18)", () => {
+    /* Una mappa più corta di quello che la funzione sa dire ucciderebbe la
+       pagina AL DISEGNO, senza nessun errore di sintassi da vedere. */
+    for (const s of ["tracciata", "mista", "non-trascurabile", "non-dichiarata", "senza-letture"]) {
+      ok(sentinella.DICHIARAZIONI_PROVENIENZA[s], "dichiarazione per «" + s + "»");
+      ok(String(sentinella.DICHIARAZIONI_PROVENIENZA[s].testo || "").length > 40,
+         "e non è un segnaposto: «" + s + "»");
+    }
+    for (const f of [sentinella.FONTE_IMPORT, sentinella.FONTE_MANO, sentinella.FONTE_IGNOTA]) {
+      ok(sentinella.FONTI_MISURA[f], "etichetta per «" + f + "»");
+      ok(String(sentinella.FONTI_MISURA[f].breve || "").length > 0, "con la forma breve per la tabella");
+    }
+    eq(sentinella.FONTI_MISURA[sentinella.FONTE_IGNOTA].cls, "warn",
+       "⛔ giallo lo prende SOLO ciò che non si sa");
+    eq(sentinella.FONTI_MISURA[sentinella.FONTE_MANO].cls, "",
+       "⛔ «a mano» NON è un allarme: è una pratica legittima, e un giallo su ogni riga si impara a non guardare");
+  });
+
+  test("⛔ Sentinella · custodia: la provenienza non si perde all'ingresso né dentro il report", () => {
+    /* ⛔ I DUE PUNTI IN CUI LA CATENA SI SPEZZEREBBE IN SILENZIO, e sono
+       tutt'e due funzioni che RICOSTRUISCONO la riga campo per campo. */
+    const u = sentinella.unisciLetture([], [lImp("V2_giugno.csv")]);
+    eq(sentinella.provenienzaMisura(u.letture[0]).file, "V2_giugno.csv",
+       "⛔ `unisciLetture` porta dentro la provenienza: perderla qui vorrebbe dire dichiarare «non so» su misure appena importate");
+    eq(sentinella.provenienzaMisura(u.letture[0]).da, sentinella.FONTE_IMPORT, "con la sua fonte");
+    /* ⛔ E NON SI RIEMPIE ALL'INDIETRO: la firma coincide, ma «lo stesso
+       numero lo stesso giorno» non dimostra che quella riga venga da lì. */
+    const gia = { data: "2026-06-01", ora: "10:00", valore: 3.2 };
+    const u2 = sentinella.unisciLetture([gia], [lImp("V2_giugno.csv")]);
+    eq(u2.duplicati, 1, "il doppione resta scartato");
+    eq(sentinella.provenienzaMisura(u2.letture[0]).da, sentinella.FONTE_IGNOTA,
+       "⛔ e la lettura che c'era NON eredita il file: sarebbe inventare una custodia");
+    const R = sentinella.reportConformita({
+      monitoraggi: [{ id: "m1", nome: "V2", unita: "mm/s", soglia: 5,
+        letture: [lImp("V2.csv"), lMano(), { data: "2026-06-03", valore: 1 }] }],
+      ricettori: [], dal: "2026-06-01", al: "2026-06-30", oggi: "2026-08-01" });
+    eq([R.provenienza.importate, R.provenienza.aMano, R.provenienza.nonDichiarate], [1, 1, 1],
+       "il report conta le tre strade sulle letture DEL PERIODO");
+    eq(sentinella.provenienzaMisura(R.punti[0].letture[0]).file, "V2.csv",
+       "⛔ e la provenienza arriva fino alla riga della tabella: senza, la colonna del documento sarebbe muta");
+    /* ⛔ LA CUSTODIA STA ACCANTO ALL'ESITO, NON DENTRO: cambiare la strada
+       d'ingresso non cambia un giudizio di conformità, in nessuno dei due
+       versi. È la stessa decisione già presa per le tarature. */
+    const senzaProv = sentinella.reportConformita({
+      monitoraggi: [{ id: "m1", nome: "V2", unita: "mm/s", soglia: 5,
+        letture: [{ data: "2026-06-01", ora: "10:00", valore: 3.2 }] }],
+      ricettori: [], dal: "2026-06-01", al: "2026-06-30", oggi: "2026-08-01" });
+    const conProv = sentinella.reportConformita({
+      monitoraggi: [{ id: "m1", nome: "V2", unita: "mm/s", soglia: 5, letture: [lImp("V2.csv")] }],
+      ricettori: [], dal: "2026-06-01", al: "2026-06-30", oggi: "2026-08-01" });
+    eq(senzaProv.esito, conProv.esito, "⛔ l'esito è lo stesso: la provenienza non assolve e non condanna");
+    eq([senzaProv.provenienza.stato, conProv.provenienza.stato], ["non-dichiarata", "tracciata"],
+       "ma la dichiarazione cambia, ed è lì che si legge la differenza");
+  });
+
+  test("⛔ Sentinella · custodia: i campi di una misura nuova, e il momento scritto all'italiana", () => {
+    const i = sentinella.campiProvenienza(sentinella.FONTE_IMPORT, { file: " V2.csv ", quando: "2026-08-01T09:12:00" });
+    eq(i.origine, { da: "import", file: "V2.csv", quando: "2026-08-01T09:12:00" }, "l'import porta file e momento");
+    const m = sentinella.campiProvenienza(sentinella.FONTE_MANO, { quando: "2026-08-01T09:12:00" });
+    eq(m.origine, { da: "manuale", quando: "2026-08-01T09:12:00" }, "la mano porta solo il momento: non c'è nessun file da citare");
+    eq(sentinella.campiProvenienza("qualcosaltro", { quando: "2026-08-01T09:12:00" }).origine.da, "manuale",
+       "e ciò che non è import è la mano: il vocabolario è chiuso a due strade d'ingresso");
+    ok(String(sentinella.campiProvenienza(sentinella.FONTE_MANO).origine.quando).length >= 16,
+       "senza `quando` se lo scrive da sola, con l'istante locale di shared/");
+    /* ⛔ IL MOMENTO SI LEGGE, E UNA DATA CHE NON ESISTE NON SI SCRIVE. Il
+       `dataIt` di questo modulo su una data impossibile risponde «—», e un
+       «il —» in mezzo alla frase di un documento sarebbe peggio del silenzio. */
+    const rotta = sentinella.descriviProvenienza({ origine: { da: "import", file: "a.csv", quando: "2026-02-30T09:00:00" } }, { nome: "V2" });
+    /* ⚠️ L'ASSERZIONE GIUSTA È «NESSUNA DATA», non «non questa data». La
+       prima stesura vietava «—», «2026-02-30» e «02/03» — e la controprova
+       ha risposto «non distingue»: togliendo la guardia esce «30/02/2026»,
+       che non è nessuna delle tre. Il `dataIt` di questo modulo è un
+       rigiro di regex, quindi il 30 febbraio non SCIVOLA al 2 marzo (quello
+       lo farebbe `Date.parse`): lo ristampa all'italiana, impossibile e
+       tranquillo, dentro un documento che va a un ente. È la prima delle
+       cinque cause — i dati della prova non arrivavano al difetto. */
+    ok(!/\d{2}\/\d{2}\/\d{4}/.test(rotta),
+       "⛔ un momento con un giorno che non esiste NON si scrive: nessuna data compare nella frase");
+    ok(!/—/.test(rotta), "e nemmeno un trattino appeso in mezzo alla riga");
+    ok(/dal file «a\.csv»/.test(rotta), "ma il resto della frase c'è tutto: si perde il momento, non la provenienza");
+    ok(/il 01\/07\/2026/.test(sentinella.descriviProvenienza(lImp("a.csv"), { nome: "V2" })),
+       "e un momento vero invece si legge, così la prova qui sopra vieta un'assenza e non tutto");
+  });
+
+  test("⛔ Sentinella · custodia: la dimostrazione contiene i casi per cui la difesa esiste", () => {
+    /* Stessa ragione per cui `run-demo.mjs` distingue il dato CORROTTO dal
+       dato ASSENTE: se la dimostrazione non può contenere il caso, il
+       prodotto non lo mostra mai a chi guarda. */
+    const tutte = sentinella.DEMO.monitoraggi.flatMap((m) => (m.letture || []).map((l) => sentinella.provenienzaMisura(l)));
+    ok(tutte.some((p) => p.da === sentinella.FONTE_IMPORT), "c'è una misura arrivata dal file dello strumento");
+    ok(tutte.some((p) => p.da === sentinella.FONTE_MANO), "e una battuta a mano");
+    ok(tutte.some((p) => p.da === sentinella.FONTE_IGNOTA),
+       "⛔ e una di provenienza NON dichiarata: è il caso di tutto l'archivio esistente il giorno in cui questa unità arriva al cliente");
+    ok(tutte.some((p) => p.corretta && p.corretta.prima != null),
+       "e una corretta dopo l'inserimento, col valore d'origine");
+    const conFile = tutte.filter((p) => p.da === sentinella.FONTE_IMPORT);
+    ok(conFile.every((p) => p.file && p.quando), "ogni misura importata d'esempio porta il file E il momento");
   });
 
   test("⛔ Sentinella · import tarature: la scadenza prima della taratura si scarta, non si raddrizza", () => {
@@ -11671,6 +12030,194 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     eq(g.fmtKg(0.0999), "0,100", "il confine è a un decimo");
     eq(g.fmtKg(0.1), "0,10", "e a un decimo esatto si torna a due");
     eq(g.fmtMs(25), "25,0", "i millisecondi di ritardo, un decimale");
+  });
+}
+
+/* ══ GENESI · LA VIBRAZIONE AL RECETTORE — il secondo pezzo fuori dalla pagina ══
+   `apps/genesi/genesi-data.js`. Dodici funzioni spostate parola per parola da
+   `genesi.html`: dal file del sismografo alla legge di sito, dalla legge al
+   limite di norma, e la sovrappressione d'aria. È il numero che decide se una
+   volata si può sparare, e fino a oggi girava senza una sola prova pura perché
+   `node` non importa un `.html`. */
+{
+  const v = await app("genesi", "genesi-data.js");
+
+  /* referti finti che stanno ESATTAMENTE su PPV = K·SD^−β: così una prova che
+     fallisce accusa il calcolo, non i dati */
+  const referto = (d, w, K = 700, b = 1.6) => ({ d, w, ppv: K * Math.pow(d / Math.sqrt(w), -b) });
+  const OTTO = [referto(100, 50), referto(200, 50), referto(400, 50), referto(300, 20),
+                referto(150, 80), referto(500, 100), referto(80, 40), referto(250, 60)];
+
+  test("Genesi · dai referti del sismografo esce la legge del sito", () => {
+    const f = v.sitoFit(OTTO);
+    eq([f.n, f.K, f.beta, f.r2], [8, 700, 1.6, 1],
+       "otto referti presi da PPV = 700·SD^−1,6 devono restituire proprio quel K e quel β");
+    eq([f.sdMin, f.sdMax], [12.6, 67.1],
+       "e l'intervallo di distanza scalata su cui la legge è tarata: fuori da lì è estrapolazione");
+    eq(f.K95, f.K, "su dati senza dispersione la riga di progetto coincide con la media");
+    ok(!f.errore, "una legge fisica e ben condizionata non porta errori");
+  });
+
+  test("⛔ Genesi · il progetto si fa sulla riga al 95°, non sulla media", () => {
+    /* sulla retta media metà delle volate finirebbe sopra il limite: la riga di
+       conformità è media + 1,645 × scarto dei residui. Un referto fuori scala
+       la deve allontanare dalla media, non lasciarla dov'era. */
+    const conScarto = v.sitoFit([...OTTO, { d: 120, w: 50, ppv: 40 }]);
+    ok(conScarto.K95 > conScarto.K,
+       `con dei residui la riga di progetto sta SOPRA la media (K ${conScarto.K}, K95 ${conScarto.K95})`);
+    ok(conScarto.r2 < 1, "e la bontà del fit scende sotto 1: il punto fuori scala si vede");
+    ok(v.sitoFit(OTTO).s === 0 || v.sitoFit(OTTO).s < 1e-12,
+       "mentre su dati perfetti lo scarto dei residui è nullo");
+  });
+
+  test("⛔ Genesi · quando la legge NON si può usare, il modulo lo dice invece di rispondere un numero", () => {
+    /* è il principio del fondatore sul dato che decide le distanze di
+       sicurezza: senza abbastanza referti non esce un K piccolo e rassicurante,
+       esce il motivo per cui non c'è nessun K */
+    const pochi = v.sitoFit(OTTO.slice(0, 2));
+    eq(pochi.errore, "pochi", "meno di tre referti: da due punti passa qualunque retta");
+    eq([pochi.K, pochi.K95, pochi.beta, pochi.r2], [undefined, undefined, undefined, undefined],
+       "⛔ e nell'oggetto non c'è NESSUN numero da leggere per sbaglio: né K, né β, né r²");
+
+    eq(v.sitoFit([{ d: 100, w: 25, ppv: 5 }, { d: 200, w: 100, ppv: 6 }, { d: 400, w: 400, ppv: 7 }]).errore,
+       "stessaSD",
+       "tre referti tutti alla stessa distanza scalata: la pendenza non è determinabile");
+    eq(v.sitoFit([{ d: 100, w: 50, ppv: 5 }, { d: 200, w: 50, ppv: 5.1 }, { d: 400, w: 50, ppv: 5.2 }]).errore,
+       "pendenza",
+       "una PPV che non cala con la distanza non descrive un'attenuazione fisica: referti di siti diversi mescolati");
+    for (const niente of [[], null, undefined])
+      eq(v.sitoFit(niente), { n: 0, errore: "pochi" }, `${mostra(niente)}: zero referti, e lo scrive`);
+  });
+
+  test("Genesi · i referti illeggibili si scartano, e `n` conta quelli veri", () => {
+    /* `n` finisce sotto gli occhi dell'utente («la legge è tarata su n referti»):
+       se contasse le righe del file invece dei punti usati, direbbe una legge
+       più solida di quella che è */
+    const f = v.sitoFit([...OTTO.slice(0, 3),
+      { d: 0, w: 50, ppv: 3 }, { d: 100, w: 0, ppv: 3 }, { d: 100, w: 50, ppv: 0 }, null]);
+    eq(f.n, 3, "quattro righe buttate: tre punti, non sette");
+    eq(f.avviso, "pochi",
+       "e sotto gli otto referti la legge si dichiara PROVVISORIA — l'avviso che la pagina legge accanto a K e β");
+    ok(!v.sitoFit(OTTO).avviso, "con otto l'avviso sparisce");
+  });
+
+  test("Genesi · le soglie di vibrazione sono quelle delle norme, per fascia di frequenza", () => {
+    /* DIN 4150-3 e USBM RI8507. Le frequenze scelte cadono DENTRO le fasce;
+       i confini si provano a parte, perché è lì che un `<` scritto `<=` si
+       nasconde senza far cadere niente. */
+    const a = (n) => [v.ppvLimit(n, 5), v.ppvLimit(n, 25), v.ppvLimit(n, 60)];
+    eq(a("din-res"), [5, 15, 20], "DIN residenziale");
+    eq(a("din-ind"), [20, 40, 50], "DIN industriale");
+    eq(a("din-sens"), [3, 8, 10], "DIN edificio sensibile/storico");
+    eq(a("usbm-old"), [12.7, 12.7, 50.8], "USBM intonaco: una sola soglia sotto i 40 Hz");
+    eq(a("usbm-modern"), [19, 19, 50.8], "USBM cartongesso");
+    eq([v.ppvLimit("din-ind", 9.99), v.ppvLimit("din-ind", 10)], [20, 40], "il confine DIN è a 10 Hz esatti");
+    eq([v.ppvLimit("din-ind", 49.99), v.ppvLimit("din-ind", 50)], [40, 50], "e il secondo a 50");
+    eq([v.ppvLimit("usbm-old", 39.99), v.ppvLimit("usbm-old", 40)], [12.7, 50.8], "quello USBM a 40");
+    eq([...new Set(Object.keys(v.NORME_PPV).map((n) => v.ppvLimit(n, 25)))].length,
+       Object.keys(v.NORME_PPV).length,
+       "e a 25 Hz le cinque norme danno cinque numeri DIVERSI: scegliere la norma sbagliata "
+       + "non è un dettaglio di etichetta, cambia la soglia");
+  });
+
+  test("Genesi · ogni codice di norma che la pagina propone ha un nome scritto per esteso", () => {
+    /* il nome finisce nel rapporto e nel file per Sentinella, accanto al numero:
+       un limite citato senza dire QUALE limite non è verificabile da nessuno */
+    eq(Object.keys(v.NORME_PPV).sort(),
+       ["din-ind", "din-res", "din-sens", "usbm-modern", "usbm-old"],
+       "i cinque codici");
+    for (const k of Object.keys(v.NORME_PPV))
+      ok(/[A-Z]/.test(v.normaPpvLab(k)) && v.normaPpvLab(k) !== k,
+         `«${k}» si scrive «${v.normaPpvLab(k)}», non col suo codice`);
+    eq(v.normaPpvLab("boh"), "boh",
+       "un codice sconosciuto torna com'è: meglio una sigla strana che una norma inventata");
+    eq([v.normaPpvLab(null), v.normaPpvLab(undefined)], ["", ""], "e senza codice non si scrive niente");
+  });
+
+  test("Genesi · l'airblast segue la radice CUBICA della carica, non la quadrata", () => {
+    /* SD₃ = distanza / ∛(carica per ritardo): raddoppiare la distanza e
+       moltiplicare per otto la carica devono costare/rendere lo STESSO numero
+       di dB — 24·log₁₀2. È l'invariante che casca subito se qualcuno scrive
+       `sqrt` al posto di `cbrt`, e leggendo il codice non si vedrebbe. */
+    const passo = 24 * Math.log10(2);
+    const arr = (x) => Math.round(x * 1e9) / 1e9;
+    eq(arr(v.airblastDb(150, 60) - v.airblastDb(300, 60)), arr(passo), "distanza raddoppiata: −7,22 dB");
+    eq(arr(v.airblastDb(300, 80) - v.airblastDb(300, 10)), arr(passo), "carica per otto: +7,22 dB");
+    ok(v.airblastDb(300, 60) > 120 && v.airblastDb(300, 60) < 130,
+       "e l'ordine di grandezza è quello di una volata di cava a 300 m (~127 dB)");
+  });
+
+  test("⛔ Genesi · un referto senza provenienza lo dichiara, non passa per «inserito a mano»", () => {
+    /* K e β decidono le distanze di sicurezza: chi li guarda deve sapere da
+       dove vengono. Un referto vecchio, salvato prima che il campo esistesse,
+       non va riscritto a posteriori dandogli un'origine che nessuno ha detto. */
+    eq(["mano", "csv", "sentinella"].map((f) => v._sitoFonte({ fonte: f }).et),
+       ["a mano", "sismografo", "Sentinella"], "le tre provenienze note");
+    for (const senza of [{}, null, undefined, { fonte: "" }, { fonte: "boh" }])
+      eq([v._sitoFonte(senza).et, v._sitoFonte(senza).cls],
+         ["origine non registrata", "ign"], `${mostra(senza)}: si dichiara, e con una classe sua`);
+    ok(Object.keys(v._SITO_FONTI).every((k) => v._SITO_FONTI[k].et && v._SITO_FONTI[k].lungo),
+       "ogni provenienza ha sia l'etichetta corta della pillola sia la frase del riepilogo");
+  });
+
+  test("Genesi · la colonna «origine» del file si legge, e il caso non conta", () => {
+    eq(["Sentinella", "dal registro SENTINELLA", "a mano", "Manuale"].map(v._sitoFonteDaTesto),
+       ["sentinella", "sentinella", "mano", "mano"], "le parole che riconosciamo");
+    eq(["Instantel", "", null, undefined].map(v._sitoFonteDaTesto), ["csv", "csv", "csv", "csv"],
+       "tutto il resto è il file di uno strumento: è da lì che il file è arrivato");
+  });
+
+  test("Genesi · «Distanza_m» e «DISTANZA (m)» sono la stessa intestazione", () => {
+    eq(["Distanza_m", "DISTANZA (m)", " Distanza.m ", "distanza[m]"].map(v._sitoNormH),
+       ["distanza m", "distanza m", "distanza m", "distanza m"],
+       "maiuscole, underscore, punti, parentesi e quadre: tutti separatori");
+    eq(v._sitoNormH('"PPV"'), "ppv", "e le virgolette che certi export lasciano dentro");
+    eq([v._sitoNormH(null), v._sitoNormH(undefined)], ["", ""], "niente resta niente");
+  });
+
+  test("⛔ Genesi · la colonna sbagliata darebbe una legge sbagliata: le due trappole si evitano", () => {
+    /* «distanza scalata» e «carica totale» sono le due colonne che i sismografi
+       scrivono ACCANTO a quelle giuste. Prese per buone, la regressione gira
+       lo stesso e produce un K e un β dall'aria plausibile: nessun errore, solo
+       distanze di sicurezza sbagliate. */
+    eq(v._sitoMappaColonne(["distanza scalata", "distanza (m)", "carica max kg", "ppv mm/s"]),
+       { d: 1, w: 2, p: 3, rif: -1, data: -1, org: -1 },
+       "la distanza SCALATA non è la distanza");
+    eq(v._sitoMappaColonne(["dist", "carica totale kg", "carica per ritardo kg", "velocita mm/s"]),
+       { d: 0, w: 2, p: 3, rif: -1, data: -1, org: -1 },
+       "e la carica TOTALE della volata non è la carica per ritardo");
+    eq(v._sitoMappaColonne(["distanza_m", "carica_kg", "ppv_mm_s", "riferimento", "data", "origine"]),
+       { d: 0, w: 1, p: 2, rif: 3, data: 4, org: 5 },
+       "il nostro export rientra da solo, colonne facoltative comprese");
+  });
+
+  test("Genesi · quando l'intestazione non si riconosce si torna all'ordine di prima, non si indovina", () => {
+    const ordine = { d: 0, w: 1, p: 2, rif: -1, data: -1, org: -1 };
+    eq(v._sitoMappaColonne(["a", "b", "c"]), ordine, "tre colonne senza nome");
+    for (const niente of [null, undefined, []])
+      eq(v._sitoMappaColonne(niente), ordine, `${mostra(niente)}: nessuna intestazione`);
+    eq(v._sitoMappaColonne(["ppv distanza", "ppv", "carica kg"]), ordine,
+       "e se due riconoscimenti cadono sulla STESSA colonna la proposta si annulla tutta, "
+       + "invece di mappare due grandezze sullo stesso numero");
+  });
+
+  test("Genesi · l'asse logaritmico non resta muto sugli intervalli stretti", () => {
+    /* è la ragione per cui questa funzione non usa 1-2-5 sempre: su un
+       intervallo come 14–39 m/kg^½ uscirebbe la sola tacca del 20 */
+    eq(v._sitoTicks(0, 2), [1, 2, 5, 10, 20, 50, 100], "due decadi: 1-2-5 per decade");
+    const stretto = v._sitoTicks(Math.log10(14), Math.log10(39));
+    eq(stretto, [15, 20, 25, 30], "14–39: quattro tacche, non una");
+    ok(stretto.every((t) => t >= 14 && t <= 39), "e nessuna tacca fuori dall'intervallo chiesto");
+    eq(v._sitoTicks(2, 1), [], "un intervallo rovesciato non produce tacche inventate");
+  });
+
+  test("Genesi · sul diagramma i decimali scalano con l'ordine di grandezza", () => {
+    /* la stessa scala porta 0,12 mm/s e 1.235 m/kg^½: due decimali fissi
+       renderebbero illeggibili tutt'e due, uno per rumore e l'altro per larghezza */
+    eq([0.123456, 5.678, 12.34, 123.4, 1234.5].map(v._sitoNum),
+       ["0,12", "5,68", "12,3", "123", "1.235"], "due sotto la decina, uno sotto il centinaio, zero sopra");
+    for (const vuoto of [null, undefined, "", NaN])
+      eq(v._sitoNum(vuoto), "—", `${mostra(vuoto)}: il trattino, come tutto il resto di Genesi`);
   });
 }
 
@@ -12900,6 +13447,11 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
   const dur8 = (data, turno) => ({ data, turno, minuti: 480 });
   const pre = (data, turno, operatoreId, stato) => ({ data, turno, operatoreId, stato });
   const DUR = [dur8(IERI, "Mattina"), dur8(IERI, "Pomeriggio"), dur8(IERI, "Notte")];
+  /* La coda che `testoRiposo` aggiunge quando la fine del turno precedente
+     viene dalla DURATA DICHIARATA e non dall'ora di uscita. Scritta una volta
+     sola: era in sei asserzioni, e sei copie della stessa stringa è il modo di
+     avere un giorno cinque asserzioni aggiornate e una no. */
+  const FONTE_DURATA = " · dalla durata dichiarata del turno precedente, non dall'ora di uscita";
 
   test("Campo · riposo: l'ora d'inizio dei turni sta in un posto solo", () => {
     eq(campo.ORE_INIZIO_TURNO, { Mattina: 6, Pomeriggio: 14, Notte: 22 }, "le tre ore d'inizio");
@@ -12944,7 +13496,8 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     contiene(r, { stato: "sotto", ore: 8, misurabile: true, limite: "", buchi: 0 },
              "22:00 → 06:00 sono otto ore, ed è una misura");
     eq(r.ultimo, { data: IERI, turno: "Pomeriggio" }, "l'ultimo turno lavorato che si conosce");
-    eq(campo.testoRiposo(r), "8 h dal turno precedente · sotto le 11 ore", "e si scrive così");
+    eq(campo.testoRiposo(r), "8 h dal turno precedente · sotto le 11 ore" + FONTE_DURATA,
+       "e si scrive così — con da dove viene la fine del turno prima");
   });
 
   test("Campo · riposo: sedici ore sono regolari", () => {
@@ -12952,7 +13505,7 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
                pre(IERI, "Notte", "o1", "assente")];
     const r = campo.riposoPrimaDelTurno("o1", P, DUR, OGGI_R, "Mattina");
     contiene(r, { stato: "regolare", ore: 16, misurabile: true, limite: "", buchi: 0 }, "14:00 → 06:00");
-    eq(campo.testoRiposo(r), "16 h dal turno precedente", "senza nessun allarme");
+    eq(campo.testoRiposo(r), "16 h dal turno precedente" + FONTE_DURATA, "senza nessun allarme");
   });
 
   test("Campo · riposo: un turno non spuntato in mezzo NON assolve", () => {
@@ -12973,7 +13526,8 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     const r = campo.riposoPrimaDelTurno("o1", P, DUR, OGGI_R, "Mattina");
     contiene(r, { stato: "sotto", ore: 8, misurabile: true, limite: "al-piu", buchi: 1 },
              "col buco resta sotto le undici ore, e si dice");
-    eq(campo.testoRiposo(r), "Al più 8 h dal turno precedente · sotto le 11 ore", "«al più», non «esattamente»");
+    eq(campo.testoRiposo(r), "Al più 8 h dal turno precedente · sotto le 11 ore" + FONTE_DURATA,
+       "«al più», non «esattamente»");
   });
 
   test("Campo · riposo: senza la durata del turno prima non si inventa", () => {
@@ -12989,8 +13543,8 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     ok(!/\d{4}-\d{2}-\d{2}/.test(r.perche), "la ragione non porta dentro nessuna data ISO");
     const dmy = (iso) => iso.slice(8, 10) + "/" + iso.slice(5, 7) + "/" + iso.slice(0, 4);
     eq(campo.testoRiposo(r, dmy),
-       "Riposo non misurabile — del turno precedente non è stata dichiarata la durata: "
-       + "senza quella non si sa a che ora è finito (turno Pomeriggio del 09/03/2026)",
+       "Riposo non misurabile — del turno precedente non si sa quando è finito: manca l'ora di "
+       + "uscita di questa persona e manca la durata dichiarata del turno (turno Pomeriggio del 09/03/2026)",
        "col formattatore della pagina la data è quella che si legge in cava");
     ok(campo.testoRiposo(r).includes("2026-03-09"), "senza formattatore la data resta com'è, e non salta niente");
   });
@@ -13027,7 +13581,7 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     const r = campo.riposoPrimaDelTurno("o1", P, [{ data: IERI, turno: "Pomeriggio", minuti: 1200 }],
                                         OGGI_R, "Mattina");
     contiene(r, { stato: "sotto", ore: -4 }, "il turno prima finisce dopo che questo è cominciato");
-    eq(campo.testoRiposo(r), "Il turno precedente finisce dopo che questo è cominciato · sotto le 11 ore",
+    eq(campo.testoRiposo(r), "Il turno precedente finisce dopo che questo è cominciato · sotto le 11 ore" + FONTE_DURATA,
        "e si dice a parole, non con un «-4 h» che nessuno saprebbe leggere");
     eq(campo.testoRiposo(null), "", "senza riga non si scrive niente");
   });
@@ -13038,7 +13592,7 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     contiene(r, { stato: "sotto", ore: 0 }, "22:00 + 8 h = 06:00, cioè nessun riposo");
     // ⛔ e NON «0 min»: accanto a «8 h» e «16 h» si leggerebbe come un numero
     // piccolo invece che come il caso peggiore che la funzione sa raccontare
-    eq(campo.testoRiposo(r), "Nessun riposo fra questo turno e il precedente · sotto le 11 ore",
+    eq(campo.testoRiposo(r), "Nessun riposo fra questo turno e il precedente · sotto le 11 ore" + FONTE_DURATA,
        "zero ore si scrive a parole");
   });
 
@@ -13067,8 +13621,14 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
              "tre in turno: uno sotto, uno regolare, uno che non si sa");
     const pm = {}; m.righe.forEach((r) => { pm[r.operatore.id] = r; });
     ok(!pm.o3, "chi è spuntato assente non compare fra le righe del riposo");
-    contiene(pm.o1, { stato: "sotto", ore: 8, limite: "" }, "o1 ha finito ieri alle 22 e ricomincia alle 6");
-    contiene(pm.o2, { stato: "regolare", ore: 16, limite: "" }, "o2 ha finito ieri alle 14");
+    /* ⛔ SEI ORE E MEZZA, NON OTTO, ed è il cantiere degli orari che si vede:
+       o1 ieri pomeriggio è uscito alle 23:45 mentre la durata dichiarata
+       diceva le 22, e stamattina è entrato alle 06:10. Il numero di prima
+       (otto ore) non era una misura, era il piano dei turni. */
+    contiene(pm.o1, { stato: "sotto", ore: 6.42, limite: "", daInizio: "orario", daFine: "orario" },
+             "o1 è uscito davvero alle 23:45 e rientrato alle 06:10");
+    contiene(pm.o2, { stato: "regolare", ore: 16.25, limite: "", daFine: "durata" },
+             "o2 non ha dichiarato l'uscita: si ripiega sulle 14 dichiarate, e si dice");
     ok(/durata/.test(pm.o4.perche), "o4 era di Notte e della Notte manca la durata: " + pm.o4.perche);
     // il quarto esito — il TETTO che non assolve — la dimostrazione lo mostra
     // al Pomeriggio, dove o3 è presente e ha due turni non spuntati alle spalle
@@ -13093,6 +13653,299 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     // ⛔ e chi NON è stato spuntato resta dentro: «non lo so» non è «non c'è»
     const q2 = campo.riposoDiTurno(OP, lavoro, DUR, OGGI_R, "Mattina", "");
     contiene(q2, { totale: 2, sotto: 2 }, "nessuno spuntato oggi: si guardano tutt'e due");
+  });
+}
+
+// ── Campo · gli orari veri del turno, persona per persona ──────────────
+// Il riposo del blocco qui sopra poggiava sulla DURATA DICHIARATA del turno,
+// che è quanto il turno doveva durare — non quando la persona se n'è andata.
+// Queste prove blindano le tre cose che cambiano: che l'ora vera vinca sulla
+// durata, che dove l'ora non c'è si ripieghi DICENDOLO, e che le due letture
+// difficili (la mezzanotte, l'uscita prima dell'entrata) non producano numeri
+// tranquilli.
+{
+  const IERI = "2026-03-09", OGGI_R = "2026-03-10";
+  const dur8 = (data, turno) => ({ data, turno, minuti: 480 });
+  const DUR = [dur8(IERI, "Mattina"), dur8(IERI, "Pomeriggio"), dur8(IERI, "Notte")];
+  // una riga d'appello completa: data, turno, chi, se c'era, e i due orari
+  const p = (data, turno, id, stato, entrata, uscita) =>
+    ({ data, turno, operatoreId: id, stato, entrata, uscita });
+  const ore = (o) => (o.minuti === null ? null : Math.round(o.minuti / 6) / 10);
+
+  test("Campo · orari: che cosa è un orario e che cosa no", () => {
+    /* ⚠️ MISURATO IN CHROMIUM PRIMA DI SCRIVERE QUESTA FUNZIONE, perché
+       l'ipotesi ragionevole è già stata falsa due volte in un giorno. Il
+       risultato ha tolto la paura grossa: un `<input type="time">` NORMALIZZA
+       da sé, e su «6:00», «0600», «06.00», «24:00», «06:60» e «1,5» il
+       `.value` diventa STRINGA VUOTA. Qui non c'è il caso dei campi interi,
+       dove «1,5» diventa «15» e `checkValidity()` risponde true.
+       Resta che il vuoto è valido — è «non dichiarato», non zero — e che i
+       dati non arrivano solo dal campo: archivi vecchi e import passano di
+       qui, quindi la forma si controlla lo stesso. */
+    eq(campo.minutiOrario("06:00"), 360, "sei del mattino");
+    eq(campo.minutiOrario("00:00"), 0, "mezzanotte è zero, e zero è un orario vero");
+    eq(campo.minutiOrario("23:59"), 1439, "l'ultimo minuto del giorno");
+    eq(campo.minutiOrario("6:00"), 360, "una cifra sola nelle ore si legge lo stesso");
+    eq(campo.minutiOrario(" 07:30 "), 450, "e gli spazi attorno non contano");
+    eq(campo.minutiOrario("06:00:00"), 360, "coi secondi (che `type=time` può scrivere) si taglia");
+    for (const v of ["24:00", "06:60", "-1:00", "06.00", "0600", "6", "1,5", "abc", "", " ", null, undefined])
+      eq(campo.minutiOrario(v), null, `«${v}» non è un orario`);
+    eq(campo.oraDaMinuti(360), "06:00", "e si riscrive con lo zero davanti");
+    eq(campo.oraDaMinuti(1440 + 360), "06:00", "un orario del giorno dopo si scrive uguale");
+    // ⛔ `+null` fa zero, e «00:00» sarebbe un'AFFERMAZIONE: un'ora che manca non si scrive
+    for (const v of [null, undefined, "", "abc", -1]) eq(campo.oraDaMinuti(v), "", `«${v}» non si scrive`);
+  });
+
+  test("Campo · orari: il tetto della durata di un turno non è un numero a parte", () => {
+    // ⛔ IDENTITÀ, non uguaglianza di comodo: se un giorno la soglia del riposo
+    // cambiasse, un «13» scritto a mano resterebbe indietro in silenzio
+    eq(campo.ORE_TURNO_MAX, 24 - campo.RIPOSO_MINIMO_ORE,
+       "un turno non può durare più di quello che le undici ore di riposo lasciano");
+    eq(campo.ORE_TURNO_MAX, 13, "che oggi fa tredici ore");
+  });
+
+  test("Campo · orari: il turno di giorno, e i due orari che mancano", () => {
+    const pieno = campo.orariPresenza(p(OGGI_R, "Mattina", "o1", "presente", "06:05", "14:10"));
+    eq(ore(pieno), 8.1, "dalle 06:05 alle 14:10 sono otto ore e cinque minuti");
+    eq(pieno.oltre, false, "e non si scavalca nessuna mezzanotte");
+    eq(pieno.attendibile, true, "un turno di otto ore è un turno normale");
+    const soloE = campo.orariPresenza(p(OGGI_R, "Mattina", "o1", "presente", "06:05", ""));
+    eq(soloE.minuti, null, "con la sola entrata non si sa quanto ha lavorato");
+    ok(soloE.entrata !== null && soloE.uscita === null, "ma l'entrata resta, e serve");
+    // ⛔ e `attendibile` è `null`, non `true`: non c'è niente da giudicare, e un
+    // «sì, sono affidabili» su un dato che non c'è è il numero tranquillo
+    eq(soloE.attendibile, null, "senza uscita non c'è niente da giudicare");
+    const soloU = campo.orariPresenza(p(OGGI_R, "Mattina", "o1", "presente", "", "14:10"));
+    eq(soloU.minuti, null, "e con la sola uscita nemmeno");
+    ok(soloU.uscita !== null, "ma l'uscita c'è, ed è quella che serve al riposo");
+    const niente = campo.orariPresenza(p(OGGI_R, "Mattina", "o1", "presente", "", ""));
+    eq([niente.entrata, niente.uscita, niente.minuti, niente.attendibile], [null, null, null, null],
+       "nessun orario dichiarato: nessun numero, e nessun giudizio");
+    eq(campo.orariPresenza(null).minuti, null, "e senza riga d'appello non si inventa niente");
+  });
+
+  test("Campo · orari: LA MEZZANOTTE — il turno di notte finisce il giorno dopo", () => {
+    const notte = campo.orariPresenza(p(OGGI_R, "Notte", "o1", "presente", "22:00", "06:00"));
+    eq(ore(notte), 8, "dalle 22 alle 6 sono otto ore, non sedici indietro");
+    eq(notte.oltre, true, "e il giorno cambia");
+    // chi arriva all'una di notte è entrato in RITARDO, non ventun ore prima:
+    // l'entrata è l'occorrenza di quell'ora più vicina all'inizio del turno
+    eq(ore(campo.orariPresenza(p(OGGI_R, "Notte", "o1", "presente", "01:00", "06:00"))), 5,
+       "entrato all'una, uscito alle sei: cinque ore");
+    eq(ore(campo.orariPresenza(p(OGGI_R, "Notte", "o1", "presente", "23:30", "05:30"))), 6,
+       "e a cavallo della mezzanotte il conto non salta");
+    // l'uscita senza entrata si àncora all'inizio NOMINALE del turno
+    const soloU = campo.orariPresenza(p(OGGI_R, "Notte", "o1", "presente", "", "06:00"));
+    eq(new Date(soloU.uscita).getTime(), new Date(2026, 2, 11, 6).getTime(),
+       "le sei della Notte del 10 sono le sei dell'11");
+  });
+
+  test("Campo · orari: L'USCITA PRIMA DELL'ENTRATA si legge come il giorno dopo, e si dichiara", () => {
+    /* ⛔ DECISIONE DI MESTIERE, e la ragione è un'asimmetria, non una
+       preferenza. Fra le due letture possibili — «è il mattino dopo» e «è un
+       refuso» — questa ACCORCIA il riposo del turno seguente. Se è un refuso
+       l'app lo dice e qualcuno lo corregge; se è vero l'app accusa. La lettura
+       opposta assolverebbe in silenzio, che è il numero tranquillo che il
+       principio del fondatore vieta. */
+    const rov = campo.orariPresenza(p(OGGI_R, "Mattina", "o1", "presente", "14:00", "06:00"));
+    eq(ore(rov), 16, "dalle 14 alle 6 del giorno dopo sono sedici ore");
+    eq(rov.attendibile, false, "e sedici ore sono più di quante un turno possa durarne");
+    ok(/13 ore/.test(rov.perche), "la ragione dice quale tetto è stato passato: " + rov.perche);
+    ok(/da controllare/.test(campo.testoOrari(rov)), "e la frase in pagina la porta");
+    // entrata = uscita: ventiquattro ore, cioè o un refuso o un turno
+    // impossibile — in tutt'e due i casi si segnala invece di far finta
+    const ug = campo.orariPresenza(p(OGGI_R, "Mattina", "o1", "presente", "06:00", "06:00"));
+    eq(ore(ug), 24, "stessa ora d'entrata e d'uscita fa ventiquattro ore, non zero");
+    eq(ug.attendibile, false, "e non è attendibile");
+    // la sola uscita, ancorata al turno, ha la stessa guardia
+    const soloU = campo.orariPresenza(p(OGGI_R, "Mattina", "o1", "presente", "", "05:00"));
+    eq(soloU.attendibile, false, "un'uscita ventitré ore dopo l'inizio del turno va guardata");
+    ok(/inizio del turno/.test(soloU.perche), "e la ragione dice a che cosa è stata confrontata");
+  });
+
+  test("Campo · orari: IL CAMBIO D'ORA — otto ore di lancette non sono sempre otto ore", () => {
+    /* ⛔ LA DIFFERENZA FRA DUE ISTANTI, non fra due orologi. Nella notte in cui
+       le lancette vanno avanti, dalle 22 alle 6 ci sono SETTE ore vere; in
+       quella in cui tornano indietro, NOVE. Il riposo di legge sono undici ore
+       consecutive di riposo vero, quindi è l'istante che conta.
+       ⚠️ E la prova si dichiara: il contenitore gira in UTC, dove il cambio
+       d'ora NON ESISTE, quindi qui l'asserzione sarebbe sempre «otto» e non
+       proverebbe niente. Si guarda se l'orologio dell'ambiente cambia davvero
+       in quella notte, e si pretende il numero giusto per l'ambiente in cui si
+       sta girando — stampandolo, perché un controllo che non guarda niente non
+       deve poter dire «a posto». */
+    const casi = [["2026-03-28", 7, "avanti"], ["2026-10-24", 9, "indietro"]];
+    let conCambio = 0;
+    for (const [giorno, atteso, verso] of casi) {
+      const o = campo.orariPresenza(p(giorno, "Notte", "o1", "presente", "22:00", "06:00"));
+      const scarto = (new Date(o.entrata).getTimezoneOffset() - new Date(o.uscita).getTimezoneOffset()) / 60;
+      if (scarto === 0) { eq(ore(o), 8, `su questo orologio il ${giorno} non cambia niente: otto ore`); continue; }
+      conCambio++;
+      eq(ore(o), atteso, `la notte in cui le lancette vanno ${verso}: ${atteso} ore vere invece di otto`);
+    }
+    console.log(`      · notti col cambio d'ora misurate su questo orologio: ${conCambio} su 2`
+                + ` (in UTC sono zero, ed è il motivo per cui la suite gira anche con TZ=Europe/Rome)`);
+  });
+
+  test("Campo · orari: senza una data o un turno leggibili non si costruisce nessun istante", () => {
+    // «2026-02-30» non è un refuso da far scivolare al 2 marzo
+    eq(campo.orariPresenza(p("2026-02-30", "Mattina", "o1", "presente", "06:00", "14:00")).minuti, null,
+       "un giorno che non esiste");
+    eq(campo.orariPresenza(p(OGGI_R, "Serale", "o1", "presente", "06:00", "14:00")).minuti, null,
+       "un turno che non esiste");
+  });
+
+  test("Campo · orari: le frasi che finiscono in pagina", () => {
+    const t = (e, u, turno = "Mattina") => campo.testoOrari(campo.orariPresenza(p(OGGI_R, turno, "o1", "presente", e, u)));
+    eq(t("06:00", "14:00"), "Dalle 06:00 alle 14:00 · 8 h", "il turno intero");
+    eq(t("22:00", "06:00", "Notte"), "Dalle 22:00 alle 06:00 del giorno dopo · 8 h",
+       "e la notte dice a chiare lettere che l'uscita è il giorno dopo");
+    eq(t("06:10", ""), "Entrato alle 06:10 · ora di uscita non dichiarata",
+       "a metà turno l'uscita non c'è, e non si finge che ci sia");
+    eq(t("", "14:00"), "Uscito alle 14:00 · ora di entrata non dichiarata", "e viceversa");
+    eq(t("", ""), "", "senza orari la frase è vuota: a dire «non dichiarati» ci pensa la pagina");
+    eq(campo.testoOrari(null), "", "e senza riga nemmeno");
+  });
+
+  test("Campo · orari: quelli PROPOSTI escono dal turno standard, e l'uscita solo se c'è una durata", () => {
+    eq(campo.orariProposti(DUR, IERI, "Mattina"), { entrata: "06:00", uscita: "14:00" },
+       "sei più otto ore dichiarate");
+    eq(campo.orariProposti(DUR, IERI, "Notte"), { entrata: "22:00", uscita: "06:00" },
+       "e la notte scavalca la mezzanotte anche nella proposta");
+    /* ⛔ SENZA DURATA DICHIARATA NON SI PROPONE NESSUNA USCITA. Proporne una
+       vorrebbe dire inventare l'ora in cui il turno è finito — cioè proprio il
+       buco che gli orari esistono per chiudere, riaperto dal lato della
+       comodità. */
+    eq(campo.orariProposti([], IERI, "Mattina"), { entrata: "06:00", uscita: "" },
+       "niente durata, niente uscita proposta");
+    eq(campo.orariProposti(DUR, IERI, "Serale"), { entrata: "", uscita: "" }, "e un turno che non esiste non propone niente");
+  });
+
+  test("Campo · orari: IL CASO PER CUI QUESTO CANTIERE ESISTE — chi resta due ore in più", () => {
+    /* Il Pomeriggio dichiara otto ore: 14:00 → 22:00, e la Mattina dopo
+       comincia alle 6. Otto ore di riposo, già sotto la soglia. Ma questa
+       persona è rimasta fino a mezzanotte a finire un carico: il riposo vero è
+       di SEI ore, e fino a ieri l'app non poteva saperlo. */
+    const senza = campo.riposoPrimaDelTurno("o1",
+      [p(IERI, "Pomeriggio", "o1", "presente", "", ""), p(IERI, "Notte", "o1", "assente", "", "")],
+      DUR, OGGI_R, "Mattina");
+    contiene(senza, { stato: "sotto", ore: 8, daInizio: "turno", daFine: "durata", attendibile: null },
+             "senza orari: il numero è quello di prima, e adesso dice da dove viene");
+    const con = campo.riposoPrimaDelTurno("o1",
+      [p(IERI, "Pomeriggio", "o1", "presente", "14:00", "00:00"), p(IERI, "Notte", "o1", "assente", "", "")],
+      DUR, OGGI_R, "Mattina");
+    contiene(con, { stato: "sotto", ore: 6, daFine: "orario", attendibile: true },
+             "con l'ora di uscita vera il riposo scende a sei ore, ed è una MISURA");
+    ok(/dagli orari registrati/.test(campo.testoRiposo(con)), "e la frase lo dice: " + campo.testoRiposo(con));
+    ok(/durata dichiarata/.test(campo.testoRiposo(senza)), "mentre l'altra dichiara di essere una stima");
+  });
+
+  test("Campo · orari: l'ora vera taglia nei DUE versi, e quello che assolve si dichiara uguale", () => {
+    /* ⚠️ Il verso comodo va provato quanto quello scomodo: se l'ora vera
+       potesse solo accusare non sarebbe una misura, sarebbe un sospetto. */
+    const P = [p(IERI, "Pomeriggio", "o1", "presente", "14:00", "18:00"), p(IERI, "Notte", "o1", "assente", "", "")];
+    const r = campo.riposoPrimaDelTurno("o1", P, DUR, OGGI_R, "Mattina");
+    contiene(r, { stato: "regolare", ore: 12, daFine: "orario" },
+             "uscito alle 18 invece che alle 22: dodici ore, e la violazione che il piano faceva vedere non c'era");
+  });
+
+  test("Campo · orari: conta anche l'entrata di QUESTO turno", () => {
+    const base = [p(IERI, "Pomeriggio", "o1", "presente", "14:00", "22:00"), p(IERI, "Notte", "o1", "assente", "", "")];
+    const tardi = campo.riposoPrimaDelTurno("o1",
+      base.concat([p(OGGI_R, "Mattina", "o1", "presente", "09:00", "")]), DUR, OGGI_R, "Mattina");
+    contiene(tardi, { stato: "regolare", ore: 11, daInizio: "orario" },
+             "entrato alle 9 invece che alle 6: undici ore, ed è vero");
+    const presto = campo.riposoPrimaDelTurno("o1",
+      base.concat([p(OGGI_R, "Mattina", "o1", "presente", "05:00", "")]), DUR, OGGI_R, "Mattina");
+    contiene(presto, { stato: "sotto", ore: 7, daInizio: "orario" },
+             "entrato alle 5: sette ore, e la violazione che l'orario nominale nascondeva si vede");
+  });
+
+  test("Campo · orari: l'ora di uscita basta anche dove la durata non è mai stata dichiarata", () => {
+    // ⛔ è il caso in cui il conto passava da «non misurabile» a una misura:
+    // prima serviva per forza la durata del turno, adesso basta che qualcuno
+    // abbia scritto quando se n'è andato
+    const P = [p(IERI, "Pomeriggio", "o1", "presente", "", "22:00"), p(IERI, "Notte", "o1", "assente", "", "")];
+    contiene(campo.riposoPrimaDelTurno("o1", P, [], OGGI_R, "Mattina"),
+             { stato: "sotto", ore: 8, daFine: "orario" }, "nessuna durata dichiarata, e il numero c'è lo stesso");
+    // e senza né l'una né l'altra resta non misurabile, con la ragione che le nomina tutt'e due
+    const vuoto = campo.riposoPrimaDelTurno("o1",
+      [p(IERI, "Pomeriggio", "o1", "presente", "", ""), p(IERI, "Notte", "o1", "assente", "", "")], [], OGGI_R, "Mattina");
+    eq(vuoto.stato, "non-misurabile", "senza uscita e senza durata non si inventa");
+    ok(/ora di uscita/.test(vuoto.perche) && /durata dichiarata/.test(vuoto.perche),
+       "e la ragione dice quali sono le due strade chiuse: " + vuoto.perche);
+  });
+
+  test("Campo · orari: un orario che non regge accusa, ma col dubbio scritto accanto", () => {
+    /* Fra «lo uso e lo segnalo» e «lo ignoro e ripiego sulla durata» si è
+       scelto il primo: ignorarlo tornerebbe alla stima, cioè al numero più
+       tranquillo, proprio nel caso in cui qualcosa non torna. */
+    const P = [p(IERI, "Pomeriggio", "o1", "presente", "14:00", "13:00"), p(IERI, "Notte", "o1", "assente", "", "")];
+    const r = campo.riposoPrimaDelTurno("o1", P, DUR, OGGI_R, "Mattina");
+    contiene(r, { stato: "sotto", attendibile: false, daFine: "orario" },
+             "ventitré ore di turno: il riposo che ne esce è sotto, e va guardato");
+    ok(/orari da controllare/.test(campo.testoRiposo(r)), "e la frase porta il dubbio: " + campo.testoRiposo(r));
+  });
+
+  test("Campo · orari: le presenze salvate PRIMA di questo cantiere rispondono come rispondevano", () => {
+    // ⛔ nessuna organizzazione si ritrova i numeri cambiati dall'oggi al
+    // domani: una riga d'appello senza i due campi nuovi non è un dato rotto
+    const vecchie = [{ data: IERI, turno: "Pomeriggio", operatoreId: "o1", stato: "presente", ora: "14:03" },
+                     { data: IERI, turno: "Notte", operatoreId: "o1", stato: "assente", ora: "22:00" }];
+    const r = campo.riposoPrimaDelTurno("o1", vecchie, DUR, OGGI_R, "Mattina");
+    contiene(r, { stato: "sotto", ore: 8, misurabile: true, limite: "", buchi: 0, daInizio: "turno", daFine: "durata" },
+             "stesso stato e stesso numero di prima");
+  });
+
+  test("Campo · orari: il riepilogo del turno non spaccia mezze ore per ore intere", () => {
+    const OP = [{ id: "o1", nome: "A", squadra: "Squadra A", stato: "in-forza" },
+                { id: "o2", nome: "B", squadra: "Squadra A", stato: "in-forza" },
+                { id: "o3", nome: "C", squadra: "Squadra A", stato: "in-forza" },
+                { id: "o4", nome: "D", squadra: "Squadra A", stato: "in-forza" },
+                { id: "o5", nome: "E", squadra: "Squadra A", stato: "non-disponibile" }];
+    const P = [p(OGGI_R, "Mattina", "o1", "presente", "06:00", "14:00"),
+               p(OGGI_R, "Mattina", "o2", "presente", "06:30", ""),
+               p(OGGI_R, "Mattina", "o3", "presente", "", ""),
+               p(OGGI_R, "Mattina", "o4", "assente", "", "")];
+    const q = campo.orariDiTurno(OP, P, OGGI_R, "Mattina", "");
+    contiene(q, { totale: 3, completi: 1, parziali: 1, senza: 1, daControllare: 0 },
+             "chi è assente e chi non è disponibile restano fuori: ore da dichiarare non ne hanno");
+    /* ⛔ 480 MINUTI SONO UN PAVIMENTO, NON UN TOTALE. Una sola persona su tre
+       ha gli orari interi: presentare la sua somma come «le ore del turno»
+       sarebbe la disponibilità calcolata su mezzo denominatore. */
+    contiene(q, { minuti: 480, limite: "almeno" }, "e il totale si dichiara un pavimento");
+    eq(q.completi + q.parziali + q.senza, q.totale, "i tre conti coprono tutte le righe");
+    const tutti = campo.orariDiTurno(OP, [p(OGGI_R, "Mattina", "o1", "presente", "06:00", "14:00")],
+                                     OGGI_R, "Mattina", "");
+    contiene(tutti, { totale: 1, completi: 1, minuti: 480, limite: "" },
+             "quando li hanno tutti, il totale è un totale");
+    // ⛔ e senza nessuno il totale è `null`, mai zero: «0 h lavorate» è
+    // un'affermazione, e in un turno che nessuno ha spuntato è falsa
+    contiene(campo.orariDiTurno(OP, [], OGGI_R, "Mattina", ""),
+             { totale: 0, completi: 0, minuti: null, limite: "" }, "nessun presente, nessun numero");
+  });
+
+  test("Campo · orari: sulla dimostrazione si vede la differenza fra la misura e la stima", () => {
+    const D = campo.DEMO, oggi = campo.oggiISO();
+    const m = campo.riposoDiTurno(D.operatori, D.presenze, D.durate, oggi, "Mattina", "");
+    const per = {}; m.righe.forEach((r) => { per[r.operatore.id] = r; });
+    // o1: uscita vera alle 23:45 di ieri (la durata dichiarata diceva le 22) e
+    // entrata vera alle 06:10 di oggi → sei ore e venticinque
+    contiene(per.o1, { stato: "sotto", ore: 6.42, daInizio: "orario", daFine: "orario" },
+             "o1 è rimasto oltre, e adesso il riposo lo dice");
+    // o2: nessuna uscita dichiarata → si ripiega sulla durata, e la frase lo scrive
+    contiene(per.o2, { stato: "regolare", daFine: "durata" }, "o2 non ha dichiarato l'uscita");
+    ok(/durata dichiarata/.test(campo.testoRiposo(per.o2, (d) => d)),
+       "e chi legge sa che sta guardando una stima: " + campo.testoRiposo(per.o2, (d) => d));
+    /* ⛔ LA DIMOSTRAZIONE DEVE CONTENERE ANCHE LA META' CHE MANCA, se no mostra
+       una funzione che nella vita vera non si vede mai in quello stato: al
+       turno di Mattina, che è IN CORSO, due persone hanno l'entrata e nessuna
+       ha l'uscita. */
+    const o = campo.orariDiTurno(D.operatori, D.presenze, oggi, "Mattina", "");
+    contiene(o, { totale: 2, completi: 0, parziali: 2, senza: 0, minuti: null },
+             "turno in corso: entrati sì, usciti non ancora — e nessun totale di ore");
+    ok(campo.testoOrari(o.righe[0].orari).includes("non dichiarata"),
+       "e la frase lo dice invece di lasciare la riga muta");
   });
 }
 
@@ -13528,6 +14381,352 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
        "i documenti di qualifica stanno nel registro documenti di Scudo, non in un secondo archivio");
     eq([scudo.docDiAppaltatore(D.documenti, "ap3").length, scudo.docDiAppaltatore(D.documenti, null).length], [0, 0],
        "l'impresa non verificata non ne ha nessuno, e senza id non si restituisce tutto");
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   CONTI — PREVENTIVO E CONFERMA D'ORDINE (N9)
+   ────────────────────────────────────────────────────────────────────────
+   Prima di oggi il ciclo di Conti partiva dalla PESATA. Queste prove
+   difendono le tre cose che il pezzo nuovo esiste per dire:
+   · un preventivo scaduto o rifiutato NON è venduto;
+   · quanto è stato consegnato a volte NON è un numero, e allora non è «0%»;
+   · il prezzo e l'IVA si calcolano UNA volta sola (imponibileRiga,
+     totaliDaRighe), non due, se no il preventivo e la fattura non tornano.
+   ════════════════════════════════════════════════════════════════════════ */
+{
+  const PROD_T = { id: "p1", nome: "Stabilizzato 0/30", unitaPrezzo: "t", prezzo: 8.5, densita: 1.9, iva: 22 };
+  const PROD_M = { id: "p3", nome: "Sabbia lavata 0/4", unitaPrezzo: "m3", prezzo: 22, densita: 1.6, iva: 22 };
+  const PROD_ND = { id: "p5", nome: "Misto di cava", unitaPrezzo: "t", prezzo: 6.5, densita: null, iva: 22 };
+  const CL5 = { id: "c1", sconto: 5 };
+  const OGGI = new Date("2026-08-01T12:00:00");
+  const ordine = (id, stato, righe, extra) =>
+    ({ id, clienteId: "c1", data: "2026-06-01", validoAl: "2026-08-31", stato, righe, ...extra });
+  const ddt = (id, o, extra) => ({ id, numero: id, ordineId: o, clienteId: "c1",
+    prodottoId: "p1", data: "2026-07-01", unitaVendita: "t", quantita: 100, netto: 100, ...extra });
+
+  test("Conti · preventivo: la riga fotografa listino e sconto, e l'imponibile passa da imponibileRiga", () => {
+    const r = conti.rigaPreventivo(PROD_T, 300, CL5);
+    eq(r.imponibile, conti.imponibileRiga(300, 8.5, 5),
+       "il preventivo NON rifà il conto dell'imponibile: usa la funzione della pesata e della fattura");
+    contiene(r, { prodottoId: "p1", quantita: 300, unita: "t", prezzoUnitario: 8.5, scontoPct: 5, aliquota: 22 },
+       "prezzo di listino e sconto del cliente viaggiano separati, come su un DDT italiano");
+  });
+
+  test("Conti · preventivo: la quantità vuota resta null, non zero", () => {
+    /* `+null` fa 0 e `Number.isFinite(0)` risponde true: la trappola che questo
+       ecosistema ha già pagato tre volte. Qui produrrebbe un'offerta di zero
+       tonnellate, che sembra un documento valido. */
+    for (const v of [null, undefined, "", "   ", "abc"])
+      eq(conti.rigaPreventivo(PROD_T, v, CL5).quantita, null,
+         "quantità «" + String(v) + "» non è un numero: la riga non ne inventa uno");
+    eq(conti.rigaPreventivo(PROD_T, "", CL5).imponibile, null,
+       "e senza quantità non c'è un imponibile: zero euro sarebbe un prezzo dichiarato");
+    eq(conti.rigaPreventivo(PROD_T, 0, CL5).quantita, 0,
+       "ma uno ZERO scritto davvero resta zero: è una quantità dichiarata, non un'assenza");
+  });
+
+  test("Conti · preventivo: ordinare in un'unità diversa dal listino converte col prezzo, non a occhio", () => {
+    eq(conti.rigaPreventivo(PROD_T, 100, CL5, "m3").prezzoUnitario, conti.prezzoPerMetroCubo(PROD_T),
+       "€/t → €/m³ passa dalla stessa formula del listino, non da una seconda");
+    eq(conti.rigaPreventivo(PROD_M, 100, CL5, "t").prezzoUnitario, conti.prezzoPerTonnellata(PROD_M),
+       "e nell'altro verso lo stesso");
+    eq(conti.rigaPreventivo(PROD_ND, 100, CL5, "m3").prezzoUnitario, null,
+       "senza densità il prezzo convertito NON esiste: meglio nessun numero che un numero falso");
+    eq(conti.rigaPreventivo(PROD_ND, 100, CL5, "m3").imponibile, null,
+       "e senza prezzo non c'è imponibile");
+  });
+
+  test("Conti · preventivo: i totali passano da totaliDaRighe, con il riepilogo per aliquota", () => {
+    const o = { righe: [conti.rigaPreventivo(PROD_T, 300, CL5), conti.rigaPreventivo(PROD_M, 50, CL5)] };
+    const t = conti.totaliPreventivo(o);
+    const atteso = conti.totaliDaRighe(o.righe);
+    eq([t.imponibile, t.ivaImporto, t.totale], [atteso.imponibile, atteso.ivaImporto, atteso.totale],
+       "preventivo e fattura devono tornare al centesimo: è la prima cosa che il cliente controlla");
+    eq(t.perAliquota.length, 1, "un'aliquota sola in questo caso, e il riepilogo la porta");
+  });
+
+  test("Conti · preventivo: la riga senza importo non entra nel totale e si CONTA a parte", () => {
+    /* Stessa regola delle gare senza base d'asta: un totale che esclude
+       qualcosa senza dirlo è un totale che inganna chi lo legge. */
+    const t = conti.totaliPreventivo({ righe: [conti.rigaPreventivo(PROD_T, 300, CL5), conti.rigaPreventivo(PROD_T, "", CL5)] });
+    eq(t.imponibile, conti.imponibileRiga(300, 8.5, 5), "il totale è solo quello che si può sommare");
+    eq([t.righe, t.senzaImporto], [2, 1], "e dichiara che una delle due righe è rimasta fuori");
+  });
+
+  /* ── GLI STATI ─────────────────────────────────────────────────────── */
+  test("Conti · preventivo: «scaduto» lo dice il calendario, non un campo salvato", () => {
+    eq(conti.statoPreventivo({ stato: "inviato", validoAl: "2026-08-10" }, OGGI).stato, "inviato",
+       "inviato e ancora nei termini");
+    eq(conti.statoPreventivo({ stato: "inviato", validoAl: "2026-07-20" }, OGGI).stato, "scaduto",
+       "nessuno l'ha toccato e non è più valido: lo stato salvato dice ancora «inviato»");
+    eq(conti.statoPreventivo({ stato: "inviato", validoAl: "2026-08-01" }, OGGI).stato, "inviato",
+       "l'ultimo giorno di validità vale ancora — chi firma oggi ha firmato in tempo");
+  });
+
+  test("Conti · preventivo: l'accettazione ferma l'orologio della validità", () => {
+    /* Un ordine confermato a giugno non «scade» a luglio perché l'offerta
+       durava trenta giorni: quello è un impegno preso, e va consegnato.
+       Senza questa regola un ordine vivo sarebbe uscito dal portafoglio da solo. */
+    eq(conti.statoPreventivo({ stato: "accettato", validoAl: "2026-01-01" }, OGGI).stato, "accettato",
+       "accettato resta accettato anche mille giorni dopo la validità dell'offerta");
+    eq(conti.ordineConfermato({ stato: "accettato", validoAl: "2026-01-01" }, OGGI), true,
+       "e resta un ordine vero");
+  });
+
+  test("Conti · preventivo: senza data di validità NON è «valido» — è uno stato suo", () => {
+    /* Il principio del fondatore sulla data che manca: un'offerta senza
+       scadenza è un prezzo bloccato per sempre, e gli inerti si muovono col
+       gasolio. È lo stesso disegno di `statoScadenzaFattura`. */
+    eq(conti.statoPreventivo({ stato: "inviato", validoAl: null }, OGGI).stato, "senza-validita", "null");
+    eq(conti.statoPreventivo({ stato: "inviato", validoAl: "" }, OGGI).stato, "senza-validita", "stringa vuota");
+    eq(conti.statoPreventivo({ stato: "inviato", validoAl: "2026-02-30" }, OGGI).stato, "senza-validita",
+       "e una data che non esiste non è una data");
+    eq(conti.statoPreventivo({ stato: "bozza", validoAl: null }, OGGI).stato, "bozza",
+       "una BOZZA invece resta bozza: non è stata mandata a nessuno, non c'è promessa da datare");
+  });
+
+  test("Conti · ordine: solo l'accettato è venduto — scaduto, rifiutato e annullato no", () => {
+    const casi = [["accettato", true], ["inviato", false], ["bozza", false],
+                  ["rifiutato", false], ["annullato", false]];
+    for (const [st, atteso] of casi)
+      eq(conti.ordineConfermato({ stato: st, validoAl: "2026-08-31" }, OGGI), atteso,
+         "«" + st + "» è un ordine? " + atteso);
+    eq(conti.ordineConfermato({ stato: "inviato", validoAl: "2026-01-01" }, OGGI), false,
+       "e un preventivo scaduto non diventa un ordine per il fatto di essere invecchiato");
+  });
+
+  test("Conti · ordine: ogni stato che statoPreventivo sa dire ha la sua voce in STATI_PREVENTIVO o è calcolato", () => {
+    /* Regola 18 applicata a mano: una mappa che non copre uno stato uccide la
+       pagina al disegno, senza nessun errore di sintassi da leggere. */
+    const salvati = conti.STATI_PREVENTIVO.map((s) => s.id);
+    eq(salvati, ["bozza", "inviato", "accettato", "rifiutato", "annullato"], "i cinque stati salvabili");
+    for (const id of salvati)
+      ok(conti.statoPreventivoLabel(id).id === id, "«" + id + "» ha la sua etichetta");
+    eq(conti.statoPreventivoLabel("inventato").id, "bozza",
+       "e una chiave sconosciuta ripiega senza far cadere la pagina");
+    const calcolati = new Set();
+    for (const st of salvati) for (const v of ["2026-08-31", "2026-01-01", null])
+      calcolati.add(conti.statoPreventivo({ stato: st, validoAl: v }, OGGI).stato);
+    eq([...calcolati].sort(), ["accettato", "annullato", "bozza", "inviato", "rifiutato", "scaduto", "senza-validita"],
+       "sette stati in uscita: i cinque salvati più i due che li calcola il calendario");
+  });
+
+  /* ── L'AVANZAMENTO, E IL PRINCIPIO DEL FONDATORE ───────────────────── */
+  test("Conti · ordine: quanto è consegnato viene dai DDT agganciati, e solo da quelli", () => {
+    const o = ordine("o1", "accettato", [conti.rigaPreventivo(PROD_T, 300, CL5)]);
+    const a = conti.avanzamentoOrdine(o, [ddt("a", "o1", { quantita: 100, netto: 100 }),
+                                          ddt("b", "o1", { quantita: 50, netto: 50 }),
+                                          ddt("c", "altro", { quantita: 900, netto: 900 })]);
+    eq([a.percentuale, a.misurabile], [50, true], "150 su 300 è il 50%, e il DDT di un altro ordine non entra");
+    eq([a.prodotti[0].consegnato, a.prodotti[0].residuo], [150, 150], "restano 150 t da consegnare");
+    eq(a.prodotti[0].ddt, ["a", "b"], "e la riga porta i numeri dei DDT che l'hanno consumata");
+  });
+
+  test("Conti · ordine: ⛔ un ordine di cui non si sa quanto è consegnato NON è «0% consegnato»", () => {
+    /* Il principio del fondatore su una barra di avanzamento, che è il posto
+       dove uno zero mente meglio di tutti: «0%» racconta «non ancora
+       cominciato», che è una cosa che si sa. */
+    const chiamata = ordine("o5", "accettato", [conti.rigaPreventivo(PROD_T, "", CL5)]);
+    const a = conti.avanzamentoOrdine(chiamata, []);
+    eq(a.percentuale, null, "fornitura a chiamata: non esiste una frazione da calcolare");
+    eq(a.misurabile, false, "e la bandiera lo dichiara");
+    ok(/chiamata/.test(a.perche), "con il perché scritto in italiano: «" + a.perche + "»");
+
+    const mc = ordine("o6", "accettato", [conti.rigaPreventivo(PROD_T, 300, CL5)]);
+    const b = conti.avanzamentoOrdine(mc, [ddt("x", "o6", { unitaVendita: "m3", quantita: 20, densita: null, netto: null })]);
+    eq([b.percentuale, b.misurabile], [null, false],
+       "DDT a metro cubo senza densità su una riga a tonnellate: il consegnato non si sa");
+
+    const senzaNetto = conti.avanzamentoOrdine(mc, [ddt("y", "o6", { quantita: null, netto: null })]);
+    eq([senzaNetto.percentuale, senzaNetto.misurabile], [null, false],
+       "e un DDT senza quantità né netto non è una consegna di ZERO tonnellate");
+  });
+
+  test("Conti · ordine: e uno ZERO vero resta zero — le due cose non si confondono", () => {
+    /* L'altra metà del principio, che è quella che si dimentica: se l'ordine ha
+       una quantità e nessun camion è partito, lo zero è un FATTO. La stessa
+       asimmetria dichiarata in canonePeriodo fra venduto e scavato. */
+    const o = ordine("o7", "accettato", [conti.rigaPreventivo(PROD_T, 300, CL5)]);
+    const a = conti.avanzamentoOrdine(o, []);
+    eq([a.percentuale, a.misurabile, a.daAgganciare], [0, true, 0],
+       "nessun DDT di quel cliente: nessuno ha consegnato, ed è misurato");
+  });
+
+  test("Conti · ordine: lo zero sospetto si distingue dallo zero certo con un FATTO, non con un'inferenza", () => {
+    const o = ordine("o8", "accettato", [conti.rigaPreventivo(PROD_T, 300, CL5)]);
+    const sciolti = [ddt("s1", null, { data: "2026-06-20" }), ddt("s2", null, { data: "2026-06-22" })];
+    const a = conti.avanzamentoOrdine(o, sciolti);
+    eq([a.percentuale, a.daAgganciare], [0, 2],
+       "zero agganciati, ma due DDT di quel cliente e di quel prodotto senza ordine: probabilmente una svista");
+    eq(conti.avanzamentoOrdine(o, [ddt("s3", null, { clienteId: "c9" })]).daAgganciare, 0,
+       "il DDT di un ALTRO cliente non è un candidato");
+    eq(conti.avanzamentoOrdine(o, [ddt("s4", null, { prodottoId: "p9", prodotto: "Altro" })]).daAgganciare, 0,
+       "né quello di un altro prodotto");
+    eq(conti.avanzamentoOrdine(o, [ddt("s5", null, { data: "2026-05-01" })]).daAgganciare, 0,
+       "né uno consegnato PRIMA che il preventivo esistesse");
+    eq(conti.ddtDaAgganciare(o, sciolti).map((p) => p.id), ["s1", "s2"],
+       "e la pagina se li fa dare per collegarli, in ordine di data");
+  });
+
+  test("Conti · ordine: due righe dello stesso prodotto sono UN prodotto, non due barre", () => {
+    /* In cava è la norma: 300 t del primo lotto a un prezzo, 200 t del secondo
+       a un altro. Un DDT non dice a quale riga appartiene: attribuendolo alla
+       prima si otteneva il 133% su una e lo 0% sull'altra. Trovato in
+       prototipo, prima di scrivere la funzione. */
+    const o = ordine("o9", "accettato", [conti.rigaPreventivo(PROD_T, 300, CL5),
+                                         conti.rigaPreventivo({ ...PROD_T, prezzo: 8 }, 200, CL5)]);
+    const a = conti.avanzamentoOrdine(o, [ddt("z", "o9", { quantita: 400, netto: 400 })]);
+    eq(a.prodotti.length, 1, "un prodotto solo");
+    eq([a.prodotti[0].righe, a.prodotti[0].ordinato], [2, 500], "che porta due righe e 500 t ordinate");
+    eq(a.percentuale, 80, "400 su 500 = 80%");
+  });
+
+  test("Conti · ordine: il consegnato per prodotto porta i DDT che l'hanno formato", () => {
+    /* `consegnatoOrdine` si prova anche da sola e non solo attraverso
+       `avanzamentoOrdine`: è lei che la pagina chiama per disegnare la riga
+       prodotto per prodotto, con il residuo accanto. */
+    const o = ordine("o14", "accettato", [conti.rigaPreventivo(PROD_T, 300, CL5),
+                                          conti.rigaPreventivo(PROD_M, 40, CL5)]);
+    const c = conti.consegnatoOrdine(o, [ddt("t1", "o14", { quantita: 120, netto: 120 }),
+      ddt("t2", "o14", { prodottoId: "p3", prodotto: "Sabbia lavata 0/4", unitaVendita: "m3", quantita: 10, densita: 1.6, netto: null })]);
+    eq(c.ddtAgganciati, 2, "due DDT agganciati");
+    eq(c.prodotti.map((g) => [g.descrizione, g.ordinato, g.consegnato, g.residuo]),
+       [["Stabilizzato 0/30", 300, 120, 180], ["Sabbia lavata 0/4", 40, 10, 30]],
+       "ogni prodotto col suo ordinato, consegnato e residuo, nell'unità in cui è stato ordinato");
+    eq(c.prodotti.map((g) => g.ddt), [["t1"], ["t2"]], "e i numeri dei DDT accanto, per andarli a cercare");
+    eq(c.fuoriOrdine, [], "niente fuori ordine qui");
+    eq(conti.consegnatoOrdine(null, null).prodotti, [], "e senza ordine non si inventa niente");
+  });
+
+  test("Conti · ordine: un DDT di un prodotto non ordinato non consuma l'ordine", () => {
+    const o = ordine("o10", "accettato", [conti.rigaPreventivo(PROD_T, 300, CL5)]);
+    const a = conti.avanzamentoOrdine(o, [ddt("f", "o10", { prodottoId: "p3", prodotto: "Sabbia lavata 0/4" })]);
+    eq(a.fuoriOrdine.map((p) => p.id), ["f"], "si tiene a parte e si dice, invece di sparire");
+    eq(a.percentuale, 0, "e non sposta l'avanzamento di un punto");
+  });
+
+  test("Conti · ordine: consegnato più dell'ordinato si dice, non si tronca a 100", () => {
+    /* L'ultimo camion carica un po' di più: succede, e un residuo bloccato a
+       zero lo nasconderebbe proprio a chi deve fatturarlo. */
+    const o = ordine("o11", "accettato", [conti.rigaPreventivo(PROD_T, 300, CL5)]);
+    const a = conti.avanzamentoOrdine(o, [ddt("e", "o11", { quantita: 315, netto: 315 })]);
+    eq([a.percentuale, a.prodotti[0].residuo], [105, -15], "105% e quindici tonnellate in più");
+    ok(/più dell'ordinato/.test(conti.descriviAvanzamento(a)), "e la frase lo dice: «" + conti.descriviAvanzamento(a) + "»");
+  });
+
+  test("Conti · ordine: la conversione fra unità passa da convertiQuantita, con la densità del DDT", () => {
+    const o = ordine("o12", "accettato", [conti.rigaPreventivo(PROD_T, 300, CL5)]);
+    const a = conti.avanzamentoOrdine(o, [ddt("m", "o12", { unitaVendita: "m3", quantita: 100, densita: 1.9, netto: null })]);
+    eq(a.prodotti[0].consegnato, conti.convertiQuantita(100, "m3", "t", 1.9),
+       "100 m³ a densità 1,9 fanno 190 t, e il conto è quello del listino");
+  });
+
+  test("Conti · ordine: la frase dell'avanzamento è scritta nel modulo, una volta sola", () => {
+    /* Regola 7: «come si racconta una non-misurabilità» è una decisione sola.
+       Scritta nella pagina, il giorno che serve al report se ne scriverebbe
+       una seconda, diversa. */
+    const o = ordine("o13", "accettato", [conti.rigaPreventivo(PROD_T, 300, CL5)]);
+    ok(/non si può misurare/.test(conti.descriviAvanzamento({ misurabile: false, perche: "prova" })),
+       "non misurabile: lo dice");
+    eq(conti.descriviAvanzamento(conti.avanzamentoOrdine(o, [ddt("q", "o13", { quantita: 300, netto: 300 })])),
+       "Ordine consegnato per intero.", "al 100%");
+    ok(/ce n'è 1\b/.test(conti.descriviAvanzamento({ misurabile: true, percentuale: 0, daAgganciare: 1 })),
+       "e al singolare si scrive «ce n'è 1», non «ce ne sono 1»");
+    ok(/ce ne sono 3\b/.test(conti.descriviAvanzamento({ misurabile: true, percentuale: 0, daAgganciare: 3 })),
+       "al plurale il plurale");
+  });
+
+  /* ── IL PORTAFOGLIO ────────────────────────────────────────────────── */
+  test("Conti · portafoglio: nel venduto entra solo il confermato", () => {
+    const righe = [conti.rigaPreventivo(PROD_T, 300, CL5)];
+    const val = conti.totaliPreventivo({ righe }).imponibile;
+    const lista = [ordine("a1", "accettato", righe), ordine("a2", "accettato", righe),
+                   ordine("r1", "rifiutato", righe), ordine("b1", "bozza", righe),
+                   ordine("s1", "inviato", righe, { validoAl: "2026-01-01" })];
+    const p = conti.portafoglioOrdini(lista, [], OGGI);
+    eq([p.quanti, p.valore], [2, conti.round2(val * 2)],
+       "due ordini: il rifiutato, la bozza e lo scaduto non sono materiale che uscirà dal piazzale");
+  });
+
+  test("Conti · portafoglio: dichiara quanti ordini non sa misurare e quanti valgono in parte", () => {
+    const lista = [ordine("a1", "accettato", [conti.rigaPreventivo(PROD_T, 300, CL5)]),
+                   ordine("a2", "accettato", [conti.rigaPreventivo(PROD_T, "", CL5)]),
+                   ordine("a3", "accettato", [conti.rigaPreventivo(PROD_T, 300, CL5)])];
+    const p = conti.portafoglioOrdini(lista, [{ id: "k", numero: "k", ordineId: "a3", clienteId: "c1",
+      prodottoId: "p1", data: "2026-07-01", unitaVendita: "t", quantita: 300, netto: 300 }], OGGI);
+    contiene(p, { quanti: 3, daConsegnare: 1, completati: 1, nonMisurabili: 1, senzaImporto: 1 },
+       "tre ordini: uno a metà, uno finito, uno che non si sa — e il valore è parziale, e lo dice");
+  });
+
+  test("Conti · portafoglio: senza ordini le risposte sono zeri, non numeri inventati", () => {
+    contiene(conti.portafoglioOrdini([], [], OGGI), { quanti: 0, valore: 0, daConsegnare: 0, nonMisurabili: 0, senzaImporto: 0 },
+       "nessun ordine è un fatto: zero ordini valgono zero euro");
+    contiene(conti.portafoglioOrdini(null, null, OGGI), { quanti: 0, valore: 0 }, "e niente cade su null");
+  });
+
+  test("Conti · preventivi: quelli che chiedono una mossa, dal più urgente", () => {
+    const righe = [conti.rigaPreventivo(PROD_T, 300, CL5)];
+    const lista = [ordine("v1", "inviato", righe, { numero: "V1", validoAl: "2026-08-30" }),
+                   ordine("v2", "inviato", righe, { numero: "V2", validoAl: "2026-08-04" }),
+                   ordine("v3", "inviato", righe, { numero: "V3", validoAl: "2026-07-01" }),
+                   ordine("v4", "inviato", righe, { numero: "V4", validoAl: null }),
+                   ordine("v5", "accettato", righe, { numero: "V5", validoAl: "2026-07-01" })];
+    const d = conti.preventiviDaSeguire(lista, OGGI);
+    eq(d.map((x) => x.ordine.numero), ["V3", "V4", "V2"],
+       "prima lo scaduto (il prezzo è già morto), poi quello senza validità, poi quello che scade fra tre giorni");
+    eq(d.map((x) => x.stato), ["scaduto", "senza-validita", "inviato"], "con lo stato accanto");
+    ok(!d.some((x) => x.ordine.numero === "V1"), "quello che scade fra un mese non chiede niente oggi");
+    ok(!d.some((x) => x.ordine.numero === "V5"), "e un ordine già accettato non è un'offerta da richiamare");
+  });
+
+  /* ── I DATI D'ESEMPIO ──────────────────────────────────────────────── */
+  test("Conti · ordini d'esempio: gli importi salvati tornano col calcolo, al centesimo", () => {
+    /* Un dato d'esempio scritto a mano che non torna col conto dell'app è una
+       bugia che si vede solo in dimostrazione — cioè proprio dove la guarda
+       chi non conosce il prodotto. */
+    let righe = 0;
+    for (const o of conti.DEMO.ordini) for (const r of o.righe) {
+      righe++;
+      if (r.quantita == null) { eq(r.imponibile, null, o.numero + ": senza quantità niente imponibile"); continue; }
+      eq(r.imponibile, conti.imponibileRiga(r.quantita, r.prezzoUnitario, r.scontoPct),
+         o.numero + " · " + r.descrizione + ": l'imponibile scritto è quello che calcola l'app");
+    }
+    eq(righe, 8, "righe d'esempio controllate");
+  });
+
+  test("Conti · ordini d'esempio: la dimostrazione contiene i casi che il prodotto esiste per raccontare", () => {
+    /* Stessa ragione per cui la fattura senza scadenza è entrata in DEMO il
+       01/08: un campione di soli casi sani non mostra niente. */
+    const D = conti.DEMO, stati = D.ordini.map((o) => conti.statoPreventivo(o, OGGI).stato);
+    for (const atteso of ["accettato", "inviato", "scaduto", "rifiutato", "senza-validita"])
+      ok(stati.includes(atteso), "in dimostrazione c'è almeno un preventivo «" + atteso + "»");
+    const avanz = D.ordini.map((o) => conti.avanzamentoOrdine(o, D.pesate));
+    ok(avanz.some((a) => !a.misurabile), "e almeno un ordine di cui il consegnato NON è misurabile");
+    ok(avanz.some((a) => a.misurabile && a.percentuale > 0 && a.percentuale < 100), "uno a metà consegna");
+    ok(avanz.some((a) => a.percentuale === 0 && a.daAgganciare > 0), "e uno a zero con dei DDT da collegare");
+  });
+
+  test("Conti · ordini d'esempio: i DDT agganciati puntano a un ordine che esiste", () => {
+    const ids = new Set(conti.DEMO.ordini.map((o) => o.id));
+    const agg = conti.DEMO.pesate.filter((p) => p.ordineId);
+    ok(agg.length > 0, "almeno un DDT d'esempio è agganciato, se no la funzione non si vede mai");
+    for (const p of agg) ok(ids.has(p.ordineId), "il DDT " + p.numero + " punta all'ordine " + p.ordineId);
+    for (const p of agg) {
+      const o = conti.DEMO.ordini.find((x) => x.id === p.ordineId);
+      eq(String(p.clienteId || ""), String(o.clienteId || ""),
+         "e il DDT " + p.numero + " è dello stesso cliente dell'ordine: un ordine non si consegna a un altro");
+    }
+  });
+
+  test("Conti · ordini: la numerazione dei preventivi è una serie sua, e non tocca quella delle fatture", () => {
+    const numeri = conti.DEMO.ordini.map((o) => o.numero);
+    eq(conti.prossimoNumero(numeri, 2026, 3, "PREV/"), "PREV/2026/008", "il prossimo preventivo");
+    eq(conti.prossimoNumero(conti.DEMO.ordini.map((o) => o.numeroOrdine).filter(Boolean), 2026, 3, "ORD/"),
+       "ORD/2026/004", "e il prossimo ordine, che è un registro a parte");
+    eq(conti.prossimoNumero([...numeri, ...conti.DEMO.fatture.map((f) => f.numero)], 2026, 3, ""),
+       conti.prossimoNumero(conti.DEMO.fatture.map((f) => f.numero), 2026, 3, ""),
+       "e i preventivi non fanno saltare il numero della prossima fattura");
   });
 }
 

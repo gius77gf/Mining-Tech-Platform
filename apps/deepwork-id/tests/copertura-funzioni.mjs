@@ -62,7 +62,15 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    comportamento. Il conto di `dw-ponti` sale da 21 a 23 dello stesso passo. */
 /* ⚠️ `flotta` SALE DA 79 A 81: `pagellaMezzi` (il costo orario e la
    disponibilità sullo stesso piano) e `BANDA_PAGELLA`, con le loro prove. */
-const FONDO = { campo: 95, conti: 90, flotta: 81, scudo: 113, sentinella: 109, terra: 55 };
+/* ⚠️ `terra` SALE DA 55 A 56: `banchiDaSempre` (la ripartizione per banco
+   sommata su tutta la vita misurata della cava, con l'anno cieco che vale
+   «almeno» invece di zero), con le sue 8 prove. */
+/* ⚠️ `campo` SALE DA 95 A 102: gli ORARI VERI DEL TURNO, persona per persona
+   — `minutiOrario`, `oraDaMinuti`, `ORE_TURNO_MAX`, `orariPresenza`,
+   `testoOrari`, `orariProposti`, `orariDiTurno` — con le loro prove. Da lì
+   `riposoPrimaDelTurno` preferisce l'ora di uscita vera alla durata
+   dichiarata del turno, e quando ripiega lo dichiara. */
+const FONDO = { campo: 102, conti: 102, flotta: 81, scudo: 113, sentinella: 120, terra: 56 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.
@@ -133,6 +141,17 @@ const CONDIVISI = [
      `genesi-estraibili.mjs`. */
   { file: "apps/genesi/genesi-formato.js", fondo: 6,
     perche: "come Genesi scrive i numeri che l'utente legge: spalla, maglia, consumo specifico, chili di esplosivo" },
+  /* ⛔ IL SECONDO PEZZO DI GENESI USCITO DALLA PAGINA. Il primo diceva come
+     Genesi SCRIVE un numero; questo dice come lo CALCOLA, sul numero che
+     decide se una volata si può sparare: quanto farà vibrare la casa più
+     vicina. Dentro c'è la catena intera — il file del sismografo, la
+     regressione di Devine con la riga di progetto al 95°, la soglia di norma,
+     la sovrappressione d'aria. Restano nella pagina solo quelle che leggono
+     `localStorage` o lo stato del progetto (`sitoStore`, `sitoLegge`,
+     `ppvSite`, `computeMIC`): portarle fuori è un rifacimento, non un
+     trasloco. Quanto manca lo misura `genesi-estraibili.mjs`. */
+  { file: "apps/genesi/genesi-data.js", fondo: 12,
+    perche: "la vibrazione al recettore: la legge di sito dai referti, il limite di norma, l'airblast" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o
    l'orologio e vivono nei banchi del browser (`tests/browser/`), non in

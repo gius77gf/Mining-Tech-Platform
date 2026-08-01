@@ -274,6 +274,18 @@ const VOCABOLARIO_MANCANTE = [
      essere schiacciata su quella che c'era. */
   [/^Taratura senza data$/, "il CERTIFICATO di taratura di uno strumento porta una data illeggibile — stessa portata di «senza data», ma il badge convive con quello della misura e senza il nome dell'oggetto direbbe un'altra cosa"],
   [/^Taratura non dichiarata$/, "per lo strumento non esiste NESSUN certificato registrato: diverso da «Mai misurato», che parla del punto e non dello strumento, e diverso da «senza data», che presuppone un record"],
+  /* ⛔ LA TERZA «NON DICHIARATA», E IL SOGGETTO È ANCORA UN ALTRO (T2d di
+     Sentinella). Le tre non si possono schiacciare l'una sull'altra perché
+     parlano di tre oggetti diversi, e sulla stessa schermata:
+       · «Mai misurato»            → il PUNTO non è mai stato letto;
+       · «Taratura non dichiarata» → lo STRUMENTO non ha certificati;
+       · «Provenienza non dichiarata» → la singola MISURA c'è, ha un numero e
+         una data, ma non risulta per che strada è entrata (file dello
+         strumento o digitazione a mano).
+     È il caso di tutte le letture registrate prima che la catena di custodia
+     esistesse, e il punto della funzione è proprio che NON si ripiega su
+     «a mano»: l'assenza del dato non è un dato favorevole. */
+  [/^Provenienza non dichiarata$/, "di una MISURA non risulta la strada d'ingresso (file dello strumento o inserimento a mano): diverso da «Mai misurato» (parla del punto) e da «Taratura non dichiarata» (parla dello strumento) — qui il dato c'è, manca la sua custodia"],
 ];
 /* ⚠️ IL FILTRO È IL PUNTO DEBOLE, e lo si è scoperto con la controprova. La
    prima versione cercava `manca|senza dat|mai misur|non misur|n.d.` — cioè

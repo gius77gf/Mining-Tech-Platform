@@ -20,7 +20,7 @@
 // ============================================================
 
 import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto, dataISOEsiste,
-         senzaDoppioni,
+         senzaDoppioni, istanteLocale,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL,
          dataPiuGiorni as dataPiuGiorniShell } from "../../shared/deepwork-id-client/dw-shell.js";
 // Una scadenza è una scadenza: lo stato della taratura lo dice la stessa
@@ -46,7 +46,14 @@ export const DEMO = {
     { id: "v1", nome: "Vibrazioni V1 — abitato Sud", tipo: "vibrazioni", valore: 1.8, soglia: 5, unita: "mm/s", nota: "ultimo evento 12/07", ricettoreId: "rc1",
       /* Lo strumento in regola: il certificato copre tutte le letture. */
       tarature: [ { data: "2026-02-10", scadenza: "2027-02-09", ente: "Centro LAT n. 118", certificato: "LAT 118-2026/441", nota: "sismografo, canale terna" } ],
-      letture: [ { data: "2026-06-08", ora: "10:20", valore: 2.4 }, { data: "2026-06-19", ora: "11:05", valore: 1.9 }, { data: "2026-06-30", ora: "10:40", valore: 3.1 }, { data: "2026-07-12", ora: "11:15", valore: 1.8 } ] },
+      /* LA CATENA DI CUSTODIA COMPLETA (T2d): tutte e quattro le letture
+         arrivano dal file esportato dal sismografo, col nome del file e il
+         momento dell'import. È il caso «tracciata», quello che il report
+         può dichiarare senza riserve. */
+      letture: [ { data: "2026-06-08", ora: "10:20", valore: 2.4, origine: { da: "import", file: "V1_giugno.csv", quando: "2026-07-01T08:42:00" } },
+                 { data: "2026-06-19", ora: "11:05", valore: 1.9, origine: { da: "import", file: "V1_giugno.csv", quando: "2026-07-01T08:42:00" } },
+                 { data: "2026-06-30", ora: "10:40", valore: 3.1, origine: { da: "import", file: "V1_giugno.csv", quando: "2026-07-01T08:42:00" } },
+                 { data: "2026-07-12", ora: "11:15", valore: 1.8, origine: { da: "import", file: "V1_luglio.csv", quando: "2026-07-20T09:05:00" } } ] },
     { id: "v2", nome: "Vibrazioni V2 — confine Nord", tipo: "vibrazioni", valore: 5.6, soglia: 5, unita: "mm/s", nota: "volata fronte Nord 17/07", ricettoreId: "rc2",
       /* ⛔ IL BUCO FRA DUE TARATURE. Il certificato vecchio è scaduto il
          30/06 e il nuovo parte dal 10/07: le letture del 06/07 cadono in
@@ -54,11 +61,45 @@ export const DEMO = {
          esiste, quindi la dimostrazione lo contiene invece di nasconderlo. */
       tarature: [ { data: "2025-07-01", scadenza: "2026-06-30", ente: "Centro LAT n. 118", certificato: "LAT 118-2025/302" },
                   { data: "2026-07-10", scadenza: "2027-07-09", ente: "Centro LAT n. 118", certificato: "LAT 118-2026/512" } ],
-      letture: [ { data: "2026-06-05", ora: "09:50", valore: 3.2 }, { data: "2026-06-16", ora: "10:10", valore: 4.4 }, { data: "2026-06-27", ora: "10:35", valore: 5.2 }, { data: "2026-07-06", ora: "11:00", valore: 3.9 }, { data: "2026-07-17", ora: "10:25", valore: 5.6 } ] },
+      /* ⛔ LA CUSTODIA MISTA, E LA MISURA CORRETTA (T2d). Questo punto porta
+         i tre casi che il documento deve saper distinguere, perché sono i
+         tre che capitano davvero in cava:
+         · 05/06 e 16/06 · dal file dello strumento;
+         · 27/06 · battuta a mano leggendo il display, e poi CORRETTA il
+           giorno dopo: era entrata come 4,2 e il valore vero era 5,2 — una
+           cifra letta male al volo. Il report dice che è stata corretta,
+           quando, e qual era il numero entrato in origine: senza, sarebbe un
+           valore ritoccato che sembra quello originale. ⚠️ E la direzione
+           conta: la correzione ALZA il numero, cioè è il caso in cui
+           qualcuno potrebbe sospettare il contrario — è lì che la catena di
+           custodia serve, non quando il ritocco fa comodo a chi la legge;
+         · 06/07 · provenienza NON dichiarata: la riga c'è, ma non risulta
+           per che strada sia entrata. NON è «a mano», ed è la stessa lettura
+           che cade nel buco fra due tarature — le due cose non si sommano,
+           si dicono tutt'e due. */
+      letture: [ { data: "2026-06-05", ora: "09:50", valore: 3.2, origine: { da: "import", file: "V2_giugno.csv", quando: "2026-07-01T08:44:00" } },
+                 { data: "2026-06-16", ora: "10:10", valore: 4.4, origine: { da: "import", file: "V2_giugno.csv", quando: "2026-07-01T08:44:00" } },
+                 { data: "2026-06-27", ora: "10:35", valore: 5.2, origine: { da: "manuale", quando: "2026-06-27T17:10:00", corretta: { quando: "2026-06-28T08:30:00", prima: 4.2 } } },
+                 { data: "2026-07-06", ora: "11:00", valore: 3.9 },
+                 { data: "2026-07-17", ora: "10:25", valore: 5.6, origine: { da: "import", file: "V2_luglio.csv", quando: "2026-07-20T09:07:00" } } ] },
     { id: "p1", nome: "Polveri PM10 — confine Est", tipo: "polveri", valore: 36.8, soglia: 40, unita: "µg/m³", nota: "media 7gg", ricettoreId: "rc3",
+      /* ⛔ NESSUNA `origine`, E NON È UNA DIMENTICANZA. È il caso di TUTTE le
+         letture registrate prima che la catena di custodia esistesse, cioè
+         la maggior parte dell'archivio di ogni cliente il giorno in cui
+         questa unità va in mano sua. La dimostrazione lo contiene apposta:
+         un campo assente è uno stato che il prodotto sa raccontare
+         («provenienza non dichiarata»), non un refuso da nascondere. */
       letture: [ { data: "2026-06-14", valore: 22.5 }, { data: "2026-06-21", valore: 31 }, { data: "2026-06-28", valore: 44.2 }, { data: "2026-07-05", valore: 28.4 }, { data: "2026-07-12", valore: 33.7 }, { data: "2026-07-19", valore: 36.8 } ] },
     { id: "r1", nome: "Rumore — perimetro Ovest", tipo: "rumore", valore: 62, soglia: 70, unita: "dB(A)", nota: "campagna 06/2026", ricettoreId: "rc1",
-      letture: [ { data: "2026-06-10", ora: "14:30", valore: 58 }, { data: "2026-06-24", ora: "15:00", valore: 64 }, { data: "2026-07-08", ora: "14:45", valore: 61 }, { data: "2026-07-22", ora: "15:20", valore: 62 } ] },
+      /* TUTTE A MANO, ed è la prassi vera: la campagna fonometrica la fa un
+         tecnico acustico esterno, che consegna una relazione su carta. I
+         livelli si ricopiano. Non è un errore da correggere — è una strada
+         d'ingresso diversa, e il documento la dichiara invece di far
+         sembrare questi dB usciti da un file come gli altri. */
+      letture: [ { data: "2026-06-10", ora: "14:30", valore: 58, origine: { da: "manuale", quando: "2026-06-11T09:00:00" } },
+                 { data: "2026-06-24", ora: "15:00", valore: 64, origine: { da: "manuale", quando: "2026-06-25T08:50:00" } },
+                 { data: "2026-07-08", ora: "14:45", valore: 61, origine: { da: "manuale", quando: "2026-07-09T09:15:00" } },
+                 { data: "2026-07-22", ora: "15:20", valore: 62, origine: { da: "manuale", quando: "2026-07-23T08:40:00" } } ] },
     { id: "a1", nome: "Acque — vasca decantazione", tipo: "acque", valore: 12, soglia: 35, unita: "mg/l SST", nota: "campionamento 15/07" },
   ],
   ricettori: [
@@ -808,6 +849,14 @@ export function firmaLettura(l) {
 // Unisce le letture importate a quelle già presenti: scarta i doppioni
 // (anche quelli DENTRO lo stesso file), riordina per data+ora e tiene le
 // ultime MAX_LETTURE. Ritorna anche i conteggi da mostrare all'utente.
+// ⛔ LA RIGA TENUTA SI RICOSTRUISCE CAMPO PER CAMPO, e questo è il punto in
+// cui la catena di custodia (T2d) si spezzerebbe senza che nessuno lo veda:
+// una lettura importata arriva con la sua `origine`, e ricopiando solo
+// data/ora/valore la provenienza si perderebbe **all'ingresso**, cioè
+// esattamente dove viene registrata. Il documento poi direbbe «provenienza
+// non dichiarata» su misure appena importate da un file.
+// ⚠️ E NON si riempie all'indietro: un doppione resta scartato, non diventa
+// l'occasione per attribuire un file a una lettura che c'era già (vedi T2d).
 export function unisciLetture(esistenti, nuove, max = MAX_LETTURE) {
   const gia = new Set((esistenti || []).map(firmaLettura));
   const tenute = [];
@@ -816,7 +865,8 @@ export function unisciLetture(esistenti, nuove, max = MAX_LETTURE) {
     const f = firmaLettura(l);
     if (gia.has(f)) { duplicati++; continue; }
     gia.add(f);
-    tenute.push({ data: l.data, valore: +l.valore, ...(l.ora ? { ora: l.ora } : {}) });
+    tenute.push({ data: l.data, valore: +l.valore, ...(l.ora ? { ora: l.ora } : {}),
+                  ...(l.origine && typeof l.origine === "object" ? { origine: l.origine } : {}) });
   }
   const tutte = [...(esistenti || []), ...tenute]
     .sort((a, b) => { const ka = chiaveOrdine(a), kb = chiaveOrdine(b); return ka < kb ? -1 : ka > kb ? 1 : 0; });
@@ -1271,6 +1321,229 @@ export function allerteTaratura(monitoraggi, oggi = new Date()) {
 }
 
 // ══════════════════════════════════════════════════════════════════════
+// T2d · LA CATENA DI CUSTODIA DEL DATO DI MISURA
+// «Da dove viene questo numero, e chi può dire di averlo visto entrare?»
+//
+// PERCHÉ. Il prodotto di Sentinella non è un cruscotto: è un documento che
+// va a un ente. Un PPV in mm/s o un livello in dB valgono quanto la loro
+// provenienza — e fino a oggi il report affiancava, nella STESSA tabella e
+// con lo STESSO aspetto, numeri usciti dal file dello strumento e numeri
+// digitati a mano da qualcuno. Chi legge non aveva modo di distinguerli.
+// È la seconda metà di T2b: là si dichiara se lo strumento era tarato («di
+// chi sono questi numeri»), qui **per che strada sono entrati**.
+//
+// ⛔ IL CUORE, ED È IL PRINCIPIO DEL FONDATORE: una misura di cui NON si
+// conosce la provenienza non è «a mano» e non è «da file». È
+// **provenienza non dichiarata**, e va detto. Il ripiego comodo sarebbe
+// contarla fra quelle a mano (sono le più vecchie, ed è probabile): sarebbe
+// un'invenzione scritta in un documento verso un ente. Il ripiego opposto —
+// contarla fra le strumentali — sarebbe peggio ancora. Quindi è un terzo
+// stato, e i tre conti restano separati fino alla frase finale.
+// ⚠️ Tutte le letture registrate PRIMA di questa unità cadono lì, ed è
+// giusto così: nessuno può dire per che strada sono entrate.
+//
+// ⛔ E NON SI RIEMPIE ALL'INDIETRO. Reimportando lo stesso file, le letture
+// già presenti con provenienza ignota **non** diventano «importate da quel
+// file»: la firma coincide, ma «lo stesso numero lo stesso giorno» non
+// dimostra che quella riga venga da lì. Riempirla sarebbe inventare una
+// custodia, cioè il difetto che questa sezione esiste per togliere.
+//
+// ⚠️ DOV'È LA DIFFERENZA CON TERRA, che una provenienza ce l'ha già
+// (`origineDi`/`descriviOrigine`). Là si descrive **come è stato calcolato**
+// un volume — metodo, lato cella, quota di base, ritaglio — e il vocabolario
+// è `visore|manuale|csv`. Qui si descrive **per che strada è entrato** un
+// numero già misurato da uno strumento, e la domanda che Terra non si pone
+// (perché un rilievo non si ritocca) è la terza: **è stato corretto dopo?**
+// Stesso principio, due oggetti diversi: nessuna delle due funzioni
+// risponderebbe alla domanda dell'altra. Per questo non è un alias di
+// `shared/` — e per questo i nomi sono diversi, così `nomi-doppi.mjs` non
+// le confonde.
+// ══════════════════════════════════════════════════════════════════════
+
+// Il vocabolario, chiuso. Tre parole e basta: aggiungerne una quarta
+// vorrebbe dire aggiungere una strada per cui un numero entra.
+export const FONTE_IMPORT = "import";       // arrivata dal file esportato dallo strumento
+export const FONTE_MANO = "manuale";        // digitata da una persona nel campo della misura
+export const FONTE_IGNOTA = "non dichiarata";  // non si sa: NON è un ripiego su una delle due
+
+// Come si mostra ognuna delle tre. `cls` è la classe del semaforo:
+// ⛔ «a mano» NON è un allarme — è una pratica legittima, e un badge giallo
+// su ogni misura battuta a mano sarebbe un rimprovero continuo che si
+// impara a non guardare. Giallo lo prende SOLO ciò che non si sa.
+/* ⚠️ `breve` VIVE IN UNA COLONNA, E LA COLONNA HA UN COSTO. La prima
+   stesura scriveva «provenienza non dichiarata» dentro la cella: a 320 px
+   quella pillola occupava tre righe e allargava la tabella al punto da
+   spingere **la colonna dell'esito fuori dallo schermo** — cioè il verdetto,
+   che è la ragione per cui il documento esiste. Non si vedeva leggendo il
+   codice: l'ha trovato lo scatto. La colonna si intitola già «Provenienza»,
+   quindi ripeterlo nella cella era anche una ridondanza.
+   `label` resta la forma lunga, ed è quella che va negli elenchi e nelle
+   frasi dove non c'è un'intestazione a dire di che si parla. */
+export const FONTI_MISURA = {
+  [FONTE_IMPORT]: { cls: "ok",   breve: "da file",        label: "Importata dal file dello strumento" },
+  [FONTE_MANO]:   { cls: "",     breve: "a mano",         label: "Inserita a mano" },
+  [FONTE_IGNOTA]: { cls: "warn", breve: "non dichiarata", label: "Provenienza non dichiarata" },
+};
+
+// Da dove viene UNA lettura. Non deduce niente: legge quello che è scritto.
+// La bandiera `noto` la consuma `descriviProvenienza` qui sotto, che su
+// `false` scrive una frase diversa invece di tacere.
+export function provenienzaMisura(l) {
+  const o = (l || {}).origine;
+  const vuota = { da: FONTE_IGNOTA, noto: false, file: "", quando: "", corretta: null };
+  if (!o || typeof o !== "object") return vuota;
+  /* ⛔ UNA CORREZIONE SU UN VALORE ILLEGGIBILE RESTA UNA CORREZIONE. Se il
+     numero di partenza non era un numero, `prima` vale `null` — e la frase
+     lo dice. Pretendere che `prima` fosse finito per riconoscere la
+     correzione l'avrebbe fatta sparire proprio nel caso più sospetto. */
+  /* ⚠️ `co.prima != null` PRIMA di `Number.isFinite`, e non è pignoleria:
+     `+null` fa **zero** e `Number.isFinite(0)` risponde **true**, quindi un
+     valore d'origine illeggibile sarebbe tornato indietro come «in origine
+     era 0» — un numero di misura, tranquillo, al posto dell'ammissione. È
+     la stessa trappola di `avanzamentoLotto` («0%» dove nessuno ha
+     misurato), e l'ha trovata la prova, non la rilettura. */
+  const co = o.corretta;
+  const corretta = (co && typeof co === "object")
+    ? { quando: String(co.quando || ""),
+        prima: (co.prima != null && Number.isFinite(+co.prima)) ? +co.prima : null }
+    : null;
+  const da = String(o.da || "").trim().toLowerCase();
+  if (da !== FONTE_IMPORT && da !== FONTE_MANO) return { ...vuota, corretta };
+  return { da, noto: true, file: String(o.file || "").trim(),
+           quando: String(o.quando || "").trim(), corretta };
+}
+
+/* Il momento, scritto come lo legge una persona. L'istante è quello di
+   `istanteLocale` di `shared/` (giorno LOCALE, mai `toISOString()`), quindi
+   qui basta rimontarlo: la data la scrive `dataIt`.
+   ⚠️ La validità del giorno la decide `dataISOEsiste`, NON `dataIt`: il
+   `dataIt` di questo modulo, su una data che non esiste, restituisce «—»
+   invece di una stringa vuota, e un «il —» in mezzo a una frase del
+   documento sarebbe peggio del silenzio. E `dataISOEsiste` il 30 febbraio
+   lo rifiuta invece di farlo scivolare al 2 marzo. */
+function quandoIt(istante) {
+  const s = String(istante || "");
+  const g = s.slice(0, 10);
+  if (!dataISOEsiste(g)) return "";
+  const ora = /^\d{2}:\d{2}/.exec(s.slice(11));
+  return dataIt(g) + (ora ? " alle " + ora[0] : "");
+}
+
+// La frase che finisce nel documento, per UNA misura.
+// ⛔ Primo requisito, come per `descriviOrigine` di Terra: senza provenienza
+// la frase NON deve sembrare una misura tracciata. Chi legge è un
+// funzionario, e una riga che tace lascia credere che il numero sia
+// verificabile.
+export function descriviProvenienza(l, punto) {
+  const p = provenienzaMisura(l);
+  const nome = String(((punto || {}).nome) || "").trim();
+  const a = nome ? `allo strumento «${nome}»` : "al punto di misura";
+  let t;
+  if (!p.noto)
+    t = "Provenienza non dichiarata: per questa misura non risulta se sia stata importata "
+      + `dal file dello strumento o inserita a mano. È attribuita ${a}.`;
+  else if (p.da === FONTE_IMPORT)
+    t = "Misura importata" + (p.file ? ` dal file «${p.file}»` : " da un testo incollato nella schermata di import")
+      + (p.quando ? ` il ${quandoIt(p.quando)}` : "") + `, attribuita ${a}.`;
+  else
+    t = "Misura inserita a mano" + (p.quando ? ` il ${quandoIt(p.quando)}` : "")
+      + `, attribuita ${a}: il valore non proviene da un file dello strumento.`;
+  if (p.corretta)
+    t += " Il valore è stato CORRETTO dopo l'inserimento"
+      + (p.corretta.quando ? ` il ${quandoIt(p.corretta.quando)}` : "")
+      + (p.corretta.prima != null
+          ? `: il valore registrato in origine era ${numeroIt(p.corretta.prima)}.`
+          : ": il valore registrato in origine non è leggibile.");
+  return t;
+}
+
+// I campi da scrivere su una lettura che nasce adesso. Funzione pura come
+// `campiPpvVolata`: prepara il record, non lo salva. `quando` iniettabile
+// perché le prove non dipendano dall'orologio di chi le lancia.
+export function campiProvenienza(da, opts = {}) {
+  const quando = String(opts.quando || istanteLocale());
+  if (da === FONTE_IMPORT)
+    return { origine: { da: FONTE_IMPORT, file: String(opts.file || "").trim(), quando } };
+  return { origine: { da: FONTE_MANO, quando } };
+}
+
+// LA CORREZIONE DI UNA MISURA GIÀ REGISTRATA.
+// ⛔ Il valore nuovo non prende il posto del vecchio in silenzio: la lettura
+// si porta dietro che è stata corretta, QUANDO, e QUAL ERA il numero
+// entrato in origine. Su un documento che va all'ente, una misura ritoccata
+// che sembra quella originale è la cosa peggiore che questa app possa fare.
+// ⚠️ IL LIMITE, DICHIARATO: si conservano il PRIMO valore e l'ULTIMA
+// correzione, non tutti i passaggi intermedi. Correggendo due volte, `prima`
+// resta il numero d'origine — è quello che interessa a chi legge il
+// documento («questo non è il numero che è entrato»), e un archivio di
+// versioni sarebbe un'altra cosa, da decidere a parte.
+// Ritorna `null` quando non c'è niente da fare (valore illeggibile o
+// negativo): uno strumento non misura meno di zero.
+export function correggiLettura(l, nuovo, quando) {
+  if (!l || typeof l !== "object") return null;
+  const v = +nuovo;
+  if (!Number.isFinite(v) || v < 0) return null;
+  const prec = +l.valore;
+  if (Number.isFinite(prec) && prec === v) return { ...l };   // stesso numero: nessuna correzione finta
+  const p = provenienzaMisura(l);
+  const o = (l.origine && typeof l.origine === "object") ? { ...l.origine } : { da: FONTE_IGNOTA };
+  o.corretta = {
+    quando: String(quando || istanteLocale()),
+    prima: p.corretta ? p.corretta.prima : (Number.isFinite(prec) ? prec : null),
+  };
+  return { ...l, valore: v, origine: o };
+}
+
+/* ⛔ QUANDO LA QUOTA NON STRUMENTALE SMETTE DI ESSERE TRASCURABILE. Una
+   soglia qualunque sarebbe arbitraria, quindi il peso non ce l'ha: i tre
+   conti si scrivono SEMPRE nel documento, e questa soglia decide soltanto
+   se la frase di accompagnamento alza la voce. Una misura su cinque è il
+   punto in cui la composizione smette di essere un dettaglio. */
+export const QUOTA_NON_STRUMENTALE = 0.2;
+
+// La composizione delle misure di un report: quante strumentali, quante a
+// mano, quante di provenienza ignota, quante corrette.
+// ⛔ Come le tarature, sta ACCANTO all'esito e non dentro: «hanno superato
+// la soglia?» e «per che strada sono entrate?» sono due domande diverse, e
+// far cambiare un giudizio di conformità per la strada d'ingresso sarebbe
+// sbagliato in tutt'e due i versi.
+export function composizioneProvenienza(punti) {
+  let importate = 0, aMano = 0, nonDichiarate = 0, corrette = 0;
+  for (const p of punti || [])
+    for (const l of (((p || {}).letture) || [])) {
+      const pr = provenienzaMisura(l);
+      if (pr.da === FONTE_IMPORT) importate++;
+      else if (pr.da === FONTE_MANO) aMano++;
+      else nonDichiarate++;
+      if (pr.corretta) corrette++;
+    }
+  const n = importate + aMano + nonDichiarate;
+  const fuori = aMano + nonDichiarate;
+  // ⛔ `null` e non `0`: senza misure la quota non è «zero per cento
+  // a mano», è una frazione che non si può calcolare.
+  const quota = n ? fuori / n : null;
+  const stato = !n ? "senza-letture"
+    : nonDichiarate === n ? "non-dichiarata"
+    : !fuori ? "tracciata"
+    : quota >= QUOTA_NON_STRUMENTALE ? "non-trascurabile"
+    : "mista";
+  return { importate, aMano, nonDichiarate, corrette, n, fuori, quota, stato };
+}
+
+// La frase del documento. Parole scelte per un funzionario: dicono cosa si
+// sa e cosa non si sa, senza lasciargli dedurre niente.
+// ⚠️ Copre tutti e cinque gli stati che `composizioneProvenienza` sa dire
+// (regola 18 dello stile): una mappa più corta ucciderebbe la pagina al
+// disegno, senza nessun errore di sintassi da vedere.
+export const DICHIARAZIONI_PROVENIENZA = {
+  "tracciata":        { cls: "ok",   testo: "Tutte le misure del periodo provengono da file esportati dagli strumenti e importati in Sentinella: nessun valore è stato digitato a mano." },
+  "mista":            { cls: "warn", testo: "La maggior parte delle misure del periodo proviene da file degli strumenti; una parte minore è stata inserita a mano oppure non dichiara la propria provenienza." },
+  "non-trascurabile": { cls: "warn", testo: "Una quota non trascurabile delle misure del periodo NON proviene da un file dello strumento: è stata inserita a mano oppure non dichiara la propria provenienza. Il documento riporta quei valori come sono stati registrati, senza poterli ricondurre a un file dello strumento." },
+  "non-dichiarata":   { cls: "warn", testo: "Nessuna misura del periodo dichiara la propria provenienza: non risulta se i valori siano stati importati da file degli strumenti o inseriti a mano. Il documento riporta i valori registrati, non la strada per cui sono entrati." },
+  "senza-letture":    { cls: "warn", testo: "Nel periodo non ci sono misure, quindi non c'è nessuna provenienza da dichiarare." },
+};
+
+// ══════════════════════════════════════════════════════════════════════
 // T3 · REPORT DI CONFORMITÀ
 // È il documento che il cliente consegna all'ente: periodo, ricettore,
 // letture, soglia applicata (e da dove viene), superamenti, esito.
@@ -1293,8 +1566,14 @@ export function reportConformita(o = {}) {
     .filter(m => !ricettoreId || m.ricettoreId === ricettoreId)
     .map(m => {
       const eff = sogliaEfficace(m, ricettori);
+      /* ⛔ `origine` viaggia con la lettura fin dentro il documento (T2d):
+         la tabella del report ne scrive la provenienza riga per riga, e
+         `composizioneProvenienza` la conta. Ricopiando solo data/ora/valore
+         — che è come stava scritto prima — il documento avrebbe potuto
+         dichiarare la composizione soltanto dicendo «non lo so» su tutto. */
       const letture = ((m.letture) || [])
-        .map(l => ({ data: String((l || {}).data || "").slice(0, 10), ora: String((l || {}).ora || ""), valore: +((l || {}).valore) }))
+        .map(l => ({ data: String((l || {}).data || "").slice(0, 10), ora: String((l || {}).ora || ""), valore: +((l || {}).valore),
+                     ...((l || {}).origine && typeof l.origine === "object" ? { origine: l.origine } : {}) }))
         .filter(l => Number.isFinite(l.valore) && nelPeriodo(l.data))
         .sort((a, b) => { const ka = chiaveOrdine(a), kb = chiaveOrdine(b); return ka < kb ? -1 : ka > kb ? 1 : 0; })
         .map(l => ({ ...l, oltre: eff.valore != null && l.valore >= eff.valore }));
@@ -1335,10 +1614,16 @@ export function reportConformita(o = {}) {
   // chi sono i numeri, non se hanno superato il limite. Vedi T2b.
   const tarature = taratureDelReport(punti, o.oggi ? new Date(o.oggi) : new Date());
 
+  // La CATENA DI CUSTODIA delle misure del periodo (T2d). Sta accanto
+  // all'esito come le tarature, e per la stessa ragione: risponde a «per
+  // che strada sono entrati questi numeri», non a «hanno superato il
+  // limite». Si conta sulle letture DEL PERIODO, non su tutto l'archivio.
+  const provenienza = composizioneProvenienza(punti);
+
   return {
     dal, al, ricettore, ricettoreId,
     punti, nPunti: punti.length, nPuntiConDati: conDati.length,
-    nLetture, nSuperamenti, esito, tarature,
+    nLetture, nSuperamenti, esito, tarature, provenienza,
     reclami, nReclami: reclami.length,
     volate, nVolate: volate.length,
     vuoto: punti.length === 0,

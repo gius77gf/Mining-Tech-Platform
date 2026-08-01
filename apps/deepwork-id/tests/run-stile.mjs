@@ -245,6 +245,8 @@ const MODULI = [
   ["struttura condivisa", "shared/dw-app-ui.js"],
   ["guscio SDK", "shared/deepwork-id-client/dw-shell.js"],
   ["ponti fra le app", "shared/dw-ponti.js"],
+  ["Genesi (formato)", "apps/genesi/genesi-formato.js"],
+  ["Genesi (dati)", "apps/genesi/genesi-data.js"],
   ["Campo (dati)", "apps/campo/campo-data.js"],
   ["Conti (dati)", "apps/conti/conti-data.js"],
   ["Flotta (dati)", "apps/flotta/flotta-data.js"],

@@ -558,7 +558,13 @@
    `.badge` sono entrate qui il 30/07, perché il quadro scrive «Adempimenti
    30gg» e le scadenze escono come pillole «11 gg»: la classe era in maiuscolo
    da sempre, il difetto è nascere dall'incontro con l'unità. */
-.kpi .l .u,.badge .u,.tab th .u{text-transform:none; letter-spacing:.2px}
+/* ⚠️ `.flab .u` È ENTRATA IL 01/08, e l'ha trovata SOLO lo scatto. La modale
+   che corregge una misura (T2d) è la prima etichetta di campo di questa app a
+   portarsi dietro un'unità, e `.flab` è in maiuscolo: «mm/s» usciva «MM/S».
+   È il difetto già pestato — un'unità di misura stravolta dal maiuscolo — in
+   un contesto nuovo, e leggendo il codice non si vede: il `<span class="u">`
+   c'era, era l'elenco delle esenzioni a non conoscere `.flab`. */
+.kpi .l .u,.badge .u,.tab th .u,.flab .u{text-transform:none; letter-spacing:.2px}
 .tab td{
   padding:7px 10px; border-bottom:1px solid var(--border); color:var(--muted2);
   font-variant-numeric:tabular-nums; white-space:nowrap;
@@ -608,6 +614,31 @@
 .tag.ok{background:var(--success); color:var(--on-ok); border-color:transparent}
 .tag.warn{background:var(--warn); color:var(--on-wr); border-color:transparent}
 .tag.danger{background:var(--danger); color:var(--on-dg); border-color:transparent}
+
+/* ⛔ LA COLONNA DELLA PROVENIENZA (T2d) — la catena di custodia dentro la
+   tabella del documento. Va a capo come `.stato` e non come i numeri: qui
+   possono comparire due pillole (la fonte e «corretta») più il valore che
+   c'era in origine, e su un telefono su una riga sola non ci stanno.
+   ⚠️ `.prov-prima` è la riga che dice qual era il numero prima della
+   correzione, ed è deliberatamente sotto le pillole e non appesa in fondo a
+   una riga di dettaglio: le righe di lista sono tagliate a due (`…`) e una
+   frase in coda là non la leggerebbe nessuno — errore già pestato due volte
+   in questa app. In tabella la cella cresce, quindi si legge. */
+/* ⚠️ IL COSTO DELLA COLONNA, MISURATO invece che stimato. A 320 px la tabella
+   di un punto stava esatta nel suo contenitore (264 px in 264); con la
+   provenienza va a 341, cioè scorre di 77 px e la colonna dell'ESITO esce
+   dalla prima schermata. Il corpo della pagina NON scorre — scorre solo
+   `.tab-wrap`, che è il meccanismo previsto — e la scelta di lasciare fuori
+   l'esito invece della provenienza è deliberata: il verdetto è scritto
+   **anche altrove** (l'intestazione del punto dice «superamenti: N · esito:
+   …», e la riga oltre soglia colora il valore di rosso), la provenienza no.
+   Quello che si nasconde è ripetuto; quello che si mostra è unico. */
+.tab td.prov{white-space:normal; min-width:96px}
+.tab td.prov .tag{margin:0 3px 2px 0}
+.prov-prima{
+  display:block; margin-top:1px; font-size:10px; font-weight:400; line-height:1.4;
+  color:var(--muted); white-space:normal; letter-spacing:.1px; font-variant-numeric:normal;
+}
 
 /* ══════════════════════════════════════════════════════════════════════
    IMPORT DELLE LETTURE (T1) — la mappatura delle colonne.
@@ -1396,6 +1427,9 @@ textarea.dw-input{
            volateOrdinate, firmaVolata, csvRegistroVolate, CSV_VOLATE_INTESTAZIONE,
            coperturaTaratura, statoTaraturaStrumento, STATI_TARATURA, DICHIARAZIONI_TARATURA,
            parseTaratureCsv, abbinaTarature, csvTarature, allerteTaratura, CSV_TARATURE_INTESTAZIONE,
+           provenienzaMisura, descriviProvenienza, campiProvenienza, correggiLettura,
+           composizioneProvenienza, DICHIARAZIONI_PROVENIENZA, FONTI_MISURA,
+           FONTE_IMPORT, FONTE_MANO, FONTE_IGNOTA,
            numeroDaCampo, AVVISO_DECIMALE } from "./sentinella-data.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO,
          controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt } from "../../shared/deepwork-id-client/dw-shell.js";
@@ -1665,6 +1699,53 @@ textarea.dw-input{
         ${zona}${grigliaY}${grigliaX}${area}${sogLinea}${assi}
         <path class="graf-linea" d="${g.path}"/>${punti}${sogChip}${etY}${etX}${etUnita}</svg>
       <div class="graf-leg">${legenda}</div>${notaScala}`;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     T2d · LE ULTIME MISURE E DA DOVE VENGONO — sotto la serie storica.
+     È il posto dove la catena di custodia si vede E si mantiene: qui si
+     legge per che strada è entrato ogni numero, e qui si CORREGGE quello
+     scritto male, lasciando scritto che è stato corretto.
+     ⛔ Perché la correzione esiste: senza, l'unico modo di rimediare a una
+     cifra sbagliata era registrare una seconda misura — cioè falsare la
+     serie — oppure lasciare il numero sbagliato in un documento che va a
+     un ente. Con la correzione il valore cambia e la riga lo dichiara.
+     ⚠️ Se ne mostrano dodici, non cinquecento: sono le ultime, cioè quelle
+     su cui un errore di digitazione si scopre. Il conto delle altre si
+     dice, invece di far sparire l'archivio in silenzio.
+     ══════════════════════════════════════════════════════════════════════ */
+  const LETTURE_IN_PANNELLO = 12;
+  function lettureDelPunto(m) {
+    const tutte = ((m && m.letture) || []).filter(l => l && Number.isFinite(+l.valore));
+    if (!tutte.length) return "";
+    /* dalla più recente: si corregge quello che si è appena scritto.
+       L'indice ORIGINALE viaggia con la riga, perché è quello che serve a
+       ritrovare la lettura nell'archivio dopo aver girato l'ordine. */
+    const viste = tutte.map((l, i) => ({ l, i })).slice(-LETTURE_IN_PANNELLO).reverse();
+    const nascoste = tutte.length - viste.length;
+    const righe = viste.map(({ l, i }) => {
+      const pr = provenienzaMisura(l);
+      const F = FONTI_MISURA[pr.da] || FONTI_MISURA[FONTE_IGNOTA];
+      return `<tr>
+        <td>${fmtD(l.data)}</td><td>${esc(l.ora || "—")}</td>
+        <td class="n">${esc(numeroIt(l.valore))}</td>
+        <td class="prov" title="${esc(descriviProvenienza(l, m))}"><span class="tag ${F.cls}">${esc(F.breve)}</span>${
+          pr.corretta
+            ? `<span class="tag warn">corretta</span><span class="prov-prima">in origine ${
+                pr.corretta.prima != null ? esc(numeroIt(pr.corretta.prima)) : "non leggibile"}</span>`
+            : ""}</td>
+        <td class="stato"><button type="button" class="arr" title="Correggi il valore di questa misura"
+          aria-label="Correggi la misura del ${fmtD(l.data)} di ${esc(m.nome)}"
+          data-corr-mon="${esc(m.id)}" data-corr-idx="${i}">${I.modifica}</button></td></tr>`;
+    }).join("");
+    return `<div class="graf-head" style="margin-top:14px;"><span class="graf-title">Le ultime misure, e da dove vengono</span>
+        <span class="graf-meta">${nascoste ? "ultime " + viste.length + " di " + tutte.length : viste.length + (viste.length === 1 ? " misura" : " misure")}</span></div>
+      <div class="tab-wrap"><table class="tab">
+        <thead><tr><th>Data</th><th>Ora</th><th>Valore <span class="u">(${esc(unitaMisura(m))})</span></th><th>Provenienza</th><th>Correggi</th></tr></thead>
+        <tbody>${righe}</tbody></table></div>
+      <div class="graf-nota">Correggere una misura non la sostituisce in silenzio: la riga resta,
+        con scritto che è stata <b>corretta</b> e qual era il valore registrato in origine. È quello
+        che il report di conformità dichiara all'ente.</div>`;
   }
 
   // ══════════════════════════════════════════════════════════════════════
@@ -2700,6 +2781,38 @@ textarea.dw-input{
       <div class="rep-tar-txt">${esc(D.testo)}</div>${dettaglio}</div>`;
   }
 
+  /* LA CATENA DI CUSTODIA, DENTRO IL DOCUMENTO CHE VA ALL'ENTE (T2d).
+     ⛔ Riusa la STESSA card della riferibilità — `.rep-tar` — e non una
+     seconda scritta a mano: sono due dichiarazioni dello stesso rango
+     («di chi sono questi numeri» / «per che strada sono entrati»), e
+     disegnarle diverse le farebbe leggere come se una contasse meno.
+     ⛔ I TRE CONTI SI SCRIVONO SEMPRE, anche quando la composizione è
+     ottima: la soglia `QUOTA_NON_STRUMENTALE` decide se la frase alza la
+     voce, non se i numeri compaiono. Una composizione taciuta perché
+     "buona" è il numero tranquillo che il principio del fondatore vieta.
+     ⛔ E le corrette si dicono a parte, sempre, qualunque sia lo stato:
+     una misura ritoccata è un fatto che non dipende dalla quota. */
+  function dichiarazioneProvenienza(R) {
+    const P = R.provenienza || { stato: "senza-letture", importate: 0, aMano: 0, nonDichiarate: 0, corrette: 0, n: 0 };
+    const D = DICHIARAZIONI_PROVENIENZA[P.stato] || DICHIARAZIONI_PROVENIENZA["senza-letture"];
+    const parti = [];
+    if (P.n) {
+      parti.push(`<b>${P.importate}</b> ${P.importate === 1 ? "misura importata" : "misure importate"} da file`);
+      parti.push(`<b>${P.aMano}</b> ${P.aMano === 1 ? "inserita" : "inserite"} a mano`);
+      parti.push(`<b>${P.nonDichiarate}</b> senza provenienza dichiarata`);
+    }
+    const dettaglio = P.n
+      ? `<div class="rep-tar-conto">${parti.join(" · ")} · su <b>${P.n}</b>.`
+        + (P.corrette
+            ? ` <b>${P.corrette}</b> ${P.corrette === 1 ? "misura è stata corretta" : "misure sono state corrette"} dopo l'inserimento: nella tabella ${P.corrette === 1 ? "porta" : "portano"} il valore registrato in origine.`
+            : "")
+        + `</div>`
+      : "";
+    return `<div class="rep-tar ${D.cls === "ok" ? "" : D.cls}">
+      <div class="rep-tar-lab">Provenienza dei dati di misura</div>
+      <div class="rep-tar-txt">${esc(D.testo)}</div>${dettaglio}</div>`;
+  }
+
   function renderReport() {
     const box = $("rep-doc"); if (!box) return;
     repGrafici.forEach(g => { try { g.distruggi(); } catch (e) {} });
@@ -2742,6 +2855,7 @@ textarea.dw-input{
         <div class="rep-esito-txt">${esc(E.testo)}</div></div>
       </div>
       ${dichiarazioneTarature(R)}
+      ${dichiarazioneProvenienza(R)}
       <div class="rep-cifre">
         <div class="rep-cifra"><div class="k">Punti di misura</div><div class="v">${R.nPunti}</div></div>
         <div class="rep-cifra"><div class="k">Letture</div><div class="v">${R.nLetture}</div></div>
@@ -2822,10 +2936,29 @@ textarea.dw-input{
       <div class="rep-vuoto">Nel periodo considerato <b>non ci sono letture</b> per questo punto:
         non è possibile dire se il limite è stato rispettato.</div></div>`;
 
-    const righe = p.letture.map(l => `<tr class="${l.oltre ? "oltre" : ""}">
+    /* ⛔ LA PROVENIENZA STA NELLA TABELLA, RIGA PER RIGA (T2d). Prima
+       d'oggi il documento affiancava, con lo stesso aspetto, numeri usciti
+       dal file dello strumento e numeri digitati da una persona: chi legge
+       non aveva modo di distinguerli, e il valore di una misura in un
+       documento verso l'ente è anche la sua provenienza.
+       ⚠️ Il `title` porta la frase intera (file, momento, strumento): la
+       cella tiene la forma breve, se no la tabella diventa illeggibile —
+       ed è la stessa ragione per cui la validità della taratura NON sta
+       nella riga di lista, che è tagliata a due righe. */
+    const righe = p.letture.map(l => {
+      const pr = provenienzaMisura(l);
+      const F = FONTI_MISURA[pr.da] || FONTI_MISURA[FONTE_IGNOTA];
+      const spiega = descriviProvenienza(l, p.m || { nome: p.nome });
+      return `<tr class="${l.oltre ? "oltre" : ""}">
       <td>${fmtD(l.data)}</td><td>${esc(l.ora || "—")}</td>
       <td class="n">${esc(numeroIt(l.valore))}</td>
-      <td class="stato">${l.oltre ? '<span class="tag danger">oltre soglia</span>' : '<span class="tag ok">entro soglia</span>'}</td></tr>`).join("");
+      <td class="prov" title="${esc(spiega)}"><span class="tag ${F.cls}">${esc(F.breve)}</span>${
+        pr.corretta
+          ? `<span class="tag warn">corretta</span><span class="prov-prima">in origine ${
+              pr.corretta.prima != null ? esc(numeroIt(pr.corretta.prima)) : "non leggibile"}</span>`
+          : ""}</td>
+      <td class="stato">${l.oltre ? '<span class="tag danger">oltre soglia</span>' : '<span class="tag ok">entro soglia</span>'}</td></tr>`;
+    }).join("");
 
     return `<div class="rep-punto">
       <div class="rep-punto-tit">${esc(p.nome)}</div>
@@ -2835,7 +2968,7 @@ textarea.dw-input{
         superamenti: <b>${p.nSuperamenti}</b> · esito: <b>${esc(E.label)}</b></div>
       <div class="rep-graf" id="rep-graf-${i}"></div>
       <div class="tab-wrap"><table class="tab">
-        <thead><tr><th>Data</th><th>Ora</th><th>Valore <span class="u">(${esc(p.unita)})</span></th><th>Esito</th></tr></thead>
+        <thead><tr><th>Data</th><th>Ora</th><th>Valore <span class="u">(${esc(p.unita)})</span></th><th>Provenienza</th><th>Esito</th></tr></thead>
         <tbody>${righe}</tbody></table></div></div>`;
   }
 
@@ -3109,7 +3242,7 @@ textarea.dw-input{
       <button type="button" class="arr${aperto ? " on" : ""}" title="${aperto ? "Chiudi la serie storica" : "Apri la serie storica nel tempo"}" aria-label="${aperto ? "Chiudi la serie storica" : "Apri la serie storica"} di ${esc(m.nome)}" aria-expanded="${aperto}" data-graf-mon="${m.id}">${aperto ? I.chiudi : I.serie}</button>
       <button type="button" class="arr" title="Modifica il punto di misura" aria-label="Modifica ${esc(m.nome)}" data-edit-mon="${m.id}">${I.modifica}</button>
       <button type="button" class="arr rimuovi" title="Rimuovi il punto di misura" aria-label="Rimuovi ${esc(m.nome)}" data-del-mon="${m.id}">${I.cestino}</button></span></div>`
-      + (aperto ? `<div class="graf" id="graf-${m.id}">${svgSerie(m)}</div>` : ""); }).join("")
+      + (aperto ? `<div class="graf" id="graf-${m.id}">${svgSerie(m)}${lettureDelPunto(m)}</div>` : ""); }).join("")
       || (MON.length
           ? vuoto(I.cerca, "Nessun punto trovato",
               qMon ? `Nessun punto di misura corrisponde a «<b>${esc(qMon)}</b>». Prova con una parte del nome o svuota la ricerca.`
@@ -3331,6 +3464,64 @@ textarea.dw-input{
       await refresh();
       const el = grafMon && $("graf-" + grafMon);
       if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      return; }
+    /* ── T2d · CORREGGERE UNA MISURA GIÀ REGISTRATA ────────────────────
+       ⛔ La correzione non sostituisce il numero in silenzio: `correggiLettura`
+       tiene il valore d'origine e il momento, e da lì il report lo dichiara.
+       ⚠️ LA RIGA SI RITROVA PER INDICE, MA L'INDICE SI VERIFICA. Fra il
+       disegno della lista e il tocco può essere entrata una misura (l'import
+       riordina per data+ora), e scrivere all'indice sbagliato vorrebbe dire
+       correggere la misura di un altro giorno — su un archivio che va a un
+       ente. `firmaLettura` è la stessa firma con cui l'import riconosce i
+       doppioni: se non combacia non si scrive niente e lo si dice. */
+    const corrMonId = attr(e, "data-corr-mon");
+    if (corrMonId) {
+      const m = MON.find(x => x.id === corrMonId); if (!m) return;
+      const idx = +attr(e, "data-corr-idx");
+      const letture = (m.letture || []);
+      const l = letture[idx];
+      if (!l) { toast("Questa misura non c'è più: riapri la serie storica.", "err"); await refresh(); return; }
+      const firmaPrima = firmaLettura(l);
+      const pr = provenienzaMisura(l);
+      const u = unitaMisura(m);
+      apriModale("Correggi la misura del " + fmtD(l.data),
+        `<div class="note" style="margin:0 0 10px;">Stai correggendo una misura di <b>${esc(m.nome)}</b>${
+           l.ora ? " delle <b>" + esc(l.ora) + "</b>" : ""}, registrata a <b>${esc(numeroIt(l.valore))} ${esc(u)}</b>.<br><br>
+           ${esc(descriviProvenienza(l, m))}<br><br>
+           <b>Il valore di origine non si perde:</b> la misura resterà segnata come <b>corretta</b>, con la data della correzione e il numero registrato in origine, e il report di conformità lo dichiarerà all'ente.</div>
+         <label class="flab" for="modal-campo">Valore corretto <span class="u">(${esc(u)})</span>
+           <input class="dw-input dec" id="modal-campo" type="text" inputmode="decimal" autocomplete="off"
+             spellcheck="false" value="${esc(itDec(l.valore))}"></label>
+         <div class="form-hint" style="margin-top:8px;">Scrivilo come sta sullo strumento: la virgola va benissimo.</div>
+         <div class="note esito" id="modal-esito" style="display:none;"></div>`,
+        [{ label: "Annulla", azione: chiudiModale },
+         { label: "Salva la correzione", cls: "primary", azione: async () => {
+             const campo = document.getElementById("modal-campo");
+             const r = numeroDaCampo(campo ? campo.value : "", { min: 0 });
+             const box = document.getElementById("modal-esito");
+             const dire = (t) => { if (!box) return; box.style.display = ""; box.className = "note esito err"; box.innerHTML = t; };
+             if (!r.ok) { dire(r.vuoto ? "Scrivi il valore corretto (anche zero è un dato valido)."
+                 : r.motivo === "sotto-minimo" ? "Il valore non può essere negativo: uno strumento non misura meno di zero."
+                 : esc(AVVISO_DECIMALE)); return; }
+             const nuove = (m.letture || []).slice();
+             if (!nuove[idx] || firmaLettura(nuove[idx]) !== firmaPrima) {
+               chiudiModale();
+               toast("La serie è cambiata mentre correggevi: non ho scritto niente.", "err");
+               await refresh(); return; }
+             const corretta = correggiLettura(nuove[idx], r.valore);
+             if (!corretta) { dire("Questo valore non si può registrare."); return; }
+             if (corretta.valore === nuove[idx].valore) {
+               chiudiModale();
+               toast("Il valore è lo stesso: non c'era niente da correggere.");
+               return; }
+             nuove[idx] = corretta;
+             const ultima = nuove[nuove.length - 1];
+             chiudiModale();
+             await db.aggiorna("monitoraggi", m.id, { letture: nuove,
+               valore: ultima ? ultima.valore : m.valore });
+             await refresh();
+             toast("Misura corretta: la riga resta segnata come corretta, con il valore di origine.", "success");
+           } }]);
       return; }
     const editMonId = attr(e, "data-edit-mon");
     if (editMonId) { const m = MON.find(x => x.id === editMonId); if (!m) return;
@@ -3731,7 +3922,14 @@ textarea.dw-input{
     const m = MON.find(x => x.id === id);
     // storico: ogni registrazione si ACCODA alle letture (max 50), non
     // si perde sovrascrivendo il solo ultimo valore
-    const letture = [ ...((m && m.letture) || []), { data: oggiISO(), valore } ].slice(-50);
+    /* ⛔ LA CATENA DI CUSTODIA NASCE QUI (T2d). Questa è la strada «a mano»:
+       il numero lo legge una persona sul display e lo digita. È una pratica
+       legittima — la campagna fonometrica arriva su carta — ma NON è la
+       stessa cosa di un valore uscito dal file dello strumento, e il report
+       che va all'ente deve poterle distinguere. Il momento se lo scrive da
+       sola `campiProvenienza`, con l'istante LOCALE di `shared/`. */
+    const letture = [ ...((m && m.letture) || []),
+                      { data: oggiISO(), valore, ...campiProvenienza(FONTE_MANO) } ].slice(-50);
     await db.aggiorna("monitoraggi", id, { valore, letture });
     /* ⛔ `letture` va passato, se no la PRIMA misura di un punto direbbe «Mai
        misurato» proprio mentre la si registra: `...m` porta le letture VECCHIE,
@@ -4046,7 +4244,16 @@ textarea.dw-input{
     const punto = MON.find(x => x.id === $("imp-punto").value);
     if (!punto) { esito("imp-esito", "Scegli il punto di misura che riceve le letture: senza, le misure non hanno dove andare.", "err", "Scegli prima il punto di misura."); return; }
     if (!impPronte.length) { esito("imp-esito", "Non c'è nessuna lettura nuova da importare: sono tutte già presenti o tutte scartate.", "err", "Nessuna lettura nuova da importare."); return; }
-    const u = unisciLetture(punto.letture || [], impPronte);
+    /* ⛔ LA CATENA DI CUSTODIA NASCE QUI (T2d), l'altra strada: dal file
+       dello strumento. Si scrive il NOME del file e il momento dell'import,
+       perché è quello che permette di risalire — fra un anno, davanti a un
+       ispettore — al documento da cui il numero è uscito.
+       `impFonte` vale «testo incollato» quando non c'è un file: in quel caso
+       il nome resta vuoto e la frase del report lo dice, invece di inventare
+       un file che non esiste. */
+    const daFile = impFonte && impFonte !== "testo incollato" ? impFonte : "";
+    const prov = campiProvenienza(FONTE_IMPORT, { file: daFile });
+    const u = unisciLetture(punto.letture || [], impPronte.map(r => ({ ...r, ...prov })));
     const eff = sogliaEfficace(punto, RIC);
     const nOltre = impPronte.filter(r => eff.valore != null && r.valore >= eff.valore).length;
     const ultima = u.letture[u.letture.length - 1];

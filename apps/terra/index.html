@@ -825,6 +825,15 @@ a.dw-btn{text-decoration:none}
   <div id="den-banchi"></div>
   <div class="form-hint" id="den-banchi-nota" style="margin-top:8px;"></div>
 
+  <!-- LO STESSO BANCO, DA SEMPRE. La ripartizione qui sopra è di UN anno,
+       perché è quello che chiede il modulo dell'ente. Ma «quale gradone si sta
+       consumando» non si ferma al 1° gennaio: qui gli anni si sommano, e il
+       totale dice a chiare lettere quando è un pavimento invece di un fatto. -->
+  <div class="sec">Lo stesso banco, da sempre</div>
+  <div class="form-hint" style="margin-bottom:9px;">Qui gli anni si sommano: quanto è uscito da ciascun banco in tutta la vita misurata della cava, non solo nell'anno scelto sopra.</div>
+  <div id="den-banchi-sempre"></div>
+  <div class="form-hint" id="den-banchi-sempre-nota" style="margin-top:8px;"></div>
+
   <div class="sec">Rispetto al volume concesso</div>
   <div id="den-concesso"></div>
 
@@ -870,7 +879,7 @@ a.dw-btn{text-decoration:none}
   import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, parseFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita, densitaDelMateriale,
            autorizzazioneVigente, vitaCava, statoScadenzaTerra, livelloScadenzaTerra, prossimaData, riepilogoScadenze, TIPI_SCADENZA_TERRA, presetScadenzaTerra, etichettaTipoScadenza,
            provenienzaRilievo, soloScavo, soloCumulo, rilievoUsabile, PROVENIENZE, etichettaProvenienza,
-           anniConVolumi, riepilogoAnnuale, ripartizioneFronti, ripartizioneBanchi, serieAnnuale,
+           anniConVolumi, riepilogoAnnuale, ripartizioneFronti, ripartizioneBanchi, banchiDaSempre, serieAnnuale,
            baseOnereEscavazione, descriviBaseOnere,
            rilieviScavoFronte, rilievoPrecedente, confrontoRilievi,
            produzioneDichiarata, misuratoPeriodo, riconciliazioneTurni,
@@ -2028,6 +2037,75 @@ a.dw-btn{text-decoration:none}
         + (RBK.grafieDoppie.length
             ? " ⚠️ Lo stesso banco risulta scritto in più modi (" + esc(RBK.grafieDoppie.map(g => "«" + g.join("», «") + "»").join("; ")) + "): sono stati messi insieme."
             : "");
+
+    /* 4-ter · LO STESSO BANCO, DA SEMPRE. La ripartizione qui sopra è di un anno
+       solo perché è quella che chiede il modulo; questa risponde a «quale
+       gradone si sta consumando», che non si ferma al 1° gennaio.
+       ⛔ IL NUMERO NON SI DISEGNA MAI NUDO SE È UN PAVIMENTO. `limite ===
+       "almeno"` vuol dire che dentro la finestra c'è almeno un anno in cui
+       quel banco non l'ha rilevato nessuno: allora il badge dice «almeno», e
+       la ragione sta sotto la riga (nel `.meta` finirebbe dentro il taglio a
+       due righe, cioè non la leggerebbe nessuno). */
+    /* ⚠️ NON finisce in `DEN`, a differenza della ripartizione dell'anno: la
+       stampa e il CSV sono il foglio della denuncia di UN anno, e un totale «da
+       sempre» lì dentro sarebbe un numero fuori posto su un documento che va
+       all'ente. Quando servirà un foglio suo, si aggiungerà lì. */
+    const BS = banchiDaSempre(RIL, FRO, aut);
+    $("den-banchi-sempre").innerHTML = BS.righe.map(b => {
+      const meta = [
+        (b.fronti.length === 1 ? "fronte " : "fronti ") + esc(b.fronti.join(", ")),
+        /* ⚠️ CORTO PERCHÉ IL `.meta` È TAGLIATO A DUE RIGHE, e qui il taglio
+           morde più che nella ripartizione dell'anno: il badge «almeno 62.700
+           m³» è largo 120 px contro i 90 di «62.700 m³», quindi alla riga
+           restano trenta pixel in meno. Misurato a 320 px provando le varianti
+           dentro l'elemento vero (`scrollHeight > clientHeight`): «misurato in
+           2 anni su 3 · 3 rilievi di scavo» ne vuole TRE, questa due. */
+        b.misurabile
+          ? b.anniMisurati.length + (b.anniMisurati.length === 1 ? " anno misurato su " : " anni misurati su ")
+            + BS.anni.length
+          : "",
+        b.misurabile && b.rilieviScavo
+          ? b.rilieviScavo + (b.rilieviScavo === 1 ? " rilievo" : " rilievi") : "",
+        b.misurabile && b.quotaPct != null ? un1(b.quotaPct) + "% dello scavo misurato" : "",
+        b.cumulo ? "ripresi da cumuli " + n0(b.cumulo) + " m³" : "",
+      ].filter(Boolean).join(" · ");
+      return `<div class="item ${b.misurabile ? "st-accent" : "st-mute"}" style="cursor:default;">
+        <div class="info"><div class="name">${esc(b.etichetta)}</div>
+        <div class="meta">${meta}</div></div>
+        <span class="badge ${!b.misurabile ? "tag" : b.limite === "almeno" ? "warn" : "accent"}">${
+          !b.misurabile ? "mai misurato"
+            : (b.limite === "almeno" ? "almeno " : "") + n0(b.scavo) + ' <span class="u">m³</span>'}</span>
+        ${b.motivo ? `<div class="form-hint">${esc(b.motivo)}</div>` : ""}</div>`;
+    }).join("")
+      || vuoto(I.monte, "Non c'è una ripartizione per banco",
+          esc(BS.motivo) + " "
+          + (FRO.length
+              ? "Apri <b>Fronti</b>, tocca la matita accanto a un fronte e scrivi il suo <b>banco</b>: da lì in poi la storia di ogni banco compare qui da sola."
+              : "Registra i fronti in <b>Fronti</b> indicando per ciascuno il <b>banco</b> su cui si trova: da lì in poi la storia di ogni banco compare qui da sola."));
+    /* ⛔ E QUI SOTTO STA LA META' CHE CONTA: un totale «da sempre» costruito
+       sommando anni non è un fatto finché non si dice che cosa è rimasto fuori.
+       Le ragioni le elenca il modulo (senza i numeri, che sono della pagina). */
+    $("den-banchi-sempre-nota").innerHTML = !BS.righe.length ? ""
+      /* ⚠️ «MINIMO», NON «PAVIMENTO». La prima stesura scriveva «i totali
+         segnati almeno sono pavimenti»: parola mia, non della cava — e Terra
+         quella cosa la chiama già <b>minimo</b>, dodici righe più in giù, dove
+         il cumulato senza pregresso dichiarato «è quindi un minimo». Una parola
+         nuova per un concetto che ne ha già una è un secondo vocabolario. */
+      : "Anni guardati: <b>" + BS.dal + "–" + BS.al + "</b>"
+        + (BS.totale > 0 ? ", con <b>" + n0(BS.totale) + " m³</b> di scavo misurato in tutto." : ".")
+        + (BS.limite === "almeno"
+            ? " ⚠️ Dove c'è scritto <b>almeno</b> il totale è un <b>minimo</b>, non una misura: negli anni in cui nessuno ha rilevato quel banco il volume tolto è ignoto, e ignoto non vuol dire zero."
+            : "")
+        + (BS.completo
+            ? " Il quadro copre tutto lo scavo misurato."
+            : " E il quadro <b>non copre tutto</b> lo scavo della cava: " + esc(BS.perche.join("; ")) + "."
+              + (BS.pregressoDichiarato && BS.pregresso > 0
+                  ? " Di quel materiale risultano <b>" + n0(BS.pregresso) + " m³</b>, che stanno nel titolo e non su un banco." : "")
+              + (BS.nonDichiarato && BS.nonDichiarato.scavo
+                  ? " Fuori dalla ripartizione <b>" + n0(BS.nonDichiarato.scavo) + " m³</b> da fronti senza banco." : "")
+              + (BS.fuoriElenco && BS.fuoriElenco.scavo
+                  ? " E <b>" + n0(BS.fuoriElenco.scavo) + " m³</b> su fronti non più in elenco." : ""))
+        + " Su più anni pesa il doppio l'avvertenza qui sopra: il banco è quello scritto <b>oggi</b> nella scheda del fronte, quindi chi lo corregge si porta dietro anche i rilievi di dieci anni fa.";
 
     // 5 · dove arriva il titolo alla fine di quell'anno
     const cel = $("den-concesso");

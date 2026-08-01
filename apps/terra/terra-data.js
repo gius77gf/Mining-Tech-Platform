@@ -1080,6 +1080,177 @@ export function ripartizioneBanchi(riepilogo, fronti) {
   };
 }
 
+/* ── IL BANCO DA SEMPRE ─────────────────────────────────────────────────────
+   `ripartizioneBanchi` è ANNUALE per costruzione: prende l'uscita di
+   `riepilogoAnnuale`, e la domanda che serve alla denuncia è «quest'anno».
+   Ma «quale gradone si sta consumando» non si ferma al 1° gennaio: un banco lo
+   si apre, lo si porta giù per anni e a un certo punto è finito. Questa
+   funzione fa la stessa ripartizione su TUTTA la vita misurata della cava.
+
+   ⛔ NON RISCRIVE NIENTE. Un anno alla volta chiama `riepilogoAnnuale` e
+   `ripartizioneBanchi` — le stesse due che disegnano la Denuncia — e somma. Le
+   regole (chi è un banco, come si normalizzano le grafie, chi finisce nei tre
+   secchi, quando un banco è «mai misurato») restano scritte in un posto solo: se
+   un giorno cambiano lì, cambiano anche qui, e nessuno deve ricordarsene.
+
+   ⛔ E UN ANNO NON MISURATO NON VALE ZERO — è il principio del fondatore nella
+   sua forma più insidiosa, perché qui il numero che rassicura nasce da una
+   SOMMA. Se di tre anni due sono misurati e uno no, «da sempre» non è un fatto.
+   La domanda «è un tetto o una quantità parziale?» ha una risposta sola, e va
+   ragionata invece che scelta: il volume tolto in un anno cieco è ignoto ma
+   **non può essere negativo**, quindi la somma dei soli anni misurati è un
+   PAVIMENTO — il vero è quello o di più, mai di meno. Quindi `limite: "almeno"`,
+   che è la stessa parola con cui `riposoPrimaDelTurno` di Campo dice «questo
+   numero è un pavimento» (là il vocabolario è "" · "al-piu" · "almeno").
+   Il tetto qui non esiste: nessun anno cieco può togliere metri cubi.
+
+   ⛔ LA FINESTRA È CONTINUA, e questo il prototipo l'ha preso in flagrante.
+   `anniConVolumi` restituisce gli anni CHE HANNO un rilievo: con rilievi solo
+   nel 2022 e nel 2026 dava «due anni su due, quadro completo», mentre 2023,
+   2024 e 2025 non li aveva guardati nessuno. Qui si prende il primo e l'ultimo
+   e si scorre l'intervallo intero: un anno senza rilievi è un anno CIECO, e va
+   contato come tale invece di sparire dall'elenco.
+
+   ⛔ LA QUOTA % SI CALCOLA SOLO SUI BANCHI SENZA ANNI CIECHI. Per un banco con
+   anni ciechi il suo scavo è un pavimento ma il denominatore (lo scavo misurato
+   di tutta la cava) contiene anche gli anni in cui ALTRI banchi sono stati
+   misurati: il rapporto non è un pavimento né un tetto, non è niente. `null`, e
+   la ragione è scritta.
+
+   ⚠️ QUELLO CHE RESTA FUORI SI DICHIARA, non si lascia dedurre — e sono quattro
+   cose: i tre secchi di `ripartizioneBanchi` (banco non dichiarato, rilievi
+   senza fronte, fronti non più in elenco), sommati sugli anni, più il **già
+   estratto prima di Terra**: quel volume è per CAVA, non per banco, e nessuna
+   riga può reclamarlo. Se non è nemmeno dichiarato è peggio, perché allora non
+   si sa neanche se prima della finestra sia uscito altro materiale. Tutte e
+   quattro finiscono in `perche`, e `completo` è vero solo quando quell'elenco
+   è vuoto.
+
+   ⚠️ NIENTE NUMERI GROSSI NELLE FRASI DI `perche`. I separatori delle migliaia
+   sono una convenzione della PAGINA, e Node e Chromium sotto le cinque cifre non
+   la scrivono uguale: il modulo dice il fatto, i metri cubi li scrive chi
+   disegna. Gli anni (quattro cifre, mai raggruppate) restano.
+
+   ⚠️ E VALE ANCHE QUI L'AVVERTENZA DI `ripartizioneBanchi`, più forte: il banco
+   è un attributo del fronte OGGI. Su una finestra di dieci anni, un fronte che
+   cambia banco si porta dietro dieci anni di rilievi. La ripartizione racconta
+   l'assetto attuale, non quello del giorno del volo. */
+export function banchiDaSempre(rilievi, fronti, autorizzazione, oggi = new Date()) {
+  const conVolumi = anniConVolumi(rilievi, oggi);
+  const dal = Math.min(...conVolumi), al = Math.max(...conVolumi);
+  const anni = [];
+  for (let y = dal; y <= al; y++) anni.push(y);
+  const finestra = dal + "–" + al;
+
+  const vuota = { righe: [], banchi: 0, misurabile: false, limite: "",
+    anni, dal, al, totale: 0, completo: false, perche: [],
+    pregresso: 0, pregressoDichiarato: false,
+    nonDichiarato: null, senzaFronte: null, fuoriElenco: null, grafieDoppie: [] };
+
+  const perAnno = anni.map((anno) => {
+    const R = riepilogoAnnuale(rilievi, anno, autorizzazione, oggi);
+    return { anno, R, B: ripartizioneBanchi(R, fronti) };
+  });
+  // le due condizioni che fermano `ripartizioneBanchi` (niente fronti, nessun
+  // fronte che dichiari un banco) dipendono SOLO dai fronti: valgono per tutti
+  // gli anni insieme, e il motivo lo ha già scritto lei
+  if (!perAnno[0].B.righe.length) return { ...vuota, motivo: perAnno[0].B.motivo };
+
+  const pregressoDichiarato = !!perAnno[0].R.pregressoDichiarato;
+  const pregresso = +perAnno[0].R.pregresso || 0;
+
+  const acc = new Map();
+  for (const { anno, B } of perAnno) {
+    for (const b of B.righe) {
+      if (!acc.has(b.chiave))
+        acc.set(b.chiave, { chiave: b.chiave, etichetta: b.etichetta, grafie: b.grafie,
+          fronti: b.fronti, fronteId: b.fronteId,
+          scavo: 0, cumulo: 0, rilieviScavo: 0, rilieviCumulo: 0,
+          anniMisurati: [], anniCiechi: [] });
+      const a = acc.get(b.chiave);
+      a.cumulo += (+b.cumulo || 0);
+      a.rilieviCumulo += (+b.rilieviCumulo || 0);
+      /* ⛔ si somma SOLO dentro questo ramo. `a.scavo += +b.scavo || 0` scritto
+         fuori avrebbe sommato lo zero di un anno cieco (`+null` fa 0) e l'anno
+         sarebbe sparito dal conto invece di finire fra i ciechi: è la trappola
+         di `avanzamentoLotto`, che rispondeva «0%» a un lotto mai rilevato. */
+      if (b.misurabile) {
+        a.scavo += (+b.scavo || 0);
+        a.rilieviScavo += (+b.rilieviScavo || 0);
+        a.anniMisurati.push(anno);
+      } else a.anniCiechi.push(anno);
+    }
+  }
+
+  // i tre secchi, sommati sugli anni. `fronti` di `nonDichiarato` NON si somma:
+  // è il conto dei fronti da compilare OGGI, uguale in ogni anno.
+  const secchio = (k) => {
+    const v = { scavo: 0, cumulo: 0, rilievi: 0, rilieviScavo: 0, rilieviCumulo: 0 };
+    let ultimo = null;
+    for (const p of perAnno) {
+      const s = p.B[k];
+      if (!s) continue;
+      ultimo = s;
+      v.scavo += +s.scavo || 0; v.cumulo += +s.cumulo || 0; v.rilievi += +s.rilievi || 0;
+      v.rilieviScavo += +s.rilieviScavo || 0; v.rilieviCumulo += +s.rilieviCumulo || 0;
+    }
+    if (!ultimo) return null;
+    v.scavo = r2(v.scavo); v.cumulo = r2(v.cumulo);
+    if (k === "nonDichiarato") v.fronti = ultimo.fronti;
+    return v;
+  };
+
+  const totale = r2(perAnno.reduce((t, p) => t + (+p.R.scavo || 0), 0));
+  const righe = [...acc.values()]
+    .map((b) => {
+      const cieco = b.anniCiechi.length > 0;
+      if (!b.anniMisurati.length)
+        return { ...b, scavo: null, cumulo: r2(b.cumulo), misurabile: false, limite: "",
+          quotaPct: null,
+          motivo: `Nessun rilievo di scavo su questo banco in nessuno degli anni guardati (${finestra}): `
+            + (b.rilieviCumulo
+              ? "ci sono solo riprese da cumulo, cioè materiale già cavato prima."
+              : "il volume tolto non l'ha misurato nessuno.") };
+      return { ...b, scavo: r2(b.scavo), cumulo: r2(b.cumulo), misurabile: true,
+        limite: cieco ? "almeno" : "",
+        quotaPct: !cieco && totale > 0 ? Math.round(1000 * b.scavo / totale) / 10 : null,
+        motivo: cieco
+          ? `In ${b.anniCiechi.length === 1 ? "un anno" : b.anniCiechi.length + " anni"} su ${anni.length} `
+            + `(${b.anniCiechi.join(", ")}) nessuno ha rilevato lo scavo di questo banco. `
+            + "Il totale è quello misurato negli altri: il vero è questo o di più, mai di meno."
+          : "" };
+    })
+    .sort((a, z) => Number(z.misurabile) - Number(a.misurabile)
+      || (a.misurabile ? z.scavo - a.scavo : 0)
+      || a.etichetta.localeCompare(z.etichetta, "it"));
+
+  const nonDich = secchio("nonDichiarato"), senzaFro = secchio("senzaFronte"), fuori = secchio("fuoriElenco");
+  const qualcuno = righe.some((x) => x.misurabile);
+  const parziale = righe.some((x) => x.limite === "almeno");
+
+  const perche = [];
+  if (parziale) perche.push("ci sono anni in cui lo scavo di un banco non l'ha rilevato nessuno");
+  if (nonDich && nonDich.scavo > 0) perche.push("una parte dello scavo esce da fronti che non dichiarano il banco");
+  if (fuori && fuori.scavo > 0) perche.push("una parte dello scavo è su fronti non più in elenco");
+  if (senzaFro && senzaFro.scavo > 0) perche.push("una parte dello scavo non ha nemmeno un fronte indicato");
+  if (!pregressoDichiarato) perche.push(`il già estratto prima di Terra non è dichiarato, quindi non si sa se prima del ${dal} sia uscito altro materiale`);
+  else if (pregresso > 0) perche.push(`prima del ${dal} risulta del materiale già estratto, che nessun banco può reclamare`);
+
+  return {
+    righe, banchi: righe.length, misurabile: qualcuno,
+    limite: parziale ? "almeno" : "",
+    motivo: qualcuno ? ""
+      : `In nessuno degli anni guardati (${finestra}) risulta un rilievo di scavo su un banco: il volume per banco da sempre non l'ha misurato nessuno.`,
+    anni, dal, al,
+    totale, completo: perche.length === 0, perche,
+    pregresso, pregressoDichiarato,
+    nonDichiarato: nonDich && (nonDich.rilievi || nonDich.fronti) ? nonDich : null,
+    senzaFronte: senzaFro && senzaFro.rilievi ? senzaFro : null,
+    fuoriElenco: fuori && fuori.rilievi ? fuori : null,
+    grafieDoppie: righe.filter((x) => x.grafie.length > 1).map((x) => x.grafie),
+  };
+}
+
 // Storico anno per anno: quanto scavato, quanto ripreso dai cumuli e dove
 // era arrivato il cumulato del titolo alla fine di ogni anno. È la riga di
 // controllo che l'ente ricostruisce sommando le denunce degli anni passati.

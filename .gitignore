@@ -12,10 +12,10 @@ firestore-debug.log
 # Qui si impedisce solo che finiscano committati: un `git add .` distratto li
 # porterebbe dentro, e un file di tre byte nella radice del repo e' il genere
 # di cosa che nessuno nota finche' non da' fastidio.
-.pagella-*.txt
-.contrassegno-*.txt
-contrassegno-*.txt
-pagella-*.txt
+.pagella-*
+.contrassegno-*
+contrassegno-*
+pagella-*
 cont-*.txt
 # ⚠️ E QUESTA LISTA SI ALLUNGA OGNI VOLTA CHE NASCE UN BANCO — .pagella-, poi
 # contrassegno-, poi cont- — che è il segno che la difesa è nel posto sbagliato:
@@ -23,3 +23,9 @@ cont-*.txt
 # radice del repo. Finché i banchi lo mettono qui, queste righe sono l'unica
 # cosa che impedisce a un `git add .` di portarli dentro. È un cerotto, e va
 # detto che è un cerotto: la correzione vera è una riga nei banchi.
+# ⛔ E il 01/08, con cinque cantieri aperti, se ne sono presentati due che
+# passavano lo stesso — `.contrassegno-campo-orari` e `.contrassegno-conti-ordini`
+# — perché queste righe pretendevano il suffisso **`.txt`** e loro non ce
+# l'avevano. Cioè il cerotto non copriva nemmeno il caso per cui era stato
+# messo. Adesso il prefisso basta: la lista può ancora allungarsi per un nome
+# nuovo, non più per un'estensione diversa.

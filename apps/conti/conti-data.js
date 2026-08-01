@@ -12,7 +12,16 @@
 //                   prodottoId, prodotto, lordo (t), tara (t), netto (t),
 //                   unitaVendita "t"|"m3", quantita (nell'unità di vendita), densita,
 //                   prezzoUnitario (€/unità di vendita), aliquotaIva (%),
-//                   mezzo (targa), destinatario, fatturaId|null }
+//                   mezzo (targa), destinatario, fatturaId|null,
+//                   ordineId?|null (l'ordine del cliente a cui la consegna
+//                   scala: facoltativo, le pesate di prima non ce l'hanno) }
+//   ordini/{id}:  { numero (PREV/AAAA/NNN), numeroOrdine? (ORD/AAAA/NNN, dato
+//                   all'accettazione), data (ISO), validoAl (ISO|null),
+//                   clienteId?, cliente (testo), stato: bozza|inviato|
+//                   accettato|rifiutato|annullato, decisoIl? (ISO),
+//                   riferimento, note, righe [{ prodottoId, descrizione,
+//                   quantita|null, unita "t"|"m3", densita, prezzoUnitario|
+//                   null, scontoPct, aliquota, imponibile|null }] }
 //   incassi/{id}:  { fatturaId, data (ISO: il giorno in cui i soldi sono ARRIVATI),
 //                    importo (€), metodo ("bonifico"|"assegno"|"contanti"|"riba"|"") }
 //   costi/{id}:    { data (ISO), voce (chiave di VOCI_COSTO), importo (€), nota,
@@ -171,7 +180,7 @@ export const DEMO = {
     { id: "d1", numero: "2026/007", data: "2026-07-06", clienteId: "c1", cliente: "Edilcave Srl",
       prodottoId: "p1", prodotto: "Stabilizzato 0/30", lordo: 42.16, tara: 14.2, netto: 27.96,
       unitaVendita: "t", quantita: 27.96, densita: 1.9, prezzoUnitario: 8.5, aliquotaIva: 22,
-      mezzo: "FT 421 KP", destinatario: "Cantiere SS115 km 12", fatturaId: null, causaleTrasporto: "vendita", trasportoACura: "mittente" },
+      mezzo: "FT 421 KP", destinatario: "Cantiere SS115 km 12", ordineId: "o1", fatturaId: null, causaleTrasporto: "vendita", trasportoACura: "mittente" },
     { id: "d2", numero: "2026/008", data: "2026-07-13", clienteId: "c1", cliente: "Edilcave Srl",
       prodottoId: "p2", prodotto: "Pietrisco 8/12", lordo: 39.4, tara: 13.8, netto: 25.6,
       unitaVendita: "t", quantita: 25.6, densita: 1.5, prezzoUnitario: 12, aliquotaIva: 22,
@@ -179,7 +188,7 @@ export const DEMO = {
     { id: "d3", numero: "2026/009", data: "2026-07-17", clienteId: "c1", cliente: "Edilcave Srl",
       prodottoId: "p1", prodotto: "Stabilizzato 0/30", lordo: 43.9, tara: 14.2, netto: 29.7,
       unitaVendita: "t", quantita: 29.7, densita: 1.9, prezzoUnitario: 8.5, aliquotaIva: 22,
-      mezzo: "GA 907 TR", destinatario: "Cantiere SS115 km 12", fatturaId: null, causaleTrasporto: "vendita", trasportoACura: "vettore" },
+      mezzo: "GA 907 TR", destinatario: "Cantiere SS115 km 12", ordineId: "o1", fatturaId: null, causaleTrasporto: "vendita", trasportoACura: "vettore" },
     { id: "d4", numero: "2026/010", data: "2026-07-20", clienteId: "c2", cliente: "Stradesud",
       prodottoId: "p3", prodotto: "Sabbia lavata 0/4", lordo: 35.2, tara: 13.6, netto: 21.6,
       unitaVendita: "m3", quantita: 13.5, densita: 1.6, prezzoUnitario: 22, aliquotaIva: 22,
@@ -273,6 +282,64 @@ export const DEMO = {
       // intestazione dei documenti stampati (DDT e fatture): dati d'esempio
       aziendaNome: "Cava di esempio S.r.l.", aziendaPiva: "00000000000",
       aziendaIndirizzo: "Contrada Esempio 1, Ragusa", aziendaContatti: "0932 000000 · amministrazione@esempio.it" },
+  ],
+  /* PREVENTIVI E ORDINI d'esempio. ⛔ Come per la fattura senza scadenza, la
+     dimostrazione DEVE contenere i casi che il prodotto esiste per raccontare,
+     non solo quelli che funzionano: qui ci sono l'offerta scaduta che nessuno
+     ha richiamato, quella arrivata da un import senza data di validità, la
+     fornitura a chiamata di cui il consegnato NON è misurabile, e l'ordine a
+     zero con dei DDT dello stesso cliente che nessuno ha agganciato. Un
+     campione di soli casi sani è un campione che non mostra niente. */
+  ordini: [
+    { id: "o1", numero: "PREV/2026/001", numeroOrdine: "ORD/2026/001", data: "2026-06-15",
+      validoAl: "2026-07-15", clienteId: "c1", cliente: "Edilcave Srl", stato: "accettato",
+      decisoIl: "2026-06-28", riferimento: "Richiesta del 12/06 — cantiere SS115",
+      note: "Consegne scaglionate su tutta l'estate, a chiamata del capocantiere.",
+      righe: [{ prodottoId: "p1", descrizione: "Stabilizzato 0/30", quantita: 300, unita: "t",
+        densita: 1.9, prezzoUnitario: 8.5, scontoPct: 5, aliquota: 22, imponibile: 2422.5 }] },
+    { id: "o2", numero: "PREV/2026/002", data: "2026-07-20", validoAl: "2026-08-20",
+      clienteId: "c2", cliente: "Stradesud", stato: "inviato", riferimento: "Mail del 18/07",
+      note: "", righe: [
+        { prodottoId: "p3", descrizione: "Sabbia lavata 0/4", quantita: 200, unita: "m3",
+          densita: 1.6, prezzoUnitario: 22, scontoPct: 0, aliquota: 22, imponibile: 4400 },
+        { prodottoId: "p2", descrizione: "Pietrisco 8/12", quantita: 80, unita: "t",
+          densita: 1.5, prezzoUnitario: 12, scontoPct: 0, aliquota: 22, imponibile: 960 }] },
+    /* ⛔ SCADUTA E NESSUNO L'HA RICHIAMATA. Il prezzo si era tenuto fermo per
+       un mese, il mese è passato e l'offerta è morta da sola. È il caso per cui
+       esiste `preventiviDaSeguire`: senza, sparisce in fondo alla lista. */
+    { id: "o3", numero: "PREV/2026/003", data: "2026-06-10", validoAl: "2026-07-15",
+      cliente: "Comune di Modica", stato: "inviato", riferimento: "Prot. 4412 del 08/06", note: "",
+      righe: [{ prodottoId: "p4", descrizione: "Massi da scogliera", quantita: 500, unita: "t",
+        densita: 2.4, prezzoUnitario: 15.5, scontoPct: 0, aliquota: 22, imponibile: 7750 }] },
+    { id: "o4", numero: "PREV/2026/004", data: "2026-05-04", validoAl: "2026-06-04",
+      clienteId: "c2", cliente: "Stradesud", stato: "rifiutato", decisoIl: "2026-05-22",
+      riferimento: "", note: "Prezzo fuori mercato rispetto alla cava di Comiso.",
+      righe: [{ prodottoId: "p1", descrizione: "Stabilizzato 0/30", quantita: 1000, unita: "t",
+        densita: 1.9, prezzoUnitario: 9.2, scontoPct: 0, aliquota: 22, imponibile: 9200 }] },
+    /* ⛔ FORNITURA A CHIAMATA: prezzo bloccato, quantità da vedersi. Il
+       consegnato NON è «0%» — non esiste un ordinato con cui fare la frazione.
+       È il caso su cui una barra di avanzamento direbbe la bugia più comoda. */
+    { id: "o5", numero: "PREV/2026/005", numeroOrdine: "ORD/2026/002", data: "2026-07-02",
+      validoAl: "2026-08-02", clienteId: "c1", cliente: "Edilcave Srl", stato: "accettato",
+      decisoIl: "2026-07-08", riferimento: "Accordo quadro 2026",
+      note: "Prezzo bloccato fino a fine anno, quantità a chiamata.",
+      righe: [{ prodottoId: "p2", descrizione: "Pietrisco 8/12", quantita: null, unita: "t",
+        densita: 1.5, prezzoUnitario: 11.5, scontoPct: 5, aliquota: 22, imponibile: null }] },
+    /* ⛔ ZERO CONSEGNATO, MA IL DDT 2026/010 È DELLO STESSO CLIENTE E DELLO
+       STESSO PRODOTTO e non è agganciato a nessun ordine: lo zero è vero e
+       probabilmente è una svista. Si dice, e si offre di collegarlo. */
+    { id: "o6", numero: "PREV/2026/006", numeroOrdine: "ORD/2026/003", data: "2026-07-01",
+      validoAl: "2026-07-31", clienteId: "c2", cliente: "Stradesud", stato: "accettato",
+      decisoIl: "2026-07-05", riferimento: "", note: "",
+      righe: [{ prodottoId: "p3", descrizione: "Sabbia lavata 0/4", quantita: 100, unita: "m3",
+        densita: 1.6, prezzoUnitario: 22, scontoPct: 0, aliquota: 22, imponibile: 2200 }] },
+    /* ⛔ SENZA DATA DI VALIDITÀ. Arriva così dai vecchi fogli: un'offerta
+       mandata e mai datata. Non è «valida»: è un prezzo bloccato per sempre,
+       e in cava gli inerti si muovono col gasolio. */
+    { id: "o7", numero: "PREV/2026/007", data: "2026-07-11", validoAl: null,
+      clienteId: "c1", cliente: "Edilcave Srl", stato: "inviato", riferimento: "", note: "",
+      righe: [{ prodottoId: "p4", descrizione: "Massi da scogliera", quantita: 120, unita: "t",
+        densita: 2.4, prezzoUnitario: 15.5, scontoPct: 5, aliquota: 22, imponibile: 1767 }] },
   ],
 };
 
@@ -1669,6 +1736,10 @@ export async function contiData() {
         // e il registro costi: stessa storia, chi non ne ha mai registrato uno
         // legge una lista vuota
         costi: () => read("costi"),
+        // preventivi e ordini: chi non ne ha mai fatto uno legge vuoto, e
+        // l'app funziona esattamente come prima — il ciclo che parte dalla
+        // pesata resta valido, l'ordine è un passo IN PIÙ, non obbligatorio
+        ordini: () => read("ordini"),
         // le chiusure di mese: chi non ne ha mai dichiarata una legge vuoto
         chiusure: () => read("chiusure"),
         impostazioni: () => read("impostazioni"),
@@ -1706,6 +1777,7 @@ export async function contiData() {
       incassi: async () => mem.incassi || (mem.incassi = []),
       note: async () => mem.note || (mem.note = []),
       costi: async () => mem.costi || (mem.costi = []),
+      ordini: async () => mem.ordini || (mem.ordini = []),
       chiusure: async () => mem.chiusure || (mem.chiusure = []),
       impostazioni: async () => mem.impostazioni,
       // in dimostrazione i rilievi non arrivano da Terra: sono finti, ma
@@ -2612,3 +2684,329 @@ export const ESTRATTO_ESEMPIO = [
   "22/07/2026;22/07/2026;VERSAMENTO CONTANTI;1.000,00",
   "23/07/2026;23/07/2026;BONIFICO DA CAVE DEL SUD;4.400,00",
 ].join("\n") + "\n";
+
+// ============================================================
+// PREVENTIVO E CONFERMA D'ORDINE (N9)
+// ------------------------------------------------------------
+// Fino a oggi il ciclo di Conti partiva dalla PESATA: il primo documento che
+// l'app conosceva era il DDT di un camion già carico. Ma in cava prima del
+// camion c'è una richiesta d'offerta, un prezzo che si tiene fermo per un po',
+// e una conferma. Senza quel pezzo l'app non sa rispondere alla domanda con
+// cui si programma la settimana: «quanto materiale ho già venduto e non ho
+// ancora consegnato?».
+//
+// UN DOCUMENTO SOLO, NON DUE. Il preventivo accettato DIVENTA l'ordine: stesso
+// documento, stesse righe, stato che cambia e un numero d'ordine in più. Due
+// documenti separati vorrebbero dire due liste da tenere allineate, e la prima
+// volta che qualcuno modifica una riga solo di qua le due si staccano.
+//
+// ⛔ LO SCADUTO E IL RIFIUTATO NON SONO VENDUTO. È la ragione per cui
+//    `portafoglioOrdini` filtra su `ordineConfermato` e non sulla presenza del
+//    documento: un preventivo che il cliente non ha mai firmato, contato nel
+//    venduto, è materiale che non uscirà mai dal piazzale.
+//
+// ⛔ E «QUANTO È STATO CONSEGNATO» NON È SEMPRE UN NUMERO. Un ordine di cui
+//    non si sa quanto è stato consegnato NON è «0% consegnato»: uno zero
+//    racconta «non ancora cominciato», che è una cosa che si sa. Qui la
+//    risposta è la bandiera `misurabile` con il suo `perche`, e la pagina la
+//    legge PRIMA di disegnare la barra. I tre casi che la fanno scattare sono
+//    di mestiere, non di codice:
+//    1. la riga è senza quantità ordinata — è una fornitura «a chiamata»,
+//       prezzo bloccato e quantità da vedersi: non esiste una frazione;
+//    2. un DDT agganciato non ha una quantità nell'unità dell'ordine (venduto
+//       a metro cubo senza densità, oppure arrivato da un import senza netto);
+//    3. lo stesso prodotto è ordinato in due unità e manca la densità per
+//       sommarle.
+//    E c'è un quarto caso che NON è una non-misurabilità ma le somiglia, e
+//    andava separato: zero consegnato con dei DDT di quel cliente e di quel
+//    prodotto che nessuno ha agganciato a nessun ordine. Lì il numero è vero
+//    (agganciato non c'è niente) ma è probabile che sia una svista, quindi
+//    `daAgganciare` li CONTA e la pagina li offre da collegare. Un fatto
+//    accanto al numero, non un'inferenza al posto del numero.
+//
+// Collezione: ordini/{id} = { numero (serie PREV/AAAA/NNN), numeroOrdine
+//   (serie ORD/AAAA/NNN, assegnato all'accettazione), data (ISO), validoAl
+//   (ISO), clienteId, cliente (testo di ripiego), stato, decisoIl (ISO),
+//   righe [], note, riferimento (la richiesta del cliente) }.
+// Sulle pesate compare un campo in più, facoltativo: `ordineId`. Le pesate di
+// prima non ce l'hanno e non cambiano di una virgola.
+// ============================================================
+
+/* ⚠️ SI CHIAMA `STATI_PREVENTIVO` E NON `STATI_ORDINE` PERCHÉ QUEL NOME È GIÀ
+   PRESO: Flotta lo esporta per gli ORDINI DI LAVORO dell'officina
+   (`flotta-data.js:1574`), che con un ordine di un cliente non c'entrano
+   niente. Due app che esportano lo stesso nome per due cose diverse è
+   esattamente ciò che `nomi-doppi.mjs` esiste per prendere. */
+export const STATI_PREVENTIVO = [
+  { id: "bozza", label: "Bozza", cls: "", spiega: "Ci stai ancora lavorando: il cliente non l'ha visto." },
+  { id: "inviato", label: "Inviato", cls: "warn", spiega: "Mandato al cliente, in attesa di risposta." },
+  { id: "accettato", label: "Accettato", cls: "ok", spiega: "Il cliente ha confermato: da qui in poi è un ordine, e i DDT gli si agganciano." },
+  { id: "rifiutato", label: "Rifiutato", cls: "danger", spiega: "Il cliente ha detto di no. Non entra nel venduto." },
+  { id: "annullato", label: "Annullato", cls: "", spiega: "Ritirato prima della risposta. Non entra nel venduto." },
+];
+export function statoPreventivoLabel(id) {
+  return STATI_PREVENTIVO.find((s) => s.id === String(id || "")) || STATI_PREVENTIVO[0];
+}
+
+/* ⛔ LO STATO VERO DI UN PREVENTIVO È IN PARTE CALCOLATO, come per le fatture
+   (`statoScadenzaFattura`, che questa funzione imita di proposito): «scaduto»
+   non lo scrive nessuno, lo dice il calendario. Un preventivo inviato il cui
+   `validoAl` è passato è scaduto anche se nessuno l'ha toccato.
+   ⚠️ E L'ACCETTAZIONE FERMA L'OROLOGIO. La validità serve fino alla firma: un
+   ordine confermato a giugno non «scade» a luglio perché l'offerta durava
+   trenta giorni — quello è un impegno preso, e va consegnato. Fino a metà
+   stesura questa funzione guardava la data anche sugli accettati, e un ordine
+   vivo sarebbe uscito dal portafoglio da solo.
+   ⛔ E «senza-validita» È UNO STATO SUO. Un'offerta senza data di scadenza è
+   un prezzo bloccato per sempre, e in cava i prezzi degli inerti si muovono
+   col gasolio: farla passare per «valida» è il numero tranquillo dove non è
+   stato deciso niente. Una BOZZA invece resta bozza: non è stata mandata a
+   nessuno, quindi non c'è nessuna promessa da datare. */
+export function statoPreventivo(ordine, oggi = new Date()) {
+  const o = ordine || {};
+  const s = String(o.stato || "bozza");
+  if (s === "accettato" || s === "rifiutato" || s === "annullato") return { stato: s, giorni: null };
+  if (s === "bozza") return { stato: "bozza", giorni: null };
+  /* ⚠️ `dataISOEsiste` PRIMA di contare i giorni, e non è pignoleria: una
+     prova ha preso il difetto mentre la si scriveva. `new Date("2026-02-30")`
+     non fallisce — JS fa SCORRERE il giorno che non esiste al 2 marzo — quindi
+     `giorni()` restituisce un numero e un'offerta con la data storta usciva
+     «scaduta» invece che «senza validità». È lo stesso errore che il 01/08 la
+     `isDate` di `run-demo.mjs` faceva su questa identica data, e la funzione
+     giusta era in `shared/` da mesi: qui non se ne scrive una seconda. */
+  const g = dataISOEsiste(String(o.validoAl || "").slice(0, 10)) ? giorni(o.validoAl, oggi) : NaN;
+  if (!Number.isFinite(g)) return { stato: "senza-validita", giorni: null };
+  if (g < 0) return { stato: "scaduto", giorni: g };
+  return { stato: "inviato", giorni: g };
+}
+
+// Un preventivo è un ORDINE solo se è stato accettato. Scritto una volta e
+// usato ovunque serva, così «che cosa entra nel venduto» è deciso in un posto.
+export function ordineConfermato(ordine, oggi = new Date()) {
+  return statoPreventivo(ordine, oggi).stato === "accettato";
+}
+
+/* RIGA DI PREVENTIVO — i numeri si FOTOGRAFANO, come in `rigaPesata`: se
+   domani il listino cambia o il cliente cambia condizioni, l'offerta già
+   mandata resta quella che è stata mandata.
+   L'unità può essere diversa da quella del listino (si ordina a metro cubo un
+   prodotto listinato a tonnellata: succede sui riempimenti), e allora il
+   prezzo si converte con la densità — dalle stesse formule di
+   `prezzoPerTonnellata`/`prezzoPerMetroCubo`, non da altre. Senza densità il
+   prezzo è `null`: meglio nessun numero che un numero falso.
+   ⛔ E la quantità VUOTA resta `null`, non zero. `+null` fa 0 e
+   `Number.isFinite(0)` risponde true: è la trappola che questo file documenta
+   in altri tre punti, e qui produrrebbe un'offerta di zero tonnellate. */
+export function rigaPreventivo(prodotto, quantita, cliente, unitaScelta) {
+  const p = prodotto || {};
+  const unitaListino = p.unitaPrezzo === "m3" ? "m3" : "t";
+  const unita = unitaScelta === "t" || unitaScelta === "m3" ? unitaScelta : unitaListino;
+  const dens = densitaValida(p);
+  let prezzoUnitario = round2(+p.prezzo || 0);
+  if (unita !== unitaListino)
+    prezzoUnitario = !dens ? null
+      : unita === "m3" ? round2((+p.prezzo || 0) * dens) : round2((+p.prezzo || 0) / dens);
+  const dich = quantita != null && String(quantita).trim() !== "" && Number.isFinite(+quantita);
+  const q = dich ? round3(+quantita) : null;
+  const scontoPct = scontoValido(cliente);
+  const imponibile = (q == null || prezzoUnitario == null) ? null
+    : imponibileRiga(q, prezzoUnitario, scontoPct);
+  return { prodottoId: p.id || null, descrizione: String(p.nome || "Prodotto"),
+           quantita: q, unita, densita: dens || null, prezzoUnitario, scontoPct,
+           aliquota: Math.max(0, +p.iva || 0), imponibile };
+}
+
+/* Totali del preventivo: passano da `totaliDaRighe`, la stessa funzione della
+   fattura. Due conti diversi sullo stesso imponibile darebbero un preventivo e
+   una fattura che non tornano, ed è la cosa che il cliente nota per prima.
+   Le righe senza importo (quantità da vedersi) NON entrano nel totale e si
+   CONTANO a parte: un totale che esclude qualcosa senza dirlo è un totale che
+   inganna — la stessa regola delle gare senza base d'asta. */
+export function totaliPreventivo(ordine) {
+  const righe = ((ordine || {}).righe || []).filter(Boolean);
+  const conImporto = righe.filter((r) => r.imponibile != null);
+  const t = totaliDaRighe(conImporto);
+  return { ...t, righe: righe.length, senzaImporto: righe.length - conImporto.length };
+}
+
+/* Come si riconosce «lo stesso prodotto» fra una riga d'ordine e un DDT:
+   l'id se c'è, il nome altrimenti (i DDT vecchi e gli import hanno solo il
+   nome). Scritto una volta perché lo usano l'aggancio e i candidati. */
+function chiaveProdotto(x) {
+  const id = x && x.prodottoId;
+  if (id != null && String(id).trim() !== "") return "id:" + String(id);
+  return "nome:" + String((x && (x.descrizione || x.prodotto)) || "").trim().toLowerCase();
+}
+
+/* Quantità di un DDT letta nell'unità chiesta. `null` = non si sa, e non è
+   zero: un DDT venduto a metro cubo senza densità non si converte, e uno
+   arrivato da un import senza netto non dichiara niente. Ripiegare su
+   `+p.netto || 0` darebbe una consegna di ZERO tonnellate — cioè un numero
+   tranquillo dove non è stato misurato niente. */
+function quantitaDdtIn(pesata, unita) {
+  const p = pesata || {};
+  const uP = p.unitaVendita === "m3" ? "m3" : "t";
+  const dich = (v) => v != null && String(v).trim() !== "" && Number.isFinite(+v);
+  const q = dich(p.quantita) ? +p.quantita : (uP === "t" && dich(p.netto) ? +p.netto : null);
+  if (q == null) return null;
+  return uP === unita ? round3(q) : convertiQuantita(q, uP, unita, p.densita);
+}
+
+/* CONSEGNATO PER PRODOTTO — e «per prodotto» non è un dettaglio: si aggrega
+   per prodotto e non per riga. Un ordine può avere due righe dello stesso
+   prodotto a prezzi diversi (500 t a 12 €/t più 300 t del secondo lotto a 11
+   €/t: in cava è la norma), e un DDT non dice a quale delle due appartiene.
+   Attribuendoli alla prima riga si otteneva 160% su una e 0% sull'altra —
+   trovato in prototipo, prima di scriverlo qui. */
+export function consegnatoOrdine(ordine, pesate) {
+  const o = ordine || {};
+  const righe = (o.righe || []).filter(Boolean);
+  const agganciate = (pesate || []).filter((p) =>
+    p && o.id != null && String(p.ordineId || "") === String(o.id));
+  const per = new Map();
+  for (const r of righe) {
+    const k = chiaveProdotto(r);
+    const g = per.get(k) || { chiave: k, descrizione: r.descrizione, unita: r.unita,
+      ordinato: 0, consegnato: 0, ddt: [], righe: 0, misurabile: true, perche: "" };
+    g.righe++;
+    if (r.quantita == null) {
+      g.misurabile = false;
+      if (!g.perche) g.perche = "una riga è senza quantità ordinata (è una fornitura a chiamata)";
+    } else if (r.unita !== g.unita) {
+      const c = convertiQuantita(r.quantita, r.unita, g.unita, r.densita);
+      if (c == null) { g.misurabile = false;
+        if (!g.perche) g.perche = "due righe dello stesso prodotto in unità diverse, e manca la densità per sommarle"; }
+      else g.ordinato = round3(g.ordinato + c);
+    } else g.ordinato = round3(g.ordinato + r.quantita);
+    per.set(k, g);
+  }
+  /* Un DDT agganciato all'ordine ma di un prodotto che nell'ordine non c'è NON
+     consuma l'ordine: il cliente ha ordinato pietrisco, quel carico di sabbia
+     è un'altra cosa. Si tiene a parte e si dice, invece di sparire. */
+  const fuoriOrdine = [];
+  for (const p of agganciate) {
+    const g = per.get(chiaveProdotto(p));
+    if (!g) { fuoriOrdine.push(p); continue; }
+    g.ddt.push(p.numero || "—");
+    const q = quantitaDdtIn(p, g.unita);
+    if (q == null) {
+      g.misurabile = false;
+      if (!g.perche) g.perche = "il DDT " + (p.numero || "—") + " non ha una quantità nell'unità dell'ordine";
+      continue;
+    }
+    g.consegnato = round3(g.consegnato + q);
+  }
+  /* Il residuo tiene il SEGNO. Consegnare più dell'ordinato succede — l'ultimo
+     camion carica un po' di più — e un residuo bloccato a zero lo nasconderebbe
+     proprio a chi deve fatturarlo. */
+  const prodotti = [...per.values()].map((g) => ({ ...g,
+    residuo: g.misurabile ? round3(g.ordinato - g.consegnato) : null }));
+  return { prodotti, fuoriOrdine, ddtAgganciati: agganciate.length };
+}
+
+/* I DDT CHE NESSUNO HA AGGANCIATO. Stesso cliente, stesso prodotto dell'ordine,
+   senza `ordineId`, non anteriori al preventivo. Non è un'inferenza: quei
+   documenti esistono davvero, e servono a distinguere «non è ancora partito
+   niente» da «è partito e nessuno l'ha collegato». La pagina li offre da
+   agganciare, così l'avviso diventa un gesto invece che un rimprovero. */
+export function ddtDaAgganciare(ordine, pesate) {
+  const o = ordine || {};
+  const chiavi = new Set((o.righe || []).filter(Boolean).map(chiaveProdotto));
+  const dal = String(o.data || "");
+  return (pesate || []).filter((p) => p
+    && !(p.ordineId != null && String(p.ordineId).trim() !== "")
+    && o.clienteId && String(p.clienteId || "") === String(o.clienteId)
+    && chiavi.has(chiaveProdotto(p))
+    && (!dal || String(p.data || "") >= dal))
+    .sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")));
+}
+
+/* AVANZAMENTO DELL'ORDINE. `percentuale` è `null` quando non si può misurare,
+   e la bandiera `misurabile` con il suo `perche` dicono perché: è il principio
+   del fondatore applicato a una barra di avanzamento, che è il posto dove uno
+   zero mente meglio di tutti. */
+export function avanzamentoOrdine(ordine, pesate) {
+  const c = consegnatoOrdine(ordine, pesate);
+  const base = { ...c, daAgganciare: ddtDaAgganciare(ordine, pesate).length };
+  if (!c.prodotti.length)
+    return { ...base, percentuale: null, misurabile: false, perche: "il preventivo non ha righe" };
+  const cieche = c.prodotti.filter((x) => !x.misurabile);
+  if (cieche.length)
+    return { ...base, percentuale: null, misurabile: false,
+      perche: cieche.length === c.prodotti.length ? cieche[0].perche
+        : "su " + cieche.length + " prodotti di " + c.prodotti.length + " manca il dato — " + cieche[0].perche };
+  const ordinato = c.prodotti.reduce((t, x) => t + x.ordinato, 0);
+  if (!(ordinato > 0))
+    return { ...base, percentuale: null, misurabile: false,
+      perche: "l'ordinato è zero, e non c'è nessuna frazione da calcolare" };
+  const consegnato = c.prodotti.reduce((t, x) => t + x.consegnato, 0);
+  return { ...base, percentuale: Math.round(100 * consegnato / ordinato), misurabile: true, perche: "" };
+}
+
+/* La frase che accompagna l'avanzamento. Vive QUI e non nella pagina perché
+   «come si racconta una non-misurabilità» è una decisione sola: scritta nella
+   pagina, il giorno che serve anche nel report se ne scriverebbe una seconda,
+   diversa (regola 7 di CLAUDE.md). La pagina legge `misurabile` per il colore
+   della barra e questa funzione per il testo. */
+export function descriviAvanzamento(av) {
+  const a = av || {};
+  if (!a.misurabile) return "Quanto è stato consegnato non si può misurare: " + (a.perche || "dato mancante") + ".";
+  if (a.percentuale === 0 && a.daAgganciare > 0)
+    /* «ce ne sono 1» non lo scrive nessuno: il singolare va scritto, come per
+       «1 fattura aperta». Un testo che si vede solo quando il numero è uno
+       resta sbagliato per mesi, perché il caso più frequente è il plurale. */
+    return "Nessun DDT agganciato a quest'ordine, ma "
+      + (a.daAgganciare === 1 ? "ce n'è 1" : "ce ne sono " + a.daAgganciare)
+      + " di questo cliente e di questi prodotti senza ordine: controlla se vanno collegati.";
+  if (a.percentuale === 0) return "Non è ancora partito niente: nessun DDT agganciato.";
+  if (a.percentuale > 100) return "Consegnato più dell'ordinato: controlla il residuo prodotto per prodotto.";
+  if (a.percentuale >= 100) return "Ordine consegnato per intero.";
+  return "Consegnato il " + a.percentuale + "% dell'ordinato.";
+}
+
+/* PORTAFOGLIO ORDINI: quanto vale il confermato. È la cifra con cui si
+   programma la settimana, e per questo NON deve contenere né gli scaduti né i
+   rifiutati — un preventivo che nessuno ha firmato, contato nel venduto, è
+   materiale che non uscirà mai dal piazzale.
+   ⛔ E dichiara quanti ordini non sa misurare, invece di contarli come pieni o
+   come vuoti: `nonMisurabili` è la parte del portafoglio di cui non si sa se è
+   ancora da consegnare.
+   ⛔ `senzaImporto` È LA STESSA DIFESA SUL VALORE, e senza di lei il difetto
+   sarebbe passato: una fornitura a chiamata ha righe con l'imponibile `null`,
+   e `totaliPreventivo` le esclude dal totale — giustamente, perché non c'è
+   niente da sommare. Ma allora il valore del portafoglio è PARZIALE, e un
+   totale che esclude qualcosa senza dirlo è un totale che inganna. Trovato
+   guardando i dati d'esempio: l'ordine a chiamata compariva nel conto degli
+   ordini e valeva zero euro, in silenzio. */
+export function portafoglioOrdini(ordini, pesate, oggi = new Date()) {
+  let valore = 0, quanti = 0, nonMisurabili = 0, daConsegnare = 0, completati = 0, senzaImporto = 0;
+  for (const o of ordini || []) {
+    if (!ordineConfermato(o, oggi)) continue;
+    quanti++;
+    const t = totaliPreventivo(o);
+    valore = round2(valore + t.imponibile);
+    if (t.senzaImporto > 0) senzaImporto++;
+    const a = avanzamentoOrdine(o, pesate);
+    if (!a.misurabile) nonMisurabili++;
+    else if (a.percentuale >= 100) completati++;
+    else daConsegnare++;
+  }
+  return { quanti, valore, daConsegnare, completati, nonMisurabili, senzaImporto };
+}
+
+/* I preventivi che chiedono una mossa, dal più urgente. Un'offerta inviata
+   scade da sola: se nessuno la richiama, il prezzo che si era tenuto fermo
+   sparisce e nessuno se n'è accorto. */
+export function preventiviDaSeguire(ordini, oggi = new Date(), entroGiorni = 7) {
+  const out = [];
+  for (const o of ordini || []) {
+    const s = statoPreventivo(o, oggi);
+    if (s.stato === "scaduto") out.push({ ordine: o, stato: s.stato, giorni: s.giorni, urgenza: 0 });
+    else if (s.stato === "senza-validita") out.push({ ordine: o, stato: s.stato, giorni: null, urgenza: 1 });
+    else if (s.stato === "inviato" && s.giorni <= entroGiorni)
+      out.push({ ordine: o, stato: s.stato, giorni: s.giorni, urgenza: 2 });
+  }
+  return out.sort((a, b) => a.urgenza - b.urgenza
+    || (a.giorni == null ? 0 : a.giorni) - (b.giorni == null ? 0 : b.giorni)
+    || String(a.ordine.numero || "").localeCompare(String(b.ordine.numero || ""), "it", { numeric: true }));
+}
