@@ -2310,6 +2310,57 @@ test("le sei famiglie di causa hanno chiavi uniche e un esempio ciascuna", () =>
   eq(ch[ch.length - 1], "comportamentale", "⛔ «comportamentale» è l'ULTIMA: non è il fondo in cui far cadere quello che non si capisce");
 });
 
+const EVENTI_A = [
+  { id: "i1", tipo: "near-miss", data: "2026-07-01" },
+  { id: "i2", tipo: "infortunio", data: "2026-06-01", giorniAssenza: 5 },
+  { id: "i3", tipo: "near-miss", data: "2026-07-10" },
+  { id: "i4", tipo: "infortunio", data: "2026-05-02" },
+];
+test("gli eventi senza un perché vengono a galla, i più gravi per primi", () => {
+  /* senza questo conto l'analisi la fa chi ha voglia, e il registro si riempie
+     di eventi muti: è la differenza fra una funzione che c'è e una che si usa */
+  const s = scudo.eventiSenzaAnalisi(EVENTI_A, [{ eventoId: "i1", causa: "tecnica" }]);
+  eq(s.map(e => e.id), ["i2", "i4", "i3"],
+    "prima l'infortunio con assenza, poi quello senza, poi il near-miss");
+  eq(scudo.eventiSenzaAnalisi(EVENTI_A, []).length, 4, "senza nessuna analisi ci sono tutti");
+  eq(scudo.eventiSenzaAnalisi([], []).length, 0, "e senza eventi non si inventa niente");
+  eq(scudo.analisiDiEvento([{ eventoId: "i2", causa: "dpi" }], "i2").causa, "dpi", "l'analisi si ritrova dall'evento");
+  eq(scudo.analisiDiEvento([{ eventoId: "i2" }], "i9"), null, "e un evento mai analizzato non ne ha una qualsiasi");
+});
+test("⛔ tre analisi su venti non dicono quale causa si ripete: dicono che sono tre", () => {
+  const poche = scudo.causeRicorrenti(EVENTI_A, [{ eventoId: "i1", causa: "tecnica" }]);
+  eq(poche.leggibile, false, "sotto la soglia non si legge una tendenza");
+  ok(/servono almeno 5 analisi/.test(poche.motivo), "e la ragione dice quante ne servono: " + poche.motivo);
+  ok(poche.righe.length > 0, "⛔ ma le righe ci sono lo stesso: non si nasconde il poco che c'è");
+  eq([poche.analizzati, poche.eventi], [1, 4], "e si dichiara su quanti eventi");
+});
+test("con abbastanza analisi le cause si ordinano per quante volte tornano", () => {
+  const molte = [
+    { eventoId: "i1", causa: "organizzativa" }, { eventoId: "i2", causa: "organizzativa" },
+    { eventoId: "i3", causa: "dpi" }, { eventoId: "i4", causa: "organizzativa" },
+    { eventoId: "i5", causa: "dpi" },
+  ];
+  const ev = EVENTI_A.concat([{ id: "i5", tipo: "near-miss", data: "2026-04-01" }]);
+  const r = scudo.causeRicorrenti(ev, molte);
+  eq(r.leggibile, true, "cinque analisi bastano");
+  eq(r.righe.map(x => [x.chiave, x.quante]), [["organizzativa", 3], ["dpi", 2]], "in ordine di frequenza");
+  eq(r.motivo, "", "e niente da giustificare");
+  /* un'analisi che punta a un evento che non esiste non gonfia il conto */
+  eq(scudo.causeRicorrenti(ev, molte.concat([{ eventoId: "fantasma", causa: "dpi" }])).analizzati, 5,
+    "⛔ un'analisi orfana non conta come evento analizzato");
+});
+test("⛔ la soglia della tendenza sta in un posto solo, e la usano in due", () => {
+  /* ricopiarla vorrebbe dire due schermate della stessa app che dicono «pochi
+     dati» a soglie diverse, e nessuno che se ne accorge */
+  eq(scudo.MIN_TENDENZA, 5, "la soglia è dichiarata");
+  eq(scudo.troppoPochiPerTendenza(4), true, "sotto");
+  eq(scudo.troppoPochiPerTendenza(5), false, "e alla soglia si legge");
+  const nm = scudo.riepilogoNearMiss(
+    Array.from({ length: 4 }, (_, i) => ({ id: "n" + i, tipo: "near-miss", data: "2026-07-0" + (i + 1) })),
+    [], 365, new Date("2026-07-20T12:00:00"));
+  eq(nm.pochi, true, "e `riepilogoNearMiss` usa la STESSA funzione, non un 5 suo");
+});
+
 console.log("\n— Terra: il piano a lotti e il divario di recupero —");
 const LOTTI = [
   { id: "l1", superficieMq: 12000, volumeM3: 180000, stato: "recuperato" },

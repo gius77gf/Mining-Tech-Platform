@@ -507,6 +507,14 @@ export function descrizioneNearMiss({ categoria, luogoTipo, luogo, dettaglio } =
 // `pochi` è vero quando i numeri sono troppo bassi per leggerci una tendenza:
 // in quel caso l'interfaccia lo dice invece di disegnare grafici che
 // suggeriscono andamenti inesistenti. Pura e testabile; `oggi` iniettabile.
+/* ⛔ SOTTO QUESTA SOGLIA NON SI LEGGE UNA TENDENZA, e la soglia sta in UN POSTO
+   SOLO. Era scritta a mano dentro `riepilogoNearMiss` (`list.length < 5`), e
+   serviva anche all'analisi delle cause: ricopiarla avrebbe voluto dire due
+   numeri che divergono al primo ripensamento, con due schermate della stessa
+   app che dicono «pochi dati» a soglie diverse. */
+export const MIN_TENDENZA = 5;
+export function troppoPochiPerTendenza(quanti) { return (+quanti || 0) < MIN_TENDENZA; }
+
 export function riepilogoNearMiss(infortuni, azioni, giorni = 90, oggi = new Date()) {
   const tutti = (infortuni || []).filter(x => x.tipo === "near-miss");
   const dentro = (x) => {
@@ -537,7 +545,7 @@ export function riepilogoNearMiss(infortuni, azioni, giorni = 90, oggi = new Dat
     perTipo, perLuogo, anonime,
     conAzione, senzaAzione: list.length - conAzione,
     azioni: azi.length, azioniChiuse: azi.filter(a => a.stato === "chiusa").length,
-    pochi: list.length < 5,
+    pochi: troppoPochiPerTendenza(list.length),
   };
 }
 
@@ -1681,4 +1689,52 @@ export function validaAnalisi(bozza, lavoratori) {
     avvisi.push({ campo: "causa", grave: true,
       testo: "Scegli la famiglia della causa: serve a capire quali cause si ripetono, che è la domanda a cui questa scheda deve rispondere." });
   return { valida: !avvisi.some((a) => a.grave), avvisi };
+}
+
+/* L'analisi di un evento, se qualcuno l'ha fatta. Una sola per evento: se
+   serve rifarla si corregge quella, invece di accumulare versioni fra cui
+   nessuno sa quale valga. */
+export function analisiDiEvento(analisi, eventoId) {
+  const id = String(eventoId || "");
+  if (!id) return null;
+  return (analisi || []).find((a) => a && String(a.eventoId || "") === id) || null;
+}
+
+/* ⛔ GLI EVENTI RIMASTI SENZA UN PERCHÉ. Senza questo conto l'analisi la fa chi
+   ha voglia, e il registro si riempie di eventi muti: è la differenza fra una
+   funzione che c'è e una che viene usata.
+   Gli infortuni con assenza vengono per primi — sono quelli su cui l'ente
+   chiede conto — poi i near-miss, e dentro ogni gruppo i più recenti prima. */
+export function eventiSenzaAnalisi(infortuni, analisi) {
+  const fatti = new Set((analisi || []).map((a) => String((a || {}).eventoId || "")).filter(Boolean));
+  const gravita = (e) => (+((e || {}).giorniAssenza) > 0 ? 2 : (e || {}).tipo === "near-miss" ? 0 : 1);
+  return (infortuni || [])
+    .filter((e) => e && e.id && !fatti.has(String(e.id)))
+    .sort((a, b) => gravita(b) - gravita(a)
+      || String(b.data || "").localeCompare(String(a.data || "")));
+}
+
+/* ⛔ QUALI CAUSE TORNANO — e su quante analisi, che è la parte che rende il
+   numero leggibile. Tre eventi analizzati su venti NON dicono «la causa
+   principale è organizzativa»: dicono che sono stati analizzati tre eventi su
+   venti, e su così pochi non si legge nessuna ricorrenza. La guardia è la
+   stessa di `riepilogoNearMiss`, chiamata e non ricopiata. */
+export function causeRicorrenti(infortuni, analisi) {
+  const eventi = (infortuni || []).filter((e) => e && e.id);
+  const conAnalisi = (analisi || []).filter((a) => a && a.causa
+    && eventi.some((e) => String(e.id) === String(a.eventoId || "")));
+  const per = {};
+  for (const a of conAnalisi) per[a.causa] = (per[a.causa] || 0) + 1;
+  const righe = CAUSE_ANALISI
+    .map((c) => ({ chiave: c.chiave, etichetta: c.etichetta, quante: per[c.chiave] || 0 }))
+    .filter((r) => r.quante > 0)
+    .sort((a, b) => b.quante - a.quante);
+  return { righe, analizzati: conAnalisi.length, eventi: eventi.length,
+    /* «leggibile» non vuol dire «ci sono dati»: vuol dire che ce n'è abbastanza
+       da poterci leggere qualcosa. Le due cose confuse producono la freccia
+       verso l'alto disegnata su due punti. */
+    leggibile: !troppoPochiPerTendenza(conAnalisi.length),
+    motivo: troppoPochiPerTendenza(conAnalisi.length)
+      ? `${conAnalisi.length === 0 ? "Nessun evento è stato analizzato" : "Solo " + conAnalisi.length + " event" + (conAnalisi.length === 1 ? "o è stato analizzato" : "i sono stati analizzati")} su ${eventi.length}: servono almeno ${MIN_TENDENZA} analisi prima di poter dire quali cause si ripetono.`
+      : "" };
 }
