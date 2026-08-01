@@ -1992,6 +1992,54 @@ test("⛔ una fattura stornata NON finisce nel sollecito né nell'estratto conto
   eq(conti.incassoAtteso([{ ...f, scadenza: "2026-05-20" }], 30, oggi).importo, 1000,
     "e senza note lo conta, come sempre");
 });
+test("⛔ cartellaLavoratore: una sezione vuota non e' «non dovuto»", () => {
+  /* Un fascicolo stampato mente per OMISSIONE: una sezione vuota su un foglio
+     che esce dalla stampante si legge «a questa persona non serve», mentre la
+     verita' e' «non e' stato registrato niente». Davanti a un ispettore sono
+     due frasi diverse. */
+  const D = scudo.DEMO, oggi = new Date("2026-08-01T00:00:00");
+  const dati = { scadenze: D.scadenze, mansioni: D.mansioni, dpi: D.dpi,
+                 nomine: D.nomine, documenti: D.documenti };
+  const pieno = scudo.cartellaLavoratore(D.lavoratori.find(x => x.id === "d1"), dati, oggi);
+  ok(pieno.trovato && pieno.completa, "chi ha mansione, scadenze e DPI esce completo");
+  ok(pieno.scadenze.length > 0 && pieno.verbale.righe.length > 0,
+    `e la cartella raccoglie davvero le sue righe: ${pieno.scadenze.length} scadenze, ${pieno.verbale.righe.length} DPI`);
+  /* ⛔ E LO STATO DI OGNI SCADENZA DEV'ESSERE QUELLO VERO. Prima passavo a
+     `statoScadenza` la RIGA invece della DATA: rispondeva «senza data» su
+     righe che la data ce l'hanno, e il fascicolo l'avrebbe stampato cosi'.
+     Le prove sui conteggi non se ne accorgevano — contavano righe, non
+     verita'. Questa distingue perche' pretende almeno uno stato DIVERSO da
+     «senza data» su una persona che le date le ha tutte. */
+  const stati = pieno.scadenze.map(x => x.stato);
+  ok(stati.every(x => typeof x === "string"), `lo stato e' una stringa: ${JSON.stringify(stati)}`);
+  ok(stati.some(x => x !== "senza data"),
+    `e non e' «senza data» per tutte, su chi le date ce l'ha: ${JSON.stringify(stati)}`);
+
+  const vuota = scudo.cartellaLavoratore(D.lavoratori.find(x => x.id === "d4"), dati, oggi);
+  eq(vuota.completa, false, "chi non ha nulla registrato NON esce completo");
+  ok(vuota.vuoti.some(v => /non è stato registrato niente/i.test(v)),
+    `e la ragione e' scritta: ${JSON.stringify(vuota.vuoti)}`);
+
+  /* ⛔ il caso che ha cambiato il disegno: SENZA MANSIONE non si sa che cosa
+     gli spetti — diverso da «non gli spetta niente» */
+  const senzaMansione = scudo.cartellaLavoratore({ id: "zz", nome: "Nuovo assunto", attivo: true }, dati, oggi);
+  ok(senzaMansione.vuoti.some(v => /non si sa quali corsi/i.test(v)),
+    `senza mansione lo dichiara: ${JSON.stringify(senzaMansione.vuoti)}`);
+
+  eq(scudo.cartellaLavoratore(null, dati, oggi).trovato, false,
+    "senza lavoratore risponde «non trovato», non una cartella vuota che sembra a posto");
+});
+test("descriviCartella: la frase del fascicolo la scrive il modulo, non la pagina", () => {
+  const D = scudo.DEMO, oggi = new Date("2026-08-01T00:00:00");
+  const dati = { scadenze: D.scadenze, mansioni: D.mansioni, dpi: D.dpi,
+                 nomine: D.nomine, documenti: D.documenti };
+  const f = scudo.descriviCartella(scudo.cartellaLavoratore(D.lavoratori.find(x => x.id === "d4"), dati, oggi));
+  ok(/non è completa/i.test(f), `dice che non e' completa: «${f.slice(0, 70)}…»`);
+  ok(/non dovuto/i.test(f), "e mette in guardia proprio dalla lettura sbagliata");
+  const g = scudo.descriviCartella(scudo.cartellaLavoratore(D.lavoratori.find(x => x.id === "d1"), dati, oggi));
+  ok(!/non è completa/i.test(g) && /alla data di stampa/i.test(g),
+    `su una cartella piena dice altro, e data la stampa: «${g.slice(0, 70)}…»`);
+});
 test("⛔ DDT: la causale del trasporto non si inventa «Vendita»", () => {
   /* Il foglio stampava «Causale del trasporto: Vendita» e «Trasporto a cura di:
      mittente» FISSI NEL CODICE, su ogni DDT. Non e' forma: il DDT viaggia sul

@@ -2051,6 +2051,24 @@ campi interi, file delle macchine.
       Serve a **impedire il lavoro sbagliato**: chi riprendesse dalla scheda
       vecchia scriverebbe strati dati che esistono, l'errore che `CLAUDE.md`
       elenca fra i più costosi con quattro casi datati.
+- [x] ✅ **LA CARTELLA DEL LAVORATORE — L'ULTIMO DEI CINQUE** *(01/08, Scudo)* —
+      era l'unico pezzo davvero mancante dei «5 documenti da fare per primi»:
+      il verbale DPI si stampava, il fascicolo no. `cartellaLavoratore` **non
+      calcola niente di nuovo** — mette in fila per una persona quello che
+      Scudo sa già dire — e la parte progettata è **`vuoti`**: un fascicolo
+      stampato mente **per omissione**, perché una sezione vuota si legge «a
+      questa persona non serve» invece di «non è stato registrato niente». Il
+      caso che ha cambiato il disegno, trovato in scratchpad: **senza mansione**
+      non si *sa* che cosa gli spetti, che è diverso da «non gli spetta niente».
+      ⚠️ Tre errori miei trovati misurando: `scadenzeDiChiLavora` non era la
+      funzione giusta (indovinata dal nome); **`statoScadenza` prende la data e
+      restituisce una stringa** — passandogli la riga rispondeva «senza data» su
+      righe datate, e il fascicolo l'avrebbe **stampato così**, mentre le mie
+      prove contavano righe e non se ne accorgevano (asserzione aggiunta, cade
+      col difetto rimesso); e due regex cercavano «e» dove il testo ha «è».
+      Riusata la meccanica di stampa del verbale, nessuna seconda struttura in
+      casa. Prove **1117 → 1119**. ⚠️ Debito dichiarato: il censimento delle sei
+      app **non è stato fatto** — un tentativo invalidato da me, uno fermato.
 - [x] ✅ **ACCORGERSENE PRIMA CHE IL CAMION SIA SOTTO** *(01/08, Conti)* —
       `mancanzeDdt` la leggeva **un posto solo**, il foglio di stampa: l'utente
       scopriva il documento incompleto **dopo aver premuto Stampa**, col

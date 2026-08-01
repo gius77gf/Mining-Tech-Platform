@@ -784,6 +784,12 @@
     <div class="form">
       <select class="dw-input" id="dpi-verb-lav" style="flex:2 1 200px;"></select>
       <button class="dw-btn" id="btn-dpi-verb">Stampa / Salva PDF</button>
+      <!-- ⛔ La CARTELLA e' un'altra cosa dal verbale, e sta qui accanto
+           perche' si sceglie la stessa persona: il verbale e' la consegna dei
+           DPI (art. 77), la cartella e' il fascicolo intero che l'ispettore
+           chiede — corsi, mansioni, nomine, documenti. Era l'ultimo pezzo
+           mancante dei cinque documenti prioritari. -->
+      <button class="dw-btn secondary" id="btn-cartella">Cartella del lavoratore</button>
     </div>
     <div class="note">Il verbale è il foglio che in ispezione viene chiesto per primo (<b>art. 77 D.Lgs 81/08</b>): elenca cosa è stato consegnato, quando, in che taglia, e dove serve segna l'<b>addestramento</b> — obbligatorio per i DPI di <b>III categoria</b> e per i <b>protettori dell'udito</b>. Si stampa, si fa firmare e la foto del foglio firmato si allega ai <b>Documenti</b> come «Verbale DPI».</div>
   </div>
@@ -1101,6 +1107,7 @@
     REQUISITI_FORMAZIONE, requisitoFormazione, requisitoSicuro, statoRequisito, MANSIONI_PRESET, mansionePreset,
     matriceMansione, riepilogoMansioni, lavoratoriScoperti, abilitazioneLavoratore,
     NOMINE_RUOLI, ruoloNomina, nominaAttiva, organigrammaSicurezza, nomineDaSistemare,
+    cartellaLavoratore, descriviCartella,
     TIPI_DPI, tipoDpi, tipoDpiSicuro, ultimaConsegnaDpi, statoConsegnaDpi, allarmiDpi, riepilogoDpi, verbaleDpi,
     indiciInfortunistici,
     CAUSE_ANALISI, validaAnalisi, analisiDiEvento, eventiSenzaAnalisi, causeRicorrenti } from "./scudo-data.js";
@@ -3186,6 +3193,68 @@
       "Stampa");
     if (!ok) return;
     stampaVerbale(lav);
+  };
+
+  /* ⛔ LA CARTELLA DEL LAVORATORE. Riusa la stessa meccanica del verbale
+     (`#verbale` + la classe `stampa-verbale`): un secondo foglio con regole di
+     stampa proprie sarebbe la struttura del core riscritta in casa.
+     Quello che la cartella aggiunge e' che DICHIARA le sezioni vuote: un
+     fascicolo stampato mente per omissione, e una sezione senza righe si legge
+     «non dovuto» invece che «non registrato». La frase la scrive il modulo. */
+  function costruisciCartella(c) {
+    const l = c.lavoratore;
+    const riga = (a, b) => `<tr><td style="padding:3px 8px 3px 0;"><b>${esc(a)}</b></td><td style="padding:3px 0;">${b}</td></tr>`;
+    const sezione = (titolo, righe, vuotoTesto) => `
+      <h3 style="font-size:13px;margin:16px 0 5px;border-bottom:1px solid #bbb;padding-bottom:3px;">${esc(titolo)}</h3>`
+      + (righe.length
+          ? `<table style="width:100%;border-collapse:collapse;font-size:12px;">${righe.join("")}</table>`
+          : `<div style="font-size:12px;color:#8a0000;border:1px dashed #8a0000;padding:5px 8px;">${esc(vuotoTesto)}</div>`);
+
+    $("verbale").innerHTML = `
+      <h2 style="font-size:17px;margin:0 0 2px;">Cartella del lavoratore</h2>
+      <div style="font-size:12px;color:#555;margin-bottom:10px;">${esc(l.nome)}${l.ruolo ? " · " + esc(l.ruolo) : ""} — documento preparato con Deepwork Scudo il ${fmtData(oggiISO())}</div>
+      ${sezione("Mansioni assegnate",
+          c.mansioni.map(m => riga(m.nome, esc((m.requisiti || []).length + " requisiti · " + (m.dpi || []).length + " DPI previsti"))),
+          "Nessuna mansione assegnata: senza mansione non si sa quali corsi e quali DPI gli spettino.")}
+      ${sezione("Formazione e scadenze",
+          c.scadenze.map(x => riga(x.scadenza.tipo || "—",
+            (x.scadenza.dataScadenza ? fmtData(x.scadenza.dataScadenza) : "senza data") + " · " + esc(x.stato || "—"))),
+          "Nessuna scadenza registrata: non vuol dire «in regola», vuol dire che non è stato registrato niente.")}
+      ${sezione("Dispositivi di protezione consegnati",
+          c.verbale.righe.map(r => riga(r.tipo.nome || r.consegna.tipo,
+            fmtData(r.consegna.dataConsegna) + (r.consegna.taglia ? " · taglia " + esc(r.consegna.taglia) : "")
+            + (r.addestramentoRichiesto ? (r.addestramentoFatto ? " · addestramento fatto" : " · <b>addestramento da fare</b>") : ""))),
+          "Nessun DPI consegnato risulta a registro.")}
+      ${c.nomine.length ? sezione("Nomine attive",
+          c.nomine.map(n => riga((ruoloNomina(n.ruolo) || {}).etichetta || n.ruolo,
+            n.dal ? "dal " + fmtData(n.dal) : "senza data di nomina")), "") : ""}
+      ${c.documenti.length ? sezione("Documenti collegati",
+          c.documenti.map(d => riga(d.titolo, esc(d.meta || ""))), "") : ""}
+      <div style="margin-top:14px;font-size:11.5px;${c.completa ? "color:#555;" : "color:#8a0000;font-weight:600;"}">${esc(descriviCartella(c))}</div>
+      <div style="margin-top:22px;display:flex;gap:26px;">
+        <div style="flex:1;border-top:1px solid #777;padding-top:4px;font-size:11px;color:#555;">Luogo e data</div>
+        <div style="flex:1;border-top:1px solid #777;padding-top:4px;font-size:11px;color:#555;">Il datore di lavoro</div>
+      </div>`;
+  }
+  $("btn-cartella").onclick = async () => {
+    const lav = LAV.find(l => l.id === $("dpi-verb-lav").value);
+    if (!lav) { err("dpi-verb-lav", true); $("dpi-verb-lav").focus();
+      esito("dpi-esito", "Scegli di chi è la cartella.", "err"); return; }
+    err("dpi-verb-lav", false);
+    const c = cartellaLavoratore(lav, { scadenze: SCA, mansioni: MANS, dpi: DPI, nomine: NOM, documenti: DOC });
+    const ok = await chiedi("Cartella — " + lav.nome,
+      (c.completa
+        ? "Tutte le sezioni contengono dati registrati in Scudo."
+        : "⚠️ <b>La cartella non è completa.</b> " + esc(c.vuoti.join(" "))
+          + "<br><br>Il foglio esce lo stesso e <b>dichiara</b> le sezioni vuote, invece di lasciarle bianche: una sezione bianca un ispettore la legge «non dovuto».")
+      + "<br><br>Si apre la finestra di stampa del browser: da lì puoi anche scegliere «Salva come PDF».",
+      "Stampa");
+    if (!ok) return;
+    costruisciCartella(c);
+    document.body.classList.add("stampa-verbale");
+    const fine = () => { document.body.classList.remove("stampa-verbale"); window.removeEventListener("afterprint", fine); };
+    window.addEventListener("afterprint", fine);
+    window.print();
   };
 
   // ── Tocchi delle schede S4/S5 (elenco a parte: non tocca quello di S1-S3) ──

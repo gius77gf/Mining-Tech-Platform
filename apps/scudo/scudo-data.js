@@ -1537,6 +1537,84 @@ export function verbaleDpi(lavoratore, consegne, oggi = new Date()) {
   };
 }
 
+/* LA CARTELLA DEL LAVORATORE — il fascicolo che si esibisce all'ispettore.
+   ═══════════════════════════════════════════════════════════════════════
+   Era l'ultimo pezzo davvero mancante dei cinque documenti prioritari: il
+   verbale DPI si stampava già, la cartella no.
+
+   ⛔ NON CALCOLA NIENTE DI NUOVO, ed è il punto. Tutto quello che serve Scudo
+   lo sa già dire — `statoScadenza`, `matriceMansione`, `verbaleDpi`,
+   `nominaAttiva`. Questa funzione mette in fila per UNA persona quello che
+   l'app sa già, nell'ordine in cui un ispettore lo chiede. Scriverci dentro un
+   secondo calcolo sarebbe l'ennesima copia di una regola.
+
+   ⛔ QUELLO CHE INVECE VALE LA PENA SCRIVERE È `vuoti`, e la ragione è che un
+   fascicolo stampato mente **per omissione**: una sezione vuota su un foglio
+   che esce dalla stampante si legge «a questa persona non serve», mentre la
+   verità è «non è stato registrato niente». Sono due frasi diverse davanti a
+   un ispettore, e la seconda va scritta.
+   Il caso che ha cambiato il disegno mentre lo provavo in scratchpad: una
+   persona **senza mansione**. Il primo prototipo la trattava come chiunque
+   altro e la cartella usciva con corsi e DPI vuoti — che si legge «non gli
+   spetta niente». Senza mansione invece non si SA che cosa gli spetti: è
+   `matriceMansione` a dirlo, e senza mansione quella domanda non ha risposta.
+
+   `completa` è false appena c'è un vuoto: un fascicolo senza dati non è il
+   fascicolo di una persona in regola, è un fascicolo non compilato. */
+export function cartellaLavoratore(lavoratore, dati, oggi = new Date()) {
+  const l = lavoratore || null;
+  if (!l) return { trovato: false, motivo: "Nessun lavoratore scelto.", vuoti: [], completa: false };
+  const d = dati || {};
+  const scadenze = d.scadenze || [], mansioni = d.mansioni || [],
+        dpi = d.dpi || [], nomine = d.nomine || [], documenti = d.documenti || [];
+
+  const sue = scadenze
+    .filter(s => s && String(s.lavoratoreId || "") === String(l.id))
+    /* ⚠️ `statoScadenza` prende la DATA e restituisce una stringa, non prende
+       la riga e non restituisce un oggetto: passandogli la scadenza intera
+       rispondeva «senza data» su righe che la data ce l'hanno. Misurato, non
+       indovinato — ed è la stessa lezione del `scadenzeDiChiLavora` di poco fa. */
+    .map(s => ({ scadenza: s, stato: statoScadenza(s.dataScadenza, oggi) }));
+  const mie = mansioni.filter(m => (m.lavoratoriIds || []).includes(l.id));
+  const verbale = verbaleDpi(l, dpi, oggi);
+  const sueNomine = nomine.filter(n => n.lavoratoreId === l.id && nominaAttiva(n, oggi));
+  const suoiDoc = documenti.filter(x => x.lavoratoreId === l.id);
+
+  const vuoti = [];
+  if (!mie.length)
+    vuoti.push("Nessuna mansione assegnata: senza mansione non si sa quali corsi e quali DPI gli spettino.");
+  if (!sue.length)
+    vuoti.push("Nessuna scadenza registrata: non vuol dire «in regola», vuol dire che non è stato registrato niente.");
+  if (!verbale.righe.length)
+    vuoti.push("Nessun DPI consegnato risulta a registro.");
+
+  return {
+    trovato: true, lavoratore: l,
+    scadenze: sue, mansioni: mie, verbale, nomine: sueNomine, documenti: suoiDoc,
+    vuoti, completa: vuoti.length === 0,
+  };
+}
+
+/* La frase che chiude la cartella, scritta dal modulo per la stessa ragione di
+   `descriviBaseOnere` in Terra: quello che un documento dichiara è una REGOLA,
+   e chi la scrive dev'essere uno solo. Legge `completa`, che altrimenti
+   sarebbe una bandiera che non guarda nessuno (regola 20 di run-stile). */
+export function descriviCartella(cartella) {
+  const c = cartella || {};
+  if (!c.trovato) return c.motivo || "Cartella non disponibile.";
+  if (c.completa)
+    return "Tutte le sezioni della cartella contengono dati registrati in Scudo alla data di stampa.";
+  /* ⚠️ NON ri-elenca i vuoti: quelli li scrive già ogni sezione, e sul foglio
+     stampato la ripetizione era tre righe di rumore in fondo a un documento
+     che va letto in fretta. Qui si dice la cosa che le sezioni NON dicono —
+     come vanno lette. L'elenco resta in `vuoti`, per chi lo vuole (la modale
+     lo usa, perché lì le sezioni non ci sono). */
+  const n = c.vuoti.length;
+  return "⚠️ Questa cartella non è completa: " + n
+    + (n === 1 ? " sezione è senza righe" : " sezioni sono senza righe")
+    + ". Le sezioni senza righe non vanno lette come «non dovuto»: vanno compilate.";
+}
+
 /* ⛔ CHI NON HA NEMMENO UNA SCADENZA NON È «REGOLARE»: È NON VERIFICATO.
    `regolari` è il numero verde in cima al Quadro, e ci finiva dentro anche la
    persona di cui non è stata registrata NESSUNA riga — né visita medica, né
