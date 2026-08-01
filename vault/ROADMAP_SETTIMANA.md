@@ -2051,6 +2051,21 @@ campi interi, file delle macchine.
       Serve a **impedire il lavoro sbagliato**: chi riprendesse dalla scheda
       vecchia scriverebbe strati dati che esistono, l'errore che `CLAUDE.md`
       elenca fra i più costosi con quattro casi datati.
+- [x] ✅ **L'ORDINAMENTO TRANQUILLO** *(01/08, Conti)* — il terzo dei cinque non
+      era dove pensavo. «senza scadenza: non si sa entro quando» sta nel
+      pannello «cosa fare adesso», che mostra le prime **tre** per priorità — e
+      `prioritaIncasso` dava a una fattura **senza scadenza** `ritardo: 0`, lo
+      stesso numero di una comodamente nei termini, ordinando per ritardo
+      decrescente. Quindi la fattura di cui si sa **meno** finiva in fondo,
+      fuori dal pannello, e la frase pronta non la vedeva nessuno. ⛔ Non è un
+      numero tranquillo: è un **ordinamento tranquillo** — non scrive niente di
+      falso, **nasconde**. ⚠️ E una prova lo **blindava**, con metà ragione
+      giusta (un ignoto non scavalca un ritardo misurato): è parola per parola
+      la correzione che **`agingIncassi` aveva già ricevuto dodici righe più
+      sotto** — stesso difetto, due funzioni, una sistemata e una no. Ora
+      `ritardo` è `null` con `senzaScadenza`, e l'ordine è: chi è in ritardo,
+      **chi non si sa**, chi si sa a posto. In demo la fattura passa dal 5° al
+      3° posto e compare. `run-kpi` **1120/0**, banco **43/0**, 20 stati.
 - [x] ✅ **IL SECONDO DEI CINQUE: LA FATTURA CHE RESTA FUORI** *(01/08, Conti)*
       — una fattura aperta **senza data di scadenza** non è in ritardo e non è
       nei termini: lo scadenzario incassi lo **dichiara** invece di infilarla in

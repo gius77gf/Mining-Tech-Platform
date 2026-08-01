@@ -828,14 +828,37 @@ export function incassoPerMese(fatture, mesi = 6, oggi = new Date(), note = null
 // in ritardo, a parità di ritardo prima l'importo più alto. Serve a sapere
 // CHI sollecitare per primo. Ogni voce porta i giorni di ritardo (0 se non
 // ancora scaduta). Funzione pura e testabile.
+/* ⛔ UNA FATTURA SENZA SCADENZA NON È UNA FATTURA IN ORARIO. Fino al 01/08
+   questa funzione le dava `ritardo: 0` — lo stesso numero di una fattura
+   comodamente nei termini — e poi ordinava per ritardo decrescente. Effetto:
+   la fattura di cui si sa MENO finiva in fondo, e il pannello «chi sollecitare»
+   ne mostra tre: quella spariva. La pagina aveva perfino la frase pronta
+   («senza scadenza: non si sa entro quando») e non la vedeva nessuno.
+   Non è un numero tranquillo su uno schermo: è un ORDINAMENTO tranquillo, che
+   è più difficile da vedere perché non scrive niente di falso — nasconde.
+   Adesso `ritardo` è **null** quando la scadenza non c'è (come `giorni`
+   risponde `null`, e come tutto il resto del modulo distingue «non lo so» da
+   «zero»), e chi ordina lo tratta a parte con `senzaScadenza`.
+   ⚠️ DOVE metterla nell'ordine è una scelta di prodotto, non un calcolo: qui
+   resta **in fondo alle rankate ma davanti a chi non ha ritardo**, perché una
+   cosa che non si sa vale più attenzione di una che si sa essere a posto. Se
+   il fondatore la vuole in cima, si cambia una riga — ma non si torna a
+   chiamarla zero. */
 export function prioritaIncasso(fatture, oggi = new Date(), note = null) {
   return (fatture || [])
     .filter(f => !f.incassata)
     .map(f => {
       const g = giorni(f.scadenza, oggi);
-      return { f, ritardo: Number.isFinite(g) ? Math.max(0, -g) : 0 };
+      const noto = Number.isFinite(g);
+      return { f, ritardo: noto ? Math.max(0, -g) : null, senzaScadenza: !noto };
     })
-    .sort((a, b) => b.ritardo - a.ritardo || apertoDi(b.f, note) - apertoDi(a.f, note));
+    .sort((a, b) => {
+      const ra = a.ritardo, rb = b.ritardo;
+      if (ra != null && rb != null && ra !== rb) return rb - ra;   // più in ritardo prima
+      if (ra != null && rb == null) return ra > 0 ? -1 : 1;        // in ritardo prima; in orario dopo
+      if (ra == null && rb != null) return rb > 0 ? 1 : -1;
+      return apertoDi(b.f, note) - apertoDi(a.f, note);
+    });
 }
 
 // Riepilogo delle gare d'appalto: quante aperte/vinte/perse, valore a

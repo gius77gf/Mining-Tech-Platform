@@ -93,6 +93,12 @@ const CASI = [
      cinque stati veri; la dimostrazione lo produce già (`f7`). */
   ['conti', 'fattura senza scadenza: resta fuori e lo dice', '#nav-rep', null, '#aging-list',
     /non si sa, e finché/i],
+  /* ⛔ E nel pannello «cosa fare adesso»: la fattura senza scadenza c'e' e dice
+     perche'. Prima non compariva — non per un difetto della pagina, che la
+     frase ce l'aveva pronta, ma perche' `prioritaIncasso` le dava «ritardo 0»
+     e il pannello ne mostra tre. Terzo dei cinque stati veri. */
+  ['conti', 'da fare adesso: la fattura senza scadenza compare', '#nav-dash', null, '#prio-list',
+    /non si sa entro quando/i],
   ['sentinella', 'punto in programma e mai misurato', '#nav-dash', null, '#all-list',
     /nessuna misura registrata/i, null, { vietato: /\d+[\s\u00a0]*[^\s]*\s*\/\s*soglia/i,
                                           perche: 'accanto a «mai misurato» non si scrive nessuna cifra' }],

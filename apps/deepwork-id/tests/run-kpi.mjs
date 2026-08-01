@@ -837,9 +837,19 @@ test("testoPromemoria: null se regolare, senza lavoratore o senza data", () => {
   eq(scudo.testoPromemoria({ tipo: "X", dataScadenza: "2000-01-01" }, { nome: "" }, new Date(2026, 6, 21)), null, "senza nome");
   eq(scudo.testoPromemoria({ tipo: "X" }, { nome: "Y" }, new Date(2026, 6, 21)), null, "senza data");
 });
-test("prioritaIncasso: fattura senza data = ritardo 0 (non in cima per errore)", () => {
-  const p = conti.prioritaIncasso([{ numero: "X", importo: 50, incassata: false }], new Date("2026-07-20T00:00:00"));
-  eq(p[0].ritardo, 0, "senza data → ritardo 0");
+test("prioritaIncasso: fattura senza data — non in cima per errore, ma nemmeno «a posto»", () => {
+  /* ⚠️ QUESTA PROVA BLINDAVA IL DIFETTO. Pretendeva `ritardo: 0` su una
+     fattura senza data, e metà della ragione era giusta — quella nel nome:
+     un ignoto non deve scavalcare un ritardo misurato, cioè non si inventa un
+     allarme. L'altra metà no: `0` è il numero delle fatture **nei termini**, e
+     ordinando per ritardo decrescente la fattura di cui si sa meno finiva in
+     fondo, fuori dal pannello che ne mostra tre.
+     È parola per parola la correzione che `agingIncassi` aveva già ricevuto
+     qui sotto: stesso difetto, due funzioni, una sistemata e una no. */
+  const oggi = new Date("2026-07-20T00:00:00");
+  const p = conti.prioritaIncasso([{ numero: "X", importo: 50, incassata: false }], oggi);
+  eq(p[0].ritardo, null, "senza data → null, non zero");
+  eq(p[0].senzaScadenza, true, "e lo dichiara");
 });
 test("⛔ agingIncassi: fattura senza scadenza = né scaduta né NON scaduta, ha un secchio suo", () => {
   /* La versione precedente di questa prova pretendeva «senza data → non
@@ -2039,6 +2049,29 @@ test("descriviCartella: la frase del fascicolo la scrive il modulo, non la pagin
   const g = scudo.descriviCartella(scudo.cartellaLavoratore(D.lavoratori.find(x => x.id === "d1"), dati, oggi));
   ok(!/non è completa/i.test(g) && /alla data di stampa/i.test(g),
     `su una cartella piena dice altro, e data la stampa: «${g.slice(0, 70)}…»`);
+});
+test("⛔ prioritaIncasso: senza scadenza non vuol dire «in orario»", () => {
+  /* Dava `ritardo: 0` a una fattura senza data — lo stesso numero di una
+     comodamente nei termini — e poi ordinava per ritardo decrescente: la
+     fattura di cui si sa MENO finiva in fondo, e il pannello «chi sollecitare»
+     ne mostra tre. Non e' un numero tranquillo su uno schermo, e' un
+     ORDINAMENTO tranquillo: non scrive niente di falso, nasconde. */
+  const oggi = new Date("2026-08-01T00:00:00");
+  const F = [
+    { id: "a", numero: "1", scadenza: "2026-07-08", importo: 100, incassata: false },  // 24 gg
+    { id: "b", numero: "2", scadenza: "2026-09-30", importo: 100, incassata: false },  // nei termini
+    { id: "c", numero: "3", scadenza: null,          importo: 100, incassata: false },  // non si sa
+  ];
+  const p = conti.prioritaIncasso(F, oggi, []);
+  const senza = p.find((x) => x.f.id === "c");
+  eq(senza.ritardo, null, "il ritardo di chi non ha scadenza e' null, non zero");
+  eq(senza.senzaScadenza, true, "e la riga lo dichiara");
+  eq(p[0].f.id, "a", "chi e' davvero in ritardo resta primo");
+  eq(p[1].f.id, "c", "⛔ ma chi non si sa viene PRIMA di chi si sa essere a posto");
+  eq(p[2].f.id, "b", "e la fattura nei termini per ultima");
+  /* e chi ha ritardo vero non deve essere scavalcato da un ignoto */
+  ok(p.findIndex((x) => x.f.id === "a") < p.findIndex((x) => x.f.id === "c"),
+    "un ritardo misurato conta piu' di un ignoto: non si inventa un allarme");
 });
 test("⛔ DDT: la causale del trasporto non si inventa «Vendita»", () => {
   /* Il foglio stampava «Causale del trasporto: Vendita» e «Trasporto a cura di:
