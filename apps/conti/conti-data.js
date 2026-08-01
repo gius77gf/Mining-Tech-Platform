@@ -185,6 +185,19 @@ export const DEMO = {
       prodottoId: "p5", prodotto: "Misto di cava (non classificato)", lordo: 40.7, tara: 14.3, netto: 26.4,
       unitaVendita: "t", quantita: 26.4, densita: null, prezzoUnitario: 6.5, aliquotaIva: 22,
       mezzo: "DR 118 XS", destinatario: "Piazzale Modica", fatturaId: null, causaleTrasporto: "vendita", trasportoACura: "mittente" },
+    /* ⛔ VENDUTA A METRO CUBO E SENZA DENSITÀ: i m³ non si possono calcolare
+       dalle tonnellate, e la riga scrive «quantità non calcolabile» invece di
+       tirare a indovinare una densità. Il form la blocca in scrittura — ci si
+       arriva da un import o da un dato vecchio — ma il caso esiste, e finché
+       non stava in dimostrazione quella frase non la vedeva nessuno.
+       ⚠️ È LOCALE: una riga su tredici. Il criterio scritto il 01/08 dice che
+       un caso da dimostrare deve poter mancare senza portarsi via il resto —
+       questo lo rispetta, il «residuo non calcolabile» di Terra no. */
+    { id: "d7", numero: "2026/013", data: "2026-07-29", clienteId: "c2", cliente: "Stradesud",
+      prodottoId: "p3", prodotto: "Sabbia lavata 0/4", lordo: 38.2, tara: 13.9, netto: 24.3,
+      unitaVendita: "m3", quantita: null, densita: null, prezzoUnitario: 22, aliquotaIva: 22,
+      mezzo: "DR 118 XS", destinatario: "Piazzale Modica", fatturaId: null,
+      causaleTrasporto: "vendita", trasportoACura: "mittente" },
   ],
   // RILIEVI DI TERRA (solo per la modalità dimostrativa): in un'organizzazione
   // vera arrivano dall'app Terra, qui sono finti ma COERENTI con le pesate
@@ -1295,8 +1308,18 @@ export function valorePesata(pesata) {
 export function quantitaPesata(pesata) {
   const d = pesata || {};
   const t = +d.netto || 0;
-  const m3 = d.unitaVendita === "m3" && Number.isFinite(+d.quantita)
-    ? +d.quantita : convertiQuantita(t, "t", "m3", d.densita);
+  /* ⛔ `Number.isFinite(+d.quantita)` DA SOLO NON BASTA, ed è la trappola che
+     questo file documenta in altri due punti: `+null` fa **0**, e
+     `Number.isFinite(0)` risponde **true**. Quindi una pesata venduta a metro
+     cubo con `quantita: null` — ci si arriva da un import o da un dato vecchio,
+     il form la blocca — usciva con **0 m³** invece che «non calcolabile».
+     Zero metri cubi su un DDT non è un vuoto: è una consegna dichiarata di
+     niente. Trovato il 01/08 mettendo quel caso in dimostrazione: il codice
+     c'era da prima, e nessuno poteva vederlo. */
+  const qDich = d.quantita;
+  const qNota = !(qDich == null || String(qDich).trim() === "") && Number.isFinite(+qDich);
+  const m3 = d.unitaVendita === "m3" && qNota
+    ? +qDich : convertiQuantita(t, "t", "m3", d.densita);
   return { t: round2(t), m3: m3 == null ? null : round3(m3) };
 }
 

@@ -2051,6 +2051,21 @@ campi interi, file delle macchine.
       Serve a **impedire il lavoro sbagliato**: chi riprendesse dalla scheda
       vecchia scriverebbe strati dati che esistono, l'errore che `CLAUDE.md`
       elenca fra i più costosi con quattro casi datati.
+- [x] ✅ **ZERO METRI CUBI SU UN DDT** *(01/08, Conti)* — aggiunta in
+      dimostrazione la pesata venduta a metro cubo **senza densità e senza
+      quantità** (locale: una riga su tredici, quindi passa il criterio scritto
+      poco fa), e il numero è uscito **sbagliato**: `m3: 0`. Non «non
+      calcolabile»: **zero**. Su un DDT zero metri cubi non è un vuoto, è **una
+      consegna dichiarata di niente**. ⛔ Causa: `+null` fa 0 e
+      `Number.isFinite(0)` risponde **true**, quindi la guardia lasciava passare
+      l'assenza e `convertiQuantita` — che la cosa giusta la fa — **non veniva
+      nemmeno chiamata**. È la trappola che **questo stesso file documenta in
+      altri due punti**, mancata la terza. Nessuno l'aveva vista perché **il
+      caso non c'era in dimostrazione**: sesta volta stanotte che aggiungerlo fa
+      emergere un difetto vero, e la più netta — non una frase mancante ma un
+      **numero sbagliato su un documento fiscale**. Corretta con la guardia
+      prima della coercizione; uno zero **scritto** resta zero, ed è provato.
+      `run-kpi` **1121/0**.
 - [x] ✅ **UN «NO» MOTIVATO: IL RESIDUO CHE NON SI PUÒ DIMOSTRARE** *(01/08)* —
       la condizione più pesante fra quelle invisibili («Residuo del volume
       concesso: non calcolabile», **sul foglio che va all'ente**) **non va

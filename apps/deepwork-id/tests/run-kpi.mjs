@@ -2073,6 +2073,25 @@ test("⛔ prioritaIncasso: senza scadenza non vuol dire «in orario»", () => {
   ok(p.findIndex((x) => x.f.id === "a") < p.findIndex((x) => x.f.id === "c"),
     "un ritardo misurato conta piu' di un ignoto: non si inventa un allarme");
 });
+test("⛔ quantitaPesata: «quantita: null» a metro cubo non fa ZERO metri cubi", () => {
+  /* `+null` fa 0 e `Number.isFinite(0)` risponde true: una pesata venduta a
+     metro cubo con la quantita' non scritta usciva con **0 m3** invece che
+     «non calcolabile». Zero metri cubi su un DDT non e' un vuoto: e' una
+     consegna dichiarata di niente.
+     E' la trappola che questo modulo documenta in altri due punti — trovata
+     solo mettendo il caso in dimostrazione, perche' il codice c'era da prima
+     e nessuno poteva vederlo. */
+  for (const q of [null, undefined, ""]) {
+    const r = conti.quantitaPesata({ netto: 24.3, unitaVendita: "m3", quantita: q, densita: null });
+    eq(r.m3, null, `quantita ${JSON.stringify(q)} → m3 null, non zero`);
+  }
+  /* uno ZERO SCRITTO invece resta zero: e' un dato, non un vuoto */
+  eq(conti.quantitaPesata({ netto: 24.3, unitaVendita: "m3", quantita: 0, densita: null }).m3, 0,
+    "uno zero scritto dall'utente e' un dato e resta");
+  /* e con la densita' il conto si fa lo stesso, dalle tonnellate */
+  eq(conti.quantitaPesata({ netto: 24, unitaVendita: "m3", quantita: null, densita: 1.6 }).m3, 15,
+    "se la densita' c'e', i m3 si calcolano dal netto");
+});
 test("⛔ DDT: la causale del trasporto non si inventa «Vendita»", () => {
   /* Il foglio stampava «Causale del trasporto: Vendita» e «Trasporto a cura di:
      mittente» FISSI NEL CODICE, su ogni DDT. Non e' forma: il DDT viaggia sul
