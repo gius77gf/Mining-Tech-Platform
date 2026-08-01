@@ -7,7 +7,7 @@
 // perché non falliscono i test, si vedono solo aprendo la pagina giusta.
 // Qui diventano controlli che girano in automatico.
 //
-// 19 regole, al 05/08. *(Era rimasto scritto «tredici» per giorni mentre
+// 20 regole, al 05/08. *(Era rimasto scritto «tredici» per giorni mentre
 // l'elenco cresceva: un numero in un commento non fallisce, sta lì — la stessa
 // ragione per cui esiste `numeri-nei-documenti.mjs`. Adesso c'è una prova in
 // fondo al file che lo confronta con le voci davvero elencate qui sotto.)*
@@ -132,6 +132,24 @@
 //     l'unica cosa che l'ha trovato è stato guardare lo scatto. Se il numero
 //     manca del tutto è peggio, perché non manca davvero: vale il 5 di
 //     `shared/deepwork-style.css`, quindi una app da sei voci ne perde una.
+//
+// 20. UNA NON-MISURABILITÀ DICHIARATA DAL MODULO DEVE ESSERE LETTA DALLA
+//     PAGINA. È il principio del fondatore — «l'assenza di un dato non è un
+//     dato favorevole» — nella sua forma verificabile. Quando un modulo si
+//     accorge di non poter misurare qualcosa lo dichiara con una bandiera
+//     (`misurabile`, `leggibile`, `calcolabile`, `noto`, `misurato`, `pochi`,
+//     `assente`, `mai`) accanto al numero. Ma una bandiera che nessuno legge
+//     **non protegge niente**: la pagina disegna il numero tranquillo lo
+//     stesso, e il modulo sembra a posto perché la dichiarazione c'è. È la
+//     stessa forma della guardia scollegata della regola 17 — togliere le
+//     funzioni dimenticando il `<script>` — e dell'`impronta` non collegata al
+//     giro: il pezzo esiste, e non è attaccato a niente.
+//     ⚠️ Questa regola è nata da un censimento MIO SBAGLIATO, e la controprova
+//     lo tiene fermo: la prima versione leggeva `/* backend assente: demo */` e
+//     `// …volume noto: il` come dichiarazioni, e accusava due funzioni sane.
+//     Un commento non è una dichiarazione. Per questo la regola non usa una
+//     ricerca a testo ma `mascheraCodice`, che è lo scanner già provato del
+//     file — la stessa lezione dei due tokenizzatori.
 //
 // Come si aggiunge una regola: una funzione che restituisce l'elenco delle
 // violazioni con file e riga, e un `test(...)` che pretende zero.
@@ -2070,6 +2088,152 @@ test("regola 19: la controprova — la barra col numero indietro viene vista", (
   // difetto 3: il controllo CIECO — la barra che non si aggancia più
   const cieca = barraNav(vero.replace(/<nav([^>]*)class="([^"]*)\bnav\b([^"]*)"/, '<nav$1class="$2barra-bassa$3"'));
   ok(cieca === null, "cambiando la classe la regola deve smettere di vedere la barra (e allora è il conteggio dei soggetti a doverlo dire)");
+});
+
+/* ────────────────────────────────────────────────────────────────────────
+   REGOLA 20 — UNA NON-MISURABILITÀ DICHIARATA VA LETTA DALLA PAGINA
+   ────────────────────────────────────────────────────────────────────────
+   Il principio del fondatore reso verificabile. Il modulo che non può
+   misurare qualcosa lo dichiara con una bandiera accanto al numero; se la
+   pagina non la legge, disegna il numero tranquillo lo stesso — e il modulo
+   sembra a posto, perché la dichiarazione c'è. Guardia scollegata.
+   ⚠️ La ricerca è a TESTO MASCHERATO, non a testo. La prima stesura di questo
+   controllo, fatta a mano fuori dalla suite, ha accusato due funzioni sane
+   perché leggeva `/* backend assente: demo *​/` come una dichiarazione. */
+/* ⛔ IL VOCABOLARIO È CORTO DI PROPOSITO, e le parole escluse contano quanto
+   quelle dentro. Ci stanno solo i nomi che in questo codice vogliono dire
+   SEMPRE E SOLO «si è potuto misurare?». Sono state provate e buttate fuori:
+   · `misurato` — in `scartoPpvVolata` è il VALORE misurato, gemello di
+     `previsto`. Non è una bandiera, è un numero: la prima stesura di questa
+     regola ci si è impigliata e ha accusato una funzione sana.
+   · `assente`, `mai` — in Campo e Sentinella sono STATI (`stato: "mai"`) o
+     variabili locali, non proprietà che dichiarano una non-misurabilità.
+   Una parola ambigua non rende la regola più severa: la rende rumorosa, e una
+   regola rumorosa si spegne. */
+const BANDIERE = ["misurabile", "leggibile", "calcolabile", "noto",
+                  "attendibile", "pochi"];
+/* Le posizioni di `bandiera:` che stanno DAVVERO nel codice — non in un
+   commento, non dentro una stringa. `mascheraCodice` è lo scanner del file,
+   quello con la sua prova dedicata: qui non se ne scrive un secondo. */
+function bandiereDichiarate(testo) {
+  const vivo = mascheraCodice(testo);
+  const out = new Set();
+  for (const b of BANDIERE) {
+    const re = new RegExp("\\b" + b + "\\s*:", "g");
+    for (const m of testo.matchAll(re)) if (vivo[m.index]) { out.add(b); break; }
+  }
+  return out;
+}
+/* Quante volte la bandiera compare come LETTURA e non come dichiarazione:
+   `r.misurabile`, `{ misurabile }`, `if (!o.noto)`. Cioè tutte le occorrenze
+   nel codice vivo, meno quelle seguite dai due punti.
+   ⚠️ Si guarda il modulo INSIEME alla pagina, e non è una concessione: una
+   bandiera può essere consumata **dentro il modulo stesso**, ed è il disegno
+   giusto. `origineDi` restituisce `noto`, e chi decide la frase è
+   `descriviOrigine` — la pagina non deve sapere niente di `noto`, se no la
+   provenienza sarebbe decisa in due posti (regola 7). La seconda stesura di
+   questo controllo pretendeva la lettura nella PAGINA e accusava proprio il
+   codice fatto bene. */
+function bandiereLette(testi) {
+  const out = new Set();
+  for (const b of BANDIERE) {
+    let letture = 0;
+    for (const t of testi) {
+      const vivo = mascheraCodice(t);
+      for (const m of t.matchAll(new RegExp("\\b" + b + "\\b\\s*(:?)", "g")))
+        if (vivo[m.index] && m[1] !== ":") letture++;
+    }
+    if (letture) out.add(b);
+  }
+  return out;
+}
+const APP_CON_MODULO = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
+/* ⚠️ PRENDE IL TESTO, NON IL PERCORSO. Una controprova che per provarci deve
+   scrivere in un file tracciato è scritta male: il 01/08 una di queste ha
+   girato con `sed` sul modulo vero mentre nell'altra finestra c'era un giro
+   del browser, cioè esattamente ciò che `impronta.mjs` esiste per impedire. */
+function scollegateIn(app, mod, pag) {
+  const dich = bandiereDichiarate(mod);
+  const lette = bandiereLette([mod, pag]);
+  return [...dich].filter((b) => !lette.has(b)).map((b) =>
+    `apps/${app}/${app}-data.js dichiara «${b}» e nessuno la legge mai`
+    + " — né la pagina né il modulo: il numero si disegna tranquillo e la"
+    + " dichiarazione non protegge niente");
+}
+function bandiereScollegate() {
+  return APP_CON_MODULO.flatMap((a) =>
+    scollegateIn(a, leggi(`apps/${a}/${a}-data.js`), leggi(`apps/${a}/index.html`)));
+}
+test("regola 20: ogni non-misurabilità dichiarata è letta da qualcuno", () => {
+  const v = bandiereScollegate();
+  ok(v.length === 0, v.join("\n      "));
+});
+/* Quanti soggetti ha guardato davvero. Se le bandiere trovate fossero zero, la
+   regola risponderebbe «nessuna violazione» senza aver letto niente — il
+   difetto raccolto tre volte in CLAUDE.md. */
+/* ⚠️ E QUI VA DETTA LA COPERTURA VERA, non lasciata intendere dallo zero.
+   Le app che usano questo vocabolario sono TRE su sei: Conti, Scudo e Terra.
+   Campo e Sentinella la non-misurabilità la dicono in un altro modo — uno
+   `stato: "mai"`, un `null` di ritorno — e Flotta non la dichiara affatto.
+   Quindi «nessuna violazione» qui NON vuol dire «tutte le app sono a posto»:
+   vuol dire che le bandiere esistenti sono attaccate a qualcosa. Il giorno in
+   cui Campo o Flotta adottassero una bandiera, questa prova lo direbbe
+   salendo — ed è il motivo per cui stampa i numeri invece di tacere. */
+test("regola 20: ha davvero trovato le bandiere, e dichiara su quante app", () => {
+  const per = APP_CON_MODULO.map((a) => [a, bandiereDichiarate(leggi(`apps/${a}/${a}-data.js`))]);
+  const totale = per.reduce((t, [, s]) => t + s.size, 0);
+  const conAlmenoUna = per.filter(([, s]) => s.size).length;
+  ok(totale >= 6,
+    `bandiere distinte trovate: ${totale}, troppe poche perché il controllo stia guardando davvero`
+    + ` — ${per.map(([a, s]) => `${a}:${s.size}`).join(" ")}`);
+  ok(conAlmenoUna >= 3,
+    `app che dichiarano una non-misurabilità: ${conAlmenoUna} su ${APP_CON_MODULO.length}`
+    + ` — ${per.map(([a, s]) => `${a}:${s.size}`).join(" ")}`);
+});
+/* ⚠️ LA CONTROPROVA, E NON TOCCA NESSUN FILE — due direzioni opposte, perché
+   questa regola può sbagliare in tutt'e due i versi. */
+test("regola 20: la controprova — vede la dichiarazione scollegata, non il commento", () => {
+  const mod = leggi("apps/terra/terra-data.js");
+  const pag = leggi("apps/terra/index.html");
+
+  // 1. IL DIFETTO VERO: una bandiera nuova dichiarata nel codice e mai letta.
+  //    `attendibile` oggi non la usa nessuno: è il caso pulito.
+  const conDifetto = mod.replace("export function divarioRecupero",
+    "export function _finta(){ return { attendibile: false }; }\nexport function divarioRecupero");
+  ok(conDifetto !== mod, "l'iniezione non ha agganciato niente: la controprova non prova niente");
+  ok(bandiereDichiarate(conDifetto).has("attendibile"),
+    "la regola DEVE vedere una bandiera dichiarata nel codice vivo");
+  ok(!bandiereLette([conDifetto, pag]).has("attendibile"),
+    "e DEVE vedere che nessuno la legge: né il modulo col difetto, né la pagina");
+  //    …e soprattutto: la REGOLA, non solo i suoi pezzi, deve segnalarlo.
+  ok(scollegateIn("terra", conDifetto, pag).length === 1,
+    "la regola intera deve produrre esattamente una segnalazione sul difetto iniettato: "
+    + JSON.stringify(scollegateIn("terra", conDifetto, pag)));
+  ok(scollegateIn("terra", mod, pag).length === 0,
+    "e nessuna sul file vero: se ne desse anche senza difetto, non starebbe distinguendo");
+
+  // 2. IL FALSO POSITIVO che questa regola ha davvero prodotto, il 01/08:
+  //    la stessa parola dentro un COMMENTO non è una dichiarazione.
+  const soloCommento = mod.replace("export function divarioRecupero",
+    "/* nota: qui il backend è attendibile: sempre */\nexport function divarioRecupero");
+  ok(soloCommento !== mod, "la seconda iniezione non ha agganciato niente");
+  ok(!bandiereDichiarate(soloCommento).has("attendibile"),
+    "un commento NON è una dichiarazione: è l'errore che ha fatto nascere questa regola");
+
+  // 3. E nemmeno dentro una stringa mostrata all'utente.
+  const soloStringa = mod.replace("export function divarioRecupero",
+    'export function _finta2(){ return "il dato non è attendibile: manca la misura"; }\nexport function divarioRecupero');
+  ok(soloStringa !== mod, "la terza iniezione non ha agganciato niente");
+  ok(!bandiereDichiarate(soloStringa).has("attendibile"),
+    "una parola dentro una stringa non è una dichiarazione");
+
+  // 4. E il verso opposto, che è la trappola numero 3 di CLAUDE.md — un
+  //    controllo che non sa RIABILITARSI segnala per sempre, e allora lo si
+  //    spegne. Aggiunta la lettura, la bandiera non è più scollegata.
+  const conLettura = conDifetto.replace("export function divarioRecupero",
+    "export function _legge(o){ return o.attendibile ? 1 : 0; }\nexport function divarioRecupero");
+  ok(scollegateIn("terra", conLettura, pag).length === 0,
+    "una lettura vera DEVE far sparire la segnalazione: se no la regola non distingue niente");
 });
 
 /* Il numero di regole scritto nell'intestazione è quello vero? Era rimasto a

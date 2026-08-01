@@ -1909,6 +1909,34 @@ campi interi, file delle macchine.
       Terra». Vero, ma incompleto: `31f4d5b` portava dentro **anche Scudo**
       (+348 in `index.html`, +44 in `scudo-data.js`). Una correzione che
       sottostima il danno è ancora un resoconto sbagliato.
+- [x] ✅ **REGOLA 20 — UNA BANDIERA CHE NESSUNO LEGGE NON PROTEGGE NIENTE**
+      *(01/08)* — il principio del fondatore esce da `CLAUDE.md` e diventa un
+      controllo. Quando un modulo dichiara di non poter misurare qualcosa
+      (`misurabile`, `leggibile`, `calcolabile`, `noto`, `attendibile`,
+      `pochi`), quella bandiera deve essere **letta da qualcuno** — dalla
+      pagina o dal modulo stesso. Se no è una **guardia scollegata**: il numero
+      tranquillo si disegna lo stesso e il modulo sembra a posto perché la
+      dichiarazione c'è. Stessa forma del `<script>` dimenticato (regola 17) e
+      dell'impronta non collegata al giro. Suite **268 → 271**.
+      ⚠️ **Nata da un mio censimento sbagliato, corretto due volte**, e tutt'e
+      due gli errori erano già in elenco in `CLAUDE.md`: (1) leggeva
+      `/* backend assente: demo */` come una dichiarazione — corretto **non**
+      scrivendo un tokenizzatore migliore ma smettendo di scriverne uno e
+      usando `mascheraCodice`, l'unico pezzo del file con una prova su sé
+      stesso; (2) pretendeva la lettura **nella pagina** e accusava `origineDi`
+      di Terra, il cui `noto` lo consuma `descriviOrigine` dentro il modulo —
+      cioè il disegno **giusto**, quello della regola 7.
+      ⛔ Il vocabolario è **corto di proposito**: `misurato` è fuori perché in
+      `scartoPpvVolata` è il *valore* misurato, non una bandiera; `assente` e
+      `mai` sono fuori perché in Campo e Sentinella sono *stati*. Una parola
+      ambigua non rende la regola più severa, la rende rumorosa — e una regola
+      rumorosa si spegne.
+      ⛔ E la **copertura è dichiarata, non lasciata intendere**: usano questo
+      vocabolario **tre app su sei** (Conti, Scudo, Terra); Campo e Sentinella
+      dicono la stessa cosa con uno `stato: "mai"` o un `null`, Flotta non la
+      dichiara affatto. «Nessuna violazione» qui non vuol dire «tutte le app
+      sono a posto», e la prova dei soggetti stampa i numeri app per app perché
+      quello zero non venga letto per più di quello che è.
 
 ---
 
