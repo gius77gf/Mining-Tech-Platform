@@ -409,6 +409,28 @@ e oggi **quattro documenti su cinque aspettano solo la pagina**.
 | # | documento | dati | che cosa manca davvero |
 |---|---|---|---|
 | 1 | **DDT** — Conti | `clienti` ✅ `prodotti` ✅ | ⛔ **`cantieri` e `vettori`: zero riferimenti nel modulo.** È l'unico buco di dati rimasto dei cinque. Poi la pagina. |
+
+### ⚠️ E i `cantieri` di Conti NON sono quelli di Scudo
+
+Cercandoli prima di scriverli: **Scudo ha già una collezione `cantieri`**
+(`{ nome, comune, tipo: cava|cantiere, stato }`, viva e in dimostrazione, 28
+riferimenti nella pagina). La tentazione di riusarla è forte — «un dato inserito
+una volta, utile in cinque posti» è il vantaggio dichiarato dell'ecosistema.
+
+**Sono due cose diverse, e si vede da chi le legge.** In Scudo i cantieri sono
+puntati da `documenti` (il DSS di quel sito) e da `ispezioni` (i controlli
+periodici che lì vanno fatti): sono **i luoghi dove l'azienda lavora e ha
+obblighi di sicurezza**. Il cantiere di un DDT è **dove è stato consegnato il
+materiale** — di solito un posto dove la nostra azienda non mette piede.
+
+Fonderle vorrebbe dire far comparire gli indirizzi di consegna nelle tendine del
+DSS e delle ispezioni, e nei conteggi della sicurezza: siti fantasma con obblighi
+che nessuno ha, cioè un allarme inventato dove non c'è niente da presidiare.
+
+**Quindi: Conti si tiene la sua lista, e Scudo non si tocca.** È la scelta
+prudente e reversibile; l'unione (una lista sola con un flag «qui lavoriamo /
+qui consegniamo») resta possibile domani, ma è una decisione di prodotto e la
+prende il fondatore, non un ciclo automatico.
 | 2 | **Riepilogo annuale + onere** — Terra | ✅ completo | solo la pagina di stampa |
 | 3 | **Cartella lavoratore + verbale DPI** — Scudo | ✅ completo | solo la pagina |
 | 4 | **Fascicolo ambientale** — Sentinella | ✅ completo | solo la pagina |
