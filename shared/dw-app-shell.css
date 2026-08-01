@@ -52,13 +52,11 @@
     transition: transform .18s var(--ease), box-shadow .18s var(--ease), border-color .2s; }
   .kpi:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0, 0, 0, .32);
     border-color: color-mix(in srgb, var(--app-accent) 45%, var(--border)); }
-  .kpi.accent { border-color: color-mix(in srgb, var(--app-accent) 35%, var(--border)); }
   .kpi .n { font-family: 'Barlow Condensed', sans-serif; font-size: 30px; font-weight: 800; }
   .kpi .l { font-size: 11px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; }
   .kpi.ok .n { color: var(--success); }
   .kpi.warn .n { color: var(--warn); }
   .kpi.danger .n { color: var(--danger); }
-  .kpi.accent .n { color: var(--app-accent2); }
 
   .sec { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700;
          letter-spacing: 2px; text-transform: uppercase; color: var(--muted2);

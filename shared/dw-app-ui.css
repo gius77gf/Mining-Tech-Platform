@@ -112,7 +112,16 @@ img{max-width:100%}
 .tour-banner b{color:var(--text)}
 
 /* ─────────────── pagine ─────────────── */
-.page{padding:16px 16px calc(24px + env(safe-area-inset-bottom))}
+/* ⛔ `display:none` ERA SOLO IN `dw-app-shell.css`, e qui mancava. Finché le
+   pagine caricavano tutt'e due i fogli non si vedeva: shell nascondeva le
+   sezioni non attive e questa riga le riapriva su quella attiva. Tolto shell
+   (01/08), la sola `.page.active{display:block}` non nasconde niente — e le
+   sei app hanno disegnato **tutte** le sezioni una sotto l'altra: Flotta da
+   1.755 a 19.344 px di altezza, Campo da 1.494 a 12.346.
+   È la lezione che il censimento dei doppioni non poteva dare: due fogli che
+   definiscono lo **stesso selettore** non portano le **stesse dichiarazioni**,
+   e «38 su 43 ridefiniti» non vuol dire «38 su 43 sostituiti». */
+.page{display:none; padding:16px 16px calc(24px + env(safe-area-inset-bottom))}
 .page.active{display:block}
 
 /* ─────────────── KPI (copia di .kpi-card del core) ─────────────── */
@@ -138,6 +147,16 @@ img{max-width:100%}
 .kpi>*{position:relative; z-index:1}
 .kpi:hover{transform:translateY(-3px); box-shadow:var(--sh4),var(--edge)}
 .kpi:active{transform:translateY(-1px) scale(.99)}
+/* ⛔ ARRIVATE DA `dw-app-shell.css` il 01/08, e la ragione è nel documento
+   `docs/DUE_FOGLI_PER_LA_STESSA_BARRA.md`: i due fogli disegnavano le stesse
+   cose (38 selettori su 43 di shell erano già ridefiniti qui), e dove NON si
+   ridefinivano si contraddicevano — la barra alta dell'amministrazione usciva
+   dallo schermo per questo. La soluzione non è stata riscrivere regole ma
+   smettere di caricare i due fogli insieme; perché si potesse, i pochi
+   superstiti che servono alle pagine con questo foglio dovevano venire qui.
+   `.kpi.accent` la usa solo Flotta (tre punti, `class="kpi accent"`). */
+.kpi.accent{border-color:color-mix(in srgb,var(--app-accent) 35%,var(--border))}
+.kpi.accent .n{color:var(--app-accent2)}
 .kpi .l{
   font-family:'Barlow',sans-serif; font-size:10px; font-weight:600; letter-spacing:2px;
   text-transform:uppercase; color:var(--muted); line-height:1.3;
@@ -184,6 +203,11 @@ img{max-width:100%}
   gap:6px 10px; background:var(--card); border:1px solid var(--border);
   border-radius:var(--r-sm); padding:12px 13px; margin-bottom:5px;
   min-height:var(--tap); box-shadow:var(--sh1),var(--edge);
+  /* ⛔ `cursor` arrivava da `dw-app-shell.css` e questo foglio non lo
+     riscriveva: stessa storia di `.arr` qui sotto, e del `display:none` di
+     `.page`. Il core lo scrive su `.sitem`, che è la riga di elenco da cui
+     `.item` è copiata. */
+  cursor:pointer;
   transition:transform .15s var(--ease),box-shadow .15s var(--ease),border-color .2s,background .2s;
 }
 .item::after{
@@ -199,6 +223,10 @@ img{max-width:100%}
   border-color:color-mix(in srgb,var(--app-accent) 42%,var(--border));
   transform:translateX(3px); box-shadow:var(--sh3),var(--edge);
 }
+/* anche questa arriva da `dw-app-shell.css` (vedi il commento sopra `.kpi.accent`):
+   la usano tutte le pagine che hanno righe `.item`, cioè tutte quelle che
+   caricano questo foglio */
+.item:active{background:var(--card2)}
 .item.st-danger{border-left:3px solid var(--danger)}
 .item.st-warn{border-left:3px solid var(--warn)}
 .item.st-ok{border-left:3px solid var(--success)}
@@ -234,7 +262,21 @@ img{max-width:100%}
   width:var(--arr-ico); height:var(--arr-ico); stroke:currentColor; fill:none;
   stroke-width:var(--arr-stroke); stroke-linecap:round; stroke-linejoin:round;
 }
-.arr{display:inline-flex; align-items:center; justify-content:center; flex-shrink:0}
+/* ⛔ `color` e `font-size` arrivano da `dw-app-shell.css`, ed erano VIVE: questo
+   foglio non le riscriveva, quindi finché le sette pagine caricavano tutt'e due
+   il chevron le prendeva da lì. Tolto quel `<link>` (01/08) sarebbero sparite,
+   e il censimento dei doppioni non poteva vederlo — confrontava i NOMI dei
+   selettori, e `.arr` era in tutt'e due i fogli, quindi «ridefinito».
+   Le regole qui sopra servono all'`svg`; ma nelle sei app `.arr` contiene il
+   CARATTERE `›` (52 volte), che senza queste due righe eredita il colore pieno
+   del testo e la misura di serie: più acceso e più piccolo di quanto deve.
+   Sono le stesse del core (`.sarr{color:var(--muted); font-size:18px}`).
+   📌 Il core gli dà anche `padding:4px 8px`: qui manca di proposito, per non
+   mescolare un ripristino con un miglioramento — vedi `docs/DUE_FOGLI_PER_LA_STESSA_BARRA.md`. */
+.arr{
+  display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
+  color:var(--muted); font-size:18px;
+}
 
 /* ─────────────── badge (copia di .scad-badge: raggio 3px, pieno) ─────────────── */
 .badge{

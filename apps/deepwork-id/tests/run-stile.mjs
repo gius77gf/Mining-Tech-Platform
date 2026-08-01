@@ -7,7 +7,7 @@
 // perché non falliscono i test, si vedono solo aprendo la pagina giusta.
 // Qui diventano controlli che girano in automatico.
 //
-// 20 regole, al 05/08. *(Era rimasto scritto «tredici» per giorni mentre
+// 23 regole, al 01/08. *(Era rimasto scritto «tredici» per giorni mentre
 // l'elenco cresceva: un numero in un commento non fallisce, sta lì — la stessa
 // ragione per cui esiste `numeri-nei-documenti.mjs`. Adesso c'è una prova in
 // fondo al file che lo confronta con le voci davvero elencate qui sotto.)*
@@ -150,6 +150,31 @@
 //     Un commento non è una dichiarazione. Per questo la regola non usa una
 //     ricerca a testo ma `mascheraCodice`, che è lo scanner già provato del
 //     file — la stessa lezione dei due tokenizzatori.
+// 21. OGNI SUPERFICIE DELLE REGOLE DI STILE È APERTA ANCHE DAL GIRO DEL
+//     BROWSER. Le due liste erano tenute a mano in due file, e in cima a
+//     `giro.mjs` c'era scritto che «il controllo in fondo a questo file
+//     pretende che combacino» — controllo che **non esisteva**. Misurato:
+//     quindici superfici qui, undici nel giro. Quattro pagine che un cliente
+//     apre davvero — fra cui l'accesso e l'amministrazione — non le guardava
+//     nessun banco: né contrasto, né id doppi, né fuori-schermo.
+// 22. DUE FOGLI CONDIVISI NON DEFINISCONO LO STESSO SELETTORE, o la ragione è
+//     scritta. Stessa forma di `nomi-doppi.mjs` per le funzioni. Non è una
+//     soglia: è l'insieme esatto, e cade nei due versi — un doppione nuovo, e
+//     un doppione dichiarato che non si presenta più.
+// 23. E NON BASTA CONFRONTARE I **NOMI**: si confrontano le DICHIARAZIONI.
+//     `.page` era in tutt'e due i fogli e contava come doppione, ma il
+//     `display:none` stava solo in shell — tolto shell, Flotta è passata da
+//     1.755 a 19.344 px. Idem `cursor` su `.item` e `color`+`font-size` su
+//     `.arr`. Tre perdite che il censimento per nomi non poteva vedere, e
+//     nessuna delle tre rompe la pagina: cambiano un colore e una misura.
+//
+// ⚠️ Le regole 21-23 sono nate senza entrare in questo elenco, e la prova in
+// fondo al file **non se n'è accorta**: confronta il numero dichiarato con le
+// voci elencate qui, cioè verifica che il commento sia coerente **con sé
+// stesso**, non che copra il file. È il controllo che non guarda dove crede,
+// nella sua forma più economica. Un conto automatico non è banale (non ogni
+// `test(...)` è una regola), quindi per adesso resta una cosa da fare a mano —
+// dichiarata qui invece che scoperta fra un mese.
 //
 // Come si aggiunge una regola: una funzione che restituisce l'elenco delle
 // violazioni con file e riga, e un `test(...)` che pretende zero.
@@ -316,6 +341,11 @@ const DOPPIONI_OGGI = [
   [".dw-muted", "deepwork-style + dw-app-ui"],
   [".info", "dw-app-shell + dw-app-ui"],
   [".item", "dw-app-shell + dw-app-ui"],
+  /* ⛔ DOPPIONE VOLUTO, e l'unico: da quando le sette pagine non caricano piu'
+     `dw-app-shell.css`, i due fogli servono pagine DIVERSE — shell e' rimasto
+     di `profilo.html`, ui di tutte le altre — e a tutt'e due le pagine serve
+     questa riga. Non si contraddicono perche' non si incontrano mai. */
+  [".item:active", "dw-app-shell + dw-app-ui"],
   [".item:hover", "dw-app-shell + dw-app-ui"],
   [".kpi", "dw-app-shell + dw-app-ui"],
   [".kpi .l", "dw-app-shell + dw-app-ui"],
@@ -390,6 +420,119 @@ console.log("\n── Nessun selettore nuovo definito in due fogli condivisi ─
     ok(spariti.length === 0,
       `DOPPIONI_OGGI dichiara doppioni che non ci sono più: ${spariti.join(", ")} — righe da togliere`);
     ok(cambiati.length === 0, `doppioni che hanno cambiato fogli: ${cambiati.join(", ")}`);
+  });
+}
+
+/* ⛔ LA REGOLA QUI SOPRA CONFRONTA I **NOMI**, E NON BASTA — misurato il 01/08,
+   togliendo il `<link>` a `dw-app-shell.css` dalle sette pagine. Due regole con
+   lo stesso selettore possono portare **proprieta' diverse**: `.page` era
+   dichiarata in tutt'e due i fogli e contava come doppione, ma il
+   `display:none` che nasconde le sezioni non attive stava **solo in shell**.
+   Tolto shell, le sei app hanno disegnato tutte le sezioni una sotto l'altra —
+   Flotta da 1.755 a **19.344 px**. Poi, cercando meglio, altre due: il
+   `cursor:pointer` di `.item` e il `color`+`font-size` di `.arr` (il chevron
+   `›`, 52 volte nelle sei app) erano vivi e li metteva shell.
+   Cioe' il censimento «cinque superstiti» ne aveva mancati tre, e tutt'e tre
+   nella direzione che non si vede: nessuno rompe la pagina, cambiano il colore
+   e la misura di un dettaglio.
+
+   Questa regola guarda le **dichiarazioni**: per ogni proprieta' scritta da
+   shell, ui la riscrive? Quelle che ui non riscrive sono le sole che una pagina
+   perde smettendo di caricare shell — quindi l'elenco qui sotto e' esattamente
+   «che cosa distingue ancora i due fogli», con la ragione per cui va bene.
+   Cade nei due versi come la regola dei doppioni: una divergenza nuova cade
+   subito, una dichiarata che non si presenta piu' cade anche lei.
+   ⚠️ Il lettore conta la profondita' delle graffe. Il primo tentativo, a
+   espressione regolare, leggeva **20 regole su 41** perche' non entrava nei
+   blocchi di `@media` — e non se ne accorgeva: per questo il nome della prova
+   stampa quante regole ha letto in tutt'e due i fogli. */
+const SOLO_IN_SHELL = [
+  [".top h1", "margin, font-size, letter-spacing",
+   "nelle sette pagine che hanno smesso di caricare shell non c'e' nessun <h1> "
+   + "dentro `.top` (quelli che si trovano stanno nei modelli di STAMPA): morta"],
+  [".top h1 .accent", "color", "vive solo in `profilo.html`, che shell lo carica ancora"],
+  [".top .sub", "font-size, color, letter-spacing, text-transform",
+   "vive solo in `profilo.html`: le altre usano la struttura del core (`.top-brand`)"],
+  [".nav", "border-top, padding-bottom",
+   "ui disegna la barra DEL CORE (pillola sospesa, icone svg, --nav-cols); "
+   + "queste sono il residuo della barra piatta e la contaminavano"],
+  [".nav button", "flex", "vedi `.nav`"],
+  [".nav button.active", "position", "vedi `.nav` — e ui mette gia' `position:relative` su `.nav button`"],
+  [".nav button.active::before", "right, box-shadow", "vedi `.nav`"],
+  [".nav .ico", "font-size, margin-bottom",
+   "in shell l'icona era un CARATTERE, in ui e' un `svg` con misura propria: "
+   + "togliendole l'etichetta e' passata da 11px a 9px/700, **identica a `.bn span` del core**"],
+  [".kpi:hover", "border-color",
+   "il core NON ha un hover sulle sue `.kpi-card`; ui ne ha uno suo (sollevamento "
+   + "+ alone `::after`), coerente e completo. La tinta del bordo arrivava da shell per caso"],
+  [".kpi.ok .n", "color", "ui scrive `-webkit-text-fill-color:transparent` su `.kpi .n` per il gradiente: il color era gia' invisibile"],
+  [".kpi.warn .n", "color", "vedi `.kpi.ok .n`"],
+  [".kpi.danger .n", "color", "vedi `.kpi.ok .n`"],
+];
+console.log("\n── Le proprietà che solo dw-app-shell.css dichiara sono quelle dichiarate ──");
+{
+  const regole = (css) => {
+    const senza = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    const out = new Map();                 // "ctx | selettore" -> Set(proprieta)
+    const pila = [];
+    let buf = "", i = 0;
+    while (i < senza.length) {
+      const c = senza[i];
+      if (c === "{") {
+        const testa = buf.trim(); buf = ""; i++;
+        if (testa.startsWith("@")) { pila.push(testa); continue; }
+        let corpo = "", prof = 1;
+        while (i < senza.length && prof > 0) {
+          if (senza[i] === "{") prof++;
+          else if (senza[i] === "}") { prof--; if (!prof) break; }
+          corpo += senza[i]; i++;
+        }
+        i++;
+        const props = [];
+        for (const d of corpo.split(";")) {
+          const p = d.split(":")[0].trim().toLowerCase();
+          if (p && !p.includes("{")) props.push(p);
+        }
+        const ctx = pila.join(" ");
+        for (const s of testa.split(",")) {
+          const nome = s.trim().replace(/\s+/g, " ");
+          if (!nome) continue;
+          const k = ctx ? ctx + " | " + nome : nome;
+          if (!out.has(k)) out.set(k, new Set());
+          for (const p of props) out.get(k).add(p);
+        }
+        continue;
+      }
+      if (c === "}") { pila.pop(); buf = ""; i++; continue; }
+      buf += c; i++;
+    }
+    return out;
+  };
+  const tShell = leggi("shared/dw-app-shell.css"), tUi = leggi("shared/dw-app-ui.css");
+  const shell = tShell ? regole(tShell) : new Map();
+  const ui = tUi ? regole(tUi) : new Map();
+  const oggi = new Map();
+  for (const [k, props] of shell) {
+    const suo = ui.get(k);
+    const manca = [...props].filter((p) => !suo || !suo.has(p));
+    if (manca.length) oggi.set(k, manca.join(", "));
+  }
+  const dich = new Map(SOLO_IN_SHELL.map(([s, p]) => [s, p]));
+  const nuove = [...oggi.keys()].filter((s) => !dich.has(s));
+  const sparite = [...dich.keys()].filter((s) => !oggi.has(s));
+  const cambiate = [...oggi].filter(([s, p]) => dich.has(s) && dich.get(s) !== p)
+    .map(([s, p]) => `${s} (ora «${p}», dichiarato «${dich.get(s)}»)`);
+  test(`le proprietà che solo dw-app-shell.css dichiara sono quelle dichiarate `
+     + `(${oggi.size} trovate, ${dich.size} dichiarate; ${shell.size} regole in shell, ${ui.size} in ui)`, () => {
+    ok(shell.size > 30 && ui.size > 100,
+      `letti ${shell.size} e ${ui.size} blocchi: la lettura dei fogli non sta guardando niente`);
+    ok(nuove.length === 0,
+      `${nuove.length} divergenze nuove → ${nuove.map((s) => `${s} {${oggi.get(s)}}`).join(" · ")}`
+      + " — o la proprietà va portata anche in `dw-app-ui.css` (la perdono tutte le pagine"
+      + " che non caricano shell), o la riga va aggiunta a SOLO_IN_SHELL con la ragione");
+    ok(sparite.length === 0,
+      `SOLO_IN_SHELL dichiara divergenze che non ci sono più: ${sparite.join(", ")} — righe da togliere`);
+    ok(cambiate.length === 0, `divergenze cambiate: ${cambiate.join(" · ")}`);
   });
 }
 

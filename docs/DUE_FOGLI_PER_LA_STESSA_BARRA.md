@@ -99,6 +99,73 @@ questo.
 shell, e 38 erano già coperte da ui — ma le altre 5 no. Prima di committare:
 `fuori-schermo` e `contrasto` alle due larghezze, e scatti prima/dopo.
 
+## ⛔ Terza misura: «cinque superstiti» era sbagliato, ed erano otto
+
+*(01/08, dopo aver tolto il `<link>` e prima di committare.)*
+
+Il conto dei superstiti qui sopra è costruito sui **nomi dei selettori**: un
+selettore che compare in tutt'e due i fogli è «ridefinito», quindi morto.
+**È falso**, ed è lo stesso errore che mi aveva fatto perdere `display:none` su
+`.page`: due regole con lo stesso nome possono portare **proprietà diverse**, e
+quella che ui non ridichiara resta viva.
+
+Rifatta la misura sulle **dichiarazioni** — per ogni proprietà scritta da shell,
+ui la riscrive? — con un lettore che conta la profondità delle graffe (il primo
+tentativo, a espressione regolare, leggeva **20 regole su 41**, perché non
+entrava nei blocchi di `@media`, e non se ne accorgeva: per questo lo script
+stampa quante regole ha letto).
+
+Risultato: **2 selettori assenti e 18 proprietà non ridichiarate.** Delle 18,
+tre categorie:
+
+| perdita | verdetto | perché |
+|---|---|---|
+| `.top h1` (margin, font-size, letter-spacing), `.top h1 .accent`, `.top .sub` | **morta** | nelle sette pagine non c'è nessun `<h1>` né `.sub` dentro `.top` (gli `<h1>` trovati stanno nei modelli di **stampa**) |
+| `.kpi.ok/.warn/.danger .n` → `color` | **morta** | ui scrive `-webkit-text-fill-color:transparent` su `.kpi .n` per il gradiente: il `color` di shell era già invisibile |
+| tutte le `.nav*` (border-top, padding-bottom, flex, position, font-size, margin-bottom, right, box-shadow) | **correzione** | ui disegna la barra **del core** (pillola sospesa, icone svg, `--nav-cols`); quelle di shell erano il residuo della barra piatta e la contaminavano. È la stessa cosa vista negli scatti: l'etichetta passa da 11px a **9px/700, identica a `.bn span` del core** |
+| `.kpi:hover` → `border-color` | **lasciata cadere, dichiarata** | il core **non ha** un hover sulle sue `.kpi-card`: ui ne ha uno suo (sollevamento + alone `::after`), coerente e completo. La tinta del bordo arrivava da shell per caso |
+| ⛔ `.item` → `cursor` | **PERDITA VERA** | il core scrive `cursor:pointer` su `.sitem`; ui non lo scriveva, lo metteva shell |
+| ⛔ `.arr` → `color`, `font-size` | **PERDITA VERA** | il core scrive `.sarr{color:var(--muted);font-size:18px}`; ui ha solo il posizionamento e le regole per l'`svg`, ma nelle sei app `.arr` contiene il **carattere** `›` (52 volte). Senza shell il chevron eredita il colore del testo e la misura di serie: **più acceso e più piccolo** di quanto deve essere |
+
+Le due perdite vere sono state riportate in `dw-app-ui.css` **prima** del commit,
+con la stessa forma delle altre tre (`.item:active`, `.kpi.accent`,
+`.kpi.accent .n`): la dichiarazione va dove sta il foglio che la pagina carica.
+
+📌 E resta una differenza col riferimento che questa misura ha fatto emergere,
+**non** creata da E0: il core dà al chevron anche `padding:4px 8px`, le app no.
+Non l'ho aggiunta qui perché avrebbe mescolato un ripristino («identico a
+prima», verificabile) con un miglioramento («identico al core», che sposta il
+disegno): sono due unità diverse, e insieme non si distinguono negli scatti.
+
+## Quarta misura: quanto pesano davvero, lette dal browser
+
+Le due dichiarazioni rimesse sono state poi misurate **calcolate**, non lette
+nel foglio — 408 chevron e 433 righe su sette pagine a 390 px:
+
+| app | `.arr` | `.item` |
+|---|---|---|
+| campo | **18px** (la prende da `ui`) | pointer |
+| conti | 16px | pointer |
+| flotta · scudo · sentinella · terra | 15px | pointer |
+
+Cioè: **tutte e sei le app dichiarano `.arr` per conto proprio**, e quattro ci
+mettono anche `font-size:15px`. Il foglio condiviso decide solo dove l'app tace:
+**campo** (che non scrive la misura) sarebbe scesa in silenzio da 18 a 16 px, e
+**conti** resta a 16 perché il suo reset scrive `font:inherit`, che vince
+sull'`ui` per ordine di cascata. Quindi il ripristino serve a una pagina — e a
+quella serve davvero. È il valore di una riga in `shared/`: non cambia niente
+dove qualcuno ha già deciso, e tiene su chi non ha deciso.
+
+⚠️ **E una cosa trovata per strada, che non è di E0 ma va scritta.** `conti` e
+`sentinella` non scrivono `.item{cursor:pointer}`: scrivono `.item.tap` e
+`.item.cliccabile`, cioè hanno deciso che la manina la meritano **solo le righe
+che si toccano**. Quella decisione **non ha mai funzionato**: `dw-app-shell.css`
+metteva `cursor:pointer` su tutte le `.item`, e le due classi erano già vere.
+Il ripristino in `ui` **conserva** il comportamento di prima (E0 non deve
+cambiare un pixel), quindi il difetto resta esattamente com'era — ma adesso è
+misurato invece che invisibile, ed è un'unità a sé: o le due app tolgono le
+classi perché non servono, o il foglio condiviso smette di decidere per loro.
+
 ## Che cosa farne (prima proposta, superata dalla misura qui sopra)
 
 1. **Togliere da `dw-app-shell.css` i 38 selettori che `dw-app-ui.css`

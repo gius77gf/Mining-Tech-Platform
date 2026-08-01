@@ -142,7 +142,22 @@ dominante. Verifica obbligatoria con screenshot prima/dopo.
       `.top .sub`, cioe' meta' della barra alta disegnata da un foglio e meta'
       dall'altro — da li' la pagina dell'amministrazione che usciva dallo schermo.
       Undici pagine, **tre combinazioni diverse** di fogli: si procede pagina per
-      pagina rimisurando, mai a occhio)* — la parte comune
+      pagina rimisurando, mai a occhio.
+      ✅ **01/08 — passi 1+2 fatti**: i superstiti che servono alle pagine con
+      `ui` sono stati spostati in `dw-app-ui.css` e il `<link>` a
+      `dw-app-shell.css` è stato tolto dalle **sette** pagine che caricavano
+      tutt'e due. Da adesso **nessuna pagina carica i due fogli insieme**, e la
+      classe di difetti della barra alta non può più presentarsi. Shell resta il
+      foglio di `profilo.html`.
+      ⛔ E «cinque superstiti» **era sbagliato: erano otto.** Il censimento
+      confrontava i **nomi** dei selettori, non le **dichiarazioni** — `.page` è
+      in tutt'e due i fogli ma il `display:none` stava solo in shell (Flotta da
+      1.755 a **19.344 px**), e allo stesso modo `cursor` su `.item` e
+      `color`+`font-size` su `.arr` (il chevron `›`, 52 volte). Rimesse in `ui`,
+      e diventate la **regola 23** di `run-stile.mjs`, che confronta le
+      dichiarazioni e non i nomi.
+      ⏭ Resta il passo 3: `dw-app-shell.css` serve **una pagina sola** e porta
+      ancora 41 regole)* — la parte comune
       dello stile sale nei fogli condivisi, in ogni app restano solo
       palette e regole specifiche. Aggiunti nello stesso passaggio **tema
       chiaro, modalità sole** (oggi chi la attiva nel core resta al buio
