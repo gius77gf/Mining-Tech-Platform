@@ -113,24 +113,46 @@ const SU_COPIA = !process.argv.includes('--sulla-viva');
    nessuna parte. Quindi il giro DICHIARA su cosa sta girando, in cima e in
    fondo: un avviso stampato solo all'inizio, dopo un'ora e mezza di
    scorrimento, non l'ha letto nessuno. */
-let COPIA = null, FUORI_DALLA_COPIA = [];
+let COPIA = null, FUORI_DALLA_COPIA = [], COMMIT_COPIA = '?';
 function nonCommittati() {
   try {
     return execFileSync('git', ['status', '--porcelain'], { cwd: RADICE, encoding: 'utf8' })
       .split('\n').map((r) => r.slice(3).trim()).filter(Boolean);
   } catch (e) { return []; }
 }
-function dichiaraSuCosaGira() {
+function hashDi(dove) {
+  try {
+    return execFileSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: dove, encoding: 'utf8' }).trim();
+  } catch (e) { return '?'; }
+}
+/* ⛔ Quanti commit ha fatto la cartella VIVA da quando la copia è stata presa.
+   Un giro dura più di un'ora: nel frattempo si continua a committare — è
+   proprio il motivo per cui la copia esiste. Se il numero non è zero, il verde
+   in fondo attesta il commit della COPIA e nient'altro. */
+export function distanzaDaCopia(commitCopia, dove = RADICE) {
+  if (!commitCopia || commitCopia === '?') return null;
+  try {
+    const n = execFileSync('git', ['rev-list', '--count', `${commitCopia}..HEAD`],
+      { cwd: dove, encoding: 'utf8' }).trim();
+    return Number.isFinite(+n) ? +n : null;
+  } catch (e) { return null; }
+}
+function dichiaraSuCosaGira(inFondo = false) {
   if (!COPIA) { console.log('▶ Il giro sta girando sulla CARTELLA VIVA: non toccare i file finché non finisce.'); return; }
-  const hash = (() => { try { return execFileSync('git', ['rev-parse', '--short', 'HEAD'],
-    { cwd: RADICE, encoding: 'utf8' }).trim(); } catch (e) { return '?'; } })();
-  console.log(`▶ Il giro sta girando su una COPIA di ${hash} (il committato), non sulla cartella viva.`);
+  console.log(`▶ Il giro sta girando su una COPIA di ${COMMIT_COPIA} (il committato), non sulla cartella viva.`);
+  if (inFondo) {
+    const avanti = distanzaDaCopia(COMMIT_COPIA);
+    if (avanti) {
+      console.log(`⚠️ Da quando la copia è stata presa la cartella viva è andata avanti di ${avanti} commit`);
+      console.log(`   (ora è a ${hashDi(RADICE)}). Questo giro attesta ${COMMIT_COPIA}, NON quello che hai adesso.`);
+    }
+  }
   if (FUORI_DALLA_COPIA.length) {
     console.log(`⚠️ ATTENZIONE: ${FUORI_DALLA_COPIA.length} file NON committati restano FUORI da quello che`);
     console.log('   il giro sta provando. Quello che vedi su disco NON è quello che è stato misurato:');
     for (const f of FUORI_DALLA_COPIA.slice(0, 12)) console.log(`   · ${f}`);
     if (FUORI_DALLA_COPIA.length > 12) console.log(`   · …e altri ${FUORI_DALLA_COPIA.length - 12}`);
-  } else {
+  } else if (!inFondo || !distanzaDaCopia(COMMIT_COPIA)) {
     console.log('  Niente di non committato: la copia è identica a quello che hai su disco.');
   }
 }
@@ -140,6 +162,7 @@ if (SU_COPIA && !BANCHI_FINTI) {
     if (existsSync(dove)) rmSync(dove, { recursive: true, force: true });
     execFileSync('git', ['worktree', 'add', '--detach', dove, 'HEAD'], { cwd: RADICE, stdio: 'ignore' });
     COPIA = dove;
+    COMMIT_COPIA = hashDi(dove);   // il commit della COPIA, preso ORA: la viva andrà avanti
     FUORI_DALLA_COPIA = nonCommittati();
     process.env.DW_RADICE = COPIA;   // i banchi che alzano un server loro
   } catch (e) {
@@ -208,8 +231,12 @@ console.log('\n════════ RIEPILOGO ════════');
    un'ora e mezza di scorrimento non l'ha letta nessuno — e il caso in cui
    serve davvero (ci sono file non committati, quindi il verde vale per una
    versione diversa da quella su disco) è proprio quello in cui si legge solo
-   il riepilogo. */
-dichiaraSuCosaGira();
+   il riepilogo.
+   ⛔ E qui va detto DI CHE COMMIT si tratta: prima il hash veniva riletto da
+   HEAD della cartella VIVA, che nel frattempo era andata avanti di 12 commit.
+   Il giro dichiarava di aver provato codice che non aveva mai visto, e la riga
+   dopo aggiungeva «la copia è identica a quello che hai su disco» — falsa. */
+dichiaraSuCosaGira(true);
 for (const e of esiti) console.log(`  ${e.ok ? 'ok ' : 'KO '} ${e.nome}`);
 const caduti = esiti.filter((e) => !e.ok);
 console.log(`\n${esiti.length - caduti.length} banchi a posto, ${caduti.length} da guardare`);
