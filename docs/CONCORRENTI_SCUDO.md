@@ -405,3 +405,45 @@
 
 **Ultimo aggiornamento**: 01/08/2026  
 **Prossima review suggerita**: Novembre 2026 (dopo primissima commercializzazione)
+
+---
+
+## 7. Verifica del Delta (01/08)
+
+Verificate le righe marcate «non c'è» e «c'è a metà» contro il codice di Scudo.
+
+| Funzione | Verdetto | Prova (file:riga o termini cercati) |
+|----------|----------|-----|
+| **FALSE — C'è già quando marcato «non c'è»** |  |  |
+| Indice di frequenza INAIL (riga 217) | FALSO, C'È GIÀ | `scudo-data.js:1821` export function indiciInfortunistici(); `index.html:1744-1746` visualizza IF, IG, LTIFR |
+| Organigramma della sicurezza (riga 250) | FALSO, C'È GIÀ | `scudo-data.js:1350+` export function organigrammaSicurezza(); `index.html` sezione S4 "NOMINE E ORGANIGRAMMA DELLA SICUREZZA" |
+| **CONFERMATO ASSENTE** |  |  |
+| Notifiche automatiche (riga 216) | CONFERMATO ASSENTE | Cercati: notific, email, alert, push — zero occorrenze in scudo-data.js e index.html. C'è solo il toast per messaggi nell'app. |
+| Dashboard KPI infortuni/near-miss/nc (riga 279) | CONFERMATO ASSENTE | Indici calcolati ma non visualizzati in dashboard. Grafici di copertura e scadenze sì, grafici trend infortuni no. |
+| Foto e video come evidenza (riga 235) | CONFERMATO ASSENTE | Allegati supportati solo nei DOCUMENTI (≤400KB). Infortuni e ispezioni: nessun campo allegato. Cercati: foto, video, immagine, media, upload. |
+| Report PDF automatico — ispezioni (riga 236) | CONFERMATO ASSENTE | C'è un PDF per il verbale DPI (specifico), non per le ispezioni. Cercati: report PDF, ispezione, stampa. |
+| Gestione DSS/PSC/POS strutturata (riga 206) | CONFERMATO ASSENTE | Documenti si registrano genericamente (tipo: "DSS", "POS", ecc.), ma zero modulo strutturato. |
+| Controllo versioni documenti (riga 210) | CONFERMATO ASSENTE | Cercati: versione, controllo versione, history, storico — solo riferimenti a storico dei near-miss, non dei documenti. |
+| Mobile app offline (riga 234) | CONFERMATO ASSENTE | Cercati: offline, service worker, PWA, cache — zero occorrenze. |
+| Permessi di Lavoro (PTW, riga 263) | CONFERMATO ASSENTE | Spazi confinati menzionati solo come voce di ispezione, non come modulo PTW. |
+| Segnalazioni osservazioni (righe 269-272) | CONFERMATO ASSENTE | Cercati: segnalazione osservazione, safety observation, comportamento rischio, buona pratica — zero occorrenze. |
+| Anagrafe appaltatori / DUVRI (righe 257-259) | CONFERMATO ASSENTE | DUVRI è tipo di documento generico, zero modulo di gestione appaltatori. |
+| Esportazione report PDF/Excel (riga 281) | CONFERMATO ASSENTE | Export CSV puntuali (lavoratori, scadenze, azioni, infortuni), ma zero report complessivo PDF/Excel. |
+| **C'È A METÀ — Verdetto confermato** |  |  |
+| Aggiornamento automatico scadenze (riga 202) | C'È A METÀ | Calcolo stato: SÌ (`scudo-data.js:907+`). Notifiche email/push: NO. |
+| Tracciamento completamento corsi (riga 275) | C'È A METÀ | Corsi tracciati come scadenze (tipo: "Corso"); via scadenze sì, LMS completo no. |
+| Allarmi scadenza certificazione (riga 276) | C'È A METÀ | Calcolo stato: SÌ. Notifiche automatiche: NO. |
+| Filtri per site/data/tipo (riga 282) | C'È A METÀ | Filtri su lista infortuni: sì. Dashboard con filtri incrociati: no. |
+
+### Riepilogo Verifica
+
+- **Righe verificate**: 16
+- **FALSE (c'è già)**: 2
+- **Confermate assenti**: 10
+- **C'è a metà (verdetto confermato)**: 4
+
+### Mancanza Confermata più Importante
+
+La **Dashboard KPI infortuni/near-miss/non-conformità** rimane il gap più evidente. L'app calcola gli indici (frequenza, gravità, LTIFR) ma non li visualizza in un dashboard con trend nel tempo o filtri per sito/anno — esattamente quello che tutti i competitor offrono e che la cava userebbe per mostrare il trend al cliente/ente. 
+
+Correlato: **grafici trend** (riga 280) e **esportazione report PDF** (riga 281) — il complesso dashboard/reporting è assente.
