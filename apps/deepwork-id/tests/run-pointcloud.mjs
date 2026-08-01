@@ -7,12 +7,16 @@
 // ============================================================
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { mostra } from "./mostra.mjs";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const pc = await import(join(HERE, "../../genesi/pointcloud.js"));
 
 let passed = 0, failed = 0;
 const test = (name, fn) => { try { fn(); passed++; console.log(`  ✓ ${name}`); } catch (e) { failed++; console.error(`  ✗ ${name}: ${e.message}`); } };
-const eq = (got, exp, why) => { const a = JSON.stringify(got), b = JSON.stringify(exp); if (a !== b) throw new Error(`${why}: atteso ${b}, ottenuto ${a}`); };
+/* `mostra` e non `JSON.stringify`: quella scrive "null" per Infinity, NaN e
+   null, e "0" per -0 — e qui si misura geometria, dove il meno zero e un
+   NaN da divisione sono esattamente i difetti da prendere. Vedi mostra.mjs. */
+const eq = (got, exp, why) => { const a = mostra(got), b = mostra(exp); if (a !== b) throw new Error(`${why}: atteso ${b}, ottenuto ${a}`); };
 const ok = (cond, why) => { if (!cond) throw new Error(why); };
 
 console.log("\n— pointcloud: parseXYZ —");

@@ -10,6 +10,7 @@
 
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { mostra } from "./mostra.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const app = (name, file) => import(join(HERE, `../../${name}/${file}`));
@@ -34,8 +35,16 @@ const test = (name, fn) => {
   try { fn(); passed++; console.log(`  ✓ ${name}`); }
   catch (e) { failed++; console.error(`  ✗ ${name}: ${e.message}`); }
 };
+/* ⛔ `mostra` e NON `JSON.stringify`, dal 01/08. Quella funzione scrive
+   `null` per Infinity, -Infinity, NaN e null — quattro valori diversi, una
+   sola scrittura — quindi `eq(x, null)` non sapeva distinguere «non
+   calcolabile» da una divisione per zero. Cioè il buco stava sotto le
+   prove che difendono il principio del fondatore, e proprio sul valore che
+   quel difetto produce. Trovato perché una controprova rispondeva «non
+   distingue» pur avendo il difetto rimesso dentro. Racconto e misure in
+   `mostra.mjs`. */
 const eq = (got, exp, why) => {
-  const a = JSON.stringify(got), b = JSON.stringify(exp);
+  const a = mostra(got), b = mostra(exp);
   if (a !== b) throw new Error(`${why}: atteso ${b}, ottenuto ${a}`);
 };
 /* Asserzione vero/falso con il motivo scritto: serve dove il controllo non è
@@ -50,9 +59,9 @@ const ok = (cond, why) => { if (!cond) throw new Error(String(why || "condizione
    un numero sbagliato viene preso lo stesso; per i campi nuovi si scrive una
    riga in più, così la novità è coperta invece che solo tollerata. */
 const contiene = (got, exp, why) => {
-  if (got == null || typeof got !== "object") throw new Error(`${why}: atteso un oggetto, ottenuto ${JSON.stringify(got)}`);
+  if (got == null || typeof got !== "object") throw new Error(`${why}: atteso un oggetto, ottenuto ${mostra(got)}`);
   for (const k of Object.keys(exp)) {
-    const a = JSON.stringify(got[k]), b = JSON.stringify(exp[k]);
+    const a = mostra(got[k]), b = mostra(exp[k]);
     if (a !== b) throw new Error(`${why}: campo ${k} atteso ${b}, ottenuto ${a}`);
   }
 };
@@ -11315,6 +11324,63 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     ok(r.tarature.coperte > 0, "insieme a letture regolarmente coperte");
     eq(r.tarature.coperte + r.tarature.scoperte + r.tarature.nonNote, r.nLetture,
        "⛔ e i tre conti coprono TUTTE le letture: nessuna sparisce per strada");
+  });
+}
+
+/* ══ L'HARNESS: `mostra` DISTINGUE QUELLO CHE `JSON.stringify` CONFONDEVA ══
+   Le prove di uno strumento di prova. Ci sono perché il difetto che
+   correggono è stato trovato per caso — una controprova che rispondeva
+   «non distingue» pur avendo il difetto rimesso dentro — e uno strumento
+   condiviso da tutte le regole non è controllato da nessuna. */
+{
+  const uguali = (a, b) => mostra(a) === mostra(b);
+
+  test("⛔ harness: i quattro valori che JSON.stringify appiattiva su «null»", () => {
+    for (const v of [Infinity, -Infinity, NaN]) {
+      ok(JSON.stringify(v) === "null", "il difetto di partenza è ancora quello: JSON.stringify lo scrive «null»");
+      ok(!uguali(null, v), `«non calcolabile» e ${mostra(v)} adesso si distinguono`);
+    }
+    eq(mostra(Infinity), "Infinity", "e si legge, invece di sparire");
+    eq(mostra(NaN), "NaN", "idem");
+    ok(!uguali(null, undefined), "e «non c'è la chiave» non è «la chiave vale null»");
+  });
+
+  test("⛔ harness: il caso vero che ha fatto scoprire il buco", () => {
+    /* una variazione percentuale calcolata partendo da zero: la risposta
+       giusta è «non esiste», quella sbagliata è Infinity — e le due
+       passavano per la stessa prova */
+    const giusta = (prima, dopo) => prima === 0 ? null : (dopo - prima) / prima * 100;
+    const rotta  = (prima, dopo) => (dopo - prima) / prima * 100;
+    eq(giusta(0, 45), null, "da zero la variazione non esiste");
+    ok(!uguali(giusta(0, 45), rotta(0, 45)),
+       "e la versione rotta NON passa più per quella asserzione: è il difetto che si voleva prendere");
+    eq(rotta(0, 45), Infinity, "perché quello che produce è Infinity, non null");
+  });
+
+  test("harness: meno zero, e la chiave che vale undefined", () => {
+    ok(JSON.stringify(-0) === "0" && JSON.stringify({ a: undefined }) === "{}",
+       "i due difetti minori di partenza");
+    ok(!uguali(0, -0), "in geometria il meno zero è un lato, non un pareggio");
+    ok(!uguali({}, { a: undefined }), "un campo mai messo non è un campo messo vuoto");
+    ok(!uguali({ a: null }, { a: NaN }), "e dentro un oggetto la distinzione regge lo stesso");
+  });
+
+  test("harness: quello che NON è cambiato, perché 2.389 asserzioni ci poggiano", () => {
+    eq(mostra(3.5), "3.5", "numero");
+    eq(mostra("ciao"), '"ciao"', "stringa");
+    eq(mostra([1, "a", null]), '[1,"a",null]', "array");
+    eq(mostra({ b: 1, a: 2 }), '{"b":1,"a":2}', "oggetto: resta l'ordine di INSERIMENTO, non l'alfabeto");
+    eq(mostra({ a: [{ b: null }] }), '{"a":[{"b":null}]}', "annidato");
+    eq(mostra(new Date("2026-08-01T00:00:00Z")), '"2026-08-01T00:00:00.000Z"', "data, come la scriveva prima");
+    ok(uguali({ x: 1 }, { x: 1 }), "e due oggetti uguali restano uguali");
+  });
+
+  test("harness: un ciclo non fa più esplodere la prova con un errore che parla d'altro", () => {
+    const c = { a: 1 }; c.se = c;
+    eq(mostra(c), '{"a":1,"se":[ciclo]}', "si scrive, invece di lanciare");
+    eq(mostra(new Date("non è una data")), "Data(non valida)", "e una data non valida si vede");
+    ok(!uguali(new Set([1]), {}), "un Set non è un oggetto vuoto");
+    ok(!uguali(new Map([["a", 1]]), {}), "e nemmeno una Map");
   });
 }
 
