@@ -1610,7 +1610,7 @@ a.dw-btn{text-decoration:none}
       <div class="avatar ico${sty[3] ? " " + sty[3] : ""}" aria-hidden="true">${I.lotti}</div>
       <div class="info"><div class="name">${nome}</div><div class="meta">${meta}</div></div>
       <div class="acts">${dd && !conData ? '<span class="badge warn">senza data</span>' : ""}
-      ${st === "recuperato" ? '<span class="badge tag" title="Il recupero lo dichiara l\'azienda; il collaudo lo verifica l\'ente">senza collaudo</span>' : ""}
+      ${st === "recuperato" && !dataISOEsiste(l.collaudatoIl) ? '<span class="badge tag" title="Il recupero lo dichiara l\'azienda; il collaudo lo verifica l\'ente">senza collaudo</span>' : ""}
       <span class="badge ${sty[1]}">${esc(sty[2])}</span>
       <button class="arr" type="button" title="Modifica il lotto" aria-label="Modifica il lotto ${nome}" data-edit-lot="${l.id}">${A.mod}</button>
       <button class="arr del" type="button" title="Rimuovi il lotto" aria-label="Rimuovi il lotto ${nome}" data-del-lot="${l.id}">${A.del}</button></div>
