@@ -2015,6 +2015,27 @@ campi interi, file delle macchine.
       un'eccezione che nasconde.* Adesso «7 trovati, 7 dichiarati»: prima i due
       numeri non coincidevano. Quella suite non era nel mio giro di verifica
       prima del commit, ed è il motivo per cui l'ha trovata la CI invece di me.
+- [x] ✅ **«CON UN VOLUME» VUOL DIRE CON UN NUMERO** *(01/08)* — chiusa la
+      quinta variante di «rilievo usabile» che il cantiere di Terra aveva
+      **segnalato invece di toccare**. Misurando le due condizioni invece di
+      fidarsi della segnalazione, **sbagliavano tutt'e due**: la canonica
+      (`volumeM3 != null`) lasciava passare `""`, `"  "`, `"abc"` e `{}` — e poi
+      ogni somma li leggeva `+v || 0`, cioè **li contava come una misura di
+      zero**; la copia a mano lasciava passare `null`, perché `+null` fa 0 e
+      `Number.isFinite(0)` è `true`. Fin dove si arriva, misurato: il lettore
+      CSV la riga col volume vuoto **la scarta già**, quindi il caso viene dal
+      form e dai dati vecchi.
+      La coppia di prove è il punto: la **conta** prende la regola indebolita,
+      l'**identità** (`filtro === rilievoUsabile`) prende la copia scritta a
+      mano. Controprova: 2 difetti, 2 cadute, con i caratteri stampati.
+      ⚠️ **E un secondo difetto trovato aggiornando i documenti**: in
+      `STATO_PRODOTTO.md` il totale delle prove sta **accanto alla sua
+      scomposizione**, e il controllo guardava **solo il totale** — gli addendi
+      facevano **1469** mentre il totale accanto diceva **1471**. Aggiornare il
+      totale costa una sostituzione, aggiornare gli addendi ne costa sei, e la
+      sesta si dimentica. Adesso c'è la regola, con la controprova in tre
+      direzioni e la conta dei soggetti (sei addendi trovati, non quattro che
+      tornano per caso).
 
 ---
 

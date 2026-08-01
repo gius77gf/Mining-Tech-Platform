@@ -292,8 +292,24 @@ export function fmtM3(v) {
 //  · `rilievoUsabile`      — elaborato e con un volume. È il minimo per contare;
 //  · `rilievoUsabileConData` — in più una data ISO vera, per chi ORDINA o
 //    confronta nel tempo: senza data non si sa dove sta nella serie.
+/* ⛔ «CON UN VOLUME» VUOL DIRE CON UN NUMERO, e fino al 01/08 non lo voleva
+   dire: la condizione era `r.volumeM3 != null`, che accetta `""`, `"  "`,
+   `"abc"` e perfino `{}`. Quei rilievi passavano per usabili, e poi ogni somma
+   li leggeva con `+r.volumeM3 || 0` — cioè li contava come una misura di ZERO.
+   Un rilievo il cui volume non si legge non è un rilievo che ha misurato zero:
+   è un rilievo che non ha misurato. Misurato dove si può arrivare: il lettore
+   CSV la riga con la colonna vuota la **scarta** già (restituisce `[]`), quindi
+   il caso arriva dal form e dai dati vecchi — latente, non impossibile.
+   ⚠️ E le tre guardie stanno in quest'ordine per forza: `+null` fa **0** e
+   `Number.isFinite(0)` è **true**, quindi `null` va escluso PRIMA; e `+""` e
+   `+"  "` fanno **0** anche loro, quindi la stringa vuota va tolta prima
+   ancora di convertire. È la trappola scritta in CLAUDE.md, e qui morde due
+   volte di fila. */
 export function rilievoUsabile(r) {
-  return !!r && r.stato === "elaborato" && r.volumeM3 != null;
+  if (!r || r.stato !== "elaborato") return false;
+  const v = r.volumeM3;
+  if (v == null || String(v).trim() === "") return false;
+  return Number.isFinite(+v);
 }
 export function rilievoUsabileConData(r) {
   return rilievoUsabile(r) && /^\d{4}-\d{2}-\d{2}$/.test(String((r && r.data) || ""));
@@ -1279,8 +1295,14 @@ export function volumeMisuratoDiLotto(lotto, rilievi) {
   if (!fronti.length)
     return { m3: null, misurabile: false, rilievi: 0, cumuloM3: 0, rilieviCumulo: 0,
       motivo: "Questo lotto non dichiara nessun fronte: senza il collegamento ai fronti non si sa quali rilievi lo riguardano, e il volume tolto non si può misurare." };
+  /* ⚠️ Qui c'era la QUINTA copia scritta a mano di «rilievo usabile»
+     (`r.stato === "elaborato" && Number.isFinite(+r.volumeM3)`), e per giunta
+     con la guardia su `null` mancante — `+null` fa 0 e `Number.isFinite(0)` è
+     `true`. Le altre quattro erano già state riportate a `rilievoUsabile` il
+     01/08; questa era rimasta, dichiarata invece che corretta. Adesso chiama la
+     funzione: la condizione giusta l'ha imparata lei, non ognuno per conto suo. */
   const suoi = (rilievi || []).filter((r) => r && fronti.includes(String(r.fronteId || ""))
-    && r.stato === "elaborato" && Number.isFinite(+r.volumeM3));
+    && rilievoUsabile(r));
   const scavo = suoi.filter((r) => provenienzaDi(r) === "scavo");
   const cumulo = suoi.filter((r) => provenienzaDi(r) === "cumulo");
   if (!scavo.length)

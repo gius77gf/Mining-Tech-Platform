@@ -75,6 +75,42 @@ for (const [rel, regola] of DOCUMENTI) {
   });
 }
 
+/* ⛔ E GLI ADDENDI DEVONO FARE IL TOTALE. Il controllo qui sopra guardava solo
+   la somma, e i documenti la somma la scrivono **accanto alla scomposizione**:
+   «1.471 prove — 1108 sulle funzioni delle app, 271 sulle regole di stile, 49
+   sugli aiuti condivisi…». Il 01/08 quella riga faceva **1469** mentre il
+   totale accanto diceva 1471, e nessuno se n'era accorto: aggiornare il totale
+   costa una sostituzione, aggiornare gli addendi ne costa sei, e la sesta si
+   dimentica. Due numeri che si contraddicono nella STESSA FRASE sono peggio di
+   un numero vecchio: fanno dubitare di tutti gli altri.
+   La regola prende il TESTO, non il percorso, così la controprova non tocca
+   nessun file. */
+export function addendiTornano(testo) {
+  const m = /\*\*([\d.]+)\*\* prove automatiche che girano senza rete — ([\s\S]{0,400}?) — più/.exec(testo);
+  if (!m) return null;
+  const somma = [...m[2].matchAll(/(?:\*\*)?(\d[\d.]*)(?:\*\*)?\s+(?:sull[ae]|sul|sugli)/g)]
+    .reduce((t, x) => t + numero(x[1]), 0);
+  return { dichiarato: numero(m[1]), somma };
+}
+test("docs/STATO_PRODOTTO.md: gli addendi fanno il totale che sta accanto", () => {
+  const r = addendiTornano(readFileSync(join(RADICE, "docs/STATO_PRODOTTO.md"), "utf8"));
+  ok(r, "non trovo la frase con la scomposizione: se l'hai riscritta, aggiorna la regola qui");
+  ok(r.somma === r.dichiarato,
+    `la frase dice ${r.dichiarato} ma i suoi addendi fanno ${r.somma}: due numeri che si contraddicono nella stessa riga`);
+});
+/* ⚠️ La controprova, dentro la suite e su una stringa: senza di lei questo
+   controllo saprebbe dire «tornano» anche se non avesse sommato niente. */
+test("la controprova: un addendo sbagliato viene visto, e uno zero non passa per somma", () => {
+  const buona = "**10** prove automatiche che girano senza rete — **4** sulle funzioni delle app, 3 sulle regole di stile, 2 sugli aiuti condivisi, 1 sulla demo — più altro";
+  const r = addendiTornano(buona);
+  ok(r && r.somma === 10 && r.dichiarato === 10, `la frase sana deve tornare: ${JSON.stringify(r)}`);
+  const rotta = addendiTornano(buona.replace("3 sulle regole", "9 sulle regole"));
+  ok(rotta && rotta.somma !== rotta.dichiarato,
+    `con un addendo cambiato il controllo DEVE vedere la differenza: ${JSON.stringify(rotta)}`);
+  ok(addendiTornano("nessuna frase del genere") === null,
+    "e se la frase non c'è deve dirlo, non rispondere che torna");
+});
+
 /* Quanti documenti ha guardato davvero: un «tutto a posto» ottenuto non
    leggendo niente è il difetto raccolto tre volte in CLAUDE.md. */
 test("il controllo ha davvero letto tutti i documenti dell'elenco", () => {

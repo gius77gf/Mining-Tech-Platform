@@ -67,10 +67,10 @@ Il racconto è in `docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md`.
   e per i soldi, valida in tutte le app — con i controlli automatici che
   impediscono a un'app di riscriversene una propria.
 
-**Quanto è controllato, oggi** *(ricontato il 04/08 lanciando le suite, non a
-memoria)*: **1.470** prove automatiche che girano senza rete — **1107** sulle
+**Quanto è controllato, oggi** *(ricontato il 01/08 lanciando le suite, non a
+memoria)*: **1.471** prove automatiche che girano senza rete — **1108** sulle
 funzioni delle app, **271** sulle regole di stile, 49 sugli aiuti condivisi, 26
-sulla nuvola di punti, 9 sul manifesto, 7 sulla demo — più **106** che girano
+sulla nuvola di punti, 9 sul manifesto, 8 sulla demo — più **106** che girano
 con l'emulatore Firestore (58 sulle **regole di sicurezza**, 19 sull'SDK, 21
 sulle funzioni, 8 sul primo avvio) e **35 esecuzioni** che aprono davvero le
 pagine in un browser.

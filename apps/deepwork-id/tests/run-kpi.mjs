@@ -9447,6 +9447,37 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     ok(!terra.rilievoUsabile(null), "niente");
     /* uno ZERO scritto è un volume vero: si è misurato, e faceva zero */
     ok(terra.rilievoUsabile({ stato: "elaborato", volumeM3: 0 }), "un volume di zero è comunque una misura");
+    /* ⛔ E «con un volume» vuol dire CON UN NUMERO. Fino al 01/08 la condizione
+       era `volumeM3 != null`, che lascia passare la stringa vuota e il testo:
+       quei rilievi risultavano usabili e ogni somma li leggeva `+v || 0`, cioè
+       li contava come una misura di ZERO. Un volume che non si legge non è un
+       volume misurato zero. */
+    ok(!terra.rilievoUsabile({ stato: "elaborato", volumeM3: "" }), "stringa vuota: non è una misura di zero");
+    ok(!terra.rilievoUsabile({ stato: "elaborato", volumeM3: "   " }), "e nemmeno spazi");
+    ok(!terra.rilievoUsabile({ stato: "elaborato", volumeM3: "abc" }), "un testo non è un volume");
+    ok(!terra.rilievoUsabile({ stato: "elaborato", volumeM3: {} }), "né un oggetto");
+    ok(!terra.rilievoUsabile({ stato: "elaborato", volumeM3: NaN }), "né NaN");
+    /* un numero scritto come stringa resta un numero: gli import lo producono */
+    ok(terra.rilievoUsabile({ stato: "elaborato", volumeM3: "1200" }), "«1200» è un volume");
+  });
+  test("⛔ volumeMisuratoDiLotto usa rilievoUsabile, non una sesta copia a mano", () => {
+    /* La condizione era riscritta qui a mano, ed era la QUINTA variante: senza
+       la guardia su `null` (che `Number.isFinite(+null)` lascia passare, perché
+       `+null` fa 0). La prova pretende l'IDENTITÀ del comportamento con la
+       funzione, non che «funzioni»: due copie uguali oggi divergono domani. */
+    const lotto = { id: "L1", frontiId: ["f1"] };
+    const rilievi = [
+      { id: "a", fronteId: "f1", stato: "elaborato", volumeM3: 500, provenienza: "scavo" },
+      { id: "b", fronteId: "f1", stato: "elaborato", volumeM3: null, provenienza: "scavo" },
+      { id: "c", fronteId: "f1", stato: "elaborato", volumeM3: "", provenienza: "scavo" },
+      { id: "d", fronteId: "f1", stato: "bozza", volumeM3: 900, provenienza: "scavo" },
+    ];
+    const v = terra.volumeMisuratoDiLotto(lotto, rilievi);
+    eq(v.m3, 500, "conta solo il rilievo che ha davvero un volume");
+    eq(v.rilievi, 1, "e ne conta UNO: gli altri tre non hanno misurato niente");
+    // l'identità: chi passa il filtro del lotto è esattamente chi passa la funzione
+    const attesi = rilievi.filter((r) => terra.rilievoUsabile(r)).length;
+    eq(v.rilievi, attesi, "il filtro del lotto e `rilievoUsabile` devono dire la STESSA cosa");
   });
   test("rilievoUsabileConData: chi ordina nel tempo pretende anche una data vera", () => {
     /* senza data non si sa dove sta nella serie: entrerebbe in un confronto
