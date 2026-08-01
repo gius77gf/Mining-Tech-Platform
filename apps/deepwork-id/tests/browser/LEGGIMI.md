@@ -449,6 +449,11 @@ La controprova mette dentro la modale una parola lunghissima che non si può
 spezzare — il caso vero è un IBAN o una causale senza spazi — e pretende che il
 banco la veda. Se non la vede, il banco non sta guardando dove crede.
 
+**Esito misurato:** l'iniezione viene vista in **tutte e quattro** le app
+(`1324 px in 312`), e gli elementi misurati salgono da **198 a 222** — cioè il
+banco ha davvero guardato la riga in più, non l'ha dedotta. Uscita `0`, che nel
+verso della controprova vuol dire «so fallire».
+
 ## `finto-firebase.mjs`
 
 **Serve per aprire il core in locale, e non solo per questa prova.**
