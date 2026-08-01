@@ -16,6 +16,16 @@ export function esc(s) {
     .replaceAll('"', "&quot;").replaceAll("'", "&#39;");
 }
 
+/* ⛔ L'INNESCO DELLA FORMULA È SCRITTO UNA VOLTA SOLA, e serve a DUE funzioni
+   che devono essere l'una l'inversa dell'altra: `csvCell` mette l'apostrofo,
+   `leggiCsv` lo toglie. Finché la regola stava solo dentro `csvCell`, il giro
+   non si chiudeva — misurato il 01/08: su sette valori scritti e riletti,
+   **quattro non tornavano identici**, e tre erano soltanto l'apostrofo rimasto
+   attaccato. Il caso che morde: un numero **negativo** («-12,5») esce dal
+   nostro export come «'-12,5» e rientra come `NaN`, cioè un dato che c'era
+   sparisce nel giro di andata e ritorno di casa nostra. */
+const INNESCO_FORMULA = /^[\t\r\n =+\-@]*[=+\-@]/;
+
 // Cella CSV sicura: neutralizza la CSV-injection (un valore che inizia
 // con = + - @ può eseguire formule aprendo il file in Excel/Calc) e
 // mette tra virgolette i valori che contengono ; " o a capo.
@@ -23,7 +33,7 @@ export function csvCell(v) {
   let s = String(v == null ? "" : v);
   // Neutralizza la formula anche quando è preceduta da spazi/tab/ritorni a capo
   // (OWASP: pure TAB e CR fanno da innesco): "\t=cmd" deve restare testo.
-  if (/^[\t\r\n =+\-@]*[=+\-@]/.test(s)) s = "'" + s;  // apostrofo: la cella resta testo
+  if (INNESCO_FORMULA.test(s)) s = "'" + s;  // apostrofo: la cella resta testo
   if (/[;"\n\r]/.test(s)) s = '"' + s.replaceAll('"', '""') + '"';
   return s;
 }
@@ -69,8 +79,14 @@ export function parseCsvLine(line) {
   // (un nome che inizia davvero con ' non viene toccato); i campi QUOTATI
   // conservano gli spazi (le virgolette servono proprio a preservarli), gli
   // altri vengono ripuliti da spazi di contorno.
+  /* ⛔ LA CONDIZIONE È QUELLA CHE HA MESSO L'APOSTROFO, non una scritta a
+     somiglianza. Qui c'era `/^'(?=[=+\-@])/`, che guarda UN carattere: quindi
+     non toglieva la guardia dai tre casi che `csvCell` neutralizza di
+     proposito — «\t=cmd», « =cmd», «\r=cmd», dove l'innesco è preceduto da uno
+     spazio bianco (OWASP: pure TAB e CR fanno da innesco). Le prove c'erano su
+     tutt'e tre, ma solo sull'ANDATA. */
   return out.map((v, i) => {
-    v = v.replace(/^'(?=[=+\-@])/, "");
+    if (v.startsWith("'") && INNESCO_FORMULA.test(v.slice(1))) v = v.slice(1);
     return quotato[i] ? v : v.trim();
   });
 }
@@ -180,7 +196,16 @@ export function numIt(v) {
     s = s.replace(/\./g, "");                       // punti multipli, senza virgola = migliaia (es. 1.234.567)
   }
   // un solo punto (o nessun separatore) resta com'è: "19.4" è decimale
-  return +s;
+  /* ⛔ E UN NON-NUMERO NON DIVENTA UN NUMERO ENORME. `+"Infinity"` fa
+     `Infinity`, e `+"1e999"` pure: due celle di un CSV che dal foglio di
+     calcolo arrivano scritte così uscirebbero da qui come un valore che
+     attraversa ogni confronto (`x > soglia` sempre vero) senza mai sembrare
+     sbagliato. È esattamente il valore su cui il 01/08 le prove non sapevano
+     distinguere «non calcolabile» da una divisione per zero. `numIt` promette
+     un **numero misurato**: se non lo è, dice `NaN`, che tutti i lettori
+     dell'ecosistema già trattano come «riga illeggibile». */
+  const n = +s;
+  return Number.isFinite(n) ? n : NaN;
 }
 
 // ⛔ LA FORMA DI UNA DATA NON È LA SUA ESISTENZA. Trovato il 03/08 in Scudo:
@@ -829,9 +854,18 @@ export function leggiCsv(testo) {
   const delim = rilevaDelimTesto(t);
   const righe = [];
   let campo = "", riga = [], q = false;
+  /* toglie l'apostrofo che `csvCell` mette davanti a `= + - @`, e SOLO quello:
+     la condizione è la stessa costante che lo ha messo, non una seconda regola
+     scritta a somiglianza. Un valore che comincia davvero per apostrofo
+     («'ndrangheta», «'90») non viene toccato, perché quello che segue non è un
+     innesco di formula. */
+  const senzaGuardia = (s) => {
+    const t = String(s).trim();
+    return t.startsWith("'") && INNESCO_FORMULA.test(t.slice(1)) ? t.slice(1) : t;
+  };
   const chiudiRiga = () => {
     riga.push(campo); campo = "";
-    if (riga.some(x => String(x).trim() !== "")) righe.push(riga.map(x => String(x).trim()));
+    if (riga.some(x => String(x).trim() !== "")) righe.push(riga.map(senzaGuardia));
     riga = [];
   };
   for (let i = 0; i < t.length; i++) {
