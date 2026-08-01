@@ -183,6 +183,15 @@ const CASI = [
      si sorveglia. Il filtro dell'elenco parte da «tutte», nessun gesto serve. */
   ['conti', 'fattura incassata di cui non si sa quando', '#nav-fat', null, '#fat-list',
     /incassata, data non registrata/i],
+  /* ⛔ «senza data» è la voce in testa alla classifica — quattro app la dicono,
+     ed è la convenzione condivisa. Qui è nella forma più forte: un TOTALE che
+     dichiara quanto non ha saputo collocare nel tempo. I 25.320 € incassati
+     comprendono i 12.000 di una fattura di cui non si sa QUANDO è arrivata, e
+     la riga lo scrive accanto al numero invece di lasciar credere che
+     l'incasso sia tracciato. Un totale che tace su questo è il numero
+     tranquillo del principio, applicato a una cifra in euro. */
+  ['conti', 'il totale incassato dichiara quello che non sa collocare', '#nav-rep', null, '#rep-list',
+    /fattura incassata senza data/i],
   /* ⛔ IL CASO PIÙ NETTO PER IL `vietato`. Una pesata venduta a metro cubo
      senza densità né quantità: la riga scrive «quantità non calcolabile», e
      accanto NON ci deve essere «0 m³». Qui lo zero non è un colore tranquillo:

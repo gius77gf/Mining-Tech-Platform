@@ -2590,6 +2590,20 @@ campi interi, file delle macchine.
       concesso, **non compaia nessuna «% del concesso»**: una frazione di un
       numero che nessuno ha scritto, su un foglio per l'ente.
       `stati-non-misurati` **64 → 70** prove, 33 → 41 stati.
+- [x] ✅ **UN TOTALE CHE DICHIARA QUELLO CHE NON SA COLLOCARE** *(01/08, Conti)*
+      — in cima alla classifica ricontata c'è **«senza data», quattro app**, ed è
+      la convenzione condivisa. Quasi tutte le occorrenze sono ripieghi di campo;
+      una no, ed è la forma più forte del principio applicata a **una cifra in
+      euro**: «Incassato (totale registrato) · 25.320 € · **1 fattura incassata
+      senza data**». I 25.320 comprendono i 12.000 di una fattura di cui non si
+      sa **quando** i soldi sono arrivati, e la riga lo scrive **accanto al
+      numero**. La dimostrazione lo produce già (`f5`): niente dati aggiunti.
+      Controprova: tolta la dichiarazione (la coda torna al neutro «da inizio
+      archivio»), il totale tace e il banco cade. **72/0**, 42 stati.
+      ⚠️ Criterio uscito da questa lettura, per non gonfiare il banco: una frase
+      merita una riga se sta **accanto a un numero** di cui cambia la lettura; se
+      sostituisce solo un campo vuoto in una riga di dettaglio, si **dichiara** e
+      si va avanti.
 
 ---
 
