@@ -274,6 +274,125 @@ const FUORI_GIRO = {
     + "di stile la guardano perché è pur sempre HTML, ma non è una superficie che "
     + "un cliente apre — come `_collaudo-grafici.html`, che infatti è già fuori",
 };
+/* ⛔ DUE FOGLI CONDIVISI CHE DEFINISCONO LO STESSO SELETTORE. Misurato il
+   01/08 dopo che la barra dell'amministrazione e' uscita dallo schermo:
+   **38 dei 43 selettori di `dw-app-shell.css` sono ridefiniti da
+   `dw-app-ui.css`**, che le pagine caricano dopo e che quindi vince. I cinque
+   superstiti sono il guaio vero — fra loro `.top .sub`, cioe' meta' della
+   barra alta disegnata da un foglio e meta' dall'altro: e' da li' che nasceva
+   il difetto. Racconto e piano: `docs/DUE_FOGLI_PER_LA_STESSA_BARRA.md`.
+
+   Questa regola NON pretende che i doppioni spariscano — sarebbe E0 tutto in
+   una volta, su undici pagine con tre combinazioni diverse di fogli. Pretende
+   che **l'elenco sia quello dichiarato**, nei due versi:
+     · un doppione NUOVO cade subito (e' il verso che protegge);
+     · un doppione che **non si presenta piu'** cade anche lui, perche' la riga
+       va tolta — e' la lezione di `sonda-vuoto.mjs`, dove un'eccezione che non
+       serve piu' e' un'eccezione che nasconde. Cosi', mentre E0 procede,
+       l'elenco **si accorcia in modo visibile** invece di restare fermo.
+   ⚠️ Non e' una soglia su un numero: e' l'insieme esatto. Un fondo sul conto
+   direbbe «49 o meno» e lascerebbe passare uno scambio — uno tolto, uno
+   aggiunto — senza dire niente. */
+const DOPPIONI_OGGI = [
+  [".arr", "dw-app-shell + dw-app-ui"],
+  [".avatar", "dw-app-shell + dw-app-ui"],
+  [".badge", "dw-app-shell + dw-app-ui"],
+  [".badge.danger", "dw-app-shell + dw-app-ui"],
+  [".badge.ok", "dw-app-shell + dw-app-ui"],
+  [".badge.warn", "dw-app-shell + dw-app-ui"],
+  [".dw-accent", "deepwork-style + dw-app-ui"],
+  [".dw-btn", "deepwork-style + dw-app-ui"],
+  [".dw-btn:active", "deepwork-style + dw-app-ui"],
+  [".dw-btn:hover", "deepwork-style + dw-app-ui"],
+  [".dw-btn.secondary", "deepwork-style + dw-app-ui"],
+  [".dw-btn.secondary:active", "deepwork-style + dw-app-ui"],
+  [".dw-btn.secondary:hover", "deepwork-style + dw-app-ui"],
+  [".dw-exit", "dw-app-shell + dw-app-ui"],
+  [".dw-exit:hover", "dw-app-shell + dw-app-ui"],
+  [".dw-home", "dw-app-shell + dw-app-ui"],
+  [".dw-home:hover", "dw-app-shell + dw-app-ui"],
+  [".dw-input", "deepwork-style + dw-app-ui"],
+  [".dw-input:focus", "deepwork-style + dw-app-ui"],
+  [".dw-muted", "deepwork-style + dw-app-ui"],
+  [".info", "dw-app-shell + dw-app-ui"],
+  [".item", "dw-app-shell + dw-app-ui"],
+  [".item:hover", "dw-app-shell + dw-app-ui"],
+  [".kpi", "dw-app-shell + dw-app-ui"],
+  [".kpi .l", "dw-app-shell + dw-app-ui"],
+  [".kpi .n", "dw-app-shell + dw-app-ui"],
+  [".kpi:hover", "dw-app-shell + dw-app-ui"],
+  [".kpi.danger .n", "dw-app-shell + dw-app-ui"],
+  [".kpi.ok .n", "dw-app-shell + dw-app-ui"],
+  [".kpi.warn .n", "dw-app-shell + dw-app-ui"],
+  [".kpis", "dw-app-shell + dw-app-ui"],
+  [".meta", "dw-app-shell + dw-app-ui"],
+  [".name", "dw-app-shell + dw-app-ui"],
+  [".nav", "dw-app-shell + dw-app-ui"],
+  [".nav .ico", "dw-app-shell + dw-app-ui"],
+  [".nav button", "dw-app-shell + dw-app-ui"],
+  [".nav button.active", "dw-app-shell + dw-app-ui"],
+  [".nav button.active::before", "dw-app-shell + dw-app-ui"],
+  [".note", "dw-app-shell + dw-app-ui"],
+  [".page", "dw-app-shell + dw-app-ui"],
+  [".page.active", "dw-app-shell + dw-app-ui"],
+  [".sec", "dw-app-shell + dw-app-ui"],
+  [".sec::before", "dw-app-shell + dw-app-ui"],
+  [".top", "dw-app-shell + dw-app-ui"],
+  [".top h1", "dw-app-shell + dw-app-ui"],
+  [".tour-banner", "dw-app-shell + dw-app-ui"],
+  ["*", "deepwork-style + dw-app-ui"],
+  ["body.dw", "deepwork-style + dw-app-shell + dw-app-ui"],
+  ["body.has-exit .top h1", "dw-app-shell + dw-app-ui"],
+];
+console.log("\n── Nessun selettore nuovo definito in due fogli condivisi ──");
+{
+  const primoLivello = (css) => {
+    const senza = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    const out = new Set();
+    let prof = 0, i = 0, inizio = 0;
+    for (let k = 0; k < senza.length; k++) {
+      const c = senza[k];
+      if (c === "{") { if (prof === 0) i = k; prof++; }
+      else if (c === "}") {
+        prof--;
+        if (prof !== 0) continue;
+        const testa = senza.slice(inizio, i).trim();
+        inizio = k + 1;
+        if (!testa || testa.startsWith("@")) continue;
+        for (const s of testa.split(",").map((x) => x.trim()).filter(Boolean)) out.add(s);
+      }
+    }
+    return out;
+  };
+  const FOGLI = ["shared/deepwork-style.css", "shared/dw-app-shell.css", "shared/dw-app-ui.css"];
+  const dove = new Map();
+  let letti = 0;
+  for (const f of FOGLI) {
+    const t = leggi(f);
+    if (t == null) continue;
+    letti++;
+    for (const s of primoLivello(t)) {
+      if (!dove.has(s)) dove.set(s, []);
+      dove.get(s).push(f.replace("shared/", "").replace(".css", ""));
+    }
+  }
+  const oggi = new Map([...dove].filter(([, ff]) => ff.length > 1).map(([s, ff]) => [s, ff.join(" + ")]));
+  const dichiarati = new Map(DOPPIONI_OGGI);
+  const nuovi = [...oggi.keys()].filter((s) => !dichiarati.has(s));
+  const spariti = [...dichiarati.keys()].filter((s) => !oggi.has(s));
+  const cambiati = [...oggi].filter(([s, f]) => dichiarati.has(s) && dichiarati.get(s) !== f).map(([s]) => s);
+  test(`i selettori definiti in due fogli condivisi sono quelli dichiarati (${oggi.size} trovati, ${dichiarati.size} dichiarati, ${letti} fogli letti)`, () => {
+    ok(letti === FOGLI.length, `letti solo ${letti} fogli su ${FOGLI.length}: la scansione non sta guardando niente`);
+    ok(oggi.size > 0, "nessun doppione trovato: la scansione dei selettori non funziona");
+    ok(nuovi.length === 0,
+      `${nuovi.length} selettori nuovi definiti in due fogli → ${nuovi.join(", ")}`
+      + " — o la regola sta in un foglio solo, o la riga va aggiunta a DOPPIONI_OGGI con la ragione");
+    ok(spariti.length === 0,
+      `DOPPIONI_OGGI dichiara doppioni che non ci sono più: ${spariti.join(", ")} — righe da togliere`);
+    ok(cambiati.length === 0, `doppioni che hanno cambiato fogli: ${cambiati.join(", ")}`);
+  });
+}
+
 console.log("\n── Le due liste di superfici combaciano ──");
 {
   const testoGiro = leggi("apps/deepwork-id/tests/browser/giro.mjs") || "";
