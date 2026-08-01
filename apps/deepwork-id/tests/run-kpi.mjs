@@ -31,9 +31,36 @@ const { createRequire } = await import("node:module");
 const grafici = createRequire(import.meta.url)(join(HERE, "../../../shared/dw-grafici.js"));
 
 let passed = 0, failed = 0;
+/* ⛔ UNA PROVA `async` NON VENIVA CONTATA — trovata il 01/08, e misurata.
+   Questo `test` era sincrono: chiamava `fn()`, e se `fn` era `async` gli
+   tornava in mano una PROMESSA, non un esito. Il `try` non poteva vedere
+   niente, quindi la prova finiva fra i passati **qualunque cosa dicessero le
+   sue asserzioni**. Erano quattro (la convenzione sui numeri, il messaggio
+   dell'ambiguo, e le due sui fronti del ponte P2): quattro prove decorative,
+   e la controprova lo dimostra — un `ok(false)` messo dentro una di loro
+   lasciava il totale a «0 falliti».
+   È la stessa famiglia di `JSON.stringify` in `eq`, e dello stesso giorno:
+   lo strumento condiviso da tutte le regole non è controllato da nessuna.
+   Adesso una promessa viene raccolta e ASPETTATA prima del riepilogo, e
+   quante ne sono state aspettate si stampa — se no «0 falliti» tornerebbe a
+   voler dire «non ho guardato». */
+const inVolo = [];
 const test = (name, fn) => {
-  try { fn(); passed++; console.log(`  ✓ ${name}`); }
-  catch (e) { failed++; console.error(`  ✗ ${name}: ${e.message}`); }
+  const chiudi = (e) => {
+    if (e) { failed++; console.error(`  ✗ ${name}: ${e.message}`); }
+    else { passed++; console.log(`  ✓ ${name}`); }
+  };
+  try {
+    const r = fn();
+    if (r && typeof r.then === "function") {
+      /* si gestisce il rifiuto QUI, se no diventa una promessa non gestita:
+         node la stampa come avviso e il processo esce lo stesso con zero */
+      const p = r.then(() => chiudi(), chiudi);
+      inVolo.push(p);
+      return p;   // così chi vuole può anche aspettarla sul posto
+    }
+    chiudi();
+  } catch (e) { chiudi(e); }
 };
 /* ⛔ `mostra` e NON `JSON.stringify`, dal 01/08. Quella funzione scrive
    `null` per Infinity, -Infinity, NaN e null — quattro valori diversi, una
@@ -11441,5 +11468,12 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
   });
 }
 
-console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`);
+/* ⛔ SI ASPETTA PRIMA DI CONTARE. Senza questa riga il riepilogo verrebbe
+   stampato mentre le prove asincrone sono ancora in volo, e `process.exit`
+   ucciderebbe il processo prima che finiscano: un rosso diventerebbe verde
+   per una questione di tempi. */
+if (inVolo.length) await Promise.all(inVolo);
+
+console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti`
+  + (inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""));
 process.exit(failed > 0 ? 1 : 0);

@@ -187,7 +187,24 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const root = join(HERE, "..", "..", "..");   // tests → deepwork-id → apps → radice
 
 let passed = 0, failed = 0;
-const test = (name, fn) => { try { fn(); passed++; console.log(`  ✓ ${name}`); } catch (e) { failed++; console.error(`  ✗ ${name}: ${e.message}`); } };
+/* ⛔ LO STESSO DIFETTO DI run-kpi, e qui riguardava una prova sola — che è
+   il modo in cui questi buchi sopravvivono: uno solo non si nota. Un `fn`
+   `async` restituisce una PROMESSA, il `try` non vede mai il suo esito, e la
+   prova finisce fra i passati qualunque cosa dicano le sue asserzioni. Si
+   raccoglie e si aspetta prima del riepilogo, e quante se ne sono aspettate
+   si stampa. */
+const inVolo = [];
+const test = (name, fn) => {
+  const chiudi = (e) => {
+    if (e) { failed++; console.error(`  ✗ ${name}: ${e.message}`); }
+    else { passed++; console.log(`  ✓ ${name}`); }
+  };
+  try {
+    const r = fn();
+    if (r && typeof r.then === "function") { const p = r.then(() => chiudi(), chiudi); inVolo.push(p); return p; }
+    chiudi();
+  } catch (e) { chiudi(e); }
+};
 const ok = (cond, why) => { if (!cond) throw new Error(why); };
 
 // Tutte le superfici che l'utente apre. Se nasce un'app, va aggiunta qui.
@@ -2348,5 +2365,6 @@ test("l'intestazione dice quante regole ci sono davvero", () => {
     `la numerazione salta: ${voci.join(", ")}`);
 });
 
-console.log(`\nRisultato Stile: ${passed} passati, ${failed} falliti`);
+if (inVolo.length) await Promise.all(inVolo);   // si aspetta PRIMA di contare
+console.log(`\nRisultato Stile: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);
