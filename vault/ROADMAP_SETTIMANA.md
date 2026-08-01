@@ -2051,6 +2051,19 @@ campi interi, file delle macchine.
       Serve a **impedire il lavoro sbagliato**: chi riprendesse dalla scheda
       vecchia scriverebbe strati dati che esistono, l'errore che `CLAUDE.md`
       elenca fra i più costosi con quattro casi datati.
+- [x] ✅ **IL PRIMO DEI CINQUE STATI VERI** *(01/08, Flotta)* — messo sotto
+      guardia il tagliando **a ore** su un mezzo di cui non si conosce il
+      ritmo: il cartellone scrive «+1 a ore: **non si sa quando**» invece di
+      inventare una data, che su una manutenzione è la differenza fra un piano
+      e un'invenzione. ⚠️ E la dimostrazione bastava già: il primo controllo
+      diceva «letture contatore: 0» ed **era la mia chiamata a essere
+      sbagliata** — passavo l'intero `DEMO` a `ritmoOreMezzi`, che vuole le
+      **letture**, che in Flotta sono i rifornimenti e i giri macchina.
+      Chiamandola come la chiama la pagina: `daStimare: 1`. Terza volta in un
+      giorno che stavo per aggiungere dati che non servivano. Il banco punta
+      alla **piastrella** del cartellone, non allo span (`.kpi` aggiunto ai
+      selettori, che sono la dichiarazione di dove si è guardato). **38/0**, 18
+      stati. Controprova: i non stimabili contati come normali, cade.
 - [x] ✅ **«NON SI SA» CONTRO «NON SI SALTA»** *(01/08)* — lette a mano le
       undici occorrenze, e la prima riga di Conti era: «così **non si salta** e
       non si duplica». La ricerca era una sottostringa **senza confine di

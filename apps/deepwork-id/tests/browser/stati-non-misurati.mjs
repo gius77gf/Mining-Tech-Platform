@@ -74,6 +74,13 @@ const CASI = [
      un domani sparisce dalla demo, il banco lo dice invece di restare verde. */
   ['flotta', 'costo senza data: non sparisce dal periodo in silenzio', '#nav-cos', null, '#cos-list',
     /senza data/i],
+  /* ⛔ Un tagliando A ORE su un mezzo di cui non si conosce il ritmo: non si
+     sa QUANDO cadrà, e il cartellone lo scrive invece di stimare a caso. Era
+     nel gruppo dei cinque stati veri usciti dalla lettura a mano della misura
+     `stati-sorvegliati` — e la dimostrazione lo produce gia' da se'
+     (`daStimare: 1`), quindi qui non si aggiungono dati: si sorveglia. */
+  ['flotta', 'tagliando a ore senza ritmo: non si sa quando cadrà', '#nav-dash', null, '#kpi-tag',
+    /non si sa quando/i],
   /* ⛔ Qui non basta che lo STATO sia dichiarato: il commento del modulo dice
      che il difetto vero e' il numero tranquillo scritto ACCANTO al badge —
      «0 µg/m³ / soglia 40» accanto a «Mai misurato», due frasi opposte sulla
@@ -150,7 +157,7 @@ for (const [app, casi] of Object.entries(perApp)) {
          nota: e' il cartellone in cima, che e' proprio il posto dove il numero
          tranquillo si vedrebbe. Un elenco di selettori e' anche una
          dichiarazione di dove si e' guardato. */
-      const SEL = '.item, .note, .badge, .board, .recap';
+      const SEL = '.item, .note, .badge, .board, .recap, .kpi';
       const radice = document.querySelector(dove);
       if (!radice) return { assente: `contenitore ${dove} non trovato` };
       const semi = radice.matches(SEL) ? [radice] : [];
