@@ -16,3 +16,10 @@ firestore-debug.log
 .contrassegno-*.txt
 contrassegno-*.txt
 pagella-*.txt
+cont-*.txt
+# ⚠️ E QUESTA LISTA SI ALLUNGA OGNI VOLTA CHE NASCE UN BANCO — .pagella-, poi
+# contrassegno-, poi cont- — che è il segno che la difesa è nel posto sbagliato:
+# il contrassegno col pid andrebbe scritto in una SOTTOCARTELLA, non nella
+# radice del repo. Finché i banchi lo mettono qui, queste righe sono l'unica
+# cosa che impedisce a un `git add .` di portarli dentro. È un cerotto, e va
+# detto che è un cerotto: la correzione vera è una riga nei banchi.
