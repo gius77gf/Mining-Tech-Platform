@@ -262,7 +262,29 @@ export const DEMO = {
     { id: "b1", data: OGGI_DEMO, turno: "Mattina", unita: "t", valore: 260 },
   ],
   checklist: [],
-  presenze: [],
+  /* ⛔ L'APPELLO DEL TURNO, NEI SUOI TRE STATI. Era `presenze: []`, e con
+     l'elenco vuoto l'appello mostrava tutti «da spuntare»: si legge come «la
+     funzione non e' mai stata usata», non come «di queste persone non si sa
+     niente». Ma il caso per cui l'appello esiste e' proprio il terzo — quello
+     PARZIALE, dove qualcuno e' stato visto e qualcuno no.
+     E' il principio del fondatore nella sua forma piu' netta, scritta in
+     `CLAUDE.md`: «non lo so» non e' «non c'e'», perche' se suona l'allarme
+     contare assente chi nessuno ha spuntato vuol dire NON ANDARLO A CERCARE.
+     I tre turni di oggi mostrano i tre stati; la data e' relativa, quindi la
+     dimostrazione non invecchia, e qualunque sia l'ora si vede il turno in
+     corso e si possono guardare gli altri due. */
+  presenze: [
+    // Mattina — PARZIALE: o4 non l'ha spuntato nessuno. E' il caso da vedere.
+    { id: "pr1", data: GIORNI_FA(0), turno: "Mattina", operatoreId: "o1", stato: "presente", ora: "06:12" },
+    { id: "pr2", data: GIORNI_FA(0), turno: "Mattina", operatoreId: "o2", stato: "presente", ora: "06:15" },
+    { id: "pr3", data: GIORNI_FA(0), turno: "Mattina", operatoreId: "o3", stato: "assente",  ora: "06:30" },
+    // Pomeriggio — COMPLETO: il contrasto, tutti e quattro spuntati
+    { id: "pr4", data: GIORNI_FA(0), turno: "Pomeriggio", operatoreId: "o1", stato: "presente", ora: "14:05" },
+    { id: "pr5", data: GIORNI_FA(0), turno: "Pomeriggio", operatoreId: "o2", stato: "assente",  ora: "14:05" },
+    { id: "pr6", data: GIORNI_FA(0), turno: "Pomeriggio", operatoreId: "o3", stato: "presente", ora: "14:08" },
+    { id: "pr7", data: GIORNI_FA(0), turno: "Pomeriggio", operatoreId: "o4", stato: "presente", ora: "14:11" },
+    // Notte — VUOTO: il turno non e' ancora cominciato, e nessuno e' stato visto
+  ],
   chiusure: [],
   meteo: [],
   // il turno di Mattina della dimostrazione dura 8 ore DICHIARATE: è il

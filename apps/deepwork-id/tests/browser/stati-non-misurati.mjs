@@ -47,6 +47,22 @@ const CASI = [
   ['terra', 'anno con lo scavo mai rilevato', '#nav-den', null, '#den-storico', /scavo non misurato/i],
   ['terra', 'base dell\'onere non dichiarabile', '#nav-den', null, '#den-oneri', /non è stato misurato/i,
     { dentro: '#den-anni', testo: '2024' }],
+  /* ⛔ Campo e' il caso che ha dato il nome al principio: «non lo so» non e'
+     «non c'e'», perche' se suona l'allarme contare assente chi nessuno ha
+     spuntato vuol dire NON ANDARLO A CERCARE. La dimostrazione non aveva
+     nessuna presenza, quindi l'appello mostrava tutti da spuntare — che si
+     legge «mai usato», non «di queste persone non si sa niente». Adesso i tre
+     turni di oggi mostrano i tre stati, e il banco guarda quello PARZIALE. */
+  /* ⚠️ NON basta cercare «ancora da spuntare»: lo dice anche l'appello VUOTO
+     («appello non ancora cominciato · 4 ancora da spuntare»). Con quella regex
+     la prova passava anche svuotando le presenze — cioe' portava il nome del
+     caso parziale e ne provava un altro, che e' peggio di nessuna prova. Il
+     parziale si riconosce perche' qualcuno E' stato spuntato: c'e' un assente
+     E c'e' ancora qualcuno da spuntare, nella stessa riga. */
+  ['campo', 'appello a meta\': qualcuno non l\'ha spuntato nessuno', '#nav-rap', null, '#pre-board',
+    /\bassente\b[\s\S]*ancora da spuntare/i, { seleziona: '#chk-turno', valore: 'Mattina' }],
+  ['campo', 'appello completo: il contrasto', '#nav-rap', null, '#pre-board',
+    /appello completo/i, { seleziona: '#chk-turno', valore: 'Pomeriggio' }],
 ];
 
 /* ⛔ CONTI STA A PARTE, e non per pigrizia: il suo caso non è una riga di un
@@ -89,7 +105,14 @@ for (const [app, casi] of Object.entries(perApp)) {
       const sel = `#pers-tabs [data-tab="${sotto}"]`;
       if (await p.$(sel)) { await p.click(sel); await p.waitForTimeout(800); }
     }
-    if (prima) {
+    if (prima && prima.seleziona) {
+      /* una tendina, non un bottone: `selectOption` non basta da solo perche'
+         la pagina ridisegna su «change», che va lasciato arrivare */
+      const ok = await p.selectOption(prima.seleziona, prima.valore).then(() => true).catch(() => false);
+      guardati++;
+      if (!ok) { dice(false, `${app}: ${etichetta} — non riesco a scegliere «${prima.valore}» in ${prima.seleziona}`); continue; }
+      await p.waitForTimeout(800);
+    } else if (prima) {
       const fatto = await p.evaluate(([dentro, testo]) => {
         const c = document.querySelector(dentro);
         if (!c) return false;
@@ -103,7 +126,11 @@ for (const [app, casi] of Object.entries(perApp)) {
     }
     const r = await p.evaluate(([fonte, dove]) => {
       const rx = new RegExp(fonte, 'i');
-      const SEL = '.item, .note, .badge';
+      /* ⚠️ `.board` c'e' perche' l'appello di Campo non e' una riga ne' una
+         nota: e' il cartellone in cima, che e' proprio il posto dove il numero
+         tranquillo si vedrebbe. Un elenco di selettori e' anche una
+         dichiarazione di dove si e' guardato. */
+      const SEL = '.item, .note, .badge, .board, .recap';
       const radice = document.querySelector(dove);
       if (!radice) return { assente: `contenitore ${dove} non trovato` };
       const semi = radice.matches(SEL) ? [radice] : [];

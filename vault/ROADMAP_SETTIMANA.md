@@ -2051,6 +2051,22 @@ campi interi, file delle macchine.
       Serve a **impedire il lavoro sbagliato**: chi riprendesse dalla scheda
       vecchia scriverebbe strati dati che esistono, l'errore che `CLAUDE.md`
       elenca fra i più costosi con quattro casi datati.
+- [x] ✅ **L'APPELLO CHE NON SI POTEVA VEDERE** *(01/08, Campo)* — censite con
+      una sonda le tre app che il banco non guardava: Sentinella e Flotta uno
+      stato ciascuna lo mostrano davvero; **Campo no**, e in un modo istruttivo
+      — la frase «non lo so» c'era, ma dentro la **nota che spiega** l'appello,
+      non in una riga che lo fa. La dimostrazione aveva `presenze: []`, quindi
+      l'appello mostrava tutti da spuntare: si legge «funzione mai usata», non
+      «di queste persone non si sa niente». Ed era invisibile **nell'app da cui
+      quella frase è nata** (`CLAUDE.md`: se suona l'allarme, contare assente
+      chi nessuno ha spuntato vuol dire non andarlo a cercare). Adesso i tre
+      turni di oggi mostrano i tre stati — parziale, completo, non cominciato —
+      con date relative, e il cartellone finalmente scrive le tre frasi che
+      aveva già. ⚠️ E la controprova ha preso **una prova col nome sbagliato**:
+      cercare «ancora da spuntare» passava anche sull'appello **vuoto**, che
+      dice «4 ancora da spuntare» — caso 1 della tassonomia, corretti i dati
+      della prova e non il codice. Banco da **21 a 24 prove**, 13 stati,
+      **quattro app**.
 - [x] ✅ **IL BANCO ARRIVA AL DOCUMENTO FISCALE** *(01/08)* —
       `stati-non-misurati.mjs` guardava Scudo e Terra: il caso peggiore della
       notte — il DDT che scriveva «Vendita» al posto dell'utente — era provato
