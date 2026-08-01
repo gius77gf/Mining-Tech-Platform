@@ -1296,6 +1296,14 @@ export function allerteTaratura(monitoraggi, oggi = new Date()) {
       gravita: scaduta ? "danger" : "warn",
       categoria: "taratura",
       titolo: (m || {}).nome || "Strumento",
+      /* ⚠️ IL SESTO CAMPO, E LA RAGIONE. Le altre allerte portano a una
+         schermata; questa porta a una SEZIONE che parla di uno strumento alla
+         volta, e la tendina si ricorda l'ultimo scelto. Senza l'id, chi tocca
+         «Rumore — perimetro Ovest» atterra su una sezione che gli racconta i
+         certificati di un altro strumento — con l'aria di parlare di quello
+         che ha appena toccato. Le altre sorgenti non hanno questo campo e la
+         pagina non glielo chiede: lo legge solo per categoria «taratura». */
+      puntoId: (m || {}).id || "",
       /* ⚠️ Corto di proposito: la riga di dettaglio delle allerte è tagliata a
          due righe, quindi una frase appesa in fondo non la legge nessuno. Il
          numero del certificato e il centro stanno nella sezione, che è dove si

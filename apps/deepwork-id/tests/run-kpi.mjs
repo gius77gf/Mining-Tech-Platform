@@ -11512,8 +11512,11 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     ok(/non più coperte/.test(a[0].dettaglio), "e il dettaglio dice la conseguenza: " + a[0].dettaglio);
     for (const x of a) ok(x.dettaglio.length <= 60,
       "⚠️ corto: la riga di dettaglio è tagliata a due righe, " + x.dettaglio.length + " caratteri");
-    for (const x of a) eq(Object.keys(x).sort(), ["badge", "categoria", "dettaglio", "gravita", "titolo"],
-      "stessa forma delle altre allerte, così si mescolano senza casi particolari");
+    for (const x of a) eq(Object.keys(x).sort(), ["badge", "categoria", "dettaglio", "gravita", "puntoId", "titolo"],
+      "i cinque campi delle altre allerte, così si mescolano senza casi particolari, più `puntoId`");
+    eq(a.map(x => x.puntoId), ["A", "B"],
+       "⚠️ e `puntoId` c'è perché questa allerta porta a una SEZIONE che parla di uno strumento alla volta: "
+       + "senza, si atterra su una tendina che mostra i certificati di un altro");
   });
 
   test("⛔ Sentinella · allerte: «non dichiarata» NON è un'allerta, ed è una decisione", () => {

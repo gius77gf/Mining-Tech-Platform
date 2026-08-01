@@ -3037,7 +3037,8 @@ textarea.dw-input{
     $("all-list").innerHTML = allerte.map(a => { const ade = a.categoria === "adempimento";
       const prg = a.categoria === "programma";
       const tar = a.categoria === "taratura";
-      return `<div class="item tocca ${striscia[a.gravita] || "st-mute"}" data-allerta="${tar ? "tar" : prg ? "prog" : ade ? "ade" : "mon"}"
+      return `<div class="item tocca ${striscia[a.gravita] || "st-mute"}" data-allerta="${tar ? "tar" : prg ? "prog" : ade ? "ade" : "mon"}"${
+        tar ? ` data-allerta-tar="${esc(a.puntoId || "")}"` : ""}
         title="${tar ? "Vai alla taratura degli strumenti" : prg ? "Vai al programma di monitoraggio" : ade ? "Vai agli adempimenti" : "Vai al punto di misura"}">
       <div class="avatar ${a.gravita === "danger" ? "danger" : a.gravita === "warn" ? "warn" : "sup"}">${tar ? I.doc : prg ? I.programma : ade ? I.calendario : I.sensore}</div>
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc(a.dettaglio)}</div></div>
@@ -3361,7 +3362,13 @@ textarea.dw-input{
        fondo. Andare su «mon» e basta lascerebbe l'utente in cima a una pagina
        lunga senza dirgli dove guardare — il tocco su un'allerta deve portare
        dove si fa la cosa. */
-    if (all === "tar") { filtroMon = "tutti"; go("mon"); await refresh();
+    if (all === "tar") {
+      /* La tendina si ricorda l'ultimo strumento scelto: senza questa riga si
+         atterra su una sezione che racconta i certificati di UN ALTRO
+         strumento, con l'aria di parlare di quello appena toccato. */
+      const idTar = attr(e, "data-allerta-tar");
+      if (idTar) tarPunto = idTar;
+      filtroMon = "tutti"; go("mon"); await refresh();
       const el = $("tar-list"); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
       return; }
     if (all) { if (all === "mon") filtroMon = "tutti"; go(all); await refresh(); return; }
@@ -3775,11 +3782,15 @@ textarea.dw-input{
        ancora stato tarato. Senza la scadenza, coprirebbe per sempre. */
     if (!data || !scad) {
       err("tar-data", !data); err("tar-scad", !scad); fuocoErr(["tar-data", "tar-scad"]);
-      esito("tar-esito", "Servono <b>tutte e due</b> le date: quella della taratura e quella di scadenza. Sono loro a dire quali letture il certificato copre — senza, non copre niente.",
+      /* ⚠️ NIENTE MARKUP IN QUESTI TESTI: `esito` scrive con textContent, non
+         con innerHTML — e fa bene, perché ci passano nomi scritti dall'utente.
+         I <b> che stavano qui l'utente li LEGGEVA: «Servono <b>tutte e due</b>
+         le date». Visto solo nello scatto, come sempre. */
+      esito("tar-esito", "Servono tutte e due le date: quella della taratura e quella di scadenza. Sono loro a dire quali letture il certificato copre — senza, non copre niente.",
         "err", "Servono la data della taratura e la scadenza."); return; }
     if (scad < data) {
       err("tar-data", true); err("tar-scad", true); fuocoErr(["tar-scad"]);
-      esito("tar-esito", "La scadenza (<b>" + fmtD(scad) + "</b>) viene prima della taratura (<b>" + fmtD(data) + "</b>): l'intervallo è al contrario e non coprirebbe nessun giorno.",
+      esito("tar-esito", "La scadenza (" + fmtD(scad) + ") viene prima della taratura (" + fmtD(data) + "): l'intervallo è al contrario e non coprirebbe nessun giorno.",
         "err", "La scadenza viene prima della taratura."); return; }
     err("tar-data", false); err("tar-scad", false);
 
@@ -3796,8 +3807,11 @@ textarea.dw-input{
     const coperte = ((m && m.letture) || []).filter(l =>
       coperturaTaratura([{ data, scadenza: scad }], l.data).stato === "coperta").length;
     const nome = m ? m.nome.split(" — ")[0] : id;
-    esito("tar-esito", `Taratura registrata su <b>${esc(nome)}</b>, valida dal <b>${fmtD(data)}</b> al <b>${fmtD(scad)}</b>. `
-      + (coperte ? `Copre <b>${coperte}</b> ${coperte === 1 ? "lettura già registrata" : "letture già registrate"}.`
+    /* `esc()` via insieme ai <b>: textContent non interpreta niente, quindi
+       un punto di misura chiamato «Polveri & co» ci finirebbe come «Polveri
+       &amp; co». Scappare due volte è sbagliato quanto non scappare. */
+    esito("tar-esito", `Taratura registrata su ${nome}, valida dal ${fmtD(data)} al ${fmtD(scad)}. `
+      + (coperte ? `Copre ${coperte} ${coperte === 1 ? "lettura già registrata" : "letture già registrate"}.`
                  : "Nessuna lettura già registrata cade in questo intervallo: coprirà quelle che verranno."),
       "success", "Taratura registrata su " + nome + ".");
     $("tar-data").value = ""; $("tar-scad").value = ""; $("tar-cert").value = "";
