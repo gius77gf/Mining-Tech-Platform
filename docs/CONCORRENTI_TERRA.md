@@ -259,3 +259,29 @@ Nella roadmap, il ponte P2 (riconciliazione volume vs tonnellate) è il prossimo
 - [Strayos Rock Mass AI](https://blog.strayos.com/rock-mass-ai/)
 - [Mining Compliance Software](https://fleetrabbit.com/industry/mining-fleet-software/Best-Mining-Compliance-Management-Software-to-Reduce-Administrative-Work-in-2026)
 - [RESPEC Closure & Reclamation](https://www.respec.com/market/mining/closure-and-reclamation/)
+
+---
+
+## Verifica del delta (01/08)
+
+| Funzione | Verdetto | Prova |
+|----------|----------|-------|
+| Cut & fill volumes | **CONFERMATO ASSENTE** | Cercati `cut`, `fill`, `taglio`, `riempimento` in terra-data.js, index.html, dw-ponti.js: zero occorrenze |
+| Bench-by-bench volume tracking | **CONFERMATO ASSENTE** | `banco` esiste (terra-data.js:42-44, 1064) ma solo come campo della fronte, non c'è tracking volumetrico per banco singolo — il tracking è per fronte (volumeFronte), non per banco |
+| Automatic stockpile detection | **CONFERMATO ASSENTE** | Cercati `stockpile`, `automatic`, `detection`, `automático`: zero occorrenze rilevanti (index.html:955 è autocompilamento di form, non detection) |
+| Pit design e scheduling | **CONFERMATO ASSENTE** | Cercati `pit`, `design`, `scheduling`: zero occorrenze rilevanti. Lotti creati manualmente (terra-data.js:56-80) senza design automatico |
+| Reserve estimation con optimization | **FALSO, C'È GIÀ** | terra-data.js:384 `riservaResidua()` calcola la riserva residua; usata in index.html:1082-1083 per mostrare il consumo annuale — non è full optimization ma c'è stima della riserva |
+| Floating cone optimization | **CONFERMATO ASSENTE** | Cercati `floating`, `cone`, `conical`, `ottimizzazione`: zero occorrenze |
+| Pit progression monitoring | **C'È A METÀ** | terra-data.js:670 `vitaCava()` e terra-data.js:400 `proiezioneAnnua()` monitorano vita della cava (consumo annuale, residuo, anni stimati) ma non è monitoraggio del pit design — è monitoraggio della concessione |
+| Volume reconciliation (misurato vs dichiarato) | **FALSO, C'È GIÀ** | shared/dw-ponti.js:185 `riconciliazioneTurni()` fa esattamente il confronto fra volumi misurati dai rilievi e dichiarati dai turni di campo; importata e usata in terra-data.js:1152 e index.html:849; confronta `misuratoPeriodo()` (dw-ponti.js:211) con `produzioneDichiarata()` |
+| Conformità design | **CONFERMATO ASSENTE** | Cercati `conformit`, `conform`, `overlay`, `design`: zero occorrenze rilevanti |
+| Gestione concessione regionale | **C'È A METÀ** | terra-data.js:580, 722, 959, 980 e index.html:541, 819 dichiarano "materia regionale": l'app non applica regole specifiche per regione, ma l'utente le imposta. `vitaCava()` è generico, niente regole per regione |
+| Compliance reporting per ente | **C'È A METÀ** | terra-data.js:751 `riepilogoAnnuale()` e terra-data.js:857 `baseOnereEscavazione()` producono i dati per la denuncia annuale (volumi per mese/fronte, qualità, banda incertezza, onere di escavazione); index.html:819 dichiara esplicitamente "Terra ti dà i tuoi numeri ordinati, non compila la denuncia al posto tuo" — i dati ci sono, il modulo ufficiale lo compila l'utente |
+
+**Riepilogo verifica:**
+- **Righe verificate:** 11
+- **Confermate assenti:** 6 (cut/fill, bench-by-bench, automatic detection, pit design, floating cone, conformità)
+- **False (c'è già):** 2 (reserve estimation, volume reconciliation)
+- **C'è a metà:** 3 (pit progression, concessione regionale, compliance reporting)
+
+**Mancanza confermata più importante:** Automatic cut/fill volume calculation (riga 1, ricorrenza 6/13 concorrenti) — nessuna progettazione automatica del pit da disegno. Terra accetta lotti manualmente, non li genera da topografia.

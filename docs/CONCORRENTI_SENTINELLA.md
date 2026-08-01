@@ -351,3 +351,52 @@ Ricerca web 01 agosto 2026:
 - Funzioni marchiate `[dedotto]` sono state inferite da contesto, non citate esplicitamente
 - Test site: https://deep.work (Sentinella app su Netlify, accesso demo)
 - Il confronto è sul **software**, non sull'hardware (sensori, centraline)
+
+---
+
+## Verifica del delta (01/08)
+
+Ogni riga marcata come "non c'è" o "c'è a metà" verificata contro il codice reale di `apps/sentinella/sentinella-data.js` e `apps/sentinella/index.html`.
+
+### Righe "C'è a metà"
+
+| Funzione | Verdetto | Prova |
+|----------|----------|-------|
+| Report: export PDF | **FALSO, C'È GIÀ** | `index.html:1252` — `<button class="dw-btn" id="btn-rep-stampa">Stampa / Salva PDF</button>`; pagina interattiva genera PDF via stampa browser |
+| Blast monitoring: correlazione previsto/misurato | **FALSO, C'È GIÀ** | `sentinella-data.js:1894` esporta `scartoPpvVolata(v)`, calcola delta fra previsto e misurato; `index.html:2725` mostra nella sezione report "Volate · previsto, misurato e scarto" |
+| Validazione numeri: float con virgola | **FALSO, C'È GIÀ** | `sentinella-data.js:293` dichiara `<input type="text" inputmode="decimal">`; campi a `index.html:897, 976, 980, 1008, 1023, 1025, 1027, 1143, 1144, 1147, 2013, 2169, 2171, 2173` — 13 campi decimali, gestione con `numeroDaCampo` che legge virgola italiana |
+| Flagging non-misurabilità: mai/conforme | **FALSO, C'È GIÀ** | `sentinella-data.js:156` stato "mai" con label "Mai misurato"; `index.html:1626, 1643, 2885` — badge visibile, distinto da "conforme"; regola applicata su tutto il monitoraggio |
+
+### Righe "Non c'è"
+
+| Funzione | Verdetto | Prova |
+|----------|----------|-------|
+| Allarmi SMS/Email in tempo reale | **CONFERMATO ASSENTE** | Grep su `SMS\|email\|notif\|alert.*real\|push` in entrambi file: zero match |
+| Monitoraggio wireless 4G | **CONFERMATO ASSENTE** | Grep su `wireless\|4G\|iot\|cloud.integr\|sensore\|connett`: zero match. Import manuale CSV solo. |
+| Curva FFT 1/3 ottave configurable | **CONFERMATO ASSENTE** | Grep su `FFT\|ottave\|spettro\|frequency`: zero match. Solo soglie preset DIN/USBM. |
+| Umidità, temperatura | **CONFERMATO ASSENTE** | Grep su `temperatura\|umidità\|humidity\|temperature\|temp`: zero match nei due file Sentinella |
+| Direzione + velocità vento | **CONFERMATO ASSENTE** | Grep su `vento\|wind\|direzione\|velocità\|meteo\|weather`: zero match in sentinella-data.js; solo intestazione generica in README |
+| Emissioni gas (SO2, NO2) | **CONFERMATO ASSENTE** | Grep su `SO2\|NO2\|gas\|emissione\|inquinante`: zero match |
+| Portale pubblico per residenti | **CONFERMATO ASSENTE** | Grep su `portale.*pubblico\|public.*portal\|residenti\|cittadini\|trasparenza`: zero match. Unico risultato è commento su "segnalazioni residenti interni", non portale esterno. |
+| Integrazione API | **CONFERMATO ASSENTE** | Grep su `API\|integrazione\|esterna\|webhook\|endpoint` (escludendo Firebase): zero match. Nessuna API pubblica dichiarata. |
+| Smartphone app nativa | **CONFERMATO ASSENTE** | App è PWA Web su Netlify. Grep su `android\|ios\|appstore\|app.*store`: zero match |
+| Audit trail (chi, quando, cosa è cambiato) | **CONFERMATO ASSENTE** | Grep su `audit\|trail\|modifi.*log\|chi.*quando\|changelog`: zero match. Log delle modifiche non presente. |
+| Storico tarature strumenti | **CONFERMATO ASSENTE** | Grep su `calibr\|taratur\|manutenzione\|strumento.*data`: zero match su taratura. Menzione di `PPV_STRUMENTO` è il tipo di fonte, non storico manutenzione. |
+| Certificazione/validazione strumenti | **CONFERMATO ASSENTE** | Grep su `certificazione\|IEC.*61672\|validazione.*strumento`: zero match. Nessuna dichiarazione di conformità IEC/DIN/USBM nel codice. |
+| Catena di custodia dato | **CONFERMATO ASSENTE** | Grep su `catena.*custodia\|provenance\|provenienza.*storico`: zero match. Nessun logging della catena di custodia. |
+| Modellazione dispersione inquinanti | **CONFERMATO ASSENTE** | Grep su `modella\|dispersione\|inquinante\|polverosa`: zero match |
+| Report automatico periodico | **CONFERMATO ASSENTE** | Grep su `report.*automatico\|periodic\|schedule\|cron`: zero match. Report è build manuale via bottone. Periodicità gestita solo per **misure**, non report. |
+| Notifica automatica residenti su reclami | **CONFERMATO ASSENTE** | Grep su `notifica.*residenti\|email.*reclamo\|avviso.*cittadini\|reclamo.*notif`: zero match. Nessun portale pubblico, quindi nessun meccanismo di avviso esterno. |
+| Documento/allegato per adempimento | **CONFERMATO ASSENTE** | Grep su `allegato\|file.*upload\|documento.*adempimento\|scansione`: zero match. Adempimento ha solo titolo, ente, scadenza, nessun allegato. |
+| Dashboard configurabile | **CONFERMATO ASSENTE** | Grep su `dashboard.*configurabil\|widget\|template.*custom\|user.*layout`: zero match. Dashboard è template fisso, non configurabile. |
+
+### Conteggio
+
+- **Righe verificate:** 22
+- **Confermate assenti:** 18
+- **False (c'è già):** 4
+- **C'è a metà:** 0
+
+### La mancanza confermata più importante
+
+**Allarmi SMS/Email in tempo reale** (ricorrenza 7/12 produttori nel MONDO). Oggi Sentinella rileva i superamenti via lettura periodica dal modulo; i concorrenti offrono notifica istantanea (SMS/Email da cloud). Ridurrebbe il tempo di risposta da ore a minuti — è il valore percepito più alto fra le mancanze rilevate.
