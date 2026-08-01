@@ -50,6 +50,15 @@ const ACCETTATI = {
     "un giro macchina senza voci fuori posto è davvero a posto: l'assenza qui è di PROBLEMI, non di misure",
   "sentinella.confermaVolataEseguita":
     "«regolare» è il valore PRECOMPILATO di un campo di modulo, non un verdetto dell'app",
+  /* Comparso il 01/08 spostando la data campione nel futuro (prima era nel
+     passato e finiva nell'altro secchio, quello degli allarmi). Guardato prima
+     di dichiararlo, come vuole la regola: l'argomento che manca è il
+     **preavviso**, cioè la finestra entro cui avvisare — non una misura. La sua
+     assenza vuol dire «nessun preavviso», e non cambia di una virgola il fatto
+     che la scadenza sia lontana 400 giorni. Rispondere «a posto» lì è corretto:
+     il dato che conta, la data, c'è ed è buono. */
+  "terra.livelloScadenzaTerra":
+    "l'argomento assente è il PREAVVISO, non la data: senza finestra di avviso una scadenza lontana resta lontana",
 
   /* ⚠️ TRAPPOLE DORMIENTI, dichiarate come tali dopo aver misurato la
      raggiungibilità (CLAUDE.md: «misurare prima di irrigidire»). Oggi NESSUN
@@ -102,9 +111,26 @@ function segnali(v, dove, out, prof = 0) {
    per ogni forma si tengono TUTTE le chiamate riuscite, non la prima: una
    funzione a due parametri risponde diversamente a `(lista, lista)` e a
    `(record, lista)`, e fermarsi alla prima nasconde la seconda. */
+// Una data lontana nel FUTURO: neutra per costruzione, così nessun allarme
+// può nascere dalla data stessa. Vedi la ragione per esteso più sotto.
+const DATA_NEUTRA = new Date(Date.now() + 400 * 864e5).toISOString().slice(0, 10);
+
 const VUOTI = [
   [], [[]], [[], []], [[], [], ""], [[], [], "", ""], [[], {}, "", ""],
   [{}], [{}, []], [[], {}], [null], [""], [[], [], []],
+  /* ⛔ LA DATA DEL CAMPIONE NON SI SCRIVE A MANO: INVECCHIA, E ACCUSA.
+     Qui c'era «2026-07-31», che il giorno in cui è stata scritta era OGGI. Il
+     1° agosto è diventata ieri, e `statoScadenzaTerra` ha cominciato a
+     rispondere «scaduta» — **giustamente**, perché quella data è davvero
+     passata. Ma la sonda l'ha letta come un ALLARME INVENTATO su un dato
+     mancante, e ha accusato due funzioni sane, facendo cadere la CI su un
+     difetto che non esiste. Un controllo che grida al lupo perde il diritto di
+     essere creduto la volta che ha ragione.
+     La data del campione dev'essere **neutra**: nel futuro, così l'unico
+     allarme che può uscire viene dall'argomento che MANCA — che è l'unica cosa
+     che questa sonda sta cercando. Si ricava da oggi, non si batte a mano.
+     (`toISOString` qui è sicuro: la data nasce da uno scarto in millisecondi,
+     non da un'ora locale, quindi non c'è nessuna mezzanotte da attraversare.) */
   [[{}]], [[{}], [{}]], [[{}], [], ""], [[{}], {}, "", ""], [{}, [{}]],
   [[{}], [{}], ""], [[{}], "", ""], [{}, {}],
   /* ⛔ E LA FORMA CHE HA SMASCHERATO `urgenzaOre`: NON tutto vuoto, ma un
@@ -114,7 +140,7 @@ const VUOTI = [
      in cui una funzione tende a fermarsi sulla prima guardia e non arrivare mai
      al conto che sbaglia. Sono queste sei a portare la sonda dove `+null === 0`
      diventa «SCADUTA (+500 h)» in rosso. */
-  [null, 500], ["", 500], [500, null], [null, "2026-07-31"], ["", "2026-07-31"], ["2026-07-31", null],
+  [null, 500], ["", 500], [500, null], [null, DATA_NEUTRA], ["", DATA_NEUTRA], [DATA_NEUTRA, null],
 ];
 
 /* ⛔ E ANCHE IL CODICE CONDIVISO. La prima versione guardava solo le sei app —
