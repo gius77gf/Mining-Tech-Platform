@@ -105,6 +105,18 @@ export const DEMO = {
        il fronte, e la distanza scalata non si sarebbe potuta calcolare
        comunque. */
     { id: "b4", data: "2026-07-24", fronte: "Fronte Nord", nFori: 34, kgTotali: 390, kgMaxRitardo: 19, distanzaRicettore: null, esito: "regolare", note: "", stato: "eseguita" },
+    /* ⛔ IL LIMITE DI PROGETTO SENZA LA NORMA DA CUI È PRESO. Nella tabella
+       «previsto, misurato e scarto» del report l'ultima colonna riporta il
+       limite dichiarato sul progetto **con la norma**: è un riferimento di
+       contesto che l'ente legge per capire da dove viene quel numero. Un
+       limite senza la sua norma è un numero senza provenienza — e il report lo
+       scrive («norma non indicata sul progetto») invece di lasciar credere che
+       la citazione ci sia. Prima di oggi non lo vedeva nessuno: l'unica volata
+       con previsione (`b3`) la norma ce l'aveva.
+       Assenza, e additiva: questa volata porta tutti i suoi numeri, quindi non
+       cambia il conto delle righe incomplete della tabella sopra. */
+    { id: "b5", data: "2026-07-10", fronte: "Fronte Est", nFori: 40, kgTotali: 455, kgMaxRitardo: 21, distanzaRicettore: 300, esito: "regolare", note: "", stato: "eseguita",
+      ppvPrevista: 4.2, ppvPrevLimite: 5, ppvPrevNorma: "", ppvPrevFonte: "manuale" },
   ],
 };
 

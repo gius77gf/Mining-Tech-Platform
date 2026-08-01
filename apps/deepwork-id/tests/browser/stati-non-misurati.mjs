@@ -254,6 +254,14 @@ const CASI = [
      calcolare lo dichiara invece di stampare uno zero. Delle quattro app che
      sanno dire questa frase, in dimostrazione la mostra **solo** Sentinella —
      le altre tre sono difese invisibili, annotate nel checkpoint. */
+  /* ⛔ Terzo e ultimo stato vero del censimento delle 50 occorrenze. Nella
+     tabella «previsto, misurato e scarto» l'ultima colonna riporta il limite
+     dichiarato sul progetto **con la norma da cui è preso**: è il riferimento
+     di contesto che l'ente legge per capire da dove viene quel numero. Un
+     limite senza la sua norma è un numero senza provenienza, e il report lo
+     dichiara invece di lasciar credere che la citazione ci sia. */
+  ['sentinella', 'limite di progetto senza la norma: il report lo dichiara', '#nav-rep', null, '#rep-doc',
+    /norma non indicata sul progetto/i],
   ['sentinella', 'indice non calcolabile nel report: lo dichiara', '#nav-rep', null, '#rep-doc',
     /non calcolabile/i, null, { vietato: /non calcolabile[\s\S]{0,40}\b0[.,]?0*\b/i,
                                 perche: 'accanto a «non calcolabile» non si scrive uno zero' }],
@@ -402,7 +410,11 @@ for (const [app, casi] of Object.entries(perApp)) {
       /* `.count` è la riga di riepilogo del core (`shared/dw-app-ui.css`): è
          fatta di conteggi uno accanto all'altro, cioè esattamente il posto in
          cui un numero tranquillo si nasconde meglio. */
-      const SEL = '.item, .note, .badge, .board, .recap, .kpi, .tag, .count, .rep-punto-meta';
+      /* `.fonte` è la riga di PROVENIENZA che il report di Sentinella scrive
+         sotto ogni numero — «da dove viene questo dato» — ed è per mestiere il
+         posto dove il prodotto dice che una provenienza non ce l'ha. Senza,
+         il banco dentro `#rep-doc` vedeva la pastiglia e non la spiegazione. */
+      const SEL = '.item, .note, .badge, .board, .recap, .kpi, .tag, .count, .fonte, .rep-punto-meta';
       const radice = document.querySelector(dove);
       if (!radice) return { assente: `contenitore ${dove} non trovato` };
       const semi = radice.matches(SEL) ? [radice] : [];

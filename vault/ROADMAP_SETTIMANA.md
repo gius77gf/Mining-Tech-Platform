@@ -2687,6 +2687,23 @@ campi interi, file delle macchine.
       lettura piu' allarmante possibile scritta al posto di un dato mai
       misurato. Controprova: rimessa la guardia sbagliata, la riga torna a dire
       «0 m dalla cava» e il banco cade. **82/0**, 47 stati.
+- [x] ✅ **UN LIMITE SENZA LA NORMA DA CUI VIENE** *(01/08, Sentinella)* — terzo
+      e **ultimo** stato vero del censimento. Nella tabella «previsto, misurato
+      e scarto» del report l'ultima colonna riporta il limite di progetto **con
+      la norma da cui e' preso**: un limite senza la sua norma e' un numero
+      senza provenienza, e il report lo dichiara. Non lo vedeva nessuno —
+      l'unica volata con previsione la norma ce l'aveva. Aggiunta `b5`
+      (previsione a mano, limite dichiarato, norma vuota): additiva, porta
+      tutti i suoi numeri. ⚠️ **Il banco guardava dove non c'era**: la frase
+      vive in `.fonte`, che non era fra i selettori — **terza volta oggi** dopo
+      `.count` e `.rep-punto-meta`, e le tre insieme dicono che l'elenco dei
+      selettori **e' la dichiarazione di dove il banco ha guardato**. Aggiunto
+      `.fonte`, che e' per mestiere il posto dove il prodotto scrive da dove
+      viene un numero. Controprova: tolta la dichiarazione, il limite senza
+      provenienza non dice piu' niente e il banco cade. **83/0**, 48 stati.
+      ⛔ Con questo il filone e' **chiuso**: quello che resta in classifica sono
+      i ripieghi di campo gia' dichiarati in
+      `docs/QUANDO_UN_CASO_VA_IN_DIMOSTRAZIONE.md`.
 
 ---
 
