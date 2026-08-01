@@ -166,6 +166,17 @@ export const DEMO = {
     { id: "t2", tipo: "fideiussione", descrizione: "Polizza fideiussoria — rinnovo annuale", dataScadenza: "2026-09-30", preavvisoGiorni: 90, ricorrenzaMesi: 12, note: "Si svincola solo dopo il collaudo finale." },
     { id: "t3", tipo: "rilievo", descrizione: "Rilievo periodico dei lavori", dataScadenza: "2026-08-10", preavvisoGiorni: 30, ricorrenzaMesi: 6, note: "" },
     { id: "t4", tipo: "screening-via", descrizione: "Prescrizione dello screening da ottemperare", dataScadenza: "2026-07-10", preavvisoGiorni: 60, ricorrenzaMesi: null, note: "" },
+    /* ⛔ LA SCADENZA DI CUI NON SI SA QUANDO SCADE. `riepilogoScadenze` tiene un
+       contatore APPOSTA per queste — e il commento accanto dice perché:
+       «contarle fra le a posto era il modo in cui sparivano». Ma in
+       dimostrazione tutte e quattro avevano la data, quindi quel contatore
+       restava a zero, la riga del riepilogo non lo scriveva mai, e la difesa
+       non la vedeva nessuno.
+       È un'ASSENZA ed è additiva: gli altri tre conteggi non si muovono, sale
+       solo il totale e il contatore delle senza-data. Storia vera: la
+       prescrizione c'è, il termine sull'atto è scritto a mano e non si legge —
+       e finché non lo si chiarisce non è «a posto», è «non si sa». */
+    { id: "t5", tipo: "prescrizione", descrizione: "Prescrizione dell'atto — termine da chiarire con l'ente", dataScadenza: null, preavvisoGiorni: 60, ricorrenzaMesi: null, note: "Sul titolo il termine è illeggibile: chiesto chiarimento." },
   ],
 };
 

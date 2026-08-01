@@ -36,6 +36,12 @@
    invece **digitando**, cioè facendo lo stesso gesto che le crea: `prima`
    accetta un ELENCO di passi apposta per questo. La prima è la disponibilità
    di Campo, in fondo ai suoi casi.
+   E c'è una terza risposta, che è l'eccezione alla prima: un'ASSENZA che, messa
+   in dimostrazione, ne smonta il resto (togliere il volume concesso a Terra
+   porta via anche percentuale, cumulato in proporzione, residuo e soglia) si
+   digita anche lei. La regola per intero, **con i casi già decisi e i rifiuti
+   già motivati**, sta in `docs/QUANDO_UN_CASO_VA_IN_DIMOSTRAZIONE.md`: si legge
+   quello prima di aggiungere un caso, per non ridecidere al contrario.
 
    ⛔ E si pretende la RIGA, non il testo: la prima versione di questa sonda
    (in scratchpad) trovava «Senza data di nomina» dentro il riepilogo in cima e
@@ -82,6 +88,18 @@ const CASI = [
             perche: 'accanto a «scavo non misurato» non si scrive nessun volume scavato' }],
   ['terra', 'base dell\'onere non dichiarabile', '#nav-den', null, '#den-oneri', /non è stato misurato/i,
     { dentro: '#den-anni', testo: '2024' }],
+  /* ⛔ «senza data» in Terra, ed è la forma più pura del principio: la riga del
+     riepilogo del scadenzario è fatta di CONTEGGI uno accanto all'altro
+     («5 scadenze · 1 scaduta · 2 in scadenza · 1 senza data · 1 a posto»), e
+     una scadenza di cui non si sa quando scade contata fra le «a posto» è il
+     numero tranquillo per eccellenza. Il modulo il contatore ce l'aveva già,
+     col commento che spiega perché — «contarle fra le a posto era il modo in
+     cui sparivano» — ma tutte e quattro le scadenze d'esempio avevano la data,
+     quindi restava a zero e la riga non lo scriveva mai. */
+  ['terra', 'scadenza di cui non si sa quando scade: contata a parte', '#nav-tit', null, '#scad-count',
+    /senza data/i, null,
+    { vietato: /senza data[\s\S]{0,30}\b0\b/i,
+      perche: 'se il contatore delle senza-data è zero la riga non deve comparire affatto' }],
   /* ⛔ Un lotto che non dichiara nessun fronte NON ha volume zero: non ha un
      modo di essere misurato. «misurati —», non «misurati 0 m³», perche' su un
      lotto lo zero vorrebbe dire «non ci abbiamo ancora lavorato» e la verita'
@@ -347,7 +365,10 @@ for (const [app, casi] of Object.entries(perApp)) {
          lui il banco, dentro `#rep-doc`, poteva vedere solo le pastiglie —
          e quello che il report DICE su una tabella incompleta è scritto in
          un paragrafo, non in una pastiglia. */
-      const SEL = '.item, .note, .badge, .board, .recap, .kpi, .tag, .rep-punto-meta';
+      /* `.count` è la riga di riepilogo del core (`shared/dw-app-ui.css`): è
+         fatta di conteggi uno accanto all'altro, cioè esattamente il posto in
+         cui un numero tranquillo si nasconde meglio. */
+      const SEL = '.item, .note, .badge, .board, .recap, .kpi, .tag, .count, .rep-punto-meta';
       const radice = document.querySelector(dove);
       if (!radice) return { assente: `contenitore ${dove} non trovato` };
       const semi = radice.matches(SEL) ? [radice] : [];

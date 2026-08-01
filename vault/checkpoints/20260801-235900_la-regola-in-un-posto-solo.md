@@ -1,6 +1,6 @@
 # La regola in un posto solo
 
-**Data:** 01/08/2026 (notte) · **Area:** `docs/QUANDO_UN_CASO_VA_IN_DIMOSTRAZIONE.md` (nuovo)
+**Data:** 01/08/2026 · **Area:** `docs/QUANDO_UN_CASO_VA_IN_DIMOSTRAZIONE.md` (nuovo)
 **Unità precedente:** `20260801-235500_il-rapportino-che-non-sta-in-nessun-giorno.md`
 
 ## Perché adesso, e non come riepilogo

@@ -2617,6 +2617,32 @@ campi interi, file delle macchine.
       spenta la conta, l'avviso non si accende e il banco cade. **73/0**, 43
       stati. Le altre occorrenze di Campo sono ripieghi di campo, **dichiarate**
       e non riguardate.
+- [x] ✅ **LA REGOLA IN UN POSTO SOLO** *(01/08)* — sei unità di fila avevano
+      risposto alla stessa domanda («questo caso lo metto nei dati d'esempio?»)
+      arrivandoci una alla volta: la regola era vera e **scritta in sei posti**.
+      `docs/QUANDO_UN_CASO_VA_IN_DIMOSTRAZIONE.md` la mette in un posto solo, e
+      la parte che serve davvero è la tabella dei **rifiuti già motivati** —
+      senza, la prossima unità li riprova e magari ridecide al contrario.
+      Rifiuto nuovo, misurato: il superamento senza data di Sentinella
+      cambierebbe il verdetto del report da «Conforme» a non conforme.
+      ⚠️ E la CI ha preso un mio errore: il checkpoint era datato **02/08**
+      mentre entrava in git il 01/08 — la regola in cima a `CLAUDE.md`, violata
+      da chi la stava applicando tutto il giorno. Corretto riscrivendo il commit
+      (il nome vecchio resta in `git log` per sempre, quindi rinominare non
+      basta), non allentando il controllo.
+- [x] ✅ **LA SCADENZA DI CUI NON SI SA QUANDO SCADE** *(01/08, Terra)* — ultima
+      delle quattro app di «senza data», e la forma più pura del principio: la
+      riga del scadenzario è fatta di **conteggi uno accanto all'altro**
+      («5 scadenze · 1 scaduta · 2 in scadenza · 1 senza data · 1 a posto»), e
+      una scadenza di cui non si sa quando scade contata fra le «a posto» è il
+      numero tranquillo per definizione. Il contatore c'era già, col commento che
+      dice perché — «contarle fra le a posto era il modo in cui sparivano» — ma
+      tutte e quattro le scadenze d'esempio avevano la data: **quinta difesa
+      invisibile trovata oggi**. Aggiunta `t5` (termine illeggibile sull'atto):
+      additiva, gli altri tre conteggi non si muovono. Aggiunto ai selettori del
+      banco `.count`, la riga di riepilogo del core, che prima non guardava
+      nessuno. Controprova: tolto il ramo (−51 caratteri), la senza-data torna
+      **fra quelle a posto** e il banco cade. **75/0**, 44 stati.
 
 ---
 
