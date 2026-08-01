@@ -30,6 +30,74 @@ node apps/deepwork-id/tests/browser/interi-superfici.mjs 8823 --senza-guardia
 Chromium è già installato (`/opt/pw-browsers/chromium`): **non** si lancia mai
 `playwright install`.
 
+## `pagine-vive.mjs`
+
+**La domanda più semplice di tutte, e per un giorno intero non se l'è fatta
+nessuno: la pagina si apre?**
+
+Il 01/08 `apps/scudo/index.html` è finito nel committato **senza**
+`scudo-data.js`, da cui importava un nome nuovo. Un import ES di un nome che
+non esiste è un errore duro: la pagina non parte. È rimasta rotta **per cinque
+commit**, e nessun controllo l'ha vista —
+
+- le quindici suite `node` importano i **moduli dati**, non le pagine;
+- `run-stile` legge il testo: un import sbagliato è sintatticamente perfetto;
+- il giro completo l'avrebbe presa, ma dura ore e si lancia una volta per blocco;
+- e su **disco** funzionava tutto: il difetto viveva solo nella differenza fra
+  il disco e il committato.
+
+Quindi questo banco gira su una **copia congelata di `HEAD`**, apre tutte e
+quattordici le superfici e chiede tre cose sole: nessun errore di pagina, un
+titolo, e del contenuto costruito. Costa circa un minuto: si lancia **prima di
+ogni push**, non una volta al giorno.
+
+```sh
+node apps/deepwork-id/tests/browser/pagine-vive.mjs                # da HEAD
+node apps/deepwork-id/tests/browser/pagine-vive.mjs --disco        # dalla cartella viva
+node apps/deepwork-id/tests/browser/pagine-vive.mjs --solo=scudo
+node apps/deepwork-id/tests/browser/pagine-vive.mjs --controprova  # deve vedere il difetto
+```
+
+La controprova rompe **un import nella copia** (non nel repo) e pretende che il
+banco lo veda: è la forma esatta di difetto per cui è nato.
+
+⚠️ **La prima stesura accusava il core**, e il torto era del banco: contava gli
+elementi con le classi delle app (`.item`, `.kpi`, `.sec`…) e il core è un
+monolite con classi sue. Il controllo che non guarda dove crede, alla prima
+esecuzione del banco che nasce da quella lezione. Adesso conta gli elementi e
+basta — questa misura prende solo la pagina **completamente bianca**, e il
+segnale vero resta l'errore di pagina.
+
+Dentro `tutti.mjs` è il **primo** della lista, e non si fa una copia sua: usa
+quella che il giro sta già servendo. Se una pagina non si apre, ogni misura dei
+banchi seguenti parla di una pagina che non c'è.
+
+### ⛔ Tre volte «non distingue» prima che la controprova valesse qualcosa
+
+Scriverlo ha ripetuto, in un'ora, tre delle cinque cause elencate in
+`CLAUDE.md`. Vale la pena tenerle, perché sono le stesse che si ripresenteranno:
+
+1. **L'iniezione era un'altra cosa.** Mettevo il nome inventato *dopo* la
+   graffa (`} , unNome from "…"`): è un errore di **sintassi**, non un export
+   mancante — e il browser lo riporta in modo diverso. Il difetto da riprodurre
+   dev'essere *quello vero*, non uno che gli somiglia.
+2. **La controprova cadeva per la ragione sbagliata.** Il filtro sugli errori
+   di console comprendeva `Failed to load`, quindi scattava sugli errori di
+   **rete** (gstatic, Firebase) che qui sono attesi. Una controprova che cade
+   per un motivo qualunque è verde quanto una che non cade: dimostra che il
+   banco sa fallire, non che sa **vedere** il difetto.
+3. **L'iniezione non arrivava alla pagina.** Un `python3 -m http.server`
+   rimasto acceso da un giro precedente teneva la porta e serviva una copia
+   **sana**: il banco iniettava in una cartella che nessuno stava guardando.
+   Difesa montata: il banco scrive un contrassegno col proprio pid nella copia
+   e lo **rilegge dal server**; se non torna, si ferma invece di misurare la
+   cartella sbagliata.
+
+E la risposta vera l'ha data una misura, non un ragionamento: una sonda che
+stampava **tutto** quello che la pagina dice (`pageerror`, ogni riga di
+console, ogni richiesta fallita). Da lì si è visto che l'errore c'era, era un
+`pageerror` pulito, e che gli elementi del corpo scendevano da 2285 a 452.
+
 ## `interi-superfici.mjs`
 
 Digita davvero nei campi interi di tutte e sette le superfici e pretende tre

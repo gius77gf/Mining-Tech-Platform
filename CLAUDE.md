@@ -110,6 +110,14 @@ due ore** e, mentre gira, rallenta di cinque-dieci volte ogni altra misura.
 committato**: lanciato prima, prova codice vecchio e lo dichiara pure («N file
 NON committati restano FUORI»). Il 01/08 ne sono stati buttati due — uno per
 questo, uno perché la porta del server precedente era ancora occupata.
+⛔ E la forma **silenziosa** di quella trappola è peggiore, misurata il 01/08:
+un banco che, trovando la porta già occupata, la **riusa** non fallisce — misura
+la copia di **qualcun altro**. Per un'ora la controprova di `pagine-vive` ha
+detto «non so fallire» mentre iniettava il difetto in una cartella che nessuno
+stava guardando: è l'iniezione che non inietta, la terza delle cinque cause,
+nella sua veste più difficile da vedere. La difesa costa tre righe e va messa in
+ogni banco che alza un server: si scrive un **contrassegno col proprio pid**
+nella cartella servita e lo si **rilegge dal server**; se non torna, ci si ferma.
 
 ⛔ **MAI ASPETTARE GUARDANDO.** Un processo lungo si lancia **insieme alla
 condizione che dice quando è finito**, e nel frattempo si lavora su altro. Se

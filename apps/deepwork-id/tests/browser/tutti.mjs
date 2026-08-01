@@ -37,6 +37,12 @@ const RADICE_IMPRONTA = (process.argv.find((a) => a.startsWith('--radice-impront
 const BANCHI_FINTI = process.argv.includes('--banchi-finti');   // solo per la controprova della guardia
 
 const BANCHI = [
+  /* PRIMO DI TUTTI, e di proposito: se una pagina non si apre, ogni misura
+     dei banchi seguenti parla di una pagina che non c'è. Il 01/08 Scudo è
+     rimasta rotta per cinque commit senza che nessun controllo se ne
+     accorgesse — le suite `node` non importano le pagine. */
+  ['le pagine si aprono', 'pagine-vive.mjs', []],
+  ['le pagine si aprono · controprova', 'pagine-vive.mjs', ['--controprova'], true],
   ['campi interi', 'interi-superfici.mjs', []],
   ['campi interi · controprova', 'interi-superfici.mjs', ['--senza-guardia'], true],
   ['contrasto', 'contrasto.mjs', []],
