@@ -798,6 +798,14 @@ a.dw-btn{text-decoration:none}
   <div id="den-fronti"></div>
   <div class="form-hint" id="den-fronti-nota" style="margin-top:8px;"></div>
 
+  <!-- DA QUALE BANCO: la stessa ripartizione salita di un livello. Il banco non
+       è un campo nuovo — sta già nella scheda del fronte: qui viene solo LETTO,
+       così alla domanda «quanto ho cavato dal banco 3 quest'anno» risponde un
+       numero invece di una somma fatta a mano. -->
+  <div class="sec">Da quale banco</div>
+  <div id="den-banchi"></div>
+  <div class="form-hint" id="den-banchi-nota" style="margin-top:8px;"></div>
+
   <div class="sec">Rispetto al volume concesso</div>
   <div id="den-concesso"></div>
 
@@ -843,7 +851,7 @@ a.dw-btn{text-decoration:none}
   import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, parseFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita, densitaDelMateriale,
            autorizzazioneVigente, vitaCava, statoScadenzaTerra, livelloScadenzaTerra, prossimaData, riepilogoScadenze, TIPI_SCADENZA_TERRA, presetScadenzaTerra, etichettaTipoScadenza,
            provenienzaRilievo, soloScavo, soloCumulo, rilievoUsabile, PROVENIENZE, etichettaProvenienza,
-           anniConVolumi, riepilogoAnnuale, ripartizioneFronti, serieAnnuale,
+           anniConVolumi, riepilogoAnnuale, ripartizioneFronti, ripartizioneBanchi, serieAnnuale,
            baseOnereEscavazione, descriviBaseOnere,
            rilieviScavoFronte, rilievoPrecedente, confrontoRilievi,
            produzioneDichiarata, misuratoPeriodo, riconciliazioneTurni,
@@ -1809,6 +1817,65 @@ a.dw-btn{text-decoration:none}
             ? " C'è dello scavo <b>senza fronte</b>: se il modulo dell'ente chiede la ripartizione, apri quei rilievi e indica da quale fronte sono usciti."
             : "");
 
+    // 4-bis · da quale BANCO. Stessa ripartizione, un livello sopra: il banco lo
+    // dichiara il fronte, e da qui in poi quel campo serve a qualcosa.
+    // ⛔ Un banco senza rilievi NON prende il badge «0 m³»: prende un trattino e
+    // la sua ragione. Uno zero in elenco a chi guarda dice «fermo», e non è
+    // quello che si sa — è la stessa trappola di `avanzamentoLotto`.
+    // la regola (chi è un banco, chi resta fuori, chi non è misurabile) sta in
+    // `terra-data.js`, dove si prova: qui resta il disegno
+    const RBK = ripartizioneBanchi(R, FRO);
+    DEN.banchi = RBK;   // lo riusano stampa ed export senza rifare il conto
+    /* ⚠️ LA RAGIONE NON STA NEL `.meta`, e l'ha detto lo scatto: `.meta` è
+       tagliato a due righe (`-webkit-line-clamp:2` in dw-app-ui.css), quindi la
+       frase che spiega perché un banco non è misurato finiva con i puntini —
+       cioè proprio la parte che il principio dell'assenza esiste per far
+       leggere. Va sotto la riga, in un `form-hint`: è la stessa forma che i
+       LOTTI usano già dieci righe più su (`perche` in `itemLotto`). */
+    $("den-banchi").innerHTML = RBK.righe.map(b => {
+      const meta = [
+        (b.fronti.length === 1 ? "fronte " : "fronti ") + esc(b.fronti.join(", ")),
+        b.misurabile ? b.rilieviScavo + (b.rilieviScavo === 1 ? " rilievo di scavo" : " rilievi di scavo") : "",
+        b.misurabile && b.quotaPct != null ? un1(b.quotaPct) + "% dello scavo dell'anno" : "",
+        b.cumulo ? "ripresi da cumuli " + n0(b.cumulo) + " m³" : "",
+      ].filter(Boolean).join(" · ");
+      return `<div class="item ${b.misurabile ? "st-accent" : "st-mute"}" style="cursor:default;">
+        <div class="info"><div class="name">${esc(b.etichetta)}</div>
+        <div class="meta">${meta}</div></div>
+        <span class="badge ${b.misurabile ? "accent" : "tag"}">${b.misurabile ? n0(b.scavo) + ' <span class="u">m³</span>' : "mai misurato"}</span>
+        ${b.motivo ? `<div class="form-hint">${esc(b.motivo)}</div>` : ""}</div>`;
+    }).join("")
+      /* elenco vuoto vuol dire una cosa sola: nessun banco da elencare, e la
+         funzione ha già scritto QUALE dei due casi è (niente fronti / fronti
+         senza banco). Il motivo si mostra, non se ne inventa un altro. */
+      || vuoto(I.monte, "Non c'è una ripartizione per banco",
+          esc(RBK.motivo) + " "
+          + (FRO.length
+              ? "Apri <b>Fronti</b>, tocca la matita accanto a un fronte e scrivi il suo <b>banco</b>: da lì in poi la ripartizione compare qui da sola."
+              : "Registra i fronti in <b>Fronti</b> indicando per ciascuno il <b>banco</b> su cui si trova: da lì in poi la ripartizione compare qui da sola."));
+    // ⚠️ e quello che questa ripartizione NON sa dire va scritto, non lasciato
+    // dedurre: il banco è un attributo del fronte OGGI, quindi racconta l'assetto
+    // attuale — e i tre secchi che non sono un banco si dichiarano a parte.
+    $("den-banchi-nota").innerHTML = !RBK.righe.length ? ""
+      : "I metri cubi in etichetta sono <b>solo scavo</b>, come nei fronti. Il banco è quello scritto <b>oggi</b> nella scheda di ciascun fronte: se un fronte cambia banco, anche i suoi rilievi passati si spostano con lui."
+        + (RBK.righe.some(b => !b.misurabile)
+            ? " I banchi senza nessun rilievo di scavo nel " + R.anno + " restano in elenco con <b>mai misurato</b>: non hanno cavato zero, non li ha misurati nessuno."
+            : "")
+        + (RBK.nonDichiarato
+            ? " <b>" + RBK.nonDichiarato.fronti + "</b> " + (RBK.nonDichiarato.fronti === 1 ? "fronte non dichiara" : "fronti non dichiarano") + " il banco"
+              + (RBK.nonDichiarato.scavo ? ", e da lì sono usciti <b>" + n0(RBK.nonDichiarato.scavo) + " m³</b> che restano fuori dalla ripartizione" : "")
+              + ": il banco si scrive nella scheda del fronte."
+            : "")
+        + (RBK.fuoriElenco
+            ? " Ci sono <b>" + n0(RBK.fuoriElenco.scavo) + " m³</b> su fronti <b>non più in elenco</b>: si contano a parte, non spariscono."
+            : "")
+        + (RBK.senzaFronte && RBK.senzaFronte.scavo
+            ? " E <b>" + n0(RBK.senzaFronte.scavo) + " m³</b> di scavo non hanno un fronte indicato, quindi nemmeno un banco."
+            : "")
+        + (RBK.grafieDoppie.length
+            ? " ⚠️ Lo stesso banco risulta scritto in più modi (" + esc(RBK.grafieDoppie.map(g => "«" + g.join("», «") + "»").join("; ")) + "): sono stati messi insieme."
+            : "");
+
     // 5 · dove arriva il titolo alla fine di quell'anno
     const cel = $("den-concesso");
     if (!R.concesso) {
@@ -2025,6 +2092,26 @@ a.dw-btn{text-decoration:none}
               "<span class='n'>" + n0(f.cumulo) + "</span>", "<span class='n'>" + f.rilievi + "</span>"])).join("")
           : riga(["Nessun volume registrato nell'anno", "<span class='n'>0</span>", "<span class='n'>0</span>", "<span class='n'>0</span>"]))
       + "</table>"
+      /* ⛔ RIPARTIZIONE PER BANCO, e sul foglio che va all'ente la casella di un
+         banco mai rilevato porta «non misurato», non uno «0». Uno zero qui è una
+         dichiarazione in difetto su una cosa che nessuno ha misurato — la stessa
+         ragione per cui l'imponibile non dichiarabile non stampa zero. */
+      + (DEN.banchi && DEN.banchi.righe.length
+        ? "<h2>Ripartizione per banco</h2><table>"
+          + riga(["Banco", "Fronti", "<span class='n'>Scavo (m³)</span>", "<span class='n'>Ripreso da cumuli (m³)</span>"], "th")
+          + DEN.banchi.righe.map(b => riga([esc(b.etichetta), esc(b.fronti.join(", ")),
+              "<span class='n'>" + (b.misurabile ? n0(b.scavo) : "non misurato") + "</span>",
+              "<span class='n'>" + n0(b.cumulo) + "</span>"])).join("")
+          + "</table>"
+          + "<p class='mini'>Il banco è quello indicato nella scheda di ciascun fronte al momento di questo prospetto."
+          + (DEN.banchi.righe.some(b => !b.misurabile)
+              ? " I banchi senza alcun rilievo di scavo nell'anno riportano «non misurato»: non hanno estratto zero, non risultano rilevati." : "")
+          + (DEN.banchi.nonDichiarato
+              ? " " + DEN.banchi.nonDichiarato.fronti + (DEN.banchi.nonDichiarato.fronti === 1 ? " fronte non dichiara" : " fronti non dichiarano") + " il banco di appartenenza"
+                + (DEN.banchi.nonDichiarato.scavo ? ", per " + n0(DEN.banchi.nonDichiarato.scavo) + " m³ di scavo non ripartiti" : "") + "." : "")
+          + (DEN.banchi.fuoriElenco ? " Risultano inoltre " + n0(DEN.banchi.fuoriElenco.scavo) + " m³ su fronti non più presenti in elenco." : "")
+          + "</p>"
+        : "")
       + "<h2>Posizione rispetto al volume concesso</h2><table>"
       // i numeri copiati dall'atto si riportano come stanno sull'atto: qui il
       // foglio va all'ente, e arrotondare all'unità un numero che l'utente ha
@@ -2097,6 +2184,12 @@ a.dw-btn{text-decoration:none}
     for (const m of mesiVisti) csv += `mese;${csvCell(MESI_NOME[m.mese - 1] + " " + R.anno)};${m.scavo};${m.cumulo};${m.rilievi}\n`;
     csv += `totale;${csvCell("Anno " + R.anno)};${R.scavo};${R.cumulo};${R.rilieviScavo + R.rilieviCumulo}\n`;
     for (const f of R.fronti) csv += `fronte;${csvCell(etFronte(f))};${f.scavo};${f.cumulo};${f.rilievi}\n`;
+    /* ⛔ la cella dello scavo di un banco mai rilevato resta VUOTA, non «0»:
+       chi apre il CSV in un foglio sommerebbe uno zero che nessuno ha misurato */
+    for (const b of (DEN.banchi ? DEN.banchi.righe : []))
+      csv += `banco;${csvCell(b.etichetta)};${b.misurabile ? b.scavo : ""};${b.cumulo};${b.rilieviScavo}\n`;
+    if (DEN.banchi && DEN.banchi.nonDichiarato)
+      csv += `banco;${csvCell("Banco non dichiarato")};${DEN.banchi.nonDichiarato.scavo};${DEN.banchi.nonDichiarato.cumulo};${DEN.banchi.nonDichiarato.rilieviScavo}\n`;
     csv += `titolo;${csvCell("Volume concesso")};${R.concesso || ""};;\n`;
     csv += `titolo;${csvCell("Estratto prima di Terra")};${R.pregresso};;\n`;
     csv += `titolo;${csvCell("Cumulato a fine " + R.anno)};${R.cumulatoFineAnno};;\n`;
@@ -2104,7 +2197,7 @@ a.dw-btn{text-decoration:none}
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "terra_riepilogo_" + R.anno + ".csv"; a.click();
-    esito("den-esito", "Riepilogo " + R.anno + " esportato in CSV: mesi, fronti e confronto col volume concesso.");
+    esito("den-esito", "Riepilogo " + R.anno + " esportato in CSV: mesi, fronti, banchi e confronto col volume concesso.");
   };
 
   // Scheda autorizzazione: form ⇄ dati. I campi vuoti restano null, così una

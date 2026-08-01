@@ -764,12 +764,21 @@ export function riepilogoAnnuale(rilievi, anno, autorizzazione, oggi = new Date(
     mesi.push({ mese: m, ym, scavo: somma(sc), cumulo: somma(soloCumulo(dentro)), rilievi: dentro.length });
   }
 
+  /* ⛔ E LA CONTA DEI RILIEVI VA SPEZZATA PER PROVENIENZA, non lasciata in un
+     totale solo. Con il solo `rilievi` chi legge la voce di un fronte non ha
+     modo di distinguere «scavo misurato pari a zero» da «lo scavo non l'ha
+     misurato nessuno»: gli resta `scavo > 0`, che è esattamente la scorciatoia
+     che il principio dell'assenza vieta. È la stessa distinzione che
+     `serieAnnuale` ha già dovuto tirare fuori a livello di ANNO
+     (`rilieviScavo`), e che a livello di FRONTE mancava. */
   const perFronte = new Map();
   for (const r of dellAnno) {
     const k = r.fronteId || "";
-    if (!perFronte.has(k)) perFronte.set(k, { fronteId: r.fronteId || null, scavo: 0, cumulo: 0, rilievi: 0 });
-    const v = perFronte.get(k);
-    v[provenienzaDi(r)] += (+r.volumeM3 || 0);
+    if (!perFronte.has(k)) perFronte.set(k, { fronteId: r.fronteId || null, scavo: 0, cumulo: 0,
+      rilievi: 0, rilieviScavo: 0, rilieviCumulo: 0 });
+    const v = perFronte.get(k), prov = provenienzaDi(r);
+    v[prov] += (+r.volumeM3 || 0);
+    v[prov === "scavo" ? "rilieviScavo" : "rilieviCumulo"]++;
     v.rilievi++;
   }
   const fronti = [...perFronte.values()].sort((x, z) => z.scavo - x.scavo || z.cumulo - x.cumulo);
@@ -933,6 +942,129 @@ export function ripartizioneFronti(riepilogo) {
     // scritto nella riga» quando nessuna riga lo riporta manda a cercare il nulla
     conCumuliInRiga: righe.some(f => +f.cumulo > 0),
     senzaFronte: righe.filter(f => f.senzaFronte).length,
+  };
+}
+
+/* ── LA RIPARTIZIONE PER BANCO ──────────────────────────────────────────────
+   «Quanto ho cavato dal banco 3 quest'anno». Fino a qui Terra sapeva
+   rispondere per FRONTE (`volumeFronte`, `ripartizioneFronti`) e per LOTTO
+   (`volumeMisuratoDiLotto`), mai per banco: `banco` esisteva solo come campo
+   della scheda del fronte, scritto e mai letto da nessun conto.
+
+   ⛔ IL DATO C'È GIÀ, E NON SI AGGIUNGE NIENTE AL RILIEVO. La catena esiste per
+   intero: un rilievo dichiara il suo `fronteId`, il fronte dichiara il suo
+   `banco`. Mettere un secondo campo `banco` sul rilievo sarebbe stata una
+   SECONDA scrittura dello stesso fatto, con la garanzia che prima o poi i due
+   si contraddicono. Qui si legge la catena che c'è.
+
+   ⚠️ E IL PREZZO DI QUELLA SCELTA VA DICHIARATO, non nascosto: il banco è un
+   attributo del fronte OGGI. Se domani qualcuno corregge il banco di un fronte,
+   tutti i rilievi passati di quel fronte si spostano di banco insieme a lui —
+   la ripartizione racconta l'assetto attuale, non quello del giorno del volo.
+   Finché un fronte resta sul suo banco (il caso normale: un fronte è una parete
+   su un banco) le due cose coincidono. Il giorno in cui servisse la storia,
+   la risposta non è duplicare il campo: è datare il legame fronte→banco.
+
+   ⛔ NON VA IN `shared/`: `banco` è un campo del modello dei fronti, che esiste
+   solo in Terra. Cercato: l'unico altro «banco» del monorepo è
+   `conti-data.js:1472` e `shared/dw-ponti.js:297`, dove vuol dire tutt'altro —
+   il peso di volume «in banco», cioè in posto. Una regola sola per una app sola.
+
+   ⛔ E UN BANCO SENZA RILIEVI NON HA CAVATO ZERO. È la trappola già pagata da
+   `avanzamentoLotto`: un banco su cui nessuno ha volato quest'anno prende
+   `scavo: null` e `misurabile: false` con la sua ragione, non un badge «0 m³»
+   che a chi guarda dice «fermo» invece di «non misurato». Per distinguerli
+   serve la conta dei rilievi DI SCAVO (`rilieviScavo`), che `riepilogoAnnuale`
+   ha imparato a dare proprio per questo: `scavo > 0` avrebbe confuso un banco
+   mai misurato con un banco misurato a zero.
+
+   ⛔ E I TRE SECCHI CHE NON SONO UN BANCO NON SPARISCONO. Se lo facessero, la
+   somma delle righe sarebbe più piccola dello scavo dell'anno e nessuno se ne
+   accorgerebbe (è la forma di `rilieviFuoriDaiLotti`):
+    · `nonDichiarato` — fronti che esistono ma non dichiarano nessun banco. Il
+      loro scavo non è «di nessun banco»: è di un banco NON DICHIARATO;
+    · `senzaFronte`   — rilievi senza fronte (tipicamente le riprese da cumulo,
+      che un fronte non ce l'hanno per definizione);
+    · `fuoriElenco`   — rilievi che puntano a un fronte cancellato.
+
+   ⚠️ E LE GRAFIE. Il banco è testo libero nella scheda del fronte, quindi
+   «Banco 2» e «banco  2» sono lo stesso banco scritto in due modi: si
+   raggruppano (spazi normalizzati, maiuscole ignorate) e le grafie trovate si
+   DICHIARANO in `grafieDoppie`, così chi guarda sa perché due fronti sono
+   finiti nella stessa riga invece di scoprirlo per caso. */
+const chiaveBanco = (s) => String(s == null ? "" : s).trim().replace(/\s+/g, " ");
+
+export function ripartizioneBanchi(riepilogo, fronti) {
+  const R = riepilogo || {};
+  const anno = R.anno != null ? R.anno : "";
+  const elenco = (Array.isArray(fronti) ? fronti : []).filter((f) => f && f.id != null);
+  const voci = Array.isArray(R.fronti) ? R.fronti : [];
+  const vuota = { righe: [], banchi: 0, misurabile: false,
+    nonDichiarato: null, senzaFronte: null, fuoriElenco: null, totale: 0, grafieDoppie: [] };
+
+  if (!elenco.length)
+    return { ...vuota, motivo: "Nessun fronte registrato: il banco si legge dalla scheda del fronte, quindi senza fronti il volume per banco non si può ripartire. Non vuol dire che i banchi non abbiano prodotto nulla." };
+
+  const perId = new Map(), banchi = new Map();
+  for (const f of elenco) {
+    const g = chiaveBanco(f.banco), k = g.toLowerCase();
+    perId.set(String(f.id), k);   // "" = fronte che non dichiara un banco
+    if (!k) continue;
+    if (!banchi.has(k))
+      banchi.set(k, { chiave: k, etichetta: g, grafie: [], fronti: [], fronteId: [],
+        scavo: 0, cumulo: 0, rilievi: 0, rilieviScavo: 0, rilieviCumulo: 0 });
+    const b = banchi.get(k);
+    if (!b.grafie.includes(g)) b.grafie.push(g);
+    b.fronti.push(String(f.nome || f.id));
+    b.fronteId.push(String(f.id));
+  }
+  if (!banchi.size)
+    /* ⚠️ il motivo dice il FATTO, non dove si va a rimediare: il «dove» lo
+       scrive la pagina, che sa se i fronti ci sono o no. Scritto in tutt'e due i
+       posti, lo stato vuoto ripeteva la stessa frase due volte di fila — visto
+       aprendo la pagina, non leggendo il codice. */
+    return { ...vuota, motivo: "Nessuno dei fronti registrati dichiara un banco: il volume per banco non si può ripartire." };
+
+  const secchio = () => ({ scavo: 0, cumulo: 0, rilievi: 0, rilieviScavo: 0, rilieviCumulo: 0, fronti: 0 });
+  const nonDich = secchio(), senzaFro = secchio(), fuori = secchio();
+  const accumula = (t, v) => {
+    t.scavo += (+v.scavo || 0); t.cumulo += (+v.cumulo || 0);
+    t.rilievi += (+v.rilievi || 0);
+    t.rilieviScavo += (+v.rilieviScavo || 0); t.rilieviCumulo += (+v.rilieviCumulo || 0);
+  };
+  for (const v of voci) {
+    const id = v.fronteId == null ? "" : String(v.fronteId);
+    if (!id) { accumula(senzaFro, v); senzaFro.fronti++; continue; }
+    if (!perId.has(id)) { accumula(fuori, v); fuori.fronti++; continue; }
+    const k = perId.get(id);
+    if (!k) { accumula(nonDich, v); continue; }
+    accumula(banchi.get(k), v);
+  }
+  // i fronti senza banco si contano TUTTI, anche quelli che quest'anno non hanno
+  // rilievi: è il numero che dice quanto lavoro di compilazione manca
+  nonDich.fronti = elenco.filter((f) => !perId.get(String(f.id))).length;
+
+  const totale = +R.scavo > 0 ? +R.scavo : 0;
+  const righe = [...banchi.values()]
+    .sort((a, z) => z.scavo - a.scavo || a.etichetta.localeCompare(z.etichetta, "it"))
+    .map((b) => !b.rilieviScavo
+      ? { ...b, scavo: null, cumulo: r2(b.cumulo), misurabile: false, quotaPct: null,
+          motivo: b.rilieviCumulo
+            ? `Sui fronti di questo banco nel ${anno} ci sono solo riprese da cumulo: è materiale già cavato prima, non scavo di questo banco.`
+            : `Nessun rilievo di scavo su questo banco nel ${anno}: il volume tolto non è stato misurato da nessuno.` }
+      : { ...b, scavo: r2(b.scavo), cumulo: r2(b.cumulo), misurabile: true,
+          quotaPct: totale > 0 ? Math.round(1000 * b.scavo / totale) / 10 : null, motivo: "" });
+
+  const qualcuno = righe.some((x) => x.misurabile);
+  return {
+    righe, banchi: righe.length, misurabile: qualcuno,
+    motivo: qualcuno ? ""
+      : `Nessun banco ha un rilievo di scavo nel ${anno}: il volume per banco di quest'anno non è stato misurato da nessuno.`,
+    nonDichiarato: nonDich.fronti || nonDich.rilievi ? nonDich : null,
+    senzaFronte: senzaFro.rilievi ? senzaFro : null,
+    fuoriElenco: fuori.rilievi ? fuori : null,
+    totale,
+    grafieDoppie: righe.filter((x) => x.grafie.length > 1).map((x) => x.grafie),
   };
 }
 
