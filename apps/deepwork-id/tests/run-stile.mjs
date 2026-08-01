@@ -2069,6 +2069,9 @@ const COPPIE_STATO = [
   { funzione: "statoScadenzaTerra", modulo: "apps/terra/terra-data.js",
     pagina: "apps/terra/index.html", mappa: "SB",
     perche: "il semaforo dello scadenzario di Terra" },
+  { funzione: "statoConformitaQuota", modulo: "apps/terra/terra-data.js",
+    pagina: "apps/terra/index.html", mappa: "CQ",
+    perche: "il semaforo della conformità alla quota di fondo, in cima al Piano di Terra" },
 ];
 /* ⚠️ Due letture sbagliate al primo colpo, e le controprove le hanno viste
    subito — vale la pena scriverle perché sono la stessa famiglia:

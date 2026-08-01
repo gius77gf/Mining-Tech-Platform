@@ -508,7 +508,10 @@ a.dw-btn{text-decoration:none}
         <input class="dw-input dec" id="aut-superficie" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 78000" title="Superficie autorizzata in metri quadri. La virgola va benissimo: 78412,50."></div>
       <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-volume">Volume totale autorizzato (<span class="u">m³</span>)</label>
         <input class="dw-input dec" id="aut-volume" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 1200000" title="Volume totale concesso dall'atto, in metri cubi. La virgola va benissimo: 1200000,50."></div>
+      <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-fondo">Quota di fondo autorizzata (<span class="u">m s.l.m.</span>)</label>
+        <input class="dw-input dec" id="aut-fondo" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 300" title="La quota più bassa a cui il progetto di coltivazione permette di scendere, in metri sul livello del mare. Può essere negativa se la cava scende sotto il livello del mare. La virgola va benissimo: 299,50."></div>
     </div>
+    <div class="form-hint">La <b>quota di fondo</b> è il numero che il progetto di coltivazione scrive sui profili: fin dove si può scendere. Scrivila e Terra ti dice, fronte per fronte, quanti metri mancano — e se qualcuno l'ha già passata. Se un <b>singolo lotto</b> ha un fondo suo (un progetto quasi sempre scende per gradoni) lo scrivi sul lotto, nella scheda <b>Piano</b>, e lì vale quello.</div>
     <div class="frow">
       <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-pregresso">Già estratto prima di Terra (<span class="u">m³</span>)</label>
         <input class="dw-input dec" id="aut-pregresso" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0" title="Metri cubi già estratti sotto questo atto prima di usare Terra. La virgola va benissimo."></div>
@@ -728,6 +731,19 @@ a.dw-btn{text-decoration:none}
        estrattivo e non in una voce nuova della barra: i lotti SONO il piano.
        Ragioni per esteso: docs/PIANO_LOTTI_TERRA.md
        ══════════════════════════════════════════════════════════════════ -->
+  <!-- ══════════════════════════════════════════════════════════════════
+       «STIAMO SCAVANDO DOVE IL PROGETTO DICE?»
+       La domanda che un ente fa a una cava autorizzata. Sta qui, in cima al
+       Piano, perché è la domanda a cui il piano SERVE a rispondere: sotto ci
+       sono i lotti, cioè i pezzi in cui il progetto divide la cava.
+       Tre assi, e ognuno può essere «non misurabile» per conto suo: la QUOTA
+       (fin dove si può scendere), il VOLUME per lotto (quanto quel lotto
+       prevede), la SEQUENZA (in che ordine il progetto vuole che si apra).
+       ══════════════════════════════════════════════════════════════════ -->
+  <div class="sec">Conformità al progetto</div>
+  <div id="lot-conformita"></div>
+  <div id="lot-conf-fronti"></div>
+
   <div class="sec">Piano di coltivazione a lotti</div>
   <div id="lot-divario"></div>
   <div id="lot-count" class="count"></div>
@@ -749,7 +765,10 @@ a.dw-btn{text-decoration:none}
         <input class="dw-input dec" id="lot-mq" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 12000" title="Superficie del lotto in metri quadri. La virgola va benissimo: 12000,50."></div>
       <div class="fld" style="flex:1 1 190px;"><label class="fl" for="lot-m3">Volume previsto dal progetto (<span class="u">m³</span>)</label>
         <input class="dw-input dec" id="lot-m3" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 180000" title="Volume che il progetto prevede di cavare da questo lotto. La virgola va benissimo."></div>
+      <div class="fld" style="flex:1 1 190px;"><label class="fl" for="lot-fondo">Quota di fondo del lotto (<span class="u">m s.l.m.</span>)</label>
+        <input class="dw-input dec" id="lot-fondo" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="solo se diversa da quella dell'atto" title="Il fondo scavo che il progetto assegna a QUESTO settore, quando è diverso da quello generale. Lasciala vuota e vale la quota di fondo della scheda Titolo."></div>
     </div>
+    <div class="form-hint">La <b>quota di fondo del lotto</b> si scrive solo se il progetto ne dà una diversa da quella generale — cosa normale, perché un progetto scende per gradoni e ogni settore ha il suo fondo. Quando c'è, per i fronti di questo lotto vale <b>questa</b>; il confronto dice sempre da quale delle due viene il numero.</div>
     <div class="fld">
       <div class="fl">Fronti che stanno in questo lotto</div>
       <div id="lot-fronti" class="chgs"></div>
@@ -859,6 +878,7 @@ a.dw-btn{text-decoration:none}
            produzionePerFronte,
            numeroDaCampo, AVVISO_DECIMALE, origineDi, descriviOrigine,
            STATI_LOTTO, statoLotto, divarioRecupero, avanzamentoLotto,
+           conformitaProgetto,
            volumeMisuratoDiLotto, rilieviFuoriDaiLotti } from "./terra-data.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, montaGuardiaInteri, euro0, isoLocale, oggiISO, dataISOEsiste } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
@@ -1028,7 +1048,7 @@ a.dw-btn{text-decoration:none}
     $("fro-list").innerHTML = FRO.map(f => { const v = volFronte(f.id);
       return `<div class="item ${f.stato === "attivo" ? "st-accent" : "st-warn"}" data-fro="${f.id}" title="Tocca per sospendere o riattivare il fronte">
       <div class="avatar">${esc(sig(f.nome))}</div>
-      <div class="info"><div class="name">${esc(f.nome)}${f.banco ? " — " + esc(f.banco) : ""}</div><div class="meta">${["Quota " + nD(f.quota) + " m", avFronte(f, "avanzamento"), v ? "estratti " + fmtM3(v) + " m³ (rilievi)" : "", f.dettaglio ? esc(f.dettaglio) : ""].filter(Boolean).join(" · ")}</div></div>
+      <div class="info"><div class="name">${esc(f.nome)}${f.banco ? " — " + esc(f.banco) : ""}</div><div class="meta">${[f.quota == null || f.quota === "" ? "quota non dichiarata" : "Quota " + nD(f.quota) + " m", avFronte(f, "avanzamento"), v ? "estratti " + fmtM3(v) + " m³ (rilievi)" : "", f.dettaglio ? esc(f.dettaglio) : ""].filter(Boolean).join(" · ")}</div></div>
       <div class="acts"><span class="badge ${FB[f.stato][0]}">${FB[f.stato][1]}</span>
       <button class="arr" type="button" title="Modifica nome, banco e quota" aria-label="Modifica il fronte ${esc(f.nome)}" data-edit-fro="${f.id}">${A.mod}</button></div></div>`; }).join("")
       || vuoto(I.monte, "Nessun fronte registrato",
@@ -1130,6 +1150,7 @@ a.dw-btn{text-decoration:none}
           "Qui vivono le voci del piano: volume annuo pianificato e riserve stimate. Senza di esse Terra non può calcolare avanzamento e proiezione di fine anno.");
 
     renderTitolo();
+    renderConformita();
     renderLotti();
     renderDenuncia();
     densitaDaAutorizzazione();   // prima di renderValore: la densità la usano entrambi
@@ -1550,6 +1571,130 @@ a.dw-btn{text-decoration:none}
      vedrebbe invece di spegnere la schermata.
      Striscia, pastiglia e chip-icona portano lo STESSO colore: lo stato si
      legge tre volte — forma, posizione, parola. */
+  /* ══════════════════════════════════════════════════════════════════
+     CONFORMITÀ AL PROGETTO — «stiamo scavando dove il progetto dice?»
+     I conti li fa `terra-data.js` (`conformitaProgetto`, `conformitaQuota`,
+     `fondoAutorizzato`, `statoConformitaQuota`): qui si DISEGNA.
+     ⛔ LA MAPPA HA QUATTRO CHIAVI PERCHÉ `statoConformitaQuota` SA DARE
+     QUATTRO RISPOSTE. Dimenticarne una non è un errore di sintassi: la
+     pagina si apre e muore al disegno su `CQ[st][0]`, cioè proprio dove
+     nessuno la sta guardando. Lo controlla la regola 18 di `run-stile.mjs`,
+     che legge le risposte della funzione e le chiavi di questa mappa. */
+  const CQ = {
+    "oltre":          ["st-danger", "danger", "oltre il fondo", "danger"],
+    "al-limite":      ["st-warn",   "warn",   "al fondo",       "warn"],
+    "dentro":         ["st-ok",     "ok",     "dentro",         "ok"],
+    "non-misurabile": ["st-mute",   "tag",    "non misurabile", ""],
+  };
+  const stileQuota = (st) => CQ[st] || ["st-mute", "tag", st, ""];
+  // i metri con la virgola e mai più di due decimali: una quota è una misura
+  // topografica, e 5,25 m di margine non sono 5
+  const nM = (v) => v == null ? "—" : (+v).toLocaleString("it-IT", { maximumFractionDigits: 2, useGrouping: true });
+
+  /* Il cartellone della conformità: stesso impianto della vita cava e del
+     divario, perché è lo stesso genere di numero — quello che si guarda per
+     primo, e che finisce davanti a chi fa vigilanza. */
+  function cardConformita(c) {
+    // le tre righe degli assi che NON riguardano la quota: si scrivono comunque,
+    // perché una schermata che parla solo di quote lascia credere che il resto
+    // sia stato guardato
+    const volume = !c.volume.misurabile
+      ? `<div class="riga">${esc(c.volume.perche)}</div>`
+      : c.volume.oltrePrevisto.length
+        ? `<div class="riga att">${I.allarme}<span><b>${c.volume.oltrePrevisto.length} ${c.volume.oltrePrevisto.length === 1 ? "lotto ha superato" : "lotti hanno superato"} il volume che il progetto gli assegna</b>: ${c.volume.oltrePrevisto.map(v => esc(v.nome) + " al " + un1(v.pct) + "%").join(", ")}. È il metro cubo in più che l'atto non concede a quel settore.</span></div>`
+        : `<div class="riga">Nessun lotto ha superato il volume che il progetto gli assegna, su <b>${c.volume.conConfronto}</b> ${c.volume.conConfronto === 1 ? "confrontabile" : "confrontabili"}.</div>`;
+    const sequenza = c.volume.fuoriSequenza.length
+      ? `<div class="riga att">${I.allarme}<span>Ci sono rilievi di scavo su ${c.volume.fuoriSequenza.length === 1 ? "un lotto ancora <b>previsto</b>" : "lotti ancora <b>previsti</b>"} (${c.volume.fuoriSequenza.map(v => esc(v.nome)).join(", ")}): il progetto non li ha ancora aperti, e la sequenza dei lotti è una prescrizione come le altre.</span></div>`
+      : "";
+    /* ⛔ I lotti senza confronto si dicono SEMPRE, anche quando tutto il resto
+       è verde: «nessun lotto oltre il previsto» calcolato su due lotti quando
+       ce ne sono sei è la buona notizia che nasconde le altre quattro. */
+    const senza = c.volume.senzaConfronto
+      ? `<div class="riga">${c.volume.senzaConfronto} ${c.volume.senzaConfronto === 1 ? "lotto non ha" : "lotti non hanno"} insieme un volume di progetto e un volume misurato: per ${c.volume.senzaConfronto === 1 ? "quello" : "quelli"} il confronto non è stato fatto — non vuol dire che ${c.volume.senzaConfronto === 1 ? "è" : "sono"} a posto.</div>`
+      : "";
+
+    if (!c.misurabile) {
+      /* ⛔ Nessuna cifra, nessun verde, nessuna pastiglia di stato: qui la
+         quota non è stata misurata da nessuno. C'è un trattino e la ragione —
+         la stessa scelta del divario di recupero e del contatore vita cava. */
+      return `<div class="vita">
+        <div class="vita-head">
+          <div class="vita-ico" aria-hidden="true">${I.monte}</div>
+          <div class="vita-htxt">
+            <div class="vita-lab">Fin dove si può scendere</div>
+            <div class="vita-sub">La quota di fondo che il progetto di coltivazione autorizza</div>
+          </div>
+          <span class="badge tag">non misurata</span>
+        </div>
+        <div class="vita-num">
+          <span class="vita-cifre">—</span><span class="vita-un">nessun confronto possibile</span>
+        </div>
+        <div class="riga">${esc(c.perche)}</div>
+        ${volume}${sequenza}${senza}
+      </div>`;
+    }
+    const oltre = c.oltre > 0;
+    const testa = oltre
+      ? [c.peggiore, "danger", "m oltre il fondo autorizzato"]
+      : [c.piuVicino, c.alLimite ? "warn" : "ok", "m dal fondo, sul fronte più vicino"];
+    const rif = testa[0];
+    return `<div class="vita">
+      <div class="vita-head">
+        <div class="vita-ico" aria-hidden="true">${I.monte}</div>
+        <div class="vita-htxt">
+          <div class="vita-lab">Fin dove si può scendere</div>
+          <div class="vita-sub">${c.dentro + c.alLimite + c.oltre} ${c.dentro + c.alLimite + c.oltre === 1 ? "fronte confrontato" : "fronti confrontati"} con la quota di fondo del progetto</div>
+        </div>
+        <span class="badge ${testa[1]}">${oltre ? (c.oltre + " " + (c.oltre === 1 ? "fronte oltre" : "fronti oltre")) : c.alLimite ? "al fondo" : "dentro il progetto"}</span>
+      </div>
+      <div class="vita-num">
+        <span class="vita-cifre">${nM(Math.abs(rif.margineM))}</span><span class="vita-un">${testa[2]}</span>
+        <span class="vita-pct">${esc(rif.nome)} · fondo ${nM(rif.fondoM)} <span class="u">m s.l.m.</span></span>
+      </div>
+      ${oltre
+        ? `<div class="riga att">${I.allarme}<span><b>${c.oltre} ${c.oltre === 1 ? "fronte è sceso" : "fronti sono scesi"} sotto la quota di fondo</b> che il progetto autorizza. Il peggiore è <b>${esc(rif.nome)}</b>, a ${nM(rif.quotaFronte)} m contro un fondo di ${nM(rif.fondoM)} m: <b>${nM(-rif.margineM)} m</b> più in basso.</span></div>`
+        : `<div class="riga">Il fronte più vicino al fondo è <b>${esc(rif.nome)}</b>: sta a ${nM(rif.quotaFronte)} m e il progetto lo ferma a ${nM(rif.fondoM)} m, quindi ${rif.margineM === 0 ? "<b>ci è arrivato</b>: da lì non si scende più" : `restano <b>${nM(rif.margineM)} m</b>`}. Il fondo viene ${rif.origineFondo === "lotto" ? "dal <b>lotto</b> a cui il fronte appartiene" : "dalla scheda dell'<b>autorizzazione</b>"}.</div>`}
+      ${c.alLimite && !oltre ? `<div class="riga att">${I.allarme}<span><b>${c.alLimite} ${c.alLimite === 1 ? "fronte è arrivato" : "fronti sono arrivati"} esattamente al fondo autorizzato</b>: non è una violazione, ma da lì non si scende più senza una variante.</span></div>` : ""}
+      ${c.nonMisurabili ? `<div class="riga att">${I.allarme}<span><b>${c.nonMisurabili} ${c.nonMisurabili === 1 ? "fronte non è stato confrontato" : "fronti non sono stati confrontati"}</b>: ${c.nonMisurabili === 1 ? "non dichiara" : "non dichiarano"} la quota raggiunta. Il conto qui sopra riguarda solo gli altri — ${c.nonMisurabili === 1 ? "quello" : "quelli"} non ${c.nonMisurabili === 1 ? "è" : "sono"} a posto, ${c.nonMisurabili === 1 ? "è" : "sono"} da misurare. Aprili nella scheda <b>Fronti</b> e scrivi la quota.</span></div>` : ""}
+      ${volume}${sequenza}${senza}
+    </div>`;
+  }
+
+  // La riga di un fronte nel confronto con la quota: quota raggiunta, fondo,
+  // margine, e da quale delle due carte viene il fondo.
+  function itemConformita(r) {
+    const sty = stileQuota(r.stato);
+    const meta = [
+      r.quotaFronte == null ? "quota non dichiarata" : "quota " + nM(r.quotaFronte) + " m",
+      r.fondoM == null ? "fondo non dichiarato" : "fondo " + nM(r.fondoM) + " m",
+      r.margineM == null ? "" : r.margineM < 0
+        ? nM(-r.margineM) + " m più in basso del fondo"
+        : r.margineM === 0 ? "arrivato al fondo" : "mancano " + nM(r.margineM) + " m",
+      r.origineFondo === "lotto" ? "fondo del lotto" : r.origineFondo === "autorizzazione" ? "fondo dell'atto" : "",
+      r.lottoNome ? esc(r.lottoNome) : "fuori dai lotti",
+    ].filter(Boolean).join(" · ");
+    return `<div class="item ${sty[0]}" style="cursor:default;">
+      <div class="avatar ico${sty[3] ? " " + sty[3] : ""}" aria-hidden="true">${I.monte}</div>
+      <div class="info"><div class="name">${esc(r.nome)}</div><div class="meta">${meta}</div></div>
+      <div class="acts"><span class="badge ${sty[1]}">${esc(sty[2])}</span></div>
+      ${r.perche ? `<div class="form-hint">${esc(r.perche)}</div>` : ""}</div>`;
+  }
+
+  function renderConformita() {
+    const c = conformitaProgetto(FRO, LOT, RIL, autorizzazioneVigente(AUT));
+    $("lot-conformita").innerHTML = cardConformita(c);
+    /* L'elenco per fronte si mostra solo se c'è almeno un fronte: la ragione
+       per cui non c'è niente da confrontare sta già nel cartellone, e
+       ripeterla in uno stato vuoto sarebbe dirla due volte. E i fronti si
+       ordinano dal più critico: chi è oltre il fondo va letto per primo. */
+    const ORD = { "oltre": 0, "al-limite": 1, "non-misurabile": 2, "dentro": 3 };
+    $("lot-conf-fronti").innerHTML = c.fronti.slice()
+      .sort((a, b) => (ORD[a.stato] ?? 9) - (ORD[b.stato] ?? 9)
+        || (a.margineM ?? 1e9) - (b.margineM ?? 1e9)
+        || String(a.nome).localeCompare(String(b.nome), "it"))
+      .map(itemConformita).join("");
+  }
+
   const LB = {
     previsto:      ["st-mute",   "tag",    "Previsto",    ""],
     aperto:        ["st-accent", "accent", "Aperto",      ""],
@@ -2212,6 +2357,7 @@ a.dw-btn{text-decoration:none}
     $("aut-superficie").value = itDec(a && a.superficieMq);
     $("aut-volume").value = itDec(a && a.volumeAutorizzatoM3);
     $("aut-pregresso").value = itDec(a && a.estrattoPregressoM3);
+    $("aut-fondo").value = itDec(a && a.quotaFondoM);
     v("aut-materiale", a && a.materiale);
     v("aut-prescrizioni", a && a.prescrizioni); v("aut-riferimenti", a && a.riferimenti);
     $("aut-soglia").value = a && a.sogliaGuardiaPct != null ? a.sogliaGuardiaPct : 80;
@@ -2237,10 +2383,22 @@ a.dw-btn{text-decoration:none}
     // percentuale non hanno decimali, e lì lo spinner del browser è un aiuto
     const numInt = (id) => { const n = parseFloat($(id).value); return Number.isFinite(n) && n >= 0 ? n : null; };
     const pregresso = num("aut-pregresso");
+    /* ⛔ LA QUOTA DI FONDO NON PASSA DA `num`, e la ragione è il `min: 0`: una
+       cava in fossa scende SOTTO il livello del mare, e il suo fondo di
+       progetto è un numero negativo perfettamente legittimo. Letta con quel
+       limite verrebbe rifiutata come illeggibile e salvata come `null`, cioè
+       proprio le cave che hanno più bisogno del confronto verticale
+       resterebbero le uniche a non poterlo fare. Stessa scelta già presa per
+       la quota del fronte, che infatti si legge senza minimo. */
+    const rFondo = numCampo("aut-fondo", { decimali: 2 });
     return {
       numeroAtto: t("aut-numero"), ente: t("aut-ente") || null,
       dataRilascio: t("aut-rilascio") || null, dataScadenza: t("aut-scadenza") || null,
       superficieMq: num("aut-superficie"), volumeAutorizzatoM3: num("aut-volume"),
+      // vuoto = «non dichiarata», mai zero: uno zero è una quota vera (e
+      // bassissima), e su di lei il confronto direbbe che tutta la cava sta
+      // centinaia di metri sotto il fondo
+      quotaFondoM: rFondo.ok ? rFondo.valore : null,
       // ⛔ un campo lasciato vuoto NON è uno zero dichiarato: scriverci 0
       // faceva sembrare che l'utente avesse dichiarato «prima di Terra non si
       // era cavato niente», cioè la lettura più favorevole possibile, su un
@@ -2300,6 +2458,16 @@ a.dw-btn{text-decoration:none}
       if (r.motivo === "sotto-minimo") {
         err(id, true); fuoco(id);
         esito("aut-esito", "Un valore negativo non ha senso per " + che + ": la scheda non è stata salvata.", "err"); return; }
+    }
+    /* la quota di fondo si controlla FUORI dal ciclo, perché il ciclo impone
+       `min: 0` e qui il negativo è legittimo: si rifiuta solo quello che non
+       si riesce a leggere. */
+    {
+      const r = numCampo("aut-fondo", { decimali: 2 });
+      err("aut-fondo", false);
+      if (numIllegibile(r)) {
+        err("aut-fondo", true); fuoco("aut-fondo");
+        esito("aut-esito", spiegaNum("la quota di fondo autorizzata", r, "m") + " La scheda non è stata salvata.", "err"); return; }
     }
     const senzaVolume = d.volumeAutorizzatoM3 ? "" : " Senza il volume totale autorizzato il contatore vita cava resta spento.";
     if (editAut) {
@@ -2467,10 +2635,11 @@ a.dw-btn{text-decoration:none}
     $("lot-stato").value = l ? statoLotto(l) : "previsto";
     $("lot-mq").value = l ? itDec(l.superficieMq == null ? "" : l.superficieMq) : "";
     $("lot-m3").value = l ? itDec(l.volumeM3 == null ? "" : l.volumeM3) : "";
+    $("lot-fondo").value = l ? itDec(l.quotaFondoM == null ? "" : l.quotaFondoM) : "";
     $("lot-nota").value = l ? (l.nota || "") : "";
     for (const [id, campo] of CAMPI_DATA_LOTTO) $(id).value = l && dataISOEsiste(l[campo]) ? l[campo] : "";
     frontiLot = l && Array.isArray(l.frontiId) ? l.frontiId.map(String) : [];
-    ["lot-nome", "lot-mq", "lot-m3", "lot-ordine"].forEach(i => err(i, false));
+    ["lot-nome", "lot-mq", "lot-m3", "lot-fondo", "lot-ordine"].forEach(i => err(i, false));
   }
   function annullaEditLotto() { editLot = null; riempiFormLotto(null); }
   function leggiFormLotto() {
@@ -2478,6 +2647,8 @@ a.dw-btn{text-decoration:none}
     const d = (id) => (dataISOEsiste($(id).value) ? $(id).value : null);
     const ord = parseInt($("lot-ordine").value, 10);
     const mq = numCampo("lot-mq", { min: 0 }), m3 = numCampo("lot-m3", { min: 0 });
+    // niente `min: 0` sulla quota: il fondo di una cava in fossa è negativo
+    const fondo = numCampo("lot-fondo", { decimali: 2 });
     return {
       nome: t("lot-nome"),
       // senza ordine scritto, il lotto si mette in coda: un numero inventato in
@@ -2485,6 +2656,9 @@ a.dw-btn{text-decoration:none}
       ordine: Number.isFinite(ord) && ord > 0 ? ord : (LOT.reduce((m, x) => Math.max(m, +x.ordine || 0), 0) + 1),
       superficieMq: mq.ok ? mq.valore : null,
       volumeM3: m3.ok ? m3.valore : null,
+      // vuoto = «questo settore non ha un fondo suo», e allora vale quello
+      // dell'atto. Non è uno zero, che sarebbe una quota vera.
+      quotaFondoM: fondo.ok ? fondo.valore : null,
       stato: STATI_LOTTO.includes($("lot-stato").value) ? $("lot-stato").value : "previsto",
       apertoIl: d("lot-aperto"), esauritoIl: d("lot-esaurito"),
       recuperoIniziatoIl: d("lot-rec-inizio"), recuperoFinitoIl: d("lot-rec-fine"),
@@ -2514,6 +2688,14 @@ a.dw-btn{text-decoration:none}
       if (r.motivo === "sotto-minimo") {
         err(id, true); fuoco(id);
         esito("lot-esito", "Un valore negativo non ha senso per " + che + ": il lotto non è stato salvato.", "err"); return; }
+    }
+    { // la quota di fondo sta fuori dal ciclo: lì il `min: 0` rifiuterebbe il
+      // fondo negativo di una cava in fossa, che è legittimo
+      const r = numCampo("lot-fondo", { decimali: 2 });
+      err("lot-fondo", false);
+      if (numIllegibile(r)) {
+        err("lot-fondo", true); fuoco("lot-fondo");
+        esito("lot-esito", spiegaNum("la quota di fondo del lotto", r, "m") + " Il lotto non è stato salvato.", "err"); return; }
     }
     const d = leggiFormLotto();
     // che cosa manca ancora: si salva lo stesso, ma si dice — un lotto senza
@@ -3168,7 +3350,7 @@ a.dw-btn{text-decoration:none}
   });
   $("btn-terra-export").onclick = () => {
     let csv = "tipo;nome;stato;provenienza;dettaglio\n";
-    for (const f of FRO) csv += `fronte;${csvCell(f.nome+" "+(f.banco||""))};${f.stato};;${["quota " + f.quota + "m", avFronte(f, "avanzamento")].filter(Boolean).join(" · ")}\n`;
+    for (const f of FRO) csv += `fronte;${csvCell(f.nome+" "+(f.banco||""))};${f.stato};;${[f.quota == null || f.quota === "" ? "" : "quota " + f.quota + "m", avFronte(f, "avanzamento")].filter(Boolean).join(" · ")}\n`;
     for (const r of RIL.slice().sort((a,b)=>(b.data||"").localeCompare(a.data||"")))
       csv += `rilievo;${csvCell(r.titolo)};${r.stato};${provenienzaRilievo(r)};${dmy(r.data)}${r.volumeM3!=null?" · "+r.volumeM3+" m³":""}\n`;
     const a = document.createElement("a");
@@ -3186,7 +3368,14 @@ a.dw-btn{text-decoration:none}
     if (numIllegibile(rq)) {
       err("fro-quota", true); fuoco("fro-quota");
       esito("fro-esito", spiegaNum("la quota del fronte", rq, "m") + " Il fronte non è stato salvato.", "err"); return; }
-    const quota = rq.ok ? rq.valore : 0;
+    /* ⛔ QUI C'ERA UNO ZERO, e adesso c'è `null`. Il campo lasciato vuoto
+       finiva in archivio come «0 m s.l.m.»: una quota vera, e bassissima.
+       Finché serviva solo a scrivere «Quota 0 m» in una riga era brutto; da
+       quando il fronte si confronta con la quota di fondo del progetto quello
+       zero diventerebbe un giudizio inventato — «340 m sotto il fondo» su un
+       fronte che nessuno ha misurato, per giunta su un foglio che va a chi fa
+       vigilanza. Vuoto vuol dire «non dichiarata», e il confronto non si fa. */
+    const quota = rq.ok ? rq.valore : null;
     if (!nome) { err("fro-nome", true); fuoco("fro-nome");
       esito("fro-esito", "Serve il nome del fronte: è quello che leggerai nelle liste e nei rilievi.", "err"); return; }
     if (FRO.some(f => f.nome.toLowerCase() === nome.toLowerCase() && f.id !== editFro)) {

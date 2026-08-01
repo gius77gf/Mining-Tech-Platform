@@ -70,10 +70,17 @@ export const DEMO = {
       stato: "in-recupero", apertoIl: "2023-02-06", esauritoIl: "2026-02-27",
       recuperoIniziatoIl: "2026-04-13", recuperoFinitoIl: null, collaudatoIl: null,
       frontiId: [], nota: "Rimodellamento delle scarpate in corso." },
+    /* Il settore Nord è l'unico che nel progetto d'esempio ha un fondo SUO,
+       più alto di quello generale (335 contro 300): è il caso normale di un
+       progetto che scende per gradoni, ed è anche quello che fa vedere il
+       numero utile — il fronte Nord sta a 340 m, cioè a soli 5 m dal suo
+       fondo, mentre contro il fondo generale ne avrebbe 40. Se il fondo del
+       lotto non vincesse su quello dell'atto, la cava leggerebbe otto volte
+       il margine che ha davvero. */
     { id: "lo4", nome: "Lotto 4 — settore Nord", ordine: 4, superficieMq: 12000, volumeM3: 180000,
       stato: "aperto", apertoIl: "2024-05-02", esauritoIl: null,
       recuperoIniziatoIl: null, recuperoFinitoIl: null, collaudatoIl: null,
-      frontiId: ["f1"], nota: "" },
+      frontiId: ["f1"], quotaFondoM: 335, nota: "" },
     { id: "lo5", nome: "Lotto 5 — settore Est", ordine: 5, superficieMq: 9500, volumeM3: 140000,
       stato: "aperto", apertoIl: "2025-09-08", esauritoIl: null,
       recuperoIniziatoIl: null, recuperoFinitoIl: null, collaudatoIl: null,
@@ -115,7 +122,8 @@ export const DEMO = {
   autorizzazioni: [
     { id: "a1", numeroAtto: "Atto n. 128 del 2021 (esempio)", ente: "Ente competente di esempio",
       dataRilascio: "2021-03-15", dataScadenza: "2031-03-14", superficieMq: 78000,
-      volumeAutorizzatoM3: 1200000, estrattoPregressoM3: 340000, materiale: "Sabbia e ghiaia",
+      volumeAutorizzatoM3: 1200000, quotaFondoM: 300,
+      estrattoPregressoM3: 340000, materiale: "Sabbia e ghiaia",
       prescrizioni: "Recupero ambientale contestuale alla coltivazione, lotto per lotto.\nRilievo dei lavori da tenere aggiornato e trasmettere all'ente.",
       riferimenti: "Protocollo di esempio · progetto di coltivazione allegato all'atto",
       stato: "vigente", sogliaGuardiaPct: 80, preavvisoGiorni: 90, anniRitmo: 3 },

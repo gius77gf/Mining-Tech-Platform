@@ -571,6 +571,54 @@
    inchiostro, così il documento riprende gli stessi ruoli di colore in
    chiaro — senza toccare il foglio condiviso.
    ══════════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════════
+   LA FOTO COME PROVA — galleria dentro la modale
+   Le foto vivono nella modale e non nella riga: una miniatura in fondo a una
+   riga tagliata a due righe (`-webkit-line-clamp:2`) sarebbe testo morto, ed
+   è il difetto già pagato due volte in due app diverse. Sulla riga resta solo
+   la pastiglia con quante sono — e con zero foto non c'è nemmeno quella.
+   Luce come nel core: alone d'ambiente nella tinta dell'app, riflesso sul
+   bordo alto, ombra propria e ombra proiettata.
+   ══════════════════════════════════════════════════════════════════════ */
+/* Le icone di comando della foto sono BOTTONI veri: così Invio e barra
+   spaziatrice funzionano da soli, senza un gestore da tastiera scritto a mano
+   accanto a ogni `role="button"`. Il reset serve perché `.arr` di Scudo è
+   nato per uno `<span>`; il bordo trasparente è quello che già portano le
+   altre icone di comando, così l'area non balla. */
+button.arr{background:none; border:1px solid transparent; padding:0; font:inherit; cursor:pointer}
+/* ⛔ La macchina fotografica si ACCENDE quando la prova c'è. È il solo segno
+   visibile di «ci sono foto»: sulla barra dei comandi non c'è posto per una
+   pastiglia col numero (misurato: ~85 px liberi a 430 px), e un contatore
+   «0 foto» sarebbe un rimprovero a chi ha soccorso invece di fotografare. */
+.arr.ha-foto{color:var(--app-accent2)}
+.arr.ha-foto:hover{color:var(--app-accent-soft)}
+.foto-gal{display:flex; flex-direction:column; gap:10px; margin:10px 0 0}
+.foto-card{
+  display:flex; gap:11px; align-items:flex-start; padding:9px;
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border:1px solid var(--border2); border-radius:12px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 4px 14px rgba(20,14,44,.34);
+}
+.foto-mini{
+  flex:0 0 auto; width:78px; height:60px; border-radius:9px; overflow:hidden;
+  border:1px solid var(--border-hi); background:var(--dark); cursor:zoom-in;
+  box-shadow:0 2px 8px rgba(12,8,28,.5);
+  transition:transform .16s var(--ease),box-shadow .16s var(--ease),border-color .16s var(--ease);
+}
+.foto-mini:hover{
+  transform:translateY(-1px); border-color:var(--app-accent);
+  box-shadow:0 6px 18px var(--glow-app);
+}
+.foto-mini img{width:100%; height:100%; object-fit:cover; display:block}
+.foto-corpo{flex:1 1 0; min-width:0; display:flex; flex-direction:column; gap:6px}
+/* ⚠️ La didascalia NON è tagliata a due righe: è la riga che dice di che cosa
+   è la foto, e mezza frase non serve a niente tre mesi dopo. */
+.foto-did{width:100%; font-size:12.5px; padding:7px 9px}
+.foto-pie{display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:11px; color:var(--muted)}
+.foto-pie .badge{margin:0}
+.foto-muta{color:var(--warn)}
+.foto-tog{margin-left:auto}
+.foto-vuota{margin-top:10px}
 #verbale{display:none}
 @media print{
   @page{size:A4; margin:16mm 14mm}
@@ -1199,6 +1247,21 @@
     if (testo) toast(breve || testo, tipo);
   };
   const pulisci = (id) => { const el = $(id); if (el) el.textContent = ""; };
+  /* Apre a schermo intero un allegato salvato come dataURL (la scansione di un
+     documento, la foto di un evento o di una voce d'ispezione).
+     ⚠️ Scritta UNA volta perché la usano due posti: era il codice inline della
+     graffetta dei documenti, e la seconda copia sarebbe nata identica per le
+     foto. Il `Blob` serve perché su un dataURL lungo alcuni browser rifiutano
+     `window.open`; il ripiego sul dataURL grezzo resta per gli altri. */
+  const apriDataURL = (dataURL, cosa) => {
+    const pz = pezziDataURL(dataURL);
+    if (!pz) { toast((cosa || "L'allegato") + " non si riesce ad aprire: il file salvato non è leggibile.", "err"); return; }
+    try {
+      const bin = atob(pz.contenuto), buf = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+      window.open(URL.createObjectURL(new Blob([buf], { type: pz.mime })), "_blank");
+    } catch (err) { window.open(dataURL, "_blank"); }
+  };
   // ── Errori di campo: bordo rosso + messaggio utile, mai un alert ──────
   const err = (id, on) => { const el = $(id); if (el) el.classList.toggle("err", !!on); };
 
@@ -1254,6 +1317,8 @@
     clip:   '<svg viewBox="0 0 24 24"><path d="M20.5 11.5l-8.6 8.6a5 5 0 0 1-7.1-7.1l9-9a3.4 3.4 0 0 1 4.8 4.8l-8.9 9a1.8 1.8 0 0 1-2.5-2.5l8.2-8.2"/></svg>',
     allerta:'<svg viewBox="0 0 24 24"><path d="M12 3.2l9.2 16a1 1 0 0 1-.87 1.5H3.67a1 1 0 0 1-.87-1.5z"/><path d="M12 9.4v4.4"/><path d="M12 17.1h.01"/></svg>',
     lista:  '<svg viewBox="0 0 24 24"><path d="M9 4.2H7.5A2.3 2.3 0 0 0 5.2 6.5v12.2A2.3 2.3 0 0 0 7.5 21h9a2.3 2.3 0 0 0 2.3-2.3V6.5A2.3 2.3 0 0 0 16.5 4.2H15"/><rect x="9" y="2.6" width="6" height="3.4" rx="1.1"/><path d="M8.9 11.4l1.7 1.7 3.4-3.6"/><path d="M8.9 16.8h6.2"/></svg>',
+    // la macchina fotografica: la prova che si fa col telefono, sul posto
+    foto:   '<svg viewBox="0 0 24 24"><path d="M3 8.6A2.1 2.1 0 0 1 5.1 6.5h2l1.3-2.1h7.2l1.3 2.1h2A2.1 2.1 0 0 1 21 8.6v9A2.1 2.1 0 0 1 18.9 19.7H5.1A2.1 2.1 0 0 1 3 17.6z"/><circle cx="12" cy="12.8" r="3.5"/></svg>',
   };
 
   const SVG_AZIONE = I.attrezzo;
@@ -1997,11 +2062,25 @@
       const anb = an
         ? `<span class="arr" style="cursor:pointer" title="Vedi o correggi l'analisi della causa" data-analisi="${x.id}">✎</span>`
         : `<span class="badge warn" style="cursor:pointer" title="Nessuna analisi della causa: tocca per scrivere perché è successo" data-analisi="${x.id}">0 perché</span>`;
+      /* ⛔ LA FOTO, e perché è un'ICONA e non una pastiglia col numero. La
+         barra dei comandi di questa riga è già stata misurata piena: a 430 px
+         restano ~85 px liberi, e una pastiglia «2 foto» ne prenderebbe 65
+         mandando la ✕ da sola a capo. L'icona è larga 30 px come la matita.
+         ⛔ E con zero foto NON compare un contatore a zero: un infortunio
+         senza foto non è mal documentato — chi soccorre non fotografa. Quello
+         che cambia è il COLORE dell'icona, che si accende quando la prova
+         c'è; il numero sta nel titolo e nell'etichetta per chi legge con la
+         sintesi vocale, e in chiaro dentro la galleria. */
+      const pf = pastigliaFoto(fotoDiEvento(x).length);
+      const fb = `<button type="button" class="arr${pf ? " ha-foto" : ""}"
+        title="${pf ? "Foto dell'evento (" + pf.testo + ")" : "Nessuna foto: aggiungine una se ce n'è"}"
+        aria-label="Foto dell'evento: ${pf ? pf.testo : "nessuna"}" data-foto-evt="${x.id}">${I.foto}</button>`;
       return `<div class="item tocca ${striscia[tb[0]]}" data-evt="${x.id}"><div class="info"><div class="name">${esc(x.descrizione || x.tipo || "Evento")}</div>
         <div class="meta">${fmtData(x.data)}${x.luogo ? " · " + esc(x.luogo) : ""}${x.categoria ? " · " + esc(categoriaNearMiss(x.categoria)) : ""}${x.gravita && x.tipo !== "near-miss" ? " · " + esc(x.gravita) : ""}${(+x.giorniAssenza) ? " · " + (+x.giorniAssenza) + " gg assenza" : ""}${chi ? " · " + chi : ""}${an ? " · causa: " + esc(etichettaCausa(an.causa)) : ""}</div></div>
         <span class="acts"><span class="badge ${tb[0]}">${tb[1]}</span>
         <span class="badge ${ab[0]}" style="cursor:pointer" title="Vedi le azioni correttive di questo evento" data-azi-evt="${x.id}">${ab[1]}</span>
         ${anb}
+        ${fb}
         <button class="dw-btn secondary mini" data-azi-da="${x.id}" title="Apri un'azione correttiva da questo evento">+ Azione</button>
         <span class="arr" style="cursor:pointer" title="Rimuovi evento" data-del-inf="${x.id}">✕</span></span></div>`;
     }).join("") || (filtroInf === "tutti"
@@ -2220,11 +2299,18 @@
             data-esito="${x.chiave}" data-voce="${v.id}" aria-pressed="${e.esito === x.chiave}"
             title="${x.etichetta}">${x.chiave === "na" ? "Non applicabile" : x.etichetta}</button>`;
         }).join("");
+        /* La foto della voce: la prova di quello che si è visto, accanto
+           all'esito e alla nota. Anche qui zero foto non è un difetto e non
+           produce nessun contatore: cambia il colore dell'icona. */
+        const pv = pastigliaFoto(fotoDiVoce(i, v.id).length);
         return `<div class="item voce ${cls}">
           <div class="info"><div class="name">${esc(v.testo)}</div>
           <div class="meta">${e.nota ? '<span class="isp-nota">' + esc(e.nota) + "</span>" : (el ? el.etichetta : "esito da mettere")}</div></div>
           <span class="acts">${bottoni}
-          <span class="arr" style="cursor:pointer" title="Scrivi una nota su questa voce" data-nota-voce="${v.id}">✎</span></span></div>`;
+          <span class="arr" style="cursor:pointer" title="Scrivi una nota su questa voce" data-nota-voce="${v.id}">✎</span>
+          <button type="button" class="arr${pv ? " ha-foto" : ""}"
+            title="${pv ? "Foto di questa voce (" + pv.testo + ")" : "Nessuna foto: allega quello che hai visto"}"
+            aria-label="Foto di questa voce: ${pv ? pv.testo : "nessuna"}" data-foto-voce="${v.id}">${I.foto}</button></span></div>`;
       }).join("");
       $("btn-isp-chiudi").textContent = bloccata ? "Riapri l'ispezione" : "Chiudi l'ispezione";
       $("isp-c-nota").innerHTML = (i.riferimento ? "Riferimento: " + esc(i.riferimento) + "<br>" : "")
@@ -2549,14 +2635,8 @@
     // 📎 apre l'allegato (foto/scansione) senza toccare lo stato del documento
     const op = e.target.getAttribute && e.target.getAttribute("data-open-doc");
     if (op) { e.stopPropagation(); const d = DOC.find(x => x.id === op);
-      if (d && d.allegatoData) { try {
-        const pz = pezziDataURL(d.allegatoData);
-        if (!pz) { toast("L'allegato di questo documento non si riesce ad aprire: il file salvato non è leggibile.", "err"); return; }
-        const mime = pz.mime;
-        const bin = atob(pz.contenuto); const buf = new Uint8Array(bin.length);
-        for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
-        window.open(URL.createObjectURL(new Blob([buf], { type: mime })), "_blank");
-      } catch (err) { window.open(d.allegatoData, "_blank"); } } return; }
+      if (d && d.allegatoData) apriDataURL(d.allegatoData, "L'allegato di questo documento");
+      return; }
     // --- l'analisi della causa: dalla pastiglia (o dalla riga del Quadro) ---
     // ⚠️ `closest` e non `getAttribute`: nel Quadro la riga intera è il
     // bersaglio, e il dito atterra sull'icona, sul testo o sulla freccia —
@@ -2564,6 +2644,14 @@
     // tranne che sul suo bordo.
     const anEvt = e.target.closest && e.target.closest("[data-analisi]");
     if (anEvt) { e.stopPropagation(); apriAnalisi(anEvt.getAttribute("data-analisi")); return; }
+    /* --- la foto come prova: evento del registro e voce d'ispezione ---
+       ⚠️ `closest` e non `getAttribute`: il dito atterra sull'`<svg>` dentro
+       l'icona, che è un figlio — leggendo solo `e.target` il comando sarebbe
+       morto ovunque tranne che sul suo bordo. */
+    const foEvt = e.target.closest && e.target.closest("[data-foto-evt]");
+    if (foEvt) { e.stopPropagation(); apriFoto(soggettoEvento(foEvt.getAttribute("data-foto-evt"))); return; }
+    const foVoce = e.target.closest && e.target.closest("[data-foto-voce]");
+    if (foVoce && ispAperta) { e.stopPropagation(); apriFoto(soggettoVoce(ispAperta, foVoce.getAttribute("data-foto-voce"))); return; }
     // --- azioni correttive: navigazione nei due sensi evento ↔ azione ---
     const at = (n) => e.target.getAttribute && e.target.getAttribute(n);
     const vaiAzi = at("data-vai-azi");
@@ -3496,9 +3584,186 @@
   // tastiera è il nemico. La forma anonima è un tocco in più ed è ciò che
   // separa un registro vero da un registro vuoto.
   // ══════════════════════════════════════════════════════════════════════
-  const NM = { categoria: "", luogo: "", anonimo: false };
+  // ══════════════════════════════════════════════════════════════════════
+  // LA FOTO COME PROVA — un solo posto per due soggetti
+  // Davanti a un near-miss o a una protezione mancante la prima cosa che si fa
+  // è tirare fuori il telefono; ed è la prima cosa che un ispettore chiede
+  // quando domanda «avete una prova?». Fino a oggi la graffetta esisteva solo
+  // sui documenti.
+  // Una funzione sola serve l'EVENTO del registro e la VOCE dell'ispezione:
+  // cambia solo che cosa si legge e dove si scrive, e quello arriva dal
+  // `soggetto`. Due copie di questo flusso divergerebbero al primo ritocco.
+  // ⛔ Il controllo del file è quello di `shared/` (`controllaAllegato`), a cui
+  // si passa lo SPAZIO RIMASTO invece dei 400 KB: due foto che passano ognuna
+  // il controllo della singola fanno il 104% del tetto del documento Firestore
+  // e la scrittura viene rifiutata, portandosi dietro l'evento intero.
+  // ══════════════════════════════════════════════════════════════════════
+  let fotoSog = null;   // il soggetto aperto adesso: null quando la modale è chiusa
+
+  function apriFoto(sog) {
+    fotoSog = sog;
+    apriModale("Foto · " + sog.titolo, corpoFoto(),
+      [{ label: "Chiudi", cls: "primary", azione: () => { fotoSog = null; chiudiModale(); } }],
+      { autofocus: false });
+    aggancioFoto();
+  }
+  function ridisegnaFoto() {
+    const b = $("modal-body");
+    if (!b || !fotoSog) return;
+    b.innerHTML = corpoFoto();
+    aggancioFoto();
+  }
+  function corpoFoto() {
+    const s = fotoSog, list = s.foto(), bil = s.bilancio(), p = pastigliaFoto(list.length);
+    const gal = list.length
+      ? '<div class="foto-gal">' + list.map((f, i) => {
+          /* ⛔ Di che cosa è questa foto. Vale la didascalia di chi ha
+             scattato; in mancanza, il soggetto a cui la foto è attaccata (la
+             voce della checklist, la descrizione dell'evento). Quando non c'è
+             né l'una né l'altro la pagina lo DICE, invece di mostrare una
+             miniatura muta che fra tre mesi non saprà leggere nessuno. */
+          const ctx = contestoFoto(f, s.contesto);
+          const propria = String(f.didascalia || "").trim();
+          return `<div class="foto-card">
+            <span class="foto-mini" role="button" tabindex="0" data-foto-apri="${i}" title="Apri la foto a schermo intero"><img src="${esc(f.dataURL)}" alt="${esc(ctx || "Foto senza didascalia")}" loading="lazy"></span>
+            <div class="foto-corpo">
+              <input class="dw-input foto-did" data-foto-did="${i}" value="${esc(propria)}" maxlength="120" placeholder="Che cosa si vede (es. arginello mancante per una quarantina di metri)">
+              <div class="foto-pie">
+                ${propria ? ""
+                  : ctx ? `<span>Senza didascalia vale «${esc(accorcia(ctx, 60))}».</span>`
+                        : '<span class="foto-muta">Senza didascalia: fra tre mesi nessuno saprà di che cosa è.</span>'}
+                ${pesoFoto(f) === null ? '<span class="badge warn">peso illeggibile</span>' : ""}
+                <button type="button" class="arr foto-tog" data-foto-tog="${i}" title="Togli questa foto" aria-label="Togli questa foto">✕</button>
+              </div>
+            </div>
+          </div>`;
+        }).join("") + "</div>"
+      /* ⛔ L'ASSENZA DI UNA FOTO NON È UN DATO SFAVOREVOLE, e qui va guardata
+         al verso opposto del solito: chi soccorre non fotografa, e un evento
+         senza foto non è «mal documentato». Lo stato vuoto invita, non
+         rimprovera — e non c'è nessun punteggio di completezza da nessuna
+         parte. */
+      : `<div class="foto-vuota">${statoVuoto(I.foto, "Nessuna foto",
+          "Se una foto c'è, è quello che un ispettore chiede quando domanda «avete una prova?». Se non c'è va bene lo stesso: davanti a un infortunio si soccorre, non si fotografa.")}</div>`;
+    return `<div class="form-hint" style="margin-top:0;">${esc(s.sottotitolo)}</div>`
+      + (p ? `<div style="margin-top:8px;"><span class="badge ${p.classe}">${p.testo}</span></div>` : "")
+      + gal
+      + '<div class="tools" style="margin-top:12px;">'
+      + `<button type="button" class="dw-btn secondary" id="foto-add"${bil.pieno ? " disabled" : ""}>Scatta o scegli una foto</button>`
+      + '<input type="file" id="foto-file" accept="image/*" style="display:none;">'
+      + "</div>"
+      + `<div class="form-hint">${esc(testoBilancioFoto(bil))}</div>`
+      + '<div class="note esito" id="foto-esito"></div>'
+      + `<div class="form-hint">Al massimo <b>${MAX_FOTO}</b> foto e <b>400 KB in tutto</b>: le immagini viaggiano dentro il dato, e due allegati al limite non ci starebbero. Per l'archivio completo servirà lo storage del progetto live.</div>`;
+  }
+  function aggancioFoto() {
+    const b = $("modal-body"); if (!b || !fotoSog) return;
+    const add = b.querySelector("#foto-add"), inp = b.querySelector("#foto-file");
+    if (add && inp) { add.onclick = () => inp.click(); inp.onchange = () => leggiFoto(inp); }
+    b.querySelectorAll("[data-foto-did]").forEach(el => {
+      el.onchange = () => salvaDidascalia(+el.getAttribute("data-foto-did"), el.value); });
+    b.querySelectorAll("[data-foto-tog]").forEach(el => {
+      el.onclick = () => togliFoto(+el.getAttribute("data-foto-tog")); });
+    b.querySelectorAll("[data-foto-apri]").forEach(el => {
+      const apri = () => { const f = fotoSog.foto()[+el.getAttribute("data-foto-apri")];
+        if (f) apriDataURL(f.dataURL, "Questa foto"); };
+      el.onclick = apri;
+      el.onkeydown = (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); apri(); } };
+    });
+  }
+  async function leggiFoto(inp) {
+    const f = inp.files && inp.files[0]; inp.value = "";
+    if (!f || !fotoSog) return;
+    const s = fotoSog, bil = s.bilancio();
+    if (bil.pieno) { esito("foto-esito", testoBilancioFoto(bil), "err"); return; }
+    /* Prima il TIPO: un PDF che passa il controllo della dimensione entrerebbe
+       come «foto» e si aprirebbe come un documento. Le scansioni e i PDF hanno
+       già il loro posto, negli allegati dei Documenti. */
+    if (!/^image\//.test(f.type || "")) {
+      esito("foto-esito", "Qui va una foto (JPG, PNG, HEIC). Le scansioni e i PDF si allegano ai Documenti.", "err",
+            "Qui va una foto, non un documento."); return; }
+    // ⛔ il limite passato è il RESIDUO, non i 400 KB della singola
+    const via = controllaAllegato(f, bil.residuo);
+    if (!via.ok) { esito("foto-esito", testoAllegatoRifiutato(via), "err", "Foto troppo grande."); return; }
+    const r = new FileReader();
+    /* ⛔ Anche la LETTURA può fallire (foto su una scheda staccata, permessi
+       negati): senza questo ramo non comparirebbe niente e chi ha scattato
+       resterebbe convinto di aver allegato qualcosa. */
+    r.onerror = () => esito("foto-esito", "Non sono riuscito a leggere «" + via.nome + "»: riprova a sceglierla.", "err", "Foto non letta.");
+    r.onload = async () => {
+      await s.salva(s.foto().concat([{ nome: via.nome, dataURL: r.result, didascalia: "" }]));
+      ridisegnaFoto();
+      esito("foto-esito", "Foto aggiunta (" + via.peso + "). Scrivi che cosa si vede: è quello che la rende una prova.",
+            "success", "Foto aggiunta.");
+    };
+    r.readAsDataURL(f);
+  }
+  async function salvaDidascalia(i, testo) {
+    if (!fotoSog) return;
+    const s = fotoSog, list = s.foto();
+    if (!list[i]) return;
+    const nuove = list.map((f, k) => k === i ? Object.assign({}, f, { didascalia: String(testo || "").trim() }) : f);
+    await s.salva(nuove);
+    ridisegnaFoto();
+    esito("foto-esito", String(testo || "").trim() ? "Didascalia salvata." : "Didascalia tolta.", "success");
+  }
+  async function togliFoto(i) {
+    if (!fotoSog) return;
+    const s = fotoSog, list = s.foto(), f = list[i];
+    if (!f) return;
+    const ctx = contestoFoto(f, s.contesto);
+    /* La conferma usa la stessa finestra (è una sola in tutta l'app), quindi
+       la galleria si riapre dopo — in tutt'e due i casi, anche annullando. */
+    const ok = await chiedi("Togliere la foto?",
+      "Stai per togliere <b>" + esc(ctx || f.nome || "questa foto") + "</b> da " + esc(s.titolo)
+      + ".<br><br>La foto non è recuperabile: se serve, riscattala prima.",
+      "Togli la foto", true);
+    if (ok) { await s.salva(list.filter((_, k) => k !== i)); }
+    apriFoto(s);
+    if (ok) esito("foto-esito", "Foto tolta.", "success");
+  }
+  /* I due soggetti. Le funzioni rileggono ogni volta da INF/ISP, che `refresh`
+     riassegna: tenersi il record in mano vorrebbe dire salvare sopra una copia
+     vecchia. */
+  function soggettoEvento(id) {
+    const ev = () => INF.find(x => x.id === id) || {};
+    return {
+      titolo: accorcia(ev().descrizione || "evento del registro", 60),
+      sottotitolo: "La foto di com'era il posto, subito dopo. Resta attaccata all'evento e si riapre da qui.",
+      contesto: ev().descrizione || "",
+      foto: () => fotoDiEvento(ev()),
+      bilancio: () => bilancioFoto(fotoDiEvento(ev())),
+      salva: async (foto) => { await db.aggiorna("infortuni", id, { foto }); await refresh(); },
+    };
+  }
+  function soggettoVoce(ispId, voceId) {
+    const isp = () => ISP.find(x => x.id === ispId) || {};
+    const voce = () => ((isp().voci) || []).find(v => v.id === voceId) || {};
+    return {
+      titolo: accorcia(voce().testo || "voce della checklist", 60),
+      sottotitolo: "La foto di quello che hai visto su questa voce: è la prova che accompagna l'esito e la nota.",
+      contesto: voce().testo || "",
+      foto: () => fotoDiVoce(isp(), voceId),
+      /* ⛔ Il budget è di TUTTA l'ispezione, non della voce: le voci stanno in
+         un unico documento Firestore, e cinque voci fotografate al limite
+         farebbero 2,6 volte il tetto. */
+      bilancio: () => bilancioFotoVoce(isp(), voceId),
+      salva: async (foto) => {
+        const i = isp(), esiti = Object.assign({}, i.esiti || {});
+        const e = Object.assign({ esito: "", nota: "" }, esiti[voceId] || {});
+        if (foto.length) e.foto = foto; else delete e.foto;
+        /* Una voce che resta senza esito, senza nota e senza foto non ha più
+           niente da dire: si toglie invece di restare una casella vuota. */
+        if (!e.esito && !e.nota && !e.foto) delete esiti[voceId]; else esiti[voceId] = e;
+        await db.aggiorna("ispezioni", ispId, { esiti });
+        await refresh();
+      },
+    };
+  }
+
+  const NM = { categoria: "", luogo: "", anonimo: false, foto: null };
   function apriSegnalazione() {
-    NM.categoria = ""; NM.luogo = ""; NM.anonimo = false;
+    NM.categoria = ""; NM.luogo = ""; NM.anonimo = false; NM.foto = null;
     const oggi = oggiISO();
     const chips = (attr, lista) => lista.map(x =>
       `<button type="button" class="chg" data-${attr}="${x.chiave}">${esc(x.etichetta)}</button>`).join("");
@@ -3514,6 +3779,16 @@
       + LAV.map(l => `<option value="${l.id}">${esc(l.nome)}</option>`).join("") + "</select>"
       + '<button type="button" class="chg anon" id="nm-anon" aria-pressed="false">Segnalazione anonima</button></div>'
       + '<input class="dw-input" id="nm-dett" placeholder="Dettaglio o punto preciso (facoltativo)" style="margin-top:9px;">'
+      /* ⛔ LA FOTO QUI, e non solo nel registro: davanti a un mancato
+         infortunio il telefono è già in mano, e la stessa prova cercata mezz'ora
+         dopo dall'ufficio non esiste più — il masso è stato tolto, il cavo
+         rimesso a posto. Resta facoltativa: la segnalazione deve restare di
+         tre tocchi, e chi non fotografa non sta facendo niente di male. */
+      + '<div class="tools" style="margin-top:10px;">'
+      + '<button type="button" class="dw-btn secondary" id="nm-foto-btn">Aggiungi una foto</button>'
+      + '<input type="file" id="nm-foto" accept="image/*" style="display:none;">'
+      + '<span class="form-hint" id="nm-foto-nome" style="margin:0;align-self:center;"></span>'
+      + "</div>"
       + '<div class="form-hint" style="margin-top:10px;">Bastano i primi due tocchi. Un near-miss <b>non azzera i giorni senza infortuni</b>: entra nel registro degli eventi e da lì nasce l\'azione correttiva. In forma anonima <b>non viene salvato chi ha segnalato</b>.</div>',
       [{ label: "Annulla", azione: chiudiModale },
        { label: "Invia", cls: "primary", azione: inviaSegnalazione }],
@@ -3536,6 +3811,29 @@
     };
     scelta("nm-cat", "data-nm-cat", "categoria");
     scelta("nm-luo", "data-nm-luo", "luogo");
+    /* La foto della segnalazione rapida: una sola, e passa dalla STESSA regola
+       di `shared/` che governa gli altri allegati — il limite è lo spazio del
+       bilancio, non un numero riscritto qui. */
+    const fBtn = $("nm-foto-btn"), fInp = $("nm-foto"), fNome = $("nm-foto-nome");
+    if (fBtn && fInp && fNome) {
+      fBtn.onclick = () => fInp.click();
+      fInp.onchange = () => {
+        const f = fInp.files && fInp.files[0];
+        NM.foto = null; fNome.textContent = ""; fInp.value = "";
+        if (!f) return;
+        if (!/^image\//.test(f.type || "")) { toast("Qui va una foto (JPG, PNG, HEIC).", "err"); return; }
+        const via = controllaAllegato(f, bilancioFoto([]).residuo);
+        if (!via.ok) { toast(testoAllegatoRifiutato(via), "err"); return; }
+        const r = new FileReader();
+        r.onerror = () => toast("Non sono riuscito a leggere «" + via.nome + "»: riprova.", "err");
+        r.onload = () => {
+          NM.foto = { nome: via.nome, dataURL: r.result, didascalia: "" };
+          fNome.textContent = "Foto: " + via.nome + " (" + via.peso + ")";
+          toast("Foto pronta: parte insieme alla segnalazione.");
+        };
+        r.readAsDataURL(f);
+      };
+    }
     const anon = $("nm-anon");
     if (anon) anon.onclick = () => {
       NM.anonimo = !NM.anonimo;
@@ -3559,6 +3857,10 @@
       descrizione: descrizioneNearMiss({ categoria: NM.categoria, luogoTipo: NM.luogo, dettaglio: dett }),
       anonimo: !!NM.anonimo, segnalatoDaId: chi || null, rapida: true,
     };
+    /* La foto (se c'è) parte insieme: la descrizione generata qui sopra è il
+       suo contesto, quindi non resta una miniatura muta nemmeno senza
+       didascalia. Si può sempre aggiungerne dal registro. */
+    if (NM.foto) rec.foto = [NM.foto];
     const ref = await db.aggiungi("infortuni", rec);
     const nuovoId = ref && ref.id;
     chiudiModale();

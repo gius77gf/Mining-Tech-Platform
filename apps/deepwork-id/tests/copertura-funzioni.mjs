@@ -55,7 +55,7 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    Campo ed è diventata un alias di `shared/dw-ponti.js`. La sua prova non è
    sparita: si è spostata, e adesso pretende l'IDENTITÀ invece del
    comportamento. Il conto di `dw-ponti` sale da 21 a 23 dello stesso passo. */
-const FONDO = { campo: 86, conti: 90, flotta: 79, scudo: 85, sentinella: 105, terra: 51 };
+const FONDO = { campo: 86, conti: 90, flotta: 79, scudo: 95, sentinella: 110, terra: 55 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.

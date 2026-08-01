@@ -11354,6 +11354,222 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
   });
 }
 
+// ── Sentinella · import delle tarature ───────────────────────────────
+/* I certificati arrivano dal centro di taratura già in elenco, e una cava con
+   otto strumenti li ricopiava a mano otto volte l'anno. Qui si difendono due
+   cose: che dal file non entri niente di inventato, e che quello che NON entra
+   si veda — un import che scarta metà del file senza dirlo è peggio di un
+   import che fallisce, perché chi lo lancia crede di aver caricato tutto. */
+{
+  const OGGI_I = new Date("2026-08-01T09:00:00");
+  const MONI = [
+    { id: "v1", nome: "Vibrazioni V1 — abitato Sud", tarature: [{ data: "2025-01-01", scadenza: "2026-01-01" }],
+      letture: [{ data: "2026-06-01", valore: 2 }, { data: "2026-03-01", valore: 3 }] },
+    { id: "p1", nome: "Polveri PM10 — confine Est", tarature: [], letture: [] },
+  ];
+  const leggi = (t, mon = MONI) => sentinella.abbinaTarature(sentinella.parseTaratureCsv(t), mon);
+  const una = (t, mon = MONI) => leggi(t, mon).voci[0];
+
+  test("Sentinella · import tarature: una riga buona trova il suo strumento", () => {
+    const r = leggi("strumento;data;scadenza;centro;certificato;nota\n"
+      + "Vibrazioni V1 — abitato Sud;2026-01-15;2027-01-14;Centro LAT n. 118;LAT-2026/77;terna");
+    contiene(r.voci[0], { riga: 2, data: "2026-01-15", scadenza: "2027-01-14",
+      ente: "Centro LAT n. 118", certificato: "LAT-2026/77", nota: "terna",
+      puntoId: "v1", ok: true, motivo: "" }, "riga letta e abbinata");
+    contiene(r.riepilogo, { letti: 1, pronte: 1, scartate: 0 }, "e il riepilogo la conta");
+    eq(una("polveri pm10;12/04/2026;12/04/2027").puntoId, "p1",
+       "il nome corto e le maiuscole non contano: chi scrive a mano scrive «polveri pm10»");
+    eq(una("Vibrazioni V1 — abitato Sud;12/04/2026;12/04/2027").data, "2026-04-12",
+       "e la data all'italiana la legge, perché il file lo scrive un ufficio italiano");
+  });
+
+  test("⛔ Sentinella · import tarature: nessuna riga sparisce in silenzio", () => {
+    const r = leggi([
+      "strumento;data;scadenza;centro;certificato;nota",
+      "Vibrazioni V1 — abitato Sud;2026-01-15;2027-01-14;;;",
+      ";2026-01-15;2027-01-14;;;",
+      "Vibrazioni V1 — abitato Sud;;2027-01-14;;;",
+      "Vibrazioni V1 — abitato Sud;non lo so;2027-01-14;;;",
+      "Vibrazioni V1 — abitato Sud;2026-01-15;;;;",
+    ].join("\n"));
+    eq(r.riepilogo.letti, 5, "cinque righe con dei dati dentro");
+    eq(r.riepilogo.pronte + r.riepilogo.scartate, r.riepilogo.letti,
+       "⛔ pronte + scartate torna sempre uguale a lette: è così che si vede se il file è entrato tutto");
+    eq(r.voci.map(v => v.motivo), ["", "manca il nome dello strumento", "manca la data della taratura",
+       "la data della taratura non è una data", "manca la scadenza"],
+       "e ogni scarto porta il suo motivo scritto in italiano");
+    eq(r.voci.map(v => v.riga), [2, 3, 4, 5, 6],
+       "⛔ col numero di riga VERO del file: chi deve correggerlo apre il foglio a quella riga");
+    ok(r.riepilogo.motivi.every(x => x.n === 1) && r.riepilogo.motivi.length === 4,
+       "quanti scarti per motivo, contati: " + r.riepilogo.motivi.map(x => x.n + " " + x.motivo).join(", "));
+  });
+
+  test("⛔ Sentinella · import tarature: il 30 febbraio non entra, e non scivola al 2 marzo", () => {
+    /* `Date.parse("2026-02-30")` non è NaN: JavaScript lo fa scorrere al 2
+       marzo. Una copertura allungata di due giorni farebbe risultare
+       «coperte» letture che non lo sono — l'esatto contrario di T2b. */
+    eq(una("Vibrazioni V1 — abitato Sud;2026-02-30;2027-01-01").motivo,
+       "la data della taratura non è una data", "il 30 febbraio è scartato");
+    eq(una("Vibrazioni V1 — abitato Sud;2026-01-01;2026-13-45").motivo,
+       "la scadenza non è una data", "e il 45 del tredicesimo mese pure");
+    eq(una("Vibrazioni V1 — abitato Sud;2026-02-30;2027-01-01").data, "",
+       "⛔ e non resta nessuna data scivolata: il campo è vuoto, non «2026-03-02»");
+    for (const v of leggi("Vibrazioni V1 — abitato Sud;2026-01-15;2027-01-14").voci)
+      ok(shell.dataISOEsiste(v.data) && shell.dataISOEsiste(v.scadenza),
+         "quello che entra è sempre una data che esiste, così `coperturaTaratura` la ritrova buona");
+  });
+
+  test("⛔ Sentinella · import tarature: la scadenza prima della taratura si scarta, non si raddrizza", () => {
+    const v = una("Vibrazioni V1 — abitato Sud;2026-06-01;2026-05-01");
+    eq(v.motivo, "la scadenza viene prima della taratura", "intervallo alla rovescia");
+    eq([v.data, v.scadenza], ["2026-06-01", "2026-05-01"],
+       "⛔ e le due date restano come le ha scritte l'utente: girarle vorrebbe dire inventare quale ha sbagliato");
+    eq(una("Vibrazioni V1 — abitato Sud;2026-06-01;2026-06-01").ok, true,
+       "stesso giorno invece va bene: è un certificato che copre un giorno solo");
+  });
+
+  test("⛔ Sentinella · import tarature: uno strumento che non esiste NON si crea", () => {
+    /* Un punto di misura porta una SOGLIA, ed è la soglia a decidere se una
+       misura è conforme. Un certificato di taratura non la sa. Crearne uno da
+       qui vorrebbe dire fabbricare un giudizio di conformità da un file
+       amministrativo. */
+    const r = leggi("Sismografo Nomad;2026-01-15;2027-01-14;;;\nSismografo Nomad;2026-02-01;2027-02-01;;;");
+    eq(r.riepilogo.pronte, 0, "nessuna delle due entra");
+    eq(r.voci[0].motivo, "nessuno strumento si chiama così", "e il motivo lo dice");
+    eq(r.voci[0].puntoId, "", "senza attaccarla a nessuno");
+    eq(r.riepilogo.sconosciuti, ["Sismografo Nomad"],
+       "⛔ e il nome che non si è trovato viene DETTO una volta sola, così si sa se correggere il file o creare prima il punto");
+    eq(leggi("Vibrazioni V1 — abitato Sud;2026-01-15;2027-01-14", []).voci[0].motivo,
+       "nessuno strumento si chiama così", "senza nemmeno un punto di misura, stessa risposta");
+  });
+
+  test("⛔ Sentinella · import tarature: un nome che vale per due strumenti non si assegna al primo", () => {
+    const due = [{ id: "a", nome: "Polveri P2 — nord" }, { id: "b", nome: "Polveri P2 — sud" }];
+    eq(una("Polveri P2;2026-01-15;2027-01-14", due).motivo, "il nome corrisponde a più di uno strumento",
+       "il nome corto è di tutt'e due: attaccarlo a uno a caso dichiarerebbe riferibili le letture dello strumento sbagliato");
+    eq(una("Polveri P2 — nord;2026-01-15;2027-01-14", due).puntoId, "a", "col nome intero invece si sa quale");
+  });
+
+  test("Sentinella · import tarature: il doppione si cerca in due posti, e sono due domande", () => {
+    eq(una("Vibrazioni V1 — abitato Sud;2025-01-01;2026-01-01").motivo, "già registrata su questo strumento",
+       "contro l'archivio: stesse due date sullo stesso strumento");
+    const r = leggi("Vibrazioni V1 — abitato Sud;2026-01-15;2027-01-14;;A;\n"
+                  + "Vibrazioni V1 — abitato Sud;2026-01-15;2027-01-14;;B;");
+    eq(r.voci.map(v => v.ok), [true, false], "dentro il file: vale la PRIMA scrittura");
+    eq(r.voci[1].motivo, "ripetuta nel file", "e la seconda lo dichiara invece di sparire");
+    eq(una("Polveri PM10 — confine Est;2025-01-01;2026-01-01").ok, true,
+       "le stesse due date su un ALTRO strumento non sono un doppione: è un altro certificato");
+  });
+
+  test("Sentinella · import tarature: il giro export → import non perde niente", () => {
+    const mon = [{ id: "v1", nome: "Vibrazioni V1 — abitato Sud", tarature: [
+      { data: "2026-01-15", scadenza: "2027-01-14", ente: "Centro LAT; Milano", certificato: "LAT-2026/77", nota: "terna" }] }];
+    const testo = sentinella.csvTarature(mon);
+    /* ⚠️ IL GIRO DA SOLO NON BASTA. Scrittore e lettore possono sbagliare
+       insieme: `dataIso` legge anche 15/01/2026, quindi un export all'italiana
+       tornerebbe identico e nessuno se ne accorgerebbe. Serve l'asserzione sul
+       TESTO del file, che è quello che legge chi lo apre con un altro
+       programma. */
+    ok(testo.startsWith(sentinella.CSV_TARATURE_INTESTAZIONE + "\n"),
+       "l'intestazione è quella dichiarata, e la scrive una costante sola: " + sentinella.CSV_TARATURE_INTESTAZIONE);
+    ok(testo.includes(";2026-01-15;2027-01-14;"), "le date escono in ISO, non all'italiana");
+    ok(testo.includes('"Centro LAT; Milano"'),
+       "⛔ e il punto e virgola dentro il nome del centro esce fra virgolette: senza, la riga si spezzerebbe in silenzio");
+    const giro = leggi(testo, [{ id: "v1", nome: "Vibrazioni V1 — abitato Sud", tarature: [] }]);
+    eq(giro.riepilogo, { letti: 1, pronte: 1, scartate: 0, motivi: [], sconosciuti: [] }, "e rientra tutto");
+    contiene(giro.voci[0], { data: "2026-01-15", scadenza: "2027-01-14", ente: "Centro LAT; Milano",
+      certificato: "LAT-2026/77", nota: "terna", puntoId: "v1" }, "campo per campo, identico");
+  });
+
+  test("⛔ Sentinella · export tarature: escono anche i certificati con le date rotte", () => {
+    /* Esportare solo i leggibili vorrebbe dire che chi fa un backup si ritrova
+       un archivio più corto senza che nessuno glielo abbia detto. A dire che
+       una riga non si può usare ci pensa l'import, che lo dichiara. */
+    const testo = sentinella.csvTarature([{ id: "x", nome: "S", tarature: [
+      { data: "2026-02-30", scadenza: "2027-01-01" }, { data: "2026-01-01", scadenza: "2027-01-01" }] }]);
+    eq(testo.trim().split("\n").length, 3, "intestazione più DUE righe, non una");
+    eq(leggi(testo, [{ id: "x", nome: "S", tarature: [] }]).riepilogo.scartate, 1,
+       "ed è l'import a scartarne una, dicendolo");
+    eq(sentinella.csvTarature(null), sentinella.CSV_TARATURE_INTESTAZIONE + "\n",
+       "senza strumenti resta la sola intestazione: un file vuoto ha comunque le sue colonne");
+  });
+
+  /* ══ LE TARATURE NELLE ALLERTE DEL QUADRO ══
+     Fino a ieri lo stato si vedeva solo entrando nella sezione, cioè lo
+     scopriva chi era già andato a cercarlo. Ma dal giorno dopo la scadenza
+     ogni lettura di quello strumento risulta scoperta, e un certificato non si
+     fa fare a ritroso. La decisione difesa qui è QUANTO entra: il Quadro è già
+     denso, e una lista che dice tutto non la legge nessuno. */
+  const strum = (nome, scad) => ({ id: nome, nome, tarature: scad ? [{ data: "2024-01-01", scadenza: scad }] : [] });
+
+  test("Sentinella · allerte: la taratura scaduta e quella in scadenza entrano nel Quadro", () => {
+    const a = sentinella.allerteTaratura([strum("A", "2026-06-15"), strum("B", "2026-08-20")], OGGI_I);
+    eq(a.length, 2, "due righe");
+    contiene(a[0], { gravita: "danger", categoria: "taratura", titolo: "A", badge: "scaduta da 47 gg" },
+       "la scaduta è rossa come un adempimento mancato");
+    contiene(a[1], { gravita: "warn", categoria: "taratura", titolo: "B", badge: "19 gg" },
+       "quella in scadenza è gialla, con i giorni che mancano");
+    ok(/non più coperte/.test(a[0].dettaglio), "e il dettaglio dice la conseguenza: " + a[0].dettaglio);
+    for (const x of a) ok(x.dettaglio.length <= 60,
+      "⚠️ corto: la riga di dettaglio è tagliata a due righe, " + x.dettaglio.length + " caratteri");
+    for (const x of a) eq(Object.keys(x).sort(), ["badge", "categoria", "dettaglio", "gravita", "titolo"],
+      "stessa forma delle altre allerte, così si mescolano senza casi particolari");
+  });
+
+  test("⛔ Sentinella · allerte: «non dichiarata» NON è un'allerta, ed è una decisione", () => {
+    /* Non è una scadenza arrivata: è un archivio che non è ancora cominciato.
+       Metterla qui vorrebbe dire che il primo giorno l'app apre con una riga
+       per OGNI strumento, per sempre, finché qualcuno non carica tutti i
+       certificati — il Quadro illeggibile proprio per chi non ha ancora
+       niente da leggerci. Lo dicono già il badge sulla riga del punto, il
+       conto della sezione e la dichiarazione del report. */
+    eq(sentinella.allerteTaratura([strum("A", ""), strum("B", ""), strum("C", "")], OGGI_I), [],
+       "⛔ un archivio senza nessun certificato aggiunge ZERO righe al Quadro");
+    eq(sentinella.statoTaraturaStrumento(strum("A", ""), OGGI_I).stato, "non-dichiarata",
+       "e non perché lo stato non si sappia: si sa, e la sezione lo dice");
+    eq(sentinella.allerteTaratura([strum("A", "2027-06-01")], OGGI_I), [],
+       "nemmeno una taratura valida a lungo: non c'è niente da fare");
+    eq(sentinella.allerteTaratura([{ id: "r", nome: "R", tarature: [{ data: "2026-02-30", scadenza: "2027-01-01" }] }], OGGI_I), [],
+       "e un certificato con le date rotte non è una scadenza: per la sezione quello strumento è «non dichiarato»");
+    eq(sentinella.allerteTaratura(null, OGGI_I), [], "chiamata senza strumenti non esplode");
+  });
+
+  test("⛔ Sentinella · allerte: la finestra dei 30 giorni la decide `shared/`, non un numero riscritto qui", () => {
+    for (const sc of ["2026-08-31", "2026-09-01", "2026-07-31", "2027-01-01"]) {
+      const dentro = sentinella.allerteTaratura([strum("X", sc)], OGGI_I).length === 1;
+      const st = ponti.statoScadenzaHSE(sc, OGGI_I);
+      eq(dentro, st === "scaduta" || st === "in-scadenza",
+         `per ${sc} l'allerta c'è se e solo se statoScadenzaHSE dice scaduta/in-scadenza (dice «${st}»)`);
+    }
+    eq(sentinella.allerteTaratura([strum("X", "2026-08-31")], OGGI_I).length, 1, "l'ultimo giorno della finestra c'è");
+    eq(sentinella.allerteTaratura([strum("X", "2026-09-01")], OGGI_I).length, 0, "il primo fuori no");
+  });
+
+  test("⛔ Sentinella · allerte: la taratura non muove nessun giudizio di conformità", () => {
+    /* Questa unità sposta pezzi di carta: non legge soglie, non legge curve.
+       Vale identica la decisione di T2b — accanto all'esito, mai dentro. */
+    const mon = [{ id: "x", nome: "P", soglia: 10, unita: "mm/s", letture: [{ data: "2026-06-10", valore: 2 }] }];
+    const arg = { dal: "2026-06-01", al: "2026-06-30", oggi: "2026-08-01" };
+    const senza = sentinella.reportConformita({ monitoraggi: mon, ...arg });
+    const conScaduta = sentinella.reportConformita({
+      monitoraggi: [{ ...mon[0], tarature: [{ data: "2024-01-01", scadenza: "2026-06-15" }] }], ...arg });
+    eq([senza.esito, conScaduta.esito], ["conforme", "conforme"],
+       "una taratura scaduta — che nel Quadro è un'allerta rossa — non rende non conforme una cava che ha rispettato i limiti");
+    eq(sentinella.allerteTaratura([{ ...mon[0], tarature: [{ data: "2024-01-01", scadenza: "2026-06-15" }] }], OGGI_I).length, 1,
+       "l'allerta però c'è: sono due frasi affiancate, non una che decide dell'altra");
+  });
+
+  test("Sentinella · allerte: sulla dimostrazione, oggi, nessuna taratura è in scadenza", () => {
+    /* Il numero non è deciso a mente: se un giorno la demo cambia, questa
+       riga lo dice invece di lasciare che una schermata si svuoti in
+       silenzio. */
+    const a = sentinella.allerteTaratura(sentinella.DEMO.monitoraggi, OGGI_I);
+    eq(a.length, 0, "i due strumenti con certificato sono in regola, gli altri tre non ne hanno nessuno");
+    eq(sentinella.DEMO.monitoraggi.filter(m => (m.tarature || []).length).length, 2,
+       "e quanti strumenti hanno almeno un certificato, contati: 2 su " + sentinella.DEMO.monitoraggi.length);
+  });
+}
+
 /* ══ SHARED · LA RISPOSTA A UN FATTO: UNA REGOLA, NON DUE COPIE ══
    `statoPonte` di Sentinella e `statoRisposta` di Campo erano identiche —
    misurate byte per byte, 806 contro 809 caratteri, differenti solo nel nome.
@@ -12389,6 +12605,130 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     eq(scudo.contestoFoto({ didascalia: "   " }, ""), null, "una didascalia di soli spazi non è una didascalia");
     eq(scudo.contestoFoto({}, ""), null, "e senza né l'una né l'altro torna null, non stringa vuota");
     eq(scudo.contestoFoto(null, null), null, "chiamata a vuoto");
+  });
+}
+
+
+// ── Terra · conformità al progetto ─────────────────────────────────────
+/* «Stiamo scavando dove il progetto dice?» — la domanda che un ente fa a una
+   cava autorizzata. Terra ne sapeva già misurare tre quarti (`vitaCava`,
+   `proiezioneAnnua`, `avanzamentoLotto`, `divarioRecupero`); mancava l'asse
+   VERTICALE, cioè il fondo scavo del progetto, che non aveva nemmeno un campo
+   dove essere scritto. Quello che queste prove difendono, prima di ogni
+   conto, è che senza quel dato la risposta sia «non si sa» e non «conforme». */
+{
+  const FRO = [{ id: "f1", nome: "Nord", quota: 340 },
+               { id: "f2", nome: "Est", quota: 355 },
+               { id: "f3", nome: "Sud", quota: 320 }];
+  const LOT = [{ id: "l1", nome: "Lotto 1", frontiId: ["f1"], volumeM3: 100, stato: "aperto" },
+               { id: "l2", nome: "Lotto 2", frontiId: ["f2"], volumeM3: 100, stato: "aperto" }];
+  const ATTO = { quotaFondoM: 300 };
+
+  test("Terra · conformità: senza quota di fondo la risposta è «non si sa», mai «conforme»", () => {
+    const c = terra.conformitaProgetto(FRO, LOT, [], {});
+    eq(c.misurabile, false, "nessuna misura verticale possibile");
+    eq(c.dentro, 0, "e nessun fronte viene dichiarato dentro il progetto");
+    eq(c.oltre, 0, "né fuori: non è un giudizio, è un'assenza");
+    eq(c.nonMisurabili, 3, "tutti e tre i fronti restano non misurabili, e si contano");
+    ok(/non dichiara nessuna quota di fondo/.test(c.perche),
+       "la ragione nomina il dato che manca, così si sa cosa fare: «" + c.perche + "»");
+    eq(terra.conformitaQuota(FRO[0], null, {}).stato, "non-misurabile", "e vale per il singolo fronte");
+  });
+
+  test("Terra · conformità: il fondo del LOTTO vince su quello dell'atto, e si dice da dove viene", () => {
+    const f = terra.fondoAutorizzato({ quotaFondoM: 335 }, ATTO);
+    eq(f, { m: 335, origine: "lotto", noto: true, perche: "" }, "il settore ha il suo fondo");
+    eq(terra.fondoAutorizzato({}, ATTO).origine, "autorizzazione", "senza fondo di settore vale quello generale");
+    eq(terra.fondoAutorizzato(null, ATTO).origine, "autorizzazione", "lotto assente: idem");
+    eq(terra.fondoAutorizzato({}, {}).noto, false, "e senza né l'uno né l'altro, `noto` è falso");
+    // il caso per cui la precedenza esiste: 5 m di margine contro 40
+    eq(terra.conformitaQuota(FRO[0], { quotaFondoM: 335 }, ATTO).margineM, 5, "contro il fondo del settore");
+    eq(terra.conformitaQuota(FRO[0], {}, ATTO).margineM, 40, "contro quello generale, otto volte tanto");
+  });
+
+  test("Terra · conformità: oltre, al limite e dentro sono tre cose diverse", () => {
+    eq(terra.statoConformitaQuota(-0.5), "oltre", "sceso sotto il fondo");
+    eq(terra.statoConformitaQuota(0), "al-limite", "arrivato esatto: da lì non si scende più");
+    eq(terra.statoConformitaQuota(0.5), "dentro", "c'è ancora margine");
+    eq(terra.statoConformitaQuota(null), "non-misurabile", "e senza margine non c'è nessuno stato");
+    eq(terra.statoConformitaQuota(NaN), "non-misurabile", "un numero che non è un numero non è uno stato");
+    eq(terra.statoConformitaQuota(""), "non-misurabile", "né una stringa vuota");
+    const c = terra.conformitaProgetto(
+      [{ id: "f1", nome: "Nord", quota: 296 }, { id: "f2", nome: "Est", quota: 300 }, FRO[2]], LOT, [], ATTO);
+    eq([c.oltre, c.alLimite, c.dentro], [1, 1, 1], "uno per stato");
+    eq([c.peggiore.nome, c.peggiore.margineM], ["Nord", -4], "il peggiore è quello sceso di più");
+    eq([c.piuVicino.nome, c.piuVicino.margineM], ["Est", 0],
+       "e il più vicino al fondo comprende chi ci è arrivato esatto: è il fronte da guardare");
+  });
+
+  test("Terra · conformità: quota 0 non è una quota — è quello che il vecchio form scriveva sul campo vuoto", () => {
+    // fino al 05/08 il form salvava `rq.ok ? rq.valore : 0` e parseFrontiCsv
+    // faceva lo stesso: in archivio lo zero e il «mai inserito» sono uguali
+    eq(terra.conformitaQuota({ quota: 0 }, null, ATTO).stato, "non-misurabile",
+       "preso per buono direbbe «300 m sotto il fondo» su un fronte mai misurato");
+    eq(terra.conformitaQuota({ quota: null }, null, ATTO).stato, "non-misurabile", "quota assente");
+    eq(terra.conformitaQuota({ quota: "" }, null, ATTO).stato, "non-misurabile", "stringa vuota");
+    eq(terra.conformitaQuota({ quota: "abc" }, null, ATTO).stato, "non-misurabile", "e nemmeno un non-numero");
+    eq(terra.fondoAutorizzato({ quotaFondoM: 0 }, ATTO).origine, "autorizzazione",
+       "e vale anche per il fondo: uno zero sul lotto non copre quello dell'atto");
+    eq(terra.parseFrontiCsv("nome;banco;quota;stato\nFronte X;;;attivo\n")[0].quota, null,
+       "l'imboccatura CSV adesso scrive `null`, non uno zero che sembra una misura");
+  });
+
+  test("Terra · conformità: una quota negativa è normale (cava in fossa) e non si arrotonda male", () => {
+    const c = terra.conformitaQuota({ quota: -5 }, null, { quotaFondoM: -12 });
+    eq([c.stato, c.margineM], ["dentro", 7], "sotto il livello del mare si ragiona uguale");
+    eq(terra.conformitaQuota({ quota: -15 }, null, { quotaFondoM: -12 }).stato, "oltre", "e si può sforare");
+    // `Math.round` sul mezzo tira verso +∞: arrotondare le quote in ingresso
+    // darebbe -12,34 al posto di -12,35. Si arrotonda solo il margine.
+    eq(terra.conformitaQuota({ quota: -5 }, null, { quotaFondoM: -12.345 }).margineM, 7.35,
+       "il margine è arrotondato una volta sola, e nel verso giusto");
+    eq(terra.conformitaQuota({ quota: -5 }, null, { quotaFondoM: -12.345 }).fondoM, -12.345,
+       "il fondo dichiarato resta quello che l'utente ha scritto");
+  });
+
+  test("Terra · conformità: due fronti su tre senza quota NON fanno «tutto a posto»", () => {
+    const c = terra.conformitaProgetto(
+      [FRO[0], { id: "f2", nome: "Est" }, { id: "f3", nome: "Sud", quota: 0 }], LOT, [], ATTO);
+    eq(c.misurabile, true, "una misura c'è");
+    eq([c.dentro, c.nonMisurabili], [1, 2], "ma i due che non si sanno si contano, non spariscono");
+    ok(/non dichiara la quota raggiunta/.test(c.fronti[1].perche), "e ognuno porta la sua ragione");
+    // e quando il fondo c'è ma nessun fronte ha la quota, la ragione cambia:
+    // manda a compilare i FRONTI, non l'autorizzazione
+    const v = terra.conformitaProgetto([{ id: "x", nome: "X" }], LOT, [], ATTO);
+    ok(/Nessuno dei fronti registrati dichiara la quota/.test(v.perche), "ragione giusta: «" + v.perche + "»");
+    ok(/Nessun fronte registrato/.test(terra.conformitaProgetto([], LOT, [], ATTO).perche),
+       "e senza nemmeno un fronte la ragione è una terza ancora");
+  });
+
+  test("Terra · conformità: gli altri due modi di scavare fuori dal progetto (volume e sequenza)", () => {
+    const RIL = [{ id: "r1", stato: "elaborato", volumeM3: 130, fronteId: "f1" }];
+    const c = terra.conformitaProgetto(FRO, LOT, RIL, ATTO);
+    eq(c.volume.oltrePrevisto.map((v) => [v.nome, v.pct]), [["Lotto 1", 130]],
+       "130 m³ misurati su 100 previsti dal progetto: è il 130%");
+    eq([c.volume.conConfronto, c.volume.senzaConfronto], [1, 1],
+       "il lotto senza rilievi non è «allo 0%»: è senza confronto, e si conta");
+    eq(terra.conformitaProgetto(FRO, LOT, [], ATTO).volume.misurabile, false,
+       "nessun rilievo → il volume NON è misurabile, non «tutto dentro»");
+    // il terzo modo: si scava dove il progetto non ha ancora aperto
+    const prev = [{ id: "l9", nome: "Lotto 9", frontiId: ["f3"], volumeM3: 500, stato: "previsto" }];
+    eq(terra.conformitaProgetto(FRO, prev, [{ id: "r9", stato: "elaborato", volumeM3: 40, fronteId: "f3" }], ATTO)
+       .volume.fuoriSequenza.map((v) => v.nome), ["Lotto 9"], "scavo in un lotto ancora «previsto»");
+    eq(terra.conformitaProgetto(FRO, prev, [], ATTO).volume.fuoriSequenza.length, 0,
+       "ma un lotto previsto e mai toccato non è fuori sequenza");
+  });
+
+  test("Terra · conformità: sulla dimostrazione il quadro si legge per intero", () => {
+    const D = terra.DEMO;
+    const c = terra.conformitaProgetto(D.fronti, D.lotti, D.rilievi, D.autorizzazioni[0]);
+    eq(c.misurabile, true, "l'atto d'esempio dichiara la quota di fondo");
+    eq([c.dentro, c.oltre, c.alLimite, c.nonMisurabili], [3, 0, 0, 0], "tre fronti, tutti dentro");
+    eq([c.piuVicino.nome, c.piuVicino.margineM, c.piuVicino.origineFondo], ["Fronte Nord", 5, "lotto"],
+       "il più stretto è il Nord, che ha un fondo di settore suo");
+    eq(c.fronti.find((f) => f.nome === "Fronte Est").origineFondo, "autorizzazione",
+       "gli altri stanno sul fondo generale");
+    eq(c.volume.senzaConfronto, 4, "quattro lotti su sei non hanno un confronto, e la demo lo mostra");
+    eq(c.volume.fuoriSequenza.length, 0, "nessuno scava dove il progetto non ha aperto");
   });
 }
 

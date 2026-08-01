@@ -3023,17 +3023,32 @@ textarea.dw-input{
     // «GG». Aggiungerlo prima dell'escaping farebbe vedere il tag all'utente.
     const badgeConUnita = (t) => avvolgiUnita(esc(t));   // la regola vive in shared/
     const rankAll = { danger: 0, warn: 1 };
-    const allerte = [...prioritaConformita(MONE, ADE), ...allerteProgramma(PRG, MON)]
+    /* ⛔ LA TARATURA CHE SCADE ENTRA NEL QUADRO, E VA IN CODA AL SUO LIVELLO.
+       Fino al 01/08 lo stato si vedeva solo entrando nella sezione, cioè lo
+       scopriva chi era già andato a cercarlo; ma dal giorno dopo la scadenza
+       ogni lettura di quello strumento risulta scoperta, e un certificato non
+       si fa fare a ritroso. Entrano SOLO «scaduta» e «in scadenza» — la
+       decisione, con il perché «non dichiarata» resta fuori, sta scritta su
+       `allerteTaratura`. Ultime nell'array: `sort` è stabile, quindi dentro
+       lo stesso livello di gravità un superamento di soglia resta sempre
+       sopra a un adempimento amministrativo. */
+    const allerte = [...prioritaConformita(MONE, ADE), ...allerteProgramma(PRG, MON), ...allerteTaratura(MON)]
       .sort((x, y) => (rankAll[x.gravita] || 0) - (rankAll[y.gravita] || 0));
     $("all-list").innerHTML = allerte.map(a => { const ade = a.categoria === "adempimento";
       const prg = a.categoria === "programma";
-      return `<div class="item tocca ${striscia[a.gravita] || "st-mute"}" data-allerta="${prg ? "prog" : ade ? "ade" : "mon"}"
-        title="${prg ? "Vai al programma di monitoraggio" : ade ? "Vai agli adempimenti" : "Vai al punto di misura"}">
-      <div class="avatar ${a.gravita === "danger" ? "danger" : a.gravita === "warn" ? "warn" : "sup"}">${prg ? I.programma : ade ? I.calendario : I.sensore}</div>
+      const tar = a.categoria === "taratura";
+      return `<div class="item tocca ${striscia[a.gravita] || "st-mute"}" data-allerta="${tar ? "tar" : prg ? "prog" : ade ? "ade" : "mon"}"
+        title="${tar ? "Vai alla taratura degli strumenti" : prg ? "Vai al programma di monitoraggio" : ade ? "Vai agli adempimenti" : "Vai al punto di misura"}">
+      <div class="avatar ${a.gravita === "danger" ? "danger" : a.gravita === "warn" ? "warn" : "sup"}">${tar ? I.doc : prg ? I.programma : ade ? I.calendario : I.sensore}</div>
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc(a.dettaglio)}</div></div>
       <span class="acts"><span class="badge ${a.gravita}">${badgeConUnita(a.badge)}</span><span class="arr">${I.avanti}</span></span></div>`; }).join("")
+      /* ⚠️ «nessuna taratura REGISTRATA»: senza quella parola la frase sarebbe
+         tranquilla anche su un archivio in cui di certificati non ce n'è
+         nemmeno uno — l'assenza di un dato letta come una buona notizia. Lo
+         stato di uno strumento senza certificati lo dicono il badge sulla sua
+         riga e la sezione, che è il posto giusto: qui si parla di scadenze. */
       || vuoto(I.fatto, "Nessuna allerta",
-          "Tutti i punti di misura sono entro soglia, il programma di monitoraggio è in pari e nessun adempimento è vicino alla scadenza. Il quadro resta pulito finché un valore non si avvicina al limite.");
+          "Tutti i punti di misura sono entro soglia, il programma di monitoraggio è in pari, nessun adempimento è vicino alla scadenza e nessuna taratura registrata sta per scadere. Il quadro resta pulito finché un valore non si avvicina al limite.");
 
     $("mon-tot").textContent = MON.length;
     $("mon-conf").innerHTML = conf.totale
@@ -3342,6 +3357,13 @@ textarea.dw-input{
       if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
       return; }
     const all = attr(e, "data-allerta");
+    /* «tar» non è una schermata: la taratura vive DENTRO i monitoraggi, in
+       fondo. Andare su «mon» e basta lascerebbe l'utente in cima a una pagina
+       lunga senza dirgli dove guardare — il tocco su un'allerta deve portare
+       dove si fa la cosa. */
+    if (all === "tar") { filtroMon = "tutti"; go("mon"); await refresh();
+      const el = $("tar-list"); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      return; }
     if (all) { if (all === "mon") filtroMon = "tutti"; go(all); await refresh(); return; }
     // ── ricettori ──────────────────────────────────────────────────────
     const delRic = attr(e, "data-del-ric");
@@ -3736,7 +3758,11 @@ textarea.dw-input{
 
   // Cambiare strumento ridisegna lo storico: la tendina è il filtro della
   // sezione, non un campo del form.
-  $("tar-punto").onchange = () => { tarPunto = $("tar-punto").value; pulisci("tar-esito"); renderTarature(); };
+  /* Anche l'elenco degli scarti dell'import se ne va: riguardava il file
+     caricato su un altro strumento, e lasciarlo lì vorrebbe dire mostrare
+     righe rosse accanto a uno strumento che non c'entra niente. */
+  $("tar-punto").onchange = () => { tarPunto = $("tar-punto").value; pulisci("tar-esito");
+    $("tar-scarti").innerHTML = ""; renderTarature(); };
 
   $("btn-tar").onclick = async () => {
     const id = $("tar-punto").value;
@@ -3777,6 +3803,78 @@ textarea.dw-input{
     $("tar-data").value = ""; $("tar-scad").value = ""; $("tar-cert").value = "";
     tarPunto = id;
     await refresh();
+  };
+
+  /* IMPORT DEI CERTIFICATI DA UN FILE ──────────────────────────────────
+     ⛔ NIENTE SPARISCE IN SILENZIO. Le righe che non si possono usare non
+     vengono contate e basta: si elencano qui sotto una per una, col numero
+     di riga del file e il motivo, perché chi ha appena caricato otto
+     certificati deve sapere QUALE non è entrato e perché — non «6 su 8».
+     Un import che scarta metà del file senza dirlo è peggio di un import
+     che fallisce, perché lascia credere di aver caricato tutto. */
+  function mostraScartiTarature(voci) {
+    const scarti = (voci || []).filter(v => !v.ok);
+    $("tar-scarti").innerHTML = !scarti.length ? "" :
+      `<div class="note avviso" style="margin-top:0;"><b>${scarti.length}</b> ${scarti.length === 1 ? "riga non è entrata" : "righe non sono entrate"}, e per ognuna c'è scritto perché:</div>`
+      + scarti.map(v => `<div class="item st-mute">
+        <div class="avatar warn">${I.doc}</div>
+        <div class="info"><div class="name">Riga ${v.riga}${v.strumento ? " · " + esc(v.strumento) : ""}</div>
+        <div class="meta">${esc(v.motivo)}${v.dataRaw || v.scadenzaRaw ? " · " + esc((v.dataRaw || "—") + " → " + (v.scadenzaRaw || "—")) : ""}</div></div></div>`).join("");
+  }
+
+  $("btn-tar-import").onclick = () => $("tar-file").click();
+  $("tar-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const { voci, riepilogo } = abbinaTarature(parseTaratureCsv(await file.text()), MON);
+    $("tar-file").value = "";
+    if (!riepilogo.letti) {
+      $("tar-scarti").innerHTML = "";
+      esito("tar-esito", "Nel file non c'è nessuna riga da leggere. Le colonne sono: " + CSV_TARATURE_INTESTAZIONE + ".",
+        "err", "Nessuna riga nel file."); return; }
+
+    /* Si scrive UNA volta per strumento, non una per certificato: tre
+       certificati dello stesso strumento in tre salvataggi vorrebbero dire
+       leggere tre volte lo stesso elenco `tarature`, e il secondo
+       cancellerebbe il primo. */
+    const perPunto = new Map();
+    for (const v of voci) {
+      if (!v.ok) continue;
+      if (!perPunto.has(v.puntoId)) perPunto.set(v.puntoId, []);
+      perPunto.get(v.puntoId).push(v);
+    }
+    let coperte = 0;
+    for (const [id, lista] of perPunto) {
+      const m = MON.find(x => x.id === id);
+      const nuove = lista.map(v => ({ data: v.data, scadenza: v.scadenza, ente: v.ente, certificato: v.certificato, nota: v.nota }));
+      await db.aggiorna("monitoraggi", id, { tarature: [ ...((m && m.tarature) || []), ...nuove ] });
+      for (const l of ((m && m.letture) || []))
+        if (coperturaTaratura(nuove, l.data).stato === "coperta") coperte++;
+    }
+
+    /* Il messaggio dice che cosa È CAMBIATO, non che il file è stato letto:
+       quante letture questi certificati coprono è il motivo per cui li si
+       carica. E i motivi degli scarti sono contati, non riassunti a occhio. */
+    const perche = riepilogo.motivi.map(x => x.n + " " + x.motivo).join(", ");
+    const testo = riepilogo.pronte
+      ? riepilogo.pronte + (riepilogo.pronte === 1 ? " certificato registrato su " : " certificati registrati su ")
+        + perPunto.size + (perPunto.size === 1 ? " strumento" : " strumenti") + ". "
+        + (coperte ? "Coprono " + coperte + (coperte === 1 ? " lettura già registrata. " : " letture già registrate. ")
+                   : "Nessuna lettura già registrata cade in questi intervalli: copriranno quelle che verranno. ")
+        + (riepilogo.scartate ? riepilogo.scartate + " righe su " + riepilogo.letti + " scartate: " + perche + "." : "Tutte le " + riepilogo.letti + " righe del file sono entrate.")
+      : "Nessun certificato registrato: tutte e " + riepilogo.letti + " le righe del file sono state scartate — " + perche + ".";
+    esito("tar-esito", testo, riepilogo.pronte ? "success" : "err",
+      riepilogo.pronte ? riepilogo.pronte + " tarature importate, " + riepilogo.scartate + " righe scartate."
+                       : "Nessuna riga utilizzabile: guarda l'elenco.");
+    mostraScartiTarature(voci);
+    if (perPunto.size === 1) tarPunto = [...perPunto.keys()][0];
+    await refresh();
+  };
+  $("btn-tar-export").onclick = () => {
+    const n = MON.reduce((s, m) => s + ((m.tarature || []).length), 0);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csvTarature(MON)], { type: "text/csv;charset=utf-8" }));
+    a.download = "sentinella_tarature.csv"; a.click();
+    esito("tar-esito", "Esportati " + n + (n === 1 ? " certificato (CSV)." : " certificati (CSV)."), "success");
   };
 
   // Libreria soglie normative preimpostate: riempie unità+soglia con un
