@@ -45,7 +45,7 @@
 // KPI CALCOLATI: da incassare, in scadenza, gare aperte, età media del credito.
 // ============================================================
 
-import { parseCsvLine, numIt, giorniTra, isIntestazione,
+import { parseCsvLine, numIt, giorniTra, isIntestazione, dataISOEsiste,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL } from "../../shared/deepwork-id-client/dw-shell.js";
 import { provenienzaDi, misuratoPeriodo } from "../../shared/dw-ponti.js";
 /* la classificazione dei costi vive in shared/ perché serve anche a Flotta:
@@ -2134,3 +2134,473 @@ export function margineMese(fatture, note, costi, chiusure, mese) {
       ? `Il mese è chiuso, ma ${nonDichiarate.length === 1 ? "una voce non è mai stata dichiarata" : nonDichiarate.length + " voci non sono mai state dichiarate"}: ${nonDichiarate.map((x) => x.etichetta.toLowerCase()).join(", ")}. Se ${nonDichiarate.length === 1 ? "quella spesa c'è stata" : "quelle spese ci sono state"} e non ${nonDichiarate.length === 1 ? "è" : "sono"} in elenco, il margine qui sopra è più alto del vero.`
       : "" };
 }
+
+// ============================================================
+// C11 · L'ESTRATTO CONTO DELLA BANCA — ABBINAMENTO DEI MOVIMENTI
+//
+// PERCHÉ ESISTE. Fino a oggi Conti era l'unico posto in cui un dato che esiste
+// già altrove andava ribattuto a mano: i soldi arrivano in banca, e l'incasso
+// lo si registra guardando l'estratto conto e ricopiando. Da lì viene il danno
+// peggiore che questa app sappia fare — un sollecito con la mora ex D.Lgs
+// 231/2002 mandato su una fattura GIÀ PAGATA. Non è un dettaglio sbagliato: è
+// una lettera sbagliata a un cliente.
+//
+// ⛔ IL NOME. In Conti `riconciliazione` è già presa e vuol dire un'altra cosa
+// (cavato contro venduto, il ponte con Terra): qui si dice **abbinamento**, che
+// è la parola con cui i gestionali italiani chiamano l'accostamento di un
+// movimento bancario a una fattura. Scartata «spunta», che in questa stessa
+// app indica già la casella da spuntare («Spunta tutti» sui DDT): la stessa
+// parola per due cose, dentro una app sola, è il modo di rendere entrambe
+// illeggibili.
+//
+// LE TRE REGOLE CHE DECIDONO SE QUESTA FUNZIONE È BUONA O DANNOSA:
+// 1. LA PROPOSTA SI PROPONE, NON SI APPLICA. Nessuna riga di qui scrive niente:
+//    si restituiscono proposte con accanto IL MOTIVO per cui sono state fatte.
+//    Un abbinamento sbagliato marca incassata una fattura che non lo è, e da lì
+//    il sollecito non parte più e il credito si perde.
+// 2. LA CERTEZZA È GRADUATA E DETTA. `certo` (il numero della fattura è nella
+//    causale E l'importo è esattamente quello aperto) non è `probabile`
+//    (acconto dichiarato, o cliente + importo). E ⛔ un abbinamento INCERTO NON
+//    È UN ABBINAMENTO: sotto `probabile` la riga NON porta nessuna proposta —
+//    porta le alternative, e decide l'utente. Non si applica «tanto è
+//    probabile».
+// 3. UN MOVIMENTO CHE NON ABBINA NON SPARISCE. Ogni riga del file esce di qui,
+//    anche quella con la data illeggibile e quella in uscita, con scritto
+//    perché. `riepilogoAbbinamento` conta separatamente entrate, uscite e
+//    scartate, così la somma torna sempre con le righe del file.
+//
+// CHE COSA COPRE E CHE COSA NO — dichiarato, non lasciato intendere:
+//  · COPERTI: il CSV con una colonna importo firmata, il CSV con due colonne
+//    (entrate/uscite), il pagamento PARZIALE (acconto) e quello CUMULATIVO —
+//    quest'ultimo in due modi, quando la causale nomina le fatture e quando il
+//    cliente si riconosce ed esiste UNA SOLA combinazione delle sue fatture
+//    aperte che fa quella cifra.
+//  · FUORI, e con la ragione: (a) **MT940 e CAMT.053** (i tracciati SWIFT/ISO
+//    che alcune banche esportano) — sono formati a blocchi, non tabellari, e
+//    leggerli male vuol dire sbagliare gli importi in silenzio; l'utente
+//    scarica il CSV, che ogni home banking italiano offre. (b) Il cumulativo
+//    **senza cliente riconoscibile**: cercare la combinazione su tutto
+//    l'archivio produce risposte sicure e sbagliate, perché di sottoinsiemi che
+//    fanno la stessa somma ce n'è quasi sempre più d'uno. (c) I movimenti in
+//    **uscita**: si elencano e si dichiarano, ma non si abbinano ai costi —
+//    quello è un altro lavoro, e farlo a metà sarebbe peggio che non farlo.
+//    (d) Gli anni a **due cifre** nelle date (12/07/26): si scartano con il
+//    motivo scritto, invece di indovinare il secolo su una data contabile.
+// ============================================================
+
+/* L'IMPORTO, NEI FORMATI CHE GLI ESTRATTI CONTO SCRIVONO DAVVERO.
+   ⛔ Misurato prima di irrigidire, come vuole CLAUDE.md: `numIt` da solo legge
+   giusto 9 formati su 15 fra quelli raccolti dagli export bancari italiani.
+   I sei che non passavano non chiedono un secondo `numIt` — chiedono una
+   PULITURA prima: valuta appiccicata (`1.234,56 EUR`, `€ 1.234,56`), spazio o
+   apostrofo come separatore delle migliaia (`1 234,56`, anche con lo spazio
+   unificatore U+00A0 e quello stretto U+202F), segno DOPO il numero
+   (`1.234,56-`, che i gestionali di derivazione mainframe scrivono così) e
+   parentesi tonde per il negativo (`(1.234,56)`, stile contabile anglosassone).
+   Poi decide `numIt`, che è la convenzione condivisa e non si riscrive. */
+export function importoBancario(cella) {
+  let s = String(cella == null ? "" : cella).trim();
+  if (!s) return NaN;
+  let segno = 1;
+  const par = /^\((.*)\)$/.exec(s);
+  if (par) { segno = -1; s = par[1].trim(); }
+  s = s.replace(/[€$£]|\b(?:EUR|USD|GBP)\b/gi, "").trim();
+  const coda = /^(.*?)([+-])$/.exec(s);
+  if (coda) { if (coda[2] === "-") segno = -segno; s = coda[1].trim(); }
+  s = s.replace(/[\s  ']/g, "");
+  const n = numIt(s);
+  return Number.isFinite(n) ? segno * n : NaN;
+}
+
+/* LA DATA. La forma italiana (GG/MM/AAAA, anche con - o .) diventa ISO; se la
+   cella è già ISO si prende com'è. Poi ⛔ l'ESISTENZA la decide `dataISOEsiste`
+   di `shared/`, che è la funzione giusta e sta lì da mesi: «2026-02-30» ha la
+   forma di una data e non è una data, e `Date.parse` non la rifiuta — la fa
+   SCORRERE al 2 marzo. Un movimento spostato di due giorni in silenzio falsa i
+   giorni medi di pagamento del cliente.
+   Gli anni a due cifre (12/07/26) restano fuori di proposito: il secolo si
+   indovinerebbe, e su una data contabile è meglio una riga scartata a voce alta
+   che una datata al 1926. */
+export function isoDaDataItaliana(cella) {
+  const s = String(cella == null ? "" : cella).trim();
+  if (!s) return "";
+  const m = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/.exec(s);
+  const iso = m ? `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}` : s.slice(0, 10);
+  return dataISOEsiste(iso) ? iso : "";
+}
+
+/* IL FILE. Colonne: data;valuta;descrizione;importo — oppure, quando la banca
+   tiene entrate e uscite in due colonne, data;valuta;descrizione;entrate;uscite.
+   Le due forme si distinguono da sole: se le ultime DUE celle sono numeri
+   leggibili è la seconda forma, e il movimento vale entrata meno uscita.
+   ⛔ NESSUNA RIGA SPARISCE. Una riga con la data illeggibile o l'importo
+   illeggibile esce lo stesso, con `scarto` scritto in italiano: un import muto
+   è il modo migliore per perdere dei soldi senza accorgersene. */
+const INTESTAZIONE_ESTRATTO = /^\s*"?(?:data|date)\b/i;
+export function parseMovimentiCsv(text) {
+  const righe = String(text || "").split(/\r?\n/).map((r) => r.trim()).filter(Boolean);
+  const out = [];
+  for (const r of righe) {
+    if (INTESTAZIONE_ESTRATTO.test(r)) continue;
+    const [dataRaw, valutaRaw, descr, a, b] = parseCsvLine(r);
+    const data = isoDaDataItaliana(dataRaw);
+    const ia = importoBancario(a), ib = importoBancario(b);
+    let importo = NaN;
+    if (Number.isFinite(ia) && Number.isFinite(ib)) importo = Math.abs(ia) - Math.abs(ib);
+    else if (Number.isFinite(ia)) importo = ia;
+    else if (Number.isFinite(ib)) importo = -Math.abs(ib);
+    out.push({
+      riga: out.length + 1,
+      data,
+      valuta: isoDaDataItaliana(valutaRaw),
+      descrizione: String(descr || "").trim(),
+      importo: Number.isFinite(importo) ? round2(importo) : null,
+      scarto: !data ? (String(dataRaw || "").trim() ? "data non riconosciuta" : "data mancante")
+            : !Number.isFinite(importo) ? "importo non leggibile in nessuna delle colonne" : "",
+    });
+  }
+  return out;
+}
+
+/* IL NUMERO DELLA FATTURA DENTRO LA CAUSALE — dal verso giusto.
+   I numeri delle nostre fatture li CONOSCIAMO: si cerca il numero dentro la
+   causale, invece di indovinare quali gruppi di cifre della causale siano un
+   numero di fattura. Il verso sbagliato prende per numero di fattura la data
+   («31 luglio»), il numero del mandato e l'IBAN.
+   Due risposte, e la differenza pesa nel grado: "pieno" = c'è il numero intero
+   (2026/031, o rovesciato 031/2026); "progressivo" = c'è solo la parte
+   progressiva ma preceduta da una parola che dice che è una fattura (FT 31,
+   FATT. N. 31). Un «31» nudo non vale: in una causale il 31 è quasi sempre un
+   giorno. "" = non c'è. */
+const PAROLE_FATTURA = "(?:fatt(?:ura)?|ft|fra|doc(?:umento)?|n(?:r|um(?:ero)?)?)";
+export function numeroInCausale(numero, causale) {
+  const num = String(numero || "").trim();
+  const txt = String(causale || "").toUpperCase().replace(/\s*\/\s*/g, "/").replace(/\s+/g, " ");
+  if (!num || !txt) return "";
+  const N = num.toUpperCase().replace(/\s*\/\s*/g, "/");
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  if (new RegExp(`(?:^|[^0-9A-Z])${esc(N)}(?![0-9])`).test(txt)) return "pieno";
+  const p = /^(\d{4})[-/](\d{1,6})$|^(\d{1,6})[-/](\d{4})$/.exec(N);
+  const conParola = (nudo) =>
+    new RegExp(`${PAROLE_FATTURA}\\.?\\s*(?:N\\.?\\s*)?0*${nudo}(?![0-9])`, "i").test(txt);
+  if (p) {
+    const anno = p[1] || p[4], nudo = String(+(p[2] || p[3]));
+    if (new RegExp(`(?:^|[^0-9])0*${nudo}[-/]${anno}(?![0-9])`).test(txt)) return "pieno";
+    return conParola(nudo) ? "progressivo" : "";
+  }
+  return /^\d{1,6}$/.test(N) && conParola(String(+N)) ? "progressivo" : "";
+}
+
+/* IL NOME DEL CLIENTE DENTRO LA CAUSALE. Confronto morbido con `chiaveNome`,
+   la stessa che in questa app tiene insieme «Rossi srl» e «Rossi S.r.l.»: qui
+   non si riscrive una seconda normalizzazione. Due difese contro il falso
+   positivo: le chiavi corte (meno di 4 caratteri) non valgono come indizio —
+   «SPA» comparirebbe in mezza rubrica — e la forma societaria si toglie prima
+   del secondo tentativo, perché la banca scrive «EDILCAVE» dove l'anagrafica
+   dice «Edilcave Srl». */
+export function clienteInCausale(nome, causale) {
+  const k = chiaveNome(nome);
+  if (!k || k.length < 4) return false;
+  const c = chiaveNome(causale);
+  if (!c) return false;
+  if (c.includes(k)) return true;
+  const corto = k.replace(/\b(?:srl|srls|spa|snc|sas|scarl|soc|societa|coop)\b/g, "").replace(/\s+/g, " ").trim();
+  return corto.length >= 4 && c.includes(corto);
+}
+
+/* IL BONIFICO CUMULATIVO SENZA I NUMERI IN CAUSALE. Cerca i sottoinsiemi delle
+   fatture aperte che sommano all'importo, e ⛔ risponde SOLO se la soluzione è
+   UNA: due combinazioni che tornano non sono un abbinamento, sono una scelta —
+   e una scelta la fa l'utente. Si fermano a `maxFatture` per due ragioni, e la
+   seconda conta più della prima: il costo cresce come 2^n, ma soprattutto più
+   fatture ci sono più è probabile che di combinazioni che tornano ce ne sia
+   più d'una, cioè che la risposta sia inutile.
+   I conti si fanno in CENTESIMI interi: 0,1 + 0,2 in virgola mobile non fa 0,3,
+   e un abbinamento che dipende da quell'errore sarebbe irriproducibile. */
+export function combinazioneUnica(aperti, importo, maxFatture = 10) {
+  const lista = (aperti || []).filter((f) => f && +f.aperto > 0);
+  if (lista.length < 2 || lista.length > maxFatture) return null;
+  const cent = (v) => Math.round((+v || 0) * 100);
+  const val = lista.map((f) => cent(f.aperto));
+  let trovate = 0, prima = null;
+  const giro = (i, resto, scelte) => {
+    if (trovate > 1) return;
+    if (resto === 0 && scelte.length >= 2) { trovate++; if (!prima) prima = scelte.slice(); return; }
+    if (i >= val.length || resto <= 0) return;
+    giro(i + 1, resto - val[i], scelte.concat(i));
+    giro(i + 1, resto, scelte);
+  };
+  giro(0, cent(importo), []);
+  return trovate === 1 ? prima.map((i) => lista[i]) : null;
+}
+
+/* I QUATTRO GRADI, in ordine di certezza. Solo i primi due portano una
+   proposta; gli altri due portano il motivo e le alternative. */
+export const GRADI_ABBINAMENTO = ["certo", "probabile", "debole", "nessuno"];
+const CENT_ABB = (v) => Math.round((+v || 0) * 100);
+
+/* ⛔ LO STESSO MOVIMENTO CARICATO DUE VOLTE. L'estratto conto lo si scarica a
+   fine mese e lo si ricarica il mese dopo, e i giorni si sovrappongono quasi
+   sempre. Senza questa guardia il secondo caricamento riproporrebbe gli stessi
+   incassi, e confermarli li conterebbe due volte: la fattura risulterebbe
+   sovra-incassata e i giorni medi di pagamento del cliente falsati.
+   L'impronta è fattura + giorno + importo al centesimo: è quello che un
+   estratto conto ripete identico, ed è l'unica cosa che si può confrontare. */
+export function movimentoGiaRegistrato(mov, fatturaId, incassi) {
+  const m = mov || {};
+  const d = String(m.data || ""), i = CENT_ABB(m.importo);
+  if (!d || !fatturaId) return false;
+  return (incassi || []).some((x) => x && x.fatturaId === fatturaId
+    && String(x.data || "").slice(0, 10) === d && CENT_ABB(x.importo) === i);
+}
+
+/* L'ABBINAMENTO. Prende i movimenti letti dal file e le fatture dell'archivio,
+   e restituisce UNA RIGA PER MOVIMENTO più il riepilogo. Pura: non tocca
+   niente, non scrive niente, non conosce il DOM. */
+export function abbinaMovimenti(movimenti, fatture, incassi = [], clienti = [], note = null) {
+  const conIncassi = applicaIncassi(fatture || [], incassi || []);
+  const scheda = (f) => ({ id: f.id, numero: String(f.numero || ""),
+    cliente: f.cliente || "", clienteId: f.clienteId || "",
+    aperto: round2(apertoDi(f, note)), totale: round2(+f.importo || 0),
+    scadenza: f.scadenza || null });
+  const tutte = conIncassi.map(scheda);
+  const aperte = tutte.filter((c) => c.aperto > 0.005);
+  const chiuse = tutte.filter((c) => c.aperto <= 0.005);
+  const nomeDi = (c) => {
+    const an = (clienti || []).find((k) => k && k.id === c.clienteId);
+    return (an && an.ragioneSociale) || c.cliente || "";
+  };
+  const righe = guardiaStessaFattura(
+    (movimenti || []).map((m) => esitoMovimento(m, aperte, chiuse, nomeDi, incassi)), aperte);
+  return { righe, riepilogo: riepilogoAbbinamento(righe) };
+}
+
+/* ⛔ DUE MOVIMENTI DELLO STESSO FILE CHE PROPONGONO LA STESSA FATTURA.
+   Ogni riga viene giudicata da sola contro l'aperto DI PARTENZA — ed è giusto
+   così, perché finché l'utente non conferma non è successo niente. Ma due
+   bonifici uguali sulla stessa fattura uscivano tutt'e due «certo, saldo
+   esatto», e chi conferma in blocco registra il doppio. Trovato in scratchpad
+   il 05/08, prima che entrasse nel modulo.
+   Non si sceglie per l'utente quale delle due vale: scendono TUTTE a `debole`,
+   che è la regola — un abbinamento incerto non è un abbinamento. */
+function guardiaStessaFattura(righe, aperte) {
+  const per = new Map();
+  for (const r of righe)
+    if (r.grado === "certo" || r.grado === "probabile")
+      for (const p of r.proposta) {
+        if (!per.has(p.fatturaId)) per.set(p.fatturaId, []);
+        per.get(p.fatturaId).push(p);
+      }
+  const sforate = new Set();
+  for (const [id, voci] of per) {
+    if (voci.length < 2) continue;
+    const ap = (aperte.find((a) => a.id === id) || {}).aperto || 0;
+    if (voci.reduce((t, v) => t + CENT_ABB(v.importo), 0) > CENT_ABB(ap)) sforate.add(id);
+  }
+  if (!sforate.size) return righe;
+  return righe.map((r) => {
+    const toccate = r.proposta.filter((p) => sforate.has(p.fatturaId));
+    if (!toccate.length) return r;
+    return { ...r, grado: "debole", proposta: [],
+      alternative: r.proposta.map((p) => ({ fatturaId: p.fatturaId, numero: p.numero,
+                                            cliente: p.cliente, aperto: p.aperto })),
+      motivi: r.motivi.concat("stessa fattura in più movimenti"),
+      perche: `più movimenti di questo file propongono la fattura ${toccate.map((p) => p.numero).join(", ")}`
+        + " e insieme superano quello che resta aperto: confermarli tutti registrerebbe un incasso che non c'è."
+        + " Scegli tu quale vale." };
+  });
+}
+
+function esitoMovimento(m, aperte, chiuse, nomeDi, incassi) {
+  const base = { riga: m.riga, data: m.data, descrizione: m.descrizione, importo: m.importo,
+                 proposta: [], alternative: [], motivi: [], giaRegistrato: false };
+  if (m.scarto) return { ...base, verso: "scartato", grado: "nessuno", perche: m.scarto };
+  if (!(m.importo > 0))
+    return { ...base, verso: m.importo < 0 ? "uscita" : "entrata", grado: "nessuno",
+             perche: m.importo < 0
+               ? "movimento in uscita: qui si abbinano gli incassi, e i pagamenti che escono si registrano fra i costi"
+               : "movimento a zero: non c'è nessun incasso da abbinare" };
+
+  const misura = (c) => ({ ...c, num: numeroInCausale(c.numero, m.descrizione),
+                           cli: clienteInCausale(nomeDi(c), m.descrizione),
+                           diff: CENT_ABB(m.importo) - CENT_ABB(c.aperto) });
+  const cand = aperte.map(misura);
+  const conNumero = cand.filter((c) => c.num);
+  const esatte = cand.filter((c) => c.diff === 0);
+  const cliCand = cand.filter((c) => c.cli);
+  const nomi = (l) => l.map((c) => c.numero).join(", ");
+  const eur = (cent) => euroIt(Math.abs(cent) / 100);
+
+  // (a) CUMULATIVO DICHIARATO: la causale nomina più fatture e la somma torna.
+  if (conNumero.length >= 2 && conNumero.reduce((t, c) => t + CENT_ABB(c.aperto), 0) === CENT_ABB(m.importo))
+    return proponi(base, "certo", conNumero,
+      `la causale nomina ${conNumero.length} fatture (${nomi(conNumero)}) e la somma di quello che resta aperto fa esattamente ${euroIt(m.importo)} €`,
+      ["numeri in causale", "somma esatta"], incassi);
+
+  // (b) UNA SOLA FATTURA NOMINATA IN CAUSALE.
+  if (conNumero.length === 1) {
+    const c = conNumero[0];
+    const eti = c.num === "pieno" ? "numero in causale" : "numero (progressivo) in causale";
+    if (c.diff === 0)
+      return proponi(base, "certo", [c],
+        `la causale nomina la fattura ${c.numero} e l'importo è esattamente quello che resta aperto`,
+        [eti, "importo esatto"], incassi);
+    if (c.diff < 0)
+      return proponi(base, "probabile", [c],
+        `la causale nomina la fattura ${c.numero}, ma l'importo è più basso di ${eur(c.diff)} €: è un acconto, e la fattura resta aperta per quella cifra`,
+        [eti, "pagamento parziale"], incassi);
+    return decidi(base, [c].concat(esatte),
+      `la causale nomina la fattura ${c.numero} ma l'importo la supera di ${eur(c.diff)} €: può pagare anche dell'altro, e a dirlo devi essere tu`,
+      [eti, "importo più alto della fattura"]);
+  }
+  if (conNumero.length >= 2)
+    return decidi(base, conNumero,
+      `la causale nomina ${conNumero.length} fatture (${nomi(conNumero)}) ma la somma di quello che resta aperto non fa ${euroIt(m.importo)} €: scegli tu quali paga, e per quanto`,
+      ["più numeri in causale", "somma che non torna"]);
+
+  /* (b bis) IL NUMERO C'È MA LA FATTURA È GIÀ SALDATA — e va DETTO.
+     ⛔ È il caso in cui tacere costa di più: senza questa risposta la riga
+     usciva con «nella causale non si riconosce niente», che è falso e manda a
+     cercare dalla parte sbagliata. Qui invece si nomina la fattura e si dice
+     che è già a posto: o l'incasso è già registrato, o c'è un pagamento doppio
+     da verificare col cliente. */
+  const saldate = chiuse.map((c) => ({ ...c, num: numeroInCausale(c.numero, m.descrizione) }))
+    .filter((c) => c.num);
+  if (saldate.length) {
+    const una = saldate.length === 1;
+    /* ⛔ E PRIMA DI TUTTO: È PROPRIO QUESTO MOVIMENTO, GIÀ REGISTRATO?
+       È il caso più frequente di tutti — l'estratto conto ricaricato il mese
+       dopo, coi giorni che si sovrappongono. La prima stesura rispondeva «o
+       l'incasso è già registrato oppure c'è un pagamento doppio»: vera ma
+       tiepida, quando invece la risposta si SA. Trovata dalla prova, che
+       pretendeva `giaRegistrato` e otteneva `false`. */
+    const stesse = saldate.filter((c) => movimentoGiaRegistrato(m, c.id, incassi));
+    if (stesse.length)
+      return { ...base, verso: "entrata", grado: "nessuno", giaRegistrato: true,
+        proposta: stesse.map((c) => ({ fatturaId: c.id, numero: c.numero, cliente: c.cliente,
+                                       aperto: c.aperto, importo: m.importo })),
+        motivi: ["numero in causale", "già registrato"],
+        perche: `questo movimento è già registrato sulla fattura ${nomi(stesse)}, con la stessa data e lo stesso importo:`
+          + " registrarlo di nuovo lo conterebbe due volte" };
+    return { ...base, verso: "entrata", grado: "nessuno",
+      motivi: ["numero in causale", "fattura già saldata"],
+      perche: `la causale nomina ${una ? "la fattura" : "le fatture"} ${nomi(saldate)}, che risulta${una ? "" : "no"} già saldat${una ? "a" : "e"}:`
+        + " se il bonifico è vero, o l'incasso è già stato registrato oppure c'è un pagamento doppio da verificare col cliente" };
+  }
+
+  // (c) NESSUN NUMERO: si ragiona su importo e cliente.
+  const esatteCliente = esatte.filter((c) => c.cli);
+  if (esatteCliente.length === 1)
+    return proponi(base, "probabile", esatteCliente,
+      `la causale non porta nessun numero di fattura, ma il nome «${nomeDi(esatteCliente[0])}» c'è e l'importo coincide con la sua unica fattura aperta da ${euroIt(m.importo)} €`,
+      ["cliente in causale", "importo esatto"], incassi);
+  if (esatteCliente.length > 1)
+    return decidi(base, esatteCliente,
+      `${esatteCliente.length} fatture dello stesso cliente hanno esattamente questo importo (${nomi(esatteCliente)}): non è un abbinamento, è una scelta`,
+      ["cliente in causale", "più fatture con lo stesso importo"]);
+
+  // (d) CUMULATIVO NON DICHIARATO: col cliente riconosciuto e UNA sola
+  //     combinazione. Più di una combinazione che torna è una scelta, non un esito.
+  if (cliCand.length >= 2 && !esatte.length) {
+    const comb = combinazioneUnica(cliCand, m.importo);
+    if (comb)
+      return proponi(base, "probabile", comb,
+        `il nome «${nomeDi(cliCand[0])}» è nella causale e c'è una sola combinazione delle sue fatture aperte che fa ${euroIt(m.importo)} €: ${nomi(comb)}`,
+        ["cliente in causale", "combinazione unica"], incassi);
+  }
+  if (cliCand.length)
+    return decidi(base, cliCand.concat(esatte),
+      `il cliente si riconosce nella causale, ma nessuna sua fattura aperta${cliCand.length >= 2 ? " — né una combinazione unica delle sue fatture —" : ""} fa ${euroIt(m.importo)} €:`
+      + " può essere un acconto o un pagamento cumulativo, e a dirlo devi essere tu",
+      ["cliente in causale", "importo che non torna"]);
+  if (esatte.length === 1)
+    return decidi(base, esatte,
+      `una sola fattura aperta ha questo importo (${esatte[0].numero}), ma nella causale non c'è né il suo numero né il nome del cliente`,
+      ["solo importo esatto"]);
+  if (esatte.length > 1)
+    return decidi(base, esatte,
+      `${esatte.length} fatture aperte hanno questo importo (${nomi(esatte)}) e la causale non dice di chi è: scegli tu`,
+      ["più fatture con lo stesso importo"]);
+
+  // (e) NIENTE — e il perché va detto per esteso, perché è la riga che l'utente
+  //     dovrà lavorare a mano.
+  const clienteAltrove = chiuse.some((c) => clienteInCausale(nomeDi(c), m.descrizione));
+  return { ...base, verso: "entrata", grado: "nessuno",
+    perche: !aperte.length
+      ? "non c'è nessuna fattura aperta con cui confrontare questo movimento"
+      : clienteAltrove
+        ? "il cliente della causale si riconosce, ma non ha nessuna fattura ancora aperta: o l'incasso è già registrato, o questo bonifico paga qualcosa che non è una fattura"
+        : "nella causale non si riconosce né un numero di fattura né il nome di un cliente, e nessuna fattura aperta ha questo importo" };
+}
+
+/* Una riga CON proposta. L'importo proposto è tutto il movimento quando la
+   fattura è una sola (così l'acconto entra per quello che è arrivato) e
+   l'aperto di ciascuna quando sono più d'una. */
+function proponi(base, grado, cand, perche, motivi, incassi) {
+  const proposta = cand.map((c) => ({ fatturaId: c.id, numero: c.numero, cliente: c.cliente,
+    aperto: c.aperto, importo: cand.length === 1 ? base.importo : c.aperto }));
+  if (proposta.every((p) => movimentoGiaRegistrato(base, p.fatturaId, incassi)))
+    return { ...base, verso: "entrata", grado: "nessuno", giaRegistrato: true, proposta,
+      motivi: motivi.concat("già registrato"),
+      perche: `su ${proposta.length === 1 ? "questa fattura" : "queste fatture"} c'è già un incasso con la stessa data e lo stesso importo:`
+        + " registrarlo di nuovo lo conterebbe due volte" };
+  return { ...base, verso: "entrata", grado, proposta, motivi, perche };
+}
+
+/* Una riga SENZA proposta, da decidere a mano, con i candidati da scegliere. */
+function decidi(base, cand, perche, motivi) {
+  const visti = new Set();
+  const alternative = cand.filter((c) => c && !visti.has(c.id) && visti.add(c.id))
+    .map((c) => ({ fatturaId: c.id, numero: c.numero, cliente: c.cliente, aperto: c.aperto }));
+  return { ...base, verso: "entrata", grado: "debole", alternative, motivi, perche };
+}
+
+/* IL RIEPILOGO, con la bandiera.
+   ⛔ L'ASSENZA DI UN DATO NON È UN DATO FAVOREVOLE: zero movimenti da decidere
+   perché nessun estratto conto è mai stato caricato NON è «tutto abbinato».
+   Perciò `misurabile` dice se c'è stato qualcosa da guardare, e `perche` lo
+   scrive; la schermata legge quella bandiera e mostra lo stato vuoto invece dei
+   contatori a zero, che sarebbero tutti tranquilli e tutti senza significato.
+   E le tre categorie sommano SEMPRE a `letti` (entrate + uscite + scartati):
+   se un giorno non tornassero, vorrebbe dire che una riga del file è sparita. */
+export function riepilogoAbbinamento(righe) {
+  const r = righe || [];
+  const daConfermare = r.filter((x) => x.grado === "certo" || x.grado === "probabile");
+  return {
+    letti: r.length,
+    entrate: r.filter((x) => x.verso === "entrata").length,
+    uscite: r.filter((x) => x.verso === "uscita").length,
+    scartati: r.filter((x) => x.verso === "scartato").length,
+    certi: r.filter((x) => x.grado === "certo").length,
+    probabili: r.filter((x) => x.grado === "probabile").length,
+    daConfermare: daConfermare.length,
+    daDecidere: r.filter((x) => x.grado === "debole").length,
+    senzaCandidato: r.filter((x) => x.grado === "nessuno" && x.verso === "entrata" && !x.giaRegistrato).length,
+    giaRegistrati: r.filter((x) => x.giaRegistrato).length,
+    importoDaConfermare: round2(daConfermare.reduce((t, x) => t + (+x.importo || 0), 0)),
+    misurabile: r.length > 0,
+    perche: r.length ? "" : "nessun estratto conto caricato: non è ancora stato confrontato niente",
+  };
+}
+
+/* UN ESTRATTO CONTO D'ESEMPIO, scritto come lo esporta una banca italiana:
+   separatore punto e virgola, data GG/MM/AAAA, importi con il punto delle
+   migliaia e la virgola dei decimali. Serve a due cose: far provare la
+   schermata a chi non ha un file sotto mano, e ⛔ tenere in casa i casi che
+   questa funzione esiste per raccontare — l'acconto, il saldo, il cumulativo,
+   il movimento in uscita, quello già registrato e quello che non abbina.
+   ⚠️ È scritto A MANO e non generato dal nostro esportatore, di proposito: un
+   giro scrivi→leggi dimostra che le nostre due metà vanno d'accordo FRA LORO,
+   non che il formato sia quello che scrive la banca. Le prove guardano il
+   TESTO di questa costante (`;18.300,00`, `21/07/2026`), non solo il risultato. */
+export const ESTRATTO_ESEMPIO = [
+  "Data;Data valuta;Descrizione;Importo",
+  "02/07/2026;02/07/2026;BONIFICO DA EDILCAVE SRL ACCONTO FATT 2026/031;6.000,00",
+  "14/07/2026;14/07/2026;BONIFICO ORD: STRADESUD SALDO FATT 2026/034;9.750,00",
+  "16/07/2026;16/07/2026;BONIFICO COMUNE DI MODICA MANDATO 4412;8.100,00",
+  "18/07/2026;18/07/2026;BONIFICO A NS FAVORE;5.900,00",
+  "20/07/2026;20/07/2026;COMMISSIONI E SPESE DI TENUTA CONTO;-4,50",
+  "21/07/2026;21/07/2026;BONIFICO DA EDILCAVE SRL SALDO FATT 2026/031;12.300,00",
+  "22/07/2026;22/07/2026;VERSAMENTO CONTANTI;1.000,00",
+  "23/07/2026;23/07/2026;BONIFICO DA CAVE DEL SUD;4.400,00",
+].join("\n") + "\n";

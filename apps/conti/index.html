@@ -98,7 +98,7 @@
      colonne fisse: aggiungere una voce senza toccare questo numero non la
      stringe, la manda A CAPO — e la voce in più finisce su una seconda riga,
      sotto le altre. Non si vede leggendo il codice, si vede allo scatto. */
-  --nav-cols:8;
+  --nav-cols:9;
   --kpi-cols:4;
   --form-gap:11px;
   --form-pad:14px 13px 13px;
@@ -756,6 +756,35 @@ label.item:has(.dw-chk:checked){
   <div class="note esito" id="dif-esito"></div>
 </div>
 
+<div class="page" id="page-ban">
+  <div class="sec">Estratto conto della banca<span class="cnt" id="ban-cnt">0</span></div>
+  <div class="note">Carichi qui il file dell'<b>estratto conto</b> che scarichi dalla tua banca, e
+    Conti <b>propone</b> a quale fattura corrisponde ogni bonifico in entrata. È l'unico punto in
+    cui questa app ti chiedeva di ribattere a mano un dato che esiste già: i soldi arrivano in
+    banca, e l'incasso lo scrivevi guardando il conto e ricopiando. Da lì viene il danno peggiore
+    che Conti sappia fare — un <b>sollecito con la mora mandato su una fattura già pagata</b>.
+    <br><b>Le proposte si propongono, non si applicano</b>: nessuna riga qui scrive niente finché
+    non la confermi tu, e accanto a ognuna c'è scritto <b>perché</b> è stata proposta. Quello che
+    non è abbastanza sicuro <b>non viene proposto affatto</b>: resta da decidere a mano, con le
+    fatture candidate sotto. Nessuna riga del file sparisce, nemmeno quelle che non abbinano.</div>
+  <div class="tools">
+    <button class="dw-btn" id="btn-ban-file"
+      title="Il file dell'estratto conto scaricato dal tuo home banking, in CSV">Carica l'estratto conto (CSV)</button>
+    <input type="file" id="ban-file" accept=".csv,text/csv,text/plain" style="display:none;">
+    <button class="dw-btn secondary" id="btn-ban-esempio"
+      title="Carica un estratto conto d'esempio, per vedere come funziona senza un file vero">Prova con un esempio</button>
+    <button class="dw-btn secondary" id="btn-ban-pulisci"
+      title="Svuota l'estratto conto caricato: non tocca nulla di quello che hai già confermato">Svuota</button>
+    <span class="hint">colonne: data;valuta;causale;importo — oppure data;valuta;causale;entrate;uscite</span>
+  </div>
+  <div class="note esito" id="ban-esito"></div>
+
+  <div id="ban-riep"></div>
+  <div id="ban-conferma"></div>
+  <div id="ban-decidere"></div>
+  <div id="ban-fuori"></div>
+</div>
+
 <div class="page" id="page-pes">
   <div class="sec">Registro pesate / DDT<span class="cnt" id="pes-cnt">0</span></div>
   <div id="pes-filtri" class="chgs">
@@ -1299,6 +1328,7 @@ label.item:has(.dw-chk:checked){
 <nav class="nav" aria-label="Sezioni di Conti">
   <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg></span>Quadro</button>
   <button id="nav-fat" onclick="go('fat')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M5.5 3.2h13v17.6l-2.6-1.5-2.6 1.5-2.6-1.5-2.6 1.5L5.5 20.8z"/><path d="M9 8.2h6M9 12h6M9 15.4h3.6"/></svg></span>Fatture</button>
+  <button id="nav-ban" onclick="go('ban')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M3.2 9.4L12 4.2l8.8 5.2"/><path d="M4.6 9.4v8.2M9.6 9.4v8.2M14.4 9.4v8.2M19.4 9.4v8.2"/><path d="M2.8 20.2h18.4"/></svg></span>Banca</button>
   <button id="nav-pes" onclick="go('pes')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M2.6 6.6h11v9.4h-11z"/><path d="M13.6 10.2h3.5l3.3 3.1V16h-6.8z"/><circle cx="7" cy="18.4" r="2"/><circle cx="17" cy="18.4" r="2"/></svg></span>Pesate</button>
   <button id="nav-cos" onclick="go('cos')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M12 3.2v9.6M8.4 9.4l3.6 3.8 3.6-3.8"/><path d="M3.6 15v3.4a2.2 2.2 0 0 0 2.2 2.2h12.4a2.2 2.2 0 0 0 2.2-2.2V15"/></svg></span>Costi</button>
   <button id="nav-lis" onclick="go('lis')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M12.4 3.1h7.1a1.4 1.4 0 0 1 1.4 1.4v7.1a1.4 1.4 0 0 1-.4 1l-8.2 8.2a1.4 1.4 0 0 1-2 0l-7.1-7.1a1.4 1.4 0 0 1 0-2l8.2-8.2a1.4 1.4 0 0 1 1-.4z"/><path d="M16.6 7.4v.02"/></svg></span>Listino</button>
@@ -1321,7 +1351,10 @@ label.item:has(.dw-chk:checked){
 
 
 <script type="module">
-  import { contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, parseFattureCsv, parseGareCsv, parseListinoCsv, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
+  /* l'estratto conto della banca: il file si legge e si abbina nel modulo dati,
+     qui si disegna e si chiede conferma — `round2` è già importato più sotto */
+  import { parseMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO,
+           contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, parseFattureCsv, parseGareCsv, parseListinoCsv, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita,
     importiFattura, totaliDaRighe, prossimoNumero, nettoPesata, rigaPesata, valorePesata,
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, BASI_CANONE, venditePerProdotto,
@@ -2461,6 +2494,7 @@ label.item:has(.dw-chk:checked){
     renderRiconciliazione();
     renderCosti();
     renderChiusura();
+    renderBanca();
 
     // ══════════════════════════════════════════════════════════════════
     // QUADRO — consegne consegnate ma non ancora fatturate (per cliente)
@@ -3565,6 +3599,29 @@ label.item:has(.dw-chk:checked){
       stampaFoglio(fogliFattura(f), "Fattura " + (f.numero || ""));
       if (!azienda().nome) esito("ft-esito", "Manca l'intestazione dell'azienda: la trovi in Listino → Dati della tua azienda. Il foglio esce lo stesso, ma senza chi emette il documento non è valido.", "err");
       return; }
+    // ── Banca: conferma di un abbinamento proposto, o scelta a mano ──
+    const btnBanOk = e.target.closest && e.target.closest("[data-ban-ok]");
+    if (btnBanOk) {
+      const r = abbinaMovimenti(BANMOV, FAT, INC, CLI, NOT).righe
+        .find(x => x.riga === +btnBanOk.getAttribute("data-ban-ok"));
+      await banConferma(r); return; }
+    const btnBanAlt = e.target.closest && e.target.closest("[data-ban-alt]");
+    if (btnBanAlt) {
+      const [rigaS, fid] = btnBanAlt.getAttribute("data-ban-alt").split("|");
+      const r = abbinaMovimenti(BANMOV, FAT, INC, CLI, NOT).righe.find(x => x.riga === +rigaS);
+      const a = r && r.alternative.find(z => z.fatturaId === fid);
+      if (!r || !a) return;
+      /* La scelta dell'utente vale come una proposta, ma il motivo cambia e va
+         detto: non l'ha proposta Conti, l'ha scelta lui fra le candidate. */
+      await banConferma({ ...r, perche: "l'hai scelta tu fra le fatture candidate",
+        proposta: [{ fatturaId: a.fatturaId, numero: a.numero, cliente: a.cliente,
+                     aperto: a.aperto, importo: r.importo }] });
+      return; }
+    const btnBanCerti = e.target.closest && e.target.closest("#btn-ban-certi");
+    if (btnBanCerti) {
+      await banConfermaCerti(abbinaMovimenti(BANMOV, FAT, INC, CLI, NOT).righe
+        .filter(x => x.grado === "certo"));
+      return; }
     // ── Listino: modifica di un prodotto (stesso form, come per i clienti) ──
     const btnEditPro = e.target.closest && e.target.closest("[data-edit-pro]");
     const editProId = btnEditPro && btnEditPro.getAttribute("data-edit-pro");
@@ -4304,6 +4361,234 @@ label.item:has(.dw-chk:checked){
     $("gar-titolo").focus();   // pronto per la prossima gara
     await refresh();
   };
+  /* ══ L'ESTRATTO CONTO DELLA BANCA ═══════════════════════════════════════
+     Il file caricato vive SOLO qui, in memoria: non si salva niente in
+     archivio finché l'utente non conferma un abbinamento, e allora quello che
+     si scrive è un normale movimento di incasso — la stessa collezione che
+     alimenta residui, giorni medi di pagamento e solleciti. Ricaricando la
+     pagina l'estratto conto sparisce e gli incassi confermati restano: è
+     giusto così, perché il file è materiale di lavoro, l'incasso è un fatto.
+     ⛔ E il file ricaricato una seconda volta NON ripropone quello che è già
+     stato registrato: ci pensa `movimentoGiaRegistrato` dentro il modulo. */
+  let BANMOV = [];                 // le righe lette dal file (mai salvate)
+  let BANORIGINE = "";             // da dove viene: il nome del file, o l'esempio
+
+  /* La mappa dei badge, una per grado. ⛔ Le chiavi sono TUTTI i gradi che
+     `abbinaMovimenti` sa restituire (`GRADI_ABBINAMENTO`): se ne nascesse un
+     quinto senza toccare questa mappa, `BADGE_GRADO[grado][0]` ucciderebbe la
+     pagina al disegno, senza nessun errore di sintassi da vedere — è la regola
+     18 di run-stile.mjs, e in run-kpi.mjs c'è la prova che i gradi sono quattro
+     e che escono tutti e quattro davvero. */
+  const BADGE_GRADO = {
+    certo:     ["ok", "certo", "st-ok"],
+    probabile: ["", "probabile", "st-accent"],
+    debole:    ["warn", "da decidere", "st-warn"],
+    nessuno:   ["tag", "non abbinato", "st-mute"],
+  };
+
+  function banRiga(x, conAzioni) {
+    const p = x.proposta.length
+      ? `<div class="meta">→ ${x.proposta.map(q => `<b>${esc(q.numero || "senza numero")}</b> ${eur(q.importo)}`).join(" · ")}</div>`
+      : "";
+    const motivi = x.motivi.length
+      ? `<div class="meta">${x.motivi.map(m => `<span class="badge tag">${esc(m)}</span>`).join(" ")}</div>` : "";
+    const alt = (conAzioni && x.alternative.length)
+      ? `<div class="meta" style="margin-top:6px;">Fatture candidate: ${x.alternative.map(a =>
+          `<button class="dw-btn secondary mini" type="button" data-ban-alt="${x.riga}|${esc(a.fatturaId)}"
+             title="Registra questo movimento sulla fattura ${esc(a.numero)}">${esc(a.numero || "senza numero")} · ${eur(a.aperto)} aperti</button>`).join(" ")}</div>`
+      : "";
+    const azione = (conAzioni && x.proposta.length)
+      ? `<div class="acts"><button class="dw-btn mini" type="button" data-ban-ok="${x.riga}"
+           title="Registra l'incasso proposto su questa fattura">${IC.spunta}Conferma</button></div>` : "";
+    /* ⛔ E il ripiego dice il nome del grado che non conosce, invece di
+       ricadere su «non abbinato»: un grado nuovo travestito da grado vecchio
+       è esattamente il difetto che la regola 18 esiste per impedire. */
+    const b = BADGE_GRADO[x.grado] || ["warn", x.grado, "st-warn"];
+    return `<div class="item ${b[2]}">
+      <span class="avatar">${IC.euro}</span>
+      <div class="info">
+        <div class="name">${fmtD(x.data)} · ${esc(x.descrizione || "senza causale")}</div>
+        <div class="meta">${esc(x.perche)}</div>
+        ${p}${motivi}${alt}
+      </div>
+      ${azione}
+      <span class="badge ${b[0]}">${esc(b[1])}</span>
+      <div class="amt"><div class="amt-n">${x.importo == null ? "—" : eur(x.importo)}</div>
+        <div class="amt-s">riga ${x.riga}</div></div></div>`;
+  }
+
+  function renderBanca() {
+    const r = abbinaMovimenti(BANMOV, FAT, INC, CLI, NOT);
+    const q = r.riepilogo;
+    $("ban-cnt").textContent = q.letti;
+
+    /* ⛔ L'ASSENZA DI UN DATO NON È UN DATO FAVOREVOLE. Senza estratto conto
+       caricato i contatori sarebbero tutti a zero — «0 da decidere», «0 non
+       abbinati» — cioè tutti tranquilli e tutti senza significato. La bandiera
+       `misurabile` del modulo è quella che si legge qui per dire invece che
+       non è stato ancora confrontato niente. */
+    if (!q.misurabile) {
+      $("ban-riep").innerHTML = vuoto("euro", "Nessun estratto conto caricato",
+        "Finché non carichi un file, Conti <b>non ha confrontato niente</b>: qui non c'è nessuna "
+        + "riga da decidere perché non c'è nessuna riga. Scarica l'estratto conto dal tuo home "
+        + "banking in <b>CSV</b> e caricalo qui sopra, oppure prova con l'esempio.",
+        '<button class="dw-btn secondary mini" data-vuoto-fai="#btn-ban-esempio">Prova con un esempio</button>');
+      $("ban-conferma").innerHTML = ""; $("ban-decidere").innerHTML = ""; $("ban-fuori").innerHTML = "";
+      return;
+    }
+
+    $("ban-riep").innerHTML = `<div class="cassa">
+      <span class="cassa-ico">${IC.euro}</span>
+      <div><div class="cassa-num">${eur(q.importoDaConfermare)}</div>
+      <div class="cassa-lab">Da confermare</div></div>
+      <div class="cassa-txt" style="margin-left:auto;text-align:right;">
+      ${plur(q.letti, "riga letta", "righe lette")} da ${esc(BANORIGINE || "un file")}.<br>
+      ${q.entrate} in entrata · ${q.uscite} in uscita${q.scartati ? " · " + plur(q.scartati, "riga illeggibile", "righe illeggibili") : ""}</div></div>`;
+
+    const daConf = r.righe.filter(x => x.grado === "certo" || x.grado === "probabile");
+    const daDec = r.righe.filter(x => x.grado === "debole");
+    const fuori = r.righe.filter(x => x.grado === "nessuno");
+
+    $("ban-conferma").innerHTML = `<div class="sec">Da confermare<span class="cnt">${daConf.length}</span></div>`
+      + (daConf.length
+        ? `<div class="note">Ognuno di questi porta scritto <b>perché</b> è stato proposto. Guarda il
+             motivo prima di confermare: un abbinamento sbagliato marca incassata una fattura che
+             non lo è, e da lì il sollecito non parte più.</div>`
+          + daConf.map(x => banRiga(x, true)).join("")
+          + (daConf.filter(x => x.grado === "certo").length > 1
+            ? `<div class="tools"><button class="dw-btn secondary" type="button" id="btn-ban-certi"
+                 title="Conferma in un colpo solo i soli abbinamenti CERTI, dopo averli riletti">Conferma i ${daConf.filter(x => x.grado === "certo").length} certi</button>
+                 <span class="hint">solo i «certi»: i «probabili» si confermano uno per uno</span></div>`
+            : "")
+        : vuoto("spunta", "Niente da confermare",
+            "Di questo estratto conto nessuna riga è abbastanza sicura da essere proposta. "
+            + "Non vuol dire che sia tutto a posto: guarda qui sotto <b>Da decidere a mano</b>."));
+
+    $("ban-decidere").innerHTML = daDec.length
+      ? `<div class="sec">Da decidere a mano<span class="cnt">${daDec.length}</span></div>
+         <div class="note">Queste righe <b>non sono state proposte di proposito</b>: un abbinamento
+           incerto non è un abbinamento. Sotto ognuna ci sono le fatture candidate: tocca quella
+           giusta e l'incasso viene registrato lì.</div>`
+        + daDec.map(x => banRiga(x, true)).join("")
+      : "";
+
+    $("ban-fuori").innerHTML = fuori.length
+      ? `<div class="sec">Non abbinati<span class="cnt">${fuori.length}</span></div>
+         <div class="note">Nessuna riga del file sparisce. Qui ci sono le uscite, le righe
+           illeggibili, quelle già registrate e i bonifici che non corrispondono a nessuna fattura
+           aperta — ognuna col suo motivo.</div>`
+        + fuori.map(x => banRiga(x, false)).join("")
+      : "";
+  }
+
+  /* Registra UN movimento su UNA o più fatture. Il metodo è «bonifico»: è
+     quello che l'estratto conto racconta, e scriverlo evita di far scegliere
+     una tendina a chi sta solo confermando. La causale si porta dietro come
+     nota, così fra sei mesi si sa da dove viene quel movimento. */
+  async function banRegistra(righe) {
+    let scritti = 0, tot = 0;
+    for (const x of righe)
+      for (const p of x.proposta) {
+        await db.aggiungi("incassi", { fatturaId: p.fatturaId, data: x.data,
+          importo: round2(p.importo), metodo: "bonifico",
+          nota: String(x.descrizione || "").slice(0, 200) });
+        scritti++; tot += +p.importo || 0;
+      }
+    return { scritti, tot };
+  }
+
+  async function banConferma(x) {
+    if (!x || !x.proposta.length) return;
+    /* ⛔ LA CAUSALE NON STA IN UNA `.mrec`. Misurato con lo scatto: `.mrec` è
+       una riga etichetta↔cifra a due colonne, e una causale bancaria vera
+       («BONIFICO ORD: STRADESUD SALDO FATT 2026/034») chiedeva 491 px in 352 —
+       139 px tagliati via, proprio sul testo che l'utente deve leggere per
+       decidere. Leggendo il codice non si vedeva: l'ha trovato lo scatto.
+       Il cliente per la stessa ragione va a capo suo, non incollato al numero. */
+    const righe = x.proposta.map(p =>
+      `<div class="mrec"><span class="k">Fattura ${esc(p.numero || "senza numero")}</span>
+       <span class="v accent">${eur(p.importo)}</span></div>
+       <div class="note" style="margin:0 0 8px;">${esc(p.cliente || "cliente non indicato")} · su questa fattura restano aperti ${eur(p.aperto)}</div>`).join("");
+    const ok = await chiedi("Confermi l'abbinamento?",
+      `<p>Movimento del <b>${fmtD(x.data)}</b> di <b>${eur(x.importo)}</b>:</p>
+       <span class="fl">Causale scritta dalla banca</span>
+       <p style="margin:0 0 10px;overflow-wrap:anywhere;">${esc(x.descrizione || "—")}</p>
+       <p style="margin-top:10px;">Perché è stato proposto: ${esc(x.perche)}.</p>
+       <span class="fl">Verrà registrato così</span>${righe}
+       ${x.proposta.some(p => (+p.importo || 0) > (+p.aperto || 0) + 0.005)
+         ? `<p style="margin-top:10px;"><b>Attenzione:</b> l'importo supera quello che resta aperto
+              su questa fattura. Registrandolo la fattura risulterà <b>sovra-incassata</b>: se il
+              bonifico paga anche altro, registra qui solo la parte che compete a questa fattura.</p>`
+         : ""}
+       <p style="margin-top:10px;">Se non è giusto, annulla: puoi sempre scegliere un'altra fattura
+         fra le candidate, oppure registrare l'incasso a mano dalla scheda <b>Fatture</b>.</p>`,
+      "Conferma l'incasso");
+    if (!ok) return;
+    const e = await banRegistra([x]);
+    BANMOV = BANMOV.filter(m => m.riga !== x.riga);
+    esito("ban-esito", `Registrat${e.scritti === 1 ? "o" : "i"} ${plur(e.scritti, "incasso", "incassi")} per ${eur(e.tot)}.`, "success");
+    await refresh();
+  }
+
+  /* La conferma in blocco esiste SOLO per i «certi», e mostra prima cosa sta
+     per scrivere: è la differenza fra una comodità e un automatismo. */
+  async function banConfermaCerti(certi) {
+    const totale = certi.reduce((t, x) => t + (+x.importo || 0), 0);
+    const ok = await chiedi(`Confermi ${plur(certi.length, "abbinamento certo", "abbinamenti certi")}?`,
+      `<p>Sono le righe in cui la causale <b>nomina la fattura</b> e l'importo è <b>esattamente</b>
+         quello che resta aperto: non c'è niente da indovinare.</p>`
+      + certi.map(x => `<div class="mrec"><span class="k">${fmtD(x.data)} · fatt. ${esc(x.proposta.map(p => p.numero).join(", "))}</span>
+          <span class="v accent">${eur(x.importo)}</span></div>`).join("")
+      + `<div class="mrec"><span class="k"><b>Totale</b></span><span class="v accent"><b>${eur(totale)}</b></span></div>
+         <p style="margin-top:10px;">I «probabili» restano fuori e si confermano uno per uno.</p>`,
+      "Conferma i certi");
+    if (!ok) return;
+    const e = await banRegistra(certi);
+    const ids = new Set(certi.map(x => x.riga));
+    BANMOV = BANMOV.filter(m => !ids.has(m.riga));
+    esito("ban-esito", `Registrati ${plur(e.scritti, "incasso", "incassi")} per ${eur(e.tot)}.`, "success");
+    await refresh();
+  }
+
+  function banCarica(testo, origine) {
+    const grezze = String(testo || "").split(/\r?\n/).map(x => x.trim()).filter(Boolean).length;
+    BANMOV = parseMovimentiCsv(testo);
+    BANORIGINE = origine;
+    if (!BANMOV.length) {
+      BANORIGINE = "";
+      esito("ban-esito", "Nessun movimento leggibile in questo file. Servono almeno quattro colonne: "
+        + "data, data valuta, causale e importo (oppure entrate e uscite in due colonne separate). "
+        + "Se il file che hai scaricato è un PDF o un .txt a blocchi (MT940, CAMT), dal tuo home "
+        + "banking scegli l'export in CSV.", "err");
+      renderBanca(); return;
+    }
+    const rotte = BANMOV.filter(m => m.scarto).length;
+    /* ⚠️ Le righe cadute si DICONO, sempre: chi carica un file conta le righe e
+       non gli torna, senza capire perché. Qui non cadono nemmeno — restano in
+       elenco col motivo — ma il numero va detto lo stesso. */
+    esito("ban-esito",
+      `Letti ${plur(BANMOV.length, "movimento", "movimenti")}`
+      + (grezze > BANMOV.length ? ` (su ${grezze} righe: l'intestazione non si conta)` : "")
+      + (rotte ? `. ${plur(rotte, "riga non è leggibile", "righe non sono leggibili")} e ${rotte === 1 ? "sta" : "stanno"} in fondo, sotto «Non abbinati», col motivo scritto.` : "."),
+      "success");
+    renderBanca();
+  }
+
+  $("btn-ban-file").onclick = () => $("ban-file").click();
+  $("ban-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    banCarica(await file.text(), file.name);
+    $("ban-file").value = "";
+  };
+  $("btn-ban-esempio").onclick = () => banCarica(ESTRATTO_ESEMPIO, "un estratto conto d'esempio");
+  $("btn-ban-pulisci").onclick = () => {
+    BANMOV = []; BANORIGINE = "";
+    /* ⚠️ «Svuota» butta il FILE, non il lavoro: gli incassi confermati sono
+       già in archivio e restano. Dirlo qui evita la paura che ferma la mano. */
+    esito("ban-esito", "Estratto conto svuotato. Gli incassi che avevi già confermato restano registrati.", "success");
+    renderBanca();
+  };
+
   $("btn-lis-import").onclick = () => $("lis-file").click();
   $("lis-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
