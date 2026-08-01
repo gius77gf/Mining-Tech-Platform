@@ -2604,6 +2604,19 @@ campi interi, file delle macchine.
       merita una riga se sta **accanto a un numero** di cui cambia la lettura; se
       sostituisce solo un campo vuoto in una riga di dettaglio, si **dichiara** e
       si va avanti.
+- [x] ✅ **IL RAPPORTINO CHE NON STA IN NESSUN GIORNO** *(01/08, Campo)* — il
+      criterio dell'unità precedente applicato subito: delle occorrenze di
+      «senza data» in Campo ne passa **una**, quella accanto alla **copertura**
+      («Rapportini consegnati da 2/3 squadre»). Un rapportino consegnato senza
+      il giorno non entra in nessuna giornata, quindi non entra in quel conto —
+      e senza l'avviso la riga potrebbe dire «tutte a posto» mentre uno è
+      rimasto lì. Tutti e nove i rapportini d'esempio avevano il giorno: caso
+      aggiunto (`rs0`), che è un'**assenza** e una storia vera (il rapportino si
+      manda dal telefono). Provato prima in scratchpad: la copertura di oggi
+      **non cambia**, cambia solo il conto dei non collocabili. Controprova:
+      spenta la conta, l'avviso non si accende e il banco cade. **73/0**, 43
+      stati. Le altre occorrenze di Campo sono ripieghi di campo, **dichiarate**
+      e non riguardate.
 
 ---
 

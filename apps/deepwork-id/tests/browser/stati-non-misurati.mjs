@@ -111,6 +111,13 @@ const CASI = [
     /\bassente\b[\s\S]*ancora da spuntare/i, { seleziona: '#chk-turno', valore: 'Mattina' }],
   ['campo', 'appello completo: il contrasto', '#nav-rap', null, '#pre-board',
     /appello completo/i, { seleziona: '#chk-turno', valore: 'Pomeriggio' }],
+  /* ⛔ «senza data» in Campo, e sta ACCANTO A UN NUMERO — il criterio scritto
+     nell'unità precedente. La riga della copertura dice «Rapportini consegnati
+     da 2/3 squadre», e un rapportino consegnato senza il giorno non entra in
+     quel conto: senza l'avviso, la riga potrebbe dire «tutte a posto» mentre
+     uno è rimasto lì, non collocabile in nessuna giornata. */
+  ['campo', 'rapportino consegnato senza il giorno: il conto lo dice', '#nav-rap', null, '#rap-cop',
+    /rapportini ancora senza data/i],
   /* ⛔ IL PRIMO STATO CHE NON PUÒ STARE NELLA DIMOSTRAZIONE, E VA RAGGIUNTO
      DIGITANDO. I minuti di fermo superano la durata dichiarata del turno: i
      due numeri non tornano, quindi la disponibilità NON si calcola — una

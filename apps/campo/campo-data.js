@@ -246,6 +246,17 @@ export const DEMO = {
   ],
   rapportini: [
     // i turni dei giorni fra i due voli del drone: servono al ponte con Terra
+    /* ⛔ IL RAPPORTINO SENZA DATA, e non è un refuso della dimostrazione. Un
+       rapportino consegnato dal telefono col campo del giorno lasciato vuoto
+       non si può collocare in nessuna giornata: sparisce dalla copertura di
+       oggi, e la riga della copertura potrebbe dire «tutte a posto» mentre uno
+       è rimasto lì. La pagina ha già la frase per dirlo — «(N rapportini
+       ancora senza data)» — e finora nessuno poteva vederla, perché tutti e
+       nove i rapportini d'esempio avevano il giorno.
+       È un'ASSENZA, quindi sta nei dati d'esempio; ed è additiva: la copertura
+       di oggi non cambia (2 su 3, provato prima in scratchpad), cambia solo il
+       conto di quelli che non si sanno collocare. */
+    { id: "rs0", data: "", turno: "Mattina", titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2300, prodUnita: "t", ora: "13:00", stato: "inviato", fronteId: "f1" },
     { id: "rs1", data: GIORNI_FA(19), turno: "Mattina",    titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2400, prodUnita: "t", ora: "13:00", stato: "inviato", fronteId: "f1" },
     { id: "rs2", data: GIORNI_FA(17), turno: "Mattina",    titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2550, prodUnita: "t", ora: "13:10", stato: "inviato", fronteId: "f1" },
     { id: "rs3", data: GIORNI_FA(14), turno: "Pomeriggio", titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2400, prodUnita: "t", ora: "20:00", stato: "inviato", fronteId: "f2" },
