@@ -76,11 +76,39 @@ smette di entrare. È lo stesso difetto della barra andata a capo (regola 19) e
 della manina che promette: una decisione giusta, presa a occhio e non
 sorvegliata.
 
-**Che cosa farne** — non uniformare i numeri, che sarebbe sbagliato: scrivere il
-**controllo** che pretende che l'etichetta ci stia, su tutte le superfici e a
-tutt'e due le larghezze, e stampi quante voci ha misurato. Da lì, ogni numero
-scritto a mano diventa giustificato da una misura invece che dal gusto — ed è la
-forma già usata per gli interi, il contrasto e le promesse del tocco.
+**Che cosa farne** — non uniformare i numeri, che sarebbe sbagliato.
+
+## ⛔ E cercando il controllo giusto è saltato fuori un punto cieco vero
+
+*(01/08, dopo cinque versioni dello stesso banco. Vale la pena raccontarle,
+perché l'errore era sempre lo stesso.)*
+
+Il controllo che volevo scrivere era «l'etichetta esce dalla sua colonna?», e la
+risposta era sempre **no**. Le prime quattro versioni sbagliavano il come:
+
+| versione | come chiedeva | perché era sbagliata |
+|---|---|---|
+| 1 | larghezza da un `Range`, righe = altezza ÷ corpo | «TUTTE vanno a capo» (5 su 5, 6 su 6, 8 su 8): l'altezza porta con sé l'interlinea |
+| 2 | `Range.getClientRects().length` | «sei voci di Sentinella vanno a capo» — **lo scatto della barra le mostra su una riga sola** |
+| 3 | `white-space:nowrap` sul «figlio che non è l'icona» | quel figlio **non esiste**: l'etichetta è un *nodo di testo*, e il ripiego misurava il bottone intero, icona compresa |
+| 4 | avvolto il nodo di testo, confrontato con la colonna | 0 fuori posto **e la controprova incapace di fallire** |
+
+La quarta ha dato la risposta vera, misurando *perché* non riusciva a fallire:
+gonfiando l'etichetta **la colonna cresce con lei** (48 → 56 px). Quindi
+l'etichetta non può essere tagliata: la domanda era mal posta dall'inizio.
+
+**Quello che cede è la barra.** Con l'etichetta a 11 px, Sentinella si ritrova
+**431 px di contenuto in 344 px di barra** — e siccome `.nav` ha
+`overflow:hidden`, le ultime voci spariscono **in silenzio**. La pagina resta
+larga 360, quindi `fuori-schermo` non se ne accorge; la regola 19 conta le
+colonne ma non le misura. **Nessuno guardava qui.**
+
+Il banco `browser/barra-etichette.mjs` adesso pone l'unica domanda che il
+browser sa rispondere senza ambiguità — *il contenuto della barra sta dentro la
+barra?* — e la controprova lo vede fallire.
+
+📌 Resta vero, e non è un difetto: i numeri restano sei, decisi a mano, perché
+dipendono dalle **parole di ogni app**. Non erano sorvegliati; adesso lo sono.
 
 ### 2. L'altezza della barra: conti 53 px, le altre 58
 
