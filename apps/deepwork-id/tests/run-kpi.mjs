@@ -2409,6 +2409,48 @@ test("il divario somma gli aperti meno i recuperati, e il PREVISTO non entra", (
     "⛔ un lotto aperto senza superficie dichiarata si conta a parte, non sparisce");
   eq(terra.statoLotto({ stato: "inventato" }), "previsto", "uno stato sconosciuto non diventa «aperto»");
 });
+const RIL_L = [
+  { id: "r1", fronteId: "f1", volumeM3: 19400, stato: "elaborato" },
+  { id: "r2", fronteId: "f2", volumeM3: 18600, stato: "elaborato" },
+  { id: "r3", fronteId: "f1", volumeM3: 5000, stato: "elaborato", provenienza: "cumulo" },
+  { id: "r4", fronteId: "f1", volumeM3: 9999, stato: "pianificato" },
+  { id: "r5", fronteId: "f9", volumeM3: 7000, stato: "elaborato" },
+  { id: "r6", volumeM3: 800, stato: "elaborato" },
+];
+test("⛔ il volume di un lotto si MISURA dai rilievi dei suoi fronti", () => {
+  const v = terra.volumeMisuratoDiLotto({ frontiId: ["f1"] }, RIL_L);
+  eq([v.misurabile, v.m3, v.rilievi], [true, 19400, 1], "solo lo scavo elaborato di quel fronte");
+  eq([v.cumuloM3, v.rilieviCumulo], [5000, 1],
+    "⛔ la ripresa da cumulo resta FUORI — è materiale già cavato — ma dichiarata");
+  eq(terra.volumeMisuratoDiLotto({ frontiId: ["f1", "f2"] }, RIL_L).m3, 38000, "due fronti si sommano");
+});
+test("⛔ un lotto senza fronti non ha volume ZERO: non ha un volume misurabile", () => {
+  /* se no un lotto appena creato risulterebbe «non ancora cominciato» esattamente
+     come uno scavato e mai rilevato */
+  for (const l of [{}, { frontiId: [] }, null]) {
+    const v = terra.volumeMisuratoDiLotto(l, RIL_L);
+    eq([v.misurabile, v.m3], [false, null], "non misurabile su " + JSON.stringify(l));
+    ok(/non dichiara nessun fronte/.test(v.motivo), "e la ragione dice cosa manca");
+  }
+  const soloCum = terra.volumeMisuratoDiLotto({ frontiId: ["fc"] },
+    [{ id: "x", fronteId: "fc", volumeM3: 400, stato: "elaborato", provenienza: "cumulo" }]);
+  eq(soloCum.misurabile, false, "solo riprese da cumulo: non è scavo di questo lotto");
+  ok(/già cavato prima/.test(soloCum.motivo), "e lo dice, invece di rispondere zero");
+  const mai = terra.volumeMisuratoDiLotto({ frontiId: ["f7"] }, RIL_L);
+  eq(mai.misurabile, false, "nessun rilievo su quel fronte");
+  ok(/non è stato misurato da nessuno/.test(mai.motivo), "⛔ «mai misurato», non «zero»");
+});
+test("⛔ i rilievi che non stanno in nessun lotto si contano a parte", () => {
+  /* se sparissero in silenzio, la somma dei lotti sarebbe più piccola del volume
+     davvero misurato, e ogni singolo lotto tornerebbe lo stesso: nessuno se ne
+     accorgerebbe. È la stessa forma delle voci di costo senza data. */
+  const o = terra.rilieviFuoriDaiLotti([{ frontiId: ["f1", "f2"] }], RIL_L);
+  eq([o.quanti, o.m3], [2, 7800], "il fronte f9 e quello senza fronte");
+  eq(o.senzaFronte, 1, "e si dice quanti non hanno proprio un fronte");
+  eq(terra.rilieviFuoriDaiLotti([{ frontiId: ["f1", "f2", "f9"] }], RIL_L).quanti, 1,
+    "coprendo f9 ne resta solo quello senza fronte");
+  eq(terra.rilieviFuoriDaiLotti([], []).quanti, 0, "e senza niente non si inventa niente");
+});
 test("⛔ l'avanzamento di un lotto NON stima", () => {
   eq(terra.avanzamentoLotto({ volumeM3: 180000 }, 96400).pct, 53.56, "misurato ÷ previsto");
   const senzaPrev = terra.avanzamentoLotto({}, 96400);

@@ -1167,3 +1167,53 @@ export function avanzamentoLotto(lotto, misuratoM3) {
       motivo: "Il progetto non dichiara un volume per questo lotto: c'è il misurato, non una percentuale." };
   return { misuratoM3: r2(mis), pct: r2(100 * mis / prev), motivo: "" };
 }
+
+/* ⛔ IL PONTE FRA I LOTTI E I RILIEVI, cioè quello che permette di dire
+   «previsti 180.000 m³, MISURATI 96.400» invece di fidarsi del progetto.
+   Un rilievo sta su un fronte (`fronteId`), il fronte sta in un lotto
+   (`frontiId`): da lì il volume tolto da quel lotto è misurato, non dichiarato.
+
+   Tre cose che NON si fanno, e sono le stesse del ponte col volume:
+   · le riprese da CUMULO restano fuori — è materiale già cavato prima, e
+     contarlo qui vorrebbe dire attribuire due volte lo stesso scavo (la
+     regola vive in `shared/`, si chiama `provenienzaDi`, non si riscrive);
+   · un lotto che non dichiara nessun fronte NON ha volume zero: non ha un
+     volume misurabile, e va detto — se no un lotto appena creato risulterebbe
+     «non ancora cominciato» esattamente come uno scavato e mai rilevato;
+   · i rilievi ELABORATI e con un volume vero sono gli unici che contano: un
+     rilievo pianificato non è un volume. */
+export function volumeMisuratoDiLotto(lotto, rilievi) {
+  const fronti = ((lotto || {}).frontiId || []).map((x) => String(x || "")).filter(Boolean);
+  if (!fronti.length)
+    return { m3: null, misurabile: false, rilievi: 0, cumuloM3: 0, rilieviCumulo: 0,
+      motivo: "Questo lotto non dichiara nessun fronte: senza il collegamento ai fronti non si sa quali rilievi lo riguardano, e il volume tolto non si può misurare." };
+  const suoi = (rilievi || []).filter((r) => r && fronti.includes(String(r.fronteId || ""))
+    && r.stato === "elaborato" && Number.isFinite(+r.volumeM3));
+  const scavo = suoi.filter((r) => provenienzaDi(r) === "scavo");
+  const cumulo = suoi.filter((r) => provenienzaDi(r) === "cumulo");
+  if (!scavo.length)
+    return { m3: null, misurabile: false, rilievi: 0,
+      cumuloM3: r2(cumulo.reduce((t, r) => t + (+r.volumeM3 || 0), 0)), rilieviCumulo: cumulo.length,
+      motivo: cumulo.length
+        ? "Sui fronti di questo lotto ci sono solo riprese da cumulo: è materiale già cavato prima, non scavo nuovo di questo lotto."
+        : "Nessun rilievo elaborato sui fronti di questo lotto: il volume tolto non è stato misurato da nessuno." };
+  return { m3: r2(scavo.reduce((t, r) => t + (+r.volumeM3 || 0), 0)),
+    misurabile: true, rilievi: scavo.length,
+    cumuloM3: r2(cumulo.reduce((t, r) => t + (+r.volumeM3 || 0), 0)),
+    rilieviCumulo: cumulo.length, motivo: "" };
+}
+
+/* ⛔ E I RILIEVI CHE NON STANNO IN NESSUN LOTTO. Se sparissero in silenzio, la
+   somma dei lotti sarebbe più piccola del volume davvero misurato — e nessuno
+   se ne accorgerebbe, perché ogni singolo lotto tornerebbe. È la stessa forma
+   delle voci di costo senza data: si contano a parte, non si nascondono. */
+export function rilieviFuoriDaiLotti(lotti, rilievi) {
+  const dentro = new Set();
+  for (const l of lotti || []) for (const f of (l || {}).frontiId || []) dentro.add(String(f || ""));
+  const orfani = (rilievi || []).filter((r) => r && r.stato === "elaborato"
+    && Number.isFinite(+r.volumeM3) && provenienzaDi(r) === "scavo"
+    && !dentro.has(String(r.fronteId || "")));
+  return { quanti: orfani.length,
+    m3: r2(orfani.reduce((t, r) => t + (+r.volumeM3 || 0), 0)),
+    senzaFronte: orfani.filter((r) => !String(r.fronteId || "").trim()).length };
+}
