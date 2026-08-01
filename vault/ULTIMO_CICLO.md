@@ -5,26 +5,31 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-08-01 **18:48 UTC**
-**Commit di partenza:** `8647a7a`
+**Ultimo ciclo riuscito:** 2026-08-01 **21:43 UTC**
+**Commit di partenza:** `4810f01`
 
-**Cosa sta per fare.** Il ciclo precedente ha chiuso sette unita' di prodotto
-su sei app e — cosa che conta di piu' — **due buchi negli strumenti di
-controllo**: le prove non sapevano distinguere «non calcolabile» da una
-divisione per zero, e cinque prove non potevano fallire perche' scritte in modo
-asincrono su un contatore sincrono.
+**Cosa sta per fare.** Il ciclo precedente si è fermato per il **limite della
+piattaforma** — l'unico stop legittimo — e si è fermato nel punto peggiore: tre
+cantieri paralleli (Conti, Terra, Sentinella) erano appena partiti e sono morti
+tutti e tre con la stessa riga, «hai raggiunto il limite della sessione».
+Nessuno dei tre aveva ancora scritto una riga di codice, e l'albero era e resta
+**pulito**: non c'è niente da recuperare, solo da rilanciare. Il quarto (il
+primo modulo dati di Genesi) non è nemmeno riuscito a partire.
 
-Questo ciclo riparte dal **prossimo passo atomico** dell'ultimo checkpoint, che
-e' gia' stato chiuso (il banco delle finestre di conferma, con la sua
-controprova che sa fallire: 24 modali, 222 elementi misurati). Quindi si va
-avanti nell'ordine dichiarato dal fondatore per quando la roadmap sembra
-finita: **le mancanze CONFERMATE** dalla verifica del delta, che sono 63 su
-105 righe verificate.
+⚠️ Una cosa i tre l'avevano già fatta, ed è quella che non va rifatta a
+memoria: la **prova del «non c'è»** su tutt'e tre le mancanze. I loro mandati
+vanno riletti, non riscritti.
 
-⚠️ E si riparte con la regola imparata a spese nostre un'ora fa: **la verifica
-vale per lo stato CHE SI COMMITTA**, non per quello che si era misurato. Con
-cantieri paralleli aperti, o si misura la copia esatta di cio' che si sta per
-committare, o si aspetta che chiudano.
+Questo ciclo quindi:
+1. rilancia i **quattro cantieri** — preventivo e conferma d'ordine in Conti,
+   volume per banco in Terra, catena di custodia del dato in Sentinella, primo
+   modulo dati in Genesi. Quattro app diverse, nessun conflitto di file;
+2. prosegue con le **mancanze CONFERMATE** dalla verifica del delta (63 su 105
+   righe), che è l'ordine dichiarato dal fondatore per quando la roadmap sembra
+   finita.
 
-**Stato al momento della partenza:** 1.617 prove senza rete, copertura
-515/515, 49 banchi del browser, albero pulito e tutto spinto.
+**Stato al momento della partenza:** **1.675 prove** senza rete (run-kpi 1308,
+run-stile 275, run-helpers 49, run-pointcloud 26, run-manifest 9, run-demo 8),
+copertura **543/543** e nessuna funzione scoperta, 49 banchi del browser,
+`giro-node.mjs` 15 comandi su 15 (anche in ora italiana), albero pulito e tutto
+spinto.
