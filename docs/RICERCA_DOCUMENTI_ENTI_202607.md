@@ -352,6 +352,41 @@ gravissimo.
 
 ## 3. Priorità: i 5 documenti da fare per primi
 
+> ## ⚠️ STATO MISURATO IL 01/08/2026 — leggere questo prima delle schede sotto
+>
+> Le schede che seguono sono la **ricerca originale** e vanno lette per il
+> *perché* (valore, riferimenti normativi, vincoli regionali), **non** per il
+> *quanto manca*: su quello sono invecchiate, e due volte in una notte hanno
+> fatto cominciare lavoro che era già fatto. Contato aprendo il codice, non a
+> memoria:
+>
+> | # | documento | app | stato vero |
+> |---|---|---|---|
+> | 1 | DDT | Conti | ✅ **c'è tutto**: registro pesate, numerazione progressiva, stampa A4 col richiamo al DPR 472/1996, fattura differita dai DDT spuntati. Il 01/08 corretto un difetto vero: causale del trasporto e «trasporto a cura di» erano **fissi nel codice** |
+> | 2 | Riepilogo annuale volumi + onere | Terra | ✅ la stampa **esisteva già**; il 01/08 aggiunta la sezione «Base per l'onere di escavazione» |
+> | 3 | Cartella lavoratore + verbale DPI | Scudo | 🟡 **a metà**: il **verbale DPI si stampa** (`btn-dpi-verb`), la **cartella del lavoratore no** — zero riferimenti a cartella/dossier/fascicolo nella pagina. **È l'unico pezzo dei cinque che manca davvero.** |
+> | 4 | Fascicolo ambientale | Sentinella | ✅ `reportConformita` + `btn-rep-stampa` |
+> | 5 | Avanzamento + verbale di rilievo | Terra | ✅ la stampa del verbale c'è |
+>
+> **⛔ E due stime della ricerca vanno lette al contrario:**
+> - *«#1 DDT — serve costruire le anagrafiche (clienti, cantieri, vettori,
+>   prodotti) che oggi in Conti mancano»*: clienti e prodotti ci sono da tempo;
+>   **cantieri e vettori non sono entità mancanti**, sono campi liberi sulla
+>   pesata (`destinatario`, `mezzo`) e il DDT li stampa. Renderli anagrafiche
+>   strutturate è un **miglioramento**, non un buco — e va deciso, non dato per
+>   scontato: i `cantieri` di **Scudo** sono un'altra cosa (i siti dove
+>   l'azienda ha obblighi di sicurezza), e fonderli farebbe comparire gli
+>   indirizzi di consegna fra i luoghi da presidiare.
+> - *«#2 — una casella "tariffa €/m³"»*: **no.** Il conto in euro lo fa
+>   `canonePeriodo` di **Conti**, che ha l'aliquota, la scelta fra €/t e €/m³ e
+>   la base venduto/scavato. Terra si ferma ai **metri cubi**. Metterla anche
+>   qui sarebbe la stessa regola scritta due volte, e la pagina di Terra dice
+>   già al cliente il contrario. Il «volume detratto per recupero» è la
+>   **decisione 18** del fondatore, non un campo da aggiungere.
+>
+> Il seguito di questa sezione resta com'era scritto: serve a capire **perché**
+> quei cinque, non a sapere che cosa resta da fare.
+
 Criterio: **quanto valore per il cliente diviso quanto lavoro per noi**.
 
 ### 1° — DDT (documento di trasporto) → app **Conti**
