@@ -901,6 +901,22 @@ campi interi, file delle macchine.
       non ha `.form.col`, Campo non ha quella base. Resta da guardare **solo
       Flotta**, che ha tutt'e due — e ha un cantiere aperto sopra.
 
+### Fatto il 01/08 (notte, secondo ciclo)
+- [x] ⛔ **Il lettore di CSV vive in `shared/`, e un bonifico da 12.300 € smette
+      di sparire.** Debito dichiarato dal cantiere di Conti e **misurato prima
+      di crederci**: le banche la descrizione lunga la scrivono su più righe
+      dentro le virgolette, e la lettura riga per riga ne faceva due righe rotte
+      scartandole tutt'e due. Lo scarto era *dichiarato* — quindi non
+      silenzioso — ma il pagamento non si abbinava e la fattura restava aperta
+      con la sua mora che corre. Non un numero sbagliato: una **lettera
+      sbagliata a un cliente che ha pagato**. Commit `3aa6b12`.
+      ⚠️ Spostata **solo** `leggiCsv`: `paresIntestazione` e `proponiMappa`
+      servono a una app sola, e portarle in `shared/` sarebbe stato spostare
+      **per ordine** — che è il modo in cui `shared/` diventa un cassetto.
+- [x] **`browser/modali.mjs` chiuso**, controprova compresa: l'iniezione viene
+      vista in tutte e quattro le app raggiunte, e gli elementi misurati salgono
+      da 198 a 222 — cioè il banco ha davvero guardato la riga in più.
+
 ### Fatto il 01/08 (notte) — sette unità, e due buchi negli strumenti
 - [x] **Sentinella — la graffetta sull'adempimento**: la scadenza c'era, il
       **documento consegnato** no. E la regola dell'allegato, che era scritta a
