@@ -217,6 +217,15 @@ const CASI = [
      tranquillo del principio, applicato a una cifra in euro. */
   ['conti', 'il totale incassato dichiara quello che non sa collocare', '#nav-rep', null, '#rep-list',
     /fattura incassata senza data/i],
+  /* ⛔ Stessa forma, sulla piastrella del Quadro: la somma delle basi d'asta
+     delle gare aperte. Il commento accanto a quella riga la regola ce l'aveva
+     già scritta — «un totale parziale che non dice di esserlo è un totale che
+     inganna» — e la riga sa dichiararlo, «(1 senza base)». Ma tutte e quattro
+     le gare d'esempio la base ce l'avevano, quindi non lo diceva mai.
+     ⚠️ Si guarda la PIASTRELLA (`#k-gare-s` sta dentro `.kpi`), non lo span:
+     è l'unità che l'utente vede, come per il tagliando di Flotta. */
+  ['conti', 'la somma delle basi d\'asta dichiara quante gare non sa sommare',
+    '#nav-dash', null, '[data-goto="gar"]', /senza base/i],
   /* ⛔ IL CASO PIÙ NETTO PER IL `vietato`. Una pesata venduta a metro cubo
      senza densità né quantità: la riga scrive «quantità non calcolabile», e
      accanto NON ci deve essere «0 m³». Qui lo zero non è un colore tranquillo:

@@ -2643,6 +2643,23 @@ campi interi, file delle macchine.
       banco `.count`, la riga di riepilogo del core, che prima non guardava
       nessuno. Controprova: tolto il ramo (−51 caratteri), la senza-data torna
       **fra quelle a posto** e il banco cade. **75/0**, 44 stati.
+- [x] ✅ **CINQUANTA OCCORRENZE LETTE UNA VOLTA** *(01/08, Conti + docs)* — la
+      classifica restava lunga, e consumarla una frase per unità avrebbe fatto
+      rileggere ogni volta le stesse righe. Lettura unica di **50 occorrenze**
+      nel testo che l'utente vede, classificate e **scritte nel documento**:
+      quelle già sorvegliate, i **ripieghi di campo** (elencati app per app, non
+      contati a mente) e **3 stati veri ancora scoperti** — «Formazione non
+      registrata» in Scudo, «distanza non indicata» e «norma non indicata sul
+      progetto» in Sentinella. Una lista di 50 righe è diventata una lista di 3.
+      Nell'unità: la somma delle **basi d'asta** delle gare aperte, dove il
+      commento la regola l'aveva già scritta («un totale parziale che non dice
+      di esserlo è un totale che inganna») e la dimostrazione non la mostrava
+      mai — **sesta difesa invisibile della giornata**. Aggiunta `g5` (bando
+      appena uscito, importo non ancora trascritto): additiva, la somma non si
+      muove. ⚠️ Il banco guarda la **piastrella**, non lo span dentro: puntando
+      allo span il caso sarebbe caduto per un motivo che non c'entra col
+      prodotto. Controprova: tolta la coda, il totale si presenta come completo
+      e il banco cade. **76/0**, 45 stati.
 
 ---
 

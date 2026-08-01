@@ -105,6 +105,16 @@ export const DEMO = {
     { id: "g2", titolo: "ANAS — manutenzione SS115", base: 340000, scadenza: "2026-08-12", stato: "aperta" },
     { id: "g3", titolo: "Consorzio bonifica — massi scogliera", base: 85000, scadenza: "2026-06-30", stato: "vinta" },
     { id: "g4", titolo: "Provincia — pietrisco lotto 3", base: 60000, scadenza: "2026-05-15", stato: "persa" },
+    /* ⛔ LA GARA APERTA SENZA BASE D'ASTA. Il Quadro somma le basi delle gare
+       aperte, e il commento accanto a quella riga dice già la regola: «un
+       totale parziale che non dice di esserlo è un totale che inganna». La
+       riga sa dichiararlo — «(1 senza base)» — ma tutte e quattro le gare
+       d'esempio la base ce l'avevano, quindi non lo diceva mai.
+       È un'ASSENZA, ed è additiva: la somma delle basi non si muove, sale il
+       numero delle aperte e compare il conto di quelle non sommabili. Storia
+       vera: il bando è uscito, l'importo a base d'asta si legge negli
+       allegati e non è ancora stato trascritto. */
+    { id: "g5", titolo: "Consorzio ASI — forniture 2027 (bando appena uscito)", base: null, scadenza: "2026-09-15", stato: "aperta" },
   ],
   // listino d'esempio: un prodotto venduto a metro cubo (sabbia) accanto a
   // quelli venduti a tonnellata, così si vede subito a cosa serve la densità.

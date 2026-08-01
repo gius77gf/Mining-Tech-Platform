@@ -87,6 +87,43 @@ percentuale, una copertura, una casella di un documento che esce dall'app.
 Il banco che cresce di prove che non difendono niente è un banco che costa
 tempo a ogni giro e non protegge di più.
 
+## Il censimento delle frasi rimaste — letto una volta, dichiarato qui
+
+*Fatto il 01/08 leggendo **50 occorrenze** nel testo che l'utente vede
+(commenti esclusi, un file per volta) delle sei frasi ancora in classifica:
+«non si sa», «non indicato», «non indicata», «non registrato», «non
+registrata», «non lo sappiamo». Serve a chiudere la lista: senza, ogni ciclo
+riapre le stesse righe e ci mette mezz'ora per riscoprire che sono ripieghi.*
+
+**Già sorvegliate dal banco** (a volte con altre parole): Scudo «di N non si sa
+niente», «senza mansione non si sa quali corsi», «Stato non indicato»,
+«addestramento non registrato» · Flotta «non si sa quando», «Quando cadrà non
+si sa» · Conti «non si sa entro quando», «non si sa, e finché è così»,
+«causale non indicata», «incassata, data non registrata» · Terra «non
+indicato» del volume concesso, «non si sa quali rilievi lo riguardano» · Campo
+«non lo sappiamo» dell'appello.
+
+**Ripieghi di campo — dichiarati, non sorvegliati.** Sostituiscono un campo
+vuoto in una riga di dettaglio e non cambiano la lettura di nessun numero:
+
+| app | occorrenze |
+|---|---|
+| Scudo | ruolo, comune, sito, luogo «non indicato»; la nota d'archivio «stato non registrato» |
+| Campo | «Fronte non indicato» (voce di tendina, ×2), ruolo (×2), area, «- non registrato» in un export |
+| Flotta | costo orario, prezzo, «Motivo non indicato»; «Pezzo non registrato in magazzino» (suggerimento di un campo) |
+| Conti | «(voce non indicata)», la data di un costo, il toast d'errore «Incasso non registrato», il messaggio di validazione «non si sa quanti m³» |
+| Terra | «fronte non più in elenco», «Tipo di elaborato non indicato» |
+| Conti | ⚠️ «così **non si sa**lta» è un **falso positivo** del confine di parola, già corretto: non c'entra col principio |
+
+**Stati veri ancora scoperti** — la lista di lavoro vera, corta:
+
+1. **Scudo · «Formazione non registrata»** — pastiglia rossa nella matrice
+   delle nomine. È uno stato di sicurezza, non un ripiego;
+2. **Sentinella · «distanza non indicata»** sul ricettore — la distanza governa
+   la lettura del livello misurato;
+3. **Sentinella · «norma non indicata sul progetto»** — un limite di progetto
+   senza la norma da cui è preso.
+
 ## Dove guardare per scegliere il prossimo
 
 `node apps/deepwork-id/tests/stati-sorvegliati.mjs` elenca le frasi che il
