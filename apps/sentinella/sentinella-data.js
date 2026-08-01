@@ -22,12 +22,24 @@
 import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto, dataISOEsiste,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL,
          dataPiuGiorni as dataPiuGiorniShell } from "../../shared/deepwork-id-client/dw-shell.js";
+// Una scadenza è una scadenza: lo stato della taratura lo dice la stessa
+// funzione che lo dice per le visite mediche di Scudo e per i documenti di
+// Campo. Non se ne scrive una quarta (regola del `shared/`).
+import { statoScadenzaHSE } from "../../shared/dw-ponti.js";
 
 export const DEMO = {
   monitoraggi: [
     { id: "v1", nome: "Vibrazioni V1 — abitato Sud", tipo: "vibrazioni", valore: 1.8, soglia: 5, unita: "mm/s", nota: "ultimo evento 12/07", ricettoreId: "rc1",
+      /* Lo strumento in regola: il certificato copre tutte le letture. */
+      tarature: [ { data: "2026-02-10", scadenza: "2027-02-09", ente: "Centro LAT n. 118", certificato: "LAT 118-2026/441", nota: "sismografo, canale terna" } ],
       letture: [ { data: "2026-06-08", ora: "10:20", valore: 2.4 }, { data: "2026-06-19", ora: "11:05", valore: 1.9 }, { data: "2026-06-30", ora: "10:40", valore: 3.1 }, { data: "2026-07-12", ora: "11:15", valore: 1.8 } ] },
     { id: "v2", nome: "Vibrazioni V2 — confine Nord", tipo: "vibrazioni", valore: 5.6, soglia: 5, unita: "mm/s", nota: "volata fronte Nord 17/07", ricettoreId: "rc2",
+      /* ⛔ IL BUCO FRA DUE TARATURE. Il certificato vecchio è scaduto il
+         30/06 e il nuovo parte dal 10/07: le letture del 06/07 cadono in
+         mezzo, e il report deve dirlo. È il caso per cui questa sezione
+         esiste, quindi la dimostrazione lo contiene invece di nasconderlo. */
+      tarature: [ { data: "2025-07-01", scadenza: "2026-06-30", ente: "Centro LAT n. 118", certificato: "LAT 118-2025/302" },
+                  { data: "2026-07-10", scadenza: "2027-07-09", ente: "Centro LAT n. 118", certificato: "LAT 118-2026/512" } ],
       letture: [ { data: "2026-06-05", ora: "09:50", valore: 3.2 }, { data: "2026-06-16", ora: "10:10", valore: 4.4 }, { data: "2026-06-27", ora: "10:35", valore: 5.2 }, { data: "2026-07-06", ora: "11:00", valore: 3.9 }, { data: "2026-07-17", ora: "10:25", valore: 5.6 } ] },
     { id: "p1", nome: "Polveri PM10 — confine Est", tipo: "polveri", valore: 36.8, soglia: 40, unita: "µg/m³", nota: "media 7gg", ricettoreId: "rc3",
       letture: [ { data: "2026-06-14", valore: 22.5 }, { data: "2026-06-21", valore: 31 }, { data: "2026-06-28", valore: 44.2 }, { data: "2026-07-05", valore: 28.4 }, { data: "2026-07-12", valore: 33.7 }, { data: "2026-07-19", valore: 36.8 } ] },
@@ -918,6 +930,147 @@ export function sogliaEfficace(m, ricettori) {
 }
 
 // ══════════════════════════════════════════════════════════════════════
+// T2b · LA TARATURA DELLO STRUMENTO
+// Perché esiste: il report di conformità va all'ente e dice «conforme»
+// sulla base di numeri che li ha scritti uno strumento. Se quello
+// strumento non era tarato, il numero non vale — e fino a qui il prodotto
+// non sapeva nemmeno la domanda. È il principio del fondatore in un punto
+// nuovo: un «conforme» tranquillo su misure di cui non si sa niente.
+//
+// ⛔ LA DOMANDA GIUSTA NON È «È TARATO OGGI?», È «ERA TARATO QUEL GIORNO?».
+// Una lettura di marzo non è coperta dal certificato emesso ad aprile, e
+// non lo è nemmeno se oggi lo strumento è in regola. Per questo si tiene
+// lo STORICO dei certificati, non l'ultima scadenza: un certificato copre
+// l'intervallo [data, scadenza], e una lettura è coperta se cade dentro
+// uno di quegli intervalli.
+//
+// ⛔ E «NON COPERTA» SI DIVIDE IN DUE, perché le due cose non si dicono
+// allo stesso modo a chi legge:
+//   · «scoperta»          → la lettura cade DOPO l'inizio dello storico ma
+//                           in nessun intervallo: o il certificato era
+//                           scaduto, o c'è un buco fra due tarature. È un
+//                           problema vero, e va detto;
+//   · «prima-dello-storico» → la lettura è precedente alla prima taratura
+//                           registrata. Lo strumento poteva benissimo
+//                           essere tarato: semplicemente qui non risulta.
+//                           Dire «scoperta» sarebbe accusare l'utente di
+//                           una cosa non misurata — l'errore opposto a
+//                           quello che questa sezione corregge.
+// Le date si leggono con `dataISOEsiste` e non con `Date.parse`, che il 30
+// febbraio non lo rifiuta: lo fa scivolare al 2 marzo, cioè allungherebbe
+// una copertura di due giorni in silenzio.
+// ══════════════════════════════════════════════════════════════════════
+
+// I certificati leggibili, in ordine di data. Scarta quelli con date che
+// non esistono e quelli con la scadenza PRIMA della taratura: un
+// intervallo alla rovescia non copre niente, e tenerlo vorrebbe dire
+// coprire con un dato incoerente.
+function certificatiTaratura(tarature) {
+  return (tarature || [])
+    .map(t => ({
+      data: String((t || {}).data || "").slice(0, 10),
+      scadenza: String((t || {}).scadenza || "").slice(0, 10),
+      ente: String((t || {}).ente || "").trim(),
+      certificato: String((t || {}).certificato || "").trim(),
+      nota: String((t || {}).nota || "").trim(),
+    }))
+    .filter(t => dataISOEsiste(t.data) && dataISOEsiste(t.scadenza) && t.scadenza >= t.data)
+    .sort((a, b) => a.data < b.data ? -1 : a.data > b.data ? 1 : 0);
+}
+
+// Com'era messa la taratura il giorno di UNA lettura.
+// Ritorna { stato, certificato, scartate, perche } con stato fra
+// "coperta" | "scoperta" | "prima-dello-storico" | "non-dichiarata".
+export function coperturaTaratura(tarature, dataISO) {
+  const g = String(dataISO || "").slice(0, 10);
+  const cert = certificatiTaratura(tarature);
+  const scartate = (tarature || []).length - cert.length;
+  if (!cert.length) {
+    return { stato: "non-dichiarata", certificato: null, scartate,
+      perche: scartate
+        ? "le tarature registrate per questo strumento hanno date che non esistono"
+        : "nessuna taratura registrata per questo strumento" };
+  }
+  if (!dataISOEsiste(g)) {
+    return { stato: "non-dichiarata", certificato: null, scartate,
+      perche: "la lettura non ha una data leggibile: non si può dire sotto quale taratura è stata presa" };
+  }
+  const dentro = cert.find(t => t.data <= g && g <= t.scadenza);
+  if (dentro) return { stato: "coperta", certificato: dentro, scartate, perche: "" };
+  if (g < cert[0].data) {
+    return { stato: "prima-dello-storico", certificato: null, scartate,
+      perche: "la lettura è precedente alla prima taratura registrata: lo strumento poteva essere tarato, ma qui non risulta" };
+  }
+  return { stato: "scoperta", certificato: null, scartate,
+    perche: "nessuna taratura registrata copre la data della lettura" };
+}
+
+// Come sta la taratura di uno strumento OGGI, per la lista dei punti.
+// ⛔ Lo stato lo dice `statoScadenzaHSE`, che sta in shared/ e la usano già
+// Scudo e Campo: una scadenza è una scadenza, e la regola che serve a più
+// app non si riscrive (è il difetto costato una giornata intera con la
+// convenzione sui numeri). Qui si aggiunge solo il caso che quella funzione
+// non può conoscere: nessun certificato registrato.
+export function statoTaraturaStrumento(punto, oggi = new Date()) {
+  const cert = certificatiTaratura((punto || {}).tarature);
+  if (!cert.length) return { stato: "non-dichiarata", ultima: null, scadenza: null, n: 0 };
+  const ultima = cert[cert.length - 1];
+  return { stato: statoScadenzaHSE(ultima.scadenza, oggi), ultima, scadenza: ultima.scadenza, n: cert.length };
+}
+
+export const STATI_TARATURA = {
+  "regolare":       { cls: "ok",     label: "Taratura valida" },
+  "in-scadenza":    { cls: "warn",   label: "Taratura in scadenza" },
+  "scaduta":        { cls: "danger", label: "Taratura scaduta" },
+  "senza data":     { cls: "warn",   label: "Taratura senza data" },
+  "non-dichiarata": { cls: "warn",   label: "Taratura non dichiarata" },
+};
+
+// Quello che il report dichiara all'ente sulle tarature.
+// ⛔ NON tocca l'esito sulle soglie, ed è voluto: sono due domande diverse
+// («le misure hanno superato il limite?» e «di chi erano quelle misure?»),
+// e mescolarle vorrebbe dire cambiare un giudizio di conformità sulla base
+// di un dato amministrativo. Restano affiancate, e il report le dice
+// tutt'e due.
+// ⛔ `stato` non risponde mai "coperte" quando non c'è niente di
+// dichiarato: senza nessun certificato la risposta è "non-dichiarata",
+// che è un avviso, non un via libera.
+export function taratureDelReport(punti, oggi = new Date()) {
+  let coperte = 0, scoperte = 0, nonNote = 0;
+  const perPunto = (punti || []).map(p => {
+    const m = (p || {}).m || {};
+    const conta = { coperte: 0, scoperte: 0, nonNote: 0 };
+    for (const l of ((p || {}).letture || [])) {
+      const c = coperturaTaratura(m.tarature, l.data);
+      if (c.stato === "coperta") conta.coperte++;
+      else if (c.stato === "scoperta") conta.scoperte++;
+      else conta.nonNote++;
+    }
+    coperte += conta.coperte; scoperte += conta.scoperte; nonNote += conta.nonNote;
+    return { nome: (p || {}).nome || m.nome || "Punto di misura", ...conta,
+             oggi: statoTaraturaStrumento(m, oggi).stato };
+  });
+  const nLetture = coperte + scoperte + nonNote;
+  const stato = !nLetture ? "senza-letture"
+    : scoperte ? "scoperte"
+    : nonNote === nLetture ? "non-dichiarata"
+    : nonNote ? "parziale"
+    : "coperte";
+  return { perPunto, coperte, scoperte, nonNote, nLetture, stato };
+}
+
+// La frase che finisce nel documento. Le parole contano: è un testo che
+// legge un funzionario, e deve dire cosa si sa e cosa non si sa senza
+// lasciargli dedurre niente.
+export const DICHIARAZIONI_TARATURA = {
+  "coperte":        { cls: "ok",     testo: "Tutte le letture del periodo sono state prese con strumenti la cui taratura, registrata in Sentinella, era valida alla data della misura." },
+  "parziale":       { cls: "warn",   testo: "Per una parte delle letture del periodo la taratura dello strumento non risulta registrata alla data della misura: il documento non può dichiararla." },
+  "non-dichiarata": { cls: "warn",   testo: "Per nessuna lettura del periodo risulta registrata la taratura dello strumento: il documento riporta i valori misurati, non la loro riferibilità." },
+  "scoperte":       { cls: "danger", testo: "Una o più letture del periodo sono state prese in un giorno non coperto da nessuna taratura registrata." },
+  "senza-letture":  { cls: "warn",   testo: "Nel periodo non ci sono letture, quindi non c'è nessuna taratura da verificare." },
+};
+
+// ══════════════════════════════════════════════════════════════════════
 // T3 · REPORT DI CONFORMITÀ
 // È il documento che il cliente consegna all'ente: periodo, ricettore,
 // letture, soglia applicata (e da dove viene), superamenti, esito.
@@ -978,10 +1131,14 @@ export function reportConformita(o = {}) {
   const volate = (o.volate || []).filter(v => !volataPrevista(v)).filter(v => nelPeriodo(v.data))
     .sort((a, b) => String(a.data || "") < String(b.data || "") ? 1 : -1);
 
+  // La taratura degli strumenti sta ACCANTO all'esito, non dentro: dice di
+  // chi sono i numeri, non se hanno superato il limite. Vedi T2b.
+  const tarature = taratureDelReport(punti, o.oggi ? new Date(o.oggi) : new Date());
+
   return {
     dal, al, ricettore, ricettoreId,
     punti, nPunti: punti.length, nPuntiConDati: conDati.length,
-    nLetture, nSuperamenti, esito,
+    nLetture, nSuperamenti, esito, tarature,
     reclami, nReclami: reclami.length,
     volate, nVolate: volate.length,
     vuoto: punti.length === 0,

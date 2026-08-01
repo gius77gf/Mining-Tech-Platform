@@ -302,6 +302,17 @@
 .form.col{flex-direction:column; align-items:stretch}
 .form .dw-input{flex:1 1 150px; width:auto; min-width:0; max-width:100%}
 .form.col>.dw-input,.form.col>select.dw-input{width:100%; flex:0 0 auto}
+/* ⛔ IL CAMPO CHE SI ALLUNGA DA SOLO (misurato il 01/08 con uno scatto).
+   `.flab` porta `flex:1 1 120px`, e quel 120px è una BASE sull'asse
+   principale: dentro `.frow` l'asse è orizzontale e vuol dire «largo almeno
+   120», dentro `.form.col` è verticale e vuol dire «alto 120». Risultato:
+   ogni etichetta figlia diretta di un form in colonna era **120 px** invece
+   dei 63 del suo contenuto — 57 px di vuoto sotto il campo. Erano tre in
+   Sentinella (`imp-punto`, `tar-punto`, `rep-ricettore`), e il vuoto non si
+   vede leggendo il codice: si vede nello scatto.
+   ⚠️ Lo stesso `flex:1 1 120px` sta anche in Conti, Flotta, Scudo e Terra:
+   lì la correzione va fatta con i loro scatti accanto, non a scatola chiusa. */
+.form.col>.flab{flex:0 0 auto}
 .form-hint b{color:var(--muted2)}
 .flab{
   font-family:'Barlow Condensed',sans-serif; font-size:10.5px; font-weight:700;
@@ -705,6 +716,29 @@ textarea.dw-input{
 .rep-esito.danger .rep-esito-lab{color:var(--danger)}
 .rep-esito-txt{font-size:12px; color:var(--muted2); margin-top:3px; line-height:1.5}
 
+/* La riferibilità delle misure: sta SOTTO il verdetto e ha un peso minore,
+   perché è una dichiarazione di provenienza e non un giudizio di
+   conformità. Stesso impianto della card dell'esito — bordo a sinistra che
+   prende il colore, superficie scura, riflesso sul bordo alto — ma senza
+   icona e con la scritta piccola: due verdetti grandi uno sopra l'altro si
+   contendono l'occhio, e quello che conta per l'ente resta il primo. */
+.rep-tar{
+  margin:9px 0 0; padding:10px 13px;
+  border:1px solid var(--border); border-left:3px solid var(--success);
+  border-radius:var(--r-sm); background:var(--dark); box-shadow:var(--edge);
+}
+.rep-tar.warn{border-left-color:var(--warn)}
+.rep-tar.danger{border-left-color:var(--danger)}
+.rep-tar-lab{
+  font-family:'Barlow',sans-serif; font-size:8px; font-weight:600; letter-spacing:1.1px;
+  text-transform:uppercase; color:var(--muted);
+}
+.rep-tar.warn .rep-tar-lab{color:var(--warn)}
+.rep-tar.danger .rep-tar-lab{color:var(--danger)}
+.rep-tar-txt{font-size:12px; color:var(--muted2); margin-top:4px; line-height:1.5}
+.rep-tar-conto{font-size:11.5px; color:var(--muted); margin-top:5px; line-height:1.5}
+.rep-tar-conto b{color:var(--muted2); font-weight:700; font-variant-numeric:tabular-nums}
+
 .rep-cifre{display:flex; gap:7px; flex-wrap:wrap; margin:12px 0 0}
 .rep-cifra{
   flex:1 1 84px; padding:8px 11px 9px; background:var(--dark);
@@ -1017,6 +1051,38 @@ textarea.dw-input{
   </div>
   <div class="form-hint" style="margin-top:8px;">Colonne del file: <b>nome; tipo; valore; soglia; unita; nota</b>.</div>
 
+  <!-- TARATURA DELLO STRUMENTO ────────────────────────────────────────
+       Il report di conformità dice «conforme» sulla base di numeri scritti
+       da uno strumento: se quello strumento non era tarato IL GIORNO DELLA
+       MISURA, il numero non è riferibile. Qui si tiene lo STORICO dei
+       certificati, non l'ultima scadenza, perché la domanda che conta è
+       «era tarato quel giorno?» e non «è tarato oggi?». -->
+  <div class="sec">Taratura degli strumenti<span class="cnt" id="tar-tot">0</span></div>
+  <div class="note">Il report di conformità dice se le letture hanno superato la soglia. Non
+    può dire se lo strumento che le ha scritte era <b>tarato</b>: quello lo dice il certificato
+    del centro di taratura. Registralo qui e il report dichiarerà, lettura per lettura, se al
+    momento della misura risultava <b>coperta da una taratura valida</b>.</div>
+  <div class="form col" style="margin-top:10px;">
+    <label class="flab" for="tar-punto">Strumento
+      <select class="dw-input" id="tar-punto"></select></label>
+    <div class="frow">
+      <label class="flab" for="tar-data">Data della taratura
+        <input class="dw-input" id="tar-data" type="date"></label>
+      <label class="flab" for="tar-scad">Valida fino al
+        <input class="dw-input" id="tar-scad" type="date"></label>
+    </div>
+    <div class="frow">
+      <input class="dw-input" id="tar-ente" placeholder="Centro di taratura (es. Centro LAT n. 118)" style="flex:2 1 200px;">
+      <input class="dw-input" id="tar-cert" placeholder="N. certificato" style="flex:1 1 140px;">
+      <button class="dw-btn" id="btn-tar">Registra</button>
+    </div>
+    <div class="form-hint">Il <b>certificato</b> e il <b>centro</b> non sono obbligatori, ma è
+      quello che l'ente chiede quando vuole risalire alla misura. Le <b>due date</b> sì: senza
+      di loro non si può dire quali letture copre.</div>
+  </div>
+  <div class="note esito" id="tar-esito"></div>
+  <div id="tar-list" style="margin-top:10px;"></div>
+
   <div class="sec">Distanza scalata (volate)</div>
   <div class="form">
     <label class="flab" for="sd-carica">Carica per ritardo
@@ -1292,8 +1358,13 @@ textarea.dw-input{
            VOL_PREVISTA, statoVolata, volataPrevista, etichettaStatoVolata, previsioneDiVolata,
            testoFontePrevisione, scartoPpvVolata, confermaVolataEseguita, riepilogoPreviste,
            volateOrdinate, firmaVolata, csvRegistroVolate, CSV_VOLATE_INTESTAZIONE,
+           coperturaTaratura, statoTaraturaStrumento, STATI_TARATURA, DICHIARAZIONI_TARATURA,
            numeroDaCampo, AVVISO_DECIMALE } from "./sentinella-data.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO } from "../../shared/deepwork-id-client/dw-shell.js";
+  // Il colore della riga di una taratura è quello di una scadenza qualunque:
+  // la regola sta in shared/ e la usano già Scudo e Campo. Non se ne scrive
+  // una copia qui dentro solo perché la parola è diversa.
+  import { statoScadenzaHSE } from "../../shared/dw-ponti.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -2511,6 +2582,85 @@ textarea.dw-input{
   const oggiIso = oggiISO;   // stesso giorno locale di shared/: una regola, un posto
   let repGrafici = [];   // grafici montati: si smontano prima di ridisegnare
 
+  /* TARATURA DEGLI STRUMENTI ──────────────────────────────────────────
+     Lo storico dei certificati di uno strumento, con quello che copre e
+     quello che non copre. `tarPunto` tiene lo strumento scelto fra un
+     refresh e l'altro: se lo perdesse, dopo ogni registrazione la tendina
+     tornerebbe al primo della lista e chi sta caricando tre certificati di
+     seguito se li ritroverebbe sullo strumento sbagliato. */
+  let tarPunto = "";
+  function renderTarature() {
+    const sel = $("tar-punto"); if (!sel) return;
+    if (!MON.some(m => m.id === tarPunto)) tarPunto = MON.length ? MON[0].id : "";
+    sel.innerHTML = MON.length
+      ? MON.map(m => `<option value="${m.id}"${m.id === tarPunto ? " selected" : ""}>${esc(m.nome.split(" — ")[0])}</option>`).join("")
+      : '<option value="">— nessun punto di misura configurato —</option>';
+
+    const m = MON.find(x => x.id === tarPunto);
+    const tutte = ((m && m.tarature) || []).slice()
+      .sort((a, b) => String(b.data || "") < String(a.data || "") ? -1 : 1);
+    $("tar-tot").textContent = tutte.length;
+
+    /* ⛔ IL CONTO DELLE LETTURE CHE QUESTO STRUMENTO NON COPRE. È il numero
+       che dà senso alla sezione: senza, l'elenco dei certificati è
+       burocrazia. E «non coperte» resta diviso in due, come nel modulo. */
+    const letture = ((m && m.letture) || []);
+    const conta = { coperta: 0, scoperta: 0, "prima-dello-storico": 0, "non-dichiarata": 0 };
+    for (const l of letture) conta[coperturaTaratura(m && m.tarature, l.data).stato]++;
+    const st = statoTaraturaStrumento(m || {});
+    const bt = STATI_TARATURA[st.stato] || STATI_TARATURA["non-dichiarata"];
+
+    const riepilogo = !m ? ""
+      : !letture.length
+        ? `<div class="note">Su <b>${esc(m.nome.split(" — ")[0])}</b> non è ancora registrata nessuna lettura: non c'è niente da coprire.</div>`
+        : `<div class="note ${conta.scoperta ? "avviso" : ""}" style="margin-top:0;">
+            <span class="badge ${bt.cls}">${esc(bt.label)}</span>
+            ${st.scadenza ? ` valida fino al <b>${fmtD(st.scadenza)}</b>` : ""}
+            <br>Delle <b>${letture.length}</b> ${letture.length === 1 ? "lettura" : "letture"} registrate su questo strumento:
+            <b>${conta.coperta}</b> ${conta.coperta === 1 ? "risulta coperta" : "risultano coperte"} da una taratura valida${
+              conta.scoperta ? `, <b>${conta.scoperta}</b> ${conta.scoperta === 1 ? "cade" : "cadono"} in un giorno che nessuna taratura registrata copre` : ""}${
+              conta["prima-dello-storico"] ? `, <b>${conta["prima-dello-storico"]}</b> ${conta["prima-dello-storico"] === 1 ? "è precedente" : "sono precedenti"} alla prima taratura registrata (lo strumento poteva essere tarato: qui non risulta)` : ""}${
+              conta["non-dichiarata"] ? `, per <b>${conta["non-dichiarata"]}</b> non c'è nessuna taratura da confrontare` : ""}.</div>`;
+
+    $("tar-list").innerHTML = riepilogo + (tutte.map(t => {
+      const rotta = !t.data || !t.scadenza || String(t.scadenza) < String(t.data);
+      const stt = rotta ? "danger" : statoScadenzaHSE(t.scadenza);
+      return `<div class="item ${striscia[stt === "regolare" ? "ok" : stt === "scaduta" ? "danger" : "warn"] || "st-mute"}">
+      <div class="avatar ${stt === "regolare" ? "ok" : stt === "scaduta" ? "danger" : "warn"}">${I.calendario}</div>
+      <div class="info"><div class="name">${esc(t.certificato || "Certificato senza numero")}</div>
+      <div class="meta">${rotta
+        ? "date non leggibili: questa taratura non copre nessuna lettura"
+        : `dal ${fmtD(t.data)} al ${fmtD(t.scadenza)}`}${t.ente ? " · " + esc(t.ente) : ""}${t.nota ? " · " + esc(t.nota) : ""}</div></div>
+      <span class="acts">
+      <button type="button" class="arr rimuovi" title="Rimuovi questa taratura" aria-label="Rimuovi la taratura ${esc(t.certificato || "senza numero")}" data-del-tar="${esc(t.data)}|${esc(t.scadenza)}|${esc(t.certificato || "")}">${I.cestino}</button></span></div>`;
+    }).join("")
+      || (m ? vuoto(I.calendario, "Nessuna taratura registrata",
+             "Per questo strumento non risulta nessun certificato. Il report continuerà a riportare i valori misurati, ma <b>non potrà dichiararne la riferibilità</b>: registra qui sopra data, scadenza e numero del certificato.")
+            : vuoto(I.sensore, "Nessuno strumento",
+             "Aggiungi prima un punto di misura: la taratura è di uno strumento, quindi ha bisogno di sapere di quale.")));
+  }
+  /* LA RIFERIBILITÀ DELLE MISURE, DENTRO IL DOCUMENTO CHE VA ALL'ENTE.
+     ⛔ Sta ACCANTO all'esito e non dentro, ed è voluto: «le letture hanno
+     superato la soglia?» e «di chi erano quelle letture?» sono due domande
+     diverse, e far cambiare un giudizio di conformità per un dato
+     amministrativo sarebbe sbagliato in tutt'e due i versi. Ma tacerla
+     quando non si sa niente sarebbe il «conforme» tranquillo su misure di
+     provenienza ignota — cioè esattamente il difetto che questa sezione
+     esiste per togliere. */
+  function dichiarazioneTarature(R) {
+    const T = R.tarature || { stato: "senza-letture", coperte: 0, scoperte: 0, nonNote: 0 };
+    const D = DICHIARAZIONI_TARATURA[T.stato] || DICHIARAZIONI_TARATURA["senza-letture"];
+    const dettaglio = T.nLetture
+      ? `<div class="rep-tar-conto"><b>${T.coperte}</b> ${T.coperte === 1 ? "lettura coperta" : "letture coperte"}`
+        + (T.scoperte ? ` · <b>${T.scoperte}</b> in un giorno non coperto` : "")
+        + (T.nonNote ? ` · <b>${T.nonNote}</b> senza taratura registrata` : "")
+        + ` · su <b>${T.nLetture}</b>.</div>`
+      : "";
+    return `<div class="rep-tar ${D.cls === "ok" ? "" : D.cls}">
+      <div class="rep-tar-lab">Riferibilità delle misure</div>
+      <div class="rep-tar-txt">${esc(D.testo)}</div>${dettaglio}</div>`;
+  }
+
   function renderReport() {
     const box = $("rep-doc"); if (!box) return;
     repGrafici.forEach(g => { try { g.distruggi(); } catch (e) {} });
@@ -2552,6 +2702,7 @@ textarea.dw-input{
         <div><div class="rep-esito-lab">${esc(E.label)}</div>
         <div class="rep-esito-txt">${esc(E.testo)}</div></div>
       </div>
+      ${dichiarazioneTarature(R)}
       <div class="rep-cifre">
         <div class="rep-cifra"><div class="k">Punti di misura</div><div class="v">${R.nPunti}</div></div>
         <div class="rep-cifra"><div class="k">Letture</div><div class="v">${R.nLetture}</div></div>
@@ -2878,10 +3029,23 @@ textarea.dw-input{
        mettere in percentuale. Restano la soglia impostata (quella è un dato
        vero) e «nessuna lettura». */
     $("mon-list").innerHTML = monVis.map(({m, st}) => { const nl = (m.letture || []).length, aperto = grafMon === m.id;
+      /* ⛔ LA TARATURA SI VEDE QUANDO NON È A POSTO, E «NON DICHIARATA» È UNO
+         DEI CASI IN CUI NON LO È. Un secondo badge verde su ogni riga sarebbe
+         rumore; una riga muta su uno strumento di cui non si sa niente
+         sarebbe la solita buona notizia mai misurata. Quindi: badge quando lo
+         stato NON è «regolare», e silenzio quando lo è — un silenzio che
+         adesso vuol dire qualcosa, perché il caso brutto parla.
+         ⚠️ La data di validità qui NON ci va: la riga di dettaglio è tagliata
+         a due righe (`…`), quindi una frase appesa in fondo non la legge
+         nessuno — provato con lo scatto, non dedotto. Quel dato vive nella
+         sezione delle tarature, che è dove lo si va a cercare. */
+      const tar = statoTaraturaStrumento(m);
+      const bt = STATI_TARATURA[tar.stato] || STATI_TARATURA["non-dichiarata"];
       return `<div class="item ${striscia[st.cls] || "st-accent"}${aperto ? " aperto" : ""}">
       <div class="avatar ${st.cls === "danger" ? "danger" : st.cls === "warn" ? "warn" : ""}">${I.sensore}</div>
       <div class="info"><div class="name">${esc(m.nome)}</div>
-      <div class="riga"><span class="badge ${st.cls}">${st.label}</span>
+      <div class="riga"><span class="badge ${st.cls}">${st.label}</span>${
+        tar.stato === "regolare" ? "" : `<span class="badge ${bt.cls}" title="${esc(bt.label)}: la riferibilità delle misure di questo strumento non è dimostrata">${esc(bt.label)}</span>`}
       <span class="meta">${st.stato === "mai"
         ? `<b>nessuna misura</b> / soglia ${esc(numeroIt(m.soglia))} ${esc(m.unita)}${sogliaDaRicettore(m)}`
         : `<b>${esc(numeroIt(m.valore))} ${esc(m.unita)}</b> / soglia ${esc(numeroIt(m.soglia))}${sogliaDaRicettore(m)} · ${Math.round(st.ratio*100)}%`
@@ -2942,6 +3106,8 @@ textarea.dw-input{
     $("mis-sensore").innerHTML = MON.length
       ? MON.map(m => `<option value="${m.id}">${esc(m.nome.split(" — ")[0])}</option>`).join("")
       : '<option value="">— nessun punto di misura configurato —</option>';
+
+    renderTarature();
 
     // Registro volate: riepilogo + lista con la distanza scalata per volata.
     // Il conteggio in cima è quello del BROGLIACCIO, cioè le volate davvero
@@ -3061,6 +3227,26 @@ textarea.dw-input{
         if (grafMon === delMon) grafMon = null;
         await db.rimuovi("monitoraggi", delMon); await refresh();
         toast("Punto di misura «" + m.nome + "» rimosso."); } return; }
+    const delTar = attr(e, "data-del-tar");
+    if (delTar) {
+      /* La taratura non ha un id suo: sta dentro il punto. La si riconosce
+         dalla terna data|scadenza|certificato, che è anche quello che
+         l'utente vede scritto nella riga. */
+      const [dTar, sTar, cTar] = delTar.split("|");
+      const m = MON.find(x => x.id === tarPunto);
+      const resta = ((m && m.tarature) || []).filter(t =>
+        !(String(t.data || "") === dTar && String(t.scadenza || "") === sTar && String(t.certificato || "") === cTar));
+      const scoperte = ((m && m.letture) || []).filter(l =>
+        coperturaTaratura(resta, l.data).stato !== "coperta").length;
+      if (m && await chiedi("Rimuovere la taratura",
+        `Stai per togliere da <b>${esc(m.nome)}</b> il certificato <b>${esc(cTar || "senza numero")}</b>${
+          dTar && sTar ? ` (dal ${fmtD(dTar)} al ${fmtD(sTar)})` : ""}.<br><br>
+         ${scoperte ? `Dopo, <b>${scoperte} ${scoperte === 1 ? "lettura" : "letture"}</b> di questo strumento non ${scoperte === 1 ? "risulterà coperta" : "risulteranno coperte"} da nessuna taratura, e il report lo dichiarerà.`
+                    : "Nessuna lettura di questo strumento perde la copertura."}
+         <br><br>Toglilo solo se l'hai inserito per sbaglio: la taratura è un documento, non una nota.`,
+        "Rimuovi", true)) {
+        await db.aggiorna("monitoraggi", m.id, { tarature: resta }); await refresh();
+        toast("Taratura rimossa da «" + m.nome.split(" — ")[0] + "»."); } return; }
     const delVol = attr(e, "data-del-vol");
     if (delVol) { const v = VOL.find(x => x.id === delVol);
       if (await chiedi("Rimuovere la volata",
@@ -3463,6 +3649,52 @@ textarea.dw-input{
   enterSubmit(["ade-titolo", "ade-ente", "ade-data"], "btn-ade");
   enterSubmit(["sen-nome", "sen-unita", "sen-soglia"], "btn-sen");
   enterSubmit(["mis-valore"], "btn-mis");
+  enterSubmit(["tar-data", "tar-scad", "tar-ente", "tar-cert"], "btn-tar");
+
+  // Cambiare strumento ridisegna lo storico: la tendina è il filtro della
+  // sezione, non un campo del form.
+  $("tar-punto").onchange = () => { tarPunto = $("tar-punto").value; pulisci("tar-esito"); renderTarature(); };
+
+  $("btn-tar").onclick = async () => {
+    const id = $("tar-punto").value;
+    const data = $("tar-data").value, scad = $("tar-scad").value;
+    const ente = $("tar-ente").value.trim(), cert = $("tar-cert").value.trim();
+    if (!id) { esito("tar-esito", "Prima configura almeno un punto di misura: la taratura è di uno strumento, e deve sapere di quale.", "err", "Configura prima un punto di misura."); return; }
+    /* ⛔ LE DUE DATE SONO OBBLIGATORIE, e non è pignoleria: senza la data
+       della taratura non si sa DA QUANDO copre, e un certificato che parte
+       da sempre coprirebbe letture di anni in cui lo strumento non era
+       ancora stato tarato. Senza la scadenza, coprirebbe per sempre. */
+    if (!data || !scad) {
+      err("tar-data", !data); err("tar-scad", !scad); fuocoErr(["tar-data", "tar-scad"]);
+      esito("tar-esito", "Servono <b>tutte e due</b> le date: quella della taratura e quella di scadenza. Sono loro a dire quali letture il certificato copre — senza, non copre niente.",
+        "err", "Servono la data della taratura e la scadenza."); return; }
+    if (scad < data) {
+      err("tar-data", true); err("tar-scad", true); fuocoErr(["tar-scad"]);
+      esito("tar-esito", "La scadenza (<b>" + fmtD(scad) + "</b>) viene prima della taratura (<b>" + fmtD(data) + "</b>): l'intervallo è al contrario e non coprirebbe nessun giorno.",
+        "err", "La scadenza viene prima della taratura."); return; }
+    err("tar-data", false); err("tar-scad", false);
+
+    const m = MON.find(x => x.id === id);
+    const gia = ((m && m.tarature) || []).some(t => String(t.data || "") === data && String(t.scadenza || "") === scad);
+    if (gia) { esito("tar-esito", "Su questo strumento c'è già una taratura con le stesse due date: controlla lo storico qui sotto prima di aggiungerne un'altra.", "err", "Taratura già registrata."); return; }
+
+    const tarature = [ ...((m && m.tarature) || []), { data, scadenza: scad, ente, certificato: cert } ];
+    await db.aggiorna("monitoraggi", id, { tarature });
+
+    /* Il messaggio dice che cosa CAMBIA, non che il salvataggio è riuscito:
+       quante letture questo certificato copre è il motivo per cui lo si è
+       inserito, e se ne copre zero è un'informazione, non un errore. */
+    const coperte = ((m && m.letture) || []).filter(l =>
+      coperturaTaratura([{ data, scadenza: scad }], l.data).stato === "coperta").length;
+    const nome = m ? m.nome.split(" — ")[0] : id;
+    esito("tar-esito", `Taratura registrata su <b>${esc(nome)}</b>, valida dal <b>${fmtD(data)}</b> al <b>${fmtD(scad)}</b>. `
+      + (coperte ? `Copre <b>${coperte}</b> ${coperte === 1 ? "lettura già registrata" : "letture già registrate"}.`
+                 : "Nessuna lettura già registrata cade in questo intervallo: coprirà quelle che verranno."),
+      "success", "Taratura registrata su " + nome + ".");
+    $("tar-data").value = ""; $("tar-scad").value = ""; $("tar-cert").value = "";
+    tarPunto = id;
+    await refresh();
+  };
 
   // Libreria soglie normative preimpostate: riempie unità+soglia con un
   // valore di riferimento invece di farlo cercare all'utente. Ogni voce
