@@ -1000,10 +1000,12 @@ import { gnum, gseg, gfix, gdata, fmtMs, fmtKg } from './genesi-formato.js';
 /* la vibrazione al recettore: la legge di sito dai referti del sismografo, il
    limite di norma, la sovrappressione d'aria. Stesse funzioni di prima, spostate
    parola per parola dove `node` le puo' provare — vedi l'intestazione del file. */
-/* ⚠️ `NORME_PPV` e `_sitoNormH` NON sono in questo elenco di proposito: dopo
-   il trasloco li usa solo il modulo (`normaPpvLab` e `_sitoMappaColonne`), e
-   un import che nessuno adopera è codice morto che sembra vivo. Restano
-   esportati perché le prove li guardano. */
+/* ⚠️ `NORME_PPV` e `_sitoNormH` NON sono in questo elenco di proposito: li usa
+   solo il modulo (`normaPpvLab` e `_sitoMappaColonne`), e un import che nessuno
+   adopera è codice morto che sembra vivo. Restano esportati perché le prove li
+   guardano — e perché `normaPpvLab`, che la pagina **importa**, è l'unico modo
+   di leggere quella tabella da fuori: la pagina se n'era scritta una copia, con
+   un ripiego diverso, ed è il difetto corretto il 01/08. */
 import { sitoFit, ppvLimit, airblastDb, normaPpvLab,
          _SITO_FONTI, _sitoFonte, _sitoFonteDaTesto,
          _sitoMappaColonne, _sitoTicks, _sitoNum } from './genesi-data.js';
@@ -4888,7 +4890,14 @@ function renderScheda2D(){
   const _ppv=_st.K*Math.pow(Math.max(0.1,_sd2),-_st.beta);
   const _lim=ppvLimit(D2.recNorma,D2.recFreq), _rat=_ppv/_lim;
   const _wmax=Math.pow(D2.recDist,2)*Math.pow(_lim/_st.K,2/_st.beta);
-  const _normaLab={'usbm-old':'USBM intonaco vecchio','usbm-modern':'USBM cartongesso','din-ind':'DIN industriale','din-sens':'DIN sensibile','din-res':'DIN residenziale'}[D2.recNorma]||'DIN residenziale';
+  /* ⛔ QUI C'ERA LA SECONDA COPIA DELLA TABELLA DELLE NORME, con cinque
+     etichette scritte a mano e un ripiego DIVERSO da quello del modulo: se il
+     codice non era riconosciuto la pagina scriveva «DIN residenziale» — cioè
+     dava un nome preciso a una norma che nessuno aveva riconosciuto. Il modulo
+     ha `NORME_PPV` e `normaPpvLab`, che il codice sconosciuto lo **ripete**
+     invece di battezzarlo. Una tabella sola, e le due risposte non possono più
+     scostarsi. */
+  const _normaLab=normaPpvLab(D2.recNorma);
   /* G3 — da dove vengono K e β: dai referti del sismografo se c'è una legge di
      sito attiva, altrimenti dalla litologia. Va detto in chiaro: cambia il peso
      del numero, e fuori dall'intervallo calibrato la legge è un'estrapolazione. */

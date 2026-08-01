@@ -120,6 +120,14 @@ export function ppvLimit(norma,f){
   if (f === null || f === undefined || String(f).trim() === '') return null;
   const n = +f;
   if (!Number.isFinite(n)) return null;
+  /* ⛔ E NEMMENO SU UNA NORMA CHE NON CONOSCIAMO. Il `default:` qui sotto è la
+     DIN residenziale, e serve — è la norma di riferimento quando il codice è
+     quello giusto. Ma un codice **sconosciuto** ci cadeva dentro in silenzio:
+     `normaPpvLab('boh')` rispondeva onestamente «boh» e `ppvLimit('boh', 25)`
+     rispondeva **15**, cioè l'etichetta e il numero raccontavano due cose
+     diverse sullo stesso schermo. Chi legge «boh · 15 mm/s» crede che 15 sia
+     la soglia di «boh». */
+  if (!Object.prototype.hasOwnProperty.call(NORME_PPV, norma)) return null;
   switch(norma){
   case 'usbm-old': return n<40?12.7:50.8;
   case 'usbm-modern': return n<40?19:50.8;

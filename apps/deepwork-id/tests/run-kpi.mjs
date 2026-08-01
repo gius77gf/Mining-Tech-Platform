@@ -12142,6 +12142,24 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
        "una frequenza scritta come stringa numerica resta leggibile (i progetti salvati tornano da JSON)");
   });
 
+  test("⛔ Genesi: una norma che non conosciamo non prende in silenzio la soglia residenziale", () => {
+    /* `normaPpvLab('boh')` rispondeva onestamente «boh» e `ppvLimit('boh', 25)`
+       rispondeva **15**: sullo stesso schermo l'etichetta e il numero
+       raccontavano due cose diverse, e chi legge «boh · 15 mm/s» crede che 15
+       sia la soglia di «boh». Il `default:` del `switch` resta la DIN
+       residenziale — è giusto, è la norma di riferimento — ma ci si arriva solo
+       col codice `din-res`. */
+    for (const n of ["boh", "", null, undefined, "DIN-RES", "din_res", 0])
+      eq(v.ppvLimit(n, 25), null, `«${String(n)}» non è un codice di norma che conosciamo`);
+    /* e i cinque veri rispondono ancora */
+    eq(Object.keys(v.NORME_PPV).map((n) => v.ppvLimit(n, 25) === null).filter(Boolean).length, 0,
+       "le cinque norme dell'elenco hanno tutte la loro soglia");
+    /* ⛔ e l'etichetta e il numero non possono più scostarsi: dove la soglia
+       non c'è, l'etichetta ripete il codice invece di battezzarlo */
+    eq(v.normaPpvLab("boh"), "boh", "un codice sconosciuto si ripete, non si traduce");
+    eq(v.normaPpvLab("din-res"), "DIN residenziale", "e uno vero si traduce");
+  });
+
   test("Genesi · ogni codice di norma che la pagina propone ha un nome scritto per esteso", () => {
     /* il nome finisce nel rapporto e nel file per Sentinella, accanto al numero:
        un limite citato senza dire QUALE limite non è verificabile da nessuno */
