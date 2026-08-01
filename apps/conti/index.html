@@ -239,6 +239,15 @@
 @media (max-width:430px){ .conf{grid-template-columns:1fr} }
 
 /* ─────────────── voci di lista (copia di .sitem) ─────────────── */
+/* ⛔ `.item.tap` diceva «la manina solo alle voci che si toccano», e per mesi
+   non ha funzionato: `dw-app-shell.css` metteva `cursor:pointer` su TUTTE le
+   `.item`, quindi la distinzione era solo scritta. Trovato il 01/08 smontando
+   i fogli condivisi. Misurato prima di toccare, riga per riga in tutte e otto
+   le sezioni: **126 voci, 15 con `.tap`, 15 con un aggancio sulla riga**,
+   nessuna voce viva senza la classe. Le quindici sono sette fatture con
+   `data-fat` e otto `<label>` con dentro un controllo — cliccabili per natura,
+   e infatti `label.item` la manina ce l'ha per conto suo poco piu' sotto. */
+.item{cursor:default}
 .item.tap{cursor:pointer}
 .item.tap:active{transform:translateX(1px) scale(.995)}
 .item.st-sup{border-left:3px solid var(--app-support2)}
