@@ -449,10 +449,14 @@
   body.dw.outdoor-mode .nav button{font-size:9.5px; letter-spacing:.2px}
 }
 @media(max-width:370px){
-  /* con la settima voce anche qui si scende di mezzo punto: sotto il sole le
-     scritte restano più grandi che in modalità normale — è tutto il senso di
-     outdoor — ma «più grandi» non vuol dire «tagliate». */
-  body.dw.outdoor-mode .nav button{font-size:8px; letter-spacing:0}
+  /* ⚠️ QUI SOTTO I 370px OUTDOOR E MODALITÀ NORMALE CONVERGONO, e va detto
+     invece che nascosto: con SETTE voci su uno schermo da 320px non c'è la
+     larghezza per tenere le scritte più grandi E intere, e fra le due vince
+     intera — una parola tagliata sotto il sole non si legge meglio di una
+     piccola. Misurato: a 8px una etichetta esce di 2px, a 7,5px nessuna.
+     Outdoor resta più grande dove lo spazio c'è (9,5px contro 8,5px sopra i
+     370px), che è la larghezza della maggior parte dei telefoni. */
+  body.dw.outdoor-mode .nav button{font-size:7.5px; letter-spacing:0}
 }
 
 /* ─────────────── modale (copia di .modal-* del core) ─────────────── */

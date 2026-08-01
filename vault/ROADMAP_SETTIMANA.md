@@ -922,10 +922,15 @@ campi interi, file delle macchine.
       **sbagliato** spacciato per certo.
       ⚠️ La *parola* per il vuoto resta dell'app («senza data» / «—»):
       unificarla sarebbe stato decidere al posto di sei schermate.
-- [ ] **Terra e Flotta non migrate alla data condivisa**, e la ragione è
-      dichiarata: la `dmy` di Terra scrive **gg/mm senza l'anno** (funzione
-      diversa con lo stesso nome di quella di Campo — un caso da `nomi-doppi`) e
-      quella di Flotta valida già. Vanno guardate una per una.
+- [x] **Terra e Flotta migrate anche loro**, dopo averle guardate una per una
+      come si era detto — e la misura ha smentito il «validano già»: quella di
+      Flotta controllava la **forma** e non l'esistenza (`2026-02-30` usciva
+      come «30/02/2026»), e quella di Terra oltre a ciò **rifiutava un
+      istante**, cioè perdeva una data buona.
+      E la `dmy` di Terra — che scrive **gg/mm senza l'anno**, altra cosa dalla
+      `dmy` di Campo — ha preso il nome che dice quello che fa: `giornoMese`.
+      Due funzioni diverse con lo stesso nome in due app sono esattamente ciò
+      che `nomi-doppi.mjs` esiste per prendere.
 
 ### Fatto il 01/08 (notte, secondo ciclo)
 - [x] ⛔ **Il cantiere di Genesi smette di essere una frase e diventa un

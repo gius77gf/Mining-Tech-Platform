@@ -1065,7 +1065,7 @@
            numeroDaCampo, interoDaCampo, perCampo, messaggioNumero,
            AVVISO_DECIMALE, AVVISO_MIGLIAIA,
            scriviConEsito } from "./flotta-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, numIt, montaGuardiaInteri, avvolgiUnita, euro, conEuro, oggiISO } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, numIt, montaGuardiaInteri, avvolgiUnita, euro, conEuro, oggiISO, dataIt } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -1294,7 +1294,8 @@
   // l'utente sceglie e che restano ricordate sul suo dispositivo.
   let filtroSca = "tutte";
   let preavvisoSca = 30;
-  const dataIt = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || "").slice(0,10)); return m ? `${m[3]}/${m[2]}/${m[1]}` : "—"; };
+  /* `dataIt` arriva da `shared/`: la copia di casa validava la FORMA e non
+     l'esistenza, quindi «2026-02-30» usciva come «30/02/2026». */
   const itToIso = (s) => { const m = /^\s*(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})\s*$/.exec(String(s || "")); return m ? `${m[3]}-${String(+m[2]).padStart(2,"0")}-${String(+m[1]).padStart(2,"0")}` : null; };
   try { const _p = +localStorage.getItem("dwFlottaPreavviso"); if (_p >= 1 && _p <= 365) preavvisoSca = _p; } catch (e) {}
   $("sca-preavviso").value = preavvisoSca;
