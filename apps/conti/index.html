@@ -2380,9 +2380,15 @@ label.item:has(.dw-chk:checked){
       // il viaggio. Meglio due righe intere che una riga sola tagliata a metà.
       const meta = [fmtD(p.data), esc(p.prodotto || "—"),
         fatt ? "fattura " + esc(fatt.numero) : ""].filter(Boolean).join(" · ");
+      /* ⛔ Le mancanze del DDT si dicono QUI, non solo sul foglio. Prima
+         `mancanzeDdt` la leggeva soltanto la stampa: l'utente scopriva che il
+         documento e' incompleto quando il camion e' gia' sotto e il camionista
+         aspetta. Il posto giusto per accorgersene e' l'elenco, prima. */
+      const manca = mancanzeDdt(p);
       const dettaglio = ["lordo " + qt(p.lordo) + " − tara " + qt(p.tara) + " = netto <b>" + qt(p.netto) + " t</b>",
         p.mezzo ? esc(p.mezzo) : "", p.destinatario ? esc(p.destinatario) : ""]
-        .filter(Boolean).join(" · ");
+        .filter(Boolean).join(" · ")
+        + (manca.length ? ` · <b>da completare prima di stampare:</b> ${manca.map(x => esc(x.split(":")[0])).join(", ")}` : "");
       return `<div class="item ${p.fatturaId ? "st-ok" : "st-accent"}" style="flex-wrap:wrap;">
       <span class="avatar">${IC.camion}</span>
       <div class="info"><div class="name"><span class="num-doc">DDT ${esc(p.numero || "—")}</span> · ${esc(p.cliente || "—")}</div>
@@ -2390,7 +2396,8 @@ label.item:has(.dw-chk:checked){
       <div class="amt" title="${p.unitaVendita === "m3" ? "Venduto a metro cubo: i m³ vengono dal netto diviso la densità" : "Venduto a tonnellata"}">
         <div class="amt-n${p.fatturaId ? " mute" : ""}">${eur(valorePesata(p))}</div>
         <div class="amt-s">${p.quantita == null ? "quantità non calcolabile" : qtu(p.quantita, p.unitaVendita) + " × " + eur(p.prezzoUnitario) + (+p.scontoPct > 0 ? " − " + perc(p.scontoPct) : "")}</div></div>
-      <span class="badge ${p.fatturaId ? "ok" : "warn"}">${p.fatturaId ? "Fatturato" : "Da fatturare"}</span>
+      <span class="badge ${p.fatturaId ? "ok" : "warn"}">${p.fatturaId ? "Fatturato" : "Da fatturare"}</span>${
+        manca.length ? `<span class="badge warn" title="${esc(manca.join("; "))}">DDT incompleto</span>` : ""}
       <div class="acts"><button class="arr" type="button" title="Stampa il DDT da dare al camionista (o salvalo in PDF)" aria-label="Stampa il DDT ${esc(p.numero || "")}" data-stampa-ddt="${p.id}">${IC.stampa}</button>${p.fatturaId ? "" : `<button class="arr del" type="button" title="Elimina pesata" aria-label="Elimina il DDT ${esc(p.numero || "")}" data-del-pes="${p.id}">${IC.croce}</button>`}</div>
       <div class="frow"><div class="meta pesa">${dettaglio}</div></div>
       </div>`; }).join("")

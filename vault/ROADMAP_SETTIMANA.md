@@ -2051,6 +2051,22 @@ campi interi, file delle macchine.
       Serve a **impedire il lavoro sbagliato**: chi riprendesse dalla scheda
       vecchia scriverebbe strati dati che esistono, l'errore che `CLAUDE.md`
       elenca fra i più costosi con quattro casi datati.
+- [x] ✅ **ACCORGERSENE PRIMA CHE IL CAMION SIA SOTTO** *(01/08, Conti)* —
+      `mancanzeDdt` la leggeva **un posto solo**, il foglio di stampa: l'utente
+      scopriva il documento incompleto **dopo aver premuto Stampa**, col
+      camionista che aspetta. Adesso la legge anche l'elenco delle pesate
+      (pastiglia «DDT incompleto» + la mancanza nominata in coda alla riga), con
+      la regola sempre scritta una volta sola nel modulo. E la dimostrazione, che
+      al primo scatto aveva **10 righe su 12** gialle — vero ma inutile —
+      adesso ne ha **due**, scelte: una senza causale e una «a cura di un
+      vettore» **senza il nome del vettore**, cioè il caso che un controllo «il
+      campo è pieno?» non vedrebbe. ⛔ Tre errori di processo scritti nel
+      checkpoint: ho **modificato una pagina mentre girava** una sonda del
+      browser (censimento buttato, non usato); uno script di modifica ha
+      **corrotto il modulo dati** e l'ho visto solo dal `git diff`, non dal suo
+      esito; e ⚠️ **`node --check` non vede quel genere di rottura in un modulo
+      ES** — ha detto «sintassi ok» su una virgola mangiata, e l'errore è uscito
+      solo importando il modulo. Da qui in poi si verifica con l'**import**.
 - [x] ✅ **TUTTE E SEI — E LA SECONDA METÀ DEL PRINCIPIO** *(01/08)* — messi
       sotto guardia i due casi che Flotta e Sentinella avevano già in
       dimostrazione (il costo senza data, il punto mai misurato): il banco

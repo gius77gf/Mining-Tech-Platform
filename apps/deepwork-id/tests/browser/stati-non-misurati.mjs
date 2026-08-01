@@ -44,7 +44,13 @@ const CASI = [
   ['scudo', 'ispezione chiusa a metà', '#nav-isp', null, '#isp-list', /chiusa a metà/i],
   ['scudo', 'nomina senza data', '#nav-pers', 'nom', '#nom-list', /senza data di nomina/i],
   ['scudo', 'lavoratore senza scadenze', '#nav-pers', 'lav', '#pers-list', /nessuna scadenza/i],
-  ['terra', 'anno con lo scavo mai rilevato', '#nav-den', null, '#den-storico', /scavo non misurato/i],
+  /* stessa forma di Sentinella: la riga dell'anno diceva «Scavati 0 m³» dove
+     il fronte non l'aveva rilevato nessuno, e quello zero l'ente lo legge come
+     una dichiarazione. Non basta che compaia «Scavo non misurato»: accanto non
+     ci deve essere una cifra di scavo. */
+  ['terra', 'anno con lo scavo mai rilevato', '#nav-den', null, '#den-storico', /scavo non misurato/i,
+    null, { vietato: /scavati\s*[\d.,]+\s*m³/i,
+            perche: 'accanto a «scavo non misurato» non si scrive nessun volume scavato' }],
   ['terra', 'base dell\'onere non dichiarabile', '#nav-den', null, '#den-oneri', /non è stato misurato/i,
     { dentro: '#den-anni', testo: '2024' }],
   /* ⛔ Campo e' il caso che ha dato il nome al principio: «non lo so» non e'
