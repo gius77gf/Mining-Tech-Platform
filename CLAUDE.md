@@ -56,6 +56,83 @@ in italiano, senza dare conoscenze per scontate).
    ogni ciclo più cantieri aperti insieme, un agente per app (i file
    sono separati in apps/<nome>/, nessun conflitto). Si serializza solo
    ciò che tocca shared/, docs/, vault/.
+   ⛔ **E NON È UN CONSIGLIO: È IL PRIMO MOLTIPLICATORE, MISURATO.** Il 30 e
+   il 31/07, lavorando a cantieri paralleli, sono uscite **241 e 258**
+   modifiche in un giorno; il 01/08, lavorando **tutto in fila**, ne sono
+   uscite **92** — e non perché il lavoro fosse più difficile. La regola era
+   scritta al modo gentile e quindi si è saltata. Nella forma vincolante:
+   **ogni blocco apre almeno TRE cantieri insieme su app diverse.** Quando
+   un'unità tocca una sola app non c'è ragione di aspettarla prima di
+   aprirne un'altra: si serializza solo il commit e ciò che tocca `shared/`.
+
+## Come si spende il tempo di un ciclo *(01/08, misurato su una giornata storta)*
+
+⛔ **IL COSTO DELLA VERIFICA VA A SCAGLIONI.** Rilanciare tutto a ogni unità è
+il modo più sicuro di lavorare piano: il giro completo dei banchi dura **una o
+due ore** e, mentre gira, rallenta di cinque-dieci volte ogni altra misura.
+  - suite `node` → **sempre** (secondi);
+  - banco mirato sulla superficie toccata, con `--solo=` → **sempre** (secondi);
+  - **giro completo → una volta per blocco, alla fine.** Mai mentre si lavora.
+  Un banco senza `--solo=` costringe ad aprire tutte e quattordici le superfici
+  per controllarne una: aggiungerglielo è mezz'ora che restituisce ore, e va
+  fatto la prima volta che serve.
+
+⛔ **IL GIRO COMPLETO SI LANCIA DOPO IL COMMIT.** Gira su una **copia del
+committato**: lanciato prima, prova codice vecchio e lo dichiara pure («N file
+NON committati restano FUORI»). Il 01/08 ne sono stati buttati due — uno per
+questo, uno perché la porta del server precedente era ancora occupata.
+
+⛔ **MAI ASPETTARE GUARDANDO.** Un processo lungo si lancia **insieme alla
+condizione che dice quando è finito**, e nel frattempo si lavora su altro. Se
+non c'è altro da fare, quel processo è troppo lungo per essere lanciato adesso.
+Il 01/08 sono stati bruciati decine di scambi a rileggere file vuoti.
+⚠️ E l'attesa scritta male non finisce mai: `while pgrep -f "prova.mjs"` trova
+**sé stessa** nella riga di comando dell'attesa. Si aspetta un **PID**.
+
+⛔ **GLI STRUMENTI DI MISURA VIVONO NEI TEST, NON NELLO SCRATCHPAD.** Il 01/08
+ne sono stati riscritti da zero quattro e **tutti e quattro erano sbagliati**:
+la navigazione chiamata con due argomenti invece di tre (misurava otto volte la
+stessa schermata), il rilevatore che diceva «tutte le etichette vanno a capo»,
+quello che non sapeva che una `<label>` e un `<a href>` sono cliccabili per
+natura, e il conto dei pixel diversi che rispondeva «da riga 181 a 894» quando
+il 97% stava in settanta righe. Tre domande tornano in ogni misura e vanno
+scritte **una volta sola**, dove si riusano: *questo esce dal suo spazio?
+questa riga fa qualcosa se la tocchi? dove stanno davvero le differenze?*
+⚠️ Il difetto comune a tutti e quattro: **calcolare una cosa che il browser sa
+dire**. `scrollWidth > clientWidth` è la sua risposta a «esce?»; l'altezza
+divisa per il corpo del carattere non lo è.
+
+## La ricerca che gira di fianco *(direttiva fondatore 01/08)*
+
+I crediti di una sessione restano in parte inutilizzati mentre si lavora in
+serie. Si impiegano in una **ricerca approssimativa e continua**, con agenti
+`haiku` lanciati **in background all'inizio di ogni blocco, uno per app**, che
+propongono modifiche possibili da approfondire dopo. Non è una fonte di verità:
+è una fonte di **candidati**.
+
+Perché serva davvero e non produca elenchi generici, cinque vincoli:
+
+1. **Legge prima di proporre.** Ogni agente parte da `docs/RICERCA_*_<app>.md`,
+   dalla roadmap e dai checkpoint dell'app: deve **dichiarare in cima** che cosa
+   esiste già. È la difesa contro il difetto che in due giorni è costato quattro
+   volte — il registro costi «da fare» che c'era già in Flotta, il «mai
+   misurato» già scritto dodici righe più in là, la legge citata in sei punti e
+   annunciata come scoperta.
+2. **Non tocca il codice.** Scrive **solo** in `docs/RICERCA_CONTINUA_<app>.md`,
+   in coda, mai sovrascrivendo. Così non litiga con i cantieri paralleli e le
+   ricerche si accumulano invece di cancellarsi.
+3. **Un formato fisso**, altrimenti l'esito va riletto e ridigerito, e il tempo
+   risparmiato si perde: una riga per proposta con **schermata · che cosa non
+   va · come si vede · quanto costa · come si misura**. Una proposta senza
+   «come si misura» non entra.
+4. **Niente entra in roadmap sulla parola dell'agente.** Un numero riportato si
+   **rimisura** prima di scriverlo da qualunque altra parte: gonfiare i
+   risultati è vietato dalla direttiva 5, e un agente veloce sbaglia i dettagli.
+   La forma giusta è quella già usata: *«proposto da ricerca, non verificato»*
+   finché qualcuno non l'ha aperto.
+5. **Si legge alla fine del blocco, non durante.** La ricerca non deve mai
+   diventare un'attesa: parte, cammina di fianco, e la si raccoglie quando il
+   blocco chiude.
 
 ## Regole vincolanti
 - ⛔ DATI DI RIFERIMENTO DEL FONDATORE — REGOLA FERREA E IMMUTABILE

@@ -70,6 +70,8 @@ const BANCHI = [
   ['verbale · controprova', 'verbale-origine.mjs', ['--controprova'], true],
   ['la manina promette un tocco che c\'è', 'promesse-tocco.mjs', []],
   ['la manina · controprova', 'promesse-tocco.mjs', ['--controprova'], true],
+  ['le etichette della barra stanno nella loro colonna', 'barra-etichette.mjs', []],
+  ['etichette della barra · controprova', 'barra-etichette.mjs', ['--controprova'], true],
   ['la quota di base è nel sistema del rilievo', 'quota-base-reale.mjs', []],
   ['quota di base · controprova', 'quota-base-reale.mjs', ['--controprova'], true],
   ['il registro costi', 'registro-costi.mjs', []],
