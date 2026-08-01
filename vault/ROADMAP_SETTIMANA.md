@@ -2051,6 +2051,34 @@ campi interi, file delle macchine.
       Serve a **impedire il lavoro sbagliato**: chi riprendesse dalla scheda
       vecchia scriverebbe strati dati che esistono, l'errore che `CLAUDE.md`
       elenca fra i più costosi con quattro casi datati.
+- [x] ✅ **TRE DIFESE CHE NESSUNO POTEVA VEDERE** *(01/08, Scudo)* — il debito
+      dichiarato dal cantiere di Scudo (cinque righe nuove mai guardate a
+      schermo) si è rivelato un'altra cosa: lo scatto ne trovava **due**, e non
+      perché la pagina fosse rotta — **la dimostrazione non conteneva i casi**.
+      «Stato non indicato», «Chiusa a metà» e «Senza data di nomina» sono
+      ripieghi che si accendono solo su un dato che manca, e in dimostrazione i
+      documenti avevano tutti uno stato, le ispezioni chiuse erano complete e
+      tutte e sei le nomine avevano la data: tre difese scritte, provate,
+      commentate e **invisibili a chiunque**. Aggiunti i tre casi (`c6`, `q3`,
+      `o7`). Da lì compare anche una frase che era codice morto: *«5 voci sono
+      rimaste senza esito in un'ispezione chiusa: su quelle non è stato guardato
+      niente»*. ⚠️ `o7` sta su **direttore** e non su preposto perché lì i due
+      rossi della formazione vengono prima di `senzaData` nella catena della
+      pastiglia, e la riga avrebbe mostrato un'altra cosa; il rosso «Da
+      nominare» non si perde, resta su `medico`. E la sonda ha sbagliato mira
+      **tre volte** (riga alta 0 in una scheda chiusa, match sul riepilogo
+      invece che sulla riga, selettori inventati): ora pretende contenitore
+      dichiarato, altezza diversa da zero e nessuna riga a capo. 5/5.
+- [x] ✅ **IL GIRO FIRMAVA IL VERDE COL COMMIT SBAGLIATO** *(01/08)* — il
+      riepilogo di `tutti.mjs` rileggeva HEAD dalla cartella **viva** invece che
+      dalla copia: dopo un'ora e mezza la viva era avanti di **12 commit**, e il
+      «35 banchi a posto» risultava intestato a un commit che il giro non aveva
+      mai visto — con accanto «la copia è identica a quello che hai su disco»,
+      **falsa**. Ora il hash si prende dalla copia quando nasce e la deriva si
+      dichiara. `giro-su-copia.mjs` da 3 a 9 prove; controprova: rimessi i due
+      difetti cadono 2 su 9. ⚠️ Le altre 4 misurano git, non `tutti.mjs`:
+      dichiarato invece di contarle fra le difese. **I 35 banchi verdi di
+      stanotte attestano `b34922a`.**
 - [x] ✅ **IL FUSO ORARIO CHE NON C'ENTRAVA** *(01/08)* — `date-checkpoint.mjs`
       confronta una data letta da git col nome del file. Sospetto ragionevole:
       `git log --date=short` renderebbe la data nel fuso di chi guarda, quindi

@@ -125,6 +125,12 @@ export const DEMO = {
     { id: "c3", titolo: "Nomine RSPP / addetti", meta: "Revisione richiesta", tipo: "Nomina", stato: "da-rivedere" },
     { id: "c4", titolo: "DSS — Documento Sicurezza e Salute", meta: "Inviato ASL 02/2026", tipo: "DSS", cantiereId: "k1", stato: "valido" },
     { id: "c5", titolo: "Verbale consegna DPI — M. Rossi", meta: "Firmato 04/2026", tipo: "Verbale DPI", lavoratoreId: "d1", stato: "valido" },
+    /* ⛔ UN DOCUMENTO DI CUI NESSUNO HA SCRITTO LO STATO. Ci si arriva con un
+       import o con un archivio vecchio, ed è il caso per cui `D[d.stato]` ha
+       il ripiego «Stato non indicato»: senza questa riga quella difesa non la
+       vedeva nessuno — né il fondatore né uno scatto. Un dato che manca è uno
+       stato che il prodotto sa raccontare, e la dimostrazione lo mostra. */
+    { id: "c6", titolo: "Autorizzazione allo scarico acque di lavorazione", meta: "Da archivio cartaceo, stato non registrato", tipo: "Altro", cantiereId: "k1", stato: "" },
   ],
   cantieri: [
     { id: "k1", nome: "Cava Monte Alto", comune: "Comune di esempio", tipo: "cava", stato: "attivo" },
@@ -206,6 +212,30 @@ export const DEMO = {
       ],
       esiti: { v1: { esito: "conforme", nota: "" }, v2: { esito: "conforme", nota: "" } },
       stato: "in-corso", dataChiusura: null },
+    /* ⛔ UNA ISPEZIONE DICHIARATA CHIUSA CON META' DELLE VOCI IN BIANCO. È il
+       caso per cui esiste «Chiusa a metà»: zero non conformi su una checklist
+       guardata a metà non è un buon risultato, è un risultato che non è stato
+       misurato — e senza questa riga nella dimostrazione comparivano solo
+       «Completata» (verde) e «In corso». La difesa c'era e non si vedeva. */
+    { id: "q3", modello: "impianto", nome: "Impianto di lavorazione", ambito: "Frantoio e nastri",
+      riferimento: "D.Lgs 81/08 titolo III — protezione degli organi in movimento e uso in sicurezza delle attrezzature.",
+      periodicitaGiorni: 30, data: "2026-07-22", cantiereId: "k1", responsabileId: "d6",
+      voci: [
+        { id: "v1", testo: "Ripari fissi e mobili su pulegge, nastri e organi in movimento" },
+        { id: "v2", testo: "Funi e pulsanti di emergenza dei nastri funzionanti e raggiungibili" },
+        { id: "v3", testo: "Blocco della macchina in manutenzione (procedura di messa fuori servizio)" },
+        { id: "v4", testo: "Passerelle, scale e parapetti integri e sgombri" },
+        { id: "v5", testo: "Aspirazione e abbattimento polveri in funzione" },
+        { id: "v6", testo: "Quadri elettrici chiusi, accessibili e senza cavi volanti" },
+        { id: "v7", testo: "Nessun accumulo di materiale sotto nastri e tramogge" },
+        { id: "v8", testo: "Accesso a tramogge e spazi confinati regolato da permesso di lavoro" },
+      ],
+      esiti: {
+        v1: { esito: "conforme", nota: "" },
+        v2: { esito: "conforme", nota: "" },
+        v3: { esito: "conforme", nota: "" },
+      },
+      stato: "completata", dataChiusura: "2026-07-22" },
   ],
   mansioni: [
     { id: "n1", nome: "Escavatorista / palista",
@@ -232,6 +262,18 @@ export const DEMO = {
     { id: "o4", ruolo: "primo-soccorso", lavoratoreId: "d5", dal: "2025-04-14", al: null, note: "" },
     { id: "o5", ruolo: "antincendio", lavoratoreId: "d2", dal: "2025-04-14", al: null, note: "" },
     { id: "o6", ruolo: "rls", lavoratoreId: "d5", dal: "2024-11-08", al: null, note: "Eletto dai lavoratori" },
+    /* ⛔ UNA NOMINA SENZA LA DATA DA CUI DECORRE: la persona c'è, ma davanti a
+       un ispettore non si dimostra da quando. `organigrammaSicurezza` la conta
+       in `senzaData` e la pagina la scrive in giallo — ma con tutte e sei le
+       nomine datate quel ramo non si accendeva mai, e la difesa restava
+       invisibile.
+       ⚠️ Va su un ruolo SENZA requisito di formazione, e non a caso: nella
+       pastiglia i due rossi della formazione vengono PRIMA di «Senza data di
+       nomina», quindi su `preposto` — dove in dimostrazione nessuno ha il
+       corso — si sarebbe visto «Formazione non registrata» e questa riga non
+       avrebbe mostrato quello per cui esiste. E il rosso «Da nominare» non si
+       perde: resta acceso su `medico`. */
+    { id: "o7", ruolo: "direttore", lavoratoreId: "d3", dal: null, al: null, note: "Da registro cartaceo: data di decorrenza non riportata" },
   ],
   dpi: [
     { id: "e1", lavoratoreId: "d1", tipo: "elmetto", modello: "", taglia: "unica", dataConsegna: "2026-01-12", scadenza: "2031-01-12", addestramento: false, dataAddestramento: null, note: "" },
