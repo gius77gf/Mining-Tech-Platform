@@ -14,7 +14,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const H = await import(
   join(HERE, "../../../shared/deepwork-id-client/dw-shell.js")
 );
-const { esc, csvCell, parseCsvLine, numIt, isIntestazione, dataISOEsiste, leggiCsv } = H;
+const { esc, csvCell, parseCsvLine, numIt, isIntestazione, dataISOEsiste, leggiCsv, giorniTra } = H;
 
 let passed = 0, failed = 0;
 const test = (name, fn) => {
@@ -235,6 +235,27 @@ test("l'apostrofo che NON è una guardia resta dov'è", () => {
   // sarebbe cambiare il dato di chi scrive
   eq(leggiCsv("a;b\n'ndrangheta;x").righe[1][0], "'ndrangheta", "parola");
   eq(leggiCsv("a;b\n'90;x").righe[1][0], "'90", "anno abbreviato");
+});
+test("⛔ giorniTra: una data che NON ESISTE non produce un conto di giorni", () => {
+  /* `new Date("2026-02-30T00:00:00")` non è invalida: `Date` fa **scorrere** il
+     giorno al 2 marzo. Effetto misurato in Conti, dove `giorniTra` regge le
+     scadenze: una fattura con scadenza 30 febbraio usciva «insoluta da 152
+     giorni» invece di «senza scadenza» — un ritardo inventato, e un cliente
+     sollecitato per una data che non c'è. Vale per cinque app. */
+  const oggi = new Date("2026-08-01T12:00:00");
+  for (const s of ["2026-02-30", "2026-02-29", "2026-04-31", "2026-13-45", "2026-00-10"])
+    eq(Number.isNaN(giorniTra(s, oggi)), true, `«${s}» non esiste: non può dare un numero`);
+  // e il 29 febbraio di un anno BISESTILE invece esiste
+  eq(giorniTra("2024-02-29", new Date("2024-03-01T12:00:00")), -1, "il 29 febbraio del 2024 c'è");
+});
+test("⛔ giorniTra: e un ISTANTE è una data buona, non va persa", () => {
+  /* il difetto opposto, e nello stesso punto: «2026-06-30T10:00» diventava
+     `…T10:00T00:00:00`, cioè NaN — la scadenza c'era e l'app rispondeva
+     «senza scadenza». È lo stesso caso già corretto in `dataIt`. */
+  const oggi = new Date("2026-08-01T12:00:00");
+  eq(giorniTra("2026-06-30T10:00", oggi), -32, "istante con l'ora");
+  eq(giorniTra("2026-06-30T23:59:59Z", oggi), -32, "istante con i secondi e la zona");
+  eq(giorniTra("2026-06-30", oggi), -32, "e la data secca dà lo stesso numero");
 });
 test("numIt: un non-numero non diventa un numero enorme", () => {
   // `+"Infinity"` fa Infinity, e da lì ogni confronto con una soglia è vero

@@ -234,9 +234,25 @@ export function dataISOEsiste(s) {
 // risulterebbe "scaduta" tutto il giorno). Usa round per essere robusto ai
 // cambi di ora legale (giorni da 23/25 h). Positivo = nel futuro; NaN se la
 // data non è valida (i chiamanti scartano/ignorano il NaN come prima).
+/* ⛔ `new Date(dataISO + "T00:00:00")` SBAGLIAVA NEI DUE VERSI OPPOSTI, e questa
+   funzione la usano **cinque app** (Conti, Flotta, Scudo, Sentinella, Terra).
+   Misurato il 01/08 su 17 casi, 5 rispondevano diverso:
+     · **inventava un numero per una data che non esiste** — «2026-02-30»
+       (e «2026-02-29», che nel 2026 non c'è, e «2026-04-31») non vengono
+       rifiutate da `Date`: vengono fatte **scorrere** al giorno dopo. Effetto
+       in Conti, misurato: una fattura con scadenza 30 febbraio usciva
+       «**insoluta da 152 giorni**» invece che «senza scadenza» — un ritardo
+       inventato, e un cliente sollecitato per una data che non esiste;
+     · **perdeva una data buona** — un ISTANTE («2026-06-30T10:00») diventava
+       `…T10:00T00:00:00`, cioè `NaN`: la scadenza c'era e l'app rispondeva
+       «senza scadenza».
+   La funzione che sa la differenza (`dataISOEsiste`) è in questo stesso file
+   **da mesi**: è di nuovo il caso in cui la risposta era già in casa. */
 export function giorniTra(dataISO, oggi = new Date()) {
+  const g = String(dataISO == null ? "" : dataISO).slice(0, 10);
+  if (!dataISOEsiste(g)) return NaN;
   const o = new Date(oggi); o.setHours(0, 0, 0, 0);
-  return Math.round((new Date(dataISO + "T00:00:00") - o) / 86400000);
+  return Math.round((new Date(g + "T00:00:00") - o) / 86400000);
 }
 
 // OGGI PIÙ N GIORNI, in ISO e in giorni di CALENDARIO LOCALI.
