@@ -304,6 +304,8 @@ modulo della sicurezza. C'è però una prova che blinda il comportamento di oggi
 e lo nomina, così se un giorno cambia si sa che è stato **scelto** e non
 successo.
 
+- [ ] **14.** Un DPI senza data di sostituzione: **verde** (l'hai svuotata apposta) o **attenzione** (nessuno ha detto entro quando va sostituito)?
+
 ## 15. Dove vive «Il Quadro», il cruscotto del titolare?
 
 *Domanda nata il 02/08 rileggendo `RICERCA_CRUSCOTTO_TITOLARE_202607.md` prima di
@@ -340,6 +342,8 @@ nessuna identità di prodotto.
 come si presenta il prodotto, ed è una scelta tua. Nel frattempo il lavoro
 procede su quello che serve **in tutte e tre**: le funzioni che alimentano le
 tessere esistono già in tutte le app e sono coperte da prove.
+
+- [ ] **15.** Dove vive «Il Quadro»: **(a)** nel core, **(b)** una app nuova `apps/quadro/`, **(c)** dentro Deepwork ID?
 
 ## 16. Un punto di monitoraggio SENZA soglia: che cosa deve dire?
 
@@ -384,6 +388,8 @@ b) **lasciarlo com'è** e considerarlo chiuso dal fatto che l'interfaccia non ci
 ⚠️ **Non l'ho toccato.** La (a) è quasi certamente la risposta giusta per il
 prodotto, ma tocca il modo in cui si giudica una misura ambientale: è tua.
 
+- [ ] **16.** Punto senza soglia: **(a)** stato a sé «Senza soglia» (e i conteggi di conformità cambiano) o **(b)** si lascia com'è, chiuso dal fatto che l'interfaccia non ci arriva?
+
 ## 17. Un infortunio con la prognosi ANCORA APERTA: quante giornate perse?
 
 *Trovato il 01/08 dallo stesso censimento, in Scudo. Anche questo è tuo, e per
@@ -416,6 +422,8 @@ come Terra fa già col cumulato quando il pregresso non è dichiarato.
 
 ⚠️ **Non l'ho toccato**, e c'è la prova che blinda il comportamento di oggi e lo
 nomina: se un giorno cambia, si saprà che è stato **scelto**.
+
+- [ ] **17.** Infortunio a prognosi aperta: **(a)** si distingue da «0 giornate» e la gravità si dichiara un **minimo**, o **(b)** resta com'è?
 
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde

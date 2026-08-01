@@ -2053,9 +2053,40 @@ campi interi, file delle macchine.
   scrivere soglie o aliquote fisse nel codice.
 
 ## IN ATTESA DEL FONDATORE (non bloccano il lavoro)
-1. **Progetto Firebase** (10 minuti) → sblocca il go-live delle sei app.
-2. **Prova del drone** → sblocca il burden reale sul fronte vero.
-3. **Via libera alle curve di sicurezza** USBM + DIN (pronte, documentate).
+
+⚠️ **Questo elenco diceva quattro cose, e in `docs/DECISIONI_WEEKEND.md` le
+decisioni sono diciassette** *(corretto il 01/08)*. Non è una svista da poco: è
+la lista che il fondatore guarda per sapere **che cosa aspetta lui**, e ne
+mostrava meno di un quarto. La fonte unica resta il documento; qui sotto
+l'estratto, con i numeri per ritrovarle.
+⚠️ E il documento diceva «spuntare `[ ]` → `[x]` quando la decisione è presa»
+mentre i punti **14, 15, 16 e 17 non avevano nessuna casella** — compresi i due
+aggiunti stanotte. Adesso ce l'hanno tutti: 23 caselle in 17 decisioni.
+
+**Le tre che sbloccano lavoro fermo:**
+1. **Progetto Firebase** (10 minuti) → sblocca il go-live delle sei app. *(1)*
+2. **Prova del drone** → sblocca il burden reale sul fronte vero. *(7)*
+3. **Via libera alle curve di sicurezza** USBM + DIN (pronte, documentate). *(9)*
+
+**Le cinque scelte di prodotto aperte** — nessuna blocca il lavoro, ma ognuna
+decide come il prodotto racconta un dato che manca, che è il tema di questa
+settimana:
+- *(13)* una **mansione senza requisiti**: «può andare» o «non lo sappiamo»?
+- *(14)* un **DPI senza data di sostituzione**: verde o attenzione?
+- *(15)* **dove vive «Il Quadro»** — nel core, in una app nuova, o in Deepwork ID?
+  Il progetto è pronto parola per parola; manca solo dove metterlo.
+- *(16)* un **punto di monitoraggio senza soglia**: oggi viene confrontato con
+  una soglia **inventata**, e sbaglia in **tutt'e due i versi** (verde a 0,8,
+  allarme a 1,2). ⛔ È una soglia di sicurezza: ferma finché non lo dici tu.
+- *(17)* un **infortunio a prognosi ancora aperta**: oggi entra come **zero
+  giornate perse**, quindi alza la frequenza e lascia la gravità ferma.
+
+**E le altre**, già scritte nel documento: regole del progetto Firebase
+esistente *(2)*, dati di default reali o di fantasia *(3)*, mitigazione password
+*(4)*, stile degli errori di scrittura e persistenza offline *(5)*, geometria
+del fronte in Genesi *(6)*, prossima funzione delle verticali *(8)*, abbonamento
+e chi può cancellare *(10)*, come si raccontano Deepwork e Genesi *(11)*, copia
+di sicurezza dei dati del cliente *(12)*.
 4. Nuova **PR verso main** per il lavoro di questa settimana. ⚠️ *Stato al
    31/07: la **PR #322** è aperta e contiene già anche il lavoro di oggi (stesso
    ramo), ma la sua **descrizione si ferma al 30/07** — chi la legge non trova la
