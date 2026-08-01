@@ -303,3 +303,68 @@ Verifica incrociata con:
 **Ambito dove possiamo fare meglio**:
 Telematica **anticipatoria**, non solo tracking: mostrare il guasto prima che capiti, proporre il tagliando dai consumi anomali, non dalle sole ore.
 
+
+---
+
+## Verifica del delta (01/08)
+
+*Verificate tutte le righe delle liste «C'è a metà 🟡» e «Non c'è ❌», più le
+righe della tabella DELTA che non vi comparivano. Due coppie erano lo stesso
+punto scritto due volte — «Telematica real-time» (in ❌) è la stessa cosa di
+«Telemetria: solo import CSV» (in 🟡), e «Dashboard mobile nativa» (in ❌) è la
+stessa cosa di «Mobile: solo PWA» (in 🟡) — e sono contate una volta sola:
+**16 righe distinte**.*
+
+| Funzione | Verdetto | Prova |
+|---|---|---|
+| Telematica real-time (GPS + diagnostica + fault codes) | **C'È A METÀ** — la riga 🟡 del documento era **giusta** | *C'è*: `parseTelemetriaCsv` (`flotta-data.js:531`), import da CSV esportato dai portali OEM, con le letture del contatore e la loro data — che poi alimentano `ritmoOreMezzi` (2053). *Manca*: qualunque flusso live. Cercati `GPS`, `posizione`, `real-time`, `fault code`, `diagnostic`, `latitudine` in `flotta-data.js` e `flotta/index.html`: nessuna occorrenza operativa, nessuna chiamata di rete verso un portale OEM. |
+| Mobile: app nativa offline-first | **C'È A METÀ** — la riga 🟡 era **giusta**, ma per una ragione più seria di quella scritta | *C'è*: PWA installabile — manifest `standalone` con icone (`flotta/index.html:12`), e lo scheletro può arrivare dalla cache del `sw.js` di radice. *Manca*, e non è «solo l'app nativa»: **i dati non hanno persistenza offline**. Il `sw.js` non precarica nulla sotto `apps/` (`APP_SHELL`, `sw.js:7-25`) e il suo commento «le scritture le gestisce IndexedDB persistence di Firebase» (riga 66) **non è vero per le app**: `persistentLocalCache` è attivato solo nel core (`index.html:126-137`), mentre l'SDK che le app usano fa `getFirestore` liscio (`shared/deepwork-id-client/index.js:63`). Senza rete, in officina, non si scrive niente e non si legge niente. |
+| Piani manutenzione a km / miglia | **CONFERMATO ASSENTE** — la riga 🟡 era **giusta** | I piani sono a ore o a data: `PIANI_TAGLIANDO` 250/500/1000/2000 **ore** (`flotta-data.js:1301-1311`), `ogniMesi` per il calendario, `aggiungiMesi` (436). Cercati `chilometr`, `km`, `miglia`, `odometro`, `contachilometri` in `flotta-data.js` e `flotta/index.html`: le sole occorrenze di «migliaia» riguardano il **separatore dei numeri**, non i chilometri. |
+| OEE (Overall Equipment Effectiveness) | **C'È A METÀ** — e la ragione scritta nel documento («Flotta ha la disponibilità %, ma non un KPI per mezzo») è **falsa** | *C'è*, e **per mezzo**: `affidabilitaFlotta` (`flotta-data.js:1968`) restituisce `mezzi[].pct` — la disponibilità della singola macchina sui giorni-macchina — oltre alla `pct` del parco, ed è disegnata mezzo per mezzo (`flotta/index.html:2254-2270`, con la nota «cioè una disponibilità sua del X%» accanto alla disponibilità del parco). *Manca*: **prestazione e qualità**, cioè i due fattori che rendono l'OEE un OEE — e l'assenza è già **dichiarata nel prodotto**, non dimenticata: il rapporto di Campo scrive «Disponibilità … **non è l'OEE**: l'OEE moltiplica disponibilità, prestazione e qualità, e prestazione e qualità qui non sono misurate» (`apps/campo/index.html:3079`, e già nel form a 713). |
+| Noleggi equipaggi (senza operatore) | **C'È A METÀ** — «solo come voce di costo generica» è **inesatto** | *C'è*: la voce di costo `noleggio` → «Noleggi e leasing» in `shared/dw-ponti.js:657` (con `daMezzo: true`), i costi d'esempio (`flotta-data.js:331,333`) **e soprattutto** l'adempimento del noleggio a freddo fra le scadenze preimpostate: `noleggio-freddo` (413-416), con l'attestazione del buono stato e la dichiarazione che gli operatori sono formati e abilitati, da conservare per tutta la durata del noleggio. *Manca*: l'**oggetto noleggio** — data inizio/fine, ore o giorni di utilizzo, abbinamento a commessa. Cercati `noleggi`, `nolo`, `rental`: nessuna collection dedicata. |
+| Integrazione fornitori / auto-ordini ricambi | **C'È A METÀ** | *C'è*: **che cosa e quanto ordinare** — `consumoRicambi` (`flotta-data.js:1764`), `puntoDiRiordino(alGiorno, consegnaGiorni, sicurezzaGiorni)` (1805), `propostaScorte` (1823) che dà `daOrdinare`, `spesa` per riga e `spesaTotale`, e tiene a parte i ricambi `senzaConsumo` invece di inventarne la soglia. *Manca*: il **fornitore** — cercati `fornitor`, `approvvigion`, `catalogo`, `Gearflow`: nessuna anagrafica fornitori e nessun invio dell'ordine. |
+| MTBF / MTTR analytics | **FALSO, C'È GIÀ** | `affidabilitaFlotta` (`flotta-data.js:1968`) restituisce **`durataMedia`** — «durata media di un fermo (**MTTR** in giorni)» — e **`fraUnFermoELaltro`** — «giorni di lavoro fra un fermo e l'altro (**MTBF** semplificato)», commento e codice a 2010-2013, più `durataMedia` e `pct` per singolo mezzo (2002-2003). Sono anche **scritte in pagina**: «lunghi in media N giorni… Fra un fermo e l'altro il parco ha lavorato N giorni-macchina» (`flotta/index.html:2245-2246`). E hanno la regola d'onestà giusta: il «fra» non si scrive con un fermo solo (`episodi >= 2`). |
+| Firma digitale cliente su ordine chiuso | **CONFERMATO ASSENTE** | Cercati `firma digitale`, `firma grafometrica`, `firma` in `flotta-data.js` e `flotta/index.html`: le uniche occorrenze sono **testi di normativa** dentro le note delle scadenze («ogni verifica va annotata con data, firma di chi l'ha fatta», 400). Nessun campo, nessun canvas di firma sull'ordine di lavoro. |
+| Notifiche push | **C'È A METÀ** (nell'ecosistema) | *C'è, nel core*: FCM completo — `firebase-messaging-sw.js` alla radice, registrazione del service worker dedicato e `getToken` con VAPID, token salvati sull'utente e limitati a 5 device, pronti per la Cloud Function che invierà le push (`index.html:215-245`). *Manca*: **niente in Flotta lo accende**. Le urgenze esistono e sono già ordinate — `prioritaOperative` (`flotta-data.js:753`) mette in fila scadenze, manutenzioni, ricambi sotto scorta e mezzi fermi con la loro gravità — ma restano dentro la pagina. Cercati `notific`, `push`, `promemoria` in `flotta-data.js`/`flotta/index.html`: solo `items.push(` di array. |
+| Budget tracking vs actual | **CONFERMATO ASSENTE** | Cercati `budget`, `preventivo di spesa`, `stanziam`, `sforat` in `flotta-data.js` e `flotta/index.html`: **una sola occorrenza, in un commento** (`index.html:1591`, «il budget, che è la domanda da cui nasce la decisione…»). C'è lo **speso** — `ripartizioneCosti` (829), `costiPerMese` (867), `costoOfficinaPerMezzo` (945), `costoOrarioMezzo` (981) — e non c'è nessun **dichiarato** con cui confrontarlo. |
+| Gestione guasti rapidi (ticket guasto, urgenza) | **FALSO, C'È GIÀ** — è la falsa più grossa di questo documento | È un cantiere finito e numerato (**L8**): `GRAVITA_GUASTO` con tre gradini — «Non si può usare» / «Lavora, ma male» / «Piccola cosa» — e il flag `alta` che fa **proporre di mettere il mezzo in verifica** (`flotta-data.js:1228-1238`); `gravitaGuasto` che torna `null` invece del gradino più basso (1243); `validaGuasto` con messaggi scritti per chi è in piedi accanto alla macchina (1250); `manutenzioneDaGuasto` che genera la manutenzione con `origine: "guasto"`, entrando **da sola** nelle priorità del Quadro (1279). Nella pagina: bottone «Segnala un guasto» sulla scheda (`index.html:998`), icona d'avviso sulla riga del parco (1572), stile dedicato (287, 434), icona d'origine nelle liste (1133). |
+| Analisi costo / disponibilità («qual è il mezzo più inefficiente?») | **C'È A METÀ** | *C'è*, per mezzo e su tutt'e due gli assi: il **costo** — `costoOrarioMezzo` (`flotta-data.js:981`) con `euroOra`, `euroOraOfficina`, `euroOraCarburante`, `parziale` e il caso «senza ore non si risponde 0 €/h» già gestito con `perche` — e la **disponibilità** — `affidabilitaFlotta.mezzi[].pct` (2002). E c'è il fascicolo che raccoglie i due su una macchina sola: `fascicoloMezzo` (1522) restituisce `speso` (officina + carburante) accanto a `fermo: {episodi, giorni, aperti}`. *Manca*: la **vista che li incrocia** — le classifiche disegnate sono separate (costo officina per mezzo a `index.html:1595-1615`, giorni di fermo per mezzo a 2254-2270) e nessuna mette €/h e disponibilità sullo stesso piano. |
+| Link fatture a ordini di lavoro | **CONFERMATO ASSENTE** | Cercati `fattura`, `contabil` in `flotta-data.js` e `flotta/index.html`: **zero occorrenze**. Il costo dell'ordine si somma (`costoOrdine`, 1601) ma non ha un documento a cui agganciarsi. *Nota d'ecosistema*: il ponte fra le due app esiste, ma serve a **non contare due volte** — `VOCI_COSTO` con `daMezzo: true` in `shared/dw-ponti.js:651-657`, il badge «anche in Flotta» in Conti (`apps/conti/index.html:3069`) e l'avviso al momento di scegliere la voce (4048, 4540). |
+| Benchmark interno flotta (questo mezzo vs media) | **C'È A METÀ** | *C'è*: le classifiche interne, tutte ordinate e con la nota che dice chi è in cima — giorni di fermo per mezzo con la disponibilità individuale accanto a quella del parco (`flotta/index.html:2254-2270`), costo d'officina per mezzo col «peggiore» e la sua % sul totale (1595-1615), consumo per mezzo ordinato per l/h (`consumoPerMezzo`, `flotta-data.js:1465`). E la regola giusta è già scritta: con un mezzo solo «non c'è una classifica da leggere» (`index.html:1611-1615`). *Manca*: lo **scostamento dichiarato** per ogni mezzo («E1 82%, media flotta 75%, +7») come colonna sistematica, non come frase sul primo della lista. |
+| Calcolo previsione giorni a scadenza preventiva | **FALSO, C'È GIÀ** — e il documento **si contraddice da solo** | La riga «mancano ore X, ritmo Y h/gg → N giorni» è esattamente `previsioneGiorni(mancanoOre, oreGiorno)` (`flotta-data.js:696`), con la guardia contro il difetto opposto («quante ore mancano non si sa ≠ ne mancano zero», 690-695). Il ritmo si **misura**: `ritmoOreMezzi` (2053) e `ritmoDelMezzo` (2101) sui contatori che l'app ha già (rifornimenti L4 e giri macchina L2), con quattro regole dichiarate — almeno due letture, copertura di metà orizzonte, ore crescenti, ultima lettura non più vecchia dell'orizzonte. `tagliandiInScadenza` (2110) lo usa e tiene a parte i `daStimare` invece di tirare a indovinare. La sezione MONDO di **questo stesso documento** lo elenca fra le funzioni che Flotta ha: «Ritmo d'uso calcolato (ore/giorno o km/giorno) per stimare giorni a scadenza (**Flotta**, Caterpillar VisionLink, Volvo CareTrack) [verificato]». |
+| Unità di misura flessibili selezionabili per mezzo | **CONFERMATO ASSENTE** | Conseguenza della riga sui km: l'unità non è un campo del mezzo. `TIPI_MEZZO` (`flotta-data.js:1033`) e `tipoMezzoDi` (1049) scelgono la **checklist pre-uso**, non l'unità di conteggio; `oreContatore` legge sempre le ore. Cercati `unitaMisura`, `unita del mezzo`, `odometro`: zero. |
+
+### Riepilogo numerico — Flotta
+
+| | |
+|---|---|
+| Righe verificate | **16** |
+| Confermate assenti | **5** |
+| False (c'era già) | **3** |
+| A metà | **8** |
+
+**Le false:** *MTBF/MTTR* (calcolati e scritti in pagina), *gestione guasti
+rapidi* (un cantiere finito, L8, con tre gravità e la generazione della
+manutenzione) e *previsione dei giorni a scadenza* (che il documento stesso
+elenca fra le cose che Flotta ha, dodici righe più su).
+
+⚠️ **Otto righe su sedici sono «a metà», e in quattro casi la motivazione
+scritta nel documento era sbagliata** (OEE «non un KPI per mezzo», noleggi
+«solo voce di costo generica», mobile «solo l'app nativa», auto-ordini «due
+click»). Un delta con la metà giusta e la ragione sbagliata manda a lavorare
+sul pezzo sbagliato della stessa funzione: sull'OEE, per esempio, avrebbe fatto
+costruire un numero per mezzo che esiste già, invece della prestazione e della
+qualità, che sono la parte che manca davvero.
+
+### La mancanza confermata più importante — Flotta
+
+**La persistenza offline dei dati** (dentro la riga «mobile»). Non l'app nativa:
+la **scrittura senza rete**. Il giro macchina di inizio turno e la segnalazione
+di un guasto sono le due funzioni che Flotta ha costruito apposta per chi sta
+davanti alla macchina, e sono esattamente le due che si fanno dove la rete non
+c'è — al fronte, in officina, sotto il capannone.
+
+Oggi l'SDK apre Firestore senza cache persistente mentre il core, che sta in
+ufficio e la rete ce l'ha, la persistenza ce l'ha: è al contrario. E il costo di
+lasciarla così non è un errore visibile — è il giro macchina che non si compila
+e la macchina che parte senza.

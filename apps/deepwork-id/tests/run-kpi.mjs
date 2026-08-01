@@ -2279,6 +2279,154 @@ test("un anno senza infortuni dà indici a ZERO, che è un fatto — non l'assen
   eq([r.indiceFrequenza, r.indiceGravita, r.ltifr], [0, 0, 0], "zero infortuni = indici zero");
   eq(r.infortuni, 0, "ed è dichiarato che sono zero");
 });
+
+// ── Scudo · andamento indici ────────────────────────────────────────────────
+console.log("\n— Scudo: l'andamento degli indici anno per anno —");
+/* Tre difetti che questa unità ha avuto davvero, trovati in scratchpad prima di
+   scrivere la funzione nel modulo, e che queste prove tengono chiusi:
+   A. il messaggio «un anno solo con le ore» MENTIVA quando un anno con le ore
+      cadeva fuori dal periodo mostrato;
+   C. due registrazioni di ore diverse per lo stesso anno vincevano l'ultima in
+      silenzio, cioè cambiavano l'indice senza che si vedesse;
+   E. l'anno si leggeva in modo più severo che in `indiciInfortunistici`, quindi
+      un infortunio con `data:"2026"` entrava nell'indice ma non nella serie. */
+const INF_TREND = [
+  { data: "2024-03-01", tipo: "infortunio", giorniAssenza: 10 },
+  { data: "2024-09-01", tipo: "infortunio", giorniAssenza: 0 },
+  { data: "2025-04-04", tipo: "infortunio", giorniAssenza: 30 },
+  { data: "2026-02-03", tipo: "infortunio", giorniAssenza: 4 },
+  { data: "2026-05-18", tipo: "near-miss", giorniAssenza: 0 },
+];
+const ORE_TREND = [{ anno: 2024, ore: 100000 }, { anno: 2025, ore: 100000 }, { anno: 2026, ore: 100000 }];
+test("INDICI_TREND è l'elenco dei tre indici, nell'ordine in cui si leggono", () => {
+  eq(scudo.INDICI_TREND.map(d => d.sigla), ["IF", "IG", "LTIFR"], "frequenza, gravità, LTIFR");
+  eq(scudo.INDICI_TREND.map(d => d.chiave), ["indiceFrequenza", "indiceGravita", "ltifr"],
+    "e le chiavi sono quelle che indiciInfortunistici restituisce davvero");
+  const r = scudo.indiciInfortunistici([{ data: "2026-01-01", tipo: "infortunio", giorniAssenza: 1 }], 100000, 2026);
+  ok(scudo.INDICI_TREND.every(d => d.chiave in r), "nessuna chiave inventata: se una sparisse, l'andamento leggerebbe undefined");
+  ok(scudo.INDICI_TREND.every(d => d.nome && d.sigla), "ognuno porta il nome esteso e la sigla");
+});
+test("la serie esce un anno per riga, dal primo anno noto all'anno chiesto", () => {
+  const r = scudo.andamentoIndici(INF_TREND, ORE_TREND, { annoFine: 2026 });
+  eq(r.anni.map(x => x.anno), [2024, 2025, 2026], "2024, 2025, 2026");
+  eq(r.misurabili, 3, "tutti e tre misurabili");
+  eq(r.anni.map(x => x.indiceFrequenza), [20, 10, 10], "IF anno per anno");
+  eq([r.dal, r.al], [2024, 2026], "il periodo mostrato è dichiarato");
+});
+test("⛔ un anno SENZA ore è un buco, non uno zero", () => {
+  const r = scudo.andamentoIndici(INF_TREND, [{ anno: 2024, ore: 100000 }, { anno: 2026, ore: 100000 }], { annoFine: 2026 });
+  eq(r.anni[1].anno, 2025, "il 2025 resta in serie: non sparisce");
+  eq(r.anni[1].calcolabile, false, "e si dichiara non calcolabile");
+  eq([r.anni[1].indiceFrequenza, r.anni[1].indiceGravita, r.anni[1].ltifr], [null, null, null],
+    "null — che il motore dei grafici non scavalca; 0 avrebbe disegnato un anno perfetto");
+  ok(/ORE LAVORATE/.test(r.anni[1].motivo), "con la ragione scritta");
+});
+test("⛔ un anno con INFORTUNI ma senza ore viene detto per nome", () => {
+  const r = scudo.andamentoIndici(INF_TREND, [{ anno: 2024, ore: 100000 }, { anno: 2026, ore: 100000 }], { annoFine: 2026 });
+  eq(r.conEventiSenzaOre, [2025], "è il buco che nasconde una notizia brutta");
+  const s = scudo.andamentoIndici([{ data: "2026-01-01", tipo: "infortunio", giorniAssenza: 1 }],
+    [{ anno: 2025, ore: 100000 }], { annoFine: 2026 });
+  eq(s.conEventiSenzaOre, [2026], "e vale anche per l'anno in corso");
+});
+test("il confronto è fra gli ultimi due anni MISURATI, e dice se sono consecutivi", () => {
+  const r = scudo.andamentoIndici(INF_TREND, ORE_TREND, { annoFine: 2026 });
+  eq([r.confronto.da, r.confronto.a], [2025, 2026], "2025 → 2026");
+  eq(r.confronto.adiacenti, true, "consecutivi");
+  const s = scudo.andamentoIndici(INF_TREND, [{ anno: 2024, ore: 100000 }, { anno: 2026, ore: 100000 }], { annoFine: 2026 });
+  eq([s.confronto.da, s.confronto.a], [2024, 2026], "saltando il buco");
+  eq(s.confronto.adiacenti, false, "e NON sono consecutivi: la pagina non può dire «l'anno scorso»");
+  eq(s.confronto.salto, 2, "quanti anni di distanza");
+});
+test("⛔ su questi indici SCENDERE è migliorare, e il verso lo dice la funzione", () => {
+  const r = scudo.andamentoIndici(INF_TREND, ORE_TREND, { annoFine: 2026 });
+  const per = Object.fromEntries(r.confronto.per.map(p => [p.sigla, p]));
+  eq(per.IG.da, 0.3, "IG 2025 = 30 giornate × 1.000 / 100.000");
+  eq(per.IG.a, 0.04, "IG 2026 = 4 giornate × 1.000 / 100.000");
+  eq(per.IG.verso, "migliora", "scende = migliora, non «−86,7% in rosso»");
+  eq(per.IG.variazione, -86.7, "la variazione è negativa proprio quando la notizia è buona");
+  eq(per.IF.verso, "stabile", "IF 10 → 10");
+  eq(r.confronto.verso, "migliora", "verso complessivo");
+});
+test("⛔ meno infortuni ma più gravi non si riassume in una freccia: è «misto»", () => {
+  const inf = [
+    { data: "2025-01-01", tipo: "infortunio", giorniAssenza: 1 },
+    { data: "2025-02-01", tipo: "infortunio", giorniAssenza: 1 },
+    { data: "2026-01-01", tipo: "infortunio", giorniAssenza: 60 },
+  ];
+  const r = scudo.andamentoIndici(inf, [{ anno: 2025, ore: 100000 }, { anno: 2026, ore: 100000 }], { annoFine: 2026 });
+  const per = Object.fromEntries(r.confronto.per.map(p => [p.sigla, p]));
+  eq(per.IF.verso, "migliora", "2 infortuni → 1");
+  eq(per.IG.verso, "peggiora", "2 giornate perse → 60");
+  eq(r.confronto.verso, "misto", "e il riassunto non sceglie quale delle due raccontare");
+});
+test("⛔ da zero non esiste una variazione in percentuale", () => {
+  const r = scudo.andamentoIndici([{ data: "2026-02-03", tipo: "infortunio", giorniAssenza: 4 }],
+    [{ anno: 2025, ore: 100000 }, { anno: 2026, ore: 100000 }], { annoFine: 2026 });
+  const p = r.confronto.per[0];
+  eq(p.da, 0, "il 2025 era a zero");
+  /* ⚠️ IDENTITÀ, NON `eq`. `eq` confronta con JSON.stringify, e
+     `JSON.stringify(Infinity)` vale `"null"`: scritta `eq(p.variazione, null)`
+     questa riga passava ANCHE con la divisione per zero rimessa dentro, cioè
+     proprio sul difetto che porta nel nome. L'ha trovata la controprova. */
+  ok(p.variazione === null, "niente Infinity travestito da null");
+  ok(!Number.isFinite(p.variazione), "e nessun numero al suo posto");
+  ok(/zero/.test(p.variazionePerche), "e la ragione è scritta");
+  eq(p.verso, "peggiora", "ma il verso si sa lo stesso");
+  eq(p.delta, 10, "e il salto in valore pure");
+});
+test("⛔ due registrazioni di ore DIVERSE per lo stesso anno non si risolvono a caso", () => {
+  const r = scudo.andamentoIndici([{ data: "2026-01-01", tipo: "infortunio", giorniAssenza: 2 }],
+    [{ anno: 2026, ore: 100000 }, { anno: 2026, ore: 50000 }], { annoFine: 2026 });
+  const u = r.anni[r.anni.length - 1];
+  eq(u.calcolabile, false, "l'anno doppio non è calcolabile");
+  ok(/DUE registrazioni/.test(u.motivo), "e la ragione lo dice");
+  eq(r.anniDubbi, [2026], "l'anno è elencato fra i dubbi");
+  const s = scudo.andamentoIndici([], [{ anno: 2026, ore: 100000 }, { anno: 2026, ore: 100000 }], { annoFine: 2026 });
+  eq(s.anni[s.anni.length - 1].calcolabile, true, "ma due registrazioni UGUALI non sono un dubbio");
+});
+test("⛔ il messaggio «un anno solo» non mente su chi sta fuori dal periodo", () => {
+  const r = scudo.andamentoIndici([], [{ anno: 2015, ore: 100000 }, { anno: 2026, ore: 100000 }], { annoFine: 2026 });
+  eq(r.confronto.confrontabile, false, "nel periodo mostrato ce n'è uno solo");
+  eq(r.oreFuoriPeriodo, [2015], "ma il 2015 ha le ore ed è fuori: dichiarato");
+  ok(/2015/.test(r.confronto.motivo), "e il messaggio lo nomina, invece di far credere che non esista");
+  ok(r.anni.length <= 6, "la finestra non stampa dodici anni vuoti");
+});
+test("senza nessun anno misurabile non si inventa un andamento", () => {
+  const r = scudo.andamentoIndici(INF_TREND, [], { annoFine: 2026 });
+  eq(r.misurabili, 0, "nessun anno con le ore");
+  eq(r.confronto.confrontabile, false, "quindi niente andamento");
+  ok(/non c'è nessun anno con le ore/.test(r.confronto.motivo), "e la ragione è scritta");
+  eq(r.anni.length, 3, "la serie però c'è, tutta a buchi");
+  ok(r.anni.every(x => x.calcolabile === false), "e nessun anno finge di valere zero");
+});
+test("⛔ pochi eventi = nessuna tendenza, con la SOGLIA di riepilogoNearMiss", () => {
+  const r = scudo.andamentoIndici(INF_TREND, ORE_TREND, { annoFine: 2026 });
+  eq(r.confronto.eventi, 2, "1 infortunio nel 2025 + 1 nel 2026");
+  eq(r.confronto.pochi, true, "due eventi non sono una tendenza");
+  eq(r.confronto.pochi, scudo.troppoPochiPerTendenza(r.confronto.eventi),
+    "e la soglia è LA STESSA, non una seconda copia");
+  const tanti = [];
+  for (let i = 0; i < 4; i++) tanti.push({ data: "2025-0" + (i + 1) + "-01", tipo: "infortunio", giorniAssenza: 1 });
+  for (let i = 0; i < 4; i++) tanti.push({ data: "2026-0" + (i + 1) + "-01", tipo: "infortunio", giorniAssenza: 1 });
+  const s = scudo.andamentoIndici(tanti, [{ anno: 2025, ore: 100000 }, { anno: 2026, ore: 100000 }], { annoFine: 2026 });
+  eq(s.confronto.eventi, 8, "otto eventi");
+  eq(s.confronto.pochi, false, "sopra la soglia la tendenza si può leggere");
+});
+test("⛔ l'anno si legge come lo legge indiciInfortunistici, non più severo", () => {
+  const r = scudo.andamentoIndici([{ data: "2024", tipo: "infortunio", giorniAssenza: 3 }],
+    [{ anno: 2026, ore: 100000 }], { annoFine: 2026 });
+  eq(r.anni[0].anno, 2024, "una data ridotta al solo anno fa comparire il 2024 nella serie");
+  eq(r.anni[0].infortuni, 1, "con il suo infortunio dentro");
+  eq(scudo.indiciInfortunistici([{ data: "2024", tipo: "infortunio", giorniAssenza: 3 }], 100000, 2024).infortuni, 1,
+    "che è esattamente quello che conta indiciInfortunistici");
+});
+test("i near-miss non entrano negli indici, nemmeno nell'andamento", () => {
+  const soloNm = [{ data: "2025-01-01", tipo: "near-miss", giorniAssenza: 0 },
+                  { data: "2026-01-01", tipo: "near-miss", giorniAssenza: 0 }];
+  const r = scudo.andamentoIndici(soloNm, [{ anno: 2025, ore: 100000 }, { anno: 2026, ore: 100000 }], { annoFine: 2026 });
+  eq(r.anni.map(x => x.indiceFrequenza), [0, 0], "IF resta zero: un near-miss non è un infortunio");
+  eq(r.confronto.verso, "stabile", "e l'andamento è piatto, non «migliora»");
+});
 console.log("\n— Le voci di costo della cava (classificazione condivisa) —");
 /* ⛔ IL TEST PRETENDE L'IDENTITÀ, non il comportamento. Due copie uguali oggi
    divergono domani senza che nessuno lo veda: è la regola scritta in CLAUDE.md
@@ -10926,6 +11074,247 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     eq(s.length, 1, "l'anno in corso c'è sempre: la denuncia si prepara comunque");
     eq(s[0].misurabile, false, "e dichiara che sotto non c'è nessuna misura");
     eq(terra.serieAnnuale([scavo(25000)], attoT, oggiT)[0].misurabile, true, "con un rilievo, sì");
+  });
+}
+
+// ── Terra · volume per banco ────────────────────────────────────────────────
+// «Quanto ho cavato dal banco 3 quest'anno». La catena c'era già tutta — il
+// rilievo dichiara il fronte, il fronte dichiara il banco — e nessun conto la
+// leggeva: `banco` era un campo scritto e mai usato.
+{
+  const AUT_B = { volumeAutorizzatoM3: 1200000, estrattoPregressoM3: 340000, dataRilascio: "2021-03-15" };
+  const OGGI_B = new Date("2026-08-01T00:00:00");
+  const rieB = (ril, anno = 2026) => terra.riepilogoAnnuale(ril, anno, AUT_B, OGGI_B);
+  const RB = (ril, fro, anno = 2026) => terra.ripartizioneBanchi(rieB(ril, anno), fro);
+
+  test("⛔ Terra: la conta dei rilievi per fronte è spezzata per provenienza", () => {
+    /* senza `rilieviScavo` per fronte, chi legge la voce ha solo `scavo > 0` per
+       distinguere «misurato zero» da «mai misurato» — cioè la scorciatoia che il
+       principio dell'assenza vieta */
+    const v = rieB(terra.DEMO.rilievi).fronti;
+    const f1 = v.find((x) => x.fronteId === "f1"), nes = v.find((x) => x.fronteId === null);
+    eq(f1.rilieviScavo, 2, "f1: due rilievi di scavo nel 2026");
+    eq(f1.rilieviCumulo, 0, "e nessuna ripresa da cumulo");
+    eq(nes.rilieviCumulo, 1, "la voce senza fronte è una ripresa da cumulo");
+    eq(nes.rilieviScavo, 0, "e non ha nessun rilievo di scavo");
+    eq(nes.rilievi, nes.rilieviScavo + nes.rilieviCumulo, "il totale resta la somma dei due");
+  });
+
+  test("⛔ Terra: il volume si ripartisce per banco leggendo rilievo → fronte → banco", () => {
+    const B = RB(terra.DEMO.rilievi, terra.DEMO.fronti);
+    eq(B.righe.map((r) => r.etichetta), ["banco 2", "banco 1", "banco 3"], "in ordine di scavo");
+    eq(B.righe.map((r) => r.scavo), [40700, 38700, null], "i m³ del banco 2 e del banco 1 sono la somma dei loro fronti");
+    eq(B.righe[0].fronti, ["Fronte Nord"], "e la riga dice quali fronti ci stanno sopra");
+    eq(B.righe.map((r) => r.quotaPct), [51.3, 48.7, null], "la quota sullo scavo dell'anno");
+    eq(B.misurabile, true, "almeno un banco è stato misurato");
+    eq(B.totale, 79400, "il totale è lo scavo dell'anno, cumuli esclusi");
+  });
+
+  test("⛔ Terra: un banco senza rilievi dice «mai misurato», non «0 m³»", () => {
+    /* è la trappola già pagata da `avanzamentoLotto`: uno zero tranquillo dove
+       nessuno ha volato dice «fermo» a chi guarda, e non è quello che si sa */
+    const B = RB(terra.DEMO.rilievi, terra.DEMO.fronti);
+    const b3 = B.righe.find((r) => r.etichetta === "banco 3");
+    eq(b3.scavo, null, "⛔ non 0: nessuno l'ha misurato");
+    eq(b3.misurabile, false, "e la bandiera lo dichiara");
+    eq(b3.quotaPct, null, "una quota su un volume mai misurato non esiste");
+    ok(/non è stato misurato/.test(b3.motivo), "e la ragione è scritta: " + b3.motivo);
+  });
+
+  test("⛔ Terra: «misurato zero» e «mai misurato» restano due cose diverse", () => {
+    /* il caso che `scavo > 0` avrebbe confuso: un rilievo che ha misurato zero
+       è una misura, e vale zero; un banco senza rilievi non è una misura */
+    const fro = [{ id: "f1", nome: "A", banco: "banco 1" }, { id: "f2", nome: "B", banco: "banco 2" }];
+    const B = RB([{ id: "r1", data: "2026-03-04", stato: "elaborato", volumeM3: 0, fronteId: "f1" }], fro);
+    const b1 = B.righe.find((r) => r.etichetta === "banco 1");
+    const b2 = B.righe.find((r) => r.etichetta === "banco 2");
+    eq(b1.scavo, 0, "il banco rilevato a zero vale zero");
+    eq(b1.misurabile, true, "ed è una misura");
+    eq(b2.scavo, null, "il banco senza rilievi resta ignoto");
+    eq(b2.misurabile, false, "e non è una misura");
+  });
+
+  test("⛔ Terra: un banco con solo cumuli non ha scavato, e lo dice con la sua ragione", () => {
+    const fro = [{ id: "f1", nome: "A", banco: "banco 1" }];
+    const B = RB([{ id: "r1", data: "2026-03-04", stato: "elaborato", volumeM3: 5000,
+                   fronteId: "f1", provenienza: "cumulo" }], fro);
+    eq(B.righe[0].scavo, null, "una ripresa da cumulo non è scavo del banco");
+    eq(B.righe[0].cumulo, 5000, "ma il cumulo resta scritto nella riga");
+    ok(/solo riprese da cumulo/.test(B.righe[0].motivo), "e la ragione è quella giusta: " + B.righe[0].motivo);
+    eq(B.misurabile, false, "nessun banco misurato in quest'anno");
+    ok(/non è stato misurato/.test(B.motivo), "e il riepilogo lo dichiara");
+  });
+
+  test("⛔ Terra: i tre secchi che non sono un banco non spariscono", () => {
+    const fro = [...terra.DEMO.fronti, { id: "f9", nome: "Fronte Ovest", banco: "", quota: 300 }];
+    const ril = [...terra.DEMO.rilievi,
+      { id: "r9", data: "2026-03-04", stato: "elaborato", volumeM3: 1000, fronteId: "f9" },
+      { id: "r8", data: "2026-03-05", stato: "elaborato", volumeM3: 700, fronteId: "fX" }];
+    const B = RB(ril, fro);
+    eq(B.righe.length, 3, "il fronte senza banco non diventa una quarta riga finta");
+    eq(B.nonDichiarato.scavo, 1000, "il suo scavo va nel secchio «banco non dichiarato»");
+    eq(B.nonDichiarato.fronti, 1, "e si conta il fronte da compilare");
+    eq(B.fuoriElenco.scavo, 700, "il rilievo su un fronte cancellato si conta a parte");
+    eq(B.senzaFronte.cumulo, 5200, "e le riprese senza fronte restano fuori, dichiarate");
+    const dentro = B.righe.reduce((t, r) => t + (+r.scavo || 0), 0);
+    eq(dentro + B.nonDichiarato.scavo + B.fuoriElenco.scavo + B.senzaFronte.scavo, B.totale,
+       "⛔ e la somma torna: niente si perde per strada");
+  });
+
+  test("⛔ Terra: «Banco 2» e «banco  2» sono lo stesso banco, e si dichiara", () => {
+    const fro = [{ id: "f1", nome: "A", banco: "Banco 2" }, { id: "f2", nome: "B", banco: "banco  2" }];
+    const B = RB(terra.DEMO.rilievi, fro);
+    eq(B.righe.length, 1, "una riga sola");
+    eq(B.righe[0].scavo, 79400, "e i volumi dei due fronti si sommano");
+    eq(B.grafieDoppie, [["Banco 2", "banco 2"]], "le grafie trovate si dichiarano, non si nascondono");
+    eq(terra.ripartizioneBanchi(rieB(terra.DEMO.rilievi), terra.DEMO.fronti).grafieDoppie, [],
+       "e quando la grafia è una sola non si dichiara niente");
+  });
+
+  test("⛔ Terra: senza fronti (o senza banchi) la ripartizione non è zero, è impossibile", () => {
+    const senzaFro = terra.ripartizioneBanchi(rieB(terra.DEMO.rilievi), []);
+    eq(senzaFro.misurabile, false, "nessun fronte registrato");
+    eq(senzaFro.righe, [], "nessuna riga inventata");
+    ok(/Nessun fronte registrato/.test(senzaFro.motivo), "e la ragione lo dice: " + senzaFro.motivo);
+    const senzaBanco = terra.ripartizioneBanchi(rieB(terra.DEMO.rilievi), [{ id: "f1", nome: "A", banco: "" }]);
+    eq(senzaBanco.misurabile, false, "fronti che non dichiarano nessun banco");
+    ok(/dichiara un banco/.test(senzaBanco.motivo), "e la ragione è un'altra: " + senzaBanco.motivo);
+    eq(terra.ripartizioneBanchi(null, null).righe, [], "argomenti nulli: non un errore");
+    eq(terra.ripartizioneBanchi(null, null).misurabile, false, "e nemmeno una buona notizia");
+  });
+
+  test("⛔ Terra: l'anno di solo cumulo non fa comparire nessun banco a zero", () => {
+    /* stessa ragione di `baseOnereEscavazione`: nel 2024 la demo ha una sola
+       ripresa da cumulo e nessun rilievo del fronte */
+    const B = RB(terra.DEMO.rilievi, terra.DEMO.fronti, 2024);
+    eq(B.righe.every((r) => r.scavo === null), true, "nessun banco scrive uno zero");
+    eq(B.misurabile, false, "e il riepilogo dichiara che il 2024 non è misurato");
+    ok(/2024/.test(B.motivo), "citando l'anno: " + B.motivo);
+  });
+}
+
+/* ══ SENTINELLA · LA TARATURA DELLO STRUMENTO ══
+   Il report va all'ente e dice «conforme» sulla base di numeri scritti da uno
+   strumento. Se quello strumento non era tarato IL GIORNO DELLA MISURA, il
+   numero non è riferibile — e fino a ieri il prodotto non sapeva nemmeno la
+   domanda. Qui si difende che la risposta non sia mai tranquilla per
+   default. */
+{
+  const OGGI_T = new Date("2026-08-01T09:00:00");
+  const cert = (data, scadenza) => ({ data, scadenza, ente: "Centro LAT n. 118", certificato: "C-1" });
+  const stato = (tarature, data) => sentinella.coperturaTaratura(tarature, data).stato;
+
+  test("Sentinella: una lettura dentro la validità del certificato è coperta", () => {
+    const uno = [cert("2026-01-15", "2027-01-14")];
+    eq(stato(uno, "2026-06-01"), "coperta", "in mezzo");
+    eq(stato(uno, "2026-01-15"), "coperta", "il primo giorno è compreso");
+    eq(stato(uno, "2027-01-14"), "coperta", "e anche l'ultimo");
+    eq(sentinella.coperturaTaratura(uno, "2026-06-01").certificato.certificato, "C-1",
+       "e il certificato che copre torna a chi lo deve scrivere nel documento");
+  });
+
+  test("⛔ Sentinella: nessuna taratura registrata NON vuol dire taratura a posto", () => {
+    eq(stato([], "2026-06-01"), "non-dichiarata", "elenco vuoto");
+    eq(stato(undefined, "2026-06-01"), "non-dichiarata", "campo mai creato: uguale");
+    eq(sentinella.taratureDelReport([{ nome: "A", m: { tarature: [] }, letture: [{ data: "2026-06-01" }] }], OGGI_T).stato,
+       "non-dichiarata", "e il report intero non risponde «coperte»");
+    eq(sentinella.DICHIARAZIONI_TARATURA["non-dichiarata"].cls, "warn",
+       "il colore non è quello tranquillo");
+  });
+
+  test("⛔ Sentinella: «non coperta» si divide in due, e non si dicono allo stesso modo", () => {
+    const uno = [cert("2026-01-15", "2027-01-14")];
+    eq(stato(uno, "2027-01-15"), "scoperta", "il giorno dopo la scadenza è un problema vero");
+    eq(stato(uno, "2025-12-31"), "prima-dello-storico",
+       "prima della prima taratura registrata: lo strumento poteva essere tarato, qui non risulta");
+    ok(/non risulta/.test(sentinella.coperturaTaratura(uno, "2025-12-31").perche),
+       "e il perché lo dice senza accusare chi compila");
+  });
+
+  test("Sentinella: il buco fra due tarature è scoperto, e l'ordine in ingresso non conta", () => {
+    const due = [cert("2024-03-01", "2025-02-28"), cert("2025-06-01", "2026-05-31")];
+    eq(stato(due, "2025-04-01"), "scoperta", "in mezzo ai due certificati");
+    eq(stato(due, "2025-07-01"), "coperta", "dentro il secondo");
+    eq(stato([due[1], due[0]], "2025-04-01"), "scoperta", "elenco disordinato: stessa risposta");
+  });
+
+  test("⛔ Sentinella: una data che non esiste non allunga nessuna copertura", () => {
+    /* `Date.parse` il 30 febbraio non lo rifiuta: lo fa scivolare al 2 marzo.
+       Una taratura scritta male coprirebbe due giorni in più in silenzio. */
+    eq(stato([cert("2026-02-30", "2027-02-28")], "2026-06-01"), "non-dichiarata", "taratura col 30 febbraio");
+    eq(stato([cert("2026-01-01", "2026-13-45")], "2026-06-01"), "non-dichiarata", "scadenza inesistente");
+    eq(stato([cert("2026-06-01", "2026-01-01")], "2026-06-15"), "non-dichiarata", "intervallo alla rovescia");
+    eq(sentinella.coperturaTaratura([cert("2026-02-30", "2027-01-01")], "2026-06-01").scartate, 1,
+       "e quante ne ha scartate si vede, invece di sparire");
+    eq(stato([cert("2026-02-30", "2027-01-01"), cert("2026-01-15", "2027-01-14")], "2026-06-01"), "coperta",
+       "una rotta e una buona: vale la buona");
+    eq(stato([cert("2026-01-15", "2027-01-14")], ""), "non-dichiarata",
+       "e una lettura senza data non si può attribuire a nessuna taratura");
+  });
+
+  test("Sentinella: lo stato di oggi lo dice la funzione condivisa, non una quarta copia", () => {
+    const s = (tar) => sentinella.statoTaraturaStrumento({ tarature: tar }, OGGI_T).stato;
+    eq(s([]), "non-dichiarata", "il caso che `statoScadenzaHSE` non può conoscere");
+    eq(s([cert("2026-01-01", "2027-01-01")]), "regolare", "valida a lungo");
+    eq(s([cert("2025-08-11", "2026-08-11")]), "in-scadenza", "scade fra dieci giorni");
+    eq(s([cert("2024-01-01", "2025-01-01")]), "scaduta", "già scaduta");
+    eq(s([cert("2026-01-01", "2027-01-01"), cert("2024-01-01", "2025-01-01")]), "regolare",
+       "vale l'ULTIMA taratura, non la prima dell'elenco");
+    for (const sc of ["2027-01-01", "2026-08-11", "2025-01-01"])
+      eq(sentinella.statoTaraturaStrumento({ tarature: [cert("2024-01-01", sc)] }, OGGI_T).stato,
+         ponti.statoScadenzaHSE(sc, OGGI_T),
+         `la risposta è la stessa di ponti.statoScadenzaHSE per ${sc}`);
+    ok(Object.keys(sentinella.STATI_TARATURA).length === 5,
+       "e la mappa dei badge copre tutti gli stati che la funzione sa dire (regola 18)");
+    for (const k of ["regolare", "in-scadenza", "scaduta", "senza data", "non-dichiarata"])
+      ok(sentinella.STATI_TARATURA[k], `manca il badge per «${k}»: la pagina morirebbe al disegno`);
+  });
+
+  test("Sentinella: il riepilogo delle tarature del report, caso per caso", () => {
+    const p = (nome, tarature, date) => ({ nome, m: { nome, tarature }, letture: date.map(d => ({ data: d })) });
+    const buono = [cert("2026-01-01", "2027-01-01")];
+    eq(sentinella.taratureDelReport([], OGGI_T).stato, "senza-letture", "niente da verificare");
+    eq(sentinella.taratureDelReport([p("A", buono, ["2026-06-01"])], OGGI_T).stato, "coperte", "tutte coperte");
+    eq(sentinella.taratureDelReport([p("A", [cert("2026-01-01", "2026-05-01")], ["2026-06-01"])], OGGI_T).stato,
+       "scoperte", "una fuori copertura");
+    eq(sentinella.taratureDelReport([p("A", buono, ["2026-06-01"]), p("B", [], ["2026-06-01"])], OGGI_T).stato,
+       "parziale", "metà coperte e metà non note");
+    eq(sentinella.taratureDelReport([p("A", buono, ["2026-06-01"]), p("B", [cert("2020-01-01", "2020-02-01")], ["2026-06-01"])], OGGI_T).stato,
+       "scoperte", "⛔ una sola scoperta batte tutte le coperte: è quella che va detta");
+    eq(sentinella.taratureDelReport([p("A", buono, ["2026-06-01", "2025-01-01"])], OGGI_T).perPunto[0],
+       { nome: "A", coperte: 1, scoperte: 0, nonNote: 1, oggi: "regolare" },
+       "e il conto punto per punto");
+    for (const k of ["coperte", "parziale", "non-dichiarata", "scoperte", "senza-letture"])
+      ok(sentinella.DICHIARAZIONI_TARATURA[k], `manca la frase per «${k}»`);
+  });
+
+  test("⛔ Sentinella: la taratura sta ACCANTO all'esito, non dentro", () => {
+    /* Sono due domande diverse — «le misure hanno superato il limite?» e «di
+       chi erano quelle misure?». Mescolarle vorrebbe dire cambiare un
+       giudizio di conformità per un dato amministrativo. */
+    const mon = [{ id: "x", nome: "P", soglia: 10, unita: "mm/s",
+                   letture: [{ data: "2026-06-10", valore: 2 }] }];
+    const senza = sentinella.reportConformita({ monitoraggi: mon, dal: "2026-06-01", al: "2026-06-30", oggi: "2026-08-01" });
+    const con = sentinella.reportConformita({
+      monitoraggi: [{ ...mon[0], tarature: [cert("2026-01-01", "2027-01-01")] }],
+      dal: "2026-06-01", al: "2026-06-30", oggi: "2026-08-01" });
+    eq([senza.esito, con.esito], ["conforme", "conforme"], "l'esito sulle soglie non si muove");
+    eq(senza.tarature.stato, "non-dichiarata", "ma senza certificati il report lo dichiara");
+    eq(con.tarature.stato, "coperte", "e con il certificato pure");
+  });
+
+  test("Sentinella: la dimostrazione contiene il caso che questa difesa serve a raccontare", () => {
+    /* `run-demo` pretende dati integri, non dati SENZA STATI: una fattura
+       senza scadenza e uno strumento con un buco di taratura sono cose che il
+       prodotto sa dire, e toglierle dalla demo vorrebbe dire non mostrarle. */
+    const r = sentinella.reportConformita({ monitoraggi: sentinella.DEMO.monitoraggi, ricettori: sentinella.DEMO.ricettori,
+                                            dal: "2026-06-01", al: "2026-07-31", oggi: "2026-08-01" });
+    eq(r.tarature.stato, "scoperte", "c'è una lettura nel buco fra le due tarature di V2");
+    eq(r.tarature.scoperte, 1, "una sola, quella del 06/07");
+    ok(r.tarature.nonNote > 0, "e ci sono punti senza nessuna taratura registrata, che è l'altro caso vero");
+    ok(r.tarature.coperte > 0, "insieme a letture regolarmente coperte");
+    eq(r.tarature.coperte + r.tarature.scoperte + r.tarature.nonNote, r.nLetture,
+       "⛔ e i tre conti coprono TUTTE le letture: nessuna sparisce per strada");
   });
 }
 

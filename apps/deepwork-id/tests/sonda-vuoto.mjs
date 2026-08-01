@@ -266,6 +266,14 @@ const VOCABOLARIO_MANCANTE = [
   [/^Senza frequenza$/, "un'IMPOSTAZIONE che manca (ogni quanti giorni), non una misura"],
   [/^senza data$/, "il record non porta una data — convenzione di Flotta, Scudo e Terra"],
   [/ n\.?d\.$/, "un GIUDIZIO che non si può dare per mancanza di dati (idoneità, accuratezza)"],
+  /* ⛔ LE DUE DELLA TARATURA, e il prefisso NON è ridondanza (01/08). Stanno
+     su un badge che vive ACCANTO a quello dello stato della misura, sulla
+     stessa riga del punto: «Senza data» nudo si legge come «la misura non ha
+     data», che è un'altra cosa e per di più falsa. Il nome dell'oggetto è
+     l'unica parte che disambigua, quindi la famiglia è dichiarata invece di
+     essere schiacciata su quella che c'era. */
+  [/^Taratura senza data$/, "il CERTIFICATO di taratura di uno strumento porta una data illeggibile — stessa portata di «senza data», ma il badge convive con quello della misura e senza il nome dell'oggetto direbbe un'altra cosa"],
+  [/^Taratura non dichiarata$/, "per lo strumento non esiste NESSUN certificato registrato: diverso da «Mai misurato», che parla del punto e non dello strumento, e diverso da «senza data», che presuppone un record"],
 ];
 /* ⚠️ IL FILTRO È IL PUNTO DEBOLE, e lo si è scoperto con la controprova. La
    prima versione cercava `manca|senza dat|mai misur|non misur|n.d.` — cioè

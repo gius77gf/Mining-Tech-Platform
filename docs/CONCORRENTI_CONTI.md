@@ -306,3 +306,61 @@
 - Fido dinamico con auto-hold, non solo massimale fisso
 - Confronto cavato/venduto con analisi di scarto/perdita per fase
 
+
+---
+
+## Verifica del delta (01/08)
+
+*Ogni riga marcata «Non c'è» o «C'è a metà» nella tabella §2 e ogni riga della
+tabella §3 è stata riaperta sul codice. Le righe che comparivano in tutt'e due
+le tabelle (solleciti, aging, note di credito, listini, preventivi, firma
+digitale, bilancia, sconto volume) sono contate **una volta sola**: 18 righe
+distinte.*
+
+| Funzione | Verdetto | Prova |
+|---|---|---|
+| Fattura elettronica SDI | **CONFERMATO ASSENTE** (ma la nota del documento è sbagliata) | Cercati `fatturapa`, `xml`, `p7m`, `fattura elettronica`, `codice destinatario`, `SDI` in `conti-data.js` e `conti/index.html`: **nessuna generazione né trasmissione del tracciato**. La nota «né UI» è però falsa: il campo esiste ed è compilabile — `clienti.sdi` (codice destinatario o PEC) è documentato a `conti-data.js:7`, valorizzato nella dimostrazione (100-101) e ha il suo campo nel form (`index.html:1147-1150`) con la ricerca che ci passa sopra (1898). Manca il **file XML** e l'invio. |
+| Note di credito / debito | **FALSO, C'È GIÀ** — ed è la falsa più grossa di questo documento | Impianto completo su **art. 26 DPR 633/1972**: `CAUSALI_NOTA` con il **comma** e il **termine di 12 mesi** per ogni causale (`conti-data.js:1751-1758`), `causaleNota` (1759), `validaNota` (1864), `notaDaFattura` (1901), `stornatoDi` (1828), `statoFattura` che tiene conto dello storno (1843). Nella pagina: sezione **«Note di credito»** sotto le fatture (`index.html:669`), badge «Stornata / Stornata N%» sulla fattura (1626-1635), e le note che **abbassano imponibile e IVA del periodo** con le due cifre tenute separate per il commercialista (1854-1871). Lo storno entra anche in `apertoDi` (1122), quindi in aging ed esposizione. Esiste pure la ricerca dedicata: `docs/RICERCA_NOTE_DI_CREDITO_202608.md`. |
+| Preventivi e ordini | **CONFERMATO ASSENTE** | Cercati `preventiv`, `ordine cliente`, `ordini clienti`, `conferma d'ordine`, `quote` in `conti-data.js` e `conti/index.html`: zero occorrenze. Il ciclo parte dalla pesata/DDT. |
+| Firma digitale documenti | **CONFERMATO ASSENTE** | Cercati `firma digitale`, `firma grafometrica`, `firmato digitalmente`, `firma` in `conti-data.js` e `conti/index.html`: zero. |
+| Listini differenziati per cliente | **C'È A METÀ** | *C'è*: la differenziazione **per cliente** esiste ed è quella della prassi italiana — `clienti.sconto` %, validato da `scontoValido` (`conti-data.js:1271`) e applicato in `imponibileRiga(quantita, prezzoUnitario, scontoPct)` (1280), con il DDT che stampa **prezzo di listino e sconto separati** invece del netto (nota a 1268-1270). *Manca*: **più listini** nominati e assegnabili — c'è un solo listino prodotti (`prodotti/{id}`, import da `parseListinoCsv`, 527) e nessun campo che leghi un cliente a un listino; cercati `listaAssegnata`, `prezzoCliente`, `listino cliente`: zero. |
+| Prezzi dinamici per volume / sconto quantità | **CONFERMATO ASSENTE** | Cercati `scaglion`, `sconto volume`, `quantita minima`, `fascia di quantità`, `tier` in `conti-data.js` e `conti/index.html`: zero. Lo sconto è una sola percentuale per cliente, indipendente dalla quantità (`imponibileRiga`, 1280). |
+| Pesa / bilancia digitale (driver hardware) | **CONFERMATO ASSENTE** | Cercati `bilancia`, `pesa ponte`, `weighbridge`, `seriale`, `webserial`, `driver`: le sole occorrenze sono testuali (il segnaposto «come sulla bilancia» sul campo del lordo, `index.html:795`, e l'icona `bilancia` a 1439). Le pesate si digitano: `nettoPesata` (1258), `rigaPesata` (1296), lordo/tara a mano. |
+| e-ticketing per DDT | **CONFERMATO ASSENTE** | Cercati `e-ticket`, `eticket`, `ticket elettronico` in `conti-data.js` e `conti/index.html`: zero. Il DDT esiste ma si **stampa** (`mancanzeDdt`, 1809; `CAUSALI_TRASPORTO`, 1782; `TRASPORTO_A_CURA`, 1795). |
+| Scadenza e fasce di scaduto — dichiarata «C'è a metà, logica di UI non scritta» | **FALSO: la UI c'è** | `statoScadenzaFattura` (`conti-data.js:405`) e `agingIncassi` (417) sono **disegnate**: sezione «Aging incassi — crediti aperti per ritardo» (`index.html:1277-1279`), calcolo e righe a 2110-2138, grafico a barre delle fasce a 2150-2174, totale «da sollecitare» a 2138. |
+| Solleciti di pagamento automatici | **FALSO, C'È GIÀ** (già segnalato nell'avviso in testa, qui confermato con le righe) | `livelloSollecito(giorniRitardo)` (`conti-data.js:584`), `testoSollecito` (614), `interessiMora` (574) con `TASSO_MORA_DEFAULT = 10,15%` e `SPESE_RECUPERO_231 = 40 €` ex art. 6 D.Lgs 231/2002 (571-572), `estrattoContoCliente` per il cliente con più fatture aperte (761). Nella pagina: bottone **«Sollecito»** su ogni fattura in ritardo (`index.html:1826`) e sezione **«Priorità: chi sollecitare per primo»** (635, da `prioritaIncasso`, 870). |
+| Aging report / anzianità crediti | **FALSO, C'È GIÀ** | `agingIncassi` (`conti-data.js:417`) con le fasce **non scaduto / 1-30 / 31-60 / 61-90 / oltre 90** e `scadutoTot`, calcolate sul **residuo** (`apertoDi`, 1122) e non sul nominale. Ha anche il secchio **`senzaScadenza`** — una fattura senza data non finisce nella fascia tranquilla — che è più di quanto facciano i concorrenti citati. Reso a `index.html:2110-2174`. Manca solo il **trend storico** promesso in §4.2 (l'aging è una fotografia di oggi). |
+| Fido vs esposizione (alert quando si sfora) | **FALSO, C'È GIÀ** | `esposizioneClienti` (`conti-data.js:729`) somma il residuo per cliente e restituisce **`oltreFido`** (747), con il fido letto dall'anagrafica (740). Nella pagina: sezione «Esposizione per cliente (chi chiamare per primo)» (`index.html:1286`), grafico a barre con la **tacca verticale del fido** e il caso «senza fido» disegnato diverso (402-428), e la striscia di stato **rossa** sul cliente oltre fido (1906). Il campo si compila da `cl-fido` (1162-1165). Manca solo l'**auto-hold** sugli ordini (che non esistono). |
+| Riconciliazione bancaria | **CONFERMATO ASSENTE** | ⚠️ In Conti la parola `riconciliazione` è **già occupata**: `riconciliazione(rilievi, pesate, dal, al)` (`conti-data.js:1622`) confronta **cavato e venduto**, non la banca. Cercati `estratto conto bancario`, `CBI`, `movimenti bancari`, `banca`, `SEPA`: nessuna traccia di flussi bancari. Gli incassi si registrano a mano (`incassi/{id}`, `movimentiDiFattura`, 1048). |
+| Export contabilità | **C'È A METÀ** | *C'è*: sei export CSV — fatture con imponibile/aliquota/IVA/totale/incassato/residuo/giorni di pagamento (`index.html:3886-3900`, `conti_situazione_fatture.csv`), pesate (845), costi (967), listino e prezzi convertiti (989, 1044), clienti (1175), gare (1219), incassi (1290). *Manca*: un tracciato **per il programma del commercialista** (prima nota / import Danea-TeamSystem): l'export è una tabella leggibile, non un formato di scambio. |
+| Ritenuta d'acconto | **CONFERMATO ASSENTE** | Cercato `ritenuta` in `conti-data.js`, `conti/index.html` e `shared/dw-ponti.js`: zero occorrenze. `importiFattura` (972) e `totaliDaRighe` (991) trattano solo imponibile, IVA e totale. |
+| Foto prodotto | **CONFERMATO ASSENTE** | Cercati `foto prodotto`, `immagine prodotto`, `foto` nel modulo prodotti: zero. `prodotti/{id}` porta nome, unità, prezzo, densità, IVA (`prezzoPerTonnellata` 935, `prezzoPerMetroCubo` 942). |
+| Gestione magazzino / giacenze prodotto | **CONFERMATO ASSENTE** | Cercati `giacenz`, `magazzin`, `inventario`, `carico/scarico`, `FIFO` in `conti-data.js` e `conti/index.html`: le uniche occorrenze parlano dell'**opposto** — la riconciliazione avverte esplicitamente che un divario positivo «**non è una scorta**» finché non si è controllato (`index.html:3415-3421`, 3007). *Nota d'ecosistema*: la giacenza esiste in **Flotta**, ma sui ricambi d'officina (`sottoScorta`, `flotta-data.js:625`; `puntoDiRiordino`, 1805; `propostaScorte`, 1823), non sul venduto. |
+| Gestione permessi / ruoli | **CONFERMATO ASSENTE** | Cercati `ruolo`, `ruoli`, `permess`, `admin`, `amministratore` in `conti-data.js` e `conti/index.html`: le occorrenze sono messaggi d'errore («non hai il permesso di vedere i rilievi di Terra», 1998), non un modello di ruoli. L'isolamento è **per organizzazione**, non per persona — coerente con quanto già dichiarato in `CLAUDE.md`: dentro l'organizzazione i ruoli sono una **decisione aperta**, non un difetto di `appId`. |
+
+### Riepilogo numerico — Conti
+
+| | |
+|---|---|
+| Righe verificate | **18** |
+| Confermate assenti | **11** |
+| False (c'era già) | **5** |
+| A metà | **2** |
+
+**Cinque righe su diciotto erano false — quasi una su tre**, e quattro di esse
+(note di credito, aging, fido vs esposizione, fasce di scaduto) descrivono
+funzioni **finite, disegnate e collegate fra loro**: lo storno di una nota di
+credito entra in `apertoDi`, che è il residuo su cui l'aging e l'esposizione
+fanno i loro conti. Erano quattro cantieri pronti ad aprirsi su codice esistente.
+
+### La mancanza confermata più importante — Conti
+
+**La riconciliazione bancaria.** Non perché sia la più citata, ma perché è
+l'unico punto in cui oggi qualcuno deve **ridigitare** un dato che esiste già
+altrove: l'incasso arriva in banca e in Conti va riscritto a mano, riga per
+riga, e finché non lo si riscrive l'aging e i solleciti — che sono costruiti
+bene — lavorano su un residuo vecchio.
+
+È anche la mancanza che degrada il resto: un sollecito con la mora ex D.Lgs
+231/2002 calcolata su una fattura in realtà già pagata non è un dettaglio
+sbagliato, è una lettera sbagliata mandata a un cliente.
