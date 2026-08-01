@@ -187,18 +187,39 @@ export const DEMO = {
   //  · c1/c4 sono voci `daMezzo`: Flotta le registra già, e chi somma deve
   //    saperlo per non contarle due volte.
   costi: [
-    { id: "c1", data: "2026-02-14", voce: "carburante", importo: 148, nota: "Gasolio pala e dumper" },
-    { id: "c2", data: "2026-02-28", voce: "personale", importo: 310, nota: "Squadra di fronte, febbraio" },
-    { id: "c3", data: "2026-03-20", voce: "esplosivo", importo: 96, nota: "Volata del 18 marzo" },
-    { id: "c4", data: "2026-04-08", voce: "manutenzione", importo: 74, nota: "Denti benna + filtri" },
-    { id: "c5", data: "2026-04-30", voce: "energia", importo: 132, nota: "Bolletta impianto, bimestre" },
-    { id: "c6", data: "2026-05-15", voce: "lavorazione", importo: 205, nota: "Vagliatura conto terzi" },
-    { id: "c7", data: "2026-06-30", voce: "canone", importo: 98, nota: "Canone di escavazione, primo semestre" },
-    { id: "c8", data: "2026-06-30", voce: "consulenze", importo: 60, nota: "Perizia geologica (voce fuori elenco)" },
-    { id: "c9", data: "", voce: "ripristino", importo: 120, nota: "Fattura del vivaista, data da recuperare" },
-    { id: "c10", data: "2026-07-12", voce: "personale", importo: 330, nota: "Squadra di fronte, luglio" },
-    { id: "c11", data: "2026-07-18", voce: "carburante", importo: 161, nota: "Gasolio, secondo rifornimento" },
-    { id: "c12", data: "2026-07-25", voce: "generali", importo: 88, nota: "Assicurazioni e amministrazione" },
+    // GENNAIO–LUGLIO, con le voci che tornano ogni mese: è così che si presenta
+    // il registro di una cava vera, e serve anche a far vedere la CHIUSURA DEL
+    // MESE — che senza voci ricorrenti non ha niente da chiedere.
+    { id: "c01", data: "2026-02-05", voce: "personale", importo: 55, nota: "Squadra di fronte, febbraio" },
+    { id: "c02", data: "2026-02-14", voce: "carburante", importo: 26, nota: "Gasolio pala e dumper" },
+    { id: "c03", data: "2026-02-28", voce: "energia", importo: 62, nota: "Bolletta impianto, gen-feb" },
+    { id: "c04", data: "2026-03-05", voce: "personale", importo: 58, nota: "Squadra di fronte, marzo" },
+    { id: "c05", data: "2026-03-13", voce: "carburante", importo: 24, nota: "Gasolio, rifornimento" },
+    { id: "c06", data: "2026-03-18", voce: "esplosivo", importo: 48, nota: "Volata del 18 marzo" },
+    { id: "c07", data: "2026-03-26", voce: "manutenzione", importo: 40, nota: "Denti benna + filtri" },
+    { id: "c08", data: "2026-04-06", voce: "personale", importo: 60, nota: "Squadra di fronte, aprile" },
+    { id: "c09", data: "2026-04-15", voce: "carburante", importo: 28, nota: "Gasolio, rifornimento" },
+    { id: "c10", data: "2026-04-30", voce: "energia", importo: 66, nota: "Bolletta impianto, mar-apr" },
+    { id: "c11", data: "2026-04-22", voce: "lavorazione", importo: 100, nota: "Vagliatura conto terzi" },
+    { id: "c12", data: "2026-05-06", voce: "personale", importo: 57, nota: "Squadra di fronte, maggio" },
+    { id: "c13", data: "2026-05-14", voce: "carburante", importo: 25, nota: "Gasolio, rifornimento" },
+    { id: "c14", data: "2026-05-21", voce: "esplosivo", importo: 52, nota: "Volata del 20 maggio" },
+    { id: "c15", data: "2026-06-04", voce: "personale", importo: 62, nota: "Squadra di fronte, giugno" },
+    { id: "c16", data: "2026-06-12", voce: "carburante", importo: 27, nota: "Gasolio, rifornimento" },
+    { id: "c17", data: "2026-06-25", voce: "manutenzione", importo: 34, nota: "Tagliando escavatore" },
+    { id: "c18", data: "2026-06-30", voce: "energia", importo: 70, nota: "Bolletta impianto, mag-giu" },
+    { id: "c19", data: "2026-06-30", voce: "canone", importo: 98, nota: "Canone di escavazione, primo semestre" },
+    // ⛔ voce FUORI ELENCO: finisce fra le «non classificate», non fra le spese
+    //    generali — un'etichetta che nessuno ha scelto
+    { id: "c20", data: "2026-06-30", voce: "consulenze", importo: 60, nota: "Perizia geologica (voce fuori elenco)" },
+    { id: "c21", data: "2026-07-06", voce: "personale", importo: 59, nota: "Squadra di fronte, luglio" },
+    { id: "c22", data: "2026-07-16", voce: "carburante", importo: 30, nota: "Gasolio, secondo rifornimento" },
+    { id: "c23", data: "2026-07-20", voce: "lavorazione", importo: 105, nota: "Frantumazione conto terzi" },
+    { id: "c24", data: "2026-07-25", voce: "generali", importo: 88, nota: "Assicurazioni e amministrazione" },
+    // ⛔ SENZA DATA: non sparisce da un periodo in silenzio, si conta a parte
+    { id: "c25", data: "", voce: "ripristino", importo: 120, nota: "Fattura del vivaista, data da recuperare" },
+    /* A luglio manca l'ENERGIA, che negli altri mesi c'è tre volte su cinque:
+       è la riga che la chiusura del mese chiede di confermare. */
   ],
   // canone di escavazione: l'aliquota NON è cablata, cambia da regione a regione.
   impostazioni: [

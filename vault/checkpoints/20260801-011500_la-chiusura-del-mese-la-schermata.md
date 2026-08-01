@@ -81,3 +81,35 @@ prova quello che fa comodo.
 
 Poi, con le funzioni già provate in banco: i **lotti di Terra** (13 prove) e
 l'**analisi della causa** in Scudo (12 prove).
+
+---
+
+## Aggiornamento — la dimostrazione ora mostra la funzione *(01/08, stessa sera)*
+
+I costi d'esempio sono diventati **ricorrenti**, come in una cava vera:
+personale e carburante ogni mese da febbraio a luglio, energia bimestrale,
+esplosivo sulle volate, canone semestrale. Restano i tre casi che insegnano
+qualcosa: la voce **fuori elenco**, quella **senza data**, e le voci che
+**Flotta registra già**.
+
+Effetto: a luglio manca l'**energia**, che negli altri mesi c'è tre volte su
+cinque — quindi la chiusura ha finalmente una domanda da fare, e la si vede.
+
+Tutti i numeri sono stati **ricalcolati dai dati**, non aggiustati: totale
+anno **€ 1.334,00**, costo **7,49 €/m³** su 178 m³, due voci fuori
+dall'intervallo dei rilievi per **€ 81,00**.
+
+⚠️ E il banco è stato **slegato dai letterali**: confrontava il totale con
+«1702 + 1250,50», cioè col totale del giorno in cui era stato scritto. Bastava
+migliorare la dimostrazione — una cosa che serviva al prodotto — e la prova
+sarebbe caduta accusando un difetto inesistente. È lo stesso invecchiamento
+della data nella sonda del vuoto, trovato oggi. Ora il totale di prima si
+**legge dallo schermo** e si controlla il **delta**.
+
+⚠️ E un difetto di testo, che è la **seconda volta in questa stessa schermata**:
+`plur` scrive anche il numero, e veniva fuori «in luglio 2026 **1** manca una
+voce». `plur` serve a contare, non a scegliere fra due frasi — e la tentazione
+torna ogni volta che una frase ha singolare e plurale.
+
+`registro-costi.mjs` **40 su 40**, controprova 10 cadute su 4 iniezioni; tutte
+le suite `node` verdi.

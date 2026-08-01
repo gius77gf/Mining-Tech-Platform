@@ -3024,7 +3024,12 @@ label.item:has(.dw-chk:checked){
        altri mesi: spuntarle vuol dire «questo mese non c'è, ed è giusto», ed è
        una RISPOSTA, che è la differenza fra una chiusura e una spunta. */
     $("chi-conferme").innerHTML = (man.mancanti.length
-      ? `<div class="note">Rispetto agli altri mesi, in ${esc(parlante)} ${plur(man.mancanti.length, "manca una voce", "mancano voci")}. Spunta quelle che <b>non ci sono davvero</b>; le altre inseriscile prima di chiudere.</div>`
+      /* ⚠️ `plur` scrive ANCHE il numero: qui veniva fuori «in luglio 2026 1
+         manca una voce». È la SECONDA volta in questa stessa schermata, a poche
+         ore di distanza — `plur` serve a contare, non a scegliere fra due
+         frasi, e la tentazione di usarlo così torna ogni volta che la frase ha
+         un singolare e un plurale. */
+      ? `<div class="note">Rispetto agli altri mesi, in ${esc(parlante)} ${man.mancanti.length === 1 ? "manca una voce" : "mancano " + man.mancanti.length + " voci"}. Spunta ${man.mancanti.length === 1 ? "se non c'è" : "quelle che non ci sono"} <b>davvero</b>; ${man.mancanti.length === 1 ? "altrimenti inseriscila" : "le altre inseriscile"} prima di chiudere.</div>`
         /* ⚠️ La riga INTERA è la casella, come nella fattura differita: è
            l'idioma che Conti ha già (`label.item` + `.dw-chk`, con la riga che
            si accende quando è spuntata). Avevo inventato una classe

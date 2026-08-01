@@ -65,7 +65,8 @@ const srv = createServer((q, s) => {
      sbaglio più facile da fare — `cavatoPeriodo` restituisce due numeri e
      sommarli sembra «prendere tutto» — e gonfia il denominatore, quindi il
      costo al metro cubo esce più BASSO del vero: la notizia che si vuole
-     leggere. Qui 178 diventerebbero 200, e 9,56 €/m³ diventerebbero 8,51. */
+     leggere: 178 m³ diventerebbero 200, e il costo unitario scenderebbe
+     di circa un decimo senza che niente lo segnali. */
   if (CONTROPROVA && p.endsWith("apps/conti/conti-data.js")) {
     corpo = Buffer.from(rimetti(corpo.toString("utf8"),
       "return { ...base, m3: c.m3, usabile: true, motivo: \"\" };",
@@ -207,8 +208,8 @@ const m3pieno = await misura(() => {
        EFFETTIVA, non il testo scritto nel sorgente */
     maiuscola: u ? getComputedStyle(u).textTransform === "uppercase" : false };
 });
-dice(!!m3pieno && /9,56/.test(m3pieno.num || ""),
-  "col volume il conto esce (1.702,00 / 178 = 9,56)", m3pieno);
+dice(!!m3pieno && /^\u20ac\s?\d+,\d{2}$/.test((m3pieno.num || "").replace("/m³", "").trim()),
+  "col volume il conto esce, e ha due decimali come una cifra in euro", m3pieno);
 dice(!!m3pieno && /m³/.test(m3pieno.unita || "") && m3pieno.maiuscola === false,
   "e l'unità è al suo posto, minuscola", m3pieno);
 
@@ -254,6 +255,13 @@ dice(/nessun periodo|resta fuori/.test(senzaData.msg || ""),
   "senza data il costo non si registra, e il messaggio dice perché", senzaData);
 
 const prima = Number((await pg.textContent("#cos-cnt")) || 0);
+/* ⚠️ Il totale di PRIMA si legge dallo schermo, non si scrive a mano. La prima
+   versione confrontava con «1702 + 1250,50», cioè col totale dei dati d'esempio
+   del giorno in cui è stata scritta: bastava rendere ricorrenti i costi della
+   dimostrazione — cosa che serviva al prodotto — e la prova cadeva accusando
+   un difetto che non c'era. Una prova legata a un letterale invecchia come la
+   data della sonda del vuoto. */
+const totalePrima = soldi(await pg.textContent("#cos-riep .cassa-num"));
 await pg.fill("#co-data", "2026-07-30");
 await pg.fill("#co-imp", "1.250,50");
 await pg.fill("#co-nota", "Prova del banco");
@@ -264,7 +272,8 @@ const dopo = await misura(() => ({ conto: Number(document.getElementById("cos-cn
   num: (document.querySelector("#cos-riep .cassa-num") || {}).textContent || "" }));
 dice(dopo.conto === prima + 1, "un costo registrato entra subito nel conto", { prima, dopo: dopo.conto });
 dice(/1\.250,50/.test(dopo.esito || ""), "e l'esito ripete l'importo letto, in italiano", dopo && dopo.esito);
-dice(Math.abs(soldi(dopo.num) - (1702 + 1250.5)) < 0.01, "e il totale sale di quell'importo", dopo && dopo.num);
+dice(Math.abs(soldi(dopo.num) - (totalePrima + 1250.5)) < 0.01,
+  "e il totale sale ESATTAMENTE di quell'importo", { prima: totalePrima, dopo: dopo && dopo.num });
 dice(errori.length === 0, "e nessun errore in pagina alla fine", errori.slice(0, 2));
 
 /* ── 9. IL DENOMINATORE PRESO DA TERRA, E LA SUA PROVENIENZA ─────────────
